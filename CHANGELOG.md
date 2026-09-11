@@ -4,25 +4,6 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Fixed
-
-- **Python 3.10 support (CI-found, C5).** `tests/unit/test_cli.py` imported
-  `tomllib`, which is stdlib only from 3.11 — on the declared minimum Python
-  (3.10) the import raised `ModuleNotFoundError` and **aborted collection, so
-  zero tests ran on 3.10**. Replaced with a `sys.version_info` shim that falls
-  back to `tomli`, and added `tomli>=2.0; python_version < '3.11'` to the dev
-  extra. Local verification is impossible here (only 3.13 is installed); the
-  guard is the 3.10 job in the CI matrix.
-
-### Changed
-
-- **Chinese README is now the default landing page.** `README_CN.md` →
-  `README.md`; the English version moved to `README_EN.md`, with the badge set
-  mirrored onto the Chinese page and all cross-references updated
-  (`MANIFEST.in`, `CITATION.cff`, `docs/STATUS.md`).
-
 ## [7.0.0] — 2026-09-10
 
 Major release. Triggered by an external audit of `adi_model_release_v6.1`
@@ -98,6 +79,14 @@ defects detectable by CI instead of by peer review.
 
 ### Fixed
 
+- **C5 — Python 3.10 support (found by CI, not reproducible locally).**
+  `tests/unit/test_cli.py` imported `tomllib`, which is stdlib only from 3.11.
+  On the declared minimum Python (3.10) this raised `ModuleNotFoundError`, and
+  because pytest aborts on a collection error, **zero of the 134 tests ran on
+  3.10** — the job failed with no signal about the rest of the suite. Replaced
+  with a `sys.version_info` shim falling back to `tomli`, and added
+  `tomli>=2.0; python_version < '3.11'` to the dev extra. Verified by the 3.10
+  CI job (now `success`); only CPython 3.13 exists on the development machine.
 - **A01 — first-stage resolution.** v6.1 resolved only 64 first-stage levels
   (`b1=6`, Δ1 = 93.75 mV) while describing itself as "9b in the first stage".
   The reading is now an explicit, self-describing field `stage1_reading`, and
@@ -210,6 +199,12 @@ defects detectable by CI instead of by peer review.
 
 ### Changed
 
+- **Chinese README is now the default landing page.** `README_CN.md` →
+  `README.md`; the English version moved to `README_EN.md`. The badge set
+  (Python / ruff / mypy / tests) was mirrored onto the Chinese page so the
+  default entry point is not thinner than the English one, and every
+  cross-reference was updated (`MANIFEST.in`, `CITATION.cff`, `docs/STATUS.md`).
+  Internal anchors verified in both files (16 links each, 0 dangling).
 - **Sub-weight-induced INL is now derived, not hard-coded.** With the
   7b + 2b reading, `units_per_lsb1 (4) < n_sub (8)`, so the sub-array *is*
   code-modulated and its lumped node parasitics produce a deterministic

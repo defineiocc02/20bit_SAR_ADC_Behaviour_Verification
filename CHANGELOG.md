@@ -14,6 +14,17 @@ adjudication: `docs/review_response_2026-09-11d.md`. All 17 findings
 adjudicated: 13 confirmed, 2 confirmed with qualification, 1 accepted as
 roadmap, 1 self-found inconsistency (below). No reference output change.
 
+### Added
+
+- **`docs/engineering_vs_patents_papers.md`** — module-by-module engineering
+  ↔ literature comparison: maps every code module back to its source in [00]
+  and patents [09]–[14] with an explicit alignment status (aligned /
+  mechanism-aligned-different-calibre / not implemented), the
+  engineering-only methodology layer (provenance grading, charge_ref,
+  digital/analog boundary, acceptance gates), the [12]/[13]/[14] gaps, and
+  the citation-compliance statement. Citation entries only; no third-party
+  text redistributed.
+
 ### Fixed
 
 - **`noise_phase.kappa_optimal` minimised the wrong objective.** It returned

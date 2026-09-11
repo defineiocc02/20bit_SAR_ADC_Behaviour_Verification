@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.6] — 2026-09-11
+
+### Added
+
+- **`docs/key_technologies.md`** — the ten key technologies of this model,
+  each with the concrete principle (with formulas), the code location, the
+  counterexample that shows why it matters, and the pinning test: charge-
+  consistent loop (T1), exact two-floating-node segmented-DAC solution and
+  the input-referred unification (T2, the 0.9972 calibre gap), nominal/
+  physical evaluation split (T3), sampling-state dither with three paired
+  elements (T4), the DEM valid/invalid domain incl. the 64 joint
+  permutation space (T5), rank-aware calibration observability (T6),
+  per-phase noise transfer and KTC cancellation (T7), code-dependent
+  dynamic-error triad (T8), physical slice-pool causality (T9), and the
+  methodology layer — dual-implementation bitwise equivalence, independent
+  charge truth, runtime provenance grading, acceptance gates,
+  `xfail(strict=True)` discipline (T10). Documentation only; no code or
+  reference-output change.
+
 ## [7.0.5] — 2026-09-11
 
 Response to a **fifth external review** (fixed at the v7.0.4 commit

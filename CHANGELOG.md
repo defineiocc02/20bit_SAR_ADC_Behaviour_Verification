@@ -4,6 +4,56 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.7] — 2026-09-11
+
+Response to a **sixth external review** (fixed at `c0787dd`): adjudication of
+the release quality and the comparison document's wording.
+`docs/review_response_2026-09-11e.md` — all 10 findings adjudicated
+(E1–E6 confirmed and fixed, E7–E9 confirmed as-is, E10 accepted as the
+next milestone's sole goal).
+
+### Fixed
+
+- **[12] patent number was wrong.** `US 10,797,889 B1` →
+  **`US 10,707,889 B1`** (verified three ways: the uploaded PDF's filename,
+  the review's quotation of its front page, and an independent patent-db
+  entry — ADI International, Bodnar/Hurrell/Ahmad, 2020-07-07). Fixed in
+  `NOTICE` and in both places of `docs/engineering_vs_patents_papers.md`.
+- **The comparison document's "✅ aligned" column mixed locally-true
+  principles with main-path implementation status** (sixth review §2):
+  the 18-slice row is now split into three (scheduler invariants ✅ /
+  PhysicalSlicePool verified but not wired ✅ / main-path 8-of-18
+  charge–weight–gain linkage ⚠️); the 31 dB / 42 dB stage-19 numbers are
+  annotated as **non-causal-shuffle implementation results, not physical
+  architecture benefit**; the shared-RA row now states that the main entry
+  passes a constant `c_sig` to `gain_vector` (pipeline.py:348–354) —
+  interface capability ≠ execution; the AZ row is reclassified as a
+  disclosed-effect **budget model**, not circuit-structure alignment; the
+  4.6875 mV SADC margin is labelled a configuration-conditional derived
+  value, not a patent-disclosed tolerance.
+
+### Added
+
+- **`docs/reproduction_results.md`** — preliminary simulation evidence
+  mapping disclosures to model outputs, every row carrying the
+  `results.json` record key and the parameter grade: 11 quantitative rows
+  (kT/C 20.10 µV derived from the disclosed 20.5 pF; 2b dither enhancement
+  reproduced as derived = 2.0 bit with 92.6 % absorption; SADC self-healing
+  window predicted 4.6875 mV vs measured 4.4531 mV; α closure to 1.1e-16;
+  charge closure to 1.06e-25 C; AZ budget model internally consistent to
+  0.006 dB; same-seed reproducibility exactly 0.0), 10 mechanism rows
+  (interleave spur positions; shuffle 31.4 dB *with the non-causal
+  qualification*; dynamic-error triad explaining the 2.2 LSB INL gap
+  conditionally at ρ=0.035 → 2.06 LSB; DEM nominal conservation; DEM
+  ineffective on the C_C sawtooth ≤5 %; rank(U)=64 observability), the
+  research-extension evidence (KTC MC-vs-analytic 0.06 %), and the honest
+  negatives (dither static linearization shows no benefit in the tested
+  configuration; NSD agreement is an anchor identity, not a prediction).
+  Reference: `results.json` SHA256 `a1ccd92f…35ac70`.
+
+Numeric impact: none — documentation, citation entries and version
+metadata only. Reference outputs unchanged.
+
 ## [7.0.6] — 2026-09-11
 
 ### Added

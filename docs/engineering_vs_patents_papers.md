@@ -22,7 +22,7 @@
 | [09] | US 10,516,408 B2 — Analog to digital converter stage | 量化器与残差 DAC 分离；SADC 误差自愈窗口；两条采样通路响应匹配 |
 | [10] | US 10,505,561 B2 — Method of applying a dither, and ADC | dither 的两种物理实现（输入注入 vs 采样态电荷注入）；注入/改码/扣除三要素配对 |
 | [11] | US 10,511,316 B2 — Linearizing transfer characteristic by DEM | 等权单位置换 DEM；主/子阵列各自轮转；主/子边界残差难点 |
-| [12] | US 10,797,889 B1 — Interleaving method for ADC | 交织 ADC 的跟踪状态更新（**未实现**，见 §6） |
+| [12] | US 10,707,889 B1 — Interleaving method for analog to digital converters | 交织 ADC 的跟踪状态更新（**未实现**，见 §6） |
 | [13] | US 10,541,702 B1 — Auxiliary input for ADC input charge | 辅助输入端口与电荷核算（**未实现**，见 §6） |
 | [14] | US 10,826,519 B1 — Low power reference for an ADC | 低功耗参考缓冲方案（**未实现**；对应审计 A06 开放项） |
 | [01]–[08] | Hurrell ISSCC 2010、ElShater ISSCC 2019、Li ISSCC 2023、Bannon VLSI 2014、LTC2387-18、Steensgaard ISSCC 2022、TI ADC3583、Shen JSSC 2018 | 背景/替代架构对照，**不属于**目标芯片，见 §7 |
@@ -73,7 +73,7 @@ ADC2 解细码                    →   adc2.py：静态量化 + 溢出统计
 | 文献原理（披露） | 代码实现 | 状态 |
 |:---|:---|:---:|
 | [00]："The quantizer is fully separated from the residue generating DAC (RDAC)"；量化器由一片 slice DAC 构成，matched-quantizer sDAC + RDAC 实现 >11b（讲稿口径 >12b）匹配 | 独立量化器 sDAC（pipeline 显式建模）；`config.validate` 以 12b 作门限 | ✅ |
-| [09] §1.3：粗码误差不会直接叠加到输出——残差被推出名义 bin，只要放大后仍在 ADC2 窗口内，输出不受影响 | flash 阈值 + searchsorted；误差自愈窗口的**定量**验收 = (ADC2 余量)/G ≈ 4.6875 mV ≈ 0.1·Δ1（experiments.stage19 验收②，9B 实验） | ✅ |
+| [09] §1.3：粗码误差不会直接叠加到输出——残差被推出名义 bin，只要放大后仍在 ADC2 窗口内，输出不受影响 | flash 阈值 + searchsorted；可恢复余量 = (ADC2 余量)/G ≈ **4.6875 mV**——注意这是**当前模型量程与增益配置下的推导值**（0.15 V 余量 ÷ G0=32），非专利披露的固定容差；数值随配置联动（experiments.stage19 验收②，9B 实验） | ✅ 机制（数值附配置条件） |
 | 第一级"9b quantization"与 dither range"enhanced by 2b"两条披露的联立读法 | `b1 = 7`（ADR 0003），`units_per_lsb1 = 4`；`paper_literal`/`legacy_v61` 备选读法保留、不静默选用；`b1` 标 `ASSUMED`（架构读数） | ⚠️ 读法自洽但非唯一 |
 
 ### 3.2 `sampler.py` — 双采样通路与 dither 注入 ↔ [09] §1.5 + [10]
@@ -107,9 +107,16 @@ ADC2 解细码                    →   adc2.py：静态量化 + 溢出统计
 
 | 文献原理（披露） | 代码实现 | 状态 |
 |:---|:---|:---:|
-| [00]：RDAC 由 8 个 sDAC 转换 + 8 个 sDAC 采集构成，动态选自 18 片池；2 片 spare 用于 shuffle、打散交织杂散 | 三种调度模式递进：A/B ping-pong（固定组基准）→ spare 轮换 → `ShuffledScheduler` 每样本 8/18 洗牌（实测带宽失配降 31 dB、skew 降 42 dB） | ✅ |
+| [00]：默认 A/B 乒乓调度的集合关系（8 转换 + 8 采集、逐样本两两不相交） | `Scheduler.reserve_dual` + `SlicePool.invariants` 断言 | ✅ 调度不变量成立 |
+| [00]：18 片池的合法采样历史（转换组必须持有它实际采集的电荷） | `PhysicalSlicePool.shuffle_causal`：8191/8191 跨周期因果、coverage 8.000/8 | ✅ 辅助模块已验证，**未接入主入口**（R1/R2，xfail 跟踪） |
+| [00]：主链路中 8/18 随机调度与电荷、权重、增益的联动（"2 片 spare 打散交织杂散"的物理收益） | 主入口用内部 `SlicePool` + 固定 `c_sig`；`ShuffledScheduler` 每周期独立抽取（0/8191 因果） | ⚠️ 未闭合，定量收益待重测 |
 | 交织杂散位置 f_S/2、f_S/2±f_IN（结构性结论） | stage19 验收③④；[假设] 的是 skew/带宽失配**幅度**，位置可用 | ✅ |
 | 采样时确定的 allocation 不可追溯更改 | Allocation 采样时确定并保存（硬约束）；`reserve_dual` 逐样本两两不相交由 `invariants` 断言 | ✅ |
+
+> **关于 stage19 的 31 dB（带宽失配）/ 42 dB（timing skew）抑制数字（2026-09-11
+> 第六份复核订正）**：这是**当前非因果洗牌实现**（`ShuffledScheduler`，作用于
+> 误差系数而非物理电容）的实验结果，**不作为物理架构收益或设计预算引用**。
+> 物理池接入主路径（R1/R2）之前，这两个数不能用于放宽 slice 间匹配指标。
 
 **⚠️ 与 [00] 口径的两处已登记差异**（详见 `model_scope.md` §2.5）：
 1. `ShuffledScheduler` 每周期独立抽取 → `conv[n] = acq[n−1]` 仅 0/8191
@@ -144,8 +151,8 @@ ADC2 解细码                    →   adc2.py：静态量化 + 溢出统计
 
 | 文献原理（披露） | 代码实现 | 状态 |
 |:---|:---|:---:|
-| [00_1] p.11：共享 RA，占 ADC 功耗 ~40%；GMR + OTA 架构 | 电荷一致口径 `G[n] = C_active[n]/C_F_true`（逐样本、由同一组物理电容决定，失配走增益通路）；`fixed` 增益模式作对照 | ✅ |
-| p.34–35：auto-zero 消 offset/漂移；噪声代价 −1.6 dB；ADC2 动态采样带宽 +1.3 dB | 白噪声按折叠因子 10^(1.6/20) 放大、1/f 整体移除；两个 dB 数值的**结构**校验（stage22 查符号与量级，非调参命中） | ✅ 结构 / ⚠️ 系数固定次序相乘，不重推导 |
+| [00_1] p.11：共享 RA，占 ADC 功耗 ~40%；GMR + OTA 架构 | **行为级**增益、噪声、限幅已实现：电荷一致口径 `G[n] = C_active[n]/C_F_true`。**但主入口（pipeline.py:348–354）把固定标量 `c_sig` 复制成常向量传入 `gain_vector`**——接口支持逐样本增益 ≠ 主入口已产生物理正确的逐样本增益；转换组对应的增益变化、复用初始状态与有限建立过程**尚未完整接入**（第六份复核 §2.2 订正） | ⚠️ 行为级成立，逐样本物理增益未在主入口成立 |
+| p.34–35：auto-zero 消 offset/漂移；噪声代价 −1.6 dB；ADC2 动态采样带宽 +1.3 dB | **披露效果的预算模型**：白噪声按折叠因子 10^(1.6/20) 放大、1/f 整体移除；两个 dB 数值做符号与量级的**结构**校验（stage22）。**未建立** AZ 电容/开关/宽带建立-窄带采样的**相位级噪声传递模型**——噪声倍率与披露一致只说明预算采用了该披露，不证明相位行为被模拟（第六份复核 §2.3 订正） | ⚠️ 效果系数对齐，非电路结构对齐 |
 | （RA 噪声预算） | `noise_out` 由 target_dr_db=94.6 **先锚后乘**（锚点 = AZ 关 + 动态带宽关的基线，v7.0.5 口径注记）：模型证明预算*可满足*，不证明电路*达到* | ⚠️ [拟合] |
 | 有限 GBW 建立、RA 复用/功耗循环 | 未建模（RA 瞬时建立；建立类误差由 dynamics 三项承担；~50% idle 只影响功耗，功耗不在预测域） | ❌（口径声明） |
 
@@ -180,7 +187,7 @@ ADC2 解细码                    →   adc2.py：静态量化 + 溢出统计
 | [09] US 10,516,408 B2 | 量化器/残差 DAC 分离；SADC 误差自愈窗口；两条采样通路**响应**匹配；Fig.12 小数权重 | sadc.py、sampler.py、pipeline.py、stage9B/9C、stage19② | ✅ |
 | [10] US 10,505,561 B2 | 采样态电荷注入式 dither（不占输入量程）；注入/改码/扣除三要素；整数 dither 不进粗码 | sampler.py、reconstruction.py（α）、stage9A | ✅ |
 | [11] US 10,511,316 B2 | 等权单位置换 DEM；主/子各自轮转（不同步长）；主/子边界残差 = DEM 消不掉的可观测量；跨 slice 低位分配破简并 | mapper.py、dac_arch.py（boundary_error）、calib.py、stage12.3 | ⚠️ 机制对齐；排列空间 64 ≠ 512（R16），非三维机制 |
-| [12] US 10,797,889 B1 | 由另一 ADC 结果驱动的跟踪状态更新 | 无（`aux|tracking` 0 命中） | ❌ 未实现 |
+| [12] US 10,707,889 B1 | 由另一 ADC 结果驱动的跟踪状态更新 | 无（`aux|tracking` 0 命中） | ❌ 未实现 |
 | [13] US 10,541,702 B1 | 辅助输入端口及其电荷核算（输入驱动收益） | 无（无第二输入端口） | ❌ 未实现 |
 | [14] US 10,826,519 B1 | 低功耗参考缓冲方案 | 无（ra.py 瞬时增益；A06 开放项） | ❌ 未实现 |
 
@@ -238,4 +245,5 @@ ADC2 解细码                    →   adc2.py：静态量化 + 溢出统计
 
 | 日期 | 版本 | 变更 |
 |:---|:---|:---|
+| 2026-09-11 | v7.0.7 | 第六份复核订正：[12] 编号 US 10,707,889 B1（联网核实）；§3.4 18-slice 拆三行、31/42 dB 加"非因果实现"限定；§3.7 RA 改"行为级成立"、AZ 归"效果预算模型"；§3.1 余量数值加配置条件 |
 | 2026-09-11 | v7.0.5 | 初版：逐模块/逐专利对齐表、R16/R17/R18 与 A06 边界、引用合规声明 |

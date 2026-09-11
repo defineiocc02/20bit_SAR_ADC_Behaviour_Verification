@@ -34,7 +34,7 @@ Background / alternative architectures (NOT part of the target chip)
 [07] Texas Instruments ADC3583 datasheet
 [08] Shen et al., 16-bit 16-MS/s SAR ADC in 55 nm CMOS, JSSC 2018
 
-The KTC-noise cancellation branch implemented in adi_model/noise/ktc.py is an
+The KTC-noise cancellation branch implemented in adi_model/ktc.py is an
 ORIGINAL RESEARCH EXTENSION by this repository's authors. It is explicitly
 labelled [RESEARCH_EXTENSION] and is NOT a feature disclosed in [00] or in
 patents [09]-[14]. Do not attribute it to Analog Devices.

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import time
 from dataclasses import replace
 
@@ -25,6 +26,7 @@ from adi_model import (
     static_test,
 )
 from adi_model import experiments as ex
+from adi_model.acceptance import hard_failures
 from adi_model.dac_arch import SplitDAC, build_split_chip
 
 OUT = os.environ.get("ADI_MODEL_RESULTS_DIR") or os.path.join(
@@ -553,3 +555,28 @@ def _jsonable(o):
 with open(os.path.join(OUT, "results.json"), "w") as f:
     json.dump(_jsonable(R), f, ensure_ascii=False, indent=1)
 print("结果已写入", os.path.join(OUT, "results.json"))
+
+
+# ==========================================================================
+# 硬性验收门禁：数值 FAIL 必须让本命令以非零码退出
+# ==========================================================================
+# 动机（外部复核 2026-09-11）：此前本脚本逐条打印 PASS/FAIL 并把它们写进
+# results.json，但**末尾不汇总、不返回非零退出码**。CI 的 sweep 步骤只看本
+# 命令的退出状态，于是"报告里写着 FAIL"与"CI 变红"是两件互不相关的事 ——
+# 程序跑完就算通过。重复运行得到完全相同的 JSON 只能证明**确定性**，不能
+# 证明**正确性**。
+#
+# 判定范围是**显式列举**的，不做递归布尔扫描：配置里的 False、以及设计上
+# 就该失败的反例实验（如"未校准 vs 校准"的对照），都不等于验收失败。
+# 规则本体在 adi_model.acceptance.hard_failures（独立成模块是为了可单测：
+# 本文件是脚本，import 它会跑完所有实验）。
+#   * R[name] 是 dict 且含 "PASS" 键      -> 一条验收记录（10 条）
+#   * R[name+"_summary"] 是 dict          -> 每个 value 一条验收记录（5 组）
+# 这两类正是本文件上方逐条 print 出来的那些，合计 15 组，与报告一一对应。
+_failed = hard_failures(R)
+if _failed:
+    print(f"\n硬性验收: FAIL（{len(_failed)} 项未通过）")
+    for _name in _failed:
+        print(f"  FAIL {_name}")
+    sys.exit(1)
+print("\n硬性验收: 全部通过")

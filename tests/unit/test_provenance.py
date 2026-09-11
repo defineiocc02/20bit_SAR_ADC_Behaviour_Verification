@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import pytest
 
+from adi_model.config import Config
 from adi_model.provenance import (
     PARAM_GRADES,
     Graded,
@@ -200,9 +201,40 @@ class TestAuditProvenance:
             f"Add a grade entry to PARAM_GRADES in provenance.py."
         )
 
-    def test_fitted_in_use_lists_only_truthy_values(self, cfg):
-        """A None or False fitted value is not 'in use'."""
+    def test_fitted_in_use_lists_active_values(self, cfg):
+        """A fitted parameter is 'in use' when it currently moves a number.
+
+        ``None`` is **not** the same as "switched off": for a sentinel field it
+        means a resolver supplies the value at runtime. Filtering on
+        ``value is not None`` therefore hid ``ra_out_noise_rms`` — the model's
+        most load-bearing fit, active in the default configuration — from the
+        one report a reviewer is told to read first (external review,
+        2026-09-11). A sentinel is in use exactly when it reports a resolved
+        value; a plain ``None`` or ``False`` is still not in use.
+        """
         audit = audit_provenance(cfg)
+        ann = annotate_config(cfg)
         for name in audit["fitted_in_use"]:
-            ann = annotate_config(cfg)
-            assert ann[name].value is not None and ann[name].value is not False
+            entry = ann[name]
+            if entry.value is None:
+                assert (
+                    entry.note
+                ), f"{name} is a sentinel listed as in use but reports no resolved value"
+            else:
+                assert entry.value is not False
+
+        # The default RA-noise fit is raised on sentinel resolution and must show.
+        assert "ra_out_noise_rms" in audit["fitted_in_use"]
+        assert audit["resolved_sentinels"], "no resolved sentinel was reported"
+
+    def test_overridden_disclosed_values_are_flagged(self, cfg):
+        """A changed value must not keep quoting its original source.
+
+        ``fs`` is graded DISCLOSED with source "[00] abstract: 40 MS/s"; setting
+        ``fs=80e6`` leaves that string untouched, so the override has to be
+        reported separately. Otherwise a reader sees a disclosed value whose
+        stated provenance no longer describes it.
+        """
+        assert "fs" not in audit_provenance(cfg)["overridden"]
+        report = audit_provenance(Config(fs=80e6))
+        assert "fs" in report["overridden"]

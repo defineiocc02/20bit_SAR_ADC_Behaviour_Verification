@@ -338,7 +338,10 @@ def run_pipeline(
     c_sig = chip.A + chip.beta_true() * chip.B
     c_load = chip.A + chip.B - c_mask
     c_noise_eq = c_sig * c_sig / (chip.A + chip.beta_true() ** 2 * chip.B)
-    g_vec = np.full(n_samples, c_sig / chip.C_feedback_true)
+    # RA 增益经 ra.gain_vector 求值（同 sim_split 的理由）：cfg.ra_gain_model
+    # 的 "fixed" 对照口径此前被本行的硬编码电容比静默忽略。默认 "charge"
+    # 下 gain_vector 返回 c_sig/C_F，与原值逐位相同。
+    g_vec = ra.gain_vector(np.full(n_samples, c_sig), chip.C_feedback_true)
     c_noise_vec = np.full(n_samples, c_noise_eq)
 
     pool = SlicePool(cfg, chip, rng, sched, c_load_active=c_load)

@@ -197,8 +197,13 @@ def run_sim_split(
     c_noise_eq = c_sig * c_sig / (chip.A + chip.beta_true() ** 2 * chip.B)
     c_noise_vec = np.full(n_samples, c_noise_eq)
 
-    # ---- 电荷一致增益（输入等效口径，与 charge_ref.py 一致）----
-    g_vec = np.full(n_samples, c_sig / chip.C_feedback_true)
+    # ---- RA 增益（输入等效口径，与 charge_ref.py 一致）----
+    # 必须经 ra.gain_vector 求值，不得在此硬编码电容比：cfg.ra_gain_model
+    # 声明了 "charge"（G=C_sig/C_F）与 "fixed"（G=g0·(1+gain_error)）两种
+    # 对照口径，硬编码会把 "fixed" 静默忽略 —— 一条只在 runner 里生效的配置
+    # 契约，必须在 runner 里被遵守或显式拒绝（外部复核 2026-09-11）。
+    # 默认 "charge" 下 gain_vector 返回的正是 c_sig/C_F，与本行原值逐位相同。
+    g_vec = ra.gain_vector(np.full(n_samples, c_sig), chip.C_feedback_true)
 
     # ---- 采样（kT/C 用噪声等效电容；gain/建立分别用各自口径）----
     sample = capture(cfg, input_fn, n_samples, rng, chip=None, c_active=c_noise_vec)

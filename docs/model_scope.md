@@ -74,7 +74,7 @@ draws that line explicitly.
 | Anything at the assumed PDK sigma (1117 ppm) | `ASSUMED` area law; use for calibration-pressure arguments only |
 | Dynamic-error magnitudes | every `dyn_*` parameter is `ASSUMED`; use the shapes and trends, not the values |
 | Interleaving spur levels | skew / offset / bandwidth spreads are `ASSUMED`; the *positions* (f_S/2, f_S/2 ± f_IN) are structural and usable |
-| KTC observer performance | `RESEARCH_EXTENSION` — our design, not the paper's |
+| KTC observer performance | `RESEARCH_EXTENSION` — our design, not the paper's; **and an upper bound**: the observation voltage `v_N` is subtracted in the digital domain as a float array with no modelled quantiser, coding or latency, so the gain quoted is what an *ideal digital observation read-out* would give (see §4) |
 | Capacitor-shrinking study | scaling a behavioural capacitance, not a layout |
 
 ## 4. ❌ What the model cannot support
@@ -150,7 +150,7 @@ configuration whose declared `dither_enhancement_bits` disagrees with the grid
 | DEM efficacy | optimistic if the split is truly unit-only | spatial correlation beyond the 8-unit group model is not represented |
 | `slice_bw_spread` / skew defaults | 0 (ideal) | no published per-slice numbers; enable them explicitly for a study |
 | KTC observer self-noise | 0 by default | an ideal observer is unrealistic; `ktc_noise_n > 0` is the honest setting |
-| Flicker in the main record | pessimistic (absent) | the corner is below the record band; not an oversight |
+| Flicker in the main record | pessimistic (absent) | the corner is below the record band. **Correction (2026-09-11):** this line used to add "not an oversight" — that was wrong. `flicker_series` *does* try to back-fill the unresolvable sub-`f_min` power as drift, but its guard `if f_corner <= f_min or f_min <= f_low: return x` returns early in exactly that case, so the back-fill is unreachable (measured: 0/32768 non-zero samples at fs=40 MHz, n=32768, fc=40 Hz, t_obs=10 s). Tracked by `tests/audit/test_review_contracts.py::TestR6FlickerDriftBackfill` (forced xfail); see `docs/review_response_2026-09-11.md` §2.8 |
 
 ## 7. Change control for this document
 

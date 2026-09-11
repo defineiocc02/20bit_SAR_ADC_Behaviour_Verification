@@ -320,8 +320,109 @@ def grade_of(name: str) -> tuple[SourceGrade, str]:
     return PARAM_GRADES[name]
 
 
+# --------------------------------------------------------------------------
+# Sentinel-valued fields: ``None`` means "a resolver supplies the number", not
+# "this contribution is switched off".
+#
+# This mapping exists because an external review (2026-09-11) found that the
+# default configuration's RA noise fit — the single most load-bearing fitted
+# number in the model — was invisible to :func:`audit_provenance`: the filter
+# was ``grade is FITTED and value is not None``, and ``ra_out_noise_rms`` stores
+# ``None`` precisely *because* the fit is active. A reviewer reading
+# ``fitted_in_use`` would have concluded that no fitted parameter was driving
+# results. The reviewer's suggested test — "if a headline number depends on a
+# fitted parameter, the report must say so" — is what this table enforces.
+# --------------------------------------------------------------------------
+RESOLVED_SENTINELS: dict[str, str] = {
+    "ra_out_noise_rms": "adi_model.config.resolve_ra_noise",
+}
+
+
+def _resolve_sentinel(name: str, cfg: Any) -> Any:
+    """Evaluate the resolver that supplies a sentinel field's runtime value.
+
+    Args:
+        name: Config field name; must be a key of :data:`RESOLVED_SENTINELS`.
+        cfg: The configuration the resolver is applied to.
+
+    Returns:
+        The resolved value (e.g. V for a noise amplitude), or ``None`` if the
+        resolver is unavailable — a partial install must not make this module
+        unimportable, and ``None`` here only means "cannot prove it is active".
+    """
+    if name == "ra_out_noise_rms":
+        try:
+            from .config import resolve_ra_noise
+        except ImportError:  # pragma: no cover - partial install only
+            return None
+        return resolve_ra_noise(cfg)
+    return None
+
+
+def _value_is_active(value: Any, resolved: bool) -> bool:
+    """Decide whether a parameter's *current* value can move a number.
+
+    Args:
+        value: The value stored on the Config.
+        resolved: True if a sentinel was resolved to a real number at runtime.
+
+    Returns:
+        False for a disabled switch (``False``, ``0``), True for anything that
+        contributes. ``None`` returns ``resolved``: a sentinel is active exactly
+        when its resolver produced a value.
+    """
+    if value is None:
+        return bool(resolved)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int | float):
+        return float(value) != 0.0
+    return bool(value)
+
+
+def _differs(a: Any, b: Any) -> bool:
+    """Value inequality that tolerates tuples and non-comparable types.
+
+    Args:
+        a: First value.
+        b: Second value.
+
+    Returns:
+        True if the two differ, or if they cannot be compared at all (a
+        conservative default: an uncomparable value is reported, not hidden).
+    """
+    try:
+        return bool(a != b)
+    except Exception:  # pragma: no cover - exotic types only
+        try:
+            return list(a) != list(b)
+        except Exception:  # pragma: no cover
+            return True
+
+
+def config_defaults() -> dict[str, Any]:
+    """Field defaults of a stock :class:`~adi_model.config.Config`.
+
+    Returns:
+        Mapping field name -> default value, or an empty mapping if ``Config``
+        cannot be imported (keeps this module usable without the rest of the
+        package).
+    """
+    try:
+        from dataclasses import fields
+
+        from .config import Config
+    except ImportError:  # pragma: no cover - partial install only
+        return {}
+    return {f.name: f.default for f in fields(Config)}
+
+
 def annotate_config(cfg: Any) -> dict[str, Graded[Any]]:
     """Bundle every Config field with its declared grade.
+
+    For fields listed in :data:`RESOLVED_SENTINELS`, the runtime-resolved value
+    is recorded in ``Graded.note`` so that a sentinel cannot masquerade as an
+    inactive parameter.
 
     Args:
         cfg: A :class:`~adi_model.config.Config` instance.
@@ -336,7 +437,13 @@ def annotate_config(cfg: Any) -> dict[str, Graded[Any]]:
     out: dict[str, Graded[Any]] = {}
     for f in fields(cfg):
         grade, source = PARAM_GRADES.get(f.name, (SourceGrade.ASSUMED, "UNGRADED"))
-        out[f.name] = Graded(getattr(cfg, f.name), grade, source, unit="")
+        stored = getattr(cfg, f.name)
+        note = ""
+        if f.name in RESOLVED_SENTINELS:
+            resolved = _resolve_sentinel(f.name, cfg)
+            if resolved is not None:
+                note = f"sentinel {stored!r} resolved at runtime -> {resolved!r}"
+        out[f.name] = Graded(stored, grade, source, note=note, unit="")
     return out
 
 
@@ -350,32 +457,63 @@ def audit_provenance(cfg: Any) -> dict[str, Any]:
         cfg: A :class:`~adi_model.config.Config` instance.
 
     Returns:
-        Dict with keys ``counts`` (grade -> number of fields), ``ungraded``
-        (field names missing from :data:`PARAM_GRADES`), ``assumed_in_use``
-        (assumed fields whose value differs from a "switched-off" default, i.e.
-        actually influencing results), and ``verdict``.
+        Dict with keys:
+
+        ``counts``
+            grade -> number of fields.
+        ``ungraded``
+            Field names missing from :data:`PARAM_GRADES`.
+        ``assumed_in_use``
+            Assumed parameters whose current value can move a number.
+        ``fitted_in_use``
+            Fitted parameters whose current value can move a number. Includes
+            sentinel-valued fields whose resolver is active (see
+            :data:`RESOLVED_SENTINELS`) — omitting those was the defect an
+            external review of 2026-09-11 found.
+        ``resolved_sentinels``
+            Sentinel field -> the runtime value the resolver supplied, so a
+            reader can see *what* the fit produced, not merely that one is on.
+        ``overridden``
+            Fields graded ``DISCLOSED``/``DERIVED`` whose value no longer equals
+            the stock field default. The declared source (e.g. "40 MS/s") then
+            does not describe the number actually in use, which is a different
+            failure mode from an ungraded parameter and must be visible.
+        ``verdict``
+            One-line summary of the ungraded check.
     """
     ann = annotate_config(cfg)
     counts: dict[str, int] = {}
     for g in ann.values():
         counts[g.grade.value] = counts.get(g.grade.value, 0) + 1
     ungraded = sorted(k for k, v in ann.items() if v.source == "UNGRADED")
-    # An assumed switch is "in use" if it is a bool that is True, or a numeric
-    # that is non-zero. This is the set of assumptions that can move a number.
+    resolved = {k: v.note for k, v in ann.items() if v.note}
+
+    def _active(v: Graded[Any]) -> bool:
+        """True if this graded parameter currently influences results."""
+        return _value_is_active(v.value, bool(v.note))
+
     assumed_in_use = sorted(
-        k
-        for k, v in ann.items()
-        if v.grade is SourceGrade.ASSUMED
-        and ((isinstance(v.value, bool) and v.value) or (not isinstance(v.value, bool) and v.value))
+        k for k, v in ann.items() if v.grade is SourceGrade.ASSUMED and _active(v)
     )
     fitted_in_use = sorted(
-        k for k, v in ann.items() if v.grade is SourceGrade.FITTED and v.value is not None
+        k for k, v in ann.items() if v.grade is SourceGrade.FITTED and _active(v)
+    )
+
+    defaults = config_defaults()
+    overridden = sorted(
+        k
+        for k, v in ann.items()
+        if k in defaults
+        and v.grade in (SourceGrade.DISCLOSED, SourceGrade.DERIVED)
+        and _differs(v.value, defaults[k])
     )
     return {
         "counts": counts,
         "ungraded": ungraded,
         "assumed_in_use": assumed_in_use,
         "fitted_in_use": fitted_in_use,
+        "resolved_sentinels": resolved,
+        "overridden": overridden,
         "verdict": (
             "OK: no ungraded parameters"
             if not ungraded

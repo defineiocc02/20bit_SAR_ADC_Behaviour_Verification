@@ -1,4 +1,10 @@
-# STATUS — 项目现状（v7.0.0 · 2026-09-11）
+# STATUS — 项目现状（v7.0.0 快照；v7.0.1 增量见 CHANGELOG）
+
+> **读前须知（2026-09-11 追加）**：本文是 **v7.0.0 发布时**的现状快照，其中的
+> 测试条数等数字**未随 v7.0.1 更新**。v7.0.1 的增量（5 条审计修复 + 3 条
+> `xfail(strict=True)` 跟踪的未闭合项 + 2 处文档不实声明订正）见
+> `CHANGELOG.md` 与 `docs/review_response_2026-09-11.md`。
+> 当前实测：`pytest` **145 passed, 3 xfailed**；`ruff` / `format` / `mypy` 各 0。
 
 > 本文是**发布前的现状快照**，回答三件事：现在有什么、哪些是硬的、哪些还是债。
 > 与 `README.md`（对外介绍）、`CHANGELOG.md`（变更历史）、`docs/audit_response.md`

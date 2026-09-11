@@ -4,6 +4,123 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.1] — 2026-09-11
+
+Response to a **second external review** (2026-09-11) of the published v7.0.0
+tree. Per-finding adjudication: `docs/review_response_2026-09-11.md`.
+
+The review's central charge was not "the code is wrong" but *"the fix landed in
+a helper and a test, not in the path that produces the result — so the tests
+pass while the thing that needed proving remains unproven."* That charge holds,
+and verifying it turned up a further defect **of the same kind inside our own
+documentation**, listed first below.
+
+### Fixed
+
+- **ADR 0005 claimed a fix that was never wired in.** The ADR was marked
+  "已采纳" and stated that `pipeline` and `sim_split` both obtain their physical
+  quantities "from the same pool". They do not: `PhysicalSlicePool` is
+  referenced by `__init__` and by two test modules, and by **no runner and no
+  experiment**. §3.5's "third sub-charge closed" claim is likewise false —
+  `SplitDAC.evaluate_physical(k_eq, sid)` still receives no conversion group.
+  Corrected with an erratum block, struck-through claims, and an honest
+  open-items list. Third-party evidence for the two numbers the ADR quotes now
+  comes from tests that exercise the pool directly, which is stated as such.
+
+- **`audit_provenance` hid the model's most load-bearing fit.** `fitted_in_use`
+  filtered on `value is not None`, but `ra_out_noise_rms = None` *means* the fit
+  is active (it selects `resolve_ra_noise`). The default configuration's RA
+  noise fit was therefore absent from the one report a reviewer is told to read
+  first. Sentinel fields now carry their runtime-resolved value
+  (`RESOLVED_SENTINELS`, reported under `resolved_sentinels`), and "in use"
+  means "currently moves a number".
+
+- **A disclosed value could be changed and keep its original source.** Grading
+  is attached to the field *name*, so `Config(fs=80e6)` still reported
+  `DISCLOSED` with source "[00] abstract: 40 MS/s". `audit_provenance` now
+  returns an `overridden` list — `DISCLOSED`/`DERIVED` fields whose value no
+  longer equals the stock default. The source string is deliberately left
+  unedited: it describes what the paper says, while `overridden` describes
+  whether the number is still that one.
+
+- **`ra_gain_model="fixed"` never took effect in the split path.** `sim.py` read
+  the flag; `sim_split.py` and `pipeline.py` hard-coded the capacitor ratio and
+  passed it explicitly, bypassing `ResidueAmplifier.gain_vector` — which was
+  consequently dead code with no caller anywhere. Both runners now go through
+  `gain_vector`; the default `charge` mode is bit-identical (`gain_vector`
+  returns exactly `c_sig/C_F`). Measured with `gain_error=0.01`: charge
+  `g=31.999950` vs fixed `g=32.320000`, `max|Δout| = 4.63e-4 V` in both chains.
+  `validate()` additionally rejects an unknown gain model instead of silently
+  degrading to `charge` — a config must take effect where it is declared, or be
+  refused.
+
+- **Numeric FAIL did not fail CI.** `tools/run_all.py` printed PASS/FAIL and
+  wrote them to `results.json` but contained no `sys.exit` and no `raise`, so
+  the sweep step's exit status was unrelated to its findings: a report saying
+  FAIL and a green CI could coexist. New `adi_model.acceptance.hard_failures()`
+  decides over an **explicitly enumerated** set — `R[name]` dicts carrying a
+  `"PASS"` key (10 records) plus `*_summary` dicts (5 groups), 15 in total,
+  matching what the script already prints. Deliberately not a recursive
+  boolean scan: `False` in a config and a counter-example row designed to fail
+  are not acceptance failures. Verified against the current all-passing
+  `results.json`: **0 false positives**.
+
+### Added
+
+- **`docs/review_response_2026-09-11.md`** — 8 findings adjudicated one by one,
+  each reproduced or refuted on the real code with the repository's own
+  measurements (no number is taken on the reviewer's authority).
+
+- **`tests/audit/test_review_contracts.py`** — 13 contract tests that go through
+  the real entry points (`run_sim_split`, `run_pipeline`, `audit_provenance`,
+  the acceptance rule) rather than through a helper. 10 assert behaviour that
+  holds; **3 are `xfail(strict=True)` and mark the defects still open**, so they
+  appear in the test report and the marker is *forced* off on the day someone
+  fixes them.
+
+- **`.gitignore` guard against reference material** (hard requirement, not
+  hygiene). `NOTICE` cites [00]/[00_1]/patents [09]-[14] and states that none is
+  redistributed; committing the PDFs/slides of those third-party documents to a
+  public repository would contradict that statement and constitute
+  redistribution. `refs/`, `references/`, `literature/`, `*.pdf`, `*.ppt(x)`,
+  `*.doc(x)`, `*.key` are now ignored, so `git add -A` cannot pick them up by
+  accident. Own documents can still be tracked with an explicit `git add -f`.
+  Verified: the repository tree and the pushed remote contain **no** such file.
+
+### Changed
+
+- **`docs/model_scope.md`** — the KTC entry now states the boundary the review
+  identified: `v_N` is subtracted digitally as a float array with no modelled
+  quantiser, coding or latency, so the quoted gain is what an *ideal digital
+  observation read-out* would give. The flicker entry's claim that the absent
+  low-frequency power is "not an oversight" was **wrong** and is corrected
+  (see below).
+
+### Documented as open (each changes `tools/results/results.json`; not applied)
+
+- **Sample ownership is not enforced on the shuffled path.** Measured
+  independently at N=8192, seed 20260911: the default `Scheduler` is causally
+  correct (8191/8191 conversions use the previously acquired group, coverage
+  8.000/8), whereas `ShuffledScheduler` — used by the stage-19 shuffling study
+  — is not (**0/8191**, coverage **3.547/8**, against the 8·8/18 = 3.556
+  expectation for an independent draw). The review's verdict on the *evidence*
+  stands: "18-slice physical scheduling with cross-cycle causality is verified"
+  is not supported. It is not true, however, that the default main path
+  converts charge it never sampled — that applies to the shuffled path only.
+- **`flicker_series` back-fill is unreachable.** The guard
+  `if f_corner <= f_min or f_min <= f_low: return x` returns precisely when the
+  corner sits below the record's resolution limit — the only case the drift
+  back-fill was written for (its comment says "and", the code says "or").
+  Measured 0/32768 non-zero samples at fs=40 MHz, n=32768, fc=40 Hz, t_obs=10 s.
+  Fixing it moves the stage-23 40 Hz row, hence held back.
+- **`7 + 2 = 9` is a hypothesis, not a convergence result.** ADR 0003 §1 rejects
+  conflating codeword range with decision information, then §2 makes exactly
+  that identification to solve for `b1 = 7`. `provenance` already grades `b1` as
+  `ASSUMED`; the *prose* ("唯一分配", the name `paper_consistent`) overstates it.
+  Wording/renaming deferred as a version-level API decision.
+- **KTC observation channel is not realisable yet** — no quantiser, coding or
+  latency for `v_N`; the reported gain is an upper bound.
+
 ## [7.0.0] — 2026-09-10
 
 Major release. Triggered by an external audit of `adi_model_release_v6.1`

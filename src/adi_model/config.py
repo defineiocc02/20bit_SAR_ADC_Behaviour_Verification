@@ -1067,6 +1067,19 @@ class Config:
                 "units（分段只需 n_main+n_sub）",
             )
 
+        # 判据：RA 增益口径必须是**已实现**的取值之一。此前 "fixed" 在
+        # sim_split / pipeline 里被硬编码的电容比静默忽略（固定增益对照实验
+        # 因此从未真正生效），而任何拼写错误也会悄悄退化成 "charge"。
+        # 契约：配置在某条链路里要么按声明生效，要么被显式拒绝，不能静默忽略
+        # （外部复核 2026-09-11）。
+        _gain_models = ("charge", "fixed")
+        checks["RA 增益口径 ra_gain_model ∈ {charge, fixed}"] = (
+            1.0 if self.ra_gain_model in _gain_models else 0.0,
+            1.0,
+            self.ra_gain_model in _gain_models,
+            "bool",
+        )
+
         if verbose:
             print(f"{'检查项':<40s}{'实际':>14s}{'门限':>14s}  结果")
             print("-" * 78)

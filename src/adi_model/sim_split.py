@@ -44,7 +44,7 @@ from .sadc import (
     units_per_first_stage_step,
 )
 from .sampler import SampleBatch, capture
-from .scheduler import Scheduler
+from .scheduler import Scheduler, make_scheduler
 from .sim import SimResult
 
 
@@ -159,7 +159,7 @@ def run_sim_split(
     if state is None:
         state = initialize_state(cfg)
 
-    sched = scheduler or Scheduler(cfg)
+    sched = make_scheduler(cfg, rng, scheduler)
     allocation = sched.reserve(n_samples)
 
     dac = SplitDAC(cfg, chip)

@@ -5,7 +5,7 @@
 [![License: BSD-3-Clause](https://img.shields.io/badge/license-BSD--3--Clause-green.svg)](LICENSE)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Checked with mypy](https://img.shields.io/badge/mypy-checked-2f6f9f.svg)](https://mypy-lang.org/)
-[![Tests](https://img.shields.io/badge/tests-134%20passed-brightgreen.svg)](#5-the-test-suite-and-the-gates)
+[![Tests](https://img.shields.io/badge/tests-181%20passed-brightgreen.svg)](#5-the-test-suite-and-the-gates)
 
 > **A behavioural model of a two-stage residual SAR ADC, written to be _audited_
 > rather than believed.**
@@ -55,7 +55,7 @@ PDK-accurate mismatch study, and not a substitute for silicon — see
 |:---|:---|
 | 27 modules, ~12.5 kLOC of library code | graded parameters, physical slice pool, two independent signal chains |
 | 24 acceptance stages | each returns data **and** an explicit pass/fail criterion |
-| 134 tests | including one adversarial regression per audit finding |
+| 181 tests | including one adversarial regression per audit finding |
 | 8 ADRs | the reasoning behind every structural decision |
 
 ---
@@ -185,7 +185,7 @@ other than `tools/results/`.
 ## 5. The test suite and the gates
 
 ```bash
-pytest                  # 134 tests, ~25 s, no long sweeps
+pytest                  # 181 tests, ~22 s, no long sweeps
 pytest -m audit         # only the adversarial regressions from the audit
 pytest --cov=adi_model  # branch coverage, floor 35%
 ```
@@ -195,7 +195,7 @@ pytest --cov=adi_model  # branch coverage, floor 35%
 | Lint | `ruff check .` | **6797** errors | **0** |
 | Format | `ruff format --check .` | 37 / 38 files | **0** |
 | Types | `mypy --config-file=pyproject.toml` | **147** errors | **0** |
-| Tests | `pytest` | — | **134 passed** |
+| Tests | `pytest` | — | **181 passed, 4 xfailed** |
 
 The lint and type gates were *configured* but could never pass, which is the same
 as not having them. They are recorded as findings **C3** and **C4** in
@@ -271,6 +271,10 @@ short version:
 ├── docs/
 │   ├── model_scope.md         what can and cannot be claimed   <- read this
 │   ├── audit_response.md      finding-by-finding response
+│   ├── review_response_2026-09-11.md    external review, adjudicated (round 2)
+│   ├── review_response_2026-09-11b.md   external review, adjudicated (round 3)
+│   ├── review_response_2026-09-11c.md   external review, adjudicated (round 4)
+│   ├── STATUS.md              pre-release snapshot of the project state
 │   └── adr/                   8 architecture decision records (0001-0008)
 ├── CITATION.cff               machine-readable citation metadata
 ├── NOTICE                     third-party references and attribution

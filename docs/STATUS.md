@@ -1,14 +1,23 @@
-# STATUS — 项目现状（v7.0.0 快照；v7.0.1 / v7.0.2 增量见 CHANGELOG）
+# STATUS — 项目现状（v7.0.0 快照；v7.0.1 / v7.0.2 / v7.0.3 增量见 CHANGELOG）
 
 > **读前须知（2026-09-11 追加）**：本文是 **v7.0.0 发布时**的现状快照，其中的
-> 测试条数等数字**未随 v7.0.1 / v7.0.2 更新**。增量（v7.0.1：5 条审计修复 +
-> 3 条 `xfail(strict=True)` 跟踪的未闭合项 + 2 处文档不实声明订正；v7.0.2：门禁
-> 覆盖配置自检、覆盖值不再通过 `require`、非法配置在入口被拒绝）见
-> `CHANGELOG.md`、`docs/review_response_2026-09-11.md` 与
-> `docs/review_response_2026-09-11b.md`。
-> 当前实测：`pytest` **167 passed, 3 xfailed**（含 7 条 docstring 示例，已开启
-> `--doctest-modules`）；`ruff` / `format` / `mypy` 各 0；
-> `adi-run-all` 退出码 0（打印 1 项已登记的已知限制）。
+> 测试条数等数字**未随 v7.0.1 / v7.0.2 / v7.0.3 更新**。增量见 `CHANGELOG.md` 与
+> 三份逐条裁定：`docs/review_response_2026-09-11.md`（第二轮）、
+> `-b.md`（第三轮）、`-c.md`（第四轮）。摘要：
+>
+> - v7.0.1：5 条审计修复 + 3 条 `xfail(strict=True)` 跟踪的未闭合项 + 2 处文档不实声明订正
+> - v7.0.2：门禁覆盖配置自检、覆盖值不再通过 `require`、非法配置在入口被拒绝
+> - v7.0.3：KTC `f_max` 判据**改绑正确节点**（2.5465 MHz FAIL → 134.4541 MHz PASS，
+>   差的 52.8 倍来自节点取错，"已知限制"是假失败，该条目从账本删除）；门禁拒绝非布尔
+>   `PASS` 并新增必需判据 ID 集合；物理池契约改为因果断言；`dem_mode` 只闭合 1/3 入口
+>   （其余两条入口的调度机制未变，作为独立决策挂起，见 `-c.md` §4）
+>
+> 当前实测：`pytest -m "not slow"` **181 passed, 4 xfailed**（含 docstring 示例，已开启
+> `--doctest-modules`）；`ruff check` / `ruff format --check` / `mypy` 各 0；
+> 覆盖率 **53.63 %**（门限 35 %）；`adi-run-all` 退出码 0，**硬性验收全部通过、无已登记
+> 的限制**（账本已空）。
+> 参考结果哈希：v7.0.2 `65c047a9…4ecdec` → v7.0.3 `a1ccd92f…35ac70`；
+> 差异**只有 `validate_ktc` 的 KTC 带宽一条记录**（键名 + 实测值 + PASS），其余逐字节相同。
 
 > 本文是**发布前的现状快照**，回答三件事：现在有什么、哪些是硬的、哪些还是债。
 > 与 `README.md`（对外介绍）、`CHANGELOG.md`（变更历史）、`docs/audit_response.md`

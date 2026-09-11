@@ -60,7 +60,7 @@ from .sadc import (
     units_per_first_stage_step,
 )
 from .sampler import capture, input_derivative
-from .scheduler import Scheduler
+from .scheduler import Scheduler, make_scheduler
 from .sim import SimResult
 from .sim_split import sampling_dither_injection, xtalk_profile
 
@@ -326,7 +326,7 @@ def run_pipeline(
     core = DigitalCore(cfg)
     if state is not None:
         core.state.digital = state  # 允许外部注入数字状态（校准接力）
-    sched = scheduler or Scheduler(cfg)
+    sched = make_scheduler(cfg, rng, scheduler)
     allocation = sched.reserve(n_samples)
     conv_arr, acq_arr = sched.reserve_dual(n_samples, rng)
 

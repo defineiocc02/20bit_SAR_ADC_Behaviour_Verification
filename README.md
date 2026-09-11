@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Checked with mypy](https://img.shields.io/badge/mypy-checked-2f6f9f.svg)](https://mypy-lang.org/)
-[![Tests](https://img.shields.io/badge/tests-134%20passed-brightgreen.svg)](#5-测试与四道门禁)
+[![Tests](https://img.shields.io/badge/tests-181%20passed-brightgreen.svg)](#5-测试与四道门禁)
 
 > **一个用来被"审计"而不是被"相信"的两级残差 SAR ADC 行为模型。**
 > 建模对象为 ISSCC 2024 Session 9.8（Bodnar 等，20 bit / 40 MS/s 精度 SAR）。
@@ -48,7 +48,7 @@
 |:---|:---|
 | 27 个模块、约 1.25 万行库代码 | 参数分级、物理 slice 池、两条独立信号链 |
 | 24 个验收 stage | 每个都同时返回**数据**和一条明确的**判据** |
-| 134 个测试 | 其中每个审计缺陷都对应一条对抗性回归 |
+| 181 个测试 | 其中每个审计缺陷都对应一条对抗性回归 |
 | 8 份 ADR | 每个结构性决策背后的推理 |
 
 ---
@@ -172,7 +172,7 @@ PYTHONPATH=src python tools/run_all.py
 ## 5. 测试与四道门禁
 
 ```bash
-pytest                  # 134 个测试，约 25 秒，不含长扫描
+pytest                  # 181 个测试，约 22 秒，不含长扫描
 pytest -m audit         # 只跑审计衍生的对抗性回归
 pytest --cov=adi_model  # 分支覆盖率，下限 35%
 ```
@@ -182,7 +182,7 @@ pytest --cov=adi_model  # 分支覆盖率，下限 35%
 | Lint | `ruff check .` | **6797** 个错误 | **0** |
 | Format | `ruff format --check .` | 38 个文件里 37 个 | **0** |
 | Types | `mypy --config-file=pyproject.toml` | **147** 个错误 | **0** |
-| Tests | `pytest` | — | **134 passed** |
+| Tests | `pytest` | — | **181 passed, 4 xfailed** |
 
 lint 与 type 两道门禁此前是**配好了但永远跑不通**，这跟没有门禁是一回事。
 它们被记为 [`docs/audit_response.md`](docs/audit_response.md) 里的 **C3**、**C4**
@@ -249,6 +249,10 @@ lint 与 type 两道门禁此前是**配好了但永远跑不通**，这跟没�
 ├── docs/
 │   ├── model_scope.md         什么能声称、什么不能   <- 必读
 │   ├── audit_response.md       逐条审计响应
+│   ├── review_response_2026-09-11.md    外部复核逐条裁定（第二轮）
+│   ├── review_response_2026-09-11b.md   外部复核逐条裁定（第三轮）
+│   ├── review_response_2026-09-11c.md   外部复核逐条裁定（第四轮）
+│   ├── STATUS.md              发布前的项目现状快照
 │   └── adr/                   8 份架构决策记录（0001-0008）
 ├── CITATION.cff               机器可读的引用元数据
 ├── NOTICE                     第三方文献引用与归属声明

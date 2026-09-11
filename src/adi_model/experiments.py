@@ -554,16 +554,23 @@ def stage7_headline(
     """
     cfg = cfg or Config()
     fin = _coherent_fin(cfg, n)
-    # KTC 带宽守卫（v3）：激励频率不得超过 KTC 校正项的带宽上限，
-    # 否则 ADC2 溢出把结果打到 70 dB —— 那是激励越界，不是 KTC 失效。
+    # KTC 观测通路守卫：激励频率不得超过**观测通路**的摆幅上限。
+    #
+    # 口径修正（外部复核 2026-09-11 第三轮，见 ADR 0006）：旧写法用
+    # min(adc2_v_max − G0·Δ1, −adc2_v_min) 反解上限，前提是"校正量 κ·v_N
+    # 占用 ADC2 量程"。该前提不成立 —— 校正已在数字域扣除
+    # （ADC2.quantize_with_correction），over 只反映 vra 本身。真正的边界是
+    # 观测节点自身的摆幅 ra_v_clip。
+    #
+    # 默认参数下新上限 ≈ 134 MHz，远高于 fs/2 = 20 MHz，因此**当前不会
+    # 触发**。保留它是为了参数退化（ra_v_clip 调小、G_N 调大、Δt 放宽）时
+    # 仍然拦得住；不要把它当作"检查过了"的证据。
     if True:  # case 里会开 KTC，按最坏情况检查
-        f_max = min(cfg.adc2_v_max - cfg.g0 * cfg.delta1, -cfg.adc2_v_min) / (
-            2 * np.pi * cfg.v_fs * cfg.g0 * cfg.ktc_dt()
-        )
+        f_max = (cfg.ra_v_clip / cfg.ktc_gain_n) / (2 * np.pi * cfg.v_fs * cfg.ktc_dt())
         if fin > f_max:
             raise ValueError(
-                f"stage7: 激励 {fin/1e6:.2f} MHz 超过 KTC 带宽上限 {f_max/1e6:.2f} MHz；"
-                f"请增大 n（相干采样点数）使 fin 落入带宽内，不要在越界激励下比较方案"
+                f"stage7: 激励 {fin/1e6:.2f} MHz 超过 KTC 观测通路摆幅上限 "
+                f"{f_max/1e6:.2f} MHz；在该越界条件下比较方案没有意义"
             )
     amp = 0.9 * cfg.v_fs
     inp = sine_input(amp, fin)
@@ -3356,6 +3363,9 @@ def stage19_pipeline(c0: Config, n: int = 2**13) -> dict:
             c0, **base, dyn_input_settling=True, dyn_ron_code_coeff=0.0, slice_bw_spread=spread
         )
         if shuffled:
+            # dem_mode 与调度器必须一致：make_scheduler 会拒绝"配置说一种
+            # 调度、调用方给另一种"的组合（外部复核 2026-09-11 第三轮）。
+            cc = _clone(cc, dem_mode="permute")
             sched = ShuffledScheduler(cc, np.random.default_rng(c0.seed + 555))
         else:
             sched = Scheduler(cc)
@@ -3416,6 +3426,7 @@ def stage19_pipeline(c0: Config, n: int = 2**13) -> dict:
     ):
         cc = _clone(c0, **base, **base_skew_cfg, slice_timing_skew_s=skew_ps * 1e-12)
         if shuffled:
+            cc = _clone(cc, dem_mode="permute")  # 与传入的洗牌调度器保持一致
             sched = ShuffledScheduler(cc, np.random.default_rng(c0.seed + 777))
         else:
             sched = Scheduler(cc)
@@ -3627,6 +3638,7 @@ def stage20_interleave_offset(c0: Config, n: int = 2**13) -> dict:
     ):
         cc = _clone(c0, **base, slice_offset_sigma_v=sig_uv * 1e-6)
         if shuffled:
+            cc = _clone(cc, dem_mode="permute")  # 与传入的洗牌调度器保持一致
             sched = ShuffledScheduler(cc, np.random.default_rng(c0.seed + 555))
         else:
             sched = Scheduler(cc)

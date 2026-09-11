@@ -46,7 +46,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .config import Config
+from .config import Config, ConfigError
 
 
 @dataclass
@@ -197,3 +197,66 @@ class ShuffledScheduler(Scheduler):
             conv[i] = np.sort(perm[:n_act])
             acq[i] = np.sort(perm[n_act : 2 * n_act])
         return conv, acq
+
+
+def make_scheduler(
+    cfg: Config,
+    rng: np.random.Generator,
+    scheduler: Scheduler | None = None,
+) -> Scheduler:
+    """按 ``cfg.dem_mode`` 选调度器，并拒绝与显式传入的调度器冲突。
+
+    为什么需要这个函数
+    ------------------
+    ``dem_mode`` 此前是一个**没有任何读取点**的字段：选哪种调度完全取决于
+    调用方实例化哪个 ``Scheduler`` 子类。写 ``dem_mode="permute"`` 却传
+    ``Scheduler(...)``，用户以为自己换了机制，实际只换了一个字符串 ——
+    外部复核（2026-09-11 第三轮）把它与 v7.0.0 的 ``ra_gain_model`` 失效
+    归为同一类"配置与行为脱节"的缺陷。三个仿真入口现在都经由本函数取调度
+    器，于是这个开关真的会改变机制。
+
+    契约：显式传入的调度器与 ``cfg.dem_mode`` 不一致时**拒绝运行**，而不是
+    让其中一个悄悄胜出 —— 两者同时存在必然意味着调用方对"跑的是哪种调度"
+    有两种说法。
+
+    接线 != 调度正确
+    ----------------
+    ``dem_mode="permute"`` 现在确实会得到 ``ShuffledScheduler``，但**洗牌
+    调度器自身的样本归属缺陷仍未闭合**：它的 conv/acq 不保证来自同一组
+    slice（见 ``tests/audit/test_review_contracts.py`` 中
+    ``xfail(strict=True)`` 的 ``TestR1SampleOwnership``）。把开关接上不等于
+    把物理问题修好，两者是独立验收项。
+
+    Args:
+        cfg: 仿真配置；读取 ``cfg.dem_mode``（"rotate" 或 "permute"）。
+        rng: 随机源；``dem_mode="permute"`` 时交给 ``ShuffledScheduler``。
+        scheduler: 调用方显式提供的调度器；None = 由配置决定。
+
+    Returns:
+        Scheduler: 与 ``cfg.dem_mode`` 一致的那个调度器实例。
+
+    Raises:
+        ConfigError: 显式传入的调度器与 ``cfg.dem_mode`` 不一致。
+
+    Examples:
+        >>> from adi_model import Config
+        >>> import numpy as np
+        >>> s = make_scheduler(Config(dem_mode="rotate"), np.random.default_rng(0))
+        >>> type(s).__name__
+        'Scheduler'
+        >>> p = make_scheduler(Config(dem_mode="permute"), np.random.default_rng(0))
+        >>> type(p).__name__
+        'ShuffledScheduler'
+    """
+    if scheduler is None:
+        return ShuffledScheduler(cfg, rng) if cfg.dem_mode == "permute" else Scheduler(cfg)
+
+    actual = "permute" if isinstance(scheduler, ShuffledScheduler) else "rotate"
+    if cfg.dem_mode != actual:
+        raise ConfigError(
+            f"cfg.dem_mode={cfg.dem_mode!r} 与传入的调度器 "
+            f"{type(scheduler).__name__}（对应 dem_mode={actual!r}）不一致："
+            f"配置说一种调度、调用方给了另一种，拒绝运行。"
+            f"改 cfg.dem_mode，或去掉 scheduler= 让配置决定。"
+        )
+    return scheduler

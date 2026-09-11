@@ -49,8 +49,8 @@ one settles:
     local  there                   contract                                test class
     R7     §2.1                    the gate sees the config self-checks     TestR7GateCoversConfigChecks
     R8     §2.4                    an overridden value cannot pass require  TestR8OverrideIsEnforced
-    R9     §2.5                    the pool contract is behavioural         (inside TestR2)
-    R10    §3.1  (self-found)      dem_mode is declared but read nowhere    TestR10DemModeIsInert
+    R9     §2.5                    the pool contract is causal, not textual (inside TestR2)
+    R10    §3.1  (self-found)      dem_mode decides the scheduler           TestR10DemModeIsWired
     R11    §2.2 + §3.3 (self-found) the one live FAIL is a registered limit  TestR11KnownLimits
     —      §2.3                    an illegal config is refused at the entry (inside TestR4)
 
@@ -59,11 +59,29 @@ the disposition of the KTC bandwidth limit. Where an ``xfail`` reason cites
 "§3.3 of the third review" it means the reviewer's own §3 item 3 (the
 source-string test), which is §2.5 of the adjudication document — the two
 numberings are different and are spelled out per citation.
+
+Round 3 — fourth external review, of v7.0.2; indexed against
+``docs/review_response_2026-09-11c.md``:
+
+    local  there                   contract                                  test class
+    R12    K1                      f_max is bound to the observed node       TestR12KtcMaxUsesTheObservedNode
+    R13    K2                      an output sample is attributable to its   (inside TestR2)
+                                   capacitors — by cause, not by attribute
+    R14    K3                      dem_mode reaches every entry point        (inside TestR10)
+    R15    K4                      a non-bool verdict is refused, and the    TestR15GateRefusesNonBooleanPass
+                                   required set cannot be trimmed away
+
+Round 3's K1 and K4 are also covered where they are cheapest to state: K1 in
+``TestR12KtcMaxUsesTheObservedNode`` (the bound is a number, so it is pinned as
+a number) and K4 in ``TestR15GateRefusesNonBooleanPass``. K3's
+*partial* state — bound at one entry, inert at two — is an ``xfail(strict)``
+inside ``TestR10DemModeIsWired``; see that class for why it is not closed here.
 """
 
 from __future__ import annotations
 
 import inspect
+import math
 import pathlib
 
 import numpy as np
@@ -82,6 +100,7 @@ from adi_model.acceptance import (
     ACCEPTANCE_CONTAINERS,
     KNOWN_LIMITS,
     MIN_RECORDS,
+    REQUIRED_RECORDS,
     acceptance_records,
     gate,
     hard_failures,
@@ -89,7 +108,8 @@ from adi_model.acceptance import (
 from adi_model.pipeline import run_pipeline
 from adi_model.provenance import GradingError, SourceGrade, annotate_config
 from adi_model.ra import flicker_series
-from adi_model.scheduler import Scheduler, ShuffledScheduler
+from adi_model.scheduler import Scheduler, ShuffledScheduler, make_scheduler
+from adi_model.slice_pool import PhysicalSlicePool
 
 N_SMALL = 2048
 
@@ -197,23 +217,37 @@ class TestR1SampleOwnership:
 class TestR2PhysicalPoolOnMainPath:
     """A fix that lives only in a helper is not a system-level fix.
 
-    The first version of this class asserted ``assert "PhysicalSlicePool" in
-    inspect.getsource(...)`` — a check that an unused import or even a *comment*
-    would satisfy. The reviewer's objection is exact: that is not evidence that
-    the pool participates in producing a result. A source scan can only ever pin
-    the text; the contract has to be about behaviour. The behavioural contract
-    is below and still fails; the control above it proves the contract is not
-    vacuous.
+    Two earlier versions of this class were rejected, and the reasons bound the
+    shape of what replaced them.
+
+    The first asserted ``assert "PhysicalSlicePool" in inspect.getsource(...)``:
+    an unused import, or even a comment, satisfies a text scan. The second
+    asserted that the result object carried four attribute *names*
+    (``hasattr(res, "sample_id")`` and friends). That is a statement about the
+    shape of an object, not about a physical cause — an attribute can be added
+    and filled with a constant, and the assertion still passes.
+
+    The contract is therefore stated as a **causal relation**: perturb the
+    capacitors of the slices that converted a sample, and the internal quantity
+    reported for *that* sample must move — while the samples whose conversion
+    group does not contain those slices must stay put. The second half is what
+    makes the relation causal rather than merely sensitive: a change applied to
+    every sample alike would satisfy the first half on its own.
+
+    Two positive controls sit above the contract. They pass today, and they
+    exist so the ``xfail`` cannot succeed for the wrong reason: they establish
+    that the causal relation is well defined and sharp *on the pool*, so what is
+    missing in the runner is the binding, not the physics.
     """
 
     def test_the_selection_information_exists_and_is_causal(self):
-        """Positive control: per-sample slice selections are already available.
+        """Control 1: per-sample slice selections are already on hand.
 
-        Without this control, the xfail below could pass for the wrong reason —
-        e.g. if the information never existed at all, the fix would have to
+        Without this control the ``xfail`` below could pass for the wrong
+        reason — if the information never existed, the fix would have to
         *invent* it rather than *bind* it. The scheduler already hands back
         explicit index arrays for both chains, and they satisfy the cross-cycle
-        ownership relation, so what is missing is the binding, not the data.
+        ownership relation.
         """
         cfg = _lean_cfg()
         sched = Scheduler(cfg)
@@ -225,41 +259,35 @@ class TestR2PhysicalPoolOnMainPath:
             set(conv_a[i]) == set(acq_a[i - 1]) for i in range(1, 64)
         ), "precondition failed: even the default scheduler does not preserve ownership"
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="Open defect (review R2; re-raised as T3, §2.5 of "
-        "docs/review_response_2026-09-11b.md): "
-        "PhysicalSlicePool is referenced by __init__ and by two test modules but "
-        "by NO runner (pipeline.py, sim_split.py, sim.py) and no experiment. "
-        "ADR 0005 nonetheless states that both signal chains obtain their "
-        "physical quantities 'from the same pool'. This contract is behavioural "
-        "(a sample must be traceable to the slices that converted it); it "
-        "replaces a source-string scan that an unused import or a comment would "
-        "have satisfied. Remove this marker when the pool is wired in.",
-    )
-    def test_an_output_sample_is_traceable_to_the_slices_that_converted_it(self):
-        """A result must be attributable to the physical capacitors behind it.
+    def test_the_pool_ties_a_slice_to_exactly_the_samples_that_use_it(self):
+        """Control 2: the causal relation is well defined, and it is sharp.
 
-        The reviewer's acceptance question, adopted verbatim: perturb the
-        capacitors that actually convert a sample, and the internal charge, DAC
-        weight or residue gain for *that sample* must move accordingly; the
-        converted sample must come from the charge those capacitors hold. Note
-        the final output is deliberately **not** required to change — a mismatch
-        can cancel through the charge relation or the digital reconstruction —
-        so the contract is on the internal quantities and their traceability.
+        Perturb the capacitors of one slice; the converting capacitance of
+        exactly the samples whose conversion group contains that slice must
+        change — no more and no fewer. Had this control been weaker ("the number
+        moves somehow"), the contract below could be satisfied by a global
+        sensitivity, and it would prove nothing about attribution.
         """
         cfg = _lean_cfg()
-        res = run_sim_split(cfg, sine_input(0.5 * cfg.v_fs, _coherent(cfg.fs, N_SMALL)), N_SMALL)
-        missing = [
-            attr
-            for attr in ("sample_id", "conv_slice_ids", "acq_slice_ids", "held_sample")
-            if not hasattr(res, attr)
-        ]
-        assert not missing, (
-            "SimResult cannot answer 'which physical slices produced this sample?': "
-            f"missing {missing}. Without this, the DAC error, the residue gain and "
-            "the converted sample cannot be tied to the same capacitor set."
-        )
+        pool = PhysicalSlicePool(cfg, np.random.default_rng(2))
+        # Cycle 0 has not acquired anything yet, so its group is not a physical
+        # conversion; drop it, as the pool's own planner marks it invalid.
+        conv = pool.plan(48, np.random.default_rng(3)).conv[1:]
+        before = pool.signal_capacitance(conv)
+
+        victim = 0
+        pool.unit_caps[victim] *= 1.10
+        pool.c_slice_total[victim] = pool.unit_caps[victim].sum()
+        after = pool.signal_capacitance(conv)
+
+        uses = np.array([victim in group for group in conv])
+        assert (
+            uses.any() and not uses.all()
+        ), "degenerate control: slice 0 either converts every sample or none"
+        assert np.all(before[uses] != after[uses]), "a user of slice 0 did not move"
+        assert np.all(
+            before[~uses] == after[~uses]
+        ), "a non-user of slice 0 moved — the coupling is not per-slice"
 
     def test_the_dac_error_does_not_see_the_selection(self):
         """Pin the *current* coupling state of the main path.
@@ -276,6 +304,78 @@ class TestR2PhysicalPoolOnMainPath:
             "evaluate_physical gained a parameter — if it is now the conversion "
             "group, the slice selection reaches the DAC error and this test "
             "should assert that it does"
+        )
+
+    @pytest.mark.xfail(
+        strict=True,
+        reason="Open defect (review K2, local R13; the R2/R9 item of the earlier "
+        "rounds re-raised, §2.5 of docs/review_response_2026-09-11b.md): "
+        "PhysicalSlicePool is referenced by __init__ and by two test modules but "
+        "by NO runner (pipeline.py, sim_split.py, sim.py) and no experiment, "
+        "while ADR 0005 states that both signal chains obtain their physical "
+        "quantities 'from the same pool'. The contract is causal — perturbing "
+        "the capacitors that converted sample i must move the internal quantity "
+        "reported for sample i, and only for the samples that used them. Today "
+        "the runner neither accepts a pool nor records which slices converted a "
+        "sample, so the relation cannot even be stated. Remove this marker when "
+        "the pool is wired in.",
+    )
+    def test_perturbing_the_capacitors_behind_a_sample_moves_that_sample(self):
+        """The reviewer's acceptance question, executed rather than paraphrased.
+
+        Perturb the capacitors of the slices that actually converted sample
+        ``i``: the internal charge, DAC weight or residue gain reported *for
+        sample ``i``* must move accordingly, and the samples that did not use
+        those slices must not. The final output is deliberately **not** required
+        to change — a mismatch can cancel through the charge relation or the
+        digital reconstruction — so the contract is on the internal quantities
+        and on their attribution.
+
+        The body is written against the target interface so that wiring the pool
+        makes it *mean* something rather than merely turning green: the
+        attribution step is the only reason it does not run end to end today.
+        """
+        cfg = _lean_cfg()
+        x = sine_input(0.5 * cfg.v_fs, _coherent(cfg.fs, N_SMALL))
+        res = run_sim_split(cfg, x, N_SMALL)
+
+        # Step 1 — attribution. Name the capacitors behind each sample. Without
+        # this the perturbation in step 2 cannot be aimed at anything, so the
+        # missing link is reported by name rather than as an AttributeError.
+        trace = {
+            name: getattr(res, name, None)
+            for name in ("conv_slice_ids", "acq_slice_ids", "held_sample", "pool")
+        }
+        missing = [name for name, value in trace.items() if value is None]
+        assert not missing, (
+            "SimResult cannot attribute an output to physical capacitors: "
+            f"{missing} absent. With no per-sample slice trace there is no way to "
+            "name the 8-of-18 capacitors that converted sample i, so e_dac and "
+            "c_active cannot be tied to the capacitor set that produced them, and "
+            "a perturbation cannot be aimed."
+        )
+
+        # Step 2 — causality. Reachable only once step 1 passes: the caller can
+        # hand the runner the pool it draws from, and perturbing that pool's
+        # capacitors then moves e_dac for exactly the samples whose conversion
+        # group contains the perturbed slices.
+        pool = trace["pool"]
+        conv = np.asarray(trace["conv_slice_ids"])
+        victim = int(conv[1, 0])
+        before = np.array(res.e_dac)
+        pool.unit_caps[victim] *= 1.10
+        pool.c_slice_total[victim] = pool.unit_caps[victim].sum()
+        rerun = run_sim_split(cfg, x, N_SMALL, **{"pool": pool})
+        after = np.array(rerun.e_dac)
+
+        uses = np.array([victim in group for group in conv])
+        assert np.any(before[uses] != after[uses]), (
+            "the capacitors that converted sample i were perturbed and e_dac did "
+            "not move — the pool is not on the path that produces the result"
+        )
+        assert np.all(before[~uses] == after[~uses]), (
+            "a sample that did not use the perturbed slices moved — the coupling "
+            "is not per-sample"
         )
 
 
@@ -554,29 +654,101 @@ class TestR8OverrideIsEnforced:
 
 
 # ===========================================================================
-# R10 — a declared field that is read nowhere
+# R10 — a declared field that is read nowhere (round 2) / reaches one entry only (round 3)
 # ===========================================================================
-class TestR10DemModeIsInert:
-    """``dem_mode`` is declared, documented, and read by nobody.
+class TestR10DemModeIsWired:
+    """``dem_mode`` must decide the mechanism, at every entry that consumes one.
 
-    Found while building the legality table: the field is present in ``Config``
-    and in ``PARAM_GRADES``, but no module compares against it. Which scheduling
-    behaviour you get is decided by *which ``Scheduler`` subclass the caller
-    instantiates* (``Scheduler`` vs ``ShuffledScheduler``). This is the same
-    class of defect as ``ra_gain_model`` in v7.0.0 — a name that promises a
-    mechanism that is not wired. Pin it so the pin fails when it is wired.
+    Round 2 recorded the field as *declared and read by nobody*: which scheduling
+    behaviour you got was decided by which ``Scheduler`` subclass the caller
+    happened to instantiate. v7.0.2 routed all three entries through
+    ``make_scheduler``, so the name is now bound — and the tests below show that
+    this is only half the contract.
+
+    The binding is real at ``run_pipeline``, which consumes the per-cycle
+    ``(conv, acq)`` groups from :meth:`Scheduler.reserve_dual` — that method
+    *is* overridden by :class:`ShuffledScheduler`. It is **inert at**
+    ``run_sim`` and ``run_sim_split``: those call ``reserve`` only, which
+    ``ShuffledScheduler`` inherits unchanged from the base class, so selecting
+    the shuffled scheduler there still produces ping-pong slices. ``dem_mode``
+    therefore changes the mechanism at one entry out of three.
+
+    That gap is not closed here on purpose. Making ``ShuffledScheduler.reserve``
+    shuffled means deciding *which* shuffle — and the causal one
+    (``conv[n] == acq[n-1]``, as in ``PhysicalSlicePool.shuffle_causal``) is
+    exactly the R1 fix, which moves published stage-19 numbers. That is a
+    physical main-path change and is tracked as its own decision, not smuggled
+    in behind a switch that was supposed to be cosmetic. Hence the ordinary
+    assertions for what holds, and one ``xfail(strict)`` for what does not.
     """
 
-    def test_dem_mode_does_not_reach_the_runner(self):
-        """Changing ``dem_mode`` must currently change nothing — a pinned defect."""
-        cfg_a = _lean_cfg(dem_mode="rotate")
-        cfg_b = _lean_cfg(dem_mode="permute")
-        inp = sine_input(0.5 * cfg_a.v_fs, _coherent(cfg_a.fs, N_SMALL))
-        out_a = run_sim_split(cfg_a, inp, N_SMALL, rng=np.random.default_rng(11)).out
-        out_b = run_sim_split(cfg_b, inp, N_SMALL, rng=np.random.default_rng(11)).out
-        assert np.array_equal(out_a, out_b), (
-            "dem_mode now changes the output — it has been wired in, so this "
-            "test must be rewritten to assert that it takes effect"
+    def test_dem_mode_selects_the_scheduler_class(self):
+        """The binding itself: ``rotate`` -> base, ``permute`` -> shuffled."""
+        rng = np.random.default_rng(0)
+        rotate = make_scheduler(_lean_cfg(dem_mode="rotate"), rng)
+        permute = make_scheduler(_lean_cfg(dem_mode="permute"), rng)
+        assert type(rotate) is Scheduler, f"rotate gave {type(rotate).__name__}"
+        assert type(permute) is ShuffledScheduler, f"permute gave {type(permute).__name__}"
+
+    def test_an_explicit_scheduler_that_contradicts_the_config_is_refused(self):
+        """Two statements about which schedule runs is one too many."""
+        cfg = _lean_cfg(dem_mode="permute")
+        with pytest.raises(ConfigError, match="dem_mode"):
+            run_sim_split(cfg, sine_input(0.5 * cfg.v_fs, 1e6), 64, scheduler=Scheduler(cfg))
+
+    def test_dem_mode_changes_the_pipeline_result(self):
+        """Positive evidence at the one entry that consumes the shuffle.
+
+        ``dyn_input_settling`` is what puts the per-cycle groups into the loop
+        body (pipeline.py); without it the schedule is drawn and never read, so
+        the two modes agree for a reason that has nothing to do with
+        ``dem_mode``. Asserting on that configuration is the difference between
+        testing the binding and testing a coincidence.
+        """
+        inp = sine_input(0.5 * _lean_cfg().v_fs, _coherent(_lean_cfg().fs, N_SMALL))
+        common = {"dyn_input_settling": True, "slice_bw_spread": 0.3}
+        out_a = run_pipeline(
+            _lean_cfg(dem_mode="rotate", **common),
+            inp,
+            N_SMALL,
+            rng=np.random.default_rng(11),
+        ).out
+        out_b = run_pipeline(
+            _lean_cfg(dem_mode="permute", **common),
+            inp,
+            N_SMALL,
+            rng=np.random.default_rng(11),
+        ).out
+        assert not np.array_equal(
+            np.asarray(out_a), np.asarray(out_b)
+        ), "dem_mode no longer reaches the pipeline — the binding was removed"
+
+    @pytest.mark.xfail(
+        strict=True,
+        reason="Half-open (review K3, local R14): dem_mode is bound at "
+        "run_pipeline but inert at run_sim and run_sim_split. Those entries call "
+        "Scheduler.reserve, which ShuffledScheduler does not override, so a "
+        "config that says 'permute' still gets ping-pong slice groups there. "
+        "Closing it requires choosing the shuffle policy — the causal one is the "
+        "R1 fix and moves published stage-19 numbers, so it is a separate "
+        "physical-main-path decision. Remove this marker when reserve honours "
+        "the mode at all three entries.",
+    )
+    def test_dem_mode_changes_the_result_at_every_entry(self):
+        """The switch must mean the same thing whichever entry you call."""
+        base = _lean_cfg()
+        x = sine_input(0.5 * base.v_fs, _coherent(base.fs, N_SMALL))
+        common = {"mismatch_enable": True, "dyn_input_settling": True}
+        out_a = run_sim_split(
+            _lean_cfg(dem_mode="rotate", **common), x, N_SMALL, rng=np.random.default_rng(11)
+        ).out
+        out_b = run_sim_split(
+            _lean_cfg(dem_mode="permute", **common), x, N_SMALL, rng=np.random.default_rng(11)
+        ).out
+        assert not np.array_equal(np.asarray(out_a), np.asarray(out_b)), (
+            "run_sim_split ignores dem_mode: ShuffledScheduler inherits "
+            "reserve() from Scheduler, so the selected class does not change the "
+            "slice groups this entry actually uses"
         )
 
 
@@ -610,11 +782,56 @@ class TestR11KnownLimits:
         ), f"the known-limits ledger is stale: {verdict.stale_exemptions}"
         assert verdict.ok(), "the gate rejects the shipped reference output"
 
-    def test_the_ledger_is_short_and_every_entry_states_a_reason(self):
-        """An exemption without a reason is just a hidden failure."""
-        assert KNOWN_LIMITS, "all exemptions were removed — delete the machinery too"
+    def test_the_ledger_is_either_empty_or_explained_in_full(self):
+        """An exemption without a reason is a hidden failure. None is also fine.
+
+        v7.0.2 carried exactly one entry, for the KTC ``f_max`` bound. That entry
+        was the *consequence of a wrong-node judgement*, not of a circuit limit,
+        so the correct ledger today is empty — and the previous assertion
+        ("the ledger must be non-empty") had turned into a demand to keep a
+        false limitation alive in order to keep a test green. The machinery is
+        not deleted with the last entry, because it is the device that makes an
+        exemption impossible to hide; its behaviour is pinned directly below,
+        against synthetic input, instead of through production data.
+        """
         for name, reason in KNOWN_LIMITS.items():
             assert len(reason.strip()) > 40, f"exemption {name!r} has no real justification"
+
+    def test_an_exemption_moves_a_failure_out_of_failures_and_is_reported(self):
+        """Exercise the ledger without requiring a real limitation to exist."""
+        results = {"pipeline": {"PASS": False}}
+        assert "pipeline.PASS" in gate(results).failures, "precondition: it fails"
+
+        registry = {"pipeline.PASS": "Synthetic entry: long enough to clear the reason floor."}
+        with pytest.MonkeyPatch.context() as patch:
+            patch.setattr("adi_model.acceptance.KNOWN_LIMITS", registry)
+            verdict = gate(results)
+        assert verdict.failures == [], "an exempted failure still counted as a failure"
+        assert verdict.exempted == ["pipeline.PASS"], "the exemption was not surfaced"
+        assert (
+            verdict.missing_required
+        ), "precondition: the synthetic input omits every required record"
+        assert not verdict.ok(), (
+            "ok() must still be false — it is the conjunction of no unregistered "
+            "failure, no stale exemption, and no missing required record; the "
+            "absent required records are not excused by an unrelated exemption"
+        )
+
+    def test_a_stale_exemption_is_an_error_not_a_silent_no_op(self):
+        """An entry that stops failing must be removed, not left to rot."""
+        registry = {"pipeline.PASS": "Synthetic entry: long enough to clear the reason floor."}
+        with pytest.MonkeyPatch.context() as patch:
+            patch.setattr("adi_model.acceptance.KNOWN_LIMITS", registry)
+            verdict = gate({"pipeline": {"PASS": True}})
+        assert verdict.stale_exemptions == ["pipeline.PASS"]
+        assert not verdict.ok(), "a stale exemption was accepted"
+
+    def test_an_exemption_without_a_reason_is_refused(self):
+        """A blank justification must raise, not pass quietly."""
+        with pytest.MonkeyPatch.context() as patch:
+            patch.setattr("adi_model.acceptance.KNOWN_LIMITS", {"pipeline.PASS": "   "})
+            with pytest.raises(ValueError, match="no reason"):
+                gate({"pipeline": {"PASS": False}})
 
     def test_coverage_floor_is_met_without_being_vacuous(self):
         """The floor must be tight: a record class disappearing must be caught."""
@@ -622,4 +839,114 @@ class TestR11KnownLimits:
         assert actual == MIN_RECORDS, (
             f"MIN_RECORDS={MIN_RECORDS} but the reference output has {actual} records; "
             "update the floor deliberately, in the same commit that changes the records"
+        )
+
+
+# ===========================================================================
+# R12 — the KTC bandwidth bound must be read at the node it constrains
+# ===========================================================================
+class TestR12KtcMaxUsesTheObservedNode:
+    """K1: ``f_max`` was a false failure produced by reading the wrong node.
+
+    v7.0.2 evaluated the bound against the **second stage's input range**:
+    ``f_max = (adc2_v_max - G·Δ1) / (2π·v_fs·G0·Δt)``, which on the default
+    configuration is 2.5465 MHz against a 5 MHz requirement, and registered
+    that number in the known-limits ledger. The premise is wrong. ADR 0006
+    removes the correction term in the *digital* domain
+    (``quantize(v_ra) − κ·v_N``), so ``κ·v_N`` never occupies second-stage
+    range regardless of its size; the quantity that is actually band-limited is
+    the **observation** path, whose usable swing is ``ra_v_clip`` and whose
+    observed step is scaled by ``ktc_gain_n``:
+
+        f_max = (ra_v_clip / ktc_gain_n) / (2π · v_fs · Δt)  = 134.45 MHz
+
+    Both numbers are computed here, from the same configuration object, so that
+    the口径 difference is pinned as arithmetic rather than as prose — the defect
+    *was* a number, and a test that only asserted "a check exists" would have
+    passed at either node.
+    """
+
+    NAME = "KTC 观测通路摆幅上限 f_max (满幅)"
+
+    def test_the_bound_is_the_observation_path_swing_over_the_observed_step(self):
+        cfg = Config(ktc_enable=True)
+        checks = cfg.validate(verbose=False)
+        assert self.NAME in checks, f"the bound is missing from validate(): {sorted(checks)}"
+        measured, limit, passed, unit = checks[self.NAME]
+        expected = (cfg.ra_v_clip / cfg.ktc_gain_n) / (2 * math.pi * cfg.v_fs * cfg.ktc_dt())
+        assert measured == pytest.approx(expected, rel=1e-12), (
+            "the bound is no longer computed from the observation-path swing — "
+            f"measured {measured!r}, observation-node expression {expected!r}"
+        )
+        assert unit == "Hz"
+        assert passed and measured >= limit, (
+            f"the observation-node bound fails at {measured / 1e6:.4f} MHz "
+            f"(limit {limit / 1e6:.1f} MHz) — if this is intended, it belongs in "
+            "acceptance.KNOWN_LIMITS with a reason and an exit condition"
+        )
+
+    def test_the_second_stage_node_would_fail_and_is_not_the_criterion(self):
+        """The counterfactual, so the wrong node cannot quietly come back.
+
+        Read at the second stage's input range, the same requirement fails by a
+        factor of ~50. Pinning the counterfactual is what distinguishes "the
+        bound passes" from "the bound passes *because it is read correctly*".
+        """
+        cfg = Config(ktc_enable=True)
+        g = cfg.g_actual
+        adc2_margin = min(cfg.adc2_v_max - g * cfg.delta1, -cfg.adc2_v_min)
+        wrong_node = adc2_margin / (2 * math.pi * cfg.v_fs * cfg.g0 * cfg.ktc_dt())
+        correct_node = (cfg.ra_v_clip / cfg.ktc_gain_n) / (2 * math.pi * cfg.v_fs * cfg.ktc_dt())
+        assert wrong_node < 5e6, (
+            f"the counterfactual no longer fails ({wrong_node / 1e6:.4f} MHz) — the "
+            "parameters moved, so the two nodes are no longer distinguishable and "
+            "this test can no longer tell them apart"
+        )
+        assert (
+            correct_node > 10 * wrong_node
+        ), "the two nodes are too close to be told apart; the pin is vacuous"
+        assert self.NAME in cfg.validate(verbose=False)
+
+
+# ===========================================================================
+# R15 — the gate must refuse a verdict it would have to guess at
+# ===========================================================================
+class TestR15GateRefusesNonBooleanPass:
+    """K4: ``bool("False")`` is ``True``, and that is how a FAIL became a pass.
+
+    v7.0.2 normalised every verdict with ``bool(raw)``. A single serialisation
+    change — writing ``"False"`` instead of ``False`` — therefore read as a
+    pass, and the gate had no way to notice, because it had already thrown the
+    type away. ``acceptance._verdict`` now returns the value unchanged and
+    raises on anything that is not a ``bool``; refusing to read is the only
+    behaviour that cannot be silently wrong.
+    """
+
+    def test_a_stringified_false_is_refused_not_read_as_true(self):
+        with pytest.raises(ValueError, match="not a bool"):
+            acceptance_records({"validate": {"x": {"PASS": "False"}}})
+
+    def test_every_non_boolean_type_is_refused(self):
+        """The ints matter: ``bool(0)`` and ``bool(1)`` are plausible mistakes."""
+        for raw in ("True", "False", 0, 1, 0.0, 1.0, None, [], {}):
+            with pytest.raises(ValueError, match="not a bool"):
+                acceptance_records({"pipeline": {"PASS": raw}})
+
+    def test_a_real_boolean_is_returned_unchanged(self):
+        """Control: the strictness must not reject the correct type."""
+        assert acceptance_records({"pipeline": {"PASS": False}}) == {"pipeline.PASS": False}
+        assert acceptance_records({"pipeline": {"PASS": True}}) == {"pipeline.PASS": True}
+
+    def test_the_required_set_is_enforced_by_id_not_by_count(self):
+        """Deleting one required record and adding another must not pass.
+
+        This is the reason ``REQUIRED_RECORDS`` exists next to ``MIN_RECORDS``:
+        the floor counts, so it can be satisfied by a swap; the set names the
+        conclusions that would otherwise lose their only evidence.
+        """
+        verdict = gate({"pipeline": {"PASS": True}})
+        assert verdict.missing_required, "the required set is not enforced at all"
+        assert not verdict.ok(), "a result missing a required record was accepted"
+        assert REQUIRED_RECORDS - set(acceptance_records({"pipeline": {"PASS": True}})) == set(
+            verdict.missing_required
         )

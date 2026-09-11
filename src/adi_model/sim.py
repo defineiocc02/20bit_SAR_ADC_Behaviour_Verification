@@ -40,7 +40,7 @@ from .rdac import RDAC
 from .reconstruction import Calibrator, DigitalState, initialize_state, reconstruct
 from .sadc import SADC
 from .sampler import SampleBatch, capture
-from .scheduler import Scheduler
+from .scheduler import Scheduler, make_scheduler
 
 
 @dataclass
@@ -160,7 +160,7 @@ def run_sim(
     if state is None:
         state = initialize_state(cfg)
 
-    sched = scheduler or Scheduler(cfg)
+    sched = make_scheduler(cfg, rng, scheduler)
     allocation = sched.reserve(n_samples)
 
     sadc = sadc or SADC(cfg)

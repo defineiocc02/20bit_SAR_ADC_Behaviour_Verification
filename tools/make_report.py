@@ -118,7 +118,7 @@ kpi = {
     "cap_ratio": base["C_total_pF"] / shr["C_total_pF"],
     "inl_base": base["INL_max_LSB"],
     "inl_ktc": shr["INL_max_LSB"],
-    "f_bw": R["validate_ktc"]["KTC 校正项带宽上限 f_max (满幅)"]["实际"],
+    "f_bw": R["validate_ktc"]["KTC 观测通路摆幅上限 f_max (满幅)"]["实际"],
     "pdk_ppm": d["pdk_sigma_est_ppm"],
     "fit_ppm": 100.0,
 }
@@ -424,12 +424,16 @@ SFDR 从 {f(s3['dem_off']['SFDR_dB'],1)} 抬到 {f(s3['dem_on']['SFDR_dB'],1)} d
 对带限信号是纯 LTI 效应，SNDR / SFDR / THD / 双音 IMD 全都不动
 （实测 β 失配 20% 时 IMD3 仍为 −120.7 dBc，与 β=0 一致）。
 <b>真正的风险是 β 的时变性</b>（随码型、温度、电源漂移）→ 那才构成采样时钟调制并产生杂散，v1 未建模。</div>
-<div class="warn"><b>KTC 方案有硬带宽上限，而且与 G<sub>N</sub>/κ 怎么分无关。</b>
-校正项 κ·v<sub>N</sub> = G<sub>R</sub>(n<sub>R</sub> − Δx)，其中 Δx 比 n<sub>R</sub> 大约三个数量级，
-所以真正被放大进 ADC2 的是 G<sub>R</sub>·|Δx|：
-<span class="eq" style="margin:8px 0">2π f A G_R Δt &lt; ADC2 余量   →   f_max ≈ {f(kpi['f_bw']/1e6,2)} MHz（满幅、Δt = T_s/256）</span>
-这个上限正好覆盖 PPT 标注的「Signal range DC – 5MHz」。把 Δt 从 T<sub>s</sub>/32 放宽到 T<sub>s</sub>/256 之前，
-1.25 MHz 输入就已经吃掉 374 mV、溢出率 3.1%、SNDR 崩到 70 dB。</div>
+<div class="warn"><b>KTC 的带宽边界在观测通路上，不在 ADC2 量程上。</b>
+校正量 κ·v<sub>N</sub> = G<sub>R</sub>(n<sub>R</sub> − Δx) 在<b>数字域</b>扣除
+（<code>quantize(v<sub>ra</sub>) − κ·v<sub>N</sub></code>，见 ADR 0006），因此它无论多大都不占用 ADC2 量程；
+真正被放大到观测节点的是 G<sub>N</sub>·|Δx|：
+<span class="eq" style="margin:8px 0">2π f A G_N Δt &lt; ra_v_clip   →   f_max ≈ {f(kpi['f_bw']/1e6,2)} MHz（满幅、Δt = T_s/256）</span>
+该上限覆盖 PPT 标注的「Signal range DC – 5MHz」。窗口从 T<sub>s</sub>/32 收到 T<sub>s</sub>/256 是把被放大的 Δx 压小，
+代价转移到观测通路的建立时间上（见结果里的「观测带宽需求」两行）。<br>
+<span style="opacity:.65">口径修正（2026-09-11）：本节原按 ADC2 余量给出 f_max ≈ 2.55 MHz 并称其为硬上限。
+校正既已在数字域扣除，该口径的节点取错，2.55 MHz 是假失败。原文附带的
+「1.25 MHz 吃掉 374 mV、溢出率 3.1%、SNDR 崩到 70 dB」为本仓库无复现入口的历史叙事，保留存档，不作为结论。</span></div>
 
 <h2>五、失配压力测试（v2 重点）</h2>
 <div class="warn"><b>v1 的失配模型是物理上的乐观下界。</b>

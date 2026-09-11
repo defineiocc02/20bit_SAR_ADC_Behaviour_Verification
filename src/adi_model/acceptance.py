@@ -31,16 +31,37 @@
 
 已知限制账本
 ------------
-纳入配置自检后立刻暴露出一条**当前确实为 FAIL** 的记录（见
-:data:`KNOWN_LIMITS`）。"把 FAIL 计入验收"与"发布一个红色的 CI"不能同时
-成立，除非把该条明确登记为已知限制。账本因此带两道守卫，语义等价于测试里的
-``xfail(strict=True)``：
+纳入配置自检后立刻暴露出一条记录为 FAIL（``validate_ktc`` 的 KTC 带宽判据），
+当时把它登记进 :data:`KNOWN_LIMITS`，理由写作"KTC 架构限制"。
+
+第三份复核（2026-09-11，针对 v7.0.2）指出该判据用的是 **ADC2 量程**口径，而
+校正量早已按 ADR 0006 改在**数字域**扣除 —— 节点取错，2.5465 MHz 是**假失败**。
+复核复算一致（本项目独立复算：同一参数下观测通路口径为 134.45 MHz，通过）。
+判据已改为绑定观测通路，**账本因此清空**。
+
+这段历史留在这里，因为它说明账本的适用边界：账本登记的是"已知、已解释、
+暂不阻塞"的限制，**不能用来固化一条本身取错对象的判据** —— 那是把缺陷升级
+成豁免。发现判据本身错了就修判据，而不是继续给它记账。
+
+账本机制保留（非空时仍带两道守卫，语义等价于测试里的 ``xfail(strict=True)``）：
 
 * 账本里的名字**必须存在**于结果中（否则是过期条目）；
 * 账本里的名字**必须当前正在失败**（一旦修好，条目变成过期，门禁报错，
   逼人摘掉它）。
 
-豁免项会被逐条打印，不出现在"通过"的数量里 —— 不会被静默吞掉。
+豁免项会被逐条打印，不作为"通过"呈现。
+
+必需判据
+--------
+覆盖度下限（:data:`MIN_RECORDS`）只能防"条数变少"：删掉一条关键判据、再往
+别处加一条无关记录，总数仍是 50，下限一声不响。因此另维护一份**必需的判据
+ID 集合**（:data:`REQUIRED_RECORDS`），只收录"删掉它，某个结论就失去证据"
+的那些条。它刻意**不**覆盖全部 50 条 —— 那会退化成第二份需要手工同步的
+schema，维护不好就是新债；这里的每条都对应一个具体结论。
+
+取值必须是真的布尔。此前用 ``bool(val)`` 归一化，而 ``bool("False")`` 是
+``True``：一次序列化改动就能把失败读成通过。现在遇到非布尔值直接报错，
+不猜字符串的含义。
 
 单位：无（纯结构判定）。
 来源分级：不适用 —— 本模块不产生物理量。
@@ -55,6 +76,7 @@ __all__ = [
     "ACCEPTANCE_CONTAINERS",
     "KNOWN_LIMITS",
     "MIN_RECORDS",
+    "REQUIRED_RECORDS",
     "GateResult",
     "gate",
     "hard_failures",
@@ -78,17 +100,13 @@ ACCEPTANCE_CONTAINERS: tuple[str, ...] = ("validate", "validate_ktc")
 # "为什么这不是一个必须在合并前修好的缺陷"。
 # --------------------------------------------------------------------------
 KNOWN_LIMITS: dict[str, str] = {
-    "validate_ktc.KTC 校正项带宽上限 f_max (满幅)": (
-        "已知架构限制，非配置笔误。论文 [00_1] 披露的信号带是 DC–5 MHz，而"
-        "当前参数下 KTC 校正项在满幅（A = v_fs = 3 V）时只在 f ≤ 2.5465 MHz "
-        "内不越出 ADC2 量程（margin = min(adc2_v_max − G0·Δ1, −adc2_v_min) = "
-        "0.15 V，Δt = Ts/256，G0 = 32）。config.py 顶部注释按更早的参数写的是"
-        "「≈5.6 MHz」，已过期。本仓库把 KTC 定位为机制研究（观测通路的量化、"
-        "编码与延迟尚未建模），所以这条按「上界报告」读，不计为硬性验收。"
-        "解除条件二选一：(a) 把 f_max 抬到 ≥ 5 MHz（改 adc2_v_min / Δt / G0，"
-        "会移动已发布数值）；(b) 确认本项是信息性记录而非验收判据，把它从"
-        "validate_ktc 的 PASS/FAIL 语义中移出。"
-    ),
+    # 当前为空。上一条（"validate_ktc.KTC 校正项带宽上限 f_max (满幅)"）不是
+    # 被删除的，而是**判据本身取错了节点**：它按 ADC2 量程口径算，而校正量
+    # 按 ADR 0006 在数字域扣除。判据已改为观测通路口径并通过，因此在这里
+    # 登记的那条限制不再存在（见模块 docstring 的"已知限制账本"）。
+    #
+    # 未来若出现"确实失败、且已解释、暂不阻塞"的判据，在这里逐条登记，
+    # 并写清解除条件。理由为空字符串会被 gate() 直接拒绝。
 }
 
 # --------------------------------------------------------------------------
@@ -98,6 +116,81 @@ KNOWN_LIMITS: dict[str, str] = {
 #       + validate 的 11 项 + validate_ktc 的 4 项 = 50。
 # --------------------------------------------------------------------------
 MIN_RECORDS = 50
+
+# --------------------------------------------------------------------------
+# 必需判据 ID：删掉它、某个结论就失去证据的那些条。
+#
+# 与 MIN_RECORDS 的分工：MIN_RECORDS 只数条数，"删一条 + 加一条"骗得过它；
+# 这份集合钉住的是具体的结论载体。刻意不列全 50 条（那会变成第二份手工
+# schema），只列"唯一证据"型的条目。
+#
+# 维护约定：改判据名字（例如本轮的 f_max 口径修正）时必须同步这里 —— 名字
+# 对不上就会报 missing，正好逼人确认"改的这条还是不是同一件事"。
+# --------------------------------------------------------------------------
+REQUIRED_RECORDS: frozenset[str] = frozenset(
+    {
+        # 电荷口径闭合 —— 分段 DAC 物理求值 = 独立节点方程的唯一机器证据。
+        "s12_summary.电荷口径闭合：闭式解 = 节点矩阵求解器（fV 级）",
+        "s12_summary.电荷口径闭合：evaluate_physical = 独立节点方程（pV 级）",
+        "s12_summary.电荷口径闭合：输入=输入等效DAC电压 -> 残差为零（nV 级）",
+        "s12_summary.DEM 对 C_C 锯齿无效（结构性质，DEM 开/关偏差 ≤5%）",
+        "s12_summary.分段拓扑 SNDR 与 unary 同量级",
+        # 增益/β 校准链
+        "s10_summary.C_F->增益(电荷一致)",
+        "s10_summary.beta校准",
+        "s10_summary.指标已知答案",
+        # KTC 支路
+        "s11_summary.KTC 双 beta 模型吻合",
+        "s11_summary.eta_n/eta_x 三激励验证",
+        "s11_summary.校准可观测性 rank(U)=64",
+        # 动态误差 / INL
+        "s13_summary.base 行确定性 INL 与其解析预测吻合（子阵列节点寄生）",
+        "s13_summary.完整 DEM 周期覆盖后 INL 不随 rep 变化（确定性协议收敛）",
+        # 交织映射与校准
+        "s14_summary.permute 校准显著改善（整数码，改善 ≥3 倍）",
+        "s14_summary.随机置换映射接近满秩",
+        "s14_summary.fixed 交织映射秩不足",
+        # 配置自检里与结论直接挂钩的三条
+        "validate.第一级读数与 DAC 拓扑自洽（2**b1 <= DAC 电平数）",
+        "validate.dither 增强位数 == log2(DAC 电平数 / 2**b1)",
+        "validate.RA 增益口径 ra_gain_model ∈ {charge, fixed}",
+        # 本轮修正口径的那条 —— 钉住它，防止"改回 ADC2 口径"或名字漂移
+        "validate_ktc.KTC 观测通路摆幅上限 f_max (满幅)",
+    }
+)
+
+
+def _verdict(raw: Any, where: str) -> bool:
+    """把一条验收记录的取值收成真布尔，拒绝一切需要"猜"的输入。
+
+    Args:
+        raw: 记录里 ``"PASS"`` 字段的原始值。
+        where: 记录名；只用于错误消息。
+
+    Returns:
+        bool: ``raw`` 本身，要求它已经是 ``bool``。
+
+    Raises:
+        ValueError: ``raw`` 不是 ``bool``。**不做** ``bool(raw)`` 归一化 ——
+            ``bool("False")`` 为真，一次序列化改动就能把失败读成通过；
+            宁可在这里响亮地失败。
+
+    Examples:
+        >>> _verdict(True, "x")
+        True
+        >>> _verdict(False, "x")
+        False
+        >>> _verdict("False", "x")
+        Traceback (most recent call last):
+            ...
+        ValueError: acceptance record 'x' has PASS='False' (str), not a bool — refusing to read a non-boolean verdict
+    """
+    if not isinstance(raw, bool):
+        raise ValueError(
+            f"acceptance record {where!r} has PASS={raw!r} ({type(raw).__name__}), "
+            f"not a bool — refusing to read a non-boolean verdict"
+        )
+    return raw
 
 
 def acceptance_records(results: dict[str, Any]) -> dict[str, bool]:
@@ -113,6 +206,9 @@ def acceptance_records(results: dict[str, Any]) -> dict[str, bool]:
         dict[str, bool]: 记录名 -> 是否通过。记录名形如 ``"pipeline.PASS"``、
         ``"s12_summary.电荷口径闭合：…"`` 或 ``"validate_ktc.KTC …"``。
 
+    Raises:
+        ValueError: 某条记录的 ``PASS`` 不是真布尔（见 :func:`_verdict`）。
+
     Examples:
         >>> acceptance_records({"pipeline": {"PASS": True}})
         {'pipeline.PASS': True}
@@ -123,23 +219,23 @@ def acceptance_records(results: dict[str, Any]) -> dict[str, bool]:
         ['s12_summary.a', 's12_summary.b', 'validate.x']
         >>> acceptance_records({"反例对照": {"loss_db": -6.0}})   # 无 PASS 键 -> 不计
         {}
+        >>> acceptance_records({"validate": {"x": {"PASS": "False"}}})  # 字符串 -> 报错
+        Traceback (most recent call last):
+            ...
+        ValueError: acceptance record 'validate.x' has PASS='False' (str), not a bool — refusing to read a non-boolean verdict
     """
     out: dict[str, bool] = {}
     for name, val in results.items():
         if not isinstance(val, dict):
             continue
         if "PASS" in val:
-            out[f"{name}.PASS"] = bool(val["PASS"])
+            out[f"{name}.PASS"] = _verdict(val["PASS"], f"{name}.PASS")
         elif name.endswith(_SUMMARY_SUFFIX):
-            out.update({f"{name}.{k}": bool(ok) for k, ok in val.items()})
+            out.update({f"{name}.{k}": _verdict(ok, f"{name}.{k}") for k, ok in val.items()})
         elif name in ACCEPTANCE_CONTAINERS:
-            out.update(
-                {
-                    f"{name}.{k}": bool(sub["PASS"])
-                    for k, sub in val.items()
-                    if isinstance(sub, dict) and "PASS" in sub
-                }
-            )
+            for k, sub in val.items():
+                if isinstance(sub, dict) and "PASS" in sub:
+                    out[f"{name}.{k}"] = _verdict(sub["PASS"], f"{name}.{k}")
     return out
 
 
@@ -176,12 +272,15 @@ class GateResult:
         exempted: 未通过、但已在账本中登记并说明理由的记录名。
         stale_exemptions: 账本中"结果里不存在"或"当前已经通过"的条目 ——
             两者都说明账本过期了，必须报错，否则豁免会永久残留。
+        missing_required: :data:`REQUIRED_RECORDS` 里在结果中找不到的条目。
+            条数可能没变，但某个结论已经失去了证据。
         record_count: 实际收集到的判据条数，与 :data:`MIN_RECORDS` 比较。
     """
 
     failures: list[str] = field(default_factory=list)
     exempted: list[str] = field(default_factory=list)
     stale_exemptions: list[str] = field(default_factory=list)
+    missing_required: list[str] = field(default_factory=list)
     record_count: int = 0
 
     @property
@@ -193,9 +292,15 @@ class GateResult:
         """True if the command may exit zero.
 
         Returns:
-            bool: 没有未登记的失败、没有过期豁免、覆盖度达标。
+            bool: 没有未登记的失败、没有过期豁免、没有必需判据缺失、
+            覆盖度达标。
         """
-        return not (self.failures or self.stale_exemptions or self.coverage_shortfall)
+        return not (
+            self.failures
+            or self.stale_exemptions
+            or self.missing_required
+            or self.coverage_shortfall
+        )
 
     def lines(self) -> list[str]:
         """Human-readable report lines, most important first.
@@ -204,6 +309,11 @@ class GateResult:
         when a known limit is being printed. Otherwise a log that contains only a
         ``KNOWN`` line has no explicit "this passed" statement in it, and a reader
         (or a CI log search) cannot tell a clean run from a truncated one.
+
+        When something is exempted, the verdict line says so in the main clause
+        ("通过 —— 存在 N 项已登记、未满足的限制") rather than opening with
+        "全部通过" and qualifying it in brackets: a reader scanning for the
+        verdict should not come away thinking every criterion was met.
 
         Returns:
             list[str]: 供 ``run_all.py`` 逐行打印。
@@ -217,6 +327,9 @@ class GateResult:
         if self.failures:
             out.append(f"硬性验收: FAIL（{len(self.failures)} 项未通过）")
             out += [f"  FAIL {n}" for n in self.failures]
+        if self.missing_required:
+            out.append(f"必需判据缺失: {len(self.missing_required)} 项（结论失去证据）")
+            out += [f"  MISSING {n}" for n in self.missing_required]
         if self.exempted:
             out.append(f"已知限制（计为不通过，但已登记理由，不阻塞）: {len(self.exempted)} 项")
             out += [f"  KNOWN {n}" for n in self.exempted]
@@ -229,8 +342,13 @@ class GateResult:
                 f"下限 {MIN_RECORDS} 条 —— 有记录类别消失了"
             )
         if self.ok():
-            tail = f"，其中 {len(self.exempted)} 条为已登记的已知限制" if self.exempted else ""
-            out.append(f"硬性验收: 全部通过（{self.record_count} 条判据{tail}）")
+            if self.exempted:
+                out.append(
+                    f"硬性验收: 通过 —— 存在 {len(self.exempted)} 项已登记、"
+                    f"未满足的限制（见上，不计入达标）"
+                )
+            else:
+                out.append(f"硬性验收: 全部通过（{self.record_count} 条判据）")
         return out
 
 
@@ -251,8 +369,8 @@ def gate(results: dict[str, Any]) -> GateResult:
         []
         >>> gate({"pipeline": {"PASS": False}}).failures
         ['pipeline.PASS']
-        >>> gate({"pipeline": {"PASS": True}}).stale_exemptions != []
-        True
+        >>> gate({"pipeline": {"PASS": True}}).missing_required[:1]  # 判据缺失也不放行
+        ['s10_summary.C_F->增益(电荷一致)']
     """
     for name in KNOWN_LIMITS:
         if not KNOWN_LIMITS[name].strip():
@@ -265,9 +383,11 @@ def gate(results: dict[str, Any]) -> GateResult:
     failures = sorted(failing - set(KNOWN_LIMITS))
     exempted = sorted(failing & set(KNOWN_LIMITS))
     stale = sorted(n for n in KNOWN_LIMITS if n not in failing)
+    missing = sorted(REQUIRED_RECORDS - set(recs))
     return GateResult(
         failures=failures,
         exempted=exempted,
         stale_exemptions=stale,
+        missing_required=missing,
         record_count=len(recs),
     )

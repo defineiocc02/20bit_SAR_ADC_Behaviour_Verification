@@ -86,12 +86,34 @@ LEGAL_VALUES: dict[str, tuple[str, ...]] = {
     "dither_quant_transfer": ("quantizer", "rdac"),
     "ra_gain_model": ("charge", "fixed"),
     "calibration": ("none", "gain", "gain_beta"),
-    # dem_mode 目前**不影响任何结果**：选哪种调度由调用方实例化哪个
-    # Scheduler 子类决定（Scheduler / ShuffledScheduler），cfg.dem_mode 没有
-    # 读取点。保留在本表里是为了让拼写错误被拒绝，但不要把它当成"已生效的
-    # 开关"——`tests/audit/test_review_contracts.py` 有一条钉子住该事实的用例。
+    # dem_mode 现在**真的决定调度器**：三个仿真入口都经 scheduler.make_scheduler
+    # 取调度器（rotate -> Scheduler，permute -> ShuffledScheduler），显式传入的
+    # 调度器与它不一致时拒绝运行。注意"接线"不等于"调度正确"：洗牌调度器自身
+    # 的样本归属缺陷仍未闭合（见 tests/audit/test_review_contracts.py 的
+    # TestR1SampleOwnership，xfail(strict=True)）。
     "dem_mode": ("rotate", "permute"),
     "dac_arch": ("unary", "split"),
+}
+
+
+# --------------------------------------------------------------------------
+# stage1_reading 标签 -> b1 的对应关系。从三种读法的**定义**直接导出，不是
+# 第二份需要手工同步的事实表：
+#
+#   paper_consistent  b1 + 2b 增强 = 9b              -> b1 = 7（默认读数）
+#   paper_literal     字面"9b in the first stage"    -> b1 = 9
+#   legacy_codeword   v6.1：6b 粗判决 + 3b dither    -> b1 = 6
+#
+# 标签只是元数据，真正改变机制的是 b1（以及工厂方法一并设定的后端字段）。
+# 两者不一致时，用户会以为自己切换了架构、实际没有 —— 与拼错的枚举值同类，
+# 只是更隐蔽，因此在仿真入口拒绝（外部复核 2026-09-11 第三轮）。
+#   注：`Config(b1=10)` 这类"只想动 b1"的配置仍可构造、可 validate()（它测的
+#   是 DAC 电平数判据），只是不能送进仿真入口 —— legality 与 validate 分离。
+# --------------------------------------------------------------------------
+READING_B1: dict[str, int] = {
+    "paper_consistent": 7,
+    "paper_literal": 9,
+    "legacy_codeword": 6,
 }
 
 
@@ -931,6 +953,19 @@ class Config:
                     f"{field_name}={actual!r} 不是已实现取值（可选：{', '.join(allowed)}）；"
                     f"此前会静默退化为默认分支"
                 )
+
+        # 标签与参数必须一致。`stage1_reading` 只是一个名字，改变机制的是 b1：
+        # 名字说一种读法、b1 却是另一种，等于用户以为自己切换了架构而实际没有
+        # （外部复核 2026-09-11 第三轮）。对应关系只在 READING_B1 里维护。
+        expected_b1 = READING_B1.get(self.stage1_reading)
+        if expected_b1 is not None and self.b1 != expected_b1:
+            bad.append(
+                f"stage1_reading={self.stage1_reading!r} 对应的 b1 应为 {expected_b1}，"
+                f"但 b1={self.b1} —— 标签说一种读法、参数是另一种。用 "
+                f"Config.paper_consistent() / Config.legacy_v61() 切换读数，"
+                f"或显式把 b1 设成与该标签相符的值"
+            )
+
         if self.fs <= 0.0:
             bad.append(f"fs={self.fs!r} 必须为正（采样率 [Hz]）")
         if self.v_fs <= 0.0:
@@ -1097,11 +1132,24 @@ class Config:
                 "V（余项峰值 ×G0）",
             )
 
-        # KTC：校正项占用的 ADC2 量程，以及由此得到的带宽上限
+        # KTC：**观测通路**的摆幅上限（口径修正见下方注释）。
+        #
+        # 旧口径（v7.0.0 起）是 f_max = ADC2 余量 / (2π·v_fs·G0·Δt)，即把
+        # 校正项 κ·v_N 当成 **ADC2 模拟量程**的消费者。这个前提与 ADR 0006
+        # 冲突：校正现在在**数字域**扣除（ADC2.quantize_with_correction 返回
+        # quantize(vra) − κ·v_N），over 只反映 vra 本身是否越界，κ·v_N 无论
+        # 多大都不占 ADC2 量程。旧口径在默认参数下算出 2.5465 MHz 并判 FAIL
+        # —— 外部复核（2026-09-11 第三轮）复算确认那是**节点取错**造成的
+        # 假失败，而不是电路限制。判据必须绑定它实际约束的节点。
+        #
+        # 真实约束在观测通路上：观测节点的可用摆幅 ra_v_clip，观测量经 G_N
+        # 放大后为 G_N·2π f A Δt，令其不超过 clip 即得下面的上限。它与紧随
+        # 其后的「Nyquist 摆幅 < clip」是同一不等式的两个实例（一个解 f，
+        # 一个代入 f = fs/2）；门限来源不同（5 MHz 取自披露的信号带，
+        # fs/2 取自采样率），所以两条都保留，而不是留一条"更宽"的。
         if self.ktc_enable:
-            margin = min(self.adc2_v_max - g * d1, -self.adc2_v_min)
-            f_bw = margin / (2 * math.pi * self.v_fs * g * self.ktc_dt())
-            checks["KTC 校正项带宽上限 f_max (满幅)"] = (f_bw, 5e6, f_bw >= 5e6, "Hz")
+            f_bw = (self.ra_v_clip / self.ktc_gain_n) / (2 * math.pi * self.v_fs * self.ktc_dt())
+            checks["KTC 观测通路摆幅上限 f_max (满幅)"] = (f_bw, 5e6, f_bw >= 5e6, "Hz")
             dx_ny = 2 * math.pi * (self.fs / 2) * self.ktc_dt() * self.v_fs
             checks["KTC 提取通路 Nyquist 摆幅 < clip"] = (
                 self.ktc_gain_n * dx_ny,

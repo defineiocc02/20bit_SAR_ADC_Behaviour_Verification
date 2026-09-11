@@ -4,6 +4,102 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.3] — 2026-09-11
+
+Response to a **fourth external review** (2026-09-11), fixed at the v7.0.2 commit
+`71a5668`. This round stopped asking whether a fix had reached the main path and
+asked instead **which physical node each acceptance criterion is bound to**. That
+is the more fundamental question: a criterion read at the wrong node cannot be
+rescued by tightening the gate around it — it makes the wrong answer *more*
+convincing. Per-finding adjudication, with the reproduction command for each:
+`docs/review_response_2026-09-11c.md`.
+
+**The reference output changes in exactly one record.** `tools/results/results.json`
+is byte-identical to v7.0.2 except for the `validate_ktc` KTC bandwidth entry,
+whose key, measured value and verdict all move together (see *Fixed*, first item).
+Baseline `65c047a9…4ecdec` → `a1ccd92f…35ac70`, verified by a full re-run.
+
+### Fixed
+
+- **`f_max` was read at the wrong node — a 52.8× error, registered as a limit.**
+  v7.0.2 evaluated the KTC bandwidth bound against the **second stage's input
+  range**: `min(adc2_v_max − G·Δ1, −adc2_v_min) / (2π·v_fs·G0·Δt)` = **2.5465 MHz**
+  against a 5 MHz requirement, and put that number in the known-limits ledger.
+  The premise contradicts ADR 0006: the correction term is removed in the
+  **digital** domain (`quantize(v_ra) − κ·v_N`), so `κ·v_N` never occupies
+  second-stage range no matter how large it is. The quantity that is actually
+  band-limited is the **observation** path, whose usable swing is `ra_v_clip` and
+  whose observed step is scaled by `ktc_gain_n`:
+  `(ra_v_clip / ktc_gain_n) / (2π·v_fs·Δt)` = **134.4541 MHz**, which **passes**.
+
+  So the "known limitation" was a false failure manufactured by reading the wrong
+  node. The ledger entry is **deleted** — not because the requirement was relaxed,
+  but because it never applied. The record key was renamed as well
+  (`KTC 校正项带宽上限 f_max (满幅)` → `KTC 观测通路摆幅上限 f_max (满幅)`), so a
+  regression to the old criterion cannot hide behind the old name, and the new key
+  is listed in `REQUIRED_RECORDS`. The same guard in
+  `experiments.stage7_headline` was rebound identically; it does not fire on the
+  default configuration (134 MHz ≫ `fs/2` = 20 MHz) and is kept only so that
+  parameter degradation is still caught. `tools/make_report.py` follows, and the
+  historical "374 mV / 3.1% overflow / 70 dB" sentence it carried has **no
+  reproduction entry** in this repository — it is now marked as such in place.
+  The alternative exit (raise the limit by changing `adc2_v_min` / `Δt` / `G0`)
+  would move published numbers and is an architecture decision; it was not taken.
+
+- **The physical-pool contract was still about the shape of an object.** v7.0.2
+  replaced a source-string scan with `hasattr(res, "sample_id")` and friends. That
+  is progress, but it is still a statement about an object rather than a cause: an
+  attribute can be added and filled with a constant, and the assertion passes. The
+  contract is now a **causal relation**, and its two halves are both required —
+  (i) perturbing the capacitors that converted sample *i* must move the internal
+  quantity reported for *that* sample, and (ii) samples whose conversion group does
+  not contain those slices must **not** move. The second half is what makes it
+  causal rather than merely sensitive: a global sensitivity would satisfy (i)
+  alone. Two positive controls (both passing today) establish that the relation is
+  well defined and sharp *on the pool*, so the `xfail(strict=True)` cannot succeed
+  for the wrong reason — wiring the pool will make it meaningful, not merely green.
+
+- **The gate accepted a verdict it had to guess at.** `bool("False")` is `True`, and
+  v7.0.2 normalised every verdict with `bool(raw)`. A single serialisation change
+  therefore flipped a FAIL into a PASS, and the gate could not notice because the
+  type had already been discarded. `acceptance._verdict` now returns the value
+  unchanged and raises `ValueError` on anything that is not a `bool` — refusing to
+  read is the only behaviour that cannot be silently wrong. Alongside it,
+  `REQUIRED_RECORDS` names the records that are the *sole* evidence for a
+  conclusion: `MIN_RECORDS` only counts, so "delete one, add one" satisfied it; an
+  ID set does not. `GateResult.missing_required` reports the difference, and
+  `Config.LEGAL_VALUES` gained the `stage1_reading` ↔ `b1` consistency check so a
+  label that describes one reading and parameters set to another is refused at the
+  entry rather than simulated.
+
+- **An empty exemption ledger is not a reason to delete the machinery.** The one
+  `KNOWN_LIMITS` entry was the KTC false failure above, so the ledger is now empty
+  — and v7.0.2's test asserted the ledger must be non-empty, which had turned into
+  a demand to keep a false limitation alive in order to keep a test green. That
+  assertion is rewritten, not satisfied: the ledger's behaviour is now pinned
+  directly against synthetic input (a registered exemption moves a failure out of
+  `failures` and is printed; an exemption that stops failing is a `stale` error;
+  a blank reason raises), so every guarantee survives without needing a fake limit
+  to demonstrate it. Deleting the mechanism instead would have brought the next
+  real limitation back as a hard-coded whitelist.
+
+### Known, not fixed — deliberately
+
+- **`dem_mode` is bound at one entry out of three.** v7.0.2 routed all three
+  runners through `scheduler.make_scheduler`, which selects `Scheduler` for
+  `"rotate"` and `ShuffledScheduler` for `"permute"` and refuses a caller-supplied
+  scheduler that contradicts the config. The binding is real but it binds the
+  **name**: `run_pipeline` consumes the per-cycle `(conv, acq)` groups from
+  `reserve_dual`, which `ShuffledScheduler` *does* override — measured, the output
+  differs between modes. `run_sim` and `run_sim_split` call only `reserve`, which
+  `ShuffledScheduler` inherits from the base class, so `dem_mode="permute"` still
+  yields ping-pong slice groups there (measured: outputs bit-identical). Closing it
+  means choosing *which* shuffle, and the causal one is the R1 fix that moves
+  published stage-19 numbers — a physical main-path change that deserves its own
+  decision and its own before/after table, not a free ride on a switch that was
+  supposed to be cosmetic. Tracked by `xfail(strict=True)` in
+  `TestR10DemModeIsWired`, and stated in `make_scheduler`'s own docstring.
+
 ## [7.0.2] — 2026-09-11
 
 Response to a **third external review** (2026-09-11), fixed at the v7.0.1 commit

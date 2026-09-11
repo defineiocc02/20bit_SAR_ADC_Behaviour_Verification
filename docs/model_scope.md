@@ -54,16 +54,24 @@ draws that line explicitly.
      coverage 3.547/8, against the 8·8/18 = 3.556 expectation for an independent
      draw). The shuffled-suppression numbers must not be read as a property of
      the architecture until this is fixed.
+   - `dem_mode` reaches **one** of the three entry points. `run_pipeline`
+     consumes `reserve_dual`, which `ShuffledScheduler` overrides, so `"permute"`
+     really does change its output; `run_sim` and `run_sim_split` consume
+     `reserve`, which `ShuffledScheduler` inherits unchanged, so there `"permute"`
+     still yields ping-pong slice groups. Stated identically in
+     `scheduler.make_scheduler`'s docstring. (**2026-09-11, fourth review:** the
+     wiring was called closed after the second review; it is 1/3 closed.)
    - in **neither** path are the *physical* capacitors bound to the sample:
      `c_sig` is a constant vector and `SplitDAC.evaluate_physical(k_eq, sid)`
      receives no conversion group, so a sample cannot be attributed to the slices
      that converted it. `PhysicalSlicePool` is not referenced by any runner or
      experiment.
 
-   Tracked by `tests/audit/test_review_contracts.py::TestR1SampleOwnership` and
-   `::TestR2PhysicalPoolOnMainPath` (both `xfail(strict=True)`); see
-   `docs/review_response_2026-09-11.md` §2.1 and
-   `docs/review_response_2026-09-11b.md` §2.5.
+   Tracked by `tests/audit/test_review_contracts.py::TestR1SampleOwnership`,
+   `::TestR2PhysicalPoolOnMainPath` and `::TestR10DemModeIsWired` (all
+   `xfail(strict=True)`); see `docs/review_response_2026-09-11.md` §2.1,
+   `docs/review_response_2026-09-11b.md` §2.5 and
+   `docs/review_response_2026-09-11c.md` §4.
 6. **Mechanism compatibility with the disclosed numbers.** The disclosed 2b dither
    range enhancement is reproduced as a *derived* quantity
    (`units_per_lsb1 = 4`), not fitted; the auto-zero cost and the ADC2 dynamic
@@ -179,7 +187,7 @@ configuration whose declared `dither_enhancement_bits` disagrees with the grid
 | DEM efficacy | optimistic if the split is truly unit-only | spatial correlation beyond the 8-unit group model is not represented |
 | `slice_bw_spread` / skew defaults | 0 (ideal) | no published per-slice numbers; enable them explicitly for a study |
 | KTC observer self-noise | 0 by default | an ideal observer is unrealistic; `ktc_noise_n > 0` is the honest setting |
-| KTC correction bandwidth `f_max` | **does not cover the disclosed band** | At full scale the correction term `G_R·|dx|` stays inside the ADC2 window only up to `f_max = 2.5465 MHz` (`margin = min(adc2_v_max − G0·Δ1, −adc2_v_min) = 0.15 V`, `Δt = Ts/256`, `A = v_fs = 3 V`), while the band disclosed in [00_1] is DC–5 MHz. `Config.validate()` reports this check as `PASS: False`. Registered as a known limit in `adi_model.acceptance.KNOWN_LIMITS` rather than silently exempted; the comment at the top of `config.py` that quotes "≈5.6 MHz" was written for earlier parameters and is stale. KTC results here answer "how much could correlated-noise cancellation buy under an idealised read-out", not "what is the net system benefit with a real observation channel" |
+| KTC correction bandwidth `f_max` | **covers the disclosed band** — and the previous "does not cover it" line was a **wrong-node reading, not a limitation** | **Correction (2026-09-11, fourth review).** This row used to report `f_max = 2.5465 MHz` against the disclosed DC–5 MHz band, computed from the second stage's input range (`min(adc2_v_max − G0·Δ1, −adc2_v_min) = 0.15 V`). That premise contradicts ADR 0006: the correction is subtracted in the **digital** domain (`quantize(v_ra) − κ·v_N`), so `κ·v_N` never occupies second-stage range. Read at the node it actually constrains — the observation path, swing `ra_v_clip`, observed step scaled by `ktc_gain_n` — the same configuration gives `f_max = (ra_v_clip / ktc_gain_n) / (2π·v_fs·Δt) = 134.4541 MHz`, a factor of **52.8** higher and comfortably above 5 MHz. `Config.validate()` reports it as `PASS: True` under the key `KTC 观测通路摆幅上限 f_max (满幅)`. The `KNOWN_LIMITS` entry that recorded the 2.5465 MHz figure is deleted (it never applied), and the key is now in `REQUIRED_RECORDS` so the criterion cannot silently return to the second-stage node. Anchored by `tests/audit/test_review_contracts.py::TestR12KtcMaxUsesTheObservedNode`, which pins both numbers so the two nodes stay distinguishable. What remains qualified is unchanged: KTC results here answer "how much could correlated-noise cancellation buy under an idealised read-out", not "what is the net system benefit with a real observation channel" — `v_N` is a float array with no modelled quantiser, coding or latency (§4) |
 | Flicker in the main record | pessimistic (absent) | the corner is below the record band. **Correction (2026-09-11):** this line used to add "not an oversight" — that was wrong. `flicker_series` *does* try to back-fill the unresolvable sub-`f_min` power as drift, but its guard `if f_corner <= f_min or f_min <= f_low: return x` returns early in exactly that case, so the back-fill is unreachable (measured: 0/32768 non-zero samples at fs=40 MHz, n=32768, fc=40 Hz, t_obs=10 s). Tracked by `tests/audit/test_review_contracts.py::TestR6FlickerDriftBackfill` (forced xfail); see `docs/review_response_2026-09-11.md` §2.8 |
 
 ## 7. Change control for this document

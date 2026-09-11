@@ -60,7 +60,10 @@ DAC 输出正比于实际参考电压，于是
 e_dac 进 DAC 物理侧、参考/串扰按电荷口径折 C_sig）。
 参数来源分级：dyn_r_source/r_on/ron_code_coeff/c_xtalk_* 全部 [假设]
 （[00_1] p.32 只点名机理不给数值；只能做灵敏度排序，不能判良率）。
-适用域：一阶 RC 聚合口径（保守上界）；确定性 INL 协议见 stage13。
+适用域：一阶 RC 聚合口径。注意"聚合式偏保守"只在支路开关阻抗主导时成立；
+公共源阻抗项 R_s·C_load 不随 slice 划分缩小（星形网络公共模式
+τ = R_s·C_total + R_on·C_slice，见 pipeline.py 头部适用域声明与
+docs/review_response_2026-09-11d.md §5.2）；确定性 INL 协议见 stage13。
 
 """
 

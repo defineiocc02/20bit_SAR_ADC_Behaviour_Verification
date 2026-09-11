@@ -74,17 +74,25 @@ def phase_noise_state(chip: SplitChip, gamma: float = 1.0, chi: float = 2.0) -> 
     }
 
 
-def kappa_optimal(st: dict) -> float:
-    """κ_opt = aᵀΣb / bᵀΣb（令 n_res = aᵀq − κ·bᵀq 的方差最小的 κ）。
+def kappa_optimal(st: dict, sigma_eN: float = 0.0) -> float:
+    """κ_opt = aᵀΣb / (bᵀΣb + σ_eN²)（总残差方差最小的最优相消系数）。
+
+    σ_eN = 0 时退化为 aᵀΣb / bᵀΣb（只消采样噪声的口径，历史行为，保持
+    向后兼容）。注意两个目标不同：消得**最深**（旧口径）与**总噪声最小**
+    （本函数在 σ_eN > 0 时的口径）不是一回事 —— 观测通路噪声越大，最优 κ
+    越向 0 收缩。本函数与 :func:`sigma_res_analytic` 的总噪声口径一致：
+    把 ``sigma_eN`` 传给两者，得到的 κ 就是最小化该 σ_res 的 κ。
 
     Args:
         st: phase_noise_state 返回的噪声状态字典（含 Sigma_diag/a/b）。
+        sigma_eN: 观测通路自身噪声 RMS σ_eN [V]，默认 0（仅消采样噪声）。
     Returns:
-        κ_opt [无量纲]，使残差方差最小的最优相消系数。
+        κ_opt [无量纲]，使 σ_res² = (a−κb)ᵀΣ(a−κb) + κ²σ_eN² 最小。
     """
     S = np.diag(st["Sigma_diag"])
     a, b = st["a"], st["b"]
-    return float(a @ S @ b / (b @ S @ b))
+    denom = float(b @ S @ b) + float(sigma_eN) ** 2
+    return float(a @ S @ b / denom)
 
 
 def sigma_res_analytic(st: dict, kappa: float, sigma_eN: float = 0.0) -> float:

@@ -149,6 +149,32 @@ draws that line explicitly.
    architecture. See `docs/audit_response.md` §A06.
 10. **Cross-frequency mismatch sensitivity / full-code static sweeps.** Listed in
     the audit's P1 recommendations; not implemented.
+11. **The paper's three-dimensional DEM mechanism.** The digital core counts
+    512 states (`N_DEM_STATES = 8·8·8`), but the DAC's two rotations are both
+    driven by that single `sid`, so the joint physical permutation space is
+    **64** (period lcm(64,8), each main rotation paired with exactly one sub
+    rotation — pinned by `TestR16DemPermutationSpace`). What the 8/18 slice
+    selection, the lateral/vertical shuffling and the binary-to-unary
+    bridging of [11] do is a different mechanism; no DEM sweep in this repo
+    may be quoted as that mechanism's quantitative benefit. Matches neither
+    the slice-selection space nor the shuffler structure of the published
+    part.
+12. **[12] tracking and [13] auxiliary input.** Neither exists in the source:
+    there is no pre-conversion tracking state update driven by another ADC's
+    result, and no second (auxiliary) input port with its own charge
+    accounting — so the input-drive benefits claimed by those patents are not
+    modelled, and no auxiliary-driver or switch sizing can be derived from
+    this model (fifth review §5; `grep aux|tracking src/` → 0 hits).
+13. **KTC cancellation as a designable circuit.** The `f_max` check
+    (v7.0.3-corrected, 134.5 MHz at the observation node) is a **swing**
+    criterion only. "Does not exceed swing" and "settles within the
+    Δt = Ts/256 ≈ 97.66 ps extraction window" are different requirements —
+    a one-pole settle-to-0.1 % would demand f_BW ≥ ln(1000)/(2π·Δt) ≈
+    11.26 GHz (conditional design-pressure estimate, fifth review §11).
+    Additionally `noise_phase.kappa_optimal(sigma_eN>0)` now minimises the
+    *total* residual (sampling + observer noise); deepest cancellation of the
+    sampling noise alone is not the same objective. The circuit realisation
+    (extraction bandwidth, observer quantisation, timing) remains open.
 
 ## 5. Reading/configuration matrix
 
@@ -189,6 +215,7 @@ configuration whose declared `dither_enhancement_bits` disagrees with the grid
 | KTC observer self-noise | 0 by default | an ideal observer is unrealistic; `ktc_noise_n > 0` is the honest setting |
 | KTC correction bandwidth `f_max` | **covers the disclosed band** — and the previous "does not cover it" line was a **wrong-node reading, not a limitation** | **Correction (2026-09-11, fourth review).** This row used to report `f_max = 2.5465 MHz` against the disclosed DC–5 MHz band, computed from the second stage's input range (`min(adc2_v_max − G0·Δ1, −adc2_v_min) = 0.15 V`). That premise contradicts ADR 0006: the correction is subtracted in the **digital** domain (`quantize(v_ra) − κ·v_N`), so `κ·v_N` never occupies second-stage range. Read at the node it actually constrains — the observation path, swing `ra_v_clip`, observed step scaled by `ktc_gain_n` — the same configuration gives `f_max = (ra_v_clip / ktc_gain_n) / (2π·v_fs·Δt) = 134.4541 MHz`, a factor of **52.8** higher and comfortably above 5 MHz. `Config.validate()` reports it as `PASS: True` under the key `KTC 观测通路摆幅上限 f_max (满幅)`. The `KNOWN_LIMITS` entry that recorded the 2.5465 MHz figure is deleted (it never applied), and the key is now in `REQUIRED_RECORDS` so the criterion cannot silently return to the second-stage node. Anchored by `tests/audit/test_review_contracts.py::TestR12KtcMaxUsesTheObservedNode`, which pins both numbers so the two nodes stay distinguishable. What remains qualified is unchanged: KTC results here answer "how much could correlated-noise cancellation buy under an idealised read-out", not "what is the net system benefit with a real observation channel" — `v_N` is a float array with no modelled quantiser, coding or latency (§4) |
 | Flicker in the main record | pessimistic (absent) | the corner is below the record band. **Correction (2026-09-11):** this line used to add "not an oversight" — that was wrong. `flicker_series` *does* try to back-fill the unresolvable sub-`f_min` power as drift, but its guard `if f_corner <= f_min or f_min <= f_low: return x` returns early in exactly that case, so the back-fill is unreachable (measured: 0/32768 non-zero samples at fs=40 MHz, n=32768, fc=40 Hz, t_obs=10 s). Tracked by `tests/audit/test_review_contracts.py::TestR6FlickerDriftBackfill` (forced xfail); see `docs/review_response_2026-09-11.md` §2.8 |
+| Input-settling τ (aggregate single-node RC) | "conservative" **only when the branch switch dominates** — **Qualification (2026-09-11, fifth review §5.2).** The old claim "per-slice τ is ~8× smaller, so the aggregate bound is conservative" is true for the `R_on·C_slice` term only. In a star network with common source impedance, the common-mode τ is `R_s·C_total + R_on·C_slice` — the `R_s·C_load` term does not shrink with the partition (example: N=8, 20.5 pF, 30 Ω, 20 Ω → aggregate 1.025 ns vs common-mode 0.666 ns, only 1.54×). When `R_s` dominates the two readings converge and the "conservative" label fails. `pipeline.py`'s header and `dynamics.py`'s applicability note now state this; pinned by `TestR17CommonModeTau` |
 
 ## 7. Change control for this document
 

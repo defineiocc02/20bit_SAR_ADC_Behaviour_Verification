@@ -148,6 +148,11 @@ class ResidueAmplifier:
         """
         self.cfg = cfg
         self.noise_out = resolve_ra_noise(cfg) if cfg.ra_enable_noise else 0.0
+        # 锚点基线口径（回答第五份复核 §7 的"锚点在前还是在后"）：
+        # resolve_ra_noise 反推的锚点 = **AZ 关、动态带宽关**的对照基线；
+        # 下面两个系数按固定次序叠加在其上（先 ×AZ 代价、再 ×动态带宽），
+        # 不做二次反推 —— 即本模型声称的 target DR 是"无 AZ/无动态带宽"意义
+        # 下的目标，两个机制的净收益由 stage22 的预算推导口径另行入账。
         # RA auto-zero（PPT p.34-35，−1.6 dB）：消 offset/低频噪声（含 1/f），
         # 代价 = 存储电容 kT/C + 噪声折叠 -> 白噪声 ×10^(cost/20)。
         # 口径注记：PPT 的 −1.6 dB 参照系（RA 自身还是整机）未披露；

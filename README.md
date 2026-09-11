@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Checked with mypy](https://img.shields.io/badge/mypy-checked-2f6f9f.svg)](https://mypy-lang.org/)
-[![Tests](https://img.shields.io/badge/tests-181%20passed-brightgreen.svg)](#5-测试与四道门禁)
+[![Tests](https://img.shields.io/badge/tests-189%20passed-brightgreen.svg)](#5-测试与四道门禁)
 
 > **一个用来被"审计"而不是被"相信"的两级残差 SAR ADC 行为模型。**
 > 建模对象为 ISSCC 2024 Session 9.8（Bodnar 等，20 bit / 40 MS/s 精度 SAR）。
@@ -48,7 +48,7 @@
 |:---|:---|
 | 27 个模块、约 1.25 万行库代码 | 参数分级、物理 slice 池、两条独立信号链 |
 | 24 个验收 stage | 每个都同时返回**数据**和一条明确的**判据** |
-| 181 个测试 | 其中每个审计缺陷都对应一条对抗性回归 |
+| 189 个测试 | 其中每个审计缺陷都对应一条对抗性回归 |
 | 8 份 ADR | 每个结构性决策背后的推理 |
 
 ---
@@ -172,7 +172,7 @@ PYTHONPATH=src python tools/run_all.py
 ## 5. 测试与四道门禁
 
 ```bash
-pytest                  # 181 个测试，约 22 秒，不含长扫描
+pytest                  # 189 个测试，约 22 秒，不含长扫描
 pytest -m audit         # 只跑审计衍生的对抗性回归
 pytest --cov=adi_model  # 分支覆盖率，下限 35%
 ```
@@ -182,7 +182,7 @@ pytest --cov=adi_model  # 分支覆盖率，下限 35%
 | Lint | `ruff check .` | **6797** 个错误 | **0** |
 | Format | `ruff format --check .` | 38 个文件里 37 个 | **0** |
 | Types | `mypy --config-file=pyproject.toml` | **147** 个错误 | **0** |
-| Tests | `pytest` | — | **181 passed, 4 xfailed** |
+| Tests | `pytest` | — | **189 passed, 4 xfailed** |
 
 lint 与 type 两道门禁此前是**配好了但永远跑不通**，这跟没有门禁是一回事。
 它们被记为 [`docs/audit_response.md`](docs/audit_response.md) 里的 **C3**、**C4**
@@ -281,7 +281,7 @@ lint 与 type 两道门禁此前是**配好了但永远跑不通**，这跟没�
 @software{zhao_2026_sar_adc_behaviour_model,
   author    = {Zhao, Reed},
   title     = {20-bit SAR ADC Behavioural Verification Model},
-  version   = {7.0.4},
+  version   = {7.0.5},
   year      = {2026},
   publisher = {GitHub},
   url       = {https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification},

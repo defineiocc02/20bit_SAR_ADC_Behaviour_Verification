@@ -4,6 +4,73 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.5] — 2026-09-11
+
+Response to a **fifth external review** (fixed at the v7.0.4 commit
+`aab84c97`). This round changed character: not "is each criterion bound to
+the right node" but **what can this model actually guide, and what can it
+not**. Every checkable assertion was reproduced independently on the code;
+adjudication: `docs/review_response_2026-09-11d.md`. All 17 findings
+adjudicated: 13 confirmed, 2 confirmed with qualification, 1 accepted as
+roadmap, 1 self-found inconsistency (below). No reference output change.
+
+### Fixed
+
+- **`noise_phase.kappa_optimal` minimised the wrong objective.** It returned
+  `aᵀΣb / bᵀΣb` — the minimiser of the *sampling-noise residual only* — while
+  `sigma_res_analytic` in the same module reports a total that also charges
+  `κ²·σ_eN²` for the observer path. Minimising one objective and reporting
+  another agree only when `σ_eN = 0`. The fifth review supplied the correct
+  joint optimum (its §11); the code-level inconsistency between the two
+  sibling functions is this release's own finding. `kappa_optimal` now takes
+  an optional `sigma_eN` (default 0 = historical behaviour, the single
+  production call site at `experiments.py:2797` is unaffected) and returns
+  `aᵀΣb / (bᵀΣb + σ_eN²)` when observer noise is present. Pinned by
+  `TestR18KappaOptimalWithObserverNoise` (joint optimality on a 2001-point
+  grid for four `σ_eN` values; monotone shrinkage toward 0; default preserved).
+
+### Qualified (comments whose "conservative" claim was not unconditional)
+
+- **Input-settling τ.** "`τ_i = R·C_slice` is ~8× smaller, so the aggregate
+  single-node RC is a conservative upper bound" is true only for the branch
+  switch term. With a common source impedance the star-network common mode is
+  `τ = R_s·C_total + R_on·C_slice` — the `R_s·C_load` term does not shrink
+  (measured: N=8, 20.5 pF, 30 Ω, 20 Ω → aggregate 1.025 ns vs common mode
+  0.666 ns, a factor of 1.54, not 8). `pipeline.py`'s header and
+  `dynamics.py`'s applicability note state this; pinned by
+  `TestR17CommonModeTau`.
+
+### Documented (scope statements the review re-verified, now pinned)
+
+- **DEM permutation space is 64, not 512.** `N_DEM_STATES = 8·8·8 = 512`
+  counts digital labels; both DAC rotations are driven by that single `sid`,
+  so the joint physical space is 64 (period lcm(64,8), each main rotation
+  paired with exactly one sub rotation) — measured by enumeration and pinned
+  as a *passing* test, `TestR16DemPermutationSpace`, so no DEM sweep in this
+  repo can be quoted as the paper's three-dimensional mechanism
+  (`docs/model_scope.md` §4.11).
+- **[12] tracking and [13] auxiliary input are absent from the source**
+  (`grep aux|tracking src/` → 0 hits); the input-drive benefits of those
+  patents cannot be derived from this model (`model_scope.md` §4.12).
+- **The KTC `f_max` criterion is a swing criterion only.** "Does not exceed
+  swing" (134.5 MHz, the v7.0.3-corrected node) and "settles within the
+  Δt = Ts/256 ≈ 97.66 ps extraction window" are different requirements — a
+  one-pole settle-to-0.1 % would demand f_BW ≥ ln(1000)/(2π·Δt) ≈ 11.26 GHz
+  (conditional design-pressure estimate, not a circuit requirement).
+  Stated at the `validate_ktc` criterion and `model_scope.md` §4.13.
+- **The RA noise anchor baseline is explicit**: `resolve_ra_noise` derives the
+  anchor with AZ off and dynamic-bandwidth off; the two factors are then
+  applied in fixed order (AZ first, then dynamic bandwidth), with no
+  re-derivation — answering the review's "is the anchor before or after"
+  question from the code (`ra.py` comment).
+
+**Reference output unchanged**: full `adi-run-all` re-run, exit code 0, 50
+records, `results.json` SHA256 `a1ccd92f…35ac70` — byte-identical to 7.0.4,
+figures identical.
+
+Gates: ruff / format / mypy clean; pytest **189 passed, 4 xfailed** (7 new
+pins).
+
 ## [7.0.4] — 2026-09-11
 
 Hotfix to 7.0.3: the K4 strictness introduced in 7.0.3 refused a *legitimate*

@@ -1147,6 +1147,13 @@ class Config:
         # 其后的「Nyquist 摆幅 < clip」是同一不等式的两个实例（一个解 f，
         # 一个代入 f = fs/2）；门限来源不同（5 MHz 取自披露的信号带，
         # fs/2 取自采样率），所以两条都保留，而不是留一条"更宽"的。
+        #
+        # 边界（第五份复核 §11）：本判据**只管摆幅，不管建立**。"不越摆幅"
+        # 与"在 Δt = Ts/256 ≈ 97.66 ps 的提取窗口内及时建立"是两回事——
+        # 若按单极点阶跃建立到 0.1%，需要 f_BW ≥ ln(1000)/(2π·Δt) ≈ 11.26 GHz
+        # （条件性设计压力估算，不是实际电路的既定需求）。也就是说 f_max
+        # PASS 不等于 KTC 取消扩展可落地；提取窗口的建立/噪声/量化折衷仍是
+        # 开放的设计问题，见 docs/model_scope.md 的 KTC 行。
         if self.ktc_enable:
             f_bw = (self.ra_v_clip / self.ktc_gain_n) / (2 * math.pi * self.v_fs * self.ktc_dt())
             checks["KTC 观测通路摆幅上限 f_max (满幅)"] = (f_bw, 5e6, f_bw >= 5e6, "Hz")

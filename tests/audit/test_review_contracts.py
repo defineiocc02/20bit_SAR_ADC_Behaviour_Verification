@@ -76,6 +76,23 @@ Round 3's K1 and K4 are also covered where they are cheapest to state: K1 in
 a number) and K4 in ``TestR15GateRefusesNonBooleanPass``. K3's
 *partial* state — bound at one entry, inert at two — is an ``xfail(strict)``
 inside ``TestR10DemModeIsWired``; see that class for why it is not closed here.
+
+Round 4 — fifth external review, of v7.0.4; indexed against
+``docs/review_response_2026-09-11d.md``:
+
+    local  there    contract                                    test class
+    R16    §4.2     the DEM permutation space is 64, not 512    TestR16DemPermutationSpace
+    R17    §5.2     the aggregate-τ "conservative" claim is     TestR17CommonModeTau
+                    qualified by the common source impedance
+    R18    §11      kappa_optimal with observer noise is the    TestR18KappaOptimalWithObserverNoise
+                    minimiser of the *total* residual noise
+
+R16 is a **passing** pin, not an xfail: 512 digital state labels collapsing
+into 64 distinct physical rotations is a fact of the current coupled-rotation
+design, not a bug to be fixed by rewiring — the pin exists so that the number
+cannot drift silently and so that no DEM sweep result is misread as the
+paper's three-dimensional mechanism. R17 and R18 are passing pins on the
+*qualified* statements this round added to the code comments.
 """
 
 from __future__ import annotations
@@ -91,7 +108,9 @@ from adi_model import (
     LEGAL_VALUES,
     Config,
     ConfigError,
+    SplitDAC,
     audit_provenance,
+    build_split_chip,
     resolve_ra_noise,
     run_sim_split,
     sine_input,
@@ -105,6 +124,7 @@ from adi_model.acceptance import (
     gate,
     hard_failures,
 )
+from adi_model.noise_phase import kappa_optimal, sigma_res_analytic
 from adi_model.pipeline import run_pipeline
 from adi_model.provenance import GradingError, SourceGrade, annotate_config
 from adi_model.ra import flicker_series
@@ -975,3 +995,165 @@ class TestR15GateRefusesNonBooleanPass:
         assert REQUIRED_RECORDS - set(acceptance_records({"pipeline": {"PASS": True}})) == set(
             verdict.missing_required
         )
+
+
+# ===========================================================================
+# R16-R18 — fifth external review (v7.0.4): permutation space, τ topology,
+#           optimal cancellation under observer noise
+# ===========================================================================
+class TestR16DemPermutationSpace:
+    """§4.2: 512 digital state labels collapse into 64 physical rotations.
+
+    ``mapper.N_DEM_STATES`` is ``8·8·8 = 512`` — a name that invites reading
+    the digital state counter as three-dimensional DEM diversity. The DAC's
+    rotations are both driven by the *same* ``sid``:
+
+        om  = roll(arange(n_m), (sid·331) mod 64)
+        os_ = roll(arange(n_s), (sid·173) mod 8)
+
+    so the joint permutation is determined by the pair ((sid·331) mod 64,
+    (sid·173) mod 8), which has period lcm(64, 8) = 64 — a 331 that is coprime
+    to 64 and a 173 that is coprime to 8 make each rotation individually
+    full-cycle, but the *joint* cycle is the lcm, not the product. Measured
+    (this file, seed-free enumeration): 64 distinct joint permutations, each
+    main rotation paired with exactly one sub rotation.
+
+    This is pinned as a **passing** test on purpose. It is not a defect to be
+    fixed by rewiring — choosing the real three-dimensional mechanism (8/18
+    slice selection, lateral + vertical shuffling, binary-to-unary bridging)
+    is an architecture decision that moves published numbers. The pin exists
+    so that (a) the number cannot drift silently and (b) no DEM sweep in this
+    repo can be quoted as the paper's three-dimensional benefit.
+    """
+
+    def test_the_joint_permutation_space_is_64_not_512(self):
+        from adi_model.dac_arch import _A_MAIN, _A_SUB
+        from adi_model.mapper import N_DEM_STATES
+
+        cfg = _lean_cfg()
+        n_m, n_s = cfg.dac_n_main, cfg.dac_n_sub
+        assert N_DEM_STATES == 512, "mapper state count changed — re-derive this pin"
+        assert (n_m, n_s) == (64, 8), "array sizes changed — re-derive this pin"
+        joint = {((s * _A_MAIN) % n_m, (s * _A_SUB) % n_s) for s in range(N_DEM_STATES)}
+        assert len(joint) == 64, (
+            f"expected the 512 sid labels to collapse to 64 distinct joint "
+            f"rotations (lcm(64,8)), found {len(joint)} — if this is now larger, "
+            "the permutation driver changed and the DEM scope statements in "
+            "docs/model_scope.md must be revisited"
+        )
+
+    def test_each_main_rotation_is_paired_with_exactly_one_sub_rotation(self):
+        from adi_model.dac_arch import _A_MAIN, _A_SUB
+
+        cfg = _lean_cfg()
+        n_m, n_s = cfg.dac_n_main, cfg.dac_n_sub
+        pairs: dict[int, set[int]] = {}
+        for s in range(512):
+            pairs.setdefault((s * _A_MAIN) % n_m, set()).add((s * _A_SUB) % n_s)
+        assert all(len(v) == 1 for v in pairs.values()), (
+            "the two rotations decoupled — the selection of the main rotation no "
+            "longer determines the sub rotation; update the scope statements"
+        )
+        assert len({next(iter(v)) for v in pairs.values()}) == n_s, (
+            "each sub rotation should appear exactly 64/8 = 8 times across the " "64 main rotations"
+        )
+
+    def test_the_dac_realises_the_same_space_through_its_public_interface(self):
+        """End-to-end check through SplitDAC, not just the roll arithmetic.
+
+        ``_lean_cfg`` keeps ``dem_enable=False`` (identity order), so this
+        test enables DEM explicitly — the claim under test is about the DEM
+        space itself.
+        """
+        cfg = Config(dem_enable=True, dac_arch="split")
+        dac = SplitDAC(cfg, build_split_chip(cfg))
+        orders = {tuple(dac.full_order(sid).tolist()) for sid in range(512)}
+        assert len(orders) == 64, (
+            f"SplitDAC.full_order yields {len(orders)} distinct physical orders "
+            "over the 512 states — expected 64"
+        )
+
+
+class TestR17CommonModeTau:
+    """§5.2: the aggregate τ is *not* uniformly conservative.
+
+    The header of ``pipeline.py`` used to say the per-slice τ is "~8× smaller,
+    so the aggregate single-node RC is a conservative upper bound". That is
+    true only for the branch-switch term. In a star network — common source
+    impedance R_s feeding N branches of (R_on + C_slice) — the common-mode
+    time constant is
+
+        τ_common = R_s·C_total + R_on·C_slice,
+
+    so the R_s·C_load term of the aggregate formula does *not* shrink with the
+    slice partition. With the reviewer's numbers (N=8, C_total = 20.5 pF,
+    R_s = 30 Ω, R_on = 20 Ω): aggregate 1.025 ns, common-mode 0.666 ns (only
+    1.54× smaller), all-per-slice 0.128 ns. The header now states this
+    qualification; this test pins the arithmetic so the numbers in the comment
+    cannot rot.
+    """
+
+    def test_the_star_network_common_mode_time_constant(self):
+        n, rs, ron = 8, 30.0, 20.0
+        c_total = 20.5e-12
+        c_slice = c_total / n
+        tau_aggregate = (rs + ron) * c_total
+        tau_common = (n * rs + ron) * c_slice  # = rs·c_total + ron·c_slice
+        tau_all_per_slice = (rs + ron) * c_slice
+        assert tau_aggregate == pytest.approx(1.025e-9)
+        assert tau_common == pytest.approx(0.666e-9, rel=1e-3)
+        assert tau_all_per_slice == pytest.approx(0.128e-9, rel=1e-3)
+        # the ratio that the "~8×" claim silently assumed away:
+        assert tau_aggregate / tau_common < 2.0, (
+            "with these source/switch numbers the aggregate bound is within 2× "
+            "of the star-network common mode, not 8× — the conservative claim "
+            "is qualified, as pipeline.py's header now states"
+        )
+        # algebraic identity the qualification rests on:
+        assert (n * rs + ron) * c_slice == pytest.approx(rs * c_total + ron * c_slice)
+
+
+class TestR18KappaOptimalWithObserverNoise:
+    """§11: deepest cancellation ≠ minimum total noise.
+
+    ``noise_phase.kappa_optimal`` used to return aᵀΣb / bᵀΣb — the minimiser
+    of the *sampling-noise residual only*. But ``sigma_res_analytic``, the
+    function that reports the final number, also charges κ²·σ_eN² for the
+    observer path. Minimising one while reporting the other is an internal
+    inconsistency the fifth review exposed by writing the correct joint
+    optimum: κ* = aᵀΣb / (bᵀΣb + σ_eN²). ``kappa_optimal`` now takes
+    ``sigma_eN`` (default 0 = historical behaviour); this pin holds it to the
+    joint optimum, in both directions.
+    """
+
+    def _state(self) -> dict:
+        rng = np.random.default_rng(5)
+        a = rng.normal(0.0, 1.0, 6)
+        b = rng.normal(0.0, 1.0, 6)
+        return {"Sigma_diag": rng.uniform(0.5, 2.0, 6) ** 2, "a": a, "b": b}
+
+    def test_with_observer_noise_it_minimises_the_total_residual(self):
+        st = self._state()
+        for sigma_eN in (0.0, 0.3, 1.0, 3.0):
+            k = kappa_optimal(st, sigma_eN)
+            # optimality: total residual at κ* must not exceed any neighbour
+            grid = np.linspace(0.0, 2.0, 2001)
+            totals = np.array([sigma_res_analytic(st, float(x), sigma_eN) for x in grid])
+            at_k = sigma_res_analytic(st, k, sigma_eN)
+            assert at_k <= totals.min() + 1e-12, (
+                f"κ* = {k:.4f} does not minimise the total residual for "
+                f"σ_eN = {sigma_eN} — the closed form and sigma_res_analytic "
+                "disagree"
+            )
+
+    def test_observer_noise_shrinks_the_coefficient_toward_zero(self):
+        st = self._state()
+        k0 = kappa_optimal(st, 0.0)
+        assert 0.0 < kappa_optimal(st, 1.0) < k0 < 1.0, (
+            "adding observer noise must pull the optimal coefficient toward 0 "
+            "— deepest cancellation is not minimum total noise"
+        )
+
+    def test_default_argument_preserves_the_historical_behaviour(self):
+        st = self._state()
+        assert kappa_optimal(st) == pytest.approx(kappa_optimal(st, 0.0))

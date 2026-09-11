@@ -1,0 +1,37 @@
+# ---------------------------------------------------------------------------
+# sdist 内容：sdist 是"可复现的源码分发"，因此除包代码外还要带上
+#   * 法务文件（LICENSE / NOTICE）——BSD-3-Clause 要求再分发时保留；
+#   * 文档与 ADR——结论的推理链，缺了 sdist 就只剩代码；
+#   * tests / tools——读者要能立刻复现与验收，而不是回到 GitHub 找。
+# 体积可控（tools/results 约 1.2 MB），收益是 sdist 自洽。
+# 注意：hatchling 默认已含 pyproject 与包目录，这里只列"额外"项。
+# ---------------------------------------------------------------------------
+
+include LICENSE
+include NOTICE
+include README.md
+include README_CN.md
+include CHANGELOG.md
+include CONTRIBUTING.md
+include SECURITY.md
+include CODE_OF_CONDUCT.md
+include CITATION.cff
+
+recursive-include docs *.md
+recursive-include tests *.py
+recursive-include tools *.py
+
+# 参考输出：README 中所有数字与 7 张图的来源，也是 CI 可复现性 job 的基准
+recursive-include tools/results *.json *.png
+
+# CI 工作流与模板一并带上：CI 里跑的命令就是 README 承诺的复现路径，
+# 缺了它 sdist 就少了一层"门禁真的这么跑"的证据。
+recursive-include .github *.yml *.yaml *.md
+
+# 反向排除：缓存与本地产物不该进 sdist
+global-exclude __pycache__/*
+global-exclude *.py[cod]
+global-exclude .DS_Store
+global-exclude .mypy_cache/*
+global-exclude .ruff_cache/*
+global-exclude .pytest_cache/*

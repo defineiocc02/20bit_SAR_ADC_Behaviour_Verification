@@ -1,0 +1,384 @@
+"""Machine-checkable source grading for every number the model produces.
+
+Why this module exists
+----------------------
+Earlier versions of this model carried a documentation convention: each
+parameter was tagged ``[披露]`` / ``[拟合]`` / ``[假设]`` in a comment. The
+convention was honoured in the breach — an external audit of v6.1 found that
+numbers produced from *fitted* and *assumed* parameters were being reported
+alongside numbers derived from the published literature, with no way for a
+reader to tell them apart, and no way for a test to enforce the distinction.
+
+A comment cannot be tested. This module turns the convention into a runtime
+value so that:
+
+* every public quantity can carry its provenance with it (``Graded``);
+* every ``Config`` field has a declared grade in :data:`PARAM_GRADES`, and a
+  test fails if a new field is added without one;
+* a report (:func:`audit_provenance`) lists exactly which headline numbers rest
+  on assumptions, which is the first thing a reviewer should read.
+
+Grades
+------
+``DISCLOSED``
+    Transcribed from [00] (ISSCC 2024 digest) or [00_1] (slides). Quotable as
+    "the paper says".
+``DERIVED``
+    Obtained by algebra from ``DISCLOSED`` values, with no free parameter.
+    Quotable with the derivation shown.
+``FITTED``
+    Chosen so that the model reproduces a published figure. **A result obtained
+    with a fitted parameter is not a prediction of that figure** — it is a
+    consistency check that the architecture, as modelled, is compatible with
+    it.
+``ASSUMED``
+    No published source. Sensitivity studies only; must never appear in a
+    yield, area, power or performance claim about the target chip.
+``RESEARCH_EXTENSION``
+    An original mechanism added by this repository that is *not* disclosed in
+    the literature being modelled. Must never be attributed to the original
+    authors.
+
+Example:
+-------
+>>> from adi_model.provenance import Graded, SourceGrade
+>>> lsb = Graded(5.722e-6, SourceGrade.DERIVED, "2*v_fs/2**20", "LSB at 20 bit")
+>>> lsb.grade is SourceGrade.DERIVED
+True
+>>> lsb.require(SourceGrade.DISCLOSED, SourceGrade.DERIVED)  # doctest: +ELLIPSIS
+5.722e-06
+"""
+
+from __future__ import annotations
+
+import enum
+from dataclasses import dataclass
+from typing import Any, Generic, TypeVar
+
+__all__ = [
+    "SourceGrade",
+    "Graded",
+    "GradingError",
+    "PARAM_GRADES",
+    "grade_of",
+    "annotate_config",
+    "audit_provenance",
+]
+
+T = TypeVar("T")
+
+
+class SourceGrade(enum.Enum):
+    """Provenance of a numerical value. See module docstring."""
+
+    DISCLOSED = "disclosed"
+    DERIVED = "derived"
+    FITTED = "fitted"
+    ASSUMED = "assumed"
+    RESEARCH_EXTENSION = "research_extension"
+
+    @property
+    def quotable(self) -> bool:
+        """True if a value of this grade may be quoted as fact in a paper.
+
+        ``FITTED`` and ``ASSUMED`` are deliberately excluded: a fitted value
+        restates its own target, and an assumed value has no source.
+
+        Returns:
+            True 若该等级可当事实引用（仅 DISCLOSED / DERIVED）；
+            False 若 FITTED / ASSUMED / RESEARCH_EXTENSION。
+        """
+        return self in (SourceGrade.DISCLOSED, SourceGrade.DERIVED)
+
+    @property
+    def label_zh(self) -> str:
+        """Chinese label matching the vocabulary used in earlier versions.
+
+        Returns:
+            中文来源标签字符串：DISCLOSED→"[披露]"，DERIVED→"[推导]"，
+            FITTED→"[拟合]"，ASSUMED→"[假设]"，RESEARCH_EXTENSION→"[研究扩展]"。
+        """
+        return {
+            SourceGrade.DISCLOSED: "[披露]",
+            SourceGrade.DERIVED: "[推导]",
+            SourceGrade.FITTED: "[拟合]",
+            SourceGrade.ASSUMED: "[假设]",
+            SourceGrade.RESEARCH_EXTENSION: "[研究扩展]",
+        }[self]
+
+
+class GradingError(RuntimeError):
+    """Raised when a value is used at a grade that does not permit that use."""
+
+
+@dataclass(frozen=True)
+class Graded(Generic[T]):
+    """A value bundled with its provenance.
+
+    Attributes:
+        value: The quantity itself, in the unit documented by ``unit``.
+        grade: Where the number comes from.
+        source: The reference, derivation or reason. Free text; for
+            ``DISCLOSED`` this should be a document and page/slide number.
+        note: Optional clarification, e.g. domain-of-applicability caveats.
+        unit: Unit string, e.g. ``"V"``, ``"F"``, ``"LSB@20b"``, ``"dB"``.
+    """
+
+    value: T
+    grade: SourceGrade
+    source: str
+    note: str = ""
+    unit: str = ""
+
+    def require(self, *allowed: SourceGrade) -> T:
+        """Return the value, or raise if its grade is not in ``allowed``.
+
+        This is the enforcement hook. Call it at every point where a number is
+        about to be used in a claim, so that an assumption silently
+        propagating into a performance claim becomes a test failure instead of
+        a correction after publication.
+
+        Args:
+            *allowed: Grades acceptable at this call site.
+
+        Returns:
+            The wrapped value.
+
+        Raises:
+            GradingError: If ``self.grade`` is not in ``allowed``.
+        """
+        if self.grade not in allowed:
+            raise GradingError(
+                f"value graded {self.grade.name} ({self.grade.label_zh}) from "
+                f"{self.source!r} is not valid here; allowed: "
+                f"{[g.name for g in allowed]}"
+            )
+        return self.value
+
+    def map(self, fn: Any) -> Graded[Any]:
+        """Apply ``fn`` to the value, preserving grade and source.
+
+        Returns:
+            新的 Graded，value=fn(self.value)，grade/source/note/unit 沿用。
+
+        Args:
+            fn: 作用于 value 的映射函数（callable）。若换算了单位，
+                调用方需自行更新返回对象的 unit 字段。
+
+        """
+        return Graded(fn(self.value), self.grade, self.source, self.note, self.unit)
+
+    def __repr__(self) -> str:
+        """Readable form including the grade, e.g. ``Graded(4.0, 披露, '论文')``.
+
+        Returns:
+            形如 "Graded(<value>, <中文等级>, <source>[, unit=...])" 的字符串。
+        """
+        return (
+            f"Graded({self.value!r}, {self.grade.label_zh}, {self.source!r}"
+            + (f", unit={self.unit!r}" if self.unit else "")
+            + ")"
+        )
+
+
+# --------------------------------------------------------------------------
+# Config parameter grading table.
+#
+# Rule enforced by tests/unit/test_provenance.py: every field of Config must appear
+# here. Adding a Config field without grading it is a test failure, which is
+# the entire point — an ungraded parameter is how fitted numbers start
+# masquerading as disclosed ones.
+# --------------------------------------------------------------------------
+_G = SourceGrade.DISCLOSED
+_D = SourceGrade.DERIVED
+_F = SourceGrade.FITTED
+_A = SourceGrade.ASSUMED
+_X = SourceGrade.RESEARCH_EXTENSION
+
+PARAM_GRADES: dict[str, tuple[SourceGrade, str]] = {
+    # ---- system / target -------------------------------------------------
+    "fs": (_G, "[00] abstract: 40 MS/s"),
+    "n_bits_target": (_G, "[00] abstract: 20 bit"),
+    "v_fs": (_D, "2.111 Vrms * sqrt(2) from NSD 8.8nV/rtHz and -167.6dBFS/Hz [00_1]"),
+    "target_dr_db": (_G, "[00_1] low-frequency performance slide (94.6 dB DR)"),
+    "seed": (_A, "reproducibility only, no physical meaning"),
+    # ---- first stage -----------------------------------------------------
+    "b1": (_A, "ARCHITECTURAL READING, see docs/adr/0003-stage-1-resolution.md"),
+    "stage1_reading": (_G, "[00]: '...resulting in 9b quantization in the first stage'"),
+    "c_sadc": (_A, "quantizer slice sampling cap; not disclosed"),
+    "sadc_offset": (_A, "default 0 = ideal"),
+    "sadc_rdac_gain_mismatch": (_F, "set to be consistent with >11b matching [00]"),
+    "sampling_tau_mismatch": (_A, "no published number; mechanism from [09]"),
+    "sadc_mismatch_enable": (_A, "modelling switch"),
+    "sadc_mismatch_sigma": (_A, "no published number"),
+    # ---- residue amplifier -----------------------------------------------
+    "g0": (_G, "[00_1] figure annotation: G0 = 32"),
+    "gain_error": (_A, "default 0 = nominal"),
+    "ra_gain_model": (_D, "charge-consistent definition, see charge_ref.py"),
+    "ra_out_noise_rms": (_F, "None => reverse-solved from target_dr_db (ANCHOR, not prediction)"),
+    "ra_v_clip": (_A, "chosen to match adc2 range; not disclosed"),
+    "ra_enable_noise": (_A, "modelling switch"),
+    # ---- slice pool ------------------------------------------------------
+    "n_slices": (_G, "[00]: pool of 18 sDAC"),
+    "n_active": (_G, "[00]: 8 converting + 8 acquiring"),
+    "n_unit_per_slice": (_D, "512 RDAC units / 8 active slices; 8x8 matches 3b+3b DEM"),
+    "n_units_headroom": (_A, "dither headroom; not disclosed"),
+    # ---- capacitor array -------------------------------------------------
+    "c_total0": (_G, "[00_1]: 20.5 pF RDAC"),
+    "cap_scale": (_A, "exploration knob for the capacitor-shrinking study"),
+    "chi": (_D, "2 = two independent differential halves"),
+    "mismatch_enable": (_A, "modelling switch"),
+    "mismatch_sigma0": (_F, "100 ppm behavioural calibration; NOT a PDK value"),
+    "mismatch_split": (_A, "variance partition; not disclosed"),
+    "mismatch_gradient": (_A, "no published number"),
+    "pdk_sigma_est_ppm": (_A, "Pelgrom-style area-law estimate; not a PDK measurement"),
+    "c_feedback0": (_D, "c_total0 / g0"),
+    # ---- backend ADC -----------------------------------------------------
+    "adc2_n_bits": (_D, "derived in Config.paper_consistent() from Delta1 and LSB20·G0"),
+    "adc2_v_min": (_D, "-0.10 * G0 * Delta1 (residue span with ~10% margin)"),
+    "adc2_v_max": (_D, "+1.10 * G0 * Delta1 (residue span with ~10% margin)"),
+    # ---- DEM / dither ----------------------------------------------------
+    "dem_enable": (_A, "modelling switch"),
+    "dem_mode": (_A, "algorithm choice, not disclosed"),
+    "dither_mode": (_A, "modelling switch"),
+    "dither_amplitude_lsb1": (_A, "not disclosed; '2b enhancement' has no number"),
+    "dither_units_range": (_A, "not disclosed"),
+    "dither_split_bank": (_A, "topology choice for split DAC only"),
+    "dither_discrete": (_A, "realisability study"),
+    "dither_quant_transfer": (_A, "reading of 'transferred from quantizer to RDAC' [00]"),
+    "dither_transfer_model": (
+        _G,
+        "[00]: 'range enhanced by 2b when transferred from quantizer to RDAC'",
+    ),
+    "dither_enhancement_bits": (_G, "[00]: '2b enhancement' on the RDAC side"),
+    "dither_changes_in_window": (_A, "modelling switch"),
+    # ---- KTC: original research extension --------------------------------
+    "ktc_enable": (_X, "NOT in [00] or [09]-[14]; original research extension"),
+    "ktc_gain_n": (_X, "observer gain, free design parameter of the extension"),
+    "ktc_kappa": (_X, "observer scale, free design parameter of the extension"),
+    "ktc_beta_error": (_X, "observer mismatch, free parameter of the extension"),
+    "ktc_noise_n": (_X, "observer self-noise; 0 = ideal observer (unrealistic)"),
+    "ktc_observe_bw_hz": (_X, "None = infinite bandwidth (unrealistic)"),
+    "ktc_dt_fraction": (_X, "observation window; sets the bandwidth requirement"),
+    "ktc_sub_obs_fraction": (_X, "observation coverage gamma of the extension"),
+    # ---- calibration -----------------------------------------------------
+    "calibration": (_A, "algorithm choice"),
+    # ---- DAC topology ----------------------------------------------------
+    "dac_arch": (_A, "'unary' is a modelling simplification, not the shipped DAC"),
+    "dac_n_main": (_A, "segmentation study"),
+    "dac_n_sub": (_A, "segmentation study"),
+    "dac_parasitic_ratio": (_A, "no published number"),
+    "dac_parasitic_spread": (_A, "no published number"),
+    "dac_bridge_mismatch_sigma": (_A, "no published number"),
+    # ---- dynamics: all assumed -------------------------------------------
+    "dyn_input_settling": (_A, "modelling switch"),
+    "dyn_r_source": (_A, "no published number"),
+    "dyn_r_on": (_A, "no published number"),
+    "dyn_t_sample_frac": (_A, "no published number"),
+    "dyn_ron_code_coeff": (_A, "no published number"),
+    "dyn_ref_settling": (_A, "modelling switch"),
+    "dyn_c_decouple": (_A, "no published number"),
+    "dyn_tau_ref": (_A, "no published number"),
+    "dyn_t_conv_frac": (_A, "no published number"),
+    "dyn_ref_dynamic_ratio": (_A, "no published number"),
+    "dyn_crosstalk": (_A, "modelling switch"),
+    "dyn_c_xtalk_common": (_A, "no published number"),
+    "dyn_c_xtalk_unit": (_A, "no published number"),
+    "dyn_v_digital": (_A, "no published number"),
+    # ---- interleaving ----------------------------------------------------
+    "slice_bw_spread": (_A, "no published number"),
+    "slice_timing_skew_s": (_A, "[00] reports ~0.6 ps residual, but as a design outcome"),
+    "slice_offset_sigma_v": (_A, "no published number"),
+    "sadc_cap_ratio": (_A, "no published number"),
+    # ---- RA / ADC2 second-order ------------------------------------------
+    "ra_autozero": (_A, "modelling switch"),
+    "ra_autozero_cost_db": (_G, "[00_1] p.34-35: -1.6 dB"),
+    "adc2_dyn_bw_ratio": (_D, "10**(-1.3/20) from +1.3 dB [00_1] p.33-35"),
+    "flicker_corner_hz": (_A, "[00_1] quotes ~40 Hz corner when enabled"),
+    "flicker_white_ratio": (_A, "no published number"),
+    "rdac_bitwise_loading": (_A, "modelling switch"),
+    "rdac_bitwise_bits": (_A, "assumed equal to first-stage bits"),
+    "enable_sampling_noise": (_A, "modelling switch"),
+    "driver_noise_rms": (_A, "system-level study, not part of the ADC"),
+}
+
+
+def grade_of(name: str) -> tuple[SourceGrade, str]:
+    """Return the declared ``(grade, source)`` of a Config field.
+
+    Args:
+        name: Field name of :class:`~adi_model.config.Config`.
+
+    Returns:
+        Tuple of grade and source string.
+
+    Raises:
+        KeyError: If the field has no declared grade. Callers should treat this
+            as a build-breaking condition; it is what stops an ungraded
+            parameter from silently becoming a "disclosed" one.
+    """
+    return PARAM_GRADES[name]
+
+
+def annotate_config(cfg: Any) -> dict[str, Graded[Any]]:
+    """Bundle every Config field with its declared grade.
+
+    Args:
+        cfg: A :class:`~adi_model.config.Config` instance.
+
+    Returns:
+        Mapping field name -> :class:`Graded` value. Fields without a declared
+        grade are returned with grade ``ASSUMED`` and source ``"UNGRADED"`` so
+        that they cannot be mistaken for anything else.
+    """
+    from dataclasses import fields  # local import: keeps this module dependency-free
+
+    out: dict[str, Graded[Any]] = {}
+    for f in fields(cfg):
+        grade, source = PARAM_GRADES.get(f.name, (SourceGrade.ASSUMED, "UNGRADED"))
+        out[f.name] = Graded(getattr(cfg, f.name), grade, source, unit="")
+    return out
+
+
+def audit_provenance(cfg: Any) -> dict[str, Any]:
+    """Summarise how much of a configuration rests on which grade.
+
+    Intended as the first thing a reviewer reads: if a headline number depends
+    on an ``ASSUMED`` parameter, this report says so explicitly.
+
+    Args:
+        cfg: A :class:`~adi_model.config.Config` instance.
+
+    Returns:
+        Dict with keys ``counts`` (grade -> number of fields), ``ungraded``
+        (field names missing from :data:`PARAM_GRADES`), ``assumed_in_use``
+        (assumed fields whose value differs from a "switched-off" default, i.e.
+        actually influencing results), and ``verdict``.
+    """
+    ann = annotate_config(cfg)
+    counts: dict[str, int] = {}
+    for g in ann.values():
+        counts[g.grade.value] = counts.get(g.grade.value, 0) + 1
+    ungraded = sorted(k for k, v in ann.items() if v.source == "UNGRADED")
+    # An assumed switch is "in use" if it is a bool that is True, or a numeric
+    # that is non-zero. This is the set of assumptions that can move a number.
+    assumed_in_use = sorted(
+        k
+        for k, v in ann.items()
+        if v.grade is SourceGrade.ASSUMED
+        and ((isinstance(v.value, bool) and v.value) or (not isinstance(v.value, bool) and v.value))
+    )
+    fitted_in_use = sorted(
+        k for k, v in ann.items() if v.grade is SourceGrade.FITTED and v.value is not None
+    )
+    return {
+        "counts": counts,
+        "ungraded": ungraded,
+        "assumed_in_use": assumed_in_use,
+        "fitted_in_use": fitted_in_use,
+        "verdict": (
+            "OK: no ungraded parameters"
+            if not ungraded
+            else f"FAIL: {len(ungraded)} ungraded parameters"
+        ),
+    }

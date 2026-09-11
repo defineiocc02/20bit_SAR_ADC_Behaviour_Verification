@@ -1,0 +1,190 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+# ----------------------------------------------------------------- 项目元数据
+[project]
+name = "sar-adc-behaviour-verification"
+version = "7.0.0"
+description = "Behavioural model of a two-stage residual SAR ADC inspired by ISSCC 2024 / Session 9.8 (Bodnar et al., 20-bit 40 MS/s precision SAR)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Reed Zhao" }]
+keywords = ["adc", "sar", "behavioral-model", "mixed-signal", "isscc2024"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
+    "Typing :: Typed",
+]
+dependencies = [
+    "numpy>=1.24",
+    "matplotlib>=3.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "pytest-xdist>=3.3",
+    "ruff>=0.6",
+    "mypy>=1.8",
+    "pre-commit>=3.5",
+    "hypothesis>=6.100",
+    "numpy>=1.24",
+]
+docs = ["mkdocs>=1.5", "mkdocs-material>=9.4"]
+
+[project.urls]
+Homepage = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
+Documentation = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/main/docs/"
+Issues = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/issues"
+Changelog = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/main/CHANGELOG.md"
+
+[project.scripts]
+adi-run-all = "adi_model.cli:main_run_all"
+adi-make-report = "adi_model.cli:main_make_report"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/adi_model"]
+
+# ================================================================ pytest
+[tool.pytest.ini_options]
+minversion = "7.4"
+testpaths = ["tests"]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--strict-config",
+    "--durations=15",
+]
+markers = [
+    "slow: full-sweep experiments (seconds to minutes)",
+    "audit: adversarial regression derived from the v6.1 external audit",
+    "golden: compares against committed reference numbers",
+    "integration: multi-module end-to-end",
+]
+filterwarnings = [
+    "error::RuntimeWarning",
+    "ignore::DeprecationWarning",
+]
+
+# ================================================================ coverage
+[tool.coverage.run]
+source = ["src/adi_model"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "@overload",
+]
+fail_under = 35
+
+# ================================================================ ruff
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests", "tools"]
+extend-exclude = ["__pycache__", ".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",     # pycodestyle
+    "F",          # pyflakes
+    "I",          # isort
+    "N",          # pep8-naming
+    "UP",         # pyupgrade
+    "B",          # flake8-bugbear
+    "C4",         # comprehensions
+    "SIM",        # simplify
+    "RUF",        # ruff specifics
+    "D",          # pydocstyle
+]
+ignore = [
+    "D203",       # incompatible with D211
+    "D213",       # incompatible with D212
+    "D413",       # blank line after last section
+    "E501",       # line length handled by formatter
+    "N803", "N806",  # allow physics-style capitalised locals (C_f, G_R, ...)
+    "SIM108",     # explicit if/else is clearer for physics branches
+
+    # ---- rules that misfire on a deliberately Chinese-documented codebase ----
+    # These are not "we don't like the rule"; they are rules whose notion of
+    # punctuation is ASCII-only, so they flag correct Chinese prose. Enabling
+    # them would force either ASCII punctuation into Chinese text or a mass of
+    # `# noqa` comments, and their autofixes actively corrupt the text: D400 /
+    # D415 append a stray ASCII '.' after a full-width '。', giving '。.'.
+    "RUF001",     # ambiguous unicode character in a string ('，' '：' …)
+    "RUF002",     # ...in a docstring
+    "RUF003",     # ...in a comment
+    "D400",       # first line should end with a period — '。' is not accepted
+    "D415",       # ...same, as an explicit end-punctuation check
+    "N816",       # mixedCase in global scope: same physics notation as N803/N806
+    "N802",       # function names `A` / `B` / `B_nominal` are the split-DAC
+                  # capacitance symbols used verbatim in the source equations
+                  # (C_sig = A + beta*B); lower-casing them would break the
+                  # correspondence with the published algebra.
+    "N815",       # `n_R` / `n_S`: sampling noise on the RDAC / SADC path
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests are read as executable specifications: the docstring *shape* rules buy
+# nothing there, and D205 in particular fires 47 times purely because test
+# docstrings wrap a sentence onto a second line.
+"tests/*" = ["D100", "D101", "D102", "D103", "D104", "D105", "D107", "D205", "D417"]
+"tools/*" = ["D100", "D103"]
+# experiments.py keeps a module-level narrative docstring style; the per-stage
+# functions are documented at length in Chinese prose rather than pydocstyle's
+# D103 shape.
+"src/adi_model/experiments.py" = ["D103"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.isort]
+known-first-party = ["adi_model"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+# ================================================================ mypy
+[tool.mypy]
+# 类型检查的**语法目标**固定为 3.12，而不是 `requires-python` 的下界 3.10。
+# 原因：numpy>=2 的 .pyi stub 使用 PEP 695 `type` 语句，mypy 在
+# python_version<3.12 下解析这些 stub 会报
+#   "Type statement is only supported in Python 3.12 and greater"
+# 并中止全部检查（本次就是因此让 type job 长期全红且无人察觉）。
+# 取舍：mypy 因此不再拦截"用了 3.11/3.12 才有的语法"这类问题；
+# 该职责交给 CI 的 test 矩阵（3.10/3.11/3.12/3.13 真实导入+运行）承担，
+# 比静态目标版本更可靠。运行时对 3.10+ 的支持不变。
+python_version = "3.12"
+packages = ["adi_model"]
+mypy_path = "src"
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+check_untyped_defs = true
+ignore_missing_imports = true
+exclude = ["^tests/", "^tools/"]
+
+# experiments.py is a top-to-bottom *narrative* script: each stage function
+# assembles heterogeneous dicts of floats, strings and tables, which no
+# annotation can describe usefully. It is a module (not a package), so the
+# override must name it exactly — `adi_model.experiments.*` matches nothing
+# and silently let the exemption lapse.
+[[tool.mypy.overrides]]
+module = "adi_model.experiments"
+check_untyped_defs = false
+disable_error_code = ["assignment", "arg-type", "index", "return-value",
+                      "operator", "union-attr", "attr-defined"]

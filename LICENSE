@@ -1,0 +1,49 @@
+BSD 3-Clause License
+
+Copyright (c) 2026, Reed Zhao
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+--------------------------------------------------------------------------------
+ADDITIONAL NOTICE — SCOPE AND THIRD-PARTY RIGHTS
+--------------------------------------------------------------------------------
+
+This repository is an INDEPENDENT ACADEMIC BEHAVIOURAL MODEL. It is not
+affiliated with, endorsed by, or licensed from Analog Devices, Inc.
+
+The architecture it studies is described in:
+  R. Bodnar et al., "A 9.3 nV/rtHz 20 b 40 MS/s 94.2 dB DR Signal-Chain
+  Friendly Precision SAR Converter", ISSCC 2024, Session 9.8, pp. 182-183.
+and in the patents listed in NOTICE. Those publications and patents remain the
+property of their respective owners. Nothing in this repository grants any
+licence, express or implied, under any patent or other intellectual property
+right of any third party.
+
+Parameters marked [DISCLOSED] are transcribed from the published literature.
+Parameters marked [FITTED] were chosen so that the model reproduces a published
+figure; they are calibration constants, not independent predictions.
+Parameters marked [ASSUMED] have no published source and are suitable only for
+sensitivity studies. See docs/provenance.md before quoting any number.

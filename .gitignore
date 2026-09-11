@@ -1,0 +1,56 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# --- Environments ---
+.venv/
+venv/
+env/
+.python-version
+
+# --- Tooling caches ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.hypothesis/
+
+# --- Project outputs (regenerable; never commit) ---
+# 临时/私有输出目录一律忽略：每个用户自己跑 `adi-run-all --results-dir <dir>`
+# 生成，结果不应进版本库（体积大且强依赖随机种子与依赖版本）。
+results/
+outputs/
+*.png
+
+# ---------------------------------------------------------------------------
+# 例外：tools/results/ 是**公开发布的参考输出**，不是临时产物。
+# 它被 CI 的 "Determinism" job 当作字节级可复现基准，也是 README 中
+# 全部数字与 7 张图的来源。若忽略它，读者 clone 后无法对照论文结论，
+# 也无法发现"输出 schema 漂移"这一已知技术债（见 CHANGELOG）。
+# 反向规则必须写在 `results/` 与 `*.png` 之后才生效。
+# ---------------------------------------------------------------------------
+!tools/results/
+!tools/results/**
+# --- 文档配图始终跟踪 ---
+!docs/**/*.png
+
+# --- Editors / OS ---
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Docs build ---
+site/

@@ -1,0 +1,40 @@
+NOTICE — third-party references and modelling sources
+=====================================================
+
+This model studies, but does not reproduce, a commercial integrated circuit.
+The following third-party documents were used as modelling references. None of
+them is redistributed here; each remains the property of its owner.
+
+Primary architecture target
+---------------------------
+[00]   R. Bodnar et al., "A 9.3 nV/rtHz 20b 40MS/s 94.2dB DR Signal-Chain
+       Friendly Precision SAR Converter", IEEE ISSCC 2024, Session 9.8,
+       pp. 182-183. DOI: 10.1109/ISSCC49657.2024.10454329
+[00_1] ISSCC 2024 Session 9.8 presentation slides (author copy).
+
+Patents referenced for mechanism detail (embodiments ≠ shipped implementation)
+-----------------------------------------------------------------------------
+[09] US 10,516,408 B2 — Analog to digital converter stage
+[10] US 10,505,561 B2 — Method of applying a dither, and ADC
+[11] US 10,511,316 B2 — Linearizing transfer characteristic by DEM
+[12] US 10,797,889 B1 — Interleaving method for analog to digital converters
+[13] US 10,541,702 B1 — Auxiliary input for ADC input charge
+[14] US 10,826,519 B1 — Low power reference for an ADC
+
+Background / alternative architectures (NOT part of the target chip)
+--------------------------------------------------------------------
+[01] Hurrell et al., 18b 12.5 MHz ADC, ISSCC 2010 (JSSC extended version)
+[02] ElShater et al., 16b 15 MS/s two-step SAR with dual-deadzone ring amp,
+     ISSCC 2019 (JSSC extended version)
+[03] Li et al., rail-to-rail 12 MS/s two-step SAR with predictive
+     level-shifting input buffer, ISSCC 2023 (JSSC extended version)
+[04] Bannon et al., 18b 5 MS/s 100.2 dB DR SAR ADC, VLSI Circuits 2014
+[05] Analog Devices LTC2387-18 datasheet
+[06] Steensgaard et al., 24b 2 MS/s SAR ADC, ISSCC 2022
+[07] Texas Instruments ADC3583 datasheet
+[08] Shen et al., 16-bit 16-MS/s SAR ADC in 55 nm CMOS, JSSC 2018
+
+The KTC-noise cancellation branch implemented in adi_model/noise/ktc.py is an
+ORIGINAL RESEARCH EXTENSION by this repository's authors. It is explicitly
+labelled [RESEARCH_EXTENSION] and is NOT a feature disclosed in [00] or in
+patents [09]-[14]. Do not attribute it to Analog Devices.

@@ -1,0 +1,59 @@
+cff-version: 1.2.0
+title: 20-bit SAR ADC Behavioural Verification Model
+message: >-
+  If you use this software, please cite both this repository and the
+  architecture it studies (ISSCC 2024, Session 9.8). See README section 10.
+type: software
+authors:
+  - family-names: Zhao
+    given-names: Reed
+    alias: defineiocc02
+    affiliation: Xidian University
+version: 7.0.0
+date-released: "2026-09-11"
+license: BSD-3-Clause
+repository-code: "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
+url: "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
+abstract: >-
+  A phase-accurate behavioural model of a two-stage residual SAR ADC, written
+  to be audited rather than believed. Every model parameter carries a
+  machine-checkable source grade (disclosed / derived / fitted / assumed /
+  research-extension), so that a reviewer can see which published facts and
+  which free assumptions a headline number rests on. Includes a physical
+  18-slice pool with cross-cycle causality, two independently implemented
+  signal chains asserted to agree bit for bit, and one adversarial regression
+  per finding from an external audit of the previous release.
+keywords:
+  - adc
+  - sar-adc
+  - behavioural-model
+  - mixed-signal
+  - isscc2024
+  - residue-amplifier
+  - dem
+  - dither
+  - provenance
+  - reproducibility
+identifiers:
+  - type: doi
+    value: 10.1109/ISSCC49657.2024.10454329
+    description: >-
+      NOT a DOI for this repository. This is the DOI of the ISSCC 2024 paper
+      describing the architecture being modelled (reference [00] in NOTICE).
+      Cite it alongside this software, not instead of it.
+preferred-citation:
+  type: article
+  title: "A 9.3 nV/\u221AHz 20 b 40 MS/s 94.2 dB DR Signal-Chain Friendly Precision SAR Converter"
+  year: 2024
+  authors:
+    - family-names: Bodnar
+      given-names: R.
+    - name-particle: "et al."
+  collection-title: IEEE International Solid-State Circuits Conference (ISSCC) Digest of Technical Papers
+  start: 182
+  end: 183
+  doi: 10.1109/ISSCC49657.2024.10454329
+  notes: >-
+    The published architecture this model studies. This repository is an
+    independent academic model and is not affiliated with, endorsed by, or
+    licensed from Analog Devices, Inc.

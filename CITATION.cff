@@ -2,7 +2,7 @@ cff-version: 1.2.0
 title: 20-bit SAR ADC Behavioural Verification Model
 message: >-
   If you use this software, please cite both this repository and the
-  architecture it studies (ISSCC 2024, Session 9.8). See README section 10.
+  architecture it studies (ISSCC 2024, Session 9.8). See README_EN.md section 10.
 type: software
 authors:
   - family-names: Zhao

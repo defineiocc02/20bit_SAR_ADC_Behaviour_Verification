@@ -9,10 +9,15 @@ missing feature, so the wiring is pinned by tests.
 from __future__ import annotations
 
 import re
+import sys
 from pathlib import Path
 
 import pytest
-import tomllib
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:  # Python 3.10 — tomllib landed in 3.11; tomli is the backport.
+    import tomli as tomllib
 
 from adi_model import cli
 

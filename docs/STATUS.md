@@ -105,7 +105,7 @@
 | `LICENSE`（BSD-3-Clause + 第三方 IP 声明） | ✅ |
 | `NOTICE`（ADI 商标与"研究扩展"归属声明） | ✅ |
 | `CITATION.cff`（含 ISSCC 2024 DOI 与"不是本仓库 DOI"的显式说明） | ✅ |
-| `README.md` / `README_CN.md` | ✅ |
+| `README.md`（中文，默认首页）/ `README_EN.md`（English） | ✅ |
 | `CONTRIBUTING.md` / `CODE_OF_CONDUCT.md` / `SECURITY.md` | ✅ |
 | Issue / PR 模板（含**来源分级**必答项） | ✅ |
 | `.pre-commit-config.yaml` / GitHub Actions CI | ✅ |

@@ -10,7 +10,7 @@
 include LICENSE
 include NOTICE
 include README.md
-include README_CN.md
+include README_EN.md
 include CHANGELOG.md
 include CONTRIBUTING.md
 include SECURITY.md

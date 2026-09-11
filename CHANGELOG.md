@@ -4,6 +4,25 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Python 3.10 support (CI-found, C5).** `tests/unit/test_cli.py` imported
+  `tomllib`, which is stdlib only from 3.11 — on the declared minimum Python
+  (3.10) the import raised `ModuleNotFoundError` and **aborted collection, so
+  zero tests ran on 3.10**. Replaced with a `sys.version_info` shim that falls
+  back to `tomli`, and added `tomli>=2.0; python_version < '3.11'` to the dev
+  extra. Local verification is impossible here (only 3.13 is installed); the
+  guard is the 3.10 job in the CI matrix.
+
+### Changed
+
+- **Chinese README is now the default landing page.** `README_CN.md` →
+  `README.md`; the English version moved to `README_EN.md`, with the badge set
+  mirrored onto the Chinese page and all cross-references updated
+  (`MANIFEST.in`, `CITATION.cff`, `docs/STATUS.md`).
+
 ## [7.0.0] — 2026-09-10
 
 Major release. Triggered by an external audit of `adi_model_release_v6.1`

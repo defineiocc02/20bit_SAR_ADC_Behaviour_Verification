@@ -1219,7 +1219,10 @@ def stage10_audit_acceptance(n: int = 2**13) -> dict:
     out["feedback_cap_to_gain"] = {
         "G_ratio_measured": float(ratio),
         "G_ratio_expected": 1.2,
-        "PASS": abs(ratio - 1.2) < 1e-6,
+        # bool(): g_vec 是 numpy 数组，mean() 返回 np.float64，直接比较得到
+        # np.bool_。序列化进 results.json 时它会变成真 bool，但 in-memory 交给
+        # 门禁（acceptance_records）时会因非 bool 被拒绝——在出生处就收成 bool。
+        "PASS": bool(abs(ratio - 1.2) < 1e-6),
         "判据": "C_F x1.2 -> G 恰好 /1.2（电荷一致模型）",
     }
 

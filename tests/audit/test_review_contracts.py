@@ -917,9 +917,17 @@ class TestR15GateRefusesNonBooleanPass:
     v7.0.2 normalised every verdict with ``bool(raw)``. A single serialisation
     change — writing ``"False"`` instead of ``False`` — therefore read as a
     pass, and the gate had no way to notice, because it had already thrown the
-    type away. ``acceptance._verdict`` now returns the value unchanged and
-    raises on anything that is not a ``bool``; refusing to read is the only
-    behaviour that cannot be silently wrong.
+    type away. ``acceptance._verdict`` now refuses anything that is not a
+    boolean; refusing to read is the only behaviour that cannot be silently
+    wrong.
+
+    v7.0.4 narrows the refusal by exactly one type: ``numpy.bool_``. The
+    in-memory sweep builds records straight from numpy comparisons, and
+    ``s10_summary.C_F->增益(电荷一致)`` was born as ``np.True_`` — a *real*
+    verdict that the JSON round-trip would have turned into ``bool`` anyway.
+    Refusing it did not protect anything; it broke the very sweep the gate
+    exists to judge. The impostors the contract exists to catch ("False",
+    ``0``, ``1.0``, ``None``) are still refused — pinned below, unchanged.
     """
 
     def test_a_stringified_false_is_refused_not_read_as_true(self):
@@ -936,6 +944,23 @@ class TestR15GateRefusesNonBooleanPass:
         """Control: the strictness must not reject the correct type."""
         assert acceptance_records({"pipeline": {"PASS": False}}) == {"pipeline.PASS": False}
         assert acceptance_records({"pipeline": {"PASS": True}}) == {"pipeline.PASS": True}
+
+    def test_a_numpy_boolean_is_a_verdict_not_an_impostor(self):
+        """np.bool_ is accepted and normalised, and stays False when False.
+
+        Regression pin for the v7.0.3 CI failure: the py3.12 acceptance sweep
+        died on ``s10_summary.C_F->增益(电荷一致)`` carrying ``np.True_``. The
+        normalisation must be value-preserving in *both* directions — a numpy
+        ``False`` must not come out as ``True`` on the far side.
+        """
+        np_bool = type(np.True_)
+        assert acceptance_records({"pipeline": {"PASS": np.True_}}) == {"pipeline.PASS": True}
+        assert acceptance_records({"pipeline": {"PASS": np_bool(False)}}) == {
+            "pipeline.PASS": False
+        }
+        # a numpy *float* is still refused: truthiness is not a verdict
+        with pytest.raises(ValueError, match="not a bool"):
+            acceptance_records({"pipeline": {"PASS": np.float64(1.0)}})
 
     def test_the_required_set_is_enforced_by_id_not_by_count(self):
         """Deleting one required record and adding another must not pass.

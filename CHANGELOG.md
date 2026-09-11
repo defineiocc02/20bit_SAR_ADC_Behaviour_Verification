@@ -4,6 +4,35 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.4] — 2026-09-11
+
+Hotfix to 7.0.3: the K4 strictness introduced in 7.0.3 refused a *legitimate*
+verdict type and broke the acceptance sweep that the gate exists to judge.
+
+- **`_verdict` rejected `numpy.bool_`.** The in-memory sweep builds records
+  straight from numpy comparisons — `s10_summary.C_F->增益(电荷一致)` was born
+  as `np.True_` (a `ratio` of `np.float64` values, `experiments.py` stage 10) —
+  so `main_run_all` died with
+  `ValueError: … has PASS=np.True_ (bool), not a bool` before it could write
+  the gate verdict. The JSON round-trip had always masked this
+  (`json.dump` cannot write `np.bool_`, so `results.json` holds a real
+  `bool`), which is why two local full re-runs passed on 7.0.3 while CI's
+  in-memory path failed.
+  Fix, two layers: `acceptance._verdict` accepts `np.bool_` and normalises it
+  to `bool` — it is a genuine verdict, not one of the impostors K4 exists to
+  catch (`"False"`, `0`, `1.0`, `None`, all still refused, pinned in
+  `TestR15`); and the stage-10 source casts its comparison with `bool()` so
+  records are born with the type they will be read as.
+  **Reference output unchanged**: `results.json` SHA256
+  `a1ccd92f…35ac70`, byte-identical to 7.0.3 (verified by a full re-run with
+  exit code 0, 50 records, "硬性验收: 全部通过").
+- README BibTeX `version` field was still `{7.0.2}` (missed in the 7.0.2 →
+  7.0.3 bumps); corrected to `{7.0.4}` in both language versions.
+
+Gates: ruff / format / mypy clean; pytest **182 passed, 4 xfailed** (one new
+pin: `TestR15.test_a_numpy_boolean_is_a_verdict_not_an_impostor`, which also
+pins that `np.bool_(False)` stays `False` and `np.float64(1.0)` is refused).
+
 ## [7.0.3] — 2026-09-11
 
 Response to a **fourth external review** (2026-09-11), fixed at the v7.0.2 commit

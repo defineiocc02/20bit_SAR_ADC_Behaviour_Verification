@@ -303,7 +303,7 @@ version, so a reader can reproduce your numbers.
 @software{zhao_2026_sar_adc_behaviour_model,
   author    = {Zhao, Reed},
   title     = {20-bit SAR ADC Behavioural Verification Model},
-  version   = {7.0.2},
+  version   = {7.0.4},
   year      = {2026},
   publisher = {GitHub},
   url       = {https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification},

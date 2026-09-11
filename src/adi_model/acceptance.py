@@ -72,6 +72,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+import numpy as np
+
 __all__ = [
     "ACCEPTANCE_CONTAINERS",
     "KNOWN_LIMITS",
@@ -168,29 +170,35 @@ def _verdict(raw: Any, where: str) -> bool:
         where: 记录名；只用于错误消息。
 
     Returns:
-        bool: ``raw`` 本身，要求它已经是 ``bool``。
+        bool: ``raw`` 要求已经是 ``bool``；``numpy.bool_`` 会被收成
+        ``bool``——它是内存路径里 numpy 比较的合法产物，经 JSON 往返后
+        本来就会变成 ``bool``，不属于 K4 要防的冒充者。
 
     Raises:
-        ValueError: ``raw`` 不是 ``bool``。**不做** ``bool(raw)`` 归一化 ——
-            ``bool("False")`` 为真，一次序列化改动就能把失败读成通过；
-            宁可在这里响亮地失败。
+        ValueError: ``raw`` 不是 ``bool`` / ``np.bool_``。**不做**普适的
+            ``bool(raw)`` 归一化 —— ``bool("False")`` 为真，一次序列化改动
+            就能把失败读成通过；宁可在这里响亮地失败。
 
     Examples:
         >>> _verdict(True, "x")
         True
         >>> _verdict(False, "x")
         False
+        >>> _verdict(np.True_, "x")
+        True
         >>> _verdict("False", "x")
         Traceback (most recent call last):
             ...
         ValueError: acceptance record 'x' has PASS='False' (str), not a bool — refusing to read a non-boolean verdict
     """
-    if not isinstance(raw, bool):
-        raise ValueError(
-            f"acceptance record {where!r} has PASS={raw!r} ({type(raw).__name__}), "
-            f"not a bool — refusing to read a non-boolean verdict"
-        )
-    return raw
+    if isinstance(raw, bool):
+        return raw
+    if isinstance(raw, np.bool_):  # 内存路径的 numpy 判词：收成 bool，不拒绝
+        return bool(raw)
+    raise ValueError(
+        f"acceptance record {where!r} has PASS={raw!r} ({type(raw).__name__}), "
+        f"not a bool — refusing to read a non-boolean verdict"
+    )
 
 
 def acceptance_records(results: dict[str, Any]) -> dict[str, bool]:

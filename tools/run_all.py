@@ -26,7 +26,7 @@ from adi_model import (
     static_test,
 )
 from adi_model import experiments as ex
-from adi_model.acceptance import hard_failures
+from adi_model.acceptance import gate
 from adi_model.dac_arch import SplitDAC, build_split_chip
 
 OUT = os.environ.get("ADI_MODEL_RESULTS_DIR") or os.path.join(
@@ -566,17 +566,17 @@ print("结果已写入", os.path.join(OUT, "results.json"))
 # 程序跑完就算通过。重复运行得到完全相同的 JSON 只能证明**确定性**，不能
 # 证明**正确性**。
 #
-# 判定范围是**显式列举**的，不做递归布尔扫描：配置里的 False、以及设计上
+# 第二份复核（2026-09-11，针对 v7.0.1）指出第一版修复**漏了配置自检**：
+# validate / validate_ktc 两张表的 PASS 完全不进门禁。现已显式纳入，并加了
+# 覆盖度下限（判据条数少于下限即报错，防止"漏检"伪装成"全通过"）与已知限制
+# 账本（登记当前确实为 FAIL 的条目，且条目一旦不存在或已通过即报错）。
+#
+# 判定范围仍是**显式列举**的，不做递归布尔扫描：配置里的 False、以及设计上
 # 就该失败的反例实验（如"未校准 vs 校准"的对照），都不等于验收失败。
-# 规则本体在 adi_model.acceptance.hard_failures（独立成模块是为了可单测：
+# 规则本体在 adi_model.acceptance.gate（独立成模块是为了可单测：
 # 本文件是脚本，import 它会跑完所有实验）。
-#   * R[name] 是 dict 且含 "PASS" 键      -> 一条验收记录（10 条）
-#   * R[name+"_summary"] 是 dict          -> 每个 value 一条验收记录（5 组）
-# 这两类正是本文件上方逐条 print 出来的那些，合计 15 组，与报告一一对应。
-_failed = hard_failures(R)
-if _failed:
-    print(f"\n硬性验收: FAIL（{len(_failed)} 项未通过）")
-    for _name in _failed:
-        print(f"  FAIL {_name}")
-    sys.exit(1)
-print("\n硬性验收: 全部通过")
+_GATE = gate(R)
+print()
+for _line in _GATE.lines():
+    print(_line)
+sys.exit(0 if _GATE.ok() else 1)

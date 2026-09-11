@@ -41,10 +41,29 @@ draws that line explicitly.
    that the shared interface is interpreted identically.
 4. **Reproducibility.** Same seed ⇒ identical output, asserted for both chains and
    enforced by a source scan for global RNG use.
-5. **Causality of the interleaving.** Every converting slice held a charge it
-   actually acquired; 0 violations over 8192 cycles, mean coverage 8/8
-   (`tests/audit/test_audit_findings.py::TestF2SliceCausality`). This is a *hard
-   physical constraint*, not a modelling choice.
+5. **Cross-cycle causality *of the scheduling policy*.** Under the default A/B
+   ping-pong policy every converting slice holds a charge it actually acquired —
+   8191/8191 transitions, mean coverage 8.000/8
+   (`tests/audit/test_audit_findings.py::TestF2SliceCausality`), and the same
+   holds for `PhysicalSlicePool.shuffle_causal`. **Qualification (2026-09-11):**
+   this is a property of a *policy*, and two things it does not cover are open:
+
+   - the policy actually used by the stage-19 shuffling study is
+     `ShuffledScheduler`, which redraws an independent permutation per cycle and
+     therefore satisfies `conv[n] = acq[n-1]` on **0/8191** transitions (mean
+     coverage 3.547/8, against the 8·8/18 = 3.556 expectation for an independent
+     draw). The shuffled-suppression numbers must not be read as a property of
+     the architecture until this is fixed.
+   - in **neither** path are the *physical* capacitors bound to the sample:
+     `c_sig` is a constant vector and `SplitDAC.evaluate_physical(k_eq, sid)`
+     receives no conversion group, so a sample cannot be attributed to the slices
+     that converted it. `PhysicalSlicePool` is not referenced by any runner or
+     experiment.
+
+   Tracked by `tests/audit/test_review_contracts.py::TestR1SampleOwnership` and
+   `::TestR2PhysicalPoolOnMainPath` (both `xfail(strict=True)`); see
+   `docs/review_response_2026-09-11.md` §2.1 and
+   `docs/review_response_2026-09-11b.md` §2.5.
 6. **Mechanism compatibility with the disclosed numbers.** The disclosed 2b dither
    range enhancement is reproduced as a *derived* quantity
    (`units_per_lsb1 = 4`), not fitted; the auto-zero cost and the ADC2 dynamic
@@ -125,12 +144,22 @@ draws that line explicitly.
 
 ## 5. Reading/configuration matrix
 
-Three readings of the ambiguous "9b in the first stage" are available; only one
-satisfies both disclosures. Use `paper_consistent()` for new work.
+Three readings of the ambiguous "9b in the first stage" are available.
+`paper_consistent()` is the **default**, not a proven unique answer: it is the
+only reading that is self-consistent *under the additional assumption* that the
+disclosed 2b dither-range enhancement is the same thing as the extra decisions
+taken against an unknown input (equivalently, that `b1 + b_enh = 9`). ADR 0003
+§1 explicitly rejects conflating codeword range with decision information — and
+§2 of the same ADR then performs exactly that identification to solve for
+`b1 = 7`. `provenance.PARAM_GRADES["b1"]` grades it `ASSUMED`
+("ARCHITECTURAL READING"); the prose here previously called it the "唯一" (only)
+consistent reading, which claimed more than the evidence supports (external
+review 2026-09-11, R3). Use `paper_consistent()` for new work, and quote it as a
+stated reading.
 
-| Constructor | `b1` | dither range | code word | ADC2 | Consistent with [00]? |
+| Constructor | `b1` | dither range | code word | ADC2 | Satisfies the disclosures? |
 |:---|:--:|:--:|:--:|:--:|:---|
-| `Config.paper_consistent()` | 7 | 2b | 9b | 14b, [−0.15, 1.65] V | ✅ with both disclosures |
+| `Config.paper_consistent()` (default) | 7 | 2b | 9b | 14b, [−0.15, 1.65] V | ✅ *given* the codeword-range = decision-bits assumption |
 | `Config(b1=9, dither_enhancement_bits=0, stage1_reading="paper_literal", adc2_n_bits=14, adc2_v_min=-0.0375, adc2_v_max=0.4125, ra_v_clip=0.45)` | 9 | 0b | 9b | 14b, [−0.0375, 0.4125] V | ❌ contradicts the 2b disclosure |
 | `Config.legacy_v61()` | 6 | 3b | 9b | 15b, [−0.3, 3.3] V | ❌ 3b ≠ disclosed 2b; kept for reproducing old results |
 
@@ -150,6 +179,7 @@ configuration whose declared `dither_enhancement_bits` disagrees with the grid
 | DEM efficacy | optimistic if the split is truly unit-only | spatial correlation beyond the 8-unit group model is not represented |
 | `slice_bw_spread` / skew defaults | 0 (ideal) | no published per-slice numbers; enable them explicitly for a study |
 | KTC observer self-noise | 0 by default | an ideal observer is unrealistic; `ktc_noise_n > 0` is the honest setting |
+| KTC correction bandwidth `f_max` | **does not cover the disclosed band** | At full scale the correction term `G_R·|dx|` stays inside the ADC2 window only up to `f_max = 2.5465 MHz` (`margin = min(adc2_v_max − G0·Δ1, −adc2_v_min) = 0.15 V`, `Δt = Ts/256`, `A = v_fs = 3 V`), while the band disclosed in [00_1] is DC–5 MHz. `Config.validate()` reports this check as `PASS: False`. Registered as a known limit in `adi_model.acceptance.KNOWN_LIMITS` rather than silently exempted; the comment at the top of `config.py` that quotes "≈5.6 MHz" was written for earlier parameters and is stale. KTC results here answer "how much could correlated-noise cancellation buy under an idealised read-out", not "what is the net system benefit with a real observation channel" |
 | Flicker in the main record | pessimistic (absent) | the corner is below the record band. **Correction (2026-09-11):** this line used to add "not an oversight" — that was wrong. `flicker_series` *does* try to back-fill the unresolvable sub-`f_min` power as drift, but its guard `if f_corner <= f_min or f_min <= f_low: return x` returns early in exactly that case, so the back-fill is unreachable (measured: 0/32768 non-zero samples at fs=40 MHz, n=32768, fc=40 Hz, t_obs=10 s). Tracked by `tests/audit/test_review_contracts.py::TestR6FlickerDriftBackfill` (forced xfail); see `docs/review_response_2026-09-11.md` §2.8 |
 
 ## 7. Change control for this document

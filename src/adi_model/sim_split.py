@@ -145,7 +145,13 @@ def run_sim_split(
 
     Returns:
         SimResult（字段单位与三套误差口径见 adi_model.sim.SimResult 的 docstring）。
+
+    Raises:
+        ConfigError: 配置不是可仿真的（枚举取值拼错、尺寸无意义等）。入口直接
+            拒绝，而不是静默退化成默认分支再跑出一份看起来正常的结果
+            （外部复核 2026-09-11）。
     """
+    cfg.check_legal()
     if rng is None:
         rng = np.random.default_rng(cfg.seed)
     if chip is None:

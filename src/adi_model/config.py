@@ -14,8 +14,11 @@
   论文正文口径："The matched-quantizer sDAC with the RDAC allows >11b matching,
   resulting in 9b quantization in the first stage."（PPT p.9 写 >12b AC matching）。
   论文同时披露："the dither range is enhanced by 2b when transferred from the
-  quantizer to the RDAC"。两条联立 -> b1 + 2 = 9 -> b1 = 7，
+  quantizer to the RDAC"。**若**把「量程增强 2^b」等同于「对未知输入多出的
+  判决位数」，两条联立 -> b1 + 2 = 9 -> b1 = 7，
   units_per_lsb1 = 4（一个粗判决步含 4 个 RDAC 单位步），码字 7+2 = 9b。
+  这个等同是一个**假设**（ADR 0003 §1 明确拒绝过它，§2 又用它求解），
+  不是唯一收敛结论；`provenance.PARAM_GRADES["b1"]` 因此标为 ASSUMED。
   备选读法（保留为可选项，不静默选用）：
     `paper_literal`  : b1=9（字面读 9b SADC）-> units_per_lsb1=1，增强 0b，
                        与第二条披露冲突；
@@ -41,6 +44,57 @@ K_B = 1.380_649e-23  # J/K
 TEMP_K = 300.0  # K
 
 
+class ConfigError(ValueError):
+    """A configuration that cannot model anything physical.
+
+    Raised by :meth:`Config.check_legal` and therefore by every simulation
+    entry point. Distinct from a `validate()` record being ``False``: a FAIL
+    record says "this (legal) design has little margin here", which is worth
+    studying; a ``ConfigError`` says "these numbers are not a model of
+    anything" — an unrecognised enum value silently falling through to a
+    default branch, or a size that makes the algebra undefined.
+    """
+
+
+# --------------------------------------------------------------------------
+# 枚举型字段的**已实现**取值表。
+#
+# 用途：仿真入口在开始计算前查这张表。此前一个拼错的取值（如
+# ra_gain_model="Fixd"）会静默退化到默认分支，仿真照跑、结果照出，只是跑的
+# 不是你以为的那条路径 —— 外部复核 2026-09-11 把这称为"字段名贴标签"。
+# 契约：配置在某条链路里要么按声明生效，要么被显式拒绝，不能静默忽略。
+#
+# 维护：新增取值时同步这里，否则入口会拒绝这个新取值（宁可拒绝也不要静默）。
+# 本表是"入口拒绝非法取值"的唯一来源；`tests/audit/test_review_contracts.py`
+# 逐字段核对未声明取值确实被拒绝
+# （TestR4ConfigTakesEffectAtTheRunner::test_an_illegal_enum_is_refused_for_every_declared_field）。
+#
+# 范围声明：本表**只声明取值集合**，不代表每个字段都已被下游读取。据实登记：
+#   * 有比较分支：dac_arch / calibration / dither_mode / dither_split_bank /
+#     dither_quant_transfer / dither_transfer_model / ra_gain_model；
+#   * **无读取点**：`stage1_reading`（全库无 `self.stage1_reading` 比较点，只在
+#     工厂方法里被写入，用来记录采用了哪种读数；实际差别体现在该工厂同时设定
+#     的 b1 / units_per_lsb1 等字段值上）、`dem_mode`（见下方注释）。
+# 这两个字段仍然入表：拼错的取值应当被拒绝；同时它们是"字段名承诺了未接线的
+# 机制"这一缺陷类的实例，登记在这里比让它们看起来已生效要诚实。
+# --------------------------------------------------------------------------
+LEGAL_VALUES: dict[str, tuple[str, ...]] = {
+    "stage1_reading": ("paper_consistent", "paper_literal", "legacy_codeword"),
+    "dither_transfer_model": ("range", "granularity"),
+    "dither_mode": ("off", "analog", "quantizer", "sampling"),
+    "dither_split_bank": ("sub", "main"),
+    "dither_quant_transfer": ("quantizer", "rdac"),
+    "ra_gain_model": ("charge", "fixed"),
+    "calibration": ("none", "gain", "gain_beta"),
+    # dem_mode 目前**不影响任何结果**：选哪种调度由调用方实例化哪个
+    # Scheduler 子类决定（Scheduler / ShuffledScheduler），cfg.dem_mode 没有
+    # 读取点。保留在本表里是为了让拼写错误被拒绝，但不要把它当成"已生效的
+    # 开关"——`tests/audit/test_review_contracts.py` 有一条钉子住该事实的用例。
+    "dem_mode": ("rotate", "permute"),
+    "dac_arch": ("unary", "split"),
+}
+
+
 @dataclass
 class Config:
     """全部模型参数的唯一来源；每个字段都在 PARAM_GRADES 中登记来源分级。"""
@@ -61,7 +115,11 @@ class Config:
     # RDAC 单位步」= log2(DAC 电平数 / 2**b1)。两条联立：
     #       b1 + b_enh = 9,  b_enh = 2  =>  b1 = 7（units_per_d1 = 4 = 2²）
     # 可选读数（外部审计 F1 要求显式声明，不得悄悄选定）：
-    #   "paper_consistent"（默认）: b1=7 —— 与 (a)(b) 同时相容的**唯一**分配。
+    #   "paper_consistent"（默认）: b1=7 —— 在「码值量程增强 == 对未知输入的
+    #                              额外判决位数」这一**假设**下唯一自洽的分配。
+    #                              该等同正是 ADR 0003 §1 拒绝过的那一种，所以
+    #                              这里是一个**假设**，不是收敛结论；PARAM_GRADES
+    #                              把 b1 标为 ASSUMED（外部复核 2026-09-11 R3）。
     #   "paper_literal"          : b1=9 —— 只取 (a) 的字面读法；此时
     #                              units_per_d1=1，增强 0b，与 (b) 冲突。
     #   "legacy_codeword"        : b1=6 —— v6.1 读法（增强 3b）；仅为复现旧结果。
@@ -850,6 +908,65 @@ class Config:
             return 0.0
         return (1.0 + self.ktc_beta_error) * self.kappa_eff() * self.ktc_gain_n / self.g0
 
+    # ================= 合法性检查（在仿真入口调用）=================
+    def legality_violations(self) -> list[str]:
+        """Reasons this configuration cannot be simulated at all.
+
+        Scope is deliberately narrow and explicit — this is **not** a stricter
+        :meth:`validate`. ``validate`` reports adequacy (how much margin a legal
+        design has), and several of its records can be ``False`` for a design
+        that is still worth studying. Legality is the other thing entirely: an
+        unrecognised enum value means a branch will silently never be taken, and
+        an impossible size means the algebra below is undefined. Those must be
+        refused at the entry, not reported.
+
+        Returns:
+            list[str]: 每条是一句可读的违规说明；空列表表示合法。
+        """
+        bad: list[str] = []
+        for field_name, allowed in LEGAL_VALUES.items():
+            actual = getattr(self, field_name)
+            if actual not in allowed:
+                bad.append(
+                    f"{field_name}={actual!r} 不是已实现取值（可选：{', '.join(allowed)}）；"
+                    f"此前会静默退化为默认分支"
+                )
+        if self.fs <= 0.0:
+            bad.append(f"fs={self.fs!r} 必须为正（采样率 [Hz]）")
+        if self.v_fs <= 0.0:
+            bad.append(f"v_fs={self.v_fs!r} 必须为正（满幅峰值 [V]）")
+        if self.n_bits_target < 1:
+            bad.append(f"n_bits_target={self.n_bits_target!r} 必须 >= 1")
+        if self.dac_arch == "split":
+            if self.dac_n_main < 1:
+                bad.append(f"dac_n_main={self.dac_n_main!r} 必须 >= 1（主阵列单位数）")
+            if self.dac_n_sub < 2:
+                bad.append(
+                    f"dac_n_sub={self.dac_n_sub!r} 必须 >= 2：桥接电容名义值 "
+                    f"C_C=(n_sub*c_u+c_p)/(n_sub-1) 在 n_sub=1 处发散"
+                )
+            # 第一级读数必须能被 DAC 表达，否则残差会被静默推出 ADC2 窗口
+            if self.dac_levels < 2**self.b1:
+                bad.append(
+                    f"2**b1 = {2**self.b1} 超过 DAC 电平数 {self.dac_levels}："
+                    f"该第一级读数无法被这个 DAC 表达"
+                )
+        return bad
+
+    def check_legal(self) -> None:
+        """Refuse to simulate an illegal configuration.
+
+        Raises:
+            ConfigError: 若 :meth:`legality_violations` 非空；异常消息逐条列出
+                违规项，便于直接定位拼写错误。
+        """
+        bad = self.legality_violations()
+        if bad:
+            raise ConfigError(
+                "配置不合法，已被仿真入口拒绝（不是「检查表里写着 FAIL」，是直接拒绝）：\n  - "
+                + "\n  - ".join(bad)
+            )
+
     # ================= 边界检查 =================
     def validate(self, verbose: bool = True) -> dict:
         """先检查两个判据，再检查其它一致性条件。
@@ -1072,8 +1189,10 @@ class Config:
         # 因此从未真正生效），而任何拼写错误也会悄悄退化成 "charge"。
         # 契约：配置在某条链路里要么按声明生效，要么被显式拒绝，不能静默忽略
         # （外部复核 2026-09-11）。
-        _gain_models = ("charge", "fixed")
-        checks["RA 增益口径 ra_gain_model ∈ {charge, fixed}"] = (
+        # 取值集合来自 LEGAL_VALUES（单一来源）；check_legal() 用同一张表在
+        # 仿真入口直接把非法配置拒绝掉，本记录是给报告读者看的第二道。
+        _gain_models = LEGAL_VALUES["ra_gain_model"]
+        checks[f"RA 增益口径 ra_gain_model ∈ {{{', '.join(_gain_models)}}}"] = (
             1.0 if self.ra_gain_model in _gain_models else 0.0,
             1.0,
             self.ra_gain_model in _gain_models,

@@ -4,6 +4,136 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.2] — 2026-09-11
+
+Response to a **third external review** (2026-09-11), fixed at the v7.0.1 commit
+`54ba47f`. The review confirmed that v7.0.1's main-path fixes are real (fixed RA
+gain, the hidden fit, the exit code) and accepted the qualification that the
+**default** ping-pong scheduler is causally correct — then found three further
+gaps. All three are confirmed on the code, and checking them turned up a live
+failing requirement that no gate had ever seen. Per-finding adjudication, with
+the reproduction command for each: `docs/review_response_2026-09-11b.md`.
+
+Nothing in this section changes `tools/results/results.json`: the file is
+byte-identical to v7.0.1 (`65c047a9…4ecdec`), verified by a full re-run.
+
+### Fixed
+
+- **The gate skipped the configuration self-checks entirely.** v7.0.1's rule
+  enumerated only `results[name]["PASS"]` and `results[name + "_summary"]`.
+  `run_all.py` also writes `results["validate"][check]["PASS"]` and
+  `results["validate_ktc"][check]["PASS"]`, and **neither was collected** — the
+  reviewer's counterexample,
+  `hard_failures({"validate": {"invalid_config": {"PASS": False}}})`, returned
+  `[]`. So "a bad configuration always stops the flow" was not true. Both tables
+  are now collected explicitly (`acceptance.ACCEPTANCE_CONTAINERS`), with a
+  **coverage floor** (`MIN_RECORDS = 50`) so a whole record class going missing
+  is itself an error, and the rule that a config `False` or a deliberately
+  failing control experiment still does not count is preserved and pinned by
+  test.
+
+  This immediately surfaced a **live `PASS: False`** that had never been
+  reported: `validate_ktc` → *KTC 校正项带宽上限 f_max (满幅)*, measured
+  2.5465 MHz against a 5 MHz requirement. It is now registered in an explicit
+  **known-limits ledger** (`acceptance.KNOWN_LIMITS`) with its reason and its two
+  exit conditions. The ledger has `xfail(strict=True)` semantics: an entry that
+  is missing from the results, or that starts passing, is an **error** — a
+  hidden exemption cannot survive. Every exemption is printed on every run.
+
+- **An overridden value could still pass a `DISCLOSED` check.** v7.0.1 added
+  `audit_provenance(...)["overridden"]`, which only a human reading the report
+  can act on. `Graded` still carried the grade of the field *name*, so
+  `annotate_config(Config(fs=80e6))["fs"].require(SourceGrade.DISCLOSED)`
+  returned `8e7` — a downstream caller could obtain a hand-edited number under
+  the paper's authority. `Graded` now carries `overridden`, and `require()`
+  checks `effective_grade`, which demotes an overridden `DISCLOSED`/`DERIVED`
+  value to `ASSUMED`. `map()` propagates the flag, so a derived quantity cannot
+  launder an overridden ancestor.
+
+- **An illegal configuration was reported, not refused.** `validate()` returning
+  a `False` record is *reporting*; the reviewer's contract is that a config must
+  take effect where it is declared **or be refused**. `gain_vector()` still fell
+  through to the capacitor-ratio path for any non-`"fixed"` string, so
+  `ra_gain_model="Fixd"` produced numbers. New `Config.LEGAL_VALUES` +
+  `Config.check_legal()` raise `ConfigError` **at the entry point** of
+  `run_sim`, `run_sim_split` and `run_pipeline`. Scope is deliberately narrow
+  and separate from `validate()`: unrecognised enum values, non-positive sizes,
+  an undefined bridge formula (`dac_n_sub < 2`), and a stage-1 reading the DAC
+  cannot express (`2**b1 > dac_levels`).
+
+- **The "physical pool is wired in" test was a source-string scan.**
+  `assert "PhysicalSlicePool" in inspect.getsource(...)` — which an unused
+  import, or even a comment, would satisfy. Replaced with a behavioural contract
+  (a converted sample must be traceable to the slices that produced it, so that
+  internal charge, DAC weight and residue gain can be tied to one capacitor
+  set), plus a **positive control** proving the contract is not vacuous: the
+  scheduler already returns per-sample acquisition/conversion index arrays, so
+  what is missing is the binding, not the data. Still `xfail(strict=True)`.
+
+### Changed
+
+- **The gate now always prints a verdict line when the command may exit zero.**
+  With one registered known limit, the log previously contained only a `KNOWN`
+  line and no "this passed" statement, so neither a reader nor a CI log search
+  could tell a clean run from a truncated one.
+- **`pytest` now collects the library's docstring examples.** `testpaths` was
+  `["tests"]` and `--doctest-modules` was absent, so every `>>>` block in
+  `src/adi_model` was decorative. `src` is now in `testpaths` with doctests
+  enabled: **7 examples** run as part of the gate, which is why the suite goes
+  from 160 to 167 passing tests. Nothing else about the gates changed.
+
+### Documented
+
+- **`model_scope.md` §2.1 item 5 (causality) is qualified.** The claim was
+  stated unconditionally with a single coverage number. It is true of the
+  default ping-pong *policy* (8191/8191, coverage 8.000/8) and of
+  `PhysicalSlicePool.shuffle_causal`, but the stage-19 shuffling study uses
+  `ShuffledScheduler`, which satisfies `conv[n] = acq[n-1]` on **0/8191**
+  transitions. And in neither path are the *physical* capacitors bound to the
+  sample: `c_sig` is a constant vector and `evaluate_physical(k_eq, sid)` takes
+  no conversion group.
+- **`model_scope.md` §5 no longer claims a unique reading.** "Only one satisfies
+  both disclosures" is now "the default, self-consistent *given* the
+  codeword-range = decision-bits assumption" — the very identification ADR 0003
+  §1 rejects and §2 then uses. The same overstated word was removed from
+  `config.py`'s field comment and module docstring. `b1` remains graded
+  `ASSUMED`; the API rename is still deferred as a version-level decision.
+- **`model_scope.md` §6 records the KTC bandwidth limit**, so the check that is
+  now failing has a written boundary rather than only a ledger entry.
+
+### Found while verifying (not raised by the review)
+
+- **`dem_mode` is declared, documented, and read by nobody.** No module compares
+  against it: which scheduling behaviour you get is decided by *which
+  `Scheduler` subclass the caller instantiates*. This is the same
+  name-promises-an-unwired-mechanism defect as `ra_gain_model` in v7.0.0. Pinned
+  by `TestR10DemModeIsInert`, which is written to fail when it is wired.
+- **The `require()` enforcement hook has no production call site.** It appears in
+  a doctest and in tests only. The grading machinery is now enforced where it
+  can actually bite (`require` honours `overridden`), but "every number is
+  checked at its point of use" is still an aspiration, not a fact.
+- **A comment cited a test file that does not exist.** `LEGAL_VALUES` said
+  "`tests/unit/test_config.py` will check this table against `validate()`" —
+  there is no such file (`tests/unit/` holds `test_cli`, `test_provenance`,
+  `test_slice_pool`). The same paragraph claimed that every value in the table
+  "has a comparison branch in the code": measured, `self.stage1_reading` has
+  **zero** comparison points anywhere (the factory methods only ever *write* it)
+  and `dem_mode` likewise. The comment now states which seven fields are
+  compared, which two are not, and why those two are still listed — the
+  reviewer's own charge, turned on this round's own comments. Fixed before
+  release rather than after.
+- **The contract-test docstring indexed its findings against the wrong
+  document.** Round 2's table pointed at `docs/review_response_2026-09-11.md`
+  (round 1's adjudication) and mislabelled §3.1. The two rounds are now listed
+  separately with the correct section of each adjudication document, plus an
+  explicit note that "§3.3 of the third review" inside an `xfail` reason means
+  the *reviewer's* §3 item 3 (adjudication §2.5), not this document's §3.3.
+
+The pattern is worth naming: all three defects above are in content written
+**during this round**, and all three are the same shape as the charges in the
+review — a claim stated in prose that no execution checks. They are listed here
+rather than quietly fixed because that is the only way the count stays honest.
+
 ## [7.0.1] — 2026-09-11
 
 Response to a **second external review** (2026-09-11) of the published v7.0.0

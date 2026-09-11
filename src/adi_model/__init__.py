@@ -63,8 +63,10 @@ from .calib import (
 from .chip import Chip, build_chip, rescale_chip
 from .config import (
     K_B,
+    LEGAL_VALUES,
     TEMP_K,
     Config,
+    ConfigError,
     dac_error_scaling_note,
     mismatch_from_pdk,
     noise_budget,
@@ -109,6 +111,8 @@ from .slice_pool import PhysicalSlicePool, SlicePlan, check_causality
 
 __all__ = [
     "Config",
+    "ConfigError",
+    "LEGAL_VALUES",
     "K_B",
     "TEMP_K",
     "noise_budget",

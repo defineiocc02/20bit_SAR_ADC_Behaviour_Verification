@@ -312,7 +312,12 @@ def run_pipeline(
         ``err_to_x1`` / ``err_to_x2`` / ``err_vs_clean`` 三套误差口径 [V]
         （定义与单位见 SimResult；err_vs_clean 在 driver_noise_rms=0 时
         与 err_to_x1 逐位相同，否则为相对干净输入的整链误差）。
+
+    Raises:
+        ConfigError: 配置不是可仿真的（枚举取值拼错、尺寸无意义等），入口直接
+            拒绝（外部复核 2026-09-11）。
     """
+    cfg.check_legal()
     if rng is None:
         rng = np.random.default_rng(cfg.seed)
     if chip is None:

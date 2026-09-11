@@ -121,7 +121,19 @@ class Graded(Generic[T]):
         source: The reference, derivation or reason. Free text; for
             ``DISCLOSED`` this should be a document and page/slide number.
         note: Optional clarification, e.g. domain-of-applicability caveats.
+            Also carries the runtime value of a sentinel field (see
+            ``RESOLVED_SENTINELS``), so a ``None`` placeholder cannot look like
+            a switched-off parameter.
         unit: Unit string, e.g. ``"V"``, ``"F"``, ``"LSB@20b"``, ``"dB"``.
+        overridden: True when the field's *current value* no longer equals its
+            stock default while ``grade``/``source`` still describe the
+            original declaration. ``fs=80e6`` on a field sourced from
+            "[00] abstract: 40 MS/s" is the canonical case: that sentence is
+            still true *about the paper* and false about the number in use.
+            :meth:`require` refuses such a value at a ``DISCLOSED`` call site.
+            Without this flag the grading was attached to the field *name*, so
+            a hand-edited number inherited the paper's authority (external
+            review, 2026-09-11).
     """
 
     value: T
@@ -129,14 +141,35 @@ class Graded(Generic[T]):
     source: str
     note: str = ""
     unit: str = ""
+    overridden: bool = False
+
+    @property
+    def effective_grade(self) -> SourceGrade:
+        """The grade that governs use of the current value.
+
+        A ``DISCLOSED``/``DERIVED`` number that has been overridden no longer
+        has evidence at its declared grade, so it is demoted to ``ASSUMED`` —
+        no published source covers *this* value; sensitivity studies only.
+        Every other grade is returned unchanged.
+
+        Returns:
+            SourceGrade: 当前值真正可以主张的等级。
+        """
+        if self.overridden and self.grade in (SourceGrade.DISCLOSED, SourceGrade.DERIVED):
+            return SourceGrade.ASSUMED
+        return self.grade
 
     def require(self, *allowed: SourceGrade) -> T:
-        """Return the value, or raise if its grade is not in ``allowed``.
+        """Return the value, or raise if it may not be used here.
 
         This is the enforcement hook. Call it at every point where a number is
         about to be used in a claim, so that an assumption silently
         propagating into a performance claim becomes a test failure instead of
         a correction after publication.
+
+        The check is against :attr:`effective_grade`, not ``grade``: a value
+        that has been changed away from the one its source documents cannot be
+        quoted as though the source still covered it.
 
         Args:
             *allowed: Grades acceptable at this call site.
@@ -145,13 +178,19 @@ class Graded(Generic[T]):
             The wrapped value.
 
         Raises:
-            GradingError: If ``self.grade`` is not in ``allowed``.
+            GradingError: If :attr:`effective_grade` is not in ``allowed``.
         """
-        if self.grade not in allowed:
+        if self.effective_grade not in allowed:
+            why = (
+                f" (declared {self.grade.name} from {self.source!r}, but the current "
+                f"value differs from the stock default so it no longer inherits that source)"
+                if self.effective_grade is not self.grade
+                else ""
+            )
             raise GradingError(
-                f"value graded {self.grade.name} ({self.grade.label_zh}) from "
+                f"value graded {self.effective_grade.name} ({self.effective_grade.label_zh}) from "
                 f"{self.source!r} is not valid here; allowed: "
-                f"{[g.name for g in allowed]}"
+                f"{[g.name for g in allowed]}{why}"
             )
         return self.value
 
@@ -159,24 +198,32 @@ class Graded(Generic[T]):
         """Apply ``fn`` to the value, preserving grade and source.
 
         Returns:
-            新的 Graded，value=fn(self.value)，grade/source/note/unit 沿用。
+            新的 Graded，value=fn(self.value)，grade/source/note/unit/overridden 沿用。
 
         Args:
             fn: 作用于 value 的映射函数（callable）。若换算了单位，
                 调用方需自行更新返回对象的 unit 字段。
 
         """
-        return Graded(fn(self.value), self.grade, self.source, self.note, self.unit)
+        return Graded(
+            fn(self.value),
+            self.grade,
+            self.source,
+            self.note,
+            self.unit,
+            self.overridden,
+        )
 
     def __repr__(self) -> str:
         """Readable form including the grade, e.g. ``Graded(4.0, 披露, '论文')``.
 
         Returns:
-            形如 "Graded(<value>, <中文等级>, <source>[, unit=...])" 的字符串。
+            形如 "Graded(<value>, <中文等级>, <source>[, unit=...][, OVERRIDDEN])" 的字符串。
         """
         return (
             f"Graded({self.value!r}, {self.grade.label_zh}, {self.source!r}"
             + (f", unit={self.unit!r}" if self.unit else "")
+            + (", OVERRIDDEN" if self.overridden else "")
             + ")"
         )
 
@@ -424,6 +471,12 @@ def annotate_config(cfg: Any) -> dict[str, Graded[Any]]:
     is recorded in ``Graded.note`` so that a sentinel cannot masquerade as an
     inactive parameter.
 
+    For ``DISCLOSED``/``DERIVED`` fields whose current value no longer equals
+    the stock :class:`~adi_model.config.Config` default, ``Graded.overridden``
+    is set. The grade stays attached to the field *name*, so without this flag
+    a hand-edited number would inherit the original source's authority and
+    ``require(DISCLOSED)`` would accept it (external review, 2026-09-11).
+
     Args:
         cfg: A :class:`~adi_model.config.Config` instance.
 
@@ -434,6 +487,7 @@ def annotate_config(cfg: Any) -> dict[str, Graded[Any]]:
     """
     from dataclasses import fields  # local import: keeps this module dependency-free
 
+    defaults = config_defaults()
     out: dict[str, Graded[Any]] = {}
     for f in fields(cfg):
         grade, source = PARAM_GRADES.get(f.name, (SourceGrade.ASSUMED, "UNGRADED"))
@@ -443,7 +497,15 @@ def annotate_config(cfg: Any) -> dict[str, Graded[Any]]:
             resolved = _resolve_sentinel(f.name, cfg)
             if resolved is not None:
                 note = f"sentinel {stored!r} resolved at runtime -> {resolved!r}"
-        out[f.name] = Graded(stored, grade, source, note=note, unit="")
+        is_overridden = (
+            f.name in defaults
+            and grade in (SourceGrade.DISCLOSED, SourceGrade.DERIVED)
+            and _differs(stored, defaults[f.name])
+        )
+        # 注意：覆盖状态放进 Graded.overridden，**不**混进 note。note 是
+        # resolved_sentinels 的载体，往里面塞别的说明会让"哨兵被解析了"这个
+        # 判据失去意义（`if v.note` 就不再等价于"这个哨兵解出了值"）。
+        out[f.name] = Graded(stored, grade, source, note=note, unit="", overridden=is_overridden)
     return out
 
 
@@ -499,14 +561,9 @@ def audit_provenance(cfg: Any) -> dict[str, Any]:
         k for k, v in ann.items() if v.grade is SourceGrade.FITTED and _active(v)
     )
 
-    defaults = config_defaults()
-    overridden = sorted(
-        k
-        for k, v in ann.items()
-        if k in defaults
-        and v.grade in (SourceGrade.DISCLOSED, SourceGrade.DERIVED)
-        and _differs(v.value, defaults[k])
-    )
+    # 覆盖状态由 annotate_config 写在 Graded.overridden 上（单一来源），
+    # 这里不再自己重算一遍默认值比较。
+    overridden = sorted(k for k, v in ann.items() if v.overridden)
     return {
         "counts": counts,
         "ungraded": ungraded,

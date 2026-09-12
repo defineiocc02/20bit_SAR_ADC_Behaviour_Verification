@@ -1,0 +1,135 @@
+{
+  "meta": {
+    "artifact": "sources_manifest",
+    "version": "1.0",
+    "generated": "2026-09-12",
+    "repo_commit_at_generation": "ffcc011",
+    "purpose": "任务书 §2.1/§2.2：逐份固定原文证据（文件名、SHA256、页数、角色、定位规则）。本清单只登记条目；原文 PDF/PPT 不随本仓库分发（引用合规见 NOTICE 与 docs/engineering_vs_patents_papers.md §8）。",
+    "location_rule": {
+      "description": "原文存放在仓库外的本地材料目录。解析顺序：环境变量 ADC_SOURCES_DIR，其次默认目录。文件一律以本清单登记的文件名在该目录下查找。",
+      "env_var": "ADC_SOURCES_DIR",
+      "default_dir": "~/Downloads/ISSCC2024_9.8_参考文献全集",
+      "search_filenames_exactly_as_listed": true,
+      "hash_mismatch": "硬性失败（门禁退出码非零）",
+      "file_missing": "登记 BLOCKED，不伪造工具运行或 PDK/原文数据"
+    },
+    "page_count_source": "pypdf 逐份统计（2026-09-12，见 HANDOFF.md 执行记录）"
+  },
+  "sources": [
+    {
+      "id": "00",
+      "file": "[00]_A_9.3nV_rtHz_20b_40MS_s_94.2dB_DR_Signal-Chain_Friendly_Precision_SAR_Converter.pdf",
+      "title": "A 9.3nV/√Hz 20b 40MS/s 94.2dB DR Signal-Chain Friendly Precision SAR Converter",
+      "authors": "R. Bodnar et al.",
+      "venue": "ISSCC 2024, Session 9.8, pp.182-183",
+      "doi": "10.1109/ISSCC49657.2024.10454329",
+      "sha256": "2277ec0a2b889ee954f0866f2668adc1bf95f2214fae386c9a1d70203435cd96",
+      "pages": 3,
+      "role": "主架构目标：拓扑、18-slice 池、共享 RA、auto-zero、dither 范围增强、NSD/DR 披露值",
+      "citation_status": "inherited"
+    },
+    {
+      "id": "00_1",
+      "file": "[00_1]ISSCC2024_ppt.pdf",
+      "title": "ISSCC 2024 Session 9.8 讲稿（作者副本，44 页）",
+      "authors": "同 [00]",
+      "venue": "ISSCC 2024 演讲稿",
+      "doi": null,
+      "sha256": "e7074c0f612c31bb76ad276fefaf6e6cf36479292248dc41085c4dadd1f8193a",
+      "pages": 44,
+      "role": "参数来源（NSD/DR/G0/18-slice 结构/噪声代价 dB 值）；与 [00] 分开登记，不混作一个证据源",
+      "citation_status": "inherited"
+    },
+    {
+      "id": "09",
+      "file": "[09]_US10516408B2_Analog_to_Digital_Converter_Stage.pdf",
+      "title": "Analog to Digital Converter Stage",
+      "authors": "US 10,516,408 B2",
+      "venue": "USPTO 专利",
+      "doi": null,
+      "sha256": "2125e54e0281382b7142669e153a2f489394dd3ea275ee99d83323181d925a07",
+      "pages": 33,
+      "role": "量化器与残差 DAC 分离；SADC 误差自愈窗口；两条采样通路响应匹配；Fig.12 小数权重",
+      "citation_status": "inherited"
+    },
+    {
+      "id": "10",
+      "file": "[10]_US10505561B2_Dither_Method_and_ADC.pdf",
+      "title": "Method of Applying a Dither, and Analog to Digital Converter and a Method of Operating in Accordance with the Method",
+      "authors": "US 10,505,561 B2",
+      "venue": "USPTO 专利",
+      "doi": null,
+      "sha256": "91ae95528592ba16a6a34c4d5336cd3abd18a35f811d22d73e2620dc83363c14",
+      "pages": 36,
+      "role": "dither 两种物理实现（输入注入 vs 采样态电荷注入）；注入/改码/扣除三要素配对；整数 dither 不进粗码",
+      "citation_status": "inherited"
+    },
+    {
+      "id": "11",
+      "file": "[11]_US10511316B2_Dynamic_Element_Matching.pdf",
+      "title": "Method of Linearizing the Transfer Characteristic by Dynamic Element Matching",
+      "authors": "US 10,511,316 B2",
+      "venue": "USPTO 专利",
+      "doi": null,
+      "sha256": "b60174319848efbe086c87e3814468452fbf8b08d85ab20a2baf041bb4136846",
+      "pages": 47,
+      "role": "等权单位置换 DEM；主/子阵列各自轮转；主/子边界残差；跨 slice 低位分配破简并；三维映射与 binary-to-unary bridging",
+      "citation_status": "inherited"
+    },
+    {
+      "id": "12",
+      "file": "[12]_US10707889B1_Interleaving_Method_for_ADCs.pdf",
+      "title": "Interleaving Method for Analog to Digital Converters",
+      "authors": "US 10,707,889 B1",
+      "venue": "USPTO 专利",
+      "doi": null,
+      "sha256": "1cf38e3f1e701662bfb140bc34e74f3b7c448b40b611095c0d0b7e256d7e92e7",
+      "pages": 13,
+      "role": "交织 ADC 跟踪状态更新（IDLE 相位用另一颗 sub-ADC 最近结果更新 DAC）；kickback 电荷算术",
+      "citation_status": "page_checked"
+    },
+    {
+      "id": "13",
+      "file": "[13]_US10541702B1_Auxiliary_Input_for_ADC_Input_Charge.pdf",
+      "title": "Auxiliary Input for Analog-to-Digital Converter Input Charge",
+      "authors": "US 10,541,702 B1",
+      "venue": "USPTO 专利",
+      "doi": null,
+      "sha256": "e6cfd4ffc92598d45e6e0e384428e0d9613cc7e38ab11b9c28dda66bbd12c85e",
+      "pages": 17,
+      "role": "辅助输入端口与电荷核算；辅助开关不经输入 RC 给背栅寄生充电；p.12 的 77 MHz 滤波带宽口径",
+      "citation_status": "page_checked"
+    },
+    {
+      "id": "14",
+      "file": "[14]_US10826519B1_Low_Power_Reference_for_ADC.pdf",
+      "title": "Lower Power Reference for an Analog to Digital Converter",
+      "authors": "US 10,826,519 B1",
+      "venue": "USPTO 专利（含更正页）",
+      "doi": null,
+      "sha256": "e5f325271f013ba0f5a63177a516c7348d09d4d02664713abaa10bb37154a122",
+      "pages": 26,
+      "role": "低功耗参考：比较器+阈值逼零+末段收尾的整定回路；外部补电荷随整定衰减；A06 机制层",
+      "citation_status": "page_checked"
+    }
+  ],
+  "background_sources": {
+    "note": "[01]-[08] 为背景/替代架构对照，不构成目标芯片建模依据（docs/engineering_vs_patents_papers.md §7）。本清单登记角色，不登记哈希；哈希待阶段 A 复核补全。",
+    "items": [
+      {"id": "01", "role": "Hurrell ISSCC 2010 高精度 SAR 背景对照", "hash_registered": false},
+      {"id": "02", "role": "ElShater ISSCC 2019 双死区 ring amp 背景对照", "hash_registered": false},
+      {"id": "03", "role": "Li ISSCC 2023 预测式电平移位输入缓冲背景", "hash_registered": false},
+      {"id": "04", "role": "Bannon VLSI 2014 18b 5MS/s DR/INL 权衡背景", "hash_registered": false},
+      {"id": "05", "role": "ADI LTC2387-18 数据手册商用对照", "hash_registered": false},
+      {"id": "06", "role": "Steensgaard ISSCC 2022 噪声-效率极限背景", "hash_registered": false},
+      {"id": "07", "role": "TI ADC3583 数据手册商用对照", "hash_registered": false},
+      {"id": "08", "role": "Shen JSSC 2018 16b 中速高精度 SAR 背景", "hash_registered": false}
+    ]
+  },
+  "version_pin": {
+    "code": "v7.0.10 (ffcc011)",
+    "reference_results": "tools/results/results.json SHA256 a1ccd92f…35ac70（历史基线，非主线开发目标）",
+    "report": "docs/report/reproduction_report.pdf 18 页（v7.0.10）",
+    "note": "任务书 §2.2：旧参考输出保留为历史基线；修正物理机制后允许生成新结果，不以 JSON 逐字节不变为主线目标。"
+  }
+}

@@ -1,0 +1,384 @@
+{
+  "meta": {
+    "artifact": "mechanism_inventory",
+    "version": "1.0",
+    "generated": "2026-09-12",
+    "repo_commit_at_generation": "ffcc011",
+    "purpose": "任务书 §2.3：机器可读的机制/实施例/来源/状态总清单。三条轴线（证据来源、实现程度、验证性质）与实验状态分开登记，绝不合并成一个通过标记。来源文件与哈希见 sources_manifest.json。",
+    "citation_status_legend": {
+      "page_checked": "页码/图号已对原文逐页核实（[12]/[13]/[14] 于 v7.0.8-v7.0.10 轮次完成）",
+      "inherited": "条目位置继承自已复核文档（engineering_vs_patents_papers.md 等），页码级复核在阶段 A 后续轮次补全"
+    }
+  },
+  "axes": {
+    "evidence_source": {
+      "values": ["DISCLOSED", "DERIVED", "ASSUMED", "FITTED"],
+      "rule": "结果保留全部依赖来源；ASSUMED 经公式计算后不得洗成纯披露结果（provenance.PARAM_GRADES 运行时执行）"
+    },
+    "implementation_degree": {
+      "values": ["NOT_MODELED", "MECHANISM_MODEL", "INTEGRATED_SCENARIO", "END_TO_END"],
+      "rule": "独立 helper 通过不等于完成；文献基线核心技术必须完成主链路集成与端到端实验"
+    },
+    "verification_nature": {
+      "values": ["ENGINEERING_REGRESSION", "MATH_CONSISTENCY", "PHYSICAL_MECHANISM", "LITERATURE_COMPARISON", "CROSS_CIRCUIT"],
+      "rule": "同一公式抄两遍不是独立验证；独立参照不得共同调用被验证的核心公式"
+    }
+  },
+  "config_classes": {
+    "PAPER_BASELINE": "论文 [00] 基线（目标芯片结构）",
+    "PATENT_STANDALONE": "专利独立实施例（不与基线强行拼接，保留可运行独立场景）",
+    "COMPATIBLE_INTEGRATION": "与基线兼容的集成场景",
+    "PROJECT_EXTENSION": "本项目原创扩展（不归属 ADI）"
+  },
+  "experiment_status_values": ["PASS", "FAIL", "BLOCKED", "NOT_RUN"],
+  "mechanisms": [
+    {
+      "id": "M01",
+      "title": "量化器/残差DAC 分离（matched-quantizer sDAC + RDAC）",
+      "task_refs": ["T02"],
+      "sources": [
+        {"id": "00", "location": "正文 'quantizer fully separated from the RDAC'"},
+        {"id": "00_1", "location": "p.9（>12b AC matching 口径）"},
+        {"id": "09", "location": "§1.3 分离原理"}
+      ],
+      "claim": "粗量化器由独立 slice DAC 构成，与残差生成 DAC 分离，实现 >11b（讲稿口径 >12b）匹配",
+      "embodiment": "PAPER_BASELINE",
+      "evidence_source": ["DISCLOSED"],
+      "implementation_degree": "INTEGRATED_SCENARIO",
+      "verification_nature": ["PHYSICAL_MECHANISM", "MATH_CONSISTENCY"],
+      "code": ["src/adi_model/sadc.py", "src/adi_model/pipeline.py", "src/adi_model/config.py"],
+      "tests": [
+        "tests/audit/test_audit_findings.py::TestF1FirstStageReading",
+        "tests/integration/test_pipeline_equivalence.py::TestSADCThresholdConsistency"
+      ],
+      "experiments": [{"key": "stage19", "status": "PASS"}],
+      "observables": ["粗码误差自愈窗口 4.6875 mV（= ADC2 余量/G0，配置条件值）", "一级位读法 b1=7（ADR 0003，ASSUMED）"],
+      "gaps": ["b1 读法非唯一（paper_literal/legacy_v61 保留）"]
+    },
+    {
+      "id": "M02",
+      "title": "SADC 粗码误差自愈窗口与边界",
+      "task_refs": ["T02"],
+      "sources": [{"id": "09", "location": "§1.3 自愈窗口"}],
+      "claim": "残差被推出名义 bin 后只要放大结果仍在 ADC2 窗口内，输出不受粗码误差影响；窗口 = 当前量程与增益配置下的推导值",
+      "embodiment": "PAPER_BASELINE",
+      "evidence_source": ["DERIVED"],
+      "implementation_degree": "INTEGRATED_SCENARIO",
+      "verification_nature": ["PHYSICAL_MECHANISM", "LITERATURE_COMPARISON"],
+      "code": ["src/adi_model/pipeline.py", "src/adi_model/experiments.py"],
+      "tests": ["tests/regression/test_error_reference.py::TestErrorReferenceSeparation"],
+      "experiments": [
+        {"key": "pipeline.sadc_window", "status": "PASS"},
+        {"key": "s9.coarse_correction", "status": "PASS"}
+      ],
+      "observables": ["窗口内 4.45 mV err≈0；窗口外 4.92 mV→10.9 µV、7.03 mV→302 µV", "Δτ=20 ps 窗口内 SNDR 不变；100 ps 超窗 SNDR 93.7→75.7 dB（边界两侧）"],
+      "gaps": []
+    },
+    {
+      "id": "M03",
+      "title": "双采样通路响应匹配（SADC/RDAC）",
+      "task_refs": ["T02", "T04"],
+      "sources": [{"id": "09", "location": "§1.5（匹配的是采样响应，不只是电容值）"}],
+      "claim": "Δτ 造成一阶跟踪误差 −Δτ·dx/dt，信号相关而非静态增益",
+      "embodiment": "PAPER_BASELINE",
+      "evidence_source": ["DISCLOSED", "ASSUMED"],
+      "implementation_degree": "INTEGRATED_SCENARIO",
+      "verification_nature": ["PHYSICAL_MECHANISM"],
+      "code": ["src/adi_model/sampler.py", "src/adi_model/dynamics.py"],
+      "tests": ["tests/regression/test_skew_derivative.py::TestSkewDerivative", "tests/regression/test_skew_derivative.py::TestSkewEntersThePipeline"],
+      "experiments": [{"key": "s9.coarse_correction", "status": "PASS"}],
+      "observables": ["Δτ 采样响应失配的 INL 效应"],
+      "gaps": ["sampling_tau_mismatch 数值为 [假设]"]
+    },
+    {
+      "id": "M04",
+      "title": "dither 采样态电荷注入 + 注入/改码/扣除三要素配对",
+      "task_refs": ["T07"],
+      "sources": [
+        {"id": "10", "location": "Fig.6/Fig.19（采样态电荷注入：2D 个单位接 ±V_FS）"},
+        {"id": "10", "location": "§2.6（整数 dither 不进粗码）"}
+      ],
+      "claim": "dither 物理实现为采样态电荷注入，不占输入量程；三要素缺一不可；同一 n_R 贯穿该样本全部后续处理",
+      "embodiment": "PAPER_BASELINE",
+      "evidence_source": ["DISCLOSED", "DERIVED"],
+      "implementation_degree": "INTEGRATED_SCENARIO",
+      "verification_nature": ["PHYSICAL_MECHANISM", "MATH_CONSISTENCY"],
+      "code": ["src/adi_model/sampler.py", "src/adi_model/reconstruction.py"],
+      "tests": ["tests/audit/test_audit_findings.py::TestF3DitherUnits"],
+      "experiments": [
+        {"key": "s9.dither_impl", "status": "PASS"},
+        {"key": "dither_closure", "status": "PASS"}
+      ],
+      "observables": ["α=(N−2D)/N 恒定衰减；闭合差 1.1e-16", "范围增强 2.0 bit（Q3）"],
+      "gaps": ["N1：静态线性化收益在本配置为负结果（条件性）"]
+    },
+    {
+      "id": "M05",
+      "title": "DEM 等权单位置换与名义守恒",
+      "task_refs": ["T06"],
+      "sources": [{"id": "11", "location": "等权置换机制；主/子不同步长轮转"}],
+      "claim": "任意 DEM state 下选中单位数 = 逻辑码（名义守恒结构性成立）",
+      "embodiment": "PATENT_STANDALONE",
+      "evidence_source": ["DISCLOSED"],
+      "implementation_degree": "INTEGRATED_SCENARIO",
+      "verification_nature": ["PHYSICAL_MECHANISM", "MATH_CONSISTENCY"],
+      "code": ["src/adi_model/mapper.py", "src/adi_model/dac_arch.py"],
+      "tests": [],
+      "experiments": [{"key": "s3", "status": "PASS"}],
+      "observables": ["k_per_code 逐码核验；DAC_nominal(M(c,state))=V_target(c) 对任意 state 成立"],
+      "gaps": ["R16：联合排列空间 64 ≠ 512 标签；本模型 DEM 数字不得引用为 [11] 三维机制的定量收益"]
+    },
+    {
+      "id": "M06",
+      "title": "主/子边界残差与桥接 C_C 锯齿（DEM 消不掉项）",
+      "task_refs": ["T06"],
+      "sources": [{"id": "11", "location": "主/子边界难点；binary-to-unary bridging（逻辑映射 ≠ 物理桥接电容）"}],
+      "claim": "主/子各自 DEM 后逼近各自平均值，桥接比例误差产生周期锯齿，DEM 无效；C_C 比例误差是一阶系统性 INL",
+      "embodiment": "PATENT_STANDALONE",
+      "evidence_source": ["DERIVED"],
+      "implementation_degree": "INTEGRATED_SCENARIO",
+      "verification_nature": ["PHYSICAL_MECHANISM"],
+      "code": ["src/adi_model/dac_arch.py"],
+      "tests": [],
+      "experiments": [{"key": "s12_summary", "status": "PASS"}],
+      "observables": ["DEM 开/关对 C_C 锯齿差 ≤5%（结构性质）", "12.3 实验边界残差量化"],
+      "gaps": ["[11] 原始三维映射（slice 选择 ⊗ 横向 ⊗ 纵向 + binary-to-unary 边界交换）未按原文映射图重建，现有映射为本工程候选实现（R16 钉子）"]
+    },
+    {
+      "id": "M07",
+      "title": "交织映射单位简并 → 校准可观测性判据",
+      "task_refs": ["T06", "T12"],
+      "sources": [{"id": "11", "location": "跨 slice 低位分配动机"}],
+      "claim": "固定交织映射下 rank(U)=64/512 是结构简并；打破手段各有代价",
+      "embodiment": "PATENT_STANDALONE",
+      "evidence_source": ["DERIVED"],
+      "implementation_degree": "INTEGRATED_SCENARIO",
+      "verification_nature": ["PHYSICAL_MECHANISM", "MATH_CONSISTENCY"],
+      "code": ["src/adi_model/calib.py"],
+      "tests": ["tests/regression/test_observer_headroom.py::TestFirstStageObservableRank"],
+      "experiments": [{"key": "s11_summary", "status": "PASS"}, {"key": "s14_summary", "status": "PASS"}],
+      "observables": ["随机置换映射接近满秩；整数码校准改善 ≥3×；ridge_fit 只在可辨识子空间工作"],
+      "gaps": ["校准算法为本工程实现，非原芯片算法（T12 口径）"]
+    },
+    {
+      "id": "M08",
+      "title": "18-slice 池调度与交织静态失配",
+      "task_refs": ["T04"],
+      "sources": [
+        {"id": "00", "location": "18-slice（8 转换 + 8 采集 + 2 spare）"},
+        {"id": "00_1", "location": "p.19-22"}
+      ],
+      "claim": "转换组必须持有它实际采集的电荷；spare 打散交织杂散",
+      "embodiment": "PAPER_BASELINE",
+      "evidence_source": ["DISCLOSED", "ASSUMED"],
+      "implementation_degree": "INTEGRATED_SCENARIO",
+      "verification_nature": ["ENGINEERING_REGRESSION", "PHYSICAL_MECHANISM"],
+      "code": ["src/adi_model/scheduler.py", "src/adi_model/slice_pool.py", "src/adi_model/pipeline.py"],
+      "tests": [
+        "tests/audit/test_audit_findings.py::TestF2SliceCausality",
+        "tests/unit/test_slice_pool.py::TestCausality",
+        "tests/unit/test_slice_pool.py::TestMismatchBinding",
+        "tests/audit/test_review_contracts.py::TestR1SampleOwnership",
+        "tests/audit/test_review_contracts.py::TestR2PhysicalPoolOnMainPath"
+      ],
+      "experiments": [{"key": "pipeline.interleave", "status": "PASS"}],
+      "observables": ["杂散位置 f_S/2±f_IN（结构性）", "reserve_dual 逐样本两两不相交（invariants 断言）"],
+      "gaps": [
+        "R1/R2：PhysicalSlicePool 跨周期因果（8191/8191）已验证但未接入主入口——主链路 conv[n]=acq[n−1] 仅 0/8191",
+        "M2 的 31.4/42 dB 抑制数字来自非因果洗牌实现，不得用作匹配预算",
+        "offset/gain/bandwidth/skew 四类失配的固定相位与随机抖动分别统计未完成"
+      ]
+    },
+    {
+      "id": "M09",
+      "title": "动态误差三件套（输入建立/参考建立/数字串扰）",
+      "task_refs": ["T03", "T13"],
+      "sources": [{"id": "00_1", "location": "p.32（三项非理想源点名）"}],
+      "claim": "INL 2.2 LSB 的缺口由码相关输入建立、参考建立 bow、数字串扰翻转解释",
+      "embodiment": "PAPER_BASELINE",
+      "evidence_source": ["DISCLOSED", "ASSUMED"],
+      "implementation_degree": "INTEGRATED_SCENARIO",
+      "verification_nature": ["PHYSICAL_MECHANISM", "LITERATURE_COMPARISON"],
+      "code": ["src/adi_model/dynamics.py"],
+      "tests": ["tests/audit/test_review_contracts.py::TestR17CommonModeTau"],
+      "experiments": [{"key": "s13", "status": "PASS"}],
+      "observables": ["ρ=0.035 时 2.06 LSB vs 论文 2.2 LSB（条件性吻合）", "参考建立单开 INL 3.46→4.39 LSB"],
+      "gaps": ["dyn_* 参数全部 [假设]，用形状与趋势不用值", "R17：星形网络公共模式 τ 上界口径已限定"]
+    },
+    {
+      "id": "M10",
+      "title": "失配预算→校准必要性（300 ppm 为 [ASSUMED] 目标）",
+      "task_refs": ["T12", "T13"],
+      "sources": [{"id": "00_1", "location": "p.9（仅披露 '>12b AC matching (SADC to RDAC)'，无单位电容 σ 指标）"}],
+      "claim": "300 ppm 是本工程假设目标；该目标下模型均值 92.56 dB 未达 93 dB，达标上限 ≈200 ppm",
+      "embodiment": "PAPER_BASELINE",
+      "evidence_source": ["ASSUMED", "FITTED"],
+      "implementation_degree": "INTEGRATED_SCENARIO",
+      "verification_nature": ["LITERATURE_COMPARISON", "ENGINEERING_REGRESSION"],
+      "code": ["src/adi_model/calib.py", "src/adi_model/experiments.py"],
+      "tests": ["tests/audit/test_audit_findings.py::TestF10MonteCarloProvenance"],
+      "experiments": [{"key": "budget", "status": "PASS"}, {"key": "mc", "status": "PASS"}],
+      "observables": ["MC 16 片 93.30–93.72 dB（σ=100 ppm [FITTED]）", "PDK 估算 1117 ppm，缺口 3.7×"],
+      "gaps": ["十六片全通过不等于高良率已证实（任务书 §5.5）；需置信区间与样本量收敛"]
+    },
+    {
+      "id": "M11",
+      "title": "[12] 交织跟踪状态更新（机制级，未入主链路）",
+      "task_refs": ["T08"],
+      "sources": [{"id": "12", "location": "全文（跟踪策略各实施例；kickback 电荷算术）", "citation_status": "page_checked"}],
+      "claim": "IDLE 相位用另一颗 sub-ADC 最近转换结果更新 DAC（距今 1 个复合周期），替代复位到中点；多种实质差异策略（reset/own/other/partial/weighted）",
+      "embodiment": "PATENT_STANDALONE",
+      "evidence_source": ["DISCLOSED", "DERIVED"],
+      "implementation_degree": "MECHANISM_MODEL",
+      "verification_nature": ["PHYSICAL_MECHANISM", "MATH_CONSISTENCY"],
+      "code": ["src/adi_model/interleave_tracking.py"],
+      "tests": [
+        "tests/unit/test_patent12_interleave_tracking.py::TestTrackPolicyValidation",
+        "tests/unit/test_patent12_interleave_tracking.py::TestInformationFlow",
+        "tests/unit/test_patent12_interleave_tracking.py::TestPatentBackgroundArithmetic",
+        "tests/unit/test_patent12_interleave_tracking.py::TestScalingLaws",
+        "tests/unit/test_patent12_interleave_tracking.py::TestDeterminism"
+      ],
+      "experiments": [],
+      "observables": ["确定性轮转下 v_hold[i]=x[i−1] 恒等式", "慢信号 kickback 电荷比 reset <0.2；快信号 reset 反优（如实复现）", "f_min=ln(1/ε)/(2πT)（相对约束与电荷无关）；绝对约束电荷进对数项；噪声 ∝√BW"],
+      "gaps": ["主链路集成未做（N2）", "tracking 信息源合法性（只允许已可用转换结果）的端到端因果测试未做", "介电吸收预失真需先有记忆误差模型——未建"]
+    },
+    {
+      "id": "M12",
+      "title": "[13] 辅助输入电荷核算（机制级，未入主链路）",
+      "task_refs": ["T09"],
+      "sources": [{"id": "13", "location": "p.12（50 kHz 信号也要求 77 MHz 滤波带宽）；FIG.4/5（gate-boost）", "citation_status": "page_checked"}],
+      "claim": "辅助开关从经输入 RC 滤波器的节点给背栅寄生充电，滤波器只需服务信号电荷",
+      "embodiment": "PATENT_STANDALONE",
+      "evidence_source": ["DISCLOSED", "ASSUMED"],
+      "implementation_degree": "MECHANISM_MODEL",
+      "verification_nature": ["PHYSICAL_MECHANISM", "MATH_CONSISTENCY"],
+      "code": ["src/adi_model/aux_input.py"],
+      "tests": [
+        "tests/unit/test_patent13_aux_input.py::TestInformationFlow",
+        "tests/unit/test_patent13_aux_input.py::TestChargeAccounting",
+        "tests/unit/test_patent13_aux_input.py::TestGateBoost",
+        "tests/unit/test_patent13_aux_input.py::TestAuxFeasibility"
+      ],
+      "experiments": [],
+      "observables": ["R_f 上限放大 (C_f+C_pg)/C_f 倍；带宽下界同比例降；噪声 ∝√BW", "τ_aux 超窗即拒绝报告收益", "gate_boost = 理想自举对照（仅关 V_GS 项）"],
+      "gaps": [
+        "主/滤波/采样三节点低阶联立未建（任务书 T09 要求，一阶标度律不等于联立状态）",
+        "C_pg 无披露值→比例 [假设]",
+        "预充电与组合实施例未覆盖",
+        "主链路集成未做（N2）"
+      ]
+    },
+    {
+      "id": "M13",
+      "title": "[14] 低功耗参考整定回路（机制级，未入主链路）",
+      "task_refs": ["T10"],
+      "sources": [{"id": "14", "location": "全文（比较器+阈值逼零+末段 S1 收尾；含更正页）", "citation_status": "page_checked"}],
+      "claim": "参考精度按粗/细位试递进；外部补电荷随整定衰减；稳态粗判决位试参考误差在主配置容忍窗内",
+      "embodiment": "PATENT_STANDALONE",
+      "evidence_source": ["DISCLOSED", "ASSUMED"],
+      "implementation_degree": "MECHANISM_MODEL",
+      "verification_nature": ["PHYSICAL_MECHANISM"],
+      "code": ["src/adi_model/ref_track.py"],
+      "tests": [
+        "tests/unit/test_patent14_ref_track.py::TestSettling",
+        "tests/unit/test_patent14_ref_track.py::TestA06Structure",
+        "tests/unit/test_patent14_ref_track.py::TestPrecisionConversion",
+        "tests/unit/test_patent14_ref_track.py::TestGainSensitivity",
+        "tests/unit/test_patent14_ref_track.py::TestValidation"
+      ],
+      "experiments": [],
+      "observables": ["g=0.9/0.6/0.3 → 6/12/25 周期（[假设] 增益的演示，非独立验证）", "S1 外部补电荷衰减 >2 个量级", "粗判决位试 RMS ≈2.0 mV < 容忍窗 4.6875 mV"],
+      "gaps": [
+        "参考—RA—ADC2 一阶联立动态未建（任务书 T10/T11 要求）",
+        "主链路集成未做（N2，coarse/fine MUX 事件未进 pipeline）",
+        "误差检测可实现性（控制器不能无损知道真实参考误差）未建模"
+      ]
+    },
+    {
+      "id": "M14",
+      "title": "共享 RA 电荷一致增益 + AZ/动态带宽预算模型",
+      "task_refs": ["T11"],
+      "sources": [
+        {"id": "00_1", "location": "p.11（共享 RA、40% 功耗）、p.34-35（AZ −1.6 dB、动态带宽 +1.3 dB）"}
+      ],
+      "claim": "G[n]=C_active[n]/C_F_true 电荷一致；AZ 消 offset/1/f、白噪声折叠；ADC2 动态采样带宽",
+      "embodiment": "PAPER_BASELINE",
+      "evidence_source": ["DISCLOSED", "FITTED"],
+      "implementation_degree": "INTEGRATED_SCENARIO",
+      "verification_nature": ["MATH_CONSISTENCY", "LITERATURE_COMPARISON"],
+      "code": ["src/adi_model/ra.py", "src/adi_model/adc2.py"],
+      "tests": ["tests/regression/test_observer_headroom.py::TestObserverCorrectionIsDigital"],
+      "experiments": [{"key": "autozero", "status": "PASS"}],
+      "observables": ["−1.238/+0.923 dB 预算 vs 实测 −1.233/+0.917（差 0.006 dB，预算内部一致）"],
+      "gaps": [
+        "主入口 gain_vector 仍是固定 c_sig 常向量——逐样本物理增益未在主入口成立",
+        "AZ 相位级噪声传递（存储/校正/释放 + C_AZ/开关）未建模，只有预算倍率",
+        "RA 有限建立/复用历史/摆幅限流未建模（−1.6/+1.3 dB 只可作预算对照）"
+      ]
+    },
+    {
+      "id": "M15",
+      "title": "独立电荷参考求解器与电荷闭合",
+      "task_refs": ["T03"],
+      "sources": [{"id": "00", "location": "CDAC 电荷关系（本工程独立节点方程实现）"}],
+      "claim": "闭式解 vs 独立节点矩阵差 1.06e-25 C；主循环 vs 节点方程 1.10e-25 C",
+      "embodiment": "PAPER_BASELINE",
+      "evidence_source": ["DERIVED"],
+      "implementation_degree": "INTEGRATED_SCENARIO",
+      "verification_nature": ["MATH_CONSISTENCY", "PHYSICAL_MECHANISM"],
+      "code": ["src/adi_model/charge_ref.py", "src/adi_model/rdac.py"],
+      "tests": ["tests/integration/test_pipeline_equivalence.py::TestChargeConsistency"],
+      "experiments": [{"key": "dither_closure", "status": "PASS"}, {"key": "s12_summary", "status": "PASS"}],
+      "observables": ["逐相位节点方程独立真值；电荷闭合 ≈6 个电子"],
+      "gaps": ["SPICE/Spectre 小规模测试台未执行（工具可用时补，接口先交付）", "手工可核对完整数值例子（初始连接→残差→重构）未成文"]
+    },
+    {
+      "id": "M16",
+      "title": "数字域数据流边界（模拟真值不进数字算法）",
+      "task_refs": ["T12"],
+      "sources": [{"id": "00", "location": "数字重构架构（ADR 0006 为本工程边界决策）"}],
+      "claim": "数字算法禁止读 chip.C_true；观察器校正值先量化后扣除，不进 ADC2 量程",
+      "embodiment": "PAPER_BASELINE",
+      "evidence_source": ["DERIVED"],
+      "implementation_degree": "INTEGRATED_SCENARIO",
+      "verification_nature": ["ENGINEERING_REGRESSION"],
+      "code": ["src/adi_model/digital_core.py", "src/adi_model/adc2.py"],
+      "tests": ["tests/regression/test_observer_headroom.py::TestObserverCorrectionIsDigital"],
+      "experiments": [],
+      "observables": ["近 Nyquist 校正项 1.18 V 不再塞进模拟量程"],
+      "gaps": ["有限字长数字核（舍入/饱和/系数量化/流水延迟）未建（T12 要求）", "浮点 vs 有限字长对照未做"]
+    },
+    {
+      "id": "X01",
+      "title": "KTC 观测消噪逐相位噪声传递（原创扩展）",
+      "task_refs": ["T14"],
+      "sources": [{"id": null, "location": "无文献源头；NOTICE 声明，不归属 ADI"}],
+      "claim": "同一采样噪声实现同时进残差与观测通路，物理相关性建模；三推论逐项验证",
+      "embodiment": "PROJECT_EXTENSION",
+      "evidence_source": ["DERIVED"],
+      "implementation_degree": "INTEGRATED_SCENARIO",
+      "verification_nature": ["PHYSICAL_MECHANISM", "MATH_CONSISTENCY"],
+      "code": ["src/adi_model/ktc.py", "src/adi_model/noise_phase.py"],
+      "tests": ["tests/audit/test_review_contracts.py::TestR12KtcMaxUsesTheObservedNode", "tests/audit/test_review_contracts.py::TestR18KappaOptimalWithObserverNoise"],
+      "experiments": [{"key": "noise_transfer", "status": "PASS"}, {"key": "s6", "status": "PASS"}],
+      "observables": ["MC vs 解析 σ_res 偏差 0.06%", "κ_opt 含观测噪声联合最优（v7.0.5 修正）"],
+      "gaps": ["X2 为理想读出上界（无量化器/编码/延迟模型）", "摆幅 ≠ 建立（R13）"]
+    }
+  ],
+  "coverage_obligations": {
+    "note": "任务书 §4 的 T01-T14 最低覆盖与现有清单的映射关系；每个 T 必须至少出现在一个条目的 task_refs 中，缺口的补建项在 pending_items 登记。",
+    "pending_items": [
+      {"id": "P01", "task_ref": "T01", "title": "采集窗口对照实验：短窗口 vs 交织延长窗口，同一输入下采样误差/驱动噪声/SNR 随带宽扫描", "status": "NOT_RUN", "note": "现有 M12 只有一阶标度律，无系统级对照场景"},
+      {"id": "P02", "task_ref": "T04", "title": "R1/R2：PhysicalSlicePool 接入 pipeline 主路径 + offset/gain/bandwidth/skew 四类失配固定/随机分别统计", "status": "NOT_RUN", "note": "xfail 钉子 TestR1SampleOwnership/TestR2PhysicalPoolOnMainPath；会移动已发布数值，单独轮次"},
+      {"id": "P03", "task_ref": "T05", "title": "逐位切换大 DAC vs RDAC 直接设最终状态的对照实验（参考电荷/峰值电流/建立时间）", "status": "NOT_RUN", "note": "直接设码已隐含于 SplitDAC 顶板保持，但对照未建"},
+      {"id": "P04", "task_ref": "T09", "title": "主滤波节点+采样节点+辅助节点三节点低阶联立状态模型", "status": "NOT_RUN", "note": "M12 一阶标度律升级为联立；R_aux 大/带宽不足时收益下降须体现"},
+      {"id": "P05", "task_ref": "T10", "title": "参考—RA—ADC2 一阶联立动态（τ_RA·dv_o/dt+v_o=G_RA[x_held−v_D(t)]）与 coarse/fine MUX 事件进 pipeline", "status": "NOT_RUN", "note": "M13 边界；与 P02 同批发版"},
+      {"id": "P06", "task_ref": "T12", "title": "有限字长数字核（舍入/饱和/符号/dither 扣除/系数量化/流水延迟）+ 浮点对照", "status": "NOT_RUN"},
+      {"id": "P07", "task_ref": "T13", "title": "低频 1/f 与温漂的观察时长/等效方法验证 + MC 良率置信区间与样本量收敛", "status": "NOT_RUN", "note": "F9 只做了带限检查；F10 只做了 per-chip 样本保留"},
+      {"id": "P08", "task_ref": "T03", "title": "SPICE/Spectre 小规模电路测试台（电容电荷/输入网络/参考—RA 三子系统）", "status": "BLOCKED", "note": "本机无 PDK/SPICE 授权时交付可运行接口 + NOT_RUN 标记；不伪造工具运行"},
+      {"id": "P09", "task_ref": "T08", "title": "[12] 跟踪信息源合法性的端到端因果测试（延后可用时间必须影响 tracking）+ 介电吸收记忆误差模型", "status": "NOT_RUN"},
+      {"id": "P10", "task_ref": "T11", "title": "AZ 相位级噪声传递模型（C_AZ/存储/校正/释放 + 宽窄带切换时刻/R_BW 扫描）", "status": "NOT_RUN", "note": "现 M14 只有预算倍率"}
+    ]
+  }
+}

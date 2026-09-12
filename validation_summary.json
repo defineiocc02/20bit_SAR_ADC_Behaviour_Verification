@@ -1,0 +1,68 @@
+{
+  "artifact": "inventory_gate_summary",
+  "generated_by": "adi_model.inventory_gate",
+  "repo_root": "/Users/zhaoyi/WorkBuddy/2026-09-08-17-01-44/delivery/adi_sar_model",
+  "ok": true,
+  "counts": {
+    "PASS": 11,
+    "FAIL": 0,
+    "BLOCKED": 0
+  },
+  "records": [
+    {
+      "check": "sources.present",
+      "level": "PASS",
+      "detail": "/Users/zhaoyi/WorkBuddy/2026-09-08-17-01-44/delivery/adi_sar_model/sources_manifest.json"
+    },
+    {
+      "check": "inventory.present",
+      "level": "PASS",
+      "detail": "/Users/zhaoyi/WorkBuddy/2026-09-08-17-01-44/delivery/adi_sar_model/mechanism_inventory.json"
+    },
+    {
+      "check": "sources.00.sha256",
+      "level": "PASS",
+      "detail": "/Users/zhaoyi/Downloads/ISSCC2024_9.8_参考文献全集/[00]_A_9.3nV_rtHz_20b_40MS_s_94.2dB_DR_Signal-Chain_Friendly_Precision_SAR_Converter.pdf 哈希一致"
+    },
+    {
+      "check": "sources.00_1.sha256",
+      "level": "PASS",
+      "detail": "/Users/zhaoyi/Downloads/ISSCC2024_9.8_参考文献全集/[00_1]ISSCC2024_ppt.pdf 哈希一致"
+    },
+    {
+      "check": "sources.09.sha256",
+      "level": "PASS",
+      "detail": "/Users/zhaoyi/Downloads/ISSCC2024_9.8_参考文献全集/[09]_US10516408B2_Analog_to_Digital_Converter_Stage.pdf 哈希一致"
+    },
+    {
+      "check": "sources.10.sha256",
+      "level": "PASS",
+      "detail": "/Users/zhaoyi/Downloads/ISSCC2024_9.8_参考文献全集/[10]_US10505561B2_Dither_Method_and_ADC.pdf 哈希一致"
+    },
+    {
+      "check": "sources.11.sha256",
+      "level": "PASS",
+      "detail": "/Users/zhaoyi/Downloads/ISSCC2024_9.8_参考文献全集/[11]_US10511316B2_Dynamic_Element_Matching.pdf 哈希一致"
+    },
+    {
+      "check": "sources.12.sha256",
+      "level": "PASS",
+      "detail": "/Users/zhaoyi/Downloads/ISSCC2024_9.8_参考文献全集/[12]_US10707889B1_Interleaving_Method_for_ADCs.pdf 哈希一致"
+    },
+    {
+      "check": "sources.13.sha256",
+      "level": "PASS",
+      "detail": "/Users/zhaoyi/Downloads/ISSCC2024_9.8_参考文献全集/[13]_US10541702B1_Auxiliary_Input_for_ADC_Input_Charge.pdf 哈希一致"
+    },
+    {
+      "check": "sources.14.sha256",
+      "level": "PASS",
+      "detail": "/Users/zhaoyi/Downloads/ISSCC2024_9.8_参考文献全集/[14]_US10826519B1_Low_Power_Reference_for_ADC.pdf 哈希一致"
+    },
+    {
+      "check": "coverage.T01-T14",
+      "level": "PASS",
+      "detail": "T01-T14 全部被机制或待建项覆盖"
+    }
+  ]
+}

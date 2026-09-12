@@ -256,7 +256,7 @@ axR2.set_xlabel("INL$_{max}$ (LSB)")
 axR2.grid(axis="x", alpha=0.25)
 for i, v in enumerate(vals):
     axR2.text(v + 1.5, i, f"{v:.2f}", va="center", fontsize=6.2, color="#333")
-tag(axR2, "M4｜三件套分解（s13）", xy=(0.55, 0.97), size=7)
+tag(axR2, "M4｜三项配置对照（非严格可加分解）", xy=(0.55, 0.97), size=7)
 save(fig, "fig2_inl.png")
 
 # =============================================================================
@@ -601,7 +601,7 @@ axL.text(0.535, 0.30, "噪声折叠", fontsize=6.4, color=C_ORANGE, ha="center")
 axL.text(
     0.5,
     0.14,
-    "白噪声 ×10^(1.6/20)（折叠）\n1/f 整体移除（结构）",
+    "白噪声 ×10^(1.6/20)（折叠）\n1/f 整体关闭＝理想化假设",
     ha="center",
     fontsize=7.0,
     color="#333",
@@ -654,7 +654,7 @@ tag(axR, "Q8｜预测↔实测最大偏差 0.006 dB", xy=(0.55, 0.97), size=7)
 axR.text(
     0.99,
     0.03,
-    "与披露差额 = 参照系差异（不硬凑）",
+    "与披露差额归因待定（不硬凑）",
     transform=axR.transAxes,
     ha="right",
     fontsize=6.2,
@@ -668,8 +668,10 @@ save(fig, "fig7_autozero.png")
 fig, axL, axR = left_right(w=6.6, h=2.75, ratios=(1, 1.45))
 
 # left: budget gap schematic
-# 注：300 ppm 是 [00_1] 披露的匹配目标（文献常量）；模型均值口径达标上限
-# 由 budget.rows 读出计算，与披露目标是两个口径，不得混写。
+# 注：300 ppm 是本工程假设的失配目标 [假设]（[00_1] 仅披露
+
+# ">12b AC matching (SADC to RDAC)"，未给单位电容 σ 指标）；达标上限
+# 由 budget.rows 读出计算，与假设目标是两个口径，不得混写。
 sig = np.linspace(0, 1300, 300)
 need = 300
 brows0 = D["budget"]["rows"]
@@ -682,7 +684,7 @@ axL.axvline(1117, color=C_RED, lw=1.4)
 axL.text(
     need / 2,
     0.66,
-    "披露匹配目标\nσ ≤ 300 ppm\n[00_1]",
+    "本工程假设目标\nσ ≤ 300 ppm\n[假设]",
     ha="center",
     fontsize=7.2,
     color=C_GREEN,
@@ -691,7 +693,7 @@ axL.text(
 axL.text(
     720,
     0.66,
-    "PDK 估算 1117 ppm\n（3.7× 于披露目标）",
+    "PDK 估算 1117 ppm\n（3.7× 于假设目标）",
     ha="center",
     fontsize=7.2,
     color=C_RED,
@@ -744,7 +746,7 @@ axR1.plot(s_ppm, s_mean, "o-", color=C_BLUE, lw=1.3, ms=3.5, label="SNDR 均值"
 axR1.plot(s_ppm, s_min, "v--", color=C_ORANGE, lw=1.1, ms=3.5, label="SNDR 最小")
 axR1.axhline(93.0, color=C_RED, ls=":", lw=1.2)
 axR1.axvline(300, color=C_GREEN, ls="--", lw=1.0)
-axR1.text(310, 90.5, "披露目标 300 ppm", fontsize=6.3, color=C_GREEN, va="bottom", ha="center")
+axR1.text(310, 90.5, "假设目标 300 ppm", fontsize=6.3, color=C_GREEN, va="bottom", ha="center")
 axR1.axvline(mean_lim, color=C_PURPLE, ls="-.", lw=1.0)
 axR1.set_xlabel("失配 σ (ppm)")
 axR1.set_ylabel("SNDR (dB)")
@@ -759,14 +761,13 @@ tag(axR1, "M10｜σ 扫描（budget.rows）", xy=(0.02, 0.97), size=6.8)
 axR2 = fig.add_subplot(2, 2, 4)
 chips = D["mc"]["sndr_per_chip"]
 mc_sigma = 100.0
-rngj = np.random.default_rng(3)
-xj = mc_sigma + rngj.uniform(-9, 9, len(chips))
-axR2.axvspan(mc_sigma - 12, mc_sigma + 12, color=C_PURPLE, alpha=0.10)
-axR2.axvline(mc_sigma, color=C_PURPLE, ls=":", lw=1.0)
+# 横轴 = 芯片编号（全部芯片同一 σ=100 ppm 配置；第八份复核：展示性
+# 横向抖动会被误读为"各芯片失配不同"，改用编号轴消除歧义）
+xj = np.arange(1, len(chips) + 1)
 axR2.plot(xj, chips, "x", ms=4.5, color=C_PURPLE, linestyle="none")
 axR2.axhline(float(np.mean(chips)), color=C_BLUE, lw=0.9, ls="--")
 axR2.text(
-    62,
+    0.6,
     float(np.mean(chips)) + 0.03,
     f"均值 {np.mean(chips):.2f} dB",
     fontsize=6.5,
@@ -774,9 +775,9 @@ axR2.text(
     va="bottom",
     ha="left",
 )
-axR2.set_xlabel("失配 σ (ppm)")
+axR2.set_xlabel("MC 芯片编号（全部 σ=100 ppm）")
 axR2.set_ylabel("MC 单片 SNDR (dB)")
-axR2.set_xlim(60, 140)
+axR2.set_xlim(0, 17)
 axR2.set_ylim(93.2, 93.8)
 axR2.grid(alpha=0.25)
 tag(axR2, f"MC 16 片（σ={mc_sigma:.0f} ppm, FITTED）：93.30–93.72 dB", xy=(0.02, 0.97), size=6.5)

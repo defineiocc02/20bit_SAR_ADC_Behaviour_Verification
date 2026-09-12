@@ -22,9 +22,13 @@ ACQUISITION -> CONVERSION -> IDLE（或 TRACKING）三个相位，相位错开�
 ============================================================================
 本实现的口径（勿夸大）
 ============================================================================
-* 这是**机制级电荷核算模型**：核算"进入采集瞬间驱动器要补多少电荷"
-  以及它对滤波器带宽/驱动噪声的标度律；**不模拟** SAR 位判决回路
-  （转换结果 = 该 sub-ADC 采样时刻的理想输入 + 可选量化噪声）。
+* 这是**机制级电荷核算模型**：核算"进入采集瞬间驱动器要补多少电荷"。
+  **带宽/噪声收益不按电荷比例换算**（第八份外部复核订正）：相对建立
+  约束下 f_min = ln(1/ε)/(2πT) 与电荷无关；绝对残差约束下电荷只进
+  对数项（见 ``filter_bw_relative`` / ``filter_bw_absolute``）。
+  电荷减少是带宽/噪声收益的**必要条件，不是换算系数**。本模块不模拟
+  SAR 位判决回路（转换结果 = 该 sub-ADC 采样时刻的理想输入 + 可选
+  量化噪声）。
 * 只对复合采样率 f_s 建模；sub-ADC 采样率 = f_s / n_adcs。
 * 参数分级：机制结构 = [披露]（[12]）；C_IN 默认锚到本仓库活跃采样
   电容（[推导]，c_active_nominal）；随机化幅度、预失真幅度、权重
@@ -61,7 +65,9 @@ __all__ = [
     "TrackRunResult",
     "InterleavedSAR",
     "TRACK_GRADES",
-    "kickback_filter_bw",
+    "filter_bw_relative",
+    "filter_bw_absolute",
+    "noise_ratio_from_bw",
 ]
 
 TRACK_GRADES = {
@@ -144,6 +150,11 @@ class TrackRunResult:
         source_age: ``(N,)`` int64 —— 来源结果距今的复合周期数；reset_mid 为 −1。
         acquired_adc: ``(N,)`` int64 —— 本周期处于采集相的 sub-ADC 编号。
         summary: 汇总标量（见 run() 返回说明）。
+
+    电荷 -> 带宽/噪声的换算**不在 summary 里**（第八份复核订正：旧
+    "带宽比=电荷比"量纲不成立）。需要换算时用
+    :meth:`bw_ratio_absolute` / :meth:`driver_noise_ratio_absolute`，
+    并显式给出 C_f 与绝对残差容差（绝对误差契约，电荷进对数项）。
     """
 
     charge: np.ndarray
@@ -153,33 +164,123 @@ class TrackRunResult:
     acquired_adc: np.ndarray
     summary: dict = field(default_factory=dict)
 
+    def bw_ratio_absolute(self, c_f: float, v_err_max: float) -> float:
+        """绝对误差契约下（跟踪 vs 复位）的最低带宽比（[推导]）。
 
-def kickback_filter_bw(q_kick: float, a_tol: float, t_cycle: float, eps: float = 0.01) -> float:
-    """Kickback 电荷 -> 允许的驱动器/滤波器最高带宽（标度律，[推导]）。
+        f_min(q) = max(0, ln(q/(C_f·v_err_max)))/(2π·T)，电荷进对数项；
+        两侧任一 q 低于阈值（无约束，f_min=0）时本比值无定义，返回 nan。
 
-    推导（[12] 的"kickback 小 -> 滤波器带宽可以低"的定量化）：
-      1. 采集电荷 q 在滤波电容上造成压降 dip = q / C_f，要求 dip <= a_tol
-         -> C_f >= q / a_tol（取下界，噪声最优）。
-      2. 下一个采集周期前要建立到 eps：R_f·C_f <= t_cycle / ln(1/eps)。
-      3. f_3dB = 1/(2π·R_f·C_f) >= ln(1/eps)·q / (2π·t_cycle·a_tol)。
-    因此 f_3dB ∝ q：跟踪使 kickback 电荷降为 κ 倍，滤波器带宽上限同比例
-    降为 κ 倍，驱动噪声（en·sqrt(π/2·f_3dB)）降为 sqrt(κ) 倍。
+        Args:
+            c_f: 滤波电容 [F]（[假设]，两侧相同）。
+            v_err_max: 采集节点绝对残差容差 [V]（[假设]）。
+
+        Returns:
+            float: 带宽下界之比；任一侧无约束时 nan。
+        """
+        q_t = float(self.summary.get("charge_mean", np.nan))
+        q_r = float(self.summary.get("charge_reset_mean", np.nan))
+
+        def _fmin(q: float) -> float | None:
+            if not np.isfinite(q) or q <= 0:
+                return None
+            arg = q / (c_f * v_err_max)
+            return 0.0 if arg <= 1.0 else float(np.log(arg))
+
+        a, b = _fmin(q_t), _fmin(q_r)
+        if a is None or b is None or b <= 0.0:
+            return float("nan")
+        return a / b
+
+    def driver_noise_ratio_absolute(self, c_f: float, v_err_max: float) -> float:
+        """绝对误差契约下的驱动噪声 rms 比 = sqrt(带宽比)（[推导]）。
+
+        Args:
+            c_f: 滤波电容 [F]（[假设]，两侧相同）。
+            v_err_max: 采集节点绝对残差容差 [V]（[假设]）。
+
+        Returns:
+            float: 噪声比（sqrt(带宽比)；任一侧无约束时 nan）。
+        """
+        r = self.bw_ratio_absolute(c_f, v_err_max)
+        return float(np.sqrt(r)) if np.isfinite(r) else float("nan")
+
+
+def filter_bw_relative(t_cycle: float, eps: float = 0.01) -> float:
+    """相对建立约束的最低滤波器带宽 [Hz]（[推导]，量纲自洽）。
+
+    一阶系统在 t_cycle 内把初始扰动建立到相对比例 eps：
+    exp(-T/(R_f C_f)) <= eps  ->  f_3dB >= ln(1/eps)/(2π·t_cycle)。
+
+    **电荷 q 不进入此式**：相对建立条件与扰动大小无关（第八份外部
+    复核订正；旧版 `kickback_filter_bw` 的 q/(T·a_tol) 量纲为 F/s，
+    不是 Hz，已撤回）。
 
     Args:
-        q_kick: 单次采集的 kickback 电荷 [C]。
-        a_tol: 允许的滤波节点压降 [V]（相对满幅的设计余量，[假设]）。
-        t_cycle: 复合采样周期 [s]。
-        eps: 建立残差目标 [无量纲]（默认 1%）。
+        t_cycle: 建立可用时间（复合采样周期）[s]。
+        eps: 相对建立残差目标 [无量纲]。
 
     Returns:
-        float: 允许的滤波器最高 3dB 带宽 [Hz]。
+        float: 最低 3dB 带宽 [Hz]。
 
     Raises:
         ValueError: 非正输入。
     """
-    if q_kick <= 0 or a_tol <= 0 or t_cycle <= 0 or not 0 < eps < 1:
-        raise ValueError(f"非法输入: q={q_kick}, a_tol={a_tol}, t={t_cycle}, eps={eps}")
-    return float(np.log(1.0 / eps) * q_kick / (2.0 * np.pi * t_cycle * a_tol))
+    if t_cycle <= 0 or not 0 < eps < 1:
+        raise ValueError(f"非法输入: t={t_cycle}, eps={eps}")
+    return float(np.log(1.0 / eps) / (2.0 * np.pi * t_cycle))
+
+
+def filter_bw_absolute(q_kick: float, c_f: float, v_err_max: float, t_cycle: float) -> float:
+    """绝对误差约束的最低滤波器带宽 [Hz]（[推导]，量纲自洽）。
+
+    电荷 q 在滤波电容上造成初始扰动 ΔV0 = q/C_f，要求一个周期后
+    绝对残差 ΔV0·exp(-T/(R_f C_f)) <= v_err_max：
+    f_3dB >= max(0, ln(q/(C_f·v_err_max))) / (2π·t_cycle)。
+
+    **电荷进对数项，不成立 f ∝ q**：q 低于 C_f·v_err_max 时无带宽
+    约束（返回 0）；q 每加倍，f_min 只增加 1/(2πT)·ln2（第八份
+    外部复核订正）。注意这只是单次扰动恢复约束，不含信号带宽等
+    其他要求，不可直接当设计带宽用。
+
+    Args:
+        q_kick: 单次采集的 kickback 电荷 [C]。
+        c_f: 滤波电容 [F]（固定，噪声-负载权衡的另一自由度）。
+        v_err_max: 采集节点允许的绝对残差 [V]。
+        t_cycle: 建立可用时间 [s]。
+
+    Returns:
+        float: 最低 3dB 带宽 [Hz]（q 低于阈值时为 0）。
+
+    Raises:
+        ValueError: 非正输入。
+    """
+    if q_kick <= 0 or c_f <= 0 or v_err_max <= 0 or t_cycle <= 0:
+        raise ValueError(f"非法输入: q={q_kick}, c_f={c_f}, v_err_max={v_err_max}, t={t_cycle}")
+    arg = q_kick / (c_f * v_err_max)
+    if arg <= 1.0:
+        return 0.0
+    return float(np.log(arg) / (2.0 * np.pi * t_cycle))
+
+
+def noise_ratio_from_bw(bw: float, bw_ref: float) -> float:
+    """平坦噪声经一阶 RC 的输出 rms 噪声比 = sqrt(bw/bw_ref)（[推导]）。
+
+    一阶 RC + 平坦输入噪声谱的输出噪声 = en·sqrt(π/2·f_3dB)，
+    因此噪声比只依赖带宽比（**不**依赖电荷比）。
+
+    Args:
+        bw: 待评带宽 [Hz]。
+        bw_ref: 参照带宽 [Hz]。
+
+    Returns:
+        float: 噪声 rms 比（sqrt(带宽比)）。
+
+    Raises:
+        ValueError: 负输入。
+    """
+    if bw < 0 or bw_ref <= 0:
+        raise ValueError(f"非法输入: bw={bw}, bw_ref={bw_ref}")
+    return float(np.sqrt(bw / bw_ref))
 
 
 class InterleavedSAR:
@@ -240,9 +341,9 @@ class InterleavedSAR:
         Returns:
             TrackRunResult: 逐周期数组 + summary：
                 ``charge_mean``（平均 kickback 电荷 [C]）、
-                ``charge_ratio_vs_reset``（对 reset_mid 基线的电荷比）、
-                ``filter_bw_ratio_vs_reset``（允许带宽比 = 电荷比，[推导]）、
-                ``driver_noise_ratio_vs_reset``（sqrt(电荷比)）。
+                ``charge_ratio_vs_reset``（对 reset_mid 基线的电荷比）。
+                带宽/噪声换算不在此处（见 TrackRunResult 的
+                ``bw_ratio_absolute``，第八份复核订正后口径）。
 
         Raises:
             ValueError: policy 非法（由 validated() 抛出）。
@@ -329,8 +430,6 @@ class InterleavedSAR:
             "charge_mean": q_mean,
             "charge_reset_mean": q_reset,
             "charge_ratio_vs_reset": ratio,
-            "filter_bw_ratio_vs_reset": ratio,  # f_3dB ∝ q（kickback_filter_bw 推导）
-            "driver_noise_ratio_vs_reset": float(np.sqrt(ratio)) if ratio > 0 else float("nan"),
             "mode": pol.mode,
         }
         return TrackRunResult(

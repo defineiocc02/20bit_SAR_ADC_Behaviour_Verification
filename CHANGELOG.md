@@ -4,6 +4,49 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.10] — 2026-09-12
+
+### Fixed — eighth external review: dimensional/constraint errors in the new mechanism models
+
+**P0 — physics**
+- `interleave_tracking.py`: the old `kickback_filter_bw` returned
+  `ln(1/eps)·q/(2π·T·a_tol)` — dimensions F/s, **not Hz** — and the
+  "bandwidth ∝ charge" claim was derived from it. Replaced by
+  `filter_bw_relative` (f_min = ln(1/eps)/(2πT), charge-free) and
+  `filter_bw_absolute` (f_min = max(0, ln(q/(C_f·v_err)))/(2πT),
+  charge enters logarithmically); noise ratio = sqrt(bandwidth ratio).
+  `TrackRunResult.bw_ratio_absolute` replaces the withdrawn summary
+  keys; M11 claims re-worded everywhere.
+- `ref_track.py`: `reference_precision_bits` had a spurious factor 2
+  (1 bit low); now N = log2(span/(√12·σ)). `a06_analysis` now feeds
+  **RMS** (was mean-abs) and uses the main-config residual-range
+  contract (ADC2 margin 0.15 V / G0 = 4.6875 mV) as the coarse-trial
+  tolerance window instead of an invented Δ1/2; `v_fs_dac` documented
+  as full span; settle-cycle gain sensitivity pinned by test
+  (g=0.9→6, 0.6→12, 0.3→25 — "5 or 6" agreement is a demonstration,
+  not independent verification).
+
+**P1 — sourcing and preconditions**
+- 300 ppm is the project's **ASSUMED** mismatch target ([00_1] p.9 only
+  discloses ">12b AC matching (SADC to RDAC)"), relabelled in report
+  body, figure 8 and tables; M10 table rows synced.
+- `aux_input.py`: 77 kHz → **77 MHz** with page reference ([13] p.12);
+  `required_filter_bw` now checks auxiliary-path settling
+  (τ_aux ≤ t_acq/ln(1/eps_aux), raises otherwise) and exposes
+  `aux_ready`/`aux_residual`; gate_boost zero r_on modulation renamed
+  **ideal-bootstrap contrast**; report M12 noise direction corrected to
+  1/√R_f. M13 limitation (no RA/ADC2 joint settling) stated in module,
+  report and registries.
+
+**P2 — consistency**
+- Bibliography double brackets fixed (`\bibitem[00]` renders [00]);
+  report metadata updated to v7.0.9/35dab64/223 passed with three-tier
+  evidence provenance; figure labels synced with body (AZ attribution
+  "归因待定", 1/f shutdown as idealisation, M4 "非严格可加分解");
+  MC panel x-axis now chip index (all chips σ=100 ppm).
+- Tests: 231 passed + 4 xfailed; gates green; reference outputs
+  untouched (`a1ccd92f…35ac70`).
+
 ## [7.0.9] — 2026-09-12
 
 ### Changed — documentation sync for the v7.0.8 mechanism models

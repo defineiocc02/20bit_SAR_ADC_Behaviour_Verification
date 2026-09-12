@@ -6,7 +6,8 @@
 2. **专利背景的算术**：近 Nyquist 下"保持自己上一拍"比"复位到中点"
    更差（[12] 背景段 Q = 2·A·C_IN 论证），而 track_other 两头都好；
 3. **加权跟踪**：保持值 = 最近 N 次转换的加权组合（披露例 10/30/60%）；
-4. **标度律**：kickback 电荷 -> 滤波器带宽上限 ∝ q、驱动噪声 ∝ sqrt(q)。
+4. **换算（第八份复核订正）**：相对建立约束 f_min=ln(1/ε)/(2πT) 与
+   电荷无关；绝对残差约束下电荷进对数项；噪声 ∝ √BW。
 """
 
 import numpy as np
@@ -16,7 +17,9 @@ from adi_model.config import Config
 from adi_model.interleave_tracking import (
     InterleavedSAR,
     TrackPolicy,
-    kickback_filter_bw,
+    filter_bw_absolute,
+    filter_bw_relative,
+    noise_ratio_from_bw,
 )
 
 
@@ -182,29 +185,64 @@ class TestPatentBackgroundArithmetic:
 
 
 class TestScalingLaws:
-    def test_filter_bw_is_proportional_to_charge(self):
-        """kickback_filter_bw 的推导：f_3dB = ln(1/eps)·q / (2π·T·a_tol)。"""
-        q, a_tol, t_cyc, eps = 1e-12, 0.01, 25e-9, 0.01
-        f1 = kickback_filter_bw(q, a_tol, t_cyc, eps)
-        assert f1 == pytest.approx(np.log(100.0) * q / (2 * np.pi * t_cyc * a_tol))
-        # 电荷减半 -> 带宽上限减半（同比例）
-        assert kickback_filter_bw(q / 2, a_tol, t_cyc, eps) == pytest.approx(f1 / 2)
+    """电荷 -> 带宽/噪声换算（第八份外部复核订正后的口径）。
+
+    旧版 kickback_filter_bw 的 ln(1/eps)·q/(2πT·a_tol) 量纲为 F/s
+    （不是 Hz），且"带宽 ∝ 电荷"不成立——本组测试用**独立解析值**
+    验证，不复制被测实现。
+    """
+
+    def test_relative_condition_is_charge_free(self):
+        """相对建立约束：f_min = ln(1/eps)/(2πT)，与电荷无关。"""
+        t_cyc, eps = 25e-9, 0.01
+        f = filter_bw_relative(t_cyc, eps)
+        # 独立复算（复核者同值）：ln(100)/(2π·25ns) ≈ 29.32 MHz
+        assert f == pytest.approx(29.32e6, rel=1e-3)
+
+    def test_absolute_condition_matches_closed_form(self):
+        """绝对残差约束：f_min = ln(q/(C_f·v_err_max))/(2πT)，电荷进对数。"""
+        q, c_f, v_err, t_cyc = 1e-12, 10e-12, 1e-3, 25e-9
+        f = filter_bw_absolute(q, c_f, v_err, t_cyc)
+        # q/(C_f·v_err) = 100 -> f = ln(100)/(2πT)
+        assert f == pytest.approx(np.log(100.0) / (2 * np.pi * t_cyc), rel=1e-12)
+        # 电荷加倍 -> 只加 (ln2)/(2πT)，不是翻倍
+        f2 = filter_bw_absolute(2 * q, c_f, v_err, t_cyc)
+        assert f2 - f == pytest.approx(np.log(2.0) / (2 * np.pi * t_cyc), rel=1e-12)
+
+    def test_absolute_below_threshold_has_no_constraint(self):
+        """Q ≤ C_f·v_err_max 时无带宽约束（返回 0），不是负数或静默比例。"""
+        assert filter_bw_absolute(1e-12, 10e-12, 1.0, 25e-9) == 0.0
+
+    def test_noise_ratio_follows_bw_not_charge(self):
+        """噪声 rms ∝ √BW（平坦噪声经一阶 RC），与电荷无直接比例。"""
+        assert noise_ratio_from_bw(4e6, 1e6) == pytest.approx(2.0)
+        with pytest.raises(ValueError):
+            noise_ratio_from_bw(-1.0, 1e6)
+
+    def test_result_bw_ratio_absolute_is_logarithmic(self):
+        """结果对象的带宽比 = ln(qt/κ)/ln(qr/κ)（κ = C_f·v_err_max）。"""
+        cfg = Config()
+        res = _run(cfg, TrackPolicy(mode="track_other"), _slow_sine(cfg))
+        c_f, v_err = 10e-12, 1e-4
+        kappa = c_f * v_err
+        qt = res.summary["charge_mean"]
+        qr = res.summary["charge_reset_mean"]
+        assert res.bw_ratio_absolute(c_f, v_err) == pytest.approx(
+            np.log(qt / kappa) / np.log(qr / kappa)
+        )
+        assert res.driver_noise_ratio_absolute(c_f, v_err) == pytest.approx(
+            np.sqrt(res.bw_ratio_absolute(c_f, v_err))
+        )
 
     def test_illegal_inputs_refused(self):
         with pytest.raises(ValueError):
-            kickback_filter_bw(0.0, 0.01, 25e-9)
+            filter_bw_relative(0.0)
         with pytest.raises(ValueError):
-            kickback_filter_bw(1e-12, 0.01, 25e-9, eps=1.5)
-
-    def test_summary_ratios_are_consistent(self):
-        """带宽比 = 电荷比；驱动噪声比 = sqrt(电荷比)（同一推导的两面）。"""
-        cfg = Config()
-        res = _run(cfg, TrackPolicy(mode="track_other"), _slow_sine(cfg))
-        s = res.summary
-        assert s["filter_bw_ratio_vs_reset"] == pytest.approx(s["charge_ratio_vs_reset"])
-        assert s["driver_noise_ratio_vs_reset"] == pytest.approx(
-            np.sqrt(s["charge_ratio_vs_reset"])
-        )
+            filter_bw_relative(25e-9, eps=1.5)
+        with pytest.raises(ValueError):
+            filter_bw_absolute(0.0, 10e-12, 1e-3, 25e-9)
+        with pytest.raises(ValueError):
+            filter_bw_absolute(1e-12, 0.0, 1e-3, 25e-9)
 
 
 class TestDeterminism:

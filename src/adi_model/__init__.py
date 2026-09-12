@@ -87,7 +87,9 @@ from .interleave_tracking import (
     InterleavedSAR,
     TrackPolicy,
     TrackRunResult,
-    kickback_filter_bw,
+    filter_bw_absolute,
+    filter_bw_relative,
+    noise_ratio_from_bw,
 )
 from .ktc import KTCBranch
 from .mapper import DitherState, Mapper, SwitchCommand, dem_state_sequence, make_dither_state
@@ -205,7 +207,9 @@ __all__ = [
     "InterleavedSAR",
     "TRACK_GRADES",
     "TRACK_MODES",
-    "kickback_filter_bw",
+    "filter_bw_relative",
+    "filter_bw_absolute",
+    "noise_ratio_from_bw",
     "AuxInputStage",
     "build_stage",
     "AUX_GRADES",

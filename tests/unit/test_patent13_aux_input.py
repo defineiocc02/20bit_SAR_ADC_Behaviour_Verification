@@ -9,6 +9,8 @@
 5. **入口拒绝**：非法模式显式报错，不静默退化。
 """
 
+import math
+
 import numpy as np
 import pytest
 
@@ -90,8 +92,12 @@ class TestChargeAccounting:
 
 
 class TestGateBoost:
-    def test_ron_modulation_is_structurally_zero(self, stage):
-        """FIG.4/5：V_GS 恒定 -> r_on 与信号无关（调制因子 = 0）。"""
+    def test_ron_modulation_ideal_bootstrap_contrast(self, stage):
+        """FIG.4/5：理想自举对照下调制因子 = 0（仅关闭 V_GS 调制项；
+
+        阈值漂移/体效应/有限 V_DS/自举建立误差均未保留——理想化假设，
+        非器件结论）。
+        """
         boosted = AuxInputStage(**{**stage.__dict__, "mode": "gate_boost"})
         assert boosted.ron_modulation_factor() == 0.0
         for mode in ("off", "dedicated_pin", "opamp_midpoint"):
@@ -117,3 +123,27 @@ class TestValidation:
     def test_bad_eps_refused(self, stage):
         with pytest.raises(ValueError, match="必须在"):
             stage.required_filter_bw(eps=0.0)
+
+
+class TestAuxFeasibility:
+    """带宽收益的成立前提（第八份外部复核）：辅助通路必须来得及建立。"""
+
+    def test_slow_aux_path_refused(self, stage):
+        """R_aux 大到 τ_aux 超窗时，required_filter_bw 拒绝报告收益。"""
+        slow = AuxInputStage(**{**stage.__dict__, "r_aux": 1.0e6})
+        assert not slow.aux_ready()
+        with pytest.raises(ValueError, match="不可行"):
+            slow.required_filter_bw("dedicated_pin")
+
+    def test_fast_aux_path_reports_bw(self, stage):
+        """默认 R_aux=1 Ω 下辅助支路轻松建立 -> 收益照常报告。"""
+        assert stage.aux_ready()
+        assert stage.required_filter_bw("dedicated_pin") < stage.required_filter_bw("off")
+
+    def test_aux_residual_monotone(self, stage):
+        """残余比例 exp(-t/τ_aux) 单调：t 越长越接近 0，t=τ 时 ≈ 1/e。"""
+        tau = stage.parasitic_tau("dedicated_pin")
+        assert stage.aux_residual(tau) == pytest.approx(1.0 / math.e, rel=1e-9)
+        assert stage.aux_residual(10 * tau) < stage.aux_residual(tau)
+        with pytest.raises(ValueError):
+            stage.aux_residual(0.0)

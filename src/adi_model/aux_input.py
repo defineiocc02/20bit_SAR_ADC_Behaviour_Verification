@@ -6,8 +6,10 @@
 问题：输入开关是双栅 FET，栅/背栅存在非线性寄生电容（[13] FIG.1 的
 12/14/16）。采集相位合上开关时这些寄生电容也要充/放电——传统上这份
 电荷只能经过输入 RC 滤波器（R_f, C_f）从驱动器取，于是滤波器带宽必须
-做宽。专利背景给出的量级：LTC2387-18 采 50 kHz 信号也需要 77 kHz 滤波
-带宽——宽带宽直接抬高采样噪声与驱动功耗。
+做宽。专利背景给出的量级（[13] p.12 左栏背景段）：LTC2387-18 采
+50 kHz 低频信号也要求 **77 MHz** 滤波带宽——低频输入仍可能要求很宽的
+前级滤波带宽（否则寄生电荷建立不到位），宽带宽直接抬高采样噪声与
+驱动功耗。
 
 三个对策（本模块各对应一种模式）：
 * **dedicated_pin**（FIG.2）：片外辅助输入引脚 V_IN_AUX 经辅助开关
@@ -18,8 +20,10 @@
   "不打扰滤波器"。
 * **gate_boost**（FIG.4/5）：栅自举电路在采集相把 V_GS 固定在
   C_boost 充到的电压差上（披露例 3.3 V）-> r_on 与信号无关 -> 开关
-  导通电阻的码调制（本仓库 ``dyn_ron_code_coeff`` 刻画的那一项）
-  结构性归零。
+  导通电阻的码调制（本仓库 ``dyn_ron_code_coeff`` 刻画的那一项）归零。
+  **本模块把它实现为"理想自举对照"**：只关闭 V_GS 调制项，忽略阈值
+  漂移、体效应、有限 V_DS、自举电压建立误差等其余信号相关因素——
+  零是理想化假设的结果，不是已验证的器件结论（第八份复核口径）。
 
 ============================================================================
 本实现的口径（勿夸大）
@@ -74,7 +78,8 @@ AUX_GRADES = {
     ),
     "ltc2387_anchor": (
         SourceGrade.DISCLOSED,
-        "[13] background: 77 kHz filter BW for 50 kHz signal (LTC2387-18)",
+        "[13] p.12 background: 77 MHz filter BW required even for a 50 kHz"
+        " signal (LTC2387-18); page per patent PDF",
     ),
     "c_signal": (SourceGrade.DERIVED, "c_active_nominal() of this repository"),
     "c_parasitic_ratio": (SourceGrade.ASSUMED, "back-gate parasitics; no published number"),
@@ -157,7 +162,51 @@ class AuxInputStage:
         """
         return self.r_filter * self.c_filter
 
-    def required_filter_bw(self, mode: str | None = None, eps: float = 0.01) -> float:
+    def aux_residual(self, t_aux: float) -> float:
+        """辅助通路在 t_aux 后的残余比例 exp(-t_aux/τ_aux)（[推导]）。
+
+        Args:
+            t_aux: 辅助通路可用建立时间 [s]（> 0）。
+
+        Returns:
+            float: 残余比例 [无量纲]（1 = 完全没建立）。
+
+        Raises:
+            ValueError: t_aux 非正。
+        """
+        if t_aux <= 0:
+            raise ValueError(f"t_aux={t_aux} 必须为正")
+        tau = self.parasitic_tau("dedicated_pin")
+        return float(math.exp(-t_aux / tau))
+
+    def aux_ready(self, eps_aux: float = 0.01) -> bool:
+        """辅助通路能否在采集窗口内建立到 eps_aux（[推导] 可行性条件）。
+
+        约束：τ_aux = R_aux·C_pg ≤ t_acq/ln(1/ε_aux)。**带宽收益的
+        成立前提**（第八份外部复核补齐）：辅助通路若来不及建立，
+        "寄生电荷由低阻辅助通路供给"的前提不成立，
+        :meth:`required_filter_bw` 会拒绝报告收益而不是静默给出。
+
+        Args:
+            eps_aux: 辅助支路建立残差目标 [无量纲]。
+
+        Returns:
+            bool: 可行 = True。
+
+        Raises:
+            ValueError: eps_aux 不在 (0,1)。
+        """
+        if not 0 < eps_aux < 1:
+            raise ValueError(f"eps_aux={eps_aux} 必须在 (0,1)")
+        tau_aux = self.parasitic_tau("dedicated_pin")
+        return tau_aux <= self.t_acq / math.log(1.0 / eps_aux)
+
+    def required_filter_bw(
+        self,
+        mode: str | None = None,
+        eps: float = 0.01,
+        eps_aux: float = 0.01,
+    ) -> float:
         """给定建立目标 ε，采集窗口内建立到位所需的**最低** 3dB 带宽 [Hz]。
 
         建立约束：支路时间常数 τ = R_f·C_branch ≤ t_acq/ln(1/ε)
@@ -166,21 +215,32 @@ class AuxInputStage:
         降为 C_f，R_f 上限放大 (C_f+C_pg)/C_f 倍，带宽下界同比例下降——
         这正是 [13] "允许更低滤波器带宽"的定量化。
 
+        **可行性前提**：辅助模式下先检查辅助支路自身能在窗口内建立
+        （τ_aux ≤ t_acq/ln(1/ε_aux)）；不满足时抛 ValueError——
+        慢辅助通路不得仍无条件报告带宽收益（第八份外部复核）。
+
         Args:
             mode: 覆盖 self.mode。
-            eps: 建立残差目标 [无量纲]。
+            eps: 信号支路建立残差目标 [无量纲]。
+            eps_aux: 辅助支路建立残差目标 [无量纲]（仅辅助模式检查）。
 
         Returns:
             float: 最低要求 3dB 带宽 [Hz]。
 
         Raises:
-            ValueError: eps 不在 (0,1)。
+            ValueError: eps 不在 (0,1)；辅助模式下辅助支路建立不可行。
         """
         if not 0 < eps < 1:
             raise ValueError(f"eps={eps} 必须在 (0,1)")
-        # 约束：采集窗口内"滤波器支路"建立到 ε。辅助供电时滤波器支路只剩
-        # C_f（寄生由低阻辅助通路供给），故 R_f 允许放大 (C_f+C_pg)/C_f 倍。
         if (mode or self.mode) in ("dedicated_pin", "opamp_midpoint"):
+            if not self.aux_ready(eps_aux):
+                tau_aux = self.parasitic_tau("dedicated_pin")
+                raise ValueError(
+                    "辅助通路在采集窗口内建立不可行："
+                    f"τ_aux=R_aux·C_pg={tau_aux:.3e}s 超过 "
+                    f"t_acq/ln(1/eps_aux)={self.t_acq / math.log(1.0 / eps_aux):.3e}s"
+                    "（带宽收益前提不成立；减小 R_aux 或放宽 eps_aux）"
+                )
             r_f_max = self.t_acq / (math.log(1.0 / eps) * self.c_filter)
         else:
             r_f_max = self.t_acq / (math.log(1.0 / eps) * (self.c_filter + self.c_parasitic))
@@ -245,10 +305,16 @@ class AuxInputStage:
         }
 
     def ron_modulation_factor(self) -> float:
-        """开关 r_on 的信号调制因子（gate_boost = 0，其余 = 1，结构性质）。
+        """理想自举对照下的 r_on 信号调制因子（gate_boost = 0，其余 = 1）。
+
+        **口径（第八份外部复核）**：0 是"理想自举对照"的结果——固定
+        V_GS 只关闭 V_GS 调制这一项；阈值漂移、体效应、有限 V_DS、
+        自举电压建立误差等其余信号相关因素本模型一律未保留。因此
+        这是理想化假设下的对照值，**不是**"真实开关 r_on 完全不随
+        信号变化"的器件结论。
 
         Returns:
-            float: 0（自举后 r_on 与信号无关）或 1（调制保留）。
+            float: 0（理想自举对照）或 1（调制保留）。
         """
         return 0.0 if self.mode == "gate_boost" else 1.0
 

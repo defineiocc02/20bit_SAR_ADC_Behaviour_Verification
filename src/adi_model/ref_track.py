@@ -42,15 +42,22 @@
       ΣQ → 0"的描述同构；
     - S1 闭合：以增益 s1_topup_gain 把节点拉向 v_ext（真实开关有限
       时间/电阻的行为级近似），外部电荷 q = C·|ΔV_S1|。
-  整定周期数由 g 与初值共同决定；本参数组整定 ~5-6 周期，与 [14]
-  披露量级一致——但 **g、初值、S1 增益均为 [假设]**：量级一致是
-  结构结果，不是拟合主张。
-* 与 [00] 主链的耦合点（A06 的答案）：参考误差 δ_j 在位试 j 上以
+  整定周期数由 g 与初值共同决定（第八份复核实测：g=0.9 -> 6、
+  g=0.6 -> 12、g=0.3 -> 25，从零计数）：本参数组（g=0.9 [假设]）
+  整定 6 周期与 [14] 披露的"5 or 6"**量级一致——但这是该组假设
+  参数的演示结果，不构成对披露整定行为的独立验证**。g、初值、
+  S1 增益均为 [假设]。
+* **A06 的回答边界（勿夸大）**：本模块回答的是"参考节点在预设位试
+  载荷与阈值更新下的补充电荷/恢复行为"这一个独立行为模型；A06 所
+  要求的"动态参考 — RA — ADC2 联合建立"（RA 相位中 RDAC 参考仍
+  在建立 + ADC2 宽带建立/窄带采样）**仍未验证**——本模块没有 RA
+  状态、RA 有限带宽、ADC2 采样窗口。**末位试参考误差很小 ≠ RA 对
+  整个参考扰动过程的积分/跟踪误差很小**。
+* 与 [00] 主链的耦合点（A06 的机制层）：参考误差 δ_j 在位试 j 上以
   ``e_D = δ_j·(2k_j/N − 1)`` 进入 DAC 减法。粗判决（前几位）对参考
-  误差的容忍度是 Δ1 量级——残差被推出名义 bin 后只要仍在 ADC2 窗口
-  内，输出不受影响（[09] §1.3 自愈窗口）；只有最后几个低位试需要
-  20b 级参考。这给出"参考 ~15b 时 RA 即可起动、转换尾段才到 20b"
-  的结构解释（数值随配置，[推导]+[假设]）。
+  误差的容忍度取主配置残差量程契约（ADC2 余量/G0 = 4.6875 mV）；
+  只有最后几个低位试需要 20b 级参考。这给出"参考 ~15b 时 RA 即可
+  起动、转换尾段才到 20b"的机制层解释（数值随配置，[推导]+[假设]）。
 * 参数分级：结构/整定行为量级/C 取值例（10 µF、~100 nF、100 pF）
   [披露]（[14]）；I_max、比较器带宽、阈值增益、转换相时长、初值、
   S1 增益 [假设]。
@@ -109,14 +116,17 @@ REF_GRADES = {
 
 
 def reference_precision_bits(err_rms: float, span_v: float) -> float:
-    """参考误差 rms -> 等效精度位数 = log2(span / (2·√12·σ))（[推导]）。
+    """参考误差 rms -> 等效精度位数 = log2(span / (√12·σ))（[推导]）。
 
-    把参考误差当作 span 上的均匀量化误差（σ = Δ/√12，Δ = 2σ√3）折算；
-    口径声明：这是"这个大小的误差等效于几位"的换算，不是任何实测精度。
+    把参考误差当作 span 上的均匀量化误差：σ = Δ/√12 -> Δ = √12·σ，
+    N 位量化的 Δ = span/2^N，反解 N = log2(span/(√12·σ))。
+    口径声明：这是"这个大小的 RMS 误差等效于几位"的换算，不是任何
+    实测精度；入参必须是 **RMS**，平均绝对误差不可不加换算直接代入
+    （第八份外部复核订正：旧版多了因子 2，少算整整 1 bit）。
 
     Args:
         err_rms: 参考误差 rms [V]（> 0）。
-        span_v: 参考满摆幅 [V]（> 0）。
+        span_v: 参考满摆幅（全范围，非半幅）[V]（> 0）。
 
     Returns:
         float: 等效精度位数（bit）。
@@ -126,7 +136,7 @@ def reference_precision_bits(err_rms: float, span_v: float) -> float:
     """
     if err_rms <= 0 or span_v <= 0:
         raise ValueError(f"err_rms={err_rms}, span_v={span_v} 必须为正")
-    return float(np.log2(span_v / (2.0 * np.sqrt(12.0) * err_rms)))
+    return float(np.log2(span_v / (np.sqrt(12.0) * err_rms)))
 
 
 @dataclass(frozen=True)
@@ -139,13 +149,19 @@ class RefTrackConfig:
         n_bits: 转换相的位试数（SAR 二进制权重载荷）。
         c_dac_load: DAC 阵列呈现给参考节点的总电容 [F]（安排 B 里是
             粗级 ADC1 的小 DAC，[假设]）。
-        v_fs_dac: DAC 满摆幅 [V]（码值 (2k/N−1)·v_fs_dac）。
+        v_fs_dac: DAC 满摆幅（**全范围**，非半幅）[V]（码值
+            (2k/N−1)·v_fs_dac 与 LSB20 均按全范围口径；本仓库 ±3.0 V
+            差分满幅 -> 6.0 V，[推导]）。
         i_charge_max: MP1 最大充电电流 [A]（[假设]）。
         cmp_bw_hz: 比较器有限带宽 [Hz]（τ_cmp = 1/(2π·f)，伺服增益用，[假设]）。
         threshold_gain: 阈值积分增益（θ ← θ − g·E，[假设]）。
         t_conv: 转换相时长 [s]（[假设]；本仓库口径 0.4/fs = 10 ns 量级）。
         v_init_frac: 上电初值 v_int(0)/v_ext [无量纲]（[假设]，<1 给出起动瞬态）。
         s1_topup_gain: 周期末 S1 闭合把节点拉向 v_ext 的增益 [无量纲]（[假设]）。
+        tol_first_v: 粗判决位试可容忍的参考误差 [V]（[推导]，取自本仓库
+            主配置残差量程契约：ADC2 余量 0.15 V / 级间增益 G0=32 =
+            4.6875 mV；**不是** Δ1/2——自愈窗口由残差实际范围、RA/ADC2
+            限制等共同决定，第八份外部复核订正）。
         n_cycles: 仿真转换周期数。
         settle_eps_v: 判定整定的残差门限 [V]。
     """
@@ -161,6 +177,7 @@ class RefTrackConfig:
     t_conv: float = 10e-9
     v_init_frac: float = 0.99
     s1_topup_gain: float = 0.6
+    tol_first_v: float = 4.6875e-3
     n_cycles: int = 40
     settle_eps_v: float = 1.0e-6
 
@@ -181,6 +198,7 @@ class RefTrackConfig:
             ("i_charge_max", self.i_charge_max),
             ("cmp_bw_hz", self.cmp_bw_hz),
             ("t_conv", self.t_conv),
+            ("tol_first_v", self.tol_first_v),
             ("n_bits", float(self.n_bits)),
             ("n_cycles", float(self.n_cycles)),
         ):
@@ -352,9 +370,11 @@ class RefTrackSim:
         """A06 的答案：参考精度需求在转换内如何分布（[推导]+[假设]）。
 
         原理（机制级）：
-        * 粗判决（SADC/前几位）对参考误差的容忍度是 Δ1 量级——残差被
-          推出名义 bin 后只要仍在 ADC2 窗口内，输出不受影响（[09] §1.3
-          自愈窗口）；对应"参考 ~15b 时 RA 即可起动"的结构解释。
+        * 粗判决（SADC/前几位）对参考误差的容忍度取自本仓库主配置的
+          残差量程契约（ADC2 余量 0.15 V / G0=32 = 4.6875 mV，[推导]；
+          自愈窗口由残差实际范围与 RA/ADC2 限制共同决定，不是普适的
+          Δ1/2——第八份外部复核订正）；对应"参考 ~15b 时 RA 即可
+          起动"的结构解释。
         * 最低几位试的 DAC 减法直接乘上参考误差：e_out = δ_j·(2k/N − 1)；
           要不伤 20b 输出，|δ| 必须在 LSB20 量级 -> 参考在转换尾段需要
           ~20b。这就是"~65% RA 相位才到 20b"的定性结构（数值随配置，
@@ -373,10 +393,11 @@ class RefTrackSim:
         """
         c = self.cfg
         w = err_trial[len(err_trial) // 4 :]  # 稳态窗口（剔除起动瞬态）
-        delta1 = 2.0 * c.v_fs_dac / (2.0**7)  # 一级判决步（b1=7 读法，ADR 0003）
-        tol_first = 0.5 * delta1  # 粗判决容忍度（[09] 自愈窗口口径）
-        e_first = float(np.mean(np.abs(w[:, 0])))
-        e_last = float(np.mean(np.abs(w[:, -1])))
+        tol_first = c.tol_first_v  # 主配置残差量程契约（ADC2 余量/G0），非 Δ1/2
+        # A06 换算口径用 RMS（函数契约即 RMS；mean-abs 不可直接代入，
+        # 第八份外部复核订正）
+        e_first = float(np.sqrt(np.mean(np.square(w[:, 0]))))
+        e_last = float(np.sqrt(np.mean(np.square(w[:, -1]))))
         lsb20 = c.v_fs_dac / 2.0**20
         return {
             "bits_needed_first_trial": (
@@ -388,5 +409,9 @@ class RefTrackSim:
             "window_margin_ratio": tol_first / max(e_first, 1e-18),
             "tolerance_first_trial_v": tol_first,
             "lsb20_v": lsb20,
-            "note": "粗判决容忍度 = Δ1/2（[09] 自愈窗口口径）；数值随配置，勿当披露值引用",
+            "note": (
+                "粗判决容忍度 = 主配置残差量程契约（ADC2 余量 0.15 V / G0=32 ="
+                " 4.6875 mV，[推导]），非 Δ1/2 口径；统计用 RMS；数值随配置，"
+                "勿当披露值引用"
+            ),
         }

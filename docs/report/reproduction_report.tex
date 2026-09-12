@@ -4,7 +4,9 @@
 % 引擎：XeLaTeX（Tectonic/XeTeX 0.17.0 亦可编译）
 % 证据基线：tools/results/results.json
 %   SHA256 = a1ccd92fcf46500460221a55c4e25270\allowbreak 93b45e6e272b7fb0503ee1fcd435ac70
-% 版本基线：v7.0.7 (commit 8d00b80)
+% 版本基线：v7.0.9 (commit 35dab64)；主链路参考数据 results.json 指纹
+% a1ccd92f…35ac70（v7.0.5 锁定，不随本版变化）；M11–M13 为 v7.0.8 新增
+% 模块测试，不在该指纹内。
 % ---------------------------------------------------------------------------
 \documentclass[11pt,a4paper,fontset=fandol]{ctexart}
 \usepackage[margin=2.2cm]{geometry}
@@ -35,7 +37,7 @@
 
 \title{\heiti 20-bit 40\,MS/s SAR ADC 行为级验证模型\\[0.3em]
 \Large 专利与论文披露机制的复现报告：证据、口径与边界}
-\author{adi\_model 行为级验证模型（v7.0.7）}
+\author{adi\_model 行为级验证模型（v7.0.9）}
 \date{2026 年 9 月 11 日 \quad$\cdot$\quad 证据指纹
 \texttt{a1ccd92f…35ac70}}
 
@@ -45,7 +47,7 @@
 \begin{abstract}
 \noindent 本报告将 ISSCC~2024 9.8（文献 [00]/[00\_1]）及专利
 [09]--[14] 所披露的关键技术，与 20-bit 40\,MS/s SAR ADC 行为级验证模型
-（\texttt{adi\_model} v7.0.7）的仿真输出逐条对照，给出定量与定性复现
+（\texttt{adi\_model} v7.0.9）的仿真输出逐条对照，给出定量与定性复现
 证据。复现口径与 \texttt{model\_scope.md}~\S1 一致：本模型校准对象是
 \emph{已发表数值}（published figures），数值一致属于\textbf{兼容性/一致性
 检查}，而非对实测硅片的预测；由 \GRADE{FITTED} 参数锚定的数字是锚点
@@ -109,10 +111,13 @@ SAR 转换器：18-slice 电容池轮换、共享剩余放大器（RA）、采�
 \subsection{证据链与可复现性}
 
 \begin{itemize}[itemsep=1pt]
-  \item 全部数字来自参考输出 \texttt{tools/results/results.json}，
-        SHA256~$=$~\texttt{a1ccd92fcf46500460221a55c4e2527093b45e6e
-        272b7fb0503ee1fcd435ac70}；该文件在 v7.0.5 发版时经全量复跑
-        \textbf{逐字节比对}确认。
+  \item \textbf{三层证据元数据（不得混写）}：(i)~当前代码与报告版本
+        = v7.0.9（commit \texttt{35dab64}）；(ii)~主链路参考数据 =
+        \texttt{tools/results/results.json}（SHA256~$=$~
+        \texttt{a1ccd92fcf46500460221a55c4e2527093b45e6e272b7fb0503
+        ee1fcd435ac70}，v7.0.5 发版时全量复跑逐字节比对）；(iii)~新增
+        机制验证 M11--M13 = 模块测试入口（v7.0.8 起），\textbf{不在}
+        该 JSON 指纹覆盖范围内。
   \item 重跑入口为 console script：
         \texttt{adi-run-all -{}-results-dir <dir>}。
         \emph{不要}直接 \texttt{python tools/run\_all.py} 传
@@ -122,8 +127,8 @@ SAR 转换器：18-slice 电容池轮换、共享剩余放大器（RA）、采�
         \GRADE{DISCLOSED}（披露值直引）/ \GRADE{DERIVED}（无自由参数
         推导）/ \GRADE{FITTED}（锚定）/ \GRADE{ASSUMED}（假设）。
         本报告所有证据行均附等级标签。
-  \item 工程状态：v7.0.7（commit \texttt{8d00b80}），门禁 ruff /
-        format / mypy 全净，pytest \textbf{189 passed, 4 xfailed}，
+  \item 工程状态：v7.0.9（commit \texttt{35dab64}），门禁 ruff /
+        format / mypy 全净，pytest \textbf{223 passed, 4 xfailed}，
         远端 CI 结论 success。
 \end{itemize}
 
@@ -276,10 +281,10 @@ M6 & DEM 消不掉桥接 $C_C$ 锯齿（[11] 边界预测） & DEM 开/关对 $C
 M7 & 交织映射的单位简并 $\to$ 参数辨识受限（[11] 跨 slice 动机） & 固定交织映射 $\mathrm{rank}(U)=\mathbf{127/512}$、DEM 轮转 313、随机置换 512（满秩）；整数码校准改善 fixed 0.8$\times$（恶化）/ dem\_rotate 15.5$\times$ / permute 6.8$\times$——满秩 $\neq$ 校准效果最好（条件数与噪声放大参与决定） & \rec{s14.maps}、\rec{s14.calibration}、\rec{s11\_summary}\\
 M8 & dither 两种物理实现的代价（[10] Fig.6/19） & 输入注入 vs 采样态注入：等代价对比下采样态不占输入量程（溢出 0 vs 3.7\%）、代价 $=-20\log_{10}(\alpha)$（0.067\,dB @ $\alpha=0.9923$） & \rec{s9.dither\_impl}、\rec{dither\_closure}\\
 M9 & SADC 误差自动修正边界（[09]~\S1.3） & $\Delta\tau=20$\,ps：粗码 2.3\% 变化、残差移 46.875\,mV（$=1\cdot\Delta_1$），SNDR 不变（93.71\,dB）；$\Delta\tau=100$\,ps 超窗：SNDR 崩至 75.7\,dB、溢出 3.4\%——\textbf{边界两侧都被复现} & \rec{s9.coarse\_correction}\\
-M10 & 失配预算 $\to$ 校准必要性（架构论证） & SNDR~$\geq$~93\,dB 需 $\sigma\leq 300$\,ppm（均值口径 200\,ppm 极限）；PDK 估算 1117\,ppm，缺口 3.7$\times$；MC 16 片：93.30--93.72\,dB（$\sigma=100$\,ppm，FITTED） & \rec{budget}、\rec{mc}、\rec{derived}\\
-M11 & [12] 交织跟踪相位电荷核算 & $v_{\mathrm{hold}}[i]=x[i{-}1]$ 逐拍恒等式（最近另一颗结果，仅差 1 个复合周期）；慢信号 kickback 电荷比 reset $<0.2$；带宽 $\propto$ 电荷、噪声 $\propto \sqrt{\cdot}$；近 Nyquist 区间如实复现 & 模块测试（v7.0.8 新增，不在 results.json 指纹内）\\
-M12 & [13] 辅助输入建立标度律 & $R_f$ 上限放大 $(C_f{+}C_{pg})/C_f$ 倍；最低要求带宽与驱动噪声同比例降；gate\_boost 使 $r_{on}$ 码调制结构性归零 & 同上\\
-M13 & [14] 低功耗参考阈值逼零回路（A06 机制层） & 整定 \textbf{6 个转换周期}（披露``5 or 6''）；外部补电荷随周期衰减 $>2$ 个量级；稳态粗判决 mV 级误差在 $\Delta_1/2$ 自愈窗内、末位试 $<1$\,nV（$>$20b 等效） & 同上\\
+M10 & 失配预算 $\to$ 校准必要性（架构论证） & $\sigma=300$\,ppm 是本工程假设目标 \GRADE{ASSUMED}（原文仅披露 ``$>$12b AC matching''，未给单位电容 $\sigma$ 指标）：该目标下均值 92.56\,dB 未达 93\,dB；模型均值口径达标上限 $\approx$200\,ppm；PDK 估算 1117\,ppm，缺口 3.7$\times$；MC 16 片：93.30--93.72\,dB（FITTED） & \rec{budget}、\rec{mc}、\rec{derived}\\
+M11 & [12] 交织跟踪相位电荷核算 & $v_{\mathrm{hold}}[i]=x[i{-}1]$ 逐拍恒等式（最近另一颗结果，仅差 1 个复合周期）；慢信号 kickback 电荷比 reset $<0.2$；近 Nyquist 区间如实复现。带宽/噪声收益不按电荷比例换算（相对约束与电荷无关；绝对约束下电荷进对数项） & 模块测试（v7.0.8 新增，不在 results.json 指纹内）\\
+M12 & [13] 辅助输入建立标度律 & $R_f$ 上限放大 $(C_f{+}C_{pg})/C_f$ 倍、最低带宽下界同比例降、噪声 rms $\propto\sqrt{\mathrm{BW}}$；辅助通路建立可行性已检查（$\tau_{aux}$ 超窗即拒绝）；gate\_boost 零调制 $=$ 理想自举对照 & 同上\\
+M13 & [14] 低功耗参考阈值逼零回路（A06 机制层） & 整定周期数由 [假设] 增益决定（$g{=}0.9\to$6、$0.6\to$12、$0.3\to$25）——``5 or 6''量级一致非独立验证；外部补电荷衰减 $>2$ 个量级；粗判决误差在主配置契约窗（4.6875\,mV）内、末位试 $>$20b 等效。RA/ADC2 联合建立未验证 & 同上\\
 \end{longtable}
 \endgroup
 
@@ -374,11 +379,14 @@ $\alpha$ 在配置与掩码两条独立推导路径上的闭合差为 $1.1\times
 \end{figure}
 
 \paragraph{M10（失配预算）：校准动机的定量论证。}
-\textbf{两个口径不得混写}：300\,ppm 是 [00\_1] 披露的匹配
-\emph{目标}（文献常量），不是模型的达标点。模型自身的 $\sigma$ 扫描
+\textbf{两个口径不得混写}：$\sigma=300$\,ppm 是\textbf{本工程
+假设的失配目标}（\GRADE{ASSUMED}）——[00\_1]~p.9 只披露
+``$>$12b AC matching (SADC to RDAC)''的采样响应匹配要求，未给单位
+电容随机失配 $\sigma$ 指标；300\,ppm 不是模型的达标点，也不是
+文献直接披露值。模型自身的 $\sigma$ 扫描
 （\rec{budget.rows}）给出：SNDR 均值 $\geq$~93\,dB 的达标上限
 $\approx$~200\,ppm（93.13\,dB@200；92.56\,dB@300 已低于目标），最小值
-口径 $\approx$~150\,ppm。PDK 估算 1117\,ppm 相对披露目标 3.7$\times$
+口径 $\approx$~150\,ppm。PDK 估算 1117\,ppm 相对假设目标 3.7$\times$
 缺口，等面积补偿需 $\approx$14$\times$ 电容——且面积改变会连带采样
 噪声/输入负载/建立，\textbf{单纯扩面积不是等效替代}，由此得出校准是
 更可行路径（``唯一出路''是过强表述）。映射链说明：披露指标是
@@ -389,12 +397,13 @@ SADC$\to$RDAC 的 AC matching（频率相关采样响应匹配），到``单位�
 
 \begin{figure}[ht]\centering
 \includegraphics[width=\textwidth]{figs/fig8_budget.png}
-\caption{\textbf{失配预算与校准动机（M10/Q4，[00\_1]）}——左：披露论证示意
-（自绘）：\textbf{披露匹配目标} 300\,ppm vs PDK 估算 1117\,ppm（3.7$\times$），
+\caption{\textbf{失配预算与校准动机（M10/Q4）}——左：论证示意
+（自绘）：\textbf{本工程假设目标} 300\,ppm \GRADE{ASSUMED} vs PDK 估算 1117\,ppm（3.7$\times$），
 等面积补偿需 $\approx$14$\times$ 电容且连带采样噪声/负载/建立——校准是
 更可行路径；右：模型测量（\rec{budget.rows}）：$\sigma$ 扫描的 SNDR
 均值/最小值曲线与 93\,dB 目标线；紫点线为\textbf{模型均值口径达标上限}
-$\approx$200\,ppm（与披露目标 300\,ppm 是两个口径）；下：MC 16 片
+$\approx$200\,ppm（与假设目标 300\,ppm 是两个口径）；下：MC 16 片
+（横轴为芯片编号，全部芯片同一 $\sigma=100$\,ppm 配置）
 （$\sigma=100$\,ppm 配置组，横轴即该组失配），分布 93.30--93.72\,dB。}
 \label{fig:f8}
 \end{figure}
@@ -405,35 +414,50 @@ $\approx$200\,ppm（与披露目标 300\,ppm 是两个口径）；下：MC 16 �
 采集开始时保持电压已在前一样本电平附近。模型
 （\texttt{interleave\_tracking.py}）在确定性轮换下复现逐拍恒等式
 $v_{\mathrm{hold}}[i]=x[i{-}1]$（最近另一颗结果，仅差 1 个复合周期）；
-慢信号下 kickback 电荷比 reset \textbf{$<0.2$}，且滤波器带宽
-$\propto$ 电荷、驱动器噪声 $\propto \sqrt{\cdot}$ 的标度律成立
-（[12] 披露的驱动收益方向）。加权模式复现披露例（N=3，10/30/60\%）。
-近 Nyquist 区间（reset 反而更优，[12] 背景段 $Q{=}2A$ 算术的均值版）
-\textbf{如实复现}，不做选择性呈现。机制级证据：模块测试 14 项
-（v7.0.8 新增，不在 \texttt{results.json} 锁定指纹内）；主链路集成
-未做（N2）。
+慢信号下 kickback 电荷比 reset \textbf{$<0.2$}。\textbf{带宽/噪声
+收益不按电荷比例换算}（第八份外部复核订正）：相对建立约束下
+$f_{\min}=\ln(1/\varepsilon)/(2\pi T)$ 与电荷无关；绝对残差约束下
+$f_{\min}=\max\bigl(0,\ln\frac{q}{C_f v_{\mathrm{err}}}\bigr)/(2\pi T)$，
+电荷只进对数项；噪声 rms $\propto\sqrt{\mathrm{BW}}$。旧版
+``$f\propto q$''公式量纲不成立（$q/(T\,a_{tol})$ 的量纲是 F/s 而非
+Hz），已撤回——电荷减少是收益的必要条件，不是换算系数。加权模式
+复现披露例（N=3，10/30/60\%）。近 Nyquist 区间（reset 反而更优，
+[12] 背景段 $Q{=}2A$ 算术的均值版）\textbf{如实复现}，不做选择性
+呈现。机制级证据：模块测试 19 项（不在 \texttt{results.json} 锁定
+指纹内）；主链路集成未做（N2）。
 
 \paragraph{M12（[13] 辅助输入）：寄生电荷的辅助通路核算。}
 [13]~US~10,541,702~B1 用\textbf{不经过输入 RC 滤波器的辅助开关}给
 采样网络的寄生电容充电，从而允许更低带宽/功耗的前级。模型
 （\texttt{aux\_input.py}）给出其核心标度律：辅助通路接管寄生电荷后，
-$R_f$ 允许放大 $(C_f{+}C_{pg})/C_f$ 倍，最低要求滤波器带宽与驱动
-噪声同比例下降（噪声 $\propto \sqrt{R_f}$ 方向）；gate\_boost 模式下
-$r_{on}$ 的码调制\textbf{结构性归零}（$V_{GS}$ 与采样值解耦）。这些
-是机制层的倍率关系，不是某具体元件尺寸；主链路无第二输入端口
-（N2）。机制级证据：模块测试 15 项。
+$R_f$ 允许放大 $(C_f{+}C_{pg})/C_f$ 倍，最低要求带宽下界同比例
+下降，驱动噪声 rms $\propto\sqrt{\mathrm{BW}}\propto 1/\sqrt{R_f}$
+（第八份复核订正方向）；原文量级锚点（p.12）：50\,kHz 低频信号也
+要求 \textbf{77\,MHz} 滤波带宽——低频输入仍可能要求很宽前级。
+\textbf{收益前提已入模型}：辅助通路自身须在采集窗内建立（
+$\tau_{aux}=R_{aux}C_{pg}\le t_{acq}/\ln(1/\varepsilon_{aux})$），
+否则 \texttt{required\_filter\_bw} 拒绝报告收益。gate\_boost 的
+$r_{on}$ 零调制是\textbf{理想自举对照}（仅关 $V_{GS}$ 项，忽略阈值/
+体效应/有限 $V_{DS}$/自举建立误差），非器件结论。主链路无第二输入
+端口（N2）。机制级证据：模块测试 17 项。
 
 \paragraph{M13（[14] 低功耗参考）：A06 机制层的回答。}
 [14]~US~10,826,519~B1 以慢速功放 + 常充电大电容保持内部参考，转换
 前只需极少量外部补电荷；模型（\texttt{ref\_track.py}）以限流充电 +
-一阶伺服 + S1 泄放的行为级电荷-阈值回路复现其结构：\textbf{整定
-6 个转换周期}（披露``5 or 6''）；外部补电荷随周期衰减 $>2$ 个量级；
-阈值不动点 $\theta^{*}=-r$（跟随滞后，非零但相对逼零）。对审计
-A06 的回答落在机制层：粗判决位试的参考误差为 mV 级（$\Delta_1/2$
-自愈窗内，结构上可容忍），末位试误差 $<1$\,nV（$>$20b 等效）——
-``参考仅 ~15b 精度时 RA 起动、尾段才到 20b''的方案由此自洽。
-回路增益 $g$、泄放系数等参数为 \textbf{[假设]}（量级一致是结构
-结果，非拟合主张）；主链路参考路径仍为瞬时增益（N2）。
+一阶伺服 + S1 泄放的行为级电荷-阈值回路。\textbf{整定周期数由
+[假设] 增益 $g$ 决定}（复核实测：$g{=}0.9\to$6、$0.6\to$12、
+$0.3\to$25，从零计数）——$g{=}0.9$ 参数组的 6 周期与披露
+``5 or 6''量级一致，\textbf{但不构成对披露整定行为的独立验证}。
+外部补电荷随周期衰减 $>2$ 个量级；阈值不动点 $\theta^{*}=-r$（跟随
+滞后，相对逼零）。对审计 A06 的回答落在\textbf{机制层}：粗判决位试
+的参考误差 RMS $\approx$2.0\,mV，落在主配置残差量程契约窗内（ADC2
+余量 $0.15$\,V$/G_0{=}32=4.6875$\,mV，\textbf{非} $\Delta_1/2$
+口径——自愈窗由残差实际范围与 RA/ADC2 限制共同决定），末位试误差
+$>$20b 等效——``参考仅 ~15b 精度时 RA 起动、尾段才到 20b''的机制
+结构自洽。\textbf{边界}：本模块没有 RA 状态、RA 有限带宽与 ADC2
+采样窗口，``动态参考—RA—ADC2 联合建立''仍未验证；\textbf{末位试
+参考误差很小 $\neq$ RA 对整个参考扰动的积分/跟踪误差很小}。主链路
+参考路径仍为瞬时增益（N2）。
 
 % ===========================================================================
 \section{原创扩展的证据（X1--X2，不归属 ADI）}
@@ -551,8 +575,8 @@ N4 & 实测硅片行为 & 一致性~$\neq$~预测（\texttt{model\_scope.md}~\S4
 {}[10] US 10,505,561 B2 & dither 施加方法（三要素） & 注入/改码/数字扣除严格配对 & \textcolor{okgreen}{对齐}\\
 {}[11] US 10,511,316 B2 & DEM 线性化 & 等权置换名义守恒 & \textcolor{warnamber}{机制对齐，排列空间 64}\\
 {}[12] US 10,707,889 B1 & 交织跟踪状态更新 & \texttt{interleave\_tracking.py}：$v_{\mathrm{hold}}[i]=x[i{-}1]$ 恒等式；kickback 电荷比 reset $<0.2$；近 Nyquist 区间如实复现 & \textcolor{warnamber}{机制级实现，主链路未接入}\\
-{}[13] US 10,541,702 B1 & 辅助输入抵消输入电荷 & \texttt{aux\_input.py}：$R_f$ 上限放大 $(C_f{+}C_{pg})/C_f$ 倍、最低带宽/噪声同比例降 & \textcolor{warnamber}{机制级实现，主链路未接入}\\
-{}[14] US 10,826,519 B1 & 低功耗参考 & \texttt{ref\_track.py}：整定 6 个转换周期（披露``5 or 6''）；粗判决 mV 级容差、末位试 $>$20b 等效 & \textcolor{warnamber}{机制级实现，主链路未接入}\\
+{}[13] US 10,541,702 B1 & 辅助输入抵消输入电荷 & \texttt{aux\_input.py}：$R_f$ 上限放大 $(C_f{+}C_{pg})/C_f$ 倍、噪声 $\propto 1/\sqrt{R_f}$、可行性检查、理想自举对照 & \textcolor{warnamber}{机制级实现，主链路未接入}\\
+{}[14] US 10,826,519 B1 & 低功耗参考 & \texttt{ref\_track.py}：独立行为模型（整定随 [假设] 增益 $g$ 而定，$g{=}0.9\to$6）；粗判决容差 $=$ 主配置契约 4.6875\,mV；RA/ADC2 联合建立未验证 & \textcolor{warnamber}{机制级实现，主链路未接入}\\
 \bottomrule
 \end{tabular}
 \caption{专利对应状态}\label{tab:pat}
@@ -602,21 +626,21 @@ N4 & 实测硅片行为 & 一致性~$\neq$~预测（\texttt{model\_scope.md}~\S4
 \FloatBarrier
 \begin{thebibliography}{00}\small
 % 可选参数 = 正文手写编号，保持仓库编号体系
-\bibitem[{[00]}]{ref00} R.~Bodnar et al., ``A 9.3\,nV/$\sqrt{\mathrm{Hz}}$ 20-bit
+\bibitem[00]{ref00} R.~Bodnar et al., ``A 9.3\,nV/$\sqrt{\mathrm{Hz}}$ 20-bit
   40\,MS/s 94.2\,dB DR Signal-Chain Friendly Precision SAR Converter,''
   in \emph{IEEE ISSCC Dig. Tech. Papers}, Session 9.8, pp.~182--183, 2024.
   DOI: 10.1109/ISSCC49657.2024.10454329.
-\bibitem[{[00\_1]}]{ref00p} ISSCC 2024 Session 9.8 presentation slides（作者自备稿,
+\bibitem[00\_1]{ref00p} ISSCC 2024 Session 9.8 presentation slides（作者自备稿,
   页码引用以 PPT 页码标注）.
-\bibitem[{[09]}]{ref09} US~10,516,408~B2, ``Analog to digital converter stage.''
-\bibitem[{[10]}]{ref10} US~10,505,561~B2, ``Method of applying a dither, and
+\bibitem[09]{ref09} US~10,516,408~B2, ``Analog to digital converter stage.''
+\bibitem[10]{ref10} US~10,505,561~B2, ``Method of applying a dither, and
   analog to digital converter.''
-\bibitem[{[11]}]{ref11} US~10,511,316~B2, ``Linearizing transfer characteristic by
+\bibitem[11]{ref11} US~10,511,316~B2, ``Linearizing transfer characteristic by
   dynamic element matching.''
-\bibitem[{[12]}]{ref12} US~10,707,889~B1, ``Interleaving method for analog to
+\bibitem[12]{ref12} US~10,707,889~B1, ``Interleaving method for analog to
   digital converters.''
-\bibitem[{[13]}]{ref13} US~10,541,702~B1, ``Auxiliary input for ADC input charge.''
-\bibitem[{[14]}]{ref14} US~10,826,519~B1, ``Low power reference for an
+\bibitem[13]{ref13} US~10,541,702~B1, ``Auxiliary input for ADC input charge.''
+\bibitem[14]{ref14} US~10,826,519~B1, ``Low power reference for an
   analog-to-digital converter.''
 \end{thebibliography}
 
@@ -641,7 +665,7 @@ DOI）。第三方文献与专利原文不在本仓库分发，版权归原权�
   \item 比对：对参考输出做 SHA256 校验，应得
         \texttt{a1ccd92fcf46500460221a55c4e2527093b45e6e272b7fb0503
         ee1fcd435ac70}；本报告所有记录键均可由该 JSON 直接索引。
-  \item 测试：\texttt{pytest}（189 passed, 4 xfailed）；沙箱环境如遇
+  \item 测试：\texttt{pytest}（223 passed, 4 xfailed）；沙箱环境如遇
         \texttt{tmp\_path} 的 EEXIST 现象，加
         \texttt{-{}-basetemp=/tmp/<dir>} 复跑。
 \end{enumerate}
@@ -652,8 +676,10 @@ DOI）。第三方文献与专利原文不在本仓库分发，版权归原权�
 \begin{table}[h]\centering\small
 \begin{tabular}{@{}p{4.2cm}p{9.6cm}@{}}
 \toprule
-版本 & v7.0.7（commit \texttt{8d00b80}，tag 同步）\\
-门禁 & ruff / ruff-format / mypy 全净；pytest 189 passed, 4 xfailed\\
+代码/报告版本 & v7.0.9（commit \texttt{35dab64}，tag 同步）\\
+主链路参考数据 & results.json 指纹 \texttt{a1ccd92f…35ac70}（v7.0.5 锁定）\\
+新增机制验证 & M11--M13 模块测试入口（v7.0.8 起，不在该指纹内）\\
+门禁 & ruff / ruff-format / mypy 全净；pytest 223 passed, 4 xfailed\\
 CI & GitHub Actions 远端结论 \textbf{success}（含 Python 版本矩阵）\\
 参考输出 & \texttt{results.json} 未变（v7.0.4 起逐字节一致）\\
 审计 & 六份外部复核已逐条裁定；本报告对应第六份复核后的

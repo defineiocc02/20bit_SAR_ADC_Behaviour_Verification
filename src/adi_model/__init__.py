@@ -51,6 +51,7 @@
 
 from . import experiments
 from .adc2 import ADC2
+from .aux_input import AUX_GRADES, AUX_MODES, AuxInputStage, build_stage
 from .calib import (
     apply_weight_correction,
     calibrate_unit_weights,
@@ -80,6 +81,14 @@ from .dynamics import (
     ref_settling_error,
     switching_activity,
 )
+from .interleave_tracking import (
+    TRACK_GRADES,
+    TRACK_MODES,
+    InterleavedSAR,
+    TrackPolicy,
+    TrackRunResult,
+    kickback_filter_bw,
+)
 from .ktc import KTCBranch
 from .mapper import DitherState, Mapper, SwitchCommand, dem_state_sequence, make_dither_state
 from .metrics import inl_from_mean_error, sine_fit_metrics, spectrum_dbfs, static_test, summarize
@@ -95,6 +104,13 @@ from .provenance import (
 from .ra import ResidueAmplifier
 from .rdac import RDAC, DACLut
 from .reconstruction import Calibrator, DigitalState, initialize_state, reconstruct
+from .ref_track import (
+    REF_GRADES,
+    RefTrackConfig,
+    RefTrackRun,
+    RefTrackSim,
+    reference_precision_bits,
+)
 from .sadc import SADC
 from .sampler import (
     SampleBatch,
@@ -183,4 +199,20 @@ __all__ = [
     "PhysicalSlicePool",
     "SlicePlan",
     "check_causality",
+    # --- patent mechanisms [12]/[13]/[14]: standalone technique models ------
+    "TrackPolicy",
+    "TrackRunResult",
+    "InterleavedSAR",
+    "TRACK_GRADES",
+    "TRACK_MODES",
+    "kickback_filter_bw",
+    "AuxInputStage",
+    "build_stage",
+    "AUX_GRADES",
+    "AUX_MODES",
+    "RefTrackConfig",
+    "RefTrackRun",
+    "RefTrackSim",
+    "REF_GRADES",
+    "reference_precision_bits",
 ]

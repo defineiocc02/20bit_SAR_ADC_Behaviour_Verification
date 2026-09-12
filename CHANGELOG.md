@@ -4,6 +4,73 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.8] — 2026-09-12
+
+Closes the three **"not implemented / not aligned with patents"** items from
+the review ledger: standalone mechanism-level models for patents [12], [13]
+and [14], each with a dedicated executable-specification test module. All
+three are **independent technique models, not wired into the pipeline main
+path** — integration moves published numbers and stays gated behind the
+R1/R2 physical-pool work (release discipline).
+
+### Added
+
+- **`interleave_tracking.py` — patent [12] US 10,707,889 B1** (interleaving
+  tracking phase). Mechanism-level charge accounting for the IDLE phase
+  being a *tracking* update from **another sub-ADC's most recent conversion
+  result** instead of a reset-to-midscale: per-cycle `v_hold[i] = x[i−1]`
+  identity under deterministic rotation; kickback charge ratio vs reset
+  < 0.2 for slow signals; filter-BW ∝ charge and driver-noise ∝ √charge
+  scaling laws; weighted variant (disclosed example N=3, 10/30/60%);
+  optional phase randomization. The model **reproduces the patent's own
+  background arithmetic honestly**: near Nyquist, mean |Δ₁| can exceed
+  mean |x| and reset wins — the known regime where tracking is *not*
+  better is not masked.
+- **`aux_input.py` — patent [13] US 10,541,702 B1** (auxiliary input for
+  ADC input charge). First-order settling scaling law: with the auxiliary
+  path supplying the back-gate parasitic charge, R_f may grow by
+  (C_f+C_pg)/C_f, the *minimum required* filter bandwidth drops by the
+  same factor, driver noise drops by its square root, per-sample driver
+  charge sheds the C_pg·ΔV share; `gate_boost` (FIG.4/5) zeroes the r_on
+  code modulation (the term `dyn_ron_code_coeff` describes) as a
+  structural property. Modes: `off` / `dedicated_pin` (FIG.2) /
+  `opamp_midpoint` (FIG.3) / `gate_boost` (FIG.4-5).
+- **`ref_track.py` — patent [14] US 10,826,519 B1** (low-power reference,
+  arrangement B: comparator + threshold adjust + end-of-cycle S1 top-up).
+  Behavioural charge-threshold loop answering the **A06 gap**: end-of-cycle
+  residual converges geometrically, settling in **6 conversion cycles**
+  (disclosed magnitude "5 or 6"; integrator gain is ASSUMED, the
+  order-of-magnitude agreement is a structural result, not a fit); external
+  top-up charge decays by orders of magnitude after settling; the threshold
+  residual converges to the charger tracking lag (≈1/750 of the first-cycle
+  error — not claimed to be exactly zero). A06 structure: in steady state
+  the coarse trials carry mV-level reference error (inside the Δ1/2
+  self-healing window of [09] §1.3) while the final trials see sub-nV
+  error (>20 b equivalent) — "RA starts at ~15 b reference, the last
+  trials need 20 b".
+- `tests/unit/test_patent12_interleave_tracking.py`,
+  `tests/unit/test_patent13_aux_input.py`,
+  `tests/unit/test_patent14_ref_track.py` — 43 mechanism-level tests
+  (information flow, identities, scaling laws, validation refusals).
+- `reproduction_results.md`: M11–M13 registered (mechanism-level);
+  N2 re-scoped to "main-path integration not done".
+- `docs/report/` — XeLaTeX reproduction report (16 pp., 8 disclosed-
+  mechanism ↔ model-data comparison figures) with its figure generator
+  `gen_figs.py` (all plotted quantities read from `tools/results/
+  results.json` or computed at runtime; no hard-coded model results).
+
+### Notes
+
+- Patent texts [12]/[13]/[14] remain **not redistributed** (see NOTICE);
+  mechanisms are paraphrased at mechanism level with figure/claim pointers.
+- Numerical parameters without disclosed values are graded ASSUMED in each
+  module's `*_GRADES` table: c_parasitic_ratio, r_aux, I_max, comparator
+  bandwidth, threshold gain, t_conv, power-up initial condition, S1 top-up
+  gain. c_signal / c_dac anchors derive from this repository's
+  `c_active_nominal()`.
+- Reference outputs unchanged: `tools/results/results.json` fingerprint
+  `a1ccd92f…35ac70` untouched (no pipeline code path modified).
+
 ## [7.0.7] — 2026-09-11
 
 Response to a **sixth external review** (fixed at `c0787dd`): adjudication of

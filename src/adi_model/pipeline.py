@@ -65,9 +65,10 @@ from .sadc import (
     units_per_first_stage_step,
 )
 from .sampler import capture, input_derivative
+from .sampling_charge import sampling_dither_injection
 from .scheduler import Scheduler, make_scheduler
 from .sim import SimResult
-from .sim_split import sampling_dither_injection, xtalk_profile
+from .sim_split import xtalk_profile
 
 
 # ==========================================================================
@@ -366,17 +367,6 @@ def run_pipeline(
     units_per_d1 = units_per_first_stage_step(cfg, dac)
     d1_eff = units_per_d1 * step0  # 一个第一级判决步的电压宽度
     sadc = build_first_stage_quantizer(cfg, dac)
-    # 量化器通路缺陷显式施加在阈值上（SADC 构造器对显式阈值跳过失配参数，
-    # pipeline 在这里统一处理）。语义：量化器 sDAC 的增益失配绕**其量程中点**
-    # 缩放（sDAC 的零点在底板），失调为输入参考：
-    #   thr_q = mid + ( (thr − mid) − offset ) / (1 + gm)
-    # 注意 cfg.sadc_rdac_gain_mismatch 默认 1e-4 非零 —— 量化器决策在阈值
-    # 附近 ±0.15 mV 内可能翻转（物理真实）。退化等价测试需显式置零。
-    if cfg.sadc_offset != 0.0 or cfg.sadc_rdac_gain_mismatch != 0.0:
-        mid = 0.5 * (v_lo + v_hi)
-        sadc.thresholds = mid + (
-            (sadc.thresholds - mid - cfg.sadc_offset) / (1.0 + cfg.sadc_rdac_gain_mismatch)
-        )
 
     # ---- 采样（kT/C 噪声绑噪声等效电容；n_R 同一实现进两条通路）----
     sample = capture(cfg, input_fn, n_samples, rng, chip=None, c_active=c_noise_vec)
@@ -467,7 +457,7 @@ def run_pipeline(
     vra, ra_sat = ra.evaluate(residue, rng, g=g_vec)
 
     # ---- KTC / ADC2 / 重构（与 sim_split 同一口径）----
-    dx_obs = cfg.dither_alpha * sample.dx
+    dx_obs = (sample.signal_alpha if cfg.dither_mode == "sampling" else 1.0) * sample.dx
     vnc, ktc_sat = ktc.observe(sample.n_R, dx_obs, rng)
     # 校正量在数字域扣除，不占用 ADC2 模拟量程（docs/adr/0006）
     fine, adc2_over = adc2.quantize_with_correction(vra, core.state.digital.kappa * vnc)
@@ -502,6 +492,7 @@ def run_pipeline(
     err_clean = out - x1_clean
 
     return SimResult(
+        runner="run_pipeline",
         out=out,
         err=err_target,
         x_ref=x_ref,

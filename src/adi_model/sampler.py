@@ -75,6 +75,8 @@ class SampleBatch:
     # 必须用这两个字段 —— 否则 1 mV 的驱动器噪声会伪装成 1 µV 的内部误差。
     x1_clean: np.ndarray | None = None
     x2_clean: np.ndarray | None = None
+    dither_bank_code: np.ndarray | None = None  # 原始掩码码；split 重标定后保留
+    signal_alpha: float | np.ndarray = 1.0  # 物理信号电荷系数，仅供模拟通路
 
 
 def capture(

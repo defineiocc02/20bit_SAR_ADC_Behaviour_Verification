@@ -56,13 +56,13 @@ from dataclasses import dataclass
 from typing import Any, Generic, TypeVar
 
 __all__ = [
-    "SourceGrade",
+    "PARAM_GRADES",
     "Graded",
     "GradingError",
-    "PARAM_GRADES",
-    "grade_of",
+    "SourceGrade",
     "annotate_config",
     "audit_provenance",
+    "grade_of",
 ]
 
 T = TypeVar("T")
@@ -280,6 +280,7 @@ PARAM_GRADES: dict[str, tuple[SourceGrade, str]] = {
     "mismatch_gradient": (_A, "no published number"),
     "pdk_sigma_est_ppm": (_A, "Pelgrom-style area-law estimate; not a PDK measurement"),
     "c_feedback0": (_D, "c_total0 / g0"),
+    "split_feedback_cap_f": (_A, "explicit split feedback override [F]; None derives C_sig_nom/g0"),
     # ---- backend ADC -----------------------------------------------------
     "adc2_n_bits": (_D, "derived in Config.paper_consistent() from Delta1 and LSB20·G0"),
     "adc2_v_min": (_D, "-0.10 * G0 * Delta1 (residue span with ~10% margin)"),

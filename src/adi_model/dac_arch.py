@@ -321,7 +321,7 @@ def build_split_chip(cfg: Config, draw: tuple | None = None) -> SplitChip:
     b_sub_nom = float(n_s * c_u)
     beta_for_cf = cc_nom / (cc_nom + b_sub_nom + c_p_nom) if n_s > 1 else 1.0
     c_sig_nom = (n_m + beta_for_cf * n_s) * c_u
-    cf_nom = c_sig_nom / cfg.g0
+    cf_nom = c_sig_nom / cfg.g0 if cfg.split_feedback_cap_f is None else cfg.split_feedback_cap_f
     cf_true = cf_nom * (1.0 + (sigma * cf_z if cfg.mismatch_enable else 0.0))
 
     return SplitChip(

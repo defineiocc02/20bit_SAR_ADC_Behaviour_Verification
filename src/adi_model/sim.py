@@ -26,7 +26,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
 import numpy as np
 
@@ -117,6 +117,40 @@ class SimResult:
     g_vec: np.ndarray | None = None  # 逐样本 RA 增益（charge 模式）
     c_active: np.ndarray | None = None  # 逐样本活跃采样电容
     calibration_applied: tuple = ()  # 实际执行过的校准步骤
+    runner: str = "run_sim"
+
+    @property
+    def effective_config(self) -> dict:
+        """Return serializable requested settings and the actual run contract.
+
+        Physical diagnostics are for inspection only; no digital algorithm may
+        consume this property. Calibration requested and applied are separate.
+
+        Returns:
+            Configuration snapshot, topology-specific capacitance, gain range,
+            pending calibration and overrides inactive at this entry point.
+        """
+        inactive = {}
+        default = Config()
+        if self.cfg.dac_arch == "split" and self.cfg.c_feedback0 != default.c_feedback0:
+            inactive["c_feedback0"] = "unary-only; use split_feedback_cap_f"
+        if self.cfg.dac_arch == "unary" and self.cfg.split_feedback_cap_f is not None:
+            inactive["split_feedback_cap_f"] = "split-only"
+        return {
+            "runner": self.runner,
+            "requested": asdict(self.cfg),
+            "feedback_cap_f": float(self.chip.C_feedback_true),
+            "gain_min": float(np.min(self.g_vec))
+            if self.g_vec is not None and self.g_vec.size
+            else None,
+            "gain_max": float(np.max(self.g_vec))
+            if self.g_vec is not None and self.g_vec.size
+            else None,
+            "calibration_requested": self.cfg.calibration,
+            "calibration_applied": list(self.calibration_applied),
+            "calibration_pending": self.cfg.calibration != "none" and not self.calibration_applied,
+            "inactive_overrides": inactive,
+        }
 
 
 def run_sim(

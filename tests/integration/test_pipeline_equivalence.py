@@ -92,7 +92,7 @@ class TestPipelineEquivalence:
         r = run_sim_split(cfg, inp, n, rng=np.random.default_rng(cfg.seed + 5))
         err = float(np.sqrt(np.mean(r.err**2)))
         floor = cfg.delta2 / cfg.g_actual / np.sqrt(12.0)
-        assert err < 3.0 * floor, f"err {err*1e6:.2f} uV vs floor {floor*1e6:.2f} uV"
+        assert err < 3.0 * floor, f"err {err * 1e6:.2f} uV vs floor {floor * 1e6:.2f} uV"
 
 
 class TestSADCThresholdConsistency:
@@ -104,7 +104,7 @@ class TestSADCThresholdConsistency:
         from adi_model.dac_arch import SplitDAC, build_split_chip
         from adi_model.sadc import build_first_stage_quantizer
 
-        cfg = Config(dac_arch="split")
+        cfg = Config(dac_arch="split", sadc_rdac_gain_mismatch=0.0)
         dac = SplitDAC(cfg, build_split_chip(cfg))
         q = build_first_stage_quantizer(cfg, dac)
         v_lo, v_hi = dac._nominal_endpoints()
@@ -135,9 +135,9 @@ class TestSADCThresholdConsistency:
 
         for mod in (pipeline, sim_split):
             src = inspect.getsource(mod)
-            assert "build_first_stage_quantizer" in src, (
-                f"{mod.__name__} must build its quantiser through the shared " f"constructor"
-            )
+            assert (
+                "build_first_stage_quantizer" in src
+            ), f"{mod.__name__} must build its quantiser through the shared constructor"
             assert "units_per_first_stage_step" in src
 
 
@@ -221,8 +221,8 @@ class TestChargeConsistency:
         sigma = cfg.sigma_mismatch_unit(cfg.dac_unit_cap())
         # A 6-sigma envelope over the (global + slice + feedback) terms.
         assert abs(rel) < 6.0 * sigma, (
-            f"achieved gain error {rel*1e6:.1f} ppm exceeds the mismatch budget "
-            f"{6*sigma*1e6:.1f} ppm — the gain is not explained by the mismatch "
+            f"achieved gain error {rel * 1e6:.1f} ppm exceeds the mismatch budget "
+            f"{6 * sigma * 1e6:.1f} ppm — the gain is not explained by the mismatch "
             f"model"
         )
         assert abs(rel) < 1e-3, "gain error is far beyond a matching-scale effect"

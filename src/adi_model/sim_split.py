@@ -43,7 +43,8 @@ from .sadc import (
     build_first_stage_quantizer,
     units_per_first_stage_step,
 )
-from .sampler import SampleBatch, capture
+from .sampler import capture
+from .sampling_charge import sampling_dither_injection
 from .scheduler import Scheduler, make_scheduler
 from .sim import SimResult
 
@@ -67,56 +68,6 @@ def xtalk_profile(cfg: Config, n_units: int, rng: np.random.Generator) -> np.nda
     j = np.arange(n_units)
     grad = j / max(n_units - 1, 1) - 0.5  # [-0.5, 0.5]
     return cfg.dyn_c_xtalk_unit * (1.0 + 0.5 * grad)
-
-
-def sampling_dither_injection(cfg: Config, chip, sample: SampleBatch, step0: float, c_sig: float):
-    """Sampling dither 的注入电压重标定（sim_split / pipeline 共用，单一实现）。
-
-    必须在残差计算**之前**调用：sampler 用的是 unary 口径的 cfg.rdac_step，
-    与本拓扑 step0 差 ~1.8%；若不先换算，dither 会在残差里残留
-    d_code*(rdac_step-step0) 的巨大误差。
-    离散掩码口径（stage18）：注入量不用 step0·(1+mean eps) 近似，而是由
-    **实际掩码电容**逐 d_u 精确生成 LUT —— 物理注入 = w_bank·Q_mask(d_u)/C_sig
-    （charge_ref.dither_mask_charge 同一掩码），掩码单位的失配由此真实进入。
-
-    Args:
-        cfg: 仿真配置（Config）；相关字段来源分级见 config.PARAM_GRADES。
-        chip: 虚拟芯片（提供 C_main/C_sub 与 beta_true，用于掩码电容）。
-        sample: SampleBatch（**会被改写**：x_rdac 与 dither 同步重标定）。
-        step0: 本拓扑 RDAC 单位步长 [V]（用于连续口径换算）。
-        c_sig: 信号电荷系数 [F] = chip.A + beta_true·chip.B（注入量归一化）。
-
-    Returns:
-        ``(N,)`` float64：重标定后的注入电压 [V]。
-
-    Side effects:
-        改写 sample.x_rdac 与 sample.dither（两者必须同步，否则残差与
-        数字扣除失配）；仅此函数有权修改 SampleBatch。
-    """
-    d_old = np.asarray(sample.dither, dtype=float).copy()
-    d_code = np.asarray(sample.dither_code, dtype=float)
-    nd = cfg.dither_units_total
-    if getattr(cfg, "dither_discrete", False) and nd > 0:
-        bank_arr = chip.C_sub if cfg.dither_split_bank == "sub" else chip.C_main
-        mask = bank_arr[-min(nd, len(bank_arr)) :]
-        w_bank = chip.beta_true() if cfg.dither_split_bank == "sub" else 1.0
-        D_rng = int(round(cfg.dither_units_range))
-        lut = {}
-        for du in range(-D_rng, D_rng + 1):
-            s = np.full(len(mask), -1.0)
-            s[: len(mask) // 2 + du] = 1.0
-            lut[du] = w_bank * cfg.v_fs * float(np.dot(mask, s)) / c_sig
-        d_new = np.array([lut[int(round(d))] for d in d_code])
-    else:
-        eps_d = (
-            float(np.mean(chip.eps_sub[-nd:]))
-            if (cfg.mismatch_enable and nd > 0 and chip.n_sub >= nd)
-            else 0.0
-        )
-        d_new = d_code * step0 * (1.0 + eps_d)
-    sample.x_rdac = sample.x_rdac - d_old + d_new
-    sample.dither = d_new
-    return d_new
 
 
 def run_sim_split(
@@ -213,6 +164,8 @@ def run_sim_split(
 
     # ---- 采样（kT/C 用噪声等效电容；gain/建立分别用各自口径）----
     sample = capture(cfg, input_fn, n_samples, rng, chip=None, c_active=c_noise_vec)
+    if cfg.dither_mode == "sampling":
+        d_new = sampling_dither_injection(cfg, chip, sample, step0, c_sig)
 
     # ---- 粗码 -> 电平码：直接用名义栅格（与 SADC 阈值严格对齐）----
     coarse = sadc.convert(sample.x_sadc)
@@ -266,9 +219,6 @@ def run_sim_split(
 
     # ---- dither：sampling 模式的注入电压尺度必须用本拓扑的 step0 ----
     # （实现在 sampling_dither_injection，sim_split / pipeline 共用同一份代码）
-    if cfg.dither_mode == "sampling":
-        d_new = sampling_dither_injection(cfg, chip, sample, step0, c_sig)
-
     # ---- DAC 两套求值 + 动态误差注入 ----
     vd0 = v_nom
     vd_true = dac.evaluate_physical(k_eq, sid) + dyn.e_dac
@@ -282,7 +232,7 @@ def run_sim_split(
     # 电容网络），它看到的输入变化是 α·Δx 而非 Δx。旧代码直接用 Δx，
     # 数字端又除以 α，产生 (1/α-1)·Δx ≈ 42.5 µV @5MHz 的确定性尺度残差
     # （实测复现 42.502 vs 预测 42.704 µV）。α=1（无 sampling dither）不变。
-    dx_obs = cfg.dither_alpha * sample.dx
+    dx_obs = (sample.signal_alpha if cfg.dither_mode == "sampling" else 1.0) * sample.dx
     vnc, ktc_sat = ktc.observe(sample.n_R, dx_obs, rng)
     # 校正量在数字域扣除，不占用 ADC2 模拟量程（docs/adr/0006）
     fine, adc2_over = adc2.quantize_with_correction(vra, state.kappa * vnc)
@@ -318,6 +268,7 @@ def run_sim_split(
     err_clean = out - x1_clean
 
     return SimResult(
+        runner="run_sim_split",
         out=out,
         err=err_target,
         x_ref=x_ref,

@@ -213,6 +213,7 @@ class Config:
     # 实际接到的 8 个 slice 的总电容（= c_unit0 * n_active * 64 = 20.5 pF），
     # 不是整个 18-slice 资源池（46.1 pF）。
     c_feedback0: float = 20.5e-12 / 32.0
+    split_feedback_cap_f: float | None = None  # None: C_sig_nom/g0；显式值为当前面积的 F
 
     # ---------------- 后端 ADC2 ----------------
     # 位预算（paper_consistent 读数，b1=7）：后端需分辨 G0*Delta1 到 LSB20 以下。
@@ -972,6 +973,21 @@ class Config:
             bad.append(f"v_fs={self.v_fs!r} 必须为正（满幅峰值 [V]）")
         if self.n_bits_target < 1:
             bad.append(f"n_bits_target={self.n_bits_target!r} 必须 >= 1")
+        if self.split_feedback_cap_f is not None and (
+            not math.isfinite(self.split_feedback_cap_f) or self.split_feedback_cap_f <= 0
+        ):
+            bad.append("split_feedback_cap_f must be finite and positive [F]")
+        if self.dither_mode == "sampling":
+            D = self.dither_units_range
+            available = (
+                (self.dac_n_main if self.dither_split_bank == "main" else self.dac_n_sub)
+                if self.dac_arch == "split"
+                else self.n_units_sig
+            )
+            if not math.isfinite(D) or D < 0 or int(D) != D or available < 2 * D:
+                bad.append(
+                    "sampling dither requires integer D >= 0 and 2D available bank capacitors"
+                )
         if self.dac_arch == "split":
             if self.dac_n_main < 1:
                 bad.append(f"dac_n_main={self.dac_n_main!r} 必须 >= 1（主阵列单位数）")

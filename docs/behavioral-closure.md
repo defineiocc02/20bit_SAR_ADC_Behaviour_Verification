@@ -1,0 +1,67 @@
+# Behavioral closure: model contracts and validation
+
+This document describes the implementation following the September 2026 review.
+The live requirements/evidence ledger is `IMPLEMENTATION_CHECKPOINT.md`.
+
+## Shared parameter and charge contracts
+
+All SADC constructors accept **nominal** thresholds. Offset, gain mismatch and
+fixed threshold mismatch are applied once in `sadc.py`, for every topology and
+runner. Split gain mismatch is centered on the nominal DAC range midpoint.
+Non-finite or non-increasing thresholds raise `ConfigError` rather than entering
+`searchsorted`. A parameter perturbation is verified at the decision and residue
+nodes; backend redundancy can legitimately hide a small decision error at the
+final output.
+
+`sampling_charge.py` owns the split sampling-charge conversion. A sampling mask
+controls both signal charge and dither charge. Its three code/voltage quantities
+are distinct:
+
+| Quantity | Unit | Use |
+|---|---|---|
+| `sample.dither_bank_code` | bank capacitor increment | physical switch mask |
+| `sample.dither_code` | nominal fine RDAC step | RDAC command and nominal correction |
+| `sample.dither` | V, physical input referred | analog stored charge only |
+
+For a bank increment with nominal effective capacitance `w_bank`,
+`delta_bank = 2*Vfs*w_bank/Csig_nom`. Thus
+`d_rdac = d_bank*delta_bank/delta_rdac`. Digital correction uses the nominal
+voltage, never the fabricated capacitor values. For the default 64+8 split,
+main-bank increments are eight fine RDAC steps; sub-bank increments are one.
+
+The physical signal coefficient is
+`alpha_true = 1 - Cmask_weighted_true/Csig_true`. The digital division remains
+nominal (or estimated by a separate calibration), preserving mismatch as an
+observable error. Continuous dither is interpolation on this same bank scale;
+only discrete integer masks represent actual switch configurations. A repeated
+charge-conversion call is idempotent. Unsupported masks fail configuration
+validation instead of being silently truncated.
+
+`Config.c_feedback0` is the unary capacitance parameter.
+`Config.split_feedback_cap_f` explicitly sets the split feedback capacitance in
+farads at the current area; its default `None` derives `Csig_nom/g0`. This permits
+independent feedback-capacitance sensitivity studies without conflating the
+unary and split signal-capacitance definitions.
+
+Every `SimResult.effective_config` exposes the runner, requested configuration,
+actual feedback capacitance and gain range, requested/applied calibration, and
+inactive topology-specific overrides. This diagnostic metadata is not an input
+to digital reconstruction or estimation. Bare runners use an injected digital
+state; a calibration label alone is not evidence that training occurred.
+
+## Independent regressions
+
+`tests/regression/test_charge_parameter_closure.py` checks:
+
+- Offset/gain/threshold mismatch move SADC decisions consistently in both split
+  runners, while preserving deterministic chip mismatch.
+- Main/sub, continuous/discrete dither configurations retain the backend
+  quantization floor in their admissible input range.
+- A single fabricated mask capacitor perturbation agrees with the independently
+  eliminated subnode charge equation.
+- Invalid thresholds/masks are rejected; bank normalization is idempotent.
+- Explicit feedback capacitance changes physical gain and appears in serializable
+  run metadata.
+
+These supplement, rather than replace, the existing full acceptance sweep.
+Stress values used to expose software defects are not claimed as PDK statistics.

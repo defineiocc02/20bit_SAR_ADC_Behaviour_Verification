@@ -1,10 +1,13 @@
 # ADR 0003 — 第一级分辨率的架构读数
 
-- 状态：**已采纳**（默认 `Config.stage1_reading = "paper_consistent"`）
+- 状态：**已被 ADR 0007 取代**。下文保存历史推理，不代表当前架构结论。
 - 关联审计条目：**A01**（已披露架构映射错误）
 - 影响模块：`config.py`、`sadc.py`、`adc2.py`、`mapper.py`、`experiments.py`
 
 ---
+
+当前决定见 [ADR 0007](0007-independent-decisions-and-dither.md)：9b 决策与 dither
+范围独立。本文历史上的“7+2 唯一分配”论证不成立，不能作为论文事实引用。
 
 ## 1. 问题
 
@@ -126,4 +129,3 @@ for name, c in rows:
 | `分段 DAC 电平数 >= 2**b1 * 2**增强位数` | 取 `dither_enhancement_bits` | 曾把 `+3b` 写死（v6.1 读法），换读数后产生 **假 FAIL**；现在随读数自动跟随 |
 | `后端分辨能力 Delta2/G0 <= LSB20` | 派生量 | 后端不得成为 20b 目标的瓶颈 |
 | `残差峰值 G0*r_max < ADC2 上限` | 派生量 | 溢出边界 |
-

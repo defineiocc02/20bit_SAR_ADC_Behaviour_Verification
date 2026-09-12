@@ -8,12 +8,9 @@ DAC (RDAC)"；"the quantizers are built out of one slice DAC. The
 matched-quantizer sDAC with the RDAC allows >11b matching"（PPT p.9 写
 ">12b AC matching" —— 取更严的 12b 作门限，见 config.validate）。
 
-逐字审计口径（见 docs/adr/0003-stage-1-resolution.md）：论文 [00] 披露了
-两条互相约束的事实 —— "9b quantization in the first stage" 与 dither range
-"enhanced by 2b when transferred from the quantizer to the RDAC"。本模型取
-**同时满足两者**的读法 b1=7：粗判决 2^7=128 电平，RDAC 单位栅格比它细
-2b（units_per_lsb1=4），一级码字 7+2=9b。v6.1 的 6+3 读法保留为
-``Config.legacy_v61()``，仅为复现旧结果。
+架构读数见 ADR 0003：历史 7b 配置只作候选/回归对照；9b 决策与 dither
+范围是独立概念。`Config.paper_literal()` 保留 512 个实际决策区间，不能把
+dither 码宽加到决策信息位数上。未披露的电容数量和后端参数仍为假设。
 
 * flash 式行为模型：阈值数组 + searchsorted 向量化转换，无逐位 SAR 时序。
 * **SADC 的误差不会直接叠加到输出**（[09]1.3 的机制）：粗码误差把残差

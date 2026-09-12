@@ -34,7 +34,7 @@ from .adc2 import ADC2
 from .chip import Chip, build_chip
 from .config import Config
 from .ktc import KTCBranch
-from .mapper import Mapper, dem_state_sequence, make_dither_state
+from .mapper import DitherState, Mapper, dem_state_sequence, dither_transfer_code, make_dither_state
 from .ra import ResidueAmplifier
 from .rdac import RDAC
 from .reconstruction import Calibrator, DigitalState, initialize_state, reconstruct
@@ -120,6 +120,16 @@ class SimResult:
     runner: str = "run_sim"
 
     @property
+    def rdac_over(self) -> np.ndarray:
+        """Return the per-sample command overflow flags before physical clipping.
+
+        Returns:
+            Boolean array: requested code is outside the realizable DAC range.
+        """
+        upper = self.cfg.dac_levels - 1 if self.cfg.dac_arch == "split" else self.cfg.n_units_sig
+        return (self.k < 0) | (self.k > upper) | ~np.isfinite(self.k)
+
+    @property
     def effective_config(self) -> dict:
         """Return serializable requested settings and the actual run contract.
 
@@ -150,6 +160,9 @@ class SimResult:
             "calibration_applied": list(self.calibration_applied),
             "calibration_pending": self.cfg.calibration != "none" and not self.calibration_applied,
             "inactive_overrides": inactive,
+            "rdac_code_min": 0,
+            "rdac_code_max": self.cfg.dac_levels - 1,
+            "rdac_overflow_count": int(np.count_nonzero(self.rdac_over)),
         }
 
 
@@ -223,7 +236,13 @@ def run_sim(
     sid = dem_state_sequence(n_samples, cfg, allocation.bank)
 
     # ---- 数字映射（sampling 模式下 dither 以码域配对量进入）----
-    d_code = sample.dither_code if cfg.dither_mode == "sampling" else np.zeros(n_samples)
+    d_code = dither_transfer_code(
+        cfg,
+        sample.dither,
+        step_rdac=cfg.rdac_step,
+        step_coarse=cfg.delta1,
+        dither_code_sampling=sample.dither_code,
+    )
     cmd = mapper.encode(coarse, allocation.bank, sid, d_code)
 
     # ---- 两套权重下的 DAC 求值 ----
@@ -249,6 +268,10 @@ def run_sim(
 
     # ---- 去 dither / 重构（α 为采样态 dither 的恒定衰减）----
     dither = make_dither_state(cfg, sample.dither)
+    if cfg.dither_mode == "sampling":
+        dither.digital_correction = sample.dither_code * cfg.rdac_step
+    elif cfg.dither_mode == "quantizer":
+        dither = DitherState(sample.dither, d_code * cfg.rdac_step, np.asarray(sample.rdac_dither))
     out = reconstruct(vd0, fine, state.estimated_gain, dither.digital_correction, cfg.dither_alpha)
 
     # ---- 三套误差参考（v3 审计修正：不能互相冒充）----
@@ -272,7 +295,7 @@ def run_sim(
         x_ref=x_ref,
         sample=sample,
         coarse=coarse,
-        k=cmd.k,
+        k=cmd.k + cmd.dither_code,
         vd0=vd0,
         vd_true=vd_true,
         e_dac=vd_true - vd0,

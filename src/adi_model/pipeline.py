@@ -476,7 +476,7 @@ def run_pipeline(
         dither = DitherState(
             analog_injection=np.asarray(sample.dither, float),
             code_modification=d_code * step0,
-            digital_correction=np.zeros(n_samples),
+            digital_correction=np.asarray(sample.rdac_dither),
         )
     else:
         dither = make_dither_state(cfg, sample.dither)

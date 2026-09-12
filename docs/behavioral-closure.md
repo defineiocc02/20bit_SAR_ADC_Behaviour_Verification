@@ -65,3 +65,20 @@ state; a calibration label alone is not evidence that training occurred.
 
 These supplement, rather than replace, the existing full acceptance sweep.
 Stress values used to expose software defects are not claimed as PDK statistics.
+
+## Architecture candidates and range
+
+See [ADR 0007](adr/0007-independent-decisions-and-dither.md). New architecture
+studies should start from `Config.paper_literal()` and compare the historical
+`Config.paper_consistent()` baseline. Nine decisions and fourfold dither-port
+amplitude are separate parameters. The complete-count 63+8 topology, ideal
+dual-port injection and backend redundancy remain explicit assumptions.
+
+`SimResult.rdac_over` records requested commands outside the physical range.
+The physical DAC saturates; nominal digital command evaluation remains visible
+so the saturation error is not silently removed. Full-scale, half-open input
+boundaries and both discrete dither modes have independent regression coverage.
+
+Bridge capacitance now uses its actual nominal size in the area allocation.
+Consequently old fitted noise/area sweeps may shift slightly; this is a physical
+accounting correction and must be reflected in regenerated results.

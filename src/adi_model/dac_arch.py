@@ -410,7 +410,7 @@ class SplitDAC:
         self.chip = chip
         self.n_m = int(cfg.dac_n_main)
         self.n_s = int(cfg.dac_n_sub)
-        self.levels = self.n_m * self.n_s
+        self.levels = cfg.dac_levels
         self._cache: dict[int, tuple] = {}
 
     # ---------------- DEM 顺序 ----------------
@@ -626,7 +626,7 @@ class SplitDAC:
             (k_m, k_s) 二元组 [单位当量]：k_m = floor(k_eq/n_sub) 为主码，
             k_s = k_eq − k_m·n_sub 为子码（np.ndarray）。
         """
-        k_eq = np.asarray(k_eq, dtype=float)
+        k_eq = np.clip(np.asarray(k_eq, dtype=float), 0.0, self.levels - 1.0)
         k_m = np.floor(k_eq / self.n_s)
         k_s = k_eq - k_m * self.n_s
         return k_m, k_s

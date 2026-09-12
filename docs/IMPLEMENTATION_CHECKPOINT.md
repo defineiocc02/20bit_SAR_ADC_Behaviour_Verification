@@ -20,8 +20,8 @@ documentation. Existing green gates alone do not close a row.
 | M1.2 | Main/sub bank dither units agree in analog charge, RDAC commands and digital correction | Implemented; regression/test_charge_parameter_closure.py + full suite |
 | M1.3 | Real sampling masks drive signal charge as well as dither charge | Implemented; regression/test_charge_parameter_closure.py + full suite |
 | M1.4 | Effective configuration, supported controls, feedback capacitance and applied calibration are observable | Implemented; regression/test_charge_parameter_closure.py + full suite |
-| M2.1 | Separate 7b/9b decision hypotheses, DAC grid/range and dither amplitude enhancement | Pending |
-| M2.2 | Residue, ADC2 range, capacitor definitions and endpoint headroom are independently verified | Pending |
+| M2.1 | Separate 7b/9b decision hypotheses, DAC grid/range and dither amplitude enhancement | Implemented; test_architecture_candidates.py; ADR 0007 |
+| M2.2 | Residue, ADC2 range, capacitor definitions and endpoint headroom are independently verified | Implemented; test_architecture_candidates.py; ADR 0007 |
 | M3.1 | PhysicalSlicePool drives held charge, gain, noise and sample ownership in the main runner | Pending |
 | M3.2 | Causal schedule, startup, latency and independently seeded physical mismatch | Pending |
 | M3.3 | Realizable multidimensional DEM masks and correct non-pipeline scheduler behavior | Pending |
@@ -41,7 +41,11 @@ documentation. Existing green gates alone do not close a row.
 M1 complete: 269 passed, 4 known xfailed; repository-wide ruff check/format
 and mypy (32 modules) pass. Added common SADC construction, sampling_charge
 module, dither mask/units, physical alpha and observable feedback/run contracts.
-Next: M2 architecture hypotheses and boundary/headroom contracts. The four
+M2 implemented: independent 9b/4x dual-port candidate, complete-count 63+8
+full-range topology, real bridge area allocation and command-overflow telemetry.
+Full suite after implementation: 279 passed / 4 known xfailed. After provenance
+and ADR corrections: 72 targeted tests passed; mypy passes. Next: M3 real
+physical pool integration and causal sample event flow. The four
 remaining xfails belong to M3/M6 and are not counted as completed capabilities.
 GitHub API confirms remote main remains ffcc011; HTTPS git fetch times out,
 but API authentication and repository ADMIN permission are verified. Submission

@@ -4,6 +4,30 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.9] — 2026-09-12
+
+### Changed — documentation sync for the v7.0.8 mechanism models
+
+The three patent mechanism models shipped in v7.0.8 ([12]
+`interleave_tracking.py`, [13] `aux_input.py`, [14] `ref_track.py`) were
+not yet reflected in every document; several pages still read
+"not implemented". This release makes every statement consistent:
+
+- `docs/engineering_vs_patents_papers.md` — §1/§3.6/§4/§6 rows for
+  [12]/[13]/[14] moved from "❌ not implemented" to
+  "⚠️ mechanism-level implemented, main-path integration pending";
+  the pre-conditions note (R1/R2 first) kept verbatim.
+- `docs/model_scope.md` — §4 item 9 (A06) rewritten: mechanism level
+  answered by M13; main-path level still unsupported. §4 item 12
+  rewritten: standalone models exist; pipeline integration pending.
+- `docs/STATUS.md` — D5 debt row re-scoped the same way.
+- `docs/reproduction_report.{tex,pdf}` — N2 re-scoped ("main-path
+  integration"), M-section extended to M1–M13 with three new entries,
+  patent status table updated to the four-state wording, conclusion
+  and counts synced; recompiled with Tectonic (18 pages).
+- No code changes. Reference outputs untouched (fingerprint
+  `a1ccd92f…35ac70`); 223 passed + 4 xfailed, ruff/mypy clean.
+
 ## [7.0.8] — 2026-09-12
 
 Closes the three **"not implemented / not aligned with patents"** items from

@@ -134,19 +134,27 @@ draws that line explicitly.
    factors with disclosed magnitudes; the circuit that produces them is not
    designed here.
 9. **Why the published reference-settling scheme works — or why an integrating
-   RA would not.** This is audit finding A06 and it is **explicitly not
-   implemented**. There is no coarse/fine reference MUX event, no RA tracking
-   equation on a time-varying reference, and no finite-bandwidth / slew /
-   cross-sample memory in the reference path: `ra.py` remains an instantaneous
-   gain + noise + clip stage. Consequently this model cannot explain, quantify or
-   support:
+   RA would not.** Audit finding A06. Since **v7.0.8** the *mechanism level*
+   is answered by `ref_track.py` (M13): a behavioural charge-threshold loop
+   (limited top-up current + first-order servo + S1 bleed) that settles in
+   **6 conversion cycles** (disclosed "5 or 6"), whose external top-up charge
+   decays by orders of magnitude, and whose coarse trials tolerate mV-level
+   reference error inside the Δ1/2 self-healing window while the final
+   trials see sub-nV error (>20 b equivalent). **Still not supported** is the
+   *main-path* level: no coarse/fine reference MUX event inside
+   `pipeline.py`, no RA tracking equation on a time-varying reference, and no
+   finite-bandwidth / slew / cross-sample memory in the reference path —
+   `ra.py` remains an instantaneous gain + noise + clip stage. Consequently
+   the main-path model still cannot explain, quantify or support:
    - why the published part reaches its accuracy despite a reference that is only
      ~15b accurate when the RA starts and ~20b only at ~65 % of the RA phase;
    - why an integrating RA is unsuitable under those conditions;
    - the 50 / 69 mW figures, or any signal-chain FoM improvement.
 
-   This is the single largest gap between this model and the published
-   architecture. See `docs/audit_response.md` §A06.
+   Mechanism-level evidence: `reproduction_results.md` M13 (43 dedicated
+   tests repo-wide for [12]–[14], doctests included). Main-path integration
+   is gated behind R1/R2 (physical pool on the main path). See
+   `docs/audit_response.md` §A06.
 10. **Cross-frequency mismatch sensitivity / full-code static sweeps.** Listed in
     the audit's P1 recommendations; not implemented.
 11. **The paper's three-dimensional DEM mechanism.** The digital core counts
@@ -159,12 +167,18 @@ draws that line explicitly.
     may be quoted as that mechanism's quantitative benefit. Matches neither
     the slice-selection space nor the shuffler structure of the published
     part.
-12. **[12] tracking and [13] auxiliary input.** Neither exists in the source:
-    there is no pre-conversion tracking state update driven by another ADC's
-    result, and no second (auxiliary) input port with its own charge
-    accounting — so the input-drive benefits claimed by those patents are not
-    modelled, and no auxiliary-driver or switch sizing can be derived from
-    this model (fifth review §5; `grep aux|tracking src/` → 0 hits).
+12. **[12] tracking and [13] auxiliary input — main-path level.** Since
+    **v7.0.8** both mechanisms exist as *standalone mechanism-level models*
+    (`interleave_tracking.py`, M11: tracking-phase charge accounting with the
+    `v_hold[i] = x[i−1]` identity; `aux_input.py`, M12: auxiliary-path
+    settling scaling — R_f may grow by (C_f+C_pg)/C_f, minimum required
+    filter bandwidth and driver noise drop accordingly). **But neither is
+    wired into the pipeline main path**: there is no pre-conversion tracking
+    state update driven by another ADC's result inside `pipeline.py`, and no
+    second (auxiliary) input port with its own charge accounting in the
+    sampling path — so main-path input-drive or interleaving sizing
+    conclusions cannot be derived from this model (integration is gated
+    behind R1/R2; `reproduction_results.md` N2 records the re-scoped gap).
 13. **KTC cancellation as a designable circuit.** The `f_max` check
     (v7.0.3-corrected, 134.5 MHz at the observation node) is a **swing**
     criterion only. "Does not exceed swing" and "settles within the

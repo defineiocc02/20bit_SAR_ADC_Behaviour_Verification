@@ -22,9 +22,9 @@
 | [09] | US 10,516,408 B2 — Analog to digital converter stage | 量化器与残差 DAC 分离；SADC 误差自愈窗口；两条采样通路响应匹配 |
 | [10] | US 10,505,561 B2 — Method of applying a dither, and ADC | dither 的两种物理实现（输入注入 vs 采样态电荷注入）；注入/改码/扣除三要素配对 |
 | [11] | US 10,511,316 B2 — Linearizing transfer characteristic by DEM | 等权单位置换 DEM；主/子阵列各自轮转；主/子边界残差难点 |
-| [12] | US 10,707,889 B1 — Interleaving method for analog to digital converters | 交织 ADC 的跟踪状态更新（**未实现**，见 §6） |
-| [13] | US 10,541,702 B1 — Auxiliary input for ADC input charge | 辅助输入端口与电荷核算（**未实现**，见 §6） |
-| [14] | US 10,826,519 B1 — Low power reference for an ADC | 低功耗参考缓冲方案（**未实现**；对应审计 A06 开放项） |
+| [12] | US 10,707,889 B1 — Interleaving method for analog to digital converters | 交织 ADC 的跟踪状态更新（机制级模型已实现：`interleave_tracking.py`，M11；主链路集成未做，见 §4/§6） |
+| [13] | US 10,541,702 B1 — Auxiliary input for ADC input charge | 辅助输入端口与电荷核算（机制级模型已实现：`aux_input.py`，M12；主链路集成未做，见 §4/§6） |
+| [14] | US 10,826,519 B1 — Low power reference for an ADC | 低功耗参考缓冲方案（机制级模型已实现：`ref_track.py`，M13；回答 A06 的机制层；主链路集成未做） |
 | [01]–[08] | Hurrell ISSCC 2010、ElShater ISSCC 2019、Li ISSCC 2023、Bannon VLSI 2014、LTC2387-18、Steensgaard ISSCC 2022、TI ADC3583、Shen JSSC 2018 | 背景/替代架构对照，**不属于**目标芯片，见 §7 |
 
 ---
@@ -213,9 +213,11 @@ ADC2 解细码                    →   adc2.py：静态量化 + 溢出统计
 
 1. **DEM**：64 联合排列 ≠ [11] 三维机制（§4.11）——DEM 数字不得引用为
    [11] 的定量收益。
-2. **[12]/[13]**：主链路零命中（§4.12）——输入驱动/交织跟踪的 sizing
-   结论无从谈起。
-3. **参考路径**：A06 未实现——"为什么 [00] 的参考方案成立"本模型不回答。
+2. **[12]/[13]**：机制级模型已实现（M11–M12），但 pipeline 主链路仍
+   零命中（§4.12）——主链路口径的输入驱动/交织跟踪 sizing 结论
+   无从谈起。
+3. **参考路径**：A06 的机制层已由 `ref_track.py`（M13）回答；主链路
+   集成（coarse/fine MUX 事件进 pipeline）仍未做。
 4. **KTC**：摆幅判据 ≠ 建立判据（§4.13）；κ_opt 已修正为含观测噪声的
    联合最优，但电路实现（提取带宽/观测量化/时序）仍开放。
 

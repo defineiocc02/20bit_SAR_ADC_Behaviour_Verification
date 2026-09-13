@@ -140,3 +140,12 @@ IDs, including mask charge, instead of reusing fixed bank weights after a
 shuffle. `tests/integration/test_physical_pipeline.py` verifies locality of a
 single-capacitor perturbation, independent direct charge sums, startup and
 sample ownership, nominal DEM charge, and random-stream independence.
+
+## Integer output
+
+`codes = result.to_codes()` executes a checked fixed-point reconstruction from
+raw codes and digital switch commands. Use `codes.voltage` for final-code
+spectral metrics; inspect `clipped_low`, `clipped_high`, `analog_overflow` and
+`peak_accumulator_bits`. The floating `result.out` is retained for diagnosis.
+The default is Q30 weights, Q32 normalized voltage, 96-bit accumulation and
+20-bit offset binary. Register serialization and scope are in ADR 0012.

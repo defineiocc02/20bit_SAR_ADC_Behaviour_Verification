@@ -30,7 +30,7 @@ documentation. Existing green gates alone do not close a row.
 | M4.3 | Finite-bandwidth/slew RA, phase switching and actual ADC2 aperture in the joint chain | Implemented; convolution/ODE/slew/swing/aperture tests; noise and ideal AZ limits in ADR 0009 |
 | M4.4 | Auxiliary and interleave tracking mechanisms use real state and available quantized decisions | Implemented; causal/charge/precharge/combined 9b tests; ADR 0010 |
 | M5.1 | Noisy training, identifiable weights, frozen coefficients and independent validation on same chip | Implemented; static effective-unit SVD/frozen workflow; tests + full-18 pilot; ADR 0011; final acceptance experiments pending |
-| M5.2 | Fixed-point coarse/fine code reconstruction, clipping and transition/code-width verification | Pending |
+| M5.2 | Fixed-point coarse/fine code reconstruction, clipping and transition/code-width verification | Implemented; checked Q30/Q32/96-bit integer core; exhaustive output oracle + all coarse carries + noisy holdout; ADR 0012 |
 | M6.1 | PSD normalization, harmonic collisions, noise integration and separate paper/slide benchmarks | Pending |
 | M6.2 | Long-record low-frequency state/noise validation and explicit observer-extension limits | Pending |
 | M6.3 | Full tests, lint, typing, experiment sweep, build, source/assumption documentation and results | Pending |
@@ -183,3 +183,19 @@ Full current suite completed: **350 passed / one known flicker xfail in
 and mypy (40 modules) pass.
 No final full-sweep/CI acceptance is claimed. M5.2 fixed-point reconstruction,
 M6 noise/metrics/benchmarks/acceptance/docs and GitHub submission remain pending.
+
+
+### M5.2 checkpoint (2026-09-13)
+
+`SimResult.to_codes()` now reconstructs final 20-bit words from raw ADC2 codes,
+digital switching and nominal/frozen coefficients using checked fixed-point
+arithmetic. Explicit register widths, signed ties-to-even, half-open input bins,
+independent analog/output clipping and versioned immutable JSON are documented
+in ADR 0012. Fractional RDAC masks and unquantized observer paths are rejected.
+
+28 fixed-point/calibration tests passed in 5.22 s, including exhaustive 2^20
+code enumeration, all 511 coarse carries, poisoned float/truth buffers and
+independent noisy calibrated holdout. Mypy passes 41 modules. Final acceptance
+experiments must measure final code streams, not only floating diagnostics.
+M6 metrics, low-frequency noise, full sweep reconciliation, documentation,
+release build and exact-head GitHub CI/submission remain pending.

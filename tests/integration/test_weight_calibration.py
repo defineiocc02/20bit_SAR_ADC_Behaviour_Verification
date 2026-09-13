@@ -140,3 +140,21 @@ def test_legacy_gain_training_does_not_silently_disable_sampling_noise(monkeypat
     sim_module.run_with_calibration(cfg, sine_input(1.2, cfg.fs * 17 / 128), 128, n_cal=128)
     assert len(seen) == 10
     assert all(enabled and sigma > 0 for enabled, sigma in seen)
+
+
+def test_quantized_frozen_weights_preserve_the_holdout_calibration_benefit(noisy_fit):
+    cfg, training, _, model, _ = noisy_fit
+    state = initialize_state(cfg)
+    state.weight_calibration = model
+    r = run_pipeline(
+        cfg,
+        sine_input(2.2, cfg.fs * 307 / 8192, 0.5),
+        8192,
+        pool=training.pool,
+        state=state,
+        rng=np.random.default_rng(893),
+    )
+    stream = r.to_codes()
+    assert np.max(np.abs(stream.voltage - r.out)) < 0.51 * cfg.lsb_target
+    assert np.std(stream.voltage - r.x_ref) < 60e-6
+    assert np.std(stream.voltage - r.x_ref) < 0.3 * np.std(r.uncalibrated_out - r.x_ref)

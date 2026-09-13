@@ -81,6 +81,7 @@ from .dynamics import (
     ref_settling_error,
     switching_activity,
 )
+from .fixed_point import CodeStream, FixedPointFormat, FixedPointReconstructor
 from .interleave_tracking import (
     TRACK_GRADES,
     TRACK_MODES,
@@ -135,6 +136,9 @@ from .weight_calibration import (
 )
 
 __all__ = [
+    "CodeStream",
+    "FixedPointFormat",
+    "FixedPointReconstructor",
     "Config",
     "ConfigError",
     "LEGAL_VALUES",

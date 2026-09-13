@@ -143,6 +143,19 @@ class SimResult:
     uncalibrated_out: np.ndarray | None = None
     calibration_report: dict | None = None
 
+    def to_codes(self, *, format=None):
+        """Reconstruct final integer split-ADC words from digital observations.
+
+        The returned stream includes separate input-range and analog clipping
+        flags. ``out`` remains the floating diagnostic for compatibility. This
+        explicit path rejects fractional masks and the unquantized KTC observer.
+        """
+        from .fixed_point import FixedPointReconstructor
+        from .weight_calibration import DigitalObservation
+
+        decoder = FixedPointReconstructor.from_result(self, format=format)
+        return decoder.reconstruct(DigitalObservation.from_result(self))
+
     @property
     def rdac_over(self) -> np.ndarray:
         """Return the per-sample command overflow flags before physical clipping.

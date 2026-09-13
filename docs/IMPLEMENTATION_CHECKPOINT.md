@@ -22,10 +22,10 @@ documentation. Existing green gates alone do not close a row.
 | M1.4 | Effective configuration, supported controls, feedback capacitance and applied calibration are observable | Implemented; regression/test_charge_parameter_closure.py + full suite |
 | M2.1 | Separate 7b/9b decision hypotheses, DAC grid/range and dither amplitude enhancement | Implemented; test_architecture_candidates.py; ADR 0009 |
 | M2.2 | Residue, ADC2 range, capacitor definitions and endpoint headroom are independently verified | Implemented; test_architecture_candidates.py; ADR 0009 |
-| M3.1 | PhysicalSlicePool drives held charge, gain, noise and sample ownership in the main runner | Implemented; physical_pipeline + causal audit regressions; final sweep pending |
-| M3.2 | Causal schedule, startup, latency and independently seeded physical mismatch | Implemented; physical_pipeline + causal audit regressions; final sweep pending |
-| M3.3 | Realizable multidimensional DEM masks and correct non-pipeline scheduler behavior | Implemented; physical_pipeline + causal audit regressions; final sweep pending |
-| M4.1 | Continuous-input tracking with shared source impedance and physical slice states | Implemented; input_network KCL/AC/charge/convergence tests; ADR 0010; full-goal sweep pending |
+| M3.1 | PhysicalSlicePool drives held charge, gain, noise and sample ownership in the main runner | Implemented; physical_pipeline + causal audit regressions; final 52-gate sweep passed |
+| M3.2 | Causal schedule, startup, latency and independently seeded physical mismatch | Implemented; physical_pipeline + causal audit regressions; final 52-gate sweep passed |
+| M3.3 | Realizable multidimensional DEM masks and correct non-pipeline scheduler behavior | Implemented; physical_pipeline + causal audit regressions; final 52-gate sweep passed |
+| M4.1 | Continuous-input tracking with shared source impedance and physical slice states | Implemented; input_network KCL/AC/charge/convergence tests; ADR 0010; final 52-gate sweep passed |
 | M4.2 | Code-dependent signed reference charge and coarse/fine reference state | Implemented; direct node/rail charge and causal state tests; small-droop scope in ADR 0011 |
 | M4.3 | Finite-bandwidth/slew RA, phase switching and actual ADC2 aperture in the joint chain | Implemented; convolution/ODE/slew/swing/aperture tests; noise and ideal AZ limits in ADR 0011 |
 | M4.4 | Auxiliary and interleave tracking mechanisms use real state and available quantized decisions | Implemented; causal/charge/precharge/combined 9b tests; ADR 0012 |
@@ -33,10 +33,28 @@ documentation. Existing green gates alone do not close a row.
 | M5.2 | Fixed-point coarse/fine code reconstruction, clipping and transition/code-width verification | Implemented; checked Q30/Q32/96-bit integer core; exhaustive output oracle + all coarse carries + noisy holdout; ADR 0014 |
 | M6.1 | PSD normalization, harmonic collisions, noise integration and separate paper/slide benchmarks | Complete; independent SciPy/Parseval/alias tests + separate source profiles; mandatory acceptance passed |
 | M6.2 | Long-record low-frequency state/noise validation and explicit observer-extension limits | Complete; physical-time state + covariance/chunk/64s PSD and mode convergence; observer scope ADR 0015 |
-| M6.3 | Full tests, lint, typing, experiment sweep, build, source/assumption documentation and results | Local complete: 394 tests, 52 gates twice, byte-identical source/wheel results, build and 47-module typing; exact-head CI pending |
-| GIT | Commit and push reviewable branch/PR; inspect GitHub CI for that exact head | Pending |
+| M6.3 | Full tests, lint, typing, experiment sweep, build, source/assumption documentation and results | Locally verified: 394 tests, 52 gates twice, byte-identical source/wheel results, build and 47-module typing; remote matrix evidence is attached to PR #1 |
+| GIT | Commit and push reviewable branch/PR; inspect GitHub CI for that exact head | Submitted as [PR #1](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/pull/1); exact-head CI is authoritative in its Checks tab |
 
-## Current milestone
+## Current delivery status
+
+M1–M6 implementation and local release verification are complete. The ten
+reviewable implementation commits have been submitted as
+[PR #1](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/pull/1).
+Git-data API publication verified every uploaded blob and milestone tree against
+the tested local Git objects. Commit timestamps were normalized to UTC; file
+contents are identical. The PR Checks tab is the authoritative live record for
+the final head across Python 3.10–3.13, acceptance, determinism and wheel build.
+Local evidence and its environment are recorded below and in
+`validation-environment.json`.
+
+## Historical milestone checkpoints
+
+The following entries record state at each milestone, including then-open work.
+Their pending items are superseded by the current ledger and final local release
+checkpoint; intermediate failures and xfails are retained as development evidence.
+
+### M1–M2 checkpoint (2026-09-13)
 
 M1 complete: 269 passed, 4 known xfailed; repository-wide ruff check/format
 and mypy (32 modules) pass. Added common SADC construction, sampling_charge
@@ -257,7 +275,8 @@ old hard-coded performance text is removed. Source labels and ppmFS-to-LSB
 conversion are corrected. ADR IDs are normalized: historical 0001–0008 retained,
 physical closure 0009–0015. The package now includes both CLI scripts in wheels.
 
-GitHub main remains ffcc011 (live API verified). Git HTTPS preflight again timed
-out at 25 s; authenticated Git-data API transport will be used if needed. Local
-commit, GitHub branch/PR submission and exact-head CI inspection remain to do.
-Do not mark the goal complete before that evidence exists.
+GitHub main was ffcc011 at submission (live API verified). Git HTTPS preflight
+timed out at 25 s; authenticated Git-data API transport successfully published
+all ten milestone commits, with each tree identical to the local tested tree.
+PR #1 contains the submitted branch and current CI evidence. This checkpoint
+records local verification; consult the PR Checks tab for remote run conclusions.

@@ -140,6 +140,8 @@ class SimResult:
     adc2_input_voltage: np.ndarray | None = None
     adc2_code: np.ndarray | None = None  # raw integer code, before observer correction
     input_assist_trace: InputAssistTrace | None = None
+    uncalibrated_out: np.ndarray | None = None
+    calibration_report: dict | None = None
 
     @property
     def rdac_over(self) -> np.ndarray:
@@ -251,6 +253,8 @@ def run_sim(
             拒绝（外部复核 2026-09-11）。
     """
     cfg.check_legal()
+    if cfg.calibration == "weights" or (state is not None and state.weight_calibration is not None):
+        raise ValueError("physical split-unit weights require run_pipeline or run_sim_split")
     cfg = replace(cfg, dac_arch="unary")
     cfg.check_legal()
     if rng is None:
@@ -431,6 +435,11 @@ def run_with_calibration(
     """
     from .sampler import dc_input
 
+    if cfg.dac_arch == "split" or cfg.calibration == "weights":
+        raise ValueError(
+            "run_with_calibration is unary-only; use run_with_split_calibration for physical unit weights"
+        )
+
     rng = rng or np.random.default_rng(cfg.seed)
     chip = chip or build_chip(cfg)
     state = initialize_state(cfg)
@@ -438,13 +447,9 @@ def run_with_calibration(
 
     if cfg.calibration in ("gain", "gain_beta"):
         # --- 增益：对 (alpha*x + d_nom - vd0) 回归 fine ---
-        # 校准期固定 DEM 状态（dem_enable=False 的旁路副本）、关闭采样噪声，
-        # 消除无关方差源；dither 若开启则用已知 d_nom 进入回归量。
+        # Preserve actual sampling/RA noise and the requested DEM allocation.
+        # Known dither enters the regression; physical injection truth does not.
         cal_cfg = cfg
-        if cfg.dem_enable or cfg.enable_sampling_noise:
-            from dataclasses import replace
-
-            cal_cfg = replace(cfg, dem_enable=False, enable_sampling_noise=False)
         lv_list = np.linspace(levels[0], levels[1], 9) * cfg.v_fs
         xs, vds, fines, ds = [], [], [], []
         for lv in lv_list:
@@ -458,6 +463,9 @@ def run_with_calibration(
             # sampling = 码域配对量 × 名义步长。不得使用含失配的物理注入值。
             if cal_cfg.dither_mode == "sampling":
                 ds.append(r.sample.dither_code * cal_cfg.rdac_step)
+            elif cal_cfg.dither_mode == "quantizer":
+                assert r.sample.rdac_dither is not None
+                ds.append(np.broadcast_to(r.sample.rdac_dither, (n_cal,)))
             else:
                 ds.append(r.sample.dither)
         Calibrator(cfg, state).update_gain(

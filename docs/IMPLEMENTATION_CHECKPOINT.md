@@ -29,7 +29,7 @@ documentation. Existing green gates alone do not close a row.
 | M4.2 | Code-dependent signed reference charge and coarse/fine reference state | Implemented; direct node/rail charge and causal state tests; small-droop scope in ADR 0009 |
 | M4.3 | Finite-bandwidth/slew RA, phase switching and actual ADC2 aperture in the joint chain | Implemented; convolution/ODE/slew/swing/aperture tests; noise and ideal AZ limits in ADR 0009 |
 | M4.4 | Auxiliary and interleave tracking mechanisms use real state and available quantized decisions | Implemented; causal/charge/precharge/combined 9b tests; ADR 0010 |
-| M5.1 | Noisy training, identifiable weights, frozen coefficients and independent validation on same chip | Pending |
+| M5.1 | Noisy training, identifiable weights, frozen coefficients and independent validation on same chip | Implemented; static effective-unit SVD/frozen workflow; tests + full-18 pilot; ADR 0011; final acceptance experiments pending |
 | M5.2 | Fixed-point coarse/fine code reconstruction, clipping and transition/code-width verification | Pending |
 | M6.1 | PSD normalization, harmonic collisions, noise integration and separate paper/slide benchmarks | Pending |
 | M6.2 | Long-record low-frequency state/noise validation and explicit observer-extension limits | Pending |
@@ -160,3 +160,26 @@ and malformed digital buffers are rejected. Raw-code/observer tests passed
 20 cases (two already-tested dense INL cases excluded from this focused run).
 Ruff check/format and mypy pass at this checkpoint. Real noisy weight training,
 frozen validation and fixed-point final reconstruction remain M5 work.
+
+### M5.1 checkpoint (2026-09-13)
+
+`weight_calibration` defines a digital-only geometry/observation interface,
+fits effective physical unit C/Cf weights (beta*C/Cf for sub units) plus ADC2
+offset with one rank-revealing SVD, reports uncertainty diagnostics and rejects
+rank deficiencies. Frozen coefficients have immutable bytes-backed arrays and
+versioned strict JSON. A separately supplied known training reference is the
+only training input; validation reconstruction receives no ideal input/physical
+truth. DigitalState injection applies coefficients in the production split path.
+`run_with_split_calibration` records its controlled static training setup and
+retains requested noise, then validates on the same pool. The old unary gain
+wrapper now retains sampling noise/DEM and uses the correct RDAC-port injection.
+
+Weight/frozen/workflow/raw-code/physical tests passed 30 cases; mypy passes 40
+modules. Full 18-slice/8-active, 63+8 pilot: rank 1279, condition 458.403,
+training residual RMS 1.1809 mV at ADC2, independent validation RMS
+95.103 -> 43.608 uV with noise retained (implementation_m5_full_pool_probe.log).
+Full current suite completed: **350 passed / one known flicker xfail in
+209.25 s**, logged in implementation_m5_full_pytest.log. Ruff check/format
+and mypy (40 modules) pass.
+No final full-sweep/CI acceptance is claimed. M5.2 fixed-point reconstruction,
+M6 noise/metrics/benchmarks/acceptance/docs and GitHub submission remain pending.

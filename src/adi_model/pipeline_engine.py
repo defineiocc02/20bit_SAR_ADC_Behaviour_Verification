@@ -402,7 +402,7 @@ def execute_split(
                 pool.v_top[physical_id] = residue[uses[-1]]
                 pool.held_sample[physical_id] = uses[-1]
                 pool.n_conversions[physical_id] = uses.size
-    return SimResult(
+    result = SimResult(
         runner=runner,
         out=out,
         err=out - x_ref,
@@ -447,3 +447,8 @@ def execute_split(
         adc2_code=adc2_code,
         input_assist_trace=assist,
     )
+    if state.weight_calibration is not None:
+        from .weight_calibration import apply_frozen_calibration
+
+        apply_frozen_calibration(result, state.weight_calibration)
+    return result

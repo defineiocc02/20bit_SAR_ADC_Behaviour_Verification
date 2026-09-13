@@ -25,7 +25,26 @@ class SplitSwitchCommand:
     sub_counts: np.ndarray
 
 
-def split_switch_command(cfg: Config, k: np.ndarray, sid: np.ndarray) -> SplitSwitchCommand:
+@dataclass(frozen=True)
+class SplitSwitchGeometry:
+    """Digital-only geometry for mask generation; no fabricated parameters."""
+
+    dac_n_main: int
+    dac_n_sub: int
+    n_active: int
+    dac_complete_range: bool
+    dem_enable: bool
+    dem_bridge_enable: bool
+
+    @property
+    def dac_levels(self) -> int:
+        """Return the number of nominal realizable RDAC codes."""
+        return (self.dac_n_main + int(self.dac_complete_range)) * self.dac_n_sub
+
+
+def split_switch_command(
+    cfg: Config | SplitSwitchGeometry, k: np.ndarray, sid: np.ndarray
+) -> SplitSwitchCommand:
     """Decode independent row/column/subarray states and optional zero-sum bridge.
 
     Args:

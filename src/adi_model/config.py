@@ -66,7 +66,7 @@ LEGAL_VALUES: dict[str, tuple[str, ...]] = {
     "dither_split_bank": ("sub", "main"),
     "dither_quant_transfer": ("quantizer", "rdac"),
     "ra_gain_model": ("charge", "fixed"),
-    "calibration": ("none", "gain", "gain_beta"),
+    "calibration": ("none", "gain", "gain_beta", "weights"),
     # dem_mode 现在**真的决定调度器**：三个仿真入口都经 scheduler.make_scheduler
     # 取调度器（rotate -> Scheduler，permute -> ShuffledScheduler），显式传入的
     # 调度器与它不一致时拒绝运行。注意"接线"不等于"调度正确"：洗牌调度器自身

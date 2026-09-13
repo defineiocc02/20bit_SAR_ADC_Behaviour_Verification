@@ -126,6 +126,13 @@ from .scheduler import Allocation, Scheduler
 from .sim import SimResult, run_sim, run_with_calibration
 from .sim_split import run_sim_split
 from .slice_pool import PhysicalSlicePool, SlicePlan, check_causality
+from .weight_calibration import (
+    CalibrationUnidentifiableError,
+    DigitalObservation,
+    FrozenCalibration,
+    fit_unit_weights,
+    run_with_split_calibration,
+)
 
 __all__ = [
     "Config",
@@ -171,6 +178,11 @@ __all__ = [
     "SimResult",
     "run_sim",
     "run_with_calibration",
+    "run_with_split_calibration",
+    "DigitalObservation",
+    "FrozenCalibration",
+    "CalibrationUnidentifiableError",
+    "fit_unit_weights",
     "experiments",
     "SplitChip",
     "SplitDAC",

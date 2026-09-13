@@ -10,6 +10,8 @@ The joint reference/RA/ADC2 model, event observations, numerical verification an
 small-droop/noise limits are specified in [ADR 0009](adr/0009-joint-reference-ra-adc2.md).
 Available-code pretracking and auxiliary input source/charge contracts are in
 [ADR 0010](adr/0010-causal-input-assistance.md).
+Noisy effective-unit calibration, strict digital observations and frozen
+same-chip validation are specified in [ADR 0011](adr/0011-noisy-identifiable-unit-calibration.md).
 
 ## Shared parameter and charge contracts
 

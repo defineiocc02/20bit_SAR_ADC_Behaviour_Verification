@@ -23,10 +23,14 @@ v2 是 ADC2 输出（RA 输出口径），除以 G_hat 折回残差口径再与 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from .config import Config
+
+if TYPE_CHECKING:
+    from .weight_calibration import FrozenCalibration
 
 
 @dataclass
@@ -39,6 +43,7 @@ class DigitalState:
     W_nominal: np.ndarray | None = None  # 名义权重（DAC 单位步长）
     W_estimated: np.ndarray | None = None  # 估计权重（v1 未使用，留接口）
     history: list | None = None
+    weight_calibration: FrozenCalibration | None = None
 
 
 def initialize_state(cfg: Config) -> DigitalState:

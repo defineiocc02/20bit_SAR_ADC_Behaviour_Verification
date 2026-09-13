@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 import sys
 import time
@@ -27,7 +26,9 @@ from adi_model import (
 )
 from adi_model import experiments as ex
 from adi_model.acceptance import gate
+from adi_model.closure_experiments import long_record_noise, noisy_weight_holdout
 from adi_model.dac_arch import SplitDAC, build_split_chip
+from adi_model.serialization import write_results
 
 OUT = os.environ.get("ADI_MODEL_RESULTS_DIR") or os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "results"
@@ -35,7 +36,7 @@ OUT = os.environ.get("ADI_MODEL_RESULTS_DIR") or os.path.join(
 FIG = os.path.join(OUT, "fig")
 os.makedirs(FIG, exist_ok=True)
 
-N = 2**16  # 9b 第一级使 ADC2 范围变窄、KTC 带宽守卫收紧，fin 必须 ≤ 0.64 MHz
+N = 2**16  # Historical Config() baseline; nine-bit closure protocols are separate below.
 FIN_NCYC = 1021
 FIN = 40e6 * FIN_NCYC / N
 
@@ -274,17 +275,10 @@ _s13_pass = {
     # 判据由解析式给出（experiments.stage13.sub_weight_inl），不再写死 1.5：
     # 子阵列被码调制时是等式（±25%），不被调制时残余应是小量。
     "base 行确定性 INL 与其解析预测吻合（子阵列节点寄生）": R["s13"]["sub_weight_inl"]["PASS"],
-    "三项动态误差把确定性峰值 INL 抬到论文 2.2 LSB 同量级": (
-        1.0 <= _inl_all["INL_max_LSB20"] <= 12.0
-    ),
-    "理想芯片确定性协议下 rho=0 峰值 INL ≈ 结构性基准且随 rho 单调放大": (
-        R["s13"]["ron_sweep"][0]["INL_max_LSB20"] < 1.5
-        and R["s13"]["ron_sweep"][-1]["INL_max_LSB20"]
-        > 10 * max(R["s13"]["ron_sweep"][0]["INL_max_LSB20"], 0.1)
-    ),
+    "三项非理想机制产生可分辨的静态误差（工程范围）": (1.0 <= _inl_all["INL_max_LSB20"] <= 12.0),
+    "Ron 局部非线性与独立 RC 解一致": R["s13"]["ron_step_oracle"]["PASS"],
     "完整 DEM 周期覆盖后 INL 不随 rep 变化（确定性协议收敛）": R["s13"]["rep_convergence"]["PASS"],
-    "确定性峰值口径反推出 rho 设计边界（条件性估计）": R["s13"]["rho_max_for_2p2LSB"] is not None
-    and R["s13"]["rho_max_INL_at_rho_max"] <= 2.2,
+    "rho 扫描状态与实测网格一致（未跨越不产生规格）": R["s13"]["rho_boundary"]["PASS"],
 }
 R["s13_summary"] = _s13_pass
 for k, v in _s13_pass.items():
@@ -403,7 +397,7 @@ yy = np.arange(len(rows13))
 axes[2].barh(yy, [r["INL_max_LSB20"] for r in rows13], color=C3)
 axes[2].set_yticks(yy)
 axes[2].set_yticklabels([r["设置"] for r in rows13], fontsize=8)
-axes[2].axvline(2.2, color=C1, ls=":", label="论文 INL 2.2 LSB")
+axes[2].axvline(2.2 * 2**20 / 1e6, color=C1, ls=":", label="文献 INL 2.2 ppmFS")
 axes[2].invert_yaxis()
 axes[2].set_xlabel("|INL| [LSB@20b]")
 axes[2].legend(fontsize=8)
@@ -431,7 +425,7 @@ for dem, col, lab in ((False, C1, "DEM 关"), (True, C2, "DEM 开")):
     sub = [r for r in rows8 if r["dem"] == dem]
     xs = [r["sigma_ppm"] for r in sub]
     axes[1].plot(xs, [r["SNDR_dB"] for r in sub], "o-", color=col, label=lab)
-axes[1].axhline(93.5, color=FG, lw=0.8, ls=":", label="论文 93.5dB")
+axes[1].axhline(93.5, color=FG, lw=0.8, ls=":", label="工程对照 93.5dB（非披露）")
 axes[1].axvline(1117, color=C3, lw=1.0, ls="--", label="PDK 估算 1117ppm")
 axes[1].set_xscale("log")
 axes[1].set_xlabel(r"单位电容失配 $\sigma$ [ppm]")
@@ -453,7 +447,7 @@ for key, col, lab in (("mc_cal_on", C2, "σ=100ppm 标定值"), ("mc_pdk_on", C1
         f"got {samp.size} samples (audit A07.4)"
     )
     axes[2].hist(samp, bins=12, alpha=0.55, color=col, density=True, label=lab)
-axes[2].axvline(93.5, color=FG, lw=0.8, ls=":", label="论文 93.5dB")
+axes[2].axvline(93.5, color=FG, lw=0.8, ls=":", label="工程对照 93.5dB（非披露）")
 axes[2].set_xlabel("SNDR [dB]")
 axes[2].set_ylabel("概率密度")
 axes[2].set_title("60 颗虚拟芯片的 SNDR 分布（原始 MC 点，无重采样）")
@@ -471,9 +465,9 @@ for ktc, col, lab in ((False, C1, "KTC 关"), (True, C2, "KTC 开")):
     axes[0].plot(xs, [r["SNDR_dB"] for r in sub], "o-", color=col, label=lab)
     axes[1].plot(xs, [r["NSD_nV_rtHz"] for r in sub], "o-", color=col, label=lab)
     axes[2].plot(xs, [r["INL_max_LSB"] for r in sub], "o-", color=col, label=lab)
-axes[0].axhline(93.5, color=FG, lw=0.8, ls=":", label="论文 SNDR 93.5dB")
-axes[1].axhline(8.8, color=FG, lw=0.8, ls=":", label="论文 NSD 8.8nV/rtHz")
-axes[2].axhline(2.2, color=C3, lw=0.8, ls=":", label="论文 INL 2.2LSB")
+axes[0].axhline(93.5, color=FG, lw=0.8, ls=":", label="工程对照 SNDR 93.5dB（非披露）")
+axes[1].axhline(8.8, color=FG, lw=0.8, ls=":", label="幻灯片 NSD 8.8nV/rtHz")
+axes[2].axhline(2.2 * 2**20 / 1e6, color=C3, lw=0.8, ls=":", label="文献 INL 2.2 ppmFS")
 axes[0].set_ylabel("SNDR [dB]")
 axes[1].set_ylabel("NSD [nV/√Hz]")
 axes[2].set_ylabel("|INL| [LSB@20b]")
@@ -540,20 +534,44 @@ print(
 )
 
 
-def _jsonable(o):
-    if isinstance(o, np.ndarray):
-        return o.tolist() if o.ndim else o.item()
-    if isinstance(o, np.floating | np.integer | np.bool_):
-        return o.item()
-    if isinstance(o, list | tuple):
-        return [_jsonable(v) for v in o]
-    if isinstance(o, dict):
-        return {k: _jsonable(v) for k, v in o.items()}
-    return float(o) if isinstance(o, float) else o
-
-
-with open(os.path.join(OUT, "results.json"), "w") as f:
-    json.dump(_jsonable(R), f, ensure_ascii=False, indent=1)
+print("\n===== closure: physical-clock low-frequency state and noisy fixed-point holdout =====")
+R["long_record_noise"] = long_record_noise()
+print(f"  long_record_noise: {R['long_record_noise']['PASS']}")
+R["noisy_weight_holdout"] = noisy_weight_holdout()
+print(f"  noisy_weight_holdout: {R['noisy_weight_holdout']['PASS']}")
+fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+for seed in sorted({row["chip_seed"] for row in R["noisy_weight_holdout"]["rows"]}):
+    rows = [row for row in R["noisy_weight_holdout"]["rows"] if row["chip_seed"] == seed]
+    axes[0].plot(
+        [r["training_samples"] for r in rows],
+        [r["after_error_rms_v"] * 1e6 for r in rows],
+        "o-",
+        label=f"Chip {seed}: frozen final words",
+    )
+    axes[0].plot(
+        [r["training_samples"] for r in rows],
+        [r["before_error_rms_v"] * 1e6 for r in rows],
+        "x--",
+        label=f"Chip {seed}: uncalibrated",
+    )
+    axes[1].plot(
+        [r["training_samples"] for r in rows],
+        [r["coefficient_se_rms"] for r in rows],
+        "o-",
+        label=f"Chip {seed}",
+    )
+axes[0].set_ylabel("Independent holdout error RMS [uV]")
+axes[1].set_ylabel("Effective C/Cf coefficient SE RMS")
+for ax in axes:
+    ax.set_xlabel("Noisy training samples")
+    ax.set_xscale("log", base=2)
+    ax.grid(True, alpha=0.3)
+    ax.legend(fontsize=8)
+fig.suptitle("18 slices / 8 active / 63+8 candidate; controlled static calibration")
+fig.tight_layout()
+fig.savefig(os.path.join(FIG, "physical_calibration.png"), dpi=160)
+plt.close(fig)
+write_results(os.path.join(OUT, "results.json"), R)
 print("结果已写入", os.path.join(OUT, "results.json"))
 
 

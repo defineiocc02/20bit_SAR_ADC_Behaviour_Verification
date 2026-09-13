@@ -151,11 +151,14 @@ class RDAC:
         k = cmd.k + cmd.dither_code
         return -self.cfg.v_fs + (k - self.k0) * self.step
 
-    def evaluate_physical(self, cmd: SwitchCommand) -> np.ndarray:
+    def evaluate_physical(
+        self, cmd: SwitchCommand, slice_ids: np.ndarray | None = None
+    ) -> np.ndarray:
         """物理求值 vDtrue(k+d) [V]。读 chip 真值 + DEM 置换 LUT——**只许**进模拟通路（residue）与事后评分，禁入数字算法。
 
         Args:
             cmd: 开关命令（SwitchCommand），含 k、dither_code、bank、sid。
+            slice_ids: 本次采样实际持有的 slice 集合；None 仅用于固定 bank 对照。
 
         Returns:
             物理 DAC 输出 vDtrue(k+d)（V，可为数组），
@@ -163,6 +166,20 @@ class RDAC:
             边界约束：只许进模拟通路（残差）与事后评分，禁入数字算法。
         """
         k = cmd.k + cmd.dither_code
+        if slice_ids is not None:
+            ids = np.asarray(slice_ids, dtype=np.int64)
+            ranks, columns = unit_rank_arrays(self.cfg)
+            output = np.empty(len(k))
+            for start in range(0, len(k), 512):
+                sl = slice(start, start + 512)
+                states = np.asarray(cmd.sid[sl], dtype=np.int64)
+                physical = np.take_along_axis(ids[sl], ranks[states], axis=1)
+                caps = self.chip.C_true[physical, columns[states]]
+                fraction = np.clip(k[sl, None] - np.arange(caps.shape[1]), 0, 1)
+                output[sl] = self.cfg.v_fs * (
+                    2 * (caps * fraction).sum(axis=1) / caps.sum(axis=1) - 1
+                )
+            return output
         sel = self.lut.selected_cap(cmd.bank, cmd.sid, k)
         tot = self.lut.total[cmd.bank]
         return self.cfg.v_fs * (2.0 * sel / tot - 1.0)

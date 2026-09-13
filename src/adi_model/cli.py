@@ -109,9 +109,8 @@ def _run_script(script_name: str, results_dir: str | None) -> int:
         sys.stderr.write(
             "error: could not find the experiment scripts "
             f"({', '.join(REQUIRED_SCRIPTS)}).\n"
-            "       The sweep scripts ship with the source tree, not with the\n"
-            "       wheel. Run from a checkout (or `pip install -e .`), or pass\n"
-            "       the path to a repository copy.\n"
+            "       The sweep scripts should ship with the source tree and wheel.\n"
+            "       Reinstall the package or run from a checkout (`pip install -e .`).\n"
         )
         return 2
     script = tools / script_name

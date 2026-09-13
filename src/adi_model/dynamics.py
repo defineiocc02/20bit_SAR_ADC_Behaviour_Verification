@@ -292,7 +292,7 @@ def crosstalk_error(
     n_units: int | None = None,
     unit_xtalk_profile: np.ndarray | None = None,
     perm_fn=None,
-    c_out: float | None = None,
+    c_out: float | np.ndarray | None = None,
 ) -> np.ndarray:
     """数字串扰注入折成的 DAC 输出误差（V，输入等效口径）。
 
@@ -421,7 +421,7 @@ def apply_dynamics(
     n_units=None,
     xtalk_profile=None,
     perm_fn=None,
-    c_xtalk_out: float | None = None,
+    c_xtalk_out: float | np.ndarray | None = None,
     c_load_ref: float | None = None,
 ) -> DynamicsResult:
     """三项一次算齐。任何一项关闭时返回 0 向量，不产生副作用。

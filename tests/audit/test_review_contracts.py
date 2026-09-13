@@ -208,14 +208,6 @@ class TestR1SampleOwnership:
             "within-cycle disjointness is necessary but not sufficient"
         )
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="Open defect (review R1): ShuffledScheduler redraws an independent "
-        "permutation per cycle, so conv[n] != acq[n-1] on every transition "
-        "(measured 0/8191). PhysicalSlicePool.shuffle_causal fixes the policy "
-        "but is not wired into any runner. Remove this marker when the main "
-        "path uses a causal schedule.",
-    )
     def test_shuffled_scheduler_preserves_sample_ownership(self):
         """The shuffled scheduler must also honour sample ownership.
 
@@ -326,20 +318,6 @@ class TestR2PhysicalPoolOnMainPath:
             "should assert that it does"
         )
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="Open defect (review K2, local R13; the R2/R9 item of the earlier "
-        "rounds re-raised, §2.5 of docs/review_response_2026-09-11b.md): "
-        "PhysicalSlicePool is referenced by __init__ and by two test modules but "
-        "by NO runner (pipeline.py, sim_split.py, sim.py) and no experiment, "
-        "while ADR 0005 states that both signal chains obtain their physical "
-        "quantities 'from the same pool'. The contract is causal — perturbing "
-        "the capacitors that converted sample i must move the internal quantity "
-        "reported for sample i, and only for the samples that used them. Today "
-        "the runner neither accepts a pool nor records which slices converted a "
-        "sample, so the relation cannot even be stated. Remove this marker when "
-        "the pool is wired in.",
-    )
     def test_perturbing_the_capacitors_behind_a_sample_moves_that_sample(self):
         """The reviewer's acceptance question, executed rather than paraphrased.
 
@@ -555,17 +533,8 @@ class TestR5HardGateBindsToExitCode:
 class TestR6FlickerDriftBackfill:
     """The function documents a back-fill it can never reach."""
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="Open defect (review R6 here; R7 in docs/review_response_2026-09-11.md): the guard is `if f_corner <= f_min or "
-        "f_min <= f_low: return x`, so the branch is skipped precisely when the "
-        "corner sits below the record's resolution limit — the only case the "
-        "back-fill was written for. Measured: 0/32768 non-zero samples for "
-        "fs=40 MHz, n=32768, fc=40 Hz, t_obs=10 s. Remove this marker when the "
-        "guard is corrected.",
-    )
     def test_short_record_contains_the_unresolved_low_frequency_power(self):
-        """A 40 Hz corner in a 10 s record must not produce an all-zero series.
+        """A short record with a 0.1 Hz assumed low cutoff must not be all-zero.
 
         ``f_min = fs/n = 1220.7 Hz`` exceeds the corner, so the truncated
         spectrum is empty; the power below ``f_min`` is unresolvable rather than
@@ -743,17 +712,6 @@ class TestR10DemModeIsWired:
             np.asarray(out_a), np.asarray(out_b)
         ), "dem_mode no longer reaches the pipeline — the binding was removed"
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="Half-open (review K3, local R14): dem_mode is bound at "
-        "run_pipeline but inert at run_sim and run_sim_split. Those entries call "
-        "Scheduler.reserve, which ShuffledScheduler does not override, so a "
-        "config that says 'permute' still gets ping-pong slice groups there. "
-        "Closing it requires choosing the shuffle policy — the causal one is the "
-        "R1 fix and moves published stage-19 numbers, so it is a separate "
-        "physical-main-path decision. Remove this marker when reserve honours "
-        "the mode at all three entries.",
-    )
     def test_dem_mode_changes_the_result_at_every_entry(self):
         """The switch must mean the same thing whichever entry you call."""
         base = _lean_cfg()

@@ -1,44 +1,25 @@
-"""config.py -- 量程、位数、增益、电容、噪声与功能开关。
+"""Configuration, units and legal operating domains for the SAR models.
 
-设计口径（全部来自 [00_1]ISSCC2024_ppt.pdf 与用户给定的边界，除特别标注外）：
+The 40 MS/s rate, 6 Vpp input, 18/8 slice counts and G=32 are disclosed anchors.
+`paper_consistent()` retains the historical seven-decision-bit hypothesis for
+comparison; its name does not establish a unique reading of the paper.
+`paper_literal()` implements nine decisions with independent dither port range
+and a complete-count split topology. Its 63+8 counts and ideal dual-port coupling
+are explicit assumptions. Dither amplitude enhancement never creates extra
+information about the unknown input.
 
-* 输入范围：差分满幅峰值为 +/-3.0 V（6 Vpp）。
-  校核：PPT 给出 NSD = 8.8 nV/rtHz，-167.6 dBFS/Hz，DR = 94.6 dB。
-      Vfs_rms = 8.8e-9 / 10^(-167.6/20) = 2.111 Vrms  ->  峰值 2.986 V ≈ 3 V
-      noise_rms = 8.8e-9 * sqrt(20 MHz) = 39.4 uVrms
-      DR = 20log10(2.121/39.4u) = 94.6 dB  -> 与 PPT 一致。
-* 20 bit 目标：LSB20 = 2*v_fs/2^20 = 5.722 uV。
-* 第一级（默认口径 `stage1_reading="paper_consistent"`，推导见
-  docs/adr/0003-stage-1-resolution.md）：SADC 7 bit（Delta1 = 46.875 mV），
-  级间增益 G0 = 32。
-  论文正文口径："The matched-quantizer sDAC with the RDAC allows >11b matching,
-  resulting in 9b quantization in the first stage."（PPT p.9 写 >12b AC matching）。
-  论文同时披露："the dither range is enhanced by 2b when transferred from the
-  quantizer to the RDAC"。**若**把「量程增强 2^b」等同于「对未知输入多出的
-  判决位数」，两条联立 -> b1 + 2 = 9 -> b1 = 7，
-  units_per_lsb1 = 4（一个粗判决步含 4 个 RDAC 单位步），码字 7+2 = 9b。
-  这个等同是一个**假设**（ADR 0003 §1 明确拒绝过它，§2 又用它求解），
-  不是唯一收敛结论；`provenance.PARAM_GRADES["b1"]` 因此标为 ASSUMED。
-  备选读法（保留为可选项，不静默选用）：
-    `paper_literal`  : b1=9（字面读 9b SADC）-> units_per_lsb1=1，增强 0b，
-                       与第二条披露冲突；
-    `legacy_codeword`: b1=6（v6.1 读法）-> 增强 3b，大于披露值，仅用于复现旧结果。
-* 残差为单极性：r = x_R - vD0 ∈ [0, Delta1]，放大后 [0, G0*Delta1] = [0, 1.5 V]。
-  因此 ADC2 取单极性范围 [-0.15, +1.65] V（约 10% 余量），14 bit。
-      Delta2 = 1.8/2^14 = 109.9 uV -> 折回输入 3.43 uV = 0.6 LSB20（量化可忽略）。
-  以上全部由 Config.paper_consistent() 从 Delta1 派生，勿手改（validate() 复核）。
-* RDAC：18 slice x 64 unit；每次 8 个 slice 参与 -> 512 个物理单位参与。
-  单位步长 = 2*v_fs/512 = 11.719 mV = Delta1/4（比粗量化细 2b，即 dither 的
-  量程增强位数）。
-  单位电容 = 20.5 pF / 512 = 40.04 fF。
-
-**cap_scale / mismatch_sigma0 / ktc_* 属于探索性模型参数，不是从 PPT 或 PDK 得到的工艺规律。**
+ADC2 range/precision are derived under a stated 10% redundancy assumption, not
+transcribed circuit details. Capacitance, gain, sampling load and noise-equivalent
+capacitance remain distinct. Fitted noise/mismatch targets are not predictions.
 """
 
 from __future__ import annotations
 
 import math
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
+
+from .conversion import ConversionParameters
+from .input_network import InputNetworkParameters
 
 K_B = 1.380_649e-23  # J/K
 TEMP_K = 300.0  # K
@@ -80,12 +61,12 @@ class ConfigError(ValueError):
 # --------------------------------------------------------------------------
 LEGAL_VALUES: dict[str, tuple[str, ...]] = {
     "stage1_reading": ("paper_consistent", "paper_literal", "legacy_codeword"),
-    "dither_transfer_model": ("range", "granularity"),
+    "dither_transfer_model": ("range", "granularity", "dual_port"),
     "dither_mode": ("off", "analog", "quantizer", "sampling"),
     "dither_split_bank": ("sub", "main"),
     "dither_quant_transfer": ("quantizer", "rdac"),
     "ra_gain_model": ("charge", "fixed"),
-    "calibration": ("none", "gain", "gain_beta"),
+    "calibration": ("none", "gain", "gain_beta", "weights"),
     # dem_mode 现在**真的决定调度器**：三个仿真入口都经 scheduler.make_scheduler
     # 取调度器（rotate -> Scheduler，permute -> ShuffledScheduler），显式传入的
     # 调度器与它不一致时拒绝运行。注意"接线"不等于"调度正确"：洗牌调度器自身
@@ -100,9 +81,9 @@ LEGAL_VALUES: dict[str, tuple[str, ...]] = {
 # stage1_reading 标签 -> b1 的对应关系。从三种读法的**定义**直接导出，不是
 # 第二份需要手工同步的事实表：
 #
-#   paper_consistent  b1 + 2b 增强 = 9b              -> b1 = 7（默认读数）
-#   paper_literal     字面"9b in the first stage"    -> b1 = 9
-#   legacy_codeword   v6.1：6b 粗判决 + 3b dither    -> b1 = 6
+#   paper_consistent  historical seven-decision-bit hypothesis (default)
+#   paper_literal     nine unknown-input decisions; separate 4x dither port
+#   legacy_codeword   historical six-decision-bit model, retained as a baseline
 #
 # 标签只是元数据，真正改变机制的是 b1（以及工厂方法一并设定的后端字段）。
 # 两者不一致时，用户会以为自己切换了架构、实际没有 —— 与拼错的枚举值同类，
@@ -129,28 +110,17 @@ class Config:
 
     # ---------------- 第一级 SADC ----------------
     b1: int = 7  # 第一级 SADC 判决位数（含义见 stage1_reading）
-    # 第一级分辨率的**架构读数**。论文 [00] 同时披露了两条互相约束的事实：
-    #   (a) "...resulting in 9b quantization in the first stage."
-    #   (b) "the dither range is enhanced by 2b when transferred from the
-    #        quantizer to the RDAC."
-    # 本模型的机制里，"量程增强 2^b" 的 b 就是「一个第一级判决步包含多少
-    # RDAC 单位步」= log2(DAC 电平数 / 2**b1)。两条联立：
-    #       b1 + b_enh = 9,  b_enh = 2  =>  b1 = 7（units_per_d1 = 4 = 2²）
-    # 可选读数（外部审计 F1 要求显式声明，不得悄悄选定）：
-    #   "paper_consistent"（默认）: b1=7 —— 在「码值量程增强 == 对未知输入的
-    #                              额外判决位数」这一**假设**下唯一自洽的分配。
-    #                              该等同正是 ADR 0003 §1 拒绝过的那一种，所以
-    #                              这里是一个**假设**，不是收敛结论；PARAM_GRADES
-    #                              把 b1 标为 ASSUMED（外部复核 2026-09-11 R3）。
-    #   "paper_literal"          : b1=9 —— 只取 (a) 的字面读法；此时
-    #                              units_per_d1=1，增强 0b，与 (b) 冲突。
-    #   "legacy_codeword"        : b1=6 —— v6.1 读法（增强 3b）；仅为复现旧结果。
+    # Explicit architecture hypotheses. The paper's nine quantization bits
+    # concern unknown input; the separate two-bit dither range statement does
+    # not add decision information. The nine-bit factory uses an assumed 4x
+    # dual port, while the seven-bit default preserves historical comparisons.
+    # Neither hypothesis supplies undisclosed ADC2 or switching circuit detail.
     stage1_reading: str = "paper_consistent"
     # dither 从量化器转移到 RDAC 的机制。论文 [00]：dither range "is enhanced
     # by 2b when the result is transferred from the quantizer to the RDAC"。
-    #   "range"      : 论文口径（默认）—— 转移 = 在 RDAC 栅格上精确扣除
+    #   "range"      : 历史 RDAC 栅格转移假设（默认）
     #                  d_code = −round(d/ΔD)；"2^b 增强"是**余量能力**
-    #                  （units_per_d1 = 2^b），由 stage21 作为推导量报出，
+    #                  （units_per_d1 = 2^b），只是栅格比，
     #                  不由粒度实验冒充证明。
     #   "granularity": v6.1 读法 —— 转移时按更细粒度重新取整（保留对照）。
     dither_transfer_model: str = "range"
@@ -213,6 +183,8 @@ class Config:
     # 实际接到的 8 个 slice 的总电容（= c_unit0 * n_active * 64 = 20.5 pF），
     # 不是整个 18-slice 资源池（46.1 pF）。
     c_feedback0: float = 20.5e-12 / 32.0
+    split_feedback_cap_f: float | None = None  # None: C_sig_nom/g0；显式值为当前面积的 F
+    dac_complete_range: bool = False  # True: n_main 电容允许 0..n_main 个选通
 
     # ---------------- 后端 ADC2 ----------------
     # 位预算（paper_consistent 读数，b1=7）：后端需分辨 G0*Delta1 到 LSB20 以下。
@@ -228,6 +200,7 @@ class Config:
 
     # ---------------- 数字功能开关 ----------------
     dem_enable: bool = False
+    dem_bridge_enable: bool = False  # 可实现的跨 slice 零和码交换；分段拓扑假设
     # off       : 关闭
     # analog    : 输入注入（v1）→ 直接从 ±V_FS 扣量程，代价是可用范围变小
     # sampling  : 采样态电荷注入（专利 [10] Fig.6 / Fig.19）→ **不占输入量程**
@@ -309,6 +282,7 @@ class Config:
     # 硬设计约束：20.5 pF @ 40MS/s 要建立到 0.1%，需 R_total ≈ 60 Ω
     # （Ts*0.45/(6.9*C)=1.6 ns）-> 采样开关必须自举。这是模型反推的规格。
     dyn_input_settling: bool = False
+    input_network: InputNetworkParameters = field(default_factory=InputNetworkParameters)
     dyn_r_source: float = 30.0  # 驱动器 + 走线串联电阻 [ohm]
     dyn_r_on: float = 20.0  # 采样开关导通电阻 [ohm]（自举开关量级）
     dyn_t_sample_frac: float = 0.45  # 采样相时长 / Ts
@@ -317,6 +291,7 @@ class Config:
 
     # --- (b) 参考建立：每次切换从参考抽取电荷，有限去耦 + 有限恢复带宽 ---
     dyn_ref_settling: bool = False
+    conversion: ConversionParameters = field(default_factory=ConversionParameters)
     dyn_c_decouple: float = 4.7e-6  # 参考去耦电容 [F]（片外典型量级）
     dyn_tau_ref: float = 20e-9  # 参考缓冲恢复时间常数 [s]
     dyn_t_conv_frac: float = 0.40  # 转换相时长 / Ts
@@ -494,40 +469,15 @@ class Config:
 
     @classmethod
     def paper_consistent(cls) -> Config:
-        """返回同时满足论文**两条**披露的配置（推荐基线）。
+        """Return the historical seven-decision-bit hypothesis.
 
-        推导（外部审计 F1 的收敛解）
-        ----------------------------
-        论文 [00] 有两条互相约束的披露：
-
-        1. "...resulting in **9b quantization** in the first stage."
-        2. "the dither **range is enhanced by 2b** when the result is
-           transferred from the quantizer to the RDAC."
-
-        本模型的机制载体里，"量程增强 2^b" 的 b 就是**一个第一级判决步包含
-        多少个 RDAC 单位步** —— 即 ``units_per_d1 = DAC 电平数 / 2**b1``。
-        因为 dither 必须能被 RDAC 精确扣除，其可表示的**码值量程**正是
-        ``units_per_d1``；把它记为 2^b 就是论文的 "enhanced by 2b"。
-
-        两条披露联立即：
-
-            b1 + log2(units_per_d1) = 9      （第一级总判决能力）
-            log2(units_per_d1)      = 2      （披露的增强位数）
-            =>  b1 = 7,  units_per_d1 = 4
-
-        而 "b1=9"（审计点名的字面读法）给出 units_per_d1 = 1 —— 增强 0b，
-        **与披露 2 冲突**；"b1=6"（v6.1）给出 3b，大于披露值。
-        因此 **7b SADC + 2b dither 量程增强 = 9b 第一级量化** 是与两条披露
-        同时相容的唯一分配。
-
-        派生关系（单一物理量 g0·Δ1 = RA 输出端残差峰值 span）：
-            adc2_v_min  = −0.10·span      adc2_v_max = +1.10·span
-            adc2_n_bits = ceil(log2((v_max−v_min)/(LSB20·g0)))  → Δ2/G0 ≤ LSB20
-            ra_v_clip   = 1.2·v_max      （RA 自身饱和早于 ADC2 满度）
+        This preserves the legacy grid-ratio interpretation for comparison.
+        It does not establish that 7 decisions plus 2 dither bits reproduce the
+        paper's nine quantization bits. See `paper_literal` for the independent
+        range/decision candidate and ADR 0003 for the distinction.
 
         Returns:
-            一个 ``stage1_reading="paper_consistent"``、b1=7、后端
-            14 bit / [−0.15, 1.65] V 的 Config。
+            Seven SADC bits, 14 backend bits and a [-0.15, 1.65] V backend.
         """
         base = cls()
         span = base.g_actual * (2.0 * base.v_fs / (2.0**7))
@@ -543,6 +493,75 @@ class Config:
             adc2_v_min=v_lo,
             adc2_v_max=v_hi,
             ra_v_clip=1.2 * v_hi,
+        )
+
+    @classmethod
+    def paper_literal(cls, **overrides) -> Config:
+        """Build a nine-decision-bit candidate with independent dither range.
+
+        A 63-main/8-sub complete-count topology is an explicit modeling choice,
+        not a claim that the paper discloses these physical capacitor counts.
+        With beta=1/8 it spans 512 uniform codes over the full 6 V input range.
+        Dual-port dither is a separately declared ideal charge-injection model.
+
+        Args:
+            **overrides: Explicit configuration overrides; backend settings are
+                rederived unless explicitly supplied.
+
+        Returns:
+            A legal 9b decision candidate with a 12b backend at nominal settings.
+        """
+        from dataclasses import replace
+
+        base = cls(
+            b1=9,
+            stage1_reading="paper_literal",
+            dac_arch="split",
+            dac_n_main=63,
+            dac_n_sub=8,
+            dac_complete_range=True,
+            dither_transfer_model="dual_port",
+            dither_enhancement_bits=2,
+            dither_discrete=True,
+            dem_bridge_enable=True,
+        )
+        base = replace(base, **overrides)
+        span = base.g0 * base.delta1
+        lo, hi = -0.1 * span, 1.1 * span
+        return replace(
+            base,
+            adc2_v_min=base.adc2_v_min if "adc2_v_min" in overrides else lo,
+            adc2_v_max=base.adc2_v_max if "adc2_v_max" in overrides else hi,
+            adc2_n_bits=(
+                base.adc2_n_bits
+                if "adc2_n_bits" in overrides
+                else math.ceil(math.log2((hi - lo) / (base.g0 * base.lsb_target)))
+            ),
+            ra_v_clip=base.ra_v_clip if "ra_v_clip" in overrides else 1.2 * hi,
+        )
+
+    @property
+    def nominal_rdac_step(self) -> float:
+        """Nominal RDAC input-referred step [V], independent of true capacitors.
+
+        Returns:
+            Fine step from the declared signal-charge topology.
+        """
+        if self.dac_arch == "unary":
+            return self.rdac_step
+        beta = 1.0 / self.dac_n_sub
+        return 2.0 * self.v_fs * beta / (self.dac_n_main + beta * self.dac_n_sub)
+
+    @property
+    def dither_rdac_ratio(self) -> float:
+        """Nominal dither amplitude ratio for the explicit dual-port model.
+
+        Returns:
+            RDAC injected voltage divided by quantizer injected voltage;
+            zero for legacy models without an RDAC injection port.
+        """
+        return (
+            2.0**self.dither_enhancement_bits if self.dither_transfer_model == "dual_port" else 0.0
         )
 
     @property
@@ -648,7 +667,7 @@ class Config:
         """
         if self.dac_arch == "unary":
             return self.n_active * self.n_unit_per_slice
-        return int(self.dac_n_main) * max(int(self.dac_n_sub), 1)
+        return (int(self.dac_n_main) + int(self.dac_complete_range)) * max(int(self.dac_n_sub), 1)
 
     @property
     def dac_bits(self) -> float:
@@ -678,7 +697,12 @@ class Config:
         if self.dac_arch == "unary":
             return self.c_unit0 * s
         n_tot = int(self.dac_n_main) + int(self.dac_n_sub)
-        n_alloc = n_tot + (1 if self.dac_n_sub > 0 else 0)
+        bridge_units = (
+            self.dac_n_sub * (1 + self.dac_parasitic_ratio) / (self.dac_n_sub - 1)
+            if self.dac_n_sub > 1
+            else 1.0
+        )
+        n_alloc = n_tot + bridge_units
         return self.c_total0 * s / n_alloc
 
     def dac_step_main(self) -> float:
@@ -690,7 +714,7 @@ class Config:
         """
         if self.dac_arch == "unary":
             return self.rdac_step
-        return 2.0 * self.v_fs / float(self.dac_n_main)
+        return self.nominal_rdac_step * self.dac_n_sub
 
     def dac_step_sub(self) -> float:
         """子阵列单位步长；unary 或无子阵列时为 0。
@@ -946,6 +970,44 @@ class Config:
             list[str]: 每条是一句可读的违规说明；空列表表示合法。
         """
         bad: list[str] = []
+        if not isinstance(self.input_network, InputNetworkParameters):
+            bad.append(
+                "input_network requires InputNetworkParameters; use Config.from_dict for JSON"
+            )
+        if not isinstance(self.conversion, ConversionParameters):
+            bad.append("conversion requires ConversionParameters; use Config.from_dict for JSON")
+        if bad:
+            return bad
+        bad.extend(self.input_network.violations())
+        bad.extend(self.conversion.violations())
+        if self.dyn_ref_settling or self.conversion.dynamic:
+            if not math.isfinite(self.dyn_tau_ref) or self.dyn_tau_ref <= 0:
+                bad.append("dyn_tau_ref must be finite and positive [s]")
+            if not math.isfinite(self.dyn_c_decouple) or self.dyn_c_decouple <= 0:
+                bad.append("dyn_c_decouple must be finite and positive [F]")
+            if not 0 < self.dyn_t_conv_frac <= 1:
+                bad.append("dyn_t_conv_frac must be in (0, 1]")
+            if (
+                self.fs > 0
+                and self.conversion.quantizer_time_s + self.dyn_t_conv_frac / self.fs > 1 / self.fs
+            ):
+                bad.append("quantizer and RA/ADC2 phases must fit within one sample period")
+        if self.dyn_input_settling:
+            if (
+                self.fs > 0
+                and self.input_network.pretrack_mode != "residue"
+                and self.input_network.pretrack_time_s + self.dyn_t_sample_frac / self.fs
+                > 1 / self.fs
+            ):
+                bad.append("pretracking and acquisition must fit within one sample period")
+            if not math.isfinite(self.dyn_r_source) or self.dyn_r_source < 0:
+                bad.append("dyn_r_source must be finite and nonnegative [ohm]")
+            if not math.isfinite(self.dyn_r_on) or self.dyn_r_on <= 0:
+                bad.append("dyn_r_on must be finite and positive [ohm]")
+            if not 0 < self.dyn_t_sample_frac <= 1:
+                bad.append("dyn_t_sample_frac must be in (0, 1]")
+            if not math.isfinite(self.dyn_ron_code_coeff) or self.dyn_ron_code_coeff < 0:
+                bad.append("dyn_ron_code_coeff must be finite and nonnegative")
         for field_name, allowed in LEGAL_VALUES.items():
             actual = getattr(self, field_name)
             if actual not in allowed:
@@ -972,6 +1034,33 @@ class Config:
             bad.append(f"v_fs={self.v_fs!r} 必须为正（满幅峰值 [V]）")
         if self.n_bits_target < 1:
             bad.append(f"n_bits_target={self.n_bits_target!r} 必须 >= 1")
+        if (
+            isinstance(self.adc2_n_bits, bool)
+            or not isinstance(self.adc2_n_bits, int)
+            or not 1 <= self.adc2_n_bits <= 30
+        ):
+            bad.append("adc2_n_bits must be an integer in [1, 30]")
+        if (
+            not math.isfinite(self.adc2_v_min)
+            or not math.isfinite(self.adc2_v_max)
+            or self.adc2_v_min >= self.adc2_v_max
+        ):
+            bad.append("ADC2 voltage bounds must be finite and strictly increasing")
+        if self.split_feedback_cap_f is not None and (
+            not math.isfinite(self.split_feedback_cap_f) or self.split_feedback_cap_f <= 0
+        ):
+            bad.append("split_feedback_cap_f must be finite and positive [F]")
+        if self.dither_mode == "sampling":
+            D = self.dither_units_range
+            available = (
+                (self.dac_n_main if self.dither_split_bank == "main" else self.dac_n_sub)
+                if self.dac_arch == "split"
+                else self.n_units_sig
+            )
+            if not math.isfinite(D) or D < 0 or int(D) != D or available < 2 * D:
+                bad.append(
+                    "sampling dither requires integer D >= 0 and 2D available bank capacitors"
+                )
         if self.dac_arch == "split":
             if self.dac_n_main < 1:
                 bad.append(f"dac_n_main={self.dac_n_main!r} 必须 >= 1（主阵列单位数）")
@@ -986,6 +1075,12 @@ class Config:
                     f"2**b1 = {2**self.b1} 超过 DAC 电平数 {self.dac_levels}："
                     f"该第一级读数无法被这个 DAC 表达"
                 )
+            if self.dac_levels % (2**self.b1):
+                bad.append("DAC levels must be divisible by the number of SADC decisions")
+        if self.dither_transfer_model == "dual_port" and not self.dither_discrete:
+            bad.append("dual_port dither requires discrete nominal RDAC-grid injection")
+        if not 0 <= self.dither_enhancement_bits <= 16:
+            bad.append("dither_enhancement_bits must be between 0 and 16")
         return bad
 
     def check_legal(self) -> None:
@@ -1031,9 +1126,7 @@ class Config:
         # 不自洽时（如把 b1=9 套在 (64,8) 分段阵列上）模型不会报错，
         # 而是静默把 residue 推出 ADC2 窗口、输出跳到伏级 —— 这正是审计
         # 要求"先修正骨架"的量化理由。此判据把这种组合变成显式 FAIL。
-        dac_levels = (
-            self.dac_n_main * self.dac_n_sub if self.dac_arch == "split" else self.n_units_sig
-        )
+        dac_levels = self.dac_levels if self.dac_arch == "split" else self.n_units_sig
         levels_needed = 2**self.b1
         checks["第一级读数与 DAC 拓扑自洽（2**b1 <= DAC 电平数）"] = (
             float(levels_needed),
@@ -1056,7 +1149,7 @@ class Config:
         # 也就是「一个粗判决步含多少个 RDAC 单位步」。
         # 这条等式把 ADR 0003 的收敛解写成了机器可校验的约束：
         #   paper_consistent (b1=7, 512 电平) -> 增强 2b ✓
-        #   paper_literal    (b1=9, 512 电平) -> 增强 0b ✓（与披露 2b 冲突，故非默认）
+        #   paper_literal: 9b + explicit independent dual-port amplitude ratio 4.
         #   legacy_codeword  (b1=6, 512 电平) -> 增强 3b ✓（v6.1 读法，> 披露值）
         # 若有人只改 b1 而不重推读数，这里立刻 FAIL，不会静默放行。
         enh_expected = math.log2(dac_levels / levels_needed) if levels_needed else float("nan")
@@ -1066,10 +1159,22 @@ class Config:
             (
                 levels_needed > 0
                 and dac_levels % levels_needed == 0
-                and int(self.dither_enhancement_bits) == int(round(enh_expected))
+                and (
+                    self.dither_transfer_model == "dual_port"
+                    or int(self.dither_enhancement_bits) == int(round(enh_expected))
+                )
             ),
             "bit",
         )
+        if self.dither_transfer_model == "dual_port":
+            # A separate port ratio is not a statement about decision bits.
+            checks.pop("dither 增强位数 == log2(DAC 电平数 / 2**b1)")
+            checks["dither 双端口名义幅度比"] = (
+                self.dither_rdac_ratio,
+                4.0,
+                self.dither_rdac_ratio == 4.0,
+                "V/V",
+            )
 
         # 判据 1：后端分辨能力  Delta2 / G0 <= LSB_target
         step_referred = d2 / g
@@ -1206,7 +1311,11 @@ class Config:
             # paper_consistent（b1=7、enh=2）后它会给出 2^10=1024 > 512 的
             # **假 FAIL** —— 把与读数无关的常数当作物理需求，正是本次审计
             # 要求清除的一类缺陷。现在增强位数从配置取，随读数自动跟随。
-            need = 2**self.b1 * 2 ** int(self.dither_enhancement_bits)
+            need = 2**self.b1 * (
+                1
+                if self.dither_transfer_model == "dual_port"
+                else 2 ** int(self.dither_enhancement_bits)
+            )
             checks["分段 DAC 电平数 >= 2**b1 * 2**增强位数"] = (
                 float(self.dac_levels),
                 float(need),
@@ -1268,9 +1377,38 @@ class Config:
 
         Returns:
             dict: 键为字段名（str），值为字段值，单位同各字段定义。
-            等价于 dataclasses.asdict，不递归转换嵌套对象。
+            Nested parameter dataclasses are recursively converted to dictionaries.
         """
         return asdict(self)
+
+    @classmethod
+    def from_dict(cls, values: dict) -> Config:
+        """Load a configuration exported by to_dict, including a JSON round trip.
+
+        Args:
+            values: Field names and SI values; unknown fields are rejected.
+
+        Returns:
+            A validated independent configuration with typed nested controls.
+
+        Raises:
+            TypeError: Unknown fields or malformed nested parameters.
+            ConfigError: Invalid physical settings.
+        """
+        params = dict(values)
+        if isinstance(params.get("input_network"), dict):
+            network = dict(params["input_network"])
+            if "pretrack_weights" in network:
+                network["pretrack_weights"] = tuple(network["pretrack_weights"])
+            params["input_network"] = InputNetworkParameters(**network)
+        if isinstance(params.get("conversion"), dict):
+            params["conversion"] = ConversionParameters(**params["conversion"])
+        for name in ("mismatch_split", "mismatch_gradient"):
+            if name in params:
+                params[name] = tuple(params[name])
+        cfg = cls(**params)
+        cfg.check_legal()
+        return cfg
 
 
 def noise_budget(cfg: Config) -> dict:

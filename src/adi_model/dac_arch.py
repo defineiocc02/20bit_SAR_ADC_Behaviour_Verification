@@ -321,7 +321,7 @@ def build_split_chip(cfg: Config, draw: tuple | None = None) -> SplitChip:
     b_sub_nom = float(n_s * c_u)
     beta_for_cf = cc_nom / (cc_nom + b_sub_nom + c_p_nom) if n_s > 1 else 1.0
     c_sig_nom = (n_m + beta_for_cf * n_s) * c_u
-    cf_nom = c_sig_nom / cfg.g0
+    cf_nom = c_sig_nom / cfg.g0 if cfg.split_feedback_cap_f is None else cfg.split_feedback_cap_f
     cf_true = cf_nom * (1.0 + (sigma * cf_z if cfg.mismatch_enable else 0.0))
 
     return SplitChip(
@@ -410,7 +410,7 @@ class SplitDAC:
         self.chip = chip
         self.n_m = int(cfg.dac_n_main)
         self.n_s = int(cfg.dac_n_sub)
-        self.levels = self.n_m * self.n_s
+        self.levels = cfg.dac_levels
         self._cache: dict[int, tuple] = {}
 
     # ---------------- DEM 顺序 ----------------
@@ -626,7 +626,7 @@ class SplitDAC:
             (k_m, k_s) 二元组 [单位当量]：k_m = floor(k_eq/n_sub) 为主码，
             k_s = k_eq − k_m·n_sub 为子码（np.ndarray）。
         """
-        k_eq = np.asarray(k_eq, dtype=float)
+        k_eq = np.clip(np.asarray(k_eq, dtype=float), 0.0, self.levels - 1.0)
         k_m = np.floor(k_eq / self.n_s)
         k_s = k_eq - k_m * self.n_s
         return k_m, k_s

@@ -56,13 +56,13 @@ from dataclasses import dataclass
 from typing import Any, Generic, TypeVar
 
 __all__ = [
-    "SourceGrade",
+    "PARAM_GRADES",
     "Graded",
     "GradingError",
-    "PARAM_GRADES",
-    "grade_of",
+    "SourceGrade",
     "annotate_config",
     "audit_provenance",
+    "grade_of",
 ]
 
 T = TypeVar("T")
@@ -251,7 +251,7 @@ PARAM_GRADES: dict[str, tuple[SourceGrade, str]] = {
     "seed": (_A, "reproducibility only, no physical meaning"),
     # ---- first stage -----------------------------------------------------
     "b1": (_A, "ARCHITECTURAL READING, see docs/adr/0003-stage-1-resolution.md"),
-    "stage1_reading": (_G, "[00]: '...resulting in 9b quantization in the first stage'"),
+    "stage1_reading": (_A, "architecture hypothesis label; disclosed decision count is 9b"),
     "c_sadc": (_A, "quantizer slice sampling cap; not disclosed"),
     "sadc_offset": (_A, "default 0 = ideal"),
     "sadc_rdac_gain_mismatch": (_F, "set to be consistent with >11b matching [00]"),
@@ -268,7 +268,10 @@ PARAM_GRADES: dict[str, tuple[SourceGrade, str]] = {
     # ---- slice pool ------------------------------------------------------
     "n_slices": (_G, "[00]: pool of 18 sDAC"),
     "n_active": (_G, "[00]: 8 converting + 8 acquiring"),
-    "n_unit_per_slice": (_D, "512 RDAC units / 8 active slices; 8x8 matches 3b+3b DEM"),
+    "n_unit_per_slice": (
+        _A,
+        "physical segmentation assumption; DEM state bits do not fix capacitor counts",
+    ),
     "n_units_headroom": (_A, "dither headroom; not disclosed"),
     # ---- capacitor array -------------------------------------------------
     "c_total0": (_G, "[00_1]: 20.5 pF RDAC"),
@@ -280,12 +283,21 @@ PARAM_GRADES: dict[str, tuple[SourceGrade, str]] = {
     "mismatch_gradient": (_A, "no published number"),
     "pdk_sigma_est_ppm": (_A, "Pelgrom-style area-law estimate; not a PDK measurement"),
     "c_feedback0": (_D, "c_total0 / g0"),
+    "split_feedback_cap_f": (_A, "explicit split feedback override [F]; None derives C_sig_nom/g0"),
+    "dac_complete_range": (
+        _A,
+        "complete thermometer counts 0..n_main; topology candidate, not disclosed",
+    ),
     # ---- backend ADC -----------------------------------------------------
     "adc2_n_bits": (_D, "derived in Config.paper_consistent() from Delta1 and LSB20·G0"),
     "adc2_v_min": (_D, "-0.10 * G0 * Delta1 (residue span with ~10% margin)"),
     "adc2_v_max": (_D, "+1.10 * G0 * Delta1 (residue span with ~10% margin)"),
     # ---- DEM / dither ----------------------------------------------------
     "dem_enable": (_A, "modelling switch"),
+    "dem_bridge_enable": (
+        _A,
+        "zero-sum cross-slice code exchange; realizable candidate, not exact disclosed mask",
+    ),
     "dem_mode": (_A, "algorithm choice, not disclosed"),
     "dither_mode": (_A, "modelling switch"),
     "dither_amplitude_lsb1": (_A, "not disclosed; '2b enhancement' has no number"),
@@ -294,8 +306,8 @@ PARAM_GRADES: dict[str, tuple[SourceGrade, str]] = {
     "dither_discrete": (_A, "realisability study"),
     "dither_quant_transfer": (_A, "reading of 'transferred from quantizer to RDAC' [00]"),
     "dither_transfer_model": (
-        _G,
-        "[00]: 'range enhanced by 2b when transferred from quantizer to RDAC'",
+        _A,
+        "legacy grid interpretation or ideal dual-port charge model; not a disclosed topology",
     ),
     "dither_enhancement_bits": (_G, "[00]: '2b enhancement' on the RDAC side"),
     "dither_changes_in_window": (_A, "modelling switch"),
@@ -320,10 +332,15 @@ PARAM_GRADES: dict[str, tuple[SourceGrade, str]] = {
     # ---- dynamics: all assumed -------------------------------------------
     "dyn_input_settling": (_A, "modelling switch"),
     "dyn_r_source": (_A, "no published number"),
+    "input_network": (_A, "passive shared-source topology and numerical integration controls"),
     "dyn_r_on": (_A, "no published number"),
     "dyn_t_sample_frac": (_A, "no published number"),
     "dyn_ron_code_coeff": (_A, "no published number"),
     "dyn_ref_settling": (_A, "modelling switch"),
+    "conversion": (
+        _A,
+        "joint signal-response topology, timing, bandwidth, slew and solver controls",
+    ),
     "dyn_c_decouple": (_A, "no published number"),
     "dyn_tau_ref": (_A, "no published number"),
     "dyn_t_conv_frac": (_A, "no published number"),

@@ -26,6 +26,103 @@ import numpy as np
 _MIN_FUND_BIN_FOR_HARMONICS = 16
 
 
+def _record(x, fs):
+    if np.iscomplexobj(x):
+        raise ValueError("one-sided ADC spectrum requires real samples")
+    data = np.asarray(x, dtype=float)
+    if data.ndim != 1 or data.size < 4 or np.any(~np.isfinite(data)):
+        raise ValueError("spectral analysis needs at least four finite real samples")
+    if not np.isfinite(fs) or fs <= 0:
+        raise ValueError("sample rate must be finite and positive")
+    return data
+
+
+def _window(n, name):
+    if name == "boxcar":
+        return np.ones(n)
+    if name == "hann":
+        return np.hanning(n)
+    if name == "blackman":
+        return np.blackman(n)
+    if name == "blackmanharris":
+        return _bh4(n)
+    raise ValueError("window must be boxcar, hann, blackman or blackmanharris")
+
+
+def power_spectral_density(x, fs: float, *, window="blackmanharris", remove_mean=True) -> dict:
+    """Return a one-sided density [V²/Hz], distinct from tone amplitude [V].
+
+    Density is |FFT(w*x)|²/(fs*sum(w²)); interior positive-frequency bins
+    receive a factor of two. DC and an even-record Nyquist bin do not.
+    Summing PSD*df equals sum(w²*x²)/sum(w²), including endpoints. ENBW
+    is fs*sum(w²)/sum(w)² and does not get applied a second time.
+    """
+    data = _record(x, fs)
+    n = len(data)
+    w = _window(n, window)
+    centered = data - data.mean() if remove_mean else data
+    density = np.abs(np.fft.rfft(w * centered)) ** 2 / (fs * np.dot(w, w))
+    density[1 : -1 if n % 2 == 0 else None] *= 2
+    return {
+        "frequency_hz": np.fft.rfftfreq(n, 1 / fs),
+        "density_v2_hz": density,
+        "df_hz": fs / n,
+        "enbw_hz": float(fs * np.dot(w, w) / w.sum() ** 2),
+        "coherent_gain": float(w.mean()),
+        "window": window,
+        "mean_removed": bool(remove_mean),
+        "integrated_power_v2": float(density.sum() * fs / n),
+    }
+
+
+def integrate_noise_band(spectrum: dict, low_hz: float, high_hz: float) -> dict:
+    """Sum PSD times bin width over bins whose centers lie in [low,high].
+
+    Reports actual included bin centers. Bands finer than the record resolution
+    are not silently interpolated. Input should be a residual/noise PSD if a
+    noise-only result is intended; signal and harmonics are not auto-excluded.
+    """
+    f = np.asarray(spectrum["frequency_hz"])
+    p = np.asarray(spectrum["density_v2_hz"])
+    df = spectrum["df_hz"]
+    if not (np.isfinite(low_hz) and np.isfinite(high_hz) and 0 <= low_hz <= high_hz <= f[-1]):
+        raise ValueError("noise band must lie inside the sampled frequency grid")
+    mask = (f >= low_hz) & (f <= high_hz)
+    if not np.any(mask):
+        raise ValueError("requested band contains no resolved FFT bin")
+    power = float(p[mask].sum() * df)
+    return {
+        "power_v2": power,
+        "rms_v": float(np.sqrt(power)),
+        "bins": int(mask.sum()),
+        "first_center_hz": float(f[mask][0]),
+        "last_center_hz": float(f[mask][-1]),
+        "df_hz": float(df),
+    }
+
+
+def _harmonic_design(n: int, fs: float, fin: float, nharm: int):
+    t = np.arange(n) / fs
+    cols = [np.ones(n)]
+    used: list[float] = []
+    dropped = []
+    tolerance = (fs / n) * 1e-7
+    for h in range(1, nharm + 1):
+        alias = abs((h * fin + fs / 2) % fs - fs / 2)
+        if alias <= tolerance:
+            dropped.append((h, "DC"))
+            continue
+        if any(abs(alias - old) <= tolerance for old in used):
+            dropped.append((h, "aliased duplicate"))
+            continue
+        used.append(alias)
+        if abs(alias - fs / 2) <= tolerance:
+            cols.append(np.cos(np.pi * np.arange(n)))
+        else:
+            cols += [np.sin(2 * np.pi * alias * t), np.cos(2 * np.pi * alias * t)]
+    return np.stack(cols, axis=1), dropped
+
+
 # ------------------------------------------------------------------ 频谱
 def _lsq_amp(x: np.ndarray, freqs: list[float], fs: float) -> list[float]:
     """对**已知频率**集合做联合最小二乘，返回各成分幅度。
@@ -185,6 +282,9 @@ def _fft_sfdr(
     # ---- 3) 残余加窗 FFT，全谱搜峰（近端与远端同口径）----
     w = _bh4(n)
     mag = np.abs(np.fft.rfft(resid * w)) / (np.sum(w) / 2.0)
+    if n % 2 == 0:
+        # Equivalent sine peak for an RMS-power spur comparison.
+        mag[-1] /= np.sqrt(2.0)
     mag[0] = 0.0
     k_fund = int(round(f_fund * n / fs))
     k_fund = max(1, min(k_fund, mag.size - 1))
@@ -268,7 +368,7 @@ def _fft_harmonics(
     A1 = _band_max(X, fund_bin, guard_bins)
 
     used_bins = [(fund_bin, "fund")]
-    harms, dropped = [], []
+    harms, dropped, rms_harmonics = [], [], []
     for h in range(2, nharm + 1):
         f_alias = h * fin
         # 折叠到 [0, fs/2]
@@ -276,7 +376,8 @@ def _fft_harmonics(
         if f_alias > fs / 2:
             f_alias = fs - f_alias
         b = int(round(f_alias * n / fs))
-        if b <= guard_bins or b >= X.size - guard_bins:
+        nyquist = n % 2 == 0 and abs(f_alias - fs / 2) < fs / n * 1e-7
+        if b <= guard_bins or (b >= X.size - guard_bins and not nyquist):
             dropped.append((h, "DC/Nyquist"))
             continue
         # 与基波重合（±guard） -> 丢弃
@@ -288,12 +389,16 @@ def _fft_harmonics(
             dropped.append((h, "与低次谐波重合"))
             continue
         used_bins.append((b, f"h{h}"))
-        harms.append((h, _band_max(X, b, guard_bins)))
+        amplitude = float(X[-1] / 2) if nyquist else _band_max(X, b, guard_bins)
+        harms.append((h, amplitude))
+        rms_harmonics.append(amplitude if nyquist else amplitude / np.sqrt(2.0))
     thd = (
-        20 * np.log10(np.sqrt(sum(a2**2 for _, a2 in harms)) / A1) if harms and A1 > 0 else -np.inf
+        20 * np.log10(np.linalg.norm(rms_harmonics) / (A1 / np.sqrt(2.0)))
+        if harms and A1 > 0
+        else -np.inf
     )
     sfdr_h = (
-        20 * np.log10(A1 / max(a2 for _, a2 in harms))
+        20 * np.log10((A1 / np.sqrt(2.0)) / max(rms_harmonics))
         if harms and max(a2 for _, a2 in harms) > 0
         else np.inf
     )
@@ -328,36 +433,22 @@ def sine_fit_metrics(x: np.ndarray, fs: float, fin: float, nharm: int = 12) -> d
             harmonics_reliable [bool]   基波 bin < 16 时为 False（THD 置 nan）。
     Side effects: 无（纯函数）。
     """
-    x = np.asarray(x, dtype=float)
+    x = _record(x, fs)
+    if not np.isfinite(fin) or not 0 < fin < fs / 2:
+        raise ValueError("sine frequency must be strictly between DC and Nyquist")
+    if type(nharm) is not int or nharm < 1:
+        raise ValueError("nharm must be a positive integer")
     n = x.size
-    t = np.arange(n) / fs
-    w = 2 * np.pi * fin
-
-    def design(kmax: int) -> np.ndarray:
-        """构造含直流与 kmax 次谐波的正弦/余弦最小二乘设计矩阵。
-
-        Args:
-            kmax: 最高谐波次数（无量纲，≥ 1）。
-
-        Returns:
-            设计矩阵，形状 (n, 1 + 2·kmax)，无量纲。首列为直流项，
-            其后按 [sin(kωt), cos(kωt)] 成对排列，k = 1..kmax。
-        """
-        cols = [np.ones(n)]
-        for k in range(1, kmax + 1):
-            cols += [np.sin(k * w * t), np.cos(k * w * t)]
-        return np.stack(cols, axis=1)
-
     # 只拟合基波
-    D1 = design(1)
+    D1, _ = _harmonic_design(n, fs, fin, 1)
     c1, *_ = np.linalg.lstsq(D1, x, rcond=None)
     A = float(np.hypot(c1[1], c1[2]))
     resid_nd = x - D1 @ c1  # 含谐波 + 噪声
     r_nd = float(np.sqrt(np.mean(resid_nd**2)))
 
     # 含谐波（低频输入、无混叠时仍最稳）
-    Dh = design(nharm)
-    ch, *_ = np.linalg.lstsq(Dh, x, rcond=None)
+    Dh, fit_dropped = _harmonic_design(n, fs, fin, nharm)
+    ch, _, fit_rank, singular = np.linalg.lstsq(Dh, x, rcond=1e-10)
     resid_n = x - Dh @ ch  # 仅噪声
     r_n = float(np.sqrt(np.mean(resid_n**2)))
 
@@ -396,6 +487,15 @@ def sine_fit_metrics(x: np.ndarray, fs: float, fin: float, nharm: int = 12) -> d
         "harmonics": np.array([a2 for _, a2 in fft_h["harmonics"]]),
         "harmonics_dropped": fft_h["dropped"],
         "harmonics_reliable": harmonics_reliable,
+        "harmonic_fit_dropped": fit_dropped,
+        "harmonic_fit_rank": int(fit_rank),
+        "harmonic_fit_columns": Dh.shape[1],
+        "harmonic_fit_condition": float(singular[0] / max(singular[-1], np.finfo(float).tiny)),
+        "noise_fit_reliable": bool(fit_rank == Dh.shape[1] and n > fit_rank),
+        "noise_degrees_of_freedom": int(n - fit_rank),
+        "record_duration_s": n / fs,
+        "resolution_hz": fs / n,
+        "coherent": bool(abs(fin * n / fs - round(fin * n / fs)) < 1e-8),
     }
 
 
@@ -416,22 +516,18 @@ def spectrum_dbfs(
         v_fs）。dBFS = 20·log10(mag/v_fs)，mag 为各谱线峰值幅度。
     Side effects: 无（纯函数）。
     """
+    x = _record(x, fs)
+    if not np.isfinite(v_fs) or v_fs <= 0:
+        raise ValueError("full-scale sine peak must be finite and positive")
     n = x.size
-    if window == "blackman":
-        w = np.blackman(n)
-    else:  # 4-term Blackman-Harris
-        a = (0.35875, 0.48829, 0.14128, 0.01168)
-        k = np.arange(n)
-        w = (
-            a[0]
-            - a[1] * np.cos(2 * np.pi * k / (n - 1))
-            + a[2] * np.cos(4 * np.pi * k / (n - 1))
-            - a[3] * np.cos(6 * np.pi * k / (n - 1))
-        )
+    w = _window(n, window)
     X = np.fft.rfft((x - x.mean()) * w)
     f = np.fft.rfftfreq(n, 1 / fs)
     # 按相干增益归一到正弦峰值幅度
     mag = np.abs(X) / (np.sum(w) / 2.0)
+    mag[0] *= 0.5
+    if n % 2 == 0:
+        mag[-1] *= 0.5
     dbfs = 20 * np.log10(np.maximum(mag / v_fs, 1e-20))
     return f, dbfs
 

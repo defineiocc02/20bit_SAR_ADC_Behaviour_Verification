@@ -259,6 +259,13 @@ def dither_transfer_code(
     if cfg.dither_mode != "quantizer":
         return np.zeros_like(d)
 
+    if cfg.dither_transfer_model == "dual_port":
+        # Both physical ports are included in capture. Coarse decisions contain
+        # d_Q, stored RDAC charge contains d_R; command offset is (d_R-d_Q)/step.
+        # Digital reconstruction separately subtracts d_R. Omitting either port
+        # would turn amplitude enhancement into an incorrect code multiplier.
+        return np.round((cfg.dither_rdac_ratio - 1.0) * d / step_rdac)
+
     if cfg.dither_transfer_model == "range":
         # "range" model (paper-literal). The disclosure is: "the dither range
         # is enhanced by 2b when the result is transferred from the quantizer

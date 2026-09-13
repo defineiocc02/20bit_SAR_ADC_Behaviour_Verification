@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 # ----------------------------------------------------------------- 项目元数据
 [project]
 name = "sar-adc-behaviour-verification"
-version = "7.0.10"
+version = "8.0.0"
 description = "Behavioural model of a two-stage residual SAR ADC inspired by ISSCC 2024 / Session 9.8 (Bodnar et al., 20-bit 40 MS/s precision SAR)."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -26,15 +26,18 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.24",
+    "scipy>=1.10",
     "matplotlib>=3.7",
 ]
 
 [project.optional-dependencies]
 dev = [
+    "build>=1.2",
+    "hatchling>=1.24",
     "pytest>=7.4",
     "pytest-cov>=4.1",
     "pytest-xdist>=3.3",
-    "ruff>=0.6",
+    "ruff==0.6.9",
     "mypy>=1.8",
     "pre-commit>=3.5",
     "hypothesis>=6.100",
@@ -56,6 +59,10 @@ adi-make-report = "adi_model.cli:main_make_report"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/adi_model"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"tools/run_all.py" = "adi_model/_tools/run_all.py"
+"tools/make_report.py" = "adi_model/_tools/make_report.py"
 
 # ================================================================ pytest
 [tool.pytest.ini_options]

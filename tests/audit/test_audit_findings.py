@@ -94,10 +94,11 @@ class TestF1FirstStageReading:
             checks[key][2] is False
         ), "b1=10 needs 1024 levels but the DAC has 512; validate() must FAIL"
 
-    def test_paper_consistent_reading_satisfies_both_disclosures(self):
-        """The audit noted that the literal "9b SADC" reading contradicts the
-        disclosed 2b dither range enhancement. The only split consistent with
-        BOTH disclosures is 7 (SADC) + 2 (dither range) = 9.
+    def test_historical_seven_bit_grid_ratio_is_preserved(self):
+        """Preserve the historical 7+2 grid hypothesis as a comparison.
+
+        This arithmetic does not establish nine unknown-input decision bits;
+        the independently parameterized candidate is tested separately.
         """
         cfg = Config.paper_consistent()
         enh = float(np.log2(units_per_first_stage_step(cfg, None)))

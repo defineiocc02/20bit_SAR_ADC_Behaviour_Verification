@@ -75,6 +75,9 @@ class SampleBatch:
     # 必须用这两个字段 —— 否则 1 mV 的驱动器噪声会伪装成 1 µV 的内部误差。
     x1_clean: np.ndarray | None = None
     x2_clean: np.ndarray | None = None
+    dither_bank_code: np.ndarray | None = None  # 原始掩码码；split 重标定后保留
+    signal_alpha: float | np.ndarray = 1.0  # 物理信号电荷系数，仅供模拟通路
+    rdac_dither: np.ndarray | None = None  # 双端口模型的名义 RDAC 注入 [V]
 
 
 def capture(
@@ -163,6 +166,9 @@ def capture(
         amp = cfg.dither_amplitude_lsb1 * cfg.delta1
         dither = drng.uniform(-amp, amp, n_samples)
         dither_code = dither / cfg.delta1
+        if cfg.dither_discrete:
+            dither = np.round(dither / cfg.nominal_rdac_step) * cfg.nominal_rdac_step
+            dither_code = dither / cfg.delta1
     elif cfg.dither_mode == "sampling":
         # 采样态电荷注入（专利 [10]）：2D 个单位不接输入而接 ±V_FS
         #   D+d_u 个接 +V_FS，D−d_u 个接 −V_FS  →  注入量 = d_u * step
@@ -204,7 +210,7 @@ def capture(
         # 量化器侧 dither：只进 SADC 决策通路，RDAC 保存通路保持干净
         # （残差 = x − vD(x+d_Q 取整)，余项由 ADC2 窗口吸收，见 stage21）。
         u1 = x1
-        rdac_dither = 0.0
+        rdac_dither = cfg.dither_rdac_ratio * dither
         sadc_dither = dither
     else:
         u1 = cfg.dither_alpha * x1
@@ -255,6 +261,11 @@ def capture(
         n_S=n_S,
         dither=dither,
         dither_code=dither_code,
+        rdac_dither=(
+            cfg.dither_rdac_ratio * dither
+            if cfg.dither_mode == "quantizer"
+            else np.zeros(n_samples)
+        ),
         x1_clean=x1_clean,
         x2_clean=x2_clean,
     )
@@ -269,15 +280,18 @@ class AnalyticInput:
     falls back to the spectral estimate when ``.derivative`` is absent.
     """
 
-    def __init__(self, fn, derivative):
+    def __init__(self, fn, derivative, *, harmonics=None):
         """绑定波形与其解析导数。
 
         Args:
             fn:         ``t -> x(t)`` 波形，[V]。
             derivative: ``t -> dx/dt``，[V/s]，须与 ``fn`` 精确对应。
+            harmonics: Optional (Hz, complex V) real-phasor terms for exact
+                continuous RC integration; not inferred from sampled data.
         """
         self._fn = fn
         self.derivative = derivative
+        self.harmonics = harmonics
 
     def __call__(self, t):
         """在时刻 ``t`` 求波形值（标量或数组均可）。
@@ -304,6 +318,7 @@ def dc_input(level: float) -> AnalyticInput:
     return AnalyticInput(
         lambda t: np.full_like(np.asarray(t, dtype=float), level),
         lambda t: np.zeros_like(np.asarray(t, dtype=float)),
+        harmonics=((0.0, complex(level)),),
     )
 
 
@@ -324,6 +339,7 @@ def sine_input(amp: float, fin: float, phase: float = 0.0) -> AnalyticInput:
     return AnalyticInput(
         lambda t: amp * np.sin(2 * np.pi * fin * np.asarray(t) + phase),
         lambda t: 2 * np.pi * fin * amp * np.cos(2 * np.pi * fin * np.asarray(t) + phase),
+        harmonics=((float(fin), -1j * amp * np.exp(1j * phase)),),
     )
 
 

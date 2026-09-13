@@ -35,15 +35,13 @@ offset/漂移、噪声代价 -1.6 dB、ADC2 动态采样带宽 +1.3 dB —— �
       10^(1.6/20) 放大（PPT 披露代价）、1/f 整体移除（auto-zero 的收益面）；
       RA 自身的静态 offset 仍不单独建模（它被 auto-zero 消除，且残差链路
       对恒定偏移不敏感 —— 数字增益校准吸收）；
-    * 不建模有限 GBW 建立误差（RA 在本模型内瞬时建立；建立类误差由
-      dynamics.py 的三项承担——RA 自身的建立是开放项）；
+    * 本类提供静态增益/孔径噪声；生产 split 通路的有限带宽、压摆与摆幅
+      由 conversion.ConversionEngine 联合求解。信号响应不等于开关噪声传递；
     * 不建模 RA 复用/功耗循环（PPT ~50% idle time）——对输出行为无影响，
       只影响功耗，而功耗不在行为模型预测范围内。
 """
 
 from __future__ import annotations
-
-import math
 
 import numpy as np
 
@@ -60,31 +58,32 @@ def flicker_series(
     t_obs: float = 1.0,
     include_drift: bool = True,
 ) -> np.ndarray:
-    """生成 1/f 闪烁噪声**注入源**（FFT 塑形，确定性可复现）。
+    """Generate a finite-band 1/f component at the actual ADC sample rate.
 
-    PSD（单边）= S0·(f_corner/f)，f <= f_corner；f > f_corner 处为 0。
-    **口径**：这是"闪烁分量"而非完整 1/f 角过程 —— 白底由系统既有热噪声源
-    （kT/C、RA 白噪声）承担，本源只补 1/f 尾巴；总噪声谱的转角（闪烁 PSD
-    = 白底处）由 sigma_white 与系统白底的匹配决定（stage23）。
-    S0 = 2·sigma_white²/fs（转角处闪烁 PSD 的定义值）。
+    S(f)=2*sigma_white²/fs * f_corner/f for 1/t_obs <= f <= f_corner.
+    Resolved bins use FFT shaping. Unresolved power below fs/n uses a
+    stationary Gaussian log-frequency state instead of a record-length-scaled
+    linear trend. White floor is supplied elsewhere. With include_drift=False,
+    only the resolved component is generated. t_obs specifies an assumed low
+    cutoff, not the duration of this returned record or a measured drift law.
 
-    Args:
-        n:            样本数。
-        fs:           采样率 [Hz]。
-        f_corner:     转角频率 [Hz]（PPT：~40 Hz）。
-        sigma_white:  闪烁白底等效 RMS [V]：S0 = 2·sigma_white²/fs。
-        rng:          噪声源（与主循环共用，保证可复现）。
-        t_obs:        观测时长 [s]。f_low = 1/t_obs 是补回的亚 f_min
-                      功率的下积分限（T 越长，可积的不可分辨功率越多）。
-        include_drift: 是否把 f < f_min 那部分**不可分辨**的 1/f 功率
-                      以"常数偏移 + 线性趋势"显式补回；False 则只返回
-                      可分辨的闪烁分量（短记录 SNDR 会系统性偏乐观）。
-    Returns:
-        (n,) 逐样本电压 [V]。DC 分量为 0（rfft 置零，避免伪漂移基线）。
-    适用域：① 周期边界伪影在 f < fs/n 处（不进带）；② 单实现周期图每 bin
-    是 χ²₂（±5.6 dB），**谱形验收必须用多实现平均或带功率比**
-    （stage23 的发生器检验用 K=24 种子平均，系统内用带功率比）。
+    For cross-record state/long-time queries use BandLimitedFlicker explicitly;
+    separate calls here draw separate realizations. This does not make a short
+    record sufficient to resolve a 40 Hz corner.
     """
+    if (
+        type(n) is not int
+        or n < 1
+        or not np.all(np.isfinite([fs, f_corner, sigma_white, t_obs]))
+        or fs <= 0
+        or f_corner < 0
+        or f_corner >= fs / 2
+        or sigma_white < 0
+        or t_obs <= 0
+    ):
+        raise ValueError(
+            "flicker needs valid record length, clock, corner, amplitude and low cutoff"
+        )
     w = rng.normal(0.0, sigma_white, n)
     W = np.fft.rfft(w)
     f = np.fft.rfftfreq(n, d=1.0 / fs)
@@ -93,40 +92,26 @@ def flicker_series(
     # docstring）。历史教训：若把转角以上置 1（完整角过程），系统注入会在
     # 全带多出一份白底（σ_f = 系统总噪声）-> SNDR −3 dB（stage23 实测教训）。
     shape = np.where(f <= f_corner, np.sqrt(f_corner / np.maximum(f, 1e-12)), 0.0)
+    shape[f < 1 / t_obs] = 0.0
     shape[0] = 0.0
     x = np.fft.irfft(W * shape, n)
 
-    # ------------------------------------------------------------------
-    # 审计 F9：主系统记录里 40 Hz 闪烁噪声**恒为零**。
-    #
-    # 长度 n、采样率 fs 的记录，最低可分辨频率是 f_min = fs/n。默认
-    # n=32768、fs=40 MHz 时 f_min = 1220.7 Hz >> 40 Hz，于是 shape 全零，
-    # flicker_series 返回全 0 序列（独立复算实测 nonzero_samples = 0）。
-    # "40 Hz 转角已验证"的说法因此不成立——发生器单独通过不等于系统短记录
-    # 里真的存在闪烁功率。
-    #
-    # 物理上，低于 f_min 的 1/f 功率并没有消失，它只是**不可分辨**：在一段
-    # 有限记录里它表现为缓慢漂移（近似直流偏移 + 线性趋势），而不是某个
-    # 可指认的谱峰。这里把它显式补回来，否则短记录 SNDR 会系统性偏乐观。
-    # ------------------------------------------------------------------
     if not include_drift:
         return x
-    f_min = fs / n
-    f_low = 1.0 / max(t_obs, 1e-12)
-    if f_corner <= f_min or f_min <= f_low:
-        # 转角低于可分辨下限，且观测时长内也没有可积功率 -> 无可补分量。
+    f_low = 1 / t_obs
+    upper = min(f_corner, fs / n)
+    if upper <= f_low or sigma_white == 0:
         return x
-    s0 = 2.0 * sigma_white**2 / fs
-    var_band = s0 * f_corner * math.log(f_min / f_low)
-    if var_band <= 0.0:
-        return x
-    # 一半给常数偏移，一半给线性趋势。趋势系数 a 满足
-    #   mean_t[(a·t)^2] = a^2·T^2/12 = var_band/2  ->  a = sqrt(6·var_band)/T
-    offset = rng.normal(0.0, math.sqrt(0.5 * var_band))
-    t_rec = n / fs
-    a = math.sqrt(6.0 * var_band) / t_rec * rng.normal(0.0, 1.0)
-    trend = a * np.linspace(-0.5 * t_rec, 0.5 * t_rec, n)
-    return x + offset + trend
+    from .low_frequency_noise import BandLimitedFlicker
+
+    state = BandLimitedFlicker.create(
+        2 * sigma_white**2 / fs,
+        f_corner,
+        f_low,
+        rng,
+        high_hz=upper,
+    )
+    return x + state.at_adc_indices(np.arange(n), fs)
 
 
 class ResidueAmplifier:
@@ -208,6 +193,10 @@ class ResidueAmplifier:
             g = self.cfg.g_actual
         g = np.asarray(g, dtype=float)
         v = g * residue
+        # Draw white noise first so flicker on/off comparisons retain the same
+        # white realization. Each record owns a fresh electrical/noise sequence.
+        if self.noise_out > 0:
+            v = v + rng.normal(0.0, self.noise_out, residue.shape[0])
         if self.flicker_white > 0 and not self.cfg.ra_autozero:
             # 折输入的闪烁噪声 × 逐样本增益（电荷一致口径下闪烁噪声与信号
             # 经同一个 G -> 折输入幅度不随 G 波动）。
@@ -215,8 +204,6 @@ class ResidueAmplifier:
                 residue.shape[0], self.cfg.fs, self.cfg.flicker_corner_hz, self.flicker_white, rng
             )
             v = v + g * nf
-        if self.noise_out > 0:
-            v = v + rng.normal(0.0, self.noise_out, residue.shape[0])
         sat = np.abs(v) >= self.cfg.ra_v_clip
         v = np.clip(v, -self.cfg.ra_v_clip, self.cfg.ra_v_clip)
         return v, sat

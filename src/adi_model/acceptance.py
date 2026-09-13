@@ -117,7 +117,7 @@ KNOWN_LIMITS: dict[str, str] = {
 # 构成：10 条顶层 PASS 记录 + 5 个 _summary 组下的 25 个布尔项
 #       + validate 的 11 项 + validate_ktc 的 4 项 = 50。
 # --------------------------------------------------------------------------
-MIN_RECORDS = 50
+MIN_RECORDS = 52
 
 # --------------------------------------------------------------------------
 # 必需判据 ID：删掉它、某个结论就失去证据的那些条。
@@ -131,6 +131,14 @@ MIN_RECORDS = 50
 # --------------------------------------------------------------------------
 REQUIRED_RECORDS: frozenset[str] = frozenset(
     {
+        "long_record_noise.PASS",
+        "noisy_weight_holdout.PASS",
+        "rdac_bitwise.PASS",
+        "dither_quant.PASS",
+        "pipeline.PASS",
+        "il_offset.PASS",
+        "s13_summary.Ron 局部非线性与独立 RC 解一致",
+        "s13_summary.rho 扫描状态与实测网格一致（未跨越不产生规格）",
         # 电荷口径闭合 —— 分段 DAC 物理求值 = 独立节点方程的唯一机器证据。
         "s12_summary.电荷口径闭合：闭式解 = 节点矩阵求解器（fV 级）",
         "s12_summary.电荷口径闭合：evaluate_physical = 独立节点方程（pV 级）",
@@ -378,7 +386,7 @@ def gate(results: dict[str, Any]) -> GateResult:
         >>> gate({"pipeline": {"PASS": False}}).failures
         ['pipeline.PASS']
         >>> gate({"pipeline": {"PASS": True}}).missing_required[:1]  # 判据缺失也不放行
-        ['s10_summary.C_F->增益(电荷一致)']
+        ['dither_quant.PASS']
     """
     for name in KNOWN_LIMITS:
         if not KNOWN_LIMITS[name].strip():

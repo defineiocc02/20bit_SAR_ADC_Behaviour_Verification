@@ -1,278 +1,131 @@
-# 20 位 SAR ADC 行为验证模型
+# 20 位 SAR ADC 行为验证
 
 [![CI](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/workflows/ci.yml/badge.svg)](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/workflows/ci.yml)
-[![License: BSD-3-Clause](https://img.shields.io/badge/license-BSD--3--Clause-green.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
-[![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Checked with mypy](https://img.shields.io/badge/mypy-checked-2f6f9f.svg)](https://mypy-lang.org/)
-[![Tests](https://img.shields.io/badge/tests-189%20passed-brightgreen.svg)](#5-测试与四道门禁)
+[English](README_EN.md) · [建模与验证指南](docs/behavioral-closure.md) · [适用范围](docs/model_scope.md) · [实施与证据账本](docs/IMPLEMENTATION_CHECKPOINT.md)
 
-> **一个用来被"审计"而不是被"相信"的两级残差 SAR ADC 行为模型。**
-> 建模对象为 ISSCC 2024 Session 9.8（Bodnar 等，20 bit / 40 MS/s 精度 SAR）。
-> 它输出的每一个数字，都带一条**机器可校验**的"这个数字从哪来"的声明。
+这是基于 ISSCC 2024 Session 9.8 及相关公开论文/专利的 Python 行为模型。
+它用于检查电荷、时序、噪声、校准和数字重构是否相互一致，并给出继续仿真的工程依据。
+公开资料没有完整披露电路，因此具体电容分配、部分相位时间、DEM 交换方式和 ADC2 范围均保留为明确假设。
 
-**English: [README_EN.md](README_EN.md)** ｜ 开源与法律声明：[§12](#12-开源声明与许可)
+## 1. 当前信号链
 
----
+连续输入与共享源阻抗 → 实际采集 slice 的保持电荷 → SADC 判决 → RDAC/DEM 开关指令 → 有符号参考负载 → 有限 RA 与 ADC2 采样 → 原始 ADC2 整数码 → 冻结权重与定点重构。
 
-## 目录
+- 物理池默认 18 个 slice，每次 8 个参与转换；采集/转换/备用归属具有因果关系。
+- `Config.paper_literal()` 提供 **9 位未知输入判决**、63+8 完整范围拓扑、独立 4 倍 dither 端口的候选。
+- `Config()` / `paper_consistent()` 保留历史 **7 位假设基线**。已知 dither 不增加未知输入判决信息，不能用 7+2 证明论文的 9 位量化。
+- `run_pipeline` 与 `run_sim_split` 共用物理实现；`run_sim_split_reference` 是独立聚合代数对照。
+- 输入预跟踪只使用已经可用的量化决策；辅助输入的驱动/复位电荷分别记账。
+- 校准保留噪声，检查完整秩与条件数，训练后冻结，在同一物理芯片的独立记录验证。
+- `result.to_codes()` 从原始码和数字开关状态执行 Q30/Q32、96 位受检累加、20 位 offset-binary 输出；`result.out` 保留浮点诊断口径。
 
-| § | 章节 |
-|:-:|:---|
-| 1 | [这是什么](#1-这是什么) |
-| 2 | [为什么长成这样](#2-为什么长成这样) |
-| 3 | [来源分级——承重的设计](#3-来源分级承重的设计) |
-| 4 | [安装与上手](#4-安装与上手) |
-| 5 | [测试与四道门禁](#5-测试与四道门禁) |
-| 6 | [本模型不支持什么](#6-本模型不支持什么) |
-| 7 | [可复现性](#7-可复现性) |
-| 8 | [仓库结构](#8-仓库结构) |
-| 9 | [参与贡献](#9-参与贡献) |
-| 10 | [引用方式](#10-引用方式) |
-| 11 | [参考文献](#11-参考文献) |
-| 12 | [开源声明与许可](#12-开源声明与许可) |
+## 2. 安装与最小验证
 
----
+支持 Python 3.10–3.13；运行依赖为 NumPy、SciPy、Matplotlib。建议使用独立虚拟环境。
 
-## 1. 这是什么
-
-一个**相位精确**的 Python 行为模型，建模对象见 `[00]`：第一级用小而快的 SADC
-粗量化，经残差放大器驱动 18 slice 的 RDAC，再把残差交给第二级 ADC2；数字侧
-把两级读数重构回一个输出；其上叠加 DEM、dither 与增益 β 校准。
-
-它是一个**设计探索**模型：你可以把某个机制单独开关，然后看误差跑到哪里去了。
-它**不是**晶体管级仿真器，**不是** PDK 精确的失配研究，也**不能**替代流片——
-见[§6](#6-本模型不支持什么)。
-
-| 开箱即有的东西 | |
-|:---|:---|
-| 27 个模块、约 1.25 万行库代码 | 参数分级、物理 slice 池、两条独立信号链 |
-| 24 个验收 stage | 每个都同时返回**数据**和一条明确的**判据** |
-| 189 个测试 | 其中每个审计缺陷都对应一条对抗性回归 |
-| 8 份 ADR | 每个结构性决策背后的推理 |
-
----
-
-## 2. 为什么长成这样
-
-对上一版（`adi_model_release_v6.1`，已冻结存于本仓库之外供对照）的外部审计
-发现了 **11 个缺陷**，而本仓库自身的自检**一个都抓不到**——因为每一级都在用
-**自己的假设**校验**自己的输出**。最伤的几个：
-
-| # | v6.1 的缺陷 | 后果 |
-|:-:|:---|:---|
-| A01 | 把 "9b quantization in the first stage" 读成 6b 粗量化 + 3b 码字 | 输入判决电平只有 64 个，不是 512 个 |
-| A02 | 每个周期重新独立抽 8-of-18 的 slice 置换 | 8 个转换 slice 里有 3.56 个正持有被转换样本 |
-| A03 | dither 码混用了"粗步"与"RDAC 单位步"两种单位 | 差 8 倍；修正后溢出率 32.7% → 16.0% |
-| A04 | RA 噪声由目标 DR 反解 | 复现 94.6 dB 是恒等式，不是预测 |
-| A05 | KTC 观测器与已披露机制并列呈现 | 本仓库的原创工作被读成已公开能力 |
-| A06 | 动态参考缓冲 / 共享 RA 完全没有建模 | −1.6 dB 与 +1.3 dB 无法解释 |
-| A07 | 静态 / 低频 / 图表证据被过度声称 | 含 6 个子项：蒙特卡洛直方图由 400 个重采样点画出；`np.gradient` 斜率在 19 MHz 处低 25.6 dB |
-
-响应是**结构性**的，不是打补丁：
-
-- 来源分级从"注释里的标签"变成**运行期的值**；
-- slice 池变成**跨周期有记忆的物理对象**；
-- 两条信号链共用**同一个**量化栅格构造函数；
-- 噪声预算被明确标注为**锚点**而非预测；
-- KTC 支路分级为 `RESEARCH_EXTENSION` 且**默认关闭**；
-- 交织 skew 用的斜率改为**解析 / 谱**导数，不再是中心差分。
-
-逐条对应关系见 [`docs/audit_response.md`](docs/audit_response.md)；每个决策背后
-的推理见 [`docs/adr/`](docs/adr/)。
-
-> **关于编号。** 审计报告用的编号是 `A01`–`A07`；对抗性测试用的稳定标识是
-> `F1`–`F10`。两者的映射写在 `tests/audit/test_audit_findings.py` 的模块
-> docstring 与 `docs/audit_response.md` 里。
-
----
-
-## 3. 来源分级：承重的设计
-
-每个 `Config` 字段都必须声明**这个数字从哪来**，而且等级跟着值一起走：
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev]'
+```
 
 ```python
->>> from adi_model import Config, SourceGrade, annotate_config, audit_provenance
->>> ann = annotate_config(Config.paper_consistent())
->>> ann["g0"]
-Graded(32.0, [披露], '[00_1] figure annotation: G0 = 32', unit='')
->>> ann["mismatch_sigma0"].require(SourceGrade.DISCLOSED)
-Traceback (most recent call last):
-    ...
-adi_model.provenance.GradingError: value graded FITTED ([拟合]) from
-'100 ppm behavioural calibration; NOT a PDK value' is not valid here; ...
+import numpy as np
+from adi_model import Config, sine_input
+from adi_model.pipeline import run_pipeline
+from adi_model.metrics import sine_fit_metrics
+
+cfg = Config.paper_literal(dither_mode="off")
+n = 16384
+fin = cfg.fs * 307 / n
+result = run_pipeline(cfg, sine_input(2.1, fin), n)
+words = result.to_codes()
+print(sine_fit_metrics(words.voltage, cfg.fs, fin))
+print("analog overflow:", np.count_nonzero(words.analog_overflow))
+print("output clipping:", np.count_nonzero(words.clipped_low | words.clipped_high))
+print(result.effective_config)
 ```
 
-| 等级 | 含义 | 能否当作事实引用 |
-|:---|:---|:--:|
-| `DISCLOSED` `[披露]` | 从论文 / 幻灯片原文转录 | ✅ |
-| `DERIVED` `[推导]` | 对已披露值做代数推导，无自由参数 | ✅ |
-| `FITTED` `[拟合]` | 为复现已发表图表而标定——**是锚点，不是预测** | ❌ |
-| `ASSUMED` `[假设]` | 无公开来源，仅用于敏感性研究 | ❌ |
-| `RESEARCH_EXTENSION` `[研究扩展]` | 本仓库原创，不属于被建模的文献 | ❌ |
-
-`audit_provenance(cfg)` 是评审者应该读的第一个东西——它列出了一个头条数字
-究竟踩在哪些活假设上：
+显式选择论文或幻灯片噪声基准：
 
 ```python
->>> rep = audit_provenance(Config())
->>> rep["verdict"]
-'OK: no ungraded parameters'
->>> rep["counts"]
-{'disclosed': 11, 'derived': 9, 'assumed': 57, 'fitted': 3, 'research_extension': 8}
+from adi_model.benchmarks import PAPER_BENCHMARK, SLIDES_BENCHMARK
+from adi_model.weight_calibration import run_with_split_calibration
+
+cfg = PAPER_BENCHMARK.configuration(dither_mode="off", mismatch_sigma0=0.001)
+validated = run_with_split_calibration(
+    cfg, sine_input(2.2, cfg.fs * 307 / 16384, 0.5), 16384, n_cal=8192
+)
+print(validated.calibration_report)
+registers = validated.state.weight_calibration.to_dict()
+words = validated.to_codes()
 ```
 
-新增 `Config` 字段但**没有**分级 → 测试套件直接失败；分级表里留着一个已经
-不存在的字段 → 同样失败。机制就是这么朴素：它把"某个人忘了标注一个参数"
-从**发表后的勘误**变成了**一次红构建**。
+默认训练是受控静态行为测量，保留采样/RA/驱动噪声，并使用独立随机流。
+它没有实现片上参考源或校准时序/功耗；训练参考的系统误差需要额外预算。
 
----
-
-## 4. 安装与上手
-
-需要 Python ≥ 3.10。
+## 3. 标准验证命令
 
 ```bash
-git clone https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification.git
-cd 20bit_SAR_ADC_Behaviour_Verification
-
-python -m venv .venv && . .venv/bin/activate
-pip install -e ".[dev]"
+ruff check .
+ruff format --check .
+mypy
+pytest -q --cov
+adi-run-all --results-dir ./output/verification
+adi-make-report --results-dir ./output/verification
 ```
 
-### 六十秒跑出第一个数
+全量 sweep 包括历史机制基线、新物理参考/RA 检查、64 秒慢噪声状态、两颗完整芯片的不同训练样本数与独立定点验证。
+门禁同时检查具体必需判据、数量下限和失败记录，失败时退出非零。
+`results.json` 使用 UTF-8 标准 JSON；无法定义的数值记录为 null 并列出字段路径，绝不写入 NaN/Infinity 数字。
+HTML 报告使用实际结果生成，区分不同架构/来源及其适用范围。
 
-```python
-from adi_model import Config, sine_input, run_sim_split, sine_fit_metrics
+同一软件环境中重复 sweep 的 `results.json` 要逐字节一致；跨 NumPy/SciPy/BLAS 环境使用数值容差验收。
+CI 运行 Python 3.10–3.13 测试、3.12 全量 sweep、独立双次确定性验证。
 
-cfg = Config(dac_arch="split", dem_enable=True, dither_mode="sampling")
-res = run_sim_split(cfg, sine_input(0.9 * cfg.v_fs, 2.5e6), 2**15)
-print(round(sine_fit_metrics(res.out, cfg.fs, 2.5e6)["SNDR_dB"], 2))
-# -> 91.98   （单次运行、固定种子；不构成对已发表芯片的任何声称）
-```
+## 4. 仿真推进顺序
 
-### 全量验收扫描
+1. **静态电荷与范围**：关闭噪声/动态，检查全部粗进位和 RDAC/RA/ADC2 溢出；确认所选 7/9 位架构。
+2. **独立物理实现**：固定 fabrication seed，验证实际 slice、电容、DEM 与 dither 掩码；重用芯片时保留物理参数，显式传运行配置。
+3. **噪声和校准**：先完成秩/条件数检查，再比较训练规模与独立验证；保留驱动参考误差和残余失配。
+4. **联合动态**：逐项引入共享 Rs、Ron、参考 coarse/fine、RA 带宽/压摆/摆幅、ADC2 宽窄带采样，再组合运行；增加时间步检查收敛。
+5. **最终整数码**：测最终码流的 SNDR/SFDR 与溢出；静态均值误差、局部进位扫描和完整码密度 INL/DNL 分别报告。
+6. **电路级转交**：用可接受的行为参数区间编写实际 Spectre 子模块规格，再以电路仿真替代假设。
 
-```bash
-adi-run-all        # 24 个 stage -> tools/results/results.json + 7 张图
-adi-make-report    # 把 results.json 与图打包成一个自包含 HTML 报告
-```
+## 5. 来源与边界
 
-或者不用控制台脚本：
+| 项目 | 当前口径 |
+|---|---|
+| 论文 [00] | 94.2 dB DR、9.3 nV/√Hz；独立保存 |
+| 幻灯片 [00_1] | 94.6 dB DR、8.8 nV/√Hz、约 40 Hz 转角；独立保存 |
+| RA 噪声 | 可由所选 DR 锚点反推；属于拟合，不是性能预测 |
+| 参考负载 | 名义轨电压处线性化的实际有符号电荷；峰值 droop 给出适用域 |
+| RA/ADC2 动态 | 已建有限信号响应；没有据此声称完整开关噪声传递 |
+| 低频噪声 | 显式低截止的平稳慢状态；64 秒稀疏观测保持 40 MHz 物理时钟 |
+| 20 位输出 | 有实际受检整数重构；不等于 20 ENOB 或完整芯片码密度证明 |
+| KTC 观察器 | 研究扩展，默认关闭；未量化观察支路不进入当前定点接口 |
+| PDK / 良率 / 功耗 | 没有器件与版图证据，不作硅级预测 |
 
-```bash
-PYTHONPATH=src python tools/run_all.py
-```
+详细公式、输入输出单位和测试依据见 [ADR 目录](docs/adr/) 与 [建模指南](docs/behavioral-closure.md)。
+历史审计/报告作为版本证据保留，当前能力以适用范围和实施账本为准。
 
-设置 `ADI_MODEL_RESULTS_DIR`（或传 `--results-dir`）可以把输出写到
-`tools/results/` 以外的地方。
+## 6. 工程结构
 
----
+| 位置 | 职责 |
+|---|---|
+| `src/adi_model/config.py` | 配置、合法性、派生量与来源分级 |
+| `slice_pool.py`, `timing.py`, `pipeline_engine.py` | 物理实例、因果调度与主信号链 |
+| `input_network.py`, `pretracking.py` | 共享输入网络和数字可用性 |
+| `reference_charge.py`, `conversion.py` | 有符号电荷与联合转换动态 |
+| `weight_calibration.py`, `fixed_point.py` | 可辨识训练、冻结系数与整数重构 |
+| `metrics.py`, `low_frequency_noise.py` | 频谱口径与慢状态 |
+| `closure_experiments.py`, `acceptance.py` | 独立验证协议与必需判据 |
+| `serialization.py`, `reporting.py` | 标准数据产物与报告 |
+| `tests/`, `tools/`, `docs/adr/` | 回归、全量流程、可追溯设计决策 |
 
-## 5. 测试与四道门禁
+贡献前请运行完整验证，说明数据口径、假设和误差来源。修改物理模型须增加能独立推翻实现的验证；历史数值变动须解释，不用放宽门槛掩盖回归。
 
-```bash
-pytest                  # 189 个测试，约 22 秒，不含长扫描
-pytest -m audit         # 只跑审计衍生的对抗性回归
-pytest --cov=adi_model  # 分支覆盖率，下限 35%
-```
-
-| 门禁 | 命令 | 7.0.0 之前 | 现在 |
-|:---|:---|--:|--:|
-| Lint | `ruff check .` | **6797** 个错误 | **0** |
-| Format | `ruff format --check .` | 38 个文件里 37 个 | **0** |
-| Types | `mypy --config-file=pyproject.toml` | **147** 个错误 | **0** |
-| Tests | `pytest` | — | **189 passed, 4 xfailed** |
-
-lint 与 type 两道门禁此前是**配好了但永远跑不通**，这跟没有门禁是一回事。
-它们被记为 [`docs/audit_response.md`](docs/audit_response.md) 里的 **C3**、**C4**
-两项，与两个 CI 缺陷并列（**C1**：CI 用了 CLI 根本没定义的参数；**C2**：那个
-"全量扫描"实际收集到 0 个测试）。修这些门禁所付出的改动**没有改变任何一个
-数字**：`tools/results/results.json` 前后**逐字节相同**。
-
----
-
-## 6. 本模型不支持什么
-
-引用任何数字之前请先读 [`docs/model_scope.md`](docs/model_scope.md)。简述：
-
-- **不做 20 bit 码域声称。** `n_bits_target` 只用来定义 LSB 参考；模型输出是
-  **模拟电压当量**，不是 20 bit 编码器输出。有一条测试专门断言"改
-  `n_bits_target` 不会改变任何一个输出样本"，就是为了让这条边界一直可见。
-- **不做良率预测。** 单位失配 sigma 要么是 100 ppm 的行为标定（`FITTED`），
-  要么是 Pelgrom 面积律估计（`ASSUMED`），**都不是** PDK 实测。蒙特卡洛结果
-  只是敏感性研究。
-- **不做面积 / 功耗声称。** 缩电容研究缩放的是电容值，不是版图。
-- **1/f 转折频率低于主记录分辨率。** 默认 `fs`/`N` 下 FFT _bin ≈ 1.2 kHz，
-  40 Hz 转折分辨不出来；闪烁噪声发生器是在低 `fs` 下单独验证的，主记录里
-  **不含**闪烁噪声。
-- **KTC 观测器是我们的想法，不是论文的。** 已建模、已分级、默认关闭，
-  不构成对已发表芯片的任何证据。
-
----
-
-## 7. 可复现性
-
-- **没有全局随机状态。** 每个随机调用都显式接受一个 `numpy.random.Generator`；
-  `tests/integration/test_pipeline_equivalence.py` 会扫描源码来守住这一点。
-- **逐位可复现。** 同种子两次运行输出数组完全相同，两条信号链都做了断言；
-  CI 会把全量扫描跑两遍并逐字节比对 `results.json`。
-- **两条独立实现必须一致。** `sim_split.py` 与 `pipeline.py` 独立实现了同一条
-  信号流，在关闭全部非理想因素时被断言**逐位一致**。它们曾经悄悄不一致了
-  两个版本，原因是各自推导量化步长——见
-  [ADR 0004](docs/adr/0004-single-source-of-truth-quantiser-grid.md)。
-
----
-
-## 8. 仓库结构
-
-```
-20bit_SAR_ADC_Behaviour_Verification/
-├── src/adi_model/             库本体（27 个模块）
-│   ├── provenance.py          来源分级：SourceGrade / Graded / PARAM_GRADES
-│   ├── config.py              全部参数，带分级与 validate()
-│   ├── slice_pool.py          物理 18 slice 池，跨周期因果性
-│   ├── sadc.py                唯一的量化栅格构造函数
-│   ├── dac_arch.py            等权 unary vs 分段（主/子 + 桥接电容）DAC
-│   ├── pipeline.py            相位精确信号链
-│   ├── sim_split.py           独立的 split-DAC 链路
-│   ├── experiments.py         24 个验收 stage，各自返回数据 + 判据
-│   └── cli.py                 控制台入口
-├── tests/
-│   ├── unit/                  分级、slice 池、CLI 连线
-│   ├── integration/           跨模块不变量（等价性、确定性）
-│   ├── audit/                 每个审计缺陷一条测试——在 v6.1 上全部失败
-│   └── regression/            "跑出来"才发现（而非读出来）的缺陷
-├── tools/
-│   ├── run_all.py             全量扫描 -> results.json + 图
-│   └── make_report.py         自包含 HTML 报告
-├── docs/
-│   ├── model_scope.md         什么能声称、什么不能   <- 必读
-│   ├── audit_response.md       逐条审计响应
-│   ├── review_response_2026-09-11.md    外部复核逐条裁定（第二轮）
-│   ├── review_response_2026-09-11b.md   外部复核逐条裁定（第三轮）
-│   ├── review_response_2026-09-11c.md   外部复核逐条裁定（第四轮）
-│   ├── STATUS.md              发布前的项目现状快照
-│   └── adr/                   8 份架构决策记录（0001-0008）
-├── CITATION.cff               机器可读的引用元数据
-├── NOTICE                     第三方文献引用与归属声明
-└── LICENSE                    BSD-3-Clause + 权利范围说明
-```
-
----
-
-## 9. 参与贡献
-
-见 [`CONTRIBUTING.md`](CONTRIBUTING.md)。要点：`ruff`、`mypy`、`pytest` 必须
-全绿；新增参数**必须**分级；新增机制**必须**默认关闭并分级为
-`RESEARCH_EXTENSION`。
-
-安全问题：见 [`SECURITY.md`](SECURITY.md)。
-社区准则：见 [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)。
-
----
-
-## 10. 引用方式
+## 7. 引用方式
 
 如果这个模型对你的工作有帮助，请引用它——引用里记录了版本号，读者才能复现
 你的数字。
@@ -281,7 +134,7 @@ lint 与 type 两道门禁此前是**配好了但永远跑不通**，这跟没�
 @software{zhao_2026_sar_adc_behaviour_model,
   author    = {Zhao, Reed},
   title     = {20-bit SAR ADC Behavioural Verification Model},
-  version   = {7.0.10},
+  version   = {8.0.0},
   year      = {2026},
   publisher = {GitHub},
   url       = {https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification},
@@ -294,12 +147,12 @@ lint 与 type 两道门禁此前是**配好了但永远跑不通**，这跟没�
 供 GitHub 的 *Cite this repository* 按钮使用的机器可读元数据在
 [`CITATION.cff`](CITATION.cff)。
 
-**请同时引用被建模的架构本身**（见[§11](#11-参考文献) 的 `[00]`）——本仓库是
+**请同时引用被建模的架构本身**（见[§8](#8-参考文献) 的 `[00]`）——本仓库是
 对那项工作的研究，不替代它。
 
 ---
 
-## 11. 参考文献
+## 8. 参考文献
 
 | 编号 | 文献 |
 |:---|:---|
@@ -312,13 +165,13 @@ lint 与 type 两道门禁此前是**配好了但永远跑不通**，这跟没�
 
 ---
 
-## 12. 开源声明与许可
+## 9. 开源声明与许可
 
 **代码许可：BSD-3-Clause，见 [`LICENSE`](LICENSE)。**
 你可以自由使用、修改、再分发本软件（包括商业用途），只需遵守 BSD 的三项
 条件：保留版权声明、在二进制分发中复现该声明、不得用作者名义为衍生品背书。
 
-### 12.1 独立性与无从属关系
+### 9.1 独立性与无从属关系
 
 本仓库是一个**独立的学术行为模型**，与 **Analog Devices, Inc.** **无从属、
 无背书、无赞助、无授权**关系。作者与 Analog Devices 无任何隶属关系。
@@ -327,7 +180,7 @@ lint 与 type 两道门禁此前是**配好了但永远跑不通**，这跟没�
 中的出现仅为**名义性使用**（nominal use），目的只是标识被研究的公开文献，
 **不表示**该公司对本仓库的任何认可。
 
-### 12.2 用了什么、没用什么
+### 9.2 用了什么、没用什么
 
 | | |
 |:---|:---|
@@ -339,7 +192,7 @@ lint 与 type 两道门禁此前是**配好了但永远跑不通**，这跟没�
 研究而假设（`[假设]`）。反推得到的参数**不会**被当作对任何产品的独立测量
 结果呈现。
 
-### 12.3 无专利许可；无担保
+### 9.3 无专利许可；无担保
 
 本仓库中的任何内容都**不授予**任何第三方专利或其它知识产权项下的任何许可
 （明示或默示）。`NOTICE` 中列出的专利仅作为**机制参考**引用；其中描述的
@@ -349,13 +202,13 @@ lint 与 type 两道门禁此前是**配好了但永远跑不通**，这跟没�
 而产生的任何索赔或损害负责。它是**研究模型**，**不是**设计签核工具：
 **不得**用于量产、安全关键或良率决策。
 
-### 12.4 原创贡献
+### 9.4 原创贡献
 
 **KTC 噪声消除支路**（`adi_model/ktc.py`）是本仓库作者的**原创研究扩展**。
 它在代码中被分级为 `RESEARCH_EXTENSION`、默认关闭，并且**不是** `[00]` 或
 专利 `[09]`–`[14]` 所披露的特性。**请勿将其归属于 Analog Devices。**
 
-### 12.5 对本声明提出异议
+### 9.5 对本声明提出异议
 
 如果你认为自己是某项内容的权利人，且认为本仓库存在归属错误或超出许可范围，
 请提交

@@ -26,7 +26,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, replace
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -34,13 +35,18 @@ from .adc2 import ADC2
 from .chip import Chip, build_chip
 from .config import Config
 from .ktc import KTCBranch
-from .mapper import Mapper, dem_state_sequence, make_dither_state
+from .mapper import DitherState, Mapper, dem_state_sequence, dither_transfer_code, make_dither_state
 from .ra import ResidueAmplifier
 from .rdac import RDAC
 from .reconstruction import Calibrator, DigitalState, initialize_state, reconstruct
 from .sadc import SADC
 from .sampler import SampleBatch, capture
 from .scheduler import Scheduler, make_scheduler
+
+if TYPE_CHECKING:
+    from .conversion import ConversionResult
+    from .pretracking import InputAssistTrace
+    from .slice_pool import PhysicalSlicePool
 
 
 @dataclass
@@ -117,6 +123,113 @@ class SimResult:
     g_vec: np.ndarray | None = None  # 逐样本 RA 增益（charge 模式）
     c_active: np.ndarray | None = None  # 逐样本活跃采样电容
     calibration_applied: tuple = ()  # 实际执行过的校准步骤
+    runner: str = "run_sim"
+    pool: PhysicalSlicePool | None = None
+    conv_slice_ids: np.ndarray | None = None
+    acq_slice_ids: np.ndarray | None = None
+    held_sample: np.ndarray | None = None
+    sample_id: np.ndarray | None = None
+    stored_charge: np.ndarray | None = None
+    acquisition_error: np.ndarray | None = None
+    sadc_acquisition_error: np.ndarray | None = None
+    acquisition_start: np.ndarray | None = None
+    acquisition_voltage: np.ndarray | None = None  # (N, n_active) aperture state [V]
+    input_source_charge_c: np.ndarray | None = None  # acquisition charge only [C]
+    input_bus_voltage: np.ndarray | None = None  # filter-bus aperture voltage [V]
+    conversion_trace: ConversionResult | None = None
+    adc2_input_voltage: np.ndarray | None = None
+    adc2_code: np.ndarray | None = None  # raw integer code, before observer correction
+    input_assist_trace: InputAssistTrace | None = None
+    uncalibrated_out: np.ndarray | None = None
+    calibration_report: dict | None = None
+
+    def to_codes(self, *, format=None):
+        """Reconstruct final integer split-ADC words from digital observations.
+
+        The returned stream includes separate input-range and analog clipping
+        flags. ``out`` remains the floating diagnostic for compatibility. This
+        explicit path rejects fractional masks and the unquantized KTC observer.
+        """
+        from .fixed_point import FixedPointReconstructor
+        from .weight_calibration import DigitalObservation
+
+        decoder = FixedPointReconstructor.from_result(self, format=format)
+        return decoder.reconstruct(DigitalObservation.from_result(self))
+
+    @property
+    def rdac_over(self) -> np.ndarray:
+        """Return the per-sample command overflow flags before physical clipping.
+
+        Returns:
+            Boolean array: requested code is outside the realizable DAC range.
+        """
+        upper = (
+            self.cfg.dac_levels - 1
+            if self.cfg.dac_arch == "split"
+            else self.cfg.n_active * self.cfg.n_unit_per_slice
+        )
+        return (self.k < 0) | (self.k > upper) | ~np.isfinite(self.k)
+
+    @property
+    def effective_config(self) -> dict:
+        """Return serializable requested settings and the actual run contract.
+
+        Physical diagnostics are for inspection only; no digital algorithm may
+        consume this property. Calibration requested and applied are separate.
+
+        Returns:
+            Configuration snapshot, topology-specific capacitance, gain range,
+            pending calibration and overrides inactive at this entry point.
+        """
+        inactive = {}
+        default = Config()
+        if self.cfg.dac_arch == "split" and self.cfg.c_feedback0 != default.c_feedback0:
+            inactive["c_feedback0"] = "unary-only; use split_feedback_cap_f"
+        if self.cfg.dac_arch == "unary" and self.cfg.split_feedback_cap_f is not None:
+            inactive["split_feedback_cap_f"] = "split-only"
+        if self.cfg.dac_arch == "unary" and self.cfg.input_network != default.input_network:
+            inactive["input_network"] = "continuous shared-source solver is split-only"
+        elif not self.cfg.dyn_input_settling and self.cfg.input_network != default.input_network:
+            inactive["input_network"] = "dyn_input_settling is disabled"
+        if self.cfg.dac_arch == "unary" and self.cfg.conversion != default.conversion:
+            inactive["conversion"] = "joint reference/RA/ADC2 solver is split-only"
+        if self.conversion_trace is not None:
+            inactive["dyn_ref_dynamic_ratio"] = (
+                "historical aggregate proxy; actual signed charge is used"
+            )
+            inactive["rdac_bitwise_bits"] = "physical loading uses the actual b1 decision count"
+        return {
+            "runner": self.runner,
+            "requested": asdict(self.cfg),
+            "feedback_cap_f": float(self.chip.C_feedback_true),
+            "gain_min": float(np.min(self.g_vec))
+            if self.g_vec is not None and self.g_vec.size
+            else None,
+            "gain_max": float(np.max(self.g_vec))
+            if self.g_vec is not None and self.g_vec.size
+            else None,
+            "calibration_requested": self.cfg.calibration,
+            "calibration_applied": list(self.calibration_applied),
+            "calibration_pending": self.cfg.calibration != "none" and not self.calibration_applied,
+            "inactive_overrides": inactive,
+            "rdac_code_min": 0,
+            "rdac_code_max": self.cfg.dac_levels - 1
+            if self.cfg.dac_arch == "split"
+            else self.cfg.n_active * self.cfg.n_unit_per_slice,
+            "rdac_overflow_count": int(np.count_nonzero(self.rdac_over)),
+            "input_assistance_applied": {
+                "pretrack": self.cfg.input_network.pretrack_mode,
+                "auxiliary_bypass": self.cfg.input_network.auxiliary_bypass,
+                "auxiliary_cap_f": self.cfg.input_network.auxiliary_cap_f,
+            }
+            if self.input_assist_trace is not None
+            else None,
+            "reference_peak_fraction": float(
+                np.max(self.conversion_trace.reference_peak_v) / self.cfg.v_fs
+            )
+            if self.conversion_trace is not None
+            else None,
+        }
 
 
 def run_sim(
@@ -153,6 +266,10 @@ def run_sim(
             拒绝（外部复核 2026-09-11）。
     """
     cfg.check_legal()
+    if cfg.calibration == "weights" or (state is not None and state.weight_calibration is not None):
+        raise ValueError("physical split-unit weights require run_pipeline or run_sim_split")
+    cfg = replace(cfg, dac_arch="unary")
+    cfg.check_legal()
     if rng is None:
         rng = np.random.default_rng(cfg.seed)
     if chip is None:
@@ -181,6 +298,27 @@ def run_sim(
 
     # ---- 采样：slice 与噪声都在这里绑定到样本，后续不能偷换 ----
     sample = capture(cfg, input_fn, n_samples, rng, chip=chip, c_active=C_active)
+    if cfg.dither_mode == "sampling":
+        nd = cfg.dither_units_total
+        mask_index = np.arange(
+            cfg.n_active * cfg.n_unit_per_slice - nd, cfg.n_active * cfg.n_unit_per_slice
+        )
+        mask = chip.C_true[
+            allocation.slice_ids[:, mask_index // cfg.n_unit_per_slice],
+            mask_index % cfg.n_unit_per_slice,
+        ]
+        alpha_true = 1 - mask.sum(axis=1) / C_active
+        if nd and cfg.dither_discrete:
+            signs = 2 * (np.arange(nd)[None, :] < nd // 2 + sample.dither_code[:, None]) - 1
+            injection = cfg.v_fs * (mask * signs).sum(axis=1) / C_active
+        elif nd:
+            injection = 2 * cfg.v_fs * sample.dither_code * mask.mean(axis=1) / C_active
+        else:
+            injection = np.zeros(n_samples)
+        sample.x_rdac += (alpha_true - cfg.dither_alpha) * sample.x1 + injection - sample.dither
+        sample.dither = injection
+        sample.signal_alpha = alpha_true
+        sample.dither_bank_code = sample.dither_code.copy()
 
     # ---- 粗量化 ----
     coarse = sadc.convert(sample.x_sadc)
@@ -189,12 +327,18 @@ def run_sim(
     sid = dem_state_sequence(n_samples, cfg, allocation.bank)
 
     # ---- 数字映射（sampling 模式下 dither 以码域配对量进入）----
-    d_code = sample.dither_code if cfg.dither_mode == "sampling" else np.zeros(n_samples)
+    d_code = dither_transfer_code(
+        cfg,
+        sample.dither,
+        step_rdac=cfg.rdac_step,
+        step_coarse=cfg.delta1,
+        dither_code_sampling=sample.dither_code,
+    )
     cmd = mapper.encode(coarse, allocation.bank, sid, d_code)
 
     # ---- 两套权重下的 DAC 求值 ----
     vd0 = rdac.evaluate_nominal(cmd)
-    vd_true = rdac.evaluate_physical(cmd)
+    vd_true = rdac.evaluate_physical(cmd, allocation.slice_ids)
 
     # ---- 残差 / 放大（各自独立检查饱和）----
     residue = sample.x_rdac - vd_true
@@ -205,16 +349,21 @@ def run_sim(
     # 网络），输入变化是 α·Δx 而非 Δx。旧代码漏乘 α，dither 开时数字端又除以
     # α，产生 (1/α-1)·Δx ≈ 42.7 µV @5MHz 的确定性尺度残差（unary 复现
     # 42.683 µV，与旧公式逐数值吻合；split 分支已修，此处补齐统一口径）。
-    dx_obs = cfg.dither_alpha * sample.dx
+    dx_obs = (sample.signal_alpha if cfg.dither_mode == "sampling" else 1.0) * sample.dx
     vnc, ktc_sat = ktc.observe(sample.n_R, dx_obs, rng)
 
     # ---- 后端量化：校正量在**数字域**扣除（见 adc2.quantize_with_correction）----
     # 不能写成 quantize(vra - kappa*vnc)：那样 κ·v_N 会占用 ADC2 的模拟量程，
     # 近 Nyquist 时把余量吃穿（docs/adr/0006）。
-    fine, adc2_over = adc2.quantize_with_correction(vra, state.kappa * vnc)
+    adc2_code, adc2_over = adc2.quantize_codes(vra)
+    fine = adc2.decode_codes(adc2_code) - state.kappa * vnc
 
     # ---- 去 dither / 重构（α 为采样态 dither 的恒定衰减）----
     dither = make_dither_state(cfg, sample.dither)
+    if cfg.dither_mode == "sampling":
+        dither.digital_correction = sample.dither_code * cfg.rdac_step
+    elif cfg.dither_mode == "quantizer":
+        dither = DitherState(sample.dither, d_code * cfg.rdac_step, np.asarray(sample.rdac_dither))
     out = reconstruct(vd0, fine, state.estimated_gain, dither.digital_correction, cfg.dither_alpha)
 
     # ---- 三套误差参考（v3 审计修正：不能互相冒充）----
@@ -233,12 +382,16 @@ def run_sim(
     err_clean = out - x1_clean
 
     return SimResult(
+        conv_slice_ids=allocation.slice_ids,
+        sample_id=np.arange(n_samples),
+        adc2_code=adc2_code,
+        adc2_input_voltage=vra,
         out=out,
         err=err_target,
         x_ref=x_ref,
         sample=sample,
         coarse=coarse,
-        k=cmd.k,
+        k=cmd.k + cmd.dither_code,
         vd0=vd0,
         vd_true=vd_true,
         e_dac=vd_true - vd0,
@@ -295,6 +448,11 @@ def run_with_calibration(
     """
     from .sampler import dc_input
 
+    if cfg.dac_arch == "split" or cfg.calibration == "weights":
+        raise ValueError(
+            "run_with_calibration is unary-only; use run_with_split_calibration for physical unit weights"
+        )
+
     rng = rng or np.random.default_rng(cfg.seed)
     chip = chip or build_chip(cfg)
     state = initialize_state(cfg)
@@ -302,13 +460,9 @@ def run_with_calibration(
 
     if cfg.calibration in ("gain", "gain_beta"):
         # --- 增益：对 (alpha*x + d_nom - vd0) 回归 fine ---
-        # 校准期固定 DEM 状态（dem_enable=False 的旁路副本）、关闭采样噪声，
-        # 消除无关方差源；dither 若开启则用已知 d_nom 进入回归量。
+        # Preserve actual sampling/RA noise and the requested DEM allocation.
+        # Known dither enters the regression; physical injection truth does not.
         cal_cfg = cfg
-        if cfg.dem_enable or cfg.enable_sampling_noise:
-            from dataclasses import replace
-
-            cal_cfg = replace(cfg, dem_enable=False, enable_sampling_noise=False)
         lv_list = np.linspace(levels[0], levels[1], 9) * cfg.v_fs
         xs, vds, fines, ds = [], [], [], []
         for lv in lv_list:
@@ -322,6 +476,9 @@ def run_with_calibration(
             # sampling = 码域配对量 × 名义步长。不得使用含失配的物理注入值。
             if cal_cfg.dither_mode == "sampling":
                 ds.append(r.sample.dither_code * cal_cfg.rdac_step)
+            elif cal_cfg.dither_mode == "quantizer":
+                assert r.sample.rdac_dither is not None
+                ds.append(np.broadcast_to(r.sample.rdac_dither, (n_cal,)))
             else:
                 ds.append(r.sample.dither)
         Calibrator(cfg, state).update_gain(

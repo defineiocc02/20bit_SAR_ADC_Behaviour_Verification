@@ -8,12 +8,9 @@ DAC (RDAC)"；"the quantizers are built out of one slice DAC. The
 matched-quantizer sDAC with the RDAC allows >11b matching"（PPT p.9 写
 ">12b AC matching" —— 取更严的 12b 作门限，见 config.validate）。
 
-逐字审计口径（见 docs/adr/0003-stage-1-resolution.md）：论文 [00] 披露了
-两条互相约束的事实 —— "9b quantization in the first stage" 与 dither range
-"enhanced by 2b when transferred from the quantizer to the RDAC"。本模型取
-**同时满足两者**的读法 b1=7：粗判决 2^7=128 电平，RDAC 单位栅格比它细
-2b（units_per_lsb1=4），一级码字 7+2=9b。v6.1 的 6+3 读法保留为
-``Config.legacy_v61()``，仅为复现旧结果。
+架构读数见 ADR 0003：历史 7b 配置只作候选/回归对照；9b 决策与 dither
+范围是独立概念。`Config.paper_literal()` 保留 512 个实际决策区间，不能把
+dither 码宽加到决策信息位数上。未披露的电容数量和后端参数仍为假设。
 
 * flash 式行为模型：阈值数组 + searchsorted 向量化转换，无逐位 SAR 时序。
 * **SADC 的误差不会直接叠加到输出**（[09]1.3 的机制）：粗码误差把残差
@@ -35,10 +32,8 @@ matched-quantizer sDAC with the RDAC allows >11b matching"（PPT p.9 写
 契约与不变量：
     * 阈值数组每颗虚拟芯片生成一次（sadc_mismatch_enable 时由 rng 播种
       cfg.seed+977），之后只读 —— 三条底线之"物理失配固定"的组成部分。
-    * **显式 thresholds 模式**（分段 DAC：阈值必须对齐 DAC 名义端点而非
-      ±v_fs 理想栅格）：构造器**跳过**失调/增益失配/阈值失配 —— 这些是
-      unary 口径的参数。pipeline 需要施加时在构造后显式修改 thresholds
-      （见 pipeline.py 的"量化器通路缺陷显式施加"块，绕量程中点缩放）。
+    * 显式 thresholds 是名义输入；所有拓扑统一施加失调、增益和阈值失配。
+      Split 的增益中心取 DAC 名义端点中点。runner 不得再次施加非理想性。
 """
 
 from __future__ import annotations
@@ -47,7 +42,7 @@ from typing import Protocol, runtime_checkable
 
 import numpy as np
 
-from .config import Config
+from .config import Config, ConfigError
 
 
 @runtime_checkable
@@ -76,8 +71,7 @@ class SADC:
     """粗量化器：N+1 个阈值 -> N 个码仓的 flash 式转换。
 
     Attributes:
-        thresholds: (n_code+1,) 单调递增阈值 [V]（只读语义，构造后可被
-                    pipeline 显式重写以施加量化器缺陷）。
+        thresholds: (n_code+1,) 严格单调的实际阈值 [V]，构造后只读。
         n_code:     码仓数 = 2^b1（显式阈值模式 = len(thresholds)-1）。
     """
 
@@ -86,6 +80,7 @@ class SADC:
         cfg: Config,
         rng: np.random.Generator | None = None,
         thresholds: np.ndarray | None = None,
+        gain_center: float = 0.0,
     ):
         """两种构造模式：
 
@@ -94,22 +89,28 @@ class SADC:
             rng:        阈值失配的生成器；None 时按 cfg.seed+977 播种。
                         （失败保守化：调用方传入 rng 则必须自己保证
                         与其它失配的独立性——本模块不复用主 rng。）
-            thresholds: 显式阈值 [V]。提供时进入分段 DAC 模式：码仓对齐
-                        DAC 名义端点，**不再**叠加失调/增益失配/阈值失配
-                        （那些是 unary 口径的参数，见类 docstring）。
+            thresholds: 显式名义阈值 [V]；同样施加配置中的全部非理想性。
+            gain_center: 增益失配的名义电压中心 [V]，不能来自物理真值。
         Raises:
-            无显式异常；thresholds 非单调时 searchsorted 行为未定义，
-            调用方自行保证单调性。
+            ConfigError: 名义或实际阈值非有限/非单调，或者增益非正。
         """
         self.cfg = cfg
         if thresholds is not None:
-            self.thresholds = np.asarray(thresholds, dtype=float)
-            self.n_code = len(self.thresholds) - 1
-            return
-        n_code = 2**cfg.b1
-        d1 = cfg.delta1
+            thr = np.array(thresholds, dtype=float, copy=True)
+        else:
+            thr = -cfg.v_fs + np.arange(2**cfg.b1 + 1) * cfg.delta1
+        if (
+            thr.ndim != 1
+            or thr.size < 2
+            or not np.all(np.isfinite(thr))
+            or np.any(np.diff(thr) <= 0)
+        ):
+            raise ConfigError("SADC nominal thresholds must be finite and strictly increasing")
+        if not np.isfinite(gain_center) or 1 + cfg.sadc_rdac_gain_mismatch <= 0:
+            raise ConfigError("SADC gain must be positive and its center finite")
+        self.nominal_thresholds = thr.copy()
+        n_code = len(thr) - 1
         c = np.arange(n_code + 1)
-        thr = -cfg.v_fs + c * d1
 
         if cfg.sadc_mismatch_enable and cfg.sadc_mismatch_sigma > 0:
             rng = rng or np.random.default_rng(cfg.seed + 977)
@@ -122,7 +123,11 @@ class SADC:
 
         # 失调 + 与 RDAC 的增益失配（增益失配会被 G 放大，直接吃掉 ADC2 余量；
         # 预算检查见 config.validate["SADC/RDAC 失配占用余量"]）
-        self.thresholds = (thr - cfg.sadc_offset) / (1.0 + cfg.sadc_rdac_gain_mismatch)
+        self.thresholds = gain_center + (thr - gain_center - cfg.sadc_offset) / (
+            1.0 + cfg.sadc_rdac_gain_mismatch
+        )
+        if not np.all(np.isfinite(self.thresholds)) or np.any(np.diff(self.thresholds) <= 0):
+            raise ConfigError("SADC physical thresholds must be finite and strictly increasing")
         self.n_code = n_code
 
     def convert(self, x: np.ndarray) -> np.ndarray:
@@ -171,7 +176,7 @@ def build_first_stage_quantizer(cfg: Config, dac: SplitDacLike | None = None) ->
         * 提供 ``dac``（分段拓扑）时，阈值对齐 **DAC 自己的名义栅格**：
           ``thr[c] = v_lo + c * (units_per_d1 * step0)``。这样
           ``k_eq = coarse * units_per_d1`` 恰好落在阈值上，残差被限制在
-          ``±units_per_d1*step0/2`` 之内（= 一个第一级判决步的一半）。
+          ``[0, units_per_d1*step0)`` 之内（无噪声/失配/饱和时）。
         * 不提供 ``dac``（等权拓扑）时，阈值就是理想栅格
           ``-v_fs + c * cfg.delta1``。
 
@@ -180,8 +185,7 @@ def build_first_stage_quantizer(cfg: Config, dac: SplitDacLike | None = None) ->
         dac: 可选的分段 DAC 实例。
 
     Returns:
-        配置好阈值的 :class:`SADC`（显式阈值模式，不再叠加失调/增益失配 —
-        这些由调用方在构造后显式施加，见 pipeline 的"量化器通路缺陷"块）。
+        配置好名义与实际阈值的 :class:`SADC`，全部非理想性已施加一次。
     """
     if dac is None:
         return SADC(cfg)
@@ -190,4 +194,4 @@ def build_first_stage_quantizer(cfg: Config, dac: SplitDacLike | None = None) ->
     step0 = (v_hi - v_lo) / (levels - 1.0)
     unit = units_per_first_stage_step(cfg, dac)
     thr = v_lo + np.arange(2**cfg.b1 + 1) * (unit * step0)
-    return SADC(cfg, thresholds=thr)
+    return SADC(cfg, thresholds=thr, gain_center=0.5 * (v_lo + v_hi))

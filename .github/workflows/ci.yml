@@ -94,3 +94,36 @@ jobs:
               sys.exit(1)
           print('OK: results.json byte-identical across runs')
           PY
+
+
+  build:
+    name: Build and installed wheel CLI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      - run: python -m build
+      - run: pip install dist/*.whl
+      - name: Verify wheel outside the checkout
+        working-directory: /tmp
+        run: |
+          adi-run-all --help
+          adi-make-report --help
+          python - <<'PYCODE'
+          from adi_model.cli import find_tools_dir
+          from adi_model import Config, sine_input
+          from adi_model.pipeline import run_pipeline
+          tools = find_tools_dir()
+          assert tools is not None and tools.name == '_tools', tools
+          cfg = Config.paper_literal(dither_mode='off')
+          words = run_pipeline(cfg, sine_input(1.0, 1e6), 128).to_codes()
+          assert len(words.code) == 128
+          assert not words.analog_overflow.any()
+          PYCODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: distributions
+          path: dist/*

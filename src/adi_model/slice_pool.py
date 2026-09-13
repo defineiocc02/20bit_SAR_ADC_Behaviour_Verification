@@ -66,12 +66,13 @@ Example:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-
 import numpy as np
 
 from .config import Config
+from .dac_arch import SplitChip, build_split_chip
+from .dem import split_switch_command
 from .provenance import SourceGrade
+from .timing import SlicePlan, build_slice_plan
 
 __all__ = [
     "SlicePlan",
@@ -85,42 +86,6 @@ SLICE_POOL_GRADES = {
     "n_active": SourceGrade.DISCLOSED,
     "strategy": SourceGrade.ASSUMED,
 }
-
-
-@dataclass
-class SlicePlan:
-    """Per-cycle slice assignment produced by :meth:`PhysicalSlicePool.plan`.
-
-    Attributes:
-        conv: ``(N, n_active)`` int64 — slices converting cycle ``n``. Sample
-            index convention: these slices hold the charge acquired at cycle
-            ``n - 1``, so the emitted output at cycle ``n`` belongs to input
-            sample ``n - 1``. See :attr:`conv_source_cycle`.
-        acq: ``(N, n_active)`` int64 — slices acquiring during cycle ``n``;
-            they will convert at cycle ``n + 1``.
-        conv_source_cycle: ``(N,)`` int64 — cycle at which the converting
-            slices performed their acquisition (``n - 1``, or ``-1`` during the
-            fill phase before the pipeline is primed).
-        valid: ``(N,)`` bool — False for cycles where the conversion group had
-            not completed a legal acquisition. Consumers must not emit an output
-            for those cycles instead of silently converting garbage.
-        strategy: Scheduling strategy used.
-    """
-
-    conv: np.ndarray
-    acq: np.ndarray
-    conv_source_cycle: np.ndarray
-    valid: np.ndarray
-    strategy: str
-    meta: dict = field(default_factory=dict)
-
-    def __len__(self) -> int:
-        """Number of planned cycles.
-
-        Returns:
-            int: Number of planned cycles (``N``), i.e. ``conv.shape[0]``.
-        """
-        return int(self.conv.shape[0])
 
 
 def check_causality(plan: SlicePlan) -> dict:
@@ -190,6 +155,7 @@ class PhysicalSlicePool:
         slice_sigma: float | None = None,
         unit_sigma: float | None = None,
         n_unit_per_slice: int | None = None,
+        chip: SplitChip | None = None,
     ) -> None:
         """Build the pool and draw the physical capacitors for one virtual chip.
 
@@ -204,6 +170,8 @@ class PhysicalSlicePool:
                 derived from ``cfg.mismatch_split`` (slice variance fraction).
             unit_sigma: Override for the unit-level relative sigma.
             n_unit_per_slice: Override for units per slice.
+            chip: Optional aggregate split-chip realization to distribute over
+                slices; otherwise every physical capacitor is independently drawn.
 
         Side effects:
             Consumes draws from ``rng``; no global state is touched.
@@ -211,6 +179,10 @@ class PhysicalSlicePool:
         self.cfg = cfg
         n_slices = int(cfg.n_slices)
         n_up = int(n_unit_per_slice or cfg.n_unit_per_slice)
+        self.is_split = cfg.dac_arch == "split"
+        self.template_chip = (chip or build_split_chip(cfg)) if self.is_split else None
+        if self.is_split:
+            n_up = cfg.dac_n_main + cfg.dac_n_sub
         self.n_slices = n_slices
         self.n_unit_per_slice = n_up
         self.n_units = int(cfg.n_active) * n_up
@@ -219,11 +191,15 @@ class PhysicalSlicePool:
         g_frac, s_frac, u_frac = cfg.mismatch_split
         tot = max(g_frac + s_frac + u_frac, 1e-12)
         s_frac, u_frac = s_frac / tot, u_frac / tot
-        sig0 = float(cfg.mismatch_sigma0)
+        c_unit_nom = (
+            cfg.dac_unit_cap() / cfg.n_active
+            if self.is_split
+            else (cfg.c_total0 * cfg.cap_scale) / self.n_units
+        )
+        sig0 = cfg.sigma_mismatch_unit(c_unit_nom) if self.is_split else float(cfg.mismatch_sigma0)
         sig_slice = float(slice_sigma) if slice_sigma is not None else sig0 * np.sqrt(s_frac)
         sig_unit = float(unit_sigma) if unit_sigma is not None else sig0 * np.sqrt(u_frac)
 
-        c_unit_nom = (cfg.c_total0 * cfg.cap_scale) / self.n_units
         self.c_unit_nom = float(c_unit_nom)
 
         # Per-slice mean deviation (a slice-level systematic term) ...
@@ -239,7 +215,34 @@ class PhysicalSlicePool:
         if not cfg.mismatch_enable:
             self.slice_dev = np.zeros(n_slices)
             unit_dev = np.zeros((n_slices, n_up))
-        self.unit_caps = c_unit_nom * (1.0 + self.slice_dev[:, None] + unit_dev)
+        global_dev = rng.normal(0, sig0 * np.sqrt(g_frac / tot)) if cfg.mismatch_enable else 0.0
+        self.unit_caps = c_unit_nom * (1.0 + global_dev + self.slice_dev[:, None] + unit_dev)
+        if self.is_split:
+            assert self.template_chip is not None
+            template = self.template_chip
+            if chip is not None:
+                self.unit_caps = np.tile(
+                    np.concatenate((chip.C_main, chip.C_sub)) / cfg.n_active,
+                    (n_slices, 1),
+                )
+            self.bridge_caps = np.full(n_slices, template.C_bridge_nom / cfg.n_active)
+            self.sub_parasitic = np.full(n_slices, template.c_p_sub_nom / cfg.n_active)
+            if chip is not None:
+                self.bridge_caps[:] = chip.C_bridge / cfg.n_active
+                self.sub_parasitic[:] = chip.c_p_sub / cfg.n_active
+            elif cfg.mismatch_enable:
+                self.bridge_caps *= 1 + cfg.dac_bridge_mismatch_sigma * rng.standard_normal(
+                    n_slices
+                )
+                self.sub_parasitic *= 1 + cfg.dac_parasitic_spread * rng.standard_normal(n_slices)
+            if (
+                np.any(self.unit_caps <= 0)
+                or np.any(self.bridge_caps <= 0)
+                or np.any(self.sub_parasitic < 0)
+            ):
+                raise ValueError(
+                    "physical split capacitances must be positive; parasitics nonnegative"
+                )
         self.c_slice_total = self.unit_caps.sum(axis=1)
         self.c_total_nom = c_unit_nom * self.n_units
 
@@ -248,6 +251,13 @@ class PhysicalSlicePool:
         self.held_sample = np.full(n_slices, -1, dtype=np.int64)
         self.held_valid = np.zeros(n_slices, dtype=bool)
         self.n_conversions = np.zeros(n_slices, dtype=np.int64)
+        # Clock/switch properties are chip state, not observation noise. Their
+        # dedicated stream is unchanged when capacitor/noise draws are enabled.
+        clock_rng = np.random.default_rng(cfg.seed + 8301)
+        self.tau_rel = 1 + clock_rng.normal(0, cfg.slice_bw_spread, n_slices)
+        self.t_skew = clock_rng.normal(0, cfg.slice_timing_skew_s, n_slices)
+        self.v_os = clock_rng.normal(0, cfg.slice_offset_sigma_v, n_slices)
+        self.v_top_q = np.zeros(2)
 
         # ---- cumulative-sum table for vectorised DAC selection ------------
         # CUM_ALL[j * n_up + u, m] = sum of the first m units of slice j after
@@ -296,71 +306,7 @@ class PhysicalSlicePool:
             ValueError: On an unknown strategy, or a pool too small to form two
                 disjoint groups.
         """
-        if strategy not in ("pingpong", "shuffle_causal"):
-            raise ValueError(f"unknown strategy {strategy!r}")
-        n_act = int(self.cfg.n_active)
-        if self.n_slices < 2 * n_act:
-            raise ValueError("slice pool too small for two disjoint groups")
-
-        conv = np.empty((n_samples, n_act), dtype=np.int64)
-        acq = np.empty((n_samples, n_act), dtype=np.int64)
-        src = np.full(n_samples, -1, dtype=np.int64)
-        valid = np.zeros(n_samples, dtype=bool)
-
-        # State: which slices currently hold a valid acquisition, and for which
-        # sample. Start empty -> cycle 0 cannot convert.
-        held: dict[int, int] = {}  # slice -> sample index it holds
-
-        if strategy == "pingpong":
-            a = np.arange(0, n_act)
-            b = np.arange(n_act, 2 * n_act)
-            for n in range(n_samples):
-                if n >= 1:
-                    # The group that acquired during cycle n-1 converts now.
-                    c = b if (n % 2 == 1) else a
-                    conv[n] = c
-                    src[n] = n - 1
-                    valid[n] = all(held.get(int(s), -1) == n - 1 for s in c)
-                else:
-                    conv[n] = a
-                free = np.setdiff1d(np.arange(self.n_slices), conv[n])
-                acq[n] = free[:n_act]
-                for s in acq[n]:
-                    held[int(s)] = n
-        else:
-            all_ids = np.arange(self.n_slices)
-            for n in range(n_samples):
-                if n >= 1:
-                    # Converting group = the slices that acquired sample n-1.
-                    cand = np.array([s for s, k in held.items() if k == n - 1], dtype=np.int64)
-                    if cand.size >= n_act:
-                        conv[n] = np.sort(cand[:n_act])
-                        src[n] = n - 1
-                        valid[n] = True
-                    else:  # pragma: no cover - defensive
-                        conv[n] = np.sort(cand)[:n_act]
-                        valid[n] = False
-                else:
-                    conv[n] = np.arange(n_act)
-                free = np.setdiff1d(all_ids, conv[n])
-                # Randomise within the free set: this is where shuffling lives.
-                pick = rng.permutation(free)[:n_act]
-                acq[n] = np.sort(pick)
-                # Slices that were dropped stop holding a valid sample.
-                for s in list(held):
-                    if s not in set(acq[n].tolist()):
-                        held.pop(s, None)
-                for s in acq[n]:
-                    held[int(s)] = n
-
-        return SlicePlan(
-            conv=conv,
-            acq=acq,
-            conv_source_cycle=src,
-            valid=valid,
-            strategy=strategy,
-            meta={"n_slices": self.n_slices, "n_active": n_act},
-        )
+        return build_slice_plan(self.cfg, n_samples, rng, strategy)
 
     # -------------------------------------------------------------- DAC math
     def signal_capacitance(self, conv: np.ndarray) -> np.ndarray:
@@ -376,7 +322,134 @@ class PhysicalSlicePool:
         Returns:
             ``(N,)`` float64 total capacitance [F].
         """
-        return self.c_slice_total[np.asarray(conv, dtype=np.int64)].sum(axis=1)
+        if self.is_split:
+            return self.split_coefficients(conv)["c_signal"]
+        return self.unit_caps[np.asarray(conv, dtype=np.int64)].sum(axis=(1, 2))
+
+    def split_coefficients(
+        self, conv: np.ndarray, *, cfg: Config | None = None
+    ) -> dict[str, np.ndarray]:
+        """Derive physical signal/load/noise/mask quantities from selected slices.
+
+        Args:
+            conv: Array of actual physical slice IDs, shape (N, n_active).
+            cfg: Optional runtime mask controls; fabrication remains unchanged.
+
+        Returns:
+            Per-sample capacitances [F], physical alpha and per-slice weights.
+            Each slice has its own floating subnode and bridge; summing sub
+            capacitors before solving beta would incorrectly short those nodes.
+        """
+        if not self.is_split:
+            raise ValueError("split_coefficients requires a split pool")
+        cfg = self.cfg if cfg is None else cfg
+        ids = np.asarray(conv, dtype=np.int64)
+        caps = self.unit_caps
+        nm = cfg.dac_n_main
+        a, b = caps[:, :nm].sum(axis=-1)[ids], caps[:, nm:].sum(axis=-1)[ids]
+        beta = self.bridge_caps[ids] / (self.bridge_caps[ids] + b + self.sub_parasitic[ids])
+        c_slice = a + beta * b
+        c_signal = c_slice.sum(axis=-1)
+        mask = np.zeros_like(a)
+        weight = np.ones_like(a)
+        nd = cfg.dither_units_total
+        if nd:
+            if cfg.dither_split_bank == "sub":
+                mask = caps[:, -nd:].sum(axis=-1)[ids]
+                weight = beta
+            else:
+                mask = caps[:, nm - nd : nm].sum(axis=-1)[ids]
+        signal_slice = c_slice - weight * mask
+        return {
+            "c_signal": c_signal,
+            "c_load": (a + b - mask).sum(axis=-1),
+            "c_noise": c_signal**2 / (a + beta**2 * b).sum(axis=-1),
+            "alpha": signal_slice.sum(axis=-1) / c_signal,
+            "signal_slice": signal_slice,
+            "c_slice": c_slice,
+            "load_slice": a + b - mask,
+            "beta": beta,
+        }
+
+    def split_dac_voltage(
+        self, conv: np.ndarray, k: np.ndarray, sid: np.ndarray, *, cfg: Config | None = None
+    ) -> np.ndarray:
+        """Evaluate selected-slice split charge with independent main/sub DEM.
+
+        Args:
+            conv: Actual converting slice IDs (N, n_active).
+            k: Fine RDAC command (N,), including dither; clipped physically.
+            sid: Nominal DEM states (N,). Main/sub axes are decoded separately.
+            cfg: Runtime DEM/mask controls for this unchanged physical pool.
+
+        Returns:
+            Input-referred DAC voltage [V], from the same caps used in sampling.
+        """
+        if not self.is_split:
+            raise ValueError("split_dac_voltage requires a split pool")
+        cfg = self.cfg if cfg is None else cfg
+        ids = np.asarray(conv, dtype=np.int64)
+        code = np.clip(np.asarray(k, dtype=float), 0, cfg.dac_levels - 1)
+        states = (
+            np.asarray(sid, dtype=np.int64)
+            if cfg.dem_enable
+            else np.zeros(len(code), dtype=np.int64)
+        )
+        result = np.empty(len(code))
+        # Bounded scratch memory; no cache can go stale after an explicit chip perturbation.
+        for start in range(0, len(code), 512):
+            sl = slice(start, start + 512)
+            caps = self.unit_caps[ids[sl]]
+            coeff = self.split_coefficients(ids[sl], cfg=cfg)
+            command = split_switch_command(cfg, code[sl], states[sl])
+            counts = (command.main_counts, command.sub_counts)
+            orders = (command.main_order, command.sub_order)
+            charge = np.zeros(caps.shape[:2])
+            offset = 0
+            for bank, size in enumerate((cfg.dac_n_main, cfg.dac_n_sub)):
+                bank_caps = np.take_along_axis(
+                    caps[..., offset : offset + size], orders[bank][:, None, :], axis=2
+                )
+                take = np.clip(counts[bank][..., None] - np.arange(size), 0, 1)
+                selected = (bank_caps * take).sum(axis=-1)
+                q = 2 * selected - bank_caps.sum(axis=-1)
+                charge += q if bank == 0 else coeff["beta"] * q
+                offset += size
+            result[sl] = cfg.v_fs * charge.sum(axis=-1) / coeff["c_signal"]
+        return result
+
+    def split_sampling_charge(
+        self, conv: np.ndarray, x: np.ndarray, bank_code: np.ndarray, *, cfg: Config | None = None
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Compute masked input and dither voltage from actual selected caps.
+
+        Args:
+            conv: Selected sampling slices (N, n_active).
+            x: Input voltage at each aperture [V].
+            bank_code: Known integer mask code or continuous interpolation.
+            cfg: Runtime sampling mask; no capacitor is redrawn or rescaled.
+
+        Returns:
+            Tuple of stored signal-plus-dither voltage and dither voltage [V].
+            Thermal noise is generated separately from the same coefficients.
+        """
+        cfg = self.cfg if cfg is None else cfg
+        ids = np.asarray(conv, dtype=np.int64)
+        coeff = self.split_coefficients(ids, cfg=cfg)
+        injected = np.zeros(len(ids))
+        nd = cfg.dither_units_total
+        if nd:
+            nm = cfg.dac_n_main
+            idx = slice(nm - nd, nm) if cfg.dither_split_bank == "main" else slice(-nd, None)
+            caps = self.unit_caps[:, idx][ids]
+            weights = coeff["beta"] if cfg.dither_split_bank == "sub" else np.ones(ids.shape)
+            if cfg.dither_discrete:
+                take = np.arange(nd)[None, :] < (nd // 2 + bank_code[:, None])
+                q = (caps * (2 * take[:, None, :] - 1)).sum(axis=-1)
+            else:
+                q = 2 * bank_code[:, None] * caps.mean(axis=-1)
+            injected = cfg.v_fs * (q * weights).sum(axis=-1) / coeff["c_signal"]
+        return coeff["alpha"] * x + injected, injected
 
     def selected_capacitance(
         self,
@@ -403,6 +476,9 @@ class PhysicalSlicePool:
             ``(N,)`` float64 selected capacitance [F].
         """
         conv = np.asarray(conv, dtype=np.int64)
+        if self.is_split:
+            voltage = self.split_dac_voltage(conv, k, sid)
+            return 0.5 * (voltage / self.cfg.v_fs + 1) * self.signal_capacitance(conv)
         n_act = conv.shape[1]
         k = np.rint(np.asarray(k, dtype=float)).astype(np.int64)
         k = np.clip(k, 0, self.n_units)
@@ -451,6 +527,10 @@ class PhysicalSlicePool:
             ``(N,)`` float64 input-referred DAC voltage [V].
         """
         v_fs = float(self.cfg.v_fs)
+        if self.is_split:
+            if nominal:
+                return -v_fs + np.asarray(k, dtype=float) * self.cfg.nominal_rdac_step
+            return self.split_dac_voltage(conv, k, sid)
         c_tot: float | np.ndarray
         if nominal:
             c_sel = np.asarray(k, dtype=float) * self.c_unit_nom

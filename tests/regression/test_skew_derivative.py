@@ -178,7 +178,9 @@ class TestSkewEntersThePipeline:
         n = 2**13
         cfg = _clone(
             Config(),
-            dyn_input_settling=True,
+            # Isolate timing skew: continuous RC phase lag is an independent,
+            # much larger error and must not be attributed to slope estimation.
+            dyn_input_settling=False,
             dyn_ron_code_coeff=0.0,
             slice_timing_skew_s=10e-12,
             enable_sampling_noise=False,

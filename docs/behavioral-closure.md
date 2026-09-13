@@ -114,6 +114,11 @@ acquisition interval; returned output IDs start at zero. Each independent call
 resets electrical state while preserving an injected pool's fabricated values.
 This record API does not imply seamless chunk streaming.
 
+An injected pool retains its fabricated arrays and construction configuration.
+Production calls pass the current runtime configuration explicitly to its split
+charge methods, allowing different calibration/validation masks and DEM controls
+on the same chip. Direct pool callers can use the same optional `cfg` keyword.
+
 Results expose `sample_id`, `conv_slice_ids`, `acq_slice_ids`, `held_sample`,
 `stored_charge`, `acquisition_start`, and `acquisition_error`. Noise, gain and
 DAC voltage all derive from the selected capacitors. Continuous acquisition is

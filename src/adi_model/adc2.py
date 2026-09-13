@@ -37,7 +37,7 @@ ADC2 解放大后的残差。本模块只模拟 ADC2 的**静态量化**：
     手改单值会让残差溢出，validate() 会报 FAIL）
 
 契约与不变量：
-    * quantize 对 v 中 NaN/Inf 不做特殊处理（上游 RA/clip 已保证有限值）；
+    * 非有限输入被拒绝；原始整数码在任何数字观察器校正之前产生；
     * 溢出标志 over 是**逐样本布尔**，统计口径见 metrics；溢出样本的输出
       被钳位在量程端点 bin —— 物理上等价于"读数为饱和码"，不是丢弃。
 """
@@ -74,6 +74,44 @@ class ADC2:
         self.vmax = cfg.adc2_v_max
         self.n_code = 2**cfg.adc2_n_bits
 
+    def quantize_codes(self, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Return raw integer ADC2 codes and analog-window overflow flags.
+
+        Args:
+            v: Finite ADC2 acquisition voltage [V], arbitrary shape.
+
+        Returns:
+            (int64 code, bool overflow) of the same shape. The specified input
+            operating range includes both rails; the upper rail maps to the
+            last code. Out-of-window finite inputs saturate, with flags retained.
+
+        Raises:
+            ValueError: NaN or infinity, which cannot represent a conversion.
+        """
+        v = np.asarray(v, dtype=float)
+        if np.any(~np.isfinite(v)):
+            raise ValueError("ADC2 acquisition voltage must be finite")
+        over = (v < self.vmin) | (v > self.vmax)
+        vc = np.clip(v, self.vmin, self.vmax)
+        code = np.floor((vc - self.vmin) / self.step)
+        return np.clip(code, 0, self.n_code - 1).astype(np.int64), over
+
+    def decode_codes(self, code: np.ndarray) -> np.ndarray:
+        """Decode legal raw integer codes to nominal ADC2 bin-center voltages [V].
+
+        Raises:
+            ValueError: Noninteger or out-of-range code data. A malformed code
+                buffer is not silently clipped during digital reconstruction.
+        """
+        code = np.asarray(code)
+        if (
+            not np.issubdtype(code.dtype, np.integer)
+            or np.any(code < 0)
+            or np.any(code >= self.n_code)
+        ):
+            raise ValueError("ADC2 codes must be integers within the backend code range")
+        return self.vmin + (code + 0.5) * self.step
+
     def quantize(self, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """量化并统计溢出。
 
@@ -87,11 +125,8 @@ class ADC2:
             over: 逐样本布尔，True = 输入超出 [vmin, vmax]（被钳位）。
         Side effects: 无（本类无状态）。
         """
-        over = (v < self.vmin) | (v > self.vmax)
-        vc = np.clip(v, self.vmin, self.vmax)
-        code = np.floor((vc - self.vmin) / self.step)
-        code = np.clip(code, 0, self.n_code - 1)
-        return self.vmin + (code + 0.5) * self.step, over
+        code, over = self.quantize_codes(v)
+        return self.decode_codes(code), over
 
     def quantize_with_correction(
         self, v: np.ndarray, correction: np.ndarray

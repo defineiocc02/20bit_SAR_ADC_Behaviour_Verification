@@ -116,3 +116,19 @@ def test_noise_switches_do_not_redraw_capacitors_or_schedule():
     np.testing.assert_array_equal(a.pool.unit_caps, b.pool.unit_caps)
     np.testing.assert_array_equal(a.pool.t_skew, b.pool.t_skew)
     np.testing.assert_array_equal(a.conv_slice_ids, b.conv_slice_ids)
+
+
+def test_reused_chip_obeys_runtime_masks_without_changing_fabrication_controls():
+    cfg = cfg_ideal()
+    pool = PhysicalSlicePool(cfg, np.random.default_rng(1))
+    caps = pool.unit_caps.copy()
+    changed = replace(
+        cfg, dither_mode="sampling", dither_discrete=True, dem_enable=True, dem_bridge_enable=True
+    )
+    fn = sine_input(1.3, cfg.fs * 47 / 1024)
+    reused = run_pipeline(changed, fn, 1024, pool=pool)
+    fresh = run_pipeline(changed, fn, 1024)
+    np.testing.assert_array_equal(reused.out, fresh.out)
+    np.testing.assert_array_equal(pool.unit_caps, caps)
+    assert pool.cfg.dither_mode == "off"
+    assert np.max(abs(reused.err)) < changed.delta2 / changed.g0 / changed.dither_alpha

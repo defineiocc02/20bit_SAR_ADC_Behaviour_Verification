@@ -138,6 +138,7 @@ class SimResult:
     input_bus_voltage: np.ndarray | None = None  # filter-bus aperture voltage [V]
     conversion_trace: ConversionResult | None = None
     adc2_input_voltage: np.ndarray | None = None
+    adc2_code: np.ndarray | None = None  # raw integer code, before observer correction
     input_assist_trace: InputAssistTrace | None = None
 
     @property
@@ -337,7 +338,8 @@ def run_sim(
     # ---- 后端量化：校正量在**数字域**扣除（见 adc2.quantize_with_correction）----
     # 不能写成 quantize(vra - kappa*vnc)：那样 κ·v_N 会占用 ADC2 的模拟量程，
     # 近 Nyquist 时把余量吃穿（docs/adr/0006）。
-    fine, adc2_over = adc2.quantize_with_correction(vra, state.kappa * vnc)
+    adc2_code, adc2_over = adc2.quantize_codes(vra)
+    fine = adc2.decode_codes(adc2_code) - state.kappa * vnc
 
     # ---- 去 dither / 重构（α 为采样态 dither 的恒定衰减）----
     dither = make_dither_state(cfg, sample.dither)
@@ -365,6 +367,8 @@ def run_sim(
     return SimResult(
         conv_slice_ids=allocation.slice_ids,
         sample_id=np.arange(n_samples),
+        adc2_code=adc2_code,
+        adc2_input_voltage=vra,
         out=out,
         err=err_target,
         x_ref=x_ref,

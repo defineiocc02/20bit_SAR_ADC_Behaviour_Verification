@@ -1045,6 +1045,18 @@ class Config:
             bad.append(f"v_fs={self.v_fs!r} 必须为正（满幅峰值 [V]）")
         if self.n_bits_target < 1:
             bad.append(f"n_bits_target={self.n_bits_target!r} 必须 >= 1")
+        if (
+            isinstance(self.adc2_n_bits, bool)
+            or not isinstance(self.adc2_n_bits, int)
+            or not 1 <= self.adc2_n_bits <= 30
+        ):
+            bad.append("adc2_n_bits must be an integer in [1, 30]")
+        if (
+            not math.isfinite(self.adc2_v_min)
+            or not math.isfinite(self.adc2_v_max)
+            or self.adc2_v_min >= self.adc2_v_max
+        ):
+            bad.append("ADC2 voltage bounds must be finite and strictly increasing")
         if self.split_feedback_cap_f is not None and (
             not math.isfinite(self.split_feedback_cap_f) or self.split_feedback_cap_f <= 0
         ):

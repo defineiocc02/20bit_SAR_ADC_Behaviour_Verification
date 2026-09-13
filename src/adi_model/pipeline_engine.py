@@ -100,7 +100,7 @@ def execute_split(
     bank = np.arange(n_samples, dtype=np.int64) % 2
     sid = dem_state_sequence(n_samples, cfg, bank)
 
-    coeff = pool.split_coefficients(conv)
+    coeff = pool.split_coefficients(conv, cfg=cfg)
     c_sig, c_load, c_noise = coeff["c_signal"], coeff["c_load"], coeff["c_noise"]
     ra = ResidueAmplifier(cfg)
     gain = ra.gain_vector(c_sig, chip.C_feedback_true)
@@ -119,7 +119,9 @@ def execute_split(
     if cfg.dither_mode == "sampling":
         sampling_dither_injection(cfg, chip, sample, step, chip.c_sig_true())
         assert sample.dither_bank_code is not None
-        sampled, injection = pool.split_sampling_charge(conv, sample.x1, sample.dither_bank_code)
+        sampled, injection = pool.split_sampling_charge(
+            conv, sample.x1, sample.dither_bank_code, cfg=cfg
+        )
         sample.x_rdac = sampled + sample.n_R
         sample.dither = injection
         sample.signal_alpha = coeff["alpha"]
@@ -312,7 +314,9 @@ def execute_split(
                     coarse[n],
                     sample.dither[n] if cfg.dither_mode in ("analog", "quantizer") else 0.0,
                 )
-            vd = pool.split_dac_voltage(conv[n : n + 1], np.array([command]), sid[n : n + 1])[0]
+            vd = pool.split_dac_voltage(
+                conv[n : n + 1], np.array([command]), sid[n : n + 1], cfg=cfg
+            )[0]
             vd += crosstalk_error(
                 cfg,
                 np.array([command]),
@@ -342,7 +346,7 @@ def execute_split(
 
     k = coarse * units + d_code
     vd0 = dac.evaluate_nominal(k)
-    vd_true = pool.split_dac_voltage(conv, k, sid)
+    vd_true = pool.split_dac_voltage(conv, k, sid, cfg=cfg)
     dyn = apply_dynamics(
         replace(cfg, dyn_input_settling=False, dyn_ref_settling=False),
         x=sample.x_rdac,
@@ -379,7 +383,9 @@ def execute_split(
     ktc = KTCBranch(cfg)
     alpha_physical = coeff["alpha"] if cfg.dither_mode == "sampling" else 1.0
     vnc, ktc_sat = ktc.observe(sample.n_R, alpha_physical * sample.dx, sample_rng)
-    fine, adc2_over = ADC2(cfg).quantize_with_correction(adc2_input, state.kappa * vnc)
+    backend = ADC2(cfg)
+    adc2_code, adc2_over = backend.quantize_codes(adc2_input)
+    fine = backend.decode_codes(adc2_code) - state.kappa * vnc
     dither = make_dither_state(cfg, sample.dither)
     if cfg.dither_mode == "sampling":
         dither.digital_correction = sample.dither_code * step
@@ -438,5 +444,6 @@ def execute_split(
         input_bus_voltage=bus_voltage,
         conversion_trace=joint.result if joint is not None else None,
         adc2_input_voltage=adc2_input,
+        adc2_code=adc2_code,
         input_assist_trace=assist,
     )

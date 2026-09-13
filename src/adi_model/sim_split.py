@@ -235,7 +235,8 @@ def run_sim_split_reference(
     dx_obs = (sample.signal_alpha if cfg.dither_mode == "sampling" else 1.0) * sample.dx
     vnc, ktc_sat = ktc.observe(sample.n_R, dx_obs, rng)
     # 校正量在数字域扣除，不占用 ADC2 模拟量程（docs/adr/0006）
-    fine, adc2_over = adc2.quantize_with_correction(vra, state.kappa * vnc)
+    adc2_code, adc2_over = adc2.quantize_codes(vra)
+    fine = adc2.decode_codes(adc2_code) - state.kappa * vnc
 
     if cfg.dither_mode == "sampling":
         # 数字端扣除**名义**值：dither 单位的失配必须留在输出里（这才是它的代价），
@@ -268,6 +269,8 @@ def run_sim_split_reference(
     err_clean = out - x1_clean
 
     return SimResult(
+        adc2_code=adc2_code,
+        adc2_input_voltage=vra,
         runner="run_sim_split",
         out=out,
         err=err_target,

@@ -326,11 +326,14 @@ class PhysicalSlicePool:
             return self.split_coefficients(conv)["c_signal"]
         return self.unit_caps[np.asarray(conv, dtype=np.int64)].sum(axis=(1, 2))
 
-    def split_coefficients(self, conv: np.ndarray) -> dict[str, np.ndarray]:
+    def split_coefficients(
+        self, conv: np.ndarray, *, cfg: Config | None = None
+    ) -> dict[str, np.ndarray]:
         """Derive physical signal/load/noise/mask quantities from selected slices.
 
         Args:
             conv: Array of actual physical slice IDs, shape (N, n_active).
+            cfg: Optional runtime mask controls; fabrication remains unchanged.
 
         Returns:
             Per-sample capacitances [F], physical alpha and per-slice weights.
@@ -339,18 +342,19 @@ class PhysicalSlicePool:
         """
         if not self.is_split:
             raise ValueError("split_coefficients requires a split pool")
+        cfg = self.cfg if cfg is None else cfg
         ids = np.asarray(conv, dtype=np.int64)
         caps = self.unit_caps
-        nm = self.cfg.dac_n_main
+        nm = cfg.dac_n_main
         a, b = caps[:, :nm].sum(axis=-1)[ids], caps[:, nm:].sum(axis=-1)[ids]
         beta = self.bridge_caps[ids] / (self.bridge_caps[ids] + b + self.sub_parasitic[ids])
         c_slice = a + beta * b
         c_signal = c_slice.sum(axis=-1)
         mask = np.zeros_like(a)
         weight = np.ones_like(a)
-        nd = self.cfg.dither_units_total
+        nd = cfg.dither_units_total
         if nd:
-            if self.cfg.dither_split_bank == "sub":
+            if cfg.dither_split_bank == "sub":
                 mask = caps[:, -nd:].sum(axis=-1)[ids]
                 weight = beta
             else:
@@ -367,20 +371,23 @@ class PhysicalSlicePool:
             "beta": beta,
         }
 
-    def split_dac_voltage(self, conv: np.ndarray, k: np.ndarray, sid: np.ndarray) -> np.ndarray:
+    def split_dac_voltage(
+        self, conv: np.ndarray, k: np.ndarray, sid: np.ndarray, *, cfg: Config | None = None
+    ) -> np.ndarray:
         """Evaluate selected-slice split charge with independent main/sub DEM.
 
         Args:
             conv: Actual converting slice IDs (N, n_active).
             k: Fine RDAC command (N,), including dither; clipped physically.
             sid: Nominal DEM states (N,). Main/sub axes are decoded separately.
+            cfg: Runtime DEM/mask controls for this unchanged physical pool.
 
         Returns:
             Input-referred DAC voltage [V], from the same caps used in sampling.
         """
         if not self.is_split:
             raise ValueError("split_dac_voltage requires a split pool")
-        cfg = self.cfg
+        cfg = self.cfg if cfg is None else cfg
         ids = np.asarray(conv, dtype=np.int64)
         code = np.clip(np.asarray(k, dtype=float), 0, cfg.dac_levels - 1)
         states = (
@@ -393,7 +400,7 @@ class PhysicalSlicePool:
         for start in range(0, len(code), 512):
             sl = slice(start, start + 512)
             caps = self.unit_caps[ids[sl]]
-            coeff = self.split_coefficients(ids[sl])
+            coeff = self.split_coefficients(ids[sl], cfg=cfg)
             command = split_switch_command(cfg, code[sl], states[sl])
             counts = (command.main_counts, command.sub_counts)
             orders = (command.main_order, command.sub_order)
@@ -412,7 +419,7 @@ class PhysicalSlicePool:
         return result
 
     def split_sampling_charge(
-        self, conv: np.ndarray, x: np.ndarray, bank_code: np.ndarray
+        self, conv: np.ndarray, x: np.ndarray, bank_code: np.ndarray, *, cfg: Config | None = None
     ) -> tuple[np.ndarray, np.ndarray]:
         """Compute masked input and dither voltage from actual selected caps.
 
@@ -420,14 +427,15 @@ class PhysicalSlicePool:
             conv: Selected sampling slices (N, n_active).
             x: Input voltage at each aperture [V].
             bank_code: Known integer mask code or continuous interpolation.
+            cfg: Runtime sampling mask; no capacitor is redrawn or rescaled.
 
         Returns:
             Tuple of stored signal-plus-dither voltage and dither voltage [V].
             Thermal noise is generated separately from the same coefficients.
         """
-        cfg = self.cfg
+        cfg = self.cfg if cfg is None else cfg
         ids = np.asarray(conv, dtype=np.int64)
-        coeff = self.split_coefficients(ids)
+        coeff = self.split_coefficients(ids, cfg=cfg)
         injected = np.zeros(len(ids))
         nd = cfg.dither_units_total
         if nd:

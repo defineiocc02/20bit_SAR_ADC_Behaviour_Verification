@@ -141,3 +141,22 @@ After that correction, 59 focused assistance/joint/input/charge tests passed;
 the final weighted-policy/configuration run adds provenance coverage. Full
 M4.2/M4.3 suite evidence remains 317/one known xfail at the earlier snapshot;
 M5/M6 and final-current-head acceptance remain unfinished.
+
+### M4 sweep and M5 prerequisites (2026-09-13)
+
+The full M4 sweep at 5d78aff completed in **371.9 s**. Structural charge closure
+now passes. Five gates remain failing: il_offset.PASS, pipeline.PASS,
+rdac_bitwise.PASS and the two s13 Ron hypothesis/boundary records. The old
+bitwise experiment compares inactive proxy controls and reports a NaN ratio;
+M6 must replace that experiment with actual signed-event/ref/RA observations
+and enforce standard finite JSON output. No gate was exempted or relaxed.
+
+M5 prerequisites: physical split pool methods now accept explicit runtime cfg
+for masks/DEM while retaining their construction config and fixed capacitances.
+This prevents calibration masks from being accidentally frozen into validation.
+The reused-chip regression passes (9 physical tests). Raw ADC2 integer codes
+are exposed before observer correction in every runner; invalid analog samples
+and malformed digital buffers are rejected. Raw-code/observer tests passed
+20 cases (two already-tested dense INL cases excluded from this focused run).
+Ruff check/format and mypy pass at this checkpoint. Real noisy weight training,
+frozen validation and fixed-point final reconstruction remain M5 work.

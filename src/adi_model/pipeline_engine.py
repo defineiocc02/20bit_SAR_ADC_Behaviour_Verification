@@ -13,8 +13,9 @@ import numpy as np
 
 from .adc2 import ADC2
 from .config import Config, ConfigError
+from .conversion import ConversionEngine
 from .dac_arch import SplitDAC
-from .dynamics import apply_dynamics
+from .dynamics import apply_dynamics, crosstalk_error
 from .input_network import OffsetWaveform, PassiveTrackingNetwork, track_interval
 from .ktc import KTCBranch
 from .mapper import dem_state_sequence, dither_transfer_code, make_dither_state
@@ -132,8 +133,17 @@ def execute_split(
     e_input = np.zeros(n_samples)
     e_sadc = np.zeros(n_samples)
     held = np.broadcast_to(np.arange(n_samples)[:, None], conv.shape).copy()
+    joint = (
+        ConversionEngine(cfg, pool, int(units), n_samples)
+        if cfg.dyn_ref_settling or cfg.conversion.dynamic
+        else None
+    )
+    xtalk = xtalk_profile(cfg, cfg.dac_n_units, np.random.default_rng(cfg.seed + 8204))
     active_dynamics = (
-        cfg.dyn_input_settling or cfg.slice_timing_skew_s > 0 or cfg.slice_offset_sigma_v > 0
+        cfg.dyn_input_settling
+        or cfg.slice_timing_skew_s > 0
+        or cfg.slice_offset_sigma_v > 0
+        or joint is not None
     )
     coarse = sadc.convert(sample.x_sadc)
     acquisition_voltage = None
@@ -212,7 +222,30 @@ def execute_split(
             e_input[n] = np.dot(coeff["signal_slice"][n], values - source_endpoint) / c_sig[n]
             command = coarse[n] * units + d_code[n]
             vd = pool.split_dac_voltage(conv[n : n + 1], np.array([command]), sid[n : n + 1])[0]
+            vd += crosstalk_error(
+                cfg,
+                np.array([command]),
+                sid[n : n + 1],
+                dac.levels,
+                cfg.dac_n_units,
+                xtalk,
+                dac.full_order,
+                c_sig[n],
+            )[0]
             residue_n = sample.x_rdac[n] + e_input[n] - vd
+            if joint is not None:
+                reference_error = joint.step(
+                    n,
+                    ids,
+                    coarse[n],
+                    command,
+                    sid[n],
+                    values,
+                    sample.dither_bank_code[n] if sample.dither_bank_code is not None else 0.0,
+                    residue_n,
+                    gain[n],
+                )
+                residue_n -= reference_error
             pool.v_top[ids] = residue_n
             pool.release(ids)
 
@@ -220,7 +253,7 @@ def execute_split(
     vd0 = dac.evaluate_nominal(k)
     vd_true = pool.split_dac_voltage(conv, k, sid)
     dyn = apply_dynamics(
-        replace(cfg, dyn_input_settling=False),
+        replace(cfg, dyn_input_settling=False, dyn_ref_settling=False),
         x=sample.x_rdac,
         v_prev=np.zeros(n_samples),
         v_nominal=vd0,
@@ -229,19 +262,33 @@ def execute_split(
         c_active=c_load,
         n_levels=dac.levels,
         n_units=cfg.dac_n_units,
-        xtalk_profile=xtalk_profile(cfg, cfg.dac_n_units, np.random.default_rng(cfg.seed + 8204)),
+        xtalk_profile=xtalk,
         perm_fn=dac.full_order,
         c_xtalk_out=c_sig,
         c_load_ref=float(c_load.mean()),
     )
     vd_true += dyn.e_dac
+    if joint is not None:
+        vd_true += joint.result.dac_reference_error_v
     stored = sample.x_rdac + e_input
     residue = stored - vd_true
-    vra, ra_sat = ra.evaluate(residue, sample_rng, g=gain)
+    if joint is None:
+        vra, ra_sat = ra.evaluate(residue, sample_rng, g=gain)
+        adc2_input = vra
+    else:
+        # Existing noise is output-equivalent at the aperture; do not filter it
+        # by signal bandwidth and also apply a phenomenological noise reduction.
+        noise, noise_sat = ra.evaluate(np.zeros(n_samples), sample_rng, g=gain)
+        vra = joint.result.ra_v + noise
+        ra_sat = joint.result.ra_sat | noise_sat | (np.abs(vra) >= cfg.ra_v_clip)
+        vra = np.clip(vra, -cfg.ra_v_clip, cfg.ra_v_clip)
+        adc2_input = (
+            vra if cfg.conversion.adc2_wide_bandwidth_hz is None else joint.result.adc2_v + noise
+        )
     ktc = KTCBranch(cfg)
     alpha_physical = coeff["alpha"] if cfg.dither_mode == "sampling" else 1.0
     vnc, ktc_sat = ktc.observe(sample.n_R, alpha_physical * sample.dx, sample_rng)
-    fine, adc2_over = ADC2(cfg).quantize_with_correction(vra, state.kappa * vnc)
+    fine, adc2_over = ADC2(cfg).quantize_with_correction(adc2_input, state.kappa * vnc)
     dither = make_dither_state(cfg, sample.dither)
     if cfg.dither_mode == "sampling":
         dither.digital_correction = sample.dither_code * step
@@ -297,4 +344,6 @@ def execute_split(
         acquisition_voltage=acquisition_voltage,
         input_source_charge_c=source_charge,
         input_bus_voltage=bus_voltage,
+        conversion_trace=joint.result if joint is not None else None,
+        adc2_input_voltage=adc2_input,
     )

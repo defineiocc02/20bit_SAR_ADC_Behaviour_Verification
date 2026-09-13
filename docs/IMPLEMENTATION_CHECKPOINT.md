@@ -26,8 +26,8 @@ documentation. Existing green gates alone do not close a row.
 | M3.2 | Causal schedule, startup, latency and independently seeded physical mismatch | Implemented; physical_pipeline + causal audit regressions; final sweep pending |
 | M3.3 | Realizable multidimensional DEM masks and correct non-pipeline scheduler behavior | Implemented; physical_pipeline + causal audit regressions; final sweep pending |
 | M4.1 | Continuous-input tracking with shared source impedance and physical slice states | Implemented; input_network KCL/AC/charge/convergence tests; ADR 0008; full-goal sweep pending |
-| M4.2 | Code-dependent signed reference charge and coarse/fine reference state | Pending |
-| M4.3 | Finite-bandwidth/slew RA, phase switching and actual ADC2 aperture in the joint chain | Pending |
+| M4.2 | Code-dependent signed reference charge and coarse/fine reference state | Implemented; direct node/rail charge and causal state tests; small-droop scope in ADR 0009 |
+| M4.3 | Finite-bandwidth/slew RA, phase switching and actual ADC2 aperture in the joint chain | Implemented; convolution/ODE/slew/swing/aperture tests; noise and ideal AZ limits in ADR 0009 |
 | M4.4 | Auxiliary and interleave tracking mechanisms use real state and available quantized decisions | Pending |
 | M5.1 | Noisy training, identifiable weights, frozen coefficients and independent validation on same chip | Pending |
 | M5.2 | Fixed-point coarse/fine code reconstruction, clipping and transition/code-width verification | Pending |
@@ -94,3 +94,28 @@ checks passed. A focused input/skew/physical/provenance run passed 63 tests;
 after analog-source and JSON additions, 38 input/charge regressions passed and
 mypy passed 36 modules. No full-goal acceptance claim is made yet. Next: M4.2–4
 joint reference/RA/ADC2 dynamics and causal pretracking/auxiliary input.
+
+### M4.2–M4.3 checkpoint (2026-09-13)
+
+`reference_charge` computes signed rail loads from physical capacitor terminal
+charge, sampled subnode charge, dither connections and actual DEM masks.
+`conversion.ConversionEngine` advances coarse/fine reservoir recovery, finite
+RA gain/bandwidth/slew/swing and ADC2 wide/narrow tracking phases on one time
+axis. It runs inside the per-sample acquisition loop, so the final reference
+perturbation updates released slice state before reuse. No reference proxy is
+added a second time. Phase/event traces and separate ADC2 input are exposed.
+SciPy >=1.10 is declared for the linear matrix exponential and nonlinear ODE.
+
+Direct rail/node tests: 5 passed. Joint analytic convolution, repeated poles,
+independent ODE, slew, swing, actual ADC2 aperture and slice backaction tests:
+10 passed. Full suite before the final trace-only additions passed **317 /
+one known flicker xfail in 217.71 s**. After phase trace additions, 27 focused
+input/reference/joint tests passed. No current full experiment-sweep pass is
+claimed; M3 failed legacy gates and new M4 acceptance experiments still require
+reconciliation in M6. Final-head tests must cover the later changes.
+
+Reference loading is explicitly linearized at nominal rail voltages; peak
+droop is reported. Auto-zero uses an ideal reset phase and existing aperture
+noise budgets; the signal-pole solver does not pretend to validate cyclostationary
+noise. These scopes are recorded in ADR 0009. M4.4 (causal quantized pretracking
+and auxiliary input integration), M5, M6 and GitHub submission remain pending.

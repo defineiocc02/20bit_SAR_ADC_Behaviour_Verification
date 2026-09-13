@@ -6,6 +6,8 @@ The live requirements/evidence ledger is `IMPLEMENTATION_CHECKPOINT.md`.
 Continuous input tracking, state/units and independent verification are specified
 in [ADR 0008](adr/0008-continuous-input-network.md). Use `Config.from_dict` to
 reload exported JSON configurations with typed nested parameter groups.
+The joint reference/RA/ADC2 model, event observations, numerical verification and
+small-droop/noise limits are specified in [ADR 0009](adr/0009-joint-reference-ra-adc2.md).
 
 ## Shared parameter and charge contracts
 

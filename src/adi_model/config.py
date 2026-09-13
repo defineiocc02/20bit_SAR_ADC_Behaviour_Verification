@@ -18,6 +18,7 @@ from __future__ import annotations
 import math
 from dataclasses import asdict, dataclass, field
 
+from .conversion import ConversionParameters
 from .input_network import InputNetworkParameters
 
 K_B = 1.380_649e-23  # J/K
@@ -301,6 +302,7 @@ class Config:
 
     # --- (b) 参考建立：每次切换从参考抽取电荷，有限去耦 + 有限恢复带宽 ---
     dyn_ref_settling: bool = False
+    conversion: ConversionParameters = field(default_factory=ConversionParameters)
     dyn_c_decouple: float = 4.7e-6  # 参考去耦电容 [F]（片外典型量级）
     dyn_tau_ref: float = 20e-9  # 参考缓冲恢复时间常数 [s]
     dyn_t_conv_frac: float = 0.40  # 转换相时长 / Ts
@@ -980,6 +982,19 @@ class Config:
         """
         bad: list[str] = []
         bad.extend(self.input_network.violations())
+        bad.extend(self.conversion.violations())
+        if self.dyn_ref_settling or self.conversion.dynamic:
+            if not math.isfinite(self.dyn_tau_ref) or self.dyn_tau_ref <= 0:
+                bad.append("dyn_tau_ref must be finite and positive [s]")
+            if not math.isfinite(self.dyn_c_decouple) or self.dyn_c_decouple <= 0:
+                bad.append("dyn_c_decouple must be finite and positive [F]")
+            if not 0 < self.dyn_t_conv_frac <= 1:
+                bad.append("dyn_t_conv_frac must be in (0, 1]")
+            if (
+                self.fs > 0
+                and self.conversion.quantizer_time_s + self.dyn_t_conv_frac / self.fs > 1 / self.fs
+            ):
+                bad.append("quantizer and RA/ADC2 phases must fit within one sample period")
         if self.dyn_input_settling:
             if not math.isfinite(self.dyn_r_source) or self.dyn_r_source < 0:
                 bad.append("dyn_r_source must be finite and nonnegative [ohm]")
@@ -1367,6 +1382,8 @@ class Config:
         params = dict(values)
         if isinstance(params.get("input_network"), dict):
             params["input_network"] = InputNetworkParameters(**params["input_network"])
+        if isinstance(params.get("conversion"), dict):
+            params["conversion"] = ConversionParameters(**params["conversion"])
         for name in ("mismatch_split", "mismatch_gradient"):
             if name in params:
                 params[name] = tuple(params[name])

@@ -7,6 +7,39 @@
 它用于检查电荷、时序、噪声、校准和数字重构是否相互一致，并给出继续仿真的工程依据。
 公开资料没有完整披露电路，因此具体电容分配、部分相位时间、DEM 交换方式和 ADC2 范围均保留为明确假设。
 
+## 结果总览（v8.0.0）
+
+v8.0.0 把物理 slice 池、交织预跟踪、辅助输入、参考/RA/ADC2 联立动态与定点数字核接入主链路。
+与 v7.0.10 聚合基线做 `results.json` 逐项对账：**626 个共有指标中 516 个完全一致**，
+40 个为浮点级噪声（<1e-6 相对），**70 个实质变化**全部集中在物理主链路新覆盖的子系统；
+关键 dB 指标全部向好（详见 [CHANGELOG](CHANGELOG.md) 的字节账）：
+
+![v7→v8 关键指标对比](tools/results/fig/v7_v8_compare.png)
+
+核心指标（`paper_literal` 主配置，`results.json` 逐项可查）：
+
+| 指标 | 数值 | 口径 |
+|:---|---:|:---|
+| ENOB | 20.58 bit | s1 无失配理想链路 |
+| SNDR / SFDR | 125.6 / 155.5 dB | s1 无失配理想链路 |
+| 输出噪声 rms | ≈1.0 µV | s1 |
+| DEM 开/关 SNDR | 93.4 / 93.5 dB | s3 含失配 |
+| MC 最差 SFDR | 86.5 dB | `mc_pdk_off` 300 批 |
+| 校准后误差贴地比 | 1.006 | `split_calib.noise_off` |
+
+验证图集（由 `tools/run_all.py` 与 `tools/make_readme_compare.py` 生成，随 `results.json` 同步更新）：
+
+| | |
+|:---|:---|
+| ![静态误差与 INL 贡献](tools/results/fig/static_curves.png) | ![DEM 谱](tools/results/fig/dem_spectrum.png) |
+| *分段 DAC 静态误差、匹配拓扑对比与 INL 贡献分解* | *DEM 开/关 Spectrum：等权单位置换把失配杂散压回本底* |
+| ![物理校准](tools/results/fig/physical_calibration.png) | ![KTC 折中](tools/results/fig/ktc.png) |
+| *物理池校准：噪声保留训练、冻结权重、独立记录验证* | *KTC 观测消噪：缩电容与逐相位噪声传递的折中* |
+| ![失配压力](tools/results/fig/mismatch_stress.png) | ![误差预算](tools/results/fig/budget.png) |
+| *失配压力扫描：误差随失配幅值的标度* | *噪声/失配误差预算分解* |
+| ![扫描](tools/results/fig/sweep.png) | ![信号链结构](tools/results/fig/v5_structure.png) |
+| *参数扫描与可行域* | *分段子 DAC 信号链结构* |
+
 ## 1. 当前信号链
 
 连续输入与共享源阻抗 → 实际采集 slice 的保持电荷 → SADC 判决 → RDAC/DEM 开关指令 → 有符号参考负载 → 有限 RA 与 ADC2 采样 → 原始 ADC2 整数码 → 冻结权重与定点重构。

@@ -35,6 +35,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Versioned results are atomic UTF-8 standard JSON with null/status metadata for
   undefined values. Reports render actual evidence and current scope; v7 scope
   snapshots are archived. Experiment CLI scripts are included in wheels.
+- Reference-output byte accounting for this release: `tools/results/results.json`
+  SHA256 changes from `a1ccd92fcf46500460221a55c4e2527093b45e6e272b7fb0503ee1fcd435ac70`
+  (v7.0.10 aggregate baseline) to `f3e1a7967f22b30e037d881668b40124cea4ed3f47600a2addb69a502f67c0eb`
+  (8.0.0 physical pipeline). The change is intentional and traceable to the
+  mechanism integrations listed above; the v7 aggregate oracle remains in the
+  tree for cross-checking.
 
 ### Verification
 

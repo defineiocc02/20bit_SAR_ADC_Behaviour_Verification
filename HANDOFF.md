@@ -65,3 +65,18 @@ python -m adi_model.inventory_gate --repo-root . && pytest -m "not slow" -q
 |:---|:---|:---|
 | 2026-09-12 | 阶段 A 里程碑 1：四份清单/口径/门禁交付 | v7.0.10 + 未提交增量 |
 | 2026-09-11 | v7.0.8–v7.0.10：专利 [12]/[13]/[14] 机制模型 + 第八份复核修复 | 20bf85c / 35dab64 / ffcc011 |
+
+
+---
+
+## 当前检查点（2026-09-13，v8.0.0 发版：v8 合并 + 清单重刷）
+
+- **commit**：合并提交 0c83fdd（origin/main 的 PR #1 合并点 417f651 ∪ 阶段 A f74a5de），本轮在其上叠加：CHANGELOG 字节账、inventory 重刷、HANDOFF 本条。
+- **基线**：v8 分支本地复跑 394 passed + 0 xfail；PR #1 CI 8 项全绿（py3.10–3.13、determinism 逐字节、wheel）。
+- **本轮完成**：
+  - [x] PR #1（codex/physical-behavioral-closure，v8.0.0 物理与行为闭环）经独立验证后并入 main。
+  - [x] `mechanism_inventory.json` v1.1：M11/M12 升 INTEGRATED_SCENARIO（pretracking/auxiliary charge 已进 pipeline_engine，代码引用逐条核实）；M13 保持机制级（ref_track 未进 pipeline，联立动态部分由 M4.2/M4.3 关闭）；P02/P04/P05/P06/P09/P10 → PASS（挂 v8 检查点证据）；P01/P03 仍 NOT_RUN，P07 部分（低频已覆盖、MC 良率未做），P08 仍 BLOCKED。
+  - [x] CHANGELOG 8.0.0 补参考产物字节账：results.json SHA256 `a1ccd92f…35ac70`（v7.0.10）→ `f3e1a796…c0eb`（v8.0.0），变更可溯源到所列机制集成。
+  - [x] 门禁：inventory_gate 11 PASS / 0 FAIL（合并树上复跑）。
+- **下一条执行命令**：发版收尾（四门禁 → build → commit/tag v8.0.0 → SSH push → gh release create 四资产 → 等 CI）。
+- **合并后仍开放**：P01（采集窗口对照实验）、P03（逐位切换 vs RDAC 直设对照）、P07 尾（MC 良率置信区间）、P08（SPICE 台账，BLOCKED）；报告科学口径两处盯紧——`paper_literal(9b)` 的 ADC2 12b 窗口是新 [ASSUMED]，63+8 分段是显式模型选择（论文未披露该拓扑）。

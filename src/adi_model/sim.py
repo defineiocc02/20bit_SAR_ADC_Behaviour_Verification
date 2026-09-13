@@ -45,6 +45,7 @@ from .scheduler import Scheduler, make_scheduler
 
 if TYPE_CHECKING:
     from .conversion import ConversionResult
+    from .pretracking import InputAssistTrace
     from .slice_pool import PhysicalSlicePool
 
 
@@ -130,12 +131,14 @@ class SimResult:
     sample_id: np.ndarray | None = None
     stored_charge: np.ndarray | None = None
     acquisition_error: np.ndarray | None = None
+    sadc_acquisition_error: np.ndarray | None = None
     acquisition_start: np.ndarray | None = None
     acquisition_voltage: np.ndarray | None = None  # (N, n_active) aperture state [V]
     input_source_charge_c: np.ndarray | None = None  # acquisition charge only [C]
     input_bus_voltage: np.ndarray | None = None  # filter-bus aperture voltage [V]
     conversion_trace: ConversionResult | None = None
     adc2_input_voltage: np.ndarray | None = None
+    input_assist_trace: InputAssistTrace | None = None
 
     @property
     def rdac_over(self) -> np.ndarray:
@@ -170,6 +173,8 @@ class SimResult:
             inactive["split_feedback_cap_f"] = "split-only"
         if self.cfg.dac_arch == "unary" and self.cfg.input_network != default.input_network:
             inactive["input_network"] = "continuous shared-source solver is split-only"
+        elif not self.cfg.dyn_input_settling and self.cfg.input_network != default.input_network:
+            inactive["input_network"] = "dyn_input_settling is disabled"
         if self.cfg.dac_arch == "unary" and self.cfg.conversion != default.conversion:
             inactive["conversion"] = "joint reference/RA/ADC2 solver is split-only"
         if self.conversion_trace is not None:
@@ -196,6 +201,13 @@ class SimResult:
             if self.cfg.dac_arch == "split"
             else self.cfg.n_active * self.cfg.n_unit_per_slice,
             "rdac_overflow_count": int(np.count_nonzero(self.rdac_over)),
+            "input_assistance_applied": {
+                "pretrack": self.cfg.input_network.pretrack_mode,
+                "auxiliary_bypass": self.cfg.input_network.auxiliary_bypass,
+                "auxiliary_cap_f": self.cfg.input_network.auxiliary_cap_f,
+            }
+            if self.input_assist_trace is not None
+            else None,
             "reference_peak_fraction": float(
                 np.max(self.conversion_trace.reference_peak_v) / self.cfg.v_fs
             )

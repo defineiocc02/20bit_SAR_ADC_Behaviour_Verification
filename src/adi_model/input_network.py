@@ -28,10 +28,24 @@ class InputNetworkParameters:
         filter_cap_f: Capacitance at the shared input bus (zero eliminates it).
         integration_steps: Subintervals for nonlinear Ron or arbitrary waveforms.
             Linear DC/sine inputs are exact and require only one interval.
+        auxiliary_cap_f: Aggregate active clocked parasitic input capacitance [F].
+        auxiliary_bypass: True connects that parasitic to a separate source path.
+        auxiliary_resistance_ohm: Parasitic branch/auxiliary driver resistance [ohm].
+        pretrack_mode: residue (unchanged), reset_mid, latest, own or weighted.
+        pretrack_time_s: Duration preceding main acquisition [s].
+        pretrack_source_ohm: Independent precharge-driver resistance [ohm].
+        pretrack_weights: Three newest-to-oldest digital averaging weights.
     """
 
     filter_cap_f: float = 0.0
     integration_steps: int = 8
+    auxiliary_cap_f: float = 0.0
+    auxiliary_bypass: bool = False
+    auxiliary_resistance_ohm: float = 20.0
+    pretrack_mode: str = "residue"
+    pretrack_time_s: float = 2e-9
+    pretrack_source_ohm: float = 50.0
+    pretrack_weights: tuple[float, float, float] = (0.6, 0.3, 0.1)
 
     def violations(self) -> list[str]:
         """Return invalid physical or numerical settings without mutating them."""
@@ -44,6 +58,24 @@ class InputNetworkParameters:
             or not 1 <= self.integration_steps <= 4096
         ):
             bad.append("input_network.integration_steps must be an integer in [1, 4096]")
+        if not np.isfinite(self.auxiliary_cap_f) or self.auxiliary_cap_f < 0:
+            bad.append("input_network.auxiliary_cap_f must be finite and nonnegative")
+        for name in ("auxiliary_resistance_ohm", "pretrack_time_s", "pretrack_source_ohm"):
+            value = getattr(self, name)
+            if not np.isfinite(value) or value <= 0:
+                bad.append(f"input_network.{name} must be finite and positive")
+        if self.pretrack_mode not in ("residue", "reset_mid", "latest", "own", "weighted"):
+            bad.append("input_network.pretrack_mode is not an implemented policy")
+        weights = np.asarray(self.pretrack_weights)
+        if (
+            weights.shape != (3,)
+            or np.any(~np.isfinite(weights))
+            or np.any(weights < 0)
+            or weights[0] <= 0
+        ):
+            bad.append(
+                "input_network.pretrack_weights needs three nonnegative weights and a positive newest weight"
+            )
         return bad
 
 

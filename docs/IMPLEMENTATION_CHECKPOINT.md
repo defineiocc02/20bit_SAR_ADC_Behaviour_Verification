@@ -28,7 +28,7 @@ documentation. Existing green gates alone do not close a row.
 | M4.1 | Continuous-input tracking with shared source impedance and physical slice states | Implemented; input_network KCL/AC/charge/convergence tests; ADR 0008; full-goal sweep pending |
 | M4.2 | Code-dependent signed reference charge and coarse/fine reference state | Implemented; direct node/rail charge and causal state tests; small-droop scope in ADR 0009 |
 | M4.3 | Finite-bandwidth/slew RA, phase switching and actual ADC2 aperture in the joint chain | Implemented; convolution/ODE/slew/swing/aperture tests; noise and ideal AZ limits in ADR 0009 |
-| M4.4 | Auxiliary and interleave tracking mechanisms use real state and available quantized decisions | Pending |
+| M4.4 | Auxiliary and interleave tracking mechanisms use real state and available quantized decisions | Implemented; causal/charge/precharge/combined 9b tests; ADR 0010 |
 | M5.1 | Noisy training, identifiable weights, frozen coefficients and independent validation on same chip | Pending |
 | M5.2 | Fixed-point coarse/fine code reconstruction, clipping and transition/code-width verification | Pending |
 | M6.1 | PSD normalization, harmonic collisions, noise integration and separate paper/slide benchmarks | Pending |
@@ -119,3 +119,25 @@ droop is reported. Auto-zero uses an ideal reset phase and existing aperture
 noise budgets; the signal-pole solver does not pretend to validate cyclostationary
 noise. These scopes are recorded in ADR 0009. M4.4 (causal quantized pretracking
 and auxiliary input integration), M5, M6 and GitHub submission remain pending.
+
+### M4.4 checkpoint (2026-09-13)
+
+`pretracking.QuantizedPretracker` queues actual integer SADC decisions with
+availability timestamps. Latest/own/weighted predictions use nominal code
+weights and known dither/attenuation only. Finite local precharge drivers update
+the real slice and SADC capacitor states before the main acquisition. The shared
+input filter remains isolated from these drivers. A clocked parasitic input
+branch can be connected to the common bus or an independent auxiliary source;
+its acquisition and reset charges are recorded separately. Physical IDs retain
+its history. Model details and limitations are in ADR 0010.
+
+Independent availability, actual precharge influence, source/reset charge and
+auxiliary bus-improvement tests passed. Combined nine-bit sampling/quantizer
+dither + reference + RA + auxiliary + pretrack tests verify digital provenance
+and zero backend/RDAC overflow. Integration exposed and fixed SADC dynamic
+attenuation: tracking error must pass through the nominal sampling attenuation,
+and a digital pretracking estimate must undo that same nominal factor.
+After that correction, 59 focused assistance/joint/input/charge tests passed;
+the final weighted-policy/configuration run adds provenance coverage. Full
+M4.2/M4.3 suite evidence remains 317/one known xfail at the earlier snapshot;
+M5/M6 and final-current-head acceptance remain unfinished.

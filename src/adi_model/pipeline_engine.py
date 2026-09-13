@@ -19,6 +19,7 @@ from .dynamics import apply_dynamics, crosstalk_error
 from .input_network import OffsetWaveform, PassiveTrackingNetwork, track_interval
 from .ktc import KTCBranch
 from .mapper import dem_state_sequence, dither_transfer_code, make_dither_state
+from .pretracking import InputAssistTrace, QuantizedPretracker
 from .ra import ResidueAmplifier
 from .reconstruction import DigitalState, initialize_state, reconstruct
 from .sadc import build_first_stage_quantizer, units_per_first_stage_step
@@ -146,6 +147,26 @@ def execute_split(
         or joint is not None
     )
     coarse = sadc.convert(sample.x_sadc)
+    assist_parameters = cfg.input_network
+    assist = (
+        InputAssistTrace.allocate(n_samples, cfg.n_active)
+        if cfg.dyn_input_settling
+        and (assist_parameters.pretrack_mode != "residue" or assist_parameters.auxiliary_cap_f > 0)
+        else None
+    )
+    tracker = (
+        QuantizedPretracker(
+            cfg.n_slices,
+            cfg.b1,
+            -cfg.v_fs,
+            units * step,
+            cfg.dither_alpha,
+            assist_parameters.pretrack_weights,
+        )
+        if assist is not None and assist_parameters.pretrack_mode != "residue"
+        else None
+    )
+    auxiliary_history = np.zeros(cfg.n_slices)
     acquisition_voltage = None
     source_charge = None
     bus_voltage = None
@@ -178,14 +199,54 @@ def execute_split(
             perturbation = pool.v_os[ids] + pool.t_skew[ids] * slope[n]
             if cfg.dyn_input_settling:
                 t1, t0 = sample.t1[n], sample.t1[n] - tacq
+                if tracker is not None:
+                    assert assist is not None
+                    begin = t0 - assist_parameters.pretrack_time_s
+                    prediction = tracker.predict(ids, begin, assist_parameters.pretrack_mode)
+                    assist.pretrack_start_s[n] = begin
+                    assist.pretrack_target_v[n] = prediction.voltage_v
+                    assist.pretrack_source_ids[n] = prediction.source_ids
+                    assist.pretrack_available_s[n] = prediction.ready_times_s
+                    tau_pre = (
+                        assist_parameters.pretrack_source_ohm + cfg.dyn_r_on * pool.tau_rel[ids]
+                    ) * coeff["load_slice"][n]
+                    after_pre = prediction.voltage_v + (
+                        pool.v_top[ids] - prediction.voltage_v
+                    ) * np.exp(-assist_parameters.pretrack_time_s / tau_pre)
+                    q_pre = float(np.dot(coeff["load_slice"][n], after_pre - pool.v_top[ids]))
+                    pool.v_top[ids] = after_pre
+                    q_target = float(np.mean(prediction.voltage_v))
+                    q_after = q_target + (pool.v_top_q[n % 2] - q_target) * np.exp(
+                        -assist_parameters.pretrack_time_s
+                        / ((assist_parameters.pretrack_source_ohm + cfg.dyn_r_on) * cfg.c_sadc)
+                    )
+                    assist.pretrack_source_charge_c[n] = q_pre + cfg.c_sadc * (
+                        q_after - pool.v_top_q[n % 2]
+                    )
+                    pool.v_top_q[n % 2] = q_after
                 if idle_network is not None and n > 0 and cfg.dyn_t_sample_frac < 1:
                     bus = float(idle_network.advance([bus], sample.t1[n - 1], t0, input_fn)[0])
                 previous = np.r_[pool.v_top[ids], pool.v_top_q[n % 2]]
+                caps = np.r_[coeff["load_slice"][n], cfg.c_sadc]
+                switches = cfg.dyn_r_on * np.r_[pool.tau_rel[ids], 1.0]
+                auxiliary_cap = assist_parameters.auxiliary_cap_f
+                auxiliary_on_bus = auxiliary_cap > 0 and not assist_parameters.auxiliary_bypass
+                if auxiliary_cap > 0:
+                    assert assist is not None
+                    # A clock-driven reset happens while the parasitic branch
+                    # is disconnected from both signal sources, before tracking.
+                    assist.auxiliary_reset_charge_c[n] = -auxiliary_cap * np.mean(
+                        auxiliary_history[ids]
+                    )
+                if auxiliary_on_bus:
+                    caps = np.r_[caps, auxiliary_cap]
+                    switches = np.r_[switches, assist_parameters.auxiliary_resistance_ohm]
+                    previous = np.r_[previous, 0.0]
                 if has_bus:
                     previous = np.r_[previous, bus]
                 voltages, source_charge[n] = track_interval(
-                    np.r_[coeff["load_slice"][n], cfg.c_sadc],
-                    cfg.dyn_r_on * np.r_[pool.tau_rel[ids], 1.0],
+                    caps,
+                    switches,
                     cfg.dyn_r_source,
                     previous,
                     t0,
@@ -196,13 +257,35 @@ def execute_split(
                     voltage_scale=cfg.v_fs,
                 )
                 values = voltages[: cfg.n_active] + perturbation
-                e_sadc[n] = voltages[cfg.n_active] - source_endpoint
+                if auxiliary_cap > 0:
+                    assert assist is not None
+                    if auxiliary_on_bus:
+                        auxiliary_v = voltages[cfg.n_active + 1]
+                    else:
+                        auxiliary_state, _ = track_interval(
+                            [auxiliary_cap],
+                            [assist_parameters.auxiliary_resistance_ohm],
+                            0,
+                            [0.0],
+                            t0,
+                            t1,
+                            source_fn,
+                            parameters=replace(assist_parameters, filter_cap_f=0),
+                        )
+                        auxiliary_v = auxiliary_state[0]
+                        assist.auxiliary_source_charge_c[n] = auxiliary_cap * auxiliary_v
+                    assist.auxiliary_voltage_v[n] = auxiliary_v
+                    assist.auxiliary_branch_charge_c[n] = auxiliary_cap * auxiliary_v
+                    auxiliary_history[ids] = auxiliary_v
+                # Nominal SADC attenuation matches the sampling-mask signal
+                # scale. Its continuous tracking error passes through it too.
+                e_sadc[n] = cfg.dither_alpha * (voltages[cfg.n_active] - source_endpoint)
                 pool.v_top_q[n % 2] = voltages[cfg.n_active]
                 coarse[n] = sadc.convert(np.array([sample.x_sadc[n] + e_sadc[n]]))[0]
                 if has_bus:
                     bus = float(voltages[-1])
                 elif cfg.dyn_r_source > 0:
-                    ron = cfg.dyn_r_on * np.r_[pool.tau_rel[ids], 1.0]
+                    ron = switches.copy()
                     ron *= 1 + cfg.dyn_ron_code_coeff * (source_endpoint / cfg.v_fs) ** 2
                     bus = float(
                         (source_endpoint / cfg.dyn_r_source + np.sum(voltages / ron))
@@ -221,6 +304,14 @@ def execute_split(
                 raise RuntimeError("conversion does not own its sampled charge")
             e_input[n] = np.dot(coeff["signal_slice"][n], values - source_endpoint) / c_sig[n]
             command = coarse[n] * units + d_code[n]
+            if tracker is not None:
+                tracker.record(
+                    n,
+                    sample.t1[n] + cfg.conversion.quantizer_time_s,
+                    ids,
+                    coarse[n],
+                    sample.dither[n] if cfg.dither_mode in ("analog", "quantizer") else 0.0,
+                )
             vd = pool.split_dac_voltage(conv[n : n + 1], np.array([command]), sid[n : n + 1])[0]
             vd += crosstalk_error(
                 cfg,
@@ -340,10 +431,12 @@ def execute_split(
         sample_id=np.arange(n_samples),
         stored_charge=stored * c_sig,
         acquisition_error=e_input,
+        sadc_acquisition_error=e_sadc,
         acquisition_start=sample.t1 - cfg.dyn_t_sample_frac / cfg.fs,
         acquisition_voltage=acquisition_voltage,
         input_source_charge_c=source_charge,
         input_bus_voltage=bus_voltage,
         conversion_trace=joint.result if joint is not None else None,
         adc2_input_voltage=adc2_input,
+        input_assist_trace=assist,
     )

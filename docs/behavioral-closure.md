@@ -8,6 +8,8 @@ in [ADR 0008](adr/0008-continuous-input-network.md). Use `Config.from_dict` to
 reload exported JSON configurations with typed nested parameter groups.
 The joint reference/RA/ADC2 model, event observations, numerical verification and
 small-droop/noise limits are specified in [ADR 0009](adr/0009-joint-reference-ra-adc2.md).
+Available-code pretracking and auxiliary input source/charge contracts are in
+[ADR 0010](adr/0010-causal-input-assistance.md).
 
 ## Shared parameter and charge contracts
 

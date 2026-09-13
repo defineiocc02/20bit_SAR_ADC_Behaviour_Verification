@@ -981,6 +981,14 @@ class Config:
             list[str]: 每条是一句可读的违规说明；空列表表示合法。
         """
         bad: list[str] = []
+        if not isinstance(self.input_network, InputNetworkParameters):
+            bad.append(
+                "input_network requires InputNetworkParameters; use Config.from_dict for JSON"
+            )
+        if not isinstance(self.conversion, ConversionParameters):
+            bad.append("conversion requires ConversionParameters; use Config.from_dict for JSON")
+        if bad:
+            return bad
         bad.extend(self.input_network.violations())
         bad.extend(self.conversion.violations())
         if self.dyn_ref_settling or self.conversion.dynamic:
@@ -996,6 +1004,13 @@ class Config:
             ):
                 bad.append("quantizer and RA/ADC2 phases must fit within one sample period")
         if self.dyn_input_settling:
+            if (
+                self.fs > 0
+                and self.input_network.pretrack_mode != "residue"
+                and self.input_network.pretrack_time_s + self.dyn_t_sample_frac / self.fs
+                > 1 / self.fs
+            ):
+                bad.append("pretracking and acquisition must fit within one sample period")
             if not math.isfinite(self.dyn_r_source) or self.dyn_r_source < 0:
                 bad.append("dyn_r_source must be finite and nonnegative [ohm]")
             if not math.isfinite(self.dyn_r_on) or self.dyn_r_on <= 0:
@@ -1381,7 +1396,10 @@ class Config:
         """
         params = dict(values)
         if isinstance(params.get("input_network"), dict):
-            params["input_network"] = InputNetworkParameters(**params["input_network"])
+            network = dict(params["input_network"])
+            if "pretrack_weights" in network:
+                network["pretrack_weights"] = tuple(network["pretrack_weights"])
+            params["input_network"] = InputNetworkParameters(**network)
         if isinstance(params.get("conversion"), dict):
             params["conversion"] = ConversionParameters(**params["conversion"])
         for name in ("mismatch_split", "mismatch_gradient"):

@@ -21,13 +21,8 @@ from dataclasses import asdict, dataclass, fields, replace
 import numpy as np
 from scipy.linalg import svd
 
+from ._arrays import readonly as _readonly
 from .dem import SplitSwitchGeometry, split_switch_command
-
-
-def _readonly(value, dtype=float):
-    a = np.ascontiguousarray(value, dtype=dtype)
-    # Immutable backing storage also prevents setflags(write=True).
-    return np.frombuffer(a.tobytes(), dtype=a.dtype).reshape(a.shape)
 
 
 @dataclass(frozen=True)

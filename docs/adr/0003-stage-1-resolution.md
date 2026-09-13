@@ -6,7 +6,7 @@
 
 ---
 
-当前决定见 [ADR 0007](0007-independent-decisions-and-dither.md)：9b 决策与 dither
+当前决定见 [ADR 0007](0009-independent-decisions-and-dither.md)：9b 决策与 dither
 范围独立。本文历史上的“7+2 唯一分配”论证不成立，不能作为论文事实引用。
 
 ## 1. 问题

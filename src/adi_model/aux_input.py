@@ -40,7 +40,7 @@
 * C_pg（背栅寄生总量）无披露值 -> 全部数值结论 [假设] 比例 +
   [推导] 标度律；机制结构 [披露]（[13]）。
 * 本模块保留独立标度律。主链路的实际状态实现见
-  input_network.InputNetworkParameters 的 auxiliary_* 参数和 ADR 0010；
+  input_network.InputNetworkParameters 的 auxiliary_* 参数和 ADR 0012；
   不使用这里的电荷比例直接推算主链路噪声收益。
 
 Examples:

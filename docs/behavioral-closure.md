@@ -4,14 +4,14 @@ This document describes the implementation following the September 2026 review.
 The live requirements/evidence ledger is `IMPLEMENTATION_CHECKPOINT.md`.
 
 Continuous input tracking, state/units and independent verification are specified
-in [ADR 0008](adr/0008-continuous-input-network.md). Use `Config.from_dict` to
+in [ADR 0010](adr/0010-continuous-input-network.md). Use `Config.from_dict` to
 reload exported JSON configurations with typed nested parameter groups.
 The joint reference/RA/ADC2 model, event observations, numerical verification and
-small-droop/noise limits are specified in [ADR 0009](adr/0009-joint-reference-ra-adc2.md).
+small-droop/noise limits are specified in [ADR 0011](adr/0011-joint-reference-ra-adc2.md).
 Available-code pretracking and auxiliary input source/charge contracts are in
-[ADR 0010](adr/0010-causal-input-assistance.md).
+[ADR 0012](adr/0012-causal-input-assistance.md).
 Noisy effective-unit calibration, strict digital observations and frozen
-same-chip validation are specified in [ADR 0011](adr/0011-noisy-identifiable-unit-calibration.md).
+same-chip validation are specified in [ADR 0013](adr/0013-noisy-identifiable-unit-calibration.md).
 
 ## Shared parameter and charge contracts
 
@@ -78,7 +78,7 @@ Stress values used to expose software defects are not claimed as PDK statistics.
 
 ## Architecture candidates and range
 
-See [ADR 0007](adr/0007-independent-decisions-and-dither.md). New architecture
+See [ADR 0009](adr/0009-independent-decisions-and-dither.md). New architecture
 studies should start from `Config.paper_literal()` and compare the historical
 `Config.paper_consistent()` baseline. Nine decisions and fourfold dither-port
 amplitude are separate parameters. The complete-count 63+8 topology, ideal
@@ -148,4 +148,4 @@ raw codes and digital switch commands. Use `codes.voltage` for final-code
 spectral metrics; inspect `clipped_low`, `clipped_high`, `analog_overflow` and
 `peak_accumulator_bits`. The floating `result.out` is retained for diagnosis.
 The default is Q30 weights, Q32 normalized voltage, 96-bit accumulation and
-20-bit offset binary. Register serialization and scope are in ADR 0012.
+20-bit offset binary. Register serialization and scope are in ADR 0014.

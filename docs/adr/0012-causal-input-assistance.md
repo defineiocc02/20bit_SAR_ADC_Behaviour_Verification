@@ -1,4 +1,4 @@
-# ADR 0010: Causal pretracking and auxiliary input in the physical loop
+# ADR 0012: Causal pretracking and auxiliary input in the physical loop
 
 Status: accepted as reduced behavioral mechanisms. These controls live in
 `Config.input_network` and act when `dyn_input_settling=True`. Overridden controls

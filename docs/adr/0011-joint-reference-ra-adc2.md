@@ -1,4 +1,4 @@
-# ADR 0009: One time axis for reference recovery, RA and ADC2
+# ADR 0011: One time axis for reference recovery, RA and ADC2
 
 Status: accepted for the production split runner. All undisclosed component
 values, trial-loading details and first-order amplifier poles remain assumptions.

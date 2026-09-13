@@ -20,20 +20,20 @@ documentation. Existing green gates alone do not close a row.
 | M1.2 | Main/sub bank dither units agree in analog charge, RDAC commands and digital correction | Implemented; regression/test_charge_parameter_closure.py + full suite |
 | M1.3 | Real sampling masks drive signal charge as well as dither charge | Implemented; regression/test_charge_parameter_closure.py + full suite |
 | M1.4 | Effective configuration, supported controls, feedback capacitance and applied calibration are observable | Implemented; regression/test_charge_parameter_closure.py + full suite |
-| M2.1 | Separate 7b/9b decision hypotheses, DAC grid/range and dither amplitude enhancement | Implemented; test_architecture_candidates.py; ADR 0007 |
-| M2.2 | Residue, ADC2 range, capacitor definitions and endpoint headroom are independently verified | Implemented; test_architecture_candidates.py; ADR 0007 |
+| M2.1 | Separate 7b/9b decision hypotheses, DAC grid/range and dither amplitude enhancement | Implemented; test_architecture_candidates.py; ADR 0009 |
+| M2.2 | Residue, ADC2 range, capacitor definitions and endpoint headroom are independently verified | Implemented; test_architecture_candidates.py; ADR 0009 |
 | M3.1 | PhysicalSlicePool drives held charge, gain, noise and sample ownership in the main runner | Implemented; physical_pipeline + causal audit regressions; final sweep pending |
 | M3.2 | Causal schedule, startup, latency and independently seeded physical mismatch | Implemented; physical_pipeline + causal audit regressions; final sweep pending |
 | M3.3 | Realizable multidimensional DEM masks and correct non-pipeline scheduler behavior | Implemented; physical_pipeline + causal audit regressions; final sweep pending |
-| M4.1 | Continuous-input tracking with shared source impedance and physical slice states | Implemented; input_network KCL/AC/charge/convergence tests; ADR 0008; full-goal sweep pending |
-| M4.2 | Code-dependent signed reference charge and coarse/fine reference state | Implemented; direct node/rail charge and causal state tests; small-droop scope in ADR 0009 |
-| M4.3 | Finite-bandwidth/slew RA, phase switching and actual ADC2 aperture in the joint chain | Implemented; convolution/ODE/slew/swing/aperture tests; noise and ideal AZ limits in ADR 0009 |
-| M4.4 | Auxiliary and interleave tracking mechanisms use real state and available quantized decisions | Implemented; causal/charge/precharge/combined 9b tests; ADR 0010 |
-| M5.1 | Noisy training, identifiable weights, frozen coefficients and independent validation on same chip | Implemented; static effective-unit SVD/frozen workflow; tests + full-18 pilot; ADR 0011; final acceptance experiments pending |
-| M5.2 | Fixed-point coarse/fine code reconstruction, clipping and transition/code-width verification | Implemented; checked Q30/Q32/96-bit integer core; exhaustive output oracle + all coarse carries + noisy holdout; ADR 0012 |
-| M6.1 | PSD normalization, harmonic collisions, noise integration and separate paper/slide benchmarks | Pending |
-| M6.2 | Long-record low-frequency state/noise validation and explicit observer-extension limits | Pending |
-| M6.3 | Full tests, lint, typing, experiment sweep, build, source/assumption documentation and results | Pending |
+| M4.1 | Continuous-input tracking with shared source impedance and physical slice states | Implemented; input_network KCL/AC/charge/convergence tests; ADR 0010; full-goal sweep pending |
+| M4.2 | Code-dependent signed reference charge and coarse/fine reference state | Implemented; direct node/rail charge and causal state tests; small-droop scope in ADR 0011 |
+| M4.3 | Finite-bandwidth/slew RA, phase switching and actual ADC2 aperture in the joint chain | Implemented; convolution/ODE/slew/swing/aperture tests; noise and ideal AZ limits in ADR 0011 |
+| M4.4 | Auxiliary and interleave tracking mechanisms use real state and available quantized decisions | Implemented; causal/charge/precharge/combined 9b tests; ADR 0012 |
+| M5.1 | Noisy training, identifiable weights, frozen coefficients and independent validation on same chip | Implemented; static effective-unit SVD/frozen workflow; tests + full-18 pilot; ADR 0013; full 18-slice/two-chip/two-training-size acceptance passed |
+| M5.2 | Fixed-point coarse/fine code reconstruction, clipping and transition/code-width verification | Implemented; checked Q30/Q32/96-bit integer core; exhaustive output oracle + all coarse carries + noisy holdout; ADR 0014 |
+| M6.1 | PSD normalization, harmonic collisions, noise integration and separate paper/slide benchmarks | Complete; independent SciPy/Parseval/alias tests + separate source profiles; mandatory acceptance passed |
+| M6.2 | Long-record low-frequency state/noise validation and explicit observer-extension limits | Complete; physical-time state + covariance/chunk/64s PSD and mode convergence; observer scope ADR 0015 |
+| M6.3 | Full tests, lint, typing, experiment sweep, build, source/assumption documentation and results | Local complete: 394 tests, 52 gates twice, byte-identical source/wheel results, build and 47-module typing; exact-head CI pending |
 | GIT | Commit and push reviewable branch/PR; inspect GitHub CI for that exact head | Pending |
 
 ## Current milestone
@@ -117,7 +117,7 @@ reconciliation in M6. Final-head tests must cover the later changes.
 Reference loading is explicitly linearized at nominal rail voltages; peak
 droop is reported. Auto-zero uses an ideal reset phase and existing aperture
 noise budgets; the signal-pole solver does not pretend to validate cyclostationary
-noise. These scopes are recorded in ADR 0009. M4.4 (causal quantized pretracking
+noise. These scopes are recorded in ADR 0011. M4.4 (causal quantized pretracking
 and auxiliary input integration), M5, M6 and GitHub submission remain pending.
 
 ### M4.4 checkpoint (2026-09-13)
@@ -129,7 +129,7 @@ the real slice and SADC capacitor states before the main acquisition. The shared
 input filter remains isolated from these drivers. A clocked parasitic input
 branch can be connected to the common bus or an independent auxiliary source;
 its acquisition and reset charges are recorded separately. Physical IDs retain
-its history. Model details and limitations are in ADR 0010.
+its history. Model details and limitations are in ADR 0012.
 
 Independent availability, actual precharge influence, source/reset charge and
 auxiliary bus-improvement tests passed. Combined nine-bit sampling/quantizer
@@ -191,7 +191,7 @@ M6 noise/metrics/benchmarks/acceptance/docs and GitHub submission remain pending
 digital switching and nominal/frozen coefficients using checked fixed-point
 arithmetic. Explicit register widths, signed ties-to-even, half-open input bins,
 independent analog/output clipping and versioned immutable JSON are documented
-in ADR 0012. Fractional RDAC masks and unquantized observer paths are rejected.
+in ADR 0014. Fractional RDAC masks and unquantized observer paths are rejected.
 
 28 fixed-point/calibration tests passed in 5.22 s, including exhaustive 2^20
 code enumeration, all 511 coarse carries, poisoned float/truth buffers and
@@ -199,3 +199,65 @@ independent noisy calibrated holdout. Mypy passes 41 modules. Final acceptance
 experiments must measure final code streams, not only floating diagnostics.
 M6 metrics, low-frequency noise, full sweep reconciliation, documentation,
 release build and exact-head GitHub CI/submission remain pending.
+
+
+### M6 metrics/noise checkpoint (2026-09-13)
+
+PSD V²/Hz and tone amplitude are now separate, including odd/even endpoint
+normalization and explicit band integration. Harmonic fitting deduplicates aliases
+and handles Nyquist as one real column; rank/condition/reliability are reported.
+Independent SciPy/Parseval and known-signal checks pass. Published paper and
+slides benchmark records remain separate fitted noise anchors.
+
+BandLimitedFlicker supplies a frozen stationary log-frequency state at actual
+40 MS/s sample indices. The short-record wrapper's unreachable drift branch is
+replaced with physical slow modes, not a record-scaled ramp. Chunk/64-second
+probe and independent covariance integrals pass; the original strict xfail is
+removed. Combined current noise/metric/audit checks: **110 passed in 4.60 s**.
+ADR 0015 documents formulas, source references, low cutoff and observer limits.
+Full long-time PSD/mode convergence must still join mandatory acceptance gates.
+M6 final sweep reconciliation/build/docs/results and GitHub submission remain
+unfinished; do not mark this checkpoint as full-goal acceptance.
+
+
+### Local release verification checkpoint (2026-09-13)
+
+All implemented requirements are locally verified. Full suite: **394 passed,
+zero xfails**, coverage **65.37%** (implementation_release_pytest.log). Ruff
+check/format, mypy (47 modules), diff whitespace and source/wheel build pass.
+The installed wheel was imported outside the checkout and its bundled CLI ran
+the entire acceptance sweep: **52/52 gates**, matching the source sweep byte for
+byte. Both results.json SHA-256:
+`f3e1a7967f22b30e037d881668b40124cea4ed3f47600a2addb69a502f67c0eb`.
+Logs: implementation_m6_sweep2.log, implementation_wheel_sweep.log,
+implementation_release_build.log. No process needs restarting.
+
+The previous M6 sweep found a statistically fragile single-realization flicker
+ratio and an integer-key serialization incompatibility. Both were corrected:
+32 independent noise realizations with tighter uncertainty, paired white noise
+for mechanism comparisons, and collision-checked numeric JSON key normalization.
+The successful sweeps include those changes. New mandatory gates cover noisy
+frozen final words, long-record PSD, physical reference loading, independent
+dither range, and explicit conditional Ron scan status. No exemption was added.
+
+Full 18-slice / 8-active, 63+8 candidate: chip seeds 42 and 99; Ncal 8192/16384,
+Nholdout 16384. Final-word RMS at Ncal=16384 is 43.423/43.273 uV versus
+uncalibrated 81.618/90.125 uV. Coefficient SE RMS falls from about 5.18e-5 to
+3.44/3.48e-5. All fits have rank 1279 and no overflow. These are conditional
+noisy behavior results with a DR-fitted RA source, not silicon predictions.
+
+64 s physical-time noise probe: 40 MHz ADC clock, 256 Hz explicit antialias
+observation, 0.25 Hz PSD spacing, 32 states. Slope -9.9207 dB/dec; integrated
+2–20 Hz power 7.3593e-15 V² versus 7.3494e-15 predicted. Covariance error falls
+from 0.02509 at 32 modes to 0.000428 at 512 modes. The fast pipeline record is
+not claimed to span those 64 seconds.
+
+Current HTML report and eight figures are generated from the serialized result;
+old hard-coded performance text is removed. Source labels and ppmFS-to-LSB
+conversion are corrected. ADR IDs are normalized: historical 0001–0008 retained,
+physical closure 0009–0015. The package now includes both CLI scripts in wheels.
+
+GitHub main remains ffcc011 (live API verified). Git HTTPS preflight again timed
+out at 25 s; authenticated Git-data API transport will be used if needed. Local
+commit, GitHub branch/PR submission and exact-head CI inspection remain to do.
+Do not mark the goal complete before that evidence exists.

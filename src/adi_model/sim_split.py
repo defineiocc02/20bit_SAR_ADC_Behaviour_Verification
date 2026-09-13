@@ -1,30 +1,12 @@
-"""sim_split.py -- 分段 DAC（主/子 + 桥接电容）拓扑的信号链主循环。
+"""Split-ADC entries: shared physical pipeline and independent aggregate oracle.
 
-与 sim.py 的关系：**下游完全复用**（RA / KTC / ADC2 / 重构 / 校准状态机），
-只替换前端：DAC 求值（两套拓扑的物理方程不同）+ v5 新增的三项动态误差。
+run_sim_split delegates to pipeline_engine for actual slice ownership, shared
+continuous input, reference/RA/ADC2 dynamics and frozen digital reconstruction.
+run_sim_split_reference retains the aggregate algebraic comparison, whose
+legacy dynamic proxies are not the production physical model.
 
-信号链（v5）：
-
-    chip   = build_split_chip(...)        # 每颗芯片一次
-    sample = capture(...)                 # 采样噪声绑定 C_samp = A + B
-    x_R'   = x_R + e_input_settling       # (a) 输入建立（含 tau(k) 码相关）
-    vD0    = dac.evaluate_nominal(k_eq)   # 数字可见
-    vDt    = dac.evaluate_physical(k_eq, sid) + e_ref + e_xtalk
-                                           # (b) 参考建立 (c) 数字串扰
-    r      = x_R' - vDt
-    vra    = RA(r, g = C_samp/C_F)        # 电荷一致增益（与 unary 同口径）
-    fine   = ADC2(vra - kappa*vnc)
-    out    = (vd0 + fine/G_hat - d_corr)/alpha
-
-动态误差的进入位置**必须**与物理一致：
-  * 输入建立改的是**采样值**（进 SADC/RDAC 两条路，这里只建 RDAC 路，
-    SADC 电容小 20 倍、建立快，粗码误差二阶小量，已在注释声明）；
-  * 参考建立与数字串扰改的是 **DAC 输出**（进残差，被 G 放大）。
-单位契约：与 sim.py 一致（V/F/s/单位当量）；c_mask/c_sig/c_load/c_noise_eq
-四口径定义见 run_sim_split 头部注释块（单一事实来源）。
-适用域：分段主/子拓扑主循环；退化场景与 pipeline 逐位等价（stage19①）。
-共享函数 sampling_dither_injection 改动后必须全链路回归（d_new 事故）。
-
+All voltages are in volts. ADC2 is quantized before any experimental digital
+observer correction; sampling signal, loading and noise capacitances are distinct.
 """
 
 from __future__ import annotations

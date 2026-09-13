@@ -1,4 +1,4 @@
-# ADR 0012: integer split-ADC output contract
+# ADR 0014: integer split-ADC output contract
 
 Status: implemented; arithmetic assumptions are engineering choices, not disclosed
 silicon RTL. See `fixed_point.py` and `tests/unit/test_fixed_point.py`.

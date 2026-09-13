@@ -4,6 +4,45 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.0.0] — 2026-09-13
+
+### Changed
+
+- The production split runners now share actual per-slice charge and causal
+  acquisition/conversion state. Numerical results intentionally change from the
+  aggregate v7 baseline. An independent aggregate oracle remains available.
+- Nine input-decision bits and fourfold known-dither range are independent
+  hypotheses. The complete-range 63+8 candidate is explicit; the seven-bit
+  default remains a historical comparison, not a reconstruction of nine bits.
+- Shared-source continuous tracking, code-available pretracking and auxiliary
+  charge feed signed coarse/fine reference loads and finite RA/ADC2 response.
+  Circuit timing, detailed switch sequence and small-droop approximations remain
+  explicit assumptions.
+- Split unit calibration retains noise, rejects deficient rank, freezes effective
+  weights and validates on the same chip with independent records. The unary
+  calibration wrapper no longer silently disables sampling noise or DEM.
+- Raw ADC2 codes and checked fixed-point final words are public interfaces.
+  Registers define weight/voltage widths, signed rounding, accumulator overflow,
+  output saturation and standard JSON serialization.
+- PSD density and tone amplitude use distinct normalization. Harmonic aliases,
+  Nyquist rank and unresolved measurements are explicit. Stationary low-frequency
+  state replaces unreachable or record-scaled drift; a long-time probe retains
+  the physical 40 MHz clock. Paper/slides benchmarks remain separate fitted anchors.
+- Acceptance experiments use conditional per-chip timing/offset oracles, actual
+  reference events, independent dither range, noisy fixed-point holdout and
+  long-record PSD/covariance convergence. A Ron scan without a crossing no longer
+  invents a design limit. No failing criterion is placed on an exemption list.
+- Versioned results are atomic UTF-8 standard JSON with null/status metadata for
+  undefined values. Reports render actual evidence and current scope; v7 scope
+  snapshots are archived. Experiment CLI scripts are included in wheels.
+
+### Verification
+
+Independent charge/KCL/convolution, causal-state, noisy estimation, exhaustive
+20-bit arithmetic, coarse-transition, SciPy/Parseval and covariance tests are
+tracked in `docs/IMPLEMENTATION_CHECKPOINT.md`. Full-sweep, release-build and
+exact-head CI evidence are recorded there separately from milestone results.
+
 ## [7.0.10] — 2026-09-12
 
 ### Fixed — eighth external review: dimensional/constraint errors in the new mechanism models

@@ -1,4 +1,4 @@
-# ADR 0007 — Decision resolution and dither range are independent
+# ADR 0009 — Decision resolution and dither range are independent
 
 Status: accepted, 2026-09-12. Supersedes ADR 0003's claim that seven decision
 bits plus two dither bits are the uniquely consistent reading.

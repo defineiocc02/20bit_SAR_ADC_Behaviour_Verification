@@ -1,4 +1,4 @@
-# ADR 0011: Noisy, identifiable and frozen split-unit calibration
+# ADR 0013: Noisy, identifiable and frozen split-unit calibration
 
 Status: accepted for the static charge-gain model. Final fixed-point code
 reconstruction is a separate contract; this calibration initially reconstructs

@@ -12,7 +12,8 @@ from dataclasses import asdict, dataclass
 
 import numpy as np
 
-from .weight_calibration import CalibrationSpec, DigitalObservation, _readonly, _terms
+from ._arrays import readonly as _readonly
+from .weight_calibration import CalibrationSpec, DigitalObservation, _terms
 
 
 def round_even_divide(n: int, d: int) -> int:
@@ -29,6 +30,7 @@ class FixedPointFormat:
 
     weight_fraction_bits: int = 30
     voltage_fraction_bits: int = 32
+    voltage_bits: int = 64
     coefficient_bits: int = 48
     accumulator_bits: int = 96
     output_bits: int = 20
@@ -41,6 +43,7 @@ class FixedPointFormat:
         if not (
             self.weight_fraction_bits < self.coefficient_bits <= 62
             and self.voltage_fraction_bits <= 48
+            and self.voltage_fraction_bits < self.voltage_bits <= 64
             and 8 <= self.accumulator_bits <= 256
             and self.output_bits <= 30
         ):
@@ -89,6 +92,11 @@ class FixedPointReconstructor:
             raise ValueError("weights must fit positive signed coefficient and mask-sum registers")
         if any(type(v) is not int for v in (self.offset_q, self.adc2_min_q, self.adc2_max_q)):
             raise ValueError("voltage registers must contain integers")
+        if any(
+            not -(2 ** (self.format.voltage_bits - 1)) <= x < 2 ** (self.format.voltage_bits - 1)
+            for x in (self.offset_q, self.adc2_min_q, self.adc2_max_q)
+        ):
+            raise ValueError("voltage coefficients exceed their signed register width")
         if self.adc2_min_q >= self.adc2_max_q:
             raise ValueError("quantized backend range is empty")
         object.__setattr__(self, "weights_q", _readonly(w, np.int64))
@@ -161,7 +169,10 @@ class FixedPointReconstructor:
                     (2 * int(data.adc2_code[k]) + 1) * (self.adc2_max_q - self.adc2_min_q),
                     2 ** (self.spec.adc2_n_bits + 1),
                 )
-                inj_q = int(np.rint(injection[j] / self.spec.v_fs * vscale))
+                normalized_injection = injection[j] / self.spec.v_fs
+                if abs(normalized_injection) >= 2 ** (self.format.voltage_bits - 1) / vscale:
+                    raise OverflowError("digital injection exceeds its voltage register")
+                inj_q = int(np.rint(normalized_injection * vscale))
                 gain = int(gains[j])
                 if gain <= 0:
                     raise ValueError("quantized signal gain must be positive")

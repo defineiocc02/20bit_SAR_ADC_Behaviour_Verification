@@ -1,3 +1,5 @@
+> 历史版本文档：下文记录 v7 阶段的实现与审计。当前物理链路、定点输出、噪声与验收范围见 [model_scope.md](model_scope.md) 和 [实施账本](IMPLEMENTATION_CHECKPOINT.md)。
+
 # 对独立审计报告的逐条回应
 
 **对象**：`adi_model_release_v6.1`（冻结基线）的独立审计，

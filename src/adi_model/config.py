@@ -81,9 +81,9 @@ LEGAL_VALUES: dict[str, tuple[str, ...]] = {
 # stage1_reading 标签 -> b1 的对应关系。从三种读法的**定义**直接导出，不是
 # 第二份需要手工同步的事实表：
 #
-#   paper_consistent  b1 + 2b 增强 = 9b              -> b1 = 7（默认读数）
-#   paper_literal     字面"9b in the first stage"    -> b1 = 9
-#   legacy_codeword   v6.1：6b 粗判决 + 3b dither    -> b1 = 6
+#   paper_consistent  historical seven-decision-bit hypothesis (default)
+#   paper_literal     nine unknown-input decisions; separate 4x dither port
+#   legacy_codeword   historical six-decision-bit model, retained as a baseline
 #
 # 标签只是元数据，真正改变机制的是 b1（以及工厂方法一并设定的后端字段）。
 # 两者不一致时，用户会以为自己切换了架构、实际没有 —— 与拼错的枚举值同类，
@@ -110,28 +110,17 @@ class Config:
 
     # ---------------- 第一级 SADC ----------------
     b1: int = 7  # 第一级 SADC 判决位数（含义见 stage1_reading）
-    # 第一级分辨率的**架构读数**。论文 [00] 同时披露了两条互相约束的事实：
-    #   (a) "...resulting in 9b quantization in the first stage."
-    #   (b) "the dither range is enhanced by 2b when transferred from the
-    #        quantizer to the RDAC."
-    # 本模型的机制里，"量程增强 2^b" 的 b 就是「一个第一级判决步包含多少
-    # RDAC 单位步」= log2(DAC 电平数 / 2**b1)。两条联立：
-    #       b1 + b_enh = 9,  b_enh = 2  =>  b1 = 7（units_per_d1 = 4 = 2²）
-    # 可选读数（外部审计 F1 要求显式声明，不得悄悄选定）：
-    #   "paper_consistent"（默认）: b1=7 —— 在「码值量程增强 == 对未知输入的
-    #                              额外判决位数」这一**假设**下唯一自洽的分配。
-    #                              该等同正是 ADR 0003 §1 拒绝过的那一种，所以
-    #                              这里是一个**假设**，不是收敛结论；PARAM_GRADES
-    #                              把 b1 标为 ASSUMED（外部复核 2026-09-11 R3）。
-    #   "paper_literal"          : b1=9 —— 只取 (a) 的字面读法；此时
-    #                              units_per_d1=1，增强 0b，与 (b) 冲突。
-    #   "legacy_codeword"        : b1=6 —— v6.1 读法（增强 3b）；仅为复现旧结果。
+    # Explicit architecture hypotheses. The paper's nine quantization bits
+    # concern unknown input; the separate two-bit dither range statement does
+    # not add decision information. The nine-bit factory uses an assumed 4x
+    # dual port, while the seven-bit default preserves historical comparisons.
+    # Neither hypothesis supplies undisclosed ADC2 or switching circuit detail.
     stage1_reading: str = "paper_consistent"
     # dither 从量化器转移到 RDAC 的机制。论文 [00]：dither range "is enhanced
     # by 2b when the result is transferred from the quantizer to the RDAC"。
-    #   "range"      : 论文口径（默认）—— 转移 = 在 RDAC 栅格上精确扣除
+    #   "range"      : 历史 RDAC 栅格转移假设（默认）
     #                  d_code = −round(d/ΔD)；"2^b 增强"是**余量能力**
-    #                  （units_per_d1 = 2^b），由 stage21 作为推导量报出，
+    #                  （units_per_d1 = 2^b），只是栅格比，
     #                  不由粒度实验冒充证明。
     #   "granularity": v6.1 读法 —— 转移时按更细粒度重新取整（保留对照）。
     dither_transfer_model: str = "range"
@@ -1160,7 +1149,7 @@ class Config:
         # 也就是「一个粗判决步含多少个 RDAC 单位步」。
         # 这条等式把 ADR 0003 的收敛解写成了机器可校验的约束：
         #   paper_consistent (b1=7, 512 电平) -> 增强 2b ✓
-        #   paper_literal    (b1=9, 512 电平) -> 增强 0b ✓（与披露 2b 冲突，故非默认）
+        #   paper_literal: 9b + explicit independent dual-port amplitude ratio 4.
         #   legacy_codeword  (b1=6, 512 电平) -> 增强 3b ✓（v6.1 读法，> 披露值）
         # 若有人只改 b1 而不重推读数，这里立刻 FAIL，不会静默放行。
         enh_expected = math.log2(dac_levels / levels_needed) if levels_needed else float("nan")

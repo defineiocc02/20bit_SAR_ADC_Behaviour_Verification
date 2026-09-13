@@ -1,4 +1,4 @@
-# ADR 0008: Continuous tracking through a shared input network
+# ADR 0010: Continuous tracking through a shared input network
 
 Status: accepted for the split behavioral runner. This is an assumed reduced
 passive circuit, not a reconstruction of unpublished transistor circuitry.

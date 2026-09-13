@@ -533,17 +533,8 @@ class TestR5HardGateBindsToExitCode:
 class TestR6FlickerDriftBackfill:
     """The function documents a back-fill it can never reach."""
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason="Open defect (review R6 here; R7 in docs/review_response_2026-09-11.md): the guard is `if f_corner <= f_min or "
-        "f_min <= f_low: return x`, so the branch is skipped precisely when the "
-        "corner sits below the record's resolution limit — the only case the "
-        "back-fill was written for. Measured: 0/32768 non-zero samples for "
-        "fs=40 MHz, n=32768, fc=40 Hz, t_obs=10 s. Remove this marker when the "
-        "guard is corrected.",
-    )
     def test_short_record_contains_the_unresolved_low_frequency_power(self):
-        """A 40 Hz corner in a 10 s record must not produce an all-zero series.
+        """A short record with a 0.1 Hz assumed low cutoff must not be all-zero.
 
         ``f_min = fs/n = 1220.7 Hz`` exceeds the corner, so the truncated
         spectrum is empty; the power below ``f_min`` is unresolvable rather than

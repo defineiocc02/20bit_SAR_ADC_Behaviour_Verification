@@ -208,6 +208,7 @@ class Config:
 
     # ---------------- 数字功能开关 ----------------
     dem_enable: bool = False
+    dem_bridge_enable: bool = False  # 可实现的跨 slice 零和码交换；分段拓扑假设
     # off       : 关闭
     # analog    : 输入注入（v1）→ 直接从 ±V_FS 扣量程，代价是可用范围变小
     # sampling  : 采样态电荷注入（专利 [10] Fig.6 / Fig.19）→ **不占输入量程**
@@ -528,6 +529,7 @@ class Config:
             dither_transfer_model="dual_port",
             dither_enhancement_bits=2,
             dither_discrete=True,
+            dem_bridge_enable=True,
         )
         base = replace(base, **overrides)
         span = base.g0 * base.delta1

@@ -131,9 +131,9 @@ class TestSADCThresholdConsistency:
         """Guard: the two loops must call the shared helpers, not recompute."""
         import inspect
 
-        from adi_model import pipeline, sim_split
+        from adi_model import pipeline_engine, sim_split
 
-        for mod in (pipeline, sim_split):
+        for mod in (pipeline_engine, sim_split):
             src = inspect.getsource(mod)
             assert (
                 "build_first_stage_quantizer" in src

@@ -73,7 +73,7 @@ def test_mask_removes_real_input_charge(bank):
         q_signal / c_signal,
         atol=1e-14,
     )
-    assert abs(result.sample.signal_alpha - cfg.dither_alpha) > 1e-7
+    assert np.all(np.abs(result.sample.signal_alpha - cfg.dither_alpha) > 1e-7)
 
 
 @pytest.mark.parametrize("thresholds", [[0, 1, 0.5], [0, np.nan, 1], [0, 0, 1]])

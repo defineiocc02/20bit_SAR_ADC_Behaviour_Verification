@@ -68,6 +68,9 @@ def sampling_dither_injection(
     sample.x_rdac = sample.x_rdac - d_old + d_new + (alpha_true - old_alpha) * sample.x1
     sample.dither = d_new
     sample.dither_bank_code = d_code
-    sample.dither_code = d_code * bank_step_nom / step0
+    unit_ratio = cfg.dac_n_sub if cfg.dither_split_bank == "main" else 1
+    if not np.isclose(bank_step_nom, unit_ratio * step0, rtol=1e-12, atol=0):
+        raise ValueError("bank charge and nominal RDAC grid use inconsistent units")
+    sample.dither_code = d_code * unit_ratio
     sample.signal_alpha = alpha_true
     return d_new

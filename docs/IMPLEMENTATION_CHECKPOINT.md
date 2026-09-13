@@ -22,9 +22,9 @@ documentation. Existing green gates alone do not close a row.
 | M1.4 | Effective configuration, supported controls, feedback capacitance and applied calibration are observable | Implemented; regression/test_charge_parameter_closure.py + full suite |
 | M2.1 | Separate 7b/9b decision hypotheses, DAC grid/range and dither amplitude enhancement | Implemented; test_architecture_candidates.py; ADR 0007 |
 | M2.2 | Residue, ADC2 range, capacitor definitions and endpoint headroom are independently verified | Implemented; test_architecture_candidates.py; ADR 0007 |
-| M3.1 | PhysicalSlicePool drives held charge, gain, noise and sample ownership in the main runner | Pending |
-| M3.2 | Causal schedule, startup, latency and independently seeded physical mismatch | Pending |
-| M3.3 | Realizable multidimensional DEM masks and correct non-pipeline scheduler behavior | Pending |
+| M3.1 | PhysicalSlicePool drives held charge, gain, noise and sample ownership in the main runner | Implemented; physical_pipeline + causal audit regressions; final sweep pending |
+| M3.2 | Causal schedule, startup, latency and independently seeded physical mismatch | Implemented; physical_pipeline + causal audit regressions; final sweep pending |
+| M3.3 | Realizable multidimensional DEM masks and correct non-pipeline scheduler behavior | Implemented; physical_pipeline + causal audit regressions; final sweep pending |
 | M4.1 | Continuous-input tracking with shared source impedance and physical slice states | Pending |
 | M4.2 | Code-dependent signed reference charge and coarse/fine reference state | Pending |
 | M4.3 | Finite-bandwidth/slew RA, phase switching and actual ADC2 aperture in the joint chain | Pending |
@@ -58,3 +58,17 @@ handles before resuming. Record completed evidence and failures here at mileston
 boundaries. Never restart a completed experiment solely because a model stream
 ended. Do not mark the objective complete until every row and GitHub submission
 has direct current evidence.
+
+### M3 checkpoint (2026-09-13)
+
+PhysicalSlicePool now drives both split entries through pipeline_engine;
+run_sim_split_reference retains the aggregate algebraic comparison. Shared causal
+schedule, independent fabrication/clock/noise streams, physical mask charge,
+per-sample gain/noise and actual unary slice selection are implemented. DEM has
+independent physical row/column/subarray maps and optional zero-sum code exchange.
+Three original xfails were removed after actual XPASS and causal perturbations.
+An intermediate full run passed 282 tests / one flicker xfail (129.31 s); later
+physical/DEM additions passed 18 dedicated tests and focused causal tests.
+Final M3/full-goal verification must use the current head, not that intermediate
+run. M4-M6 and GitHub submission remain unfinished. Continuous acquisition and
+joint RA/reference dynamics are explicitly still pending.

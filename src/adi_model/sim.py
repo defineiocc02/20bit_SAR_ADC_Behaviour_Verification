@@ -26,7 +26,8 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -41,6 +42,9 @@ from .reconstruction import Calibrator, DigitalState, initialize_state, reconstr
 from .sadc import SADC
 from .sampler import SampleBatch, capture
 from .scheduler import Scheduler, make_scheduler
+
+if TYPE_CHECKING:
+    from .slice_pool import PhysicalSlicePool
 
 
 @dataclass
@@ -118,6 +122,14 @@ class SimResult:
     c_active: np.ndarray | None = None  # 逐样本活跃采样电容
     calibration_applied: tuple = ()  # 实际执行过的校准步骤
     runner: str = "run_sim"
+    pool: PhysicalSlicePool | None = None
+    conv_slice_ids: np.ndarray | None = None
+    acq_slice_ids: np.ndarray | None = None
+    held_sample: np.ndarray | None = None
+    sample_id: np.ndarray | None = None
+    stored_charge: np.ndarray | None = None
+    acquisition_error: np.ndarray | None = None
+    acquisition_start: np.ndarray | None = None
 
     @property
     def rdac_over(self) -> np.ndarray:
@@ -126,7 +138,11 @@ class SimResult:
         Returns:
             Boolean array: requested code is outside the realizable DAC range.
         """
-        upper = self.cfg.dac_levels - 1 if self.cfg.dac_arch == "split" else self.cfg.n_units_sig
+        upper = (
+            self.cfg.dac_levels - 1
+            if self.cfg.dac_arch == "split"
+            else self.cfg.n_active * self.cfg.n_unit_per_slice
+        )
         return (self.k < 0) | (self.k > upper) | ~np.isfinite(self.k)
 
     @property
@@ -161,7 +177,9 @@ class SimResult:
             "calibration_pending": self.cfg.calibration != "none" and not self.calibration_applied,
             "inactive_overrides": inactive,
             "rdac_code_min": 0,
-            "rdac_code_max": self.cfg.dac_levels - 1,
+            "rdac_code_max": self.cfg.dac_levels - 1
+            if self.cfg.dac_arch == "split"
+            else self.cfg.n_active * self.cfg.n_unit_per_slice,
             "rdac_overflow_count": int(np.count_nonzero(self.rdac_over)),
         }
 
@@ -200,6 +218,8 @@ def run_sim(
             拒绝（外部复核 2026-09-11）。
     """
     cfg.check_legal()
+    cfg = replace(cfg, dac_arch="unary")
+    cfg.check_legal()
     if rng is None:
         rng = np.random.default_rng(cfg.seed)
     if chip is None:
@@ -228,6 +248,27 @@ def run_sim(
 
     # ---- 采样：slice 与噪声都在这里绑定到样本，后续不能偷换 ----
     sample = capture(cfg, input_fn, n_samples, rng, chip=chip, c_active=C_active)
+    if cfg.dither_mode == "sampling":
+        nd = cfg.dither_units_total
+        mask_index = np.arange(
+            cfg.n_active * cfg.n_unit_per_slice - nd, cfg.n_active * cfg.n_unit_per_slice
+        )
+        mask = chip.C_true[
+            allocation.slice_ids[:, mask_index // cfg.n_unit_per_slice],
+            mask_index % cfg.n_unit_per_slice,
+        ]
+        alpha_true = 1 - mask.sum(axis=1) / C_active
+        if nd and cfg.dither_discrete:
+            signs = 2 * (np.arange(nd)[None, :] < nd // 2 + sample.dither_code[:, None]) - 1
+            injection = cfg.v_fs * (mask * signs).sum(axis=1) / C_active
+        elif nd:
+            injection = 2 * cfg.v_fs * sample.dither_code * mask.mean(axis=1) / C_active
+        else:
+            injection = np.zeros(n_samples)
+        sample.x_rdac += (alpha_true - cfg.dither_alpha) * sample.x1 + injection - sample.dither
+        sample.dither = injection
+        sample.signal_alpha = alpha_true
+        sample.dither_bank_code = sample.dither_code.copy()
 
     # ---- 粗量化 ----
     coarse = sadc.convert(sample.x_sadc)
@@ -247,7 +288,7 @@ def run_sim(
 
     # ---- 两套权重下的 DAC 求值 ----
     vd0 = rdac.evaluate_nominal(cmd)
-    vd_true = rdac.evaluate_physical(cmd)
+    vd_true = rdac.evaluate_physical(cmd, allocation.slice_ids)
 
     # ---- 残差 / 放大（各自独立检查饱和）----
     residue = sample.x_rdac - vd_true
@@ -258,7 +299,7 @@ def run_sim(
     # 网络），输入变化是 α·Δx 而非 Δx。旧代码漏乘 α，dither 开时数字端又除以
     # α，产生 (1/α-1)·Δx ≈ 42.7 µV @5MHz 的确定性尺度残差（unary 复现
     # 42.683 µV，与旧公式逐数值吻合；split 分支已修，此处补齐统一口径）。
-    dx_obs = cfg.dither_alpha * sample.dx
+    dx_obs = (sample.signal_alpha if cfg.dither_mode == "sampling" else 1.0) * sample.dx
     vnc, ktc_sat = ktc.observe(sample.n_R, dx_obs, rng)
 
     # ---- 后端量化：校正量在**数字域**扣除（见 adc2.quantize_with_correction）----
@@ -290,6 +331,8 @@ def run_sim(
     err_clean = out - x1_clean
 
     return SimResult(
+        conv_slice_ids=allocation.slice_ids,
+        sample_id=np.arange(n_samples),
         out=out,
         err=err_target,
         x_ref=x_ref,

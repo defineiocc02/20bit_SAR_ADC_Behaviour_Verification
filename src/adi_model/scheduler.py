@@ -1,43 +1,9 @@
-"""scheduler.py -- slice 池调度：A/B 时序、转换组/采集组绑定、8/18 随机洗牌。
+"""Causal acquisition scheduling for the 18-slice ADC pool.
 
-============================================================================
-物理模型与文献出处
-============================================================================
-论文 [00]："the RDAC is composed of 8 slice DACs (sDAC) converting the
-signal, and 8 sDACs acquiring the signal, dynamically selected from a
-pool of 18 sDACs. Two spare sDACs are introduced to allow shuffling of
-the sampling DACs and spread the residual interleaving tones."
-PPT p.10-12：18 slice = 8（采集）+ 8（保持/残差）+ 2（spare/randomisation）。
-
-三种调度模式（物理含义递进）：
-    * Scheduler（默认）          ：A/B ping-pong 固定两组。slice 间带宽/时刻
-                                  失配 -> f_S/2±f_IN 固定交织杂散（stage19
-                                  验收③④的"固定组"基准）。
-    * Scheduler(spare_rotation)  ：spare 周期性顶替组内成员（最简轮换，
-                                  尚未建模轮换期间的状态传递——开放项）。
-    * ShuffledScheduler          ：每样本 8/18 随机洗牌。杂散打散进噪声底
-                                  （stage19 实测：带宽失配降 31 dB、
-                                  timing skew 降 42 dB）。
-
-单位与数据契约：
-    * slice 编号 = [0, n_slices) 的 int64；前 n_active 个属 bank A，
-      次n_active 个属 bank B，其余为 spare（物理意义只在固定组模式成立；
-      洗牌模式下编号与 bank 的绑定无物理含义，只有"池里 18 片"这一层）。
-    * Allocation 在**采样时确定并保存，之后不可更改**（硬约束——
-      数字重构时重新选择会悄悄改变误差归属，破坏"误差去哪里"的可归因性）。
-    * reserve_dual 返回的 (conv, acq) 逐样本两两不相交，各 n_active 个
-      —— pipeline.SlicePool.invariants 逐样本断言此契约。
-
-参数来源分级：
-    n_slices=18 / n_active=8   [披露]（论文原文 + PPT p.10）
-    spare_period=97            [假设]（互质于常见样本数，避免与 DEM 周期同步）
-
-已知边界（勿当已实现）：
-    * 固定组模式下 slice_ids 的组内顺序固定 —— DEM 的组内轮转由 mapper
-      负责，本模块不做任何码相关置换（职责单一：时序与占用，不含算法）。
-    * spare 顶替期间被换下 slice 的 v_top 冻结，换上 slice 的 v_top 取
-      池中保存值 —— 洗牌模式下等价于"任意历史"，由 pipeline 的逐相位
-      提交语义自动覆盖；固定组+spare_rotation 组合下这是近似。
+Conversion consumes the group acquired in the preceding cycle. Both reserve()
+and reserve_dual() use timing.build_slice_plan; the former returns the conversion
+view. Fixed, spare-rotation and shuffled choices all preserve sample ownership.
+Randomization is confined to slices free during the acquisition interval.
 """
 
 from __future__ import annotations
@@ -47,6 +13,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .config import Config, ConfigError
+from .timing import build_slice_plan
 
 
 @dataclass
@@ -105,21 +72,8 @@ class Scheduler:
                            （采集组由 reserve_dual / acq_ids 推导）。
         Side effects: 无。
         """
-        n = np.arange(n_samples)
-        bank = (n % 2).astype(np.int64)  # A/B ping-pong
-        base = np.stack([self.bank_a, self.bank_b])  # (2, n_active)
-        slice_ids = base[bank].copy()  # (N, n_active)
-
-        if self.spare_rotation and self.spares.size > 0:
-            # 每 spare_period 个样本，把一个 slice 换成 spare（先做最简版本：
-            # 用 spare 替换 bank 内编号最小的那个）
-            hit = (n % self.spare_period) == 0
-            if hit.any():
-                k = n[hit] // self.spare_period
-                victim = k % self.cfg.n_active
-                donor = self.spares[k % self.spares.size]
-                slice_ids[hit, victim] = donor
-        return Allocation(bank=bank, slice_ids=slice_ids)
+        conv, _ = self.reserve_dual(n_samples)
+        return Allocation(bank=np.arange(n_samples, dtype=np.int64) % 2, slice_ids=conv)
 
     def reserve_dual(self, n_samples: int, rng: np.random.Generator | None = None):
         """返回 (conv, acq)：每样本的转换组与采集组，各 n_active 个。
@@ -135,35 +89,18 @@ class Scheduler:
                       两者逐样本不相交，pipeline 断言此契约。
         Side effects: 无（确定性）。
         """
-        alloc = self.reserve(n_samples)
-        conv = alloc.slice_ids
-        acq = np.empty_like(conv)
-        acq[0::2] = self.bank_b
-        acq[1::2] = self.bank_a
-        if self.spare_rotation and self.spares.size > 0:
-            # 与 reserve 相同的替换逻辑镜像到 acq（简化：同样按命中样本替换）
-            n = np.arange(n_samples)
-            hit = (n % self.spare_period) == 0
-            if hit.any():
-                k = n[hit] // self.spare_period
-                victim = k % self.cfg.n_active
-                donor = self.spares[(k + 1) % self.spares.size]
-                acq[hit, victim] = donor
-        return conv, acq
+        plan = build_slice_plan(
+            self.cfg,
+            n_samples,
+            np.random.default_rng(self.cfg.seed + 4201),
+            "pingpong",
+            spare_period=self.spare_period if self.spare_rotation else None,
+        )
+        return plan.conv, plan.acq
 
 
 class ShuffledScheduler(Scheduler):
-    """8/18 随机洗牌调度（论文 [00_1]："shuffling of the sampling DACs to spread the residual interleaving tones"）。
-
-    每样本从 18 片池中随机抽 8 片转换、随后 8 片采集（两两不相交，
-    剩余 2 片为 spare）。确定性 bank 交替下，slice 间带宽/时刻失配在
-    f_S/2±f_IN 产生固定交织杂散；随机化后同一 slice 的使用间隔随机化，
-    杂散能量被打散进噪声底（定量：stage19 验收③④，带宽失配降 31 dB、
-    timing skew 降 42 dB；err RMS 略升是物理正确的——杂散换噪声底）。
-
-    继承 reserve()（固定组视角）仅供 reserve_dual 的签名兼容；
-    本类的**有效调度只在 reserve_dual**。
-    """
+    """Causal 8-of-18 acquisition selection with a dedicated random stream."""
 
     def __init__(self, cfg: Config, rng: np.random.Generator):
         """用独立随机源构造随机洗牌调度器。
@@ -177,7 +114,7 @@ class ShuffledScheduler(Scheduler):
         self.rng = rng
 
     def reserve_dual(self, n_samples: int, rng: np.random.Generator | None = None):
-        """逐样本独立洗牌：8 转换 + 8 采集 + 2 spare。
+        """因果洗牌：上次采集组转换，空闲组中选择下次采集电容。
 
         Args:
             n_samples: 需要调度的样本数 N。
@@ -188,15 +125,8 @@ class ShuffledScheduler(Scheduler):
         性能注：纯 Python 逐样本循环，O(N·18)；2^13 样本量级足够快，
         若上 2^17 需向量化（组合数学无现成闭式，保持可读性优先）。
         """
-        g = rng or self.rng
-        n_act = self.cfg.n_active
-        conv = np.empty((n_samples, n_act), dtype=np.int64)
-        acq = np.empty((n_samples, n_act), dtype=np.int64)
-        for i in range(n_samples):
-            perm = g.permutation(self.cfg.n_slices)
-            conv[i] = np.sort(perm[:n_act])
-            acq[i] = np.sort(perm[n_act : 2 * n_act])
-        return conv, acq
+        plan = build_slice_plan(self.cfg, n_samples, rng or self.rng, "shuffle_causal")
+        return plan.conv, plan.acq
 
 
 def make_scheduler(
@@ -219,13 +149,8 @@ def make_scheduler(
     让其中一个悄悄胜出 —— 两者同时存在必然意味着调用方对"跑的是哪种调度"
     有两种说法。
 
-    接线 != 调度正确
-    ----------------
-    ``dem_mode="permute"`` 现在确实会得到 ``ShuffledScheduler``，但**洗牌
-    调度器自身的样本归属缺陷仍未闭合**：它的 conv/acq 不保证来自同一组
-    slice（见 ``tests/audit/test_review_contracts.py`` 中
-    ``xfail(strict=True)`` 的 ``TestR1SampleOwnership``）。把开关接上不等于
-    把物理问题修好，两者是独立验收项。
+    调度策略与全部 runner 共用同一因果生成器；改变 dem_mode 同时改变实际
+    转换电容集合，不能只改变一个标签。
 
     Args:
         cfg: 仿真配置；读取 ``cfg.dem_mode``（"rotate" 或 "permute"）。

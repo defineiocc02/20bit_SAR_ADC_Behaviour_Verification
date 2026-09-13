@@ -70,7 +70,7 @@ def xtalk_profile(cfg: Config, n_units: int, rng: np.random.Generator) -> np.nda
     return cfg.dyn_c_xtalk_unit * (1.0 + 0.5 * grad)
 
 
-def run_sim_split(
+def run_sim_split_reference(
     cfg: Config,
     input_fn,
     n_samples: int,
@@ -79,7 +79,7 @@ def run_sim_split(
     rng: np.random.Generator | None = None,
     scheduler: Scheduler | None = None,
 ) -> SimResult:
-    """分段 DAC（主/子 + 桥接电容）信号链仿真，返回 SimResult。
+    """Aggregate split reference model, retained for independent ideal-limit checks.
 
     与 sim.run_sim 的对偶关系：两者**下游完全复用**（RA/KTC/ADC2/重构/校准
     状态机），仅替换前端——DAC 求值（split 拓扑物理方程）与 v5 三项动态误差
@@ -296,4 +296,38 @@ def run_sim_split(
         g_vec=g_vec,
         c_active=c_noise_vec,
         calibration_applied=(),
+    )
+
+
+def run_sim_split(
+    cfg, input_fn, n_samples, chip=None, state=None, rng=None, scheduler=None, *, pool=None
+):
+    """Run the physical split model, vectorizing its ideal electrical limit.
+
+    Args:
+        cfg: Split model configuration.
+        input_fn: Input voltage callable (seconds to volts).
+        n_samples: Number of output samples after explicit priming.
+        chip: Optional aggregate realization distributed over physical slices.
+        state: Frozen digital calibration state.
+        rng: Sampling/noise stream, independent of fabricated capacitor draws.
+        scheduler: Optional compatible causal scheduler.
+        pool: Existing physical array; electrical state resets for this record.
+
+    Returns:
+        SimResult from the shared physical engine. The separate
+        run_sim_split_reference retains an aggregate algebraic oracle.
+    """
+    from .pipeline_engine import execute_split
+
+    return execute_split(
+        cfg,
+        input_fn,
+        n_samples,
+        chip=chip,
+        state=state,
+        rng=rng,
+        scheduler=scheduler,
+        pool=pool,
+        runner="run_sim_split",
     )

@@ -82,3 +82,46 @@ boundaries and both discrete dither modes have independent regression coverage.
 Bridge capacitance now uses its actual nominal size in the area allocation.
 Consequently old fitted noise/area sweeps may shift slightly; this is a physical
 accounting correction and must be reflected in regenerated results.
+
+## Physical samples and scheduling
+
+`run_pipeline` and `run_sim_split` use `pipeline_engine.execute_split` and the
+same `PhysicalSlicePool`. Sharing production execution prevents divergent unit
+contracts; `run_sim_split_reference` remains an independent aggregate algebraic
+reference for the ideal electrical limit. It is not the physical 18-slice runner.
+
+The physical split candidate gives each slice a scaled main/sub network and its
+own floating subnode, bridge and parasitic. Signal charge and noise covariance
+are summed after solving each subnode; connecting all subnodes into one global
+beta would change the circuit. Counts and segmentation remain model assumptions.
+The template `result.chip` holds nominal design/shared feedback information;
+`result.pool.unit_caps`, bridge caps and selected IDs hold the actual arrays.
+Supplying an aggregate `chip` explicitly distributes that realization equally
+across slices; default fabrication independently draws the full physical pool.
+
+`timing.build_slice_plan` is the single scheduling policy. Conversion groups
+must equal the preceding acquisition groups, and conversion/acquisition may
+not overlap. Records explicitly prime their first sample over a negative-time
+acquisition interval; returned output IDs start at zero. Each independent call
+resets electrical state while preserving an injected pool's fabricated values.
+This record API does not imply seamless chunk streaming.
+
+Results expose `sample_id`, `conv_slice_ids`, `acq_slice_ids`, `held_sample`,
+`stored_charge`, `acquisition_start`, and `acquisition_error`. Noise, gain and
+DAC voltage all derive from the selected capacitors. The endpoint-settling
+approximation is still the acquisition dynamic model at this milestone; M4
+replaces it with a continuous network.
+
+`dem.split_switch_command` produces nominal row/column/subarray permutations
+and optional zero-sum cross-slice code exchanges. Integer commands produce
+real binary switch masks and invariant nominal charge, including carry
+boundaries. These are explicit realizable candidate mappings, not a claim to
+know the paper's exact undisclosed switch network. The old aggregate rotation
+test remains a historical reference; the physical path has its own coverage
+and charge-conservation checks.
+
+The unary runner also evaluates DAC charge using its actual per-sample slice
+IDs, including mask charge, instead of reusing fixed bank weights after a
+shuffle. `tests/integration/test_physical_pipeline.py` verifies locality of a
+single-capacitor perturbation, independent direct charge sums, startup and
+sample ownership, nominal DEM charge, and random-stream independence.

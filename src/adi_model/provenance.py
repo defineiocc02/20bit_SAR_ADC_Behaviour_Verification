@@ -294,6 +294,10 @@ PARAM_GRADES: dict[str, tuple[SourceGrade, str]] = {
     "adc2_v_max": (_D, "+1.10 * G0 * Delta1 (residue span with ~10% margin)"),
     # ---- DEM / dither ----------------------------------------------------
     "dem_enable": (_A, "modelling switch"),
+    "dem_bridge_enable": (
+        _A,
+        "zero-sum cross-slice code exchange; realizable candidate, not exact disclosed mask",
+    ),
     "dem_mode": (_A, "algorithm choice, not disclosed"),
     "dither_mode": (_A, "modelling switch"),
     "dither_amplitude_lsb1": (_A, "not disclosed; '2b enhancement' has no number"),

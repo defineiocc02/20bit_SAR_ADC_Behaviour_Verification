@@ -16,7 +16,9 @@ capacitance remain distinct. Fitted noise/mismatch targets are not predictions.
 from __future__ import annotations
 
 import math
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
+
+from .input_network import InputNetworkParameters
 
 K_B = 1.380_649e-23  # J/K
 TEMP_K = 300.0  # K
@@ -290,6 +292,7 @@ class Config:
     # 硬设计约束：20.5 pF @ 40MS/s 要建立到 0.1%，需 R_total ≈ 60 Ω
     # （Ts*0.45/(6.9*C)=1.6 ns）-> 采样开关必须自举。这是模型反推的规格。
     dyn_input_settling: bool = False
+    input_network: InputNetworkParameters = field(default_factory=InputNetworkParameters)
     dyn_r_source: float = 30.0  # 驱动器 + 走线串联电阻 [ohm]
     dyn_r_on: float = 20.0  # 采样开关导通电阻 [ohm]（自举开关量级）
     dyn_t_sample_frac: float = 0.45  # 采样相时长 / Ts
@@ -976,6 +979,16 @@ class Config:
             list[str]: 每条是一句可读的违规说明；空列表表示合法。
         """
         bad: list[str] = []
+        bad.extend(self.input_network.violations())
+        if self.dyn_input_settling:
+            if not math.isfinite(self.dyn_r_source) or self.dyn_r_source < 0:
+                bad.append("dyn_r_source must be finite and nonnegative [ohm]")
+            if not math.isfinite(self.dyn_r_on) or self.dyn_r_on <= 0:
+                bad.append("dyn_r_on must be finite and positive [ohm]")
+            if not 0 < self.dyn_t_sample_frac <= 1:
+                bad.append("dyn_t_sample_frac must be in (0, 1]")
+            if not math.isfinite(self.dyn_ron_code_coeff) or self.dyn_ron_code_coeff < 0:
+                bad.append("dyn_ron_code_coeff must be finite and nonnegative")
         for field_name, allowed in LEGAL_VALUES.items():
             actual = getattr(self, field_name)
             if actual not in allowed:
@@ -1333,9 +1346,33 @@ class Config:
 
         Returns:
             dict: 键为字段名（str），值为字段值，单位同各字段定义。
-            等价于 dataclasses.asdict，不递归转换嵌套对象。
+            Nested parameter dataclasses are recursively converted to dictionaries.
         """
         return asdict(self)
+
+    @classmethod
+    def from_dict(cls, values: dict) -> Config:
+        """Load a configuration exported by to_dict, including a JSON round trip.
+
+        Args:
+            values: Field names and SI values; unknown fields are rejected.
+
+        Returns:
+            A validated independent configuration with typed nested controls.
+
+        Raises:
+            TypeError: Unknown fields or malformed nested parameters.
+            ConfigError: Invalid physical settings.
+        """
+        params = dict(values)
+        if isinstance(params.get("input_network"), dict):
+            params["input_network"] = InputNetworkParameters(**params["input_network"])
+        for name in ("mismatch_split", "mismatch_gradient"):
+            if name in params:
+                params[name] = tuple(params[name])
+        cfg = cls(**params)
+        cfg.check_legal()
+        return cfg
 
 
 def noise_budget(cfg: Config) -> dict:

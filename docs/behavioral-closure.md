@@ -3,6 +3,10 @@
 This document describes the implementation following the September 2026 review.
 The live requirements/evidence ledger is `IMPLEMENTATION_CHECKPOINT.md`.
 
+Continuous input tracking, state/units and independent verification are specified
+in [ADR 0008](adr/0008-continuous-input-network.md). Use `Config.from_dict` to
+reload exported JSON configurations with typed nested parameter groups.
+
 ## Shared parameter and charge contracts
 
 All SADC constructors accept **nominal** thresholds. Offset, gain mismatch and
@@ -108,9 +112,9 @@ This record API does not imply seamless chunk streaming.
 
 Results expose `sample_id`, `conv_slice_ids`, `acq_slice_ids`, `held_sample`,
 `stored_charge`, `acquisition_start`, and `acquisition_error`. Noise, gain and
-DAC voltage all derive from the selected capacitors. The endpoint-settling
-approximation is still the acquisition dynamic model at this milestone; M4
-replaces it with a continuous network.
+DAC voltage all derive from the selected capacitors. Continuous acquisition is
+described below; the aggregate reference retains its historical dynamics only
+for comparison.
 
 `dem.split_switch_command` produces nominal row/column/subarray permutations
 and optional zero-sum cross-slice code exchanges. Integer commands produce

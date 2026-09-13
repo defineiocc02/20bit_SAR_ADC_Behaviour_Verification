@@ -1759,6 +1759,9 @@ def stage12_split_arch(c0: Config, n: int = 2**14) -> dict:
 
     cc_id = _clone(
         c0,
+        sadc_offset=0.0,
+        sadc_rdac_gain_mismatch=0.0,
+        sadc_mismatch_enable=False,
         dac_arch="split",
         dac_n_main=64,
         dac_n_sub=8,

@@ -280,15 +280,18 @@ class AnalyticInput:
     falls back to the spectral estimate when ``.derivative`` is absent.
     """
 
-    def __init__(self, fn, derivative):
+    def __init__(self, fn, derivative, *, harmonics=None):
         """绑定波形与其解析导数。
 
         Args:
             fn:         ``t -> x(t)`` 波形，[V]。
             derivative: ``t -> dx/dt``，[V/s]，须与 ``fn`` 精确对应。
+            harmonics: Optional (Hz, complex V) real-phasor terms for exact
+                continuous RC integration; not inferred from sampled data.
         """
         self._fn = fn
         self.derivative = derivative
+        self.harmonics = harmonics
 
     def __call__(self, t):
         """在时刻 ``t`` 求波形值（标量或数组均可）。
@@ -315,6 +318,7 @@ def dc_input(level: float) -> AnalyticInput:
     return AnalyticInput(
         lambda t: np.full_like(np.asarray(t, dtype=float), level),
         lambda t: np.zeros_like(np.asarray(t, dtype=float)),
+        harmonics=((0.0, complex(level)),),
     )
 
 
@@ -335,6 +339,7 @@ def sine_input(amp: float, fin: float, phase: float = 0.0) -> AnalyticInput:
     return AnalyticInput(
         lambda t: amp * np.sin(2 * np.pi * fin * np.asarray(t) + phase),
         lambda t: 2 * np.pi * fin * amp * np.cos(2 * np.pi * fin * np.asarray(t) + phase),
+        harmonics=((float(fin), -1j * amp * np.exp(1j * phase)),),
     )
 
 

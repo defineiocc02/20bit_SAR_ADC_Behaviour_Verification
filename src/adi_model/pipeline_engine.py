@@ -15,6 +15,7 @@ from .adc2 import ADC2
 from .config import Config, ConfigError
 from .dac_arch import SplitDAC
 from .dynamics import apply_dynamics
+from .input_network import OffsetWaveform, PassiveTrackingNetwork, track_interval
 from .ktc import KTCBranch
 from .mapper import dem_state_sequence, dither_transfer_code, make_dither_state
 from .ra import ResidueAmplifier
@@ -135,6 +136,9 @@ def execute_split(
         cfg.dyn_input_settling or cfg.slice_timing_skew_s > 0 or cfg.slice_offset_sigma_v > 0
     )
     coarse = sadc.convert(sample.x_sadc)
+    acquisition_voltage = None
+    source_charge = None
+    bus_voltage = None
     if active_dynamics:
         slope = (
             derivative_fn(input_fn, sample.t1)
@@ -142,34 +146,70 @@ def execute_split(
             else np.zeros(n_samples)
         )
         tacq = cfg.dyn_t_sample_frac / cfg.fs
+        acquisition_voltage = np.empty((n_samples, cfg.n_active))
+        source_charge = np.zeros(n_samples)
+        bus_voltage = np.zeros(n_samples)
+        bus = 0.0
+        has_bus = cfg.input_network.filter_cap_f > 0 and cfg.dyn_r_source > 0
+        idle_network = (
+            PassiveTrackingNetwork([cfg.input_network.filter_cap_f], [cfg.dyn_r_source], 0)
+            if has_bus
+            else None
+        )
         for n, ids in enumerate(conv):
             # This acquisition belongs to the group converting sample n; it
             # spans the preceding clock interval, including the explicit prime.
-            target = sample.x1[n] + pool.v_os[ids] + pool.t_skew[ids] * slope[n]
+            source_fn = (
+                OffsetWaveform(input_fn, sample.dither[n])
+                if cfg.dither_mode == "analog"
+                else input_fn
+            )
+            source_endpoint = float(source_fn(sample.t1[n]))
+            perturbation = pool.v_os[ids] + pool.t_skew[ids] * slope[n]
             if cfg.dyn_input_settling:
-                tau = (
-                    cfg.dyn_r_source * c_load[n] + cfg.dyn_r_on * coeff["load_slice"][n]
-                ) * pool.tau_rel[ids]
-                tau *= 1 + cfg.dyn_ron_code_coeff * (sample.x1[n] / cfg.v_fs) ** 2
-                if np.any(tau <= 0):
-                    raise ConfigError("physical sampling time constants must be positive")
-                values = target - np.exp(-tacq / tau) * (target - pool.v_top[ids])
+                t1, t0 = sample.t1[n], sample.t1[n] - tacq
+                if idle_network is not None and n > 0 and cfg.dyn_t_sample_frac < 1:
+                    bus = float(idle_network.advance([bus], sample.t1[n - 1], t0, input_fn)[0])
+                previous = np.r_[pool.v_top[ids], pool.v_top_q[n % 2]]
+                if has_bus:
+                    previous = np.r_[previous, bus]
+                voltages, source_charge[n] = track_interval(
+                    np.r_[coeff["load_slice"][n], cfg.c_sadc],
+                    cfg.dyn_r_on * np.r_[pool.tau_rel[ids], 1.0],
+                    cfg.dyn_r_source,
+                    previous,
+                    t0,
+                    t1,
+                    source_fn,
+                    parameters=cfg.input_network,
+                    ron_coefficient=cfg.dyn_ron_code_coeff,
+                    voltage_scale=cfg.v_fs,
+                )
+                values = voltages[: cfg.n_active] + perturbation
+                e_sadc[n] = voltages[cfg.n_active] - source_endpoint
+                pool.v_top_q[n % 2] = voltages[cfg.n_active]
+                coarse[n] = sadc.convert(np.array([sample.x_sadc[n] + e_sadc[n]]))[0]
+                if has_bus:
+                    bus = float(voltages[-1])
+                elif cfg.dyn_r_source > 0:
+                    ron = cfg.dyn_r_on * np.r_[pool.tau_rel[ids], 1.0]
+                    ron *= 1 + cfg.dyn_ron_code_coeff * (source_endpoint / cfg.v_fs) ** 2
+                    bus = float(
+                        (source_endpoint / cfg.dyn_r_source + np.sum(voltages / ron))
+                        / (1 / cfg.dyn_r_source + np.sum(1 / ron))
+                    )
+                else:
+                    bus = source_endpoint
+                bus_voltage[n] = bus
             else:
-                values = target
+                values = source_endpoint + perturbation
+            acquisition_voltage[n] = values
             pool.v_top[ids] = values
             pool.held_valid[ids] = True
             pool.held_sample[ids] = n
             if not np.all(pool.held_sample[ids] == n):
                 raise RuntimeError("conversion does not own its sampled charge")
-            e_input[n] = np.dot(coeff["signal_slice"][n], values - sample.x1[n]) / c_sig[n]
-            # Quantizer aperture is distinct. Input dynamic matching is refined
-            # by the continuous-network model; no other group's held value is used.
-            if cfg.dyn_input_settling:
-                tau_q = cfg.dyn_r_source * c_load[n] + cfg.dyn_r_on * cfg.c_sadc
-                eps_q = np.exp(-tacq / tau_q) if tau_q > 0 else 0.0
-                e_sadc[n] = -eps_q * (sample.x_sadc[n] - pool.v_top_q[n % 2])
-                coarse[n] = sadc.convert(np.array([sample.x_sadc[n] + e_sadc[n]]))[0]
-                pool.v_top_q[n % 2] = sample.x_sadc[n] + e_sadc[n]
+            e_input[n] = np.dot(coeff["signal_slice"][n], values - source_endpoint) / c_sig[n]
             command = coarse[n] * units + d_code[n]
             vd = pool.split_dac_voltage(conv[n : n + 1], np.array([command]), sid[n : n + 1])[0]
             residue_n = sample.x_rdac[n] + e_input[n] - vd
@@ -254,4 +294,7 @@ def execute_split(
         stored_charge=stored * c_sig,
         acquisition_error=e_input,
         acquisition_start=sample.t1 - cfg.dyn_t_sample_frac / cfg.fs,
+        acquisition_voltage=acquisition_voltage,
+        input_source_charge_c=source_charge,
+        input_bus_voltage=bus_voltage,
     )

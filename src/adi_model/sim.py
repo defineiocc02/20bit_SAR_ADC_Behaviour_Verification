@@ -130,6 +130,9 @@ class SimResult:
     stored_charge: np.ndarray | None = None
     acquisition_error: np.ndarray | None = None
     acquisition_start: np.ndarray | None = None
+    acquisition_voltage: np.ndarray | None = None  # (N, n_active) aperture state [V]
+    input_source_charge_c: np.ndarray | None = None  # acquisition charge only [C]
+    input_bus_voltage: np.ndarray | None = None  # filter-bus aperture voltage [V]
 
     @property
     def rdac_over(self) -> np.ndarray:
@@ -162,6 +165,8 @@ class SimResult:
             inactive["c_feedback0"] = "unary-only; use split_feedback_cap_f"
         if self.cfg.dac_arch == "unary" and self.cfg.split_feedback_cap_f is not None:
             inactive["split_feedback_cap_f"] = "split-only"
+        if self.cfg.dac_arch == "unary" and self.cfg.input_network != default.input_network:
+            inactive["input_network"] = "continuous shared-source solver is split-only"
         return {
             "runner": self.runner,
             "requested": asdict(self.cfg),

@@ -332,6 +332,7 @@ PARAM_GRADES: dict[str, tuple[SourceGrade, str]] = {
     # ---- dynamics: all assumed -------------------------------------------
     "dyn_input_settling": (_A, "modelling switch"),
     "dyn_r_source": (_A, "no published number"),
+    "input_network": (_A, "passive shared-source topology and numerical integration controls"),
     "dyn_r_on": (_A, "no published number"),
     "dyn_t_sample_frac": (_A, "no published number"),
     "dyn_ron_code_coeff": (_A, "no published number"),

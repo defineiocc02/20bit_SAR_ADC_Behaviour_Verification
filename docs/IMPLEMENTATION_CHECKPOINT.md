@@ -25,7 +25,7 @@ documentation. Existing green gates alone do not close a row.
 | M3.1 | PhysicalSlicePool drives held charge, gain, noise and sample ownership in the main runner | Implemented; physical_pipeline + causal audit regressions; final sweep pending |
 | M3.2 | Causal schedule, startup, latency and independently seeded physical mismatch | Implemented; physical_pipeline + causal audit regressions; final sweep pending |
 | M3.3 | Realizable multidimensional DEM masks and correct non-pipeline scheduler behavior | Implemented; physical_pipeline + causal audit regressions; final sweep pending |
-| M4.1 | Continuous-input tracking with shared source impedance and physical slice states | Pending |
+| M4.1 | Continuous-input tracking with shared source impedance and physical slice states | Implemented; input_network KCL/AC/charge/convergence tests; ADR 0008; full-goal sweep pending |
 | M4.2 | Code-dependent signed reference charge and coarse/fine reference state | Pending |
 | M4.3 | Finite-bandwidth/slew RA, phase switching and actual ADC2 aperture in the joint chain | Pending |
 | M4.4 | Auxiliary and interleave tracking mechanisms use real state and available quantized decisions | Pending |
@@ -72,3 +72,25 @@ physical/DEM additions passed 18 dedicated tests and focused causal tests.
 Final M3/full-goal verification must use the current head, not that intermediate
 run. M4-M6 and GitHub submission remain unfinished. Continuous acquisition and
 joint RA/reference dynamics are explicitly still pending.
+
+### M3 full-sweep result and M4.1 checkpoint (2026-09-13)
+
+The M3 full sweep completed in 141.2 s and failed five gates: il_offset.PASS,
+pipeline.PASS, s12 charge closure, and two s13 Ron assumptions. No exemptions
+were added. The first-stage gain mismatch now actually acts in the ideal s12
+fixture; that fixture explicitly disables it. Interleave ensemble experiments
+previously changed only the sample RNG, which no longer redraws physical clock
+or offset mismatch; their statistical oracle needs a real chip-seed ensemble
+or conditional per-chip prediction. Historical Ron-derived limits must be
+recomputed with the continuous network. These failures remain final-acceptance
+work, not passing claims.
+
+M4.1 implements shared Rs, individual Ron/C, SADC loading, optional persistent
+filter-bus state, exact harmonic/linear-interval integration, and explicit
+nonlinear-Ron substeps. The physical pool supplies actual initial states and
+loads. New voltage/source-charge traces and JSON configuration round trips are
+available. Independent KCL/RK4, charge integration, AC and step-convergence
+checks passed. A focused input/skew/physical/provenance run passed 63 tests;
+after analog-source and JSON additions, 38 input/charge regressions passed and
+mypy passed 36 modules. No full-goal acceptance claim is made yet. Next: M4.2–4
+joint reference/RA/ADC2 dynamics and causal pretracking/auxiliary input.

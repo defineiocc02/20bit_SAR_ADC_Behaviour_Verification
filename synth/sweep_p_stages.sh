@@ -48,9 +48,17 @@ DCT="${DC_TIMEOUT:-5400}"
 if [[ -z "$FILES" ]]; then echo "sweep_p_stages.sh: FILES is required (相对本目录的源文件列表)" >&2; exit 2; fi
 if [[ ! -x ./run_synth.sh ]]; then echo "sweep_p_stages.sh: ./run_synth.sh not executable here (先同步再跑)" >&2; exit 2; fi
 
-rm -f SWEEP_DONE rc_p*.txt
+rm -f SWEEP_DONE
+# ⚠️ 这里**刻意不删 `rc_p*.txt`、也不截断 `sweep.log`**（实测踩过）：
+# 早先的写法是 `rm -f SWEEP_DONE rc_p*.txt` + `> sweep.log`。同一个目录被复用
+# 跑第二个批次时（本轮就先跑了 7/4/63，后来又跑 5），这些"跨批次"的汇总记录会被
+# **后一批擦掉** —— P=1/4/7 的 `rc_p<N>.txt` 和一个批次前的 `sweep.log` 就是这样丢的。
+# 权威证据（每点自己的 `out_p<N>/status.txt` 与 `wrapper_p<N>.log`）没丢，
+# 所以结论没受影响；但"跨批次记录随批次消失"是设计缺陷，改掉。
+# 现在：`rc_p<N>.txt` 只按点名覆盖自己；`sweep.log` 改为**追加**并带批次分隔头。
 
 {
+    echo "==================================================================="
     echo "sweep start $(date -Is) host=$(hostname) top=$TOP period=$PERIOD points='$POINTS'"
     # 口径必须写进日志：`compile`（非 ultra）与 `compile_ultra` 的面积/时序**不可直接比较**，
     # 一张表里混两种口径等于没口径。status.txt 里也逐点记 COMPILE_MODE=。
@@ -72,7 +80,7 @@ rm -f SWEEP_DONE rc_p*.txt
         echo "P_STAGES=$p rc=$rc elapsed=$((t1 - t0))s $(date -Is)"
     done
     echo "sweep end $(date -Is)"
-} > sweep.log 2>&1
+} >> sweep.log 2>&1
 
 touch SWEEP_DONE
 echo "sweep_p_stages.sh: all points done; see sweep.log / rc_p*.txt"

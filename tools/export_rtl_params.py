@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""把 ``Config`` 导出为 RTL 参数包、定点寄存器镜像与黄金激励向量（P0 交付物 2/2）。
+r"""把 ``Config`` 导出为 RTL 参数包、定点寄存器镜像与黄金激励向量（P0 交付物 2/2）。
 
 职责一句话
 ----------
@@ -40,8 +40,22 @@
 契约与不变量 / 适用域
 --------------------
 * **单一真相源**：``rtl_params.vh`` 由本脚本生成，禁止手工编辑，也禁止在 RTL 里再写一份常量表。
+* **受检产物是 ``Config`` 的纯函数**：``rtl_params.vh``、``params_<stem>.json``、
+  ``registers_<stem>.json``、``stimulus|expected_<stem>.hex`` 里**不得**出现任何 git 派生字段
+  （``revision`` / ``dirty`` / 40 位 sha / ``describe``）。
+  历史缺陷：这些字段曾被写进 ``.vh`` 头部与 ``params.json`` 的 ``meta.revision``，
+  于是**提交这个动作本身**就让门禁作废 —— HEAD 一移动，这两个产物立刻被判漂移，
+  任何 clone 到这个 commit 的人跑 ``--check`` 都红。见下一节。
+* **工作树身份单独记在 manifest 里**：``sim/vectors/export_manifest_<stem>.json`` 记
+  ``revision / describe / dirty`` 与各产物的 sha256。它**刻意不进 ``--check``** ——
+  它记的就是"运行环境"，天生每次都可能不同（见该文件的 ``why_not_checked`` 字段）。
+  产物侧只保留"由 ``Config`` 唯一决定"的内容，身份侧只做人类追溯，两边不混。
 * **可复现**：同一 ``Config`` 下载重复运行输出逐字节一致（``tests/unit/test_rtl_export.py`` 强制）。
   文件头写入载荷 SHA256，任何漂移都可 diff 出来；``--check`` 模式直接以此作为门禁。
+* **``--check`` 只归一 EOL，不放宽内容判据**：检出时 ``core.autocrlf=true`` 会把盘上文件
+  变成 CRLF，而生成器写 LF。比较前两边都做 ``\r\n -> \n`` 归一（**只**归一 EOL，其余字节照比），
+  否则门禁会因为"签出的行尾策略"而不是因为内容变化报红。数值/文本任何一处改动仍然会红
+  （``test_eol_only_differences_are_not_drift`` 双向验证）。
 * **适用域**：定点输出接口只覆盖 ``dac_arch="split"``。``unary`` 拓扑没有
   :class:`~adi_model.weight_calibration.CalibrationSpec`，此时只导出 ``.vh`` 与 ``params.json``，
   并在报告里**显式**写明寄存器镜像与激励被跳过——不静默省略。
@@ -144,6 +158,10 @@ def weakest_grade(grades: list[SourceGrade]) -> SourceGrade:
 def repo_identity(root: Path) -> dict[str, str]:
     """Return the git revision of the working tree, degrading gracefully.
 
+    **只用于 manifest**（``sim/vectors/export_manifest_<stem>.json``），绝不进受检产物：
+    这些值取决于运行环境而非 ``Config``，一旦写进 ``.vh`` / ``params.json``，
+    "提交"这个动作本身就会让 ``--check`` 失效。
+
     Args:
         root: Repository root holding ``.git``.
 
@@ -170,6 +188,54 @@ def repo_identity(root: Path) -> dict[str, str]:
     }
 
 
+MANIFEST_WHY_NOT_CHECKED = [
+    "本文件**刻意不进 --check**，也刻意不参与任何比较。",
+    "它记的是生成这些产物时的工作树身份（git revision / describe / dirty）与各产物 sha256；"
+    "这些值只取决于运行环境，与 Config 无关 —— 任何一次提交、任何未提交改动都会让它变化。",
+    "若把它纳入比较，它会在每次 commit 后立刻失效，把 --check 变成对用户恒假的门禁。"
+    "这正是原先把 revision 写进 rtl_params.vh 头部与 params.json 的 meta 的缺陷："
+    "**提交这个动作本身把门禁作废了**（HEAD 从 517bd2f 移到 384da6a 就触发了两处 DRIFT）。",
+    "现在的分工：受检产物（.vh / params_*.json / registers_*.json / stimulus|expected_*.hex）"
+    "必须是 Config 的纯函数，不得出现 revision / dirty / 40 位 sha / describe；"
+    "工作树身份只集中记在本文件里，供人追溯。",
+]
+
+
+def manifest_text(
+    stem: str,
+    *,
+    invocation: str,
+    identity: dict[str, str],
+    artifacts: dict[str, str],
+) -> str:
+    """Render the side-car manifest that records the *environment*, not the Config.
+
+    Args:
+        stem: Artifact stem (``<config>[_<dither_mode>]``).
+        invocation: Exact command line that produced the artifacts.
+        identity: Output of :func:`repo_identity`.
+        artifacts: ``{repo-relative path: file text}``; sha256 of each is recorded.
+
+    Returns:
+        JSON text. Deliberately **never** compared by ``--check`` — see
+        :data:`MANIFEST_WHY_NOT_CHECKED`.
+    """
+    return _json_text(
+        {
+            "schema_version": 1,
+            "generator": "tools/export_rtl_params.py",
+            "stem": stem,
+            "invocation": invocation,
+            "why_not_checked": MANIFEST_WHY_NOT_CHECKED,
+            "revision": identity,
+            "artifacts": {
+                path: hashlib.sha256(text.encode("utf-8")).hexdigest()
+                for path, text in sorted(artifacts.items())
+            },
+        }
+    )
+
+
 def _json_text(obj: Any) -> str:
     """Serialise deterministically, refusing NaN/Infinity per repository policy."""
     return json.dumps(obj, indent=2, sort_keys=True, ensure_ascii=False, allow_nan=False) + "\n"
@@ -183,15 +249,35 @@ def _display(path: Path, root: Path) -> str:
         return str(path)
 
 
-def _write(path: Path, text: str, *, check: bool, drift: list[str]) -> None:
-    """Write ``text`` to ``path``, or record drift when ``check`` is set."""
+def _normalize_eol(text: str) -> str:
+    r"""Collapse CRLF to LF **only**; every other byte stays as-is.
+
+    为什么需要：``core.autocrlf=true`` 的检出会把盘上的产物写成 CRLF，而生成器写 LF。
+    比较时若不归一，``--check`` 会因为"检出的行尾策略"报红，而不是因为内容变化。
+    这里**只**动 ``\\r\\n``，所以任何数值/文本改动仍然照红（见
+    ``tests/unit/test_rtl_export.py::test_eol_only_differences_are_not_drift``）。
+    注：``Path.read_text`` 的 universal newlines 当前已经做了同样的归一，
+    所以这一层是**显式**的防线 —— 若将来有人改成 ``newline=""`` 或二进制读，
+    判据不会因此被悄悄放宽。
+    """
+    return text.replace("\r\n", "\n")
+
+
+def _write(path: Path, text: str, *, check: bool, drift: list[str]) -> bool:
+    """Write ``text`` to ``path``, or record drift when ``check`` is set.
+
+    Returns:
+        ``True`` when the artifact is current (or was written), ``False`` on drift.
+    """
     if check:
         current = path.read_text(encoding="utf-8") if path.is_file() else None
-        if current != text:
+        if current is None or _normalize_eol(current) != _normalize_eol(text):
             drift.append(str(path))
-        return
+            return False
+        return True
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8", newline="\n")
+    return True
 
 
 # ----------------------------------------------------------------------
@@ -445,9 +531,13 @@ def render_verilog_header(
 ) -> str:
     """Render the ``rtl_params.vh`` text.
 
+    头部**只**写由 ``Config`` 决定的东西（config 名、定点格式、载荷 SHA256、契约指针）。
+    刻意不写 git revision / dirty：那两个值随每次提交变化，写进来会让"提交"本身把
+    ``--check`` 作废（历史缺陷，见模块 docstring 与 ``export_manifest_*.json``）。
+
     Args:
         params: Entries from :func:`rtl_localparams`.
-        meta: Header metadata (config name, revision, fixed-point format, counts).
+        meta: Header metadata (config name, fixed-point format, guard).
         payload_sha: SHA256 of the rendered parameter block, for drift detection.
 
     Returns:
@@ -470,8 +560,6 @@ def render_verilog_header(
         "// ---------------------------------------------------------------------------",
         "// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。",
         f"// config      : {meta['config']}",
-        f"// revision    : {meta['revision']['describe']} ({meta['revision']['commit']})",
-        f"// dirty tree  : {meta['revision']['dirty']}",
         f"// fixed point : W_FRAC/Q{meta['fixed_point']['weight_fraction_bits']}"
         f" W_BITS/{meta['fixed_point']['coefficient_bits']}"
         f" V_FRAC/Q{meta['fixed_point']['voltage_fraction_bits']}"
@@ -480,6 +568,8 @@ def render_verilog_header(
         f" OUT_BITS/{meta['fixed_point']['output_bits']}",
         f"// payload sha : {payload_sha}",
         "// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR）",
+        "// 本文件是 config 的纯函数：不含任何随提交变化的来源标识；",
+        "// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。",
         "// ---------------------------------------------------------------------------",
         f"`ifndef {meta['guard']}",
         f"`define {meta['guard']}",
@@ -647,7 +737,8 @@ def build(
     meta = {
         "config": cfg_name,
         "guard": "RTL_PARAMS_VH",
-        "revision": repo_identity(Path(__file__).resolve().parents[1]),
+        # 刻意不放 revision / dirty：它们取决于运行环境而非 Config，
+        # 写进受检产物会让"提交"这个动作本身把 --check 作废。见 export_manifest_*.json。
         "fixed_point": {
             "weight_fraction_bits": fmt.weight_fraction_bits,
             "coefficient_bits": fmt.coefficient_bits,
@@ -807,16 +898,34 @@ def main(argv: list[str] | None = None) -> int:
     for path, text in targets:
         _write(path, text, check=args.check, drift=drift)
 
+    # manifest 只记身份与哈希，**不在 targets 里**：它不进 --check（理由见其 why_not_checked）。
+    # 也刻意只在写模式产出：--check 必须做到零副作用，否则门禁自己会改工作树。
+    manifest_path = root / args.out_vectors / f"export_manifest_{stem}.json"
+    identity = repo_identity(root)
+    if not args.check:
+        manifest = manifest_text(
+            stem,
+            invocation=invocation,
+            identity=identity,
+            artifacts={_display(path, root).replace("\\", "/"): text for path, text in targets},
+        )
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest_path.write_text(manifest, encoding="utf-8", newline="\n")
+
     if not args.quiet:
         print(f"[export_rtl_params] config={args.config} stem={stem}")
         print(f"  rtl_params.vh payload sha256 = {built['meta']['payload_sha256']}")
         print(
-            f"  revision = {built['meta']['revision']['describe']} "
-            f"(dirty={built['meta']['revision']['dirty']})"
+            f"  worktree = {identity['describe']} ({identity['commit']}) "
+            f"dirty={identity['dirty']}  -> {_display(manifest_path, root)}"
         )
         for path, _ in targets:
             state = "DRIFT" if str(path) in drift else ("checked" if args.check else "written")
             print(f"  [{state}] {_display(path, root)}")
+        print(
+            f"  [{'skipped (--check)' if args.check else 'written'}] "
+            f"{_display(manifest_path, root)}  -- manifest 刻意不进 --check"
+        )
         for note in built["skipped"]:
             print(f"  [skipped] {note}")
         if "stimulus_summary" in built:

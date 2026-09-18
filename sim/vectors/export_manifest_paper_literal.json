@@ -1,0 +1,24 @@
+{
+  "artifacts": {
+    "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+    "sim/vectors/expected_paper_literal.hex": "2610a01e18539d8dbe0a5f3709165a54b4d36da9a1a020d6f998088107bf0554",
+    "sim/vectors/params_paper_literal.json": "6af0f5c50c81360546bcdb0b66776d25999453b78946c3d2878a778aae4d554d",
+    "sim/vectors/registers_paper_literal.json": "646f566fd904fd1a4867c03f5e68ca988459cc45f6eaa7b4252ded06a4a52ca2",
+    "sim/vectors/stimulus_paper_literal.hex": "3cb07341e4b473e94df865886d12599b12d5746da1af200ac1060446f4d3068c"
+  },
+  "generator": "tools/export_rtl_params.py",
+  "invocation": "python tools/export_rtl_params.py --config paper_literal --phases 16 --image-samples 32 --emit-stimulus 64",
+  "revision": {
+    "commit": "45d448f6cdc087892887a7586db3475ab6267d19",
+    "describe": "v8.0.0-3-g45d448f",
+    "dirty": "1"
+  },
+  "schema_version": 1,
+  "stem": "paper_literal",
+  "why_not_checked": [
+    "本文件**刻意不进 --check**，也刻意不参与任何比较。",
+    "它记的是生成这些产物时的工作树身份（git revision / describe / dirty）与各产物 sha256；这些值只取决于运行环境，与 Config 无关 —— 任何一次提交、任何未提交改动都会让它变化。",
+    "若把它纳入比较，它会在每次 commit 后立刻失效，把 --check 变成对用户恒假的门禁。这正是原先把 revision 写进 rtl_params.vh 头部与 params.json 的 meta 的缺陷：**提交这个动作本身把门禁作废了**（HEAD 从 517bd2f 移到 384da6a 就触发了两处 DRIFT）。",
+    "现在的分工：受检产物（.vh / params_*.json / registers_*.json / stimulus|expected_*.hex）必须是 Config 的纯函数，不得出现 revision / dirty / 40 位 sha / describe；工作树身份只集中记在本文件里，供人追溯。"
+  ]
+}

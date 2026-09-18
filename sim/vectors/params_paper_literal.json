@@ -1532,12 +1532,7 @@
     },
     "guard": "RTL_PARAMS_VH",
     "invocation": "python tools/export_rtl_params.py --config paper_literal --phases 16 --image-samples 32 --emit-stimulus 64",
-    "payload_sha256": "39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8",
-    "revision": {
-      "commit": "517bd2f92b67fae73b6e2346bc42d88e5ee514de",
-      "describe": "v8.0.0-1-g517bd2f",
-      "dirty": "1"
-    }
+    "payload_sha256": "39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8"
   },
   "notes": [
     "dac_arch._A_MAIN/_A_SUB are deliberately not exported: they belong to the secondary physical path (dac_arch.SplitDAC nominal/physical evaluation and crosstalk ordering). The RTL switch decode must follow dem.split_switch_command, which is what slice_pool.split_dac_voltage actually calls."

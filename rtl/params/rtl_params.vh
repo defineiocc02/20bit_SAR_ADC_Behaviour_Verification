@@ -1,11 +1,11 @@
 // ---------------------------------------------------------------------------
 // rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。
 // config      : paper_literal
-// revision    : v8.0.0-1-g517bd2f (517bd2f92b67fae73b6e2346bc42d88e5ee514de)
-// dirty tree  : 1
 // fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20
 // payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8
 // 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR）
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识；
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。
 // ---------------------------------------------------------------------------
 `ifndef RTL_PARAMS_VH
 `define RTL_PARAMS_VH

@@ -236,13 +236,31 @@ def p2(exporter):
     return built["files"], built["p2_report"]
 
 
+def _lf_size(path: pathlib.Path) -> int:
+    r"""Byte count of ``path``, measured in the **generator's** convention (LF).
+
+    Why not ``path.stat().st_size`` directly: a checkout with
+    ``core.autocrlf=true`` writes CRLF, while the exporter writes LF
+    (``newline="\\n"``) and ``p2_report.json`` records LF byte counts. Comparing the
+    two directly is false on every fresh checkout, so the gate would depend on the
+    checkout's line-ending policy instead of on the artifact's content — the same
+    defect class as ``export_rtl_params.py``'s ``--check`` comparison.
+    Only ``\\r\\n`` is collapsed; every other byte is compared as-is.
+    """
+    return len(path.read_bytes().replace(b"\r\n", b"\n"))
+
+
 def test_p2_vectors_all_exist_and_stay_under_the_pre_commit_limit(p2):
-    """文件存在性 + 512 KB 预算：超限会在导出器里直接失败，这里再独立量一次。"""
+    """文件存在性 + 512 KB 预算：超限会在导出器里直接失败，这里再独立量一次。
+
+    字节口径必须与生成器一致（LF），否则这条断言只会在"刚导出过的工作树"里成立，
+    在**全新 checkout** 上恒假 —— 用户 clone 下来跑就是红的。
+    """
     files, report = p2
     for name in P2_VECTOR_FILES:
         path = VECTORS / name
         assert path.is_file(), f"{name} has not been exported"
-        size = path.stat().st_size
+        size = _lf_size(path)
         assert size < P2_LIMIT, f"{name} is {size} B, over the pre-commit 512 KB budget"
         assert report["files"][name] == size, f"{name}: report size disagrees with disk"
         assert name in files

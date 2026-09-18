@@ -22,9 +22,11 @@ by accident.
 from __future__ import annotations
 
 import functools
+import hashlib
 import importlib.util
 import json
 import pathlib
+import re
 import sys
 from dataclasses import replace
 
@@ -44,7 +46,18 @@ ARTIFACTS = {
     "stimulus": REPO / "sim" / "vectors" / "stimulus_paper_literal.hex",
     "expected": REPO / "sim" / "vectors" / "expected_paper_literal.hex",
 }
+MANIFEST = REPO / "sim" / "vectors" / "export_manifest_paper_literal.json"
 COMMITTED_STIMULUS = 64
+
+# 受检产物必须是 Config 的纯函数：任何"随提交变化"的来源标识都不许出现。
+# 历史缺陷：revision / dirty 曾被写进 .vh 头部与 params.json 的 meta，
+# 于是**提交这个动作本身**就把 --check 作废了（HEAD 一移，两处 DRIFT）。
+GIT_DERIVED_PATTERNS = {
+    "revision 字样": re.compile(r"revision", re.IGNORECASE),
+    "dirty 字样": re.compile(r"dirty", re.IGNORECASE),
+    "describe 字样": re.compile(r"describe", re.IGNORECASE),
+    "40 位 sha": re.compile(r"(?<![0-9a-f])[0-9a-f]{40}(?![0-9a-f])"),
+}
 
 
 def _load_exporter():
@@ -255,7 +268,6 @@ def test_analog_references_are_exact_and_never_in_the_verilog(exporter):
         {
             "config": "x",
             "guard": "G",
-            "revision": {"describe": "d", "commit": "c", "dirty": "0"},
             "fixed_point": {
                 "weight_fraction_bits": 30,
                 "coefficient_bits": 48,
@@ -506,3 +518,137 @@ def test_b_a_hand_edited_artifact_is_detected(exporter, tmp_path):
         assert exporter.main([*args, "--check"]) == 1, f"hand-edited {rel} was not detected"
         path.write_text(text, encoding="utf-8")
     assert exporter.main([*args, "--check"]) == 0, "restoring the artifacts should clear the drift"
+
+
+# ------------------------------------------------- 产物不得含 git 派生字段
+# 判据的来源：HEAD 从 517bd2f 移到 384da6a 时，`--check` 报出
+#   [DRIFT] rtl_params.vh / [DRIFT] params_paper_literal.json
+# 仅仅因为文件头里的 revision / dirty 变了。**提交这个动作本身把门禁作废了** ——
+# 任何人 clone 到这个 commit 再跑 --check 都会红。修法是把身份移出受检产物，
+# 下面这几条把这个不变量钉住。
+@pytest.mark.parametrize("label", ["vh", "params"])
+def test_checked_artifacts_carry_no_git_derived_fields(label):
+    """受检产物必须是 Config 的纯函数：不得出现 revision / dirty / describe / 40 位 sha。"""
+    path = ARTIFACTS[label]
+    if not path.is_file():  # pragma: no cover
+        pytest.skip(f"{path} has not been exported into this checkout")
+    text = path.read_text(encoding="utf-8")
+    for name, pattern in GIT_DERIVED_PATTERNS.items():
+        hit = pattern.search(text)
+        assert hit is None, (
+            f"{label} 含 git 派生字段（{name}）：{hit.group(0)!r} —— "
+            "这类字段随每次提交变化，写进受检产物会让 --check 对使用者恒假"
+        )
+
+
+def test_eol_only_differences_are_not_drift(exporter, tmp_path):
+    """``--check`` 只归一 EOL，不放宽内容判据。
+
+    检出时 ``core.autocrlf=true`` 会把盘上文件写成 CRLF，生成器写 LF。
+    若比较处不归一 EOL，门禁会因为"检出的行尾策略"报红 —— 那是环境问题，不是漂移。
+    这条同时验证**另一半**：任何真实内容改动仍然必须红，否则"归一化"就成了放宽判据。
+    """
+    args = [
+        "--config",
+        "paper_literal",
+        "--emit-stimulus",
+        "16",
+        "--image-samples",
+        "16",
+        "--out-rtl",
+        str(tmp_path / "rtl"),
+        "--out-vectors",
+        str(tmp_path / "vec"),
+        "--quiet",
+    ]
+    assert exporter.main(args) == 0
+    written = [
+        tmp_path / "rtl" / "rtl_params.vh",
+        tmp_path / "vec" / "params_paper_literal.json",
+        tmp_path / "vec" / "registers_paper_literal.json",
+        tmp_path / "vec" / "stimulus_paper_literal.hex",
+        tmp_path / "vec" / "expected_paper_literal.hex",
+    ]
+    for path in written:
+        assert path.read_bytes().count(b"\r\n") == 0, "生成器应当写 LF"
+
+    # (a) 全部改成 CRLF：内容没变，不许判为漂移
+    for path in written:
+        text = path.read_text(encoding="utf-8")
+        path.write_bytes(text.replace("\r\n", "\n").replace("\n", "\r\n").encode("utf-8"))
+    assert all(p.read_bytes().count(b"\r\n") > 0 for p in written)
+    assert exporter.main([*args, "--check"]) == 0, "只差行尾不该被当成漂移"
+
+    # (b) 在 CRLF 文件上改一个数值：必须红（否则归一化就把内容判据吃掉了）
+    vh = written[0]
+    vh.write_bytes(vh.read_bytes().replace(b"ACC_BITS = 8'd96", b"ACC_BITS = 8'd95"))
+    assert exporter.main([*args, "--check"]) == 1, "行尾归一化不得掩盖真实的内容漂移"
+    vh.write_bytes(vh.read_bytes().replace(b"8'd95", b"8'd96"))
+    assert exporter.main([*args, "--check"]) == 0
+
+
+def test_manifest_records_identity_and_is_not_gated(exporter, tmp_path):
+    """旁车 manifest 记身份与 sha256，但**不进** ``--check``，且 ``--check`` 零副作用。"""
+    args = [
+        "--config",
+        "paper_literal",
+        "--emit-stimulus",
+        "16",
+        "--image-samples",
+        "16",
+        "--out-rtl",
+        str(tmp_path / "rtl"),
+        "--out-vectors",
+        str(tmp_path / "vec"),
+        "--quiet",
+    ]
+    assert exporter.main(args) == 0
+    manifest = tmp_path / "vec" / "export_manifest_paper_literal.json"
+    assert manifest.is_file(), "写模式必须产出 manifest"
+    payload = json.loads(manifest.read_text(encoding="utf-8"))
+    assert set(payload) >= {"revision", "artifacts", "why_not_checked", "invocation"}
+    assert set(payload["revision"]) == {"commit", "describe", "dirty"}
+    assert any(
+        "不进 --check" in line for line in payload["why_not_checked"]
+    ), "manifest 必须写明它刻意不进 --check 的理由"
+    # 每个受检产物都要有 sha256，且是真的 64 位 hex
+    written = [
+        tmp_path / "rtl" / "rtl_params.vh",
+        tmp_path / "vec" / "params_paper_literal.json",
+        tmp_path / "vec" / "registers_paper_literal.json",
+        tmp_path / "vec" / "stimulus_paper_literal.hex",
+        tmp_path / "vec" / "expected_paper_literal.hex",
+    ]
+    by_name = {
+        pathlib.PurePosixPath(key).name: value for key, value in payload["artifacts"].items()
+    }
+    assert set(by_name) == {path.name for path in written}
+    assert all(re.fullmatch(r"[0-9a-f]{64}", v) for v in by_name.values())
+    # sha256 必须真是磁盘内容的哈希（manifest 不进 --check，所以它至少得是真的）
+    for path in written:
+        blob = path.read_bytes().replace(b"\r\n", b"\n")
+        assert hashlib.sha256(blob).hexdigest() == by_name[path.name], path.name
+
+    # (a) 改坏 manifest：--check 不许受影响（它不在门禁里）
+    original = manifest.read_text(encoding="utf-8")
+    manifest.write_text(original.replace('"schema_version": 1', '"schema_version": 999'), "utf-8")
+    assert exporter.main([*args, "--check"]) == 0, "manifest 不该进 --check"
+    # (b) 直接删掉：也不许受影响，且 --check 不许把它写回来（门禁必须零副作用）
+    manifest.unlink()
+    assert exporter.main([*args, "--check"]) == 0
+    assert not manifest.exists(), "--check 不得写任何文件（包括 manifest）"
+
+
+def test_committed_manifest_records_identity(exporter):
+    """入库的 manifest 要能被读出来，且明确声明自己不进门禁。"""
+    if not MANIFEST.is_file():  # pragma: no cover
+        pytest.skip("manifest has not been exported into this checkout")
+    payload = json.loads(MANIFEST.read_text(encoding="utf-8"))
+    assert payload["revision"]["commit"] not in ("", None)
+    assert payload["stem"] == "paper_literal"
+    assert payload["artifacts"], "manifest 必须至少记一个产物的 sha256"
+    assert all(re.fullmatch(r"[0-9a-f]{64}", v) for v in payload["artifacts"].values())
+    assert any("不进 --check" in line for line in payload["why_not_checked"])
+    # 反过来：受检产物里**不许**出现 manifest 记的那种身份（见
+    # test_checked_artifacts_carry_no_git_derived_fields）
+    assert "why_not_checked" not in ARTIFACTS["vh"].read_text(encoding="utf-8")

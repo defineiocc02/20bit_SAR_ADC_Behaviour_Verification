@@ -1,0 +1,1567 @@
+{
+  "analog_references": [
+    {
+      "exact": {
+        "den_exp": 0,
+        "float": 40000000.0,
+        "num": 40000000
+      },
+      "grade": "disclosed",
+      "grade_label": "[披露]",
+      "inputs": [
+        "fs"
+      ],
+      "name": "FS",
+      "note": "derived: weakest-input propagation (see exporter docstring)",
+      "sources": [
+        "fs: [00] abstract: 40 MS/s"
+      ],
+      "unit": "Hz"
+    },
+    {
+      "exact": {
+        "den_exp": 0,
+        "float": 3.0,
+        "num": 3
+      },
+      "grade": "derived",
+      "grade_label": "[推导]",
+      "inputs": [
+        "v_fs"
+      ],
+      "name": "V_FS",
+      "note": "derived: weakest-input propagation (see exporter docstring)",
+      "sources": [
+        "v_fs: 2.111 Vrms * sqrt(2) from NSD 8.8nV/rtHz and -167.6dBFS/Hz [00_1]"
+      ],
+      "unit": "V"
+    },
+    {
+      "exact": {
+        "den_exp": 0,
+        "float": 20.0,
+        "num": 20
+      },
+      "grade": "disclosed",
+      "grade_label": "[披露]",
+      "inputs": [
+        "n_bits_target"
+      ],
+      "name": "N_BITS_TARGET",
+      "note": "derived: weakest-input propagation (see exporter docstring)",
+      "sources": [
+        "n_bits_target: [00] abstract: 20 bit"
+      ],
+      "unit": "bit"
+    },
+    {
+      "exact": {
+        "den_exp": 19,
+        "float": 5.7220458984375e-06,
+        "num": 3
+      },
+      "grade": "derived",
+      "grade_label": "[推导]",
+      "inputs": [
+        "v_fs",
+        "n_bits_target"
+      ],
+      "name": "LSB_TARGET",
+      "note": "derived: weakest-input propagation (see exporter docstring)",
+      "sources": [
+        "v_fs: 2.111 Vrms * sqrt(2) from NSD 8.8nV/rtHz and -167.6dBFS/Hz [00_1]",
+        "n_bits_target: [00] abstract: 20 bit"
+      ],
+      "unit": "V"
+    },
+    {
+      "exact": {
+        "den_exp": 8,
+        "float": 0.01171875,
+        "num": 3
+      },
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "inputs": [
+        "v_fs",
+        "b1"
+      ],
+      "name": "DELTA1",
+      "note": "derived: weakest-input propagation (see exporter docstring)",
+      "sources": [
+        "v_fs: 2.111 Vrms * sqrt(2) from NSD 8.8nV/rtHz and -167.6dBFS/Hz [00_1]",
+        "b1: ARCHITECTURAL READING, see docs/adr/0003-stage-1-resolution.md"
+      ],
+      "unit": "V"
+    },
+    {
+      "exact": {
+        "den_exp": 8,
+        "float": 0.01171875,
+        "num": 3
+      },
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "inputs": [
+        "v_fs",
+        "dac_n_main",
+        "dac_n_sub"
+      ],
+      "name": "NOMINAL_RDAC_STEP",
+      "note": "derived: weakest-input propagation (see exporter docstring)",
+      "sources": [
+        "v_fs: 2.111 Vrms * sqrt(2) from NSD 8.8nV/rtHz and -167.6dBFS/Hz [00_1]",
+        "dac_n_main: segmentation study",
+        "dac_n_sub: segmentation study"
+      ],
+      "unit": "V"
+    },
+    {
+      "exact": {
+        "den_exp": 65,
+        "float": 0.00010986328125000002,
+        "num": 4053239664633447
+      },
+      "grade": "derived",
+      "grade_label": "[推导]",
+      "inputs": [
+        "adc2_v_min",
+        "adc2_v_max",
+        "adc2_n_bits"
+      ],
+      "name": "ADC2_STEP",
+      "note": "derived: weakest-input propagation (see exporter docstring)",
+      "sources": [
+        "adc2_v_min: -0.10 * G0 * Delta1 (residue span with ~10% margin)",
+        "adc2_v_max: +1.10 * G0 * Delta1 (residue span with ~10% margin)",
+        "adc2_n_bits: derived in Config.paper_consistent() from Delta1 and LSB20·G0"
+      ],
+      "unit": "V"
+    },
+    {
+      "exact": {
+        "den_exp": 0,
+        "float": 32.0,
+        "num": 32
+      },
+      "grade": "disclosed",
+      "grade_label": "[披露]",
+      "inputs": [
+        "g0"
+      ],
+      "name": "G0",
+      "note": "derived: weakest-input propagation (see exporter docstring)",
+      "sources": [
+        "g0: [00_1] figure annotation: G0 = 32"
+      ],
+      "unit": "1"
+    },
+    {
+      "exact": {
+        "den_exp": 0,
+        "float": 0.0,
+        "num": 0
+      },
+      "grade": "research_extension",
+      "grade_label": "[研究扩展]",
+      "inputs": [
+        "ktc_kappa",
+        "ktc_gain_n",
+        "g0"
+      ],
+      "name": "KAPPA_EFF",
+      "note": "derived: weakest-input propagation (see exporter docstring)",
+      "sources": [
+        "ktc_kappa: observer scale, free design parameter of the extension",
+        "ktc_gain_n: observer gain, free design parameter of the extension",
+        "g0: [00_1] figure annotation: G0 = 32"
+      ],
+      "unit": "1"
+    },
+    {
+      "exact": {
+        "den_exp": 0,
+        "float": 0.0,
+        "num": 0
+      },
+      "grade": "research_extension",
+      "grade_label": "[研究扩展]",
+      "inputs": [
+        "ktc_beta_error",
+        "ktc_kappa",
+        "ktc_gain_n",
+        "g0"
+      ],
+      "name": "BETA_EFF",
+      "note": "derived: weakest-input propagation (see exporter docstring)",
+      "sources": [
+        "ktc_beta_error: observer mismatch, free parameter of the extension",
+        "ktc_kappa: observer scale, free design parameter of the extension",
+        "ktc_gain_n: observer gain, free design parameter of the extension",
+        "g0: [00_1] figure annotation: G0 = 32"
+      ],
+      "unit": "1"
+    },
+    {
+      "exact": {
+        "den_exp": 0,
+        "float": 1.0,
+        "num": 1
+      },
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "inputs": [
+        "dither_mode",
+        "dither_units_range",
+        "dither_split_bank"
+      ],
+      "name": "DITHER_ALPHA",
+      "note": "derived: weakest-input propagation (see exporter docstring)",
+      "sources": [
+        "dither_mode: modelling switch",
+        "dither_units_range: not disclosed",
+        "dither_split_bank: topology choice for split DAC only"
+      ],
+      "unit": "1"
+    },
+    {
+      "exact": {
+        "den_exp": 53,
+        "float": 0.495,
+        "num": 4458563631096791
+      },
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "inputs": [
+        "ra_v_clip"
+      ],
+      "name": "RA_V_CLIP",
+      "note": "derived: weakest-input propagation (see exporter docstring)",
+      "sources": [
+        "ra_v_clip: chosen to match adc2 range; not disclosed"
+      ],
+      "unit": "V"
+    },
+    {
+      "exact": {
+        "den_exp": 87,
+        "float": 2.05e-11,
+        "num": 3172221350668787
+      },
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "inputs": [
+        "c_total0",
+        "cap_scale"
+      ],
+      "name": "C_ACTIVE_NOMINAL",
+      "note": "derived: weakest-input propagation (see exporter docstring)",
+      "sources": [
+        "c_total0: [00_1]: 20.5 pF RDAC",
+        "cap_scale: exploration knob for the capacitor-shrinking study"
+      ],
+      "unit": "F"
+    }
+  ],
+  "config_fields": {
+    "adc2_dyn_bw_ratio": {
+      "grade": "derived",
+      "grade_label": "[推导]",
+      "note": "",
+      "overridden": false,
+      "quotable": true,
+      "source": "10**(-1.3/20) from +1.3 dB [00_1] p.33-35",
+      "unit": "",
+      "value": null
+    },
+    "adc2_n_bits": {
+      "grade": "derived",
+      "grade_label": "[推导]",
+      "note": "",
+      "overridden": true,
+      "quotable": true,
+      "source": "derived in Config.paper_consistent() from Delta1 and LSB20·G0",
+      "unit": "",
+      "value": 12
+    },
+    "adc2_v_max": {
+      "grade": "derived",
+      "grade_label": "[推导]",
+      "note": "",
+      "overridden": true,
+      "quotable": true,
+      "source": "+1.10 * G0 * Delta1 (residue span with ~10% margin)",
+      "unit": "",
+      "value": 0.41250000000000003
+    },
+    "adc2_v_min": {
+      "grade": "derived",
+      "grade_label": "[推导]",
+      "note": "",
+      "overridden": true,
+      "quotable": true,
+      "source": "-0.10 * G0 * Delta1 (residue span with ~10% margin)",
+      "unit": "",
+      "value": -0.037500000000000006
+    },
+    "b1": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "ARCHITECTURAL READING, see docs/adr/0003-stage-1-resolution.md",
+      "unit": "",
+      "value": 9
+    },
+    "c_feedback0": {
+      "grade": "derived",
+      "grade_label": "[推导]",
+      "note": "",
+      "overridden": false,
+      "quotable": true,
+      "source": "c_total0 / g0",
+      "unit": "",
+      "value": 6.40625e-13
+    },
+    "c_sadc": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "quantizer slice sampling cap; not disclosed",
+      "unit": "",
+      "value": 1e-12
+    },
+    "c_total0": {
+      "grade": "disclosed",
+      "grade_label": "[披露]",
+      "note": "",
+      "overridden": false,
+      "quotable": true,
+      "source": "[00_1]: 20.5 pF RDAC",
+      "unit": "",
+      "value": 2.05e-11
+    },
+    "calibration": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "algorithm choice",
+      "unit": "",
+      "value": "none"
+    },
+    "cap_scale": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "exploration knob for the capacitor-shrinking study",
+      "unit": "",
+      "value": 1.0
+    },
+    "chi": {
+      "grade": "derived",
+      "grade_label": "[推导]",
+      "note": "",
+      "overridden": false,
+      "quotable": true,
+      "source": "2 = two independent differential halves",
+      "unit": "",
+      "value": 2.0
+    },
+    "conversion": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "joint signal-response topology, timing, bandwidth, slew and solver controls",
+      "unit": "",
+      "value": {
+        "adc2_narrow_bandwidth_hz": null,
+        "adc2_wide_bandwidth_hz": null,
+        "atol_v": 1e-11,
+        "fine_reference_tau_s": null,
+        "narrow_start_fraction": 0.65,
+        "quantizer_time_s": 7e-09,
+        "ra_bandwidth_hz": null,
+        "ra_dc_gain": null,
+        "ra_slew_v_s": null,
+        "rtol": 1e-09
+      }
+    },
+    "dac_arch": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "'unary' is a modelling simplification, not the shipped DAC",
+      "unit": "",
+      "value": "split"
+    },
+    "dac_bridge_mismatch_sigma": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 0.0001
+    },
+    "dac_complete_range": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "complete thermometer counts 0..n_main; topology candidate, not disclosed",
+      "unit": "",
+      "value": true
+    },
+    "dac_n_main": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "segmentation study",
+      "unit": "",
+      "value": 63
+    },
+    "dac_n_sub": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "segmentation study",
+      "unit": "",
+      "value": 8
+    },
+    "dac_parasitic_ratio": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 0.02
+    },
+    "dac_parasitic_spread": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 0.05
+    },
+    "dem_bridge_enable": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "zero-sum cross-slice code exchange; realizable candidate, not exact disclosed mask",
+      "unit": "",
+      "value": true
+    },
+    "dem_enable": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "modelling switch",
+      "unit": "",
+      "value": false
+    },
+    "dem_mode": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "algorithm choice, not disclosed",
+      "unit": "",
+      "value": "rotate"
+    },
+    "dither_amplitude_lsb1": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "not disclosed; '2b enhancement' has no number",
+      "unit": "",
+      "value": 2.0
+    },
+    "dither_changes_in_window": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "modelling switch",
+      "unit": "",
+      "value": false
+    },
+    "dither_discrete": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "realisability study",
+      "unit": "",
+      "value": true
+    },
+    "dither_enhancement_bits": {
+      "grade": "disclosed",
+      "grade_label": "[披露]",
+      "note": "",
+      "overridden": false,
+      "quotable": true,
+      "source": "[00]: '2b enhancement' on the RDAC side",
+      "unit": "",
+      "value": 2
+    },
+    "dither_mode": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "modelling switch",
+      "unit": "",
+      "value": "off"
+    },
+    "dither_quant_transfer": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "reading of 'transferred from quantizer to RDAC' [00]",
+      "unit": "",
+      "value": "rdac"
+    },
+    "dither_split_bank": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "topology choice for split DAC only",
+      "unit": "",
+      "value": "sub"
+    },
+    "dither_transfer_model": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "legacy grid interpretation or ideal dual-port charge model; not a disclosed topology",
+      "unit": "",
+      "value": "dual_port"
+    },
+    "dither_units_range": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "not disclosed",
+      "unit": "",
+      "value": 2.0
+    },
+    "driver_noise_rms": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "system-level study, not part of the ADC",
+      "unit": "",
+      "value": 0.0
+    },
+    "dyn_c_decouple": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 4.7e-06
+    },
+    "dyn_c_xtalk_common": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 1e-18
+    },
+    "dyn_c_xtalk_unit": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 5e-19
+    },
+    "dyn_crosstalk": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "modelling switch",
+      "unit": "",
+      "value": false
+    },
+    "dyn_input_settling": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "modelling switch",
+      "unit": "",
+      "value": false
+    },
+    "dyn_r_on": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 20.0
+    },
+    "dyn_r_source": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 30.0
+    },
+    "dyn_ref_dynamic_ratio": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 1.0
+    },
+    "dyn_ref_settling": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "modelling switch",
+      "unit": "",
+      "value": false
+    },
+    "dyn_ron_code_coeff": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 0.1
+    },
+    "dyn_t_conv_frac": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 0.4
+    },
+    "dyn_t_sample_frac": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 0.45
+    },
+    "dyn_tau_ref": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 2e-08
+    },
+    "dyn_v_digital": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 1.0
+    },
+    "enable_sampling_noise": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "modelling switch",
+      "unit": "",
+      "value": true
+    },
+    "flicker_corner_hz": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "[00_1] quotes ~40 Hz corner when enabled",
+      "unit": "",
+      "value": 0.0
+    },
+    "flicker_white_ratio": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 1.0
+    },
+    "fs": {
+      "grade": "disclosed",
+      "grade_label": "[披露]",
+      "note": "",
+      "overridden": false,
+      "quotable": true,
+      "source": "[00] abstract: 40 MS/s",
+      "unit": "",
+      "value": 40000000.0
+    },
+    "g0": {
+      "grade": "disclosed",
+      "grade_label": "[披露]",
+      "note": "",
+      "overridden": false,
+      "quotable": true,
+      "source": "[00_1] figure annotation: G0 = 32",
+      "unit": "",
+      "value": 32.0
+    },
+    "gain_error": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "default 0 = nominal",
+      "unit": "",
+      "value": 0.0
+    },
+    "input_network": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "passive shared-source topology and numerical integration controls",
+      "unit": "",
+      "value": {
+        "auxiliary_bypass": false,
+        "auxiliary_cap_f": 0.0,
+        "auxiliary_resistance_ohm": 20.0,
+        "filter_cap_f": 0.0,
+        "integration_steps": 8,
+        "pretrack_mode": "residue",
+        "pretrack_source_ohm": 50.0,
+        "pretrack_time_s": 2e-09,
+        "pretrack_weights": [
+          0.6,
+          0.3,
+          0.1
+        ]
+      }
+    },
+    "ktc_beta_error": {
+      "grade": "research_extension",
+      "grade_label": "[研究扩展]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "observer mismatch, free parameter of the extension",
+      "unit": "",
+      "value": 0.0
+    },
+    "ktc_dt_fraction": {
+      "grade": "research_extension",
+      "grade_label": "[研究扩展]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "observation window; sets the bandwidth requirement",
+      "unit": "",
+      "value": 0.00390625
+    },
+    "ktc_enable": {
+      "grade": "research_extension",
+      "grade_label": "[研究扩展]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "NOT in [00] or [09]-[14]; original research extension",
+      "unit": "",
+      "value": false
+    },
+    "ktc_gain_n": {
+      "grade": "research_extension",
+      "grade_label": "[研究扩展]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "observer gain, free design parameter of the extension",
+      "unit": "",
+      "value": 8.0
+    },
+    "ktc_kappa": {
+      "grade": "research_extension",
+      "grade_label": "[研究扩展]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "observer scale, free design parameter of the extension",
+      "unit": "",
+      "value": null
+    },
+    "ktc_noise_n": {
+      "grade": "research_extension",
+      "grade_label": "[研究扩展]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "observer self-noise; 0 = ideal observer (unrealistic)",
+      "unit": "",
+      "value": 0.0
+    },
+    "ktc_observe_bw_hz": {
+      "grade": "research_extension",
+      "grade_label": "[研究扩展]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "None = infinite bandwidth (unrealistic)",
+      "unit": "",
+      "value": null
+    },
+    "ktc_sub_obs_fraction": {
+      "grade": "research_extension",
+      "grade_label": "[研究扩展]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "observation coverage gamma of the extension",
+      "unit": "",
+      "value": 1.0
+    },
+    "mismatch_enable": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "modelling switch",
+      "unit": "",
+      "value": true
+    },
+    "mismatch_gradient": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": [
+        0.0,
+        0.0
+      ]
+    },
+    "mismatch_sigma0": {
+      "grade": "fitted",
+      "grade_label": "[拟合]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "100 ppm behavioural calibration; NOT a PDK value",
+      "unit": "",
+      "value": 0.0001
+    },
+    "mismatch_split": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "variance partition; not disclosed",
+      "unit": "",
+      "value": [
+        0.15,
+        0.35,
+        0.5
+      ]
+    },
+    "n_active": {
+      "grade": "disclosed",
+      "grade_label": "[披露]",
+      "note": "",
+      "overridden": false,
+      "quotable": true,
+      "source": "[00]: 8 converting + 8 acquiring",
+      "unit": "",
+      "value": 8
+    },
+    "n_bits_target": {
+      "grade": "disclosed",
+      "grade_label": "[披露]",
+      "note": "",
+      "overridden": false,
+      "quotable": true,
+      "source": "[00] abstract: 20 bit",
+      "unit": "",
+      "value": 20
+    },
+    "n_slices": {
+      "grade": "disclosed",
+      "grade_label": "[披露]",
+      "note": "",
+      "overridden": false,
+      "quotable": true,
+      "source": "[00]: pool of 18 sDAC",
+      "unit": "",
+      "value": 18
+    },
+    "n_unit_per_slice": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "physical segmentation assumption; DEM state bits do not fix capacitor counts",
+      "unit": "",
+      "value": 64
+    },
+    "n_units_headroom": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "dither headroom; not disclosed",
+      "unit": "",
+      "value": 0
+    },
+    "pdk_sigma_est_ppm": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "Pelgrom-style area-law estimate; not a PDK measurement",
+      "unit": "",
+      "value": 1117.0
+    },
+    "ra_autozero": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "modelling switch",
+      "unit": "",
+      "value": false
+    },
+    "ra_autozero_cost_db": {
+      "grade": "disclosed",
+      "grade_label": "[披露]",
+      "note": "",
+      "overridden": false,
+      "quotable": true,
+      "source": "[00_1] p.34-35: -1.6 dB",
+      "unit": "",
+      "value": 1.6
+    },
+    "ra_enable_noise": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "modelling switch",
+      "unit": "",
+      "value": true
+    },
+    "ra_gain_model": {
+      "grade": "derived",
+      "grade_label": "[推导]",
+      "note": "",
+      "overridden": false,
+      "quotable": true,
+      "source": "charge-consistent definition, see charge_ref.py",
+      "unit": "",
+      "value": "charge"
+    },
+    "ra_out_noise_rms": {
+      "grade": "fitted",
+      "grade_label": "[拟合]",
+      "note": "sentinel None resolved at runtime -> 0.001087642850799346",
+      "overridden": false,
+      "quotable": false,
+      "source": "None => reverse-solved from target_dr_db (ANCHOR, not prediction)",
+      "unit": "",
+      "value": null
+    },
+    "ra_v_clip": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "chosen to match adc2 range; not disclosed",
+      "unit": "",
+      "value": 0.495
+    },
+    "rdac_bitwise_bits": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "assumed equal to first-stage bits",
+      "unit": "",
+      "value": 6
+    },
+    "rdac_bitwise_loading": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "modelling switch",
+      "unit": "",
+      "value": false
+    },
+    "sadc_cap_ratio": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 0.05
+    },
+    "sadc_mismatch_enable": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "modelling switch",
+      "unit": "",
+      "value": false
+    },
+    "sadc_mismatch_sigma": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 0.0
+    },
+    "sadc_offset": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "default 0 = ideal",
+      "unit": "",
+      "value": 0.0
+    },
+    "sadc_rdac_gain_mismatch": {
+      "grade": "fitted",
+      "grade_label": "[拟合]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "set to be consistent with >11b matching [00]",
+      "unit": "",
+      "value": 0.0001
+    },
+    "sampling_tau_mismatch": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number; mechanism from [09]",
+      "unit": "",
+      "value": 0.0
+    },
+    "seed": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "reproducibility only, no physical meaning",
+      "unit": "",
+      "value": 1234
+    },
+    "slice_bw_spread": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 0.0
+    },
+    "slice_offset_sigma_v": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "no published number",
+      "unit": "",
+      "value": 0.0
+    },
+    "slice_timing_skew_s": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "[00] reports ~0.6 ps residual, but as a design outcome",
+      "unit": "",
+      "value": 0.0
+    },
+    "split_feedback_cap_f": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "explicit split feedback override [F]; None derives C_sig_nom/g0",
+      "unit": "",
+      "value": null
+    },
+    "stage1_reading": {
+      "grade": "assumed",
+      "grade_label": "[假设]",
+      "note": "",
+      "overridden": false,
+      "quotable": false,
+      "source": "architecture hypothesis label; disclosed decision count is 9b",
+      "unit": "",
+      "value": "paper_literal"
+    },
+    "target_dr_db": {
+      "grade": "disclosed",
+      "grade_label": "[披露]",
+      "note": "",
+      "overridden": false,
+      "quotable": true,
+      "source": "[00_1] low-frequency performance slide (94.6 dB DR)",
+      "unit": "",
+      "value": 94.6
+    },
+    "v_fs": {
+      "grade": "derived",
+      "grade_label": "[推导]",
+      "note": "",
+      "overridden": false,
+      "quotable": true,
+      "source": "2.111 Vrms * sqrt(2) from NSD 8.8nV/rtHz and -167.6dBFS/Hz [00_1]",
+      "unit": "",
+      "value": 3.0
+    }
+  },
+  "generator": "tools/export_rtl_params.py",
+  "grade_propagation": {
+    "order": [
+      "disclosed",
+      "derived",
+      "fitted",
+      "assumed",
+      "research_extension"
+    ],
+    "rule": "derived quantities take the weakest input grade"
+  },
+  "localparams": [
+    {
+      "grade": "derived",
+      "group": "fixed_point",
+      "name": "W_FRAC",
+      "source": "ADR 0014",
+      "value": 30,
+      "width": 6
+    },
+    {
+      "grade": "derived",
+      "group": "fixed_point",
+      "name": "W_BITS",
+      "source": "ADR 0014",
+      "value": 48,
+      "width": 7
+    },
+    {
+      "grade": "derived",
+      "group": "fixed_point",
+      "name": "V_FRAC",
+      "source": "ADR 0014",
+      "value": 32,
+      "width": 6
+    },
+    {
+      "grade": "derived",
+      "group": "fixed_point",
+      "name": "V_BITS",
+      "source": "ADR 0014",
+      "value": 64,
+      "width": 7
+    },
+    {
+      "grade": "derived",
+      "group": "fixed_point",
+      "name": "ACC_BITS",
+      "source": "ADR 0014",
+      "value": 96,
+      "width": 8
+    },
+    {
+      "grade": "derived",
+      "group": "fixed_point",
+      "name": "OUT_BITS",
+      "source": "ADR 0014",
+      "value": 20,
+      "width": 6
+    },
+    {
+      "grade": "derived",
+      "group": "array",
+      "name": "N_SLICES",
+      "source": "config.n_slices",
+      "value": 18,
+      "width": 5
+    },
+    {
+      "grade": "derived",
+      "group": "array",
+      "name": "N_ACTIVE",
+      "source": "config.n_active",
+      "value": 8,
+      "width": 4
+    },
+    {
+      "grade": "derived",
+      "group": "array",
+      "name": "N_UNIT_MAIN",
+      "source": "config.dac_n_main",
+      "value": 63,
+      "width": 7
+    },
+    {
+      "grade": "derived",
+      "group": "array",
+      "name": "N_UNIT_SUB",
+      "source": "config.dac_n_sub",
+      "value": 8,
+      "width": 5
+    },
+    {
+      "grade": "derived",
+      "group": "array",
+      "name": "N_UNIT_TOTAL",
+      "source": "dac_n_main + dac_n_sub",
+      "value": 71,
+      "width": 7
+    },
+    {
+      "grade": "derived",
+      "group": "array",
+      "name": "DAC_LEVELS",
+      "source": "config.dac_levels",
+      "value": 512,
+      "width": 10
+    },
+    {
+      "grade": "derived",
+      "group": "array",
+      "name": "DAC_COMPLETE_RANGE",
+      "source": "config",
+      "value": 1,
+      "width": 1
+    },
+    {
+      "grade": "derived",
+      "group": "grid",
+      "name": "B1",
+      "source": "config.b1",
+      "value": 9,
+      "width": 4
+    },
+    {
+      "grade": "derived",
+      "group": "grid",
+      "name": "STAGE1_LEVELS",
+      "source": "config.stage1_levels",
+      "value": 512,
+      "width": 10
+    },
+    {
+      "grade": "derived",
+      "group": "grid",
+      "name": "N_UNITS_SIG",
+      "source": "config.n_units_sig",
+      "value": 512,
+      "width": 10
+    },
+    {
+      "grade": "derived",
+      "group": "grid",
+      "name": "UNITS_PER_LSB1",
+      "source": "config.units_per_lsb1",
+      "value": 1,
+      "width": 10
+    },
+    {
+      "grade": "derived",
+      "group": "grid",
+      "name": "UNITS_PER_D1",
+      "source": "sadc",
+      "value": 1,
+      "width": 10
+    },
+    {
+      "grade": "derived",
+      "group": "grid",
+      "name": "N_UNITS_HEADROOM",
+      "source": "config",
+      "value": 0,
+      "width": 10
+    },
+    {
+      "grade": "derived",
+      "group": "grid",
+      "name": "K0",
+      "source": "mapper.encode",
+      "value": 0,
+      "width": 10
+    },
+    {
+      "grade": "derived",
+      "group": "grid",
+      "name": "ADC2_BITS",
+      "source": "config.adc2_n_bits",
+      "value": 12,
+      "width": 5
+    },
+    {
+      "grade": "derived",
+      "group": "dem",
+      "name": "DEM_STATES",
+      "source": "mapper.N_DEM_STATES",
+      "value": 512,
+      "width": 10
+    },
+    {
+      "grade": "derived",
+      "group": "dem",
+      "name": "DEM_LCG_A",
+      "source": "mapper._LCG_A",
+      "value": 2654435761,
+      "width": 32
+    },
+    {
+      "grade": "derived",
+      "group": "dem",
+      "name": "DEM_LCG_A_MOD",
+      "source": "mapper._LCG_A mod mapper.N_DEM_STATES - RTL 只需低位，勿手算",
+      "value": 433,
+      "width": 10
+    },
+    {
+      "grade": "derived",
+      "group": "dem",
+      "name": "DEM_ROT_WIDTH",
+      "source": "dem.py: ceil(sqrt(n_main))",
+      "value": 8,
+      "width": 4
+    },
+    {
+      "grade": "derived",
+      "group": "dem",
+      "name": "DEM_ROT_HEIGHT",
+      "source": "dem.py: ceil(n_main/width)",
+      "value": 8,
+      "width": 4
+    },
+    {
+      "grade": "derived",
+      "group": "dem",
+      "name": "DEM_SUB_ROLL",
+      "source": "dem.py: sub_order period",
+      "value": 8,
+      "width": 5
+    },
+    {
+      "grade": "derived",
+      "group": "dem",
+      "name": "DEM_ENABLE",
+      "source": "config.dem_enable - 复位默认值；运行时由寄存器覆盖",
+      "value": 0,
+      "width": 1
+    },
+    {
+      "grade": "derived",
+      "group": "dem",
+      "name": "DEM_BRIDGE_ENABLE",
+      "source": "config.dem_bridge_enable - 复位默认值；仅当 DEM_ENABLE 同时为 1 才生效",
+      "value": 1,
+      "width": 1
+    },
+    {
+      "grade": "derived",
+      "group": "dither",
+      "name": "DITHER_MODE",
+      "source": "0 off/1 analog/2 quantizer/3 sampling",
+      "value": 0,
+      "width": 2
+    },
+    {
+      "grade": "derived",
+      "group": "dither",
+      "name": "DITHER_UNITS_TOTAL",
+      "source": "config.dither_units_total",
+      "value": 0,
+      "width": 4
+    },
+    {
+      "grade": "derived",
+      "group": "dither",
+      "name": "DITHER_SPLIT_IS_SUB",
+      "source": "config.dither_split_bank",
+      "value": 1,
+      "width": 1
+    },
+    {
+      "grade": "derived",
+      "group": "dither",
+      "name": "DITHER_DISCRETE",
+      "source": "config.dither_discrete",
+      "value": 1,
+      "width": 1
+    },
+    {
+      "grade": "derived",
+      "group": "dither",
+      "name": "DITHER_UNITS_RANGE",
+      "source": "config.dither_units_range",
+      "value": 2,
+      "width": 4
+    },
+    {
+      "grade": "assumed",
+      "group": "rtl_choice",
+      "name": "PHASES",
+      "source": "RTL 设计选择，见计划 §4.2",
+      "value": 16,
+      "width": 6
+    }
+  ],
+  "meta": {
+    "config": "paper_literal",
+    "fixed_point": {
+      "accumulator_bits": 96,
+      "coefficient_bits": 48,
+      "output_bits": 20,
+      "voltage_bits": 64,
+      "voltage_fraction_bits": 32,
+      "weight_fraction_bits": 30
+    },
+    "guard": "RTL_PARAMS_VH",
+    "invocation": "python tools/export_rtl_params.py --config paper_literal --phases 16 --image-samples 32 --emit-stimulus 64",
+    "payload_sha256": "39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8",
+    "revision": {
+      "commit": "517bd2f92b67fae73b6e2346bc42d88e5ee514de",
+      "describe": "v8.0.0-1-g517bd2f",
+      "dirty": "1"
+    }
+  },
+  "notes": [
+    "dac_arch._A_MAIN/_A_SUB are deliberately not exported: they belong to the secondary physical path (dac_arch.SplitDAC nominal/physical evaluation and crosstalk ordering). The RTL switch decode must follow dem.split_switch_command, which is what slice_pool.split_dac_voltage actually calls."
+  ],
+  "register_probe": {
+    "adc2_max_q": 590558003,
+    "adc2_min_q": -53687091,
+    "max_weight": 67108864,
+    "offset_q": 0,
+    "record_length": 64,
+    "sum_weights": 77309411328,
+    "weights_shape": [
+      18,
+      71
+    ]
+  },
+  "schema_version": 1,
+  "skipped": [],
+  "stimulus_summary": {
+    "analog_overflow_count": 0,
+    "clipped_count": 0,
+    "integral_rdac_command": true,
+    "peak_accumulator_bits": 89,
+    "register_payload_sha256": "39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8",
+    "samples": 64
+  }
+}

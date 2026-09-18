@@ -1,0 +1,16 @@
+# synth/ 下的产物一律不进版本库
+#
+# 为什么：这些是 design-specific 的中间产物（网表、报告、日志），体积大且
+# 随时会重新生成；仓库还有 pre-commit 的 512 KB 单文件上限。
+# 需要看结果时 rerun 一次 `python synth/run_synth.py ...` 即可。
+#
+# 注意：**不要**在这里写 `*.v` 之类的宽规则 —— synth/ 下将来会有别的
+# 顶层 wrapper（.sv/.v），被 ignore 掉之后别人 clone 下来会直接缺文件。
+artifacts/
+*.rpt
+*.log
+*.ddc
+*.sdf
+*.svf
+*.db
+work/

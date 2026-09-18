@@ -156,6 +156,10 @@ ignore = [
 # docstrings wrap a sentence onto a second line.
 "tests/*" = ["D100", "D101", "D102", "D103", "D104", "D105", "D107", "D205", "D417"]
 "tools/*" = ["D100", "D103"]
+# sim/ref/ 是**自检型的参考实现**（跑一遍就打印 PASS/FAIL 与覆盖数），与 tools/ 同类：
+# 它的价值在"能不能被独立复算"，不在 pydocstyle 的 docstring 形状。
+# 只免除形状规则，D101/D102 等仍然生效。
+"sim/ref/*" = ["D100", "D103", "D417"]
 # experiments.py keeps a module-level narrative docstring style; the per-stage
 # functions are documented at length in Chinese prose rather than pydocstyle's
 # D103 shape.

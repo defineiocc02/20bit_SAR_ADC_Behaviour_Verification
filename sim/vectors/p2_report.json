@@ -1,0 +1,1006 @@
+{
+  "bank_equals_index_mod_2": true,
+  "config": "paper_literal",
+  "coverage": {
+    "p2_alloc.hex": {
+      "acq_has_no_duplicates": true,
+      "bank_equals_index_mod_2": true,
+      "cycles": 64,
+      "inv_4a_conv_equals_previous_acq": true,
+      "max_slice_index": 15
+    },
+    "p2_div.hex": {
+      "cases": 62,
+      "d_is_one": 7,
+      "divisors": [
+        1,
+        2,
+        3,
+        8192,
+        1073741824,
+        2147483648,
+        1152921504606846975
+      ],
+      "independent_judgement": "TB compares q*d <= a < (q+1)*d in >=128-bit arithmetic",
+      "negative_a": 28,
+      "zero_a": 6
+    },
+    "p2_link_expected.hex": {
+      "note": "与 p2_link_stim.hex 逐行对应；期望值来自同一次模型的 reconstruct",
+      "rows": 4096
+    },
+    "p2_link_stim.hex": {
+      "adc2_over_rows": 198,
+      "analog_flag_attribution": {
+        "both_rdac_and_adc2": 198,
+        "neither_rdac_nor_adc2": 3894,
+        "only_adc2": 0,
+        "only_ra_sat": 0,
+        "only_rdac": 4,
+        "ra_sat_without_rdac_or_adc2": 0
+      },
+      "analog_flag_columns": [
+        "rdac_over",
+        "adc2_over",
+        "ra_sat"
+      ],
+      "analog_flag_or_matches_expected": true,
+      "analog_flag_rows": 202,
+      "coarse_complete": true,
+      "coarse_distinct": 512,
+      "coarse_domain_expected": 512,
+      "coarse_high_rows": 821,
+      "coarse_low_rows": 826,
+      "coarse_max": 511,
+      "coarse_min": 0,
+      "note": "只给最外层激励（含 3 列模拟域标志）；中间量全部由 RTL 产生",
+      "ra_sat_rows": 185,
+      "rdac_over_rows": 202,
+      "rows": 4096
+    },
+    "p2_link_weights.hex": {
+      "rows": 1278
+    },
+    "p2_masks.hex": {
+      "analog_ovf_cases": 0,
+      "cases": 512,
+      "clip_high_cases": 0,
+      "clip_low_cases": 0,
+      "distinct_sids": 256,
+      "nonzero_injection_cases": 384,
+      "slice_alloc_uses_only_0_to_15": true,
+      "slice_id_max": 15,
+      "thermometer_verified": true,
+      "wave": {
+        "amplitude_frac": 0.62,
+        "tone": "137/4096"
+      }
+    },
+    "p2_oracle_spec.hex": {
+      "adc2_max_q": 8589934592,
+      "adc2_min_q": 0,
+      "adc2_n_bits": 20,
+      "identity_verified": true,
+      "model_peak_accumulator_bits": 84,
+      "operand_peaks": {
+        "denom": 64,
+        "num": 62,
+        "op1": 63,
+        "op2": 63,
+        "op3": 0,
+        "shifted": 83
+      },
+      "oracle_words": 1048576,
+      "out_count": 1048576,
+      "peak_accumulator_bits": 84,
+      "weights_q": [
+        536870912,
+        268435456,
+        268435456
+      ],
+      "weights_sum": 1073741824
+    },
+    "p2_ramp.hex": {
+      "bytes": 446375,
+      "carries": 511,
+      "distinct_words": 1533,
+      "full_grid_bytes_estimate": 14395593,
+      "full_grid_rows": 65919,
+      "inj_all_zero": true,
+      "max_word": 1046529,
+      "min_word": 2047,
+      "model_peak_accumulator_bits": 89,
+      "monotone_increments_max": 1,
+      "operand_peaks": {
+        "denom": 69,
+        "num": 67,
+        "op1": 59,
+        "op2": 68,
+        "op3": 0,
+        "shifted": 88
+      },
+      "points_per_carry": 4,
+      "rel_steps": [
+        -16,
+        -4,
+        4,
+        16
+      ],
+      "rows": 2044,
+      "wave": {
+        "carries": 511,
+        "dither": "off",
+        "grid": "-64..+64 in 1/16 LSB"
+      }
+    },
+    "p2_recon_coef.hex": {
+      "adc2_max_q": 590558003,
+      "adc2_min_q": -53687091,
+      "adc2_n_bits": 12,
+      "offset_q": 0,
+      "sources": [
+        "p2_link_expected.hex",
+        "p2_masks.hex",
+        "p2_ramp.hex"
+      ],
+      "triples_agree": true
+    },
+    "p2_sat.hex": {
+      "acc_ovf_column_present": false,
+      "cases": 48,
+      "directed_boundary_cases": 16,
+      "directed_clip_flags_reached": 8,
+      "oracle_reproduction_cases": 32,
+      "w_scale_definition": "0 = sum(W)=2**30, 1 = weights << 8 (sum(W)=2**38)"
+    },
+    "p2_scalar.hex": {
+      "adc2_n_bits_used": [
+        1,
+        2,
+        3,
+        4,
+        8,
+        12,
+        20
+      ],
+      "cases": 129,
+      "exp_ovf_set": 0,
+      "extra_column": "adc2_n_bits(2) inserted after adc2_code (frozen table omitted it)",
+      "scalar_min_gt_max_cases": 52,
+      "scalar_min_gt_max_note": "冻结要求只登记 4（ties 组里恰好 4 个负 delta）；本文件为覆盖有符号路径还额外放了负 delta 的系统性用例，故总数更大。",
+      "scalar_min_gt_max_tie_cases": 4,
+      "ties_to_even_result": {
+        "-1": 0,
+        "-3": -2,
+        "-5": -2,
+        "-7": -4,
+        "1": 0,
+        "3": 2,
+        "5": 2,
+        "7": 4
+      },
+      "ties_to_even_samples": 8
+    }
+  },
+  "coverage_audit": {
+    "p2_alloc.hex": {
+      "columns": {
+        "acq[0]": {
+          "distinct": 2,
+          "max": 8,
+          "min": 0
+        },
+        "acq[1]": {
+          "distinct": 2,
+          "max": 9,
+          "min": 1
+        },
+        "acq[2]": {
+          "distinct": 2,
+          "max": 10,
+          "min": 2
+        },
+        "acq[3]": {
+          "distinct": 2,
+          "max": 11,
+          "min": 3
+        },
+        "acq[4]": {
+          "distinct": 2,
+          "max": 12,
+          "min": 4
+        },
+        "acq[5]": {
+          "distinct": 2,
+          "max": 13,
+          "min": 5
+        },
+        "acq[6]": {
+          "distinct": 2,
+          "max": 14,
+          "min": 6
+        },
+        "acq[7]": {
+          "distinct": 2,
+          "max": 15,
+          "min": 7
+        },
+        "bank": {
+          "distinct": 2,
+          "max": 1,
+          "min": 0
+        },
+        "conv[0]": {
+          "distinct": 2,
+          "max": 8,
+          "min": 0
+        },
+        "conv[1]": {
+          "distinct": 2,
+          "max": 9,
+          "min": 1
+        },
+        "conv[2]": {
+          "distinct": 2,
+          "max": 10,
+          "min": 2
+        },
+        "conv[3]": {
+          "distinct": 2,
+          "max": 11,
+          "min": 3
+        },
+        "conv[4]": {
+          "distinct": 2,
+          "max": 12,
+          "min": 4
+        },
+        "conv[5]": {
+          "distinct": 2,
+          "max": 13,
+          "min": 5
+        },
+        "conv[6]": {
+          "distinct": 2,
+          "max": 14,
+          "min": 6
+        },
+        "conv[7]": {
+          "distinct": 2,
+          "max": 15,
+          "min": 7
+        },
+        "conv_valid": {
+          "distinct": 2,
+          "max": 1,
+          "min": 0
+        },
+        "n": {
+          "distinct": 64,
+          "max": 63,
+          "min": 0
+        }
+      },
+      "rows": 64
+    },
+    "p2_div.hex": {
+      "columns": {
+        "a": {
+          "distinct": 27,
+          "max": 4611686018427387903,
+          "min": -4611686018427387903
+        },
+        "d": {
+          "distinct": 7,
+          "max": 1152921504606846975,
+          "min": 1
+        },
+        "exp_q": {
+          "distinct": 19,
+          "max": 4611686018427387903,
+          "min": -4611686018427387903
+        }
+      },
+      "rows": 62
+    },
+    "p2_link_expected.hex": {
+      "columns": {
+        "analog_ovf": {
+          "distinct": 2,
+          "max": 1,
+          "min": 0
+        },
+        "clip_high": {
+          "distinct": 2,
+          "max": 1,
+          "min": 0
+        },
+        "clip_low": {
+          "distinct": 2,
+          "max": 1,
+          "min": 0
+        },
+        "dout": {
+          "distinct": 3888,
+          "max": 1048575,
+          "min": 0
+        }
+      },
+      "rows": 4096
+    },
+    "p2_link_stim.hex": {
+      "columns": {
+        "adc2_code": {
+          "distinct": 2349,
+          "max": 4095,
+          "min": 0
+        },
+        "adc2_over": {
+          "distinct": 2,
+          "max": 1,
+          "min": 0
+        },
+        "bank": {
+          "distinct": 2,
+          "max": 1,
+          "min": 0
+        },
+        "coarse": {
+          "distinct": 512,
+          "max": 511,
+          "min": 0
+        },
+        "dither": {
+          "distinct": 5,
+          "max": 6,
+          "min": -6
+        },
+        "inj_q": {
+          "distinct": 5,
+          "max": 134217728,
+          "min": -134217728
+        },
+        "ra_sat": {
+          "distinct": 2,
+          "max": 1,
+          "min": 0
+        },
+        "rdac_over": {
+          "distinct": 2,
+          "max": 1,
+          "min": 0
+        }
+      },
+      "rows": 4096
+    },
+    "p2_link_weights.hex": {
+      "columns": {
+        "slice": {
+          "distinct": 18,
+          "max": 17,
+          "min": 0
+        },
+        "unit": {
+          "distinct": 71,
+          "max": 70,
+          "min": 0
+        },
+        "w_q": {
+          "distinct": 2,
+          "max": 67108864,
+          "min": 8388608
+        }
+      },
+      "rows": 1278
+    },
+    "p2_masks.hex": {
+      "columns": {
+        "adc2_code": {
+          "distinct": 478,
+          "max": 3779,
+          "min": 285
+        },
+        "exp_clip_high": {
+          "distinct": 1,
+          "max": 0,
+          "min": 0
+        },
+        "exp_clip_low": {
+          "distinct": 1,
+          "max": 0,
+          "min": 0
+        },
+        "exp_word": {
+          "distinct": 512,
+          "max": 849345,
+          "min": 199227
+        },
+        "inj_q": {
+          "distinct": 5,
+          "max": 134217728,
+          "min": -134217728
+        },
+        "main_on[0]": {
+          "distinct": 450,
+          "max": 9223372036854710512,
+          "min": 3839
+        },
+        "main_on[1]": {
+          "distinct": 455,
+          "max": 9223372036854710512,
+          "min": 3839
+        },
+        "main_on[2]": {
+          "distinct": 458,
+          "max": 9223372036854710512,
+          "min": 3839
+        },
+        "main_on[3]": {
+          "distinct": 454,
+          "max": 9223372036854710512,
+          "min": 3839
+        },
+        "main_on[4]": {
+          "distinct": 457,
+          "max": 9223372036854710512,
+          "min": 3839
+        },
+        "main_on[5]": {
+          "distinct": 452,
+          "max": 9223372036854710512,
+          "min": 3839
+        },
+        "main_on[6]": {
+          "distinct": 448,
+          "max": 9223372036854710512,
+          "min": 3839
+        },
+        "main_on[7]": {
+          "distinct": 452,
+          "max": 9223372036854710512,
+          "min": 3839
+        },
+        "slice_id[0]": {
+          "distinct": 2,
+          "max": 8,
+          "min": 0
+        },
+        "slice_id[1]": {
+          "distinct": 2,
+          "max": 9,
+          "min": 1
+        },
+        "slice_id[2]": {
+          "distinct": 2,
+          "max": 10,
+          "min": 2
+        },
+        "slice_id[3]": {
+          "distinct": 2,
+          "max": 11,
+          "min": 3
+        },
+        "slice_id[4]": {
+          "distinct": 2,
+          "max": 12,
+          "min": 4
+        },
+        "slice_id[5]": {
+          "distinct": 2,
+          "max": 13,
+          "min": 5
+        },
+        "slice_id[6]": {
+          "distinct": 2,
+          "max": 14,
+          "min": 6
+        },
+        "slice_id[7]": {
+          "distinct": 2,
+          "max": 15,
+          "min": 7
+        },
+        "sub_on[0]": {
+          "distinct": 57,
+          "max": 254,
+          "min": 0
+        },
+        "sub_on[1]": {
+          "distinct": 57,
+          "max": 254,
+          "min": 0
+        },
+        "sub_on[2]": {
+          "distinct": 57,
+          "max": 254,
+          "min": 0
+        },
+        "sub_on[3]": {
+          "distinct": 57,
+          "max": 254,
+          "min": 0
+        },
+        "sub_on[4]": {
+          "distinct": 57,
+          "max": 254,
+          "min": 0
+        },
+        "sub_on[5]": {
+          "distinct": 57,
+          "max": 254,
+          "min": 0
+        },
+        "sub_on[6]": {
+          "distinct": 57,
+          "max": 254,
+          "min": 0
+        },
+        "sub_on[7]": {
+          "distinct": 57,
+          "max": 254,
+          "min": 0
+        }
+      },
+      "rows": 512
+    },
+    "p2_oracle_cfg.hex": {
+      "columns": {
+        "adc2_max_q": {
+          "distinct": 1,
+          "max": 8589934592,
+          "min": 8589934592
+        },
+        "adc2_min_q": {
+          "distinct": 1,
+          "max": 0,
+          "min": 0
+        },
+        "adc2_n_bits": {
+          "distinct": 1,
+          "max": 20,
+          "min": 20
+        },
+        "expected_identity": {
+          "distinct": 1,
+          "max": 1,
+          "min": 1
+        },
+        "offset_q": {
+          "distinct": 1,
+          "max": 0,
+          "min": 0
+        },
+        "out_count": {
+          "distinct": 1,
+          "max": 1048576,
+          "min": 1048576
+        }
+      },
+      "rows": 1
+    },
+    "p2_oracle_spec.hex": {
+      "columns": {
+        "w0": {
+          "distinct": 1,
+          "max": 536870912,
+          "min": 536870912
+        },
+        "w1": {
+          "distinct": 1,
+          "max": 268435456,
+          "min": 268435456
+        },
+        "w2": {
+          "distinct": 1,
+          "max": 268435456,
+          "min": 268435456
+        }
+      },
+      "rows": 3
+    },
+    "p2_ramp.hex": {
+      "columns": {
+        "adc2_code": {
+          "distinct": 6,
+          "max": 3754,
+          "min": 341
+        },
+        "exp_clip_high": {
+          "distinct": 1,
+          "max": 0,
+          "min": 0
+        },
+        "exp_clip_low": {
+          "distinct": 1,
+          "max": 0,
+          "min": 0
+        },
+        "exp_word": {
+          "distinct": 1533,
+          "max": 1046529,
+          "min": 2047
+        },
+        "inj_q": {
+          "distinct": 1,
+          "max": 0,
+          "min": 0
+        },
+        "main_on[0]": {
+          "distinct": 64,
+          "max": 9223372036854775807,
+          "min": 0
+        },
+        "main_on[1]": {
+          "distinct": 64,
+          "max": 9223372036854775807,
+          "min": 0
+        },
+        "main_on[2]": {
+          "distinct": 64,
+          "max": 9223372036854775807,
+          "min": 0
+        },
+        "main_on[3]": {
+          "distinct": 64,
+          "max": 9223372036854775807,
+          "min": 0
+        },
+        "main_on[4]": {
+          "distinct": 64,
+          "max": 9223372036854775807,
+          "min": 0
+        },
+        "main_on[5]": {
+          "distinct": 64,
+          "max": 9223372036854775807,
+          "min": 0
+        },
+        "main_on[6]": {
+          "distinct": 64,
+          "max": 9223372036854775807,
+          "min": 0
+        },
+        "main_on[7]": {
+          "distinct": 64,
+          "max": 9223372036854775807,
+          "min": 0
+        },
+        "rel_step": {
+          "distinct": 4,
+          "max": 16,
+          "min": -16
+        },
+        "slice_id[0]": {
+          "distinct": 2,
+          "max": 8,
+          "min": 0
+        },
+        "slice_id[1]": {
+          "distinct": 2,
+          "max": 9,
+          "min": 1
+        },
+        "slice_id[2]": {
+          "distinct": 2,
+          "max": 10,
+          "min": 2
+        },
+        "slice_id[3]": {
+          "distinct": 2,
+          "max": 11,
+          "min": 3
+        },
+        "slice_id[4]": {
+          "distinct": 2,
+          "max": 12,
+          "min": 4
+        },
+        "slice_id[5]": {
+          "distinct": 2,
+          "max": 13,
+          "min": 5
+        },
+        "slice_id[6]": {
+          "distinct": 2,
+          "max": 14,
+          "min": 6
+        },
+        "slice_id[7]": {
+          "distinct": 2,
+          "max": 15,
+          "min": 7
+        },
+        "sub_on[0]": {
+          "distinct": 8,
+          "max": 127,
+          "min": 0
+        },
+        "sub_on[1]": {
+          "distinct": 8,
+          "max": 127,
+          "min": 0
+        },
+        "sub_on[2]": {
+          "distinct": 8,
+          "max": 127,
+          "min": 0
+        },
+        "sub_on[3]": {
+          "distinct": 8,
+          "max": 127,
+          "min": 0
+        },
+        "sub_on[4]": {
+          "distinct": 8,
+          "max": 127,
+          "min": 0
+        },
+        "sub_on[5]": {
+          "distinct": 8,
+          "max": 127,
+          "min": 0
+        },
+        "sub_on[6]": {
+          "distinct": 8,
+          "max": 127,
+          "min": 0
+        },
+        "sub_on[7]": {
+          "distinct": 8,
+          "max": 127,
+          "min": 0
+        }
+      },
+      "rows": 2044
+    },
+    "p2_recon_coef.hex": {
+      "columns": {
+        "adc2_max_q": {
+          "distinct": 1,
+          "max": 590558003,
+          "min": 590558003
+        },
+        "adc2_min_q": {
+          "distinct": 1,
+          "max": -53687091,
+          "min": -53687091
+        },
+        "offset_q": {
+          "distinct": 1,
+          "max": 0,
+          "min": 0
+        }
+      },
+      "rows": 1
+    },
+    "p2_regs.json": {
+      "columns": {
+        "adc2_max_q": {
+          "distinct": 1,
+          "max": 590558003,
+          "min": 590558003
+        },
+        "adc2_min_q": {
+          "distinct": 1,
+          "max": -53687091,
+          "min": -53687091
+        },
+        "offset_q": {
+          "distinct": 1,
+          "max": 0,
+          "min": 0
+        },
+        "weights_q": {
+          "distinct": 2,
+          "max": 67108864,
+          "min": 8388608
+        }
+      },
+      "note": "JSON 寄存器镜像（不是表）；weights_q 按 18x71 展平后统计",
+      "rows": null
+    },
+    "p2_sat.hex": {
+      "columns": {
+        "adc2_code": {
+          "distinct": 16,
+          "max": 15,
+          "min": 0
+        },
+        "exp_clip_high": {
+          "distinct": 2,
+          "max": 1,
+          "min": 0
+        },
+        "exp_clip_low": {
+          "distinct": 2,
+          "max": 1,
+          "min": 0
+        },
+        "exp_word": {
+          "distinct": 31,
+          "max": 1048575,
+          "min": 0
+        },
+        "inj_q": {
+          "distinct": 19,
+          "max": 8321499137,
+          "min": -8588886016
+        },
+        "w_scale": {
+          "distinct": 2,
+          "max": 1,
+          "min": 0
+        }
+      },
+      "rows": 48
+    },
+    "p2_scalar.hex": {
+      "columns": {
+        "adc2_code": {
+          "distinct": 13,
+          "max": 1048575,
+          "min": 0
+        },
+        "adc2_max_q": {
+          "distinct": 36,
+          "max": 9223372036854775807,
+          "min": -9223372036854775808
+        },
+        "adc2_min_q": {
+          "distinct": 10,
+          "max": 9223372036854775807,
+          "min": -9223372036854775808
+        },
+        "adc2_n_bits": {
+          "distinct": 7,
+          "max": 20,
+          "min": 1
+        },
+        "exp_fine_q": {
+          "distinct": 52,
+          "max": 9223363240761753599,
+          "min": -9223363240761753600
+        },
+        "exp_ovf": {
+          "distinct": 1,
+          "max": 0,
+          "min": 0
+        },
+        "offset_q": {
+          "distinct": 4,
+          "max": 4611686018427387904,
+          "min": -1
+        }
+      },
+      "rows": 129
+    }
+  },
+  "file_rows": {
+    "p2_alloc.hex": 64,
+    "p2_div.hex": 62,
+    "p2_link_expected.hex": 4096,
+    "p2_link_stim.hex": 4096,
+    "p2_link_weights.hex": 1278,
+    "p2_masks.hex": 512,
+    "p2_oracle_cfg.hex": 1,
+    "p2_oracle_spec.hex": 3,
+    "p2_ramp.hex": 2044,
+    "p2_recon_coef.hex": 1,
+    "p2_regs.json": 1350,
+    "p2_sat.hex": 48,
+    "p2_scalar.hex": 129
+  },
+  "files": {
+    "p2_alloc.hex": 3995,
+    "p2_div.hex": 3750,
+    "p2_link_expected.hex": 49707,
+    "p2_link_stim.hex": 149106,
+    "p2_link_weights.hex": 24660,
+    "p2_masks.hex": 110670,
+    "p2_oracle_cfg.hex": 567,
+    "p2_oracle_spec.hex": 621,
+    "p2_ramp.hex": 446375,
+    "p2_recon_coef.hex": 601,
+    "p2_regs.json": 21329,
+    "p2_sat.hex": 2626,
+    "p2_scalar.hex": 11134
+  },
+  "findings": [
+    "adc2_max_q 必须是 2**33（= adc2_max_q - adc2_min_q = 2**33 与 n_bits = 20 匹配），docs/rtl/P2_INTERFACE.md §12 写的 2**25 已实测会让 dout 恒为 0；TB 请以 p2_oracle_cfg.hex 为准。",
+    "adc2_dec 的 ovf 输出在合法寄存器下**结构上不可达**：min_q/max_q ∈ [-2**63, 2**63)且 |delta| < 2**64 时 |round_even(...)| <= |delta|，故 fine_q 必落在 [-2**63, 2**63)。p2_scalar.hex 的 exp_ovf 全为 0 是**真实的结论**，不是漏测。",
+    "p2_ramp.hex 按冻结表（511x9 = 4599 行）会是 943 KB，超过 pre-commit 的 512 KB上限（掩码列 135 B/行）。处置：列不变，点数降到 4（-1, -1/4, +1/4, +1 LSB），511 个进位全覆盖。",
+    "p2_link_weights.hex 的冻结列宽 slice(1)/unit(1) 装不下 17/70，已按 2 位写，行数仍为 18x71 = 1278。",
+    "p2_scalar.hex 的冻结列里没有 adc2_n_bits，而该文件**逐行**换 n_bits（1..20），没有这一列整份向量无法判读（P_ADC2_BITS 是 elaboration 期参数）。处置：在 adc2_code 之后插入 adc2_n_bits(2)，其余 6 列顺序不变。",
+    "p2_sat.hex 整份文件固定在 adc2_n_bits = 4（复现 4 bit oracle 后端），TB 需用 P_ADC2_BITS = 4 重例化 recon_core；p2_masks/p2_ramp 用生产 ADC2_BITS（见 p2_regs.json 的 spec.adc2_n_bits）。",
+    "冻结要求 scalar_min_gt_max_cases = 4（ties 组里的 4 个负 delta）。本文件为了真的覆盖有符号路径，还放了成组的负 delta 用例，故 scalar_min_gt_max_cases 是**实测总数**；ties 组的那 4 个另记为 scalar_min_gt_max_tie_cases。",
+    "ties-to-even 的构造必须取 delta = 2x（不是 4x）：delta = 4x 时 round_even_divide(4x, 4) 是整除，余数恒为 0，一个平局都测不到；delta = 2x 才让 round_even_divide(2x, 4) == round_even_divide(x, 2)。",
+    "p2_sat.hex 的冻结列里没有 acc_ovf，表达不了“粘滞溢出 + 保持上一拍值”的反例；溢出路径必须由 TB 自己构造越界激励并按 §13 判据检查。",
+    "adc2_dec 的 n = (2c+1)*delta 在 W_MUL = 85 bit 内可能回绕（min_q = -2**63、max_q = 2**63-1、n_bits = 20 时 (2**21-1)*(2**64-1) > 2**84）；该极端组合没有对应的模型期望值，TB 不要用它做 bit-exact 比对。",
+    "p2_recon_coef.hex 是**后续补发**的需求，不在最初的冻结表里：1 行 3 列，offset_q / adc2_min_q / adc2_max_q，全部取自生产链路的同一个 FixedPointReconstructor 实例。已实测 masks / ramp / link 三份产物的三元组逐项相等（0, -53687091, 590558003），并在导出期断言，防止两份产物脱节。",
+    "p2_scalar.hex 新增了 9 行 n_bits = 12 的用例（生产位宽原本只经 p2_masks/p2_ramp/p2_link 间接覆盖）：6 行按 delta = 2**33 / min_q = 0，3 行用真实生产三元组 (0, -53687091, 590558003)。列不变。",
+    "p2_link_stim.hex / p2_link_expected.hex 的行数从冻结表的 512 变成 4096：窄化实验实测到原波形（0.8*v_fs、73/2048、512 点）的 coarse 只覆盖 [50, 462]，coarse ≈ 0 附近**没有对照值**，那里恰是桥接守卫 amount = min(1, min(code, 511-code)) 与 signs 零和交换的边界，观察到 clip_high 也只能登记。换成 A = 1.0*v_fs、f = fs*1/4096、相位 0.5、4096 点后 coarse 覆盖 512/512 个取值（实测，导出期断言）。代价是引入少量 clip / analog_ovf 行（它们就是要对照的那一段）；列定义不变，TB 的 T9 按 EOF 读行，无需改。",
+    "p2_link_stim.hex 追加了第 6/7/8 列 rdac_over(1) / adc2_over(1) / ra_sat(1)：L3 是数字-only 的，模拟链不在 TB 里，这三个模拟域标志只能由向量驱动。三列取自 result.rdac_over / adc2_over / ra_sat，导出期断言它们之或恒等于 p2_link_expected.hex 第 4 列的 analog_ovf（= weight_calibration.py:113 的 data.overflow 口径），因此 TB 能独立复核 recon_core 的 a2ovf 口径。行数与行序都没动（仍 4096 行）。"
+  ],
+  "generator": "tools/export_rtl_vectors.py",
+  "largest_file_bytes": 446375,
+  "link_checks": {
+    "adc2_code_max": 4095,
+    "analog_ovf_cases": 202,
+    "clip_high_cases": 3,
+    "clip_low_cases": 2,
+    "coarse_range": [
+      0,
+      511
+    ],
+    "distinct_adc2_codes": 2349,
+    "distinct_sids": 512,
+    "dither_range": [
+      -6,
+      6
+    ],
+    "dout_equals_adc2_code": false,
+    "max_abs_dout_minus_adc2_code": 1048255,
+    "nonzero_dither_samples": 3084,
+    "nonzero_injection_samples": 3084,
+    "note": "to_codes().code 与 adc2_code 不是同一个量（前者是最终 20 bit 字，后者是12 bit 后端码）；本链接测的是“给定最外层激励，RTL 是否给出同一条码流”。"
+  },
+  "masks_adc2_n_bits": 12,
+  "oracle_property": "2**20 全码 oracle 不落文件：输入就是循环下标本身（adc2_code = c），期望是性质 dout == adc2_code。TB 自己循环 2**20 次并逐码断言；本导出器只给出 3 个 Q30 权重（p2_oracle_spec.hex）与 min/max/offset/n_bits/out_count（p2_oracle_cfg.hex）。性质已在本机用模型跑满 2**20 个码验证通过。",
+  "peak_bits": {
+    "link": {
+      "denom": 69,
+      "num": 68,
+      "op1": 60,
+      "op2": 68,
+      "op3": 63,
+      "shifted": 89
+    },
+    "link_model_peak_accumulator_bits": 90,
+    "note": "每个数字是最坏样本上 |operand|.bit_length()。导出器用一份**测量**代码重算这 6 个受检操作数（只为位宽统计，不为期望值），并与模型自己的 CodeStream.peak_accumulator_bits 交叉核对：max(bit_length)+1 必须等于它。",
+    "oracle": {
+      "denom": 64,
+      "num": 62,
+      "op1": 63,
+      "op2": 63,
+      "op3": 0,
+      "shifted": 83
+    },
+    "oracle_model_peak_accumulator_bits": 84,
+    "ramp": {
+      "denom": 69,
+      "num": 67,
+      "op1": 59,
+      "op2": 68,
+      "op3": 0,
+      "shifted": 88
+    },
+    "ramp_model_peak_accumulator_bits": 89
+  },
+  "recon_coef_source": "FixedPointReconstructor.from_result(result) —— 即 p2_masks.hex / p2_ramp.hex / p2_link_expected.hex 背后那几个生产模型实例本身（不是按名义 Vfs 重算的）。三份产物的 (offset_q, adc2_min_q, adc2_max_q) 已实测逐项相等（0, -53687091, 590558003），不相等会在导出期直接报错。该三元组同时出现在 p2_regs.json 的同名字段里。",
+  "sat_adc2_n_bits": 4,
+  "scalar_min_gt_max_cases": 52,
+  "scalar_min_gt_max_tie_cases": 4,
+  "schema_version": 1,
+  "vector_limit_bytes": 524288,
+  "waves": {
+    "link": {
+      "amplitude_frac": 1.0,
+      "config": "Config.paper_literal(dem_enable=True, dither_mode='quantizer', dither_discrete=True)",
+      "phase": 0.5,
+      "samples": 4096,
+      "tone": "1/4096"
+    },
+    "masks": {
+      "amplitude_frac": 0.62,
+      "tone": "137/4096"
+    },
+    "oracle": {
+      "note": "无模拟链：输入就是 adc2_code 的循环下标，掩码全 0，I = 0"
+    },
+    "ramp": {
+      "carries": 511,
+      "dither": "off",
+      "grid": "-64..+64 in 1/16 LSB"
+    }
+  }
+}

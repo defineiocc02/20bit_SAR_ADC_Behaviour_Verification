@@ -1,0 +1,27 @@
+# sim/ 下的仿真中间产物一律不进版本库。
+# sim/vectors/ 是**已跟踪**的向量基准，不受这里影响。
+
+# tools/run_rtl_sim.py 的默认本地落盘目录（日志、dump 出来的 hex/vcd）
+artifacts/
+
+# VCS 编译/运行副产物（万一有人直接在仓库里跑 run_vcs.sh）
+simv
+simv.*
+csrc/
+*.daidir/
+*.vdb/
+ucli.key
+novas.*
+verdiLog/
+*.fsdb
+*.vpd
+*.vcd
+
+# 编译/运行日志
+*.log
+compile.log
+run.log
+
+# 覆盖率报告
+*.vdb
+urgReport/

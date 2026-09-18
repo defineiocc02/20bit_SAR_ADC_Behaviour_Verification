@@ -1,0 +1,71 @@
+{
+  "chain": {
+    "bridge": 1,
+    "covers_m3_sid_low": true,
+    "distinct_sids": 128,
+    "dither_mode": "quantizer",
+    "nonzero_dither_samples": 192,
+    "note": "T7 只驱动 bank/coarse/dither/bridge；sid/sid_low/count 全部由 RTL 产生",
+    "samples": 256
+  },
+  "config": "paper_literal",
+  "effective_overrides": {
+    "dem_enable": true
+  },
+  "generator": "tools/export_rtl_vectors.py",
+  "header_default_note": "rtl_params.vh 的 DEM_ENABLE 是**复位默认值**，取自 Config.paper_literal() 的 dem_enable = False；P1 向量则按 dem_enable = True 生成（DEM 关闭时全部置换退化为 恒等，覆盖不到任何东西）。两者含义不同、不是矛盾，但集成时**必须**让寄存器把 dem_en 打开，否则 RTL 会安静地退化成固定顺序。",
+  "m1": {
+    "distinct_sids": 512,
+    "first_sid_by_bank": {
+      "0": 0,
+      "1": 0
+    },
+    "per_bank_all_states_seen": true,
+    "samples": 1024
+  },
+  "m2": {
+    "bijection_verified": true,
+    "cases": 36352,
+    "main_addresses": 63,
+    "states": 512,
+    "sub_addresses": 8
+  },
+  "m3": {
+    "directed_cases": 85,
+    "exhaustive_cases": 8192,
+    "levels": 512
+  },
+  "m5": {
+    "all_sids_boundary_cases": 1024,
+    "cases": 1248,
+    "main_counts": [
+      0,
+      1,
+      2,
+      31,
+      32,
+      62,
+      63
+    ],
+    "sids": [
+      0,
+      1,
+      7,
+      8,
+      63,
+      64,
+      255,
+      511
+    ],
+    "sub_counts": [
+      0,
+      1,
+      4,
+      7
+    ],
+    "thermometer_structure_verified": true,
+    "uniform_counts_require_bridge_off": true
+  },
+  "note": "M4 has no golden vector: PCG64 is not reproducible in RTL (interface doc §0.1).",
+  "schema_version": 1
+}

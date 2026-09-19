@@ -120,6 +120,7 @@ module p2_periph_tb;
   logic [N_SLICES-1:0][N_UNIT_TOTAL-1:0][W_BITS-1:0] ws_wq;
 
   weight_store u_ws (
+      .clear_load(1'b0), .load_complete(),
       .clk (clk), .rst_n (rst_n), .cfg_ready (ws_cfg_ready),
       .wr_en (ws_wr_en), .wr_slice (ws_slice), .wr_unit (ws_unit),
       .wr_data (ws_data), .err_write (ws_err), .w_q (ws_wq)
@@ -203,6 +204,7 @@ module p2_periph_tb;
   logic        cb_dem, cb_brg, cb_smk;
 
   calib_regs #(.P_ADC2_BITS (ADC2_BITS)) u_cb (
+      .weights_ready(1'b1), .config_busy(1'b0),
       .clk (clk), .rst_n (rst_n), .wr_en (cb_wr), .sel (cb_sel),
       .data_v (cb_dv), .data_b (cb_db), .validate (cb_val), .clear_valid (cb_clr),
       .cfg_ready (cb_ready), .err_code (cb_err),
@@ -632,7 +634,7 @@ module p2_periph_tb;
     cb_reg(4'd5, '0, 1'b1);   // sampling_mask_en
     chk("T5 sel=3/4/5 分别写 dem/bridge/smask", (cb_dem === 1'b1) && (cb_brg === 1'b0) && (cb_smk === 1'b1));
 
-    // 未定义 sel（6..15）：静默忽略，不改任何寄存器
+    // 未定义 sel（6..15）：报 ERR_CFG_WRITE，不改任何寄存器
     cb_reg(4'd6,  64'sd12345, 1'b1);
     cb_reg(4'd9,  64'sd54321, 1'b1);
     cb_reg(4'd15, 64'sd99999, 1'b1);
@@ -640,6 +642,8 @@ module p2_periph_tb;
                                     (cb_max == 64'sd590558003));
     chk("T5 未定义 sel 不改控制位", (cb_dem === 1'b1) && (cb_brg === 1'b0) && (cb_smk === 1'b1));
 
+    // New load epoch requires all three scalar fields again.
+    cb_reg(4'd0, 64'sd0, 1'b0);
     // clear 优先于 validate（同拍）
     cb_reg(4'd1, -64'sd53687091, 1'b0);
     cb_reg(4'd2,  64'sd590558003, 1'b0);

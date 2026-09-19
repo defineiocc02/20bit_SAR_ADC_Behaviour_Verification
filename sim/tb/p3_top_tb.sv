@@ -854,6 +854,7 @@ module p3_top_tb;
     // ---- 观测 trace 收尾（仅在开了 `+trace` 时才有输出；未开时零副作用）----
     if (trace_en) begin
       $fflush(fd_trace);
+      if (k == ntest) $fwrite(fd_trace, "# P3_TRACE_COMPLETE rows=%0d\n", k);
       $fclose(fd_trace);
       $display("[P3-TRACE] trace 关闭：共 %0d 行 -> %s", k, trace_path);
     end

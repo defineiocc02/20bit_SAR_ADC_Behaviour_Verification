@@ -117,15 +117,25 @@ def test_expr_update_never_splits_a_wider_operator(sites):
     assert bad == []
 
 
+def _code_line(rel, needle):
+    matches = [
+        i
+        for i, line in enumerate((mrt.RTL_ROOT.parent / rel).read_text().splitlines(), 1)
+        if needle in line and not line.lstrip().startswith("//")
+    ]
+    assert len(matches) == 1
+    return matches[0]
+
+
 @pytest.mark.parametrize(
     ("rel", "line", "term", "op", "expect_line"),
     [
         (
             "rtl/core/weight_store.sv",
-            101,
-            4,
+            _code_line("rtl/core/weight_store.sv", "assign accept"),
+            5,
             "ExprDelete",
-            "  assign accept    = wr_en && (!cfg_ready) && idx_ok && w_ok;",
+            "  assign accept    = wr_en && (!clear_load) && (!cfg_ready) && idx_ok && w_ok;",
         ),
         (
             "rtl/core/status_regs.sv",
@@ -168,7 +178,9 @@ def test_injection_is_byte_faithful_outside_the_site(tmp_path):
     site = next(
         s
         for s in mrt.enumerate_sites(mrt.RTL_ROOT)
-        if s.op == "ExprDelete" and s.rel == "rtl/core/weight_store.sv" and s.line == 101
+        if s.op == "ExprDelete"
+        and s.rel == "rtl/core/weight_store.sv"
+        and s.line == _code_line("rtl/core/weight_store.sv", "assign accept")
     )
     dst = mrt.inject(sites=[site], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT)
 

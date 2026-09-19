@@ -1,11 +1,12 @@
-# 变异审计：对齐 VeriBugBench 框架（Phase 0 完成，Phase 1/2 未做）
+# 变异审计：对齐 VeriBugBench 框架（工具已实现，完整 campaign 未完成）
 
 **参照对象**：Meng et al., *VeriBugBench: An Empirically Grounded Framework for Constructing Verilog RTL Debugging Benchmarks*, arXiv:2609.18022（2026-09-16，cs.AR）。
 
 | 阶段 | 状态 |
 |:---|:---|
 | **Phase 0** 账本审计（算子映射 + 覆盖矩阵 + 保留判据复核 + 偏差声明） | **完成（本文件）** |
-| Phase 1 变异 campaign（自写注入器 + 观测 trace + 均匀抽样 + 变异分数） | **未做** |
+| Phase 1 工具（注入器、trace、比较器） | **已实现并有单元测试**；当前版本远程 VCS 两端验证待重跑 |
+| Phase 1 完整 campaign（均匀抽样、完整执行筛选、分数） | **未完成，不能报告 campaign 分数** |
 | Phase 2 数字与偏差声明入库、回链 `P2_INTERFACE.md` | **未做** |
 
 ---
@@ -137,3 +138,10 @@
 ## §7 Phase 1 结果
 
 **未做。** 本节的占位是刻意的：在注入器完成两端验证、且 TB 有 `+trace` 之前，任何"变异分数"都不能进本文件。
+
+
+## 2026-09-19 执行完整性修正
+
+调用方先检查本次新产物、允许的运行退出状态、末尾完成标记、期望 4095 行及连续索引，
+再读比较器 JSON。空/短 trace 不得进入 killed/unobserved 统计。比较器的公共前缀语义不变。
+`~offset_q` 不是结构性等价，反例与当前状态见 [复核报告](REVIEW_20260919.md)。

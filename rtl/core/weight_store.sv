@@ -26,18 +26,16 @@
 //   * **写入守卫（本模块把两条权重合法性检查做成了结构性不变量）**：
 //       1. `0 < W < 2^47`              —— 超范围的一次写被拒；
 //       2. 写入后 `Sigma W < 2^60`      —— 会使总和越界的一次写被拒。
-//     这样"存进去的权重恒合法"是**由构造保证**的，而不是靠事后检查。
-//     理由：`calib_regs` 的冻结端口表里**没有**权重输入（P2 §9 的端口逐个照抄），
-//     它无法执行"每个 W 在范围内"与"Sigma W < 2^60"这两条；而把权重引到
-//     calib_regs 又要加端口。改为在写入点守卫是唯一不动端口的落地方式。
-//     详见 sar20_digital_core.sv 模块头的"偏离登记"。
+//     写入守卫只保证已写项合法；reset 后的零和遗漏项由 written bitmap 检出。
+//     clear_load 开启新装载 epoch，保留数值但清空 bitmap；只有合法接受的写置位。
+//     load_complete 必须参与最终 validate，详见 ADR 0016。
 //   * `Sigma W` 的累加宽度取 `SUM_BITS = 64`，**与 recon_core 内部同一口径**
 //     （P2 §9 明令："两者都用 SUM_BITS = 64，并在 TB 里用同一个向量核对"）。
 //     64 位对 18*71 = 1278 个 < 2^48 的项（上界 < 2^59）余量充足。
 //   * 越界的 `wr_slice` / `wr_unit` 一律判为拒绝（不是截断或环绕）：读路径用
 //     掩蔽后的索引，避免越界读产生 X。
 //   * 复位后全 0。全 0 权重**不是**合法配置（`gain = 0` -> recon_core 报 gain_err），
-//     但存储本身允许处于该状态；合法性由写入守卫在写入点逐条保证。
+//     load_complete=0 阻止该不完整配置生效。
 //===========================================================================
 `include "rtl_params.vh"
 
@@ -48,6 +46,8 @@ module weight_store #(
     input  logic              clk,
     input  logic              rst_n,
     input  logic              cfg_ready,     // 1 = 已生效 -> **禁止写**
+    input  logic              clear_load,    // new configuration epoch; invalidate written bitmap
+    output logic              load_complete, // every physical weight written in this epoch
     input  logic              wr_en,         // 一拍脉冲
     input  logic [4:0]        wr_slice,
     input  logic [6:0]        wr_unit,
@@ -61,6 +61,9 @@ module weight_store #(
   localparam logic [W_BITS-1:0]   W_ZERO  = {W_BITS{1'b0}};
   localparam logic [W_BITS-1:0]   W_MAX   = {{(W_BITS-47){1'b0}}, 1'b1} << 47;   // 2^47
   localparam logic [SUM_BITS-1:0] SUM_MAX = {{(SUM_BITS-60){1'b0}}, 1'b1} << 60; // 2^60
+
+  logic [P_N_SLICES-1:0][P_N_UNITS-1:0] written;
+  assign load_complete = &written;
 
   logic                idx_ok;
   logic                w_ok;
@@ -98,14 +101,18 @@ module weight_store #(
   assign sum_excl = sum_all - {{(SUM_BITS - W_BITS){1'b0}}, cur_w};
   assign sum_new  = sum_excl + {{(SUM_BITS - W_BITS){1'b0}}, wr_data};
 
-  assign accept    = wr_en && (!cfg_ready) && idx_ok && w_ok && (sum_new < SUM_MAX);
+  assign accept    = wr_en && (!clear_load) && (!cfg_ready) && idx_ok && w_ok && (sum_new < SUM_MAX);
   assign err_write = wr_en && (!accept);
 
   always_ff @(posedge clk) begin
     if (!rst_n) begin
       w_q <= '0;
+      written <= '0;
+    end else if (clear_load) begin
+      written <= '0;
     end else if (accept) begin
       w_q[wr_slice][wr_unit] <= wr_data;
+      written[wr_slice][wr_unit] <= 1'b1;
     end
   end
 

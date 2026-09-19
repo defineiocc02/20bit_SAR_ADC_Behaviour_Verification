@@ -25,9 +25,10 @@
 // 契约与不变量 / 适用域
 //   * 读写窗口（P2 §9 表）：`cfg_ready = 0` 且 `wr_en` -> 写入生效；
 //     `cfg_ready = 1` 且 `wr_en` -> 写入被忽略、`err_code = ERR_CFG_WRITE`。
-//   * `validate = 1` -> 跑校验：通过则 `cfg_ready <= 1` 且 `err_code <= 0`；
+//   * validate 仅在无写入、无 config_busy、权重与三标量完整时提交（ADR 0016）。
+//     通过则 `cfg_ready <= 1` 且 `err_code <= 0`；
 //     失败则 `cfg_ready <= 0` 且 `err_code` 置为对应错误码。
-//   * `clear_valid = 1` -> `cfg_ready <= 0`（可重载）。它与 `validate` 同拍时
+//   * `clear_valid = 1` -> cfg_ready 与 scalar_written 清零（要求完整重载）。它与 `validate` 同拍时
 //     **clear 胜**（撤销优先于生效）。
 //   * **DEM 陷阱（P1 §0.2）**：`DEM_ENABLE`（头文件）是**复位默认值 0**，而
 //     `DEM_BRIDGE_ENABLE` 是 1。看起来"桥接开着"，实际 DEM 不工作。这是**故意的**：
@@ -54,6 +55,8 @@ module calib_regs #(
                                                    // 3 dem_en / 4 bridge_en / 5 sampling_mask_en
     input  logic signed [V_BITS-1:0]  data_v,       // sel <= 2 用
     input  logic                      data_b,       // sel >= 3 用
+    input  logic                      weights_ready, // all weights written in this load epoch
+    input  logic                      config_busy,   // top-level write/serialization/in-flight work
     input  logic                      validate,     // 一拍脉冲：跑合法性校验
     input  logic                      clear_valid,  // 一拍脉冲：撤销 cfg_ready
     output logic                      cfg_ready,
@@ -72,10 +75,12 @@ module calib_regs #(
   localparam logic [31:0] ERR_NONE        = 32'd0;
   localparam logic [31:0] ERR_W_RANGE     = 32'd1;   // 由 weight_store 在写入点守卫
   localparam logic [31:0] ERR_W_SUM       = 32'd2;   // 由 weight_store 在写入点守卫
-  localparam logic [31:0] ERR_RANGE_EMPTY = 32'd3;   // 本模块唯一可触发的检查
+  localparam logic [31:0] ERR_RANGE_EMPTY = 32'd3;   // 非空范围检查
   localparam logic [31:0] ERR_V_RANGE     = 32'd4;   // 类型系统保证，见模块头
   localparam logic [31:0] ERR_CFG_WRITE   = 32'd5;   // cfg_ready=1 时的写被拒
 
+  localparam logic [31:0] ERR_INCOMPLETE = 32'd6;
+  logic [2:0] scalar_written;
   logic signed [V_BITS-1:0] off_r, min_r, max_r;
   logic                     dem_r, brg_r, smk_r;
 
@@ -96,40 +101,42 @@ module calib_regs #(
       smk_r     <= 1'b0;                   // dither_mode != "sampling"（DITHER_MODE = 0）
       cfg_ready <= 1'b0;
       err_code  <= ERR_NONE;
+      scalar_written <= 3'b000;
     end else begin
-      // ---- 撤销优先于生效 ----
+      // An epoch starts at reset/clear. Commit and writes are mutually
+      // exclusive; never validate old values and accept new ones on one edge.
       if (clear_valid) begin
         cfg_ready <= 1'b0;
+        scalar_written <= 3'b000;
+        err_code <= ERR_NONE;
       end else if (validate) begin
-        // 唯一可执行的运行时校验：空量程。
-        // 宽度/符号都显式 $signed，避免"混进一个无符号操作数就整条按无符号算"
-        // （P1 §8.2 的 RTL-3）。
-        if ($signed(min_r) < $signed(max_r)) begin
-          cfg_ready <= 1'b1;
-          err_code  <= ERR_NONE;
-        end else begin
+        if (wr_en || config_busy) begin
+          err_code <= ERR_CFG_WRITE; // reject commit, preserve active config
+        end else if (!($signed(min_r) < $signed(max_r))) begin
           cfg_ready <= 1'b0;
-          err_code  <= ERR_RANGE_EMPTY;
+          err_code <= ERR_RANGE_EMPTY;
+        end else if (!weights_ready || !(&scalar_written)) begin
+          cfg_ready <= 1'b0;
+          err_code <= ERR_INCOMPLETE;
+        end else begin
+          cfg_ready <= 1'b1;
+          err_code <= ERR_NONE;
         end
-      end
-
-      // ---- 写窗口：只在未生效期接受 ----
-      if (wr_en) begin
+      end else if (wr_en) begin
         if (cfg_ready) begin
-          err_code <= ERR_CFG_WRITE;       // 写被拒（数据保持不变）
+          err_code <= ERR_CFG_WRITE;
         end else begin
           case (sel)
-            4'd0:    off_r <= data_v;
-            4'd1:    min_r <= data_v;
-            4'd2:    max_r <= data_v;
-            4'd3:    dem_r <= data_b;
-            4'd4:    brg_r <= data_b;
-            4'd5:    smk_r <= data_b;
-            default: ;                     // 未定义选择：静默忽略（不改变任何寄存器）
+            4'd0: begin off_r <= data_v; scalar_written[0] <= 1'b1; end
+            4'd1: begin min_r <= data_v; scalar_written[1] <= 1'b1; end
+            4'd2: begin max_r <= data_v; scalar_written[2] <= 1'b1; end
+            4'd3: dem_r <= data_b;
+            4'd4: brg_r <= data_b;
+            4'd5: smk_r <= data_b;
+            default: err_code <= ERR_CFG_WRITE;
           endcase
         end
       end
     end
   end
-
 endmodule

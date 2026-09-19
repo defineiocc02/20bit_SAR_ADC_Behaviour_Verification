@@ -49,12 +49,9 @@
 //       落地方式，代价是 9 个触发器。
 //   D5. `dither_gen` 的码经 `dith_q` 按 `valid` 门控寄存：被拒采样（valid=0）的
 //       那一拍不更新。否则 swap_decode 会拿到一个已被丢弃的码（P1 §4 的约定）。
-//   D6. 权重合法性（`0 < W < 2^47`、`Sigma W < 2^60`）在 `weight_store` 的**写入点**
-//       守卫，而不是在 `calib_regs.validate`。原因：calib_regs 的冻结端口表没有权重
-//       输入，无法执行这两条；引权重进去要加端口，违反"端口逐个照抄"。
-//       连带后果：calib_regs 的 `ERR_W_RANGE` / `ERR_W_SUM` 永不触发，而
-//       weight_store 的 `err_write` 会在这两种情形下拉高；本模块按可观测原因把它
-//       映射成对应错误码，使错误码仍可区分。
+//   D6. ADR 0016 扩展内部配置接口：weight_store 在写入点检查数值，written
+//       bitmap 表示全部权重已装载；calib_regs 仅在三标量也完整且配置空闲时提交。
+//       总线拒绝、校验错误与权重拒绝按下面 merged_err 的顺序送入状态寄存器。
 //   D7. `ERR_*` 常量在本文件与 calib_regs.sv 各有一份同值副本 —— 没有可共用的
 //       头文件（rtl/params/ 是生成物，禁止手工追加）。改一处必须改另一处。
 //   D8. `sadc_enc` **不**在本核内实例化，粗码直接取顶层输入 `sadc_code`。
@@ -173,11 +170,30 @@ module sar20_digital_core (
 
   // ---- 权重窗口寄存器 ----
   logic [4:0] cur_slice;
+  logic cfg_bus_ok, cfg_addr_valid, cfg_bus_reject, bad_weight_width;
+  logic [31:0] bus_err;
+  logic weights_ready;
+  logic rc_busy;
+
+  assign cfg_addr_valid = (is_weight && cfg_addr[11:10] == 0 && cfg_addr[2:0] == 0
+                           && dw_unit < 7'(N_UNIT_TOTAL))
+                         || is_off || is_min || is_max || is_ctrl
+                         || (is_win && cfg_addr[7:0] == 0 && win_slice < 5'(N_SLICES));
+  assign bad_weight_width = is_weight && (|cfg_wdata[63:W_BITS]);
+  assign cfg_bus_ok = cfg_wr && cfg_addr_valid && !bad_weight_width
+                     && !cfg_ready && !cfg_validate && !cfg_clear_valid && ctrl_seq == 0;
+  assign cfg_bus_reject = cfg_wr && !cfg_bus_ok;
+
+  always_ff @(posedge clk) begin
+    if (!rst_n || cfg_clear_valid) bus_err <= ERR_NONE;
+    else if (cfg_bus_reject) bus_err <= bad_weight_width ? ERR_W_RANGE : ERR_CFG_WRITE;
+    else if (cfg_validate && ctrl_seq == 0 && !rc_busy) bus_err <= ERR_NONE;
+  end
 
   always_ff @(posedge clk) begin
     if (!rst_n) begin
       cur_slice <= 5'd0;
-    end else if (cfg_wr && is_win) begin
+    end else if (cfg_bus_ok && is_win) begin
       cur_slice <= win_slice;
     end
   end
@@ -188,14 +204,14 @@ module sar20_digital_core (
   logic [2:0] ctrl_bits;
 
   always_ff @(posedge clk) begin
-    if (!rst_n) begin
+    if (!rst_n || cfg_clear_valid) begin
       ctrl_seq  <= 2'd0;
       ctrl_bits <= 3'd0;
     end else begin
-      if (cfg_wr && is_ctrl && (ctrl_seq == 2'd0)) begin
+      if (cfg_bus_ok && is_ctrl) begin
         ctrl_seq  <= 2'd3;
         ctrl_bits <= cfg_wdata[2:0];
-      end else if (ctrl_seq != 2'd0) begin
+      end else if (ctrl_seq != 2'd0 && !cfg_validate) begin
         ctrl_seq <= ctrl_seq - 2'd1;
       end
     end
@@ -208,7 +224,7 @@ module sar20_digital_core (
   logic        ws_err_write;
   logic        ws_wr_en;
 
-  assign ws_wr_en = cfg_wr && is_weight && (cfg_addr[2:0] == 3'b000)
+  assign ws_wr_en = cfg_bus_ok && is_weight && (cfg_addr[2:0] == 3'b000)
                    && (dw_unit < 7'(N_UNIT_TOTAL));
 
   weight_store #(
@@ -218,6 +234,8 @@ module sar20_digital_core (
       .clk       (clk),
       .rst_n     (rst_n),
       .cfg_ready (cfg_ready),
+      .clear_load(cfg_clear_valid),
+      .load_complete(weights_ready),
       .wr_en     (ws_wr_en),
       .wr_slice  (cur_slice),
       .wr_unit   (dw_unit),
@@ -233,16 +251,16 @@ module sar20_digital_core (
   logic [3:0]               cal_sel;
   logic                     cal_data_b;
 
-  assign cal_wr_en = (cfg_wr && (is_off | is_min | is_max)) || (ctrl_seq != 2'd0);
+  assign cal_wr_en = (cfg_bus_ok && (is_off | is_min | is_max)) || (ctrl_seq != 2'd0);
 
   always_comb begin
     cal_sel    = 4'd0;
     cal_data_b = 1'b0;
-    if (cfg_wr && is_off) begin
+    if (cfg_bus_ok && is_off) begin
       cal_sel = 4'd0;
-    end else if (cfg_wr && is_min) begin
+    end else if (cfg_bus_ok && is_min) begin
       cal_sel = 4'd1;
-    end else if (cfg_wr && is_max) begin
+    end else if (cfg_bus_ok && is_max) begin
       cal_sel = 4'd2;
     end else if (ctrl_seq == 2'd3) begin
       cal_sel    = 4'd3;
@@ -265,6 +283,8 @@ module sar20_digital_core (
       .sel              (cal_sel),
       .data_v           (cfg_wdata[V_BITS-1:0]),
       .data_b           (cal_data_b),
+      .weights_ready    (weights_ready),
+      .config_busy      (cfg_wr || ctrl_seq != 0 || rc_busy),
       .validate         (cfg_validate),
       .clear_valid      (cfg_clear_valid),
       .cfg_ready        (cfg_ready),
@@ -277,10 +297,12 @@ module sar20_digital_core (
       .sampling_mask_en (c_smask_en)
   );
 
-  // err_code 合并（D6）：calib_regs 的校验错误优先；否则反映 weight_store 的写拒绝。
+  // err_code 合并：总线协议错误优先，其次校验错误、权重拒绝。
   logic [31:0] merged_err;
   always_comb begin
-    if (cal_err_code != ERR_NONE) begin
+    if (bus_err != ERR_NONE) begin
+      merged_err = bus_err;
+    end else if (cal_err_code != ERR_NONE) begin
       merged_err = cal_err_code;
     end else if (ws_err_write) begin
       if (cfg_ready) begin
@@ -470,7 +492,7 @@ module sar20_digital_core (
   //=========================================================================
   logic [OUT_BITS-1:0] rc_dout;
   logic                rc_dout_valid, rc_clip_low, rc_clip_high;
-  logic                rc_acc_ovf, rc_gain_err, rc_adc2_ovf, rc_busy;
+  logic                rc_acc_ovf, rc_gain_err, rc_adc2_ovf;
 
   recon_core #(
       .P_N_ACTIVE  (N_ACTIVE),
@@ -483,7 +505,7 @@ module sar20_digital_core (
       .P_DIT_END   (DITHER_SPLIT_IS_SUB ? N_UNIT_TOTAL : N_UNIT_MAIN)
   ) u_recon (
       .clk              (clk),
-      .rst_n            (rst_n),
+      .rst_n            (rst_n && !cfg_clear_valid),
       .cfg_ready        (cfg_ready),
       .start            (recon_start),
       .clr_ovf          (cfg_clear_valid),

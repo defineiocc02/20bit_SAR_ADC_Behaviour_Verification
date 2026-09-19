@@ -180,3 +180,9 @@ tests/unit/
 * P1 接口与完成记录：[`docs/rtl/P1_INTERFACE.md`](../docs/rtl/P1_INTERFACE.md)
 * 转换计划（含 P0–P7 与风险账本）：项目工作区 `03_工程设计/20bit40M_行为模型转可综合RTL计划.md`
 * 已有的独立参考实现：[`sim/ref/dem_closed_form.py`](../sim/ref/dem_closed_form.py)
+
+## 2026-09-19 RTL review fixes
+
+[工程复核与修复报告](../docs/rtl/REVIEW_20260919.md) 汇总基线问题、修复和仍未闭合的目标。
+[ADR 0016](../docs/adr/0016-rtl-configuration-and-dither.md) 定义完整配置装载/提交协议与 dither PMF。
+运行 `python tools/run_open_rtl.py` 可编译执行 P1/P2/P3 和两项新增 RTL 回归。

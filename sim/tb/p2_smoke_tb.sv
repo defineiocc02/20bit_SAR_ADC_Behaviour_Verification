@@ -181,8 +181,13 @@ module p2_smoke_tb;
     cfg_write(16'h1018, 64'h3);                    // dem_en=1, bridge_en=1, smask=0
     repeat (4) @(posedge clk);                     // 等 3 拍控制位串行器走完
 
-    // 权重：slice 0, unit 0 = 2^26（registers_paper_literal.json 的第一个权重）
-    cfg_write(16'h0000, 64'd67108864);
+    // Complete configuration image: one legal word per physical address.
+    for (int s = 0; s < N_SLICES; s++) begin
+      cfg_write(16'(16'h2000 + s*256), 64'd0);
+      for (int u = 0; u < N_UNIT_TOTAL; u++)
+        cfg_write(16'(u*8), 64'd67108864);
+    end
+    cfg_write(16'h2000, 64'd0);
     repeat (2) @(posedge clk);
 
     chk("T1 未 validate 时 cfg_ready=0", cfg_ready == 1'b0);

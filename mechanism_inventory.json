@@ -9,7 +9,7 @@
       "page_checked": "页码/图号已对原文逐页核实（[12]/[13]/[14] 于 v7.0.8-v7.0.10 轮次完成）",
       "inherited": "条目位置继承自已复核文档（engineering_vs_patents_papers.md 等），页码级复核在阶段 A 后续轮次补全"
     },
-    "v8_refresh_note": "v8.0.0 合并后重刷：M11/M12 升 INTEGRATED_SCENARIO，P02/P04/P05/P06/P09/P10 由 v8 检查点证据关闭；P01/P03/P08 仍未做"
+    "v8_refresh_note": "v8.0.0 合并后重刷：M11/M12 升 INTEGRATED_SCENARIO，P02/P04/P05/P06 由 v8 检查点证据关闭；P01/P03/P08 仍未做；2026-09-19 复核：P09/P10 含未完成物理模型，恢复 NOT_RUN，已完成子项保留在 resolution。"
   },
   "axes": {
     "evidence_source": {
@@ -902,16 +902,16 @@
         "id": "P09",
         "task_ref": "T08",
         "title": "[12] 跟踪信息源合法性的端到端因果测试（延后可用时间必须影响 tracking）+ 介电吸收记忆误差模型",
-        "status": "PASS",
-        "resolution": "v8.0.0 M4.4：真实状态与可用量化判决的因果测试（延后可用时间进入 pretracking 可用集）"
+        "status": "NOT_RUN",
+        "resolution": "已完成：真实状态与可用量化判决的因果测试。未完成：介电吸收多时间常数记忆误差模型及端到端验收；不能以 tracking 因果性测试代替。"
       },
       {
         "id": "P10",
         "task_ref": "T11",
         "title": "AZ 相位级噪声传递模型（C_AZ/存储/校正/释放 + 宽窄带切换时刻/R_BW 扫描）",
-        "status": "PASS",
+        "status": "NOT_RUN",
         "note": "现 M14 只有预算倍率",
-        "resolution": "v8.0.0 M4.3/M6.1：AZ 相位级噪声与理想 AZ 上限（ADR 0011）+ PSD 归一化/噪声积分独立测试"
+        "resolution": "已完成：AZ 相位信号积分、理想复位上限、PSD 积分测试。未完成：C_AZ 存储/释放噪声、相关噪声折叠及宽窄带切换噪声传递；ADR 0011 明确仍是孔径噪声预算。"
       }
     ]
   }

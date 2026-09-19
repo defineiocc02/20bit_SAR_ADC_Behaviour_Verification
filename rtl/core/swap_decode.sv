@@ -57,7 +57,7 @@ module swap_decode (
   // P1 的 85 条定向用例（dither -8..8）抓出来的就是这条。
   localparam signed [17:0] UL1  = 18'(UNITS_PER_LSB1);
   localparam signed [17:0] KLO  = 18'(K0);
-  localparam signed [17:0] LMAX = 18'(DAC_LEVELS - 1);
+  localparam signed [17:0] LMAX = 18'(int'(DAC_LEVELS) - 1);
   localparam signed [17:0] ZERO = 18'sd0;
 
   // ---- 1) 命令拼装（k 未裁剪；溢出口径取它，与 SimResult.rdac_over 一致） ----

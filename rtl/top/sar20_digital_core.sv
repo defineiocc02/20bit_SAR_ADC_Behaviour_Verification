@@ -1,30 +1,36 @@
-//===========================================================================
-// sar20_digital_core.sv -- 20-bit SAR ADC 数字核顶层集成
-//===========================================================================
-// 固定外部端口、16 相位连续转换、Q30 权重/Q32 电压/20-bit offset-binary。
-// 契约：docs/adr/0017-rtl-fixed-phase-capture-and-structure.md。
-//
-// 配置：完整载入 18*71 权重与三个标量后 validate。运行中禁止写入。
-// 0x1018 bit[3:0] = {quantizer_dither, sampling_mask, bridge, dem}；
-// 控制写保留三拍等待，在最后一拍原子提交，两个 dither 模式互斥。
-// clear_valid 同步撤销配置并清除整条转换时序、DEM、开关、重构状态。
-// 系数与已提交控制值保留可读；再次运行必须完整重载系数。
-//
-// 输入：同一 clk 域，相位 8 检查 sadc_rdy 并捕获粗码；相位 14 检查
-// adc2_rdy 并捕获细码/inj_q/模拟标志。ready 是固定截止条件，不引入停拍。
-// 缺少 ready 时丢弃该样本并记录错误 7/8；数据必须满足对应时钟沿的建立/保持。
-// 此处不实现跨时钟域同步。sadc_enc 位于核外。
-//
-// 时序：相位 10 捕获 sid 后推进 DEM，11 更新 RDAC 开关，15 发起重构；
-// RECON_LAT = 11（start 所在沿记为第 1 拍）。busy 冲突拒绝并记录错误 9。
-// analog_ovf 是已接受样本的模拟标志累积 OR，独立于 clip_low/high。
-// 活动权重通过两个固定 bank 选择；18 个 slice 中 16/17 为保留备用。
-//===========================================================================
+// sar20_digital_core: shared configuration and physical-weight calibration.
+// P_STRUCTURAL=1: dual SAR/shared flash/18-slice macro controls and previous-
+// residue context (ADR0018). Comparator data must be synchronous with clk.
+// P_STRUCTURAL=0: legacy externally supplied coarse/fine codes, phase8/14
+// capture (ADR0017). Explicit compatibility profile for old oracle vectors.
+// A configuration epoch locks every coefficient and control until clear.
+// Reconstruction latency: 11 complete clock periods after accepted start.
 `include "rtl_params.vh"
 
-module sar20_digital_core (
+module sar20_digital_core #(
+    parameter bit P_STRUCTURAL = 1,
+    parameter int P_RECON_STAGES = 7,
+    parameter int P_REF_ON = 10,
+    parameter int P_RESIDUE_CAPTURE = 9,
+    parameter logic [31:0] P_SHUFFLE_SEED = 32'h6d2b79f5
+) (
     input  logic        clk,
     input  logic        rst_n,
+    // Structural macro boundary; active when P_STRUCTURAL=1 (default).
+    input wire [6:0] flash_therm,
+    input wire flash_valid,
+    input wire [1:0] coarse_cmp_valid, coarse_cmp_ge,
+    input wire fine_cmp_valid, fine_cmp_ge,
+    output wire [3:0] analog_phase,
+    output wire quiet_sample, tp_clock, ra_az, ra_amplify, ref_precharge, ref_accurate,
+    output wire [17:0] acquiring_mask, converting_mask, aux_charge_enable, hold_low_enable,
+    output wire [1:0] coarse_compare_enable,coarse_acquire_enable,
+    output wire flash_acquire_enable,fine_acquire_enable,
+    output wire [1:0][8:0] coarse_trial,
+    output wire [1:0][7:0] quantizer_dither,
+    output wire [3:0] acquisition_dither_rails,
+    output wire [11:0] fine_trial,
+    output wire fine_compare_enable, flash_sample,
     // ---- 配置/寄存器接口 ----
     input  logic        cfg_wr,
     input  logic [15:0] cfg_addr,
@@ -61,7 +67,9 @@ module sar20_digital_core (
     output logic                analog_ovf,
     output logic                acc_ovf,
     // ---- 观测 ----
-    output logic [31:0]         status_word
+    output logic [31:0]         status_word,
+    output logic [31:0]         dout_sample_id,
+    output logic [4:0]          dout_flags
 );
 
   //=========================================================================
@@ -70,6 +78,8 @@ module sar20_digital_core (
   // 目的：让"头文件被人手篡改 / 换配置时忘了重跑导出器 / TB 与 RTL 用了不同的
   //      参数集"这三类事故在**精化期**就炸掉，而不是在仿真里表现为某些路径恒 0。
   initial begin
+    if(P_RECON_STAGES<5 || P_RECON_STAGES>63)
+      $fatal(1,"sar20_digital_core: divider throughput exceeds 16-tick frame budget");
     if (N_ACTIVE      != 8)   $fatal(1, "sar20_digital_core: N_ACTIVE != 8");
     if (N_SLICES      != 18)  $fatal(1, "sar20_digital_core: N_SLICES != 18");
     if (N_UNIT_MAIN   != 63)  $fatal(1, "sar20_digital_core: N_UNIT_MAIN != 63");
@@ -267,7 +277,7 @@ module sar20_digital_core (
         merged_err = ERR_W_SUM;
       end
     end else begin
-      merged_err = input_err;
+      merged_err = P_STRUCTURAL ? structural_error : input_err;
     end
   end
 
@@ -285,7 +295,7 @@ module sar20_digital_core (
   ) u_ctrl (
       .clk          (clk),
       .rst_n        (epoch_rst_n),
-      .cfg_ready    (cfg_ready),
+      .cfg_ready    (cfg_ready && !P_STRUCTURAL),
       .run          (cfg_ready),          // 配置生效后连续运行
       .phase_onehot (phase_onehot),
       .phase        (phase),
@@ -326,7 +336,8 @@ module sar20_digital_core (
   logic [ADC2_BITS-1:0] adc2_hold;
   logic signed [V_BITS-1:0] inj_hold;
   logic sadc_ok, adc2_ok, analog_sample;
-  wire launch_recon = recon_start && sadc_ok && adc2_ok && !rc_busy;
+  wire legacy_launch = recon_start && sadc_ok && adc2_ok && !rc_busy;
+  wire launch_recon = P_STRUCTURAL ? structural_launch : legacy_launch;
   always_ff @(posedge clk) begin
     if (!epoch_rst_n) begin
       sadc_hold <= '0; adc2_hold <= '0; inj_hold <= '0;
@@ -471,16 +482,60 @@ module sar20_digital_core (
       .main_on     (main_on),
       .sub_on      (sub_on),
       .dither_rail (dither_rail),
-      .slice_sel   (slice_sel),
-      .main_sw     (main_sw),
-      .sub_sw      (sub_sw),
-      .dither_sw   (dither_sw)
+      .slice_sel   (legacy_slice_sel),
+      .main_sw     (legacy_main_sw),
+      .sub_sw      (legacy_sub_sw),
+      .dither_sw   (legacy_dither_sw)
   );
 
   always_ff @(posedge clk) begin                                       // 开关加载事件打一拍
-    if (!epoch_rst_n) sw_valid <= 1'b0;
-    else        sw_valid <= rdac_load && sadc_ok;
+    if (!epoch_rst_n) legacy_sw_valid <= 1'b0;
+    else        legacy_sw_valid <= rdac_load && sadc_ok;
   end
+
+
+  wire [17:0] legacy_slice_sel,structural_slice_sel;
+  wire [17:0][62:0] legacy_main_sw,structural_main_sw;
+  wire [17:0][7:0] legacy_sub_sw,structural_sub_sw;
+  wire [17:0][3:0] legacy_dither_sw,structural_dither_sw;
+  logic legacy_sw_valid;
+  wire structural_sw_valid,structural_launch;
+  wire [31:0] structural_error,structural_id;
+  wire [7:0][4:0] structural_ids;
+  wire [7:0][62:0] structural_main;
+  wire [7:0][7:0] structural_sub;
+  wire [3:0] structural_rails;
+  wire structural_sampling,structural_analog_bad;
+  wire signed [63:0] structural_injection;
+  wire [11:0] structural_fine;
+  sar_structural_ctrl #(.P_REF_ON(P_REF_ON),.P_RESIDUE_CAPTURE(P_RESIDUE_CAPTURE),
+    .P_SHUFFLE_SEED(P_SHUFFLE_SEED)) u_structure(
+    .clk(clk),.rst_n(epoch_rst_n),.enable(cfg_ready && P_STRUCTURAL),
+    .dem_en(c_dem_en),.bridge_en(c_bridge_en),.sampling_en(c_smask_en),.quantizer_en(c_qdither_en),
+    .flash_therm(flash_therm),.flash_valid(flash_valid),
+    .coarse_cmp_valid(coarse_cmp_valid),.coarse_cmp_ge(coarse_cmp_ge),
+    .fine_cmp_valid(fine_cmp_valid),.fine_cmp_ge(fine_cmp_ge),
+    .injection_q(inj_q),.analog_bad(ra_sat || rdac_ovf || adc2_over),.recon_busy(rc_busy),
+    .phase(analog_phase),.quiet_sample(quiet_sample),.tp_clock(tp_clock),
+    .ra_az(ra_az),.ra_amplify(ra_amplify),.ref_precharge(ref_precharge),.ref_accurate(ref_accurate),
+    .acquiring_mask(acquiring_mask),.converting_mask(converting_mask),
+    .aux_charge_enable(aux_charge_enable),.hold_low_enable(hold_low_enable),
+    .coarse_compare_enable(coarse_compare_enable),.coarse_trial(coarse_trial),
+    .coarse_acquire_enable(coarse_acquire_enable),.flash_acquire_enable(flash_acquire_enable),
+    .fine_acquire_enable(fine_acquire_enable),
+    .quantizer_dither(quantizer_dither),.acquisition_dither_rails(acquisition_dither_rails),
+    .fine_trial(fine_trial),.fine_compare_enable(fine_compare_enable),.flash_sample(flash_sample),
+    .slice_sel(structural_slice_sel),.main_sw(structural_main_sw),.sub_sw(structural_sub_sw),
+    .dither_sw(structural_dither_sw),.sw_valid(structural_sw_valid),.recon_start(structural_launch),
+    .context_id(structural_id),.context_slices(structural_ids),.context_main(structural_main),
+    .context_sub(structural_sub),.context_rails(structural_rails),
+    .context_sampling(structural_sampling),.context_analog_bad(structural_analog_bad),
+    .context_injection(structural_injection),.fine_code(structural_fine),.error_code(structural_error));
+  assign slice_sel = P_STRUCTURAL ? structural_slice_sel : legacy_slice_sel;
+  assign main_sw = P_STRUCTURAL ? structural_main_sw : legacy_main_sw;
+  assign sub_sw = P_STRUCTURAL ? structural_sub_sw : legacy_sub_sw;
+  assign dither_sw = P_STRUCTURAL ? structural_dither_sw : legacy_dither_sw;
+  assign sw_valid = P_STRUCTURAL ? structural_sw_valid : legacy_sw_valid;
 
   //=========================================================================
   // 10) 定点重构
@@ -489,23 +544,13 @@ module sar20_digital_core (
   logic                rc_dout_valid, rc_clip_low, rc_clip_high;
   logic                rc_acc_ovf, rc_gain_err, rc_adc2_ovf;
 
-  // The supported allocator only selects 0..7 or 8..15. Expose that constraint
-  // structurally: eight 2:1 bank selects, followed by constant local indices.
-  // Spare slices 16/17 remain configurable/readable for future scheduling modes.
-  wire [N_ACTIVE-1:0][N_UNIT_TOTAL-1:0][W_BITS-1:0] active_weights;
-  wire [N_ACTIVE-1:0][4:0] active_weight_ids;
-  for (genvar a = 0; a < N_ACTIVE; a++) begin : g_weight_bank
-    assign active_weights[a] = bank ? w_q[a] : w_q[a+N_ACTIVE];
-    assign active_weight_ids[a] = 5'(a);
-  end
-
   recon_core #(
       .P_N_ACTIVE  (int'(N_ACTIVE)),
       .P_N_MAIN    (int'(N_UNIT_MAIN)),
       .P_N_SUB     (int'(N_UNIT_SUB)),
-      .P_N_SLICES  (int'(N_ACTIVE)),
+      .P_N_SLICES  (int'(N_SLICES)),
       .P_ADC2_BITS (int'(ADC2_BITS)),
-      .P_STAGES    (7),
+      .P_STAGES    (P_RECON_STAGES),
       .P_DIT_N     (2 * DITHER_UNITS_RANGE),
       .P_DIT_END   (DITHER_SPLIT_IS_SUB ? int'(N_UNIT_TOTAL) : int'(N_UNIT_MAIN))
   ) u_recon (
@@ -513,15 +558,18 @@ module sar20_digital_core (
       .rst_n            (rst_n && !cfg_clear_valid),
       .cfg_ready        (cfg_ready),
       .start            (launch_recon),
+      .sample_id        (P_STRUCTURAL ? structural_id : alloc_sample_idx),
+      .result_sample_id (dout_sample_id),
+      .result_flags     (dout_flags),
       .clr_ovf          (cfg_clear_valid),
-      .sampling_mask_en (c_smask_en),
-      .slice_id         (active_weight_ids),
-      .main_on          (main_on),
-      .sub_on           (sub_on),
-      .dither_rail      (dither_rail),
-      .adc2_code        (adc2_hold),
-      .inj_q            (inj_hold),          // 已捕获的同样本注入
-      .w_rom            (active_weights),
+      .sampling_mask_en (P_STRUCTURAL ? structural_sampling : c_smask_en),
+      .slice_id         (P_STRUCTURAL ? structural_ids : conv_slices),
+      .main_on          (P_STRUCTURAL ? structural_main : main_on),
+      .sub_on           (P_STRUCTURAL ? structural_sub : sub_on),
+      .dither_rail      (P_STRUCTURAL ? structural_rails : dither_rail),
+      .adc2_code        (P_STRUCTURAL ? structural_fine : adc2_hold),
+      .inj_q            (P_STRUCTURAL ? structural_injection : inj_hold),          // 已捕获的同样本注入
+      .w_rom            (w_q),
       .offset_q         (c_off),
       .adc2_min_q       (c_min),
       .adc2_max_q       (c_max),
@@ -550,7 +598,7 @@ module sar20_digital_core (
   // 注意三者的来源不同，不能混：
   //   rdac_ovf  / ra_sat  / adc2_over  <- 模拟域回读（输入端口）
   //   rc_adc2_ovf                      <- `adc2_dec` 的**寄存器溢出**标志（另一回事，结构性不可达）
-  assign analog_ovf_raw = (launch_recon && analog_sample) | rc_adc2_ovf;
+  assign analog_ovf_raw = (launch_recon && (P_STRUCTURAL ? structural_analog_bad : analog_sample)) | rc_adc2_ovf;
 
   status_regs u_status (
       .clk               (clk),

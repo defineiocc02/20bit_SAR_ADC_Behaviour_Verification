@@ -25,6 +25,8 @@ module p2_oracle_tb;
       .adc2_min_q(min_q), .adc2_max_q(max_q), .dout(dout),
       .dout_valid(valid), .clip_low(clip_low), .clip_high(clip_high),
       .acc_ovf(acc_ovf), .gain_err(gain_err), .adc2_ovf(adc2_ovf), .busy()
+  ,
+      .sample_id(32'd0), .result_sample_id(), .result_flags()
   );
 
   function automatic int open_data(input string name);

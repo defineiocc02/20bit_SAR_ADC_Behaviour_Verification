@@ -1,5 +1,8 @@
 # 20 位 SAR ADC 行为验证
 
+> RTL 结构与校准更新（2026-09-20）：默认顶层为双 SAR / 共享3-bit Flash / 18-slice调度；旧粗细码向量请显式使用 `P_STRUCTURAL=0`。详见 [结构与数字校正说明](docs/rtl/STRUCTURAL_CALIBRATION_20260920.md) 与相应 ADR0018。文献披露、工程假设和模拟签核边界分别列出。
+
+
 [![CI](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/workflows/ci.yml/badge.svg)](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/workflows/ci.yml)
 [English](README_EN.md) · [建模与验证指南](docs/behavioral-closure.md) · [适用范围](docs/model_scope.md) · [实施与证据账本](docs/IMPLEMENTATION_CHECKPOINT.md)
 

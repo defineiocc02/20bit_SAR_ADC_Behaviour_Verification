@@ -60,3 +60,71 @@ be published as a completed milestone, not as full circuit reproduction.
 Pending async question: preserve compatibility top + add structural top (recommended),
 expand existing ports, or strictly preserve ports. Prior user confirmation was
 preserve current top ports/cadence; retain compatibility until clarified.
+
+Scope update accepted by user: directly expand the current top-level ports and
+internal architecture. User explicitly requests multiple files/modules for debug
+and adjustment, prioritizing the core digital calibration algorithm RTL.
+Next milestone: modular physical-weight correction engine, then source-mapped
+SAR/flash, 8-of-18 causal allocation, DEM, reference/AZ/auxiliary control integration.
+Do not call this full transistor-level reproduction: original silicon is 40nm,
+and sources do not disclose device sizes/layout or exact coefficient estimator.
+Functional repair commit 508206670b7be8810bbe353d4e2c0ea51f1f8d74 was published
+successfully to the existing PR #3. Issue/PR bodies updated via gh (check session
+59504 if necessary). New structure work is uncommitted after that milestone.
+
+Source findings directly checked:
+- [00] PDF p1 + p2 Fig9.8.1/.2/.3; [00_1] slides12/31 visually inspected.
+- Two alternating SAR quantizers (one slice each), shared **3-bit** flash, 8
+  converting + 8 acquiring RDAC slices chosen from18, shared RA gain32/ADC2.
+- RDAC follows resolved SAR decisions; no 511-comparator flash-equivalent model
+  should be advertised as source architecture.
+- Shared top-plate quiet edge samples input and prior RA residue together.
+- Reference precharge buffer during conversion, accurate REF_IN during RA;
+  ~65% RA time for full settling. Source says40nm, not existing28nm synth library.
+- Slide31: 8/18 selection +3-bit horizontal+3-bit vertical DEM, binary/unary
+  bridge with P=50% and illustrated weights8/4/2/1. Exact71-unit mapping remains
+  model-derived and must not be presented as disclosed layout.
+- [00] coefficients derived externally, DAC weight correction on-chip.
+- Patents have alternative embodiments, do not blindly combine all examples.
+
+Text/artifacts outside repo: ../circuit_sources (PDF text, source figure PNGs,
+US*_primary.txt downloaded from Google Patents). 00/00_1/12 text extractable;
+other user patent PDFs scanned. primary text has Description and Claims sections.
+For US10511316B2, real Description begins line1492, detailed DEM line1710+,
+Figs19-21 near1748, Fig25 near1757, Fig29/30 near1770. Main paper fulltext in
+[00]_...txt; PPT44pages. Bundled Python supports pypdf and pypdfium2 (not fitz).
+PDF/SAR skills read; runtime path available from load_workspace_dependencies.
+Do not publish third-party fulltext or copied figures in repo (existing NOTICE).
+
+Structural/calibration milestone (uncommitted, 2026-09-20):
+- Added cal_weight_reduce/cal_residue_mac/cal_output_stage + per-result ID/flags.
+- Added analog_phase_ctrl, sar_trial_ctrl, slice_pool_ctrl, cal_sample_context,
+  sar_structural_ctrl. Top default P_STRUCTURAL=1; old P3 vectors explicitly0.
+- Physical coefficients now statically wired per slice/unit; narrow switch masks
+  route to physical rows. Duplicate physical IDs produce gain_err. No extra latency.
+- SAR controls implement clocked binary 9b with3b flash seed and12b backend;
+  these radix/backend/time choices are assumptions, not disclosed transistor design.
+- Two context slots pair prior RA residue with ADC2; pool promotes actual acquired
+  IDs, picks next acquisition from complement. PRNG scan-origin shuffle is chosen
+  engineering policy (not uniform subsets). TP/ref/AZ macro pins registered.
+- Quantizer dither has physical injection command and opposite RDAC correction;
+  sampling dither acquires a separate coefficient mask. Bridge uses sid[8] for
+  50-percent activity across complete512-state DEM cycle.
+- New tests passed before final small changes: all4096 backend SAR codes/stalls/
+  cancel; 2048 physical calibration oracle; structural3modes438outputs across18
+  slices with missing-comparator recovery; full1048576-code prior oracle.
+- Independent mismatch recovery fixture:2048samples, max calibrated error4output
+  counts vs504 with nominal weights (ideal backend quantization, not real INL/DR).
+- 5082066 CI failure identified from downloaded artifact: Verilator5.020 requires
+  explicit int'(DAC_LEVELS) before subtraction in swap_decode. Fixed; local uses
+  newerVerilator. Final CI still required. Additional docs/evidence/publication pending.
+
+Final local verification completed:24 RTL modules,3 strict lint profiles with no
+warnings,all15 SV benches pass;572 Python tests pass/3slow deselected(274.78s),
+ruff/format97files,mypy48files,Bashsyntax,diffcheck pass. Updated structuralbench
+also checks every intermediate resolved-prefix RDAC command,not just finalcode.
+Two isolated negative controls compiled and failed the intended runtimeassertion:
+physical coefficients aliased toslice0; RDAC fedtrial instead ofresolved bits.
+Final sourcehashes and resultmarkers captured in structural_calibration evidence.
+ADR0018 and Chinese delivery report authored; remaining work:commit/publish,
+updatePR/Issue toexpandedfinalscope,andcheckexactpublishedcommit LinuxCI.

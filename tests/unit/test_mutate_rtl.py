@@ -274,10 +274,12 @@ def test_manifest_records_every_site(tmp_path):
     assert man["sites"][0]["to"] == s.repl
 
 
-def test_rtl_files_are_the_expected_16():
-    """被变异的文件集固定为 ``rtl/core`` + ``rtl/top`` 的 16 个 .sv（不含 params/*.vh）。"""
+def test_rtl_files_match_the_compilation_manifest():
+    """All production modules must be both compiled and available for mutation."""
     rels = [p.relative_to(mrt.RTL_ROOT.parent).as_posix() for p in mrt.rtl_files(mrt.RTL_ROOT)]
-    assert len(rels) == 16
+    manifest = (mrt.RTL_ROOT / "rtl_sources.f").read_text().splitlines()
+    assert sorted(rels) == sorted(manifest)
+    assert len(manifest) == len(set(manifest))
     assert all(r.endswith(".sv") for r in rels)
     assert not any("params" in r for r in rels)
 

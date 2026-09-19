@@ -6,13 +6,17 @@ module review_config_tb;
   logic cfg_ready, dout_valid;
   int outputs=0, hist[-2:2];
   always #5 clk=~clk;
-  sar20_digital_core dut(.clk(clk),.rst_n(rst_n),.cfg_wr(cfg_wr),
+  sar20_digital_core #(.P_STRUCTURAL(0)) dut (.clk(clk),.rst_n(rst_n),.cfg_wr(cfg_wr),
     .cfg_addr(cfg_addr),.cfg_wdata(cfg_wdata),.cfg_rdata(cfg_rdata),
     .cfg_validate(cfg_validate),.cfg_clear_valid(cfg_clear_valid),.cfg_ready(cfg_ready),
     .sadc_code(9'd256),.sadc_rdy(1'b1),.adc2_code(12'd2048),.adc2_rdy(1'b1),
     .ra_sat(1'b0),.rdac_ovf(1'b0),.adc2_over(1'b0),.inj_q(64'sd0),.dout_valid(dout_valid),
     .slice_sel(),.main_sw(),.sub_sw(),.dither_sw(),.sw_valid(),.dout(),
-    .clip_low(),.clip_high(),.analog_ovf(),.acc_ovf(),.status_word());
+    .clip_low(),.clip_high(),.analog_ovf(),.acc_ovf(),.status_word(),
+      .dout_sample_id(), .dout_flags()
+  ,
+      .flash_therm('0), .flash_valid('0), .coarse_cmp_valid('0), .coarse_cmp_ge('0), .fine_cmp_valid('0), .fine_cmp_ge('0), .analog_phase(), .quiet_sample(), .tp_clock(), .ra_az(), .ra_amplify(), .ref_precharge(), .ref_accurate(), .acquiring_mask(), .converting_mask(), .aux_charge_enable(), .hold_low_enable(), .coarse_compare_enable(), .coarse_trial(), .quantizer_dither(), .acquisition_dither_rails(), .fine_trial(), .fine_compare_enable(), .coarse_acquire_enable(),.flash_acquire_enable(),.fine_acquire_enable(),.flash_sample()
+  );
   always @(negedge clk) if(dout_valid) outputs++;
   task automatic write_cfg(input logic [15:0] addr,input logic [63:0] data);
     @(negedge clk); cfg_addr=addr; cfg_wdata=data; cfg_wr=1;

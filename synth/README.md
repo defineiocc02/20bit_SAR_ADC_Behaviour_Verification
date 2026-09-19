@@ -113,7 +113,7 @@ C:/Users/Administrator/miniconda3/python.exe synth/run_synth.py \
 # 扫顶层 HDL 参数（不改源文件）
 C:/Users/Administrator/miniconda3/python.exe synth/run_synth.py \
     --name recon_p4_10ns --top recon_core --clk-period 10 \
-    --files rtl/core/recon_core.sv rtl/core/div_floor.sv rtl/core/adc2_dec.sv \
+    --files rtl/core/recon_core.sv rtl/core/div_floor.sv rtl/core/adc2_dec.sv rtl/core/cal_weight_reduce.sv rtl/core/cal_residue_mac.sv rtl/core/cal_output_stage.sv \
     --incdirs rtl/params --params "P_STAGES=4"
 ```
 

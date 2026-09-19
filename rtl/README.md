@@ -1,5 +1,8 @@
 # `rtl/` —— 可综合 RTL 子树
 
+> RTL 结构与校准更新（2026-09-20）：默认顶层为双 SAR / 共享3-bit Flash / 18-slice调度；旧粗细码向量请显式使用 `P_STRUCTURAL=0`。详见 [结构与数字校正说明](../docs/rtl/STRUCTURAL_CALIBRATION_20260920.md) 与相应 ADR0018。文献披露、工程假设和模拟签核边界分别列出。
+
+
 当前修订入口：[完整 RTL 修复报告](../docs/rtl/COMPLETE_RTL_REPAIR_20260920.md)、
 [ADR 0017](../docs/adr/0017-rtl-fixed-phase-capture-and-structure.md)。顶层接口和 16 相位
 保持；相位 8/14 必须提供同步 ready。历史综合数据不能作为本次 RTL 的频率签核。

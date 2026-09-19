@@ -76,7 +76,7 @@ module p2_smoke_tb;
   logic        dout_valid, clip_low, clip_high, analog_ovf, acc_ovf;
   logic [31:0] status_word;
 
-  sar20_digital_core u_core (
+  sar20_digital_core #(.P_STRUCTURAL(0)) u_core (
       .clk (clk), .rst_n (rst_n),
       .cfg_wr (cfg_wr), .cfg_addr (cfg_addr), .cfg_wdata (cfg_wdata),
       .cfg_rdata (cfg_rdata), .cfg_validate (cfg_validate),
@@ -90,6 +90,10 @@ module p2_smoke_tb;
       .clip_low (clip_low), .clip_high (clip_high),
       .analog_ovf (analog_ovf), .acc_ovf (acc_ovf),
       .status_word (status_word)
+  ,
+      .dout_sample_id(), .dout_flags()
+  ,
+      .flash_therm('0), .flash_valid('0), .coarse_cmp_valid('0), .coarse_cmp_ge('0), .fine_cmp_valid('0), .fine_cmp_ge('0), .analog_phase(), .quiet_sample(), .tp_clock(), .ra_az(), .ra_amplify(), .ref_precharge(), .ref_accurate(), .acquiring_mask(), .converting_mask(), .aux_charge_enable(), .hold_low_enable(), .coarse_compare_enable(), .coarse_trial(), .quantizer_dither(), .acquisition_dither_rails(), .fine_trial(), .fine_compare_enable(), .coarse_acquire_enable(),.flash_acquire_enable(),.fine_acquire_enable(),.flash_sample()
   );
 
   //=========================================================================

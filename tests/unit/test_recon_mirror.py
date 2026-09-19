@@ -608,6 +608,14 @@ def test_recon_core_localparams_do_not_drift(rtl):
         assert got[name] == value, f"{name}: RTL 表达式算出 {got[name]}，镜像写的是 {value}"
 
 
+def test_extracted_calibration_mac_widths_do_not_drift(rtl):
+    table = _int_localparams(RTL_CORE / "cal_residue_mac.sv")
+    names = ["W_RAIL", "W_OP3", "W_WIDE", "W_S1", "W_SHIFT", "W_A", "W_TOP"]
+    got = _eval_rtl(table, names, {**rtl["vh"], "SUM_BITS": m.SUM_BITS})
+    for name in names:
+        assert got[name] == getattr(m, name)
+
+
 def test_div_floor_widths_do_not_drift(rtl):
     """``div_floor.sv`` 的 ``W_R / N_CYC / W_PAD`` 在**多组参数**下都要与镜像一致。
 

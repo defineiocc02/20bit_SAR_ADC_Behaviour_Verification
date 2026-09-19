@@ -59,11 +59,13 @@ module rdac_drv (
         dither_sw[s] <= '0;
       end
       for (a = 0; a < N_ACTIVE; a = a + 1) begin
-        // slice_id[a] ∈ [0, 15]，恒 < N_SLICES = 18，索引安全。
+        // Both compatibility banks and the full 18-slice pool are legal.
+        if (int'(slice_id[a]) < int'(N_SLICES)) begin
         slice_sel[slice_id[a]]  <= 1'b1;
         main_sw[slice_id[a]]    <= main_on[a];
         sub_sw[slice_id[a]]     <= sub_on[a];
         dither_sw[slice_id[a]]  <= dither_rail;
+        end
       end
     end
   end

@@ -22,6 +22,10 @@ REPO = Path(__file__).resolve().parents[1]
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     benches = {
+        "sar_trial_tb": "SAR_TRIAL_COMPLETE",
+        "calibration_recovery_tb": "CALIBRATION_RECOVERY_COMPLETE",
+        "structural_adc_tb": "STRUCTURAL_ADC_COMPLETE",
+        "calibration_physical_tb": "CALIBRATION_PHYSICAL_COMPLETE",
         "review_top_protocol_tb": "REVIEW_TOP_PROTOCOL_COMPLETE",
         "review_leaf_tb": "REVIEW_LEAF_COMPLETE",
         "review_recon_protocol_tb": "REVIEW_RECON_PROTOCOL_COMPLETE",
@@ -43,21 +47,30 @@ def main() -> None:
         raise SystemExit("Verilator is required; install it or set VERILATOR")
     out = REPO / "sim/artifacts/open_rtl"
     out.mkdir(parents=True, exist_ok=True)
-    sources = sorted((REPO / "rtl/core").glob("*.sv")) + sorted((REPO / "rtl/top").glob("*.sv"))
+    sources = [
+        REPO / line for line in (REPO / "rtl/rtl_sources.f").read_text().splitlines() if line
+    ]
+    if not sources or any(not p.is_file() for p in sources):
+        raise RuntimeError("RTL source manifest contains missing files")
     version = subprocess.run([*command, "--version"], check=True, capture_output=True, text=True)
     (out / "version.log").write_text(version.stdout + version.stderr, encoding="utf-8")
     # Lint production hierarchies separately from testbench stimulus widths.
     # Treat structural and arithmetic diagnostics as errors, without hiding them
     # behind the simulation compile's allowance for testbench warnings.
-    for lint_top in ("sar20_digital_core", "sadc_enc"):
-        with (out / f"{lint_top}.lint.log").open("w", encoding="utf-8") as log:
-            subprocess.run(
+    for lint_top, profile, parameters in (
+        ("sar20_digital_core", "structural", []),
+        ("sar20_digital_core", "compatibility", ["-GP_STRUCTURAL=0"]),
+        ("sadc_enc", "standalone", []),
+    ):
+        with (out / f"{lint_top}.{profile}.lint.log").open("w", encoding="utf-8") as log:
+            lint_result = subprocess.run(
                 [
                     *command,
                     "--lint-only",
                     "--top-module",
                     lint_top,
                     "-Irtl/params",
+                    *parameters,
                     "-Werror-WIDTH",
                     "-Werror-LATCH",
                     "-Werror-MULTIDRIVEN",
@@ -70,9 +83,12 @@ def main() -> None:
                 cwd=REPO,
                 stdout=log,
                 stderr=subprocess.STDOUT,
-                check=True,
+                check=False,
                 timeout=120,
             )
+        if lint_result.returncode:
+            print((out / f"{lint_top}.{profile}.lint.log").read_text(), flush=True)
+            lint_result.check_returncode()
     for top, marker in benches.items():
         if selected and top not in selected:
             continue
@@ -121,6 +137,8 @@ def main() -> None:
                     timeout=900 if top == "p2_tb" and not delegate_oracle else 120,
                 )
             output = run_log.read_text(encoding="utf-8")
+            if cp.returncode:
+                print(output, end="", flush=True)
             cp.check_returncode()
             if marker not in output:
                 raise RuntimeError(f"{top}: missing completion marker")

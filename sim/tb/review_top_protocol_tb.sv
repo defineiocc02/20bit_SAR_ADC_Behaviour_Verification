@@ -16,12 +16,16 @@ module review_top_protocol_tb;
   wire [17:0][7:0] sub_sw;
   wire [17:0][3:0] dither_sw;
   int checks=0;
-  sar20_digital_core dut(.clk(clk),.rst_n(rst_n),.cfg_wr(wr),.cfg_addr(addr),.cfg_wdata(wdata),
+  sar20_digital_core #(.P_STRUCTURAL(0)) dut (.clk(clk),.rst_n(rst_n),.cfg_wr(wr),.cfg_addr(addr),.cfg_wdata(wdata),
     .cfg_rdata(rdata),.cfg_validate(validate),.cfg_clear_valid(clear),.cfg_ready(ready),
     .sadc_code(coarse),.sadc_rdy(crdy),.adc2_code(fine),.adc2_rdy(frdy),
     .rdac_ovf(rov),.adc2_over(aov),.ra_sat(rsat),.inj_q(inj),.dout(dout),.dout_valid(valid),
     .clip_low(),.clip_high(),.analog_ovf(analog_ovf),.acc_ovf(),.status_word(status_word),
-    .slice_sel(slice_sel),.main_sw(main_sw),.sub_sw(sub_sw),.dither_sw(dither_sw),.sw_valid(sw_valid));
+    .slice_sel(slice_sel),.main_sw(main_sw),.sub_sw(sub_sw),.dither_sw(dither_sw),.sw_valid(sw_valid),
+      .dout_sample_id(), .dout_flags()
+  ,
+      .flash_therm('0), .flash_valid('0), .coarse_cmp_valid('0), .coarse_cmp_ge('0), .fine_cmp_valid('0), .fine_cmp_ge('0), .analog_phase(), .quiet_sample(), .tp_clock(), .ra_az(), .ra_amplify(), .ref_precharge(), .ref_accurate(), .acquiring_mask(), .converting_mask(), .aux_charge_enable(), .hold_low_enable(), .coarse_compare_enable(), .coarse_trial(), .quantizer_dither(), .acquisition_dither_rails(), .fine_trial(), .fine_compare_enable(), .coarse_acquire_enable(),.flash_acquire_enable(),.fine_acquire_enable(),.flash_sample()
+  );
   task automatic check(input bit ok,input string msg);
     checks++; if(!ok) $fatal(1,"%s",msg);
   endtask
@@ -64,6 +68,7 @@ module review_top_protocol_tb;
     int n,head,tail,planned_c,planned_a;
     longint planned_i;
     logic [19:0] expected[0:63];
+    int expected_id[0:63];
     bit expected_analog[0:63], sticky;
     repeat(2) @(negedge clk); rst_n=1;
     // Control writes must be atomic even if the three-cycle sequencer is aborted.
@@ -92,6 +97,8 @@ module review_top_protocol_tb;
     repeat(16*42) begin
       if(valid) begin
         check(head<tail,"unexpected output or stale transaction");
+        check(dut.dout_sample_id==32'(expected_id[head]),"top calibration sample ID");
+        check(dut.dout_flags[2:0]==0,"unexpected calibration error");
         check(dout===expected[head],$sformatf("sample %0d got=%0d exp=%0d",head,dout,expected[head]));
         check(analog_ovf===expected_analog[head],"analog flags from wrong sample");
         head++;
@@ -113,6 +120,7 @@ module review_top_protocol_tb;
           fine=0;inj=-64'sd9223372036854775807;rov=1;aov=1;rsat=1;
           if(n<=40 && n!=3 && n!=6) begin
             if(n==10) sticky=1;
+            expected_id[tail]=n;
             expected[tail]=expected_code(planned_c,planned_a,planned_i,0,0);
             expected_analog[tail]=sticky;tail++;
           end

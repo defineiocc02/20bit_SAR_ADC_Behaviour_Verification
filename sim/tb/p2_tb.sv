@@ -303,6 +303,8 @@ module p2_tb;
       .adc2_max_q(o_max), .dout(o_dout), .dout_valid(o_dvalid), .clip_low(o_clipl),
       .clip_high(o_cliph), .acc_ovf(o_ovf), .gain_err(o_gerr), .adc2_ovf(o_a2ovf),
       .busy()
+  ,
+      .sample_id(32'd0), .result_sample_id(), .result_flags()
   );
 
   task automatic run_start(input logic which);
@@ -392,6 +394,8 @@ module p2_tb;
       .adc2_max_q(r_max), .dout(r_dout), .dout_valid(r_dvalid), .clip_low(r_clipl),
       .clip_high(r_cliph), .acc_ovf(r_ovf), .gain_err(r_gerr), .adc2_ovf(r_a2ovf),
       .busy()
+  ,
+      .sample_id(32'd0), .result_sample_id(), .result_flags()
   );
 
   task automatic load_weights();
@@ -534,6 +538,8 @@ module p2_tb;
       .adc2_min_q(or_min), .adc2_max_q(or_max), .dout(sa_dout),
       .dout_valid(sa_dvalid), .clip_low(sa_clipl), .clip_high(sa_cliph),
       .acc_ovf(sa_ovf), .gain_err(sa_gerr), .adc2_ovf(sa_a2ovf), .busy()
+  ,
+      .sample_id(32'd0), .result_sample_id(), .result_flags()
   );
 
   task automatic t8_sat();
@@ -641,6 +647,8 @@ module p2_tb;
       .adc2_max_q(r_max), .dout(k_dout), .dout_valid(k_dvalid), .clip_low(k_clipl),
       .clip_high(k_cliph), .acc_ovf(k_ovf), .gain_err(k_gerr), .adc2_ovf(k_a2ovf),
       .busy()
+  ,
+      .sample_id(32'd0), .result_sample_id(), .result_flags()
   );
 
   task automatic t9_link();
@@ -836,7 +844,7 @@ module p2_tb;
                u_oracle.rails_s, $isunknown(u_oracle.rails_s));
       $display("  [T4 probe] a1=%0d x?=%0b shifted95=%0b ovf_pend=%0b gerr_pend=%0b",
                u_oracle.a1, $isunknown(u_oracle.a1),
-               u_oracle.shifted[ACC_BITS-1], u_oracle.ovf_pend, u_oracle.gerr_pend);
+               u_oracle.u_residue_mac.shifted[ACC_BITS-1], u_oracle.ovf_pend, u_oracle.gerr_pend);
     end
     // Portable CI runs the same full-code oracle in p2_oracle_tb, isolated
     // from the unrelated production-size reconstructions in this testbench.

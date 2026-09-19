@@ -1,0 +1,215 @@
+{
+  "date": "2026-09-20",
+  "base_commit": "508206670b7be8810bbe353d4e2c0ea51f1f8d74",
+  "scope": "digital structure and physical coefficient correction; source-derived mechanisms with explicit implementation assumptions",
+  "rtl_module_count": 24,
+  "source_sha256": {
+    "rtl/core/adc2_dec.sv": "268d279bdc1c2cdd7161072733c5046e701524c7e217b52ff0c7ca08951154f5",
+    "rtl/core/analog_phase_ctrl.sv": "66647aeeaa4e9dc41cd95eec430bdb8e75d42b93390bded576b18c22d8653932",
+    "rtl/core/cal_output_stage.sv": "30cb3de766b0c2f316bd65f519304e95a35897b55568564e56c999c8bac0c0c2",
+    "rtl/core/cal_residue_mac.sv": "082a93293cda83f79ff0ac7ef72e484043f8bbceb914361f270059b4bb764f71",
+    "rtl/core/cal_sample_context.sv": "8b0ff4527b6ff5936d378945bcfd38d2c203a43fb7d2cb4d0271a8f655bb9e56",
+    "rtl/core/cal_weight_reduce.sv": "20d66bf03d76a9113718f385f9bed9eb24fac49b6e3c17cc8bff773a11b9eb3c",
+    "rtl/core/calib_regs.sv": "feff5d1d6c0359b427c5950ae6dec6db45e5e9707f44a06623681f5176c3e44b",
+    "rtl/core/ctrl_fsm.sv": "a04e9104a93819ed35d35f6a11355c4ee3afbaa0d4b020f6e17e5540b610041f",
+    "rtl/core/dem_addr_gen.sv": "aa5bd5c4d00fa2a5d77f81fcc99011246ed08ab01f00be3e92fcd42728f466ba",
+    "rtl/core/dem_state_gen.sv": "38c626502b2338c4c04497788cf40904408a885176967a4ca6d6750d578d7efe",
+    "rtl/core/dither_gen.sv": "d726478c13887ca3739265990be5b2a35c88a236d38257af1ab72cb53c828f7e",
+    "rtl/core/div_floor.sv": "77661258774441bd4c690aaf024785320f4d9a278eb1646d44803a1163799c1c",
+    "rtl/core/rdac_drv.sv": "d91fa05062a50eb08826286ec527b5a15d6b7be758cee7f5e16c53fbe20d6a33",
+    "rtl/core/recon_core.sv": "3a486d215594d79ef53db5455cd1610c027855134132fc78539257bc5b660983",
+    "rtl/core/sar_structural_ctrl.sv": "ea7cd00fec642f8afee49efd2604e0b8993e20e16fa860a5692ab9789617b99e",
+    "rtl/core/sar_trial_ctrl.sv": "cbe60e2cc30fb95499449f0ec586847f9c1494de25bce784dc8b01a51248f8c9",
+    "rtl/core/slice_alloc.sv": "2c6d0293b846f00ccf88c0a38fc3030a243cb86fc84a705e31e70aa2084a2dc4",
+    "rtl/core/slice_pool_ctrl.sv": "e53d9efa8ced99e5322f6a3043dd67c7ceea11cfad60813f5e233504a28782b4",
+    "rtl/core/status_regs.sv": "8ab8ee1483f451da27ad59435ef7b00f3982427b17354fe5a9d2ac6319af4b1d",
+    "rtl/core/swap_decode.sv": "03684fb59ae5d0bbbd1d091f8b073b5cc9469dd603636ceea69726b01a5b5d88",
+    "rtl/core/unit_therm.sv": "ec00681a7565a1fd10172e32959c08e118f339de19f5e07eaf623c24fb6cb459",
+    "rtl/core/weight_store.sv": "0281574651cc50dfa69eaf2ef53e63ea1448db0c69d0cf98da977c8a7225a68f",
+    "rtl/params/rtl_error_codes.vh": "ab67fff7eeff034da996d8c0442b529dc8476bb1eafca349f360c9e873bcc0ce",
+    "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+    "rtl/rtl_sources.f": "edd37615fffd18cecfad620de2beab15f581639e8bc8520891b33487b7e98f7e",
+    "rtl/top/sadc_enc.sv": "a6b57de18adc6a7a7795481ce003a911881b0aeefb97537e66ad3151ef9eee5e",
+    "rtl/top/sar20_digital_core.sv": "034fa38821d65a2fc8b353a25620cb1ae178921b04a4657c8a916095e6b4f2f0",
+    "sim/tb/calibration_physical_tb.sv": "5bb94083f056da90439613d1cbc4028d86c94d66e16db5ce14b540e201ec1e91",
+    "sim/tb/calibration_recovery_tb.sv": "7680820c637a3b2d6d2e99a594096592bef815248b44e46d6d140ffd59b32850",
+    "sim/tb/p1_tb.sv": "5e2036b927890f7f83ce3bae540ded035572d228bb3fdfd74ccc1d45e3813498",
+    "sim/tb/p2_oracle_tb.sv": "11339db76a0c5e664114c7376875220e081377d266221d36a7ff39b569476b54",
+    "sim/tb/p2_periph_tb.sv": "c89ea598c20f0fdb000a3c35c06825b43f1872801229a48beb61c1897f0c3bbe",
+    "sim/tb/p2_smoke_tb.sv": "f42290f8e0f332b8d40bc20399f0efa4fdb16315bdd24d500d46e969fe58de78",
+    "sim/tb/p2_tb.sv": "d02db966a8e85f40bbb5639542c52d1c8df856d6d4eccc4c8aae0dcac3749715",
+    "sim/tb/p3_top_tb.sv": "a7c8d406b38e3a24e8a7e2213f87b2b54454532afc3423df628d48cb90881016",
+    "sim/tb/review_config_tb.sv": "66084ee90a3ab8a08e322696fad77bba9980bf515cd534079ee11925cccbc33f",
+    "sim/tb/review_dither_tb.sv": "fcd79afc5f3239a21186d06781d4e963418f8857a38f07b0c95344dbed82fa52",
+    "sim/tb/review_leaf_tb.sv": "fd48b977214ae9aa01193675c86e931285a351844fc5191327978a91fc272952",
+    "sim/tb/review_recon_protocol_tb.sv": "19a08952dc4c4db4d476bfa217b187b45a64fa0eaabfa8868c8ec439858fa26f",
+    "sim/tb/review_top_protocol_tb.sv": "37ca964501085c611cedafd4a797c2b9b97f5a88adf2c21f816d73893ce5deec",
+    "sim/tb/sar_trial_tb.sv": "aa950287ce516d8c04c622b7caf89842e79996731ff54b55437bd748d30d106a",
+    "sim/tb/structural_adc_tb.sv": "f89c9ac5541bb52bddac278d885a1d42ceea75c1040697f7d1af49c3dc454ca4",
+    "tools/run_open_rtl.py": "a197c1fa209ca5fb1decc3f1f79fac59d86ebb2207992d54b3f5f45e92cbd9ed"
+  },
+  "verilator_banner": "rev vUNKNOWN-built20260516-4e853d8",
+  "local_tool_note": "Wheel package reports5.48.0; simulation banner5.49 development build. Linux CI uses5.020; its result must be checked separately.",
+  "lint": [
+    {
+      "hierarchy": "sar20_digital_core.structural",
+      "result": "PASS",
+      "log_sha256": "44cb31039f116c7c1359adbe07df1ce0f79e7b2738c8023a190ade767073ed20"
+    },
+    {
+      "hierarchy": "sar20_digital_core.compatibility",
+      "result": "PASS",
+      "log_sha256": "df16615c1ac9890a655f088a0de871882b00fe6719235315b877f0ce5aeb2708"
+    },
+    {
+      "hierarchy": "sadc_enc.standalone",
+      "result": "PASS",
+      "log_sha256": "3937bf8a4552c4e6b3dfa3b78077fdd284caf98b2b591b79159e4b9a13bf1540"
+    }
+  ],
+  "rtl_regressions": [
+    {
+      "top": "sar_trial_tb",
+      "completion": [
+        "SAR_TRIAL_COMPLETE fine_codes=4096 coarse_codes=512 stalls_and_cancel=PASS"
+      ],
+      "log_sha256": "53586b5d4e88bd6862cfe638e0cc1855a69d3b3923b91b7e9f459ef50ba38704"
+    },
+    {
+      "top": "calibration_recovery_tb",
+      "completion": [
+        "CALIBRATION_RECOVERY_COMPLETE samples=2048 max_calibrated_error=4 max_uncalibrated_error=504"
+      ],
+      "log_sha256": "3b6da0f2d77ef8a4c35eba17487f2b45d32bff5ff94ff5d9e32e3fbea010d978"
+    },
+    {
+      "top": "structural_adc_tb",
+      "completion": [
+        "STRUCTURAL_ADC_COMPLETE modes=3 outputs=438 checks=7680 physical_slices=18"
+      ],
+      "log_sha256": "3cb09cfe80f12ffc5a39093161d8eb7628acc1fe2e42e46a189d5cec0014fc89"
+    },
+    {
+      "top": "calibration_physical_tb",
+      "completion": [
+        "CALIBRATION_PHYSICAL_COMPLETE samples=2048 physical_slices=18"
+      ],
+      "log_sha256": "d69bdbb4c73b07d341fc88eee3ab5902a4eb797cb5bac2eaa690714d56cb2caf"
+    },
+    {
+      "top": "review_top_protocol_tb",
+      "completion": [
+        "REVIEW_TOP_PROTOCOL_COMPLETE checks=1108 outputs=38"
+      ],
+      "log_sha256": "4d482be7cf0c18796c5c1960005bcdeeef512af2c18c26f92c4a836856619013"
+    },
+    {
+      "top": "review_leaf_tb",
+      "completion": [
+        "REVIEW_LEAF_COMPLETE checks=91142"
+      ],
+      "log_sha256": "28f9fbeb96cd86893cb21ad36cdf3997ceba429cbeee479106dd0a7c48a4c41a"
+    },
+    {
+      "top": "review_recon_protocol_tb",
+      "completion": [
+        "REVIEW_RECON_PROTOCOL_COMPLETE"
+      ],
+      "log_sha256": "1a6a106186d61cb1151aa2e04a8d712d6645b44114b8faea22f34a19b334bfa6"
+    },
+    {
+      "top": "review_dither_tb",
+      "completion": [
+        "REVIEW_DITHER_COMPLETE"
+      ],
+      "log_sha256": "9edcd74ea44b13b208aca59f9c31dee5be880344c74350e0b3315e70521d69ff"
+    },
+    {
+      "top": "review_config_tb",
+      "completion": [
+        "REVIEW_CONFIG_COMPLETE outputs=624"
+      ],
+      "log_sha256": "6e446388e477a9e38809d1520f8b8744446eb06b944b91d9181274c8d16b4564"
+    },
+    {
+      "top": "p2_tb",
+      "completion": [
+        "P2 RESULT: PASS"
+      ],
+      "log_sha256": "e0e1f273a7a40e0f426b0e96bb5a83ac32035a07089a5fef15479e922f8c317a"
+    },
+    {
+      "top": "p2_oracle_tb",
+      "completion": [
+        "P2_ORACLE_COMPLETE codes=1048576 errors=0"
+      ],
+      "log_sha256": "a0b524068347bb9b079da09903b4d33d3d04f5a8275e296c9410115be3736754"
+    },
+    {
+      "top": "p2_periph_tb",
+      "completion": [
+        "p2_periph PASS"
+      ],
+      "log_sha256": "ef7171edd0d29f7862f7c99c653a613513f33bf37ed4264b9c2dcae3b5e7d5c5"
+    },
+    {
+      "top": "p2_smoke_tb",
+      "completion": [
+        "p2_smoke PASS"
+      ],
+      "log_sha256": "d646577f1e220c1c2190242ed8ce571574384a847f2b7dad64a817a8091cc9ac"
+    },
+    {
+      "top": "p1_tb",
+      "completion": [
+        "P1 RESULT: PASS"
+      ],
+      "log_sha256": "6524c44bce0c2f96f09db6c90113f5bde9b75d8d8763e49a18121325b5a1b713"
+    },
+    {
+      "top": "p3_top_tb",
+      "completion": [
+        "P3 TOP RESULT: PASS"
+      ],
+      "log_sha256": "ebaad101b7b63926ec6d3cb8e8aa674edde78fe056836ef6f8623b761d25128b"
+    }
+  ],
+  "python": {
+    "passed": 572,
+    "deselected": 3,
+    "log_sha256": "353d2e8c68990a05c09bcb6c65330d856c5fb22660357cbcc67d19042d1cc941",
+    "elapsed_seconds": 274.78
+  },
+  "quality": {
+    "ruff": "PASS",
+    "ruff_format": "97 files already formatted",
+    "mypy": "48 source files PASS",
+    "bash_syntax": "PASS",
+    "git_diff_check": "PASS"
+  },
+  "negative_controls": [
+    {
+      "mutation": "physical_coefficient_alias",
+      "top": "calibration_recovery_tb",
+      "expected_failure": "mismatch correction failed",
+      "detected": true
+    },
+    {
+      "mutation": "rdac_trial_instead_of_resolved",
+      "top": "structural_adc_tb",
+      "expected_failure": "RDAC included unresolved trial",
+      "detected": true
+    }
+  ],
+  "synthesis": {
+    "new_mapped_result": false,
+    "reason": "EDA host connection timed out; no PPA/timing signoff claimed"
+  },
+  "source_limits": [
+    "paper coefficients derived externally; no undisclosed on-chip estimator claimed",
+    "40nm paper vs28nm existing library",
+    "63+8 unit model geometry and12bit backend are project assumptions",
+    "clocked binary SAR and16tick schedule do not demonstrate published7ns conversion or20bit analog settling",
+    "analog switch/RA/reference transistor structures require separate macro/netlist implementation"
+  ]
+}

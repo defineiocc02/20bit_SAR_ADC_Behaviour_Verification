@@ -141,3 +141,10 @@ Pending:refresh evidence,commit/publish portability fix,check finalLinuxCI.
 Portability follow-up complete locally:all15benches rerun pass with named nodes
 and actual paired dither comparator stimulus;3strict lint profiles pass;
 55affectedPython tests and2negativecontrols pass. Evidence refreshed toexactRTL.
+Published d9140262a2774a76012012c48f0edc667ec2e061. Linux run35471530594
+revealed5.020's1024loop elaboration budget truncated the4095-node tree; this
+was NOT another combinational cycle. Runner now passes --unroll-count8192
+for lint and simulation, covering8191nodes of32x128coefficient geometry.
+Three local lintprofiles and paired structuralbench438outputs pass with the
+explicit budget. RTL unchanged from prior all15bench rerun. Publish runnerfix
+and check next exactcommitCI; do not stop at the failed older run.

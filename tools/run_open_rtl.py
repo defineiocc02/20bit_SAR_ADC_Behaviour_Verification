@@ -54,6 +54,10 @@ def main() -> None:
         raise RuntimeError("RTL source manifest contains missing files")
     version = subprocess.run([*command, "--version"], check=True, capture_output=True, text=True)
     (out / "version.log").write_text(version.stdout + version.stderr, encoding="utf-8")
+    # A production physical reduction has 4095 named nodes; the 32x128
+    # coefficient-store maximum needs 8191. Verilator 5.020 defaults to 1024.
+    # This explicit finite elaboration budget is not a warning suppression.
+    elaboration_args = ["--unroll-count", "8192"]
     # Lint production hierarchies separately from testbench stimulus widths.
     # Treat structural and arithmetic diagnostics as errors, without hiding them
     # behind the simulation compile's allowance for testbench warnings.
@@ -67,6 +71,7 @@ def main() -> None:
                 [
                     *command,
                     "--lint-only",
+                    *elaboration_args,
                     "--top-module",
                     lint_top,
                     "-Irtl/params",
@@ -97,6 +102,7 @@ def main() -> None:
             args = [
                 *command,
                 "--binary",
+                *elaboration_args,
                 "--timing",
                 "--assert",
                 "-j",

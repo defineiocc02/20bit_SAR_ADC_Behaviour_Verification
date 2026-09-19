@@ -1,6 +1,6 @@
 {
   "date": "2026-09-20",
-  "base_commit": "e667ed75708335a14f8a904a24acc4c80958b9f2",
+  "base_commit": "d9140262a2774a76012012c48f0edc667ec2e061",
   "scope": "digital structure and physical coefficient correction; source-derived mechanisms with explicit implementation assumptions",
   "rtl_module_count": 24,
   "source_sha256": {
@@ -46,7 +46,7 @@
     "sim/tb/review_top_protocol_tb.sv": "37ca964501085c611cedafd4a797c2b9b97f5a88adf2c21f816d73893ce5deec",
     "sim/tb/sar_trial_tb.sv": "aa950287ce516d8c04c622b7caf89842e79996731ff54b55437bd748d30d106a",
     "sim/tb/structural_adc_tb.sv": "f54ba2e02c71dee9d44a73f0b9863a5d673c26bba45d2c0f37f3303d27fb5142",
-    "tools/run_open_rtl.py": "a197c1fa209ca5fb1decc3f1f79fac59d86ebb2207992d54b3f5f45e92cbd9ed"
+    "tools/run_open_rtl.py": "896823a24a2fad83a80f43a14a9d97494478a92569e89477ccdf1adfdb6b45c6"
   },
   "verilator_banner": "rev vUNKNOWN-built20260516-4e853d8",
   "local_tool_note": "Wheel package reports5.48.0; simulation banner5.49 development build. Linux CI uses5.020; its result must be checked separately.",
@@ -54,17 +54,17 @@
     {
       "hierarchy": "sar20_digital_core.structural",
       "result": "PASS",
-      "log_sha256": "5d9b6ae20a31a481a2403c8877b4373bec730839c751ca3c6ab90bc48437f3a4"
+      "log_sha256": "175af6bc888abfe3343cfae8d2e8dfc9e0b1ab582727f0a55f134b73ea1c37c6"
     },
     {
       "hierarchy": "sar20_digital_core.compatibility",
       "result": "PASS",
-      "log_sha256": "a65e201dd02db4126353a919f1c5e01d09c4e46952967bd2c61f62818a833b85"
+      "log_sha256": "db3f8855865f5f61926d141f4e749d8be399a76635aef757bd98ba7fc0231282"
     },
     {
       "hierarchy": "sadc_enc.standalone",
       "result": "PASS",
-      "log_sha256": "2b76213ec7a96b306211146f7483000ad079c9cf47d9fae57b612022dd8419e9"
+      "log_sha256": "fec2f97a590c9ecb285d8e77de21ac39122456ad98f6de11d9b95da87e1a11a3"
     }
   ],
   "rtl_regressions": [
@@ -87,7 +87,7 @@
       "completion": [
         "STRUCTURAL_ADC_COMPLETE modes=3 outputs=438 checks=7680 physical_slices=18"
       ],
-      "log_sha256": "e0f879cead6cd88451b511e22580cae7beb02d0662600125347b787b10917a9a"
+      "log_sha256": "3bca98e40aed1944dc502760437effd351fdfa7cea8e5c6c024a6740e33394d5"
     },
     {
       "top": "calibration_physical_tb",
@@ -216,5 +216,10 @@
     "63+8 unit model geometry and12bit backend are project assumptions",
     "clocked binary SAR and16tick schedule do not demonstrate published7ns conversion or20bit analog settling",
     "analog switch/RA/reference transistor structures require separate macro/netlist implementation"
-  ]
+  ],
+  "elaboration": {
+    "verilator_unroll_count": 8192,
+    "reason": "4095 production nodes, up to8191 for coefficient-store geometry",
+    "local_followup": "three strict lint profiles and structural_adc_tb PASS; RTL unchanged from all15bench rerun"
+  }
 }

@@ -148,3 +148,23 @@ for lint and simulation, covering8191nodes of32x128coefficient geometry.
 Three local lintprofiles and paired structuralbench438outputs pass with the
 explicit budget. RTL unchanged from prior all15bench rerun. Publish runnerfix
 and check next exactcommitCI; do not stop at the failed older run.
+CI run35471787489 passed lint/build but failed new recoverybench:under5.020,
+TB ids=71c0b23d01 while recon inputport remained0,causing duplicate-ID gain_err.
+Built v5.020 source locally viaCMake to reproduce (CMake versionbanner blank;
+local runtime requiresstandard<coroutine>header andC++20 forAppleClang21).
+No RTL/compiler-logic changes made tothisdebugbuild. Bench now constructs
+next_ids/next_main/next_sub thenpublishes full packed buses oncepertransaction.
+Local5.020 recovery nowpasses2048samples,maxerror4vs504. Full5.020 rerunrunning.
+Also corrected documentation toexact repository coefficient units:effectiveC/Cf
+alreadycontainsRAchargegain; F/OareRA-postADC2voltage normalizedbyinputVfs;
+common injection I affectsallparticipatingcells. Recoveryfixture nowusesgain32
+andpostRAADC2range ratherthan an equivalentdeembeddedgain1 scaling.
+Pendinglocal edits:ADR/report/recoverybench/checkpoint; publishonlyafterfollowup.
+
+Final portability follow-up: all15 benches PASS with locally built v5.020 source
+(first9 plus remaining6 after fixing a pre-existing string diagnostic from %0d
+to %s). No compiler-logic patches; only macOS C++20/coroutine runtime adaptation.
+Modern frontend final recovery/P2/P2 oracle parity and3strict lint profiles PASS.
+Recovery fixture uses atomic packed-bus publication and physical C/Cf gain32.
+Remaining: refresh source evidence, publish follow-up and check native Linux CI
+on the exact final commit. Prior failed CI must not be reported as passing.

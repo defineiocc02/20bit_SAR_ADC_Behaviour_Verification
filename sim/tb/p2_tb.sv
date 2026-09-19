@@ -733,7 +733,7 @@ module p2_tb;
   initial begin
     if (!$value$plusargs("vdir=%s", vdir)) vdir = "sim/vectors";
     if (!$value$plusargs("only=%s", only)) only = "";
-    $display("p2_tb: vdir=%s NLAT=%0d only=%0d", vdir, NLAT, only);
+    $display("p2_tb: vdir=%s NLAT=%0d only=%s", vdir, NLAT, only);
 
     rst_n       = 1'b0;
     d_start     = 1'b0;

@@ -1,6 +1,6 @@
 {
   "date": "2026-09-20",
-  "base_commit": "d9140262a2774a76012012c48f0edc667ec2e061",
+  "base_commit": "c8a6dbcdf7917d24e39ae0f35f6ea8512af069ea",
   "scope": "digital structure and physical coefficient correction; source-derived mechanisms with explicit implementation assumptions",
   "rtl_module_count": 24,
   "source_sha256": {
@@ -32,12 +32,12 @@
     "rtl/top/sadc_enc.sv": "2471ca335a0fd587f8dc0ec787c4e63a888f6882396e2618e216516237a38875",
     "rtl/top/sar20_digital_core.sv": "034fa38821d65a2fc8b353a25620cb1ae178921b04a4657c8a916095e6b4f2f0",
     "sim/tb/calibration_physical_tb.sv": "5bb94083f056da90439613d1cbc4028d86c94d66e16db5ce14b540e201ec1e91",
-    "sim/tb/calibration_recovery_tb.sv": "7680820c637a3b2d6d2e99a594096592bef815248b44e46d6d140ffd59b32850",
+    "sim/tb/calibration_recovery_tb.sv": "caaefd533252c5ae000e8e363dc8ea3ef7376a48baa9e84c8d1ea7470bf92749",
     "sim/tb/p1_tb.sv": "5e2036b927890f7f83ce3bae540ded035572d228bb3fdfd74ccc1d45e3813498",
     "sim/tb/p2_oracle_tb.sv": "11339db76a0c5e664114c7376875220e081377d266221d36a7ff39b569476b54",
     "sim/tb/p2_periph_tb.sv": "c89ea598c20f0fdb000a3c35c06825b43f1872801229a48beb61c1897f0c3bbe",
     "sim/tb/p2_smoke_tb.sv": "f42290f8e0f332b8d40bc20399f0efa4fdb16315bdd24d500d46e969fe58de78",
-    "sim/tb/p2_tb.sv": "d02db966a8e85f40bbb5639542c52d1c8df856d6d4eccc4c8aae0dcac3749715",
+    "sim/tb/p2_tb.sv": "95615692a7ea21bb164c28fe51cbc2ad68e8d2098294af5db0fd47ccc8f22b99",
     "sim/tb/p3_top_tb.sv": "a7c8d406b38e3a24e8a7e2213f87b2b54454532afc3423df628d48cb90881016",
     "sim/tb/review_config_tb.sv": "66084ee90a3ab8a08e322696fad77bba9980bf515cd534079ee11925cccbc33f",
     "sim/tb/review_dither_tb.sv": "fcd79afc5f3239a21186d06781d4e963418f8857a38f07b0c95344dbed82fa52",
@@ -49,22 +49,22 @@
     "tools/run_open_rtl.py": "896823a24a2fad83a80f43a14a9d97494478a92569e89477ccdf1adfdb6b45c6"
   },
   "verilator_banner": "rev vUNKNOWN-built20260516-4e853d8",
-  "local_tool_note": "Wheel package reports5.48.0; simulation banner5.49 development build. Linux CI uses5.020; its result must be checked separately.",
+  "local_tool_note": "Per-log frontend is recorded. Modern wheel package5.48.0 reports runtime5.49; local source-tagv5.020 uses macOS C++20/coroutine runtime adaptation, no compiler-logic patches. Native Linux5.020 CI must be checked separately.",
   "lint": [
     {
       "hierarchy": "sar20_digital_core.structural",
       "result": "PASS",
-      "log_sha256": "175af6bc888abfe3343cfae8d2e8dfc9e0b1ab582727f0a55f134b73ea1c37c6"
+      "log_sha256": "c0ab9936432b75afdc2c35622a5170759ce79fe16bba8ccf1541e97d0941ad53"
     },
     {
       "hierarchy": "sar20_digital_core.compatibility",
       "result": "PASS",
-      "log_sha256": "db3f8855865f5f61926d141f4e749d8be399a76635aef757bd98ba7fc0231282"
+      "log_sha256": "0f3310624d32f29f4e3aa1cde1ab28ed9e3b594d6cbe799fdc027168386a2842"
     },
     {
       "hierarchy": "sadc_enc.standalone",
       "result": "PASS",
-      "log_sha256": "fec2f97a590c9ecb285d8e77de21ac39122456ad98f6de11d9b95da87e1a11a3"
+      "log_sha256": "1a96393c63dde39077eb9b3a944706618af60e5d38e226d7ecf49771d034eea3"
     }
   ],
   "rtl_regressions": [
@@ -73,105 +73,120 @@
       "completion": [
         "SAR_TRIAL_COMPLETE fine_codes=4096 coarse_codes=512 stalls_and_cancel=PASS"
       ],
-      "log_sha256": "313003bb4593f295814c6e2fb8ca52f2b5119411ba721f13f7dc0553db8af5fb"
+      "log_sha256": "26d36d67e86b6703e49252c6ec98d119d49452217f646aee3ce2689c2bd74d80",
+      "frontend": "v5.020 source local CMake build"
     },
     {
       "top": "calibration_recovery_tb",
       "completion": [
         "CALIBRATION_RECOVERY_COMPLETE samples=2048 max_calibrated_error=4 max_uncalibrated_error=504"
       ],
-      "log_sha256": "45b9ea9499717949c48c972d12982fb85146e8ae7df8a446d91f7844183ac132"
+      "log_sha256": "0c255073d8c34d18b814f490e655b7c91ba53ec2f3583b731a4900324da92d12",
+      "frontend": "modern wheel5.49 runtime"
     },
     {
       "top": "structural_adc_tb",
       "completion": [
         "STRUCTURAL_ADC_COMPLETE modes=3 outputs=438 checks=7680 physical_slices=18"
       ],
-      "log_sha256": "3bca98e40aed1944dc502760437effd351fdfa7cea8e5c6c024a6740e33394d5"
+      "log_sha256": "51b43edcef964b64c88c331202ff38dd964a31c2a10d6ba46c6e0726ba073e64",
+      "frontend": "v5.020 source local CMake build"
     },
     {
       "top": "calibration_physical_tb",
       "completion": [
         "CALIBRATION_PHYSICAL_COMPLETE samples=2048 physical_slices=18"
       ],
-      "log_sha256": "e5b1f49fa2e135330cc5fd1822bf52599d7beb4c271b0035d2ecdf09bd245700"
+      "log_sha256": "589610a4c195871250ab87583a3fb57cc9030e1ee7c0c559b735bce8a9c66e88",
+      "frontend": "v5.020 source local CMake build"
     },
     {
       "top": "review_top_protocol_tb",
       "completion": [
         "REVIEW_TOP_PROTOCOL_COMPLETE checks=1108 outputs=38"
       ],
-      "log_sha256": "14247465140613d79b3340b5ab2d5bf37612dbf1ba1daee07df6f499ea195224"
+      "log_sha256": "6a9f3440b8050c81b1b6bc2e5adc58f42df9a2cb075ae11fe55bfc42882ee023",
+      "frontend": "v5.020 source local CMake build"
     },
     {
       "top": "review_leaf_tb",
       "completion": [
         "REVIEW_LEAF_COMPLETE checks=91142"
       ],
-      "log_sha256": "6a6642748a416ff1f6cd0775ce95321d089a54ed3619c14e4ba625dd8784c543"
+      "log_sha256": "1d58c5b5761c2ed04bf26866e122024560f1df10ee507c0c23c0de1195cffa13",
+      "frontend": "v5.020 source local CMake build"
     },
     {
       "top": "review_recon_protocol_tb",
       "completion": [
         "REVIEW_RECON_PROTOCOL_COMPLETE"
       ],
-      "log_sha256": "9812f973ecc1cac883d29288f0570d383ffcb67a121f77502515e2cb8cc7f0fc"
+      "log_sha256": "bd61e46b62371076337f6dba4fbfc062dc28b8e20fad77d2fb9a3233a88e1d21",
+      "frontend": "v5.020 source local CMake build"
     },
     {
       "top": "review_dither_tb",
       "completion": [
         "REVIEW_DITHER_COMPLETE"
       ],
-      "log_sha256": "4f34877b38b508204c6486339a5d963178a1563b3acdc0b740c68d17fbc688a3"
+      "log_sha256": "dc58dbb90f1af41ce1581eaa6f502f49167d0f3845dd6b33edfe78f58ef18af2",
+      "frontend": "v5.020 source local CMake build"
     },
     {
       "top": "review_config_tb",
       "completion": [
         "REVIEW_CONFIG_COMPLETE outputs=624"
       ],
-      "log_sha256": "82df45e4148a305990f18b3c93965bdfa777a8a7b3e6879c050d25d9a185d088"
+      "log_sha256": "ea7cd9d9c8ad0bddf39321eb6f3fe3156e7f91171d1ab440e5dbfa9955688b8e",
+      "frontend": "v5.020 source local CMake build"
     },
     {
       "top": "p2_tb",
       "completion": [
         "P2 RESULT: PASS"
       ],
-      "log_sha256": "50fc63fb01e3beb61498c5f15e77cbd0cee0803181a8cac1e44c2668fc55fbaf"
+      "log_sha256": "93579a7bc466c70dc2e26a4a3551aa0a80c53443086fabef277e20c11c6f6b40",
+      "frontend": "modern wheel5.49 runtime"
     },
     {
       "top": "p2_oracle_tb",
       "completion": [
         "P2_ORACLE_COMPLETE codes=1048576 errors=0"
       ],
-      "log_sha256": "156ce8903b5da06527c9c91b87970f4c7c4b5bcb50aab4c6bc07731df80adcf2"
+      "log_sha256": "4f7a989d5010ae895e77531fbd6cb6f99ef688c504203c5e2c44fd15211fbe7c",
+      "frontend": "modern wheel5.49 runtime"
     },
     {
       "top": "p2_periph_tb",
       "completion": [
         "p2_periph PASS"
       ],
-      "log_sha256": "c3e6f073dcea4f84db392920121ea83382d606d6a45a2d7f65cdc4d152afdeab"
+      "log_sha256": "9363ce037d0a759cce3b31a040968444ca9ba16780dcdacdc27c61df7954dcb1",
+      "frontend": "v5.020 source local CMake build"
     },
     {
       "top": "p2_smoke_tb",
       "completion": [
         "p2_smoke PASS"
       ],
-      "log_sha256": "86ada5f45d8a4724af417a97a458c859639e326fb7f167cebd2d6d5c689e7d3b"
+      "log_sha256": "203805213a4c2dc38e2457c0ae951758e5e0447fa0af43bbc906d1ce1cefcc18",
+      "frontend": "v5.020 source local CMake build"
     },
     {
       "top": "p1_tb",
       "completion": [
         "P1 RESULT: PASS"
       ],
-      "log_sha256": "10b56b525e52ae4632c4060a1458f3a5f14e6d30c237111e6c7b43b8b6fd887b"
+      "log_sha256": "c1988ad8d5425159bd6fcdb5d383d6395e2601999abb2de05437b267c57cd956",
+      "frontend": "v5.020 source local CMake build"
     },
     {
       "top": "p3_top_tb",
       "completion": [
         "P3 TOP RESULT: PASS"
       ],
-      "log_sha256": "8e378a8e550f4da2905ca3dc41a997211eb356968305967f6d3a05e461b3bbb6"
+      "log_sha256": "ebccd66d55ab40fbe76cdaca474dcaa54e39ba4babdb3a4d7412a3d41efcc280",
+      "frontend": "v5.020 source local CMake build"
     }
   ],
   "python": {
@@ -217,9 +232,31 @@
     "clocked binary SAR and16tick schedule do not demonstrate published7ns conversion or20bit analog settling",
     "analog switch/RA/reference transistor structures require separate macro/netlist implementation"
   ],
+  "local_v5020_compatibility": {
+    "source_tag": "v5.020",
+    "platform": "macOS AppleClang21 CMake build",
+    "runtime_adaptation": "standard coroutine header and C++20 make flags; no RTL or compiler-logic patches",
+    "package_banner_note": "upstream experimental CMake build leaves the package string blank",
+    "benches": {
+      "sar_trial_tb": "26d36d67e86b6703e49252c6ec98d119d49452217f646aee3ce2689c2bd74d80",
+      "calibration_recovery_tb": "54b981cb4f210916fea3026878b34ede8e12f4b147dc7f11b4929e850c0eebe0",
+      "structural_adc_tb": "51b43edcef964b64c88c331202ff38dd964a31c2a10d6ba46c6e0726ba073e64",
+      "calibration_physical_tb": "589610a4c195871250ab87583a3fb57cc9030e1ee7c0c559b735bce8a9c66e88",
+      "review_top_protocol_tb": "6a9f3440b8050c81b1b6bc2e5adc58f42df9a2cb075ae11fe55bfc42882ee023",
+      "review_leaf_tb": "1d58c5b5761c2ed04bf26866e122024560f1df10ee507c0c23c0de1195cffa13",
+      "review_recon_protocol_tb": "bd61e46b62371076337f6dba4fbfc062dc28b8e20fad77d2fb9a3233a88e1d21",
+      "review_dither_tb": "dc58dbb90f1af41ce1581eaa6f502f49167d0f3845dd6b33edfe78f58ef18af2",
+      "review_config_tb": "ea7cd9d9c8ad0bddf39321eb6f3fe3156e7f91171d1ab440e5dbfa9955688b8e",
+      "p2_tb": "e0371b9b9c7bf2fc7c0ed73220ec3854a3c95880bfd85cbca08c459847a784f6",
+      "p2_oracle_tb": "fbc7ffc55d6747eee6d3df52e10d9124543629132f64e3594520da8f62d8ddf1",
+      "p2_periph_tb": "9363ce037d0a759cce3b31a040968444ca9ba16780dcdacdc27c61df7954dcb1",
+      "p2_smoke_tb": "203805213a4c2dc38e2457c0ae951758e5e0447fa0af43bbc906d1ce1cefcc18",
+      "p1_tb": "c1988ad8d5425159bd6fcdb5d383d6395e2601999abb2de05437b267c57cd956",
+      "p3_top_tb": "ebccd66d55ab40fbe76cdaca474dcaa54e39ba4babdb3a4d7412a3d41efcc280"
+    }
+  },
   "elaboration": {
     "verilator_unroll_count": 8192,
-    "reason": "4095 production nodes, up to8191 for coefficient-store geometry",
-    "local_followup": "three strict lint profiles and structural_adc_tb PASS; RTL unchanged from all15bench rerun"
+    "reason": "4095 production nodes; up to8191 for coefficient-store geometry"
   }
 }

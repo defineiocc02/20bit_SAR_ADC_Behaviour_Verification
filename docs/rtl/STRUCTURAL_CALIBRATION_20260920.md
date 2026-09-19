@@ -31,7 +31,7 @@
 |---|---|---|
 | `weight_store` / `calib_regs` | 完整系数镜像与 epoch 原子生效 | written bitmap、sum_all、cfg_ready、禁止运行时写入 |
 | `cal_weight_reduce` | 物理掩码路由及平衡求和 | active、physical_on、sum_W、sum_Wa、rails、invalid_slice |
-| `cal_residue_mac` | 余差、偏置、独立注入与增益乘加 | op1/op2/op3、num、any_ovf |
+| `cal_residue_mac` | 余差、偏置、独立公共注入与增益乘加 | op1/op2/op3、num、any_ovf |
 | `div_floor` | 带符号向下取整 | P_STAGES、busy/done/err、q |
 | `cal_output_stage` | 输出码和元数据同拍提交 | sample_id、flags、保持旧合法码的条件 |
 | `recon_core` | 校正事务控制 | stage_b、gain_s、rails_s、采样/配置撤销 |
@@ -57,8 +57,9 @@ RTL 实现的是系数应用链。可靠的外部标定建议采用以下流程�
    1278个物理系数并不保证能被一条固定正弦唯一识别。未充分激励的共线系数应合并、
    施加有依据的先验或重新采集，不能仅凭训练残差小就宣布标定成功。
 4. 先明确整体增益、参考幅度、后级增益和偏置的尺度约束。它们与所有权重同时自由变化
-   会产生不可辨识解。ADC2 的 min/max 应表达重构所需的去增益余差域，不能把RA后电压
-   直接填入、又在别处重复除以32。
+   会产生不可辨识解。本仓库权重为有效C/Cf（子单元含β），已经包含RA电荷增益；ADC2的
+   min/max与offset取RA后电压并除以输入Vfs形成Q32，不能额外重复除以32。
+   若另选去增益约定，必须同时一致缩放全部权重、F和O，不能只改其中一项。
 5. 系数做正值约束、异常点处理与独立留出验证，量化到Q30后再跑同一组留出集。
    检查量化后的权重范围、总和、剩余增益、负数floor、边界clip和异常保持语义。
 6. 将完整表与三个标量作为同一版配置写入，validate后冻结。记录标定数据hash、
@@ -75,7 +76,8 @@ RTL 实现的是系数应用链。可靠的外部标定建议采用以下流程�
 - `calibration_physical_tb`：2048组带物理系数差异的事务覆盖18个 slice；256-bit
   独立整数 oracle 检查权重、采样轨、偏置、注入、floor、clip、sample ID 和重复ID拒绝。
 - `calibration_recovery_tb`：由真实失配系数与已知输入反算模拟余差，再独立量化为ADC2码。
-  2048个样本中，真实权重校正最大误差4个输出码，标称权重对照504个码。
+  采用有效C/Cf总增益32、RA后ADC2量程和12-bit量化；2048个样本中，
+  真实权重校正最大误差4个输出码，标称权重对照504个码。
   该夹具的后级量化预算为±4码并留1码边界裕量；这是算法恢复测试，**不是芯片INL/DR指标**。
 - `structural_adc_tb`：仅用顶层模拟控制端口响应SAR试探，按真实RDAC引脚求解校正期望。
   覆盖关dither/采样dither/量化器dither三种模式、全部18 slice、参考与AZ互斥、
@@ -86,6 +88,11 @@ RTL 实现的是系数应用链。可靠的外部标定建议采用以下流程�
 
 本地最终结果：15个SV测试台、3组严格lint通过，Python 572 passed / 3 deselected；
 ruff/format/mypy通过。两个隔离负对照在成功编译后检出了“系数错误别名”和“RDAC使用试探码”。
+
+工具兼容性复核：本地由Verilator v5.020源码构建的前端运行全部15个测试台通过；
+仅为AppleClang适配C++20/coroutine运行时，没有修改编译器逻辑。新版本前端此前全量通过，
+最后修改的恢复夹具及P2/P2 oracle再次通过。恢复夹具按事务一次性提交完整packed总线，
+避免旧前端漏传播协程内逐元素赋值；P2诊断字符串使用`%s`。原生Linux5.020结果以当前PR CI为准。
 
 最终执行结果及源文件hash见同目录 `evidence/structural_calibration_20260920.json`。
 日志由 `tools/run_open_rtl.py` 生成到 `sim/artifacts/open_rtl/`，本地和CI使用相同入口。

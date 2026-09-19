@@ -157,8 +157,12 @@ def test_injection_is_byte_faithful_outside_the_site(tmp_path):
     """副本除"命中那一行"外必须逐字节相同 —— **包括行尾**。
 
     第一版用 ``Path.read_text()``/``write_text()``，把整个文件的 CRLF 静默换成 LF，
-    于是"只改了一处"就成了假话。本仓库 blob 是 LF，但 Windows worktree 检出是 CRLF，
-    所以这条断言必须真的比较字节而不是比较"文本相等"。
+    于是"只改了一处"就成了假话。所以这条断言必须真的比较字节，而不是"文本相等"。
+
+    **但不断言"检出用哪种行尾"**：仓库已加 ``.gitattributes``（``* text=auto eol=lf``），
+    检出可以是 LF，旧 checkout 也可能是 CRLF。这里只要求"命中行的行尾与源文件一致"
+    （即注入没有顺手改行尾）。把检出策略写进断言会再造一条"随 checkout 变红"的假门禁 ——
+    本仓 2026-09-19 已因这类假门禁吃过三次亏。
     """
     before = _hash_tree(mrt.RTL_ROOT)
     site = next(
@@ -180,7 +184,11 @@ def test_injection_is_byte_faithful_outside_the_site(tmp_path):
     assert len(src_lines) == len(new_lines)
     for i, (a, b) in enumerate(zip(src_lines, new_lines, strict=False)):
         if i == site.line - 1:
-            assert a != b and a.endswith(b"\r\n") and b.endswith(b"\r\n")
+            assert a != b, "命中行必须真的被改"
+            a_eol = a[len(a.rstrip(b"\r\n")) :]
+            b_eol = b[len(b.rstrip(b"\r\n")) :]
+            assert a_eol == b_eol, f"命中行的行尾被顺手改了：{a_eol!r} -> {b_eol!r}"
+            assert a_eol in (b"\n", b"\r\n"), f"意外的行尾：{a_eol!r}"
         else:
             assert a == b, f"第 {i + 1} 行被顺手改了"
 

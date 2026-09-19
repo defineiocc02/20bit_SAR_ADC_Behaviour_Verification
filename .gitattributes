@@ -1,0 +1,61 @@
+# 统一行尾：仓库内文本一律以 LF 入库、以 LF 检出。
+#
+# 背景（2026-09-19 定）：本仓在 Windows + core.autocrlf=true 的检出下，
+# 工作区会拿到 CRLF 的 shell 脚本，导致 `sim/run_vcs.sh` 直接失败：
+#     ./run_vcs.sh: line 2: set: pipefail
+#     : invalid option name
+# 同一根因还造成过三类"门禁红了但代码没错"的假红：
+#   ① `tools/export_rtl_params.py --check` 把行尾差异当成漂移；
+#   ② `test_p2_vectors_all_exist_and_stay_under_the_pre_commit_limit` 拿磁盘字节数
+#      （CRLF）与 report 里的 LF 口径字节数相比；
+#   ③ `git status` 长期显示若干"内容相同、只差行尾"的伪 modified 文件。
+# 故本文件把策略写死在版本库里，不再依赖每个贡献者本机的 core.autocrlf。
+#
+# 判据：`git add --renormalize .` 之后，已入库文本文件不应发生任何内容变更
+#（换行策略只管"检出成什么"，不改变库内已有的 LF 字节）。
+* text=auto eol=lf
+
+# --- 显式声明（防止将来有人改成别的全局策略时静默漂移）---
+*.sh    text eol=lf
+*.tcl   text eol=lf
+*.py    text eol=lf
+*.sv    text eol=lf
+*.svh   text eol=lf
+*.vh    text eol=lf
+*.v     text eol=lf
+*.f     text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+*.hex   text eol=lf
+*.csv   text eol=lf
+*.tsv   text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.toml  text eol=lf
+*.cfg   text eol=lf
+*.conf  text eol=lf
+*.sdc   text eol=lf
+*.itf   text eol=lf
+
+# --- 明确二进制：避免被 text=auto 误判后做 EOL 改写 ---
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.pdf    binary
+*.zip    binary
+*.gz     binary
+*.tar    binary
+*.rar    binary
+*.exe    binary
+*.dll    binary
+*.so     binary
+*.o      binary
+*.gds    binary
+*.vdb    binary
+*.db     binary
+*.ddc    binary
+*.fsdb   binary
+*.vcd    binary
+*.svf    binary
+*.bin    binary

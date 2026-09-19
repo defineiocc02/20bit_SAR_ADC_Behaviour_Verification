@@ -1,6 +1,6 @@
 {
   "date": "2026-09-20",
-  "base_commit": "508206670b7be8810bbe353d4e2c0ea51f1f8d74",
+  "base_commit": "e667ed75708335a14f8a904a24acc4c80958b9f2",
   "scope": "digital structure and physical coefficient correction; source-derived mechanisms with explicit implementation assumptions",
   "rtl_module_count": 24,
   "source_sha256": {
@@ -9,7 +9,7 @@
     "rtl/core/cal_output_stage.sv": "30cb3de766b0c2f316bd65f519304e95a35897b55568564e56c999c8bac0c0c2",
     "rtl/core/cal_residue_mac.sv": "082a93293cda83f79ff0ac7ef72e484043f8bbceb914361f270059b4bb764f71",
     "rtl/core/cal_sample_context.sv": "8b0ff4527b6ff5936d378945bcfd38d2c203a43fb7d2cb4d0271a8f655bb9e56",
-    "rtl/core/cal_weight_reduce.sv": "20d66bf03d76a9113718f385f9bed9eb24fac49b6e3c17cc8bff773a11b9eb3c",
+    "rtl/core/cal_weight_reduce.sv": "4a04e5909c6aadd5c87f92020f7fcb1be33d8a8524780b3d48112d9c3ecf4df3",
     "rtl/core/calib_regs.sv": "feff5d1d6c0359b427c5950ae6dec6db45e5e9707f44a06623681f5176c3e44b",
     "rtl/core/ctrl_fsm.sv": "a04e9104a93819ed35d35f6a11355c4ee3afbaa0d4b020f6e17e5540b610041f",
     "rtl/core/dem_addr_gen.sv": "aa5bd5c4d00fa2a5d77f81fcc99011246ed08ab01f00be3e92fcd42728f466ba",
@@ -29,7 +29,7 @@
     "rtl/params/rtl_error_codes.vh": "ab67fff7eeff034da996d8c0442b529dc8476bb1eafca349f360c9e873bcc0ce",
     "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
     "rtl/rtl_sources.f": "edd37615fffd18cecfad620de2beab15f581639e8bc8520891b33487b7e98f7e",
-    "rtl/top/sadc_enc.sv": "a6b57de18adc6a7a7795481ce003a911881b0aeefb97537e66ad3151ef9eee5e",
+    "rtl/top/sadc_enc.sv": "2471ca335a0fd587f8dc0ec787c4e63a888f6882396e2618e216516237a38875",
     "rtl/top/sar20_digital_core.sv": "034fa38821d65a2fc8b353a25620cb1ae178921b04a4657c8a916095e6b4f2f0",
     "sim/tb/calibration_physical_tb.sv": "5bb94083f056da90439613d1cbc4028d86c94d66e16db5ce14b540e201ec1e91",
     "sim/tb/calibration_recovery_tb.sv": "7680820c637a3b2d6d2e99a594096592bef815248b44e46d6d140ffd59b32850",
@@ -45,7 +45,7 @@
     "sim/tb/review_recon_protocol_tb.sv": "19a08952dc4c4db4d476bfa217b187b45a64fa0eaabfa8868c8ec439858fa26f",
     "sim/tb/review_top_protocol_tb.sv": "37ca964501085c611cedafd4a797c2b9b97f5a88adf2c21f816d73893ce5deec",
     "sim/tb/sar_trial_tb.sv": "aa950287ce516d8c04c622b7caf89842e79996731ff54b55437bd748d30d106a",
-    "sim/tb/structural_adc_tb.sv": "f89c9ac5541bb52bddac278d885a1d42ceea75c1040697f7d1af49c3dc454ca4",
+    "sim/tb/structural_adc_tb.sv": "f54ba2e02c71dee9d44a73f0b9863a5d673c26bba45d2c0f37f3303d27fb5142",
     "tools/run_open_rtl.py": "a197c1fa209ca5fb1decc3f1f79fac59d86ebb2207992d54b3f5f45e92cbd9ed"
   },
   "verilator_banner": "rev vUNKNOWN-built20260516-4e853d8",
@@ -54,17 +54,17 @@
     {
       "hierarchy": "sar20_digital_core.structural",
       "result": "PASS",
-      "log_sha256": "44cb31039f116c7c1359adbe07df1ce0f79e7b2738c8023a190ade767073ed20"
+      "log_sha256": "5d9b6ae20a31a481a2403c8877b4373bec730839c751ca3c6ab90bc48437f3a4"
     },
     {
       "hierarchy": "sar20_digital_core.compatibility",
       "result": "PASS",
-      "log_sha256": "df16615c1ac9890a655f088a0de871882b00fe6719235315b877f0ce5aeb2708"
+      "log_sha256": "a65e201dd02db4126353a919f1c5e01d09c4e46952967bd2c61f62818a833b85"
     },
     {
       "hierarchy": "sadc_enc.standalone",
       "result": "PASS",
-      "log_sha256": "3937bf8a4552c4e6b3dfa3b78077fdd284caf98b2b591b79159e4b9a13bf1540"
+      "log_sha256": "2b76213ec7a96b306211146f7483000ad079c9cf47d9fae57b612022dd8419e9"
     }
   ],
   "rtl_regressions": [
@@ -73,112 +73,117 @@
       "completion": [
         "SAR_TRIAL_COMPLETE fine_codes=4096 coarse_codes=512 stalls_and_cancel=PASS"
       ],
-      "log_sha256": "53586b5d4e88bd6862cfe638e0cc1855a69d3b3923b91b7e9f459ef50ba38704"
+      "log_sha256": "313003bb4593f295814c6e2fb8ca52f2b5119411ba721f13f7dc0553db8af5fb"
     },
     {
       "top": "calibration_recovery_tb",
       "completion": [
         "CALIBRATION_RECOVERY_COMPLETE samples=2048 max_calibrated_error=4 max_uncalibrated_error=504"
       ],
-      "log_sha256": "3b6da0f2d77ef8a4c35eba17487f2b45d32bff5ff94ff5d9e32e3fbea010d978"
+      "log_sha256": "45b9ea9499717949c48c972d12982fb85146e8ae7df8a446d91f7844183ac132"
     },
     {
       "top": "structural_adc_tb",
       "completion": [
         "STRUCTURAL_ADC_COMPLETE modes=3 outputs=438 checks=7680 physical_slices=18"
       ],
-      "log_sha256": "3cb09cfe80f12ffc5a39093161d8eb7628acc1fe2e42e46a189d5cec0014fc89"
+      "log_sha256": "e0f879cead6cd88451b511e22580cae7beb02d0662600125347b787b10917a9a"
     },
     {
       "top": "calibration_physical_tb",
       "completion": [
         "CALIBRATION_PHYSICAL_COMPLETE samples=2048 physical_slices=18"
       ],
-      "log_sha256": "d69bdbb4c73b07d341fc88eee3ab5902a4eb797cb5bac2eaa690714d56cb2caf"
+      "log_sha256": "e5b1f49fa2e135330cc5fd1822bf52599d7beb4c271b0035d2ecdf09bd245700"
     },
     {
       "top": "review_top_protocol_tb",
       "completion": [
         "REVIEW_TOP_PROTOCOL_COMPLETE checks=1108 outputs=38"
       ],
-      "log_sha256": "4d482be7cf0c18796c5c1960005bcdeeef512af2c18c26f92c4a836856619013"
+      "log_sha256": "14247465140613d79b3340b5ab2d5bf37612dbf1ba1daee07df6f499ea195224"
     },
     {
       "top": "review_leaf_tb",
       "completion": [
         "REVIEW_LEAF_COMPLETE checks=91142"
       ],
-      "log_sha256": "28f9fbeb96cd86893cb21ad36cdf3997ceba429cbeee479106dd0a7c48a4c41a"
+      "log_sha256": "6a6642748a416ff1f6cd0775ce95321d089a54ed3619c14e4ba625dd8784c543"
     },
     {
       "top": "review_recon_protocol_tb",
       "completion": [
         "REVIEW_RECON_PROTOCOL_COMPLETE"
       ],
-      "log_sha256": "1a6a106186d61cb1151aa2e04a8d712d6645b44114b8faea22f34a19b334bfa6"
+      "log_sha256": "9812f973ecc1cac883d29288f0570d383ffcb67a121f77502515e2cb8cc7f0fc"
     },
     {
       "top": "review_dither_tb",
       "completion": [
         "REVIEW_DITHER_COMPLETE"
       ],
-      "log_sha256": "9edcd74ea44b13b208aca59f9c31dee5be880344c74350e0b3315e70521d69ff"
+      "log_sha256": "4f34877b38b508204c6486339a5d963178a1563b3acdc0b740c68d17fbc688a3"
     },
     {
       "top": "review_config_tb",
       "completion": [
         "REVIEW_CONFIG_COMPLETE outputs=624"
       ],
-      "log_sha256": "6e446388e477a9e38809d1520f8b8744446eb06b944b91d9181274c8d16b4564"
+      "log_sha256": "82df45e4148a305990f18b3c93965bdfa777a8a7b3e6879c050d25d9a185d088"
     },
     {
       "top": "p2_tb",
       "completion": [
         "P2 RESULT: PASS"
       ],
-      "log_sha256": "e0e1f273a7a40e0f426b0e96bb5a83ac32035a07089a5fef15479e922f8c317a"
+      "log_sha256": "50fc63fb01e3beb61498c5f15e77cbd0cee0803181a8cac1e44c2668fc55fbaf"
     },
     {
       "top": "p2_oracle_tb",
       "completion": [
         "P2_ORACLE_COMPLETE codes=1048576 errors=0"
       ],
-      "log_sha256": "a0b524068347bb9b079da09903b4d33d3d04f5a8275e296c9410115be3736754"
+      "log_sha256": "156ce8903b5da06527c9c91b87970f4c7c4b5bcb50aab4c6bc07731df80adcf2"
     },
     {
       "top": "p2_periph_tb",
       "completion": [
         "p2_periph PASS"
       ],
-      "log_sha256": "ef7171edd0d29f7862f7c99c653a613513f33bf37ed4264b9c2dcae3b5e7d5c5"
+      "log_sha256": "c3e6f073dcea4f84db392920121ea83382d606d6a45a2d7f65cdc4d152afdeab"
     },
     {
       "top": "p2_smoke_tb",
       "completion": [
         "p2_smoke PASS"
       ],
-      "log_sha256": "d646577f1e220c1c2190242ed8ce571574384a847f2b7dad64a817a8091cc9ac"
+      "log_sha256": "86ada5f45d8a4724af417a97a458c859639e326fb7f167cebd2d6d5c689e7d3b"
     },
     {
       "top": "p1_tb",
       "completion": [
         "P1 RESULT: PASS"
       ],
-      "log_sha256": "6524c44bce0c2f96f09db6c90113f5bde9b75d8d8763e49a18121325b5a1b713"
+      "log_sha256": "10b56b525e52ae4632c4060a1458f3a5f14e6d30c237111e6c7b43b8b6fd887b"
     },
     {
       "top": "p3_top_tb",
       "completion": [
         "P3 TOP RESULT: PASS"
       ],
-      "log_sha256": "ebaad101b7b63926ec6d3cb8e8aa674edde78fe056836ef6f8623b761d25128b"
+      "log_sha256": "8e378a8e550f4da2905ca3dc41a997211eb356968305967f6d3a05e461b3bbb6"
     }
   ],
   "python": {
     "passed": 572,
     "deselected": 3,
     "log_sha256": "353d2e8c68990a05c09bcb6c65330d856c5fb22660357cbcc67d19042d1cc941",
-    "elapsed_seconds": 274.78
+    "elapsed_seconds": 274.78,
+    "affected_followup": {
+      "passed": 55,
+      "elapsed_seconds": 2.98,
+      "reason": "named-node reduction portability change"
+    }
   },
   "quality": {
     "ruff": "PASS",

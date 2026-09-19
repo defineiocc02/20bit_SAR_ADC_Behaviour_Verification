@@ -29,14 +29,10 @@ module cal_weight_reduce #(
   localparam int DIT_BEG = P_DIT_END-P_DIT_N;
   localparam int N_TERMS = P_N_SLICES * N_U;
   localparam int TREE_LEAVES = 1 << $clog2(N_TERMS);
-  wire [SUM_BITS-1:0] tree_W [1:2*TREE_LEAVES-1];
-  wire [SUM_BITS-1:0] tree_Wa [1:2*TREE_LEAVES-1];
-  wire [SUM_BITS-1:0] tree_Won [1:2*TREE_LEAVES-1];
-  wire signed [W_RAIL-1:0] tree_Wr [1:2*TREE_LEAVES-1];
-  assign sum_W = tree_W[1];
-  assign sum_Wa = tree_Wa[1];
-  wire [SUM_BITS-1:0] sum_Won = tree_Won[1];
-  wire signed [W_RAIL-1:0] sum_Wr = tree_Wr[1];
+  assign sum_W = g_node[1].total;
+  assign sum_Wa = g_node[1].gain;
+  wire [SUM_BITS-1:0] sum_Won = g_node[1].on_sum;
+  wire signed [W_RAIL-1:0] sum_Wr = g_node[1].dither_sum;
 
   initial begin
     if (P_N_ACTIVE < 1 || P_N_MAIN < 1 || P_N_SUB < 1 ||
@@ -72,38 +68,39 @@ module cal_weight_reduce #(
     end
   end
 
-  // Explicit balanced reductions: ceil(log2(N_TERMS)) add levels, rather than
-  // relying on the tool to rebalance a procedurally accumulated wide sum.
-  for (genvar t = 0; t < TREE_LEAVES; t++) begin : g_terms
-    if (t < N_TERMS) begin : g_used
-      localparam int S = t / N_U;
-      localparam int U = t % N_U;
+  // Each generated node owns distinct nets: dependencies always point from
+  // t to 2*t/2*t+1. Do not coalesce them into one unpacked array: older tools
+  // conservatively report a loop on that aggregate despite this acyclic graph.
+  for (genvar t = 1; t < 2*TREE_LEAVES; t++) begin : g_node
+    wire [SUM_BITS-1:0] total, gain, on_sum;
+    wire signed [W_RAIL-1:0] dither_sum;
+    if (t < TREE_LEAVES) begin : g_branch
+      assign total = g_node[2*t].total + g_node[2*t+1].total;
+      assign gain = g_node[2*t].gain + g_node[2*t+1].gain;
+      assign on_sum = g_node[2*t].on_sum + g_node[2*t+1].on_sum;
+      assign dither_sum = g_node[2*t].dither_sum + g_node[2*t+1].dither_sum;
+    end else if (t-TREE_LEAVES < N_TERMS) begin : g_leaf
+      localparam int S = (t-TREE_LEAVES) / N_U;
+      localparam int U = (t-TREE_LEAVES) % N_U;
       wire [W_BITS-1:0] weight = active[S] ? w_rom[S][U] : '0;
-      wire selected = physical_on[S][U];
       wire [SUM_BITS-1:0] extended = {{(SUM_BITS-int'(W_BITS)){1'b0}}, weight};
-      assign tree_W[TREE_LEAVES+t] = extended;
-      assign tree_Won[TREE_LEAVES+t] = selected ? extended : '0;
+      assign total = extended;
+      assign on_sum = physical_on[S][U] ? extended : '0;
       if (U >= DIT_BEG && U < P_DIT_END) begin : g_dither
         wire signed [W_RAIL-1:0] signed_weight = $signed({{(W_RAIL-int'(W_BITS)){1'b0}}, weight});
-        assign tree_Wa[TREE_LEAVES+t] = sampling_mask_en ? '0 : extended;
-        assign tree_Wr[TREE_LEAVES+t] = !sampling_mask_en ? '0 :
+        assign gain = sampling_mask_en ? '0 : extended;
+        assign dither_sum = !sampling_mask_en ? '0 :
           (dither_rail[U-DIT_BEG] ? signed_weight : -signed_weight);
       end else begin : g_signal
-        assign tree_Wa[TREE_LEAVES+t] = extended;
-        assign tree_Wr[TREE_LEAVES+t] = '0;
+        assign gain = extended;
+        assign dither_sum = '0;
       end
     end else begin : g_padding
-      assign tree_W[TREE_LEAVES+t] = '0;
-      assign tree_Wa[TREE_LEAVES+t] = '0;
-      assign tree_Won[TREE_LEAVES+t] = '0;
-      assign tree_Wr[TREE_LEAVES+t] = '0;
+      assign total = '0;
+      assign gain = '0;
+      assign on_sum = '0;
+      assign dither_sum = '0;
     end
-  end
-  for (genvar t = 1; t < TREE_LEAVES; t++) begin : g_reduce
-    assign tree_W[t] = tree_W[2*t] + tree_W[2*t+1];
-    assign tree_Wa[t] = tree_Wa[2*t] + tree_Wa[2*t+1];
-    assign tree_Won[t] = tree_Won[2*t] + tree_Won[2*t+1];
-    assign tree_Wr[t] = tree_Wr[2*t] + tree_Wr[2*t+1];
   end
   assign rails = $signed({2'b0, sum_W}) - $signed({1'b0, sum_Won, 1'b0}) + sum_Wr;
 

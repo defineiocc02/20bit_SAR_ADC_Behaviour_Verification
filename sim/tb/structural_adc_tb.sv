@@ -33,8 +33,8 @@ module structural_adc_tb;
   wire [4:0] flags;
   logic signed [63:0] injection=0;
   int coarse_target=256,fine_target=2048;
-  assign coarse_ge[0]=coarse_target>=int'(trials[0]);
-  assign coarse_ge[1]=coarse_target>=int'(trials[1]);
+  assign coarse_ge[0]=(coarse_target+int'($signed(qdither[0])))>=int'(trials[0]);
+  assign coarse_ge[1]=(coarse_target+int'($signed(qdither[1])))>=int'(trials[1]);
   assign fine_ge=fine_target>=int'(fine_trial);
   sar20_digital_core dut(
     .clk(clk),.rst_n(rst_n),.cfg_wr(cfg_wr),.cfg_addr(cfg_addr),.cfg_wdata(cfg_wdata),
@@ -91,7 +91,9 @@ module structural_adc_tb;
   endtask
   task automatic check_resolved_follower();
     int resolved_prefix,equivalent_sum,expected_command;
-    resolved_prefix=(coarse_target >> (9-int'(phase))) << (9-int'(phase));
+    resolved_prefix=coarse_target;
+    if(mode==2) resolved_prefix+=int'($signed(qdither[(frame+1)%2]));
+    resolved_prefix=(resolved_prefix >> (9-int'(phase))) << (9-int'(phase));
     expected_command=resolved_prefix;
     if(mode==2) expected_command-=int'($signed(qdither[(frame+1)%2]));
     if(expected_command<0) expected_command=0;
@@ -144,7 +146,7 @@ module structural_adc_tb;
           injection=64'(frame*9173);
           flash_valid=(frame%37!=11);coarse_valid=(frame%37==12)?0:3;
           fine_valid=(frame%41!=13);
-          flash_therm=7'((1<<(coarse_target>>6))-1);
+          flash_therm=7'((1<<((coarse_target+int'($signed(qdither[(frame+1)%2])))>>6))-1);
           queue_expected();
         end
         if(phase==2 && conv!==acquired_at_edge)

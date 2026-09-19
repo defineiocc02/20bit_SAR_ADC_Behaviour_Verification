@@ -128,3 +128,16 @@ physical coefficients aliased toslice0; RDAC fedtrial instead ofresolved bits.
 Final sourcehashes and resultmarkers captured in structural_calibration evidence.
 ADR0018 and Chinese delivery report authored; remaining work:commit/publish,
 updatePR/Issue toexpandedfinalscope,andcheckexactpublishedcommit LinuxCI.
+
+Published e667ed75708335a14f8a904a24acc4c80958b9f2 to PR#3 and updated Issue#2.
+Linux run35471134154 rejected unpacked-array tree aliases asUNOPTFLAT under5.020;
+this is a strictlyacyclic t->2t/2t+1 tree. Replaced aggregate arrays in
+cal_weight_reduce and sadc_enc with independent named generated-node wires,
+without disabling warnings or changing latency/arithmetic. Strengthened structural
+TB so analog comparator AND flash actually include the physical quantizer dither
+command; RDAC must subtract it. This paired test passes. New local full15bench
+rerun in progress,55 affectedPython tests pass,2fresh negativecontrols detected.
+Pending:refresh evidence,commit/publish portability fix,check finalLinuxCI.
+Portability follow-up complete locally:all15benches rerun pass with named nodes
+and actual paired dither comparator stimulus;3strict lint profiles pass;
+55affectedPython tests and2negativecontrols pass. Evidence refreshed toexactRTL.

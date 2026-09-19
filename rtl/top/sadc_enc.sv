@@ -38,18 +38,17 @@ module sadc_enc #(
   localparam int ACC_W = $clog2(P_N_CMP + 1);    // 9：装得下 [0, P_N_CMP]
 
   localparam int LEAVES = 1 << $clog2(P_N_CMP);
-  wire [ACC_W-1:0] tree [1:2*LEAVES-1];
   initial begin
     if (P_B1 < 1 || P_B1 > 16 || P_N_CMP < 1 || ACC_W > P_B1)
       $fatal(1, "sadc_enc: invalid comparator count/output width");
   end
-  // Explicit balanced popcount, including zero padding for non-powers of two.
-  for (genvar i = 0; i < LEAVES; i++) begin : g_leaf
-    if (i < P_N_CMP) assign tree[LEAVES+i] = ACC_W'(cmp_raw[i]);
-    else assign tree[LEAVES+i] = '0;
+  // Named generated nodes avoid aggregate-array false combinational cycles
+  // in older tools. Children always have strictly larger constant indices.
+  for (genvar i = 1; i < 2*LEAVES; i++) begin : g_node
+    wire [ACC_W-1:0] count;
+    if (i < LEAVES) assign count = g_node[2*i].count + g_node[2*i+1].count;
+    else if (i-LEAVES < P_N_CMP) assign count = ACC_W'(cmp_raw[i-LEAVES]);
+    else assign count = '0;
   end
-  for (genvar i = 1; i < LEAVES; i++) begin : g_sum
-    assign tree[i] = tree[2*i] + tree[2*i+1];
-  end
-  assign sadc_code = P_B1'(tree[1]);
+  assign sadc_code = P_B1'(g_node[1].count);
 endmodule

@@ -107,6 +107,7 @@ proc dc_write_status {status {wns "NA"} {tns "NA"} {area "NA"} {cells "NA"}} {
     puts $f "DC_STATUS=$status"
     puts $f "WNS=$wns"
     puts $f "TNS=$tns"
+    puts $f "TNS_KIND=sampled_path_negative_slack_sum"
     set tnw "NA"
     if {[info exists ::TNS_NWORST] && $::TNS_NWORST ne ""} { set tnw $::TNS_NWORST }
     puts $f "TNS_NWORST=$tnw"
@@ -129,6 +130,9 @@ proc dc_write_status {status {wns "NA"} {tns "NA"} {area "NA"} {cells "NA"}} {
     set lp "0.02"
     if {[info exists ::env(LOAD_PF)] && $::env(LOAD_PF) ne ""} { set lp $::env(LOAD_PF) }
     puts $f "LOAD_PF=$lp"
+    set cu "1.0"
+    if {[info exists ::env(LIB_CAP_UNIT_PF)]} { set cu $::env(LIB_CAP_UNIT_PF) }
+    puts $f "LIB_CAP_UNIT_PF=$cu"
     # RTL 参数头文件的 payload sha：把"这份报告是哪一版参数产出的"钉死。
     # 头文件里自带 `payload sha : <hex>` 一行，由 tools/export_rtl_params.py 生成。
     set sha "NA"
@@ -153,7 +157,7 @@ proc dc_die {code msg} {
 
 # 取最差 slack；取不到返回 NA。
 # 注意 get_timing_paths **没有 -quiet** 选项（有会报 CMD-010）。
-proc dc_slack {delay_type nworst} {
+proc dc_slack {delay_type nworst {aggregate min}} {
     if {[catch { set paths [get_timing_paths -delay $delay_type -nworst $nworst -max_paths $nworst] } rc]} {
         puts "DC_WARN: get_timing_paths (-delay $delay_type) failed: $rc"
         return "NA"
@@ -166,6 +170,11 @@ proc dc_slack {delay_type nworst} {
         }
     }
     if {[llength $vals] == 0} { return "NA" }
+    if {$aggregate eq "sum_negative"} {
+        set total 0.0
+        foreach v $vals { if {$v < 0} { set total [expr {$total + $v}] } }
+        return $total
+    }
     set m [lindex $vals 0]
     foreach v $vals { if {$v < $m} { set m $v } }
     return $m
@@ -403,6 +412,11 @@ set ::RTL_PARAMS_SHA "NA"
 set ::LIB_DB_USED ""
 set CORNER     [expr {[info exists ::env(CORNER)] && $::env(CORNER) ne "" ? $::env(CORNER) : "tt0p9v25c"}]
 set DRIVE_CELL [expr {[info exists ::env(DRIVE_CELL)] && $::env(DRIVE_CELL) ne "" ? $::env(DRIVE_CELL) : "BUFFD2BWP7T40P140"}]
+# The documented TSMC library uses 1 pF per capacitance unit. Override for other libraries.
+set LIB_CAP_UNIT_PF [expr {[info exists ::env(LIB_CAP_UNIT_PF)] ? $::env(LIB_CAP_UNIT_PF) : "1.0"}]
+if {![string is double -strict $LIB_CAP_UNIT_PF] || !($LIB_CAP_UNIT_PF > 0 && $LIB_CAP_UNIT_PF < Inf)} {
+    dc_die 2 "LIB_CAP_UNIT_PF must be finite and positive"
+}
 set LOAD_PF    [expr {[info exists ::env(LOAD_PF)] && $::env(LOAD_PF) ne "" ? $::env(LOAD_PF) : "0.02"}]
 set IN_DELAY   [expr {[info exists ::env(IN_DELAY)] && $::env(IN_DELAY) ne "" ? $::env(IN_DELAY) : "0.0"}]
 set OUT_DELAY  [expr {[info exists ::env(OUT_DELAY)] && $::env(OUT_DELAY) ne "" ? $::env(OUT_DELAY) : "0.0"}]
@@ -647,17 +661,18 @@ if {[sizeof_collection $ports_in] > 0} {
     set_driving_cell -lib_cell $DRIVE_CELL -pin Z $ports_in
 }
 if {[sizeof_collection $ports_out] > 0} {
-    set_load [expr {$LOAD_PF * 1000.0}] $ports_out
+    set_load [expr {$LOAD_PF / $LIB_CAP_UNIT_PF}] $ports_out
 }
-if {$IN_DELAY  ne "0.0" && [sizeof_collection $ports_in]  > 0} {
+# Zero is an explicit timing budget, not a request to omit the constraint.
+if {[sizeof_collection $ports_in] > 0} {
     set_input_delay  $IN_DELAY  -clock $CLK_NAME $ports_in
 }
-if {$OUT_DELAY ne "0.0" && [sizeof_collection $ports_out] > 0} {
+if {[sizeof_collection $ports_out] > 0} {
     set_output_delay $OUT_DELAY -clock $CLK_NAME $ports_out
 }
 set_max_transition $MAX_TRANS [current_design]
 
-puts "DC_INFO: constraints = clk $CLK_NAME @ ${CLK_PERIOD}ns, drive=$DRIVE_CELL, load=${LOAD_PF}pF, max_trans=$MAX_TRANS"
+puts "DC_INFO: constraints = clk $CLK_NAME @ ${CLK_PERIOD}ns, drive=$DRIVE_CELL, load=${LOAD_PF}pF (library unit=${LIB_CAP_UNIT_PF}pF), max_trans=$MAX_TRANS"
 
 # ---- 5) compile ----------------------------------------------------------
 # COMPILE_MODE=compile 时走非 ultra 的 compile：快得多，面积/时序都差一些，
@@ -679,14 +694,20 @@ if {$DRF eq "0" && $COMPILE_MODE ne "compile"} {
     puts "DC_FATAL(exit 2): DESIGN_RULE_FIX=0 requires COMPILE_MODE=compile (compile_ultra has no -no_design_rule)"
     exit 2
 }
+if {$COMPILE_MODE ni {compile ultra}} {
+    puts "DC_FATAL(exit 2): unsupported COMPILE_MODE=$COMPILE_MODE"
+    exit 2
+}
+set comp_tool compile_ultra
 set comp_args [list -no_autoungroup]
 if {$COMPILE_MODE eq "compile"} {
+    set comp_tool compile
     set comp_args [list]
     if {$DRF eq "0"} { set comp_args [list -no_design_rule] }
 }
 dc_phase "compile begin (mode=$COMPILE_MODE design_rule_fix=$DRF)"
-puts "DC_INFO: compile args = '$comp_args'"
-if {[catch { compile {*}$comp_args } rc]} {
+puts "DC_INFO: compile command = $comp_tool; args = '$comp_args'"
+if {[catch { $comp_tool {*}$comp_args } rc]} {
     puts "DC_FATAL(exit 1): COMPILE_MODE=$COMPILE_MODE args='$comp_args' failed: $rc"
     exit 1
 }
@@ -736,11 +757,11 @@ set wns [dc_slack max 1]
 #   把整条 P_STAGES 扫描卡死在第一个参数点上。
 #   注意此时**所有报告都已经写完了**（area/timing/power/qor/check_design 都在盘上），
 #   卡住的只有 status.txt —— 也就是"把已经拿到的结果锁死在一个无关紧要的数字后面"。
-#   封顶后 TNS = 最差 N 条路径之和（是真实 TNS 的下界），对 WNS / 面积 / cell 数**无影响**；
-#   TNS 的绝对值本来也不是签核量（签核看 WNS + 违规条数，后者在 qor.rpt 里）。
+#   封顶后 TNS = 返回路径中负 slack 之和（非完整 endpoint TNS），对 WNS / 面积 / cell 数**无影响**；
+#   同一 endpoint 可能返回多条路径，不能把本字段当作完整 endpoint TNS；签核另读 STA 汇总。
 #   封顶值记进 status.txt 的 TNS_NWORST=，引用 TNS 时必须连着它一起引。
 set ::TNS_NWORST 2000
-set tns [dc_slack max $::TNS_NWORST]
+set tns [dc_slack max $::TNS_NWORST sum_negative]
 
 set area_val "NA"
 # `get_attribute [current_design] area` 在这个版本上返回空串（实测），

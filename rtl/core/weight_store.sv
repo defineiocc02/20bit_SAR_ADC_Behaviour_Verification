@@ -5,7 +5,7 @@
 //   保存 18 个物理 slice x 71 个单位（63 主 + 8 子）的 Q30 权重，向 recon_core
 //   提供只读的 `w_q`；写端口在**未生效期**接受单点写入，并对每个写做合法性与
 //   容量守卫。本模块**不做**一致性校验的最终裁决（那是 calib_regs.validate 的
-//   职责范围内的部分），也不做任何算术。
+//   职责范围内的部分）；维护写入期总和以检查容量，不执行样本重构算术。
 //
 // 来源
 //   docs/rtl/P2_INTERFACE.md §9（M12）；rtl/README.md §3.2（读写窗口）；
@@ -75,17 +75,9 @@ module weight_store #(
   logic [SUM_BITS-1:0] sum_new;
   logic [W_BITS-1:0]   cur_w;
 
-  integer s, u;
-
-  // ---- 全库求和（组合）。用于"写入后会不会越界"的前视判断 ----
-  always_comb begin
-    sum_all = {SUM_BITS{1'b0}};
-    for (s = 0; s < P_N_SLICES; s = s + 1) begin
-      for (u = 0; u < P_N_UNITS; u = u + 1) begin
-        sum_all = sum_all + {{(SUM_BITS - W_BITS){1'b0}}, w_q[s][u]};
-      end
-    end
-  end
+  // Maintain the exact sum on accepted writes instead of rebuilding a
+  // 1278-word combinational reduction. Replacement subtracts the old word.
+  // clear_load invalidates completeness only; weights and sum both survive.
 
   // ---- 守卫 ----
   assign idx_ok  = (wr_slice < 5'(P_N_SLICES)) && (wr_unit < 7'(P_N_UNITS));
@@ -108,10 +100,12 @@ module weight_store #(
     if (!rst_n) begin
       w_q <= '0;
       written <= '0;
+      sum_all <= '0;
     end else if (clear_load) begin
       written <= '0;
     end else if (accept) begin
       w_q[wr_slice][wr_unit] <= wr_data;
+      sum_all <= sum_new;
       written[wr_slice][wr_unit] <= 1'b1;
     end
   end

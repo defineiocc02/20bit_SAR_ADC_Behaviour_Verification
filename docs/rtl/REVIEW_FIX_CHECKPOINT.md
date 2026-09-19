@@ -32,3 +32,19 @@ Local simulator: PyPI verilator 5.48.0 wheel (binary reports development 5.49),
 installed outside repo; macOS wheel PCH flags supplied through VERILATOR override.
 CI uses Ubuntu 24.04 apt Verilator; CI is a separate portability check.
 Local review evidence: ../counterexamples.json and ../GitHub更新复核_20260919.md.
+
+
+RTL/synthesis follow-up (2026-09-20):
+- Previous head 940a657: all 9 GitHub CI jobs passed, run 35458856309.
+- Replace full 1278-word combinational sum with exact accepted-write accumulation.
+- Correct compile/ultra dispatch, zero IO delay, pF load units, sampled TNS,
+  process/status conflict and negative-fractional WNS acceptance.
+- 7 actual RTL benches passed locally. P2 arithmetic: 1,071,625 checks, including
+  every one of 1,048,576 oracle codes, zero errors (~371 s). P2 peripheral: 708
+  checks including independent full-array sum invariant. P3: 4095 complete rows.
+- Full Python run: 560 passed, 3 remote slow deselected (initial 19 synth tests).
+  Final synthesis-driver suite: 29 passed after adding load/WNS cases. Lint,
+  formatting, mypy and Bash syntax passed. Latest CI must verify the final tree.
+- Detailed structural analysis: RTL_SYNTHESIS_REVIEW_20260920.md; evidence:
+  evidence/synthesis_followup_20260920.json. No measured new DC/PPA results.
+- Next: publish this milestone to existing PR #3, inspect exact-head CI; do not merge.

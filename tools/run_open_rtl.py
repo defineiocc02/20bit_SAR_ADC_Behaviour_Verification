@@ -24,6 +24,7 @@ def main() -> None:
     benches = {
         "review_dither_tb": "REVIEW_DITHER_COMPLETE",
         "review_config_tb": "REVIEW_CONFIG_COMPLETE",
+        "p2_tb": "P2 RESULT: PASS",
         "p2_periph_tb": "p2_periph PASS",
         "p2_smoke_tb": "p2_smoke PASS",
         "p1_tb": "P1 RESULT: PASS",
@@ -68,24 +69,27 @@ def main() -> None:
                 subprocess.run(
                     args, cwd=REPO, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=300
                 )
-            cp = subprocess.run(
-                [
-                    str(Path(build) / f"V{top}"),
-                    f"+vdir={REPO / 'sim/vectors'}",
-                    f"+outdir={out}",
-                    "+injdith",
-                    "+trace=p3_trace.txt",
-                ],
-                cwd=out,
-                capture_output=True,
-                text=True,
-                timeout=120,
-            )
-            (out / f"{top}.run.log").write_text(cp.stdout + cp.stderr, encoding="utf-8")
+            run_log = out / f"{top}.run.log"
+            with run_log.open("w", encoding="utf-8") as log:
+                cp = subprocess.run(
+                    [
+                        str(Path(build) / f"V{top}"),
+                        f"+vdir={REPO / 'sim/vectors'}",
+                        f"+outdir={out}",
+                        "+injdith",
+                        "+trace=p3_trace.txt",
+                    ],
+                    cwd=out,
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    # P2 includes the complete 2^20-code oracle (~6 min locally).
+                    timeout=900 if top == "p2_tb" else 120,
+                )
+            output = run_log.read_text(encoding="utf-8")
             cp.check_returncode()
-            if marker not in cp.stdout:
+            if marker not in output:
                 raise RuntimeError(f"{top}: missing completion marker")
-            print(cp.stdout, end="", flush=True)
+            print(output, end="", flush=True)
 
 
 if __name__ == "__main__":

@@ -133,8 +133,10 @@ total  = Σ ( W )            # 与开关状态无关的名义总量
 * 求和范围：`n_active × (dac_n_main + dac_n_sub)` = 8 × 71 = 568 个权重项。
 * `W` 从权重 ROM 按 `(slice_id, unit_idx)` 取出，**索引顺序必须与
   `weight_calibration._terms` 一致**（历史上 A07.6 类缺陷即由索引/口径错配造成）。
-* `total` 在开关状态固定的配置下是**常量**，可预计算；但 DEM 改变不了它（等权置换），
-  因此可以做成 RTL 常量。**注意 `total` 不是 `gain`**——`gain` 随掩码变。
+* `total` 在配置和所选物理 slice 集合固定时可预计算；同一集合内部的 DEM 置换不改变总和。
+  不同物理 slice 的已校准权重可以不同，因此切换 ping-pong bank 后不能保证总和相同，
+  不能直接做成全局 RTL 常量。`total` 不是 `gain`：后者还取决于 sampling mask。
+  当前固定两组 bank 可按 bank 分别缓存，推广到通用 slice 调度时必须同步推广缓存选择。
 
 ### 3.3 分子
 

@@ -114,17 +114,26 @@ module p2_periph_tb;
   // T1 DUT: weight_store（全尺寸）
   //=========================================================================
   logic        ws_cfg_ready, ws_wr_en, ws_err;
+  logic        ws_clear = 0;
   logic [4:0]  ws_slice;
   logic [6:0]  ws_unit;
   logic [W_BITS-1:0] ws_data;
   logic [N_SLICES-1:0][N_UNIT_TOTAL-1:0][W_BITS-1:0] ws_wq;
 
   weight_store u_ws (
-      .clear_load(1'b0), .load_complete(),
+      .clear_load(ws_clear), .load_complete(),
       .clk (clk), .rst_n (rst_n), .cfg_ready (ws_cfg_ready),
       .wr_en (ws_wr_en), .wr_slice (ws_slice), .wr_unit (ws_unit),
       .wr_data (ws_data), .err_write (ws_err), .w_q (ws_wq)
   );
+
+  task automatic check_weight_sum();
+    logic [63:0] expected;
+    expected = '0;
+    for (int si = 0; si < N_SLICES; si++)
+      for (int ui = 0; ui < N_UNIT_TOTAL; ui++) expected += 64'(ws_wq[si][ui]);
+    chk("T1 incremental sum equals independent full-memory reduction", u_ws.sum_all === expected);
+  endtask
 
   task automatic ws_write(input logic wr, input int s, input int u,
                           input logic [W_BITS-1:0] d, input logic exp_err);
@@ -135,6 +144,7 @@ module p2_periph_tb;
       chk($sformatf("T1 err_write=%0b (s=%0d u=%0d d=%0h)", exp_err, s, u, d),
           ws_err === exp_err);
       ws_wr_en = 1'b0;
+      check_weight_sum();
     end
   endtask
 
@@ -341,6 +351,17 @@ module p2_periph_tb;
     chk("T1 界证明：端口可寻址上限 4096*(2^47-1) < 2^60",
         (64'd4096 * {{(64-W_BITS){1'b0}}, WMAX1}) < (64'd1 << 60));
     chk("T1 全库和确实 < 2^60（SUM_MAX）", u_ws.sum_all < (64'd1 << 60));
+
+    check_weight_sum();
+    // Replacement, duplicate, invalid write and clear must preserve the sum invariant.
+    ws_write(1'b1, 17, 70, 48'd9, 1'b0);
+    ws_write(1'b1, 17, 70, 48'd9, 1'b0);
+    ws_write(1'b1, 17, 70, 48'd0, 1'b1);
+    @(negedge clk); ws_clear = 1'b1;
+    @(negedge clk); ws_clear = 1'b0;
+    check_weight_sum();
+    chk("T1 clear invalidates completeness", !u_ws.load_complete);
+    ws_write(1'b1, 17, 70, 48'd11, 1'b0);
 
     $display("  [U1] 容量分支 sum_new < SUM_MAX 在冻结尺寸下不可达（界证明见上两条）；");
     $display("       本 TB 用「灌满全库也不越界」代替，真正的触发只在 mutant 上做。");

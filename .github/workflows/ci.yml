@@ -18,7 +18,7 @@ jobs:
   rtl:
     name: RTL simulation (Verilator)
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -27,8 +27,12 @@ jobs:
       - name: Install simulator and report version
         run: |
           sudo apt-get update
-          sudo apt-get install -y verilator
+          sudo apt-get install -y verilator tcl
           verilator --version
+      - name: Synthesis flow regression without EDA licenses
+        run: |
+          pip install pytest numpy
+          pytest tests/unit/test_synth_flow.py -q
       - name: Compile and execute RTL regressions
         run: python tools/run_open_rtl.py
       - uses: actions/upload-artifact@v4

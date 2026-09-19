@@ -1,0 +1,76 @@
+{
+  "date": "2026-09-20",
+  "parent_commit": "940a65722b45f249b6f838cd18a11ad8c8150ddb",
+  "scope": "RTL weight sum and synthesis-driver follow-up; no new DC/PPA run",
+  "python_full_run": {
+    "passed": 560,
+    "deselected_remote_slow": 3,
+    "note": "Full run collected the initial 19 synthesis tests; final 29-test synthesis suite rerun separately after adding load/WNS cases."
+  },
+  "synthesis_driver_final_tests": 29,
+  "rtl_testbenches": {
+    "review_dither_tb": {
+      "result": "PASS",
+      "log_sha256": "ca00d5d872936fac7bd949f103370b5e31cfbc95143ff8feb977daea776b5149"
+    },
+    "review_config_tb": {
+      "result": "PASS",
+      "log_sha256": "46aabe85ee6af9617e567d26b2319fcdd37f8141c56a01c0a87a72ada73c316a"
+    },
+    "p1_tb": {
+      "result": "PASS",
+      "log_sha256": "6aad975a29ec681c844c8966cc29d8b48e5b5591d0423b9c088c5416e84fa737"
+    },
+    "p2_tb": {
+      "result": "PASS",
+      "log_sha256": "13d97301899bec92ac21815d98180cc10f6552e7b82403468a15ce017e4b3d8b"
+    },
+    "p2_periph_tb": {
+      "result": "PASS",
+      "log_sha256": "8014ccc3b326a2c576e82278a6437cd24926baa3e529d20ff1368221aea3120f"
+    },
+    "p2_smoke_tb": {
+      "result": "PASS",
+      "log_sha256": "d2d704a15fdcc18318205dc9ddde342b3313cf8553b98d93434d0cf1642b7d34"
+    },
+    "p3_top_tb": {
+      "result": "PASS",
+      "log_sha256": "d2297c563715fac7ed121a6dc3d012cc35cfa53cbea6a63a7af65b5b822c2fdf"
+    }
+  },
+  "p2_arithmetic": {
+    "checks": 1071625,
+    "oracle_codes": 1048576,
+    "errors": 0,
+    "wall_seconds": 371.08
+  },
+  "p2_peripheral": {
+    "checks": 708,
+    "errors": 0
+  },
+  "source_sha256": {
+    "rtl/core/adc2_dec.sv": "8f8d66bf2ab209b5bbacd20a617b04fb5f0a82fd2d0a421e0507250d02df812c",
+    "rtl/core/calib_regs.sv": "10b636165f0dd7b530400a632411df3a02abb328cc6fa91f07443450cfc24907",
+    "rtl/core/ctrl_fsm.sv": "2f17ec0b5194f269a0758574bd63c59e97b9efb7dd9d2a61ab631cbc01765634",
+    "rtl/core/dem_addr_gen.sv": "71e00f91c3768fee6dc1022fa243b9a53154dbf19467e76e24419eb0c74af814",
+    "rtl/core/dem_state_gen.sv": "ee76c46ee9b8da53f8455bb0fc2e5f5c6198bcfd3611ba17b5b40846b8e78369",
+    "rtl/core/dither_gen.sv": "cfd7264be1160364087bedfb3d10a88c659e139ac1bead39ef46773ef3593f01",
+    "rtl/core/div_floor.sv": "d7b4044544452b17877f2693a6764e443596aa6a5f9f4cb3c371d21b777060ee",
+    "rtl/core/rdac_drv.sv": "d92e5ffcbac53b44a7f02671a0cc5fa9b2d533b578cd7653f82746e5d8de38cc",
+    "rtl/core/recon_core.sv": "08cfaea5df38cbcedd9690a54003f26acde2f5ce2c26dcbbe33f08970e988445",
+    "rtl/core/slice_alloc.sv": "358fc1472d0278189b1b37080d1bc0c82edd61b4187d99e48a58e4c29c5163e2",
+    "rtl/core/status_regs.sv": "025c6dd22b66ac015f3bf7dc30137c14ed18b0fb01d5fa667814903992df399f",
+    "rtl/core/swap_decode.sv": "20779afd94ec8ae59e1e6e576956dfcd3e84b7ba77397ee541263e418974ed98",
+    "rtl/core/unit_therm.sv": "cc285ebc39984b591344ea135f41c874cc501b7af549e5d54dc2525c4924fcd7",
+    "rtl/core/weight_store.sv": "6c4a80048da75547a22bf1c82b3aa29f6cdd4c3b811e2442e8888066a434def1",
+    "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+    "rtl/top/sadc_enc.sv": "ce2217d85e4f4ac57e1f199765f41393c09811c94b6d776c6f8b8b23c4493606",
+    "rtl/top/sar20_digital_core.sv": "803510ae26fb3932b0e2f8cf27a4a6fd05a674aac03bd6a29e456cbe74eb709a",
+    "sim/tb/p2_periph_tb.sv": "578da45273185ee89e5dfe47570e676a18aef74d6a5be9d173b5f1abe3b56a8e",
+    "sim/tb/p2_tb.sv": "16d72d89b7020059111011021d47b24eefb70eb37008d804751f13c2bb49b1fb",
+    "synth/run_dc.tcl": "b7835eb7a84464eb0d667b4100530319876593eb78a2f4328bcfaf76387facab",
+    "synth/run_synth.sh": "e66d11cad52656fac268de5880261631b209c4a7eb21f1e6427d3b415624620c",
+    "tests/unit/test_synth_flow.py": "4e49f2315c16cb4da08709e684c5b082782cc0b58a7f77d724a58bbbff221917",
+    "tools/run_open_rtl.py": "1ec4d9be7f5f08af29f476c657aeafc42809082186d3c8476ff1a9bce9468812"
+  }
+}

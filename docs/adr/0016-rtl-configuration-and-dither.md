@@ -25,8 +25,9 @@ add `weight_store.clear_load/load_complete` and
 4. An idle commit with missing fields reports error 6 (`ERR_INCOMPLETE`). Error
    3 still has priority for an empty/reversed ADC2 range. Successful commit
    atomically sets ready. While ready, all configuration writes are rejected.
-5. Writing 0x1018 captures three control bits, then applies them over three
-   rising edges. Wait for all three edges before validate or another write.
+5. Writing 0x1018 now captures four control bits and applies them atomically
+   on the third subsequent rising edge (ADR 0017). Wait for all three edges
+   before validate or another write.
    There is no external ready/ack for individual writes: software must observe
    this fixed timing. Rejected writes are not queued; software must retry them.
 6. `cfg_clear_valid` has highest priority, deasserts ready, clears completeness,
@@ -35,9 +36,10 @@ add `weight_store.clear_load/load_complete` and
    controls remain readable, but cannot be reused without a full coefficient
    reload. Controls may be retained or explicitly rewritten. Reset defaults
    remain unchanged. This protocol does not provide uninterrupted hot update.
-7. Status remains sticky until its existing clear/reset path. A later successful
-   validate does not erase earlier sticky diagnostics. Inspect errors and clear
-   before beginning a new epoch; do not interpret ready as a cleared error log.
+7. The four overflow/gain flags remain sticky until clear/reset. The encoded
+   error field is the latest priority-selected diagnostic, not an event history;
+   successful validation clears configuration diagnostics. See ADR 0017 for
+   input deadline errors, which persist until epoch clear/reset.
 
 The bitmap costs 1278 state bits plus three scalar presence bits. Timing and
 area must be remeasured on this version; historical synthesis is not signoff.

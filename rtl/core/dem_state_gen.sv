@@ -43,7 +43,7 @@
 `include "rtl_params.vh"
 
 module dem_state_gen #(
-    parameter int A_RED = DEM_LCG_A_MOD,
+    parameter int A_RED = int'(DEM_LCG_A_MOD),
     parameter int W     = 9
 ) (
     input  logic         clk,
@@ -57,6 +57,11 @@ module dem_state_gen #(
     output logic [W-1:0] sid_a,
     output logic [W-1:0] sid_b
 );
+
+  initial begin
+    if (W < 1 || W > 32 || (A_RED & 1) == 0)
+      $fatal(1, "dem_state_gen: W must be 1..32 and step must be odd");
+  end
 
   // 只在能装下 A_RED 的宽度里截取，且**不用 size cast 造无符号常量**：
   // RTL 里"表达式含一个无符号操作数就整条按无符号算"是踩过的坑（见 swap_decode.sv）。

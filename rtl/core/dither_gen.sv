@@ -13,7 +13,7 @@
 // D=0 produces zero. Supported D is 0..63; a zero seed is prohibited.
 `include "rtl_params.vh"
 module dither_gen #(
-    parameter int D = DITHER_UNITS_RANGE,
+    parameter int D = int'(DITHER_UNITS_RANGE),
     parameter logic [31:0] SEED = 32'h1357_9BDF
 ) (
     input logic clk,

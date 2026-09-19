@@ -214,6 +214,7 @@ module p2_smoke_tb;
     chk("T1 生效期写权重被拒 -> ERR_CFG_WRITE(5)", status_word[31:6] == 26'd5);
     repeat (2) @(posedge clk);
 
+    sadc_rdy = 1'b1; adc2_rdy = 1'b1; // fixed-phase capture requires valid input
     // ---- 生效后开始转换：dout_valid 必须在固定延迟内出现 ----
     inj_q     = 64'sd0;
     adc2_code = 12'd0;

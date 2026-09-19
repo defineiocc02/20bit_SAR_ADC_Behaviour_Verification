@@ -40,8 +40,8 @@
 `include "rtl_params.vh"
 
 module weight_store #(
-    parameter int P_N_SLICES = N_SLICES,
-    parameter int P_N_UNITS  = N_UNIT_TOTAL
+    parameter int P_N_SLICES = int'(N_SLICES),
+    parameter int P_N_UNITS  = int'(N_UNIT_TOTAL)
 ) (
     input  logic              clk,
     input  logic              rst_n,
@@ -56,11 +56,16 @@ module weight_store #(
     output logic [P_N_SLICES-1:0][P_N_UNITS-1:0][W_BITS-1:0] w_q
 );
 
+  initial begin
+    if (P_N_SLICES < 1 || P_N_SLICES > 32 || P_N_UNITS < 1 || P_N_UNITS > 128)
+      $fatal(1, "weight_store: dimensions exceed address width");
+  end
+
   localparam int SUM_BITS = 64;            // 与 recon_core 同一口径（P2 §9）
 
   localparam logic [W_BITS-1:0]   W_ZERO  = {W_BITS{1'b0}};
-  localparam logic [W_BITS-1:0]   W_MAX   = {{(W_BITS-47){1'b0}}, 1'b1} << 47;   // 2^47
-  localparam logic [SUM_BITS-1:0] SUM_MAX = {{(SUM_BITS-60){1'b0}}, 1'b1} << 60; // 2^60
+  localparam logic [W_BITS-1:0]   W_MAX   = 48'd1 << 47;   // 2^47
+  localparam logic [SUM_BITS-1:0] SUM_MAX = 64'd1 << 60; // 2^60
 
   logic [P_N_SLICES-1:0][P_N_UNITS-1:0] written;
   assign load_complete = &written;
@@ -80,7 +85,7 @@ module weight_store #(
   // clear_load invalidates completeness only; weights and sum both survive.
 
   // ---- 守卫 ----
-  assign idx_ok  = (wr_slice < 5'(P_N_SLICES)) && (wr_unit < 7'(P_N_UNITS));
+  assign idx_ok  = (int'(wr_slice) < P_N_SLICES) && (int'(wr_unit) < P_N_UNITS);
   assign w_ok    = (wr_data != W_ZERO) && (wr_data < W_MAX);
 
   // 用的是**掩蔽后**的索引：越界地址不会去读超出声明维度的位置（否则仿真出 X、
@@ -90,15 +95,16 @@ module weight_store #(
   assign cur_w   = w_q[s_idx][u_idx];
 
   // sum_all >= cur_w 恒成立（无符号），故减法不回绕。
-  assign sum_excl = sum_all - {{(SUM_BITS - W_BITS){1'b0}}, cur_w};
-  assign sum_new  = sum_excl + {{(SUM_BITS - W_BITS){1'b0}}, wr_data};
+  assign sum_excl = sum_all - {{(SUM_BITS - int'(W_BITS)){1'b0}}, cur_w};
+  assign sum_new  = sum_excl + {{(SUM_BITS - int'(W_BITS)){1'b0}}, wr_data};
 
   assign accept    = wr_en && (!clear_load) && (!cfg_ready) && idx_ok && w_ok && (sum_new < SUM_MAX);
   assign err_write = wr_en && (!accept);
 
   always_ff @(posedge clk) begin
     if (!rst_n) begin
-      w_q <= '0;
+      for (int s = 0; s < P_N_SLICES; s++)
+        for (int u = 0; u < P_N_UNITS; u++) w_q[s][u] <= '0;
       written <= '0;
       sum_all <= '0;
     end else if (clear_load) begin

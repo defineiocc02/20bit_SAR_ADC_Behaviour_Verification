@@ -485,12 +485,31 @@ def _int_localparams(path: Path) -> dict[str, str]:
     }
 
 
+def _sv_int(value: int) -> int:
+    """SystemVerilog int cast: truncate to 32 bits and interpret as signed."""
+    bits = value & 0xFFFFFFFF
+    return bits - (1 << 32) if bits & (1 << 31) else bits
+
+
+def test_explicit_sv_int_cast_in_width_expressions():
+    for expression, expected in [
+        ("int'(V_BITS) + 1", 65),
+        ("int'(2147483648)", -(1 << 31)),
+        ("int'(4294967297)", 1),
+        ("int'(-1)", -1),
+    ]:
+        assert (
+            eval(_to_python(expression), {"__builtins__": {}, "sv_int": _sv_int}, {"V_BITS": 64})
+            == expected
+        )
+
+
 def _to_python(expr: str) -> str:
     """把 Verilog 表达式翻成 Python：``C ? A : B`` → ``A if C else B``、``/`` → ``//``。
 
     遇到翻不动的形状就 FAIL 并指名表达式 —— 静默跳过等于门禁失效。
     """
-    out = expr
+    out = re.sub(r"\bint\s*'\s*\(", "sv_int(", expr)
     for _ in range(30):
         if "?" not in out:
             break
@@ -517,7 +536,9 @@ def _eval_rtl(table: dict[str, str], wanted: list[str], known: dict[str, int]) -
         if name not in table:
             continue
         try:
-            values[name] = int(eval(_to_python(table[name]), {"__builtins__": {}}, values))
+            values[name] = int(
+                eval(_to_python(table[name]), {"__builtins__": {}, "sv_int": _sv_int}, values)
+            )
         except NameError as exc:  # pragma: no cover - 只有 RTL 引用了未知名字才会到这里
             raise AssertionError(f"{name} 的表达式引用了未知名字: {table[name]!r} ({exc})") from exc
     return {name: values[name] for name in wanted}
@@ -532,7 +553,7 @@ def rtl() -> dict[str, object]:
     div_params = {}
     for name in _DIV_PARAM_NAMES:
         expr = _param_default(div_block, name)
-        div_params[name] = int(eval(_to_python(expr), {"__builtins__": {}}, vh))
+        div_params[name] = int(eval(_to_python(expr), {"__builtins__": {}, "sv_int": _sv_int}, vh))
     return {
         "vh": vh,
         "recon": _int_localparams(RECON_SV),
@@ -542,7 +563,7 @@ def rtl() -> dict[str, object]:
         "recon_p_stages": int(
             eval(
                 _to_python(_param_default(recon_block, "P_STAGES")),
-                {"__builtins__": {}},
+                {"__builtins__": {}, "sv_int": _sv_int},
                 vh,
             )
         ),

@@ -36,8 +36,8 @@
 //   * 推进条件 = `cfg_ready && sample_en`。`sample_en` 由 ctrl_fsm 在相位 0 给出，
 //     而 ctrl_fsm 在 cfg_ready=0 时**不发**任何脉冲；这里的 cfg_ready 门是冗余的
 //     第二道防线，代价为 0。
-//   * acq/conv/bank/conv_valid/sample_idx 都是 n 的**组合函数**（无独立寄存器），
-//     因此在 sample_en 那一拍的时钟沿之后立刻反映新样本 n。延迟 = 0。
+//   * acq/conv/bank/sample_idx 为计数器 n 的组合函数；conv_valid 由首样本
+//     标志保持，避免 n 在 2^32 次采样回绕时重新进入无效预热态。
 //===========================================================================
 `include "rtl_params.vh"
 
@@ -59,18 +59,21 @@ module slice_alloc (
 
   logic [31:0] n;             // 已推进到的样本序号；复位后 0
   integer      a;
+  logic seen_sample;
 
   always_ff @(posedge clk) begin
     if (!rst_n) begin
       n <= 32'd0;
+      seen_sample <= 1'b0;
     end else if (cfg_ready && sample_en) begin
       n <= n + ONE;
+      seen_sample <= 1'b1;
     end
   end
 
-  // n 的纯函数输出。bank = n % 2 只取最低位（n 无符号，n[0] 即奇偶）。
+  // bank = n % 2 只取最低位（n 无符号，n[0] 即奇偶）。
   assign bank       = n[0];
-  assign conv_valid = (n != 32'd0);
+  assign conv_valid = seen_sample; // remains valid across the 32-bit counter wrap
   assign sample_idx = n;
 
   always_comb begin

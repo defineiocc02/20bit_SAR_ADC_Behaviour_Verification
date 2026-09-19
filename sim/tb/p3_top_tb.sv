@@ -86,10 +86,9 @@
 //            并把"逐样本口径下会差多少行"当**参考数**打出来（不做断言）。
 //            ⚠️ **不能**用每样本发一拍 `cfg_clear_valid` 去清粘滞位：该端口同时接
 //            `calib_regs.clear_valid`，会撤掉 `cfg_ready`、整条流水停摆（试过，不能用）。
-//       (F3) **驱动相位**：三个标志必须与"将被捕获的那一行"对齐 —— 捕获 #k 落在
-//            c = 26+16k、窗口 w = c/16 = k+1，比对的是文件第 w 行；故三个标志在
-//            **本窗口相位 8** 驱动为第 w 行的值。若像数据通路那样在相位 0 就跟着下一行
-//            驱动，粘滞位会把**下一行**的事件提前算进来（踩过：失配 202→3357 行）。
+//       (F3) ADR 0017：三个模拟标志与同一行的数据一起驱动；顶层在相位 14
+//            捕获，随接受的转换进入粘滞状态。旧版“下一窗口相位 8 驱动上一行标志”
+//            是绕过缺少输入锁存的补丁，现已删除。下面 [G] 保留历史工具问题记录。
 //
 //   [G] **覆盖率插桩没有改变功能行为（可引用的一手证据）**。带
 //       `-cm line+cond+fsm+branch+tgl` 跑同一组激励时：
@@ -479,8 +478,9 @@ module p3_top_tb;
       sadc_code = a_coarse[r];
       adc2_code = a_adc2[r];
       inj_q     = a_inj[r];
-      // ⚠️ 三个模拟域回读标志**不在这里驱动**：它们必须与"将被捕获的那一行"对齐
-      // （相位 8），而不是跟数据通路一起在相位 0 就换成下一行。见主循环里的注释。
+      // All fields describe the same transaction. The core captures coarse
+      // at phase 8 and fine/injection/analog flags together at phase 14.
+      rdac_ovf = a_rdac[r]; adc2_over = a_a2ov[r]; ra_sat = a_rasat[r];
       if (injdith) inj_dith(a_dither[r]);
     end
   endtask
@@ -560,11 +560,11 @@ module p3_top_tb;
       end
     end
 
-    // ---- 控制位：dem_en=1, bridge_en=1, sampling_mask_en=0 ----
+    // ---- 控制位：quantizer_dither=1, sampling_mask=0, bridge=1, dem=1 ----
     // 与 tools/export_rtl_vectors.py 的 `_p2_run` 一致：
     //   replace(cfg, dem_enable=True, dither_mode="quantizer", dither_discrete=True)
     // dem_bridge_enable 未被覆盖 => 取 paper_literal 的 True。
-    cfg_write(16'h1018, 64'h3);
+    cfg_write(16'h1018, 64'hb);
     repeat (4) @(posedge clk);
 
     // ---- 载入期不得有写被拒 ----
@@ -672,22 +672,6 @@ module p3_top_tb;
       // ---- 每 16 拍是一个新样本的相位 0：换上下一行的**数据通路**激励 ----
       if ((c % 16) == 0) begin
         if ((ROW_OFF + (c / 16)) < nrows) drive_row(ROW_OFF + (c / 16));
-      end
-      // ---- 三个模拟域回读标志：必须与**将被捕获的那一行**对齐，不能在相位 0 跟下一行 ----
-      // 口径推导：捕获 #k 落在 c = 26+16k，即窗口 w = c/16 = k+1；它比对的正是文件第
-      // (ROW_OFF+k) = w 行。所以三个标志要在**本窗口（w）的相位 8**驱动为第 w 行的值：
-      // 相位 8 的 posedge 采进 status_regs -> 相位 10（dout_valid）读到，且不会被第 w+1 行污染。
-      // （若像数据通路那样在相位 0 就跟着第 w+? 行驱动，粘滞位会把**下一行**的事件提前算进来。）
-      if ((c % 16) == 8) begin
-        int rw;
-        rw = c / 16;
-        if ((rw >= ROW_OFF) && (rw < nrows)) begin
-          rdac_ovf  = a_rdac [rw];
-          adc2_over = a_a2ov [rw];
-          ra_sat    = a_rasat[rw];
-        end else begin
-          rdac_ovf = 1'b0; adc2_over = 1'b0; ra_sat = 1'b0;
-        end
       end
       if (k >= ntest) break;
       if (c > (16 * ntest + 200)) $fatal(1, "p3_top_tb: dout_valid 数量不足，超时");

@@ -28,8 +28,8 @@
 `include "rtl_params.vh"
 
 module sadc_enc #(
-    parameter int P_B1    = B1,
-    parameter int P_N_CMP = (1 << B1) - 1        // = 511
+    parameter int P_B1    = int'(B1),
+    parameter int P_N_CMP = (1 << P_B1) - 1        // = 511
 ) (
     input  logic [P_N_CMP-1:0] cmp_raw,          // 比较器阵列温度计（bit i = x > thr[i]）
     output logic [P_B1-1:0]    sadc_code
@@ -37,15 +37,19 @@ module sadc_enc #(
 
   localparam int ACC_W = $clog2(P_N_CMP + 1);    // 9：装得下 [0, P_N_CMP]
 
-  logic [ACC_W-1:0] acc;
-  integer           i;
-
-  always_comb begin
-    acc = {ACC_W{1'b0}};
-    for (i = 0; i < P_N_CMP; i = i + 1) begin
-      acc = acc + {{(ACC_W-1){1'b0}}, cmp_raw[i]};
-    end
-    sadc_code = acc[P_B1-1:0];
+  localparam int LEAVES = 1 << $clog2(P_N_CMP);
+  wire [ACC_W-1:0] tree [1:2*LEAVES-1];
+  initial begin
+    if (P_B1 < 1 || P_B1 > 16 || P_N_CMP < 1 || ACC_W > P_B1)
+      $fatal(1, "sadc_enc: invalid comparator count/output width");
   end
-
+  // Explicit balanced popcount, including zero padding for non-powers of two.
+  for (genvar i = 0; i < LEAVES; i++) begin : g_leaf
+    if (i < P_N_CMP) assign tree[LEAVES+i] = ACC_W'(cmp_raw[i]);
+    else assign tree[LEAVES+i] = '0;
+  end
+  for (genvar i = 1; i < LEAVES; i++) begin : g_sum
+    assign tree[i] = tree[2*i] + tree[2*i+1];
+  end
+  assign sadc_code = P_B1'(tree[1]);
 endmodule

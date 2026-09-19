@@ -53,7 +53,7 @@ module unit_therm (
       end
     end
     for (i = 0; i < 2 * DITHER_UNITS_RANGE; i++) begin
-      dither_rail[i] = ($signed(i) - DITHER_UNITS_RANGE) < $signed(bank_dither);
+      dither_rail[i] = (i - int'(DITHER_UNITS_RANGE)) < int'($signed(bank_dither));
     end
   end
 

@@ -94,7 +94,10 @@ module div_floor #(
   logic [W_R-1:0]      shifted;
 
   integer s;
-  integer bitpos;
+  initial begin
+    if (P_W_A < 2 || P_W_D < 1 || P_STAGES < 1)
+      $fatal(1, "div_floor: widths and unroll must be positive (numerator >= 2)");
+  end
 
   assign busy = run;
 
@@ -102,9 +105,9 @@ module div_floor #(
     dv_ext     = {{(W_R - P_W_D){1'b0}}, dv};
     r_chain[0] = rem;
     for (s = 0; s < P_STAGES; s = s + 1) begin
-      // cnt 的有效范围是 [0, N_CYC)，故 bitpos 落在 [0, W_PAD) —— 不需要下界保护。
-      bitpos  = W_PAD - 1 - (int'(cnt) * P_STAGES + s);
-      shifted = {r_chain[s][W_R-2:0], mag[bitpos]};
+      // Consume a fixed high-order chunk; the magnitude shifts between cycles.
+      // Avoid a counter-controlled variable bit selection on every unrolled stage.
+      shifted = {r_chain[s][W_R-2:0], mag[W_PAD-1-s]};
       // ⚠️ 真 bug 记录（2026-09-18，P2 单向测试抓出）：
       // 商是 **MSB 优先**产生的，所以一个时钟内第 s 级产生的商位，必须落到这一组
       // 7 位里的**高位**。原先写成 `qbits[s]`，于是 `q_next = (quo << P_STAGES) | qbits`
@@ -157,6 +160,7 @@ module div_floor #(
           run  <= 1'b0;
           done <= 1'b1;
         end else begin
+          mag <= mag << P_STAGES;
           rem <= r_next;
           quo <= q_next;
           cnt <= cnt + {{(W_CNT-1){1'b0}}, 1'b1};

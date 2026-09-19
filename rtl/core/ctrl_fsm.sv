@@ -40,7 +40,7 @@
 `include "rtl_params.vh"
 
 module ctrl_fsm #(
-    parameter int P_PHASES = PHASES          // = 16
+    parameter int P_PHASES = int'(PHASES)          // = 16
 ) (
     input  logic                        clk,
     input  logic                        rst_n,
@@ -58,6 +58,10 @@ module ctrl_fsm #(
     output logic [31:0]                 sample_idx
 );
 
+  initial begin
+    if (P_PHASES < 16) $fatal(1, "ctrl_fsm: phase 15 must exist");
+  end
+
   localparam int PW = $clog2(P_PHASES);    // 4
 
   localparam logic [PW-1:0] PH_LAST = PW'(P_PHASES - 1);
@@ -66,7 +70,7 @@ module ctrl_fsm #(
   logic [PW-1:0] ph;
   logic          adv;                       // 节拍推进使能
 
-  assign adv   = cfg_ready && run;
+  assign adv   = rst_n && cfg_ready && run;
   assign phase = ph;
 
   always_ff @(posedge clk) begin

@@ -16,7 +16,7 @@
 //
 // 参数来源分级
 //   本模块无模块参数（尺寸与标志个数都是接口契约的一部分，不是可调尺寸）。
-//   错误码常量定义于 calib_regs.sv，本模块只**透传** err_code，不解释它。
+//   错误码常量定义于 rtl_error_codes.vh，本模块只**透传** err_code，不解释它。
 //
 // 契约与不变量 / 适用域
 //   * **粘滞**（acc_ovf / gain_err / adc2_ovf / analog_ovf）：一旦置位，只由
@@ -34,7 +34,7 @@
 //         [2] adc2_ovf_sticky    [1] gain_err_sticky [0] acc_ovf_sticky
 //          [31:6] = err_code[25:0]
 //     选择 [5:0] 放标志是为了让"码到边/溢出"这类高频观察量落在低位。
-//   * `status_clr_value` 定义为 6 个粘滞位的写-1-清掩码（32'h0000_003F）。
+//   * `status_clr_value` 定义为 4 个粘滞位的掩码（32'h0000_0027；不含两个 clip 位）。
 //     P2 §8 只给了端口名未给语义，这是设计选择；顶层用不上它，留给软件侧使用。
 //===========================================================================
 `include "rtl_params.vh"
@@ -61,7 +61,7 @@ module status_regs (
     output logic [31:0] status_clr_value
 );
 
-  localparam logic [31:0] CLR_MASK = {26'b0, 6'b111111};
+  localparam logic [31:0] CLR_MASK = {26'b0, 6'b100111};
 
   always_ff @(posedge clk) begin
     if (!rst_n) begin

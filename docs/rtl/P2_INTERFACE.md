@@ -1,5 +1,11 @@
 # P2/P3 模块接口与向量格式（冻结）
 
+> 当前实现修订：以 [ADR 0016](../adr/0016-rtl-configuration-and-dither.md) 和
+> [ADR 0017](../adr/0017-rtl-fixed-phase-capture-and-structure.md) 为准。
+> 顶层端口与 16 相位保持；ready 在相位 8/14 作为采样截止条件，缺失则丢弃该次转换。
+> 内部配置端口增加完整性检测和四位原子控制写。下列模块接口已同步。
+
+
 - 状态：**已冻结**，2026-09-18
 - 上游：`docs/rtl/RTL_ARITHMETIC_CONTRACT.md`（算术，冻结）、`docs/rtl/P1_INTERFACE.md`（P1 已交付的 M1–M5）
 - 适用：`rtl/core/` 下 M6–M13、M16、M17 与 `rtl/top/` 下的 M8、顶层，以及 `sim/tb/p2_tb.sv`
@@ -475,6 +481,8 @@ module weight_store #(
     input  logic             clk,
     input  logic             rst_n,
     input  logic             cfg_ready,     // 1 = 已生效 → **禁止写**
+    input  logic             clear_load,    // 开始新的完整载入周期
+    output logic             load_complete, // 所有权重在本周期已写
     input  logic             wr_en,         // 一拍脉冲
     input  logic [4:0]       wr_slice,
     input  logic [6:0]       wr_unit,
@@ -493,6 +501,11 @@ module calib_regs #(
                                                    // 3 dem_en / 4 bridge_en / 5 sampling_mask_en
     input  logic signed [V_BITS-1:0]  data_v,       // sel <= 2 用
     input  logic                      data_b,       // sel >= 3 用
+    input  logic                      controls_write,
+    input  logic [3:0]                controls_data,
+    output logic                      quantizer_dither_en,
+    input  logic                      weights_ready,
+    input  logic                      config_busy,
     input  logic                      validate,     // 一拍脉冲：跑合法性校验
     input  logic                      clear_valid,  // 一拍脉冲：撤销 cfg_ready
     output logic                      cfg_ready,
@@ -542,7 +555,7 @@ module calib_regs #(
 ```systemverilog
 module sadc_enc #(
     parameter int P_B1    = B1,
-    parameter int P_N_CMP = (1 << B1) - 1        // = 511
+    parameter int P_N_CMP = (1 << P_B1) - 1        // = 511
 )(
     input  logic [P_N_CMP-1:0] cmp_raw,          // 比较器阵列温度计（bit i = x > thr[i]）
     output logic [P_B1-1:0]    sadc_code
@@ -636,7 +649,7 @@ module sar20_digital_core (
 | `0x1000` | `offset_q` | ✓ | ✓ |
 | `0x1008` | `adc2_min_q` | ✓ | ✓ |
 | `0x1010` | `adc2_max_q` | ✓ | ✓ |
-| `0x1018` | 控制位 `{…, sampling_mask_en, bridge_en, dem_en}` | ✓ | ✓ |
+| `0x1018` | 控制位 `{…, quantizer_dither_en, sampling_mask_en, bridge_en, dem_en}` | ✓ | ✓ |
 | `0x1020` | `status_word` | — | ✓ |
 | `0x2000 + s*0x100` | 权重窗口：slice 号 `s` | ✓ | ✓ |
 

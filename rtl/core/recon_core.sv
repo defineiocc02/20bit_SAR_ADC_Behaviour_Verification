@@ -51,14 +51,14 @@
 `include "rtl_params.vh"
 
 module recon_core #(
-    parameter int P_N_ACTIVE  = N_ACTIVE,
-    parameter int P_N_MAIN    = N_UNIT_MAIN,
-    parameter int P_N_SUB     = N_UNIT_SUB,
-    parameter int P_N_SLICES  = N_SLICES,
-    parameter int P_ADC2_BITS = ADC2_BITS,
+    parameter int P_N_ACTIVE  = int'(N_ACTIVE),
+    parameter int P_N_MAIN    = int'(N_UNIT_MAIN),
+    parameter int P_N_SUB     = int'(N_UNIT_SUB),
+    parameter int P_N_SLICES  = int'(N_SLICES),
+    parameter int P_ADC2_BITS = int'(ADC2_BITS),
     parameter int P_STAGES    = 7,
     parameter int P_DIT_N     = 2 * DITHER_UNITS_RANGE,
-    parameter int P_DIT_END   = DITHER_SPLIT_IS_SUB ? N_UNIT_TOTAL : N_UNIT_MAIN
+    parameter int P_DIT_END   = DITHER_SPLIT_IS_SUB ? int'(N_UNIT_TOTAL) : int'(N_UNIT_MAIN)
 ) (
     input  logic                                   clk,
     input  logic                                   rst_n,
@@ -89,12 +89,12 @@ module recon_core #(
   localparam int N_U      = P_N_MAIN + P_N_SUB;
   localparam int SUM_BITS = 64;                          // SigmaW < 2^60（契约 §5）留 4 位余量
   localparam int W_RAIL   = SUM_BITS + 2;                // |rails| <= 3*2^60 < 2^62
-  localparam int W_OP3    = SUM_BITS + V_BITS + 2;       // 130：total * inj_q
+  localparam int W_OP3    = SUM_BITS + int'(V_BITS) + 2;       // 130：total * inj_q
   localparam int W_WIDE   = W_OP3 + 2;                   // 132：受检操作数的精确宽度
-  localparam int W_S1     = ACC_BITS + 1;                // 97
-  localparam int W_SHIFT  = ACC_BITS + OUT_BITS + 1;     // 117
-  localparam int W_A      = ACC_BITS - (V_FRAC + 1);     // 63：shifted >>> 33
-  localparam int W_TOP    = W_SHIFT - ACC_BITS + 1;      // 22：shifted[116:95]
+  localparam int W_S1     = int'(ACC_BITS) + 1;                // 97
+  localparam int W_SHIFT  = int'(ACC_BITS) + int'(OUT_BITS) + 1;     // 117
+  localparam int W_A      = int'(ACC_BITS) - (int'(V_FRAC) + 1);     // 63：shifted >>> 33
+  localparam int W_TOP    = W_SHIFT - int'(ACC_BITS) + 1;      // 22：shifted[116:95]
   localparam int DIT_BEG  = P_DIT_END - P_DIT_N;
   localparam int N_CYC    = (W_A + P_STAGES - 1) / P_STAGES;
   // 固定延迟。口径见 docs/rtl/P2_INTERFACE.md §4.3：从 `start` 那一拍起算 dout_valid
@@ -104,70 +104,79 @@ module recon_core #(
 
   // ---- 常量（不允许就地造无符号字面量：P1 的 RTL-3 就是栽在符号混用上）----
   localparam logic [W_WIDE-1:0] LIM_ONE  = {{(W_WIDE-1){1'b0}}, 1'b1};
-  localparam logic [W_WIDE-1:0] LIM_HI_U = LIM_ONE << (ACC_BITS - 1);
+  localparam logic [W_WIDE-1:0] LIM_HI_U = LIM_ONE << (int'(ACC_BITS) - 1);
   localparam logic [W_WIDE-1:0] LIM_LO_U = ~LIM_HI_U + LIM_ONE;
   // ⚠️ 比较常量必须**显式声明为 signed**：见下面 clip_* 的真 bug 记录。
   localparam logic signed [W_A-1:0] ZERO_A  = {W_A{1'b0}};
   localparam logic signed [W_A-1:0] OUT_CNT = {{(W_A-1){1'b0}}, 1'b1} << OUT_BITS;
   localparam logic [SUM_BITS-1:0] GAIN_MAX = {{(SUM_BITS-1){1'b0}}, 1'b1}
-                                             << (ACC_BITS - 1 - (V_FRAC + 1));
+                                             << (int'(ACC_BITS) - 1 - (int'(V_FRAC) + 1));
 
   //=========================================================================
   // 1) 三个掩码和（组合）
   //=========================================================================
-  logic [W_BITS-1:0]          wsel [0:P_N_ACTIVE-1][0:N_U-1];
-  logic                       onsel[0:P_N_ACTIVE-1][0:N_U-1];
-  logic                       mksel[0:P_N_ACTIVE-1][0:N_U-1];
-  logic                       rlsel[0:P_N_ACTIVE-1][0:N_U-1];
-  logic [SUM_BITS-1:0]        psW  [0:P_N_ACTIVE-1];
-  logic [SUM_BITS-1:0]        psWa [0:P_N_ACTIVE-1];
-  logic [SUM_BITS-1:0]        psWon[0:P_N_ACTIVE-1];
-  logic signed [W_RAIL-1:0]   psWr [0:P_N_ACTIVE-1];
-  logic [SUM_BITS-1:0]        sum_W, sum_Wa, sum_Won;
-  logic signed [W_RAIL-1:0]   sum_Wr;
-  logic signed [W_RAIL-1:0]   rails;
+  localparam int N_TERMS = P_N_ACTIVE * N_U;
+  localparam int TREE_LEAVES = 1 << $clog2(N_TERMS);
+  wire [SUM_BITS-1:0] tree_W [1:2*TREE_LEAVES-1];
+  wire [SUM_BITS-1:0] tree_Wa [1:2*TREE_LEAVES-1];
+  wire [SUM_BITS-1:0] tree_Won [1:2*TREE_LEAVES-1];
+  wire signed [W_RAIL-1:0] tree_Wr [1:2*TREE_LEAVES-1];
+  wire [SUM_BITS-1:0] sum_W = tree_W[1];
+  wire [SUM_BITS-1:0] sum_Wa = tree_Wa[1];
+  wire [SUM_BITS-1:0] sum_Won = tree_Won[1];
+  wire signed [W_RAIL-1:0] sum_Wr = tree_Wr[1];
+  wire signed [W_RAIL-1:0] rails;
+  logic invalid_slice;
 
-  integer ai, ui;
-
-  always_comb begin
-    for (ai = 0; ai < P_N_ACTIVE; ai = ai + 1) begin
-      psW[ai]   = {SUM_BITS{1'b0}};
-      psWa[ai]  = {SUM_BITS{1'b0}};
-      psWon[ai] = {SUM_BITS{1'b0}};
-      psWr[ai]  = {W_RAIL{1'b0}};
-      for (ui = 0; ui < N_U; ui = ui + 1) begin
-        wsel[ai][ui]  = w_rom[slice_id[ai]][ui];
-        onsel[ai][ui] = (ui < P_N_MAIN) ? main_on[ai][ui] : sub_on[ai][ui - P_N_MAIN];
-        mksel[ai][ui] = sampling_mask_en && (ui >= DIT_BEG) && (ui < P_DIT_END);
-        rlsel[ai][ui] = (ui >= DIT_BEG) ? dither_rail[ui - DIT_BEG] : 1'b0;
-
-        psW[ai] = psW[ai] + {{(SUM_BITS - W_BITS){1'b0}}, wsel[ai][ui]};
-        if (!mksel[ai][ui]) begin
-          psWa[ai] = psWa[ai] + {{(SUM_BITS - W_BITS){1'b0}}, wsel[ai][ui]};
-        end
-        if (onsel[ai][ui]) begin
-          psWon[ai] = psWon[ai] + {{(SUM_BITS - W_BITS){1'b0}}, wsel[ai][ui]};
-        end
-        if (mksel[ai][ui]) begin
-          psWr[ai] = psWr[ai]
-                   + (rlsel[ai][ui]
-                      ?  $signed({{(W_RAIL - W_BITS){1'b0}}, wsel[ai][ui]})
-                      : -$signed({{(W_RAIL - W_BITS){1'b0}}, wsel[ai][ui]}));
-        end
-      end
-    end
-    sum_W   = {SUM_BITS{1'b0}};
-    sum_Wa  = {SUM_BITS{1'b0}};
-    sum_Won = {SUM_BITS{1'b0}};
-    sum_Wr  = {W_RAIL{1'b0}};
-    for (ai = 0; ai < P_N_ACTIVE; ai = ai + 1) begin
-      sum_W   = sum_W   + psW[ai];
-      sum_Wa  = sum_Wa  + psWa[ai];
-      sum_Won = sum_Won + psWon[ai];
-      sum_Wr  = sum_Wr  + psWr[ai];
-    end
-    rails = $signed({2'b0, sum_W}) - $signed({1'b0, sum_Won, 1'b0}) + $signed(sum_Wr);
+  initial begin
+    if (P_N_ACTIVE < 1 || P_N_MAIN < 1 || P_N_SUB < 1 ||
+        P_N_SLICES < 1 || P_N_SLICES > 32 || P_ADC2_BITS < 1 ||
+        P_STAGES < 1 || P_DIT_N < 1 || DIT_BEG < 0)
+      $fatal(1, "recon_core: unsupported dimensions");
   end
+  always_comb begin
+    invalid_slice = 1'b0;
+    for (int a = 0; a < P_N_ACTIVE; a++)
+      invalid_slice |= (int'(slice_id[a]) >= P_N_SLICES);
+  end
+
+  // Explicit balanced reductions: ceil(log2(N_TERMS)) add levels, rather than
+  // relying on the tool to rebalance a procedurally accumulated wide sum.
+  for (genvar t = 0; t < TREE_LEAVES; t++) begin : g_terms
+    if (t < N_TERMS) begin : g_used
+      localparam int A = t / N_U;
+      localparam int U = t % N_U;
+      wire [W_BITS-1:0] weight = (int'(slice_id[A]) < P_N_SLICES)
+                                ? w_rom[slice_id[A]][U] : '0;
+      wire selected;
+      if (U < P_N_MAIN) assign selected = main_on[A][U];
+      else assign selected = sub_on[A][U-P_N_MAIN];
+      wire [SUM_BITS-1:0] extended = {{(SUM_BITS-int'(W_BITS)){1'b0}}, weight};
+      assign tree_W[TREE_LEAVES+t] = extended;
+      assign tree_Won[TREE_LEAVES+t] = selected ? extended : '0;
+      if (U >= DIT_BEG && U < P_DIT_END) begin : g_dither
+        wire signed [W_RAIL-1:0] signed_weight = $signed({{(W_RAIL-int'(W_BITS)){1'b0}}, weight});
+        assign tree_Wa[TREE_LEAVES+t] = sampling_mask_en ? '0 : extended;
+        assign tree_Wr[TREE_LEAVES+t] = !sampling_mask_en ? '0 :
+          (dither_rail[U-DIT_BEG] ? signed_weight : -signed_weight);
+      end else begin : g_signal
+        assign tree_Wa[TREE_LEAVES+t] = extended;
+        assign tree_Wr[TREE_LEAVES+t] = '0;
+      end
+    end else begin : g_padding
+      assign tree_W[TREE_LEAVES+t] = '0;
+      assign tree_Wa[TREE_LEAVES+t] = '0;
+      assign tree_Won[TREE_LEAVES+t] = '0;
+      assign tree_Wr[TREE_LEAVES+t] = '0;
+    end
+  end
+  for (genvar t = 1; t < TREE_LEAVES; t++) begin : g_reduce
+    assign tree_W[t] = tree_W[2*t] + tree_W[2*t+1];
+    assign tree_Wa[t] = tree_Wa[2*t] + tree_Wa[2*t+1];
+    assign tree_Won[t] = tree_Won[2*t] + tree_Won[2*t+1];
+    assign tree_Wr[t] = tree_Wr[2*t] + tree_Wr[2*t+1];
+  end
+  assign rails = $signed({2'b0, sum_W}) - $signed({1'b0, sum_Won, 1'b0}) + sum_Wr;
 
   //=========================================================================
   // 2) 后端译码（M9）
@@ -189,7 +198,7 @@ module recon_core #(
   logic signed [V_BITS-1:0]   fine_r, off_r, inj_r;
   logic [SUM_BITS-1:0]        gain_s, total_s;
   logic signed [W_RAIL-1:0]   rails_s;
-  logic                       stage_b, ovf_pend, gerr_pend, a2ovf_pend;
+  logic                       stage_b, ovf_pend, gerr_pend, a2ovf_pend, bad_slice_r;
 
   //=========================================================================
   // 4) 受检算术（组合，在 stage B 那一拍求值）
@@ -206,7 +215,7 @@ module recon_core #(
   logic                       shifted_ok, any_ovf;
 
   assign diff = $signed(fine_r) - $signed(off_r);
-  assign op1  = $signed({{(W_WIDE - (V_BITS + 1)){diff[V_BITS]}}, diff}) <<< W_FRAC;
+  assign op1  = $signed({{(W_WIDE - (int'(V_BITS) + 1)){diff[V_BITS]}}, diff}) <<< W_FRAC;
 
   assign rails_ext = {{(W_WIDE - W_RAIL){rails_s[W_RAIL-1]}}, rails_s};
   assign op2       = rails_ext <<< V_FRAC;
@@ -229,8 +238,8 @@ module recon_core #(
   assign shifted = $signed({{(W_SHIFT - W_S1){s1[W_S1-1]}}, s1}) <<< OUT_BITS;
 
   // A1 = shifted >>> 33，取其低 W_A 位即精确值（前提：shifted 检查已通过）。
-  assign a1          = shifted[W_A-1+(V_FRAC+1) : V_FRAC+1];
-  assign shifted_top = shifted[W_SHIFT-1:ACC_BITS-1];
+  assign a1          = shifted[W_A-1+(int'(V_FRAC)+1) : int'(V_FRAC)+1];
+  assign shifted_top = shifted[W_SHIFT-1:int'(ACC_BITS)-1];
 
   always_comb begin
     // 位 116..95 全 0  =>  0 <= shifted < 2^95
@@ -252,8 +261,8 @@ module recon_core #(
       .P_STAGES (P_STAGES)
   ) u_div (
       .clk   (clk),
-      .rst_n (rst_n),
-      .start (stage_b),
+      .rst_n (rst_n && cfg_ready),
+      .start (stage_b && cfg_ready),
       .a     (a1),
       .d     (gain_s),
       .q     (div_q),
@@ -287,6 +296,7 @@ module recon_core #(
       total_s    <= {SUM_BITS{1'b0}};
       rails_s    <= {W_RAIL{1'b0}};
       stage_b    <= 1'b0;
+      bad_slice_r <= 1'b0;
       ovf_pend   <= 1'b0;
       gerr_pend  <= 1'b0;
       a2ovf_pend <= 1'b0;
@@ -306,7 +316,8 @@ module recon_core #(
       end
 
       // ---- 阶段 A：锁存本拍的求和与输入 ----
-      if (start && !busy) begin
+      if (cfg_ready && start && !busy) begin
+        bad_slice_r <= invalid_slice;
         fine_r     <= fine_c;
         off_r      <= offset_q;
         inj_r      <= inj_q;
@@ -326,13 +337,13 @@ module recon_core #(
         // 修法：挪到 stage_b 那一拍（此时寄存器正是本样本的值）。
         // div_start = stage_b 与 a1 都不变，所以**延迟不变**。
         ovf_pend  <= any_ovf;
-        gerr_pend <= (gain_s == {SUM_BITS{1'b0}});
+        gerr_pend <= bad_slice_r || (gain_s == {SUM_BITS{1'b0}});
         stage_b   <= 1'b0;
       end
 
       // ---- 阶段 C：除法完成 -> 结算输出 ----
-      if (div_done) begin
-        adc2_ovf <= adc2_ovf | a2ovf_pend;
+      if (cfg_ready && div_done) begin
+        adc2_ovf <= (clr_ovf ? 1'b0 : adc2_ovf) | a2ovf_pend;
         if (ovf_pend) begin
           acc_ovf    <= 1'b1;              // 粘滞
           dout_valid <= 1'b1;              // 契约 §4.4：溢出**不打断时序**（dout 保持上一拍值）
@@ -351,6 +362,11 @@ module recon_core #(
 
       // ---- 未配置：输出强制为 0（放在最后，优先级最高）----
       if (!cfg_ready) begin
+        stage_b <= 1'b0;
+        ovf_pend <= 1'b0;
+        gerr_pend <= 1'b0;
+        a2ovf_pend <= 1'b0;
+        bad_slice_r <= 1'b0;
         dout       <= {OUT_BITS{1'b0}};
         dout_valid <= 1'b0;
         clip_low   <= 1'b0;

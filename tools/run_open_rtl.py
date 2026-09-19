@@ -22,6 +22,9 @@ REPO = Path(__file__).resolve().parents[1]
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     benches = {
+        "review_top_protocol_tb": "REVIEW_TOP_PROTOCOL_COMPLETE",
+        "review_leaf_tb": "REVIEW_LEAF_COMPLETE",
+        "review_recon_protocol_tb": "REVIEW_RECON_PROTOCOL_COMPLETE",
         "review_dither_tb": "REVIEW_DITHER_COMPLETE",
         "review_config_tb": "REVIEW_CONFIG_COMPLETE",
         "p2_tb": "P2 RESULT: PASS",
@@ -43,6 +46,33 @@ def main() -> None:
     sources = sorted((REPO / "rtl/core").glob("*.sv")) + sorted((REPO / "rtl/top").glob("*.sv"))
     version = subprocess.run([*command, "--version"], check=True, capture_output=True, text=True)
     (out / "version.log").write_text(version.stdout + version.stderr, encoding="utf-8")
+    # Lint production hierarchies separately from testbench stimulus widths.
+    # Treat structural and arithmetic diagnostics as errors, without hiding them
+    # behind the simulation compile's allowance for testbench warnings.
+    for lint_top in ("sar20_digital_core", "sadc_enc"):
+        with (out / f"{lint_top}.lint.log").open("w", encoding="utf-8") as log:
+            subprocess.run(
+                [
+                    *command,
+                    "--lint-only",
+                    "--top-module",
+                    lint_top,
+                    "-Irtl/params",
+                    "-Werror-WIDTH",
+                    "-Werror-LATCH",
+                    "-Werror-MULTIDRIVEN",
+                    "-Werror-UNOPTFLAT",
+                    "-Werror-CASEINCOMPLETE",
+                    "-Werror-PINMISSING",
+                    "-Werror-SELRANGE",
+                    *[str(p.relative_to(REPO)) for p in sources],
+                ],
+                cwd=REPO,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                check=True,
+                timeout=120,
+            )
     for top, marker in benches.items():
         if selected and top not in selected:
             continue

@@ -35,15 +35,20 @@
 `include "rtl_params.vh"
 
 module dem_addr_gen #(
-    parameter int N_MAIN = N_UNIT_MAIN,
-    parameter int N_SUB  = N_UNIT_SUB,
-    parameter int W_ROT  = DEM_ROT_WIDTH,
-    parameter int H_ROT  = DEM_ROT_HEIGHT
+    parameter int N_MAIN = int'(N_UNIT_MAIN),
+    parameter int N_SUB  = int'(N_UNIT_SUB),
+    parameter int W_ROT  = int'(DEM_ROT_WIDTH),
+    parameter int H_ROT  = int'(DEM_ROT_HEIGHT)
 ) (
     input  logic [8:0]             sid,
     output logic [N_MAIN-1:0][5:0] main_logical,
     output logic [N_SUB-1:0][2:0]  sub_logical
 );
+
+  initial begin
+    if (N_MAIN != 63 || N_SUB != 8 || W_ROT != 8 || H_ROT != 8)
+      $fatal(1, "dem_addr_gen: only the verified 63/8, 8x8 topology is supported");
+  end
 
   localparam int LW = $clog2(W_ROT);  // 3
   localparam int LH = $clog2(H_ROT);  // 3
@@ -58,7 +63,7 @@ module dem_addr_gen #(
   assign sh = sid[LW+LH+:LS];
 
   // 唯一被 order < N_MAIN 过滤掉的 cell（对应 order 值 = W_ROT*H_ROT-1）
-  logic [2*LH-1:0] i_star;
+  logic [LW+LH-1:0] i_star;
   // cell = {row, col}，故**低位是列、高位是行**。早先把两半写反了，
   // 结果是 i* 与真实的被过滤 cell 差了 (row,col) 互换后的位置，
   // 只在 cell 落在两者之间时表现成差 1 —— P1 向量把它抓了出来。

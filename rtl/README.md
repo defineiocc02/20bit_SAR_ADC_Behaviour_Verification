@@ -1,5 +1,10 @@
 # `rtl/` —— 可综合 RTL 子树
 
+当前修订入口：[完整 RTL 修复报告](../docs/rtl/COMPLETE_RTL_REPAIR_20260920.md)、
+[ADR 0017](../docs/adr/0017-rtl-fixed-phase-capture-and-structure.md)。顶层接口和 16 相位
+保持；相位 8/14 必须提供同步 ready。历史综合数据不能作为本次 RTL 的频率签核。
+
+
 ## 0. 状态（先说清楚"哪些已经存在、哪些只是规划"）
 
 | 阶段 | 状态 | 证据 |
@@ -44,6 +49,7 @@ rtl/
   README.md                              [已存在]
   params/
     rtl_params.vh                        [已存在] 生成物，禁止手工编辑
+    rtl_error_codes.vh                   [已存在] 手工维护的静态接口错误码（非生成物）
 
   core/                                  [部分已存在] 可综合逻辑
     dem_state_gen.sv                     [已存在] 按 bank 独立推进的确定性 DEM 状态序列，逐项匹配 Python

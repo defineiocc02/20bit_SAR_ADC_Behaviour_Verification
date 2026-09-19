@@ -1,0 +1,172 @@
+{
+  "date": "2026-09-20",
+  "baseline": "85b4b4968750e0fa125e9c3acfeb903cf35c39a0",
+  "scope": "RTL functional repair milestone; paper/patent circuit-structure implementation is a subsequent user-expanded milestone, not claimed complete here",
+  "simulator": "rev vUNKNOWN-built20260516-4e853d8",
+  "source_sha256": {
+    "rtl/core/adc2_dec.sv": "268d279bdc1c2cdd7161072733c5046e701524c7e217b52ff0c7ca08951154f5",
+    "rtl/core/calib_regs.sv": "feff5d1d6c0359b427c5950ae6dec6db45e5e9707f44a06623681f5176c3e44b",
+    "rtl/core/ctrl_fsm.sv": "a04e9104a93819ed35d35f6a11355c4ee3afbaa0d4b020f6e17e5540b610041f",
+    "rtl/core/dem_addr_gen.sv": "aa5bd5c4d00fa2a5d77f81fcc99011246ed08ab01f00be3e92fcd42728f466ba",
+    "rtl/core/dem_state_gen.sv": "38c626502b2338c4c04497788cf40904408a885176967a4ca6d6750d578d7efe",
+    "rtl/core/dither_gen.sv": "d726478c13887ca3739265990be5b2a35c88a236d38257af1ab72cb53c828f7e",
+    "rtl/core/div_floor.sv": "77661258774441bd4c690aaf024785320f4d9a278eb1646d44803a1163799c1c",
+    "rtl/core/rdac_drv.sv": "2ee2340db7409824b50e6e3325c2e972958b25055e8d72e90580cb13cee863eb",
+    "rtl/core/recon_core.sv": "2b772fa4d77333a14dba9570a33cfa14f22d1a1fe3f66a6733356e8e12b57537",
+    "rtl/core/slice_alloc.sv": "2c6d0293b846f00ccf88c0a38fc3030a243cb86fc84a705e31e70aa2084a2dc4",
+    "rtl/core/status_regs.sv": "8ab8ee1483f451da27ad59435ef7b00f3982427b17354fe5a9d2ac6319af4b1d",
+    "rtl/core/swap_decode.sv": "1c87f93fa44539cb13983cf1b50e9e672f49ff0d19ad502ed5b2515e96a923b0",
+    "rtl/core/unit_therm.sv": "ec00681a7565a1fd10172e32959c08e118f339de19f5e07eaf623c24fb6cb459",
+    "rtl/core/weight_store.sv": "0281574651cc50dfa69eaf2ef53e63ea1448db0c69d0cf98da977c8a7225a68f",
+    "rtl/params/rtl_error_codes.vh": "55e03941409102711f20c918cc2268d3c2318bd729bc5c2adae9966c46140937",
+    "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+    "rtl/top/sadc_enc.sv": "a6b57de18adc6a7a7795481ce003a911881b0aeefb97537e66ad3151ef9eee5e",
+    "rtl/top/sar20_digital_core.sv": "520a7972ad73742798411d84cd5be4c0a25199de0e9956ec2522ed2c66f1eaa1"
+  },
+  "benches": {
+    "review_top_protocol_tb": {
+      "result": "PASS",
+      "markers": [
+        "REVIEW_TOP_PROTOCOL_COMPLETE checks=1032 outputs=38"
+      ],
+      "run_log_sha256": "4dc1ad61b5d175932ef4a93f7231d6a40974130111dbca6074f1bb654234fcc2",
+      "build_log_sha256": "d5bd60a030952ab874d0a20d9ae9e55b9d70746575f0f4e938e740431f65592c"
+    },
+    "review_leaf_tb": {
+      "result": "PASS",
+      "markers": [
+        "REVIEW_LEAF_COMPLETE checks=91142"
+      ],
+      "run_log_sha256": "d9c6d548f5d4cb4a907bfa6778111e429dc6109155be55aa9c414ddc48196e34",
+      "build_log_sha256": "fa82f12bcd84ed301282d608dac5fd14fd56642baaf3c1946c5e351e024b1959"
+    },
+    "review_recon_protocol_tb": {
+      "result": "PASS",
+      "markers": [
+        "REVIEW_RECON_PROTOCOL_COMPLETE"
+      ],
+      "run_log_sha256": "829ca607a5d5bb640c5e0b24ad38f5521aba70dacaa53e034069428b675e1b79",
+      "build_log_sha256": "4feba7b802cf8576284a2225509e6bd2fa6604ddc87c56890000408d8113a9b4"
+    },
+    "review_dither_tb": {
+      "result": "PASS",
+      "markers": [
+        "REVIEW_DITHER_COMPLETE"
+      ],
+      "run_log_sha256": "21b5b1411ad5bfb14181c7165358b2d5e6a8374cd68cf9aa9b2807d4f62bf782",
+      "build_log_sha256": "f9bf4e1ee410ea3fc140fd4d70a6abbb53ccda556353c10b9d7a1864b135ce77"
+    },
+    "review_config_tb": {
+      "result": "PASS",
+      "markers": [
+        "REVIEW_CONFIG_COMPLETE outputs=624"
+      ],
+      "run_log_sha256": "73c2900e198b5713f4fb6a79d664129d2707a88d178bfc53fdd123a54cf5b29f",
+      "build_log_sha256": "5c4c99a2a18ae56e00a04a7efcf507867d1528baaab141a205efb02999cb1412"
+    },
+    "p2_tb": {
+      "result": "PASS",
+      "markers": [
+        "p2_tb summary: checks=23049 errors=0",
+        "P2 RESULT: PASS"
+      ],
+      "run_log_sha256": "5efc0d2895a4458bcc18b6045fd849b044bd96d234a626b12cfc79b15510414f",
+      "build_log_sha256": "786939b708096e44e4ce4e57bde0948effa61609631939c2cac7d624d6e0c025"
+    },
+    "p2_oracle_tb": {
+      "result": "PASS",
+      "markers": [
+        "P2_ORACLE_COMPLETE codes=1048576 errors=0"
+      ],
+      "run_log_sha256": "6519ba084786f0a0f4aed5261c906b662306fe204a1ec7c163bd64d976d3bba4",
+      "build_log_sha256": "f419bb62b11b6ca30ce28b79292b1d8177ba5de87ce86f9c8b79afa8d7112cc0"
+    },
+    "p2_periph_tb": {
+      "result": "PASS",
+      "markers": [
+        "p2_periph PASS"
+      ],
+      "run_log_sha256": "21d4bb4e3e0b30da3bfe913a6d28fd8aa81a6e8d71c5396e5cbaad4f128d5bdf",
+      "build_log_sha256": "708bba9ba7430393b314b9b2d1fd6fc96858f7cb6e2120477cae65b0370d46ff"
+    },
+    "p2_smoke_tb": {
+      "result": "PASS",
+      "markers": [
+        "p2_smoke PASS"
+      ],
+      "run_log_sha256": "6af67444406921097feb0e4333e487288dcf1a7fcb4eacf5160ad09f02c392c5",
+      "build_log_sha256": "49f7be59fcabbce205b79fc53a50655b2916c8caba200b860418664526b51628"
+    },
+    "p1_tb": {
+      "result": "PASS",
+      "markers": [
+        "p1_tb summary: checks=464823 errors=0",
+        "P1 RESULT: PASS"
+      ],
+      "run_log_sha256": "7acf05f8d10756029aa8f192e57f1964531aa22800051c0822b325d5deb2e0a9",
+      "build_log_sha256": "ec7be6e590d36b2fe364c24ee037fffe5bd3096103b37b25bdc2b10dbb06a23a"
+    },
+    "p3_top_tb": {
+      "result": "PASS",
+      "markers": [
+        "  p3_top  summary: checks=16386 errors=0",
+        "P3 TOP RESULT: PASS"
+      ],
+      "run_log_sha256": "7ec39c5344cd6a24e872e3093eaf468e8dbce7b5b100c08b08be869675a38a8c",
+      "build_log_sha256": "3b64789dbd143eba821ab2e6fa0aaa116c4e9b9d63c7f921d5b7b1ec3540d3dc"
+    }
+  },
+  "production_lint": {
+    "sar20_digital_core": {
+      "result": "PASS_NO_WARNINGS",
+      "sha256": "22a0460d07ed4d2cfb50f0a135ba2f9b81376d92cef5d508083f0f553047bec2"
+    },
+    "sadc_enc": {
+      "result": "PASS_NO_WARNINGS",
+      "sha256": "8952725c0b27fdd09693109536964830d1f683205c51aa1fb7fe10ea651ed89f"
+    }
+  },
+  "negative_controls": [
+    {
+      "case": "old_signed_rail",
+      "old_module": "rtl/core/unit_therm.sv",
+      "baseline": "85b4b49",
+      "testbench": "review_leaf_tb",
+      "expected_failure": "signed dither rail count",
+      "actual_exit": 1,
+      "detected": true,
+      "log_excerpt": "[1000] %Fatal: review_leaf_tb.sv:47: Assertion failed in review_leaf_tb.check: signed dither rail count d=-128 rails=1100"
+    },
+    {
+      "case": "old_counter_wrap",
+      "old_module": "rtl/core/slice_alloc.sv",
+      "baseline": "85b4b49",
+      "testbench": "review_leaf_tb",
+      "expected_failure": "counter wrap must not re-enter warmup",
+      "actual_exit": 1,
+      "detected": true,
+      "log_excerpt": "[33032000] %Fatal: review_leaf_tb.sv:47: Assertion failed in review_leaf_tb.check: counter wrap must not re-enter warmup"
+    },
+    {
+      "case": "old_unconfigured_start",
+      "old_module": "rtl/core/recon_core.sv",
+      "baseline": "85b4b49",
+      "testbench": "review_recon_protocol_tb",
+      "expected_failure": "unconfigured start accepted",
+      "actual_exit": 1,
+      "detected": true,
+      "log_excerpt": "[8000] %Fatal: review_recon_protocol_tb.sv:28: Assertion failed in review_recon_protocol_tb: unconfigured start accepted"
+    }
+  ],
+  "python": "571 passed, 3 deselected in 212.52s; PYTHONPATH=src pytest -m not-slow (quoted marker: not slow)",
+  "python_log_sha256": "35af73a5ee3a3051c14fb9082b793e37746a847488b14de2117c144d812264c3",
+  "other_checks": [
+    "ruff check: passed",
+    "ruff format: 97 files unchanged",
+    "mypy: 48 source files passed",
+    "bash -n: synth/run_synth.sh and sim/run_vcs.sh passed",
+    "git diff --check: passed"
+  ],
+  "dc": "NOT_RUN: configured EDA host SSH connection timed out",
+  "new_ppa_or_640mhz_claim": false
+}

@@ -214,6 +214,7 @@ module p2_periph_tb;
   logic        cb_dem, cb_brg, cb_smk;
 
   calib_regs #(.P_ADC2_BITS (ADC2_BITS)) u_cb (
+      .controls_write(1'b0), .controls_data(4'd0), .quantizer_dither_en(),
       .weights_ready(1'b1), .config_busy(1'b0),
       .clk (clk), .rst_n (rst_n), .wr_en (cb_wr), .sel (cb_sel),
       .data_v (cb_dv), .data_b (cb_db), .validate (cb_val), .clear_valid (cb_clr),
@@ -377,7 +378,7 @@ module p2_periph_tb;
     chk("T2 复位后 4 个粘滞位全 0",
         (st_acc === 1'b0) && (st_gain === 1'b0) && (st_adc2 === 1'b0) && (st_an === 1'b0));
     chk("T2 复位后 clip 两位全 0", (st_cl === 1'b0) && (st_ch === 1'b0));
-    chk("T2 status_clr_value = 32'h3F", sr_clrval == 32'h0000_003F);
+    chk("T2 status_clr_value = 32'h27", sr_clrval == 32'h0000_0027);
 
     // 一次性事件 -> 粘滞
     @(negedge clk); ev_acc = 1'b1; ev_gain = 1'b1; ev_adc2 = 1'b1; ev_an = 1'b1;

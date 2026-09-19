@@ -443,9 +443,16 @@ module sar20_digital_core (
   logic [N_ACTIVE-1:0][N_UNIT_SUB-1:0]  sub_on;
   logic [2*DITHER_UNITS_RANGE-1:0]      dither_rail;
 
+  // Separate named nets preserve the sampling/quantizer paths and provide
+  // legal force/release points for L3 (do not force child input variables).
+  wire signed [15:0] swap_dither_code;
+  wire signed [7:0] sampling_dither_code;
+  assign swap_dither_code = {{8{dith_q[7]}}, dith_q};
+  assign sampling_dither_code = dith_q;
+
   swap_decode u_swap (
       .coarse      (sadc_code),                     // D8：粗码取自顶层输入（编码器在核外）
-      .dither_code ({{8{dith_q[7]}}, dith_q}),      // 显式符号扩展到 16 位
+      .dither_code (swap_dither_code),      // 显式符号扩展到 16 位
       .dem_en      (c_dem_en),
       .bridge_en   (c_bridge_en),
       .sid_low     (sid_hold[2:0]),
@@ -459,7 +466,7 @@ module sar20_digital_core (
       .sub_logical  (sub_logical),
       .main_count   (main_count),
       .sub_count    (sub_count),
-      .bank_dither  (dith_q),
+      .bank_dither  (sampling_dither_code),
       .main_on      (main_on),
       .sub_on       (sub_on),
       .dither_rail  (dither_rail)

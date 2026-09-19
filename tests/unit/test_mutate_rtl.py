@@ -120,7 +120,9 @@ def test_expr_update_never_splits_a_wider_operator(sites):
 def _code_line(rel, needle):
     matches = [
         i
-        for i, line in enumerate((mrt.RTL_ROOT.parent / rel).read_text().splitlines(), 1)
+        for i, line in enumerate(
+            (mrt.RTL_ROOT.parent / rel).read_text(encoding="utf-8").splitlines(), 1
+        )
         if needle in line and not line.lstrip().startswith("//")
     ]
     assert len(matches) == 1

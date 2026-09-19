@@ -83,7 +83,7 @@ module p2_smoke_tb;
       .cfg_clear_valid (cfg_clear_valid), .cfg_ready (cfg_ready),
       .sadc_code (sadc_code), .sadc_rdy (sadc_rdy),
       .adc2_code (adc2_code), .adc2_rdy (adc2_rdy),
-      .ra_sat (ra_sat), .rdac_ovf (rdac_ovf), .inj_q (inj_q),
+      .ra_sat (ra_sat), .rdac_ovf (rdac_ovf), .adc2_over(1'b0), .inj_q (inj_q),
       .slice_sel (slice_sel), .main_sw (main_sw), .sub_sw (sub_sw),
       .dither_sw (dither_sw), .sw_valid (sw_valid),
       .dout (dout), .dout_valid (dout_valid),

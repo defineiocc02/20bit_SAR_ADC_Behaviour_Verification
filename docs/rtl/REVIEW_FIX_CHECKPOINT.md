@@ -21,7 +21,13 @@ Actual Verilator mutation controls: div-shift killed, capacity-guard deletion
 unobserved; both complete 4095 rows. Python: 541 passed, 3 remote tests deselected.
 ruff/format and mypy passed. New configuration protocol is ADR 0016; detailed
 findings and local evidence are REVIEW_20260919.md and evidence/review_20260919.json.
-Remaining: publish branch/PR and inspect exact-head CI. Main must not be merged.
+Published: Issue #2 and PR #3; initial head 69d8770. Git Data API preserved the
+exact local commit/tree after Git transport failed. Initial Linux CI passed five
+RTL benches but Verilator 5.020 rejected forcing input variables in P3. Follow-up
+uses named top-level nets and fixes smoke input/invalid TB selects, promotes those
+warning classes to errors, and makes added test IO explicitly UTF-8. Local RTL
+benches passed again; targeted Python 36 passed. Remaining: publish this follow-up
+and inspect its exact-head CI. Main must not be merged.
 Local simulator: PyPI verilator 5.48.0 wheel (binary reports development 5.49),
 installed outside repo; macOS wheel PCH flags supplied through VERILATOR override.
 CI uses Ubuntu 24.04 apt Verilator; CI is a separate portability check.

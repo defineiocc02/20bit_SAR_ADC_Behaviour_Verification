@@ -447,7 +447,7 @@ module p2_periph_tb;
     // 8 个互不相同的 slice_id = 0..7
     for (i = 0; i < N_ACTIVE; i = i + 1) begin
       rd_slice_id[i] = 5'(i);
-      rd_main_on[i]  = {{(N_UNIT_MAIN-1){1'b0}}, 1'b1} << i[N_UNIT_MAIN-1:0];
+      rd_main_on[i]  = {{(N_UNIT_MAIN-1){1'b0}}, 1'b1} << i;
       rd_sub_on[i]   = {{(N_UNIT_SUB-1){1'b0}}, 1'b1} << i[2:0];
     end
     rd_dither_rail = 4'b1010;
@@ -478,7 +478,7 @@ module p2_periph_tb;
     repeat (4) @(posedge clk); #1;
     for (i = 0; i < N_ACTIVE; i = i + 1) begin
       chk($sformatf("T3 load=0 时 slice_sel[%0d] 保持", i), rd_sel[i] === 1'b1);
-      chk($sformatf("T3 load=0 时 main_sw[%0d] 保持", i), rd_main[i] == ({{(N_UNIT_MAIN-1){1'b0}}, 1'b1} << i[N_UNIT_MAIN-1:0]));
+      chk($sformatf("T3 load=0 时 main_sw[%0d] 保持", i), rd_main[i] == ({{(N_UNIT_MAIN-1){1'b0}}, 1'b1} << i));
     end
 
     // slice_id 重复：后者覆盖前者，且**不**报错（只是可观测的"最后写胜出"）

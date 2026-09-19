@@ -44,8 +44,8 @@
 //
 //   [A] 的处置（team-lead 裁决，2026-09-18）：**不在顶层加 dither 端口**（那会动摇
 //       已冻结的接口）。改为测试台用**层次化 `force`** 把向量行的 dither 列注入：
-//           force u_core.u_swap.dither_code  = 符号扩展到 16 位的 dither 列;
-//           force u_core.u_therm.bank_dither = 8'sd0;
+//           force u_core.swap_dither_code  = 符号扩展到 16 位的 dither 列;
+//           force u_core.sampling_dither_code = 8'sd0;
 //       挂这两根线的理由：
 //         * vector 用的是 dither_mode='quantizer'，dither 是**码偏移**（k = coarse +
 //           dither），作用点正是 `swap_decode.dither_code`；
@@ -268,8 +268,8 @@ module p3_top_tb;
   task automatic inj_dith(input logic signed [15:0] dv);
     begin
       dith_fv = dv;                                              // 静态副本
-      force u_core.u_swap.dither_code  = {{8{dith_fv[7]}}, dith_fv[7:0]};
-      force u_core.u_therm.bank_dither = 8'sd0;                  // 轨保持中性
+      force u_core.swap_dither_code  = {{8{dith_fv[7]}}, dith_fv[7:0]};
+      force u_core.sampling_dither_code = 8'sd0;                  // 轨保持中性
       forced = 1'b1;
     end
   endtask
@@ -277,8 +277,8 @@ module p3_top_tb;
   task automatic inj_release();
     begin
       if (forced) begin
-        release u_core.u_swap.dither_code;
-        release u_core.u_therm.bank_dither;
+        release u_core.swap_dither_code;
+        release u_core.sampling_dither_code;
         forced = 1'b0;
       end
     end

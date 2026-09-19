@@ -10,7 +10,9 @@ module review_config_tb;
     .cfg_addr(cfg_addr),.cfg_wdata(cfg_wdata),.cfg_rdata(cfg_rdata),
     .cfg_validate(cfg_validate),.cfg_clear_valid(cfg_clear_valid),.cfg_ready(cfg_ready),
     .sadc_code(9'd256),.sadc_rdy(1'b1),.adc2_code(12'd2048),.adc2_rdy(1'b1),
-    .ra_sat(1'b0),.rdac_ovf(1'b0),.adc2_over(1'b0),.inj_q(64'sd0),.dout_valid(dout_valid));
+    .ra_sat(1'b0),.rdac_ovf(1'b0),.adc2_over(1'b0),.inj_q(64'sd0),.dout_valid(dout_valid),
+    .slice_sel(),.main_sw(),.sub_sw(),.dither_sw(),.sw_valid(),.dout(),
+    .clip_low(),.clip_high(),.analog_ovf(),.acc_ovf(),.status_word());
   always @(negedge clk) if(dout_valid) outputs++;
   task automatic write_cfg(input logic [15:0] addr,input logic [63:0] data);
     @(negedge clk); cfg_addr=addr; cfg_wdata=data; cfg_wr=1;

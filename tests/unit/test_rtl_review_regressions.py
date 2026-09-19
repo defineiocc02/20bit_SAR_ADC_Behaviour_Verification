@@ -27,7 +27,7 @@ mirror = load("review_mirror", "sim/ref/recon_rtl_mirror.py")
 
 
 def test_lfsr_has_maximal_nonzero_period():
-    source = (REPO / "rtl/core/dither_gen.sv").read_text()
+    source = (REPO / "rtl/core/dither_gen.sv").read_text(encoding="utf-8")
     match = re.search(r"TAPS\s*=\s*32'h([0-9a-fA-F_]+)", source)
     assert match
     taps = int(match[1].replace("_", ""), 16)
@@ -126,7 +126,7 @@ def test_old_trace_removed_before_launch(tmp_path, monkeypatch):
     monkeypatch.setattr(harness, "REPO", tmp_path)
     stale = tmp_path / "sim/artifacts/fresh/p3_trace.txt"
     stale.parent.mkdir(parents=True)
-    stale.write_text(GOOD)
+    stale.write_text(GOOD, encoding="utf-8")
 
     def failed_run(*args, **kwargs):
         assert not stale.exists()
@@ -139,7 +139,7 @@ def test_old_trace_removed_before_launch(tmp_path, monkeypatch):
 
 def test_empty_mutant_cannot_pass_negative_control(tmp_path, short_run):
     golden = tmp_path / "golden.txt"
-    golden.write_text(GOOD)
+    golden.write_text(GOOD, encoding="utf-8")
     with pytest.raises(AssertionError):
         harness._verdict(golden, trace(tmp_path, ""))
 
@@ -147,7 +147,7 @@ def test_empty_mutant_cannot_pass_negative_control(tmp_path, short_run):
 @pytest.mark.parametrize("mutated,verdict", [(False, "unobserved"), (True, "killed")])
 def test_complete_pair_preserves_comparator_semantics(tmp_path, short_run, mutated, verdict):
     golden = tmp_path / "golden.txt"
-    golden.write_text(GOOD)
+    golden.write_text(GOOD, encoding="utf-8")
     mutant = trace(tmp_path, GOOD.replace("0b", "ff") if mutated else GOOD)
     assert harness._verdict(golden, mutant)[0] == verdict
 

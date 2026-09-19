@@ -54,6 +54,8 @@ def main() -> None:
                 "-j",
                 "2",
                 "-Wno-fatal",
+                "-Werror-PINMISSING",
+                "-Werror-SELRANGE",
                 "--top-module",
                 top,
                 "-Irtl/params",

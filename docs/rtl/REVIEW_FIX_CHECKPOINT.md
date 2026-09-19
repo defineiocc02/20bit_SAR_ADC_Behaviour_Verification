@@ -50,3 +50,15 @@ RTL/synthesis follow-up (2026-09-20):
 - Published implementation commit 2cc169d to existing PR #3. A documentation
   follow-up clarifies that the old process-exit bug affected PREFLIGHT_OK and
   CHECK_ONLY_OK; OK already checked the process exit. Await final-head CI; do not merge.
+
+
+Portable oracle follow-up:
+- Final-head CI 54c3592 passed all four Python matrices (570 passed, 3 remote
+  slow deselected), but legacy combined P2 hit the 900 s Linux timeout.
+- Isolated the unchanged full-code identity scenario into p2_oracle_tb, retaining
+  all 1,048,576 codes and adding per-code latency checks and flushed progress.
+  Local isolated oracle passes in 4.833 s vs combined 371.080 s; remaining P2
+  scenarios pass with 23,049 checks. This is simulator workload reduction, not
+  a claim about hardware speed. Default standalone p2_tb remains full coverage;
+  run_open_rtl delegates only when p2_oracle_tb is also selected.
+- CI now executes eight benches. Publish this harness fix and inspect its RTL CI.

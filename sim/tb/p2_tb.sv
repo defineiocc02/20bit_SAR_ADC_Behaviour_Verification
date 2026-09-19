@@ -838,7 +838,12 @@ module p2_tb;
                u_oracle.a1, $isunknown(u_oracle.a1),
                u_oracle.shifted[ACC_BITS-1], u_oracle.ovf_pend, u_oracle.gerr_pend);
     end
-    if (only == "" || only == "t5") t5_oracle();
+    // Portable CI runs the same full-code oracle in p2_oracle_tb, isolated
+    // from the unrelated production-size reconstructions in this testbench.
+    if (only == "" || only == "t5") begin
+      if ($test$plusargs("skip_oracle")) $display("T5 delegated to p2_oracle_tb");
+      else t5_oracle();
+    end
     if (only == "" || only == "t6") t6_masks();
     if (only == "" || only == "t7") t7_ramp();
     if (only == "" || only == "t8") t8_sat();

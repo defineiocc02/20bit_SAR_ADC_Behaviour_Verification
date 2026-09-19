@@ -25,6 +25,7 @@ def main() -> None:
         "review_dither_tb": "REVIEW_DITHER_COMPLETE",
         "review_config_tb": "REVIEW_CONFIG_COMPLETE",
         "p2_tb": "P2 RESULT: PASS",
+        "p2_oracle_tb": "P2_ORACLE_COMPLETE codes=1048576 errors=0",
         "p2_periph_tb": "p2_periph PASS",
         "p2_smoke_tb": "p2_smoke PASS",
         "p1_tb": "P1 RESULT: PASS",
@@ -69,6 +70,9 @@ def main() -> None:
                 subprocess.run(
                     args, cwd=REPO, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=300
                 )
+            # Only delegate T5 when the independent full-code bench is selected.
+            delegate_oracle = top == "p2_tb" and (not selected or "p2_oracle_tb" in selected)
+            extra_args = ["+skip_oracle"] if delegate_oracle else []
             run_log = out / f"{top}.run.log"
             with run_log.open("w", encoding="utf-8") as log:
                 cp = subprocess.run(
@@ -78,12 +82,13 @@ def main() -> None:
                         f"+outdir={out}",
                         "+injdith",
                         "+trace=p3_trace.txt",
+                        *extra_args,
                     ],
                     cwd=out,
                     stdout=log,
                     stderr=subprocess.STDOUT,
-                    # P2 includes the complete 2^20-code oracle (~6 min locally).
-                    timeout=900 if top == "p2_tb" else 120,
+                    # A standalone legacy P2 run still includes the full oracle.
+                    timeout=900 if top == "p2_tb" and not delegate_oracle else 120,
                 )
             output = run_log.read_text(encoding="utf-8")
             cp.check_returncode()

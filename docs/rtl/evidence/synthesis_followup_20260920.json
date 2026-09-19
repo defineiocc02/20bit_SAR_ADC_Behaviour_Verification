@@ -23,7 +23,7 @@
     },
     "p2_tb": {
       "result": "PASS",
-      "log_sha256": "13d97301899bec92ac21815d98180cc10f6552e7b82403468a15ce017e4b3d8b"
+      "log_sha256": "ff002f3139f14c256a4903b017748b971d2618c89f6c248ced43dbe21f38471c"
     },
     "p2_periph_tb": {
       "result": "PASS",
@@ -36,6 +36,10 @@
     "p3_top_tb": {
       "result": "PASS",
       "log_sha256": "d2297c563715fac7ed121a6dc3d012cc35cfa53cbea6a63a7af65b5b822c2fdf"
+    },
+    "p2_oracle_tb": {
+      "result": "PASS",
+      "log_sha256": "ceb6a6d76e09b6e9cc663d794ddb2edeb4af5e09f4552df1047a6936c8719883"
     }
   },
   "p2_arithmetic": {
@@ -67,10 +71,20 @@
     "rtl/top/sadc_enc.sv": "ce2217d85e4f4ac57e1f199765f41393c09811c94b6d776c6f8b8b23c4493606",
     "rtl/top/sar20_digital_core.sv": "803510ae26fb3932b0e2f8cf27a4a6fd05a674aac03bd6a29e456cbe74eb709a",
     "sim/tb/p2_periph_tb.sv": "578da45273185ee89e5dfe47570e676a18aef74d6a5be9d173b5f1abe3b56a8e",
-    "sim/tb/p2_tb.sv": "16d72d89b7020059111011021d47b24eefb70eb37008d804751f13c2bb49b1fb",
+    "sim/tb/p2_tb.sv": "ba7b48ea7ceee790dadd72cef146c1791ac1e88a7ee9e5fa84647ce522ca725c",
     "synth/run_dc.tcl": "b7835eb7a84464eb0d667b4100530319876593eb78a2f4328bcfaf76387facab",
     "synth/run_synth.sh": "e66d11cad52656fac268de5880261631b209c4a7eb21f1e6427d3b415624620c",
     "tests/unit/test_synth_flow.py": "4e49f2315c16cb4da08709e684c5b082782cc0b58a7f77d724a58bbbff221917",
-    "tools/run_open_rtl.py": "1ec4d9be7f5f08af29f476c657aeafc42809082186d3c8476ff1a9bce9468812"
+    "tools/run_open_rtl.py": "1a8a1329663cccb198a1a9fc95585cefdb1eb3af6c6e3478383b24dbd5b05cdc",
+    "sim/tb/p2_oracle_tb.sv": "0715c55d726eb30d56995999f145a22f9f8383308d90fbf08a44ce43b5b2572d"
+  },
+  "portable_oracle_followup": {
+    "reason": "Linux combined P2 exceeded 900 s; keep all codes but isolate unrelated production DUTs",
+    "prior_ci_head": "54c3592f93669f9cd6b8e78cc9d539a06b64473c",
+    "python_ci_passed": 570,
+    "python_ci_deselected": 3,
+    "oracle_codes": 1048576,
+    "oracle_wall_seconds": 4.833,
+    "other_p2_checks": 23049
   }
 }

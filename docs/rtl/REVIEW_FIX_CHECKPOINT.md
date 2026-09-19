@@ -47,4 +47,6 @@ RTL/synthesis follow-up (2026-09-20):
   formatting, mypy and Bash syntax passed. Latest CI must verify the final tree.
 - Detailed structural analysis: RTL_SYNTHESIS_REVIEW_20260920.md; evidence:
   evidence/synthesis_followup_20260920.json. No measured new DC/PPA results.
-- Next: publish this milestone to existing PR #3, inspect exact-head CI; do not merge.
+- Published implementation commit 2cc169d to existing PR #3. A documentation
+  follow-up clarifies that the old process-exit bug affected PREFLIGHT_OK and
+  CHECK_ONLY_OK; OK already checked the process exit. Await final-head CI; do not merge.

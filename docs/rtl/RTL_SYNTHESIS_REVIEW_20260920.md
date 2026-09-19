@@ -9,7 +9,7 @@
 | P1 | `weight_store.sv` 的 `sum_all` | 每次写配置的容量检查依赖对整个 18×71 权重阵列的组合求和，产生无必要的大规模归约逻辑 | `sum_all` 改为寄存器，合法写时 `旧总和−原地址权重+新权重`；非法写保持；clear 同时保留权重和总和，只失效完整性 bitmap。TB 独立重算整个数组，核对覆盖写、重复写、拒绝写和清除后重载 |
 | P1 | `run_dc.tcl` 编译分派 | `COMPILE_MODE=ultra` 仍实际调用 `compile`，报告模式与执行不一致 | 按模式调用 `compile_ultra` 或 `compile`；拒绝未知模式；执行 Tcl 桩验证真实代码块 |
 | P1 | `run_dc.tcl` I/O 约束 | 延迟为默认字符串 `0.0` 时跳过设置，端口没有该项显式时序约束 | 包括零在内都设置 input/output delay；测试 `0.0`、`0`、非零。零预算仅用于明确约束，不是最终接口预算 |
-| P1 | `run_synth.sh` 退出判定 | 状态文件写 OK 后工具异常退出，包装脚本仍可能返回成功 | 真实非零工具退出码与成功标记冲突时失败；覆盖三个成功状态 × 正常/异常退出 |
+| P1 | `run_synth.sh` 退出判定 | 状态文件写 PREFLIGHT_OK/CHECK_ONLY_OK 后工具异常退出，包装脚本仍返回成功；原 OK 分支已有退出码检查 | 真实非零工具退出码与成功标记冲突时失败；覆盖三个成功状态 × 正常/异常退出 |
 | P1 | `run_dc.tcl` 负载单位 | 仓库记录库单位为 1 pF，代码却将 LOAD_PF 乘 1000，默认值可能由 20 fF 变成 20 pF | 默认按 pF 库直接设置，其他库通过 LIB_CAP_UNIT_PF 明确换算并记录；测试 pF/fF 两种单位。实际 PDK 单位仍需在重跑时核实 |
 | P1 | `run_synth.sh` WNS 复核 | `-0*` 字符串特例连 -0.1 ns 也排除，且 NA 可通过 OK 分支 | 数值格式校验加真实负值比较；负的小数/科学计数法失败，负零允许 |
 | P2 | `run_dc.tcl` TNS | WNS 与 TNS 都通过取最小值的函数获取，所谓 TNS 实为另一遍 WNS | 增加负 slack 求和模式。输出 `TNS_KIND=sampled_path_negative_slack_sum`；最多 2000 条路径，可能同 endpoint 多路径，不能冒充完整 endpoint TNS |

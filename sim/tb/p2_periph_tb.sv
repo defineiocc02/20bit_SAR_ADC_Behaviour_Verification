@@ -16,7 +16,33 @@
 // 用法
 //   python tools/run_rtl_sim.py --top p2_periph_tb --tb sim/tb/p2_periph_tb.sv \
 //       --src rtl/core rtl/top rtl/params --incdir rtl/params --fresh
+//   plusargs：
+//     +trace=<file> 观测 trace：逐观测节拍落一行**模块级观测面**（见 [I]）
 //   退出码：任何一处 MISMATCH -> 结束时报 FAIL 并 $fatal(1)。
+//
+// ---------------------------------------------------------------------------
+//   [I] **观测 trace（`+trace=<file>`）—— 模块级观测面，用于测量"我们的观测面有多大"**
+//
+//   动机：同一个变异体在**模块级 TB** 上可能被杀掉，而在**顶层 4 列 trace**
+//   （`p3_top_tb` 的 `sample_idx/dout/clip/analog_ovf`）上完全看不见。若不把这两者
+//   区分开，Phase 1b 会把"**观测面盲区**"统计成"**等价变异体**"，分数系统性偏低。
+//   所以本 TB 也要有一份 trace，作为**更宽的观测面**。
+//
+//   列（空格分隔，每行一条；**逐 `posedge clk` 落一行**，共 27 列）：
+//     `cyc`    观测节拍计数（10 进制），充当论文里"记录的时间字段"
+//     `cb_*`   calib_regs：cfg_ready / err_code / offset_q / adc2_min_q / adc2_max_q
+//              / dem_en / bridge_en / sampling_mask_en（8 列）
+//     `ws_*`   weight_store：err_write / w_q[0][0]（2 列）
+//     `st_*`   status_regs：4 个粘滞位 / 2 个 clip 位 / status_word / status_clr_value（8 列）
+//     `rd_*`   rdac_drv：slice_sel / main_sw / sub_sw / dither_sw 的**全向量**（4 列）
+//     `cf_*`   ctrl_fsm：phase / phase_onehot / 7 个脉冲压成一位向量 / sample_idx（4 列）
+//   符号量（`cb_off/cb_min/cb_max`）以**补码十六进制**落盘 —— 本 trace 的用途是
+//   **字符串比较**（论文判据），不做数值解析。X/Z 原样落 `x`/`z`。
+//
+//   ⚠️ **只在显式给 `+trace` 时**才 fopen / 写文件 / 打印任何东西。不给时采样块
+//   每拍只做一次 `if`、不产生任何输出 ⇒ **既有输出逐字节不变**。采样刻意放在
+//   **独立 `always` 块**里而不是插进既有 `initial`，就是为了让"没有动过任何既有行"
+//   成为**结构事实**（`git diff` 应为 +N/−0），而不是一句承诺。
 //
 // ---------------------------------------------------------------------------
 // 如实登记：**没有做成的**
@@ -51,6 +77,18 @@ module p2_periph_tb;
   logic clk = 1'b0;
   always #5 clk = ~clk;
   logic rst_n = 1'b0;
+
+  // ---- 观测 trace（`+trace=<file>`）：**模块级观测面**，逐观测节拍落一行 -----------
+  // 列见模块头 [I]。只在显式给 `+trace` 时才有任何副作用（fopen / 写文件 / 打印）；
+  // 不给时采样块每拍只做一次 `if`，**不产生任何输出**。
+  // ⚠️ 采样刻意放在**独立的 always 块**里，而不是插进既有 initial ——
+  //    这样"没有动过任何既有行"就是结构事实（git diff 应为 +N/−0），而不是承诺。
+  // ⚠️ 采样块本体必须放在**所有 DUT 信号声明之后**（VCS 报 `Error-[IND] Identifier
+  //    not declared`，踩过一次）：这里只放变量，块本体在 initial 之前。
+  string trace_path = "";
+  bit    trace_en   = 1'b0;
+  int    fd_trace   = 0;
+  int    trace_cyc  = 0;
 
   task automatic chk(input string name, input logic cond);
     begin
@@ -198,7 +236,32 @@ module p2_periph_tb;
   logic [W_BITS-1:0] snap00;
   int  nz;
 
+  // ---- 观测 trace 采样块：**必须放在所有 DUT 信号声明之后**（VCS 要求先声明后使用）----
+  always @(posedge clk) begin
+    if (trace_en) begin
+      $fwrite(fd_trace,
+              "%0d %0h %0h %0h %0h %0h %0h %0h %0h %0h %0h %0h %0h %0h %0h %0h %0h %0h %0h %0h %0h %0h %0h %0h %0h %0h %0h\n",
+              trace_cyc,
+              cb_ready, cb_err, cb_off, cb_min, cb_max, cb_dem, cb_brg, cb_smk,
+              ws_err, ws_wq[0][0],
+              st_acc, st_gain, st_adc2, st_an, st_cl, st_ch, sr_word, sr_clrval,
+              rd_sel, rd_main, rd_sub, rd_dsw,
+              cf_phase, cf_onehot,
+              {cf_sample_en, cf_acq, cf_sadc, cf_dem, cf_rdac, cf_adc2, cf_recon}, cf_idx);
+      $fflush(fd_trace);   // 每拍落盘：之后某处 $fatal 中止也不丢已观测的部分
+      trace_cyc = trace_cyc + 1;
+    end
+  end
+
   initial begin
+    // 观测 trace（可选）：只在显式给 `+trace=<file>` 时才产生任何副作用
+    trace_en = $value$plusargs("trace=%s", trace_path);
+    if (trace_en) begin
+      fd_trace = $fopen(trace_path, "w");
+      if (fd_trace == 0) $fatal(1, "p2_periph_tb: cannot open trace file %s", trace_path);
+      $display("[P2P-TRACE] 观测 trace -> %s（列见模块头 [I]）", trace_path);
+    end
+
     // 默认输入
     ws_cfg_ready = 1'b0; ws_wr_en = 1'b0; ws_slice = 5'd0; ws_unit = 7'd0; ws_data = '0;
     sr_clr = 1'b0; ev_acc = 0; ev_gain = 0; ev_adc2 = 0; ev_cl = 0; ev_ch = 0; ev_an = 0;
@@ -588,6 +651,13 @@ module p2_periph_tb;
     chk("T5 validate 与 clear 同拍时 clear 胜（cfg_ready=0）", cb_ready === 1'b0);
 
     sub("T5", err_base);
+
+    // 观测 trace 收尾（只在开了 `+trace` 时才有输出；未开时零副作用）
+    if (trace_en) begin
+      $fflush(fd_trace);
+      $fclose(fd_trace);
+      $display("[P2P-TRACE] trace 关闭：共 %0d 行 -> %s", trace_cyc, trace_path);
+    end
 
     //=====================================================================
     $display("================================================");

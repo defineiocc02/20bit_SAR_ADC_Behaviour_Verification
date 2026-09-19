@@ -130,7 +130,20 @@
 //     +injdith      用 force 注入向量 dither 列（**bit-exact 判据必须开这个**）
 //     +sweep        诊断：不用向量，扫 coarse 画 RTL 的 coarse->dout 传递曲线
 //     +dbgcfg       诊断：逐次打印系数回读 / 监视 off_r 的每一次写入
+//     +trace=<file> 观测 trace：逐样本落 `sample_idx dout clip analog_ovf`（见 [I]）
 //   退出码：任何一处 MISMATCH -> 结束时报 FAIL 并 $fatal(1)。
+//
+//   [I] **观测 trace（`+trace=<file>`）—— 为论文判据（审计文档 §4）提供"字段级"观测**
+//       列（空格分隔，每行一条，行序 = 捕获顺序）：
+//         `sample_idx`  RTL 转换序号（十进制），充当论文里"记录的时间字段"
+//         `dout`        20 位输出（十六进制）
+//         `clip`        `{clip_high, clip_low}` 压成一个十六进制数字（0/1/2/3）
+//         `analog_ovf` 粘滞位（0/1）
+//       **X/Z 原样落盘**（`%h` 对未知位打印 `x`/`z`），供比较器按"X/Z 计为已观测值"处理。
+//       每行都 `$fflush`：即使之后某处 `$fatal` 中止，已落盘的 trace 仍完整。
+//       ⚠️ **只在显式给 `+trace` 时**才 fopen / 写文件 / 打印任何东西 —— 不给时该分支
+//       完全不执行，故**输出与改动前逐字节一致**。这条"没给 plusarg 就不变"的证明方式
+//       与"没给 `+injdith` 就是对照跑法"是同一套纪律。
 //===========================================================================
 `timescale 1ns/1ps
 `include "rtl_params.vh"
@@ -147,6 +160,14 @@ module p3_top_tb;
   int    errors = 0;
   int    checks = 0;
   int    shown  = 0;
+
+  // ---- 观测 trace（`+trace=<file>`）：论文判据需要的"逐样本可观测字段" -------------
+  // 列：`sample_idx dout clip analog_ovf`，其中 `clip` = `{clip_high, clip_low}` 一个 hex 数字。
+  // ⚠️ 只在给了 `+trace` 时才 fopen / 写文件 / 打印任何东西 —— 未给时**输出与改动前逐字节
+  //    一致**。这是"只加一条 plusarg 分支、不动既有判据与既有输出"的**证明方式**（见模块头 [I]）。
+  string trace_path = "";
+  bit    trace_en   = 1'b0;
+  int    fd_trace   = 0;
 
   logic clk = 1'b0;
   always #5 clk = ~clk;
@@ -475,6 +496,14 @@ module p3_top_tb;
     if (!$value$plusargs("vdir=%s", vdir)) vdir = "sim/vectors";
     injdith = $test$plusargs("injdith");
 
+    // ---- 观测 trace（可选）：只在显式给 `+trace=<file>` 时才产生任何副作用 ----
+    trace_en = $value$plusargs("trace=%s", trace_path);
+    if (trace_en) begin
+      fd_trace = $fopen(trace_path, "w");
+      if (fd_trace == 0) $fatal(1, "p3_top_tb: cannot open trace file %s", trace_path);
+      $display("[P3-TRACE] 观测 trace -> %s（列：sample_idx dout clip analog_ovf）", trace_path);
+    end
+
     cfg_wr = 1'b0; cfg_addr = 16'd0; cfg_wdata = 64'd0;
     cfg_validate = 1'b0; cfg_clear_valid = 1'b0;
     sadc_code = 9'd0; sadc_rdy = 1'b1;
@@ -630,6 +659,12 @@ module p3_top_tb;
         cap_ch[k]   = clip_high;
         cap_an[k]   = analog_ovf;
         cap_cyc[k]  = c;
+        // ---- 观测 trace：逐样本一行；`sample_idx` 用本样本的 k（充当论文的"时间字段"）----
+        // 每行都 $fflush：即使后面某处 $fatal 中止，已落盘的 trace 也完整（不自欺）。
+        if (trace_en) begin
+          $fwrite(fd_trace, "%0d %0h %0h %0h\n", k, dout, {clip_high, clip_low}, analog_ovf);
+          $fflush(fd_trace);
+        end
         k++;
       end
       @(posedge clk);
@@ -816,6 +851,12 @@ module p3_top_tb;
     $display("  dither 注入：injdith=%0b。1=force swap_decode.dither_code 取向量列、unit_therm.bank_dither 钉 0；0=不注入的对照跑法。注意 dither_gen / dither_rail 不在本测试覆盖内。", injdith);
     $display("==================================================");
     inj_release();
+    // ---- 观测 trace 收尾（仅在开了 `+trace` 时才有输出；未开时零副作用）----
+    if (trace_en) begin
+      $fflush(fd_trace);
+      $fclose(fd_trace);
+      $display("[P3-TRACE] trace 关闭：共 %0d 行 -> %s", k, trace_path);
+    end
     if (errors == 0) begin
       $display("P3 TOP RESULT: PASS");
     end else begin

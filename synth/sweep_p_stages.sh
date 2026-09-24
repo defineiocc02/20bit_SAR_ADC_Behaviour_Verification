@@ -14,14 +14,14 @@
 #   在**已经同步好的**远端目录里执行（`run_synth.sh` / `run_dc.tcl` /
 #   `src/` / `inc/` 都在当前目录）。同步用本机侧的：
 #       python synth/run_synth.py --name sweep_recon --top recon_core --dry-run \
-#           --files rtl/core/recon_core.sv rtl/core/div_floor.sv rtl/core/adc2_dec.sv \
+#           --files rtl/core/recon_core.sv rtl/core/div_floor.sv rtl/core/adc2_dec.sv rtl/core/cal_weight_reduce.sv rtl/core/cal_residue_mac.sv rtl/core/cal_output_stage.sv \
 #           --incdirs rtl/params --clk-period 10
 #   **不要**在一次长任务还在跑的时候覆盖 run_synth.sh（bash 按字节偏移读脚本，
 #   会读到被撕开的残片 -> 假的 rc=2，这是踩过的真事故；见 README §6 坑 4）。
 #
 # 用法
 #   cd ~/adc_rtl_synth/sweep_recon
-#   FILES="src/rtl/core/recon_core.sv src/rtl/core/div_floor.sv src/rtl/core/adc2_dec.sv" \
+#   FILES="src/rtl/core/recon_core.sv src/rtl/core/div_floor.sv src/rtl/core/adc2_dec.sv src/rtl/core/cal_weight_reduce.sv src/rtl/core/cal_residue_mac.sv src/rtl/core/cal_output_stage.sv" \
 #   INCDIRS=inc/rtl/params CLK_PERIOD=10 ./sweep_p_stages.sh "1 4 7 14 21 63"
 #
 # 产出（当前目录）

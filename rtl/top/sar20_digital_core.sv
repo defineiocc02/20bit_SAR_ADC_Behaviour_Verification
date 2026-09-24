@@ -1,74 +1,36 @@
-//===========================================================================
-// sar20_digital_core.sv -- 20-bit SAR ADC 数字核顶层集成
-//===========================================================================
-// 职责一句话
-//   把 slice 分配、DEM、开关译码、温度计展开、RDAC 扇出、相位控制、定点重构与
-//   寄存器/状态子系统集成为一个可综合数字核，并对外提供一条确定的配置通路
-//   （cfg_addr 译码 -> 寄存器写 / 回读）。
-//   本模块**不做**任何算术判定，只做实例化、连线与地址译码。
-//
-// 来源
-//   docs/rtl/P2_INTERFACE.md §11（端口与 cfg_addr 映射，冻结）
-//   docs/rtl/P2_INTERFACE.md §1（拓扑图）
-//   docs/rtl/RTL_ARITHMETIC_CONTRACT.md §4.6（analog_ovf 的构成）
-//   rtl/README.md §3.1（sadc_enc 在核外）
-//
-// 单位契约
-//   配置侧：Q30 权重（48 位无符号存放）、Q32 电压（64 位有符号）、0/1 控制位。
-//   数据侧：adc2_code 12 位原始后端码；dout 20 位 offset-binary 码。全程无浮点。
-//
-// 参数来源分级
-//   全部尺寸取 rtl_params.vh（[推导]/[假设]）。本模块**没有**模块参数：顶层换尺寸
-//   必须重跑 tools/export_rtl_params.py，不允许就地改数字。
-//
-// 契约与不变量 / 适用域
-//   * `cfg_ready = 1` 之前不发任何转换节拍（ctrl_fsm 的不变量），故 `dout_valid`
-//     在未配置时恒 0（recon_core 的不变量）。两道门叠在一起，不依赖单点保证。
-//   * `analog_ovf = rdac_ovf | adc2_over | ra_sat`（契约 §4.6），与 clip_low/high
-//     **互不替代**；本模块把它送进 status_regs 做**独立**粘滞保留（ADR 0014）。
-//   * `dem_state_gen.dem_en` 直接接 `calib_regs.dem_en`。头文件的 `DEM_ENABLE = 0`
-//     是**复位默认值**（故意的，P1 §0.2）：运行时必须由软件写 0x1018 bit0 = 1 打开，
-//     否则整条 DEM 退化为固定顺序且**不会报任何错**。
-//   * `recon_core.w_rom` 直接接 `weight_store.w_q`（同一份存储，无镜像）。
-//
-// ---- 与 P2 §11 的偏离登记（逐条，全部在此列明，不静默改）------------------
-//   D1. **新增输入端口 `inj_q`**（signed [V_BITS-1:0]）。P2 §11 的端口表**漏了**它，
-//       但 recon_core 必需的 `I`（已知注入，Q32）无法从表内任何端口推出：
-//       cfg_addr 映射里没有它的地址，sadc/adc2 回读也不是它。P2 §12 的 L3 链路
-//       向量 `p2_l2_ramp.hex` / `p2_link.hex` 明确带 `inj_q` 列，TB 必须能驱动它。
-//       故按"recon_core 的 start 接 ctrl_fsm、inj_q/adc2_code 来自顶层输入"的
-//       明确要求补上该端口。**这是本文件相对 §11 的唯一端口改动。**
-//   D2. `run` 无对应顶层端口，接 `cfg_ready`：配置生效后连续转换。若将来要"按需
-//       单次转换"，应加端口而不是在内部造状态。
-//   D3. `sw_valid` 无对应驱动源（rdac_drv 无 valid 输出）。本模块把它做成
-//       `rdac_load` 打一拍的脉冲，语义 = "开关寄存器本拍刚被刷新"。
-//   D4. DEM 状态捕获：新增寄存器 `sid_hold`，在 `dem_advance`（相位 10）那一拍
-//       锁存当前 bank 的 sid，之后 dem_state_gen 才推进该 bank。若不捕获，
-//       相位 11 的 rdac_load 与相位 15 的 recon_start 会看到**已推进**的状态，
-//       整套开关码对不上本次样本。这是"先使用、后推进"（P1 §1）在本拓扑里的
-//       落地方式，代价是 9 个触发器。
-//   D5. `dither_gen` 的码经 `dith_q` 按 `valid` 门控寄存：被拒采样（valid=0）的
-//       那一拍不更新。否则 swap_decode 会拿到一个已被丢弃的码（P1 §4 的约定）。
-//   D6. 权重合法性（`0 < W < 2^47`、`Sigma W < 2^60`）在 `weight_store` 的**写入点**
-//       守卫，而不是在 `calib_regs.validate`。原因：calib_regs 的冻结端口表没有权重
-//       输入，无法执行这两条；引权重进去要加端口，违反"端口逐个照抄"。
-//       连带后果：calib_regs 的 `ERR_W_RANGE` / `ERR_W_SUM` 永不触发，而
-//       weight_store 的 `err_write` 会在这两种情形下拉高；本模块按可观测原因把它
-//       映射成对应错误码，使错误码仍可区分。
-//   D7. `ERR_*` 常量在本文件与 calib_regs.sv 各有一份同值副本 —— 没有可共用的
-//       头文件（rtl/params/ 是生成物，禁止手工追加）。改一处必须改另一处。
-//   D8. `sadc_enc` **不**在本核内实例化，粗码直接取顶层输入 `sadc_code`。
-//       这是 rtl/README.md §3.1 的层级决定（编码器在核外，模拟侧负责其正确性），
-//       P2 §11 的端口表也正是这么定义的。sadc_enc 由独立 TB 验证。
-//   D9. 顶层**不**对 `sadc_code` / `adc2_code` 做采样锁存。P2 §11 未定义锁存口径，
-//       而 L3 向量是按相位驱动码域的，故保持直连（可观测行为 = 相位 15 时线上
-//       的值）。若模拟侧无法在整段转换期保持码稳定，应在此加锁存并新写 ADR。
-//===========================================================================
+// sar20_digital_core: shared configuration and physical-weight calibration.
+// P_STRUCTURAL=1: dual SAR/shared flash/18-slice macro controls and previous-
+// residue context (ADR0018). Comparator data must be synchronous with clk.
+// P_STRUCTURAL=0: legacy externally supplied coarse/fine codes, phase8/14
+// capture (ADR0017). Explicit compatibility profile for old oracle vectors.
+// A configuration epoch locks every coefficient and control until clear.
+// Reconstruction latency: 11 complete clock periods after accepted start.
 `include "rtl_params.vh"
 
-module sar20_digital_core (
+module sar20_digital_core #(
+    parameter bit P_STRUCTURAL = 1,
+    parameter int P_RECON_STAGES = 7,
+    parameter int P_REF_ON = 10,
+    parameter int P_RESIDUE_CAPTURE = 9,
+    parameter logic [31:0] P_SHUFFLE_SEED = 32'h6d2b79f5
+) (
     input  logic        clk,
     input  logic        rst_n,
+    // Structural macro boundary; active when P_STRUCTURAL=1 (default).
+    input wire [6:0] flash_therm,
+    input wire flash_valid,
+    input wire [1:0] coarse_cmp_valid, coarse_cmp_ge,
+    input wire fine_cmp_valid, fine_cmp_ge,
+    output wire [3:0] analog_phase,
+    output wire quiet_sample, tp_clock, ra_az, ra_amplify, ref_precharge, ref_accurate,
+    output wire [17:0] acquiring_mask, converting_mask, aux_charge_enable, hold_low_enable,
+    output wire [1:0] coarse_compare_enable,coarse_acquire_enable,
+    output wire flash_acquire_enable,fine_acquire_enable,
+    output wire [1:0][8:0] coarse_trial,
+    output wire [1:0][7:0] quantizer_dither,
+    output wire [3:0] acquisition_dither_rails,
+    output wire [11:0] fine_trial,
+    output wire fine_compare_enable, flash_sample,
     // ---- 配置/寄存器接口 ----
     input  logic        cfg_wr,
     input  logic [15:0] cfg_addr,
@@ -90,7 +52,7 @@ module sar20_digital_core (
     // 码到轨既可能"恰好在轨"（模型不算 over）也可能"越轨被夹住"（算 over）。
     // 所以它是与 `ra_sat`/`rdac_ovf` 同级的**模拟域回读输入**，必须由外部给出。
     input  logic                 adc2_over,
-    input  logic signed [V_BITS-1:0] inj_q,     // D1：§11 漏列，见模块头偏离登记
+    input  logic signed [V_BITS-1:0] inj_q,     // 本样本已知注入，Q32
     // ---- 数字输出到模拟域 ----
     output logic [N_SLICES-1:0]                       slice_sel,
     output logic [N_SLICES-1:0][N_UNIT_MAIN-1:0]      main_sw,
@@ -105,7 +67,9 @@ module sar20_digital_core (
     output logic                analog_ovf,
     output logic                acc_ovf,
     // ---- 观测 ----
-    output logic [31:0]         status_word
+    output logic [31:0]         status_word,
+    output logic [31:0]         dout_sample_id,
+    output logic [4:0]          dout_flags
 );
 
   //=========================================================================
@@ -114,6 +78,8 @@ module sar20_digital_core (
   // 目的：让"头文件被人手篡改 / 换配置时忘了重跑导出器 / TB 与 RTL 用了不同的
   //      参数集"这三类事故在**精化期**就炸掉，而不是在仿真里表现为某些路径恒 0。
   initial begin
+    if(P_RECON_STAGES<5 || P_RECON_STAGES>63)
+      $fatal(1,"sar20_digital_core: divider throughput exceeds 16-tick frame budget");
     if (N_ACTIVE      != 8)   $fatal(1, "sar20_digital_core: N_ACTIVE != 8");
     if (N_SLICES      != 18)  $fatal(1, "sar20_digital_core: N_SLICES != 18");
     if (N_UNIT_MAIN   != 63)  $fatal(1, "sar20_digital_core: N_UNIT_MAIN != 63");
@@ -130,28 +96,23 @@ module sar20_digital_core (
     if (ACC_BITS      != 96)  $fatal(1, "sar20_digital_core: ACC_BITS != 96");
     if (PHASES        != 16)  $fatal(1, "sar20_digital_core: PHASES != 16");
     if (((1 << B1) - 1) != 511) $fatal(1, "sar20_digital_core: SADC 温度计宽度 != 511");
-    if (N_UNIT_MAIN + N_UNIT_SUB != N_UNIT_TOTAL)
+    if (int'(N_UNIT_MAIN) + int'(N_UNIT_SUB) != int'(N_UNIT_TOTAL))
       $fatal(1, "sar20_digital_core: 主+子单位数 != 总单位数");
   end
 
   //=========================================================================
-  // 1) 错误码常量（D7：与 calib_regs.sv 同值副本，无共享头文件）
+  // 1) 错误码常量（静态共享头文件；不是参数导出器的生成物）
   //=========================================================================
-  localparam logic [31:0] ERR_NONE        = 32'd0;
-  localparam logic [31:0] ERR_W_RANGE     = 32'd1;
-  localparam logic [31:0] ERR_W_SUM       = 32'd2;
-  localparam logic [31:0] ERR_RANGE_EMPTY = 32'd3;
-  localparam logic [31:0] ERR_V_RANGE     = 32'd4;
-  localparam logic [31:0] ERR_CFG_WRITE   = 32'd5;
+  `include "rtl_error_codes.vh"
 
-  localparam logic [W_BITS-1:0] W_MAX = {{(W_BITS-47){1'b0}}, 1'b1} << 47;  // 2^47
+  localparam logic [W_BITS-1:0] W_MAX = 48'd1 << 47;  // 2^47
 
   //=========================================================================
   // 2) 配置地址译码
   //=========================================================================
   //  0x0000 + u*8        (u = 0..70)  权重数据（slice 由窗口寄存器选）
   //  0x1000 / 0x1008 / 0x1010         offset_q / adc2_min_q / adc2_max_q
-  //  0x1018                           控制位 {…, sampling_mask_en, bridge_en, dem_en}
+  //  0x1018                           控制位 {…, quantizer_dither_en, sampling_mask_en, bridge_en, dem_en}
   //  0x1020                           status_word（只读）
   //  0x2000 + s*0x100                权重窗口：slice 号 s
   logic        is_weight, is_calib, is_win;
@@ -173,29 +134,53 @@ module sar20_digital_core (
 
   // ---- 权重窗口寄存器 ----
   logic [4:0] cur_slice;
+  logic cfg_bus_ok, cfg_addr_valid, cfg_bus_reject, bad_weight_width;
+  logic weight_addr_valid, window_addr_valid, bad_control_bits;
+  wire epoch_rst_n = rst_n && !cfg_clear_valid;
+  logic [31:0] bus_err;
+  logic weights_ready;
+  logic rc_busy;
+
+  assign weight_addr_valid = is_weight && cfg_addr[11:10] == 0 && cfg_addr[2:0] == 0
+                             && int'(dw_unit) < int'(N_UNIT_TOTAL);
+  assign window_addr_valid = is_win && cfg_addr[7:0] == 0 && int'(win_slice) < int'(N_SLICES);
+  assign cfg_addr_valid = weight_addr_valid || is_off || is_min || is_max || is_ctrl || window_addr_valid;
+  assign bad_weight_width = is_weight && ((|cfg_wdata[63:int'(W_BITS)]) ||
+                             cfg_wdata[W_BITS-1:0] == 0 || cfg_wdata[W_BITS-1:0] >= W_MAX);
+  assign bad_control_bits = is_ctrl && (|cfg_wdata[63:4]);
+  assign cfg_bus_ok = cfg_wr && cfg_addr_valid && !bad_weight_width && !bad_control_bits
+                     && !cfg_ready && !cfg_validate && !cfg_clear_valid && ctrl_seq == 0;
+  assign cfg_bus_reject = cfg_wr && !cfg_bus_ok;
 
   always_ff @(posedge clk) begin
-    if (!rst_n) begin
+    if (!rst_n || cfg_clear_valid) bus_err <= ERR_NONE;
+    else if (cfg_bus_reject) bus_err <= bad_weight_width ? ERR_W_RANGE : ERR_CFG_WRITE;
+    else if (ws_err_write) bus_err <= ERR_W_SUM;
+    else if (cfg_validate && ctrl_seq == 0 && !rc_busy) bus_err <= ERR_NONE;
+  end
+
+  always_ff @(posedge clk) begin
+    if (!epoch_rst_n) begin
       cur_slice <= 5'd0;
-    end else if (cfg_wr && is_win) begin
+    end else if (cfg_bus_ok && is_win) begin
       cur_slice <= win_slice;
     end
   end
 
-  // ---- 0x1018 控制位写：三个位分三拍写入（calib_regs.sel 一次只选一个）----
-  // 请求拍把 ctrl_bits 锁存并把 ctrl_seq 置 3，随后 3->2->1 逐拍发 sel=3/4/5。
+  // ---- 0x1018：保持三拍等待窗口，在 ctrl_seq=1 的时钟沿原子写入四位 ----
+  // validate 冲突暂停序列；clear 取消尚未提交的整笔控制写。
   logic [1:0] ctrl_seq;
-  logic [2:0] ctrl_bits;
+  logic [3:0] ctrl_bits;
 
   always_ff @(posedge clk) begin
-    if (!rst_n) begin
+    if (!rst_n || cfg_clear_valid) begin
       ctrl_seq  <= 2'd0;
-      ctrl_bits <= 3'd0;
+      ctrl_bits <= 4'd0;
     end else begin
-      if (cfg_wr && is_ctrl && (ctrl_seq == 2'd0)) begin
+      if (cfg_bus_ok && is_ctrl) begin
         ctrl_seq  <= 2'd3;
-        ctrl_bits <= cfg_wdata[2:0];
-      end else if (ctrl_seq != 2'd0) begin
+        ctrl_bits <= cfg_wdata[3:0];
+      end else if (ctrl_seq != 2'd0 && !cfg_validate) begin
         ctrl_seq <= ctrl_seq - 2'd1;
       end
     end
@@ -208,16 +193,18 @@ module sar20_digital_core (
   logic        ws_err_write;
   logic        ws_wr_en;
 
-  assign ws_wr_en = cfg_wr && is_weight && (cfg_addr[2:0] == 3'b000)
+  assign ws_wr_en = cfg_bus_ok && is_weight && (cfg_addr[2:0] == 3'b000)
                    && (dw_unit < 7'(N_UNIT_TOTAL));
 
   weight_store #(
-      .P_N_SLICES (N_SLICES),
-      .P_N_UNITS  (N_UNIT_TOTAL)
+      .P_N_SLICES (int'(N_SLICES)),
+      .P_N_UNITS  (int'(N_UNIT_TOTAL))
   ) u_wstore (
       .clk       (clk),
       .rst_n     (rst_n),
       .cfg_ready (cfg_ready),
+      .clear_load(cfg_clear_valid),
+      .load_complete(weights_ready),
       .wr_en     (ws_wr_en),
       .wr_slice  (cur_slice),
       .wr_unit   (dw_unit),
@@ -228,36 +215,27 @@ module sar20_digital_core (
 
   logic [31:0]              cal_err_code;
   logic signed [V_BITS-1:0] c_off, c_min, c_max;
-  logic                     c_dem_en, c_bridge_en, c_smask_en;
+  logic                     c_dem_en, c_bridge_en, c_smask_en, c_qdither_en;
   logic                     cal_wr_en;
   logic [3:0]               cal_sel;
   logic                     cal_data_b;
 
-  assign cal_wr_en = (cfg_wr && (is_off | is_min | is_max)) || (ctrl_seq != 2'd0);
+  assign cal_wr_en = cfg_bus_ok && (is_off | is_min | is_max);
 
   always_comb begin
     cal_sel    = 4'd0;
     cal_data_b = 1'b0;
-    if (cfg_wr && is_off) begin
+    if (cfg_bus_ok && is_off) begin
       cal_sel = 4'd0;
-    end else if (cfg_wr && is_min) begin
+    end else if (cfg_bus_ok && is_min) begin
       cal_sel = 4'd1;
-    end else if (cfg_wr && is_max) begin
+    end else if (cfg_bus_ok && is_max) begin
       cal_sel = 4'd2;
-    end else if (ctrl_seq == 2'd3) begin
-      cal_sel    = 4'd3;
-      cal_data_b = ctrl_bits[0];
-    end else if (ctrl_seq == 2'd2) begin
-      cal_sel    = 4'd4;
-      cal_data_b = ctrl_bits[1];
-    end else if (ctrl_seq == 2'd1) begin
-      cal_sel    = 4'd5;
-      cal_data_b = ctrl_bits[2];
     end
   end
 
   calib_regs #(
-      .P_ADC2_BITS (ADC2_BITS)
+      .P_ADC2_BITS (int'(ADC2_BITS))
   ) u_calib (
       .clk              (clk),
       .rst_n            (rst_n),
@@ -265,6 +243,11 @@ module sar20_digital_core (
       .sel              (cal_sel),
       .data_v           (cfg_wdata[V_BITS-1:0]),
       .data_b           (cal_data_b),
+      .controls_write   (ctrl_seq == 1 && !cfg_validate),
+      .controls_data    (ctrl_bits),
+      .quantizer_dither_en(c_qdither_en),
+      .weights_ready    (weights_ready),
+      .config_busy      (cfg_wr || ctrl_seq != 0 || rc_busy),
       .validate         (cfg_validate),
       .clear_valid      (cfg_clear_valid),
       .cfg_ready        (cfg_ready),
@@ -277,10 +260,12 @@ module sar20_digital_core (
       .sampling_mask_en (c_smask_en)
   );
 
-  // err_code 合并（D6）：calib_regs 的校验错误优先；否则反映 weight_store 的写拒绝。
-  logic [31:0] merged_err;
+  // err_code 合并：总线协议错误优先，其次校验错误、权重拒绝。
+  logic [31:0] merged_err, input_err;
   always_comb begin
-    if (cal_err_code != ERR_NONE) begin
+    if (bus_err != ERR_NONE) begin
+      merged_err = bus_err;
+    end else if (cal_err_code != ERR_NONE) begin
       merged_err = cal_err_code;
     end else if (ws_err_write) begin
       if (cfg_ready) begin
@@ -292,7 +277,7 @@ module sar20_digital_core (
         merged_err = ERR_W_SUM;
       end
     end else begin
-      merged_err = ERR_NONE;
+      merged_err = P_STRUCTURAL ? structural_error : input_err;
     end
   end
 
@@ -306,12 +291,12 @@ module sar20_digital_core (
   logic [31:0]               fsm_sample_idx;
 
   ctrl_fsm #(
-      .P_PHASES (PHASES)
+      .P_PHASES (int'(PHASES))
   ) u_ctrl (
       .clk          (clk),
-      .rst_n        (rst_n),
-      .cfg_ready    (cfg_ready),
-      .run          (cfg_ready),          // D2
+      .rst_n        (epoch_rst_n),
+      .cfg_ready    (cfg_ready && !P_STRUCTURAL),
+      .run          (cfg_ready),          // 配置生效后连续运行
       .phase_onehot (phase_onehot),
       .phase        (phase),
       .sample_en    (sample_en),
@@ -333,7 +318,7 @@ module sar20_digital_core (
 
   slice_alloc u_alloc (
       .clk         (clk),
-      .rst_n       (rst_n),
+      .rst_n       (epoch_rst_n),
       .cfg_ready   (cfg_ready),
       .sample_en   (sample_en),
       .acq_slices  (acq_slices),
@@ -344,17 +329,53 @@ module sar20_digital_core (
       .group       (grp)
   );
 
+  // Fixed-phase synchronous interface: sample coarse at phase 8 and the fine
+  // code/injection/analog flags together at phase 14. Ready is a deadline, not
+  // a CDC synchronizer or a request to stall the 16-phase schedule.
+  logic [B1-1:0] sadc_hold;
+  logic [ADC2_BITS-1:0] adc2_hold;
+  logic signed [V_BITS-1:0] inj_hold;
+  logic sadc_ok, adc2_ok, analog_sample;
+  wire legacy_launch = recon_start && sadc_ok && adc2_ok && !rc_busy;
+  wire launch_recon = P_STRUCTURAL ? structural_launch : legacy_launch;
+  always_ff @(posedge clk) begin
+    if (!epoch_rst_n) begin
+      sadc_hold <= '0; adc2_hold <= '0; inj_hold <= '0;
+      sadc_ok <= 1'b0; adc2_ok <= 1'b0; analog_sample <= 1'b0;
+      input_err <= ERR_NONE;
+    end else begin
+      if (sample_en) begin
+        sadc_ok <= 1'b0; adc2_ok <= 1'b0; analog_sample <= 1'b0;
+      end
+      if (sadc_latch) begin
+        sadc_ok <= sadc_rdy;
+        if (sadc_rdy) sadc_hold <= sadc_code;
+        else input_err <= ERR_SADC_NOT_READY;
+      end
+      if (adc2_latch) begin
+        adc2_ok <= adc2_rdy;
+        if (adc2_rdy) begin
+          adc2_hold <= adc2_code;
+          inj_hold <= inj_q;
+          analog_sample <= rdac_ovf | adc2_over | ra_sat | rdac_over;
+        end else input_err <= ERR_ADC2_NOT_READY;
+      end
+      if (recon_start && sadc_ok && adc2_ok && rc_busy)
+        input_err <= ERR_RECON_BUSY;
+    end
+  end
+
   //=========================================================================
   // 6) DEM：状态序列 -> 地址逻辑位置
   //=========================================================================
   logic [8:0] sid_a, sid_b, sid_cur, sid_hold;
 
   dem_state_gen #(
-      .A_RED (DEM_LCG_A_MOD),
+      .A_RED (int'(DEM_LCG_A_MOD)),
       .W     (9)
   ) u_dem (
       .clk    (clk),
-      .rst_n  (rst_n),
+      .rst_n  (epoch_rst_n),
       .dem_en (c_dem_en),                 // 头文件复位默认 0（故意的，见模块头）
       .load   (1'b0),                     // 初值恒 0，与模型一致
       .init_a (9'd0),
@@ -367,9 +388,9 @@ module sar20_digital_core (
 
   assign sid_cur = bank ? sid_b : sid_a;
 
-  // D4：在 dem_advance 那一拍捕获"本次样本用的"状态，之后再推进。
+  // 在 dem_advance 那一拍捕获"本次样本用的"状态，之后再推进。
   always_ff @(posedge clk) begin
-    if (!rst_n) begin
+    if (!epoch_rst_n) begin
       sid_hold <= 9'd0;
     end else if (dem_advance) begin
       sid_hold <= sid_cur;
@@ -386,27 +407,27 @@ module sar20_digital_core (
   );
 
   //=========================================================================
-  // 7) dither（片上随机源，统计验收；D5 按 valid 门控寄存）
+  // 7) dither（片上随机源，统计验收；按模式与 valid 门控寄存）
   //=========================================================================
   logic signed [7:0] dith_code;
   logic              dith_valid;
   logic signed [7:0] dith_q;
 
   dither_gen #(
-      .D    (DITHER_UNITS_RANGE),
+      .D    (int'(DITHER_UNITS_RANGE)),
       .SEED (32'h1357_9BDF)
   ) u_dith (
       .clk         (clk),
-      .rst_n       (rst_n),
-      .en          (dem_advance),
+      .rst_n       (epoch_rst_n),
+      .en          (dem_advance && (c_smask_en || c_qdither_en)),
       .dither_code (dith_code),
       .valid       (dith_valid)
   );
 
   always_ff @(posedge clk) begin
-    if (!rst_n) begin
+    if (!epoch_rst_n) begin
       dith_q <= 8'sd0;
-    end else if (dem_advance && dith_valid) begin
+    end else if (dem_advance && (c_smask_en || c_qdither_en) && dith_valid) begin
       dith_q <= dith_code;
     end
   end
@@ -421,9 +442,16 @@ module sar20_digital_core (
   logic [N_ACTIVE-1:0][N_UNIT_SUB-1:0]  sub_on;
   logic [2*DITHER_UNITS_RANGE-1:0]      dither_rail;
 
+  // Separate named nets preserve the sampling/quantizer paths and provide
+  // legal force/release points for L3 (do not force child input variables).
+  wire signed [15:0] swap_dither_code;
+  wire signed [7:0] sampling_dither_code;
+  assign swap_dither_code = c_qdither_en ? {{8{dith_q[7]}}, dith_q} : 16'sd0;
+  assign sampling_dither_code = c_smask_en ? dith_q : 8'sd0;
+
   swap_decode u_swap (
-      .coarse      (sadc_code),                     // D8：粗码取自顶层输入（编码器在核外）
-      .dither_code ({{8{dith_q[7]}}, dith_q}),      // 显式符号扩展到 16 位
+      .coarse      (sadc_hold),                     // 粗码已在相位 8 捕获（编码器在核外）
+      .dither_code (swap_dither_code),      // 显式符号扩展到 16 位
       .dem_en      (c_dem_en),
       .bridge_en   (c_bridge_en),
       .sid_low     (sid_hold[2:0]),
@@ -437,7 +465,7 @@ module sar20_digital_core (
       .sub_logical  (sub_logical),
       .main_count   (main_count),
       .sub_count    (sub_count),
-      .bank_dither  (dith_q),
+      .bank_dither  (sampling_dither_code),
       .main_on      (main_on),
       .sub_on       (sub_on),
       .dither_rail  (dither_rail)
@@ -448,52 +476,99 @@ module sar20_digital_core (
   //=========================================================================
   rdac_drv u_rdrv (
       .clk         (clk),
-      .rst_n       (rst_n),
-      .load        (rdac_load),
+      .rst_n       (epoch_rst_n),
+      .load        (rdac_load && sadc_ok),
       .slice_id    (conv_slices),
       .main_on     (main_on),
       .sub_on      (sub_on),
       .dither_rail (dither_rail),
-      .slice_sel   (slice_sel),
-      .main_sw     (main_sw),
-      .sub_sw      (sub_sw),
-      .dither_sw   (dither_sw)
+      .slice_sel   (legacy_slice_sel),
+      .main_sw     (legacy_main_sw),
+      .sub_sw      (legacy_sub_sw),
+      .dither_sw   (legacy_dither_sw)
   );
 
-  always_ff @(posedge clk) begin                                       // D3
-    if (!rst_n) sw_valid <= 1'b0;
-    else        sw_valid <= rdac_load;
+  always_ff @(posedge clk) begin                                       // 开关加载事件打一拍
+    if (!epoch_rst_n) legacy_sw_valid <= 1'b0;
+    else        legacy_sw_valid <= rdac_load && sadc_ok;
   end
+
+
+  wire [17:0] legacy_slice_sel,structural_slice_sel;
+  wire [17:0][62:0] legacy_main_sw,structural_main_sw;
+  wire [17:0][7:0] legacy_sub_sw,structural_sub_sw;
+  wire [17:0][3:0] legacy_dither_sw,structural_dither_sw;
+  logic legacy_sw_valid;
+  wire structural_sw_valid,structural_launch;
+  wire [31:0] structural_error,structural_id;
+  wire [7:0][4:0] structural_ids;
+  wire [7:0][62:0] structural_main;
+  wire [7:0][7:0] structural_sub;
+  wire [3:0] structural_rails;
+  wire structural_sampling,structural_analog_bad;
+  wire signed [63:0] structural_injection;
+  wire [11:0] structural_fine;
+  sar_structural_ctrl #(.P_REF_ON(P_REF_ON),.P_RESIDUE_CAPTURE(P_RESIDUE_CAPTURE),
+    .P_SHUFFLE_SEED(P_SHUFFLE_SEED)) u_structure(
+    .clk(clk),.rst_n(epoch_rst_n),.enable(cfg_ready && P_STRUCTURAL),
+    .dem_en(c_dem_en),.bridge_en(c_bridge_en),.sampling_en(c_smask_en),.quantizer_en(c_qdither_en),
+    .flash_therm(flash_therm),.flash_valid(flash_valid),
+    .coarse_cmp_valid(coarse_cmp_valid),.coarse_cmp_ge(coarse_cmp_ge),
+    .fine_cmp_valid(fine_cmp_valid),.fine_cmp_ge(fine_cmp_ge),
+    .injection_q(inj_q),.analog_bad(ra_sat || rdac_ovf || adc2_over),.recon_busy(rc_busy),
+    .phase(analog_phase),.quiet_sample(quiet_sample),.tp_clock(tp_clock),
+    .ra_az(ra_az),.ra_amplify(ra_amplify),.ref_precharge(ref_precharge),.ref_accurate(ref_accurate),
+    .acquiring_mask(acquiring_mask),.converting_mask(converting_mask),
+    .aux_charge_enable(aux_charge_enable),.hold_low_enable(hold_low_enable),
+    .coarse_compare_enable(coarse_compare_enable),.coarse_trial(coarse_trial),
+    .coarse_acquire_enable(coarse_acquire_enable),.flash_acquire_enable(flash_acquire_enable),
+    .fine_acquire_enable(fine_acquire_enable),
+    .quantizer_dither(quantizer_dither),.acquisition_dither_rails(acquisition_dither_rails),
+    .fine_trial(fine_trial),.fine_compare_enable(fine_compare_enable),.flash_sample(flash_sample),
+    .slice_sel(structural_slice_sel),.main_sw(structural_main_sw),.sub_sw(structural_sub_sw),
+    .dither_sw(structural_dither_sw),.sw_valid(structural_sw_valid),.recon_start(structural_launch),
+    .context_id(structural_id),.context_slices(structural_ids),.context_main(structural_main),
+    .context_sub(structural_sub),.context_rails(structural_rails),
+    .context_sampling(structural_sampling),.context_analog_bad(structural_analog_bad),
+    .context_injection(structural_injection),.fine_code(structural_fine),.error_code(structural_error));
+  assign slice_sel = P_STRUCTURAL ? structural_slice_sel : legacy_slice_sel;
+  assign main_sw = P_STRUCTURAL ? structural_main_sw : legacy_main_sw;
+  assign sub_sw = P_STRUCTURAL ? structural_sub_sw : legacy_sub_sw;
+  assign dither_sw = P_STRUCTURAL ? structural_dither_sw : legacy_dither_sw;
+  assign sw_valid = P_STRUCTURAL ? structural_sw_valid : legacy_sw_valid;
 
   //=========================================================================
   // 10) 定点重构
   //=========================================================================
   logic [OUT_BITS-1:0] rc_dout;
   logic                rc_dout_valid, rc_clip_low, rc_clip_high;
-  logic                rc_acc_ovf, rc_gain_err, rc_adc2_ovf, rc_busy;
+  logic                rc_acc_ovf, rc_gain_err, rc_adc2_ovf;
 
   recon_core #(
-      .P_N_ACTIVE  (N_ACTIVE),
-      .P_N_MAIN    (N_UNIT_MAIN),
-      .P_N_SUB     (N_UNIT_SUB),
-      .P_N_SLICES  (N_SLICES),
-      .P_ADC2_BITS (ADC2_BITS),
-      .P_STAGES    (7),
+      .P_N_ACTIVE  (int'(N_ACTIVE)),
+      .P_N_MAIN    (int'(N_UNIT_MAIN)),
+      .P_N_SUB     (int'(N_UNIT_SUB)),
+      .P_N_SLICES  (int'(N_SLICES)),
+      .P_ADC2_BITS (int'(ADC2_BITS)),
+      .P_STAGES    (P_RECON_STAGES),
       .P_DIT_N     (2 * DITHER_UNITS_RANGE),
-      .P_DIT_END   (DITHER_SPLIT_IS_SUB ? N_UNIT_TOTAL : N_UNIT_MAIN)
+      .P_DIT_END   (DITHER_SPLIT_IS_SUB ? int'(N_UNIT_TOTAL) : int'(N_UNIT_MAIN))
   ) u_recon (
       .clk              (clk),
-      .rst_n            (rst_n),
+      .rst_n            (rst_n && !cfg_clear_valid),
       .cfg_ready        (cfg_ready),
-      .start            (recon_start),
+      .start            (launch_recon),
+      .sample_id        (P_STRUCTURAL ? structural_id : alloc_sample_idx),
+      .result_sample_id (dout_sample_id),
+      .result_flags     (dout_flags),
       .clr_ovf          (cfg_clear_valid),
-      .sampling_mask_en (c_smask_en),
-      .slice_id         (conv_slices),
-      .main_on          (main_on),
-      .sub_on           (sub_on),
-      .dither_rail      (dither_rail),
-      .adc2_code        (adc2_code),
-      .inj_q            (inj_q),          // D1
+      .sampling_mask_en (P_STRUCTURAL ? structural_sampling : c_smask_en),
+      .slice_id         (P_STRUCTURAL ? structural_ids : conv_slices),
+      .main_on          (P_STRUCTURAL ? structural_main : main_on),
+      .sub_on           (P_STRUCTURAL ? structural_sub : sub_on),
+      .dither_rail      (P_STRUCTURAL ? structural_rails : dither_rail),
+      .adc2_code        (P_STRUCTURAL ? structural_fine : adc2_hold),
+      .inj_q            (P_STRUCTURAL ? structural_injection : inj_hold),          // 已捕获的同样本注入
       .w_rom            (w_q),
       .offset_q         (c_off),
       .adc2_min_q       (c_min),
@@ -519,11 +594,11 @@ module sar20_digital_core (
   logic        analog_ovf_raw;
   logic [31:0] status_clr_value_unused;
 
-  // 契约 §4.6：analog_ovf = rdac_ovf | adc2_ovf | ra_sat，与 clip_low/high **互不替代**。
+  // 模拟标志按本样本相位 14 捕获，接受重构时进入独立粘滞状态。
   // 注意三者的来源不同，不能混：
   //   rdac_ovf  / ra_sat  / adc2_over  <- 模拟域回读（输入端口）
   //   rc_adc2_ovf                      <- `adc2_dec` 的**寄存器溢出**标志（另一回事，结构性不可达）
-  assign analog_ovf_raw = rdac_ovf | adc2_over | rc_adc2_ovf | ra_sat;
+  assign analog_ovf_raw = (launch_recon && (P_STRUCTURAL ? structural_analog_bad : analog_sample)) | rc_adc2_ovf;
 
   status_regs u_status (
       .clk               (clk),
@@ -557,7 +632,7 @@ module sar20_digital_core (
 
   always_comb begin
     cfg_rdata = 64'd0;
-    if (is_weight) begin
+    if (weight_addr_valid) begin
       cfg_rdata = {{(64 - W_BITS){1'b0}}, w_q[rd_slice][rd_unit]};
     end else if (is_off) begin
       cfg_rdata = c_off;
@@ -566,21 +641,17 @@ module sar20_digital_core (
     end else if (is_max) begin
       cfg_rdata = c_max;
     end else if (is_ctrl) begin
-      cfg_rdata = {61'b0, c_smask_en, c_bridge_en, c_dem_en};
+      cfg_rdata = {60'b0, c_qdither_en, c_smask_en, c_bridge_en, c_dem_en};
     end else if (is_stat) begin
-      cfg_rdata = status_word;
-    end else if (is_win) begin
+      cfg_rdata = {32'b0, status_word};
+    end else if (window_addr_valid) begin
       cfg_rdata = {59'b0, cur_slice};
     end else begin
       cfg_rdata = 64'd0;
     end
   end
 
-  // ---- 本节以下信号**有意**未接出：它们是本核内部的观测/中间量，没有对应的
-  //      顶层端口（P2 §11 未定义）。列出以便复核者知道它们不是漏连：
-  //        phase / phase_onehot / acq_phase / sadc_latch / adc2_latch
-  //        conv_valid / grp / acq_slices / fsm_sample_idx / alloc_sample_idx
-  //        rc_busy / sadc_rdy / adc2_rdy / status_clr_value_unused
-  //      综合器会把它们优化掉；它们不参与任何输出锥。
+  // 未接出顶层的观测量：phase_onehot/acq_phase、分配器组信息和样本序号。
+  // ready、phase、锁存脉冲与 rc_busy 均参与功能控制，不能视为未使用输入。
 
 endmodule

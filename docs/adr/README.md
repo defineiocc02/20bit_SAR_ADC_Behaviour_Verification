@@ -19,3 +19,5 @@ follow these identifiers. Historical decisions can be superseded by later record
 - [ADR 0013: Noisy, identifiable and frozen split-unit calibration](0013-noisy-identifiable-unit-calibration.md)
 - [ADR 0014: integer split-ADC output contract](0014-fixed-point-output-contract.md)
 - [ADR 0015: spectral power, harmonic rank and low-frequency state](0015-spectral-density-and-low-frequency-state.md)
+- [ADR 0016: Complete RTL configuration epochs and sampling dither](0016-rtl-configuration-and-dither.md)
+- [ADR 0017: Fixed-phase capture and explicit RTL structure](0017-rtl-fixed-phase-capture-and-structure.md)

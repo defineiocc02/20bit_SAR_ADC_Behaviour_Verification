@@ -4,6 +4,14 @@
 目标不是跑一次出个数字，而是**下次换模块只改参数、不重写流程**，并且
 **流程失败与「时序没收敛」必须是两个不同的退出码**，不会被混成「跑完了」。
 
+> 2026-09-20 复核：修复了 ultra 模式实际调用 compile、零 I/O delay 被省略、
+> TNS 误取最小值、成功标记掩盖工具异常，以及负载的单位换算。
+> 本文历史 PPA 数据保留为历史记录；受旧命令/约束影响的数字需重跑，不用于证明本分支性能。
+> 详见 [RTL 与综合专项报告](../docs/rtl/RTL_SYNTHESIS_REVIEW_20260920.md)。
+> 当前库记录为 1 pF/unit，因此 `LOAD_PF=0.02` 传给 set_load 的值为 0.02。
+> 换用其他库时必须核实单位并设置环境变量 `LIB_CAP_UNIT_PF`（fF 库为 0.001）；
+> 该变量随环境传入 DC 并记录到 status.txt，不自动猜测库单位。
+
 ---
 
 ## 1. 依赖的环境（都在 EDA 虚拟机上）
@@ -105,7 +113,7 @@ C:/Users/Administrator/miniconda3/python.exe synth/run_synth.py \
 # 扫顶层 HDL 参数（不改源文件）
 C:/Users/Administrator/miniconda3/python.exe synth/run_synth.py \
     --name recon_p4_10ns --top recon_core --clk-period 10 \
-    --files rtl/core/recon_core.sv rtl/core/div_floor.sv rtl/core/adc2_dec.sv \
+    --files rtl/core/recon_core.sv rtl/core/div_floor.sv rtl/core/adc2_dec.sv rtl/core/cal_weight_reduce.sv rtl/core/cal_residue_mac.sv rtl/core/cal_output_stage.sv \
     --incdirs rtl/params --params "P_STAGES=4"
 ```
 
@@ -318,12 +326,12 @@ coarse_in(port) -----------------------+
 `run_dc.tcl md5=72430a67…`、`run_synth.sh md5=a4d2696b…`。
 **`compile` 与 `compile_ultra` 的数字不可直接比较**，跨批次引用时必须连口径一起引。
 
-| `P_STAGES` | `N_CYC` | ≤16 拍? | Total cell area | leaf cell 数 | 最差 slack | 关键路径终点 | 逻辑级数 | 状态 |
+| `P_STAGES` | `N_CYC` | RECON_LAT=N_CYC+2 ≤16 拍? | Total cell area | leaf cell 数 | 最差 slack | 关键路径终点 | 逻辑级数 | 状态 |
 |---|---|---|---|---|---|---|---|---|
 | 1 | 63 | **✗** | 312489.268366 | 492504 | **+1.83 ns** | `inj_r_reg[63]` → `ovf_pend_reg` | 140 | rc=0，`status.txt` 缺（见下） |
-| **4** | **16** | **✓（刚好）** | **313859.994355** | **496027** | **+1.38771 ns** | **`u_div/cnt_reg[2]` → `u_div/q_reg[62]`** | **204** | rc=0，3120 s |
+| **4** | **16** | **✗（18 拍）** | **313859.994355** | **496027** | **+1.38771 ns** | **`u_div/cnt_reg[2]` → `u_div/q_reg[62]`** | **204** | rc=0，3120 s |
 | 7 | 9 | ✓ | 315678.874344 | 500997 | **+0.00229263 ns** | `u_div/dv_reg[62]` → `u_div/q_reg[62]` | **283** | rc=0，3121 s |
-| 63 | 1 | ✓ | — | — | — | — | — | 排队 |
+| 63 | 1 | ✓ | — | — | — | — | — | 已停止，未完成映射 |
 
 14 与 21 **没有跑**：它们落在 (7, 63) 之间、不跨任何边界，边际信息最低。
 吞吐那一列不需要综合即可算出（见上表），P=1 在吞吐上直接出局。
@@ -346,11 +354,11 @@ coarse_in(port) -----------------------+
    | 7 | **+1.02%** | +1.72% | **+0.00229263 ns** |
 
    **P=4 相对 P=7 小 0.58%、cell 少 4970，而 10 ns 余量从 0.0023 ns 变成 1.39 ns。**
-3. **可执行结论**：`rtl/top/sar20_digital_core.sv:475` 的 `.P_STAGES(7)` 改成 **4**，
-   在同一个吞吐预算（`ceil(63/4)=16 ≤ 16`）下换来 **+1.39 ns 余量**和**更小的面积**。
-   代价是 `div_floor` 从 9 拍变 16 拍 —— **吞吐预算用满，一点不剩**。
-   16/16 还是 9/16 取决于 `ctrl_fsm` 的调度契约（那 16 拍里还要不要干别的），
-   **这不是综合能回答的**，README 不替它下结论。
+3. **调度结论（2026-09-19 更正）**：必须使用 `RECON_LAT=ceil(63/P)+2`。
+   P=4 的实际延迟是 18 拍，在 PHASES=16 下不可用；保留当前 P=7。
+   已测点与未跑点以 [P2 §17.7](../docs/rtl/P2_INTERFACE.md) 为准。
+   **40 MS/s 尚未闭合**：每 16 拍一个结果要求 640 MHz（1.5625 ns）；10 ns 仅对应
+   6.25 MS/s 的调度上限。这些单模块历史综合结果不等于完整顶层目标时序。
 4. **对 P6 的含义**：只要 `P_STAGES ≥ 4`，**"流水化 568 项加法树"没有收益**
    ——关键路径在除法器里，加法树不是限制项。要动就动除法器本身
    （最便宜的是减小 `P_STAGES`；`div_floor.sv` 头部登记的阵列除法器 / 倒数 ROM 更贵，
@@ -512,10 +520,10 @@ WNS 是从 `get_timing_paths -delay max -nworst 1` 的路径对象上读 `slack`
     * 只在**大**设计上暴露：同一个脚本在 smoke（6292 cell）上连跑 8 次都没事。
 
     对策：`nworst` 封顶（现在 2000），并把上限写进 `status.txt` 的 `TNS_NWORST=`。
-    封顶后 TNS = 最差 N 条路径之和（真实 TNS 的**下界**），
-    **对 WNS / 面积 / cell 数没有任何影响**；TNS 的绝对值本来也不是签核量
-    （签核看 WNS + 违规条数，后者在 `qor.rpt` 里）。引用 TNS 时必须连着
-    `TNS_NWORST` 一起引。
+    本次修复后，TNS 字段为返回路径中负 slack 的和，并标记
+    `TNS_KIND=sampled_path_negative_slack_sum`。同一 endpoint 可有多条路径，
+    且最多取 2000 条；它不等于完整 endpoint TNS。旧代码实际重复计算最小值，
+    旧字段不能按累计违例解释。签核应另读完整 STA 汇总。
 
 15. **"一次只能跑一个 DC"是硬约束，而且 OOM 的症状是静默的。**
     实测内存占用：`recon_core`（`compile` 口径）峰值 **10.3 GB**；
@@ -687,7 +695,11 @@ WNS 是从 `get_timing_paths -delay max -nworst 1` 的路径对象上读 `slack`
 （61344 bit）成了**顶层输出端口**，默认按芯片级 0.02 pF/bit 加载；而在真实顶层里
 `w_q` 是**内部网**、直接驱 `recon_core.w_rom`，**根本不存在这个负载**。
 → **结论：把某个块当顶层单独综合时，不要把芯片级的输出负载加到它（在真实设计里）内部的输出上；
-那 20 fF × 61344 bit 的伪负载足以让综合直接不收敛。**
+全阵列端口负载会放大综合优化成本。**
+
+2026-09-20 纠正：上述历史分析将命令参数解释为 20 fF，但旧脚本额外乘了 1000；
+按本文件记录的 1 pF 库单位，实际应为每端口 20 pF。历史日志名不证明真实负载；
+因此该次不收敛不能只归因于全阵列结构，必须修正单位后重跑。
 这一条对"分层跑"这种做法是通用的，不只是这个设计。
 
 **顶层的关键路径终点：拿不到。** 上表是**分块各自**的关键路径终点，

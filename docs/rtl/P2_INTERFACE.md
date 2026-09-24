@@ -1,5 +1,11 @@
 # P2/P3 模块接口与向量格式（冻结）
 
+> 当前实现修订：以 [ADR 0016](../adr/0016-rtl-configuration-and-dither.md) 和
+> [ADR 0017](../adr/0017-rtl-fixed-phase-capture-and-structure.md) 为准。
+> 顶层端口与 16 相位保持；ready 在相位 8/14 作为采样截止条件，缺失则丢弃该次转换。
+> 内部配置端口增加完整性检测和四位原子控制写。下列模块接口已同步。
+
+
 - 状态：**已冻结**，2026-09-18
 - 上游：`docs/rtl/RTL_ARITHMETIC_CONTRACT.md`（算术，冻结）、`docs/rtl/P1_INTERFACE.md`（P1 已交付的 M1–M5）
 - 适用：`rtl/core/` 下 M6–M13、M16、M17 与 `rtl/top/` 下的 M8、顶层，以及 `sim/tb/p2_tb.sv`
@@ -475,6 +481,8 @@ module weight_store #(
     input  logic             clk,
     input  logic             rst_n,
     input  logic             cfg_ready,     // 1 = 已生效 → **禁止写**
+    input  logic             clear_load,    // 开始新的完整载入周期
+    output logic             load_complete, // 所有权重在本周期已写
     input  logic             wr_en,         // 一拍脉冲
     input  logic [4:0]       wr_slice,
     input  logic [6:0]       wr_unit,
@@ -493,6 +501,11 @@ module calib_regs #(
                                                    // 3 dem_en / 4 bridge_en / 5 sampling_mask_en
     input  logic signed [V_BITS-1:0]  data_v,       // sel <= 2 用
     input  logic                      data_b,       // sel >= 3 用
+    input  logic                      controls_write,
+    input  logic [3:0]                controls_data,
+    output logic                      quantizer_dither_en,
+    input  logic                      weights_ready,
+    input  logic                      config_busy,
     input  logic                      validate,     // 一拍脉冲：跑合法性校验
     input  logic                      clear_valid,  // 一拍脉冲：撤销 cfg_ready
     output logic                      cfg_ready,
@@ -542,7 +555,7 @@ module calib_regs #(
 ```systemverilog
 module sadc_enc #(
     parameter int P_B1    = B1,
-    parameter int P_N_CMP = (1 << B1) - 1        // = 511
+    parameter int P_N_CMP = (1 << P_B1) - 1        // = 511
 )(
     input  logic [P_N_CMP-1:0] cmp_raw,          // 比较器阵列温度计（bit i = x > thr[i]）
     output logic [P_B1-1:0]    sadc_code
@@ -636,7 +649,7 @@ module sar20_digital_core (
 | `0x1000` | `offset_q` | ✓ | ✓ |
 | `0x1008` | `adc2_min_q` | ✓ | ✓ |
 | `0x1010` | `adc2_max_q` | ✓ | ✓ |
-| `0x1018` | 控制位 `{…, sampling_mask_en, bridge_en, dem_en}` | ✓ | ✓ |
+| `0x1018` | 控制位 `{…, quantizer_dither_en, sampling_mask_en, bridge_en, dem_en}` | ✓ | ✓ |
 | `0x1020` | `status_word` | — | ✓ |
 | `0x2000 + s*0x100` | 权重窗口：slice 号 `s` | ✓ | ✓ |
 
@@ -1040,7 +1053,7 @@ word= floor((2c+1)*2^62 / 2^63) = floor((2c+1)/2) = c
 > **⚠️ `P=4` 在 `PHASES=16` 下不可行** —— 它的 `RECON_LAT = 16+2 = 18 > 16`，会与下一个样本的
 > `recon_start` 相撞。它的 `+1.39 ns` 余量**买不到**。
 > **可行的决策域是 `P ≥ 5`**（`N_CYC ≤ 14`）；`P=6`（`N_CYC=11`、`RECON_LAT=13`、余 3 拍）
-> 是"保留调度余量前提下"的候选最优点，已补跑。
+> 是"保留调度余量前提下"的候选点，**未跑**（见 §17.7）。
 >
 > **教训（本轮我犯的判据错误）**：吞吐预算必须用**实现的实际延迟常量** `RECON_LAT = N_CYC + 2`，
 > **不能只算算法本身的拍数** `ceil(63/P)`。用后者会把不可行点误判为"刚好可行"。
@@ -1051,8 +1064,7 @@ word= floor((2c+1)*2^62 / 2^63) = floor((2c+1)/2) = c
 3. **在 P=7 下，流水化 568 项加法树救不了 10 ns** —— 那条路此刻是**次要路径**。
    要动就得动**除法器**：减小 `P_STAGES`，或换成**阵列除法器 / 倒数 ROM**
    （`div_floor.sv` 头部已把这两条登记为 P6 备选项）。
-4. **形状是两头受限的**：吞吐预算把 `P` 推到 ≥4，时序余量把它压回来。
-   所以 **`P=4`（16 拍，刚够）是最有决策价值的一个点**（正在跑）。
+4. 调度预算要求 `P≥5`：P=4 实际为 18 拍，不能选用。已测/未测状态以 §17.7 为准。
 
 ### 17.4 引用纪律（不连着引就会被误读）
 
@@ -1282,25 +1294,12 @@ B:      0:53:41 1060508.5 4235941.00 260356538368.0 18690186211.8
 
 ## 18. 交付风险与待决事项（必须由仓库负责人决定，不在实现方权限内）
 
-### 18.1 本轮全部产物**不在任何提交里**（版本控制缺口）
+### 18.1 版本控制状态（2026-09-19 更新）
 
-`git status --porcelain` 显示以下路径全部是 **未跟踪（`??`）**，而 `HEAD` 已经是一个
-`release: v8.0.0` 提交：
-
-```
-rtl/            （全部 RTL 模块与 rtl_params.vh）
-sim/            （TB、向量、参考实现、运行脚本）
-docs/rtl/       （契约、P1/P2 接口与缺陷账）
-tools/*.py      （三个导出器与 runner）
-tests/unit/*.py （三个新门禁）
-synth/          （综合通路）
-```
-
-**后果不是"已经漂移了"，而是"漂移了也没人会发现"**：
-
-* `rtl/params/rtl_params.vh` **没有版本记录**。谁重新生成一次它，下游所有面积/时序数字
-  跟着变，而 `git diff` 里**看不到任何变化**，也**回不到之前那一版**。
-* 整轮工作若发生磁盘故障或误删，**无法从 git 恢复**。
+截至 `df0a575`，`rtl/`、`sim/`、`docs/rtl/`、导出器、测试与 `synth/` 已受 Git 跟踪。
+早期“全部未跟踪”的观察是历史状态，不能继续作为当前风险。新修改需连同测试、
+参数/向量漂移门禁和对应源码 SHA 交付；本轮配置接口变更见
+[ADR 0016](../adr/0016-rtl-configuration-and-dither.md)。
 
 **分工说明（三件事不重叠，别混）**：
 
@@ -1320,3 +1319,10 @@ synth/          （综合通路）
 （实际 `4'd2`、`dither_rail` 是 `[3:0]`、无 undriven 警告、`unit_therm` 例化端口 1062 个）。
 复核者选择**保留更正记录（附时间线与逐条证据）而不是静默改掉** —— 这是对的：
 **"注释里的参数值没人复核"本身就是一个独立风险点**，静默改掉会让这条风险无痕消失。
+
+
+## 19. 2026-09-19 复核补充契约
+
+配置装载完整性、写/提交仲裁、撤销在途样本、错误码 6 以及控制写串行器忙态的
+当前定义以 [ADR 0016](../adr/0016-rtl-configuration-and-dither.md) 为准，覆盖上文早期冻结接口。
+本次改动需重新综合；§17 的历史面积/时序不能自动归属于修复版本。

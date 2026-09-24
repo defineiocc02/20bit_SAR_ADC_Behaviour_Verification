@@ -114,16 +114,26 @@ module p2_periph_tb;
   // T1 DUT: weight_store（全尺寸）
   //=========================================================================
   logic        ws_cfg_ready, ws_wr_en, ws_err;
+  logic        ws_clear = 0;
   logic [4:0]  ws_slice;
   logic [6:0]  ws_unit;
   logic [W_BITS-1:0] ws_data;
   logic [N_SLICES-1:0][N_UNIT_TOTAL-1:0][W_BITS-1:0] ws_wq;
 
   weight_store u_ws (
+      .clear_load(ws_clear), .load_complete(),
       .clk (clk), .rst_n (rst_n), .cfg_ready (ws_cfg_ready),
       .wr_en (ws_wr_en), .wr_slice (ws_slice), .wr_unit (ws_unit),
       .wr_data (ws_data), .err_write (ws_err), .w_q (ws_wq)
   );
+
+  task automatic check_weight_sum();
+    logic [63:0] expected;
+    expected = '0;
+    for (int si = 0; si < N_SLICES; si++)
+      for (int ui = 0; ui < N_UNIT_TOTAL; ui++) expected += 64'(ws_wq[si][ui]);
+    chk("T1 incremental sum equals independent full-memory reduction", u_ws.sum_all === expected);
+  endtask
 
   task automatic ws_write(input logic wr, input int s, input int u,
                           input logic [W_BITS-1:0] d, input logic exp_err);
@@ -134,6 +144,7 @@ module p2_periph_tb;
       chk($sformatf("T1 err_write=%0b (s=%0d u=%0d d=%0h)", exp_err, s, u, d),
           ws_err === exp_err);
       ws_wr_en = 1'b0;
+      check_weight_sum();
     end
   endtask
 
@@ -203,6 +214,8 @@ module p2_periph_tb;
   logic        cb_dem, cb_brg, cb_smk;
 
   calib_regs #(.P_ADC2_BITS (ADC2_BITS)) u_cb (
+      .controls_write(1'b0), .controls_data(4'd0), .quantizer_dither_en(),
+      .weights_ready(1'b1), .config_busy(1'b0),
       .clk (clk), .rst_n (rst_n), .wr_en (cb_wr), .sel (cb_sel),
       .data_v (cb_dv), .data_b (cb_db), .validate (cb_val), .clear_valid (cb_clr),
       .cfg_ready (cb_ready), .err_code (cb_err),
@@ -340,6 +353,17 @@ module p2_periph_tb;
         (64'd4096 * {{(64-W_BITS){1'b0}}, WMAX1}) < (64'd1 << 60));
     chk("T1 全库和确实 < 2^60（SUM_MAX）", u_ws.sum_all < (64'd1 << 60));
 
+    check_weight_sum();
+    // Replacement, duplicate, invalid write and clear must preserve the sum invariant.
+    ws_write(1'b1, 17, 70, 48'd9, 1'b0);
+    ws_write(1'b1, 17, 70, 48'd9, 1'b0);
+    ws_write(1'b1, 17, 70, 48'd0, 1'b1);
+    @(negedge clk); ws_clear = 1'b1;
+    @(negedge clk); ws_clear = 1'b0;
+    check_weight_sum();
+    chk("T1 clear invalidates completeness", !u_ws.load_complete);
+    ws_write(1'b1, 17, 70, 48'd11, 1'b0);
+
     $display("  [U1] 容量分支 sum_new < SUM_MAX 在冻结尺寸下不可达（界证明见上两条）；");
     $display("       本 TB 用「灌满全库也不越界」代替，真正的触发只在 mutant 上做。");
 
@@ -354,7 +378,7 @@ module p2_periph_tb;
     chk("T2 复位后 4 个粘滞位全 0",
         (st_acc === 1'b0) && (st_gain === 1'b0) && (st_adc2 === 1'b0) && (st_an === 1'b0));
     chk("T2 复位后 clip 两位全 0", (st_cl === 1'b0) && (st_ch === 1'b0));
-    chk("T2 status_clr_value = 32'h3F", sr_clrval == 32'h0000_003F);
+    chk("T2 status_clr_value = 32'h27", sr_clrval == 32'h0000_0027);
 
     // 一次性事件 -> 粘滞
     @(negedge clk); ev_acc = 1'b1; ev_gain = 1'b1; ev_adc2 = 1'b1; ev_an = 1'b1;
@@ -445,7 +469,7 @@ module p2_periph_tb;
     // 8 个互不相同的 slice_id = 0..7
     for (i = 0; i < N_ACTIVE; i = i + 1) begin
       rd_slice_id[i] = 5'(i);
-      rd_main_on[i]  = {{(N_UNIT_MAIN-1){1'b0}}, 1'b1} << i[N_UNIT_MAIN-1:0];
+      rd_main_on[i]  = {{(N_UNIT_MAIN-1){1'b0}}, 1'b1} << i;
       rd_sub_on[i]   = {{(N_UNIT_SUB-1){1'b0}}, 1'b1} << i[2:0];
     end
     rd_dither_rail = 4'b1010;
@@ -476,7 +500,7 @@ module p2_periph_tb;
     repeat (4) @(posedge clk); #1;
     for (i = 0; i < N_ACTIVE; i = i + 1) begin
       chk($sformatf("T3 load=0 时 slice_sel[%0d] 保持", i), rd_sel[i] === 1'b1);
-      chk($sformatf("T3 load=0 时 main_sw[%0d] 保持", i), rd_main[i] == ({{(N_UNIT_MAIN-1){1'b0}}, 1'b1} << i[N_UNIT_MAIN-1:0]));
+      chk($sformatf("T3 load=0 时 main_sw[%0d] 保持", i), rd_main[i] == ({{(N_UNIT_MAIN-1){1'b0}}, 1'b1} << i));
     end
 
     // slice_id 重复：后者覆盖前者，且**不**报错（只是可观测的"最后写胜出"）
@@ -632,7 +656,7 @@ module p2_periph_tb;
     cb_reg(4'd5, '0, 1'b1);   // sampling_mask_en
     chk("T5 sel=3/4/5 分别写 dem/bridge/smask", (cb_dem === 1'b1) && (cb_brg === 1'b0) && (cb_smk === 1'b1));
 
-    // 未定义 sel（6..15）：静默忽略，不改任何寄存器
+    // 未定义 sel（6..15）：报 ERR_CFG_WRITE，不改任何寄存器
     cb_reg(4'd6,  64'sd12345, 1'b1);
     cb_reg(4'd9,  64'sd54321, 1'b1);
     cb_reg(4'd15, 64'sd99999, 1'b1);
@@ -640,6 +664,8 @@ module p2_periph_tb;
                                     (cb_max == 64'sd590558003));
     chk("T5 未定义 sel 不改控制位", (cb_dem === 1'b1) && (cb_brg === 1'b0) && (cb_smk === 1'b1));
 
+    // New load epoch requires all three scalar fields again.
+    cb_reg(4'd0, 64'sd0, 1'b0);
     // clear 优先于 validate（同拍）
     cb_reg(4'd1, -64'sd53687091, 1'b0);
     cb_reg(4'd2,  64'sd590558003, 1'b0);

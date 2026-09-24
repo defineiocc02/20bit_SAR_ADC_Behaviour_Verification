@@ -18,6 +18,7 @@ campaign 的变异分数就不可信（一个"恒 killed"的判据会虚高，�
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -67,17 +68,18 @@ def _inject(op: str, rel: str, line: int, name: str, term: int | None = None) ->
     ]
     if term is not None:
         cmd += ["--term", str(term)]
-    _run(cmd, f"注入 {op}@{rel}:{line}")
+    _run(cmd, f"注入 {op}@{rel}:{line}", allow_rc=(0,))
     return ART / "mut" / name
 
 
 def _sim(name: str, rtl_prefix: Path | None) -> Path:
     """跑一次仿真并把 trace 取回；`rtl_prefix=None` 表示干净设计。
 
-    ⚠️ **不把 TB 自己的 PASS/FAIL 当判据**：论文漏斗判"是否被检出"用的是**观测 trace**，
-    不是 TB 的结论。变异体会让 TB 判 FAIL（那是 TB 的功劳，不是本判据的输入），
-    所以这里允许任意退出码，只要求 trace 被取回。
+    TB may report mismatches only after completing every expected observation.
+    Compilation, timeout, incomplete execution and stale traces are never verdicts.
     """
+    trace = REPO / "sim" / "artifacts" / name / "p3_trace.txt"
+    trace.unlink(missing_ok=True)
     src = (
         SIM_SRC
         if rtl_prefix is None
@@ -109,18 +111,53 @@ def _sim(name: str, rtl_prefix: Path | None) -> Path:
         "--fetch",
         "p3_trace.txt",
     ]
-    _run(cmd, f"仿真 {name}", allow_rc=(0, 1, 2, 3, 4, 5))
-    trace = REPO / "sim" / "artifacts" / name / "p3_trace.txt"
+    cp = _run(cmd, f"仿真 {name}", allow_rc=(0, 3, 4))
     assert trace.is_file(), f"{name} 没有取回 trace（编译失败或 TB 没跑到落盘）"
+    _complete_trace(trace, cp.returncode)
     return trace
 
 
-def _verdict(golden: Path, mutant: Path) -> tuple[str, str]:
+def _expected_rows() -> int:
+    data = (REPO / "sim/vectors/p2_link_stim.hex").read_text(encoding="utf-8")
+    rows = data.split("#DATA", 1)[1].splitlines()
+    return sum(bool(line.strip()) and not line.lstrip().startswith("//") for line in rows) - 1
+
+
+def _complete_trace(path: Path, returncode: int = 0) -> None:
+    assert returncode in (0, 3, 4), f"run failed before completion: rc={returncode}"
+    expected = _expected_rows()
+    lines = [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    marker = f"# P3_TRACE_COMPLETE rows={expected}"
+    assert lines and lines[-1] == marker, "missing final completion marker"
+    assert lines.count(marker) == 1, "duplicate completion marker"
+    rows = [line.split() for line in lines if not line.startswith("#")]
+    assert len(rows) == expected and expected > 0, "empty/incomplete/extra trace rows"
+    assert all(len(row) == 4 for row in rows), "malformed trace"
+    assert [row[0] for row in rows] == [
+        str(i) for i in range(expected)
+    ], "invalid sample index sequence"
+
+
+def _verdict(golden: Path, mutant: Path) -> tuple[str, int]:
+    _complete_trace(golden)
+    _complete_trace(mutant)
     cp = _run(
-        [PY, "tools/trace_compare.py", "--golden", str(golden), "--mutant", str(mutant), "--quiet"],
+        [PY, "tools/trace_compare.py", "--golden", str(golden), "--mutant", str(mutant), "--json"],
         "比较",
     )
-    return cp.stdout.strip(), cp.returncode
+    result = json.loads(cp.stdout)
+    assert not result["truncated"] and result["n_golden"] == result["n_mutant"] > 0
+    return result["verdict"], cp.returncode
+
+
+def _site(rel: str, needle: str) -> int:
+    matches = [
+        i
+        for i, line in enumerate((REPO / rel).read_text(encoding="utf-8").splitlines(), 1)
+        if needle in line and not line.lstrip().startswith("//")
+    ]
+    assert len(matches) == 1, f"mutation site is ambiguous or missing: {rel} {needle}"
+    return matches[0]
 
 
 @requires
@@ -141,7 +178,15 @@ def test_neck_kill_must_be_detected():
     与真值差好几个数量级 ⇒ 20 位输出上远超 1 LSB ⇒ 必然可观测。
     （这**不是**"跑完再挑"：本条的形状选自审计文档 §2 里 div_floor 那条已知缺陷族。）
     """
-    rtl = _inject("ExprUpdate", "rtl/core/div_floor.sv", 123, "twoneck_divshift") / "rtl"
+    rtl = (
+        _inject(
+            "ExprUpdate",
+            "rtl/core/div_floor.sv",
+            _site("rtl/core/div_floor.sv", "q_next = (quo <<"),
+            "twoneck_divshift",
+        )
+        / "rtl"
+    )
     g = _sim("twoneck_golden", None)
     m = _sim("twoneck_divshift", rtl)
     verdict, _ = _verdict(g, m)
@@ -157,7 +202,16 @@ def test_neck_capacity_guard_removal_must_not_be_detected():
     `32×128 = 4096` 格（`4096 × (2^47−1)` 仍 < 2^60）⇒ 这个条件**结构性不可达**，
     删掉它不改变任何输出 ⇒ 必须 unobserved。这一端用来证明"断言不是无条件变红"。
     """
-    rtl = _inject("ExprDelete", "rtl/core/weight_store.sv", 101, "twoneck_capoff", term=4) / "rtl"
+    rtl = (
+        _inject(
+            "ExprDelete",
+            "rtl/core/weight_store.sv",
+            _site("rtl/core/weight_store.sv", "assign accept"),
+            "twoneck_capoff",
+            term=5,
+        )
+        / "rtl"
+    )
     g = _sim("twoneck_golden", None)
     m = _sim("twoneck_capoff", rtl)
     verdict, _ = _verdict(g, m)

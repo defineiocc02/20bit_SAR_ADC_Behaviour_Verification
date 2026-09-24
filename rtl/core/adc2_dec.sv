@@ -43,7 +43,7 @@
 `include "rtl_params.vh"
 
 module adc2_dec #(
-    parameter int P_ADC2_BITS = ADC2_BITS
+    parameter int P_ADC2_BITS = int'(ADC2_BITS)
 ) (
     input  logic [P_ADC2_BITS-1:0]   adc2_code,
     input  logic signed [V_BITS-1:0] adc2_min_q,
@@ -53,7 +53,7 @@ module adc2_dec #(
 );
 
   localparam int K     = P_ADC2_BITS + 1;
-  localparam int W_MUL = P_ADC2_BITS + 1 + V_BITS + 1;   // 78：装得下 (2^K)*(|delta| < 2^64)
+  localparam int W_MUL = P_ADC2_BITS + 1 + int'(V_BITS) + 1;   // 78：装得下 (2^K)*(|delta| < 2^64)
   localparam int W_SUM = W_MUL + 1;                      // 79
 
   logic [K-1:0]            two_c_plus_1;   // 2*code + 1 = {code, 1'b1}
@@ -69,13 +69,13 @@ module adc2_dec #(
   logic signed [W_SUM-1:0] min_ext;
 
   localparam logic [W_SUM-1:0] V_ONE  = {{(W_SUM-1){1'b0}}, 1'b1};
-  localparam logic [W_SUM-1:0] V_HI_U = V_ONE << (V_BITS - 1);        // 2^63
+  localparam logic [W_SUM-1:0] V_HI_U = V_ONE << (int'(V_BITS) - 1);        // 2^63
   localparam logic [W_SUM-1:0] V_LO_U = ~V_HI_U + V_ONE;              // -2^63
   localparam logic [W_SUM-1:0] V_MAX_U = V_HI_U - V_ONE;              // 2^63 - 1
 
   assign two_c_plus_1 = {adc2_code, 1'b1};
   assign delta        = $signed(adc2_max_q) - $signed(adc2_min_q);
-  assign delta_ext    = {{(W_MUL - (V_BITS + 1)){delta[V_BITS]}}, delta};
+  assign delta_ext    = {{(W_MUL - (int'(V_BITS) + 1)){delta[V_BITS]}}, delta};
 
   // n 用**有符号**乘：两个操作数都显式 $signed，避免 P1 的 RTL-3 那类
   // "表达式里混进无符号操作数 -> 整条按无符号算"的坑。
@@ -87,7 +87,7 @@ module adc2_dec #(
   assign inc     = (r_bits > half) || ((r_bits == half) && q_shift[0]);
   assign sh      = q_shift + {{(W_MUL - 1){1'b0}}, inc};
 
-  assign min_ext  = {{(W_SUM - V_BITS){adc2_min_q[V_BITS-1]}}, adc2_min_q};
+  assign min_ext  = {{(W_SUM - int'(V_BITS)){adc2_min_q[V_BITS-1]}}, adc2_min_q};
   assign sum_wide = min_ext + {{(W_SUM - W_MUL){sh[W_MUL-1]}}, sh};
 
   assign ovf     = (sum_wide >= $signed(V_HI_U)) || (sum_wide < $signed(V_LO_U));

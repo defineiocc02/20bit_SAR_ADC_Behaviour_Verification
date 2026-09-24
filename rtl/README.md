@@ -1,5 +1,13 @@
 # `rtl/` —— 可综合 RTL 子树
 
+> RTL 结构与校准更新（2026-09-20）：默认顶层为双 SAR / 共享3-bit Flash / 18-slice调度；旧粗细码向量请显式使用 `P_STRUCTURAL=0`。详见 [结构与数字校正说明](../docs/rtl/STRUCTURAL_CALIBRATION_20260920.md) 与相应 ADR0018。文献披露、工程假设和模拟签核边界分别列出。
+
+
+当前修订入口：[完整 RTL 修复报告](../docs/rtl/COMPLETE_RTL_REPAIR_20260920.md)、
+[ADR 0017](../docs/adr/0017-rtl-fixed-phase-capture-and-structure.md)。顶层接口和 16 相位
+保持；相位 8/14 必须提供同步 ready。历史综合数据不能作为本次 RTL 的频率签核。
+
+
 ## 0. 状态（先说清楚"哪些已经存在、哪些只是规划"）
 
 | 阶段 | 状态 | 证据 |
@@ -44,6 +52,7 @@ rtl/
   README.md                              [已存在]
   params/
     rtl_params.vh                        [已存在] 生成物，禁止手工编辑
+    rtl_error_codes.vh                   [已存在] 手工维护的静态接口错误码（非生成物）
 
   core/                                  [部分已存在] 可综合逻辑
     dem_state_gen.sv                     [已存在] 按 bank 独立推进的确定性 DEM 状态序列，逐项匹配 Python
@@ -180,3 +189,9 @@ tests/unit/
 * P1 接口与完成记录：[`docs/rtl/P1_INTERFACE.md`](../docs/rtl/P1_INTERFACE.md)
 * 转换计划（含 P0–P7 与风险账本）：项目工作区 `03_工程设计/20bit40M_行为模型转可综合RTL计划.md`
 * 已有的独立参考实现：[`sim/ref/dem_closed_form.py`](../sim/ref/dem_closed_form.py)
+
+## 2026-09-19 RTL review fixes
+
+[工程复核与修复报告](../docs/rtl/REVIEW_20260919.md) 汇总基线问题、修复和仍未闭合的目标。
+[ADR 0016](../docs/adr/0016-rtl-configuration-and-dither.md) 定义完整配置装载/提交协议与 dither PMF。
+运行 `python tools/run_open_rtl.py` 可编译执行 P1/P2/P3 和两项新增 RTL 回归。

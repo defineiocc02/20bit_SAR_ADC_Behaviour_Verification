@@ -1,0 +1,89 @@
+{
+  "base_commit": "df0a5754560964b6b4d494357d034d1b64873d27",
+  "date": "2026-09-20",
+  "python": "3.12",
+  "verilator_package": "5.48.0",
+  "verilator_binary": "rev vUNKNOWN-built20260516-4e853d8; runtime banner 5.49",
+  "python_tests": {
+    "passed": 541,
+    "deselected_remote_slow": 3
+  },
+  "rtl_testbenches": {
+    "review_dither_tb": {
+      "result": "PASS",
+      "log_sha256": "106c0857cb9e77497198cc8becccf2dda3ba62a88d2cd8d5a8590deef484836a"
+    },
+    "review_config_tb": {
+      "result": "PASS",
+      "log_sha256": "926bb9328bae1f72ed60cb29a19529eb53a7c92fe0ef0db4f9b92bf99f689ff4"
+    },
+    "p1_tb": {
+      "result": "PASS",
+      "log_sha256": "cd6e55077da4821a4444560e6b8a766b8c30880bc39de606225416f93c85106d"
+    },
+    "p2_periph_tb": {
+      "result": "PASS",
+      "log_sha256": "5739ddf54e9be86b76e7b9258ff588716029e7a24b6af1232a625c218e6aa6e0"
+    },
+    "p2_smoke_tb": {
+      "result": "PASS",
+      "log_sha256": "4ea2961684627267ce0bd20155827142b69e3d769e83ceb546466f0a3db36b8c"
+    },
+    "p3_top_tb": {
+      "result": "PASS",
+      "log_sha256": "eb488420f73d619a966784f340d7edc7f4b28e39758fd35616873c0bd6ce17d7"
+    }
+  },
+  "controls": [
+    {
+      "name": "local_divshift",
+      "returncode": 1,
+      "complete_rows": 4095,
+      "verdict": "killed"
+    },
+    {
+      "name": "local_capoff",
+      "returncode": 0,
+      "complete_rows": 4095,
+      "verdict": "unobserved"
+    },
+    {
+      "name": "baseline_config",
+      "returncode": 1,
+      "result": "missing configuration accepted; baseline regression failed as expected"
+    }
+  ],
+  "source_sha256": {
+    "rtl/core/adc2_dec.sv": "8f8d66bf2ab209b5bbacd20a617b04fb5f0a82fd2d0a421e0507250d02df812c",
+    "rtl/core/calib_regs.sv": "10b636165f0dd7b530400a632411df3a02abb328cc6fa91f07443450cfc24907",
+    "rtl/core/ctrl_fsm.sv": "2f17ec0b5194f269a0758574bd63c59e97b9efb7dd9d2a61ab631cbc01765634",
+    "rtl/core/dem_addr_gen.sv": "71e00f91c3768fee6dc1022fa243b9a53154dbf19467e76e24419eb0c74af814",
+    "rtl/core/dem_state_gen.sv": "ee76c46ee9b8da53f8455bb0fc2e5f5c6198bcfd3611ba17b5b40846b8e78369",
+    "rtl/core/dither_gen.sv": "cfd7264be1160364087bedfb3d10a88c659e139ac1bead39ef46773ef3593f01",
+    "rtl/core/div_floor.sv": "d7b4044544452b17877f2693a6764e443596aa6a5f9f4cb3c371d21b777060ee",
+    "rtl/core/rdac_drv.sv": "d92e5ffcbac53b44a7f02671a0cc5fa9b2d533b578cd7653f82746e5d8de38cc",
+    "rtl/core/recon_core.sv": "08cfaea5df38cbcedd9690a54003f26acde2f5ce2c26dcbbe33f08970e988445",
+    "rtl/core/slice_alloc.sv": "358fc1472d0278189b1b37080d1bc0c82edd61b4187d99e48a58e4c29c5163e2",
+    "rtl/core/status_regs.sv": "025c6dd22b66ac015f3bf7dc30137c14ed18b0fb01d5fa667814903992df399f",
+    "rtl/core/swap_decode.sv": "20779afd94ec8ae59e1e6e576956dfcd3e84b7ba77397ee541263e418974ed98",
+    "rtl/core/unit_therm.sv": "cc285ebc39984b591344ea135f41c874cc501b7af549e5d54dc2525c4924fcd7",
+    "rtl/core/weight_store.sv": "41dae05b0a20a920ff61aeec3d64c7a4632a6d28b8273ab590e7703959ff6686",
+    "rtl/top/sadc_enc.sv": "ce2217d85e4f4ac57e1f199765f41393c09811c94b6d776c6f8b8b23c4493606",
+    "rtl/top/sar20_digital_core.sv": "803510ae26fb3932b0e2f8cf27a4a6fd05a674aac03bd6a29e456cbe74eb709a",
+    "sim/tb/p1_tb.sv": "5e2036b927890f7f83ce3bae540ded035572d228bb3fdfd74ccc1d45e3813498",
+    "sim/tb/p2_periph_tb.sv": "14f14e56245ca7b6e6d34497541fa63f5be722e004e4e14ca8303af7c5cfb57c",
+    "sim/tb/p2_smoke_tb.sv": "43221edd88aff8b9b1af39a79218c31ab6bb37925b43d01ef55f857828d40f9b",
+    "sim/tb/p2_tb.sv": "16d72d89b7020059111011021d47b24eefb70eb37008d804751f13c2bb49b1fb",
+    "sim/tb/p3_top_tb.sv": "799aa3cb4cf1d31842229d0f23bee50a7056c760c17de2cccf40ae72b655923f",
+    "sim/tb/review_config_tb.sv": "18bbb5db567333d24c37be946a534827137f2b921a9cb5abc994f4dde2223e95",
+    "sim/tb/review_dither_tb.sv": "fcd79afc5f3239a21186d06781d4e963418f8857a38f07b0c95344dbed82fa52"
+  },
+  "not_executed": [
+    "VCS four-state regression on this branch",
+    "new DC synthesis",
+    "PVT timing signoff",
+    "full mutation campaign"
+  ],
+  "controls_source_commit": "69d87709c5eb5269f83cbc2e452e12474a1a5925",
+  "portability_followup": "Named top-level nets for P3 force; explicit smoke adc2_over; remove out-of-range integer selects; PINMISSING/SELRANGE are fatal; six local benches rechecked."
+}

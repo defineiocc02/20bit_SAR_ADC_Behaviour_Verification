@@ -76,20 +76,24 @@ module p2_smoke_tb;
   logic        dout_valid, clip_low, clip_high, analog_ovf, acc_ovf;
   logic [31:0] status_word;
 
-  sar20_digital_core u_core (
+  sar20_digital_core #(.P_STRUCTURAL(0)) u_core (
       .clk (clk), .rst_n (rst_n),
       .cfg_wr (cfg_wr), .cfg_addr (cfg_addr), .cfg_wdata (cfg_wdata),
       .cfg_rdata (cfg_rdata), .cfg_validate (cfg_validate),
       .cfg_clear_valid (cfg_clear_valid), .cfg_ready (cfg_ready),
       .sadc_code (sadc_code), .sadc_rdy (sadc_rdy),
       .adc2_code (adc2_code), .adc2_rdy (adc2_rdy),
-      .ra_sat (ra_sat), .rdac_ovf (rdac_ovf), .inj_q (inj_q),
+      .ra_sat (ra_sat), .rdac_ovf (rdac_ovf), .adc2_over(1'b0), .inj_q (inj_q),
       .slice_sel (slice_sel), .main_sw (main_sw), .sub_sw (sub_sw),
       .dither_sw (dither_sw), .sw_valid (sw_valid),
       .dout (dout), .dout_valid (dout_valid),
       .clip_low (clip_low), .clip_high (clip_high),
       .analog_ovf (analog_ovf), .acc_ovf (acc_ovf),
       .status_word (status_word)
+  ,
+      .dout_sample_id(), .dout_flags()
+  ,
+      .flash_therm('0), .flash_valid('0), .coarse_cmp_valid('0), .coarse_cmp_ge('0), .fine_cmp_valid('0), .fine_cmp_ge('0), .analog_phase(), .quiet_sample(), .tp_clock(), .ra_az(), .ra_amplify(), .ref_precharge(), .ref_accurate(), .acquiring_mask(), .converting_mask(), .aux_charge_enable(), .hold_low_enable(), .coarse_compare_enable(), .coarse_trial(), .quantizer_dither(), .acquisition_dither_rails(), .fine_trial(), .fine_compare_enable(), .coarse_acquire_enable(),.flash_acquire_enable(),.fine_acquire_enable(),.flash_sample()
   );
 
   //=========================================================================
@@ -181,8 +185,13 @@ module p2_smoke_tb;
     cfg_write(16'h1018, 64'h3);                    // dem_en=1, bridge_en=1, smask=0
     repeat (4) @(posedge clk);                     // 等 3 拍控制位串行器走完
 
-    // 权重：slice 0, unit 0 = 2^26（registers_paper_literal.json 的第一个权重）
-    cfg_write(16'h0000, 64'd67108864);
+    // Complete configuration image: one legal word per physical address.
+    for (int s = 0; s < N_SLICES; s++) begin
+      cfg_write(16'(16'h2000 + s*256), 64'd0);
+      for (int u = 0; u < N_UNIT_TOTAL; u++)
+        cfg_write(16'(u*8), 64'd67108864);
+    end
+    cfg_write(16'h2000, 64'd0);
     repeat (2) @(posedge clk);
 
     chk("T1 未 validate 时 cfg_ready=0", cfg_ready == 1'b0);
@@ -209,6 +218,7 @@ module p2_smoke_tb;
     chk("T1 生效期写权重被拒 -> ERR_CFG_WRITE(5)", status_word[31:6] == 26'd5);
     repeat (2) @(posedge clk);
 
+    sadc_rdy = 1'b1; adc2_rdy = 1'b1; // fixed-phase capture requires valid input
     // ---- 生效后开始转换：dout_valid 必须在固定延迟内出现 ----
     inj_q     = 64'sd0;
     adc2_code = 12'd0;

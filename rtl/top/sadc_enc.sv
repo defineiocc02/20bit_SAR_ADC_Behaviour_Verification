@@ -28,8 +28,8 @@
 `include "rtl_params.vh"
 
 module sadc_enc #(
-    parameter int P_B1    = B1,
-    parameter int P_N_CMP = (1 << B1) - 1        // = 511
+    parameter int P_B1    = int'(B1),
+    parameter int P_N_CMP = (1 << P_B1) - 1        // = 511
 ) (
     input  logic [P_N_CMP-1:0] cmp_raw,          // 比较器阵列温度计（bit i = x > thr[i]）
     output logic [P_B1-1:0]    sadc_code
@@ -37,15 +37,18 @@ module sadc_enc #(
 
   localparam int ACC_W = $clog2(P_N_CMP + 1);    // 9：装得下 [0, P_N_CMP]
 
-  logic [ACC_W-1:0] acc;
-  integer           i;
-
-  always_comb begin
-    acc = {ACC_W{1'b0}};
-    for (i = 0; i < P_N_CMP; i = i + 1) begin
-      acc = acc + {{(ACC_W-1){1'b0}}, cmp_raw[i]};
-    end
-    sadc_code = acc[P_B1-1:0];
+  localparam int LEAVES = 1 << $clog2(P_N_CMP);
+  initial begin
+    if (P_B1 < 1 || P_B1 > 16 || P_N_CMP < 1 || ACC_W > P_B1)
+      $fatal(1, "sadc_enc: invalid comparator count/output width");
   end
-
+  // Named generated nodes avoid aggregate-array false combinational cycles
+  // in older tools. Children always have strictly larger constant indices.
+  for (genvar i = 1; i < 2*LEAVES; i++) begin : g_node
+    wire [ACC_W-1:0] count;
+    if (i < LEAVES) assign count = g_node[2*i].count + g_node[2*i+1].count;
+    else if (i-LEAVES < P_N_CMP) assign count = ACC_W'(cmp_raw[i-LEAVES]);
+    else assign count = '0;
+  end
+  assign sadc_code = P_B1'(g_node[1].count);
 endmodule

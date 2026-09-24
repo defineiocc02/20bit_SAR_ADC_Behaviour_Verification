@@ -321,7 +321,9 @@ module p1_tb;
     int   fd, i, v;
     int   hist [ -D : D ];
     int   valids;
-    int   cycles;
+    int   cycles, prev;
+    real total, square, cross_sum, expected, delta, mean, corr;
+    total=0; square=0; cross_sum=0; prev=0;
     cycles = 200000;
     for (i = -D; i <= D; i++) hist[i] = 0;
     valids = 0;
@@ -329,7 +331,7 @@ module p1_tb;
     if (fd == 0) $fatal(1, "cannot open %s/p1_m4_hist.txt", outdir);
     err_base = errors;
     m4_en = 1'b1;
-    @(posedge clk);
+    repeat(64) @(negedge clk);
     for (i = 0; i < cycles; i++) begin
       @(negedge clk);
       if (m4_valid) begin
@@ -343,10 +345,21 @@ module p1_tb;
         end else begin
           hist[v] = hist[v] + 1;
         end
-        valids++;
+        total+=v; square+=real'(v)*v;
+        if(valids>0) cross_sum+=real'(prev)*v;
+        prev=v; valids++;
       end
     end
-    chk("M4 every support value appeared", (hist[0] > 0) && (hist[D] > 0) && (hist[-D] > 0), 1);
+    chk("M4 enough valid draws", valids > cycles/2, 1);
+    mean=total/valids;
+    corr=(cross_sum/(valids-1)-mean*mean)/(square/valids-mean*mean);
+    chk("M4 zero mean", mean > -0.05 && mean < 0.05, 1);
+    chk("M4 lag1 correlation", corr > -0.03 && corr < 0.03, 1);
+    for(int h=-D;h<=D;h++) begin
+      expected=real'(valids)*((h==-D || h==D)?1.0:2.0)/(4.0*D);
+      delta=hist[h]-expected;
+      chk("M4 rounded-uniform PMF", delta*delta < 49.0*expected, 1);
+    end
     $fwrite(fd, "# p1_m4_hist.txt  D=%0d  cycles=%0d  valids=%0d\n", D, cycles, valids);
     $fwrite(fd, "value count\n");
     for (i = -D; i <= D; i++) $fwrite(fd, "%0d %0d\n", i, hist[i]);

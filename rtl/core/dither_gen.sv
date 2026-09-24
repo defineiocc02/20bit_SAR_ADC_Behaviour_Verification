@@ -1,62 +1,53 @@
-//===========================================================================
-// dither_gen.sv -- dither 码生成（**统计验收**，不追求与模型逐位一致）
-//===========================================================================
-// 职责一句话
-//   产出一个近似均匀、支撑集精确的整数 dither 码，替代模型的 `round(uniform(-D, D))`。
+// Integer sampling dither: same PMF as round(uniform(-D,D)) in sampler.py.
+// Endpoints have half the probability of an interior integer. This is not a
+// bit-exact replacement for PCG64; the PRNG sequence is an RTL design choice.
 //
-// 来源
-//   adi_model/sampler.capture() 的 dither 支路：`dither_code = round(uniform(-D, D))`
-//   （`dither_mode == "sampling"` 时 `D = cfg.dither_units_range`）。
+// Right-shift Galois LFSR, period 2^32-1 for every nonzero seed. The reduction
+// polynomial is verified independently in tests/unit/test_rtl_review_regressions.py.
+// IMPORTANT: shift in ZERO before XOR. Rotating bit0 into bit31 cancels the
+// feedback MSB and makes raw[31:24] collapse to zero (review R1, 2026-09-19).
 //
-// 单位契约
-//   无量纲整数（RDAC 单位当量）。dither_code ∈ [-D, +D]，共 2D+1 个取值。
-//
-// 参数来源分级
-//   D 默认取头文件的 DITHER_UNITS_RANGE（[假设]，由 Config 导出）。
-//   SEED 是 RTL 设计选择（[假设]）—— 它只影响序列，不影响分布。
-//
-// 契约与不变量 / 适用域
-//   * **本模块永远不可能与模型逐位一致**：模型的随机源是 numpy 的 PCG64，
-//     RTL 无法复现（见 docs/rtl/P1_INTERFACE.md §0.1）。因此验收判据是
-//     "支撑集精确 + 近似均匀 + 均值≈0 + 跨拍不相关 + 边界值出现"，
-//     由 TB 统计后交 Python 复核。
-//   * **连带后果**：任何要求 bit-exact 的链路级测试必须把 dither 码**作为激励注入**，
-//     不能让两侧各自随机。本模块只是"片上随机源"的可综合占位实现。
-//   * 精确均匀靠拒绝采样：`raw` 取 8 位，只接受 `raw < (256/SPAN)*SPAN`
-//     （SPAN = 2D+1），再取 `raw mod SPAN`。这样每个取值恰好被映射同样多的 raw 值，
-//     不留余数偏置 —— 这是"近似"变成"精确"的那一步。
-//   * 被拒绝的那一拍 `valid = 0`，调用方应当**忽略**该拍输出（不要用 valid=0 的码）。
-//===========================================================================
+// Advance eight LFSR bits per draw to avoid overlapping 8-bit windows.
+// gcd(8, 2^32-1)=1, so decimation preserves the full state period.
+// en=0 holds state. Rejected draws have valid=0 and must not be consumed.
+// D=0 produces zero. Supported D is 0..63; a zero seed is prohibited.
 `include "rtl_params.vh"
-
 module dither_gen #(
-    parameter int          D    = DITHER_UNITS_RANGE,
+    parameter int D = int'(DITHER_UNITS_RANGE),
     parameter logic [31:0] SEED = 32'h1357_9BDF
 ) (
-    input  logic              clk,
-    input  logic              rst_n,
-    input  logic              en,
+    input logic clk,
+    input logic rst_n,
+    input logic en,
     output logic signed [7:0] dither_code,
-    output logic              valid
+    output logic valid
 );
+  localparam int SPAN = (D == 0) ? 1 : 4 * D;
+  localparam int LIMIT = (256 / SPAN) * SPAN;
+  localparam logic [31:0] TAPS = 32'h8020_0003;
+  logic [31:0] lfsr, next_lfsr;
+  logic [7:0] raw, reduced;
+  logic [8:0] rounded;
+  logic signed [9:0] centered;
 
-  localparam int SPAN  = 2 * D + 1;
-  localparam int LIMIT = (256 / SPAN) * SPAN;  // 不大于 256 的 SPAN 最大倍数
-  localparam logic [31:0] TAPS = 32'h8020_0003;  // x^32 + x^22 + x^2 + x + 1
-
-  logic [31:0] lfsr;
-  logic [7:0]  raw;
-  logic [7:0]  reduced;
-
-  assign raw     = lfsr[31:24];
+  initial begin
+    if (D < 0 || D > 63) $fatal(1, "dither_gen: D must be in 0..63");
+    if (SEED == 0) $fatal(1, "dither_gen: SEED must be nonzero");
+  end
+  assign raw = lfsr[31:24];
   assign reduced = raw % 8'(SPAN);
-  assign valid   = (9'(raw) < 9'(LIMIT));
-
-  assign dither_code = $signed({1'b0, reduced}) - 8'(D);
-
+  assign valid = (9'(raw) < 9'(LIMIT));
+  // 4D equiprobable cells -> 1 endpoint cell, 2 per interior, 1 endpoint.
+  assign rounded = ({1'b0, reduced} + 9'd1) >> 1;
+  assign centered = $signed({1'b0, rounded}) - 10'(D);
+  assign dither_code = (D == 0) ? 8'sd0 : centered[7:0];
+  always_comb begin
+    next_lfsr = lfsr;
+    for (int k = 0; k < 8; k++)
+      next_lfsr = {1'b0, next_lfsr[31:1]} ^ (next_lfsr[0] ? TAPS : 32'h0);
+  end
   always_ff @(posedge clk) begin
     if (!rst_n) lfsr <= SEED;
-    else if (en) lfsr <= {lfsr[0], lfsr[31:1]} ^ (lfsr[0] ? TAPS : 32'h0);
+    else if (en) lfsr <= next_lfsr;
   end
-
 endmodule

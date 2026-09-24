@@ -207,6 +207,12 @@ if [[ "$dc_rc" -eq 124 ]]; then
     exit 1
 fi
 
+# A success marker cannot overrule a process error, crash or killed process.
+if [[ "$dc_rc" -ne 0 && ( "$dc_status" == "OK" || "$dc_status" == "PREFLIGHT_OK" || "$dc_status" == "CHECK_ONLY_OK" ) ]]; then
+    echo "run_synth.sh: FLOW FAILED: success marker conflicts with dc_shell rc=$dc_rc" >&2
+    exit 1
+fi
+
 case "$dc_status" in
     PREFLIGHT_OK)
         echo "run_synth.sh: PREFLIGHT OK"
@@ -215,13 +221,13 @@ case "$dc_status" in
         ;;
     OK)
         # 再独立复核一次 WNS，避免 tcl 侧判定被绕过
-        if [[ "$wns" =~ ^- ]] && [[ "$wns" != "-0"* ]]; then
+        if [[ ! "$wns" =~ ^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)([eE][+-]?[0-9]+)?$ ]]; then
+            echo "run_synth.sh: FLOW FAILED: invalid WNS='$wns' despite status=OK" >&2
+            exit 1
+        fi
+        if awk -v value="$wns" 'BEGIN { exit !(value + 0 < 0) }'; then
             echo "run_synth.sh: TIMING NOT MET (WNS = $wns ns although status=OK)" >&2
             exit 3
-        fi
-        if [[ "$dc_rc" -ne 0 ]]; then
-            echo "run_synth.sh: dc_shell returned $dc_rc despite status=OK" >&2
-            exit 1
         fi
         echo "run_synth.sh: OK (WNS = $wns ns)"
         exit 0

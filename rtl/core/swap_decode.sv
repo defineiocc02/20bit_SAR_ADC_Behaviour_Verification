@@ -45,8 +45,8 @@ module swap_decode (
     output logic                     rdac_over
 );
 
-  localparam int N_ACT = N_ACTIVE;
-  localparam int LV    = DAC_LEVELS;
+  localparam int N_ACT = int'(N_ACTIVE);
+  localparam int LV    = int'(DAC_LEVELS);
   localparam int HALF  = N_ACT / 2;
 
   // ⚠️ 全部走**有符号** localparam。Verilog 的规则是"表达式里只要有一个无符号
@@ -57,12 +57,12 @@ module swap_decode (
   // P1 的 85 条定向用例（dither -8..8）抓出来的就是这条。
   localparam signed [17:0] UL1  = 18'(UNITS_PER_LSB1);
   localparam signed [17:0] KLO  = 18'(K0);
-  localparam signed [17:0] LMAX = 18'(DAC_LEVELS - 1);
+  localparam signed [17:0] LMAX = 18'(int'(DAC_LEVELS) - 1);
   localparam signed [17:0] ZERO = 18'sd0;
 
   // ---- 1) 命令拼装（k 未裁剪；溢出口径取它，与 SimResult.rdac_over 一致） ----
   logic signed [17:0] k_cmd;
-  assign k_cmd = $signed({9'b0, coarse}) * UL1 + KLO + $signed(dither_code);
+  assign k_cmd = $signed({9'b0, coarse}) * UL1 + KLO + 18'($signed(dither_code));
 
   assign rdac_over = (k_cmd < ZERO) || (k_cmd > LMAX);
 
@@ -90,7 +90,7 @@ module swap_decode (
       // 取模必须在**能装下 N_ACT 的宽度**里做。写成 3'(N_ACT) 会把 8 截成 0，
       // 于是变成"对常量 0 取模"，rank 全错、整段符号逻辑失效 ——
       // 只在桥接打开时才表现出来（P1 的 8192 穷举把它抓了出来）。
-      assign rank     = (32'(a) - 32'(sid_low)) % 32'(N_ACT);
+      assign rank     = 3'((32'(a) - 32'(sid_low)) % 32'(N_ACT));
       assign sign_pos = (32'(rank) < 32'(HALF));
       assign sign_neg = !sign_pos && (32'(rank) < 32'(N_ACT));
 

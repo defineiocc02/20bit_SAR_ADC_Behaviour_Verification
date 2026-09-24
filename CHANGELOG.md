@@ -4,6 +4,57 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.1.0] — 2026-09-24
+
+### Added — digital-side fixed-point RTL (P0–P3)
+
+- 20-bit SAR ADC digital-core RTL: parameter export from the calibrated Python
+  model (`tools/export_rtl_params.py`), transaction/vector stimulus export
+  (`tools/export_rtl_vectors.py`), SV testbenches with strict lint, and
+  `tools/run_rtl_sim.py` (Verilator CI gate added to the workflow).
+- Mutation-testing framework aligned to the VeriBugBench operator matrix:
+  SV-subset injector + observation trace + paper-criterion comparator, with
+  module-level vs top-level observation-plane separation and a documented
+  coverage deviation statement.
+- Synthesis sweep for P_STAGES (cross-batch coverage fix); unified line-ending
+  policy (`* text=auto eol=lf`) so `run_vcs.sh` works on Windows checkouts.
+- ADR 0016 (RTL configuration and dither), 0017 (fixed-phase capture and
+  structure), 0018 (physical calibration and structural controls).
+
+### Fixed (RTL digital core)
+
+- Input/config cross-sample contamination, dither sign and state errors; the
+  full coarse-code + fixed-two-bank structure was replaced by the
+  source-aligned architecture: dual 9b SAR with a shared 3-bit Flash seed,
+  12b backend SAR converting the previous residual, 18-slice 8/8/2 scheduling
+  (next conversion must come from an actual acquisition slice), RDAC
+  following decided bits, and `cal_sample_context` residual bookkeeping.
+- Physical calibration split into a standalone synthesizable module:
+  per-slice/unit fixed coefficient wiring, narrow switch-mask routing to real
+  physical rows, balanced summation, independent residual multiply-add,
+  signed floor division, same-cycle result/sample-ID/flags; invalid or
+  duplicate slice IDs rejected; config-epoch coefficient freeze; cancel does
+  not leak in-flight data.
+- `mechanism_inventory.json`: P09/P10 downgraded from PASS to NOT_RUN —
+  the dielectric-absorption memory model and the AZ C_AZ storage/release
+  noise paths remain unbuilt and must not be represented by tracking-causality
+  or PSD-integration tests; completed sub-items stay in the resolution field.
+
+### Compatibility
+
+- Default `P_STRUCTURAL=1`; legacy full coarse/fine-code RTL tests must set
+  `P_STRUCTURAL=0` explicitly. New comparator, analog-control, sample-ID and
+  flags ports; both profiles share configuration and correction; default
+  16 ticks/sample, reconstruction latency 11 full clocks after the accept
+  edge. RTL sources managed via `rtl/rtl_sources.f`.
+- Behavioral reference outputs are unchanged: `tools/results/results.json`
+  SHA256 stays `f3e1a7967f22b30e037d881668b40124cea4ed3f47600a2addb69a502f67c0eb`
+  (identical to v8.0.0) — this release adds the RTL subsystem and touches no
+  Python pipeline code.
+
+Gates: 572 passed (not-slow, 0 xfail) · ruff/format/mypy clean · CI 9/9
+including the new Verilator RTL simulation check.
+
 ## [8.0.0] — 2026-09-13
 
 ### Changed

@@ -9,8 +9,8 @@ authors:
     given-names: Reed
     alias: defineiocc02
     affiliation: Xidian University
-version: 8.0.0
-date-released: "2026-09-13"
+version: 8.1.0
+date-released: "2026-09-24"
 license: BSD-3-Clause
 repository-code: "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
 url: "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"

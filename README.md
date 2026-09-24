@@ -10,9 +10,11 @@
 它用于检查电荷、时序、噪声、校准和数字重构是否相互一致，并给出继续仿真的工程依据。
 公开资料没有完整披露电路，因此具体电容分配、部分相位时间、DEM 交换方式和 ADC2 范围均保留为明确假设。
 
-## 结果总览（v8.0.0）
+## 结果总览（v8.1.0）
 
-v8.0.0 把物理 slice 池、交织预跟踪、辅助输入、参考/RA/ADC2 联立动态与定点数字核接入主链路。
+v8.0.0 把物理 slice 池、交织预跟踪、辅助输入、参考/RA/ADC2 联立动态与定点数字核接入主链路；
+8.1.0 新增数字侧定点 RTL（P0–P3）：可综合校准核、双 SAR/共享 3-bit Flash、18-slice 调度、
+Verilator 仿真与变异测试门禁——行为级 results.json 数值与 v8.0.0 逐字节一致。
 与 v7.0.10 聚合基线做 `results.json` 逐项对账：**626 个共有指标中 516 个完全一致**，
 40 个为浮点级噪声（<1e-6 相对），**70 个实质变化**全部集中在物理主链路新覆盖的子系统；
 关键 dB 指标全部向好（详见 [CHANGELOG](CHANGELOG.md) 的字节账）：
@@ -170,7 +172,7 @@ CI 运行 Python 3.10–3.13 测试、3.12 全量 sweep、独立双次确定性�
 @software{zhao_2026_sar_adc_behaviour_model,
   author    = {Zhao, Reed},
   title     = {20-bit SAR ADC Behavioural Verification Model},
-  version   = {8.0.0},
+  version   = {8.1.0},
   year      = {2026},
   publisher = {GitHub},
   url       = {https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification},

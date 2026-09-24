@@ -13,7 +13,9 @@ hypothesis for baseline comparisons. Known dither does not create extra decision
 information. The 63+8 topology, detailed DEM exchange, conversion timing and
 backend ranges remain explicitly assumed implementations.
 
-## Results at a glance (v8.0.0)
+8.1.0 adds the digital-side fixed-point RTL (P0-P3): a synthesizable calibration core, dual SAR with a shared 3-bit Flash, 18-slice scheduling, Verilator simulation and mutation-testing gates. Behavioral `results.json` stays byte-identical to v8.0.0.
+
+## Results at a glance (v8.1.0)
 
 v8.0.0 integrates the physical slice pool, interleave pretracking, auxiliary
 input, coupled reference/RA/ADC2 dynamics and the fixed-point digital core into

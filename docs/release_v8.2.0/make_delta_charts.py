@@ -164,7 +164,7 @@ def chart_headline_compare() -> None:
     ax.set_ylim(78, 97)
     ax.set_ylabel("dB")
     ax.legend(fontsize=8.6, loc="lower left")
-    ax.set_title("关键 dB 指标：RNG 修复前后对比（均值几乎不变，尾部变差）")
+    ax.set_title("关键 dB 指标：RNG 修复前后对比（差异均落在重抽样噪声内，见图 7）")
     fig.tight_layout()
     fig.savefig(FIG / "headline_compare.png", bbox_inches="tight")
     plt.close(fig)
@@ -204,9 +204,7 @@ def chart_mc_distribution() -> None:
         ax.set_title(
             f"{title}\nσ {o.std(ddof=1):.3f} → {n.std(ddof=1):.3f} dB，最差 {o.min():.2f} → {n.min():.2f} dB"
         )
-    fig.suptitle(
-        "逐芯片 SNDR 分布：修复后系综离散度变大、最差芯片下探（旧口径低估了离散度）", y=1.03
-    )
+    fig.suptitle("逐芯片 SNDR 分布：修复前后对比（可见差异与重抽样噪声同量级，见图 7）", y=1.03)
     fig.tight_layout()
     fig.savefig(FIG / "mc_distribution.png", bbox_inches="tight")
     plt.close(fig)
@@ -390,6 +388,106 @@ def chart_probe_effects() -> None:
     plt.close(fig)
 
 
+# --------------------------------------------------------------- 显著性检验
+def bootstrap_significance(n_boot: int = 20000, seed: int = 20260925) -> dict:
+    """自助法：Δ(最差芯片) 与 Δ(标准差) 能否与「纯粹重抽样噪声」区分开？
+
+    零假设：新旧两批逐颗 SNDR 来自同一分布，把两批合并成池，各自独立重抽 n 颗，
+    看 Δ 的零分布。若实测 Δ 落在零分布的 95% 区间内，则**不能**把该 Δ 归因于修复。
+
+    为什么必须做这一步：n=16 / n=60 时「最差一颗」与「样本标准差」本身就是高方差
+    统计量（系综 σ 约 0.09–1.7 dB，最差一颗的抽样 sd 可达 0.06–1.64 dB）。
+    不做检验就写「良率下界下降 / 旧口径低估了尾部」，是把抽样噪声当成了修复效应。
+    """
+    rng = np.random.default_rng(seed)
+    out: dict = {}
+    for sec in ("mc", "mc_cal_off", "mc_cal_on", "mc_pdk_off", "mc_pdk_on"):
+        a = np.asarray(BASE[sec]["sndr_per_chip"], dtype=float)
+        b = np.asarray(NEW[sec]["sndr_per_chip"], dtype=float)
+        n = a.size
+        pool = np.concatenate([a, b])
+        draws = pool[rng.integers(0, pool.size, size=(n_boot, 2, n))]
+        rec: dict = {"n": int(n)}
+        for name, fn in (
+            ("min", lambda x: x.min(axis=1)),
+            ("std", lambda x: x.std(axis=1, ddof=1)),
+        ):
+            null = fn(draws[:, 1, :]) - fn(draws[:, 0, :])
+            obs = float(fn(b[None, :])[0]) - float(fn(a[None, :])[0])
+            lo, hi = (float(v) for v in np.percentile(null, [2.5, 97.5]))
+            sd = float(null.std())
+            rec[name] = {
+                "obs": obs,
+                "null_sd": sd,
+                "lo": lo,
+                "hi": hi,
+                "z": obs / sd if sd > 0 else float("nan"),
+                "outside": bool(obs < lo or obs > hi),
+            }
+        out[sec] = rec
+    return out
+
+
+def chart_significance(sig: dict) -> None:
+    """图 7：自助法零分布 vs 实测 Δ —— 可见差异无法与抽样噪声区分。"""
+    secs = list(sig)
+    fig, axes = plt.subplots(1, 2, figsize=(11.6, 4.3))
+    for ax, key, title in (
+        (axes[0], "min", "Δ 最差芯片 SNDR"),
+        (axes[1], "std", "Δ 逐颗 SNDR 标准差"),
+    ):
+        for i, sec in enumerate(secs):
+            r = sig[sec][key]
+            half = 1.96 * r["null_sd"]
+            ax.plot(
+                [-half, half],
+                [i, i],
+                color=C_OLD,
+                lw=7,
+                alpha=0.30,
+                solid_capstyle="butt",
+                zorder=2,
+                label="零分布 95% 区间（重抽样噪声）" if i == 0 else None,
+            )
+            inside = not r["outside"]
+            ax.plot(
+                [r["obs"]],
+                [i],
+                "o",
+                ms=8.5,
+                color=C_OLD if inside else C_NEW,
+                zorder=4,
+                label=(
+                    "实测 Δ（区间内，不可归因于修复）"
+                    if inside
+                    else "实测 Δ（区间外，可能是真实效应）"
+                )
+                if i == 0
+                else None,
+            )
+        ax.axvline(0.0, color=C_INK, lw=1.0, ls="--", zorder=1)
+        ax.set_yticks(np.arange(len(secs)))
+        ax.set_yticklabels(secs, fontsize=9)
+        ax.set_xlabel("Δ SNDR（dB）")
+        ax.set_title(title, fontsize=10.5)
+        ax.set_axisbelow(True)
+    axes[0].legend(fontsize=7.4, loc="lower left", framealpha=0.92)
+    fig.suptitle(
+        "图 7｜自助法检验：全部 10 项实测 Δ 均落在重抽样零分布的 95% 区间内\n"
+        "在 n=16 / n=60 下，可见的数值差异与「纯粹换一批随机数」无法区分",
+        fontsize=10.6,
+        y=1.07,
+    )
+    fig.tight_layout()
+    fig.savefig(FIG / "significance_null.png", dpi=170, bbox_inches="tight")
+    plt.close(fig)
+
+
+SIG = bootstrap_significance()
+(FIG.parent / "significance.json").write_text(
+    json.dumps(SIG, ensure_ascii=False, indent=1), encoding="utf-8"
+)
+
 for fn in (
     chart_delta_map,
     chart_headline_compare,
@@ -400,4 +498,6 @@ for fn in (
 ):
     fn()
     print("OK:", fn.__name__)
+chart_significance(SIG)
+print("OK: chart_significance")
 print("figures written to", FIG)

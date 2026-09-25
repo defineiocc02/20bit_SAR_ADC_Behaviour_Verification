@@ -15,9 +15,15 @@ backend ranges remain explicitly assumed implementations.
 
 8.1.0 adds the digital-side fixed-point RTL (P0-P3): a synthesizable calibration core, dual SAR with a shared 3-bit Flash, 18-slice scheduling, Verilator simulation and mutation-testing gates. Behavioral `results.json` stays byte-identical to v8.0.0.
 
-8.2.0 fixes two statistical-integrity defects and hardens the entry guards. (i) The MC loops shared one integer seed between the mismatch draw and the noise realisation, so the noise stream replayed the mismatch values (probe-verified: the two streams draw the same numbers - the stream coincided, the per-chip spread did not collapse); mismatch and noise now use independent `SeedSequence.spawn` streams. (ii) The unit-crosstalk activity is now A(k)/2 consistently with `_dem_fluctuation` (fractional units, prefix-sum interpolation). The reference output was regenerated and reconciled leaf by leaf: **878 of 926 leaves are byte-identical, and all 48 changed leaves sit in RNG-dependent sections** (`mc`, `mc_cal_*`, `mc_pdk_*`, `budget`, `s13`). The ensemble mean is unchanged (93.5263 to 93.5265 dB) while the spread and the worst chip move as expected (sigma 0.113 to 0.137 dB; worst PDK-off SNDR 84.20 to 82.02 dB) - the old seed coupling understated the tail. See the [CHANGELOG](CHANGELOG.md) for the byte accounting and [docs/release_v8.2.0](docs/release_v8.2.0/) for the comparison charts.
+8.2.0 fixes two statistical-integrity defects and hardens the entry guards. (i) The MC loops shared one integer seed between the mismatch draw and the noise realisation, so the two streams drew the same values (probe-verified: the stream coincided, the per-chip spread did not collapse); mismatch and noise now use independent `SeedSequence.spawn` streams. (ii) The unit-crosstalk activity is now A(k)/2 consistently with `_dem_fluctuation` (fractional units, prefix-sum interpolation). The reference output was regenerated and reconciled leaf by leaf: **878 of 926 leaves are byte-identical, and all 48 changed leaves sit in RNG-dependent sections** (`mc`, `mc_cal_*`, `mc_pdk_*`, `budget`, `s13`) - which makes "only F1/F2/F9 are active fixes" a measured result rather than a claim.
+
+> **The numerical deltas cannot be attributed to the fix.** A bootstrap test on the per-chip SNDR (20,000 resamples, chart 7) puts **all 10 statistics - delta-worst-chip and delta-sigma across 5 sections - inside the 95% null band** (|z| <= 1.44). At n=16 / n=60 the MC and yield metrics are sampling-noise dominated, so the v8.1.0 and v8.2.0 MC conclusions **do not contradict each other**. The case for the fix rests on the **code-level defect** (one integer seed seeding both streams, reproducible by probe), not on these outputs. **Do not** read the MC extremes of this model as yield claims.
+
+Byte accounting and the significance test are in the [CHANGELOG](CHANGELOG.md); the 7 comparison charts and `significance.json` are in [docs/release_v8.2.0](docs/release_v8.2.0/).
 
 ![v8.1.0 to v8.2.0 headline metric comparison](docs/release_v8.2.0/fig/headline_compare.png)
+
+![Bootstrap test: all 10 deltas inside the 95% resampling null band](docs/release_v8.2.0/fig/significance_null.png)
 
 
 ## Results at a glance (v8.2.0)

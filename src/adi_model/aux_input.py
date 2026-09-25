@@ -114,6 +114,17 @@ class AuxInputStage:
     boost_voltage: float
     mode: str = "off"
 
+    def __post_init__(self) -> None:
+        """任何构造路径都强制过 validated() 守卫（B1 闭环，独立审查 2026-09-25）。
+
+        守卫只读取字段、原样返回、不改状态，frozen dataclass 下可安全调用；
+        build_stage 内的再调用是幂等的。这样绕过 build_stage 直接构造
+        AuxInputStage 也逃不过 validated()，堵住防御纵深缺口
+        （验证者实测：直接 AuxInputStage(r_aux=inf, mode="off") 后调
+        required_filter_bw 曾静默返回 8.8e6）。
+        """
+        self.validated()
+
     def validated(self) -> AuxInputStage:
         """拒绝非法模式与非正参数（入口显式拒绝）。
 

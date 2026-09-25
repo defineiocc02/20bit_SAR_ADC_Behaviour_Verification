@@ -258,6 +258,13 @@ def test_crosstalk_activity_uses_fractional_half_units():
 
 # --------------------------------------------------------------- F11 / F12
 def test_ridge_fit_lambda_zero_uses_min_norm_on_rank_deficient_matrix():
+    """F11（超定+秩亏分支）：lam=0 且 UᵀU 奇异时仍须给出最小范数解、且 used 如实为 1。
+
+    定位说明（独立审查 2026-09-25，B3）：本测试钉住的是"秩亏时仍返回最小范数解、
+    used 不虚报"这一不变量/契约，**并非探测 ridge_fit 修复的回退**——因为超定+秩亏时
+    UᵀU 恰奇异，旧代码会走 except LinAlgError → lstsq 兜底，该侧本来就对，把本次修复
+    回退后本测试仍通过。勿误以为它给该修复上了护栏。
+    """
     from adi_model.calib import ridge_fit
 
     U = np.array([[1.0, 2.0], [2.0, 4.0], [3.0, 6.0]])  # 秩 1（两列成比例）
@@ -377,6 +384,10 @@ def test_crosstalk_uniform_profile_numerically_unchanged():
     """F9/N2：均匀开关活动 profile 下，修正后的 crosstalk 公式相对旧公式
     `e_unit = dyn_v * cum[round(a_k)]` 数值不变（相对容差 ~1e-12）。
     这条"均匀不变"承诺此前只存在于文字里，无回归断言。
+
+    定位说明（独立审查 2026-09-25，B3）：本测试钉住的是"均匀 profile 下新旧公式
+    数值重合"这一契约，**并非探测本次 crosstalk 修复的回退**——均匀 profile 下新旧
+    公式按构造恰好重合，把本次修复回退后本测试仍会通过，勿误以为它给该修复上了护栏。
     """
     n_u, p0 = 63, 1e-15
     cfg = Config(dyn_crosstalk=True, dyn_c_xtalk_common=0.0, dyn_c_xtalk_unit=p0, dyn_v_digital=1.0)
@@ -999,3 +1010,44 @@ def test_export_rtl_params_rejects_nonfinite(bad):
     exporter = _load_exporter()
     with pytest.raises((ValueError, OverflowError)):
         exporter.rtl_localparams(Config(), exporter.FixedPointFormat(), phases=bad)
+
+
+# --- B1 闭环：AuxInputStage 直接构造须过 validated() 守卫 ---
+@pytest.mark.parametrize("bad", [float("inf"), float("nan")])
+def test_aux_stage_direct_construction_rejects_nonfinite_r_aux(bad):
+    """B1：绕过 build_stage 直接构造也必须在 __post_init__ 过 validated()——
+    r_aux 非有限（inf/nan）构造即抛 ValueError，而非静默放行到下游
+    （验证者实测：直接 AuxInputStage(r_aux=inf, mode="off") 后调
+    required_filter_bw 曾静默返回 8.8e6）。
+    """
+    from adi_model.aux_input import AuxInputStage
+
+    with pytest.raises(ValueError, match="必须为正有限值"):
+        AuxInputStage(
+            c_signal=1e-12,
+            c_filter=1e-13,
+            c_parasitic=1e-14,
+            r_filter=100.0,
+            r_aux=bad,
+            t_acq=1e-6,
+            boost_voltage=3.3,
+            mode="off",
+        )
+
+
+def test_aux_stage_direct_construction_accepts_legal():
+    """B1 姊妹断言：完全合法的直接构造仍能成功（守卫不误伤合法有限输入）。"""
+    from adi_model.aux_input import AuxInputStage
+
+    st = AuxInputStage(
+        c_signal=1e-12,
+        c_filter=1e-13,
+        c_parasitic=1e-14,
+        r_filter=100.0,
+        r_aux=1.0,
+        t_acq=1e-6,
+        boost_voltage=3.3,
+        mode="off",
+    )
+    assert st.r_aux == 1.0
+    assert st.validated() is st  # 守卫幂等

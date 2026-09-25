@@ -116,9 +116,10 @@ class TestValidation:
     def test_nonpositive_params_refused(self):
         cfg = Config()
         st = build_stage(cfg)
-        bad = AuxInputStage(**{**st.__dict__, "c_parasitic": -1.0})
+        # B1 闭环后守卫在 __post_init__ 即生效，故非正参数在构造时就拒
+        # （此前只在 .validated() 调用时拒）；本测试定位不变：非正参数必抛 ValueError。
         with pytest.raises(ValueError, match="必须为正"):
-            bad.validated()
+            AuxInputStage(**{**st.__dict__, "c_parasitic": -1.0})
 
     def test_bad_eps_refused(self, stage):
         with pytest.raises(ValueError, match="必须在"):

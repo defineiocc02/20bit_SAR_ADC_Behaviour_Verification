@@ -89,6 +89,12 @@ class KTCBranch:
         Returns:
             beta_n [无量纲]，shape 同 g_r；决定噪声抵消深度
             （beta_n=1 时 (1-beta_n)*n_R 相消）。
+
+        适用边界（独立审查 2026-09-25，B2）：入参须为正有限（由上方守卫保证）。
+        但**输出有限**的额外前提是 g_r 不低到让商 kappa*G_N*eta_n/g_r 溢出——
+        量级约 1e-300 以下（如 1e-308、nextafter(0,1)=5e-324）虽经守卫接受，
+        商会溢出为 inf。这是数值现实而非守卫漏洞，故**不拒绝极小正值**
+        （拒绝会误伤合法输入）。
         """
         g_r = np.asarray(g_r, dtype=float)
         if np.any(~np.isfinite(g_r)) or np.any(g_r <= 0):
@@ -106,6 +112,12 @@ class KTCBranch:
         Returns:
             beta_x [无量纲]，shape 同 g_r；决定信号时刻响应
             （beta_x=1 时输出恢复到 x2，与噪声抵消相互独立）。
+
+        适用边界（独立审查 2026-09-25，B2）：入参须为正有限（由上方守卫保证）。
+        但**输出有限**的额外前提是 g_r 不低到让商 kappa*G_N*eta_x/g_r 溢出——
+        量级约 1e-300 以下（如 1e-308、nextafter(0,1)=5e-324）虽经守卫接受，
+        商会溢出为 inf。这是数值现实而非守卫漏洞，故**不拒绝极小正值**
+        （拒绝会误伤合法输入）。
         """
         g_r = np.asarray(g_r, dtype=float)
         if np.any(~np.isfinite(g_r)) or np.any(g_r <= 0):

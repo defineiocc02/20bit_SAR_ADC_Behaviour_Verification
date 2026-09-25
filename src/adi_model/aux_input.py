@@ -130,6 +130,7 @@ class AuxInputStage:
             ("c_filter", self.c_filter),
             ("c_parasitic", self.c_parasitic),
             ("r_filter", self.r_filter),
+            ("r_aux", self.r_aux),
             ("t_acq", self.t_acq),
         ):
             if v <= 0:

@@ -347,8 +347,12 @@ def crosstalk_error(
                 continue
             order = np.asarray(perm_fn(int(s)), dtype=np.int64)
             cum = np.concatenate([[0.0], np.cumsum(prof[order])])
-            n_sel = np.clip(np.round(a_k[m]).astype(np.int64), 0, prof.size)
-            e_unit[m] = cfg.dyn_v_digital * cum[n_sel]
+            # 单调切换"先置位再清零"：A(k) 次翻转分布在 A(k)/2 个**不同**
+            # 单位上（每个单位翻转两次），与上方注释及 _dem_fluctuation 的口径
+            # 一致；旧代码按 A(k) 个不同单位各一次求和——均匀分布下数值相同，
+            # 非均匀空间分布（本机制存在的意义）下系统性偏差（独立审查 2026-09-25）。
+            n_sel = np.clip(np.round(a_k[m] / 2.0).astype(np.int64), 0, prof.size)
+            e_unit[m] = 2.0 * cfg.dyn_v_digital * cum[n_sel]
     return (e_common + e_unit) / c_ref
 
 

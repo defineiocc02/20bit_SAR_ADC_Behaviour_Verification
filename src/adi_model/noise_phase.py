@@ -171,7 +171,10 @@ def monte_carlo_residual(
     n_path = st["a"][0] * qM + st["a"][1] * qS
     n_obs = st["b"][0] * qM + st["b"][1] * qS + eN
     n_res = n_path - kappa * n_obs
-    kappa_hat = float(np.dot(n_path, n_obs) / np.dot(n_obs, n_obs))
+    den = float(np.dot(n_obs, n_obs))
+    # den=0（观测通路无噪声的退化配置）时 kappa 无定义——显式 nan，
+    # 避免 0/0 的 RuntimeWarning 与静默传播（独立审查 2026-09-25）
+    kappa_hat = float(np.dot(n_path, n_obs) / den) if den > 0 else float("nan")
     return {
         "sigma_mc": float(np.std(n_res)),
         "kappa_hat": kappa_hat,

@@ -113,6 +113,8 @@ def _check_sources(repo_root: Path, manifest: dict[str, object], result: GateRes
             result.add("sources.entry", "FAIL", "sources 数组存在非对象条目")
             continue
         sid = str(src.get("id", "?"))
+        if sid in ids:
+            result.add("sources.duplicate_id", "FAIL", f"来源 id 重复：{sid}")
         ids.add(sid)
         digest = str(src.get("sha256", ""))
         if not SHA256_RE.match(digest):

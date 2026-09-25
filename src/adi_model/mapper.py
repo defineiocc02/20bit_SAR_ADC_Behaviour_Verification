@@ -135,6 +135,21 @@ class Mapper:
         存放，由 rdac 在两个求值里统一加上。（曾在 encode 里先加一次、
         rdac 再加一次，导致 dither 计入两遍、SNDR 崩到 50 dB。）
         """
+        coarse_code = np.asarray(coarse_code)
+        bank = np.asarray(bank)
+        sid = np.asarray(sid)
+        if not (len(coarse_code) == len(bank) == len(sid)):
+            raise ValueError(
+                f"coarse/bank/sid 长度不一致：{len(coarse_code)}/{len(bank)}/{len(sid)}"
+                "——长度错位会在下游产生静默错配（独立审查 2026-09-25）"
+            )
+        n_code = 2**self.cfg.b1
+        if len(coarse_code) and (
+            not np.all(np.isfinite(coarse_code))
+            or coarse_code.min() < 0
+            or coarse_code.max() >= n_code
+        ):
+            raise ValueError(f"粗码越界 [0, {n_code})：[{coarse_code.min()}, {coarse_code.max()}]")
         k0 = self.cfg.n_units_headroom // 2  # 低端 dither 余量
         k = (coarse_code * self.cfg.units_per_lsb1 + k0).astype(float)
         if dither_code is None:

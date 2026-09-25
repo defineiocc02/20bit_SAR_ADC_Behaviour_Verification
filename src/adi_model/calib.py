@@ -210,18 +210,26 @@ def ridge_fit(U: np.ndarray, y: np.ndarray, lam: float = 0.0):
     if U.shape[0] < U.shape[1]:
         # 欠定：用对偶形式（核技巧），等价于最小范数岭解
         K = U @ U.T
-        a = np.linalg.solve(K + lam * np.eye(U.shape[0]), y)
+        if lam == 0.0:
+            # lam=0 且秩亏时 solve 对近奇异静默放大——直接用最小范数解
+            a = np.linalg.lstsq(K, y, rcond=None)[0]
+        else:
+            a = np.linalg.solve(K + lam * np.eye(U.shape[0]), y)
         return U.T @ a, int(np.linalg.matrix_rank(U))
     UtU = U.T @ U
     Uty = U.T @ y
     s = np.linalg.svd(UtU, compute_uv=False)
     tol = max(s) * 1e-10 if s.size else 0.0
     # 直接加岭并求解；岭项自动把零空间压到 0（前提是 y 在这些方向上无分量）
-    A = UtU + lam * np.eye(U.shape[1])
-    try:
-        w = np.linalg.solve(A, Uty)
-    except np.linalg.LinAlgError:
-        w = np.linalg.lstsq(A, Uty, rcond=None)[0]
+    if lam == 0.0:
+        # 同上：lam=0 时直接取最小范数解，避免近奇异静默放大
+        w = np.linalg.lstsq(UtU, Uty, rcond=None)[0]
+    else:
+        A = UtU + lam * np.eye(U.shape[1])
+        try:
+            w = np.linalg.solve(A, Uty)
+        except np.linalg.LinAlgError:
+            w = np.linalg.lstsq(A, Uty, rcond=None)[0]
     used = int(np.linalg.matrix_rank(U, tol=tol if tol > 0 else None))
     return w, used
 

@@ -139,7 +139,14 @@ class SADC:
             (len(x),) int64 码，范围 [0, n_code-1]，越界钳位到端点码仓。
         Side effects: 无（阈值只读）。
         """
-        code = np.searchsorted(self.thresholds, x, side="right") - 1
+        v = np.asarray(x, dtype=float)
+        if np.any(~np.isfinite(v)):
+            raise ValueError(
+                "SADC input voltage must be finite"
+                "（与 ADC2.convert 同口径；此前 NaN 被 searchsorted 静默排到末仓，"
+                "独立审查 2026-09-25）"
+            )
+        code = np.searchsorted(self.thresholds, v, side="right") - 1
         return np.clip(code, 0, self.n_code - 1).astype(np.int64)
 
 

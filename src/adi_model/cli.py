@@ -117,6 +117,9 @@ def _run_script(script_name: str, results_dir: str | None) -> int:
 
     if results_dir is not None:
         out = Path(results_dir).expanduser().resolve()
+        if out.exists() and not out.is_dir():
+            print(f"error: --results-dir {out} 已存在且不是目录", file=sys.stderr)
+            return 2
         out.mkdir(parents=True, exist_ok=True)
 
     if (

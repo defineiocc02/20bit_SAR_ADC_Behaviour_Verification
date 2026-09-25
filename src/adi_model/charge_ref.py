@@ -381,9 +381,19 @@ def ref_ra_charge_dither_nodal(
     else:
         wM[-nm:, :] = s_mask * v_fs
 
-    # 放大相底板电压 b（(units, n)）：码前缀选择 +V_FS / −V_FS
-    bM = np.where(np.arange(chip.n_main)[:, None] < km[None, :], v_fs, -v_fs)
-    bS = np.where(np.arange(chip.n_sub)[:, None] < ks[None, :], v_fs, -v_fs)
+    # 放大相底板电压 b（(units, n)）：码前缀选择 +V_FS / −V_FS；
+    # 小数码的边界单位按小数部分线性插值（与闭式 _sel 的小数插值同域——
+    # 旧实现按整数码处理，验证器在小数码上与闭式系统性分歧，独立审查 2026-09-25）。
+    def _prefix_voltages(n_units: int, k: np.ndarray) -> np.ndarray:
+        j = np.arange(n_units)[:, None]
+        krow = k[None, :]
+        whole = np.floor(krow)
+        frac = krow - whole
+        v = np.where(j < whole, v_fs, -v_fs)
+        return np.where(j == whole, v_fs * (2.0 * frac - 1.0), v)
+
+    bM = _prefix_voltages(chip.n_main, km)
+    bS = _prefix_voltages(chip.n_sub, ks)
 
     # 节点方程（Q 浮置 / P 虚地）：
     #   D_n*V_Q = Σ_sub C_j*(b_j − w_j)

@@ -112,7 +112,9 @@ def render_report(results: dict, figures_dir=None) -> str:
         "KTC 观察器属于研究扩展，其未量化电压校正不能进入当前定点接口。</p>"
     ]
     for key in ("pipeline", "il_offset", "dither_quant", "rdac_bitwise"):
-        entry = results.get(key, {})
+        # results[key] 可能是 None（v8 的 null-undefined 口径）——or {} 兜底，
+        # 否则 .get 直接 AttributeError（独立审查 2026-09-25）
+        entry = results.get(key) or {}
         body.append(f"<h3>{escape(key)}</h3><p>{escape(str(entry.get('判据','未提供证据')))}</p>")
         body.append(
             "<details><summary>数值证据</summary><pre>"

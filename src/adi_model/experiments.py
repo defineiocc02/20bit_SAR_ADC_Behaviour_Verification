@@ -727,8 +727,11 @@ def monte_carlo(cfg: Config, n_chips: int = 24, n: int = 2**13, seed0: int = 100
         cfg: Base configuration; mismatch is re-drawn per chip.
         n_chips: Number of virtual chips.
         n: Samples per chip.
-        seed0: First seed; chip ``i`` uses ``seed0 + i`` throughout (chip draw
-            and noise realisation share the seed so a chip reproduces exactly).
+        seed0: Root seed. Per-chip mismatch draws and noise realisations use
+            independent ``SeedSequence.spawn`` child streams (sharing one integer
+            seed made the noise stream replay the same values as the mismatch
+            draws — independent review 2026-09-25); ``seed0`` still reproduces
+            the whole ensemble exactly.
 
     Returns:
         Dict with the usual summary statistics plus ``sndr_per_chip`` and
@@ -736,10 +739,15 @@ def monte_carlo(cfg: Config, n_chips: int = 24, n: int = 2**13, seed0: int = 100
     """
     fin = _coherent_fin(cfg, n)
     sndr, sfdr = [], []
-    for i in range(n_chips):
-        chip = build_chip(cfg, mismatch_seed=seed0 + i)
+    seed_seq = np.random.SeedSequence(seed0)
+    for child in seed_seq.spawn(n_chips):
+        chip = build_chip(cfg, mismatch_seed=int(child.generate_state(1)[0]))
         r = run_sim(
-            cfg, sine_input(0.9 * cfg.v_fs, fin), n, chip=chip, rng=np.random.default_rng(seed0 + i)
+            cfg,
+            sine_input(0.9 * cfg.v_fs, fin),
+            n,
+            chip=chip,
+            rng=np.random.default_rng(child.spawn(1)[0]),
         )
         m = sine_fit_metrics(r.out, cfg.fs, fin)
         sndr.append(m["SNDR_dB"])
@@ -909,17 +917,22 @@ def monte_carlo_yield(
     """
     fin = _coherent_fin(Config(), n)
     sndr, sfdr, errm = [], [], []
-    for i in range(n_chips):
+    seed_seq = np.random.SeedSequence(seed0)
+    for child in seed_seq.spawn(n_chips):
         c = _clone(
             Config(),
             mismatch_sigma0=sigma_ppm * 1e-6,
             dem_enable=dem,
             mismatch_split=split,
-            seed=seed0 + i,
+            seed=int(child.generate_state(1)[0]),
         )
         chip = build_chip(c)
         r = run_sim(
-            c, sine_input(0.9 * c.v_fs, fin), n, chip=chip, rng=np.random.default_rng(seed0 + i)
+            c,
+            sine_input(0.9 * c.v_fs, fin),
+            n,
+            chip=chip,
+            rng=np.random.default_rng(child.spawn(1)[0]),
         )
         m = sine_fit_metrics(r.out, c.fs, fin)
         sndr.append(m["SNDR_dB"])

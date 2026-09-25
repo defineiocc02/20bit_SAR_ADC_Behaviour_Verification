@@ -180,6 +180,19 @@ def build_chip(
     cf_nom = cfg.c_feedback0 * s
     cf_true = cf_nom * (1.0 + (sigma * cf_z if cfg.mismatch_enable else 0.0))
 
+    # 非法物理状态在抽签处拒收（独立审查 2026-09-25）：负 c_total0 或过大的
+    # 失配/梯度会把 (1+eps) 压成非正电容——静默放行会让下游在垃圾电容上
+    # "正常"出结果。注意 np.isfinite 同时拦 NaN。
+    if not np.all(np.isfinite(C_true)) or bool(np.any(C_true <= 0)):
+        raise ValueError(
+            f"物理单位电容非正/非有限（min={float(np.min(C_true)):.3e} F）："
+            "c_total0 非正或失配/梯度幅度过大"
+        )
+    if not np.isfinite(cf_true) or cf_true <= 0:
+        raise ValueError(
+            f"反馈电容非正/非有限（{float(cf_true):.3e} F）：c_feedback0 非正或失配过大"
+        )
+
     return Chip(
         n_slices=cfg.n_slices,
         n_unit_per_slice=cfg.n_unit_per_slice,

@@ -1006,8 +1006,11 @@ class Config:
                 bad.append("dyn_r_on must be finite and positive [ohm]")
             if not 0 < self.dyn_t_sample_frac <= 1:
                 bad.append("dyn_t_sample_frac must be in (0, 1]")
-            if not math.isfinite(self.dyn_ron_code_coeff) or self.dyn_ron_code_coeff < 0:
-                bad.append("dyn_ron_code_coeff must be finite and nonnegative")
+            if not math.isfinite(self.dyn_ron_code_coeff) or not 0 <= self.dyn_ron_code_coeff <= 1:
+                bad.append(
+                    "dyn_ron_code_coeff must be in [0, 1]：>1 时低码 R_on 调制因子变负，"
+                    "tau 被静默钳到 1e-18 等于宣称'完美建立'（独立审查 2026-09-25）"
+                )
         for field_name, allowed in LEGAL_VALUES.items():
             actual = getattr(self, field_name)
             if actual not in allowed:
@@ -1030,6 +1033,16 @@ class Config:
 
         if self.fs <= 0.0:
             bad.append(f"fs={self.fs!r} 必须为正（采样率 [Hz]）")
+        if not math.isfinite(self.g0) or self.g0 <= 0:
+            bad.append(f"g0={self.g0!r} 必须为有限正值（名义级间增益）")
+        if self.n_slices < 1:
+            bad.append(f"n_slices={self.n_slices!r} 必须 >= 1（slice 池大小）")
+        if self.n_unit_per_slice < 1:
+            bad.append(f"n_unit_per_slice={self.n_unit_per_slice!r} 必须 >= 1")
+        if not math.isfinite(self.c_total0) or self.c_total0 <= 0:
+            bad.append(f"c_total0={self.c_total0!r} 必须为有限正值（RDAC 总采样电容 [F]）")
+        if not math.isfinite(self.c_feedback0) or self.c_feedback0 <= 0:
+            bad.append(f"c_feedback0={self.c_feedback0!r} 必须为有限正值（RA 反馈电容 [F]）")
         if self.v_fs <= 0.0:
             bad.append(f"v_fs={self.v_fs!r} 必须为正（满幅峰值 [V]）")
         if self.n_bits_target < 1:

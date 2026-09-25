@@ -277,7 +277,10 @@ def run_sim(
     if state is None:
         state = initialize_state(cfg)
 
-    sched = make_scheduler(cfg, rng, scheduler)
+    # 调度器必须用独立于主噪声流的随机源（scheduler.py 契约：换调度器不
+    # 改变噪声实现的可复现性）——此前把主 rng 直接传入，调度抽签与噪声同源
+    # （独立审查 2026-09-25）。spawn 一个子流给它，主流只被推进一次。
+    sched = make_scheduler(cfg, rng.spawn(1)[0], scheduler)
     allocation = sched.reserve(n_samples)
 
     sadc = sadc or SADC(cfg)
@@ -492,7 +495,10 @@ def run_with_calibration(
 
     if cfg.calibration == "gain_beta" and cfg.ktc_enable:
         # --- beta：正弦前台，对固定目标 x1 回归（v3：不再用模型参考）---
-        fin = cfg.fs * 1024 / n_samples
+        # 相干 bin 必须在带内：n_samples < 4096 时 1024 越过 Nyquist，正弦
+        # 前台退化为混叠信号、beta 回归静默失真（独立审查 2026-09-25）。
+        beta_bin = max(1, min(1024, n_samples // 4))
+        fin = cfg.fs * beta_bin / n_samples
         from .sampler import sine_input
 
         r1 = run_sim(

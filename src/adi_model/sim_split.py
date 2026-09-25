@@ -92,7 +92,8 @@ def run_sim_split_reference(
     if state is None:
         state = initialize_state(cfg)
 
-    sched = make_scheduler(cfg, rng, scheduler)
+    # 调度器随机源独立于主噪声流（同 sim.py 的契约修复，独立审查 2026-09-25）。
+    sched = make_scheduler(cfg, rng.spawn(1)[0], scheduler)
     allocation = sched.reserve(n_samples)
 
     dac = SplitDAC(cfg, chip)

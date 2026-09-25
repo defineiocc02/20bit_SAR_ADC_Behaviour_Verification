@@ -10,7 +10,7 @@
 它用于检查电荷、时序、噪声、校准和数字重构是否相互一致，并给出继续仿真的工程依据。
 公开资料没有完整披露电路，因此具体电容分配、部分相位时间、DEM 交换方式和 ADC2 范围均保留为明确假设。
 
-## 结果总览（v8.2.1）
+## 结果总览（v8.2.2）
 
 v8.0.0 把物理 slice 池、交织预跟踪、辅助输入、参考/RA/ADC2 联立动态与定点数字核接入主链路；
 8.1.0 新增数字侧定点 RTL（P0–P3）：可综合校准核、双 SAR/共享 3-bit Flash、18-slice 调度、
@@ -33,11 +33,19 @@ Verilator 仿真与变异测试门禁——行为级 results.json 数值与 v8.0
 
 > **未声称的事**：`charge_ref.py` 全文没有任何域守卫，属"守卫**缺失**"另一类，本轮**未**处理（需
 > 单独评审）；`ktc.beta_n_of` / `beta_x_of` 的守卫只保证输入正且有限，**不**保证输出有限
-> （`g_r` 低到 1e-308 仍会溢出为 inf，属数值现实）。详见 [CHANGELOG](CHANGELOG.md)。
+> （`g_r` 低到 1e-308 仍会溢出为 inf，属数值现实）；v8.2.2 的闸门同理**只保证输入有限、不保证
+> 中间量有限** —— 实测 `v_fs = 1e308` 且注入同为 `1e308` 时 `design` 装配阶段即
+> `overflow encountered in subtract`，无闸门可拦，属已登记边界（给正值加量级上限会误伤合法输入）。
+> 详见 [CHANGELOG](CHANGELOG.md)。
 
 字节账与显著性检验见 [CHANGELOG](CHANGELOG.md)，v8.2.0 的 7 张对比图与 `significance.json` 见
 [docs/release_v8.2.0](docs/release_v8.2.0/)；v8.2.1 的加固普查与字节账配图见
-[docs/release_v8.2.1](docs/release_v8.2.1/)。
+[docs/release_v8.2.1](docs/release_v8.2.1/)；v8.2.2 的 ingress 收口对照（同一探针在两棵树上
+实跑）与字节账见 [docs/release_v8.2.2](docs/release_v8.2.2/)。
+
+![v8.2.2 非有限 ingress 收口对照：同一探针在 v8.2.1 与修复后代码上实跑](docs/release_v8.2.2/fig/ingress_closure_v822.png)
+
+![v8.2.2 参考产物字节账：三版指纹逐字符相同](docs/release_v8.2.2/fig/byte_account_v822.png)
 
 ![v8.2.1 域守卫加固普查](docs/release_v8.2.1/fig/guard_hardening_map.png)
 
@@ -204,7 +212,7 @@ CI 运行 Python 3.10–3.13 测试、3.12 全量 sweep、独立双次确定性�
 @software{zhao_2026_sar_adc_behaviour_model,
   author    = {Zhao, Reed},
   title     = {20-bit SAR ADC Behavioural Verification Model},
-  version   = {8.2.1},
+  version   = {8.2.2},
   year      = {2026},
   publisher = {GitHub},
   url       = {https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification},

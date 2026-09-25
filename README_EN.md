@@ -21,22 +21,30 @@ backend ranges remain explicitly assumed implementations.
 
 8.2.1 closes an entire **class** of defects exposed by an independent adversarial re-review of v8.2.0: domain-validation predicates checked only the sign or the range and forgot finiteness, so `nan` / `+/-inf` slipped through and **propagated silently** (`nan <= 0` and `nan < 0` are both `False`). 32 predicate lines across 13 source/tool files were hardened onto the repository's existing correct idiom `not math.isfinite(x) or x <= 0` (`config.py:1036`, `chip.py:186`). Two adjacent defects were fixed as well: `AuxInputStage` could be built directly, **bypassing** `build_stage` (a `__post_init__` now forces validation), and `rtl_localparams` carried a **provably unreachable** dead guard whose intended input actually escaped as a bare `OverflowError` (now a contract-consistent `ValueError`).
 
+8.2.2 is a forward-only patch that **fixes v8.2.1's red CI** (the published tag is already released; per the append-only rule it is not rewritten). The root cause is not a version but the **BLAS backend**: in `fit_unit_weights` the arithmetic between `svd()` and the weight guard is unguarded, so a non-finite factor makes a zero entry of `design` multiply a non-finite entry of `theta` - i.e. `0 * inf`, an invalid floating-point operation; x86-64 OpenBLAS therefore raises `RuntimeWarning` (a hard failure under this repo's `filterwarnings`), Apple Accelerate does not, hence green locally and red on CI. Two gates were added: an **SVD-factor gate** (before any arithmetic and before the rank comparison) and an **entry gate on the spec scales** (`v_fs` / `adc2_v_min` / `adc2_v_max` / `dither_units_range`), which closes both the `design` and the `fine_v` ingress.
+
+> **This release also changes no reference output.** The three fingerprints (v8.2.0 / v8.2.1 / v8.2.2) are **character-identical** and all 926 leaves are byte-identical. The evidence is one probe run against 7 ingress scenarios on both trees (before/after) plus three mutation tests that each disable one gate and show only the corresponding assertion failing - see [docs/release_v8.2.2](docs/release_v8.2.2/).
+
 > **This release changes no reference output.** `results.json` is **byte-identical** to v8.2.0 (all 926 leaves identical) - every change is a guard that only fires on invalid input. This is cross-checked by **two independent adversarial verification rounds**; the second also ran mutation tests: reverting 15 source guards made the corresponding test fail in 14 cases (the single toothless one was fixed in this release).
 
-> **What this release does NOT claim.** `charge_ref.py` has no domain guards at all - that is a "missing guard" problem of a different class and was deliberately **not** addressed here (it needs its own review); the `ktc.beta_n_of` / `beta_x_of` guards guarantee a positive finite *input* but not a finite *output* (`g_r` as small as 1e-308 still overflows to inf - a numerical reality, not a guard hole). See the [CHANGELOG](CHANGELOG.md).
+> **What this release does NOT claim.** `charge_ref.py` has no domain guards at all - that is a "missing guard" problem of a different class and was deliberately **not** addressed here (it needs its own review); the `ktc.beta_n_of` / `beta_x_of` guards guarantee a positive finite *input* but not a finite *output* (`g_r` as small as 1e-308 still overflows to inf - a numerical reality, not a guard hole); the v8.2.2 gates likewise guarantee a finite *input* but not finite *intermediate* quantities (with `v_fs = 1e308` and an injection of `1e308`, `design` already trips `overflow encountered in subtract` during assembly - no gate can catch that, and adding a magnitude ceiling on positive values would wrongly reject legal inputs). See the [CHANGELOG](CHANGELOG.md).
 
-Byte accounting and the significance test are in the [CHANGELOG](CHANGELOG.md); the 7 comparison charts and `significance.json` are in [docs/release_v8.2.0](docs/release_v8.2.0/); the v8.2.1 hardening census and byte account are in [docs/release_v8.2.1](docs/release_v8.2.1/).
+Byte accounting and the significance test are in the [CHANGELOG](CHANGELOG.md); the 7 comparison charts and `significance.json` are in [docs/release_v8.2.0](docs/release_v8.2.0/); the v8.2.1 hardening census and byte account are in [docs/release_v8.2.1](docs/release_v8.2.1/); the v8.2.2 ingress-closure comparison (one probe run on both trees) and byte account are in [docs/release_v8.2.2](docs/release_v8.2.2/).
 
 ![v8.1.0 to v8.2.0 headline metric comparison](docs/release_v8.2.0/fig/headline_compare.png)
 
 ![Bootstrap test: all 10 deltas inside the 95% resampling null band](docs/release_v8.2.0/fig/significance_null.png)
+
+![v8.2.2 non-finite ingress closure: one probe run on v8.2.1 and on the fixed tree](docs/release_v8.2.2/fig/ingress_closure_v822.png)
+
+![v8.2.2 reference-output byte account: three fingerprints character-identical](docs/release_v8.2.2/fig/byte_account_v822.png)
 
 ![v8.2.1 domain-guard hardening census](docs/release_v8.2.1/fig/guard_hardening_map.png)
 
 ![v8.2.1 reference-output byte account: the hardening is behaviour-preserving](docs/release_v8.2.1/fig/byte_account_v821.png)
 
 
-## Results at a glance (v8.2.1)
+## Results at a glance (v8.2.2)
 
 v8.0.0 integrates the physical slice pool, interleave pretracking, auxiliary
 input, coupled reference/RA/ADC2 dynamics and the fixed-point digital core into

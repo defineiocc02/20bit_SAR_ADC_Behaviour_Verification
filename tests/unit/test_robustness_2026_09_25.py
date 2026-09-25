@@ -553,6 +553,8 @@ def test_sdist_excludes_the_third_party_report_figures():
         "docs/release_v8.2.0/fig/significance_null.png",
         "docs/release_v8.2.1/fig/guard_hardening_map.png",
         "docs/release_v8.2.1/fig/byte_account_v821.png",
+        "docs/release_v8.2.2/fig/ingress_closure_v822.png",
+        "docs/release_v8.2.2/fig/byte_account_v822.png",
         "docs/report/figs/fig1_interleave.png",
         "tools/results/results.json",
     ]

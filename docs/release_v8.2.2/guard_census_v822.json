@@ -1,0 +1,165 @@
+{
+  "prefix_tag": "v8.2.1",
+  "base_tag": "v8.2.0",
+  "code_tip": "617e343",
+  "probes": {
+    "before": [
+      {
+        "probe": "ref_nonfinite",
+        "outcome": "contract_valueerror",
+        "message": "training reference must be finite, match the record and use legal rank tolerance",
+        "exception": "ValueError",
+        "module": "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/v822_census_l8p6_7tq/v8.2.1/src/adi_model/__init__.py",
+        "rev": "v8.2.1",
+        "lapack_stdout_noise": 0
+      },
+      {
+        "probe": "spec_scale_inf",
+        "outcome": "linalg_error",
+        "message": "SVD did not converge for slice = 0.",
+        "exception": "LinAlgError",
+        "module": "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/v822_census_l8p6_7tq/v8.2.1/src/adi_model/__init__.py",
+        "rev": "v8.2.1",
+        "lapack_stdout_noise": 2
+      },
+      {
+        "probe": "spec_scale_nan_stub",
+        "outcome": "contract_valueerror",
+        "message": "estimated physical weights are nonpositive or non-finite; improve excitation/noise or check model validity",
+        "exception": "ValueError",
+        "module": "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/v822_census_l8p6_7tq/v8.2.1/src/adi_model/__init__.py",
+        "rev": "v8.2.1",
+        "lapack_stdout_noise": 0
+      },
+      {
+        "probe": "svd_factor_inf",
+        "outcome": "contract_valueerror",
+        "message": "estimated physical weights are nonpositive or non-finite; improve excitation/noise or check model validity",
+        "exception": "ValueError",
+        "module": "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/v822_census_l8p6_7tq/v8.2.1/src/adi_model/__init__.py",
+        "rev": "v8.2.1",
+        "lapack_stdout_noise": 0
+      },
+      {
+        "probe": "weights_finite_negative",
+        "outcome": "contract_valueerror",
+        "message": "estimated physical weights are nonpositive or non-finite; improve excitation/noise or check model validity",
+        "exception": "ValueError",
+        "module": "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/v822_census_l8p6_7tq/v8.2.1/src/adi_model/__init__.py",
+        "rev": "v8.2.1",
+        "lapack_stdout_noise": 0
+      },
+      {
+        "probe": "extreme_scale_svd",
+        "outcome": "contract_valueerror",
+        "message": "rank 0/1297: change DEM allocation and dither excitation; more repetitions alone cannot recover null directions",
+        "exception": "CalibrationUnidentifiableError",
+        "module": "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/v822_census_l8p6_7tq/v8.2.1/src/adi_model/__init__.py",
+        "rev": "v8.2.1",
+        "lapack_stdout_noise": 0
+      },
+      {
+        "probe": "extreme_assembly",
+        "outcome": "runtime_warning",
+        "message": "overflow encountered in subtract",
+        "exception": "RuntimeWarning",
+        "module": "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/v822_census_l8p6_7tq/v8.2.1/src/adi_model/__init__.py",
+        "rev": "v8.2.1",
+        "lapack_stdout_noise": 0
+      }
+    ],
+    "after": [
+      {
+        "probe": "ref_nonfinite",
+        "outcome": "contract_valueerror",
+        "message": "training reference must be finite, match the record and use legal rank tolerance",
+        "exception": "ValueError",
+        "module": "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/v822_census_l8p6_7tq/617e343/src/adi_model/__init__.py",
+        "rev": "617e343",
+        "lapack_stdout_noise": 0
+      },
+      {
+        "probe": "spec_scale_inf",
+        "outcome": "contract_valueerror",
+        "message": "calibration physical scales must be finite; the design matrix, the decoded fine voltages and the dither masks all derive from them",
+        "exception": "ValueError",
+        "module": "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/v822_census_l8p6_7tq/617e343/src/adi_model/__init__.py",
+        "rev": "617e343",
+        "lapack_stdout_noise": 0
+      },
+      {
+        "probe": "spec_scale_nan_stub",
+        "outcome": "contract_valueerror",
+        "message": "calibration physical scales must be finite; the design matrix, the decoded fine voltages and the dither masks all derive from them",
+        "exception": "ValueError",
+        "module": "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/v822_census_l8p6_7tq/617e343/src/adi_model/__init__.py",
+        "rev": "617e343",
+        "lapack_stdout_noise": 0
+      },
+      {
+        "probe": "svd_factor_inf",
+        "outcome": "contract_valueerror",
+        "message": "singular value decomposition returned non-finite factors; the design matrix is ill-conditioned or the LAPACK backend diverged",
+        "exception": "ValueError",
+        "module": "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/v822_census_l8p6_7tq/617e343/src/adi_model/__init__.py",
+        "rev": "617e343",
+        "lapack_stdout_noise": 0
+      },
+      {
+        "probe": "weights_finite_negative",
+        "outcome": "contract_valueerror",
+        "message": "estimated physical weights are nonpositive or non-finite; improve excitation/noise or check model validity",
+        "exception": "ValueError",
+        "module": "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/v822_census_l8p6_7tq/617e343/src/adi_model/__init__.py",
+        "rev": "617e343",
+        "lapack_stdout_noise": 0
+      },
+      {
+        "probe": "extreme_scale_svd",
+        "outcome": "contract_valueerror",
+        "message": "singular value decomposition returned non-finite factors; the design matrix is ill-conditioned or the LAPACK backend diverged",
+        "exception": "ValueError",
+        "module": "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/v822_census_l8p6_7tq/617e343/src/adi_model/__init__.py",
+        "rev": "617e343",
+        "lapack_stdout_noise": 0
+      },
+      {
+        "probe": "extreme_assembly",
+        "outcome": "runtime_warning",
+        "message": "overflow encountered in subtract",
+        "exception": "RuntimeWarning",
+        "module": "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/v822_census_l8p6_7tq/617e343/src/adi_model/__init__.py",
+        "rev": "617e343",
+        "lapack_stdout_noise": 0
+      }
+    ]
+  },
+  "added_isfinite_lines": {
+    "src/adi_model/weight_calibration.py": 2
+  },
+  "added_isfinite_total": 2,
+  "per_commit": [
+    {
+      "sha": "617e343",
+      "subject": "fix(calibration): gate non-finite CalibrationSpec scales at the entry",
+      "added_isfinite": 1
+    },
+    {
+      "sha": "64808b9",
+      "subject": "fix(calibration): guard non-finite SVD factors before any matrix product",
+      "added_isfinite": 1
+    }
+  ],
+  "fingerprints": {
+    "v8.2.0": "5ff9ef9ade0eac30d3a9851a4c52b0cdff22f0e2374d3a2bac5b08a84e394123",
+    "v8.2.1": "5ff9ef9ade0eac30d3a9851a4c52b0cdff22f0e2374d3a2bac5b08a84e394123",
+    "617e343": "5ff9ef9ade0eac30d3a9851a4c52b0cdff22f0e2374d3a2bac5b08a84e394123"
+  },
+  "leaves": {
+    "shared": 926,
+    "identical": 926,
+    "changed": 0,
+    "only_in_old": [],
+    "only_in_new": []
+  }
+}

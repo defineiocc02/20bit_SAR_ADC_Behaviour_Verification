@@ -4,6 +4,102 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.2.2] — 2026-09-26
+
+**发布动因是 v8.2.1 的 CI 全红**：4 个 Python 版本矩阵全部失败（`1 failed, 707 passed`），
+失败点唯一 —— `tests/unit/test_robustness_2026_09_25.py::test_fit_unit_weights_rejects_nonfinite_or_nonpositive`，
+报 `RuntimeWarning: invalid value encountered in matmul`（[run 36160446023 / job 108155407892]）。
+本地同版本 numpy/scipy 全绿，说明缺陷**依赖 BLAS 后端**而非版本。
+
+### 根因：linalg 输出与 fit 算术之间没有闸门
+
+`fit_unit_weights` 校验了输入、也校验了最终的 `weights`，但 `svd()` 与权重守卫之间的算术是裸的：
+
+```python
+u, s, vh = svd(design, ...)                  # 无因子闸门
+theta    = vh.T @ ((u.T @ data.fine_v) / s)
+residual = data.fine_v - design @ theta      # design 的零元 × theta 的非有限元 = 0*inf
+```
+
+`0 * inf` 是**非法浮点运算**。它是否被上报取决于后端：**x86-64 OpenBLAS 置位 invalid 标志，
+numpy 抛 `RuntimeWarning`**，而本仓 `pyproject.toml` 的 `filterwarnings = ["error::RuntimeWarning"]`
+把它升为硬错误；**Apple Accelerate 不置位**，于是本地静默通过、只在 CI 暴露。
+该分支已在本地直接复现：`np.array([0.0]) * np.array([inf])` 在 `errstate(invalid="raise")`
+下抛错并发出 `RuntimeWarning: invalid value encountered in multiply`；而同一运算走 BLAS
+的 `design @ theta` 在本地**不**上报 —— 分歧就在调用路径，不在数值。
+
+### Fixed — SVD 因子闸门（`64808b9`）
+
+在 `svd()` 之后、**任何算术之前**对 `u`/`s`/`vh` 做有限性闸门，抛契约内 `ValueError`。
+选这个位置有两个理由：(1) 下游全部由这三个因子派生，闸门放最上游即可一次性消除所有 `0*inf`；
+(2) 闸门置于 **rank 比较之前**——`s` 含 nan 时 `"nan > x"` 恒为假，rank 会被静默低估并报出
+误导性的可辨识性错误（实测 `s=[3,2,nan,1]` 下 `count_nonzero(s > 1e-10*s[0]) = 3`）。
+
+### Fixed — 入口标度闸门（`617e343`）
+
+孪生兄弟是"输入非有限"。`CalibrationSpec` 的 `v_fs` / `adc2_v_min` / `adc2_v_max` /
+`dither_units_range` 是裸浮点字段：`from_config(cfg)` 会走 `cfg.check_legal()`，但**手工构造或
+`dataclasses.replace` 的 spec 完全绕过**（与 v8.2.1 修掉的 `AuxInputStage` 绕过同类）。这些标量
+不是旁观者 —— `design` 由 `v_fs` 派生，`fine_v = adc2_v_min + (code+0.5)*adc2_step_v` 由
+`adc2_v_min/v_max` 派生。现于 `DigitalObservation.validate()`（`fit_unit_weights` 的第一句、
+所有入口的必经点）做有限性闸门：**一个入口闸门同时关掉 `design` 与 `fine_v` 两条 ingress**。
+只查有限性，不新造 dataclass 级策略（无新增的正性/序关系约束，故不会误伤合法配置）。
+
+### 实测：同一个探针在两棵树上跑（数据来源 `docs/release_v8.2.2/`）
+
+探针把 `v8.2.1` 与 `617e343` 各自 `git archive` 解包后逐一实跑，脚本不硬编码任何结论：
+
+| ingress 场景 | v8.2.1（修复前） | v8.2.2（修复后） |
+| :--- | :--- | :--- |
+| 上游 reference 非有限 | 契约 `ValueError`（reference 闸门） | 同（未变） |
+| `spec.v_fs = inf` | **`LinAlgError: SVD did not converge`，并伴随 2 行 LAPACK `DLASCL` 诊断污染 stdout** | **入口标度闸门** |
+| `spec.adc2_v_min = nan`（满秩桩） | 下游权重闸门才拦下（说明 `0*inf` 已执行） | **入口标度闸门** |
+| SVD 因子非有限（因子桩返回 inf） | 下游权重闸门才拦下（`0*inf` 已执行 → 后端相关 `RuntimeWarning`） | **SVD 因子闸门** |
+| 权重有限但非正（因子桩返回 -1.0） | 下游权重闸门 | 同（未变） |
+| `spec.v_fs = 1e308`（装配未溢出） | **`CalibrationUnidentifiableError`（误导性诊断）** | **SVD 因子闸门**（顺带覆盖） |
+| `spec.v_fs = 1e308` + 注入 `1e308`（装配溢出） | `RuntimeWarning: overflow encountered in subtract` | 同（**已登记边界**，见下） |
+
+### 测试：三层断言、三重变异检验
+
+新增/收紧的断言分别专属三层守卫的**信息串**（`"non-finite factors"` / `"physical scales must be
+finite"` / `"nonpositive"`），彼此可区分。三重变异（分别禁用入口标度闸门 / SVD 因子闸门 /
+下游权重闸门）显示**各自只让对应断言失败、另两层仍通过**——即测试不是同时钉住同一个守卫。
+反向断言确保合法有限标度不被新闸门误伤。
+
+### 独立验证
+
+| 轮次 | 对象 | 结论 |
+| :--- | :--- | :--- |
+| 对抗复核 A | `64808b9` | 守卫顺序与机制**未能证伪**；**纠正**了机制表述（本机是 `RuntimeWarning` 升级而非 `FloatingPointError`）；指出 `fine_v` 未被因子闸门覆盖 → 促成 `617e343` |
+| 对抗复核 B | `617e343` | 逐字段分类 + 实跑：四个浮点标量已收口、无过度收紧回归、三重变异各自命中不同断言；**新增发现**"有限但极端输入在装配阶段溢出"这一**未**关闭路径 |
+| 门禁复核 | `64808b9` | ruff / `ruff format --check` / mypy(48 文件) / `pytest -m "not slow"`(708 passed) / 跑批指纹 / 双跑确定性 / `python -m build`(sdist 288 / wheel 56 成员) 全部 PASS；分发物不含第三方版权材料 |
+| 作者门禁复跑 | `617e343` | `714 passed, 3 deselected`（708 + 新增 6 条）；mypy 48 文件；ruff 干净；**跑批两遍指纹均为 `5ff9ef9a…394123`**，彼此逐字节一致 |
+| CI | tag `v8.2.2` | 见 GitHub Actions（本版即为其修复） |
+
+### 诚实边界（本版**未**声称的事）
+
+- **闸门保证输入有限，不保证中间量有限。** 实测 `v_fs = 1e308` 且注入同为 `1e308` 时，
+  `design` 装配阶段即 `overflow encountered in subtract`，**没有任何闸门能拦**——它不是
+  "非有限值抵达算术"，而是"有限输入派生量溢出"。这与 v8.2.1 已登记的边界同源（那里拒绝的是
+  为极小 `g_r` 加量级策略）；**给正值加量级上限会误伤合法输入，故本版不做**，只如实登记。
+- **`CalibrationSpec` 的整数字段与字符串字段无类型/积分性校验。** 手工构造传入非有限或超大值
+  （如 `n_slices=10**9`）实测会以裸 `OverflowError` 或误导性的可辨识性错误收场。对抗复核报告
+  提到 `adc2_n_bits=inf` 可能有静默误标定风险，但**我未能在可辨识构造下独立复现**（多次被秩门
+  拦在前面），故本版只登记"该字段未收口"，**不**把它写成已确认缺陷。属独立待评审项。
+- **`fixed_point.py` 的反序列化路径**（`CalibrationSpec(**data["spec"])`）不经 `validate()`；
+  那是另一模块的入口可达性问题，本轮**未**处理。
+- **`charge_ref.py` 全文无域守卫**（沿用 v8.2.1 的登记，属"守卫缺失"另一类）。
+- MC / 良率数值与 v8.2.0 完全相同（926/926 叶子逐字节不变），v8.2.0 的自助法结论原样沿用。
+
+### 发布物
+
+- `docs/release_v8.2.2/make_guard_charts.py`：**探针 + 配图**同一文件。`--probe` 子进程模式在
+  指定代码树上实跑场景、回传实际异常类型与信息串（并顺带统计 LAPACK 对 stdout 的污染行数，
+  这是一项可测量的劣化指标）；主流程解包 `v8.2.1` 与当前代码树、现场推导变更计数与字节账。
+- `fig/ingress_closure_v822.png`：7 个 ingress 场景 × 修复前后，按"谁拦下的"与后果类型着色。
+- `fig/byte_account_v822.png`：三版指纹并列 + 逐叶子对账 + 两个修复提交的闸门行数。
+- `guard_census_v822.json`：上列全部原始探针输出（含每个探针实际加载的 `adi_model.__file__`）。
+
 ## [8.2.1] — 2026-09-26
 
 对 v8.2.0 的**独立对抗性复核**（隔离副本、独立探针、不复用作者测试作为证据）所揭示的

@@ -177,8 +177,9 @@ class AuxInputStage:
         Raises:
             ValueError: t_aux 非正。
         """
-        if t_aux <= 0:
-            raise ValueError(f"t_aux={t_aux} 必须为正")
+        # 独立审查 2026-09-25：t_aux 须为有限正值
+        if not math.isfinite(t_aux) or t_aux <= 0:
+            raise ValueError(f"t_aux={t_aux} 必须为正有限值")
         tau = self.parasitic_tau("dedicated_pin")
         return float(math.exp(-t_aux / tau))
 
@@ -297,8 +298,9 @@ class AuxInputStage:
         Raises:
             ValueError: dv 为负。
         """
-        if dv < 0:
-            raise ValueError(f"dv={dv} 不能为负")
+        # 独立审查 2026-09-25：dv 须为有限非负值
+        if not math.isfinite(dv) or dv < 0:
+            raise ValueError(f"dv={dv} 不能为负（且须为有限值）")
         q_off = (self.c_filter + self.c_parasitic) * dv
         q_aux = self.c_filter * dv
         return {

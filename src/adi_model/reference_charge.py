@@ -52,8 +52,19 @@ def sar_loading_codes(coarse: int, bits: int, units: int, dither: float) -> np.n
     is assumed independent of the modeled RDAC reference. Each trial is loaded,
     then retained or rejected; the final command includes the transferred dither.
     """
-    if not 1 <= bits <= 20 or not 0 <= coarse < 2**bits or units < 1:
-        raise ValueError("SAR load program requires a valid decision and positive code units")
+    # 独立审查 2026-09-25：coarse/units/dither 须为有限值
+    if (
+        not 1 <= bits <= 20
+        or not np.isfinite(coarse)
+        or not 0 <= coarse < 2**bits
+        or not np.isfinite(units)
+        or units < 1
+    ):
+        raise ValueError(
+            "SAR load program requires a valid decision and positive finite code units"
+        )
+    if not np.isfinite(dither):
+        raise ValueError("SAR load dither must be finite")
     decided = 0
     codes = [dither]
     for bit in range(bits - 1, -1, -1):

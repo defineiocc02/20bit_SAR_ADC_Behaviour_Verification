@@ -235,13 +235,17 @@ class PhysicalSlicePool:
                     n_slices
                 )
                 self.sub_parasitic *= 1 + cfg.dac_parasitic_spread * rng.standard_normal(n_slices)
+            # 独立审查 2026-09-25：电容与寄生均须为有限值
             if (
-                np.any(self.unit_caps <= 0)
+                np.any(~np.isfinite(self.unit_caps))
+                or np.any(self.unit_caps <= 0)
+                or np.any(~np.isfinite(self.bridge_caps))
                 or np.any(self.bridge_caps <= 0)
+                or np.any(~np.isfinite(self.sub_parasitic))
                 or np.any(self.sub_parasitic < 0)
             ):
                 raise ValueError(
-                    "physical split capacitances must be positive; parasitics nonnegative"
+                    "physical split capacitances must be finite and positive; parasitics finite and nonnegative"
                 )
         self.c_slice_total = self.unit_caps.sum(axis=1)
         self.c_total_nom = c_unit_nom * self.n_units

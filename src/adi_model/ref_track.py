@@ -134,8 +134,9 @@ def reference_precision_bits(err_rms: float, span_v: float) -> float:
     Raises:
         ValueError: 非正输入。
     """
-    if err_rms <= 0 or span_v <= 0:
-        raise ValueError(f"err_rms={err_rms}, span_v={span_v} 必须为正")
+    # 独立审查 2026-09-25：同时拒绝非有限输入
+    if not math.isfinite(err_rms) or err_rms <= 0 or not math.isfinite(span_v) or span_v <= 0:
+        raise ValueError(f"err_rms={err_rms}, span_v={span_v} 必须为正有限值")
     return float(np.log2(span_v / (np.sqrt(12.0) * err_rms)))
 
 
@@ -202,8 +203,9 @@ class RefTrackConfig:
             ("n_bits", float(self.n_bits)),
             ("n_cycles", float(self.n_cycles)),
         ):
-            if v <= 0:
-                raise ValueError(f"{name}={v!r} 必须为正")
+            # 独立审查 2026-09-25：0 < x 写法拦不住 nan，这里补上有限性
+            if not math.isfinite(v) or v <= 0:
+                raise ValueError(f"{name}={v!r} 必须为正有限值")
         if not 0 < self.v_init_frac <= 1:
             raise ValueError(f"v_init_frac={self.v_init_frac!r} 必须在 (0, 1]")
         if not 0 <= self.s1_topup_gain <= 1:

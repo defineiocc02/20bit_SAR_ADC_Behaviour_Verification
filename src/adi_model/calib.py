@@ -331,8 +331,13 @@ def required_samples(
         return {"feasible": False, "n_samples": float("inf"), "note": "U 为空"}
     rank = int((s > s[0] * 1e-10).sum())
     s_kept = s[:rank]
-    if tgt <= 0:
-        return {"feasible": False, "n_samples": float("inf"), "note": "目标精度为 0，不可能"}
+    # 独立审查 2026-09-25：目标精度须为有限正值
+    if not np.isfinite(tgt) or tgt <= 0:
+        return {
+            "feasible": False,
+            "n_samples": float("inf"),
+            "note": "目标精度为 0（或非有限），不可能",
+        }
     # 方差放大倍率（相对"各单位独立、等观测次数"的理想设计）：
     #   理想 Var_j = σ²/n_eff_j，n_eff_j = (UᵀU)_jj = 该单位被选中次数
     #   实际 Var_j = σ²[(UᵀU)⁻¹]_jj  —— 放大即二者之比，对 j 取均值

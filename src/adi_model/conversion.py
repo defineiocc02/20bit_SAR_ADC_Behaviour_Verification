@@ -113,8 +113,18 @@ def response_interval(
     Linear responses use a matrix exponential. Slew-limited or clipped responses
     use an adaptive ODE solve on normalized time; integration failure is fatal.
     """
-    if not np.isfinite(dt_s) or dt_s <= 0 or tau_ref_s <= 0 or clip_v <= 0:
-        raise ValueError("response interval needs positive duration, reference tau and swing")
+    # 独立审查 2026-09-25：tau_ref_s 与 clip_v 也须为有限正值
+    if (
+        not np.isfinite(dt_s)
+        or dt_s <= 0
+        or not np.isfinite(tau_ref_s)
+        or tau_ref_s <= 0
+        or not np.isfinite(clip_v)
+        or clip_v <= 0
+    ):
+        raise ValueError(
+            "response interval needs positive finite duration, reference tau and swing"
+        )
     a = 1.0 / tau_ref_s
     b = 0.0 if ra_bw_hz is None else 2 * np.pi * ra_bw_hz
     c = 0.0 if adc_bw_hz is None else 2 * np.pi * adc_bw_hz

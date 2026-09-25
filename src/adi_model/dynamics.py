@@ -156,7 +156,8 @@ def ref_recovery_factor(cfg: Config) -> float:
     Side effects: 无（纯函数）。
     """
     t_conv = cfg.dyn_t_conv_frac / cfg.fs
-    if cfg.dyn_tau_ref <= 0:
+    # 独立审查 2026-09-25：cfg 绕过 check_legal 时这里也要拦住非有限值
+    if not math.isfinite(cfg.dyn_tau_ref) or cfg.dyn_tau_ref <= 0:
         return 0.0
     return math.exp(-t_conv / cfg.dyn_tau_ref)
 
@@ -185,7 +186,8 @@ def bitwise_eta_dyn(cfg: Config) -> float:
     Side effects: 无（纯函数）。
     """
     t_conv = cfg.dyn_t_conv_frac / cfg.fs
-    if cfg.dyn_tau_ref <= 0:
+    # 独立审查 2026-09-25：cfg 绕过 check_legal 时这里也要拦住非有限值
+    if not math.isfinite(cfg.dyn_tau_ref) or cfg.dyn_tau_ref <= 0:
         return 0.0
     B = max(int(cfg.rdac_bitwise_bits), 1)
     i = np.arange(1, B + 1)

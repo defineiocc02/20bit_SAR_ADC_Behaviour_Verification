@@ -406,7 +406,8 @@ def rtl_localparams(cfg: Config, fmt: FixedPointFormat, phases: int) -> list[dic
 
     out: list[dict[str, Any]] = []
     for name, value, width, group, source in raw:
-        if value < 0 or value >= 1 << width:
+        # 独立审查 2026-09-25：value 须为有限值
+        if not math.isfinite(value) or value < 0 or value >= 1 << width:
             raise ValueError(f"{name}={value} does not fit in {width} bits")
         grade = SourceGrade.ASSUMED if group == "rtl_choice" else SourceGrade.DERIVED
         out.append(

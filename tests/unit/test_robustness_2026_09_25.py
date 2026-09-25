@@ -11,6 +11,8 @@ N1–N5 来自同日的第二轮复查）。修复前的行为要么产生**静�
 
 from __future__ import annotations
 
+import importlib.util as _ilu
+import sys as _sys
 import warnings
 from pathlib import Path
 
@@ -559,3 +561,441 @@ def test_split_dac_nominal_endpoints_are_ordered():
     dac = SplitDAC(cfg, build_split_chip(cfg))
     lo, hi = dac._nominal_endpoints()
     assert lo < hi
+
+
+# =============================================================== 第二批：补齐"只查符号未查有限性"的守卫
+# 以下守护 2026-09-25 独立审查第二批普查定位的 18 个站点：域校验谓词原本只查
+# 符号/区间，nan/inf 穿过守卫静默传播成 nan；现统一补上有限性检查
+# （标量用 math.isfinite，数组用 np.isfinite），合法有限输入行为不变。
+
+_REPO = Path(__file__).resolve().parents[2]
+
+
+def _load_exporter():
+    """按 test_rtl_export 的方式按路径加载 tools/export_rtl_params.py（tools 不是包）。"""
+    path = _REPO / "tools" / "export_rtl_params.py"
+    spec = _ilu.spec_from_file_location("export_rtl_params_2", path)
+    module = _ilu.module_from_spec(spec)
+    _sys.modules["export_rtl_params_2"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+# --- 站点 1/2：config.fs / config.v_fs 必须有限正值 ---
+@pytest.mark.parametrize(
+    "field, bad",
+    [
+        ("fs", float("nan")),
+        ("fs", float("inf")),
+        ("v_fs", float("nan")),
+        ("v_fs", float("inf")),
+    ],
+)
+def test_config_fs_vfs_reject_nonfinite(field, bad):
+    """站点 1/2：采样率/满幅必须有限正值（config 走 legality_violations 返回非空）。"""
+    assert Config(**{field: bad}).legality_violations()
+
+
+def test_config_fs_vfs_accept_finite():
+    """站点 1/2：合法有限值不被误伤。"""
+    assert Config(fs=40e6, v_fs=3.0).legality_violations() == []
+
+
+# --- 站点 3：reference_precision_bits ---
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), -float("inf")])
+def test_reference_precision_bits_rejects_nonfinite(bad):
+    """站点 3：err_rms / span_v 必须为正有限值。"""
+    from adi_model.ref_track import reference_precision_bits
+
+    with pytest.raises(ValueError, match="必须为正有限值"):
+        reference_precision_bits(bad, 1.0)
+    with pytest.raises(ValueError, match="必须为正有限值"):
+        reference_precision_bits(1e-3, bad)
+
+
+def test_reference_precision_bits_accepts_finite():
+    from adi_model.ref_track import reference_precision_bits
+
+    assert np.isfinite(reference_precision_bits(1e-3, 1.0))
+
+
+# --- 站点 4：RefTrackConfig.validated 十字段循环 ---
+@pytest.mark.parametrize(
+    "field, bad",
+    [
+        ("v_ext", float("nan")),
+        ("v_ext", float("inf")),
+        ("c_internal", float("nan")),
+        ("c_internal", float("inf")),
+        ("c_dac_load", float("nan")),
+        ("c_dac_load", float("inf")),
+        ("v_fs_dac", float("nan")),
+        ("v_fs_dac", float("inf")),
+        ("i_charge_max", float("nan")),
+        ("i_charge_max", float("inf")),
+        ("cmp_bw_hz", float("nan")),
+        ("cmp_bw_hz", float("inf")),
+        ("t_conv", float("nan")),
+        ("t_conv", float("inf")),
+        ("tol_first_v", float("nan")),
+        ("tol_first_v", float("inf")),
+        ("n_bits", float("nan")),
+        ("n_bits", float("inf")),
+    ],
+)
+def test_reftrack_validated_rejects_nonfinite(field, bad):
+    """站点 4：十字段循环里 `v <= 0` 拦不住 nan/inf，现补有限性。"""
+    with pytest.raises(ValueError, match="必须为正有限值"):
+        RefTrackConfig(**{field: bad}).validated()
+
+
+def test_reftrack_validated_accepts_finite():
+    RefTrackConfig().validated()  # 默认参数均有限合法
+
+
+# --- 站点 5：TrackPolicy.validated 权重有限性 ---
+@pytest.mark.parametrize("bad", [float("nan"), float("inf")])
+def test_trackpolicy_weights_reject_nonfinite(bad):
+    """站点 5：加权权重须有限。"""
+    from adi_model.interleave_tracking import TrackPolicy
+
+    with pytest.raises(ValueError, match="有限"):
+        TrackPolicy(mode="track_other_weighted", n_weighted=3, weights=(0.6, 0.3, bad)).validated()
+
+
+def test_trackpolicy_weights_accept_finite():
+    from adi_model.interleave_tracking import TrackPolicy
+
+    TrackPolicy(mode="track_other_weighted", n_weighted=3, weights=(0.6, 0.3, 0.1)).validated()
+
+
+# --- 站点 6：filter_bw_relative(t_cycle) ---
+@pytest.mark.parametrize("bad", [float("nan"), float("inf")])
+def test_filter_bw_relative_rejects_nonfinite_tcycle(bad):
+    from adi_model.interleave_tracking import filter_bw_relative
+
+    with pytest.raises(ValueError, match="有限"):
+        filter_bw_relative(bad, 0.01)
+
+
+def test_filter_bw_relative_accepts_finite():
+    from adi_model.interleave_tracking import filter_bw_relative
+
+    assert filter_bw_relative(1e-6, 0.01) > 0
+
+
+# --- 站点 7：filter_bw_absolute 四个参数 ---
+@pytest.mark.parametrize(
+    "idx,bad", [(i, b) for i in range(4) for b in (float("nan"), float("inf"))]
+)
+def test_filter_bw_absolute_rejects_nonfinite(idx, bad):
+    from adi_model.interleave_tracking import filter_bw_absolute
+
+    args = [1e-12, 1e-12, 1e-3, 1e-6]
+    args[idx] = bad
+    with pytest.raises(ValueError, match="有限"):
+        filter_bw_absolute(*args)
+
+
+def test_filter_bw_absolute_accepts_finite():
+    from adi_model.interleave_tracking import filter_bw_absolute
+
+    assert filter_bw_absolute(1e-12, 1e-12, 1e-3, 1e-6) >= 0
+
+
+# --- 站点 8：noise_ratio_from_bw ---
+@pytest.mark.parametrize("which", ["bw", "bw_ref"])
+@pytest.mark.parametrize("bad", [float("nan"), float("inf")])
+def test_noise_ratio_from_bw_rejects_nonfinite(which, bad):
+    from adi_model.interleave_tracking import noise_ratio_from_bw
+
+    bw, bw_ref = 1e6, 1e6
+    if which == "bw":
+        bw = bad
+    else:
+        bw_ref = bad
+    with pytest.raises(ValueError, match="有限"):
+        noise_ratio_from_bw(bw, bw_ref)
+
+
+def test_noise_ratio_from_bw_accepts_finite():
+    from adi_model.interleave_tracking import noise_ratio_from_bw
+
+    assert noise_ratio_from_bw(1e6, 1e6) == pytest.approx(1.0)
+
+
+# --- 站点 9：required_samples(tgt) ---
+@pytest.mark.parametrize("bad", [float("nan"), float("inf")])
+def test_required_samples_rejects_nonfinite(bad):
+    """站点 9：目标精度非有限时返回不可行（不再静默算出 nan）。"""
+    from adi_model.calib import required_samples
+
+    U = np.eye(4)
+    res = required_samples(Config(), U, 1e-4, 1e-3, bad)
+    assert res["feasible"] is False
+    assert not np.isfinite(res["n_samples"])
+
+
+def test_required_samples_accepts_finite():
+    from adi_model.calib import required_samples
+
+    U = np.eye(4)
+    res = required_samples(Config(), U, 1e-4, 1e-3, 300)
+    assert res["feasible"] is True
+    assert np.isfinite(res["n_samples"])
+
+
+# --- 站点 10：QuantizedPretracker.lower_v 有限性 ---
+@pytest.mark.parametrize("bad", [float("nan"), float("inf")])
+def test_pretracker_lower_v_rejects_nonfinite(bad):
+    from adi_model.pretracking import QuantizedPretracker
+
+    with pytest.raises(ValueError):
+        QuantizedPretracker(n_slices=4, bits=4, lower_v=bad, coarse_step_v=1.0, signal_scale=1.0)
+
+
+def test_pretracker_lower_v_accepts_finite():
+    from adi_model.pretracking import QuantizedPretracker
+
+    QuantizedPretracker(4, 4, 0.0, 1.0, 1.0)  # lower_v 可为任意有限值（含 0/负）
+
+
+# --- 站点 11：response_interval(tau_ref_s, clip_v) ---
+@pytest.mark.parametrize(
+    "field,bad",
+    [
+        ("tau_ref_s", float("nan")),
+        ("tau_ref_s", float("inf")),
+        ("clip_v", float("nan")),
+        ("clip_v", float("inf")),
+    ],
+)
+def test_response_interval_rejects_nonfinite(field, bad):
+    from adi_model.conversion import response_interval
+
+    kw = {
+        "y0": 0.0,
+        "z0": 0.0,
+        "target_v": 1.0,
+        "reference_drive_v": 1.0,
+        "tau_ref_s": 1e-6,
+        "dt_s": 1e-6,
+        "ra_bw_hz": None,
+        "adc_bw_hz": None,
+        "clip_v": 1.0,
+        "slew_v_s": None,
+    }
+    kw[field] = bad
+    with pytest.raises(ValueError, match="finite"):
+        response_interval(**kw)
+
+
+def test_response_interval_accepts_finite():
+    from adi_model.conversion import response_interval
+
+    kw = {
+        "y0": 0.0,
+        "z0": 0.0,
+        "target_v": 1.0,
+        "reference_drive_v": 1.0,
+        "tau_ref_s": 1e-6,
+        "dt_s": 1e-6,
+        "ra_bw_hz": None,
+        "adc_bw_hz": None,
+        "clip_v": 1.0,
+        "slew_v_s": None,
+    }
+    out = response_interval(**kw)
+    assert len(out) == 3
+
+
+# --- 站点 12：sar_loading_codes(coarse/units/dither) ---
+@pytest.mark.parametrize(
+    "field,bad",
+    [
+        ("coarse", float("nan")),
+        ("coarse", float("inf")),
+        ("units", float("nan")),
+        ("units", float("inf")),
+        ("dither", float("nan")),
+        ("dither", float("inf")),
+    ],
+)
+def test_sar_loading_codes_rejects_nonfinite(field, bad):
+    from adi_model.reference_charge import sar_loading_codes
+
+    kw = {"coarse": 0, "bits": 4, "units": 1, "dither": 0.0}
+    kw[field] = bad
+    with pytest.raises(ValueError):
+        sar_loading_codes(**kw)
+
+
+def test_sar_loading_codes_accepts_finite():
+    from adi_model.reference_charge import sar_loading_codes
+
+    codes = sar_loading_codes(0, 4, 1, 0.0)
+    assert np.isfinite(codes).all()
+
+
+# --- 站点 13：dynamics ref_recovery_factor / bitwise_eta_dyn (dyn_tau_ref) ---
+class _DynCfg:
+    dyn_t_conv_frac = 0.4
+    fs = 40e6
+    dyn_tau_ref = 1e-7
+    rdac_bitwise_bits = 8
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf")])
+def test_dyn_recovery_rejects_nonfinite(bad):
+    """站点 13：cfg 绕过 check_legal 时函数自身须拦非有限 dyn_tau_ref（不再静默返回 nan）。"""
+    from adi_model.dynamics import bitwise_eta_dyn, ref_recovery_factor
+
+    cfg = _DynCfg()
+    cfg.dyn_tau_ref = bad
+    # 非有限输入必须被拦：返回有限值（0.0），而非把 nan 传播出去
+    assert np.isfinite(ref_recovery_factor(cfg))
+    assert np.isfinite(bitwise_eta_dyn(cfg))
+
+
+def test_dyn_recovery_accepts_finite():
+    from adi_model.dynamics import bitwise_eta_dyn, ref_recovery_factor
+
+    cfg = _DynCfg()
+    cfg.dyn_tau_ref = 1e-7
+    assert np.isfinite(ref_recovery_factor(cfg))
+    val = bitwise_eta_dyn(cfg)
+    assert np.isfinite(val) and val > 0
+
+
+# --- 站点 14：fit_unit_weights 权重有限正值 ---
+def test_fit_unit_weights_rejects_nonfinite_or_nonpositive():
+    """站点 14：拟合权重须有限正值（用 scipy.linalg.svd 桩强制坏权重）。"""
+    import dataclasses
+
+    from scipy.linalg import svd as _real_svd
+
+    import adi_model.weight_calibration as _wc
+    from adi_model.weight_calibration import (
+        CalibrationSpec,
+        DigitalObservation,
+        fit_unit_weights,
+    )
+
+    cfg = Config(dac_arch="split")
+    spec = CalibrationSpec.from_config(cfg)
+    na = spec.n_active
+    ns = spec.n_slices
+    p = int(np.prod(spec.shape)) + 1
+    n = p + 5
+    sid = np.zeros((n, na), dtype=np.int64)
+    for i in range(n):
+        sid[i] = [(i + j) % ns for j in range(na)]
+    rdac = np.zeros(n, dtype=np.int64)
+    dem = np.zeros(n, dtype=np.int64)
+    adc2 = np.zeros(n, dtype=np.int64)
+    bank = np.zeros(n)
+    inj = np.zeros(n)
+    ov = np.zeros(n, dtype=bool)
+
+    def make_obs(avmin):
+        sp = dataclasses.replace(spec, adc2_v_min=avmin)
+        return DigitalObservation(sp, sid, rdac, dem, adc2, bank, inj, ov, True)
+
+    def fake(bad):
+        def f(design, full_matrices=False, check_finite=False, lapack_driver="gesdd"):
+            nn, pp = design.shape
+            u = np.zeros((nn, pp))
+            for i in range(min(nn, pp)):
+                u[i, i] = 1.0
+            s = np.ones(pp)
+            vh = np.eye(pp)
+            vh[0, 0] = bad
+            return u, s, vh
+
+        return f
+
+    # 合法有限权重（adc2_v_min 正 -> fine_v 正 -> 权重正）：不抛
+    _wc.svd = fake(1.0)
+    try:
+        fit_unit_weights(make_obs(0.0), np.ones(n))
+    finally:
+        _wc.svd = _real_svd
+    # 非有限 / 非正权重：必须抛 ValueError
+    for bad in (-1.0, float("nan"), float("inf")):
+        _wc.svd = fake(bad)
+        try:
+            with pytest.raises(ValueError, match="non-finite"):
+                fit_unit_weights(make_obs(-10.0), np.ones(n))
+        finally:
+            _wc.svd = _real_svd
+
+
+# --- 站点 15：PhysicalSlicePool 电容/寄生有限性 ---
+def test_slice_pool_rejects_nonfinite_caps():
+    """站点 15：单位/桥接电容与寄生均须有限（用伪 RNG 注入 nan）。"""
+    from adi_model.slice_pool import PhysicalSlicePool
+
+    class _NanRNG:
+        def normal(self, loc=0.0, scale=1.0, size=None, **k):
+            sz = size if size is not None else k.get("size", ())
+            return np.full(sz, np.nan)
+
+        def standard_normal(self, size=None, **k):
+            sz = size if size is not None else k.get("size", ())
+            return np.full(sz, np.nan)
+
+    with pytest.raises(ValueError, match="finite"):
+        PhysicalSlicePool(Config(dac_arch="split"), rng=_NanRNG())
+
+
+def test_slice_pool_accepts_finite():
+    from adi_model.slice_pool import PhysicalSlicePool
+
+    PhysicalSlicePool(Config(dac_arch="split"), rng=np.random.default_rng(0))  # 默认即有限合法
+
+
+# --- 站点 16/17：aux_residual / driver_charge_per_sample ---
+@pytest.mark.parametrize("bad", [float("nan"), float("inf")])
+def test_aux_residual_rejects_nonfinite(bad):
+    from adi_model.aux_input import build_stage
+
+    with pytest.raises(ValueError, match="必须为正"):
+        build_stage(Config(), r_aux=1.0).aux_residual(bad)
+
+
+def test_aux_residual_accepts_finite():
+    from adi_model.aux_input import build_stage
+
+    # 有限正值被接受（返回有限非负的残余比例，而非抛异常或 nan）
+    assert build_stage(Config(), r_aux=1.0).aux_residual(1e-6) >= 0.0
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf")])
+def test_driver_charge_per_sample_rejects_nonfinite(bad):
+    from adi_model.aux_input import build_stage
+
+    with pytest.raises(ValueError, match="不能为负"):
+        build_stage(Config(), r_aux=1.0).driver_charge_per_sample(bad)
+
+
+def test_driver_charge_per_sample_accepts_finite():
+    from adi_model.aux_input import build_stage
+
+    out = build_stage(Config(), r_aux=1.0).driver_charge_per_sample(1.0)
+    assert np.isfinite(out["ratio"])
+
+
+# --- 站点 18：export_rtl_params.rtl_localparams(value) 有限性 ---
+def test_export_rtl_params_rejects_out_of_range():
+    """站点 18：RTL 参数宽度越界须被守卫拒绝（守卫行 ~409）。"""
+    exporter = _load_exporter()
+    with pytest.raises(ValueError, match="does not fit"):
+        exporter.rtl_localparams(Config(), exporter.FixedPointFormat(), phases=100)
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf")])
+def test_export_rtl_params_rejects_nonfinite(bad):
+    """站点 18：非有限 phases 在导出前即被拒（int() 转换已挡在未达守卫处）。"""
+    exporter = _load_exporter()
+    with pytest.raises((ValueError, OverflowError)):
+        exporter.rtl_localparams(Config(), exporter.FixedPointFormat(), phases=bad)

@@ -328,9 +328,10 @@ def fit_unit_weights(
     variance = float(np.dot(residual, residual) / (n - p))
     se = np.sqrt(variance * np.sum((vh.T / s) ** 2, axis=1))
     weights = theta[:-1].reshape(data.spec.shape)
-    if np.any(weights <= 0):
+    # 独立审查 2026-09-25：权重须为有限正值
+    if np.any(~np.isfinite(weights)) or np.any(weights <= 0):
         raise ValueError(
-            "estimated physical weights are nonpositive; improve excitation/noise or check model validity"
+            "estimated physical weights are nonpositive or non-finite; improve excitation/noise or check model validity"
         )
     digest = hashlib.sha256()
     digest.update(json.dumps(asdict(data.spec), sort_keys=True).encode())

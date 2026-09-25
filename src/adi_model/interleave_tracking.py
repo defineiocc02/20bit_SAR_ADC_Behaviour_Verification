@@ -133,8 +133,9 @@ class TrackPolicy:
             if len(self.weights) < self.n_weighted:
                 raise ValueError(f"weights={self.weights} 至少要有 n_weighted={self.n_weighted} 个")
             w = np.asarray(self.weights[: self.n_weighted], dtype=float)
-            if w.sum() <= 0 or np.any(w < 0):
-                raise ValueError(f"weights={self.weights} 必须非负且不全为零")
+            # 独立审查 2026-09-25：权重须为有限值
+            if not np.all(np.isfinite(w)) or w.sum() <= 0 or np.any(w < 0):
+                raise ValueError(f"weights={self.weights} 必须有限、非负且不全为零")
         return self
 
 
@@ -226,8 +227,9 @@ def filter_bw_relative(t_cycle: float, eps: float = 0.01) -> float:
     Raises:
         ValueError: 非正输入。
     """
-    if t_cycle <= 0 or not 0 < eps < 1:
-        raise ValueError(f"非法输入: t={t_cycle}, eps={eps}")
+    # 独立审查 2026-09-25：t_cycle 须为有限正值
+    if not np.isfinite(t_cycle) or t_cycle <= 0 or not 0 < eps < 1:
+        raise ValueError(f"非法输入: t={t_cycle}, eps={eps}（须为有限值）")
     return float(np.log(1.0 / eps) / (2.0 * np.pi * t_cycle))
 
 
@@ -255,8 +257,20 @@ def filter_bw_absolute(q_kick: float, c_f: float, v_err_max: float, t_cycle: flo
     Raises:
         ValueError: 非正输入。
     """
-    if q_kick <= 0 or c_f <= 0 or v_err_max <= 0 or t_cycle <= 0:
-        raise ValueError(f"非法输入: q={q_kick}, c_f={c_f}, v_err_max={v_err_max}, t={t_cycle}")
+    # 独立审查 2026-09-25：各参数须为有限正值
+    if (
+        not np.isfinite(q_kick)
+        or q_kick <= 0
+        or not np.isfinite(c_f)
+        or c_f <= 0
+        or not np.isfinite(v_err_max)
+        or v_err_max <= 0
+        or not np.isfinite(t_cycle)
+        or t_cycle <= 0
+    ):
+        raise ValueError(
+            f"非法输入: q={q_kick}, c_f={c_f}, v_err_max={v_err_max}, t={t_cycle}（须为有限值）"
+        )
     arg = q_kick / (c_f * v_err_max)
     if arg <= 1.0:
         return 0.0
@@ -279,8 +293,9 @@ def noise_ratio_from_bw(bw: float, bw_ref: float) -> float:
     Raises:
         ValueError: 负输入。
     """
-    if bw < 0 or bw_ref <= 0:
-        raise ValueError(f"非法输入: bw={bw}, bw_ref={bw_ref}")
+    # 独立审查 2026-09-25：带宽须为有限值
+    if not np.isfinite(bw) or bw < 0 or not np.isfinite(bw_ref) or bw_ref <= 0:
+        raise ValueError(f"非法输入: bw={bw}, bw_ref={bw_ref}（须为有限值）")
     return float(np.sqrt(bw / bw_ref))
 
 

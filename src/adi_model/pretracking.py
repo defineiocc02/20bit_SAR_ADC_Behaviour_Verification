@@ -79,6 +79,7 @@ class QuantizedPretracker:
         if (
             n_slices < 1
             or bits < 1
+            or not np.isfinite(lower_v)  # 独立审查 2026-09-25：lower_v 此前完全未校验
             or not np.isfinite(coarse_step_v)
             or coarse_step_v <= 0
             or not np.isfinite(signal_scale)

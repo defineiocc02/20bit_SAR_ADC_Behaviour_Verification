@@ -1031,8 +1031,9 @@ class Config:
                 f"或显式把 b1 设成与该标签相符的值"
             )
 
-        if self.fs <= 0.0:
-            bad.append(f"fs={self.fs!r} 必须为正（采样率 [Hz]）")
+        # 独立审查 2026-09-25：域守卫同时拒绝非有限值
+        if not math.isfinite(self.fs) or self.fs <= 0.0:
+            bad.append(f"fs={self.fs!r} 必须为正有限值（采样率 [Hz]）")
         if not math.isfinite(self.g0) or self.g0 <= 0:
             bad.append(f"g0={self.g0!r} 必须为有限正值（名义级间增益）")
         if self.n_slices < 1:
@@ -1043,8 +1044,9 @@ class Config:
             bad.append(f"c_total0={self.c_total0!r} 必须为有限正值（RDAC 总采样电容 [F]）")
         if not math.isfinite(self.c_feedback0) or self.c_feedback0 <= 0:
             bad.append(f"c_feedback0={self.c_feedback0!r} 必须为有限正值（RA 反馈电容 [F]）")
-        if self.v_fs <= 0.0:
-            bad.append(f"v_fs={self.v_fs!r} 必须为正（满幅峰值 [V]）")
+        # 独立审查 2026-09-25：域守卫同时拒绝非有限值
+        if not math.isfinite(self.v_fs) or self.v_fs <= 0.0:
+            bad.append(f"v_fs={self.v_fs!r} 必须为正有限值（满幅峰值 [V]）")
         if self.n_bits_target < 1:
             bad.append(f"n_bits_target={self.n_bits_target!r} 必须 >= 1")
         if (

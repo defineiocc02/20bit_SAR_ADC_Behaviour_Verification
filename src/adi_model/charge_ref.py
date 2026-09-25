@@ -238,7 +238,13 @@ def dither_mask_charge(
     """
     arr = chip.C_sub if bank == "sub" else chip.C_main
     nm = int(n_mask if n_mask is not None else len(arr))
-    nm = min(nm, len(arr))
+    nm = max(0, min(nm, len(arr)))
+    if nm == 0:
+        # 无掩码列：显式零贡献（旧实现继续构造 (0, n) 矩阵并与整列切片广播，
+        # 在 n_mask=0 时抛裸 ValueError，独立审查 2026-09-25）
+        d0 = np.atleast_1d(np.asarray(d_units, dtype=float))
+        zeros = np.zeros_like(d0)
+        return (float(zeros[0]) if np.ndim(d_units) == 0 else zeros), 0.0
     mask = arr[-nm:]
     d = np.atleast_1d(np.asarray(d_units, dtype=float))
     D = nm // 2
@@ -367,7 +373,12 @@ def ref_ra_charge_dither_nodal(
     ks = np.atleast_1d(np.asarray(ks, dtype=float))
     x = np.atleast_1d(np.asarray(x, dtype=float))
     d = np.atleast_1d(np.asarray(d_units, dtype=float))
-    nm = int(n_mask if n_mask is not None else 0)
+    arr = chip.C_sub if bank == "sub" else chip.C_main
+    # n_mask=None 的口径必须与 dither_mask_charge 及本函数 docstring 一致
+    # （"None 表示取整列长度"）：旧实现把 None 折成 0，随后 `wS[-0:, :]`
+    # 退化为整列切片，与 (0, n) 的掩码矩阵广播失败而崩（独立审查 2026-09-25）。
+    nm = int(len(arr) if n_mask is None else n_mask)
+    nm = max(0, min(nm, len(arr)))
     nd_half = nm // 2
 
     # 采样相底板电压 w（(units, n)）：信号单位 = x；掩码单位 = ±V_FS
@@ -376,10 +387,11 @@ def ref_ra_charge_dither_nodal(
     s_mask = np.where(jm < (nd_half + d)[None, :], 1.0, -1.0)  # (nm, n)
     wM = np.tile(x, (chip.n_main, 1))
     wS = np.tile(x, (chip.n_sub, 1))
-    if bank == "sub":
-        wS[-nm:, :] = s_mask * v_fs
-    else:
-        wM[-nm:, :] = s_mask * v_fs
+    if nm > 0:  # nm=0 时无掩码列，保持 wM/wS = x（勿做 `[-0:]` 整列切片）
+        if bank == "sub":
+            wS[-nm:, :] = s_mask * v_fs
+        else:
+            wM[-nm:, :] = s_mask * v_fs
 
     # 放大相底板电压 b（(units, n)）：码前缀选择 +V_FS / −V_FS；
     # 小数码的边界单位按小数部分线性插值（与闭式 _sel 的小数插值同域——

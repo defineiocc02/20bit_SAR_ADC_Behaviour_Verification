@@ -175,8 +175,12 @@ def monte_carlo_residual(
     # den=0（观测通路无噪声的退化配置）时 kappa 无定义——显式 nan，
     # 避免 0/0 的 RuntimeWarning 与静默传播（独立审查 2026-09-25）
     kappa_hat = float(np.dot(n_path, n_obs) / den) if den > 0 else float("nan")
+    # 同一退化配置下 np.corrcoef 也在做 0/0：第一轮只护住了 kappa_hat，
+    # corr_path_obs 仍会抛 RuntimeWarning 并静默给 nan（2026-09-25 第二轮复查）。
+    s_path, s_obs = float(np.std(n_path)), float(np.std(n_obs))
+    corr = float(np.corrcoef(n_path, n_obs)[0, 1]) if s_path > 0 and s_obs > 0 else float("nan")
     return {
         "sigma_mc": float(np.std(n_res)),
         "kappa_hat": kappa_hat,
-        "corr_path_obs": float(np.corrcoef(n_path, n_obs)[0, 1]),
+        "corr_path_obs": corr,
     }

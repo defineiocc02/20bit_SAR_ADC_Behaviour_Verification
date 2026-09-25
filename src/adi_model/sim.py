@@ -279,7 +279,8 @@ def run_sim(
 
     # 调度器必须用独立于主噪声流的随机源（scheduler.py 契约：换调度器不
     # 改变噪声实现的可复现性）——此前把主 rng 直接传入，调度抽签与噪声同源
-    # （独立审查 2026-09-25）。spawn 一个子流给它，主流只被推进一次。
+    # （独立审查 2026-09-25）。spawn 一个子流给它；实测（2026-09-25 第二轮）
+    # `Generator.spawn` 不消耗父流，主流序列不受影响。
     sched = make_scheduler(cfg, rng.spawn(1)[0], scheduler)
     allocation = sched.reserve(n_samples)
 

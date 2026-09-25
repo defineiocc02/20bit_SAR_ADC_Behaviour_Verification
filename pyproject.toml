@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 # ----------------------------------------------------------------- 项目元数据
 [project]
 name = "sar-adc-behaviour-verification"
-version = "8.1.0"
+version = "8.2.0"
 description = "Behavioural model of a two-stage residual SAR ADC inspired by ISSCC 2024 / Session 9.8 (Bodnar et al., 20-bit 40 MS/s precision SAR)."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -63,6 +63,39 @@ packages = ["src/adi_model"]
 [tool.hatch.build.targets.wheel.force-include]
 "tools/run_all.py" = "adi_model/_tools/run_all.py"
 "tools/make_report.py" = "adi_model/_tools/make_report.py"
+
+# ---------------------------------------------------------------------------
+# sdist 的版权闸门（**结构性**，不依赖 .gitignore 生效）。
+#
+# 教训（2026-09-25 发版实测）：发行通道**不由 .gitignore 管辖**。hatchling 对
+# .gitignore 的模拟与 git 语义不一致——git 规定"父目录被排除时无法再反包含
+# 其中的文件"，而 hatchling 按模式顺序判定，于是 `.gitignore` 里靠后的
+# `!docs/**/*.png`（跟踪文档配图）会盖过目录级排除
+# `docs/robustness_review_2026/`，把内部审查报告里 `fig/paper_p*.png`（ISSCC
+# 2024 9.8 论文页面截图）与 `fig/patent1*_fig.png`（专利首页截图）打进 sdist
+# ——与 NOTICE 中 "None of them is redistributed here" 直接矛盾。
+# 已在构建层复现：`python -m build` 后 sdist 内确实含这 6 个文件。
+#
+# 因此在构建层显式排除，与 .gitignore 形成两道独立闸门。
+# ---------------------------------------------------------------------------
+[tool.hatch.build.targets.sdist]
+exclude = [
+  # 必须是“文件级通配”（/**），不能只写目录名。实测（2026-09-25）：
+  # hatchling 的 path_is_excluded 对**文件路径**调用 GitIgnoreSpec.match_file，
+  # 而 gitignore 的“目录型模式”（dir 或 dir/）在文件路径上匹配为 False
+  # —— git 之所以能排除内容靠的是遍历时剪枝目录，不是匹配文件。因此
+  # 只写 docs/robustness_review_2026 时**一条文件都挡不住**（已用
+  # SdistBuilder 配置实测：paper_p1.png excluded=False），加 /** 后为 True。
+  "docs/robustness_review_2026/**",
+  "docs/robustness_review_2026",
+  "**/*.pdf",
+  "**/*.ppt",
+  "**/*.pptx",
+  "**/*.doc",
+  "**/*.docx",
+  "**/*.key",
+  "**/*.epub",
+]
 
 # ================================================================ pytest
 [tool.pytest.ini_options]

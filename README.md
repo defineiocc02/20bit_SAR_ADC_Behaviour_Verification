@@ -10,11 +10,16 @@
 它用于检查电荷、时序、噪声、校准和数字重构是否相互一致，并给出继续仿真的工程依据。
 公开资料没有完整披露电路，因此具体电容分配、部分相位时间、DEM 交换方式和 ADC2 范围均保留为明确假设。
 
-## 结果总览（v8.1.0）
+## 结果总览（v8.2.0）
 
 v8.0.0 把物理 slice 池、交织预跟踪、辅助输入、参考/RA/ADC2 联立动态与定点数字核接入主链路；
 8.1.0 新增数字侧定点 RTL（P0–P3）：可综合校准核、双 SAR/共享 3-bit Flash、18-slice 调度、
 Verilator 仿真与变异测试门禁——行为级 results.json 数值与 v8.0.0 逐字节一致。
+
+8.2.0 修正两处**统计独立性/口径**缺陷并加厚入口防护：MC 循环里失配抽签与噪声 rng 此前由**同一整数种子**播种（实测两者取到**同一批随机数**、流完全重合；注意是流重合而非芯片退化——逐颗 SNDR 仍有离散），现改为 `SeedSequence.spawn` 独立子流；单位串扰翻转口径统一为 A(k)/2（与 `_dem_fluctuation` 的小数插值一致）。参考输出随之重算并逐项对账：**926 个叶子中 878 个逐字节不变，48 个变化全部落在随机流相关分区**（`mc`/`mc_cal_*`/`mc_pdk_*`/`budget`/`s13`）——均值几乎不变（93.5263 → 93.5265 dB），而系综离散度与最差芯片如预期变大（σ 0.113 → 0.137 dB；PDK 关失配最差 SNDR 84.20 → 82.02 dB），即旧口径**低估了尾部**。字节账见 [CHANGELOG](CHANGELOG.md)，图表与对账报告见 [docs/release_v8.2.0](docs/release_v8.2.0/)。
+
+![v8.1.0 → v8.2.0 关键指标对比](docs/release_v8.2.0/fig/headline_compare.png)
+
 与 v7.0.10 聚合基线做 `results.json` 逐项对账：**626 个共有指标中 516 个完全一致**，
 40 个为浮点级噪声（<1e-6 相对），**70 个实质变化**全部集中在物理主链路新覆盖的子系统；
 关键 dB 指标全部向好（详见 [CHANGELOG](CHANGELOG.md) 的字节账）：
@@ -29,7 +34,7 @@ Verilator 仿真与变异测试门禁——行为级 results.json 数值与 v8.0
 | SNDR / SFDR | 125.6 / 155.5 dB | s1 无失配理想链路 |
 | 输出噪声 rms | ≈1.0 µV | s1 |
 | DEM 开/关 SNDR | 93.4 / 93.5 dB | s3 含失配 |
-| MC 最差 SFDR | 86.5 dB | `mc_pdk_off` 300 批 |
+| MC 最差 SNDR / SFDR | 82.0 / 85.1 dB | `mc_pdk_off` 60 颗（PDK 失配，DEM 关） |
 | 校准后误差贴地比 | 1.006 | `split_calib.noise_off` |
 
 验证图集（由 `tools/run_all.py` 与 `tools/make_readme_compare.py` 生成，随 `results.json` 同步更新）：
@@ -172,7 +177,7 @@ CI 运行 Python 3.10–3.13 测试、3.12 全量 sweep、独立双次确定性�
 @software{zhao_2026_sar_adc_behaviour_model,
   author    = {Zhao, Reed},
   title     = {20-bit SAR ADC Behavioural Verification Model},
-  version   = {8.1.0},
+  version   = {8.2.0},
   year      = {2026},
   publisher = {GitHub},
   url       = {https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification},

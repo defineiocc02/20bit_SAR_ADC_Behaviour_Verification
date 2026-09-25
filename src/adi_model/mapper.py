@@ -138,6 +138,13 @@ class Mapper:
         coarse_code = np.asarray(coarse_code)
         bank = np.asarray(bank)
         sid = np.asarray(sid)
+        if coarse_code.ndim == 0 or bank.ndim == 0 or sid.ndim == 0:
+            # 标量输入会让下游的 len()/广播以难懂形式爆掉（旧行为：
+            # `TypeError: len() of unsized object`），这里显式给出口径
+            # （独立审查 2026-09-25 第二轮）。
+            raise ValueError(
+                "coarse_code/bank/sid 必须是 1-D 数组；标量输入请用 np.atleast_1d 包装"
+            )
         if not (len(coarse_code) == len(bank) == len(sid)):
             raise ValueError(
                 f"coarse/bank/sid 长度不一致：{len(coarse_code)}/{len(bank)}/{len(sid)}"

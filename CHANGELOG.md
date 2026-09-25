@@ -4,6 +4,114 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.2.0] — 2026-09-25
+
+独立审查（2026-09-25）后的加固与参考产物重标定。本轮含 **17 项既有发现的修复**
+（F1–F17，定点提交 `2616812`）与 **5 项本轮新发现**（N1–N5）。其中只有 **F1/F2/F9**
+会改变已发布的数值；其余 19 项是"只在非法输入下才响"的守卫，对参考产物零影响 ——
+这一结论不是声称，而是下面 926 个叶子的逐字节账目实证。
+
+### Fixed — F1/F2：随机流派生不独立（**改变已发布数值**）
+
+- `experiments.py` 两处 MC 循环把同一整数种子 `seed0+i` 同时用于失配抽签与噪声 rng，
+  导致两者**取到同一批随机数**（流完全重合；探针已核实）。注意这是**流**重合，
+  不是芯片退化 —— 逐颗 SNDR 仍有离散（旧口径 std 0.1133 dB），但两条误差源的
+  独立性不成立；`sim.py` / `sim_split.py` 又把主噪声 rng
+  交给洗牌调度器（违反 `scheduler.py:110` 的"换调度器不得改变噪声实现"契约）。
+- 改法：`SeedSequence.spawn` 派生子流，失配与噪声各持一支；调度器拿
+  `rng.spawn(1)[0]`。`seed_0` 仍精确复现整套系综。
+- 附带核实：`Generator.spawn` **不**消耗父流（实测，已写进 `sim.py` 注释）——
+  这条是 F1/F2 改法成立的前提，不是附会。
+
+### Fixed — F9 / N2：数字串扰活动度口径（**改变 s13 行**）
+
+- `dynamics.crosstalk_error` 按 `A(k)` 个单位各翻转一次求和，与自身注释及
+  `_dem_fluctuation` 的"`A(k)/2` 个单位各两次"自相矛盾；且小数码点被整数取整。
+- 统一为分数前缀和插值（与 `_dem_fluctuation` 同域）。隔离验证：把 F9 单独回退后，
+  参考产物与 v8.2.0 **只差恰好 1 个叶子**（`/s13/rows`）—— 即 F9 的全部数值影响
+  就是这一行。
+
+### Fixed — F3–F17：守卫（对参考产物零数值影响）
+
+| 编号 | 位置 | 修法 |
+| :--- | :--- | :--- |
+| F3a | `config.legality_violations` | g₀ / n_slices / n_unit_per_slice / c_total0 / c_feedback0 五量补有限正值检查 |
+| F3b | 同上 | `dyn_ron_code_coeff` 限定 `[0,1]`（负 τ 曾被 `np.maximum` 钳成"完美建立"） |
+| F4 | `chip.build_chip` | 抽签处置收非正/非有限单位电容 |
+| F5 | `ref_track.validate` | `threshold_gain` 增 `(0,1]` 收敛域校验 |
+| F6 | `aux_input.validate` | `r_aux` 入正参数清单 |
+| F7 | `sadc.convert` | 入口有限性检查（NaN 曾被 `searchsorted` 静默排到末仓） |
+| F8 | `charge_ref` 节点验证器 | 边界单位按小数部分线性插值，与闭式同域 |
+| F10 | `sim.py` | β 前台相干 bin 钳到 `n/4` 以内（`n_samples<4096` 时曾越过 Nyquist） |
+| F11 | `calib.ridge_fit` | 两分支 λ=0 均直接用最小范数 `lstsq`（秩亏分支此前无回退） |
+| F12 | `ref_track._window_bits` | 零误差窗口统一返回 `inf`（此前 `raise`，与同模块 a06 口径不一致） |
+| F13 | `mapper.encode` | 入口校验等长与粗码域 |
+| F14 | `reporting.py` | `results[key]=None` 兜底（v8 null-undefined 口径） |
+| F15 | `inventory_gate` | 来源 id 查重，重复即 FAIL |
+| F16 | `ktc.beta_n_of` | g_r≤0 入口拒收（beta 曾发散为 inf） |
+| F17 | `noise_phase` / `cli.py` | 0/0 显式 nan 分支；`--results-dir` 指向文件按契约退码 2 |
+
+### Fixed — N1–N5：本轮独立审查新发现
+
+- **N1** `mapper.encode`：标量参数触发 `TypeError: len() of unsized object`（非契约内
+  异常类型）→ 改为显式 `ValueError` 并说明必须 1-D。
+- **N2** 同 F9（小数码点取整 vs 分数插值）—— 见上。
+- **N3（合规）** `.gitignore`：`docs/robustness_review_2026/` 未忽略，`git add -A`
+  会把报告目录下的 **ISSCC 讲稿截图 / 专利原图** 收进公开仓库。已加目录级兜底，并
+  `git rm --cached` 撤销 `2616812` 误提交的 `make_charts.py`（`docs/**/*.png` 的
+  反向白名单不再能漏过整个报告目录）。
+- **N4** `charge_ref.ref_ra_charge_dither_nodal`：`n_mask=None` 走 `(0,2)` 广播崩溃、
+  `n_mask=0` 两后端行为不一致 → 统一 `nm = int(n_mask if n_mask is not None else len(arr))`
+  并钳到 `[0, len(arr)]`；`nm == 0` 为零贡献 no-op。
+- **N5** `noise_phase.monte_carlo_residual`：路径完全相关（0/0）时 `np.corrcoef`
+  产生 2 条 `RuntimeWarning: invalid value encountered in divide` → 显式判 `s_path>0 and s_obs>0`，
+  否则返回 `nan`。正常路径 corr 0.9989 不变。
+
+### Changed — 参考产物重标定（逐字节账）
+
+本版**重算了仓内参考产物** `tools/results/results.json`。按字节账纪律登记：
+
+| 项 | 值 |
+| :--- | :--- |
+| v8.1.0 旧指纹（commit `6a177a1`） | `f3e1a7967f22b30e037d881668b40124cea4ed3f47600a2addb69a502f67c0eb` |
+| v8.2.0 新指纹（本版） | `5ff9ef9ade0eac30d3a9851a4c52b0cdff22f0e2374d3a2bac5b08a84e394123` |
+| 逐键对账 | **926 个叶子：878 个逐字节不变，48 个改变** |
+| 改变分布 | `mc` 6、`mc_cal_off` 10、`mc_cal_on` 10、`mc_pdk_off` 10、`mc_pdk_on` 10、`budget` 1、`s13` 1 |
+| 双跑一致性 | 两次独立完整跑批指纹**逐字节相同**（`5ff9ef9a…`），52 条硬性验收全通过 |
+
+48 个改变叶子**全部落在 RNG 相关分区**（mc/mc_cal_*/mc_pdk_*/budget/s13），无一落在
+确定性链路 —— 与"只有 F1/F2/F9 是 active 修复"的判定互相印证。
+
+### 关键指标变化（诚实口径：PDK 良率下界下降）
+
+| 指标 | v8.1.0 | v8.2.0 | Δ |
+| :--- | ---: | ---: | ---: |
+| s1 SNDR（理想链路） | 125.6332 dB | 125.6332 dB | 0 |
+| MC(16) SNDR 均值 | 93.52634 dB | 93.52646 dB | +0.0001 |
+| MC(16) SNDR std | 0.1133 dB | 0.1374 dB | +0.0241 |
+| MC(16) SNDR 最差 | 93.3000 dB | 93.1420 dB | −0.1580 |
+| **PDK_off（60 颗）SNDR 最差** | **84.1978 dB** | **82.0201 dB** | **−2.1776** |
+| PDK_off SFDR 最差 | 86.5257 dB | 85.0516 dB | −1.4741 |
+| PDK_on SNDR 最差 | 84.1371 dB | 83.1357 dB | −1.0014 |
+| s13[数字串扰(共模+单位)] SNDR | 91.8290 dB | 91.8090 dB | −0.0200 |
+| s13[数字串扰(共模+单位)] INL_max | 5.8367 LSB20 | 6.0265 LSB20 | +0.1898 |
+| s13[全部开启] SNDR | 90.5555 dB | 90.5418 dB | −0.0136 |
+| s13[全部开启] INL_max | 6.1467 LSB20 | 6.3947 LSB20 | +0.2480 |
+
+> **必须明说**：旧口径下失配与噪声共用种子，把两条误差源的独立随机性**人为削弱**了，
+> MC 离散度（std）偏小、良率下界偏乐观。修正后 PDK_off 最差芯片 SNDR 下移 **2.18 dB**
+> 至 82.0 dB —— 这是**更诚实的下界**，不是回归（回归是指应当不变的东西变了；这里
+> 变的正是我们已声明会变、且本该独立的那部分）。
+
+### Added
+
+- `tests/unit/test_robustness_2026_09_25.py`：38 条回归测试，逐条钉住 F1–F17 + N1–N5。
+  F9/N2 用**独立重算 + 可区分性断言**（`assert not np.isclose(expect[0], rounded[0])`），
+  F11 用可手算核对的精确解 `[0.2, 0.4]`（`w₀+2w₁=1` 上的最小范数点），F12 钉住
+  非退化窗口的精确位数 18.841282446503264 bit —— 不是"能跑就算过"。
+- `docs/release_v8.2.0/make_delta_charts.py` 与 `docs/release_v8.2.0/fig/`：6 张数据对比图
+  （逐叶子变更图、关键指标对比、MC 分布箱线、新旧 RNG 散点、22 项发现矩阵、探针效应）。
+
 ## [8.1.0] — 2026-09-24
 
 ### Added — digital-side fixed-point RTL (P0–P3)

@@ -74,7 +74,7 @@ finite"` / `"nonpositive"`），彼此可区分。三重变异（分别禁用入
 | 对抗复核 B | `617e343` | 逐字段分类 + 实跑：四个浮点标量已收口、无过度收紧回归、三重变异各自命中不同断言；**新增发现**"有限但极端输入在装配阶段溢出"这一**未**关闭路径 |
 | 门禁复核 | `64808b9` | ruff / `ruff format --check` / mypy(48 文件) / `pytest -m "not slow"`(708 passed) / 跑批指纹 / 双跑确定性 / `python -m build`(sdist 288 / wheel 56 成员) 全部 PASS；分发物不含第三方版权材料 |
 | 作者门禁复跑 | `617e343` | `714 passed, 3 deselected`（708 + 新增 6 条）；mypy 48 文件；ruff 干净；**跑批两遍指纹均为 `5ff9ef9a…394123`**，彼此逐字节一致 |
-| CI | tag `v8.2.2` | 见 GitHub Actions（本版即为其修复） |
+| CI | tag `v8.2.2`（`cad5114`） | **`conclusion=success`，9/9 job 全绿**（run 36170139466）。对照上一版同工作流的 run 36160446023：`Test py3.10/3.11/3.12/3.13` 四个 job 全 failure → 本版全 success |
 
 ### 诚实边界（本版**未**声称的事）
 

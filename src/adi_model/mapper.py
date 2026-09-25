@@ -157,6 +157,21 @@ class Mapper:
             or coarse_code.max() >= n_code
         ):
             raise ValueError(f"粗码越界 [0, {n_code})：[{coarse_code.min()}, {coarse_code.max()}]")
+        # 独立审查 2026-09-25：上面的域校验只拦了 [0, n_code) 范围，放行了域内
+        # 分数粗码（如 2.5）。SADC 只输出整数码，分数粗码只能来自畸形/对抗输入，
+        # 会经 `k = coarse*units_per_lsb1 + k0` 产生非整数单位数 k，静默污染下游。
+        # 因此在此追加一条**独立**的整数性守卫，且不改动上面的"粗码越界"分支顺序
+        # 与消息，以守住既有测试的消息匹配。
+        if len(coarse_code) and bool(
+            np.any(
+                np.asarray(coarse_code, dtype=float)
+                != np.round(np.asarray(coarse_code, dtype=float))
+            )
+        ):
+            raise ValueError(
+                "粗码必须是整数（SADC 只输出整数码）；分数粗码（如 2.5）会产生非整数"
+                "单位数 k（独立审查 2026-09-25）"
+            )
         k0 = self.cfg.n_units_headroom // 2  # 低端 dither 余量
         k = (coarse_code * self.cfg.units_per_lsb1 + k0).astype(float)
         if dither_code is None:

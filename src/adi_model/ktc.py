@@ -91,9 +91,10 @@ class KTCBranch:
             （beta_n=1 时 (1-beta_n)*n_R 相消）。
         """
         g_r = np.asarray(g_r, dtype=float)
-        if np.any(g_r <= 0):
+        if np.any(~np.isfinite(g_r)) or np.any(g_r <= 0):
             raise ValueError(
-                "g_r 必须为正（RA 增益）；非正值会使 beta_n 发散为 inf（独立审查 2026-09-25）"
+                "g_r 必须为正且有限（RA 增益）；非正值或 nan/inf 会使 beta_n 发散为 inf"
+                "（独立审查 2026-09-25）"
             )
         return self.kappa * self.g_n * self.eta_n / g_r
 
@@ -107,6 +108,11 @@ class KTCBranch:
             （beta_x=1 时输出恢复到 x2，与噪声抵消相互独立）。
         """
         g_r = np.asarray(g_r, dtype=float)
+        if np.any(~np.isfinite(g_r)) or np.any(g_r <= 0):
+            raise ValueError(
+                "g_r 必须为正且有限（RA 增益）；非正值或 nan/inf 会使 beta_x 发散为 inf"
+                "（独立审查 2026-09-25）"
+            )
         return self.kappa * self.g_n * self.eta_x / g_r
 
     def beta_of(self, g_r) -> np.ndarray:

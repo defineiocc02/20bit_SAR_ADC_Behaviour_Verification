@@ -36,6 +36,7 @@ from adi_model.noise_phase import monte_carlo_residual, phase_noise_state
 from adi_model.ref_track import RefTrackConfig
 from adi_model.reporting import render_report
 from adi_model.sadc import SADC
+from adi_model.sim import run_with_calibration
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -123,10 +124,16 @@ def test_ref_track_rejects_out_of_domain_threshold_gain(gain):
         RefTrackConfig(threshold_gain=gain).validated()
 
 
-@pytest.mark.parametrize("r_aux", [0.0, -1.0])
+@pytest.mark.parametrize("r_aux", [0.0, -1.0, float("nan"), float("inf")])
 def test_aux_input_rejects_nonpositive_r_aux(r_aux):
-    with pytest.raises(ValueError):
+    """F6：r_aux 必须为正且有限；0/负/nan/inf 一律拒（旧口径只查 `v<=0`，漏掉 nan/inf）。"""
+    with pytest.raises(ValueError, match="必须为正有限值"):
         build_stage(Config(), r_aux=r_aux).validated()
+
+
+def test_aux_input_accepts_positive_r_aux():
+    """F6 姊妹断言：合法正值（1.0）不被守卫误伤。"""
+    build_stage(Config(), r_aux=1.0).validated()  # 不抛异常即过关
 
 
 # --------------------------------------------------------------- F7
@@ -305,6 +312,102 @@ def test_mapper_encode_validates_contract():
         m.encode(3, np.array([0]), np.array([0]))  # N1：标量输入曾是 len() TypeError
 
 
+def test_mapper_encode_rejects_fractional_coarse_code():
+    """F13（次要漏网）：域内分数粗码（如 2.5）此前被放行，会经
+    `k=coarse*units_per_lsb1+k0` 产生非整数单位数 k。SADC 只输出整数码。
+    同时守住既有"粗码越界"分支顺序与消息不回归。
+    """
+    m = Mapper(Config())
+    n_code = 2 ** Config().b1
+    with pytest.raises(ValueError, match="必须是整数"):
+        m.encode(np.array([2.5]), np.array([0]), np.array([0]))
+    # 整值浮点（如 2.0）仍被接受，不改既有合法路径
+    cmd = m.encode(np.array([2.0]), np.array([0]), np.array([0]))
+    assert np.all(np.isfinite(cmd.k))
+    # 越界分支仍报"粗码越界"（守住分支顺序）
+    with pytest.raises(ValueError, match="粗码越界"):
+        m.encode(np.array([n_code]), np.array([0]), np.array([0]))
+
+
+# --------------------------------------------------------------- F10
+def test_run_with_calibration_short_record_stays_below_nyquist(monkeypatch):
+    """F10：短记录（<4096）beta 相干 bin 不得越 Nyquist。作者 39 条回归里**没有**
+    任何一条触达该修正——这里 runtime 捕获真正传给正弦前台的 `fin`，断言 0<fin<fs/2。
+    """
+    import adi_model.sampler as sampler_mod
+
+    captured = {}
+    real = sampler_mod.sine_input
+
+    def spy(v, f, **k):
+        captured["fin"] = f
+        return real(v, f, **k)
+
+    monkeypatch.setattr(sampler_mod, "sine_input", spy)
+    fs = Config().fs
+    for n in (256, 512, 1024, 2048, 4096):
+        cfg = Config(calibration="gain_beta", ktc_enable=True)
+        rng = np.random.default_rng(1)
+        run_with_calibration(cfg, real(0.5 * cfg.v_fs, cfg.fs / 8), n, rng=rng)
+        fin = captured.get("fin")
+        assert fin is not None, "必须捕获到传给正弦前台的 fin"
+        assert 0 < fin < fs / 2, f"n={n}: fin/fs={fin / fs} 越过了 Nyquist"
+
+
+# --------------------------------------------------------------- F11
+def test_ridge_fit_underdetermined_rank_deficient_uses_min_norm():
+    """F11：lam=0 的"欠定+秩亏"分支（U 行<列，走 U@U.T 对偶式）也必须给出
+    最小范数解，与独立 np.linalg.lstsq 一致。作者原测试只覆盖超定（3×2）分支。
+    """
+    from adi_model.calib import ridge_fit
+
+    U = np.array([[1.0, 2.0, 3.0], [2.0, 4.0, 6.0]])  # 2×3 秩 1（欠定 + 秩亏）
+    y = np.array([1.0, 2.0])
+    w, used = ridge_fit(U, y, lam=0.0)
+    ref = np.linalg.lstsq(U, y, rcond=None)[0]
+    assert np.all(np.isfinite(w))
+    assert np.allclose(U @ w, y, atol=1e-10)  # 仍是解
+    assert np.allclose(w, ref, rtol=1e-12, atol=1e-15)  # 且是最小范数解
+
+
+# --------------------------------------------------------------- F9 / N2
+def test_crosstalk_uniform_profile_numerically_unchanged():
+    """F9/N2：均匀开关活动 profile 下，修正后的 crosstalk 公式相对旧公式
+    `e_unit = dyn_v * cum[round(a_k)]` 数值不变（相对容差 ~1e-12）。
+    这条"均匀不变"承诺此前只存在于文字里，无回归断言。
+    """
+    n_u, p0 = 63, 1e-15
+    cfg = Config(dyn_crosstalk=True, dyn_c_xtalk_common=0.0, dyn_c_xtalk_unit=p0, dyn_v_digital=1.0)
+    n_levels = int(cfg.dac_levels)
+    code = np.array([1.5, 2.0, 10.0, 20.0, 30.0])  # 物理合法码（a_k ≤ n_units）
+    sid = np.zeros(code.size, dtype=np.int64)
+    perm = lambda s: np.arange(n_u)  # noqa: E731
+    C_REF = cfg.c_total0 * cfg.cap_scale
+
+    def old_with(prof, codes, sids):
+        prof = np.asarray(prof, dtype=float)
+        a = switching_activity(cfg, codes, n_levels)
+        cum = np.concatenate([[0.0], np.cumsum(prof)])
+        return cfg.dyn_v_digital * cum[np.clip(np.round(a).astype(int), 0, prof.size)] / C_REF
+
+    prof_uni = p0 * np.ones(n_u)
+    new_uni = np.asarray(
+        crosstalk_error(
+            cfg,
+            code,
+            sid,
+            n_levels=n_levels,
+            unit_xtalk_profile=prof_uni,
+            perm_fn=perm,
+            c_out=C_REF,
+        ),
+        dtype=float,
+    )
+    old_uni = old_with(prof_uni, code, sid)
+    rel = float(np.max(np.abs(new_uni - old_uni)) / (np.max(np.abs(old_uni)) + 1e-30))
+    assert rel < 1e-12, f"均匀 profile 下应数值不变，实测相对差 {rel:.3e}"
+
+
 # --------------------------------------------------------------- F14
 def test_reporting_tolerates_null_experiment_entry():
     """F14：v8 的 null-undefined 口径下，results[key]=None 不得让报告生成崩溃。"""
@@ -335,10 +438,26 @@ def test_repo_inventory_gate_is_clean():
 
 
 # --------------------------------------------------------------- F16 / F17a / N5
-@pytest.mark.parametrize("g_r", [0.0, -1.5])
+@pytest.mark.parametrize("g_r", [0.0, -1.5, float("nan"), float("inf"), -float("inf")])
 def test_ktc_rejects_nonpositive_ra_gain(g_r):
+    """F16：beta_n_of 必须拒 g_r<=0 与 nan/inf（旧口径 `g_r<=0` 漏掉非有限值）。"""
     with pytest.raises(ValueError, match="g_r"):
         KTCBranch(Config(ktc_enable=True)).beta_n_of(np.array([g_r]))
+
+
+def test_ktc_beta_x_of_shares_the_domain_guard():
+    """F16（对称缺口）：beta_x_of 此前**完全没有**域守卫，与 beta_n_of 同源的
+    nan/inf/<=0 漏网。修复后两函数必须拒绝同一组非法 g_r，且合法值有限且等于
+    kappa*g_n*eta_x/2（g_r=2.0 时）。
+    """
+    kb = KTCBranch(Config(ktc_enable=True))
+    for g_r in (0.0, -1.0, float("nan"), float("inf")):
+        with pytest.raises(ValueError, match="g_r"):
+            kb.beta_x_of(np.array([g_r]))
+    got = kb.beta_x_of(np.array([2.0]))
+    assert np.isfinite(got)
+    expect = kb.kappa * kb.g_n * kb.eta_x / 2.0
+    assert float(got[0]) == pytest.approx(expect, rel=1e-12)
 
 
 def test_noiseless_observer_degenerate_path_is_explicit_and_silent():

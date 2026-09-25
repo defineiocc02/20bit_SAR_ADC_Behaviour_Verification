@@ -133,8 +133,8 @@ class AuxInputStage:
             ("r_aux", self.r_aux),
             ("t_acq", self.t_acq),
         ):
-            if v <= 0:
-                raise ValueError(f"{name}={v!r} 必须为正")
+            if not math.isfinite(v) or v <= 0:
+                raise ValueError(f"{name}={v!r} 必须为正有限值")
         return self
 
     # ------------------------------------------------------------ 建立标度律

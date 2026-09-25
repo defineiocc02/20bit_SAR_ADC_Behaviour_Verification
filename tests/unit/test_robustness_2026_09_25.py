@@ -883,7 +883,11 @@ def test_dyn_recovery_accepts_finite():
 
 # --- 站点 14：fit_unit_weights 权重有限正值 ---
 def test_fit_unit_weights_rejects_nonfinite_or_nonpositive():
-    """站点 14：拟合权重须有限正值（用 scipy.linalg.svd 桩强制坏权重）。"""
+    """站点 14：拟合权重须有限正值（用 scipy.linalg.svd 桩强制坏权重）。
+
+    分两层：非有限的 SVD 因子由"因子守卫"在任何矩阵乘法之前拦下；有限但非正的权重由
+    下游权重守卫拦下。两者断言不同的信息串，删除任一层都会让本测试失败。
+    """
     import dataclasses
 
     from scipy.linalg import svd as _real_svd
@@ -934,14 +938,24 @@ def test_fit_unit_weights_rejects_nonfinite_or_nonpositive():
         fit_unit_weights(make_obs(0.0), np.ones(n))
     finally:
         _wc.svd = _real_svd
-    # 非有限 / 非正权重：必须抛 ValueError
-    for bad in (-1.0, float("nan"), float("inf")):
+    # 非有限 SVD 因子：必须由"因子守卫"在任何矩阵乘法之前拦下。若该守卫被删，nan/inf 会
+    # 先走进 design @ theta，0 * inf 触发 RuntimeWarning —— 在 x86-64 后端（CI）是硬失败，
+    # 在 Apple Accelerate 上则静默滑到下游权重守卫、报出不同的信息。因此下面断言专属于因子
+    # 守卫的信息字符串，使本测试对"守卫被删/被移到算术后"这一变异敏感。
+    for bad in (float("nan"), float("inf")):
         _wc.svd = fake(bad)
         try:
-            with pytest.raises(ValueError, match="non-finite"):
+            with pytest.raises(ValueError, match="non-finite factors"):
                 fit_unit_weights(make_obs(-10.0), np.ones(n))
         finally:
             _wc.svd = _real_svd
+    # 有限但非正的权重：SVD 因子是有限的，因子守卫不得误报；必须由下游权重守卫拦下。
+    _wc.svd = fake(-1.0)
+    try:
+        with pytest.raises(ValueError, match="nonpositive"):
+            fit_unit_weights(make_obs(-10.0), np.ones(n))
+    finally:
+        _wc.svd = _real_svd
 
 
 # --- 站点 15：PhysicalSlicePool 电容/寄生有限性 ---

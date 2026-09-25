@@ -318,6 +318,18 @@ def fit_unit_weights(
             block[np.arange(stop - start), ids[:, active], :] = terms[:, active]
     design[:, -1] = 1
     u, s, vh = svd(design, full_matrices=False, check_finite=False, lapack_driver="gesdd")
+    # 独立审查 2026-09-26（v8.2.2）：SVD 因子必须有限，且必须在任何矩阵乘法之前拦下。
+    # 下面的 theta = vh.T @ ((u.T @ fine_v) / s) 以及 residual = fine_v - design @ theta
+    # 会让 design 的零元与 theta 的非有限元相乘，即 0 * inf —— 一次非法浮点运算。是否被
+    # 上报取决于 BLAS 后端：x86-64 OpenBLAS 置位 invalid 标志，numpy 于是抛
+    # RuntimeWarning（本仓 filterwarnings 把 RuntimeWarning 升为硬错误），而 Apple
+    # Accelerate 不置位，缺陷因此在本地潜伏、只在 CI 暴露。放在 rank 比较之前还有第二个
+    # 理由：s 含 nan 时 "nan > x" 恒为假，rank 会被静默低估并报出误导性的可辨识性错误。
+    if not (np.all(np.isfinite(u)) and np.all(np.isfinite(s)) and np.all(np.isfinite(vh))):
+        raise ValueError(
+            "singular value decomposition returned non-finite factors; "
+            "the design matrix is ill-conditioned or the LAPACK backend diverged"
+        )
     rank = int(np.count_nonzero(s > rank_rtol * s[0]))
     if rank < p:
         raise CalibrationUnidentifiableError(

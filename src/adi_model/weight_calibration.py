@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from dataclasses import asdict, dataclass, fields, replace
 
 import numpy as np
@@ -120,6 +121,20 @@ class DigitalObservation:
         spec = self.spec
         if self.slice_ids.shape != (n, spec.n_active) or n == 0:
             raise ValueError("digital slice allocation has the wrong shape")
+        # 独立审查 2026-09-26（v8.2.2）：spec 的电压标度与 dither 档位范围此前没有任何闸门，
+        # 而 `CalibrationSpec.from_config` 才走 cfg.check_legal()——手工构造的 spec 完全绕过。
+        # 这些标量却不是旁观者：design 矩阵由 v_fs 派生，解码后的 fine_v 由 adc2_v_min/v_max
+        # 派生。非有限值一旦漏进来，轻则让 svd 报出 LAPACK 层的 LinAlgError（甚至 “slice 0
+        # has a NaN entry”），重则在 design 的零元与非有限 theta 之间算出 0*inf——一次非法
+        # 浮点运算，是否被上报取决于 BLAS 后端。在入口一次性拦下，比在下游各处补丁更可靠。
+        if not all(
+            math.isfinite(v)
+            for v in (spec.v_fs, spec.adc2_v_min, spec.adc2_v_max, spec.dither_units_range)
+        ):
+            raise ValueError(
+                "calibration physical scales must be finite; the design matrix, the decoded "
+                "fine voltages and the dither masks all derive from them"
+            )
         if not np.issubdtype(self.slice_ids.dtype, np.integer) or not np.issubdtype(
             self.dem_state.dtype, np.integer
         ):

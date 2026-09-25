@@ -958,6 +958,64 @@ def test_fit_unit_weights_rejects_nonfinite_or_nonpositive():
         _wc.svd = _real_svd
 
 
+# --- 站点 14b：CalibrationSpec 电压标度 / dither 档位范围的有限性入口闸门 ---
+@pytest.mark.parametrize(
+    "field_,bad",
+    [
+        ("adc2_v_min", float("nan")),
+        ("adc2_v_max", float("inf")),
+        ("v_fs", float("nan")),
+        ("v_fs", float("inf")),
+        ("dither_units_range", float("inf")),
+    ],
+)
+def test_spec_physical_scales_must_be_finite(field_, bad):
+    """站点 14b：spec 标量非有限须在入口被拦（否则漏成 LAPACK 层 LinAlgError，或 0*inf）。
+
+    `CalibrationSpec.from_config` 会走 `cfg.check_legal()`，但手工构造 / `dataclasses.replace`
+    的 spec 绕过了它。这些标量是 design 矩阵（v_fs）与 `fine_v`（adc2_v_min/v_max）的派生源，
+    必须在 `DigitalObservation.validate()` 处被拒——不能等到 svd 或下游权重守卫。
+    """
+    import dataclasses
+
+    from adi_model.weight_calibration import (
+        CalibrationSpec,
+        DigitalObservation,
+        fit_unit_weights,
+    )
+
+    spec = CalibrationSpec.from_config(Config(dac_arch="split"))
+    p = int(np.prod(spec.shape)) + 1
+    n = p + 5
+    na, ns = spec.n_active, spec.n_slices
+    sid = np.array([[(i + j) % ns for j in range(na)] for i in range(n)], dtype=np.int64)
+    z64 = np.zeros(n, dtype=np.int64)
+    z = np.zeros(n)
+    ov = np.zeros(n, dtype=bool)
+    bad_spec = dataclasses.replace(spec, **{field_: bad})
+    obs = DigitalObservation(bad_spec, sid, z64, z64, z64, z, z, ov, True)
+    with pytest.raises(ValueError, match="physical scales must be finite"):
+        fit_unit_weights(obs, np.ones(n))
+
+
+def test_spec_physical_scales_accepts_finite():
+    """站点 14b 反向：合法有限标度不得被新闸门误伤（同一个 spec 能正常走到参数检查）。"""
+    from adi_model.weight_calibration import CalibrationSpec, DigitalObservation, fit_unit_weights
+
+    spec = CalibrationSpec.from_config(Config(dac_arch="split"))
+    n = int(np.prod(spec.shape)) + 6
+    na, ns = spec.n_active, spec.n_slices
+    sid = np.array([[(i + j) % ns for j in range(na)] for i in range(n)], dtype=np.int64)
+    z64 = np.zeros(n, dtype=np.int64)
+    z = np.zeros(n)
+    ov = np.zeros(n, dtype=bool)
+    obs = DigitalObservation(spec, sid, z64, z64, z64, z, z, ov, True)
+    # 不应是标度闸门；这批数据的 design 必然秩亏，应由可辨识性检查拒绝。
+    with pytest.raises(ValueError) as exc:
+        fit_unit_weights(obs, np.ones(n))
+    assert "physical scales must be finite" not in str(exc.value)
+
+
 # --- 站点 15：PhysicalSlicePool 电容/寄生有限性 ---
 def test_slice_pool_rejects_nonfinite_caps():
     """站点 15：单位/桥接电容与寄生均须有限（用伪 RNG 注入 nan）。"""

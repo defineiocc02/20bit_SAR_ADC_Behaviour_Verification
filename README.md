@@ -10,7 +10,7 @@
 它用于检查电荷、时序、噪声、校准和数字重构是否相互一致，并给出继续仿真的工程依据。
 公开资料没有完整披露电路，因此具体电容分配、部分相位时间、DEM 交换方式和 ADC2 范围均保留为明确假设。
 
-## 结果总览（v8.2.0）
+## 结果总览（v8.2.1）
 
 v8.0.0 把物理 slice 池、交织预跟踪、辅助输入、参考/RA/ADC2 联立动态与定点数字核接入主链路；
 8.1.0 新增数字侧定点 RTL（P0–P3）：可综合校准核、双 SAR/共享 3-bit Flash、18-slice 调度、
@@ -20,7 +20,28 @@ Verilator 仿真与变异测试门禁——行为级 results.json 数值与 v8.0
 
 > **数值差异不可归因于修复**：对逐颗 SNDR 做自助法检验（20 000 次重抽样，图 7）后，5 个分区的 **Δ 最差芯片与 Δ 标准差共 10 项全部落在零分布的 95% 区间内**（|z| ≤ 1.44）。即 n=16 / n=60 下，MC 与良率指标由抽样噪声主导，v8.1.0 与 v8.2.0 的 MC 结论**互不矛盾**。修复的正确性由**代码级缺陷本身**支撑（两条流被同一整数种子播种，探针可复现），不靠输出数字。**不要**拿本模型的 MC 极值做良率论断。
 
-字节账与显著性检验见 [CHANGELOG](CHANGELOG.md)，7 张对比图与 `significance.json` 见 [docs/release_v8.2.0](docs/release_v8.2.0/)。
+8.2.1 针对 v8.2.0 的**独立对抗性复核**所揭示的**一整类**缺陷收口：域校验谓词只查符号或区间、
+忘了查有限性，于是 `nan` / `±inf` 穿过守卫并在下游**静默传播**（`nan <= 0`、`nan < 0` 都为 `False`）。
+共加固 32 行判定 / 13 个源与工具文件，并对齐本仓库既有的正确口径 `not math.isfinite(x) or x <= 0`
+（`config.py:1036`、`chip.py:186`）。另修两处附带缺陷：`AuxInputStage` 可**绕过** `build_stage`
+直接构造（现加 `__post_init__` 强制校验），以及 `rtl_localparams` 里一句**可证明不可达**的死守卫、
+它想防的输入实际抛出非契约的裸 `OverflowError`（现改为契约内 `ValueError`）。
+
+> **本版参考产物零变化**：`results.json` 与 v8.2.0 **逐字节相同**（926 个叶子全部相同），
+> 即全部改动都是"只在非法输入下才响应"的守卫。这一点由**两轮独立对抗验证**交叉确认——
+> 第二轮另做变异检验：15 处源码回退中 14 处对应测试确实失败（唯一"无牙"的那处已被本轮修掉）。
+
+> **未声称的事**：`charge_ref.py` 全文没有任何域守卫，属"守卫**缺失**"另一类，本轮**未**处理（需
+> 单独评审）；`ktc.beta_n_of` / `beta_x_of` 的守卫只保证输入正且有限，**不**保证输出有限
+> （`g_r` 低到 1e-308 仍会溢出为 inf，属数值现实）。详见 [CHANGELOG](CHANGELOG.md)。
+
+字节账与显著性检验见 [CHANGELOG](CHANGELOG.md)，v8.2.0 的 7 张对比图与 `significance.json` 见
+[docs/release_v8.2.0](docs/release_v8.2.0/)；v8.2.1 的加固普查与字节账配图见
+[docs/release_v8.2.1](docs/release_v8.2.1/)。
+
+![v8.2.1 域守卫加固普查](docs/release_v8.2.1/fig/guard_hardening_map.png)
+
+![v8.2.1 参考产物字节账：加固是行为保持的](docs/release_v8.2.1/fig/byte_account_v821.png)
 
 ![v8.1.0 → v8.2.0 关键指标对比](docs/release_v8.2.0/fig/headline_compare.png)
 
@@ -183,7 +204,7 @@ CI 运行 Python 3.10–3.13 测试、3.12 全量 sweep、独立双次确定性�
 @software{zhao_2026_sar_adc_behaviour_model,
   author    = {Zhao, Reed},
   title     = {20-bit SAR ADC Behavioural Verification Model},
-  version   = {8.2.0},
+  version   = {8.2.1},
   year      = {2026},
   publisher = {GitHub},
   url       = {https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification},

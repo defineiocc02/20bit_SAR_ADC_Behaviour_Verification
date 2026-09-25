@@ -550,6 +550,9 @@ def test_sdist_excludes_the_third_party_report_figures():
     # 反向断言：自有图与参考产物必须**仍在**包里，否则 README 的图会 404
     must_keep = [
         "docs/release_v8.2.0/fig/headline_compare.png",
+        "docs/release_v8.2.0/fig/significance_null.png",
+        "docs/release_v8.2.1/fig/guard_hardening_map.png",
+        "docs/release_v8.2.1/fig/byte_account_v821.png",
         "docs/report/figs/fig1_interleave.png",
         "tools/results/results.json",
     ]

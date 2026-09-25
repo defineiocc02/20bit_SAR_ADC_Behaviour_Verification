@@ -1,0 +1,103 @@
+{
+  "head": "3c05145",
+  "code_tip": "3c05145",
+  "base_tag": "v8.2.0",
+  "per_batch_added": {
+    "c1ee507": {
+      "src/adi_model/aux_input.py": 1,
+      "src/adi_model/ktc.py": 2
+    },
+    "c76eb503": {
+      "src/adi_model/aux_input.py": 2,
+      "src/adi_model/calib.py": 1,
+      "src/adi_model/config.py": 2,
+      "src/adi_model/conversion.py": 3,
+      "src/adi_model/dynamics.py": 2,
+      "src/adi_model/interleave_tracking.py": 7,
+      "src/adi_model/pretracking.py": 1,
+      "src/adi_model/ref_track.py": 2,
+      "src/adi_model/reference_charge.py": 3,
+      "src/adi_model/slice_pool.py": 3,
+      "src/adi_model/weight_calibration.py": 1,
+      "tools/export_rtl_params.py": 1
+    },
+    "13d1ea9": {},
+    "3c05145": {
+      "tools/export_rtl_params.py": 1
+    }
+  },
+  "per_batch_removed": {
+    "c1ee507": {},
+    "c76eb503": {
+      "src/adi_model/conversion.py": 1
+    },
+    "13d1ea9": {},
+    "3c05145": {
+      "tools/export_rtl_params.py": 1
+    }
+  },
+  "total_added": 32,
+  "total_rewritten_or_removed": 2,
+  "removed_per_file": {
+    "c1ee507": {},
+    "c76eb503": {
+      "src/adi_model/conversion.py": 1
+    },
+    "13d1ea9": {},
+    "3c05145": {
+      "tools/export_rtl_params.py": 1
+    }
+  },
+  "files_touched": [
+    "src/adi_model/aux_input.py",
+    "src/adi_model/calib.py",
+    "src/adi_model/config.py",
+    "src/adi_model/conversion.py",
+    "src/adi_model/dynamics.py",
+    "src/adi_model/interleave_tracking.py",
+    "src/adi_model/ktc.py",
+    "src/adi_model/pretracking.py",
+    "src/adi_model/ref_track.py",
+    "src/adi_model/reference_charge.py",
+    "src/adi_model/slice_pool.py",
+    "src/adi_model/weight_calibration.py",
+    "tools/export_rtl_params.py"
+  ],
+  "leaf_account": {
+    "base_tag": "v8.2.0",
+    "head": "3c05145",
+    "leaves_old": 926,
+    "leaves_new": 926,
+    "shared": 926,
+    "identical": 926,
+    "changed": 0,
+    "only_in_old": [],
+    "only_in_new": []
+  },
+  "other_hardening": [
+    {
+      "commit": "c1ee507",
+      "file": "src/adi_model/mapper.py",
+      "kind": "整数性判定",
+      "detail": "Mapper.encode 拒绝域内分数粗码（原只查 [0, n_code) 区间）"
+    },
+    {
+      "commit": "13d1ea9",
+      "file": "src/adi_model/aux_input.py",
+      "kind": "可达性",
+      "detail": "AuxInputStage.__post_init__ 强制走 validated()，堵住直接构造绕过守卫"
+    },
+    {
+      "commit": "3c05145",
+      "file": "tools/export_rtl_params.py",
+      "kind": "动态契约",
+      "detail": "phases 入口校验：非有限/非整数改抛契约内 ValueError（原为裸 OverflowError）"
+    },
+    {
+      "commit": "3c05145",
+      "file": "tools/export_rtl_params.py",
+      "kind": "死判定清除",
+      "detail": "删除循环内可证明不可达的 not math.isfinite(value) 子句（raw 的 value 恒为 int）"
+    }
+  ]
+}

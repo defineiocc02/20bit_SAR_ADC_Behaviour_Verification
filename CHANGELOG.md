@@ -4,6 +4,90 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.2.1] — 2026-09-26
+
+对 v8.2.0 的**独立对抗性复核**（隔离副本、独立探针、不复用作者测试作为证据）所揭示的
+**一整类**缺陷收口：域校验谓词只查符号或区间、忘了查有限性，于是 `nan` / `±inf` 穿过守卫并在
+下游**静默传播**成 nan。本轮同时修掉复核顺带找到的"守卫可被绕过"与"死守卫 + 非契约异常"两处。
+
+**参考产物零变化**：`results.json` 与 v8.2.0 **逐字节相同**（926 个叶子全部相同，见
+[docs/release_v8.2.1](docs/release_v8.2.1/)）。这不是声称——本轮全部改动都是"只在非法输入下
+才响应"的守卫，字节账即其证明。
+
+### Fixed — 非有限值穿过"只查符号"的守卫（一类缺陷，全库收口）
+
+`nan <= 0`、`inf <= 0`、`nan < 0` **全都为 `False`**，所以只查符号的谓词对非有限值**静默放行**。
+本仓库既有的正确口径是 `not math.isfinite(x) or x <= 0`（见 `config.py:1036`、`chip.py:186`、
+`conversion.py:66`），本轮把偏离该口径的位置逐一对齐（32 行判定 / 13 个源与工具文件）：
+
+| 文件 | 加固点 | 原缺陷后果 |
+| :--- | :--- | :--- |
+| `config.py` | `legality_violations`：`fs`、`v_fs` | 同文件相邻的 g0/c_total0/c_feedback0 早已用 `isfinite`，仅这两处漏；`nan` 会让 `1/fs`、`ktc_dt()`、LSB、增益判据全部静默变 nan |
+| `ref_track.py` | `reference_precision_bits`（err_rms/span_v）；`RefTrackConfig.validated` 的十字段循环 | 同上；该循环下方 207/209/211 用 `0 < x <= 1` 写法**天然拦得住** nan，只有这一组拦不住 |
+| `interleave_tracking.py` | `TrackPolicy` 权重；`filter_bw_relative`；`filter_bw_absolute`（四参数）；`noise_ratio_from_bw` | 四个公开 API 的 `nan` 会静默进加权组合 / 返回 nan |
+| `aux_input.py` | `validated()` 六字段循环；`aux_residual` 的 `t_aux`；`driver_charge_per_sample` 的 `dv` | `parasitic_tau = r_aux·c_parasitic` 静默变 nan |
+| `ktc.py` | `beta_n_of`；`beta_x_of`（**此前完全无守卫**） | `beta_n = κ·g_n·η_n/nan = nan` 静默传播 |
+| `reference_charge.py` | `sar_loading_codes` 的 coarse/units；**新增** `dither` 守卫 | 码序列可静默含 nan |
+| `conversion.py` | `response_interval`：isfinite 扩展到 tau_ref_s / clip_v | 只查了 dt_s |
+| `dynamics.py` | 两处镜像的 `dyn_tau_ref` 守卫 | cfg 绕过 `check_legal` 时漏 |
+| `pretracking.py` | `QuantizedPretracker` 的 `lower_v`（**此前完全无校验**） | 直接进估计器 |
+| `slice_pool.py` | `PhysicalSlicePool` 的 unit_caps / bridge_caps / sub_parasitic | 三数组缺 isfinite |
+| `weight_calibration.py` | `fit_unit_weights` 的权重 | 缺 isfinite |
+| `calib.py` | `required_samples` 的 `tgt` | 返回 `n_samples = nan` |
+| `tools/export_rtl_params.py` | 循环守卫的有限性子句（见下，已改写为可达形态） | 见"死守卫"一条 |
+
+另有一处非"有限性"形态的加固：`mapper.Mapper.encode` 此前只查粗码落在 `[0, n_code)`，域内的
+**分数粗码**（如 `2.5`）被放行、产出非整数单位数 —— 现增整数性判定。（全部生产调用点均传
+`int64`；`experiments.py` 的分数码路径是在 `encode` **之后**才覆盖 `cmd.k`，不经过粗码入参。）
+
+### Fixed — 守卫可被绕过：`AuxInputStage` 直接构造
+
+`AuxInputStage` 是 frozen dataclass，守卫只在 `validated()` 里、且只被 `build_stage()` 调用。
+复核者实测反例：绕过 `build_stage` 直接构造 `r_aux=inf` 后调 `required_filter_bw("off")`，
+**静默返回一个数**（受污染的 8.8e6），无任何报错。生产路径目前只经 `build_stage` 故不可达，
+但这是防御纵深缺口（对照 `RefTrackSim.__init__` 是**强制**调 `.validated()` 的）。
+现加 `__post_init__` 调 `validated()`：任何构造路径都过守卫。隔离副本上另行确认
+`dataclasses.replace()` / `copy` / `deepcopy` / `pickle` 均未被打断，6 处构造点无一被误拦。
+
+### Fixed — 死守卫与非契约异常：`rtl_localparams.phases`
+
+循环守卫里那句 `not math.isfinite(value)` 是**可证明不可达的死代码**：`raw` 有类型标注
+`list[tuple[str, int, int, str, str]]`，每个 value 都是 `int(...)` / `math.ceil(...)` 或整数运算。
+变异检验（删掉该子句）显示对应测试**仍然通过**——即"虚假保护"。而它想防的非有限输入只能来自
+入参 `phases`，因为 `phases` 被写作 `int(phases)`，`phases=inf` 实际抛出的是**裸 `OverflowError`**、
+根本没走到守卫 —— 这与 N1（`mapper.encode` 标量输入曾抛 `TypeError` 而非契约内 `ValueError`）
+是同一类缺陷。现：入口显式校验 `phases`（非有限/非整数 → `ValueError`），并删掉循环里的死子句、
+以注释登记"raw 的 value 恒为 int，若将来引入浮点项须恢复有限性校验"这一不变量。
+
+### 独立验证（两轮，均由未参与修复的复核者在钉死的隔离副本上完成）
+
+| 轮次 | 对象 | 结论 |
+| :--- | :--- | :--- |
+| 第一轮 | `c1ee507` | 四处守卫本体全部**未能证伪**（数值与公式逐位一致）；**找到** B1 绕过缺口与本条"输出有限性"边界 |
+| 第二轮 | `13d1ea9` | 22 个站点 `nan`/`±inf` 全部被拒、合法有限值全部被接受；**0 个过度收紧回归**；反向扫描全库"真·残留缺陷 **0 处**"；变异检验 15 处回退中 **14 处有牙** |
+| 字节指纹 | — | 独立两遍完整跑批均 `5ff9ef9a…394123`，彼此逐字节一致且与 v8.2.0 登记值相同 |
+
+### 诚实边界（本版**未**声称的事）
+
+- **`charge_ref.py` 全文没有任何域守卫 —— 本轮未处理。** 那属于"守卫**缺失**"而非"守卫漏查
+  有限性"，是另一类问题；且它是闭环交叉校验的参照实现，加守卫需要单独评审。本轮的反向扫描只
+  报告它的存在，**不**把它算进"已收口"的计数里。
+- **守卫保证输入"正且有限"，不保证输出有限。** `ktc.beta_n_of` / `beta_x_of` 在 `g_r` 小到
+  `1e-308` 乃至 `nextafter(0,1)=5e-324` 时商仍会溢出为 `inf`。这是数值现实而非守卫漏洞 ——
+  **拒绝极小正值反而是错的**（会误伤合法输入）。该边界已写进两个方法的 docstring。
+- **两条回归测试不是本次修复的"变异探测器"。** 回退源码后 `F11 超定分支`与 `F9 均匀 profile`
+  两条仍通过，原因不是修复无效：超定+秩亏时 `UtU` 恰奇异、旧代码本就回退 `lstsq`；均匀 profile
+  下新旧公式**按构造恰好重合**。二者的定位是**钉住不变量/契约**，已在 docstring 中写明，避免
+  后人误以为它们给修复上了护栏。
+- MC / 良率数值与 v8.2.0 **完全相同**，因此 v8.2.0 的自助法结论原样沿用：n=16 / n=60 下
+  MC 与良率指标由抽样噪声主导，**不要**拿本模型的 MC 极值做良率论断。
+
+### 发布物
+
+- `docs/release_v8.2.1/make_guard_charts.py` 与 `fig/`：**2 张**数据对比图（加固普查分布、
+  参考产物字节账），配套 `guard_census.json`。图中所有计数**由 `git diff` 现场推导**，
+  脚本内不硬编码任何数字。
+
 ## [8.2.0] — 2026-09-25
 
 独立审查（2026-09-25）后的加固与参考产物重标定。本轮含 **17 项既有发现的修复**

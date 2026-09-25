@@ -19,14 +19,24 @@ backend ranges remain explicitly assumed implementations.
 
 > **The numerical deltas cannot be attributed to the fix.** A bootstrap test on the per-chip SNDR (20,000 resamples, chart 7) puts **all 10 statistics - delta-worst-chip and delta-sigma across 5 sections - inside the 95% null band** (|z| <= 1.44). At n=16 / n=60 the MC and yield metrics are sampling-noise dominated, so the v8.1.0 and v8.2.0 MC conclusions **do not contradict each other**. The case for the fix rests on the **code-level defect** (one integer seed seeding both streams, reproducible by probe), not on these outputs. **Do not** read the MC extremes of this model as yield claims.
 
-Byte accounting and the significance test are in the [CHANGELOG](CHANGELOG.md); the 7 comparison charts and `significance.json` are in [docs/release_v8.2.0](docs/release_v8.2.0/).
+8.2.1 closes an entire **class** of defects exposed by an independent adversarial re-review of v8.2.0: domain-validation predicates checked only the sign or the range and forgot finiteness, so `nan` / `+/-inf` slipped through and **propagated silently** (`nan <= 0` and `nan < 0` are both `False`). 32 predicate lines across 13 source/tool files were hardened onto the repository's existing correct idiom `not math.isfinite(x) or x <= 0` (`config.py:1036`, `chip.py:186`). Two adjacent defects were fixed as well: `AuxInputStage` could be built directly, **bypassing** `build_stage` (a `__post_init__` now forces validation), and `rtl_localparams` carried a **provably unreachable** dead guard whose intended input actually escaped as a bare `OverflowError` (now a contract-consistent `ValueError`).
+
+> **This release changes no reference output.** `results.json` is **byte-identical** to v8.2.0 (all 926 leaves identical) - every change is a guard that only fires on invalid input. This is cross-checked by **two independent adversarial verification rounds**; the second also ran mutation tests: reverting 15 source guards made the corresponding test fail in 14 cases (the single toothless one was fixed in this release).
+
+> **What this release does NOT claim.** `charge_ref.py` has no domain guards at all - that is a "missing guard" problem of a different class and was deliberately **not** addressed here (it needs its own review); the `ktc.beta_n_of` / `beta_x_of` guards guarantee a positive finite *input* but not a finite *output* (`g_r` as small as 1e-308 still overflows to inf - a numerical reality, not a guard hole). See the [CHANGELOG](CHANGELOG.md).
+
+Byte accounting and the significance test are in the [CHANGELOG](CHANGELOG.md); the 7 comparison charts and `significance.json` are in [docs/release_v8.2.0](docs/release_v8.2.0/); the v8.2.1 hardening census and byte account are in [docs/release_v8.2.1](docs/release_v8.2.1/).
 
 ![v8.1.0 to v8.2.0 headline metric comparison](docs/release_v8.2.0/fig/headline_compare.png)
 
 ![Bootstrap test: all 10 deltas inside the 95% resampling null band](docs/release_v8.2.0/fig/significance_null.png)
 
+![v8.2.1 domain-guard hardening census](docs/release_v8.2.1/fig/guard_hardening_map.png)
 
-## Results at a glance (v8.2.0)
+![v8.2.1 reference-output byte account: the hardening is behaviour-preserving](docs/release_v8.2.1/fig/byte_account_v821.png)
+
+
+## Results at a glance (v8.2.1)
 
 v8.0.0 integrates the physical slice pool, interleave pretracking, auxiliary
 input, coupled reference/RA/ADC2 dynamics and the fixed-point digital core into

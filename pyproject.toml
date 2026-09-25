@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 # ----------------------------------------------------------------- 项目元数据
 [project]
 name = "sar-adc-behaviour-verification"
-version = "8.2.0"
+version = "8.2.1"
 description = "Behavioural model of a two-stage residual SAR ADC inspired by ISSCC 2024 / Session 9.8 (Bodnar et al., 20-bit 40 MS/s precision SAR)."
 readme = "README.md"
 requires-python = ">=3.10"

@@ -996,20 +996,32 @@ def test_driver_charge_per_sample_accepts_finite():
     assert np.isfinite(out["ratio"])
 
 
-# --- 站点 18：export_rtl_params.rtl_localparams(value) 有限性 ---
+# --- 站点 18 / M15：export_rtl_params.rtl_localparams(phases) 入口校验 ---
 def test_export_rtl_params_rejects_out_of_range():
-    """站点 18：RTL 参数宽度越界须被守卫拒绝（守卫行 ~409）。"""
+    """站点 18：RTL 参数宽度越界须被守卫拒绝（区间校验，消息 does not fit）。"""
     exporter = _load_exporter()
     with pytest.raises(ValueError, match="does not fit"):
         exporter.rtl_localparams(Config(), exporter.FixedPointFormat(), phases=100)
 
 
-@pytest.mark.parametrize("bad", [float("nan"), float("inf")])
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), 3.5])
 def test_export_rtl_params_rejects_nonfinite(bad):
-    """站点 18：非有限 phases 在导出前即被拒（int() 转换已挡在未达守卫处）。"""
+    """站点 18 / M15：phases 是唯一浮点入口，须给契约内的 ValueError。
+
+    修复前：非有限 phases 在 int(phases) 处抛裸 OverflowError（非契约异常，同类 N1），
+    且循环里 `not math.isfinite(value)` 对全-int 的 raw 永远为假、是死守卫。
+    现在入口即校验：nan/inf/非整数浮点（3.5）一律抛 ValueError，消息含"有限的整数值"。
+    """
     exporter = _load_exporter()
-    with pytest.raises((ValueError, OverflowError)):
+    with pytest.raises(ValueError, match="有限的整数值"):
         exporter.rtl_localparams(Config(), exporter.FixedPointFormat(), phases=bad)
+
+
+def test_export_rtl_params_accepts_legal_integer_phases():
+    """站点 18 / M15：合法整数 phases（16）正常返回，不被入口校验误伤。"""
+    exporter = _load_exporter()
+    out = exporter.rtl_localparams(Config(), exporter.FixedPointFormat(), phases=16)
+    assert any(r["name"] == "PHASES" and r["value"] == 16 for r in out)
 
 
 # --- B1 闭环：AuxInputStage 直接构造须过 validated() 守卫 ---

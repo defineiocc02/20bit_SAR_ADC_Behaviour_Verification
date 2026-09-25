@@ -301,6 +301,13 @@ def rtl_localparams(cfg: Config, fmt: FixedPointFormat, phases: int) -> list[dic
             ``units_per_lsb1`` disagrees with ``dac_levels // 2**b1`` (the single
             source of truth required by ADR 0004).
     """
+    # M15（独立审查 2026-09-25 第三轮）：phases 是 raw 里唯一可能为浮点的入口。
+    # 必须在 int(phases) 之前校验：非有限或非整数一律给契约内的 ValueError，
+    # 否则 int(inf)/int(nan) 会抛裸 OverflowError、int(3.5) 会截断掩盖非整数输入
+    # （非契约异常，同类 N1：入口非法输入一律显式 ValueError）。
+    if not math.isfinite(phases) or int(phases) != phases:
+        raise ValueError(f"phases={phases!r} 必须是有限的整数值（RTL 相位刻度数）")
+
     # ADR 0004 的教训：两条通路各自推导步长，b1=6 时数值巧合相等而长期掩盖分歧。
     # 导出时就把它变成硬门禁，而不是等到两条 RTL 通路各写一遍。
     from_dac = int(cfg.dac_levels) // (2 ** int(cfg.b1))
@@ -406,8 +413,11 @@ def rtl_localparams(cfg: Config, fmt: FixedPointFormat, phases: int) -> list[dic
 
     out: list[dict[str, Any]] = []
     for name, value, width, group, source in raw:
-        # 独立审查 2026-09-25：value 须为有限值
-        if not math.isfinite(value) or value < 0 or value >= 1 << width:
+        # raw 的全部 value 在构造处即为 int（见 raw 的类型标注：fmt.* 由
+        # FixedPointFormat.__post_init__ 保证为正 int，cfg.* 均经 int() 包裹，
+        # rot_* 为 math.ceil 返回，phases 已在上文入口校验）——此处只需区间校验；
+        # 若将来引入浮点项，须在此恢复有限性校验。
+        if value < 0 or value >= 1 << width:
             raise ValueError(f"{name}={value} does not fit in {width} bits")
         grade = SourceGrade.ASSUMED if group == "rtl_choice" else SourceGrade.DERIVED
         out.append(

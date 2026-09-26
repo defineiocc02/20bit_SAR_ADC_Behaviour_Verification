@@ -555,6 +555,14 @@ def test_sdist_excludes_the_third_party_report_figures():
         "docs/release_v8.2.1/fig/byte_account_v821.png",
         "docs/release_v8.2.2/fig/ingress_closure_v822.png",
         "docs/release_v8.2.2/fig/byte_account_v822.png",
+        # README 的架构/对应关系配图：被首页引用，必须留在包内
+        "docs/readme/fig/fig1_architecture.png",
+        "docs/readme/fig/fig2_modules.png",
+        "docs/readme/fig/fig3_source_alignment.png",
+        "docs/readme/fig/fig4_disclosed_anchors.png",
+        "docs/readme/fig/fig5_provenance_grades.png",
+        "docs/readme/fig/fig6_verification.png",
+        "docs/readme/fig/fig7_mapping.png",
         "docs/report/figs/fig1_interleave.png",
         "tools/results/results.json",
     ]

@@ -124,6 +124,10 @@ module calibration_fit_tb;
          dout!==expected || flags!==expected_flags)
         $fatal(1,"fitted holdout mismatch n=%0d got=%h expected=%h id=%0d latency=%0d flags=%b expected_flags=%b",
           samples,dout,expected,result_id,latency,flags,expected_flags);
+      // Preserve the observed result, not only a final PASS marker, so a
+      // reviewer can independently plot every held-out output and its timing.
+      $display("FIT_ROW n=%0d actual=%05h expected=%05h flags=%02h expected_flags=%02h latency=%0d id=%0d",
+               samples,dout,expected,flags,expected_flags,latency,result_id);
     end
     $fclose(fd);
     if(samples!=128) $fatal(1,"fitted holdout was incomplete: %0d",samples);

@@ -13,7 +13,7 @@ from dataclasses import asdict, dataclass
 import numpy as np
 
 from ._arrays import readonly as _readonly
-from .weight_calibration import CalibrationSpec, DigitalObservation, _terms
+from .weight_calibration import CalibrationSpec, DigitalObservation, FrozenCalibration, _terms
 
 
 def round_even_divide(n: int, d: int) -> int:
@@ -121,7 +121,7 @@ class FixedPointReconstructor:
         data = DigitalObservation.from_result(result)
         model = result.state.weight_calibration
         if model is not None:
-            return cls.from_weights(data.spec, model.weights, model.offset_v, format=format)
+            return cls.from_frozen_calibration(data.spec, model, format=format)
         spec = data.spec
         beta = 1 / spec.dac_n_sub
         unit = result.state.estimated_gain / (
@@ -130,6 +130,17 @@ class FixedPointReconstructor:
         weights = np.full(spec.shape, unit)
         weights[:, spec.dac_n_main :] *= beta
         return cls.from_weights(spec, weights, format=format)
+
+    @classmethod
+    def from_frozen_calibration(
+        cls, spec: CalibrationSpec, model: FrozenCalibration, *, format=None
+    ):
+        """Quantize an external fit only when its geometry and voltage scale match."""
+        if model.weights.shape != spec.shape or model.v_fs != spec.v_fs:
+            raise ValueError(
+                "frozen calibration geometry or Vfs differs from the RTL configuration"
+            )
+        return cls.from_weights(spec, model.weights, model.offset_v, format=format)
 
     def reconstruct(self, data: DigitalObservation) -> CodeStream:
         """Merge raw backend codes and realizable switch masks into final integer words.

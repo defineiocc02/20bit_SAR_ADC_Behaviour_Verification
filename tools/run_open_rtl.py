@@ -24,6 +24,7 @@ def main() -> None:
     benches = {
         "sar_trial_tb": "SAR_TRIAL_COMPLETE",
         "calibration_recovery_tb": "CALIBRATION_RECOVERY_COMPLETE",
+        "calibration_fit_tb": "CALIBRATION_FIT_COMPLETE",
         "structural_adc_tb": "STRUCTURAL_ADC_COMPLETE",
         "calibration_physical_tb": "CALIBRATION_PHYSICAL_COMPLETE",
         "review_top_protocol_tb": "REVIEW_TOP_PROTOCOL_COMPLETE",

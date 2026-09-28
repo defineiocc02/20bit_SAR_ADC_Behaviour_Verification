@@ -66,6 +66,13 @@ module weight_store #(
   localparam logic [W_BITS-1:0]   W_ZERO  = {W_BITS{1'b0}};
   localparam logic [W_BITS-1:0]   W_MAX   = 48'd1 << 47;   // 2^47
   localparam logic [SUM_BITS-1:0] SUM_MAX = 64'd1 << 60; // 2^60
+  // For every supported production geometry the capacity predicate is
+  // statically true: 32*128*(2^47-1) < 2^59 < 2^60.  Keep the dynamic guard
+  // as an elaboration-time fallback if either width/limit changes later.
+  // Synthesis can then prune the unused read/subtract/add/compare path and
+  // sum_all register while preserving the existing write/clear protocol.
+  localparam logic STATIC_SUM_SAFE =
+      (64'(P_N_SLICES) * 64'(P_N_UNITS) * 64'(W_MAX - 1'b1)) < SUM_MAX;
 
   logic [P_N_SLICES-1:0][P_N_UNITS-1:0] written;
   assign load_complete = &written;
@@ -98,7 +105,7 @@ module weight_store #(
   assign sum_excl = sum_all - {{(SUM_BITS - int'(W_BITS)){1'b0}}, cur_w};
   assign sum_new  = sum_excl + {{(SUM_BITS - int'(W_BITS)){1'b0}}, wr_data};
 
-  assign accept    = wr_en && (!clear_load) && (!cfg_ready) && idx_ok && w_ok && (sum_new < SUM_MAX);
+  assign accept    = wr_en && (!clear_load) && (!cfg_ready) && idx_ok && w_ok && (STATIC_SUM_SAFE || (sum_new < SUM_MAX));
   assign err_write = wr_en && (!accept);
 
   always_ff @(posedge clk) begin

@@ -1,6 +1,6 @@
 # `rtl/` —— 可综合 RTL 子树
 
-> RTL 结构与校准更新（2026-09-20）：默认顶层为双 SAR / 共享3-bit Flash / 18-slice调度；旧粗细码向量请显式使用 `P_STRUCTURAL=0`。详见 [结构与数字校正说明](../docs/rtl/STRUCTURAL_CALIBRATION_20260920.md) 与相应 ADR0018。文献披露、工程假设和模拟签核边界分别列出。
+> RTL 结构与校准更新：默认顶层为双 SAR / 共享3-bit Flash / 18-slice调度；旧粗细码向量请显式使用 `P_STRUCTURAL=0`。详见 [结构与数字校正说明](../docs/rtl/STRUCTURAL_CALIBRATION_20260920.md)、[外部拟合到 RTL 闭环](../docs/adr/0019-fitted-weight-rtl-closure.md) 及 ADR0018。文献披露、工程假设和模拟签核边界分别列出。
 
 
 当前修订入口：[完整 RTL 修复报告](../docs/rtl/COMPLETE_RTL_REPAIR_20260920.md)、
@@ -34,7 +34,8 @@
 |:---|:---|:---|:---|
 | `rtl/params/rtl_params.vh` | **可综合常量**：位宽、计数、状态数、模式码。只含无量纲整数 | `tools/export_rtl_params.py` 生成，**禁止手工编辑** | 编译期 `` `include `` |
 | `sim/vectors/params_*.json` | **配置与单位元数据**：模拟量的精确有理数、每个参数的来源分级、寄存器实测值 | 同上 | 测试台／Spectre 转交／人读 |
-| `sim/vectors/registers_*.json` | **待载入的整数标定镜像**（Q30 权重、Q32 偏移与后端范围） | 同上，取自一次真实运行 | RTL 载入（未来的 `calib_regs` / `weight_store`） |
+| `sim/vectors/registers_*.json` | **待载入的整数标定镜像**（Q30 权重、Q32 偏移与后端范围） | 参数导出器 | RTL 的 `calib_regs` / `weight_store` |
+| `sim/vectors/fitted18_registers.json` | **外部拟合后量化的整数镜像**，与冻结训练文件分别带哈希 | `tools/export_fitted_rtl.py` | `calibration_fit_tb` 的真实寄存器装载 |
 | `sim/vectors/{stimulus,expected}_*.hex` | **黄金激励与期望码流**（L3 链路级用） | 同上 | RTL testbench |
 | `sim/vectors/p1_*.hex` | **P1 穷举／定向向量** | `tools/export_rtl_vectors.py` | `sim/tb/p1_tb.sv` |
 
@@ -175,10 +176,9 @@ tests/unit/
 * **P4 可选加速器**：`gain_acc`（增益 LMS）与 `pretrack`（因果队列 + 3 抽头）—— 按 D4 一期不排期；
 * **SpyGlass lint / Formality 等价 / PrimeTime STA**：`synth/` 目前只做 DC 综合与面积/时序基线，
   形式与签核工具尚未接入；
-* **顶层 L3 的 dither 注入**：`sar20_digital_core` 没有 dither 输入端口，链路级 bit-exact 靠
-  仿真期 `force`（见 `sim/tb/p3_top_tb.sv` 模块头）—— **该路径不覆盖 `dither_gen`**；
+* **模拟 dither 注入的晶体管级验收**：顶层有数字 dither 控制，模拟宏仍须实现实际电压/电荷注入及建立；
 * 覆盖率采集（`-cm` 已验证可用，P1 未开启）；
-* `shuffle_causal` 调度：RTL 只实现确定性 A/B ping-pong，洗牌调度保留为仿真实验；
+* `shuffle_causal` 与模拟时钟误差联合验收：已有数字 slice 池调度，模拟时序和非理想项仍需验证；
 * 自校正/后台校准硬件（计划 §8 R9：KTC 观测支路被算术契约拒绝，需先补 ADR）。
 
 ---

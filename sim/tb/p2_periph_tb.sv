@@ -351,6 +351,7 @@ module p2_periph_tb;
         (64'd1278 * {{(64-W_BITS){1'b0}}, WMAX1}) < (64'd1 << 60));
     chk("T1 界证明：端口可寻址上限 4096*(2^47-1) < 2^60",
         (64'd4096 * {{(64-W_BITS){1'b0}}, WMAX1}) < (64'd1 << 60));
+    chk("T1 静态容量证明使运行时守卫可被综合裁剪", u_ws.STATIC_SUM_SAFE);
     chk("T1 全库和确实 < 2^60（SUM_MAX）", u_ws.sum_all < (64'd1 << 60));
 
     check_weight_sum();

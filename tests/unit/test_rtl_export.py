@@ -329,6 +329,21 @@ def test_export_is_deterministic(exporter):
     assert first["expected_text"] == second["expected_text"]
 
 
+def test_stimulus_is_bound_to_register_image_not_only_parameters(exporter):
+    import hashlib
+
+    built = exporter.build("paper_literal", phases=16, dither_mode=None, stimulus=8, n_image=8)
+    summary = built["stimulus_summary"]
+    register_sha = hashlib.sha256(built["registers_json"].encode("utf-8")).hexdigest()
+    assert summary["register_payload_sha256"] == register_sha
+    assert register_sha != built["meta"]["payload_sha256"]
+    # The same interface can have different physical coefficients.
+    changed = json.loads(built["registers_json"])
+    changed["weights_q"][0][0] += 1
+    changed_sha = hashlib.sha256(exporter._json_text(changed).encode("utf-8")).hexdigest()
+    assert changed_sha != register_sha
+
+
 def test_unary_topology_skips_the_register_image_loudly(exporter):
     built = exporter.build("paper_consistent", phases=16, dither_mode=None, stimulus=16, n_image=16)
     assert "registers_json" not in built

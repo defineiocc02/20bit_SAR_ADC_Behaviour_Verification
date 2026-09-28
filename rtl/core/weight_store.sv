@@ -72,7 +72,7 @@ module weight_store #(
   // Synthesis can then prune the unused read/subtract/add/compare path and
   // sum_all register while preserving the existing write/clear protocol.
   localparam logic STATIC_SUM_SAFE =
-      (64'(P_N_SLICES) * 64'(P_N_UNITS) * 64'(W_MAX - 1'b1)) < SUM_MAX;
+      (64'(P_N_SLICES) * 64'(P_N_UNITS) * (64'(W_MAX) - 64'd1)) < SUM_MAX;
 
   logic [P_N_SLICES-1:0][P_N_UNITS-1:0] written;
   assign load_complete = &written;

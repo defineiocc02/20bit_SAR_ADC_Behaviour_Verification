@@ -1,0 +1,4 @@
+OUTPUT_FLAG_SEQUENCE_PASS scenarios=8
+[62000] %Fatal: arithmetic_audit_tb.sv:95: Assertion failed in arithmetic_audit_tb.seq.unnamedblk1: DIV mismatch line=2 got=7f00000000000000 expected=4000000000000000 err=0 expected_err=0 latency=9
+%Error: /tmp/sar_cal_audit_20260930/repo/sim/tb/arithmetic_audit_tb.sv:95: Verilog $stop
+Aborting...

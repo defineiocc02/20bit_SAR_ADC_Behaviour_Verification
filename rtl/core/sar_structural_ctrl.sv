@@ -22,7 +22,7 @@ module sar_structural_ctrl #(
     output wire [17:0] aux_charge_enable,hold_low_enable,
     output wire [1:0] coarse_compare_enable,
     output logic [1:0] coarse_acquire_enable,
-    output wire flash_acquire_enable,fine_acquire_enable,
+    output logic flash_acquire_enable,fine_acquire_enable,
     output wire [1:0][8:0] coarse_trial,
     output wire [1:0][7:0] quantizer_dither,
     output wire [3:0] acquisition_dither_rails,
@@ -63,8 +63,11 @@ module sar_structural_ctrl #(
   assign aux_charge_enable=(enable && rst_n)?acquiring_mask:'0;
   assign hold_low_enable=(enable && rst_n)?~acquiring_mask:'1;
   assign flash_sample=quiet_sample;
-  assign flash_acquire_enable=enable && rst_n && (phase>=2 || phase==0);
-  assign fine_acquire_enable=enable && rst_n && (phase>=14 || phase==0);
+  // Analog acquisition/compare enables must not see a multi-bit phase decode.
+  // Register the next-phase decisions alongside the phase counter. In
+  // particular, carry skew at phase 7->8 must not resemble phase 14 and reopen
+  // fine acquisition or cancel a comparator evaluation between clock edges.
+  logic coarse_cancel,fine_cancel;
   logic bank;
   wire [2:0] flash_code;
   sadc_enc #(.P_B1(3)) u_flash(.cmp_raw(flash_therm),.sadc_code(flash_code));
@@ -73,7 +76,7 @@ module sar_structural_ctrl #(
   for(genvar b=0;b<2;b++) begin : g_coarse
     sar_trial_ctrl #(.P_BITS(9),.P_SEED_BITS(3)) u_sar(
       .clk(clk),.rst_n(rst_n),.enable(enable),
-      .start(advance && flash_valid && bank==1'(b)),.cancel(phase==8),
+      .start(advance && flash_valid && bank==1'(b)),.cancel(coarse_cancel),
       .seed_code({flash_code,6'b0}),.cmp_valid(coarse_cmp_valid[b]),.cmp_ge(coarse_cmp_ge[b]),
       .trial_code(coarse_trial[b]),.resolved_code(resolved[b]),.busy(coarse_busy[b]),
       .done(coarse_done[b]),.resolved_valid(coarse_update[b]),.compare_enable(coarse_compare_enable[b]));
@@ -82,7 +85,7 @@ module sar_structural_ctrl #(
   wire [11:0] fine_resolved;
   wire context_valid;
   sar_trial_ctrl #(.P_BITS(12),.P_SEED_BITS(0)) u_fine(
-    .clk(clk),.rst_n(rst_n),.enable(enable),.start(advance && context_valid),.cancel(phase==14),
+    .clk(clk),.rst_n(rst_n),.enable(enable),.start(advance && context_valid),.cancel(fine_cancel),
     .seed_code(12'd0),.cmp_valid(fine_cmp_valid),.cmp_ge(fine_cmp_ge),
     .trial_code(fine_trial),.resolved_code(fine_resolved),.busy(fine_busy),.done(fine_done),
     .resolved_valid(fine_update),.compare_enable(fine_compare_enable));
@@ -137,9 +140,17 @@ module sar_structural_ctrl #(
   assign recon_start=enable && phase==15 && context_valid && fine_ok && !recon_busy;
   always_ff @(posedge clk) begin
     if(!rst_n || !enable) begin
+      flash_acquire_enable<=0;fine_acquire_enable<=0;coarse_cancel<=0;fine_cancel<=0;
       coarse_acquire_enable<=2'b00;bank<=0;sid<='0;acquiring_dither<=0;current_dither<=0;current_injection<=0;
       coarse_ok<=0;fine_ok<=0;fine_code<=0;sw_valid<=0;error_code<=0;
     end else begin
+      // Fixed 16-phase look-ahead: next phase is (phase+1) modulo 16.
+      flash_acquire_enable<=phase!=0;
+      fine_acquire_enable<=phase>=13;
+      // Keep cancellation asserted through the edge that clears busy. Its
+      // release then cannot race busy's falling edge in compare_enable.
+      coarse_cancel<=phase==7 || phase==8;
+      fine_cancel<=phase==13 || phase==14;
       sw_valid<=load_rdac;
       if(quiet_sample) begin
         bank<=!bank;current_dither<=acquiring_dither;current_injection<=injection_q;

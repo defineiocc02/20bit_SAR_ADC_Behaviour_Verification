@@ -26,6 +26,9 @@ def main() -> None:
         "calibration_recovery_tb": "CALIBRATION_RECOVERY_COMPLETE",
         "calibration_fit_tb": "CALIBRATION_FIT_COMPLETE",
         "structural_adc_tb": "STRUCTURAL_ADC_COMPLETE",
+        "structural_protocol_tb": "STRUCTURAL_PROTOCOL_COMPLETE",
+        "recon_ppa_latency_tb": "RECON_PPA_PROFILE_PASS stages=7 samples=32",
+        "cal_weight_reduce_ppa_tb": "CAL_WEIGHT_REDUCE_PPA_COMPLETE",
         "calibration_physical_tb": "CALIBRATION_PHYSICAL_COMPLETE",
         "review_top_protocol_tb": "REVIEW_TOP_PROTOCOL_COMPLETE",
         "review_leaf_tb": "REVIEW_LEAF_COMPLETE",
@@ -141,7 +144,13 @@ def main() -> None:
                     stdout=log,
                     stderr=subprocess.STDOUT,
                     # A standalone legacy P2 run still includes the full oracle.
-                    timeout=900 if top == "p2_tb" and not delegate_oracle else 120,
+                    timeout=(
+                        900
+                        if top == "p2_tb" and not delegate_oracle
+                        else 300
+                        if top == "cal_weight_reduce_ppa_tb"
+                        else 120
+                    ),
                 )
             output = run_log.read_text(encoding="utf-8")
             if cp.returncode:

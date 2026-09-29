@@ -4,7 +4,8 @@
 // P_STRUCTURAL=0: legacy externally supplied coarse/fine codes, phase8/14
 // capture (ADR0017). Explicit compatibility profile for old oracle vectors.
 // A configuration epoch locks every coefficient and control until clear.
-// Reconstruction latency: 11 complete clock periods after accepted start.
+// Reconstruction latency: ceil(63/P_RECON_STAGES)+2 complete clock periods
+// after accepted start (11 for the default P_RECON_STAGES=7).
 `include "rtl_params.vh"
 
 module sar20_digital_core #(

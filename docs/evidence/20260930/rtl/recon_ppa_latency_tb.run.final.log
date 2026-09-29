@@ -1,0 +1,7 @@
+RECON_PPA_PROFILE_PASS stages=5 samples=32 busy_release=14 latency=15 initiation_interval=16
+RECON_PPA_PROFILE_PASS stages=6 samples=32 busy_release=12 latency=13 initiation_interval=16
+RECON_PPA_PROFILE_PASS stages=7 samples=32 busy_release=10 latency=11 initiation_interval=16
+- sim/tb/recon_ppa_latency_tb.sv:55: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.49
+- Verilator: $finish at 1us; walltime 0.001 s; speed 953.237 us/s
+- Verilator: cpu 0.001 s on 1 threads; allocated 2 MB

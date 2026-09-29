@@ -1,0 +1,84 @@
+{
+  "status": "PASS",
+  "baseline_commit": "2de928066508e2cfd009df3e7c6b2936bec6837c",
+  "production_reducer_sha256": "30ed59581d584031a2ab36813e6caadad3752586c14c0a7a531edf8cf225b6e8",
+  "miter_tb_sha256": "3534cbb4f6a8f896008723073780cb916fe99b9f02fe1fab4b02e878436c81e5",
+  "miter_checks": 1430848,
+  "cases": [
+    {
+      "slices": 1,
+      "active": 1,
+      "units": 2,
+      "dither": 1,
+      "end": 2,
+      "checks": 2176,
+      "allocations": 0
+    },
+    {
+      "slices": 3,
+      "active": 2,
+      "units": 3,
+      "dither": 2,
+      "end": 3,
+      "checks": 2608,
+      "allocations": 0
+    },
+    {
+      "slices": 3,
+      "active": 2,
+      "units": 3,
+      "dither": 2,
+      "end": 4,
+      "checks": 2608,
+      "allocations": 0
+    },
+    {
+      "slices": 32,
+      "active": 8,
+      "units": 3,
+      "dither": 1,
+      "end": 3,
+      "checks": 3072,
+      "allocations": 0
+    },
+    {
+      "slices": 1,
+      "active": 1,
+      "units": 128,
+      "dither": 4,
+      "end": 128,
+      "checks": 3408,
+      "allocations": 0
+    },
+    {
+      "slices": 32,
+      "active": 32,
+      "units": 2,
+      "dither": 1,
+      "end": 2,
+      "checks": 6144,
+      "allocations": 0
+    },
+    {
+      "slices": 18,
+      "active": 8,
+      "units": 71,
+      "dither": 4,
+      "end": 71,
+      "checks": 1410832,
+      "allocations": 43758
+    }
+  ],
+  "source_operation_counts": {
+    "old_unshared_gain_additions": 178,
+    "old_dither_additions": 71,
+    "new_column_additions": 68,
+    "new_mask_additions": 3,
+    "new_dither_additions": 3,
+    "new_gain_subtractions": 1,
+    "old_conditional_negations": 72,
+    "new_conditional_negations": 4
+  },
+  "ppa_status": "Source operation counts only; mapped PPA requires same-constraint synthesis comparison.",
+  "integration_benches": "4/4 PASS"
+}

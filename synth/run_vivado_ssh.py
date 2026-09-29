@@ -240,7 +240,10 @@ $null = New-Item -ItemType Directory -Path $run
             subprocess.run(
                 [*scp, "-r", f"{args.host}:{remote}/{item}", str(out)],
                 check=True,
-                timeout=120,
+                # A valid full-top DCP exceeds 40 MB. The measured SSH link
+                # transferred only that much within the old 120 s budget.
+                # Collection has its own bound; this does not extend EDA runtime.
+                timeout=900 if item == "out" else 120,
             )
         if args.remote_os == "windows":
             remote_rc = (out / "vivado_exit_code.txt").read_text().strip()

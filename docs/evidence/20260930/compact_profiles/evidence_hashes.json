@@ -1,0 +1,99 @@
+{
+  "scope": "LOCAL_FROZEN_COMPACT_RTL_3PROFILE_SIMULATION_NOT_VIVADO",
+  "status": "PASS",
+  "rtl_sha256": "fd885e882ad5447f87626dc034fb59a6853a86f01050957a93b8a6407ebbbc13",
+  "profiles": [
+    {
+      "stages": 5,
+      "modes": 3,
+      "outputs": 438,
+      "checks": 7680,
+      "physical_slices": 18,
+      "recon_latency": 15,
+      "latency_checks": 438,
+      "compile_returncode": 0,
+      "run_returncode": 0
+    },
+    {
+      "stages": 6,
+      "modes": 3,
+      "outputs": 438,
+      "checks": 7680,
+      "physical_slices": 18,
+      "recon_latency": 13,
+      "latency_checks": 438,
+      "compile_returncode": 0,
+      "run_returncode": 0
+    },
+    {
+      "stages": 7,
+      "modes": 3,
+      "outputs": 438,
+      "checks": 7680,
+      "physical_slices": 18,
+      "recon_latency": 11,
+      "latency_checks": 438,
+      "compile_returncode": 0,
+      "run_returncode": 0
+    }
+  ],
+  "totals": {
+    "profiles": 3,
+    "outputs": 1314,
+    "checks": 23040,
+    "latency_checks": 1314
+  },
+  "source_unchanged": true,
+  "files_sha256": {
+    "manifest.json": "3a259277f2945d06f8202224e30826c11621d3c213cd7fafbcdc49187f859653",
+    "run_profiles.py": "84044c4a494a3a444f293167271774769bda70eac462f39e9ea15f53d906b424",
+    "README.md": "6d0fbd55e6723861da03d91522474323912af7dd7d88a723b9d3808f3a3e238b",
+    "rtl_compact_identity.json": "41cfe30f8b4db7373f4363d4cbca4770c15e82e7f1697db9dd5a5dfe0d8f080e",
+    "tool_version.log": "d15faab8afe5fe59791c1384cc1a82db03aac30be3f4795d17bae3b3dd2baa43",
+    "source/rtl/core/adc2_dec.sv": "268d279bdc1c2cdd7161072733c5046e701524c7e217b52ff0c7ca08951154f5",
+    "source/rtl/core/analog_phase_ctrl.sv": "66647aeeaa4e9dc41cd95eec430bdb8e75d42b93390bded576b18c22d8653932",
+    "source/rtl/core/cal_output_stage.sv": "30cb3de766b0c2f316bd65f519304e95a35897b55568564e56c999c8bac0c0c2",
+    "source/rtl/core/cal_residue_mac.sv": "082a93293cda83f79ff0ac7ef72e484043f8bbceb914361f270059b4bb764f71",
+    "source/rtl/core/cal_sample_context.sv": "8b0ff4527b6ff5936d378945bcfd38d2c203a43fb7d2cb4d0271a8f655bb9e56",
+    "source/rtl/core/cal_weight_reduce.sv": "c5fc7f6ef58b8e7497042ac9dc2e48cc44e895c7a39908de987f5ed17165b4f2",
+    "source/rtl/core/calib_regs.sv": "feff5d1d6c0359b427c5950ae6dec6db45e5e9707f44a06623681f5176c3e44b",
+    "source/rtl/core/ctrl_fsm.sv": "a04e9104a93819ed35d35f6a11355c4ee3afbaa0d4b020f6e17e5540b610041f",
+    "source/rtl/core/dem_addr_gen.sv": "aa5bd5c4d00fa2a5d77f81fcc99011246ed08ab01f00be3e92fcd42728f466ba",
+    "source/rtl/core/dem_state_gen.sv": "38c626502b2338c4c04497788cf40904408a885176967a4ca6d6750d578d7efe",
+    "source/rtl/core/dither_gen.sv": "d726478c13887ca3739265990be5b2a35c88a236d38257af1ab72cb53c828f7e",
+    "source/rtl/core/div_floor.sv": "cc3b0bd9c5e6c8491af10d0696f82e59373426c538c3212c210093dbc84c515c",
+    "source/rtl/core/rdac_drv.sv": "d91fa05062a50eb08826286ec527b5a15d6b7be758cee7f5e16c53fbe20d6a33",
+    "source/rtl/core/recon_core.sv": "3a486d215594d79ef53db5455cd1610c027855134132fc78539257bc5b660983",
+    "source/rtl/core/sar_structural_ctrl.sv": "76166ca5d0dbec70b9484b0badefe1f009a75ef942ed1de9e27159f2d092660e",
+    "source/rtl/core/sar_trial_ctrl.sv": "cbe60e2cc30fb95499449f0ec586847f9c1494de25bce784dc8b01a51248f8c9",
+    "source/rtl/core/slice_alloc.sv": "2c6d0293b846f00ccf88c0a38fc3030a243cb86fc84a705e31e70aa2084a2dc4",
+    "source/rtl/core/slice_pool_ctrl.sv": "e53d9efa8ced99e5322f6a3043dd67c7ceea11cfad60813f5e233504a28782b4",
+    "source/rtl/core/status_regs.sv": "8ab8ee1483f451da27ad59435ef7b00f3982427b17354fe5a9d2ac6319af4b1d",
+    "source/rtl/core/swap_decode.sv": "03684fb59ae5d0bbbd1d091f8b073b5cc9469dd603636ceea69726b01a5b5d88",
+    "source/rtl/core/unit_therm.sv": "ec00681a7565a1fd10172e32959c08e118f339de19f5e07eaf623c24fb6cb459",
+    "source/rtl/core/weight_store.sv": "d4e8e6d6b36ce5f52c9cca6ed761ccba6fa2d4afa3fa5e4822a0d597a1f22085",
+    "source/rtl/params/rtl_error_codes.vh": "ab67fff7eeff034da996d8c0442b529dc8476bb1eafca349f360c9e873bcc0ce",
+    "source/rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+    "source/rtl/rtl_sources.f": "edd37615fffd18cecfad620de2beab15f581639e8bc8520891b33487b7e98f7e",
+    "source/rtl/top/sadc_enc.sv": "c366ddd1af00bfbf549b9300f5f80b564031c5e36848d77575622c9ba2007b7a",
+    "source/rtl/top/sar20_digital_core.sv": "676c35cacdc66076a74d8bf1039129be65f2c067f3903833a8aeb35f4745046a",
+    "source/sim/tb/structural_adc_tb.sv": "28359c4f09507cb802c3dd39ec06b5e2ea3a64177a0d445dc05b5d22f322684d",
+    "p5/build.log": "f33c8dc9ef33e8fb562a462af30cb825ffc5b3d6e29d0360814ef959fe5acfcb",
+    "p5/run.log": "abc0ccb4083752fc496338f53ee7041962ab60d3aeb37aeb2dda5b0d50fb667a",
+    "p6/build.log": "599c61e1df0cb64478c6a410f88451c487768730c621f5959a93aa4fc52682e6",
+    "p6/run.log": "559fc6ca51d6ab32c1d5d323092adb5bdce299151792c2f3d5c327d6fe6928e5",
+    "p7/build.log": "14eb71db802a77ea332496a7f1a118a65de20b06f725d97c8973058903e8bfc2",
+    "p7/run.log": "98fa066ec30708535002ce34e0fe2aa2e49feb5e8ceb5190b7494377c4f4994f"
+  },
+  "build_warning_categories": {
+    "5": [
+      "TIMESCALEMOD"
+    ],
+    "6": [
+      "TIMESCALEMOD"
+    ],
+    "7": [
+      "TIMESCALEMOD"
+    ]
+  }
+}

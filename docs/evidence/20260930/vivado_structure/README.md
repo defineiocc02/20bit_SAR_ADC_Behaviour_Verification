@@ -1,0 +1,11 @@
+# Repaired-baseline synthesis structure audit
+
+These byte-preserved files audit the valid, repaired baseline P7 post-synthesis checkpoint. They predate the weight-store MSB optimization and do not describe a later P5 source snapshot. `archive_manifest.json` identifies every copied source and the external checkpoint; `sha256.json` verifies the local archive.
+
+The baseline utilization report contains 171,246 physical LUTs, 66,817 FFs, 20 DSPs and no BRAM. The EDIF parser counts 277,037 raw LUT1--LUT6 primitive instances, which is not the same utilization metric: fracturable/pairable LUT primitives cannot be equated to physical LUT sites. Rebuilt hierarchy assigns large reducer and RDAC cones to context, weight-store and pool instances; these module totals do not establish the original RTL source responsible for a cone.
+
+`baseline_weight_msb_witness.json` identifies 1,278 baseline high-bit FF instances despite the post-reset accepted-write invariant. This is a structural optimization opportunity, not a measured new netlist saving. The separate `../weight_msb/` archive contains its tested RTL change. Source tags and instance names support attribution, but they are not a complete proof of isolated cone ownership.
+
+The large DCP is intentionally external. Its exact absolute path and SHA256 are in `archive_manifest.json`; the EDIF member is `sar20_digital_core.edf` (370,648,226 uncompressed bytes). The audit script is archived as `audit_edif_hierarchy_20260930.py.txt` to preserve its exact historical bytes as evidence rather than treat it as a maintained Python source file. Its source path and original SHA256 remain unchanged in the manifest. The archived text retains its original absolute input/output paths. To rerun, copy that text into a separate `.py` working file, set its checkpoint input to the DCP matching the recorded hash, and set its output directory separately; then run `python /path/to/working_copy.py`. Do not edit the archive itself to prepare a new run.
+
+These reports are post-synthesis structural evidence only. They do not establish routed setup/hold closure, a fully constrained chip, analog performance or complete functional equivalence. Historical audit recommendations are left unchanged rather than rewritten to incorporate later work.

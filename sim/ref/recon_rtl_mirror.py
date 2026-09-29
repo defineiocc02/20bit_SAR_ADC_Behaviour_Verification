@@ -99,7 +99,10 @@ def div_widths(
     天真的实现（把参数当常量）会漏掉"参数变了但表达式没跟着变"这类漂移，
     所以这里写成函数：反漂移门禁会用**多组**参数求值并与 RTL 表达式比。
     """
-    w_r = max(P_W_A, P_W_D) + 1
+    # Every consumed prefix is <= |a| <= 2^(P_W_A-1). The stored remainder
+    # therefore needs P_W_A bits; the trial subtraction has one extra borrow bit.
+    # Wider denominators retain their meaning through dv_large below.
+    w_r = P_W_A
     n_cyc = (P_W_A + P_STAGES - 1) // P_STAGES
     return w_r, n_cyc, n_cyc * P_STAGES
 
@@ -184,7 +187,8 @@ def div_floor_bitwise(
 
     # mag = |a|（复刻 `a[P_W_A-1] ? (~a + 1'b1) : a`），高位补零到 W_PAD。
     mag = -a_in if a_in < 0 else a_in
-    dv_ext = d_in  # 复刻 dv_ext = {{(W_R - P_W_D){1'b0}}, dv}
+    dv = _u(d_in, w_r)
+    dv_large = bool(d_in >> w_r)
     rem, quo = 0, 0
     for cnt in range(n_cyc):
         r_chain = [rem]
@@ -194,8 +198,10 @@ def div_floor_bitwise(
             bit = (mag >> bitpos) & 1
             # 复刻 `shifted = {r_chain[s][W_R-2:0], mag[bitpos]}`
             shifted = ((r_chain[s] & ((1 << (w_r - 1)) - 1)) << 1) | bit
-            if shifted >= dv_ext:
-                r_chain.append(shifted - dv_ext)
+            trial_difference = _u(shifted - dv, w_r + 1)
+            borrow = (trial_difference >> w_r) & 1
+            if not dv_large and not borrow:
+                r_chain.append(_u(trial_difference, w_r))
                 take = 1
             else:
                 r_chain.append(shifted)

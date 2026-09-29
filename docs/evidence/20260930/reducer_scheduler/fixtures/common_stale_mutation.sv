@@ -30,7 +30,7 @@ module cal_weight_reduce_ppa_case #(
   sample_valid<=1;
   sampled_sampling<=sampling;sampled_ids<=ids;
   sampled_main_on<=main_on;sampled_sub_on<=sub_on;
-  sampled_dr<=dr;sampled_weights<=weights;
+  sampled_dr<=dr;sampled_weights<='0;
  end
  wire [63:0] old_total,old_gain,new_total,new_gain;
  wire signed[65:0] old_rails,new_rails;
@@ -195,16 +195,10 @@ module cal_weight_reduce_ppa_case #(
  end
 endmodule
 module cal_weight_reduce_ppa_tb;
- wire[6:0] complete;
- cal_weight_reduce_ppa_case #(.ALL_SUBSETS(1),.SEED(20260930)) prod(.complete(complete[0]));
- cal_weight_reduce_ppa_case #(.NS(3),.NA(2),.NM(2),.NB(1),.ND(2),.DE(3),.SEED(2)) bridge(.complete(complete[1]));
- cal_weight_reduce_ppa_case #(.NS(1),.NA(1),.NM(127),.NB(1),.ND(4),.DE(128),.SEED(3)) units(.complete(complete[2]));
- cal_weight_reduce_ppa_case #(.NS(32),.NA(8),.NM(2),.NB(1),.ND(1),.DE(3),.SEED(4)) slices(.complete(complete[3]));
- cal_weight_reduce_ppa_case #(.NS(3),.NA(2),.NM(2),.NB(1),.ND(2),.DE(4),.SEED(5)) partial(.complete(complete[4]));
- cal_weight_reduce_ppa_case #(.NS(32),.NA(32),.NM(1),.NB(1),.ND(1),.DE(2),.SEED(6)) active_max(.complete(complete[5]));
- cal_weight_reduce_ppa_case #(.NS(1),.NA(1),.NM(1),.NB(1),.ND(1),.DE(2),.SEED(7)) minimal(.complete(complete[6]));
- initial begin wait(&complete);$display("CAL_WEIGHT_REDUCE_PPA_COMPLETE");$finish;end
- initial begin #3000000;$fatal(1,"reducer miter watchdog");end
+ wire complete;
+ cal_weight_reduce_ppa_case #(.NS(32),.NA(8),.NM(2),.NB(1),.ND(1),.DE(3),.SEED(4)) slices(.complete(complete));
+ initial begin wait(complete);$fatal(1,"MUTATION_UNEXPECTED_COMPLETION");end
+ initial begin #3000000;$fatal(1,"mutation watchdog");end
 endmodule
 
 // Physical-cell weighted correction terms. No quantizer truth, floating point,

@@ -3,9 +3,6 @@
 // Production all 43,758 unordered 8-of-18 allocations are crossed with every
 // 4-bit rail pattern and both sampling modes. This is a finite simulation miter,
 // not a formal all-state proof. Algebraic justification is in ADR 0020.
-// A clocked input snapshot avoids Verilator 5.020 initial-task scheduling
-// optimization hazards. The raw-input scalar oracle also detects common-mode
-// errors that a new-versus-old miter alone cannot detect.
 `timescale 1ns/1ps
 module cal_weight_reduce_ppa_case #(
  parameter int NS=18, NA=8, NM=63, NB=8, ND=4, DE=71, SEED=1,
@@ -17,88 +14,21 @@ module cal_weight_reduce_ppa_case #(
  logic [NA-1:0][NB-1:0] sub_on;
  logic [ND-1:0] dr;
  logic [NS-1:0][NM+NB-1:0][47:0] weights;
- // Transaction boundary: capture the complete next stimulus on one TB clock edge.
- logic sample_clk=0;
- logic sample_valid=0;
- logic sampled_sampling;
- logic [NA-1:0][4:0] sampled_ids;
- logic [NA-1:0][NM-1:0] sampled_main_on;
- logic [NA-1:0][NB-1:0] sampled_sub_on;
- logic [ND-1:0] sampled_dr;
- logic [NS-1:0][NM+NB-1:0][47:0] sampled_weights;
- always @(posedge sample_clk)begin
-  sample_valid<=1;
-  sampled_sampling<=sampling;sampled_ids<=ids;
-  sampled_main_on<=main_on;sampled_sub_on<=sub_on;
-  sampled_dr<=dr;sampled_weights<=weights;
- end
  wire [63:0] old_total,old_gain,new_total,new_gain;
  wire signed[65:0] old_rails,new_rails;
  wire old_invalid,new_invalid;
  int checks=0,subsets=0;
  logic [31:0] rng=32'(SEED);
  cal_weight_reduce_reference #(.P_N_SLICES(NS),.P_N_ACTIVE(NA),.P_N_MAIN(NM),.P_N_SUB(NB),.P_DIT_N(ND),.P_DIT_END(DE)) ref_dut(
- .sampling_mask_en(sampled_sampling),.slice_id(sampled_ids),.main_on(sampled_main_on),.sub_on(sampled_sub_on),.dither_rail(sampled_dr),.w_rom(sampled_weights),.sum_W(old_total),.sum_Wa(old_gain),.rails(old_rails),.invalid_slice(old_invalid));
+ .sampling_mask_en(sampling),.slice_id(ids),.main_on(main_on),.sub_on(sub_on),.dither_rail(dr),.w_rom(weights),.sum_W(old_total),.sum_Wa(old_gain),.rails(old_rails),.invalid_slice(old_invalid));
  cal_weight_reduce #(.P_N_SLICES(NS),.P_N_ACTIVE(NA),.P_N_MAIN(NM),.P_N_SUB(NB),.P_DIT_N(ND),.P_DIT_END(DE)) dut(
- .sampling_mask_en(sampled_sampling),.slice_id(sampled_ids),.main_on(sampled_main_on),.sub_on(sampled_sub_on),.dither_rail(sampled_dr),.w_rom(sampled_weights),.sum_W(new_total),.sum_Wa(new_gain),.rails(new_rails),.invalid_slice(new_invalid));
+ .sampling_mask_en(sampling),.slice_id(ids),.main_on(main_on),.sub_on(sub_on),.dither_rail(dr),.w_rom(weights),.sum_W(new_total),.sum_Wa(new_gain),.rails(new_rails),.invalid_slice(new_invalid));
  function automatic logic[31:0] random_word();
   rng^=rng<<13;rng^=rng>>17;rng^=rng<<5;return rng;
  endfunction
- // Independent physical-cell oracle; no tree or DUT intermediate is read.
- function automatic logic [194:0] scalar_result(
-  input logic sample_arg,
-  input logic [NA-1:0][4:0] ids_arg,
-  input logic [NA-1:0][NM-1:0] main_arg,
-  input logic [NA-1:0][NB-1:0] sub_arg,
-  input logic [ND-1:0] rails_arg,
-  input logic [NS-1:0][NM+NB-1:0][47:0] weights_arg
- );
-  /* verilator no_inline_task */
-  logic [63:0] total_result,gain_result;
-  logic signed [65:0] rails_result,wide_weight;
-  bit active_result,on_result,invalid_result;
-  total_result=0;gain_result=0;rails_result=0;
-  invalid_result=sample_arg&&(DE>NM+NB);
-  for(int a=0;a<NA;a++)begin
-   invalid_result|=(int'(ids_arg[a])>=NS);
-   for(int b=0;b<a;b++)invalid_result|=(ids_arg[a]==ids_arg[b]);
-  end
-  for(int physical=0;physical<NS;physical++)begin
-   active_result=0;
-   for(int slot=0;slot<NA;slot++)active_result|=(int'(ids_arg[slot])==physical);
-   if(active_result)for(int unit_index=0;unit_index<NM+NB;unit_index++)begin
-    on_result=0;
-    for(int slot=0;slot<NA;slot++)if(int'(ids_arg[slot])==physical)begin
-     if(unit_index<NM)on_result|=main_arg[slot][unit_index];
-     else on_result|=sub_arg[slot][unit_index-NM];
-    end
-    wide_weight=$signed({18'b0,weights_arg[physical][unit_index]});
-    total_result+=64'(wide_weight);
-    if(!(sample_arg&&unit_index>=DE-ND&&unit_index<DE))gain_result+=64'(wide_weight);
-    if(on_result)rails_result-=wide_weight;else rails_result+=wide_weight;
-    if(sample_arg&&unit_index>=DE-ND&&unit_index<DE)begin
-     if(rails_arg[unit_index-(DE-ND)])rails_result+=wide_weight;
-     else rails_result-=wide_weight;
-    end
-   end
-  end
-  return {total_result,gain_result,rails_result,invalid_result};
- endfunction
  task automatic check();
-  sample_clk=1;#0.5;sample_clk=0;#0.5;
- endtask
- always @(negedge sample_clk)begin : compare_sample
   bit bad;
-  logic [194:0] oracle;
-  if(sample_valid)begin
-  checks++;
-  oracle=scalar_result(sampling,ids,main_on,sub_on,dr,weights);
-  if(NS==32&&NA==8&&NM==2&&checks<=16)
-   $display("SCALAR_INPUT_CHECK check=%0d weight00=%h T=%h G=%h R=%h expectedT=%h expectedG=%h expectedR=%h",checks,weights[0][0],new_total,new_gain,new_rails,oracle[194:131],oracle[130:67],oracle[66:1]);
-  if(old_total!==oracle[194:131]||old_gain!==oracle[130:67]||old_rails!==oracle[66:1]||old_invalid!==oracle[0])
-   $fatal(1,"reference scalar mismatch NS=%0d NA=%0d NM=%0d check=%0d",NS,NA,NM,checks);
-  if(new_total!==oracle[194:131]||new_gain!==oracle[130:67]||new_rails!==oracle[66:1]||new_invalid!==oracle[0])
-   $fatal(1,"DUT scalar mismatch NS=%0d NA=%0d NM=%0d check=%0d",NS,NA,NM,checks);
+  #1;checks++;
   bad=sampling&&(DE>NM+NB);
   for(int a=0;a<NA;a++)begin
    bad|=(int'(ids[a])>=NS);
@@ -107,9 +37,7 @@ module cal_weight_reduce_ppa_case #(
   if({new_total,new_gain,new_rails,new_invalid}!=={old_total,old_gain,old_rails,old_invalid})
    $fatal(1,"reducer mismatch NS=%0d NM=%0d ND=%0d DE=%0d check=%0d",NS,NM,ND,DE,checks);
   if(new_invalid!==bad)$fatal(1,"invalid slice flag mismatch");
-  end
- end
-
+ endtask
  task automatic all_rails();
   for(int mode=0;mode<2;mode++)begin
    sampling=1'(mode);
@@ -125,8 +53,6 @@ module cal_weight_reduce_ppa_case #(
  initial begin
   int comb[NA],perm[NS],pos,j,tmp;
   bit finished;
-  // Start after all edge-sensitive testbench processes have subscribed.
-  #0.5;
   base_ids();main_on='0;sub_on='0;dr='0;
   // Legal extremes and illegal signed-looking bit patterns are compared bit-exactly.
   // Weight ports are unsigned; negative encodings are deliberately outside loader validity.

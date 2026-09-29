@@ -1,6 +1,8 @@
 # 2026-09-30 RTL 与工具流程证据索引
 
-当前功能结论以 [final_rtl/result.json](final_rtl/result.json) 和 [冻结源码清单](final_rtl/source_manifest.json) 为准：完整运行官方 runner 当前注册的 **21 个 testbench，21/21 PASS**，进程退出码为 0；同时完成三个严格生产 lint 入口。这里的“完整”指该注册集合全部执行，不表示穷举整个芯片的状态空间。编译日志和大尺寸原始数据保留在外部工件，本目录只收录可核对的精简证据。
+提交 `39e9c27` 的本地全量回归以 [final_rtl/result.json](final_rtl/result.json) 和 [冻结源码清单](final_rtl/source_manifest.json) 为准：完整运行官方 runner 当前注册的 **21 个 testbench，21/21 PASS**，进程退出码为 0；同时完成三个严格生产 lint 入口。这里的“完整”指该注册集合全部执行，不表示穷举整个芯片的状态空间。编译日志和大尺寸原始数据保留在外部工件，本目录只收录可核对的精简证据。
+
+后继修复增加了权重最高恒零位的显式掩码，并将归约 miter 的输入驱动改为明确的事务边沿，同时加入独立 scalar oracle。原 `final_rtl` 原始日志保留：其 84 个冻结文件中，当前仅 `rtl/core/weight_store.sv` 与 `sim/tb/cal_weight_reduce_ppa_tb.sv` 已改变，不能再宣称该旧集合与当前工作树完全相同。新增证据见 [weight_msb](weight_msb/README.md) 与 [reducer_scheduler](reducer_scheduler/README.md)，其范围、负控、工具版本和精确计数分别记录。完整新提交的 CI 状态另行确认。
 
 ## 当前证据入口与适用范围
 
@@ -19,7 +21,7 @@
 
 ## 哈希核对与历史边界
 
-2026-09-30 交付检查逐字节核对：`final_rtl/sha256.json` 的 27 项、`final_profiles/sha256.json` 的 15 项、`divider/sha256.json` 的 10 项、`tree_mapping/evidence_index.json` 的 31 项均匹配；除索引文件自身外，没有遗漏归档文件。两个 mock 的 run.log 哈希和合计 5 项来源文件也与当前文件匹配。`final_rtl` 的 84 项冻结来源全部匹配当前工作树，21 份日志均与 result 的哈希、runner 完成标记一致。
+2026-09-30 交付检查逐字节核对：`final_rtl/sha256.json` 的 27 项、`final_profiles/sha256.json` 的 15 项、`divider/sha256.json` 的 10 项、`tree_mapping/evidence_index.json` 的 31 项均匹配；除索引文件自身外，没有遗漏归档文件。两个 mock 的 run.log 哈希和合计 5 项来源文件也与当前文件匹配。`final_rtl` 的 84 项冻结来源在归档时全部匹配当时工作树；21 份日志均与 result 的哈希、runner 完成标记一致。后续两项源码变化已在上文单独列出。
 
 当前关键 RTL 的 SHA-256 前缀如下；完整哈希以来源清单为准：
 
@@ -30,7 +32,7 @@
 | `rtl/top/sadc_enc.sv` | `c366ddd1af00bfbf` |
 | `tools/run_open_rtl.py` | `8f3cfa9dbc6fd39c` |
 
-`final_profiles` 与当前工作树的 30 项 RTL、头文件和相关 TB 完全一致。该参数实验冻结的 runner 是 `b543a8063e79d279…`，相对当前版本只缺后来增加的 `tree_mapping_tb` 注册及对应 wrapper 输入；已读取原冻结文件核对差异。不能将两份 runner 说成字节相同；21 项最终完整回归使用当前 `8f3cfa9d…` runner。
+`final_profiles` 对应旧冻结实现的 30 项 RTL、头文件和相关 TB；后继 `weight_store` 修改另有独立证据，新参数回归不会覆盖这些旧日志。该参数实验冻结的 runner 是 `b543a8063e79d279…`，相对当前版本只缺后来增加的 `tree_mapping_tb` 注册及对应 wrapper 输入；已读取原冻结文件核对差异。不能将两份 runner 说成字节相同；21 项最终完整回归使用当前 `8f3cfa9d…` runner。
 
 [rtl](rtl/evidence_index.json)、[arithmetic](arithmetic/sha256.json)、[reduction](reduction/sha256.json) 是较早历史快照，原始记录保留。它们引用的 reducer `30ed5958…`、divider `f798b5d5…`、encoder `2471ca33…`（依目录所含模块而定）与当前修复版不同，不能作为最新 RTL 的通过证据。历史文件名中的 `final` 只表示当时实验的最终快照，不代表本次交付版本。最新功能结果分别由 `final_rtl`、`final_profiles`、`divider` 与 `tree_mapping` 补充。
 
@@ -38,6 +40,6 @@
 
 ## 回归入口与 CI 边界
 
-当前 [CI](../../../.github/workflows/ci.yml) 无 `--tops` 筛选调用 `python tools/run_open_rtl.py`，因此执行全部 21 项。该 runner 的注册表与 `final_rtl/result.json` 的 21 项一致；`tree_mapping_tb` 单独加入 `tree_mapping_dut.sv`。RTL job 上限 45 分钟；大型 `cal_weight_reduce_ppa_tb` 编译上限 **900 秒**，其他编译 300 秒；该 miter 的运行上限仍为 300 秒，严格 lint 为 120 秒。900 秒修复只放宽大型编译预算，没有删除测试或放松完成标记检查。独立算术 oracle 和两个 mock 集合也已接入 CI。
+当前 [CI](../../../.github/workflows/ci.yml) 无 `--tops` 筛选调用 `python tools/run_open_rtl.py`，因此执行全部 21 项。该 runner 的注册表与 `final_rtl/result.json` 的 21 项一致；`tree_mapping_tb` 单独加入 `tree_mapping_dut.sv`。RTL job 上限 45 分钟；大型 `cal_weight_reduce_ppa_tb` 编译上限 **900 秒**，其他编译 300 秒；该 miter 的运行上限仍为 300 秒，严格 lint 为 120 秒。900 秒修复只放宽大型编译预算，没有删除测试或放松完成标记检查。独立算术 oracle 和六组综合/实现/映射流程测试也已接入 CI，当前流程测试实测共 230 项通过；它们使用 mocks，不能替代实际 EDA。
 
 这里核对的是本地配置和已有实跑证据；不据此声称新的远端 CI 已通过。真实综合、实现和约束完整性必须以对应冻结来源的厂商原始报告另行判断。

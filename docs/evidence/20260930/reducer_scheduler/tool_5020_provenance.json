@@ -1,0 +1,50 @@
+{
+  "version": "Verilator 5.020 2024-01-01 rev UNKNOWN.REV",
+  "source_url": "https://codeload.github.com/verilator/verilator/tar.gz/refs/tags/v5.020",
+  "bootstrap_url": "https://ftp.gnu.org/gnu/autoconf/autoconf-2.69.tar.gz",
+  "scope": "Official unmodified Verilator translator; local /tmp build only; no global/repository/remote changes",
+  "source_revision_resolution": "Official GitHub API v5.020 annotated tag object resolved; git ls-remote HTTP2 failure retained separately",
+  "root": "/tmp/sar_verilator_5_020_build/verilator-5.020",
+  "executable": "/tmp/sar_verilator_5_020_build/verilator-5.020/bin/verilator",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "compiler": "Apple clang version 21.0.0 (clang-2100.1.1.101)\nTarget: arm64-apple-darwin25.6.0\nThread model: posix\nInstalledDir: /Library/Developer/CommandLineTools/usr/bin",
+  "build_command": "env -u VERILATOR_ROOT PATH=/tmp/sar_verilator_5_020_build/deps/bin:/usr/bin:/bin:/usr/sbin:/sbin make -C src -j 4 opt",
+  "simulation_extra_arguments": [
+    "-CFLAGS",
+    "-std=c++20 -I/tmp/sar_verilator_5_020_build/compat"
+  ],
+  "runtime_compatibility_note": "Verilator 5.020 unmodified runtime expects experimental/coroutine on libc++; Apple libc++ has removed it. External include-path header imports standard C++20 coroutine names into std::experimental. Header SHA256 below. Not an arithmetic/code-generation engine patch.",
+  "sha256": {
+    "verilator-v5.020.tar.gz": "41ca9abfadf8d2413efbff7f8277379733d0095957fe7769dc38f8fd1bc899a6",
+    "autoconf-2.69.tar.gz": "954bd69b391edc12d6a4a51a2dd1476543da5c6bbf05a95b59dc0dd6fd4c2969",
+    "verilator-5.020/bin/verilator_bin": "f10f1e9f4a739e6c8f898f37daf9de4d7cb6ad6e503a1cc53d5348ec533131be",
+    "verilator-5.020/include/verilated_timing.h": "ed2d0d0c25265210f0ee7ca8cb8d834921221785762fc1c630eb52a01b107b7d",
+    "compat/experimental/coroutine": "4e7189896c81c2d94a1a6758be6de00ba2cb942e101fdf5c58ab358c7f0aa796",
+    "official_tag_api.json": "32b3c7b895c4bd1fa617f5423529448f00a2ce4d9d32c54d2ddf674cd5afe4dc",
+    "official_tag_object.json": "d058160f622045bb8e4f09a2302474b268fa7a9403c2750ce8cbd7816ae108ab",
+    "verilator5020": "7f2a3c4d4e23c6eb6cd0400681b354aff49739dc4a8e310c2dfe18ff618852d7"
+  },
+  "negative_build_log": "/tmp/sar_reduce_ci_probe_20260930/build_5020_single.log",
+  "successful_compilation_log": "/tmp/sar_reduce_ci_probe_20260930/build_5020_single_shim.log",
+  "compiled_probe_run": "/tmp/sar_reduce_ci_probe_20260930/run_5020_single_shim.log",
+  "probe_status": "Compilation successful; original diagnostic probe detects scalar mismatch at check9; investigation ongoing",
+  "utc": "2026-09-29T19:49:13.815903+00:00",
+  "smoke": {
+    "result": "PASS",
+    "marker": "TOOL_SMOKE_PASS version=5.020 rising_edges=5",
+    "source_sha256": "ae5499154dbd17ae66432143e33d65995c8aa1c2554b62805ea783fbf3f949ef",
+    "run_log": "/tmp/sar_verilator_5_020_build/smoke/run.log",
+    "run_sha256": "6e3b600e0a30ed6007ce101a97932753f4c83519a89e7424713bee7a115bbc21",
+    "scope": "C++20 coroutine scheduling, assertion and nonblocking assignment basic tool smoke only; not an RTL regression"
+  },
+  "official_tag_object": "71761fd705715fc57cda3cf5eee3cbf93b6ed087",
+  "official_commit": "5c5314b39cd888f427807d626e1502cbf222c292",
+  "official_tag_api_url": "https://api.github.com/repos/verilator/verilator/git/tags/71761fd705715fc57cda3cf5eee3cbf93b6ed087",
+  "wrapper": "/tmp/sar_verilator_5_020_build/verilator5020",
+  "original_miter_reproduction": {
+    "result": "CI check13 failure reproduced with original all-seven-instance testbench and production reducer, no HDL changes",
+    "manifest": "/tmp/sar_reduce_ci_probe_20260930/5020_diagnostic_checkpoint.json",
+    "log": "/tmp/sar_reduce_ci_probe_20260930/run_5020_original.log",
+    "run_exit": 134
+  }
+}

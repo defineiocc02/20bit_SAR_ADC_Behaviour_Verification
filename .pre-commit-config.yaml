@@ -3,9 +3,9 @@ repos:
     rev: v4.6.0
     hooks:
       - id: trailing-whitespace
-        exclude: ^docs/evidence/.*\.(csv|pass|log|rpt)$
+        exclude: ^docs/evidence/(.*\.(csv|pass|log|rpt)|20260930/reducer_scheduler/cxx_observation\.patch)$
       - id: end-of-file-fixer
-        exclude: ^docs/evidence/.*\.(csv|pass|log|rpt)$
+        exclude: ^docs/evidence/(.*\.(csv|pass|log|rpt)|20260930/reducer_scheduler/cxx_observation\.patch)$
       - id: check-yaml
       - id: check-toml
       - id: check-added-large-files

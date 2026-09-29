@@ -39,7 +39,7 @@
 //===========================================================================
 `include "rtl_params.vh"
 
-module weight_store #(
+module weight_store_before #(
     parameter int P_N_SLICES = int'(N_SLICES),
     parameter int P_N_UNITS  = int'(N_UNIT_TOTAL)
 ) (
@@ -117,10 +117,7 @@ module weight_store #(
     end else if (clear_load) begin
       written <= '0;
     end else if (accept) begin
-      // accept already guarantees 0 < wr_data < W_MAX. Expose the proven
-      // zero high bit to synthesis without changing the wide port, precision,
-      // or rejection of out-of-range writes.
-      w_q[wr_slice][wr_unit] <= wr_data & (W_MAX - W_BITS'(1));
+      w_q[wr_slice][wr_unit] <= wr_data;
       sum_all <= sum_new;
       written[wr_slice][wr_unit] <= 1'b1;
     end

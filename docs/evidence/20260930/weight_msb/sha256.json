@@ -1,0 +1,21 @@
+{
+  "ARCHIVE_NOTES.md": "caa7738061c444972344ed536d77a63db7b8dd44a4725f1065a3c226f9d9d43d",
+  "README.md": "b24c3d10785cb6d2580b680ecd28f94a585ae1b98a9ccc4818f317d09aed8267",
+  "archive_manifest.json": "69cc105ec50f01a7d66e7ad36ad8022c06091b124f2a5e7e16b849dfc4b03483",
+  "equiv.run.log": "a8db6d0ed84c4b9c99a08782022de78a2307258f644499b6d8359db88b26cb84",
+  "existing_benches.log": "cad62cb1df7b7f336c78deb16271191d45ee535dfcb49f69eb0481d86f08c922",
+  "rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+  "snapshot/sim/artifacts/open_rtl/p2_periph_tb.run.log": "a3138f77bdc7629d9c0423a2069a858809f3a40711363f18ff1692a174dde3d4",
+  "snapshot/sim/artifacts/open_rtl/review_config_tb.run.log": "3093d37f944854a7dd23a7a527fc8b69586329266736efa16c68f93ae9ddf668",
+  "snapshot/sim/artifacts/open_rtl/review_leaf_tb.run.log": "abb9c04d62610db2413b25a554669929bd588968c7a6518273a6512cb8e827ac",
+  "snapshot/sim/artifacts/open_rtl/sadc_enc.standalone.lint.log": "ded17e532a1857a80943cdd76cc7c020e013691a6c73580b37b483e7ac4a8a29",
+  "snapshot/sim/artifacts/open_rtl/sar20_digital_core.compatibility.lint.log": "ed6dbdfe14d5a525718d7e89b778291083d500d8b0b4f9305b4aa2f0ae914606",
+  "snapshot/sim/artifacts/open_rtl/sar20_digital_core.structural.lint.log": "e8a6ccd373a922129ef1274ca760012b38018a497b2679feafa578bfb3f1aef8",
+  "snapshot/sim/artifacts/open_rtl/version.log": "a1c478e9817c5bbcbc5095b6b8abefac89015612a2a1921d283138267d117a2e",
+  "snapshot_manifest.json": "2d8907bc3c0e84fdd1aa874e4613651cb87330627ea0b4d835673e8c04caadcf",
+  "verification_manifest.json": "1ded8c95aa5a492e963919bf7dde9e24a289652068d4c4657e26053d1aaaa4a4",
+  "weight_msb_equiv_tb.sv": "86651726e13107ecea254fc5b0d3f790f9d43caed79900b7a31ad829a2319629",
+  "weight_store.after.sv": "d4e8e6d6b36ce5f52c9cca6ed761ccba6fa2d4afa3fa5e4822a0d597a1f22085",
+  "weight_store.before.sv": "15c0a33322e6edf5fbc99ec2058ef2b720c356763362c22639d8619ceda5be8a",
+  "weight_store_before.sv": "ac28e8a19123c29c56b8399e0dce966a80a3048567ffc63df1b117afd8423044"
+}

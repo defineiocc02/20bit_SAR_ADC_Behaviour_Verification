@@ -1,0 +1,108 @@
+{
+  "scope": "Only accepted weight write explicitly clears bits outside W_MAX-1; no source precision, port or write rejection changes",
+  "before_sha256": "15c0a33322e6edf5fbc99ec2058ef2b720c356763362c22639d8619ceda5be8a",
+  "after_sha256": "d4e8e6d6b36ce5f52c9cca6ed761ccba6fa2d4afa3fa5e4822a0d597a1f22085",
+  "proof": "After reset W=0; accepted data is >0 and <2^47; all other paths hold values, including clear_load, therefore every word bit47 is invariant zero",
+  "existing_bench_command": "VERILATOR_ROOT=/tmp/sar_vlt_root_20260930 VERILATOR=\"/tmp/sar_vlt_root_20260930/bin/verilator -CFLAGS -std=c++20 -MAKEFLAGS CFG_CXXFLAGS_PCH_I=-include\" python tools/run_open_rtl.py --tops p2_periph_tb review_config_tb review_leaf_tb",
+  "existing_bench_scope": "Snapshot only; includes three strict production lint profiles",
+  "directed_tb_sha256": "86651726e13107ecea254fc5b0d3f790f9d43caed79900b7a31ad829a2319629",
+  "tests": "PASS",
+  "eda": "No Vivado/Yosys/synthesis run; area savings unmeasured",
+  "utc": "2026-09-29T20:19:47.916059+00:00",
+  "directed_cases": [
+    {
+      "slices": 32,
+      "units": 1,
+      "steps": 560,
+      "accepted": 40,
+      "rejected": 413
+    },
+    {
+      "slices": 1,
+      "units": 128,
+      "steps": 656,
+      "accepted": 136,
+      "rejected": 413
+    },
+    {
+      "slices": 18,
+      "units": 71,
+      "steps": 1807,
+      "accepted": 1341,
+      "rejected": 358
+    }
+  ],
+  "directed_total_steps": 3023,
+  "directed_word_comparisons_each_against_old_and_new": 2411234,
+  "directed_accepted": 1517,
+  "directed_rejected": 1184,
+  "existing_benches": {
+    "review_leaf_tb": {
+      "result": "PASS",
+      "checks": 91142
+    },
+    "review_config_tb": {
+      "result": "PASS",
+      "outputs": 624
+    },
+    "p2_periph_tb": {
+      "result": "PASS",
+      "checks": 709,
+      "errors": 0
+    }
+  },
+  "strict_production_lint": {
+    "sar20_digital_core.structural": "PASS",
+    "sar20_digital_core.compatibility": "PASS",
+    "sadc_enc.standalone": "PASS"
+  },
+  "reference_transformation": "weight_store.before.sv copied verbatim from production before edit; weight_store_before.sv differs only by module name for concurrent instantiation",
+  "area_result": "UNMEASURED: no Vivado invocation. The 1278 original MSB FF instances and post-reset invariant identify a candidate saving, not a measured new netlist count.",
+  "directed_build_argv": [
+    "/tmp/sar_vlt_root_20260930/bin/verilator",
+    "--binary",
+    "--timing",
+    "--assert",
+    "--unroll-count",
+    "8192",
+    "-Wno-fatal",
+    "-CFLAGS",
+    "-std=c++20",
+    "-MAKEFLAGS",
+    "CFG_CXXFLAGS_PCH_I=-include",
+    "-j",
+    "2",
+    "--top-module",
+    "weight_msb_equiv_tb",
+    "--Mdir",
+    "/tmp/weight_msb_obj_20260930",
+    "-I/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/snapshot/rtl/params",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/snapshot/rtl/core/weight_store.sv",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/weight_store_before.sv",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/weight_msb_equiv_tb.sv"
+  ],
+  "directed_run_argv": [
+    "/tmp/weight_msb_obj_20260930/Vweight_msb_equiv_tb"
+  ],
+  "environment": {
+    "VERILATOR_ROOT": "/tmp/sar_vlt_root_20260930",
+    "PATH_prefix": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260912/.venv-runtime/bin"
+  },
+  "sha256": {
+    "weight_store.before.sv": "15c0a33322e6edf5fbc99ec2058ef2b720c356763362c22639d8619ceda5be8a",
+    "weight_store.after.sv": "d4e8e6d6b36ce5f52c9cca6ed761ccba6fa2d4afa3fa5e4822a0d597a1f22085",
+    "weight_store_before.sv": "ac28e8a19123c29c56b8399e0dce966a80a3048567ffc63df1b117afd8423044",
+    "weight_msb_equiv_tb.sv": "86651726e13107ecea254fc5b0d3f790f9d43caed79900b7a31ad829a2319629",
+    "equiv.run.log": "a8db6d0ed84c4b9c99a08782022de78a2307258f644499b6d8359db88b26cb84",
+    "equiv.build.log": "e75aa4d615c527dcef0db17471cedbbda6ee992ed8bc785076f24264ab5a4695",
+    "existing_benches.log": "cad62cb1df7b7f336c78deb16271191d45ee535dfcb49f69eb0481d86f08c922",
+    "snapshot_manifest.json": "2d8907bc3c0e84fdd1aa874e4613651cb87330627ea0b4d835673e8c04caadcf",
+    "snapshot/sim/artifacts/open_rtl/sar20_digital_core.structural.lint.log": "e8a6ccd373a922129ef1274ca760012b38018a497b2679feafa578bfb3f1aef8",
+    "snapshot/sim/artifacts/open_rtl/sadc_enc.standalone.lint.log": "ded17e532a1857a80943cdd76cc7c020e013691a6c73580b37b483e7ac4a8a29",
+    "snapshot/sim/artifacts/open_rtl/sar20_digital_core.compatibility.lint.log": "ed6dbdfe14d5a525718d7e89b778291083d500d8b0b4f9305b4aa2f0ae914606",
+    "snapshot/sim/artifacts/open_rtl/p2_periph_tb.run.log": "a3138f77bdc7629d9c0423a2069a858809f3a40711363f18ff1692a174dde3d4",
+    "snapshot/sim/artifacts/open_rtl/review_leaf_tb.run.log": "abb9c04d62610db2413b25a554669929bd588968c7a6518273a6512cb8e827ac",
+    "snapshot/sim/artifacts/open_rtl/review_config_tb.run.log": "3093d37f944854a7dd23a7a527fc8b69586329266736efa16c68f93ae9ddf668",
+    "snapshot/sim/artifacts/open_rtl/version.log": "a1c478e9817c5bbcbc5095b6b8abefac89015612a2a1921d283138267d117a2e"
+  }
+}

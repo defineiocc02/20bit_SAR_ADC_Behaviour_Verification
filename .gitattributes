@@ -66,3 +66,6 @@ docs/evidence/**/*.csv  -text whitespace=cr-at-eol
 docs/evidence/**/*.pass -text whitespace=cr-at-eol
 docs/evidence/**/*.log  -text whitespace=cr-at-eol,-blank-at-eof
 docs/evidence/**/*.rpt  -text whitespace=cr-at-eol,-blank-at-eof
+
+# Preserve the exact diagnostic patch against generated compiler output.
+docs/evidence/20260930/reducer_scheduler/cxx_observation.patch -text -whitespace

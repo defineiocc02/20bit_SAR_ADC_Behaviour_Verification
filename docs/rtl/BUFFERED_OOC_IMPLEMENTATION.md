@@ -27,10 +27,21 @@
 2. 保存 `post_clock_eco.dcp` 后执行 `opt_design / place_design / phys_opt_design / route_design`。后端优化可能复制或合并寄存器，因此另存 post-route 端点清单和哈希，并明确标记集合是否变化；不能用这个变化掩盖 ECO 当时的端点丢失。
 3. 布线后确认唯一 BUFG、LOC、输出唯一驱动、没有外部端口直接连到输出、没有输入端口旁路。所有当前寄存器时钟端点仍必须受同一个 BUFG 输出和 `core_clk` 驱动。
 4. BUFG 输出网必须同时满足 `ROUTE_STATUS=ROUTED`、实际 `get_nodes` 非空、实际 `get_pips` 非空；完整路由树、nodes、pips、clock utilization 与展开时钟路径报告均落盘。`HIERPORT` 或只看到非空路由资源均不足以通过。
-5. 整体 route 完成、route error=0、DRC error=0；总体和内部 `core_clk -> core_clk` 的最差 setup/hold 路径必须存在且 slack 有限。四个 slack 均非负才记 `TIMING_MET=1`。时序失败但流程完成为退出码 3；流程/完整性失败为 1；两者不可合并为成功。
-6. 原 DCP 的 SHA-256 在运行前后必须相同。Windows 使用系统 `certutil -hashfile ... SHA256`，Unix 使用 `shasum -a 256`；哈希工具失败、返回多个或缺少摘要均停止。
+5. 整体 route 完成、route error=0、DRC error=0。解析已生成的 Vivado 2018.3 `check_timing.rpt`，要求 12 类检查中的 16 条计数完整、唯一、可解析且全部为 0；`timing_summary.rpt` 的 Unconstrained Path Table 和 User Ignored Path Table 必须存在且为空。非零项目需独立诊断，不能自动豁免；缺项、重复、未知格式或不可解析值为流程失败。这里不增加时序图查询。
+6. 总体和内部 `core_clk -> core_clk` 的最差 setup/hold 路径必须存在且 slack 有限。解析 Design Timing Summary 的 12 列，检查所有计数为非负整数、总端点数非零、失败数不超过总数，并核对 summary WNS/WHS 与查询值在报告舍入误差内一致。只有四个查询 slack、summary WNS/WHS 及 WPWS 均非负，TNS/THS/TPWS 均为 0，setup/hold/pulse-width 失败端点均为 0，才记 `TIMING_MET=1`。脉宽汇总包含工具执行的高/低脉宽及最小周期检查，不能只检查 setup/hold。时序失败但流程完成为退出码 3；流程/完整性失败为 1；两者不可合并为成功。
+7. 原 DCP 的 SHA-256 在运行前后必须相同。Windows 使用系统 `certutil -hashfile ... SHA256`，Unix 使用 `shasum -a 256`；哈希工具失败、返回多个或缺少摘要均停止。
 
-即使成功，状态仍分别记录 `INTERNAL_CLOCK_ROUTED=1`、`EXTERNAL_CLOCK_ROUTED=0` 和 `CONSTRAINT_COVERAGE=NOT_CERTIFIED`。外部端口到 BUFG 输入仍是 OOC 边界，板级 I/O、时钟源和未约束路径不能被宣称已签核。`check_timing`、unconstrained summary、exceptions 报告必须继续审查；原 DSP 无时钟起点问题不会被 BUFG 自动消除。功耗是 vectorless，不能冒充活动率实测。
+覆盖门禁通过后，状态记录 `CONSTRAINT_COVERAGE=CHECKED_UNDER_RECORDED_OOC_CONSTRAINTS`，表示工具在保存的 OOC 约束和检查范围内没有报告上述覆盖问题。同时仍记录 `INTERNAL_CLOCK_ROUTED=1`、`EXTERNAL_CLOCK_ROUTED=0` 和 `BOARD_TIMING_CERTIFIED=0`。这不证明外部时钟源、封装/板线、实际 I/O 延迟或所有异步控制语义；仍需审查 timer settings、exceptions、完整时钟展开路径和 DRC warnings。功耗是 vectorless，不能冒充活动率实测。
+
+实际结果必须同时核对：输入 DCP/脚本哈希与器件、请求和实际周期、0.05 ns user uncertainty；ECO 前后端点数量及哈希；post-route 端点变化的原因；内部 BUFG 路由 nodes/pips、完整布线及 DRC；全局与内部 setup/hold、WPWS/TPWS、失败端点数和覆盖报告。不能单独引用 `TIMING_MET` 字段代替这些原始报告。
+
+## DSP 分类与频率表述
+
+有效 repaired-baseline 的真实 2018.3 报告在 `tests/fixtures/vivado_2018_3_buffered/` 保留原字节与来源哈希，用于解析测试。其 check_timing 16 条计数全部为 0，未约束组为空；WNS=-17.426 ns、WHS=-0.264 ns、WPWS=+0.025 ns，最小周期检查显示 `u_recon/u_residue_mac/op3_w__10/CLK` 需求为 1.538 ns、实际周期为 1.563 ns。这些是历史综合结果，不是本流程的布线结果。旧失效网表曾出现的 64 个无时钟端点不能移用于该有效基线。
+
+若新的真实报告出现 DSP clockless/disabled-pin 项目，应按该 DCP 的实际属性、选中数据通路、驱动连接和 timing arc 分类：`AREG/BREG/MREG/PREG=0` 的组合通路不能因 CLK 接常量就归为漏时钟；相反，已启用的寄存器通路缺时钟必须视为问题。`A_INPUT` 与 `AREG/ACASCREG` 决定 ACOUT 是否透明旁路，只有逐位追踪到字面 GND/VCC 才能给该位作常量解释。未选用的 C/D/AD 通路的默认寄存器属性也不能单独证明存在有效时钟端点。已有 `inspect_clockless_paths.tcl` 仅给有界、部分诊断；不能据少量实例或空采样为整个 DSP/全部路径加 false path。
+
+完整门禁和报告审查通过后，可表述为：“在指定器件、此 DCP、记录的 OOC 零 I/O 延迟假设、0.05 ns user uncertainty 和实际周期 T 下，内部 BUFG 路由完成，工具的 setup/hold/脉宽检查及所列约束覆盖检查通过；本次验证频率为 1000/T MHz。”应使用实际周期而非请求周期。单次通过不是最高频率搜索，不能称 Fmax；`1000/(T-WNS)` 只是固定实现的一阶估算，不能替代新周期下重新实现及 hold/脉宽检查。若固定 16 拍协议也已独立验证，其对应吞吐为时钟频率/16，但这仍不是模拟 ADC 采样精度或板级签核。
 
 ## 执行入口
 
@@ -48,4 +59,4 @@ vivado -mode batch -source synth/run_vivado_buffered_impl.tcl -tclargs C:/valida
 python -m pytest -q tests/unit/test_vivado_buffered_impl.py
 ```
 
-这些 mock 用小型可变连接表检验 ECO 顺序、全端点集合守恒、失败原因、哈希、边界状态和门禁，包括模拟 Windows 本地化/分隔摘要输出。它们没有调用远端、打开真实 DCP 或检验 Vivado 的物理算法；首次真实运行必须独立保留厂商报告。
+这些 mock 用小型可变连接表检验 ECO 顺序、全端点集合守恒、失败原因、哈希、边界状态和门禁，包括模拟 Windows 本地化/分隔摘要输出。真实报告 fixture 保留基线原字节；测试只在临时副本中变更汇总字段，验证 16 种非零覆盖计数、格式损坏、未约束/忽略组、脉宽失败及汇总/查询不一致均不能通过。它们没有调用远端、打开真实 DCP 或检验 Vivado 的物理算法；首次真实运行必须独立保留厂商报告。

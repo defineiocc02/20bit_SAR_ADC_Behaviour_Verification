@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -11,6 +13,7 @@ from pathlib import Path
 import pytest
 
 FLOW = Path(__file__).resolve().parents[2] / "synth/run_vivado_buffered_impl.tcl"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures/vivado_2018_3_buffered"
 HARNESS = r"""
 set ::failure $::env(TEST_FAILURE)
 if {$::env(TEST_HASH_STYLE) ne "unix"} {
@@ -234,6 +237,12 @@ foreach command {opt_design place_design phys_opt_design route_design} {
 proc report {name args} {
     puts "REPORT $name $args"
     if {$::failure eq $name} {error "$name failed"}
+    if {$name eq "check_timing"} {
+        file copy $::env(TEST_CHECK_REPORT) [arg $args -file];return
+    }
+    if {$name eq "report_timing_summary"} {
+        file copy $::env(TEST_SUMMARY_REPORT) [arg $args -file];return
+    }
     set f [open [arg $args -file] w];puts $f "MOCK ONLY $name";close $f
 }
 foreach command {report_clock_utilization report_clocks report_exceptions report_utilization report_timing_summary report_timing check_timing report_drc report_power} {
@@ -280,6 +289,11 @@ def probe(
     site="BUFGCTRL_X0Y0",
     wns="0.2",
     whs="0.1",
+    wpws="0.025",
+    tpws="0.000",
+    failing=(0, 0, 0),
+    check_report=None,
+    summary_report=None,
     hash_style="unix",
     existing_out=False,
     input_exists=True,
@@ -297,6 +311,22 @@ def probe(
         (out / "status.txt").write_text("DO NOT OVERWRITE")
     harness = tmp_path / "probe.tcl"
     harness.write_text(HARNESS)
+    coverage = tmp_path / "fixture_check.rpt"
+    coverage.write_text(
+        (FIXTURES / "check_timing.rpt").read_text() if check_report is None else check_report
+    )
+    timing = tmp_path / "fixture_timing.rpt"
+    if summary_report is None:
+        summary_report = (FIXTURES / "timing_summary.rpt").read_text()
+        # Replace only the real report's first 12-column summary row. All
+        # retained path details remain historical fixture text, not mock STA.
+        summary_report = re.sub(
+            r"(?m)^\s*-17\.426\s+-170862\.625\s+71067\s+201263\s+-0\.264\s+-15260\.233\s+61733\s+201263\s+0\.025\s+0\.000\s+0\s+66823\s*$",
+            f"{wns} 0.000 {failing[0]} 201263 {whs} 0.000 {failing[1]} 201263 {wpws} {tpws} {failing[2]} 66823",
+            summary_report,
+            count=1,
+        )
+    timing.write_text(summary_report)
     result = subprocess.run(
         [tclsh, str(harness), str(checkpoint), str(out), period, site],
         env={
@@ -306,6 +336,8 @@ def probe(
             "TEST_FAILURE": failure,
             "TEST_WNS": wns,
             "TEST_WHS": whs,
+            "TEST_CHECK_REPORT": str(coverage),
+            "TEST_SUMMARY_REPORT": str(timing),
         },
         capture_output=True,
         text=True,
@@ -323,7 +355,11 @@ def test_single_bufg_eco_preserves_complete_endpoint_set_and_records_real_hashes
     status = (out / "status.txt").read_text()
     assert "STATUS=BUFFERED_IMPL_COMPLETE" in status
     assert "INTERNAL_CLOCK_ROUTED=1\nEXTERNAL_CLOCK_ROUTED=0" in status
-    assert "CONSTRAINT_COVERAGE=NOT_CERTIFIED" in status
+    assert "CONSTRAINT_COVERAGE=CHECKED_UNDER_RECORDED_OOC_CONSTRAINTS" in status
+    assert "BOARD_TIMING_CERTIFIED=0" in status
+    assert "WPWS_NS=0.025\nTPWS_NS=0.000" in status
+    assert "CHECK_TIMING_CATEGORIES=16\nCHECK_TIMING_ISSUES=0" in status
+    assert "UNCONSTRAINED_PATH_GROUPS=0\nIGNORED_PATH_GROUPS=0" in status
     before = (out / "clock_endpoints.before.txt").read_bytes()
     assert before == (out / "clock_endpoints.after_eco.txt").read_bytes() == b"u0/C\nu1/C\n"
     digest = hashlib.sha256(before).hexdigest()
@@ -423,6 +459,143 @@ def test_setup_or_hold_violation_is_complete_but_not_timing_pass(tmp_path, wns, 
 @pytest.mark.parametrize("wns,whs", [("NaN", "0.1"), ("0", "Inf"), ("-Inf", "0"), ("0", "")])
 def test_nonfinite_slack_cannot_pass(tmp_path, wns, whs):
     result, out = probe(tmp_path, wns=wns, whs=whs)
+    assert result.returncode == 1
+    assert "STATUS=FAILED" in (out / "status.txt").read_text()
+
+
+def test_unmodified_real_2018_3_reports_parse_without_promoting_baseline(tmp_path):
+    provenance = json.loads((FIXTURES / "provenance.json").read_text())
+    for name, identity in provenance["files"].items():
+        assert hashlib.sha256((FIXTURES / name).read_bytes()).hexdigest() == identity["sha256"]
+    result, out = probe(
+        tmp_path,
+        wns="-17.426",
+        whs="-0.264",
+        summary_report=(FIXTURES / "timing_summary.rpt").read_text(),
+    )
+    assert result.returncode == 3, result.stdout + result.stderr
+    fields = dict(line.split("=", 1) for line in (out / "status.txt").read_text().splitlines())
+    assert fields["TIMING_MET"] == "0"
+    assert fields["WPWS_NS"] == "0.025"
+    assert fields["SETUP_FAILING_ENDPOINTS"] == "71067"
+    assert fields["HOLD_FAILING_ENDPOINTS"] == "61733"
+    assert fields["PULSE_WIDTH_TOTAL_ENDPOINTS"] == "66823"
+    assert fields["CHECK_TIMING_CATEGORIES"] == "16"
+
+
+@pytest.mark.parametrize("category", range(16))
+def test_each_nonzero_check_timing_category_requires_diagnosis(tmp_path, category):
+    text = (FIXTURES / "check_timing.rpt").read_text()
+    rows = list(re.finditer(r"There are 0 [^\n]+", text))
+    assert len(rows) == 16
+    row = rows[category]
+    text = (
+        text[: row.start()]
+        + row.group().replace("There are 0 ", "There are 1 ", 1)
+        + text[row.end() :]
+    )
+    result, out = probe(tmp_path, check_report=text)
+    assert result.returncode == 1
+    assert "check_timing requires independent diagnosis" in result.stderr
+    assert "STATUS=FAILED" in (out / "status.txt").read_text()
+    assert (out / "check_timing.rpt").read_text() == text
+
+
+@pytest.mark.parametrize("mutation", ["missing", "duplicate", "unknown", "nonnumeric", "empty"])
+def test_check_timing_schema_cannot_silently_default_to_zero(tmp_path, mutation):
+    text = (FIXTURES / "check_timing.rpt").read_text()
+    row = re.search(r"There are 0 [^\n]+", text).group()
+    if mutation == "missing":
+        text = text.replace(row, "", 1)
+    elif mutation == "duplicate":
+        text += "\n" + row + "\n"
+    elif mutation == "unknown":
+        text += "\nThere are 0 unrecognized future category.\n"
+    elif mutation == "nonnumeric":
+        text = text.replace("There are 0 ", "There are unavailable ", 1)
+    else:
+        text = ""
+    result, out = probe(tmp_path, check_report=text)
+    assert result.returncode == 1
+    assert "STATUS=FAILED" in (out / "status.txt").read_text()
+
+
+@pytest.mark.parametrize("title", ["Unconstrained Path Table", "User Ignored Path Table"])
+def test_nonempty_path_groups_cannot_report_constraint_coverage(tmp_path, title):
+    text = (FIXTURES / "timing_summary.rpt").read_text()
+    start = text.index("| " + title + "\n")
+    line_end = text.index("\n", text.index("Path Group", start))
+    text = text[:line_end] + "\n(none) (none) core_clk" + text[line_end:]
+    result, out = probe(tmp_path, summary_report=text)
+    assert result.returncode == 1
+    assert title + " requires independent diagnosis" in result.stderr
+    assert "STATUS=FAILED" in (out / "status.txt").read_text()
+
+
+@pytest.mark.parametrize(
+    "wpws,tpws,failing",
+    [
+        ("-0.001", "-0.001", (0, 0, 1)),  # Minimum period/high/low pulse check failure.
+        ("-0.001", "0", (0, 0, 0)),
+        ("0.025", "-0.001", (0, 0, 0)),
+        ("0.025", "0", (0, 0, 1)),
+        ("0.025", "0", (1, 0, 0)),
+        ("0.025", "0", (0, 1, 0)),
+    ],
+)
+def test_pulse_or_failing_endpoints_prevent_timing_pass(tmp_path, wpws, tpws, failing):
+    result, out = probe(tmp_path, wpws=wpws, tpws=tpws, failing=failing)
+    assert result.returncode == 3, result.stdout + result.stderr
+    status = (out / "status.txt").read_text()
+    assert "STATUS=BUFFERED_IMPL_COMPLETE\nTIMING_MET=0" in status
+    assert f"WPWS_NS={wpws}\nTPWS_NS={tpws}" in status
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"wpws": "NaN"},
+        {"tpws": "Inf"},
+        {"wpws": "n/a"},
+        {"failing": (-1, 0, 0)},
+        {"failing": (201264, 0, 0)},
+        {"failing": (0, 0, "unknown")},
+    ],
+)
+def test_unparseable_or_invalid_summary_values_fail_closed(tmp_path, kwargs):
+    result, out = probe(tmp_path, **kwargs)
+    assert result.returncode == 1
+    assert "STATUS=FAILED" in (out / "status.txt").read_text()
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "missing_header",
+        "duplicate_header",
+        "missing_row",
+        "short_row",
+        "missing_groups",
+        "query_mismatch",
+    ],
+)
+def test_summary_completeness_and_crosscheck(tmp_path, mutation):
+    text = (FIXTURES / "timing_summary.rpt").read_text()
+    header = next(line for line in text.splitlines() if line.lstrip().startswith("WNS(ns)"))
+    row = next(line for line in text.splitlines() if line.lstrip().startswith("-17.426"))
+    if mutation == "missing_header":
+        text = text.replace(header, "", 1)
+    elif mutation == "duplicate_header":
+        text = text.replace(header, header + "\n" + header, 1)
+    elif mutation == "missing_row":
+        text = text.replace(row, "", 1)
+    elif mutation == "short_row":
+        text = text.replace(row, " ".join(row.split()[:-1]), 1)
+    elif mutation == "missing_groups":
+        text = text.replace("| Unconstrained Path Table", "| Missing section", 1)
+    # Unmodified fixture in query_mismatch has negative WNS/WHS, while the
+    # mocked timing-object query is positive; neither result may be promoted.
+    result, out = probe(tmp_path, summary_report=text)
     assert result.returncode == 1
     assert "STATUS=FAILED" in (out / "status.txt").read_text()
 

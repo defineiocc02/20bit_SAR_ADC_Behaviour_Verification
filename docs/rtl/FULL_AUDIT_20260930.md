@@ -1,144 +1,68 @@
-# RTL、来源映射及交付报告复核（2026-09-30）
+# RTL、来源映射及交付复核（2026-09-30）
 
-状态：RTL 修复和受影响回归已完成；正在执行远端 Vivado 同约束综合。下列结论按证据边界区分，尚未完成 ASIC PPA 或模拟电路签核。
+状态：修复已发布到 PR #4 的 `0c4a7726597c49044d25117a701ba780137ddf04`。截至 2026-09-29 20:32 UTC（北京时间 2026-09-30 04:32），[CI 36626662809](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36626662809) 仍为 `in_progress`，不能写成全部通过。归约器、位级镜像和精简权重存储的定向复验已有结果；同约束 baseline/optimized 比较正在进行，buffered 实际布线与完整顶层 mapped functional 验证尚待完成。ASIC PPA 和模拟电路签核不在已完成范围内。
 
-## 范围与冻结对象
+## 交付版本与证据身份
 
-- 复核当前 RTL、独立测试是否覆盖真实契约，以及 LaTeX 报告的来源与结论。
-- PR #4 当前远端提交：`ce9d827562c173d27e620be7a5331f4ae9306774`；本地 `2de9280`。
-- 两者 tree 经 GitHub API 与本地 Git 现场核对，均为 `7fc91115c23a75cd94d5f6c92ee16e466a51e8ad`。
-- 现场读取 PR：9 项 CI 均 SUCCESS；它们只证明各自检查范围，不等于模拟电路或物理签核。
-- 已有证据包 `manifest.json` 中 63 项文件均存在且 SHA-256 一致。
+- 发布提交：[0c4a772](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/commit/0c4a7726597c49044d25117a701ba780137ddf04)。当前生产 RTL 的 26 文件内容集合 SHA-256 为 `fd885e882ad5447f87626dc034fb59a6853a86f01050957a93b8a6407ebbbc13`，算法与逐文件摘要见 [compact 身份清单](../evidence/20260930/compact_profiles/rtl_compact_identity.json)。内容摘要不是 Git 提交号。
+- 历史 `39e9c27` 的本地 21 项 RTL/3 类 lint 成功记录保存在 [final_rtl](../evidence/20260930/final_rtl/result.json)，对应旧 RTL 集合 `169f957dc7fe…` 和当时的测试台。它不是 `0c4a772` 全量 CI 成功证据。
+- 相对旧 RTL 集合，compact 生产源码只修改 `weight_store.sv`。归约 testbench 与 Python 镜像也另有修复，不能宣称旧 84 项来源文件与当前仓库完全相同。
+- 原始失败日志与 manifest 保留；修订解释和后续运行另存，不能覆盖旧失败状态。目录入口及边界统一见 [证据索引](../evidence/20260930/README.md)。
 
-## 审查并行项
+## 已修复问题及直接证据
 
-1. 结构时序：逐次比较、截止、跨样本归属、dither/Flash、异常恢复。
-2. 校准算术与配置：位宽、符号、取整、溢出、原子提交、输出标志。
-3. 原文对应：论文/专利必要特征、报告措辞及证据范围。
-4. 主审：当前状态、回归入口、证据独立性、报告复编译与逐页排版。
+### 结构控制、归约连接与除法
 
-## 验收准则
+1. `sar_structural_ctrl` 的 Flash/后级采集使能和截止 cancel 改为寄存器输出；cancel 多保持一拍，使释放时 busy 已清零。历史定向负控分别在 234 ns、242 ns 抓到原组合译码和旧取消信号问题。这是源级相位扰动隔离证据，不是 SDF/物理无毛刺保证。见 [协议负控](../evidence/20260930/rtl/structural_protocol.negative_controls.json)。
+2. `cal_weight_reduce` 按公共 dither 物理列先求和再取正负，并共享掩码权重和，保持数据格式和流水节拍。保守源级加减表达式计数 249→75、条件取负 72→4，只是源码结构比较。前向 generate 层级引用后来被真实 Vivado 暴露为根节点无驱动；当前 reducer 与 `sadc_enc` 已改为显式 net 数组连接。两种修复公式的真实小型网表各完成 12,904 次 XSim 比较，见 [tree_mapping](../evidence/20260930/tree_mapping/README.md)。
+3. `div_floor` 使用与分子等宽的余数、扩展一位的借位减法及宽分母分类，保持负数 floor、最小负数和展开 padding 语义。RTL 小几何穷举共 67,592 项，另有独立任意精度对照和负控，见 [divider](../evidence/20260930/divider/README.md)。
 
-发现的问题有最小复现或可靠源码推导；修复有针对性失败前/通过后证据；受影响回归通过；报告不包含已知错误与超出证据的保证；外部工具/模拟宏未完成事项显式列明。不存在仅因已有 CI 全绿便宣布硬件“绝对无问题”的验收捷径。
+### 39e9c27 的 CI 失败：测试台调度与镜像漂移
 
-## 已修复的直接问题
+`39e9c27` 的 RTL CI 在 Verilator 5.020 上已经进入运行，在归约实例 `NS=32,NM=2,ND=1,DE=3` 的第 13 次检查失败；这不同于更早 `50b5733` 的 300 s 编译超时。原七实例测试台在本机官方 5.020 上复现。printf-only 诊断还发现第 9 个用例两份实现的 T/G 都为 0，而原始刺激对应的独立值是 24，因此只比较新旧相等会接受双方共同错误。
 
-1. `sar_structural_ctrl` 的 Flash/后级采集使能和截止 cancel 原先直接译码多位相位总线。
-   改为寄存器输出；cancel 多保持一拍，释放时 busy 已清零，避免因释放竞态重新打开比较使能。
-   原实现和仅恢复旧 cancel 的变异版本分别在 234 ns、242 ns 被定向测试抓到。
-   这证明源级扰动隔离，不是门级/SDF物理无毛刺保证。
-2. `cal_weight_reduce` 按公共 dither 物理列先求和，再取正负，共用掩码权重计算 gain。
-   端口、位宽、周期和异常语义保持不变。受影响区域的保守加减表达式计数 249→75，
-   条件取负72→4；不是综合面积或功耗降低比例。证明与风险见 ADR0020。
-3. 算术契约澄清合法最小负值、非负 floor 余数、合成轨系数的三位有符号范围，以及
-   每样本 flags 和历史粘滞状态的区别；除法注释的迭代延迟与位组解释已纠正。
+修复只改变测试台：在明确的测试时钟沿捕获整包输入，另一沿用逐物理单元 scalar oracle 同时检查新旧结果，保持生产 RTL、原参考模块、种子、激励顺序和计数。Verilator **5.020 与 5.49 各完成 1,430,848 次检查、7 种几何、43,758 个生产分配组合，退出码均为 0**。将双方共享权重快照清零的负控在第 9 次检查被独立 oracle 抓到并以 134 退出。两个工具重复同一集合，不叠加为额外覆盖。源码、日志、工具来源和复现命令见 [reducer_scheduler](../evidence/20260930/reducer_scheduler/README.md)。
 
-## 已确认验证
+同次 Python CI 发现 `div_floor` 已采用 `W_R=WA`，而 [位级镜像](../../sim/ref/recon_rtl_mirror.py) 仍沿用旧余数宽度。`0c4a772` 同步余数宽度、宽分母高位分类和 `W_R+1` 位借位减法。[六组小几何测试](../../tests/unit/test_recon_mirror.py) 共穷举 **55,432 个输入对**，含 308 个零分母、31,744 个高分母分类用例，覆盖最负数与非整除展开 padding；25 项镜像测试通过。它是 Python 商值/错误语义验证，不是 RTL 时序测试，也不同于 RTL 的 67,592 项穷举。
 
-- 既有16个bench及新增结构协议bench在本轮先完整通过；PPA归约落地后，另跑受影响集成回归。
-- 独立任意精度算术：90,058个向量与8组输出标志序列，全部通过；两类算术变异均被抓到。
-- 新旧归约miter：7种几何、1,430,848次逐位比较，全部通过；同时有完整整数位宽论证。
-- 归约落地后的物理校准2048笔、恢复2048笔、拟合128笔/1278系数、1,048,576码oracle通过。
-- 最终源码P5/P6/P7各438笔顶层输出、7680拍、18个slice，逐笔延迟分别15/13/11；
-  另有各32笔连续16拍启动回归，busy释放分别14/12/10。总计1314笔顶层延迟检查。
-- Python相关回归161项通过；Vivado流程mock/Tcl测试单独记录，不冒充EDA执行。
-- 注册19个常规RTL bench，并新增独立算术审计CI入口。新提交的远端CI应与原9项全绿基线分开核对。
+本地 `PYTHONPATH=$PWD/src python -m pytest -m "not slow" -q` 另记录 918 passed、3 deselected。该轮收集后新增的完整映射流程测试单独验证；六文件流程测试共 230 项通过（29+51+32+9+67+42），属于静态/mock 流程检查，不能替代真实 EDA。外部证据位于 `outputs/sar_adc_vivado_20260930/python_regression/manifest.json` 与 `full_mapped_flow_checks/`，相对于交付工作区；这两组计数不相加为 RTL 覆盖量。
 
-## 仍需闭合的架构与物理差距
+### 权重最高位不变量与 compact 三档复验
 
-- 论文明确的量化器到RDAC两端口dither扩大2bit尚未闭合。ADR0009的 `dR=4*dQ`
-  是工程候选，当前配置不允许简单同时打开 sampling 和 quantizer 两路径；需要连同残差公式、
-  满量程和已知注入扣除一起设计，不能靠加一项使能宣称复现。
-- US10707889B1的跨ADC最新转换码tracking路径未实现；这是专利覆盖差距，尚无证据说明
-  每个该专利实施例均为ISSCC芯片必须采用的结构。18slice调度不能单独证明此tracking。
-- 参考、AUX、RA/AZ、匹配采样时间常数和实际比较器时序仍是模拟宏边界，需要AMS/晶体管及PVT验证。
-- 61,344bit权重存储、宽并行归约/乘法与单拍级联除法仍可能主导面积和时序。
-  不以截掉合法数值域、固定可配置系数、增加隐藏假路径或改变吞吐来制造PPA优势。
+合法写入满足 `0<W<2^47`；复位写零，其他分支保持原字，因此每个权重的 bit47 在复位后恒为零。`weight_store.sv` 仅在已获准写入时显式与 `W_MAX-1` 相与，不改变 48-bit 端口、Q30 精度、合法值域或拒绝规则。
 
-## 综合入口和现场连接修正
+[weight_msb](../evidence/20260930/weight_msb/README.md) 保存旧/新实现同时对照独立逐字状态模型的实际结果：三种几何、3,023 步、1,517 次合法写、1,184 次拒绝写、2,411,234 次逐字访问均检查两份实现；另有三类严格 lint、91,142 项 leaf 检查、624 个配置输出和 709 项外设检查通过。旧 DCP 中的 1,278 个高位 FF 只是优化机会，不能直接宣称新网表已经少了同样数量的 FF/LUT。
 
-旧地址 `yian@192.168.38.129` 直连超时。按用户指出的会话 `ssh` 核对本机配置后，
-确认 `windows-codex` 为 `Administrator@100.74.122.21`，现已实测登录成功。
-`vm-meow` 经该Windows跳转至Linux虚拟机；Vivado实际安装在Windows，而非该Linux VM。
-实测 Vivado 2018.3（SW Build2405991）；已查询安装器件，拟用 `xc7vx690tffg1761-2`
-比较相同1.5625ns约束的实现。两份隔离源码只在reducer不同，其他源码及约束一致。
-FPGA资源与时序仅用于实现筛选；vectorless功耗不能代替实际活动率功耗，也不能代替ASIC签核。
+[compact_profiles](../evidence/20260930/compact_profiles/README.md) 从只读 `fd885…` 冻结源码实跑生产 18×71 顶层。P5/P6/P7 各含 3 种模式、438 次正确输出、438 次精确延迟检查、7,680 个协议检查节拍，延迟分别 **15/13/11 拍**，编译和运行均退出 0。该轮未重跑全部旧 21 项，也未重跑旧版每档 32 笔的连续启动夹具；后者 busy 释放 **14/12/10 拍**仍属于 [final_profiles 历史记录](../evidence/20260930/final_profiles/recon_ppa_latency_tb.run.final.log)。
 
-详细日志与SHA清单位于 `docs/evidence/20260930/`；LaTeX/PDF报告在同次交付的报告目录。
+## 有效综合基线与待完成对比
 
+Vivado 2018.3、`xc7vx690tffg1761-2`、P7、请求周期 1.5625 ns 下，修复连接后的有效 baseline 完整综合结果为 **171,246 物理 LUT、66,817 FF、20 DSP、0 BRAM，WNS −17.426 ns**，状态为 `SYNTH_COMPLETE_TIMING_NOT_MET`。这是旧四树公式、旧除法器和旧权重存储的独立基线，不是最新 compact 源码的综合结果，更不是 route 后频率。
 
-## 校准算术与归约结构专项复核结果
+- 已归档 [结构审计与利用率](../evidence/20260930/vivado_structure/README.md)、[DCP 身份](../evidence/20260930/vivado_structure/archive_manifest.json)。DCP SHA-256 为 `9c3bc09dd193d0bffcd6d00f9af83cc887fde5423402416af751f4a2d1ef506b`。
+- WNS 原始来源在交付工作区 `outputs/sar_adc_vivado_20260930/repair_baseline/synth/artifacts/vivado/20260929T190955.260429Z_p7_recovered/out/status.txt`；该文件 SHA-256 为 `87fa6c2d414d009e16214f0e469d714974481f068802e7985517e16579b69ba3`，同目录上层 manifest 绑定工具、约束与每个源文件。
+- EDIF 的 277,037 个 LUT primitive 不是物理 LUT 利用率，不能混用；`flatten_hierarchy rebuilt` 后的层级归属也不能直接代表原 RTL 模块的独立成本。
+- 更早带 `Synth 8-3848` 无驱动及常量化的 baseline/candidate DCP 是无效诊断样本，不能用其小资源数算优化收益。Windows 包装器 raw exit code 0 也不能覆盖 status 的时序失败或完整性拒绝；原始 manifest 保留。
 
-本节记录 2026-09-30 的独立算术验证及归约优化后回归；不替代前文对专利模拟电路、
-目标工艺时序与物理签核的要求。已归档可复核的小体积证据，没有提交编译产物或大量向量。
+同约束 baseline/optimized 比较正在运行，尚无最终优化差值。buffered 实际 route、setup/hold、约束完整性以及完整生产顶层 mapped functional 结果仍待验收。流程及公共端口 TB 已准备，见 [buffered 实现入口](BUFFERED_OOC_IMPLEMENTATION.md) 和 [完整顶层映射入口](FULL_TOP_MAPPED_FUNCTIONAL.md)。本地 RTL TB qualification 与 mock 成功不能改写成 XSim/route 成功。
 
-### 算术及输出协议
+用户确认的 640 MHz 是 ASIC 目标；FPGA 按实际可实现频率验证并报告差距。FPGA OOC、vectorless 功耗及模拟宏边界均不能替代同一 ASIC 库、约束和 PVT 下的物理签核。
 
-独立检查器不导入工程浮点模型，使用 Python 任意精度整数计算期望值，固定种子
-`20260930`。本轮针对 `cal_residue_mac`、`adc2_dec`、`div_floor` 和输出级的结果为：
+## 历史证据保留与架构差距
 
-| 检查 | 实际通过数量 | 证明范围 |
-|---|---:|---|
-| MAC | 40,010 | 6 个受检操作数的溢出分类；20,859 组无溢出输入同时比对 A1；包含 shifted=±2⁹⁵及输入相邻整数 |
-| ADC2 码仓中心 | 40,000 | 极端 64-bit 端点、码端点及随机范围的 ties-to-even 整数结果 |
-| floor 除法 | 10,048 | 63-bit 分子/64-bit 分母，包括最小负数、除零和大分母；done 延迟 9 拍，busy 请求被忽略 |
-| 输出级时序 | 8 场景 | 错误保值及旧 clip、当前 flags 与历史 sticky 分离、清除与新事件同拍、配置取消及恢复 |
+[arithmetic](../evidence/20260930/arithmetic/manifest.json) 保留早期独立任意精度 90,058 个向量与 8 组 flags 场景，两种错误变异均被抓到；[reduction](../evidence/20260930/reduction/manifest.json) 保留早期新旧 miter 及四项集成结果（物理校准 2,048、恢复 2,048、拟合 128/1,278 系数、理想后端全码 1,048,576）。它们的源文件摘要仅对当次实验成立，不声称匹配最新源码；尤其早期 miter 没有后来加入的 scalar 判据。
 
-两种仅发生在临时副本中的负对照都被测试判失败：故意拒绝合法
-`shifted=-2^95` 时 MAC 第 3 行失败；故意颠倒每组商位时 divider 第 2 行失败。
-它们没有改变生产 RTL。缺少 Verilator 的故意失败返回非零，并清除了旧 PASS manifest，
-避免沿用上次成功结果。
+仍需闭合的架构与模拟事项：
 
-本次修正的算术说明包括：负溢出条件应为 `< -2^95`；floor 余数非负；普通单位的
-有效轨系数为 ±1，采样 dither 合成系数为 −2/0/+2，单独表示需要至少 3-bit signed；
-正常样本当前 flags 可以为零而历史 `acc_ovf` 仍为 1。除法器注释中的延迟和最小负数
-证明也已修正。上述说明修正没有改变生产算术功能。
+- 论文量化器到 RDAC 两端口 dither 扩大 2 bit 尚未闭合。ADR0009 的 `dR=4*dQ` 是工程候选；当前合法配置互斥 sampling 与 quantizer 两路径，需要同时设计残差公式、满量程和注入扣除。
+- US10707889B1 跨 ADC 最新转换码 tracking 未形成完整数字流程；这是专利覆盖差距，尚无证据说明每个专利实施例都是该 ISSCC 芯片必须采用的路径。
+- 参考、AUX、RA/AZ、匹配采样时间常数及实际比较器时序仍需 AMS、晶体管和 PVT 验证。
+- 不通过截掉合法数值域、固定可配置权重、隐藏假路径或改变吞吐制造 PPA 优势。21 项旧回归、最新定向复验、映射功能、时序闭合分别验收。
 
-证据入口：[算术 manifest](../evidence/20260930/arithmetic/manifest.json)、
-[实际运行日志](../evidence/20260930/arithmetic/run.log)、
-[负对照结果](../evidence/20260930/arithmetic/mutations.json)。
+## 后续验收门禁补强
 
-### 归约优化及系统回归
+缓冲时钟实现新增脉宽与16项覆盖检查，六组流程现共272项通过，见 [physical_flow_checks](../evidence/20260930/physical_flow_checks/README.md)。这些结果不替代实际布局布线或ASIC时序签核。
 
-按照 [ADR 0020](../adr/0020-shared-dither-column-reduction.md)，`cal_weight_reduce`
-先合计相同 dither 物理列，再选择列和的正负，并共用掩码权重和计算 `gain=total-M`。
-不增加寄存器，不改变端口、数据格式、16 相位或重构延迟。
+## CI 入口与算术激励修复
 
-新旧 reducer miter 共通过 **1,430,848 次** total/gain/rails/invalid_slice 逐位比较。
-七种几何覆盖生产全部 **43,758 个无序 8-of-18 集合 × 16 种 rail × 2 种采样模式**，
-每个逻辑 slot 的全部 32 个地址编码、重复/越界 flags、最大合法权重、非法负数编码
-位型、随机合法排列，以及 32 active、128 units、单叶和跨界掩码。它是有明确范围的
-有限仿真等价检查，不是所有状态的形式证明。
-
-优化后冻结源码的四项集成回归全部通过：
-
-| 回归 | 结果 | 范围与限制 |
-|---|---|---|
-| calibration_physical_tb | 2,048 样本通过，18 个物理 slice 均覆盖 | 每 slice 7+1 单位的缩小几何，验证物理索引与权重归属 |
-| calibration_recovery_tb | 2,048 样本通过，最大校准误差 4、对照误差 504 个码 | 缩小几何的合成失配恢复，不代表硅片精度 |
-| calibration_fit_tb | 128 样本通过，1,278 个外部拟合权重，latency=11 | 18×71 生产权重表、配置提交、保留集的码/flags/id 比较 |
-| p2_oracle_tb | 全部 1,048,576 码通过，errors=0 | 退化理想后端配置的全码恒等式，不是生产模拟前端的全码测量 |
-
-证据入口：[归约 manifest](../evidence/20260930/reduction/manifest.json)、
-[miter 日志](../evidence/20260930/reduction/cal_weight_reduce_ppa_tb.run.log)、
-[物理索引回归](../evidence/20260930/reduction/calibration_physical_tb.run.log)、
-[校准恢复回归](../evidence/20260930/reduction/calibration_recovery_tb.run.log)、
-[外部拟合闭环](../evidence/20260930/reduction/calibration_fit_tb.run.log)、
-[全码 oracle](../evidence/20260930/reduction/p2_oracle_tb.run.log)。
-
-保守源级计数先扣除旧 total/gain 已可共享的子树，再比较本次影响区域：二元加/减
-表达式由 249 处降为 75 处，条件取负由 72 处降为 4 处。**这不是实际面积、功耗
-或频率结果。** 新 gain 支路增加一次最终减法，仍需相同器件/库、约束与工具版本的
-综合网表和时序报告才能判定映射后的 PPA 优劣。
-
-### 归档与源码读回
-
-复制后逐文件重新读取 SHA-256，并核对 manifest 与当前工作树：算术侧 7 个源码文件
-匹配，归约与四项集成侧 31 个相关源码文件匹配。详细清单位于各目录的
-`source_readback.json`；每个 `sha256.json` 的文件名相对于该校验文件所在目录。
-
-- [算术证据 SHA-256 清单](../evidence/20260930/arithmetic/sha256.json)
-- [归约证据 SHA-256 清单](../evidence/20260930/reduction/sha256.json)
-- 算术 manifest SHA-256：`05c4d6f40d2b6cd6a3bcbee60d6f7bd2e355b3d6976f4f47754dea2ab57d590f`
-- 归约 manifest SHA-256：`56ae1ce7daf28b5dd0d2b3d6e3e30956d76bce59e365736c8bc562a7666ec033`
-- 当前生产 reducer SHA-256：`30ed59581d584031a2ab36813e6caadad3752586c14c0a7a531edf8cf225b6e8`
+0c4a的CI最终为8个job成功、RTL job失败；其21bench/3lint步骤已成功，失败发生在后续独立算术入口。新补丁保留Ubuntu分离安装布局，避免无条件重设VERILATOR_ROOT，并用测试台时钟快照修复5.020对文件输入的组合更新调度。两版工具均通过40010 MAC、40000 ADC2、10048除法和8组flags；两个陈旧输入负控被检出。见 [完整21项CI来源](../evidence/20260930/ci_rtl_0c4a/README.md) 与 [算术审计修复](../evidence/20260930/arithmetic_runner_ci/README.md)。不把生产RTL为适应工具而改写；CI整体状态仍等待修复提交的真实运行。

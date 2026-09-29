@@ -97,6 +97,99 @@ proc buffered_impl::check_buffer {cell_name input_net clock_port clock_site} {
     return $global_net
 }
 
+# Parse the already emitted Vivado 2018.3 reports. Unknown/missing/duplicate
+# fields fail closed; no extra timing graph traversal or constraint waiver.
+proc buffered_impl::read_report {path} {
+    set fh [open $path r]
+    set text [read $fh]
+    close $fh
+    return $text
+}
+proc buffered_impl::check_coverage_report {path} {
+    set expected {
+        {register/latch pins with no clock}
+        {register/latch pins with constant_clock}
+        {register/latch pins which need pulse_width check}
+        {pins that are not constrained for maximum delay}
+        {pins that are not constrained for maximum delay due to constant clock}
+        {input ports with no input delay specified}
+        {input ports with no input delay but user has a false path constraint}
+        {ports with no output delay specified}
+        {ports with no output delay but user has a false path constraint}
+        {ports with no output delay but with a timing clock defined on it or propagating through it}
+        {register/latch pins with multiple clocks}
+        {generated clocks that are not connected to a clock source}
+        {combinational loops in the design}
+        {input ports with partial input delay specified}
+        {ports with partial output delay specified}
+        {combinational latch loops in the design through latch input}
+    }
+    set counts {}
+    foreach line [split [read_report $path] \n] {
+        set line [string trim $line]
+        if {![string match {There are *} $line]} {continue}
+        require {[regexp {^There are ([0-9]+) (.+)$} $line -> count description]} \
+            "Unparseable check_timing count: $line"
+        set description [string trimright $description .]
+        require {[lsearch -exact $expected $description] >= 0} "Unknown check_timing category: $description"
+        require {![dict exists $counts $description]} "Duplicate check_timing category: $description"
+        dict set counts $description $count
+    }
+    require {[dict size $counts] == [llength $expected]} "Missing check_timing categories"
+    dict for {description count} $counts {
+        require {$count == 0} "check_timing requires independent diagnosis: $count $description"
+    }
+    return [dict size $counts]
+}
+proc buffered_impl::empty_path_table {text title next_title} {
+    set start [string first "| $title\n" $text]
+    set stop [string first "| $next_title\n" $text]
+    require {$start >= 0 && $stop > $start} "Missing/malformed $title section"
+    set header 0
+    foreach line [split [string range $text $start [expr {$stop-1}]] \n] {
+        set line [string trim $line]
+        if {$line eq "" || [string index $line 0] eq "|" || [regexp {^[- ]+$} $line]} {continue}
+        regsub -all {\s+} $line { } line
+        if {$line eq "Path Group From Clock To Clock"} {incr header;continue}
+        error "$title requires independent diagnosis: $line"
+    }
+    require {$header == 1} "Missing/duplicate $title column header"
+}
+proc buffered_impl::timing_summary_metrics {path} {
+    set text [string map {\r ""} [read_report $path]]
+    empty_path_table $text "User Ignored Path Table" "Unconstrained Path Table"
+    empty_path_table $text "Unconstrained Path Table" "Timing Details"
+    set header "WNS(ns) TNS(ns) TNS Failing Endpoints TNS Total Endpoints WHS(ns) THS(ns) THS Failing Endpoints THS Total Endpoints WPWS(ns) TPWS(ns) TPWS Failing Endpoints TPWS Total Endpoints"
+    set headers 0
+    set pending 0
+    set values {}
+    foreach line [split $text \n] {
+        set line [string trim $line]
+        regsub -all {\s+} $line { } line
+        if {$line eq $header} {incr headers;set pending 1;continue}
+        if {!$pending || $line eq "" || [regexp {^[- ]+$} $line]} {continue}
+        set values [split $line { }]
+        set pending 0
+    }
+    require {$headers == 1 && !$pending && [llength $values] == 12} "Missing/malformed Design Timing Summary row"
+    set metrics {}
+    set keys {wns tns setup_failing setup_total whs ths hold_failing hold_total wpws tpws pulse_failing pulse_total}
+    foreach key $keys value $values {
+        if {[string match *_failing $key] || [string match *_total $key]} {
+            require {[regexp {^[0-9]+$} $value]} "Noninteger timing summary $key"
+        } else {
+            require {[finite $value]} "Nonfinite timing summary $key"
+        }
+        dict set metrics $key $value
+    }
+    foreach group {setup hold pulse} {
+        require {[dict get $metrics ${group}_total] > 0 &&
+            [dict get $metrics ${group}_failing] <= [dict get $metrics ${group}_total]} \
+            "Invalid timing summary $group endpoint counts"
+    }
+    return $metrics
+}
+
 if {$argc != 4} {
     puts stderr "Usage: INPUT_DCP NEW_OUT_DIR PERIOD_NS BUFGCTRL_XxYy"
     exit 1
@@ -215,6 +308,8 @@ set rc [catch {
     set route_errors [report_route_status -boolean_check ERRORS_IN_ROUTES]
     set drc_errors [llength [get_drc_violations -quiet -filter {SEVERITY == Error}]]
     buffered_impl::require {$fully_routed eq "1" && $route_errors eq "0" && $drc_errors == 0} "Incomplete route or DRC errors"
+    set coverage_categories [buffered_impl::check_coverage_report [file join $out check_timing.rpt]]
+    set summary [buffered_impl::timing_summary_metrics [file join $out timing_summary.rpt]]
     set timing_met 1
     foreach mode {max min} {
         foreach group {all internal} {
@@ -228,11 +323,28 @@ set rc [catch {
             if {$slack < 0} {set timing_met 0}
         }
     }
+    foreach {summary_key query_key} {wns all_max whs all_min} {
+        buffered_impl::require {abs([dict get $summary $summary_key]-[dict get $slacks $query_key]) <= 0.00051} \
+            "Timing summary and queried $summary_key disagree beyond report rounding"
+    }
+    foreach key {wns whs wpws} {
+        if {[dict get $summary $key] < 0} {set timing_met 0}
+    }
+    foreach key {tns ths tpws setup_failing hold_failing pulse_failing} {
+        if {[dict get $summary $key] != 0} {set timing_met 0}
+    }
     buffered_impl::require {[buffered_impl::sha256 $input_dcp] eq $input_sha} "Input checkpoint changed on disk"
     set fh [open [file join $out status.txt] w]
     foreach {key value} [list STATUS BUFFERED_IMPL_COMPLETE TIMING_MET $timing_met \
         WNS_NS [dict get $slacks all_max] WHS_NS [dict get $slacks all_min] \
         INTERNAL_WNS_NS [dict get $slacks internal_max] INTERNAL_WHS_NS [dict get $slacks internal_min] \
+        WPWS_NS [dict get $summary wpws] TPWS_NS [dict get $summary tpws] \
+        TNS_NS [dict get $summary tns] THS_NS [dict get $summary ths] \
+        SETUP_FAILING_ENDPOINTS [dict get $summary setup_failing] HOLD_FAILING_ENDPOINTS [dict get $summary hold_failing] \
+        PULSE_WIDTH_FAILING_ENDPOINTS [dict get $summary pulse_failing] \
+        SETUP_TOTAL_ENDPOINTS [dict get $summary setup_total] HOLD_TOTAL_ENDPOINTS [dict get $summary hold_total] \
+        PULSE_WIDTH_TOTAL_ENDPOINTS [dict get $summary pulse_total] \
+        CHECK_TIMING_CATEGORIES $coverage_categories CHECK_TIMING_ISSUES 0 UNCONSTRAINED_PATH_GROUPS 0 IGNORED_PATH_GROUPS 0 \
         ROUTED_FULLY $fully_routed ROUTE_ERRORS $route_errors DRC_ERRORS $drc_errors \
         INPUT_DCP $input_dcp INPUT_DCP_SHA256 $input_sha PART [get_property PART [current_design]] \
         REQUESTED_PERIOD_NS $period EFFECTIVE_PERIOD_NS $actual_period CLOCK_SITE $clock_site \
@@ -243,7 +355,8 @@ set rc [catch {
         INTERNAL_CLOCK_NET [get_property NAME $global_net] INTERNAL_CLOCK_ROUTE_STATUS $clock_route_status \
         INTERNAL_CLOCK_NODES [llength $clock_nodes] INTERNAL_CLOCK_PIPS [llength $clock_pips] \
         INTERNAL_CLOCK_NODES_SHA256 $nodes_sha INTERNAL_CLOCK_PIPS_SHA256 $pips_sha \
-        INTERNAL_CLOCK_ROUTED 1 EXTERNAL_CLOCK_ROUTED 0 CONSTRAINT_COVERAGE NOT_CERTIFIED \
+        INTERNAL_CLOCK_ROUTED 1 EXTERNAL_CLOCK_ROUTED 0 \
+        CONSTRAINT_COVERAGE CHECKED_UNDER_RECORDED_OOC_CONSTRAINTS BOARD_TIMING_CERTIFIED 0 \
         SCRIPT_SHA256 [buffered_impl::sha256 [info script]] VIVADO_VERSION [version -short] SCOPE $scope] {puts $fh "$key=$value"}
     close $fh
 } error_text error_options]

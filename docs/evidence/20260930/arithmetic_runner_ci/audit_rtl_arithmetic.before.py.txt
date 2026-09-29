@@ -173,26 +173,6 @@ def checked_run(command, *, cwd, env, timeout, log):
     return result.stdout
 
 
-def alias_bundled_runtime(work: Path, env: dict[str, str], version: str) -> None:
-    """Alias unsafe bundle paths without relocating a split installed toolchain."""
-    root = env.get("VERILATOR_ROOT")
-    if not root:
-        match = re.search(r"^\s*VERILATOR_ROOT\s*=\s*(.+?)\s*$", version, re.MULTILINE)
-        root = match.group(1) if match else None
-    if not root or (root.isascii() and not any(character.isspace() for character in root)):
-        return
-    runtime = Path(root)
-    binary = env.get("VERILATOR_BIN", "verilator_bin")
-    # An installed distribution can put headers in /usr/share/verilator and
-    # executables in /usr/bin. Injecting VERILATOR_ROOT redirects the upstream
-    # launcher away from its executable directory and breaks that valid layout.
-    # Only relocate a bundle whose existing executable moves with its runtime.
-    if not any(os.access(runtime / relative / binary, os.X_OK) for relative in ("bin", "")):
-        return
-    (work / "verilator").symlink_to(runtime.resolve(), target_is_directory=True)
-    env["VERILATOR_ROOT"] = str(work / "verilator")
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--seed", type=int, default=20260930)
@@ -222,7 +202,14 @@ def main() -> int:
                 timeout=args.timeout,
                 log=out / "verilator-version.log",
             )
-            alias_bundled_runtime(work, env, version)
+            root = env.get("VERILATOR_ROOT")
+            if not root:
+                match = re.search(r"^\s*VERILATOR_ROOT\s*=\s*(.+?)\s*$", version, re.MULTILINE)
+                root = match.group(1) if match else None
+            if not root or not Path(root).is_dir():
+                raise RuntimeError("Cannot locate Verilator runtime; set VERILATOR_ROOT explicitly")
+            (work / "verilator").symlink_to(Path(root).resolve(), target_is_directory=True)
+            env["VERILATOR_ROOT"] = str(work / "verilator")
             # ASCII aliases avoid make escaping a user's Unicode checkout path.
             (work / "repo").symlink_to(REPO, target_is_directory=True)
             (work / "python3").symlink_to(Path(sys.executable).resolve())
@@ -271,9 +258,6 @@ def main() -> int:
                 "counts": counts,
                 "tool_command": command,
                 "verilator_version": version,
-                "runtime_environment": {
-                    key: env[key] for key in ("VERILATOR_ROOT", "VERILATOR_BIN") if key in env
-                },
                 "compile_command": compile_command,
                 "sources_sha256": {
                     name: hashlib.sha256((REPO / name).read_bytes()).hexdigest() for name in files

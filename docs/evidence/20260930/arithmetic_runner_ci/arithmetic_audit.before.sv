@@ -10,21 +10,8 @@ module arithmetic_comb_audit(output logic complete = 0);
  wire ov,ao;
  logic eo;
  logic [11:0] c;
- // Capture file stimulus across an explicit event before checking combinational outputs.
- logic sample_clk=0;
- logic signed[63:0] sample_f,sample_o,sample_i,sample_mi,sample_ma;
- logic [63:0] sample_g,sample_t;
- logic signed[65:0] sample_ra;
- logic [11:0] sample_c;
- always @(posedge sample_clk)begin
-  sample_f<=f;sample_o<=o;sample_i<=i;sample_g<=g;sample_t<=t;sample_ra<=ra;
-  sample_c<=c;sample_mi<=mi;sample_ma<=ma;
- end
- task automatic sample_inputs();
-  #0.25;sample_clk=1;#0.5;sample_clk=0;#0.25;
- endtask
- cal_residue_mac mac(.fine_r(sample_f),.off_r(sample_o),.inj_r(sample_i),.gain_s(sample_g),.total_s(sample_t),.rails_s(sample_ra),.a1(a),.any_ovf(ov));
- adc2_dec adc(.adc2_code(sample_c),.adc2_min_q(sample_mi),.adc2_max_q(sample_ma),.fine_q(af),.ovf(ao));
+ cal_residue_mac mac(.fine_r(f),.off_r(o),.inj_r(i),.gain_s(g),.total_s(t),.rails_s(ra),.a1(a),.any_ovf(ov));
+ adc2_dec adc(.adc2_code(c),.adc2_min_q(mi),.adc2_max_q(ma),.fine_q(af),.ovf(ao));
  initial begin
  string vdir;
  int fd,n,line;
@@ -33,7 +20,7 @@ module arithmetic_comb_audit(output logic complete = 0);
  while(!$feof(fd)) begin
   n=$fscanf(fd,"%h %h %h %h %h %h %h %h\n",f,o,i,g,t,ra,eo,ea);
   if(n!=8) $fatal(1,"parse %d",n);
-  sample_inputs(); line++;
+  #1; line++;
   if(ov!==eo || (!ov && a!==ea)) $fatal(1,"MAC mismatch line=%0d ov=%b expected=%b a=%h expected=%h",line,ov,eo,a,ea);
  end
  $display("MAC_INDEPENDENT_PASS cases=%0d",line); if(line!=40010)$fatal(1,"MAC count mismatch");$fclose(fd);
@@ -41,7 +28,7 @@ module arithmetic_comb_audit(output logic complete = 0);
  while(!$feof(fd)) begin
   n=$fscanf(fd,"%h %h %h %h\n",c,mi,ma,ef);
   if(n!=4) $fatal(1,"parse %d",n);
-  sample_inputs();line++;
+  #1;line++;
   if(ao || af!==ef) $fatal(1,"ADC mismatch line=%0d ov=%b fine=%h expected=%h",line,ao,af,ef);
  end
  $display("ADC_INDEPENDENT_PASS cases=%0d",line); if(line!=40000)$fatal(1,"ADC count mismatch"); $fclose(fd); complete=1;

@@ -1,0 +1,31 @@
+{
+  "reducer_sha256": "68269e95d408f5f4b8d0cac1d3c9451822fdf0111f000916292de40ca02a9d81",
+  "miter_sha256": "3534cbb4f6a8f896008723073780cb916fe99b9f02fe1fab4b02e878436c81e5",
+  "reference_commit": "2de928066508e2cfd009df3e7c6b2936bec6837c",
+  "reference_preserved_in_tb": true,
+  "status": "PASS",
+  "command": [
+    "/tmp/sar_vlt_root_20260930/bin/verilator",
+    "-CFLAGS",
+    "-std=c++20",
+    "-MAKEFLAGS",
+    "CFG_CXXFLAGS_PCH_I=-include",
+    "--binary",
+    "--timing",
+    "--assert",
+    "--unroll-count",
+    "8192",
+    "-j",
+    "2",
+    "-Wno-fatal",
+    "--top-module",
+    "cal_weight_reduce_ppa_tb",
+    "--Mdir",
+    "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/sar_baseline_miter_6bbpm629",
+    "-I/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/rtl/params",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/baseline_fixed/rtl/core/cal_weight_reduce.sv",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/cal_weight_reduce_ppa_tb.sv"
+  ],
+  "checks": 1430848,
+  "profiles": 7
+}

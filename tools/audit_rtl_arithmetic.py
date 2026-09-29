@@ -121,10 +121,19 @@ def generate_vectors(root: Path, seed: int) -> dict[str, int]:
     (root / "adc.hex").write_text("\n".join(rows) + "\n")
     rng = random.Random(seed)
     numerators = [-(1 << 62), -(1 << 62) + 1, -1, 0, 1, (1 << 62) - 1]
-    denominators = [0, 1, 2, 3, (1 << 32) - 1, (1 << 62) - 1, 1 << 62, (1 << 64) - 1]
-    divisions = [(a, d) for a in numerators for d in denominators] + [
-        (rng.randrange(-(1 << 62), 1 << 62), rng.getrandbits(64)) for _ in range(10000)
-    ]
+    denominators = [0, 1, 2, 3, (1 << 62) - 1, 1 << 62, 1 << 63, (1 << 64) - 1]
+    divisions = [(a, d) for a in numerators for d in denominators]
+    for index in range(10000):
+        numerator = rng.randrange(-(1 << 62), 1 << 62)
+        # Uniform full-width denominators mostly exercise q=0/-1. Mix bit
+        # lengths and powers-of-two boundaries to exercise long quotients too.
+        if index % 3 == 0:
+            denominator = rng.getrandbits(64)
+        elif index % 3 == 1:
+            denominator = (1 << rng.randrange(64)) + rng.choice([-1, 0, 1])
+        else:
+            denominator = rng.getrandbits(rng.randrange(65))
+        divisions.append((numerator, denominator))
     (root / "div.hex").write_text(
         "".join(
             encode([(a, 63), (d, 64), (a // d if d else 0, 63), (int(d == 0), 1)]) + "\n"

@@ -28,6 +28,8 @@ def main() -> None:
         "structural_adc_tb": "STRUCTURAL_ADC_COMPLETE",
         "structural_protocol_tb": "STRUCTURAL_PROTOCOL_COMPLETE",
         "recon_ppa_latency_tb": "RECON_PPA_PROFILE_PASS stages=7 samples=32",
+        "divider_borrow_tb": "DIVIDER_BORROW_COMPLETE exhaustive_checks=67592",
+        "tree_mapping_tb": "TREE_MAPPING_COMPLETE checks=12904",
         "cal_weight_reduce_ppa_tb": "CAL_WEIGHT_REDUCE_PPA_COMPLETE",
         "calibration_physical_tb": "CALIBRATION_PHYSICAL_COMPLETE",
         "review_top_protocol_tb": "REVIEW_TOP_PROTOCOL_COMPLETE",
@@ -121,10 +123,21 @@ def main() -> None:
                 build,
             ]
             args += [str(p.relative_to(REPO)) for p in sources]
+            if top == "tree_mapping_tb":
+                args += ["sim/tb/tree_mapping_dut.sv"]
             args += [f"sim/tb/{top}.sv"]
             with (out / f"{top}.build.log").open("w") as log:
                 subprocess.run(
-                    args, cwd=REPO, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=300
+                    args,
+                    cwd=REPO,
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    check=True,
+                    # The seven-geometry equivalence miter elaborates both
+                    # reducers, including a 32x128 array. GitHub's two-core
+                    # runner exceeded the ordinary 300 s compilation budget.
+                    # Keep execution limits separate from compilation limits.
+                    timeout=900 if top == "cal_weight_reduce_ppa_tb" else 300,
                 )
             # Only delegate T5 when the independent full-code bench is selected.
             delegate_oracle = top == "p2_tb" and (not selected or "p2_oracle_tb" in selected)

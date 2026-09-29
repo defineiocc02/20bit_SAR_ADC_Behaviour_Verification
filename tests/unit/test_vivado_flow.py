@@ -242,6 +242,100 @@ def test_windows_failure_or_conflicting_status_cannot_pass(wrapper, monkeypatch,
     assert manifest["exit_code"] == rc
 
 
+def test_windows_zero_exit_with_valid_negative_slack_is_normalized_not_passed(wrapper, monkeypatch):
+    module, root = wrapper
+    monkeypatch.setattr(sys, "argv", [*sys.argv, "--remote-os", "windows"])
+    mock_transport(monkeypatch, module, status_text(WNS_NS="-15.874", TIMING_MET="0"), rc=0)
+    assert module.main() == 3
+    _, manifest = artifacts(root)
+    assert manifest["status"] == "SYNTH_COMPLETE_TIMING_NOT_MET"
+    assert manifest["exit_code"] == 0
+    assert manifest["result_returncode"] == 3
+    assert "Windows Vivado batch wrapper" in manifest["platform_warning"]
+    assert "did not pass" in manifest["platform_warning"]
+
+
+@pytest.mark.parametrize(
+    "rc,changes",
+    [
+        (1, {"WNS_NS": "-0.1", "TIMING_MET": "0"}),
+        (9, {"WNS_NS": "-0.1", "TIMING_MET": "0"}),
+        (124, {"WNS_NS": "-0.1", "TIMING_MET": "0"}),
+        (3, {"WNS_NS": "0.1", "TIMING_MET": "1"}),
+        (0, {"WNS_NS": "-0.1", "TIMING_MET": "1"}),
+        (0, {"WNS_NS": "-0.1", "TIMING_MET": "0", "PART": "wrong_part"}),
+        (0, {"WNS_NS": "-0.1", "TIMING_MET": "0", "VIVADO_VERSION": ""}),
+        (0, {"WNS_NS": "-0.1", "TIMING_MET": "0", "SCOPE": "wrong_scope"}),
+        (0, {"WNS_NS": "-Infinity", "TIMING_MET": "0"}),
+    ],
+)
+def test_windows_wrapper_exception_does_not_hide_other_failures(wrapper, monkeypatch, rc, changes):
+    module, root = wrapper
+    monkeypatch.setattr(sys, "argv", [*sys.argv, "--remote-os", "windows"])
+    mock_transport(monkeypatch, module, status_text(**changes), rc=rc)
+    assert module.main() == 1
+    _, manifest = artifacts(root)
+    assert manifest["status"] == "FAILED"
+    assert manifest["exit_code"] == rc
+    assert "platform_warning" not in manifest
+
+
+@pytest.mark.parametrize(
+    "remote_os,wns,rc",
+    [
+        ("linux", "0.125", 0),
+        ("windows", "0.125", 0),
+        ("windows", "-15.874", 0),
+    ],
+)
+def test_undriven_net_diagnostic_invalidates_completed_synthesis(
+    wrapper, monkeypatch, remote_os, wns, rc
+):
+    module, root = wrapper
+    monkeypatch.setattr(sys, "argv", [*sys.argv, "--remote-os", remote_os])
+    raw_status = status_text(WNS_NS=wns, TIMING_MET=str(int(float(wns) >= 0)))
+    mock_transport(monkeypatch, module, raw_status, rc=rc)
+    original_run = module.subprocess.run
+    diagnostic = (
+        "WARNING: [Synth 8-3848] Net g_node[1].total in module/entity "
+        "cal_weight_reduce does not have driver. [rtl/core/cal_weight_reduce.sv:75]"
+    )
+
+    def undriven_log(argv, **kwargs):
+        result = original_run(argv, **kwargs)
+        if argv[0] == "scp" and argv[-2].endswith("/vivado.log"):
+            (Path(argv[-1]) / "vivado.log").write_text("header\n" + diagnostic + "\n")
+        return result
+
+    monkeypatch.setattr(module.subprocess, "run", undriven_log)
+    assert module.main() == 1
+    out, manifest = artifacts(root)
+    assert manifest["status"] == "FAILED"
+    assert manifest["failure_reason"] == "SYNTH_INVALID_UNDRIVEN"
+    assert manifest["exit_code"] == rc
+    assert manifest["vivado_status"]["STATUS"] == "SYNTH_COMPLETE"
+    assert manifest["undriven_diagnostics"] == [{"line": 2, "text": diagnostic}]
+    assert (out / "out/status.txt").read_text() == raw_status
+    assert "result_returncode" not in manifest
+
+
+def test_unrelated_synthesis_warning_is_not_rejected_by_undriven_gate(wrapper, monkeypatch):
+    module, root = wrapper
+    mock_transport(monkeypatch, module, status_text())
+    original_run = module.subprocess.run
+
+    def other_warning(argv, **kwargs):
+        result = original_run(argv, **kwargs)
+        if argv[0] == "scp" and argv[-2].endswith("/vivado.log"):
+            (Path(argv[-1]) / "vivado.log").write_text("WARNING: [Synth 8-3331] unused signal\n")
+        return result
+
+    monkeypatch.setattr(module.subprocess, "run", other_warning)
+    assert module.main() == 0
+    _, manifest = artifacts(root)
+    assert manifest["status"] == "SYNTH_COMPLETE_TIMING_MET"
+
+
 @pytest.mark.parametrize(
     "extra",
     [

@@ -254,8 +254,27 @@ $null = New-Item -ItemType Directory -Path $run
                 if not sep or key in fields:
                     raise RuntimeError("Malformed or duplicate Vivado status fields")
                 fields[key] = value
+        manifest["vivado_status"] = fields
+        # Vivado 2018.3 can finish after dropping an undriven reduction root.
+        # Such a netlist is not valid PPA evidence, even with complete reports.
+        undriven = [
+            {"line": number, "text": line}
+            for number, line in enumerate(
+                (out / "vivado.log")
+                .read_text(encoding="utf-8", errors="backslashreplace")
+                .splitlines(),
+                start=1,
+            )
+            if "[Synth 8-3848]" in line and "does not have driver" in line
+        ]
+        if undriven:
+            manifest["failure_reason"] = "SYNTH_INVALID_UNDRIVEN"
+            manifest["undriven_diagnostics"] = undriven
+            raise RuntimeError("SYNTH_INVALID_UNDRIVEN: Vivado reported nets without drivers")
         try:
             wns = float(fields["WNS_NS"])
+            result_returncode = 0 if wns >= 0 else 3
+            windows_wrapper_zero = args.remote_os == "windows" and wns < 0 and cp.returncode == 0
             complete = (
                 fields.get("STATUS") == "SYNTH_COMPLETE"
                 and math.isfinite(wns)
@@ -265,18 +284,26 @@ $null = New-Item -ItemType Directory -Path $run
                 and int(fields["P_RECON_STAGES"]) == args.stages
                 and bool(fields.get("VIVADO_VERSION"))
                 and fields.get("SCOPE") == "FPGA_POST_SYNTH_OOC_VECTORLESS_NOT_ASIC"
-                and cp.returncode == (0 if wns >= 0 else 3)
+                and (cp.returncode == result_returncode or windows_wrapper_zero)
             )
         except (KeyError, ValueError):
             complete = False
         if not complete:
             raise RuntimeError(f"Vivado flow failed or inconsistent: rc={cp.returncode}")
-        manifest["vivado_status"] = fields
+        manifest["result_returncode"] = result_returncode
+        if windows_wrapper_zero:
+            manifest["platform_warning"] = (
+                "Windows Vivado batch wrapper returned raw exit_code=0 despite a complete, "
+                "validated negative-WNS status. Normalized result_returncode=3; "
+                "the setup timing screen did not pass."
+            )
         manifest["status"] = (
-            "SYNTH_COMPLETE_TIMING_MET" if cp.returncode == 0 else "SYNTH_COMPLETE_TIMING_NOT_MET"
+            "SYNTH_COMPLETE_TIMING_MET"
+            if result_returncode == 0
+            else "SYNTH_COMPLETE_TIMING_NOT_MET"
         )
         save()
-        return cp.returncode
+        return result_returncode
     except (OSError, RuntimeError, UnicodeError, subprocess.SubprocessError) as exc:
         manifest["status"] = "FAILED"
         manifest["error"] = str(exc)

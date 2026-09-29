@@ -42,13 +42,15 @@ module sadc_enc #(
     if (P_B1 < 1 || P_B1 > 16 || P_N_CMP < 1 || ACC_W > P_B1)
       $fatal(1, "sadc_enc: invalid comparator count/output width");
   end
-  // Named generated nodes avoid aggregate-array false combinational cycles
-  // in older tools. Children always have strictly larger constant indices.
+  // Declare every tree edge before generate elaboration. Vivado 2018.3 drops
+  // forward hierarchical g_node[2*i].count references as undriven nets.
+  // split_var lets Verilator analyze the constant-index DAG per element; it
+  // changes simulator partitioning only, not HDL connectivity or arithmetic.
+  wire [ACC_W-1:0] count_tree [1:2*LEAVES-1] /* verilator split_var */;
   for (genvar i = 1; i < 2*LEAVES; i++) begin : g_node
-    wire [ACC_W-1:0] count;
-    if (i < LEAVES) assign count = g_node[2*i].count + g_node[2*i+1].count;
-    else if (i-LEAVES < P_N_CMP) assign count = ACC_W'(cmp_raw[i-LEAVES]);
-    else assign count = '0;
+    if (i < LEAVES) assign count_tree[i] = count_tree[2*i] + count_tree[2*i+1];
+    else if (i-LEAVES < P_N_CMP) assign count_tree[i] = ACC_W'(cmp_raw[i-LEAVES]);
+    else assign count_tree[i] = '0;
   end
-  assign sadc_code = P_B1'(g_node[1].count);
+  assign sadc_code = P_B1'(count_tree[1]);
 endmodule

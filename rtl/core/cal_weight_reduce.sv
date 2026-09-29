@@ -29,11 +29,21 @@ module cal_weight_reduce #(
   localparam int DIT_BEG = P_DIT_END-P_DIT_N;
   localparam int N_TERMS = P_N_SLICES * N_U;
   localparam int TREE_LEAVES = 1 << $clog2(N_TERMS);
-  assign sum_W = g_node[1].total;
-  wire [SUM_BITS-1:0] mask_total = g_mask_tree[1].mask;
+  localparam int COL_LEAVES = 1 << $clog2(P_N_SLICES);
+  localparam int MASK_LEAVES = 1 << $clog2(P_DIT_N);
+  // Module-scope edges avoid Vivado 2018.3's undriven forward-generate nodes.
+  // Every read/write index is an elaboration-time constant. split_var tells
+  // the simulator to analyze each edge separately; it is not a warning waiver.
+  wire [SUM_BITS-1:0] total_tree [1:2*TREE_LEAVES-1] /* verilator split_var */;
+  wire [SUM_BITS-1:0] on_tree [1:2*TREE_LEAVES-1] /* verilator split_var */;
+  wire [SUM_BITS-1:0] column_tree [0:P_DIT_N-1][1:2*COL_LEAVES-1] /* verilator split_var */;
+  wire [SUM_BITS-1:0] mask_tree [1:2*MASK_LEAVES-1] /* verilator split_var */;
+  wire signed [W_RAIL-1:0] rail_tree [1:2*MASK_LEAVES-1] /* verilator split_var */;
+  assign sum_W = total_tree[1];
+  wire [SUM_BITS-1:0] mask_total = mask_tree[1];
   assign sum_Wa = sampling_mask_en ? (sum_W - mask_total) : sum_W;
-  wire [SUM_BITS-1:0] sum_Won = g_node[1].on_sum;
-  wire signed [W_RAIL-1:0] sum_Wr = sampling_mask_en ? g_mask_tree[1].rail : '0;
+  wire [SUM_BITS-1:0] sum_Won = on_tree[1];
+  wire signed [W_RAIL-1:0] sum_Wr = sampling_mask_en ? rail_tree[1] : '0;
 
   initial begin
     if (P_N_ACTIVE < 1 || P_N_MAIN < 1 || P_N_SUB < 1 ||
@@ -77,58 +87,50 @@ module cal_weight_reduce #(
   // and the width guard above bounds both exactly, including invalid-ID inputs.
   // Production 18x4 dither cells need 4 conditional negations instead of 72.
   // No registers, narrowed operands, configuration state, or latency are added.
-  localparam int COL_LEAVES = 1 << $clog2(P_N_SLICES);
-  localparam int MASK_LEAVES = 1 << $clog2(P_DIT_N);
   for (genvar j=0;j<P_DIT_N;j++) begin:g_col
     localparam int U=DIT_BEG+j;
     for (genvar t=1;t<2*COL_LEAVES;t++) begin:g_sum
-      wire [SUM_BITS-1:0] value;
       if(t<COL_LEAVES) begin:g_branch
-        assign value=g_sum[2*t].value+g_sum[2*t+1].value;
+        assign column_tree[j][t]=column_tree[j][2*t]+column_tree[j][2*t+1];
       end else if(t-COL_LEAVES<P_N_SLICES && U<N_U) begin:g_leaf
         localparam int S=t-COL_LEAVES;
         // Reuse the exact physical leaf; do not add a second coefficient selector.
-        assign value=g_node[TREE_LEAVES+S*N_U+U].g_leaf.extended;
+        assign column_tree[j][t]=total_tree[TREE_LEAVES+S*N_U+U];
       end else begin:g_padding
-        assign value='0;
+        assign column_tree[j][t]='0;
       end
     end
   end
   for (genvar t=1;t<2*MASK_LEAVES;t++) begin:g_mask_tree
-    wire [SUM_BITS-1:0] mask;
-    wire signed [W_RAIL-1:0] rail;
     if(t<MASK_LEAVES) begin:g_branch
-      assign mask=g_mask_tree[2*t].mask+g_mask_tree[2*t+1].mask;
-      assign rail=g_mask_tree[2*t].rail+g_mask_tree[2*t+1].rail;
+      assign mask_tree[t]=mask_tree[2*t]+mask_tree[2*t+1];
+      assign rail_tree[t]=rail_tree[2*t]+rail_tree[2*t+1];
     end else if(t-MASK_LEAVES<P_DIT_N) begin:g_leaf
       localparam int J=t-MASK_LEAVES;
-      wire signed [W_RAIL-1:0] signed_column=$signed({{(W_RAIL-SUM_BITS){1'b0}},g_col[J].g_sum[1].value});
-      assign mask=g_col[J].g_sum[1].value;
-      assign rail=dither_rail[J] ? signed_column : -signed_column;
+      wire signed [W_RAIL-1:0] signed_column=$signed({{(W_RAIL-SUM_BITS){1'b0}},column_tree[J][1]});
+      assign mask_tree[t]=column_tree[J][1];
+      assign rail_tree[t]=dither_rail[J] ? signed_column : -signed_column;
     end else begin:g_padding
-      assign mask='0;
-      assign rail='0;
+      assign mask_tree[t]='0;
+      assign rail_tree[t]='0;
     end
   end
 
-  // Each generated node owns distinct nets: dependencies always point from
-  // t to 2*t/2*t+1. Do not coalesce them into one unpacked array: older tools
-  // conservatively report a loop on that aggregate despite this acyclic graph.
+  // Tree nodes refer to predeclared net elements, never later generate scopes.
   for (genvar t = 1; t < 2*TREE_LEAVES; t++) begin : g_node
-    wire [SUM_BITS-1:0] total, on_sum;
     if (t < TREE_LEAVES) begin : g_branch
-      assign total = g_node[2*t].total + g_node[2*t+1].total;
-      assign on_sum = g_node[2*t].on_sum + g_node[2*t+1].on_sum;
+      assign total_tree[t] = total_tree[2*t] + total_tree[2*t+1];
+      assign on_tree[t] = on_tree[2*t] + on_tree[2*t+1];
     end else if (t-TREE_LEAVES < N_TERMS) begin : g_leaf
       localparam int S = (t-TREE_LEAVES) / N_U;
       localparam int U = (t-TREE_LEAVES) % N_U;
       wire [W_BITS-1:0] weight = active[S] ? w_rom[S][U] : '0;
       wire [SUM_BITS-1:0] extended = {{(SUM_BITS-int'(W_BITS)){1'b0}}, weight};
-      assign total = extended;
-      assign on_sum = physical_on[S][U] ? extended : '0;
+      assign total_tree[t] = extended;
+      assign on_tree[t] = physical_on[S][U] ? extended : '0;
     end else begin : g_padding
-      assign total = '0;
-      assign on_sum = '0;
+      assign total_tree[t] = '0;
+      assign on_tree[t] = '0;
     end
   end
   assign rails = $signed({2'b0, sum_W}) - $signed({1'b0, sum_Won, 1'b0}) + sum_Wr;

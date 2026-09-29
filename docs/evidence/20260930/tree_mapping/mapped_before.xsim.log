@@ -1,0 +1,21 @@
+#-----------------------------------------------------------
+# xsim v2018.3 (64-bit)
+# SW Build 2405991 on Thu Dec  6 23:38:27 MST 2018
+# IP Build 2404404 on Fri Dec  7 01:43:56 MST 2018
+# Start of session at: Wed Sep 30 03:16:59 2026
+# Process ID: 33720
+# Current directory: C:/Users/Administrator/adc_rtl_vivado/run.e8c92fdc66d34a708f119ba724a74b31/trace_before
+# Command line: xsim.exe -log xsim.log -mode tcl -source {xsim.dir/tree_trace_before/xsim_script.tcl}
+# Log file: C:/Users/Administrator/adc_rtl_vivado/run.e8c92fdc66d34a708f119ba724a74b31/trace_before/xsim.log
+# Journal file: C:/Users/Administrator/adc_rtl_vivado/run.e8c92fdc66d34a708f119ba724a74b31/trace_before\xsim.jou
+#-----------------------------------------------------------
+source xsim.dir/tree_trace_before/xsim_script.tcl
+# xsim {tree_trace_before} -autoloadwcfg -runall
+Vivado Simulator 2018.3
+Time resolution is 1 ps
+run -all
+Fatal: TREE_MAPPING_FLASH_FAIL check=1 got3=z want3=0 got9=z want9=0
+Time: 201 ns  Iteration: 0  Process: /tree_mapping_tb/check  File: C:/Users/Administrator/adc_rtl_vivado/run.e8c92fdc66d34a708f119ba724a74b31/trace/tree_mapping_tb.sv
+$finish called at time : 201 ns
+exit
+INFO: [Common 17-206] Exiting xsim at Wed Sep 30 03:17:07 2026...

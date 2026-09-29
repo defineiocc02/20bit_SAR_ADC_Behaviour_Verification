@@ -1,0 +1,35 @@
+{
+  "stages": 6,
+  "cwd": "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/sar_structural_ppa_final_sources_nm2rbcp3",
+  "compile_command": [
+    "/tmp/sar_ctrl_verilator_root/bin/verilator",
+    "-CFLAGS",
+    "-std=c++20",
+    "-MAKEFLAGS",
+    "CFG_CXXFLAGS_PCH_I=-include-pch CFG_GCH_IF_CLANG=.gch",
+    "--binary",
+    "--unroll-count",
+    "8192",
+    "--timing",
+    "--assert",
+    "-j",
+    "2",
+    "-Wno-fatal",
+    "-Werror-PINMISSING",
+    "-Werror-SELRANGE",
+    "--top-module",
+    "structural_adc_tb",
+    "-Irtl/params",
+    "--Mdir",
+    "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/sar_structural_ppa_s6_levc2rru",
+    "-GP_RECON_STAGES=6",
+    "-f",
+    "rtl/rtl_sources.f",
+    "sim/tb/structural_adc_tb.sv"
+  ],
+  "compile_returncode": 0,
+  "run_returncode": 0,
+  "completion_lines": [
+    "STRUCTURAL_ADC_COMPLETE modes=3 outputs=438 checks=7680 physical_slices=18 recon_stages=6 recon_latency=13 latency_checks=438"
+  ]
+}

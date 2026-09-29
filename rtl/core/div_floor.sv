@@ -70,13 +70,17 @@ module div_floor #(
     output logic                    done
 );
 
-  localparam int W_R   = ((P_W_A > P_W_D) ? P_W_A : P_W_D) + 1;
+  // After each consumed bit, 0 <= remainder <= consumed numerator prefix
+  // <= |a| <= 2^(P_W_A-1). P_W_A bits therefore hold every shifted trial
+  // remainder, even when the unsigned denominator has more bits than a.
+  localparam int W_R   = P_W_A;
   localparam int N_CYC = (P_W_A + P_STAGES - 1) / P_STAGES;
   localparam int W_PAD = N_CYC * P_STAGES;
   localparam int W_CNT = (N_CYC < 2) ? 1 : $clog2(N_CYC);
 
   logic [W_PAD-1:0]    mag;
-  logic [P_W_D-1:0]    dv;
+  logic [W_R-1:0]      dv;
+  logic                dv_large;
   logic [W_R-1:0]      rem;
   logic [W_PAD-1:0]    quo;
   logic                neg;
@@ -88,8 +92,19 @@ module div_floor #(
   logic [P_STAGES-1:0] qbits;
   logic [W_R-1:0]      r_next;
   logic [W_PAD-1:0]    q_next;
-  logic [W_R-1:0]      dv_ext;
   logic [W_R-1:0]      shifted;
+  logic [W_R:0]        trial_difference;
+  wire                 input_d_large;
+
+  // A denominator >= 2^P_W_A is larger than every possible numerator
+  // magnitude. Preserve its full-width meaning instead of truncating it:
+  // quotient magnitude stays zero, while the final floor correction still
+  // returns -1 for a negative nonzero numerator.
+  if (P_W_D > W_R) begin : g_wide_denominator
+    assign input_d_large = |d[P_W_D-1:W_R];
+  end else begin : g_narrow_denominator
+    assign input_d_large = 1'b0;
+  end
 
   integer s;
   initial begin
@@ -100,20 +115,22 @@ module div_floor #(
   assign busy = run;
 
   always_comb begin
-    dv_ext     = {{(W_R - P_W_D){1'b0}}, dv};
     r_chain[0] = rem;
     for (s = 0; s < P_STAGES; s = s + 1) begin
       // Consume a fixed high-order chunk; the magnitude shifts between cycles.
       // Avoid a counter-controlled variable bit selection on every unrolled stage.
       shifted = {r_chain[s][W_R-2:0], mag[W_PAD-1-s]};
+      // One widened unsigned subtraction supplies both the result and its
+      // borrow. Do not infer a separate full-width compare plus subtract.
+      trial_difference = {1'b0, shifted} - {1'b0, dv};
       // ⚠️ 真 bug 记录（2026-09-18，P2 单向测试抓出）：
       // 商是 **MSB 优先**产生的，所以一个时钟内第 s 级产生的商位，必须落到这一组
       // 7 位里的**高位**。原先写成 `qbits[s]`，于是 `q_next = (quo << P_STAGES) | qbits`
       // 把整组按位倒序拼进去了 —— 表现为"每个 7 位块内部位序反转"。
       // 只有当 P_STAGES == 1 时反转不可见（一位一组没有内部顺序），所以 P1 的模块查不出来。
       // 位序反例见模块头：a=1、d=1 的正确商为 1，组内反序会得到 64。
-      if (shifted >= dv_ext) begin
-        r_chain[s+1]                = shifted - dv_ext;
+      if (!dv_large && !trial_difference[W_R]) begin
+        r_chain[s+1]                = trial_difference[W_R-1:0];
         qbits[P_STAGES-1-s]         = 1'b1;
       end else begin
         r_chain[s+1]                = shifted;
@@ -127,7 +144,8 @@ module div_floor #(
   always_ff @(posedge clk) begin
     if (!rst_n) begin
       mag   <= {W_PAD{1'b0}};
-      dv    <= {P_W_D{1'b0}};
+      dv    <= {W_R{1'b0}};
+      dv_large <= 1'b0;
       rem   <= {W_R{1'b0}};
       quo   <= {W_PAD{1'b0}};
       neg   <= 1'b0;
@@ -141,7 +159,8 @@ module div_floor #(
       done <= 1'b0;
       if (start && !run) begin
         mag   <= {{(W_PAD - P_W_A){1'b0}}, (a[P_W_A-1] ? (~a + 1'b1) : a)};
-        dv    <= d;
+        dv    <= W_R'(d);
+        dv_large <= input_d_large;
         rem   <= {W_R{1'b0}};
         quo   <= {W_PAD{1'b0}};
         neg   <= a[P_W_A-1];

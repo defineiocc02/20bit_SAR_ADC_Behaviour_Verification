@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "scope": "32 Tcl flow-control mocks only; no Vivado, FPGA implementation, STA or ASIC validation.",
+  "command": [
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260912/.venv-runtime/bin/python",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/unit/test_vivado_impl.py"
+  ],
+  "returncode": 0,
+  "sources_sha256": {
+    "synth/run_vivado_impl.tcl": "5a272b366b5b9ac1d7f3d42ebedb49289c63776a306b57bedb1fcbc29377eca5",
+    "tests/unit/test_vivado_impl.py": "f91098916147a318e399bed9942820d19efd42a0578903aceea22985e4ac4445"
+  },
+  "references": {
+    "HD_CLK_SRC": "https://docs.amd.com/api/khub/documents/dUZkF9u9qQ4x4MtRgpH9aQ/content",
+    "UG835_2018_3": "https://docs.amd.com/api/khub/documents/wNJReNjblikQ29AHV1THwg/content"
+  },
+  "log_sha256": "4a8d72565bcda2babe5e074207d0c3d6aa8ed0a4f0f300ab4163fbba1200d882"
+}

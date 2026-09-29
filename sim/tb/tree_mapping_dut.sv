@@ -20,5 +20,5 @@ module tree_mapping_dut (
         .P_N_SUB(1),.P_DIT_N(2),.P_DIT_END(3)) reduce(
         .sampling_mask_en(sampling),.slice_id(ids),.main_on(main_on),
         .sub_on(sub_on),.dither_rail(dither_rail),.w_rom(weights),
-        .sum_W(total),.sum_Wa(gain),.rails(rails),.invalid_slice(invalid));
+        .sum_W(total),.sum_Wa(gain),.rails(rails),.invalid_slice(invalid), .row_total('0));
 endmodule

@@ -125,7 +125,7 @@ module p2_periph_tb;
       .clk (clk), .rst_n (rst_n), .cfg_ready (ws_cfg_ready),
       .wr_en (ws_wr_en), .wr_slice (ws_slice), .wr_unit (ws_unit),
       .wr_data (ws_data), .err_write (ws_err), .w_q (ws_wq)
-  );
+  , .row_total(), .selected_weight());
 
   task automatic check_weight_sum();
     logic [63:0] expected;

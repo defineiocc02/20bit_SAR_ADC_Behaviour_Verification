@@ -31,6 +31,7 @@ def main() -> None:
         "divider_borrow_tb": "DIVIDER_BORROW_COMPLETE exhaustive_checks=67592",
         "tree_mapping_tb": "TREE_MAPPING_COMPLETE checks=12904",
         "cal_weight_reduce_ppa_tb": "CAL_WEIGHT_REDUCE_PPA_COMPLETE",
+        "weight_row_cache_tb": "WEIGHT_ROW_CACHE_COMPLETE geometries=5 steps=16150",
         "calibration_physical_tb": "CALIBRATION_PHYSICAL_COMPLETE",
         "review_top_protocol_tb": "REVIEW_TOP_PROTOCOL_COMPLETE",
         "review_leaf_tb": "REVIEW_LEAF_COMPLETE",
@@ -133,7 +134,7 @@ def main() -> None:
                     stdout=log,
                     stderr=subprocess.STDOUT,
                     check=True,
-                    # The seven-geometry equivalence miter elaborates both
+                    # The seven-geometry equivalence miter elaborates all
                     # reducers, including a 32x128 array. GitHub's two-core
                     # runner exceeded the ordinary 300 s compilation budget.
                     # Keep execution limits separate from compilation limits.

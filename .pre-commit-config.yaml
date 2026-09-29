@@ -3,9 +3,9 @@ repos:
     rev: v4.6.0
     hooks:
       - id: trailing-whitespace
-        exclude: ^(docs/evidence/(.*\.(csv|pass|log|rpt)|20260930/reducer_scheduler/cxx_observation\.patch|20260930/arithmetic_runner_ci/generated_settle_excerpt\.txt)|tests/fixtures/vivado_2018_3_buffered/(check_timing|timing_summary)\.rpt)$
+        exclude: ^(docs/evidence/(.*\.(csv|pass|log|rpt)|20260930/vivado_complete_p7/.*|20260930/ci_workflow_f028/(workflow|jobs)_metadata\.json|20260930/reducer_scheduler/cxx_observation\.patch|20260930/arithmetic_runner_ci/generated_settle_excerpt\.txt)|tests/fixtures/vivado_2018_3_buffered/(check_timing|timing_summary)\.rpt)$
       - id: end-of-file-fixer
-        exclude: ^(docs/evidence/(.*\.(csv|pass|log|rpt)|20260930/reducer_scheduler/cxx_observation\.patch|20260930/arithmetic_runner_ci/generated_settle_excerpt\.txt)|tests/fixtures/vivado_2018_3_buffered/(check_timing|timing_summary)\.rpt)$
+        exclude: ^(docs/evidence/(.*\.(csv|pass|log|rpt)|20260930/vivado_complete_p7/.*|20260930/ci_workflow_f028/(workflow|jobs)_metadata\.json|20260930/reducer_scheduler/cxx_observation\.patch|20260930/arithmetic_runner_ci/generated_settle_excerpt\.txt)|tests/fixtures/vivado_2018_3_buffered/(check_timing|timing_summary)\.rpt)$
       - id: check-yaml
       - id: check-toml
       - id: check-added-large-files

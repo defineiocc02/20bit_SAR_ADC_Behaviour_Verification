@@ -6,6 +6,7 @@ module calibration_fit_tb;
   logic clk=0,rst_n=0,start=0;
   always #1 clk=~clk;
   wire [17:0][70:0][47:0] weights;
+  wire [17:0][63:0] row_total;
   logic [47:0] weight_mem [0:1277];
   logic [7:0][4:0] ids;
   logic [7:0][62:0] main_on;
@@ -40,7 +41,7 @@ module calibration_fit_tb;
   weight_store #(.P_N_SLICES(18),.P_N_UNITS(71)) u_store(
     .clk(clk),.rst_n(rst_n),.cfg_ready(cfg_ready),.clear_load(1'b0),
     .load_complete(weights_ready),.wr_en(ws_wr_en),.wr_slice(wr_slice),
-    .wr_unit(wr_unit),.wr_data(wr_data),.err_write(ws_err),.w_q(weights));
+    .wr_unit(wr_unit),.wr_data(wr_data),.err_write(ws_err),.w_q(weights), .row_total(row_total), .selected_weight());
   calib_regs u_registers(
     .clk(clk),.rst_n(rst_n),.wr_en(cal_wr_en),.sel(cal_sel),.data_v(cal_data),
     .data_b(1'b0),.controls_write(controls_write),.controls_data(4'b0111),
@@ -51,7 +52,7 @@ module calibration_fit_tb;
     .dem_en(),.bridge_en(),.sampling_mask_en(sampling_en));
 
   recon_core #(.P_N_ACTIVE(8),.P_N_MAIN(63),.P_N_SUB(8),.P_N_SLICES(18),
-               .P_DIT_N(4),.P_DIT_END(71)) dut(
+               .P_DIT_N(4),.P_DIT_END(71),.P_USE_ROW_TOTALS(1)) dut(
     .clk(clk),.rst_n(rst_n),.cfg_ready(cfg_ready),.start(start),.sample_id(32'(samples)),
     .clr_ovf(1'b0),.sampling_mask_en(sampling_en),.slice_id(ids),
     .main_on(main_on),.sub_on(sub_on),.dither_rail(rails),.adc2_code(fine),
@@ -59,7 +60,7 @@ module calibration_fit_tb;
     .adc2_min_q(adc2_min_q),.adc2_max_q(adc2_max_q),
     .dout(dout),.dout_valid(valid),.clip_low(),.clip_high(),.acc_ovf(),
     .gain_err(),.adc2_ovf(),.busy(busy),.result_sample_id(result_id),
-    .result_flags(flags));
+    .result_flags(flags), .row_total(row_total));
 
   initial begin
     if(!$value$plusargs("vdir=%s",vdir)) vdir="sim/vectors";

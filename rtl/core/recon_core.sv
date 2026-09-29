@@ -57,6 +57,7 @@ module recon_core #(
     parameter int P_N_SLICES  = int'(N_SLICES),
     parameter int P_ADC2_BITS = int'(ADC2_BITS),
     parameter int P_STAGES    = 7,
+    parameter bit P_USE_ROW_TOTALS = 0,
     parameter int P_DIT_N     = 2 * DITHER_UNITS_RANGE,
     parameter int P_DIT_END   = DITHER_SPLIT_IS_SUB ? int'(N_UNIT_TOTAL) : int'(N_UNIT_MAIN)
 ) (
@@ -74,6 +75,7 @@ module recon_core #(
     input  logic [P_ADC2_BITS-1:0]                 adc2_code,
     input  logic signed [V_BITS-1:0]               inj_q,
     input  logic [P_N_SLICES-1:0][P_N_MAIN+P_N_SUB-1:0][W_BITS-1:0] w_rom,
+    input  logic [P_N_SLICES-1:0][63:0]             row_total,
     input  logic signed [V_BITS-1:0]               offset_q,
     input  logic signed [V_BITS-1:0]               adc2_min_q,
     input  logic signed [V_BITS-1:0]               adc2_max_q,
@@ -124,10 +126,10 @@ module recon_core #(
   cal_weight_reduce #(
       .P_N_ACTIVE(P_N_ACTIVE), .P_N_MAIN(P_N_MAIN), .P_N_SUB(P_N_SUB),
       .P_N_SLICES(P_N_SLICES), .P_DIT_N(P_DIT_N), .P_DIT_END(P_DIT_END),
-      .SUM_BITS(SUM_BITS), .W_RAIL(W_RAIL)
+      .P_USE_ROW_TOTALS(P_USE_ROW_TOTALS), .SUM_BITS(SUM_BITS), .W_RAIL(W_RAIL)
   ) u_weight_reduce (
       .sampling_mask_en(sampling_mask_en), .slice_id(slice_id),
-      .main_on(main_on), .sub_on(sub_on), .dither_rail(dither_rail), .w_rom(w_rom),
+      .main_on(main_on), .sub_on(sub_on), .dither_rail(dither_rail), .w_rom(w_rom), .row_total(row_total),
       .sum_W(sum_W), .sum_Wa(sum_Wa), .rails(rails), .invalid_slice(invalid_slice)
   );
 

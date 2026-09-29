@@ -26,21 +26,36 @@ module cal_weight_reduce_ppa_case #(
  logic [NA-1:0][NB-1:0] sampled_sub_on;
  logic [ND-1:0] sampled_dr;
  logic [NS-1:0][NM+NB-1:0][47:0] sampled_weights;
+ logic [NS-1:0][63:0] sampled_row_total;
  always @(posedge sample_clk)begin
   sample_valid<=1;
   sampled_sampling<=sampling;sampled_ids<=ids;
   sampled_main_on<=main_on;sampled_sub_on<=sub_on;
   sampled_dr<=dr;sampled_weights<=weights;
+  for(int s=0;s<NS;s++)begin
+   automatic logic [63:0] row_sum=0;
+   for(int u=0;u<NM+NB;u++)row_sum+=64'(weights[s][u]);
+   sampled_row_total[s]<=row_sum;
+  end
  end
  wire [63:0] old_total,old_gain,new_total,new_gain;
  wire signed[65:0] old_rails,new_rails;
  wire old_invalid,new_invalid;
+ wire [63:0] cached_total,cached_gain;
+ wire signed [65:0] cached_rails;
+ wire cached_invalid;
+ cal_weight_reduce #(.P_N_SLICES(NS),.P_N_ACTIVE(NA),.P_N_MAIN(NM),.P_N_SUB(NB),
+ .P_DIT_N(ND),.P_DIT_END(DE),.P_USE_ROW_TOTALS(1)) cached_dut(
+ .sampling_mask_en(sampled_sampling),.slice_id(sampled_ids),.main_on(sampled_main_on),
+ .sub_on(sampled_sub_on),.dither_rail(sampled_dr),.w_rom(sampled_weights),
+ .row_total(sampled_row_total),.sum_W(cached_total),.sum_Wa(cached_gain),
+ .rails(cached_rails),.invalid_slice(cached_invalid));
  int checks=0,subsets=0;
  logic [31:0] rng=32'(SEED);
  cal_weight_reduce_reference #(.P_N_SLICES(NS),.P_N_ACTIVE(NA),.P_N_MAIN(NM),.P_N_SUB(NB),.P_DIT_N(ND),.P_DIT_END(DE)) ref_dut(
  .sampling_mask_en(sampled_sampling),.slice_id(sampled_ids),.main_on(sampled_main_on),.sub_on(sampled_sub_on),.dither_rail(sampled_dr),.w_rom(sampled_weights),.sum_W(old_total),.sum_Wa(old_gain),.rails(old_rails),.invalid_slice(old_invalid));
  cal_weight_reduce #(.P_N_SLICES(NS),.P_N_ACTIVE(NA),.P_N_MAIN(NM),.P_N_SUB(NB),.P_DIT_N(ND),.P_DIT_END(DE)) dut(
- .sampling_mask_en(sampled_sampling),.slice_id(sampled_ids),.main_on(sampled_main_on),.sub_on(sampled_sub_on),.dither_rail(sampled_dr),.w_rom(sampled_weights),.sum_W(new_total),.sum_Wa(new_gain),.rails(new_rails),.invalid_slice(new_invalid));
+ .sampling_mask_en(sampled_sampling),.slice_id(sampled_ids),.main_on(sampled_main_on),.sub_on(sampled_sub_on),.dither_rail(sampled_dr),.w_rom(sampled_weights),.sum_W(new_total),.sum_Wa(new_gain),.rails(new_rails),.invalid_slice(new_invalid), .row_total('0));
  function automatic logic[31:0] random_word();
   rng^=rng<<13;rng^=rng>>17;rng^=rng<<5;return rng;
  endfunction
@@ -99,6 +114,8 @@ module cal_weight_reduce_ppa_case #(
    $fatal(1,"reference scalar mismatch NS=%0d NA=%0d NM=%0d check=%0d",NS,NA,NM,checks);
   if(new_total!==oracle[194:131]||new_gain!==oracle[130:67]||new_rails!==oracle[66:1]||new_invalid!==oracle[0])
    $fatal(1,"DUT scalar mismatch NS=%0d NA=%0d NM=%0d check=%0d",NS,NA,NM,checks);
+  if(cached_total!==oracle[194:131]||cached_gain!==oracle[130:67]||cached_rails!==oracle[66:1]||cached_invalid!==oracle[0])
+   $fatal(1,"cached DUT scalar mismatch NS=%0d NA=%0d NM=%0d check=%0d",NS,NA,NM,checks);
   bad=sampling&&(DE>NM+NB);
   for(int a=0;a<NA;a++)begin
    bad|=(int'(ids[a])>=NS);
@@ -190,7 +207,7 @@ module cal_weight_reduce_ppa_case #(
   end
   if(checks!=(12+NA*32)*(2<<ND)+2000+(ALL_SUBSETS?43758*(2<<ND):0))
    $fatal(1,"miter coverage count mismatch");
-  $display("REDUCE_MITER_CASE_PASS ns=%0d active=%0d units=%0d dither=%0d end=%0d checks=%0d allocations=%0d",NS,NA,NM+NB,ND,DE,checks,subsets);
+  $display("REDUCE_MITER_CASE_PASS ns=%0d active=%0d units=%0d dither=%0d end=%0d checks=%0d allocations=%0d cache=1",NS,NA,NM+NB,ND,DE,checks,subsets);
   complete=1;
  end
 endmodule

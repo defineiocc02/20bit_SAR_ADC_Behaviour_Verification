@@ -11,6 +11,9 @@ module cal_weight_reduce #(
     parameter int P_N_SLICES = int'(N_SLICES),
     parameter int P_DIT_N = 2*int'(DITHER_UNITS_RANGE),
     parameter int P_DIT_END = int'(N_UNIT_TOTAL),
+    // Direct coefficient-only users retain the uncached interface behavior.
+    // The production top supplies exact configuration-time row totals.
+    parameter bit P_USE_ROW_TOTALS = 0,
     parameter int SUM_BITS = 64,
     parameter int W_RAIL = SUM_BITS+2
 ) (
@@ -20,6 +23,7 @@ module cal_weight_reduce #(
     input wire [P_N_ACTIVE-1:0][P_N_SUB-1:0] sub_on,
     input wire [P_DIT_N-1:0] dither_rail,
     input wire [P_N_SLICES-1:0][P_N_MAIN+P_N_SUB-1:0][W_BITS-1:0] w_rom,
+    input wire [P_N_SLICES-1:0][SUM_BITS-1:0] row_total,
     output wire [SUM_BITS-1:0] sum_W,
     output wire [SUM_BITS-1:0] sum_Wa,
     output wire signed [W_RAIL-1:0] rails,
@@ -39,7 +43,8 @@ module cal_weight_reduce #(
   wire [SUM_BITS-1:0] column_tree [0:P_DIT_N-1][1:2*COL_LEAVES-1] /* verilator split_var */;
   wire [SUM_BITS-1:0] mask_tree [1:2*MASK_LEAVES-1] /* verilator split_var */;
   wire signed [W_RAIL-1:0] rail_tree [1:2*MASK_LEAVES-1] /* verilator split_var */;
-  assign sum_W = total_tree[1];
+  wire [SUM_BITS-1:0] row_tree [1:2*COL_LEAVES-1] /* verilator split_var */;
+  assign sum_W = P_USE_ROW_TOTALS ? row_tree[1] : total_tree[1];
   wire [SUM_BITS-1:0] mask_total = mask_tree[1];
   assign sum_Wa = sampling_mask_en ? (sum_W - mask_total) : sum_W;
   wire [SUM_BITS-1:0] sum_Won = on_tree[1];
@@ -80,6 +85,22 @@ module cal_weight_reduce #(
   end
 
 
+  // Only the physical-row active mask changes per sample. Coefficients remain
+  // fixed during conversions, so the loader can cache each row's exact sum.
+  // Duplicate IDs still activate a physical row once. No pipeline stage is added.
+  for (genvar t=1;t<2*COL_LEAVES;t++) begin:g_row_tree
+    if (!P_USE_ROW_TOTALS) begin:g_unused
+      assign row_tree[t]='0;
+    end else if (t<COL_LEAVES) begin:g_branch
+      assign row_tree[t]=row_tree[2*t]+row_tree[2*t+1];
+    end else if (t-COL_LEAVES<P_N_SLICES) begin:g_leaf
+      localparam int S=t-COL_LEAVES;
+      assign row_tree[t]=active[S] ? row_total[S] : '0;
+    end else begin:g_padding
+      assign row_tree[t]='0;
+    end
+  end
+
   // The acquisition dither rail for unit J is shared across every active slice.
   // C[J] = sum_s W[s,J]; M = sum_J C[J]. Factor the sign AFTER each column:
   // gain = sampling ? total-M : total; Wr = sampling ? sum_J sign[J]*C[J] : 0.
@@ -119,7 +140,12 @@ module cal_weight_reduce #(
   // Tree nodes refer to predeclared net elements, never later generate scopes.
   for (genvar t = 1; t < 2*TREE_LEAVES; t++) begin : g_node
     if (t < TREE_LEAVES) begin : g_branch
-      assign total_tree[t] = total_tree[2*t] + total_tree[2*t+1];
+      if (P_USE_ROW_TOTALS) begin:g_cached
+        // Leaves remain live: the dither-column tree reuses them below.
+        assign total_tree[t] = '0;
+      end else begin:g_uncached
+        assign total_tree[t] = total_tree[2*t] + total_tree[2*t+1];
+      end
       assign on_tree[t] = on_tree[2*t] + on_tree[2*t+1];
     end else if (t-TREE_LEAVES < N_TERMS) begin : g_leaf
       localparam int S = (t-TREE_LEAVES) / N_U;

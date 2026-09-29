@@ -3,7 +3,7 @@
 //===========================================================================
 // 职责一句话
 //   保存 18 个物理 slice x 71 个单位（63 主 + 8 子）的 Q30 权重，向 recon_core
-//   提供只读的 `w_q`；写端口在**未生效期**接受单点写入，并对每个写做合法性与
+//   提供只读的 `w_q` 与精确行和缓存；写端口在**未生效期**接受单点写入，并对每个写做合法性与
 //   容量守卫。本模块**不做**一致性校验的最终裁决（那是 calib_regs.validate 的
 //   职责范围内的部分）；维护写入期总和以检查容量，不执行样本重构算术。
 //
@@ -53,7 +53,9 @@ module weight_store #(
     input  logic [6:0]        wr_unit,
     input  logic [W_BITS-1:0] wr_data,
     output logic              err_write,     // 1 = 本次写被拒
-    output logic [P_N_SLICES-1:0][P_N_UNITS-1:0][W_BITS-1:0] w_q
+    output logic [P_N_SLICES-1:0][P_N_UNITS-1:0][W_BITS-1:0] w_q,
+    output wire [P_N_SLICES-1:0][63:0] row_total,
+    output wire [W_BITS-1:0] selected_weight // same address as write; invalid address reads zero
 );
 
   initial begin
@@ -69,10 +71,20 @@ module weight_store #(
   // For every supported production geometry the capacity predicate is
   // statically true: 32*128*(2^47-1) < 2^59 < 2^60.  Keep the dynamic guard
   // as an elaboration-time fallback if either width/limit changes later.
-  // Synthesis can then prune the unused read/subtract/add/compare path and
-  // sum_all register while preserving the existing write/clear protocol.
+  // Synthesis can prune the global subtract/add/compare path and sum_all
+  // register. The old-word read is shared by row replacement and cfg readback.
   localparam logic STATIC_SUM_SAFE =
       (64'(P_N_SLICES) * 64'(P_N_UNITS) * (64'(W_MAX) - 64'd1)) < SUM_MAX;
+
+  // Each accepted coefficient is < 2^47. Therefore a row of U coefficients
+  // is < U*2^47 <= 2^(47+ceil(log2(U))); ROW_BITS is exact for all U=1..128.
+  // A replacement subtracts the retained old word, even after clear_load:
+  // the bitmap describes this epoch, not the numeric contents of the store.
+  localparam int ROW_BITS = 47 + $clog2(P_N_UNITS);
+  logic [P_N_SLICES-1:0][ROW_BITS-1:0] row_q;
+  for (genvar s = 0; s < P_N_SLICES; s++) begin : g_row_output
+    assign row_total[s] = {{(64-ROW_BITS){1'b0}}, row_q[s]};
+  end
 
   logic [P_N_SLICES-1:0][P_N_UNITS-1:0] written;
   assign load_complete = &written;
@@ -86,6 +98,8 @@ module weight_store #(
   logic [SUM_BITS-1:0] sum_excl;
   logic [SUM_BITS-1:0] sum_new;
   logic [W_BITS-1:0]   cur_w;
+  wire [ROW_BITS-1:0] row_excl = row_q[s_idx] - ROW_BITS'(cur_w);
+  wire [ROW_BITS-1:0] row_new = row_excl + ROW_BITS'(wr_data);
 
   // Maintain the exact sum on accepted writes instead of rebuilding a
   // 1278-word combinational reduction. Replacement subtracts the old word.
@@ -100,6 +114,7 @@ module weight_store #(
   assign s_idx   = idx_ok ? wr_slice : 5'd0;
   assign u_idx   = idx_ok ? wr_unit  : 7'd0;
   assign cur_w   = w_q[s_idx][u_idx];
+  assign selected_weight = idx_ok ? cur_w : '0;
 
   // sum_all >= cur_w 恒成立（无符号），故减法不回绕。
   assign sum_excl = sum_all - {{(SUM_BITS - int'(W_BITS)){1'b0}}, cur_w};
@@ -114,6 +129,7 @@ module weight_store #(
         for (int u = 0; u < P_N_UNITS; u++) w_q[s][u] <= '0;
       written <= '0;
       sum_all <= '0;
+      row_q <= '0;
     end else if (clear_load) begin
       written <= '0;
     end else if (accept) begin
@@ -122,6 +138,7 @@ module weight_store #(
       // or rejection of out-of-range writes.
       w_q[wr_slice][wr_unit] <= wr_data & (W_MAX - W_BITS'(1));
       sum_all <= sum_new;
+      row_q[wr_slice] <= row_new;
       written[wr_slice][wr_unit] <= 1'b1;
     end
   end

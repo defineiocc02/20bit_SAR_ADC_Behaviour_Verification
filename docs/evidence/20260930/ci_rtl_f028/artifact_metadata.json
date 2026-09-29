@@ -1,0 +1,20 @@
+{
+  "id": 11061572458,
+  "node_id": "MDg6QXJ0aWZhY3QxMTA2MTU3MjQ1OA==",
+  "name": "rtl-simulation-logs",
+  "size_in_bytes": 54564,
+  "url": "https://api.github.com/repos/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/artifacts/11061572458",
+  "archive_download_url": "https://api.github.com/repos/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/artifacts/11061572458/zip",
+  "expired": false,
+  "digest": "sha256:de36f8fc01b6428ca82ad95deb1cd743853f14c0630c19dce8eda838b733a3d4",
+  "created_at": "2026-09-29T20:57:28Z",
+  "updated_at": "2026-09-29T20:57:28Z",
+  "expires_at": "2026-12-28T20:49:56Z",
+  "workflow_run": {
+    "id": 36629118047,
+    "repository_id": 1365253875,
+    "head_repository_id": 1365253875,
+    "head_branch": "codex/calibration-closure-20260928",
+    "head_sha": "f028ec5bb4f64a79414bac59c1b91bc1eaeee190"
+  }
+}

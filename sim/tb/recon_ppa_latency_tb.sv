@@ -14,13 +14,13 @@ module recon_ppa_latency_tb;
   int count[3];
   for(genvar g=0;g<3;g++) begin : profile
     recon_core #(.P_N_ACTIVE(1),.P_N_MAIN(2),.P_N_SUB(1),.P_N_SLICES(1),
-      .P_ADC2_BITS(20),.P_STAGES(g+5)) d(
+      .P_ADC2_BITS(20),.P_STAGES(g+5),.P_USE_ROW_TOTALS(1)) d(
       .clk(clk),.rst_n(rst_n),.cfg_ready(ready),.start(start),.sample_id(id),.clr_ovf(1'b0),
       .sampling_mask_en(1'b0),.slice_id(5'd0),.main_on(2'd0),.sub_on(1'b0),.dither_rail(4'd0),
       .adc2_code(code),.inj_q(64'sd0),.w_rom(weights),.offset_q(64'sd0),
       .adc2_min_q(64'sd0),.adc2_max_q(64'sd8589934592),.dout(dout[g]),.dout_valid(valid[g]),
       .clip_low(),.clip_high(),.acc_ovf(),.gain_err(),.adc2_ovf(),.busy(busy[g]),
-      .result_sample_id(rid[g]),.result_flags(flags[g]));
+      .result_sample_id(rid[g]),.result_flags(flags[g]), .row_total(64'd1073741824));
   end
   initial begin
     weights[0][0]=48'd536870912;weights[0][1]=48'd268435456;weights[0][2]=48'd268435456;

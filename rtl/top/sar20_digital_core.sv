@@ -133,6 +133,22 @@ module sar20_digital_core #(
   assign is_ctrl    = is_calib && (cfg_addr[11:0] == 12'h018);
   assign is_stat    = is_calib && (cfg_addr[11:0] == 12'h020);
 
+  // Cross-profile signals are declared before either controller first uses them.
+  wire [17:0] legacy_slice_sel,structural_slice_sel;
+  wire [17:0][62:0] legacy_main_sw,structural_main_sw;
+  wire [17:0][7:0] legacy_sub_sw,structural_sub_sw;
+  wire [17:0][3:0] legacy_dither_sw,structural_dither_sw;
+  logic legacy_sw_valid;
+  wire structural_sw_valid,structural_launch;
+  wire [31:0] structural_error,structural_id;
+  wire [7:0][4:0] structural_ids;
+  wire [7:0][62:0] structural_main;
+  wire [7:0][7:0] structural_sub;
+  wire [3:0] structural_rails;
+  wire structural_sampling,structural_analog_bad;
+  wire signed [63:0] structural_injection;
+  wire [11:0] structural_fine;
+
   // ---- 权重窗口寄存器 ----
   logic [4:0] cur_slice;
   logic cfg_bus_ok, cfg_addr_valid, cfg_bus_reject, bad_weight_width;
@@ -191,6 +207,8 @@ module sar20_digital_core #(
   // 3) 寄存器子系统
   //=========================================================================
   logic [N_SLICES-1:0][N_UNIT_TOTAL-1:0][W_BITS-1:0] w_q;
+  wire [N_SLICES-1:0][63:0] row_total;
+  wire [W_BITS-1:0] selected_weight;
   logic        ws_err_write;
   logic        ws_wr_en;
 
@@ -211,7 +229,9 @@ module sar20_digital_core #(
       .wr_unit   (dw_unit),
       .wr_data   (cfg_wdata[W_BITS-1:0]),
       .err_write (ws_err_write),
-      .w_q       (w_q)
+      .w_q       (w_q),
+      .row_total (row_total),
+      .selected_weight(selected_weight)
   );
 
   logic [31:0]              cal_err_code;
@@ -495,20 +515,6 @@ module sar20_digital_core #(
   end
 
 
-  wire [17:0] legacy_slice_sel,structural_slice_sel;
-  wire [17:0][62:0] legacy_main_sw,structural_main_sw;
-  wire [17:0][7:0] legacy_sub_sw,structural_sub_sw;
-  wire [17:0][3:0] legacy_dither_sw,structural_dither_sw;
-  logic legacy_sw_valid;
-  wire structural_sw_valid,structural_launch;
-  wire [31:0] structural_error,structural_id;
-  wire [7:0][4:0] structural_ids;
-  wire [7:0][62:0] structural_main;
-  wire [7:0][7:0] structural_sub;
-  wire [3:0] structural_rails;
-  wire structural_sampling,structural_analog_bad;
-  wire signed [63:0] structural_injection;
-  wire [11:0] structural_fine;
   sar_structural_ctrl #(.P_REF_ON(P_REF_ON),.P_RESIDUE_CAPTURE(P_RESIDUE_CAPTURE),
     .P_SHUFFLE_SEED(P_SHUFFLE_SEED)) u_structure(
     .clk(clk),.rst_n(epoch_rst_n),.enable(cfg_ready && P_STRUCTURAL),
@@ -552,6 +558,7 @@ module sar20_digital_core #(
       .P_N_SLICES  (int'(N_SLICES)),
       .P_ADC2_BITS (int'(ADC2_BITS)),
       .P_STAGES    (P_RECON_STAGES),
+      .P_USE_ROW_TOTALS(1),
       .P_DIT_N     (2 * DITHER_UNITS_RANGE),
       .P_DIT_END   (DITHER_SPLIT_IS_SUB ? int'(N_UNIT_TOTAL) : int'(N_UNIT_MAIN))
   ) u_recon (
@@ -571,6 +578,7 @@ module sar20_digital_core #(
       .adc2_code        (P_STRUCTURAL ? structural_fine : adc2_hold),
       .inj_q            (P_STRUCTURAL ? structural_injection : inj_hold),          // 已捕获的同样本注入
       .w_rom            (w_q),
+      .row_total        (row_total),
       .offset_q         (c_off),
       .adc2_min_q       (c_min),
       .adc2_max_q       (c_max),
@@ -625,16 +633,10 @@ module sar20_digital_core #(
   //=========================================================================
   // 12) cfg_rdata 回读
   //=========================================================================
-  logic [4:0] rd_slice;
-  logic [6:0] rd_unit;
-
-  assign rd_slice = (cur_slice < 5'(N_SLICES)) ? cur_slice : 5'd0;
-  assign rd_unit  = (dw_unit   < 7'(N_UNIT_TOTAL)) ? dw_unit : 7'd0;
-
   always_comb begin
     cfg_rdata = 64'd0;
     if (weight_addr_valid) begin
-      cfg_rdata = {{(64 - W_BITS){1'b0}}, w_q[rd_slice][rd_unit]};
+      cfg_rdata = {{(64 - W_BITS){1'b0}}, selected_weight};
     end else if (is_off) begin
       cfg_rdata = c_off;
     end else if (is_min) begin

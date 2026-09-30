@@ -337,6 +337,12 @@ hold WHS/ns&$-0.264$&$-0.264$&0\\\bottomrule
 完整顶层的15,567 LUT增量才是有效比较。综合后WNS不变是因为估算关键路径仍在除法器，
 并不能预测局部化后的\emph{真实}布局路径。
 
+\begin{figure}[H]\centering
+\includegraphics[width=0.95\textwidth]{figures/local_row_ppa.pdf}
+\caption{局部行更新候选的同约束有效综合及物理门禁。左图的两根柱子取自冻结的完整顶层综合报告；右图区分原缓存版虽布通但setup不达标，与逐行候选根本未布通。后者没有最终WNS或hold，不能画成一根时序柱。自写\code{audit_figures/make_local_row_ppa.py}在绘图前逐项核验基线布线35项、综合26项与失败布线20项原始文件哈希。}
+\label{fig:local-row-ppa}
+\end{figure}
+
 同一54,553,541字节综合DCP的SHA-256由下面两行连续拼接：
 \par\noindent\code{95a876bc7bdafa2ccf627f18bd6db6d87cb4d}
 \quad\code{6f4281eede9ae77143722d2fdc2}。\par

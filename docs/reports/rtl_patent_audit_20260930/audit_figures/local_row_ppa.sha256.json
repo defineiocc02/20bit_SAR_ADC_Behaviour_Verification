@@ -1,0 +1,21 @@
+{
+  "scope": "P5_SAME_CONSTRAINT_SYNTH_AND_FAILED_ROUTE_NOT_TIMING_SIGNOFF",
+  "archives": {
+    "baseline_route": "docs/evidence/20260930/vivado_cached_p5_route_25ns_fail",
+    "synth": "docs/evidence/20260930/local_row_trial_synth",
+    "route": "docs/evidence/20260930/local_row_trial_route_congestion"
+  },
+  "verified_payloads": {
+    "baseline_route": 35,
+    "synth": 26,
+    "route": 20
+  },
+  "source_file_sha256": {
+    "baseline_route_result": "8bfd50f1ac2c0993a0e70bfbe1b73b38a4076dfd3e88df8ff6e4f3d072727fbf",
+    "comparison": "4008966afe6486de554f9c4b0379b3ba756bd0b60092386e86d568860597e0be",
+    "route_result": "e3ed287c0f1f48c6f2aff79845eebf7903705980b1937f47ab648e798652fcc1"
+  },
+  "generator_sha256": "e784d1d1d9bc7b4df94bae0f9b40a77da8fbe34f4c62cf4997d046c2bddea7aa",
+  "pdf_sha256": "7c5fd7609d6b355f32d4f6a52276cc45e303439acd272ce7d60e1f6da0c07312",
+  "png_sha256": "de7f42f733ae03a5a75466ef6dc24cabca47ee274484ead2fb7b03f0b1283936"
+}

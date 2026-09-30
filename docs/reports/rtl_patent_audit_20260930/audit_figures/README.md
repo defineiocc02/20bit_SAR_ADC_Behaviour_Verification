@@ -75,6 +75,20 @@ cd "$SAR_REPORT"
 
 ## 必须保留的原始工件
 
+### 局部行更新的同约束综合与布线负证据图
+
+使用冻结的完整顶层综合 A/B 与失败布线归档重画报告中的局部行更新 PPA 图：
+
+```sh
+"$SAR_PYTHON" audit_figures/make_local_row_ppa.py \
+  --baseline-route "$SAR_REPO/docs/evidence/20260930/vivado_cached_p5_route_25ns_fail" \
+  --synth "$SAR_REPO/docs/evidence/20260930/local_row_trial_synth" \
+  --route "$SAR_REPO/docs/evidence/20260930/local_row_trial_route_congestion" \
+  --out figures/local_row_ppa
+```
+
+脚本先验证三份归档的81项原始文件哈希与两版DCP身份，再绘制综合LUT和物理通过/失败状态。失败版本没有最终布线WNS或hold；图中不使用中间WNS代替最终结果。
+
 ### 图 30：历史外部算术和协议负对照
 
 `--arithmetic` 下必须包含：

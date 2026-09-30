@@ -319,7 +319,7 @@ R_d &= \begin{cases}\sum_j r_j C_j,&\text{开启}\\0,&\text{关闭}\end{cases}.
 \item 当前缓存P5完整顶层综合和功能网表：\code{docs/evidence/20260930/vivado_cached_p5/}保存原始报告、无驱动检查及DCP摘要；\code{vivado_cached_p5_full_mapped/}保存三次XSim尝试、最终438行trace、日志及96项文件哈希。图\ref{fig:full-mapped-p5}限定为功能证据，不代替物理时序。
 \item 当前缓存P5的25\,ns实际布线失败：\code{docs/evidence/20260930/vivado_cached_p5_route_25ns_fail/}保存完整路由、DRC、setup/hold与功耗报告；\code{regreg_followup/}在同一布线DCP上按顺序引脚重算寄存器间setup/hold。图\ref{fig:p5-route-25ns}分开OOC外部端口与内部寄存器，未把负WNS归入时序通过。
 \item 局部行更新候选的RTL实测：\code{docs/evidence/20260930/local_row_trial_rtl/}绑定唯一RTL内容摘要，保留官方Verilator 5.020的22项run/build日志、三类lint、P5/P6追加结构测试及57项文件哈希。图\ref{fig:local-row-profiles}显示P5/P6/P7各自15/13/11拍，不把零延迟拍数当作物理纳秒。
-\item 局部行更新候选的真实EDA负证据：\code{docs/evidence/20260930/local_row_trial_synth/}保存同约束P5综合、完整DCP摘要、源码差异仅一文件的A/B比较；\code{local_row_trial_route_congestion/}保存\code{Route 35-3}拥塞等级7失败的原始日志及状态，不存在可称为通过的最终路由时序。
+\item 局部行更新候选的真实EDA负证据：\code{docs/evidence/20260930/local_row_trial_synth/}保存同约束P5综合、完整DCP摘要、源码差异仅一文件的A/B比较；\code{local_row_trial_route_congestion/}保存\code{Route 35-3}拥塞等级7失败的原始日志及状态。图\ref{fig:local-row-ppa}只对比有效综合资源及路由是否完成，不存在可称为通过的最终路由时序。
 \item 图件来源：\code{audit_figures/}中的自写生成器及\code{*.sha256.json}核对图件、原始日志和生成脚本；仓库报告包的\code{history/}逐代保存旧图，避免把不同源码版本的曲线误合并。
 \end{enumerate}
 \end{document}

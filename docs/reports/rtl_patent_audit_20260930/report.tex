@@ -55,6 +55,8 @@ ISSCC 论文第 1 页及图 9.8.1--9.8.3、演示稿第 10--35 页表明：两�
 \section{RDAC 跟随已决码与 18 单元池}
 \code{sar_trial_ctrl.sv} 第 20--51 行把 \code{trial_code} 与 \code{resolved_code} 分开，比较器 \code{cmp_valid} 到达后才提交已决位；\code{sar_structural_ctrl.sv} 第 118--130 行仅在 \code{coarse_update} 后加载 RDAC。因此“RDAC 不跟随未完成试探位”在数字边界有明确实现。\code{slice_pool_ctrl.sv} 第 23--50 行把上一周期采集的 8 单元晋升转换，从补集选择下一组 8 单元；随机游标扫描不保证对全部组合均匀抽样，也不能证明片上调度序列一致。\code{sar_structural_ctrl.sv} 第 63--65 行把 AUX 与 hold-low 接到单元归属掩码，但其模拟充电路径未出现。本轮复核把Flash/后级采集使能以及粗/细SAR截止cancel也寄存化；cancel多保持一拍，释放时busy已清零，避免两路信号同沿反向切换造成使能重开风险。
 
+\input{sections/prior_art_comparison.tex}
+
 \chapter{数字校准：核心算法与可复核实现}
 \section{物理权重语义}
 \code{rtl_params.vh} 固定 18 slice、每笔 8 活跃、每 slice 63 个主单元和 8 个子单元，共 \(18\times71=1278\) 个可编程系数。63+8 分段、1278 项表、Q30/Q32 和 ADC2 12-bit 均为本工程实现选择；ADR 0009 已明确这是完整码域候选阵列，不能当成芯片版图电容数。权重 \(W_{s,u}>0\) 为含桥接衰减的有效 \(C/C_f\)，以 48-bit 正有符号 Q30 编码；后级码仓中心 \(F\)、偏移 \(O\)、独立公共注入 \(I\) 均为相对输入满量程的 64-bit 有符号 Q32。\(a_{s,u}\in\{0,1\}\) 表示采样输入是否作用于该单元；采样 dither 专用单元有 \(a=0\)。\(on_{s,u}\) 表示本次底板开关状态，\(r_{s,u}\in\{-1,0,+1\}\) 为采样 dither 的已知轨贡献。单位、符号和桥接系数必须在离线标定导出时统一，不能对已含 \(C/C_f\) 的权重再重复乘或除 32。
@@ -286,6 +288,14 @@ R_d &= \begin{cases}\sum_j r_j C_j,&\text{开启}\\0,&\text{关闭}\end{cases}.
 \begin{enumerate}
 \item [00] 用户提供的 ISSCC 2024 论文 PDF（文件名以 \code{[00]_A_9.3nV} 开头），第 1--3 页，尤其 Fig. 9.8.1--9.8.3。
 \item [00\_1] 用户提供：\code{[00_1]ISSCC2024_ppt.pdf}，第 10--35 页为架构、参考、DEM、RA/AZ；第 36--38 页为测量结果。
+\item [01] Hurrell 等，\emph{An 18 b 12.5 MS/s ADC With 93 dB SNR}，用户 PDF 第1、3、5--6页：双级多位 SAR、非易失权重修正、后级 dither 与功耗口径。
+\item [02] ElShater 等，\emph{A 10-mW 16-b 15-MS/s Two-Step SAR ADC With 95-dB DR Using Dual-Deadzone Ring Amplifier}，用户 PDF 第1、7、10页：RA 结构、片上建立表征及不同采样率下的 DR/功耗。
+\item [03] Li 等，\emph{A Rail-to-Rail 12 MS/s 91.3 dB SNDR 94.1 dB DR Two-Step SAR ADC With Integrated Input Buffer Using Predictive Level-Shifting}，用户 PDF 第1--3、8页：预测性输入驱动和测量条件。
+\item [04] Bannon 等，\emph{An 18 b 5 MS/s SAR ADC with 100.2 dB Dynamic Range}，用户 PDF 第1--2页：三级子 ADC、残差放大、熔丝修正及不同功耗边界。
+\item [05] Analog Devices，\emph{LTC2387-18 Datasheet}，用户 PDF 第1页及电气特性表：外部接口、参考与产品典型值。
+\item [06] Steensgaard 等，\emph{A 24b 2MS/s SAR ADC with 0.03ppm INL and 106.3dB DR in 180nm CMOS}，用户 PDF 第1页：DEM/dither 失配整形、AZ 与 core 功耗。
+\item [07] Texas Instruments，\emph{ADC358x Datasheet}，用户 PDF 第1、6页：ADC3583 型号、噪声与外部参考/双线接口功耗条件。
+\item [08] Shen 等，\emph{A 16-bit 16-MS/s SAR ADC With On-Chip Calibration in 55-nm CMOS}，用户 PDF 第1、8页：片上前台位权测量、储能参考、LSB 重复与统计余差。
 \item [09] \url{https://patents.google.com/patent/US10516408B2/en}，claim 1 及相关图。
 \item [10] \url{https://patents.google.com/patent/US10505561B2/en}，claim 1、5--11。
 \item [11] \url{https://patents.google.com/patent/US10511316B2/en}，claim 1、7、8、15、20。

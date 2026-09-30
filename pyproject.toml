@@ -141,9 +141,17 @@ fail_under = 35
 line-length = 100
 target-version = "py310"
 src = ["src", "tests", "tools"]
-# The report package archives exact, hash-bound figure generators, including
-# earlier revisions. Formatting those historical bytes invalidates provenance.
-extend-exclude = ["__pycache__", ".venv", "build", "dist", "docs/reports/rtl_patent_audit_20260930"]
+# These three figure generators are archived with byte-exact source hashes;
+# changing their formatting would invalidate the corresponding figure provenance.
+extend-exclude = [
+    "__pycache__",
+    ".venv",
+    "build",
+    "dist",
+    "docs/reports/rtl_patent_audit_20260930/audit_figures/make_compact_divider_profiles.py",
+    "docs/reports/rtl_patent_audit_20260930/audit_figures/make_divider_profiles.py",
+    "docs/reports/rtl_patent_audit_20260930/history/final_regression_ci_0c4a_before_f028/audit_figures/make_final_regression_evidence.py",
+]
 
 [tool.ruff.lint]
 select = [

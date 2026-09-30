@@ -296,6 +296,10 @@ hold WHS为$-2.361$\,ns、THS为$-108,383.945$\,ns，66,728/200,369个端点失�
 而最差寄存器间hold为\textbf{+0.062\,ns}。
 这区分了核心时序和外部边界假设；不能据此忽略配置输入的hold问题，
 实际板卡必须提供输入最短延迟、引脚和外部时钟关系，并重新实现及签核。
+按当前最差输入路径作一阶预算，0\,ns外部最短到达假设若保持其他条件不变，
+至少需要约2.361\,ns的正向最短到达修正才可使\emph{这一条}hold路径到零裕量；
+它不是可直接填写的板级\code{set\_input\_delay -min}数值，因为还须核实
+时钟相位、板线、器件输入延迟和所有其余端口，同时以\code{-max}约束重查setup。
 
 \begin{figure}[H]\centering
 \includegraphics[width=\textwidth]{figures/p5_route_25ns.pdf}
@@ -309,6 +313,45 @@ hold WHS为$-2.361$\,ns、THS为$-108,383.945$\,ns，66,728/200,369个端点失�
 该次运行的原始报告、源脚本和校验摘要被完整保留，\code{post\_route.dcp}的
 SHA-256为\code{6afdfe88962140bd5387f8f8c5d0f18feb44858183406ccf3851b7229787d448}，
 未复制到Git。不能把此处的25\,ns申请周期或全路径负WHS写成“40\,MHz已实现”。
+
+\subsection{局部行反馈候选：有效综合面积回退、布线拥塞失败}
+为修复上述行缓存反馈路径，把旧系数选择和减加运算分别放到18个物理行生成块。
+这一候选保持同沿更新、完整配置接口和16拍节拍，22项RTL回归及P5/P6/P7顶层定向测试通过。
+然而功能正确不等于综合优越。我们冻结28项Vivado输入，只改
+\code{rtl/core/weight_store.sv}；器件、P5、25\,ns、综合Tcl与XDC逐字节相同。
+两份完整有效综合报告及输入DCP均通过SHA-256核对，见
+\code{docs/evidence/20260930/local_row_trial_synth/comparison_vs_cached.json}。
+
+\begin{center}
+\begin{tabular}{lrrr}\toprule
+P5同约束综合指标&原缓存版&逐行独立读选版&变化\\\midrule
+Slice LUT&106,205&121,772&+15,567（+14.66\%）\\
+FF&66,520&66,509&$-11$\\
+DSP/BRAM&20/0&20/0&0/0\\
+setup WNS/ns&+10.640&+10.640&0\\
+hold WHS/ns&$-0.264$&$-0.264$&0\\\bottomrule
+\end{tabular}
+\end{center}
+逐行副本主要把\code{u_wstore}层级LUT从20,618推至36,030；
+因\code{flatten_hierarchy rebuilt}可迁移逻辑，层级行只作归因线索，
+完整顶层的15,567 LUT增量才是有效比较。综合后WNS不变是因为估算关键路径仍在除法器，
+并不能预测局部化后的\emph{真实}布局路径。
+
+同一54,553,541字节综合DCP的SHA-256由下面两行连续拼接：
+\par\noindent\code{95a876bc7bdafa2ccf627f18bd6db6d87cb4d}
+\quad\code{6f4281eede9ae77143722d2fdc2}。\par
+使用相同BUFG站点实际布局布线时，Vivado首先报告\code{Place 46-14}高度拥塞，
+随后给出\code{Route 35-447}拥塞警告及\code{Route 35-3}“congestion level 7，无法布通”错误，
+\code{out/status.txt}最终为\code{FAILED}。
+因此\emph{没有完整路由、最终WNS或最终hold}；初始布线前的
+\code{WNS=+2.114 ns}只是中间值，不能算已实现频率。
+原始失败记录、脚本、日志及哈希见
+\code{docs/evidence/20260930/local_row_trial_route_congestion/}。
+这个候选在面积和可布性两项门禁均失败，生产RTL回退到先前缓存版。
+下一候选显式共用每行\code{w_q[s][u_idx]}的局部选择结果：
+行更新直接使用本行旧值，配置读回再在18行结果中选择，
+保留局部反馈却避免复制读选择网络；其22项本地回归及三档顶层结构测试已通过。
+该共享结构仍须完成同约束综合与实际布线，不能只以RTL仿真替代PPA验收。
 
 \section{功耗验收不能由LUT数量替代}
 前述P7归约/除法候选的原始\code{power_vectorless.rpt}给出下列模型分项。

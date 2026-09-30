@@ -1,5 +1,7 @@
 # RTL、来源映射及交付复核（2026-09-30）
 
+> **最新物理证据（本日更新）：** PR #4 的 `b9fcba4` 已通过 [9/9 项 CI](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36669604147)。当前缓存版 P5 在 Vivado 2018.3、Virtex-7、25 ns 约束下完成有效综合及真实 BUFG 布线；[原始布线证据](../evidence/20260930/vivado_cached_p5_route_25ns_fail/README.md)显示路由和 DRC Error 为 0，但 setup WNS 为 −0.280 ns，全路径 hold WHS 为 −2.361 ns，不能宣称 40 MHz 已实现。寄存器引脚到寄存器引脚的独立 STA 得到 hold +0.062 ns；外部配置输入仍缺少板级最短延迟条件。针对最差行缓存反馈路径的局部行更新候选虽通过22项本地RTL回归，[同约束有效综合](../evidence/20260930/local_row_trial_synth/comparison_vs_cached.json)的LUT却从106,205增至121,772（+14.66%），[真实路由](../evidence/20260930/local_row_trial_route_congestion/README.md)又因拥塞等级7失败。该版本已弃用；共享旧系数选择器的后备结构正在重新综合。下面按原日期记录的 `0c4a772`、早期CI及待验收状态是**历史快照**，不能覆盖本段最新证据。
+
 状态：修复已发布到 PR #4 的 `0c4a7726597c49044d25117a701ba780137ddf04`。截至 2026-09-29 20:32 UTC（北京时间 2026-09-30 04:32），[CI 36626662809](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36626662809) 仍为 `in_progress`，不能写成全部通过。归约器、位级镜像和精简权重存储的定向复验已有结果；同约束 baseline/optimized 比较正在进行，buffered 实际布线与完整顶层 mapped functional 验证尚待完成。ASIC PPA 和模拟电路签核不在已完成范围内。
 
 ## 交付版本与证据身份

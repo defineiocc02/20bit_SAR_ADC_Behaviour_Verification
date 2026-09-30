@@ -1,0 +1,2 @@
+ERROR: [Route 35-3] Design is not routable as its congestion level is 7.
+Resolution: Run report_route_status to get a full summary of the design's routing, as it is likely that the design has not been routed at all. To find the areas of the congestion, use the route congestion Metrics in the Device View and check the logfile for the Congestion Report.

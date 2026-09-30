@@ -1,0 +1,2 @@
+CALIBRATION_RECOVERY_COMPLETE samples=2048 max_calibrated_error=4 max_uncalibrated_error=504
+- sim/tb/calibration_recovery_tb.sv:75: Verilog $finish

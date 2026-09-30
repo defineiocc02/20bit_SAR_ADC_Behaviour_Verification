@@ -209,3 +209,13 @@ python audit_figures/make_p5_route_evidence.py \
 ```
 
 脚本验证综合原始25项、布线原始35项和只读寄存器引脚STA的6项哈希，再读实际时序报告及reviewed result。图中25\,ns为申请周期，布线WNS为负；OOC全路径hold为负，而同一DCP的寄存器到寄存器hold为正。后者没有替外部配置端口提供板级最短输入延迟。生成器固定PDF元数据时间，以便同源重复生成字节一致。
+
+## 局部行更新候选的三档结构回归图
+
+```sh
+python audit_figures/make_local_row_profiles.py \
+  --archive /path/to/calibration-closure/docs/evidence/20260930/local_row_trial_rtl \
+  --out figures/local_row_profiles
+```
+
+脚本核对该候选57项原始日志/身份文件哈希和22项回归摘要，再从P5/P6/P7真实完整顶层RTL日志读取三模式、438输出、7,680协议周期、438延迟检查及15/13/11拍观测。图只证明零延迟数字功能；尚不包含映射、真实布线或模拟性能。

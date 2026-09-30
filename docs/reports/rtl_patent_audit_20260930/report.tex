@@ -281,7 +281,11 @@ R_d &= \begin{cases}\sum_j r_j C_j,&\text{开启}\\0,&\text{关闭}\end{cases}.
 \input{sections/synthesis_repair.tex}
 
 \chapter{结论}
-当前代码最完整且最可检验的是\textbf{数字校准链}：物理单元权重配置、DEM/采样轨对应、Q30/Q32 整数公式、精确 floor 除法、异常与 sample ID 协同输出。当前行和缓存版本已通过22项CI RTL回归、三类lint及独立算术审计，定向最大表与替换/clear检查、两项破坏负控和P5/P6/P7结构配置检查分别保留来源；独立整数oracle、负控和真实小单元映射见证补充了不同层级的证据。P5完整顶层综合网表又通过三模式438行公开端口功能检查，但不含SDF和非零flags；历史CI与逐样本图仍按原来源保留。论文的两路交替与 RDAC 已决位隔离已到数字控制层；采样时刻、辅助充电、动态参考、RA/AZ 和比较器仍要由模拟电路和版图证明。六项专利中 US10707889B1 的跨 ADC tracking 更新尚未覆盖，但缺少证据证明它是该论文芯片必须采用的路径；应作为专利覆盖差距管理。论文披露的两端口 dither 范围扩展 2 bit 则是当前 RTL 尚未闭合的明确架构差距。下一阶段应在保留位精确与配置追踪门禁的前提下，按有效综合瓶颈决定优化，再实现模拟宏接口并完成混合信号验收；ASIC 640\,MHz目标与FPGA实测可实现频率分别报告。
+当前代码最完整且最可检验的是\textbf{数字校准链}：物理单元权重配置、DEM/采样轨对应、Q30/Q32 整数公式、精确 floor 除法、异常与 sample ID 协同输出。当前行和缓存版本已通过22项CI RTL回归、三类lint及独立算术审计，定向最大表与替换/clear检查、两项破坏负控和P5/P6/P7结构配置检查分别保留来源；独立整数oracle、负控和真实小单元映射见证补充了不同层级的证据。P5完整顶层综合网表又通过三模式438行公开端口功能检查，但不含SDF和非零flags；历史CI与逐样本图仍按原来源保留。
+
+首次P5实布线虽然路由完整且没有DRC错误，25\,ns下寄存器间setup仍差0.280\,ns；OOC全路径hold差2.361\,ns，其中最差路径来自零最短输入延迟假设，寄存器间hold单独为+0.062\,ns。因此不能把当前实测称为40\,MHz已实现，也不能用功能网表通过替代板级时序签核。逐物理行独立读选虽通过22项RTL功能回归与三档结构检查，同约束综合却增加14.66\% LUT，真实路由因拥塞等级7失败；该版本已明确弃用。共享旧系数读选的后备结构正在按同一门禁测量，最终取舍必须依赖完整PPA证据。
+
+论文的两路交替与 RDAC 已决位隔离已到数字控制层；采样时刻、辅助充电、动态参考、RA/AZ 和比较器仍要由模拟电路和版图证明。六项专利中 US10707889B1 的跨 ADC tracking 更新尚未覆盖，但缺少证据证明它是该论文芯片必须采用的路径；应作为专利覆盖差距管理。论文披露的两端口 dither 范围扩展 2 bit 则是当前 RTL 尚未闭合的明确架构差距。下一阶段应在保留位精确与配置追踪门禁的前提下，按有效综合瓶颈决定优化，再实现模拟宏接口并完成混合信号验收；ASIC 640\,MHz目标与FPGA实测可实现频率分别报告。
 
 \appendix
 \chapter{来源与复现索引}
@@ -314,6 +318,8 @@ R_d &= \begin{cases}\sum_j r_j C_j,&\text{开启}\\0,&\text{关闭}\end{cases}.
 \item 前代精简P5超时记录：\code{docs/evidence/20260930/vivado_compact_p5_timeout/}保存7,200\,s时限及运行阶段，无完整DCP和资源/时序值；它是失败历史，不能填入PPA表。
 \item 当前缓存P5完整顶层综合和功能网表：\code{docs/evidence/20260930/vivado_cached_p5/}保存原始报告、无驱动检查及DCP摘要；\code{vivado_cached_p5_full_mapped/}保存三次XSim尝试、最终438行trace、日志及96项文件哈希。图\ref{fig:full-mapped-p5}限定为功能证据，不代替物理时序。
 \item 当前缓存P5的25\,ns实际布线失败：\code{docs/evidence/20260930/vivado_cached_p5_route_25ns_fail/}保存完整路由、DRC、setup/hold与功耗报告；\code{regreg_followup/}在同一布线DCP上按顺序引脚重算寄存器间setup/hold。图\ref{fig:p5-route-25ns}分开OOC外部端口与内部寄存器，未把负WNS归入时序通过。
+\item 局部行更新候选的RTL实测：\code{docs/evidence/20260930/local_row_trial_rtl/}绑定唯一RTL内容摘要，保留官方Verilator 5.020的22项run/build日志、三类lint、P5/P6追加结构测试及57项文件哈希。图\ref{fig:local-row-profiles}显示P5/P6/P7各自15/13/11拍，不把零延迟拍数当作物理纳秒。
+\item 局部行更新候选的真实EDA负证据：\code{docs/evidence/20260930/local_row_trial_synth/}保存同约束P5综合、完整DCP摘要、源码差异仅一文件的A/B比较；\code{local_row_trial_route_congestion/}保存\code{Route 35-3}拥塞等级7失败的原始日志及状态，不存在可称为通过的最终路由时序。
 \item 图件来源：\code{audit_figures/}中的自写生成器及\code{*.sha256.json}核对图件、原始日志和生成脚本；仓库报告包的\code{history/}逐代保存旧图，避免把不同源码版本的曲线误合并。
 \end{enumerate}
 \end{document}

@@ -141,7 +141,9 @@ fail_under = 35
 line-length = 100
 target-version = "py310"
 src = ["src", "tests", "tools"]
-extend-exclude = ["__pycache__", ".venv", "build", "dist"]
+# The report package archives exact, hash-bound figure generators, including
+# earlier revisions. Formatting those historical bytes invalidates provenance.
+extend-exclude = ["__pycache__", ".venv", "build", "dist", "docs/reports/rtl_patent_audit_20260930"]
 
 [tool.ruff.lint]
 select = [

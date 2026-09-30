@@ -271,7 +271,7 @@ def main() -> None:
         cellText=count_rows,
         colLabels=[
             "Recorded tool",
-            "Loader transactions",
+            "Loader TB steps",
             "Reducer input cases",
             "Geometries: loader / reducer",
         ],

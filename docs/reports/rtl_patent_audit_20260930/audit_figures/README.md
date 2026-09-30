@@ -1,6 +1,6 @@
 # 审查图件的可复现构建
 
-这里的八个制图入口及一个 compact schema 读取模块只读取既有证据，不调用 Verilator、Vivado 或远端命令。当前包含 30、31、32、38、39、40、四张 CI 回归图及独立算术双版本图。图32已从两份完整有效P7综合归档生成，明确显示LUT增加16.23%和仍然为负的时序裕量。
+这里的制图入口及 compact schema 读取模块只读取既有证据，不调用 Verilator、Vivado 或远端命令。历史图及最终共享选择器版本的图件分别保留来源；后文列出各自重建命令。图32已从两份完整有效P7综合归档生成，明确显示LUT增加16.23%和仍然为负的时序裕量。
 
 ## 口径与交付物
 
@@ -148,7 +148,7 @@ mapped_witness_retry/out_baseline_fixed/input_fanout.csv
 
 使用 `--schema ci` 与 `docs/evidence/20260930/ci_rtl_417f/`。必须保留完整归档及其 `sha256.json`，包括根 manifest、job metadata、被测 merge/tree 信息、88 项输入清单、26 项 RTL 摘要、22 份运行日志、3 份 lint 日志，以及 `arithmetic-audit/manifest.json` 和 `run.log`。脚本逐字节读取本地 Git 中 `417f261f24fe917552ac71f6aadb6b3dbf779c5f` 的源文件；浅克隆或历史缺失需先取得该对象，不能退回当前工作树。
 
-新增 `weight_row_cache_tb` 的五种几何共 16,150 个事务步使用独立保留权重字求和，并以独立装载位图的全与结果检查 complete 端口；归约器七种几何均打印 `cache=1`，三份实现逐笔与独立 scalar oracle 对照。脚本维持原 21 项集合并只允许此一项扩展。
+新增 `weight_row_cache_tb` 的五种几何共 16,150 个 TB 检查步使用独立保留权重字求和，并以独立装载位图的全与结果检查 complete 端口。检查步包括复位、无写入、清除和保留值读取，不能全部称作写入事务；归约器七种几何均打印 `cache=1`，三份实现逐笔与独立 scalar oracle 对照。脚本维持原 21 项集合并只允许此一项扩展。
 
 脚本分别核对 RTL step 与 job 结论；成功 job 还要求独立算术步骤、完成计数及七项来源 SHA 一致。旧 `ci_rtl_0c4a` 失败-job schema 仍可用于历史重建，必须保留启动器失败的 127 返回码；它不会被默认升级为成功。`--schema local` 专用于旧 `final_rtl/` schema，不适用于 CI 归档。历史重建应在独立目录进行，避免覆盖当前四图。
 
@@ -233,3 +233,17 @@ python audit_figures/make_local_row_profiles.py \
 ```
 
 脚本核对该候选57项原始日志/身份文件哈希和22项回归摘要，再从P5/P6/P7真实完整顶层RTL日志读取三模式、438输出、7,680协议周期、438延迟检查及15/13/11拍观测。图只证明零延迟数字功能；尚不包含映射、真实布线或模拟性能。
+
+## 最终共享读选与后续PPA数学分析
+
+在仓库根目录、已有 Matplotlib/NumPy 及 adi_model 源码的环境执行：
+
+```sh
+python docs/reports/rtl_patent_audit_20260930/audit_figures/make_shared_old_ppa.py
+python docs/reports/rtl_patent_audit_20260930/audit_figures/make_mapped_p5_evidence.py --archive docs/evidence/20260930/shared_old_trial_full_mapped --out docs/reports/rtl_patent_audit_20260930/figures/shared_old_mapped
+python docs/reports/rtl_patent_audit_20260930/audit_figures/audit_dem_prefix_math.py
+```
+
+前两条验证实际共享读选四组归档、DCP和trace身份后重绘；分别是布线核心时序和无SDF功能见证，不宣称板级/ASIC签核。第三条以独立 Python 前向二维排列核验拟议前缀求和，生成反例示意和结果清单；它没有改变生产RTL，也没有EDA/PPA通过结论。不得把数学比较次数写成RTL仿真覆盖次数。
+
+最终源码22项CI图证在仓库根目录运行 `python docs/reports/rtl_patent_audit_20260930/audit_figures/make_shared_ci_evidence.py`，逐项核验63个payload和88项受测Git输入，重建 `shared_ci_{arithmetic,protocol,system}`；依赖原有历史生成器中的计数解析函数，历史图件不被覆盖。

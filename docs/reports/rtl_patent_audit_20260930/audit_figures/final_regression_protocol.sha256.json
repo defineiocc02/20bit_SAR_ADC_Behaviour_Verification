@@ -1,6 +1,6 @@
 {
   "scope": "FROZEN_ZERO_DELAY_RTL_LOG_EVIDENCE_NOT_STA_OR_ANALOG_SIGNOFF",
-  "script_sha256": "9af916cd576715f2b31eb744a832be0c10b1504706e82bb1fc436cfb80433819",
+  "script_sha256": "9e845ab15838af56c0fcd31ac38e87ce444a4f3b74a5547b17bf335db7bcc477",
   "inputs_sha256": {
     "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/sha256.json": "4cb03c4c83679991437f68748c318953794f107cfe1b20a7dcfd49264abc488f",
     "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/arithmetic-audit/manifest.json": "7d14f6cbd4f14f076458188167bf86ec910b9e64617e36219c88c40edcf43ec0",
@@ -20,8 +20,8 @@
     "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/open_rtl/review_config_tb.run.log": "ea7cd9d9c8ad0bddf39321eb6f3fe3156e7f91171d1ab440e5dbfa9955688b8e"
   },
   "images_sha256": {
-    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_protocol.png": "2882e159367cc76072b806a73add63e4415c755e05125e9e11755662ad4db2a8",
-    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_protocol.pdf": "cad7eb08443503cee8ba7dc4a2f2f07ed55d20111f8f0097d45ba3dacfb1a5e9"
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/reports/rtl_patent_audit_20260930/figures/final_regression_protocol.png": "2882e159367cc76072b806a73add63e4415c755e05125e9e11755662ad4db2a8",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/reports/rtl_patent_audit_20260930/figures/final_regression_protocol.pdf": "cad7eb08443503cee8ba7dc4a2f2f07ed55d20111f8f0097d45ba3dacfb1a5e9"
   },
   "benches": {
     "sar_trial_tb": {

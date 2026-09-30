@@ -1,6 +1,6 @@
 {
   "scope": "FROZEN_ZERO_DELAY_RTL_LOG_EVIDENCE_NOT_STA_OR_ANALOG_SIGNOFF",
-  "script_sha256": "9af916cd576715f2b31eb744a832be0c10b1504706e82bb1fc436cfb80433819",
+  "script_sha256": "9e845ab15838af56c0fcd31ac38e87ce444a4f3b74a5547b17bf335db7bcc477",
   "inputs_sha256": {
     "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/sha256.json": "4cb03c4c83679991437f68748c318953794f107cfe1b20a7dcfd49264abc488f",
     "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/arithmetic-audit/manifest.json": "7d14f6cbd4f14f076458188167bf86ec910b9e64617e36219c88c40edcf43ec0",
@@ -21,8 +21,8 @@
     "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/open_rtl/p2_tb.run.log": "01fd536326072eef8b61c8cb46adc32b770ec65378bb2fc22b928eddd2f906d9"
   },
   "images_sha256": {
-    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_arithmetic.png": "334ce9037e30042aa95d99f1b0e3f5cd3f6b1d08158fcab1babf43208ce72db7",
-    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_arithmetic.pdf": "a466fa7b2506d6635908cd56a86701601181807589418d016e3dd536c5bfe4b0"
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/reports/rtl_patent_audit_20260930/figures/final_regression_arithmetic.png": "5dc4e3abf55ddfc2b5400b5303567001c88c3fa657140b4c48778a68386948bf",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/reports/rtl_patent_audit_20260930/figures/final_regression_arithmetic.pdf": "b4827bd8e9cec0e0b11239b351d523a2f0966b8cdc37ba96bf53cd4468fadd11"
   },
   "benches": {
     "p2_oracle_tb": {
@@ -176,7 +176,7 @@
     "weight_row_cache_tb": {
       "marker": "WEIGHT_ROW_CACHE_COMPLETE geometries=5 steps=16150",
       "metrics": {
-        "loader_transactions": 16150,
+        "loader_tb_steps": 16150,
         "geometries": 5,
         "cases_slices_units_steps_accepted_rejected_clears": [
           [

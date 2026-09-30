@@ -390,6 +390,8 @@ Clocks约占该次模型动态功耗的53.4\%，说明只看LUT数量不能覆�
 若后续导入该类ASIC单元，必须重新检查门控建立/保持、复位可达性、测试模式和功能等价；
 不能把FPGA的CE映射当成ASIC时钟树已经优化。面积、时序和有活动数据的功耗应分别形成证据，再判断整体PPA取舍。
 
+\input{sections/shared_selector_closure.tex}
+
 \section{ASIC 目标仍需什么证据}
 ASIC 的 640\,MHz 目标需要指定标准单元库、PVT、负载、时钟树、布线寄生和模拟宏接口预算。
 FPGA 的 CARRY4、LUT 和 DSP48E1 与 ASIC 单元的延迟结构不同，不能按单一比例换算。

@@ -1,10 +1,18 @@
 # 2026-09-30 RTL 与工具流程证据索引
 
+## 最终共享读选修复
+
+最新源码为 `71e7d5a`，26 文件 RTL 内容 SHA `89b9f8153fea…`。[最终 CI](ci_shared_71e7d5a/README.md) 9/9 项成功，完整 22 bench、三类 lint、独立算术与52条验收通过。四组直接证据分别为 [RTL](shared_old_trial_rtl/README.md)、[综合](shared_old_trial_synth/README.md)、[实际布线](shared_old_trial_route_25ns/README.md)、[完整网表 XSim](shared_old_trial_full_mapped/README.md)。
+
+同条件 P5/25ns 核心 setup +0.946ns、hold +0.052ns，0路由/DRC错误；综合 LUT108842，比前代增加2.483%。40MHz核心对应2.5MS/s，OOC外部hold仍负，整板与ASIC640MHz未签核。下列各代历史记录按原日期、源码和状态解释。
+
+## 历史记录
+
 历史提交 `39e9c27` 的本地全量回归以 [final_rtl/result.json](final_rtl/result.json) 和 [冻结源码清单](final_rtl/source_manifest.json) 为准：完整运行官方 runner 当时注册的 **21 个 testbench，21/21 PASS**，进程退出码为 0；同时完成三个严格生产 lint 入口。这里的“完整”指该注册集合全部执行，不表示穷举整个芯片的状态空间。编译日志和大尺寸原始数据保留在外部工件，本目录只收录可核对的精简证据。
 
 后继修复增加了权重最高恒零位的显式掩码，并将归约 miter 的输入驱动改为明确的事务边沿，同时加入独立 scalar oracle。原 `final_rtl` 原始日志保留：其 84 个冻结文件中，当前仅 `rtl/core/weight_store.sv` 与 `sim/tb/cal_weight_reduce_ppa_tb.sv` 已改变，不能再宣称该旧集合与当前工作树完全相同。新增证据见 [weight_msb](weight_msb/README.md) 与 [reducer_scheduler](reducer_scheduler/README.md)，其范围、负控、工具版本和精确计数分别记录。最新生产 RTL 的三参数复验见 [compact_profiles](compact_profiles/README.md)，不能将定向复验说成旧 21 项在新源码上已全部重跑。
 
-## 当前发布与 CI 状态
+## 早期发布与当时 CI 状态
 
 发布提交为 [0c4a7726597c49044d25117a701ba780137ddf04](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/commit/0c4a7726597c49044d25117a701ba780137ddf04)。截至 2026-09-29 20:32 UTC，[CI 36626662809](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36626662809) 对应同一 head，状态仍为 `in_progress`。部分 job 已成功不能写成全绿，也不能引用较早提交的成功替代它。
 

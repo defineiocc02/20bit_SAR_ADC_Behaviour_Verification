@@ -114,3 +114,7 @@ docs/evidence/20260930/shared_old_trial_rtl/** -text -whitespace -diff
 docs/evidence/20260930/shared_old_trial_synth/** -text -whitespace -diff
 docs/evidence/20260930/shared_old_trial_route_25ns/** -text -whitespace -diff
 docs/evidence/20260930/shared_old_trial_full_mapped/** -text -whitespace -diff
+docs/evidence/20260930/ci_shared_71e7d5a/** -text -whitespace -diff
+
+# Final report compiler and page-review records retain their sealed bytes.
+docs/reports/rtl_patent_audit_20260930/release_qa/** -text -whitespace

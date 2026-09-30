@@ -1,0 +1,16 @@
+{
+  "scope": "BOUNDED_READ_ONLY_SOURCE_EVIDENCE_REVIEW_NOT_ADDITIONAL_EDA",
+  "reviewer": "/root/final_source_audit with bounded bench-graph subreview",
+  "result": "NO_REMAINING_SUBSTANTIVE_FINDINGS_IN_REVIEWED_SCOPE",
+  "checked": [
+    "163 final physical/RTL archive payload hashes",
+    "26 current RTL files match frozen synthesis source",
+    "28-input same-constraint synthesis packages differ only weight_store.sv",
+    "22 final bench graphs bound to63 CI payloads and88 tested Git inputs",
+    "Core setup/hold versus external OOC hold boundary",
+    "PPA counts and prefix storage budget",
+    "Independent DEM selection sets for512 states and all64 main/8 sub counts"
+  ],
+  "finding_fixed": "16150 row-cache counter is loader TB steps, including reset/no-write/clear/read-retained; replaced misleading transactions labels and loader_transactions field, regenerated affected graphs and source manifests, rebuilt PDF and reviewed changed pages51/76/84.",
+  "limitation": "Review does not prove analog macros, board IO timing, ASIC640MHz or proposed prefix RTL/PPA."
+}

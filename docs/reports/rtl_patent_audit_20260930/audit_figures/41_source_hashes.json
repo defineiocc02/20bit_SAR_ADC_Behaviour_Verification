@@ -1,7 +1,7 @@
 {
   "scope": "ROW_CACHE_CANDIDATE_LOCAL_FUNCTIONAL_NOT_CI_PPA_OR_STA",
   "rtl_sha256": "1e3fab94b7b29b77113fa2e18eae99b6ee1c180cd7df6004625c85358392eef4",
-  "script_sha256": "8b1c0339806c2226db19fe40253f38a966e128586895fdafa56d4edd51b78085",
+  "script_sha256": "453d99d968ba8ec99a0d77643ef1fe402f9565a5569c1e3f1d78d271d9016697",
   "inputs_sha256": {
     "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/row_cache/README.md": "6ed8676cb9885460102f571dfdeb366e1d3a3a12ef047254e6a20455ee0e9f15",
     "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/row_cache/manifest.json": "c5a5034aac012ff212f8f8995ebfae2424648c3b637f4468bfbddbe0508ac0fb",
@@ -235,8 +235,8 @@
   ],
   "loader_negative_error": -1,
   "outputs_sha256": {
-    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_patent_rtl_report_20260928/figures/41_row_cache_evidence.png": "830ddd4f6d2775fba8a216055c56af9fe615a6c334094b70c50a8844caaaf3c5",
-    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_patent_rtl_report_20260928/figures/41_row_cache_evidence.pdf": "b924db94c433afc8dc66ee304443a42c8b10e57944e79d2822b4e6e2785c6915"
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/reports/rtl_patent_audit_20260930/figures/41_row_cache_evidence.png": "d253b422e9d6792cd3492366a5a40586a0868f526fbfb0f5775a1da582f63d8e",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/reports/rtl_patent_audit_20260930/figures/41_row_cache_evidence.pdf": "caf1e919e7c1ca2023e21abeb272772d17044880db223ed81130dff55e68820d"
   },
   "rebuild_command": "python audit_figures/make_row_cache_evidence.py --evidence /path/to/repo/docs/evidence/20260930/row_cache"
 }

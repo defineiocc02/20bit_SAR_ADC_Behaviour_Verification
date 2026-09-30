@@ -221,10 +221,10 @@ def metric_lines(name: str, text: str) -> tuple[list[str], dict]:
         ):
             raise ValueError("Row-cache loader case/count contract differs")
         return [
-            f"{steps:,} loader transactions / 5 geometries",
+            f"{steps:,} loader TB steps / 5 geometries",
             "all words + exact cached row totals checked",
         ], {
-            "loader_transactions": steps,
+            "loader_tb_steps": steps,
             "geometries": geometry_count,
             "cases_slices_units_steps_accepted_rejected_clears": cases,
         }

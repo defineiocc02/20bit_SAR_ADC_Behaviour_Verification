@@ -1,0 +1,118 @@
+{
+  "schema": "source_reference_sha256_v1",
+  "scope": "User-provided reference PDFs read for analysis; originals are not redistributed",
+  "files": [
+    {
+      "id": "[00]",
+      "filename": "[00]_A_9.3nV_rtHz_20b_40MS_s_94.2dB_DR_Signal-Chain_Friendly_Precision_SAR_Converter.pdf",
+      "bytes": 647939,
+      "pages": 3,
+      "sha256": "2277ec0a2b889ee954f0866f2668adc1bf95f2214fae386c9a1d70203435cd96"
+    },
+    {
+      "id": "[00_1]",
+      "filename": "[00_1]ISSCC2024_ppt.pdf",
+      "bytes": 1950386,
+      "pages": 44,
+      "sha256": "e7074c0f612c31bb76ad276fefaf6e6cf36479292248dc41085c4dadd1f8193a"
+    },
+    {
+      "id": "[01]",
+      "filename": "[01]_Hurrell_2010_JSSC扩展版.pdf",
+      "bytes": 1464845,
+      "pages": 8,
+      "sha256": "d13d34ac6b29a8ef63d54fc711b7b6de1d40edb98100fa0aa53be0ccbf5b9ff6"
+    },
+    {
+      "id": "[02]",
+      "filename": "[02]_ElShater_2019_JSSC扩展版.pdf",
+      "bytes": 6224022,
+      "pages": 11,
+      "sha256": "39ae123ef70acb1136c0132d1148a0e580fe5413e673b100dd648b8035bddbaf"
+    },
+    {
+      "id": "[03]",
+      "filename": "[03]_Li_2023_JSSC扩展版.pdf",
+      "bytes": 2844029,
+      "pages": 10,
+      "sha256": "946e731419b66ee00bb25f0080be4ee45c5756a727ff9a2515b64779df3d7b79"
+    },
+    {
+      "id": "[04]",
+      "filename": "[04]_Bannon_2014_VLSI_18b_5MSs_100.2dB_DR_SAR_ADC.pdf",
+      "bytes": 374803,
+      "pages": 2,
+      "sha256": "40f2025ad848979caad71c39c09edaf3f999ccf8e873904858387a494fb814e3"
+    },
+    {
+      "id": "[05]",
+      "filename": "[05]_Analog_Devices_LTC2387-18_Datasheet.pdf",
+      "bytes": 1091011,
+      "pages": 24,
+      "sha256": "b9a15e9bb11fd52990778104e6d32b41c42484b6219d5581fd89ed70241b334c"
+    },
+    {
+      "id": "[06]",
+      "filename": "[06]_Steensgaard_2022_24b_2MSs_SAR_ADC.pdf",
+      "bytes": 404758,
+      "pages": 3,
+      "sha256": "b1a9b4adab0c98b38dce9839d5dec967e8510d20da99407f3de36cbdf371ba79"
+    },
+    {
+      "id": "[07]",
+      "filename": "[07]_Texas_Instruments_ADC3583_Datasheet.pdf",
+      "bytes": 5854420,
+      "pages": 85,
+      "sha256": "d08918a72583f08e64fff1ef0f7ad57e051e045d72f067bb14b3f89d5a8b0982"
+    },
+    {
+      "id": "[08]",
+      "filename": "[08]_Shen_2018_16bit_16MSs_SAR_ADC.pdf",
+      "bytes": 3466054,
+      "pages": 12,
+      "sha256": "5695d1e5926fe6a19b44d1e56d7275d4331c85eae0748f962c45a13a7f8d511d"
+    },
+    {
+      "id": "[09]",
+      "filename": "[09]_US10516408B2_Analog_to_Digital_Converter_Stage.pdf",
+      "bytes": 2149960,
+      "pages": 33,
+      "sha256": "2125e54e0281382b7142669e153a2f489394dd3ea275ee99d83323181d925a07"
+    },
+    {
+      "id": "[10]",
+      "filename": "[10]_US10505561B2_Dither_Method_and_ADC.pdf",
+      "bytes": 2294194,
+      "pages": 36,
+      "sha256": "91ae95528592ba16a6a34c4d5336cd3abd18a35f811d22d73e2620dc83363c14"
+    },
+    {
+      "id": "[11]",
+      "filename": "[11]_US10511316B2_Dynamic_Element_Matching.pdf",
+      "bytes": 2798158,
+      "pages": 47,
+      "sha256": "b60174319848efbe086c87e3814468452fbf8b08d85ab20a2baf041bb4136846"
+    },
+    {
+      "id": "[12]",
+      "filename": "[12]_US10707889B1_Interleaving_Method_for_ADCs.pdf",
+      "bytes": 1291199,
+      "pages": 13,
+      "sha256": "1cf38e3f1e701662bfb140bc34e74f3b7c448b40b611095c0d0b7e256d7e92e7"
+    },
+    {
+      "id": "[13]",
+      "filename": "[13]_US10541702B1_Auxiliary_Input_for_ADC_Input_Charge.pdf",
+      "bytes": 1083321,
+      "pages": 17,
+      "sha256": "e6cfd4ffc92598d45e6e0e384428e0d9613cc7e38ab11b9c28dda66bbd12c85e"
+    },
+    {
+      "id": "[14]",
+      "filename": "[14]_US10826519B1_Low_Power_Reference_for_ADC.pdf",
+      "bytes": 1314921,
+      "pages": 26,
+      "sha256": "e5f325271f013ba0f5a63177a516c7348d09d4d02664713abaa10bb37154a122"
+    }
+  ]
+}

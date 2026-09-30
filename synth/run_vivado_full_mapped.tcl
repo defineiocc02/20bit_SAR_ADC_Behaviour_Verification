@@ -15,8 +15,12 @@ file mkdir $out
 set rc [catch {
     set_param general.maxThreads 2
     open_checkpoint $checkpoint
-    if {[get_property NAME [current_design]] ne "sar20_digital_core"} {
-        error "Checkpoint is not the full sar20_digital_core top"
+    # Vivado 2018.3 stores this OOC checkpoint under the generic design name
+    # checkpoint_post_synth. Its exact DCP SHA, part, full public port set and
+    # original synthesis source package are checked by the surrounding runner.
+    set checkpoint_name [get_property NAME [current_design]]
+    if {$checkpoint_name ni {sar20_digital_core checkpoint_post_synth}} {
+        error "Unexpected full-top checkpoint design name: $checkpoint_name"
     }
     if {[get_property PART [current_design]] ne $part} {error "DCP part disagrees with manifest"}
     if {[llength [get_cells -hierarchical -filter {IS_BLACKBOX == 1}]] != 0} {
@@ -33,6 +37,7 @@ set rc [catch {
     set fh [open [file join $out status.txt] w]
     puts $fh "STATUS=FULL_MAPPED_EXPORT_COMPLETE"
     puts $fh "TOP=sar20_digital_core"
+    puts $fh "CHECKPOINT_DESIGN_NAME=$checkpoint_name"
     puts $fh "PART=$part"
     puts $fh "P_RECON_STAGES=$stages"
     puts $fh "STAGE_BINDING=CALLER_SYNTHESIS_MANIFEST_AND_DCP_SHA256"

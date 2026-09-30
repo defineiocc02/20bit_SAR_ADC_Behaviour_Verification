@@ -204,6 +204,7 @@ def test_prepare_only_never_starts_tools_and_preserves_input(tmp_path, monkeypat
     result = json.loads((out / "manifest.json").read_text())
     assert result["status"] == "PREPARED"
     assert result["steps"] == []
+    assert result["commands"][1][1][1:4] == ["--sv", "-d", "FULL_MAPPED_VENDOR_PORTS"]
     assert result["commands"][2][1][-2:] == ["-generic_top", "P_RECON_STAGES=5"]
     assert result["input_sha256"]["post_synth.dcp"] == FLOW.sha256(dcp)
     with pytest.raises(FileExistsError):
@@ -216,7 +217,9 @@ proc open_checkpoint {args} {if {$::env(FAIL) eq "open"} {error "injected open f
 proc current_design {} {return sar20_digital_core}
 proc get_property {property object} {
   if {$property eq "PART"} {return [expr {$::env(FAIL) eq "part" ? "wrong_part" : "fixture_part"}]}
-  return [expr {$::env(FAIL) eq "top" ? "other_top" : "sar20_digital_core"}]
+  if {$::env(FAIL) eq "top"} {return other_top}
+  if {$::env(FAIL) eq "checkpoint"} {return checkpoint_post_synth}
+  return sar20_digital_core
 }
 proc get_cells {args} {if {$::env(FAIL) eq "blackbox"} {return cell}; return {}}
 proc get_ports {args} {if {$::env(FAIL) eq "port"} {return {}}; return [lindex $args end]}
@@ -230,7 +233,9 @@ source $::env(FLOW_TCL)
 """
 
 
-@pytest.mark.parametrize("failure", ["", "open", "part", "top", "blackbox", "port", "export"])
+@pytest.mark.parametrize(
+    "failure", ["", "checkpoint", "open", "part", "top", "blackbox", "port", "export"]
+)
 def test_tcl_export_decisions_only(tmp_path, failure):
     tclsh = shutil.which("tclsh")
     if not tclsh:
@@ -252,13 +257,16 @@ def test_tcl_export_decisions_only(tmp_path, failure):
         timeout=10,
         check=False,
     )
-    assert (result.returncode == 0) == (not failure), result.stdout + result.stderr
-    assert (out / "status.txt").exists() == (not failure)
-    if not failure:
+    success = failure in {"", "checkpoint"}
+    assert (result.returncode == 0) == success, result.stdout + result.stderr
+    assert (out / "status.txt").exists() == success
+    if success:
+        status = (out / "status.txt").read_text()
+        assert "SCOPE=FULL_TOP_POST_SYNTH_FUNCTIONAL_NO_SDF_NOT_TIMING" in status
         assert (
-            "SCOPE=FULL_TOP_POST_SYNTH_FUNCTIONAL_NO_SDF_NOT_TIMING"
-            in (out / "status.txt").read_text()
-        )
+            "CHECKPOINT_DESIGN_NAME="
+            + ("checkpoint_post_synth" if failure == "checkpoint" else "sar20_digital_core")
+        ) in status
     assert dcp.read_bytes() == b"MOCK DCP"
 
 

@@ -198,6 +198,43 @@ Vivado runner 的 Windows 外层批处理可能在 Tcl 负时序退出后仍返�
 它只说明在记录的机器负载与时限下未完成综合，不能判为WNS不达标，也不能作缓存版的PPA基线。
 只有两份完整且通过无驱动检查的报告都取得后，才能填写同约束资源差值。
 
+\subsection{当前缓存版 P5 的有效综合后快照}
+当前行和缓存提交的冻结源码另在相同器件、Vivado 2018.3、P5、25\,ns申请周期下完成了一次完整 OOC 综合。
+其实际远端运行\code{run.c97c940ad1274c699c40b8c78ff00602}返回\code{SYNTH_COMPLETE}；
+原始\code{scp}回传在900\,s上限中断，保留失败manifest后从\emph{同一次远端运行}独立取回全部报告、
+续传49,687,597字节DCP，并与远端SHA-256逐字节核对。其完整摘要由下面两行连续拼接：
+\par\noindent\code{670d019aaec0efe80e060342ff0dbd74}\quad
+\code{8c0029b4c01d6a42e741de32ecb05ff1}。\par
+归档\code{docs/evidence/20260930/vivado_cached_p5/}的25个payload文件均通过\code{sha256.json}复验；
+恢复过程没有重新综合、替换输入源码或删除传输失败记录。
+原始综合日志无\code{Synth 8-3848}无驱动诊断，\code{check_timing}的16类检查全为零，
+DRC无错误但有49项警告。这使下面的\emph{综合后}数值可用，但不构成布线或板级时序签核。
+
+\begin{table}[H]\centering\small
+\begin{tabular}{lrrl}\toprule
+指标&实测值&器件可用值/端点总数&判读\\\midrule
+Slice LUT&106,205&433,200&24.52\%\\
+触发器&66,520&866,400&7.68\%\\
+DSP48E1&20&3,600&0.56\%\\
+BRAM tile/锁存器&0/0&1,470/866,400&未推断出BRAM\\
+setup WNS/TNS&+10.640\,ns/0&200,389&失效端点0\\
+hold WHS/THS&$-0.264$\,ns/$-14,943.110$\,ns&200,389&失效端点60,455\\
+pulse WPWS/TPWS&+12.150\,ns/0&66,520&失效端点0\\\bottomrule
+\end{tabular}
+\caption{冻结的当前缓存版P5完整顶层OOC综合后报告。25\,ns是申请周期；setup通过而hold未通过，因此“全时序满足”和“40\,MHz已实现”都不是本表结论。}
+\label{tab:cached-p5-synth}
+\end{table}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figures/cached_p5_synthesis.pdf}
+\caption{当前缓存版P5的原始\code{utilization.rpt}、\code{timing_summary.rpt}和\code{timing_paths.rpt}重绘：A为器件资源占用，B将setup/hold/pulse分开，C拆出最坏除法路径的逻辑延迟与\emph{综合后估算}互连延迟。图中25\,ns为申请约束，hold负值仍然保留；脚本与来源哈希见\code{audit_figures/make_cached_p5_synth_evidence.py}及同名\code{*.sha256.json}。}
+\end{figure}
+
+最坏setup路径仍是\code{u_recon/u_div/rem_reg[0]/C}到\code{u_recon/u_div/q_reg[60]/D}：
+估算数据路径14.312\,ns，110级逻辑，含93级CARRY4；该路径没有因行和缓存自动消失。
+hold负裕量与未布线、无真实内部时钟缓冲的OOC状态有关，是否能由布局布线消除仍需后述BUFG实跑判定。
+这一单独快照与前代P5的超时记录不能构成同约束资源收益；
+也不能把此处的P5数值同P7的1.5625\,ns数据归因为缓存效果。
+
 \section{功耗验收不能由LUT数量替代}
 前述P7归约/除法候选的原始\code{power_vectorless.rpt}给出下列模型分项。
 它对应1.5625\,ns请求周期、尚未布局布线的网表，\code{Simulation Activity File}为空，

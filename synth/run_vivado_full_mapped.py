@@ -303,6 +303,8 @@ def main() -> int:
                 [
                     str(tools["xvlog"]),
                     "--sv",
+                    "-d",
+                    "FULL_MAPPED_VENDOR_PORTS",
                     "export/full_top_funcsim.v",
                     "input/structural_mapped_tb.sv",
                     str(glbl),

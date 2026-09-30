@@ -5,6 +5,9 @@
 // P_RECON_STAGES labels the separately synthesized netlist; it is deliberately
 // NOT passed to DUT. Supply a matching P5/P7 netlist. For local RTL checks only,
 // STRUCTURAL_MAPPED_DUT can name an external, parameterized RTL wrapper.
+// Vivado 2018.3 write_verilog splits packed multi-dimensional public ports
+// into escaped per-row names. FULL_MAPPED_VENDOR_PORTS connects those exact
+// synthesized ports; default RTL instantiation keeps aggregate port names.
 // No reconstruction-start latency is checked: that event has no public port.
 // The 2 ns clock is a functional stimulus, not an FPGA timing claim. Synchronous
 // reset stays low for 220 ns, including glbl's first 100 ns of GSR activity.
@@ -55,9 +58,76 @@ module structural_mapped_tb #(parameter int P_RECON_STAGES=7);
     .analog_phase(phase),.quiet_sample(quiet),.tp_clock(tp),.ra_az(az),.ra_amplify(amplify),
     .ref_precharge(precharge),.ref_accurate(accurate),.acquiring_mask(acq),.converting_mask(conv),
     .aux_charge_enable(aux),.hold_low_enable(hold_low),.coarse_compare_enable(compare_en),
-    .coarse_trial(trials),.quantizer_dither(qdither),.acquisition_dither_rails(acq_rails),
+`ifdef FULL_MAPPED_VENDOR_PORTS
+    .\coarse_trial[1] (trials[1]),
+    .\coarse_trial[0] (trials[0]),
+    .\quantizer_dither[1] (qdither[1]),
+    .\quantizer_dither[0] (qdither[0]),
+`else
+    .coarse_trial(trials),.quantizer_dither(qdither),
+`endif
+    .acquisition_dither_rails(acq_rails),
     .fine_trial(fine_trial),.fine_compare_enable(fine_en),.coarse_acquire_enable(),.flash_acquire_enable(),.fine_acquire_enable(),.flash_sample(flash_sample),
-    .slice_sel(selected),.main_sw(main_sw),.sub_sw(sub_sw),.dither_sw(dith_sw),.sw_valid(sw_valid),
+    .slice_sel(selected),
+`ifdef FULL_MAPPED_VENDOR_PORTS
+    .\main_sw[17] (main_sw[17]),
+    .\main_sw[16] (main_sw[16]),
+    .\main_sw[15] (main_sw[15]),
+    .\main_sw[14] (main_sw[14]),
+    .\main_sw[13] (main_sw[13]),
+    .\main_sw[12] (main_sw[12]),
+    .\main_sw[11] (main_sw[11]),
+    .\main_sw[10] (main_sw[10]),
+    .\main_sw[9] (main_sw[9]),
+    .\main_sw[8] (main_sw[8]),
+    .\main_sw[7] (main_sw[7]),
+    .\main_sw[6] (main_sw[6]),
+    .\main_sw[5] (main_sw[5]),
+    .\main_sw[4] (main_sw[4]),
+    .\main_sw[3] (main_sw[3]),
+    .\main_sw[2] (main_sw[2]),
+    .\main_sw[1] (main_sw[1]),
+    .\main_sw[0] (main_sw[0]),
+    .\sub_sw[17] (sub_sw[17]),
+    .\sub_sw[16] (sub_sw[16]),
+    .\sub_sw[15] (sub_sw[15]),
+    .\sub_sw[14] (sub_sw[14]),
+    .\sub_sw[13] (sub_sw[13]),
+    .\sub_sw[12] (sub_sw[12]),
+    .\sub_sw[11] (sub_sw[11]),
+    .\sub_sw[10] (sub_sw[10]),
+    .\sub_sw[9] (sub_sw[9]),
+    .\sub_sw[8] (sub_sw[8]),
+    .\sub_sw[7] (sub_sw[7]),
+    .\sub_sw[6] (sub_sw[6]),
+    .\sub_sw[5] (sub_sw[5]),
+    .\sub_sw[4] (sub_sw[4]),
+    .\sub_sw[3] (sub_sw[3]),
+    .\sub_sw[2] (sub_sw[2]),
+    .\sub_sw[1] (sub_sw[1]),
+    .\sub_sw[0] (sub_sw[0]),
+    .\dither_sw[17] (dith_sw[17]),
+    .\dither_sw[16] (dith_sw[16]),
+    .\dither_sw[15] (dith_sw[15]),
+    .\dither_sw[14] (dith_sw[14]),
+    .\dither_sw[13] (dith_sw[13]),
+    .\dither_sw[12] (dith_sw[12]),
+    .\dither_sw[11] (dith_sw[11]),
+    .\dither_sw[10] (dith_sw[10]),
+    .\dither_sw[9] (dith_sw[9]),
+    .\dither_sw[8] (dith_sw[8]),
+    .\dither_sw[7] (dith_sw[7]),
+    .\dither_sw[6] (dith_sw[6]),
+    .\dither_sw[5] (dith_sw[5]),
+    .\dither_sw[4] (dith_sw[4]),
+    .\dither_sw[3] (dith_sw[3]),
+    .\dither_sw[2] (dith_sw[2]),
+    .\dither_sw[1] (dith_sw[1]),
+    .\dither_sw[0] (dith_sw[0]),
+`else
+    .main_sw(main_sw),.sub_sw(sub_sw),.dither_sw(dith_sw),
+`endif
+    .sw_valid(sw_valid),
     .dout(dout),.dout_valid(dout_valid),.clip_low(clip_low),.clip_high(clip_high),
     .analog_ovf(analog_ovf),.acc_ovf(acc_ovf),.status_word(status),.dout_sample_id(id),.dout_flags(flags));
   logic [47:0] weights[18][71];

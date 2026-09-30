@@ -82,9 +82,6 @@ module weight_store #(
   // the bitmap describes this epoch, not the numeric contents of the store.
   localparam int ROW_BITS = 47 + $clog2(P_N_UNITS);
   logic [P_N_SLICES-1:0][ROW_BITS-1:0] row_q;
-  for (genvar s = 0; s < P_N_SLICES; s++) begin : g_row_output
-    assign row_total[s] = {{(64-ROW_BITS){1'b0}}, row_q[s]};
-  end
 
   logic [P_N_SLICES-1:0][P_N_UNITS-1:0] written;
   assign load_complete = &written;
@@ -98,8 +95,7 @@ module weight_store #(
   logic [SUM_BITS-1:0] sum_excl;
   logic [SUM_BITS-1:0] sum_new;
   logic [W_BITS-1:0]   cur_w;
-  wire [ROW_BITS-1:0] row_excl = row_q[s_idx] - ROW_BITS'(cur_w);
-  wire [ROW_BITS-1:0] row_new = row_excl + ROW_BITS'(wr_data);
+  wire [P_N_SLICES-1:0][W_BITS-1:0] old_by_slice;
 
   // Maintain the exact sum on accepted writes instead of rebuilding a
   // 1278-word combinational reduction. Replacement subtracts the old word.
@@ -113,7 +109,7 @@ module weight_store #(
   // 综合出锁存/越界网）。
   assign s_idx   = idx_ok ? wr_slice : 5'd0;
   assign u_idx   = idx_ok ? wr_unit  : 7'd0;
-  assign cur_w   = w_q[s_idx][u_idx];
+  assign cur_w   = old_by_slice[s_idx];
   assign selected_weight = idx_ok ? cur_w : '0;
 
   // sum_all >= cur_w 恒成立（无符号），故减法不回绕。
@@ -123,13 +119,27 @@ module weight_store #(
   assign accept    = wr_en && (!clear_load) && (!cfg_ready) && idx_ok && w_ok && (STATIC_SUM_SAFE || (sum_new < SUM_MAX));
   assign err_write = wr_en && (!accept);
 
+  for (genvar s = 0; s < P_N_SLICES; s++) begin : g_row_output
+    assign row_total[s] = {{(64-ROW_BITS){1'b0}}, row_q[s]};
+    // Keep each row replacement local to its physical slice. A global
+    // row_q[s_idx]/w_q[s_idx][u_idx] mux made the selected-slice state traverse
+    // the configuration readback tree before reaching every row register.
+    assign old_by_slice[s] = w_q[s][u_idx];
+    wire [W_BITS-1:0] old_in_row = old_by_slice[s];
+    wire [ROW_BITS-1:0] next_row =
+        row_q[s] - ROW_BITS'(old_in_row) + ROW_BITS'(wr_data);
+    always_ff @(posedge clk) begin
+      if (!rst_n) row_q[s] <= '0;
+      else if (accept && wr_slice == 5'(s)) row_q[s] <= next_row;
+    end
+  end
+
   always_ff @(posedge clk) begin
     if (!rst_n) begin
       for (int s = 0; s < P_N_SLICES; s++)
         for (int u = 0; u < P_N_UNITS; u++) w_q[s][u] <= '0;
       written <= '0;
       sum_all <= '0;
-      row_q <= '0;
     end else if (clear_load) begin
       written <= '0;
     end else if (accept) begin
@@ -138,7 +148,6 @@ module weight_store #(
       // or rejection of out-of-range writes.
       w_q[wr_slice][wr_unit] <= wr_data & (W_MAX - W_BITS'(1));
       sum_all <= sum_new;
-      row_q[wr_slice] <= row_new;
       written[wr_slice][wr_unit] <= 1'b1;
     end
   end

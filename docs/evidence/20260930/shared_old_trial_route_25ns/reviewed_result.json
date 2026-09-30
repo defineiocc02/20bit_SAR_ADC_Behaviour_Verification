@@ -1,0 +1,22 @@
+{
+  "scope": "FPGA_ROUTED_CORE_TIMING_MET_OOC_EXTERNAL_HOLD_FAILED_NOT_BOARD_OR_ASIC",
+  "rtl_content_sha256": "89b9f8153fea49d82faba8464e45bb83c914b11ebf708fb623a9fe3a660b5d26",
+  "input_dcp_sha256": "63a6faacdc44e54da02514a70ff658ac31756853496114513018ac5714cc856e",
+  "post_route_dcp_sha256": "fba86312b0c96add78ca388b972a52ab77c1b781eec34c1b91027b1ea7358072",
+  "requested_period_ns": 25.0,
+  "all_path_setup_wns_ns": 0.946,
+  "all_path_hold_whs_ns": -2.278,
+  "regreg_setup_wns_ns": 0.946,
+  "regreg_hold_whs_ns": 0.052,
+  "core_timing_met": true,
+  "all_path_timing_met": false,
+  "setup_failing_endpoints": 0,
+  "hold_failing_endpoints": 65048,
+  "route_errors": 0,
+  "drc_errors": 0,
+  "check_timing_categories": 16,
+  "check_timing_issues": 0,
+  "routed_complete": true,
+  "board_timing_certified": false,
+  "interpretation": "25 ns core register setup and hold pass with actual BUFG and completed route. Zero-minimum external OOC inputs still fail hold; board constraints and ASIC 640 MHz are not certified."
+}

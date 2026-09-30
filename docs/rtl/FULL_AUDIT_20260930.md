@@ -4,7 +4,18 @@
 
 状态：修复已发布到 PR #4 的 `0c4a7726597c49044d25117a701ba780137ddf04`。截至 2026-09-29 20:32 UTC（北京时间 2026-09-30 04:32），[CI 36626662809](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36626662809) 仍为 `in_progress`，不能写成全部通过。归约器、位级镜像和精简权重存储的定向复验已有结果；同约束 baseline/optimized 比较正在进行，buffered 实际布线与完整顶层 mapped functional 验证尚待完成。ASIC PPA 和模拟电路签核不在已完成范围内。
 
-## 交付版本与证据身份
+## 最新验收：共享读选修复（2026-09-30）
+
+当前生产 RTL 的 26 文件内容 SHA-256 为 `89b9f8153fea49d82faba8464e45bb83c914b11ebf708fb623a9fe3a660b5d26`。本次仅修改 `weight_store.sv`：每个物理行的单位读选同时供配置读回和本行更替运算使用，避免行更新经过全局 slice 读回树；保持同沿写入、行和、合法性检查及 clear/validate 语义。
+
+- [冻结 RTL](../evidence/20260930/shared_old_trial_rtl/README.md)：官方 Verilator 5.020 全部 22 项 testbench、3 类严格 lint 通过；18-slice P5/P6/P7 各 438 个输出、7,680 次协议检查，延迟仍为 15/13/11 拍。
+- [同约束综合](../evidence/20260930/shared_old_trial_synth/comparison_vs_cached.json)：Vivado 2018.3、Virtex-7、P5、25 ns，108,842 LUT、66,492 FF、20 DSP、0 BRAM/latch。相对直接前代 106,205 LUT 增加 2.483%，这是时序修复的面积代价。源包 28 项仅权重存储一文件不同，XDC/Tcl 相同。
+- [真实 BUFG 布线](../evidence/20260930/shared_old_trial_route_25ns/README.md)：寄存器间 setup WNS **+0.946 ns**、hold WHS **+0.052 ns**，路由/DRC 错误 0，16 类 check_timing 问题 0。前代同条件 setup 为 −0.280 ns。最差路径转为样本上下文到重构 rails，数据延迟 23.914 ns，其中布线 18.623 ns。
+- [完整综合网表 XSim](../evidence/20260930/shared_old_trial_full_mapped/README.md)：3 模式 438 个输出、3,900 次配置读回、7,680 次协议检查、3 次在途取消，code/flags 无不匹配；输出 trace 与前代逐字节相同。原始网表、综合 DCP、源清单和运行日志的摘要相互绑定。无 SDF，非零 flags 与内部启动延迟由独立 RTL 测试覆盖，不归入此网表结果。
+
+**验收边界：**25 ns 寄存器间时序通过支持当前记录条件下的 40 MHz 核心、16 拍/样本即 2.5 MS/s。零最短输入延迟的 OOC 外部端口 hold 仍为 −2.278 ns，因此整体 `TIMING_MET=0` 与核心 `REGREG_TIMING_MET=1` 同时保留；没有板级 IO 或 ASIC 640 MHz 签核。逐行独立读选候选曾增加 14.66% LUT 且拥塞路由失败，已弃用，不能与本版本混淆。
+
+## 历史交付版本与证据身份
 
 - 发布提交：[0c4a772](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/commit/0c4a7726597c49044d25117a701ba780137ddf04)。当前生产 RTL 的 26 文件内容集合 SHA-256 为 `fd885e882ad5447f87626dc034fb59a6853a86f01050957a93b8a6407ebbbc13`，算法与逐文件摘要见 [compact 身份清单](../evidence/20260930/compact_profiles/rtl_compact_identity.json)。内容摘要不是 Git 提交号。
 - 历史 `39e9c27` 的本地 21 项 RTL/3 类 lint 成功记录保存在 [final_rtl](../evidence/20260930/final_rtl/result.json)，对应旧 RTL 集合 `169f957dc7fe…` 和当时的测试台。它不是 `0c4a772` 全量 CI 成功证据。

@@ -1,0 +1,53 @@
+Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2018.3 (win64) Build 2405991 Thu Dec  6 23:38:27 MST 2018
+| Date         : Wed Sep 30 21:12:33 2026
+| Host         : REEDZHAO running 64-bit major release  (build 9200)
+| Command      : report_utilization -hierarchical -file C:/Users/Administrator/adc_rtl_vivado/run.86ebbd7c9da34a33b49af64888b4797e/out/utilization_hier.rpt
+| Design       : sar20_digital_core
+| Device       : 7vx690tffg1761-2
+| Design State : Fully Placed
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Utilization Design Information
+
+Table of Contents
+-----------------
+1. Utilization by Hierarchy
+
+1. Utilization by Hierarchy
+---------------------------
+
++------------------------+--------------------------------+------------+------------+---------+------+-------+--------+--------+--------------+
+|        Instance        |             Module             | Total LUTs | Logic LUTs | LUTRAMs | SRLs |  FFs  | RAMB36 | RAMB18 | DSP48 Blocks |
++------------------------+--------------------------------+------------+------------+---------+------+-------+--------+--------+--------------+
+| sar20_digital_core     |                          (top) |     108820 |     108820 |       0 |    0 | 66492 |      0 |      0 |           20 |
+|   (sar20_digital_core) |                          (top) |        319 |        319 |       0 |    0 |    35 |      0 |      0 |            0 |
+|   u_calib              |                     calib_regs |       2202 |       2202 |       0 |    0 |   204 |      0 |      0 |            0 |
+|   u_recon              |                     recon_core |      36718 |      36718 |       0 |    0 |   683 |      0 |      0 |           20 |
+|     (u_recon)          |                     recon_core |        229 |        229 |       0 |    0 |   295 |      0 |      0 |            0 |
+|     u_adc2             |                       adc2_dec |         49 |         49 |       0 |    0 |     0 |      0 |      0 |            4 |
+|     u_div              |                      div_floor |        768 |        768 |       0 |    0 |   325 |      0 |      0 |            0 |
+|     u_output           |               cal_output_stage |          3 |          3 |       0 |    0 |    63 |      0 |      0 |            0 |
+|     u_residue_mac      |                cal_residue_mac |        309 |        309 |       0 |    0 |     0 |      0 |      0 |           16 |
+|     u_weight_reduce    |              cal_weight_reduce |      35360 |      35360 |       0 |    0 |     0 |      0 |      0 |            0 |
+|   u_status             |                    status_regs |          4 |          4 |       0 |    0 |     6 |      0 |      0 |            0 |
+|   u_structure          |            sar_structural_ctrl |      50684 |      50684 |       0 |    0 |  3248 |      0 |      0 |            0 |
+|     (u_structure)      |            sar_structural_ctrl |          6 |          6 |       0 |    0 |   128 |      0 |      0 |            0 |
+|     g_coarse[0].u_sar  |                 sar_trial_ctrl |         45 |         45 |       0 |    0 |    25 |      0 |      0 |            0 |
+|     g_coarse[1].u_sar  |               sar_trial_ctrl_0 |       2167 |       2167 |       0 |    0 |    25 |      0 |      0 |            0 |
+|     u_context          |             cal_sample_context |      40578 |      40578 |       0 |    0 |  1422 |      0 |      0 |            0 |
+|     u_decode           |                    swap_decode |        972 |        972 |       0 |    0 |     0 |      0 |      0 |            0 |
+|     u_dem              |  dem_state_gen__parameterized0 |         43 |         43 |       0 |    0 |    18 |      0 |      0 |            0 |
+|     u_fine             | sar_trial_ctrl__parameterized0 |         46 |         46 |       0 |    0 |    30 |      0 |      0 |            0 |
+|     u_order            |                   dem_addr_gen |          1 |          1 |       0 |    0 |     0 |      0 |      0 |            0 |
+|     u_phase            |              analog_phase_ctrl |         30 |         30 |       0 |    0 |     8 |      0 |      0 |            0 |
+|     u_pool             |                slice_pool_ctrl |       6595 |       6595 |       0 |    0 |   192 |      0 |      0 |            0 |
+|     u_random           |     dither_gen__parameterized0 |         13 |         13 |       0 |    0 |    32 |      0 |      0 |            0 |
+|     u_rdac             |                       rdac_drv |        200 |        200 |       0 |    0 |  1368 |      0 |      0 |            0 |
+|     u_units            |                     unit_therm |          0 |          0 |       0 |    0 |     0 |      0 |      0 |            0 |
+|   u_wstore             |                   weight_store |      18995 |      18995 |       0 |    0 | 62316 |      0 |      0 |            0 |
++------------------------+--------------------------------+------------+------------+---------+------+-------+--------+--------+--------------+
+* Note: The sum of lower-level cells may be larger than their parent cells total, due to cross-hierarchy LUT combining
+
+

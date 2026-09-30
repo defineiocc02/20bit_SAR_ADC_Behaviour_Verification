@@ -1,0 +1,70 @@
+#-----------------------------------------------------------
+# Vivado v2018.3 (64-bit)
+# SW Build 2405991 on Thu Dec  6 23:38:27 MST 2018
+# IP Build 2404404 on Fri Dec  7 01:43:56 MST 2018
+# Start of session at: Wed Sep 30 11:58:22 2026
+# Process ID: 17104
+# Current directory: C:/Users/Administrator/adc_rtl_vivado/run.fe9182c26b9b4a76a18a3ca0baff85ce
+# Command line: vivado.exe -mode batch -nojournal -log sta_regreg.log -source sta_regreg.tcl
+# Log file: C:/Users/Administrator/adc_rtl_vivado/run.fe9182c26b9b4a76a18a3ca0baff85ce/sta_regreg.log
+# Journal file: 
+#-----------------------------------------------------------
+source sta_regreg.tcl
+# open_checkpoint out/post_route.dcp
+Command: open_checkpoint out/post_route.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.019 . Memory (MB): peak = 248.824 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 18254 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2018.3
+INFO: [Device 21-403] Loading part xc7vx690tffg1761-2
+INFO: [Project 1-570] Preparing netlist for logic optimization
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+Reading XDEF placement.
+Reading placer database...
+Reading XDEF routing.
+Read XDEF File: Time (s): cpu = 00:00:11 ; elapsed = 00:00:12 . Memory (MB): peak = 2945.582 ; gain = 194.883
+Restored from archive | CPU: 11.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:11 ; elapsed = 00:00:12 . Memory (MB): peak = 2945.582 ; gain = 194.883
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.047 . Memory (MB): peak = 2945.582 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2018.3 (64-bit) build 2405991
+open_checkpoint: Time (s): cpu = 00:00:43 ; elapsed = 00:00:46 . Memory (MB): peak = 2945.582 ; gain = 2696.758
+# set launch [all_registers -clock_pins]
+# set capture [all_registers -data_pins]
+# if {[llength $launch] == 0 || [llength $capture] == 0} {error "Missing sequential timing pins"}
+# set fh [open out/regreg_summary.txt w]
+# puts $fh "CLOCK_PINS=[llength $launch]"
+# puts $fh "DATA_PINS=[llength $capture]"
+# foreach {label mode} {SETUP max HOLD min} {
+#     set paths [get_timing_paths -from $launch -to $capture -delay_type $mode -max_paths 1]
+#     if {[llength $paths] != 1} {error "Missing $label register-to-register path"}
+#     set worst [lindex $paths 0]
+#     puts $fh "REGREG_${label}_WORST_NS=[get_property SLACK $worst]"
+#     puts $fh "REGREG_${label}_STARTPOINT=[get_property NAME [get_property STARTPOINT_PIN $worst]]"
+#     puts $fh "REGREG_${label}_ENDPOINT=[get_property NAME [get_property ENDPOINT_PIN $worst]]"
+#     report_timing -from $launch -to $capture -delay_type $mode -max_paths 20 -path_type full_clock_expanded -file out/regreg_${mode}_paths.rpt
+# }
+CRITICAL WARNING: [Vivado 12-4439] The number of objects collected by the 'to' option of 'get_timing_paths' is very large: 199524. This may lead to serious performance issues and out-of-memory conditions in handling the results.
+Resolution: Further filtering of the command results, or narrowing the scope of the command is recommended.
+get_timing_paths: Time (s): cpu = 00:00:47 ; elapsed = 00:00:27 . Memory (MB): peak = 3208.949 ; gain = 263.367
+CRITICAL WARNING: [Vivado 12-4439] The number of objects collected by the 'to' option of 'report_timing' is very large: 199524. This may lead to serious performance issues and out-of-memory conditions in handling the results.
+Resolution: Further filtering of the command results, or narrowing the scope of the command is recommended.
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 20 -nworst 1 -delay_type max -sort_by slack.
+report_timing: Time (s): cpu = 00:00:15 ; elapsed = 00:00:09 . Memory (MB): peak = 3248.145 ; gain = 39.195
+CRITICAL WARNING: [Vivado 12-4439] The number of objects collected by the 'to' option of 'get_timing_paths' is very large: 199524. This may lead to serious performance issues and out-of-memory conditions in handling the results.
+Resolution: Further filtering of the command results, or narrowing the scope of the command is recommended.
+get_timing_paths: Time (s): cpu = 00:00:15 ; elapsed = 00:00:09 . Memory (MB): peak = 3267.438 ; gain = 19.293
+CRITICAL WARNING: [Vivado 12-4439] The number of objects collected by the 'to' option of 'report_timing' is very large: 199524. This may lead to serious performance issues and out-of-memory conditions in handling the results.
+Resolution: Further filtering of the command results, or narrowing the scope of the command is recommended.
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 20 -nworst 1 -delay_type min -sort_by slack.
+report_timing: Time (s): cpu = 00:00:16 ; elapsed = 00:00:09 . Memory (MB): peak = 3273.078 ; gain = 5.641
+# close $fh
+INFO: [Common 17-206] Exiting Vivado at Wed Sep 30 12:00:04 2026...

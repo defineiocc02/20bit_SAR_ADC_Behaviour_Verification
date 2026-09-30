@@ -1,0 +1,17 @@
+{
+  "scope": "FPGA_POST_ROUTE_OOC_BOUNDARY_ZERO_INPUT_OUTPUT_DELAY_NOT_BOARD_NOT_ASIC",
+  "input_dcp_sha256": "670d019aaec0efe80e060342ff0dbd748c0029b4c01d6a42e741de32ecb05ff1",
+  "post_route_dcp_sha256": "6afdfe88962140bd5387f8f8c5d0f18feb44858183406ccf3851b7229787d448",
+  "status": "ROUTED_COMPLETE_TIMING_NOT_MET",
+  "requested_period_ns": 25.0,
+  "all_path_setup_wns_ns": -0.28,
+  "all_path_hold_whs_ns": -2.361,
+  "regreg_setup_wns_ns": -0.28,
+  "regreg_hold_whs_ns": 0.062,
+  "all_setup_failing_endpoints": 158,
+  "all_hold_failing_endpoints": 66728,
+  "raw_payload_hashes_verified": 35,
+  "followup_payload_hashes_verified": 6,
+  "original_run_manifest_sha256": "5bc62b3dc2090777eea1161bc784da32c63ff2a79d8f8617873d3c4e6a21f1ec",
+  "interpretation": "Hold failure is dominated by an OOC configuration input with zero input delay; no board timing supplied. Register hold passes but register setup fails at 25 ns."
+}

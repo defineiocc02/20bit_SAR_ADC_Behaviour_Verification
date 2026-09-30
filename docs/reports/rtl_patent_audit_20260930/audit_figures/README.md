@@ -198,3 +198,14 @@ python audit_figures/make_mapped_p5_evidence.py \
 ```
 
 脚本核对归档清单中96项原始payload的SHA-256、最终运行的trace/log摘要，再逐行检查三模式各146个码值和flags、各11个跳过ID、各1个取消ID以及435对相邻有效样本的16拍间隔。生成的PNG、PDF和 `mapped_p5_full_top.sha256.json` 绑定本次数据与脚本；它们仅展示完整顶层功能网表在这组刺激下的结果，不是SDF或布局布线时序证据。归档保留前两次导出/端口适配失败，只有 `final_pass/` 是通过运行。
+
+## 当前缓存P5实际布线失败与寄存器间STA图
+
+```sh
+python audit_figures/make_p5_route_evidence.py \
+  --synth /path/to/calibration-closure/docs/evidence/20260930/vivado_cached_p5 \
+  --route /path/to/calibration-closure/docs/evidence/20260930/vivado_cached_p5_route_25ns_fail \
+  --out figures/p5_route_25ns
+```
+
+脚本验证综合原始25项、布线原始35项和只读寄存器引脚STA的6项哈希，再读实际时序报告及reviewed result。图中25\,ns为申请周期，布线WNS为负；OOC全路径hold为负，而同一DCP的寄存器到寄存器hold为正。后者没有替外部配置端口提供板级最短输入延迟。生成器固定PDF元数据时间，以便同源重复生成字节一致。

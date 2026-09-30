@@ -313,6 +313,7 @@ R_d &= \begin{cases}\sum_j r_j C_j,&\text{开启}\\0,&\text{关闭}\end{cases}.
 \item 已完成的P7完整顶层综合对照：\code{docs/evidence/20260930/vivado_complete_p7/}保留两份原始报告子集、精确源码包、日志、DCP哈希、状态和对照JSON。其1.5625\,ns约束下负WNS不代表达频，也不是当前缓存版的同约束PPA对照。
 \item 前代精简P5超时记录：\code{docs/evidence/20260930/vivado_compact_p5_timeout/}保存7,200\,s时限及运行阶段，无完整DCP和资源/时序值；它是失败历史，不能填入PPA表。
 \item 当前缓存P5完整顶层综合和功能网表：\code{docs/evidence/20260930/vivado_cached_p5/}保存原始报告、无驱动检查及DCP摘要；\code{vivado_cached_p5_full_mapped/}保存三次XSim尝试、最终438行trace、日志及96项文件哈希。图\ref{fig:full-mapped-p5}限定为功能证据，不代替物理时序。
+\item 当前缓存P5的25\,ns实际布线失败：\code{docs/evidence/20260930/vivado_cached_p5_route_25ns_fail/}保存完整路由、DRC、setup/hold与功耗报告；\code{regreg_followup/}在同一布线DCP上按顺序引脚重算寄存器间setup/hold。图\ref{fig:p5-route-25ns}分开OOC外部端口与内部寄存器，未把负WNS归入时序通过。
 \item 图件来源：\code{audit_figures/}中的自写生成器及\code{*.sha256.json}核对图件、原始日志和生成脚本；仓库报告包的\code{history/}逐代保存旧图，避免把不同源码版本的曲线误合并。
 \end{enumerate}
 \end{document}

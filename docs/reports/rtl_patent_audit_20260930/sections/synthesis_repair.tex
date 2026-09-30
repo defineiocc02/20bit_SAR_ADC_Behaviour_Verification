@@ -269,6 +269,47 @@ hold负裕量与未布线、无真实内部时钟缓冲的OOC状态有关，是�
 P5综合报告的负hold裕量仍然存在。该见证没有SDF反标，没有非零输出flag激励，
 也没有检测内部重构启动延迟，因此既不是全面等价证明，也不是40\,MHz的布线结论。
 
+\subsection{真实 BUFG 布线：25 ns 未闭合及路径归因}
+在上述同一P5 DCP上插入器件原生\code{BUFGCTRL\_X0Y0}，确认原有66,536个时钟端点集合不变，
+然后进行实际\code{place\_design}、\code{phys\_opt\_design}与\code{route\_design}。
+Vivado 2018.3 报告完整布线、0项路由错误、0项DRC错误以及16类\code{check\_timing}均为0；
+内部BUFG到顺序端点的网络含75,600个节点和75,599条PIP，状态为\code{ROUTED}。
+外部\code{clk}到BUFG输入仍是OOC边界；输入和输出均假设0\,ns延迟，
+这些检查并非FPGA板级接口签核。\code{TIMING\_MET=0}是该次运行的真实结论：
+25\,ns下setup WNS为$-0.280$\,ns、TNS为$-11.625$\,ns，158/200,369个端点失败；
+hold WHS为$-2.361$\,ns、THS为$-108,383.945$\,ns，66,728/200,369个端点失败；
+脉宽裕量为+12.100\,ns，失败端点为0。
+
+最差setup从\code{cur\_slice\_reg[3]}进入\code{u\_wstore/row\_q\_reg[13][51]}，
+数据路径25.231\,ns中单元逻辑1.603\,ns，布线23.628\,ns，占93.6\%。
+具体路径绕过权重读回的多级选择网络，再进入行和的减加逻辑；
+这说明单纯给精确除法增加流水并不能修复\emph{本次布线}的最差路径。
+作为下一轮候选，\code{weight\_store.sv}把每个slice的旧权重读取、行和替换与寄存器使能放在同一个生成块，
+保留相同的配置接受条件和精确整数结果；其资源和时序必须重新综合/布线测量，不能依据源码直接认定改善。
+
+最差\emph{全路径}hold从OOC配置端口\code{cfg\_wdata[17]}到偏移寄存器，
+输入假设为0\,ns，数据路径0.510\,ns，而目的时钟网络延迟2.559\,ns。
+原脚本的“internal”查询用\code{-from/-to [get\_clocks core\_clk]}，
+仍包括带同一时钟约束的外部端口，故该字段不能当作寄存器间hold。
+随后在\emph{同一布线DCP上只读重做STA}，显式限定所有顺序单元的时钟引脚到数据引脚：
+66,536个起点时钟引脚、199,524个捕获数据引脚，最差寄存器间setup仍是$-0.280$\,ns，
+而最差寄存器间hold为\textbf{+0.062\,ns}。
+这区分了核心时序和外部边界假设；不能据此忽略配置输入的hold问题，
+实际板卡必须提供输入最短延迟、引脚和外部时钟关系，并重新实现及签核。
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figures/p5_route_25ns.pdf}
+\caption{同一P5 DCP的综合后估算与25\,ns实际布线对照。A显示setup从正转负；B拆开最差路径的单元与真实布线延迟；C分开OOC全路径hold和独立寄存器引脚筛选后的hold。原始路由及只读STA见\code{docs/evidence/20260930/vivado_cached_p5_route_25ns_fail/}，制图脚本和逐字节来源见\code{audit_figures/make_p5_route_evidence.py}及同名\code{*.sha256.json}。图不是时序成功证明。}
+\label{fig:p5-route-25ns}
+\end{figure}
+
+完成布线后的LUT为106,190、FF为66,520、DSP为20、BRAM为0。
+\code{power\_vectorless.rpt}给出0.455\,W总功耗，其中动态0.130\,W、静态0.325\,W；
+仍没有活动文件，不能把它作为实际转换能耗。
+该次运行的原始报告、源脚本和校验摘要被完整保留，\code{post\_route.dcp}的
+SHA-256为\code{6afdfe88962140bd5387f8f8c5d0f18feb44858183406ccf3851b7229787d448}，
+未复制到Git。不能把此处的25\,ns申请周期或全路径负WHS写成“40\,MHz已实现”。
+
 \section{功耗验收不能由LUT数量替代}
 前述P7归约/除法候选的原始\code{power_vectorless.rpt}给出下列模型分项。
 它对应1.5625\,ns请求周期、尚未布局布线的网表，\code{Simulation Activity File}为空，

@@ -185,7 +185,10 @@ def main() -> None:
     )
     fig.tight_layout(rect=(0, 0.05, 1, 0.93))
     args.out.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(args.out.with_suffix(".pdf"))
+    fig.savefig(
+        args.out.with_suffix(".pdf"),
+        metadata={"CreationDate": None, "ModDate": None, "Creator": "make_mapped_p5_evidence.py"},
+    )
     fig.savefig(args.out.with_suffix(".png"), dpi=190)
     plt.close(fig)
     record = {

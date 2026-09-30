@@ -293,10 +293,17 @@ set rc [catch {
     report_utilization -file [file join $out utilization.rpt]
     report_utilization -hierarchical -file [file join $out utilization_hier.rpt]
     report_timing_summary -delay_type min_max -report_unconstrained -file [file join $out timing_summary.rpt]
+    # A clock-to-clock filter still includes external ports with input/output
+    # delays on core_clk. Use primitive clock and data pins for a true
+    # register-to-register diagnostic; retain the all-path summary separately.
+    set register_launch [all_registers -clock_pins]
+    set register_capture [all_registers -data_pins]
+    buffered_impl::require {[llength $register_launch] > 0 && [llength $register_capture] > 0} \
+        "No register-to-register timing pin collections"
     foreach mode {max min} {
         report_timing -delay_type $mode -max_paths 20 -path_type full_clock_expanded -input_pins \
             -file [file join $out timing_${mode}_paths.rpt]
-        report_timing -from [get_clocks core_clk] -to [get_clocks core_clk] -delay_type $mode \
+        report_timing -from $register_launch -to $register_capture -delay_type $mode \
             -max_paths 20 -path_type full_clock_expanded -input_pins -file [file join $out internal_${mode}_paths.rpt]
     }
     report_route_status -file [file join $out route_status.rpt]
@@ -314,7 +321,7 @@ set rc [catch {
     foreach mode {max min} {
         foreach group {all internal} {
             set args [list -delay_type $mode -max_paths 1]
-            if {$group eq "internal"} {lappend args -from [get_clocks core_clk] -to [get_clocks core_clk]}
+            if {$group eq "internal"} {lappend args -from $register_launch -to $register_capture}
             set paths [get_timing_paths {*}$args]
             buffered_impl::require {[llength $paths] == 1} "Missing $group $mode constrained path"
             set slack [get_property SLACK [lindex $paths 0]]
@@ -333,9 +340,13 @@ set rc [catch {
     foreach key {tns ths tpws setup_failing hold_failing pulse_failing} {
         if {[dict get $summary $key] != 0} {set timing_met 0}
     }
+    set register_timing_met [expr {
+        [dict get $slacks internal_max] >= 0 && [dict get $slacks internal_min] >= 0
+    }]
     buffered_impl::require {[buffered_impl::sha256 $input_dcp] eq $input_sha} "Input checkpoint changed on disk"
     set fh [open [file join $out status.txt] w]
     foreach {key value} [list STATUS BUFFERED_IMPL_COMPLETE TIMING_MET $timing_met \
+        REGREG_TIMING_MET $register_timing_met INTERNAL_FILTER REGISTER_CLOCK_TO_REGISTER_DATA \
         WNS_NS [dict get $slacks all_max] WHS_NS [dict get $slacks all_min] \
         INTERNAL_WNS_NS [dict get $slacks internal_max] INTERNAL_WHS_NS [dict get $slacks internal_min] \
         WPWS_NS [dict get $summary wpws] TPWS_NS [dict get $summary tpws] \

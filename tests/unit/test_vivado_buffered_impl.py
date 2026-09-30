@@ -140,6 +140,7 @@ proc all_registers {args} {
     if {$::failure eq "no_endpoints"} {return {}}
     if {$::failure eq "other_domain"} {return {u0/C u1/C other/C}}
     if {$::failure eq "wrong_domain" && [arg $args -clock] ne ""} {return u0/C}
+    if {[lsearch -exact $args -data_pins] >= 0} {return {u0/D u1/D}}
     return $::ep
 }
 proc get_property {key object} {
@@ -269,7 +270,11 @@ proc get_drc_violations {args} {
 }
 proc get_timing_paths {args} {
     set mode [arg $args -delay_type]
-    set kind [expr {[arg $args -from] ne "" ? "internal" : "all"}]
+    set from [arg $args -from]
+    set kind [expr {$from ne "" ? "internal" : "all"}]
+    if {$kind eq "internal" && ($from ne $::ep || [arg $args -to] ne {u0/D u1/D})} {
+        error "Internal timing query must use sequential clock and data pins, not a clock group"
+    }
     if {$::failure eq "no_${kind}_${mode}"} {return {}}
     return ${kind}_${mode}
 }

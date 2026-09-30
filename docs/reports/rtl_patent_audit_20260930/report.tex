@@ -307,5 +307,11 @@ R_d &= \begin{cases}\sum_j r_j C_j,&\text{开启}\\0,&\text{关闭}\end{cases}.
 \item 本地独立证据包：\code{sar_adc_sim_evidence_20260928}，含报告、\code{manifest.json}、原始 CI 日志、逐样本轨迹与图。报告中的图片是原始数据可视化。
 \item 旧版修复基线本地21项回归：\code{docs/evidence/20260930/final_rtl/result.json}、\code{source_manifest.json}、\code{sha256.json}，并列保存21份run log与3份lint log。
 \item 旧版修复基线三参数结构回归：\code{docs/evidence/20260930/final_profiles/}，含5/6/7展开的命令、源文件摘要、逐配置manifest、延迟及协议日志。
+\item 当前缓存版的真实CI原始材料：\code{docs/evidence/20260930/ci_rtl_417f/}逐项保存22份RTL测试台日志、三类严格lint及独立算术审计；\code{ci_workflow_417f/}单独保存同一head的9项工作流最终结论。两份清单均有文件SHA-256。
+\item 本地独立归约验收：\code{docs/evidence/20260930/reducer_scheduler/}记录旧实现、新的列共享实现和逐单元scalar oracle在七种几何下的1,430,848次比较；\code{weight_row_cache/}另存行和装载、更替、clear、极值和两项变异负控。它们不是额外芯片样本。
+\item 独立算术入口与原始负控：\code{docs/evidence/20260930/arithmetic_runner_ci/}保存两版Verilator日志、MAC/ADC2/除法/flags的正向计数及故意引入错误后的失败行；历史\code{ci_rtl_0c4a/}仍保留旧CI失败，不被后来的通过覆盖。
+\item 已完成的P7完整顶层综合对照：\code{docs/evidence/20260930/vivado_complete_p7/}保留两份原始报告子集、精确源码包、日志、DCP哈希、状态和对照JSON。其1.5625\,ns约束下负WNS不代表达频，也不是当前缓存版的同约束PPA对照。
+\item 前代精简P5超时记录：\code{docs/evidence/20260930/vivado_compact_p5_timeout/}保存7,200\,s时限及运行阶段，无完整DCP和资源/时序值；它是失败历史，不能填入PPA表。
+\item 图件来源：\code{audit_figures/}中的自写生成器及\code{*.sha256.json}核对图件、原始日志和生成脚本；仓库报告包的\code{history/}逐代保存旧图，避免把不同源码版本的曲线误合并。
 \end{enumerate}
 \end{document}

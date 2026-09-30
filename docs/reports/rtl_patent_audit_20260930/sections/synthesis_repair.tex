@@ -234,6 +234,40 @@ pulse WPWS/TPWS&+12.150\,ns/0&66,520&失效端点0\\\bottomrule
 hold负裕量与未布线、无真实内部时钟缓冲的OOC状态有关，是否能由布局布线消除仍需后述BUFG实跑判定。
 这一单独快照与前代P5的超时记录不能构成同约束资源收益；
 也不能把此处的P5数值同P7的1.5625\,ns数据归因为缓存效果。
+当前P5的\code{power_vectorless.rpt}另给出总功耗0.408\,W，其中动态0.083\,W、静态0.324\,W；
+报告标明\code{Simulation Activity File=---}、置信等级Medium，并警告高扇出复位网络的活动假设可能使估算失准。
+它不是活动数据标注的实测值；与下节P7的1.580\,W来自不同的周期及结构配置，不能相减作为缓存节能量。
+
+\subsection{完整顶层综合映射后的功能见证}
+为检验上述有效P5网表是否只在报告中保留面积数字、却在功能上丢失输入因果，
+本轮从同一49,687,597字节DCP导出Vivado 2018.3功能网表，使用XSim直接实例化完整
+\code{sar20_digital_core}。测试台仅驱动公开端口，不用\code{force}或读取内部信号；
+它配置18个物理单元，逐项读回3,900次配置值，并运行三种确定性输入模式。
+第一次尝试因DCP设计名为\code{checkpoint_post_synth}而非预设顶层名，在仿真前停止；
+第二次尝试发现Vivado把多维端口拆成58个转义行端口，在\code{xelab}处停止。
+修正\emph{测试台连接及导出流程}后的第三次运行才得到\code{FULL\_MAPPED\_FUNCTIONAL\_PASS}；
+三次原始记录全部保留，不能将前两次称为功能通过。
+
+最终运行的\code{xsim.log}明示三模式共438个输出行、7,680项协议检查和三次取消。
+本地另从CSV逐行复算：每种模式146个有效sample ID，2--158之间各跳过11个，
+159为取消；438个\code{code}与测试台独立期望值一致，438个\code{flags}均与期望0一致。
+每种模式相邻的145对已接受样本满足
+\(\Delta\texttt{clock}=16\Delta\texttt{sample\_id}\)，合计435对。
+原始trace、日志及96项payload哈希见
+\code{docs/evidence/20260930/vivado_cached_p5_full_mapped/}；
+其中trace的SHA-256由下面两行连续拼接：
+\par\noindent\code{c40ce4404bbbeae26df514be6484722}\quad
+\code{682f936a626c56bd156ada9b5ae8d2073}。\par
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figures/mapped_p5_full_top.pdf}
+\caption{完整P5顶层功能网表的实际XSim CSV：A逐点对照独立期望码，B标出每模式146个有效、11个跳过及取消样本，C检查435对相邻有效输出的16拍/样本ID节拍。原始数据和图件由\code{audit_figures/make_mapped_p5_evidence.py}及同名\code{*.sha256.json}逐项绑定。它不是SDF仿真，也不验证非零flags、内部启动延迟、模拟宏或物理时序。}
+\label{fig:full-mapped-p5}
+\end{figure}
+
+这组结果把“已完整综合”进一步推进到\emph{选定刺激下的完整顶层映射功能一致}；
+P5综合报告的负hold裕量仍然存在。该见证没有SDF反标，没有非零输出flag激励，
+也没有检测内部重构启动延迟，因此既不是全面等价证明，也不是40\,MHz的布线结论。
 
 \section{功耗验收不能由LUT数量替代}
 前述P7归约/除法候选的原始\code{power_vectorless.rpt}给出下列模型分项。

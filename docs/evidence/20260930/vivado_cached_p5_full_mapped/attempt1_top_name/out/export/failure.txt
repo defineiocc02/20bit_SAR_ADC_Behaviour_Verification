@@ -1,0 +1,8 @@
+Checkpoint is not the full sar20_digital_core top
+Checkpoint is not the full sar20_digital_core top
+    while executing
+"error "Checkpoint is not the full sar20_digital_core top""
+    invoked from within
+"if {[get_property NAME [current_design]] ne "sar20_digital_core"} {
+        error "Checkpoint is not the full sar20_digital_core top"
+    }"

@@ -1,0 +1,51 @@
+{
+  "scope": "FULL_TOP_POST_SYNTH_FUNCTIONAL_NO_SDF_NOT_TIMING",
+  "synthesis_dcp_sha256": "670d019aaec0efe80e060342ff0dbd748c0029b4c01d6a42e741de32ecb05ff1",
+  "attempts": {
+    "attempt1_top_name": {
+      "status": "FAILED",
+      "remote_directory": "C:/Users/Administrator/adc_rtl_vivado/run.a69668a40931409daa1b4ebfd4b86ada",
+      "input_dcp_sha256": "670d019aaec0efe80e060342ff0dbd748c0029b4c01d6a42e741de32ecb05ff1",
+      "remote_run_manifest_sha256": "1d5f71684aef0ed619077d35fd7b412e8cc9aae4d6f2684e1985d13e4a33c9f3"
+    },
+    "attempt2_port_split": {
+      "status": "FAILED",
+      "remote_directory": "C:/Users/Administrator/adc_rtl_vivado/run.11678faf43494f28b0fb47a6e81c8ab6",
+      "input_dcp_sha256": "670d019aaec0efe80e060342ff0dbd748c0029b4c01d6a42e741de32ecb05ff1",
+      "remote_run_manifest_sha256": "9289f2bcce2f6113d9a38aa13c3c59039ac981bab16dae327d408c6396041158"
+    },
+    "final_pass": {
+      "status": "FULL_MAPPED_FUNCTIONAL_PASS",
+      "remote_directory": "C:/Users/Administrator/adc_rtl_vivado/run.cf20668601ce488fae0114abdb176dbf",
+      "input_dcp_sha256": "670d019aaec0efe80e060342ff0dbd748c0029b4c01d6a42e741de32ecb05ff1",
+      "remote_run_manifest_sha256": "508fa9da90a79f48a24e8681f73f830f2f9152ebeb7e047a79e624521e4b3a67"
+    }
+  },
+  "final_audit": {
+    "status": "PASS",
+    "scope": "TB_TRACE_CONSISTENCY_NOT_NETLIST_IDENTITY_OR_TIMING",
+    "recon_stages": 5,
+    "rows": 438,
+    "rows_per_mode": [
+      146,
+      146,
+      146
+    ],
+    "config_readbacks": 3900,
+    "protocol_checks": 7680,
+    "physical_slices": 18,
+    "cancelled": 3,
+    "code_mismatches": 0,
+    "flag_mismatches": 0,
+    "internal_launch_latency_checked": false,
+    "nonzero_flags_exercised": false,
+    "trace_sha256": "c40ce4404bbbeae26df514be6484722682f936a626c56bd156ada9b5ae8d2073",
+    "log_sha256": "9fa7a40887f0f0931fe379273ed567d0a856eb82b1b494d5762e8c6cad5517d6"
+  },
+  "limits": [
+    "No SDF or timing signoff",
+    "No analog macro/transistor behavior",
+    "No internal-launch latency check",
+    "No nonzero output flags in this fixture"
+  ]
+}

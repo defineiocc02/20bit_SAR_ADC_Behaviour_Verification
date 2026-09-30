@@ -188,3 +188,13 @@ Outputs are `figures/39_reducer_scheduler.png`, the matching vector PDF, and `au
 脚本验证42项归档文件、26项RTL内容身份、两个版本各16,150个加载步骤与1,430,848次归约比较，并以任意精度整数重算十个已记录行和。只绘制最大装载和clear后替换两组实际观测，不推造未记录的clear瞬间波形。生产者写回与消费者缓存输入的两项独立破坏均使用实际失败日志。源码集合和输出图件摘要见 `41_source_hashes.json`；四类篡改拒绝与原分节静态检查见 `41_qa.json`。
 
 后续只调整图41的TeX分页，未改图件、数据或制图脚本；旧分节已按其原摘要保存在 `history/row_cache_before_layout_fix/`。`41_layout_followup_qa.json` 记录新的分节摘要、两遍编译及第74/75页放大检查：替换公式完整位于图前，没有被整页浮图截断。这是78页中间版本的布局检查，最终交付仍以 `delivery_manifest.json` 所绑定的PDF与全页QA为准。
+
+## 当前缓存P5完整顶层映射功能图
+
+```sh
+python audit_figures/make_mapped_p5_evidence.py \
+  --archive /path/to/calibration-closure/docs/evidence/20260930/vivado_cached_p5_full_mapped \
+  --out figures/mapped_p5_full_top
+```
+
+脚本核对归档清单中96项原始payload的SHA-256、最终运行的trace/log摘要，再逐行检查三模式各146个码值和flags、各11个跳过ID、各1个取消ID以及435对相邻有效样本的16拍间隔。生成的PNG、PDF和 `mapped_p5_full_top.sha256.json` 绑定本次数据与脚本；它们仅展示完整顶层功能网表在这组刺激下的结果，不是SDF或布局布线时序证据。归档保留前两次导出/端口适配失败，只有 `final_pass/` 是通过运行。

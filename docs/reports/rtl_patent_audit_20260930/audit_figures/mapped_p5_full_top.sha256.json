@@ -1,0 +1,20 @@
+{
+  "source_archive": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_cached_p5_full_mapped",
+  "source_archive_summary_sha256": "e214d53cabff07240f06651f9a0b7091f2cc894d3d29ed0ec7738dd10c1bda0f",
+  "payload_hashes_verified": 96,
+  "trace_sha256": "c40ce4404bbbeae26df514be6484722682f936a626c56bd156ada9b5ae8d2073",
+  "log_sha256": "9fa7a40887f0f0931fe379273ed567d0a856eb82b1b494d5762e8c6cad5517d6",
+  "rows": 438,
+  "rows_per_mode": [
+    146,
+    146,
+    146
+  ],
+  "accepted_pairs_with_exact_16_cycle_spacing": 435,
+  "skipped_ids_per_mode": 11,
+  "cancelled_ids_per_mode": 1,
+  "generator_sha256": "bcaf510b8266a7affaa4716690988a0f42fa1572c363c45f292c744a0207256b",
+  "pdf_sha256": "068f36898226ca2f63dfa11c02a9f15f72a7fc693474f31d02c6488719ad36ce",
+  "png_sha256": "2ddd36e8a9292ea47de01cf114d448d10845d502ebd8db9164f47eee9681f307",
+  "scope": "FULL_TOP_MAPPED_FUNCTIONAL_NO_SDF_NOT_TIMING"
+}

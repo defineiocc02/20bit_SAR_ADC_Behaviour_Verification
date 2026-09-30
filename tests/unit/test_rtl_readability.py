@@ -1,7 +1,16 @@
 """Counterexamples for the finite source-token identity guard."""
 
+import importlib.util
+from pathlib import Path
+
 import pytest
-from tools.audit_rtl_readability import tokens
+
+SCRIPT = Path(__file__).resolve().parents[2] / "tools/audit_rtl_readability.py"
+SPEC = importlib.util.spec_from_file_location("rtl_readability_guard", SCRIPT)
+assert SPEC is not None and SPEC.loader is not None
+MODULE = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(MODULE)
+tokens = MODULE.tokens
 
 
 def test_comment_and_layout_only():

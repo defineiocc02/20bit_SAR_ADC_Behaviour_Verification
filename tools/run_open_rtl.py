@@ -44,6 +44,7 @@ def main() -> None:
         "p2_smoke_tb": "p2_smoke PASS",
         "p1_tb": "P1 RESULT: PASS",
         "p3_top_tb": "P3 TOP RESULT: PASS",
+        "engineering_fsm_tb": "ENGINEERING_FSM_COMPLETE",
     }
     parser.add_argument(
         "--tops", nargs="+", choices=list(benches), help="Run selected testbenches only"

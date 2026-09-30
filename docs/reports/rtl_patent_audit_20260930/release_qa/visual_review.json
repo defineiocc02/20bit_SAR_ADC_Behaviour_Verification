@@ -1,8 +1,8 @@
 {
-  "scope": "HUMAN_MODEL_VISUAL_INSPECTION_AND_PIXEL_BOUND_CARRY_FORWARD_NOT_RTL_VALIDATION",
   "status": "REVIEWED",
-  "pdf_sha256": "21f7a10526979a1f9e4bd2a2afab6da8c2f9e7ad78ab5f5ef69305664a190311",
-  "page_count": 94,
+  "scope": "ALL_PAGE_VISUAL_AND_PIXEL_BOUND_CARRY_FORWARD_NOT_RTL_OR_EDA_VALIDATION",
+  "pdf_sha256": "2fa9fc9ac917d222a0ed9b37a19e6eab5ae82cad3aa33e1d7b84a9d01a7f040e",
+  "page_count": 115,
   "reviewed_pages": [
     1,
     2,
@@ -97,35 +97,61 @@
     91,
     92,
     93,
-    94
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115
   ],
-  "method": "Previous final94 build: inspected all16 Chinese-font contact sheets, pages1-94. Final build: rendered all94 pages, exact PNG byte hashes unchanged for91 pages; individually inspected all3 changed full pages. Additionally inspected full final pages83,87,88,89 for physical metrics, mapped evidence and further PPA analysis.",
-  "previous_all_page_review_manifest_sha256": "b06e6b1a099eafcef01578847503d38d3e832362beefef2f80bb14efbbff86d4",
-  "final_render_manifest_sha256": "03de8fe23b2bf6c402926710aa3dbc24a8f5b447cc5e4928c4b41c8154b364f2",
+  "method": "Rendered all115pages. Earlier110page build had all19contact sheets visually inspected;105 final same-number page PNG hashes are identical. Inspected all10 changed/new pages8,107-115 at page resolution. Independent reviewer also inspected10 first-plan pages and5 readability follow-up pages. Last final typography edit changed onlypage108, individually reinspected by root.",
+  "previous_full_page_render_sha256": "ee1a05388b09667beb5eb004b5fdfd4ce82feb3985a5ffedac758699f3aabba9",
+  "final_render_manifest_sha256": "a428817c6b994b5649bcda8d17f94f021a25f8c2cae80223ac8ba0e9522719fd",
   "render_tool_sha256": "d230f29f9d4e7cfbd3bf3fe2a7830f82fcc6a36e8aad86b53564f3125b34495c",
   "renderer": [
     "1.28.2",
     "1.28.2",
     null
   ],
-  "pixel_changed_pages_reinspected_full_resolution": [
-    51,
-    76,
-    84
+  "changed_or_new_pages_reinspected": [
+    8,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115
   ],
-  "additional_full_pages_inspected": [
-    83,
-    87,
-    88,
-    89
-  ],
+  "unchanged_same_page_png_count": 105,
+  "last_final_changed_page": 108,
   "observations": [
-    "Chinese glyphs visible",
-    "No clipping or table/figure overlap observed",
+    "Chinese glyphs visible; no replacement glyph",
+    "All pages have text",
     "No out-of-page text/image bounds",
-    "All pages contain text and no replacement glyph",
-    "Underfull hbox warnings surfaced; corresponding layouts reviewed and accepted"
+    "No clipping or overlapping tables/figures observed",
+    "New chapter title kept on one line; IO ports explicitly separated",
+    "Small6column tables accepted with standalone Markdown guide for readable reference",
+    "Underfull box warnings surfaced and corresponding layouts inspected"
   ],
-  "render_cache_location": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/final_visual_qa_20260930_release",
+  "render_cache_location": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_engineering_20261001/visual_qa_publication",
   "full_render_cache_distributed": false
 }

@@ -1,3 +1,6 @@
+# Compiler output is sealed as raw evidence; do not trim its diagnostic bytes.
+exclude: ^docs/reports/rtl_patent_audit_20260930/release_qa/(.*\.log|report\.fls)$
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
@@ -19,9 +22,9 @@ repos:
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
-        exclude: ^docs/reports/rtl_patent_audit_20260930/(audit_figures/make_(compact_)?divider_profiles\.py|history/final_regression_ci_0c4a_before_f028/audit_figures/make_final_regression_evidence\.py)$
+        exclude: ^(docs/reports/rtl_patent_audit_20260930/(audit_figures/make_(compact_)?divider_profiles\.py|history/final_regression_ci_0c4a_before_f028/audit_figures/make_final_regression_evidence\.py)|docs/evidence/20261001/engineering_fsm/runner_source\.py)$
       - id: ruff-format
-        exclude: ^docs/reports/rtl_patent_audit_20260930/(audit_figures/make_(compact_)?divider_profiles\.py|history/final_regression_ci_0c4a_before_f028/audit_figures/make_final_regression_evidence\.py)$
+        exclude: ^(docs/reports/rtl_patent_audit_20260930/(audit_figures/make_(compact_)?divider_profiles\.py|history/final_regression_ci_0c4a_before_f028/audit_figures/make_final_regression_evidence\.py)|docs/evidence/20261001/engineering_fsm/runner_source\.py)$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.11.2

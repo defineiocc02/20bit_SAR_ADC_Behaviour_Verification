@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999998 (TeX Live 2026) (preloaded format=xelatex 2026.8.26)  30 SEP 2026 23:00
+This is XeTeX, Version 3.141592653-2.6-0.999998 (TeX Live 2026) (preloaded format=xelatex 2026.8.26)  1 OCT 2026 01:24
 entering extended mode
  file:line:error style messages enabled.
  %&-line parsing enabled.
@@ -1006,6 +1006,9 @@ No file report.toc.
 
 LaTeX Warning: Reference `sec:shared-selector-closure' on page 2 undefined on input line 29.
 
+
+LaTeX Warning: Reference `ch:rtl-engineering' on page 2 undefined on input line 30.
+
 [2
 
 ]
@@ -1058,7 +1061,7 @@ File: figures/22_fitted_weight_map.png Graphic file (type bmp)
 <figures/22_fitted_weight_map.png>
  [34]
 
-LaTeX Warning: Reference `ch:synthesis-repair' on page 35 undefined on input line 169.
+LaTeX Warning: Reference `ch:synthesis-repair' on page 35 undefined on input line 170.
 
 [35] [36]
 File: figures/30_arithmetic_protocol_audit.png Graphic file (type bmp)
@@ -1116,17 +1119,17 @@ LaTeX Warning: Reference `fig:arithmetic-runner-dual-tool' on page 49 undefined 
 
 ] [52]
 
-LaTeX Warning: Reference `ch:synthesis-repair' on page 53 undefined on input line 253.
+LaTeX Warning: Reference `ch:synthesis-repair' on page 53 undefined on input line 254.
 
 File: figures/31_divider_profiles.png Graphic file (type bmp)
 <figures/31_divider_profiles.png>
 [53]
 
-LaTeX Warning: Reference `ch:synthesis-repair' on page 54 undefined on input line 272.
+LaTeX Warning: Reference `ch:synthesis-repair' on page 54 undefined on input line 273.
 
 [54]
 
-LaTeX Warning: Reference `ch:synthesis-repair' on page 55 undefined on input line 279.
+LaTeX Warning: Reference `ch:synthesis-repair' on page 55 undefined on input line 280.
 
 (./sections/divider_timing.tex [55]
 第十章
@@ -1251,39 +1254,438 @@ File: figures/shared_old_mapped.pdf Graphic file (type pdf)
  [80] [81]
 File: figures/dem_prefix_math.pdf Graphic file (type pdf)
 <use figures/dem_prefix_math.pdf>
- [82]) [83]) [84]
+ [82]) [83]) (./sections/rtl_engineering_fsm.tex [84]
 第十二章
 [85
 
+] [86]
+Underfull \hbox (badness 3219) in paragraph at lines 66--71
+[]\TU/FandolSong-Regular(0)/m/n/10.95 同 一 上 升 沿 的 多 个 $[][][][][][] [] [][]$ 均 读 取 旧 值，|  给 本 设 计 带 来 四 项 刻 意 的 因 果 关 系。|  第 一，|
+ []
+
+
+LaTeX Warning: Reference `tab:eng-structural-phase' on page 87 undefined on input line 77.
+
+File: figures/44_structural_phase_fsm.pdf Graphic file (type pdf)
+<use figures/44_structural_phase_fsm.pdf>
+[87]
+File: figures/45_sar_trial_fsm.pdf Graphic file (type pdf)
+<use figures/45_sar_trial_fsm.pdf>
+ [88] [89]
+File: figures/46_reconstruction_fsm.pdf Graphic file (type pdf)
+<use figures/46_reconstruction_fsm.pdf>
+ [90]
+File: figures/47_configuration_fsm.pdf Graphic file (type pdf)
+<use figures/47_configuration_fsm.pdf>
+ [91]
+File: figures/48_engineering_fsm_trace.pdf Graphic file (type pdf)
+<use figures/48_engineering_fsm_trace.pdf>
+ [92]
+Underfull \hbox (badness 5189) in paragraph at lines 230--231
+[]\TU/FandolSong-Regular(0)/m/n/10.95 实 际 数 据 来 自 $[][][][] [] [][][][][][][][] [] [][][][][][][][] [] [][][][][][][][][][][] [] [][][][]$，|  官 方 \TU/lmr/m/n/10.95 Verilator 5.020 \TU/FandolSong-Regular(0)/m/n/10.95 与
+ []
+
+
+Underfull \hbox (badness 1158) in paragraph at lines 230--231
+[][][][][][][][][][][] [] [][][] [] [][]$\TU/FandolSong-Regular(0)/m/n/10.95 ，|  三 份 \TU/lmr/m/n/10.95 CSV \TU/FandolSong-Regular(0)/m/n/10.95 各 \TU/lmr/m/n/10.95 175 \TU/FandolSong-Regular(0)/m/n/10.95 个 上 升 沿。|  输 入 只 在 下 降 沿 改 变，|  记 录 上 升 沿 前 输
+ []
+
+
+LaTeX Warning: Reference `fig:eng-recon-boundary' on page 93 undefined on input line 234.
+
+File: figures/49_reconstruction_boundary_trace.pdf Graphic file (type pdf)
+<use figures/49_reconstruction_boundary_trace.pdf>
+[93]) (./sections/engineering_sta.tex [94] [95]
+第十三章
+[96
+
+] [97] [98]) (./sections/implementation_plan.tex [99]
+第十四章
+
+Underfull \hbox (badness 10000) in paragraph at lines 13--13
+[]|\TU/lmr/m/n/10 FPGA \TU/FandolSong-Regular(0)/m/n/10 同 源 综 合、| \TU/lmr/m/n/10 DCP\TU/FandolSong-Regular(0)/m/n/10 、|  各 物 理 节 点
+ []
+
+[100
+
+]
+Underfull \hbox (badness 10000) in paragraph at lines 28--28
+[]|\TU/lmr/m/n/8 RTL/\TU/FandolSong-Regular(0)/m/n/8 头 文 件\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 源
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 29--29
+[]|\TU/lmr/m/n/8 F0\TU/FandolSong-Regular(0)/m/n/8 、|
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 29--29
+[]|\TU/FandolSong-Regular(0)/m/n/8 全 核 \TU/lmr/m/n/8 OOC \TU/FandolSong-Regular(0)/m/n/8 综
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 29--29
+\TU/FandolSong-Regular(0)/m/n/8 合；|  查 \TU/lmr/m/n/8 black-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 29--29
+\TU/lmr/m/n/8 box/latch/undriven
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 29--29
+\TU/FandolSong-Regular(0)/m/n/8 盖、| \TU/lmr/m/n/8 max/min\TU/FandolSong-Regular(0)/m/n/8 、| \TU/lmr/m/n/8 DRC\TU/FandolSong-Regular(0)/m/n/8 、|  综 合
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 29--30
+[]|\TU/FandolSong-Regular(0)/m/n/8 先 修 流 程 或 未 驱
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 29--30
+\TU/FandolSong-Regular(0)/m/n/8 动 结 构，|  不 做 无 效
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 31--31
+[]|\TU/lmr/m/n/8 F2\TU/FandolSong-Regular(0)/m/n/8 、|  冻 结 实 现
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 31--31
+[]|\TU/FandolSong-Regular(0)/m/n/8 真 实 \TU/lmr/m/n/8 BUFG\TU/FandolSong-Regular(0)/m/n/8 、|
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 31--31
+\TU/lmr/m/n/8 opt/place/phys_opt\TU/FandolSong-Regular(0)/m/n/8 ；|
+ []
+
+
+Underfull \hbox (badness 6173) in paragraph at lines 31--32
+[]|\TU/FandolSong-Regular(0)/m/n/8 回 身 份\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 布 局；|  一 项
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 32--32
+[]|\TU/FandolSong-Regular(0)/m/n/8 路 由 \TU/lmr/m/n/8 DCP\TU/FandolSong-Regular(0)/m/n/8 、|  完 整
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 32--32
+\TU/lmr/m/n/8 max/min/\TU/FandolSong-Regular(0)/m/n/8 覆 盖\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 例 外\TU/lmr/m/n/8 /PW\TU/FandolSong-Regular(0)/m/n/8 、|
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 32--33
+[]|\TU/FandolSong-Regular(0)/m/n/8 按 核 心\TU/lmr/m/n/8 /IO\TU/FandolSong-Regular(0)/m/n/8 、|
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 32--33
+\TU/lmr/m/n/8 logic/route\TU/FandolSong-Regular(0)/m/n/8 、|
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 32--33
+\TU/lmr/m/n/8 max/min \TU/FandolSong-Regular(0)/m/n/8 回 对
+ []
+
+
+Underfull \hbox (badness 3568) in paragraph at lines 33--34
+[]|\TU/FandolSong-Regular(0)/m/n/8 先 查 绑 定\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 参 数 再 查
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 34--34
+[]|\TU/FandolSong-Regular(0)/m/n/8 真 实 \TU/lmr/m/n/8 I/O/\TU/FandolSong-Regular(0)/m/n/8 引
+ []
+
+
+Underfull \hbox (badness 6792) in paragraph at lines 34--34
+[]|\TU/FandolSong-Regular(0)/m/n/8 板 级 全 实 现 与 同 条 件 活
+ []
+
+
+Underfull \hbox (badness 6173) in paragraph at lines 34--35
+[]|\TU/FandolSong-Regular(0)/m/n/8 补 接 口\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 活 动，|  否 决
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 45--46
+[]|\TU/lmr/m/n/8 duty/jitter/source latency\TU/FandolSong-Regular(0)/m/n/8 、| \TU/lmr/m/n/8 reset \TU/FandolSong-Regular(0)/m/n/8 到
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 46--46
+[]|\TU/FandolSong-Regular(0)/m/n/8 正 沿 请 求，|
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 46--46
+\TU/lmr/m/n/8 clear/validate/write \TU/FandolSong-Regular(0)/m/n/8 优
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 46--47
+[]|\TU/FandolSong-Regular(0)/m/n/8 发 送 端 \TU/lmr/m/n/8 clock-to-out \TU/FandolSong-Regular(0)/m/n/8 与 走 线 相 位 差、|
+ []
+
+
+Underfull \hbox (badness 2393) in paragraph at lines 49--49
+[]|$[][][][][][] [] [][][] [] [][][][][]$\TU/lmr/m/n/8 , $[][][][][][] [] [][][] [] [][]$, $[][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 52--53
+[]|\TU/FandolSong-Regular(0)/m/n/8 传 播、| \TU/lmr/m/n/8 DAC \TU/FandolSong-Regular(0)/m/n/8 建 立、|  控 制 脉 宽\TU/lmr/m/n/8 /load\TU/FandolSong-Regular(0)/m/n/8 ；|  粗
+ []
+
+
+Underfull \hbox (badness 2393) in paragraph at lines 53--53
+[]|$[][][][] [] [][][][][]$\TU/lmr/m/n/8 , $[][][][] [] [][][][][][][] [] [][][][][][]$, $[][][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 54--54
+[]|$[][][][][][] [] [][][][][]$\TU/lmr/m/n/8 , $[][][][][] [] [][][][][][]$, $[][] [] [][][][][]$,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 54--54
+[][] [] [][]$\TU/lmr/m/n/8 , $[][] [] [][][][][][][]$, $[][][] [] [][][][][][][][][]$,
+ []
+
+
+Underfull \hbox (badness 2717) in paragraph at lines 54--55
+[]|\TU/FandolSong-Regular(0)/m/n/8 切 换 \TU/lmr/m/n/8 min/max\TU/FandolSong-Regular(0)/m/n/8 、|  脉 宽、| \TU/lmr/m/n/8 dead time\TU/FandolSong-Regular(0)/m/n/8 、|  模 拟 建
+ []
+
+
+Underfull \hbox (badness 6808) in paragraph at lines 55--55
+[]|$[][][][][][][][][] [] [][][][]$\TU/lmr/m/n/8 , $[][][][][][][][][][] [] [][][][]$, $[][][] []
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 56--56
+[]|$[][][][][] [] [][][][][][][] [] [][][][][][]$\TU/lmr/m/n/8 , $[][][][][] [] [][][][][][]$,
+ []
+
+[101] [102]
+Underfull \hbox (badness 1910) in paragraph at lines 92--93
+[]\TU/FandolSong-Regular(0)/m/n/10.95 权 重 \TU/lmr/m/n/10.95 62,316 FF \TU/FandolSong-Regular(0)/m/n/10.95 占 总 \TU/lmr/m/n/10.95 66,492 FF \TU/FandolSong-Regular(0)/m/n/10.95 的 \TU/lmr/m/n/10.95 93.72%\TU/FandolSong-Regular(0)/m/n/10.95 ，|  先 证 明 读 取 带 宽 可 以 减 少 再 比 较 分 银 行
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
+\TU/lmr/m/n/8 MMMC\TU/FandolSong-Regular(0)/m/n/8 、| \TU/lmr/m/n/8 memory
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
+[]|\TU/FandolSong-Regular(0)/m/n/8 单 位\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 角\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 授 权\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 接 口 评
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
+[]|\TU/FandolSong-Regular(0)/m/n/8 每 活 动 路 径 有 适 用 模
+ []
+
+
+Underfull \hbox (badness 1742) in paragraph at lines 100--100
+[]|\TU/FandolSong-Regular(0)/m/n/8 冻 结 \TU/lmr/m/n/8 RTL \TU/FandolSong-Regular(0)/m/n/8 与 合 法
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 100--100
+[]|\TU/FandolSong-Regular(0)/m/n/8 综 合\TU/lmr/m/n/8 /link\TU/FandolSong-Regular(0)/m/n/8 ；|  查 参
+ []
+
+
+Underfull \hbox (badness 2617) in paragraph at lines 100--100
+\TU/FandolSong-Regular(0)/m/n/8 数\TU/lmr/m/n/8 /blackbox/latch \TU/FandolSong-Regular(0)/m/n/8 与
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 100--100
+[]|\TU/FandolSong-Regular(0)/m/n/8 逻 辑 有 效、|  数 值 不 变、|
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 100--101
+[]|\TU/FandolSong-Regular(0)/m/n/8 修 结 构\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 预 算\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 库，|
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 101--101
+[]|\TU/FandolSong-Regular(0)/m/n/8 网 表、|  真 实
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 101--101
+\TU/lmr/m/n/8 macro/pin/\TU/FandolSong-Regular(0)/m/n/8 供
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 101--101
+[]|\TU/lmr/m/n/8 floorplan/placement\TU/FandolSong-Regular(0)/m/n/8 ，|
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 101--101
+[]|\TU/FandolSong-Regular(0)/m/n/8 放 置 合 法、|  接 口 完 整、|
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 101--102
+[]|\TU/FandolSong-Regular(0)/m/n/8 区 域\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 容 量 一 变 量；|
+ []
+
+
+Underfull \hbox (badness 1629) in paragraph at lines 102--102
+[]|\TU/lmr/m/n/8 placed \TU/FandolSong-Regular(0)/m/n/8 结 果、|  真 实
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 102--102
+[]|\TU/lmr/m/n/8 CTS/\TU/FandolSong-Regular(0)/m/n/8 传 播 \TU/lmr/m/n/8 clock\TU/FandolSong-Regular(0)/m/n/8 ；|  查
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 102--102
+\TU/lmr/m/n/8 skew\TU/FandolSong-Regular(0)/m/n/8 、| \TU/lmr/m/n/8 latency\TU/FandolSong-Regular(0)/m/n/8 、| \TU/lmr/m/n/8 slew\TU/FandolSong-Regular(0)/m/n/8 、|
+ []
+
+
+Underfull \hbox (badness 1742) in paragraph at lines 102--103
+[]|\TU/FandolSong-Regular(0)/m/n/8 回 \TU/lmr/m/n/8 clock \TU/FandolSong-Regular(0)/m/n/8 预 算\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 布
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 103--103
+[]|\TU/lmr/m/n/8 global/detail route\TU/FandolSong-Regular(0)/m/n/8 、|
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 103--103
+[]|\TU/lmr/m/n/8 route \TU/FandolSong-Regular(0)/m/n/8 库\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 网 表、|  拥
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 103--103
+\TU/FandolSong-Regular(0)/m/n/8 塞\TU/lmr/m/n/8 /DRC/antenna/\TU/FandolSong-Regular(0)/m/n/8 变
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 104--104
+[]|\TU/FandolSong-Regular(0)/m/n/8 寄 生 提 取，|  查 单
+ []
+
+
+Underfull \hbox (badness 1783) in paragraph at lines 104--104
+[]|\TU/FandolSong-Regular(0)/m/n/8 寄 生 与 当 前 \TU/lmr/m/n/8 route/\TU/FandolSong-Regular(0)/m/n/8 网
+ []
+
+
+Underfull \hbox (badness 1314) in paragraph at lines 105--105
+[]|\TU/FandolSong-Regular(0)/m/n/8 寄 生、|  全 \TU/lmr/m/n/8 MMMC\TU/FandolSong-Regular(0)/m/n/8 、|
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 105--105
+\TU/FandolSong-Regular(0)/m/n/8 适 用 \TU/lmr/m/n/8 recov-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 105--105
+\TU/lmr/m/n/8 ery/removal\TU/FandolSong-Regular(0)/m/n/8 、|
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 105--105
+\TU/lmr/m/n/8 PW/gating/\TU/FandolSong-Regular(0)/m/n/8 电 气 及
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 105--105
+[]|\TU/FandolSong-Regular(0)/m/n/8 全 场 景 \TU/lmr/m/n/8 max/min\TU/FandolSong-Regular(0)/m/n/8 、| \TU/lmr/m/n/8 end-
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 105--105
+\TU/lmr/m/n/8 point/coverage\TU/FandolSong-Regular(0)/m/n/8 、|  宏\TU/lmr/m/n/8 /clock\TU/FandolSong-Regular(0)/m/n/8 、|
+ []
+
+
+Underfull \hbox (badness 7379) in paragraph at lines 105--106
+[]|\TU/FandolSong-Regular(0)/m/n/8 按 路 径 类 型 回 对 应
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 106--106
+[]|\TU/FandolSong-Regular(0)/m/n/8 具 体 违 例 与 代 价 预
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 106--106
+[]|\TU/FandolSong-Regular(0)/m/n/8 最 小 \TU/lmr/m/n/8 ECO\TU/FandolSong-Regular(0)/m/n/8 ；|  重 合 法
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 106--106
+\TU/FandolSong-Regular(0)/m/n/8 化\TU/lmr/m/n/8 /route/\TU/FandolSong-Regular(0)/m/n/8 提 取\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 全 部
+ []
+
+
+Underfull \hbox (badness 5954) in paragraph at lines 106--106
+[]|\TU/FandolSong-Regular(0)/m/n/8 修 目 标，|  无 其 他 角\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 功
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 107--107
+[]|\TU/FandolSong-Regular(0)/m/n/8 最 终 网 表\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 约
+ []
+
+
+Underfull \hbox (badness 5924) in paragraph at lines 107--107
+[]|\TU/FandolSong-Regular(0)/m/n/8 等 价\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 功 能 范 围、|  活 动 覆 盖、|
+ []
+
+[103]) [104]
+第十五章
+[105
+
 ]
 附录 A
-[86
+[106
 
 ]
 
-LaTeX Warning: Reference `fig:full-mapped-p5' on page 87 undefined on input line 320.
+LaTeX Warning: Reference `fig:full-mapped-p5' on page 107 undefined on input line 329.
 
 
-LaTeX Warning: Reference `fig:p5-route-25ns' on page 87 undefined on input line 321.
+LaTeX Warning: Reference `fig:p5-route-25ns' on page 107 undefined on input line 330.
 
 
-LaTeX Warning: Reference `fig:local-row-profiles' on page 87 undefined on input line 322.
+LaTeX Warning: Reference `fig:local-row-profiles' on page 107 undefined on input line 331.
 
 
-LaTeX Warning: Reference `fig:local-row-ppa' on page 87 undefined on input line 323.
+LaTeX Warning: Reference `fig:local-row-ppa' on page 107 undefined on input line 332.
 
 
-LaTeX Warning: Reference `fig:shared-old-ppa' on page 87 undefined on input line 324.
+LaTeX Warning: Reference `fig:shared-old-ppa' on page 107 undefined on input line 333.
 
 
-LaTeX Warning: Reference `fig:shared-old-mapped' on page 87 undefined on input line 324.
+LaTeX Warning: Reference `fig:shared-old-mapped' on page 107 undefined on input line 333.
 
 
-Underfull \hbox (badness 10000) in paragraph at lines 324--325
+Underfull \hbox (badness 10000) in paragraph at lines 333--334
 [][][][][][] [] [][][] [] [][][][][] [] [][][][][][]$\TU/FandolSong-Regular(0)/m/n/10.95 、| $[][][][][][] [] [][][] [] [][][][][] [] [][][][][] [] [][][][][]$、| $[][][][][][] [] [][][] [] [][][][][] [] [][][][] []
  []
 
-[87] [88] (/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/reports/rtl_patent_audit_20260930/.build/report.G4u5ZL/report.aux)
+[107] [108] (/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/reports/rtl_patent_audit_20260930/.build/report.StRkDD/report.aux)
  ***********
 LaTeX2e <2026-06-01>
 L3 programming layer <2026/08/11>
@@ -1302,15 +1704,15 @@ Package rerunfilecheck Warning: File `report.out' has changed.
 
 Package rerunfilecheck Info: Checksums for `report.out':
 (rerunfilecheck)             Before: <no file>
-(rerunfilecheck)             After:  77863AE2D7EAB25D11D459B8A49E95BE;25245.
+(rerunfilecheck)             After:  48B2A542047C0D4093610E48018AD1D4;28922.
  ) 
 Here is how much of TeX's memory you used:
- 30733 strings out of 469768
- 716407 string characters out of 5467400
- 1093029 words of memory out of 5000000
- 59186 multiletter control sequences out of 15000+600000
- 640788 words of font info for 135 fonts, out of 8000000 for 9000
+ 30869 strings out of 469768
+ 722409 string characters out of 5467400
+ 1106028 words of memory out of 5000000
+ 59304 multiletter control sequences out of 15000+600000
+ 640804 words of font info for 137 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  93i,18n,112p,1228b,811s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/reports/rtl_patent_audit_20260930/.build/report.G4u5ZL/report.pdf (90 pages).
+Output written on /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/reports/rtl_patent_audit_20260930/.build/report.StRkDD/report.pdf (110 pages).

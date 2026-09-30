@@ -1,0 +1,81 @@
+\chapter{从工程化RTL到综合、布线与时序验收}
+\label{chap:engineering-sta}
+\section{固定输入、工具和验收口径}
+RTL可读性修订应让模块职责、位宽/符号、状态边界、配置epoch与取消优先级能在源码中直接找到。本轮只展开语句、统一空白并补工程说明，既有硬件的有效SystemVerilog token保持恒等；注释、字符串、宏、参数和执行语句不能混为同一种变更。空白/注释仍会改变文件字节摘要，因此当前工程清单必须记录自己的raw SHA，不能把\code{71e7d5a}源包的旧SHA写在新版封面上。若有效token改变，必须重新验证功能、综合与布线，而不能继承旧图结论。
+
+当前经过完整顶层实测的是\code{windows-codex}上的Vivado 2018.3与\code{xc7vx690tffg1761-2}。仓库\code{synth/README.md}的DC、TSMC 28\,nm和\code{yian@192.168.38.129}为历史环境记录，本轮没有重新实测其license、库或PPA。下列命令从仓库根执行，入口和选项均来自现存\code{run_vivado_ssh.py}；不是新增的包装CLI。
+\begingroup\footnotesize
+\begin{verbatim}
+python3 synth/run_vivado_ssh.py \
+  --host windows-codex --remote-os windows \
+  --vivado D:/Academic/Vivado2018/Vivado/2018.3/bin/vivado.bat \
+  --part xc7vx690tffg1761-2 --stages 5 --period 25 \
+  --timeout 14400
+\end{verbatim}
+\endgroup
+追加\code{--prepare-only}只冻结本地包，不启动EDA；去掉选项另调一次会创建新的实验目录。脚本默认host/周期/P7属于其他条件，本轮P5、25\,ns及Windows主机必须显式传入。源文件由\code{rtl/rtl_sources.f}决定，连同\code{rtl/params/*.vh}和综合Tcl保存逐文件SHA与源包；文件列表、头文件、XDC和工具版本都是硬件实验的输入。
+
+\code{run_vivado_ooc.tcl}在综合前创建\code{core_clk}与0.05\,ns uncertainty，为非时钟输入/全部输出设置零延迟，然后执行OOC\code{synth_design}、\code{flatten_hierarchy rebuilt}与\code{P_RECON_STAGES=5}。零I/O延迟是筛查假设，不能当作板级时序预算。\code{rebuilt}会迁移层级归属，父子资源行不能相加，也不能以源文件名解释全部LUT责任。
+
+接受综合结果须同时确认manifest/status完整、器件与P5参数一致、DCP非空、无黑盒、无\code{Synth 8-3848}未驱动警告。Python退出0仅表示综合完成且setup筛查通过；3表示完成但setup为负；其他非零为流程失败。Windows包装原始退出0可能与负setup并存，须保存raw码并按完整status解释，不能被一行成功标记覆盖。详细可执行流程见\code{synth/FPGA_SYNTHESIS_AND_STA.md}。
+
+\section{DCP身份与真实时钟网络}
+先把源包所有成员与manifest中的逐文件SHA比对，再核对完整DCP的字节数与SHA；传回本机后应与远端独立计算值一致。摘要证明文件身份，不证明其功能或综合合法性，因此不能跳过综合来源检查。原始manifest保留原字节，新增身份与接受记录另存；旧冻结DCP的摘要只属于旧运行，排版版若新综合应获得自己的DCP身份。
+
+仓库没有\code{run_vivado_buffered_impl.py}，实际实现入口是\code{run_vivado_buffered_impl.tcl}，依次接受\code{INPUT_DCP / NEW_OUT_DIR / PERIOD_NS / BUFGCTRL_XxYy}四个位置参数。该Tcl只打开已冻结的未布线综合DCP，不重综合、不覆盖输入；检查Vivado 2018.3、7-series、唯一时钟和可用BUFGCTRL站点，再插入一个真实BUFG并执行\code{opt_design}、\code{place_design}、\code{phys_opt_design}、\code{route_design}。
+
+外部\code{clk}仅连接BUFG输入，原顺序时钟网络由BUFG输出驱动；检查的是全部顺序clock pin集合，而不是抽查几个寄存器。旧实测66,508个时钟终点在ECO前、ECO后及布线后集合完全一致，nodes/pips和路由状态另有原始记录。内部时钟已路由，但\code{EXTERNAL_CLOCK_ROUTED=0}，外部clk到BUFG仍是OOC边界，不能用它签核板级晶振或引脚。此边界与官方\href{https://docs.amd.com/v/u/2018.3-English/ug905-vivado-hierarchical-design}{UG905 v2018.3的OOC方法}相符。
+
+寄存器间路径必须用实际clock/data pin定义；仅指定from/to时钟还可能包括相对该时钟设置I/O delay的外部端口。当前脚本保留全路径与下列内部查询，二者并列解释：
+\begingroup\footnotesize
+\begin{verbatim}
+set launch [all_registers -clock_pins]
+set capture [all_registers -data_pins]
+report_timing -from $launch -to $capture -delay_type max \
+  -max_paths 20 -path_type full_clock_expanded -input_pins
+report_timing -from $launch -to $capture -delay_type min \
+  -max_paths 20 -path_type full_clock_expanded -input_pins
+report_timing_summary -delay_type min_max -report_unconstrained
+check_timing -verbose
+report_exceptions
+\end{verbatim}
+\endgroup
+报告原理见官方\href{https://docs.amd.com/v/u/2018.3-English/ug906-vivado-design-analysis}{UG906 v2018.3}，查询接口见\href{https://docs.amd.com/v/u/2018.3-English/ug835-vivado-tcl-commands}{UG835 v2018.3}。新实验保留脚本、XDC、时钟名单、前后DCP、路线/DRC报告与SHA；SSH观察超时先核对同一任务是否仍运行，不能据此新起第二份EDA或终止其他用户作业。
+
+\section{建立时间、保持时间与完整网表分别证明}
+\begin{table}[H]\centering\small
+\begin{tabular}{p{58mm}rl}\toprule
+旧冻结P5/25\,ns实测&结果&验收边界\\\midrule
+综合setup WNS&$+10.640$\,ns&尚未布线\\
+布线寄存器间setup WNS&$+0.946$\,ns&核心通过\\
+布线寄存器间hold WHS&$+0.052$\,ns&核心通过\\
+全OOC hold WHS&$-2.278$\,ns&外部接口未闭合\\
+全路径hold失败终点&65,048&不能删除或隐藏\\
+route/DRC error&0/0&实现完整性通过\\
+\bottomrule\end{tabular}
+\caption{setup与hold是不同的路径及判据。正setup不替代hold；这张表不发布新的排版字节EDA运行结果。}
+\end{table}
+
+当前\code{REGREG_TIMING_MET=1}与\code{TIMING_MET=0}都是真实结果。40\,MHz在16拍一笔的预算下对应2.5\,MS/s；没有更高频率重新实现扫描，不能按正裕量直接外推Fmax。STA接受还需确认所有时钟、16类\code{check_timing}计数、未约束/忽略路径、setup/hold失败终点及脉宽；缺字段、缺路径或未知类别必须报错，不能默认为零。覆盖检查通过只说明所记录约束可分析，不说明I/O预算来自真实接口。
+
+零最短输入延迟假设下的外部hold须由真实发送端clock-to-out、走线/封装差、参考时钟相位、抖动和接收端要求重新建模。每组Flash、粗/细比较器、配置和输出端口分别给出min/max及来源；官方\href{https://docs.amd.com/v/u/2018.3-English/ug903-vivado-using-constraints}{UG903 v2018.3第100--103页}说明I/O相位和min/max用法。若实际异步，应设计CDC/握手或规定模拟宏同步时序契约，不能给整组数据设false path。也不能无依据增加input minimum delay、多周期或专用时钟路线豁免来把状态变绿。16拍吞吐不自动意味着每条内部寄存器路径有16拍可用。
+
+完整综合网表由\code{run_vivado_full_mapped.py}在Vivado主机运行，真实选项是\code{--dcp}、\code{--synthesis-manifest}、\code{--dcp-sha256}、\code{--stages}、\code{--vivado}、\code{--out}、\code{--timeout}及\code{--execute}。它默认只准备，必须显式execute；只支持P5/P7，没有SSH host参数。runner从同一SHA锁定DCP导出完整功能网表，连接vendor库和\code{glbl}，然后复核公共输出、flags、ID、配置读回、取消与trace。
+
+旧冻结P5有438输出、3,900配置读回、7,680协议检查及3次取消；435对相邻有效输出符合\(\Delta clock=16\Delta ID\)。该bench观测flags全零、不查内部启动延迟；其他RTL benches承担这些覆盖。此链路没有SDF，只证明post-synthesis功能，不能替代布线STA、模拟建立或亚稳态验证。正确结论须同时注明源码/DCP身份、测试激励范围和实际物理约束。
+
+\section{下一轮布线、存储和ASIC的方向}
+修复后关键路径为fine物理slice上下文到rail归约寄存器，数据23.914\,ns，其中互连18.623\,ns占77.875\%，逻辑5.291\,ns、40级。瓶颈已不是只看配置加法器：应沿真实网连接检查物理ID译码、活跃行掩码扇出、系数树与rail符号的位置，评估局部寄存、分段计算与布局。不能把重建层级中\code{u_context}名下LUT全解释为上下文状态面积。
+
+可评估在后级SAR期间预计算\(T,G,R\)，phase15只配合最终\(F\)完成精确MAC与floor除法。前提是中间包带同一sample ID、epoch、valid/bad，使用冻结的物理ID/掩码/dither，clear、disable、cancel后同时失效；不得引用下一样本实时DEM。每次只改一个结构变量，分别测新增FF、16拍吞吐、取消与位精确结果，再同约束route。默认不全局加\code{DONT_TOUCH}或过紧floorplan，以免局部优化造成全局拥塞。
+
+权重存储62,316 FF占全核66,492 FF的93.72\%，预算为
+\[
+1278\times47+1278\times1+18\times54
+=60,066+1,278+972.
+\]
+因此面积主线是先降低系数读取带宽，再比较分银行RAM/SRAM或结构DEM前缀表示。保持全部18\(\times\)71并行读口只改数组名字，不会自动推断BRAM；保留原表又追加朴素前缀缓存会额外增加72,432状态位。预计算/前缀仍是后续候选，当前不能宣称其已取得综合收益，也不能未经误差证明收窄合法47-bit权重或96-bit运算域。
+
+旧布线vectorless功耗为0.477\,W总量、0.152\,W动态、0.325\,W静态，没有activity file。功耗优化须从真实装载、连续转换、DEM/dither及取消模式生成活动窗口并检查注释覆盖；目前不能称为功耗优势。
+
+ASIC 640\,MHz对应1.5625\,ns。FPGA CARRY4/DSP/BUFG结果不能换算为标准单元PPA；本轮没有目标PDK/RC/corners下的当前RTL签核。下一步先确认获授权库、LEF/technology、RC角、供电温度、单位、memory macro与模拟宏时序模型，再冻结SDC与真实I/O预算。综合后做floorplan/placement、时钟树、路由和寄生提取，在要求模式/角集合检查setup、hold、recovery/removal、脉宽及约束覆盖；不能把零线负载setup当成物理Fmax。保存网表/SDC/SPEF/工具与报告摘要，兼顾拥塞、短路径修补代价和活动功耗后，才可判断640\,MHz及PPA是否达标。

@@ -1,0 +1,32 @@
+{
+  "csvs_byte_identical_across_runs": true,
+  "negative_csv_checks": [
+    {
+      "fixture": "sar",
+      "mutated_field": "post_trial",
+      "edge": "5",
+      "rejected": true,
+      "reason": "SAR edge 5: stalled/idle state changed"
+    },
+    {
+      "fixture": "recon",
+      "mutated_field": "post_word",
+      "edge": "119",
+      "rejected": true,
+      "reason": "recon edge 119: wrong word/hold behavior"
+    },
+    {
+      "fixture": "phase",
+      "mutated_field": "post_precharge",
+      "edge": "11",
+      "rejected": true,
+      "reason": "phase: registered analog boundary schedule mismatch"
+    }
+  ],
+  "existing_output_guard": {
+    "exit_code": 1,
+    "result_sha_unchanged": true,
+    "message": "Refusing to overwrite existing output: /Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_engineering_20261001/fsm_trace/repro_cli_20260930T1627Z"
+  },
+  "runner_sha256": "e7b52615b62df99649ed9afca4dbd0bb4a9e300657872e761dfc6deacde81d5b"
+}

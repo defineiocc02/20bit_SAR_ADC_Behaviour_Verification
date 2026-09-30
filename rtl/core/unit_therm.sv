@@ -27,22 +27,30 @@
 //   * `main_count` 超出 [0, N_UNIT_MAIN] 时掩码饱和到全 1（比较即饱和），
 //     这属于适用域之外；swap_decode 的桥接守卫保证不会发生。
 //   * 纯组合，延迟 0。
+//     没有 clk/reset/enable；调用方负责在 load 边沿冻结输出。地址表、计数
+//     和 bank_dither 必须来自同一份样本上下文，不能混用下一样本的 DEM 状态。
+//   * a 是活动通道号；p/k 是物理主/子单元 ID。main_on/sub_on 的位序直接
+//     对齐权重存储的物理 ID，数组值 main_logical/sub_logical 才是逻辑顺序。
+//   * dither_rail 是正/负底板轨的数字选择，每位覆盖一个采样 dither 单元；
+//     它不是量化 dither 的幅值，也不代表模拟驱动已经无毛刺或满足非交叠。
 //===========================================================================
 `include "rtl_params.vh"
 
 module unit_therm (
-    input  logic [N_UNIT_MAIN-1:0][5:0]        main_logical,
-    input  logic [N_UNIT_SUB-1:0][2:0]         sub_logical,
-    input  logic [N_ACTIVE-1:0][6:0]           main_count,
-    input  logic [N_ACTIVE-1:0][2:0]           sub_count,
-    input  logic signed [7:0]                  bank_dither,
-    output logic [N_ACTIVE-1:0][N_UNIT_MAIN-1:0] main_on,
-    output logic [N_ACTIVE-1:0][N_UNIT_SUB-1:0]  sub_on,
-    output logic [2*DITHER_UNITS_RANGE-1:0]      dither_rail
+    input  logic [N_UNIT_MAIN - 1:0][5:0]          main_logical,
+    input  logic [N_UNIT_SUB - 1:0][2:0]           sub_logical,
+    input  logic [N_ACTIVE - 1:0][6:0]             main_count,
+    input  logic [N_ACTIVE - 1:0][2:0]             sub_count,
+    input  logic signed [7:0]                    bank_dither,
+    output logic [N_ACTIVE - 1:0][N_UNIT_MAIN - 1:0] main_on,
+    output logic [N_ACTIVE - 1:0][N_UNIT_SUB - 1:0]  sub_on,
+    output logic [2 * DITHER_UNITS_RANGE - 1:0]      dither_rail
 );
 
   integer a, p, k, i;
 
+  // 全部输出在每次组合执行中赋值；各 unit 比较器在综合时并行展开，
+  // for 循环不产生逐 unit 扫描状态机，也没有未赋值路径推断锁存器。
   always_comb begin
     for (a = 0; a < N_ACTIVE; a++) begin
       for (p = 0; p < N_UNIT_MAIN; p++) begin
@@ -52,6 +60,7 @@ module unit_therm (
         sub_on[a][k] = (4'(sub_logical[k]) < 4'(sub_count[a]));
       end
     end
+    // i-D < d 等价于 i < D+d；先把 d 明确转成 signed，保留负 dither 的轨选择。
     for (i = 0; i < 2 * DITHER_UNITS_RANGE; i++) begin
       dither_rail[i] = (i - int'(DITHER_UNITS_RANGE)) < int'($signed(bank_dither));
     end

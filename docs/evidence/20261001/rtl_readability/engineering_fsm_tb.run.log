@@ -1,0 +1,2 @@
+ENGINEERING_FSM_COMPLETE recon_accepts=9 recon_results=7 recon_errors=1 recon_cancels=2 commit_overlaps=1 rejected=1 sar_accepts=3 sar_done=2 sar_cancel=1 sar_stalls=9 busy_starts=2 phase_startups=1 phase_wraps=10 edges=175
+- sim/tb/engineering_fsm_tb.sv:428: Verilog $finish

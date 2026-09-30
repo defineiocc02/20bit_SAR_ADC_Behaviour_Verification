@@ -5,7 +5,7 @@
 //   保存 offset_q / adc2_min_q / adc2_max_q 三个 Q32 电压系数与 dem_en /
 //   bridge_en / sampling_mask_en / quantizer_dither_en 四个控制位；接受 `validate` 脉冲做合法性校验，
 //   通过才把 `cfg_ready` 拉高；`clear_valid` 撤销生效状态以便重载。
-//   本模块**不做**权重存储（weight_store 的事）也不做任何算术。
+//   本模块**不做**权重存储（weight_store 的事）或逐样本重构运算。
 //
 // 来源
 //   docs/rtl/P2_INTERFACE.md §9（M13）；rtl/README.md §3.2；
@@ -41,6 +41,11 @@
 //     `ERR_W_SUM` 属于权重检查，而本模块的冻结端口表没有权重输入，故由
 //     weight_store 在写入点守卫（见其模块头）。错误编码见 rtl_error_codes.vh。
 //   * `err_code` 是**寄存器**（保存最近一次错误），不是脉冲；成功 validate 会清它。
+//   * 同步低有效复位。每拍的控制优先级为
+//     reset > clear_valid > validate > controls_write > wr_en > 保持。
+//     clear_valid 只撤销提交与三标量完成位，保留系数和控制位的旧值供回读；
+//     保留旧值不等于完整重载，必须重新写满三个标量及权重后才能 validate。
+//   * config_busy 守卫 validate；普通写入能否进入本模块由顶层 cfg 接口仲裁。
 //===========================================================================
 `include "rtl_params.vh"
 
@@ -49,41 +54,43 @@ module calib_regs #(
 ) (
     input  logic                      clk,
     input  logic                      rst_n,
-    input  logic                      wr_en,        // 一拍脉冲
-    input  logic [3:0]                sel,          // 0 offset_q / 1 adc2_min_q / 2 adc2_max_q
-                                                   // 3 dem_en / 4 bridge_en / 5 sampling_mask_en
-    input  logic signed [V_BITS-1:0]  data_v,       // sel <= 2 用
-    input  logic                      data_b,       // sel >= 3 用
-    input  logic                      controls_write, // atomic update of the four control bits
-    input  logic [3:0]                controls_data,
+    input  logic                      wr_en,          // 一拍脉冲
+    input  logic [3:0]                sel,            // 0/1/2: offset/min/max；3/4/5: DEM/bridge/sampling
+    input  logic signed [V_BITS - 1:0] data_v,         // sel = 0..2 用
+    input  logic                      data_b,         // sel = 3..5 用，其他 sel 报错
+    input  logic                      controls_write, // 四个控制位原子更新
+    input  logic [3:0]                controls_data,  // {quantizer, sampling, bridge, DEM}
     output logic                      quantizer_dither_en,
-    input  logic                      weights_ready, // all weights written in this load epoch
-    input  logic                      config_busy,   // top-level write/serialization/in-flight work
-    input  logic                      validate,     // 一拍脉冲：跑合法性校验
-    input  logic                      clear_valid,  // 一拍脉冲：撤销 cfg_ready
+    input  logic                      weights_ready,  // 当前载入 epoch 已写满所有权重
+    input  logic                      config_busy,    // 顶层写入/串行化/在途工作
+    input  logic                      validate,       // 一拍脉冲：跑合法性校验
+    input  logic                      clear_valid,    // 一拍脉冲：撤销 cfg_ready
     output logic                      cfg_ready,
     output logic [31:0]               err_code,
-    output logic signed [V_BITS-1:0]  offset_q,
-    output logic signed [V_BITS-1:0]  adc2_min_q,
-    output logic signed [V_BITS-1:0]  adc2_max_q,
+    output logic signed [V_BITS - 1:0] offset_q,
+    output logic signed [V_BITS - 1:0] adc2_min_q,
+    output logic signed [V_BITS - 1:0] adc2_max_q,
     output logic                      dem_en,
     output logic                      bridge_en,
     output logic                      sampling_mask_en
 );
 
   `include "rtl_error_codes.vh"
+
+  // 三个完成位只记录本 epoch 是否写过；系数本身可在提交前重复覆盖。
   logic [2:0] scalar_written;
-  logic signed [V_BITS-1:0] off_r, min_r, max_r;
+  logic signed [V_BITS - 1:0] off_r, min_r, max_r;
   logic                     dem_r, brg_r, smk_r, qdith_r;
 
-  assign offset_q         = off_r;
-  assign adc2_min_q       = min_r;
-  assign adc2_max_q       = max_r;
-  assign dem_en           = dem_r;
-  assign bridge_en        = brg_r;
-  assign sampling_mask_en = smk_r;
+  assign offset_q           = off_r;
+  assign adc2_min_q          = min_r;
+  assign adc2_max_q          = max_r;
+  assign dem_en             = dem_r;
+  assign bridge_en          = brg_r;
+  assign sampling_mask_en   = smk_r;
   assign quantizer_dither_en = qdith_r;
 
+  // 唯一时序边界：所有系数、完成位、提交位与错误码均在 posedge 更新。
   always_ff @(posedge clk) begin
     if (!rst_n) begin
       off_r     <= {V_BITS{1'b0}};
@@ -120,16 +127,27 @@ module calib_regs #(
           err_code <= ERR_NONE;
         end
       end else if (controls_write) begin
-        if (cfg_ready || wr_en) err_code <= ERR_CFG_WRITE;
-        else {qdith_r, smk_r, brg_r, dem_r} <= controls_data;
+        if (cfg_ready || wr_en)
+          err_code <= ERR_CFG_WRITE;
+        else
+          {qdith_r, smk_r, brg_r, dem_r} <= controls_data;
       end else if (wr_en) begin
         if (cfg_ready) begin
           err_code <= ERR_CFG_WRITE;
         end else begin
           case (sel)
-            4'd0: begin off_r <= data_v; scalar_written[0] <= 1'b1; end
-            4'd1: begin min_r <= data_v; scalar_written[1] <= 1'b1; end
-            4'd2: begin max_r <= data_v; scalar_written[2] <= 1'b1; end
+            4'd0: begin
+              off_r <= data_v;
+              scalar_written[0] <= 1'b1;
+            end
+            4'd1: begin
+              min_r <= data_v;
+              scalar_written[1] <= 1'b1;
+            end
+            4'd2: begin
+              max_r <= data_v;
+              scalar_written[2] <= 1'b1;
+            end
             4'd3: dem_r <= data_b;
             4'd4: brg_r <= data_b;
             4'd5: smk_r <= data_b;

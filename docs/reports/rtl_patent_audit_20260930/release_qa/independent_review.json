@@ -1,16 +1,24 @@
 {
-  "scope": "BOUNDED_READ_ONLY_SOURCE_EVIDENCE_REVIEW_NOT_ADDITIONAL_EDA",
-  "reviewer": "/root/final_source_audit with bounded bench-graph subreview",
+  "scope": "BOUNDED_READ_ONLY_SOURCE_GUIDE_AND_VISUAL_REVIEW_NOT_NEW_EDA",
+  "reviewers": [
+    "/root/readable_control",
+    "/root/readable_peripherals",
+    "/root"
+  ],
   "result": "NO_REMAINING_SUBSTANTIVE_FINDINGS_IN_REVIEWED_SCOPE",
   "checked": [
-    "163 final physical/RTL archive payload hashes",
-    "26 current RTL files match frozen synthesis source",
-    "28-input same-constraint synthesis packages differ only weight_store.sv",
-    "22 final bench graphs bound to63 CI payloads and88 tested Git inputs",
-    "Core setup/hold versus external OOC hold boundary",
-    "PPA counts and prefix storage budget",
-    "Independent DEM selection sets for512 states and all64 main/8 sub counts"
+    "Six engineering documents versus actualRTL,58ports and fourVivado entry points",
+    "phase/NBA/cancel/config reset guards and per-sample output semantics",
+    "setup/hold clock skew signs and trueIO min/max budget",
+    "P6full-mapped unsupported condition and plannedintermediate reports",
+    "OOC/core/board/ASIC and historical/current source identities",
+    "115page render/pixel carry and changedpages"
   ],
-  "finding_fixed": "16150 row-cache counter is loader TB steps, including reset/no-write/clear/read-retained; replaced misleading transactions labels and loader_transactions field, regenerated affected graphs and source manifests, rebuilt PDF and reviewed changed pages51/76/84.",
-  "limitation": "Review does not prove analog macros, board IO timing, ASIC640MHz or proposed prefix RTL/PPA."
+  "findings_fixed": [
+    "Newchapter overfull English sequences",
+    "Chaptertitle lonely last character",
+    "Space-separated port code groups collapsed by nolinkurl; split code fields with explicit commas",
+    "Preserved actual spaces in inline timing command"
+  ],
+  "limitation": "No formal equivalence, new synthesis, board IO timing, analog macro validation or ASIC PPA performed by this review."
 }

@@ -1,15 +1,15 @@
 {
-  "schema": "sar_rtl_patent_report_delivery_v1",
-  "released_utc": "2026-09-30T15:10:00.190783+00:00",
-  "scope": "REVIEWED_REPORT_AND_SOURCE_BOUND_DIGITAL_FPGA_CORE_EVIDENCE_NOT_FULL_ANALOG_BOARD_OR_ASIC_SIGNOFF",
+  "schema": "sar_rtl_patent_report_delivery_v2",
+  "released_utc": "2026-09-30T17:28:19.474088+00:00",
+  "scope": "READABLE_RTL_FSM_EVIDENCE_AND_IMPLEMENTATION_PLAN_WITH_HISTORICAL_PHYSICAL_IDENTITY_NOT_BOARD_OR_ASIC_SIGNOFF",
   "pdf": {
     "path": "report.pdf",
-    "sha256": "21f7a10526979a1f9e4bd2a2afab6da8c2f9e7ad78ab5f5ef69305664a190311",
-    "bytes": 3988141,
-    "pages": 94
+    "sha256": "2fa9fc9ac917d222a0ed9b37a19e6eab5ae82cad3aa33e1d7b84a9d01a7f040e",
+    "bytes": 4277042,
+    "pages": 115
   },
   "source_and_assets_sha256": {
-    "README.md": "e9cfdb7fd5eb56659701cf08d35339e45208e478b086434386b3752af2e452bb",
+    "README.md": "2d4aeb64116035713ad9a59b9afb1ab818bfcb776aeb02c0e323bee822c269f3",
     "audit_figures/30_source_hashes.json": "28cc0a711f9b016424bca30c9943f1cd2d0e52c73ccd7517afcf3970e7d3cedd",
     "audit_figures/31_source_hashes.json": "7c15b1b4bbebc7cde4ace1e1f05939b660e150b4e5a4ff32f185f81a7768e4fa",
     "audit_figures/32_source_hashes.json": "6f45ac98e908ab3283dd4b7ee3bc814a4dd5ecb6702fcdc8044c769d4ca409b8",
@@ -19,7 +19,7 @@
     "audit_figures/41_layout_followup_qa.json": "b41403dd7959e131c0cccf8b3190328e0cd889f8af2fa700eb965bf64406fb47",
     "audit_figures/41_qa.json": "0e347b4331e03fcd8e25186ba469005d77cae8c686a568dd011b0d561719a78c",
     "audit_figures/41_source_hashes.json": "840610e499b1b64f0d510605cdbf032441079cfdad2b7b6b4659dbf3290156e0",
-    "audit_figures/README.md": "058c1f0118e2a6f172f95b8b8451a396fbfd21e09d1181d6bef8f6133b4c3a39",
+    "audit_figures/README.md": "48afe1001e8f1206feda9a84332966b222accc48d397648e21935c77518b6041",
     "audit_figures/arithmetic_runner_dual_tool.sha256.json": "59798a523b912d3e2ba8ee6f23ed0f729221fb7ae583c7f0b59da8dd19171e06",
     "audit_figures/audit_dem_prefix_math.py": "5adb374ae23e9fc6192bf86aa552adadbf16fea276a873e6e2875513f57b1e0b",
     "audit_figures/cached_p5_synthesis.sha256.json": "c2e59f2611667b1229c8229dc20e1a9d64faf51d2e57a4c0bc32075d2a0eae59",
@@ -27,6 +27,8 @@
     "audit_figures/ci_f028_figure_upgrade_qa.json": "cd64674997671eb38856fdf26b438da5bae7930dea3d47fef6c31e1f8be50fab",
     "audit_figures/ci_figure_upgrade_qa.json": "f28e459b10c25ef4a5b7f016a3b868a9ab88138e572c620b859fff398db0cacd",
     "audit_figures/dem_prefix_math.result.json": "a1189a1d3822cdd047ba69074803abdefcd207364b903abbfa27833249b939a5",
+    "audit_figures/engineering_fsm_sources.json": "6df61d0af6e9f53d21ec69e5bd3a74c6309794469b6bf37eb1387fcbb1f0f3fc",
+    "audit_figures/engineering_trace_review.json": "a78b23ccd25d6f0dbe1f31e5cd4bd8855f77b58445b41cc249b0cffa0be1bfc3",
     "audit_figures/final_regression_arithmetic.sha256.json": "ae764735dcc11ca0d8afd98fd9f52f3bb6aafeb9f53dab6f774ada8c21d34456",
     "audit_figures/final_regression_protocol.sha256.json": "04c766c2e67c1aefece9138fa93dc2cfbfb64a2dfc1af85da81995912682bf94",
     "audit_figures/final_regression_quantitative.sha256.json": "b87b80d473a4d6ea80746f34bdf48c6d4315aacc416c338da36ac0bcbf75de00",
@@ -38,6 +40,8 @@
     "audit_figures/make_cached_p5_synth_evidence.py": "c3bfdd441b917b56f49a0d6d65670ca334c3cb5c5ed62934774dc8453c24b09d",
     "audit_figures/make_compact_divider_profiles.py": "08a44381ee2d60401579724022034d655c08780df6755018f3ee44f7872a8e4a",
     "audit_figures/make_divider_profiles.py": "b035e6e3a924329d4e4e86e4e12568234fa8d147898820e42dc605b8b675f8ee",
+    "audit_figures/make_engineering_fsm.py": "6eb7d1e833c25ceed74f63d2cd867299fdba0bb50cfa3312d81bf91d661c28ad",
+    "audit_figures/make_engineering_trace.py": "7b3223bf0dd0b7656b2a896b43e62a10c5831c7986e7ac6b45f3cb31963094e3",
     "audit_figures/make_final_regression_evidence.py": "9e845ab15838af56c0fcd31ac38e87ce444a4f3b74a5547b17bf335db7bcc477",
     "audit_figures/make_local_row_ppa.py": "e784d1d1d9bc7b4df94bae0f9b40a77da8fbe34f4c62cf4997d046c2bddea7aa",
     "audit_figures/make_local_row_profiles.py": "237a953cbc77c4f85dd3599a11b11deb8e7d56bb694f8d928808bf58b03732d3",
@@ -80,6 +84,18 @@
     "figures/40_weight_msb_evidence.png": "a47798374bff1bb5402ca9957136d736020ec98cc512fed8da97a602f689511c",
     "figures/41_row_cache_evidence.pdf": "caf1e919e7c1ca2023e21abeb272772d17044880db223ed81130dff55e68820d",
     "figures/41_row_cache_evidence.png": "d253b422e9d6792cd3492366a5a40586a0868f526fbfb0f5775a1da582f63d8e",
+    "figures/44_structural_phase_fsm.pdf": "e3d2952ae5d86bb2ed593339032f1e8a85399bdce3c4fb6c71e548e67895ca79",
+    "figures/44_structural_phase_fsm.png": "b8c82380275ebcff3fb09d4cf58ebe448fedfef08adb44ac8e4857b5ffe5829d",
+    "figures/45_sar_trial_fsm.pdf": "33b056d0dbedea92bc8a32f3260cc7d6285bf38e9e25e28b6eaa7f58adc4e49a",
+    "figures/45_sar_trial_fsm.png": "d7a605f8c4992c2a13c3349c8724536fd724eef149553149ba32e8e3d598b401",
+    "figures/46_reconstruction_fsm.pdf": "36325d62bf795d33c00866eeb0b5f0a9ef5b4512f248ce55e738e1d06e547fb2",
+    "figures/46_reconstruction_fsm.png": "8ea200777fd61baba92c8d4650fd08bf4b87159e2b397de244959daafd3a925c",
+    "figures/47_configuration_fsm.pdf": "434c77772f704921c272b71c1486a0124bae8de8c8674e88073fdf8c59ec40c2",
+    "figures/47_configuration_fsm.png": "53261d0cf048bb1a2cc3fcd59b20e69492c813828fe824e78ca38433be91154b",
+    "figures/48_engineering_fsm_trace.pdf": "2b1f9493a40cbad26584bb3c9a5f7b189a069c632de86d147695727e3e463cea",
+    "figures/48_engineering_fsm_trace.png": "188ec7db56e522100e70219ad94760cae8c366aecf39d8b18a9ff364b689680e",
+    "figures/49_reconstruction_boundary_trace.pdf": "e1f9f4ddfe49d642be713e12300634a46b48b5ab9b770685362e170647d72380",
+    "figures/49_reconstruction_boundary_trace.png": "0193b73097ceecce943fc1d729d07462a38cadc2d19e7a5d802c2cec56faf855",
     "figures/arithmetic_runner_dual_tool.pdf": "a45e4341a403c52f128ffa48a9d869e29bc27a797c363fa450875e09a8361750",
     "figures/arithmetic_runner_dual_tool.png": "ccc02be9506d4f042edaf3a2032cb3e289b37996904ef361078788a5617d4aed",
     "figures/cached_p5_synthesis.pdf": "226ae75eebc4b37fab311560e42e30d3361fa1b0d4978e597d44a2e6876cd651",
@@ -115,27 +131,30 @@
     "release_qa/build.status": "d3024f26c5aeb334a189e9fa1c9fee8d1aaa0278f1b7df45582219da8974cc4d",
     "release_qa/compiler.path": "2583794e7f6e8db501a44580f7e85aa8dc03d4a47e69104153d8bec5b444a96c",
     "release_qa/compiler.version": "df941823c72e9660b7af9923a5a0268666d38d21567b60b16530704782ce68ab",
-    "release_qa/independent_review.json": "2c5482e2c31bc0bb30dbd87dcc2620e7712894228f6cf1d90e29a64238d0154c",
-    "release_qa/pass-1.console.log": "130b221895d0f1d2e5419f0ae1f2b8b3295cb6f4b5b11e3060651a5454ea9a11",
-    "release_qa/pass-1.tex.log": "93846e7355ad75084912bff334181f2e8542541d08e6d25608cd2ccfb37c1ea2",
-    "release_qa/pass-2.console.log": "ab46b65c975a97394776dcfaeaeddfe75e8beb8c5d86709c182ec23404356a9b",
-    "release_qa/pass-2.tex.log": "98bee55bf245613fa73a2e73ac434c60b7e8732262faa2f2c105dc431b1e64ad",
-    "release_qa/pass-3.console.log": "a78d2824ed6ac049a52c71609a59cab66b99fbc57285bb3094bb4954e56e6d4b",
-    "release_qa/pass-3.tex.log": "283c618d2c084cb77e475c89c8123f8593bafc6e09a67d6b2a5cd74b8439a41d",
+    "release_qa/independent_review.json": "fc9ed9f318e526c0ce8e6667dc0fb2a5d168e59342b58f02470f7d1c16bc739d",
+    "release_qa/pass-1.console.log": "79d0a5cdd7b7b5e92fd5cbe356e5a58c7b9724537b261f55b2e615a33abd1a7e",
+    "release_qa/pass-1.tex.log": "c44f7b252e7a0f79b3fb469f199d1ae6fd9153a56dadd2a41dd0426434bffab4",
+    "release_qa/pass-2.console.log": "fd74b7365099c7f1c61695c52d73bbbf2cdba6266768eed1f339efc7da15c5ca",
+    "release_qa/pass-2.tex.log": "08927662b8cc065a31aec977067e9d4a8e6454d8cf0e0992a4725f719e1f389f",
+    "release_qa/pass-3.console.log": "33f38410e7ed5890b142c1632911bb3ca507c82a26aca7cac8a9967065995654",
+    "release_qa/pass-3.tex.log": "835dc1efad7e4cc46d1b2c776c7fc8dbcd10df7a012cf22d8ba5d35c606d8fbe",
     "release_qa/previous_render_manifest.json": "b06e6b1a099eafcef01578847503d38d3e832362beefef2f80bb14efbbff86d4",
-    "release_qa/render_manifest.json": "03de8fe23b2bf6c402926710aa3dbc24a8f5b447cc5e4928c4b41c8154b364f2",
-    "release_qa/report.fls": "4099d7ad834444f72141bfc667234dff16f3a3d03da02de8dd2e8bff22737c74",
-    "release_qa/report.log": "283c618d2c084cb77e475c89c8123f8593bafc6e09a67d6b2a5cd74b8439a41d",
-    "release_qa/visual_review.json": "1ac2096dcd0ac37f04c08ab0ce3a1f93179f47c50a7aa201aa3aa8c5459bd8d2",
-    "report.tex": "37931fc00a9fb9951ff4a3d26c7044d5120734ff0286889054e28b66d8837bd7",
+    "release_qa/render_manifest.json": "a428817c6b994b5649bcda8d17f94f021a25f8c2cae80223ac8ba0e9522719fd",
+    "release_qa/report.fls": "108757ebf6ff8b0614197fc14f67bd24306127dbd7f6c63a64ff5d68c48c28d6",
+    "release_qa/report.log": "835dc1efad7e4cc46d1b2c776c7fc8dbcd10df7a012cf22d8ba5d35c606d8fbe",
+    "release_qa/visual_review.json": "18ac2e399d42b7f5dbb44332cb8213975d78de211777446aaed60a6ab86453a7",
+    "report.tex": "b2d6c417225188d10093d43970593bd1755df2854999bcc0d96d60be5e223e67",
     "sections/calibration_principles.tex": "ca58983e2380e877b34977e976f7a73ac1c38f5683169bbc57340c007881ef45",
     "sections/divider_timing.tex": "b8eb39893d278427bbfec1a2e1d81e741e82ddf0e056e8cdd1cc6baaa7bd498d",
+    "sections/engineering_sta.tex": "1ff48df620b4fe6664c815290d6c1bf90390a48be918e1333487606077dceccd",
     "sections/final_regression_evidence.tex": "5a25e31cfd2cc56e78f7106fc072e3c5a92e6f11e6245c64480bbbd346598496",
+    "sections/implementation_plan.tex": "ab16a1acbb240890e7a0c69088c1609d27a942128c2a1ca4aa4f709283831043",
     "sections/patent_principles.tex": "4c396b6cce05689623f01186ff123ade3d417c6d7c6442d2cd47d7a9f6fea944",
     "sections/prior_art_comparison.tex": "30e5823231215d86e52617d9d53a19b3509d35b2a7f0f37d9feece42fdd9ef57",
     "sections/reducer_scheduler_figure.tex": "e333fb6319b06a420965406c555aa933868e09ca1e87b865eb00d6492e40f484",
     "sections/row_cache_design.tex": "e8dca873173fcc8672ffc65bf6d65ed2f54b40822fcbddaf6fb9c9099e760181",
     "sections/row_cache_evidence.tex": "e78df7d7e91a3c77c743dd5348ae47ed9118cc419cd9c5e868e72c260fdeb9aa",
+    "sections/rtl_engineering_fsm.tex": "b3970227cc08ec964468ff0a7d9a9f45048d160a07a47026151c7231437a4f9e",
     "sections/shared_selector_closure.tex": "e3dccfe0e416a0c20390b12162f8654c76132fc3924508b146aa7b1e3486b138",
     "sections/synthesis_repair.tex": "ea343a7e67a2363170bacf621452802160018f746066095f689a36c8e5752167",
     "sections/verification_method.tex": "fdadf0429ebbed02ac49c3674b0f086c57cf3bba22e2b96d896f0bd41bbba988",
@@ -154,6 +173,12 @@
     "figures/39_reducer_scheduler.png": "71842a3b1a5823aab70f6a09c3f85d7d24aad3c5f6fe5bb66e1d279dc50f4196",
     "figures/40_weight_msb_evidence.png": "a47798374bff1bb5402ca9957136d736020ec98cc512fed8da97a602f689511c",
     "figures/41_row_cache_evidence.pdf": "caf1e919e7c1ca2023e21abeb272772d17044880db223ed81130dff55e68820d",
+    "figures/44_structural_phase_fsm.pdf": "e3d2952ae5d86bb2ed593339032f1e8a85399bdce3c4fb6c71e548e67895ca79",
+    "figures/45_sar_trial_fsm.pdf": "33b056d0dbedea92bc8a32f3260cc7d6285bf38e9e25e28b6eaa7f58adc4e49a",
+    "figures/46_reconstruction_fsm.pdf": "36325d62bf795d33c00866eeb0b5f0a9ef5b4512f248ce55e738e1d06e547fb2",
+    "figures/47_configuration_fsm.pdf": "434c77772f704921c272b71c1486a0124bae8de8c8674e88073fdf8c59ec40c2",
+    "figures/48_engineering_fsm_trace.pdf": "2b1f9493a40cbad26584bb3c9a5f7b189a069c632de86d147695727e3e463cea",
+    "figures/49_reconstruction_boundary_trace.pdf": "e1f9f4ddfe49d642be713e12300634a46b48b5ab9b770685362e170647d72380",
     "figures/arithmetic_runner_dual_tool.pdf": "a45e4341a403c52f128ffa48a9d869e29bc27a797c363fa450875e09a8361750",
     "figures/cached_p5_synthesis.pdf": "226ae75eebc4b37fab311560e42e30d3361fa1b0d4978e597d44a2e6876cd651",
     "figures/dem_prefix_math.pdf": "e237e8cb42dcf060f7f8206a4dbf849782850d7998263857c9d4fb5c0f05fd0d",
@@ -170,15 +195,18 @@
     "figures/shared_ci_system.pdf": "9c4f76aa7758ad27f0765447290c1fb3dfb51ad8eb9542dd78f8e7436d56d3c0",
     "figures/shared_old_mapped.pdf": "cf02be9215a9f4c3581a651d8671a838028c322609c103bb3ebfb5cf93a21b86",
     "figures/shared_old_ppa.pdf": "f53b8d8c4d185f8bcc0ee8942af12297e147fefa5a5fde520e6d677eecd4a6e2",
-    "report.tex": "37931fc00a9fb9951ff4a3d26c7044d5120734ff0286889054e28b66d8837bd7",
+    "report.tex": "b2d6c417225188d10093d43970593bd1755df2854999bcc0d96d60be5e223e67",
     "sections/calibration_principles.tex": "ca58983e2380e877b34977e976f7a73ac1c38f5683169bbc57340c007881ef45",
     "sections/divider_timing.tex": "b8eb39893d278427bbfec1a2e1d81e741e82ddf0e056e8cdd1cc6baaa7bd498d",
+    "sections/engineering_sta.tex": "1ff48df620b4fe6664c815290d6c1bf90390a48be918e1333487606077dceccd",
     "sections/final_regression_evidence.tex": "5a25e31cfd2cc56e78f7106fc072e3c5a92e6f11e6245c64480bbbd346598496",
+    "sections/implementation_plan.tex": "ab16a1acbb240890e7a0c69088c1609d27a942128c2a1ca4aa4f709283831043",
     "sections/patent_principles.tex": "4c396b6cce05689623f01186ff123ade3d417c6d7c6442d2cd47d7a9f6fea944",
     "sections/prior_art_comparison.tex": "30e5823231215d86e52617d9d53a19b3509d35b2a7f0f37d9feece42fdd9ef57",
     "sections/reducer_scheduler_figure.tex": "e333fb6319b06a420965406c555aa933868e09ca1e87b865eb00d6492e40f484",
     "sections/row_cache_design.tex": "e8dca873173fcc8672ffc65bf6d65ed2f54b40822fcbddaf6fb9c9099e760181",
     "sections/row_cache_evidence.tex": "e78df7d7e91a3c77c743dd5348ae47ed9118cc419cd9c5e868e72c260fdeb9aa",
+    "sections/rtl_engineering_fsm.tex": "b3970227cc08ec964468ff0a7d9a9f45048d160a07a47026151c7231437a4f9e",
     "sections/shared_selector_closure.tex": "e3dccfe0e416a0c20390b12162f8654c76132fc3924508b146aa7b1e3486b138",
     "sections/synthesis_repair.tex": "ea343a7e67a2363170bacf621452802160018f746066095f689a36c8e5752167",
     "sections/verification_method.tex": "fdadf0429ebbed02ac49c3674b0f086c57cf3bba22e2b96d896f0bd41bbba988",
@@ -194,54 +222,92 @@
     "final_log": "release_qa/report.log",
     "underfull_warnings": "SURFACED_AND_LAYOUT_REVIEWED",
     "standalone_native_compiler_used": false,
-    "reason": "Existing multi-file report with sections and image dependencies; compiled with existing XeLaTeX toolchain."
+    "reason": "Existing multi-file report; used existing XeLaTeX, without installation."
   },
   "visual_review": {
-    "status": "REVIEWED_ALL94_PAGES",
+    "status": "REVIEWED_ALL115_PAGES",
     "record": "release_qa/visual_review.json",
-    "sha256": "1ac2096dcd0ac37f04c08ab0ce3a1f93179f47c50a7aa201aa3aa8c5459bd8d2"
+    "sha256": "18ac2e399d42b7f5dbb44332cb8213975d78de211777446aaed60a6ab86453a7"
   },
   "git": {
     "branch": "codex/calibration-closure-20260928",
-    "rtl_commit": "71e7d5a017246340b9fa1f71cbbe99e20b6503f6",
-    "tested_ci_merge_sha": "2243d5ac24a9ee8c8aab64de9dbb5a7e7b596f45",
-    "tested_tree": "05700d675838bd33681daab82d11813d4fa49857",
-    "whole_tree_equal": true,
-    "publication_commit": "Recorded externally by Git after this non-self-referential manifest is committed"
+    "historical_hardware_commit": "71e7d5a017246340b9fa1f71cbbe99e20b6503f6",
+    "publication_commit": "Recorded externally after commit; no self-referential hash"
   },
   "rtl": {
     "files": {
-      "rtl/core/adc2_dec.sv": "268d279bdc1c2cdd7161072733c5046e701524c7e217b52ff0c7ca08951154f5",
-      "rtl/core/analog_phase_ctrl.sv": "66647aeeaa4e9dc41cd95eec430bdb8e75d42b93390bded576b18c22d8653932",
-      "rtl/core/cal_output_stage.sv": "30cb3de766b0c2f316bd65f519304e95a35897b55568564e56c999c8bac0c0c2",
-      "rtl/core/cal_residue_mac.sv": "082a93293cda83f79ff0ac7ef72e484043f8bbceb914361f270059b4bb764f71",
-      "rtl/core/cal_sample_context.sv": "8b0ff4527b6ff5936d378945bcfd38d2c203a43fb7d2cb4d0271a8f655bb9e56",
-      "rtl/core/cal_weight_reduce.sv": "b4be31b0f69bf25021ab06191fbc9a83f587a0256b8c94284ee2aa8bd6058bc3",
-      "rtl/core/calib_regs.sv": "feff5d1d6c0359b427c5950ae6dec6db45e5e9707f44a06623681f5176c3e44b",
-      "rtl/core/ctrl_fsm.sv": "a04e9104a93819ed35d35f6a11355c4ee3afbaa0d4b020f6e17e5540b610041f",
-      "rtl/core/dem_addr_gen.sv": "aa5bd5c4d00fa2a5d77f81fcc99011246ed08ab01f00be3e92fcd42728f466ba",
-      "rtl/core/dem_state_gen.sv": "38c626502b2338c4c04497788cf40904408a885176967a4ca6d6750d578d7efe",
-      "rtl/core/dither_gen.sv": "d726478c13887ca3739265990be5b2a35c88a236d38257af1ab72cb53c828f7e",
-      "rtl/core/div_floor.sv": "cc3b0bd9c5e6c8491af10d0696f82e59373426c538c3212c210093dbc84c515c",
-      "rtl/core/rdac_drv.sv": "d91fa05062a50eb08826286ec527b5a15d6b7be758cee7f5e16c53fbe20d6a33",
-      "rtl/core/recon_core.sv": "630b7e665d30ee5b86cfac3820b42e050c604077fadd1f685bc3a7ae7609b6a8",
-      "rtl/core/sar_structural_ctrl.sv": "76166ca5d0dbec70b9484b0badefe1f009a75ef942ed1de9e27159f2d092660e",
-      "rtl/core/sar_trial_ctrl.sv": "cbe60e2cc30fb95499449f0ec586847f9c1494de25bce784dc8b01a51248f8c9",
-      "rtl/core/slice_alloc.sv": "2c6d0293b846f00ccf88c0a38fc3030a243cb86fc84a705e31e70aa2084a2dc4",
-      "rtl/core/slice_pool_ctrl.sv": "e53d9efa8ced99e5322f6a3043dd67c7ceea11cfad60813f5e233504a28782b4",
-      "rtl/core/status_regs.sv": "8ab8ee1483f451da27ad59435ef7b00f3982427b17354fe5a9d2ac6319af4b1d",
-      "rtl/core/swap_decode.sv": "03684fb59ae5d0bbbd1d091f8b073b5cc9469dd603636ceea69726b01a5b5d88",
-      "rtl/core/unit_therm.sv": "ec00681a7565a1fd10172e32959c08e118f339de19f5e07eaf623c24fb6cb459",
-      "rtl/core/weight_store.sv": "14d3ada75223fa262036189cc9e444bec74b23cc347ede7c95a09c99b11bf2db",
-      "rtl/params/rtl_error_codes.vh": "ab67fff7eeff034da996d8c0442b529dc8476bb1eafca349f360c9e873bcc0ce",
+      "rtl/core/adc2_dec.sv": "113dab4a9f7770eafdc48b2f7b883155df3894cb2d02a1df97749a56d5941afa",
+      "rtl/core/analog_phase_ctrl.sv": "2c33405498aba0fe7c3530fcd3f8acf840ed019274d1070736f786255bb76c02",
+      "rtl/core/cal_output_stage.sv": "b0396b20835a7710903d3e225f611eb78817e4906133b47757c7ef585909aadd",
+      "rtl/core/cal_residue_mac.sv": "8acf4dbc698e9e13d1c6fedfeeb0ad927998608658d2bfb7202a6621e27b0644",
+      "rtl/core/cal_sample_context.sv": "bb2dbbcf0b154d4f955e9fecc03085385eacb7d3063d45085d84aa0a59b1baaa",
+      "rtl/core/cal_weight_reduce.sv": "c41bd2fce6c43d330f7d5d37aab3400c1cdcf797781f8eb4c371cc2b14e5bb07",
+      "rtl/core/calib_regs.sv": "7bd4019bbddfa65f03b7cf8a99110177122230d549b6009fc5df4f74b34fce8d",
+      "rtl/core/ctrl_fsm.sv": "ec49018d6af765c883a647284b2b9ebc44ac5b5980b7e18e1ee275f385ad5723",
+      "rtl/core/dem_addr_gen.sv": "a8d6ad4df32652d47007956e86f820ed882efa3a0e777dae7cf3853a75de7eaa",
+      "rtl/core/dem_state_gen.sv": "d5bf4ceff09a819af5e10fc86260483e18f647b982c37a4cd1206c972988a121",
+      "rtl/core/dither_gen.sv": "4510cde8c800660b0de8503da0640698a4a40ff4aa33ad9830a8208e5b1de7cb",
+      "rtl/core/div_floor.sv": "dd8afd4c9cc378ab78e993b7f2a8d82bed09eb63f05237454c5f97c0cb9e15ce",
+      "rtl/core/rdac_drv.sv": "2b826d593414c7e76ec7a1a10a7e26d9758377c6ba609bcc790fb1490828c82f",
+      "rtl/core/recon_core.sv": "9cd22072bf244c60966a4132d7727430b17a1929eeae2c44e12ba2d81a899c2e",
+      "rtl/core/sar_structural_ctrl.sv": "c6f5ac43086dc4aef6045d85b8fde244f3c758991c525a689b18bffdb80b349a",
+      "rtl/core/sar_trial_ctrl.sv": "dca169cd89e9fab1235f9264c76079e5783969e593bc098206a4bd4de1a9fbf2",
+      "rtl/core/slice_alloc.sv": "1993a12578cc8e29e7cab4f4f61ed71d01b2b6cf85a0d19afea875df9fa45f3e",
+      "rtl/core/slice_pool_ctrl.sv": "fd8dfc97d6c9db8427f99303feff8d8b9d5daf18012973c6f5db4b1a4f3bc492",
+      "rtl/core/status_regs.sv": "391ce2d8439bdc7b775fc56830480ba8db84180ccaa4aee93a811fbc3ef4b981",
+      "rtl/core/swap_decode.sv": "ec923be46ff8924323ec0fcfc5d471cf748c41e5cef8038c026981d40f6945b6",
+      "rtl/core/unit_therm.sv": "387c80474d06b0dd10d33f6c73a753650ed836285bceea9894c492853b21eae1",
+      "rtl/core/weight_store.sv": "32eccfc231d4b8a5ff793e38174e5d5c6560dfd65c8670b3ab225368155948af",
+      "rtl/params/rtl_error_codes.vh": "3fce073cf9e0585f85e394943e81d7c08c4b162292e4a4a3525b91743dd2dbc1",
       "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
-      "rtl/top/sadc_enc.sv": "c366ddd1af00bfbf549b9300f5f80b564031c5e36848d77575622c9ba2007b7a",
-      "rtl/top/sar20_digital_core.sv": "787749874a2d9ea3c338a64e608298439f4d67892a7a0a8b0fca6f7a3da16325"
+      "rtl/top/sadc_enc.sv": "dc69bfc3e5be0855f7648a1631d34948bba0959233f8d662815747ee5bdde82f",
+      "rtl/top/sar20_digital_core.sv": "382f1242ea18b636ab9ea3b65c1b607a8a646ac8c050f4b77d0fb115548f4fa3"
     },
     "file_count": 26,
-    "content_sha256": "89b9f8153fea49d82faba8464e45bb83c914b11ebf708fb623a9fe3a660b5d26"
+    "content_sha256": "647350f3aed7c8d5b43fdcdfa47fea2bfeb43a755a607e89ce90cd903b7fff16"
   },
-  "ci": {
+  "readability_identity_bridge": {
+    "status": "PASS",
+    "scope": "SOURCE_TOKEN_MACRO_PRAGMA_IDENTITY_AND_THREE_LINT_PROFILES_WITH_ONE_NEW_BENCH",
+    "current_rtl_content_sha256": "647350f3aed7c8d5b43fdcdfa47fea2bfeb43a755a607e89ce90cd903b7fff16",
+    "baseline_rtl_content_sha256": "89b9f8153fea49d82faba8464e45bb83c914b11ebf708fb623a9fe3a660b5d26",
+    "baseline_git_commit": "71e7d5a017246340b9fa1f71cbbe99e20b6503f6",
+    "file_count": 26,
+    "changed_files": 25,
+    "effective_tokens": 18149,
+    "generator_unchanged": "rtl/params/rtl_params.vh",
+    "new_bench": "engineering_fsm_tb",
+    "production_logic_changed": false,
+    "new_eda_run": false,
+    "guard_test_cases": 10,
+    "guard_test_composition": {
+      "layout_positive": 1,
+      "semantic_mutations": 8,
+      "unsupported_group_with_three_subcases": 1
+    }
+  },
+  "current_validation": {
+    "rtl_regression_entries": 23,
+    "local_strict_lint_profiles": 3,
+    "new_fsm_bench": "engineering_fsm_tb",
+    "frozen_source_files": 28,
+    "trace_rows_each": 175,
+    "reconstruction_accepted": 9,
+    "reconstruction_outputs": 7,
+    "cancelled_ids": [
+      301,
+      601
+    ],
+    "latency_ticks": 11,
+    "guard_test_instances": 10,
+    "guard_composition": {
+      "layout_positive": 1,
+      "semantic_mutations": 8,
+      "unsupported_group_with_three_subcases": 1
+    },
+    "post_publication_ci": "Must be read from actual publication-head Checks/external receipt; not yet claimed by this source manifest"
+  },
+  "historical_ci": {
     "run_id": 36727200500,
     "conclusion": "success",
     "jobs_success": 9,
@@ -257,41 +323,40 @@
     "shared_old_trial_rtl": {
       "path": "docs/evidence/20260930/shared_old_trial_rtl",
       "verified_payloads": 56,
-      "hash_index_sha256": "7527484897b55fc2459e2bfa4ce3beda7ab16ae04886afa3aec104dd5514eca9",
-      "manifest_file": "result.json",
-      "manifest_sha256": "3bbe60df68109f3f2a0c99b1c9b955722b9fb22b2f77ee3eca272d261828fa90"
+      "hash_index_sha256": "7527484897b55fc2459e2bfa4ce3beda7ab16ae04886afa3aec104dd5514eca9"
     },
     "shared_old_trial_synth": {
       "path": "docs/evidence/20260930/shared_old_trial_synth",
       "verified_payloads": 25,
-      "hash_index_sha256": "ead276aa64aa7b384691ef54c8e8bd3e474168015d0a6addb238b31e838c8669",
-      "manifest_file": "manifest.json",
-      "manifest_sha256": "3017f6df54a56ead722f47f2818e5c3c7f0a8374bdde15c354f338fc376c441f"
+      "hash_index_sha256": "ead276aa64aa7b384691ef54c8e8bd3e474168015d0a6addb238b31e838c8669"
     },
     "shared_old_trial_route_25ns": {
       "path": "docs/evidence/20260930/shared_old_trial_route_25ns",
       "verified_payloads": 40,
-      "hash_index_sha256": "8e5a696385cbcc9923fe30648b4fea9d6119079c05e3202d3711963ae8ad9fe3",
-      "manifest_file": "manifest.json",
-      "manifest_sha256": "28be1af4a282406fa136e97f6e2766ed33ca7e6f70735a6fdecd69a860123a7a",
-      "reviewed_result_sha256": "b069faa9befb2c331c740bce59755d1961614d3a2bbd5b2235a8c47c5a39fb3c"
+      "hash_index_sha256": "8e5a696385cbcc9923fe30648b4fea9d6119079c05e3202d3711963ae8ad9fe3"
     },
     "shared_old_trial_full_mapped": {
       "path": "docs/evidence/20260930/shared_old_trial_full_mapped",
       "verified_payloads": 42,
-      "hash_index_sha256": "e75fc90d42469d288eaf42e2dba3c86bf282f509c723093a01e8173ce624a57b",
-      "manifest_file": "summary.json",
-      "manifest_sha256": "9ad97efa9174fa09bc2524d6d0d0542de8f24ea6d34c919b174e398e9017dabe"
+      "hash_index_sha256": "e75fc90d42469d288eaf42e2dba3c86bf282f509c723093a01e8173ce624a57b"
     },
     "ci_shared_71e7d5a": {
       "path": "docs/evidence/20260930/ci_shared_71e7d5a",
       "verified_payloads": 63,
-      "hash_index_sha256": "39897c9bdd73768e5623d5fe1b69e11d0fe4e0634fdef91ad53832507ca39b23",
-      "manifest_file": "manifest.json",
-      "manifest_sha256": "bc8f68126984d624e3e68bfa12ab0fae43ef21b7fc95a05f3ec747afe0e840f3"
+      "hash_index_sha256": "39897c9bdd73768e5623d5fe1b69e11d0fe4e0634fdef91ad53832507ca39b23"
+    },
+    "rtl_readability": {
+      "path": "docs/evidence/20261001/rtl_readability",
+      "verified_payloads": 12,
+      "hash_index_sha256": "ac7c4f4db775a68cd589f2b71329aba561a446f4709ff09dedacf760c978cb8a"
+    },
+    "engineering_fsm": {
+      "path": "docs/evidence/20261001/engineering_fsm",
+      "verified_payloads": 14,
+      "hash_index_sha256": "13101d6ad377b13f34ba20827a54c92bf810a7c7986dc8a986d9c2316477f556"
     }
   },
-  "routed_core": {
+  "historical_routed_core": {
     "scope": "FPGA_ROUTED_CORE_TIMING_MET_OOC_EXTERNAL_HOLD_FAILED_NOT_BOARD_OR_ASIC",
     "rtl_content_sha256": "89b9f8153fea49d82faba8464e45bb83c914b11ebf708fb623a9fe3a660b5d26",
     "input_dcp_sha256": "63a6faacdc44e54da02514a70ff658ac31756853496114513018ac5714cc856e",
@@ -313,7 +378,7 @@
     "board_timing_certified": false,
     "interpretation": "25 ns core register setup and hold pass with actual BUFG and completed route. Zero-minimum external OOC inputs still fail hold; board constraints and ASIC 640 MHz are not certified."
   },
-  "mapped_functional": {
+  "historical_mapped_functional": {
     "scope": "FULL_TOP_POST_SYNTH_PUBLIC_PORT_ZERO_DELAY_NOT_SDF",
     "outputs": 438,
     "modes": 3,
@@ -333,6 +398,12 @@
     "sha256": "05b05151138a5fd9986168201c36f480eee5f7b17adde74c4c99e24ce0bd8966",
     "file_count_reverified": 16,
     "originals_redistributed": false
+  },
+  "implementation_plan": {
+    "source": "../../../synth/IMPLEMENTATION_PLAN.md",
+    "chapter": "sections/implementation_plan.tex",
+    "scope": "PLANNED_STAGES_WITH_EXPLICIT_GATES_NOT_EXECUTED_EDA",
+    "current_phase": "FPGA core25ns passed on historical hardware; real external IO budgets, full-device IO hold and ASIC technology data pending"
   },
   "not_certified": [
     "External board/comparator IO hold closure; all OOC hold remains-2.278ns",

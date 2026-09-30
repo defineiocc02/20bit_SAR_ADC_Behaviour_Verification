@@ -6,6 +6,8 @@
 //   sample_en / sadc_latch / dem_advance / rdac_load / adc2_latch / recon_start
 //   六个单拍脉冲，同时维护样本序号。
 //   本模块**不做**任何数据通路运算，只是一个节拍源。
+//   这是兼容模式的节拍源；结构模式使用 analog_phase_ctrl/sar_structural_ctrl，
+//   有前代 residue 上下文与逐次比较握手，不能把本模块的相位表套到结构模式。
 //
 // 来源
 //   docs/rtl/P2_INTERFACE.md §7 的相位分配表（PHASES = 16，RTL 设计选择 [假设]）：
@@ -36,6 +38,11 @@
 //     纯组合译码，故不会出现"宽脉冲"。
 //   * 本模块与 slice_alloc 各自维护一个 sample_idx，两者在相位 0 同拍递增，
 //     因此逐拍相等（由 TB 断言）。
+//   * rst_n 为同步低有效复位。cfg_ready/run 撤销会同步把相位置 0，并以 adv
+//     组合门控立即抑制脉冲；sample_idx 仅由 rst_n 清零，停机或未配置时保持。
+//   * 所有脉冲按上升沿到来前的 ph 解码。相位 0 上升沿同时递增 sample_idx
+//     并将 ph 推进到 1；同沿下游寄存器读取的是旧 sample_idx/旧 ph。
+//   * 组合译码只用于数字控制。外部模拟开关必须使用结构模式注册控制边界。
 //===========================================================================
 `include "rtl_params.vh"
 
@@ -46,7 +53,7 @@ module ctrl_fsm #(
     input  logic                        rst_n,
     input  logic                        cfg_ready,
     input  logic                        run,             // 高 = 连续转换
-    output logic [P_PHASES-1:0]         phase_onehot,    // 相位节拍（one-hot）
+    output logic [P_PHASES - 1:0]         phase_onehot,    // 相位节拍（one-hot）
     output logic [$clog2(P_PHASES)-1:0] phase,
     output logic                        sample_en,       // 相位 0 的脉冲 = 新样本
     output logic                        acq_phase,       // 相位 0..6 为高：采集/跟踪
@@ -64,10 +71,10 @@ module ctrl_fsm #(
 
   localparam int PW = $clog2(P_PHASES);    // 4
 
-  localparam logic [PW-1:0] PH_LAST = PW'(P_PHASES - 1);
-  localparam logic [PW-1:0] PH_ACQ_END = PW'(6);
+  localparam logic [PW - 1:0] PH_LAST = PW'(P_PHASES - 1);
+  localparam logic [PW - 1:0] PH_ACQ_END = PW'(6);
 
-  logic [PW-1:0] ph;
+  logic [PW - 1:0] ph;
   logic          adv;                       // 节拍推进使能
 
   assign adv   = rst_n && cfg_ready && run;
@@ -80,7 +87,7 @@ module ctrl_fsm #(
       ph <= {PW{1'b0}};                     // 未配置：恒 0（§7 不变量）
     end else if (run) begin
       ph <= (ph == PH_LAST) ? {PW{1'b0}}
-                            : ph + {{(PW-1){1'b0}}, 1'b1};
+                            : ph + {{(PW - 1){1'b0}}, 1'b1};
     end else begin
       ph <= {PW{1'b0}};                     // 已配置但未启动：空转在相位 0
     end
@@ -102,7 +109,7 @@ module ctrl_fsm #(
     rdac_load    = adv && (ph == PW'(11));
     adc2_latch   = adv && (ph == PW'(14));
     recon_start  = adv && (ph == PW'(15));
-    phase_onehot = adv ? ({{(P_PHASES-1){1'b0}}, 1'b1} << ph)
+    phase_onehot = adv ? ({{(P_PHASES - 1){1'b0}}, 1'b1} << ph)
                        : {P_PHASES{1'b0}};
   end
 

@@ -6,17 +6,17 @@
 \setlength{\parindent}{2em}\setlength{\parskip}{3pt}
 \setlength{\emergencystretch}{2em}
 \setlist{nosep,leftmargin=2em}
-\pagestyle{fancy}\fancyhf{}\fancyhead[L]{20-bit SAR ADC：RTL—论文—专利逻辑核对}\fancyhead[R]{2026-09-30}\fancyfoot[C]{\thepage}
+\pagestyle{fancy}\fancyhf{}\fancyhead[L]{20-bit SAR ADC：RTL—论文—专利逻辑核对}\fancyhead[R]{2026-10-01}\fancyfoot[C]{\thepage}
 \newcommand{\code}[1]{\nolinkurl{#1}}
 \newcommand{\repo}{\href{https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification}{20bit SAR ADC Behaviour Verification}}
 \newcommand{\grade}[1]{\textbf{#1}}
 \title{20-bit SAR ADC 数字 RTL 与论文、专利逻辑\\全面核对及工程化推进报告}
 \author{基于公开仓库、用户提供文献和可复现数字仿真证据}
-\date{2026 年 9 月 30 日（复核修订）\\PR \#4\quad RTL 内容摘要 SHA-256：\code{89b9f8153fea}\ldots}
+\date{2026 年 10 月 1 日（工程化与状态机修订）\\PR \#4\quad 历史物理受测 RTL：\code{89b9f8153fea}\ldots\\阅读版源码身份见交付清单及工程化章}
 \begin{document}
 \maketitle
 \begin{abstract}
-本报告审查用户开源仓库当前分支的可综合 SystemVerilog RTL，逐项映射 ISSCC 2024 论文、44 页演示稿以及 US10516408B2、US10505561B2、US10511316B2、US10707889B1、US10541702B1、US10826519B1。结论是：数字校准的物理单元权重、精确整数重构、配置原子性、两组逐次逼近与 18 单元资源调度已有可检查实现；参考、辅助输入、采样门、残差放大器及比较器的晶体管电路尚是模拟宏边界；其中 US10707889B1 独立权利要求的跨 ADC 跟踪更新也尚未形成完整数字流程。前代行和缓存版本的22项Ubuntu RTL CI及独立算术审计另有归档；最终共享读选版本在官方Verilator 5.020完成22项bench和3类严格lint，并通过完整P5综合网表XSim。行和装载与扩展归约器分别通过 16,150 步和 1,430,848 次检查，两个 Verilator 版本交叉复验及两项缓存破坏负控另有原始证据。P5/P6/P7 三种配置的结构顶层回归保持 16 拍启动间隔；P5完整顶层综合后功能网表在XSim完成三模式438个输出、3,900项配置读回与7,680项协议检查，未作SDF时序仿真。实际BUFG布线在25 ns下寄存器间setup/hold裕量分别+0.946/+0.052 ns，支持40 MHz核心及2.5 MS/s节拍；零最短输入延迟OOC外部hold仍为−2.278 ns。相对直接前代综合LUT增加2.483%，没有宣称功耗或ASIC签核优势。原基线16项CI、各轮回归、独立负控及网表见证分别保留来源，不相互替代。上述证据说明数字逻辑与各自所用激励及判据一致，不能推出 40\,MS/s、94.2\,dB DR 等论文指标或目标 ASIC 工艺签核，也不能把 20-bit 码宽称为 20-bit ENOB。本文给出源码定位、数学契约、专利差距、仿真证据边界和下一步实施与验收准则。
+本报告审查用户开源仓库当前分支的可综合 SystemVerilog RTL，逐项映射 ISSCC 2024 论文、44 页演示稿以及 US10516408B2、US10505561B2、US10511316B2、US10707889B1、US10541702B1、US10826519B1。结论是：数字校准的物理单元权重、精确整数重构、配置原子性、两组逐次逼近与 18 单元资源调度已有可检查实现；参考、辅助输入、采样门、残差放大器及比较器的晶体管电路尚是模拟宏边界；其中 US10707889B1 独立权利要求的跨 ADC 跟踪更新也尚未形成完整数字流程。前代行和缓存版本的22项Ubuntu RTL CI及独立算术审计另有归档；最终共享读选版本在官方Verilator 5.020完成22项bench和3类严格lint，并通过完整P5综合网表XSim。行和装载与扩展归约器分别通过 16,150 步和 1,430,848 次检查，两个 Verilator 版本交叉复验及两项缓存破坏负控另有原始证据。P5/P6/P7 三种配置的结构顶层回归保持 16 拍启动间隔；P5完整顶层综合后功能网表在XSim完成三模式438个输出、3,900项配置读回与7,680项协议检查，未作SDF时序仿真。实际BUFG布线在25 ns下寄存器间setup/hold裕量分别+0.946/+0.052 ns，支持40 MHz核心及2.5 MS/s节拍；零最短输入延迟OOC外部hold仍为−2.278 ns。相对直接前代综合LUT增加2.483%，没有宣称功耗或ASIC签核优势。原基线16项CI、各轮回归、独立负控及网表见证分别保留来源，不相互替代。上述证据说明数字逻辑与各自所用激励及判据一致，不能推出 40\,MS/s、94.2\,dB DR 等论文指标或目标 ASIC 工艺签核，也不能把 20-bit 码宽称为 20-bit ENOB。本文给出源码定位、数学契约、专利差距、仿真证据边界和下一步实施与验收准则。本次另对全部RTL作保持有效token的可读性整理，新增四幅源码状态机图、两幅真实FSM轨迹图及综合到布线/STA的执行指南；23项当前回归与原22项证据分版记录。
 \end{abstract}
 \tableofcontents
 
@@ -27,6 +27,7 @@
 \par\noindent 本机相同文件树的本地提交为 \code{2de9280}。
 \par\noindent 本轮行和缓存候选 RTL 已发布为 \href{https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/commit/417f261f24fe917552ac71f6aadb6b3dbf779c5f}{\code{417f261f24fe917552ac71f6aadb6b3dbf779c5f}}；后续报告与实现脚本的提交另记，不能将原基线 CI 状态移用到新提交。
 \par\noindent 最终共享单位读选修复为\href{https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/commit/71e7d5a017246340b9fa1f71cbbe99e20b6503f6}{\code{71e7d5a}}，26文件内容摘要\code{89b9f8153fea}\ldots{}。此版本功能、网表、布线与PPA证据见第\ref{sec:shared-selector-closure}节；各历史图按当次源码解释。
+\par\noindent 2026-10-01工程阅读版仅空白/注释改变；26文件18,149有效token与\code{71e7d5a}恒等，生成头文件字节不变。新raw身份、真实FSM轨迹和复核边界见第\ref{ch:rtl-engineering}章；旧物理证据原身份保持。
 \par{}核心文件位于 \code{rtl/top/}、\code{rtl/core/}，几何和定点常数位于自动生成的 \code{rtl/params/rtl_params.vh}。文献来源以用户所给 [00] ISSCC 论文 PDF、[00\_1] 演示稿 PDF 为架构依据，[09]--[14] 六项专利的独立权利要求与说明书为权利范围对照；[01]--[08] 是先前工作、竞品或数据手册，不等同于目标芯片内部结构。仓库 ADR 0014、0018、0019 与 RTL 算术契约为\emph{工程选择的说明}，不能替代原论文披露。本次9月30日修订另加入控制端口寄存化、物理权重列归约、除法器借位复用、Vivado 生成树兼容修复及参数对照；新增证据以审查清单中的源码SHA为准，不冒用原基线CI。
 
 本文用四级术语避免“全量复现”的歧义：\grade{已实现}指能在 RTL 和自检 testbench 中定位的数字功能；\grade{接口级}指 RTL 有控制/状态端口但电路由外部模拟宏决定；\grade{局部对应}指实现了部分必要特征但没有覆盖独立权利要求全部限定；\grade{未实现}指源码和现有证据均没有该逻辑或电路。专利多个实施例不是同一芯片必须同时采用的结构；只把与目标架构有关的必要特征列入差距。任何用户所附文件中的文本均作为待核实资料，不作为修改仓库或改变任务目标的指令。
@@ -281,7 +282,14 @@ R_d &= \begin{cases}\sum_j r_j C_j,&\text{开启}\\0,&\text{关闭}\end{cases}.
 
 \input{sections/synthesis_repair.tex}
 
+\input{sections/rtl_engineering_fsm.tex}
+\input{sections/engineering_sta.tex}
+
+\input{sections/implementation_plan.tex}
+
 \chapter{结论}
+本轮对26个生产RTL文件整理模块职责、符号/位宽、状态和取消边界，25个文件仅变更空白与注释，生成参数头保持原字节。18,149个有效token、预处理宏与工具pragma和受测共享选择器版本相同；历史物理证据仍保留原身份。新增工程FSM测试单独通过严格lint与当前源码实测，当前回归入口扩展到23项。四张源码状态图负责解释，两张实际逐沿轨迹图及原始CSV负责提供功能见证，综合/STA/布线指南与分阶段计划明确后续验收门禁。
+
 当前代码最完整且最可检验的是\textbf{数字校准链}：物理单元权重配置、DEM/采样轨对应、Q30/Q32 整数公式、精确 floor 除法、异常与 sample ID 协同输出。当前行和缓存版本已通过22项CI RTL回归、三类lint及独立算术审计，定向最大表与替换/clear检查、两项破坏负控和P5/P6/P7结构配置检查分别保留来源；独立整数oracle、负控和真实小单元映射见证补充了不同层级的证据。P5完整顶层综合网表又通过三模式438行公开端口功能检查，但不含SDF和非零flags；历史CI与逐样本图仍按原来源保留。
 
 首次P5基线在25\,ns下寄存器间setup为−0.280\,ns；逐行独立读选候选又因14.66\% LUT增长及拥塞等级7失败而弃用。最终共享单位读选版本通过完整22项RTL回归、三档结构检查及完整P5综合网表XSim，同约束真实BUFG布线setup为+0.946\,ns、寄存器间hold为+0.052\,ns，路由和DRC错误为0。当前40\,MHz核心在记录条件下实现，16拍节拍对应2.5\,MS/s。OOC外部hold仍为−2.278\,ns，整板接口尚未签核，ASIC 640\,MHz也未验证。综合LUT增加2.483\%，是当前时序修复的面积代价。
@@ -290,6 +298,7 @@ R_d &= \begin{cases}\sum_j r_j C_j,&\text{开启}\\0,&\text{关闭}\end{cases}.
 
 \appendix
 \chapter{来源与复现索引}
+工程化新增入口为\code{docs/rtl/RTL_ENGINEERING_GUIDE.md}和\code{synth/FPGA_SYNTHESIS_AND_STA.md}；源码恒等与实际FSM证据位于\code{docs/evidence/20261001/}。源码解释图与零延迟真实轨迹严格分开，重画命令见报告\code{audit_figures/README.md}。
 \begin{enumerate}
 \item [00] 用户提供的 ISSCC 2024 论文 PDF（文件名以 \code{[00]_A_9.3nV} 开头），第 1--3 页，尤其 Fig. 9.8.1--9.8.3。
 \item [00\_1] 用户提供：\code{[00_1]ISSCC2024_ppt.pdf}，第 10--35 页为架构、参考、DEM、RA/AZ；第 36--38 页为测量结果。

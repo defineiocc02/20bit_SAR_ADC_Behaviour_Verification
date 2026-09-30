@@ -29,7 +29,7 @@ XELATEX='/path with spaces/TeX/bin/xelatex' \
 
 ## 发布身份与科学结论
 
-本次发布提供 `report.pdf`、`delivery_manifest.json` 和 `release_qa/`。清单在最终三遍编译及全部页面视觉复核后生成；最终源码对应 `71e7d5a` 的受测 RTL，证据分别绑定 CI、综合、完整网表功能和真实布线。编译脚本本身不生成发布清单。清单记录：
+本次发布提供 `report.pdf`、`delivery_manifest.json` 和 `release_qa/`。清单在最终编译及全部页面视觉复核后生成。当前 26 个生产 RTL 文件中，25 个进行了排版和注释整理，生成的参数头保持不变；18,149 个有效 token、预处理宏及工具 pragma 与受测提交 `71e7d5a` 相同。当前源码字节摘要为 `647350f3aed7c8d5b43fdcdfa47fea2bfeb43a755a607e89ce90cd903b7fff16`；历史综合、完整网表功能和真实布线仍绑定旧字节摘要 `89b9f8153fea49d82faba8464e45bb83c914b11ebf708fb623a9fe3a660b5d26`，没有声称重新综合当前排版版。这个身份桥接是有限语法检查和回归证据，不能替代形式等价或 STA。编译脚本本身不生成发布清单。清单记录：
 
 - 报告源文件和所用图件的 SHA-256；输出 PDF 的 SHA-256 与实际页数。
 - XeLaTeX 版本、构建命令、最终日志摘要与逐页视觉检查记录。
@@ -37,6 +37,10 @@ XELATEX='/path with spaces/TeX/bin/xelatex' \
 - 各证据的实际结论与适用范围，明确历史失败、已发布版本及尚未验收候选之间的区别。
 
 以该最终清单及其引用的原始证据判断 PDF 身份、实际页数和结论。编译成功不能替代 RTL、mapped functional、FPGA timing 或 ASIC 签核。旧图的 PASS 仅对应其归档源码与运行条件，不能移用于随后修改的缓存候选。最终 FPGA 寄存器间 setup/hold 在 25 ns 条件下通过；外部 OOC hold 未闭合。640 MHz 是目标 ASIC 约束；模拟性能、专利结构覆盖及未实现边界仍以正文中可追溯的限定为准。
+
+本次新增逐模块工程说明、4 张源码导出的状态图、2 张真实逐时钟边沿轨迹图，以及综合/STA/布局布线实施计划。结构说明图帮助理解控制，不是仿真通过证据；轨迹来自当前源码冻结快照，每份 CSV 有 175 个实测上升沿，覆盖启动、等待、取消、非法输入保留旧结果和同沿提交/接收。新增 `engineering_fsm_tb` 后，当前回归入口为 23 项；正文历史 22 项 CI 图仍指向其归档提交，不改写历史计数。
+
+历史章节中形如 `file.sv:行号` 的定位对应各章冻结版本；排版后的当前行号请以 [`docs/rtl/RTL_ENGINEERING_GUIDE.md`](../../rtl/RTL_ENGINEERING_GUIDE.md) 的模块路径和符号定位。后续工程执行分别见 [`FPGA_SYNTHESIS_AND_STA.md`](../../../synth/FPGA_SYNTHESIS_AND_STA.md) 和 [`IMPLEMENTATION_PLAN.md`](../../../synth/IMPLEMENTATION_PLAN.md)。尚未执行的计划步骤、宏模型和 ASIC 条件均有明确标记。
 
 ## 图件与证据复现
 

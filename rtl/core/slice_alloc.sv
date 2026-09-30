@@ -1,8 +1,8 @@
 //===========================================================================
-// slice_alloc.sv -- 18-of-8 物理 slice 分配（A/B ping-pong）
+// slice_alloc.sv -- 8 路活动 slice 的兼容 A/B ping-pong 分配
 //===========================================================================
 // 职责一句话
-//   从 18 个物理 slice 中按 A/B ping-pong 选出 8 个，给出"本样本正在采集的
+//   在 18 个物理 slice 的编号空间中按固定 A/B ping-pong 选出 8 个，给出"本样本正在采集的
 //   8 个 slice"与"本样本正在转换的 8 个 slice"，并输出 bank 与样本序号。
 //   本模块**不做**开关译码（swap_decode / unit_therm 的事），也**不做**把
 //   开关码扇出到物理 slice（rdac_drv 的事）。
@@ -35,9 +35,13 @@
 //     若模型给出相反极性，改这里而不是改 TB。
 //   * 推进条件 = `cfg_ready && sample_en`。`sample_en` 由 ctrl_fsm 在相位 0 给出，
 //     而 ctrl_fsm 在 cfg_ready=0 时**不发**任何脉冲；这里的 cfg_ready 门是冗余的
-//     第二道防线，代价为 0。
+//     第二道防线，是否消去由实际综合决定。
 //   * acq/conv/bank/sample_idx 为计数器 n 的组合函数；conv_valid 由首样本
 //     标志保持，避免 n 在 2^32 次采样回绕时重新进入无效预热态。
+//   * 本模块是固定 0..15 编号的兼容分配器；18-slice 的动态池调度由
+//     slice_pool_ctrl 承接，不能把这里的两组静态分配视为完整专利调度。
+//   * rst_n 为同步低有效复位；cfg_ready 撤销只暂停推进，不清除 n 或
+//     seen_sample。同沿消费者读取更新前的 bank/ID，随后组合输出才切换组别。
 //===========================================================================
 `include "rtl_params.vh"
 
@@ -46,12 +50,12 @@ module slice_alloc (
     input  logic                       rst_n,
     input  logic                       cfg_ready,
     input  logic                       sample_en,     // 每样本第一拍的脉冲
-    output logic [N_ACTIVE-1:0][4:0]   acq_slices,
-    output logic [N_ACTIVE-1:0][4:0]   conv_slices,
+    output logic [N_ACTIVE - 1:0][4:0] acq_slices,
+    output logic [N_ACTIVE - 1:0][4:0] conv_slices,
     output logic                       conv_valid,
     output logic                       bank,          // 0/1 交替，驱动 DEM 的 en_a/en_b
     output logic [31:0]                sample_idx,
-    output logic [N_ACTIVE-1:0][4:0]   group          // = conv_slices（便于清点）
+    output logic [N_ACTIVE - 1:0][4:0] group          // = conv_slices（便于清点）
 );
 
   localparam logic [31:0] ONE = 32'd1;
@@ -59,8 +63,9 @@ module slice_alloc (
 
   logic [31:0] n;             // 已推进到的样本序号；复位后 0
   integer      a;
-  logic seen_sample;
+  logic        seen_sample;
 
+  // 时序边界只保存样本编号与预热标志；没有存储 8 路 ID 的寄存器组。
   always_ff @(posedge clk) begin
     if (!rst_n) begin
       n <= 32'd0;
@@ -76,12 +81,13 @@ module slice_alloc (
   assign conv_valid = seen_sample; // remains valid across the 32-bit counter wrap
   assign sample_idx = n;
 
+  // 组合 ID 译码：循环变量 a 为活动通道号，赋给每个元素的值为物理 slice ID。
   always_comb begin
     for (a = 0; a < N_ACTIVE; a = a + 1) begin
       // parity=0: acq = [0..7], conv = [8..15]
       // parity=1: acq = [8..15], conv = [0..7]
       acq_slices[a]  = bank ? (5'(a) + EIGHT) : 5'(a);
-      conv_slices[a] = bank ? 5'(a)           : (5'(a) + EIGHT);
+      conv_slices[a] = bank ? 5'(a) : (5'(a) + EIGHT);
     end
   end
 

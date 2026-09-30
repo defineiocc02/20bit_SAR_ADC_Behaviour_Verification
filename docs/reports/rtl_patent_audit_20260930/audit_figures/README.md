@@ -1,5 +1,20 @@
 # 审查图件的可复现构建
 
+## 本轮工程状态图与逐沿轨迹（2026-10-01）
+
+在仓库根目录运行下面两个入口，依赖 NumPy/Matplotlib，不调用 EDA：
+
+```sh
+python docs/reports/rtl_patent_audit_20260930/audit_figures/make_engineering_fsm.py
+python docs/reports/rtl_patent_audit_20260930/audit_figures/make_engineering_trace.py
+```
+
+第一个生成图44–47的 PDF/PNG，并将 9 个相关 RTL 文件与生成器的 SHA 写入 `engineering_fsm_sources.json`。它们是根据源码绘制的解释图，不能作为仿真或 STA 通过证明。
+
+第二个先核对 `docs/evidence/20261001/engineering_fsm/sha256.json` 全部原始 payload，检查 3 份 CSV 各175个连续实测边沿、样本 ID、取消、错误保留旧输出、同沿提交/接收与11拍延迟，再生成图48/49与 `engineering_trace_review.json`。轨迹属于小几何零延迟 RTL 实测；10 ns 激励时钟不证明物理 Fmax。原始归档含当前28项输入的 SHA、执行命令、Verilator版本、运行日志与冻结 runner。
+
+重新生成这些轨迹需要在仓库根目录运行 `python tools/run_engineering_fsm.py --out <新的空目录>`；`VERILATOR` 环境变量可指定已安装工具及其参数。目录已存在时入口拒绝覆盖，运行结束自动核对所有 CSV。当前完整回归入口包含23个 bench；历史22项图的日志及源码版本保持原身份。
+
 这里的制图入口及 compact schema 读取模块只读取既有证据，不调用 Verilator、Vivado 或远端命令。历史图及最终共享选择器版本的图件分别保留来源；后文列出各自重建命令。图32已从两份完整有效P7综合归档生成，明确显示LUT增加16.23%和仍然为负的时序裕量。
 
 ## 口径与交付物

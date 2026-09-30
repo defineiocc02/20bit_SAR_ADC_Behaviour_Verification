@@ -118,3 +118,5 @@ docs/evidence/20260930/ci_shared_71e7d5a/** -text -whitespace -diff
 
 # Final report compiler and page-review records retain their sealed bytes.
 docs/reports/rtl_patent_audit_20260930/release_qa/** -text -whitespace
+
+docs/evidence/20261001/** -text -whitespace -diff

@@ -79,6 +79,10 @@ refs/
 references/
 literature/
 *.pdf
+# This report and its figures are authored in this repository's audit; keep
+# the third-party reference PDFs under refs/ and the broad *.pdf guard above.
+!docs/reports/rtl_patent_audit_20260930/**/*.pdf
+docs/reports/rtl_patent_audit_20260930/.build/
 *.ppt
 *.pptx
 *.key

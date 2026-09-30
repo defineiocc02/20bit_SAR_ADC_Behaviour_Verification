@@ -1,0 +1,51 @@
+[
+  {
+    "path": "workflow_metadata.json",
+    "endpoint": "repos/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36633152469",
+    "bytes": 15641,
+    "sha256": "d54b8e79b89aa47a5001373fbfcbc9c29d3be9a899d94cc0b6cdb66afbd028a1",
+    "retrieved_utc": "2026-09-29T23:51:07.382891+00:00"
+  },
+  {
+    "path": "jobs_metadata.json",
+    "endpoint": "repos/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36633152469/jobs?per_page=100",
+    "bytes": 23804,
+    "sha256": "6648854c8f8f9a4453c47a25bdb8980a49913d33cb65e37780450456e62a7096",
+    "retrieved_utc": "2026-09-29T23:51:07.661250+00:00"
+  },
+  {
+    "path": "job_109627112269.log",
+    "endpoint": "repos/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/jobs/109627112269/logs",
+    "bytes": 39187,
+    "sha256": "726e21665c2dba79f323e018afa7a1b92600eedbf090f6944f4c58f059396ca0",
+    "retrieved_utc": "2026-09-29T23:51:08.797353+00:00"
+  },
+  {
+    "path": "job_109627112331.log",
+    "endpoint": "repos/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/jobs/109627112331/logs",
+    "bytes": 39031,
+    "sha256": "491a7293b3d9e8310e4fbd0e46ebffde662617f1020837bf2c4de0047abd1fd8",
+    "retrieved_utc": "2026-09-29T23:51:10.045245+00:00"
+  },
+  {
+    "path": "job_109627112432.log",
+    "endpoint": "repos/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/jobs/109627112432/logs",
+    "bytes": 845739,
+    "sha256": "6163b20c764257e7b98e5e1c132ddf9d219662eb6873152764bdfff06e46a19a",
+    "retrieved_utc": "2026-09-29T23:51:11.238406+00:00"
+  },
+  {
+    "path": "job_109627112298.log",
+    "endpoint": "repos/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/jobs/109627112298/logs",
+    "bytes": 39475,
+    "sha256": "9b19197e0c07853ceb08a3fc2fce6c0bac02bf6507b8ba802dbef21a83f204ae",
+    "retrieved_utc": "2026-09-29T23:51:10.839061+00:00"
+  },
+  {
+    "path": "job_109627112072.log",
+    "endpoint": "repos/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/jobs/109627112072/logs",
+    "bytes": 1641709,
+    "sha256": "3e73d1be51e30b7bbd6ceb9d0e148715d544ac219d9be47021d9d57aed170c98",
+    "retrieved_utc": "2026-09-29T23:51:13.488199+00:00"
+  }
+]

@@ -3,13 +3,14 @@ repos:
     rev: v4.6.0
     hooks:
       - id: trailing-whitespace
-        exclude: ^(docs/evidence/(.*\.(csv|pass|log|rpt)|20260930/vivado_complete_p7/.*|20260930/ci_workflow_f028/(workflow|jobs)_metadata\.json|20260930/reducer_scheduler/cxx_observation\.patch|20260930/arithmetic_runner_ci/generated_settle_excerpt\.txt)|tests/fixtures/vivado_2018_3_buffered/(check_timing|timing_summary)\.rpt)$
+        exclude: ^(docs/evidence/(.*\.(csv|pass|log|rpt)|20260930/vivado_complete_p7/.*|20260930/vivado_compact_p5_timeout/.*|20260930/ci_workflow_(f028|417f)/(workflow|jobs)_metadata\.json|20260930/ci_rtl_417f/(head_commit|tested_merge_commit)\.json|20260930/reducer_scheduler/cxx_observation\.patch|20260930/arithmetic_runner_ci/generated_settle_excerpt\.txt)|tests/fixtures/vivado_2018_3_buffered/(check_timing|timing_summary)\.rpt|docs/reports/rtl_patent_audit_20260930/audit_figures/section_provenance_update_20260930\.patch)$
       - id: end-of-file-fixer
-        exclude: ^(docs/evidence/(.*\.(csv|pass|log|rpt)|20260930/vivado_complete_p7/.*|20260930/ci_workflow_f028/(workflow|jobs)_metadata\.json|20260930/reducer_scheduler/cxx_observation\.patch|20260930/arithmetic_runner_ci/generated_settle_excerpt\.txt)|tests/fixtures/vivado_2018_3_buffered/(check_timing|timing_summary)\.rpt)$
+        exclude: ^(docs/evidence/(.*\.(csv|pass|log|rpt)|20260930/vivado_complete_p7/.*|20260930/vivado_compact_p5_timeout/.*|20260930/ci_workflow_(f028|417f)/(workflow|jobs)_metadata\.json|20260930/ci_rtl_417f/(head_commit|tested_merge_commit)\.json|20260930/reducer_scheduler/cxx_observation\.patch|20260930/arithmetic_runner_ci/generated_settle_excerpt\.txt)|tests/fixtures/vivado_2018_3_buffered/(check_timing|timing_summary)\.rpt|docs/reports/rtl_patent_audit_20260930/audit_figures/section_provenance_update_20260930\.patch)$
       - id: check-yaml
       - id: check-toml
       - id: check-added-large-files
         args: ["--maxkb=512"]
+        exclude: ^docs/reports/rtl_patent_audit_20260930/report\.pdf$
       - id: check-merge-conflict
       - id: debug-statements
 
@@ -18,7 +19,9 @@ repos:
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
+        exclude: ^docs/reports/rtl_patent_audit_20260930/(audit_figures/make_(compact_)?divider_profiles\.py|history/final_regression_ci_0c4a_before_f028/audit_figures/make_final_regression_evidence\.py)$
       - id: ruff-format
+        exclude: ^docs/reports/rtl_patent_audit_20260930/(audit_figures/make_(compact_)?divider_profiles\.py|history/final_regression_ci_0c4a_before_f028/audit_figures/make_final_regression_evidence\.py)$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.11.2

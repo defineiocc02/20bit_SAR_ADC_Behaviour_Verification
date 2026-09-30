@@ -1,0 +1,206 @@
+{
+  "scope": "FROZEN_ZERO_DELAY_RTL_LOG_EVIDENCE_NOT_STA_OR_ANALOG_SIGNOFF",
+  "script_sha256": "9af916cd576715f2b31eb744a832be0c10b1504706e82bb1fc436cfb80433819",
+  "inputs_sha256": {
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/sha256.json": "4cb03c4c83679991437f68748c318953794f107cfe1b20a7dcfd49264abc488f",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/arithmetic-audit/manifest.json": "7d14f6cbd4f14f076458188167bf86ec910b9e64617e36219c88c40edcf43ec0",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/arithmetic-audit/run.log": "4466276216eb6f531056d7f5a05927153e339d1d2fe7649336e6ddc3285004c1",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/job_metadata.json": "b41d18daa6fe7552d4ab8454a35d801d31990f12b73f37bc05436bfaaaa36fba",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/manifest.json": "d844428a90a45bdcff3bc7e4939151428bf6fda36b262c15b3b8a5711d15ed25",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/open_rtl/version.log": "26daf9ad1ba36ee1c20cab9a869d0a1fbb8117230c80c78ec2d8cf597f64c4a5",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/rtl_content_identity.json": "f5e3407e3b601f818f37a7bc7e5dadba88239ccabd5ff0b0bebc8692e3455631",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/tested_inputs_sha256.json": "a265a71f9981d137d2cd763e7341e2c7992c2280bf61ab0111a1a85a2726be33",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/tested_merge_commit.json": "24399d3dd3b85db28d091cc1e42ee0d40b9b743ef3f3e4403f28a04006f0a400",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/open_rtl/tree_mapping_tb.run.log": "c280533bff2230db02fcf8cb9dd753e9b8e6039976cb17f01d6b50a3b4169237",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/open_rtl/review_leaf_tb.run.log": "1d58c5b5761c2ed04bf26866e122024560f1df10ee507c0c23c0de1195cffa13",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/open_rtl/review_dither_tb.run.log": "dc58dbb90f1af41ce1581eaa6f502f49167d0f3845dd6b33edfe78f58ef18af2",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/open_rtl/p1_tb.run.log": "6aec934f72ca4efdba1327fd3c617e49422a5460a7c9f8d3378d5284d35458ed",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/open_rtl/p2_periph_tb.run.log": "5505f668d90444c666cce8be3449d170dbfcbfe622c8dd77ba3bd057ded43460",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/open_rtl/p2_smoke_tb.run.log": "203805213a4c2dc38e2457c0ae951758e5e0447fa0af43bbc906d1ce1cefcc18",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_417f/open_rtl/p3_top_tb.run.log": "f3efe165961fed0eb29f857224890e01bad558d50ce3d88a7ae601ee26dcf5d3"
+  },
+  "images_sha256": {
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_system.png": "dad7ccbc1a08938de76eec734fae6fdc44653ccd7f67eacba2b42432ea155d77",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_system.pdf": "9a40be87ddbedf8e45a5215928a04695a9a63679e9762340be7d96365f969366"
+  },
+  "benches": {
+    "tree_mapping_tb": {
+      "marker": "TREE_MAPPING_COMPLETE checks=12904",
+      "metrics": {
+        "stimulus_rows": 12904
+      },
+      "oracle": "Loop popcount and direct cell sums;\nT/G/R + invalid-ID comparison.",
+      "limitation": "This archive is RTL, not mapped-netlist proof.",
+      "tb_lines": [
+        25,
+        109
+      ],
+      "tb_source": "git:417f261f24fe917552ac71f6aadb6b3dbf779c5f:sim/tb/tree_mapping_tb.sv",
+      "tb_sha256": "2a5a9d9d4d4c37f13b1589b2e1f74983b30b91afb410b206c68a6ac0c30dea54"
+    },
+    "review_leaf_tb": {
+      "marker": "REVIEW_LEAF_COMPLETE",
+      "metrics": {
+        "check_calls": 91142
+      },
+      "oracle": "Popcount/thermometer rules, address\nbounds, allocation wrap and floor oracle.",
+      "limitation": "The logged count is assertion calls.",
+      "tb_lines": [
+        45,
+        93
+      ],
+      "tb_source": "git:417f261f24fe917552ac71f6aadb6b3dbf779c5f:sim/tb/review_leaf_tb.sv",
+      "tb_sha256": "3ca1eea1f06f9fcb189f32dcccc2632c60dde2cee40d2700e332c5a544846a31"
+    },
+    "review_dither_tb": {
+      "marker": "REVIEW_DITHER_COMPLETE",
+      "metrics": {
+        "conditions": [
+          {
+            "D": 0,
+            "seed": "13579bdf",
+            "accepted": 200000,
+            "mean": 0.0,
+            "corr": 0.0
+          },
+          {
+            "D": 1,
+            "seed": "13579bdf",
+            "accepted": 200000,
+            "mean": -0.00175,
+            "corr": -0.000786
+          },
+          {
+            "D": 2,
+            "seed": "13579bdf",
+            "accepted": 200000,
+            "mean": -0.00459,
+            "corr": -0.001488
+          },
+          {
+            "D": 3,
+            "seed": "13579bdf",
+            "accepted": 196866,
+            "mean": -0.004155,
+            "corr": -0.000851
+          },
+          {
+            "D": 63,
+            "seed": "13579bdf",
+            "accepted": 196866,
+            "mean": 0.066279,
+            "corr": 0.002793
+          },
+          {
+            "D": 2,
+            "seed": "00000001",
+            "accepted": 200000,
+            "mean": 0.006405,
+            "corr": 0.00107
+          },
+          {
+            "D": 2,
+            "seed": "ffffffff",
+            "accepted": 200000,
+            "mean": 0.00486,
+            "corr": -0.001918
+          }
+        ]
+      },
+      "oracle": "Support/PMF/mean/lag-1 checks;\nhold and seed-reset invariants.",
+      "limitation": "Accepted draws differ from 200k clock cycles.",
+      "tb_lines": [
+        14,
+        63
+      ],
+      "tb_source": "git:417f261f24fe917552ac71f6aadb6b3dbf779c5f:sim/tb/review_dither_tb.sv",
+      "tb_sha256": "fcd79afc5f3239a21186d06781d4e963418f8857a38f07b0c95344dbed82fa52"
+    },
+    "p1_tb": {
+      "marker": "P1 RESULT: PASS",
+      "metrics": {
+        "TB_check_counter": 464823,
+        "errors": 0
+      },
+      "oracle": "M1-M5 golden vectors plus structural\nproperties, dither support and connected chain.",
+      "limitation": "464,823 is the TB check counter, not codes.",
+      "tb_lines": [
+        1,
+        24
+      ],
+      "tb_source": "git:417f261f24fe917552ac71f6aadb6b3dbf779c5f:sim/tb/p1_tb.sv",
+      "tb_sha256": "5e2036b927890f7f83ce3bae540ded035572d228bb3fdfd74ccc1d45e3813498"
+    },
+    "p2_periph_tb": {
+      "marker": "p2_periph PASS",
+      "metrics": {
+        "TB_check_counter": 709,
+        "errors": 0
+      },
+      "oracle": "Directed guards, sticky status, RDAC\nfanout, phase schedule and register rules.",
+      "limitation": "Full-table load cannot trigger unreachable sum guard.",
+      "tb_lines": [
+        1,
+        65
+      ],
+      "tb_source": "git:417f261f24fe917552ac71f6aadb6b3dbf779c5f:sim/tb/p2_periph_tb.sv",
+      "tb_sha256": "6e7b483abfd87c5b3d86070b0a09bf6e99eeff82476c7b17daa6728713115d08"
+    },
+    "p2_smoke_tb": {
+      "marker": "p2_smoke PASS",
+      "metrics": {
+        "TB_check_counter": 1154,
+        "errors": 0
+      },
+      "oracle": "Configuration readback; allocator\ninvariants and selected popcount inputs.",
+      "limitation": "Smoke coverage, not complete acceptance.",
+      "tb_lines": [
+        1,
+        16
+      ],
+      "tb_source": "git:417f261f24fe917552ac71f6aadb6b3dbf779c5f:sim/tb/p2_smoke_tb.sv",
+      "tb_sha256": "f42290f8e0f332b8d40bc20399f0efa4fdb16315bdd24d500d46e969fe58de78"
+    },
+    "p3_top_tb": {
+      "marker": "P3 TOP RESULT: PASS",
+      "metrics": {
+        "TB_check_counter": 16386,
+        "errors": 0,
+        "compared_output_rows": 4095
+      },
+      "oracle": "File oracle for dout/clip + cumulative\nOR for sticky analog-overflow status.",
+      "limitation": "Forced dither; file row 0 skipped; no dither-source test.",
+      "tb_lines": [
+        1,
+        65
+      ],
+      "tb_source": "git:417f261f24fe917552ac71f6aadb6b3dbf779c5f:sim/tb/p3_top_tb.sv",
+      "tb_sha256": "a7c8d406b38e3a24e8a7e2213f87b2b54454532afc3423df628d48cb90881016"
+    }
+  },
+  "ci_provenance": {
+    "schema": "CI_RTL_STEP_AND_JOB_CONCLUSIONS",
+    "benches_passed": 22,
+    "pr_head_sha": "417f261f24fe917552ac71f6aadb6b3dbf779c5f",
+    "tested_merge_sha": "63e9887fa0faf23565c35b6bd1a4edfa9eb8edd7",
+    "git_tree_sha": "f0be3b81c49fdf17f3113331b7429a559d08aa7b",
+    "rtl_content_sha256": "1e3fab94b7b29b77113fa2e18eae99b6ee1c180cd7df6004625c85358392eef4",
+    "workflow_run_id": 36633152469,
+    "job_id": 109627112125,
+    "rtl_step_conclusion": "success",
+    "overall_job_conclusion": "success",
+    "independent_arithmetic_step_conclusion": "success",
+    "workflow_observation": {
+      "observed_utc": "2026-09-29T21:37:38.438939+00:00",
+      "run_id": 36633152469,
+      "head_sha": "417f261f24fe917552ac71f6aadb6b3dbf779c5f",
+      "status_at_metadata_retrieval": "in_progress",
+      "conclusion_at_metadata_retrieval": null,
+      "scope": "This archive certifies the completed RTL job; subsequent workflow conclusion is separately archived.",
+      "html_url": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36633152469"
+    },
+    "later_failed_step": null,
+    "tool_version": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+    "immutable_git_inputs_verified": 88
+  }
+}

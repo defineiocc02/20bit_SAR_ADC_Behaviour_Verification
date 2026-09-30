@@ -1,0 +1,155 @@
+{
+  "scope": "Report-only 417f CI four figures; no new simulation, EDA, CI rerun or TeX compilation",
+  "status": "PASS",
+  "ci_metadata": {
+    "schema": "CI_RTL_STEP_AND_JOB_CONCLUSIONS",
+    "benches_passed": 22,
+    "pr_head_sha": "417f261f24fe917552ac71f6aadb6b3dbf779c5f",
+    "tested_merge_sha": "63e9887fa0faf23565c35b6bd1a4edfa9eb8edd7",
+    "git_tree_sha": "f0be3b81c49fdf17f3113331b7429a559d08aa7b",
+    "rtl_content_sha256": "1e3fab94b7b29b77113fa2e18eae99b6ee1c180cd7df6004625c85358392eef4",
+    "workflow_run_id": 36633152469,
+    "job_id": 109627112125,
+    "rtl_step_conclusion": "success",
+    "overall_job_conclusion": "success",
+    "independent_arithmetic_step_conclusion": "success",
+    "workflow_observation": {
+      "observed_utc": "2026-09-29T21:37:38.438939+00:00",
+      "run_id": 36633152469,
+      "head_sha": "417f261f24fe917552ac71f6aadb6b3dbf779c5f",
+      "status_at_metadata_retrieval": "in_progress",
+      "conclusion_at_metadata_retrieval": null,
+      "scope": "This archive certifies the completed RTL job; subsequent workflow conclusion is separately archived.",
+      "html_url": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36633152469"
+    },
+    "later_failed_step": null,
+    "tool_version": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+    "immutable_git_inputs_verified": 88
+  },
+  "negative_source_binding_and_parser_checks": [
+    {
+      "case": "log_bytes_changed",
+      "rejected": true,
+      "reason": "CI archive checksum differs: open_rtl/weight_row_cache_tb.run.log",
+      "unmodified_copy_accepted_before_mutation": true
+    },
+    {
+      "case": "cache_tb_git_hash_forged",
+      "rejected": true,
+      "reason": "CI source hash differs from Git head: sim/tb/weight_row_cache_tb.sv",
+      "unmodified_copy_accepted_before_mutation": true
+    },
+    {
+      "case": "audit_source_hash_forged",
+      "rejected": true,
+      "reason": "Independent-audit source differs from tested Git head: rtl/core/div_floor.sv",
+      "unmodified_copy_accepted_before_mutation": true
+    },
+    {
+      "case": "audit_step_failure",
+      "rejected": true,
+      "reason": "Successful RTL job lacks independent arithmetic completion",
+      "unmodified_copy_accepted_before_mutation": true
+    },
+    {
+      "case": "merge_tree_mismatch",
+      "rejected": true,
+      "reason": "CI head/merge/tree/job identity differs",
+      "unmodified_copy_accepted_before_mutation": true
+    },
+    {
+      "case": "workflow_identity_mismatch",
+      "rejected": true,
+      "reason": "Workflow observation identity differs",
+      "unmodified_copy_accepted_before_mutation": true
+    },
+    {
+      "case": "new_cache_bench_omitted",
+      "rejected": true,
+      "reason": "CI archive does not contain the exact 22-bench set",
+      "unmodified_copy_accepted_before_mutation": true
+    },
+    {
+      "case": "cache_step_count_forged",
+      "rejected": true,
+      "reason": "Row-cache loader case/count contract differs",
+      "scope": "Direct log parser mutation; no simulation"
+    },
+    {
+      "case": "one_cached_geometry_disabled",
+      "rejected": true,
+      "reason": "Cached reducer is not checked in all seven geometries",
+      "scope": "Direct log parser mutation; no simulation"
+    }
+  ],
+  "cache_bench_manifest_and_log_counts_equal": true,
+  "figures": {
+    "final_regression_arithmetic": {
+      "hash_record_sha256": "0bc48bc508811282b9c665a5fbef76668509cb08c9af711eaef37854da166635",
+      "images_sha256": {
+        "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_arithmetic.png": "334ce9037e30042aa95d99f1b0e3f5cd3f6b1d08158fcab1babf43208ce72db7",
+        "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_arithmetic.pdf": "a466fa7b2506d6635908cd56a86701601181807589418d016e3dd536c5bfe4b0"
+      }
+    },
+    "final_regression_protocol": {
+      "hash_record_sha256": "68e936274ca16cc03713284b23f3874c555f0e8e61d1534f55e4525db2ece70c",
+      "images_sha256": {
+        "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_protocol.png": "2882e159367cc76072b806a73add63e4415c755e05125e9e11755662ad4db2a8",
+        "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_protocol.pdf": "cad7eb08443503cee8ba7dc4a2f2f07ed55d20111f8f0097d45ba3dacfb1a5e9"
+      }
+    },
+    "final_regression_system": {
+      "hash_record_sha256": "25fc9070a58a90f85a658188da5fdb24630e99c36772f793a3dbdbc2340e6d64",
+      "images_sha256": {
+        "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_system.png": "dad7ccbc1a08938de76eec734fae6fdc44653ccd7f67eacba2b42432ea155d77",
+        "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_system.pdf": "9a40be87ddbedf8e45a5215928a04695a9a63679e9762340be7d96365f969366"
+      }
+    },
+    "final_regression_quantitative": {
+      "hash_record_sha256": "e27c06f50038d8453dd78a25c7e88265361cb5a643448c7ac40d056657a05a77",
+      "images_sha256": {
+        "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_quantitative.png": "d0355183c7d5cef190c1b3b414c84206c2b7c2a3f8c6434b9b68f16933f43a12",
+        "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_quantitative.pdf": "d758f46c27e2b700e22b6b0711847e14fef1a77688bcd9887f51cb062a51f903"
+      }
+    }
+  },
+  "history": {
+    "final_regression_169f_before_ci_0c4a": {
+      "verified_files": 14,
+      "manifest_sha256": "75fef71a88177c4c342857643130b654c96da7e33ee0a17d5c8e1bae34f41050"
+    },
+    "final_regression_ci_0c4a_before_f028": {
+      "verified_files": 15,
+      "manifest_sha256": "1e6eb3aea637a4e86c59fb4fa780b01a1c01f2a4d18c186b7936874dc965a882"
+    },
+    "final_regression_ci_f028_before_417f": {
+      "verified_files": 16,
+      "manifest_sha256": "e1d5cc32fb11fd80288666b6dfa5ed0c02d38659cab09c10d03c2409eb51fcbd"
+    }
+  },
+  "historical_21_bench_reader_checks": {
+    "ci_rtl_0c4a": {
+      "benches_passed": 21,
+      "job_conclusion": "failure",
+      "inputs_verified": 87
+    },
+    "ci_rtl_f028": {
+      "benches_passed": 21,
+      "job_conclusion": "success",
+      "inputs_verified": 87
+    }
+  },
+  "static_tex_checks": "Balanced environments/braces; all 5 included figure PDFs exist; old cross-reference aliases retained",
+  "visual_inspection": "All four current PNGs viewed at rendered resolution; readable, no clipping or overlap",
+  "section_sha256": "fd0f41fd46f70882da1f8777226b715cdbde6f6cb30d38fd38e1710f5bbf55bf",
+  "readme_sha256": "6682c2d143b69ef525f2a751f5174a4e66132946066e81d77506d77397e7b716",
+  "ci_manifest_sha256": "d844428a90a45bdcff3bc7e4939151428bf6fda36b262c15b3b8a5711d15ed25",
+  "ruff_check": "PASS with repository pyproject.toml",
+  "ruff_format_check": "PASS with repository pyproject.toml; 1 file already formatted",
+  "environment": {
+    "matplotlib": "3.11.2",
+    "numpy": "2.5.3",
+    "ruff": "0.6.9"
+  },
+  "note": "The local figure41 and independent-arithmetic figure were not regenerated. Parent owns final multi-file report compilation. Workflow observation is the archived in_progress snapshot, not its final conclusion."
+}

@@ -1,0 +1,80 @@
+{
+  "purpose": "Separate the post-reset MSB invariant, observed baseline FFs, and logged regression counts; no measured PPA saving is claimed.",
+  "inputs": {
+    "verification_manifest": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/weight_msb/verification_manifest.json",
+      "sha256": "1ded8c95aa5a492e963919bf7dde9e24a289652068d4c4657e26053d1aaaa4a4"
+    },
+    "equivalence_log": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/weight_msb/equiv.run.log",
+      "sha256": "a8db6d0ed84c4b9c99a08782022de78a2307258f644499b6d8359db88b26cb84"
+    },
+    "baseline_witness": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_structure/baseline_weight_msb_witness.json",
+      "sha256": "4a6e8c63bcf12f657e26894061f1ca33b015cc28a3438e4305f0ba6f044fba2a"
+    },
+    "baseline_archive_manifest": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_structure/archive_manifest.json",
+      "sha256": "2d9d8461fc8d3e2dcb11de81789b0fa9af724246d8136fce9e3903bc604eccd6"
+    },
+    "before_source": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/weight_msb/weight_store.before.sv",
+      "sha256": "15c0a33322e6edf5fbc99ec2058ef2b720c356763362c22639d8619ceda5be8a"
+    },
+    "after_source": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/weight_msb/weight_store.after.sv",
+      "sha256": "d4e8e6d6b36ce5f52c9cca6ed761ccba6fa2d4afa3fa5e4822a0d597a1f22085"
+    },
+    "testbench": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/weight_msb/weight_msb_equiv_tb.sv",
+      "sha256": "86651726e13107ecea254fc5b0d3f790f9d43caed79900b7a31ad829a2319629"
+    },
+    "weight_hash_index": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/weight_msb/sha256.json",
+      "sha256": "8461652aa2fb65b933aebe6d464a24484c26b8c38b74a11107cc82898d08a4cc"
+    },
+    "structure_hash_index": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_structure/sha256.json",
+      "sha256": "bd90f6a828873bd85927def92cc0530765566da7a22d3fb77482ea2b4b2a20e5"
+    }
+  },
+  "script_sha256": "8820a46e88878da7c073ae3fc6810824c734a75485e72a4c7a90807866604184",
+  "logged_geometry_rows": [
+    {
+      "slices": 32,
+      "units": 1,
+      "steps": 560,
+      "accepted": 40,
+      "rejected": 413
+    },
+    {
+      "slices": 1,
+      "units": 128,
+      "steps": 656,
+      "accepted": 136,
+      "rejected": 413
+    },
+    {
+      "slices": 18,
+      "units": 71,
+      "steps": 1807,
+      "accepted": 1341,
+      "rejected": 358
+    }
+  ],
+  "logged_totals": {
+    "steps": 3023,
+    "accepted": 1517,
+    "rejected": 1184
+  },
+  "word_visits_derived_as_sum_steps_times_geometry": 2411234,
+  "baseline_weight_ff": 61344,
+  "baseline_msb47_fdre": 1278,
+  "baseline_high_bit_fraction": "1278 / 61344 = 1 / 48; not a post-change resource measurement",
+  "ppa_status": "UNMEASURED: no Vivado invocation. The 1278 original MSB FF instances and post-reset invariant identify a candidate saving, not a measured new netlist count.",
+  "outputs": {
+    "40_weight_msb_evidence.png": "a47798374bff1bb5402ca9957136d736020ec98cc512fed8da97a602f689511c",
+    "40_weight_msb_evidence.pdf": "c248e8a06014e540516cfc0a72aed4d2da713410157fe94b44a0e2175b82501b"
+  },
+  "rebuild_command": "python audit_figures/make_weight_msb_evidence.py --evidence-root /path/to/repo/docs/evidence/20260930"
+}

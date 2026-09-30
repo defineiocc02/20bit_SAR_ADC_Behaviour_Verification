@@ -1,0 +1,256 @@
+{
+  "scope": "FROZEN_ZERO_DELAY_RTL_LOG_EVIDENCE_NOT_STA_OR_ANALOG_SIGNOFF",
+  "script_sha256": "5e3929f85ff42ff8f05eca72807d7283c9637dc9aa3e72e59bdf8617aab22fdb",
+  "inputs_sha256": {
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/sha256.json": "6a8452c712cc9d37cabdcff810c918b9ff80ce498c998a9dabfb33958a668138",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/arithmetic_entry_failure.log": "c02c0bce3aa77703a16083437ee4a223350611f97b7e4558ed26cd0f10315dc4",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/job_metadata.json": "891a9a0604d88436e25bde2081e52151980d278c54c63898037835be4ea12d52",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/manifest.json": "187f80eca7002d8af3bd622fdd1dc80bf619a091b4ec963426094733f105ae9d",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/version.log": "26daf9ad1ba36ee1c20cab9a869d0a1fbb8117230c80c78ec2d8cf597f64c4a5",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/rtl_content_identity.json": "41cfe30f8b4db7373f4363d4cbca4770c15e82e7f1697db9dd5a5dfe0d8f080e",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/tested_inputs_sha256.json": "22e593105cc3d31596d64e7045af84c3872b9a9f611b5daef287e89f12b4807b",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/tested_merge_commit.json": "5f3f82b02ad90813d0c8bcaf2bde7ccefc3f682f9672a3397de25bb283ff831d",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/p2_oracle_tb.run.log": "fbc7ffc55d6747eee6d3df52e10d9124543629132f64e3594520da8f62d8ddf1",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/divider_borrow_tb.run.log": "35be2a3ccc357459b2dec5be5d3c422543c34b9458e1a143d058f1a25516006a",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/cal_weight_reduce_ppa_tb.run.log": "11dd2fac0685fb726e0d1d00825eb77bc27faf04d2f34f4df5009b86ae68379e",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/calibration_physical_tb.run.log": "589610a4c195871250ab87583a3fb57cc9030e1ee7c0c559b735bce8a9c66e88",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/calibration_recovery_tb.run.log": "54b981cb4f210916fea3026878b34ede8e12f4b147dc7f11b4929e850c0eebe0",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/calibration_fit_tb.run.log": "4b134e2e2c480d64c77b9010e3d09d1cfc3204578f61315cac42ef9b597278e5",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/p2_tb.run.log": "01fd536326072eef8b61c8cb46adc32b770ec65378bb2fc22b928eddd2f906d9"
+  },
+  "images_sha256": {
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_arithmetic.png": "74bcd2ad3055f0f7d325c188efbe3521d6b0be59a60f52192075665de9903fa3",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_arithmetic.pdf": "38cc30b4314312441fe0738164cba20643d5bad82d13ad62d3a0fcfff162b9a7"
+  },
+  "benches": {
+    "p2_oracle_tb": {
+      "marker": "P2_ORACLE_COMPLETE codes=1048576 errors=0",
+      "metrics": {
+        "codes": 1048576,
+        "errors": 0
+      },
+      "oracle": "Identity: dout == input code;\nzero flags and 11-cycle completion.",
+      "limitation": "One-slice fixture; not all configurations.",
+      "tb_lines": [
+        50,
+        93
+      ],
+      "tb_source": "git:0c4a7726597c49044d25117a701ba780137ddf04:sim/tb/p2_oracle_tb.sv",
+      "tb_sha256": "11339db76a0c5e664114c7376875220e081377d266221d36a7ff39b569476b54"
+    },
+    "divider_borrow_tb": {
+      "marker": "DIVIDER_BORROW_COMPLETE exhaustive_checks=67592",
+      "metrics": {
+        "combinations": 67592,
+        "cases_WA_WD_stages_checks": [
+          [
+            2,
+            1,
+            1,
+            8
+          ],
+          [
+            6,
+            5,
+            5,
+            2048
+          ],
+          [
+            6,
+            8,
+            7,
+            16384
+          ],
+          [
+            6,
+            8,
+            3,
+            16384
+          ],
+          [
+            6,
+            8,
+            2,
+            16384
+          ],
+          [
+            6,
+            8,
+            1,
+            16384
+          ]
+        ]
+      },
+      "oracle": "Signed floor reference + defining\ninequality; zero divisor, busy and hold.",
+      "limitation": "Six small-width parameter fixtures.",
+      "tb_lines": [
+        28,
+        89
+      ],
+      "tb_source": "git:0c4a7726597c49044d25117a701ba780137ddf04:sim/tb/divider_borrow_tb.sv",
+      "tb_sha256": "56f942cba7f4744626f6219f32d224cc4e451d0b33536dd6344d98a010d97a6d"
+    },
+    "cal_weight_reduce_ppa_tb": {
+      "marker": "CAL_WEIGHT_REDUCE_PPA_COMPLETE",
+      "metrics": {
+        "miter_cases": 1430848,
+        "fixture_records": [
+          [
+            1,
+            1,
+            2,
+            1,
+            2,
+            2176,
+            0
+          ],
+          [
+            3,
+            2,
+            3,
+            2,
+            3,
+            2608,
+            0
+          ],
+          [
+            3,
+            2,
+            3,
+            2,
+            4,
+            2608,
+            0
+          ],
+          [
+            32,
+            8,
+            3,
+            1,
+            3,
+            3072,
+            0
+          ],
+          [
+            1,
+            1,
+            128,
+            4,
+            128,
+            3408,
+            0
+          ],
+          [
+            32,
+            32,
+            2,
+            1,
+            2,
+            6144,
+            0
+          ],
+          [
+            18,
+            8,
+            71,
+            4,
+            71,
+            1410832,
+            43758
+          ]
+        ],
+        "allocation_subsets": 43758
+      },
+      "oracle": "Independent physical-cell scalar sum;\nold/new T/G/R and invalid-ID checks.",
+      "limitation": "Transaction-edge sampling; no mapped/STA claim.",
+      "tb_lines": [
+        47,
+        109
+      ],
+      "tb_source": "git:0c4a7726597c49044d25117a701ba780137ddf04:sim/tb/cal_weight_reduce_ppa_tb.sv",
+      "tb_sha256": "4e7d97c5d3fb7339f30de129746da251015dbac2fc85ed373ea72c5c4a4cf28e"
+    },
+    "calibration_physical_tb": {
+      "marker": "CALIBRATION_PHYSICAL_COMPLETE",
+      "metrics": {
+        "transactions": 2048,
+        "slices": 18
+      },
+      "oracle": "Independent 256-bit integer formula;\ncode, flags, ID and input capture.",
+      "limitation": "18 slices, reduced 8-cell test geometry.",
+      "tb_lines": [
+        34,
+        92
+      ],
+      "tb_source": "git:0c4a7726597c49044d25117a701ba780137ddf04:sim/tb/calibration_physical_tb.sv",
+      "tb_sha256": "5bb94083f056da90439613d1cbc4028d86c94d66e16db5ce14b540e201ec1e91"
+    },
+    "calibration_recovery_tb": {
+      "marker": "CALIBRATION_RECOVERY_COMPLETE",
+      "metrics": {
+        "transactions": 2048,
+        "max_calibrated_codes": 4,
+        "max_nominal_codes": 504
+      },
+      "oracle": "Known target -> synthetic residue ->\ncalibrated and nominal-weight outputs.",
+      "limitation": "Synthetic mismatch + ideal ADC2 quantization.",
+      "tb_lines": [
+        35,
+        75
+      ],
+      "tb_source": "git:0c4a7726597c49044d25117a701ba780137ddf04:sim/tb/calibration_recovery_tb.sv",
+      "tb_sha256": "caaefd533252c5ae000e8e363dc8ea3ef7376a48baa9e84c8d1ea7470bf92749"
+    },
+    "calibration_fit_tb": {
+      "marker": "CALIBRATION_FIT_COMPLETE",
+      "metrics": {
+        "holdout_samples": 128,
+        "loaded_weights": 1278
+      },
+      "oracle": "Frozen external holdout vectors;\ncode/flags/ID/latency + coefficient readback.",
+      "limitation": "Fitted coefficients loaded, not learned in RTL.",
+      "tb_lines": [
+        67,
+        134
+      ],
+      "tb_source": "git:0c4a7726597c49044d25117a701ba780137ddf04:sim/tb/calibration_fit_tb.sv",
+      "tb_sha256": "32c0bcdccfb949a34cc370bf8af6a48c5f9a2ebc41755d9cbd9f68ca581db2b6"
+    },
+    "p2_tb": {
+      "marker": "P2 RESULT: PASS",
+      "metrics": {
+        "TB_check_counter": 23049,
+        "errors": 0
+      },
+      "oracle": "Golden vectors + floor inequality;\nrounding, masks, carry, clipping and link.",
+      "limitation": "T5 full-code sweep is a separate bench.",
+      "tb_lines": [
+        402,
+        869
+      ],
+      "tb_source": "git:0c4a7726597c49044d25117a701ba780137ddf04:sim/tb/p2_tb.sv",
+      "tb_sha256": "95615692a7ea21bb164c28fe51cbc2ad68e8d2098294af5db0fd47ccc8f22b99"
+    }
+  },
+  "ci_provenance": {
+    "schema": "CI_RTL_STEP_SUCCESS_OVERALL_JOB_FAILED",
+    "pr_head_sha": "0c4a7726597c49044d25117a701ba780137ddf04",
+    "tested_merge_sha": "308e489f363a6c19f26e28c08c82d8f2a34c2a6a",
+    "git_tree_sha": "d8f838a28634c27e6bda222ea0b40cf102c91225",
+    "rtl_content_sha256": "fd885e882ad5447f87626dc034fb59a6853a86f01050957a93b8a6407ebbbc13",
+    "workflow_run_id": 36626662809,
+    "job_id": 109605295575,
+    "rtl_step_conclusion": "success",
+    "overall_job_conclusion": "failure",
+    "later_failed_step": {
+      "name": "Independent arbitrary-precision arithmetic audit",
+      "conclusion": "failure",
+      "failure_class": "tool-entry executable not found",
+      "command_returncode": 127,
+      "source_member": "arithmetic-audit/compile.log",
+      "simulation_pass_claimed": false
+    },
+    "tool_version": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+    "immutable_git_inputs_verified": 87
+  }
+}

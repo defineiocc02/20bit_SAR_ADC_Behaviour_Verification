@@ -1,0 +1,9 @@
+{
+  "observed_utc": "2026-09-29T21:37:38.438939+00:00",
+  "run_id": 36633152469,
+  "head_sha": "417f261f24fe917552ac71f6aadb6b3dbf779c5f",
+  "status_at_metadata_retrieval": "in_progress",
+  "conclusion_at_metadata_retrieval": null,
+  "scope": "This archive certifies the completed RTL job; subsequent workflow conclusion is separately archived.",
+  "html_url": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36633152469"
+}

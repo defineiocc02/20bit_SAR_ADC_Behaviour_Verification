@@ -1,0 +1,236 @@
+[
+  {
+    "label": "Repaired baseline P7",
+    "artifact": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/baseline",
+    "part": "xc7vx690tffg1761-2",
+    "vivado_version": "2018.3",
+    "requested_period_ns": 1.5625,
+    "actual_period_ns": 1.563,
+    "stages": 7,
+    "setup_wns_ns": -17.426,
+    "data_path_ns": 18.941,
+    "logic_levels": 135,
+    "source": "u_recon/u_div/dv_reg[0]/C",
+    "destination": "u_recon/u_div/q_reg[60]/D",
+    "vectorless_power_w": 1.58,
+    "resources": {
+      "lut": 171246.0,
+      "ff": 66817.0,
+      "latch": 0.0,
+      "dsp": 20.0,
+      "bram_tiles": 0.0
+    },
+    "sha256": {
+      "manifest.json": "367b0eaeab916dcda5fc9d21ae02ae6562af7877c22fcfdf94cb804acf26ede7",
+      "vivado.log": "212f6b6c03feb0e9e795bd129b6e85018dbe8cd2bf42d53fa59954329627c463",
+      "out/status.txt": "87fa6c2d414d009e16214f0e469d714974481f068802e7985517e16579b69ba3",
+      "out/utilization.rpt": "b8b1a116937ca27322ee9fcc79a23c34f4c4fff71df3d72a8df6bd85cd54168f",
+      "out/utilization_hier.rpt": "20f0444c6469cf27d84cc2a431010a731ca62918e73c772f98dced0c777b2beb",
+      "out/timing_paths.rpt": "b5a448264a3379f83549a0324b39cc56ddc32f9bd355a116ff513bf993877b94",
+      "out/timing_summary.rpt": "0d9a0faa2c132bbb97e0e30ff12d3348e7f1573b1cec2eb4e6d9428e967bfd37",
+      "out/check_timing.rpt": "da19107a07badfaa583abd5123f91d95d204f67434bda318cb14551cb94152dd",
+      "out/drc.rpt": "5ee0a8bdc309f82b852afde3fdeb33df2d3b698a22c056db94158bc430ef3db1",
+      "out/power_vectorless.rpt": "a45d6d2d74495028425cd5c226d7ee8ac5152023846f81238071ed7532757819"
+    },
+    "sources_sha256": {
+      "rtl/core/adc2_dec.sv": "268d279bdc1c2cdd7161072733c5046e701524c7e217b52ff0c7ca08951154f5",
+      "rtl/core/analog_phase_ctrl.sv": "66647aeeaa4e9dc41cd95eec430bdb8e75d42b93390bded576b18c22d8653932",
+      "rtl/core/cal_output_stage.sv": "30cb3de766b0c2f316bd65f519304e95a35897b55568564e56c999c8bac0c0c2",
+      "rtl/core/cal_residue_mac.sv": "082a93293cda83f79ff0ac7ef72e484043f8bbceb914361f270059b4bb764f71",
+      "rtl/core/cal_sample_context.sv": "8b0ff4527b6ff5936d378945bcfd38d2c203a43fb7d2cb4d0271a8f655bb9e56",
+      "rtl/core/cal_weight_reduce.sv": "68269e95d408f5f4b8d0cac1d3c9451822fdf0111f000916292de40ca02a9d81",
+      "rtl/core/calib_regs.sv": "feff5d1d6c0359b427c5950ae6dec6db45e5e9707f44a06623681f5176c3e44b",
+      "rtl/core/ctrl_fsm.sv": "a04e9104a93819ed35d35f6a11355c4ee3afbaa0d4b020f6e17e5540b610041f",
+      "rtl/core/dem_addr_gen.sv": "aa5bd5c4d00fa2a5d77f81fcc99011246ed08ab01f00be3e92fcd42728f466ba",
+      "rtl/core/dem_state_gen.sv": "38c626502b2338c4c04497788cf40904408a885176967a4ca6d6750d578d7efe",
+      "rtl/core/dither_gen.sv": "d726478c13887ca3739265990be5b2a35c88a236d38257af1ab72cb53c828f7e",
+      "rtl/core/div_floor.sv": "f798b5d5b905c10cf21164821ecd8e6829fdd05c260c2cc73f36339b5feff62d",
+      "rtl/core/rdac_drv.sv": "d91fa05062a50eb08826286ec527b5a15d6b7be758cee7f5e16c53fbe20d6a33",
+      "rtl/core/recon_core.sv": "3a486d215594d79ef53db5455cd1610c027855134132fc78539257bc5b660983",
+      "rtl/core/sar_structural_ctrl.sv": "76166ca5d0dbec70b9484b0badefe1f009a75ef942ed1de9e27159f2d092660e",
+      "rtl/core/sar_trial_ctrl.sv": "cbe60e2cc30fb95499449f0ec586847f9c1494de25bce784dc8b01a51248f8c9",
+      "rtl/core/slice_alloc.sv": "2c6d0293b846f00ccf88c0a38fc3030a243cb86fc84a705e31e70aa2084a2dc4",
+      "rtl/core/slice_pool_ctrl.sv": "e53d9efa8ced99e5322f6a3043dd67c7ceea11cfad60813f5e233504a28782b4",
+      "rtl/core/status_regs.sv": "8ab8ee1483f451da27ad59435ef7b00f3982427b17354fe5a9d2ac6319af4b1d",
+      "rtl/core/swap_decode.sv": "03684fb59ae5d0bbbd1d091f8b073b5cc9469dd603636ceea69726b01a5b5d88",
+      "rtl/core/unit_therm.sv": "ec00681a7565a1fd10172e32959c08e118f339de19f5e07eaf623c24fb6cb459",
+      "rtl/core/weight_store.sv": "15c0a33322e6edf5fbc99ec2058ef2b720c356763362c22639d8619ceda5be8a",
+      "rtl/top/sadc_enc.sv": "c366ddd1af00bfbf549b9300f5f80b564031c5e36848d77575622c9ba2007b7a",
+      "rtl/top/sar20_digital_core.sv": "676c35cacdc66076a74d8bf1039129be65f2c067f3903833a8aeb35f4745046a",
+      "rtl/rtl_sources.f": "edd37615fffd18cecfad620de2beab15f581639e8bc8520891b33487b7e98f7e",
+      "synth/run_vivado_ooc.tcl": "f9084c25618a94b8bd492e2dc699d6cb15a46d72a8be8e55d4c453b623487ed7",
+      "rtl/params/rtl_error_codes.vh": "ab67fff7eeff034da996d8c0442b529dc8476bb1eafca349f360c9e873bcc0ce",
+      "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654"
+    },
+    "scope": "FPGA post-synthesis OOC screening; vectorless power; no ASIC or board signoff",
+    "stored_inputs": {
+      "manifest.json": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/baseline/manifest.json",
+        "sha256": "367b0eaeab916dcda5fc9d21ae02ae6562af7877c22fcfdf94cb804acf26ede7",
+        "original_sha256": "367b0eaeab916dcda5fc9d21ae02ae6562af7877c22fcfdf94cb804acf26ede7"
+      },
+      "vivado.log": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/baseline/vivado.log",
+        "sha256": "212f6b6c03feb0e9e795bd129b6e85018dbe8cd2bf42d53fa59954329627c463",
+        "original_sha256": "212f6b6c03feb0e9e795bd129b6e85018dbe8cd2bf42d53fa59954329627c463"
+      },
+      "out/status.txt": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/baseline/out/status.txt",
+        "sha256": "87fa6c2d414d009e16214f0e469d714974481f068802e7985517e16579b69ba3",
+        "original_sha256": "87fa6c2d414d009e16214f0e469d714974481f068802e7985517e16579b69ba3"
+      },
+      "out/utilization.rpt": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/baseline/out/utilization.rpt",
+        "sha256": "b8b1a116937ca27322ee9fcc79a23c34f4c4fff71df3d72a8df6bd85cd54168f",
+        "original_sha256": "b8b1a116937ca27322ee9fcc79a23c34f4c4fff71df3d72a8df6bd85cd54168f"
+      },
+      "out/utilization_hier.rpt": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/baseline/out/utilization_hier.rpt",
+        "sha256": "20f0444c6469cf27d84cc2a431010a731ca62918e73c772f98dced0c777b2beb",
+        "original_sha256": "20f0444c6469cf27d84cc2a431010a731ca62918e73c772f98dced0c777b2beb"
+      },
+      "out/timing_paths.rpt": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/baseline/out/timing_paths.rpt.gz",
+        "sha256": "b90187f23f04623b901fe1b7112a5df8840032e35a09e069da2a579a262e0a1c",
+        "original_sha256": "b5a448264a3379f83549a0324b39cc56ddc32f9bd355a116ff513bf993877b94"
+      },
+      "out/timing_summary.rpt": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/baseline/out/timing_summary.rpt",
+        "sha256": "0d9a0faa2c132bbb97e0e30ff12d3348e7f1573b1cec2eb4e6d9428e967bfd37",
+        "original_sha256": "0d9a0faa2c132bbb97e0e30ff12d3348e7f1573b1cec2eb4e6d9428e967bfd37"
+      },
+      "out/check_timing.rpt": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/baseline/out/check_timing.rpt",
+        "sha256": "da19107a07badfaa583abd5123f91d95d204f67434bda318cb14551cb94152dd",
+        "original_sha256": "da19107a07badfaa583abd5123f91d95d204f67434bda318cb14551cb94152dd"
+      },
+      "out/drc.rpt": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/baseline/out/drc.rpt",
+        "sha256": "5ee0a8bdc309f82b852afde3fdeb33df2d3b698a22c056db94158bc430ef3db1",
+        "original_sha256": "5ee0a8bdc309f82b852afde3fdeb33df2d3b698a22c056db94158bc430ef3db1"
+      },
+      "out/power_vectorless.rpt": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/baseline/out/power_vectorless.rpt",
+        "sha256": "a45d6d2d74495028425cd5c226d7ee8ac5152023846f81238071ed7532757819",
+        "original_sha256": "a45d6d2d74495028425cd5c226d7ee8ac5152023846f81238071ed7532757819"
+      }
+    }
+  },
+  {
+    "label": "Column/borrow P7",
+    "artifact": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/optimized",
+    "part": "xc7vx690tffg1761-2",
+    "vivado_version": "2018.3",
+    "requested_period_ns": 1.5625,
+    "actual_period_ns": 1.563,
+    "stages": 7,
+    "setup_wns_ns": -17.112,
+    "data_path_ns": 18.627,
+    "logic_levels": 148,
+    "source": "u_recon/u_div/rem_reg[0]/C",
+    "destination": "u_recon/u_div/q_reg[60]/D",
+    "vectorless_power_w": 1.58,
+    "resources": {
+      "lut": 199039.0,
+      "ff": 66778.0,
+      "latch": 0.0,
+      "dsp": 20.0,
+      "bram_tiles": 0.0
+    },
+    "sha256": {
+      "manifest.json": "822ae0dc90c6d2229908814f89401c48477e01b6b7e9731358705bf45d3a5b3a",
+      "vivado.log": "62a149368735a2a3bc72580315cf02259c4b196991df932f1f1d24504fac528f",
+      "out/status.txt": "e2aee81bbeafb1bdda9558e4b361fb7443cf0b1bbea5cc70d31ec06810bc3c6e",
+      "out/utilization.rpt": "e33c8db0a84aeb7e3b58661c063e0ffeafd0056d697b058b9c1ec430b1939341",
+      "out/utilization_hier.rpt": "6b0052884239f0d63f13902bea5ca7ce0a7c0e9de2c737883efc1ded7b8f39e6",
+      "out/timing_paths.rpt": "be161c638c894e3376c24c4403c4ddb28139ed0c3c8fe5fdf36ae037d325c36a",
+      "out/timing_summary.rpt": "57db84dad5b0a39131d02b09fa87d30a1b4d0148718a43a1e4229f2b620c79f8",
+      "out/check_timing.rpt": "04e79b5c440b4eb6c0a905233fc4886e1111896014317984730f7e6ef868ed63",
+      "out/drc.rpt": "113ac2967c677261b356af8afef1b4105bafe8d99f0d10608ab22b7161e49956",
+      "out/power_vectorless.rpt": "a92e38bb5aa4c2288f55b37f3c3232bc41c7014247e0b797ebe0201c140e4b21"
+    },
+    "sources_sha256": {
+      "rtl/core/adc2_dec.sv": "268d279bdc1c2cdd7161072733c5046e701524c7e217b52ff0c7ca08951154f5",
+      "rtl/core/analog_phase_ctrl.sv": "66647aeeaa4e9dc41cd95eec430bdb8e75d42b93390bded576b18c22d8653932",
+      "rtl/core/cal_output_stage.sv": "30cb3de766b0c2f316bd65f519304e95a35897b55568564e56c999c8bac0c0c2",
+      "rtl/core/cal_residue_mac.sv": "082a93293cda83f79ff0ac7ef72e484043f8bbceb914361f270059b4bb764f71",
+      "rtl/core/cal_sample_context.sv": "8b0ff4527b6ff5936d378945bcfd38d2c203a43fb7d2cb4d0271a8f655bb9e56",
+      "rtl/core/cal_weight_reduce.sv": "c5fc7f6ef58b8e7497042ac9dc2e48cc44e895c7a39908de987f5ed17165b4f2",
+      "rtl/core/calib_regs.sv": "feff5d1d6c0359b427c5950ae6dec6db45e5e9707f44a06623681f5176c3e44b",
+      "rtl/core/ctrl_fsm.sv": "a04e9104a93819ed35d35f6a11355c4ee3afbaa0d4b020f6e17e5540b610041f",
+      "rtl/core/dem_addr_gen.sv": "aa5bd5c4d00fa2a5d77f81fcc99011246ed08ab01f00be3e92fcd42728f466ba",
+      "rtl/core/dem_state_gen.sv": "38c626502b2338c4c04497788cf40904408a885176967a4ca6d6750d578d7efe",
+      "rtl/core/dither_gen.sv": "d726478c13887ca3739265990be5b2a35c88a236d38257af1ab72cb53c828f7e",
+      "rtl/core/div_floor.sv": "cc3b0bd9c5e6c8491af10d0696f82e59373426c538c3212c210093dbc84c515c",
+      "rtl/core/rdac_drv.sv": "d91fa05062a50eb08826286ec527b5a15d6b7be758cee7f5e16c53fbe20d6a33",
+      "rtl/core/recon_core.sv": "3a486d215594d79ef53db5455cd1610c027855134132fc78539257bc5b660983",
+      "rtl/core/sar_structural_ctrl.sv": "76166ca5d0dbec70b9484b0badefe1f009a75ef942ed1de9e27159f2d092660e",
+      "rtl/core/sar_trial_ctrl.sv": "cbe60e2cc30fb95499449f0ec586847f9c1494de25bce784dc8b01a51248f8c9",
+      "rtl/core/slice_alloc.sv": "2c6d0293b846f00ccf88c0a38fc3030a243cb86fc84a705e31e70aa2084a2dc4",
+      "rtl/core/slice_pool_ctrl.sv": "e53d9efa8ced99e5322f6a3043dd67c7ceea11cfad60813f5e233504a28782b4",
+      "rtl/core/status_regs.sv": "8ab8ee1483f451da27ad59435ef7b00f3982427b17354fe5a9d2ac6319af4b1d",
+      "rtl/core/swap_decode.sv": "03684fb59ae5d0bbbd1d091f8b073b5cc9469dd603636ceea69726b01a5b5d88",
+      "rtl/core/unit_therm.sv": "ec00681a7565a1fd10172e32959c08e118f339de19f5e07eaf623c24fb6cb459",
+      "rtl/core/weight_store.sv": "15c0a33322e6edf5fbc99ec2058ef2b720c356763362c22639d8619ceda5be8a",
+      "rtl/top/sadc_enc.sv": "c366ddd1af00bfbf549b9300f5f80b564031c5e36848d77575622c9ba2007b7a",
+      "rtl/top/sar20_digital_core.sv": "676c35cacdc66076a74d8bf1039129be65f2c067f3903833a8aeb35f4745046a",
+      "rtl/rtl_sources.f": "edd37615fffd18cecfad620de2beab15f581639e8bc8520891b33487b7e98f7e",
+      "synth/run_vivado_ooc.tcl": "f9084c25618a94b8bd492e2dc699d6cb15a46d72a8be8e55d4c453b623487ed7",
+      "rtl/params/rtl_error_codes.vh": "ab67fff7eeff034da996d8c0442b529dc8476bb1eafca349f360c9e873bcc0ce",
+      "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654"
+    },
+    "scope": "FPGA post-synthesis OOC screening; vectorless power; no ASIC or board signoff",
+    "stored_inputs": {
+      "manifest.json": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/optimized/manifest.json",
+        "sha256": "822ae0dc90c6d2229908814f89401c48477e01b6b7e9731358705bf45d3a5b3a",
+        "original_sha256": "822ae0dc90c6d2229908814f89401c48477e01b6b7e9731358705bf45d3a5b3a"
+      },
+      "vivado.log": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/optimized/vivado.log",
+        "sha256": "62a149368735a2a3bc72580315cf02259c4b196991df932f1f1d24504fac528f",
+        "original_sha256": "62a149368735a2a3bc72580315cf02259c4b196991df932f1f1d24504fac528f"
+      },
+      "out/status.txt": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/optimized/out/status.txt",
+        "sha256": "e2aee81bbeafb1bdda9558e4b361fb7443cf0b1bbea5cc70d31ec06810bc3c6e",
+        "original_sha256": "e2aee81bbeafb1bdda9558e4b361fb7443cf0b1bbea5cc70d31ec06810bc3c6e"
+      },
+      "out/utilization.rpt": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/optimized/out/utilization.rpt",
+        "sha256": "e33c8db0a84aeb7e3b58661c063e0ffeafd0056d697b058b9c1ec430b1939341",
+        "original_sha256": "e33c8db0a84aeb7e3b58661c063e0ffeafd0056d697b058b9c1ec430b1939341"
+      },
+      "out/utilization_hier.rpt": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/optimized/out/utilization_hier.rpt",
+        "sha256": "6b0052884239f0d63f13902bea5ca7ce0a7c0e9de2c737883efc1ded7b8f39e6",
+        "original_sha256": "6b0052884239f0d63f13902bea5ca7ce0a7c0e9de2c737883efc1ded7b8f39e6"
+      },
+      "out/timing_paths.rpt": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/optimized/out/timing_paths.rpt.gz",
+        "sha256": "2312818c5112a74d0784d4d0a364da796f1d1704a9ba5f840b171c19ff9d351a",
+        "original_sha256": "be161c638c894e3376c24c4403c4ddb28139ed0c3c8fe5fdf36ae037d325c36a"
+      },
+      "out/timing_summary.rpt": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/optimized/out/timing_summary.rpt",
+        "sha256": "57db84dad5b0a39131d02b09fa87d30a1b4d0148718a43a1e4229f2b620c79f8",
+        "original_sha256": "57db84dad5b0a39131d02b09fa87d30a1b4d0148718a43a1e4229f2b620c79f8"
+      },
+      "out/check_timing.rpt": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/optimized/out/check_timing.rpt",
+        "sha256": "04e79b5c440b4eb6c0a905233fc4886e1111896014317984730f7e6ef868ed63",
+        "original_sha256": "04e79b5c440b4eb6c0a905233fc4886e1111896014317984730f7e6ef868ed63"
+      },
+      "out/drc.rpt": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/optimized/out/drc.rpt",
+        "sha256": "113ac2967c677261b356af8afef1b4105bafe8d99f0d10608ab22b7161e49956",
+        "original_sha256": "113ac2967c677261b356af8afef1b4105bafe8d99f0d10608ab22b7161e49956"
+      },
+      "out/power_vectorless.rpt": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_complete_p7/optimized/out/power_vectorless.rpt",
+        "sha256": "a92e38bb5aa4c2288f55b37f3c3232bc41c7014247e0b797ebe0201c140e4b21",
+        "original_sha256": "a92e38bb5aa4c2288f55b37f3c3232bc41c7014247e0b797ebe0201c140e4b21"
+      }
+    }
+  }
+]

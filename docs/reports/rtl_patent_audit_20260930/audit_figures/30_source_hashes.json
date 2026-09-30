@@ -1,0 +1,54 @@
+{
+  "scope": "Data-derived count and result visualization, not invented waveforms or completeness proof.",
+  "inputs": {
+    "arithmetic_manifest": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_calibration_audit_20260930/reproducible_run/manifest.json",
+      "sha256": "05c4d6f40d2b6cd6a3bcbee60d6f7bd2e355b3d6976f4f47754dea2ab57d590f"
+    },
+    "arithmetic_run": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_calibration_audit_20260930/reproducible_run/run.log",
+      "sha256": "a688b8f6e4395acd4dde283755611174af32f0b7aae19271286e7203b3c6a773"
+    },
+    "protocol_manifest": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/sim/artifacts/open_rtl/structural_protocol.negative_controls.json",
+      "sha256": "778fda6310bca7a3eb9b65053bde1870610e159a095f672fe55c5c1239bdcf80"
+    },
+    "protocol_run": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/sim/artifacts/open_rtl/structural_protocol_tb.run.log",
+      "sha256": "20a051eef5a77f2d3602b86ecdc239a8cdbef1047d3e1fb19ead2a195e38a58e"
+    },
+    "baseline_failure": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/sim/artifacts/open_rtl/structural_protocol.baseline.negative.log",
+      "sha256": "caa58649dcd59bd29ee896b8bdaa6073735e6a97a11d78ec6ef965483fa6d375"
+    },
+    "cancel_mutant_failure": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/sim/artifacts/open_rtl/structural_protocol.cancel_mutant.negative.log",
+      "sha256": "637f936a9885da6b5c13da5e8a3d836a2a7cba46c9342b20e004a29db02c2b68"
+    }
+  },
+  "script": {
+    "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_patent_rtl_report_20260928/audit_figures/make_arithmetic_protocol_overview.py",
+    "sha256": "89a28455d3813a7a379431d64a8d6bf224973193d2062b4f9a420c2266b54ff0"
+  },
+  "parsed_counts": {
+    "mac": 40010,
+    "adc": 40000,
+    "div": 10048,
+    "flag_sequences": 8,
+    "arithmetic_total": 90058,
+    "protocol_frames": 120,
+    "protocol_launches": 57,
+    "protocol_expected_drops": 63,
+    "protocol_checks": 1920,
+    "protocol_perturbations": 2
+  },
+  "protocol_source_hashes": {
+    "baseline_source_sha256": "ea7cd00fec642f8afee49efd2604e0b8993e20e16fa860a5692ab9789617b99e",
+    "fixed_source_sha256": "76166ca5d0dbec70b9484b0badefe1f009a75ef942ed1de9e27159f2d092660e",
+    "bench_sha256": "b7d295bba4710f21be7d7a38d71669b3f8f9cc629fa7146f46b151ed09de48c4"
+  },
+  "output": {
+    "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_patent_rtl_report_20260928/figures/30_arithmetic_protocol_audit.png",
+    "sha256": "b1f2785f3ac60e2cc0b29c1b776ede3e45986a51ee3b7b13866a62b55227c7b0"
+  }
+}

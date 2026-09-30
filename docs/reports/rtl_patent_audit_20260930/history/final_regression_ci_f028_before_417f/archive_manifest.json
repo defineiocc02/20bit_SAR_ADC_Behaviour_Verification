@@ -1,0 +1,21 @@
+{
+  "scope": "Preserved f028 21-bench RTL job success generated evidence; no row-cache CI inference",
+  "sha256": {
+    "audit_figures/make_final_regression_evidence.py": "1c63f791244535c87f561905bcc3fcd1ea2ffe6c1bd460976620c46028ce77f8",
+    "sections/final_regression_evidence.tex": "f1536b7a6f0164301dba843e2ab395d70b105b8f2d9ee2b4c4c9e0ff1fa0b07e",
+    "audit_figures/ci_f028_figure_upgrade_qa.json": "cd64674997671eb38856fdf26b438da5bae7930dea3d47fef6c31e1f8be50fab",
+    "audit_figures/README.md": "85fd02369cb67780971b0146fc7950694bb933da3f77aeb72ec8cc93b5f52848",
+    "figures/final_regression_arithmetic.png": "7b21415fe7adf92d6a8b5366d22fd784cf9035869dedb421a14570ea06b83ade",
+    "figures/final_regression_arithmetic.pdf": "674ca3026195d8015d18e2580fd15448e66f2941fdf828a8a8351b49bc2e858b",
+    "audit_figures/final_regression_arithmetic.sha256.json": "3feeef6ac3894e6807f5327d1059c9c6fcb910894d8e574b55a07e62da1d43bb",
+    "figures/final_regression_protocol.png": "4df46c1f095b93647f36534fa544aa7b3da0eaf075d79b0cda2c45acdb38209e",
+    "figures/final_regression_protocol.pdf": "5c9c1292c30d94030a0f4ec3d94a04c06f2966f863e0fbed909fecd653d70045",
+    "audit_figures/final_regression_protocol.sha256.json": "eeb2ee9428136510c08adb3f4fc14297b12f5e7eb19b96e39eb11b4ab0c59c67",
+    "figures/final_regression_system.png": "f1f9003f80f662e1125e552fb72dfeeeccbd90da68f258ae70738054045d5c77",
+    "figures/final_regression_system.pdf": "ea1bacd6ec5aba867bafd1038ab57b4e29f5eaff0dd3a8a474a6ab45e26914c8",
+    "audit_figures/final_regression_system.sha256.json": "cbce5e52830169ba36a98ed391e869d53944ba3b355993ade7cc4c29385bcb89",
+    "figures/final_regression_quantitative.png": "2c0ea1e50f2524c72254c6c3f81da6b0b462360b38b9573b2a225ab05241834c",
+    "figures/final_regression_quantitative.pdf": "c6fb16c20d65c94e067e85beca469c46c697b076528f6885b63da0e10abb34e1",
+    "audit_figures/final_regression_quantitative.sha256.json": "247638f14dc0e4404c351b80215b1e52d2176dba051072b208e695c9c78324c9"
+  }
+}

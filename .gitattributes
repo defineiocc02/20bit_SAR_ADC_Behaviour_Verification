@@ -87,3 +87,16 @@ docs/evidence/20260930/ci_workflow_f028/** -text -whitespace
 # Empty vendor environment values and timestamp-only lines are original evidence.
 docs/evidence/20260930/ci_rtl_f028/arithmetic-audit/verilator-version.log -whitespace
 docs/evidence/20260930/ci_rtl_f028/physical_flow_checks.log -whitespace
+
+# Current cache CI keeps the exact API bodies and raw tool/environment lines.
+docs/evidence/20260930/ci_rtl_417f/head_commit.json -text -whitespace
+docs/evidence/20260930/ci_rtl_417f/tested_merge_commit.json -text -whitespace
+docs/evidence/20260930/ci_rtl_417f/arithmetic-audit/verilator-version.log -whitespace
+docs/evidence/20260930/ci_rtl_417f/physical_flow_checks.log -whitespace
+docs/evidence/20260930/ci_workflow_417f/** -text -whitespace
+
+# A timed-out synthesis run is retained exactly as failure evidence.
+docs/evidence/20260930/vivado_compact_p5_timeout/** -text -whitespace
+
+# A historical unified diff must keep its context-line whitespace verbatim.
+docs/reports/rtl_patent_audit_20260930/audit_figures/section_provenance_update_20260930.patch -text -whitespace

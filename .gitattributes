@@ -98,5 +98,8 @@ docs/evidence/20260930/ci_workflow_417f/** -text -whitespace
 # A timed-out synthesis run is retained exactly as failure evidence.
 docs/evidence/20260930/vivado_compact_p5_timeout/** -text -whitespace
 
+# The recovered cached-P5 synthesis reports are byte-hash-bound raw evidence.
+docs/evidence/20260930/vivado_cached_p5/** -text -whitespace
+
 # A historical unified diff must keep its context-line whitespace verbatim.
 docs/reports/rtl_patent_audit_20260930/audit_figures/section_provenance_update_20260930.patch -text -whitespace

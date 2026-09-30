@@ -6,6 +6,7 @@ import argparse
 import csv
 import hashlib
 import json
+from itertools import pairwise
 from pathlib import Path
 
 import matplotlib
@@ -39,9 +40,7 @@ def main() -> None:
     log = final / "out/xsim.log"
     assert run["independent_local_audit"]["trace_sha256"] == digest(trace)
     assert run["independent_local_audit"]["log_sha256"] == digest(log)
-    assert (
-        "STRUCTURAL_MAPPED_COMPLETE modes=3 outputs=438 checks=7680" in log.read_text()
-    )
+    assert "STRUCTURAL_MAPPED_COMPLETE modes=3 outputs=438 checks=7680" in log.read_text()
     with trace.open(newline="") as handle:
         reader = csv.DictReader(handle)
         assert reader.fieldnames == [
@@ -57,9 +56,7 @@ def main() -> None:
         ]
         rows = [{key: int(value) for key, value in row.items()} for row in reader]
     assert len(rows) == 438
-    expected_ids = [
-        i for i in range(2, 159) if (i - 1) % 37 not in (11, 12) and i % 41 != 13
-    ]
+    expected_ids = [i for i in range(2, 159) if (i - 1) % 37 not in (11, 12) and i % 41 != 13]
     assert len(expected_ids) == 146
     per_mode = [[row for row in rows if row["mode"] == mode] for mode in range(3)]
     cadence = []
@@ -67,7 +64,7 @@ def main() -> None:
         assert [row["sample_id"] for row in selected] == expected_ids
         assert all(row["code"] == row["expected_code"] for row in selected)
         assert all(row["flags"] == row["expected_flags"] == 0 for row in selected)
-        for first, second in zip(selected, selected[1:], strict=False):
+        for first, second in pairwise(selected):
             sample_delta = second["sample_id"] - first["sample_id"]
             clock_delta = second["clock"] - first["clock"]
             assert sample_delta > 0 and clock_delta == 16 * sample_delta
@@ -76,9 +73,7 @@ def main() -> None:
 
     plt.rcParams.update({"font.family": "DejaVu Sans", "font.size": 10})
     colors = ["#215b93", "#218a7a", "#b68424"]
-    fig, axes = plt.subplots(
-        1, 3, figsize=(13.3, 4.6), gridspec_kw={"width_ratios": [1, 1.12, 1]}
-    )
+    fig, axes = plt.subplots(1, 3, figsize=(13.3, 4.6), gridspec_kw={"width_ratios": [1, 1.12, 1]})
     fig.patch.set_facecolor("white")
 
     ax = axes[0]

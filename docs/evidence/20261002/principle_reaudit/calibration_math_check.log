@@ -1,0 +1,182 @@
+{
+  "adc_fraction_contract": {
+    "cases": 24576,
+    "contract_matches": true,
+    "absolute_center_rte_differences": 8192
+  },
+  "nested_floor_identity": {
+    "cases": 5000,
+    "matches": true
+  },
+  "conditional_coefficient_quantization_bound": {
+    "scope": "CONTINUOUS_CODE_BOUND_NOT_FLOOR_BIT_EXACT_NOT_TRAINING_ERROR",
+    "conditions": {
+      "terms_max": 568,
+      "signal_plus_rail_abs_max": 2,
+      "gain_min": 32,
+      "injection": 0,
+      "code_scale": 524288
+    },
+    "bound_lsb20_by_wfrac": {
+      "30": 0.0086669921875,
+      "26": 0.138671875,
+      "22": 2.21875
+    },
+    "sampling_nominal_gain": 31.75,
+    "sampling_q30_bound_lsb20": 0.008735236220472441
+  },
+  "small_width_grouped_divider_algorithm": {
+    "cases": 186744,
+    "matches": true,
+    "scope": "CALCULATION_NOT_RTL_NOT_FORMAL",
+    "wa": [
+      2,
+      6
+    ],
+    "wd": [
+      1,
+      8
+    ],
+    "stages": [
+      1,
+      3,
+      7
+    ]
+  },
+  "domain_mirrors": {
+    "nominal": {
+      "path": "calibration_domain_nominal_mirror.json",
+      "sha256": "9e8a3625f9b3ccea6f735462b03209de82569b6e87bad0563ae3d43c049288f1",
+      "coefficient_count": 1278,
+      "coefficient_max": 67108864,
+      "load_range_legal": true,
+      "whole_store_sum": 77309411328,
+      "slice_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "main_on_each": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "sub_on_each": [],
+      "sampling": false,
+      "injection_q": 0,
+      "adc2_code": 341,
+      "fine_q": 26215,
+      "offset_q": 26215,
+      "gain": 34359738368,
+      "rails": 0,
+      "shifted": 154742504910672534362390528,
+      "expected_mac_acc_ovf": false,
+      "scope": "MIRROR_LOAD_PREDICATE_AND_MAC_CALCULATION_NOT_FULL_TOP_RUN"
+    },
+    "scaled_2pow20": {
+      "path": "calibration_domain_scaled_2pow20_mirror.json",
+      "sha256": "8c2ea5b922d280a3d85e8acf3de6265f53ad41ba8df53b333b00ebb3e9621043",
+      "coefficient_count": 1278,
+      "coefficient_max": 70368744177664,
+      "load_range_legal": true,
+      "whole_store_sum": 81064793292668928,
+      "slice_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "main_on_each": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31
+      ],
+      "sub_on_each": [],
+      "sampling": false,
+      "injection_q": 0,
+      "adc2_code": 341,
+      "fine_q": 26215,
+      "offset_q": 26215,
+      "gain": 36028797018963968,
+      "rails": 0,
+      "shifted": 162259276829213363391578010288128,
+      "expected_mac_acc_ovf": true,
+      "scope": "MIRROR_LOAD_PREDICATE_AND_MAC_CALCULATION_NOT_FULL_TOP_RUN"
+    }
+  },
+  "rtl_source_identity": {
+    "rtl/core/cal_residue_mac.sv": "8acf4dbc698e9e13d1c6fedfeeb0ad927998608658d2bfb7202a6621e27b0644",
+    "rtl/core/adc2_dec.sv": "113dab4a9f7770eafdc48b2f7b883155df3894cb2d02a1df97749a56d5941afa",
+    "rtl/core/weight_store.sv": "32eccfc231d4b8a5ff793e38174e5d5c6560dfd65c8670b3ab225368155948af",
+    "rtl/core/calib_regs.sv": "7bd4019bbddfa65f03b7cf8a99110177122230d549b6009fc5df4f74b34fce8d",
+    "rtl/core/div_floor.sv": "dd8afd4c9cc378ab78e993b7f2a8d82bed09eb63f05237454c5f97c0cb9e15ce",
+    "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654"
+  }
+}

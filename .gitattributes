@@ -120,3 +120,6 @@ docs/evidence/20260930/ci_shared_71e7d5a/** -text -whitespace -diff
 docs/reports/rtl_patent_audit_20260930/release_qa/** -text -whitespace
 
 docs/evidence/20261001/** -text -whitespace -diff
+
+# The standalone re-audit compiler log retains its diagnostic whitespace.
+docs/evidence/20261002/principle_reaudit/report_xelatex.log -whitespace

@@ -1,0 +1,473 @@
+{
+  "scope": "SOURCE_FORMULAS_HISTORICAL_FPGA_AND_FINITE_CONTROL_TRACE_NO_NEW_EDA_NO_ANALOG_NO_FMAX",
+  "generator": {
+    "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/generate_audit_figures.py",
+    "sha256": "f00048b7a9001b7dfc229b6bceb3c3c12bf85dd9b2b38f5b9cf292f4fb41440a",
+    "bytes": 14135
+  },
+  "inputs": [
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/synthesis_structure_counts.json",
+      "sha256": "0305c5d6cdf9f2b710a4b540c9fc23af9ec4f5570188ab9d19758b9d63fa8ddd",
+      "bytes": 25611
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/shared_old_trial_route_25ns/out/internal_max_paths.rpt",
+      "sha256": "f6d619f306bb431fc105f30c7655798f0720226a7942a635e30583f23ca5fd0a",
+      "bytes": 357329
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/control_minimal_witness/structural_capture_trace.csv",
+      "sha256": "3d818c321ef266d63e75cf73e89e73740fe29bdc1a145ab105c4278a02ea91b2",
+      "bytes": 105318
+    }
+  ],
+  "historical_physical_source_commit": "71e7d5a017246340b9fa1f71cbbe99e20b6503f6",
+  "current_source_head": "71935ab54238c7ed638f5fa66c5ffb58e10287bb",
+  "historical_profile": "P_STRUCTURAL=1, P_RECON_STAGES=5, Vivado 2018.3, xc7vx690tffg1761-2",
+  "ff_allocation": {
+    "categories": [
+      "Coefficient data",
+      "Loaded bitmap",
+      "Exact row cache",
+      "Other core FF"
+    ],
+    "values": [
+      60066,
+      1278,
+      972,
+      4176
+    ],
+    "total_measured_ff": 66492,
+    "measured_store_ff": 62316,
+    "method": "Three store source formulas reconcile to historical store FF; other is measured total minus store"
+  },
+  "path_composition": [
+    {
+      "stage": "Post-synthesis",
+      "source": "u_recon/u_div/rem_reg[0]/C",
+      "destination": "u_recon/u_div/q_reg[60]/D",
+      "logic_ns": 8.404,
+      "interconnect_ns": 5.908,
+      "total_ns": 14.312,
+      "interconnect_method": "Estimated"
+    },
+    {
+      "stage": "Post-route",
+      "source": "u_structure/u_context/fine_slices_reg[1][3]/C",
+      "destination": "u_recon/rails_s_reg[65]/D",
+      "logic_ns": 5.291,
+      "interconnect_ns": 18.623,
+      "total_ns": 23.914,
+      "interconnect_method": "Actual routed"
+    }
+  ],
+  "control_capture": {
+    "trace_edges": 1926,
+    "accepted_cases": 57,
+    "cases": [
+      {
+        "case": 1,
+        "edge": 66,
+        "sample_id": 3,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 2,
+        "edge": 82,
+        "sample_id": 4,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 3,
+        "edge": 130,
+        "sample_id": 7,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 4,
+        "edge": 146,
+        "sample_id": 8,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 5,
+        "edge": 194,
+        "sample_id": 11,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 6,
+        "edge": 210,
+        "sample_id": 12,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 7,
+        "edge": 258,
+        "sample_id": 15,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 8,
+        "edge": 274,
+        "sample_id": 16,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 9,
+        "edge": 322,
+        "sample_id": 19,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 10,
+        "edge": 338,
+        "sample_id": 20,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 11,
+        "edge": 386,
+        "sample_id": 23,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 12,
+        "edge": 402,
+        "sample_id": 24,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 13,
+        "edge": 450,
+        "sample_id": 27,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 14,
+        "edge": 466,
+        "sample_id": 28,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 15,
+        "edge": 514,
+        "sample_id": 31,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 16,
+        "edge": 530,
+        "sample_id": 32,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 17,
+        "edge": 594,
+        "sample_id": 36,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 18,
+        "edge": 642,
+        "sample_id": 39,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 19,
+        "edge": 658,
+        "sample_id": 40,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 20,
+        "edge": 706,
+        "sample_id": 43,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 21,
+        "edge": 722,
+        "sample_id": 44,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 22,
+        "edge": 770,
+        "sample_id": 47,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 23,
+        "edge": 786,
+        "sample_id": 48,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 24,
+        "edge": 834,
+        "sample_id": 51,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 25,
+        "edge": 850,
+        "sample_id": 52,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 26,
+        "edge": 898,
+        "sample_id": 55,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 27,
+        "edge": 914,
+        "sample_id": 56,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 28,
+        "edge": 962,
+        "sample_id": 59,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 29,
+        "edge": 978,
+        "sample_id": 60,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 30,
+        "edge": 1026,
+        "sample_id": 63,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 31,
+        "edge": 1090,
+        "sample_id": 67,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 32,
+        "edge": 1106,
+        "sample_id": 68,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 33,
+        "edge": 1154,
+        "sample_id": 71,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 34,
+        "edge": 1170,
+        "sample_id": 72,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 35,
+        "edge": 1218,
+        "sample_id": 75,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 36,
+        "edge": 1234,
+        "sample_id": 76,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 37,
+        "edge": 1282,
+        "sample_id": 79,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 38,
+        "edge": 1298,
+        "sample_id": 80,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 39,
+        "edge": 1346,
+        "sample_id": 83,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 40,
+        "edge": 1362,
+        "sample_id": 84,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 41,
+        "edge": 1410,
+        "sample_id": 87,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 42,
+        "edge": 1426,
+        "sample_id": 88,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 43,
+        "edge": 1474,
+        "sample_id": 91,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 44,
+        "edge": 1490,
+        "sample_id": 92,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 45,
+        "edge": 1538,
+        "sample_id": 95,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 46,
+        "edge": 1554,
+        "sample_id": 96,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 47,
+        "edge": 1602,
+        "sample_id": 99,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 48,
+        "edge": 1618,
+        "sample_id": 100,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 49,
+        "edge": 1666,
+        "sample_id": 103,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 50,
+        "edge": 1682,
+        "sample_id": 104,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 51,
+        "edge": 1730,
+        "sample_id": 107,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 52,
+        "edge": 1746,
+        "sample_id": 108,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 53,
+        "edge": 1794,
+        "sample_id": 111,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 54,
+        "edge": 1810,
+        "sample_id": 112,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 55,
+        "edge": 1858,
+        "sample_id": 115,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 56,
+        "edge": 1874,
+        "sample_id": 116,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      },
+      {
+        "case": 57,
+        "edge": 1922,
+        "sample_id": 119,
+        "context_age_cycles": 15,
+        "fine_code_age_cycles": 1
+      }
+    ],
+    "first_context_transfer_edge": 51,
+    "first_fine_code_capture_edge": 65,
+    "scope": "structural_protocol_tb wrapper and shadow stage-A only; no weight/recon physical datapath, analog settling, full-state MCP proof, re-enable or full config-clear coverage"
+  }
+}

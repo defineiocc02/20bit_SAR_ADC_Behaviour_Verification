@@ -152,6 +152,9 @@ extend-exclude = [
     "docs/reports/rtl_patent_audit_20260930/audit_figures/make_divider_profiles.py",
     "docs/reports/rtl_patent_audit_20260930/history/final_regression_ci_0c4a_before_f028/audit_figures/make_final_regression_evidence.py",
     "docs/evidence/20261001/engineering_fsm/runner_source.py",
+    "docs/evidence/20261002/principle_reaudit/calibration_math_check.py",
+    "docs/evidence/20261002/principle_reaudit/count_synthesis_structure.py",
+    "docs/evidence/20261002/principle_reaudit/generate_audit_figures.py",
 ]
 
 [tool.ruff.lint]

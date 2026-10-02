@@ -1,0 +1,829 @@
+{
+  "date": "2026-10-02",
+  "head": "71935ab54238c7ed638f5fa66c5ffb58e10287bb",
+  "scope": "MANUALLY_REVIEWED_SOURCE_FORMULAS_PLUS_HISTORICAL_FPGA_NOT_NEW_EDA_NOT_ASIC_SIGNOFF",
+  "script_sha256": "9856409c491febed988d3f757c887a1f52d0de44c925183c716e7c060917faa1",
+  "formula_method": "No HDL AST elaboration; profile and exact source anchors checked, hand-reviewed formulas evaluated",
+  "parameters": {
+    "N_SLICES": 18,
+    "N_ACTIVE": 8,
+    "N_UNIT_MAIN": 63,
+    "N_UNIT_SUB": 8,
+    "W_BITS": 48,
+    "V_BITS": 64,
+    "ACC_BITS": 96,
+    "OUT_BITS": 20,
+    "V_FRAC": 32,
+    "W_FRAC": 30,
+    "ADC2_BITS": 12,
+    "DITHER_UNITS_RANGE": 2,
+    "PHASES": 16
+  },
+  "top_default_divider_profile": 7,
+  "historical_physical_divider_profile": 5,
+  "structural_profile": 1,
+  "source_inventory": [
+    {
+      "path": "rtl/core/adc2_dec.sv",
+      "sha256": "113dab4a9f7770eafdc48b2f7b883155df3894cb2d02a1df97749a56d5941afa",
+      "bytes": 5802,
+      "lines": 106,
+      "module": "adc2_dec",
+      "historical_sha256": "268d279bdc1c2cdd7161072733c5046e701524c7e217b52ff0c7ca08951154f5",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/analog_phase_ctrl.sv",
+      "sha256": "2c33405498aba0fe7c3530fcd3f8acf840ed019274d1070736f786255bb76c02",
+      "bytes": 2726,
+      "lines": 58,
+      "module": "analog_phase_ctrl",
+      "historical_sha256": "66647aeeaa4e9dc41cd95eec430bdb8e75d42b93390bded576b18c22d8653932",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/cal_output_stage.sv",
+      "sha256": "b0396b20835a7710903d3e225f611eb78817e4906133b47757c7ef585909aadd",
+      "bytes": 3462,
+      "lines": 81,
+      "module": "cal_output_stage",
+      "historical_sha256": "30cb3de766b0c2f316bd65f519304e95a35897b55568564e56c999c8bac0c0c2",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/cal_residue_mac.sv",
+      "sha256": "8acf4dbc698e9e13d1c6fedfeeb0ad927998608658d2bfb7202a6621e27b0644",
+      "bytes": 4835,
+      "lines": 91,
+      "module": "cal_residue_mac",
+      "historical_sha256": "082a93293cda83f79ff0ac7ef72e484043f8bbceb914361f270059b4bb764f71",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/cal_sample_context.sv",
+      "sha256": "bb2dbbcf0b154d4f955e9fecc03085385eacb7d3063d45085d84aa0a59b1baaa",
+      "bytes": 3317,
+      "lines": 72,
+      "module": "cal_sample_context",
+      "historical_sha256": "8b0ff4527b6ff5936d378945bcfd38d2c203a43fb7d2cb4d0271a8f655bb9e56",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/cal_weight_reduce.sv",
+      "sha256": "c41bd2fce6c43d330f7d5d37aab3400c1cdcf797781f8eb4c371cc2b14e5bb07",
+      "bytes": 9728,
+      "lines": 187,
+      "module": "cal_weight_reduce",
+      "historical_sha256": "b4be31b0f69bf25021ab06191fbc9a83f587a0256b8c94284ee2aa8bd6058bc3",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/calib_regs.sv",
+      "sha256": "7bd4019bbddfa65f03b7cf8a99110177122230d549b6009fc5df4f74b34fce8d",
+      "bytes": 8092,
+      "lines": 160,
+      "module": "calib_regs",
+      "historical_sha256": "feff5d1d6c0359b427c5950ae6dec6db45e5e9707f44a06623681f5176c3e44b",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/ctrl_fsm.sv",
+      "sha256": "ec49018d6af765c883a647284b2b9ebc44ac5b5980b7e18e1ee275f385ad5723",
+      "bytes": 5615,
+      "lines": 116,
+      "module": "ctrl_fsm",
+      "historical_sha256": "a04e9104a93819ed35d35f6a11355c4ee3afbaa0d4b020f6e17e5540b610041f",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/dem_addr_gen.sv",
+      "sha256": "a8d6ad4df32652d47007956e86f820ed882efa3a0e777dae7cf3853a75de7eaa",
+      "bytes": 5045,
+      "lines": 107,
+      "module": "dem_addr_gen",
+      "historical_sha256": "aa5bd5c4d00fa2a5d77f81fcc99011246ed08ab01f00be3e92fcd42728f466ba",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/dem_state_gen.sv",
+      "sha256": "d5bf4ceff09a819af5e10fc86260483e18f647b982c37a4cd1206c972988a121",
+      "bytes": 4595,
+      "lines": 96,
+      "module": "dem_state_gen",
+      "historical_sha256": "38c626502b2338c4c04497788cf40904408a885176967a4ca6d6750d578d7efe",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/dither_gen.sv",
+      "sha256": "4510cde8c800660b0de8503da0640698a4a40ff4aa33ad9830a8208e5b1de7cb",
+      "bytes": 3533,
+      "lines": 77,
+      "module": "dither_gen",
+      "historical_sha256": "d726478c13887ca3739265990be5b2a35c88a236d38257af1ab72cb53c828f7e",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/div_floor.sv",
+      "sha256": "dd8afd4c9cc378ab78e993b7f2a8d82bed09eb63f05237454c5f97c0cb9e15ce",
+      "bytes": 6709,
+      "lines": 165,
+      "module": "div_floor",
+      "historical_sha256": "cc3b0bd9c5e6c8491af10d0696f82e59373426c538c3212c210093dbc84c515c",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/rdac_drv.sv",
+      "sha256": "2b826d593414c7e76ec7a1a10a7e26d9758377c6ba609bcc790fb1490828c82f",
+      "bytes": 4177,
+      "lines": 79,
+      "module": "rdac_drv",
+      "historical_sha256": "d91fa05062a50eb08826286ec527b5a15d6b7be758cee7f5e16c53fbe20d6a33",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/recon_core.sv",
+      "sha256": "9cd22072bf244c60966a4132d7727430b17a1929eeae2c44e12ba2d81a899c2e",
+      "bytes": 11748,
+      "lines": 282,
+      "module": "recon_core",
+      "historical_sha256": "630b7e665d30ee5b86cfac3820b42e050c604077fadd1f685bc3a7ae7609b6a8",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/sar_structural_ctrl.sv",
+      "sha256": "c6f5ac43086dc4aef6045d85b8fde244f3c758991c525a689b18bffdb80b349a",
+      "bytes": 12542,
+      "lines": 346,
+      "module": "sar_structural_ctrl",
+      "historical_sha256": "76166ca5d0dbec70b9484b0badefe1f009a75ef942ed1de9e27159f2d092660e",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/sar_trial_ctrl.sv",
+      "sha256": "dca169cd89e9fab1235f9264c76079e5783969e593bc098206a4bd4de1a9fbf2",
+      "bytes": 3142,
+      "lines": 80,
+      "module": "sar_trial_ctrl",
+      "historical_sha256": "cbe60e2cc30fb95499449f0ec586847f9c1494de25bce784dc8b01a51248f8c9",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/slice_alloc.sv",
+      "sha256": "1993a12578cc8e29e7cab4f4f61ed71d01b2b6cf85a0d19afea875df9fa45f3e",
+      "bytes": 4824,
+      "lines": 96,
+      "module": "slice_alloc",
+      "historical_sha256": "2c6d0293b846f00ccf88c0a38fc3030a243cb86fc84a705e31e70aa2084a2dc4",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/slice_pool_ctrl.sv",
+      "sha256": "fd8dfc97d6c9db8427f99303feff8d8b9d5daf18012973c6f5db4b1a4f3bc492",
+      "bytes": 3193,
+      "lines": 84,
+      "module": "slice_pool_ctrl",
+      "historical_sha256": "e53d9efa8ced99e5322f6a3043dd67c7ceea11cfad60813f5e233504a28782b4",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/status_regs.sv",
+      "sha256": "391ce2d8439bdc7b775fc56830480ba8db84180ccaa4aee93a811fbc3ef4b981",
+      "bytes": 5570,
+      "lines": 107,
+      "module": "status_regs",
+      "historical_sha256": "8ab8ee1483f451da27ad59435ef7b00f3982427b17354fe5a9d2ac6319af4b1d",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/swap_decode.sv",
+      "sha256": "ec923be46ff8924323ec0fcfc5d471cf748c41e5cef8038c026981d40f6945b6",
+      "bytes": 5843,
+      "lines": 113,
+      "module": "swap_decode",
+      "historical_sha256": "03684fb59ae5d0bbbd1d091f8b073b5cc9469dd603636ceea69726b01a5b5d88",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/unit_therm.sv",
+      "sha256": "387c80474d06b0dd10d33f6c73a753650ed836285bceea9894c492853b21eae1",
+      "bytes": 3647,
+      "lines": 69,
+      "module": "unit_therm",
+      "historical_sha256": "ec00681a7565a1fd10172e32959c08e118f339de19f5e07eaf623c24fb6cb459",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/core/weight_store.sv",
+      "sha256": "32eccfc231d4b8a5ff793e38174e5d5c6560dfd65c8670b3ab225368155948af",
+      "bytes": 7270,
+      "lines": 149,
+      "module": "weight_store",
+      "historical_sha256": "14d3ada75223fa262036189cc9e444bec74b23cc347ede7c95a09c99b11bf2db",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/top/sadc_enc.sv",
+      "sha256": "dc69bfc3e5be0855f7648a1631d34948bba0959233f8d662815747ee5bdde82f",
+      "bytes": 3151,
+      "lines": 61,
+      "module": "sadc_enc",
+      "historical_sha256": "c366ddd1af00bfbf549b9300f5f80b564031c5e36848d77575622c9ba2007b7a",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/top/sar20_digital_core.sv",
+      "sha256": "382f1242ea18b636ab9ea3b65c1b607a8a646ac8c050f4b77d0fb115548f4fa3",
+      "bytes": 30410,
+      "lines": 736,
+      "module": "sar20_digital_core",
+      "historical_sha256": "787749874a2d9ea3c338a64e608298439f4d67892a7a0a8b0fca6f7a3da16325",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/params/rtl_params.vh",
+      "sha256": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+      "bytes": 3764,
+      "lines": 60,
+      "module": null,
+      "historical_sha256": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+      "finite_source_tokens_equal": true
+    },
+    {
+      "path": "rtl/params/rtl_error_codes.vh",
+      "sha256": "3fce073cf9e0585f85e394943e81d7c08c4b162292e4a4a3525b91743dd2dbc1",
+      "bytes": 1203,
+      "lines": 20,
+      "module": null,
+      "historical_sha256": "ab67fff7eeff034da996d8c0442b529dc8476bb1eafca349f360c9e873bcc0ce",
+      "finite_source_tokens_equal": true
+    }
+  ],
+  "source_anchors": {
+    "rtl/core/weight_store.sv": [
+      {
+        "fragment": "47 + $clog2(P_N_UNITS)",
+        "line": 73
+      },
+      {
+        "fragment": "old_by_slice[s] = w_q[s][u_idx]",
+        "line": 118
+      },
+      {
+        "fragment": "wr_data & (W_MAX - W_BITS'(1))",
+        "line": 143
+      }
+    ],
+    "rtl/core/cal_weight_reduce.sv": [
+      {
+        "fragment": "1 << $clog2(N_TERMS)",
+        "line": 54
+      },
+      {
+        "fragment": "physical_on[s] |= {sub_on[a], main_on[a]}",
+        "line": 102
+      },
+      {
+        "fragment": "on_tree[t] = on_tree[2 * t] + on_tree[2 * t + 1]",
+        "line": 172
+      }
+    ],
+    "rtl/core/div_floor.sv": [
+      {
+        "fragment": "localparam int W_R = P_W_A",
+        "line": 53
+      },
+      {
+        "fragment": "trial_difference = {1'b0, shifted} - {1'b0, dv}",
+        "line": 102
+      }
+    ],
+    "rtl/core/cal_sample_context.sv": [
+      {
+        "fragment": "if (quiet_sample)",
+        "line": 64
+      },
+      {
+        "fragment": "fine_id, fine_slices, fine_main, fine_sub, fine_rails, fine_sampling, fine_injection",
+        "line": 66
+      }
+    ],
+    "rtl/core/sar_structural_ctrl.sv": [
+      {
+        "fragment": "assign recon_start = enable && phase == 15",
+        "line": 281
+      },
+      {
+        "fragment": "if (phase == 14)",
+        "line": 334
+      }
+    ],
+    "rtl/top/sar20_digital_core.sv": [
+      {
+        "fragment": "parameter bit P_STRUCTURAL = 1",
+        "line": 33
+      },
+      {
+        "fragment": "parameter int P_RECON_STAGES = 7",
+        "line": 34
+      },
+      {
+        "fragment": ".P_USE_ROW_TOTALS(1)",
+        "line": 635
+      }
+    ]
+  },
+  "historical_identity_bridge": {
+    "baseline_commit": "71e7d5a017246340b9fa1f71cbbe99e20b6503f6",
+    "finite_tokens_equal_all_26_files": true,
+    "scope": "Finite SV tokens including tool comments/directives only; this script does not re-run macro preprocessing or formal equivalence"
+  },
+  "weight_store": {
+    "declared_coefficient_bits": 61344,
+    "proven_nonconstant_coefficient_bits": 60066,
+    "loaded_bitmap_bits": 1278,
+    "row_bits": 54,
+    "row_cache_bits": 972,
+    "global_sum_declared_bits": 64,
+    "global_sum_pruned_for_profile": true,
+    "storage_candidate_ff_bits": 62316,
+    "per_row_old_value_mux_inputs": 71,
+    "per_row_old_value_mux_bus_width_proven": 47,
+    "number_of_per_row_old_value_muxes": 18,
+    "configuration_readback_row_mux_inputs": 18,
+    "binary_mux_depth_ideal_per_row": 7,
+    "binary_mux_depth_ideal_readback_row": 5,
+    "per_row_replacement_subtracts": 18,
+    "per_row_replacement_adds": 18,
+    "replacement_arithmetic_width": 54,
+    "scope": "Source-declared/derived bits and ideal binary mux topology; not mapped gates"
+  },
+  "cal_weight_reduce": {
+    "on_tree": {
+      "nonzero_source_leaves": 1278,
+      "padded_leaves": 2048,
+      "declared_branch_expressions": 2047,
+      "topology_depth": 11,
+      "two_live_input_combines_after_padding_only": 1277,
+      "scope": "Source graph and constant-zero padding only; not mapped cell count"
+    },
+    "uncached_total_tree_removed_branches": 2047,
+    "cached_row_tree": {
+      "nonzero_source_leaves": 18,
+      "padded_leaves": 32,
+      "declared_branch_expressions": 31,
+      "topology_depth": 5,
+      "two_live_input_combines_after_padding_only": 17,
+      "scope": "Source graph and constant-zero padding only; not mapped cell count"
+    },
+    "number_of_dither_column_trees": 4,
+    "dither_column_tree_each": {
+      "nonzero_source_leaves": 18,
+      "padded_leaves": 32,
+      "declared_branch_expressions": 31,
+      "topology_depth": 5,
+      "two_live_input_combines_after_padding_only": 17,
+      "scope": "Source graph and constant-zero padding only; not mapped cell count"
+    },
+    "mask_tree": {
+      "nonzero_source_leaves": 4,
+      "padded_leaves": 4,
+      "declared_branch_expressions": 3,
+      "topology_depth": 2,
+      "two_live_input_combines_after_padding_only": 3,
+      "scope": "Source graph and constant-zero padding only; not mapped cell count"
+    },
+    "rail_tree": {
+      "nonzero_source_leaves": 4,
+      "padded_leaves": 4,
+      "declared_branch_expressions": 3,
+      "topology_depth": 2,
+      "two_live_input_combines_after_padding_only": 3,
+      "scope": "Source graph and constant-zero padding only; not mapped cell count"
+    },
+    "dither_conditional_negations": 4,
+    "default_sum_bits": 64,
+    "default_rails_bits": 66,
+    "physical_active_comparisons": 144,
+    "invalid_duplicate_comparisons": 28,
+    "invalid_range_checks": 8,
+    "logical_physical_mask_crosspoints": 10224,
+    "final_rails_serial_add_subexpressions": 2,
+    "effective_gain_conditional_subtractions": 1,
+    "valid_selected_coefficients": 568,
+    "valid_selected_sum_max_exclusive": 79938893385826304,
+    "valid_selected_sum_sufficient_bits": 57,
+    "global_uncorrelated_leaf_sum_sufficient_bits": 58,
+    "scope": "Source graph/formulas; runtime 8-active invariant is not a synthesis optimization guarantee"
+  },
+  "context": {
+    "packet_bits": 709,
+    "two_packet_data_bits": 1418,
+    "valid_bad_bits": 4,
+    "declared_state_bits": 1422
+  },
+  "rdac_output": {
+    "selected_bits": 18,
+    "main_bits": 1134,
+    "sub_bits": 144,
+    "dither_bits": 72,
+    "declared_state_bits": 1368,
+    "active_channel_scatter_count": 8,
+    "per_physical_row_priority_candidates": 8
+  },
+  "multipliers": [
+    {
+      "module": "adc2_dec",
+      "source_expression": "zero_extend(2*code+1) * sign_extend(max-min)",
+      "meaningful_operand_bits": [
+        13,
+        65
+      ],
+      "product_declared_bits": 78,
+      "scope": "One logical multiply; FPGA mapping is historical 4 DSP, ASIC cell cost unknown"
+    },
+    {
+      "module": "cal_residue_mac",
+      "source_expression": "zero_extend(total_s) * inj_r",
+      "meaningful_operand_bits": [
+        64,
+        64
+      ],
+      "product_declared_bits": 130,
+      "scope": "One logical multiply; sign/zero-extension does not mean a generic 130x64 physical multiplier; historical 16 DSP"
+    }
+  ],
+  "divider_profiles": {
+    "5": {
+      "unroll_stages": 5,
+      "numerator_bits": 63,
+      "denominator_bits": 64,
+      "trial_subtract_bits": 64,
+      "cycles": 13,
+      "padded_numerator_bits": 65,
+      "counter_bits": 4,
+      "declared_state_bits": 329,
+      "reconstruction_latency": 15,
+      "frame_period": 16,
+      "output_latency_budget_remaining": 1
+    },
+    "6": {
+      "unroll_stages": 6,
+      "numerator_bits": 63,
+      "denominator_bits": 64,
+      "trial_subtract_bits": 64,
+      "cycles": 11,
+      "padded_numerator_bits": 66,
+      "counter_bits": 4,
+      "declared_state_bits": 331,
+      "reconstruction_latency": 13,
+      "frame_period": 16,
+      "output_latency_budget_remaining": 3
+    },
+    "7": {
+      "unroll_stages": 7,
+      "numerator_bits": 63,
+      "denominator_bits": 64,
+      "trial_subtract_bits": 64,
+      "cycles": 9,
+      "padded_numerator_bits": 63,
+      "counter_bits": 4,
+      "declared_state_bits": 325,
+      "reconstruction_latency": 11,
+      "frame_period": 16,
+      "output_latency_budget_remaining": 5
+    }
+  },
+  "standalone_flash_encoder_default": {
+    "bits": 9,
+    "comparators": 511,
+    "tree": {
+      "nonzero_source_leaves": 511,
+      "padded_leaves": 512,
+      "declared_branch_expressions": 511,
+      "topology_depth": 9,
+      "two_live_input_combines_after_padding_only": 510,
+      "scope": "Source graph and constant-zero padding only; not mapped cell count"
+    }
+  },
+  "actual_structural_flash_encoder": {
+    "bits": 3,
+    "comparators": 7,
+    "tree": {
+      "nonzero_source_leaves": 7,
+      "padded_leaves": 8,
+      "declared_branch_expressions": 7,
+      "topology_depth": 3,
+      "two_live_input_combines_after_padding_only": 6,
+      "scope": "Source graph and constant-zero padding only; not mapped cell count"
+    }
+  },
+  "unit_therm": {
+    "logical_main_comparisons": 504,
+    "logical_sub_comparisons": 64,
+    "logical_total_comparisons": 568,
+    "dither_rail_comparisons": 4
+  },
+  "slice_pool": {
+    "source_state_bits": 187,
+    "source_priority_scan_steps": 18,
+    "lfsr_unrolled_steps": 8,
+    "constant_remainder_input_bits": 8,
+    "constant_remainder_divisor": 18,
+    "scope": "Scan is combinational; integer temporaries are not state FF"
+  },
+  "historical_actual": {
+    "source_commit": "71e7d5a017246340b9fa1f71cbbe99e20b6503f6",
+    "rtl_content_sha256": "89b9f8153fea49d82faba8464e45bb83c914b11ebf708fb623a9fe3a660b5d26",
+    "resources": {
+      "lut": 108842,
+      "ff": 66492,
+      "latch": 0,
+      "bram_tiles": 0,
+      "dsp": 20,
+      "bufgctrl": 0,
+      "lutram": 0,
+      "f7_mux": 7709,
+      "f8_mux": 3376
+    },
+    "synthesis_worst_setup": {
+      "source": "u_recon/u_div/rem_reg[0]/C",
+      "destination": "u_recon/u_div/q_reg[60]/D",
+      "data_delay_ns": 14.312,
+      "logic_delay_ns": 8.404,
+      "estimated_route_delay_ns": 5.908,
+      "logic_levels": 110,
+      "logic_types": "CARRY4=93 LUT1=1 LUT2=5 LUT3=1 LUT4=1 LUT5=1 LUT6=8",
+      "clock_uncertainty_ns": 0.085,
+      "user_uncertainty_ns": 0.05,
+      "scope": "post-synthesis estimated interconnect, not routed path"
+    },
+    "routed_core": {
+      "scope": "FPGA_ROUTED_CORE_TIMING_MET_OOC_EXTERNAL_HOLD_FAILED_NOT_BOARD_OR_ASIC",
+      "rtl_content_sha256": "89b9f8153fea49d82faba8464e45bb83c914b11ebf708fb623a9fe3a660b5d26",
+      "input_dcp_sha256": "63a6faacdc44e54da02514a70ff658ac31756853496114513018ac5714cc856e",
+      "post_route_dcp_sha256": "fba86312b0c96add78ca388b972a52ab77c1b781eec34c1b91027b1ea7358072",
+      "requested_period_ns": 25.0,
+      "all_path_setup_wns_ns": 0.946,
+      "all_path_hold_whs_ns": -2.278,
+      "regreg_setup_wns_ns": 0.946,
+      "regreg_hold_whs_ns": 0.052,
+      "core_timing_met": true,
+      "all_path_timing_met": false,
+      "setup_failing_endpoints": 0,
+      "hold_failing_endpoints": 65048,
+      "route_errors": 0,
+      "drc_errors": 0,
+      "check_timing_categories": 16,
+      "check_timing_issues": 0,
+      "routed_complete": true,
+      "board_timing_certified": false,
+      "interpretation": "25 ns core register setup and hold pass with actual BUFG and completed route. Zero-minimum external OOC inputs still fail hold; board constraints and ASIC 640 MHz are not certified."
+    },
+    "hierarchy": [
+      {
+        "instance": "sar20_digital_core",
+        "module": "(top)",
+        "lut": 108842,
+        "ff": 66492,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 20
+      },
+      {
+        "instance": "(sar20_digital_core)",
+        "module": "(top)",
+        "lut": 319,
+        "ff": 35,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_calib",
+        "module": "calib_regs",
+        "lut": 2202,
+        "ff": 204,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_recon",
+        "module": "recon_core",
+        "lut": 36723,
+        "ff": 683,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 20
+      },
+      {
+        "instance": "(u_recon)",
+        "module": "recon_core",
+        "lut": 229,
+        "ff": 295,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_adc2",
+        "module": "adc2_dec",
+        "lut": 49,
+        "ff": 0,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 4
+      },
+      {
+        "instance": "u_div",
+        "module": "div_floor",
+        "lut": 768,
+        "ff": 325,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_output",
+        "module": "cal_output_stage",
+        "lut": 3,
+        "ff": 63,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_residue_mac",
+        "module": "cal_residue_mac",
+        "lut": 310,
+        "ff": 0,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 16
+      },
+      {
+        "instance": "u_weight_reduce",
+        "module": "cal_weight_reduce",
+        "lut": 35364,
+        "ff": 0,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_status",
+        "module": "status_regs",
+        "lut": 4,
+        "ff": 6,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_structure",
+        "module": "sar_structural_ctrl",
+        "lut": 50699,
+        "ff": 3248,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "(u_structure)",
+        "module": "sar_structural_ctrl",
+        "lut": 6,
+        "ff": 128,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "g_coarse[0].u_sar",
+        "module": "sar_trial_ctrl",
+        "lut": 45,
+        "ff": 25,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "g_coarse[1].u_sar",
+        "module": "sar_trial_ctrl_0",
+        "lut": 2167,
+        "ff": 25,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_context",
+        "module": "cal_sample_context",
+        "lut": 40580,
+        "ff": 1422,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_decode",
+        "module": "swap_decode",
+        "lut": 972,
+        "ff": 0,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_dem",
+        "module": "dem_state_gen__parameterized0",
+        "lut": 43,
+        "ff": 18,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_fine",
+        "module": "sar_trial_ctrl__parameterized0",
+        "lut": 46,
+        "ff": 30,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_order",
+        "module": "dem_addr_gen",
+        "lut": 1,
+        "ff": 0,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_phase",
+        "module": "analog_phase_ctrl",
+        "lut": 30,
+        "ff": 8,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_pool",
+        "module": "slice_pool_ctrl",
+        "lut": 6604,
+        "ff": 192,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_random",
+        "module": "dither_gen__parameterized0",
+        "lut": 13,
+        "ff": 32,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_rdac",
+        "module": "rdac_drv",
+        "lut": 200,
+        "ff": 1368,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_units",
+        "module": "unit_therm",
+        "lut": 1,
+        "ff": 0,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      },
+      {
+        "instance": "u_wstore",
+        "module": "weight_store",
+        "lut": 18997,
+        "ff": 62316,
+        "bram36": 0,
+        "bram18": 0,
+        "dsp": 0
+      }
+    ],
+    "hierarchy_caveat": "Rebuilt hierarchy moves logic across source modules; parent/child rows must not be summed, and row attribution is not isolated RTL ownership.",
+    "estimated_store_share_of_actual_ff_percent": 93.71954520844614
+  },
+  "unknown": [
+    "Current-head new synthesis/route measurements",
+    "ASIC standard-cell area and delay",
+    "SRAM banking/ports and PDK macro models",
+    "Activity-based total power",
+    "Board I/O min/max budgets",
+    "Full-state proof and post-ECO STA of proposed selective multicycle paths"
+  ]
+}

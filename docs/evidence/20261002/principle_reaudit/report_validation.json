@@ -1,0 +1,21 @@
+{
+  "source_base_head": "71935ab54238c7ed638f5fa66c5ffb58e10287bb",
+  "pages": 46,
+  "native_editor_compile": "success",
+  "native_compile_scope": "Tool reported current standalone source compiled; not local log substitution",
+  "xelatex_export": "strict compile twice; final log no errors/missing glyphs/layout overflow/undefined labels",
+  "source_sha256": "22be1d1f3d5fb6a60d5dd189ba484b44aadd0fb67c35dde8a99b17ce75ca8b96",
+  "pdf_sha256": "690f3e84b102dd845ea1b04ce856bbbae3bc6f3cfad8912a8e0c26ee08fced3c",
+  "maintained_cli_ruff": "PASS",
+  "source_reproduction": "byte-identical after maintained CLI formatting and frozen-source guard",
+  "calculation_reproduction": "26 source SHA, 3 arithmetic payloads byte-identical, structure equal except documentation HEAD",
+  "production_rtl_changed": false,
+  "new_eda_run": false,
+  "visual_qa": "PASS:46/46 full page images and 8 contact sheets actually reviewed; no blocking crop/overlap/glyph/blank page",
+  "visual_qa_metadata_sha256": "a3453d3d80f2cb1ee08f50a5cd8889f54af55512078ac5a49ab3419fa2ebe33d",
+  "nonblocking_layout_observations": [
+    "physical page5 sparse TOC remainder",
+    "physical page14 three-line chapter ending"
+  ],
+  "ruff_global": "check PASS; format-check PASS for159 files"
+}

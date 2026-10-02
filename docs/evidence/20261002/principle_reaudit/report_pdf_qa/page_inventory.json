@@ -1,0 +1,1606 @@
+{
+  "source_pdf": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/report.pdf",
+  "source_pdf_sha256": "690f3e84b102dd845ea1b04ce856bbbae3bc6f3cfad8912a8e0c26ee08fced3c",
+  "source_pdf_bytes": 783178,
+  "page_count": 46,
+  "render_dpi": 120,
+  "page_inventory": [
+    {
+      "pdf_page": 1,
+      "printed_footer_numbers": [],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        150.61300659179688,
+        287.8856201171875,
+        444.6630554199219,
+        474.0980224609375
+      ],
+      "text_characters": 164,
+      "text_start": "20-bit SAR ADC 原理再核对\nRTL 逐模块功能与综合电路评估\n对既有115 页报告的独立复核补充\n基于原始论文、专利页图、冻结源码与可复现见证\n2026 年10 月2 日\n源基线：71935ab54238c7ed638f5fa66c5ffb58e10287bb\n生产RTL 未修改；无新综合、布线或ASIC 签核\n",
+      "text_end": "20-bit SAR ADC 原理再核对\nRTL 逐模块功能与综合电路评估\n对既有115 页报告的独立复核补充\n基于原始论文、专利页图、冻结源码与可复现见证\n2026 年10 月2 日\n源基线：71935ab54238c7ed638f5fa66c5ffb58e10287bb\n生产RTL 未修改；无新综合、布线或ASIC 签核\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 0,
+      "nonwhite_fraction": 0.012681,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_01.png",
+      "png_sha256": "78c24898ca7e19b3cc8ed49d925df1854cb941a2cf73da7e7f075b1f0c251c24",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 2,
+      "printed_footer_numbers": [],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.361907958984375,
+        272.5189208984375,
+        532.9163208007812,
+        405.0224914550781
+      ],
+      "text_characters": 361,
+      "text_start": "摘要\n本报告重新核对原文与全部24 个生产RTL 模块、两个参数头文件，推导静态电荷模型与精确整数重构，并\n区分原文明示、工程选择、模拟宏边界和历史实测。新的限域见证澄清ADC2 增量舍入与绝对中心舍入、配\n置合法域与MAC 工作域、模拟错误归属及15T/1T 捕获时窗。综合结构公式与历史P5 网表对应，权重库\n候选62316FF 占历史全核FF 的93.72%，真实布线最差路径互连占77.875%。历史核心25ns setup/hold 通\n过，外部OOC hold 仍失败",
+      "text_end": "%，真实布线最差路径互连占77.875%。历史核心25ns setup/hold 通\n过，外部OOC hold 仍失败；默认P7 未取得本轮新物理结果。文中提供全部模块功能、位宽/状态/运算树\n与硬件风险、三幅原创数据图及综合、STA、CTS、布线的分阶段验收计划。已有数字功能证据不能推出论\n文模拟指标、全部专利实施例或ASIC640MHz/PPA 优势。\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 0,
+      "nonwhite_fraction": 0.022689,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_02.png",
+      "png_sha256": "3b629bdea1ad0a808b9018478bcc46cbfec256cd37d46281d6994baa73bcf2f3",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 3,
+      "printed_footer_numbers": [
+        "1"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.36199951171875,
+        139.32200622558594,
+        532.91357421875,
+        811.3477172851562
+      ],
+      "text_characters": 2288,
+      "text_start": "目录\n第一章集成复核与工程判断\n4\n1.1\n保证分析可信的方法和适用边界. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n4\n1.2\n论文/专利究竟复现到了哪一层\n. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n5\n1.3\n数字校正公式：对的部分、工程假设和新增定义问题. . . . . . . ",
+      "text_end": ". . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n14\n附录A\n校准原理与九模块功能详解\n15\nA.1 先给出结论及证据边界. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n15\n1\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 0,
+      "nonwhite_fraction": 0.041749,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_03.png",
+      "png_sha256": "cc2069f6efc65bf5da63df9628fa67c74b1f89a5120cd8526ca039f34fbe5199",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 4,
+      "printed_footer_numbers": [
+        "2"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.36199951171875,
+        25.839143753051758,
+        532.91357421875,
+        811.3477172851562
+      ],
+      "text_characters": 3351,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\nA.2 原文实际披露什么\n. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n15\nA.2.1\n对dither 覆盖的精确判断. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n16\nA.3 从电荷守恒重新",
+      "text_end": "9\nC.4\n归约树、掩码选择和fanout . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n39\nC.5 ADC2 解码与残差MAC：两种宽乘法不能混为一谈\n. . . . . . . . . . . . . . . . . . . . . . .\n40\n2\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.052383,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_04.png",
+      "png_sha256": "3f87015faa2c1c0d02e7ca4f14b9549b4ed7b1b35672bbf4cad00325024236c8",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 5,
+      "printed_footer_numbers": [
+        "3"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.36199951171875,
+        25.839143753051758,
+        532.91357421875,
+        811.3477172851562
+      ],
+      "text_characters": 646,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\nC.6 P5/P6/P7 除法与固定吞吐\n. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n40\nC.7\n控制、动态索引与参数风险复核. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n41\nC.7.1\n本轮未发现下列默",
+      "text_end": ".\n42\nC.9\n资源与时序报告的正确解读. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .\n43\nC.10 下一步排序与验收（不给虚假的门数/频率承诺）. . . . . . . . . . . . . . . . . . . . . . . . .\n43\n3\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.013688,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_05.png",
+      "png_sha256": "3aba8d73384843102183e56f96d20fee600758408737259f5dfe6b909322fcbc",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 6,
+      "printed_footer_numbers": [
+        "4"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        56.0460205078125,
+        139.32200622558594,
+        539.797607421875,
+        811.3477172851562
+      ],
+      "text_characters": 1405,
+      "text_start": "第一章\n集成复核与工程判断\n审查对象是提交71935ab54238c7ed638f5fa66c5ffb58e10287bb 的全部24 个生产SV 模块及2 个参\n数头文件。本次仅增加审查、定向见证与文档，未修改生产RTL，也未重新综合或布线。当前源默认结构模\n式、18 slice、每笔8 active、63 main + 8 sub、Q30 权重、Q32 电压、20-bit 输出、16 拍帧、除法展开P7；\n历史实际Vivado 全核采用P5。身份、来源SHA 和本轮可复算",
+      "text_end": "16 PDF 的页数和SHA 已冻结，公开交\n付仅包含来源身份、页码和原创分析，不重发布用户论文全文或OCR。\n此前71935ab 的GitHub CI 实际9 项通过，四个Python 版本各987 passed，23 个RTL bench、3 类\nlint、52 条验收有原日志。这是该提交既有功能证据；本轮新增见证计数另列，不与历史计数相加，也不冒\n4\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 3,
+      "nonwhite_fraction": 0.085378,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_06.png",
+      "png_sha256": "9baefb1d512433f956ae8785274a8e27e6f04d48b80aaaac8da220a91d41c4f9",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 7,
+      "printed_footer_numbers": [
+        "5"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.361968994140625,
+        25.839143753051758,
+        537.3805541992188,
+        811.3477172851562
+      ],
+      "text_characters": 1725,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n用旧CI 为新文档提交的检查状态。\n1.2\n论文/专利究竟复现到了哪一层\n特征与来源定位\n当前数字实现\n仍须闭合的内容\n[00] p1、[00_1] p12—19：双\ncoarse 量化器、共享3-bit\nFlash、9-bit coarse\n两个sar_trial_ctrl，共享\nsadc_enc 的7 比较器输入，Flash\nseed 固定高3 位\n论文未披露同步逐拍握手；Flash 阈值误差、\nb",
+      "text_end": "默声称编号一致。分析按实际附件US10707889B1 原始公开记录定位，另号见US10797889B2\n记录。专利对照是技术结构分析，不是法律范围或许可结论。\n不能把所有专利实施例并在一起当作论文芯片的唯一电路；应先按芯片架构选定必要特征，再定义可测\n的宏端口与行为。上述缺口有些是原先已记录的范围边界，本轮不是把它们重新包装成新发现的RTL bug。\n5\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 4,
+      "nonwhite_fraction": 0.081445,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_07.png",
+      "png_sha256": "4ca790efaeb57e6385f39a0af67af1e629887adaf55aeffa6cca828ab7a4146e",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 8,
+      "printed_footer_numbers": [
+        "6"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.361968994140625,
+        25.839143753051758,
+        538.3435668945312,
+        811.3477172851562
+      ],
+      "text_characters": 1608,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n1.3\n数字校正公式：对的部分、工程假设和新增定义问题\n1.3.1\n电荷与系数的语义\n归一化输入为x，物理单元有效权重为w（含C/Cf、桥接衰减及约定的残差增益），采样参与a∈{0,1}，\n已知开关电荷为s，公共注入I，后级观察F，偏移O。在线性、稳定、参数一致的模型中：\nF = O +\n∑\nw(ax + s + I) = O + Gx + R + TI,\nT =\n∑\nw,\nG =\n∑\nwa,\nR = ",
+      "text_end": "软件oracle 不一致”。应在下一次契约版本明确选择哪种语义，再同时更新参\n考、RTL 和兼容验收。\n在归一化G=32 下，这个±1 Q32 LSB 对最终20-bit 未量化码的影响是±2^-18 输出LSB；靠近最终\nfloor 阈值仍可能改变最终一个码，不能说“始终无影响”。本轮保持生产语义，避免为了名词澄清而未经完\n整回归改变已冻结整数接口。\n6\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.084161,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_08.png",
+      "png_sha256": "712bffc779e0d3cfff57eceb06eaacf978e4cfec7f180f7db7341b459568c81d",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 9,
+      "printed_footer_numbers": [
+        "7"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.361846923828125,
+        25.839143753051758,
+        532.9217529296875,
+        811.3477172851562
+      ],
+      "text_characters": 1717,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n1.3.4\n新澄清：cfg_ready 不等于满量程数值保证\ncalib_regs 检查标量完整、权重loaded、合法范围及原子validate；它没有证明所有合法系数、\noffset/injection 组合都落在MAC 的有效数值域。cal_residue_mac:62—87 对输入项、num、分母及shifted\n范围作显式守卫，MAC 仅生成A1/any_ovf；失败后的完成事件、ID/fla",
+      "text_end": "描述。\n源码正常时序关系\n完整时钟间隔\n640 MHz 理想预算换算\n分析边界\ncoarse start（pre1）\n→done 在pre7 的\nNBA 生效\n6T\n9.375 ns\n与论文约7 ns 的coarse 转换\n不等同\ncoarse start→最后\nRDAC load（pre8）\n7T\n10.9375 ns\nRDAC 已决码再延迟一沿装载\n7\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 4,
+      "nonwhite_fraction": 0.089226,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_09.png",
+      "png_sha256": "ab86be7925dae813a046b8975ac45da22192322c66afdab5c345b0efee8f56da",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 10,
+      "printed_footer_numbers": [
+        "8"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        60.10897445678711,
+        25.839143753051758,
+        532.9203491210938,
+        811.3477172851562
+      ],
+      "text_characters": 1579,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n源码正常时序关系\n完整时钟间隔\n640 MHz 理想预算换算\n分析边界\nTP 下降\n（pre15→post0）\n→coarse start（pre1）\n2T\n3.125 ns\n不能证明共享Flash 在论文\n<1 ns 返回采集\n新acquiring 开始\n（pre1→post2）→下\n一TP 下降\n14T\n21.875 ns\n16T=25 ns 帧周期不自动等于\n单slice 完整采集时间\n最后RDA",
+      "text_end": "，不能仅把输入bad\n组合或到输出来“补错误”。\n1.5\nRTL 到综合电路：24 模块都要按结构解释\n完整表见综合结构附录第2 节（reaudit_20261002/synthesis_structure_audit.md）。表中将每个模\n块的功能、捕获点、声明状态位公式、乘法/加法/比较/译码结构与实际历史映射分开。以下是影响整体架构\n的关键结论。\n8\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 4,
+      "nonwhite_fraction": 0.081036,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_10.png",
+      "png_sha256": "e7691bfd738e3dc36d646a326b52fd45de78778f076666770c62d91fa102c895",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 11,
+      "printed_footer_numbers": [
+        "9"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.3619384765625,
+        25.839143753051758,
+        534.49951171875,
+        811.3477172851562
+      ],
+      "text_characters": 1982,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n1.5.1\n权重库：62,316 位候选FF 是首要成本\n合法加载0<W<2^47 且bit47 显式恒零：18×71×47=60,066 数据位，18×71=1,278 loaded 位，\n18×54=972 row cache 位，总62,316 位候选FF。历史Vivado u_wstore 确实为62,316 FF，占全核66,492\nFF 的93.72%。全局sum_all 因producti",
+      "text_end": "ither 的reset 默认关闭是运行控制，不能当成综合常量关闭。\n1.6\n已有综合/STA 结果能说明什么\n项目\n历史测量\n正确解释\nVivado 2018.3 / Virtex-7 /\nP5 / 25 ns\nLUT 108,842；FF 66,492；DSP 20；\nBRAM 0；latch 0\n有身份的当次实现，非本轮新EDA、非ASIC\n面积\n9\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 3,
+      "nonwhite_fraction": 0.095297,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_11.png",
+      "png_sha256": "72a9495010e5640bb83c01e15bf06a614d63ead6496fdeb87a396da19df915d3",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 12,
+      "printed_footer_numbers": [
+        "10"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.3619384765625,
+        25.839143753051758,
+        539.328857421875,
+        811.3477172851562
+      ],
+      "text_characters": 1813,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n项目\n历史测量\n正确解释\n完整route，核心register\nsetup/hold\n+0.946 / +0.052 ns\n40 MHz 核心、16 拍即2.5 MS/s 节拍；外部\n接口另验收\n全部OOC 路径hold\n−2.278 ns，65,048 失败端点\n零最短输入延迟下外部边界未闭合，不能称全\n路径通过\npost-synth 最差divider path 14.312 ns=8.404 ce",
+      "text_end": "ndpoint。\nID 元信息与数值目标逐个核对，禁止整个u_context→u_recon wildcard。\n同钟且边沿条件符合时，setup=N 常与hold=N−1 成对以恢复期望hold 关系；实际需推导\n-start/-end 的选取，不能机械套模板。官方模型见AMD UG835 set_multicycle_path 与UG903 保持\n10\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 4,
+      "nonwhite_fraction": 0.089761,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_12.png",
+      "png_sha256": "b40c95e72cfd4b3f299c017197602e38f119ebd05e927d0556c81f483e5330d0",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 13,
+      "printed_footer_numbers": [
+        "11"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.3619384765625,
+        25.839143753051758,
+        539.4121704101562,
+        811.3477172851562
+      ],
+      "text_characters": 1629,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\nhold 的setup 放宽，历史工具版本采用UG903 2018.3 复核。\n随后报告例外命中数/覆盖/冲突、被排除路径，重新做完整min/max STA、ECO 后等价、必要的SDF\n和post-route。MAC、divider、fine-code 和不满足证明的context 路径继续一拍。本次没有提交放宽约束，\n没有新MCP WNS/Fmax 结果。\n1.7.4\n第四道门：以局部性、带宽与位宽",
+      "text_end": "\nchecks；1,926 沿CSV\n控制器wrapper/影子stageA；未覆盖full\ncfg-clear/re-enable\nanalog bad 归属\n16 checks /16 edges\n样本上下文+sticky 诊断最小实例\n源码结构身份\n26 SHA、24 模块名、可复算counts\n通过\n有限token 恒等不是形式等价或新EDA\n11\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 4,
+      "nonwhite_fraction": 0.08107,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_13.png",
+      "png_sha256": "615a8802236fbc827e0b8d9c1600d63846f457e11daa44d17fa93435b5cb4a57",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 14,
+      "printed_footer_numbers": [
+        "12"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.36199951171875,
+        25.839143753051758,
+        532.9134521484375,
+        811.3477172851562
+      ],
+      "text_characters": 164,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n图片来自自有数据和上述实际轨迹，原始数据/脚本/日志/来源SHA 与限制一起交付；没有将手工画出\n的理想波形作为仿真证据。新的问题定位和后续实现门槛已经具体化，但本轮没有未经契约选择改变全部\nRTL，也没有宣称所有模拟结构、边界与PPA 已闭合。\n12\n",
+      "text_end": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n图片来自自有数据和上述实际轨迹，原始数据/脚本/日志/来源SHA 与限制一起交付；没有将手工画出\n的理想波形作为仿真证据。新的问题定位和后续实现门槛已经具体化，但本轮没有未经契约选择改变全部\nRTL，也没有宣称所有模拟结构、边界与PPA 已闭合。\n12\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.011622,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_14.png",
+      "png_sha256": "8008d06f757dd58da4d109b71b2aa54d916c5184896b2dc0d9e78b9ddccf16a1",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 15,
+      "printed_footer_numbers": [
+        "13"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.36199951171875,
+        139.32200622558594,
+        539.3287353515625,
+        811.3477172851562
+      ],
+      "text_characters": 578,
+      "text_start": "第二章\n原创数据图与证据身份\n以下矢量图直接嵌入本独立源文件，数字来自封存JSON/CSV；完整高分辨率PNG 与PDF 及其生成\n器另行交付。图1/2 是历史P5，图3 是本轮有限控制wrapper，无模拟波形、建立测量或MCP 签核结论。\n2.1\n历史P5 状态存储分解\n系数数据60,066 FF\n0\n20000\n40000\n60000\nloaded 1,278；row cache 972；其他4,176\n权重库合计62,316 / 全核66,492 = 93.72%\n这",
+      "text_end": "23\n14.312 ns\n23.914 ns\n0\n5\n10\n15\n20\n25\n蓝色为cell；橙色为net。post-synth 为divider 端点和估计互连，post-route 为ID 到rails 端点和实际布线。\n真实路径route 占77.875%。不可用其倒数报告Fmax，也不能把不同端点的两行当成同一逻辑被布线恶化\n的精确因果实验。\n13\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 22,
+      "nonwhite_fraction": 0.068626,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_15.png",
+      "png_sha256": "9688881984daf51bd3149679f2c587c284d86bdea352d802da462e5d8a984ea0",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 16,
+      "printed_footer_numbers": [
+        "14"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.36199951171875,
+        25.839143753051758,
+        532.9229125976562,
+        811.3477172851562
+      ],
+      "text_characters": 322,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n2.3\n有限接受轨迹的15T/1T 证据\n1\n10\n20\n30\n40\n50\n57\n15T\n1T\n蓝：context；橙：fine code\nCSV 有1926 沿、57 接受；全部context 更新后15T、fine code 锁存后1T。首接受edge66/ID3：context 在\nedge51 quiet/P0 更新，fine code 在edge65/P14 更新。stageA 为影子观察FF",
+      "text_end": "fine code 锁存后1T。首接受edge66/ID3：context 在\nedge51 quiet/P0 更新，fine code 在edge65/P14 更新。stageA 为影子观察FF；未实例化真实weight/recon\n数据通路，未覆盖完整cfg-clear/re-enable 或全序列形式证明。故不能据此直接写15/16 周期例外。\n14\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 119,
+      "nonwhite_fraction": 0.025725,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_16.png",
+      "png_sha256": "5fb376311b7948926606a5c5c53d6eabe1ec511967584ef3468bbb961351486b",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 17,
+      "printed_footer_numbers": [
+        "15"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.361968994140625,
+        139.32200622558594,
+        539.8161010742188,
+        811.3477172851562
+      ],
+      "text_characters": 1285,
+      "text_start": "附录A\n校准原理与九模块功能详解\n审查基线为71935ab54238c7ed638f5fa66c5ffb58e10287bb。本文件重新核对原始页图和当前源码，不\n把旧报告的结论当作证明。生产RTL 未修改；只新增两个限域bench、精确整数/Fraction 核算和两份系数\n镜像。该工作不是全顶层回归、模拟电路验证、新综合或STA。\nA.1\n先给出结论及证据边界\n• 静态电荷模型内，当前物理权重归约→残差MAC→有符号floor→offset-binary 输出的代数方向\n",
+      "text_end": "对现有描述中需要更精确的边界。\n原始输入SHA 见input_manifest.json；本轮数学和bench 输入身份见\ncalibration_evidence_manifest.json。\nA.2\n原文实际披露什么\n以下页码均为用户提供PDF 的物理页号，栏号为专利纸面印刷栏号。扫描专利的OCR 只用于检索；\n本次关键论断已看原始PNG 页图。\n15\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 0,
+      "nonwhite_fraction": 0.082329,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_17.png",
+      "png_sha256": "d4cf60a23ded98c55f33c726a76adbe37c60ba681f1bb567c15b5e79ba25ad5b",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 18,
+      "printed_footer_numbers": [
+        "16"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.36199951171875,
+        25.839143753051758,
+        532.9169921875,
+        811.3477172851562
+      ],
+      "text_characters": 1849,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n原始证据\n页/图/条款\n对校准链路的直接约束\n不能据此宣称的内容\n[00] ISSCC 2024 正文PDF p1 左栏，p2 Fig. 9.8.1 quantizer 与RDAC 分开；8 个\nslice 生成残差，8 个采样，18\n个池中有2 个备用；共用RA；\nRA 示意增益×32\n没有给出整数流水、系数位宽\n和单元逐项拟合算法\n[00] 正文\nPDF p1 右栏关于\nDEM/dither 与权重",
+      "text_end": "改变粗码的现行\n控制，第二分量的小数位及后级移除也没有独立接口。不能把这种部分对应升级成claim 1–12 或PPT p18\n全部拓扑复现。\n精确有效的设计动作是先定义d_Q、d_R、低/高分量、每个分量的物理单位和符号，再列四个边界：\nSADC 输入、RDAC 采样输入、RDAC 数字命令、ADC2 数字重构。只要该分量已经通过实际RDAC 开关\n16\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 4,
+      "nonwhite_fraction": 0.085657,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_18.png",
+      "png_sha256": "87119004f55ecfaa6618bc69571bacefa2b61896e362bf6b05f5df73573742dd",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 19,
+      "printed_footer_numbers": [
+        "17"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.361968994140625,
+        25.839143753051758,
+        534.8803100585938,
+        811.3477172851562
+      ],
+      "text_characters": 1485,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n命令计入rails，就不能再无条件加入公共I 做第二次扣除。当前量化器模式应让公共inj_q 不再包含已移\n除的量化器dither。\nA.3\n从电荷守恒重新推导重构式\nA.3.1\n物理残差，不从数字粗码直接猜电压\n对固定物理slice 的一个有效单位，定义正权重w_j=C_j,eff/C_F。main 单元C_j,eff=C_j，sub 单元\n的权重含桥接衰减beta。这是RA 处在理想虚地/静态稳定边",
+      "text_end": "minus_dac 包含公共注入与采样轨减去实际DAC 轨；signal 对sampling mask 置0。该模型依\n赖静态条件；它不能拟合掉所有频率相关误差。\nA.3.3\n定点化与最终码\n权重整数W=round(w*2^30)；电压整数F/O/I 以Q32 承载；R=sumW*s、T=sumW、G=sumW*a 都仍以\nQ30 承载无量纲量。于是\n17\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.072105,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_19.png",
+      "png_sha256": "a63e1a668e2dff6efc17f26598cf949ab294514ea4aecfd8c062cc8baf565878",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 20,
+      "printed_footer_numbers": [
+        "18"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.3619384765625,
+        25.839143753051758,
+        539.0243530273438,
+        811.3477172851562
+      ],
+      "text_characters": 1528,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\nnum=(F-O)*2^30-R*2^32-T*I，\nx_hat=num/(G*2^32)，\nword=floor((x_hat+1)*2^19)，\n等价于\nshifted=(num+G*2^32)*2^20，\nword=floor(shifted/(G*2^33))。\n因为G 为正，整数嵌套floor 恒等式允许A1=floor(shifted/2^33)，然后word=floor(A1/G)，对负\n",
+      "text_end": "资格：:109–128 clear 优先；忙/写冲突拒绝提交；sampling+quantizer 互斥，\nmin<max，权重/标量完整。活动epoch 禁止改值\n可推导电路及主要风险：192 标量+3 完成+4 控制+ready+32 错误≈232 bit，少量比较器/资格mux。\nP_ADC2_BITS 不消费，不能当成完成任意ADC 后端适配\n18\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.078974,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_20.png",
+      "png_sha256": "aac3d55befc1169c9d50765e868f93f950ebaa10901a1f1f89eed1e1394e18e2",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 21,
+      "printed_footer_numbers": [
+        "19"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.361846923828125,
+        25.839143753051758,
+        534.5995483398438,
+        811.3477172851562
+      ],
+      "text_characters": 1580,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\ncal_sample_context.sv:32–69\n接收/输出与本质功能：current→residue→fine，保存物理ID、main/sub mask、采样轨、注入\n状态、时序、错误资格：phase9 保存当前残差包；下周期quiet/phase0 把旧residue 交给ADC2。\nreset/disable 丢两包。两strobe 同沿时fine 收旧residue，未实现capture ",
+      "text_end": "nominator 定长结束q0/err1；宽分母不截断；负非整除补−1；同步reset 取消\n可推导电路及主要风险：P5 每拍5 个63bit 恢复减法/借位→选择串联；P7 串7 个。除法器寄存器约P5\n329bit/P7 325bit，不是展开全部63 级的单拍除法。组合级数与busy 周期折中，不应只减P_STAGES 却\n忽略16 相位容量\n19\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.077586,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_21.png",
+      "png_sha256": "414c5f00c97bcbf4f5c845748548f8fd8585247eb249f3fd8ff3baa1226b1ead",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 22,
+      "printed_footer_numbers": [
+        "20"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.361968994140625,
+        25.839143753051758,
+        539.4127807617188,
+        811.3477172851562
+      ],
+      "text_characters": 1821,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\nrecon_core.sv:81–279\n接收/输出与本质功能：归约/ADC2→stageA→MAC/div→提交\n状态、时序、错误资格：:250–260 只有ready/start/!busy 采样；:261–267 下沿采样本样本MAC 异常并\nlaunch；:183–203 divider/busy；COMMIT 时busy0，可接受下一start，旧ID 由NBA 保留；ready 下降\n取消。",
+      "text_end": "gned 乘；其\n132bit 临时量用来形成和检查精确受检操作数，随后才合法裁位。\n• :76–87 的97bit s1 可容纳两个已受检量之和，117bit shifted 容纳完整乘2^20；top22bit 检查等价于\nsigned shifted 装入96 位。若任何前置op 非法，A1 允许成为截断位型，但any_ovf 禁止合法字更新。\n20\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.093342,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_22.png",
+      "png_sha256": "449f38c7097dfa0ac6d6dc8f3cc81aa65dded9e75de556545ca058080c268627",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 23,
+      "printed_footer_numbers": [
+        "21"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.361968994140625,
+        25.839143753051758,
+        536.9817504882812,
+        811.3477172851562
+      ],
+      "text_characters": 1471,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n• den=G*2^33 的受检上界对应G<2^62；这不是shifted 的更严格工作范围，不能把该上界当成全链路无\n溢出保证。\n• div_floor 的最小负数用unsigned 幅度可保存；大于numerator 域的64bit 分母保留highbit 意义。组\n内qbit MSB 顺序正确，负非整除用非零remainder 下修。valid denominator 为正时不需signed 除数",
+      "text_end": "\nA.5.3\nties-to-even 的作用点：9 点ADC2 实证\n工程合同和RTL 定义为\nC=min_q+RTE(((2c+1)*(max_q-min_q))/2^(N+1))。\n如果“把绝对码仓中心按Q32 最近偶数取整”的物理文字定义是目标，则应比较\nP=RTE(min_q+((2c+1)*(max_q-min_q))/2^(N+1))。\n21\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.069595,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_23.png",
+      "png_sha256": "5279e4b846c6f36998061ec29a08fe6fe7007b80437eff541319917df736d7b0",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 24,
+      "printed_footer_numbers": [
+        "22"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.36199951171875,
+        25.839143753051758,
+        539.3429565429688,
+        811.3477172851562
+      ],
+      "text_characters": 1675,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\nRTE 不满足任意整数平移不变性；min 为奇数时，恰好半整数会改变偶数判断。\nmin/max/code\n精确中心（Q32 整数单位）当前C\n绝对中心P\n1 / 4097 / 0\n1.5\n1\n2\n1 / 4097 / 1\n2.5\n3\n2\n1 / 4097 / 4094\n4095.5\n4095\n4096\n−4097 / −1 / 0\n−4096.5\n−4097\n−4096\n0 / 4096 / 0\n0.5",
+      "text_end": "及缩位代价\n该界只评价对同一组已确定有效物理系数的定点量化，不评价训练误差、真实噪声、参考误差或增益漂\n移。设hat(w)=w+delta，每项|delta|<=2^(-F_W-1)，I=0、输入x∈[-1,1]，普通项s=+/-1、sampling 项\na=0,sin{-2,0,+2}，因此|a*x+s|<=2。使用精确物理F 而改用量化系数重构时\n22\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 4,
+      "nonwhite_fraction": 0.080452,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_24.png",
+      "png_sha256": "beed88b4118c0b10d793fb9cbe4a7364e328098435b7bc5a810ccc7a31ed3a50",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 25,
+      "printed_footer_numbers": [
+        "23"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.36192321777344,
+        25.839143753051758,
+        538.7468872070312,
+        811.3477172851562
+      ],
+      "text_characters": 1608,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\nhat(x)-x=-sumdelta*(a*x+s)/hat(G)。\n若另外能证明hat(G)>=32、最多N=568 项，则20bit 未floor 输出的误差上界为\nE_code<=2^19*568*2*2^(-F_W-1)/32。\n权重小数位F_W\n单项量化误差界\n条件下的输出误差界（LSB20）\n30\n2^-31\n0.0086669921875\n26\n2^-27\n0.138671875\n22\n2",
+      "text_end": " 层组合加法；物理active/mask 分发、权重叶子扇出、adder\nplacement 和rail 最后加减都可能构成长互连。\n这些估算不包含RTL 顶层其他模块，也不能直接换算为ASIC 面积或功耗。wire[63:0] 加法的声明不\n等于每个节点都真的需要64bit 全加器，零扩展/固定padding 可使部分节点缩窄；反过来，系统数学上的\n23\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 4,
+      "nonwhite_fraction": 0.091626,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_25.png",
+      "png_sha256": "8df5078c25d7450e622b143555860e19fb3349a50e00ff6f64b5eeedf1c3e308",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 26,
+      "printed_footer_numbers": [
+        "24"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        56.534000396728516,
+        25.839143753051758,
+        532.9136352539062,
+        811.3477172851562
+      ],
+      "text_characters": 930,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n“最多8 行活跃”不一定被综合器从二进制decode 推导为每条进位的范围约束。应查mapped cell/netlist 而\n不是用数学上限冒充映射资源。\nA.7.2\n建议顺序\n• 先收紧语义说明：写明片外训练/片上重构、增量RTE、真实有效W 包含级间增益、cfg_ready 的含\n义、sampling/quantizer/ 双dither 区别、同ID 质量标志。\n• 导出侧建立范围证据：对实际校",
+      "text_end": "ther 应作为明确的新功能里程碑：先用原始图把各分量单位/注入节点/数字移除边界写成契约，\n独立电荷求解器与holdout 给出闭合，再扩RTL 上下文/接口和拟合激励。当前已有单路径计算结果不\n构成这个里程碑的证据。\n本轮结论足以把目前工程的校准数学、功能与潜在综合电路解释清楚；它不把原文未披露的细节填成事\n实，也不以CI 成功代替物理实现验收。\n24\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.053147,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_26.png",
+      "png_sha256": "4f809254f56ed2c5a324f66a0f63a4be20a1d9f85545de889dfe3c9a4291f5dd",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 27,
+      "printed_footer_numbers": [
+        "25"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.3619384765625,
+        139.32200622558594,
+        534.3026123046875,
+        811.3477172851562
+      ],
+      "text_characters": 1469,
+      "text_start": "附录B\n控制、采样与专利原理详解\n审查对象为71935ab54238c7ed638f5fa66c5ffb58e10287bb 的当前RTL。原文身份以本目录\ninput_manifest.json 为准。本文直接查看[00] PDF p1/p2、[00_1] slides12/19/24–26/30/31/34/35，以及\n[09] Fig9/10、[10] claims、[11] claims、[12] Fig8 与正文/claims、[13] Fig2/6/11/12 与",
+      "text_end": "ulticycle。\n旧phase 沿\n该沿的数字行为\nNBA 后状态/归属\n审核位置\n15→0\nTP 寄存器拉低；上一笔\nfine context 由当沿Stage A\n接受（如launch=1）\nphase0 quiet 窗口，fine context\n仍旧\nanalog_phase:42–47；\nstructural:281；recon:250\n25\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 2,
+      "nonwhite_fraction": 0.073431,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_27.png",
+      "png_sha256": "fa90e0ed3d5a68e22eb4f9e364f5237281408ac1514a1b923b7a95df84ec7515",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 28,
+      "printed_footer_numbers": [
+        "26"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.36199951171875,
+        25.839143753051758,
+        532.9134521484375,
+        811.3477172851562
+      ],
+      "text_characters": 1606,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n旧phase 沿\n该沿的数字行为\nNBA 后状态/归属\n审核位置\n0→1\nquiet_sample 冻结当前\nacquiring dither/injection；\n旧residue packet 转为fine\npacket；coarse bank 翻转\n新fine context、fine/acq 读回\nbad 已冻结；两个SAR 尚未\nstart\nstructural:315–320；\ncontex",
+      "text_end": "，不是时序或模拟实测：\n窗口/事件\n精确时钟距离\n预算换算\n能否等同论文\ncoarse start\npre1→done NBA pre7\n6T\n9.375ns\n不等于论文约7ns coarse\nconversion\ncoarse start→上游看\n到done/最终RDAC\n装载pre8\n7T\n10.9375ns\n包含NBA/driver 的一拍跟随\n26\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 6,
+      "nonwhite_fraction": 0.056839,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_28.png",
+      "png_sha256": "e2d32d1a2b2011484cffcfad064523af6dcb770d3ba2717c0aefcfcfe545e778",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 29,
+      "printed_footer_numbers": [
+        "27"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.361968994140625,
+        25.839143753051758,
+        532.9134521484375,
+        811.3477172851562
+      ],
+      "text_characters": 1351,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n窗口/事件\n精确时钟距离\n预算换算\n能否等同论文\nTP 下降pre15→随后\ncoarse start pre1\n2T\n3.125ns\nFlash seed/start 前数字等待\nTP 下降→coarse\ndone NBA\n8T\n12.5ns\n对采样沿的完整数字延迟\nTP 下降→最终\nRDAC 装载\n9T\n14.0625ns\n不是论文7ns 的RDAC 已决\n过程\nFlash acquisition ",
+      "text_end": "C pre8→capture 的数字距离为(capture-8)T；准确reference 打开沿是\npre(ref_on-1)，距最终RDAC 为(ref_on-9)T。\n• ref_on= capture+1 时，捕获context 与开启准确reference 发生在同一上升沿，但context 捕获的是数\n字开关决策，不是已经建立的模拟余差。\n27\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 4,
+      "nonwhite_fraction": 0.058353,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_29.png",
+      "png_sha256": "cb94074cb1097073415db1de6928dd181985685592963e639ea45915a24c8539",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 30,
+      "printed_footer_numbers": [
+        "28"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.36199951171875,
+        25.839143753051758,
+        535.677978515625,
+        811.3477172851562
+      ],
+      "text_characters": 2006,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n• ref_on 增加会压缩参考/RA 到下一TP 下降的窗口：(16-ref_on)T；例如ref_on=15 只有1T。参数\n合法性不是模拟裕量通过。\n• 不能仅移动P_REF_ON/P_CAPTURE 而把细ADC 的12 次判决窗、quiet 末端读回、deadtime 及实际\nsampling edge 认为自动闭合。\nB.3\n原文机制到RTL 的逐项判定\n来源与原文定位\n原理\n当前对应代码（",
+      "text_end": "似笔误须另行登记\n[13] Fig2/6；\nclaim1/9/12，\nPDFp16\n旁路输入RC，AUX 给寄\n生/BG/boost 充电\nstructural:103–106\naux_charge_enable=\nacquiring_mask\n只是控制标签；RTL 不含\nVIN_AUX 电压节点、boost\n储能/非交叠/RC 绕开；这些\n在模拟宏\n28\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 3,
+      "nonwhite_fraction": 0.077138,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_30.png",
+      "png_sha256": "f61016997d7e507d5eeafc63451e24d4d1f5c5052c7b453ea0916deec5a313b5",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 31,
+      "printed_footer_numbers": [
+        "29"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        60.10900115966797,
+        25.839143753051758,
+        532.9134521484375,
+        811.3477172851562
+      ],
+      "text_characters": 1354,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n来源与原文定位\n原理\n当前对应代码（当前行号）\n结论/条件\n[13] Fig11/12\n（PDFp10/11）与p16\n描述\n可选AUX 同时/分开为采样\n电容预充电\n无附加\nsampling-cap-precharge 端口\n或路径\n该实施例未完整实现；不能把\n一般aux_enable 称图11/12\n全部复刻，也不必无依据把所\n有替代实施例同时拼进论文\n[00] Fig9.8.3；\nPPT24–26",
+      "text_end": "和registered 模拟宏enable、quiet/advance/capture 数字脉冲\n状态与组合结构：4bit phase+5controls=9 声明FF；小增量器/比较译码\n可能综合/布线问题与建议：ref/AZ/TP 高扇出会需缓冲和本地宏时序；注册并不能证明钟边沿/enable 跨模\n拟后无毛刺或deadtime 在PVT 下够用\n29\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 4,
+      "nonwhite_fraction": 0.071743,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_31.png",
+      "png_sha256": "b182be643d560b96f2f0c58991a1c8ca09105f5d8ebaf50ff87882ed021caaf2",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 32,
+      "printed_footer_numbers": [
+        "30"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.3619384765625,
+        25.839143753051758,
+        539.7977905273438,
+        811.3477172851562
+      ],
+      "text_characters": 1575,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\nsar_trial_ctrl:24–75\n功能与边界：flash seed、trial 与resolved 分开、cmp_valid 推进、deadline cancel\n状态与组合结构：2*P_BITS+clog2(P_BITS)+3：coarse25×2，fine31，共81 声明FF；变量bit write 与\nnext trial onehot/移位mux、小减1\n可能综合/布线问题与建议：动态",
+      "text_end": "main+24sub=402bit；63 个cell compare/correct，常量3bit row/col 减法\n可共享为8 类；sid 切片+ 模8 截位\n可能综合/布线问题与建议：rh/ch 扇出多、71logical 结果给8 活动lane 比较；p/8 与p%8 为gen 常量，不\n能误估成63 个动态除法；不能改为mod63 一维环\n30\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.07111,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_32.png",
+      "png_sha256": "d7ef8805a7a759de6f71e09b8f9ed8e2da840335f95ba2509c5cc33596707731",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 33,
+      "printed_footer_numbers": [
+        "31"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.361968994140625,
+        25.839143753051758,
+        539.8078002929688,
+        811.3477172851562
+      ],
+      "text_characters": 1704,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\ndither_gen:36–75\n功能与边界：32bit LFSR8 步展开，映射[-2,2] 端点半概率\n状态与组合结构：32FF；默认D2 raw%8 取低3 位、valid 恒1、加1/右移/减2；8 步反馈XOR\n可能综合/布线问题与建议：不需要DSP/通用除法；默认PMF 与PCG 序列不同。若单独改D 为非2 幂\n且valid 可0，caller 必须按拒绝契约重抽，当前结构默认D2 不触发",
+      "text_end": "组合结构：packet CW=709bit，双slot1418+4valid/bad=1422 声明FF\n可能综合/布线问题与建议：上下文布线占控制侧状态大头；只在capture/quiet 更新，可考虑专用稳定路径\nbudget，但可用MCP 需验证reset/clear/enable 及具体端点；fine_code 不在该packet 且只有1T\n31\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.079429,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_33.png",
+      "png_sha256": "913e88c2a2b14bcc4faca18a519f6e422bac7c0d22a303d3c6c6bb9869e3e828",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 34,
+      "printed_footer_numbers": [
+        "32"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.36199951171875,
+        25.839143753051758,
+        537.517333984375,
+        811.3477172851562
+      ],
+      "text_characters": 2041,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n补充顶层与状态连接（校准数据通路其它模块由单独审查归档）：\n模块/当前行\n控制职责/综合结构\n风险与契约\nsar20_digital_core:556–\n619、638–667、680–707\n按elaboration 参数选择结构/兼容路\n径；将冻结fine context、fine_code\n送recon；将外部模拟读回和数字结果\n组装状态。结构选择是静态mux，应\n由综合常量裁剪\nphysical",
+      "text_end": "ary_tb.sv 直接例化当前production\ncal_sample_context/status_regs，用与top:686 一致的launch&&fine_bad 接线，而非全顶层替身。\nVerilator5.020 零延迟16 个检查/16 沿PASS；CSV 保留全部输入、fineID/finebad、门控event 与sticky：\n32\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 4,
+      "nonwhite_fraction": 0.09775,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_34.png",
+      "png_sha256": "1cbaf2c9606ba3c4d8eccba8edba2fe40bd3f038777090b4ba01e1645a05cf75",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 35,
+      "printed_footer_numbers": [
+        "33"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.361907958984375,
+        25.839143753051758,
+        532.9155883789062,
+        811.3477172851562
+      ],
+      "text_characters": 2209,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n• residue capture 冻结current_bad=1，下一quiet transfer 后即使input 低，finebad 仍1；launch 沿正\n确置sticky。\n• analogbad 只在quiet transfer 为1，会正确冻结到该ID；不launch 时sticky 不置位；下一个\nquiet/context 可把坏packet 替换成好packet，此后好launch",
+      "text_end": "的\n未知clang 警告组信息来自Verilator runtime 头文件。\n本轮只新增两个有限外部见证，不改生产RTL、不改已有bench、不再次全回归、不新跑\nVivado/STA/模拟。控制功能的正确有限场景、诊断契约的限制、论文时序/机制未闭合项、预计综合结构分\n开记账。所有原始PDF、原始页图及OCR 留在外部审查目录，不复制到开源仓库。\n33\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.101772,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_35.png",
+      "png_sha256": "93c3b6e78943d084aee21b761fbc289286bf95387f8befac3a706560e3d5e859",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 36,
+      "printed_footer_numbers": [
+        "34"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.361968994140625,
+        139.32200622558594,
+        538.5452270507812,
+        811.3477172851562
+      ],
+      "text_characters": 1497,
+      "text_start": "附录C\n全部24 模块及综合结构详解\n审查仓库：REPO。当前HEAD：71935ab54238c7ed638f5fa66c5ffb58e10287bb。逐文件阅读全文范围\n为rtl/rtl_sources.f 的24 个SV 及两个参数头文件。生产几何是18 个物理slice、每个63 main + 8\nsub、8 个活动slice。顶层源码默认P_RECON_STAGES=7；实际历史全核综合/布线采用P5。两者\n不能混称为同一个物理实现。\n本文件没有修改生产RTL、没有",
+      "text_end": "模\n式的兼容路径会裁剪。组合中integer/临时logic、树边不会因为声明为logic 就变成FF。\nadc2_dec:57–104\n功能和捕获点：后端code→Q32 bin center，ties-to-even，范围钳位；stage-A 接收组合结果\n源状态位/结构估算：0 FF；一个有效13×65 位乘法，78 位结果、79 位加法/检查\n34\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 0,
+      "nonwhite_fraction": 0.084177,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_36.png",
+      "png_sha256": "d30e3b08c4ff0c44e3ea90a2ee2d54d460a8040421c34fac0a4b670bd5b69190",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 37,
+      "printed_footer_numbers": [
+        "35"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.36199951171875,
+        25.839143753051758,
+        532.9134521484375,
+        811.3477172851562
+      ],
+      "text_characters": 1132,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n综合注意点：固定除以2^13 是连线移位和舍入逻辑；量程乘法仍是变量× 变量。历史4 DSP\nanalog_phase_ctrl:27–57\n功能和捕获点：4 位相位计数，注册TP/AZ/放大/两参考enable\n源状态位/结构估算：4+5=9 声明状态位；历史8 FF\n综合注意点：ra_amplify 与ref_accurate 同式可合并。模拟非交叠、level shifter 和驱动晶体管在宏外\n",
+      "text_end": "合注意点：常量错误码上28 位可裁掉；cfg_ready 锁定权重/标量；signed min<max 检查不能改\nunsigned\nctrl_fsm:72–113\n功能和捕获点：兼容模式16 相位与样本编号\n源状态位/结构估算：4+32=36 位\n综合注意点：P_STRUCTURAL=1 下使能固定为0，死路径可裁；不能将其相位表解释为真实结构模式\n35\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.061675,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_37.png",
+      "png_sha256": "5301a76e5f1bc542c77034aaae873fcda67a7eb2b3eec63ab2e36662a283ccc3",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 38,
+      "printed_footer_numbers": [
+        "36"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.361968994140625,
+        25.839143753051758,
+        532.9201049804688,
+        811.3477172851562
+      ],
+      "text_characters": 1150,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\ndem_addr_gen:57–103\n功能和捕获点：sid→二维8×8 缺角主阵列及完整8-unit 子阵列的反向排列\n源状态位/结构估算：0 FF；63 个6 位主位置、8 个3 位子位置的组合结果\n综合注意点：p/8、p%8 是生成期常量；mod8 是低位运算。1D mod63 环替换不等价\ndem_state_gen:68–94\n功能和捕获点：两bank 独立sid +=433 mod512\n源",
+      "text_end": "ral_ctrl:283–343\n功能和捕获点：双coarse SAR、fine SAR、bank/DEM/dither 及截止时刻\n源状态位/结构估算：自身143 声明位；子模块另计\n综合注意点：recon_start 为wire continuous assign（281），不是always_ff 产生的注册脉冲；错误码高位\n可裁，跨源归属会变化\n36\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.060519,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_38.png",
+      "png_sha256": "ef839016aea27ce3701efddc71ccf1c2cc441a10c82e2aa3a83585d3d5b01581",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 39,
+      "printed_footer_numbers": [
+        "37"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.361968994140625,
+        25.839143753051758,
+        539.3286743164062,
+        811.3477172851562
+      ],
+      "text_characters": 1158,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\nsar_trial_ctrl:24–75\n功能和捕获点：flash seed 后逐bit compare-valid 决策\n源状态位/结构估算：coarse 每实例2×9+4+3=25 位；fine 2×12+4+3=31 位\n综合注意点：fine resolved_valid 未使用可裁1 位（历史30）；动态bit-index 写是小型decoder/mux，稳定\nvalid 后每拍推进\nslice",
+      "text_end": "子比较、4 dither 比较\n综合注意点：比较器可能共享/重排；568 个逻辑比较不等于568 LUT，也不能用rebuilt 的1 LUT 宣称基\n本免费\nweight_store:66–145\n功能和捕获点：物理系数、loaded bitmap、每行精确缓存、旧系数读回\n源状态位/结构估算：声明63,658 位；可证明裁剪后候选62,316 位\n37\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.059401,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_39.png",
+      "png_sha256": "584d20ee453ba1acd24d303f4685ae3fc58a5fd18d1b751921e26bb404b533a6",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 40,
+      "printed_footer_numbers": [
+        "38"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        56.53399658203125,
+        25.839143753051758,
+        533.873291015625,
+        811.3477172851562
+      ],
+      "text_characters": 1586,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n综合注意点：同步reset ＋全表组合系数输出使RAM inference 不适用；见第3 节\nsadc_enc:40–60\n功能和捕获点：flash thermometer popcount，平衡树\n源状态位/结构估算：0 FF；结构实例7 comparator/8 leaf/3 层；standalone 默认511/512/9 层\n综合注意点：全核有一个共享3-bit flash 编码，不是511 ",
+      "text_end": "、跨slice 汇总和MAC 可以在规定capture edge 前完成；加入上下文ID 和异常对\n齐。\n• 为同步读延迟、read-during-write、loaded bitmap、clear 保留旧值的语义提供实现。\n• FPGA 比较采用真实BRAM 配置和完整布线；ASIC 比较采用真实SRAM macro 面积、端口、延迟、\n功耗模型。\n38\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.076742,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_40.png",
+      "png_sha256": "b8526c00a639fcbc5b343dff039574c9e93960204a6304918dd9ea77646aa336",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 41,
+      "printed_footer_numbers": [
+        "39"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        56.046051025390625,
+        25.839143753051758,
+        539.8075561523438,
+        811.3477172851562
+      ],
+      "text_characters": 1821,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n若采用最坏568 项逐项直接读取的朴素方案，单口47-bit 存储至少568 拍；若每slice 逐项读取71 个\n系数，18 bank 各单口即使理想并行仍需71 拍；这两个朴素方案都不能直接满足16 拍帧。考虑更宽行、预\n取、多bank 或预计算需要重新安排吞吐，不能以“容量只有约60kb”推出低成本。\nC.3.3\n配置读回与行替换仍有组合代价\nold_by_slice[s]=w_q[s][u_id",
+      "text_end": "velevels（21 CARRY4+19 LUT）。其中同一path 的IDnet\nfanout=81（47），匹配后net fanout=72、route=2.434 ns（50），physical_on34_out[50] net fanout=47、\nroute=4.375 ns（59）。这些是具体路径证据，并非仅“总线宽所以应该慢”的推测。\n39\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 4,
+      "nonwhite_fraction": 0.085928,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_41.png",
+      "png_sha256": "2a0f3e25731a4b2b45b373946862e839a3d0ffef009cd9975fafeb92d17684d5",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 42,
+      "printed_footer_numbers": [
+        "40"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.36198425292969,
+        25.839143753051758,
+        532.9224243164062,
+        811.3477172851562
+      ],
+      "text_characters": 1321,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n建议按顺序比较：(1) 每个物理slice 的mask decode、系数FF 与局部相加摆放在同一局部区域；(2)\nslice-local reduction→少量跨区总线；(3) 仅对实际fanout cone 做受控复制；(4) 以P5/P6/P7 预算研究归\n约/MAC 流水。全网KEEP/DONT_TOUCH 可能保留糟糕共享和布线，应只在证实必要的位置使用。不\n能为了减少本表加法表达式而重新",
+      "text_end": "3\nW_PAD：65\n声明state 位：329\n接受start 到dout_valid 完整间隔：15\n16 拍输出预算余量：1\nP6（结构候选）\nP_STAGES 级串联/拍：6\n63 位numerator 循环数：11\nW_PAD：66\n声明state 位：331\n接受start 到dout_valid 完整间隔：13\n16 拍输出预算余量：3\n40\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.072964,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_42.png",
+      "png_sha256": "8a940c72fc9ee7a8d63400e6997ab239e951e5ef8af9b1372e3771c6d3d26b2f",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 43,
+      "printed_footer_numbers": [
+        "41"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.361968994140625,
+        25.839143753051758,
+        539.3287963867188,
+        811.3477172851562
+      ],
+      "text_characters": 1872,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\nP7（源码默认）\nP_STAGES 级串联/拍：7\n63 位numerator 循环数：9\nW_PAD：63\n声明state 位：325\n接受start 到dout_valid 完整间隔：11\n16 拍输出预算余量：5\n每级对63bit shifted remainder 与dv 做64bit 减法，以借位判断比较；选择减后余数或原值，串到下一\n级。只有一份组内硬件每拍复用，不是63 份除法器；同样也不",
+      "text_end": "最佳prefix 网络。需抽取实际cells/路径，再比\n较窄类型与并行rank 计算；分配器只推进一次/帧，正确CE 依据可能允许阶段调整。\n• rdac_drv 重复ID 采用后者覆盖，归约器重复ID 采用OR 合并并标错，两者并非同样容错策略；默认\npool 应保证唯一性。对非法ID 保护的有效性应分别测试，不能只测mask popcount。\n41\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.092647,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_43.png",
+      "png_sha256": "26d88698f1ad90aabdbe221d9f06cfdefed24dd03e91f20295f73ab9e2c3fbb7",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 44,
+      "printed_footer_numbers": [
+        "42"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.3619384765625,
+        25.839143753051758,
+        539.3289184570312,
+        811.3477172851562
+      ],
+      "text_characters": 2149,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n• flash popcount 未做thermometer 合法性/亚稳态处理；sync cmp-valid 是明确边界假设。真实模拟宏需\n满足setup/hold 和deadline，不因数字仿真理想cmp-model 返回而自动达标。\n• P_RECON_STAGES 顶层允许5..63 是功能/帧下界守卫，不是该范围每一值都有合理组合delay。P63 会\n单拍级联63 级减法，是极不利高频结构",
+      "text_end": "径。\n• 功能等价/控制断言、SDF 或相应时序仿真、全场景post-route STA 后才能验收；记录候选前后差异。\n历史当前证据采用默认1 拍核心约束，因此25ns 核心通过是保守结果；候选并未执行、并未提供新的\nFmax 或ASIC640MHz 结论。控制子审查的只读wrapper 有限trace 作为补充证据，与本节的未覆盖边界一\n起阅读。\n42\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 1,
+      "nonwhite_fraction": 0.098877,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_44.png",
+      "png_sha256": "cb3040dc405c7ef5a46ac0e5a3aecdf2063e02b7e6c163dc210aacff299c1376",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 45,
+      "printed_footer_numbers": [
+        "43"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.36199951171875,
+        25.839143753051758,
+        539.8001708984375,
+        811.3477172851562
+      ],
+      "text_characters": 1852,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\nC.9\n资源与时序报告的正确解读\n历史综合采用synth_design-flatten_hierarchyrebuilt（synth/run_vivado_ooc.tcl:42–43），会\n跨源模块重排逻辑。utilization_hier.rpt:39 把40,580LUT 归到u_context；但对应source 只有两份\npacket 寄存器与捕获选择。时序路径也把归约LUT 命名到u_cont",
+      "text_end": "塞、局部摆放或树\n候选的完整route min/max\n23.914ns 不是ASIC 延迟；仅\n报告同平台实测改进\nP2\n准确context MCP\nsource 边沿＋有限trace ＋全序\n列控制证明、精确命中端点、\nsetup/hold 成对、ECO 后STA\n例外仅覆盖被证明路径，\none-cycle fine/MAC/div 仍必\n须闭合\n43\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 3,
+      "nonwhite_fraction": 0.088167,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_45.png",
+      "png_sha256": "e8968783ddc8af8dfe36f42a400c988835e7635e9c1d54537811d5880d47ae49",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    },
+    {
+      "pdf_page": 46,
+      "printed_footer_numbers": [
+        "44"
+      ],
+      "page_bounds_pt": [
+        0.0,
+        0.0,
+        595.280029296875,
+        841.8900146484375
+      ],
+      "text_bbox_pt": [
+        62.361968994140625,
+        25.839143753051758,
+        532.9199829101562,
+        811.3477172851562
+      ],
+      "text_characters": 636,
+      "text_start": "SAR ADC 原理、RTL 功能与综合电路再核对\n2026-10-02\n优先级\n问题/候选\n应交证据\n可接受结论边界\nP2\ndivider P5/P6/P7 及少量\npipeline 候选\n同时测critical path、\nFF/LUT/DSP、\nlatency/ID/errors、16 拍输\n出cadence\n不按latency 短推测clock 快；\n不从data delay 倒数给Fmax\nP2\nallocator 优先扫描/输出\nscatter fanout\n可达",
+      "text_end": "审计、明确\nsetup/hold 标签\n不把层级标签当独立模块cost\n这轮审查没有以“没有看到新默认profile 功能bug”替代电路实现验收。已修复的源码连接、写入守卫\n与signed 契约可以成立，同时当前存储带宽、组合归约、multiplier 流水、divider 链、配置读回和模拟接口\n仍是需要真实综合/STA/布线证据关闭的工程问题。\n44\n",
+      "out_of_page_spans": [],
+      "replacement_glyphs": 0,
+      "image_count": 0,
+      "vector_drawing_count": 4,
+      "nonwhite_fraction": 0.031214,
+      "png_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/pages/page_46.png",
+      "png_sha256": "4c24a503d8a1d3b7fa8972430603526c33fe804afe92d3b0d85eca7ab16c9e6e",
+      "render_dimensions_px": [
+        993,
+        1404
+      ]
+    }
+  ],
+  "contacts": [
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/contacts/contact_01_06.png",
+      "pdf_pages": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "sha256": "45f92ea949bbed57c8ed4e32294f269eb0260633e2fafca73838e99a5095788e",
+      "dimensions_px": [
+        1274,
+        2764
+      ]
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/contacts/contact_07_12.png",
+      "pdf_pages": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "sha256": "e141445a830770e7428ea3da95f2c2ad25267ecb5903f68b49ef8ade69b5f9c9",
+      "dimensions_px": [
+        1274,
+        2764
+      ]
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/contacts/contact_13_18.png",
+      "pdf_pages": [
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "sha256": "09a5c00e5f431f86a92bf99d994bbd4563522c54cb1de1d202be5361a938fc9c",
+      "dimensions_px": [
+        1274,
+        2764
+      ]
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/contacts/contact_19_24.png",
+      "pdf_pages": [
+        19,
+        20,
+        21,
+        22,
+        23,
+        24
+      ],
+      "sha256": "ca0f00620ea443f53bd520b0690ef04395a0886c1fceb063e6f8921b85094789",
+      "dimensions_px": [
+        1274,
+        2764
+      ]
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/contacts/contact_25_30.png",
+      "pdf_pages": [
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "sha256": "e961571e858e7e952de6c6bc4094bf968a3fbbe13eb37925e4c9287e257c0eae",
+      "dimensions_px": [
+        1274,
+        2764
+      ]
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/contacts/contact_31_36.png",
+      "pdf_pages": [
+        31,
+        32,
+        33,
+        34,
+        35,
+        36
+      ],
+      "sha256": "effe992a5626e815c693ad80294866a41f02118b055d59ca4a8d9ed9fd3a5b2d",
+      "dimensions_px": [
+        1274,
+        2764
+      ]
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/contacts/contact_37_42.png",
+      "pdf_pages": [
+        37,
+        38,
+        39,
+        40,
+        41,
+        42
+      ],
+      "sha256": "316e613818875796fce4703dbd17dc404f964c1138b32283c178463df6e41ef4",
+      "dimensions_px": [
+        1274,
+        2764
+      ]
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/pdf_qa/contacts/contact_43_46.png",
+      "pdf_pages": [
+        43,
+        44,
+        45,
+        46
+      ],
+      "sha256": "c075b08a7b30bbb2ed26f0155311709d2f78dccc5f36108566d7228580a1c7d7",
+      "dimensions_px": [
+        1274,
+        2764
+      ]
+    }
+  ],
+  "caution": "Bounds and extracted glyph checks are auxiliary. Human visual inspection is recorded separately."
+}

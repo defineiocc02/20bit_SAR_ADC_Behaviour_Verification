@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "rtl_files": 26,
+  "checks": [
+    {
+      "manifest": "calibration_evidence_manifest.json",
+      "payloads": 26,
+      "status": "PASS"
+    },
+    {
+      "manifest": "control_audit_seal.json",
+      "payloads": 3,
+      "status": "PASS"
+    },
+    {
+      "manifest": "control_minimal_witness/result_manifest.json",
+      "payloads": 11,
+      "status": "PASS"
+    }
+  ]
+}

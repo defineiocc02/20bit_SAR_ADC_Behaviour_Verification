@@ -1,0 +1,25 @@
+{
+  "head": "71935ab54238c7ed638f5fa66c5ffb58e10287bb",
+  "production_rtl_unchanged": true,
+  "production_rtl_files_verified": 26,
+  "source_bench_unchanged": true,
+  "external_review_only": true,
+  "inputs": [],
+  "evidence": [
+    {
+      "path": "input_manifest.json",
+      "bytes": 9945,
+      "sha256": "db98b5a368d9a89dfe2b3abc7f1d48df51509c1bcce79fb2de7cdce4872a37e0"
+    },
+    {
+      "path": "control_patent_audit.md",
+      "bytes": 24761,
+      "sha256": "a8e226c93553597f49e4bffdad212c040b40e7019789793b9dba696c819e9971"
+    },
+    {
+      "path": "control_minimal_witness/result_manifest.json",
+      "bytes": 7054,
+      "sha256": "bdb06f84ed4b4e32d6c8392c2d094cc63ce2d8c5922f15a5973869a0e25b7280"
+    }
+  ]
+}

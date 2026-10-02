@@ -13,7 +13,7 @@ repos:
       - id: check-toml
       - id: check-added-large-files
         args: ["--maxkb=512"]
-        exclude: ^docs/reports/rtl_patent_audit_20260930/report\.pdf$
+        exclude: ^docs/reports/(rtl_patent_audit_20260930|rtl_principle_reaudit_20261002)/report\.pdf$
       - id: check-merge-conflict
       - id: debug-statements
 
@@ -22,9 +22,9 @@ repos:
     hooks:
       - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
-        exclude: ^(docs/reports/rtl_patent_audit_20260930/(audit_figures/make_(compact_)?divider_profiles\.py|history/final_regression_ci_0c4a_before_f028/audit_figures/make_final_regression_evidence\.py)|docs/evidence/20261001/engineering_fsm/runner_source\.py)$
+        exclude: ^(docs/reports/rtl_patent_audit_20260930/(audit_figures/make_(compact_)?divider_profiles\.py|history/final_regression_ci_0c4a_before_f028/audit_figures/make_final_regression_evidence\.py)|docs/evidence/20261001/engineering_fsm/runner_source\.py|docs/evidence/20261002/principle_reaudit/.*\.py)$
       - id: ruff-format
-        exclude: ^(docs/reports/rtl_patent_audit_20260930/(audit_figures/make_(compact_)?divider_profiles\.py|history/final_regression_ci_0c4a_before_f028/audit_figures/make_final_regression_evidence\.py)|docs/evidence/20261001/engineering_fsm/runner_source\.py)$
+        exclude: ^(docs/reports/rtl_patent_audit_20260930/(audit_figures/make_(compact_)?divider_profiles\.py|history/final_regression_ci_0c4a_before_f028/audit_figures/make_final_regression_evidence\.py)|docs/evidence/20261001/engineering_fsm/runner_source\.py|docs/evidence/20261002/principle_reaudit/.*\.py)$
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.11.2

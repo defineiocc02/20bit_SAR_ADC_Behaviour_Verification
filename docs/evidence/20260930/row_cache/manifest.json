@@ -1,0 +1,387 @@
+{
+  "status": "PASS_LOCAL_FUNCTIONAL",
+  "rtl_sha256": "1e3fab94b7b29b77113fa2e18eae99b6ee1c180cd7df6004625c85358392eef4",
+  "rtl_files": 26,
+  "parent_commit": "f028ec5bb4f64a79414bac59c1b91bc1eaeee190",
+  "scope": "Row-total cache candidate. This records zero-delay local simulation only; no PPA, physical timing, ASIC 640MHz or new CI result is implied.",
+  "provenance": {
+    "source_snapshot": "/tmp/sar_row_cache_20260930/final_snapshot",
+    "source_manifest": "source_hashes.json",
+    "verilator_5_49_environment": {
+      "VERILATOR_ROOT": "/tmp/sar_vlt_root_20260930",
+      "VERILATOR": "/tmp/sar_vlt_root_20260930/bin/verilator -CFLAGS -std=c++20 -MAKEFLAGS CFG_CXXFLAGS_PCH_I=-include"
+    },
+    "verilator_5_020_environment": {
+      "VERILATOR_ROOT": "/tmp/sar_verilator_5_020_build/verilator-5.020",
+      "VERILATOR": "/tmp/sar_verilator_5_020_build/verilator-5.020/bin/verilator -CFLAGS \"-std=c++20 -I/tmp/sar_verilator_5_020_build/compat\""
+    },
+    "simulation_arguments": [
+      "--binary",
+      "--timing",
+      "--assert",
+      "--unroll-count",
+      "8192",
+      "-j",
+      "2",
+      "-Wno-fatal",
+      "-Werror-PINMISSING",
+      "-Werror-SELRANGE"
+    ],
+    "macro_tool_compatibility_note": "The macOS 5.020 include directory bridges experimental/coroutine to the standard header; the official translator is unchanged. Linux CI does not require this host-specific include."
+  },
+  "regressions_5_49": [
+    {
+      "bench": "sar_trial_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "SAR_TRIAL_COMPLETE",
+      "log": "verilator_5_49/sar_trial_tb.run.log",
+      "sha256": "1547422fd1c12465d28ade923e29577c19a95462edb59ee5c78f1710197ef1a4"
+    },
+    {
+      "bench": "calibration_recovery_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "CALIBRATION_RECOVERY_COMPLETE",
+      "log": "verilator_5_49/calibration_recovery_tb.run.log",
+      "sha256": "baf2f4a306aa457986f9de53612e8ee491f4abfe85d254b6dd44178687c73876"
+    },
+    {
+      "bench": "calibration_fit_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "CALIBRATION_FIT_COMPLETE",
+      "log": "verilator_5_49/calibration_fit_tb.run.log",
+      "sha256": "91a01a938f8718811cab4b6a701429d5f1c2d00b6361d496ef69833ab6a883fe"
+    },
+    {
+      "bench": "structural_adc_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "STRUCTURAL_ADC_COMPLETE",
+      "log": "verilator_5_49/structural_adc_tb.run.log",
+      "sha256": "3e809ad07b93e3ab356f8adc8bef9970a5c186428413cc9e07adc8976c247501"
+    },
+    {
+      "bench": "structural_protocol_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "STRUCTURAL_PROTOCOL_COMPLETE",
+      "log": "verilator_5_49/structural_protocol_tb.run.log",
+      "sha256": "d32f5d030e194e2ef12905e482eed07e753407a3d6a5da9b1d5c02ecac8f3f57"
+    },
+    {
+      "bench": "recon_ppa_latency_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "RECON_PPA_PROFILE_PASS stages=7 samples=32",
+      "log": "verilator_5_49/recon_ppa_latency_tb.run.log",
+      "sha256": "1a5aa2c0ad766b9adaa438f97f979f2287498eb825c10e0b6f680f8baffe1004"
+    },
+    {
+      "bench": "divider_borrow_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "DIVIDER_BORROW_COMPLETE exhaustive_checks=67592",
+      "log": "verilator_5_49/divider_borrow_tb.run.log",
+      "sha256": "3ebc371a7b45845ec54546f7f4f94d994e99ed9769dc8e0cd9b23ed582e53893"
+    },
+    {
+      "bench": "tree_mapping_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "TREE_MAPPING_COMPLETE checks=12904",
+      "log": "verilator_5_49/tree_mapping_tb.run.log",
+      "sha256": "7f6054aa06e98ba2bb3bb9f63d1d268a9939d4234b1814efca0d29e5690747ba"
+    },
+    {
+      "bench": "cal_weight_reduce_ppa_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "CAL_WEIGHT_REDUCE_PPA_COMPLETE",
+      "log": "verilator_5_49/cal_weight_reduce_ppa_tb.run.log",
+      "sha256": "d03629cb5d63a5c20c1ea8a6c0536f8d331d37d0772933b96e52a3f7b6a737b1"
+    },
+    {
+      "bench": "weight_row_cache_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "WEIGHT_ROW_CACHE_COMPLETE geometries=5 steps=16150",
+      "log": "verilator_5_49/weight_row_cache_tb.run.log",
+      "sha256": "2acee36c69cf1dd0e1f52d751849c382331dbab846abf78408b2d35364a43306"
+    },
+    {
+      "bench": "calibration_physical_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "CALIBRATION_PHYSICAL_COMPLETE",
+      "log": "verilator_5_49/calibration_physical_tb.run.log",
+      "sha256": "167df9ff1f8856422f7a3f0b8aa72d7232480fbfb8fcdbcd67e50cc9ea50a574"
+    },
+    {
+      "bench": "review_top_protocol_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "REVIEW_TOP_PROTOCOL_COMPLETE",
+      "log": "verilator_5_49/review_top_protocol_tb.run.log",
+      "sha256": "eefcb1ca35caa33d4e412616ca02f43cc4468788cfd358bb29f990c6cad46a15"
+    },
+    {
+      "bench": "review_leaf_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "REVIEW_LEAF_COMPLETE",
+      "log": "verilator_5_49/review_leaf_tb.run.log",
+      "sha256": "987b5f93f0638101a7f9b5cf7e8175d5a19b2e1b421b1ab3a5307872fe37a460"
+    },
+    {
+      "bench": "review_recon_protocol_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "REVIEW_RECON_PROTOCOL_COMPLETE",
+      "log": "verilator_5_49/review_recon_protocol_tb.run.log",
+      "sha256": "0a9c373251691c961ea1c09a64118ad336faa682954e0b7ca2e53adbb8ca3f92"
+    },
+    {
+      "bench": "review_dither_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "REVIEW_DITHER_COMPLETE",
+      "log": "verilator_5_49/review_dither_tb.run.log",
+      "sha256": "5f0c55f4695b095a1609b3dd6dca97d8c07a8fdd72a348632e1058be1e66a378"
+    },
+    {
+      "bench": "review_config_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "REVIEW_CONFIG_COMPLETE",
+      "log": "verilator_5_49/review_config_tb.run.log",
+      "sha256": "5690605a6f3dec1d2e45590433c137fd299bc82794c16185c4f34cb3b150904d"
+    },
+    {
+      "bench": "p2_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "P2 RESULT: PASS",
+      "log": "verilator_5_49/p2_tb.run.log",
+      "sha256": "a1f6280b219035e1e9a7c4514ffeede7b0c9181466a3b92f50c9c5a87d6ceea5"
+    },
+    {
+      "bench": "p2_oracle_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "P2_ORACLE_COMPLETE codes=1048576 errors=0",
+      "log": "verilator_5_49/p2_oracle_tb.run.log",
+      "sha256": "6da56400e9daa0330d8cec42456049ae9b7a15f87d5f07a6c2b98a20c4cc9199"
+    },
+    {
+      "bench": "p2_periph_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "p2_periph PASS",
+      "log": "verilator_5_49/p2_periph_tb.run.log",
+      "sha256": "98738972b4b569841dec7b6b5cd4090bdd8644155c3f99ea7e47b8446b2dad35"
+    },
+    {
+      "bench": "p2_smoke_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "p2_smoke PASS",
+      "log": "verilator_5_49/p2_smoke_tb.run.log",
+      "sha256": "019f2ad32733302b0adb76cf80d0a99b8d963e3683f9cb742c85ae06abff93b1"
+    },
+    {
+      "bench": "p1_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "P1 RESULT: PASS",
+      "log": "verilator_5_49/p1_tb.run.log",
+      "sha256": "23ed52e8492123300854d9183cbdb691178d609c9b28bbb58af26ed724474e06"
+    },
+    {
+      "bench": "p3_top_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "completion_marker": "P3 TOP RESULT: PASS",
+      "log": "verilator_5_49/p3_top_tb.run.log",
+      "sha256": "1952d62df8224c6102400fec652ece5ab2bec711f21f6d0b74b3c2189daa9f14"
+    }
+  ],
+  "additional_5_020": [
+    {
+      "bench": "weight_row_cache_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "steps": 16150,
+      "geometries": 5
+    },
+    {
+      "bench": "cal_weight_reduce_ppa_tb",
+      "status": "PASS",
+      "returncode": 0,
+      "samples": 1430848,
+      "geometries": 7
+    }
+  ],
+  "structural_production_profiles": [
+    {
+      "stages": 5,
+      "modes": 3,
+      "outputs": 438,
+      "checks": 7680,
+      "latency_checks": 438,
+      "latency": 15
+    },
+    {
+      "stages": 6,
+      "modes": 3,
+      "outputs": 438,
+      "checks": 7680,
+      "latency_checks": 438,
+      "latency": 13
+    },
+    {
+      "stages": 7,
+      "modes": 3,
+      "outputs": 438,
+      "checks": 7680,
+      "latency_checks": 438,
+      "latency": 11
+    }
+  ],
+  "small_profile_contract": {
+    "samples_per_profile": 32,
+    "stages": [
+      5,
+      6,
+      7
+    ],
+    "latency": [
+      15,
+      13,
+      11
+    ],
+    "busy_release": [
+      14,
+      12,
+      10
+    ],
+    "initiation_interval": 16
+  },
+  "loader_steps_by_geometry": {
+    "18x71": 3572,
+    "32x128": 9208,
+    "32x1": 1080,
+    "1x128": 1272,
+    "1x1": 1018
+  },
+  "miter_samples_by_geometry": [
+    2176,
+    2608,
+    2608,
+    3072,
+    3408,
+    6144,
+    1410832
+  ],
+  "negative_controls": [
+    {
+      "name": "loader",
+      "result": "EXPECTED_FAIL",
+      "exit_code": 1,
+      "marker": "cache invariant NS=3 NU=3 step=2",
+      "mutation": {
+        "file": "rtl/core/weight_store.sv",
+        "before": "row_q[wr_slice] <= row_new;",
+        "after": "row_q[wr_slice] <= row_new ^ ROW_BITS'(1);"
+      },
+      "source_sha256": {
+        "rtl/core/weight_store.sv": "146ad97a147d55b6bb8e6cc8e8a145a9db4a449dd01f5cf16ba85d3a61bd65f7",
+        "sim/tb/weight_row_cache_tb.sv": "8e7468f73691a398485984e6eb3af851aee566264faefd38d3f7f3ef41c6f408"
+      },
+      "command": [
+        "/tmp/sar_vlt_root_20260930/bin/verilator",
+        "--binary",
+        "--timing",
+        "--assert",
+        "--unroll-count",
+        "8192",
+        "-j",
+        "2",
+        "-Wno-fatal",
+        "-Werror-PINMISSING",
+        "-Werror-SELRANGE",
+        "-CFLAGS",
+        "-std=c++20",
+        "-MAKEFLAGS",
+        "CFG_CXXFLAGS_PCH_I=-include",
+        "-I/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/rtl/params",
+        "--top-module",
+        "weight_row_cache_case",
+        "--Mdir",
+        "/tmp/sar_row_cache_20260930/negative_loader/obj",
+        "-GNS=3",
+        "-GNU=3",
+        "/tmp/sar_row_cache_20260930/negative_loader/weight_store.sv",
+        "/tmp/sar_row_cache_20260930/negative_loader/weight_row_cache_tb.sv"
+      ],
+      "run_log_sha256": "fd37fe4603853a78ce9003053597f2241c4944a1ad8f06535aaefe8584fc9f87"
+    },
+    {
+      "name": "consumer",
+      "result": "EXPECTED_FAIL",
+      "exit_code": 1,
+      "marker": "cached DUT scalar mismatch NS=3 NA=2 NM=2 check=1",
+      "mutation": {
+        "file": "sim/tb/cal_weight_reduce_ppa_tb.sv",
+        "before": "sampled_row_total[s]<=row_sum;",
+        "after": "sampled_row_total[s]<=row_sum ^ ((s==0)?64'd1:64'd0);"
+      },
+      "source_sha256": {
+        "rtl/core/cal_weight_reduce.sv": "b4be31b0f69bf25021ab06191fbc9a83f587a0256b8c94284ee2aa8bd6058bc3",
+        "sim/tb/cal_weight_reduce_ppa_tb.sv": "f70b141a5c93f383f3dc5be61b2a664aa3bd8813dbd19cc25a1ef91c491181f2"
+      },
+      "command": [
+        "/tmp/sar_vlt_root_20260930/bin/verilator",
+        "--binary",
+        "--timing",
+        "--assert",
+        "--unroll-count",
+        "8192",
+        "-j",
+        "2",
+        "-Wno-fatal",
+        "-Werror-PINMISSING",
+        "-Werror-SELRANGE",
+        "-CFLAGS",
+        "-std=c++20",
+        "-MAKEFLAGS",
+        "CFG_CXXFLAGS_PCH_I=-include",
+        "-I/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/rtl/params",
+        "--top-module",
+        "cal_weight_reduce_ppa_case",
+        "--Mdir",
+        "/tmp/sar_row_cache_20260930/negative_consumer/obj",
+        "-GNS=3",
+        "-GNA=2",
+        "-GNM=2",
+        "-GNB=1",
+        "-GND=2",
+        "-GDE=3",
+        "/tmp/sar_row_cache_20260930/negative_consumer/cal_weight_reduce.sv",
+        "/tmp/sar_row_cache_20260930/negative_consumer/cal_weight_reduce_ppa_tb.sv"
+      ],
+      "run_log_sha256": "4937ffff0968307bb5ba92d6d79c102ca2627e485b08218334fe29c4ac1b197c"
+    }
+  ],
+  "count_scope": "Loader transactions, reducer cases, top outputs, per-cycle checks and latencies are distinct quantities and must not be summed as one coverage score.",
+  "stage_observations": {
+    "file": "max_clear_replace.csv",
+    "observations": 10,
+    "source_versions": [
+      "5.49",
+      "5.020"
+    ],
+    "expected_method": "Python unbounded integers: NU*(2^47-1), then (NU-1)*(2^47-1)+1; cross-checked against both tool logs"
+  }
+}

@@ -59,3 +59,67 @@
 *.vcd    binary
 *.svf    binary
 *.bin    binary
+
+# Raw EDA evidence is hashed byte-for-byte, including Windows CRLF and report
+# terminators. Keep source-code LF policy above; do not normalize these logs.
+docs/evidence/**/*.csv  -text whitespace=cr-at-eol
+docs/evidence/**/*.pass -text whitespace=cr-at-eol
+docs/evidence/**/*.log  -text whitespace=cr-at-eol,-blank-at-eof
+docs/evidence/**/*.rpt  -text whitespace=cr-at-eol,-blank-at-eof
+
+# Preserve the exact diagnostic patch against generated compiler output.
+docs/evidence/20260930/reducer_scheduler/cxx_observation.patch -text -whitespace
+
+# Parser fixtures preserve the exact hashed Vivado 2018.3 CRLF reports.
+tests/fixtures/vivado_2018_3_buffered/check_timing.rpt -text -whitespace
+tests/fixtures/vivado_2018_3_buffered/timing_summary.rpt -text -whitespace
+
+# Preserve generated simulator code used as diagnostic evidence.
+docs/evidence/20260930/arithmetic_runner_ci/generated_settle_excerpt.txt -text -whitespace
+docs/evidence/20260930/arithmetic_runner_ci/ci_failure_excerpt.log -whitespace
+
+# Complete P7 runs retain raw Windows reports and recovery metadata byte-for-byte.
+docs/evidence/20260930/vivado_complete_p7/** -text -whitespace
+
+# Final workflow API responses and excerpts retain their original response bytes.
+docs/evidence/20260930/ci_workflow_f028/** -text -whitespace
+
+# Empty vendor environment values and timestamp-only lines are original evidence.
+docs/evidence/20260930/ci_rtl_f028/arithmetic-audit/verilator-version.log -whitespace
+docs/evidence/20260930/ci_rtl_f028/physical_flow_checks.log -whitespace
+
+# Current cache CI keeps the exact API bodies and raw tool/environment lines.
+docs/evidence/20260930/ci_rtl_417f/head_commit.json -text -whitespace
+docs/evidence/20260930/ci_rtl_417f/tested_merge_commit.json -text -whitespace
+docs/evidence/20260930/ci_rtl_417f/arithmetic-audit/verilator-version.log -whitespace
+docs/evidence/20260930/ci_rtl_417f/physical_flow_checks.log -whitespace
+docs/evidence/20260930/ci_workflow_417f/** -text -whitespace
+
+# A timed-out synthesis run is retained exactly as failure evidence.
+docs/evidence/20260930/vivado_compact_p5_timeout/** -text -whitespace
+
+# The recovered cached-P5 synthesis reports are byte-hash-bound raw evidence.
+docs/evidence/20260930/vivado_cached_p5/** -text -whitespace
+docs/evidence/20260930/vivado_cached_p5_full_mapped/** -text -whitespace
+docs/evidence/20260930/vivado_cached_p5_route_25ns_fail/** -text -whitespace -diff
+docs/evidence/20260930/local_row_trial_rtl/** -text -whitespace -diff
+docs/evidence/20260930/local_row_trial_synth/** -text -whitespace -diff
+docs/evidence/20260930/local_row_trial_route_congestion/** -text -whitespace -diff
+
+# A historical unified diff must keep its context-line whitespace verbatim.
+docs/reports/rtl_patent_audit_20260930/audit_figures/section_provenance_update_20260930.patch -text -whitespace
+
+# Shared-selector run preserves hashed remote bytes and evidence metadata.
+docs/evidence/20260930/shared_old_trial_rtl/** -text -whitespace -diff
+docs/evidence/20260930/shared_old_trial_synth/** -text -whitespace -diff
+docs/evidence/20260930/shared_old_trial_route_25ns/** -text -whitespace -diff
+docs/evidence/20260930/shared_old_trial_full_mapped/** -text -whitespace -diff
+docs/evidence/20260930/ci_shared_71e7d5a/** -text -whitespace -diff
+
+# Final report compiler and page-review records retain their sealed bytes.
+docs/reports/rtl_patent_audit_20260930/release_qa/** -text -whitespace
+
+docs/evidence/20261001/** -text -whitespace -diff
+
+# The standalone re-audit compiler log retains its diagnostic whitespace.
+docs/evidence/20261002/principle_reaudit/report_xelatex.log -whitespace

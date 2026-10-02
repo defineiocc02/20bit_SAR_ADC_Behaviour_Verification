@@ -1,0 +1,9 @@
+{
+  "status": "PASS",
+  "frozen_files_match_current": 28,
+  "csvs_match_first_run_byte_for_byte": 3,
+  "top_sha256": "382f1242ea18b636ab9ea3b65c1b607a8a646ac8c050f4b77d0fb115548f4fa3",
+  "bench_sha256": "ac459ba82ce00e63a149a8b646cd432ac4921b5966c2ef21d739a0451aae9f8a",
+  "runner_sha256": "e7b52615b62df99649ed9afca4dbd0bb4a9e300657872e761dfc6deacde81d5b",
+  "scope": "Small-geometry zero-delay FSM trace only. No STA, analog or previous-residue integration claim."
+}

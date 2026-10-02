@@ -22,8 +22,12 @@
 //   * `slice_id` 必须两两不同（INV-4b）。若出现重复，本模块的行为是"后者覆盖前者"
 //     （循环里最后一次非阻塞赋值胜出），**不报错** —— 这是刻意的：把错误报在
 //     slice_alloc 的不变量回归中，而不是在这里做隐式防护（防护会掩盖上游的 bug）。
-//   * `load` 之外输出保持（寄存器），故相位 11 之后的整段转换期开关码稳定。
+//   * `load` 之外输出保持（寄存器）。兼容节拍在相位 11 装载；本模块不自行
+//     解码相位。结构模式的控制与开关输出选择由顶层/结构控制器负责。
 //   * 复位为全 0（无 slice 被选中）。
+//   * rst_n 为同步低有效复位，reset 优先于 load。load 一拍接受所有 active
+//     掩码；slice_id 为物理 ID，不是活动通道的循环下标。ID>=N_SLICES 被忽略，
+//     该通道不设置 slice_sel，已在本次 load 清零的物理输出仍为零。
 //===========================================================================
 `include "rtl_params.vh"
 
@@ -31,18 +35,20 @@ module rdac_drv (
     input  logic                                  clk,
     input  logic                                  rst_n,
     input  logic                                  load,        // 一拍脉冲
-    input  logic [N_ACTIVE-1:0][4:0]              slice_id,
-    input  logic [N_ACTIVE-1:0][N_UNIT_MAIN-1:0]  main_on,
-    input  logic [N_ACTIVE-1:0][N_UNIT_SUB-1:0]   sub_on,
-    input  logic [2*DITHER_UNITS_RANGE-1:0]       dither_rail,
-    output logic [N_SLICES-1:0]                   slice_sel,
-    output logic [N_SLICES-1:0][N_UNIT_MAIN-1:0]  main_sw,
-    output logic [N_SLICES-1:0][N_UNIT_SUB-1:0]   sub_sw,
-    output logic [N_SLICES-1:0][2*DITHER_UNITS_RANGE-1:0] dither_sw
+    input  logic [N_ACTIVE - 1:0][4:0]              slice_id,
+    input  logic [N_ACTIVE - 1:0][N_UNIT_MAIN - 1:0] main_on,
+    input  logic [N_ACTIVE - 1:0][N_UNIT_SUB - 1:0]  sub_on,
+    input  logic [2 * DITHER_UNITS_RANGE - 1:0]      dither_rail,
+    output logic [N_SLICES - 1:0]                   slice_sel,
+    output logic [N_SLICES - 1:0][N_UNIT_MAIN - 1:0] main_sw,
+    output logic [N_SLICES - 1:0][N_UNIT_SUB - 1:0]  sub_sw,
+    output logic [N_SLICES - 1:0][2 * DITHER_UNITS_RANGE - 1:0] dither_sw
 );
 
   integer s, a;
 
+  // 单个时序过程内先清零、后散射；非阻塞赋值的语句顺序是功能的一部分。
+  // 不拆到多个 always_ff，也不将覆盖语义改成掩码 OR，以免重复 ID 行为变化。
   always_ff @(posedge clk) begin
     if (!rst_n) begin
       slice_sel <= '0;
@@ -61,10 +67,10 @@ module rdac_drv (
       for (a = 0; a < N_ACTIVE; a = a + 1) begin
         // Both compatibility banks and the full 18-slice pool are legal.
         if (int'(slice_id[a]) < int'(N_SLICES)) begin
-        slice_sel[slice_id[a]]  <= 1'b1;
-        main_sw[slice_id[a]]    <= main_on[a];
-        sub_sw[slice_id[a]]     <= sub_on[a];
-        dither_sw[slice_id[a]]  <= dither_rail;
+          slice_sel[slice_id[a]] <= 1'b1;
+          main_sw[slice_id[a]]   <= main_on[a];
+          sub_sw[slice_id[a]]    <= sub_on[a];
+          dither_sw[slice_id[a]] <= dither_rail;
         end
       end
     end

@@ -1,0 +1,27 @@
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+
+repo = Path('/tmp/sar_row_cache_20260930/final_snapshot')
+out = Path('/tmp/sar_row_cache_20260930')
+command = ['/tmp/sar_vlt_root_20260930/bin/verilator', '--binary', '--timing', '--assert', '--unroll-count', '8192', '-j', '2', '-Wno-fatal', '-Werror-PINMISSING', '-Werror-SELRANGE', '-CFLAGS', '-std=c++20', '-MAKEFLAGS', 'CFG_CXXFLAGS_PCH_I=-include', '-Irtl/params']
+env = dict(os.environ, VERILATOR_ROOT='/tmp/sar_vlt_root_20260930')
+sources = (repo/'rtl/rtl_sources.f').read_text().splitlines()
+results = []
+for stage in [5,6]:
+    work = out/f'structural_p{stage}'
+    work.mkdir(exist_ok=True)
+    build = command + ['--top-module','structural_adc_tb','--Mdir',str(work/'obj'),f'-GP_RECON_STAGES={stage}',*sources,'sim/tb/structural_adc_tb.sv']
+    with (work/'build.log').open('w') as log:
+        subprocess.run(build,cwd=repo,env=env,stdout=log,stderr=subprocess.STDOUT,check=True,timeout=300)
+    with (work/'run.log').open('w') as log:
+        cp = subprocess.run([str(work/'obj/Vstructural_adc_tb'),f'+vdir={repo}/sim/vectors'],cwd=work,stdout=log,stderr=subprocess.STDOUT,timeout=120)
+    cp.check_returncode()
+    lines=(work/'run.log').read_text().splitlines()
+    matches=[line for line in lines if 'STRUCTURAL_ADC_COMPLETE modes=3 outputs=438' in line and f'recon_stages={stage}' in line and 'latency_checks=438' in line]
+    assert len(matches)==1, lines[-10:]
+    results.append(dict(stage=stage,result='PASS',exit_code=cp.returncode,marker=matches[0],command=build,source_manifest_sha256=hashlib.sha256((repo/'source_hashes.json').read_bytes()).hexdigest(),run_log_sha256=hashlib.sha256((work/'run.log').read_bytes()).hexdigest()))
+    print(matches[0],flush=True)
+(out/'structural_profiles.json').write_text(json.dumps(results,indent=2)+'\n')

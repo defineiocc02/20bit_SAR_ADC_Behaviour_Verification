@@ -2,15 +2,15 @@
   "artifacts": {
     "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
     "sim/vectors/expected_paper_literal.hex": "2610a01e18539d8dbe0a5f3709165a54b4d36da9a1a020d6f998088107bf0554",
-    "sim/vectors/params_paper_literal.json": "6af0f5c50c81360546bcdb0b66776d25999453b78946c3d2878a778aae4d554d",
+    "sim/vectors/params_paper_literal.json": "69c2ed7c4ccf31fa409e876386f82b9ba97575af2b65effe8ef0caf34388d70d",
     "sim/vectors/registers_paper_literal.json": "646f566fd904fd1a4867c03f5e68ca988459cc45f6eaa7b4252ded06a4a52ca2",
     "sim/vectors/stimulus_paper_literal.hex": "3cb07341e4b473e94df865886d12599b12d5746da1af200ac1060446f4d3068c"
   },
   "generator": "tools/export_rtl_params.py",
   "invocation": "python tools/export_rtl_params.py --config paper_literal --phases 16 --image-samples 32 --emit-stimulus 64",
   "revision": {
-    "commit": "45d448f6cdc087892887a7586db3475ab6267d19",
-    "describe": "v8.0.0-3-g45d448f",
+    "commit": "cacea23495dd986cfdf8b9cdd92a1f0013de4b8b",
+    "describe": "cacea23",
     "dirty": "1"
   },
   "schema_version": 1,

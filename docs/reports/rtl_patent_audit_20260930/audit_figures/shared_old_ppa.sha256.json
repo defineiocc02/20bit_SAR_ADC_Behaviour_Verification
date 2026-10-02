@@ -1,0 +1,32 @@
+{
+  "scope": "SOURCE_BOUND_P5_CORE_ROUTED_TIMING_NOT_BOARD_OR_ASIC",
+  "archives": {
+    "baseline_route": "docs/evidence/20260930/vivado_cached_p5_route_25ns_fail",
+    "shared_synth": "docs/evidence/20260930/shared_old_trial_synth",
+    "shared_route": "docs/evidence/20260930/shared_old_trial_route_25ns",
+    "shared_mapped": "docs/evidence/20260930/shared_old_trial_full_mapped"
+  },
+  "verified_payloads": {
+    "baseline_route": 35,
+    "shared_synth": 25,
+    "shared_route": 40,
+    "shared_mapped": 42
+  },
+  "comparison_sha256": "aec46604e23c92fba9e646f7394e0b087c17f10d653c61276e748b07fcbdc2ad",
+  "routed_result_sha256": "b069faa9befb2c331c740bce59755d1961614d3a2bbd5b2235a8c47c5a39fb3c",
+  "critical_data_logic_route_ns": [
+    [
+      25.231,
+      1.603,
+      23.628
+    ],
+    [
+      23.914,
+      5.291,
+      18.623
+    ]
+  ],
+  "generator_sha256": "84b505442917cc6a27ba52bf232bb23322091cedeaa0b819670956df942b4315",
+  "pdf_sha256": "f53b8d8c4d185f8bcc0ee8942af12297e147fefa5a5fde520e6d677eecd4a6e2",
+  "png_sha256": "494dc832002f0186004f685e0e7054667cd1933898ac830796466f938781b24b"
+}

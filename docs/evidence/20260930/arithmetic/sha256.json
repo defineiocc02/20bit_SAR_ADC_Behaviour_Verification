@@ -1,0 +1,13 @@
+{
+  "algorithm": "sha256",
+  "base": "directory containing this file",
+  "files": {
+    "failure_guard.json": "96e6889a64af206adcbcc4fda3168082f99987b9d37becf7d1421cbb9f32fd2d",
+    "manifest.json": "05c4d6f40d2b6cd6a3bcbee60d6f7bd2e355b3d6976f4f47754dea2ab57d590f",
+    "mutations.json": "78f1b6b5e5c5ff6ec1e13caf493cfa39c4adc32069d3a9c30f183db9b8af74ab",
+    "reject_negative_limit.run.log": "76bb1620ca0fab2af1718775fbe03dcf05044f398d2f0f02d3285b6cb348d2f8",
+    "reverse_quotient_chunk.run.log": "f072ebfc8c3e1f4c144cfca7d4d9d259cd21b9af3560ebf09e585aa8bab3c922",
+    "run.log": "a688b8f6e4395acd4dde283755611174af32f0b7aae19271286e7203b3c6a773",
+    "source_readback.json": "1105f96686eed4075d56b06954301f858689f86446638878ac86ac6aa3fe0513"
+  }
+}

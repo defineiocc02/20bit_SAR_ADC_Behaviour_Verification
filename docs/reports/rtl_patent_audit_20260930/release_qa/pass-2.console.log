@@ -1,0 +1,312 @@
+This is XeTeX, Version 3.141592653-2.6-0.999998 (TeX Live 2026) (preloaded format=xelatex)
+entering extended mode
+(./report.tex
+LaTeX2e <2026-06-01>
+L3 programming layer <2026-08-10>
+(/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/ctex/ctexrep.cls (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/ctex/config/ctexbackend.cfg) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/l3kernel/expl3.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/l3kernel/l3backend-xetex.def))
+Document Class: ctexrep 2026/08/11 v2.6.5 Chinese adapter for class report (CTEX)
+(/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/ctex/ctexhook.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/ctex/ctexpatch.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/base/fix-cm.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/base/ts1enc.def)) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/ctex/config/ctexopts.cfg) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/base/report.cls
+Document Class: report 2025/01/22 v1.4n Standard LaTeX document class
+(/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/base/size11.clo)) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/ctex/engine/ctex-engine-xetex.def (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/xelatex/xecjk/xeCJK.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/l3packages/xtemplate/xtemplate.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/fontspec/fontspec.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/fontspec/fontspec-xetex.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/base/fontenc.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/fontspec/fontspec.cfg))) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/xelatex/xecjk/xeCJK.cfg))) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/zhnumber/zhnumber.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/zhnumber/zhnumber-utf8.cfg)) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/ctex/scheme/ctex-scheme-chinese-report.def (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/ctex/config/ctex-name-utf8.cfg)) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/ctex/fontset/ctex-fontset-fandol.def)) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/ctex/config/ctex.cfg) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/geometry/geometry.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/graphics/keyval.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/iftex/ifvtex.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/iftex/iftex.sty))) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/amsmath/amsmath.sty
+For additional information on amsmath, use the `?' option.
+(/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/amsmath/amstext.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/amsmath/amsgen.sty)) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/amsmath/amsbsy.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/amsmath/amsopn.sty)) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/amsfonts/amssymb.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/amsfonts/amsfonts.sty)) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/booktabs/booktabs.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/tools/longtable.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/tools/array.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/tools/tabularx.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/graphics/graphicx.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/graphics/graphics.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/graphics/trig.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/graphics-cfg/graphics.cfg) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/graphics-def/xetex.def))) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/xcolor/xcolor.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/graphics-cfg/color.cfg) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/graphics/mathcolor.ltx)) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/hyperref/hyperref.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/kvsetkeys/kvsetkeys.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/kvdefinekeys/kvdefinekeys.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pdfescape/pdfescape.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/ltxcmds/ltxcmds.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pdftexcmds/pdftexcmds.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/infwarerr/infwarerr.sty))) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/hycolor/hycolor.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/hyperref/nameref.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/refcount/refcount.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/gettitlestring/gettitlestring.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/kvoptions/kvoptions.sty))) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/etoolbox/etoolbox.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/stringenc/stringenc.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/hyperref/pd1enc.def) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/intcalc/intcalc.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/hyperref/puenc.def) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/url/url.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/bitset/bitset.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/bigintcalc/bigintcalc.sty))) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/hyperref/hxetex.def (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/rerunfilecheck/rerunfilecheck.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/uniquecounter/uniquecounter.sty))) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/fancyhdr/fancyhdr.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/enumitem/enumitem.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/float/float.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/pgf/frontendlayer/tikz.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/pgf/basiclayer/pgf.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/pgf/utilities/pgfrcs.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/utilities/pgfutil-common.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/utilities/pgfutil-latex.def) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/utilities/pgfrcs.code.tex (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/pgf.revision.tex))) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/pgf/basiclayer/pgfcore.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/pgf/systemlayer/pgfsys.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/systemlayer/pgfsys.code.tex (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/utilities/pgfkeys.code.tex (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/utilities/pgfkeyslibraryfiltered.code.tex)) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/systemlayer/pgf.cfg) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/systemlayer/pgfsys-xetex.def (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/systemlayer/pgfsys-dvipdfmx.def (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/systemlayer/pgfsys-common-pdf.def)))) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/systemlayer/pgfsyssoftpath.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/systemlayer/pgfsysprotocol.code.tex)) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcore.code.tex (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmath.code.tex (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathutil.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathparser.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.basic.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.trigonometric.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.random.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.comparison.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.base.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.round.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.misc.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfunctions.integerarithmetics.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathcalc.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmathfloat.code.tex)) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfint.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepoints.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepathconstruct.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepathusage.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcorescopes.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcoregraphicstate.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcoretransformations.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcorequick.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreobjects.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepathprocessing.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcorearrows.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreshade.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreimage.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcoreexternal.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcorelayers.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcoretransparency.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcorepatterns.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/basiclayer/pgfcorerdf.code.tex))) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/modules/pgfmoduleshapes.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/modules/pgfmoduleplot.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/pgf/compatibility/pgfcomp-version-0-65.sty) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/pgf/compatibility/pgfcomp-version-1-18.sty)) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/pgf/utilities/pgffor.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/pgf/utilities/pgfkeys.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/utilities/pgfkeys.code.tex)) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/pgf/math/pgfmath.sty (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/math/pgfmath.code.tex)) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/utilities/pgffor.code.tex)) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/frontendlayer/tikz/tikz.code.tex (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/libraries/pgflibraryplothandlers.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/modules/pgfmodulematrix.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibrarytopaths.code.tex))) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/libraries/pgflibraryarrows.meta.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibrarypositioning.code.tex) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/frontendlayer/tikz/libraries/tikzlibraryshapes.geometric.code.tex (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/generic/pgf/libraries/shapes/pgflibraryshapes.geometric.code.tex)) (/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/reports/rtl_patent_audit_20260930/.build/report.StRkDD/report.aux)
+*geometry* driver: auto-detecting
+*geometry* detected driver: xetex
+(/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/reports/rtl_patent_audit_20260930/.build/report.StRkDD/report.out) (/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/reports/rtl_patent_audit_20260930/.build/report.StRkDD/report.out) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/amsfonts/umsa.fd) (/Users/zhaoyi/Library/TinyTeX/texmf-dist/tex/latex/amsfonts/umsb.fd) [1] [1] (/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/reports/rtl_patent_audit_20260930/.build/report.StRkDD/report.toc [1] [2] [3] [4] [5]) [6]
+第一章
+[7]
+第二章
+[8] (./sections/prior_art_comparison.tex [9] [10]) [11]
+第三章
+[12] (./sections/calibration_principles.tex [13]
+第四章
+[14] [15] [16] [17] [18] [19] [20]) [21]
+第五章
+[22] (./sections/patent_principles.tex [23]
+第六章
+[24] [25] [26] [27] [28] [29] [30] [31] [32] [33] [34] [35]) [36]
+第七章
+[37] [38] [39] [40] [41] (./sections/verification_method.tex [42]
+第八章
+[43] [44] [45] [46] (./sections/reducer_scheduler_figure.tex) [47] [48]) (./sections/final_regression_evidence.tex [49] [50] [51] [52] [53]) [54] [55]
+第九章
+[56] [57] [58] [59] (./sections/divider_timing.tex [60]
+第十章
+[61] [62] [63]) (./sections/synthesis_repair.tex [64]
+第十一章
+[65] [66] (./sections/vivado_measured_table.tex [67]) [68] (./sections/weight_msb_figure.tex) [69] [70] [71] (./sections/row_cache_design.tex [72]
+Underfull \hbox (badness 2865) in paragraph at lines 67--79
+\TU/FandolSong-Regular(0)/m/n/10.95 仅 在 被 接 受 且 地 址 命 中 时 提 交。|  它 避 免 先 汇 合 成 一 条 全 局 旧 系 数 再 反 馈 到 任 意 行，|  却 可 能 复
+
+Underfull \hbox (badness 1365) in paragraph at lines 67--79
+\TU/FandolSong-Regular(0)/m/n/10.95 制 \TU/lmr/m/n/10.95 18 \TU/FandolSong-Regular(0)/m/n/10.95 组 减 加 电 路；|  所 以 不 能 仅 凭 更 短 的 逻 辑 连 线 推 断 \TU/lmr/m/n/10.95 PPA \TU/FandolSong-Regular(0)/m/n/10.95 收 益。|  此 候 选 \TU/lmr/m/n/10.95 RTL \TU/FandolSong-Regular(0)/m/n/10.95 内 容 摘 要
+
+Underfull \hbox (badness 10000) in paragraph at lines 67--79
+\TU/FandolSong-Regular(0)/m/n/10.95 为 $[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]$。|  官 方 \TU/lmr/m/n/10.95 Verila-
+
+Underfull \hbox (badness 1584) in paragraph at lines 67--79
+\TU/FandolSong-Regular(0)/m/n/10.95 输 出、| \TU/lmr/m/n/10.95 7,680 \TU/FandolSong-Regular(0)/m/n/10.95 个 协 议 周 期 和 \TU/lmr/m/n/10.95 438 \TU/FandolSong-Regular(0)/m/n/10.95 个 延 迟 观 测，|  分 别 为 \TU/lmr/m/n/10.95 15/13/11 \TU/FandolSong-Regular(0)/m/n/10.95 拍。|  逐 项 原 始 日 志 与 哈 希 见
+
+Underfull \hbox (badness 3635) in paragraph at lines 67--79
+[][][][] [] [][][][][][][][] [] [][][][][][][][] [] [][][][][] [] [][][] [] [][][][][] [] [][][][]$\TU/FandolSong-Regular(0)/m/n/10.95 。|  这 些 仅 是 零 延 迟 功 能 结 果。|  后 述 同 约 束 综
+[73] (./sections/row_cache_evidence.tex [74])) [75]
+Underfull \hbox (badness 3108) in paragraph at lines 192--200
+[]\TU/FandolSong-Regular(0)/m/n/10.95 为 了 判 断 行 和 缓 存 是 否 真 正 带 来 面 积 与 时 序 收 益，|  已 冻 结 前 代 精 简 版 和 当 前 缓 存 版 的 源
+
+Underfull \hbox (badness 1248) in paragraph at lines 192--200
+\TU/FandolSong-Regular(0)/m/n/10.95 码，|  计 划 在 相 同 $[][][][][][][][][][][][][][][][][][][]$、| \TU/lmr/m/n/10.95 Vivado 2018.3\TU/FandolSong-Regular(0)/m/n/10.95 、| $\OML/cmm/m/it/10.95 P[] \OT1/cmr/m/n/10.95 = 5$\TU/FandolSong-Regular(0)/m/n/10.95 、| \TU/lmr/m/n/10.95 25ns \TU/FandolSong-Regular(0)/m/n/10.95 请 求 周 期、|  同
+
+Underfull \hbox (badness 1635) in paragraph at lines 192--200
+\TU/FandolSong-Regular(0)/m/n/10.95 一 综 合 脚 本 与 \TU/lmr/m/n/10.95 XDC \TU/FandolSong-Regular(0)/m/n/10.95 下 逐 项 比 较。|  前 代 精 简 版 的 第 一 轮 运 行 在 \TU/lmr/m/n/10.95 7,200s \TU/FandolSong-Regular(0)/m/n/10.95 运 行 时 限 处 被 脚 本 终
+
+Underfull \hbox (badness 1776) in paragraph at lines 192--200
+\TU/FandolSong-Regular(0)/m/n/10.95 止，|  结 束 前 仍 处 于 时 序 优 化 阶 段；|  没 有 $[][][][][][] [] [][][]$、| \TU/lmr/m/n/10.95 DCP\TU/FandolSong-Regular(0)/m/n/10.95 、|  完 整 利 用 率 或 时 序 报 告。|  该 轮 原
+
+Underfull \hbox (badness 1331) in paragraph at lines 192--200
+\TU/FandolSong-Regular(0)/m/n/10.95 始 失 败 记 录 见 $[][][][] [] [][][][][][][][] [] [][][][][][][][] [] [][][][][][] [] [][][][][][][] [] [][] [] [][][][][][][][]$，|  其 \TU/lmr/m/n/10.95 manifest \TU/FandolSong-Regular(0)/m/n/10.95 摘 要 为
+
+Underfull \hbox (badness 1400) in paragraph at lines 192--200
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][]$\TU/FandolSong-Regular(0)/m/n/10.95 。|  它 只 说 明 在 记 录 的
+
+Underfull \hbox (badness 4024) in paragraph at lines 208--212
+[][][][]$ \TU/FandolSong-Regular(0)/m/n/10.95 复 验；|  恢 复 过 程 没 有 重 新 综 合、|  替 换 输 入 源 码 或 删 除 传 输 失 败 记 录。|  原 始 综 合 日 志 无
+[76] [77] [78] [79] [80] (./sections/shared_selector_closure.tex [81] [82] [83] [84] [85] [86] [87]) [88]) (./sections/rtl_engineering_fsm.tex [89]
+第十二章
+[90] [91]
+Underfull \hbox (badness 3219) in paragraph at lines 66--71
+[]\TU/FandolSong-Regular(0)/m/n/10.95 同 一 上 升 沿 的 多 个 $[][][][][][] [] [][]$ 均 读 取 旧 值，|  给 本 设 计 带 来 四 项 刻 意 的 因 果 关 系。|  第 一，|
+[92] [93] [94] [95] [96] [97]
+Underfull \hbox (badness 5189) in paragraph at lines 230--231
+[]\TU/FandolSong-Regular(0)/m/n/10.95 实 际 数 据 来 自 $[][][][] [] [][][][][][][][] [] [][][][][][][][] [] [][][][][][][][][][][] [] [][][][]$，|  官 方 \TU/lmr/m/n/10.95 Verilator 5.020 \TU/FandolSong-Regular(0)/m/n/10.95 与
+
+Underfull \hbox (badness 1158) in paragraph at lines 230--231
+[][][][][][][][][][][] [] [][][] [] [][]$\TU/FandolSong-Regular(0)/m/n/10.95 ，|  三 份 \TU/lmr/m/n/10.95 CSV \TU/FandolSong-Regular(0)/m/n/10.95 各 \TU/lmr/m/n/10.95 175 \TU/FandolSong-Regular(0)/m/n/10.95 个 上 升 沿。|  输 入 只 在 下 降 沿 改 变，|  记 录 上 升 沿 前 输
+[98]) (./sections/engineering_sta.tex [99] [100]
+第十三章
+[101] [102] [103]) (./sections/implementation_plan.tex [104]
+第十四章
+
+Underfull \hbox (badness 10000) in paragraph at lines 13--13
+[]|\TU/lmr/m/n/10 FPGA \TU/FandolSong-Regular(0)/m/n/10 同 源 综 合、| \TU/lmr/m/n/10 DCP\TU/FandolSong-Regular(0)/m/n/10 、|  各 物 理 节 点
+[105]
+Underfull \hbox (badness 10000) in paragraph at lines 28--28
+[]|\TU/lmr/m/n/8 RTL/\TU/FandolSong-Regular(0)/m/n/8 头 文 件\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 源
+
+Underfull \hbox (badness 10000) in paragraph at lines 29--29
+[]|\TU/lmr/m/n/8 F0\TU/FandolSong-Regular(0)/m/n/8 、|
+
+Underfull \hbox (badness 10000) in paragraph at lines 29--29
+[]|\TU/FandolSong-Regular(0)/m/n/8 全 核 \TU/lmr/m/n/8 OOC \TU/FandolSong-Regular(0)/m/n/8 综
+
+Underfull \hbox (badness 10000) in paragraph at lines 29--29
+\TU/FandolSong-Regular(0)/m/n/8 合；|  查 \TU/lmr/m/n/8 black-
+
+Underfull \hbox (badness 10000) in paragraph at lines 29--29
+\TU/lmr/m/n/8 box/latch/undriven
+
+Underfull \hbox (badness 10000) in paragraph at lines 29--29
+\TU/FandolSong-Regular(0)/m/n/8 盖、| \TU/lmr/m/n/8 max/min\TU/FandolSong-Regular(0)/m/n/8 、| \TU/lmr/m/n/8 DRC\TU/FandolSong-Regular(0)/m/n/8 、|  综 合
+
+Underfull \hbox (badness 10000) in paragraph at lines 29--30
+[]|\TU/FandolSong-Regular(0)/m/n/8 先 修 流 程 或 未 驱
+
+Underfull \hbox (badness 10000) in paragraph at lines 29--30
+\TU/FandolSong-Regular(0)/m/n/8 动 结 构，|  不 做 无 效
+
+Underfull \hbox (badness 10000) in paragraph at lines 31--31
+[]|\TU/lmr/m/n/8 F2\TU/FandolSong-Regular(0)/m/n/8 、|  冻 结 实 现
+
+Underfull \hbox (badness 10000) in paragraph at lines 31--31
+[]|\TU/FandolSong-Regular(0)/m/n/8 真 实 \TU/lmr/m/n/8 BUFG\TU/FandolSong-Regular(0)/m/n/8 、|
+
+Underfull \hbox (badness 10000) in paragraph at lines 31--31
+\TU/lmr/m/n/8 opt/place/phys_opt\TU/FandolSong-Regular(0)/m/n/8 ；|
+
+Underfull \hbox (badness 6173) in paragraph at lines 31--32
+[]|\TU/FandolSong-Regular(0)/m/n/8 回 身 份\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 布 局；|  一 项
+
+Underfull \hbox (badness 10000) in paragraph at lines 32--32
+[]|\TU/FandolSong-Regular(0)/m/n/8 路 由 \TU/lmr/m/n/8 DCP\TU/FandolSong-Regular(0)/m/n/8 、|  完 整
+
+Underfull \hbox (badness 10000) in paragraph at lines 32--32
+\TU/lmr/m/n/8 max/min/\TU/FandolSong-Regular(0)/m/n/8 覆 盖\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 例 外\TU/lmr/m/n/8 /PW\TU/FandolSong-Regular(0)/m/n/8 、|
+
+Underfull \hbox (badness 10000) in paragraph at lines 32--33
+[]|\TU/FandolSong-Regular(0)/m/n/8 按 核 心\TU/lmr/m/n/8 /IO\TU/FandolSong-Regular(0)/m/n/8 、|
+
+Underfull \hbox (badness 10000) in paragraph at lines 32--33
+\TU/lmr/m/n/8 logic/route\TU/FandolSong-Regular(0)/m/n/8 、|
+
+Underfull \hbox (badness 10000) in paragraph at lines 32--33
+\TU/lmr/m/n/8 max/min \TU/FandolSong-Regular(0)/m/n/8 回 对
+
+Underfull \hbox (badness 3568) in paragraph at lines 33--34
+[]|\TU/FandolSong-Regular(0)/m/n/8 先 查 绑 定\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 参 数 再 查
+
+Underfull \hbox (badness 10000) in paragraph at lines 34--34
+[]|\TU/FandolSong-Regular(0)/m/n/8 真 实 \TU/lmr/m/n/8 I/O/\TU/FandolSong-Regular(0)/m/n/8 引
+
+Underfull \hbox (badness 6792) in paragraph at lines 34--34
+[]|\TU/FandolSong-Regular(0)/m/n/8 板 级 全 实 现 与 同 条 件 活
+
+Underfull \hbox (badness 6173) in paragraph at lines 34--35
+[]|\TU/FandolSong-Regular(0)/m/n/8 补 接 口\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 活 动，|  否 决
+
+Underfull \hbox (badness 10000) in paragraph at lines 45--46
+[]|\TU/lmr/m/n/8 duty/jitter/source latency\TU/FandolSong-Regular(0)/m/n/8 、| \TU/lmr/m/n/8 reset \TU/FandolSong-Regular(0)/m/n/8 到
+
+Underfull \hbox (badness 10000) in paragraph at lines 46--46
+[]|\TU/FandolSong-Regular(0)/m/n/8 正 沿 请 求，|
+
+Underfull \hbox (badness 10000) in paragraph at lines 46--46
+\TU/lmr/m/n/8 clear/validate/write \TU/FandolSong-Regular(0)/m/n/8 优
+
+Underfull \hbox (badness 10000) in paragraph at lines 46--47
+[]|\TU/FandolSong-Regular(0)/m/n/8 发 送 端 \TU/lmr/m/n/8 clock-to-out \TU/FandolSong-Regular(0)/m/n/8 与 走 线 相 位 差、|
+
+Underfull \hbox (badness 2393) in paragraph at lines 49--49
+[]|$[][][][][][] [] [][][] [] [][][][][]$\TU/lmr/m/n/8 , $[][][][][][] [] [][][] [] [][]$, $[][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 52--53
+[]|\TU/FandolSong-Regular(0)/m/n/8 传 播、| \TU/lmr/m/n/8 DAC \TU/FandolSong-Regular(0)/m/n/8 建 立、|  控 制 脉 宽\TU/lmr/m/n/8 /load\TU/FandolSong-Regular(0)/m/n/8 ；|  粗
+
+Underfull \hbox (badness 2393) in paragraph at lines 53--53
+[]|$[][][][] [] [][][][][]$\TU/lmr/m/n/8 , $[][][][] [] [][][][][][][] [] [][][][][][]$, $[][][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 54--54
+[]|$[][][][][][] [] [][][][][]$\TU/lmr/m/n/8 , $[][][][][] [] [][][][][][]$, $[][] [] [][][][][]$,
+
+Underfull \hbox (badness 10000) in paragraph at lines 54--54
+[][] [] [][]$\TU/lmr/m/n/8 , $[][] [] [][][][][][][]$, $[][][] [] [][][][][][][][][]$,
+
+Underfull \hbox (badness 2717) in paragraph at lines 54--55
+[]|\TU/FandolSong-Regular(0)/m/n/8 切 换 \TU/lmr/m/n/8 min/max\TU/FandolSong-Regular(0)/m/n/8 、|  脉 宽、| \TU/lmr/m/n/8 dead time\TU/FandolSong-Regular(0)/m/n/8 、|  模 拟 建
+
+Underfull \hbox (badness 6808) in paragraph at lines 55--55
+[]|$[][][][][][][][][] [] [][][][]$\TU/lmr/m/n/8 , $[][][][][][][][][][] [] [][][][]$, $[][][] []
+
+Underfull \hbox (badness 10000) in paragraph at lines 56--56
+[]|$[][][][][] [] [][][][][][][] [] [][][][][][]$\TU/lmr/m/n/8 , $[][][][][] [] [][][][][][]$,
+[106] [107]
+Underfull \hbox (badness 1910) in paragraph at lines 92--93
+[]\TU/FandolSong-Regular(0)/m/n/10.95 权 重 \TU/lmr/m/n/10.95 62,316 FF \TU/FandolSong-Regular(0)/m/n/10.95 占 总 \TU/lmr/m/n/10.95 66,492 FF \TU/FandolSong-Regular(0)/m/n/10.95 的 \TU/lmr/m/n/10.95 93.72%\TU/FandolSong-Regular(0)/m/n/10.95 ，|  先 证 明 读 取 带 宽 可 以 减 少 再 比 较 分 银 行
+
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
+\TU/lmr/m/n/8 MMMC\TU/FandolSong-Regular(0)/m/n/8 、| \TU/lmr/m/n/8 memory
+
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
+[]|\TU/FandolSong-Regular(0)/m/n/8 单 位\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 角\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 授 权\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 接 口 评
+
+Underfull \hbox (badness 10000) in paragraph at lines 99--99
+[]|\TU/FandolSong-Regular(0)/m/n/8 每 活 动 路 径 有 适 用 模
+
+Underfull \hbox (badness 1742) in paragraph at lines 100--100
+[]|\TU/FandolSong-Regular(0)/m/n/8 冻 结 \TU/lmr/m/n/8 RTL \TU/FandolSong-Regular(0)/m/n/8 与 合 法
+
+Underfull \hbox (badness 10000) in paragraph at lines 100--100
+[]|\TU/FandolSong-Regular(0)/m/n/8 综 合\TU/lmr/m/n/8 /link\TU/FandolSong-Regular(0)/m/n/8 ；|  查 参
+
+Underfull \hbox (badness 2617) in paragraph at lines 100--100
+\TU/FandolSong-Regular(0)/m/n/8 数\TU/lmr/m/n/8 /blackbox/latch \TU/FandolSong-Regular(0)/m/n/8 与
+
+Underfull \hbox (badness 10000) in paragraph at lines 100--100
+[]|\TU/FandolSong-Regular(0)/m/n/8 逻 辑 有 效、|  数 值 不 变、|
+
+Underfull \hbox (badness 10000) in paragraph at lines 100--101
+[]|\TU/FandolSong-Regular(0)/m/n/8 修 结 构\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 预 算\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 库，|
+
+Underfull \hbox (badness 10000) in paragraph at lines 101--101
+[]|\TU/FandolSong-Regular(0)/m/n/8 网 表、|  真 实
+
+Underfull \hbox (badness 10000) in paragraph at lines 101--101
+\TU/lmr/m/n/8 macro/pin/\TU/FandolSong-Regular(0)/m/n/8 供
+
+Underfull \hbox (badness 10000) in paragraph at lines 101--101
+[]|\TU/lmr/m/n/8 floorplan/placement\TU/FandolSong-Regular(0)/m/n/8 ，|
+
+Underfull \hbox (badness 10000) in paragraph at lines 101--101
+[]|\TU/FandolSong-Regular(0)/m/n/8 放 置 合 法、|  接 口 完 整、|
+
+Underfull \hbox (badness 10000) in paragraph at lines 101--102
+[]|\TU/FandolSong-Regular(0)/m/n/8 区 域\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 容 量 一 变 量；|
+
+Underfull \hbox (badness 1629) in paragraph at lines 102--102
+[]|\TU/lmr/m/n/8 placed \TU/FandolSong-Regular(0)/m/n/8 结 果、|  真 实
+
+Underfull \hbox (badness 10000) in paragraph at lines 102--102
+[]|\TU/lmr/m/n/8 CTS/\TU/FandolSong-Regular(0)/m/n/8 传 播 \TU/lmr/m/n/8 clock\TU/FandolSong-Regular(0)/m/n/8 ；|  查
+
+Underfull \hbox (badness 10000) in paragraph at lines 102--102
+\TU/lmr/m/n/8 skew\TU/FandolSong-Regular(0)/m/n/8 、| \TU/lmr/m/n/8 latency\TU/FandolSong-Regular(0)/m/n/8 、| \TU/lmr/m/n/8 slew\TU/FandolSong-Regular(0)/m/n/8 、|
+
+Underfull \hbox (badness 1742) in paragraph at lines 102--103
+[]|\TU/FandolSong-Regular(0)/m/n/8 回 \TU/lmr/m/n/8 clock \TU/FandolSong-Regular(0)/m/n/8 预 算\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 布
+
+Underfull \hbox (badness 10000) in paragraph at lines 103--103
+[]|\TU/lmr/m/n/8 global/detail route\TU/FandolSong-Regular(0)/m/n/8 、|
+
+Underfull \hbox (badness 10000) in paragraph at lines 103--103
+[]|\TU/lmr/m/n/8 route \TU/FandolSong-Regular(0)/m/n/8 库\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 网 表、|  拥
+
+Underfull \hbox (badness 10000) in paragraph at lines 103--103
+\TU/FandolSong-Regular(0)/m/n/8 塞\TU/lmr/m/n/8 /DRC/antenna/\TU/FandolSong-Regular(0)/m/n/8 变
+
+Underfull \hbox (badness 10000) in paragraph at lines 104--104
+[]|\TU/FandolSong-Regular(0)/m/n/8 寄 生 提 取，|  查 单
+
+Underfull \hbox (badness 1783) in paragraph at lines 104--104
+[]|\TU/FandolSong-Regular(0)/m/n/8 寄 生 与 当 前 \TU/lmr/m/n/8 route/\TU/FandolSong-Regular(0)/m/n/8 网
+
+Underfull \hbox (badness 1314) in paragraph at lines 105--105
+[]|\TU/FandolSong-Regular(0)/m/n/8 寄 生、|  全 \TU/lmr/m/n/8 MMMC\TU/FandolSong-Regular(0)/m/n/8 、|
+
+Underfull \hbox (badness 10000) in paragraph at lines 105--105
+\TU/FandolSong-Regular(0)/m/n/8 适 用 \TU/lmr/m/n/8 recov-
+
+Underfull \hbox (badness 10000) in paragraph at lines 105--105
+\TU/lmr/m/n/8 ery/removal\TU/FandolSong-Regular(0)/m/n/8 、|
+
+Underfull \hbox (badness 10000) in paragraph at lines 105--105
+\TU/lmr/m/n/8 PW/gating/\TU/FandolSong-Regular(0)/m/n/8 电 气 及
+
+Underfull \hbox (badness 10000) in paragraph at lines 105--105
+[]|\TU/FandolSong-Regular(0)/m/n/8 全 场 景 \TU/lmr/m/n/8 max/min\TU/FandolSong-Regular(0)/m/n/8 、| \TU/lmr/m/n/8 end-
+
+Underfull \hbox (badness 10000) in paragraph at lines 105--105
+\TU/lmr/m/n/8 point/coverage\TU/FandolSong-Regular(0)/m/n/8 、|  宏\TU/lmr/m/n/8 /clock\TU/FandolSong-Regular(0)/m/n/8 、|
+
+Underfull \hbox (badness 7379) in paragraph at lines 105--106
+[]|\TU/FandolSong-Regular(0)/m/n/8 按 路 径 类 型 回 对 应
+
+Underfull \hbox (badness 10000) in paragraph at lines 106--106
+[]|\TU/FandolSong-Regular(0)/m/n/8 具 体 违 例 与 代 价 预
+
+Underfull \hbox (badness 10000) in paragraph at lines 106--106
+[]|\TU/FandolSong-Regular(0)/m/n/8 最 小 \TU/lmr/m/n/8 ECO\TU/FandolSong-Regular(0)/m/n/8 ；|  重 合 法
+
+Underfull \hbox (badness 10000) in paragraph at lines 106--106
+\TU/FandolSong-Regular(0)/m/n/8 化\TU/lmr/m/n/8 /route/\TU/FandolSong-Regular(0)/m/n/8 提 取\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 全 部
+
+Underfull \hbox (badness 5954) in paragraph at lines 106--106
+[]|\TU/FandolSong-Regular(0)/m/n/8 修 目 标，|  无 其 他 角\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 功
+
+Underfull \hbox (badness 10000) in paragraph at lines 107--107
+[]|\TU/FandolSong-Regular(0)/m/n/8 最 终 网 表\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 约
+
+Underfull \hbox (badness 5924) in paragraph at lines 107--107
+[]|\TU/FandolSong-Regular(0)/m/n/8 等 价\TU/lmr/m/n/8 /\TU/FandolSong-Regular(0)/m/n/8 功 能 范 围、|  活 动 覆 盖、|
+[108]) [109]
+第十五章
+[110]
+附录 A
+[111]
+Underfull \hbox (badness 10000) in paragraph at lines 333--334
+[][][][][][] [] [][][] [] [][][][][] [] [][][][][][]$\TU/FandolSong-Regular(0)/m/n/10.95 、| $[][][][][][] [] [][][] [] [][][][][] [] [][][][][] [] [][][][][]$、| $[][][][][][] [] [][][] [] [][][][][] [] [][][][] []
+[112] [113] (/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/reports/rtl_patent_audit_20260930/.build/report.StRkDD/report.aux)
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+ )
+(see the transcript file for additional information)
+Output written on /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/reports/rtl_patent_audit_20260930/.build/report.StRkDD/report.pdf (115 pages).
+Transcript written on /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/reports/rtl_patent_audit_20260930/.build/report.StRkDD/report.log.

@@ -1,0 +1,509 @@
+{
+  "purpose": "First-16 logged numerical comparisons and one detected shared-input mutation; no inferred timing waveform or PPA claim.",
+  "inputs": {
+    "5.020": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/reducer_scheduler/after_5020.run.log",
+      "sha256": "a536480e562c1d3fd57eaa95b28f9ac22acb5fffe5fd262fe7ec03acb8c1b9e5"
+    },
+    "5.49": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/reducer_scheduler/after_549.run.log",
+      "sha256": "4fc0a02ba3a24bca5fb5bc7179ba763aab6b61dc102263006cd7f42480b24975"
+    },
+    "mutation": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/reducer_scheduler/common_stale_mutation_5020.run.log",
+      "sha256": "6c7ce0868b01a8b810a031fbbce3c20e464e9c6583c91a2783b29b911913170c"
+    },
+    "manifest": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/reducer_scheduler/manifest.json",
+      "sha256": "1e6257e9cfb807307cd91374394320075f05e3e71595c0cc3197ec762522e428"
+    },
+    "hash_index": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/reducer_scheduler/sha256.json",
+      "sha256": "0b9a4ad73e0c3f17cf5c81905a01a05db4a092eba6dcdb66adc882b7218b7238"
+    },
+    "mutation_fixture": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/reducer_scheduler/fixtures/common_stale_mutation.sv",
+      "sha256": "2400a88d29be6978952ba2b15f7f731913658c7c318a2da5cea874fbf3989f2b"
+    }
+  },
+  "script_sha256": "8898de10f8f117f300e0a7ae8786918d5a6f7c195494e103d0303e588a46e290",
+  "sv_widths": {
+    "T": 64,
+    "G": 64,
+    "R": 66
+  },
+  "R_decode": "Mask to 66 valid bits, then interpret two's complement; ignore simulator storage padding.",
+  "per_version_full_count": 1430848,
+  "plotted_positive_rows": {
+    "5.020": [
+      {
+        "check": 1,
+        "weight00": 0,
+        "actual": [
+          0,
+          0,
+          0
+        ],
+        "oracle": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "check": 2,
+        "weight00": 0,
+        "actual": [
+          0,
+          0,
+          0
+        ],
+        "oracle": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "check": 3,
+        "weight00": 0,
+        "actual": [
+          0,
+          0,
+          0
+        ],
+        "oracle": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "check": 4,
+        "weight00": 0,
+        "actual": [
+          0,
+          0,
+          0
+        ],
+        "oracle": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "check": 5,
+        "weight00": 0,
+        "actual": [
+          0,
+          0,
+          0
+        ],
+        "oracle": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "check": 6,
+        "weight00": 0,
+        "actual": [
+          0,
+          0,
+          0
+        ],
+        "oracle": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "check": 7,
+        "weight00": 0,
+        "actual": [
+          0,
+          0,
+          0
+        ],
+        "oracle": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "check": 8,
+        "weight00": 0,
+        "actual": [
+          0,
+          0,
+          0
+        ],
+        "oracle": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "check": 9,
+        "weight00": 1,
+        "actual": [
+          24,
+          24,
+          24
+        ],
+        "oracle": [
+          24,
+          24,
+          24
+        ]
+      },
+      {
+        "check": 10,
+        "weight00": 1,
+        "actual": [
+          24,
+          24,
+          24
+        ],
+        "oracle": [
+          24,
+          24,
+          24
+        ]
+      },
+      {
+        "check": 11,
+        "weight00": 1,
+        "actual": [
+          24,
+          16,
+          16
+        ],
+        "oracle": [
+          24,
+          16,
+          16
+        ]
+      },
+      {
+        "check": 12,
+        "weight00": 1,
+        "actual": [
+          24,
+          16,
+          32
+        ],
+        "oracle": [
+          24,
+          16,
+          32
+        ]
+      },
+      {
+        "check": 13,
+        "weight00": 1,
+        "actual": [
+          24,
+          24,
+          -24
+        ],
+        "oracle": [
+          24,
+          24,
+          -24
+        ]
+      },
+      {
+        "check": 14,
+        "weight00": 1,
+        "actual": [
+          24,
+          24,
+          -24
+        ],
+        "oracle": [
+          24,
+          24,
+          -24
+        ]
+      },
+      {
+        "check": 15,
+        "weight00": 1,
+        "actual": [
+          24,
+          16,
+          -32
+        ],
+        "oracle": [
+          24,
+          16,
+          -32
+        ]
+      },
+      {
+        "check": 16,
+        "weight00": 1,
+        "actual": [
+          24,
+          16,
+          -16
+        ],
+        "oracle": [
+          24,
+          16,
+          -16
+        ]
+      }
+    ],
+    "5.49": [
+      {
+        "check": 1,
+        "weight00": 0,
+        "actual": [
+          0,
+          0,
+          0
+        ],
+        "oracle": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "check": 2,
+        "weight00": 0,
+        "actual": [
+          0,
+          0,
+          0
+        ],
+        "oracle": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "check": 3,
+        "weight00": 0,
+        "actual": [
+          0,
+          0,
+          0
+        ],
+        "oracle": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "check": 4,
+        "weight00": 0,
+        "actual": [
+          0,
+          0,
+          0
+        ],
+        "oracle": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "check": 5,
+        "weight00": 0,
+        "actual": [
+          0,
+          0,
+          0
+        ],
+        "oracle": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "check": 6,
+        "weight00": 0,
+        "actual": [
+          0,
+          0,
+          0
+        ],
+        "oracle": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "check": 7,
+        "weight00": 0,
+        "actual": [
+          0,
+          0,
+          0
+        ],
+        "oracle": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "check": 8,
+        "weight00": 0,
+        "actual": [
+          0,
+          0,
+          0
+        ],
+        "oracle": [
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "check": 9,
+        "weight00": 1,
+        "actual": [
+          24,
+          24,
+          24
+        ],
+        "oracle": [
+          24,
+          24,
+          24
+        ]
+      },
+      {
+        "check": 10,
+        "weight00": 1,
+        "actual": [
+          24,
+          24,
+          24
+        ],
+        "oracle": [
+          24,
+          24,
+          24
+        ]
+      },
+      {
+        "check": 11,
+        "weight00": 1,
+        "actual": [
+          24,
+          16,
+          16
+        ],
+        "oracle": [
+          24,
+          16,
+          16
+        ]
+      },
+      {
+        "check": 12,
+        "weight00": 1,
+        "actual": [
+          24,
+          16,
+          32
+        ],
+        "oracle": [
+          24,
+          16,
+          32
+        ]
+      },
+      {
+        "check": 13,
+        "weight00": 1,
+        "actual": [
+          24,
+          24,
+          -24
+        ],
+        "oracle": [
+          24,
+          24,
+          -24
+        ]
+      },
+      {
+        "check": 14,
+        "weight00": 1,
+        "actual": [
+          24,
+          24,
+          -24
+        ],
+        "oracle": [
+          24,
+          24,
+          -24
+        ]
+      },
+      {
+        "check": 15,
+        "weight00": 1,
+        "actual": [
+          24,
+          16,
+          -32
+        ],
+        "oracle": [
+          24,
+          16,
+          -32
+        ]
+      },
+      {
+        "check": 16,
+        "weight00": 1,
+        "actual": [
+          24,
+          16,
+          -16
+        ],
+        "oracle": [
+          24,
+          16,
+          -16
+        ]
+      }
+    ]
+  },
+  "plotted_mutation_row": {
+    "check": 9,
+    "weight00": 1,
+    "actual": [
+      0,
+      0,
+      0
+    ],
+    "oracle": [
+      24,
+      24,
+      24
+    ]
+  },
+  "outputs": {
+    "39_reducer_scheduler.png": "71842a3b1a5823aab70f6a09c3f85d7d24aad3c5f6fe5bb66e1d279dc50f4196",
+    "39_reducer_scheduler.pdf": "e10baeb44b214003a47961064586edca1fcbf7f1e69ac8132fc5997091a73f43"
+  }
+}

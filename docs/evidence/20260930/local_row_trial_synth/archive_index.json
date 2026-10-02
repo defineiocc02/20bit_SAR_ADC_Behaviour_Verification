@@ -1,0 +1,245 @@
+{
+  "created_utc": "2026-09-30T06:28:51.575131+00:00",
+  "label": "local_row_trial_p5_25ns",
+  "source_directory": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered",
+  "validation": "Complete manifest/status, all source archive hashes, no Synth8-3848 undriven diagnostics, full external DCP bytes/SHA checked before archival",
+  "files": [
+    {
+      "path": "archive.stderr.log",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/archive.stderr.log",
+      "source_relative_path": "archive.stderr.log",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archived_bytes": 0,
+      "archived_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "archive.stdout.log",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/archive.stdout.log",
+      "source_relative_path": "archive.stdout.log",
+      "raw_bytes": 226,
+      "raw_sha256": "1be41488a35f35d5a65e4e34e7212906759b87dc1a6e7e4113a9c02ec247a5e7",
+      "archived_bytes": 226,
+      "archived_sha256": "1be41488a35f35d5a65e4e34e7212906759b87dc1a6e7e4113a9c02ec247a5e7",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "console.log",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/console.log",
+      "source_relative_path": "console.log",
+      "raw_bytes": 118871,
+      "raw_sha256": "738383b4622bd68b7b8c9a7beca6b4fa12721a4744a7fda1a5d6d61fecb5c5ef",
+      "archived_bytes": 118871,
+      "archived_sha256": "738383b4622bd68b7b8c9a7beca6b4fa12721a4744a7fda1a5d6d61fecb5c5ef",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "console.stderr.log",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/console.stderr.log",
+      "source_relative_path": "console.stderr.log",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "archived_bytes": 0,
+      "archived_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "dcp_identity.json",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/dcp_identity.json",
+      "source_relative_path": "dcp_identity.json",
+      "raw_bytes": 229,
+      "raw_sha256": "d82b5265e4c9b2c9fc9f857226fec046f2d29db9660c7436f9e020fd2f745f6d",
+      "archived_bytes": 229,
+      "archived_sha256": "d82b5265e4c9b2c9fc9f857226fec046f2d29db9660c7436f9e020fd2f745f6d",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "dcp_recovery.stdout.log",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/dcp_recovery.stdout.log",
+      "source_relative_path": "dcp_recovery.stdout.log",
+      "raw_bytes": 246,
+      "raw_sha256": "80dab51d4fe83a9c6f0bd3b4ba6cc6259aebe9aff36d2a5bc40da48d2fc5fa19",
+      "archived_bytes": 246,
+      "archived_sha256": "80dab51d4fe83a9c6f0bd3b4ba6cc6259aebe9aff36d2a5bc40da48d2fc5fa19",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "local_dcp_identity.json",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/local_dcp_identity.json",
+      "source_relative_path": "local_dcp_identity.json",
+      "raw_bytes": 488,
+      "raw_sha256": "89ca8b97008eba99b1bd65dd872348643629c85d85e5e191e0b2e0a518038cc4",
+      "archived_bytes": 488,
+      "archived_sha256": "89ca8b97008eba99b1bd65dd872348643629c85d85e5e191e0b2e0a518038cc4",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "manifest.json",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/manifest.json",
+      "source_relative_path": "manifest.json",
+      "raw_bytes": 4187,
+      "raw_sha256": "c7c8ad5167abc1b07e33229c23ca7f0746fc946e29257f1cce0fcc5855456e61",
+      "archived_bytes": 4187,
+      "archived_sha256": "c7c8ad5167abc1b07e33229c23ca7f0746fc946e29257f1cce0fcc5855456e61",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "out/check_timing.rpt",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/out/check_timing.rpt",
+      "source_relative_path": "out/check_timing.rpt",
+      "raw_bytes": 3054,
+      "raw_sha256": "bdb380cffd6857d7fbd34085d375e631c4ff1a5b6d365ede0e8c6b8be597fef1",
+      "archived_bytes": 3054,
+      "archived_sha256": "bdb380cffd6857d7fbd34085d375e631c4ff1a5b6d365ede0e8c6b8be597fef1",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "out/drc.rpt",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/out/drc.rpt",
+      "source_relative_path": "out/drc.rpt",
+      "raw_bytes": 30104,
+      "raw_sha256": "bd7a4fd2b96a95915f512421f0bc3747346fcd7a415146b324aea15fdcd806e3",
+      "archived_bytes": 30104,
+      "archived_sha256": "bd7a4fd2b96a95915f512421f0bc3747346fcd7a415146b324aea15fdcd806e3",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "out/power_vectorless.rpt",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/out/power_vectorless.rpt",
+      "source_relative_path": "out/power_vectorless.rpt",
+      "raw_bytes": 8189,
+      "raw_sha256": "b918dcbd6d2255640a9093393914b0a08aaa22e57dda339118e249e099e6fa59",
+      "archived_bytes": 8189,
+      "archived_sha256": "b918dcbd6d2255640a9093393914b0a08aaa22e57dda339118e249e099e6fa59",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "out/screening.xdc",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/out/screening.xdc",
+      "source_relative_path": "out/screening.xdc",
+      "raw_bytes": 248,
+      "raw_sha256": "19cb72c5eb1c295798846e1564aa4805b8c0719b86ec3c6fe77717cd2d7a7b6c",
+      "archived_bytes": 248,
+      "archived_sha256": "19cb72c5eb1c295798846e1564aa4805b8c0719b86ec3c6fe77717cd2d7a7b6c",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "out/status.txt",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/out/status.txt",
+      "source_relative_path": "out/status.txt",
+      "raw_bytes": 181,
+      "raw_sha256": "5d5a2947649387c365f5572928b7450d6a1b2fd8b1e3a991fd9af027d422bfa5",
+      "archived_bytes": 181,
+      "archived_sha256": "5d5a2947649387c365f5572928b7450d6a1b2fd8b1e3a991fd9af027d422bfa5",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "out/timing_paths.rpt.gz",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/out/timing_paths.rpt",
+      "source_relative_path": "out/timing_paths.rpt",
+      "raw_bytes": 635924,
+      "raw_sha256": "33e46a18262c37d2bbb146a1980cd4c9cf8f9859c63314e2ad2d5bbb9bc61390",
+      "archived_bytes": 13841,
+      "archived_sha256": "4a5d3ed9ccca6d59ed4565fb6752cf377f7b9c1541bb30e1d4a5a67b80c55de4",
+      "encoding": "gzip level=9, mtime=0, filename empty"
+    },
+    {
+      "path": "out/timing_summary.rpt",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/out/timing_summary.rpt",
+      "source_relative_path": "out/timing_summary.rpt",
+      "raw_bytes": 45250,
+      "raw_sha256": "5feba17af749e230ff258e3d3bdae4a799a8e6644bb9680aba0875fed2c175d5",
+      "archived_bytes": 45250,
+      "archived_sha256": "5feba17af749e230ff258e3d3bdae4a799a8e6644bb9680aba0875fed2c175d5",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "out/utilization.rpt",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/out/utilization.rpt",
+      "source_relative_path": "out/utilization.rpt",
+      "raw_bytes": 7458,
+      "raw_sha256": "776c4fffc0b9ce3e72b6b12d9992ff649871f52dd10482b0125d997b7d7cb058",
+      "archived_bytes": 7458,
+      "archived_sha256": "776c4fffc0b9ce3e72b6b12d9992ff649871f52dd10482b0125d997b7d7cb058",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "out/utilization_hier.rpt",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/out/utilization_hier.rpt",
+      "source_relative_path": "out/utilization_hier.rpt",
+      "raw_bytes": 5295,
+      "raw_sha256": "c7cc0162f12b81b4ab06327d2da9c06231339b52c2dad87d3e9b1e8fedd5d8f7",
+      "archived_bytes": 5295,
+      "archived_sha256": "c7cc0162f12b81b4ab06327d2da9c06231339b52c2dad87d3e9b1e8fedd5d8f7",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "reports_recovery.tar.gz",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/reports_recovery.tar.gz",
+      "source_relative_path": "reports_recovery.tar.gz",
+      "raw_bytes": 55469,
+      "raw_sha256": "aab6ddeb7c4add4d90607b7d96745d151f2bb7c063a7c4462404afe3be0bdfad",
+      "archived_bytes": 55469,
+      "archived_sha256": "aab6ddeb7c4add4d90607b7d96745d151f2bb7c063a7c4462404afe3be0bdfad",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "transport_attempt1_manifest.json",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/transport_attempt1_manifest.json",
+      "source_relative_path": "transport_attempt1_manifest.json",
+      "raw_bytes": 3681,
+      "raw_sha256": "14f63bd206202aad91fb2988310cd466c16006a8e6268bbc80b0f5f23bd3a7fa",
+      "archived_bytes": 3681,
+      "archived_sha256": "14f63bd206202aad91fb2988310cd466c16006a8e6268bbc80b0f5f23bd3a7fa",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "vivado.log",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/vivado.log",
+      "source_relative_path": "vivado.log",
+      "raw_bytes": 118505,
+      "raw_sha256": "b97b18855d72266d32997f45a3327c7aeed479f73d574a8812605e97b112f580",
+      "archived_bytes": 118505,
+      "archived_sha256": "b97b18855d72266d32997f45a3327c7aeed479f73d574a8812605e97b112f580",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "vivado_exit_code.txt",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/vivado_exit_code.txt",
+      "source_relative_path": "vivado_exit_code.txt",
+      "raw_bytes": 1,
+      "raw_sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+      "archived_bytes": 1,
+      "archived_sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+      "encoding": "unchanged raw bytes"
+    },
+    {
+      "path": "source.tar.gz",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5/source.tar.gz",
+      "source_relative_path": null,
+      "raw_bytes": 51525,
+      "raw_sha256": "a460734cd2de7f99b83672ef93bfe74231724caaee8f8856bd1bed5f3e454913",
+      "archived_bytes": 51525,
+      "archived_sha256": "a460734cd2de7f99b83672ef93bfe74231724caaee8f8856bd1bed5f3e454913",
+      "encoding": "unchanged raw bytes; original run source archive"
+    }
+  ],
+  "omitted": [
+    {
+      "path": "out/post_synth.dcp",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/out/post_synth.dcp",
+      "bytes": 54553541,
+      "sha256": "95a876bc7bdafa2ccf627f18bd6db6d87cb4d6f4281eede9ae77143722d2fdc2",
+      "reason": "Large DCP remains external; archive contains only reports and provenance"
+    }
+  ],
+  "all_raw_report_bytes_preserved": true,
+  "gzip_threshold_bytes": 524288,
+  "generated_files": [
+    "readings.json",
+    "archive_index.json",
+    "README.md",
+    "sha256.json"
+  ]
+}

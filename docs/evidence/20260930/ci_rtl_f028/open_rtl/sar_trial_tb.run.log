@@ -1,0 +1,2 @@
+SAR_TRIAL_COMPLETE fine_codes=4096 coarse_codes=512 stalls_and_cancel=PASS
+- sim/tb/sar_trial_tb.sv:46: Verilog $finish

@@ -1,0 +1,5 @@
+{
+  "test": "missing tool after previous PASS",
+  "returncode": 2,
+  "old_manifest_removed": true
+}

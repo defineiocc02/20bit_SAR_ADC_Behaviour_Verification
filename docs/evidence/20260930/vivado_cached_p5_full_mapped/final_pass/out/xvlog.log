@@ -1,0 +1,28 @@
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "C:/Users/Administrator/adc_rtl_vivado/run.cf20668601ce488fae0114abdb176dbf/out/export/full_top_funcsim.v" into library work
+INFO: [VRFC 10-311] analyzing module adc2_dec
+INFO: [VRFC 10-311] analyzing module analog_phase_ctrl
+INFO: [VRFC 10-311] analyzing module cal_output_stage
+INFO: [VRFC 10-311] analyzing module cal_residue_mac
+INFO: [VRFC 10-311] analyzing module cal_sample_context
+INFO: [VRFC 10-311] analyzing module cal_weight_reduce
+INFO: [VRFC 10-311] analyzing module calib_regs
+INFO: [VRFC 10-311] analyzing module dem_addr_gen
+INFO: [VRFC 10-311] analyzing module dem_state_gen__parameterized0
+INFO: [VRFC 10-311] analyzing module dither_gen__parameterized0
+INFO: [VRFC 10-311] analyzing module div_floor
+INFO: [VRFC 10-311] analyzing module rdac_drv
+INFO: [VRFC 10-311] analyzing module recon_core
+INFO: [VRFC 10-311] analyzing module sar20_digital_core
+INFO: [VRFC 10-311] analyzing module sar_structural_ctrl
+INFO: [VRFC 10-311] analyzing module sar_trial_ctrl
+INFO: [VRFC 10-311] analyzing module sar_trial_ctrl_0
+INFO: [VRFC 10-311] analyzing module sar_trial_ctrl__parameterized0
+INFO: [VRFC 10-311] analyzing module slice_pool_ctrl
+INFO: [VRFC 10-311] analyzing module status_regs
+INFO: [VRFC 10-311] analyzing module swap_decode
+INFO: [VRFC 10-311] analyzing module unit_therm
+INFO: [VRFC 10-311] analyzing module weight_store
+INFO: [VRFC 10-311] analyzing module glbl
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "C:/Users/Administrator/adc_rtl_vivado/run.cf20668601ce488fae0114abdb176dbf/out/input/structural_mapped_tb.sv" into library work
+INFO: [VRFC 10-311] analyzing module structural_mapped_tb
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file "D:/Academic/Vivado2018/Vivado/2018.3/data/verilog/src/glbl.v" into library work

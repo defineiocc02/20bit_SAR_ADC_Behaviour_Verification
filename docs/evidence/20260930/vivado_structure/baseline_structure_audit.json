@@ -1,0 +1,3618 @@
+{
+  "dcp": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_baseline/synth/artifacts/vivado/20260929T190955.260429Z_p7_recovered/out/post_synth.dcp",
+  "dcp_sha256": "9c3bc09dd193d0bffcd6d00f9af83cc887fde5423402416af751f4a2d1ef506b",
+  "edif_member": "sar20_digital_core.edf",
+  "source_decode": "Vivado XLNX_LINE_FILE integer >>12 gives line; low12 bits indexes EDIF metax FILE table; corroborated against actual RTL lines",
+  "files": {
+    "0": "top/sar20_digital_core.sv",
+    "1": "core/weight_store.sv",
+    "10": "core/rdac_drv.sv",
+    "11": "core/sar_structural_ctrl.sv",
+    "12": "core/analog_phase_ctrl.sv",
+    "13": "core/slice_pool_ctrl.sv",
+    "15": "core/sar_trial_ctrl.sv",
+    "16": "core/cal_sample_context.sv",
+    "17": "core/recon_core.sv",
+    "18": "core/cal_weight_reduce.sv",
+    "19": "core/adc2_dec.sv",
+    "2": "core/calib_regs.sv",
+    "20": "core/cal_residue_mac.sv",
+    "21": "core/div_floor.sv",
+    "22": "core/cal_output_stage.sv",
+    "23": "core/status_regs.sv",
+    "5": "core/dem_state_gen.sv",
+    "6": "core/dem_addr_gen.sv",
+    "7": "core/dither_gen.sv",
+    "8": "core/swap_decode.sv",
+    "9": "core/unit_therm.sv"
+  },
+  "modules": {
+    "calib_regs": {
+      "primitive_counts": {
+        "LUT5": 1247,
+        "LUT6": 1120,
+        "LUT4": 442,
+        "LUT2": 240,
+        "FDRE": 203,
+        "LUT3": 29,
+        "CARRY4": 8,
+        "GND": 1,
+        "VCC": 1,
+        "FDSE": 1,
+        "LUT1": 1
+      },
+      "lut_source_locations": {
+        "core/weight_store.sv:78": 1601,
+        "core/weight_store.sv:120": 921,
+        "core/adc2_dec.sv:77": 97,
+        "core/calib_regs.sv:88": 78,
+        "core/weight_store.sv:102": 72,
+        "top/sar20_digital_core.sv:638": 68,
+        "core/adc2_dec.sv:91": 63,
+        "core/rdac_drv.sv:63": 33,
+        "top/sar20_digital_core.sv:636": 24,
+        "core/analog_phase_ctrl.sv:20": 23,
+        "top/sar20_digital_core.sv:150": 15,
+        "top/sar20_digital_core.sv:151": 12,
+        "top/sar20_digital_core.sv:124": 10,
+        "top/sar20_digital_core.sv:149": 6,
+        "core/calib_regs.sv:97": 4,
+        "top/sar20_digital_core.sv:267": 4,
+        "top/sar20_digital_core.sv:157": 3,
+        "top/sar20_digital_core.sv:130": 3,
+        "top/sar20_digital_core.sv:145": 3,
+        "core/unit_therm.sv:56": 3,
+        "core/calib_regs.sv:98": 3,
+        "top/sar20_digital_core.sv:269": 3,
+        "top/sar20_digital_core.sv:132": 2,
+        "top/sar20_digital_core.sv:147": 2,
+        "top/sar20_digital_core.sv:148": 2,
+        "top/sar20_digital_core.sv:178": 2,
+        "top/sar20_digital_core.sv:152": 2,
+        "top/sar20_digital_core.sv:229": 2,
+        "core/calib_regs.sv:83": 1,
+        "top/sar20_digital_core.sv:154": 1,
+        "top/sar20_digital_core.sv:131": 1,
+        "top/sar20_digital_core.sv:125": 1,
+        "top/sar20_digital_core.sv:133": 1,
+        "top/sar20_digital_core.sv:181": 1,
+        "top/sar20_digital_core.sv:166": 1,
+        "core/slice_pool_ctrl.sv:19": 1,
+        "core/calib_regs.sv:82": 1,
+        "core/cal_output_stage.sv:24": 1,
+        "top/sar20_digital_core.sv:153": 1,
+        "core/calib_regs.sv:85": 1,
+        "core/cal_output_stage.sv:37": 1,
+        "core/rdac_drv.sv:49": 1,
+        "core/recon_core.sv:181": 1,
+        "core/calib_regs.sv:84": 1,
+        "top/sar20_digital_core.sv:159": 1,
+        "top/sar20_digital_core.sv:197": 1
+      },
+      "lut_name_prefixes": {
+        "w_q": 1302,
+        "written": 1289,
+        "cfg_rdata": 114,
+        "err_code": 75,
+        "dither_sw": 34,
+        "status_word": 21,
+        "hold_low_enable": 18,
+        "max_r": 18,
+        "bus_err": 16,
+        "delta_carry__0": 4,
+        "delta_carry__10": 4,
+        "delta_carry__11": 4,
+        "delta_carry__12": 4,
+        "delta_carry__13": 4,
+        "delta_carry__14": 4,
+        "delta_carry__1": 4,
+        "delta_carry__2": 4,
+        "delta_carry__3": 4,
+        "delta_carry__4": 4,
+        "delta_carry__5": 4,
+        "delta_carry__6": 4,
+        "delta_carry__7": 4,
+        "delta_carry__8": 4,
+        "delta_carry__9": 4,
+        "delta_carry": 4,
+        "i__carry__0": 4,
+        "i__carry__1": 4,
+        "i__carry__2": 4,
+        "i__carry__3": 4,
+        "i__carry__4": 4,
+        "i__carry__5": 4,
+        "i__carry": 4,
+        "scalar_written": 4,
+        "sum_wide_carry__0": 4,
+        "sum_wide_carry__10": 4,
+        "sum_wide_carry__11": 4,
+        "sum_wide_carry__12": 4,
+        "sum_wide_carry__13": 4,
+        "sum_wide_carry__14": 4,
+        "sum_wide_carry__1": 4,
+        "sum_wide_carry__2": 4,
+        "sum_wide_carry__3": 4,
+        "sum_wide_carry__4": 4,
+        "sum_wide_carry__5": 4,
+        "sum_wide_carry__6": 4,
+        "sum_wide_carry__7": 4,
+        "sum_wide_carry__8": 4,
+        "sum_wide_carry__9": 4,
+        "sum_wide_carry": 4,
+        "cfg_ready": 3,
+        "dem_r": 3,
+        "residue": 3,
+        "ctrl_seq": 2,
+        "error_code": 2,
+        "i__carry__6": 2,
+        "slice_sel": 2,
+        "smk_r": 2,
+        "acquiring_mask": 1,
+        "acquisition_dither_rails": 1,
+        "brg_r": 1,
+        "ctrl_bits": 1,
+        "cur_slice": 1,
+        "cursor": 1,
+        "dout_valid": 1,
+        "min_r": 1,
+        "off_r": 1,
+        "phase": 1,
+        "qdith_r": 1,
+        "resolved_valid": 1,
+        "result_sample_id": 1
+      },
+      "lut_examples": [
+        {
+          "name": "acquiring_mask[17]_i_1",
+          "edif_line": 10554,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT3"
+        },
+        {
+          "name": "acquisition_dither_rails[1]_INST_0",
+          "edif_line": 10559,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "brg_r_i_1",
+          "edif_line": 10563,
+          "source": "core/calib_regs.sv:83",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bus_err[0]_i_1",
+          "edif_line": 10571,
+          "source": "top/sar20_digital_core.sv:157",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bus_err[1]_i_1",
+          "edif_line": 10575,
+          "source": "top/sar20_digital_core.sv:157",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bus_err[2]_i_1",
+          "edif_line": 10579,
+          "source": "top/sar20_digital_core.sv:157",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bus_err[2]_i_10",
+          "edif_line": 10583,
+          "source": "top/sar20_digital_core.sv:149",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "bus_err[2]_i_11",
+          "edif_line": 10587,
+          "source": "top/sar20_digital_core.sv:149",
+          "primitive": "LUT4"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {
+        "core/calib_regs.sv:81": 64,
+        "core/calib_regs.sv:80": 64,
+        "core/calib_regs.sv:79": 64,
+        "core/calib_regs.sv:97": 4,
+        "core/calib_regs.sv:98": 3,
+        "core/calib_regs.sv:83": 1,
+        "core/calib_regs.sv:96": 1,
+        "core/calib_regs.sv:82": 1,
+        "core/calib_regs.sv:85": 1,
+        "core/calib_regs.sv:84": 1
+      },
+      "source_witnesses": {
+        "core/adc2_dec.sv:77": {
+          "instance": "acquiring_mask[17]_i_1",
+          "primitive": "LUT3",
+          "edif_line": 10554,
+          "XLNX_LINE_FILE": 315411
+        },
+        "core/analog_phase_ctrl.sv:20": {
+          "instance": "acquisition_dither_rails[1]_INST_0",
+          "primitive": "LUT2",
+          "edif_line": 10559,
+          "XLNX_LINE_FILE": 81932
+        },
+        "core/calib_regs.sv:83": {
+          "instance": "brg_r_i_1",
+          "primitive": "LUT6",
+          "edif_line": 10563,
+          "XLNX_LINE_FILE": 339970
+        },
+        "top/sar20_digital_core.sv:157": {
+          "instance": "bus_err[0]_i_1",
+          "primitive": "LUT6",
+          "edif_line": 10571,
+          "XLNX_LINE_FILE": 643072
+        },
+        "top/sar20_digital_core.sv:149": {
+          "instance": "bus_err[2]_i_10",
+          "primitive": "LUT4",
+          "edif_line": 10583,
+          "XLNX_LINE_FILE": 610304
+        },
+        "top/sar20_digital_core.sv:150": {
+          "instance": "bus_err[2]_i_12",
+          "primitive": "LUT4",
+          "edif_line": 10591,
+          "XLNX_LINE_FILE": 614400
+        },
+        "top/sar20_digital_core.sv:154": {
+          "instance": "bus_err[2]_i_3",
+          "primitive": "LUT2",
+          "edif_line": 10610,
+          "XLNX_LINE_FILE": 630784
+        },
+        "top/sar20_digital_core.sv:636": {
+          "instance": "cfg_rdata[0]_INST_0",
+          "primitive": "LUT5",
+          "edif_line": 10639,
+          "XLNX_LINE_FILE": 2605056
+        },
+        "top/sar20_digital_core.sv:638": {
+          "instance": "cfg_rdata[0]_INST_0_i_2",
+          "primitive": "LUT6",
+          "edif_line": 10643,
+          "XLNX_LINE_FILE": 2613248
+        },
+        "top/sar20_digital_core.sv:130": {
+          "instance": "cfg_rdata[63]_INST_0_i_10",
+          "primitive": "LUT4",
+          "edif_line": 10991,
+          "XLNX_LINE_FILE": 532480
+        },
+        "top/sar20_digital_core.sv:124": {
+          "instance": "cfg_rdata[63]_INST_0_i_11",
+          "primitive": "LUT4",
+          "edif_line": 10995,
+          "XLNX_LINE_FILE": 507904
+        },
+        "top/sar20_digital_core.sv:132": {
+          "instance": "cfg_rdata[63]_INST_0_i_12",
+          "primitive": "LUT4",
+          "edif_line": 10999,
+          "XLNX_LINE_FILE": 540672
+        },
+        "top/sar20_digital_core.sv:145": {
+          "instance": "cfg_rdata[63]_INST_0_i_14",
+          "primitive": "LUT2",
+          "edif_line": 11007,
+          "XLNX_LINE_FILE": 593920
+        },
+        "top/sar20_digital_core.sv:131": {
+          "instance": "cfg_rdata[63]_INST_0_i_5",
+          "primitive": "LUT6",
+          "edif_line": 11023,
+          "XLNX_LINE_FILE": 536576
+        },
+        "top/sar20_digital_core.sv:125": {
+          "instance": "cfg_rdata[63]_INST_0_i_9",
+          "primitive": "LUT4",
+          "edif_line": 11039,
+          "XLNX_LINE_FILE": 512000
+        },
+        "top/sar20_digital_core.sv:133": {
+          "instance": "cfg_rdata[9]_INST_0_i_10",
+          "primitive": "LUT6",
+          "edif_line": 11083,
+          "XLNX_LINE_FILE": 544768
+        },
+        "top/sar20_digital_core.sv:147": {
+          "instance": "cfg_rdata[9]_INST_0_i_11",
+          "primitive": "LUT6",
+          "edif_line": 11087,
+          "XLNX_LINE_FILE": 602112
+        },
+        "core/calib_regs.sv:88": {
+          "instance": "cfg_ready_i_1",
+          "primitive": "LUT5",
+          "edif_line": 11111,
+          "XLNX_LINE_FILE": 360450
+        },
+        "top/sar20_digital_core.sv:148": {
+          "instance": "cfg_ready_i_6",
+          "primitive": "LUT3",
+          "edif_line": 11120,
+          "XLNX_LINE_FILE": 606208
+        },
+        "top/sar20_digital_core.sv:181": {
+          "instance": "ctrl_bits[3]_i_1",
+          "primitive": "LUT2",
+          "edif_line": 11129,
+          "XLNX_LINE_FILE": 741376
+        },
+        "top/sar20_digital_core.sv:178": {
+          "instance": "ctrl_seq[0]_i_1",
+          "primitive": "LUT6",
+          "edif_line": 11134,
+          "XLNX_LINE_FILE": 729088
+        },
+        "top/sar20_digital_core.sv:166": {
+          "instance": "cur_slice[4]_i_1",
+          "primitive": "LUT4",
+          "edif_line": 11142,
+          "XLNX_LINE_FILE": 679936
+        },
+        "core/slice_pool_ctrl.sv:19": {
+          "instance": "cursor[4]_i_1",
+          "primitive": "LUT5",
+          "edif_line": 11147,
+          "XLNX_LINE_FILE": 77837
+        },
+        "core/calib_regs.sv:82": {
+          "instance": "dem_r_i_1",
+          "primitive": "LUT6",
+          "edif_line": 11408,
+          "XLNX_LINE_FILE": 335874
+        },
+        "core/rdac_drv.sv:63": {
+          "instance": "dither_sw[0][0]_i_1",
+          "primitive": "LUT2",
+          "edif_line": 11425,
+          "XLNX_LINE_FILE": 258058
+        },
+        "core/cal_output_stage.sv:24": {
+          "instance": "dout_valid_i_1",
+          "primitive": "LUT2",
+          "edif_line": 11594,
+          "XLNX_LINE_FILE": 98326
+        },
+        "core/calib_regs.sv:97": {
+          "instance": "err_code[0]_i_1",
+          "primitive": "LUT6",
+          "edif_line": 11598,
+          "XLNX_LINE_FILE": 397314
+        },
+        "top/sar20_digital_core.sv:153": {
+          "instance": "err_code[1]_i_3",
+          "primitive": "LUT2",
+          "edif_line": 11610,
+          "XLNX_LINE_FILE": 626688
+        },
+        "top/sar20_digital_core.sv:151": {
+          "instance": "max_r[63]_i_10",
+          "primitive": "LUT6",
+          "edif_line": 12164,
+          "XLNX_LINE_FILE": 618496
+        },
+        "top/sar20_digital_core.sv:152": {
+          "instance": "max_r[63]_i_2",
+          "primitive": "LUT6",
+          "edif_line": 12207,
+          "XLNX_LINE_FILE": 622592
+        },
+        "top/sar20_digital_core.sv:229": {
+          "instance": "max_r[63]_i_3",
+          "primitive": "LUT4",
+          "edif_line": 12211,
+          "XLNX_LINE_FILE": 937984
+        },
+        "core/calib_regs.sv:85": {
+          "instance": "qdith_r_i_1",
+          "primitive": "LUT3",
+          "edif_line": 13023,
+          "XLNX_LINE_FILE": 348162
+        },
+        "core/unit_therm.sv:56": {
+          "instance": "residue[65]_i_1",
+          "primitive": "LUT4",
+          "edif_line": 13032,
+          "XLNX_LINE_FILE": 229385
+        },
+        "core/cal_output_stage.sv:37": {
+          "instance": "result_sample_id[31]_i_1",
+          "primitive": "LUT2",
+          "edif_line": 13052,
+          "XLNX_LINE_FILE": 151574
+        },
+        "core/calib_regs.sv:98": {
+          "instance": "scalar_written[0]_i_1",
+          "primitive": "LUT4",
+          "edif_line": 13056,
+          "XLNX_LINE_FILE": 401410
+        },
+        "core/rdac_drv.sv:49": {
+          "instance": "slice_sel[17]_i_1",
+          "primitive": "LUT1",
+          "edif_line": 13087,
+          "XLNX_LINE_FILE": 200714
+        },
+        "core/recon_core.sv:181": {
+          "instance": "slice_sel[17]_i_4",
+          "primitive": "LUT3",
+          "edif_line": 13091,
+          "XLNX_LINE_FILE": 741393
+        },
+        "core/calib_regs.sv:84": {
+          "instance": "smk_r_i_1",
+          "primitive": "LUT6",
+          "edif_line": 13096,
+          "XLNX_LINE_FILE": 344066
+        },
+        "top/sar20_digital_core.sv:267": {
+          "instance": "status_word[6]_INST_0",
+          "primitive": "LUT4",
+          "edif_line": 13108,
+          "XLNX_LINE_FILE": 1093632
+        },
+        "top/sar20_digital_core.sv:269": {
+          "instance": "status_word[6]_INST_0_i_1",
+          "primitive": "LUT6",
+          "edif_line": 13112,
+          "XLNX_LINE_FILE": 1101824
+        },
+        "top/sar20_digital_core.sv:159": {
+          "instance": "status_word[8]_INST_0_i_1",
+          "primitive": "LUT3",
+          "edif_line": 13170,
+          "XLNX_LINE_FILE": 651264
+        },
+        "core/weight_store.sv:78": {
+          "instance": "status_word[9]_INST_0_i_3",
+          "primitive": "LUT2",
+          "edif_line": 13182,
+          "XLNX_LINE_FILE": 319489
+        },
+        "top/sar20_digital_core.sv:197": {
+          "instance": "status_word[9]_INST_0_i_4",
+          "primitive": "LUT6",
+          "edif_line": 13186,
+          "XLNX_LINE_FILE": 806912
+        },
+        "core/adc2_dec.sv:91": {
+          "instance": "sum_wide_carry__0_i_1",
+          "primitive": "LUT2",
+          "edif_line": 13198,
+          "XLNX_LINE_FILE": 372755
+        },
+        "core/weight_store.sv:120": {
+          "instance": "w_q[0][0][47]_i_1",
+          "primitive": "LUT6",
+          "edif_line": 13454,
+          "XLNX_LINE_FILE": 491521
+        },
+        "core/weight_store.sv:102": {
+          "instance": "w_q[17][0][47]_i_1",
+          "primitive": "LUT6",
+          "edif_line": 15847,
+          "XLNX_LINE_FILE": 417793
+        }
+      },
+      "soft_group_count": 2953,
+      "soft_group_sources": {
+        "core/weight_store.sv:78": 1529,
+        "core/weight_store.sv:120": 921,
+        "core/adc2_dec.sv:77": 95,
+        "core/calib_regs.sv:88": 75,
+        "core/weight_store.sv:102": 72,
+        "top/sar20_digital_core.sv:638": 68,
+        "core/adc2_dec.sv:91": 63,
+        "core/rdac_drv.sv:63": 17,
+        "top/sar20_digital_core.sv:636": 16,
+        "core/analog_phase_ctrl.sv:20": 12,
+        "top/sar20_digital_core.sv:150|top/sar20_digital_core.sv:151": 9,
+        "top/sar20_digital_core.sv:124": 9,
+        "top/sar20_digital_core.sv:149": 6,
+        "top/sar20_digital_core.sv:150": 6,
+        "core/calib_regs.sv:97": 4,
+        "top/sar20_digital_core.sv:267": 4,
+        "top/sar20_digital_core.sv:157": 3,
+        "top/sar20_digital_core.sv:130": 3,
+        "top/sar20_digital_core.sv:145": 3,
+        "top/sar20_digital_core.sv:151": 3,
+        "top/sar20_digital_core.sv:269": 3,
+        "top/sar20_digital_core.sv:132": 2,
+        "top/sar20_digital_core.sv:147": 2,
+        "top/sar20_digital_core.sv:178": 2,
+        "core/calib_regs.sv:98": 2,
+        "core/adc2_dec.sv:77|core/calib_regs.sv:88": 1,
+        "core/calib_regs.sv:83": 1,
+        "top/sar20_digital_core.sv:154|top/sar20_digital_core.sv:229": 1,
+        "top/sar20_digital_core.sv:131": 1,
+        "top/sar20_digital_core.sv:125": 1,
+        "top/sar20_digital_core.sv:133": 1,
+        "top/sar20_digital_core.sv:148|top/sar20_digital_core.sv:229": 1,
+        "top/sar20_digital_core.sv:166|top/sar20_digital_core.sv:181": 1,
+        "core/recon_core.sv:181|core/slice_pool_ctrl.sv:19": 1,
+        "core/calib_regs.sv:82": 1,
+        "core/calib_regs.sv:88|top/sar20_digital_core.sv:153": 1,
+        "core/analog_phase_ctrl.sv:20|core/unit_therm.sv:56": 1,
+        "core/cal_output_stage.sv:24": 1,
+        "core/calib_regs.sv:85|core/calib_regs.sv:88": 1,
+        "top/sar20_digital_core.sv:124|top/sar20_digital_core.sv:152": 1,
+        "core/adc2_dec.sv:77|core/analog_phase_ctrl.sv:20": 1,
+        "top/sar20_digital_core.sv:152": 1,
+        "top/sar20_digital_core.sv:148": 1,
+        "core/unit_therm.sv:56": 1,
+        "core/cal_output_stage.sv:37": 1,
+        "core/rdac_drv.sv:49": 1,
+        "core/calib_regs.sv:84": 1,
+        "top/sar20_digital_core.sv:159": 1,
+        "top/sar20_digital_core.sv:197": 1
+      }
+    },
+    "adc2_dec": {
+      "primitive_counts": {
+        "LUT2": 85,
+        "CARRY4": 76,
+        "LUT4": 67,
+        "LUT1": 16,
+        "DSP48E1": 4,
+        "GND": 2,
+        "VCC": 2,
+        "LUT6": 2
+      },
+      "lut_source_locations": {
+        "core/adc2_dec.sv:77": 137,
+        "core/adc2_dec.sv:82": 30,
+        "core/recon_core.sv:212": 1,
+        "core/adc2_dec.sv:91": 1,
+        "core/adc2_dec.sv:88": 1
+      },
+      "lut_name_prefixes": {
+        "fine_r": 64,
+        "i__carry__6": 6,
+        "ovf0_carry": 6,
+        "i__carry__7": 5,
+        "n_carry__6": 5,
+        "i__carry__0": 4,
+        "i__carry__1": 4,
+        "i__carry__2": 4,
+        "i__carry__3": 4,
+        "i__carry__4": 4,
+        "i__carry__5": 4,
+        "i__carry": 4,
+        "n_carry__0": 4,
+        "n_carry__1": 4,
+        "n_carry__2": 4,
+        "n_carry__3": 4,
+        "n_carry__4": 4,
+        "n_carry__5": 4,
+        "n_carry__7": 4,
+        "n_carry__8": 4,
+        "n_carry__9": 4,
+        "ovf0_carry__0": 4,
+        "sum_wide_carry": 4,
+        "i__carry__8": 3,
+        "n_carry": 3,
+        "sum_wide_carry__15": 2,
+        "a2ovf_pend": 1,
+        "n_carry__10": 1,
+        "ovf0_carry__1": 1,
+        "sum_wide_carry__14": 1
+      },
+      "lut_examples": [
+        {
+          "name": "a2ovf_pend_i_1",
+          "edif_line": 65218,
+          "source": "core/recon_core.sv:212",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "fine_r[0]_i_1",
+          "edif_line": 65273,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "fine_r[10]_i_1",
+          "edif_line": 65277,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "fine_r[11]_i_1",
+          "edif_line": 65281,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "fine_r[12]_i_1",
+          "edif_line": 65285,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "fine_r[13]_i_1",
+          "edif_line": 65289,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "fine_r[14]_i_1",
+          "edif_line": 65293,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "fine_r[15]_i_1",
+          "edif_line": 65297,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT4"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {},
+      "source_witnesses": {
+        "core/recon_core.sv:212": {
+          "instance": "a2ovf_pend_i_1",
+          "primitive": "LUT4",
+          "edif_line": 65218,
+          "XLNX_LINE_FILE": 868369
+        },
+        "core/adc2_dec.sv:77": {
+          "instance": "fine_r[0]_i_1",
+          "primitive": "LUT4",
+          "edif_line": 65273,
+          "XLNX_LINE_FILE": 315411
+        },
+        "core/adc2_dec.sv:82": {
+          "instance": "n_carry__0_i_1",
+          "primitive": "LUT2",
+          "edif_line": 65819,
+          "XLNX_LINE_FILE": 335891
+        },
+        "core/adc2_dec.sv:91": {
+          "instance": "sum_wide_carry__15_i_3",
+          "primitive": "LUT2",
+          "edif_line": 66164,
+          "XLNX_LINE_FILE": 372755
+        },
+        "core/adc2_dec.sv:88": {
+          "instance": "sum_wide_carry_i_6",
+          "primitive": "LUT4",
+          "edif_line": 66226,
+          "XLNX_LINE_FILE": 360467
+        }
+      },
+      "soft_group_count": 170,
+      "soft_group_sources": {
+        "core/adc2_dec.sv:77": 137,
+        "core/adc2_dec.sv:82": 30,
+        "core/recon_core.sv:212": 1,
+        "core/adc2_dec.sv:91": 1,
+        "core/adc2_dec.sv:88": 1
+      }
+    },
+    "div_floor": {
+      "primitive_counts": {
+        "LUT3": 553,
+        "LUT4": 418,
+        "FDRE": 316,
+        "CARRY4": 249,
+        "LUT2": 213,
+        "LUT6": 205,
+        "LUT5": 147,
+        "LUT1": 136,
+        "GND": 1,
+        "VCC": 1
+      },
+      "lut_source_locations": {
+        "core/div_floor.sv:115": 870,
+        "core/div_floor.sv:116": 253,
+        "core/cal_weight_reduce.sv:79": 193,
+        "core/div_floor.sv:128": 137,
+        "core/cal_residue_mac.sv:49": 94,
+        "core/adc2_dec.sv:77": 58,
+        "core/recon_core.sv:201": 31,
+        "core/recon_core.sv:204": 20,
+        "core/recon_core.sv:211": 3,
+        "core/recon_core.sv:182": 2,
+        "core/cal_output_stage.sv:29": 1,
+        "core/status_regs.sv:85": 1,
+        "top/sar20_digital_core.sv:160": 1,
+        "core/calib_regs.sv:88": 1,
+        "top/sar20_digital_core.sv:251": 1,
+        "core/recon_core.sv:202": 1,
+        "core/cal_residue_mac.sv:38": 1,
+        "core/analog_phase_ctrl.sv:20": 1,
+        "core/div_floor.sv:155": 1,
+        "core/div_floor.sv:100": 1,
+        "core/recon_core.sv:236": 1
+      },
+      "lut_name_prefixes": {
+        "rem": 601,
+        "quo": 550,
+        "mag": 201,
+        "q": 170,
+        "clip_high": 62,
+        "neg": 24,
+        "err_r": 22,
+        "dout": 21,
+        "cnt": 4,
+        "result_flags": 3,
+        "cfg_ready": 2,
+        "run": 2,
+        "adc2_ovf": 1,
+        "analog_ovf_sticky": 1,
+        "bus_err": 1,
+        "done": 1,
+        "err_code": 1,
+        "error_code": 1,
+        "gerr_pend": 1,
+        "ovf_pend": 1,
+        "sample_id_r": 1,
+        "stage_b": 1
+      },
+      "lut_examples": [
+        {
+          "name": "adc2_ovf_i_1",
+          "edif_line": 74277,
+          "source": "core/cal_output_stage.sv:29",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "analog_ovf_sticky_i_2",
+          "edif_line": 74281,
+          "source": "core/status_regs.sv:85",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "bus_err[2]_i_2",
+          "edif_line": 74285,
+          "source": "top/sar20_digital_core.sv:160",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "cfg_ready_i_3",
+          "edif_line": 74290,
+          "source": "core/calib_regs.sv:88",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "cfg_ready_i_5",
+          "edif_line": 74294,
+          "source": "top/sar20_digital_core.sv:251",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "clip_high_i_11",
+          "edif_line": 74299,
+          "source": "core/recon_core.sv:201",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "clip_high_i_12",
+          "edif_line": 74303,
+          "source": "core/recon_core.sv:201",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "clip_high_i_13",
+          "edif_line": 74307,
+          "source": "core/recon_core.sv:201",
+          "primitive": "LUT2"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {
+        "core/div_floor.sv:131": 64,
+        "core/div_floor.sv:129": 63,
+        "core/div_floor.sv:137": 63,
+        "core/div_floor.sv:130": 61,
+        "core/div_floor.sv:132": 56,
+        "core/div_floor.sv:134": 4,
+        "core/div_floor.sv:139": 1,
+        "core/div_floor.sv:136": 1,
+        "core/div_floor.sv:138": 1,
+        "core/div_floor.sv:133": 1,
+        "core/div_floor.sv:100": 1
+      },
+      "source_witnesses": {
+        "core/cal_output_stage.sv:29": {
+          "instance": "adc2_ovf_i_1",
+          "primitive": "LUT6",
+          "edif_line": 74277,
+          "XLNX_LINE_FILE": 118806
+        },
+        "core/status_regs.sv:85": {
+          "instance": "analog_ovf_sticky_i_2",
+          "primitive": "LUT4",
+          "edif_line": 74281,
+          "XLNX_LINE_FILE": 348183
+        },
+        "top/sar20_digital_core.sv:160": {
+          "instance": "bus_err[2]_i_2",
+          "primitive": "LUT4",
+          "edif_line": 74285,
+          "XLNX_LINE_FILE": 655360
+        },
+        "core/calib_regs.sv:88": {
+          "instance": "cfg_ready_i_3",
+          "primitive": "LUT4",
+          "edif_line": 74290,
+          "XLNX_LINE_FILE": 360450
+        },
+        "top/sar20_digital_core.sv:251": {
+          "instance": "cfg_ready_i_5",
+          "primitive": "LUT4",
+          "edif_line": 74294,
+          "XLNX_LINE_FILE": 1028096
+        },
+        "core/recon_core.sv:201": {
+          "instance": "clip_high_i_11",
+          "primitive": "LUT2",
+          "edif_line": 74299,
+          "XLNX_LINE_FILE": 823313
+        },
+        "core/adc2_dec.sv:77": {
+          "instance": "clip_high_i_15",
+          "primitive": "LUT2",
+          "edif_line": 74315,
+          "XLNX_LINE_FILE": 315411
+        },
+        "core/div_floor.sv:128": {
+          "instance": "cnt[0]_i_1",
+          "primitive": "LUT1",
+          "edif_line": 74571,
+          "XLNX_LINE_FILE": 524309
+        },
+        "core/recon_core.sv:204": {
+          "instance": "dout[0]_i_1",
+          "primitive": "LUT3",
+          "edif_line": 74615,
+          "XLNX_LINE_FILE": 835601
+        },
+        "core/recon_core.sv:202": {
+          "instance": "err_code[1]_i_4",
+          "primitive": "LUT2",
+          "edif_line": 74964,
+          "XLNX_LINE_FILE": 827409
+        },
+        "core/cal_residue_mac.sv:38": {
+          "instance": "err_r_i_4",
+          "primitive": "LUT1",
+          "edif_line": 75037,
+          "XLNX_LINE_FILE": 155668
+        },
+        "core/analog_phase_ctrl.sv:20": {
+          "instance": "error_code[3]_i_6",
+          "primitive": "LUT3",
+          "edif_line": 75083,
+          "XLNX_LINE_FILE": 81932
+        },
+        "core/recon_core.sv:211": {
+          "instance": "gerr_pend_i_1",
+          "primitive": "LUT5",
+          "edif_line": 75088,
+          "XLNX_LINE_FILE": 864273
+        },
+        "core/cal_residue_mac.sv:49": {
+          "instance": "mag[25]_i_10",
+          "primitive": "LUT3",
+          "edif_line": 75245,
+          "XLNX_LINE_FILE": 200724
+        },
+        "core/div_floor.sv:115": {
+          "instance": "q[0]_i_1",
+          "primitive": "LUT3",
+          "edif_line": 76398,
+          "XLNX_LINE_FILE": 471061
+        },
+        "core/div_floor.sv:155": {
+          "instance": "q[0]_i_3",
+          "primitive": "LUT2",
+          "edif_line": 76470,
+          "XLNX_LINE_FILE": 634901
+        },
+        "core/cal_weight_reduce.sv:79": {
+          "instance": "quo[0]_i_10",
+          "primitive": "LUT5",
+          "edif_line": 77447,
+          "XLNX_LINE_FILE": 323602
+        },
+        "core/div_floor.sv:116": {
+          "instance": "quo[4]_i_26",
+          "primitive": "LUT2",
+          "edif_line": 78815,
+          "XLNX_LINE_FILE": 475157
+        },
+        "core/div_floor.sv:100": {
+          "instance": "run_i_1",
+          "primitive": "LUT4",
+          "edif_line": 83083,
+          "XLNX_LINE_FILE": 409621
+        },
+        "core/recon_core.sv:182": {
+          "instance": "run_i_2",
+          "primitive": "LUT2",
+          "edif_line": 83088,
+          "XLNX_LINE_FILE": 745489
+        },
+        "core/recon_core.sv:236": {
+          "instance": "sample_id_r[31]_i_1",
+          "primitive": "LUT4",
+          "edif_line": 83096,
+          "XLNX_LINE_FILE": 966673
+        }
+      },
+      "soft_group_count": 1609,
+      "soft_group_sources": {
+        "core/div_floor.sv:115": 870,
+        "core/div_floor.sv:116": 253,
+        "core/cal_weight_reduce.sv:79": 193,
+        "core/div_floor.sv:128": 134,
+        "core/adc2_dec.sv:77": 56,
+        "core/cal_residue_mac.sv:49": 48,
+        "core/recon_core.sv:201": 31,
+        "core/recon_core.sv:204": 10,
+        "core/recon_core.sv:211": 2,
+        "core/recon_core.sv:182": 2,
+        "core/cal_output_stage.sv:29": 1,
+        "core/status_regs.sv:85": 1,
+        "top/sar20_digital_core.sv:160|top/sar20_digital_core.sv:251": 1,
+        "core/calib_regs.sv:88": 1,
+        "core/div_floor.sv:100|core/recon_core.sv:202": 1,
+        "core/cal_residue_mac.sv:38": 1,
+        "core/analog_phase_ctrl.sv:20|core/div_floor.sv:128": 1,
+        "core/div_floor.sv:155": 1,
+        "core/adc2_dec.sv:77|core/recon_core.sv:211": 1,
+        "core/recon_core.sv:236": 1
+      }
+    },
+    "cal_output_stage": {
+      "primitive_counts": {
+        "FDRE": 63,
+        "LUT6": 2,
+        "GND": 1,
+        "VCC": 1
+      },
+      "lut_source_locations": {
+        "core/cal_output_stage.sv:27": 1,
+        "core/cal_output_stage.sv:28": 1
+      },
+      "lut_name_prefixes": {
+        "acc_ovf": 1,
+        "gain_err": 1
+      },
+      "lut_examples": [
+        {
+          "name": "acc_ovf_i_1",
+          "edif_line": 108575,
+          "source": "core/cal_output_stage.sv:27",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "gain_err_i_1",
+          "edif_line": 108679,
+          "source": "core/cal_output_stage.sv:28",
+          "primitive": "LUT6"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {
+        "core/cal_output_stage.sv:22": 32,
+        "core/cal_output_stage.sv:21": 20,
+        "core/cal_output_stage.sv:23": 5,
+        "core/cal_output_stage.sv:27": 1,
+        "core/cal_output_stage.sv:29": 1,
+        "core/cal_output_stage.sv:26": 1,
+        "core/cal_output_stage.sv:25": 1,
+        "core/cal_output_stage.sv:24": 1,
+        "core/cal_output_stage.sv:28": 1
+      },
+      "source_witnesses": {
+        "core/cal_output_stage.sv:27": {
+          "instance": "acc_ovf_i_1",
+          "primitive": "LUT6",
+          "edif_line": 108575,
+          "XLNX_LINE_FILE": 110614
+        },
+        "core/cal_output_stage.sv:28": {
+          "instance": "gain_err_i_1",
+          "primitive": "LUT6",
+          "edif_line": 108679,
+          "XLNX_LINE_FILE": 114710
+        }
+      },
+      "soft_group_count": 2,
+      "soft_group_sources": {
+        "core/cal_output_stage.sv:27": 1,
+        "core/cal_output_stage.sv:28": 1
+      }
+    },
+    "cal_residue_mac": {
+      "primitive_counts": {
+        "LUT2": 163,
+        "CARRY4": 108,
+        "LUT6": 60,
+        "LUT4": 37,
+        "LUT5": 35,
+        "LUT3": 32,
+        "LUT1": 30,
+        "DSP48E1": 16,
+        "GND": 2,
+        "VCC": 2
+      },
+      "lut_source_locations": {
+        "core/cal_residue_mac.sv:38": 157,
+        "core/cal_residue_mac.sv:46": 100,
+        "core/cal_residue_mac.sv:58": 61,
+        "core/adc2_dec.sv:77": 37,
+        "core/cal_residue_mac.sv:49": 1,
+        "core/slice_pool_ctrl.sv:19": 1
+      },
+      "lut_name_prefixes": {
+        "ovf_pend": 186,
+        "mag": 118,
+        "neg": 52,
+        "op3_w": 1
+      },
+      "lut_examples": [
+        {
+          "name": "mag[11]_i_3",
+          "edif_line": 110249,
+          "source": "core/cal_residue_mac.sv:38",
+          "primitive": "LUT1"
+        },
+        {
+          "name": "mag[11]_i_4",
+          "edif_line": 110253,
+          "source": "core/cal_residue_mac.sv:38",
+          "primitive": "LUT1"
+        },
+        {
+          "name": "mag[11]_i_5",
+          "edif_line": 110257,
+          "source": "core/cal_residue_mac.sv:38",
+          "primitive": "LUT1"
+        },
+        {
+          "name": "mag[11]_i_6",
+          "edif_line": 110261,
+          "source": "core/cal_residue_mac.sv:38",
+          "primitive": "LUT1"
+        },
+        {
+          "name": "mag[15]_i_3",
+          "edif_line": 110265,
+          "source": "core/cal_residue_mac.sv:38",
+          "primitive": "LUT1"
+        },
+        {
+          "name": "mag[15]_i_4",
+          "edif_line": 110269,
+          "source": "core/cal_residue_mac.sv:38",
+          "primitive": "LUT1"
+        },
+        {
+          "name": "mag[15]_i_5",
+          "edif_line": 110273,
+          "source": "core/cal_residue_mac.sv:38",
+          "primitive": "LUT1"
+        },
+        {
+          "name": "mag[15]_i_6",
+          "edif_line": 110277,
+          "source": "core/cal_residue_mac.sv:38",
+          "primitive": "LUT1"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {},
+      "source_witnesses": {
+        "core/cal_residue_mac.sv:38": {
+          "instance": "mag[11]_i_3",
+          "primitive": "LUT1",
+          "edif_line": 110249,
+          "XLNX_LINE_FILE": 155668
+        },
+        "core/adc2_dec.sv:77": {
+          "instance": "mag[17]_i_4",
+          "primitive": "LUT3",
+          "edif_line": 110281,
+          "XLNX_LINE_FILE": 315411
+        },
+        "core/cal_residue_mac.sv:58": {
+          "instance": "mag[21]_i_3",
+          "primitive": "LUT2",
+          "edif_line": 110298,
+          "XLNX_LINE_FILE": 237588
+        },
+        "core/cal_residue_mac.sv:49": {
+          "instance": "mag[25]_i_15",
+          "primitive": "LUT4",
+          "edif_line": 110315,
+          "XLNX_LINE_FILE": 200724
+        },
+        "core/cal_residue_mac.sv:46": {
+          "instance": "mag[29]_i_22",
+          "primitive": "LUT2",
+          "edif_line": 110336,
+          "XLNX_LINE_FILE": 188436
+        },
+        "core/slice_pool_ctrl.sv:19": {
+          "instance": "op3_w_i_1",
+          "primitive": "LUT2",
+          "edif_line": 111558,
+          "XLNX_LINE_FILE": 77837
+        }
+      },
+      "soft_group_count": 341,
+      "soft_group_sources": {
+        "core/cal_residue_mac.sv:38": 157,
+        "core/cal_residue_mac.sv:46": 85,
+        "core/cal_residue_mac.sv:58": 61,
+        "core/adc2_dec.sv:77": 36,
+        "core/cal_residue_mac.sv:49": 1,
+        "core/slice_pool_ctrl.sv:19": 1
+      }
+    },
+    "cal_weight_reduce": {
+      "primitive_counts": {
+        "LUT4": 11626,
+        "LUT3": 11443,
+        "CARRY4": 3840,
+        "LUT5": 3043,
+        "LUT6": 1852,
+        "LUT2": 126,
+        "LUT1": 14,
+        "GND": 1,
+        "VCC": 1
+      },
+      "lut_source_locations": {
+        "core/cal_weight_reduce.sv:79": 23906,
+        "core/cal_weight_reduce.sv:82": 3922,
+        "core/cal_weight_reduce.sv:80": 201,
+        "core/cal_sample_context.sv:32": 50,
+        "core/cal_weight_reduce.sv:106": 14,
+        "core/adc2_dec.sv:77": 11
+      },
+      "lut_name_prefixes": {
+        "op3_w": 11468,
+        "op3_w__0": 7457,
+        "op3_w__5": 4611,
+        "rails_s": 3936,
+        "op3_w__9": 410,
+        "gain_s": 222
+      },
+      "lut_examples": [
+        {
+          "name": "gain_s[23]_i_661",
+          "edif_line": 151525,
+          "source": "core/cal_weight_reduce.sv:80",
+          "primitive": "LUT3"
+        },
+        {
+          "name": "gain_s[23]_i_662",
+          "edif_line": 151530,
+          "source": "core/cal_weight_reduce.sv:80",
+          "primitive": "LUT3"
+        },
+        {
+          "name": "gain_s[23]_i_663",
+          "edif_line": 151535,
+          "source": "core/cal_weight_reduce.sv:80",
+          "primitive": "LUT3"
+        },
+        {
+          "name": "gain_s[23]_i_664",
+          "edif_line": 151540,
+          "source": "core/cal_weight_reduce.sv:80",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "gain_s[23]_i_665",
+          "edif_line": 151545,
+          "source": "core/cal_weight_reduce.sv:80",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "gain_s[23]_i_666",
+          "edif_line": 151550,
+          "source": "core/cal_weight_reduce.sv:80",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "gain_s[23]_i_667",
+          "edif_line": 151555,
+          "source": "core/cal_weight_reduce.sv:80",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "gain_s[23]_i_769",
+          "edif_line": 151560,
+          "source": "core/cal_weight_reduce.sv:80",
+          "primitive": "LUT3"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {},
+      "source_witnesses": {
+        "core/cal_weight_reduce.sv:80": {
+          "instance": "gain_s[23]_i_661",
+          "primitive": "LUT3",
+          "edif_line": 151525,
+          "XLNX_LINE_FILE": 327698
+        },
+        "core/cal_weight_reduce.sv:79": {
+          "instance": "gain_s[59]_i_363",
+          "primitive": "LUT2",
+          "edif_line": 152417,
+          "XLNX_LINE_FILE": 323602
+        },
+        "core/cal_sample_context.sv:32": {
+          "instance": "op3_w__0_i_10161",
+          "primitive": "LUT3",
+          "edif_line": 153005,
+          "XLNX_LINE_FILE": 131088
+        },
+        "core/adc2_dec.sv:77": {
+          "instance": "op3_w__0_i_10464",
+          "primitive": "LUT3",
+          "edif_line": 153438,
+          "XLNX_LINE_FILE": 315411
+        },
+        "core/cal_weight_reduce.sv:82": {
+          "instance": "rails_s[11]_i_10",
+          "primitive": "LUT3",
+          "edif_line": 275165,
+          "XLNX_LINE_FILE": 335890
+        },
+        "core/cal_weight_reduce.sv:106": {
+          "instance": "rails_s[15]_i_486",
+          "primitive": "LUT1",
+          "edif_line": 276914,
+          "XLNX_LINE_FILE": 434194
+        }
+      },
+      "soft_group_count": 17740,
+      "soft_group_sources": {
+        "core/cal_weight_reduce.sv:79": 15361,
+        "core/cal_weight_reduce.sv:82": 2199,
+        "core/cal_weight_reduce.sv:80": 105,
+        "core/cal_sample_context.sv:32": 49,
+        "core/cal_weight_reduce.sv:106": 14,
+        "core/adc2_dec.sv:77": 10,
+        "core/adc2_dec.sv:77|core/cal_weight_reduce.sv:79": 1,
+        "core/cal_sample_context.sv:32|core/cal_weight_reduce.sv:79": 1
+      }
+    },
+    "recon_core": {
+      "primitive_counts": {
+        "LUT3": 316,
+        "FDRE": 292,
+        "LUT4": 289,
+        "LUT2": 195,
+        "CARRY4": 114,
+        "LUT6": 9,
+        "LUT5": 5,
+        "LUT1": 4,
+        "GND": 1,
+        "VCC": 1
+      },
+      "lut_source_locations": {
+        "core/cal_weight_reduce.sv:80": 563,
+        "core/adc2_dec.sv:77": 148,
+        "core/cal_residue_mac.sv:38": 77,
+        "core/cal_residue_mac.sv:49": 29,
+        "core/div_floor.sv:138": 1
+      },
+      "lut_name_prefixes": {
+        "gain_s": 563,
+        "ovf_pend": 185,
+        "mag": 32,
+        "gerr_pend": 21,
+        "neg": 16,
+        "err": 1
+      },
+      "lut_examples": [
+        {
+          "name": "err_i_1",
+          "edif_line": 828345,
+          "source": "core/div_floor.sv:138",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "gain_s[11]_i_13",
+          "edif_line": 828605,
+          "source": "core/cal_weight_reduce.sv:80",
+          "primitive": "LUT3"
+        },
+        {
+          "name": "gain_s[11]_i_14",
+          "edif_line": 828610,
+          "source": "core/cal_weight_reduce.sv:80",
+          "primitive": "LUT3"
+        },
+        {
+          "name": "gain_s[11]_i_15",
+          "edif_line": 828615,
+          "source": "core/cal_weight_reduce.sv:80",
+          "primitive": "LUT3"
+        },
+        {
+          "name": "gain_s[11]_i_16",
+          "edif_line": 828620,
+          "source": "core/cal_weight_reduce.sv:80",
+          "primitive": "LUT3"
+        },
+        {
+          "name": "gain_s[11]_i_17",
+          "edif_line": 828625,
+          "source": "core/cal_weight_reduce.sv:80",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "gain_s[11]_i_18",
+          "edif_line": 828630,
+          "source": "core/cal_weight_reduce.sv:80",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "gain_s[11]_i_19",
+          "edif_line": 828635,
+          "source": "core/cal_weight_reduce.sv:80",
+          "primitive": "LUT4"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {
+        "core/recon_core.sv:163": 128,
+        "core/recon_core.sv:164": 127,
+        "core/recon_core.sv:208": 32,
+        "core/recon_core.sv:211": 2,
+        "core/recon_core.sv:212": 1,
+        "core/recon_core.sv:230": 1,
+        "core/recon_core.sv:182": 1
+      },
+      "source_witnesses": {
+        "core/div_floor.sv:138": {
+          "instance": "err_i_1",
+          "primitive": "LUT4",
+          "edif_line": 828345,
+          "XLNX_LINE_FILE": 565269
+        },
+        "core/cal_weight_reduce.sv:80": {
+          "instance": "gain_s[11]_i_13",
+          "primitive": "LUT3",
+          "edif_line": 828605,
+          "XLNX_LINE_FILE": 327698
+        },
+        "core/adc2_dec.sv:77": {
+          "instance": "gerr_pend_i_11",
+          "primitive": "LUT3",
+          "edif_line": 831863,
+          "XLNX_LINE_FILE": 315411
+        },
+        "core/cal_residue_mac.sv:38": {
+          "instance": "gerr_pend_i_4",
+          "primitive": "LUT1",
+          "edif_line": 831927,
+          "XLNX_LINE_FILE": 155668
+        },
+        "core/cal_residue_mac.sv:49": {
+          "instance": "ovf_pend_i_187",
+          "primitive": "LUT3",
+          "edif_line": 832529,
+          "XLNX_LINE_FILE": 200724
+        }
+      },
+      "soft_group_count": 536,
+      "soft_group_sources": {
+        "core/cal_weight_reduce.sv:80": 293,
+        "core/adc2_dec.sv:77": 148,
+        "core/cal_residue_mac.sv:38": 77,
+        "core/cal_residue_mac.sv:49": 17,
+        "core/div_floor.sv:138": 1
+      }
+    },
+    "status_regs": {
+      "primitive_counts": {
+        "FDRE": 6,
+        "LUT2": 3,
+        "VCC": 1,
+        "LUT5": 1,
+        "LUT3": 1
+      },
+      "lut_source_locations": {
+        "core/status_regs.sv:82": 1,
+        "core/status_regs.sv:84": 1,
+        "top/sar20_digital_core.sv:638": 1,
+        "top/sar20_digital_core.sv:124": 1,
+        "core/status_regs.sv:83": 1
+      },
+      "lut_name_prefixes": {
+        "cfg_rdata": 2,
+        "acc_ovf_sticky": 1,
+        "adc2_ovf_sticky": 1,
+        "gain_err_sticky": 1
+      },
+      "lut_examples": [
+        {
+          "name": "acc_ovf_sticky_i_1",
+          "edif_line": 1040521,
+          "source": "core/status_regs.sv:82",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "adc2_ovf_sticky_i_1",
+          "edif_line": 1040529,
+          "source": "core/status_regs.sv:84",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "cfg_rdata[4]_INST_0_i_2",
+          "edif_line": 1040541,
+          "source": "top/sar20_digital_core.sv:638",
+          "primitive": "LUT5"
+        },
+        {
+          "name": "cfg_rdata[5]_INST_0_i_2",
+          "edif_line": 1040545,
+          "source": "top/sar20_digital_core.sv:124",
+          "primitive": "LUT3"
+        },
+        {
+          "name": "gain_err_sticky_i_1",
+          "edif_line": 1040557,
+          "source": "core/status_regs.sv:83",
+          "primitive": "LUT2"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {
+        "core/status_regs.sv:68": 1,
+        "core/status_regs.sv:70": 1,
+        "core/status_regs.sv:71": 1,
+        "core/status_regs.sv:73": 1,
+        "core/status_regs.sv:72": 1,
+        "core/status_regs.sv:69": 1
+      },
+      "source_witnesses": {
+        "core/status_regs.sv:82": {
+          "instance": "acc_ovf_sticky_i_1",
+          "primitive": "LUT2",
+          "edif_line": 1040521,
+          "XLNX_LINE_FILE": 335895
+        },
+        "core/status_regs.sv:84": {
+          "instance": "adc2_ovf_sticky_i_1",
+          "primitive": "LUT2",
+          "edif_line": 1040529,
+          "XLNX_LINE_FILE": 344087
+        },
+        "top/sar20_digital_core.sv:638": {
+          "instance": "cfg_rdata[4]_INST_0_i_2",
+          "primitive": "LUT5",
+          "edif_line": 1040541,
+          "XLNX_LINE_FILE": 2613248
+        },
+        "top/sar20_digital_core.sv:124": {
+          "instance": "cfg_rdata[5]_INST_0_i_2",
+          "primitive": "LUT3",
+          "edif_line": 1040545,
+          "XLNX_LINE_FILE": 507904
+        },
+        "core/status_regs.sv:83": {
+          "instance": "gain_err_sticky_i_1",
+          "primitive": "LUT2",
+          "edif_line": 1040557,
+          "XLNX_LINE_FILE": 339991
+        }
+      },
+      "soft_group_count": 5,
+      "soft_group_sources": {
+        "core/status_regs.sv:82": 1,
+        "core/status_regs.sv:84": 1,
+        "top/sar20_digital_core.sv:638": 1,
+        "top/sar20_digital_core.sv:124": 1,
+        "core/status_regs.sv:83": 1
+      }
+    },
+    "sar_trial_ctrl": {
+      "primitive_counts": {
+        "LUT6": 30,
+        "FDRE": 25,
+        "LUT4": 11,
+        "LUT2": 5,
+        "LUT3": 5,
+        "LUT5": 4,
+        "GND": 1,
+        "VCC": 1
+      },
+      "lut_source_locations": {
+        "core/analog_phase_ctrl.sv:20": 39,
+        "core/sar_trial_ctrl.sv:31": 13,
+        "core/adc2_dec.sv:77": 2,
+        "core/sar_trial_ctrl.sv:24": 1
+      },
+      "lut_name_prefixes": {
+        "trial_code": 25,
+        "resolved_code": 19,
+        "bit_index": 6,
+        "busy": 1,
+        "coarse_compare_enable": 1,
+        "done": 1,
+        "resolved_valid": 1,
+        "slice_sel": 1
+      },
+      "lut_examples": [
+        {
+          "name": "bit_index[0]_i_1",
+          "edif_line": 1040805,
+          "source": "core/sar_trial_ctrl.sv:31",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bit_index[1]_i_1",
+          "edif_line": 1040809,
+          "source": "core/sar_trial_ctrl.sv:31",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bit_index[2]_i_1",
+          "edif_line": 1040813,
+          "source": "core/sar_trial_ctrl.sv:31",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bit_index[3]_i_1",
+          "edif_line": 1040817,
+          "source": "core/sar_trial_ctrl.sv:31",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bit_index[3]_i_2",
+          "edif_line": 1040821,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "bit_index[3]_i_3",
+          "edif_line": 1040826,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT3"
+        },
+        {
+          "name": "busy_i_1__0",
+          "edif_line": 1040847,
+          "source": "core/sar_trial_ctrl.sv:24",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "coarse_compare_enable[0]_INST_0",
+          "edif_line": 1040855,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT3"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {
+        "core/sar_trial_ctrl.sv:31": 22,
+        "core/sar_trial_ctrl.sv:32": 2,
+        "core/sar_trial_ctrl.sv:24": 1
+      },
+      "source_witnesses": {
+        "core/sar_trial_ctrl.sv:31": {
+          "instance": "bit_index[0]_i_1",
+          "primitive": "LUT6",
+          "edif_line": 1040805,
+          "XLNX_LINE_FILE": 126991
+        },
+        "core/analog_phase_ctrl.sv:20": {
+          "instance": "bit_index[3]_i_2",
+          "primitive": "LUT2",
+          "edif_line": 1040821,
+          "XLNX_LINE_FILE": 81932
+        },
+        "core/sar_trial_ctrl.sv:24": {
+          "instance": "busy_i_1__0",
+          "primitive": "LUT6",
+          "edif_line": 1040847,
+          "XLNX_LINE_FILE": 98319
+        },
+        "core/adc2_dec.sv:77": {
+          "instance": "resolved_valid_i_2",
+          "primitive": "LUT3",
+          "edif_line": 1040989,
+          "XLNX_LINE_FILE": 315411
+        }
+      },
+      "soft_group_count": 46,
+      "soft_group_sources": {
+        "core/analog_phase_ctrl.sv:20": 30,
+        "core/sar_trial_ctrl.sv:31": 13,
+        "core/adc2_dec.sv:77": 2,
+        "core/sar_trial_ctrl.sv:24": 1
+      }
+    },
+    "sar_trial_ctrl_0": {
+      "primitive_counts": {
+        "LUT4": 1984,
+        "LUT1": 508,
+        "LUT2": 454,
+        "CARRY4": 448,
+        "LUT6": 370,
+        "LUT3": 71,
+        "FDRE": 25,
+        "LUT5": 18,
+        "GND": 1,
+        "VCC": 1
+      },
+      "lut_source_locations": {
+        "core/unit_therm.sv:49": 2424,
+        "core/rdac_drv.sv:63": 664,
+        "core/rdac_drv.sv:49": 110,
+        "core/swap_decode.sv:65": 77,
+        "core/swap_decode.sv:102": 64,
+        "core/analog_phase_ctrl.sv:20": 37,
+        "core/sar_trial_ctrl.sv:31": 13,
+        "core/unit_therm.sv:52": 8,
+        "core/adc2_dec.sv:77": 7,
+        "core/sar_trial_ctrl.sv:24": 1
+      },
+      "lut_name_prefixes": {
+        "residue": 2573,
+        "main_sw": 766,
+        "resolved_code": 19,
+        "trial_code": 19,
+        "residue_bad": 9,
+        "sub_sw": 8,
+        "bit_index": 6,
+        "busy": 1,
+        "coarse_compare_enable": 1,
+        "coarse_ok": 1,
+        "done": 1,
+        "resolved_valid": 1
+      },
+      "lut_examples": [
+        {
+          "name": "bit_index[0]_i_1",
+          "edif_line": 1047211,
+          "source": "core/sar_trial_ctrl.sv:31",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bit_index[1]_i_1",
+          "edif_line": 1047215,
+          "source": "core/sar_trial_ctrl.sv:31",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bit_index[2]_i_1",
+          "edif_line": 1047219,
+          "source": "core/sar_trial_ctrl.sv:31",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bit_index[3]_i_1",
+          "edif_line": 1047223,
+          "source": "core/sar_trial_ctrl.sv:31",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bit_index[3]_i_2__0",
+          "edif_line": 1047227,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "bit_index[3]_i_3__0",
+          "edif_line": 1047232,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT3"
+        },
+        {
+          "name": "busy_i_1__1",
+          "edif_line": 1047253,
+          "source": "core/sar_trial_ctrl.sv:24",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "coarse_compare_enable[1]_INST_0",
+          "edif_line": 1047261,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT3"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {
+        "core/sar_trial_ctrl.sv:31": 22,
+        "core/sar_trial_ctrl.sv:32": 2,
+        "core/sar_trial_ctrl.sv:24": 1
+      },
+      "source_witnesses": {
+        "core/sar_trial_ctrl.sv:31": {
+          "instance": "bit_index[0]_i_1",
+          "primitive": "LUT6",
+          "edif_line": 1047211,
+          "XLNX_LINE_FILE": 126991
+        },
+        "core/analog_phase_ctrl.sv:20": {
+          "instance": "bit_index[3]_i_2__0",
+          "primitive": "LUT2",
+          "edif_line": 1047227,
+          "XLNX_LINE_FILE": 81932
+        },
+        "core/sar_trial_ctrl.sv:24": {
+          "instance": "busy_i_1__1",
+          "primitive": "LUT6",
+          "edif_line": 1047253,
+          "XLNX_LINE_FILE": 98319
+        },
+        "core/rdac_drv.sv:63": {
+          "instance": "main_sw[0][21]_i_1",
+          "primitive": "LUT6",
+          "edif_line": 1047279,
+          "XLNX_LINE_FILE": 258058
+        },
+        "core/rdac_drv.sv:49": {
+          "instance": "main_sw[0][21]_i_3",
+          "primitive": "LUT2",
+          "edif_line": 1047283,
+          "XLNX_LINE_FILE": 200714
+        },
+        "core/swap_decode.sv:65": {
+          "instance": "residue[100]_i_3",
+          "primitive": "LUT3",
+          "edif_line": 1050637,
+          "XLNX_LINE_FILE": 266248
+        },
+        "core/swap_decode.sv:102": {
+          "instance": "residue[100]_i_6",
+          "primitive": "LUT5",
+          "edif_line": 1050649,
+          "XLNX_LINE_FILE": 417800
+        },
+        "core/unit_therm.sv:52": {
+          "instance": "residue[107]_i_1",
+          "primitive": "LUT6",
+          "edif_line": 1050661,
+          "XLNX_LINE_FILE": 213001
+        },
+        "core/unit_therm.sv:49": {
+          "instance": "residue[133]_i_2",
+          "primitive": "LUT4",
+          "edif_line": 1050809,
+          "XLNX_LINE_FILE": 200713
+        },
+        "core/adc2_dec.sv:77": {
+          "instance": "resolved_valid_i_1__0",
+          "primitive": "LUT3",
+          "edif_line": 1062429,
+          "XLNX_LINE_FILE": 315411
+        }
+      },
+      "soft_group_count": 3249,
+      "soft_group_sources": {
+        "core/unit_therm.sv:49": 2424,
+        "core/rdac_drv.sv:63": 529,
+        "core/rdac_drv.sv:49": 84,
+        "core/swap_decode.sv:65": 77,
+        "core/swap_decode.sv:102": 64,
+        "core/analog_phase_ctrl.sv:20": 28,
+        "core/rdac_drv.sv:49|core/rdac_drv.sv:63": 14,
+        "core/sar_trial_ctrl.sv:31": 13,
+        "core/unit_therm.sv:52": 8,
+        "core/adc2_dec.sv:77": 6,
+        "core/sar_trial_ctrl.sv:24": 1,
+        "core/adc2_dec.sv:77|core/analog_phase_ctrl.sv:20": 1
+      }
+    },
+    "cal_sample_context": {
+      "primitive_counts": {
+        "LUT3": 89227,
+        "LUT4": 27626,
+        "LUT2": 19790,
+        "CARRY4": 8119,
+        "LUT5": 6480,
+        "LUT6": 4023,
+        "FDRE": 1427,
+        "LUT1": 6,
+        "GND": 1,
+        "VCC": 1
+      },
+      "lut_source_locations": {
+        "core/cal_weight_reduce.sv:89": 53852,
+        "core/cal_weight_reduce.sv:81": 41325,
+        "core/cal_weight_reduce.sv:79": 23530,
+        "core/cal_weight_reduce.sv:51": 11636,
+        "core/cal_weight_reduce.sv:80": 3817,
+        "core/cal_weight_reduce.sv:93": 3532,
+        "core/cal_weight_reduce.sv:92": 3396,
+        "core/cal_weight_reduce.sv:94": 2160,
+        "top/sar20_digital_core.sv:11": 1274,
+        "core/cal_weight_reduce.sv:86": 1040,
+        "core/cal_weight_reduce.sv:7": 663,
+        "core/cal_weight_reduce.sv:82": 471,
+        "core/adc2_dec.sv:77": 197,
+        "UNKNOWN": 188,
+        "core/cal_sample_context.sv:32": 69,
+        "core/recon_core.sv:230": 1,
+        "core/cal_sample_context.sv:43": 1
+      },
+      "lut_name_prefixes": {
+        "rails_s": 113739,
+        "op3_w": 13975,
+        "op3_w__0": 8687,
+        "gain_s": 7231,
+        "op3_w__5": 3394,
+        "bad_slice_r": 73,
+        "op3_w__9": 52,
+        "fine_analog_bad": 1
+      },
+      "lut_examples": [
+        {
+          "name": "bad_slice_r_i_1",
+          "edif_line": 1152951,
+          "source": "core/recon_core.sv:230",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bad_slice_r_i_10",
+          "edif_line": 1152955,
+          "source": "core/cal_weight_reduce.sv:51",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bad_slice_r_i_11",
+          "edif_line": 1152959,
+          "source": "core/cal_weight_reduce.sv:51",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bad_slice_r_i_12",
+          "edif_line": 1152963,
+          "source": "core/cal_weight_reduce.sv:51",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bad_slice_r_i_13",
+          "edif_line": 1152967,
+          "source": "core/cal_weight_reduce.sv:51",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bad_slice_r_i_14",
+          "edif_line": 1152971,
+          "source": "core/cal_weight_reduce.sv:51",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bad_slice_r_i_15",
+          "edif_line": 1152975,
+          "source": "core/cal_weight_reduce.sv:51",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bad_slice_r_i_16",
+          "edif_line": 1152979,
+          "source": "core/cal_weight_reduce.sv:51",
+          "primitive": "LUT6"
+        }
+      ],
+      "ports": [
+        {
+          "edif_line": 1107818,
+          "text": "(port fine_sampling_reg_0 (direction OUTPUT)"
+        },
+        {
+          "edif_line": 1107821,
+          "text": "(port (rename gain_s_59__i_147_0_ \"gain_s[59]_i_147[0]\") (direction INPUT)"
+        },
+        {
+          "edif_line": 1107825,
+          "text": "(port context_valid (direction OUTPUT)"
+        },
+        {
+          "edif_line": 1107828,
+          "text": "(port (array (rename gain_s_59__i_147_0 \"gain_s[59]_i_147_0[2:0]\") 3) (direction INPUT)"
+        },
+        {
+          "edif_line": 1107832,
+          "text": "(port residue_valid (direction OUTPUT)"
+        },
+        {
+          "edif_line": 1107835,
+          "text": "(port structural_analog_bad (direction OUTPUT)"
+        },
+        {
+          "edif_line": 1107838,
+          "text": "(port fine_sampling_reg_rep_0 (direction OUTPUT)"
+        },
+        {
+          "edif_line": 1107841,
+          "text": "(port (array (rename gain_s_59__i_147_1 \"gain_s[59]_i_147_1[2:0]\") 3) (direction INPUT)"
+        }
+      ],
+      "ff_source_locations": {
+        "core/cal_sample_context.sv:31": 727,
+        "core/cal_sample_context.sv:32": 645,
+        "core/cal_sample_context.sv:33": 55
+      },
+      "source_witnesses": {
+        "core/recon_core.sv:230": {
+          "instance": "bad_slice_r_i_1",
+          "primitive": "LUT6",
+          "edif_line": 1152951,
+          "XLNX_LINE_FILE": 942097
+        },
+        "core/cal_weight_reduce.sv:51": {
+          "instance": "bad_slice_r_i_10",
+          "primitive": "LUT6",
+          "edif_line": 1152955,
+          "XLNX_LINE_FILE": 208914
+        },
+        "core/cal_sample_context.sv:43": {
+          "instance": "fine_analog_bad_i_1",
+          "primitive": "LUT4",
+          "edif_line": 1153243,
+          "XLNX_LINE_FILE": 176144
+        },
+        "core/cal_weight_reduce.sv:80": {
+          "instance": "gain_s[15]_i_257",
+          "primitive": "LUT3",
+          "edif_line": 1156223,
+          "XLNX_LINE_FILE": 327698
+        },
+        "core/cal_weight_reduce.sv:92": {
+          "instance": "gain_s[15]_i_313",
+          "primitive": "LUT3",
+          "edif_line": 1156433,
+          "XLNX_LINE_FILE": 376850
+        },
+        "core/cal_weight_reduce.sv:79": {
+          "instance": "gain_s[59]_i_1137",
+          "primitive": "LUT4",
+          "edif_line": 1186927,
+          "XLNX_LINE_FILE": 323602
+        },
+        "core/cal_weight_reduce.sv:7": {
+          "instance": "op3_w__0_i_10300",
+          "primitive": "LUT3",
+          "edif_line": 1193999,
+          "XLNX_LINE_FILE": 28690
+        },
+        "core/cal_weight_reduce.sv:86": {
+          "instance": "op3_w__0_i_1507",
+          "primitive": "LUT2",
+          "edif_line": 1197450,
+          "XLNX_LINE_FILE": 352274
+        },
+        "UNKNOWN": {
+          "instance": "op3_w__0_i_1514",
+          "primitive": "LUT2",
+          "edif_line": 1197475,
+          "XLNX_LINE_FILE": null
+        },
+        "core/adc2_dec.sv:77": {
+          "instance": "op3_w__0_i_26385",
+          "primitive": "LUT2",
+          "edif_line": 1216042,
+          "XLNX_LINE_FILE": 315411
+        },
+        "top/sar20_digital_core.sv:11": {
+          "instance": "op3_w__0_i_3942",
+          "primitive": "LUT2",
+          "edif_line": 1227615,
+          "XLNX_LINE_FILE": 45056
+        },
+        "core/cal_sample_context.sv:32": {
+          "instance": "op3_w_i_15225",
+          "primitive": "LUT5",
+          "edif_line": 1254637,
+          "XLNX_LINE_FILE": 131088
+        },
+        "core/cal_weight_reduce.sv:93": {
+          "instance": "rails_s[11]_i_146",
+          "primitive": "LUT5",
+          "edif_line": 1319882,
+          "XLNX_LINE_FILE": 380946
+        },
+        "core/cal_weight_reduce.sv:82": {
+          "instance": "rails_s[15]_i_312",
+          "primitive": "LUT2",
+          "edif_line": 1320453,
+          "XLNX_LINE_FILE": 335890
+        },
+        "core/cal_weight_reduce.sv:94": {
+          "instance": "rails_s[15]_i_496",
+          "primitive": "LUT2",
+          "edif_line": 1320881,
+          "XLNX_LINE_FILE": 385042
+        },
+        "core/cal_weight_reduce.sv:81": {
+          "instance": "rails_s[39]_i_2755",
+          "primitive": "LUT3",
+          "edif_line": 1332602,
+          "XLNX_LINE_FILE": 331794
+        },
+        "core/cal_weight_reduce.sv:89": {
+          "instance": "rails_s[39]_i_5023",
+          "primitive": "LUT3",
+          "edif_line": 1342614,
+          "XLNX_LINE_FILE": 364562
+        }
+      },
+      "soft_group_count": 82954,
+      "soft_group_sources": {
+        "core/cal_weight_reduce.sv:89": 26516,
+        "core/cal_weight_reduce.sv:81": 21609,
+        "core/cal_weight_reduce.sv:79": 14262,
+        "core/cal_weight_reduce.sv:51": 9386,
+        "core/cal_weight_reduce.sv:92|core/cal_weight_reduce.sv:93": 2406,
+        "core/cal_weight_reduce.sv:94": 2160,
+        "core/cal_weight_reduce.sv:80": 1957,
+        "core/cal_weight_reduce.sv:79|core/cal_weight_reduce.sv:89": 632,
+        "core/cal_weight_reduce.sv:93": 555,
+        "core/cal_weight_reduce.sv:93|top/sar20_digital_core.sv:11": 521,
+        "core/cal_weight_reduce.sv:82": 470,
+        "core/cal_weight_reduce.sv:86": 446,
+        "top/sar20_digital_core.sv:11": 348,
+        "core/cal_weight_reduce.sv:92": 342,
+        "core/cal_weight_reduce.sv:7": 271,
+        "core/cal_weight_reduce.sv:7|core/cal_weight_reduce.sv:79": 178,
+        "core/cal_weight_reduce.sv:89|core/cal_weight_reduce.sv:92": 169,
+        "core/adc2_dec.sv:77": 118,
+        "core/cal_weight_reduce.sv:79|core/cal_weight_reduce.sv:86": 104,
+        "core/cal_weight_reduce.sv:79|core/cal_weight_reduce.sv:92": 89,
+        "UNKNOWN|core/cal_weight_reduce.sv:86": 69,
+        "core/cal_sample_context.sv:32": 69,
+        "core/cal_weight_reduce.sv:79|top/sar20_digital_core.sv:11": 54,
+        "core/cal_weight_reduce.sv:86|core/cal_weight_reduce.sv:89": 50,
+        "core/cal_weight_reduce.sv:51|core/cal_weight_reduce.sv:92": 48,
+        "UNKNOWN": 36,
+        "UNKNOWN|core/cal_weight_reduce.sv:79": 23,
+        "UNKNOWN|core/cal_weight_reduce.sv:7": 23,
+        "core/adc2_dec.sv:77|core/cal_weight_reduce.sv:7": 14,
+        "core/cal_weight_reduce.sv:89|top/sar20_digital_core.sv:11": 8,
+        "core/cal_weight_reduce.sv:79|core/cal_weight_reduce.sv:93": 6,
+        "core/cal_weight_reduce.sv:7|core/cal_weight_reduce.sv:89": 5,
+        "core/recon_core.sv:230": 1,
+        "core/cal_sample_context.sv:43": 1,
+        "core/adc2_dec.sv:77|core/cal_weight_reduce.sv:89": 1,
+        "UNKNOWN|core/cal_weight_reduce.sv:93": 1,
+        "core/cal_weight_reduce.sv:7|core/cal_weight_reduce.sv:93": 1,
+        "UNKNOWN|core/cal_weight_reduce.sv:89": 1,
+        "core/adc2_dec.sv:77|core/cal_weight_reduce.sv:79": 1,
+        "core/cal_weight_reduce.sv:89|core/cal_weight_reduce.sv:93": 1,
+        "core/cal_weight_reduce.sv:51|core/cal_weight_reduce.sv:93": 1,
+        "core/cal_weight_reduce.sv:51|core/cal_weight_reduce.sv:89": 1
+      }
+    },
+    "swap_decode": {
+      "primitive_counts": {
+        "LUT6": 602,
+        "LUT5": 516,
+        "LUT4": 128,
+        "CARRY4": 87,
+        "LUT2": 66,
+        "GND": 1,
+        "VCC": 1,
+        "LUT1": 1
+      },
+      "lut_source_locations": {
+        "core/unit_therm.sv:49": 1104,
+        "core/rdac_drv.sv:63": 118,
+        "core/unit_therm.sv:52": 56,
+        "core/swap_decode.sv:65": 18,
+        "core/rdac_drv.sv:49": 13,
+        "core/adc2_dec.sv:77": 4
+      },
+      "lut_name_prefixes": {
+        "residue": 1173,
+        "main_sw": 98,
+        "sub_sw": 33,
+        "residue_bad": 9
+      },
+      "lut_examples": [
+        {
+          "name": "main_sw[0][59]_i_2",
+          "edif_line": 3627333,
+          "source": "core/rdac_drv.sv:63",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "main_sw[0][60]_i_6",
+          "edif_line": 3627337,
+          "source": "core/rdac_drv.sv:63",
+          "primitive": "LUT1"
+        },
+        {
+          "name": "main_sw[10][56]_i_1",
+          "edif_line": 3627341,
+          "source": "core/rdac_drv.sv:63",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "main_sw[10][56]_i_3",
+          "edif_line": 3627345,
+          "source": "core/rdac_drv.sv:63",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "main_sw[10][57]_i_1",
+          "edif_line": 3627349,
+          "source": "core/rdac_drv.sv:63",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "main_sw[10][57]_i_3",
+          "edif_line": 3627353,
+          "source": "core/rdac_drv.sv:63",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "main_sw[10][59]_i_1",
+          "edif_line": 3627357,
+          "source": "core/rdac_drv.sv:63",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "main_sw[10][59]_i_4",
+          "edif_line": 3627361,
+          "source": "core/rdac_drv.sv:63",
+          "primitive": "LUT2"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {},
+      "source_witnesses": {
+        "core/rdac_drv.sv:63": {
+          "instance": "main_sw[0][59]_i_2",
+          "primitive": "LUT2",
+          "edif_line": 3627333,
+          "XLNX_LINE_FILE": 258058
+        },
+        "core/rdac_drv.sv:49": {
+          "instance": "main_sw[12][58]_i_3",
+          "primitive": "LUT2",
+          "edif_line": 3627373,
+          "XLNX_LINE_FILE": 200714
+        },
+        "core/unit_therm.sv:52": {
+          "instance": "residue[100]_i_1",
+          "primitive": "LUT6",
+          "edif_line": 3627725,
+          "XLNX_LINE_FILE": 213001
+        },
+        "core/swap_decode.sv:65": {
+          "instance": "residue[100]_i_9",
+          "primitive": "LUT4",
+          "edif_line": 3627729,
+          "XLNX_LINE_FILE": 266248
+        },
+        "core/unit_therm.sv:49": {
+          "instance": "residue[141]_i_4",
+          "primitive": "LUT6",
+          "edif_line": 3627881,
+          "XLNX_LINE_FILE": 200713
+        },
+        "core/adc2_dec.sv:77": {
+          "instance": "residue_bad_i_10",
+          "primitive": "LUT2",
+          "edif_line": 3632417,
+          "XLNX_LINE_FILE": 315411
+        }
+      },
+      "soft_group_count": 1313,
+      "soft_group_sources": {
+        "core/unit_therm.sv:49": 1104,
+        "core/rdac_drv.sv:63": 118,
+        "core/unit_therm.sv:52": 56,
+        "core/swap_decode.sv:65": 18,
+        "core/rdac_drv.sv:49": 13,
+        "core/adc2_dec.sv:77": 4
+      }
+    },
+    "dem_state_gen__parameterized0": {
+      "primitive_counts": {
+        "LUT4": 38,
+        "FDRE": 18,
+        "LUT5": 4,
+        "LUT6": 4,
+        "LUT1": 2,
+        "LUT2": 2,
+        "LUT3": 2
+      },
+      "lut_source_locations": {
+        "core/analog_phase_ctrl.sv:20": 46,
+        "core/adc2_dec.sv:77": 6
+      },
+      "lut_name_prefixes": {
+        "sid": 32,
+        "state_a": 10,
+        "state_b": 10
+      },
+      "lut_examples": [
+        {
+          "name": "sid[0]_i_1",
+          "edif_line": 3650991,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "sid[1]_i_1",
+          "edif_line": 3650995,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "sid[2]_i_1",
+          "edif_line": 3650999,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "sid[3]_i_1",
+          "edif_line": 3651003,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "sid[3]_rep__0_i_1",
+          "edif_line": 3651007,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "sid[3]_rep__1_i_1",
+          "edif_line": 3651011,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "sid[3]_rep__2_i_1",
+          "edif_line": 3651015,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "sid[3]_rep__3_i_1",
+          "edif_line": 3651019,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT4"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {
+        "core/dem_state_gen.sv:75": 9,
+        "core/dem_state_gen.sv:76": 9
+      },
+      "source_witnesses": {
+        "core/analog_phase_ctrl.sv:20": {
+          "instance": "sid[0]_i_1",
+          "primitive": "LUT4",
+          "edif_line": 3650991,
+          "XLNX_LINE_FILE": 81932
+        },
+        "core/adc2_dec.sv:77": {
+          "instance": "state_a[4]_i_1",
+          "primitive": "LUT5",
+          "edif_line": 3651135,
+          "XLNX_LINE_FILE": 315411
+        }
+      },
+      "soft_group_count": 52,
+      "soft_group_sources": {
+        "core/analog_phase_ctrl.sv:20": 46,
+        "core/adc2_dec.sv:77": 6
+      }
+    },
+    "sar_trial_ctrl__parameterized0": {
+      "primitive_counts": {
+        "LUT6": 34,
+        "FDRE": 30,
+        "LUT4": 13,
+        "LUT2": 4,
+        "LUT3": 3,
+        "GND": 1,
+        "VCC": 1,
+        "LUT5": 1
+      },
+      "lut_source_locations": {
+        "core/analog_phase_ctrl.sv:20": 39,
+        "core/sar_trial_ctrl.sv:31": 15,
+        "core/adc2_dec.sv:77": 1
+      },
+      "lut_name_prefixes": {
+        "resolved_code": 26,
+        "trial_code": 21,
+        "bit_index": 5,
+        "busy": 1,
+        "done": 1,
+        "fine_compare_enable": 1
+      },
+      "lut_examples": [
+        {
+          "name": "bit_index[0]_i_1",
+          "edif_line": 3651954,
+          "source": "core/sar_trial_ctrl.sv:31",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bit_index[1]_i_1",
+          "edif_line": 3651958,
+          "source": "core/sar_trial_ctrl.sv:31",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bit_index[2]_i_1",
+          "edif_line": 3651962,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "bit_index[2]_i_2",
+          "edif_line": 3651966,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "bit_index[3]_i_1",
+          "edif_line": 3651970,
+          "source": "core/sar_trial_ctrl.sv:31",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "busy_i_1",
+          "edif_line": 3651990,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "done_i_1__1",
+          "edif_line": 3651998,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT5"
+        },
+        {
+          "name": "fine_compare_enable_INST_0",
+          "edif_line": 3652007,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT3"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {
+        "core/sar_trial_ctrl.sv:31": 28,
+        "core/sar_trial_ctrl.sv:24": 1,
+        "core/sar_trial_ctrl.sv:32": 1
+      },
+      "source_witnesses": {
+        "core/sar_trial_ctrl.sv:31": {
+          "instance": "bit_index[0]_i_1",
+          "primitive": "LUT6",
+          "edif_line": 3651954,
+          "XLNX_LINE_FILE": 126991
+        },
+        "core/analog_phase_ctrl.sv:20": {
+          "instance": "bit_index[2]_i_1",
+          "primitive": "LUT6",
+          "edif_line": 3651962,
+          "XLNX_LINE_FILE": 81932
+        },
+        "core/adc2_dec.sv:77": {
+          "instance": "resolved_code[11]_i_3",
+          "primitive": "LUT3",
+          "edif_line": 3652042,
+          "XLNX_LINE_FILE": 315411
+        }
+      },
+      "soft_group_count": 47,
+      "soft_group_sources": {
+        "core/analog_phase_ctrl.sv:20": 31,
+        "core/sar_trial_ctrl.sv:31": 15,
+        "core/adc2_dec.sv:77|core/analog_phase_ctrl.sv:20": 1
+      }
+    },
+    "dem_addr_gen": {
+      "primitive_counts": {
+        "LUT3": 1
+      },
+      "lut_source_locations": {
+        "core/dem_addr_gen.sv:93": 1
+      },
+      "lut_name_prefixes": {
+        "i_/i_/i_": 1
+      },
+      "lut_examples": [
+        {
+          "name": "i_/i_/i_",
+          "edif_line": 3653144,
+          "source": "core/dem_addr_gen.sv:93",
+          "primitive": "LUT3"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {},
+      "source_witnesses": {
+        "core/dem_addr_gen.sv:93": {
+          "instance": "i_/i_/i_",
+          "primitive": "LUT3",
+          "edif_line": 3653144,
+          "XLNX_LINE_FILE": 380934
+        }
+      },
+      "soft_group_count": 1,
+      "soft_group_sources": {
+        "core/dem_addr_gen.sv:93": 1
+      }
+    },
+    "analog_phase_ctrl": {
+      "primitive_counts": {
+        "LUT4": 12,
+        "LUT6": 10,
+        "LUT5": 9,
+        "FDRE": 8,
+        "LUT2": 6,
+        "LUT3": 5,
+        "LUT1": 2,
+        "VCC": 1
+      },
+      "lut_source_locations": {
+        "core/analog_phase_ctrl.sv:20": 32,
+        "core/adc2_dec.sv:77": 7,
+        "core/sar_structural_ctrl.sv:144": 2,
+        "core/sar_structural_ctrl.sv:133": 1,
+        "core/slice_pool_ctrl.sv:39": 1,
+        "core/sar_structural_ctrl.sv:140": 1
+      },
+      "lut_name_prefixes": {
+        "error_code": 7,
+        "phase": 4,
+        "trial_code": 4,
+        "coarse_acquire_enable": 3,
+        "cursor": 3,
+        "bit_index": 2,
+        "coarse_ok": 2,
+        "acquiring_mask": 1,
+        "coarse_cancel": 1,
+        "fine_acquire_enable": 1,
+        "fine_cancel": 1,
+        "fine_code": 1,
+        "fine_ok": 1,
+        "flash_acquire_enable": 1,
+        "flash_sample": 1,
+        "op3_w__1": 1,
+        "ra_amplify": 1,
+        "ra_az": 1,
+        "random_state": 1,
+        "ref_precharge": 1,
+        "residue_valid": 1,
+        "sample_id_r": 1,
+        "slice_sel": 1,
+        "state_a": 1,
+        "state_b": 1,
+        "tp_clock": 1
+      },
+      "lut_examples": [
+        {
+          "name": "acquiring_mask[17]_i_2",
+          "edif_line": 3653391,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT5"
+        },
+        {
+          "name": "bit_index[3]_i_4",
+          "edif_line": 3653396,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "bit_index[3]_i_4__0",
+          "edif_line": 3653400,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "coarse_acquire_enable[0]_i_1",
+          "edif_line": 3653404,
+          "source": "core/sar_structural_ctrl.sv:144",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "coarse_acquire_enable[1]_i_1",
+          "edif_line": 3653408,
+          "source": "core/sar_structural_ctrl.sv:144",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "coarse_acquire_enable[1]_i_2",
+          "edif_line": 3653412,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "coarse_cancel_i_1",
+          "edif_line": 3653417,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "coarse_ok_i_1",
+          "edif_line": 3653422,
+          "source": "core/sar_structural_ctrl.sv:133",
+          "primitive": "LUT5"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {
+        "core/analog_phase_ctrl.sv:20": 4,
+        "core/analog_phase_ctrl.sv:26": 4
+      },
+      "source_witnesses": {
+        "core/analog_phase_ctrl.sv:20": {
+          "instance": "acquiring_mask[17]_i_2",
+          "primitive": "LUT5",
+          "edif_line": 3653391,
+          "XLNX_LINE_FILE": 81932
+        },
+        "core/adc2_dec.sv:77": {
+          "instance": "bit_index[3]_i_4",
+          "primitive": "LUT2",
+          "edif_line": 3653396,
+          "XLNX_LINE_FILE": 315411
+        },
+        "core/sar_structural_ctrl.sv:144": {
+          "instance": "coarse_acquire_enable[0]_i_1",
+          "primitive": "LUT6",
+          "edif_line": 3653404,
+          "XLNX_LINE_FILE": 589835
+        },
+        "core/sar_structural_ctrl.sv:133": {
+          "instance": "coarse_ok_i_1",
+          "primitive": "LUT5",
+          "edif_line": 3653422,
+          "XLNX_LINE_FILE": 544779
+        },
+        "core/slice_pool_ctrl.sv:39": {
+          "instance": "cursor[3]_i_1",
+          "primitive": "LUT6",
+          "edif_line": 3653432,
+          "XLNX_LINE_FILE": 159757
+        },
+        "core/sar_structural_ctrl.sv:140": {
+          "instance": "fine_ok_i_1",
+          "primitive": "LUT4",
+          "edif_line": 3653488,
+          "XLNX_LINE_FILE": 573451
+        }
+      },
+      "soft_group_count": 33,
+      "soft_group_sources": {
+        "core/analog_phase_ctrl.sv:20": 21,
+        "core/adc2_dec.sv:77": 4,
+        "core/adc2_dec.sv:77|core/analog_phase_ctrl.sv:20": 3,
+        "core/sar_structural_ctrl.sv:144": 2,
+        "core/analog_phase_ctrl.sv:20|core/sar_structural_ctrl.sv:133": 1,
+        "core/slice_pool_ctrl.sv:39": 1,
+        "core/sar_structural_ctrl.sv:140": 1
+      }
+    },
+    "slice_pool_ctrl": {
+      "primitive_counts": {
+        "LUT6": 3981,
+        "LUT3": 2003,
+        "LUT2": 1214,
+        "LUT5": 1057,
+        "LUT4": 237,
+        "FDRE": 152,
+        "FDSE": 40,
+        "MUXF7": 17,
+        "LUT1": 16,
+        "CARRY4": 13,
+        "GND": 1,
+        "VCC": 1
+      },
+      "lut_source_locations": {
+        "core/rdac_drv.sv:63": 6653,
+        "core/rdac_drv.sv:49": 789,
+        "core/slice_pool_ctrl.sv:28": 753,
+        "core/rdac_drv.sv:48": 183,
+        "core/adc2_dec.sv:77": 80,
+        "core/slice_pool_ctrl.sv:19": 31,
+        "core/analog_phase_ctrl.sv:20": 18,
+        "core/slice_pool_ctrl.sv:46": 1
+      },
+      "lut_name_prefixes": {
+        "main_sw": 6644,
+        "sub_sw": 786,
+        "acquiring_ids": 532,
+        "acquiring_mask": 293,
+        "slice_sel": 117,
+        "dither_sw": 78,
+        "cursor": 21,
+        "aux_charge_enable": 18,
+        "random_state": 18,
+        "sample_id": 1
+      },
+      "lut_examples": [
+        {
+          "name": "acquiring_ids[0][0]_i_1",
+          "edif_line": 3656651,
+          "source": "core/slice_pool_ctrl.sv:28",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "acquiring_ids[0][0]_i_10",
+          "edif_line": 3656655,
+          "source": "core/slice_pool_ctrl.sv:28",
+          "primitive": "LUT3"
+        },
+        {
+          "name": "acquiring_ids[0][0]_i_11",
+          "edif_line": 3656660,
+          "source": "core/slice_pool_ctrl.sv:28",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "acquiring_ids[0][0]_i_12",
+          "edif_line": 3656664,
+          "source": "core/slice_pool_ctrl.sv:28",
+          "primitive": "LUT5"
+        },
+        {
+          "name": "acquiring_ids[0][0]_i_13",
+          "edif_line": 3656668,
+          "source": "core/slice_pool_ctrl.sv:28",
+          "primitive": "LUT5"
+        },
+        {
+          "name": "acquiring_ids[0][0]_i_14",
+          "edif_line": 3656672,
+          "source": "core/slice_pool_ctrl.sv:28",
+          "primitive": "LUT5"
+        },
+        {
+          "name": "acquiring_ids[0][0]_i_15",
+          "edif_line": 3656676,
+          "source": "core/slice_pool_ctrl.sv:28",
+          "primitive": "LUT5"
+        },
+        {
+          "name": "acquiring_ids[0][0]_i_16",
+          "edif_line": 3656680,
+          "source": "core/slice_pool_ctrl.sv:28",
+          "primitive": "LUT6"
+        }
+      ],
+      "ports": [
+        {
+          "edif_line": 3654235,
+          "text": "(port (rename random_state_reg_28__0_0_ \"random_state_reg[28]_0[0]\") (direction OUTPUT)"
+        },
+        {
+          "edif_line": 3654239,
+          "text": "(port (rename cursor_reg_3__0 \"cursor_reg[3]_0\") (direction OUTPUT)"
+        },
+        {
+          "edif_line": 3654242,
+          "text": "(port conversion_valid (direction OUTPUT)"
+        },
+        {
+          "edif_line": 3654245,
+          "text": "(port (rename converting_ids_reg_6__4__0 \"converting_ids_reg[6][4]_0\") (direction OUTPUT)"
+        },
+        {
+          "edif_line": 3654248,
+          "text": "(port (rename converting_ids_reg_6__1__0 \"converting_ids_reg[6][1]_0\") (direction OUTPUT)"
+        },
+        {
+          "edif_line": 3654251,
+          "text": "(port (rename converting_ids_reg_7__4__0 \"converting_ids_reg[7][4]_0\") (direction OUTPUT)"
+        },
+        {
+          "edif_line": 3654254,
+          "text": "(port (rename converting_ids_reg_7__3__0 \"converting_ids_reg[7][3]_0\") (direction OUTPUT)"
+        },
+        {
+          "edif_line": 3654257,
+          "text": "(port (array (rename sample_id_reg_31__0 \"sample_id_reg[31]_0[71:0]\") 72) (direction OUTPUT)"
+        }
+      ],
+      "ff_source_locations": {
+        "core/slice_pool_ctrl.sv:37": 85,
+        "core/slice_pool_ctrl.sv:39": 70,
+        "core/slice_pool_ctrl.sv:38": 37
+      },
+      "source_witnesses": {
+        "core/slice_pool_ctrl.sv:28": {
+          "instance": "acquiring_ids[0][0]_i_1",
+          "primitive": "LUT6",
+          "edif_line": 3656651,
+          "XLNX_LINE_FILE": 114701
+        },
+        "core/adc2_dec.sv:77": {
+          "instance": "acquiring_ids[0][0]_i_18",
+          "primitive": "LUT6",
+          "edif_line": 3656688,
+          "XLNX_LINE_FILE": 315411
+        },
+        "core/analog_phase_ctrl.sv:20": {
+          "instance": "aux_charge_enable[0]_INST_0",
+          "primitive": "LUT2",
+          "edif_line": 3660380,
+          "XLNX_LINE_FILE": 81932
+        },
+        "core/slice_pool_ctrl.sv:19": {
+          "instance": "cursor[0]_i_10",
+          "primitive": "LUT1",
+          "edif_line": 3660734,
+          "XLNX_LINE_FILE": 77837
+        },
+        "core/slice_pool_ctrl.sv:46": {
+          "instance": "cursor[4]_i_8",
+          "primitive": "LUT3",
+          "edif_line": 3660818,
+          "XLNX_LINE_FILE": 188429
+        },
+        "core/rdac_drv.sv:63": {
+          "instance": "dither_sw[10][0]_i_1",
+          "primitive": "LUT6",
+          "edif_line": 3660857,
+          "XLNX_LINE_FILE": 258058
+        },
+        "core/rdac_drv.sv:48": {
+          "instance": "dither_sw[10][3]_i_5",
+          "primitive": "LUT5",
+          "edif_line": 3660888,
+          "XLNX_LINE_FILE": 196618
+        },
+        "core/rdac_drv.sv:49": {
+          "instance": "main_sw[0][0]_i_6",
+          "primitive": "LUT2",
+          "edif_line": 3661222,
+          "XLNX_LINE_FILE": 200714
+        }
+      },
+      "soft_group_count": 7611,
+      "soft_group_sources": {
+        "core/rdac_drv.sv:63": 6027,
+        "core/slice_pool_ctrl.sv:28": 675,
+        "core/rdac_drv.sv:49": 515,
+        "core/rdac_drv.sv:48": 137,
+        "core/rdac_drv.sv:49|core/rdac_drv.sv:63": 114,
+        "core/adc2_dec.sv:77": 48,
+        "core/rdac_drv.sv:48|core/rdac_drv.sv:63": 31,
+        "core/adc2_dec.sv:77|core/slice_pool_ctrl.sv:28": 29,
+        "core/slice_pool_ctrl.sv:19": 23,
+        "core/analog_phase_ctrl.sv:20": 9,
+        "core/analog_phase_ctrl.sv:20|core/slice_pool_ctrl.sv:28": 1,
+        "core/slice_pool_ctrl.sv:46": 1,
+        "core/rdac_drv.sv:48|core/rdac_drv.sv:49": 1
+      }
+    },
+    "dither_gen__parameterized0": {
+      "primitive_counts": {
+        "FDSE": 20,
+        "FDRE": 12,
+        "LUT4": 8,
+        "LUT5": 5,
+        "LUT3": 5,
+        "LUT2": 3
+      },
+      "lut_source_locations": {
+        "core/analog_phase_ctrl.sv:20": 17,
+        "core/adc2_dec.sv:77": 4
+      },
+      "lut_name_prefixes": {
+        "lfsr": 18,
+        "acquiring_dither": 3
+      },
+      "lut_examples": [
+        {
+          "name": "acquiring_dither[0]_i_1",
+          "edif_line": 3773213,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "acquiring_dither[1]_i_1",
+          "edif_line": 3773217,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT5"
+        },
+        {
+          "name": "acquiring_dither[7]_i_1",
+          "edif_line": 3773221,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT5"
+        },
+        {
+          "name": "lfsr[0]_i_1",
+          "edif_line": 3773225,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT3"
+        },
+        {
+          "name": "lfsr[14]_i_1",
+          "edif_line": 3773229,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "lfsr[15]_i_1",
+          "edif_line": 3773233,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT3"
+        },
+        {
+          "name": "lfsr[16]_i_1",
+          "edif_line": 3773237,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT3"
+        },
+        {
+          "name": "lfsr[17]_i_1",
+          "edif_line": 3773241,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT4"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {
+        "core/dither_gen.sv:50": 32
+      },
+      "source_witnesses": {
+        "core/analog_phase_ctrl.sv:20": {
+          "instance": "acquiring_dither[0]_i_1",
+          "primitive": "LUT4",
+          "edif_line": 3773213,
+          "XLNX_LINE_FILE": 81932
+        },
+        "core/adc2_dec.sv:77": {
+          "instance": "acquiring_dither[7]_i_1",
+          "primitive": "LUT5",
+          "edif_line": 3773221,
+          "XLNX_LINE_FILE": 315411
+        }
+      },
+      "soft_group_count": 21,
+      "soft_group_sources": {
+        "core/analog_phase_ctrl.sv:20": 17,
+        "core/adc2_dec.sv:77": 4
+      }
+    },
+    "rdac_drv": {
+      "primitive_counts": {
+        "FDRE": 1368,
+        "LUT6": 160,
+        "LUT5": 40,
+        "LUT4": 24,
+        "LUT3": 1
+      },
+      "lut_source_locations": {
+        "core/adc2_dec.sv:77": 217,
+        "core/analog_phase_ctrl.sv:20": 8
+      },
+      "lut_name_prefixes": {
+        "residue": 217,
+        "residue_bad": 8
+      },
+      "lut_examples": [
+        {
+          "name": "residue[127]_i_2",
+          "edif_line": 3779482,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT3"
+        },
+        {
+          "name": "residue[574]_i_10",
+          "edif_line": 3779486,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "residue[574]_i_11",
+          "edif_line": 3779490,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "residue[574]_i_12",
+          "edif_line": 3779494,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "residue[574]_i_9",
+          "edif_line": 3779498,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "residue[575]_i_10",
+          "edif_line": 3779502,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "residue[575]_i_11",
+          "edif_line": 3779506,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "residue[575]_i_12",
+          "edif_line": 3779510,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT6"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {
+        "core/rdac_drv.sv:49": 1134,
+        "core/rdac_drv.sv:50": 144,
+        "core/rdac_drv.sv:51": 72,
+        "core/rdac_drv.sv:48": 18
+      },
+      "source_witnesses": {
+        "core/adc2_dec.sv:77": {
+          "instance": "residue[127]_i_2",
+          "primitive": "LUT3",
+          "edif_line": 3779482,
+          "XLNX_LINE_FILE": 315411
+        },
+        "core/analog_phase_ctrl.sv:20": {
+          "instance": "residue_bad_i_14",
+          "primitive": "LUT4",
+          "edif_line": 3780400,
+          "XLNX_LINE_FILE": 81932
+        }
+      },
+      "soft_group_count": 200,
+      "soft_group_sources": {
+        "core/adc2_dec.sv:77": 192,
+        "core/analog_phase_ctrl.sv:20": 8
+      }
+    },
+    "unit_therm": {
+      "primitive_counts": {
+        "LUT1": 1
+      },
+      "lut_source_locations": {
+        "core/unit_therm.sv:56": 1
+      },
+      "lut_name_prefixes": {
+        "residue": 1
+      },
+      "lut_examples": [
+        {
+          "name": "residue[66]_i_1",
+          "edif_line": 3801594,
+          "source": "core/unit_therm.sv:56",
+          "primitive": "LUT1"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {},
+      "source_witnesses": {
+        "core/unit_therm.sv:56": {
+          "instance": "residue[66]_i_1",
+          "primitive": "LUT1",
+          "edif_line": 3801594,
+          "XLNX_LINE_FILE": 229385
+        }
+      },
+      "soft_group_count": 1,
+      "soft_group_sources": {
+        "core/unit_therm.sv:56": 1
+      }
+    },
+    "sar_structural_ctrl": {
+      "primitive_counts": {
+        "FDRE": 128,
+        "LUT4": 8,
+        "GND": 1,
+        "VCC": 1,
+        "LUT3": 1,
+        "LUT1": 1
+      },
+      "lut_source_locations": {
+        "core/adc2_dec.sv:77": 6,
+        "core/analog_phase_ctrl.sv:20": 4
+      },
+      "lut_name_prefixes": {
+        "quantizer_dither": 6,
+        "acquisition_dither_rails": 3,
+        "bank": 1
+      },
+      "lut_examples": [
+        {
+          "name": "acquisition_dither_rails[0]_INST_0",
+          "edif_line": 3847110,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "acquisition_dither_rails[2]_INST_0",
+          "edif_line": 3847114,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "acquisition_dither_rails[3]_INST_0",
+          "edif_line": 3847118,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT3"
+        },
+        {
+          "name": "bank_i_1",
+          "edif_line": 3847122,
+          "source": "core/analog_phase_ctrl.sv:20",
+          "primitive": "LUT1"
+        },
+        {
+          "name": "quantizer_dither[0][0]_INST_0",
+          "edif_line": 3847500,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "quantizer_dither[0][1]_INST_0",
+          "edif_line": 3847504,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "quantizer_dither[0][2]_INST_0",
+          "edif_line": 3847508,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "quantizer_dither[1][0]_INST_0",
+          "edif_line": 3847512,
+          "source": "core/adc2_dec.sv:77",
+          "primitive": "LUT4"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {
+        "core/sar_structural_ctrl.sv:135": 64,
+        "core/sar_structural_ctrl.sv:99": 32,
+        "core/sar_structural_ctrl.sv:145": 17,
+        "core/sar_structural_ctrl.sv:108": 6,
+        "core/sar_structural_ctrl.sv:79": 2,
+        "core/sar_structural_ctrl.sv:144": 2,
+        "core/sar_structural_ctrl.sv:143": 2,
+        "core/sar_structural_ctrl.sv:133": 1,
+        "core/sar_structural_ctrl.sv:88": 1,
+        "core/sar_structural_ctrl.sv:140": 1
+      },
+      "source_witnesses": {
+        "core/analog_phase_ctrl.sv:20": {
+          "instance": "acquisition_dither_rails[0]_INST_0",
+          "primitive": "LUT4",
+          "edif_line": 3847110,
+          "XLNX_LINE_FILE": 81932
+        },
+        "core/adc2_dec.sv:77": {
+          "instance": "quantizer_dither[0][0]_INST_0",
+          "primitive": "LUT4",
+          "edif_line": 3847500,
+          "XLNX_LINE_FILE": 315411
+        }
+      },
+      "soft_group_count": 10,
+      "soft_group_sources": {
+        "core/adc2_dec.sv:77": 6,
+        "core/analog_phase_ctrl.sv:20": 4
+      }
+    },
+    "weight_store": {
+      "primitive_counts": {
+        "FDRE": 62622,
+        "LUT6": 20201,
+        "LUT4": 14499,
+        "LUT5": 13568,
+        "MUXF7": 7392,
+        "LUT3": 5607,
+        "CARRY4": 4118,
+        "LUT2": 3298,
+        "MUXF8": 1920,
+        "LUT1": 4,
+        "GND": 1,
+        "VCC": 1
+      },
+      "lut_source_locations": {
+        "core/cal_weight_reduce.sv:79": 30916,
+        "top/sar20_digital_core.sv:637": 20112,
+        "core/cal_weight_reduce.sv:51": 2951,
+        "core/cal_weight_reduce.sv:80": 1326,
+        "core/cal_weight_reduce.sv:94": 1296,
+        "core/weight_store.sv:42": 256,
+        "core/weight_store.sv:78": 126,
+        "core/cal_weight_reduce.sv:7": 95,
+        "core/weight_store.sv:120": 49,
+        "top/sar20_digital_core.sv:636": 40,
+        "core/weight_store.sv:102": 4,
+        "top/sar20_digital_core.sv:198": 2,
+        "core/cal_weight_reduce.sv:81": 2,
+        "core/status_regs.sv:67": 1,
+        "core/cal_sample_context.sv:32": 1
+      },
+      "lut_name_prefixes": {
+        "cfg_rdata": 20154,
+        "op3_w": 17379,
+        "op3_w__0": 11319,
+        "op3_w__5": 5155,
+        "gain_s": 1423,
+        "rails_s": 1304,
+        "cfg_ready": 256,
+        "written": 98,
+        "w_q": 67,
+        "status_word": 13,
+        "op3_w__9": 7,
+        "analog_ovf_sticky": 1,
+        "clip_high_last": 1
+      },
+      "lut_examples": [
+        {
+          "name": "analog_ovf_sticky_i_1",
+          "edif_line": 4460341,
+          "source": "core/status_regs.sv:67",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "cfg_rdata[0]_INST_0_i_1",
+          "edif_line": 4460345,
+          "source": "top/sar20_digital_core.sv:637",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "cfg_rdata[0]_INST_0_i_10",
+          "edif_line": 4460349,
+          "source": "top/sar20_digital_core.sv:637",
+          "primitive": "LUT5"
+        },
+        {
+          "name": "cfg_rdata[0]_INST_0_i_100",
+          "edif_line": 4460353,
+          "source": "top/sar20_digital_core.sv:637",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "cfg_rdata[0]_INST_0_i_101",
+          "edif_line": 4460357,
+          "source": "top/sar20_digital_core.sv:637",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "cfg_rdata[0]_INST_0_i_108",
+          "edif_line": 4460379,
+          "source": "top/sar20_digital_core.sv:637",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "cfg_rdata[0]_INST_0_i_109",
+          "edif_line": 4460383,
+          "source": "top/sar20_digital_core.sv:637",
+          "primitive": "LUT6"
+        },
+        {
+          "name": "cfg_rdata[0]_INST_0_i_110",
+          "edif_line": 4460390,
+          "source": "top/sar20_digital_core.sv:637",
+          "primitive": "LUT6"
+        }
+      ],
+      "ports": [
+        {
+          "edif_line": 4427924,
+          "text": "(port (array (rename written_reg_14___0 \"written_reg[14]__0[70:0]\") 71) (direction OUTPUT)"
+        },
+        {
+          "edif_line": 4427928,
+          "text": "(port (array (rename w_q_reg_4__20__47__0 \"w_q_reg[4][20][47]_0[47:0]\") 48) (direction OUTPUT)"
+        },
+        {
+          "edif_line": 4427932,
+          "text": "(port clear (direction OUTPUT)"
+        },
+        {
+          "edif_line": 4427935,
+          "text": "(port (array (rename written_reg_15___0 \"written_reg[15]__0[70:0]\") 71) (direction OUTPUT)"
+        },
+        {
+          "edif_line": 4427939,
+          "text": "(port (array (rename w_q_reg_4__12__47__0 \"w_q_reg[4][12][47]_0[47:0]\") 48) (direction OUTPUT)"
+        },
+        {
+          "edif_line": 4427943,
+          "text": "(port (rename w_q_reg_4__4__47__2_0_ \"w_q_reg[4][4][47]_2[0]\") (direction OUTPUT)"
+        },
+        {
+          "edif_line": 4427947,
+          "text": "(port (rename w_q_reg_7__20__47__0_0_ \"w_q_reg[7][20][47]_0[0]\") (direction OUTPUT)"
+        },
+        {
+          "edif_line": 4427951,
+          "text": "(port (array (rename w_q_reg_7__20__47__1 \"w_q_reg[7][20][47]_1[47:0]\") 48) (direction OUTPUT)"
+        }
+      ],
+      "ff_source_locations": {
+        "core/weight_store.sv:102": 61344,
+        "core/weight_store.sv:78": 1278
+      },
+      "source_witnesses": {
+        "core/status_regs.sv:67": {
+          "instance": "analog_ovf_sticky_i_1",
+          "primitive": "LUT2",
+          "edif_line": 4460341,
+          "XLNX_LINE_FILE": 274455
+        },
+        "top/sar20_digital_core.sv:637": {
+          "instance": "cfg_rdata[0]_INST_0_i_1",
+          "primitive": "LUT6",
+          "edif_line": 4460345,
+          "XLNX_LINE_FILE": 2609152
+        },
+        "top/sar20_digital_core.sv:636": {
+          "instance": "cfg_rdata[10]_INST_0",
+          "primitive": "LUT3",
+          "edif_line": 4462667,
+          "XLNX_LINE_FILE": 2605056
+        },
+        "top/sar20_digital_core.sv:198": {
+          "instance": "cfg_rdata[47]_INST_0_i_3",
+          "primitive": "LUT2",
+          "edif_line": 4556575,
+          "XLNX_LINE_FILE": 811008
+        },
+        "core/weight_store.sv:42": {
+          "instance": "cfg_ready_i_10",
+          "primitive": "LUT6",
+          "edif_line": 4572045,
+          "XLNX_LINE_FILE": 172033
+        },
+        "core/weight_store.sv:78": {
+          "instance": "clip_high_last_i_1",
+          "primitive": "LUT1",
+          "edif_line": 4573069,
+          "XLNX_LINE_FILE": 319489
+        },
+        "core/cal_weight_reduce.sv:80": {
+          "instance": "gain_s[15]_i_278",
+          "primitive": "LUT3",
+          "edif_line": 4573073,
+          "XLNX_LINE_FILE": 327698
+        },
+        "core/cal_weight_reduce.sv:51": {
+          "instance": "gain_s[15]_i_334",
+          "primitive": "LUT2",
+          "edif_line": 4573143,
+          "XLNX_LINE_FILE": 208914
+        },
+        "core/cal_weight_reduce.sv:79": {
+          "instance": "op3_w__0_i_10011",
+          "primitive": "LUT3",
+          "edif_line": 4580732,
+          "XLNX_LINE_FILE": 323602
+        },
+        "core/cal_weight_reduce.sv:7": {
+          "instance": "op3_w__0_i_10169",
+          "primitive": "LUT3",
+          "edif_line": 4581171,
+          "XLNX_LINE_FILE": 28690
+        },
+        "core/cal_sample_context.sv:32": {
+          "instance": "op3_w_i_8018",
+          "primitive": "LUT3",
+          "edif_line": 4747440,
+          "XLNX_LINE_FILE": 131088
+        },
+        "core/cal_weight_reduce.sv:94": {
+          "instance": "rails_s[15]_i_476",
+          "primitive": "LUT2",
+          "edif_line": 4751263,
+          "XLNX_LINE_FILE": 385042
+        },
+        "core/cal_weight_reduce.sv:81": {
+          "instance": "rails_s[62]_i_12915",
+          "primitive": "LUT5",
+          "edif_line": 4756216,
+          "XLNX_LINE_FILE": 331794
+        },
+        "core/weight_store.sv:120": {
+          "instance": "w_q[0][0][47]_i_2",
+          "primitive": "LUT4",
+          "edif_line": 4757507,
+          "XLNX_LINE_FILE": 491521
+        },
+        "core/weight_store.sv:102": {
+          "instance": "w_q[9][18][47]_i_2",
+          "primitive": "LUT3",
+          "edif_line": 4757726,
+          "XLNX_LINE_FILE": 417793
+        }
+      },
+      "soft_group_count": 42689,
+      "soft_group_sources": {
+        "core/cal_weight_reduce.sv:79": 19972,
+        "top/sar20_digital_core.sv:637": 18557,
+        "core/cal_weight_reduce.sv:51": 1698,
+        "core/cal_weight_reduce.sv:94": 1296,
+        "core/cal_weight_reduce.sv:80": 685,
+        "core/weight_store.sv:42": 256,
+        "core/cal_weight_reduce.sv:7": 95,
+        "core/weight_store.sv:78": 73,
+        "core/weight_store.sv:120": 22,
+        "top/sar20_digital_core.sv:636": 21,
+        "core/weight_store.sv:120|core/weight_store.sv:78": 4,
+        "top/sar20_digital_core.sv:198": 2,
+        "core/cal_weight_reduce.sv:81": 2,
+        "core/weight_store.sv:102|core/weight_store.sv:120": 2,
+        "core/weight_store.sv:102|core/weight_store.sv:78": 2,
+        "core/status_regs.sv:67": 1,
+        "core/cal_sample_context.sv:32|core/cal_weight_reduce.sv:51": 1
+      }
+    },
+    "sar20_digital_core": {
+      "primitive_counts": {
+        "LUT3": 12293,
+        "LUT4": 11939,
+        "CARRY4": 2964,
+        "LUT2": 389,
+        "LUT5": 104,
+        "LUT6": 63,
+        "FDRE": 61,
+        "LUT1": 23,
+        "GND": 1,
+        "VCC": 1
+      },
+      "lut_source_locations": {
+        "core/cal_weight_reduce.sv:81": 21444,
+        "core/cal_weight_reduce.sv:80": 2842,
+        "core/adc2_dec.sv:77": 174,
+        "core/cal_residue_mac.sv:38": 147,
+        "core/cal_weight_reduce.sv:79": 119,
+        "top/sar20_digital_core.sv:631": 60,
+        "top/sar20_digital_core.sv:632": 7,
+        "core/div_floor.sv:115": 4,
+        "top/sar20_digital_core.sv:150": 4,
+        "top/sar20_digital_core.sv:638": 2,
+        "top/sar20_digital_core.sv:134": 2,
+        "core/div_floor.sv:116": 2,
+        "top/sar20_digital_core.sv:519": 1,
+        "top/sar20_digital_core.sv:637": 1,
+        "top/sar20_digital_core.sv:149": 1,
+        "top/sar20_digital_core.sv:124": 1
+      },
+      "lut_name_prefixes": {
+        "rails_s": 21444,
+        "gain_s": 2929,
+        "ovf_pend": 321,
+        "cfg_rdata": 73,
+        "op3_w": 31,
+        "status_word": 6,
+        "q": 4,
+        "rem": 2,
+        "quo": 1
+      },
+      "lut_examples": [
+        {
+          "name": "cfg_rdata[11]_INST_0_i_22",
+          "edif_line": 6355343,
+          "source": "top/sar20_digital_core.sv:631",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "cfg_rdata[11]_INST_0_i_48",
+          "edif_line": 6355347,
+          "source": "top/sar20_digital_core.sv:631",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "cfg_rdata[14]_INST_0_i_22",
+          "edif_line": 6355351,
+          "source": "top/sar20_digital_core.sv:631",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "cfg_rdata[15]_INST_0_i_25",
+          "edif_line": 6355355,
+          "source": "top/sar20_digital_core.sv:632",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "cfg_rdata[15]_INST_0_i_48",
+          "edif_line": 6355359,
+          "source": "top/sar20_digital_core.sv:631",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "cfg_rdata[17]_INST_0_i_22",
+          "edif_line": 6355363,
+          "source": "top/sar20_digital_core.sv:631",
+          "primitive": "LUT4"
+        },
+        {
+          "name": "cfg_rdata[19]_INST_0_i_47",
+          "edif_line": 6355367,
+          "source": "top/sar20_digital_core.sv:631",
+          "primitive": "LUT2"
+        },
+        {
+          "name": "cfg_rdata[20]_INST_0_i_22",
+          "edif_line": 6355371,
+          "source": "top/sar20_digital_core.sv:631",
+          "primitive": "LUT4"
+        }
+      ],
+      "ports": [],
+      "ff_source_locations": {
+        "top/sar20_digital_core.sv:165": 52,
+        "top/sar20_digital_core.sv:179": 4,
+        "top/sar20_digital_core.sv:157": 3,
+        "top/sar20_digital_core.sv:178": 2
+      },
+      "source_witnesses": {
+        "top/sar20_digital_core.sv:631": {
+          "instance": "cfg_rdata[11]_INST_0_i_22",
+          "primitive": "LUT4",
+          "edif_line": 6355343,
+          "XLNX_LINE_FILE": 2584576
+        },
+        "top/sar20_digital_core.sv:632": {
+          "instance": "cfg_rdata[15]_INST_0_i_25",
+          "primitive": "LUT2",
+          "edif_line": 6355355,
+          "XLNX_LINE_FILE": 2588672
+        },
+        "top/sar20_digital_core.sv:519": {
+          "instance": "cfg_rdata[47]_INST_0_i_10",
+          "primitive": "LUT3",
+          "edif_line": 6355447,
+          "XLNX_LINE_FILE": 2125824
+        },
+        "top/sar20_digital_core.sv:637": {
+          "instance": "cfg_rdata[47]_INST_0_i_12",
+          "primitive": "LUT4",
+          "edif_line": 6355452,
+          "XLNX_LINE_FILE": 2609152
+        },
+        "top/sar20_digital_core.sv:638": {
+          "instance": "cfg_rdata[9]_INST_0_i_2",
+          "primitive": "LUT3",
+          "edif_line": 6355626,
+          "XLNX_LINE_FILE": 2613248
+        },
+        "top/sar20_digital_core.sv:134": {
+          "instance": "cfg_rdata[9]_INST_0_i_24",
+          "primitive": "LUT4",
+          "edif_line": 6355630,
+          "XLNX_LINE_FILE": 548864
+        },
+        "core/cal_weight_reduce.sv:80": {
+          "instance": "gain_s[11]_i_100",
+          "primitive": "LUT4",
+          "edif_line": 6355927,
+          "XLNX_LINE_FILE": 327698
+        },
+        "core/cal_weight_reduce.sv:79": {
+          "instance": "gain_s[59]_i_1093",
+          "primitive": "LUT3",
+          "edif_line": 6368126,
+          "XLNX_LINE_FILE": 323602
+        },
+        "core/cal_residue_mac.sv:38": {
+          "instance": "ovf_pend_i_100",
+          "primitive": "LUT2",
+          "edif_line": 6371606,
+          "XLNX_LINE_FILE": 155668
+        },
+        "core/adc2_dec.sv:77": {
+          "instance": "ovf_pend_i_101",
+          "primitive": "LUT2",
+          "edif_line": 6371610,
+          "XLNX_LINE_FILE": 315411
+        },
+        "core/div_floor.sv:115": {
+          "instance": "q[4]_i_3",
+          "primitive": "LUT1",
+          "edif_line": 6372920,
+          "XLNX_LINE_FILE": 471061
+        },
+        "core/cal_weight_reduce.sv:81": {
+          "instance": "rails_s[19]_i_1046",
+          "primitive": "LUT3",
+          "edif_line": 6372940,
+          "XLNX_LINE_FILE": 331794
+        },
+        "core/div_floor.sv:116": {
+          "instance": "rem[63]_i_29",
+          "primitive": "LUT4",
+          "edif_line": 6487249,
+          "XLNX_LINE_FILE": 475157
+        },
+        "top/sar20_digital_core.sv:149": {
+          "instance": "status_word[7]_INST_0_i_2",
+          "primitive": "LUT6",
+          "edif_line": 6487257,
+          "XLNX_LINE_FILE": 610304
+        },
+        "top/sar20_digital_core.sv:150": {
+          "instance": "status_word[7]_INST_0_i_3",
+          "primitive": "LUT5",
+          "edif_line": 6487261,
+          "XLNX_LINE_FILE": 614400
+        },
+        "top/sar20_digital_core.sv:124": {
+          "instance": "status_word[9]_INST_0_i_1",
+          "primitive": "LUT3",
+          "edif_line": 6487277,
+          "XLNX_LINE_FILE": 507904
+        }
+      },
+      "soft_group_count": 13052,
+      "soft_group_sources": {
+        "core/cal_weight_reduce.sv:81": 11067,
+        "core/cal_weight_reduce.sv:80": 1465,
+        "core/adc2_dec.sv:77": 174,
+        "core/cal_residue_mac.sv:38": 147,
+        "core/cal_weight_reduce.sv:79": 118,
+        "top/sar20_digital_core.sv:631": 59,
+        "top/sar20_digital_core.sv:632": 5,
+        "core/div_floor.sv:115": 4,
+        "top/sar20_digital_core.sv:150": 4,
+        "top/sar20_digital_core.sv:638": 2,
+        "core/div_floor.sv:116": 2,
+        "top/sar20_digital_core.sv:519|top/sar20_digital_core.sv:637": 1,
+        "top/sar20_digital_core.sv:134|top/sar20_digital_core.sv:632": 1,
+        "top/sar20_digital_core.sv:134": 1,
+        "top/sar20_digital_core.sv:149": 1,
+        "top/sar20_digital_core.sv:124": 1
+      }
+    }
+  },
+  "scope": "Read-only parsing of the valid repaired-baseline post-synthesis DCP and reports. No RTL changes, EDA calls or PPA savings measurements.",
+  "report_physical_luts": {
+    "top": 171246,
+    "u_structure/u_context": 82745,
+    "u_wstore": 42597,
+    "u_structure/u_pool": 7611
+  },
+  "report_flipflops": {
+    "top": 66817,
+    "u_structure/u_context": 1427,
+    "u_wstore": 62622,
+    "u_structure/u_pool": 192
+  },
+  "raw_primitive_scope": "EDIF LUT1..LUT6 primitive counts are not physical LUT utilization. Fracturable/pairable LUT functions explain different counts; SOFT_HLUTNM groups are only mapping hints and also differ slightly from reported LUTs. Do not claim area savings from these counts.",
+  "source_location_scope": "XLNX_LINE_FILE decode is corroborated against metax FILE entries and actual source statements. A tag is an origin hint, not a complete combinational-cone attribution; mapping may propagate tags across merged logic.",
+  "integrity_check": {
+    "raw_edif_flipflop_count": 66817,
+    "reported_flipflop_count": 66817,
+    "raw_edif_lut_primitive_count": 277037
+  },
+  "source_sha256": {
+    "rtl/core/cal_sample_context.sv": "8b0ff4527b6ff5936d378945bcfd38d2c203a43fb7d2cb4d0271a8f655bb9e56",
+    "rtl/core/weight_store.sv": "15c0a33322e6edf5fbc99ec2058ef2b720c356763362c22639d8619ceda5be8a",
+    "rtl/core/slice_pool_ctrl.sv": "e53d9efa8ced99e5322f6a3043dd67c7ceea11cfad60813f5e233504a28782b4",
+    "rtl/core/rdac_drv.sv": "d91fa05062a50eb08826286ec527b5a15d6b7be758cee7f5e16c53fbe20d6a33",
+    "rtl/top/sar20_digital_core.sv": "676c35cacdc66076a74d8bf1039129be65f2c067f3903833a8aeb35f4745046a",
+    "rtl/core/cal_weight_reduce.sv": "68269e95d408f5f4b8d0cac1d3c9451822fdf0111f000916292de40ca02a9d81",
+    "synth/run_vivado_ooc.tcl": "f9084c25618a94b8bd492e2dc699d6cb15a46d72a8be8e55d4c453b623487ed7"
+  },
+  "report_sha256": {
+    "utilization_hier.rpt": "20f0444c6469cf27d84cc2a431010a731ca62918e73c772f98dced0c777b2beb",
+    "timing_paths.rpt": "b5a448264a3379f83549a0324b39cc56ddc32f9bd355a116ff513bf993877b94"
+  }
+}

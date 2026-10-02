@@ -1,0 +1,28 @@
+{
+  "purpose": "Source-level phase decoder fault injection; not a gate-delay or silicon glitch measurement.",
+  "baseline_source_sha256": "ea7cd00fec642f8afee49efd2604e0b8993e20e16fa860a5692ab9789617b99e",
+  "fixed_source_sha256": "76166ca5d0dbec70b9484b0badefe1f009a75ef942ed1de9e27159f2d092660e",
+  "bench_sha256": "b7d295bba4710f21be7d7a38d71669b3f8f9cc629fa7146f46b151ed09de48c4",
+  "baseline": {
+    "exit_code": 1,
+    "fault": "frame7 phase3 -> phase1 -> phase3 between clock edges",
+    "failure_time_ns": 234,
+    "log": "structural_protocol.baseline.negative.log"
+  },
+  "cancel_mutant": {
+    "exit_code": 1,
+    "mutation": "Restore cancel(phase==8/14), retain registered acquisition outputs",
+    "fault": "frame7 phase7 -> phase14 -> phase7 between clock edges",
+    "failure_time_ns": 242,
+    "log": "structural_protocol.cancel_mutant.negative.log"
+  },
+  "fixed": {
+    "exit_code": 0,
+    "frames": 120,
+    "launches": 57,
+    "expected_drops": 63,
+    "clock_ticks": 1920,
+    "phase_perturbations": 2,
+    "log": "structural_protocol_tb.run.log"
+  }
+}

@@ -1,0 +1,37 @@
+%Warning-TIMESCALEMOD: /tmp/sar-arithmetic-audit-mqie0p8i/repo/rtl/core/cal_residue_mac.sv:5:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    5 | module cal_residue_mac #(
+      |        ^~~~~~~~~~~~~~~
+                       /tmp/sar-arithmetic-audit-mqie0p8i/repo/sim/tb/arithmetic_audit_tb.sv:4:8: ... Location of module with timescale
+    4 | module arithmetic_comb_audit(output logic complete = 0);
+      |        ^~~~~~~~~~~~~~~~~~~~~
+                       ... For warning description see https://verilator.org/warn/TIMESCALEMOD?v=5.020
+                       ... Use "/* verilator lint_off TIMESCALEMOD */" and lint_on around source to disable this message.
+%Warning-TIMESCALEMOD: /tmp/sar-arithmetic-audit-mqie0p8i/repo/rtl/core/adc2_dec.sv:45:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   45 | module adc2_dec #(
+      |        ^~~~~~~~
+                       /tmp/sar-arithmetic-audit-mqie0p8i/repo/sim/tb/arithmetic_audit_tb.sv:4:8: ... Location of module with timescale
+    4 | module arithmetic_comb_audit(output logic complete = 0);
+      |        ^~~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: /tmp/sar-arithmetic-audit-mqie0p8i/repo/rtl/core/div_floor.sv:57:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   57 | module div_floor #(
+      |        ^~~~~~~~~
+                       /tmp/sar-arithmetic-audit-mqie0p8i/repo/sim/tb/arithmetic_audit_tb.sv:4:8: ... Location of module with timescale
+    4 | module arithmetic_comb_audit(output logic complete = 0);
+      |        ^~~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: /tmp/sar-arithmetic-audit-mqie0p8i/repo/rtl/core/cal_output_stage.sv:5:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    5 | module cal_output_stage #(
+      |        ^~~~~~~~~~~~~~~~
+                       /tmp/sar-arithmetic-audit-mqie0p8i/repo/sim/tb/arithmetic_audit_tb.sv:4:8: ... Location of module with timescale
+    4 | module arithmetic_comb_audit(output logic complete = 0);
+      |        ^~~~~~~~~~~~~~~~~~~~~
+make: Entering directory '/tmp/sar-arithmetic-audit-mqie0p8i/obj'
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -std=c++20 -DVL_TIME_CONTEXT   -fcoroutines -c -o verilated.o /usr/share/verilator/include/verilated.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -std=c++20 -DVL_TIME_CONTEXT   -fcoroutines -c -o verilated_timing.o /usr/share/verilator/include/verilated_timing.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -std=c++20 -DVL_TIME_CONTEXT   -fcoroutines -c -o verilated_threads.o /usr/share/verilator/include/verilated_threads.cpp
+/tmp/sar-arithmetic-audit-mqie0p8i/python3 /usr/share/verilator/bin/verilator_includer -DVL_INCLUDE_OPT=include Varithmetic_audit_tb.cpp Varithmetic_audit_tb___024root__DepSet_hc11ee5a5__0.cpp Varithmetic_audit_tb___024root__DepSet_hd02b8d6e__0.cpp Varithmetic_audit_tb__main.cpp Varithmetic_audit_tb___024root__Slow.cpp Varithmetic_audit_tb___024root__DepSet_hc11ee5a5__0__Slow.cpp Varithmetic_audit_tb___024root__DepSet_hd02b8d6e__0__Slow.cpp Varithmetic_audit_tb___024unit__Slow.cpp Varithmetic_audit_tb___024unit__DepSet_h0d1d598a__0__Slow.cpp Varithmetic_audit_tb__Syms.cpp > Varithmetic_audit_tb__ALL.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -std=c++20 -DVL_TIME_CONTEXT   -fcoroutines -c -o Varithmetic_audit_tb__ALL.o Varithmetic_audit_tb__ALL.cpp
+echo "" > Varithmetic_audit_tb__ALL.verilator_deplist.tmp
+Archive ar -rcs Varithmetic_audit_tb__ALL.a Varithmetic_audit_tb__ALL.o
+g++     verilated.o verilated_timing.o verilated_threads.o Varithmetic_audit_tb__ALL.a    -pthread -lpthread -latomic   -o Varithmetic_audit_tb
+rm Varithmetic_audit_tb__ALL.verilator_deplist.tmp
+make: Leaving directory '/tmp/sar-arithmetic-audit-mqie0p8i/obj'

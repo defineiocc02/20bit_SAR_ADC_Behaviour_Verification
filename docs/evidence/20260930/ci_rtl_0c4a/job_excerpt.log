@@ -1,0 +1,11 @@
+2026-09-29T20:29:15.3981667Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +308e489f363a6c19f26e28c08c82d8f2a34c2a6a:refs/remotes/pull/4/merge
+2026-09-29T20:29:16.7621637Z  * [new ref]         308e489f363a6c19f26e28c08c82d8f2a34c2a6a -> pull/4/merge
+2026-09-29T20:29:16.8621274Z HEAD is now at 308e489 Merge 0c4a7726597c49044d25117a701ba780137ddf04 into cacea23495dd986cfdf8b9cdd92a1f0013de4b8b
+2026-09-29T20:29:16.8694718Z 308e489f363a6c19f26e28c08c82d8f2a34c2a6a
+2026-09-29T20:29:28.6057097Z Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+2026-09-29T20:29:40.2451795Z ##[group]Run python tools/run_open_rtl.py
+2026-09-29T20:35:32.7595375Z ##[group]Run python tools/audit_rtl_arithmetic.py --output-dir sim/artifacts/arithmetic-audit
+2026-09-29T20:35:33.5245382Z FAIL: command returned 127: /usr/bin/verilator --binary --timing --top-module arithmetic_audit_tb -Wno-fatal -CFLAGS -std=c++20 -MAKEFLAGS 'PYTHON3=/tmp/sar-arithmetic-audit-zfcv0zyv/python3 CFG_CXXFLAGS_PCH_I=-include' -I/tmp/sar-arithmetic-audit-zfcv0zyv/repo/rtl/params --Mdir /tmp/sar-arithmetic-audit-zfcv0zyv/obj /tmp/sar-arithmetic-audit-zfcv0zyv/repo/rtl/core/cal_residue_mac.sv /tmp/sar-arithmetic-audit-zfcv0zyv/repo/rtl/core/adc2_dec.sv /tmp/sar-arithmetic-audit-zfcv0zyv/repo/rtl/core/div_floor.sv /tmp/sar-arithmetic-audit-zfcv0zyv/repo/rtl/core/cal_output_stage.sv /tmp/sar-arithmetic-audit-zfcv0zyv/repo/sim/tb/arithmetic_audit_tb.sv
+2026-09-29T20:35:33.5249988Z sh: 1: exec: /tmp/sar-arithmetic-audit-zfcv0zyv/verilator/verilator_bin: not found
+2026-09-29T20:35:33.5336970Z ##[error]Process completed with exit code 1.
+2026-09-29T20:35:34.0446967Z SHA256 digest of uploaded artifact zip is be031a47e765656a5e9383678a9a3b6a05e67f5cde3c75dba6a54151739a9eb3

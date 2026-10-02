@@ -1,0 +1,731 @@
+RTL simulation (Verilator)	Set up job	﻿2026-09-30T14:11:21.6869054Z Current runner version: '2.337.0'
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6894716Z ##[group]Runner Image Provisioner
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6895732Z Hosted Compute Agent
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6896421Z Version: 20260828.587
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6897086Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6898000Z Build Date: 2026-08-28T16:44:25Z
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6898718Z Worker ID: {da357690-874b-4200-83a1-cdd88060a131}
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6899541Z Azure Region: northcentralus
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6900223Z ##[endgroup]
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6901518Z ##[group]Operating System
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6902310Z Ubuntu
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6903173Z 24.04.5
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6903711Z LTS
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6904404Z ##[endgroup]
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6904989Z ##[group]Runner Image
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6905735Z Image: ubuntu-24.04
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6906332Z Version: 20260920.314.1
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6907408Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260920.314/images/ubuntu/Ubuntu2404-Readme.md
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6909300Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260920.314
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6910450Z ##[endgroup]
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6911649Z ##[group]GITHUB_TOKEN Permissions
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6913922Z Contents: read
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6914570Z Metadata: read
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6915180Z Packages: read
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6915863Z ##[endgroup]
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6917918Z Secret source: Actions
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6919054Z Cache mode: write
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.6919779Z Prepare workflow directory
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.7309152Z Prepare all required actions
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:21.7358568Z Getting action download info
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:22.0513818Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:22.1537755Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:22.2445371Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+RTL simulation (Verilator)	Set up job	2026-09-30T14:11:22.4465467Z Complete job name: RTL simulation (Verilator)
+RTL simulation (Verilator)	Run actions/checkout@v4	﻿2026-09-30T14:11:22.5213822Z ##[group]Run actions/checkout@v4
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5214705Z with:
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5215280Z   repository: defineiocc02/20bit_SAR_ADC_Behaviour_Verification
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5219160Z   token: ***
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5219596Z   ssh-strict: true
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5220027Z   ssh-user: git
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5220471Z   persist-credentials: true
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5220963Z   clean: true
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5221466Z   sparse-checkout-cone-mode: true
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5221980Z   fetch-depth: 1
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5222406Z   fetch-tags: false
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5222976Z   show-progress: true
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5223421Z   lfs: false
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5223827Z   submodules: false
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5224268Z   set-safe-directory: true
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5224767Z   allow-unsafe-pr-checkout: false
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5225464Z env:
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5225875Z   OPENBLAS_NUM_THREADS: 1
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5226370Z   MPLBACKEND: Agg
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.5226790Z ##[endgroup]
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6227678Z Syncing repository: defineiocc02/20bit_SAR_ADC_Behaviour_Verification
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6230572Z ##[group]Getting Git version info
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6232294Z Working directory is '/home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification'
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6234780Z [command]/usr/bin/git version
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6248869Z git version 2.55.0
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6268841Z ##[endgroup]
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6283189Z Temporarily overriding HOME='/home/runner/work/_temp/8bc800f3-d726-4a22-bfa5-7d44faceb173' before making global git config changes
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6285604Z Adding repository directory to the temporary git global config as a safe directory
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6288650Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6333928Z Deleting the contents of '/home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification'
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6337859Z ##[group]Initializing the repository
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6342157Z [command]/usr/bin/git init /home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6428762Z hint: Using 'master' as the name for the initial branch. This default branch name
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6430329Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6431308Z hint: to use in all of your new repositories, which will suppress this warning,
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6432060Z hint: call:
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6432472Z hint:
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6433242Z hint: 	git config --global init.defaultBranch <name>
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6433875Z hint:
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6434453Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6435358Z hint: 'development'. The just-created branch can be renamed via this command:
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6436123Z hint:
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6436539Z hint: 	git branch -m <name>
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6437022Z hint:
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6437640Z hint: Disable this message with "git config set advice.defaultBranchName false"
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6444103Z Initialized empty Git repository in /home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification/.git/
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6453656Z [command]/usr/bin/git remote add origin https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6499452Z ##[endgroup]
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6500693Z ##[group]Disabling automatic garbage collection
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6505019Z [command]/usr/bin/git config --local gc.auto 0
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6538478Z ##[endgroup]
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6539824Z ##[group]Setting up auth
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6546314Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6582169Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.6951792Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.7001779Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.7267853Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.7301520Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.7564848Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.7609818Z ##[endgroup]
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.7611138Z ##[group]Fetching the repository
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:22.7620712Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +2243d5ac24a9ee8c8aab64de9dbb5a7e7b596f45:refs/remotes/pull/4/merge
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.2830738Z From https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.2832648Z  * [new ref]         2243d5ac24a9ee8c8aab64de9dbb5a7e7b596f45 -> pull/4/merge
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.2837408Z ##[endgroup]
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.2838869Z ##[group]Determining the checkout info
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.2840438Z ##[endgroup]
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.2846088Z [command]/usr/bin/git sparse-checkout disable
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.2904907Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.2953086Z ##[group]Checking out the ref
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.2957126Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/4/merge
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5677596Z Note: switching to 'refs/remotes/pull/4/merge'.
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5678981Z 
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5679556Z You are in 'detached HEAD' state. You can look around, make experimental
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5680926Z changes and commit them, and you can discard any commits you make in this
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5682654Z state without impacting any branches by switching back to a branch.
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5683678Z 
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5684251Z If you want to create a new branch to retain commits you create, you may
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5685492Z do so (now or later) by using -c with the switch command. Example:
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5686251Z 
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5686602Z   git switch -c <new-branch-name>
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5687223Z 
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5687565Z Or undo this operation with:
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5688064Z 
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5688372Z   git switch -
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5688798Z 
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5689454Z Turn off this advice by setting config variable advice.detachedHead to false
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5690431Z 
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5691478Z HEAD is now at 2243d5a Merge 71e7d5a017246340b9fa1f71cbbe99e20b6503f6 into cacea23495dd986cfdf8b9cdd92a1f0013de4b8b
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5702188Z ##[endgroup]
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5763257Z [command]/usr/bin/git log -1 --format=%H
+RTL simulation (Verilator)	Run actions/checkout@v4	2026-09-30T14:11:25.5793435Z 2243d5ac24a9ee8c8aab64de9dbb5a7e7b596f45
+RTL simulation (Verilator)	Run actions/setup-python@v5	﻿2026-09-30T14:11:25.6237263Z ##[group]Run actions/setup-python@v5
+RTL simulation (Verilator)	Run actions/setup-python@v5	2026-09-30T14:11:25.6238540Z with:
+RTL simulation (Verilator)	Run actions/setup-python@v5	2026-09-30T14:11:25.6239477Z   python-version: 3.12
+RTL simulation (Verilator)	Run actions/setup-python@v5	2026-09-30T14:11:25.6240520Z   check-latest: false
+RTL simulation (Verilator)	Run actions/setup-python@v5	2026-09-30T14:11:25.6248535Z   token: ***
+RTL simulation (Verilator)	Run actions/setup-python@v5	2026-09-30T14:11:25.6249510Z   update-environment: true
+RTL simulation (Verilator)	Run actions/setup-python@v5	2026-09-30T14:11:25.6250593Z   allow-prereleases: false
+RTL simulation (Verilator)	Run actions/setup-python@v5	2026-09-30T14:11:25.6251677Z   freethreaded: false
+RTL simulation (Verilator)	Run actions/setup-python@v5	2026-09-30T14:11:25.6252648Z env:
+RTL simulation (Verilator)	Run actions/setup-python@v5	2026-09-30T14:11:25.6253691Z   OPENBLAS_NUM_THREADS: 1
+RTL simulation (Verilator)	Run actions/setup-python@v5	2026-09-30T14:11:25.6254723Z   MPLBACKEND: Agg
+RTL simulation (Verilator)	Run actions/setup-python@v5	2026-09-30T14:11:25.6255660Z ##[endgroup]
+RTL simulation (Verilator)	Run actions/setup-python@v5	2026-09-30T14:11:25.7664988Z ##[group]Installed versions
+RTL simulation (Verilator)	Run actions/setup-python@v5	2026-09-30T14:11:25.7748821Z (node:2249) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+RTL simulation (Verilator)	Run actions/setup-python@v5	2026-09-30T14:11:25.7750027Z (Use `node --trace-deprecation ...` to show where the warning was created)
+RTL simulation (Verilator)	Run actions/setup-python@v5	2026-09-30T14:11:25.7750744Z Successfully set up CPython (3.12.14)
+RTL simulation (Verilator)	Run actions/setup-python@v5	2026-09-30T14:11:25.7751350Z ##[endgroup]
+RTL simulation (Verilator)	Install simulator and report version	﻿2026-09-30T14:11:25.8001231Z ##[group]Run sudo apt-get update
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.8001725Z ^[[36;1msudo apt-get update^[[0m
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.8002098Z ^[[36;1msudo apt-get install -y verilator tcl^[[0m
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.8002490Z ^[[36;1mverilator --version^[[0m
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.8282223Z shell: /usr/bin/bash -e {0}
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.8282859Z env:
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.8283145Z   OPENBLAS_NUM_THREADS: 1
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.8283506Z   MPLBACKEND: Agg
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.8283855Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.8284385Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.8284874Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.8285349Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.8285795Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.8286237Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.8286625Z ##[endgroup]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.9126670Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.9549229Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.9550919Z Get:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.9569503Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.9616899Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:25.9654489Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.0869264Z Get:7 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [454 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.1018507Z Get:8 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [503 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.1406430Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1322 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.1480382Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [299 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.1522107Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Components [181 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.1595525Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1699 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.1636794Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [341 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.1664110Z Get:14 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Components [388 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.1694441Z Get:15 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1662 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.1786698Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [379 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.1819084Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse amd64 Components [940 B]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.2085536Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-backports/main amd64 Packages [40.6 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.2539763Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-backports/main amd64 Components [5760 B]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.2553149Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Packages [31.0 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.2568214Z Get:21 http://azure.archive.ubuntu.com/ubuntu noble-backports/universe Translation-en [18.6 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.2581298Z Get:22 http://azure.archive.ubuntu.com/ubuntu noble-backports/universe amd64 Components [12.6 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.2655448Z Get:23 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1066 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.2725483Z Get:24 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [220 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.2746417Z Get:25 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Components [46.4 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.2761504Z Get:26 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1216 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.2843791Z Get:27 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [244 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.2871918Z Get:28 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Components [76.3 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.2882895Z Get:29 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted amd64 Packages [1566 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:26.2977804Z Get:30 http://azure.archive.ubuntu.com/ubuntu noble-security/restricted Translation-en [361 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:30.7174370Z Fetched 12.5 MB in 1s (8467 kB/s)
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:31.5563655Z Reading package lists...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:31.5888528Z Reading package lists...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:31.7869236Z Building dependency tree...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:31.7876454Z Reading state information...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:31.9414300Z tcl is already the newest version (8.6.14build1).
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:31.9415031Z tcl set to manually installed.
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:31.9415412Z The following additional packages will be installed:
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:31.9422081Z   fonts-font-awesome libsystemc libsystemc-dev sphinx-rtd-theme-common
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:31.9427600Z Suggested packages:
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:31.9427985Z   gtkwave
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:31.9597927Z The following NEW packages will be installed:
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:31.9623813Z   fonts-font-awesome libsystemc libsystemc-dev sphinx-rtd-theme-common
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:31.9624973Z   verilator
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:31.9786993Z 0 upgraded, 5 newly installed, 0 to remove and 46 not upgraded.
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:31.9787892Z Need to get 9184 kB of archives.
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:31.9788531Z After this operation, 36.3 MB of additional disk space will be used.
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:31.9789269Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:32.1548587Z Get:2 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 fonts-font-awesome all 5.0.10+really4.7.0~dfsg-4.1 [516 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:33.2643902Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libsystemc amd64 2.3.4-3build1 [474 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:34.3338924Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 libsystemc-dev amd64 2.3.4-3build1 [241 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:34.8370760Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble/main amd64 sphinx-rtd-theme-common all 2.0.0+dfsg-1 [1012 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:36.7388744Z Get:6 http://azure.archive.ubuntu.com/ubuntu noble/universe amd64 verilator amd64 5.020-1 [6941 kB]
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:49.5220137Z Fetched 9184 kB in 17s (531 kB/s)
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:49.5489573Z Selecting previously unselected package fonts-font-awesome.
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:49.5713368Z (Reading database ... 
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:49.5714153Z (Reading database ... 5%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:49.5714538Z (Reading database ... 10%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:49.5714889Z (Reading database ... 15%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:49.5715423Z (Reading database ... 20%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:49.5715833Z (Reading database ... 25%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:49.5716375Z (Reading database ... 30%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:49.5716891Z (Reading database ... 35%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:49.5717344Z (Reading database ... 40%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:49.5717810Z (Reading database ... 45%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:49.5718278Z (Reading database ... 50%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:49.5759665Z (Reading database ... 55%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:49.6512355Z (Reading database ... 60%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:49.8385712Z (Reading database ... 65%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:50.0403173Z (Reading database ... 70%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:50.2458209Z (Reading database ... 75%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:50.3875283Z (Reading database ... 80%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:50.5957054Z (Reading database ... 85%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:50.8055532Z (Reading database ... 90%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.0586934Z (Reading database ... 95%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.0587325Z (Reading database ... 100%
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.0587696Z (Reading database ... 202190 files and directories currently installed.)
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.0636133Z Preparing to unpack .../fonts-font-awesome_5.0.10+really4.7.0~dfsg-4.1_all.deb ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.0728194Z Unpacking fonts-font-awesome (5.0.10+really4.7.0~dfsg-4.1) ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.1264359Z Selecting previously unselected package libsystemc:amd64.
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.1394851Z Preparing to unpack .../libsystemc_2.3.4-3build1_amd64.deb ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.1408949Z Unpacking libsystemc:amd64 (2.3.4-3build1) ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.1686067Z Selecting previously unselected package libsystemc-dev:amd64.
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.1815028Z Preparing to unpack .../libsystemc-dev_2.3.4-3build1_amd64.deb ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.1821877Z Unpacking libsystemc-dev:amd64 (2.3.4-3build1) ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.2490317Z Selecting previously unselected package sphinx-rtd-theme-common.
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.2622595Z Preparing to unpack .../sphinx-rtd-theme-common_2.0.0+dfsg-1_all.deb ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.2629188Z Unpacking sphinx-rtd-theme-common (2.0.0+dfsg-1) ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.2883058Z Selecting previously unselected package verilator.
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.3014780Z Preparing to unpack .../verilator_5.020-1_amd64.deb ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.3021320Z Unpacking verilator (5.020-1) ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.4603603Z Setting up libsystemc:amd64 (2.3.4-3build1) ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.4623542Z Setting up libsystemc-dev:amd64 (2.3.4-3build1) ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.4639199Z Setting up fonts-font-awesome (5.0.10+really4.7.0~dfsg-4.1) ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.4703183Z Setting up sphinx-rtd-theme-common (2.0.0+dfsg-1) ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.4719197Z Setting up verilator (5.020-1) ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.4738396Z Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.5013766Z Processing triggers for man-db (2.12.0-4build2) ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.5033038Z Not building database; man-db/auto-update is not 'true'.
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:51.5046170Z Processing triggers for fontconfig (2.15.0-1.1ubuntu2) ...
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:52.1225821Z 
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:52.1226954Z Running kernel seems to be up-to-date.
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:52.1227424Z 
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:52.1227907Z No services need to be restarted.
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:52.1228192Z 
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:52.1228342Z No containers need to be restarted.
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:52.1228603Z 
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:52.1228806Z No user sessions are running outdated binaries.
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:52.1229146Z 
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:52.1229450Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
+RTL simulation (Verilator)	Install simulator and report version	2026-09-30T14:11:53.1790746Z Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	﻿2026-09-30T14:11:53.1857611Z ##[group]Run pip install pytest numpy
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:53.1857969Z ^[[36;1mpip install pytest numpy^[[0m
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:53.1858849Z ^[[36;1mpytest tests/unit/test_synth_flow.py tests/unit/test_vivado_flow.py tests/unit/test_vivado_impl.py tests/unit/test_clockless_inspection.py tests/unit/test_vivado_buffered_impl.py tests/unit/test_vivado_full_mapped.py -q^[[0m
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:53.1932231Z shell: /usr/bin/bash -e {0}
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:53.1932513Z env:
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:53.1932842Z   OPENBLAS_NUM_THREADS: 1
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:53.1933095Z   MPLBACKEND: Agg
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:53.1933378Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:53.1933829Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:53.1934250Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:53.1934630Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:53.1935013Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:53.1935441Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:53.1935769Z ##[endgroup]
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:53.9526605Z Collecting pytest
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.0005875Z   Downloading pytest-9.1.1-py3-none-any.whl.metadata (7.6 kB)
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.1930598Z Collecting numpy
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.1973370Z   Downloading numpy-2.5.3-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.2076489Z Collecting iniconfig>=1.0.1 (from pytest)
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.2116561Z   Downloading iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.2249722Z Collecting packaging>=22 (from pytest)
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.2292139Z   Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.2399868Z Collecting pluggy<2,>=1.5 (from pytest)
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.2434224Z   Downloading pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.2592359Z Collecting pygments>=2.7.2 (from pytest)
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.2627639Z   Downloading pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.2710765Z Downloading pytest-9.1.1-py3-none-any.whl (386 kB)
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.2951490Z Downloading pluggy-1.6.0-py3-none-any.whl (20 kB)
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.3006413Z Downloading numpy-2.5.3-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.7 MB)
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.4198605Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.7/16.7 MB 146.7 MB/s  0:00:00
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.4234143Z Downloading iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.4298242Z Downloading packaging-26.3-py3-none-any.whl (129 kB)
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.4358477Z Downloading pygments-2.21.0-py3-none-any.whl (1.3 MB)
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.4455279Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 143.5 MB/s  0:00:00
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:54.5287882Z Installing collected packages: pygments, pluggy, packaging, numpy, iniconfig, pytest
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:57.7120802Z 
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:57.7133721Z Successfully installed iniconfig-2.3.0 numpy-2.5.3 packaging-26.3 pluggy-1.6.0 pygments-2.21.0 pytest-9.1.1
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:11:59.0544789Z ........................................................................ [ 26%]
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:00.1025839Z ........................................................................ [ 52%]
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.1817893Z ........................................................................ [ 79%]
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.7994421Z .........................................................                [100%]
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.7995579Z ============================= slowest 15 durations =============================
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.7996550Z 0.16s call     tests/unit/test_vivado_buffered_impl.py::test_pulse_or_failing_endpoints_prevent_timing_pass[0.025-0-failing5]
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.7997628Z 0.16s call     tests/unit/test_vivado_buffered_impl.py::test_pulse_or_failing_endpoints_prevent_timing_pass[0.025-0-failing3]
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.7998823Z 0.16s call     tests/unit/test_vivado_buffered_impl.py::test_pulse_or_failing_endpoints_prevent_timing_pass[-0.001--0.001-failing0]
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.8000578Z 0.16s call     tests/unit/test_vivado_buffered_impl.py::test_pulse_or_failing_endpoints_prevent_timing_pass[-0.001-0-failing1]
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.8001704Z 0.16s call     tests/unit/test_vivado_buffered_impl.py::test_postroute_optimization_endpoint_change_is_recorded_separately_from_eco
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.8002491Z 0.16s call     tests/unit/test_vivado_buffered_impl.py::test_pulse_or_failing_endpoints_prevent_timing_pass[0.025-0-failing4]
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.8003603Z 0.16s call     tests/unit/test_vivado_buffered_impl.py::test_pulse_or_failing_endpoints_prevent_timing_pass[0.025--0.001-failing2]
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.8004484Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_single_bufg_eco_preserves_complete_endpoint_set_and_records_real_hashes
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.8005296Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_setup_or_hold_violation_is_complete_but_not_timing_pass[-0.1--0.1]
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.8006043Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_certutil_localized_and_space_separated_digest_parser
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.8006769Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_unmodified_real_2018_3_reports_parse_without_promoting_baseline
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.8007550Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_setup_or_hold_violation_is_complete_but_not_timing_pass[-0.1-0.1]
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.8008336Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_setup_or_hold_violation_is_complete_but_not_timing_pass[0.2--0.1]
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.8009076Z 0.12s call     tests/unit/test_vivado_buffered_impl.py::test_unparseable_or_invalid_summary_values_fail_closed[kwargs2]
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.8009797Z 0.12s call     tests/unit/test_vivado_buffered_impl.py::test_unparseable_or_invalid_summary_values_fail_closed[kwargs4]
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.8010309Z 273 passed in 10.70s
+RTL simulation (Verilator)	Compile and execute RTL regressions	﻿2026-09-30T14:12:08.8365167Z ##[group]Run python tools/run_open_rtl.py
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:08.8365542Z ^[[36;1mpython tools/run_open_rtl.py^[[0m
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:08.8434966Z shell: /usr/bin/bash -e {0}
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:08.8435229Z env:
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:08.8435434Z   OPENBLAS_NUM_THREADS: 1
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:08.8435672Z   MPLBACKEND: Agg
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:08.8435945Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:08.8436376Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:08.8436816Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:08.8437189Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:08.8437568Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:08.8437940Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:08.8438264Z ##[endgroup]
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:17.4053301Z SAR_TRIAL_COMPLETE fine_codes=4096 coarse_codes=512 stalls_and_cancel=PASS
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:17.4054196Z - sim/tb/sar_trial_tb.sv:46: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:26.9638515Z CALIBRATION_RECOVERY_COMPLETE samples=2048 max_calibrated_error=4 max_uncalibrated_error=504
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:26.9639223Z - sim/tb/calibration_recovery_tb.sv:75: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9152544Z FIT_ROW n=1 actual=ad007 expected=ad007 flags=00 expected_flags=00 latency=11 id=1
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9153508Z FIT_ROW n=2 actual=befaa expected=befaa flags=00 expected_flags=00 latency=11 id=2
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9154389Z FIT_ROW n=3 actual=cd7b8 expected=cd7b8 flags=00 expected_flags=00 latency=11 id=3
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9154877Z FIT_ROW n=4 actual=d7b51 expected=d7b51 flags=00 expected_flags=00 latency=11 id=4
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9155343Z FIT_ROW n=5 actual=dd163 expected=dd163 flags=00 expected_flags=00 latency=11 id=5
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9155823Z FIT_ROW n=6 actual=dd54e expected=dd54e flags=00 expected_flags=00 latency=11 id=6
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9156310Z FIT_ROW n=7 actual=d86d9 expected=d86d9 flags=00 expected_flags=00 latency=11 id=7
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9156798Z FIT_ROW n=8 actual=cea65 expected=cea65 flags=00 expected_flags=00 latency=11 id=8
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9157263Z FIT_ROW n=9 actual=c0853 expected=c0853 flags=00 expected_flags=00 latency=11 id=9
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9157751Z FIT_ROW n=10 actual=aed47 expected=aed47 flags=00 expected_flags=00 latency=11 id=10
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9158283Z FIT_ROW n=11 actual=9a8f9 expected=9a8f9 flags=00 expected_flags=00 latency=11 id=11
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9158781Z FIT_ROW n=12 actual=84d5e expected=84d5e flags=00 expected_flags=00 latency=11 id=12
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9159271Z FIT_ROW n=13 actual=6ed5a expected=6ed5a flags=00 expected_flags=00 latency=11 id=13
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9159744Z FIT_ROW n=14 actual=59c46 expected=59c46 flags=00 expected_flags=00 latency=11 id=14
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9160214Z FIT_ROW n=15 actual=46d23 expected=46d23 flags=00 expected_flags=00 latency=11 id=15
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9160680Z FIT_ROW n=16 actual=37090 expected=37090 flags=00 expected_flags=00 latency=11 id=16
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9161154Z FIT_ROW n=17 actual=2b459 expected=2b459 flags=00 expected_flags=00 latency=11 id=17
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9161627Z FIT_ROW n=18 actual=242f4 expected=242f4 flags=00 expected_flags=00 latency=11 id=18
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9162106Z FIT_ROW n=19 actual=222b3 expected=222b3 flags=00 expected_flags=00 latency=11 id=19
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9162617Z FIT_ROW n=20 actual=2550c expected=2550c flags=00 expected_flags=00 latency=11 id=20
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9163378Z FIT_ROW n=21 actual=2d7cc expected=2d7cc flags=00 expected_flags=00 latency=11 id=21
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9163863Z FIT_ROW n=22 actual=3a335 expected=3a335 flags=00 expected_flags=00 latency=11 id=22
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9164339Z FIT_ROW n=23 actual=4ac4f expected=4ac4f flags=00 expected_flags=00 latency=11 id=23
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9164816Z FIT_ROW n=24 actual=5e47e expected=5e47e flags=00 expected_flags=00 latency=11 id=24
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9165286Z FIT_ROW n=25 actual=73a61 expected=73a61 flags=00 expected_flags=00 latency=11 id=25
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9166015Z FIT_ROW n=26 actual=89b25 expected=89b25 flags=00 expected_flags=00 latency=11 id=26
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9166491Z FIT_ROW n=27 actual=9f354 expected=9f354 flags=00 expected_flags=00 latency=11 id=27
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9166965Z FIT_ROW n=28 actual=b2ffb expected=b2ffb flags=00 expected_flags=00 latency=11 id=28
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9167446Z FIT_ROW n=29 actual=c3f8f expected=c3f8f flags=00 expected_flags=00 latency=11 id=29
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9167922Z FIT_ROW n=30 actual=d1345 expected=d1345 flags=00 expected_flags=00 latency=11 id=30
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9168410Z FIT_ROW n=31 actual=d9f2d expected=d9f2d flags=00 expected_flags=00 latency=11 id=31
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9168886Z FIT_ROW n=32 actual=ddba5 expected=ddba5 flags=00 expected_flags=00 latency=11 id=32
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9169364Z FIT_ROW n=33 actual=dc551 expected=dc551 flags=00 expected_flags=00 latency=11 id=33
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9169853Z FIT_ROW n=34 actual=d5d8c expected=d5d8c flags=00 expected_flags=00 latency=11 id=34
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9170330Z FIT_ROW n=35 actual=ca9ea expected=ca9ea flags=00 expected_flags=00 latency=11 id=35
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9170803Z FIT_ROW n=36 actual=bb471 expected=bb471 flags=00 expected_flags=00 latency=11 id=36
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9171303Z FIT_ROW n=37 actual=a8a87 expected=a8a87 flags=00 expected_flags=00 latency=11 id=37
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9171791Z FIT_ROW n=38 actual=93cd0 expected=93cd0 flags=00 expected_flags=00 latency=11 id=38
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9172267Z FIT_ROW n=39 actual=7dd92 expected=7dd92 flags=00 expected_flags=00 latency=11 id=39
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9172990Z FIT_ROW n=40 actual=6803e expected=6803e flags=00 expected_flags=00 latency=11 id=40
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9173479Z FIT_ROW n=41 actual=53811 expected=53811 flags=00 expected_flags=00 latency=11 id=41
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9173946Z FIT_ROW n=42 actual=4172f expected=4172f flags=00 expected_flags=00 latency=11 id=42
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9174416Z FIT_ROW n=43 actual=32d77 expected=32d77 flags=00 expected_flags=00 latency=11 id=43
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9174891Z FIT_ROW n=44 actual=28805 expected=28805 flags=00 expected_flags=00 latency=11 id=44
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9175364Z FIT_ROW n=45 actual=22fda expected=22fda flags=00 expected_flags=00 latency=11 id=45
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9175839Z FIT_ROW n=46 actual=229ab expected=229ab flags=00 expected_flags=00 latency=11 id=46
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9176338Z FIT_ROW n=47 actual=27617 expected=27617 flags=00 expected_flags=00 latency=11 id=47
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9176818Z FIT_ROW n=48 actual=310a5 expected=310a5 flags=00 expected_flags=00 latency=11 id=48
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9177355Z FIT_ROW n=49 actual=3f0f6 expected=3f0f6 flags=00 expected_flags=00 latency=11 id=49
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9177842Z FIT_ROW n=50 actual=50aa9 expected=50aa9 flags=00 expected_flags=00 latency=11 id=50
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9178318Z FIT_ROW n=51 actual=64e2e expected=64e2e flags=00 expected_flags=00 latency=11 id=51
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9178791Z FIT_ROW n=52 actual=7a98b expected=7a98b flags=00 expected_flags=00 latency=11 id=52
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9179272Z FIT_ROW n=53 actual=909cc expected=909cc flags=00 expected_flags=00 latency=11 id=53
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9179771Z FIT_ROW n=54 actual=a5b2f expected=a5b2f flags=00 expected_flags=00 latency=11 id=54
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9180265Z FIT_ROW n=55 actual=b8b7a expected=b8b7a flags=00 expected_flags=00 latency=11 id=55
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9180742Z FIT_ROW n=56 actual=c8998 expected=c8998 flags=00 expected_flags=00 latency=11 id=56
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9181222Z FIT_ROW n=57 actual=d47b6 expected=d47b6 flags=00 expected_flags=00 latency=11 id=57
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9181700Z FIT_ROW n=58 actual=dbb11 expected=dbb11 flags=00 expected_flags=00 latency=11 id=58
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9182183Z FIT_ROW n=59 actual=ddd7f expected=ddd7f flags=00 expected_flags=00 latency=11 id=59
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9182657Z FIT_ROW n=60 actual=dad18 expected=dad18 flags=00 expected_flags=00 latency=11 id=60
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9183273Z FIT_ROW n=61 actual=d2ca3 expected=d2ca3 flags=00 expected_flags=00 latency=11 id=61
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9183934Z FIT_ROW n=62 actual=c62dd expected=c62dd flags=00 expected_flags=00 latency=11 id=62
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9184413Z FIT_ROW n=63 actual=b5b3b expected=b5b3b flags=00 expected_flags=00 latency=11 id=63
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9184894Z FIT_ROW n=64 actual=a240c expected=a240c flags=00 expected_flags=00 latency=11 id=64
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9185370Z FIT_ROW n=65 actual=8cee0 expected=8cee0 flags=00 expected_flags=00 latency=11 id=65
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9185877Z FIT_ROW n=66 actual=76e09 expected=76e09 flags=00 expected_flags=00 latency=11 id=66
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9186494Z FIT_ROW n=67 actual=61569 expected=61569 flags=00 expected_flags=00 latency=11 id=67
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9186965Z FIT_ROW n=68 actual=4d7bb expected=4d7bb flags=00 expected_flags=00 latency=11 id=68
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9187446Z FIT_ROW n=69 actual=3c6c2 expected=3c6c2 flags=00 expected_flags=00 latency=11 id=69
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9187917Z FIT_ROW n=70 actual=2f150 expected=2f150 flags=00 expected_flags=00 latency=11 id=70
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9188397Z FIT_ROW n=71 actual=2639e expected=2639e flags=00 expected_flags=00 latency=11 id=71
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9188866Z FIT_ROW n=72 actual=224d5 expected=224d5 flags=00 expected_flags=00 latency=11 id=72
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9189336Z FIT_ROW n=73 actual=23907 expected=23907 flags=00 expected_flags=00 latency=11 id=73
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9189816Z FIT_ROW n=74 actual=29ec6 expected=29ec6 flags=00 expected_flags=00 latency=11 id=74
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9190459Z FIT_ROW n=75 actual=35088 expected=35088 flags=00 expected_flags=00 latency=11 id=75
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9190949Z FIT_ROW n=76 actual=4447a expected=4447a flags=00 expected_flags=00 latency=11 id=76
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9191426Z FIT_ROW n=77 actual=56d29 expected=56d29 flags=00 expected_flags=00 latency=11 id=77
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9191898Z FIT_ROW n=78 actual=6ba33 expected=6ba33 flags=00 expected_flags=00 latency=11 id=78
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9192378Z FIT_ROW n=79 actual=81931 expected=81931 flags=00 expected_flags=00 latency=11 id=79
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9193097Z FIT_ROW n=80 actual=976de expected=976de flags=00 expected_flags=00 latency=11 id=80
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9193595Z FIT_ROW n=81 actual=abfd0 expected=abfd0 flags=00 expected_flags=00 latency=11 id=81
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9194084Z FIT_ROW n=82 actual=be1ec expected=be1ec flags=00 expected_flags=00 latency=11 id=82
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9194556Z FIT_ROW n=83 actual=ccd29 expected=ccd29 flags=00 expected_flags=00 latency=11 id=83
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9195038Z FIT_ROW n=84 actual=d7484 expected=d7484 flags=00 expected_flags=00 latency=11 id=84
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9195517Z FIT_ROW n=85 actual=dcef0 expected=dcef0 flags=00 expected_flags=00 latency=11 id=85
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9195990Z FIT_ROW n=86 actual=dd72f expected=dd72f flags=00 expected_flags=00 latency=11 id=86
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9196468Z FIT_ROW n=87 actual=d8ce3 expected=d8ce3 flags=00 expected_flags=00 latency=11 id=87
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9196939Z FIT_ROW n=88 actual=cf43c expected=cf43c flags=00 expected_flags=00 latency=11 id=88
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9197421Z FIT_ROW n=89 actual=c1597 expected=c1597 flags=00 expected_flags=00 latency=11 id=89
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9197890Z FIT_ROW n=90 actual=afd29 expected=afd29 flags=00 expected_flags=00 latency=11 id=90
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9198364Z FIT_ROW n=91 actual=9babc expected=9babc flags=00 expected_flags=00 latency=11 id=91
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9198837Z FIT_ROW n=92 actual=85f9c expected=85f9c flags=00 expected_flags=00 latency=11 id=92
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9199323Z FIT_ROW n=93 actual=6ff4e expected=6ff4e flags=00 expected_flags=00 latency=11 id=93
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9199797Z FIT_ROW n=94 actual=5ad2c expected=5ad2c flags=00 expected_flags=00 latency=11 id=94
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9200272Z FIT_ROW n=95 actual=47bed expected=47bed flags=00 expected_flags=00 latency=11 id=95
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9200749Z FIT_ROW n=96 actual=37c4a expected=37c4a flags=00 expected_flags=00 latency=11 id=96
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9201230Z FIT_ROW n=97 actual=2bc59 expected=2bc59 flags=00 expected_flags=00 latency=11 id=97
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9201841Z FIT_ROW n=98 actual=246ef expected=246ef flags=00 expected_flags=00 latency=11 id=98
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9202310Z FIT_ROW n=99 actual=2224e expected=2224e flags=00 expected_flags=00 latency=11 id=99
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9202902Z FIT_ROW n=100 actual=25075 expected=25075 flags=00 expected_flags=00 latency=11 id=100
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9203444Z FIT_ROW n=101 actual=2cf07 expected=2cf07 flags=00 expected_flags=00 latency=11 id=101
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9203947Z FIT_ROW n=102 actual=396f9 expected=396f9 flags=00 expected_flags=00 latency=11 id=102
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9204434Z FIT_ROW n=103 actual=49d33 expected=49d33 flags=00 expected_flags=00 latency=11 id=103
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9204927Z FIT_ROW n=104 actual=5d347 expected=5d347 flags=00 expected_flags=00 latency=11 id=104
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9205413Z FIT_ROW n=105 actual=72817 expected=72817 flags=00 expected_flags=00 latency=11 id=105
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9205900Z FIT_ROW n=106 actual=888b3 expected=888b3 flags=00 expected_flags=00 latency=11 id=106
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9206393Z FIT_ROW n=107 actual=9e1ee expected=9e1ee flags=00 expected_flags=00 latency=11 id=107
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9206898Z FIT_ROW n=108 actual=b2064 expected=b2064 flags=00 expected_flags=00 latency=11 id=108
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9207414Z FIT_ROW n=109 actual=c32dc expected=c32dc flags=00 expected_flags=00 latency=11 id=109
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9207912Z FIT_ROW n=110 actual=d09e4 expected=d09e4 flags=00 expected_flags=00 latency=11 id=110
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9208545Z FIT_ROW n=111 actual=d99c3 expected=d99c3 flags=00 expected_flags=00 latency=11 id=111
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9209036Z FIT_ROW n=112 actual=dda73 expected=dda73 flags=00 expected_flags=00 latency=11 id=112
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9209526Z FIT_ROW n=113 actual=dc89d expected=dc89d flags=00 expected_flags=00 latency=11 id=113
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9210013Z FIT_ROW n=114 actual=d64d3 expected=d64d3 flags=00 expected_flags=00 latency=11 id=114
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9210498Z FIT_ROW n=115 actual=cb500 expected=cb500 flags=00 expected_flags=00 latency=11 id=115
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9210994Z FIT_ROW n=116 actual=bc29f expected=bc29f flags=00 expected_flags=00 latency=11 id=116
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9211481Z FIT_ROW n=117 actual=a9b0c expected=a9b0c flags=00 expected_flags=00 latency=11 id=117
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9211968Z FIT_ROW n=118 actual=94ec8 expected=94ec8 flags=00 expected_flags=00 latency=11 id=118
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9212469Z FIT_ROW n=119 actual=7eff8 expected=7eff8 flags=00 expected_flags=00 latency=11 id=119
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9213071Z FIT_ROW n=120 actual=6922a expected=6922a flags=00 expected_flags=00 latency=11 id=120
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9213566Z FIT_ROW n=121 actual=5484e expected=5484e flags=00 expected_flags=00 latency=11 id=121
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9214051Z FIT_ROW n=122 actual=424fe expected=424fe flags=00 expected_flags=00 latency=11 id=122
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9214535Z FIT_ROW n=123 actual=3382a expected=3382a flags=00 expected_flags=00 latency=11 id=123
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9215017Z FIT_ROW n=124 actual=28ef7 expected=28ef7 flags=00 expected_flags=00 latency=11 id=124
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9215521Z FIT_ROW n=125 actual=23263 expected=23263 flags=00 expected_flags=00 latency=11 id=125
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9215997Z FIT_ROW n=126 actual=22800 expected=22800 flags=00 expected_flags=00 latency=11 id=126
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9216478Z FIT_ROW n=127 actual=2701c expected=2701c flags=00 expected_flags=00 latency=11 id=127
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9216963Z FIT_ROW n=128 actual=306c8 expected=306c8 flags=00 expected_flags=00 latency=11 id=128
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9217488Z CALIBRATION_FIT_COMPLETE samples=128 fitted_external_weights=1278 cfg_commit=PASS
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:12:52.9217952Z - sim/tb/calibration_fit_tb.sv:136: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:15.0319323Z STRUCTURAL_ADC_COMPLETE modes=3 outputs=438 checks=7680 physical_slices=18 recon_stages=7 recon_latency=11 latency_checks=438
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:15.0320785Z - sim/tb/structural_adc_tb.sv:195: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:18.5938754Z STRUCTURAL_PROTOCOL_COMPLETE frames=120 launches=57 expected_drops=63 checks=1920 decoder_perturbations=2
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:18.5940546Z - sim/tb/structural_protocol_tb.sv:115: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:21.8728563Z RECON_PPA_PROFILE_PASS stages=5 samples=32 busy_release=14 latency=15 initiation_interval=16
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:21.8729294Z RECON_PPA_PROFILE_PASS stages=6 samples=32 busy_release=12 latency=13 initiation_interval=16
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:21.8729875Z RECON_PPA_PROFILE_PASS stages=7 samples=32 busy_release=10 latency=11 initiation_interval=16
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:21.8730371Z - sim/tb/recon_ppa_latency_tb.sv:55: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:35.5414067Z DIVIDER_BORROW_CASE_PASS numerator_bits=2 denominator_bits=1 stages=1 checks=8
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:35.5415038Z DIVIDER_BORROW_CASE_PASS numerator_bits=6 denominator_bits=5 stages=5 checks=2048
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:35.5415912Z DIVIDER_BORROW_CASE_PASS numerator_bits=6 denominator_bits=8 stages=7 checks=16384
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:35.5416753Z DIVIDER_BORROW_CASE_PASS numerator_bits=6 denominator_bits=8 stages=3 checks=16384
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:35.5417602Z DIVIDER_BORROW_CASE_PASS numerator_bits=6 denominator_bits=8 stages=2 checks=16384
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:35.5418437Z DIVIDER_BORROW_CASE_PASS numerator_bits=6 denominator_bits=8 stages=1 checks=16384
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:35.5419122Z DIVIDER_BORROW_COMPLETE exhaustive_checks=67592
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:35.5419624Z - sim/tb/divider_borrow_tb.sv:89: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:44.1226645Z TREE_MAPPING_COMPLETE checks=12904
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:13:44.1227637Z - sim/tb/tree_mapping_tb.sv:109: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0751156Z SCALAR_INPUT_CHECK check=1 weight00=000000000000 T=0000000000000000 G=0000000000000000 R=00000000000000000 expectedT=0000000000000000 expectedG=0000000000000000 expectedR=00000000000000000
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0753359Z SCALAR_INPUT_CHECK check=2 weight00=000000000000 T=0000000000000000 G=0000000000000000 R=00000000000000000 expectedT=0000000000000000 expectedG=0000000000000000 expectedR=00000000000000000
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0755254Z SCALAR_INPUT_CHECK check=3 weight00=000000000000 T=0000000000000000 G=0000000000000000 R=00000000000000000 expectedT=0000000000000000 expectedG=0000000000000000 expectedR=00000000000000000
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0757098Z SCALAR_INPUT_CHECK check=4 weight00=000000000000 T=0000000000000000 G=0000000000000000 R=00000000000000000 expectedT=0000000000000000 expectedG=0000000000000000 expectedR=00000000000000000
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0758943Z SCALAR_INPUT_CHECK check=5 weight00=000000000000 T=0000000000000000 G=0000000000000000 R=00000000000000000 expectedT=0000000000000000 expectedG=0000000000000000 expectedR=00000000000000000
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0760829Z SCALAR_INPUT_CHECK check=6 weight00=000000000000 T=0000000000000000 G=0000000000000000 R=00000000000000000 expectedT=0000000000000000 expectedG=0000000000000000 expectedR=00000000000000000
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0762842Z SCALAR_INPUT_CHECK check=7 weight00=000000000000 T=0000000000000000 G=0000000000000000 R=00000000000000000 expectedT=0000000000000000 expectedG=0000000000000000 expectedR=00000000000000000
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0764728Z SCALAR_INPUT_CHECK check=8 weight00=000000000000 T=0000000000000000 G=0000000000000000 R=00000000000000000 expectedT=0000000000000000 expectedG=0000000000000000 expectedR=00000000000000000
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0766591Z SCALAR_INPUT_CHECK check=9 weight00=000000000001 T=0000000000000018 G=0000000000000018 R=00000000000000018 expectedT=0000000000000018 expectedG=0000000000000018 expectedR=00000000000000018
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0768516Z SCALAR_INPUT_CHECK check=10 weight00=000000000001 T=0000000000000018 G=0000000000000018 R=00000000000000018 expectedT=0000000000000018 expectedG=0000000000000018 expectedR=00000000000000018
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0770389Z SCALAR_INPUT_CHECK check=11 weight00=000000000001 T=0000000000000018 G=0000000000000010 R=00000000000000010 expectedT=0000000000000018 expectedG=0000000000000010 expectedR=00000000000000010
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0772249Z SCALAR_INPUT_CHECK check=12 weight00=000000000001 T=0000000000000018 G=0000000000000010 R=00000000000000020 expectedT=0000000000000018 expectedG=0000000000000010 expectedR=00000000000000020
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0774651Z SCALAR_INPUT_CHECK check=13 weight00=000000000001 T=0000000000000018 G=0000000000000018 R=3ffffffffffffffe8 expectedT=0000000000000018 expectedG=0000000000000018 expectedR=3ffffffffffffffe8
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0776543Z SCALAR_INPUT_CHECK check=14 weight00=000000000001 T=0000000000000018 G=0000000000000018 R=3ffffffffffffffe8 expectedT=0000000000000018 expectedG=0000000000000018 expectedR=3ffffffffffffffe8
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0778404Z SCALAR_INPUT_CHECK check=15 weight00=000000000001 T=0000000000000018 G=0000000000000010 R=3ffffffffffffffe0 expectedT=0000000000000018 expectedG=0000000000000010 expectedR=3ffffffffffffffe0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0780258Z SCALAR_INPUT_CHECK check=16 weight00=000000000001 T=0000000000000018 G=0000000000000010 R=3fffffffffffffff0 expectedT=0000000000000018 expectedG=0000000000000010 expectedR=3fffffffffffffff0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0781604Z REDUCE_MITER_CASE_PASS ns=1 active=1 units=2 dither=1 end=2 checks=2176 allocations=0 cache=1
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0782492Z REDUCE_MITER_CASE_PASS ns=3 active=2 units=3 dither=2 end=3 checks=2608 allocations=0 cache=1
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0783551Z REDUCE_MITER_CASE_PASS ns=3 active=2 units=3 dither=2 end=4 checks=2608 allocations=0 cache=1
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0784408Z REDUCE_MITER_CASE_PASS ns=32 active=8 units=3 dither=1 end=3 checks=3072 allocations=0 cache=1
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0785283Z REDUCE_MITER_CASE_PASS ns=1 active=1 units=128 dither=4 end=128 checks=3408 allocations=0 cache=1
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0786405Z REDUCE_MITER_CASE_PASS ns=32 active=32 units=2 dither=1 end=2 checks=6144 allocations=0 cache=1
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0787320Z REDUCE_MITER_CASE_PASS ns=18 active=8 units=71 dither=4 end=71 checks=1410832 allocations=43758 cache=1
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0788007Z CAL_WEIGHT_REDUCE_PPA_COMPLETE
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:16:29.0788451Z - sim/tb/cal_weight_reduce_ppa_tb.sv:223: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:12.7713403Z CACHE_MAXIMUM_LOADED slices=1 units=1 words=1 row_last=00007fffffffffff
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:12.7714148Z CACHE_POST_CLEAR_REPLACEMENT slices=1 units=1 row0=0000000000000001
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:12.7714631Z CACHE_MAXIMUM_LOADED slices=32 units=1 words=32 row_last=00007fffffffffff
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:12.7715266Z CACHE_POST_CLEAR_REPLACEMENT slices=32 units=1 row0=0000000000000001
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:12.7715717Z CACHE_MAXIMUM_LOADED slices=1 units=128 words=128 row_last=003fffffffffff80
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:12.7716170Z CACHE_POST_CLEAR_REPLACEMENT slices=1 units=128 row0=003f7fffffffff82
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:12.7716688Z WEIGHT_ROW_CACHE_CASE_PASS slices=1 units=1 steps=1018 accepted=6 rejected=510 clears=30
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:12.7717239Z WEIGHT_ROW_CACHE_CASE_PASS slices=32 units=1 steps=1080 accepted=69 rejected=493 clears=30
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:12.7717822Z WEIGHT_ROW_CACHE_CASE_PASS slices=1 units=128 steps=1272 accepted=269 rejected=528 clears=30
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:12.7718468Z CACHE_MAXIMUM_LOADED slices=18 units=71 words=1278 row_last=00237fffffffffb9
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:12.7718951Z CACHE_POST_CLEAR_REPLACEMENT slices=18 units=71 row0=0022ffffffffffbb
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:12.7719537Z WEIGHT_ROW_CACHE_CASE_PASS slices=18 units=71 steps=3572 accepted=2600 rejected=475 clears=30
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:12.7720091Z CACHE_MAXIMUM_LOADED slices=32 units=128 words=4096 row_last=003fffffffffff80
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:12.7720570Z CACHE_POST_CLEAR_REPLACEMENT slices=32 units=128 row0=003f7fffffffff82
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:12.7721080Z WEIGHT_ROW_CACHE_CASE_PASS slices=32 units=128 steps=9208 accepted=8318 rejected=395 clears=30
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:12.7721552Z WEIGHT_ROW_CACHE_COMPLETE geometries=5 steps=16150
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:12.7721903Z - sim/tb/weight_row_cache_tb.sv:105: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:21.7059300Z CALIBRATION_PHYSICAL_COMPLETE samples=2048 physical_slices=18
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:21.7059888Z - sim/tb/calibration_physical_tb.sv:92: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:42.8237393Z REVIEW_TOP_PROTOCOL_COMPLETE checks=1108 outputs=38
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:42.8237923Z - sim/tb/review_top_protocol_tb.sv:175: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:49.0698588Z REVIEW_LEAF_COMPLETE checks=91142
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:49.0700254Z - sim/tb/review_leaf_tb.sv:93: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:52.4501004Z REVIEW_RECON_PROTOCOL_COMPLETE
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:52.4501610Z - sim/tb/review_recon_protocol_tb.sv:55: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:58.3977393Z DITHER PASS D=0 seed=13579bdf accepted=200000 mean=0.000000 corr=0.000000
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:58.3978285Z DITHER PASS D=1 seed=13579bdf accepted=200000 mean=-0.001750 corr=-0.000786
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:58.3979016Z DITHER PASS D=2 seed=13579bdf accepted=200000 mean=-0.004590 corr=-0.001488
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:58.3979682Z DITHER PASS D=3 seed=13579bdf accepted=196866 mean=-0.004155 corr=-0.000851
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:58.3980321Z DITHER PASS D=63 seed=13579bdf accepted=196866 mean=0.066279 corr=0.002793
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:58.3980892Z DITHER PASS D=2 seed=00000001 accepted=200000 mean=0.006405 corr=0.001070
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:58.3981584Z DITHER PASS D=2 seed=ffffffff accepted=200000 mean=0.004860 corr=-0.001918
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:58.3982147Z REVIEW_DITHER_COMPLETE
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:17:58.3982534Z - sim/tb/review_dither_tb.sv:63: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:17.9336792Z REVIEW_CONFIG_COMPLETE outputs=624
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:17.9337381Z - sim/tb/review_config_tb.sv:82: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5413380Z p2_tb: vdir=/home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification/sim/vectors NLAT=11 only=
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5414439Z [T1] div_floor directed done: errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5415336Z [T2] div_floor property (q*d<=a<(q+1)*d) done: errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5415939Z [T3] adc2_dec directed (n_bits sweep + ties-to-even) done: errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5416544Z [T4] recon_core latency measured=11 (NLAT=11), T4 errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5416900Z   [T4 probe] cfg_ready=1 dout_valid=1 cl=0 ch=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5417269Z   [T4 probe] div_q=0 x?=0 | clip_lo_c=0(0) clip_hi_c=0(0)
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5417689Z   [T4 probe] gain_s=1073741824 x?=0 total_s=1073741824 x?=0 rails_s=1073741824 x?=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5418150Z   [T4 probe] a1=536870912 x?=0 shifted95=0 ovf_pend=0 gerr_pend=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5418484Z T5 delegated to p2_oracle_tb
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5418745Z   T6: p2_masks.hex rows consumed = 512
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5419032Z [T6] recon_core mask cases done: errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5419340Z [T7] recon_core carry ramp done: rows=2044 errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5419650Z   T8: p2_sat.hex rows consumed = 48
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5419943Z [T8] saturation (4-bit oracle) done: errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5420306Z [T8b] sticky overflow / hold-previous done: cumulative T8 errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5420759Z [T9] L3 link (M1->M2->M3->M5->recon) done: errors=0, model analog_ovf rows=202
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5424071Z   T9 stim 模拟域标志实测归属：any=202 rdac_over=202 adc2_over=198 ra_sat=185
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5424491Z p2_tb summary: checks=23049 errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5424850Z   per-test errors: T1(div)=0 T2(divprop)=0 T3(adc2)=0 T4(lat)=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5425292Z                    T5(oracle)=0 T6(masks)=0 T7(ramp)=0 T8(sat+sticky)=0 T9(link)=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5425650Z P2 RESULT: PASS
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:18:53.5425884Z - sim/tb/p2_tb.sv:869: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:07.0892392Z P2_ORACLE_PROGRESS codes=262144
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:07.0893013Z P2_ORACLE_PROGRESS codes=524288
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:07.0893292Z P2_ORACLE_PROGRESS codes=786432
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:07.0893547Z P2_ORACLE_PROGRESS codes=1048576
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:07.0893829Z P2_ORACLE_COMPLETE codes=1048576 errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:07.0894184Z - sim/tb/p2_oracle_tb.sv:93: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9765670Z [P2P-TRACE] 观测 trace -> p3_trace.txt（列见模块头 [I]）
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9766537Z === T1 weight_store：写守卫 / 写窗口 / 越界不落盘 / 灌满全库 ===
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9767186Z   [U1] 容量分支 sum_new < SUM_MAX 在冻结尺寸下不可达（界证明见上两条）；
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9767636Z        本 TB 用「灌满全库也不越界」代替，真正的触发只在 mutant 上做。
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9767948Z   T1 小计：checks=41 errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9768317Z === T2 status_regs：粘滞只由 clr/rst_n 解除 / clip 非粘滞 / 位序 ===
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9768995Z   T2 小计：checks=131 errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9769322Z === T3 rdac_drv：逐位扇出 / load 外保持 / slice_id 重复 ===
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9769631Z   T3 小计：checks=225 errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9769926Z === T4 ctrl_fsm：相位图 / cfg_ready 与 run 的不变量 ===
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9770273Z   [T4] 48 拍内 sample_en=3 次；sample_idx 由 1 变到 4
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9770614Z   [T4] 拉低 run 后：phase=0 sample_idx=4（冻结值 4）
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9770915Z   T4 小计：checks=688 errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9771264Z === T5 calib_regs：空量程拒绝 / 写窗口 / 控制位 / clear 优先 ===
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9771581Z   T5 小计：checks=709 errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9771941Z [P2P-TRACE] trace 关闭：共 2834 行 -> p3_trace.txt
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9772237Z ================================================
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9772515Z   p2_periph: checks=709 errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9772992Z ================================================
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9773258Z p2_periph PASS
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:20.9773501Z - sim/tb/p2_periph_tb.sv:695: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:41.1557799Z === T1 顶层配置通路（calib_regs / weight_store / cfg_rdata）===
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:41.1558440Z T1 小计：不匹配 0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:41.1558841Z === T2 slice_alloc（INV-4a..4d）===
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:41.1559392Z T2 小计：不匹配 0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:41.1559688Z === T3 sadc_enc popcount ===
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:41.1560071Z T3 小计：不匹配 0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:41.1560362Z ================================================
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:41.1560822Z   p2_smoke: checks=1154 errors=0  (T1=0 T2=0 T3=0)
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:41.1561438Z ================================================
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:41.1561713Z p2_smoke PASS
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:41.1561956Z - sim/tb/p2_smoke_tb.sv:328: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:50.3403093Z p1_tb: vdir=/home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification/sim/vectors outdir=/home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification/sim/artifacts/open_rtl
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:50.3404833Z [T1] M1 done: 1024 comparisons, errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:50.3405444Z [T2] M2 done: 36352 comparisons (512 sid x 71 addresses), errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:50.3406257Z [T3] M3 done: 8277 lines (140709 comparisons), errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:50.3406738Z [T4] M5 done: 1248 lines (19968 comparisons), errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:50.3407189Z [T5] M5 structural sweep done: 512 sid x 64 counts, errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:50.3407994Z [T6] M4 done: 200000 valid draws over 200000 cycles (valid rate 1.0000), errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:50.3408700Z [T7] chain M1->M2->M3->M5 done: 256 samples (4096 comparisons), errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:50.3409120Z =====================================================
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:50.3409554Z p1_tb summary: checks=464823 errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:50.3409952Z   per-test errors: T1(M1)=0 T2(M2)=0 T3(M3)=0 T4(M5)=0 T5(M5-struct)=0 T6(M4)=0 T7(chain)=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:50.3410350Z P1 RESULT: PASS
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:50.3410582Z =====================================================
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:19:50.3410884Z - sim/tb/p1_tb.sv:451: Verilog $finish
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8617179Z [P3-TRACE] 观测 trace -> p3_trace.txt（列：sample_idx dout clip analog_ovf）
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8618310Z p3_top_tb: vdir=/home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification/sim/vectors ROW_OFF=1 NLAT=11 injdith=1
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8619658Z [P3] 向量载入：stim/expected 各 4096 行；stim 列数 = 8（5=无模拟域回读列 / 8=含 rdac_over,adc2_over,ra_sat）
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8620346Z [P3] 权重载入 1278 条
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8621295Z [P3] 回读系数：offset_q=0x0000000000000000(0) adc2_min_q=0xfffffffffccccccd(-53687091) adc2_max_q=0x0000000023333333(590558003)
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8622114Z [P3] cfg_ready=1
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8622662Z [P3] 捕获 4095 次 dout_valid；首拍 c=26，末拍 c=65530（应为 26, 65530；步长 16）
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8623412Z ==================================================
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8623824Z   p3_top  summary: checks=16386 errors=0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8624406Z   dout 比对：共 4095 行（RTL 转换 #0..#4094 <=> 文件第 1..#4095 行）
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8625286Z     dither==0 行：1011 行，其中 0 行 dout 不符
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8625748Z     dither!=0 行：3084 行，其中 0 行 dout 不符
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8626381Z     新覆盖两端：coarse<50 共 826 行、coarse>462 共 821 行；这两段里 dout/clip 的失配数 = 0
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8627220Z     analog_ovf 失配（**粘滞口径**：与期望的累积 OR 比）：0 行（coarse<50 里 0 行 / [50,462] 里 0 行 / >462 里 0 行）
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8627990Z     参考：若改拿**逐样本**期望去比，会有 3356 行不同 —— 这不是失配，是口径不同（顶层 analog_ovf 是粘滞位）
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8628625Z     模拟域回读列（本轮 stim 8 列）：全体行里 rdac_over=202 / adc2_over=198 / ra_sat=185
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8629474Z     期望 analog_ovf=1 的行共 202 行，其归属：两者同时=198 / 仅 rdac_over=4 / 仅 adc2_over=0 / 都不是=0（则应为 ra_sat）
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8630284Z     这 202 行里三列各自的 1 计数：rdac_over=202 / adc2_over=198 / ra_sat=185
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8630761Z     文件第 0 行在顶层无对应物（RTL 的 conv_valid = n>=1 跳过 n=0）
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8631168Z   rdac_ovf 高电平拍数=3232  acc_ovf 高电平拍数=0  sw_valid 高电平拍数=4095
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8631743Z   status_word=0x00000020 -> err_code=0 acc_ovf(b0)=0 gain_err(b1)=0 adc2_ovf(b2)=0 clip_low(b3)=0 clip_high(b4)=0 analog_ovf(b5)=1
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8632353Z   acc_ovf 端口终值=0（粘滞，一旦置位不会自清）
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8632638Z   明细 dump -> p3_caps.txt
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8633546Z   dither 注入：injdith=1。1=force swap_decode.dither_code 取向量列、unit_therm.bank_dither 钉 0；0=不注入的对照跑法。注意 dither_gen / dither_rail 不在本测试覆盖内。
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8634102Z ==================================================
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8634471Z [P3-TRACE] trace 关闭：共 4095 行 -> p3_trace.txt
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8635044Z P3 TOP RESULT: PASS
+RTL simulation (Verilator)	Compile and execute RTL regressions	2026-09-30T14:20:55.8635288Z - sim/tb/p3_top_tb.sv:855: Verilog $finish
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	﻿2026-09-30T14:20:55.9000167Z ##[group]Run python tools/audit_rtl_arithmetic.py --output-dir sim/artifacts/arithmetic-audit
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:20:55.9000863Z ^[[36;1mpython tools/audit_rtl_arithmetic.py --output-dir sim/artifacts/arithmetic-audit^[[0m
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:20:55.9070101Z shell: /usr/bin/bash -e {0}
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:20:55.9070375Z env:
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:20:55.9070583Z   OPENBLAS_NUM_THREADS: 1
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:20:55.9070815Z   MPLBACKEND: Agg
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:20:55.9071088Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:20:55.9071511Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:20:55.9071933Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:20:55.9072304Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:20:55.9072785Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:20:55.9073314Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:20:55.9073635Z ##[endgroup]
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:21:04.0167051Z OUTPUT_FLAG_SEQUENCE_PASS scenarios=8
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:21:04.0167485Z MAC_INDEPENDENT_PASS cases=40010
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:21:04.0167773Z ADC_INDEPENDENT_PASS cases=40000
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:21:04.0168106Z DIV_INDEPENDENT_PASS cases=10048 latency=9 busy_requests_ignored
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:21:04.0168570Z ARITHMETIC_AUDIT_COMPLETE mac=40010 adc=40000 div=10048 flag_sequences=8
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:21:04.0169134Z - /tmp/sar-arithmetic-audit-tm02ivmr/repo/sim/tb/arithmetic_audit_tb.sv:122: Verilog $finish
+RTL simulation (Verilator)	Independent arbitrary-precision arithmetic audit	2026-09-30T14:21:04.0169897Z Independent arithmetic audit passed (seed=20260930); {'mac': 40010, 'mac_nonoverflow': 20859, 'adc': 40000, 'div': 10048, 'flag_sequences': 8}
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	﻿2026-09-30T14:21:04.0330586Z ##[group]Run actions/upload-artifact@v4
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.0330892Z with:
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.0331114Z   name: rtl-simulation-logs
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.0331458Z   path: sim/artifacts/open_rtl/*.log
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	sim/artifacts/arithmetic-audit/
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.0331846Z   if-no-files-found: warn
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.0332087Z   compression-level: 6
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.0332312Z   overwrite: false
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.0332538Z   include-hidden-files: false
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.0333002Z env:
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.0333207Z   OPENBLAS_NUM_THREADS: 1
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.0333438Z   MPLBACKEND: Agg
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.0333713Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.0334143Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.0334560Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.0334938Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.0335317Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.0335774Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.0336101Z ##[endgroup]
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.2010081Z (node:5629) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.2011306Z (Use `node --trace-deprecation ...` to show where the warning was created)
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.2147261Z Multiple search paths detected. Calculating the least common ancestor of all paths
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.2149995Z The least common ancestor is /home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification/sim/artifacts. This will be the root directory of the artifact
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.2151343Z With the provided path, there will be 52 files uploaded
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.2155470Z Artifact name is valid!
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.2156268Z Root directory input is valid!
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.4927821Z Beginning upload of artifact content to blob storage
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.5600405Z (node:5629) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.7620379Z Uploaded bytes 57135
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.8033322Z Finished uploading artifact content to blob storage!
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.8034200Z SHA256 digest of uploaded artifact zip is 05efa97b966c82b5e24f78833759d25825adf0474aa3f1cd7210ec15de0ff487
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:04.8035768Z Finalizing artifact upload
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:05.0898406Z Artifact rtl-simulation-logs.zip successfully finalized. Artifact ID 11103932939
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:05.0899198Z Artifact rtl-simulation-logs has been successfully uploaded! Final size is 57135 bytes. Artifact ID is 11103932939
+RTL simulation (Verilator)	Run actions/upload-artifact@v4	2026-09-30T14:21:05.0906128Z Artifact download URL: https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36727200500/artifacts/11103932939
+RTL simulation (Verilator)	Post Run actions/setup-python@v5	﻿2026-09-30T14:21:05.1095336Z Post job cleanup.
+RTL simulation (Verilator)	Post Run actions/setup-python@v5	2026-09-30T14:21:05.2339954Z (node:5642) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+RTL simulation (Verilator)	Post Run actions/setup-python@v5	2026-09-30T14:21:05.2340714Z (Use `node --trace-deprecation ...` to show where the warning was created)
+RTL simulation (Verilator)	Post Run actions/checkout@v4	﻿2026-09-30T14:21:05.2508886Z Post job cleanup.
+RTL simulation (Verilator)	Post Run actions/checkout@v4	2026-09-30T14:21:05.3446108Z [command]/usr/bin/git version
+RTL simulation (Verilator)	Post Run actions/checkout@v4	2026-09-30T14:21:05.3474745Z git version 2.55.0
+RTL simulation (Verilator)	Post Run actions/checkout@v4	2026-09-30T14:21:05.3570064Z Temporarily overriding HOME='/home/runner/work/_temp/7d3a2465-635d-4313-94df-f4347a1cef52' before making global git config changes
+RTL simulation (Verilator)	Post Run actions/checkout@v4	2026-09-30T14:21:05.3593683Z Adding repository directory to the temporary git global config as a safe directory
+RTL simulation (Verilator)	Post Run actions/checkout@v4	2026-09-30T14:21:05.3595063Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification
+RTL simulation (Verilator)	Post Run actions/checkout@v4	2026-09-30T14:21:05.3611368Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+RTL simulation (Verilator)	Post Run actions/checkout@v4	2026-09-30T14:21:05.3613753Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+RTL simulation (Verilator)	Post Run actions/checkout@v4	2026-09-30T14:21:05.3925006Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+RTL simulation (Verilator)	Post Run actions/checkout@v4	2026-09-30T14:21:05.3960768Z http.https://github.com/.extraheader
+RTL simulation (Verilator)	Post Run actions/checkout@v4	2026-09-30T14:21:05.3975033Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+RTL simulation (Verilator)	Post Run actions/checkout@v4	2026-09-30T14:21:05.4021341Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+RTL simulation (Verilator)	Post Run actions/checkout@v4	2026-09-30T14:21:05.4339172Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+RTL simulation (Verilator)	Post Run actions/checkout@v4	2026-09-30T14:21:05.4407937Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+RTL simulation (Verilator)	Complete job	﻿2026-09-30T14:21:05.4896116Z Cleaning up orphan processes
+RTL simulation (Verilator)	Complete job	2026-09-30T14:21:05.5248477Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5, actions/upload-artifact@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

@@ -1,0 +1,22 @@
+2026-09-29T20:50:02.2578455Z HEAD is now at ae11d8b Merge f028ec5bb4f64a79414bac59c1b91bc1eaeee190 into cacea23495dd986cfdf8b9cdd92a1f0013de4b8b
+2026-09-29T20:50:02.2656534Z ae11d8b0cf73a47e073dbb5394db64fa91f9229a
+2026-09-29T20:50:02.4626309Z Successfully set up CPython (3.12.14)
+2026-09-29T20:58:44.8362795Z 总耗时 453.6s
+2026-09-29T20:58:44.8363436Z 验收汇总: v5 结构 5/5 + 动态 5/5 + 可观测性 5/5 + KTC矩阵 PASS + 噪声传递 PASS + 校准闭环 PASS + dither闭合 PASS + v6信号流 PASS + 审计缺口闭合(offset/dither量化/auto-zero/1-f/逐位装载) 5/5
+2026-09-29T20:58:44.8363871Z 
+2026-09-29T20:58:44.8364340Z ===== closure: physical-clock low-frequency state and noisy fixed-point holdout =====
+2026-09-29T20:58:44.8364770Z   long_record_noise: True
+2026-09-29T20:58:44.8365009Z   noisy_weight_holdout: True
+2026-09-29T20:58:44.8365308Z 结果已写入 /tmp/run1/results.json
+2026-09-29T20:58:44.8365486Z 
+2026-09-29T20:58:44.8365611Z 硬性验收: 全部通过（52 条判据）
+2026-09-29T21:06:57.0063549Z 总耗时 451.9s
+2026-09-29T21:06:57.0064432Z 验收汇总: v5 结构 5/5 + 动态 5/5 + 可观测性 5/5 + KTC矩阵 PASS + 噪声传递 PASS + 校准闭环 PASS + dither闭合 PASS + v6信号流 PASS + 审计缺口闭合(offset/dither量化/auto-zero/1-f/逐位装载) 5/5
+2026-09-29T21:06:57.0064889Z 
+2026-09-29T21:06:57.0065143Z ===== closure: physical-clock low-frequency state and noisy fixed-point holdout =====
+2026-09-29T21:06:57.0065614Z   long_record_noise: True
+2026-09-29T21:06:57.0065859Z   noisy_weight_holdout: True
+2026-09-29T21:06:57.0066158Z 结果已写入 /tmp/run2/results.json
+2026-09-29T21:06:57.0066309Z 
+2026-09-29T21:06:57.0066437Z 硬性验收: 全部通过（52 条判据）
+2026-09-29T21:06:57.1234467Z OK: results.json byte-identical across runs

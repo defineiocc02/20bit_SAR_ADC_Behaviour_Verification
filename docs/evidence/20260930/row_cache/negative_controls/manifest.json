@@ -1,0 +1,90 @@
+[
+  {
+    "name": "loader",
+    "result": "EXPECTED_FAIL",
+    "exit_code": 1,
+    "marker": "cache invariant NS=3 NU=3 step=2",
+    "mutation": {
+      "file": "rtl/core/weight_store.sv",
+      "before": "row_q[wr_slice] <= row_new;",
+      "after": "row_q[wr_slice] <= row_new ^ ROW_BITS'(1);"
+    },
+    "source_sha256": {
+      "rtl/core/weight_store.sv": "146ad97a147d55b6bb8e6cc8e8a145a9db4a449dd01f5cf16ba85d3a61bd65f7",
+      "sim/tb/weight_row_cache_tb.sv": "8e7468f73691a398485984e6eb3af851aee566264faefd38d3f7f3ef41c6f408"
+    },
+    "command": [
+      "/tmp/sar_vlt_root_20260930/bin/verilator",
+      "--binary",
+      "--timing",
+      "--assert",
+      "--unroll-count",
+      "8192",
+      "-j",
+      "2",
+      "-Wno-fatal",
+      "-Werror-PINMISSING",
+      "-Werror-SELRANGE",
+      "-CFLAGS",
+      "-std=c++20",
+      "-MAKEFLAGS",
+      "CFG_CXXFLAGS_PCH_I=-include",
+      "-I/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/rtl/params",
+      "--top-module",
+      "weight_row_cache_case",
+      "--Mdir",
+      "/tmp/sar_row_cache_20260930/negative_loader/obj",
+      "-GNS=3",
+      "-GNU=3",
+      "/tmp/sar_row_cache_20260930/negative_loader/weight_store.sv",
+      "/tmp/sar_row_cache_20260930/negative_loader/weight_row_cache_tb.sv"
+    ],
+    "run_log_sha256": "fd37fe4603853a78ce9003053597f2241c4944a1ad8f06535aaefe8584fc9f87"
+  },
+  {
+    "name": "consumer",
+    "result": "EXPECTED_FAIL",
+    "exit_code": 1,
+    "marker": "cached DUT scalar mismatch NS=3 NA=2 NM=2 check=1",
+    "mutation": {
+      "file": "sim/tb/cal_weight_reduce_ppa_tb.sv",
+      "before": "sampled_row_total[s]<=row_sum;",
+      "after": "sampled_row_total[s]<=row_sum ^ ((s==0)?64'd1:64'd0);"
+    },
+    "source_sha256": {
+      "rtl/core/cal_weight_reduce.sv": "b4be31b0f69bf25021ab06191fbc9a83f587a0256b8c94284ee2aa8bd6058bc3",
+      "sim/tb/cal_weight_reduce_ppa_tb.sv": "f70b141a5c93f383f3dc5be61b2a664aa3bd8813dbd19cc25a1ef91c491181f2"
+    },
+    "command": [
+      "/tmp/sar_vlt_root_20260930/bin/verilator",
+      "--binary",
+      "--timing",
+      "--assert",
+      "--unroll-count",
+      "8192",
+      "-j",
+      "2",
+      "-Wno-fatal",
+      "-Werror-PINMISSING",
+      "-Werror-SELRANGE",
+      "-CFLAGS",
+      "-std=c++20",
+      "-MAKEFLAGS",
+      "CFG_CXXFLAGS_PCH_I=-include",
+      "-I/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/rtl/params",
+      "--top-module",
+      "cal_weight_reduce_ppa_case",
+      "--Mdir",
+      "/tmp/sar_row_cache_20260930/negative_consumer/obj",
+      "-GNS=3",
+      "-GNA=2",
+      "-GNM=2",
+      "-GNB=1",
+      "-GND=2",
+      "-GDE=3",
+      "/tmp/sar_row_cache_20260930/negative_consumer/cal_weight_reduce.sv",
+      "/tmp/sar_row_cache_20260930/negative_consumer/cal_weight_reduce_ppa_tb.sv"
+    ],
+    "run_log_sha256": "4937ffff0968307bb5ba92d6d79c102ca2627e485b08218334fe29c4ac1b197c"
+  }
+]

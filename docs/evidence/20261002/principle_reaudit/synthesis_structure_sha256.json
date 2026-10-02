@@ -1,0 +1,14 @@
+{
+  "synthesis_structure_audit.md": {
+    "sha256": "778eb676f33b42bbc94f5128cabb36be0a3903943ed4647af7e2de4ba46fbfd5",
+    "bytes": 28059
+  },
+  "count_synthesis_structure.py": {
+    "sha256": "9856409c491febed988d3f757c887a1f52d0de44c925183c716e7c060917faa1",
+    "bytes": 12749
+  },
+  "synthesis_structure_counts.json": {
+    "sha256": "0305c5d6cdf9f2b710a4b540c9fc23af9ec4f5570188ab9d19758b9d63fa8ddd",
+    "bytes": 25611
+  }
+}

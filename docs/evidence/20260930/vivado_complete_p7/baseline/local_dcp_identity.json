@@ -1,0 +1,7 @@
+{
+  "status": "SHA256_MATCH",
+  "local_dcp": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_baseline/synth/artifacts/vivado/20260929T190955.260429Z_p7_recovered/out/post_synth.dcp",
+  "bytes": 69108593,
+  "sha256": "9c3bc09dd193d0bffcd6d00f9af83cc887fde5423402416af751f4a2d1ef506b",
+  "method": "Copied prior partial transfer into new recovery directory, resumed SFTP, verified complete remote SHA256; prior partial file and failed manifest preserved"
+}

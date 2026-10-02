@@ -1,0 +1,20 @@
+{
+  "source_archive": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/shared_old_trial_full_mapped",
+  "source_archive_summary_sha256": "9ad97efa9174fa09bc2524d6d0d0542de8f24ea6d34c919b174e398e9017dabe",
+  "payload_hashes_verified": 42,
+  "trace_sha256": "c40ce4404bbbeae26df514be6484722682f936a626c56bd156ada9b5ae8d2073",
+  "log_sha256": "d8cde83933032fe700998bc409b60142eca3fb102f0029ec45879398452620f3",
+  "rows": 438,
+  "rows_per_mode": [
+    146,
+    146,
+    146
+  ],
+  "accepted_pairs_with_exact_16_cycle_spacing": 435,
+  "skipped_ids_per_mode": 11,
+  "cancelled_ids_per_mode": 1,
+  "generator_sha256": "80f9d2d06db75a7b1e56a4d673fcd4c4d6ee4a52a5617d5e2faa2f6e05ed8cd3",
+  "pdf_sha256": "cf02be9215a9f4c3581a651d8671a838028c322609c103bb3ebfb5cf93a21b86",
+  "png_sha256": "2ddd36e8a9292ea47de01cf114d448d10845d502ebd8db9164f47eee9681f307",
+  "scope": "FULL_TOP_MAPPED_FUNCTIONAL_NO_SDF_NOT_TIMING"
+}

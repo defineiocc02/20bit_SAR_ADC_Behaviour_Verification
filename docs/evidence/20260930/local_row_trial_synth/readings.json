@@ -1,0 +1,396 @@
+{
+  "label": "local_row_trial_p5_25ns",
+  "source_directory": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered",
+  "status": "SYNTH_COMPLETE_TIMING_MET",
+  "scope": "VALID_POST_SYNTH_OOC_REPORTS_NOT_ROUTE_NOT_FULL_MAPPED_NOT_ASIC",
+  "tool": "2018.3",
+  "part": "xc7vx690tffg1761-2",
+  "stages": 5,
+  "resources": {
+    "lut": 121772,
+    "ff": 66509,
+    "latch": 0,
+    "bram_tiles": 0,
+    "dsp": 20,
+    "bufgctrl": 0,
+    "lutram": 0,
+    "f7_mux": 14916,
+    "f8_mux": 6909
+  },
+  "timing": {
+    "wns_ns": 10.64,
+    "tns_ns": 0.0,
+    "setup_failing_endpoints": 0,
+    "setup_total_endpoints": 200356,
+    "whs_ns": -0.264,
+    "ths_ns": -15113.116,
+    "hold_failing_endpoints": 61421,
+    "hold_total_endpoints": 200356,
+    "wpws_ns": 12.15,
+    "tpws_ns": 0.0,
+    "pulse_failing_endpoints": 0,
+    "pulse_total_endpoints": 66509,
+    "requested_period_ns": 25.0,
+    "reported_period_ns": 25.0,
+    "reported_frequency_mhz": 40.0,
+    "clock_frequency_is_requested_constraint_not_achieved_fmax": true
+  },
+  "worst_setup_path": {
+    "source": "u_recon/u_div/rem_reg[0]/C",
+    "destination": "u_recon/u_div/q_reg[60]/D",
+    "data_delay_ns": 14.312,
+    "logic_delay_ns": 8.404,
+    "estimated_route_delay_ns": 5.908,
+    "logic_levels": 110,
+    "logic_types": "CARRY4=93 LUT1=1 LUT2=5 LUT3=1 LUT4=1 LUT5=1 LUT6=8",
+    "clock_uncertainty_ns": 0.085,
+    "user_uncertainty_ns": 0.05,
+    "scope": "post-synthesis estimated interconnect, not routed path"
+  },
+  "coverage": {
+    "check_timing_categories": {
+      "register/latch pins with no clock": 0,
+      "register/latch pins with constant_clock": 0,
+      "register/latch pins which need pulse_width check": 0,
+      "pins that are not constrained for maximum delay": 0,
+      "pins that are not constrained for maximum delay due to constant clock": 0,
+      "input ports with no input delay specified": 0,
+      "input ports with no input delay but user has a false path constraint": 0,
+      "ports with no output delay specified": 0,
+      "ports with no output delay but user has a false path constraint": 0,
+      "ports with no output delay but with a timing clock defined on it or propagating through it": 0,
+      "register/latch pins with multiple clocks": 0,
+      "generated clocks that are not connected to a clock source": 0,
+      "combinational loops in the design": 0,
+      "input ports with partial input delay specified": 0,
+      "ports with partial output delay specified": 0,
+      "combinational latch loops in the design through latch input": 0
+    },
+    "unconstrained_path_table": "| ------------------------\n------------------------------------------------------------------------------------------------\n\nPath Group    From Clock    To Clock    \n----------    ----------    --------    \n\n\n------------------------------------------------------------------------------------------------",
+    "scope": "Raw report counts; no whole-chip/board constraint certification"
+  },
+  "drc": {
+    "violations": 49,
+    "error_count": 0,
+    "rules": [
+      {
+        "rule": "CFGBVS-1",
+        "severity": "Warning",
+        "description": "Missing CFGBVS and CONFIG_VOLTAGE Design Properties",
+        "violations": 1
+      },
+      {
+        "rule": "DPIP-1",
+        "severity": "Warning",
+        "description": "Input pipelining",
+        "violations": 8
+      },
+      {
+        "rule": "DPOP-1",
+        "severity": "Warning",
+        "description": "PREG Output pipelining",
+        "violations": 20
+      },
+      {
+        "rule": "DPOP-2",
+        "severity": "Warning",
+        "description": "MREG Output pipelining",
+        "violations": 20
+      }
+    ]
+  },
+  "power_vectorless": {
+    "total_on_chip_w": 0.442,
+    "dynamic_w": 0.117,
+    "device_static_w": 0.325,
+    "simulation_activity_file": "---",
+    "confidence": "Medium",
+    "scope": "Vectorless synthesized-netlist estimate, not measured power or activity-annotated signoff"
+  },
+  "hierarchy": [
+    {
+      "instance": "sar20_digital_core",
+      "module": "(top)",
+      "lut": 121772,
+      "ff": 66509,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 20
+    },
+    {
+      "instance": "(sar20_digital_core)",
+      "module": "(top)",
+      "lut": 400,
+      "ff": 52,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_calib",
+      "module": "calib_regs",
+      "lut": 2140,
+      "ff": 204,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_recon",
+      "module": "recon_core",
+      "lut": 36849,
+      "ff": 683,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 20
+    },
+    {
+      "instance": "(u_recon)",
+      "module": "recon_core",
+      "lut": 229,
+      "ff": 295,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_adc2",
+      "module": "adc2_dec",
+      "lut": 49,
+      "ff": 0,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 4
+    },
+    {
+      "instance": "u_div",
+      "module": "div_floor",
+      "lut": 768,
+      "ff": 325,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_output",
+      "module": "cal_output_stage",
+      "lut": 3,
+      "ff": 63,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_residue_mac",
+      "module": "cal_residue_mac",
+      "lut": 310,
+      "ff": 0,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 16
+    },
+    {
+      "instance": "u_weight_reduce",
+      "module": "cal_weight_reduce",
+      "lut": 35490,
+      "ff": 0,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_status",
+      "module": "status_regs",
+      "lut": 4,
+      "ff": 6,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_structure",
+      "module": "sar_structural_ctrl",
+      "lut": 46454,
+      "ff": 3248,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "(u_structure)",
+      "module": "sar_structural_ctrl",
+      "lut": 6,
+      "ff": 128,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "g_coarse[0].u_sar",
+      "module": "sar_trial_ctrl",
+      "lut": 45,
+      "ff": 25,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "g_coarse[1].u_sar",
+      "module": "sar_trial_ctrl_0",
+      "lut": 2167,
+      "ff": 25,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_context",
+      "module": "cal_sample_context",
+      "lut": 36335,
+      "ff": 1422,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_decode",
+      "module": "swap_decode",
+      "lut": 972,
+      "ff": 0,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_dem",
+      "module": "dem_state_gen__parameterized0",
+      "lut": 43,
+      "ff": 18,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_fine",
+      "module": "sar_trial_ctrl__parameterized0",
+      "lut": 46,
+      "ff": 30,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_order",
+      "module": "dem_addr_gen",
+      "lut": 1,
+      "ff": 0,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_phase",
+      "module": "analog_phase_ctrl",
+      "lut": 30,
+      "ff": 8,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_pool",
+      "module": "slice_pool_ctrl",
+      "lut": 6604,
+      "ff": 192,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_random",
+      "module": "dither_gen__parameterized0",
+      "lut": 13,
+      "ff": 32,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_rdac",
+      "module": "rdac_drv",
+      "lut": 200,
+      "ff": 1368,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_units",
+      "module": "unit_therm",
+      "lut": 1,
+      "ff": 0,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    },
+    {
+      "instance": "u_wstore",
+      "module": "weight_store",
+      "lut": 36030,
+      "ff": 62316,
+      "bram36": 0,
+      "bram18": 0,
+      "dsp": 0
+    }
+  ],
+  "hierarchy_caveat": "Rebuilt hierarchy moves logic across source modules; parent/child rows must not be summed, and row attribution is not isolated RTL ownership.",
+  "external_dcp": {
+    "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5_recovered/out/post_synth.dcp",
+    "bytes": 54553541,
+    "sha256": "95a876bc7bdafa2ccf627f18bd6db6d87cb4d6f4281eede9ae77143722d2fdc2"
+  },
+  "source_archive": {
+    "path": "source.tar.gz",
+    "sha256": "a460734cd2de7f99b83672ef93bfe74231724caaee8f8856bd1bed5f3e454913",
+    "source_files_verified": 28
+  },
+  "sources_sha256": {
+    "rtl/core/adc2_dec.sv": "268d279bdc1c2cdd7161072733c5046e701524c7e217b52ff0c7ca08951154f5",
+    "rtl/core/analog_phase_ctrl.sv": "66647aeeaa4e9dc41cd95eec430bdb8e75d42b93390bded576b18c22d8653932",
+    "rtl/core/cal_output_stage.sv": "30cb3de766b0c2f316bd65f519304e95a35897b55568564e56c999c8bac0c0c2",
+    "rtl/core/cal_residue_mac.sv": "082a93293cda83f79ff0ac7ef72e484043f8bbceb914361f270059b4bb764f71",
+    "rtl/core/cal_sample_context.sv": "8b0ff4527b6ff5936d378945bcfd38d2c203a43fb7d2cb4d0271a8f655bb9e56",
+    "rtl/core/cal_weight_reduce.sv": "b4be31b0f69bf25021ab06191fbc9a83f587a0256b8c94284ee2aa8bd6058bc3",
+    "rtl/core/calib_regs.sv": "feff5d1d6c0359b427c5950ae6dec6db45e5e9707f44a06623681f5176c3e44b",
+    "rtl/core/ctrl_fsm.sv": "a04e9104a93819ed35d35f6a11355c4ee3afbaa0d4b020f6e17e5540b610041f",
+    "rtl/core/dem_addr_gen.sv": "aa5bd5c4d00fa2a5d77f81fcc99011246ed08ab01f00be3e92fcd42728f466ba",
+    "rtl/core/dem_state_gen.sv": "38c626502b2338c4c04497788cf40904408a885176967a4ca6d6750d578d7efe",
+    "rtl/core/dither_gen.sv": "d726478c13887ca3739265990be5b2a35c88a236d38257af1ab72cb53c828f7e",
+    "rtl/core/div_floor.sv": "cc3b0bd9c5e6c8491af10d0696f82e59373426c538c3212c210093dbc84c515c",
+    "rtl/core/rdac_drv.sv": "d91fa05062a50eb08826286ec527b5a15d6b7be758cee7f5e16c53fbe20d6a33",
+    "rtl/core/recon_core.sv": "630b7e665d30ee5b86cfac3820b42e050c604077fadd1f685bc3a7ae7609b6a8",
+    "rtl/core/sar_structural_ctrl.sv": "76166ca5d0dbec70b9484b0badefe1f009a75ef942ed1de9e27159f2d092660e",
+    "rtl/core/sar_trial_ctrl.sv": "cbe60e2cc30fb95499449f0ec586847f9c1494de25bce784dc8b01a51248f8c9",
+    "rtl/core/slice_alloc.sv": "2c6d0293b846f00ccf88c0a38fc3030a243cb86fc84a705e31e70aa2084a2dc4",
+    "rtl/core/slice_pool_ctrl.sv": "e53d9efa8ced99e5322f6a3043dd67c7ceea11cfad60813f5e233504a28782b4",
+    "rtl/core/status_regs.sv": "8ab8ee1483f451da27ad59435ef7b00f3982427b17354fe5a9d2ac6319af4b1d",
+    "rtl/core/swap_decode.sv": "03684fb59ae5d0bbbd1d091f8b073b5cc9469dd603636ceea69726b01a5b5d88",
+    "rtl/core/unit_therm.sv": "ec00681a7565a1fd10172e32959c08e118f339de19f5e07eaf623c24fb6cb459",
+    "rtl/core/weight_store.sv": "ebe1cfcc2d933091f1d5c4e456c8b9c2cb4e797e1048a0d95e7229c0150cf409",
+    "rtl/top/sadc_enc.sv": "c366ddd1af00bfbf549b9300f5f80b564031c5e36848d77575622c9ba2007b7a",
+    "rtl/top/sar20_digital_core.sv": "787749874a2d9ea3c338a64e608298439f4d67892a7a0a8b0fca6f7a3da16325",
+    "rtl/rtl_sources.f": "edd37615fffd18cecfad620de2beab15f581639e8bc8520891b33487b7e98f7e",
+    "synth/run_vivado_ooc.tcl": "f9084c25618a94b8bd492e2dc699d6cb15a46d72a8be8e55d4c453b623487ed7",
+    "rtl/params/rtl_error_codes.vh": "ab67fff7eeff034da996d8c0442b529dc8476bb1eafca349f360c9e873bcc0ce",
+    "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654"
+  },
+  "origin_report_sha256": {
+    "out/timing_paths.rpt": "33e46a18262c37d2bbb146a1980cd4c9cf8f9859c63314e2ad2d5bbb9bc61390",
+    "out/utilization.rpt": "776c4fffc0b9ce3e72b6b12d9992ff649871f52dd10482b0125d997b7d7cb058",
+    "out/drc.rpt": "bd7a4fd2b96a95915f512421f0bc3747346fcd7a415146b324aea15fdcd806e3",
+    "out/timing_summary.rpt": "5feba17af749e230ff258e3d3bdae4a799a8e6644bb9680aba0875fed2c175d5",
+    "out/check_timing.rpt": "bdb380cffd6857d7fbd34085d375e631c4ff1a5b6d365ede0e8c6b8be597fef1",
+    "out/power_vectorless.rpt": "b918dcbd6d2255640a9093393914b0a08aaa22e57dda339118e249e099e6fa59",
+    "out/utilization_hier.rpt": "c7cc0162f12b81b4ab06327d2da9c06231339b52c2dad87d3e9b1e8fedd5d8f7"
+  }
+}

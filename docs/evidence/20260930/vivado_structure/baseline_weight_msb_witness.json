@@ -1,0 +1,31 @@
+{
+  "weight_ff": 61344,
+  "written_ff": 1278,
+  "weight_msb47_ff": 1278,
+  "examples": [
+    {
+      "line": 4757998,
+      "text": "(instance (rename w_q_reg_0__0__47_ \"w_q_reg[0][0][47]\") (viewref netlist (cellref FDRE (libraryref hdi_primitives)))"
+    },
+    {
+      "line": 4758190,
+      "text": "(instance (rename w_q_reg_0__10__47_ \"w_q_reg[0][10][47]\") (viewref netlist (cellref FDRE (libraryref hdi_primitives)))"
+    },
+    {
+      "line": 4758382,
+      "text": "(instance (rename w_q_reg_0__11__47_ \"w_q_reg[0][11][47]\") (viewref netlist (cellref FDRE (libraryref hdi_primitives)))"
+    },
+    {
+      "line": 5002798,
+      "text": "(instance (rename w_q_reg_9__7__47_ \"w_q_reg[9][7][47]\") (viewref netlist (cellref FDRE (libraryref hdi_primitives)))"
+    },
+    {
+      "line": 5002990,
+      "text": "(instance (rename w_q_reg_9__8__47_ \"w_q_reg[9][8][47]\") (viewref netlist (cellref FDRE (libraryref hdi_primitives)))"
+    },
+    {
+      "line": 5003182,
+      "text": "(instance (rename w_q_reg_9__9__47_ \"w_q_reg[9][9][47]\") (viewref netlist (cellref FDRE (libraryref hdi_primitives)))"
+    }
+  ]
+}

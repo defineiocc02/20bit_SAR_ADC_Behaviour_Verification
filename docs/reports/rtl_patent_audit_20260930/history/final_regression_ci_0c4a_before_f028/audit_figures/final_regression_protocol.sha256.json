@@ -1,0 +1,181 @@
+{
+  "scope": "FROZEN_ZERO_DELAY_RTL_LOG_EVIDENCE_NOT_STA_OR_ANALOG_SIGNOFF",
+  "script_sha256": "5e3929f85ff42ff8f05eca72807d7283c9637dc9aa3e72e59bdf8617aab22fdb",
+  "inputs_sha256": {
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/sha256.json": "6a8452c712cc9d37cabdcff810c918b9ff80ce498c998a9dabfb33958a668138",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/arithmetic_entry_failure.log": "c02c0bce3aa77703a16083437ee4a223350611f97b7e4558ed26cd0f10315dc4",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/job_metadata.json": "891a9a0604d88436e25bde2081e52151980d278c54c63898037835be4ea12d52",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/manifest.json": "187f80eca7002d8af3bd622fdd1dc80bf619a091b4ec963426094733f105ae9d",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/version.log": "26daf9ad1ba36ee1c20cab9a869d0a1fbb8117230c80c78ec2d8cf597f64c4a5",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/rtl_content_identity.json": "41cfe30f8b4db7373f4363d4cbca4770c15e82e7f1697db9dd5a5dfe0d8f080e",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/tested_inputs_sha256.json": "22e593105cc3d31596d64e7045af84c3872b9a9f611b5daef287e89f12b4807b",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/tested_merge_commit.json": "5f3f82b02ad90813d0c8bcaf2bde7ccefc3f682f9672a3397de25bb283ff831d",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/sar_trial_tb.run.log": "26d36d67e86b6703e49252c6ec98d119d49452217f646aee3ce2689c2bd74d80",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/structural_adc_tb.run.log": "5e659a733e2ddc9a10c133e702659c6c7ca66163974053b0bbad232e9c1fcdac",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/structural_protocol_tb.run.log": "7630ce9d3e9702d1d2015cd921062169a4b6dd2aecdd0c7d7bda34b615ed3c98",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/recon_ppa_latency_tb.run.log": "e11c863bc24d576545234085dcd03df9be8d6f9aa9a8e4c5ba6f01f230c1f31c",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/review_recon_protocol_tb.run.log": "bd61e46b62371076337f6dba4fbfc062dc28b8e20fad77d2fb9a3233a88e1d21",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/review_top_protocol_tb.run.log": "6a9f3440b8050c81b1b6bc2e5adc58f42df9a2cb075ae11fe55bfc42882ee023",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/review_config_tb.run.log": "ea7cd9d9c8ad0bddf39321eb6f3fe3156e7f91171d1ab440e5dbfa9955688b8e"
+  },
+  "images_sha256": {
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_protocol.png": "afd99d2fbb49086ce14dc18f839d309cfc8ea8f385b6874fd9ffbd56f217103d",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_protocol.pdf": "3295eeecc509fb3b478808f7c33e818e003adc1e2c18762466a7a8fb09c8a58b"
+  },
+  "benches": {
+    "sar_trial_tb": {
+      "marker": "SAR_TRIAL_COMPLETE",
+      "metrics": {
+        "distinct_fine_codes": 4096,
+        "distinct_coarse_codes": 512
+      },
+      "oracle": "Ideal comparator against target code;\nstalled trial hold, done and cancellation.",
+      "limitation": "No comparator noise or metastability model.",
+      "tb_lines": [
+        25,
+        46
+      ],
+      "tb_source": "git:0c4a7726597c49044d25117a701ba780137ddf04:sim/tb/sar_trial_tb.sv",
+      "tb_sha256": "aa950287ce516d8c04c622b7caf89842e79996731ff54b55437bd748d30d106a"
+    },
+    "structural_adc_tb": {
+      "marker": "STRUCTURAL_ADC_COMPLETE",
+      "metrics": {
+        "modes": 3,
+        "outputs": 438,
+        "checked_ticks": 7680,
+        "slices": 18,
+        "stages": 7,
+        "latency_cycles": 11,
+        "latency_checks": 438
+      },
+      "oracle": "Physical-switch 256-bit scoreboard;\ncode/flags/ID, bank ownership and latency.",
+      "limitation": "Behavioral analog boundaries; 3 modes.",
+      "tb_lines": [
+        71,
+        195
+      ],
+      "tb_source": "git:0c4a7726597c49044d25117a701ba780137ddf04:sim/tb/structural_adc_tb.sv",
+      "tb_sha256": "28359c4f09507cb802c3dd39ec06b5e2ea3a64177a0d445dc05b5d22f322684d"
+    },
+    "structural_protocol_tb": {
+      "marker": "STRUCTURAL_PROTOCOL_COMPLETE",
+      "metrics": {
+        "frames": 120,
+        "launches": 57,
+        "expected_drops": 63,
+        "checked_ticks": 1920,
+        "perturbations": 2
+      },
+      "oracle": "Expected accept/drop schedule;\ncaptured context + edge-stable enables.",
+      "limitation": "Two phase-decode perturbations are injected.",
+      "tb_lines": [
+        60,
+        115
+      ],
+      "tb_source": "git:0c4a7726597c49044d25117a701ba780137ddf04:sim/tb/structural_protocol_tb.sv",
+      "tb_sha256": "b7d295bba4710f21be7d7a38d71669b3f8f9cc629fa7146f46b151ed09de48c4"
+    },
+    "recon_ppa_latency_tb": {
+      "marker": "RECON_PPA_PROFILE_PASS stages=7 samples=32",
+      "metrics": {
+        "profiles_stages_samples_busy_latency_II": [
+          [
+            5,
+            32,
+            14,
+            15,
+            16
+          ],
+          [
+            6,
+            32,
+            12,
+            13,
+            16
+          ],
+          [
+            7,
+            32,
+            10,
+            11,
+            16
+          ]
+        ]
+      },
+      "oracle": "Per-profile code/ID scoreboard;\nbusy-release and completion timestamps.",
+      "limitation": "Clock intervals, not measured nanoseconds.",
+      "tb_lines": [
+        29,
+        53
+      ],
+      "tb_source": "git:0c4a7726597c49044d25117a701ba780137ddf04:sim/tb/recon_ppa_latency_tb.sv",
+      "tb_sha256": "66c421f3aec278d65abb2eb49be0c26395410041dd4d0ae700c85a6c61e016f7"
+    },
+    "review_recon_protocol_tb": {
+      "marker": "REVIEW_RECON_PROTOCOL_COMPLETE",
+      "metrics": {
+        "total_checks": null
+      },
+      "oracle": "Directed unconfigured/cancel/error\nscenarios; ID/flags and prior-output hold.",
+      "limitation": "Completion only: no total check count logged.",
+      "tb_lines": [
+        20,
+        55
+      ],
+      "tb_source": "git:0c4a7726597c49044d25117a701ba780137ddf04:sim/tb/review_recon_protocol_tb.sv",
+      "tb_sha256": "19a08952dc4c4db4d476bfa217b187b45a64fa0eaabfa8868c8ec439858fa26f"
+    },
+    "review_top_protocol_tb": {
+      "marker": "REVIEW_TOP_PROTOCOL_COMPLETE",
+      "metrics": {
+        "check_calls": 1108,
+        "reported_outputs": 38
+      },
+      "oracle": "Top-port configuration and result oracle;\nreadback, rejection, epochs and IDs.",
+      "limitation": "38 outputs is the TB's printed count.",
+      "tb_lines": [
+        29,
+        175
+      ],
+      "tb_source": "git:0c4a7726597c49044d25117a701ba780137ddf04:sim/tb/review_top_protocol_tb.sv",
+      "tb_sha256": "37ca964501085c611cedafd4a797c2b9b97f5a88adf2c21f816d73893ce5deec"
+    },
+    "review_config_tb": {
+      "marker": "REVIEW_CONFIG_COMPLETE",
+      "metrics": {
+        "output_valid_events": 624,
+        "assertion_count": null
+      },
+      "oracle": "Configuration completeness/collision\nand atomic epoch guards; dither-bin checks.",
+      "limitation": "624 outputs are not 624 independent tests.",
+      "tb_lines": [
+        25,
+        82
+      ],
+      "tb_source": "git:0c4a7726597c49044d25117a701ba780137ddf04:sim/tb/review_config_tb.sv",
+      "tb_sha256": "66084ee90a3ab8a08e322696fad77bba9980bf515cd534079ee11925cccbc33f"
+    }
+  },
+  "ci_provenance": {
+    "schema": "CI_RTL_STEP_SUCCESS_OVERALL_JOB_FAILED",
+    "pr_head_sha": "0c4a7726597c49044d25117a701ba780137ddf04",
+    "tested_merge_sha": "308e489f363a6c19f26e28c08c82d8f2a34c2a6a",
+    "git_tree_sha": "d8f838a28634c27e6bda222ea0b40cf102c91225",
+    "rtl_content_sha256": "fd885e882ad5447f87626dc034fb59a6853a86f01050957a93b8a6407ebbbc13",
+    "workflow_run_id": 36626662809,
+    "job_id": 109605295575,
+    "rtl_step_conclusion": "success",
+    "overall_job_conclusion": "failure",
+    "later_failed_step": {
+      "name": "Independent arbitrary-precision arithmetic audit",
+      "conclusion": "failure",
+      "failure_class": "tool-entry executable not found",
+      "command_returncode": 127,
+      "source_member": "arithmetic-audit/compile.log",
+      "simulation_pass_claimed": false
+    },
+    "tool_version": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+    "immutable_git_inputs_verified": 87
+  }
+}

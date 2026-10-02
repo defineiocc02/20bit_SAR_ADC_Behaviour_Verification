@@ -1,0 +1,147 @@
+{
+  "scope": "FROZEN_ZERO_DELAY_RTL_LOG_EVIDENCE_NOT_STA_OR_ANALOG_SIGNOFF",
+  "script_sha256": "0052d35df56c0b84683dc8801e0554de4fe399722698aa5e6f8e580b8fd46336",
+  "inputs_sha256": {
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/result.json": "2f15efd09ca6cb32762f5f2e89524ed3128b9741492be1556db6de55e6582c32",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/source_manifest.json": "8c781172b9b9db072462da9305f98ec2580099da5d4577b206274ae533327caa",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/sar_trial_tb.run.log": "6a18d2dd905b64d685eb28b884543e89271fc576e9134315364b52cdd9150607",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/sar_trial_tb.sv": "aa950287ce516d8c04c622b7caf89842e79996731ff54b55437bd748d30d106a",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/structural_adc_tb.run.log": "d0434b9a9d5935aeeebc86a0e4ed8087cd125cd00cbee9a7353bcdd1eeb19b62",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/structural_adc_tb.sv": "28359c4f09507cb802c3dd39ec06b5e2ea3a64177a0d445dc05b5d22f322684d",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/structural_protocol_tb.run.log": "7c7e3d1961b528d96c21323a5b23bf6ab31c31940a65e7f0afdee36e8dede1f4",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/structural_protocol_tb.sv": "b7d295bba4710f21be7d7a38d71669b3f8f9cc629fa7146f46b151ed09de48c4",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/recon_ppa_latency_tb.run.log": "3e8e9d1c1f9d2d093f63598e7564a98aa07ad5753f0deec890c2740d35e01c9a",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/recon_ppa_latency_tb.sv": "66c421f3aec278d65abb2eb49be0c26395410041dd4d0ae700c85a6c61e016f7",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/review_recon_protocol_tb.run.log": "97b573b6dd220a29cddfa78cc2aa36664669320df4fdbf6fc4df8acc4aed32d5",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/review_recon_protocol_tb.sv": "19a08952dc4c4db4d476bfa217b187b45a64fa0eaabfa8868c8ec439858fa26f",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/review_top_protocol_tb.run.log": "bde2daf74471b2eaae58a1c9039534642813c598da3fafc2a81497e4441c7a1f",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/review_top_protocol_tb.sv": "37ca964501085c611cedafd4a797c2b9b97f5a88adf2c21f816d73893ce5deec",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/review_config_tb.run.log": "d112199ce0e2378d4321662724d7e3b5aadbfe5e26a3298cd6b61c1a267f380a",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/review_config_tb.sv": "66084ee90a3ab8a08e322696fad77bba9980bf515cd534079ee11925cccbc33f"
+  },
+  "images_sha256": {
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_protocol.png": "e30a2053e593fa46a137732eff8104381942a49849b47fed4a3967fd6b4e9305",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_protocol.pdf": "a0c81fb44f4fd3f92b499f049cac18c0d06aaaf8f79583835b9b3f9f095fc265"
+  },
+  "benches": {
+    "sar_trial_tb": {
+      "marker": "SAR_TRIAL_COMPLETE",
+      "metrics": {
+        "distinct_fine_codes": 4096,
+        "distinct_coarse_codes": 512
+      },
+      "oracle": "Ideal comparator against target code;\nstalled trial hold, done and cancellation.",
+      "limitation": "No comparator noise or metastability model.",
+      "tb_lines": [
+        25,
+        46
+      ]
+    },
+    "structural_adc_tb": {
+      "marker": "STRUCTURAL_ADC_COMPLETE",
+      "metrics": {
+        "modes": 3,
+        "outputs": 438,
+        "checked_ticks": 7680,
+        "slices": 18,
+        "stages": 7,
+        "latency_cycles": 11,
+        "latency_checks": 438
+      },
+      "oracle": "Physical-switch 256-bit scoreboard;\ncode/flags/ID, bank ownership and latency.",
+      "limitation": "Behavioral analog boundaries; 3 modes.",
+      "tb_lines": [
+        71,
+        195
+      ]
+    },
+    "structural_protocol_tb": {
+      "marker": "STRUCTURAL_PROTOCOL_COMPLETE",
+      "metrics": {
+        "frames": 120,
+        "launches": 57,
+        "expected_drops": 63,
+        "checked_ticks": 1920,
+        "perturbations": 2
+      },
+      "oracle": "Expected accept/drop schedule;\ncaptured context + edge-stable enables.",
+      "limitation": "Two phase-decode perturbations are injected.",
+      "tb_lines": [
+        60,
+        115
+      ]
+    },
+    "recon_ppa_latency_tb": {
+      "marker": "RECON_PPA_PROFILE_PASS stages=7 samples=32",
+      "metrics": {
+        "profiles_stages_samples_busy_latency_II": [
+          [
+            5,
+            32,
+            14,
+            15,
+            16
+          ],
+          [
+            6,
+            32,
+            12,
+            13,
+            16
+          ],
+          [
+            7,
+            32,
+            10,
+            11,
+            16
+          ]
+        ]
+      },
+      "oracle": "Per-profile code/ID scoreboard;\nbusy-release and completion timestamps.",
+      "limitation": "Clock intervals, not measured nanoseconds.",
+      "tb_lines": [
+        29,
+        53
+      ]
+    },
+    "review_recon_protocol_tb": {
+      "marker": "REVIEW_RECON_PROTOCOL_COMPLETE",
+      "metrics": {
+        "total_checks": null
+      },
+      "oracle": "Directed unconfigured/cancel/error\nscenarios; ID/flags and prior-output hold.",
+      "limitation": "Completion only: no total check count logged.",
+      "tb_lines": [
+        20,
+        55
+      ]
+    },
+    "review_top_protocol_tb": {
+      "marker": "REVIEW_TOP_PROTOCOL_COMPLETE",
+      "metrics": {
+        "check_calls": 1108,
+        "reported_outputs": 38
+      },
+      "oracle": "Top-port configuration and result oracle;\nreadback, rejection, epochs and IDs.",
+      "limitation": "38 outputs is the TB's printed count.",
+      "tb_lines": [
+        29,
+        175
+      ]
+    },
+    "review_config_tb": {
+      "marker": "REVIEW_CONFIG_COMPLETE",
+      "metrics": {
+        "output_valid_events": 624,
+        "assertion_count": null
+      },
+      "oracle": "Configuration completeness/collision\nand atomic epoch guards; dither-bin checks.",
+      "limitation": "624 outputs are not 624 independent tests.",
+      "tb_lines": [
+        25,
+        82
+      ]
+    }
+  }
+}

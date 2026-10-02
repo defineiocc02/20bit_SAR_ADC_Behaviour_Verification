@@ -1,0 +1,2 @@
+STRUCTURAL_ADC_COMPLETE modes=3 outputs=438 checks=7680 physical_slices=18 recon_stages=7 recon_latency=11 latency_checks=438
+- sim/tb/structural_adc_tb.sv:195: Verilog $finish

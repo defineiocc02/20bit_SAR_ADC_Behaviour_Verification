@@ -1,0 +1,222 @@
+{
+  "scope": "FROZEN_ZERO_DELAY_RTL_LOG_EVIDENCE_NOT_STA_OR_ANALOG_SIGNOFF",
+  "script_sha256": "0052d35df56c0b84683dc8801e0554de4fe399722698aa5e6f8e580b8fd46336",
+  "inputs_sha256": {
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/result.json": "2f15efd09ca6cb32762f5f2e89524ed3128b9741492be1556db6de55e6582c32",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/source_manifest.json": "8c781172b9b9db072462da9305f98ec2580099da5d4577b206274ae533327caa",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/p2_oracle_tb.run.log": "20c016e8e8f183fab7ced1c83b2c6a18f4a8f1f641641a3bba0d98e24fb74829",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/p2_oracle_tb.sv": "11339db76a0c5e664114c7376875220e081377d266221d36a7ff39b569476b54",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/divider_borrow_tb.run.log": "1d77b485b6ce72b0047c5774f676f07469cf0a6e3815eb31b9b623ab86a82c25",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/divider_borrow_tb.sv": "56f942cba7f4744626f6219f32d224cc4e451d0b33536dd6344d98a010d97a6d",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/cal_weight_reduce_ppa_tb.run.log": "6e74de8996c5c58b8d349ff8ea3041ac85bfc0d2acf9ca61dd980270c12280dc",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/cal_weight_reduce_ppa_tb.sv": "3534cbb4f6a8f896008723073780cb916fe99b9f02fe1fab4b02e878436c81e5",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/calibration_physical_tb.run.log": "55712f89783d0466cc4df6a99d6b094dc333baad6985869ed792d4d012ebd00a",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/calibration_physical_tb.sv": "5bb94083f056da90439613d1cbc4028d86c94d66e16db5ce14b540e201ec1e91",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/calibration_recovery_tb.run.log": "505f8ec3b4ffb5ec9563d4806b58b314b296ae0d2b05cce4a8796a200d7b0892",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/calibration_recovery_tb.sv": "caaefd533252c5ae000e8e363dc8ea3ef7376a48baa9e84c8d1ea7470bf92749",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/calibration_fit_tb.run.log": "c6573922c21a6eaca38261ea91e6ed7e954be8f610555f0433be61a09057fe60",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/calibration_fit_tb.sv": "32c0bcdccfb949a34cc370bf8af6a48c5f9a2ebc41755d9cbd9f68ca581db2b6",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/p2_tb.run.log": "01db724fc78867435ccbd0ab19abb9fca015fb3ab82126e65435485b212311ba",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/p2_tb.sv": "95615692a7ea21bb164c28fe51cbc2ad68e8d2098294af5db0fd47ccc8f22b99"
+  },
+  "images_sha256": {
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_arithmetic.png": "e1a19c9f9cbf57b2dad182d4da507c6fde5fafe882c05d68323955c5db7fc789",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_arithmetic.pdf": "0faf3533d722a6b8bd219639abcde110ac9edd7bc09ab1be44b86077e42d4ba6"
+  },
+  "benches": {
+    "p2_oracle_tb": {
+      "marker": "P2_ORACLE_COMPLETE codes=1048576 errors=0",
+      "metrics": {
+        "codes": 1048576,
+        "errors": 0
+      },
+      "oracle": "Identity: dout == input code;\nzero flags and 11-cycle completion.",
+      "limitation": "One-slice fixture; not all configurations.",
+      "tb_lines": [
+        50,
+        93
+      ]
+    },
+    "divider_borrow_tb": {
+      "marker": "DIVIDER_BORROW_COMPLETE exhaustive_checks=67592",
+      "metrics": {
+        "combinations": 67592,
+        "cases_WA_WD_stages_checks": [
+          [
+            2,
+            1,
+            1,
+            8
+          ],
+          [
+            6,
+            5,
+            5,
+            2048
+          ],
+          [
+            6,
+            8,
+            7,
+            16384
+          ],
+          [
+            6,
+            8,
+            3,
+            16384
+          ],
+          [
+            6,
+            8,
+            2,
+            16384
+          ],
+          [
+            6,
+            8,
+            1,
+            16384
+          ]
+        ]
+      },
+      "oracle": "Signed floor reference + defining\ninequality; zero divisor, busy and hold.",
+      "limitation": "Six small-width parameter fixtures.",
+      "tb_lines": [
+        28,
+        89
+      ]
+    },
+    "cal_weight_reduce_ppa_tb": {
+      "marker": "CAL_WEIGHT_REDUCE_PPA_COMPLETE",
+      "metrics": {
+        "miter_cases": 1430848,
+        "fixture_records": [
+          [
+            1,
+            1,
+            2,
+            1,
+            2,
+            2176,
+            0
+          ],
+          [
+            3,
+            2,
+            3,
+            2,
+            3,
+            2608,
+            0
+          ],
+          [
+            3,
+            2,
+            3,
+            2,
+            4,
+            2608,
+            0
+          ],
+          [
+            32,
+            8,
+            3,
+            1,
+            3,
+            3072,
+            0
+          ],
+          [
+            1,
+            1,
+            128,
+            4,
+            128,
+            3408,
+            0
+          ],
+          [
+            32,
+            32,
+            2,
+            1,
+            2,
+            6144,
+            0
+          ],
+          [
+            18,
+            8,
+            71,
+            4,
+            71,
+            1410832,
+            43758
+          ]
+        ],
+        "allocation_subsets": 43758
+      },
+      "oracle": "Bit-exact T/G/R miter against the\nprevious three-tree RTL + invalid-ID rule.",
+      "limitation": "Shared mathematics: equivalence, not physics.",
+      "tb_lines": [
+        29,
+        133
+      ]
+    },
+    "calibration_physical_tb": {
+      "marker": "CALIBRATION_PHYSICAL_COMPLETE",
+      "metrics": {
+        "transactions": 2048,
+        "slices": 18
+      },
+      "oracle": "Independent 256-bit integer formula;\ncode, flags, ID and input capture.",
+      "limitation": "18 slices, reduced 8-cell test geometry.",
+      "tb_lines": [
+        34,
+        92
+      ]
+    },
+    "calibration_recovery_tb": {
+      "marker": "CALIBRATION_RECOVERY_COMPLETE",
+      "metrics": {
+        "transactions": 2048,
+        "max_calibrated_codes": 4,
+        "max_nominal_codes": 504
+      },
+      "oracle": "Known target -> synthetic residue ->\ncalibrated and nominal-weight outputs.",
+      "limitation": "Synthetic mismatch + ideal ADC2 quantization.",
+      "tb_lines": [
+        35,
+        75
+      ]
+    },
+    "calibration_fit_tb": {
+      "marker": "CALIBRATION_FIT_COMPLETE",
+      "metrics": {
+        "holdout_samples": 128,
+        "loaded_weights": 1278
+      },
+      "oracle": "Frozen external holdout vectors;\ncode/flags/ID/latency + coefficient readback.",
+      "limitation": "Fitted coefficients loaded, not learned in RTL.",
+      "tb_lines": [
+        67,
+        134
+      ]
+    },
+    "p2_tb": {
+      "marker": "P2 RESULT: PASS",
+      "metrics": {
+        "TB_check_counter": 23049,
+        "errors": 0
+      },
+      "oracle": "Golden vectors + floor inequality;\nrounding, masks, carry, clipping and link.",
+      "limitation": "T5 full-code sweep is a separate bench.",
+      "tb_lines": [
+        402,
+        869
+      ]
+    }
+  }
+}

@@ -158,3 +158,33 @@ def test_quantized_frozen_weights_preserve_the_holdout_calibration_benefit(noisy
     assert np.max(np.abs(stream.voltage - r.out)) < 0.51 * cfg.lsb_target
     assert np.std(stream.voltage - r.x_ref) < 60e-6
     assert np.std(stream.voltage - r.x_ref) < 0.3 * np.std(r.uncalibrated_out - r.x_ref)
+
+
+def test_fitted_coefficients_export_as_the_exact_rtl_register_image(noisy_fit, monkeypatch):
+    import hashlib
+    import importlib
+    from pathlib import Path
+
+    from adi_model.fixed_point import FixedPointReconstructor
+    from adi_model.weight_calibration import CalibrationSpec
+
+    cfg, training, _, model, _ = noisy_fit
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[2] / "tools"))
+    exporter = importlib.import_module("export_fitted_rtl")
+    monkeypatch.setitem(exporter._CONFIG_FACTORIES, "fit_fixture", lambda: cfg)
+    frozen_bytes = json.dumps(model.to_dict(), allow_nan=False).encode("utf-8")
+    registers, manifest = exporter.build_fitted_registers("fit_fixture", frozen_bytes)
+    info = json.loads(manifest)
+    assert info["register_sha256"] == hashlib.sha256(registers.encode("utf-8")).hexdigest()
+    assert info["frozen_file_sha256"] == hashlib.sha256(frozen_bytes).hexdigest()
+    assert info["training_digest"] == model.training_digest
+    decoder = FixedPointReconstructor.from_dict(json.loads(registers))
+    direct = FixedPointReconstructor.from_frozen_calibration(
+        CalibrationSpec.from_config(cfg), model
+    )
+    data = DigitalObservation.from_result(training)
+    np.testing.assert_array_equal(decoder.reconstruct(data).code, direct.reconstruct(data).code)
+    with pytest.raises(ValueError, match="geometry or Vfs"):
+        FixedPointReconstructor.from_frozen_calibration(
+            CalibrationSpec.from_config(replace(cfg, v_fs=cfg.v_fs * 1.01)), model
+        )

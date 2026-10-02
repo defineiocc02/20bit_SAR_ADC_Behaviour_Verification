@@ -1,0 +1,70 @@
+{
+  "scope": "P5_SAME_SYNTH_CONSTRAINTS_AND_ACTUAL_ROUTE_CORE_ONLY_NO_BOARD_OR_ASIC",
+  "tool": "Vivado 2018.3",
+  "part": "xc7vx690tffg1761-2",
+  "stages": 5,
+  "period_ns": 25.0,
+  "changed_source_only": [
+    "rtl/core/weight_store.sv"
+  ],
+  "source_sha256": {
+    "cached": "146ad97a147d55b6bb8e6cc8e8a145a9db4a449dd01f5cf16ba85d3a61bd65f7",
+    "shared_old": "14d3ada75223fa262036189cc9e444bec74b23cc347ede7c95a09c99b11bf2db"
+  },
+  "source_tcl_sha256": "f9084c25618a94b8bd492e2dc699d6cb15a46d72a8be8e55d4c453b623487ed7",
+  "identical_xdc_sha256": "19cb72c5eb1c295798846e1564aa4805b8c0719b86ec3c6fe77717cd2d7a7b6c",
+  "metrics_post_synth": {
+    "lut": {
+      "cached": 106205,
+      "shared_old": 108842,
+      "delta": 2637,
+      "delta_percent": 2.4829339484958357
+    },
+    "ff": {
+      "cached": 66520,
+      "shared_old": 66492,
+      "delta": -28,
+      "delta_percent": -0.04209260372820545
+    },
+    "dsp": {
+      "cached": 20,
+      "shared_old": 20,
+      "delta": 0,
+      "delta_percent": 0.0
+    },
+    "bram_tiles": {
+      "cached": 0,
+      "shared_old": 0,
+      "delta": 0,
+      "delta_percent": null
+    },
+    "latch": {
+      "cached": 0,
+      "shared_old": 0,
+      "delta": 0,
+      "delta_percent": null
+    }
+  },
+  "synth_setup_wns_ns": {
+    "cached": 10.64,
+    "shared_old": 10.64
+  },
+  "route_setup_wns_ns": {
+    "cached": -0.28,
+    "shared_old": 0.946
+  },
+  "route_regreg_hold_whs_ns": {
+    "cached": 0.062,
+    "shared_old": 0.052
+  },
+  "route_ooc_hold_whs_ns": {
+    "cached": -2.361,
+    "shared_old": -2.278
+  },
+  "dcp_sha256": {
+    "cached": "670d019aaec0efe80e060342ff0dbd748c0029b4c01d6a42e741de32ecb05ff1",
+    "shared_old": "63a6faacdc44e54da02514a70ff658ac31756853496114513018ac5714cc856e"
+  },
+  "route_run_script_scope": "Same requested period, uncertainty, BUFG site and opt/place/phys_opt/route commands. Shared-old includes corrected true-register timing query; baseline independent regreg follow-up provides comparable sequential-pin STA.",
+  "interpretation": "+2.483% synthesis LUT overhead; core 25ns setup/hold now passes actual routed STA, baseline setup failed. Whole OOC external hold remains negative and Fmax above40MHz is not certified."
+}

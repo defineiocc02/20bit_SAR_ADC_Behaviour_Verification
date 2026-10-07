@@ -1,0 +1,113 @@
+#-----------------------------------------------------------
+# Vivado v2018.3 (64-bit)
+# SW Build 2405991 on Thu Dec  6 23:38:27 MST 2018
+# IP Build 2404404 on Fri Dec  7 01:43:56 MST 2018
+# Start of session at: Wed Oct  7 14:57:49 2026
+# Process ID: 17928
+# Current directory: C:/Users/Administrator
+# Command line: vivado.exe -mode batch -nojournal -log C:\Users\Administrator\adc_rtl_vivado\analysis.20261007.753387dfc10a4c9ca8f2f917fce3d5ec\vivado.log -source C:\Users\Administrator\adc_rtl_vivado\analysis.20261007.753387dfc10a4c9ca8f2f917fce3d5ec\reopen_route.tcl -tclargs C:/Users/Administrator/adc_rtl_vivado/run.86ebbd7c9da34a33b49af64888b4797e/out/post_route.dcp C:\Users\Administrator\adc_rtl_vivado\analysis.20261007.753387dfc10a4c9ca8f2f917fce3d5ec\out
+# Log file: C:/Users/Administrator/adc_rtl_vivado/analysis.20261007.753387dfc10a4c9ca8f2f917fce3d5ec/vivado.log
+# Journal file: 
+#-----------------------------------------------------------
+source {C:\Users\Administrator\adc_rtl_vivado\analysis.20261007.753387dfc10a4c9ca8f2f917fce3d5ec\reopen_route.tcl}
+# if {$argc != 2} { puts stderr "Usage: DCP NEW_REPORT_DIR"; exit 2 }
+# lassign $argv dcp out
+# if {[file exists $out]} { puts stderr "Refusing existing output"; exit 2 }
+# file mkdir $out
+Command: open_checkpoint C:/Users/Administrator/adc_rtl_vivado/run.86ebbd7c9da34a33b49af64888b4797e/out/post_route.dcp
+
+Starting open_checkpoint Task
+
+Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.029 . Memory (MB): peak = 243.410 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 21272 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-479] Netlist was created with Vivado 2018.3
+INFO: [Device 21-403] Loading part xc7vx690tffg1761-2
+INFO: [Project 1-570] Preparing netlist for logic optimization
+INFO: [Timing 38-478] Restoring timing data from binary archive.
+INFO: [Timing 38-479] Binary timing data restore complete.
+INFO: [Project 1-856] Restoring constraints from binary archive.
+INFO: [Project 1-853] Binary constraint restore complete.
+Reading XDEF placement.
+Reading placer database...
+Reading XDEF routing.
+Read XDEF File: Time (s): cpu = 00:00:10 ; elapsed = 00:00:11 . Memory (MB): peak = 2953.793 ; gain = 173.945
+Restored from archive | CPU: 10.000000 secs | Memory: 0.000000 MB |
+Finished XDEF File Restore: Time (s): cpu = 00:00:10 ; elapsed = 00:00:11 . Memory (MB): peak = 2953.793 ; gain = 173.945
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.048 . Memory (MB): peak = 2953.793 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+INFO: [Project 1-604] Checkpoint was created with Vivado v2018.3 (64-bit) build 2405991
+open_checkpoint: Time (s): cpu = 00:00:44 ; elapsed = 00:00:51 . Memory (MB): peak = 2953.793 ; gain = 2713.258
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min_max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+report_timing_summary: Time (s): cpu = 00:00:45 ; elapsed = 00:00:29 . Memory (MB): peak = 3203.352 ; gain = 249.559
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -max_paths 10 -nworst 1 -delay_type max -sort_by slack.
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -max_paths 10 -nworst 1 -delay_type min -sort_by slack.
+CRITICAL WARNING: [Vivado 12-4439] The number of objects collected by the 'to' option of 'report_timing' is very large: 199440. This may lead to serious performance issues and out-of-memory conditions in handling the results.
+Resolution: Further filtering of the command results, or narrowing the scope of the command is recommended.
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: max.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 10 -nworst 1 -delay_type max -sort_by slack.
+CRITICAL WARNING: [Vivado 12-4439] The number of objects collected by the 'to' option of 'report_timing' is very large: 199440. This may lead to serious performance issues and out-of-memory conditions in handling the results.
+Resolution: Further filtering of the command results, or narrowing the scope of the command is recommended.
+INFO: [Timing 38-91] UpdateTimingParams: Speed grade: -2, Delay Type: min.
+INFO: [Timing 38-191] Multithreading enabled for timing update using a maximum of 2 CPUs
+INFO: [Timing 38-78] ReportTimingParams: -from_pins  -to_pins  -max_paths 10 -nworst 1 -delay_type min -sort_by slack.
+report_timing: Time (s): cpu = 00:00:16 ; elapsed = 00:00:09 . Memory (MB): peak = 3290.230 ; gain = 40.719
+report_utilization: Time (s): cpu = 00:00:17 ; elapsed = 00:00:18 . Memory (MB): peak = 3373.355 ; gain = 83.125
+Netlist sorting complete. Time (s): cpu = 00:00:01 ; elapsed = 00:00:00.049 . Memory (MB): peak = 3373.355 ; gain = 0.000
+report_high_fanout_nets: Time (s): cpu = 00:00:08 ; elapsed = 00:00:08 . Memory (MB): peak = 3373.355 ; gain = 0.000
+report_high_fanout_nets: Time (s): cpu = 00:00:08 ; elapsed = 00:00:08 . Memory (MB): peak = 3373.355 ; gain = 0.000
+# set rc [catch {
+#     open_checkpoint $dcp
+#     if {[version -short] ne "2018.3"} { error "Unexpected Vivado version" }
+#     set_param general.maxThreads 2
+#     report_timing_summary -report_unconstrained -file [file join $out timing_summary.rpt]
+#     report_timing -delay_type max -max_paths 10 -file [file join $out timing_max_paths.rpt]
+#     report_timing -delay_type min -max_paths 10 -file [file join $out timing_min_paths.rpt]
+#     set launch [all_registers -clock_pins]
+#     set capture [all_registers -data_pins]
+#     if {![llength $launch] || ![llength $capture]} {error "Empty register timing endpoint sets"}
+#     report_timing -delay_type max -from $launch -to $capture -max_paths 10 -file [file join $out timing_core_max.rpt]
+#     report_timing -delay_type min -from $launch -to $capture -max_paths 10 -file [file join $out timing_core_min.rpt]
+#     check_timing -verbose -file [file join $out check_timing.rpt]
+#     report_clocks -file [file join $out clocks.rpt]
+#     report_exceptions -summary -file [file join $out exceptions.rpt]
+#     report_utilization -file [file join $out utilization.rpt]
+#     write_xdc [file join $out loaded_constraints.xdc]
+#     # Keep actual-version help and optional diagnostics; failure is explicit.
+#     set fh [open [file join $out high_fanout_status.txt] w]
+#     puts $fh [help report_high_fanout_nets]
+#     if {[catch {report_high_fanout_nets -max_nets 25 -file [file join $out high_fanout.rpt]} msg]} {
+#         puts $fh "HIGH_FANOUT_REPORT_STATUS=ERROR"
+#         puts $fh $msg
+#     } else {puts $fh "HIGH_FANOUT_REPORT_STATUS=COMPLETE"}
+#     close $fh
+#     set fh [open [file join $out scope.txt] w]
+#     puts $fh "STATUS=FROZEN_DCP_REPORT_REEXPORT_COMPLETE"
+#     puts $fh "VIVADO_VERSION=[version -short]"
+#     puts $fh "PART=[get_property PART [current_design]]"
+#     puts $fh "INPUT_DCP=$dcp"
+#     puts $fh "REGISTER_CLOCK_PINS=[llength $launch]"
+#     puts $fh "REGISTER_DATA_PINS=[llength $capture]"
+#     puts $fh "NO_SYNTHESIS_OR_PLACE_ROUTE=1"
+#     puts $fh "NO_CONSTRAINT_EDIT=1"
+#     puts $fh "SCOPE=HISTORICAL_P5_ROUTED_FPGA_REEXPORT_NOT_CURRENT_P7_OR_ASIC"
+#     close $fh
+# } msg opts]
+# if {$rc} {
+#     set fh [open [file join $out failure.txt] w]
+#     puts $fh $msg
+#     puts $fh [dict get $opts -errorinfo]
+#     close $fh
+#     puts stderr $msg
+#     exit 1
+# }
+# exit 0
+INFO: [Common 17-206] Exiting Vivado at Wed Oct  7 15:00:02 2026...

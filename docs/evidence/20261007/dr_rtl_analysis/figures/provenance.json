@@ -1,0 +1,29 @@
+{
+  "sources": {
+    "baseline/extracted_metrics.json": "e9283dc6e3cae1625d53d4b55ae33b56d9077c9f7bd78f24e7100e8fb418c446",
+    "cone_synthesis/synthesis_summary.json": "485d22dfae903cb9489f0064282fb613a450a97f9f8b04888f30c46d838d754b",
+    "report/plot_evidence.py": "0c271cb9621c8b8267994ba408dcffef510a04a51b43e00dda2ead2b2ec42496"
+  },
+  "output_sha256": {
+    "01_routed_timing.pdf": "f4725f1997e444f9460a1779beb15690b6da648802bd80047bb5ad8b7864d733",
+    "01_routed_timing.png": "c8645fabe484cee9fa59445483a185a26edf31dafb90852a0d01601cc8cb7d0a",
+    "02_routed_fanout.pdf": "d73cdc9951d567fe53e605aa09746daa7db8fe6b4a56ac9885921804037507cd",
+    "02_routed_fanout.png": "5b5de0e8eb3fde478bbe7c868183fc1a3a2027d06d7d8c7fa07dee70f850bdd8",
+    "03_divider_structure.pdf": "6b7233b1a549c27c8738166d668455dd5da08701ac4d3137753217d9ef5c3344",
+    "03_divider_structure.png": "c8dcba767c4030a64b217b107e4e37e7574b40e584149bfc65f33688af513a9d"
+  },
+  "scope": "original figures derived from measured reports and generic structural counts",
+  "runtime": {
+    "python": "3.12.14 (main, Aug 14 2026, 15:24:41) [Clang 22.1.3 ]",
+    "executable": "/Users/zhaoyi/.cache/uv/builds-v0/.tmpcFAmpk/bin/python",
+    "matplotlib": "3.11.2",
+    "pymupdf": "1.28.2",
+    "command": "uv run --offline --no-project --python 3.12 --with matplotlib==3.11.2 --with pymupdf python report/plot_evidence.py",
+    "scope": "cached plotting/PDF packages, no STA installation"
+  },
+  "visual_review": {
+    "status": "pass",
+    "viewer": "root tool view_image of all three complete PNGs",
+    "checks": "labels/readability, data provenance, no cropping or overlap"
+  }
+}

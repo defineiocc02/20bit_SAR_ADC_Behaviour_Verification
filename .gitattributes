@@ -123,3 +123,6 @@ docs/evidence/20261001/** -text -whitespace -diff
 
 # The standalone re-audit compiler log retains its diagnostic whitespace.
 docs/evidence/20261002/principle_reaudit/report_xelatex.log -whitespace
+
+# Dr. RTL analysis keeps source/report/API snapshots and remote CRLF verbatim.
+docs/evidence/20261007/dr_rtl_analysis/** -text -whitespace -diff

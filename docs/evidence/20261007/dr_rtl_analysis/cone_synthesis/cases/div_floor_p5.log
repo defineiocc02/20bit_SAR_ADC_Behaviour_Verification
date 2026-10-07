@@ -1,0 +1,869 @@
+
+-- Running command `script /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/div_floor_p5.ys' --
+
+-- Executing script file `/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/div_floor_p5.ys' --
+
+1. Executing Verilog-2005 frontend: rtl/core/div_floor.sv
+Parsing SystemVerilog input from `rtl/core/div_floor.sv' to AST representation.
+Generating RTLIL representation for module `\div_floor'.
+Warning: Replacing memory \r_chain with list of registers. See rtl/core/div_floor.sv:99, rtl/core/div_floor.sv:95
+Successfully finished Verilog frontend.
+Parameter \P_STAGES = 5
+
+2. Executing AST frontend in derive mode using pre-parsed AST for module `\div_floor'.
+Parameter \P_STAGES = 5
+Generating RTLIL representation for module `$paramod\div_floor\P_STAGES=32'00000000000000000000000000000101'.
+Warning: Replacing memory \r_chain with list of registers. See rtl/core/div_floor.sv:99, rtl/core/div_floor.sv:95
+
+3. Executing HIERARCHY pass (managing design hierarchy).
+
+3.1. Analyzing design hierarchy..
+Top module:  \div_floor
+
+3.2. Analyzing design hierarchy..
+Top module:  \div_floor
+Removed 0 unused modules.
+
+4. Executing PROC pass (convert processes to netlists).
+
+4.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Found and cleaned up 1 empty switch in `\div_floor.$proc$rtl/core/div_floor.sv:87$87'.
+Removing empty process `div_floor.$proc$rtl/core/div_floor.sv:87$87'.
+Cleaned up 1 empty switch.
+
+4.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Marked 4 switch rules as full_case in process $proc$rtl/core/div_floor.sv:117$72 in module div_floor.
+Marked 5 switch rules as full_case in process $proc$rtl/core/div_floor.sv:94$49 in module div_floor.
+Removed a total of 0 dead cases.
+
+4.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 1 redundant assignment.
+Promoted 16 assignments to connections.
+
+4.4. Executing PROC_INIT pass (extract init attributes).
+
+4.5. Executing PROC_ARST pass (detect async resets in processes).
+
+4.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+<suppressed ~10 debug messages>
+
+4.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+Creating decoders for process `\div_floor.$proc$rtl/core/div_floor.sv:117$72'.
+     1/12: $0\done[0:0]
+     2/12: $0\err_r[0:0]
+     3/12: $0\run[0:0]
+     4/12: $0\cnt[3:0]
+     5/12: $0\neg[0:0]
+     6/12: $0\quo[64:0]
+     7/12: $0\rem[62:0]
+     8/12: $0\dv_large[0:0]
+     9/12: $0\dv[62:0]
+    10/12: $0\mag[64:0]
+    11/12: $0\err[0:0]
+    12/12: $0\q[62:0]
+Creating decoders for process `\div_floor.$proc$rtl/core/div_floor.sv:94$49'.
+     1/10: $5\qbits[0:0]
+     2/10: $1\r_chain[5][62:0]
+     3/10: $4\qbits[1:1]
+     4/10: $1\r_chain[4][62:0]
+     5/10: $3\qbits[2:2]
+     6/10: $1\r_chain[3][62:0]
+     7/10: $2\qbits[3:3]
+     8/10: $1\r_chain[2][62:0]
+     9/10: $1\qbits[4:4]
+    10/10: $1\r_chain[1][62:0]
+
+4.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+No latch inferred for signal `\div_floor.\qbits' from process `\div_floor.$proc$rtl/core/div_floor.sv:94$49'.
+No latch inferred for signal `\div_floor.\r_next' from process `\div_floor.$proc$rtl/core/div_floor.sv:94$49'.
+No latch inferred for signal `\div_floor.\q_next' from process `\div_floor.$proc$rtl/core/div_floor.sv:94$49'.
+No latch inferred for signal `\div_floor.\shifted' from process `\div_floor.$proc$rtl/core/div_floor.sv:94$49'.
+No latch inferred for signal `\div_floor.\trial_difference' from process `\div_floor.$proc$rtl/core/div_floor.sv:94$49'.
+No latch inferred for signal `\div_floor.\s' from process `\div_floor.$proc$rtl/core/div_floor.sv:94$49'.
+No latch inferred for signal `\div_floor.\r_chain[0]' from process `\div_floor.$proc$rtl/core/div_floor.sv:94$49'.
+No latch inferred for signal `\div_floor.\r_chain[1]' from process `\div_floor.$proc$rtl/core/div_floor.sv:94$49'.
+No latch inferred for signal `\div_floor.\r_chain[2]' from process `\div_floor.$proc$rtl/core/div_floor.sv:94$49'.
+No latch inferred for signal `\div_floor.\r_chain[3]' from process `\div_floor.$proc$rtl/core/div_floor.sv:94$49'.
+No latch inferred for signal `\div_floor.\r_chain[4]' from process `\div_floor.$proc$rtl/core/div_floor.sv:94$49'.
+No latch inferred for signal `\div_floor.\r_chain[5]' from process `\div_floor.$proc$rtl/core/div_floor.sv:94$49'.
+
+4.9. Executing PROC_DFF pass (convert process syncs to FFs).
+Creating register for signal `\div_floor.\q' using process `\div_floor.$proc$rtl/core/div_floor.sv:117$72'.
+  created $dff cell `$procdff$233' with positive edge clock.
+Creating register for signal `\div_floor.\err' using process `\div_floor.$proc$rtl/core/div_floor.sv:117$72'.
+  created $dff cell `$procdff$234' with positive edge clock.
+Creating register for signal `\div_floor.\done' using process `\div_floor.$proc$rtl/core/div_floor.sv:117$72'.
+  created $dff cell `$procdff$235' with positive edge clock.
+Creating register for signal `\div_floor.\mag' using process `\div_floor.$proc$rtl/core/div_floor.sv:117$72'.
+  created $dff cell `$procdff$236' with positive edge clock.
+Creating register for signal `\div_floor.\dv' using process `\div_floor.$proc$rtl/core/div_floor.sv:117$72'.
+  created $dff cell `$procdff$237' with positive edge clock.
+Creating register for signal `\div_floor.\dv_large' using process `\div_floor.$proc$rtl/core/div_floor.sv:117$72'.
+  created $dff cell `$procdff$238' with positive edge clock.
+Creating register for signal `\div_floor.\rem' using process `\div_floor.$proc$rtl/core/div_floor.sv:117$72'.
+  created $dff cell `$procdff$239' with positive edge clock.
+Creating register for signal `\div_floor.\quo' using process `\div_floor.$proc$rtl/core/div_floor.sv:117$72'.
+  created $dff cell `$procdff$240' with positive edge clock.
+Creating register for signal `\div_floor.\neg' using process `\div_floor.$proc$rtl/core/div_floor.sv:117$72'.
+  created $dff cell `$procdff$241' with positive edge clock.
+Creating register for signal `\div_floor.\cnt' using process `\div_floor.$proc$rtl/core/div_floor.sv:117$72'.
+  created $dff cell `$procdff$242' with positive edge clock.
+Creating register for signal `\div_floor.\run' using process `\div_floor.$proc$rtl/core/div_floor.sv:117$72'.
+  created $dff cell `$procdff$243' with positive edge clock.
+Creating register for signal `\div_floor.\err_r' using process `\div_floor.$proc$rtl/core/div_floor.sv:117$72'.
+  created $dff cell `$procdff$244' with positive edge clock.
+
+4.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+4.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Found and cleaned up 5 empty switches in `\div_floor.$proc$rtl/core/div_floor.sv:117$72'.
+Removing empty process `div_floor.$proc$rtl/core/div_floor.sv:117$72'.
+Found and cleaned up 5 empty switches in `\div_floor.$proc$rtl/core/div_floor.sv:94$49'.
+Removing empty process `div_floor.$proc$rtl/core/div_floor.sv:94$49'.
+Cleaned up 10 empty switches.
+
+4.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+<suppressed ~16 debug messages>
+
+5. Executing OPT pass (performing simple optimizations).
+
+5.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+
+5.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\div_floor'.
+Computing hashes of 97 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+Computing hashes of 93 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+<suppressed ~12 debug messages>
+Removed a total of 4 cells.
+
+5.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \div_floor..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+      Replacing known input bits on port A of cell $ternary$rtl/core/div_floor.sv:134$78: \a -> { 1'0 \a [61:0] }
+      Replacing known input bits on port A of cell $procmux$108: \run -> 1'0
+      Replacing known input bits on port A of cell $procmux$106: \run -> 1'1
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~75 debug messages>
+
+5.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \div_floor.
+Performed a total of 0 changes.
+
+5.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\div_floor'.
+Computing hashes of 93 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+Removed a total of 0 cells.
+
+5.6. Executing OPT_DFF pass (perform DFF optimizations).
+Adding SRST signal on $procdff$243 ($dff) from module div_floor (D = $procmux$111_Y, Q = \run, rval = 1'0).
+Adding SRST signal on $procdff$244 ($dff) from module div_floor (D = $procmux$100_Y, Q = \err_r, rval = 1'0).
+Adding EN signal on $auto$ff.cc:337:slice$246 ($sdff) from module div_floor (D = $eq$rtl/core/div_floor.sv:142$79_Y, Q = \err_r).
+Adding SRST signal on $procdff$239 ($dff) from module div_floor (D = $procmux$147_Y, Q = \rem, rval = 63'000000000000000000000000000000000000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:337:slice$248 ($sdff) from module div_floor (D = \r_next, Q = \rem).
+Adding SRST signal on $procdff$240 ($dff) from module div_floor (D = $procmux$136_Y, Q = \quo, rval = 65'00000000000000000000000000000000000000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:337:slice$258 ($sdff) from module div_floor (D = \q_next, Q = \quo).
+Adding SRST signal on $procdff$241 ($dff) from module div_floor (D = $procmux$128_Y, Q = \neg, rval = 1'0).
+Adding EN signal on $auto$ff.cc:337:slice$268 ($sdff) from module div_floor (D = \a [62], Q = \neg).
+Adding SRST signal on $procdff$242 ($dff) from module div_floor (D = $procmux$119_Y, Q = \cnt, rval = 4'0000).
+Adding EN signal on $auto$ff.cc:337:slice$270 ($sdff) from module div_floor (D = $add$rtl/core/div_floor.sv:159$86_Y, Q = \cnt).
+Adding SRST signal on $procdff$233 ($dff) from module div_floor (D = $procmux$198_Y, Q = \q, rval = 63'000000000000000000000000000000000000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:337:slice$280 ($sdff) from module div_floor (D = $procmux$191_Y, Q = \q).
+Adding SRST signal on $procdff$234 ($dff) from module div_floor (D = $procmux$184_Y, Q = \err, rval = 1'0).
+Adding EN signal on $auto$ff.cc:337:slice$286 ($sdff) from module div_floor (D = \err_r, Q = \err).
+Adding SRST signal on $procdff$235 ($dff) from module div_floor (D = $procmux$89_Y, Q = \done, rval = 1'0).
+Adding SRST signal on $procdff$236 ($dff) from module div_floor (D = $procmux$173_Y [62:0], Q = \mag [62:0], rval = 63'000000000000000000000000000000000000000000000000000000000000000).
+Adding SRST signal on $procdff$236 ($dff) from module div_floor (D = $procmux$170_Y [64:63], Q = \mag [64:63], rval = 2'00).
+Adding EN signal on $auto$ff.cc:337:slice$300 ($sdff) from module div_floor (D = $shl$rtl/core/div_floor.sv:156$85_Y [64:63], Q = \mag [64:63]).
+Adding EN signal on $auto$ff.cc:337:slice$299 ($sdff) from module div_floor (D = $procmux$173_Y [62:0], Q = \mag [62:0]).
+Adding SRST signal on $procdff$237 ($dff) from module div_floor (D = $procmux$162_Y, Q = \dv, rval = 63'000000000000000000000000000000000000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:337:slice$317 ($sdff) from module div_floor (D = { 3'000 \d }, Q = \dv).
+Adding SRST signal on $procdff$238 ($dff) from module div_floor (D = $procmux$156_Y, Q = \dv_large, rval = 1'0).
+Adding EN signal on $auto$ff.cc:337:slice$319 ($sdff) from module div_floor (D = 1'0, Q = \dv_large).
+Setting constant 0-bit at position 0 on $auto$ff.cc:337:slice$320 ($sdffe) from module div_floor.
+Setting constant 0-bit at position 60 on $auto$ff.cc:337:slice$318 ($sdffe) from module div_floor.
+Setting constant 0-bit at position 61 on $auto$ff.cc:337:slice$318 ($sdffe) from module div_floor.
+Setting constant 0-bit at position 62 on $auto$ff.cc:337:slice$318 ($sdffe) from module div_floor.
+
+5.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \div_floor..
+Removed 34 unused cells and 137 unused wires.
+<suppressed ~35 debug messages>
+
+5.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+<suppressed ~17 debug messages>
+
+5.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+5.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \div_floor..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~34 debug messages>
+
+5.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \div_floor.
+Performed a total of 0 changes.
+
+5.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\div_floor'.
+Computing hashes of 79 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+Computing hashes of 71 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+Computing hashes of 64 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+<suppressed ~45 debug messages>
+Removed a total of 15 cells.
+
+5.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+5.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \div_floor..
+Removed 5 unused cells and 26 unused wires.
+<suppressed ~6 debug messages>
+
+5.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+
+5.16. Rerunning OPT passes. (Maybe there is more to do..)
+
+5.17. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \div_floor..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~34 debug messages>
+
+5.18. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \div_floor.
+Performed a total of 0 changes.
+
+5.19. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\div_floor'.
+Computing hashes of 59 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+Removed a total of 0 cells.
+
+5.20. Executing OPT_DFF pass (perform DFF optimizations).
+
+5.21. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \div_floor..
+
+5.22. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+
+5.23. Finished fast OPT passes. (There is nothing left to do.)
+
+6. Executing CHECK pass (checking for obvious problems).
+Checking module div_floor...
+Found and reported 0 problems.
+
+7. Printing statistics.
+
+=== div_floor ===
+
+        +----------Local Count, excluding submodules.
+        | 
+       66 wires
+     2043 wire bits
+       31 public wires
+     1127 public wire bits
+        9 ports
+      192 port bits
+       59 cells
+        1   $add_4
+        2   $add_63
+        1   $eq_4
+        1   $logic_and_1
+        1   $logic_not_1
+        1   $logic_not_60
+        9   $mux_1
+        8   $mux_63
+        3   $mux_65
+        1   $ne_2
+        1   $neg_63
+        4   $not_1
+        1   $not_63
+        1   $or_65
+        2   $reduce_and_2
+        1   $reduce_and_3
+        1   $reduce_bool_2
+        1   $reduce_bool_63
+        1   $reduce_or_2
+        1   $reduce_or_3
+        2   $sdff_1
+        3   $sdffe_1
+        1   $sdffe_2
+        1   $sdffe_4
+        1   $sdffe_60
+        3   $sdffe_63
+        1   $sdffe_65
+        5   $sub_64
+
+8. Executing JSON backend.
+
+9. Executing SYNTH pass.
+
+9.1. Executing HIERARCHY pass (managing design hierarchy).
+
+9.1.1. Analyzing design hierarchy..
+Top module:  \div_floor
+
+9.1.2. Analyzing design hierarchy..
+Top module:  \div_floor
+Removed 0 unused modules.
+
+9.2. Executing PROC pass (convert processes to netlists).
+
+9.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+9.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Removed a total of 0 dead cases.
+
+9.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 0 redundant assignments.
+Promoted 0 assignments to connections.
+
+9.2.4. Executing PROC_INIT pass (extract init attributes).
+
+9.2.5. Executing PROC_ARST pass (detect async resets in processes).
+
+9.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+
+9.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+
+9.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+
+9.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+
+9.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+9.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+9.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+
+9.3. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+
+9.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \div_floor..
+
+9.5. Executing CHECK pass (checking for obvious problems).
+Checking module div_floor...
+Found and reported 0 problems.
+
+9.6. Executing OPT pass (performing simple optimizations).
+
+9.6.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+
+9.6.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\div_floor'.
+Computing hashes of 59 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+Removed a total of 0 cells.
+
+9.6.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \div_floor..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~34 debug messages>
+
+9.6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \div_floor.
+Performed a total of 0 changes.
+
+9.6.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\div_floor'.
+Computing hashes of 59 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+Removed a total of 0 cells.
+
+9.6.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+9.6.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \div_floor..
+
+9.6.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+
+9.6.9. Finished fast OPT passes. (There is nothing left to do.)
+
+9.7. Executing FSM pass (extract and optimize FSM).
+
+9.7.1. Executing FSM_DETECT pass (finding FSMs in design).
+
+9.7.2. Executing FSM_EXTRACT pass (extracting FSM from design).
+
+9.7.3. Executing FSM_OPT pass (simple optimizations of FSMs).
+
+9.7.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \div_floor..
+
+9.7.5. Executing FSM_OPT pass (simple optimizations of FSMs).
+
+9.7.6. Executing FSM_RECODE pass (re-assigning FSM state encoding).
+
+9.7.7. Executing FSM_INFO pass (dumping all available information on FSM cells).
+
+9.7.8. Executing FSM_MAP pass (mapping FSMs to basic logic).
+
+9.8. Executing OPT pass (performing simple optimizations).
+
+9.8.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+
+9.8.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\div_floor'.
+Computing hashes of 59 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+Removed a total of 0 cells.
+
+9.8.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \div_floor..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~34 debug messages>
+
+9.8.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \div_floor.
+Performed a total of 0 changes.
+
+9.8.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\div_floor'.
+Computing hashes of 59 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+Removed a total of 0 cells.
+
+9.8.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+9.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \div_floor..
+
+9.8.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+
+9.8.9. Finished fast OPT passes. (There is nothing left to do.)
+
+9.9. Executing WREDUCE pass (reducing word size of cells).
+Removed top 5 bits (of 65) from FF cell div_floor.$auto$ff.cc:337:slice$263 ($sdffe).
+Removed top 1 bits (of 63) from FF cell div_floor.$auto$ff.cc:337:slice$253 ($sdffe).
+Removed top 1 bits (of 64) from port A of cell div_floor.$sub$rtl/core/div_floor.sv:102$50 ($sub).
+Removed top 4 bits (of 64) from port B of cell div_floor.$sub$rtl/core/div_floor.sv:102$50 ($sub).
+Removed top 1 bits (of 64) from port A of cell div_floor.$sub$rtl/core/div_floor.sv:102$54 ($sub).
+Removed top 4 bits (of 64) from port B of cell div_floor.$sub$rtl/core/div_floor.sv:102$54 ($sub).
+Removed top 1 bits (of 64) from port A of cell div_floor.$sub$rtl/core/div_floor.sv:102$58 ($sub).
+Removed top 4 bits (of 64) from port B of cell div_floor.$sub$rtl/core/div_floor.sv:102$58 ($sub).
+Removed top 1 bits (of 64) from port A of cell div_floor.$sub$rtl/core/div_floor.sv:102$62 ($sub).
+Removed top 4 bits (of 64) from port B of cell div_floor.$sub$rtl/core/div_floor.sv:102$62 ($sub).
+Removed top 1 bits (of 64) from port A of cell div_floor.$sub$rtl/core/div_floor.sv:102$66 ($sub).
+Removed top 4 bits (of 64) from port B of cell div_floor.$sub$rtl/core/div_floor.sv:102$66 ($sub).
+Removed top 60 bits (of 65) from port B of cell div_floor.$or$rtl/core/div_floor.sv:114$71 ($or).
+Removed top 2 bits (of 65) from port Y of cell div_floor.$or$rtl/core/div_floor.sv:114$71 ($or).
+Removed top 2 bits (of 65) from port A of cell div_floor.$or$rtl/core/div_floor.sv:114$71 ($or).
+Removed top 62 bits (of 63) from port B of cell div_floor.$add$rtl/core/div_floor.sv:150$82 ($add).
+Removed top 3 bits (of 4) from port B of cell div_floor.$add$rtl/core/div_floor.sv:159$86 ($add).
+Removed top 2 bits (of 65) from mux cell div_floor.$procmux$173 ($mux).
+Removed top 1 bits (of 63) from mux cell div_floor.$procmux$213 ($mux).
+Removed top 1 bits (of 63) from mux cell div_floor.$procmux$219 ($mux).
+Removed top 1 bits (of 63) from mux cell div_floor.$procmux$225 ($mux).
+Removed top 1 bits (of 63) from mux cell div_floor.$procmux$231 ($mux).
+Removed top 2 bits (of 60) from FF cell div_floor.$auto$ff.cc:337:slice$263 ($sdffe).
+Removed top 2 bits (of 65) from mux cell div_floor.$procmux$170 ($mux).
+Removed top 2 bits (of 65) from mux cell div_floor.$procmux$168 ($mux).
+Removed top 2 bits (of 65) from wire div_floor.$procmux$168_Y.
+Removed top 2 bits (of 65) from wire div_floor.$procmux$170_Y.
+Removed top 2 bits (of 65) from wire div_floor.$procmux$173_Y.
+Removed top 3 bits (of 63) from wire div_floor.dv.
+Removed top 2 bits (of 65) from wire div_floor.q_next.
+Removed top 7 bits (of 65) from wire div_floor.quo.
+Removed top 1 bits (of 63) from wire div_floor.r_chain[0].
+Removed top 1 bits (of 63) from wire div_floor.r_chain[1].
+Removed top 1 bits (of 63) from wire div_floor.r_chain[2].
+Removed top 1 bits (of 63) from wire div_floor.r_chain[3].
+Removed top 1 bits (of 63) from wire div_floor.r_chain[4].
+Removed top 1 bits (of 63) from wire div_floor.rem.
+
+9.10. Executing PEEPOPT pass (run peephole optimizers).
+
+9.11. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \div_floor..
+Removed 0 unused cells and 12 unused wires.
+<suppressed ~1 debug messages>
+
+9.12. Executing ALUMACC pass (create $alu and $macc cells).
+Extracting $alu and $macc cells in module div_floor:
+  creating $macc model for $add$rtl/core/div_floor.sv:134$77 ($add).
+  creating $macc model for $add$rtl/core/div_floor.sv:150$82 ($add).
+  creating $macc model for $add$rtl/core/div_floor.sv:159$86 ($add).
+  creating $macc model for $neg$rtl/core/div_floor.sv:150$83 ($neg).
+  creating $macc model for $sub$rtl/core/div_floor.sv:102$50 ($sub).
+  creating $macc model for $sub$rtl/core/div_floor.sv:102$54 ($sub).
+  creating $macc model for $sub$rtl/core/div_floor.sv:102$58 ($sub).
+  creating $macc model for $sub$rtl/core/div_floor.sv:102$62 ($sub).
+  creating $macc model for $sub$rtl/core/div_floor.sv:102$66 ($sub).
+  merging $macc model for $add$rtl/core/div_floor.sv:150$82 into $neg$rtl/core/div_floor.sv:150$83.
+  creating $alu model for $macc $sub$rtl/core/div_floor.sv:102$62.
+  creating $alu model for $macc $sub$rtl/core/div_floor.sv:102$58.
+  creating $alu model for $macc $sub$rtl/core/div_floor.sv:102$54.
+  creating $alu model for $macc $sub$rtl/core/div_floor.sv:102$50.
+  creating $alu model for $macc $add$rtl/core/div_floor.sv:159$86.
+  creating $alu model for $macc $sub$rtl/core/div_floor.sv:102$66.
+  creating $alu model for $macc $add$rtl/core/div_floor.sv:134$77.
+  creating $macc cell for $neg$rtl/core/div_floor.sv:150$83: $auto$alumacc.cc:382:replace_macc$334
+  creating $alu cell for $add$rtl/core/div_floor.sv:134$77: $auto$alumacc.cc:512:replace_alu$335
+  creating $alu cell for $sub$rtl/core/div_floor.sv:102$66: $auto$alumacc.cc:512:replace_alu$338
+  creating $alu cell for $add$rtl/core/div_floor.sv:159$86: $auto$alumacc.cc:512:replace_alu$341
+  creating $alu cell for $sub$rtl/core/div_floor.sv:102$50: $auto$alumacc.cc:512:replace_alu$344
+  creating $alu cell for $sub$rtl/core/div_floor.sv:102$54: $auto$alumacc.cc:512:replace_alu$347
+  creating $alu cell for $sub$rtl/core/div_floor.sv:102$58: $auto$alumacc.cc:512:replace_alu$350
+  creating $alu cell for $sub$rtl/core/div_floor.sv:102$62: $auto$alumacc.cc:512:replace_alu$353
+  created 7 $alu and 1 $macc cells.
+
+9.13. Executing SHARE pass (SAT-based resource sharing).
+
+9.14. Executing OPT pass (performing simple optimizations).
+
+9.14.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+
+9.14.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\div_floor'.
+Computing hashes of 59 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+Removed a total of 0 cells.
+
+9.14.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \div_floor..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~34 debug messages>
+
+9.14.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \div_floor.
+Performed a total of 0 changes.
+
+9.14.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\div_floor'.
+Computing hashes of 59 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+Removed a total of 0 cells.
+
+9.14.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+9.14.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \div_floor..
+Removed 1 unused cells and 1 unused wires.
+<suppressed ~2 debug messages>
+
+9.14.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+
+9.14.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+9.14.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \div_floor..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~34 debug messages>
+
+9.14.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \div_floor.
+Performed a total of 0 changes.
+
+9.14.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\div_floor'.
+Computing hashes of 58 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+Removed a total of 0 cells.
+
+9.14.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+9.14.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \div_floor..
+
+9.14.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+
+9.14.16. Finished fast OPT passes. (There is nothing left to do.)
+
+9.15. Executing MEMORY pass.
+
+9.15.1. Executing OPT_MEM pass (optimize memories).
+Performed a total of 0 transformations.
+
+9.15.2. Executing OPT_MEM_PRIORITY pass (removing unnecessary memory write priority relations).
+Performed a total of 0 transformations.
+
+9.15.3. Executing OPT_MEM_FEEDBACK pass (finding memory read-to-write feedback paths).
+
+9.15.4. Executing MEMORY_BMUX2ROM pass (converting muxes to ROMs).
+
+9.15.5. Executing MEMORY_DFF pass (merging $dff cells to $memrd).
+
+9.15.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \div_floor..
+
+9.15.7. Executing MEMORY_SHARE pass (consolidating $memrd/$memwr cells).
+
+9.15.8. Executing OPT_MEM_WIDEN pass (optimize memories where all ports are wide).
+Performed a total of 0 transformations.
+
+9.15.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \div_floor..
+
+9.15.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+9.16. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \div_floor..
+
+9.17. Executing OPT pass (performing simple optimizations).
+
+9.17.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+<suppressed ~11 debug messages>
+
+9.17.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\div_floor'.
+Computing hashes of 55 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+Computing hashes of 54 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+<suppressed ~3 debug messages>
+Removed a total of 1 cells.
+
+9.17.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+9.17.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \div_floor..
+Removed 0 unused cells and 4 unused wires.
+<suppressed ~1 debug messages>
+
+9.17.5. Finished fast OPT passes.
+
+9.18. Executing MEMORY_MAP pass (converting memories to logic and flip-flops).
+
+9.19. Executing OPT pass (performing simple optimizations).
+
+9.19.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+
+9.19.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\div_floor'.
+Computing hashes of 54 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+Removed a total of 0 cells.
+
+9.19.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \div_floor..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~16 debug messages>
+
+9.19.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \div_floor.
+Performed a total of 0 changes.
+
+9.19.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\div_floor'.
+Computing hashes of 54 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+Removed a total of 0 cells.
+
+9.19.6. Executing OPT_SHARE pass.
+
+9.19.7. Executing OPT_DFF pass (perform DFF optimizations).
+
+9.19.8. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \div_floor..
+
+9.19.9. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+
+9.19.10. Finished fast OPT passes. (There is nothing left to do.)
+
+9.20. Executing TECHMAP pass (map to technology primitives).
+
+9.20.1. Executing Verilog-2005 frontend: /Users/zhaoyi/Obsidan/项目库/outputs/adc_spi_interface_20261001/.tools-native-yosys/lib/python3.9/site-packages/pyosys/share/techmap.v
+Parsing Verilog input from `/Users/zhaoyi/Obsidan/项目库/outputs/adc_spi_interface_20261001/.tools-native-yosys/lib/python3.9/site-packages/pyosys/share/techmap.v' to AST representation.
+Generating RTLIL representation for module `\_90_simplemap_bool_ops'.
+Generating RTLIL representation for module `\_90_simplemap_reduce_ops'.
+Generating RTLIL representation for module `\_90_simplemap_logic_ops'.
+Generating RTLIL representation for module `\_90_simplemap_compare_ops'.
+Generating RTLIL representation for module `\_90_simplemap_various'.
+Generating RTLIL representation for module `\_90_simplemap_registers'.
+Generating RTLIL representation for module `\_90_shift_ops_shr_shl_sshl_sshr'.
+Generating RTLIL representation for module `\_90_shift_shiftx'.
+Generating RTLIL representation for module `\_90_fa'.
+Generating RTLIL representation for module `\_90_lcu_brent_kung'.
+Generating RTLIL representation for module `\_90_alu'.
+Generating RTLIL representation for module `\_90_macc'.
+Generating RTLIL representation for module `\_90_alumacc'.
+Generating RTLIL representation for module `$__div_mod_u'.
+Generating RTLIL representation for module `$__div_mod_trunc'.
+Generating RTLIL representation for module `\_90_div'.
+Generating RTLIL representation for module `\_90_mod'.
+Generating RTLIL representation for module `$__div_mod_floor'.
+Generating RTLIL representation for module `\_90_divfloor'.
+Generating RTLIL representation for module `\_90_modfloor'.
+Generating RTLIL representation for module `\_90_pow'.
+Generating RTLIL representation for module `\_90_demux'.
+Generating RTLIL representation for module `\_90_lut'.
+Generating RTLIL representation for module `$connect'.
+Generating RTLIL representation for module `$input_port'.
+Successfully finished Verilog frontend.
+
+9.20.2. Continuing TECHMAP pass.
+Using template $paramod$945091691718f3f1270920aa92ea6ff28d5e5430\_90_alu for cells of type $alu.
+Using template $paramod$32a7b7b86c07519b7537abc18e96f0331f97914d\_90_alu for cells of type $alu.
+Using template $paramod$be099e65a2916bc2f93589bb8b12d430dab57b0e\_90_alu for cells of type $alu.
+Using extmapper maccmap for cells of type $macc_v2.
+  sub \q_next (63 bits, unsigned)
+  sub $ne$rtl/core/div_floor.sv:151$81_Y (1 bits, unsigned)
+Using extmapper simplemap for cells of type $sdffe.
+Using extmapper simplemap for cells of type $reduce_and.
+Using extmapper simplemap for cells of type $ne.
+Using extmapper simplemap for cells of type $reduce_bool.
+Using extmapper simplemap for cells of type $reduce_or.
+Using extmapper simplemap for cells of type $not.
+Using extmapper simplemap for cells of type $sdff.
+Using extmapper simplemap for cells of type $or.
+Using extmapper simplemap for cells of type $logic_not.
+Using extmapper simplemap for cells of type $logic_and.
+Using extmapper simplemap for cells of type $mux.
+Using extmapper simplemap for cells of type $eq.
+Using extmapper simplemap for cells of type $and.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000111111 for cells of type $fa.
+Using template $paramod$d2455104d750d99d2c2ad573b55e75e857f021ee\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $xor.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000001000000 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000001000000 for cells of type $lcu.
+Using extmapper simplemap for cells of type $pos.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000000100 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000000100 for cells of type $lcu.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000111111 for cells of type $lcu.
+No more expansions possible.
+<suppressed ~2867 debug messages>
+
+9.21. Executing OPT pass (performing simple optimizations).
+
+9.21.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module div_floor.
+<suppressed ~3180 debug messages>
+
+9.21.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\div_floor'.
+Computing hashes of 4507 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+Computing hashes of 4262 cells of `\div_floor'.
+Finding duplicate cells in `\div_floor'.
+<suppressed ~735 debug messages>
+Removed a total of 245 cells.
+
+9.21.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+9.21.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \div_floor..
+Removed 83 unused cells and 691 unused wires.
+<suppressed ~84 debug messages>
+
+9.21.5. Finished fast OPT passes.
+
+9.22. Executing HIERARCHY pass (managing design hierarchy).
+Attribute `top' found on module `div_floor'. Setting top module to div_floor.
+
+9.22.1. Analyzing design hierarchy..
+Top module:  \div_floor
+
+9.22.2. Analyzing design hierarchy..
+Top module:  \div_floor
+Removed 0 unused modules.
+
+9.23. Printing statistics.
+
+=== div_floor ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     1459 wires
+     4849 wire bits
+       31 public wires
+     1109 public wire bits
+        9 ports
+      192 port bits
+     4179 cells
+     1475   $_AND_
+      562   $_MUX_
+      214   $_NOT_
+      817   $_OR_
+      189   $_SDFFE_PN0P_
+      126   $_SDFFE_PP0P_
+        1   $_SDFF_PN0_
+        1   $_SDFF_PP0_
+      794   $_XOR_
+
+9.24. Executing CHECK pass (checking for obvious problems).
+Checking module div_floor...
+Found and reported 0 problems.
+
+10. Executing CHECK pass (checking for obvious problems).
+Checking module div_floor...
+Found and reported 0 problems.
+
+11. Printing statistics.
+
+=== div_floor ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     1459 wires
+     4849 wire bits
+       31 public wires
+     1109 public wire bits
+        9 ports
+      192 port bits
+     4179 cells
+     1475   $_AND_
+      562   $_MUX_
+      214   $_NOT_
+      817   $_OR_
+      189   $_SDFFE_PN0P_
+      126   $_SDFFE_PP0P_
+        1   $_SDFF_PN0_
+        1   $_SDFF_PP0_
+      794   $_XOR_
+
+12. Executing JSON backend.
+
+13. Executing Verilog backend.
+
+13.1. Executing BMUXMAP pass.
+
+13.2. Executing DEMUXMAP pass.
+Dumping module `\div_floor'.

@@ -1,0 +1,180 @@
+report_high_fanout_nets
+
+Description: 
+Report high fanout nets
+
+Syntax: 
+report_high_fanout_nets  [-file <arg>] [-format <arg>] [-append] [-ascending]
+                         [-timing] [-histogram] [-load_types] [-clock_regions]
+                         [-slr] [-max_nets <arg>] [-fanout_greater_than <arg>]
+                         [-fanout_lesser_than <arg>] [-name <arg>]
+                         [-cells <args>] [-clocks <args>] [-return_string]
+                         [-quiet] [-verbose]
+
+Returns: 
+Report
+
+Usage: 
+  Name                    Description
+  -----------------------------------
+  [-file]                 Filename to output results to. (send output to 
+                          console if -file is not used)
+  [-format]               Specifies how to format the report: text, xml. 
+                          Default is 'text'. Only applies if -file is used. 
+                          If xml output is used, -append is not allowed.
+                          Default: text
+  [-append]               Append to existing file
+  [-ascending]            Report nets in ascending order
+  [-timing]               Report worst slack and worst delay values on nets
+  [-histogram]            Report histogram for high fanout nets
+  [-load_types]           Report load  details
+  [-clock_regions]        Report clock region wise load distribution
+  [-slr]                  Report SLR wise load distribution
+  [-max_nets]             Number of nets for which report is to be generated
+                          Default: 10
+  [-fanout_greater_than]  Report nets that have fanout greater than or equal 
+                          to the specified integer, default 1
+                          Default: 1
+  [-fanout_lesser_than]   Report nets that have fanout less than or equal to 
+                          the specified integer, default INT_MAX
+                          Default: INT_MAX
+  [-name]                 Output the results to GUI panel with this name
+  [-cells]                Report the nets of the specified cells
+  [-clocks]               Report the nets of the specified clocks
+  [-return_string]        return report as string
+  [-quiet]                Ignore command errors
+  [-verbose]              Suspend message limits during command execution
+
+Categories: 
+Report, Timing
+
+Description:
+
+  Report the fanout of nets in the design, starting with the highest fanout
+  nets, and working down. Options allow you to control various aspects of the
+  report.
+
+  This command can be run on an implemented design, or on the synthesized
+  netlist. However, the results will be more complete on the implemented
+  design.
+
+  The command returns the fanout report of nets in the design, or returns an
+  error if it fails.
+
+Arguments:
+
+  -file <arg> - (Optional) Write the report into the specified file. The
+  specified file will be overwritten if one already exists, unless -append is
+  also specified.
+
+  Note: If the path is not specified as part of the file name, the file will
+  be written into the current working directory, or the directory from which
+  the tool was launched.
+
+  -format [ text | xml ] - (Optional) The default format of the output report
+  is text. You can also output an XML report. XML output is only valid when
+  -file is specified, and cannot be used with -append.
+
+  -append - (Optional) Append the output of the command to the specified file
+  rather than overwriting it.
+
+  Note: The -append option can only be used with the -file option.
+
+  -ascending - (Optional) Report nets in ascending order.
+
+  -timing - (Optional) Add timing data to the report to display the worst
+  slack (WNS) and worst delay on high fanout nets.
+
+  Note: The -timing option will slow the run time of report_high_fanout_nets,
+  and is not supported for use with -histogram.
+
+  -histogram - (Optional) Format the report as a histogram showing the number
+  of fanouts, and the number and percentage of nets with that many fanouts in
+  the design.
+
+  Note: This option cannot be used with with the following options:
+  -ascending, -timing, -load_types, -clock_regions, -slr, -max_nets.
+
+  -load_types - (Optional) Reports the various load types on the net sorted
+  in two different ways: by load types (data/clock/set/reset...) and by
+  device resource at which loads are placed (Slices/IO...). When
+  report_high_fanout_nets is run on the unplaced synthesized design only the
+  load type is reported.
+
+  -clock_regions - (Optional) Report the load distribution across clock
+  regions. This option can only be used after placement, and reports the
+  clock regions the various loads on the net are located in.
+
+  Note: The -load_types and -clock_regions options cannot be used together.
+
+  -slr - (Optional) Report the load distribution across SLRs. This option can
+  only be used after placement, and reports the SLRs that various loads on
+  the net are located in, after placement.
+
+  -max_nets <arg> - (Optional) Number of nets to report. Default: 10
+
+  -fanout_greater_than <arg> - (Optional) Report only nets that have fanout
+  greater than or equal to the specified limit. The value can be specified as
+  an integer, with a default value of 1.
+
+  -fanout_lesser_than <arg> - (Optional) Report only nets that have fanout
+  less than or equal to the specified limit. The value can be specified as an
+  integer, with a default value of INT_MAX.
+
+  -name <arg> - (Optional) The name of the High Fanout Nets Report view to
+  display in the Vivado IDE when run in GUI mode. If the name has already
+  been used in an open Report view, that view will be closed and a new report
+  opened.
+
+  -cells <args> - (Optional) Report the nets attached to the specified cell
+  instances in the design. Cells can be passed by name, or as cell objects
+  returned by the get_cells command.
+
+  -clocks <args> - (Optional) Report the nets of the specified clocks. The
+  clocks can be passed by name, or as clock objects returned by the
+  get_clocks command.
+
+  -return_string - (Optional) Directs the output to a Tcl string rather than
+  to the standard output. The Tcl string can be captured by a variable
+  definition and parsed or otherwise processed.
+
+  Note: This argument cannot be used with the -file option.
+
+  -quiet - (Optional) Execute the command quietly, returning no messages from
+  the command. The command also returns TCL_OK regardless of any errors
+  encountered during execution.
+
+  Note: Any errors encountered on the command-line, while launching the
+  command, will be returned. Only errors occurring inside the command will be
+  trapped.
+
+  -verbose - (Optional) Temporarily override any message limits and return
+  all messages from this command.
+
+  Note: Message limits can be defined with the set_msg_config command.
+
+Examples:
+
+  The following example reports the top 100 nets with fanouts greater than 50
+  loads, returning a histogram of the results:
+
+    
+    report_high_fanout_nets -fanout_greater_than 50 -max_nets 100 -histogram 
+    
+
+  The following example reports the fanout of nets for the specified clocks:
+
+    report_high_fanout_nets -clocks [get_clocks gt*] 
+    
+
+  This example reports the nets with fanouts less than 10 loads, and returns
+  the results to a string stored as a Tcl variable:
+
+    set myRep [report_high_fanout_nets -fanout_lesser_than 10 -return_string] 
+    
+
+See Also:
+
+   *  get_cells
+
+HIGH_FANOUT_REPORT_STATUS=COMPLETE

@@ -1,0 +1,392 @@
+Test (py3.11)	UNKNOWN STEP	﻿2026-10-02T12:56:43.3593722Z Current runner version: '2.337.0'
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3648005Z ##[group]Runner Image Provisioner
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3649740Z Hosted Compute Agent
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3650702Z Version: 20260901.588
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3651911Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3653273Z Build Date: 2026-09-01T19:56:44Z
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3654515Z Worker ID: {c7748644-be25-4811-901f-bf4cee393d55}
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3656072Z Azure Region: eastus
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3657126Z ##[endgroup]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3659995Z ##[group]Operating System
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3661205Z Ubuntu
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3662172Z 24.04.5
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3663129Z LTS
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3664003Z ##[endgroup]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3664981Z ##[group]Runner Image
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3666233Z Image: ubuntu-24.04
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3667117Z Version: 20260927.320.1
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3669185Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260927.320/images/ubuntu/Ubuntu2404-Readme.md
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3671538Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260927.320
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3672618Z ##[endgroup]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3673891Z ##[group]GITHUB_TOKEN Permissions
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3676202Z Contents: read
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3676824Z Metadata: read
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3677508Z Packages: read
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3678075Z ##[endgroup]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3680561Z Secret source: Actions
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3681728Z Cache mode: write
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.3682451Z Prepare workflow directory
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.4245603Z Prepare all required actions
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.4315624Z Getting action download info
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.6440042Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.7674150Z Download action repository 'actions/setup-python@v5' (SHA:a26af69be951a213d495a4c3e4e4022e16d87065)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:43.8465879Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.0556669Z Complete job name: Test (py3.11)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1382264Z ##[group]Run actions/checkout@v4
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1383170Z with:
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1383783Z   repository: defineiocc02/20bit_SAR_ADC_Behaviour_Verification
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1387755Z   token: ***
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1388233Z   ssh-strict: true
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1388704Z   ssh-user: git
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1389177Z   persist-credentials: true
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1389885Z   clean: true
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1390356Z   sparse-checkout-cone-mode: true
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1390912Z   fetch-depth: 1
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1391381Z   fetch-tags: false
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1391855Z   show-progress: true
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1392339Z   lfs: false
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1392783Z   submodules: false
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1393269Z   set-safe-directory: true
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1393815Z   allow-unsafe-pr-checkout: false
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1394599Z env:
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1395033Z   OPENBLAS_NUM_THREADS: 1
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1395556Z   MPLBACKEND: Agg
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.1396003Z ##[endgroup]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2405935Z Syncing repository: defineiocc02/20bit_SAR_ADC_Behaviour_Verification
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2408682Z ##[group]Getting Git version info
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2410678Z Working directory is '/home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification'
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2412950Z [command]/usr/bin/git version
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2480619Z git version 2.55.0
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2503756Z ##[endgroup]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2520642Z Temporarily overriding HOME='/home/runner/work/_temp/7205803f-0beb-4589-ae48-302dc14879de' before making global git config changes
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2523548Z Adding repository directory to the temporary git global config as a safe directory
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2528831Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2586931Z Deleting the contents of '/home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification'
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2590403Z ##[group]Initializing the repository
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2594977Z [command]/usr/bin/git init /home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2717310Z hint: Using 'master' as the name for the initial branch. This default branch name
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2719718Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2720730Z hint: to use in all of your new repositories, which will suppress this warning,
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2721503Z hint: call:
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2721923Z hint:
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2722459Z hint: 	git config --global init.defaultBranch <name>
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2723100Z hint:
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2723693Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2724650Z hint: 'development'. The just-created branch can be renamed via this command:
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2725422Z hint:
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2725875Z hint: 	git branch -m <name>
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2726702Z hint:
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2727489Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2734092Z Initialized empty Git repository in /home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification/.git/
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2744880Z [command]/usr/bin/git remote add origin https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2797117Z ##[endgroup]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2798521Z ##[group]Disabling automatic garbage collection
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2801460Z [command]/usr/bin/git config --local gc.auto 0
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2835168Z ##[endgroup]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2836440Z ##[group]Setting up auth
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2843015Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.2877522Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.3298946Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.3352391Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.3593176Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.3634044Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.3886098Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.3934296Z ##[endgroup]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.3936161Z ##[group]Fetching the repository
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:44.3945046Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +86499bbfa99c942a319c398151335648cdd4b114:refs/remotes/pull/4/merge
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:46.8133251Z From https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:46.8134827Z  * [new ref]         86499bbfa99c942a319c398151335648cdd4b114 -> pull/4/merge
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:46.8138428Z ##[endgroup]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:46.8140192Z ##[group]Determining the checkout info
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:46.8152211Z ##[endgroup]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:46.8154064Z [command]/usr/bin/git sparse-checkout disable
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:46.8224761Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:46.8267218Z ##[group]Checking out the ref
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:46.8272263Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/4/merge
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1293785Z Note: switching to 'refs/remotes/pull/4/merge'.
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1300568Z 
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1302131Z You are in 'detached HEAD' state. You can look around, make experimental
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1303947Z changes and commit them, and you can discard any commits you make in this
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1305576Z state without impacting any branches by switching back to a branch.
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1306502Z 
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1307182Z If you want to create a new branch to retain commits you create, you may
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1308662Z do so (now or later) by using -c with the switch command. Example:
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1309732Z 
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1310192Z   git switch -c <new-branch-name>
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1310873Z 
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1311367Z Or undo this operation with:
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1312003Z 
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1312432Z   git switch -
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1312951Z 
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1313751Z Turn off this advice by setting config variable advice.detachedHead to false
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1314934Z 
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1316125Z HEAD is now at 86499bb Merge 01ed2b3e4fc4c7c9efd2153cfbfa5d456b10fb74 into 5daafc8e514d3c989865c52b9c0241201571bd7d
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1325713Z ##[endgroup]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1373643Z [command]/usr/bin/git log -1 --format=%H
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1402950Z 86499bbfa99c942a319c398151335648cdd4b114
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1871448Z ##[group]Run actions/setup-python@v5
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1872757Z with:
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1873702Z   python-version: 3.11
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1874723Z   cache: pip
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1875653Z   check-latest: false
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1884724Z   token: ***
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1885689Z   update-environment: true
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1886815Z   allow-prereleases: false
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1887879Z   freethreaded: false
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1888833Z env:
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1889908Z   OPENBLAS_NUM_THREADS: 1
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1890950Z   MPLBACKEND: Agg
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.1891879Z ##[endgroup]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.3217527Z ##[group]Installed versions
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.3328607Z (node:2301) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.3333094Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.3335797Z Successfully set up CPython (3.11.16)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.3338932Z ##[endgroup]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:47.7090199Z [command]/opt/hostedtoolcache/Python/3.11.16/x64/bin/pip cache dir
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:48.0216269Z /home/runner/.cache/pip
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:48.1099680Z Cache hit for: setup-python-Linux-x64-24.04-Ubuntu-python-3.11.16-pip-c25f8e64b78663b9c69490b31f9d15d4d38759515c2666aa0168582b54e28b81
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:48.1210806Z (node:2301) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.0917771Z Received 176941031 of 176941031 (100.0%), 181.6 MBs/sec
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.0919115Z Cache Size: ~169 MB (176941031 B)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.0965841Z [command]/usr/bin/tar -xf /home/runner/work/_temp/be55f99e-d365-498e-8db5-6c4fb3ed420b/cache.tzst -P -C /home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification --use-compress-program unzstd
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.3492620Z Cache restored successfully
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.3577355Z Cache restored from key: setup-python-Linux-x64-24.04-Ubuntu-python-3.11.16-pip-bd9506bbda72b9d15439878230ed3f6d4850351bbae91d6caddc79e408ec5152
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.3817062Z ##[group]Run pip install -e .[dev]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.3817495Z ^[[36;1mpip install -e .[dev]^[[0m
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.4092722Z shell: /usr/bin/bash -e {0}
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.4093111Z env:
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.4093372Z   OPENBLAS_NUM_THREADS: 1
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.4093649Z   MPLBACKEND: Agg
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.4093989Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.16/x64
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.4094561Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.16/x64/lib/pkgconfig
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.4095063Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.16/x64
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.4095822Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.16/x64
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.4096276Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.16/x64
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.4096748Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.16/x64/lib
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.4097147Z ##[endgroup]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.9858882Z Obtaining file:///home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:49.9886660Z   Installing build dependencies: started
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:50.5852130Z   Installing build dependencies: finished with status 'done'
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:50.5858206Z   Checking if build backend supports build_editable: started
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:50.6216468Z   Checking if build backend supports build_editable: finished with status 'done'
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:50.6225588Z   Getting requirements to build editable: started
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:50.7541262Z   Getting requirements to build editable: finished with status 'done'
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:50.7552326Z   Installing backend dependencies: started
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:51.2275666Z   Installing backend dependencies: finished with status 'done'
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:51.2284008Z   Preparing editable metadata (pyproject.toml): started
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:51.4158080Z   Preparing editable metadata (pyproject.toml): finished with status 'done'
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:51.6048878Z Collecting matplotlib>=3.7 (from sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:51.6071613Z   Using cached matplotlib-3.11.2-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (80 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:51.7933699Z Collecting numpy>=1.24 (from sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:51.7951562Z   Using cached numpy-2.4.6-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:51.9055440Z Collecting scipy>=1.10 (from sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:51.9073273Z   Using cached scipy-1.17.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (62 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:51.9310721Z Collecting build>=1.2 (from sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:51.9327121Z   Using cached build-1.6.1-py3-none-any.whl.metadata (5.6 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:51.9439606Z Collecting hatchling>=1.24 (from sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:51.9455032Z   Using cached hatchling-1.32.4-py3-none-any.whl.metadata (3.9 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.2262667Z Collecting hypothesis>=6.100 (from sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.2280046Z   Using cached hypothesis-6.168.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (5.7 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.3485173Z Collecting mypy>=1.8 (from sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.3958256Z   Downloading mypy-2.4.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.4363064Z Collecting pre-commit>=3.5 (from sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.4378329Z   Using cached pre_commit-4.6.2-py2.py3-none-any.whl.metadata (1.2 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.4490149Z Collecting pytest-cov>=4.1 (from sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.4505722Z   Using cached pytest_cov-7.1.0-py3-none-any.whl.metadata (32 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.4810232Z Collecting pytest-xdist>=3.3 (from sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.4825144Z   Using cached pytest_xdist-3.8.0-py3-none-any.whl.metadata (3.0 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.5047182Z Collecting pytest>=7.4 (from sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.5061785Z   Using cached pytest-9.1.1-py3-none-any.whl.metadata (7.6 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.8057793Z Collecting ruff==0.6.9 (from sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.8075359Z   Using cached ruff-0.6.9-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (25 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.8176181Z Collecting packaging>=24.0 (from build>=1.2->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.8191467Z   Using cached packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.8274691Z Collecting pyproject_hooks (from build>=1.2->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.8288687Z   Using cached pyproject_hooks-1.3.3-py3-none-any.whl.metadata (1.3 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.8356369Z Collecting pathspec>=0.10.1 (from hatchling>=1.24->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.8370341Z   Using cached pathspec-1.1.1-py3-none-any.whl.metadata (14 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.8430171Z Collecting pluggy>=1.0.0 (from hatchling>=1.24->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.8444164Z   Using cached pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.8534912Z Collecting tomlkit>=0.11.1 (from hatchling>=1.24->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.8549259Z   Using cached tomlkit-0.15.1-py3-none-any.whl.metadata (3.3 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.9217210Z Collecting trove-classifiers (from hatchling>=1.24->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.9237455Z   Using cached trove_classifiers-2026.9.21.13-py3-none-any.whl.metadata (2.4 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.9366367Z Collecting sortedcontainers<3.0.0,>=2.1.0 (from hypothesis>=6.100->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:52.9383941Z   Using cached sortedcontainers-2.4.0-py2.py3-none-any.whl.metadata (10 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.0003465Z Collecting contourpy>=1.0.1 (from matplotlib>=3.7->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.0023214Z   Using cached contourpy-1.3.3-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (5.5 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.0133275Z Collecting cycler>=0.10 (from matplotlib>=3.7->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.0151991Z   Using cached cycler-0.12.1-py3-none-any.whl.metadata (3.8 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.1678935Z Collecting fonttools>=4.28.2 (from matplotlib>=3.7->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.1698238Z   Using cached fonttools-4.66.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (130 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.2462862Z Collecting kiwisolver>=1.3.1 (from matplotlib>=3.7->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.2482606Z   Using cached kiwisolver-1.5.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl.metadata (5.2 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.4907766Z Collecting pillow>=9 (from matplotlib>=3.7->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.4928258Z   Using cached pillow-12.3.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (9.1 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.5158805Z Collecting pyparsing>=3 (from matplotlib>=3.7->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.5179293Z   Using cached pyparsing-3.3.3-py3-none-any.whl.metadata (5.9 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.5313747Z Collecting python-dateutil>=2.7 (from matplotlib>=3.7->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.5332553Z   Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.5509064Z Collecting typing_extensions>=4.6.0 (from mypy>=1.8->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.5526961Z   Using cached typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.5616785Z Collecting mypy_extensions>=1.0.0 (from mypy>=1.8->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.5633231Z   Using cached mypy_extensions-1.1.0-py3-none-any.whl.metadata (1.1 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.6887909Z Collecting librt>=0.16.0 (from mypy>=1.8->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.6906584Z   Using cached librt-0.16.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (1.3 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.7292652Z Collecting ast-serialize<1.0.0,>=0.11.2 (from mypy>=1.8->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.7308752Z   Using cached ast_serialize-0.11.2-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (1.4 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.7433317Z Collecting cfgv>=2.0.0 (from pre-commit>=3.5->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.7448176Z   Using cached cfgv-3.5.0-py2.py3-none-any.whl.metadata (8.9 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.7729658Z Collecting identify>=1.0.0 (from pre-commit>=3.5->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.7745108Z   Using cached identify-2.6.20-py2.py3-none-any.whl.metadata (4.4 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.7853142Z Collecting nodeenv>=0.11.1 (from pre-commit>=3.5->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.7869066Z   Using cached nodeenv-1.11.0-py2.py3-none-any.whl.metadata (40 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.8189941Z Collecting pyyaml>=5.1 (from pre-commit>=3.5->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.8205372Z   Using cached pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (2.4 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.8545976Z Collecting virtualenv>=20.10.0 (from pre-commit>=3.5->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.8582264Z   Downloading virtualenv-21.14.3-py3-none-any.whl.metadata (4.1 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.8712101Z Collecting iniconfig>=1.0.1 (from pytest>=7.4->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.8726683Z   Using cached iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.8879958Z Collecting pygments>=2.7.2 (from pytest>=7.4->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:53.8895040Z   Using cached pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.2760830Z Collecting coverage>=7.10.6 (from coverage[toml]>=7.10.6->pytest-cov>=4.1->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.2778396Z   Using cached coverage-7.16.2-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl.metadata (8.2 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.2929504Z Collecting execnet>=2.1 (from pytest-xdist>=3.3->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.2944952Z   Using cached execnet-2.1.2-py3-none-any.whl.metadata (2.9 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.3054507Z Collecting six>=1.5 (from python-dateutil>=2.7->matplotlib>=3.7->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.3069521Z   Using cached six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.3217408Z Collecting distlib<1,>=0.3.7 (from virtualenv>=20.10.0->pre-commit>=3.5->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.3234229Z   Using cached distlib-0.4.3-py2.py3-none-any.whl.metadata (5.3 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.3442940Z Collecting filelock<5,>=3.24.2 (from virtualenv>=20.10.0->pre-commit>=3.5->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.3479554Z   Downloading filelock-4.0.9-py3-none-any.whl.metadata (2.0 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.3681019Z Collecting platformdirs<5,>=3.9.1 (from virtualenv>=20.10.0->pre-commit>=3.5->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.3696991Z   Using cached platformdirs-4.12.2-py3-none-any.whl.metadata (5.5 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.3790538Z Collecting python-discovery>=1.6 (from virtualenv>=20.10.0->pre-commit>=3.5->sar-adc-behaviour-verification==8.2.2)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.3805963Z   Using cached python_discovery-1.6.1-py3-none-any.whl.metadata (5.1 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.3892014Z Using cached ruff-0.6.9-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (10.9 MB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.3945331Z Using cached build-1.6.1-py3-none-any.whl (31 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.3960130Z Using cached hatchling-1.32.4-py3-none-any.whl (78 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.3975586Z Using cached hypothesis-6.168.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (1.2 MB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.3994230Z Using cached sortedcontainers-2.4.0-py2.py3-none-any.whl (29 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.4009330Z Using cached matplotlib-3.11.2-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (9.9 MB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.4057934Z Using cached contourpy-1.3.3-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (355 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.4073758Z Using cached cycler-0.12.1-py3-none-any.whl (8.3 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.4088610Z Using cached fonttools-4.66.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (5.4 MB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.4123188Z Using cached kiwisolver-1.5.1-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (1.4 MB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.4166263Z Downloading mypy-2.4.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (15.4 MB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5059180Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 15.4/15.4 MB 226.7 MB/s  0:00:00
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5076131Z Using cached ast_serialize-0.11.2-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (1.3 MB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5096750Z Using cached librt-0.16.0-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (515 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5113468Z Using cached mypy_extensions-1.1.0-py3-none-any.whl (5.0 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5128288Z Using cached numpy-2.4.6-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.9 MB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5203737Z Using cached packaging-26.3-py3-none-any.whl (129 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5218764Z Using cached pathspec-1.1.1-py3-none-any.whl (57 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5234074Z Using cached pillow-12.3.0-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (6.9 MB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5272611Z Using cached pluggy-1.6.0-py3-none-any.whl (20 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5287337Z Using cached pre_commit-4.6.2-py2.py3-none-any.whl (226 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5302376Z Using cached cfgv-3.5.0-py2.py3-none-any.whl (7.4 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5316998Z Using cached identify-2.6.20-py2.py3-none-any.whl (99 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5331920Z Using cached nodeenv-1.11.0-py2.py3-none-any.whl (34 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5346480Z Using cached pyparsing-3.3.3-py3-none-any.whl (126 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5361625Z Using cached pytest-9.1.1-py3-none-any.whl (386 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5377510Z Using cached iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5392257Z Using cached pygments-2.21.0-py3-none-any.whl (1.3 MB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5411227Z Using cached pytest_cov-7.1.0-py3-none-any.whl (22 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5426340Z Using cached coverage-7.16.2-cp311-cp311-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (256 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5441397Z Using cached pytest_xdist-3.8.0-py3-none-any.whl (46 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5456978Z Using cached execnet-2.1.2-py3-none-any.whl (40 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5471902Z Using cached python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5487465Z Using cached pyyaml-6.0.3-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (806 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5504996Z Using cached scipy-1.17.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (35.3 MB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5644551Z Using cached six-1.17.0-py2.py3-none-any.whl (11 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5658490Z Using cached tomlkit-0.15.1-py3-none-any.whl (49 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5673545Z Using cached typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5710866Z Downloading virtualenv-21.14.3-py3-none-any.whl (5.5 MB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5907995Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.5/5.5 MB 302.3 MB/s  0:00:00
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5923371Z Using cached distlib-0.4.3-py2.py3-none-any.whl (470 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.5962506Z Downloading filelock-4.0.9-py3-none-any.whl (110 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.6001933Z Using cached platformdirs-4.12.2-py3-none-any.whl (32 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.6019850Z Using cached python_discovery-1.6.1-py3-none-any.whl (38 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.6035169Z Using cached pyproject_hooks-1.3.3-py3-none-any.whl (10 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.6049881Z Using cached trove_classifiers-2026.9.21.13-py3-none-any.whl (14 kB)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.8260067Z Building wheels for collected packages: sar-adc-behaviour-verification
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.8268299Z   Building editable for sar-adc-behaviour-verification (pyproject.toml): started
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.8601540Z   Building editable for sar-adc-behaviour-verification (pyproject.toml): finished with status 'done'
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.8607930Z   Created wheel for sar-adc-behaviour-verification: filename=sar_adc_behaviour_verification-8.2.2-py3-none-any.whl size=35955 sha256=1598ef68dbbe7d5c723577dcb69bd89ef88ec8728f53daceabf399e1f639d141
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.8610623Z   Stored in directory: /tmp/pip-ephem-wheel-cache-nn3wcgfq/wheels/ef/bc/b5/529a1cdbe4e1fd73ac5ae37e596dea866d92ef2152ece385f7
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.8645673Z Successfully built sar-adc-behaviour-verification
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:56:54.9746322Z Installing collected packages: trove-classifiers, sortedcontainers, distlib, typing_extensions, tomlkit, six, ruff, pyyaml, pyproject_hooks, pyparsing, pygments, pluggy, platformdirs, pillow, pathspec, packaging, numpy, nodeenv, mypy_extensions, librt, kiwisolver, iniconfig, identify, hypothesis, fonttools, filelock, execnet, cycler, coverage, cfgv, ast-serialize, scipy, python-discovery, python-dateutil, pytest, mypy, hatchling, contourpy, build, virtualenv, pytest-xdist, pytest-cov, matplotlib, sar-adc-behaviour-verification, pre-commit
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:57:07.4742303Z 
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:57:07.4767186Z Successfully installed ast-serialize-0.11.2 build-1.6.1 cfgv-3.5.0 contourpy-1.3.3 coverage-7.16.2 cycler-0.12.1 distlib-0.4.3 execnet-2.1.2 filelock-4.0.9 fonttools-4.66.1 hatchling-1.32.4 hypothesis-6.168.3 identify-2.6.20 iniconfig-2.3.0 kiwisolver-1.5.1 librt-0.16.0 matplotlib-3.11.2 mypy-2.4.0 mypy_extensions-1.1.0 nodeenv-1.11.0 numpy-2.4.6 packaging-26.3 pathspec-1.1.1 pillow-12.3.0 platformdirs-4.12.2 pluggy-1.6.0 pre-commit-4.6.2 pygments-2.21.0 pyparsing-3.3.3 pyproject_hooks-1.3.3 pytest-9.1.1 pytest-cov-7.1.0 pytest-xdist-3.8.0 python-dateutil-2.9.0.post0 python-discovery-1.6.1 pyyaml-6.0.3 ruff-0.6.9 sar-adc-behaviour-verification-8.2.2 scipy-1.17.1 six-1.17.0 sortedcontainers-2.4.0 tomlkit-0.15.1 trove-classifiers-2026.9.21.13 typing_extensions-4.16.0 virtualenv-21.14.3
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:57:07.7106698Z ##[group]Run pytest -m "not slow" -q --cov --cov-report=xml
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:57:07.7107197Z ^[[36;1mpytest -m "not slow" -q --cov --cov-report=xml^[[0m
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:57:07.7175291Z shell: /usr/bin/bash -e {0}
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:57:07.7175572Z env:
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:57:07.7175783Z   OPENBLAS_NUM_THREADS: 1
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:57:07.7176033Z   MPLBACKEND: Agg
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:57:07.7176330Z   pythonLocation: /opt/hostedtoolcache/Python/3.11.16/x64
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:57:07.7176810Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.11.16/x64/lib/pkgconfig
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:57:07.7177292Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.16/x64
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:57:07.7177705Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.16/x64
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:57:07.7178115Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.11.16/x64
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:57:07.7178549Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.11.16/x64/lib
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:57:07.7178909Z ##[endgroup]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:57:29.7571651Z ........................................................................ [  7%]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T12:57:37.9925638Z ........................................................................ [ 14%]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:08:09.3632516Z ........................................................................ [ 21%]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:08:35.8947862Z ........................................................................ [ 29%]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:08:41.8535433Z ........................................................................ [ 36%]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:08:44.2566452Z ........................................................................ [ 43%]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:08:46.4750235Z ........................................................................ [ 51%]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:08:49.5998291Z ........................................................................ [ 58%]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:26.9327833Z ........................................................................ [ 65%]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:29.0678223Z ........................................................................ [ 72%]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:32.7990564Z ........................................................................ [ 80%]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:38.5371097Z ........................................................................ [ 87%]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:39.0324157Z ........................................................................ [ 94%]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8707352Z ...................................................                      [100%]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8708564Z ================================ tests coverage ================================
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8710236Z _______________ coverage: platform linux, python 3.11.16-final-0 _______________
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8711076Z 
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8711392Z Coverage XML written to file coverage.xml
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8712346Z Required test coverage of 35.0% reached. Total coverage: 68.31%
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8713687Z ============================= slowest 15 durations =============================
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8715384Z 300.01s call     tests/regression/test_observer_headroom.py::TestSubWeightInducedINL::test_prediction_matches_measurement
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8717202Z 297.61s call     tests/regression/test_observer_headroom.py::TestSubWeightInducedINL::test_legacy_reading_does_not_excite_the_sub_dac
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8718681Z 70.22s call     tests/unit/test_rtl_vectors.py::test_export_is_deterministic
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8720001Z 20.95s call     tests/unit/test_fixed_point.py::test_every_twenty_bit_word_and_code_width_without_a_huge_analog_record
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8721282Z 7.87s call     tests/audit/test_review_contracts.py::TestR10DemModeIsWired::test_dem_mode_changes_the_pipeline_result
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8722617Z 7.86s call     tests/audit/test_review_contracts.py::TestR10DemModeIsWired::test_dem_mode_changes_the_result_at_every_entry
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8723765Z 5.63s call     tests/unit/test_rtl_vectors.py::test_changed_vectors_are_detected_as_stale
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8725303Z 5.60s call     tests/unit/test_rtl_vectors.py::test_changed_p2_vectors_are_detected_as_stale
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8727037Z 4.71s call     tests/regression/test_skew_derivative.py::TestSkewEntersThePipeline::test_np_gradient_would_have_suppressed_the_effect[15000000.0-2.8]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8728839Z 4.70s call     tests/regression/test_skew_derivative.py::TestSkewEntersThePipeline::test_np_gradient_would_have_suppressed_the_effect[18000000.0-7.0]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8730540Z 4.68s call     tests/regression/test_skew_derivative.py::TestSkewEntersThePipeline::test_np_gradient_would_have_suppressed_the_effect[5000000.0-1.05]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8732325Z 4.68s call     tests/regression/test_skew_derivative.py::TestSkewEntersThePipeline::test_np_gradient_would_have_suppressed_the_effect[19000000.0-12.0]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8734653Z 4.68s call     tests/regression/test_skew_derivative.py::TestSkewEntersThePipeline::test_np_gradient_would_have_suppressed_the_effect[10000000.0-1.4]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8737076Z 3.73s call     tests/regression/test_observer_headroom.py::TestFirstStageObservableRank::test_code_sweep_must_span_the_reading
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8739339Z 2.46s call     tests/regression/test_observer_headroom.py::TestFirstStageObservableRank::test_rank_equals_intra_slice_positions[default]
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:41.8740924Z 987 passed, 3 deselected in 813.54s (0:13:33)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:42.1156460Z Post job cleanup.
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:42.2378816Z (node:3637) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:42.2380017Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:42.2600960Z [command]/usr/bin/tar --posix -cf cache.tzst --exclude cache.tzst -P -C /home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification --files-from manifest.txt --use-compress-program zstdmt
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:42.7596495Z (node:3637) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.6257657Z Sent 197118069 of 197118069 (100.0%), 213.9 MBs/sec
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.7361284Z Cache saved with the key: setup-python-Linux-x64-24.04-Ubuntu-python-3.11.16-pip-c25f8e64b78663b9c69490b31f9d15d4d38759515c2666aa0168582b54e28b81
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.7542104Z Post job cleanup.
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.8415993Z [command]/usr/bin/git version
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.8461023Z git version 2.55.0
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.8501451Z Temporarily overriding HOME='/home/runner/work/_temp/781a4b37-5f29-4115-a515-0593a824eceb' before making global git config changes
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.8502817Z Adding repository directory to the temporary git global config as a safe directory
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.8508731Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.8548584Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.8590996Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.8864645Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.8900296Z http.https://github.com/.extraheader
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.8903768Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.8939912Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.9202521Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.9248413Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.9685380Z Cleaning up orphan processes
+Test (py3.11)	UNKNOWN STEP	2026-10-02T13:10:43.9988629Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4, actions/setup-python@v5. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

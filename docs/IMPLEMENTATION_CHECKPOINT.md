@@ -1,8 +1,11 @@
 # Behavioral closure implementation checkpoint
 
+> 本文档最后核对于 2026-10-19，基线以 main 为准。
+
 Requested outcome: implement the 2026-09-12 review recommendations, perform full
 verification, and submit the resulting changes to GitHub. Baseline: ffcc011
-(v7.0.10). Working branch: `codex/physical-behavioral-closure`.
+(v7.0.10; historical). Current branch: `main` — `codex/physical-behavioral-closure`
+was merged via PR #1 and has been deleted.
 
 This is a Python behavioral-model delivery. Disclosed architecture constraints
 and conditional circuit assumptions must remain distinguishable. Semiconductor

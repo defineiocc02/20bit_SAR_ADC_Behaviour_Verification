@@ -1,7 +1,8 @@
 # Review fixes checkpoint — 2026-09-19
 
 Base: df0a5754560964b6b4d494357d034d1b64873d27.
-Branch: codex/rtl-review-fixes-20260919.
+Branch: codex/rtl-review-fixes-20260919 (historical branch; merged into main via
+PR #3, merge 17a983c, and deleted 2026-10-19).
 User requested publishing review findings and a branch with corrected RTL.
 
 Milestones:

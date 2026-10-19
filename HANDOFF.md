@@ -4,6 +4,9 @@
 > `mechanism_inventory.json`，**不得重新做状态总结后停止推进**。
 > 每完成一个里程碑更新本文件（追加，不覆盖历史条目）。
 
+> **状态提示（2026-10-19）**：本文件是追加式交接记录，下列各「当前检查点」
+> 均为当时的历史快照；实际当前状态以 `main` 分支为准。
+
 ---
 
 ## 当前检查点（2026-09-12，阶段 A 里程碑 1）
@@ -74,7 +77,7 @@ python -m adi_model.inventory_gate --repo-root . && pytest -m "not slow" -q
 - **commit**：合并提交 0c83fdd（origin/main 的 PR #1 合并点 417f651 ∪ 阶段 A f74a5de），本轮在其上叠加：CHANGELOG 字节账、inventory 重刷、HANDOFF 本条。
 - **基线**：v8 分支本地复跑 394 passed + 0 xfail；PR #1 CI 8 项全绿（py3.10–3.13、determinism 逐字节、wheel）。
 - **本轮完成**：
-  - [x] PR #1（codex/physical-behavioral-closure，v8.0.0 物理与行为闭环）经独立验证后并入 main。
+  - [x] PR #1（codex/physical-behavioral-closure，v8.0.0 物理与行为闭环）经独立验证后并入 main（该分支已删除，内容在 main）。
   - [x] `mechanism_inventory.json` v1.1：M11/M12 升 INTEGRATED_SCENARIO（pretracking/auxiliary charge 已进 pipeline_engine，代码引用逐条核实）；M13 保持机制级（ref_track 未进 pipeline，联立动态部分由 M4.2/M4.3 关闭）；P02/P04/P05/P06/P09/P10 → PASS（挂 v8 检查点证据）；P01/P03 仍 NOT_RUN，P07 部分（低频已覆盖、MC 良率未做），P08 仍 BLOCKED。
   - [x] CHANGELOG 8.0.0 补参考产物字节账：results.json SHA256 `a1ccd92f…35ac70`（v7.0.10）→ `f3e1a796…c0eb`（v8.0.0），变更可溯源到所列机制集成。
   - [x] 门禁：inventory_gate 11 PASS / 0 FAIL（合并树上复跑）。

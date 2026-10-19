@@ -61,12 +61,12 @@ module event_detect (
     output logic        alert_n                             // ALERT，低有效，电平型
 );
 
-    logic signed [11:0] d12;
+    logic signed [12:0] d12;
     logic signed [12:0] hi_th_s, lo_th_s, hyst_s;
     logic signed [12:0] hi_clr_th, lo_clr_th;
     logic               hi_set, lo_set, hi_clr_evt, lo_clr_evt;
 
-    assign d12       = $signed(data_in[19:8]);
+    assign d12       = $signed({data_in[19], data_in[19:8]});   // 12-bit 补码 -> 13 bit
     assign hi_th_s   = $signed({hi_thresh[11], hi_thresh});
     assign lo_th_s   = $signed({lo_thresh[11], lo_thresh});
     assign hyst_s    = $signed({2'b00, hysteresis});

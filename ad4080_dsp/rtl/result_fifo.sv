@@ -185,15 +185,13 @@ module result_fifo #(
   // --------------------------------------------------------------------------
   // 读侧：寄存器输出，延迟 1 拍；空读时保持原值
   // --------------------------------------------------------------------------
-  always_ff @(posedge clk or negedge rst_n) begin
-    if (!rst_n) begin
-      rd_data  <= {DATA_W{1'b0}};
-      rd_valid <= 1'b0;
-    end else begin
-      rd_valid <= rd_fire;
-      if (rd_fire) begin
-        rd_data <= mem[rd_ptr[AW_MEM-1:0]];
-      end
+  // SYNTH: 读口**不带异步复位**，否则综合器无法把 mem 推断成 RAM
+  //        （会退化成 327,680 个触发器）。rd_data 在第一次读之前为 X，
+  //        由 rd_valid 限定有效窗口；这是 SRAM 输出的标准行为。
+  always_ff @(posedge clk) begin
+    rd_valid <= rd_fire;
+    if (rd_fire) begin
+      rd_data <= mem[rd_ptr[AW_MEM-1:0]];
     end
   end
 

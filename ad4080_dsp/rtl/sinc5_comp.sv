@@ -61,6 +61,10 @@ module sinc5_comp #(
 
     localparam logic signed [IN_W-1:0] MAX_CODE =   (1 << (IN_W-1)) - 1;
     localparam logic signed [IN_W-1:0] MIN_CODE = - (1 << (IN_W-1));
+    localparam logic signed [PROD_W+1:0] MAX_EXT =
+        $signed({{(PROD_W+2-IN_W){1'b0}}, MAX_CODE});
+    localparam logic signed [PROD_W+1:0] MIN_EXT =
+        $signed({{(PROD_W+2-IN_W){1'b1}}, MIN_CODE});
 
     logic [IN_W-1:0] s5_data;
     logic            s5_valid;
@@ -86,7 +90,9 @@ module sinc5_comp #(
     assign c1_s = $signed(C1[COEF_W-1:0]);
     assign c2_s = $signed(C2[COEF_W-1:0]);
 
-    assign q_w = (acc_r + (1 << 14)) >>> 15;
+    wire signed [PROD_W+1:0] acc_ext  = $signed({{2{acc_r[PROD_W-1]}}, acc_r});
+    wire signed [PROD_W+1:0] rnd_ext  = $signed({{(PROD_W-13){1'b0}}, 15'd16384});
+    assign q_w = (acc_ext + rnd_ext) >>> 15;
 
     always_comb begin
         acc = $signed(s5_data) * c0_s
@@ -95,7 +101,16 @@ module sinc5_comp #(
     end
 
     always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n || filter_sync) begin
+        if (!rst_n) begin
+            x1        <= '0;
+            x2        <= '0;
+            phase     <= 1'b0;
+            primed    <= '0;
+            acc_r     <= '0;
+            v_r       <= 1'b0;
+            data_out  <= '0;
+            valid_out <= 1'b0;
+        end else if (filter_sync) begin
             x1        <= '0;
             x2        <= '0;
             phase     <= 1'b0;
@@ -120,9 +135,9 @@ module sinc5_comp #(
             end
 
             if (v_r) begin
-                if (q_w > MAX_CODE)
+                if (q_w > MAX_EXT)
                     data_out <= {1'b0, {(IN_W-1){1'b1}}};
-                else if (q_w < MIN_CODE)
+                else if (q_w < MIN_EXT)
                     data_out <= {1'b1, {(IN_W-1){1'b0}}};
                 else
                     data_out <= q_w[IN_W-1:0];
@@ -135,24 +150,21 @@ module sinc5_comp #(
     localparam int SET_W = 16;
     logic [SET_W-1:0] settle_cnt;
     logic [10:0]      n_d;
-    logic [3:0]       n_l;
     wire  [SET_W-1:0] settle_target;
 
     // 内部 SINC5 的 N：与 sinc5_decim.dec_map 一致
     always_comb begin
-        if (dec_sel > 4'd7) begin
-            n_d = 11'd256;
-            n_l = 4'd8;
-        end else begin
-            n_d = 11'd1 << (dec_sel + 4'd1);
-            n_l = dec_sel + 4'd1;
-        end
+        if (dec_sel > 4'd7) n_d = 11'd256;
+        else                n_d = 11'd1 << (dec_sel + 4'd1);
     end
     // 35N + 12 = (N<<5) + (N<<1) + N + 12
     assign settle_target = (SET_W'(n_d) << 5) + (SET_W'(n_d) << 1) + SET_W'(n_d) + 16'd12;
 
     always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n || filter_sync) begin
+        if (!rst_n) begin
+            settle_cnt <= '0;
+            settled    <= 1'b0;
+        end else if (filter_sync) begin
             settle_cnt <= '0;
             settled    <= 1'b0;
         end else if (valid_in && !settled) begin

@@ -14,6 +14,9 @@
 # 静态门禁（语法/elaboration + 文件头 + 风格，基于 pyslang）
 bash scripts/lint.sh
 
+# 功能仿真（需要 iverilog；自动探测 OSS CAD Suite）
+bash sim/run_all.sh
+
 # 定点参考模型（与 RTL 同常数、同舍入）
 python3 model/ad4080_cal_model.py
 ```
@@ -109,7 +112,9 @@ OFFSET = clamp(((y1·DX − dy·X1)·1280 + 2^29) >>> 30, −2048, 2047)
 | 文件头/风格门禁 | ✅ 15/15 |
 | 定点参考模型 | ✅ 已运行，上表 |
 | CRC-8 算法一致性 | ✅ 逐位实现 vs 查表实现交叉一致 |
-| RTL 功能仿真 | ❌ 未做（本机无仿真器） |
+| RTL 功能仿真 | ✅ 4/4 TB PASS（Icarus 14.0；顶层 33/33，FIFO 716,157 checks） |
+| Verilator lint | ✅ 无 latch/多驱动/组合环；22 条未使用信号已注释 |
+| Yosys 综合检查 | ✅ `check -assert` 通过；16K FIFO 需 SRAM 宏 |
 | 时序/面积/STA | ❌ 未做（属物理签核） |
 
 ## 7. 未实现 / 待确认

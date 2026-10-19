@@ -77,14 +77,15 @@ module ad4080_cal_tb;
             @(posedge clk); valid_in <= 1'b0;
             @(posedge clk);
             @(posedge clk);
+            #1;   // 等 NBA 更新后再采样，避免与时钟沿竞争
             if (!valid_out) begin
                 $display("FAIL %s: valid_out low", name);
                 errors++;
-            end else if ((y > exp_y + tol) || (y + tol < exp_y)) begin
-                $display("FAIL %s: y=%0d exp=%0d tol=%0d", name, y, exp_y, tol);
+            end else if (($signed(y) > exp_y + tol) || ($signed(y) + tol < exp_y)) begin
+                $display("FAIL %s: y=%0d exp=%0d tol=%0d", name, $signed(y), exp_y, tol);
                 errors++;
             end else begin
-                $display("PASS %s: y=%0d exp=%0d", name, y, exp_y);
+                $display("PASS %s: y=%0d exp=%0d", name, $signed(y), exp_y);
             end
         end
     endtask

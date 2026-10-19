@@ -96,7 +96,7 @@ module spi_slave (
     logic [7:0]  shin, shout, stat_sr;
     logic [2:0]  stat_cnt;
     logic [7:0]  wdata_r;
-    logic        we_r, sdo_r, oe_r;
+    logic        sdo_r, oe_r;
     logic        crc_err_r, clk_err_r;
 
     // ---------------- CRC-8 (poly 0x07, seed 0xA5, MSB first) ----------------
@@ -105,13 +105,15 @@ module spi_slave (
                            ((crc_calc[7] ^ sdi) ? 8'h07 : 8'h00);
     wire  [7:0] crc_rx_nxt = {crc_rx[6:0], sdi};
 
-    function automatic logic [7:0] crc8_byte(input logic [7:0] c, input logic [7:0] b);
+    // Verilog-2001 风格函数体：Icarus 与 Yosys 的 SV 前端都接受
+    function automatic [7:0] crc8_byte(input [7:0] c, input [7:0] b);
+        integer i;
         logic [7:0] r;
         begin
             r = c;
-            for (int i = 7; i >= 0; i--)
+            for (i = 7; i >= 0; i = i - 1)
                 r = {r[6:0], 1'b0} ^ ((r[7] ^ b[i]) ? 8'h07 : 8'h00);
-            return r;
+            crc8_byte = r;
         end
     endfunction
 
@@ -130,6 +132,12 @@ module spi_slave (
     // 本帧是否在第一字节（CRC 语义按手册分首字节/后续字节）
     wire first_byte = (byte_cnt == 8'd0);
 
+    // 写提交必须与 addr/wdata **同拍**：we 若是寄存输出，等它拉高时
+    // streaming 已经把 addr 推到下一个寄存器（默认递减 -> 写到 addr-1）。
+    wire we_byte = byte_done && !cmd_r && !crc_en;
+    wire we_crc  = crc_done  && !cmd_r && crc_en && (crc_rx_nxt == crc_calc);
+    wire we_comb = we_byte | we_crc;
+
     // ---------------- 主时序 ----------------
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -146,8 +154,6 @@ module spi_slave (
             stat_cnt    <= '0;
             wdata_r     <= '0;
             addr        <= '0;
-            wdata       <= '0;
-            we_r        <= 1'b0;
             sdo_r       <= 1'b0;
             oe_r        <= 1'b0;
             crc_calc    <= 8'hA5;
@@ -155,7 +161,6 @@ module spi_slave (
             crc_err_r   <= 1'b0;
             clk_err_r   <= 1'b0;
         end else begin
-            we_r      <= 1'b0;
             crc_err_r <= 1'b0;
             clk_err_r <= 1'b0;
 
@@ -210,17 +215,16 @@ module spi_slave (
                         PH_DATA: begin
                             shin   <= shin_nxt;
                             bitcnt <= bitcnt + 5'd1;
-                            // 写：数据入 CRC；读首字节：CRC 只覆盖指令；读后续字节：入 CRC
-                            if (!cmd_r || !first_byte) crc_calc <= crc_step;
+                            // 写：按 sdi 逐位入 CRC。
+                            // 读：首字节的 CRC 只覆盖指令；后续字节在字节尾按
+                            //     刚发出的 rdata 整字节更新（不能用 sdi，主机在读时
+                            //     送的是 padding）。
+                            if (!cmd_r) crc_calc <= crc_step;
                             if (byte_done) begin
                                 if (!cmd_r) wdata_r <= shin_nxt;   // 先存，等 CRC
+                                if (cmd_r && !first_byte) crc_calc <= crc8_byte(crc_calc, rdata);
                                 if (!crc_en) begin
                                     // 无 CRC：本字节即完成
-                                    if (!cmd_r) begin
-                                        wdata <= shin_nxt;
-                                        addr  <= addr_ptr;
-                                        we_r  <= 1'b1;
-                                    end
                                     byte_cnt <= byte_cnt + 8'd1;
                                     if (!single_inst) begin
                                         addr_ptr <= addr_next;
@@ -241,10 +245,7 @@ module spi_slave (
                                 if (!cmd_r || first_byte) begin
                                     if (crc_rx_nxt != crc_calc) crc_err_r <= 1'b1;
                                 end
-                                if (!cmd_r && (crc_rx_nxt == crc_calc)) begin
-                                    wdata <= wdata_r;
-                                    we_r  <= 1'b1;   // CRC 通过才提交
-                                end
+                                // CRC 通过由 we_crc 在同拍产生，这里不再寄存
                                 byte_cnt <= byte_cnt + 8'd1;
                                 phase    <= PH_DATA;
                                 bitcnt   <= '0;
@@ -316,7 +317,8 @@ module spi_slave (
 
     assign sdo               = sdo_r;
     assign sdo_oe            = oe_r;
-    assign we                = we_r;
+    assign we    = we_comb;
+    assign wdata = we_byte ? shin_nxt : wdata_r;
     assign crc_err_pulse     = crc_err_r;
     assign clk_cnt_err_pulse = clk_err_r;
 

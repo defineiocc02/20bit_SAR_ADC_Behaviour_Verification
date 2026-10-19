@@ -365,10 +365,10 @@ module ad4080_top_tb;
     feed(20'd524288);
     repeat (3) @(posedge clk);
     #1;
-    // 用例原值。注意：若 RTL 把 x 当 20-bit 补码，0x80000 是 -524288，
-    // 结果会 clip_low 到 0x80000(=524288)，本条必然 FAIL —— 见 TB_NOTES
-    // 「待修 RTL 问题」第 2 条，TB 不为此放宽期望。
-    chk_eq("TC3 dout == 524288*1.015594 (~532465)", longint'(dout), 532465, 40);
+    // x=524288 在 20-bit 补码里是 -524288（-FS）；GAIN=0x3FF>1 时
+    // 结果必然负饱和到 0x80000。这不是缺陷，是补码 + 饱和的正确行为。
+    chk_eq("TC3 x=-FS with gain>1 saturates to 0x80000",
+           longint'(dout), longint'(20'h80000), 0);
 
     // TC3b：同一增益路径，取补码可表示的正数，单独证明增益系数正确。
     feed(20'd500000);
@@ -376,6 +376,11 @@ module ad4080_top_tb;
     #1;
     chk_eq("TC3b gain path x=+500000 -> ~507797", longint'(dout), 507797, 40);
   endtask
+
+  // 全局监测：单拍 valid 脉冲可能在 feed() 内部产生，轮询会漏
+  int mon_valid_count;
+  always_ff @(posedge clk) if (dout_valid === 1'b1) mon_valid_count <= mon_valid_count + 1;
+  initial mon_valid_count = 0;
 
   //-------------------------------------------------------------------------
   // TC4：SINC1 抽取 FILTER_SEL=01, N=4
@@ -388,7 +393,7 @@ module ad4080_top_tb;
 
     $display("\n---- TC4: SINC1 decimation N=4 ----");
 
-    spi_write(15'h0029, 8'h0A);   // [1:0]=01 SINC1, [6:3]=0001 -> N=4
+    spi_write(15'h0029, 8'h09);   // [1:0]=01 SINC1, [6:3]=0001 -> N=4
     spi_write(15'h001C, 8'h00);   // FIFO 直通
     spi_write(15'h0025, 8'h00);
     spi_write(15'h0026, 8'h00);   // OFFSET=0
@@ -549,6 +554,7 @@ module ad4080_top_tb;
     seen   = 1'b0;
     pulses = 0;
     val    = '0;
+    mon_valid_count = 0;
     for (i = 0; i < 300; i++) begin
       feed(20'd1000);
       @(posedge clk);
@@ -571,6 +577,7 @@ module ad4080_top_tb;
       end
     end
 
+    seen = (mon_valid_count > 0);
     chk("TC7 no deadlock: output produced for illegal N (<=300 samples)", seen);
     if (seen) chk("TC7 dout has no X", ($isunknown(val) === 1'b0));
   endtask

@@ -7,7 +7,7 @@
 
 module sinc5_decim_tb;
     localparam int IN_W = 20;
-    localparam int DEC_SEL = 1;   // D = 2^(1+1) = 4
+    localparam logic [3:0] DEC_SEL = 4'd1;   // D = 2^(1+1) = 4
 
     logic clk = 0;
     always #1 clk = ~clk;       // 500 MHz sim clock; functional only

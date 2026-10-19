@@ -55,24 +55,28 @@ module sinc1_decim #(
     localparam int ACC_W  = IN_W + 11;
     localparam int ACC_WX = ACC_W + 1;
 
-    function automatic void dec_map (
-        input  logic [3:0]  s,
-        output logic [10:0] d,
-        output logic [4:0]  l
-    );
-        if (s > 4'd9) begin
-            d = 11'd1024;
-            l = 5'd10;
-        end else begin
-            d = 11'd1 << (s + 4'd1);
-            l = {1'b0, s} + 5'd1;
+    // 两个纯函数（Icarus 不支持 function 的 output 参数；拆开更可移植）
+    function automatic [10:0] dec_d(input [3:0] s);
+        begin
+            if (s > 4'd9) dec_d = 11'd1024;
+            else          dec_d = 11'd1 << (s + 4'd1);
+        end
+    endfunction
+
+    function automatic [4:0] dec_l(input [3:0] s);
+        begin
+            if (s > 4'd9) dec_l = 5'd10;
+            else          dec_l = {1'b0, s} + 5'd1;
         end
     endfunction
 
     logic [10:0] d_map, d_cur;
     logic [4:0]  l_map, l_cur;
 
-    always_comb dec_map(dec_sel, d_map, l_map);
+    always_comb begin
+        d_map = dec_d(dec_sel);
+        l_map = dec_l(dec_sel);
+    end
 
     logic signed [ACC_WX-1:0] acc;
     logic [10:0]              cnt;
@@ -123,7 +127,10 @@ module sinc1_decim #(
     wire  [SET_W-1:0] settle_target = SET_W'(d_cur) + 16'd3;
 
     always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n || filter_sync) begin
+        if (!rst_n) begin
+            settle_cnt <= '0;
+            settled    <= 1'b0;
+        end else if (filter_sync) begin
             settle_cnt <= '0;
             settled    <= 1'b0;
         end else if (valid_in && !settled) begin

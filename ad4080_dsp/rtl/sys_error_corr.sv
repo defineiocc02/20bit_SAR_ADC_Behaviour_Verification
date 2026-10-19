@@ -81,7 +81,7 @@ module sys_error_corr #(
 
     // ---- Stage 2 ----
     logic signed [PRODK_W-1:0]       prodk_s2;
-    logic signed [SUM_W-1:0]         corr_s2;
+    logic signed [17:0]              corr_s2;
     logic signed [SUM_W-1:0]         sum_s2;
     logic signed [SUM_W-1:0]         x_ext, off_ext, sum_comb;
     logic                            v_s2, lo_s2, hi_s2;
@@ -89,12 +89,15 @@ module sys_error_corr #(
     // 显式符号扩展，保证三数相加在位宽与符号上无歧义。
     assign x_ext    = $signed({{(SUM_W-IN_W){x_s1[IN_W-1]}}, x_s1});
     assign off_ext  = $signed({{(SUM_W-OFFSET_W){off_s1[OFFSET_W-1]}}, off_s1});
-    assign sum_comb = x_ext + corr_s2 + off_ext;
+    wire signed [SUM_W-1:0] corr_ext = $signed({{(SUM_W-18){corr_s2[17]}}, corr_s2});
+    assign sum_comb = x_ext + corr_ext + off_ext;
 
     assign prodk_s2 = prod_s1 * K_GAIN_S;
     // WAIVER(width-truncate): 增益项 |delta| <= 2^19*1.56% = 8176，18 bit 足够；
     // 这里显式截到 SUM_W，高位是符号扩展，不损失有效信息。
-    assign corr_s2  = (prodk_s2 + (1 << (SHIFT-1))) >>> SHIFT;
+    // verilator lint_off WIDTHTRUNC
+    assign corr_s2  = (prodk_s2 + (1 << (SHIFT-1))) >>> SHIFT;   // 18 bit 足够（|delta|<=8176）
+    // verilator lint_on WIDTHTRUNC
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -107,7 +110,9 @@ module sys_error_corr #(
             off_s1  <= offset_code;
             // WAIVER(arith-width): 20-bit x 11-bit 有符号乘，结果 31 bit；
             // 不要把两个操作数都扩到 31 bit，否则综合会多出大量无效部分积。
+            // verilator lint_off WIDTHEXPAND
             prod_s1 <= $signed(x) * ($signed({1'b0, gain_code}) - 11'sd512);
+            // verilator lint_on WIDTHEXPAND
             v_s1    <= 1'b1;
         end else begin
             v_s1    <= 1'b0;

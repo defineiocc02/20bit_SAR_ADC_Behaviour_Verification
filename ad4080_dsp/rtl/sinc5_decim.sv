@@ -61,17 +61,18 @@ module sinc5_decim #(
     localparam logic signed [IN_W-1:0] MAX_CODE =   (1 << (IN_W-1)) - 1;
     localparam logic signed [IN_W-1:0] MIN_CODE = - (1 << (IN_W-1));
 
-    function automatic void dec_map (
-        input  logic [3:0]  s,
-        output logic [10:0] d,
-        output logic [3:0]  l
-    );
-        if (s > 4'd7) begin
-            d = 11'd256;
-            l = 4'd8;
-        end else begin
-            d = 11'd1 << (s + 4'd1);
-            l = s + 4'd1;
+    // 两个纯函数（Icarus 不支持 function 的 output 参数）
+    function automatic [10:0] dec_d(input [3:0] s);
+        begin
+            if (s > 4'd7) dec_d = 11'd256;
+            else          dec_d = 11'd1 << (s + 4'd1);
+        end
+    endfunction
+
+    function automatic [3:0] dec_l(input [3:0] s);
+        begin
+            if (s > 4'd7) dec_l = 4'd8;
+            else          dec_l = s + 4'd1;
         end
     endfunction
 
@@ -80,7 +81,8 @@ module sinc5_decim #(
     logic [7:0]  shift_amt;
 
     always_comb begin
-        dec_map(dec_sel, d_map, l_map);
+        d_map = dec_d(dec_sel);
+        l_map = dec_l(dec_sel);
         // 必须用**已锁存**的 l_cur：累加用的是 d_cur，归一化就必须用
         // 同一个块对应的 5*log2(D)。用 l_map 会在块中途改码时把增益算错。
         shift_amt = {2'b0, l_cur, 2'b00} + {4'b0, l_cur};   // 5*l
@@ -126,19 +128,24 @@ module sinc5_decim #(
     end
 
     always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n || filter_sync) begin
-            for (int i=0;i<5;i++) integ[i] <= '0;
+        if (!rst_n) begin
+            integ[0] <= '0; integ[1] <= '0; integ[2] <= '0; integ[3] <= '0; integ[4] <= '0;
+        end else if (filter_sync) begin
+            integ[0] <= '0; integ[1] <= '0; integ[2] <= '0; integ[3] <= '0; integ[4] <= '0;
         end else if (valid_in) begin
-            for (int i=0;i<5;i++) integ[i] <= integ_nxt[i];
+            integ[0] <= integ_nxt[0]; integ[1] <= integ_nxt[1];
+            integ[2] <= integ_nxt[2]; integ[3] <= integ_nxt[3];
+            integ[4] <= integ_nxt[4];
         end
     end
 
     always_comb begin
-        comb_in[0] = integ[4];
-        for (int i=0;i<5;i++) begin
-            comb_nxt[i] = comb_in[i] - comb_d[i];
-            comb_in[i+1] = comb_nxt[i];
-        end
+        comb_in[0]  = integ[4];
+        comb_nxt[0] = comb_in[0] - comb_d[0];  comb_in[1] = comb_nxt[0];
+        comb_nxt[1] = comb_in[1] - comb_d[1];  comb_in[2] = comb_nxt[1];
+        comb_nxt[2] = comb_in[2] - comb_d[2];  comb_in[3] = comb_nxt[2];
+        comb_nxt[3] = comb_in[3] - comb_d[3];  comb_in[4] = comb_nxt[3];
+        comb_nxt[4] = comb_in[4] - comb_d[4];  comb_in[5] = comb_nxt[4];
     end
 
     logic signed [ACC_WX-1:0] round_const;
@@ -150,16 +157,26 @@ module sinc5_decim #(
     assign norm        = (comb_ext + round_const) >>> shift_amt;
 
     always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n || filter_sync) begin
-            for (int i=0;i<5;i++) comb_d[i] <= '0;
+        if (!rst_n) begin
+            comb_d[0] <= '0; comb_d[1] <= '0; comb_d[2] <= '0;
+            comb_d[3] <= '0; comb_d[4] <= '0;
             data_out  <= '0;
             valid_out <= 1'b0;
-            d_cur     <= filter_sync ? d_map : 11'd2;
-            l_cur     <= filter_sync ? l_map : 4'd1;
+            d_cur     <= 11'd2;
+            l_cur     <= 4'd1;
+        end else if (filter_sync) begin
+            comb_d[0] <= '0; comb_d[1] <= '0; comb_d[2] <= '0;
+            comb_d[3] <= '0; comb_d[4] <= '0;
+            data_out  <= '0;
+            valid_out <= 1'b0;
+            d_cur     <= d_map;
+            l_cur     <= l_map;
         end else begin
             valid_out <= 1'b0;
             if (dec_en) begin
-                for (int i=0;i<5;i++) comb_d[i] <= comb_in[i];
+                comb_d[0] <= comb_in[0]; comb_d[1] <= comb_in[1];
+                comb_d[2] <= comb_in[2]; comb_d[3] <= comb_in[3];
+                comb_d[4] <= comb_in[4];
                 if (norm > $signed({{(ACC_WX-IN_W){MAX_CODE[IN_W-1]}}, MAX_CODE}))
                     data_out <= {1'b0, {(IN_W-1){1'b1}}};
                 else if (norm < $signed({{(ACC_WX-IN_W){MIN_CODE[IN_W-1]}}, MIN_CODE}))
@@ -179,7 +196,10 @@ module sinc5_decim #(
     wire  [SET_W-1:0] settle_target = (SET_W'(d_cur) << 2) + SET_W'(d_cur) + 16'd6;
 
     always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n || filter_sync) begin
+        if (!rst_n) begin
+            settle_cnt <= '0;
+            settled    <= 1'b0;
+        end else if (filter_sync) begin
             settle_cnt <= '0;
             settled    <= 1'b0;
         end else if (valid_in && !settled) begin

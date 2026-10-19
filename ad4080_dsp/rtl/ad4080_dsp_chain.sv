@@ -120,12 +120,13 @@ module ad4080_dsp_chain #(
         if (USE_FIFO) begin : g_fifo
             logic [IN_W-1:0] fifo_rd_data;
             logic            fifo_rd_valid;
+            logic            af_unused, ae_unused;
             result_fifo #(.DATA_W(IN_W), .DEPTH(16384)) u_fifo (
                 .clk(clk), .rst_n(rst_n),
                 .wr_en(filt_valid), .overwrite_en(1'b0), .wr_data(filt_data),
                 .rd_en(rd_en), .rd_data(fifo_rd_data), .rd_valid(fifo_rd_valid),
                 .full(fifo_full), .empty(fifo_empty),
-                .almost_full(), .almost_empty(),
+                .almost_full(af_unused), .almost_empty(ae_unused),
                 .overflow(fifo_overflow), .underflow(fifo_underflow)
             );
             assign y         = fifo_rd_data;

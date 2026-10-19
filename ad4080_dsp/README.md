@@ -112,7 +112,7 @@ x → sys_error_corr → (bypass / SINC1 / SINC5) → optional result_fifo → y
 
 ## 3. Python 定点模型验证
 
-模型：`model/ad4080_cal_model.py`（与 RTL 同常数、同舍入）。
+模型：随交付包 `ad4080_rtl/model/ad4080_cal_model.py` 提供（与 RTL 同常数、同舍入）。本 PR 只含 RTL/TB，Python 模型不进入 RTL 子树，避免与仓库 ruff/mypy 范围冲突。
 
 | 场景 | 校准得到 GAIN | OFFSET | 应用后最大误差 |
 |:---|:---:|:---:|:---:|

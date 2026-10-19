@@ -21,7 +21,6 @@
 module ad4080_dsp_chain #(
     parameter int  IN_W       = 20,
     parameter int  DECIM      = 4,
-    parameter int  FILTER_SEL = 1,   // 0 bypass, 1 SINC1, 2 SINC5
     parameter bit  USE_FIFO   = 1'b0
 ) (
     input  logic                    clk,
@@ -30,6 +29,7 @@ module ad4080_dsp_chain #(
     input  logic [IN_W-1:0]         x,
     input  logic signed [11:0]      offset_code,
     input  logic [9:0]              gain_code,
+    input  logic [1:0]              filter_sel,   // 0 bypass, 1 SINC1, 2 SINC5
     input  logic                    filter_sync,
     input  logic                    rd_en,
     output logic [IN_W-1:0]         y,
@@ -54,25 +54,28 @@ module ad4080_dsp_chain #(
 
     logic [IN_W-1:0] filt_data;
     logic            filt_valid;
+    logic [IN_W-1:0] s1_data, s5_data;
+    logic            s1_valid, s5_valid;
 
-    generate
-        if (FILTER_SEL == 1) begin : g_sinc1
-            sinc1_decim #(.IN_W(IN_W), .DECIM(DECIM)) u_filt (
-                .clk(clk), .rst_n(rst_n), .filter_sync(filter_sync),
-                .valid_in(corr_valid), .data_in(corr_data),
-                .data_out(filt_data), .valid_out(filt_valid)
-            );
-        end else if (FILTER_SEL == 2) begin : g_sinc5
-            sinc5_decim #(.IN_W(IN_W), .DECIM(DECIM)) u_filt (
-                .clk(clk), .rst_n(rst_n), .filter_sync(filter_sync),
-                .valid_in(corr_valid), .data_in(corr_data),
-                .data_out(filt_data), .valid_out(filt_valid)
-            );
-        end else begin : g_bypass
-            assign filt_data  = corr_data;
-            assign filt_valid = corr_valid;
-        end
-    endgenerate
+    sinc1_decim #(.IN_W(IN_W), .DECIM(DECIM)) u_sinc1 (
+        .clk(clk), .rst_n(rst_n), .filter_sync(filter_sync),
+        .valid_in(corr_valid), .data_in(corr_data),
+        .data_out(s1_data), .valid_out(s1_valid)
+    );
+
+    sinc5_decim #(.IN_W(IN_W), .DECIM(DECIM)) u_sinc5 (
+        .clk(clk), .rst_n(rst_n), .filter_sync(filter_sync),
+        .valid_in(corr_valid), .data_in(corr_data),
+        .data_out(s5_data), .valid_out(s5_valid)
+    );
+
+    always_comb begin
+        case (filter_sel)
+            2'd1: begin filt_data = s1_data; filt_valid = s1_valid; end
+            2'd2: begin filt_data = s5_data; filt_valid = s5_valid; end
+            default: begin filt_data = corr_data; filt_valid = corr_valid; end
+        endcase
+    end
 
     generate
         if (USE_FIFO) begin : g_fifo

@@ -39,7 +39,12 @@ OFFSET = round(c)
 | `rtl/sinc1_decim.sv` | SINC1 块平均抽取，D=2..1024，`filter_sync` 清零 | D+1 clk |
 | `rtl/sinc5_decim.sv` | SINC5（5 级 CIC）抽取，D=2..256，位增长 5·log2(D) | D+1 clk |
 | `rtl/result_fifo.sv` | 16K×20-bit 同步 FIFO，full/empty/watermark/overflow | 1 clk 读 |
-| `rtl/ad4080_dsp_chain.sv` | 顶层链路：校正 → SINC1/SINC5/bypass → 可选 FIFO | — |
+| `rtl/fifo_capture.sv` | FIFO 捕获控制：mode 00/01/10，watermark | — |
+| `rtl/spi_slave.sv` | AD4080 Mode 3 SPI 从机，16-bit 指令 + 单字节数据 | — |
+| `rtl/ad4080_regs.sv` | OFFSET/GAIN/FILTER/FIFO 寄存器子集 | — |
+| `rtl/lvds_framer.sv` | 20-bit → SDR 位流 + frame（DDR PHY 不在内） | — |
+| `rtl/ad4080_dsp_chain.sv` | 校正 → SINC1/SINC5/bypass → 可选 FIFO | — |
+| `rtl/ad4080_top.sv` | SPI + 校正/滤波 + FIFO + LVDS 集成 | — |
 | `sim/tb/ad4080_cal_tb.sv` | 两点校准 + 校正应用自检 | — |
 | `sim/tb/sinc5_decim_tb.sv` | SINC5 DC 冒烟 | — |
 | `sim/tb/result_fifo_tb.sv` | FIFO 满/空/溢出/顺序 | — |
@@ -104,15 +109,37 @@ D = 2,4,...,256
 ### 顶层链路
 
 ```text
-x → sys_error_corr → (bypass / SINC1 / SINC5) → optional result_fifo → y
+x → sys_error_corr → (bypass / SINC1 / SINC5) → fifo_capture → dout
+                                                      |
+                                                      +→ lvds_framer → ser
+SPI → ad4080_regs → offset/gain/filter_sel/fifo_mode/watermark
 ```
 
-- `FILTER_SEL`：0 bypass，1 SINC1，2 SINC5；`USE_FIFO`：0/1。
-- 不含 SPI/LVDS/事件触发/跨时钟域；这些仍是独立块。
+- `filter_sel`：0 bypass，1 SINC1，2 SINC5；运行时经 SPI 写。
+- `fifo_capture`：mode 00/01/10；mode 11 按 10 处理（见下）。
+- `ad4080_top`：SPI + 校正/滤波 + FIFO + LVDS 的参考集成。
+
+### SPI / 寄存器
+
+- Mode 3（CPOL=1, CPHA=1），16-bit 指令（1 位读写 + 15 位地址），单字节数据。
+- 寄存器：`0x25/0x26 OFFSET`、`0x27/0x28 GAIN`、`0x29 FILTER_CONFIG`、
+  `0x1C GENERAL_CONFIG(FIFO_MODE)`、`0x1D/0x1E FIFO_WATERMARK`、`0x14 STATUS`。
+- 未实现：CRC-8、streaming、短指令、状态自动上 SDO。
+
+### FIFO 捕获
+
+- mode 00 disabled；01 immediate；10 event-trigger read latest watermark。
+- mode 11（event read all，circular overwrite）**未实现**，按 10 处理。
+- watermark 1..16384；底层 FIFO 满时拒绝写、不覆盖。
+
+### LVDS
+
+- 20-bit MSB-first，SDR 数字并串；`bit_en` 为 20× sample rate 单拍使能。
+- 真实 AD4080 是 DDR；需要 ODDR/2:1 mux 与差分 PHY，本模块不含。
 
 ## 3. Python 定点模型验证
 
-模型：随交付包 `ad4080_rtl/model/ad4080_cal_model.py` 提供（与 RTL 同常数、同舍入）。本 PR 只含 RTL/TB，Python 模型不进入 RTL 子树，避免与仓库 ruff/mypy 范围冲突。
+模型：`model/ad4080_cal_model.py`（与 RTL 同常数、同舍入）。
 
 | 场景 | 校准得到 GAIN | OFFSET | 应用后最大误差 |
 |:---|:---:|:---:|:---:|
@@ -141,8 +168,12 @@ x → sys_error_corr → (bypass / SINC1 / SINC5) → optional result_fifo → y
 | SINC5 抽取滤波（D=2..256） | ✅ RTL；未仿真 |
 | SINC5+comp（D=4..512） | ❌ 未做（缺补偿系数） |
 | 16K 结果 FIFO | ✅ RTL；未仿真 |
-| 顶层 `ad4080_dsp_chain` | ✅ RTL；未仿真 |
-| SPI / LVDS / 事件触发 | ❌ 未做 |
+| FIFO capture mode 00/01/10 | ✅ RTL；未仿真 |
+| FIFO capture mode 11（circular overwrite） | ❌ 未做 |
+| SPI 寄存器子集 | ✅ RTL；未仿真 |
+| LVDS SDR 数字并串 | ✅ RTL；未仿真；不含 DDR/差分 PHY |
+| 顶层 `ad4080_top` | ✅ RTL；未仿真 |
+| 运行时抽取率（dec_rate 真正生效） | ❌ DECIM 仍是编译期参数 |
 | 内部 DEM/dither/18-slice | 已有独立 SAR 核 RTL，不在本目录 |
 | timing mismatch 数字校准 | ❌ 未做；ADI 原文是 “Matched clocking scheme”，不是数字校准 |
 | 40 MS/s 时序 / DFT / STA | ❌ 未做；属于物理签核 |

@@ -1,6 +1,6 @@
 # 20bit_SAR_ADC_Behaviour_Verification
 
-![状态](https://img.shields.io/badge/%E7%8A%B6%E6%80%81-%E7%A0%94%E7%A9%B6%E5%8E%9F%E5%9E%8B-0969da?style=flat-square) ![类型](https://img.shields.io/badge/%E7%B1%BB%E5%9E%8B-%E8%A1%8C%E4%B8%BA%E7%BA%A7%E5%BB%BA%E6%A8%A1-6e7781?style=flat-square) ![技术栈](https://img.shields.io/badge/%E6%8A%80%E6%9C%AF%E6%A0%88-Python-6e7781?style=flat-square) ![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-BSD--3--Clause-2ea043?style=flat-square)
+![状态](https://img.shields.io/badge/%E7%8A%B6%E6%80%81-%E7%A0%94%E7%A9%B6%E5%8E%9F%E5%9E%8B-0969da?style=flat-square) ![类型](https://img.shields.io/badge/%E7%B1%BB%E5%9E%8B-%E8%A1%8C%E4%B8%BA%E7%BA%A7%E5%BB%BA%E6%A8%A1-6e7781?style=flat-square) ![技术栈](https://img.shields.io/badge/%E6%8A%80%E6%9C%AF%E6%A0%88-Python-6e7781?style=flat-square) ![许可](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF-BSD--3--Clause-2ea043?style=flat-square) [![CI](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/workflows/ci.yml/badge.svg)](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/workflows/ci.yml)
 
 > 用 Python 逐相位建模 20 位两级残差 SAR ADC，并用定点 RTL 与 CI 回归交叉验证。
 

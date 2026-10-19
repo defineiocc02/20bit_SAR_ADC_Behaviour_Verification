@@ -1,7 +1,7 @@
 # 功能仿真结果（Icarus Verilog）
 
 > 日期：2026-10-19 · 工具：**Icarus Verilog 14.0**（OSS CAD Suite, darwin-arm64）
-> 运行：`bash sim/run_all.sh` · 结果：**4/4 TB PASS**
+> 运行：`bash sim/run_all.sh` · 结果：**5/5 TB PASS**
 
 ---
 
@@ -23,7 +23,18 @@
 | `ad4080_cal_tb` | 两点校准 6 组 + 正/负半轴校正 | **PASS** | 6 组 GAIN/OFFSET 全对；x=±500000 误差 2 LSB |
 | `sinc5_decim_tb` | SINC5 D=4 直流 + settled | **PASS** | DC 输出 = 1000；settled 在 64 样本内置位 |
 | `result_fifo_tb` | 满/空/溢出/顺序/回绕/复位 | **PASS** | **716,157 次检查，0 错误** |
+| `spi_slave_tb` | SPI 协议：基本读写 / CRC 正确与错误 / streaming 增减速 / 短指令 | **PASS** | 16 项检查全过 |
 | `ad4080_top_tb` | 顶层 7 组集成用例 | **PASS** | **33 项检查全过** |
+
+## 2.1 SPI 协议 TB 覆盖
+
+| 用例 | 内容 | 结果 |
+|---|---|---|
+| T1 | 单字节写/读（无 CRC），0x0A=0xA5、GAIN 低字节 | PASS |
+| T2 | CRC-8：正确则提交；错误则拒绝 + 0x11[3] 置位；互补使能 0x10=0x42 | PASS |
+| T3 | streaming 递增：一帧两字节写 0x1D/0x1E，WATERMARK=0x0008 | PASS |
+| T4 | streaming 递减（默认）：一帧两字节写 0x1E/0x1D，WATERMARK=0x4000 | PASS |
+| T5 | SHORT_INSTRUCTION：8-bit 指令写/读 0x0A | PASS |
 
 ## 3. 顶层 TB 覆盖明细（33 项）
 

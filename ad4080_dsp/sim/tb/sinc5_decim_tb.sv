@@ -6,8 +6,8 @@
 `timescale 1ns/1ps
 
 module sinc5_decim_tb;
-    localparam int IN_W  = 20;
-    localparam int DECIM = 4;
+    localparam int IN_W = 20;
+    localparam int DEC_SEL = 1;   // D = 2^(1+1) = 4
 
     logic clk = 0;
     always #1 clk = ~clk;       // 500 MHz sim clock; functional only
@@ -18,11 +18,12 @@ module sinc5_decim_tb;
     logic [IN_W-1:0] data_in = 0;
     logic [IN_W-1:0] data_out;
     logic valid_out;
+    logic settled;
 
-    sinc5_decim #(.IN_W(IN_W), .DECIM(DECIM)) dut (
+    sinc5_decim #(.IN_W(IN_W)) dut (
         .clk(clk), .rst_n(rst_n), .filter_sync(filter_sync),
-        .valid_in(valid_in), .data_in(data_in),
-        .data_out(data_out), .valid_out(valid_out)
+        .valid_in(valid_in), .data_in(data_in), .dec_sel(DEC_SEL),
+        .data_out(data_out), .valid_out(valid_out), .settled(settled)
     );
 
     int errors = 0;
@@ -41,6 +42,10 @@ module sinc5_decim_tb;
 
         // DC 1000: after enough settling, every decimated output must be 1000.
         for (int i = 0; i < 64; i++) push(1000);
+        if (!settled) begin
+            $display("FAIL: settled low after 64 samples (target 26)");
+            errors++;
+        end
 
         // Drain and check the last outputs
         repeat (8) @(posedge clk);

@@ -95,17 +95,19 @@ module ad4080_cal_tb;
         rst_n = 1;
         repeat (2) @(posedge clk);
 
-        // Two-point calibration cases (expected from Python fixed-point model)
-        check_cal("ideal",       104858, 943718, 512,    0);
-        check_cal("gain +1%",    105907, 953155, 840,    0);
-        check_cal("gain -1%",    103809, 934281, 184,    0);
-        check_cal("offset +100", 104958, 943818, 512,  100);
-        check_cal("offset -100", 104758, 943618, 512, -100);
-        check_cal("gain+0.5 off+50", 105432, 948487, 676, 50);
+        // Two-point calibration cases (two's complement, from Python model)
+        check_cal("ideal",       -419430, 419430, 512,    0);
+        check_cal("gain +1%",    -423624, 423624, 840,    0);
+        check_cal("gain -1%",    -415236, 415236, 184,    0);
+        check_cal("offset +100", -419330, 419530, 512,  100);
+        check_cal("offset -100", -419530, 419330, 512, -100);
+        check_cal("gain+0.5 off+50", -421477, 421577, 676, 50);
 
         // Apply the last calibration (gain=676, off=50) to x=500000
         // exp = round(1.005*500000 + 50) = 502550; tolerance = 8 LSB
         check_corr("corr x=500000", 500000, 8, 502550);
+        // 负半轴必须对称（旧无符号实现必错）
+        check_corr("corr x=-500000", -500000, 8, -502450);
 
         if (errors == 0) $display("TB PASS");
         else             $display("TB FAIL: %0d errors", errors);

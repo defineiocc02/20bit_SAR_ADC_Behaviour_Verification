@@ -47,7 +47,7 @@ module result_fifo_tb;
       .P_AE_LEVEL  (AE_L)
   ) dut (
       .clk(clk), .rst_n(rst_n),
-      .wr_en(wr_en), .wr_data(wr_data),
+      .wr_en(wr_en), .overwrite_en(1'b0), .wr_data(wr_data),
       .rd_en(rd_en), .rd_data(rd_data), .rd_valid(rd_valid),
       .full(full), .empty(empty),
       .almost_full(almost_full), .almost_empty(almost_empty),

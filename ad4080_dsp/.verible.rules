@@ -1,0 +1,16 @@
+line-length=length:110
+no-tabs
+no-trailing-spaces
+posix-eof
+module-filename
+module-name-style=style_regex:[a-z_0-9]+
+parameter-name-style=style_regex:[A-Z_0-9]+
+signal-name-style=style_regex:[a-z_0-9]+
+instance-name-style=style_regex:[a-z_0-9]+
+case-missing-default
+always-comb
+always-comb-blocking
+always-ff-non-blocking
+packed-dimensions-range-ordering
+generate-label
+forbid-consecutive-null-statements

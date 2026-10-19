@@ -67,8 +67,10 @@ module sinc5_decim_tb;
     always_ff @(posedge clk) begin
         if (valid_out) begin
             outs++;
-            if (outs > 8 && (data_out < 999 || data_out > 1001)) begin
-                $display("FAIL: decimated output=%0d exp=1000", data_out);
+            // 手册 p.69：SINC5 需要 2+5D+4 个样本才建立完成。
+            // 建立期内（settled=0）的输出是瞬态，不能按 1000 判。
+            if (settled && (data_out < 999 || data_out > 1001)) begin
+                $display("FAIL: decimated output=%0d exp=1000 (settled)", data_out);
                 errors++;
             end
         end

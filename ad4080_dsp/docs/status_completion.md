@@ -10,8 +10,8 @@
 | 轴 | 完成度 | 说明 |
 |---|---:|---|
 | **手册数字功能（RTL 行为）** | **95%** | 除 6 项明确登记的 P2/待确认外，手册数字特性全部实现 |
-| **验证深度** | **70%** | 5 个 TB 全过 + 综合 check + Verilator lint；无覆盖率、无门级、无 STA |
-| **物理签核** | **15%** | 无 PDK/标准单元/SRAM 宏；面积与时序只是量级估算 |
+| **验证深度** | **82%** | 5 个 TB 全过 + Verilator 覆盖率（行 76.2%）+ ECP5 综合/P&R；无覆盖率闭合、无门级、无 ASIC STA |
+| **物理签核** | **35%** | 已有 ECP5 真实 P&R：73.59 MHz、6894 LUT、20 BRAM；仍无 PDK/ASIC STA |
 | **文档与可追溯** | **100%** | 规范、三轮审查、逐行对照、仿真报告齐全 |
 
 一句话：**设计基本做完，验证做到“功能自检全过”，离签核还差工艺库和 STA。**
@@ -47,12 +47,14 @@
 | Icarus 功能仿真 | ✅ | **5/5 TB PASS**：cal、sinc5、fifo（716,157 checks）、spi（16 项）、top（33 项） |
 | Verilator lint | ✅ | 无 latch / 多驱动 / 组合环 |
 | Yosys 综合 check | ✅ | `check -assert` 通过 |
-| 覆盖率 | ❌ | 无覆盖工具，TB 为定向用例 |
+| Verilator 覆盖率 | ✅ | 行 76.2% / 分支 60.4% / 翻转 43.0%（top TB） |
+| ECP5 综合 + P&R | ✅ | `synth_ecp5` + `nextpnr`：73.59 MHz，20 DP16KD，`check -assert` 通过 |
+| 覆盖率闭合 | ❌ | 未补 SINC5+comp / LVDS / CNV 的用例 |
 | 门级/时序仿真 | ❌ | 无网表/SDF |
-| STA | ❌ | 无工艺库 |
-| 形式验证 | ❌ | — |
+| ASIC STA | ❌ | 无工艺库 |
+| 形式验证 | ❌ | SBY 已装但未写断言 |
 
-加权：**70%**。
+加权：**82%**。
 
 ## 4. 仿真抓到的 bug（本轮新增）
 
@@ -67,9 +69,9 @@
 
 | 优先级 | 事项 | 预估 |
 |---|---|---|
-| P0 | 有工艺库后的综合 + STA + 面积/功耗 | 需要 PDK |
-| P0 | 16K FIFO 换 SRAM 宏并重跑 | 需要 memory compiler |
-| P1 | 覆盖率驱动的随机 TB（SPI/事件/FIFO 边界） | 2-3 天 |
+| P0 | ASIC 综合 + STA + 面积/功耗（ECP5 已到 73.6 MHz） | 需要 PDK |
+| P1 | Hogenauer 位宽裁剪，把 CIC 从 61-bit 收窄以过 100 MHz | 需数值/溢出预算，1-2 天 |
+| P1 | 覆盖率闭合：SINC5+comp、LVDS、CNV、FIFO mode 10/11 | 1-2 天 |
 | P1 | streaming 字节序 / CRC 种子位序用示波器或 ADI 确认 | 外部信息 |
 | P2 | 0x0E/0x0F、STRICT partial-access | 1 天 |
 | P2 | SINC5+comp 真实系数 | 需要 ADI 数据 |

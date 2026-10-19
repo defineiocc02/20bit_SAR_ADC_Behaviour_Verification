@@ -54,6 +54,7 @@ module sinc1_decim #(
 
     localparam int ACC_W  = IN_W + 11;
     localparam int ACC_WX = ACC_W + 1;
+    localparam int ACC_WXX = ACC_WX + 1;
 
     // 两个纯函数（Icarus 不支持 function 的 output 参数；拆开更可移植）
     function automatic [10:0] dec_d(input [3:0] s);
@@ -81,13 +82,16 @@ module sinc1_decim #(
     logic signed [ACC_WX-1:0] acc;
     logic [10:0]              cnt;
     logic signed [ACC_WX-1:0] sum;
-    logic signed [ACC_WX-1:0] avg;
     logic signed [ACC_WX-1:0] data_ext;
+    logic signed [ACC_WXX-1:0] sum_r;      // 加法打拍，切断 加法->桶形移位 的长路径
+    logic signed [ACC_WXX-1:0] avg_pipe;   // 第 2 拍的移位结果
+    logic [4:0]               l_sum;       // 与 sum_r 对应的 log2(D)
+    logic                     avg_v;
 
     // 显式符号扩展到累加位宽：避免工具对混合位宽的有符号加法做不同解释。
     assign data_ext = $signed({{(ACC_WX-IN_W){data_in[IN_W-1]}}, data_in});
     assign sum = acc + data_ext + $signed({{(ACC_WX-11){1'b0}}, (d_cur >> 1)});
-    assign avg = sum >>> l_cur;
+    assign avg_pipe = sum_r >>> l_sum;
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -97,18 +101,26 @@ module sinc1_decim #(
             l_cur     <= 5'd1;
             data_out  <= '0;
             valid_out <= 1'b0;
+            sum_r     <= '0;
+            l_sum     <= 5'd1;
+            avg_v     <= 1'b0;
         end else if (filter_sync) begin
             acc       <= '0;
             cnt       <= '0;
             d_cur     <= d_map;
             l_cur     <= l_map;
             valid_out <= 1'b0;
+            sum_r     <= '0;
+            l_sum     <= 5'd1;
+            avg_v     <= 1'b0;
         end else begin
             valid_out <= 1'b0;
+            avg_v     <= 1'b0;
             if (valid_in) begin
                 if (cnt == d_cur - 11'd1) begin
-                    data_out  <= avg[IN_W-1:0];
-                    valid_out <= 1'b1;
+                    sum_r     <= $signed({{(ACC_WXX-ACC_WX){sum[ACC_WX-1]}}, sum});  // 第 1 拍：只做加法
+                    l_sum     <= l_cur;
+                    avg_v     <= 1'b1;
                     acc       <= '0;
                     cnt       <= '0;
                     d_cur     <= d_map;
@@ -117,6 +129,10 @@ module sinc1_decim #(
                     acc <= acc + data_ext;
                     cnt <= cnt + 11'd1;
                 end
+            end
+            if (avg_v) begin                 // 第 2 拍：只做移位
+                data_out  <= avg_pipe[IN_W-1:0];
+                valid_out <= 1'b1;
             end
         end
     end

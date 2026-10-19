@@ -89,41 +89,27 @@ module sinc5_decim #(
     end
 
     logic signed [ACC_W-1:0] integ [0:4];
-    logic signed [ACC_W-1:0] integ_nxt [0:4];
+    logic [4:0]              dec_pipe;   // 积分器 5 级打拍后的抽取对齐（按 valid 推进）
     logic signed [ACC_W-1:0] comb_d [0:4];
-    logic signed [ACC_W-1:0] comb_in [0:5];
-    logic signed [ACC_W-1:0] comb_nxt [0:4];
     logic [10:0]             cnt;
-    logic                    dec_en;
     logic signed [ACC_W-1:0] data_ext;
 
     assign data_ext = $signed({{(ACC_W-IN_W){data_in[IN_W-1]}}, data_in});
 
-    always_comb begin
-        integ_nxt[0] = integ[0] + data_ext;
-        integ_nxt[1] = integ[1] + integ_nxt[0];
-        integ_nxt[2] = integ[2] + integ_nxt[1];
-        integ_nxt[3] = integ[3] + integ_nxt[2];
-        integ_nxt[4] = integ[4] + integ_nxt[3];
-    end
+    // 积分器现在是“每级一个寄存器”，第 D 个样本要 4 拍后才到达 integ[4]，
+    // 因此抽取脉冲延 4 拍，再触发梳状器。
+    wire dec_now = valid_in && (cnt == d_cur - 11'd1);
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            cnt    <= '0;
-            dec_en <= 1'b0;
+            cnt      <= '0;
+            dec_pipe <= '0;
         end else if (filter_sync) begin
-            cnt    <= '0;
-            dec_en <= 1'b0;
+            cnt      <= '0;
+            dec_pipe <= '0;
         end else if (valid_in) begin
-            if (cnt == d_cur - 11'd1) begin
-                cnt    <= '0;
-                dec_en <= 1'b1;
-            end else begin
-                cnt    <= cnt + 11'd1;
-                dec_en <= 1'b0;
-            end
-        end else begin
-            dec_en <= 1'b0;
+            cnt <= (cnt == d_cur - 11'd1) ? 11'd0 : cnt + 11'd1;
+            dec_pipe <= {dec_pipe[3:0], dec_now};
         end
     end
 
@@ -133,33 +119,48 @@ module sinc5_decim #(
         end else if (filter_sync) begin
             integ[0] <= '0; integ[1] <= '0; integ[2] <= '0; integ[3] <= '0; integ[4] <= '0;
         end else if (valid_in) begin
-            integ[0] <= integ_nxt[0]; integ[1] <= integ_nxt[1];
-            integ[2] <= integ_nxt[2]; integ[3] <= integ_nxt[3];
-            integ[4] <= integ_nxt[4];
+            // 标准流水 CIC：每级只做一次加法，链上不再串 5 个 61-bit 加法器
+            integ[0] <= integ[0] + data_ext;
+            integ[1] <= integ[1] + integ[0];
+            integ[2] <= integ[2] + integ[1];
+            integ[3] <= integ[3] + integ[2];
+            integ[4] <= integ[4] + integ[3];
         end
     end
 
-    always_comb begin
-        comb_in[0]  = integ[4];
-        comb_nxt[0] = comb_in[0] - comb_d[0];  comb_in[1] = comb_nxt[0];
-        comb_nxt[1] = comb_in[1] - comb_d[1];  comb_in[2] = comb_nxt[1];
-        comb_nxt[2] = comb_in[2] - comb_d[2];  comb_in[3] = comb_nxt[2];
-        comb_nxt[3] = comb_in[3] - comb_d[3];  comb_in[4] = comb_nxt[3];
-        comb_nxt[4] = comb_in[4] - comb_d[4];  comb_in[5] = comb_nxt[4];
-    end
+    // ---------------- 梳状器：收缩式（systolic）5 级 ----------------
+    // 每个抽取事件（dec_evt）所有级同时更新一次：第 i 级用上一事件的
+    // 第 i-1 级结果做一次 ACC_W 位减法。级间只差一个减法器，不再串 5 个。
+    logic signed [ACC_W-1:0]  comb_s [0:4];
+    logic signed [ACC_WX-1:0] out_r;
+    logic [7:0]               shift_r;
+    logic                     out_v, norm_v, sat_v;
+    logic signed [ACC_WX-1:0] norm_r;
+    logic signed [ACC_WX-1:0] rnd_w;
+    logic signed [ACC_WX-1:0] norm_w;
+    logic signed [ACC_WX-1:0] shifted;
 
-    logic signed [ACC_WX-1:0] round_const;
-    logic signed [ACC_WX-1:0] comb_ext;
-    logic signed [ACC_WX-1:0] norm;
+    // dec_pipe[4] 在 valid 速率下保持一个 valid 周期；与 valid_in 相与得到单拍事件。
+    // 第 D 个样本需要 5 个 valid 沿才传播到 integ[4]（每级 1 拍）。
+    wire dec_evt = valid_in && dec_pipe[4];
 
-    assign comb_ext    = $signed({{(ACC_WX-ACC_W){comb_nxt[4][ACC_W-1]}}, comb_nxt[4]});
-    assign round_const = $signed({{(ACC_WX-1){1'b0}}, 1'b1} << (shift_amt - 8'd1));
-    assign norm        = (comb_ext + round_const) >>> shift_amt;
+    assign rnd_w  = $signed({{(ACC_WX-1){1'b0}}, 1'b1} << (shift_r - 8'd1));
+    assign norm_w = norm_r >>> shift_r;
+    // 移位结果先打拍，饱和/选择放下一拍（切断 62-bit 桶形移位 -> 比较器 的路径）
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             comb_d[0] <= '0; comb_d[1] <= '0; comb_d[2] <= '0;
             comb_d[3] <= '0; comb_d[4] <= '0;
+            comb_s[0] <= '0; comb_s[1] <= '0; comb_s[2] <= '0;
+            comb_s[3] <= '0; comb_s[4] <= '0;
+            out_r     <= '0;
+            shift_r   <= '0;
+            out_v     <= 1'b0;
+            norm_r    <= '0;
+            norm_v    <= 1'b0;
+            sat_v     <= 1'b0;
+            shifted   <= '0;
             data_out  <= '0;
             valid_out <= 1'b0;
             d_cur     <= 11'd2;
@@ -167,47 +168,77 @@ module sinc5_decim #(
         end else if (filter_sync) begin
             comb_d[0] <= '0; comb_d[1] <= '0; comb_d[2] <= '0;
             comb_d[3] <= '0; comb_d[4] <= '0;
+            comb_s[0] <= '0; comb_s[1] <= '0; comb_s[2] <= '0;
+            comb_s[3] <= '0; comb_s[4] <= '0;
+            out_r     <= '0;
+            shift_r   <= '0;
+            out_v     <= 1'b0;
+            norm_r    <= '0;
+            norm_v    <= 1'b0;
+            sat_v     <= 1'b0;
+            shifted   <= '0;
             data_out  <= '0;
             valid_out <= 1'b0;
             d_cur     <= d_map;
             l_cur     <= l_map;
         end else begin
             valid_out <= 1'b0;
-            if (dec_en) begin
-                comb_d[0] <= comb_in[0]; comb_d[1] <= comb_in[1];
-                comb_d[2] <= comb_in[2]; comb_d[3] <= comb_in[3];
-                comb_d[4] <= comb_in[4];
-                if (norm > $signed({{(ACC_WX-IN_W){MAX_CODE[IN_W-1]}}, MAX_CODE}))
-                    data_out <= {1'b0, {(IN_W-1){1'b1}}};
-                else if (norm < $signed({{(ACC_WX-IN_W){MIN_CODE[IN_W-1]}}, MIN_CODE}))
-                    data_out <= {1'b1, {(IN_W-1){1'b0}}};
-                else
-                    data_out <= norm[IN_W-1:0];
-                valid_out <= 1'b1;
+            out_v     <= dec_evt;
+            norm_v    <= out_v;
+            sat_v     <= norm_v;
+
+            if (dec_evt) begin
+                comb_s[0] <= integ[4] - comb_d[0];  comb_d[0] <= integ[4];
+                comb_s[1] <= comb_s[0] - comb_d[1]; comb_d[1] <= comb_s[0];
+                comb_s[2] <= comb_s[1] - comb_d[2]; comb_d[2] <= comb_s[1];
+                comb_s[3] <= comb_s[2] - comb_d[3]; comb_d[3] <= comb_s[2];
+                comb_s[4] <= comb_s[3] - comb_d[4]; comb_d[4] <= comb_s[3];
+                out_r     <= $signed({{(ACC_WX-ACC_W){comb_s[4][ACC_W-1]}}, comb_s[4]});
+                shift_r   <= shift_amt;
                 d_cur     <= d_map;
                 l_cur     <= l_map;
+            end
+
+            if (out_v) norm_r <= out_r + rnd_w;
+
+            if (norm_v) shifted <= norm_w;
+
+            if (sat_v) begin
+                if (shifted > $signed({{(ACC_WX-IN_W){MAX_CODE[IN_W-1]}}, MAX_CODE}))
+                    data_out <= {1'b0, {(IN_W-1){1'b1}}};
+                else if (shifted < $signed({{(ACC_WX-IN_W){MIN_CODE[IN_W-1]}}, MIN_CODE}))
+                    data_out <= {1'b1, {(IN_W-1){1'b0}}};
+                else
+                    data_out <= shifted[IN_W-1:0];
+                valid_out <= 1'b1;
             end
         end
     end
 
-    // ---------------- 建立计数（手册 p.69：settling = 2 + 5D + 4 个 CNV） ----------------
+    // ---------------- 建立计数（按“输出个数”判定） ----------------
+    // 手册 p.69：settling = 2 + 5D + 4 个 CNV。流水实现让输出整体后移，
+    // 若仍按输入样本计数，settled 会提前。这里换算成“需要多少个已输出结果”：
+    //   n_out = ceil(settling / D)
     localparam int SET_W = 16;
-    logic [SET_W-1:0] settle_cnt;
-    wire  [SET_W-1:0] settle_target = (SET_W'(d_cur) << 2) + SET_W'(d_cur) + 16'd6;
+    logic [SET_W-1:0] out_cnt;
+    logic [SET_W-1:0] n_out_settle;
+    wire  [SET_W-1:0] settle_cnv = (SET_W'(d_cur) << 2) + SET_W'(d_cur) + 16'd6;
+    wire  [SET_W-1:0] settle_out = (settle_cnv + SET_W'(d_cur) - 16'd1) >> l_cur;
+
+    // 收缩式梳状器把输出整体后移 4 个抽取点（+ 2 拍归一化），
+    // 因此“已输出个数”的门限还要加 5，才能覆盖流水延迟。
+    assign n_out_settle = settle_out + 16'd5;
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            settle_cnt <= '0;
-            settled    <= 1'b0;
+            out_cnt <= '0;
+            settled <= 1'b0;
         end else if (filter_sync) begin
-            settle_cnt <= '0;
-            settled    <= 1'b0;
-        end else if (valid_in && !settled) begin
-            if (settle_cnt == settle_target - 16'd1) begin
-                settled <= 1'b1;
-            end else begin
-                settle_cnt <= settle_cnt + 16'd1;
-            end
+            out_cnt <= '0;
+            settled <= 1'b0;
+        end else if (valid_out && !settled) begin
+            out_cnt <= out_cnt + 16'd1;
+            if (out_cnt + 16'd1 >= n_out_settle) settled <= 1'b1;
         end
     end
 

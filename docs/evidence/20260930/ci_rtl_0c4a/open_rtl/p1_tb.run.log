@@ -1,0 +1,14 @@
+p1_tb: vdir=/home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification/sim/vectors outdir=/home/runner/work/20bit_SAR_ADC_Behaviour_Verification/20bit_SAR_ADC_Behaviour_Verification/sim/artifacts/open_rtl
+[T1] M1 done: 1024 comparisons, errors=0
+[T2] M2 done: 36352 comparisons (512 sid x 71 addresses), errors=0
+[T3] M3 done: 8277 lines (140709 comparisons), errors=0
+[T4] M5 done: 1248 lines (19968 comparisons), errors=0
+[T5] M5 structural sweep done: 512 sid x 64 counts, errors=0
+[T6] M4 done: 200000 valid draws over 200000 cycles (valid rate 1.0000), errors=0
+[T7] chain M1->M2->M3->M5 done: 256 samples (4096 comparisons), errors=0
+=====================================================
+p1_tb summary: checks=464823 errors=0
+  per-test errors: T1(M1)=0 T2(M2)=0 T3(M3)=0 T4(M5)=0 T5(M5-struct)=0 T6(M4)=0 T7(chain)=0
+P1 RESULT: PASS
+=====================================================
+- sim/tb/p1_tb.sv:451: Verilog $finish

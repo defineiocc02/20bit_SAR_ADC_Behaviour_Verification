@@ -1,0 +1,16 @@
+2026-09-29T21:25:28.9823717Z HEAD is now at 63e9887 Merge 417f261f24fe917552ac71f6aadb6b3dbf779c5f into cacea23495dd986cfdf8b9cdd92a1f0013de4b8b
+2026-09-29T21:25:28.9901008Z 63e9887fa0faf23565c35b6bd1a4edfa9eb8edd7
+2026-09-29T21:25:29.1963310Z Successfully set up CPython (3.12.14)
+2026-09-29T21:25:55.8214455Z Successfully installed ast-serialize-0.11.2 build-1.6.1 cfgv-3.5.0 contourpy-1.4.0 coverage-7.16.2 cycler-0.12.1 distlib-0.4.3 execnet-2.1.2 filelock-4.0.6 fonttools-4.66.1 hatchling-1.32.4 hypothesis-6.168.3 identify-2.6.20 iniconfig-2.3.0 kiwisolver-1.5.1 librt-0.16.0 matplotlib-3.11.2 mypy-2.3.1 mypy_extensions-1.1.0 nodeenv-1.11.0 numpy-2.5.3 packaging-26.3 pathspec-1.1.1 pillow-12.3.0 platformdirs-4.12.2 pluggy-1.6.0 pre-commit-4.6.2 pygments-2.21.0 pyparsing-3.3.3 pyproject_hooks-1.3.3 pytest-9.1.1 pytest-cov-7.1.0 pytest-xdist-3.8.0 python-dateutil-2.9.0.post0 python-discovery-1.6.1 pyyaml-6.0.3 ruff-0.6.9 sar-adc-behaviour-verification-8.2.2 scipy-1.18.1 six-1.17.0 sortedcontainers-2.4.0 tomlkit-0.15.1 trove-classifiers-2026.9.21.13 typing_extensions-4.16.0 virtualenv-21.14.0
+2026-09-29T21:25:56.0210584Z ##[group]Run pytest -m "not slow" -q --cov --cov-report=xml
+2026-09-29T21:40:21.0573198Z 975 passed, 3 deselected in 863.93s (0:14:23)
+2026-09-29T21:40:21.2662381Z ##[group]Run adi-run-all --results-dir /tmp/sweep
+2026-09-29T21:50:09.1660166Z 总耗时 545.3s
+2026-09-29T21:50:09.1661434Z 验收汇总: v5 结构 5/5 + 动态 5/5 + 可观测性 5/5 + KTC矩阵 PASS + 噪声传递 PASS + 校准闭环 PASS + dither闭合 PASS + v6信号流 PASS + 审计缺口闭合(offset/dither量化/auto-zero/1-f/逐位装载) 5/5
+2026-09-29T21:50:09.1662885Z 
+2026-09-29T21:50:09.1663418Z ===== closure: physical-clock low-frequency state and noisy fixed-point holdout =====
+2026-09-29T21:50:09.1664316Z   long_record_noise: True
+2026-09-29T21:50:09.1665073Z   noisy_weight_holdout: True
+2026-09-29T21:50:09.1665649Z 结果已写入 /tmp/sweep/results.json
+2026-09-29T21:50:09.1666217Z 
+2026-09-29T21:50:09.1666451Z 硬性验收: 全部通过（52 条判据）

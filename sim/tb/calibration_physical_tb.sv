@@ -27,7 +27,7 @@ module calibration_physical_tb;
     .inj_q(injection),.w_rom(weights),.offset_q(offset_q),
     .adc2_min_q(64'sd0),.adc2_max_q(64'sd8589934592),
     .dout(dout),.dout_valid(valid),.clip_low(),.clip_high(),.acc_ovf(),.gain_err(),
-    .adc2_ovf(),.busy(busy),.result_sample_id(result_id),.result_flags(flags));
+    .adc2_ovf(),.busy(busy),.result_sample_id(result_id),.result_flags(flags), .row_total('0));
   function automatic logic [31:0] random_word();
     rng ^= rng << 13; rng ^= rng >> 17; rng ^= rng << 5; return rng;
   endfunction

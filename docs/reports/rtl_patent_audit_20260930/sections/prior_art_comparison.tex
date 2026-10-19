@@ -1,0 +1,95 @@
+\section{[01]--[08] 参考架构的原理与可比边界}
+\label{sec:prior-art-comparison}
+论文 [00] 在引言中用 [01]--[08] 说明精密 Nyquist ADC 的既有吞吐与驱动难题。
+这些附件不是同一种电路的八个版本：有两级 SAR 论文、单次转换的残差辅助 SAR、
+带片上前台校准的 SAR，也有只公布产品外部特性的手册。
+本节只摘取原件明确给出的结构和条件，不从性能数字推断未披露的内部连接。
+特别是 [00] 的 20\,bit、40\,MS/s、94.2\,dB DR 与 9.3\,nV/$\sqrt{\rm Hz}$
+属于硅片测量，不是本仓 RTL 的验收结果。
+
+\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{11mm}>{\raggedright\arraybackslash}p{32mm}>{\raggedright\arraybackslash}p{47mm}>{\raggedright\arraybackslash}p{58mm}}
+\toprule 来源&公开速度与精度&原件给出的代表性测量及口径&关键结构及对本工程的意义\\\midrule\endfirsthead
+\toprule 来源&公开速度与精度&原件给出的代表性测量及口径&关键结构及对本工程的意义\\\midrule\endhead
+\mbox{[00]}&20\,bit；40\,MS/s&94.2\,dB DR；9.3\,nV/$\sqrt{\rm Hz}$，40\,nm 硅片，PDF 第1页&两套第一量化器动态交织；18 个 RDAC slice 中 8 转换、8 采集、2 备用；共享后级与余差放大器。本工程只在数字边界模拟部分控制。\tabularnewline
+\mbox{[01]}&18\,bit；12.5\,MS/s&50\,kHz 输入时 93\,dB SNR；105\,mW 不含 LVDS 接口，PDF 第1、6页&两个多位逐次比较级串接；每级四比较器一次判两位，电容误差系数存非易失存储，后级 dither 抑制 Flash 误差。不能把其比较器拓扑当作 [00] 的两路交织。\tabularnewline
+\mbox{[02]}&16\,bit；15\,MS/s&峰值 91\,dB SNDR；9.8\,mW 在15\,MS/s；95\,dB DR 图在\emph{2\,MS/s}测得，PDF 第1、10页&双死区 ring 放大器的两级 SAR；后级 SAR 可表征 RA 建立。DR 的测试速率不同，不能用 95\,dB 与 [00] 的40\,MS/s DR 直接排序。\tabularnewline
+\mbox{[03]}&两级 SAR；12\,MS/s&91.3\,dB 峰值 SNDR、94.1\,dB DR、30.41\,mW；4\,MHz 输入及 6.6\,V 差分峰峰值条件见 PDF 第1、8页&预测性电平搬移使片上输入缓冲器只处理较小的余差摆幅。它以缓冲与预测降低驱动难度；[00] 则主要靠交织采样时间与 RDAC 解耦。\tabularnewline
+\mbox{[04]}&18\,bit；5\,MS/s&100.2\,dB DR、99\,dB SNR；30.52\,mW 不含接口；PDF 第1--2页&三级子 ADC、残差放大、逐次比较每次一位；一次性权重校准存熔丝，RA 动态降带宽并关断。[00] 的 RA 复用和吞吐目标不同。\tabularnewline
+\mbox{[05]}&LTC2387-18；18\,bit、15\,MS/s&数据手册首页列 1\,MHz 输入时典型 95.7\,dB SNR、125\,mW；无流水延迟，PDF 第1页&可比较外部驱动、参考和 LVDS 接口预算；手册没有足够信息重建 [00] 的 slice、DEM 或片上校准网络。\tabularnewline
+\mbox{[06]}&24\,bit；2\,MS/s&106.3\,dB DR、INL 小于0.03\,ppm；8.5\,mW 是\emph{ADC core}，PDF 第1页&32 个 MSB 单元 DEM 与二进制 LSB dither 实现零阶失配整形，配合 AZ；重心是较低速率下的精度和功耗，不能将其核位数当作40\,MS/s证据。\tabularnewline
+\mbox{[07]}&ADC3583；18\,bit、65\,MS/s&家族首页列 1\,MHz 输入时 84.5\,dBFS SNR；ADC3583 的65\,MS/s、外部参考、双线接口功耗表列典型122\,mW，PDF 第1、6页&产品手册规定输入、参考、SLVDS 与电源边界；不能据家族指标反推出其内部 SAR/RA 或与 [00] 相同的校准结构。\tabularnewline
+\mbox{[08]}&16\,bit；16\,MS/s&100\,kHz 输入时 97.5\,dB SFDR；16.3\,mW，PDF 第1页&55\,nm 的片上\emph{前台}位权校准、参考储能电容、LSB 重复及统计余差测量；求系数发生在芯片中，和本工程片外拟合、片上应用的边界不同。\tabularnewline
+\bottomrule\end{longtable}
+\normalsize
+
+\subsection{采样和余差路径：相似方框不等于相同电路}
+[01] 的两级多位 SAR 是\emph{单条}由第一 ADC、RA 到第二 ADC 的流水链；
+其四比较器/两位每试探提高单级速度，后级 dither 用于缓解自身 Flash 的微分非线性
+（[01] PDF 第1、3、5页）。[04] 的输入网络可以先于该次转换结束返回采样，但
+它仍要求这笔完整转换在下一个采样沿前完成，且 RA 在一次转换中上电、自动归零、
+放大并关断（[04] PDF 第1页）。[00] 为延长 RDAC 采集窗口而交织两套第一量化器，
+动态选择采样与转换的物理 slice，并让 RA 服务交替到来的余差；
+这与仅仅复制一条 SAR 数字状态机不同。
+
+[02] 的 ring 放大器通过双死区设计处理高精度余差建立，并利用后级 SAR 在片上表征
+RA 瞬态（[02] PDF 第1、7、10页）。[03] 则在输入端增加预测性电平搬移和片上缓冲，
+使大摆幅输入的缓冲器工作在较小摆幅区域（[03] PDF 第1--3页）。
+这些方案说明“容易驱动”可以通过不同物理机制实现，不能从本工程的
+\code{tp_enable}、\code{aux_charge_enable}、\code{ra_enable} 等控制电平
+推断输入带宽、RC 时间常数、RA 噪声或建立精度已经复现。
+需要以实际开关、电容、比较器、放大器和参考网络的连接图，
+以及满幅码跳变和 PVT 下的瞬态波形逐一判定。
+
+\subsection{校准机制：必须把系数取得与系数应用分开}
+[01] 与 [04] 的电容误差系数在校准后保存在非易失单元或熔丝，并用于逐笔数字修正；
+[08] 则在片上前台校准中使用已有的 LSB 电容去测更高位权，
+通过两种强制码差分消除偏移，再用重复采样、冗余与固定 dither 扩大可测范围
+（[08] PDF 第8页，图16--18）。[06] 的 32 个 MSB 单元 DEM 加 LSB dither
+使失配影响转为噪声谱，而不是给每个物理单元维护一张可直接套用的 18$\times$71 权重表
+（[06] PDF 第1页）。这些是不同的误差处理路线。
+
+本工程的 1278 项物理权重、Q30/Q32 比例、\(T,G,R\) 归约、残差 MAC 与 floor
+除法属于片上\emph{应用}已装载系数的数字实现；当前拟合测试在片外生成权重。
+因此，RTL 对独立 oracle 位精确只证明给定系数下的运算与时序，
+不证明电容/桥接系数已由硅片正确辨识，也不能声称实现了 [08] 的前台测量器。
+若未来选择片上学习，首先要定义可观测量、激励、收敛/停机条件、
+配置 epoch、掉电保持和误差上界，再按独立参考数据检验算法。
+
+\subsection{性能与 PPA 比较需要统一量纲}
+DR、SNR、SNDR 与 SFDR 分别关注噪声底、排除/包含失真后的信噪比和最坏杂散；
+不能把 [08] 的 97.5\,dB SFDR、[01] 的 93\,dB SNR 和 [00] 的 94.2\,dB DR
+看成同一评分。[02] 的 95\,dB DR 在2\,MS/s测得，而其9.8\,mW对应15\,MS/s，
+把两项直接相除将混合不同工作点。产品手册的典型值与论文单片测量、
+core 功耗与整芯片/接口功耗、输入幅度和频率、参考来源与测量带宽也必须分列。
+例如 [07] 第6页的122\,mW有外部参考和双线输出条件；
+[06] 的8.5\,mW仅指 ADC core。
+
+对本工程，先用同一 RTL/参数/活动文件与同一 FPGA 器件比较资源和布线时序，
+再用相同 ASIC 库、PVT、约束、寄生与活动窗口比较面积和动态/静态功耗；
+模拟前端与参考缓冲的功耗另计。RTL 输出码的最大绝对误差、FPGA LUT 或
+vectorless 功耗都不能替代上述论文/手册的 DR、噪声谱密度或完整 ADC 能效。
+
+\begin{figure}[H]\centering
+\begin{tikzpicture}[
+  src/.style={draw=gray!70,rounded corners,fill=gray!7,align=center,text width=35mm,minimum height=10mm},
+  now/.style={draw=blue!65,rounded corners,fill=blue!7,align=center,text width=35mm,minimum height=10mm},
+  flow/.style={-{Latex[length=2mm]},thick,gray!70}]
+\node[src] (a1) at (0,0) {[01]/[04]\\出厂测量电容误差};
+\node[src] (a2) at (4.3,0) {非易失系数/熔丝};
+\node[src] (a3) at (8.6,0) {逐笔数字修正};
+\node[src] (b1) at (0,-1.35) {[08]\\片上 LSB 反馈测量};
+\node[src] (b2) at (4.3,-1.35) {前台估计位权};
+\node[src] (b3) at (8.6,-1.35) {片上数字补偿};
+\node[src] (c1) at (0,-2.70) {[06]\\32 MSB 单元 DEM};
+\node[src] (c2) at (4.3,-2.70) {LSB dither};
+\node[src] (c3) at (8.6,-2.70) {失配能量进入噪声谱};
+\node[now] (d1) at (0,-4.05) {当前 RTL\\片外拟合物理权重};
+\node[now] (d2) at (4.3,-4.05) {装载 1278 项 Q30\\配置 epoch};
+\node[now] (d3) at (8.6,-4.05) {$T,G,R$、MAC/floor\\逐笔输出与 flags};
+\foreach \from/\to in {a1/a2,a2/a3,b1/b2,b2/b3,c1/c2,c2/c3,d1/d2,d2/d3}
+  \draw[flow] (\from.east)--(\to.west);
+\end{tikzpicture}
+\caption{根据 [01]、[04]、[08]、[06] 与本工程原理自行绘制的校准路径比较。箭头表示每种方案内部的信息流，不表示各方案电路兼容或性能等价；当前 RTL 不包含片上系数辨识。}
+\label{fig:calibration-path-comparison}
+\end{figure}

@@ -1,0 +1,14 @@
+{
+  "scope": "Unmodified real Vivado 2018.3 repaired-baseline post-synthesis reports; parser fixtures only, not routed results",
+  "dcp_sha256": "9c3bc09dd193d0bffcd6d00f9af83cc887fde5423402416af751f4a2d1ef506b",
+  "files": {
+    "check_timing.rpt": {
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_baseline/synth/artifacts/vivado/20260929T190955.260429Z_p7_recovered/out/check_timing.rpt",
+      "sha256": "da19107a07badfaa583abd5123f91d95d204f67434bda318cb14551cb94152dd"
+    },
+    "timing_summary.rpt": {
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_baseline/synth/artifacts/vivado/20260929T190955.260429Z_p7_recovered/out/timing_summary.rpt",
+      "sha256": "0d9a0faa2c132bbb97e0e30ff12d3348e7f1573b1cec2eb4e6d9428e967bfd37"
+    }
+  }
+}

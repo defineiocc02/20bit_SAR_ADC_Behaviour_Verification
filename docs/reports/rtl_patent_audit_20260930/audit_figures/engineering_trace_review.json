@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "scope": "ACTUAL_SMALL_GEOMETRY_ZERO_DELAY_RTL_TRACE_NOT_STA",
+  "rows_each": 175,
+  "accepted": 9,
+  "outputs": 7,
+  "cancelled_ids": [
+    301,
+    601
+  ],
+  "latency_ticks": 11,
+  "overlap_edge": 62,
+  "trace_hash_index_sha256": "13101d6ad377b13f34ba20827a54c92bf810a7c7986dc8a986d9c2316477f556",
+  "generator_sha256": "7b3223bf0dd0b7656b2a896b43e62a10c5831c7986e7ac6b45f3cb31963094e3"
+}

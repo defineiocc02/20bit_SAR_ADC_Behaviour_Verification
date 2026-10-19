@@ -1,0 +1,17 @@
+--- a/sim/tb/arithmetic_audit_tb.sv
++++ b/sim/tb/arithmetic_audit_tb.sv
+@@ -12,12 +12,13 @@
+  logic [11:0] c;
+  // Capture file stimulus across an explicit event before checking combinational outputs.
+  logic sample_clk=0;
++ logic first_sample=1;
+  logic signed[63:0] sample_f,sample_o,sample_i,sample_mi,sample_ma;
+  logic [63:0] sample_g,sample_t;
+  logic signed[65:0] sample_ra;
+  logic [11:0] sample_c;
+  always @(posedge sample_clk)begin
+-  sample_f<=f;sample_o<=o;sample_i<=i;sample_g<=g;sample_t<=t;sample_ra<=ra;
++  if(first_sample)begin sample_f<=f;first_sample<=0;end sample_o<=o;sample_i<=i;sample_g<=g;sample_t<=t;sample_ra<=ra;
+   sample_c<=c;sample_mi<=mi;sample_ma<=ma;
+  end
+  task automatic sample_inputs();

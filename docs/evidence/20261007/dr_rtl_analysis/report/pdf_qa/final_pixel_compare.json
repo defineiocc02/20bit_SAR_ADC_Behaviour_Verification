@@ -1,0 +1,11 @@
+{
+  "previous_pdf_sha256": "150794c779b1803c66cd62b2797c623ba9a04323d54f55d82d4bbd4a7709be82",
+  "final_pdf_sha256": "9ba9cf25203de34d72bd7d1f1ee200f4029784fd130bf7874462d5c0a8b8e8b2",
+  "page_count_before_after": [
+    33,
+    33
+  ],
+  "pixel_identical_pages": 33,
+  "changed_pages": [],
+  "all_page_pixels_identical": true
+}

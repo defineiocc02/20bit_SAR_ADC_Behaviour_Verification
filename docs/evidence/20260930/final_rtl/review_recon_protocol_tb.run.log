@@ -1,0 +1,5 @@
+REVIEW_RECON_PROTOCOL_COMPLETE
+- sim/tb/review_recon_protocol_tb.sv:55: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.49
+- Verilator: $finish at 252ns; walltime 0.000 s; speed 1.448 ms/s
+- Verilator: cpu 0.000 s on 1 threads; allocated 1 MB

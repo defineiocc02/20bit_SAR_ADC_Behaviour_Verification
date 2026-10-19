@@ -21,3 +21,6 @@ follow these identifiers. Historical decisions can be superseded by later record
 - [ADR 0015: spectral power, harmonic rank and low-frequency state](0015-spectral-density-and-low-frequency-state.md)
 - [ADR 0016: Complete RTL configuration epochs and sampling dither](0016-rtl-configuration-and-dither.md)
 - [ADR 0017: Fixed-phase capture and explicit RTL structure](0017-rtl-fixed-phase-capture-and-structure.md)
+- [ADR 0018: Physical calibration and structural controls](0018-physical-calibration-and-structural-controls.md)
+- [ADR 0019: Fitted-weight RTL closure](0019-fitted-weight-rtl-closure.md)
+- [ADR 0020: Shared dither-column reduction](0020-shared-dither-column-reduction.md)

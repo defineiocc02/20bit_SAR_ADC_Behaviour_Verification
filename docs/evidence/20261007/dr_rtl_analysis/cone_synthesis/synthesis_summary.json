@@ -1,0 +1,1788 @@
+[
+  {
+    "case": "adc2_dec",
+    "pre_synthesis_operator_cells": [
+      {
+        "name": "$add$rtl/core/adc2_dec.sv:95$8",
+        "type": "$add",
+        "parameters": {
+          "A_WIDTH": 78,
+          "B_WIDTH": 78,
+          "Y_WIDTH": 78,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$add$rtl/core/adc2_dec.sv:99$9",
+        "type": "$add",
+        "parameters": {
+          "A_WIDTH": 79,
+          "B_WIDTH": 79,
+          "Y_WIDTH": 79,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$eq$rtl/core/adc2_dec.sv:94$5",
+        "type": "$eq",
+        "parameters": {
+          "A_WIDTH": 13,
+          "B_WIDTH": 13,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$ge$rtl/core/adc2_dec.sv:101$10",
+        "type": "$ge",
+        "parameters": {
+          "A_WIDTH": 79,
+          "B_WIDTH": 79,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 1,
+          "B_SIGNED": 1
+        }
+      },
+      {
+        "name": "$gt$rtl/core/adc2_dec.sv:94$4",
+        "type": "$gt",
+        "parameters": {
+          "A_WIDTH": 13,
+          "B_WIDTH": 13,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$logic_and$rtl/core/adc2_dec.sv:94$6",
+        "type": "$logic_and",
+        "parameters": {
+          "A_WIDTH": 1,
+          "B_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$logic_or$rtl/core/adc2_dec.sv:101$12",
+        "type": "$logic_or",
+        "parameters": {
+          "A_WIDTH": 1,
+          "B_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$logic_or$rtl/core/adc2_dec.sv:94$7",
+        "type": "$logic_or",
+        "parameters": {
+          "A_WIDTH": 1,
+          "B_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$lt$rtl/core/adc2_dec.sv:101$11",
+        "type": "$lt",
+        "parameters": {
+          "A_WIDTH": 79,
+          "B_WIDTH": 79,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 1,
+          "B_SIGNED": 1
+        }
+      },
+      {
+        "name": "$mul$rtl/core/adc2_dec.sv:87$2",
+        "type": "$mul",
+        "parameters": {
+          "A_WIDTH": 78,
+          "B_WIDTH": 78,
+          "Y_WIDTH": 78,
+          "A_SIGNED": 1,
+          "B_SIGNED": 1
+        }
+      },
+      {
+        "name": "$sub$rtl/core/adc2_dec.sv:82$1",
+        "type": "$sub",
+        "parameters": {
+          "A_WIDTH": 65,
+          "B_WIDTH": 65,
+          "Y_WIDTH": 65,
+          "A_SIGNED": 1,
+          "B_SIGNED": 1
+        }
+      },
+      {
+        "name": "$ternary$rtl/core/adc2_dec.sv:102$14",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 64
+        }
+      },
+      {
+        "name": "$ternary$rtl/core/adc2_dec.sv:103$13",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 64
+        }
+      }
+    ],
+    "pre_generic_inventory": {
+      "latch_cells": {},
+      "memory_cells": {}
+    },
+    "generic_noabc": {
+      "total_cells": 6533,
+      "primitive_logic_cells": {
+        "$_AND_": 3201,
+        "$_MUX_": 64,
+        "$_NOT_": 145,
+        "$_OR_": 1130,
+        "$_XOR_": 1993
+      },
+      "primitive_logic_total": 6533,
+      "sequential_cell_count": 0,
+      "sequential_bit_count": 0,
+      "ff_cells_one_bit_each": true,
+      "latch_cells": {},
+      "memory_cells": {},
+      "residual_internal_cells": {},
+      "logic_levels_from_primary_inputs_and_state_q": {
+        "fine_q": {
+          "max_logic_levels": 81,
+          "known_bits": 64,
+          "width": 64,
+          "unresolved_bits": 0
+        },
+        "ovf": {
+          "max_logic_levels": 80,
+          "known_bits": 1,
+          "width": 1,
+          "unresolved_bits": 0
+        }
+      },
+      "logic_levels_to_sequential_input_pins": {}
+    },
+    "artifact_sha256": {
+      "adc2_dec.generic.json": "94d95ac347100d181f1114e7559bb0cba8f674b169fa3618e6c47c924b2a2973",
+      "adc2_dec.generic.v": "2419227bb2a928e19409b918c25bf58a42152e1cf383f27d235e7fbd16b24982",
+      "adc2_dec.pre.json": "8a7ea8ed861d1efda1457dfe77443c694658fc434cc154391b96897d5eebd108",
+      "adc2_dec.log": "11910985a375cef82abe74bc47ec51e62f0ed4b95028d79ffbfd2cb06b67a59b"
+    }
+  },
+  {
+    "case": "cal_residue_mac",
+    "pre_synthesis_operator_cells": [
+      {
+        "name": "$add$rtl/core/cal_residue_mac.sv:77$21",
+        "type": "$add",
+        "parameters": {
+          "A_WIDTH": 97,
+          "B_WIDTH": 97,
+          "Y_WIDTH": 97,
+          "A_SIGNED": 1,
+          "B_SIGNED": 1
+        }
+      },
+      {
+        "name": "$eq$rtl/core/cal_residue_mac.sv:87$24",
+        "type": "$logic_not",
+        "parameters": {
+          "A_WIDTH": 22,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$ge$rtl/core/cal_residue_mac.sv:70$7",
+        "type": "$ge",
+        "parameters": {
+          "A_WIDTH": 132,
+          "B_WIDTH": 132,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 1,
+          "B_SIGNED": 1
+        }
+      },
+      {
+        "name": "$ge$rtl/core/cal_residue_mac.sv:71$10",
+        "type": "$ge",
+        "parameters": {
+          "A_WIDTH": 132,
+          "B_WIDTH": 132,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 1,
+          "B_SIGNED": 1
+        }
+      },
+      {
+        "name": "$ge$rtl/core/cal_residue_mac.sv:72$13",
+        "type": "$ge",
+        "parameters": {
+          "A_WIDTH": 132,
+          "B_WIDTH": 132,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 1,
+          "B_SIGNED": 1
+        }
+      },
+      {
+        "name": "$ge$rtl/core/cal_residue_mac.sv:73$16",
+        "type": "$ge",
+        "parameters": {
+          "A_WIDTH": 132,
+          "B_WIDTH": 132,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 1,
+          "B_SIGNED": 1
+        }
+      },
+      {
+        "name": "$ge$rtl/core/cal_residue_mac.sv:74$19",
+        "type": "$ge",
+        "parameters": {
+          "A_WIDTH": 64,
+          "B_WIDTH": 64,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$logic_not$rtl/core/cal_residue_mac.sv:88$31",
+        "type": "$logic_not",
+        "parameters": {
+          "A_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$logic_or$rtl/core/cal_residue_mac.sv:70$9",
+        "type": "$logic_or",
+        "parameters": {
+          "A_WIDTH": 1,
+          "B_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$logic_or$rtl/core/cal_residue_mac.sv:71$12",
+        "type": "$logic_or",
+        "parameters": {
+          "A_WIDTH": 1,
+          "B_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$logic_or$rtl/core/cal_residue_mac.sv:72$15",
+        "type": "$logic_or",
+        "parameters": {
+          "A_WIDTH": 1,
+          "B_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$logic_or$rtl/core/cal_residue_mac.sv:73$18",
+        "type": "$logic_or",
+        "parameters": {
+          "A_WIDTH": 1,
+          "B_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$logic_or$rtl/core/cal_residue_mac.sv:87$26",
+        "type": "$logic_or",
+        "parameters": {
+          "A_WIDTH": 1,
+          "B_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$lt$rtl/core/cal_residue_mac.sv:70$8",
+        "type": "$lt",
+        "parameters": {
+          "A_WIDTH": 132,
+          "B_WIDTH": 132,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 1,
+          "B_SIGNED": 1
+        }
+      },
+      {
+        "name": "$lt$rtl/core/cal_residue_mac.sv:71$11",
+        "type": "$lt",
+        "parameters": {
+          "A_WIDTH": 132,
+          "B_WIDTH": 132,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 1,
+          "B_SIGNED": 1
+        }
+      },
+      {
+        "name": "$lt$rtl/core/cal_residue_mac.sv:72$14",
+        "type": "$lt",
+        "parameters": {
+          "A_WIDTH": 132,
+          "B_WIDTH": 132,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 1,
+          "B_SIGNED": 1
+        }
+      },
+      {
+        "name": "$lt$rtl/core/cal_residue_mac.sv:73$17",
+        "type": "$lt",
+        "parameters": {
+          "A_WIDTH": 132,
+          "B_WIDTH": 132,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 1,
+          "B_SIGNED": 1
+        }
+      },
+      {
+        "name": "$mul$rtl/core/cal_residue_mac.sv:65$4",
+        "type": "$mul",
+        "parameters": {
+          "A_WIDTH": 130,
+          "B_WIDTH": 130,
+          "Y_WIDTH": 130,
+          "A_SIGNED": 1,
+          "B_SIGNED": 1
+        }
+      },
+      {
+        "name": "$or$rtl/core/cal_residue_mac.sv:88$27",
+        "type": "$or",
+        "parameters": {
+          "A_WIDTH": 1,
+          "B_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$or$rtl/core/cal_residue_mac.sv:88$28",
+        "type": "$or",
+        "parameters": {
+          "A_WIDTH": 1,
+          "B_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$or$rtl/core/cal_residue_mac.sv:88$29",
+        "type": "$or",
+        "parameters": {
+          "A_WIDTH": 1,
+          "B_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$or$rtl/core/cal_residue_mac.sv:88$30",
+        "type": "$or",
+        "parameters": {
+          "A_WIDTH": 1,
+          "B_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$or$rtl/core/cal_residue_mac.sv:88$32",
+        "type": "$or",
+        "parameters": {
+          "A_WIDTH": 1,
+          "B_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$reduce_and$rtl/core/cal_residue_mac.sv:87$25",
+        "type": "$reduce_and",
+        "parameters": {
+          "A_WIDTH": 22,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$sub$rtl/core/cal_residue_mac.sv:57$1",
+        "type": "$sub",
+        "parameters": {
+          "A_WIDTH": 65,
+          "B_WIDTH": 65,
+          "Y_WIDTH": 65,
+          "A_SIGNED": 1,
+          "B_SIGNED": 1
+        }
+      },
+      {
+        "name": "$sub$rtl/core/cal_residue_mac.sv:68$5",
+        "type": "$sub",
+        "parameters": {
+          "A_WIDTH": 132,
+          "B_WIDTH": 132,
+          "Y_WIDTH": 132,
+          "A_SIGNED": 1,
+          "B_SIGNED": 1
+        }
+      },
+      {
+        "name": "$sub$rtl/core/cal_residue_mac.sv:68$6",
+        "type": "$sub",
+        "parameters": {
+          "A_WIDTH": 132,
+          "B_WIDTH": 132,
+          "Y_WIDTH": 132,
+          "A_SIGNED": 1,
+          "B_SIGNED": 1
+        }
+      }
+    ],
+    "pre_generic_inventory": {
+      "latch_cells": {},
+      "memory_cells": {}
+    },
+    "generic_noabc": {
+      "total_cells": 29157,
+      "primitive_logic_cells": {
+        "$_AND_": 14597,
+        "$_NOT_": 524,
+        "$_OR_": 4775,
+        "$_XOR_": 9261
+      },
+      "primitive_logic_total": 29157,
+      "sequential_cell_count": 0,
+      "sequential_bit_count": 0,
+      "ff_cells_one_bit_each": true,
+      "latch_cells": {},
+      "memory_cells": {},
+      "residual_internal_cells": {},
+      "logic_levels_from_primary_inputs_and_state_q": {
+        "a1": {
+          "max_logic_levels": 78,
+          "known_bits": 63,
+          "width": 63,
+          "unresolved_bits": 0
+        },
+        "any_ovf": {
+          "max_logic_levels": 95,
+          "known_bits": 1,
+          "width": 1,
+          "unresolved_bits": 0
+        }
+      },
+      "logic_levels_to_sequential_input_pins": {}
+    },
+    "artifact_sha256": {
+      "cal_residue_mac.generic.json": "a801c5275e1231265f7ca4fbe0fd65b15392c43102ea2d18a8c077756968dcfe",
+      "cal_residue_mac.generic.v": "db640969b8955c13159872e75965cecbbf1a79963cca511481f52cf4cbfa55cd",
+      "cal_residue_mac.pre.json": "703ee6e50a493740b12c9313ddc5fe18a1fb564fcc51243a1b382a9633be9dfb",
+      "cal_residue_mac.log": "4ddbd3ddd08e1fe95b29eed29d2dd0598fad679445c85075b178f455abffd294"
+    }
+  },
+  {
+    "case": "div_floor_p5",
+    "pre_synthesis_operator_cells": [
+      {
+        "name": "$add$rtl/core/div_floor.sv:134$77",
+        "type": "$add",
+        "parameters": {
+          "A_WIDTH": 63,
+          "B_WIDTH": 1,
+          "Y_WIDTH": 63,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$add$rtl/core/div_floor.sv:150$82",
+        "type": "$add",
+        "parameters": {
+          "A_WIDTH": 63,
+          "B_WIDTH": 63,
+          "Y_WIDTH": 63,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$add$rtl/core/div_floor.sv:159$86",
+        "type": "$add",
+        "parameters": {
+          "A_WIDTH": 4,
+          "B_WIDTH": 4,
+          "Y_WIDTH": 4,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$245",
+        "type": "$sdff",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$247",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$253",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$263",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 65
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$269",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$275",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 4
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$281",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$287",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$292",
+        "type": "$sdff",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$305",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 2
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$310",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$321",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 60
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:235:make_patterns_logic$312",
+        "type": "$reduce_bool",
+        "parameters": {
+          "A_WIDTH": 2,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:235:make_patterns_logic$314",
+        "type": "$ne",
+        "parameters": {
+          "A_WIDTH": 2,
+          "B_WIDTH": 2,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:252:make_patterns_logic$257",
+        "type": "$reduce_and",
+        "parameters": {
+          "A_WIDTH": 2,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:252:make_patterns_logic$285",
+        "type": "$reduce_and",
+        "parameters": {
+          "A_WIDTH": 3,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:252:make_patterns_logic$316",
+        "type": "$reduce_and",
+        "parameters": {
+          "A_WIDTH": 2,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:277:combine_resets$252",
+        "type": "$reduce_or",
+        "parameters": {
+          "A_WIDTH": 2,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:277:combine_resets$298",
+        "type": "$reduce_or",
+        "parameters": {
+          "A_WIDTH": 3,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:81:create_not$249",
+        "type": "$not",
+        "parameters": {
+          "A_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:81:create_not$254",
+        "type": "$not",
+        "parameters": {
+          "A_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:81:create_not$282",
+        "type": "$not",
+        "parameters": {
+          "A_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:81:create_not$295",
+        "type": "$not",
+        "parameters": {
+          "A_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$eq$rtl/core/div_floor.sv:142$79",
+        "type": "$logic_not",
+        "parameters": {
+          "A_WIDTH": 60,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$eq$rtl/core/div_floor.sv:144$80",
+        "type": "$eq",
+        "parameters": {
+          "A_WIDTH": 4,
+          "B_WIDTH": 4,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$logic_and$rtl/core/div_floor.sv:133$75",
+        "type": "$logic_and",
+        "parameters": {
+          "A_WIDTH": 1,
+          "B_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$logic_not$rtl/core/div_floor.sv:133$74",
+        "type": "$logic_not",
+        "parameters": {
+          "A_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$ne$rtl/core/div_floor.sv:151$81",
+        "type": "$reduce_bool",
+        "parameters": {
+          "A_WIDTH": 63,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$neg$rtl/core/div_floor.sv:150$83",
+        "type": "$neg",
+        "parameters": {
+          "A_WIDTH": 63,
+          "Y_WIDTH": 63,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$not$rtl/core/div_floor.sv:134$76",
+        "type": "$not",
+        "parameters": {
+          "A_WIDTH": 63,
+          "Y_WIDTH": 63,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$or$rtl/core/div_floor.sv:114$71",
+        "type": "$or",
+        "parameters": {
+          "A_WIDTH": 65,
+          "B_WIDTH": 65,
+          "Y_WIDTH": 65,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$procmux$106",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$108",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$111",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$168",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 65
+        }
+      },
+      {
+        "name": "$procmux$170",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 65
+        }
+      },
+      {
+        "name": "$procmux$173",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 65
+        }
+      },
+      {
+        "name": "$procmux$191",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$procmux$204",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$207",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$procmux$210",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$213",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$procmux$216",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$219",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$procmux$222",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$225",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$procmux$228",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$231",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$procmux$89",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$sub$rtl/core/div_floor.sv:102$50",
+        "type": "$sub",
+        "parameters": {
+          "A_WIDTH": 64,
+          "B_WIDTH": 64,
+          "Y_WIDTH": 64,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$sub$rtl/core/div_floor.sv:102$54",
+        "type": "$sub",
+        "parameters": {
+          "A_WIDTH": 64,
+          "B_WIDTH": 64,
+          "Y_WIDTH": 64,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$sub$rtl/core/div_floor.sv:102$58",
+        "type": "$sub",
+        "parameters": {
+          "A_WIDTH": 64,
+          "B_WIDTH": 64,
+          "Y_WIDTH": 64,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$sub$rtl/core/div_floor.sv:102$62",
+        "type": "$sub",
+        "parameters": {
+          "A_WIDTH": 64,
+          "B_WIDTH": 64,
+          "Y_WIDTH": 64,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$sub$rtl/core/div_floor.sv:102$66",
+        "type": "$sub",
+        "parameters": {
+          "A_WIDTH": 64,
+          "B_WIDTH": 64,
+          "Y_WIDTH": 64,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$ternary$rtl/core/div_floor.sv:134$78",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$ternary$rtl/core/div_floor.sv:150$84",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      }
+    ],
+    "pre_generic_inventory": {
+      "latch_cells": {},
+      "memory_cells": {}
+    },
+    "generic_noabc": {
+      "total_cells": 4179,
+      "primitive_logic_cells": {
+        "$_AND_": 1475,
+        "$_MUX_": 562,
+        "$_NOT_": 214,
+        "$_OR_": 817,
+        "$_XOR_": 794
+      },
+      "primitive_logic_total": 3862,
+      "sequential_cell_count": 317,
+      "sequential_bit_count": 317,
+      "ff_cells_one_bit_each": true,
+      "latch_cells": {},
+      "memory_cells": {},
+      "residual_internal_cells": {},
+      "logic_levels_from_primary_inputs_and_state_q": {
+        "q": {
+          "max_logic_levels": 0,
+          "known_bits": 63,
+          "width": 63,
+          "unresolved_bits": 0
+        },
+        "err": {
+          "max_logic_levels": 0,
+          "known_bits": 1,
+          "width": 1,
+          "unresolved_bits": 0
+        },
+        "busy": {
+          "max_logic_levels": 0,
+          "known_bits": 1,
+          "width": 1,
+          "unresolved_bits": 0
+        },
+        "done": {
+          "max_logic_levels": 0,
+          "known_bits": 1,
+          "width": 1,
+          "unresolved_bits": 0
+        }
+      },
+      "logic_levels_to_sequential_input_pins": {
+        "D": {
+          "bits": 317,
+          "known_bits": 317,
+          "unresolved_bits": 0,
+          "max_logic_levels": 140,
+          "level_histogram": {
+            "0": 117,
+            "1": 2,
+            "2": 1,
+            "3": 2,
+            "4": 2,
+            "5": 2,
+            "6": 2,
+            "7": 4,
+            "8": 5,
+            "9": 8,
+            "10": 12,
+            "11": 14,
+            "12": 11,
+            "13": 5,
+            "23": 1,
+            "45": 1,
+            "67": 1,
+            "89": 1,
+            "111": 1,
+            "112": 62,
+            "122": 1,
+            "123": 1,
+            "124": 1,
+            "126": 2,
+            "128": 3,
+            "130": 5,
+            "132": 8,
+            "134": 12,
+            "136": 14,
+            "138": 11,
+            "140": 5
+          }
+        },
+        "E": {
+          "bits": 315,
+          "known_bits": 315,
+          "unresolved_bits": 0,
+          "max_logic_levels": 5,
+          "level_histogram": {
+            "2": 62,
+            "4": 126,
+            "5": 127
+          }
+        },
+        "R": {
+          "bits": 317,
+          "known_bits": 317,
+          "unresolved_bits": 0,
+          "max_logic_levels": 3,
+          "level_histogram": {
+            "0": 190,
+            "3": 127
+          }
+        }
+      }
+    },
+    "artifact_sha256": {
+      "div_floor_p5.generic.json": "306d98ee51432b83851204039f9e3e97506984afbca9d8ff70ca195c54890e0c",
+      "div_floor_p5.generic.v": "02ff4c7af4aaa4aef2d00c8ebadf532a045c415db6f670b03761bf27462652ba",
+      "div_floor_p5.pre.json": "529d9cd40d09f3fc0a73e47b4eada1be09493ee7a0b2070d0479f916241cc2ab",
+      "div_floor_p5.log": "63022d4084aa5dfdb3a83c224931ff9b12e8f0589ee61f118c299287d11f1ad1"
+    }
+  },
+  {
+    "case": "div_floor_p7",
+    "pre_synthesis_operator_cells": [
+      {
+        "name": "$add$rtl/core/div_floor.sv:134$85",
+        "type": "$add",
+        "parameters": {
+          "A_WIDTH": 63,
+          "B_WIDTH": 1,
+          "Y_WIDTH": 63,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$add$rtl/core/div_floor.sv:150$90",
+        "type": "$add",
+        "parameters": {
+          "A_WIDTH": 63,
+          "B_WIDTH": 63,
+          "Y_WIDTH": 63,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$add$rtl/core/div_floor.sv:159$94",
+        "type": "$add",
+        "parameters": {
+          "A_WIDTH": 4,
+          "B_WIDTH": 4,
+          "Y_WIDTH": 4,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$265",
+        "type": "$sdff",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$267",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$277",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$287",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$293",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$299",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 4
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$305",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$311",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$316",
+        "type": "$sdff",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$324",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$auto$ff.cc:337:slice$331",
+        "type": "$sdffe",
+        "parameters": {
+          "WIDTH": 60
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:235:make_patterns_logic$326",
+        "type": "$reduce_bool",
+        "parameters": {
+          "A_WIDTH": 2,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:235:make_patterns_logic$328",
+        "type": "$ne",
+        "parameters": {
+          "A_WIDTH": 2,
+          "B_WIDTH": 2,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:252:make_patterns_logic$281",
+        "type": "$reduce_and",
+        "parameters": {
+          "A_WIDTH": 2,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:252:make_patterns_logic$309",
+        "type": "$reduce_and",
+        "parameters": {
+          "A_WIDTH": 3,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:252:make_patterns_logic$330",
+        "type": "$reduce_and",
+        "parameters": {
+          "A_WIDTH": 2,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:277:combine_resets$276",
+        "type": "$reduce_or",
+        "parameters": {
+          "A_WIDTH": 2,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:277:combine_resets$322",
+        "type": "$reduce_or",
+        "parameters": {
+          "A_WIDTH": 3,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:81:create_not$273",
+        "type": "$not",
+        "parameters": {
+          "A_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:81:create_not$278",
+        "type": "$not",
+        "parameters": {
+          "A_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:81:create_not$306",
+        "type": "$not",
+        "parameters": {
+          "A_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$auto$opt_dff.cc:81:create_not$319",
+        "type": "$not",
+        "parameters": {
+          "A_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$eq$rtl/core/div_floor.sv:142$87",
+        "type": "$logic_not",
+        "parameters": {
+          "A_WIDTH": 60,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$eq$rtl/core/div_floor.sv:144$88",
+        "type": "$eq",
+        "parameters": {
+          "A_WIDTH": 4,
+          "B_WIDTH": 4,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$logic_and$rtl/core/div_floor.sv:133$83",
+        "type": "$logic_and",
+        "parameters": {
+          "A_WIDTH": 1,
+          "B_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$logic_not$rtl/core/div_floor.sv:133$82",
+        "type": "$logic_not",
+        "parameters": {
+          "A_WIDTH": 1,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$ne$rtl/core/div_floor.sv:151$89",
+        "type": "$reduce_bool",
+        "parameters": {
+          "A_WIDTH": 63,
+          "Y_WIDTH": 1,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$neg$rtl/core/div_floor.sv:150$91",
+        "type": "$neg",
+        "parameters": {
+          "A_WIDTH": 63,
+          "Y_WIDTH": 63,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$not$rtl/core/div_floor.sv:134$84",
+        "type": "$not",
+        "parameters": {
+          "A_WIDTH": 63,
+          "Y_WIDTH": 63,
+          "A_SIGNED": 0
+        }
+      },
+      {
+        "name": "$or$rtl/core/div_floor.sv:114$79",
+        "type": "$or",
+        "parameters": {
+          "A_WIDTH": 63,
+          "B_WIDTH": 63,
+          "Y_WIDTH": 63,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$procmux$114",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$116",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$119",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$176",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$procmux$178",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$procmux$181",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$procmux$199",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$procmux$212",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$215",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$procmux$218",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$221",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$procmux$224",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$227",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$procmux$230",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$233",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$procmux$236",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$239",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$procmux$242",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$245",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$procmux$248",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$procmux$251",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$procmux$97",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 1
+        }
+      },
+      {
+        "name": "$sub$rtl/core/div_floor.sv:102$50",
+        "type": "$sub",
+        "parameters": {
+          "A_WIDTH": 64,
+          "B_WIDTH": 64,
+          "Y_WIDTH": 64,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$sub$rtl/core/div_floor.sv:102$54",
+        "type": "$sub",
+        "parameters": {
+          "A_WIDTH": 64,
+          "B_WIDTH": 64,
+          "Y_WIDTH": 64,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$sub$rtl/core/div_floor.sv:102$58",
+        "type": "$sub",
+        "parameters": {
+          "A_WIDTH": 64,
+          "B_WIDTH": 64,
+          "Y_WIDTH": 64,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$sub$rtl/core/div_floor.sv:102$62",
+        "type": "$sub",
+        "parameters": {
+          "A_WIDTH": 64,
+          "B_WIDTH": 64,
+          "Y_WIDTH": 64,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$sub$rtl/core/div_floor.sv:102$66",
+        "type": "$sub",
+        "parameters": {
+          "A_WIDTH": 64,
+          "B_WIDTH": 64,
+          "Y_WIDTH": 64,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$sub$rtl/core/div_floor.sv:102$70",
+        "type": "$sub",
+        "parameters": {
+          "A_WIDTH": 64,
+          "B_WIDTH": 64,
+          "Y_WIDTH": 64,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$sub$rtl/core/div_floor.sv:102$74",
+        "type": "$sub",
+        "parameters": {
+          "A_WIDTH": 64,
+          "B_WIDTH": 64,
+          "Y_WIDTH": 64,
+          "A_SIGNED": 0,
+          "B_SIGNED": 0
+        }
+      },
+      {
+        "name": "$ternary$rtl/core/div_floor.sv:134$86",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      },
+      {
+        "name": "$ternary$rtl/core/div_floor.sv:150$92",
+        "type": "$mux",
+        "parameters": {
+          "WIDTH": 63
+        }
+      }
+    ],
+    "pre_generic_inventory": {
+      "latch_cells": {},
+      "memory_cells": {}
+    },
+    "generic_noabc": {
+      "total_cells": 5230,
+      "primitive_logic_cells": {
+        "$_AND_": 1927,
+        "$_MUX_": 686,
+        "$_NOT_": 221,
+        "$_OR_": 1047,
+        "$_XOR_": 1036
+      },
+      "primitive_logic_total": 4917,
+      "sequential_cell_count": 313,
+      "sequential_bit_count": 313,
+      "ff_cells_one_bit_each": true,
+      "latch_cells": {},
+      "memory_cells": {},
+      "residual_internal_cells": {},
+      "logic_levels_from_primary_inputs_and_state_q": {
+        "q": {
+          "max_logic_levels": 0,
+          "known_bits": 63,
+          "width": 63,
+          "unresolved_bits": 0
+        },
+        "err": {
+          "max_logic_levels": 0,
+          "known_bits": 1,
+          "width": 1,
+          "unresolved_bits": 0
+        },
+        "busy": {
+          "max_logic_levels": 0,
+          "known_bits": 1,
+          "width": 1,
+          "unresolved_bits": 0
+        },
+        "done": {
+          "max_logic_levels": 0,
+          "known_bits": 1,
+          "width": 1,
+          "unresolved_bits": 0
+        }
+      },
+      "logic_levels_to_sequential_input_pins": {
+        "D": {
+          "bits": 313,
+          "known_bits": 313,
+          "unresolved_bits": 0,
+          "max_logic_levels": 184,
+          "level_histogram": {
+            "0": 111,
+            "1": 2,
+            "2": 1,
+            "3": 2,
+            "4": 2,
+            "5": 2,
+            "6": 2,
+            "7": 4,
+            "8": 5,
+            "9": 8,
+            "10": 12,
+            "11": 14,
+            "12": 11,
+            "13": 5,
+            "23": 1,
+            "45": 1,
+            "67": 1,
+            "89": 1,
+            "111": 1,
+            "133": 1,
+            "155": 1,
+            "156": 62,
+            "166": 1,
+            "167": 1,
+            "168": 1,
+            "170": 2,
+            "172": 3,
+            "174": 5,
+            "176": 8,
+            "178": 12,
+            "180": 14,
+            "182": 11,
+            "184": 5
+          }
+        },
+        "E": {
+          "bits": 311,
+          "known_bits": 311,
+          "unresolved_bits": 0,
+          "max_logic_levels": 5,
+          "level_histogram": {
+            "2": 62,
+            "4": 122,
+            "5": 127
+          }
+        },
+        "R": {
+          "bits": 313,
+          "known_bits": 313,
+          "unresolved_bits": 0,
+          "max_logic_levels": 3,
+          "level_histogram": {
+            "0": 190,
+            "3": 123
+          }
+        }
+      }
+    },
+    "artifact_sha256": {
+      "div_floor_p7.generic.json": "e62e6bb33076b23f658dd2d4648f9c5b50fa246503f9a16bbd4a67ac2a38fab0",
+      "div_floor_p7.generic.v": "812b77139da4c60338f2668ff534fa48d1a91f758df665801b06347541d50b8d",
+      "div_floor_p7.pre.json": "3cd404649fa2e0f165a348996de5bafbbf1d92207015aa4dafc9187ad623ad4a",
+      "div_floor_p7.log": "df954fe5347ae32421be14b9e0d73f2b506643ddf69a706704fcebe5b74b2910"
+    }
+  }
+]

@@ -21,14 +21,14 @@ module calibration_recovery_tb;
     .adc2_code(fine),.inj_q(64'sd0),.w_rom(weights),.offset_q(64'sd0),
     .adc2_min_q(-64'sd4294967296),.adc2_max_q(64'sd4294967296),
     .dout(out_cal),.dout_valid(valid_cal),.clip_low(),.clip_high(),.acc_ovf(),.gain_err(),.adc2_ovf(),
-    .busy(),.result_sample_id(),.result_flags(flags_cal));
+    .busy(),.result_sample_id(),.result_flags(flags_cal), .row_total('0));
   recon_core #(.P_N_ACTIVE(8),.P_N_MAIN(7),.P_N_SUB(1),.P_N_SLICES(18),.P_DIT_N(1),.P_DIT_END(8)) raw(
     .clk(clk),.rst_n(rst_n),.cfg_ready(1'b1),.start(start),.sample_id(32'd0),.clr_ovf(1'b0),
     .sampling_mask_en(1'b0),.slice_id(ids),.main_on(main_on),.sub_on(sub_on),.dither_rail(1'b0),
     .adc2_code(fine),.inj_q(64'sd0),.w_rom(nominal),.offset_q(64'sd0),
     .adc2_min_q(-64'sd4294967296),.adc2_max_q(64'sd4294967296),
     .dout(out_raw),.dout_valid(valid_raw),.clip_low(),.clip_high(),.acc_ovf(),.gain_err(),.adc2_ovf(),
-    .busy(),.result_sample_id(),.result_flags(flags_raw));
+    .busy(),.result_sample_id(),.result_flags(flags_raw), .row_total('0));
   initial begin
     logic signed [255:0] total,rail_sum,w,fexact,c,v;
     int target,coarse,ticks,cal_error,raw_error,max_cal=0,max_raw=0;

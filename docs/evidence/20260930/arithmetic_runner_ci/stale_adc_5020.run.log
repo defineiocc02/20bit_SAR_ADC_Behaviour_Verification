@@ -1,0 +1,5 @@
+OUTPUT_FLAG_SEQUENCE_PASS scenarios=8
+MAC_INDEPENDENT_PASS cases=40010
+[40012000] %Fatal: arithmetic_audit_tb.sv:45: Assertion failed in TOP.arithmetic_audit_tb.comb.unnamedblk1: ADC mismatch line=2 ov=0 fine=0000000000000001 expected=ffffffffffffffff
+%Error: /var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/sar-arithmetic-audit-6y906_db/repo/sim/tb/arithmetic_audit_tb.sv:45: Verilog $stop
+Aborting...

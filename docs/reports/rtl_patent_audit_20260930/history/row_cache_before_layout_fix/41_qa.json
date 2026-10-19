@@ -1,0 +1,44 @@
+{
+  "status": "PASS",
+  "scope": "Report-only rendering of archived candidate functional data; no EDA or new simulation",
+  "rtl_sha256": "1e3fab94b7b29b77113fa2e18eae99b6ee1c180cd7df6004625c85358392eef4",
+  "archive_payload_files_checked": 42,
+  "negative_cases": [
+    {
+      "case": "log_bytes",
+      "rejected": true,
+      "reason": "Archive checksum differs: verilator_5_49/weight_row_cache_tb.run.log",
+      "unchanged_copy_accepted": true
+    },
+    {
+      "case": "csv_value",
+      "rejected": true,
+      "reason": "CSV row differs from independent integer formula",
+      "unchanged_copy_accepted": true
+    },
+    {
+      "case": "rtl_identity",
+      "rejected": true,
+      "reason": "Candidate RTL identity or functional status differs",
+      "unchanged_copy_accepted": true
+    },
+    {
+      "case": "mutation_claim",
+      "rejected": true,
+      "reason": "The recorded negative mutation differs from the plotted claim",
+      "unchanged_copy_accepted": true
+    }
+  ],
+  "ruff_check": "PASS using repo pyproject.toml",
+  "ruff_format_check": "PASS using repo pyproject.toml",
+  "visual_qa": "Full PNG viewed; header, tables, exact hexadecimal values and negative-control panel fit without overlap",
+  "static_tex": "Balanced braces/environments; referenced PDF exists; not compiled",
+  "script_sha256": "8b1c0339806c2226db19fe40253f38a966e128586895fdafa56d4edd51b78085",
+  "section_sha256": "2eff1cb222745da614118546880d1c0800f5bba1756acb9b13f0ba0799c2f6fa",
+  "source_hash_record_sha256": "ae5991cc3feb913aa7e9a10fd69eacf7294a48ecfd98878b67c1b96430d25a7d",
+  "outputs_sha256": {
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_patent_rtl_report_20260928/figures/41_row_cache_evidence.png": "830ddd4f6d2775fba8a216055c56af9fe615a6c334094b70c50a8844caaaf3c5",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_patent_rtl_report_20260928/figures/41_row_cache_evidence.pdf": "b924db94c433afc8dc66ee304443a42c8b10e57944e79d2822b4e6e2785c6915"
+  },
+  "archive_manifest_sha256": "c5a5034aac012ff212f8f8995ebfae2424648c3b637f4468bfbddbe0508ac0fb"
+}

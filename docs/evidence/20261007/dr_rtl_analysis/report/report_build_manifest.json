@@ -1,0 +1,16 @@
+{
+  "input_sha256": {
+    "ANALYSIS.md": "f712fb172c64ad88294955b84984e2fd3531b5d68d2ef69d0d72c3148f294e48",
+    "baseline/source_identity.json": "325eb8812f6c77d07c65b3b6f7d4244c08d425ed23452e70d8b84fd0e1daa970",
+    "baseline/extracted_metrics.json": "e9283dc6e3cae1625d53d4b55ae33b56d9077c9f7bd78f24e7100e8fb418c446",
+    "cone_synthesis/synthesis_summary.json": "485d22dfae903cb9489f0064282fb613a450a97f9f8b04888f30c46d838d754b",
+    "function/FUNCTION_REVIEW.md": "718527963e1cd1fab35642ba1a9308ca682b2759d68d1be732edc7c7ba87ae14",
+    "constraints/STA_CONSTRAINT_REVIEW_20261007.md": "3e02966d16e583ad8eb34cc5cab9f443accbdc0aad9f68ed39ab226c54c1f085",
+    "cone_synthesis/README.md": "05872f3b98bda52e0c6511f65f124553e0b9053cec9f7da7c57f7faa6d186431",
+    "report/build_report.py": "a0ead8c54d4985458cbd5eec635e01a021b18e0693ac2c1b13a99c2e663a60ed",
+    "report/md_to_latex.py": "7efbd6a37f729a8ae2f81ef784dcf1caf373bbdd679ad068a1beb3dd61137ecf"
+  },
+  "tex_sha256": "686aa194fbc26bb6e5d02379a40c0f494c658c4a60590343e62b35d445fffd21",
+  "standalone": true,
+  "scope": "source/evidence-bound report generator, no EDA execution"
+}

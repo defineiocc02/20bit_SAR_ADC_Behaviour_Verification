@@ -130,39 +130,86 @@ def _code_line(rel, needle):
 
 
 @pytest.mark.parametrize(
-    ("rel", "line", "term", "op", "expect_line"),
+    ("rel", "source", "source_line", "term", "expect_line"),
     [
-        (
+        pytest.param(
             "rtl/core/weight_store.sv",
-            _code_line("rtl/core/weight_store.sv", "assign accept"),
+            "module documented_capacity_guard(\n"
+            "    input wire wr_en, clear_load, cfg_ready, idx_ok, w_ok,\n"
+            "    input wire [63:0] sum_new, SUM_MAX,\n"
+            "    output wire accept\n"
+            ");\n"
+            "  assign accept    = wr_en && (!clear_load) && (!cfg_ready) && idx_ok && w_ok && (sum_new < SUM_MAX);\n"
+            "endmodule\n",
+            "  assign accept    = wr_en && (!clear_load) && (!cfg_ready) && idx_ok && w_ok && (sum_new < SUM_MAX);",
             5,
-            "ExprDelete",
             "  assign accept    = wr_en && (!clear_load) && (!cfg_ready) && idx_ok && w_ok;",
+            id="frozen_documented_capacity_guard",
         ),
-        (
+        pytest.param(
             "rtl/core/status_regs.sv",
-            82,
+            "module documented_sticky_guard(\n"
+            "    input wire clk, ev_acc_ovf,\n"
+            "    output logic acc_ovf_sticky\n"
+            ");\n"
+            "  always_ff @(posedge clk) begin\n"
+            "        acc_ovf_sticky    <= acc_ovf_sticky    | ev_acc_ovf;\n"
+            "  end\n"
+            "endmodule\n",
+            "        acc_ovf_sticky    <= acc_ovf_sticky    | ev_acc_ovf;",
             0,
-            "ExprDelete",
             "        acc_ovf_sticky    <= ev_acc_ovf;",
+            id="frozen_documented_sticky_self_hold",
         ),
     ],
 )
-def test_expr_delete_reproduces_documented_mutants(rel, line, term, op, expect_line, tmp_path):
-    """删"容量条件项"与删"自保持项"必须逐字复现审计文档 §2 的 #10/#11 两条形态。
+def test_expr_delete_reproduces_documented_mutants(
+    rel, source, source_line, term, expect_line, tmp_path
+):
+    """冻结完整赋值fixture复现审计文档 §2 的 #10/#11 两条语法形态。
 
-    第一版删错过两处：① 删掉 `&&` 却留着两个项 -> `wr_en  (!cfg_ready) && …` 非法；
-    ② 删末项时把行尾 `;` 一起吃掉。这条断言把两处都钉住。
+    它们不是从当前生产源码注入：当前accept是跨行赋值，有限行内注入器不覆盖；
+    文档容量项也不含后来加入的STATIC_SUM_SAFE。这里明确冻结单行历史形态，
+    继续钉住删错连接词与吞末尾分号两类缺陷，不把排版位置当作注入器契约。
     """
+    rtl_root = tmp_path / "documented_fixture" / "rtl"
+    for sub in ("core", "top"):
+        (rtl_root / sub).mkdir(parents=True)
+    original = rtl_root.parent / rel
+    original.write_bytes(source.encode("utf-8"))
+    assert source.splitlines().count(source_line) == 1
+    line = source.splitlines().index(source_line) + 1
     sites = [
-        s
-        for s in mrt.enumerate_sites(mrt.RTL_ROOT)
-        if s.op == op and s.rel == rel and s.line == line
+        site
+        for site in mrt.enumerate_sites(rtl_root)
+        if site.op == "ExprDelete" and site.rel == rel and site.line == line
     ]
-    assert len(sites) > term, f"{rel}:{line} 上 {op} 只有 {len(sites)} 个位点"
-    mrt.inject(sites=[sites[term]], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT)
-    got = (tmp_path / "t" / rel).read_text(encoding="utf-8", errors="replace").splitlines()
-    assert got[line - 1] == expect_line
+    assert len(sites) == (6 if term == 5 else 2)
+    destination = mrt.inject(sites=[sites[term]], name="t", out_root=tmp_path, rtl_root=rtl_root)
+    got = (destination / rel).read_bytes()
+    assert got == source.replace(source_line, expect_line).encode("utf-8")
+    got_line = got.splitlines()[line - 1].decode("utf-8")
+    assert got_line == expect_line
+    assert got_line.endswith(";")
+    assert "&& ;" not in got_line and "wr_en  (!clear_load)" not in got_line
+    assert original.read_bytes() == source.encode("utf-8")
+
+
+def test_expr_delete_removes_current_sticky_self_hold(tmp_path):
+    """当前生产状态寄存器仍支持单行自保持删除，按符号定位而不绑定旧行号。"""
+    rel = "rtl/core/status_regs.sv"
+    line = _code_line(rel, "<= acc_ovf_sticky")
+    sites = [
+        site
+        for site in mrt.enumerate_sites(mrt.RTL_ROOT)
+        if site.op == "ExprDelete" and site.rel == rel and site.line == line
+    ]
+    assert len(sites) == 2
+    before = _hash_tree(mrt.RTL_ROOT)
+    destination = mrt.inject(sites=[sites[0]], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT)
+    got = (destination / rel).read_text(encoding="utf-8").splitlines()
+    assert got[line - 1] == "        acc_ovf_sticky    <= ev_acc_ovf;"
+    assert _hash_tree(mrt.RTL_ROOT) == before
 
 
 def test_injection_is_byte_faithful_outside_the_site(tmp_path):
@@ -182,7 +229,7 @@ def test_injection_is_byte_faithful_outside_the_site(tmp_path):
         for s in mrt.enumerate_sites(mrt.RTL_ROOT)
         if s.op == "ExprDelete"
         and s.rel == "rtl/core/weight_store.sv"
-        and s.line == _code_line("rtl/core/weight_store.sv", "assign accept")
+        and s.line == _code_line("rtl/core/weight_store.sv", "assign w_ok")
     )
     dst = mrt.inject(sites=[site], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT)
 
@@ -205,6 +252,7 @@ def test_injection_is_byte_faithful_outside_the_site(tmp_path):
             assert a_eol in (b"\n", b"\r\n"), f"意外的行尾：{a_eol!r}"
         else:
             assert a == b, f"第 {i + 1} 行被顺手改了"
+    assert _hash_tree(mrt.RTL_ROOT) == before
 
 
 def test_injection_never_touches_the_original_rtl(tmp_path):

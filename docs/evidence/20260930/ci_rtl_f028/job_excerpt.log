@@ -1,0 +1,9 @@
+2026-09-29T20:50:01.0628349Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +ae11d8b0cf73a47e073dbb5394db64fa91f9229a:refs/remotes/pull/4/merge
+2026-09-29T20:50:02.0129880Z  * [new ref]         ae11d8b0cf73a47e073dbb5394db64fa91f9229a -> pull/4/merge
+2026-09-29T20:50:02.1235540Z HEAD is now at ae11d8b Merge f028ec5bb4f64a79414bac59c1b91bc1eaeee190 into cacea23495dd986cfdf8b9cdd92a1f0013de4b8b
+2026-09-29T20:50:02.1333292Z ae11d8b0cf73a47e073dbb5394db64fa91f9229a
+2026-09-29T20:50:19.5456111Z Verilator 5.020 2024-01-01 rev (Debian 5.020-1)
+2026-09-29T20:50:40.0921099Z ##[group]Run python tools/run_open_rtl.py
+2026-09-29T20:57:18.6041324Z ##[group]Run python tools/audit_rtl_arithmetic.py --output-dir sim/artifacts/arithmetic-audit
+2026-09-29T20:57:28.0650442Z ARITHMETIC_AUDIT_COMPLETE mac=40010 adc=40000 div=10048 flag_sequences=8
+2026-09-29T20:57:28.6516029Z SHA256 digest of uploaded artifact zip is de36f8fc01b6428ca82ad95deb1cd743853f14c0630c19dce8eda838b733a3d4

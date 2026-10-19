@@ -1,0 +1,33 @@
+{
+  "scope": "FULL_TOP_POST_SYNTH_FUNCTIONAL_NO_SDF_NOT_TIMING",
+  "rtl_content_sha256": "89b9f8153fea49d82faba8464e45bb83c914b11ebf708fb623a9fe3a660b5d26",
+  "dcp_sha256": "63a6faacdc44e54da02514a70ff658ac31756853496114513018ac5714cc856e",
+  "attempts": {
+    "final_pass": {
+      "status": "FULL_MAPPED_FUNCTIONAL_PASS"
+    }
+  },
+  "final_audit": {
+    "status": "PASS",
+    "scope": "TB_TRACE_CONSISTENCY_NOT_NETLIST_IDENTITY_OR_TIMING",
+    "recon_stages": 5,
+    "rows": 438,
+    "rows_per_mode": [
+      146,
+      146,
+      146
+    ],
+    "config_readbacks": 3900,
+    "protocol_checks": 7680,
+    "physical_slices": 18,
+    "cancelled": 3,
+    "code_mismatches": 0,
+    "flag_mismatches": 0,
+    "internal_launch_latency_checked": false,
+    "nonzero_flags_exercised": false,
+    "trace_sha256": "c40ce4404bbbeae26df514be6484722682f936a626c56bd156ada9b5ae8d2073",
+    "log_sha256": "d8cde83933032fe700998bc409b60142eca3fb102f0029ec45879398452620f3"
+  },
+  "trace_equals_baseline": true,
+  "netlist_sha256": "ad93cd2321c38e79502f3e498e786a6ed071151920309fcfb081dfe99fd83a0e"
+}

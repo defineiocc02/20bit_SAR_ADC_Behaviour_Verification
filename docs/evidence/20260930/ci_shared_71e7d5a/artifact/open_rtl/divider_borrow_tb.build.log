@@ -1,0 +1,171 @@
+%Warning-TIMESCALEMOD: rtl/core/adc2_dec.sv:45:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   45 | module adc2_dec #(
+      |        ^~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+                       ... For warning description see https://verilator.org/warn/TIMESCALEMOD?v=5.020
+                       ... Use "/* verilator lint_off TIMESCALEMOD */" and lint_on around source to disable this message.
+%Warning-TIMESCALEMOD: rtl/core/analog_phase_ctrl.sv:5:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    5 | module analog_phase_ctrl #(
+      |        ^~~~~~~~~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/cal_output_stage.sv:5:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    5 | module cal_output_stage #(
+      |        ^~~~~~~~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/cal_residue_mac.sv:5:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    5 | module cal_residue_mac #(
+      |        ^~~~~~~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/cal_sample_context.sv:5:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    5 | module cal_sample_context (
+      |        ^~~~~~~~~~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/cal_weight_reduce.sv:7:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    7 | module cal_weight_reduce #(
+      |        ^~~~~~~~~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/calib_regs.sv:47:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   47 | module calib_regs #(
+      |        ^~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/ctrl_fsm.sv:42:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   42 | module ctrl_fsm #(
+      |        ^~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/dem_addr_gen.sv:37:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   37 | module dem_addr_gen #(
+      |        ^~~~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/dem_state_gen.sv:45:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   45 | module dem_state_gen #(
+      |        ^~~~~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/dither_gen.sv:15:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   15 | module dither_gen #(
+      |        ^~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/div_floor.sv:57:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   57 | module div_floor #(
+      |        ^~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/rdac_drv.sv:30:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   30 | module rdac_drv (
+      |        ^~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/recon_core.sv:53:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   53 | module recon_core #(
+      |        ^~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/sar_structural_ctrl.sv:7:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    7 | module sar_structural_ctrl #(
+      |        ^~~~~~~~~~~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/sar_trial_ctrl.sv:6:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    6 | module sar_trial_ctrl #(
+      |        ^~~~~~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/slice_alloc.sv:44:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   44 | module slice_alloc (
+      |        ^~~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/slice_pool_ctrl.sv:6:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    6 | module slice_pool_ctrl #(parameter logic [31:0] P_SEED=32'h6d2b79f5) (
+      |        ^~~~~~~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/status_regs.sv:42:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   42 | module status_regs (
+      |        ^~~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/swap_decode.sv:37:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   37 | module swap_decode (
+      |        ^~~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/unit_therm.sv:33:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   33 | module unit_therm (
+      |        ^~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/weight_store.sv:42:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   42 | module weight_store #(
+      |        ^~~~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/top/sadc_enc.sv:30:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   30 | module sadc_enc #(
+      |        ^~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/top/sar20_digital_core.sv:11:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   11 | module sar20_digital_core #(
+      |        ^~~~~~~~~~~~~~~~~~
+                       sim/tb/divider_borrow_tb.sv:5:8: ... Location of module with timescale
+    5 | module divider_borrow_case #(
+      |        ^~~~~~~~~~~~~~~~~~~
+make: Entering directory '/tmp/sar_rtl_9vyhna2r'
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -c -o verilated.o /usr/share/verilator/include/verilated.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -c -o verilated_timing.o /usr/share/verilator/include/verilated_timing.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -c -o verilated_threads.o /usr/share/verilator/include/verilated_threads.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -x c++-header Vdivider_borrow_tb__pch.h -o Vdivider_borrow_tb__pch.h.fast.gch
+g++   -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -x c++-header Vdivider_borrow_tb__pch.h -o Vdivider_borrow_tb__pch.h.slow.gch
+echo "" > Vdivider_borrow_tb__ALL.verilator_deplist.tmp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vdivider_borrow_tb__pch.h.fast -c -o Vdivider_borrow_tb.o Vdivider_borrow_tb.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vdivider_borrow_tb__pch.h.fast -c -o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__0.o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__0.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vdivider_borrow_tb__pch.h.fast -c -o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__1.o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__1.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vdivider_borrow_tb__pch.h.fast -c -o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__2.o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__2.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vdivider_borrow_tb__pch.h.fast -c -o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__3.o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__3.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vdivider_borrow_tb__pch.h.fast -c -o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__4.o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__4.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vdivider_borrow_tb__pch.h.fast -c -o Vdivider_borrow_tb___024root__DepSet_he06f36d4__0.o Vdivider_borrow_tb___024root__DepSet_he06f36d4__0.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vdivider_borrow_tb__pch.h.fast -c -o Vdivider_borrow_tb__main.o Vdivider_borrow_tb__main.cpp
+g++   -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vdivider_borrow_tb__pch.h.slow -c -o Vdivider_borrow_tb___024root__Slow.o Vdivider_borrow_tb___024root__Slow.cpp
+g++   -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vdivider_borrow_tb__pch.h.slow -c -o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__0__Slow.o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__0__Slow.cpp
+g++   -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vdivider_borrow_tb__pch.h.slow -c -o Vdivider_borrow_tb___024root__DepSet_he06f36d4__0__Slow.o Vdivider_borrow_tb___024root__DepSet_he06f36d4__0__Slow.cpp
+g++   -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vdivider_borrow_tb__pch.h.slow -c -o Vdivider_borrow_tb___024unit__Slow.o Vdivider_borrow_tb___024unit__Slow.cpp
+g++   -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vdivider_borrow_tb__pch.h.slow -c -o Vdivider_borrow_tb___024unit__DepSet_ha2d4f9a3__0__Slow.o Vdivider_borrow_tb___024unit__DepSet_ha2d4f9a3__0__Slow.cpp
+g++   -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vdivider_borrow_tb__pch.h.slow -c -o Vdivider_borrow_tb__Syms.o Vdivider_borrow_tb__Syms.cpp
+Archive ar -rcs Vdivider_borrow_tb__ALL.a Vdivider_borrow_tb.o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__0.o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__1.o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__2.o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__3.o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__4.o Vdivider_borrow_tb___024root__DepSet_he06f36d4__0.o Vdivider_borrow_tb__main.o Vdivider_borrow_tb___024root__Slow.o Vdivider_borrow_tb___024root__DepSet_h738e7d0e__0__Slow.o Vdivider_borrow_tb___024root__DepSet_he06f36d4__0__Slow.o Vdivider_borrow_tb___024unit__Slow.o Vdivider_borrow_tb___024unit__DepSet_ha2d4f9a3__0__Slow.o Vdivider_borrow_tb__Syms.o
+g++     verilated.o verilated_timing.o verilated_threads.o Vdivider_borrow_tb__ALL.a    -pthread -lpthread -latomic   -o Vdivider_borrow_tb
+rm Vdivider_borrow_tb__ALL.verilator_deplist.tmp
+make: Leaving directory '/tmp/sar_rtl_9vyhna2r'

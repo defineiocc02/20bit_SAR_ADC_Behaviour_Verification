@@ -1,0 +1,9 @@
+DITHER PASS D=0 seed=13579bdf accepted=200000 mean=0.000000 corr=0.000000
+DITHER PASS D=1 seed=13579bdf accepted=200000 mean=-0.001750 corr=-0.000786
+DITHER PASS D=2 seed=13579bdf accepted=200000 mean=-0.004590 corr=-0.001488
+DITHER PASS D=3 seed=13579bdf accepted=196866 mean=-0.004155 corr=-0.000851
+DITHER PASS D=63 seed=13579bdf accepted=196866 mean=0.066279 corr=0.002793
+DITHER PASS D=2 seed=00000001 accepted=200000 mean=0.006405 corr=0.001070
+DITHER PASS D=2 seed=ffffffff accepted=200000 mean=0.004860 corr=-0.001918
+REVIEW_DITHER_COMPLETE
+- sim/tb/review_dither_tb.sv:63: Verilog $finish

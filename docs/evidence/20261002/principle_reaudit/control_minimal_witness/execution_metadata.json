@@ -1,0 +1,44 @@
+{
+  "tool": "Verilator",
+  "version": "5.020",
+  "wrapper": "/tmp/sar_verilator_5_020_build/verilator5020",
+  "tests": [
+    {
+      "name": "analog_status_boundary",
+      "compile_cwd": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002",
+      "compile_argv_file": "analog_compile_command.json",
+      "run_cwd": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/control_minimal_witness",
+      "run_argv": [
+        "./obj/Vanalog_status_boundary_tb"
+      ],
+      "compile_log": "build.log",
+      "run_log": "run.log",
+      "trace": "analog_status_boundary_trace.csv",
+      "scope": "Production cal_sample_context/status_regs with exact launch-and-fine_bad gate; other arithmetic event inputs tied to 0."
+    },
+    {
+      "name": "structural_capture_alignment",
+      "compile_cwd": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002",
+      "compile_argv_file": "structural_compile_command.json",
+      "run_cwd": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/control_minimal_witness",
+      "run_argv": [
+        "./structural_obj/Vstructural_capture_trace_wrapper"
+      ],
+      "compile_log": "structural_build.log",
+      "run_log": "structural_run.log",
+      "trace": "structural_capture_trace.csv",
+      "scope": "Existing controller bench plus read-only pre/post edge observer and shadow acceptance FF, not actual full top/recon."
+    }
+  ],
+  "warnings": {
+    "structural_bench_width_warnings": 4,
+    "rtl_warning_errors": [
+      "UNDRIVEN",
+      "LATCH",
+      "UNOPTFLAT",
+      "SELRANGE"
+    ],
+    "cpp_runtime_unknown_warning_group": "Wdeprecated-experimental-coroutine"
+  },
+  "no_additional_runs_during_sealing": true
+}

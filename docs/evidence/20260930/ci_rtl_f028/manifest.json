@@ -1,0 +1,501 @@
+{
+  "archive_utc": "2026-09-29T21:05:46.693367+00:00",
+  "scope": "Successful completed RTL CI job; no overall workflow success claim",
+  "repository": "defineiocc02/20bit_SAR_ADC_Behaviour_Verification",
+  "workflow_run_id": 36629118047,
+  "job_id": 109613555598,
+  "job_conclusion": "success",
+  "pr_head_sha": "f028ec5bb4f64a79414bac59c1b91bc1eaeee190",
+  "tested_merge_sha": "ae11d8b0cf73a47e073dbb5394db64fa91f9229a",
+  "git_tree_sha": "d84022bd83195a9ad6443009f368d3764a0a7d3f",
+  "whole_tree_equal": true,
+  "workflow_observation": {
+    "observed_utc": "2026-09-29T21:05:46.693367+00:00",
+    "run_id": 36629118047,
+    "head_sha": "f028ec5bb4f64a79414bac59c1b91bc1eaeee190",
+    "status_at_metadata_retrieval": "in_progress",
+    "conclusion_at_metadata_retrieval": null,
+    "scope": "This archive certifies only the completed RTL job. Other jobs and final workflow conclusion are not inferred.",
+    "html_url": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36629118047"
+  },
+  "artifact_id": 11061572458,
+  "artifact_zip_sha256": "de36f8fc01b6428ca82ad95deb1cd743853f14c0630c19dce8eda838b733a3d4",
+  "external_artifact_zip": "/tmp/sar_ci_f028_artifact/artifact.zip",
+  "rtl_content_sha256": "fd885e882ad5447f87626dc034fb59a6853a86f01050957a93b8a6407ebbbc13",
+  "rtl_file_count": 26,
+  "source_input_count": 87,
+  "tool_version": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+  "tested_step_command": "python tools/run_open_rtl.py",
+  "benches_passed": 21,
+  "strict_lint_profiles_passed": 3,
+  "benches": [
+    {
+      "top": "sar_trial_tb",
+      "result": "PASS",
+      "required_marker": "SAR_TRIAL_COMPLETE",
+      "observed_marker": "SAR_TRIAL_COMPLETE fine_codes=4096 coarse_codes=512 stalls_and_cancel=PASS",
+      "run_log": "open_rtl/sar_trial_tb.run.log",
+      "sha256": "26d36d67e86b6703e49252c6ec98d119d49452217f646aee3ce2689c2bd74d80"
+    },
+    {
+      "top": "calibration_recovery_tb",
+      "result": "PASS",
+      "required_marker": "CALIBRATION_RECOVERY_COMPLETE",
+      "observed_marker": "CALIBRATION_RECOVERY_COMPLETE samples=2048 max_calibrated_error=4 max_uncalibrated_error=504",
+      "run_log": "open_rtl/calibration_recovery_tb.run.log",
+      "sha256": "54b981cb4f210916fea3026878b34ede8e12f4b147dc7f11b4929e850c0eebe0"
+    },
+    {
+      "top": "calibration_fit_tb",
+      "result": "PASS",
+      "required_marker": "CALIBRATION_FIT_COMPLETE",
+      "observed_marker": "CALIBRATION_FIT_COMPLETE samples=128 fitted_external_weights=1278 cfg_commit=PASS",
+      "run_log": "open_rtl/calibration_fit_tb.run.log",
+      "sha256": "4b134e2e2c480d64c77b9010e3d09d1cfc3204578f61315cac42ef9b597278e5"
+    },
+    {
+      "top": "structural_adc_tb",
+      "result": "PASS",
+      "required_marker": "STRUCTURAL_ADC_COMPLETE",
+      "observed_marker": "STRUCTURAL_ADC_COMPLETE modes=3 outputs=438 checks=7680 physical_slices=18 recon_stages=7 recon_latency=11 latency_checks=438",
+      "run_log": "open_rtl/structural_adc_tb.run.log",
+      "sha256": "5e659a733e2ddc9a10c133e702659c6c7ca66163974053b0bbad232e9c1fcdac"
+    },
+    {
+      "top": "structural_protocol_tb",
+      "result": "PASS",
+      "required_marker": "STRUCTURAL_PROTOCOL_COMPLETE",
+      "observed_marker": "STRUCTURAL_PROTOCOL_COMPLETE frames=120 launches=57 expected_drops=63 checks=1920 decoder_perturbations=2",
+      "run_log": "open_rtl/structural_protocol_tb.run.log",
+      "sha256": "7630ce9d3e9702d1d2015cd921062169a4b6dd2aecdd0c7d7bda34b615ed3c98"
+    },
+    {
+      "top": "recon_ppa_latency_tb",
+      "result": "PASS",
+      "required_marker": "RECON_PPA_PROFILE_PASS stages=7 samples=32",
+      "observed_marker": "RECON_PPA_PROFILE_PASS stages=7 samples=32 busy_release=10 latency=11 initiation_interval=16",
+      "run_log": "open_rtl/recon_ppa_latency_tb.run.log",
+      "sha256": "e11c863bc24d576545234085dcd03df9be8d6f9aa9a8e4c5ba6f01f230c1f31c"
+    },
+    {
+      "top": "divider_borrow_tb",
+      "result": "PASS",
+      "required_marker": "DIVIDER_BORROW_COMPLETE exhaustive_checks=67592",
+      "observed_marker": "DIVIDER_BORROW_COMPLETE exhaustive_checks=67592",
+      "run_log": "open_rtl/divider_borrow_tb.run.log",
+      "sha256": "35be2a3ccc357459b2dec5be5d3c422543c34b9458e1a143d058f1a25516006a"
+    },
+    {
+      "top": "tree_mapping_tb",
+      "result": "PASS",
+      "required_marker": "TREE_MAPPING_COMPLETE checks=12904",
+      "observed_marker": "TREE_MAPPING_COMPLETE checks=12904",
+      "run_log": "open_rtl/tree_mapping_tb.run.log",
+      "sha256": "c280533bff2230db02fcf8cb9dd753e9b8e6039976cb17f01d6b50a3b4169237"
+    },
+    {
+      "top": "cal_weight_reduce_ppa_tb",
+      "result": "PASS",
+      "required_marker": "CAL_WEIGHT_REDUCE_PPA_COMPLETE",
+      "observed_marker": "CAL_WEIGHT_REDUCE_PPA_COMPLETE",
+      "run_log": "open_rtl/cal_weight_reduce_ppa_tb.run.log",
+      "sha256": "11dd2fac0685fb726e0d1d00825eb77bc27faf04d2f34f4df5009b86ae68379e"
+    },
+    {
+      "top": "calibration_physical_tb",
+      "result": "PASS",
+      "required_marker": "CALIBRATION_PHYSICAL_COMPLETE",
+      "observed_marker": "CALIBRATION_PHYSICAL_COMPLETE samples=2048 physical_slices=18",
+      "run_log": "open_rtl/calibration_physical_tb.run.log",
+      "sha256": "589610a4c195871250ab87583a3fb57cc9030e1ee7c0c559b735bce8a9c66e88"
+    },
+    {
+      "top": "review_top_protocol_tb",
+      "result": "PASS",
+      "required_marker": "REVIEW_TOP_PROTOCOL_COMPLETE",
+      "observed_marker": "REVIEW_TOP_PROTOCOL_COMPLETE checks=1108 outputs=38",
+      "run_log": "open_rtl/review_top_protocol_tb.run.log",
+      "sha256": "6a9f3440b8050c81b1b6bc2e5adc58f42df9a2cb075ae11fe55bfc42882ee023"
+    },
+    {
+      "top": "review_leaf_tb",
+      "result": "PASS",
+      "required_marker": "REVIEW_LEAF_COMPLETE",
+      "observed_marker": "REVIEW_LEAF_COMPLETE checks=91142",
+      "run_log": "open_rtl/review_leaf_tb.run.log",
+      "sha256": "1d58c5b5761c2ed04bf26866e122024560f1df10ee507c0c23c0de1195cffa13"
+    },
+    {
+      "top": "review_recon_protocol_tb",
+      "result": "PASS",
+      "required_marker": "REVIEW_RECON_PROTOCOL_COMPLETE",
+      "observed_marker": "REVIEW_RECON_PROTOCOL_COMPLETE",
+      "run_log": "open_rtl/review_recon_protocol_tb.run.log",
+      "sha256": "bd61e46b62371076337f6dba4fbfc062dc28b8e20fad77d2fb9a3233a88e1d21"
+    },
+    {
+      "top": "review_dither_tb",
+      "result": "PASS",
+      "required_marker": "REVIEW_DITHER_COMPLETE",
+      "observed_marker": "REVIEW_DITHER_COMPLETE",
+      "run_log": "open_rtl/review_dither_tb.run.log",
+      "sha256": "dc58dbb90f1af41ce1581eaa6f502f49167d0f3845dd6b33edfe78f58ef18af2"
+    },
+    {
+      "top": "review_config_tb",
+      "result": "PASS",
+      "required_marker": "REVIEW_CONFIG_COMPLETE",
+      "observed_marker": "REVIEW_CONFIG_COMPLETE outputs=624",
+      "run_log": "open_rtl/review_config_tb.run.log",
+      "sha256": "ea7cd9d9c8ad0bddf39321eb6f3fe3156e7f91171d1ab440e5dbfa9955688b8e"
+    },
+    {
+      "top": "p2_tb",
+      "result": "PASS",
+      "required_marker": "P2 RESULT: PASS",
+      "observed_marker": "P2 RESULT: PASS",
+      "run_log": "open_rtl/p2_tb.run.log",
+      "sha256": "01fd536326072eef8b61c8cb46adc32b770ec65378bb2fc22b928eddd2f906d9"
+    },
+    {
+      "top": "p2_oracle_tb",
+      "result": "PASS",
+      "required_marker": "P2_ORACLE_COMPLETE codes=1048576 errors=0",
+      "observed_marker": "P2_ORACLE_COMPLETE codes=1048576 errors=0",
+      "run_log": "open_rtl/p2_oracle_tb.run.log",
+      "sha256": "fbc7ffc55d6747eee6d3df52e10d9124543629132f64e3594520da8f62d8ddf1"
+    },
+    {
+      "top": "p2_periph_tb",
+      "result": "PASS",
+      "required_marker": "p2_periph PASS",
+      "observed_marker": "p2_periph PASS",
+      "run_log": "open_rtl/p2_periph_tb.run.log",
+      "sha256": "5505f668d90444c666cce8be3449d170dbfcbfe622c8dd77ba3bd057ded43460"
+    },
+    {
+      "top": "p2_smoke_tb",
+      "result": "PASS",
+      "required_marker": "p2_smoke PASS",
+      "observed_marker": "p2_smoke PASS",
+      "run_log": "open_rtl/p2_smoke_tb.run.log",
+      "sha256": "203805213a4c2dc38e2457c0ae951758e5e0447fa0af43bbc906d1ce1cefcc18"
+    },
+    {
+      "top": "p1_tb",
+      "result": "PASS",
+      "required_marker": "P1 RESULT: PASS",
+      "observed_marker": "P1 RESULT: PASS",
+      "run_log": "open_rtl/p1_tb.run.log",
+      "sha256": "6aec934f72ca4efdba1327fd3c617e49422a5460a7c9f8d3378d5284d35458ed"
+    },
+    {
+      "top": "p3_top_tb",
+      "result": "PASS",
+      "required_marker": "P3 TOP RESULT: PASS",
+      "observed_marker": "P3 TOP RESULT: PASS",
+      "run_log": "open_rtl/p3_top_tb.run.log",
+      "sha256": "f3efe165961fed0eb29f857224890e01bad558d50ce3d88a7ae601ee26dcf5d3"
+    }
+  ],
+  "lint": [
+    {
+      "profile": "sar20_digital_core.structural",
+      "result": "PASS",
+      "log": "open_rtl/sar20_digital_core.structural.lint.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "basis": "Successful complete run_open_rtl.py step; frozen runner checks and rejects every nonzero lint subprocess return. Empty logs alone are not proof."
+    },
+    {
+      "profile": "sar20_digital_core.compatibility",
+      "result": "PASS",
+      "log": "open_rtl/sar20_digital_core.compatibility.lint.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "basis": "Successful complete run_open_rtl.py step; frozen runner checks and rejects every nonzero lint subprocess return. Empty logs alone are not proof."
+    },
+    {
+      "profile": "sadc_enc.standalone",
+      "result": "PASS",
+      "log": "open_rtl/sadc_enc.standalone.lint.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "basis": "Successful complete run_open_rtl.py step; frozen runner checks and rejects every nonzero lint subprocess return. Empty logs alone are not proof."
+    }
+  ],
+  "copied_artifact_members": [
+    {
+      "path": "open_rtl/cal_weight_reduce_ppa_tb.run.log",
+      "artifact_member": "open_rtl/cal_weight_reduce_ppa_tb.run.log",
+      "bytes": 3739,
+      "sha256": "11dd2fac0685fb726e0d1d00825eb77bc27faf04d2f34f4df5009b86ae68379e"
+    },
+    {
+      "path": "open_rtl/calibration_fit_tb.run.log",
+      "artifact_member": "open_rtl/calibration_fit_tb.run.log",
+      "bytes": 11054,
+      "sha256": "4b134e2e2c480d64c77b9010e3d09d1cfc3204578f61315cac42ef9b597278e5"
+    },
+    {
+      "path": "open_rtl/calibration_physical_tb.run.log",
+      "artifact_member": "open_rtl/calibration_physical_tb.run.log",
+      "bytes": 118,
+      "sha256": "589610a4c195871250ab87583a3fb57cc9030e1ee7c0c559b735bce8a9c66e88"
+    },
+    {
+      "path": "open_rtl/calibration_recovery_tb.run.log",
+      "artifact_member": "open_rtl/calibration_recovery_tb.run.log",
+      "bytes": 149,
+      "sha256": "54b981cb4f210916fea3026878b34ede8e12f4b147dc7f11b4929e850c0eebe0"
+    },
+    {
+      "path": "open_rtl/divider_borrow_tb.run.log",
+      "artifact_member": "open_rtl/divider_borrow_tb.run.log",
+      "bytes": 591,
+      "sha256": "35be2a3ccc357459b2dec5be5d3c422543c34b9458e1a143d058f1a25516006a"
+    },
+    {
+      "path": "open_rtl/p1_tb.run.log",
+      "artifact_member": "open_rtl/p1_tb.run.log",
+      "bytes": 966,
+      "sha256": "6aec934f72ca4efdba1327fd3c617e49422a5460a7c9f8d3378d5284d35458ed"
+    },
+    {
+      "path": "open_rtl/p2_oracle_tb.run.log",
+      "artifact_member": "open_rtl/p2_oracle_tb.run.log",
+      "bytes": 216,
+      "sha256": "fbc7ffc55d6747eee6d3df52e10d9124543629132f64e3594520da8f62d8ddf1"
+    },
+    {
+      "path": "open_rtl/p2_periph_tb.run.log",
+      "artifact_member": "open_rtl/p2_periph_tb.run.log",
+      "bytes": 1173,
+      "sha256": "5505f668d90444c666cce8be3449d170dbfcbfe622c8dd77ba3bd057ded43460"
+    },
+    {
+      "path": "open_rtl/p2_smoke_tb.run.log",
+      "artifact_member": "open_rtl/p2_smoke_tb.run.log",
+      "bytes": 419,
+      "sha256": "203805213a4c2dc38e2457c0ae951758e5e0447fa0af43bbc906d1ce1cefcc18"
+    },
+    {
+      "path": "open_rtl/p2_tb.run.log",
+      "artifact_member": "open_rtl/p2_tb.run.log",
+      "bytes": 1324,
+      "sha256": "01fd536326072eef8b61c8cb46adc32b770ec65378bb2fc22b928eddd2f906d9"
+    },
+    {
+      "path": "open_rtl/p3_top_tb.run.log",
+      "artifact_member": "open_rtl/p3_top_tb.run.log",
+      "bytes": 2423,
+      "sha256": "f3efe165961fed0eb29f857224890e01bad558d50ce3d88a7ae601ee26dcf5d3"
+    },
+    {
+      "path": "open_rtl/recon_ppa_latency_tb.run.log",
+      "artifact_member": "open_rtl/recon_ppa_latency_tb.run.log",
+      "bytes": 332,
+      "sha256": "e11c863bc24d576545234085dcd03df9be8d6f9aa9a8e4c5ba6f01f230c1f31c"
+    },
+    {
+      "path": "open_rtl/review_config_tb.run.log",
+      "artifact_member": "open_rtl/review_config_tb.run.log",
+      "bytes": 84,
+      "sha256": "ea7cd9d9c8ad0bddf39321eb6f3fe3156e7f91171d1ab440e5dbfa9955688b8e"
+    },
+    {
+      "path": "open_rtl/review_dither_tb.run.log",
+      "artifact_member": "open_rtl/review_dither_tb.run.log",
+      "bytes": 598,
+      "sha256": "dc58dbb90f1af41ce1581eaa6f502f49167d0f3845dd6b33edfe78f58ef18af2"
+    },
+    {
+      "path": "open_rtl/review_leaf_tb.run.log",
+      "artifact_member": "open_rtl/review_leaf_tb.run.log",
+      "bytes": 81,
+      "sha256": "1d58c5b5761c2ed04bf26866e122024560f1df10ee507c0c23c0de1195cffa13"
+    },
+    {
+      "path": "open_rtl/review_recon_protocol_tb.run.log",
+      "artifact_member": "open_rtl/review_recon_protocol_tb.run.log",
+      "bytes": 88,
+      "sha256": "bd61e46b62371076337f6dba4fbfc062dc28b8e20fad77d2fb9a3233a88e1d21"
+    },
+    {
+      "path": "open_rtl/review_top_protocol_tb.run.log",
+      "artifact_member": "open_rtl/review_top_protocol_tb.run.log",
+      "bytes": 108,
+      "sha256": "6a9f3440b8050c81b1b6bc2e5adc58f42df9a2cb075ae11fe55bfc42882ee023"
+    },
+    {
+      "path": "open_rtl/sar_trial_tb.run.log",
+      "artifact_member": "open_rtl/sar_trial_tb.run.log",
+      "bytes": 120,
+      "sha256": "26d36d67e86b6703e49252c6ec98d119d49452217f646aee3ce2689c2bd74d80"
+    },
+    {
+      "path": "open_rtl/structural_adc_tb.run.log",
+      "artifact_member": "open_rtl/structural_adc_tb.run.log",
+      "bytes": 177,
+      "sha256": "5e659a733e2ddc9a10c133e702659c6c7ca66163974053b0bbad232e9c1fcdac"
+    },
+    {
+      "path": "open_rtl/structural_protocol_tb.run.log",
+      "artifact_member": "open_rtl/structural_protocol_tb.run.log",
+      "bytes": 162,
+      "sha256": "7630ce9d3e9702d1d2015cd921062169a4b6dd2aecdd0c7d7bda34b615ed3c98"
+    },
+    {
+      "path": "open_rtl/tree_mapping_tb.run.log",
+      "artifact_member": "open_rtl/tree_mapping_tb.run.log",
+      "bytes": 84,
+      "sha256": "c280533bff2230db02fcf8cb9dd753e9b8e6039976cb17f01d6b50a3b4169237"
+    },
+    {
+      "path": "open_rtl/sar20_digital_core.structural.lint.log",
+      "artifact_member": "open_rtl/sar20_digital_core.structural.lint.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "open_rtl/sar20_digital_core.compatibility.lint.log",
+      "artifact_member": "open_rtl/sar20_digital_core.compatibility.lint.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "open_rtl/sadc_enc.standalone.lint.log",
+      "artifact_member": "open_rtl/sadc_enc.standalone.lint.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "open_rtl/version.log",
+      "artifact_member": "open_rtl/version.log",
+      "bytes": 48,
+      "sha256": "26daf9ad1ba36ee1c20cab9a869d0a1fbb8117230c80c78ec2d8cf597f64c4a5"
+    },
+    {
+      "path": "arithmetic-audit/manifest.json",
+      "artifact_member": "arithmetic-audit/manifest.json",
+      "bytes": 3124,
+      "sha256": "935a27e77f35b928c6eef0228af66deba00e07cd15f4f59c1f20f683028c898b"
+    },
+    {
+      "path": "arithmetic-audit/run.log",
+      "artifact_member": "arithmetic-audit/run.log",
+      "bytes": 335,
+      "sha256": "5467d016354e6fd707d078fe8a15664aeace2e218f4c83806cc026de66fd3e39"
+    },
+    {
+      "path": "arithmetic-audit/verilator-version.log",
+      "artifact_member": "arithmetic-audit/verilator-version.log",
+      "bytes": 926,
+      "sha256": "1078c9d8f0ca15b01cc3b21b1df6e7b9b7661b73e1275ef6cbbb3e26158514c9"
+    },
+    {
+      "path": "arithmetic-audit/compile.log",
+      "artifact_member": "arithmetic-audit/compile.log",
+      "bytes": 5223,
+      "sha256": "d5ddf57f95cf3e5a9c4d4e1bbb2f3351a5995a953de0b4ff80d515b447938f15"
+    }
+  ],
+  "selected_subcoverage": {
+    "reducer_geometries": 7,
+    "reducer_checks": 1430848,
+    "reducer_allocation_cases": 43758,
+    "reconstruction_profiles": [
+      {
+        "stages": 5,
+        "samples": 32,
+        "busy_release": 14,
+        "latency": 15,
+        "initiation_interval": 16
+      },
+      {
+        "stages": 6,
+        "samples": 32,
+        "busy_release": 12,
+        "latency": 13,
+        "initiation_interval": 16
+      },
+      {
+        "stages": 7,
+        "samples": 32,
+        "busy_release": 10,
+        "latency": 11,
+        "initiation_interval": 16
+      }
+    ]
+  },
+  "independent_arithmetic_audit": {
+    "status": "PASS",
+    "counts": {
+      "mac": 40010,
+      "mac_nonoverflow": 20859,
+      "adc": 40000,
+      "div": 10048,
+      "flag_sequences": 8
+    },
+    "seed": 20260930,
+    "manifest": "arithmetic-audit/manifest.json",
+    "run_log": "arithmetic-audit/run.log",
+    "source_hashes_verified_against_tested_tree": true,
+    "generated_vector_hashes": "arithmetic-audit/manifest.json vectors_sha256",
+    "scope": "Block arithmetic and directed output protocol; not full design, analog, STA, or formal proof."
+  },
+  "physical_flow_checks": {
+    "status": "PASS",
+    "scope": "MOCK_UNIT_ONLY_NO_EDA",
+    "passed": 272,
+    "elapsed_seconds": 11.17,
+    "log": "physical_flow_checks.log",
+    "inputs": "physical_flow_inputs_sha256.json",
+    "source_input_count": 31,
+    "source_job_log_lines_inclusive": [
+      270,
+      327
+    ]
+  },
+  "current_worktree_comparison": {
+    "observed_utc": "2026-09-29T21:05:46.693367+00:00",
+    "all_87_input_bytes_match": true,
+    "all_26_production_rtl_files_match": true,
+    "mismatches": [],
+    "boundary": "Future code changes are not covered by this historical run."
+  },
+  "raw_job_log": {
+    "external_source": "/tmp/sar_ci_f028_artifact/job.log",
+    "source_sha256": "642e9737aba80ca846901cb8686febfe240b87607f9135dc2622920c6332ae59"
+  },
+  "job_excerpt": {
+    "source_line_numbers": [
+      96,
+      98,
+      123,
+      126,
+      269,
+      328,
+      640,
+      657,
+      691
+    ],
+    "method": "Selected original byte lines; no ANSI, newline or timestamp normalization"
+  },
+  "api_metadata_serialization": {
+    "artifact_metadata.json": "Selected artifact object from external artifacts.json, formatted JSON with final LF",
+    "job_metadata.json": "Selected job object from external jobs.json, formatted JSON with final LF",
+    "tested_merge_commit.json": {
+      "external_source": "/tmp/sar_ci_f028_artifact/tested_merge_commit.json",
+      "external_sha256": "93e90f20b2ea803e40db7efece52ef412b96defc7ac3a8e2b84ea5a5e306197f",
+      "transformation": "Append one final LF if absent; JSON payload unchanged"
+    }
+  },
+  "omitted": [
+    "21 per-bench build logs",
+    "full CI job log",
+    "artifact ZIP",
+    "generated arithmetic vectors and compiler objects/binaries"
+  ],
+  "no_eda_or_simulation_rerun": true
+}

@@ -305,7 +305,7 @@ module p2_tb;
       .busy()
   ,
       .sample_id(32'd0), .result_sample_id(), .result_flags()
-  );
+  , .row_total('0));
 
   task automatic run_start(input logic which);
     @(negedge clk);
@@ -396,7 +396,7 @@ module p2_tb;
       .busy()
   ,
       .sample_id(32'd0), .result_sample_id(), .result_flags()
-  );
+  , .row_total('0));
 
   task automatic load_weights();
     int          fd, n;
@@ -540,7 +540,7 @@ module p2_tb;
       .acc_ovf(sa_ovf), .gain_err(sa_gerr), .adc2_ovf(sa_a2ovf), .busy()
   ,
       .sample_id(32'd0), .result_sample_id(), .result_flags()
-  );
+  , .row_total('0));
 
   task automatic t8_sat();
     int          fd, n, nrows;
@@ -649,7 +649,7 @@ module p2_tb;
       .busy()
   ,
       .sample_id(32'd0), .result_sample_id(), .result_flags()
-  );
+  , .row_total('0));
 
   task automatic t9_link();
     int          fd_s, fd_e, n, i;

@@ -37,8 +37,10 @@
 //   * `en_a` 与 `en_b` 可同时为高（两 bank 独立计数），与模型一致。
 //   * `dem_en` 为低时对外 `sid_*` 恒 0**且内部状态不推进**（对应模型
 //     `dem_enable=False` 时 `dem_state_sequence` 返回全 0）。
+//     load 仍可在 DEM 关闭时写入初态；重新开启后继续使用该内部状态。
 //   * `gcd(A, 2**W) = 1` 是"512 个状态全遍历"的结构性前提；由 TB 的
 //     "每 bank 看满 512 个不同 sid" 断言把关（A 与 2**W 不互质时该断言必红）。
+//   * rst_n 为同步低有效复位；没有异步清零或跨时钟域同步器。
 //===========================================================================
 `include "rtl_params.vh"
 
@@ -50,12 +52,12 @@ module dem_state_gen #(
     input  logic         rst_n,
     input  logic         dem_en,
     input  logic         load,
-    input  logic [W-1:0] init_a,
-    input  logic [W-1:0] init_b,
+    input  logic [W - 1:0] init_a,
+    input  logic [W - 1:0] init_b,
     input  logic         en_a,
     input  logic         en_b,
-    output logic [W-1:0] sid_a,
-    output logic [W-1:0] sid_b
+    output logic [W - 1:0] sid_a,
+    output logic [W - 1:0] sid_b
 );
 
   initial begin
@@ -63,13 +65,15 @@ module dem_state_gen #(
       $fatal(1, "dem_state_gen: W must be 1..32 and step must be odd");
   end
 
-  // 只在能装下 A_RED 的宽度里截取，且**不用 size cast 造无符号常量**：
-  // RTL 里"表达式含一个无符号操作数就整条按无符号算"是踩过的坑（见 swap_decode.sv）。
-  localparam logic [W-1:0] STEP = A_RED[W-1:0];
-  localparam logic [W-1:0] MASK = {W{1'b1}};
+  // 状态与 STEP 都是无符号 W 位整数；低 W 位累加实现模 2^W。
+  // 不需要通用乘法或运行时取模；奇数步长保证遍历整个 W 位状态空间。
+  localparam logic [W - 1:0] STEP = A_RED[W - 1:0];
+  localparam logic [W - 1:0] MASK = {W{1'b1}};
 
-  logic [W-1:0] state_a, state_b;
+  logic [W - 1:0] state_a, state_b;
 
+  // 时序边界：reset > load > dem_en 下独立的 en_a/en_b > 保持。
+  // 不把两路 enable 合成全局样本计数，避免每 bank 只访问半数 DEM 状态。
   always_ff @(posedge clk) begin
     if (!rst_n) begin
       state_a <= {W{1'b0}};
@@ -78,11 +82,14 @@ module dem_state_gen #(
       state_a <= init_a;
       state_b <= init_b;
     end else if (dem_en) begin
-      if (en_a) state_a <= (state_a + STEP) & MASK;
-      if (en_b) state_b <= (state_b + STEP) & MASK;
+      if (en_a)
+        state_a <= (state_a + STEP) & MASK;
+      if (en_b)
+        state_b <= (state_b + STEP) & MASK;
     end
   end
 
+  // 组合输出门控；DEM 关闭不会清除 state，重新使能也不会自动重新播种。
   assign sid_a = dem_en ? state_a : {W{1'b0}};
   assign sid_b = dem_en ? state_b : {W{1'b0}};
 

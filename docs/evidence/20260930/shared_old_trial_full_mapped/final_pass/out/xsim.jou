@@ -1,0 +1,13 @@
+#-----------------------------------------------------------
+# xsim v2018.3 (64-bit)
+# SW Build 2405991 on Thu Dec  6 23:38:27 MST 2018
+# IP Build 2404404 on Fri Dec  7 01:43:56 MST 2018
+# Start of session at: Wed Sep 30 21:56:56 2026
+# Process ID: 11232
+# Current directory: C:/Users/Administrator/adc_rtl_vivado/run.9dd6a40dd22c47279f99d03d25ab1d76/out
+# Command line: xsim.exe -log xsim.log -mode tcl -source {xsim.dir/full_mapped_p5/xsim_script.tcl}
+# Log file: C:/Users/Administrator/adc_rtl_vivado/run.9dd6a40dd22c47279f99d03d25ab1d76/out/xsim.log
+# Journal file: C:/Users/Administrator/adc_rtl_vivado/run.9dd6a40dd22c47279f99d03d25ab1d76/out\xsim.jou
+#-----------------------------------------------------------
+source xsim.dir/full_mapped_p5/xsim_script.tcl
+run -all

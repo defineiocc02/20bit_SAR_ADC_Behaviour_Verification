@@ -1,0 +1,11 @@
+{
+  "kind": "diagnostic_generated_cpp_only_no_sv_or_arithmetic_changes",
+  "original_cpp_sha256": "85a4bf67b860ec9e92e212a62439ba7f80653df243d972376323f5a9e456f8ff",
+  "diagnostic_cpp_sha256": "f5601d525e4497cdceb7fdb957cee4232e869b4d2c979cfcf56ac98d18907713",
+  "prints_inserted": 8,
+  "file": "Vcal_weight_reduce_ppa_tb___024root__DepSet_h59fee747__8.cpp",
+  "change": "Two printf lines before each of 8 directed-pattern comparisons, reading existing weights/active/physical_on and local reference temporaries. No arithmetic, SV input, scheduler, or assertion change.",
+  "run_log_sha256": "78745d5a3cb24859fc00a8224b22e1f39040899c27f336b55d47914abf08b790",
+  "observed_exit_code": 134,
+  "diagnostic_only": true
+}

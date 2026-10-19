@@ -1,0 +1,3 @@
+[234000] %Fatal: structural_protocol_tb.sv:60: Assertion failed in structural_protocol_tb: analog enable changed between clock edges at 234000
+%Error: sim/tb/structural_protocol_tb.sv:60: Verilog $stop
+Aborting...

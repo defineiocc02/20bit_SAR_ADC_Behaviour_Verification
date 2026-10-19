@@ -1,0 +1,2 @@
+sftp> reget "C:/Users/Administrator/adc_rtl_vivado/run.6e207b68315144c58af15c7fd599663b/out/post_synth.dcp" "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_vivado_20260930/repair_baseline/synth/artifacts/vivado/20260929T190955.260429Z_p7_recovered/out/post_synth.dcp"
+File "/C:/Users/Administrator/C:/Users/Administrator/adc_rtl_vivado/run.6e207b68315144c58af15c7fd599663b/out/post_synth.dcp" not found.

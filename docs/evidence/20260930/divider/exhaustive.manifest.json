@@ -1,0 +1,72 @@
+{
+  "status": "PASS",
+  "exhaustive_checks": 67592,
+  "configurations": [
+    {
+      "numerator_bits": 2,
+      "denominator_bits": 1,
+      "stages": 1,
+      "checks": 8
+    },
+    {
+      "numerator_bits": 6,
+      "denominator_bits": 5,
+      "stages": 5,
+      "checks": 2048
+    },
+    {
+      "numerator_bits": 6,
+      "denominator_bits": 8,
+      "stages": 7,
+      "checks": 16384
+    },
+    {
+      "numerator_bits": 6,
+      "denominator_bits": 8,
+      "stages": 3,
+      "checks": 16384
+    },
+    {
+      "numerator_bits": 6,
+      "denominator_bits": 8,
+      "stages": 2,
+      "checks": 16384
+    },
+    {
+      "numerator_bits": 6,
+      "denominator_bits": 8,
+      "stages": 1,
+      "checks": 16384
+    }
+  ],
+  "sources_sha256": {
+    "rtl/core/div_floor.sv": "cc3b0bd9c5e6c8491af10d0696f82e59373426c538c3212c210093dbc84c515c",
+    "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+    "sim/tb/divider_borrow_tb.sv": "56f942cba7f4744626f6219f32d224cc4e451d0b33536dd6344d98a010d97a6d"
+  },
+  "verilator_version": " rev vUNKNOWN-built20260516-4e853d8\n\nCopyright 2003-2026 by Wilson Snyder.  Verilator is free software; you can\nredistribute it and/or modify the Verilator internals under the terms of\neither the GNU Lesser General Public License Version 3 or the Perl Artistic\nLicense Version 2.0.\n\nSee https://verilator.org for documentation\n\nSummary of configuration:\n  Compiled in defaults if not in environment:\n    SYSTEMC            = \n    SYSTEMC_ARCH       = \n    SYSTEMC_INCLUDE    = \n    SYSTEMC_LIBDIR     = \n    VERILATOR_ROOT     = \n    VERILATOR_SOLVER   = \n    SystemC system-wide = 0\n\nEnvironment:\n    MAKE               = \n    PERL               = \n    PYTHON3            = \n    SYSTEMC            = \n    SYSTEMC_ARCH       = \n    SYSTEMC_INCLUDE    = \n    SYSTEMC_LIBDIR     = \n    VERILATOR_BIN      = \n    VERILATOR_ROOT     = /tmp/sar_cal_audit_20260930/verilator\n    VERILATOR_SOLVER   = \n\nSupported features (compiled-in or forced by environment):\n    COROUTINES         = \n    SYSTEMC            = \n",
+  "compile_command": [
+    "/tmp/sar_cal_audit_20260930/verilator/bin/verilator",
+    "--binary",
+    "--timing",
+    "--assert",
+    "--top-module",
+    "divider_borrow_tb",
+    "-j",
+    "2",
+    "-Wno-fatal",
+    "-CFLAGS",
+    "-std=c++20",
+    "-MAKEFLAGS",
+    "PYTHON3=python3 CFG_CXXFLAGS_PCH_I=-include",
+    "-I/tmp/sar_cal_audit_20260930/repo/rtl/params",
+    "--Mdir",
+    "/tmp/sar_divider_borrow_20260930/obj",
+    "/tmp/sar_cal_audit_20260930/repo/rtl/core/div_floor.sv",
+    "/tmp/sar_cal_audit_20260930/repo/sim/tb/divider_borrow_tb.sv"
+  ],
+  "runtime_command": [
+    "/tmp/sar_divider_borrow_20260930/obj/Vdivider_borrow_tb"
+  ],
+  "scope": "Exhaustive small widths: exact floor, defining inequality, divide-zero, fixed latency, ignored busy requests, busy/idle result hold and one-cycle done; not formal full-width proof or mapped timing."
+}

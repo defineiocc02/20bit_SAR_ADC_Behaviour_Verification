@@ -1,0 +1,5 @@
+CALIBRATION_PHYSICAL_COMPLETE samples=2048 physical_slices=18
+- sim/tb/calibration_physical_tb.sv:92: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.49
+- Verilator: $finish at 53us; walltime 0.036 s; speed 1.520 ms/s
+- Verilator: cpu 0.035 s on 1 threads; allocated 2 MB

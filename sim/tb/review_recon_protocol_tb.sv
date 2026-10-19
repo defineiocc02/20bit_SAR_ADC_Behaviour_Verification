@@ -16,7 +16,7 @@ module review_recon_protocol_tb;
     .adc2_min_q(64'sd0),.adc2_max_q(64'sd8589934592),.dout(dout),.dout_valid(valid),
     .clip_low(),.clip_high(),.acc_ovf(),.gain_err(gerr),.adc2_ovf(),.busy(busy),
       .sample_id(sample_id), .result_sample_id(result_id), .result_flags(result_flags)
-  );
+  , .row_total('0));
   task automatic request(input int value);
     @(negedge clk); code=20'(value); start=1;
     sequence_id++; sample_id=32'(sequence_id);

@@ -1,0 +1,19 @@
+{
+  "scope": "Original 169f-era generated evidence and source, preserved before new CI figures; not current CI evidence",
+  "sha256": {
+    "audit_figures/make_final_regression_evidence.py": "0052d35df56c0b84683dc8801e0554de4fe399722698aa5e6f8e580b8fd46336",
+    "sections/final_regression_evidence.tex": "ba1d81a9a6b7036b210eeec5c01a17e10367509064117874ba8b4c548a7a08fd",
+    "figures/final_regression_protocol.png": "e30a2053e593fa46a137732eff8104381942a49849b47fed4a3967fd6b4e9305",
+    "figures/final_regression_protocol.pdf": "a0c81fb44f4fd3f92b499f049cac18c0d06aaaf8f79583835b9b3f9f095fc265",
+    "figures/final_regression_quantitative.png": "9e4511e933f28cf3a30a010787399e3976e9e85f5ce647286193dae4ea571053",
+    "figures/final_regression_quantitative.pdf": "0456635ec6f23a02421ea69f92298dd746016d89b62ed19f1201f8278c9170e3",
+    "figures/final_regression_system.pdf": "4862a9b6f9f2311d681f96c8438c91baf7ad473a81449e061cad22a1791a0895",
+    "figures/final_regression_arithmetic.pdf": "0faf3533d722a6b8bd219639abcde110ac9edd7bc09ab1be44b86077e42d4ba6",
+    "figures/final_regression_arithmetic.png": "e1a19c9f9cbf57b2dad182d4da507c6fde5fafe882c05d68323955c5db7fc789",
+    "figures/final_regression_system.png": "7bdfd82b0c94315462f6d578d8ea2b0c8607cd8ba492c84b103b301405762895",
+    "audit_figures/final_regression_system.sha256.json": "1dacfc347f5338cf406049fd221626c3418aabd9972948d33261cf9d66b60f0d",
+    "audit_figures/final_regression_protocol.sha256.json": "73ee164fa9b4e1d3d758637d2ca704cb68c78430e30aa6f85da58af9795437c7",
+    "audit_figures/final_regression_quantitative.sha256.json": "cd54ca159901d3bcdfdb0e9fcf67e12a801d116ececb76a201cb126188754e71",
+    "audit_figures/final_regression_arithmetic.sha256.json": "7c7cf1c9ac696a7816ccd052db923f673ab92859b754f057046512092afcc8b1"
+  }
+}

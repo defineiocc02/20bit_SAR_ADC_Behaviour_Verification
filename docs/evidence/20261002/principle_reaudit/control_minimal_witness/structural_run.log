@@ -1,0 +1,3 @@
+STRUCTURAL_PROTOCOL_COMPLETE frames=120 launches=57 expected_drops=63 checks=1920 decoder_perturbations=2
+- /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/structural_protocol_tb.sv:115: Verilog $finish
+STRUCTURAL_CAPTURE_ALIGNMENT_PASS edges=1926 accepts=57 context_age=15 fine_code_age=1

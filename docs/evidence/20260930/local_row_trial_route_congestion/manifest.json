@@ -1,0 +1,30 @@
+{
+  "status": "FAILED",
+  "input_synthesis_manifest": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_localrow/synth/artifacts/vivado/20260930T040416.082253Z_p5/manifest.json",
+  "input_dcp_sha256": "95a876bc7bdafa2ccf627f18bd6db6d87cb4d6f4281eede9ae77143722d2fdc2",
+  "period_ns": 25.0,
+  "clock_site": "BUFGCTRL_X0Y0",
+  "script_sha256": "e0579ad0678c7f3013519bb48f13bc3d4d25c1cb5f89b7c337fa64bcf15b915a",
+  "input_dcp_binding": "remote Get-FileHash plus route Tcl pre/post SHA; local copy pending",
+  "input_dcp_bytes": 54553541,
+  "remote_synth_status": {
+    "STATUS": "SYNTH_COMPLETE",
+    "TIMING_MET": "1",
+    "WNS_NS": "10.640",
+    "PART": "xc7vx690tffg1761-2",
+    "PERIOD_NS": "25.0",
+    "P_RECON_STAGES": "5",
+    "VIVADO_VERSION": "2018.3",
+    "SCOPE": "FPGA_POST_SYNTH_OOC_VECTORLESS_NOT_ASIC"
+  },
+  "synth_log_snapshot_sha256": "b97b18855d72266d32997f45a3327c7aeed479f73d574a8812605e97b112f580",
+  "input_synthesis_manifest_sha256": "a84cdfa692a4f3a67bb995f0650480a42b25026ae35489b6051188a4e57e0cf8",
+  "remote_directory": "C:/Users/Administrator/adc_rtl_vivado/run.8caa72b01d3f4af0846daa6576ee3978",
+  "ssh_exit_code": 0,
+  "collection_status": "COLLECTED",
+  "vivado_status": {
+    "STATUS": "FAILED",
+    "SCOPE": "FPGA_POST_ROUTE_OOC_INTERNAL_BUFG_EXTERNAL_BOUNDARY_ZERO_IO_VECTORLESS_NOT_ASIC_OR_BOARD"
+  },
+  "raw_exit_code": 0
+}

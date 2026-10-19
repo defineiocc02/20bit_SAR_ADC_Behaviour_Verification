@@ -1,0 +1,41 @@
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+
+repo = Path('/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure')
+out = Path('/tmp/sar_row_cache_20260930')
+command = ['/tmp/sar_vlt_root_20260930/bin/verilator', '--binary', '--timing', '--assert', '--unroll-count', '8192', '-j', '2', '-Wno-fatal', '-Werror-PINMISSING', '-Werror-SELRANGE', '-CFLAGS', '-std=c++20', '-MAKEFLAGS', 'CFG_CXXFLAGS_PCH_I=-include', '-I' + str(repo/'rtl/params')]
+env = dict(os.environ, VERILATOR_ROOT='/tmp/sar_vlt_root_20260930')
+cases = [
+ ('loader', 'rtl/core/weight_store.sv', 'sim/tb/weight_row_cache_tb.sv', 'row_q[wr_slice] <= row_new;', "row_q[wr_slice] <= row_new ^ ROW_BITS'(1);", 'weight_row_cache_case', ['-GNS=3', '-GNU=3'], 'cache invariant NS=3 NU=3 step=2'),
+ ('consumer', 'rtl/core/cal_weight_reduce.sv', 'sim/tb/cal_weight_reduce_ppa_tb.sv', 'sampled_row_total[s]<=row_sum;', "sampled_row_total[s]<=row_sum ^ ((s==0)?64'd1:64'd0);", 'cal_weight_reduce_ppa_case', ['-GNS=3', '-GNA=2', '-GNM=2', '-GNB=1', '-GND=2', '-GDE=3'], 'cached DUT scalar mismatch NS=3 NA=2 NM=2 check=1'),
+]
+results = []
+for name, rtl, tb, before, after, top, args, marker in cases:
+    work = out/f'negative_{name}'
+    work.mkdir(exist_ok=True)
+    target = rtl if name == 'loader' else tb
+    sources = []
+    hashes = {}
+    for rel in (rtl, tb):
+        original = (repo/rel).read_bytes()
+        hashes[rel] = hashlib.sha256(original).hexdigest()
+        text = original.decode()
+        if rel == target:
+            assert text.count(before) == 1
+            text = text.replace(before, after)
+        dest = work/Path(rel).name
+        dest.write_text(text)
+        sources.append(str(dest))
+    build = command + ['--top-module', top, '--Mdir', str(work/'obj'), *args, *sources]
+    with (work/'build.log').open('w') as log:
+        subprocess.run(build, env=env, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=120)
+    with (work/'run.log').open('w') as log:
+        result = subprocess.run([str(work/'obj'/f'V{top}')], stdout=log, stderr=subprocess.STDOUT, timeout=30)
+    log = (work/'run.log').read_text()
+    assert result.returncode != 0 and marker in log, (name, result.returncode, log)
+    results.append(dict(name=name, result='EXPECTED_FAIL', exit_code=result.returncode, marker=marker, mutation=dict(file=target,before=before,after=after), source_sha256=hashes, command=build, run_log_sha256=hashlib.sha256((work/'run.log').read_bytes()).hexdigest()))
+    print(name, result.returncode, marker, flush=True)
+(out/'negative_controls.json').write_text(json.dumps(results, indent=2)+'\n')

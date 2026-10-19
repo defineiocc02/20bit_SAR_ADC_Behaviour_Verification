@@ -1,0 +1,4 @@
+RECON_PPA_PROFILE_PASS stages=5 samples=32 busy_release=14 latency=15 initiation_interval=16
+RECON_PPA_PROFILE_PASS stages=6 samples=32 busy_release=12 latency=13 initiation_interval=16
+RECON_PPA_PROFILE_PASS stages=7 samples=32 busy_release=10 latency=11 initiation_interval=16
+- sim/tb/recon_ppa_latency_tb.sv:55: Verilog $finish

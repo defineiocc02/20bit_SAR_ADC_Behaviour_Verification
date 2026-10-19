@@ -1,0 +1,94 @@
+% CI head 417f261 / tested merge 63e9887: RTL job succeeds; workflow conclusion remains separate.
+% Preceding local 169f, failed-job 0c4a and successful-job f028 artifacts are retained under history/.
+\section{成功 RTL job 的 22 项图证与独立算术验收}
+\label{sec:historical-21-evidence}
+\label{sec:ci-21-evidence}
+\label{sec:ci-22-evidence}
+本节四幅图改用 \code{docs/evidence/20260930/ci_rtl_417f/} 的真实 CI 日志。
+\textbf{22 项 RTL bench、3 类严格 lint 和独立算术审计均通过，本次 RTL job 的结论为 success。}
+归档抓取时 workflow 仍为 \code{in_progress}，不能由一个 job 成功推断整个 workflow 全绿。
+归档 head 为 \code{417f261}，实际测试 merge 为 \code{63e9887}，两者完整 Git tree 均为 \code{f0be3b81}…；26 项生产 RTL 的内容摘要为 \code{1e3fab94b7b2}…。
+本次是已发布行和缓存候选结构的 RTL 功能验收，包含新增缓存装载测试及缓存消费路径；实际综合、布局布线和门级结果仍按各自实验记录判定。
+制图器核验归档清单、日志、步骤结论以及 head 中 88 项输入的实际字节，不用当前工作树替代历史输入。
+样本、输入码、断言和检查节拍分别保留单位，不相加为覆盖率。
+
+\begin{figure}[H]\centering
+\includegraphics[width=.96\textwidth]{figures/final_regression_arithmetic.pdf}
+\caption{本次 CI 中算术与校准的八项 RTL 回归。归约器将旧实现、未缓存实现和缓存实现逐笔对照独立物理单元 scalar 求和；新增装载器检查独立保留字、缓存行和与读回；另行执行并通过的独立算术审计在本节后部说明。全码恒等和除法穷举分别受简化配置及六组小位宽的范围限制。}
+\label{fig:final-regression-arithmetic}
+\end{figure}
+
+\subsection{事务、取消与结构调度}
+图\ref{fig:final-regression-protocol}中的结构顶层 P7 检查 438 笔输出及其延迟、7,680 个协议节拍。
+本次 CI 另以 \code{recon_ppa_latency_tb} 在 P5/P6/P7 各连续启动 32 笔，间隔 16 拍，验证输出延迟 15/13/11 拍、busy 释放 14/12/10 拍；不是旧 \code{final_profiles/} 日志。
+\code{review_recon_protocol_tb} 未打印总数；\code{review_top_protocol_tb} 打印 38。
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figures/final_regression_protocol.pdf}
+\caption{本次 CI 的七项事务与调度证据，覆盖 SAR 停顿/取消、上下文隔离、ID/flags 对齐、配置屏蔽和 epoch 取消。图中为功能时钟间隔，不是门级纳秒延迟或 640\,MHz 时序签核。}
+\label{fig:final-regression-protocol}
+\end{figure}
+
+\subsection{基础模块、配置和兼容顶层}
+图\ref{fig:final-regression-system}保留每个测试原有计数器的含义。
+外设各小计是累计值；dither 的七种条件分别在 200,000 个观测周期内接收 196,866 或 200,000 笔输出。
+\code{tree_mapping_tb} 在此次 CI 中是 Verilator RTL 运行，不能改称真实网表仿真。
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figures/final_regression_system.pdf}
+\caption{本次 CI 中基础模块、配置与兼容顶层的七项证据。兼容顶层比较 4,095 行输出，跳过向量第 0 行，并 force 注入 dither；因此不覆盖该模式下片内 dither 源。analog-overflow 仍按累计 OR 的粘滞语义比较。}
+\label{fig:final-regression-system}
+\end{figure}
+
+\subsection{新日志中的定量观测}
+图\ref{fig:final-regression-quantitative}的 A、B 面板读取本次 CI 全部 128 条 \code{FIT_ROW}：码值、flags、ID 均相符，延迟均为 11 拍。
+横轴是留出样本序号；这些数据来自外部拟合系数的加载和重构，并不是片上参数学习或模拟瞬态测量。
+C 面板只有日志记录的两项最大绝对误差：标称权重 504 码、校正权重 4 码，不由两根柱子推导 RMS、SNDR 或 ENOB。
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figures/final_regression_quantitative.pdf}
+\caption{本次 CI 日志的实际数值。A/B 为 128 笔留出数据；C 为 2,048 笔合成失配的最大误差摘要；D 为七组 dither 的打印统计量，均值除以幅度 $D$，门限分别为 $\pm0.025$ 与 $\pm0.03$。$D=0$ 方差为零，相关性不计算，也不画成有效零值。}
+\label{fig:final-regression-quantitative}
+\end{figure}
+
+D 面板均值/相关性只保留日志的六位小数。原日志没有各 PMF bin，因此不能补画分布；其余三图使用证据矩阵，不从完成标记伪造波形。
+归约器参考计算和判据位于该 head 的 \code{sim/tb/cal_weight_reduce_ppa_tb.sv:63} 至 118 行：独立 scalar 函数读取原始刺激，同时验证旧实现、未缓存实现和缓存实现的 \(T,G,R\) 与非法地址标志。
+本次 5.020 CI 完成七种几何、1,430,848 次检查；每种几何的日志均记录 \code{cache=1}，43,758 个生产分配组合包含在这些检查中。
+新增 \code{weight_row_cache_tb} 对五种几何完成 16,150 个事务步，按独立保存的各权重字求和，逐步检查缓存行和、存储字、由独立装载位图计算的 complete 状态与地址读回，包含 reset、clear 和写入同沿的优先级场景。
+该缓存测试不是将归约器 1,430,848 个组合重复计数；本地双工具的最大值、clear 后替换和负控仍保留图\ref{fig:row-cache-evidence}的独立来源。
+另外的本地双版本复验与共同错误负控仍按图\ref{fig:reducer-scheduler-evidence}的原来源保留。
+
+\subsection{独立算术审计：CI 成功与本地双版本负控}
+历史 \code{0c4a772} CI 的独立审计未进入仿真：runner 将头文件安装目录设置为 \code{VERILATOR_ROOT}，使已安装启动器寻找不存在的 \code{verilator_bin}，以 127 返回。
+该失败仍保留于旧 \code{ci_rtl_0c4a/arithmetic_entry_failure.log}；不得因后续修复而覆盖其失败状态。
+
+\begingroup\raggedright
+随后修复启动路径，并处理本机 5.020 暴露的文件刺激调度问题，形成独立归档 \code{docs/evidence/20260930/arithmetic_runner_ci/}。
+两种记录的工具版本分别完整通过 40,010 项 MAC（其中 20,859 项不溢出）、40,000 项 ADC2、10,048 笔除法和 8 组 flags 序列。
+保持陈旧 MAC 输入和固定 ADC 输入的两个负控分别在 MAC 第 3 行、ADC 第 2 行失败；另有 8 项路径/环境单测通过。
+这些本地结果保持生产 RTL 和期望向量不变，但修复了审计 runner 和 TB，不能倒写为 \code{0c4a772} 的独立审计通过。
+本次 \code{417f261} 在 Ubuntu/Verilator 5.020 上也完成同样的独立审计，
+真实日志与 manifest 位于 \code{ci_rtl_417f/arithmetic-audit/}，七项受检源文件与被测 Git tree 一致。
+本次 RTL job \code{109627112125} 完整成功；该归档时 workflow \code{36633152469} 尚在运行，原记录保持不变。随后单独取得的 \code{ci_workflow_417f/} 确认本次同一head的9个job全部成功；其Python、完整验收和确定性结论分别按该新归档判断，不能从旧 \code{ci_workflow_f028/} 移用。\par\endgroup
+
+\begin{figure}[htbp]\centering
+\includegraphics[width=.97\textwidth]{figures/arithmetic_runner_dual_tool.pdf}
+\caption{独立算术审计的本地双版本正、负控。上表为各版本原日志的精确计数，20,859 项不溢出 MAC 是 40,010 项的子集。下图只绘制真实失败行：陈旧 MAC 输入使第 3 行溢出标志由期望 0 变为 1；固定 ADC 输入使第 2 行有符号细码由期望 $-1$ 变为 $+1$。两个变异均被独立期望值检出；图不重建波形，也不把负控失败计为正常样本。}
+\label{fig:arithmetic-runner-dual-tool}
+\end{figure}
+
+\begingroup\raggedright
+图\ref{fig:arithmetic-runner-dual-tool} 的脚本为 \code{audit_figures/make_arithmetic_runner_evidence.py}，
+来源及数值见 \code{audit_figures/arithmetic_runner_dual_tool.sha256.json}。
+两种本地工具重播同一组向量；本次 CI 是另一环境复验，各次计数不相加为更大的输入覆盖集合。\par\endgroup
+
+\subsection{重建入口与历史保留}
+在报告目录执行 \code{python audit_figures/make_final_regression_evidence.py --schema ci} 可重建四张 PNG/PDF。
+脚本校验 CI archive 的 \code{sha256.json}，核对步骤而非仅看 job 总状态，逐字节读取 Git head 中的输入，核对 26 项生产 RTL 集合与 22 份日志，再解析数值和唯一完成标记。
+每张同名 \code{audit_figures/final_regression_*.sha256.json} 保存上述来源、测试台行号、图件和脚本摘要；本次 \code{tested_inputs_sha256.json} 摘要为
+\par\noindent\code{a265a71f9981d137d2cd763e7341e2c7992c2280bf61ab0111a1a85a2726be33}。
+
+旧 169f 图、PDF、脚本、分节和哈希记录逐字节保留在
+\code{history/final_regression_169f_before_ci_0c4a/}，由该目录 \code{archive_manifest.json} 校验。旧 \code{0c4a} CI 的四图、脚本、分节、检查与摘要另存于 \code{history/final_regression_ci_0c4a_before_f028/}；f028 成功 RTL job 的四图、脚本、分节和摘要保存在 \code{history/final_regression_ci_f028_before_417f/}。原仓库旧证据没有被覆盖。
+图件 \code{31_divider_profiles.png} 仍是旧 \code{fd885e882ad5}… 快照的 compact 三档生产顶层实跑，每档 438 次输出与延迟检查，不能与本次各 32 笔的连续启动夹具混成一次实验。
+本节没有启动新仿真或 EDA，全部图只重建已归档的日志；不提供模拟电路、STA 或硅片性能签核。

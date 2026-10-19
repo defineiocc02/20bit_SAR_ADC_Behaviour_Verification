@@ -1,0 +1,6 @@
+{
+  "original": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/tools/build_principle_reaudit_report.py",
+  "original_sha256": "e23869906771434ce9860f869747fb4a960582f8fef624baccfc32854985a6ca",
+  "scope": "reuse self-authored Markdown conversion helpers only; source guards and prior report bodies not executed",
+  "adaptation": "Normalize local CJK workspace paths inside monospace code to REPO/ANALYSIS_OUT/WORKSPACE aliases; report text/data unchanged"
+}

@@ -1,0 +1,3 @@
+[5000] %Fatal: weight_row_cache_tb.sv:40: Assertion failed in weight_row_cache_case.check_rows.unnamedblk1: cache invariant NS=3 NU=3 step=2 slice=0 got=00007ffffffffffe expected=00007fffffffffff
+%Error: /tmp/sar_row_cache_20260930/negative_loader/weight_row_cache_tb.sv:40: Verilog $stop
+Aborting...

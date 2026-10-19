@@ -1,0 +1,31 @@
+[P3-TRACE] 观测 trace -> p3_trace.txt（列：sample_idx dout clip analog_ovf）
+p3_top_tb: vdir=/private/tmp/sar_row_cache_20260930/final_snapshot/sim/vectors ROW_OFF=1 NLAT=11 injdith=1
+[P3] 向量载入：stim/expected 各 4096 行；stim 列数 = 8（5=无模拟域回读列 / 8=含 rdac_over,adc2_over,ra_sat）
+[P3] 权重载入 1278 条
+[P3] 回读系数：offset_q=0x0000000000000000(0) adc2_min_q=0xfffffffffccccccd(-53687091) adc2_max_q=0x0000000023333333(590558003)
+[P3] cfg_ready=1
+[P3] 捕获 4095 次 dout_valid；首拍 c=26，末拍 c=65530（应为 26, 65530；步长 16）
+==================================================
+  p3_top  summary: checks=16386 errors=0
+  dout 比对：共 4095 行（RTL 转换 #0..#4094 <=> 文件第 1..#4095 行）
+    dither==0 行：1011 行，其中 0 行 dout 不符
+    dither!=0 行：3084 行，其中 0 行 dout 不符
+    新覆盖两端：coarse<50 共 826 行、coarse>462 共 821 行；这两段里 dout/clip 的失配数 = 0
+    analog_ovf 失配（**粘滞口径**：与期望的累积 OR 比）：0 行（coarse<50 里 0 行 / [50,462] 里 0 行 / >462 里 0 行）
+    参考：若改拿**逐样本**期望去比，会有 3356 行不同 —— 这不是失配，是口径不同（顶层 analog_ovf 是粘滞位）
+    模拟域回读列（本轮 stim 8 列）：全体行里 rdac_over=202 / adc2_over=198 / ra_sat=185
+    期望 analog_ovf=1 的行共 202 行，其归属：两者同时=198 / 仅 rdac_over=4 / 仅 adc2_over=0 / 都不是=0（则应为 ra_sat）
+    这 202 行里三列各自的 1 计数：rdac_over=202 / adc2_over=198 / ra_sat=185
+    文件第 0 行在顶层无对应物（RTL 的 conv_valid = n>=1 跳过 n=0）
+  rdac_ovf 高电平拍数=3232  acc_ovf 高电平拍数=0  sw_valid 高电平拍数=4095
+  status_word=0x00000020 -> err_code=0 acc_ovf(b0)=0 gain_err(b1)=0 adc2_ovf(b2)=0 clip_low(b3)=0 clip_high(b4)=0 analog_ovf(b5)=1
+  acc_ovf 端口终值=0（粘滞，一旦置位不会自清）
+  明细 dump -> p3_caps.txt
+  dither 注入：injdith=1。1=force swap_decode.dither_code 取向量列、unit_therm.bank_dither 钉 0；0=不注入的对照跑法。注意 dither_gen / dither_rail 不在本测试覆盖内。
+==================================================
+[P3-TRACE] trace 关闭：共 4095 行 -> p3_trace.txt
+P3 TOP RESULT: PASS
+- sim/tb/p3_top_tb.sv:855: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.49
+- Verilator: $finish at 681us; walltime 0.387 s; speed 1.911 ms/s
+- Verilator: cpu 0.357 s on 1 threads; allocated 2 MB

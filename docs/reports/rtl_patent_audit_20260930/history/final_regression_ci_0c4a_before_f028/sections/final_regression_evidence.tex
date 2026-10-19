@@ -1,0 +1,79 @@
+% CI head 0c4a / tested merge 308e489: RTL step succeeds, overall job fails later.
+% Historical generated artifacts are retained under history/final_regression_169f_before_ci_0c4a/.
+\clearpage
+\section{新 CI 的 21 项 RTL 图证与 job 失败边界}
+\label{sec:historical-21-evidence}
+\label{sec:ci-21-evidence}
+本节四幅图改用 \code{docs/evidence/20260930/ci_rtl_0c4a/} 的真实 CI 日志。
+\textbf{21 项 RTL bench 与 3 类严格 lint 已通过；同一 job 随后的独立算术审计启动失败，因此整个 job 仍为 failure。}
+归档 head 为 \code{0c4a772}，实际测试 merge 为 \code{308e489}，两者完整 Git tree 均为 \code{d8f838a2}…；生产 RTL 内容摘要为 \code{fd885e882ad5}…。
+制图器核验归档清单、日志、步骤结论以及 head 中 87 项输入的实际字节，不用当前工作树替代历史输入。
+样本、输入码、断言和检查节拍分别保留单位，不相加为覆盖率。
+
+\begin{figure}[H]\centering
+\includegraphics[width=.96\textwidth]{figures/final_regression_arithmetic.pdf}
+\caption{本次 CI 中算术与校准的七项 RTL 回归。归约器同时比较新旧结果与独立物理单元 scalar 求和；本图不含随后未能启动的独立算术审计。全码恒等和除法穷举分别受简化配置及六组小位宽的范围限制。}
+\label{fig:final-regression-arithmetic}
+\end{figure}
+
+\clearpage
+\subsection{事务、取消与结构调度}
+图\ref{fig:final-regression-protocol}中的结构顶层运行使用 P7，438 次输出逐笔对应 438 次延迟检查，7,680 是协议检查节拍数。
+独立 \code{recon_ppa_latency_tb} 在这次 CI 中也重新执行 P5/P6/P7 各 32 笔连续启动，间隔 16 拍，延迟 15/13/11 拍，busy 释放 14/12/10 拍。
+这是新 CI 的结果，不是将旧 \code{final_profiles/} 日志改名。
+\code{review_recon_protocol_tb} 未打印总计数；\code{review_top_protocol_tb} 的 38 仍按测试台打印值标注。
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figures/final_regression_protocol.pdf}
+\caption{本次 CI 的七项事务与调度证据，覆盖 SAR 停顿/取消、上下文隔离、ID/flags 对齐、配置屏蔽和 epoch 取消。图中为功能时钟间隔，不是门级纳秒延迟或 640\,MHz 时序签核。}
+\label{fig:final-regression-protocol}
+\end{figure}
+
+\clearpage
+\subsection{基础模块、配置和兼容顶层}
+图\ref{fig:final-regression-system}保留每个测试原有计数器的含义。
+外设各小计是累计值；dither 的七种条件分别在 200,000 个观测周期内接收 196,866 或 200,000 笔输出。
+\code{tree_mapping_tb} 在此次 CI 中是 Verilator RTL 运行，不能改称真实网表仿真。
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figures/final_regression_system.pdf}
+\caption{本次 CI 中基础模块、配置与兼容顶层的七项证据。兼容顶层比较 4,095 行输出，跳过向量第 0 行，并 force 注入 dither；因此不覆盖该模式下片内 dither 源。analog-overflow 仍按累计 OR 的粘滞语义比较。}
+\label{fig:final-regression-system}
+\end{figure}
+
+\clearpage
+\subsection{新日志中的定量观测}
+图\ref{fig:final-regression-quantitative}的 A、B 面板读取本次 CI 全部 128 条 \code{FIT_ROW}：码值、flags、ID 均相符，延迟均为 11 拍。
+横轴是留出样本序号；这些数据来自外部拟合系数的加载和重构，并不是片上参数学习或模拟瞬态测量。
+C 面板只有日志记录的两项最大绝对误差：标称权重 504 码、校正权重 4 码，不由两根柱子推导 RMS、SNDR 或 ENOB。
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figures/final_regression_quantitative.pdf}
+\caption{本次 CI 日志的实际数值。A/B 为 128 笔留出数据；C 为 2,048 笔合成失配的最大误差摘要；D 为七组 dither 的打印统计量，均值除以幅度 $D$，门限分别为 $\pm0.025$ 与 $\pm0.03$。$D=0$ 方差为零，相关性不计算，也不画成有效零值。}
+\label{fig:final-regression-quantitative}
+\end{figure}
+
+D 面板均值/相关性只保留日志的六位小数。原日志没有各 PMF bin，因此不能补画分布；其余三图使用证据矩阵，不从完成标记伪造波形。
+归约器参考计算和判据位于该 head 的 \code{sim/tb/cal_weight_reduce_ppa_tb.sv:47} 至 109 行：独立 scalar 函数读取原始刺激，同时验证两份实现的 \(T,G,R\) 与非法地址标志。
+本次 5.020 CI 完成七种几何、1,430,848 次检查；43,758 个生产分配组合包含在这些检查中。
+另外的本地双版本复验与共同错误负控仍按图\ref{fig:reducer-scheduler-evidence}的原来源保留。
+
+\subsection{后续算术审计修复单独验收}
+本次 CI 的后续独立审计没有进入仿真：runner 将头文件安装目录设置为 \code{VERILATOR_ROOT}，使已安装启动器寻找不存在的 \code{verilator_bin}，以 127 返回。
+该失败见同一归档的 \code{arithmetic_entry_failure.log}；它既不是这 21 项 RTL 断言失败，也不能被这些通过结果覆盖。
+
+随后修复启动路径，并处理本机 5.020 暴露的文件刺激调度问题，形成独立归档 \code{docs/evidence/20260930/arithmetic_runner_ci/}。
+两种记录的工具版本分别完整通过 40,010 项 MAC（其中 20,859 项不溢出）、40,000 项 ADC2、10,048 笔除法和 8 组 flags 序列。
+保持陈旧 MAC 输入和固定 ADC 输入的两个负控分别在 MAC 第 3 行、ADC 第 2 行失败；另有 8 项路径/环境单测通过。
+这些后续本地结果保持生产 RTL 和期望向量不变，但修复了审计 runner 和 TB，不能倒写为 \code{0c4a772} 的独立审计通过，也不能预告后续提交 CI 全绿。
+
+\subsection{重建入口与历史保留}
+在报告目录执行 \code{python audit_figures/make_final_regression_evidence.py --schema ci} 可重建四张 PNG/PDF。
+脚本校验 CI archive 的 \code{sha256.json}，核对步骤而非仅看 job 总状态，逐字节读取 Git head 中的输入，核对 26 项生产 RTL 集合与 21 份日志，再解析数值和唯一完成标记。
+每张同名 \code{audit_figures/final_regression_*.sha256.json} 保存上述来源、测试台行号、图件和脚本摘要；本次 \code{tested_inputs_sha256.json} 摘要为
+\code{22e593105cc3d31596d64e7045af84c3872b9a9f611b5daef287e89f12b4807b}。
+
+旧 169f 图、PDF、脚本、分节和哈希记录逐字节保留在
+\code{history/final_regression_169f_before_ci_0c4a/}，由该目录 \code{archive_manifest.json} 校验；原仓库旧证据没有被覆盖。
+图件 \code{31_divider_profiles.png} 仍是另一次 compact 三档生产顶层实跑，每档 438 次输出与延迟检查，不能与本次各 32 笔的连续启动夹具混成一次实验。
+本节没有启动新仿真或 EDA，全部图只重建已归档的日志；不提供模拟电路、STA 或硅片性能签核。

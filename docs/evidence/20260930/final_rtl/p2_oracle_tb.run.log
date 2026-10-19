@@ -1,0 +1,9 @@
+P2_ORACLE_PROGRESS codes=262144
+P2_ORACLE_PROGRESS codes=524288
+P2_ORACLE_PROGRESS codes=786432
+P2_ORACLE_PROGRESS codes=1048576
+P2_ORACLE_COMPLETE codes=1048576 errors=0
+- sim/tb/p2_oracle_tb.sv:93: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.49
+- Verilator: $finish at 27ms; walltime 6.208 s; speed 4.479 ms/s
+- Verilator: cpu 6.086 s on 1 threads; allocated 1 MB

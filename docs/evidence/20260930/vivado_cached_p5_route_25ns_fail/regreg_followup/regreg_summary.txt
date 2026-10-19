@@ -1,0 +1,8 @@
+CLOCK_PINS=66536
+DATA_PINS=199524
+REGREG_SETUP_WORST_NS=-0.280
+REGREG_SETUP_STARTPOINT=cur_slice_reg[3]/C
+REGREG_SETUP_ENDPOINT=u_wstore/row_q_reg[13][51]/D
+REGREG_HOLD_WORST_NS=0.062
+REGREG_HOLD_STARTPOINT=u_structure/u_pool/acquiring_ids_reg[3][0]/C
+REGREG_HOLD_ENDPOINT=u_structure/u_pool/converting_ids_reg[3][0]/D

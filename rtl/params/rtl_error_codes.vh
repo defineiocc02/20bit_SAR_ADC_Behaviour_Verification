@@ -1,4 +1,9 @@
 // Static interface constants, independent of generated rtl_params.vh.
+// Values are the externally visible error ABI: do not renumber during cleanup.
+// These are error codes, not the per-transaction dout_flags bit positions.
+// The top-level priority encoder and individual producers define persistence;
+// declaring a code here does not imply that status_regs latches the code.
+// ERR_NONE is zero; nonzero codes identify configuration or protocol failure.
 // Include INSIDE each module: intentionally no global include guard because
 // these localparams belong to each module scope.
 localparam logic [31:0] ERR_NONE          = 32'd0;

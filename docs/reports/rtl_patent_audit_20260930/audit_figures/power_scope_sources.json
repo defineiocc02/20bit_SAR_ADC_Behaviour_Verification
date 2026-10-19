@@ -1,0 +1,28 @@
+{
+  "scope": "Sources for the power-evidence interpretation paragraph; not a new power experiment",
+  "official_document": {
+    "title": "UG907 Vivado Design Suite User Guide: Power Analysis and Optimization",
+    "version": "2018.3",
+    "published": "2018-12-20",
+    "url": "https://docs.amd.com/v/u/2018.3-English/ug907-vivado-power-analysis-optimization",
+    "download_url": "https://docs.amd.com/api/khub/documents/qILQe_LXLgAWMu~mbALIoA/content",
+    "external_local_pdf": "/tmp/ug907-2018.3.pdf",
+    "sha256": "4c3044becd69f18a9f7304944e358703b3a59aa2c5554b1dc92f987a42fd409f",
+    "pages_read": [
+      33,
+      72,
+      78
+    ],
+    "redistributed": false
+  },
+  "power_report": {
+    "repository_relative_path": "docs/evidence/20260930/vivado_complete_p7/optimized/out/power_vectorless.rpt",
+    "sha256": "a92e38bb5aa4c2288f55b37f3c3232bc41c7014247e0b797ebe0201c140e4b21",
+    "clocks_w": 0.664,
+    "dynamic_w": 1.243,
+    "clock_percent_of_dynamic": 53.41914722445696,
+    "activity_file_supplied": false,
+    "scope": "Historical optimized P7 post-synthesis vectorless estimate at requested1.5625ns; not current row-cache or routed power"
+  },
+  "accessed_utc": "2026-09-29T21:51:26.140427+00:00"
+}

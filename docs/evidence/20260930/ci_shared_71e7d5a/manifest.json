@@ -1,0 +1,104 @@
+{
+  "scope": "FINAL_SHARED_SELECTOR_SOURCE_BOUND_CI_NOT_EDA_OR_ANALOG",
+  "archived_utc": "2026-09-30T14:36:56.504869+00:00",
+  "run_id": 36727200500,
+  "workflow_status": "completed",
+  "workflow_conclusion": "success",
+  "jobs_total": 9,
+  "jobs_success": 9,
+  "job_statuses": [
+    {
+      "name": "Type check (mypy)",
+      "id": 109927019937,
+      "conclusion": "success"
+    },
+    {
+      "name": "Build and installed wheel CLI",
+      "id": 109927020156,
+      "conclusion": "success"
+    },
+    {
+      "name": "Determinism (byte-identical rerun)",
+      "id": 109927020239,
+      "conclusion": "success"
+    },
+    {
+      "name": "RTL simulation (Verilator)",
+      "id": 109927020298,
+      "conclusion": "success"
+    },
+    {
+      "name": "Test (py3.10)",
+      "id": 109927020315,
+      "conclusion": "success"
+    },
+    {
+      "name": "Test (py3.13)",
+      "id": 109927020436,
+      "conclusion": "success"
+    },
+    {
+      "name": "Test (py3.12)",
+      "id": 109927020439,
+      "conclusion": "success"
+    },
+    {
+      "name": "Lint (ruff)",
+      "id": 109927020470,
+      "conclusion": "success"
+    },
+    {
+      "name": "Test (py3.11)",
+      "id": 109927020512,
+      "conclusion": "success"
+    }
+  ],
+  "head_sha": "71e7d5a017246340b9fa1f71cbbe99e20b6503f6",
+  "tested_merge_sha": "2243d5ac24a9ee8c8aab64de9dbb5a7e7b596f45",
+  "whole_tree_equal": true,
+  "git_tree_sha": "05700d675838bd33681daab82d11813d4fa49857",
+  "rtl_content_sha256": "89b9f8153fea49d82faba8464e45bb83c914b11ebf708fb623a9fe3a660b5d26",
+  "bound_input_files": 88,
+  "bench_count": 22,
+  "completion_markers": {
+    "sar_trial_tb": "SAR_TRIAL_COMPLETE",
+    "calibration_recovery_tb": "CALIBRATION_RECOVERY_COMPLETE",
+    "calibration_fit_tb": "CALIBRATION_FIT_COMPLETE",
+    "structural_adc_tb": "STRUCTURAL_ADC_COMPLETE",
+    "structural_protocol_tb": "STRUCTURAL_PROTOCOL_COMPLETE",
+    "recon_ppa_latency_tb": "RECON_PPA_PROFILE_PASS stages=7 samples=32",
+    "divider_borrow_tb": "DIVIDER_BORROW_COMPLETE exhaustive_checks=67592",
+    "tree_mapping_tb": "TREE_MAPPING_COMPLETE checks=12904",
+    "cal_weight_reduce_ppa_tb": "CAL_WEIGHT_REDUCE_PPA_COMPLETE",
+    "weight_row_cache_tb": "WEIGHT_ROW_CACHE_COMPLETE geometries=5 steps=16150",
+    "calibration_physical_tb": "CALIBRATION_PHYSICAL_COMPLETE",
+    "review_top_protocol_tb": "REVIEW_TOP_PROTOCOL_COMPLETE",
+    "review_leaf_tb": "REVIEW_LEAF_COMPLETE",
+    "review_recon_protocol_tb": "REVIEW_RECON_PROTOCOL_COMPLETE",
+    "review_dither_tb": "REVIEW_DITHER_COMPLETE",
+    "review_config_tb": "REVIEW_CONFIG_COMPLETE",
+    "p2_tb": "P2 RESULT: PASS",
+    "p2_oracle_tb": "P2_ORACLE_COMPLETE codes=1048576 errors=0",
+    "p2_periph_tb": "p2_periph PASS",
+    "p2_smoke_tb": "p2_smoke PASS",
+    "p1_tb": "P1 RESULT: PASS",
+    "p3_top_tb": "P3 TOP RESULT: PASS"
+  },
+  "strict_lint_profiles": 3,
+  "arithmetic_counts": {
+    "mac": 40010,
+    "mac_nonoverflow": 20859,
+    "adc": 40000,
+    "div": 10048,
+    "flag_sequences": 8
+  },
+  "python_versions_each_passed": 976,
+  "python_versions_each_deselected": 3,
+  "acceptance_criteria": 52,
+  "determinism_observed": true,
+  "mock_flow_unit_checks": 273,
+  "workflow_raw_bytes": 3733936,
+  "workflow_raw_sha256": "e52bd152915af083c6fa2713662765f0b44cee2600b239ec34b5a4ae120834ea",
+  "artifact_origin": "gh run download 36727200500 --name rtl-simulation-logs; upstream metadata retained; extracted payloads frozen individually",
+  "simulation_scope": "Zero-delay RTL; actual routed and mapped checks have separate source-bound archives."
+}

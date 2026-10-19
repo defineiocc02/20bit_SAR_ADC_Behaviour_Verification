@@ -1,0 +1,17 @@
+{
+  "artifacts_sha256": {
+    "fitted18_frozen.json": "72b7f20914bdba75c264e0eb51809a0363c51fabd1045b083acd7e61f1b062c8",
+    "fitted18_holdout.hex": "796befc24d29d0ee67bddbb7932abd2ec7a3eee244bcc8aae525227a1decb8ba",
+    "fitted18_registers.json": "cd62240b69e3e4a89333bb9982838667b3f42b0f9bff770010ef7479b5268020",
+    "fitted18_scalars.hex": "e78026a60e476f5dc504537b8b4ee8e0064c22c8f65c6dd7ed7c30226fdc554f",
+    "fitted18_weights.hex": "51ce33a67dab900d50a444822fec4d77cb636beccfb67337b2efe1ba636aec29"
+  },
+  "condition": 710.0725222521625,
+  "fitted_rms_v": 7.293299736534808e-05,
+  "holdout_samples": 128,
+  "nominal_rms_v": 0.0004201865488827881,
+  "rank": 1279,
+  "schema_version": 1,
+  "training_digest": "e68f7f7711e9ef6ea5f3bd04e66f3022601680efa381db40cf0ecad29000f76a",
+  "training_samples": 2048
+}

@@ -1,0 +1,14 @@
+{
+  "scope": "FPGA_P5_25NS_LOCAL_ROW_CANDIDATE_ROUTING_FAILURE_NOT_TIMING_SIGNOFF",
+  "source_synth_archive": "docs/evidence/20260930/local_row_trial_synth",
+  "input_dcp_sha256": "95a876bc7bdafa2ccf627f18bd6db6d87cb4d6f4281eede9ae77143722d2fdc2",
+  "input_dcp_bytes": 54553541,
+  "status": "ROUTE_FAILED_CONGESTION_LEVEL_7",
+  "place_warning": "Place 46-14",
+  "route_warning": "Route 35-447",
+  "route_error": "Route 35-3",
+  "routed_complete": false,
+  "valid_post_route_wns": null,
+  "valid_post_route_whs": null,
+  "interpretation": "Do not accept candidate for PPA/physical implementation. Intermediate WNS 2.114 ns is not final STA; route_design aborted before complete routing."
+}

@@ -1,0 +1,8 @@
+{
+  "command": [
+    "/tmp/run_20260930T162145Z_engineering_build/Vengineering_fsm_tb"
+  ],
+  "cwd": "fresh temporary directory",
+  "success": true,
+  "files_written_to_cwd": 0
+}

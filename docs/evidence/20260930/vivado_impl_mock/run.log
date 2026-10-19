@@ -1,0 +1,18 @@
+................................                                         [100%]
+============================= slowest 15 durations =============================
+0.02s call     tests/unit/test_vivado_impl.py::test_flow_or_integrity_failure_cannot_report_completion[clock_site]
+0.02s call     tests/unit/test_vivado_impl.py::test_flow_or_integrity_failure_cannot_report_completion[no_min]
+0.02s call     tests/unit/test_vivado_impl.py::test_flow_or_integrity_failure_cannot_report_completion[route_errors]
+0.02s call     tests/unit/test_vivado_impl.py::test_flow_or_integrity_failure_cannot_report_completion[open]
+0.02s call     tests/unit/test_vivado_impl.py::test_missing_or_nonfinite_slack_is_failure[0-Inf]
+0.02s call     tests/unit/test_vivado_impl.py::test_existing_output_and_missing_input_are_not_overwritten_or_accepted
+0.02s call     tests/unit/test_vivado_impl.py::test_setup_or_hold_violation_is_completed_but_not_passed[-0.1--0.2]
+0.02s call     tests/unit/test_vivado_impl.py::test_flow_or_integrity_failure_cannot_report_completion[no_max]
+0.02s call     tests/unit/test_vivado_impl.py::test_missing_or_nonfinite_slack_is_failure[-Inf-0]
+0.02s call     tests/unit/test_vivado_impl.py::test_flow_or_integrity_failure_cannot_report_completion[blackbox]
+0.02s call     tests/unit/test_vivado_impl.py::test_missing_or_nonfinite_slack_is_failure[NaN-0]
+0.02s call     tests/unit/test_vivado_impl.py::test_flow_or_integrity_failure_cannot_report_completion[unrouted]
+0.02s call     tests/unit/test_vivado_impl.py::test_flow_or_integrity_failure_cannot_report_completion[report_power]
+0.02s call     tests/unit/test_vivado_impl.py::test_flow_or_integrity_failure_cannot_report_completion[clock_port]
+0.01s call     tests/unit/test_vivado_impl.py::test_flow_or_integrity_failure_cannot_report_completion[site_type]
+32 passed in 0.77s

@@ -1,0 +1,649 @@
+{
+  "source_pdf": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/report/report.pdf",
+  "source_pdf_sha256": "690f3e84b102dd845ea1b04ce856bbbae3bc6f3cfad8912a8e0c26ee08fced3c",
+  "source_unchanged_after_review": true,
+  "total_pages": 46,
+  "physically_rendered_pages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "visually_reviewed_contact_pages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "visually_reviewed_original_size_pages": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46
+  ],
+  "contact_sheets_viewed": 8,
+  "method": "All eight contact sheets and all forty-six 120-dpi single-page PNGs displayed with view_image. Page bounds/text extraction are auxiliary only.",
+  "blocking_visual_findings": [],
+  "nonblocking_observations": [
+    {
+      "pdf_page": 14,
+      "printed_page": 12,
+      "kind": "sparse_chapter_tail",
+      "detail": "Three lines of body text before chapter break; much lower-page whitespace, no missing text or blank page."
+    },
+    {
+      "pdf_page": 5,
+      "printed_page": 3,
+      "kind": "sparse_toc_tail",
+      "detail": "Seven final TOC entries on continuation page; no unreadable or missing content."
+    }
+  ],
+  "vector_figures": [
+    {
+      "pdf_page": 15,
+      "printed_page": 13,
+      "figures": [
+        1,
+        2
+      ],
+      "visual_result": "PASS",
+      "raster_image_count": 0,
+      "vector_drawing_count": 22
+    },
+    {
+      "pdf_page": 16,
+      "printed_page": 14,
+      "figures": [
+        3
+      ],
+      "visual_result": "PASS",
+      "raster_image_count": 0,
+      "vector_drawing_count": 119
+    }
+  ],
+  "scope_limitation": "Visual PDF QA only; no new RTL, simulation, EDA, analog settling, MCP or PPA signoff claim.",
+  "page_review_results": [
+    {
+      "pdf_page": 1,
+      "printed_page": [],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 2,
+      "printed_page": [],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 3,
+      "printed_page": [
+        "1"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 4,
+      "printed_page": [
+        "2"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 5,
+      "printed_page": [
+        "3"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": "nonblocking whitespace observation"
+    },
+    {
+      "pdf_page": 6,
+      "printed_page": [
+        "4"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 7,
+      "printed_page": [
+        "5"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 8,
+      "printed_page": [
+        "6"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 9,
+      "printed_page": [
+        "7"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 10,
+      "printed_page": [
+        "8"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 11,
+      "printed_page": [
+        "9"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 12,
+      "printed_page": [
+        "10"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 13,
+      "printed_page": [
+        "11"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 14,
+      "printed_page": [
+        "12"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": "nonblocking whitespace observation"
+    },
+    {
+      "pdf_page": 15,
+      "printed_page": [
+        "13"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 16,
+      "printed_page": [
+        "14"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 17,
+      "printed_page": [
+        "15"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 18,
+      "printed_page": [
+        "16"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 19,
+      "printed_page": [
+        "17"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 20,
+      "printed_page": [
+        "18"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 21,
+      "printed_page": [
+        "19"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 22,
+      "printed_page": [
+        "20"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 23,
+      "printed_page": [
+        "21"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 24,
+      "printed_page": [
+        "22"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 25,
+      "printed_page": [
+        "23"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 26,
+      "printed_page": [
+        "24"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 27,
+      "printed_page": [
+        "25"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 28,
+      "printed_page": [
+        "26"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 29,
+      "printed_page": [
+        "27"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 30,
+      "printed_page": [
+        "28"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 31,
+      "printed_page": [
+        "29"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 32,
+      "printed_page": [
+        "30"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 33,
+      "printed_page": [
+        "31"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 34,
+      "printed_page": [
+        "32"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 35,
+      "printed_page": [
+        "33"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 36,
+      "printed_page": [
+        "34"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 37,
+      "printed_page": [
+        "35"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 38,
+      "printed_page": [
+        "36"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 39,
+      "printed_page": [
+        "37"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 40,
+      "printed_page": [
+        "38"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 41,
+      "printed_page": [
+        "39"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 42,
+      "printed_page": [
+        "40"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 43,
+      "printed_page": [
+        "41"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 44,
+      "printed_page": [
+        "42"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 45,
+      "printed_page": [
+        "43"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    },
+    {
+      "pdf_page": 46,
+      "printed_page": [
+        "44"
+      ],
+      "contact_reviewed": true,
+      "original_size_reviewed": true,
+      "result": "PASS",
+      "observation": null
+    }
+  ]
+}

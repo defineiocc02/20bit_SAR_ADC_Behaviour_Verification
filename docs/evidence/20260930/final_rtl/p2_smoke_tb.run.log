@@ -1,0 +1,14 @@
+=== T1 顶层配置通路（calib_regs / weight_store / cfg_rdata）===
+T1 小计：不匹配 0
+=== T2 slice_alloc（INV-4a..4d）===
+T2 小计：不匹配 0
+=== T3 sadc_enc popcount ===
+T3 小计：不匹配 0
+================================================
+  p2_smoke: checks=1154 errors=0  (T1=0 T2=0 T3=0)
+================================================
+p2_smoke PASS
+- sim/tb/p2_smoke_tb.sv:328: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.49
+- Verilator: $finish at 28us; walltime 0.005 s; speed 5.728 ms/s
+- Verilator: cpu 0.005 s on 1 threads; allocated 2 MB

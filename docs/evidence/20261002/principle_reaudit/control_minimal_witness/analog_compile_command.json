@@ -1,0 +1,16 @@
+[
+  "/tmp/sar_verilator_5_020_build/verilator5020",
+  "--binary",
+  "--timing",
+  "--assert",
+  "--timescale-override",
+  "1ns/1ps",
+  "--top-module",
+  "analog_status_boundary_tb",
+  "-I/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/rtl/params",
+  "--Mdir",
+  "control_minimal_witness/obj",
+  "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/rtl/core/cal_sample_context.sv",
+  "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/rtl/core/status_regs.sv",
+  "control_minimal_witness/analog_status_boundary_tb.sv"
+]

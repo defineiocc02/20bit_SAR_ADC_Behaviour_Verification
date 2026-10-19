@@ -1,0 +1,211 @@
+{
+  "scope": "ZERO_DELAY_FUNCTIONAL_DIAGNOSTIC_AND_EDGE_ALIGNMENT_NOT_STA_NOT_ANALOG_NOT_FORMAL_MCP_PROOF",
+  "head": "71935ab54238c7ed638f5fa66c5ffb58e10287bb",
+  "production_rtl_unchanged": true,
+  "verilator": "5.020",
+  "structural_trace_edges": 1926,
+  "accepts": 57,
+  "context_to_accepted_start_cycles": 15,
+  "fine_code_to_accepted_start_cycles": 1,
+  "observed_start_to_done_pulse_pre_edge_cycles": [
+    7
+  ],
+  "actual_start_to_done_nba_cycles": 6,
+  "start_to_final_rdac_cycles": 7,
+  "analog_boundary_checks": 16,
+  "cfg_clear_and_reenable_coverage": "NOT_COVERED_BY_THIS_CONTROLLER_WRAPPER",
+  "inputs": [
+    {
+      "path": "rtl/core/adc2_dec.sv",
+      "bytes": 5802,
+      "sha256": "113dab4a9f7770eafdc48b2f7b883155df3894cb2d02a1df97749a56d5941afa"
+    },
+    {
+      "path": "rtl/core/analog_phase_ctrl.sv",
+      "bytes": 2726,
+      "sha256": "2c33405498aba0fe7c3530fcd3f8acf840ed019274d1070736f786255bb76c02"
+    },
+    {
+      "path": "rtl/core/cal_output_stage.sv",
+      "bytes": 3462,
+      "sha256": "b0396b20835a7710903d3e225f611eb78817e4906133b47757c7ef585909aadd"
+    },
+    {
+      "path": "rtl/core/cal_residue_mac.sv",
+      "bytes": 4835,
+      "sha256": "8acf4dbc698e9e13d1c6fedfeeb0ad927998608658d2bfb7202a6621e27b0644"
+    },
+    {
+      "path": "rtl/core/cal_sample_context.sv",
+      "bytes": 3317,
+      "sha256": "bb2dbbcf0b154d4f955e9fecc03085385eacb7d3063d45085d84aa0a59b1baaa"
+    },
+    {
+      "path": "rtl/core/cal_weight_reduce.sv",
+      "bytes": 9728,
+      "sha256": "c41bd2fce6c43d330f7d5d37aab3400c1cdcf797781f8eb4c371cc2b14e5bb07"
+    },
+    {
+      "path": "rtl/core/calib_regs.sv",
+      "bytes": 8092,
+      "sha256": "7bd4019bbddfa65f03b7cf8a99110177122230d549b6009fc5df4f74b34fce8d"
+    },
+    {
+      "path": "rtl/core/ctrl_fsm.sv",
+      "bytes": 5615,
+      "sha256": "ec49018d6af765c883a647284b2b9ebc44ac5b5980b7e18e1ee275f385ad5723"
+    },
+    {
+      "path": "rtl/core/dem_addr_gen.sv",
+      "bytes": 5045,
+      "sha256": "a8d6ad4df32652d47007956e86f820ed882efa3a0e777dae7cf3853a75de7eaa"
+    },
+    {
+      "path": "rtl/core/dem_state_gen.sv",
+      "bytes": 4595,
+      "sha256": "d5bf4ceff09a819af5e10fc86260483e18f647b982c37a4cd1206c972988a121"
+    },
+    {
+      "path": "rtl/core/dither_gen.sv",
+      "bytes": 3533,
+      "sha256": "4510cde8c800660b0de8503da0640698a4a40ff4aa33ad9830a8208e5b1de7cb"
+    },
+    {
+      "path": "rtl/core/div_floor.sv",
+      "bytes": 6709,
+      "sha256": "dd8afd4c9cc378ab78e993b7f2a8d82bed09eb63f05237454c5f97c0cb9e15ce"
+    },
+    {
+      "path": "rtl/core/rdac_drv.sv",
+      "bytes": 4177,
+      "sha256": "2b826d593414c7e76ec7a1a10a7e26d9758377c6ba609bcc790fb1490828c82f"
+    },
+    {
+      "path": "rtl/core/recon_core.sv",
+      "bytes": 11748,
+      "sha256": "9cd22072bf244c60966a4132d7727430b17a1929eeae2c44e12ba2d81a899c2e"
+    },
+    {
+      "path": "rtl/core/sar_structural_ctrl.sv",
+      "bytes": 12542,
+      "sha256": "c6f5ac43086dc4aef6045d85b8fde244f3c758991c525a689b18bffdb80b349a"
+    },
+    {
+      "path": "rtl/core/sar_trial_ctrl.sv",
+      "bytes": 3142,
+      "sha256": "dca169cd89e9fab1235f9264c76079e5783969e593bc098206a4bd4de1a9fbf2"
+    },
+    {
+      "path": "rtl/core/slice_alloc.sv",
+      "bytes": 4824,
+      "sha256": "1993a12578cc8e29e7cab4f4f61ed71d01b2b6cf85a0d19afea875df9fa45f3e"
+    },
+    {
+      "path": "rtl/core/slice_pool_ctrl.sv",
+      "bytes": 3193,
+      "sha256": "fd8dfc97d6c9db8427f99303feff8d8b9d5daf18012973c6f5db4b1a4f3bc492"
+    },
+    {
+      "path": "rtl/core/status_regs.sv",
+      "bytes": 5570,
+      "sha256": "391ce2d8439bdc7b775fc56830480ba8db84180ccaa4aee93a811fbc3ef4b981"
+    },
+    {
+      "path": "rtl/core/swap_decode.sv",
+      "bytes": 5843,
+      "sha256": "ec923be46ff8924323ec0fcfc5d471cf748c41e5cef8038c026981d40f6945b6"
+    },
+    {
+      "path": "rtl/core/unit_therm.sv",
+      "bytes": 3647,
+      "sha256": "387c80474d06b0dd10d33f6c73a753650ed836285bceea9894c492853b21eae1"
+    },
+    {
+      "path": "rtl/core/weight_store.sv",
+      "bytes": 7270,
+      "sha256": "32eccfc231d4b8a5ff793e38174e5d5c6560dfd65c8670b3ab225368155948af"
+    },
+    {
+      "path": "rtl/params/rtl_error_codes.vh",
+      "bytes": 1203,
+      "sha256": "3fce073cf9e0585f85e394943e81d7c08c4b162292e4a4a3525b91743dd2dbc1"
+    },
+    {
+      "path": "rtl/params/rtl_params.vh",
+      "bytes": 3764,
+      "sha256": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654"
+    },
+    {
+      "path": "rtl/top/sadc_enc.sv",
+      "bytes": 3151,
+      "sha256": "dc69bfc3e5be0855f7648a1631d34948bba0959233f8d662815747ee5bdde82f"
+    },
+    {
+      "path": "rtl/top/sar20_digital_core.sv",
+      "bytes": 30410,
+      "sha256": "382f1242ea18b636ab9ea3b65c1b607a8a646ac8c050f4b77d0fb115548f4fa3"
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/structural_protocol_tb.sv",
+      "sha256": "b7d295bba4710f21be7d7a38d71669b3f8f9cc629fa7146f46b151ed09de48c4",
+      "bytes": 5314
+    }
+  ],
+  "outputs": [
+    {
+      "path": "control_minimal_witness/analog_compile_command.json",
+      "sha256": "111a5a67b766e0f17162f3c2d4c0413c034896c1210482a7fe7f9f8d6b359c22",
+      "bytes": 621
+    },
+    {
+      "path": "control_minimal_witness/analog_status_boundary_tb.sv",
+      "sha256": "12ba5327452238e9b8faff8822c1507c2fb84e7040175114e4b68c439922a64d",
+      "bytes": 3685
+    },
+    {
+      "path": "control_minimal_witness/analog_status_boundary_trace.csv",
+      "sha256": "046d0d270b4b7979701af141c4333e937eee98e82cfa60ec1252f09f45ea6130",
+      "bytes": 1062
+    },
+    {
+      "path": "control_minimal_witness/build.log",
+      "sha256": "8aa81896261e1125e3993012cbf5a619aaab07c832248904768d1fb0371bd7f2",
+      "bytes": 5334
+    },
+    {
+      "path": "control_minimal_witness/execution_metadata.json",
+      "sha256": "ed9e9548a3f4aefede4b6da1b0ac78efa17e5e1503fc9640994ea105cb5d48f2",
+      "bytes": 1761
+    },
+    {
+      "path": "control_minimal_witness/run.log",
+      "sha256": "5d07e7b065f19b64b0fd564bb8fda0815b0b509870e1f39284e76c9be81486a5",
+      "bytes": 122
+    },
+    {
+      "path": "control_minimal_witness/structural_build.log",
+      "sha256": "c5633d16eb70049826006c571d2119e1ca674120cbcc3485f0fbc84a437e411c",
+      "bytes": 8007
+    },
+    {
+      "path": "control_minimal_witness/structural_capture_trace.csv",
+      "sha256": "3d818c321ef266d63e75cf73e89e73740fe29bdc1a145ab105c4278a02ea91b2",
+      "bytes": 105318
+    },
+    {
+      "path": "control_minimal_witness/structural_capture_trace_wrapper.sv",
+      "sha256": "59447bbd1983775ce596b13c31cf64e13e82fe833333e12bc31504555f3fcd70",
+      "bytes": 2539
+    },
+    {
+      "path": "control_minimal_witness/structural_compile_command.json",
+      "sha256": "d859923c5bf56f6bbd3f8af1b0d33ee5f35c3cee6d3fd2e228c5f032aeaa7867",
+      "bytes": 2141
+    },
+    {
+      "path": "control_minimal_witness/structural_run.log",
+      "sha256": "5c0a40d7a20897c90b1c164577d680d4f9ada592ef54d5a4b974803cf1081770",
+      "bytes": 333
+    }
+  ]
+}

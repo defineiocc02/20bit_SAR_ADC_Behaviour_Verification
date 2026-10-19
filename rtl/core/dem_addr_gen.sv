@@ -31,6 +31,10 @@
 //     前提成立。换拓扑必须重新验证 —— 生成器 export_rtl_vectors.py 会直接拒绝。
 //   * 不变量：cell(p) != i*，对全部 p ∈ [0, N_MAIN) 成立（否则说明拓扑前提被破坏）。
 //   * 纯组合，延迟 0。
+//     main_logical/sub_logical 的数组下标始终是物理 unit ID，数组值才是
+//     温度计序列中的逻辑位置；不能交换这两个方向，否则 DEM 与权重读取错位。
+//   * initial 只用于参数合法性检查，不是运行时状态机。sid 的冻结、复位与
+//     enable 均由上游 dem_state_gen/样本上下文负责，本模块不保存历史状态。
 //===========================================================================
 `include "rtl_params.vh"
 
@@ -41,8 +45,8 @@ module dem_addr_gen #(
     parameter int H_ROT  = int'(DEM_ROT_HEIGHT)
 ) (
     input  logic [8:0]             sid,
-    output logic [N_MAIN-1:0][5:0] main_logical,
-    output logic [N_SUB-1:0][2:0]  sub_logical
+    output logic [N_MAIN - 1:0][5:0] main_logical,
+    output logic [N_SUB - 1:0][2:0]  sub_logical
 );
 
   initial begin
@@ -52,41 +56,47 @@ module dem_addr_gen #(
 
   localparam int LW = $clog2(W_ROT);  // 3
   localparam int LH = $clog2(H_ROT);  // 3
-  localparam int LS = 9 - LW - LH;    // 3
+  localparam int LS = 9 - LW - LH;   // 3
 
-  logic [LW-1:0] ch;
-  logic [LH-1:0] rh;
-  logic [LS-1:0] sh;
+  logic [LW - 1:0] ch;
+  logic [LH - 1:0] rh;
+  logic [LS - 1:0] sh;
 
-  assign ch = sid[LW-1:0];
-  assign rh = sid[LW+:LH];
-  assign sh = sid[LW+LH+:LS];
+  // 组合段 1：低三位为列旋转、中三位为行旋转、高三位为子阵列旋转。
+  assign ch = sid[LW - 1:0];
+  assign rh = sid[LW +: LH];
+  assign sh = sid[LW + LH +: LS];
 
   // 唯一被 order < N_MAIN 过滤掉的 cell（对应 order 值 = W_ROT*H_ROT-1）
-  logic [LW+LH-1:0] i_star;
+  logic [LW + LH - 1:0] i_star;
   // cell = {row, col}，故**低位是列、高位是行**。早先把两半写反了，
   // 结果是 i* 与真实的被过滤 cell 差了 (row,col) 互换后的位置，
   // 只在 cell 落在两者之间时表现成差 1 —— P1 向量把它抓了出来。
-  assign i_star[LW-1:0]    = (LW'(W_ROT - 1) - LW'(ch)) & LW'({LW{1'b1}});
-  assign i_star[LW+LH-1:LW] = (LH'(H_ROT - 1) - LH'(rh)) & LH'({LH{1'b1}});
+  assign i_star[LW - 1:0]      = (LW'(W_ROT - 1) - LW'(ch)) & LW'({LW{1'b1}});
+  assign i_star[LW + LH - 1:LW] = (LH'(H_ROT - 1) - LH'(rh)) & LH'({LH{1'b1}});
 
+  // 组合段 2：生成时展开到每个物理单元；p/8、p%8 是 elaboration 常量，
+  // 不是运行时除法器。旋转减法取低三位等价于模 8，不应改成模 63 的环。
   genvar p;
   generate
     for (p = 0; p < N_MAIN; p++) begin : g_main
       localparam int P_ROW = p / W_ROT;
       localparam int P_COL = p % W_ROT;
 
-      logic [LH-1:0] row_rot;
-      logic [LW-1:0] col_rot;
-      logic [5:0]    cell_idx;
+      logic [LH - 1:0] row_rot;
+      logic [LW - 1:0] col_rot;
+      logic [5:0]      cell_idx;
+
       assign row_rot = (LH'(P_ROW) - rh) & LH'({LH{1'b1}});
       assign col_rot = (LW'(P_COL) - ch) & LW'({LW{1'b1}});
       assign cell_idx = {row_rot, col_rot};
 
+      // 跳过唯一的物理 cell 63 后，后续逻辑位置减一，保持 0..62 连续。
       assign main_logical[p] = cell_idx - 6'(cell_idx > i_star);
     end
   endgenerate
 
+  // 子阵列是完整的 8 单元环，没有主阵列的过滤/压缩步骤。
   genvar q;
   generate
     for (q = 0; q < N_SUB; q++) begin : g_sub

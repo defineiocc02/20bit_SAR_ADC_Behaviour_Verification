@@ -1,0 +1,18 @@
+{
+  "status": "MATCH",
+  "checked_manifests": [
+    "arithmetic.manifest.json",
+    "exhaustive.manifest.json",
+    "mutations.json"
+  ],
+  "sources_sha256": {
+    "rtl/core/cal_residue_mac.sv": "082a93293cda83f79ff0ac7ef72e484043f8bbceb914361f270059b4bb764f71",
+    "rtl/core/adc2_dec.sv": "268d279bdc1c2cdd7161072733c5046e701524c7e217b52ff0c7ca08951154f5",
+    "rtl/core/div_floor.sv": "cc3b0bd9c5e6c8491af10d0696f82e59373426c538c3212c210093dbc84c515c",
+    "rtl/core/cal_output_stage.sv": "30cb3de766b0c2f316bd65f519304e95a35897b55568564e56c999c8bac0c0c2",
+    "sim/tb/arithmetic_audit_tb.sv": "c1582600cde5d6f267c723bd93f5726cb059bc7ca5abd207c3d34488bdef1ce8",
+    "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+    "tools/audit_rtl_arithmetic.py": "299013236b42e9facf4eaede46f627a676e65156c8094d56a470a098e1edd930",
+    "sim/tb/divider_borrow_tb.sv": "56f942cba7f4744626f6219f32d224cc4e451d0b33536dd6344d98a010d97a6d"
+  }
+}

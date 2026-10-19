@@ -1,0 +1,11 @@
+--- a/sim/tb/arithmetic_audit_tb.sv
++++ b/sim/tb/arithmetic_audit_tb.sv
+@@ -18,7 +18,7 @@
+  logic [11:0] sample_c;
+  always @(posedge sample_clk)begin
+   sample_f<=f;sample_o<=o;sample_i<=i;sample_g<=g;sample_t<=t;sample_ra<=ra;
+-  sample_c<=c;sample_mi<=mi;sample_ma<=ma;
++  sample_c<=12'd0;sample_mi<=mi;sample_ma<=ma;
+  end
+  task automatic sample_inputs();
+   #0.25;sample_clk=1;#0.5;sample_clk=0;#0.25;

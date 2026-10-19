@@ -1,0 +1,58 @@
+2026-09-29T21:25:40.8205397Z ##[group]Run pip install pytest numpy
+2026-09-29T21:25:40.8205753Z [36;1mpip install pytest numpy[0m
+2026-09-29T21:25:40.8206655Z [36;1mpytest tests/unit/test_synth_flow.py tests/unit/test_vivado_flow.py tests/unit/test_vivado_impl.py tests/unit/test_clockless_inspection.py tests/unit/test_vivado_buffered_impl.py tests/unit/test_vivado_full_mapped.py -q[0m
+2026-09-29T21:25:40.8273656Z shell: /usr/bin/bash -e {0}
+2026-09-29T21:25:40.8273911Z env:
+2026-09-29T21:25:40.8274125Z   OPENBLAS_NUM_THREADS: 1
+2026-09-29T21:25:40.8274362Z   MPLBACKEND: Agg
+2026-09-29T21:25:40.8274658Z   pythonLocation: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-29T21:25:40.8275113Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib/pkgconfig
+2026-09-29T21:25:40.8275542Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-29T21:25:40.8275933Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-29T21:25:40.8276361Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.14/x64
+2026-09-29T21:25:40.8276754Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.14/x64/lib
+2026-09-29T21:25:40.8277080Z ##[endgroup]
+2026-09-29T21:25:41.7611343Z Collecting pytest
+2026-09-29T21:25:41.8599459Z   Downloading pytest-9.1.1-py3-none-any.whl.metadata (7.6 kB)
+2026-09-29T21:25:42.0685996Z Collecting numpy
+2026-09-29T21:25:42.0896675Z   Downloading numpy-2.5.3-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl.metadata (6.6 kB)
+2026-09-29T21:25:42.1031287Z Collecting iniconfig>=1.0.1 (from pytest)
+2026-09-29T21:25:42.1237577Z   Downloading iniconfig-2.3.0-py3-none-any.whl.metadata (2.5 kB)
+2026-09-29T21:25:42.1386808Z Collecting packaging>=22 (from pytest)
+2026-09-29T21:25:42.1596822Z   Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+2026-09-29T21:25:42.1723464Z Collecting pluggy<2,>=1.5 (from pytest)
+2026-09-29T21:25:42.1931938Z   Downloading pluggy-1.6.0-py3-none-any.whl.metadata (4.8 kB)
+2026-09-29T21:25:42.2125994Z Collecting pygments>=2.7.2 (from pytest)
+2026-09-29T21:25:42.2341731Z   Downloading pygments-2.21.0-py3-none-any.whl.metadata (2.5 kB)
+2026-09-29T21:25:42.2596472Z Downloading pytest-9.1.1-py3-none-any.whl (386 kB)
+2026-09-29T21:25:42.3589762Z Downloading pluggy-1.6.0-py3-none-any.whl (20 kB)
+2026-09-29T21:25:42.3817501Z Downloading numpy-2.5.3-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.7 MB)
+2026-09-29T21:25:42.5914331Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.7/16.7 MB 86.5 MB/s  0:00:00
+2026-09-29T21:25:42.6121973Z Downloading iniconfig-2.3.0-py3-none-any.whl (7.5 kB)
+2026-09-29T21:25:42.6352377Z Downloading packaging-26.3-py3-none-any.whl (129 kB)
+2026-09-29T21:25:42.6585606Z Downloading pygments-2.21.0-py3-none-any.whl (1.3 MB)
+2026-09-29T21:25:42.6651777Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 233.0 MB/s  0:00:00
+2026-09-29T21:25:42.7490793Z Installing collected packages: pygments, pluggy, packaging, numpy, iniconfig, pytest
+2026-09-29T21:25:45.9164264Z 
+2026-09-29T21:25:45.9177952Z Successfully installed iniconfig-2.3.0 numpy-2.5.3 packaging-26.3 pluggy-1.6.0 pygments-2.21.0 pytest-9.1.1
+2026-09-29T21:25:47.3941615Z ........................................................................ [ 26%]
+2026-09-29T21:25:48.4200775Z ........................................................................ [ 52%]
+2026-09-29T21:25:56.2929144Z ........................................................................ [ 79%]
+2026-09-29T21:25:56.8930484Z ........................................................                 [100%]
+2026-09-29T21:25:56.8931814Z ============================= slowest 15 durations =============================
+2026-09-29T21:25:56.8932959Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_single_bufg_eco_preserves_complete_endpoint_set_and_records_real_hashes
+2026-09-29T21:25:56.8934403Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_pulse_or_failing_endpoints_prevent_timing_pass[0.025--0.001-failing2]
+2026-09-29T21:25:56.8936475Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_postroute_optimization_endpoint_change_is_recorded_separately_from_eco
+2026-09-29T21:25:56.8938052Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_setup_or_hold_violation_is_complete_but_not_timing_pass[-0.1--0.1]
+2026-09-29T21:25:56.8939507Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_pulse_or_failing_endpoints_prevent_timing_pass[-0.001-0-failing1]
+2026-09-29T21:25:56.8941231Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_setup_or_hold_violation_is_complete_but_not_timing_pass[0.2--0.1]
+2026-09-29T21:25:56.8942714Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_setup_or_hold_violation_is_complete_but_not_timing_pass[-0.1-0.1]
+2026-09-29T21:25:56.8944149Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_unmodified_real_2018_3_reports_parse_without_promoting_baseline
+2026-09-29T21:25:56.8945621Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_pulse_or_failing_endpoints_prevent_timing_pass[-0.001--0.001-failing0]
+2026-09-29T21:25:56.8947089Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_pulse_or_failing_endpoints_prevent_timing_pass[0.025-0-failing3]
+2026-09-29T21:25:56.8948472Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_certutil_localized_and_space_separated_digest_parser
+2026-09-29T21:25:56.8949837Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_pulse_or_failing_endpoints_prevent_timing_pass[0.025-0-failing5]
+2026-09-29T21:25:56.8951438Z 0.15s call     tests/unit/test_vivado_buffered_impl.py::test_pulse_or_failing_endpoints_prevent_timing_pass[0.025-0-failing4]
+2026-09-29T21:25:56.8952794Z 0.12s call     tests/unit/test_vivado_buffered_impl.py::test_each_nonzero_check_timing_category_requires_diagnosis[13]
+2026-09-29T21:25:56.8954098Z 0.12s call     tests/unit/test_vivado_buffered_impl.py::test_each_nonzero_check_timing_category_requires_diagnosis[15]
+2026-09-29T21:25:56.8954962Z 272 passed in 10.53s

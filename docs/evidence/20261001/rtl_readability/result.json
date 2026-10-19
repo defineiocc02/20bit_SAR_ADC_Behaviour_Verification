@@ -1,0 +1,196 @@
+{
+  "status": "PASS",
+  "baseline_commit": "71e7d5a017246340b9fa1f71cbbe99e20b6503f6",
+  "files": [
+    {
+      "path": "rtl/core/adc2_dec.sv",
+      "baseline_sha256": "268d279bdc1c2cdd7161072733c5046e701524c7e217b52ff0c7ca08951154f5",
+      "current_sha256": "113dab4a9f7770eafdc48b2f7b883155df3894cb2d02a1df97749a56d5941afa",
+      "tokens": 567,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/analog_phase_ctrl.sv",
+      "baseline_sha256": "66647aeeaa4e9dc41cd95eec430bdb8e75d42b93390bded576b18c22d8653932",
+      "current_sha256": "2c33405498aba0fe7c3530fcd3f8acf840ed019274d1070736f786255bb76c02",
+      "tokens": 280,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/cal_output_stage.sv",
+      "baseline_sha256": "30cb3de766b0c2f316bd65f519304e95a35897b55568564e56c999c8bac0c0c2",
+      "current_sha256": "b0396b20835a7710903d3e225f611eb78817e4906133b47757c7ef585909aadd",
+      "tokens": 313,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/cal_residue_mac.sv",
+      "baseline_sha256": "082a93293cda83f79ff0ac7ef72e484043f8bbceb914361f270059b4bb764f71",
+      "current_sha256": "8acf4dbc698e9e13d1c6fedfeeb0ad927998608658d2bfb7202a6621e27b0644",
+      "tokens": 763,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/cal_sample_context.sv",
+      "baseline_sha256": "8b0ff4527b6ff5936d378945bcfd38d2c203a43fb7d2cb4d0271a8f655bb9e56",
+      "current_sha256": "bb2dbbcf0b154d4f955e9fecc03085385eacb7d3063d45085d84aa0a59b1baaa",
+      "tokens": 404,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/cal_weight_reduce.sv",
+      "baseline_sha256": "b4be31b0f69bf25021ab06191fbc9a83f587a0256b8c94284ee2aa8bd6058bc3",
+      "current_sha256": "c41bd2fce6c43d330f7d5d37aab3400c1cdcf797781f8eb4c371cc2b14e5bb07",
+      "tokens": 1469,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/calib_regs.sv",
+      "baseline_sha256": "feff5d1d6c0359b427c5950ae6dec6db45e5e9707f44a06623681f5176c3e44b",
+      "current_sha256": "7bd4019bbddfa65f03b7cf8a99110177122230d549b6009fc5df4f74b34fce8d",
+      "tokens": 547,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/ctrl_fsm.sv",
+      "baseline_sha256": "a04e9104a93819ed35d35f6a11355c4ee3afbaa0d4b020f6e17e5540b610041f",
+      "current_sha256": "ec49018d6af765c883a647284b2b9ebc44ac5b5980b7e18e1ee275f385ad5723",
+      "tokens": 449,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/dem_addr_gen.sv",
+      "baseline_sha256": "aa5bd5c4d00fa2a5d77f81fcc99011246ed08ab01f00be3e92fcd42728f466ba",
+      "current_sha256": "a8d6ad4df32652d47007956e86f820ed882efa3a0e777dae7cf3853a75de7eaa",
+      "tokens": 482,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/dem_state_gen.sv",
+      "baseline_sha256": "38c626502b2338c4c04497788cf40904408a885176967a4ca6d6750d578d7efe",
+      "current_sha256": "d5bf4ceff09a819af5e10fc86260483e18f647b982c37a4cd1206c972988a121",
+      "tokens": 283,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/dither_gen.sv",
+      "baseline_sha256": "d726478c13887ca3739265990be5b2a35c88a236d38257af1ab72cb53c828f7e",
+      "current_sha256": "4510cde8c800660b0de8503da0640698a4a40ff4aa33ad9830a8208e5b1de7cb",
+      "tokens": 326,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/div_floor.sv",
+      "baseline_sha256": "cc3b0bd9c5e6c8491af10d0696f82e59373426c538c3212c210093dbc84c515c",
+      "current_sha256": "dd8afd4c9cc378ab78e993b7f2a8d82bed09eb63f05237454c5f97c0cb9e15ce",
+      "tokens": 825,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/rdac_drv.sv",
+      "baseline_sha256": "d91fa05062a50eb08826286ec527b5a15d6b7be758cee7f5e16c53fbe20d6a33",
+      "current_sha256": "2b826d593414c7e76ec7a1a10a7e26d9758377c6ba609bcc790fb1490828c82f",
+      "tokens": 321,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/recon_core.sv",
+      "baseline_sha256": "630b7e665d30ee5b86cfac3820b42e050c604077fadd1f685bc3a7ae7609b6a8",
+      "current_sha256": "9cd22072bf244c60966a4132d7727430b17a1929eeae2c44e12ba2d81a899c2e",
+      "tokens": 1477,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/sar_structural_ctrl.sv",
+      "baseline_sha256": "76166ca5d0dbec70b9484b0badefe1f009a75ef942ed1de9e27159f2d092660e",
+      "current_sha256": "c6f5ac43086dc4aef6045d85b8fde244f3c758991c525a689b18bffdb80b349a",
+      "tokens": 1989,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/sar_trial_ctrl.sv",
+      "baseline_sha256": "cbe60e2cc30fb95499449f0ec586847f9c1494de25bce784dc8b01a51248f8c9",
+      "current_sha256": "dca169cd89e9fab1235f9264c76079e5783969e593bc098206a4bd4de1a9fbf2",
+      "tokens": 377,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/slice_alloc.sv",
+      "baseline_sha256": "2c6d0293b846f00ccf88c0a38fc3030a243cb86fc84a705e31e70aa2084a2dc4",
+      "current_sha256": "1993a12578cc8e29e7cab4f4f61ed71d01b2b6cf85a0d19afea875df9fa45f3e",
+      "tokens": 257,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/slice_pool_ctrl.sv",
+      "baseline_sha256": "e53d9efa8ced99e5322f6a3043dd67c7ceea11cfad60813f5e233504a28782b4",
+      "current_sha256": "fd8dfc97d6c9db8427f99303feff8d8b9d5daf18012973c6f5db4b1a4f3bc492",
+      "tokens": 425,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/status_regs.sv",
+      "baseline_sha256": "8ab8ee1483f451da27ad59435ef7b00f3982427b17354fe5a9d2ac6319af4b1d",
+      "current_sha256": "391ce2d8439bdc7b775fc56830480ba8db84180ccaa4aee93a811fbc3ef4b981",
+      "tokens": 238,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/swap_decode.sv",
+      "baseline_sha256": "03684fb59ae5d0bbbd1d091f8b073b5cc9469dd603636ceea69726b01a5b5d88",
+      "current_sha256": "ec923be46ff8924323ec0fcfc5d471cf748c41e5cef8038c026981d40f6945b6",
+      "tokens": 512,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/unit_therm.sv",
+      "baseline_sha256": "ec00681a7565a1fd10172e32959c08e118f339de19f5e07eaf623c24fb6cb459",
+      "current_sha256": "387c80474d06b0dd10d33f6c73a753650ed836285bceea9894c492853b21eae1",
+      "tokens": 285,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/core/weight_store.sv",
+      "baseline_sha256": "14d3ada75223fa262036189cc9e444bec74b23cc347ede7c95a09c99b11bf2db",
+      "current_sha256": "32eccfc231d4b8a5ff793e38174e5d5c6560dfd65c8670b3ab225368155948af",
+      "tokens": 796,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/top/sadc_enc.sv",
+      "baseline_sha256": "c366ddd1af00bfbf549b9300f5f80b564031c5e36848d77575622c9ba2007b7a",
+      "current_sha256": "dc69bfc3e5be0855f7648a1631d34948bba0959233f8d662815747ee5bdde82f",
+      "tokens": 219,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/top/sar20_digital_core.sv",
+      "baseline_sha256": "787749874a2d9ea3c338a64e608298439f4d67892a7a0a8b0fca6f7a3da16325",
+      "current_sha256": "382f1242ea18b636ab9ea3b65c1b607a8a646ac8c050f4b77d0fb115548f4fa3",
+      "tokens": 4055,
+      "bytes_changed": true
+    },
+    {
+      "path": "rtl/params/rtl_params.vh",
+      "baseline_sha256": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+      "current_sha256": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+      "tokens": 358,
+      "bytes_changed": false
+    },
+    {
+      "path": "rtl/params/rtl_error_codes.vh",
+      "baseline_sha256": "ab67fff7eeff034da996d8c0442b529dc8476bb1eafca349f360c9e873bcc0ce",
+      "current_sha256": "3fce073cf9e0585f85e394943e81d7c08c4b162292e4a4a3525b91743dd2dbc1",
+      "tokens": 132,
+      "bytes_changed": true
+    }
+  ],
+  "file_count": 26,
+  "changed_files": 25,
+  "effective_tokens": 18149,
+  "token_sha256": "197bddd437e90db97a6cb7a9f7d1ef054a33541c6b67860911f677c52cbbf9fb",
+  "baseline_preprocessed_sha256": "7b372f1a5c3fa719dc0b9ff0d8c3dc747d1bcc2c279562288f5bb874c32f6e96",
+  "current_preprocessed_sha256": "1663527ed8406dd93599617fc29c762f9eaf004e322ef0468b4ad831878a00af",
+  "verilator": "Verilator 5.020 2024-01-01 rev UNKNOWN.REV",
+  "scope": "Source/token/macro/tool-pragma identity, not formal/STA/analog signoff"
+}

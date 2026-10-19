@@ -1,0 +1,25 @@
+{
+  "scope": "PROPOSED_INTEGER_SELECTOR_EQUIVALENCE_NOT_RTL_OR_SYNTHESIS",
+  "status": "PASS",
+  "seed": 20260930,
+  "patterns": 91,
+  "basis_vectors": 71,
+  "states": 512,
+  "main_counts": 64,
+  "sub_counts": 8,
+  "main_checks": 2981888,
+  "sub_checks": 372736,
+  "one_dimensional_ring_negative_control": "REJECTED_AT_SID1_COUNT8",
+  "conservative_extra_prefix_bits_per_slice": 4024,
+  "extra_prefix_bits_all_slices": 72432,
+  "current_weight_store_state_bits": 62316,
+  "naive_retained_raw_plus_prefix_state_bits": 134748,
+  "input_sha256": {
+    "src/adi_model/dem.py": "3bd75673e32d14bd9f41400265b274a0b4f6baa016cbea9e659b00b93ddddd9a",
+    "rtl/core/dem_addr_gen.sv": "aa5bd5c4d00fa2a5d77f81fcc99011246ed08ab01f00be3e92fcd42728f466ba",
+    "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654"
+  },
+  "generator_sha256": "5adb374ae23e9fc6192bf86aa552adadbf16fea276a873e6e2875513f57b1e0b",
+  "pdf_sha256": "e237e8cb42dcf060f7f8206a4dbf849782850d7998263857c9d4fb5c0f05fd0d",
+  "png_sha256": "c9fd8d8121c8357fe6c3e9aaba0a946419187b0b4daa5344061948f9300154e3"
+}

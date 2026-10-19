@@ -1,0 +1,74 @@
+{
+  "scope": "HISTORICAL_SOURCE_BOUND_WITNESS_PLUS_UNBOUND_IGNORED_RUN_LOGS; NOT A CURRENT_TURN_RERUN",
+  "prior_witness_head": "71935ab54238c7ed638f5fa66c5ffb58e10287bb",
+  "current_head": "01ed2b3e4fc4c7c9efd2153cfbfa5d456b10fb74",
+  "source_identity_match_count": 26,
+  "source_identity_all_match": true,
+  "evidence_files": [
+    {
+      "path": "docs/evidence/20261002/principle_reaudit/control_minimal_witness/result_manifest.json",
+      "sha256": "bdb06f84ed4b4e32d6c8392c2d094cc63ce2d8c5922f15a5973869a0e25b7280",
+      "bytes": 7054
+    },
+    {
+      "path": "docs/evidence/20261002/principle_reaudit/control_minimal_witness/structural_run.log",
+      "sha256": "5c0a40d7a20897c90b1c164577d680d4f9ada592ef54d5a4b974803cf1081770",
+      "bytes": 333
+    },
+    {
+      "path": "docs/evidence/20261002/principle_reaudit/control_minimal_witness/run.log",
+      "sha256": "5d07e7b065f19b64b0fd564bb8fda0815b0b509870e1f39284e76c9be81486a5",
+      "bytes": 122
+    },
+    {
+      "path": "docs/evidence/20261002/principle_reaudit/calibration_evidence_manifest.json",
+      "sha256": "00ec984416088d8ddafe3e6f4db8a8ba3ffaed1c2d80cb3e3f6375591b12fecd",
+      "bytes": 6147
+    },
+    {
+      "path": "docs/evidence/20261002/principle_reaudit/adc2_rounding_semantics_run.log",
+      "sha256": "0c64bb2a86aa7adf55c5c308eb23750689150d61dfb6543f240119d43dccbbe6",
+      "bytes": 1218
+    },
+    {
+      "path": "docs/evidence/20261002/principle_reaudit/calibration_domain_run.log",
+      "sha256": "19e342131888455d807a66b26a1c8b35cdbb5ac1e4b7f52d9a0159a077fa0e68",
+      "bytes": 862
+    },
+    {
+      "path": "sim/artifacts/open_rtl/version.log",
+      "sha256": "3f9bfcb7543b9426d374af92579531e07af169001fd870b792cbcc54c44fee51",
+      "bytes": 43
+    },
+    {
+      "path": "sim/artifacts/open_rtl/sar_trial_tb.run.log",
+      "sha256": "26d36d67e86b6703e49252c6ec98d119d49452217f646aee3ce2689c2bd74d80",
+      "bytes": 120
+    },
+    {
+      "path": "sim/artifacts/open_rtl/review_config_tb.run.log",
+      "sha256": "ea7cd9d9c8ad0bddf39321eb6f3fe3156e7f91171d1ab440e5dbfa9955688b8e",
+      "bytes": 84
+    },
+    {
+      "path": "sim/artifacts/open_rtl/review_recon_protocol_tb.run.log",
+      "sha256": "bd61e46b62371076337f6dba4fbfc062dc28b8e20fad77d2fb9a3233a88e1d21",
+      "bytes": 88
+    },
+    {
+      "path": "sim/artifacts/open_rtl/structural_protocol_tb.run.log",
+      "sha256": "7630ce9d3e9702d1d2015cd921062169a4b6dd2aecdd0c7d7bda34b615ed3c98",
+      "bytes": 162
+    },
+    {
+      "path": "sim/artifacts/open_rtl/p2_tb.run.log",
+      "sha256": "c5889c69e27f8204af8fd62d4d115959ef401e18e6aad92ee0092524e2c03e9e",
+      "bytes": 1316
+    },
+    {
+      "path": "sim/artifacts/open_rtl/p3_top_tb.run.log",
+      "sha256": "836e24123400e91440377ab669acb7a2ae32512bddd4f979cc158d9bba2a7b84",
+      "bytes": 2415
+    }
+  ]
+}

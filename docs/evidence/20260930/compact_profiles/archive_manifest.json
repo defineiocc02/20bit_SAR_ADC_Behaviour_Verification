@@ -1,0 +1,40 @@
+{
+  "scope": "ARCHIVED_REAL_LOCAL_COMPACT_RTL_3PROFILE_SIMULATIONS_NOT_VIVADO",
+  "status": "PASS",
+  "rtl_sha256": "fd885e882ad5447f87626dc034fb59a6853a86f01050957a93b8a6407ebbbc13",
+  "external_full_run": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/compact_profiles",
+  "byte_identical_copies": {
+    "manifest.json": {
+      "sha256": "3a259277f2945d06f8202224e30826c11621d3c213cd7fafbcdc49187f859653",
+      "bytes": 12233,
+      "external_source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/compact_profiles/manifest.json"
+    },
+    "evidence_hashes.json": {
+      "sha256": "44784dd78ec4185e5a2e8f608b0ab6480ee9f4e94d62fd2466d55032de27cece",
+      "bytes": 5204,
+      "external_source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/compact_profiles/evidence_hashes.json"
+    },
+    "rtl_compact_identity.json": {
+      "sha256": "41cfe30f8b4db7373f4363d4cbca4770c15e82e7f1697db9dd5a5dfe0d8f080e",
+      "bytes": 2912,
+      "external_source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/compact_profiles/rtl_compact_identity.json"
+    },
+    "p5/run.log": {
+      "sha256": "abc0ccb4083752fc496338f53ee7041962ab60d3aeb37aeb2dda5b0d50fb667a",
+      "bytes": 350,
+      "external_source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/compact_profiles/p5/run.log"
+    },
+    "p6/run.log": {
+      "sha256": "559fc6ca51d6ab32c1d5d323092adb5bdce299151792c2f3d5c327d6fe6928e5",
+      "bytes": 350,
+      "external_source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/compact_profiles/p6/run.log"
+    },
+    "p7/run.log": {
+      "sha256": "98fa066ec30708535002ce34e0fe2aa2e49feb5e8ceb5190b7494377c4f4994f",
+      "bytes": 350,
+      "external_source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/compact_profiles/p7/run.log"
+    }
+  },
+  "readme_sha256": "aff32a3c9ff3cca81bf2a701171339b88789ff678e9880115a453dbab4fef792",
+  "verification": "All six copied files read back byte-for-byte equal to external originals."
+}

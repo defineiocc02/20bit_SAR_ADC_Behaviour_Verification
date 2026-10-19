@@ -1,0 +1,71 @@
+{
+  "figure": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_patent_rtl_report_20260928/figures/31_divider_profiles.png",
+  "purpose": "Actual compact 3-profile top-level output latency; 16-cycle design budget is an annotated scheduling assumption, not measured busy release or PPA.",
+  "schema": "compact_profiles/manifest.json",
+  "frozen_rtl_sha256": "fd885e882ad5447f87626dc034fb59a6853a86f01050957a93b8a6407ebbbc13",
+  "inputs": {
+    "manifest": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/compact_profiles/manifest.json",
+      "sha256": "3a259277f2945d06f8202224e30826c11621d3c213cd7fafbcdc49187f859653"
+    },
+    "identity": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/compact_profiles/rtl_compact_identity.json",
+      "sha256": "41cfe30f8b4db7373f4363d4cbca4770c15e82e7f1697db9dd5a5dfe0d8f080e"
+    },
+    "original_seal": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/compact_profiles/evidence_hashes.json",
+      "sha256": "44784dd78ec4185e5a2e8f608b0ab6480ee9f4e94d62fd2466d55032de27cece"
+    },
+    "archive_manifest": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/compact_profiles/archive_manifest.json",
+      "sha256": "826e7486ea52638274fa2fd0630e0a3c6144a4c9a0f40df763770dea114c8e93"
+    },
+    "stage5_run": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/compact_profiles/p5/run.log",
+      "sha256": "abc0ccb4083752fc496338f53ee7041962ab60d3aeb37aeb2dda5b0d50fb667a"
+    },
+    "stage6_run": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/compact_profiles/p6/run.log",
+      "sha256": "559fc6ca51d6ab32c1d5d323092adb5bdce299151792c2f3d5c327d6fe6928e5"
+    },
+    "stage7_run": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/compact_profiles/p7/run.log",
+      "sha256": "98fa066ec30708535002ce34e0fe2aa2e49feb5e8ceb5190b7494377c4f4994f"
+    }
+  },
+  "entrypoint_sha256": "b035e6e3a924329d4e4e86e4e12568234fa8d147898820e42dc605b8b675f8ee",
+  "adapter_sha256": "08a44381ee2d60401579724022034d655c08780df6755018f3ee44f7872a8e4a",
+  "observed_profiles": {
+    "5": {
+      "modes": 3,
+      "outputs": 438,
+      "checks": 7680,
+      "physical_slices": 18,
+      "stages": 5,
+      "recon_latency": 15,
+      "latency_checks": 438
+    },
+    "6": {
+      "modes": 3,
+      "outputs": 438,
+      "checks": 7680,
+      "physical_slices": 18,
+      "stages": 6,
+      "recon_latency": 13,
+      "latency_checks": 438
+    },
+    "7": {
+      "modes": 3,
+      "outputs": 438,
+      "checks": 7680,
+      "physical_slices": 18,
+      "stages": 7,
+      "recon_latency": 11,
+      "latency_checks": 438
+    }
+  },
+  "design_budget_cycles": 16,
+  "busy_release_measured_in_this_run": false,
+  "independent_streaming_bench_repeated_in_this_run": false,
+  "figure_sha256": "f2624766246f5e5a2903512eb17c3b15bd416fa4c28b34fa1a384a74150ce7fe"
+}

@@ -1,0 +1,584 @@
+{
+  "archive_utc": "2026-09-29T21:37:38.438939+00:00",
+  "scope": "Successful completed RTL CI job for published row-cache candidate; do not infer whole workflow success",
+  "repository": "defineiocc02/20bit_SAR_ADC_Behaviour_Verification",
+  "workflow_run_id": 36633152469,
+  "job_id": 109627112125,
+  "job_conclusion": "success",
+  "pr_head_sha": "417f261f24fe917552ac71f6aadb6b3dbf779c5f",
+  "tested_merge_sha": "63e9887fa0faf23565c35b6bd1a4edfa9eb8edd7",
+  "git_tree_sha": "f0be3b81c49fdf17f3113331b7429a559d08aa7b",
+  "whole_tree_equal": true,
+  "workflow_observation": {
+    "observed_utc": "2026-09-29T21:37:38.438939+00:00",
+    "run_id": 36633152469,
+    "head_sha": "417f261f24fe917552ac71f6aadb6b3dbf779c5f",
+    "status_at_metadata_retrieval": "in_progress",
+    "conclusion_at_metadata_retrieval": null,
+    "scope": "This archive certifies the completed RTL job; subsequent workflow conclusion is separately archived.",
+    "html_url": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36633152469"
+  },
+  "artifact_id": 11062888129,
+  "artifact_zip_sha256": "d22e77578fe3492235b0f4a6e93f1f77efec4c3fec22f067db6bb310b2834c70",
+  "external_artifact_zip": "/tmp/sar_ci_417f_artifact/artifact.zip",
+  "rtl_content_sha256": "1e3fab94b7b29b77113fa2e18eae99b6ee1c180cd7df6004625c85358392eef4",
+  "rtl_file_count": 26,
+  "source_input_count": 88,
+  "tool_version": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+  "tested_step_command": "python tools/run_open_rtl.py",
+  "benches_passed": 22,
+  "strict_lint_profiles_passed": 3,
+  "benches": [
+    {
+      "top": "sar_trial_tb",
+      "result": "PASS",
+      "required_marker": "SAR_TRIAL_COMPLETE",
+      "observed_marker": "SAR_TRIAL_COMPLETE fine_codes=4096 coarse_codes=512 stalls_and_cancel=PASS",
+      "run_log": "open_rtl/sar_trial_tb.run.log",
+      "sha256": "26d36d67e86b6703e49252c6ec98d119d49452217f646aee3ce2689c2bd74d80"
+    },
+    {
+      "top": "calibration_recovery_tb",
+      "result": "PASS",
+      "required_marker": "CALIBRATION_RECOVERY_COMPLETE",
+      "observed_marker": "CALIBRATION_RECOVERY_COMPLETE samples=2048 max_calibrated_error=4 max_uncalibrated_error=504",
+      "run_log": "open_rtl/calibration_recovery_tb.run.log",
+      "sha256": "54b981cb4f210916fea3026878b34ede8e12f4b147dc7f11b4929e850c0eebe0"
+    },
+    {
+      "top": "calibration_fit_tb",
+      "result": "PASS",
+      "required_marker": "CALIBRATION_FIT_COMPLETE",
+      "observed_marker": "CALIBRATION_FIT_COMPLETE samples=128 fitted_external_weights=1278 cfg_commit=PASS",
+      "run_log": "open_rtl/calibration_fit_tb.run.log",
+      "sha256": "6b2c6fe2fea940a8861ef598e94809c7c7df3a62af788d4b1308d3673c243f2a"
+    },
+    {
+      "top": "structural_adc_tb",
+      "result": "PASS",
+      "required_marker": "STRUCTURAL_ADC_COMPLETE",
+      "observed_marker": "STRUCTURAL_ADC_COMPLETE modes=3 outputs=438 checks=7680 physical_slices=18 recon_stages=7 recon_latency=11 latency_checks=438",
+      "run_log": "open_rtl/structural_adc_tb.run.log",
+      "sha256": "5e659a733e2ddc9a10c133e702659c6c7ca66163974053b0bbad232e9c1fcdac"
+    },
+    {
+      "top": "structural_protocol_tb",
+      "result": "PASS",
+      "required_marker": "STRUCTURAL_PROTOCOL_COMPLETE",
+      "observed_marker": "STRUCTURAL_PROTOCOL_COMPLETE frames=120 launches=57 expected_drops=63 checks=1920 decoder_perturbations=2",
+      "run_log": "open_rtl/structural_protocol_tb.run.log",
+      "sha256": "7630ce9d3e9702d1d2015cd921062169a4b6dd2aecdd0c7d7bda34b615ed3c98"
+    },
+    {
+      "top": "recon_ppa_latency_tb",
+      "result": "PASS",
+      "required_marker": "RECON_PPA_PROFILE_PASS stages=7 samples=32",
+      "observed_marker": "RECON_PPA_PROFILE_PASS stages=7 samples=32 busy_release=10 latency=11 initiation_interval=16",
+      "run_log": "open_rtl/recon_ppa_latency_tb.run.log",
+      "sha256": "e11c863bc24d576545234085dcd03df9be8d6f9aa9a8e4c5ba6f01f230c1f31c"
+    },
+    {
+      "top": "divider_borrow_tb",
+      "result": "PASS",
+      "required_marker": "DIVIDER_BORROW_COMPLETE exhaustive_checks=67592",
+      "observed_marker": "DIVIDER_BORROW_COMPLETE exhaustive_checks=67592",
+      "run_log": "open_rtl/divider_borrow_tb.run.log",
+      "sha256": "35be2a3ccc357459b2dec5be5d3c422543c34b9458e1a143d058f1a25516006a"
+    },
+    {
+      "top": "tree_mapping_tb",
+      "result": "PASS",
+      "required_marker": "TREE_MAPPING_COMPLETE checks=12904",
+      "observed_marker": "TREE_MAPPING_COMPLETE checks=12904",
+      "run_log": "open_rtl/tree_mapping_tb.run.log",
+      "sha256": "c280533bff2230db02fcf8cb9dd753e9b8e6039976cb17f01d6b50a3b4169237"
+    },
+    {
+      "top": "cal_weight_reduce_ppa_tb",
+      "result": "PASS",
+      "required_marker": "CAL_WEIGHT_REDUCE_PPA_COMPLETE",
+      "observed_marker": "CAL_WEIGHT_REDUCE_PPA_COMPLETE",
+      "run_log": "open_rtl/cal_weight_reduce_ppa_tb.run.log",
+      "sha256": "0414e86a7c0dd60076678a008cb2737e431c84b4090f88409d2199ca3b466c10"
+    },
+    {
+      "top": "weight_row_cache_tb",
+      "result": "PASS",
+      "required_marker": "WEIGHT_ROW_CACHE_COMPLETE geometries=5 steps=16150",
+      "observed_marker": "WEIGHT_ROW_CACHE_COMPLETE geometries=5 steps=16150",
+      "run_log": "open_rtl/weight_row_cache_tb.run.log",
+      "sha256": "5f037085fc12b29f178af05d79d25ee62140f04669ee2fa5f1c0bab6c97756ed"
+    },
+    {
+      "top": "calibration_physical_tb",
+      "result": "PASS",
+      "required_marker": "CALIBRATION_PHYSICAL_COMPLETE",
+      "observed_marker": "CALIBRATION_PHYSICAL_COMPLETE samples=2048 physical_slices=18",
+      "run_log": "open_rtl/calibration_physical_tb.run.log",
+      "sha256": "589610a4c195871250ab87583a3fb57cc9030e1ee7c0c559b735bce8a9c66e88"
+    },
+    {
+      "top": "review_top_protocol_tb",
+      "result": "PASS",
+      "required_marker": "REVIEW_TOP_PROTOCOL_COMPLETE",
+      "observed_marker": "REVIEW_TOP_PROTOCOL_COMPLETE checks=1108 outputs=38",
+      "run_log": "open_rtl/review_top_protocol_tb.run.log",
+      "sha256": "6a9f3440b8050c81b1b6bc2e5adc58f42df9a2cb075ae11fe55bfc42882ee023"
+    },
+    {
+      "top": "review_leaf_tb",
+      "result": "PASS",
+      "required_marker": "REVIEW_LEAF_COMPLETE",
+      "observed_marker": "REVIEW_LEAF_COMPLETE checks=91142",
+      "run_log": "open_rtl/review_leaf_tb.run.log",
+      "sha256": "1d58c5b5761c2ed04bf26866e122024560f1df10ee507c0c23c0de1195cffa13"
+    },
+    {
+      "top": "review_recon_protocol_tb",
+      "result": "PASS",
+      "required_marker": "REVIEW_RECON_PROTOCOL_COMPLETE",
+      "observed_marker": "REVIEW_RECON_PROTOCOL_COMPLETE",
+      "run_log": "open_rtl/review_recon_protocol_tb.run.log",
+      "sha256": "bd61e46b62371076337f6dba4fbfc062dc28b8e20fad77d2fb9a3233a88e1d21"
+    },
+    {
+      "top": "review_dither_tb",
+      "result": "PASS",
+      "required_marker": "REVIEW_DITHER_COMPLETE",
+      "observed_marker": "REVIEW_DITHER_COMPLETE",
+      "run_log": "open_rtl/review_dither_tb.run.log",
+      "sha256": "dc58dbb90f1af41ce1581eaa6f502f49167d0f3845dd6b33edfe78f58ef18af2"
+    },
+    {
+      "top": "review_config_tb",
+      "result": "PASS",
+      "required_marker": "REVIEW_CONFIG_COMPLETE",
+      "observed_marker": "REVIEW_CONFIG_COMPLETE outputs=624",
+      "run_log": "open_rtl/review_config_tb.run.log",
+      "sha256": "ea7cd9d9c8ad0bddf39321eb6f3fe3156e7f91171d1ab440e5dbfa9955688b8e"
+    },
+    {
+      "top": "p2_tb",
+      "result": "PASS",
+      "required_marker": "P2 RESULT: PASS",
+      "observed_marker": "P2 RESULT: PASS",
+      "run_log": "open_rtl/p2_tb.run.log",
+      "sha256": "01fd536326072eef8b61c8cb46adc32b770ec65378bb2fc22b928eddd2f906d9"
+    },
+    {
+      "top": "p2_oracle_tb",
+      "result": "PASS",
+      "required_marker": "P2_ORACLE_COMPLETE codes=1048576 errors=0",
+      "observed_marker": "P2_ORACLE_COMPLETE codes=1048576 errors=0",
+      "run_log": "open_rtl/p2_oracle_tb.run.log",
+      "sha256": "fbc7ffc55d6747eee6d3df52e10d9124543629132f64e3594520da8f62d8ddf1"
+    },
+    {
+      "top": "p2_periph_tb",
+      "result": "PASS",
+      "required_marker": "p2_periph PASS",
+      "observed_marker": "p2_periph PASS",
+      "run_log": "open_rtl/p2_periph_tb.run.log",
+      "sha256": "5505f668d90444c666cce8be3449d170dbfcbfe622c8dd77ba3bd057ded43460"
+    },
+    {
+      "top": "p2_smoke_tb",
+      "result": "PASS",
+      "required_marker": "p2_smoke PASS",
+      "observed_marker": "p2_smoke PASS",
+      "run_log": "open_rtl/p2_smoke_tb.run.log",
+      "sha256": "203805213a4c2dc38e2457c0ae951758e5e0447fa0af43bbc906d1ce1cefcc18"
+    },
+    {
+      "top": "p1_tb",
+      "result": "PASS",
+      "required_marker": "P1 RESULT: PASS",
+      "observed_marker": "P1 RESULT: PASS",
+      "run_log": "open_rtl/p1_tb.run.log",
+      "sha256": "6aec934f72ca4efdba1327fd3c617e49422a5460a7c9f8d3378d5284d35458ed"
+    },
+    {
+      "top": "p3_top_tb",
+      "result": "PASS",
+      "required_marker": "P3 TOP RESULT: PASS",
+      "observed_marker": "P3 TOP RESULT: PASS",
+      "run_log": "open_rtl/p3_top_tb.run.log",
+      "sha256": "f3efe165961fed0eb29f857224890e01bad558d50ce3d88a7ae601ee26dcf5d3"
+    }
+  ],
+  "lint": [
+    {
+      "profile": "sar20_digital_core.structural",
+      "result": "PASS",
+      "log": "open_rtl/sar20_digital_core.structural.lint.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "basis": "Complete successful run_open_rtl step checks and rejects nonzero lint exit. Empty log alone is not proof."
+    },
+    {
+      "profile": "sar20_digital_core.compatibility",
+      "result": "PASS",
+      "log": "open_rtl/sar20_digital_core.compatibility.lint.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "basis": "Complete successful run_open_rtl step checks and rejects nonzero lint exit. Empty log alone is not proof."
+    },
+    {
+      "profile": "sadc_enc.standalone",
+      "result": "PASS",
+      "log": "open_rtl/sadc_enc.standalone.lint.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "basis": "Complete successful run_open_rtl step checks and rejects nonzero lint exit. Empty log alone is not proof."
+    }
+  ],
+  "copied_artifact_members": [
+    {
+      "path": "open_rtl/sar_trial_tb.run.log",
+      "artifact_member": "open_rtl/sar_trial_tb.run.log",
+      "bytes": 120,
+      "sha256": "26d36d67e86b6703e49252c6ec98d119d49452217f646aee3ce2689c2bd74d80"
+    },
+    {
+      "path": "open_rtl/calibration_recovery_tb.run.log",
+      "artifact_member": "open_rtl/calibration_recovery_tb.run.log",
+      "bytes": 149,
+      "sha256": "54b981cb4f210916fea3026878b34ede8e12f4b147dc7f11b4929e850c0eebe0"
+    },
+    {
+      "path": "open_rtl/calibration_fit_tb.run.log",
+      "artifact_member": "open_rtl/calibration_fit_tb.run.log",
+      "bytes": 11054,
+      "sha256": "6b2c6fe2fea940a8861ef598e94809c7c7df3a62af788d4b1308d3673c243f2a"
+    },
+    {
+      "path": "open_rtl/structural_adc_tb.run.log",
+      "artifact_member": "open_rtl/structural_adc_tb.run.log",
+      "bytes": 177,
+      "sha256": "5e659a733e2ddc9a10c133e702659c6c7ca66163974053b0bbad232e9c1fcdac"
+    },
+    {
+      "path": "open_rtl/structural_protocol_tb.run.log",
+      "artifact_member": "open_rtl/structural_protocol_tb.run.log",
+      "bytes": 162,
+      "sha256": "7630ce9d3e9702d1d2015cd921062169a4b6dd2aecdd0c7d7bda34b615ed3c98"
+    },
+    {
+      "path": "open_rtl/recon_ppa_latency_tb.run.log",
+      "artifact_member": "open_rtl/recon_ppa_latency_tb.run.log",
+      "bytes": 332,
+      "sha256": "e11c863bc24d576545234085dcd03df9be8d6f9aa9a8e4c5ba6f01f230c1f31c"
+    },
+    {
+      "path": "open_rtl/divider_borrow_tb.run.log",
+      "artifact_member": "open_rtl/divider_borrow_tb.run.log",
+      "bytes": 591,
+      "sha256": "35be2a3ccc357459b2dec5be5d3c422543c34b9458e1a143d058f1a25516006a"
+    },
+    {
+      "path": "open_rtl/tree_mapping_tb.run.log",
+      "artifact_member": "open_rtl/tree_mapping_tb.run.log",
+      "bytes": 84,
+      "sha256": "c280533bff2230db02fcf8cb9dd753e9b8e6039976cb17f01d6b50a3b4169237"
+    },
+    {
+      "path": "open_rtl/cal_weight_reduce_ppa_tb.run.log",
+      "artifact_member": "open_rtl/cal_weight_reduce_ppa_tb.run.log",
+      "bytes": 3795,
+      "sha256": "0414e86a7c0dd60076678a008cb2737e431c84b4090f88409d2199ca3b466c10"
+    },
+    {
+      "path": "open_rtl/weight_row_cache_tb.run.log",
+      "artifact_member": "open_rtl/weight_row_cache_tb.run.log",
+      "bytes": 1291,
+      "sha256": "5f037085fc12b29f178af05d79d25ee62140f04669ee2fa5f1c0bab6c97756ed"
+    },
+    {
+      "path": "open_rtl/calibration_physical_tb.run.log",
+      "artifact_member": "open_rtl/calibration_physical_tb.run.log",
+      "bytes": 118,
+      "sha256": "589610a4c195871250ab87583a3fb57cc9030e1ee7c0c559b735bce8a9c66e88"
+    },
+    {
+      "path": "open_rtl/review_top_protocol_tb.run.log",
+      "artifact_member": "open_rtl/review_top_protocol_tb.run.log",
+      "bytes": 108,
+      "sha256": "6a9f3440b8050c81b1b6bc2e5adc58f42df9a2cb075ae11fe55bfc42882ee023"
+    },
+    {
+      "path": "open_rtl/review_leaf_tb.run.log",
+      "artifact_member": "open_rtl/review_leaf_tb.run.log",
+      "bytes": 81,
+      "sha256": "1d58c5b5761c2ed04bf26866e122024560f1df10ee507c0c23c0de1195cffa13"
+    },
+    {
+      "path": "open_rtl/review_recon_protocol_tb.run.log",
+      "artifact_member": "open_rtl/review_recon_protocol_tb.run.log",
+      "bytes": 88,
+      "sha256": "bd61e46b62371076337f6dba4fbfc062dc28b8e20fad77d2fb9a3233a88e1d21"
+    },
+    {
+      "path": "open_rtl/review_dither_tb.run.log",
+      "artifact_member": "open_rtl/review_dither_tb.run.log",
+      "bytes": 598,
+      "sha256": "dc58dbb90f1af41ce1581eaa6f502f49167d0f3845dd6b33edfe78f58ef18af2"
+    },
+    {
+      "path": "open_rtl/review_config_tb.run.log",
+      "artifact_member": "open_rtl/review_config_tb.run.log",
+      "bytes": 84,
+      "sha256": "ea7cd9d9c8ad0bddf39321eb6f3fe3156e7f91171d1ab440e5dbfa9955688b8e"
+    },
+    {
+      "path": "open_rtl/p2_tb.run.log",
+      "artifact_member": "open_rtl/p2_tb.run.log",
+      "bytes": 1324,
+      "sha256": "01fd536326072eef8b61c8cb46adc32b770ec65378bb2fc22b928eddd2f906d9"
+    },
+    {
+      "path": "open_rtl/p2_oracle_tb.run.log",
+      "artifact_member": "open_rtl/p2_oracle_tb.run.log",
+      "bytes": 216,
+      "sha256": "fbc7ffc55d6747eee6d3df52e10d9124543629132f64e3594520da8f62d8ddf1"
+    },
+    {
+      "path": "open_rtl/p2_periph_tb.run.log",
+      "artifact_member": "open_rtl/p2_periph_tb.run.log",
+      "bytes": 1173,
+      "sha256": "5505f668d90444c666cce8be3449d170dbfcbfe622c8dd77ba3bd057ded43460"
+    },
+    {
+      "path": "open_rtl/p2_smoke_tb.run.log",
+      "artifact_member": "open_rtl/p2_smoke_tb.run.log",
+      "bytes": 419,
+      "sha256": "203805213a4c2dc38e2457c0ae951758e5e0447fa0af43bbc906d1ce1cefcc18"
+    },
+    {
+      "path": "open_rtl/p1_tb.run.log",
+      "artifact_member": "open_rtl/p1_tb.run.log",
+      "bytes": 966,
+      "sha256": "6aec934f72ca4efdba1327fd3c617e49422a5460a7c9f8d3378d5284d35458ed"
+    },
+    {
+      "path": "open_rtl/p3_top_tb.run.log",
+      "artifact_member": "open_rtl/p3_top_tb.run.log",
+      "bytes": 2423,
+      "sha256": "f3efe165961fed0eb29f857224890e01bad558d50ce3d88a7ae601ee26dcf5d3"
+    },
+    {
+      "path": "open_rtl/sar20_digital_core.structural.lint.log",
+      "artifact_member": "open_rtl/sar20_digital_core.structural.lint.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "open_rtl/sar20_digital_core.compatibility.lint.log",
+      "artifact_member": "open_rtl/sar20_digital_core.compatibility.lint.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "open_rtl/sadc_enc.standalone.lint.log",
+      "artifact_member": "open_rtl/sadc_enc.standalone.lint.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "open_rtl/version.log",
+      "artifact_member": "open_rtl/version.log",
+      "bytes": 48,
+      "sha256": "26daf9ad1ba36ee1c20cab9a869d0a1fbb8117230c80c78ec2d8cf597f64c4a5"
+    },
+    {
+      "path": "arithmetic-audit/manifest.json",
+      "artifact_member": "arithmetic-audit/manifest.json",
+      "bytes": 3124,
+      "sha256": "7d14f6cbd4f14f076458188167bf86ec910b9e64617e36219c88c40edcf43ec0"
+    },
+    {
+      "path": "arithmetic-audit/compile.log",
+      "artifact_member": "arithmetic-audit/compile.log",
+      "bytes": 5223,
+      "sha256": "2214c4bdcf635f9ad95974ffef42c2f12a0b0e638fbb77530975d90fdabe7786"
+    },
+    {
+      "path": "arithmetic-audit/run.log",
+      "artifact_member": "arithmetic-audit/run.log",
+      "bytes": 335,
+      "sha256": "4466276216eb6f531056d7f5a05927153e339d1d2fe7649336e6ddc3285004c1"
+    },
+    {
+      "path": "arithmetic-audit/verilator-version.log",
+      "artifact_member": "arithmetic-audit/verilator-version.log",
+      "bytes": 926,
+      "sha256": "1078c9d8f0ca15b01cc3b21b1df6e7b9b7661b73e1275ef6cbbb3e26158514c9"
+    }
+  ],
+  "selected_subcoverage": {
+    "reducer_geometries": 7,
+    "reducer_checks": 1430848,
+    "reducer_allocation_cases": 43758,
+    "reducer_cache_geometries": 7,
+    "reconstruction_profiles": [
+      {
+        "stages": 5,
+        "samples": 32,
+        "busy_release": 14,
+        "latency": 15,
+        "initiation_interval": 16
+      },
+      {
+        "stages": 6,
+        "samples": 32,
+        "busy_release": 12,
+        "latency": 13,
+        "initiation_interval": 16
+      },
+      {
+        "stages": 7,
+        "samples": 32,
+        "busy_release": 10,
+        "latency": 11,
+        "initiation_interval": 16
+      }
+    ],
+    "weight_row_cache": {
+      "geometries": 5,
+      "steps": 16150,
+      "cases": [
+        {
+          "slices": 1,
+          "units": 1,
+          "steps": 1018,
+          "accepted": 6,
+          "rejected": 510,
+          "clears": 30
+        },
+        {
+          "slices": 32,
+          "units": 1,
+          "steps": 1080,
+          "accepted": 69,
+          "rejected": 493,
+          "clears": 30
+        },
+        {
+          "slices": 1,
+          "units": 128,
+          "steps": 1272,
+          "accepted": 269,
+          "rejected": 528,
+          "clears": 30
+        },
+        {
+          "slices": 18,
+          "units": 71,
+          "steps": 3572,
+          "accepted": 2600,
+          "rejected": 475,
+          "clears": 30
+        },
+        {
+          "slices": 32,
+          "units": 128,
+          "steps": 9208,
+          "accepted": 8318,
+          "rejected": 395,
+          "clears": 30
+        }
+      ],
+      "run_log": "open_rtl/weight_row_cache_tb.run.log"
+    }
+  },
+  "independent_arithmetic_audit": {
+    "status": "PASS",
+    "counts": {
+      "mac": 40010,
+      "mac_nonoverflow": 20859,
+      "adc": 40000,
+      "div": 10048,
+      "flag_sequences": 8
+    },
+    "seed": 20260930,
+    "manifest": "arithmetic-audit/manifest.json",
+    "run_log": "arithmetic-audit/run.log",
+    "source_hashes_verified_against_tested_tree": true,
+    "scope": "Block arithmetic and directed output protocol; not full design, analog, STA, or formal proof."
+  },
+  "physical_flow_checks": {
+    "status": "PASS",
+    "scope": "MOCK_UNIT_ONLY_NO_EDA",
+    "passed": 272,
+    "elapsed_seconds": 10.53,
+    "log": "physical_flow_checks.log",
+    "inputs": "physical_flow_inputs_sha256.json",
+    "source_input_count": 31,
+    "source_job_log_lines_inclusive": [
+      270,
+      327
+    ]
+  },
+  "current_worktree_comparison": {
+    "observed_utc": "2026-09-29T21:37:38.438939+00:00",
+    "all_input_bytes_match": true,
+    "mismatches": [],
+    "boundary": "A point-in-time comparison only; later changes are not covered."
+  },
+  "raw_job_log": {
+    "external_source": "/tmp/sar_ci_417f_artifact/job.log",
+    "source_sha256": "96d73685d9a56155b5da8817a737d82642fb7f2bf6a82183e5d0ff363bde19aa",
+    "bytes": 69967
+  },
+  "job_excerpt": {
+    "source_line_numbers": [
+      123,
+      126,
+      269,
+      327,
+      328,
+      533,
+      657,
+      674
+    ],
+    "method": "Selected complete original byte lines; no ANSI, newline or timestamp normalization"
+  },
+  "api_metadata_serialization": {
+    "job_metadata.json": "Selected job from raw jobs.json, formatted JSON with final LF",
+    "artifact_metadata.json": "Selected artifact from raw artifacts.json, formatted JSON with final LF",
+    "tested_merge_commit.json": "Exact original gh API bytes (no newline transformation)",
+    "head_commit.json": "Exact original gh API bytes (no newline transformation)"
+  },
+  "api_raw_sources": {
+    "artifacts.json": {
+      "external_path": "/tmp/sar_ci_417f_artifact/artifacts.json",
+      "sha256": "c2020dfc21a20c0761753bfe685e9af6c951895b8a3b63660a9510d77dcdadde"
+    },
+    "head_tree.json": {
+      "external_path": "/tmp/sar_ci_417f_artifact/head_tree.json",
+      "sha256": "7d6147d443037cdd5a620ac43be2abfc9b7f1254bb804ddcbeafc367f286637c"
+    },
+    "head_commit.json": {
+      "external_path": "/tmp/sar_ci_417f_artifact/head_commit.json",
+      "sha256": "5b5e309b840ef7ea50fd61201a278b7af05aca022db3f1c1b994645eaf70c6cb"
+    },
+    "tested_merge_commit.json": {
+      "external_path": "/tmp/sar_ci_417f_artifact/tested_merge_commit.json",
+      "sha256": "24399d3dd3b85db28d091cc1e42ee0d40b9b743ef3f3e4403f28a04006f0a400"
+    },
+    "workflow_at_rtl.json": {
+      "external_path": "/tmp/sar_ci_417f_artifact/workflow_at_rtl.json",
+      "sha256": "b217015a37e247ff49e98eb201e0b8f3863b165d6796984c672edeb2637c7b80"
+    },
+    "jobs_at_rtl.json": {
+      "external_path": "/tmp/sar_ci_417f_artifact/jobs_at_rtl.json",
+      "sha256": "c655992e0bfb8662813f06c45ead1bcd1934868388fc16167b8e2129de225003"
+    }
+  },
+  "omitted": [
+    "22 per-bench build logs",
+    "Full CI job log",
+    "Artifact ZIP",
+    "Generated vectors and compiler objects/binaries"
+  ],
+  "no_eda_or_simulation_rerun": true
+}

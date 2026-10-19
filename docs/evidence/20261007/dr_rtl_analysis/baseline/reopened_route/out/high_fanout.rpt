@@ -1,0 +1,46 @@
+Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2018.3 (win64) Build 2405991 Thu Dec  6 23:38:27 MST 2018
+| Date         : Wed Oct  7 15:00:02 2026
+| Host         : REEDZHAO running 64-bit major release  (build 9200)
+| Command      : report_high_fanout_nets -max_nets 25 -file C:/Users/Administrator/adc_rtl_vivado/analysis.20261007.753387dfc10a4c9ca8f2f917fce3d5ec/out/high_fanout.rpt
+| Design       : sar20_digital_core
+| Device       : xc7vx690t
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+High Fan-out Nets Information
+
+1. Summary
+----------
+
++---------------------------------------+--------+-------------+
+| Net Name                              | Fanout | Driver Type |
++---------------------------------------+--------+-------------+
+| u_wstore/SR[0]                        |  61236 | LUT1        |
+| u_wstore/u_idx[2]                     |   6776 | LUT6        |
+| u_calib/phase0                        |   1864 | LUT2        |
+| u_structure/u_phase/phase_reg[3]_2[0] |   1369 | LUT5        |
+| u_calib/cfg_ready_reg_4[0]            |   1368 | LUT2        |
+| u_wstore/cfg_clear_valid_0            |   1323 | LUT2        |
+| cfg_wdata[46]                         |   1322 | PORT        |
+| cfg_wdata[0]                          |   1321 | PORT        |
+| cfg_wdata[12]                         |   1321 | PORT        |
+| cfg_wdata[13]                         |   1321 | PORT        |
+| cfg_wdata[14]                         |   1321 | PORT        |
+| cfg_wdata[15]                         |   1321 | PORT        |
+| cfg_wdata[16]                         |   1321 | PORT        |
+| cfg_wdata[17]                         |   1321 | PORT        |
+| cfg_wdata[18]                         |   1321 | PORT        |
+| cfg_wdata[19]                         |   1321 | PORT        |
+| cfg_wdata[1]                          |   1321 | PORT        |
+| cfg_wdata[24]                         |   1321 | PORT        |
+| cfg_wdata[25]                         |   1321 | PORT        |
+| cfg_wdata[26]                         |   1321 | PORT        |
+| cfg_wdata[27]                         |   1321 | PORT        |
+| cfg_wdata[2]                          |   1321 | PORT        |
+| cfg_wdata[3]                          |   1321 | PORT        |
+| cfg_wdata[4]                          |   1321 | PORT        |
+| cfg_wdata[5]                          |   1321 | PORT        |
++---------------------------------------+--------+-------------+
+
+

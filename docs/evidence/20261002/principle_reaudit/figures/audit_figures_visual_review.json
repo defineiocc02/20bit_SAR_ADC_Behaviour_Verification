@@ -1,0 +1,44 @@
+{
+  "status": "PASS",
+  "method": "Direct PNG inspection plus PDF single-page/text-bounds/glyph checks",
+  "corrections": "Expanded FF inset left margin to preserve labels; separated shadow Stage-A annotation from timing ticks",
+  "figures": [
+    {
+      "pdf": "01_historical_ff_allocation.pdf",
+      "pdf_pages": 1,
+      "pdf_text_spans": 34,
+      "text_bounds_inside_page": true,
+      "replacement_glyphs": 0,
+      "png_size": [
+        2596,
+        1496
+      ],
+      "visual_inspected": true
+    },
+    {
+      "pdf": "02_historical_critical_path_composition.pdf",
+      "pdf_pages": 1,
+      "pdf_text_spans": 27,
+      "text_bounds_inside_page": true,
+      "replacement_glyphs": 0,
+      "png_size": [
+        2772,
+        1540
+      ],
+      "visual_inspected": true
+    },
+    {
+      "pdf": "03_control_capture_age_evidence.pdf",
+      "pdf_pages": 1,
+      "pdf_text_spans": 26,
+      "text_bounds_inside_page": true,
+      "replacement_glyphs": 0,
+      "png_size": [
+        2640,
+        1606
+      ],
+      "visual_inspected": true
+    }
+  ],
+  "scope": "Verified labels, source arithmetic and plotted CSV ages; no new EDA/analog/STA validation"
+}

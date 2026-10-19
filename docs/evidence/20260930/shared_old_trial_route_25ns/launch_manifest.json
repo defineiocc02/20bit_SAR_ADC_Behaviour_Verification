@@ -1,0 +1,23 @@
+{
+  "status": "PREPARED",
+  "input_synthesis_manifest": "repair_shared_old_functional/synth/artifacts/vivado/20260930T064602.336609Z_p5/manifest.json",
+  "input_dcp_sha256": "63a6faacdc44e54da02514a70ff658ac31756853496114513018ac5714cc856e",
+  "period_ns": 25.0,
+  "clock_site": "BUFGCTRL_X0Y0",
+  "script_sha256": "e0579ad0678c7f3013519bb48f13bc3d4d25c1cb5f89b7c337fa64bcf15b915a",
+  "input_dcp_binding": "remote Get-FileHash plus route Tcl pre/post SHA; local copy pending",
+  "input_dcp_bytes": 50563819,
+  "remote_synth_status": {
+    "STATUS": "SYNTH_COMPLETE",
+    "TIMING_MET": "1",
+    "WNS_NS": "10.640",
+    "PART": "xc7vx690tffg1761-2",
+    "PERIOD_NS": "25.0",
+    "P_RECON_STAGES": "5",
+    "VIVADO_VERSION": "2018.3",
+    "SCOPE": "FPGA_POST_SYNTH_OOC_VECTORLESS_NOT_ASIC"
+  },
+  "synth_log_snapshot_sha256": "4cebb068fef0c787d65244be83328afe1ac8e232b65e05cee8b60e08d4316678",
+  "input_synthesis_manifest_sha256": "94d148c6f113c896b9d28c2fa60a58683a845136994fc429a3961c0859ab0c01",
+  "remote_directory": "C:/Users/Administrator/adc_rtl_vivado/run.86ebbd7c9da34a33b49af64888b4797e"
+}

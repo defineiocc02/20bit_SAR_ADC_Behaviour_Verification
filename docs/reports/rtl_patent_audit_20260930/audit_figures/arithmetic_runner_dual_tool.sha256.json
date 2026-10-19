@@ -1,0 +1,71 @@
+{
+  "scope": "LOCAL_TWO_TOOL_ARITHMETIC_LOG_EVIDENCE_NOT_CI_OR_EDA",
+  "script_sha256": "5bddb52d361a76e10fb5900de236cbae12a85194a32015f7cdfd15d980dc3b53",
+  "inputs_sha256": {
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/README.md": "63ae59f6a188facfaf627dd3648290b3fe69aebe15f0c4100e7be8858504d25b",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/after_5020.manifest.json": "4aa57d495405809e97bb493370a92629df645c54b531c82d06f91c2216ad7fdd",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/after_5020.run.log": "85f4787a1f96928eff11024100a294c989bd2781dc435c8d2a33d77f7232bad4",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/after_549.manifest.json": "f4e39c6b7fddf5bc69965f7f066c02617adc1aa0a38379d7845e38ba0fa3d734",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/after_549.run.log": "37f2892806f7f47126d4de532872540f627ae29b6725ce2967b8387f9bfe0f81",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/arithmetic_audit.before.sv": "c1582600cde5d6f267c723bd93f5726cb059bc7ca5abd207c3d34488bdef1ce8",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/audit_rtl_arithmetic.before.py.txt": "299013236b42e9facf4eaede46f627a676e65156c8094d56a470a098e1edd930",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/before_5020.run.log": "d58962cdf6ddb3b959f3d1410f242eaa994351c729d82a0af6274de29eecd9de",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/before_observed_5020.run.log": "b6cd8d856a27f902e04eeb19b4b8321ffc2bd6e6e877fd4b3d5a6c0ea79b7450",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/before_observed_tb.sv": "2216776acdeac8cb96c4cce1f0a869f87b40cdeb55ccc2c59e0106ae78aff210",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/ci_failure_excerpt.log": "16392eaa4d308b4ac767e0f7e3ffd32ece0bad5504a4385b88d4e413fe27fb7f",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/generated_settle_excerpt.txt": "e87db987ebd9ae2e0ab3ef61cffa7a36ece7dd34d36bd838acf2619b863b5cc9",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/manifest.json": "3f4a31beacdd5040d5fe1be1fb62bde118ab3e25773b2f6df406275277f085df",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/runner_unit_tests.log": "d3a6ec31c848e3f4c49f79debdea7688c8feff31ab30d518d552e6c898d9f660",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/stale_adc.patch": "b3c4b71dcfd82f17a67c3c61a8be79dc16dd5fc862160c54fcbb4c9b07a0c8dc",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/stale_adc_5020.run.log": "8bd5987e0d2808d4213ddbb304c944ca64cdf44e8cc5af2d9d2c3313c078aace",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/stale_mac.patch": "24ebb37e76c70424ef68acc069afcb1edad8e9cfbfbf68ce8b61a35a8fe57ce7",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/arithmetic_runner_ci/stale_mac_5020.run.log": "c100dc5cbf2e84cf0d0c48fb73a47d870b1f2786540a0582b1cea5792aa82f1f"
+  },
+  "archive_hash_index_sha256": "b658149c54c31dac09cf052d2a66151b689254989b89246682a2e0ef1ae6dd7a",
+  "images_sha256": {
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_patent_rtl_report_20260928/figures/arithmetic_runner_dual_tool.png": "ccc02be9506d4f042edaf3a2032cb3e289b37996904ef361078788a5617d4aed",
+    "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_patent_rtl_report_20260928/figures/arithmetic_runner_dual_tool.pdf": "a45e4341a403c52f128ffa48a9d869e29bc27a797c363fa450875e09a8361750"
+  },
+  "plotted_data": {
+    "versions": [
+      "Verilator 5.020",
+      "Verilator 5.49 dev"
+    ],
+    "positive_counts": [
+      [
+        40010,
+        40000,
+        10048,
+        8
+      ],
+      [
+        40010,
+        40000,
+        10048,
+        8
+      ]
+    ],
+    "mac_nonoverflow_subset": 20859,
+    "mac_mutant_row_actual_expected": [
+      3,
+      1,
+      0
+    ],
+    "adc_mutant_row_overflow_actual_expected": [
+      2,
+      0,
+      1,
+      -1
+    ],
+    "unit_tests": 8
+  },
+  "matched_two_tool_source_hashes": {
+    "rtl/core/cal_residue_mac.sv": "082a93293cda83f79ff0ac7ef72e484043f8bbceb914361f270059b4bb764f71",
+    "rtl/core/adc2_dec.sv": "268d279bdc1c2cdd7161072733c5046e701524c7e217b52ff0c7ca08951154f5",
+    "rtl/core/div_floor.sv": "cc3b0bd9c5e6c8491af10d0696f82e59373426c538c3212c210093dbc84c515c",
+    "rtl/core/cal_output_stage.sv": "30cb3de766b0c2f316bd65f519304e95a35897b55568564e56c999c8bac0c0c2",
+    "sim/tb/arithmetic_audit_tb.sv": "e39fffd568a74f4896e2a71b71b5f10318a28329504789f5a0bdffb963e0c95b",
+    "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+    "tools/audit_rtl_arithmetic.py": "5ff125d5d20bfbc93975aee04eb19d7b3080341f80cab0560416c85a8024d803"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "scope": "LOCAL_ZERO_DELAY_FUNCTIONAL",
+  "rtl_content_sha256": "89b9f8153fea49d82faba8464e45bb83c914b11ebf708fb623a9fe3a660b5d26",
+  "profiles": [
+    5,
+    6
+  ],
+  "verilator": "5.020",
+  "modes_each": 3,
+  "outputs_each": 438,
+  "checks_each": 7680
+}

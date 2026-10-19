@@ -1,0 +1,59 @@
+from pathlib import Path
+import zipfile,collections,re,json,hashlib
+root=Path('/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_vivado_20260930')
+p=root/'repair_baseline/synth/artifacts/vivado/20260929T190955.260429Z_p7_recovered/out/post_synth.dcp'
+modules=collections.defaultdict(lambda:{'primitive_counts':collections.Counter(),'lut_source_locations':collections.Counter(),'lut_name_prefixes':collections.Counter(),'lut_examples':[],'ports':[],'lut_groups':{},'ff_source_locations':collections.Counter(),'source_witnesses':{}})
+files={};cell='';pending=None
+
+def finish():
+ global pending
+ if pending:
+  row=modules[cell];ref,name,line,src,pair=pending
+  row['primitive_counts'][ref]+=1
+  location='UNKNOWN' if src is None else f'{files.get(src%4096,"FILE"+str(src%4096))}:{src//4096}'
+  if ref.startswith('FD'):row['ff_source_locations'][location]+=1
+  if re.fullmatch(r'LUT[1-6]',ref):
+   location='UNKNOWN' if src is None else f'{files.get(src%4096,"FILE"+str(src%4096))}:{src//4096}'
+   row['lut_source_locations'][location]+=1
+   row['source_witnesses'].setdefault(location,{'instance':name,'primitive':ref,'edif_line':line,'XLNX_LINE_FILE':src})
+   group=('pair:'+pair) if pair else ('cell:'+name)
+   row['lut_groups'].setdefault(group,set()).add(location)
+   row['lut_name_prefixes'][re.split(r'\[|_i_[0-9]|_INST_[0-9]|_reg',name)[0]]+=1
+   if len(row['lut_examples'])<8:row['lut_examples'].append({'name':name,'edif_line':line,'source':location,'primitive':ref})
+  pending=None
+with zipfile.ZipFile(p) as z:
+ with z.open('sar20_digital_core.edf') as f:
+  for n,raw in enumerate(f,1):
+   s=raw.decode('utf8').strip()
+   if s.startswith('(metax FILE'):
+    mat=re.search(r'FILE(\d+) \(string "([^"]+)"',s)
+    if mat:files[int(mat[1])]=mat[2].split('/rtl/')[-1]
+   if s.startswith('(cell '):
+    finish();cell=s.split()[1]
+   elif s.startswith('(instance '):
+    finish();mat=re.search(r'\(cellref (\S+) \(libraryref hdi_primitives\)',s)
+    if mat:
+     ren=re.match(r'\(instance \(rename \S+ "([^"]+)"\)',s)
+     name=ren[1] if ren else s.split()[1]
+     pending=[mat[1],name,n,None,None]
+   elif s.startswith('(net '):finish()
+   elif pending and ('property SOFT_HLUTNM (string ' in s or 'property HLUTNM (string ' in s):
+    pending[4]=re.search(r'HLUTNM \(string "([^"]+)"',s)[1]
+   elif pending and 'property XLNX_LINE_FILE (integer ' in s:
+    pending[3]=int(re.search(r'XLNX_LINE_FILE \(integer (\d+)\)',s)[1])
+   elif cell in ['cal_sample_context','weight_store','slice_pool_ctrl'] and s.startswith('(port ') and len(modules[cell]['ports'])<8:
+    modules[cell]['ports'].append({'edif_line':n,'text':s})
+finish()
+r={'dcp':str(p),'dcp_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'edif_member':'sar20_digital_core.edf','source_decode':'Vivado XLNX_LINE_FILE integer >>12 gives line; low12 bits indexes EDIF metax FILE table; corroborated against actual RTL lines','files':files,'modules':{}}
+for cell,row in modules.items():
+ if not row['primitive_counts']:continue
+ row['soft_group_count']=len(row['lut_groups'])
+ groups=collections.Counter('|'.join(sorted(x)) for x in row.pop('lut_groups').values())
+ row['soft_group_sources']=dict(groups.most_common())
+ for k in ['primitive_counts','lut_source_locations','lut_name_prefixes','ff_source_locations']:row[k]=dict(row[k].most_common())
+ r['modules'][cell]=row
+out=root/'baseline_structure_audit.json';out.write_text(json.dumps(r,indent=2)+'\n')
+print(out)
+for k in ['cal_sample_context','weight_store','slice_pool_ctrl','cal_weight_reduce','sar20_digital_core']:
+ v=r['modules'][k];print(k,'LUT',sum(n for ref,n in v['primitive_counts'].items() if ref.startswith('LUT')),'FF',sum(n for ref,n in v['primitive_counts'].items() if ref.startswith('FD')))
+ print('soft_groups',v['soft_group_count']);print('sources',list(v['lut_source_locations'].items())[:10]);print('names',list(v['lut_name_prefixes'].items())[:7])

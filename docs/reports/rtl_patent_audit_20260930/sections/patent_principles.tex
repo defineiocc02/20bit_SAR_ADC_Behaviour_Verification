@@ -1,0 +1,350 @@
+% Included chapter only. Uses packages/macros already loaded by report.tex.
+% Source pages were checked against the user-supplied PDF page images.
+\chapter{从专利电路原理到可执行数字契约}
+\label{chap:patent-principles}
+
+本章把六项专利放回同一条转换链中解释：输入电荷如何进入采样阵列，粗量化结果如何成为残差 DAC 的控制字，已知扰动如何在模拟路径和数字路径中相消，物理单元打乱后如何找到正确权重，以及参考电压如何在粗转换与高精度残差阶段之间交接。目的不是把专利里的每个实施例同时拼进一个顶层，而是给出能够逐项核对的结构条件、公式前提和验收对象。对原文没有披露的电容值、开关尺寸、精确相位长度和后级实现，以下均不赋予臆测的芯片参数。
+
+本章的页码统一指用户提供 PDF 的物理页序，从封面起计数；“栏”指美国专利正文的印刷栏号。大部分专利 PDF 是扫描页，已对照图像核对关键权利要求，文字提取仅用作检索。论文 [00] 的第 1 页给出架构说明，第 2 页给出图 9.8.1--9.8.6；演示稿 [00\_1] 的第 9--18 页展开量化器与 RDAC 的分离，第 19--22 页展开采样边沿，第 23--27 页展开参考，第 29--31 页展开 DEM。这些页能支持架构关系，但不能补全没有公开的网表。
+
+\begin{table}[htbp]\centering\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{28mm}>{\raggedright\arraybackslash}p{29mm}>{\raggedright\arraybackslash}X}
+\toprule 原始资料&可复核页定位&本章取用的技术限定\\\midrule
+{[09]} US10516408B2&PDF 32--33，栏 26--28&claim 1 的采集时间常数与逐支路残差；claim 14 的并行 slice 降噪条件。\\
+{[10]} US10505561B2&PDF 35--36，栏 24--26&claim 1 的非共用扰动注入与控制码修改；claim 5--12 的第二扰动、相关性和数字去除。\\
+{[11]} US10511316B2&PDF 46--47，栏 29--32&claim 1 的共享/附加数据部分；claim 8 的跨分段控制；claim 15 的动态池选择；claim 20 的二维寻址。\\
+{[12]} US10707889B1&PDF 12--13，栏 9--12&claim 1、12、23 的跨 ADC 最近转换信息更新；部分码、偏置和加权历史为从属限定。\\
+{[13]} US10541702B1&PDF 16--17，栏 9--12&claim 1 的第二输入节点绕过 RC；claim 6 的寄生充电；boost 与采样电容预充另行区分。\\
+{[14]} US10826519B1&PDF 23--24，栏 12--14&claim 1 的比较充电与外参考直连；claim 12 的放大器/储能电容替代方案。PDF 26 为更正证书。\\
+\bottomrule\end{tabularx}
+\caption{原文定位索引。这里只列本工程需要解释的技术限定，不作专利法律范围或侵权结论。}
+\end{table}
+
+\section{[09] 匹配采集时间常数与并行残差生成}
+\subsection{需要分离的是量化决策负载与高精度采样负载}
+高精度采样需要足够大的有效电容来限制热噪声，而快速逐次逼近又希望每次试探切换的负载尽量小。这是论文采用独立量化器和残差 DAC 的出发点。若把大采样阵列同时作为 SAR 每一位的试探阵列，每次试探都向参考端抽取与输入和历史状态相关的电荷，开关电阻、封装电感和参考源阻抗会进入每一位的建立过程。即使数字比较顺序完全正确，模拟节点也可能还未建立到允许误差内。
+
+[09] claim 1 并不简单等价于“两个 ADC 交替运行”。其具体结构是：一个 ADC 连接具有第一时间常数的采集电路；多个支路各自具有与其基本相同采集时间常数的采集电路及 DAC；各 DAC 接收由该 ADC 的数字输出形成的相应控制信号，并产生采样电压与 DAC 输出之差。至少两路差值的合并由 claim 3 进一步限定。claim 14 另从并行 slice 的角度说明，参与产生数字估计的 slice 是全部 slice 的非空真子集，其余支路共同形成低于单支路热噪声的残差。因此，“有并行电容”和“有一个 SAR 状态机”各自都不充分，必须存在清楚的采样、控制和残差汇合关系。
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}[node distance=8mm and 13mm,box/.style={draw,rounded corners,align=center,minimum width=31mm,minimum height=10mm,fill=blue!5},arr/.style={-{Latex[length=2mm]}}]
+\node[box] (x) {同一输入\(x(t)\)};
+\node[box,right=of x] (q) {小采集支路\\量化器 \(Q\)};
+\node[box,right=of q] (c) {已决码\\控制字生成};
+\node[box,below=of q] (s) {匹配采集支路\\\(H_1,\ldots,H_M\)};
+\node[box,right=of s] (d) {各 slice DAC\\形成 \(x_i-D_i\)};
+\node[box,right=of d] (r) {电荷/残差合并\\RA 与 ADC2};
+\draw[arr](x)--(q);\draw[arr](q)--(c);\draw[arr](x)|-(s);
+\draw[arr](s)--(d);\draw[arr](c)--(d);\draw[arr](d)--(r);
+\end{tikzpicture}
+\caption{依据 [09] 的功能关系重绘。图中匹配条件作用于采集传递函数和采样时刻；框图没有给出晶体管尺寸。}
+\end{figure}
+
+\subsection{RC 匹配为什么不能用同一个数字采样脉冲替代}
+用一阶小信号模型说明这一条件。设量化器采集支路和第 \(i\) 个 RDAC 支路的传递函数分别为
+\begin{equation}
+H_Q(j\omega)=\frac{1}{1+j\omega\tau_Q},\qquad
+H_i(j\omega)=\frac{1}{1+j\omega\tau_i}.
+\end{equation}
+如果两者在相同时刻停止采集，但 \(\tau_i\ne\tau_Q\)，则它们保存的并不是相同电压。对正弦输入，用 \(\Delta\tau_i=\tau_i-\tau_Q\) 在工作点附近展开，得到
+\begin{equation}
+H_i-H_Q\simeq-\frac{j\omega\Delta\tau_i}{(1+j\omega\tau_Q)^2}.
+\end{equation}
+误差随输入频率增大，并同时含幅度与相位分量。另一方面，采样时刻偏差 \(\Delta t_i\) 给出一阶误差 \(\Delta x_i\simeq\dot{x}(t_s)\Delta t_i\)。所以，数字端口共用时钟只能约束时序意图，不能证明 RC 匹配、采样开关共址、时钟路由偏斜或阈值失配。静态 DC 校准也不能自动消除这些频率相关误差。
+
+这里的单极点公式是用于设计预算的近似模型，不是对专利电路全部寄生网络的精确求解。实际采样路径还可能有驱动器极点、输入滤波器、非线性开关电阻和封装振铃。工程上应先用不同输入频率下的采样误差来判断单极点近似是否足够，再决定是否需要多极点或开关级模型。若仅用理想电压源直接更新行为模型电容，就把此专利最需要验证的差异移除了。
+
+\subsection{并联降噪成立的前提及其与 RTL 权重的联系}
+设各支路有效电容为 \(C_i\)，独立采样噪声为 \(n_i\)，其理想热噪声方差为 \(kT/C_i\)。电荷合并后的噪声电压可写为
+\begin{equation}
+n_{\rm eq}=\frac{\sum_i C_i n_i}{\sum_i C_i},\qquad
+\operatorname{var}(n_{\rm eq})=\frac{kT}{\sum_i C_i}.
+\end{equation}
+第二式使用了支路噪声互不相关的假设。若参考噪声、驱动器噪声或时钟扰动在各支路中高度相关，则一般式还含 \(2\sum_{i<j}C_iC_j\operatorname{cov}(n_i,n_j)\)，不能继续按支路数等比例降低。数字校准中的 \(W_{s,u}\) 是物理单元对输出的有效传递权重，不是对所有噪声源的消除系数；正确的权重只能纠正已建模的确定性传递误差。
+
+论文第 1 页明确给出 8 个 slice 转换、8 个采集、2 个备用，总池为 18。当前 \code{slice_pool_ctrl.sv} 将完成采集的一组晋升到转换，并从补集安排下一组采集；\code{sar_trial_ctrl.sv} 区分试探码与已决码；\code{rdac_drv.sv} 保存按物理 slice ID 分发的控制状态。这些数字职责与论文的数据流一致。\code{cal_sample_context.sv} 进一步保存实际参与本笔的物理 ID 和开关状态，允许重构使用本笔的 \(T,G,R\)，而不是假定每笔都由同一组名义电容产生残差。
+
+这些对应关系不能直接证明所有 slice 的时间常数已匹配。接下来有效的模拟验收是：保持相同数字序列，分别施加 RC 失配、采样偏斜、公共参考扰动和独立热噪声；观察合并前各支路电压、合并后残差和最终码。用同一已知输入同时记录量化器样值与 RDAC 样值，才可能把“粗量化判错”和“两个路径实际采到不同输入”区分开。
+
+\subsection{已决位跟随的时序义务}
+论文说明 RDAC 随量化结果形成而更新。其作用是避免大 RDAC 重复经历尚未确认的试探跳变，但并不意味着 RDAC 的建立时间可忽略。必要顺序是：SAR 发出试探码，比较器在有效窗口给出结果，已决位提交，DEM/译码生成合法物理开关，RDAC 才接收更新。最后一次提交到准确参考切换和残差采集之间仍要留出模拟建立时间。
+
+现有 SAR 测试对理想同步比较器答案验证已决/试探隔离；结构协议测试对缺失判决、截止和迟到活动验证拒绝行为。它们没有测量实际开关网络的建立误差。设计文档应为“数字提交截止”和“模拟残差允许误差”分别设置指标，后者由实际电路模型、负载和 PVT 条件决定。不能把一个自检 testbench 的固定 16 相位直接等同于论文原芯片的全部内部相位划分。
+
+\section{[10] 两个扰动注入位置与三处一致补偿}
+\subsection{先把 claim 1 的输入路径读完整}
+[10] claim 1 的第一扰动加到第一采样 DAC 所采集的输入上，但不加到同一残差级中 ADC 的输入上。与此同时，ADC 产生的数字码要按第一扰动至少一部分所对应的数字值进行修改，再送给该采样 DAC。只实现采样电容上的扰动、只改变数字 DAC 命令或只在输出减一个数，都不完整，因为这三种操作对残差和量化范围的影响不同。
+
+claim 5 在此基础上增加作用于量化器输入的第二扰动；claim 6 明确允许第二扰动与第一扰动部分相关，因此不能把“必须用两个独立随机源”作为一般要求。claim 7、8 区分小于粗量化 LSB 的分数部分与整数 LSB 部分；claim 9、10 说明一种把第二扰动保留到残差、再由后级数字结果去除的路径；claim 11 则涉及后级去除第一扰动的至少一部分。这些限定形成多种相容实现，不能把不同实施例中的正负号脱离端口定义后直接拼接。
+
+\subsection{统一量纲后推导双端口候选}
+为了避免将“码值”当“电压”，本节定义：\(x\) 为输入等效电压，\(d_Q\) 为量化器输入上的已知扰动，\(d_R\) 为 RDAC 所保存电荷的输入等效扰动；\(\Delta_Q\) 和 \(\Delta_R\) 分别是粗量化网格和 RDAC 名义网格。设 \(n_{\rm step}=\Delta_Q/\Delta_R\) 为可表示的整数比例，\(Q\) 返回粗码，\(D(k)\) 返回 DAC 电压。仓库 ADR 0009 的条件性理想契约是
+\begin{align}
+c_Q&=Q(x+d_Q),\label{eq:pp-dither-q}\\
+k_{\rm cmd}&=c_Q n_{\rm step}+\frac{d_R-d_Q}{\Delta_R},\label{eq:pp-dither-command}\\
+v_R&=x+d_R-D(k_{\rm cmd}),\label{eq:pp-dither-residue}\\
+\widehat{x}&=D_{\rm nom}(k_{\rm cmd})+
+\frac{\widehat v_2}{\widehat A_{\rm RA}}-d_R,
+\quad \widehat v_2=\operatorname{Decode}_{2}\{ADC2(A_{\rm RA}v_R)\}.
+\label{eq:pp-dither-reconstruct}
+\end{align}
+其中 \(A_{\rm RA}\) 是残差放大器的实际电压增益，\(\widehat A_{\rm RA}\) 是校准估计；它们与权重归约中的输入系数 \(G\) 无关。\(\widehat v_2\) 是把后级数字码按其电压范围解码后的估计值，不能把 12-bit 无符号整数直接放在一个电压求和式中。符号 \(D_{\rm nom}\) 表示所用名义或已校准 DAC 重构函数，具体是哪一种必须在模型配置中声明。
+
+在未削顶、扰动落在可表示 RDAC 网格且 DAC 理想线性的条件下，式~\eqref{eq:pp-dither-command} 使 \(D(k_{\rm cmd})=D(c_Qn_{\rm step})+d_R-d_Q\)。代入残差式得到
+\begin{equation}
+v_R=x+d_Q-D(c_Qn_{\rm step}).
+\end{equation}
+因此，即使 RDAC 端的扰动幅度更大，理想残差仍由量化器所见的 \(x+d_Q\) 与其粗判决误差决定。再假设后级解码和增益估计准确，式~\eqref{eq:pp-dither-reconstruct} 才能还原 \(x\)。这个消去过程说明命令偏移、实际电荷注入、最终去除必须使用同一笔扰动记录，不能各自从正在变化的随机源重新取值。
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}[node distance=8mm and 9mm,box/.style={draw,rounded corners,align=center,minimum width=28mm,minimum height=10mm,fill=blue!5},arr/.style={-{Latex[length=2mm]}}]
+\node[box] (q) {\(x+d_Q\)\\粗量化};
+\node[box,right=of q] (cmd) {\(k_{\rm cmd}\)\\含 \(d_R-d_Q\)};
+\node[box,right=of cmd] (dac) {RDAC\\电荷对应 \(d_R\)};
+\node[box,right=of dac] (res) {\(v_R\)\\RA / ADC2};
+\node[box,below=of cmd] (ctx) {同笔上下文\\\(d_Q,d_R,ID\)};
+\node[box,below=of res] (rec) {电压解码/重构\\最终减 \(d_R\)};
+\draw[arr](q)--(cmd);\draw[arr](cmd)--(dac);\draw[arr](dac)--(res);\draw[arr](res)--(rec);
+\draw[arr](ctx)--(cmd);\draw[arr](ctx)-|(dac);\draw[arr](ctx)--(rec);
+\end{tikzpicture}
+\caption{双端口扰动候选的数据依赖。图中三条补偿路径必须共同成立；它不是当前 RTL 已全部实现的声明。}
+\end{figure}
+
+\subsection{“范围增加两位”与“增加两位分辨率”不同}
+论文第 1 页 DEM 段说明，结果从量化器转移到 RDAC 时 dither 范围扩展 2 bit。若两个扰动以相同输入等效电压刻度表达，工程候选可取 \(d_R=4d_Q\)。这个比例描述已知扰动的范围，并不让量化器多取得两位关于未知输入的信息。第一量化器的 9-bit 决策精度是论文另行披露的事项，不能用“7 个决策位加 2 个 dither 位”替代。
+
+上述比例也不能在未知注入电容衰减、DAC 网格和编码偏置时直接落实为某条总线左移两位。应先测定或定义每个端口每一码对应的输入等效电压，再证明 \((d_R-d_Q)/\Delta_R\) 在命令域可精确表示。若需要分数码，就必须分配相应物理单元或精细网格；若用取整近似，则误差项必须进入残差预算。原论文没有完整给出这些电容和编码细节，所以当前四式应标记为可验证候选，不能称为已恢复的晶体管连接图。
+
+设实际 DAC 为 \(D=D_{\rm nom}+\varepsilon_D\)，后级解码误差为 \(e_2\)。在不削顶时，重构误差可整理为
+\begin{equation}
+\widehat x-x=-\varepsilon_D(k_{\rm cmd})+
+\left(\frac{A_{\rm RA}}{\widehat A_{\rm RA}}-1\right)v_R+
+\frac{e_2}{\widehat A_{\rm RA}}.
+\end{equation}
+若真实电荷注入为 \(d_R+\delta d_R\)，还会出现输入等效注入误差。这说明知道伪随机数并不等于知道真实注入电压；电容失配、参考误差和有限建立造成的注入误差仍需校准或预算。
+
+\subsection{满量程边界与当前互斥模式}
+扰动会占用量化器输入范围、DAC 命令范围或残差范围。可运行区域至少同时满足
+\begin{equation}
+x+d_Q\in\mathcal R_Q,\qquad
+k_{\rm cmd}\in\mathcal K_R,\qquad
+A_{\rm RA}v_R\in\mathcal R_2.
+\end{equation}
+若命令先被饱和，前述线性消去不再成立。此时输出数字减去 \(d_R\) 不能恢复已经丢失的信息。正确测试必须跨越上下满量程边界，同时记录未饱和命令、实际物理开关和、后级超范围状态和输出 flags，不能只在中间码附近画一条平滑曲线。
+
+当前 \code{sar_structural_ctrl.sv} 的量化器模式输出 \code{current_dither}，并通过 \code{remove_dither} 的反号值修改 RDAC 译码。这是一个已定义的整数码扰动模式，但没有显式形成式~\eqref{eq:pp-dither-command}--\eqref{eq:pp-dither-reconstruct} 所需的独立 \(d_R\) 端口及一致处理。采样 mask 模式则把选定单元的输入作用系数设为零，并从已知参考轨采集电荷，其有效输入系数 \(G\) 会改变；它不是给全部单元共同叠加一个理想电压源的同义表达。
+
+\begin{table}[htbp]\centering\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{32mm}>{\raggedright\arraybackslash}p{35mm}>{\raggedright\arraybackslash}X}
+\toprule 当前配置&主要数字动作&成立条件与边界\\\midrule
+无扰动&按粗码生成开关状态&作为比较基线，不提供扰动去相关收益。\\
+量化器扰动&量化器端输出已知整数扰动，RDAC 命令反号补偿&模拟宏必须实际采用该端口，幅度和单位与译码一致；不等于已经实现 4 倍双端口范围。\\
+采样 mask 扰动&部分单元采集已知轨；归约使用 \(a=0\)、\(r=\pm1\)&必须同步保存采样轨与物理 ID，并用改变后的 \(G\) 重构。\\
+两模式同时置位&配置提交被拒绝&\code{calib_regs} 的 \code{smk_r \&\& qdith_r} 分支撤销 ready 并报 \code{ERR_DITHER_MODE}。\\
+\bottomrule\end{tabularx}
+\caption{当前 RTL 的可运行模式与双端口候选的区别。互斥是代码事实，不应通过文档假设绕过。}
+\end{table}
+
+\subsection{最有区分力的验证不是随机直方图}
+随机序列均值、直方图和自相关检查只能证明发生器的统计性质。要证明补偿路径，可对固定输入使用数个已知 \((d_Q,d_R)\) 组合，独立计算底板电荷和；故意将命令补偿、实际注入或最终减法中的任意一处关掉，验证误差按推导出现，再恢复三处并验证输出不随已知扰动偏移。还需让随机源在一笔转换中变化，证明 DUT 仍使用锁存上下文，而非恰好因 testbench 把随机值保持不变而通过。
+
+对于采样 mask 模式，应另测输入系数变化：在相同输入下改变被扰动单元的真实权重，检查 \(G\) 与轨贡献是否同步变化。若测试只比较由同一张符号表生成的 RTL 和黄金值，仍可能共享一个错误的符号约定。最强的补充证据是从实际电容连接和电荷守恒独立求出残差，再将后级结果送入数字链，而不是让两边都调用同一个重构函数。
+
+\section{[11] DEM 的对象是物理误差，不只是逻辑编号}
+\subsection{共享部分、附加部分与二维地址各解决什么问题}
+[11] claim 1 要求多个并行协作 DAC 接收各自的数据字，其中有共同的打乱部分及附加部分；共同部分对应输入数字字的第一部分，附加部分编码第二部分。它并未要求每个 DAC 的完整控制字都一样。claim 8 进一步规定，每个 slice 中的转换单元分为两组，两组经中间元件相连，且至少一个第一组单元由与第二组权重相适应的数据位控制。只写“主组和子组用桥接电容相连”会遗漏这个跨组控制限定。
+
+claim 15 表述从 \(L\) 个转换器的池中动态选择 \(K\) 个，\(K,L\) 为整数且 \(L>K\)。论文中的 8/18 资源选择是一个具体架构选择；claim 本身没有规定必须是 8 和 18。claim 20 要求单元由两个索引构成的二维地址寻址，并对数字字的第一部分在第一索引内做打乱；不能把它扩大成“两个索引必须采用统计独立且均匀的随机置换”。论文第 1 页及演示稿第 29--31 页另给出了特定芯片的多维 DEM 说明，应和权利要求的技术限定分别标注。
+
+\subsection{从加权误差看打乱为什么可能改善线性}
+设第 \(i\) 个物理单元实际权重为 \(w_i=\bar w+\delta w_i\)，名义激活集合为 \(\mathcal A(k)\)。固定译码的失配误差为
+\begin{equation}
+e(k)=\sum_{i\in\mathcal A(k)}\delta w_i.
+\end{equation}
+因为激活集合随输入码确定变化，这个误差会形成可重复的传输非线性。加入随样本 \(n\) 变化的映射 \(\pi_n\) 后，误差变成 \(e_n(k)=\sum_{i\in\mathcal A(k)}\delta w_{\pi_n(i)}\)。适当打乱可以削弱误差与信号的确定性相关性，但不消灭物理失配；它可能把谐波能量分散为噪声，也可能因短周期或相关选择产生新的离散谱线。
+
+如果所有单元被等概率选择，且从失配中扣除了平均值，则某些条件下条件均值 \(E[e_n\mid k]\) 可减小。然而选择之间不独立，空间梯度也不一定被一维循环完全平均。片内邻近电容可能共享工艺梯度，整列或整行的共同误差会与置换结构产生相关。因此，证明置换是双射、没有重复 ID 和开关总数守恒是数字必要条件；证明频谱改善还需要给定失配场景、输入频率、记录长度和窗口，再比较输出误差谱。
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}[node distance=8mm and 10mm,box/.style={draw,rounded corners,align=center,minimum width=31mm,minimum height=11mm,fill=green!5},arr/.style={-{Latex[length=2mm]}}]
+\node[box] (word) {粗码/附加位\\逻辑单元需求};
+\node[box,right=of word] (perm) {slice 选择\\行/列地址映射};
+\node[box,right=of perm] (phys) {物理 ID 与开关\\\((s,u),b_{s,u}\)};
+\node[box,below=of phys] (weight) {按物理地址读取\\权重并对齐状态};
+\node[box,left=of weight] (sum) {\(T,G,R\) 归约\\保存样本上下文};
+\node[box,left=of sum] (code) {ADC2 解码\\整数重构};
+\draw[arr](word)--(perm);\draw[arr](perm)--(phys);\draw[arr](phys)--(weight);
+\draw[arr](weight)--(sum);\draw[arr](sum)--(code);
+\end{tikzpicture}
+\caption{DEM 与数字权重校正共享物理地址语义。逻辑码正确而物理地址错配，仍会得到错误校准结果。}
+\end{figure}
+
+\subsection{桥接分段必须先折算为有效权重}
+对一个简单、理想、无额外寄生的分段电容网络，可把子阵列对主节点的贡献表示为桥接衰减系数乘以子电容。但衰减系数取决于完整网络的连接状态和总电容，不能从“子组有 8 个单元”直接得到所有真实系数。若桥接寄生、顶板寄生或开关状态改变了网络矩阵，精确方法是写出各浮置节点电荷方程，再求输出节点对每个底板电压的传递系数。
+
+当前工程把这些影响收入有效 \(W_{s,u}=C^{\rm eff}_{s,u}/C_f\) 的语义中。也就是说，导入的子阵列系数已经是输出等效权重；数字归约不能再无条件乘一次桥接比。63 个主单元、8 个子单元的完整码域候选来自 ADR 0009，并非 [11] 或论文直接给出的版图电容计数。报告中的 \(18\times71\) 因而是本工程权重表的容量，不是专利中要求的唯一阵列尺寸。
+
+有了物理有效权重，DEM 后的校正仍必须沿实际开关状态求和。对活跃单元定义输入作用系数 \(a_{s,u}\)、转换底板状态 \(b_{s,u}\in\{0,1\}\) 和已知采样轨贡献 \(r_{s,u}\)，可写为
+\begin{align}
+T&=\sum W_{s,u},\qquad G=\sum W_{s,u}a_{s,u},\\
+R&=\sum W_{s,u}(1-2b_{s,u}+r_{s,u}).
+\end{align}
+此处求和集合是本笔实际激活的物理 slice。即使每笔都激活 8 个 slice，\(T\) 也不必相同；采样扰动还会使 \(G\) 改变。若在一个 slot 中换入新 slice，却仍沿用上一笔的 \(T\) 或权重索引，名义温度计码可以完全正确，最终重构仍会出现与轮换序列相关的误差。
+
+\subsection{当前数字实现及应补的空间失配试验}
+\code{dem_state_gen.sv}、\code{dem_addr_gen.sv}、\code{swap_decode.sv} 和 \code{unit_therm.sv} 分别承担状态、地址、计数分配及单元控制；\code{slice_pool_ctrl.sv} 承担跨样本物理池选择。已有叶模块和物理校准测试能检查映射、计数、合法性以及已知权重下的整数结果。列共享或平衡树等归约拓扑的优化仅改变计算实现，不应改变上述物理求和含义；必须分别验证功能等价和综合后根节点确有驱动，不能从 RTL 仿真通过直接推定映射后的逻辑存在。
+
+更有针对性的 DEM 验证应至少包含独立随机失配、沿行的线性梯度、沿列的线性梯度、某一 slice 的公共增益偏差以及桥接相关误差。对每个场景固定同一输入与真实失配，比较 DEM 关闭、仅池轮换、仅片内置换和完整映射的误差谱。测得的改善须同时报告低频误差、带内噪声与离散 spur，不能只展示所有单元访问次数接近均匀。若短记录未覆盖发生器长周期，也不能推断整个周期都具备相同统计性质。
+
+\section{[12] 交织 tracking 的必要数据流与待实现规范}
+\subsection{资源轮换与跨通道跟踪是两个不同条件}
+[12] claim 1 明确要求多个 ADC 受控制逻辑推动，经历时间交织的采集、转换和 tracking 阶段；某 ADC 的 tracking 阶段使用另一 ADC 最近的 A/D 转换信息更新自身，并且更新发生在其下一次采集之前。claim 12 从方法角度重复这一关系，claim 23 进一步列出子 ADC 的加权 DAC、采样开关、比较器和逐位转换控制。该专利的辨识点是“其他通道最近转换信息到本通道下一次采集状态”的路径，不能被一个随机 bank 指针替代。
+
+从属 claim 3、14、24 允许使用部分转换信息；claim 5--10 及相应方法项涵盖偏置、预失真、随机项、专用 ADC 信息或多个近期转换的加权组合。这说明 tracking 信息不一定是最后的完整 20-bit 校正输出，也不要求所有实现采用同一种预测器。本章给出的字段和状态规范是推荐实现契约，不是声称原专利公开了这些 SystemVerilog 寄存器名称。
+
+论文确实给出 18 slice 池的动态交织，但未明确说明其芯片采用此项专利的完整 tracking 路径。故当前缺口应登记为“该专利机制尚未覆盖”，不能仅凭论文引用了专利就认定为论文功能必须失败。仓库中的 Python 跟踪模型与相关单元测试可用于探索候选，但它们没有为当前结构 RTL 自动增加一条跨通道连接。
+
+\subsection{跟踪要改变什么物理初始条件}
+以简单采样电容说明跟踪的工程动机。若采集开始时电容电压为 \(v_0\)，目标为 \(x(t_s)\)，在近似恒定输入和一阶采集路径下，采集结束误差为
+\begin{equation}
+e_{\rm acq}\simeq\bigl[v_0-x(t_s)\bigr]\exp(-t_{\rm acq}/\tau).
+\end{equation}
+如果利用另一通道的近期信息将 \(v_0\) 预置得更接近当前输入，就可能减小待吸收的电荷和有限采集时间误差。但是这个收益依赖输入的时间相关性。对快速变化、阶跃或接近 Nyquist 的输入，过时信息可能反而增大初始误差。因此不能只用低频正弦证明 tracking 总是改善，也不能把 tracking 值直接送到最终输出而绕开本通道真正的采样和转换。
+
+若采用预测项 \(\widehat x_{\rm tr}=\widehat x_j+\delta\) 的概念，这里的 \(\widehat x_j\) 必须是具有明确单位的来源通道电压估计；若实际 RTL 使用目标 DAC 码，则须先完成相应量纲转换，不能混用原始整数码与电压。实际预置函数应写成 \(k_{{\rm tr},i}=\mathcal P_i(\mathcal I_j,\theta_i)\)，其中 \(\mathcal I_j\) 是另一通道的信息包，\(\theta_i\) 是通道校准与预置参数。\(\mathcal P_i\) 输出合法物理 DAC 状态后，模拟宏完成预置；数字端只是在安排和记录这次动作。
+
+\subsection{建议的信息包、接受条件与保持规则}
+一个可调试的候选应保留如下最小元数据。字段不是为了制造更多状态，而是为了让仿真能判定预置究竟来自哪次转换，并让过时、错误和跨配置数据可被拒绝。
+
+\begin{table}[H]\centering\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{36mm}>{\raggedright\arraybackslash}X}
+\toprule 候选字段&用途及验收约束\\\midrule
+\code{source_channel}、\code{source_sample_id}&证明来源是不同通道；同一来源 ID 的重复到达不得伪装成新转换。\\
+\code{source_epoch}、\code{source_valid}&与当前配置版本一致；复位、配置撤销和错误转换不得产生可接受记录。\\
+\code{partial_code}、\code{known_mask}&若使用部分 SAR 结果，必须说明哪些位已决；不能把未决试探位当成精确信息。\\
+\code{age} 或时间标记&确定“最近”的排序，限定允许使用的历史长度，明确同时到达时的优先级。\\
+\code{target_channel}、\code{target_acq_id}&把预置动作绑定到待采集的通道及下一次采样；不能污染正在转换的上下文。\\
+\code{tracking_commit}、\code{tracking_bad}&提交后保持到规定边界；范围溢出、无可用来源和预置超时均有明确处理。\\
+\bottomrule\end{tabularx}
+\caption{tracking 的建议数据契约；这些字段尚不能列为当前 RTL 已实现端口。}
+\end{table}
+
+接受条件可表达为：目标处于 tracking 窗口，来源不同于目标，来源 valid 且 epoch 一致，来源时间不早于当前已接收记录，目标下一次采集尚未冻结。同一 sample ID 的更多已决位可以作为该转换的信息更新，但必须使已知位掩码单调扩展，并与重复发送同一信息区分。若任一条件不成立，应保留先前合法预置或使用已定义的安全初值，并显式记录未更新原因。采用哪一种回退属于工程选择，但不能静默把无效值当成有效最近转换。
+
+更新窗口结束后，预置码必须冻结。进入 acquisition 时，所有依赖预置的物理开关应已经完成切换，并保证对应模拟节点没有受到随后到达的另一通道结果扰动。进入 conversion 后，本通道的样本上下文只能由本次采样和已决码推进；新的 tracking 消息应写入下一笔缓冲或被拒绝。若要在一个通道被选入不同物理 slice 组时继续 tracking，还必须重新把逻辑预置映射到新物理组，不能沿用前一组的开关掩码。
+
+\begin{figure}[H]\centering
+\begin{tikzpicture}[node distance=8mm and 9mm,box/.style={draw,rounded corners,align=center,minimum width=30mm,minimum height=11mm,fill=orange!6},arr/.style={-{Latex[length=2mm]}}]
+\node[box] (src) {通道 A 最近结果\\已决位/ID/epoch};
+\node[box,right=of src] (accept) {通道 B 接受条件\\新旧顺序与合法性};
+\node[box,right=of accept] (pre) {TRACK\\预置 DAC 状态};
+\node[box,below=of pre] (acq) {ACQUIRE\\冻结预置后采集};
+\node[box,left=of acq] (conv) {CONVERT\\只用本笔上下文};
+\node[box,left=of conv] (pub) {发布 B 的信息\\供其他通道使用};
+\draw[arr](src)--(accept);\draw[arr](accept)--(pre);\draw[arr](pre)--(acq);
+\draw[arr](acq)--(conv);\draw[arr](conv)--(pub);
+\end{tikzpicture}
+\caption{为 [12] 提议的因果数据流。该图是待实现规范，不能用作当前硬件已经覆盖 tracking 的证据。}
+\end{figure}
+
+\subsection{能够排除“空更新”的交叉激励}
+第一组测试保持通道 B 下一次待采输入相同，改变通道 A 的有效最近信息；若 tracking 真正接入，B 的预置状态应按 \(\mathcal P_B\) 改变，而最终充分建立后的输入估计应仍相同。第二组将 A 的最新信息标为无效或替换为旧 epoch，B 必须不接受。第三组在 B 采集冻结边界之后送入 A 的新结果，B 本次物理开关和上下文不得改变。第四组使用部分码，交替改变未决位，验证这些位不会进入有效预置。
+
+模拟侧还应测量采集初始误差、从主输入端抽取的电荷和最终残差误差。若只检查 \code{tracking_commit} 有脉冲，而预置端口未接到模拟状态，这种测试会错误通过。对于高频和阶跃输入，应对比 tracking 开关两种配置，记录最坏初始误差与收敛情况；预测不准确是模型行为，不能靠数字强制黄金码覆盖。只有完成这些因果观测，才有条件将覆盖等级由“行为探索”提高到“数字控制加模拟预置已实现”。
+
+\section{[13] 辅助输入绕过主 RC 的电荷路径}
+\subsection{第二输入节点承担的是充电负载}
+[13] claim 1 规定主输入经 RC 滤波器到输入开关，同时有与主输入不同的第二输入节点，以及绕过该 RC 从第二节点驱动内部负载的电路。claim 2 指定在转换转入采集的至少一次过渡中提供电荷；claim 6 将内部负载具体化为寄生电容，要求其所需充电不必从主输入经 RC 提供。这不是简单增加一个 enable，也不意味着辅助节点必须永远等于主输入电压。
+
+专利中还存在不同结构：claim 9--11 描述相对第二节点的 boost 及 boost 电容切换；独立 claim 12 以 boost 路径为核心；独立 claim 19 则描述经第二节点给采样电容预充，且预充信号不再额外放大。PDF 第 16 页说明书明确区分图 11 的组合用法和图 12 的两个辅助输入用法。这些方案可以按目标电路选用，但不能把一个 \code{aux_charge_enable} 同时当作所有模拟通路的实现证明。
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}[node distance=8mm and 11mm,box/.style={draw,rounded corners,align=center,minimum width=30mm,minimum height=10mm,fill=blue!5},arr/.style={-{Latex[length=2mm]}}]
+\node[box] (in) {主输入};
+\node[box,right=of in] (rc) {输入 RC\\抗混叠/降噪};
+\node[box,right=of rc] (sw) {采样开关\\采样电容};
+\node[box,below=of in] (aux) {独立 AUX 节点};
+\node[box,right=of aux] (drv) {辅助充电/boost\\所选模拟电路};
+\node[box,right=of drv] (load) {开关寄生负载\\可选预充目标};
+\draw[arr](in)--(rc);\draw[arr](rc)--(sw);\draw[arr](aux)--(drv);\draw[arr](drv)--(load);
+\draw[arr](load)--(sw);
+\end{tikzpicture}
+\caption{主信号和辅助充电路径的功能分离。下方通路绕过主 RC；寄生负载和采样电容预充属于需分别指定的目标。}
+\end{figure}
+
+\subsection{用电荷守恒检查“输入更好驱动”是否实际发生}
+设某次切换中内部寄生需要电荷 \(\Delta Q_P\)，采样信号路径需要电荷 \(\Delta Q_S\)。若两者都由主 RC 后节点提供，快速切换对滤波电容 \(C_F\) 造成的一阶电压扰动约为 \(\Delta v_F\simeq-(\Delta Q_P+\Delta Q_S)/C_F\)。若辅助路径承担其中 \(\eta\Delta Q_P\)，主节点的对应项变为
+\begin{equation}
+\Delta v_F\simeq-\frac{\Delta Q_S+(1-\eta)\Delta Q_P}{C_F}.
+\end{equation}
+该式只是短时电荷共享估计，\(\eta\) 由真实阻抗、开关时序和寄生耦合决定，不是数字使能为 1 就自动等于 1。完整瞬态还要包含主驱动器恢复、AUX 源阻抗、开关门极与衬底耦合以及输入变化。
+
+可复核的量是各外部端口电流积分 \(Q_{\rm main}=\int i_{\rm main}dt\)、\(Q_{\rm aux}=\int i_{\rm aux}dt\)，以及采集结束时的电容误差。电荷应在完整切换周期内按各储能元件变化及其他供电端贡献守恒。只看主输入峰值电流下降而不看积分和采样误差，可能把延迟充电或欠建立误当作改善；只看 AUX 有电流而不看主节点扰动，也不能证明它替代了原本经过 RC 的那部分负载。
+
+\subsection{现有 RTL 能约束什么，模拟宏还必须给什么}
+当前 \code{sar_structural_ctrl.sv} 用采集 slice 的归属掩码产生 \code{aux_charge_enable}，并给不在采集状态的单元输出 hold-low 意图。它能表达哪个物理组处于哪一阶段，也能在 reset/disable 时给出确定状态；但 AUX 源、bootstrap 电容、衬底网络及采样开关都不在 RTL 内。因此，用理想行为宏看到正确 enable 只能验证数字调度，不能声称已经复现 [13] 的辅助充电电路。
+
+模拟宏接口说明至少应定义 AUX 对应哪些负载、使能有效极性、预充开始和关闭时刻、相对主采样边沿的先后关系，以及输入过范围时的允许状态。若采用采样电容预充实施例，还应明确预充值是否来自输入副本、片外驱动或预测码。上述选择会改变电荷与误差预算，不能作为同一控制口背后的隐藏默认值。应分别提供 AUX 关闭、仅寄生充电和选定预充方案的对照模型，再由同一输入激励比较。
+
+对于纯数字验收，最有价值的是检查物理掩码与实际采样组一致、切换沿之间保持稳定、reset 不留下悬挂使能，以及模拟状态异常是否通过 \code{analog_bad} 随本笔上下文传播。对模拟验收，则应检查主 RC 后节点毛刺、采样结束误差和总电荷分配。二者共同满足后，才可以说明接口和所选辅助电路在系统中形成了闭合链路。
+
+\section{[14] 粗充电与准确参考切换的两种实现}
+\subsection{claim 1：比较器控制供电充电，随后外参考校正}
+[14] claim 1 的必要元件包括外部参考输入、比较内部参考与参考指示的比较器、受差值控制的充电开关，以及选择性把内部参考直接连接到外部参考的切换电路。第一阶段把内部节点与外参考断开，由供电经受控开关充电；第二阶段再直接接到外参考供 ADC 使用。其重点是把大量粗充电与高精度最终建立分开，而不是由一个始终工作的高带宽线性缓冲器承担全部负载。
+
+从属 claim 2--5 讨论阈值调整以及模拟或数字误差积分；claim 8、9 讨论保持内部参考端电容负载一致。这些用于减少剩余电荷与码相关负载变化，但不是独立 claim 1 中每个实施方式都必须采用的完整数字环路。若工程选择这些扩展，应另立闭环状态、更新速率、饱和和稳定性契约；当前只有预充/准确参考相位使能，不能把它们描述成已经实现参考自适应校准。
+
+\subsection{claim 12：放大器和储能电容是独立替代路径}
+claim 12 包括参考输入、电容、向电容供电的放大器，以及在电容和外部参考之间选择内部参考节点的开关。第一阶段内部参考离开外参考、接到电容；第二阶段内部参考接回外参考并与电容断开，让放大器给电容补充电荷。此处“battery capacitor”是储能电容的功能名称，不能翻译为必然存在电化学电池。claim 13 允许电容位于芯片外；claim 14 限定放大器带宽与补充被消耗的电荷相适应。
+
+两种方案都使用“粗供能后精确连接”的思想，但供能元件和闭环不同。选择 comparator+switch 的方案，不应要求同时补齐 claim 12 的储能电容；选择储能电容方案，也不应凭空加入 claim 1 的同一比较器充电控制。这一区分对复现很重要，因为混合两个不同实施例，容易得到数字时序似乎完整而模拟连线没有一致能量路径的系统。
+
+\begin{figure}[htbp]\centering
+\begin{tikzpicture}[node distance=8mm and 11mm,box/.style={draw,rounded corners,align=center,minimum width=33mm,minimum height=11mm,fill=green!5},arr/.style={-{Latex[length=2mm]}}]
+\node[box] (a) {方案 A：供电\\比较器控制充电};
+\node[box,right=of a] (mux) {相位切换\\内部参考节点};
+\node[box,right=of mux] (dac) {RDAC 参考负载};
+\node[box,below=of a] (b) {方案 B：放大器\\补充储能电容};
+\node[box,below=of mux] (ref) {准确外参考\\第二阶段直连};
+\draw[arr](a)--(mux);\draw[arr](b.north east)--(mux.south west);\draw[arr](ref)--(mux);\draw[arr](mux)--(dac);
+\end{tikzpicture}
+\caption{[14] 的两种替代供能路径。A、B 在本图并列比较，不表示同一芯片必须同时连接两路。}
+\end{figure}
+
+\subsection{剩余电荷、有限建立与码相关误差}
+设接回外参考前内部节点电压为 \(V_P\)，目标参考为 \(V_R\)，等效待建立电容为 \(C_L\)。外参考仍需提供的电荷近似为
+\begin{equation}
+\Delta Q_{\rm ref}=C_L(V_R-V_P).
+\end{equation}
+预充的目标是把这个剩余量变小；它并不让有限阻抗的外参考变成理想电源。若 \(V_P\) 或 \(C_L\) 随输入码变化，剩余参考电流也会与信号相关。用一阶连接模型表示，连接后误差约为
+\begin{equation}
+\varepsilon_V(t)=(V_P-V_R)\exp[-t/(R_{\rm path}C_L)].
+\end{equation}
+该式只适用于忽略更高阶寄生和闭环动态的估算；若参考端有振铃，单纯增加某个数字相位不一定按指数改善。
+
+论文第 1 页说明，在 RA 阶段开始时参考尚未完全建立，残差只达到约 15-bit 精度，达到完整 20-bit 建立需约 65\% 的 RA 阶段。这是论文对实际架构建立过程的披露，不是本工程行为模型的测量值。它提示残差放大和参考建立在时间上可以重叠，但真正决定后级采样精度的是后级采样时刻的残差误差，不能要求“放大使能一拉高所有节点已达到 20-bit”，也不能忽略建立过程而直接喂给 ADC2 理想最终值。
+
+若采用储能电容方案，短时供电造成的压降满足近似 \(\Delta V_B=Q_{\rm draw}/C_B\)。放大器需要在回充窗口内恢复这部分电荷，并在重复周期中到达稳定周期轨道。测试必须连续运行多周期，观察最坏码序列是否导致电容电压逐周期下滑；一次转换前把电容重新设为理想值，会掩盖平均供电不足。对于 comparator 方案，则要观察迟滞、延迟、阈值误差和充电过冲，不可只验证一个理想比较布尔值。
+
+\subsection{现有相位端口与下一层验收}
+\code{analog_phase_ctrl.sv} 提供预充、准确参考、RA 放大和 AZ 使能，并以一个明确阶段表达参考交接死区。数字寄存化可以避免某些组合译码扰动直接透传，但实际 break-before-make 还取决于门延迟、缓冲树、开关驱动及工艺角。若开关在模拟上短暂同时导通，可能把粗供电路径接到准确外参考；若死区过长，则内部节点可能因泄漏和后续负载变化偏离目标。两者都不能只用 RTL 电平互斥覆盖。
+
+混合信号验收应记录预充结束电压、外参考重新连接瞬间的电流、RA 输入和输出残差、ADC2 实际采样时刻误差，并分别关闭粗参考误差、有限源阻抗和开关寄生做敏感性对照。数字测试对应检查相位先后、使能互斥和异常归属；模拟测试对应检查电压、电流、建立和回充稳定性。只有当两类结果指向同一采样时刻与样本 ID，才可把它们组合成系统精度证据。
+
+\section{把六项机制连接到数字校准的统一验收链}
+\subsection{每笔样本必须保存完整物理来历}
+六项专利分别改变采样路径、扰动、单元分配、采集初值、辅助电荷和参考建立，但最终都通过同一笔残差进入数字校准。因此，上游只给一个粗码远远不够。最低限度的数字来历包括实际物理 slice、DEM 后开关掩码、采样扰动轨、已知公共注入、后级码、样本 ID 和配置版本。若采用 tracking，还要记录预置来源与目标采集；若模拟宏报告异常，异常也必须绑定到产生它的那笔样本。
+
+在归一化电压和有效电容权重下，当前工程使用的物理关系可写为 \(F=Gx+R+TI+O\)，因此 \(x=(F-O-R-TI)/G\)。其中 \(I\) 只有在所有相关单元确实接受了定义一致的公共注入时才成立；若注入仅作用于部分单元，乘数应变为相应子集权重和。把某条新的 dither 路径直接塞进 \code{injection_q} 而不重新推导其作用集合，会造成重复去除或权重错误。
+
+对配置管理，应将物理权重排列、ADC2 电压范围、偏移、扰动单位和模式一起看作一个原子 epoch。当前停止后完整装载再提交的方式容易验证，但不支持无停机自适应；若以后加入双缓冲系数或在线参考调整，就必须给每个在途样本标明所用版本，或保证切换时流水线已经排空。所谓“校准算法正确”至少包含数学、定点、地址和版本四个层面的正确，不能只以一次输出数值接近期望作为全部依据。
+
+\subsection{独立参考应停在不同抽象层}
+最容易出现的假通过是参考模型和 RTL 从同一段索引或符号表达式生成：两边同时错时，逐点比对仍全部相等。建议把参考分成三层。第一层从物理连接和电荷守恒计算残差，不借用 RTL 的掩码归约函数；第二层用任意精度整数计算固定点边界、负数 floor 和饱和；第三层按事务历史检查 ID、epoch、迟到和取消。各层共享的是公开接口契约，而不是被测实现的内部步骤。
+
+现有独立算术向量与结构故障注入已经提供有价值的数字证据，但它们不能外推到未注入的模拟缺陷。51 项 Vivado runner 流程测试同样只验证归档、参数、失败判定和特定日志门禁，不是 51 次真实综合。真实综合还要确认功能没有因无驱动根节点被常量化，随后才讨论面积和时序。故本章不使用尚在修复中的综合数字来证明某一种归约拓扑更优。
+
+\subsection{如何判定一次下一阶段仿真真正完成}
+一次有效的结构推进应同时交付明确选择的电路实施例、接口与量纲说明、可复现源版本以及能区分正确和错误实现的证据。对 [09]，核心观测是两个采集路径与合并残差；对 [10]，是三处扰动补偿的电荷闭合；对 [11]，是物理地址正确且失配谱按预期改变；对 [12]，是另一通道的有效信息在采集之前改变目标预置；对 [13]，是辅助端实际承担规定电荷；对 [14]，是供能、交接和最终参考建立符合误差预算。
+
+当这些观测尚未提供时，应精确写成“数字调度通过”“理想电荷模型通过”或“所选模拟宏在指定条件通过”。当某项测试失败，应保留原始日志与失败标记，再用附加审查记录说明后来为什么修改判读。特别是无驱动网络造成的面积缩小或延迟变化，属于无效网表的诊断现象，不能通过重命名状态变成优化收益。这样的证据链才能使后续工程人员从原文、接口、源码一路追到实际测试结论。

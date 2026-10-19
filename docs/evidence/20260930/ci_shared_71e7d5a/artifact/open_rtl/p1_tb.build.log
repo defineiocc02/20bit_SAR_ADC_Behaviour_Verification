@@ -1,0 +1,260 @@
+%Warning-TIMESCALEMOD: rtl/core/adc2_dec.sv:45:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   45 | module adc2_dec #(
+      |        ^~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+                       ... For warning description see https://verilator.org/warn/TIMESCALEMOD?v=5.020
+                       ... Use "/* verilator lint_off TIMESCALEMOD */" and lint_on around source to disable this message.
+%Warning-TIMESCALEMOD: rtl/core/analog_phase_ctrl.sv:5:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    5 | module analog_phase_ctrl #(
+      |        ^~~~~~~~~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/cal_output_stage.sv:5:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    5 | module cal_output_stage #(
+      |        ^~~~~~~~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/cal_residue_mac.sv:5:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    5 | module cal_residue_mac #(
+      |        ^~~~~~~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/cal_sample_context.sv:5:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    5 | module cal_sample_context (
+      |        ^~~~~~~~~~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/cal_weight_reduce.sv:7:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    7 | module cal_weight_reduce #(
+      |        ^~~~~~~~~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/calib_regs.sv:47:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   47 | module calib_regs #(
+      |        ^~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/ctrl_fsm.sv:42:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   42 | module ctrl_fsm #(
+      |        ^~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/dem_addr_gen.sv:37:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   37 | module dem_addr_gen #(
+      |        ^~~~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/dem_state_gen.sv:45:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   45 | module dem_state_gen #(
+      |        ^~~~~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/dither_gen.sv:15:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   15 | module dither_gen #(
+      |        ^~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/div_floor.sv:57:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   57 | module div_floor #(
+      |        ^~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/rdac_drv.sv:30:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   30 | module rdac_drv (
+      |        ^~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/recon_core.sv:53:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   53 | module recon_core #(
+      |        ^~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/sar_structural_ctrl.sv:7:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    7 | module sar_structural_ctrl #(
+      |        ^~~~~~~~~~~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/sar_trial_ctrl.sv:6:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    6 | module sar_trial_ctrl #(
+      |        ^~~~~~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/slice_alloc.sv:44:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   44 | module slice_alloc (
+      |        ^~~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/slice_pool_ctrl.sv:6:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    6 | module slice_pool_ctrl #(parameter logic [31:0] P_SEED=32'h6d2b79f5) (
+      |        ^~~~~~~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/status_regs.sv:42:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   42 | module status_regs (
+      |        ^~~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/swap_decode.sv:37:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   37 | module swap_decode (
+      |        ^~~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/unit_therm.sv:33:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   33 | module unit_therm (
+      |        ^~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/core/weight_store.sv:42:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   42 | module weight_store #(
+      |        ^~~~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/top/sadc_enc.sv:30:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   30 | module sadc_enc #(
+      |        ^~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-TIMESCALEMOD: rtl/top/sar20_digital_core.sv:11:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   11 | module sar20_digital_core #(
+      |        ^~~~~~~~~~~~~~~~~~
+                       sim/tb/p1_tb.sv:26:8: ... Location of module with timescale
+   26 | module p1_tb;
+      |        ^~~~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:28:18: Operator VAR 'N_ACT' expects 32 bits on the Initial value, but Initial value's VARREF 'N_ACTIVE' generates 4 bits.
+                                           : ... note: In instance 'p1_tb'
+   28 |   localparam int N_ACT = N_ACTIVE;
+      |                  ^~~~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:29:18: Operator VAR 'NM' expects 32 bits on the Initial value, but Initial value's VARREF 'N_UNIT_MAIN' generates 7 bits.
+                                           : ... note: In instance 'p1_tb'
+   29 |   localparam int NM    = N_UNIT_MAIN;
+      |                  ^~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:30:18: Operator VAR 'NS' expects 32 bits on the Initial value, but Initial value's VARREF 'N_UNIT_SUB' generates 5 bits.
+                                           : ... note: In instance 'p1_tb'
+   30 |   localparam int NS    = N_UNIT_SUB;
+      |                  ^~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:31:18: Operator VAR 'D' expects 32 bits on the Initial value, but Initial value's VARREF 'DITHER_UNITS_RANGE' generates 4 bits.
+                                           : ... note: In instance 'p1_tb'
+   31 |   localparam int D     = DITHER_UNITS_RANGE;
+      |                  ^
+%Warning-WIDTHEXPAND: rtl/core/dem_state_gen.sv:46:19: Operator VAR 'A_RED' expects 32 bits on the Initial value, but Initial value's CONST '10'h1b1' generates 10 bits.
+                                                     : ... note: In instance 'p1_tb.u_m1'
+   46 |     parameter int A_RED = int'(DEM_LCG_A_MOD),
+      |                   ^~~~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:82:20: Operator ASSIGNW expects 16 bits on the Assign RHS, but Assign RHS's SIGNED generates 8 bits.
+                                           : ... note: In instance 'p1_tb'
+   82 |   assign m3_dither = $signed(m3_dither_raw);
+      |                    ^
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:170:7: Operator TASKREF 'chk' expects 64 bits on the Function Argument, but Function Argument's VARREF 'sid_seen' generates 9 bits.
+                                           : ... note: In instance 'p1_tb'
+  170 |       chk($sformatf("M1 n=%0d sid", i), sid_seen, sid_exp);
+      |       ^~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:192:7: Operator TASKREF 'chk' expects 64 bits on the Function Argument, but Function Argument's VARREF 'uniq_a' generates 32 bits.
+                                           : ... note: In instance 'p1_tb'
+  192 |       chk("M1 bankA distinct states", uniq_a, 512);
+      |       ^~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:193:7: Operator TASKREF 'chk' expects 64 bits on the Function Argument, but Function Argument's VARREF 'uniq_b' generates 32 bits.
+                                           : ... note: In instance 'p1_tb'
+  193 |       chk("M1 bankB distinct states", uniq_b, 512);
+      |       ^~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:207:22: Operator TASKREF 'chk' expects 64 bits on the Function Argument, but Function Argument's VARREF 's' generates 32 bits.
+                                            : ... note: In instance 'p1_tb'
+  207 |       read_h(fd, v); chk($sformatf("M2 sid[%0d]", s), v, s);
+      |                      ^~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:212:9: Operator TASKREF 'chk' expects 64 bits on the Function Argument, but Function Argument's SEL generates 6 bits.
+                                           : ... note: In instance 'p1_tb'
+  212 |         chk($sformatf("M2 s=%0d main_logical[%0d]", s, p), m2_main_logical[p], v);
+      |         ^~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:216:9: Operator TASKREF 'chk' expects 64 bits on the Function Argument, but Function Argument's SEL generates 3 bits.
+                                           : ... note: In instance 'p1_tb'
+  216 |         chk($sformatf("M2 s=%0d sub_logical[%0d]", s, p), m2_sub_logical[p], v);
+      |         ^~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:240:24: Operator TASKREF 'chk' expects 64 bits on the Function Argument, but Function Argument's SEL generates 7 bits.
+                                            : ... note: In instance 'p1_tb'
+  240 |         read_h(fd, v); chk($sformatf("M3 line=%0d slice=%0d main_count", lines, a), m3_main[a], v);
+      |                        ^~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:243:24: Operator TASKREF 'chk' expects 64 bits on the Function Argument, but Function Argument's SEL generates 3 bits.
+                                            : ... note: In instance 'p1_tb'
+  243 |         read_h(fd, v); chk($sformatf("M3 line=%0d slice=%0d sub_count", lines, a), m3_sub[a], v);
+      |                        ^~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:245:22: Operator TASKREF 'chk' expects 64 bits on the Function Argument, but Function Argument's VARREF 'm3_over' generates 1 bits.
+                                            : ... note: In instance 'p1_tb'
+  245 |       read_h(fd, v); chk($sformatf("M3 line=%0d rdac_over", lines), m3_over, v);
+      |                      ^~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:272:9: Operator TASKREF 'chk' expects 64 bits on the Function Argument, but Function Argument's REPLICATE generates 9 bits.
+                                           : ... note: In instance 'p1_tb'
+  272 |         chk($sformatf("M5 line=%0d slice=%0d sub_on", i, a), {1'b0, m5_sub_on[a]}, v);
+      |         ^~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:294:11: Operator TASKREF 'chk' expects 64 bits on the Function Argument, but Function Argument's VARREF 'c' generates 32 bits.
+                                            : ... note: In instance 'p1_tb'
+  294 |           chk($sformatf("M5 popcount s=%0d c=%0d a=%0d", s, c, a), $countones(mask), c);
+      |           ^~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:338:11: Operator ASSIGN expects 32 bits on the Assign RHS, but Assign RHS's VARREF 'm4_code' generates 8 bits.
+                                            : ... note: In instance 'p1_tb'
+  338 |         v = m4_code;
+      |           ^
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:353:5: Operator TASKREF 'chk' expects 64 bits on the Function Argument, but Function Argument's GTS generates 1 bits.
+                                           : ... note: In instance 'p1_tb'
+  353 |     chk("M4 enough valid draws", valids > cycles/2, 1);
+      |     ^~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:356:5: Operator TASKREF 'chk' expects 64 bits on the Function Argument, but Function Argument's LOGAND generates 1 bits.
+                                           : ... note: In instance 'p1_tb'
+  356 |     chk("M4 zero mean", mean > -0.05 && mean < 0.05, 1);
+      |     ^~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:357:5: Operator TASKREF 'chk' expects 64 bits on the Function Argument, but Function Argument's LOGAND generates 1 bits.
+                                           : ... note: In instance 'p1_tb'
+  357 |     chk("M4 lag1 correlation", corr > -0.03 && corr < 0.03, 1);
+      |     ^~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:361:7: Operator TASKREF 'chk' expects 64 bits on the Function Argument, but Function Argument's LTD generates 1 bits.
+                                           : ... note: In instance 'p1_tb'
+  361 |       chk("M4 rounded-uniform PMF", delta*delta < 49.0*expected, 1);
+      |       ^~~
+%Warning-WIDTHEXPAND: sim/tb/p1_tb.sv:411:9: Operator TASKREF 'chk' expects 64 bits on the Function Argument, but Function Argument's REPLICATE generates 9 bits.
+                                           : ... note: In instance 'p1_tb'
+  411 |         chk($sformatf("T7 n=%0d slice=%0d sub_on", i, a), {1'b0, m5_sub_on[a]}, v);
+      |         ^~~
+make: Entering directory '/tmp/sar_rtl_7ljzb19i'
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -c -o verilated.o /usr/share/verilator/include/verilated.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -c -o verilated_timing.o /usr/share/verilator/include/verilated_timing.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -c -o verilated_threads.o /usr/share/verilator/include/verilated_threads.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -x c++-header Vp1_tb__pch.h -o Vp1_tb__pch.h.fast.gch
+g++   -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -x c++-header Vp1_tb__pch.h -o Vp1_tb__pch.h.slow.gch
+echo "" > Vp1_tb__ALL.verilator_deplist.tmp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vp1_tb__pch.h.fast -c -o Vp1_tb.o Vp1_tb.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vp1_tb__pch.h.fast -c -o Vp1_tb___024root__DepSet_h56251e90__0.o Vp1_tb___024root__DepSet_h56251e90__0.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vp1_tb__pch.h.fast -c -o Vp1_tb___024root__DepSet_h56251e90__1.o Vp1_tb___024root__DepSet_h56251e90__1.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vp1_tb__pch.h.fast -c -o Vp1_tb___024root__DepSet_h7a03ca6d__0.o Vp1_tb___024root__DepSet_h7a03ca6d__0.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vp1_tb__pch.h.fast -c -o Vp1_tb__main.o Vp1_tb__main.cpp
+g++   -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vp1_tb__pch.h.slow -c -o Vp1_tb___024root__Slow.o Vp1_tb___024root__Slow.cpp
+g++   -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vp1_tb__pch.h.slow -c -o Vp1_tb___024root__DepSet_h56251e90__0__Slow.o Vp1_tb___024root__DepSet_h56251e90__0__Slow.cpp
+g++   -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vp1_tb__pch.h.slow -c -o Vp1_tb___024root__DepSet_h7a03ca6d__0__Slow.o Vp1_tb___024root__DepSet_h7a03ca6d__0__Slow.cpp
+g++   -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vp1_tb__pch.h.slow -c -o Vp1_tb___024unit__Slow.o Vp1_tb___024unit__Slow.cpp
+g++   -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vp1_tb__pch.h.slow -c -o Vp1_tb___024unit__DepSet_h51c373b7__0__Slow.o Vp1_tb___024unit__DepSet_h51c373b7__0__Slow.cpp
+g++   -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -include Vp1_tb__pch.h.slow -c -o Vp1_tb__Syms.o Vp1_tb__Syms.cpp
+Archive ar -rcs Vp1_tb__ALL.a Vp1_tb.o Vp1_tb___024root__DepSet_h56251e90__0.o Vp1_tb___024root__DepSet_h56251e90__1.o Vp1_tb___024root__DepSet_h7a03ca6d__0.o Vp1_tb__main.o Vp1_tb___024root__Slow.o Vp1_tb___024root__DepSet_h56251e90__0__Slow.o Vp1_tb___024root__DepSet_h7a03ca6d__0__Slow.o Vp1_tb___024unit__Slow.o Vp1_tb___024unit__DepSet_h51c373b7__0__Slow.o Vp1_tb__Syms.o
+g++     verilated.o verilated_timing.o verilated_threads.o Vp1_tb__ALL.a    -pthread -lpthread -latomic   -o Vp1_tb
+rm Vp1_tb__ALL.verilator_deplist.tmp
+make: Leaving directory '/tmp/sar_rtl_7ljzb19i'

@@ -1,0 +1,24 @@
+[P2P-TRACE] 观测 trace -> p3_trace.txt（列见模块头 [I]）
+=== T1 weight_store：写守卫 / 写窗口 / 越界不落盘 / 灌满全库 ===
+  [U1] 容量分支 sum_new < SUM_MAX 在冻结尺寸下不可达（界证明见上两条）；
+       本 TB 用「灌满全库也不越界」代替，真正的触发只在 mutant 上做。
+  T1 小计：checks=41 errors=0
+=== T2 status_regs：粘滞只由 clr/rst_n 解除 / clip 非粘滞 / 位序 ===
+  T2 小计：checks=131 errors=0
+=== T3 rdac_drv：逐位扇出 / load 外保持 / slice_id 重复 ===
+  T3 小计：checks=225 errors=0
+=== T4 ctrl_fsm：相位图 / cfg_ready 与 run 的不变量 ===
+  [T4] 48 拍内 sample_en=3 次；sample_idx 由 1 变到 4
+  [T4] 拉低 run 后：phase=0 sample_idx=4（冻结值 4）
+  T4 小计：checks=688 errors=0
+=== T5 calib_regs：空量程拒绝 / 写窗口 / 控制位 / clear 优先 ===
+  T5 小计：checks=709 errors=0
+[P2P-TRACE] trace 关闭：共 2834 行 -> p3_trace.txt
+================================================
+  p2_periph: checks=709 errors=0
+================================================
+p2_periph PASS
+- sim/tb/p2_periph_tb.sv:695: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.49
+- Verilator: $finish at 28us; walltime 0.013 s; speed 2.272 ms/s
+- Verilator: cpu 0.012 s on 1 threads; allocated 2 MB

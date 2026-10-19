@@ -1,0 +1,52 @@
+{
+  "utc": "2026-09-29T20:31:40.320237+00:00",
+  "status": "STATIC_TEX_AND_EVIDENCE_CHECKS_PASS_NOT_COMPILED",
+  "scope": "Only verification_method.tex and final_regression_evidence.tex edited; external reducer figure fragment included exactly once. Main report and measurements left to root.",
+  "files": [
+    {
+      "path": "sections/verification_method.tex",
+      "sha256": "b3972b1700e466c7e01a83fbbe40a35ba9649239fb8b7588b0badf7df329c833",
+      "environment_and_brace_balance": "PASS",
+      "utf8_replacement_character_absent": true,
+      "referenced_inputs_and_figures_exist": true
+    },
+    {
+      "path": "sections/final_regression_evidence.tex",
+      "sha256": "ba1d81a9a6b7036b210eeec5c01a17e10367509064117874ba8b4c548a7a08fd",
+      "environment_and_brace_balance": "PASS",
+      "utf8_replacement_character_absent": true,
+      "referenced_inputs_and_figures_exist": true
+    },
+    {
+      "path": "sections/reducer_scheduler_figure.tex",
+      "sha256": "e333fb6319b06a420965406c555aa933868e09ca1e87b865eb00d6492e40f484",
+      "environment_and_brace_balance": "PASS",
+      "utf8_replacement_character_absent": true,
+      "referenced_inputs_and_figures_exist": true
+    }
+  ],
+  "checks": [
+    "Balanced environments and braces in both edited fragments plus included figure",
+    "All referenced input and image files exist",
+    "Each cross-reference in edited fragments resolves to one label",
+    "Reducer figure input occurs exactly once",
+    "Compact raw run hashes and recorded counts agree",
+    "Reducer counts, completion markers and source identity agree",
+    "918-test raw log SHA matches manifest"
+  ],
+  "non_claims": [
+    "No LaTeX compilation or page-layout inspection in this milestone",
+    "No new RTL simulation or remote EDA",
+    "No new synthesis, routing, or mapped functional results"
+  ],
+  "source_identities": {
+    "historical_rtl_prefix": "169f957dc7fe",
+    "compact_rtl_sha256": "fd885e882ad5447f87626dc034fb59a6853a86f01050957a93b8a6407ebbbc13"
+  },
+  "source_manifest_sha256": {
+    "compact_profiles/manifest.json": "3a259277f2945d06f8202224e30826c11621d3c213cd7fafbcdc49187f859653",
+    "reducer_scheduler/manifest.json": "1e6257e9cfb807307cd91374394320075f05e3e71595c0cc3197ec762522e428",
+    "python_regression/manifest.json": "c0fbc5d1947b74eeb6917424ab143d2d08b4a16bbd188ba05590e89ff52d6752"
+  },
+  "checkpoint": "Section integration complete; root can perform final compile and visual QA with its main-file edits."
+}

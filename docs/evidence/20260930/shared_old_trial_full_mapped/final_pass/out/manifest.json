@@ -1,0 +1,188 @@
+{
+  "status": "FULL_MAPPED_FUNCTIONAL_PASS",
+  "scope": "FULL_TOP_POST_SYNTH_FUNCTIONAL_NO_SDF_NOT_TIMING",
+  "origin": {
+    "part": "xc7vx690tffg1761-2",
+    "stages": 5,
+    "dcp_sha256": "63a6faacdc44e54da02514a70ff658ac31756853496114513018ac5714cc856e",
+    "binding": "explicit_caller_expected_sha256",
+    "synthesis_status": "SYNTH_COMPLETE_TIMING_MET",
+    "synthesis_wns_ns": 10.64
+  },
+  "steps": [
+    {
+      "step": "export",
+      "argv": [
+        "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\vivado.bat",
+        "-mode",
+        "batch",
+        "-nojournal",
+        "-log",
+        "export.vivado.log",
+        "-source",
+        "input/run_vivado_full_mapped.tcl",
+        "-tclargs",
+        "input/post_synth.dcp",
+        "export",
+        "xc7vx690tffg1761-2",
+        "5"
+      ],
+      "raw_returncode": 0,
+      "console_sha256": "c747d2332d830dfef9d17ee279ea313e540c188ef02da68bd198ce80465d076b"
+    },
+    {
+      "step": "xvlog",
+      "argv": [
+        "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xvlog.bat",
+        "--sv",
+        "-d",
+        "FULL_MAPPED_VENDOR_PORTS",
+        "export/full_top_funcsim.v",
+        "input/structural_mapped_tb.sv",
+        "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\data\\verilog\\src\\glbl.v"
+      ],
+      "raw_returncode": 0,
+      "console_sha256": "7e9b004fb269780b17e8d1b09b5604c5606521981e58b93abbc860c644d06957"
+    },
+    {
+      "step": "xelab",
+      "argv": [
+        "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xelab.bat",
+        "structural_mapped_tb",
+        "glbl",
+        "-L",
+        "unisims_ver",
+        "-s",
+        "full_mapped_p5",
+        "-mt",
+        "2",
+        "-generic_top",
+        "P_RECON_STAGES=5"
+      ],
+      "raw_returncode": 0,
+      "console_sha256": "ff744da8cf388310763378c12390cc15efd6b4b53bd52878ef163ad69a907b2c"
+    },
+    {
+      "step": "xsim",
+      "argv": [
+        "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xsim.bat",
+        "full_mapped_p5",
+        "-R",
+        "-testplusarg",
+        "mapped_trace=trace.csv",
+        "-log",
+        "xsim.log"
+      ],
+      "raw_returncode": 0,
+      "console_sha256": "67df14a0ca29729bf1a9505fcc9c6502a6191c952a721e99d173233b9baac0c3"
+    }
+  ],
+  "helper_sha256": "ce553faec4ab6ef0e704b6aa2c14cc9ca6fdd8a756223aeddd1f0c36eb3462ce",
+  "input_sha256": {
+    "post_synth.dcp": "63a6faacdc44e54da02514a70ff658ac31756853496114513018ac5714cc856e",
+    "synthesis_manifest.json": "94d148c6f113c896b9d28c2fa60a58683a845136994fc429a3961c0859ab0c01",
+    "structural_mapped_tb.sv": "bef8eb307497195fee47ca55ba316984c89088127a8b4387dfc1fa7b0289d7f0",
+    "run_vivado_full_mapped.tcl": "7acae8383b5988e2484fd5c19e7fad5abaa4debacdcc963af0abe5b3b23fd395",
+    "run_vivado_full_mapped.py": "ce553faec4ab6ef0e704b6aa2c14cc9ca6fdd8a756223aeddd1f0c36eb3462ce",
+    "audit_full_mapped.py": "ef456b45938f0483d201bb79d741a4ad3c1ec0b23daea738742f6f47cddbbde2"
+  },
+  "commands": [
+    [
+      "export",
+      [
+        "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\vivado.bat",
+        "-mode",
+        "batch",
+        "-nojournal",
+        "-log",
+        "export.vivado.log",
+        "-source",
+        "input/run_vivado_full_mapped.tcl",
+        "-tclargs",
+        "input/post_synth.dcp",
+        "export",
+        "xc7vx690tffg1761-2",
+        "5"
+      ]
+    ],
+    [
+      "xvlog",
+      [
+        "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xvlog.bat",
+        "--sv",
+        "-d",
+        "FULL_MAPPED_VENDOR_PORTS",
+        "export/full_top_funcsim.v",
+        "input/structural_mapped_tb.sv",
+        "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\data\\verilog\\src\\glbl.v"
+      ]
+    ],
+    [
+      "xelab",
+      [
+        "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xelab.bat",
+        "structural_mapped_tb",
+        "glbl",
+        "-L",
+        "unisims_ver",
+        "-s",
+        "full_mapped_p5",
+        "-mt",
+        "2",
+        "-generic_top",
+        "P_RECON_STAGES=5"
+      ]
+    ],
+    [
+      "xsim",
+      [
+        "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xsim.bat",
+        "full_mapped_p5",
+        "-R",
+        "-testplusarg",
+        "mapped_trace=trace.csv",
+        "-log",
+        "xsim.log"
+      ]
+    ]
+  ],
+  "tool_sha256": {
+    "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\vivado.bat": "ee806dfd48801247b5344ba5c45b1c0d42a0efa46b5151f569973e9e2e40d41f",
+    "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\data\\verilog\\src\\glbl.v": "c48753ff3481f46872a09160eee14b5596b37444c1bf2b84bf2acd922e7c982d",
+    "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xvlog.bat": "b0084c144b39f47a8b7d142052fbadb3049550f341abe462233d411327d15999",
+    "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xelab.bat": "b0084c144b39f47a8b7d142052fbadb3049550f341abe462233d411327d15999",
+    "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xsim.bat": "b0084c144b39f47a8b7d142052fbadb3049550f341abe462233d411327d15999"
+  },
+  "export_status": {
+    "STATUS": "FULL_MAPPED_EXPORT_COMPLETE",
+    "TOP": "sar20_digital_core",
+    "CHECKPOINT_DESIGN_NAME": "checkpoint_post_synth",
+    "PART": "xc7vx690tffg1761-2",
+    "P_RECON_STAGES": "5",
+    "STAGE_BINDING": "CALLER_SYNTHESIS_MANIFEST_AND_DCP_SHA256",
+    "VIVADO_VERSION": "2018.3",
+    "SCOPE": "FULL_TOP_POST_SYNTH_FUNCTIONAL_NO_SDF_NOT_TIMING"
+  },
+  "netlist_sha256": "ad93cd2321c38e79502f3e498e786a6ed071151920309fcfb081dfe99fd83a0e",
+  "audit": {
+    "status": "PASS",
+    "scope": "TB_TRACE_CONSISTENCY_NOT_NETLIST_IDENTITY_OR_TIMING",
+    "recon_stages": 5,
+    "rows": 438,
+    "rows_per_mode": [
+      146,
+      146,
+      146
+    ],
+    "config_readbacks": 3900,
+    "protocol_checks": 7680,
+    "physical_slices": 18,
+    "cancelled": 3,
+    "code_mismatches": 0,
+    "flag_mismatches": 0,
+    "internal_launch_latency_checked": false,
+    "nonzero_flags_exercised": false,
+    "trace_sha256": "c40ce4404bbbeae26df514be6484722682f936a626c56bd156ada9b5ae8d2073",
+    "log_sha256": "d8cde83933032fe700998bc409b60142eca3fb102f0029ec45879398452620f3"
+  }
+}

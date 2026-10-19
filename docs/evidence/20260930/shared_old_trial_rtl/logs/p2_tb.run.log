@@ -1,0 +1,23 @@
+p2_tb: vdir=/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_vivado_20260930/repair_shared_old_functional/sim/vectors NLAT=11 only=
+[T1] div_floor directed done: errors=0
+[T2] div_floor property (q*d<=a<(q+1)*d) done: errors=0
+[T3] adc2_dec directed (n_bits sweep + ties-to-even) done: errors=0
+[T4] recon_core latency measured=11 (NLAT=11), T4 errors=0
+  [T4 probe] cfg_ready=1 dout_valid=1 cl=0 ch=0
+  [T4 probe] div_q=0 x?=0 | clip_lo_c=0(0) clip_hi_c=0(0)
+  [T4 probe] gain_s=1073741824 x?=0 total_s=1073741824 x?=0 rails_s=1073741824 x?=0
+  [T4 probe] a1=536870912 x?=0 shifted95=0 ovf_pend=0 gerr_pend=0
+T5 delegated to p2_oracle_tb
+  T6: p2_masks.hex rows consumed = 512
+[T6] recon_core mask cases done: errors=0
+[T7] recon_core carry ramp done: rows=2044 errors=0
+  T8: p2_sat.hex rows consumed = 48
+[T8] saturation (4-bit oracle) done: errors=0
+[T8b] sticky overflow / hold-previous done: cumulative T8 errors=0
+[T9] L3 link (M1->M2->M3->M5->recon) done: errors=0, model analog_ovf rows=202
+  T9 stim 模拟域标志实测归属：any=202 rdac_over=202 adc2_over=198 ra_sat=185
+p2_tb summary: checks=23049 errors=0
+  per-test errors: T1(div)=0 T2(divprop)=0 T3(adc2)=0 T4(lat)=0
+                   T5(oracle)=0 T6(masks)=0 T7(ramp)=0 T8(sat+sticky)=0 T9(link)=0
+P2 RESULT: PASS
+- sim/tb/p2_tb.sv:869: Verilog $finish

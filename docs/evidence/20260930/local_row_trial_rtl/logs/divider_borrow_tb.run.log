@@ -1,0 +1,8 @@
+DIVIDER_BORROW_CASE_PASS numerator_bits=2 denominator_bits=1 stages=1 checks=8
+DIVIDER_BORROW_CASE_PASS numerator_bits=6 denominator_bits=5 stages=5 checks=2048
+DIVIDER_BORROW_CASE_PASS numerator_bits=6 denominator_bits=8 stages=7 checks=16384
+DIVIDER_BORROW_CASE_PASS numerator_bits=6 denominator_bits=8 stages=3 checks=16384
+DIVIDER_BORROW_CASE_PASS numerator_bits=6 denominator_bits=8 stages=2 checks=16384
+DIVIDER_BORROW_CASE_PASS numerator_bits=6 denominator_bits=8 stages=1 checks=16384
+DIVIDER_BORROW_COMPLETE exhaustive_checks=67592
+- sim/tb/divider_borrow_tb.sv:89: Verilog $finish

@@ -1,0 +1,6 @@
+OUTPUT_FLAG_SEQUENCE_PASS scenarios=8
+MAC_INDEPENDENT_PASS cases=40010
+ADC_INDEPENDENT_PASS cases=40000
+DIV_INDEPENDENT_PASS cases=10048 latency=9 busy_requests_ignored
+ARITHMETIC_AUDIT_COMPLETE mac=40010 adc=40000 div=10048 flag_sequences=8
+- /var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/sar-arithmetic-audit-dyo0at8l/repo/sim/tb/arithmetic_audit_tb.sv:122: Verilog $finish

@@ -18,7 +18,7 @@ jobs:
   rtl:
     name: RTL simulation (Verilator)
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -32,14 +32,18 @@ jobs:
       - name: Synthesis flow regression without EDA licenses
         run: |
           pip install pytest numpy
-          pytest tests/unit/test_synth_flow.py -q
+          pytest tests/unit/test_synth_flow.py tests/unit/test_vivado_flow.py tests/unit/test_vivado_impl.py tests/unit/test_clockless_inspection.py tests/unit/test_vivado_buffered_impl.py tests/unit/test_vivado_full_mapped.py -q
       - name: Compile and execute RTL regressions
         run: python tools/run_open_rtl.py
+      - name: Independent arbitrary-precision arithmetic audit
+        run: python tools/audit_rtl_arithmetic.py --output-dir sim/artifacts/arithmetic-audit
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: rtl-simulation-logs
-          path: sim/artifacts/open_rtl/*.log
+          path: |
+            sim/artifacts/open_rtl/*.log
+            sim/artifacts/arithmetic-audit/
 
   lint:
     name: Lint (ruff)

@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "scope": "SOURCE_TOKEN_MACRO_PRAGMA_IDENTITY_AND_THREE_LINT_PROFILES_WITH_ONE_NEW_BENCH",
+  "current_rtl_content_sha256": "647350f3aed7c8d5b43fdcdfa47fea2bfeb43a755a607e89ce90cd903b7fff16",
+  "baseline_rtl_content_sha256": "89b9f8153fea49d82faba8464e45bb83c914b11ebf708fb623a9fe3a660b5d26",
+  "baseline_git_commit": "71e7d5a017246340b9fa1f71cbbe99e20b6503f6",
+  "file_count": 26,
+  "changed_files": 25,
+  "effective_tokens": 18149,
+  "generator_unchanged": "rtl/params/rtl_params.vh",
+  "new_bench": "engineering_fsm_tb",
+  "production_logic_changed": false,
+  "new_eda_run": false,
+  "guard_test_cases": 10,
+  "guard_test_composition": {
+    "layout_positive": 1,
+    "semantic_mutations": 8,
+    "unsupported_group_with_three_subcases": 1
+  }
+}

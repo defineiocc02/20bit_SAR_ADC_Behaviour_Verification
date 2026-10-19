@@ -1,0 +1,5 @@
+REVIEW_CONFIG_COMPLETE outputs=624
+- sim/tb/review_config_tb.sv:82: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.49
+- Verilator: $finish at 153us; walltime 0.013 s; speed 12.294 ms/s
+- Verilator: cpu 0.012 s on 1 threads; allocated 2 MB

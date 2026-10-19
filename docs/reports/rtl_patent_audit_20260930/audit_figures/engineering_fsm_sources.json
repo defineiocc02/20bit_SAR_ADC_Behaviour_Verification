@@ -1,0 +1,13 @@
+{
+  "rtl/core/analog_phase_ctrl.sv": "2c33405498aba0fe7c3530fcd3f8acf840ed019274d1070736f786255bb76c02",
+  "rtl/core/sar_structural_ctrl.sv": "c6f5ac43086dc4aef6045d85b8fde244f3c758991c525a689b18bffdb80b349a",
+  "rtl/core/sar_trial_ctrl.sv": "dca169cd89e9fab1235f9264c76079e5783969e593bc098206a4bd4de1a9fbf2",
+  "rtl/core/recon_core.sv": "9cd22072bf244c60966a4132d7727430b17a1929eeae2c44e12ba2d81a899c2e",
+  "rtl/core/div_floor.sv": "dd8afd4c9cc378ab78e993b7f2a8d82bed09eb63f05237454c5f97c0cb9e15ce",
+  "rtl/core/cal_output_stage.sv": "b0396b20835a7710903d3e225f611eb78817e4906133b47757c7ef585909aadd",
+  "rtl/top/sar20_digital_core.sv": "382f1242ea18b636ab9ea3b65c1b607a8a646ac8c050f4b77d0fb115548f4fa3",
+  "rtl/core/calib_regs.sv": "7bd4019bbddfa65f03b7cf8a99110177122230d549b6009fc5df4f74b34fce8d",
+  "rtl/core/weight_store.sv": "32eccfc231d4b8a5ff793e38174e5d5c6560dfd65c8670b3ab225368155948af",
+  "scope": "SOURCE_DERIVED_EXPLANATION_NOT_SIMULATION_OR_STA_PROOF",
+  "generator_sha256": "6eb7d1e833c25ceed74f63d2cd867299fdba0bb50cfa3312d81bf91d661c28ad"
+}

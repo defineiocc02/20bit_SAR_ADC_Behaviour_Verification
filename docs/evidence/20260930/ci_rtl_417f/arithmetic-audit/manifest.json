@@ -1,0 +1,51 @@
+{
+  "status": "PASS",
+  "seed": 20260930,
+  "counts": {
+    "mac": 40010,
+    "mac_nonoverflow": 20859,
+    "adc": 40000,
+    "div": 10048,
+    "flag_sequences": 8
+  },
+  "tool_command": [
+    "/usr/bin/verilator"
+  ],
+  "verilator_version": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)\n\nCopyright 2003-2024 by Wilson Snyder.  Verilator is free software; you can\nredistribute it and/or modify the Verilator internals under the terms of\neither the GNU Lesser General Public License Version 3 or the Perl Artistic\nLicense Version 2.0.\n\nSee https://verilator.org for documentation\n\nSummary of configuration:\n  Compiled in defaults if not in environment:\n    SYSTEMC            = \n    SYSTEMC_ARCH       = \n    SYSTEMC_INCLUDE    = \n    SYSTEMC_LIBDIR     = \n    VERILATOR_ROOT     = /usr/share/verilator\n    SystemC system-wide = 1\n\nEnvironment:\n    MAKE               = \n    PERL               = \n    SYSTEMC            = \n    SYSTEMC_ARCH       = \n    SYSTEMC_INCLUDE    = \n    SYSTEMC_LIBDIR     = \n    VERILATOR_BIN      = \n    VERILATOR_ROOT     = \n\nSupported features (compiled-in or forced by environment):\n    COROUTINES         = 1\n    SYSTEMC            = 1\n",
+  "runtime_environment": {},
+  "compile_command": [
+    "/usr/bin/verilator",
+    "--binary",
+    "--timing",
+    "--top-module",
+    "arithmetic_audit_tb",
+    "-Wno-fatal",
+    "-CFLAGS",
+    "-std=c++20",
+    "-MAKEFLAGS",
+    "PYTHON3=/tmp/sar-arithmetic-audit-kf8x98k9/python3 CFG_CXXFLAGS_PCH_I=-include",
+    "-I/tmp/sar-arithmetic-audit-kf8x98k9/repo/rtl/params",
+    "--Mdir",
+    "/tmp/sar-arithmetic-audit-kf8x98k9/obj",
+    "/tmp/sar-arithmetic-audit-kf8x98k9/repo/rtl/core/cal_residue_mac.sv",
+    "/tmp/sar-arithmetic-audit-kf8x98k9/repo/rtl/core/adc2_dec.sv",
+    "/tmp/sar-arithmetic-audit-kf8x98k9/repo/rtl/core/div_floor.sv",
+    "/tmp/sar-arithmetic-audit-kf8x98k9/repo/rtl/core/cal_output_stage.sv",
+    "/tmp/sar-arithmetic-audit-kf8x98k9/repo/sim/tb/arithmetic_audit_tb.sv"
+  ],
+  "sources_sha256": {
+    "rtl/core/cal_residue_mac.sv": "082a93293cda83f79ff0ac7ef72e484043f8bbceb914361f270059b4bb764f71",
+    "rtl/core/adc2_dec.sv": "268d279bdc1c2cdd7161072733c5046e701524c7e217b52ff0c7ca08951154f5",
+    "rtl/core/div_floor.sv": "cc3b0bd9c5e6c8491af10d0696f82e59373426c538c3212c210093dbc84c515c",
+    "rtl/core/cal_output_stage.sv": "30cb3de766b0c2f316bd65f519304e95a35897b55568564e56c999c8bac0c0c2",
+    "sim/tb/arithmetic_audit_tb.sv": "e39fffd568a74f4896e2a71b71b5f10318a28329504789f5a0bdffb963e0c95b",
+    "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+    "tools/audit_rtl_arithmetic.py": "5ff125d5d20bfbc93975aee04eb19d7b3080341f80cab0560416c85a8024d803"
+  },
+  "vectors_sha256": {
+    "mac.hex": "c660e54c9636a53fceda4dfb03cc65e03eb3321f0917376f0e4b04b451eb73e2",
+    "adc.hex": "413a6e8ac1637a0bb3093b7408e03ebd74d11e16735bc78e8a287ac1978f8d25",
+    "div.hex": "ed6c4e03bb5c9b98123f695d7c92e866a0c01c715e4c4eb3432a2533c25ff758"
+  },
+  "scope": "Block arithmetic and directed output protocol; not full design, analog, STA, or formal proof."
+}

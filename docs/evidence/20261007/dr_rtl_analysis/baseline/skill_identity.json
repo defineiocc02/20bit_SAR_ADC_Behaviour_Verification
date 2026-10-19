@@ -1,0 +1,13 @@
+{
+  "skill_root": "/Users/zhaoyi/.codex/skills/asic-rtl-timing",
+  "sha256": {
+    "SKILL.md": "98ad0d99c0e3aadf66b8795f78ba0837944ba35bd791b452843d006b2a97ab2d",
+    "references/framework.md": "379c4514340be6bc7774175b320114dc4ae741036d476110a6f7881773bdb103",
+    "references/timing-diagnosis.md": "495414b97f40f445b51454eaa645a5da425a25781cf32cf813805a4cc77ddabb",
+    "references/sdc-sta.md": "1e39ee95ea2710054094dcf4d41f205c93db6c1ce0b79a5a246088641401c631",
+    "references/dr-rtl-patterns.md": "99610f2e25354de1bfa657aeddaf3abb17afd163da593d52d5353671a1a35d79",
+    "references/run-format.md": "9b844ba0a52bea29b8eb493cd2ee4500bc40ba7997ac161c8817d5c8fa6b1aff",
+    "scripts/compare_runs.py": "e1f1ec69c9bbb11369dc4bc8c324aa760ac4cf473e5010644819e2e91565ad6e"
+  },
+  "application": "analysis-only; actual generic cone synthesis and remote frozen-FPGA report reexport; no rewrite/SEC/promotion or prediction"
+}

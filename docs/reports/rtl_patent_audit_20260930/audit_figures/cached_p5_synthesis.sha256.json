@@ -1,0 +1,38 @@
+{
+  "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/vivado_cached_p5/readings.json",
+  "source_sha256": "f5519da3ab1efa5adced8b81075363e53184c4e998198d3ed563b99b7266c53f",
+  "archive_hashes_verified": 25,
+  "metrics": {
+    "resource_used": [
+      106205,
+      66520,
+      20,
+      0
+    ],
+    "resource_available": [
+      433200,
+      866400,
+      3600,
+      1470
+    ],
+    "resource_percent": [
+      24.516389658356417,
+      7.677746999076639,
+      0.5555555555555556,
+      0.0
+    ],
+    "slack_ns": [
+      10.64,
+      -0.264,
+      12.15
+    ],
+    "data_delay_ns": 14.312,
+    "logic_delay_ns": 8.404,
+    "estimated_interconnect_ns": 5.908,
+    "logic_levels": 110
+  },
+  "generator_sha256": "c3bfdd441b917b56f49a0d6d65670ca334c3cb5c5ed62934774dc8453c24b09d",
+  "pdf_sha256": "226ae75eebc4b37fab311560e42e30d3361fa1b0d4978e597d44a2e6876cd651",
+  "png_sha256": "5a3f5cfea07794d1845ab0594527ed4309fc1a80f1ee0d10c94b2ce40bd68123",
+  "scope": "POST_SYNTHESIS_OOC_NOT_ROUTED_TIMING_NOT_POWER_MEASUREMENT"
+}

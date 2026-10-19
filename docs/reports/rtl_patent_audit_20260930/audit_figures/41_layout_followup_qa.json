@@ -1,0 +1,26 @@
+{
+  "scope": "Layout-only follow-up to historical 41_qa.json; does not repeat RTL or EDA",
+  "previous_section_sha256": "2eff1cb222745da614118546880d1c0800f5bba1756acb9b13f0ba0799c2f6fa",
+  "previous_section_preserved": "history/row_cache_before_layout_fix/row_cache_evidence.tex",
+  "current_section_sha256": "e78df7d7e91a3c77c743dd5348ae47ed9118cc419cd9c5e868e72c260fdeb9aa",
+  "changes": [
+    "Move the complete maximum/replacement explanation before the figure",
+    "Keep the short replacement formula unbroken with mbox",
+    "Use an in-order H figure to prevent a full-page float from splitting the explanation"
+  ],
+  "compiled_pdf": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_patent_rtl_report_20260928/.build/report.PImeVn/report.pdf",
+  "compiled_pdf_sha256": "711d637ddc3e8c0f12ad1a57650b171299d20bd9d218d5bd577f7b2630d97991",
+  "compiled_page_count": 78,
+  "build": "build_report.sh completed two XeLaTeX passes without diagnostics",
+  "final_tex_log_sha256": "7e1f53d617781bb200d7f2a5132d4a1a791399f7fad4622393339a10c133cdaa",
+  "visual_review": {
+    "pdf_pages_viewed": [
+      74,
+      75
+    ],
+    "replacement_formula": "Complete formula and explanation on page 75 before the figure; no intervening float",
+    "figure": "All tables, exact integer values, panels and caption visible without cropping"
+  },
+  "figure_bytes_unchanged": true,
+  "not_final_delivery_qa": true
+}

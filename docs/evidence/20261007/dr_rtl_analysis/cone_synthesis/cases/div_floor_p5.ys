@@ -1,0 +1,13 @@
+read_verilog -sv -Irtl/params rtl/core/div_floor.sv
+chparam -set P_STAGES 5 div_floor
+hierarchy -check -top div_floor
+proc
+opt
+check -assert
+stat -width
+write_json outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/div_floor_p5.pre.json
+synth -top div_floor -noabc
+check -assert
+stat -width
+write_json outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/div_floor_p5.generic.json
+write_verilog -noattr outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/div_floor_p5.generic.v

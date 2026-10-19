@@ -1,0 +1,252 @@
+{
+  "scope": "FPGA_POST_SYNTH_OOC_P7_COMBINED_REDUCER_DIVIDER_AB_NOT_ROUTED_NOT_FULL_MAPPED_NOT_ASIC",
+  "conclusion": "Candidate LUT count increases by 27793 (+16.23%); estimated WNS improves by 0.314 ns but remains -17.112 ns. Both setup and hold fail. This pair demonstrates no timing closure or general PPA advantage.",
+  "fixed_conditions": {
+    "vivado": "2018.3",
+    "part": "xc7vx690tffg1761-2",
+    "stages": 7,
+    "requested_period_ns": 1.5625,
+    "reported_period_ns": 1.563,
+    "user_uncertainty_ns": 0.05,
+    "synthesis_tcl_sha256": "f9084c25618a94b8bd492e2dc699d6cb15a46d72a8be8e55d4c453b623487ed7",
+    "screening_xdc_sha256": "0e8f55a33427e6570f38328d4786a000e803db7aef25ba5ea95ff172458d7d65",
+    "input_and_output_delay_ns": 0.0
+  },
+  "source_scope": {
+    "source_members": 28,
+    "changed_members": [
+      {
+        "path": "rtl/core/cal_weight_reduce.sv",
+        "baseline_sha256": "68269e95d408f5f4b8d0cac1d3c9451822fdf0111f000916292de40ca02a9d81",
+        "optimized_sha256": "c5fc7f6ef58b8e7497042ac9dc2e48cc44e895c7a39908de987f5ed17165b4f2"
+      },
+      {
+        "path": "rtl/core/div_floor.sv",
+        "baseline_sha256": "f798b5d5b905c10cf21164821ecd8e6829fdd05c260c2cc73f36339b5feff62d",
+        "optimized_sha256": "cc3b0bd9c5e6c8491af10d0696f82e59373426c538c3212c210093dbc84c515c"
+      }
+    ],
+    "unchanged_members": 26,
+    "attribution": "Combined reducer and divider changes; this experiment cannot isolate either contribution. Rebuilt hierarchy can move logic between module rows.",
+    "later_weight_msb_mask_included": false,
+    "weight_store_sha256": "15c0a33322e6edf5fbc99ec2058ef2b720c356763362c22639d8619ceda5be8a",
+    "current_repository_rtl_identity_must_not_be_substituted": true,
+    "transport_timeout_difference_seconds": {
+      "baseline": 3600,
+      "optimized": 7200,
+      "effect": "Host wait limit only; both jobs completed; same synthesis Tcl and XDC."
+    }
+  },
+  "metrics": {
+    "lut": {
+      "baseline": 171246,
+      "optimized": 199039,
+      "delta": 27793,
+      "delta_percent": 16.229868142905524
+    },
+    "ff": {
+      "baseline": 66817,
+      "optimized": 66778,
+      "delta": -39,
+      "delta_percent": -0.05836837930466299
+    },
+    "wns_ns": {
+      "baseline": -17.426,
+      "optimized": -17.112,
+      "delta": 0.314
+    },
+    "whs_ns": {
+      "baseline": -0.264,
+      "optimized": -0.264,
+      "delta": 0.0
+    },
+    "wpws_ns": {
+      "baseline": 0.025,
+      "optimized": 0.025,
+      "delta": 0.0
+    },
+    "tns_ns": {
+      "baseline": -170862.625,
+      "optimized": -169945.859,
+      "delta": 916.766
+    },
+    "ths_ns": {
+      "baseline": -15260.233,
+      "optimized": -15260.761,
+      "delta": -0.528
+    },
+    "tpws_ns": {
+      "baseline": 0.0,
+      "optimized": 0.0,
+      "delta": 0.0
+    },
+    "setup_failing_endpoints": {
+      "baseline": 71067,
+      "optimized": 69461,
+      "delta": -1606
+    },
+    "hold_failing_endpoints": {
+      "baseline": 61733,
+      "optimized": 61735,
+      "delta": 2
+    },
+    "pulse_failing_endpoints": {
+      "baseline": 0,
+      "optimized": 0,
+      "delta": 0
+    }
+  },
+  "per_run": {
+    "baseline": {
+      "readings": "baseline/readings.json",
+      "readings_sha256": "0ffa33cc605fff479ed940fddcb0a3eaafe9bf0e2d67d40207cc6be0dd6a2726",
+      "raw_manifest": "baseline/manifest.json",
+      "raw_manifest_sha256": "367b0eaeab916dcda5fc9d21ae02ae6562af7877c22fcfdf94cb804acf26ede7",
+      "archive_index": "baseline/archive_index.json",
+      "archive_index_sha256": "ef7b5754cf88abd251ea95c630726109e656d66f4fa8f58033949ff328ba7029",
+      "status": "SYNTH_COMPLETE_TIMING_NOT_MET",
+      "worst_setup_path": {
+        "source": "u_recon/u_div/dv_reg[0]/C",
+        "destination": "u_recon/u_div/q_reg[60]/D",
+        "data_delay_ns": 18.941,
+        "logic_delay_ns": 12.734,
+        "estimated_route_delay_ns": 6.207,
+        "logic_levels": 135,
+        "logic_types": "CARRY4=117 LUT1=1 LUT2=1 LUT3=7 LUT4=5 LUT5=1 LUT6=3",
+        "clock_uncertainty_ns": 0.085,
+        "user_uncertainty_ns": 0.05,
+        "scope": "post-synthesis estimated interconnect, not routed path"
+      },
+      "external_dcp": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_baseline/synth/artifacts/vivado/20260929T190955.260429Z_p7_recovered/out/post_synth.dcp",
+        "bytes": 69108593,
+        "sha256": "9c3bc09dd193d0bffcd6d00f9af83cc887fde5423402416af751f4a2d1ef506b"
+      },
+      "power_vectorless": {
+        "total_on_chip_w": 1.58,
+        "dynamic_w": 1.243,
+        "device_static_w": 0.337,
+        "simulation_activity_file": "---",
+        "confidence": "Medium",
+        "scope": "Vectorless synthesized-netlist estimate, not measured power or activity-annotated signoff"
+      },
+      "drc": {
+        "violations": 49,
+        "error_count": 0,
+        "rules": [
+          {
+            "rule": "CFGBVS-1",
+            "severity": "Warning",
+            "description": "Missing CFGBVS and CONFIG_VOLTAGE Design Properties",
+            "violations": 1
+          },
+          {
+            "rule": "DPIP-1",
+            "severity": "Warning",
+            "description": "Input pipelining",
+            "violations": 14
+          },
+          {
+            "rule": "DPOP-1",
+            "severity": "Warning",
+            "description": "PREG Output pipelining",
+            "violations": 20
+          },
+          {
+            "rule": "DPOP-2",
+            "severity": "Warning",
+            "description": "MREG Output pipelining",
+            "violations": 14
+          }
+        ]
+      }
+    },
+    "optimized": {
+      "readings": "optimized/readings.json",
+      "readings_sha256": "519e288076ff681424e7d5c3a1465d3ba57c74718af273ce13c27e0bea7a0b3b",
+      "raw_manifest": "optimized/manifest.json",
+      "raw_manifest_sha256": "822ae0dc90c6d2229908814f89401c48477e01b6b7e9731358705bf45d3a5b3a",
+      "archive_index": "optimized/archive_index.json",
+      "archive_index_sha256": "45d8df24114b988d0d2ce0241e615e1c0257dd8d07f2b65c5cb35b5632cc063e",
+      "status": "SYNTH_COMPLETE_TIMING_NOT_MET",
+      "worst_setup_path": {
+        "source": "u_recon/u_div/rem_reg[0]/C",
+        "destination": "u_recon/u_div/q_reg[60]/D",
+        "data_delay_ns": 18.627,
+        "logic_delay_ns": 11.007,
+        "estimated_route_delay_ns": 7.62,
+        "logic_levels": 148,
+        "logic_types": "CARRY4=125 LUT1=1 LUT2=6 LUT3=1 LUT4=2 LUT5=1 LUT6=12",
+        "clock_uncertainty_ns": 0.085,
+        "user_uncertainty_ns": 0.05,
+        "scope": "post-synthesis estimated interconnect, not routed path"
+      },
+      "external_dcp": {
+        "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_optimized/synth/artifacts/vivado/20260929T195145.299826Z_p7/out/post_synth.dcp",
+        "bytes": 71421073,
+        "sha256": "4712577f4291fed3c43ce9f5987098984cd04a87b9c05ed894b99e282ad3b642"
+      },
+      "power_vectorless": {
+        "total_on_chip_w": 1.58,
+        "dynamic_w": 1.243,
+        "device_static_w": 0.337,
+        "simulation_activity_file": "---",
+        "confidence": "Medium",
+        "scope": "Vectorless synthesized-netlist estimate, not measured power or activity-annotated signoff"
+      },
+      "drc": {
+        "violations": 49,
+        "error_count": 0,
+        "rules": [
+          {
+            "rule": "CFGBVS-1",
+            "severity": "Warning",
+            "description": "Missing CFGBVS and CONFIG_VOLTAGE Design Properties",
+            "violations": 1
+          },
+          {
+            "rule": "DPIP-1",
+            "severity": "Warning",
+            "description": "Input pipelining",
+            "violations": 14
+          },
+          {
+            "rule": "DPOP-1",
+            "severity": "Warning",
+            "description": "PREG Output pipelining",
+            "violations": 20
+          },
+          {
+            "rule": "DPOP-2",
+            "severity": "Warning",
+            "description": "MREG Output pipelining",
+            "violations": 14
+          }
+        ]
+      }
+    }
+  },
+  "acceptance_boundaries": {
+    "setup_closed": false,
+    "hold_closed": false,
+    "pulse_width_summary_nonnegative": true,
+    "all_16_check_timing_counts_zero": true,
+    "unconstrained_report_table_empty": true,
+    "coverage_scope": "Only under archived zero-I/O-delay OOC constraints; this is not board-level or whole-chip signoff.",
+    "internal_clock_buffer_present": false,
+    "actual_route_performed": false,
+    "full_top_mapped_functional_simulation_proven_by_these_reports": false,
+    "achieved_fmax_proven": false,
+    "power_measured": false,
+    "source_warning_8_3848_undriven_present": false,
+    "warnings_remain": [
+      "Synth 8-992: legacy_* referenced before explicit declaration",
+      "Synth 8-5856: 3D weight memory likely implemented in registers",
+      "Synth 8-693: zero replication ignored",
+      "Synth 8-3936 / 8-6014: constant/profile/unconnected trimming",
+      "Timing 38-242: HD.CLK_SRC is unset; clock delay/skew estimation is prevented"
+    ],
+    "drc_warning_count_each": 49,
+    "clock_timing_note": "No BUFGCTRL is present. The report clock frequency is the constraint and interconnect delay is estimated; neither the reported frequency nor reciprocal critical delay is achieved Fmax."
+  }
+}

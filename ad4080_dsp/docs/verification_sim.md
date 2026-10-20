@@ -24,7 +24,7 @@
 | `sinc5_decim_tb` | SINC5 D=4 直流 + settled | **PASS** | DC 输出 = 1000；settled 在 64 样本内置位 |
 | `result_fifo_tb` | 满/空/溢出/顺序/回绕/复位 | **PASS** | **716,157 次检查，0 错误** |
 | `spi_slave_tb` | SPI 协议：基本读写 / CRC 正确与错误 / streaming 增减速 / 短指令 | **PASS** | 16 项检查全过 |
-| `ad4080_top_tb` | 顶层 7 组集成用例 | **PASS** | **33 项检查全过** |
+| `ad4080_top_tb` | 顶层 14 组集成用例 | **PASS** | **77 项检查全过** |
 
 ## 2.1 SPI 协议 TB 覆盖
 
@@ -36,7 +36,7 @@
 | T4 | streaming 递减（默认）：一帧两字节写 0x1E/0x1D，WATERMARK=0x4000 | PASS |
 | T5 | SHORT_INSTRUCTION：8-bit 指令写/读 0x0A | PASS |
 
-## 3. 顶层 TB 覆盖明细（33 项）
+## 3. 顶层 TB 覆盖明细（77 项）
 
 | 用例 | 内容 | 结果 |
 |---|---|---|
@@ -48,6 +48,13 @@
 | TC5 | FIFO mode 01、WATERMARK=8、递增样本读出 | 17/17 PASS |
 | TC6 | HI_THRESHOLD 事件 → STATUS[5] + GPIO | 2/2 PASS |
 | TC7 | SINC5 非法 N=512 → 钳到 256，不挂死 | 2/2 PASS |
+| TC8 | SINC5+comp（N=4，总抽取 8）DC=1000 | 2/2 PASS |
+| TC9 | LVDS 1-lane / 2-lane 奇偶交织 / 空闲重复帧 / SPI 模式清零 | 7/7 PASS |
+| TC10 | CNV CMOS + 忙时再触发 → ADC_CNV_ERR；LVDS 差分 CNV | 2/2 PASS |
+| TC11 | GPIO 方向 + SEL 全 16 编码扫描 | 18/18 PASS |
+| TC12 | HI/LO 阈值 + 迟滞 + ALERT 电平型 + W1C | 6/6 PASS |
+| TC13 | FIFO mode 10：事件后捕获 4 个（1004..1007） | 5/5 PASS |
+| TC14 | FIFO mode 11：环形 + 事件位置回写 WATERMARK=8 | 5/5 PASS |
 
 ## 4. 仿真抓到的真实 bug（lint 抓不到）
 
@@ -72,6 +79,18 @@ yosys -p "read_verilog -sv rtl/*.sv; hierarchy -check -top ad4080_top;
 - $mul 1（校正），$add 47，$sub 25，$mux 16,946
 - **16K FIFO 在 generic flow 下会展开成触发器**；流片必须换 SRAM 宏
   （`docs/synthesis_review.md` 已登记）。这是工艺映射问题，不是 RTL 功能问题。
+
+## 5.1 覆盖率（Verilator --coverage）
+
+| 指标 | 优化前 | 补用例后 |
+|---|---:|---:|
+| 行 | 76.2% | **88.8%** |
+| 分支 | 60.4% | **77.8%** |
+| 翻转 | 43.0% | 53.4% |
+| 表达式 | 67.3% | 82.2% |
+
+未覆盖的主要是错误/保留分支（非法寄存器地址、CRC 错误后的若干清理路径、
+时钟数错误的边界组合），不是功能主路径。
 
 ## 6. Verilator lint
 

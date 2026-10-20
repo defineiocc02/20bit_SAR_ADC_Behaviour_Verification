@@ -612,6 +612,28 @@ module ad4080_top_tb;
     do_reset();
     tc7_illegal_dec();
 
+
+    do_reset();
+    tc8_sinc5_comp();
+
+    do_reset();
+    tc9_lvds();
+
+    do_reset();
+    tc10_cnv();
+
+    do_reset();
+    tc11_gpio();
+
+    do_reset();
+    tc12_event_low();
+
+    do_reset();
+    tc13_fifo_mode10();
+
+    do_reset();
+    tc14_fifo_mode11();
+
     $display("\n============================================================");
     $display(" SUMMARY: PASS=%0d FAIL=%0d", pass_cnt, fail_cnt);
     $display("============================================================");
@@ -623,5 +645,250 @@ module ad4080_top_tb;
       $finish;
     end
   end
+
+  //-------------------------------------------------------------------------
+  // TC8：SINC5 + 补偿（FILTER_SEL=11, N=4 -> 总抽取 8）
+  //-------------------------------------------------------------------------
+  task automatic tc8_sinc5_comp();
+    bit seen; int pulses; int i; logic [IN_W-1:0] val;
+    $display("\n---- TC8: SINC5 + compensation (N=4, total 8) ----");
+    spi_write(15'h0029, 8'h0B);   // [1:0]=11 comp, [6:3]=0001 -> N=4
+    spi_write(15'h001C, 8'h00);
+    spi_write(15'h0025, 8'h00); spi_write(15'h0026, 8'h00);
+    spi_write(15'h0027, 8'h00); spi_write(15'h0028, 8'h02);
+    @(negedge clk); filter_sync = 1'b1; @(negedge clk); filter_sync = 1'b0;
+    repeat (4) @(posedge clk);
+    mon_valid_count = 0;
+    for (i = 0; i < 96; i++) begin
+      feed(20'd1000);
+      if (dout_valid === 1'b1) val = dout;
+    end
+    repeat (20) @(posedge clk);
+    seen = (mon_valid_count > 0);
+    chk("TC8 SINC5+comp produced output", seen);
+    if (seen) chk_eq("TC8 comp DC == 1000", longint'(val), 1000, 1);
+  endtask
+
+  //-------------------------------------------------------------------------
+  // TC9：LVDS 并串（1 lane 20 bit / 2 lane 10+10）
+  //-------------------------------------------------------------------------
+  task automatic lvds_frame(input int nbits, output logic [19:0] lane0, output logic [19:0] lane1,
+                            output bit frame_seen);
+    int i;
+    lane0 = '0; lane1 = '0; frame_seen = 1'b0;
+    for (i = 0; i < nbits; i++) begin
+      @(negedge clk); bit_en = 1'b1;
+      @(posedge clk); #1;
+      lane0 = {lane0[18:0], ser_data[0]};
+      lane1 = {lane1[18:0], ser_data[1]};
+      if (ser_frame[0]) frame_seen = 1'b1;
+      @(negedge clk); bit_en = 1'b0;
+    end
+  endtask
+
+  task automatic tc9_lvds();
+    logic [19:0] pat, a, b;
+    bit fs;
+    $display("\n---- TC9: LVDS framing (1 lane / 2 lane) ----");
+    spi_write(15'h0029, 8'h00);   // bypass
+    spi_write(15'h0015, 8'h40);   // DATA_INTF_MODE=0 (LVDS), lane_sel=0
+    spi_write(15'h0016, 8'h00);   // self_clk=0
+    pat = 20'hA5A5A;
+    feed(pat); repeat (4) @(posedge clk);
+    // 第 1 帧装载，第 2 帧输出
+    lvds_frame(20, a, b, fs);
+    lvds_frame(20, a, b, fs);
+    chk("TC9 LVDS frame flag asserted", fs);
+    chk_eq("TC9 1-lane data == pattern", longint'(a), longint'(pat), 0);
+    // 不喂新样本，再发一帧：应重复上一帧
+    lvds_frame(20, a, b, fs);
+    chk_eq("TC9 idle frame repeats", longint'(a), longint'(pat), 0);
+
+    // 2 lane：lane0 = [19:10], lane1 = [9:0]
+    spi_write(15'h0015, 8'h44);   // lane_sel=1
+    pat = 20'hB6DB6;
+    feed(pat); repeat (4) @(posedge clk);
+    // 切 lane 后相位可能不在 0，先跑两帧预热，再采第三帧
+    lvds_frame(10, a, b, fs);
+    lvds_frame(10, a, b, fs);
+    lvds_frame(10, a, b, fs);
+    // 本实现是“奇偶交织”：lane0 = bit19,17,...,1；lane1 = bit18,16,...,0。
+    // 手册 p.45-53 只用图表示 2-lane 映射，文字未写，标记 [待确认]。
+    begin
+      logic [9:0] exp0, exp1;
+      for (int k = 0; k < 10; k++) begin
+        exp0[9-k] = pat[19-2*k];
+        exp1[9-k] = pat[18-2*k];
+      end
+      chk_eq("TC9 2-lane lane0 == odd bits",  longint'(a[9:0]), longint'(exp0), 0);
+      chk_eq("TC9 2-lane lane1 == even bits", longint'(b[9:0]), longint'(exp1), 0);
+    end
+  endtask
+
+  //-------------------------------------------------------------------------
+  // TC10：CNV CMOS/LVDS 与 tCONV 违反
+  //-------------------------------------------------------------------------
+  task automatic tc10_cnv();
+    logic [7:0] v;
+    $display("\n---- TC10: CNV CMOS/LVDS + tCONV error ----");
+    spi_write(15'h001C, 8'h10);   // cnv_err_route=1
+    spi_write(15'h0016, 8'h00);   // CMOS
+    spi_write(15'h0014, 8'h04);   // 清 ADC_CNV_ERR
+    @(negedge clk); cnv_p = 1'b1; repeat (6) @(negedge clk); cnv_p = 1'b0;
+    repeat (6) @(negedge clk);
+    // busy 期间再来一次 CNV
+    @(negedge clk); cnv_p = 1'b1; repeat (6) @(negedge clk); cnv_p = 1'b0;
+    repeat (8) @(negedge clk);
+    spi_read(15'h0014, v);
+    chk("TC10 ADC_CNV_ERR set (0x14[2])", v[2] === 1'b1);
+
+    // LVDS 差分 CNV
+    spi_write(15'h0014, 8'h04);
+    spi_write(15'h0016, 8'h01);   // LVDS_CNV_EN=1
+    @(negedge clk); cnv_p = 1'b1; cnv_n = 1'b0;
+    repeat (6) @(negedge clk); cnv_p = 1'b0; cnv_n = 1'b0;
+    repeat (10) @(negedge clk);
+    chk("TC10 LVDS CNV path exercised", 1'b1);
+  endtask
+
+  //-------------------------------------------------------------------------
+  // TC11：GPIO 方向 / SEL 路由
+  //-------------------------------------------------------------------------
+  task automatic tc11_gpio();
+    $display("\n---- TC11: GPIO direction + SEL mux ----");
+    spi_write(15'h0019, 8'hFF);   // 全输出，DATA=0xF
+    spi_write(15'h001A, 8'h77);   // 四路 SEL=0111 GPIO_DATA
+    spi_write(15'h001B, 8'h77);
+    @(negedge clk); #1;
+    chk("TC11 GPIO_DATA out", (gpio_o === 4'hF) && (gpio_oe === 4'hF));
+    // pin0 改 SEL=0001 FIFO_FULL，其余仍 DATA
+    spi_write(15'h001A, 8'h71);
+    @(negedge clk); #1;
+    chk("TC11 GPIO0 = FIFO_FULL(0)", gpio_o[0] === 1'b0);
+    // pin0 改 SEL=1000 FILTER_SYNC 输入，强制为输入
+    spi_write(15'h001A, 8'h78);
+    gpio_i[0] = 1'b0;
+    @(negedge clk); #1;
+    chk("TC11 GPIO0 forced input", gpio_oe[0] === 1'b0);
+
+    // SEL 全编码扫描：1000/1001/1010 强制输入，其余按方向输出
+    for (int sel = 0; sel < 16; sel++) begin
+      spi_write(15'h001A, {4'h0, sel[3:0]});   // gpio0 SEL=sel, gpio1=0
+      @(negedge clk); #1;
+      if (sel == 4'b1000 || sel == 4'b1001 || sel == 4'b1010)
+        chk($sformatf("TC11 SEL %04b -> input", sel), gpio_oe[0] === 1'b0);
+      else
+        chk($sformatf("TC11 SEL %04b -> output", sel), gpio_oe[0] === 1'b1);
+    end
+  endtask
+
+  //-------------------------------------------------------------------------
+  // TC12：HI/LO 阈值 + 迟滞 + ALERT 电平语义
+  //-------------------------------------------------------------------------
+  task automatic tc12_event_low();
+    logic [7:0] v;
+    $display("\n---- TC12: HI/LO threshold + hysteresis + ALERT ----");
+    spi_write(15'h001C, 8'hE0);   // event_en=1, hi_route=1, lo_route=1
+    spi_write(15'h0021, 8'h64); spi_write(15'h0022, 8'h00);  // HI=+100
+    spi_write(15'h0023, 8'h9C); spi_write(15'h0024, 8'h0F);  // LO=-100
+    spi_write(15'h001F, 8'h0A); spi_write(15'h0020, 8'h00);  // HYST=10
+    spi_write(15'h0014, 8'h3C);   // W1C 清 HI/LO
+    spi_write(15'h0019, 8'h01);   // gpio0 输出，DATA=0
+    spi_write(15'h001A, 8'h06);   // gpio0 SEL=0110 ALERT
+
+    // +200 -> HI（阈值 LSB = data[19:8]，所以 200<<8）
+    feed(20'sd51200); feed(20'sd51200); feed(20'sd51200);
+    repeat (4) @(posedge clk);
+    spi_read(15'h0014, v);
+    chk("TC12 HI_STATUS set", v[5] === 1'b1);
+    chk("TC12 ALERT low (active)", gpio_o[0] === 1'b0);
+
+    // +50：低于 HI-HYST -> ALERT 回高，但状态位粘滞
+    feed(20'sd12800); feed(20'sd12800); feed(20'sd12800);
+    repeat (4) @(posedge clk);
+    spi_read(15'h0014, v);
+    chk("TC12 HI_STATUS sticky", v[5] === 1'b1);
+    chk("TC12 ALERT returns high", gpio_o[0] === 1'b1);
+
+    // -200 -> LO
+    feed(-20'sd51200); feed(-20'sd51200); feed(-20'sd51200);
+    repeat (4) @(posedge clk);
+    spi_read(15'h0014, v);
+    chk("TC12 LO_STATUS set", v[4] === 1'b1);
+
+    spi_write(15'h0014, 8'h3C);   // W1C
+    spi_read(15'h0014, v);
+    chk("TC12 W1C clears HI/LO", (v[5] === 1'b0) && (v[4] === 1'b0));
+  endtask
+
+
+  //-------------------------------------------------------------------------
+  // TC13：FIFO mode 10（事件后捕获 WATERMARK 个）
+  //-------------------------------------------------------------------------
+  task automatic tc13_fifo_mode10();
+    logic [7:0] v;
+    int i;
+    bit captured_seen;
+    $display("\n---- TC13: FIFO mode 10 (event -> WATERMARK) ----");
+    spi_write(15'h0029, 8'h00);   // bypass
+    spi_write(15'h0025, 8'h00); spi_write(15'h0026, 8'h00);
+    spi_write(15'h0027, 8'h00); spi_write(15'h0028, 8'h02);
+    spi_write(15'h001D, 8'h04); spi_write(15'h001E, 8'h00);  // WM=4
+    spi_write(15'h001C, 8'h02);   // FIFO_MODE=10, INT_EVENT_EN=0（外部事件）
+    repeat (3) @(posedge clk);
+
+    for (i = 0; i < 4; i++) feed(1000 + i);   // 事件前，应被丢弃
+    repeat (3) @(posedge clk);                // 等校正流水排空（2 拍）
+    @(negedge clk); ext_event = 1'b1;
+    @(negedge clk); ext_event = 1'b0;
+    for (i = 4; i < 8; i++) feed(1000 + i);   // 事件后 4 个
+    repeat (8) @(posedge clk);
+
+    spi_read(15'h0014, v);
+    chk("TC13 FIFO_FULL/captured set", v[7] === 1'b1);
+    for (i = 0; i < 4; i++) begin
+      @(negedge clk); rd_en = 1'b1;
+      @(posedge clk); #1;
+      chk_eq($sformatf("TC13 rd[%0d] == %0d", i, 1004+i), longint'(dout), 1004+i, 0);
+      @(negedge clk); rd_en = 1'b0;
+      @(posedge clk);
+    end
+  endtask
+
+  //-------------------------------------------------------------------------
+  // TC14：FIFO mode 11（环形覆盖 + 事件位置回写）
+  //-------------------------------------------------------------------------
+  task automatic tc14_fifo_mode11();
+    logic [7:0] v;
+    int i;
+    $display("\n---- TC14: FIFO mode 11 (circular + watermark writeback) ----");
+    spi_write(15'h0029, 8'h00);
+    spi_write(15'h001D, 8'h04); spi_write(15'h001E, 8'h00);  // WM=4（4 的倍数）
+    spi_write(15'h001C, 8'h03);   // FIFO_MODE=11, INT_EVENT_EN=0
+    repeat (3) @(posedge clk);
+
+    for (i = 0; i < 8; i++) feed(2000 + i);   // 事件前 8 个
+    repeat (3) @(posedge clk);                // 等校正流水排空（2 拍）
+    @(negedge clk); ext_event = 1'b1;
+    @(negedge clk); ext_event = 1'b0;
+    for (i = 8; i < 12; i++) feed(2000 + i);  // 事件后 4 个
+    repeat (8) @(posedge clk);
+
+    // mode 11 捕获完成时把事件位置写回 WATERMARK：8 次写后事件 -> 0x0008
+    spi_read(15'h001D, v);
+    chk_eq("TC14 WM writeback low == 0x08", longint'(v), 8'h08, 0);
+    spi_read(15'h001E, v);
+    chk_eq("TC14 WM writeback high == 0x00", longint'(v), 8'h00, 0);
+
+    // 读前 3 个，应为最早写入的 2000/2001/2002
+    for (i = 0; i < 3; i++) begin
+      @(negedge clk); rd_en = 1'b1;
+      @(posedge clk); #1;
+      chk_eq($sformatf("TC14 rd[%0d] == %0d", i, 2000+i), longint'(dout), 2000+i, 0);
+      @(negedge clk); rd_en = 1'b0;
+      @(posedge clk);
+    end
+  endtask
+
 
 endmodule

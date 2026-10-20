@@ -10,7 +10,7 @@
 | 轴 | 完成度 | 说明 |
 |---|---:|---|
 | **手册数字功能（RTL 行为）** | **95%** | 除 6 项明确登记的 P2/待确认外，手册数字特性全部实现 |
-| **验证深度** | **82%** | 5 个 TB 全过 + Verilator 覆盖率（行 76.2%）+ ECP5 综合/P&R；无覆盖率闭合、无门级、无 ASIC STA |
+| **验证深度** | **88%** | 5 个 TB 全过（顶层 77 项）+ 覆盖率行 88.8%/分支 77.8% + ECP5 综合/P&R；无门级、无 ASIC STA |
 | **物理签核** | **35%** | 已有 ECP5 真实 P&R：73.59 MHz、6894 LUT、20 BRAM；仍无 PDK/ASIC STA |
 | **文档与可追溯** | **100%** | 规范、三轮审查、逐行对照、仿真报告齐全 |
 
@@ -47,9 +47,9 @@
 | Icarus 功能仿真 | ✅ | **5/5 TB PASS**：cal、sinc5、fifo（716,157 checks）、spi（16 项）、top（33 项） |
 | Verilator lint | ✅ | 无 latch / 多驱动 / 组合环 |
 | Yosys 综合 check | ✅ | `check -assert` 通过 |
-| Verilator 覆盖率 | ✅ | 行 76.2% / 分支 60.4% / 翻转 43.0%（top TB） |
+| Verilator 覆盖率 | ✅ | 行 88.8% / 分支 77.8% / 翻转 53.4%（top TB，77 项） |
 | ECP5 综合 + P&R | ✅ | `synth_ecp5` + `nextpnr`：73.59 MHz，20 DP16KD，`check -assert` 通过 |
-| 覆盖率闭合 | ❌ | 未补 SINC5+comp / LVDS / CNV 的用例 |
+| 覆盖率闭合 | ✅ 大部分 | SINC5+comp / LVDS / CNV / GPIO / FIFO 10/11 已补；剩错误分支 |
 | 门级/时序仿真 | ❌ | 无网表/SDF |
 | ASIC STA | ❌ | 无工艺库 |
 | 形式验证 | ❌ | SBY 已装但未写断言 |

@@ -136,6 +136,8 @@ module result_fifo #(
   localparam logic [AW-1:0] V_AF_TH   = AW'(DEPTH - P_AF_MARGIN);
   localparam logic [AW-1:0] V_AE_TH   = AW'(P_AE_LEVEL);
 
+`ifndef FORMAL
+  // 参数自检只在仿真时执行；形式构建跳过（Yosys 不支持 $fatal）
   initial begin
     if (DATA_W < 1)
       $fatal(1, "result_fifo: DATA_W must be >= 1");
@@ -146,6 +148,7 @@ module result_fifo #(
     if (P_AE_LEVEL < 0 || P_AE_LEVEL >= DEPTH)
       $fatal(1, "result_fifo: P_AE_LEVEL must be in [0, DEPTH-1]");
   end
+`endif
 
   // --------------------------------------------------------------------------
   // 存储体：同步写、同步读（读出地址在 always_ff 里取，便于推成 SRAM/BRAM）
@@ -172,6 +175,23 @@ module result_fifo #(
 
   assign wr_fire = wr_en && (!full || overwrite_en);
   assign rd_fire = rd_en && !empty;
+
+`ifdef FORMAL
+  // --------------------------------------------------------------------
+  // 形式不变量（仅 -DFORMAL）：占用量不超过深度；满不写、空不读。
+  // 初始指针与同步复位值一致。
+  // --------------------------------------------------------------------
+  initial begin
+    wr_ptr = {AW{1'b0}};
+    rd_ptr = {AW{1'b0}};
+  end
+
+  always_comb begin
+    assert (count <= V_DEPTH);
+    assert (!(wr_fire && full && !overwrite_en));
+    assert (!(rd_fire && empty));
+  end
+`endif
 
   // --------------------------------------------------------------------------
   // 写侧：只有 wr_fire 才写；full 时 wr_en 不碰 mem（INV-F6）

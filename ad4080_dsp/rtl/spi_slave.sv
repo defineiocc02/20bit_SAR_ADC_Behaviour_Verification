@@ -315,6 +315,30 @@ module spi_slave (
         end
     end
 
+`ifdef FORMAL
+    // ------------------------------------------------------------------
+    // 形式不变量（仅 -DFORMAL 时编译，不参与综合）
+    //   1) 写提交必须落在当前指令地址上：这是仿真抓到过的 addr 偏移 bug
+    //   2) 读事务绝不能产生写
+    //   3) 地址只用 15 位
+    // ------------------------------------------------------------------
+    // 形式不变量（仅 -DFORMAL，不参与综合/仿真）：
+    //   1) 写提交必须落在本字节的指令地址上（addr_ptr 在 cs_fall 会清零，
+    //      而 addr 保留上一帧值，所以只在 we=1 时相等）；
+    //   2) 读事务绝不会产生写；
+    //   3) 地址只用 15 位。
+    initial begin
+        addr     = 16'd0;
+        addr_ptr = 16'd0;
+    end
+
+    always_comb begin
+        assert (!we || (addr == addr_ptr));
+        assert (!we || !cmd_r);
+        assert (addr[15] == 1'b0);
+    end
+`endif
+
     assign sdo               = sdo_r;
     assign sdo_oe            = oe_r;
     assign we    = we_comb;

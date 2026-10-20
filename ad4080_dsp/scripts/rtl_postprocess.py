@@ -33,7 +33,7 @@ def extract_code(text: str) -> str:
     # 2) drop prose before the first module
     m = re.search(r"^\s*module\s+\w+", text, re.MULTILINE)
     if m:
-        text = text[m.start():]
+        text = text[m.start() :]
 
     # 3) RTLCoder-Deepseek duplicated terminator
     if "endmodulemodule" in text:
@@ -50,6 +50,7 @@ def extract_code(text: str) -> str:
 
 
 def syntax_check(path: Path) -> list[str]:
+    """用 pyslang 解析文件并返回诊断码；未安装 pyslang 时返回提示。"""
     try:
         from pyslang import syntax
     except ImportError:
@@ -59,6 +60,7 @@ def syntax_check(path: Path) -> list[str]:
 
 
 def main() -> int:
+    """命令行入口：从 Markdown 抽取代码块，可选补 default_nettype 后写出 .sv。"""
     ap = argparse.ArgumentParser()
     ap.add_argument("input", type=Path)
     ap.add_argument("-o", "--output", type=Path)
@@ -67,10 +69,9 @@ def main() -> int:
     args = ap.parse_args()
 
     code = extract_code(args.input.read_text(encoding="utf-8", errors="replace"))
-    if args.add_nettype:
-        if "`default_nettype none" not in code:
-            code = code.replace("module ", "`default_nettype none\n\nmodule ", 1)
-            code += "\n`default_nettype wire\n"
+    if args.add_nettype and "`default_nettype none" not in code:
+        code = code.replace("module ", "`default_nettype none\n\nmodule ", 1)
+        code += "\n`default_nettype wire\n"
 
     out = args.output or args.input.with_suffix(".sv")
     out.write_text(code, encoding="utf-8")

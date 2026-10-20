@@ -50,6 +50,7 @@ def check(path: Path) -> list[str]:
 
 
 def main(argv: list[str]) -> int:
+    """命令行入口：逐个检查 .sv 文件头是否符合规范，返回失败文件数。"""
     files = [Path(a) for a in argv[1:]]
     if not files:
         print("usage: check_headers.py <file.sv> [...]", file=sys.stderr)

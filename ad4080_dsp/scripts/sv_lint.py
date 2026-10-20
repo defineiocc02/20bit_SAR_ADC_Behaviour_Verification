@@ -24,9 +24,19 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-MAX_LINE = 120          # 中英混排，取 120；纯英文项目建议 100
-REQUIRED_HEADER = ("@file", "@brief", "@details", "@author", "@date", "@version",
-                   "手册依据", "时钟域", "复位", "可综合性")
+MAX_LINE = 120  # 中英混排，取 120；纯英文项目建议 100
+REQUIRED_HEADER = (
+    "@file",
+    "@brief",
+    "@details",
+    "@author",
+    "@date",
+    "@version",
+    "手册依据",
+    "时钟域",
+    "复位",
+    "可综合性",
+)
 
 
 def parse_diagnostics(files: list[Path]) -> tuple[list[str], list[str]]:
@@ -82,7 +92,11 @@ def style_check(path: Path) -> list[str]:
             problems.append(f"{path}:{no}: 使用 reg，请改 logic")
         if "casex" in line:
             problems.append(f"{path}:{no}: 禁止 casex")
-        if stripped.startswith("always @") and "always_ff" not in line and "always_comb" not in line:
+        if (
+            stripped.startswith("always @")
+            and "always_ff" not in line
+            and "always_comb" not in line
+        ):
             problems.append(f"{path}:{no}: 使用 always @，请改 always_ff/always_comb")
 
     if not text.endswith("\n"):
@@ -91,6 +105,7 @@ def style_check(path: Path) -> list[str]:
 
 
 def main(argv: list[str]) -> int:
+    """命令行入口：解析 .sv 诊断，--strict 时把警告也计为错误。"""
     strict = "--strict" in argv
     files = [Path(a) for a in argv if not a.startswith("--")]
     if not files:

@@ -8,25 +8,27 @@
 
 用法：python3 ad4080_cal_model.py
 """
+
 import random
 
 IN_W = 20
-MAXC = (1 << (IN_W - 1)) - 1        # +524287
-MINC = -(1 << (IN_W - 1))           # -524288
+MAXC = (1 << (IN_W - 1)) - 1  # +524287
+MINC = -(1 << (IN_W - 1))  # -524288
 
 X1 = -419430
 X2 = +419430
-DX = X2 - X1                        # 838860
+DX = X2 - X1  # 838860
 
 K_GAIN = 512
 SHIFT_G = 24
-INV_DX_K = 40961                    # round(1/(DX * 0.015594/511) * 2^20)
+INV_DX_K = 40961  # round(1/(DX * 0.015594/511) * 2^20)
 SHIFT_K = 20
-INV_DX = 1280                       # round(2^30 / DX)
+INV_DX = 1280  # round(2^30 / DX)
 SHIFT_O = 30
 
 
 def clip(v):
+    """把数值饱和到补码输出范围 [MINC, MAXC]。"""
     return MINC if v < MINC else MAXC if v > MAXC else v
 
 
@@ -52,10 +54,12 @@ def cal_two(y1, y2):
 
 
 def ideal_y(x, m, c):
+    """理想线性响应：y = m·x + c，四舍五入到整数码值。"""
     return round(m * x + c)
 
 
 def test_case(name, m, c):
+    """对一个增益/失调组合跑边界码点，打印标定值与最大误差。"""
     y1 = clip(ideal_y(X1, m, c))
     y2 = clip(ideal_y(X2, m, c))
     g, o = cal_two(y1, y2)
@@ -64,11 +68,14 @@ def test_case(name, m, c):
         yt = clip(ideal_y(x, m, c))
         yc, _, _, _ = sys_corr(x, o, g)
         errs.append(yc - yt)
-    print(f"{name:26s} y1={y1:8d} y2={y2:8d} -> GAIN={g:4d} OFF={o:5d} "
-          f"maxerr={max(abs(e) for e in errs):4d} LSB")
+    print(
+        f"{name:26s} y1={y1:8d} y2={y2:8d} -> GAIN={g:4d} OFF={o:5d} "
+        f"maxerr={max(abs(e) for e in errs):4d} LSB"
+    )
 
 
 def main():
+    """遍历典型与随机增益/失调组合，统计定点模型的最大误差。"""
     print("== 定点参考模型（补码，K_GAIN=512，分母 511） ==")
     test_case("ideal", 1.0, 0.0)
     test_case("gain +1%", 1.01, 0.0)

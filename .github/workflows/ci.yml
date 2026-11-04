@@ -33,6 +33,8 @@ jobs:
         run: |
           pip install -e . pytest
           pytest tests/unit/test_synth_flow.py tests/unit/test_vivado_flow.py tests/unit/test_vivado_impl.py tests/unit/test_clockless_inspection.py tests/unit/test_vivado_buffered_impl.py tests/unit/test_vivado_full_mapped.py -q
+      - name: Exhaustive bridge switch contract
+        run: python tools/run_open_rtl.py --tops bridge_mask_audit_tb
       - name: Compile and execute RTL regressions
         run: python tools/run_open_rtl.py
       - name: Compare RTL reference events and Python samples
@@ -52,6 +54,7 @@ jobs:
           name: rtl-simulation-logs
           path: |
             sim/artifacts/open_rtl/*.log
+            sim/artifacts/open_rtl/bridge_minimal_masks.csv
             sim/artifacts/arithmetic-audit/
             /tmp/structural-calibration/summary.json
             /tmp/structural-calibration-noise/summary.json

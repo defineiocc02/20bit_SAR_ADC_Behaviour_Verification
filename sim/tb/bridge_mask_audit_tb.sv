@@ -30,7 +30,7 @@ module bridge_mask_audit_tb;
     details=$fopen({outdir,"/bridge_minimal_masks.csv"},"w");
     $fwrite(fd,"sid,code,changed_bits,dut_nominal_sum,reference_nominal_sum,dut_minus_reference_uv\n");
     $fwrite(details,"sid,code,slice,dut_main_hex,reference_main_hex,dut_sub_hex,reference_sub_hex\n");
-    force dut.sid=sid_force;force dut.bank=1'b0;force dut.resolved[0]=code_force;
+    force dut.bank=1'b0;
     total_c=0;
     for(a=0;a<8;a++)begin
       for(p=0;p<63;p++)total_c+=8000000+131*a+37*p;
@@ -38,6 +38,9 @@ module bridge_mask_audit_tb;
     end
     for(sid=0;sid<512;sid++)begin
       sid_force=9'(sid);
+      // Older Verilator releases evaluate a force RHS when the statement is
+      // executed, so refresh the forced state for each new test vector.
+      force dut.sid=sid_force;
       // Forward construction from physical 8x8 rotation; omit the absent cell63.
       n=0;
       for(r=0;r<8;r++)for(c=0;c<8;c++)begin
@@ -47,7 +50,11 @@ module bridge_mask_audit_tb;
       if(n!=63)$fatal(1,"independent main geometry invalid");
       for(j=0;j<8;j++)sub_order[j]=(j+sid/64)%8;
       for(code=0;code<512;code++)begin
-        code_force=9'(code);#1;
+        code_force=9'(code);
+        force dut.resolved[0]=code_force;
+        #1;
+        if(dut.sid!==sid_force || dut.resolved[0]!==code_force)
+          $fatal(1,"bridge stimulus did not reach DUT sid=%0d code=%0d",sid,code);
         changed=0;dut_q=0;ref_q=0;dut_nom=0;ref_nom=0;
         for(a=0;a<8;a++)begin
           rank=(a+8-sid%8)%8;

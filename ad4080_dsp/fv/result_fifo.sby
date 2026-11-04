@@ -1,0 +1,10 @@
+[options]
+mode bmc
+depth 60
+[engines]
+smtbmc yices
+[script]
+read_verilog -sv -DFORMAL ../rtl/result_fifo.sv
+prep -top result_fifo
+[files]
+../rtl/result_fifo.sv

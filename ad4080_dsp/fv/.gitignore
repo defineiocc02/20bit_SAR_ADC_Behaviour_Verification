@@ -1,0 +1,5 @@
+# SBY 工作目录（生成物）
+*/
+!result_fifo_fv.sv
+!run_fv.sh
+*.sqlite

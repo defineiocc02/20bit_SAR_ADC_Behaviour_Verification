@@ -1,0 +1,1355 @@
+{
+  "scope": "FROZEN_ZERO_DELAY_RTL_LOG_EVIDENCE_NOT_STA_OR_ANALOG_SIGNOFF",
+  "script_sha256": "5e3929f85ff42ff8f05eca72807d7283c9637dc9aa3e72e59bdf8617aab22fdb",
+  "inputs_sha256": {
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/sha256.json": "6a8452c712cc9d37cabdcff810c918b9ff80ce498c998a9dabfb33958a668138",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/arithmetic_entry_failure.log": "c02c0bce3aa77703a16083437ee4a223350611f97b7e4558ed26cd0f10315dc4",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/job_metadata.json": "891a9a0604d88436e25bde2081e52151980d278c54c63898037835be4ea12d52",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/manifest.json": "187f80eca7002d8af3bd622fdd1dc80bf619a091b4ec963426094733f105ae9d",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/version.log": "26daf9ad1ba36ee1c20cab9a869d0a1fbb8117230c80c78ec2d8cf597f64c4a5",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/rtl_content_identity.json": "41cfe30f8b4db7373f4363d4cbca4770c15e82e7f1697db9dd5a5dfe0d8f080e",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/tested_inputs_sha256.json": "22e593105cc3d31596d64e7045af84c3872b9a9f611b5daef287e89f12b4807b",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/tested_merge_commit.json": "5f3f82b02ad90813d0c8bcaf2bde7ccefc3f682f9672a3397de25bb283ff831d",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/calibration_fit_tb.run.log": "4b134e2e2c480d64c77b9010e3d09d1cfc3204578f61315cac42ef9b597278e5",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/calibration_recovery_tb.run.log": "54b981cb4f210916fea3026878b34ede8e12f4b147dc7f11b4929e850c0eebe0",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_0c4a/open_rtl/review_dither_tb.run.log": "dc58dbb90f1af41ce1581eaa6f502f49167d0f3845dd6b33edfe78f58ef18af2"
+  },
+  "images_sha256": {
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_quantitative.png": "02250e706f28530a356c6ebcd8162aac94b85fadfbd006d2ba9ed5f4fa3cf03c",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_quantitative.pdf": "f416f31aff9bd1cb3902222a289a14840d2c1249fb456303a752b946d3f670ea"
+  },
+  "benches": {
+    "calibration_fit_tb": {
+      "marker": "CALIBRATION_FIT_COMPLETE",
+      "metrics": {
+        "holdout_samples": 128,
+        "loaded_weights": 1278
+      },
+      "oracle": "Frozen external holdout vectors;\ncode/flags/ID/latency + coefficient readback.",
+      "limitation": "Fitted coefficients loaded, not learned in RTL.",
+      "tb_lines": [
+        67,
+        134
+      ],
+      "tb_source": "git:0c4a7726597c49044d25117a701ba780137ddf04:sim/tb/calibration_fit_tb.sv",
+      "tb_sha256": "32c0bcdccfb949a34cc370bf8af6a48c5f9a2ebc41755d9cbd9f68ca581db2b6"
+    },
+    "calibration_recovery_tb": {
+      "marker": "CALIBRATION_RECOVERY_COMPLETE",
+      "metrics": {
+        "transactions": 2048,
+        "max_calibrated_codes": 4,
+        "max_nominal_codes": 504
+      },
+      "oracle": "Known target -> synthetic residue ->\ncalibrated and nominal-weight outputs.",
+      "limitation": "Synthetic mismatch + ideal ADC2 quantization.",
+      "tb_lines": [
+        35,
+        75
+      ],
+      "tb_source": "git:0c4a7726597c49044d25117a701ba780137ddf04:sim/tb/calibration_recovery_tb.sv",
+      "tb_sha256": "caaefd533252c5ae000e8e363dc8ea3ef7376a48baa9e84c8d1ea7470bf92749"
+    },
+    "review_dither_tb": {
+      "marker": "REVIEW_DITHER_COMPLETE",
+      "metrics": {
+        "conditions": [
+          {
+            "D": 0,
+            "seed": "13579bdf",
+            "accepted": 200000,
+            "mean": 0.0,
+            "corr": 0.0
+          },
+          {
+            "D": 1,
+            "seed": "13579bdf",
+            "accepted": 200000,
+            "mean": -0.00175,
+            "corr": -0.000786
+          },
+          {
+            "D": 2,
+            "seed": "13579bdf",
+            "accepted": 200000,
+            "mean": -0.00459,
+            "corr": -0.001488
+          },
+          {
+            "D": 3,
+            "seed": "13579bdf",
+            "accepted": 196866,
+            "mean": -0.004155,
+            "corr": -0.000851
+          },
+          {
+            "D": 63,
+            "seed": "13579bdf",
+            "accepted": 196866,
+            "mean": 0.066279,
+            "corr": 0.002793
+          },
+          {
+            "D": 2,
+            "seed": "00000001",
+            "accepted": 200000,
+            "mean": 0.006405,
+            "corr": 0.00107
+          },
+          {
+            "D": 2,
+            "seed": "ffffffff",
+            "accepted": 200000,
+            "mean": 0.00486,
+            "corr": -0.001918
+          }
+        ]
+      },
+      "oracle": "Support/PMF/mean/lag-1 checks;\nhold and seed-reset invariants.",
+      "limitation": "Accepted draws differ from 200k clock cycles.",
+      "tb_lines": [
+        14,
+        63
+      ],
+      "tb_source": "git:0c4a7726597c49044d25117a701ba780137ddf04:sim/tb/review_dither_tb.sv",
+      "tb_sha256": "fcd79afc5f3239a21186d06781d4e963418f8857a38f07b0c95344dbed82fa52"
+    }
+  },
+  "ci_provenance": {
+    "schema": "CI_RTL_STEP_SUCCESS_OVERALL_JOB_FAILED",
+    "pr_head_sha": "0c4a7726597c49044d25117a701ba780137ddf04",
+    "tested_merge_sha": "308e489f363a6c19f26e28c08c82d8f2a34c2a6a",
+    "git_tree_sha": "d8f838a28634c27e6bda222ea0b40cf102c91225",
+    "rtl_content_sha256": "fd885e882ad5447f87626dc034fb59a6853a86f01050957a93b8a6407ebbbc13",
+    "workflow_run_id": 36626662809,
+    "job_id": 109605295575,
+    "rtl_step_conclusion": "success",
+    "overall_job_conclusion": "failure",
+    "later_failed_step": {
+      "name": "Independent arbitrary-precision arithmetic audit",
+      "conclusion": "failure",
+      "failure_class": "tool-entry executable not found",
+      "command_returncode": 127,
+      "source_member": "arithmetic-audit/compile.log",
+      "simulation_pass_claimed": false
+    },
+    "tool_version": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+    "immutable_git_inputs_verified": 87
+  },
+  "plotted_data": {
+    "fit_rows": [
+      {
+        "n": 1,
+        "actual": 708615,
+        "expected": 708615,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 1
+      },
+      {
+        "n": 2,
+        "actual": 782250,
+        "expected": 782250,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 2
+      },
+      {
+        "n": 3,
+        "actual": 841656,
+        "expected": 841656,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 3
+      },
+      {
+        "n": 4,
+        "actual": 883537,
+        "expected": 883537,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 4
+      },
+      {
+        "n": 5,
+        "actual": 905571,
+        "expected": 905571,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 5
+      },
+      {
+        "n": 6,
+        "actual": 906574,
+        "expected": 906574,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 6
+      },
+      {
+        "n": 7,
+        "actual": 886489,
+        "expected": 886489,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 7
+      },
+      {
+        "n": 8,
+        "actual": 846437,
+        "expected": 846437,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 8
+      },
+      {
+        "n": 9,
+        "actual": 788563,
+        "expected": 788563,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 9
+      },
+      {
+        "n": 10,
+        "actual": 716103,
+        "expected": 716103,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 10
+      },
+      {
+        "n": 11,
+        "actual": 633081,
+        "expected": 633081,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 11
+      },
+      {
+        "n": 12,
+        "actual": 544094,
+        "expected": 544094,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 12
+      },
+      {
+        "n": 13,
+        "actual": 453978,
+        "expected": 453978,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 13
+      },
+      {
+        "n": 14,
+        "actual": 367686,
+        "expected": 367686,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 14
+      },
+      {
+        "n": 15,
+        "actual": 290083,
+        "expected": 290083,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 15
+      },
+      {
+        "n": 16,
+        "actual": 225424,
+        "expected": 225424,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 16
+      },
+      {
+        "n": 17,
+        "actual": 177241,
+        "expected": 177241,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 17
+      },
+      {
+        "n": 18,
+        "actual": 148212,
+        "expected": 148212,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 18
+      },
+      {
+        "n": 19,
+        "actual": 139955,
+        "expected": 139955,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 19
+      },
+      {
+        "n": 20,
+        "actual": 152844,
+        "expected": 152844,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 20
+      },
+      {
+        "n": 21,
+        "actual": 186316,
+        "expected": 186316,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 21
+      },
+      {
+        "n": 22,
+        "actual": 238389,
+        "expected": 238389,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 22
+      },
+      {
+        "n": 23,
+        "actual": 306255,
+        "expected": 306255,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 23
+      },
+      {
+        "n": 24,
+        "actual": 386174,
+        "expected": 386174,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 24
+      },
+      {
+        "n": 25,
+        "actual": 473697,
+        "expected": 473697,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 25
+      },
+      {
+        "n": 26,
+        "actual": 564005,
+        "expected": 564005,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 26
+      },
+      {
+        "n": 27,
+        "actual": 652116,
+        "expected": 652116,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 27
+      },
+      {
+        "n": 28,
+        "actual": 733179,
+        "expected": 733179,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 28
+      },
+      {
+        "n": 29,
+        "actual": 802703,
+        "expected": 802703,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 29
+      },
+      {
+        "n": 30,
+        "actual": 856901,
+        "expected": 856901,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 30
+      },
+      {
+        "n": 31,
+        "actual": 892717,
+        "expected": 892717,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 31
+      },
+      {
+        "n": 32,
+        "actual": 908197,
+        "expected": 908197,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 32
+      },
+      {
+        "n": 33,
+        "actual": 902481,
+        "expected": 902481,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 33
+      },
+      {
+        "n": 34,
+        "actual": 875916,
+        "expected": 875916,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 34
+      },
+      {
+        "n": 35,
+        "actual": 829930,
+        "expected": 829930,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 35
+      },
+      {
+        "n": 36,
+        "actual": 767089,
+        "expected": 767089,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 36
+      },
+      {
+        "n": 37,
+        "actual": 690823,
+        "expected": 690823,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 37
+      },
+      {
+        "n": 38,
+        "actual": 605392,
+        "expected": 605392,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 38
+      },
+      {
+        "n": 39,
+        "actual": 515474,
+        "expected": 515474,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 39
+      },
+      {
+        "n": 40,
+        "actual": 426046,
+        "expected": 426046,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 40
+      },
+      {
+        "n": 41,
+        "actual": 342033,
+        "expected": 342033,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 41
+      },
+      {
+        "n": 42,
+        "actual": 268079,
+        "expected": 268079,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 42
+      },
+      {
+        "n": 43,
+        "actual": 208247,
+        "expected": 208247,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 43
+      },
+      {
+        "n": 44,
+        "actual": 165893,
+        "expected": 165893,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 44
+      },
+      {
+        "n": 45,
+        "actual": 143322,
+        "expected": 143322,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 45
+      },
+      {
+        "n": 46,
+        "actual": 141739,
+        "expected": 141739,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 46
+      },
+      {
+        "n": 47,
+        "actual": 161303,
+        "expected": 161303,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 47
+      },
+      {
+        "n": 48,
+        "actual": 200869,
+        "expected": 200869,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 48
+      },
+      {
+        "n": 49,
+        "actual": 258294,
+        "expected": 258294,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 49
+      },
+      {
+        "n": 50,
+        "actual": 330409,
+        "expected": 330409,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 50
+      },
+      {
+        "n": 51,
+        "actual": 413230,
+        "expected": 413230,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 51
+      },
+      {
+        "n": 52,
+        "actual": 502155,
+        "expected": 502155,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 52
+      },
+      {
+        "n": 53,
+        "actual": 592332,
+        "expected": 592332,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 53
+      },
+      {
+        "n": 54,
+        "actual": 678703,
+        "expected": 678703,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 54
+      },
+      {
+        "n": 55,
+        "actual": 756602,
+        "expected": 756602,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 55
+      },
+      {
+        "n": 56,
+        "actual": 821656,
+        "expected": 821656,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 56
+      },
+      {
+        "n": 57,
+        "actual": 870326,
+        "expected": 870326,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 57
+      },
+      {
+        "n": 58,
+        "actual": 899857,
+        "expected": 899857,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 58
+      },
+      {
+        "n": 59,
+        "actual": 908671,
+        "expected": 908671,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 59
+      },
+      {
+        "n": 60,
+        "actual": 896280,
+        "expected": 896280,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 60
+      },
+      {
+        "n": 61,
+        "actual": 863395,
+        "expected": 863395,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 61
+      },
+      {
+        "n": 62,
+        "actual": 811741,
+        "expected": 811741,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 62
+      },
+      {
+        "n": 63,
+        "actual": 744251,
+        "expected": 744251,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 63
+      },
+      {
+        "n": 64,
+        "actual": 664588,
+        "expected": 664588,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 64
+      },
+      {
+        "n": 65,
+        "actual": 577248,
+        "expected": 577248,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 65
+      },
+      {
+        "n": 66,
+        "actual": 486921,
+        "expected": 486921,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 66
+      },
+      {
+        "n": 67,
+        "actual": 398697,
+        "expected": 398697,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 67
+      },
+      {
+        "n": 68,
+        "actual": 317371,
+        "expected": 317371,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 68
+      },
+      {
+        "n": 69,
+        "actual": 247490,
+        "expected": 247490,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 69
+      },
+      {
+        "n": 70,
+        "actual": 192848,
+        "expected": 192848,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 70
+      },
+      {
+        "n": 71,
+        "actual": 156574,
+        "expected": 156574,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 71
+      },
+      {
+        "n": 72,
+        "actual": 140501,
+        "expected": 140501,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 72
+      },
+      {
+        "n": 73,
+        "actual": 145671,
+        "expected": 145671,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 73
+      },
+      {
+        "n": 74,
+        "actual": 171718,
+        "expected": 171718,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 74
+      },
+      {
+        "n": 75,
+        "actual": 217224,
+        "expected": 217224,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 75
+      },
+      {
+        "n": 76,
+        "actual": 279674,
+        "expected": 279674,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 76
+      },
+      {
+        "n": 77,
+        "actual": 355625,
+        "expected": 355625,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 77
+      },
+      {
+        "n": 78,
+        "actual": 440883,
+        "expected": 440883,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 78
+      },
+      {
+        "n": 79,
+        "actual": 530737,
+        "expected": 530737,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 79
+      },
+      {
+        "n": 80,
+        "actual": 620254,
+        "expected": 620254,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 80
+      },
+      {
+        "n": 81,
+        "actual": 704464,
+        "expected": 704464,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 81
+      },
+      {
+        "n": 82,
+        "actual": 778732,
+        "expected": 778732,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 82
+      },
+      {
+        "n": 83,
+        "actual": 838953,
+        "expected": 838953,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 83
+      },
+      {
+        "n": 84,
+        "actual": 881796,
+        "expected": 881796,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 84
+      },
+      {
+        "n": 85,
+        "actual": 904944,
+        "expected": 904944,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 85
+      },
+      {
+        "n": 86,
+        "actual": 907055,
+        "expected": 907055,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 86
+      },
+      {
+        "n": 87,
+        "actual": 888035,
+        "expected": 888035,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 87
+      },
+      {
+        "n": 88,
+        "actual": 848956,
+        "expected": 848956,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 88
+      },
+      {
+        "n": 89,
+        "actual": 791959,
+        "expected": 791959,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 89
+      },
+      {
+        "n": 90,
+        "actual": 720169,
+        "expected": 720169,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 90
+      },
+      {
+        "n": 91,
+        "actual": 637628,
+        "expected": 637628,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 91
+      },
+      {
+        "n": 92,
+        "actual": 548764,
+        "expected": 548764,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 92
+      },
+      {
+        "n": 93,
+        "actual": 458574,
+        "expected": 458574,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 93
+      },
+      {
+        "n": 94,
+        "actual": 372012,
+        "expected": 372012,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 94
+      },
+      {
+        "n": 95,
+        "actual": 293869,
+        "expected": 293869,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 95
+      },
+      {
+        "n": 96,
+        "actual": 228426,
+        "expected": 228426,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 96
+      },
+      {
+        "n": 97,
+        "actual": 179289,
+        "expected": 179289,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 97
+      },
+      {
+        "n": 98,
+        "actual": 149231,
+        "expected": 149231,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 98
+      },
+      {
+        "n": 99,
+        "actual": 139854,
+        "expected": 139854,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 99
+      },
+      {
+        "n": 100,
+        "actual": 151669,
+        "expected": 151669,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 100
+      },
+      {
+        "n": 101,
+        "actual": 184071,
+        "expected": 184071,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 101
+      },
+      {
+        "n": 102,
+        "actual": 235257,
+        "expected": 235257,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 102
+      },
+      {
+        "n": 103,
+        "actual": 302387,
+        "expected": 302387,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 103
+      },
+      {
+        "n": 104,
+        "actual": 381767,
+        "expected": 381767,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 104
+      },
+      {
+        "n": 105,
+        "actual": 469015,
+        "expected": 469015,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 105
+      },
+      {
+        "n": 106,
+        "actual": 559283,
+        "expected": 559283,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 106
+      },
+      {
+        "n": 107,
+        "actual": 647662,
+        "expected": 647662,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 107
+      },
+      {
+        "n": 108,
+        "actual": 729188,
+        "expected": 729188,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 108
+      },
+      {
+        "n": 109,
+        "actual": 799452,
+        "expected": 799452,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 109
+      },
+      {
+        "n": 110,
+        "actual": 854500,
+        "expected": 854500,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 110
+      },
+      {
+        "n": 111,
+        "actual": 891331,
+        "expected": 891331,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 111
+      },
+      {
+        "n": 112,
+        "actual": 907891,
+        "expected": 907891,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 112
+      },
+      {
+        "n": 113,
+        "actual": 903325,
+        "expected": 903325,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 113
+      },
+      {
+        "n": 114,
+        "actual": 877779,
+        "expected": 877779,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 114
+      },
+      {
+        "n": 115,
+        "actual": 832768,
+        "expected": 832768,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 115
+      },
+      {
+        "n": 116,
+        "actual": 770719,
+        "expected": 770719,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 116
+      },
+      {
+        "n": 117,
+        "actual": 695052,
+        "expected": 695052,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 117
+      },
+      {
+        "n": 118,
+        "actual": 609992,
+        "expected": 609992,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 118
+      },
+      {
+        "n": 119,
+        "actual": 520184,
+        "expected": 520184,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 119
+      },
+      {
+        "n": 120,
+        "actual": 430634,
+        "expected": 430634,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 120
+      },
+      {
+        "n": 121,
+        "actual": 346190,
+        "expected": 346190,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 121
+      },
+      {
+        "n": 122,
+        "actual": 271614,
+        "expected": 271614,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 122
+      },
+      {
+        "n": 123,
+        "actual": 210986,
+        "expected": 210986,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 123
+      },
+      {
+        "n": 124,
+        "actual": 167671,
+        "expected": 167671,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 124
+      },
+      {
+        "n": 125,
+        "actual": 143971,
+        "expected": 143971,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 125
+      },
+      {
+        "n": 126,
+        "actual": 141312,
+        "expected": 141312,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 126
+      },
+      {
+        "n": 127,
+        "actual": 159772,
+        "expected": 159772,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 127
+      },
+      {
+        "n": 128,
+        "actual": 198344,
+        "expected": 198344,
+        "flags": 0,
+        "expected_flags": 0,
+        "latency": 11,
+        "id": 128
+      }
+    ],
+    "recovery_summary": {
+      "transactions": 2048,
+      "max_calibrated_codes": 4,
+      "max_nominal_codes": 504
+    },
+    "dither_conditions": [
+      {
+        "D": 0,
+        "seed": "13579bdf",
+        "accepted": 200000,
+        "mean": 0.0,
+        "corr": 0.0
+      },
+      {
+        "D": 1,
+        "seed": "13579bdf",
+        "accepted": 200000,
+        "mean": -0.00175,
+        "corr": -0.000786
+      },
+      {
+        "D": 2,
+        "seed": "13579bdf",
+        "accepted": 200000,
+        "mean": -0.00459,
+        "corr": -0.001488
+      },
+      {
+        "D": 3,
+        "seed": "13579bdf",
+        "accepted": 196866,
+        "mean": -0.004155,
+        "corr": -0.000851
+      },
+      {
+        "D": 63,
+        "seed": "13579bdf",
+        "accepted": 196866,
+        "mean": 0.066279,
+        "corr": 0.002793
+      },
+      {
+        "D": 2,
+        "seed": "00000001",
+        "accepted": 200000,
+        "mean": 0.006405,
+        "corr": 0.00107
+      },
+      {
+        "D": 2,
+        "seed": "ffffffff",
+        "accepted": 200000,
+        "mean": 0.00486,
+        "corr": -0.001918
+      }
+    ],
+    "dither_thresholds_from_TB": {
+      "mean_abs_over_D": 0.025,
+      "lag1_abs": 0.03
+    }
+  }
+}

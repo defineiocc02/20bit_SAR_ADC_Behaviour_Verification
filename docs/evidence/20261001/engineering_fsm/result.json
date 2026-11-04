@@ -1,0 +1,141 @@
+{
+  "scope": "zero-delay small-geometry RTL; no STA/analog/ASIC evidence",
+  "csv_rows_each": 175,
+  "recon_accepted": [
+    [
+      39,
+      101,
+      73,
+      "normal_capture"
+    ],
+    [
+      51,
+      201,
+      111,
+      "normal_before_overlap"
+    ],
+    [
+      62,
+      202,
+      203,
+      "commit_and_next_start"
+    ],
+    [
+      74,
+      301,
+      99,
+      "cancel_during_division"
+    ],
+    [
+      95,
+      302,
+      150,
+      "recovery_after_cancel"
+    ],
+    [
+      108,
+      401,
+      500,
+      "invalid_slice_error"
+    ],
+    [
+      122,
+      501,
+      304,
+      "recovery_after_error"
+    ],
+    [
+      135,
+      601,
+      500,
+      "cancel_on_error_commit"
+    ],
+    [
+      163,
+      701,
+      409,
+      "final_recovery"
+    ]
+  ],
+  "recon_results": [
+    [
+      50,
+      101,
+      73,
+      0
+    ],
+    [
+      62,
+      201,
+      111,
+      0
+    ],
+    [
+      73,
+      202,
+      203,
+      0
+    ],
+    [
+      106,
+      302,
+      150,
+      0
+    ],
+    [
+      119,
+      401,
+      150,
+      2
+    ],
+    [
+      133,
+      501,
+      304,
+      0
+    ],
+    [
+      174,
+      701,
+      409,
+      0
+    ]
+  ],
+  "recon_cancelled_ids": [
+    301,
+    601
+  ],
+  "recon_latency_ticks": 11,
+  "recon_commit_overlap_edge": 62,
+  "sar_counts": {
+    "accepted": 3,
+    "completed": 2,
+    "cancelled": 1,
+    "stalls": 9,
+    "busy_starts": 2
+  },
+  "sar_completed": [
+    [
+      14,
+      345
+    ],
+    [
+      33,
+      201
+    ]
+  ],
+  "phase_wraps": 10,
+  "csv_sha256": {
+    "phase_trace.csv": "5466c76879b9c17b1a3aced27fa9073b2dee8212863afd75b88e9581f12dfdf3",
+    "recon_trace.csv": "9040757011d7136bd25be093e3db76580fce69097a4439fc349b4b1cc4227724",
+    "sar_trace.csv": "010849b1332c779e2a142fb22fa5de9b5e520ec1f88967ca42173606b56c9904"
+  },
+  "status": "PASS",
+  "artifact_sha256": {
+    "version.log": "3f9bfcb7543b9426d374af92579531e07af169001fd870b792cbcc54c44fee51",
+    "source_sha256.json": "875962a521c8af1c30dd4c4bcb6d814b4f00f31fe6dab5b253d49316ec0fe727",
+    "command.json": "5a37efb65e1fafc8efb268d5502c9c0c5c9ef30f941f095e8fe5d955ca8041fe",
+    "engineering_fsm_tb.build.log": "058faa040927b15ab49d64a39820a796f3232473b81418b987423a7646666f02",
+    "engineering_fsm_tb.run.log": "231785dabe28108ad078e5dc9fd616b8a1d8bd04298c36a88a35e70e670d6804"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "scope": "Preserved CI 0c4a generated evidence: RTL step passed but job failed after audit launcher; do not relabel as f028",
+  "sha256": {
+    "audit_figures/make_final_regression_evidence.py": "5e3929f85ff42ff8f05eca72807d7283c9637dc9aa3e72e59bdf8617aab22fdb",
+    "sections/final_regression_evidence.tex": "cffab7b40c0e293aaf38fff4a64c80ddb4d5553a205529df40744084f379e1ef",
+    "audit_figures/ci_figure_upgrade_qa.json": "f28e459b10c25ef4a5b7f016a3b868a9ab88138e572c620b859fff398db0cacd",
+    "figures/final_regression_protocol.png": "afd99d2fbb49086ce14dc18f839d309cfc8ea8f385b6874fd9ffbd56f217103d",
+    "figures/final_regression_protocol.pdf": "3295eeecc509fb3b478808f7c33e818e003adc1e2c18762466a7a8fb09c8a58b",
+    "figures/final_regression_quantitative.png": "02250e706f28530a356c6ebcd8162aac94b85fadfbd006d2ba9ed5f4fa3cf03c",
+    "figures/final_regression_quantitative.pdf": "f416f31aff9bd1cb3902222a289a14840d2c1249fb456303a752b946d3f670ea",
+    "figures/final_regression_system.pdf": "4b8177f89ca358db19c0f77f03bfbd66e70dd772e9c5544866e22d564476d13f",
+    "figures/final_regression_arithmetic.pdf": "38cc30b4314312441fe0738164cba20643d5bad82d13ad62d3a0fcfff162b9a7",
+    "figures/final_regression_arithmetic.png": "74bcd2ad3055f0f7d325c188efbe3521d6b0be59a60f52192075665de9903fa3",
+    "figures/final_regression_system.png": "4a1cae3d91e3445cfd93e07daaf113a3bcfffb1f2e77fcb8e63819e4d89e22ce",
+    "audit_figures/final_regression_system.sha256.json": "a4dd76b31708dc854673d89dbea8cd44a957102e8604410b3ebe61811c43974a",
+    "audit_figures/final_regression_protocol.sha256.json": "bde2704c16825ed85a3201198812478ebb99d65763c35c9f997e62fc995b561c",
+    "audit_figures/final_regression_quantitative.sha256.json": "fa9018bc3131d4d14d6f6e6cb6660c47f843f50ec293f3554eb75b1bb786ae82",
+    "audit_figures/final_regression_arithmetic.sha256.json": "9fca50b7bec2bf697a56387bfab1f781777ba25d9098ac6bca561643372a91fc"
+  }
+}

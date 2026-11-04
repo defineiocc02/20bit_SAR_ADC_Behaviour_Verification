@@ -1,0 +1,13 @@
+{
+  "schema": "p7_same_constraint_comparison",
+  "files_sha256": {
+    "audit_figures/make_vivado_comparison.py": "8e4a84bec0dd49dec1dcd998780a029502edb9969fa3999bac0d5a240c8ef953",
+    "figures/32_vivado_comparison.json": "972e203a737bc94f41505336979b8a6fdffccedae7516849ae5f977a43c790a6",
+    "figures/32_vivado_comparison.png": "f6d56a9c4b3ab5a25c7070d58ee20f8965d9e6157d6f4d83d42f3e1532fac8c9",
+    "sections/vivado_measured_table.tex": "ce780911fb98eea32033e2762ee4a68800fc6a55ffd57ed37a2baeeae4a74bd1"
+  },
+  "source_records": "figures/32_vivado_comparison.json",
+  "visual_qa": "Both plots measured, image inspected; increased LUT and negative slack explicitly shown.",
+  "input_archive": "docs/evidence/20260930/vivado_complete_p7",
+  "compression": "Large .rpt.gz is decoded losslessly; original and stored SHA-256 are both recorded."
+}

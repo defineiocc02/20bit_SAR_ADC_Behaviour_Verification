@@ -1,0 +1,100 @@
+{
+  "scope": "Functional RTL source/protocol/latency evidence; zero-delay simulations, not PPA or silicon measurements.",
+  "files": [
+    {
+      "file": "structural_adc_ppa_profiles.final.sources.json",
+      "bytes": 3251,
+      "sha256": "655cd90ca128dd42ba32d7913835940c32553b2e9c47fb32e9897adffc8adfb0"
+    },
+    {
+      "file": "structural_adc_ppa_profiles.final.summary.json",
+      "bytes": 3072,
+      "sha256": "aa22c245b0c65bdaaaade479d0aa538240de38a8912564968b8f11ef308837b8"
+    },
+    {
+      "file": "structural_protocol_tb.run.final.log",
+      "bytes": 332,
+      "sha256": "6e0ec39e97b914cbb6ea35c968bbf1315821083dcf849cb3e3035458d613946c"
+    },
+    {
+      "file": "recon_ppa_latency_tb.run.final.log",
+      "bytes": 504,
+      "sha256": "25861028f11e80f71c69713d7c56d5c9ef89652e0d7f66cd539dbc8682ecb668"
+    },
+    {
+      "file": "structural_ppa.final.supporting_runner.log",
+      "bytes": 836,
+      "sha256": "9236d2c405b6502cba1df168a5f053031160e125c04a73059396098cd0619a4d"
+    },
+    {
+      "file": "structural_protocol.negative_controls.json",
+      "bytes": 1073,
+      "sha256": "778fda6310bca7a3eb9b65053bde1870610e159a095f672fe55c5c1239bdcf80"
+    },
+    {
+      "file": "structural_protocol.baseline.negative.log",
+      "bytes": 214,
+      "sha256": "caa58649dcd59bd29ee896b8bdaa6073735e6a97a11d78ec6ef965483fa6d375"
+    },
+    {
+      "file": "structural_protocol.cancel_mutant.negative.log",
+      "bytes": 214,
+      "sha256": "637f936a9885da6b5c13da5e8a3d836a2a7cba46c9342b20e004a29db02c2b68"
+    },
+    {
+      "file": "sar20_digital_core.structural.lint.final.log",
+      "bytes": 288,
+      "sha256": "d10a103c0dcc932c10b80238b3c8096c7de440db96caa3e5f7770e4755dec3eb"
+    },
+    {
+      "file": "sar20_digital_core.compatibility.lint.final.log",
+      "bytes": 288,
+      "sha256": "46f3d1c02996edd767dd0a5f3e07c0ca9bded7ee84052e717b7c1a28ed6cb741"
+    },
+    {
+      "file": "sadc_enc.standalone.lint.final.log",
+      "bytes": 287,
+      "sha256": "73971cf99ab22ca2f0e4ed0852628a6c7120ef0f07f8a70c3304c6fe10a3e856"
+    },
+    {
+      "file": "version.final.log",
+      "bytes": 36,
+      "sha256": "a1c478e9817c5bbcbc5095b6b8abefac89015612a2a1921d283138267d117a2e"
+    },
+    {
+      "file": "structural_adc_tb.final.stages5.manifest.json",
+      "bytes": 952,
+      "sha256": "51e211322402f7a7e257ff3b02434da5ef744efab5a0bcd864da8ee9705f9bd1"
+    },
+    {
+      "file": "structural_adc_tb.final.stages5.run.log",
+      "bytes": 350,
+      "sha256": "73e55692f5fd42ba264a01d01c903b592e89e39391616379ba664c806ab30d17"
+    },
+    {
+      "file": "structural_adc_tb.final.stages6.manifest.json",
+      "bytes": 952,
+      "sha256": "070583d2e62c7a5007570630bc0e5385cbd9cd44a5432d910daa28c37e2f68e8"
+    },
+    {
+      "file": "structural_adc_tb.final.stages6.run.log",
+      "bytes": 350,
+      "sha256": "0cbd0895d4df319619d8b693686d5a05fa9ed9f0e38e44c13ba445350bce6744"
+    },
+    {
+      "file": "structural_adc_tb.final.stages7.manifest.json",
+      "bytes": 952,
+      "sha256": "43ea8f17512dcd131493ba255ca94e87b96a9e4680860fdd05dddfa74ec019d1"
+    },
+    {
+      "file": "structural_adc_tb.final.stages7.run.log",
+      "bytes": 350,
+      "sha256": "911a3d41da1f60c0dd0fb0837fabcf4a9b00930d0df1321053b461cfec864df1"
+    },
+    {
+      "file": "structural_protocol_tb.run.log",
+      "bytes": 332,
+      "sha256": "20a051eef5a77f2d3602b86ecdc239a8cdbef1047d3e1fb19ead2a195e38a58e"
+    }
+  ]
+}

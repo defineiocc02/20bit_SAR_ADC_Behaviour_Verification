@@ -1,0 +1,16 @@
+{
+  "algorithm": "sha256",
+  "base": ".",
+  "files": {
+    "README.md": "171b225ded9ffce9ef2db8aa6f94f8f365d563f7599c96a540b0c948a16a81c2",
+    "arithmetic.manifest.json": "7401227e2116844da822f52c5e7ef4ab0c1a7a10e5c9884fbdbce9870bde6811",
+    "arithmetic.run.log": "8040a537c025d64b4847077f2f1bc945116429b5921335dfbbc0b1b8c8fefbab",
+    "exhaustive.manifest.json": "1756c8d0b04e11b2373792fa48d8f29f34158dc458258232184252f7734db0a2",
+    "exhaustive.run.log": "da8483c7f82f7f3523095768e6af73b8d2048f372b42cb692818b6dc55f8d28f",
+    "mutations.json": "523c1dc7313782599e2411a74813f96c3892c516c62d9bae88a40201cff7487d",
+    "omit_negative_floor_correction.run.log": "1cde3b4b0954a309019c08fa3deaa575daa8c7972fa0ffb405eb88b8821f5fe9",
+    "run_negative_controls.py": "4130310f59a00ec19ffa9c14e3f3e2dd42b7c4a6459027a8925df88453e52428",
+    "source_readback.json": "eec441f3fe2bfb0d57a39b9a3212210d11de360ce2bbb278d7c59933820f97f5",
+    "truncate_high_denominator.run.log": "ae80982048441f4de93f7984cb351bd78e66bfb745364cde2c31eab4717a5c5c"
+  }
+}

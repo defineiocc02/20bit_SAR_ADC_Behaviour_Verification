@@ -1,0 +1,60 @@
+{
+  "scope": "CI figure upgrade; no simulation, EDA or LaTeX compilation",
+  "status": "PASS",
+  "ruff_check": "PASS",
+  "ruff_format_check": "PASS",
+  "visual_inspection": "All four PNGs viewed; quantitative annotation moved above zero residual line",
+  "negative_source_binding_checks": [
+    {
+      "case": "log_bytes_changed",
+      "rejected": true,
+      "reason": "CI archive checksum differs: README.md"
+    },
+    {
+      "case": "git_tb_hash_forged",
+      "rejected": true,
+      "reason": "CI archive checksum differs: README.md"
+    },
+    {
+      "case": "overall_job_success_forged",
+      "rejected": true,
+      "reason": "CI archive checksum differs: README.md"
+    },
+    {
+      "case": "merge_tree_mismatch",
+      "rejected": true,
+      "reason": "CI archive checksum differs: README.md"
+    }
+  ],
+  "historical_files_verified": 14,
+  "immutable_git_inputs_verified": 87,
+  "script_sha256": "5e3929f85ff42ff8f05eca72807d7283c9637dc9aa3e72e59bdf8617aab22fdb",
+  "section_sha256": "cffab7b40c0e293aaf38fff4a64c80ddb4d5553a205529df40744084f379e1ef",
+  "figures": {
+    "arithmetic": {
+      "hash_record_sha256": "9fca50b7bec2bf697a56387bfab1f781777ba25d9098ac6bca561643372a91fc",
+      "png_sha256": "74bcd2ad3055f0f7d325c188efbe3521d6b0be59a60f52192075665de9903fa3",
+      "pdf_sha256": "38cc30b4314312441fe0738164cba20643d5bad82d13ad62d3a0fcfff162b9a7"
+    },
+    "protocol": {
+      "hash_record_sha256": "bde2704c16825ed85a3201198812478ebb99d65763c35c9f997e62fc995b561c",
+      "png_sha256": "afd99d2fbb49086ce14dc18f839d309cfc8ea8f385b6874fd9ffbd56f217103d",
+      "pdf_sha256": "3295eeecc509fb3b478808f7c33e818e003adc1e2c18762466a7a8fb09c8a58b"
+    },
+    "system": {
+      "hash_record_sha256": "a4dd76b31708dc854673d89dbea8cd44a957102e8604410b3ebe61811c43974a",
+      "png_sha256": "4a1cae3d91e3445cfd93e07daaf113a3bcfffb1f2e77fcb8e63819e4d89e22ce",
+      "pdf_sha256": "4b8177f89ca358db19c0f77f03bfbd66e70dd772e9c5544866e22d564476d13f"
+    },
+    "quantitative": {
+      "hash_record_sha256": "fa9018bc3131d4d14d6f6e6cb6660c47f843f50ec293f3554eb75b1bb786ae82",
+      "png_sha256": "02250e706f28530a356c6ebcd8162aac94b85fadfbd006d2ba9ed5f4fa3cf03c",
+      "pdf_sha256": "f416f31aff9bd1cb3902222a289a14840d2c1249fb456303a752b946d3f670ea"
+    }
+  },
+  "historical_archive": "history/final_regression_169f_before_ci_0c4a/archive_manifest.json",
+  "ci_manifest_sha256": "187f80eca7002d8af3bd622fdd1dc80bf619a091b4ec963426094733f105ae9d",
+  "ci_input_manifest_sha256": "22e593105cc3d31596d64e7045af84c3872b9a9f611b5daef287e89f12b4807b",
+  "independent_arithmetic_repair_manifest_sha256": "3f4a31beacdd5040d5fe1be1fb62bde118ab3e25773b2f6df406275277f085df",
+  "limits": "overall job failure retained; subsequent arithmetic repair is local evidence, not success of the old CI job"
+}

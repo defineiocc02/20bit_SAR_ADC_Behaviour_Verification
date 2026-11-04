@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "scope": "LOCAL_TCL_MOCK_ONLY_NO_REAL_DCP_QUERY",
+  "command": [
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260912/.venv-runtime/bin/python",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/unit/test_clockless_inspection.py"
+  ],
+  "returncode": 0,
+  "tests_passed": 9,
+  "source_sha256": {
+    "synth/inspect_clockless_paths.tcl": "8fbd29f71d23785305d11a26dea2f6cbf95d2f65c1286360786ab9542776200b",
+    "tests/unit/test_clockless_inspection.py": "09ce7d0c8e569a6003c3fb574a8c168d94943294907926b676a6c376ffd9b593",
+    "docs/rtl/CLOCKLESS_PATH_INSPECTION.md": "a2f3aa5f9fb613647d5788c00a9c166d503e110f7b1b55ff5790dc2f1314dc33"
+  },
+  "run_log_sha256": "5368350080ee1db30bddc82eeb342b857256ae761b0bbc2b918531785ceb71a7"
+}

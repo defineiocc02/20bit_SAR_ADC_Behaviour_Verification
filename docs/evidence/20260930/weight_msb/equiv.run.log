@@ -1,0 +1,8 @@
+WEIGHT_MSB_CASE_PASS NS=32 NU=1 steps=560 accepted=40 rejected=413
+WEIGHT_MSB_CASE_PASS NS=1 NU=128 steps=656 accepted=136 rejected=413
+WEIGHT_MSB_CASE_PASS NS=18 NU=71 steps=1807 accepted=1341 rejected=358
+WEIGHT_MSB_EQUIV_COMPLETE geometries=3
+- /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_vivado_20260930/weight_msb_candidate/weight_msb_equiv_tb.sv:80: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.49
+- Verilator: $finish at 18us; walltime 0.009 s; speed 2.030 ms/s
+- Verilator: cpu 0.009 s on 1 threads; allocated 5 MB

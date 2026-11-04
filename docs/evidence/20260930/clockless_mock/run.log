@@ -1,0 +1,14 @@
+.........                                                                [100%]
+============================= slowest 15 durations =============================
+0.02s call     tests/unit/test_clockless_inspection.py::test_limit_and_empty_path_sample_do_not_silently_certify_completeness
+0.01s call     tests/unit/test_clockless_inspection.py::test_selected_constant_chain_is_classified_without_claiming_full_coverage[direct-CONSTANT_ZERO]
+0.01s call     tests/unit/test_clockless_inspection.py::test_selected_constant_chain_is_classified_without_claiming_full_coverage[vcc-CONSTANT_ONE]
+0.01s call     tests/unit/test_clockless_inspection.py::test_incomplete_constant_proof_stays_unresolved[registered]
+0.01s call     tests/unit/test_clockless_inspection.py::test_selected_constant_chain_is_classified_without_claiming_full_coverage[cascade-CONSTANT_ZERO]
+0.01s call     tests/unit/test_clockless_inspection.py::test_incomplete_constant_proof_stays_unresolved[multiple_drivers]
+0.01s call     tests/unit/test_clockless_inspection.py::test_incomplete_constant_proof_stays_unresolved[dynamic]
+0.01s call     tests/unit/test_clockless_inspection.py::test_incomplete_constant_proof_stays_unresolved[empty_net]
+0.01s call     tests/unit/test_clockless_inspection.py::test_actual_query_error_is_failure_not_empty_graph_or_constant
+
+(6 durations < 0.005s hidden.  Use -vv to show these durations.)
+9 passed in 0.21s

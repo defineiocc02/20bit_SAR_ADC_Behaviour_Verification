@@ -1,0 +1,14 @@
+{
+  "README.md": "e897c8f28265daedcad5c89fd06532ff7ebda5c1b25f7b462a1a8a70c8cd1381",
+  "after_5020.run.log": "a536480e562c1d3fd57eaa95b28f9ac22acb5fffe5fd262fe7ec03acb8c1b9e5",
+  "after_549.run.log": "4fc0a02ba3a24bca5fb5bc7179ba763aab6b61dc102263006cd7f42480b24975",
+  "before_5020.run.log": "18eebfd81211c621ae31e2c0b89430904332bddd35b71e93f5b29ab340320459",
+  "before_5020_observed.run.log": "78745d5a3cb24859fc00a8224b22e1f39040899c27f336b55d47914abf08b790",
+  "common_stale_mutation_5020.run.log": "6c7ce0868b01a8b810a031fbbce3c20e464e9c6583c91a2783b29b911913170c",
+  "cxx_observation.json": "2ab5c49c80ae407566181daf750cdb64cf47b0315d66b2b89bf59e057c94432b",
+  "cxx_observation.patch": "1dce334cccc783c87edc21ed961de5bb0815d50e0eeb6afc3af13c1aa001010e",
+  "fixtures/common_stale_mutation.sv": "2400a88d29be6978952ba2b15f7f731913658c7c318a2da5cea874fbf3989f2b",
+  "fixtures/original_miter.sv": "3534cbb4f6a8f896008723073780cb916fe99b9f02fe1fab4b02e878436c81e5",
+  "manifest.json": "1e6257e9cfb807307cd91374394320075f05e3e71595c0cc3197ec762522e428",
+  "tool_5020_provenance.json": "5035faad03aefff64f7a47a77783f04bb0875ed914f60cce4d98e4a88208de2d"
+}

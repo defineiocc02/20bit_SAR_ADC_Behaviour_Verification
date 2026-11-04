@@ -1,0 +1,337 @@
+\documentclass[UTF8,fontset=fandol,11pt,a4paper,openany]{ctexrep}
+\usepackage[margin=22mm,headheight=15pt]{geometry}
+\usepackage{amsmath,amssymb,booktabs,longtable,array,tabularx,graphicx,xcolor,hyperref,fancyhdr,enumitem,float,tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+\hypersetup{colorlinks=true,linkcolor=blue!45!black,urlcolor=blue!45!black}
+\setlength{\parindent}{2em}\setlength{\parskip}{3pt}
+\setlength{\emergencystretch}{2em}
+\setlist{nosep,leftmargin=2em}
+\pagestyle{fancy}\fancyhf{}\fancyhead[L]{20-bit SAR ADC：RTL—论文—专利逻辑核对}\fancyhead[R]{2026-10-01}\fancyfoot[C]{\thepage}
+\newcommand{\code}[1]{\nolinkurl{#1}}
+\newcommand{\repo}{\href{https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification}{20bit SAR ADC Behaviour Verification}}
+\newcommand{\grade}[1]{\textbf{#1}}
+\title{20-bit SAR ADC 数字 RTL 与论文、专利逻辑\\全面核对及工程化推进报告}
+\author{基于公开仓库、用户提供文献和可复现数字仿真证据}
+\date{2026 年 10 月 1 日（工程化与状态机修订）\\PR \#4\quad 历史物理受测 RTL：\code{89b9f8153fea}\ldots\\阅读版源码身份见交付清单及工程化章}
+\begin{document}
+\maketitle
+\begin{abstract}
+本报告审查用户开源仓库当前分支的可综合 SystemVerilog RTL，逐项映射 ISSCC 2024 论文、44 页演示稿以及 US10516408B2、US10505561B2、US10511316B2、US10707889B1、US10541702B1、US10826519B1。结论是：数字校准的物理单元权重、精确整数重构、配置原子性、两组逐次逼近与 18 单元资源调度已有可检查实现；参考、辅助输入、采样门、残差放大器及比较器的晶体管电路尚是模拟宏边界；其中 US10707889B1 独立权利要求的跨 ADC 跟踪更新也尚未形成完整数字流程。前代行和缓存版本的22项Ubuntu RTL CI及独立算术审计另有归档；最终共享读选版本在官方Verilator 5.020完成22项bench和3类严格lint，并通过完整P5综合网表XSim。行和装载与扩展归约器分别通过 16,150 步和 1,430,848 次检查，两个 Verilator 版本交叉复验及两项缓存破坏负控另有原始证据。P5/P6/P7 三种配置的结构顶层回归保持 16 拍启动间隔；P5完整顶层综合后功能网表在XSim完成三模式438个输出、3,900项配置读回与7,680项协议检查，未作SDF时序仿真。实际BUFG布线在25 ns下寄存器间setup/hold裕量分别+0.946/+0.052 ns，支持40 MHz核心及2.5 MS/s节拍；零最短输入延迟OOC外部hold仍为−2.278 ns。相对直接前代综合LUT增加2.483%，没有宣称功耗或ASIC签核优势。原基线16项CI、各轮回归、独立负控及网表见证分别保留来源，不相互替代。上述证据说明数字逻辑与各自所用激励及判据一致，不能推出 40\,MS/s、94.2\,dB DR 等论文指标或目标 ASIC 工艺签核，也不能把 20-bit 码宽称为 20-bit ENOB。本文给出源码定位、数学契约、专利差距、仿真证据边界和下一步实施与验收准则。本次另对全部RTL作保持有效token的可读性整理，新增四幅源码状态机图、两幅真实FSM轨迹图及综合到布线/STA的执行指南；23项当前回归与原22项证据分版记录。
+\end{abstract}
+\tableofcontents
+
+\chapter{审查范围与判据}
+\section{冻结对象和来源分层}
+原始审查基线为 \repo{} 的 PR \#4。
+\par\noindent 远端提交：\code{ce9d827562c173d27e620be7a5331f4ae9306774}。
+\par\noindent 本机相同文件树的本地提交为 \code{2de9280}。
+\par\noindent 本轮行和缓存候选 RTL 已发布为 \href{https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/commit/417f261f24fe917552ac71f6aadb6b3dbf779c5f}{\code{417f261f24fe917552ac71f6aadb6b3dbf779c5f}}；后续报告与实现脚本的提交另记，不能将原基线 CI 状态移用到新提交。
+\par\noindent 最终共享单位读选修复为\href{https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/commit/71e7d5a017246340b9fa1f71cbbe99e20b6503f6}{\code{71e7d5a}}，26文件内容摘要\code{89b9f8153fea}\ldots{}。此版本功能、网表、布线与PPA证据见第\ref{sec:shared-selector-closure}节；各历史图按当次源码解释。
+\par\noindent 2026-10-01工程阅读版仅空白/注释改变；26文件18,149有效token与\code{71e7d5a}恒等，生成头文件字节不变。新raw身份、真实FSM轨迹和复核边界见第\ref{ch:rtl-engineering}章；旧物理证据原身份保持。
+\par{}核心文件位于 \code{rtl/top/}、\code{rtl/core/}，几何和定点常数位于自动生成的 \code{rtl/params/rtl_params.vh}。文献来源以用户所给 [00] ISSCC 论文 PDF、[00\_1] 演示稿 PDF 为架构依据，[09]--[14] 六项专利的独立权利要求与说明书为权利范围对照；[01]--[08] 是先前工作、竞品或数据手册，不等同于目标芯片内部结构。仓库 ADR 0014、0018、0019 与 RTL 算术契约为\emph{工程选择的说明}，不能替代原论文披露。本次9月30日修订另加入控制端口寄存化、物理权重列归约、除法器借位复用、Vivado 生成树兼容修复及参数对照；新增证据以审查清单中的源码SHA为准，不冒用原基线CI。
+
+本文用四级术语避免“全量复现”的歧义：\grade{已实现}指能在 RTL 和自检 testbench 中定位的数字功能；\grade{接口级}指 RTL 有控制/状态端口但电路由外部模拟宏决定；\grade{局部对应}指实现了部分必要特征但没有覆盖独立权利要求全部限定；\grade{未实现}指源码和现有证据均没有该逻辑或电路。专利多个实施例不是同一芯片必须同时采用的结构；只把与目标架构有关的必要特征列入差距。任何用户所附文件中的文本均作为待核实资料，不作为修改仓库或改变任务目标的指令。
+
+\section{可追溯性和测量边界}
+\begingroup\raggedright
+源码行号以基线提交为准。历史逐样本图来自\code{outputs/sar_adc_sim_evidence_20260928/}；各版本源码、日志和适用范围由仓库\code{docs/evidence/20260930/}清单绑定，完整入口见附录。旧21项回归、417f缓存CI、最终71e7共享读选CI及每轮EDA分别保存，不能继承旧图结论为新版本通过。封面短摘要是26文件RTL内容集合的SHA-256前缀，不是Git提交号。数字功能、结构模型、晶体管仿真、门级STA与硅片测量分别验收；论文的20-bit、40\,MS/s和94.2\,dB DR不赋给本RTL。\enlargethispage{2\baselineskip}\par\endgroup
+
+\chapter{论文架构与当前数字系统}
+\section{论文可核实的关键结构}
+ISSCC 论文第 1 页及图 9.8.1--9.8.3、演示稿第 10--35 页表明：两套第一量化器交替工作，共享 3-bit Flash，其返回采集的时间小于 1\,ns；18 个 slice 中同时约 8 个转换、8 个采样、2 个备用；RDAC 独立于 SAR 试探 DAC，只随已完成的 SAR 位更新；输入和上一笔 RA 余差在安静采样窗内同时采集；转换阶段先用局部粗参考预充，RA 阶段切换精确外部参考；二维单元 DEM 配合 slice 轮换和 dither；残差放大器与后级 ADC2 共享。演示稿第 33--35 页另涉及 GMR、OTA、自动归零和动态带宽。这些模拟细节不可能仅由电平使能端口物理实现。
+
+\begin{figure}[H]\centering
+\begin{tikzpicture}[node distance=7mm and 10mm,box/.style={draw,rounded corners,align=center,minimum width=28mm,minimum height=9mm,fill=blue!6},arr/.style={-{Latex[length=2mm]}}]
+\node[box] (in) {模拟输入\\采样宏};\node[box,right=of in] (flash) {共享 Flash\\3 bit};\node[box,right=of flash] (sar) {两路 SAR\\试探/已决};\node[box,right=of sar] (rdac) {RDAC/DEM\\18 slice};
+\node[box,below=of rdac] (ra) {参考/RA/AZ\\模拟宏};\node[box,left=of ra] (adc2) {后级 ADC2\\12-bit 假设};\node[box,left=of adc2] (cal) {物理权重归约\\MAC+floor 除法};\node[box,left=of cal] (out) {20-bit 码\\ID/flags};
+\draw[arr](in)--(flash);\draw[arr](flash)--(sar);\draw[arr](sar)--(rdac);\draw[arr](rdac)--(ra);\draw[arr](ra)--(adc2);\draw[arr](adc2)--(cal);\draw[arr](cal)--(out);
+\end{tikzpicture}
+\caption{当前工程的数字/模拟边界。蓝色方框为功能分解示意，并非晶体管连接图。}
+\end{figure}
+
+\section{顶层与相位的实际行为}
+\code{sar20_digital_core.sv} 第 10--108 行定义扩展后的端口与结构模式；第 265--340 行选择结构控制，且仍保留 \code{P_STRUCTURAL=0} 兼容模式。\code{sar_structural_ctrl.sv} 第 52--166 行实例化相位、18 单元池、两路 9-bit 粗 SAR、一路 12-bit 后级 SAR、DEM/dither、RDAC 和双槽样本上下文。\code{analog_phase_ctrl.sv} 第 20--39 行以寄存器输出 TP、AZ、放大与参考使能；相位 9 为参考切换死区，相位 10 起启用精确参考。寄存器输出降低组合译码毛刺风险，但不能替代非重叠模拟时钟单元、门极驱动、建立时间和电荷注入验证。
+
+默认一笔为 16 个数字时钟相位：0 安静采样与上一笔上下文转交，1 资源组晋升、Flash 锁存并启动，2--7 完成 6 个粗 SAR 决策，8 截止，9 捕获 RDAC 物理上下文及参考死区，10--15 RA/准确参考，14 后级 ADC2 截止，15 启动上一笔数字重构。外部比较器 \code{valid/data} 必须在统一 \code{clk} 建立保持约束内到达；本工程采用同步逐拍 SAR；论文未明确披露其完整复位/判决握手，不能据此宣称原芯片采用相同时序。\code{compare_enable} 是电平使能，不是复位/求值脉冲。
+
+\section{RDAC 跟随已决码与 18 单元池}
+\code{sar_trial_ctrl.sv} 第 20--51 行把 \code{trial_code} 与 \code{resolved_code} 分开，比较器 \code{cmp_valid} 到达后才提交已决位；\code{sar_structural_ctrl.sv} 第 118--130 行仅在 \code{coarse_update} 后加载 RDAC。因此“RDAC 不跟随未完成试探位”在数字边界有明确实现。\code{slice_pool_ctrl.sv} 第 23--50 行把上一周期采集的 8 单元晋升转换，从补集选择下一组 8 单元；随机游标扫描不保证对全部组合均匀抽样，也不能证明片上调度序列一致。\code{sar_structural_ctrl.sv} 第 63--65 行把 AUX 与 hold-low 接到单元归属掩码，但其模拟充电路径未出现。本轮复核把Flash/后级采集使能以及粗/细SAR截止cancel也寄存化；cancel多保持一拍，释放时busy已清零，避免两路信号同沿反向切换造成使能重开风险。
+
+\input{sections/prior_art_comparison.tex}
+
+\chapter{数字校准：核心算法与可复核实现}
+\section{物理权重语义}
+\code{rtl_params.vh} 固定 18 slice、每笔 8 活跃、每 slice 63 个主单元和 8 个子单元，共 \(18\times71=1278\) 个可编程系数。63+8 分段、1278 项表、Q30/Q32 和 ADC2 12-bit 均为本工程实现选择；ADR 0009 已明确这是完整码域候选阵列，不能当成芯片版图电容数。权重 \(W_{s,u}>0\) 为含桥接衰减的有效 \(C/C_f\)，以 48-bit 正有符号 Q30 编码；后级码仓中心 \(F\)、偏移 \(O\)、独立公共注入 \(I\) 均为相对输入满量程的 64-bit 有符号 Q32。\(a_{s,u}\in\{0,1\}\) 表示采样输入是否作用于该单元；采样 dither 专用单元有 \(a=0\)。\(on_{s,u}\) 表示本次底板开关状态，\(r_{s,u}\in\{-1,0,+1\}\) 为采样 dither 的已知轨贡献。单位、符号和桥接系数必须在离线标定导出时统一，不能对已含 \(C/C_f\) 的权重再重复乘或除 32。
+
+\section{从开关状态到整数码的推导}
+\code{cal_weight_reduce.sv} 第 43--105 行把活跃物理 ID 和掩码路由到对应系数叶子，计算
+\begin{align}
+T&=\sum_{s\in\mathcal A}\sum_u W_{s,u},&G&=\sum_{s\in\mathcal A}\sum_u W_{s,u}a_{s,u},\\
+R&=T-2\sum_{s\in\mathcal A}\sum_u W_{s,u}on_{s,u}+\sum_{s\in\mathcal A}\sum_u W_{s,u}r_{s,u}.
+\end{align}
+这里 \(T\) 随物理 slice 集合变化，不能做全局常量；\(G\) 还随采样 dither 模式变化。无效或重复 slice ID 由第 44--51 行检出。第 54--105 行是静态物理行加零门控归约树，以窄掩码移动代替 8 组宽系数交叉开关；这是综合拓扑选择，面积/延迟收益仍需目标库实测。
+
+\code{adc2_dec.sv} 第 78--95 行将原始 ADC2 码映射到 bin center，采用半值向偶的整数舍入：
+\begin{equation}
+F=F_{\min}+\operatorname{round}_{\rm even}\!\left(\frac{(2c+1)(F_{\max}-F_{\min})}{2^{B_2+1}}\right),\qquad B_2=12\text{（工程配置）}.
+\end{equation}
+\code{cal_residue_mac.sv} 第 38--70 行实现以下固定点运算及 96-bit 有符号域检查：
+\begin{align}
+N&=(F-O)2^{30}-R2^{32}-TI,\\
+S&=(N+G2^{32})2^{20},\\
+C_{\rm raw}&=\left\lfloor\frac{S}{G2^{33}}\right\rfloor
+=\left\lfloor\frac{S\ggg33}{G}\right\rfloor,\\
+C&=\min(2^{20}-1,\max(0,C_{\rm raw})).
+\end{align}
+等式利用对正整数 \(m,n\) 成立的 \(\lfloor\lfloor x/m\rfloor/n\rfloor=\lfloor x/(mn)\rfloor\)。负数不能用 SystemVerilog 默认向零截断代替向负无穷取整。\code{div_floor.sv} 第 75--150 行用恢复余数法，每拍展开 \code{P_STAGES} 个比较/减法级，并对负商的非零余数补一。默认 \(\lceil63/7\rceil=9\) 次迭代，加输入/输出级为 11 个完整时钟间隔。\code{recon_core.sv} 第 145--274 行把样本 ID、开关和、后级码、偏移、注入及异常位同拍快照，随后计算并原子输出；累加溢出或增益错误时仍给 \code{dout_valid}，但保留旧 \code{dout}；单独 ADC2 范围告警仍更新候选码，消费方必须检查 \code{result_flags}。
+
+\section{配置原子性与训练边界}
+\code{weight_store.sv} 第 74--126 行逐项写入并记录完整性；\code{calib_regs.sv} 第 79--142 行完成标量写入与 validate；\code{sar20_digital_core.sv} 第 123--153、196--260 行作地址、位宽及非法写筛选。1278 个权重与偏移、ADC2 范围必须齐备才能激活配置 epoch；运行中拒绝改写，clear 使在途样本失效。这阻止前后版本系数混用，但也不支持无停机更新。
+
+论文披露的是\emph{片外求系数，片上应用 DAC 权重修正}。当前仓库用离线拟合生成寄存器镜像，RTL 只消费系数，论文未披露具体求解算法；本工程的片外拟合属于实现选择，RTL 仅执行校正，并未实现片上 LMS/RLS 学习器。缺陷辨识、激励设计与权重可观测性因此属于拟合流程和模拟建模的验收问题；把“校准公式位精确”误写为“真实电容误差已被辨识”是不成立的。
+
+\section{数字校准可加强之处}
+首先为每一结果同时记录配置 epoch、物理 slice ID、\(T,G,R,F,O,I\) 的摘要或调试可读寄存器，便于板级定位系数、开关和与后级码的责任边界；仅在 debug 构建保留宽观测口以避免量产面积。其次用独立任意精度 Python oracle 对负数 floor、半值向偶、\(\pm2^{95}\) 边界、增益零、极端合法权重与重复 ID 做约束随机测试及故障注入。再次针对\emph{离线拟合}加入盲留出、温度/电源角、时变扰动与最坏单元失配条件，报告参数可辨识度和置信区间；真实硅片性能仍须实测。最后对配置导入建立版本号、参数 SHA、单位标记、权重排列校验和与可重读回校验，防止“数值正确但物理地址错位”。
+
+\input{sections/calibration_principles.tex}
+
+\chapter{六项专利的权利要求级对照}
+\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{27mm}>{\raggedright\arraybackslash}p{40mm}>{\raggedright\arraybackslash}p{43mm}>{\raggedright\arraybackslash}p{34mm}}
+\toprule 专利与核对点&所列权利要求的机制要点&当前对应 RTL / 判定&缺口和验收\tabularnewline\midrule\endfirsthead
+\toprule 专利与核对点&所列权利要求的机制要点&当前对应 RTL / 判定&缺口和验收\tabularnewline\midrule\endhead
+US10516408B2 [09] claim 1；ADC stage&输入采集与 DAC 残差并行、采集时间常数匹配的结构条件&\code{sar_trial_ctrl} 的试探/已决隔离与 \code{rdac_drv} 跟随已决码；\grade{局部对应}&采样 RC、DAC 建立、时间常数和放大器实际连接需模拟原理图/瞬态测量。\tabularnewline
+US10505561B2 [10] claim 1、5--11；dither&第一 dither 作用于采样 DAC 而不作用于量化器；其数字相关值修改粗码后送采样 DAC；从属项另有第二 dither&\code{sar_structural_ctrl} 的采样轨、量化器 dither 和反号去除；\code{cal_weight_reduce} 的 \(a=0,r=\pm1\)；\grade{局部对应}&注入位置、码修改和幅值单位需逐项闭合；claim 6 允许部分相关，不能普遍要求独立。\tabularnewline
+US10511316B2 [11] claim 1、7、8、15、20；DEM&共享打乱部分及附加部分；已知信号注入；claim 8 两组经中间组件连接，主组至少一个单元按次组权重相关数据控制；claim 15 池选择、claim 20 二维打乱&\code{dem_state_gen}、\code{dem_addr_gen}、\code{swap_decode}、\code{unit_therm}、18 slice 轮换；\grade{局部对应}&逐 claim 的 DAC 连接与独立置换空间、物理桥接及空间相关失配需进一步证明。\tabularnewline
+US10707889B1 [12] claim 1；interleaving&采集、转换及 tracking 阶段；使用另一 ADC 的最新转换信息更新待采集 ADC&\code{slice_pool_ctrl} 实现资源轮换；\grade{局部对应，不满足完整 claim 1}&当前无跨 ADC 跟踪更新。论文是否采用此专利路径未明确，不能等同论文必修缺陷。\tabularnewline
+US10541702B1 [13] claim 1、2、6；AUX&辅助输入绕过输入 RC 驱动内部负载/寄生电容，相关实施例可含 boost&\code{aux_charge_enable} 只输出相位掩码；\grade{接口级}&外部 AUX 网络、开关、寄生电荷和 charge-sharing/boost 需模拟宏电路与电荷守恒仿真。\tabularnewline
+US10826519B1 [14] claim 1/12；reference&方案 A：比较器控制充电后直连外参考；方案 B：放大器补充储能电容，内部参考在该电容与外参考间切换&预充与准确参考使能、死区；\grade{接口级}&claim 1 比较充电路径尚缺；claim 12 的独立储能电容方案另列，不要求两者同时采用。\tabularnewline
+\bottomrule
+\end{longtable}
+\normalsize
+
+\section{不能把“端口对应”写成“电路复现”}
+US10541702B1 的 AUX 如果只是一根 enable，而外部仍通过原输入 RC 给内部寄生充电，则独立权利要求的绕过机制并未发生。US10826519B1 的预充/准确参考若由理想源瞬时切换，同样不能验证电容、电压比较或闭环建立。US10516408B2 的转换/采集并行关系需在真实 S/H、RDAC、RA 网表上量化，而不是靠数字相位名推断。US10707889B1 应登记专利覆盖差距；论文仅明确披露 18 单元池，并未明确采用 tracking。仓库Python行为模型另有跟踪实现，不能继承为RTL证据。若选择在RTL实现该专利路径，需要定义 tracking 期间共享的最新转换码、来源通道、有效窗口、更新对象、跨相位保持、丢码与复位行为，然后用双通道交叉激励证明另一通道码确实改变本通道下一次采集初值，同时保证无跨样本污染。
+
+
+\section{论文 dither 两端口幅值：明确尚未闭合的 RTL 差距}
+原论文第 1 页 DEM 段披露：从量化器到 RDAC 的 dither 范围扩展 2 bit。该信息说明两处扰动幅值关系，不能给未知输入增加两位真实量化信息。ADR 0009 已建立一个条件性的理想注入候选：以输入等效电压定义 \(d_Q\) 与 \(d_R=4d_Q\)，并要求三项同时成立：
+\begin{align}
+c_Q&=Q(x+d_Q),\\
+k_{\rm cmd}&=c_Q\,n_{\rm step}+(d_R-d_Q)/\Delta_{\rm RDAC},\\
+v_R&=x+d_R-DAC(k_{\rm cmd}),\\
+\hat{x}&=DAC_{\rm nominal}(k_{\rm cmd})+ADC2(G_{\rm RA}v_R)/\hat{G}_{\rm RA}-d_R.
+\end{align}
+此处 \(G_{\rm RA}\) 为残差放大器的模拟电压增益，\(\hat{G}_{\rm RA}\) 为重构使用的增益估计，与第 3 章的 Q30 权重和 \(G\) 不同。\(ADC2(\cdot)\) 在此表示后级码解码后的电压估计，并非未换算的无符号整数码。
+这是仓库的工程候选契约，原文没有完整公开注入电容、分数码、满量程扩展及底板网络，仍需电路一致性核对。当前结构 RTL 对量化器输出一个整数 \code{current_dither}，RDAC 命令用同一值取负移除，未显式产生上述第二端口 \(d_R\) 及其三处一致处理。它验证的是当前选定模式，不能直接宣称已经实现 2-bit 范围扩展。\code{calib_regs} 在 validate 时拒绝 sampling 与 quantizer 两位同时置 1，因而不能通过同时使能现有两个开关拼出双端口模型。
+
+应先将注入电压与 RDAC 命令单位写入统一配置契约，明确 \(d_Q,d_R\) 各自端口、符号、饱和及数字去除；再以输入、物理电荷和实际输出三个独立观测验证。已有 \code{inj_q} 表示公共已知注入，只有模拟端确实注入并与相应权重相乘时才能承载 \(d_R\)，不能为凑齐公式凭空填写或重复扣除。
+
+\input{sections/patent_principles.tex}
+
+\chapter{数字验证：成功证据与结论边界}
+\section{分版回归与历史 CI 的来源区分}
+前代行和缓存版本（RTL内容摘要\code{1e3fab94b7b2}）已在Ubuntu CI的Verilator 5.020中通过22个testbench、3类严格lint、独立算术审计以及272项流程单元/mock检查。新增\code{weight_row_cache_tb}包含5种几何、16,150个步骤；扩展归约miter在7种几何的1,430,848次比较中同时核对原实现、列归约实现、缓存实现与独立标量结果。独立算术审计仍为40,010个MAC、40,000个ADC2、10,048个除法向量及8组标志序列，未减少向量数量。
+\par{}对应run为\href{https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36633152469}{36633152469}，RTL job 109627112125已成功。PR head为\code{417f261}，实际受测合并提交为\code{63e9887}，完整Git文件树均为\code{f0be3b81c49f}。88项源码/向量/运行输入及31项流程输入逐项绑定受测Git对象；证据入口为\code{docs/evidence/20260930/ci_rtl_417f/}，manifest摘要为
+\par\noindent\code{d844428a90a45bdcff3bc7e4939151428bf6fda36b262c15b3b8a5711d15ed25}。
+\par{}这一RTL归档取得时，整个workflow尚在运行其他任务，原观察状态保持不变。后续独立归档\code{ci_workflow_417f/}记录同一head的最终状态：9个job全部成功；四个Python版本分别有975项选中测试通过、3项未选中，Python 3.12的52条完整验收通过，确定性作业的两次52条验收和\code{results.json}字节比较通过。这些计数分别对应同一组测试在不同解释器上的执行，不能相加为不同测试数。整个CI成功仍不等于实际综合、布局布线、完整综合网表仿真或ASIC签核。最终workflow manifest的SHA-256为
+\par\noindent\code{a3dc7915e014b11e115293a35bbafaa9b718d9f9c0c9248673e79fc00c6153d6}。
+
+以下更早记录用于保留修复历程，不能覆盖后续版本：
+已发布的精简权重版本（RTL 内容摘要 \code{fd885e882ad5}）在 Ubuntu CI 的 Verilator 5.020 上通过全部21个 testbench和3类严格lint；随后独立算术审计也通过40,010个MAC、40,000个ADC2、10,048个除法向量及8组标志序列。PR head为\code{f028ec5}，实际受测合并提交为\code{ae11d8b}；两者完整Git文件树相同，摘要为\code{d84022bd8319}。逐文件核对覆盖87项RTL、测试台、参数、向量及相关运行脚本，并另外绑定31项流程测试输入。证据入口为\code{docs/evidence/20260930/ci_rtl_f028/}，其manifest的SHA-256为
+\par\noindent\code{2c17203f667ac94a66e106c775acc14602e8fa9f6ba97c60c9477d5b1346c5a5}。
+\par{}每个bench同时要求正常退出、完成标记及原始断言通过。\textbf{RTL job 109613555598的最终结论为SUCCESS}；该归档时整个workflow仍在执行其他任务，原观察记录保持不变；随后独立归档 \code{ci_workflow_f028/} 确认9个job全部成功。四个Python版本各有975项测试通过、3项未选中；完整验收52条判据通过，两次运行的结果文件逐字节一致。同job另通过272项流程单元/mock检查，这不是实际EDA。此前\code{0c4a772}一轮虽然21项bench已通过，仍因后续算术审计启动127失败；\code{ci_rtl_0c4a/}完整保留这一失败历史。入口和测试台修复的双版本及负控证据另见\code{arithmetic_runner_ci/}。更早的\code{169f957dc7fe}本地回归与\code{final_rtl/}亦保持原样。
+
+历史 CI run \href{https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36429986692}{36429986692} 在原基线执行 16 个 testbench 与 3 类 lint。以下代表性表和四幅图保留该历史证据的语义，其来源为旧证据包 \code{ci_logs/} 与 \code{manifest.json}；当前22项的逐项索引在后文单列。两轮相同计数表示相同夹具重新通过，不能据此把旧图改标为新源码实测，也不能把本地成功称为新提交的 GitHub CI 成功。
+
+\begin{table}[H]\centering\small
+\begin{tabularx}{\textwidth}{p{34mm}Xr}\toprule 证据&判定对象&结果\\\midrule
+\code{sar_trial_tb}&9-bit/12-bit 逐码、stall/cancel、已决与试探隔离&512+4096 码\\
+\code{p2_oracle_tb}&1 slice、2 主+1 子单元、ADC2 20-bit 恒等映射 oracle&1,048,576 码，0 错\\
+\code{p2_tb}&定点重构、剪裁/溢出/延迟&23,049 checks，0 错\\
+\code{calibration_fit_tb}&1278 个物理权重装载后留出样本，码/flag/ID/延迟&128 笔逐项一致\\
+校准恢复 TB&固定合成失配的校准效果&最大误差 4 vs 504 码\\
+\code{structural_adc_tb}&相位、资源轮换、三模式&438 输出，7680 checks\\
+\code{p3_top_tb}&兼容顶层真实输出与黄金码&4095 笔，16386 checks，0 错\\
+\bottomrule\end{tabularx}
+\caption{原基线 16 项 CI 中的代表性数字证据；其余 9 项原始日志见历史证据包。旧版修复基线本地全量回归为 21 项。}
+\end{table}
+
+\begin{figure}[H]\centering\includegraphics[width=.94\textwidth]{figures/17_fitted_holdout.png}\caption{外部拟合权重加载后 128 笔留出样本的实际 RTL/期望码、flags、ID、11 拍延迟；来自 CI 原始日志。}\end{figure}
+\begin{figure}[H]\centering\includegraphics[width=.94\textwidth]{figures/18_p3_waveforms.png}\caption{兼容模式顶层 4095 笔实际码、期望码与标志。dither 源由 testbench force 替代；模拟回读是行为激励，ID 端口未连接。}\end{figure}
+\begin{figure}[H]\centering\includegraphics[width=.9\textwidth]{figures/21_calibration_benefit.png}\caption{合成失配的两种校正指标；数值口径不同，不可直接换算为芯片 ENOB。}\end{figure}
+\begin{figure}[H]\centering\includegraphics[width=.9\textwidth]{figures/22_fitted_weight_map.png}\caption{18$\times$71 物理权重装载镜像；证明地址内容，不证明电容真值。}\end{figure}
+
+\section{每个“成功”的精确定义}
+SAR bench 证明给定同步比较器答案和有效握手下码序列正确，未测量动态比较器在1.5625\,ns内的复位与判决。全码 oracle 在 1 slice、2 个主单元和 1 个子单元、20-bit ADC2 的固定构造参数下检查 dout 等于输入码及 11 拍延迟，未覆盖生产尺寸 18×71 的所有权重和开关状态，也未覆盖未知模拟误差。校准留出 128 笔证明拟合镜像确实送入 RTL 后与独立期望码一致；它不证明真实芯片的未知权重可由相同激励唯一辨识。P3 输出图证明 4095 笔兼容数字链路的 16 拍间隔与码匹配；其 DUT ID/flags 端口未连接，图中横轴是测试台计数，不能作为 ID 证据；它不能证明论文的 40\,MS/s 和噪声指标。DEM/dither 直方图证明伪随机序列统计及开关译码的模型属性；失配噪声整形和频谱 spur 必须在带版图相关失配的混合信号模型或硅片上测量。
+
+
+\section{最新22个测试台的完整覆盖索引}
+下表逐项核对前代缓存版本\code{ci_rtl_417f/}的原始日志及完成标记，每行均已通过。22项包含原16个测试台，以及结构协议、参数延迟、除法穷举、树映射RTL见证、扩展归约miter和新增行和缓存测试。归约miter另有独立逐单元算术参考，能检测多个实现共同错误。这里的\code{tree_mapping_tb}只表示RTL运行，真实XSim网表运行在第\ref{ch:synthesis-repair}章另列。每项通过均受其激励限制，测试次数不等于独立场景数；本次同job的独立算术审计已通过，旧轮入口失败按历史来源单列。
+\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{46mm}>{\raggedright\arraybackslash}p{108mm}}
+\toprule 测试台&成功判据与明确边界\\\midrule\endfirsthead
+\toprule 测试台&成功判据与明确边界\\\midrule\endhead
+\code{sar_trial_tb}&12-bit 4096 码与9-bit 512码；检查握手停顿、最终码和cancel；比较器是理想同步模型。\\
+\code{calibration_recovery_tb}&2048 个缩小阵列合成失配样本，校准最大误差4码、名义权重504码；误差预算含ADC2量化，非INL硅测。\\
+\code{calibration_fit_tb}&1278项真实寄存器加载/读核对；128条实际FIT\_ROW含码、flags、ID和11拍延迟，全部匹配。\\
+\code{structural_adc_tb}&三种配置、438输出、7680次检查，覆盖18物理slice与缺失判决后的恢复；端口驱动理想比较器。\\
+\code{structural_protocol_tb}&120帧、57笔提交、63笔预期丢弃、1920次检查、2次译码扰动；检查截止、恢复、ID和注入归属。\\
+\code{recon_ppa_latency_tb}&P5/P6/P7各32笔连续事务；II=16，busy释放14/12/10拍，输出延迟15/13/11拍。\\
+\code{divider_borrow_tb}&六种位宽/展开组合共67592个穷举输入；floor定义式、除零、固定延迟、busy拒绝、结果保持和done单拍。\\
+\code{tree_mapping_tb}&12904次独立标量比较；Flash、物理权重、模式、全地址编码和随机系数；本行仅指RTL见证。\\
+\code{cal_weight_reduce_ppa_tb}&七种几何共1430848次原实现/列归约/缓存实现及独立标量比较；生产尺寸枚举43758种8-of-18集合并交叉轨与采样模式。\\
+\code{weight_row_cache_tb}&五种几何共16150步骤；逐写核对物理行和、合法/非法写、重复地址替换、clear保值及最大权重。32$\times$128完整表与18$\times$71生产几何均覆盖。\\
+\code{calibration_physical_tb}&2048事务，18个slice、每个7+1单元的缩小夹具；256-bit整数oracle检查掩码、注入、取整、剪裁、ID与无效ID。\\
+\code{review_top_protocol_tb}&1108次检查、38输出；兼容profile固定相位捕获、缺失ready、恢复与非强制dither路径。\\
+\code{review_leaf_tb}&91142次检查，叶模块边界、参数守卫和组合译码；不等于门级毛刺或模拟建立验证。\\
+\code{review_recon_protocol_tb}&未配置启动、配置撤销、完成/错误位与样本ID；观察有效结果和禁止泄漏的事务。\\
+\code{review_dither_tb}&7组幅值/种子，每组200000次候选抽样；有效接受数、分布、均值、自相关和保持/复位检查。\\
+\code{review_config_tb}&624个输出，完整性/运行锁定/写入冲突等配置回归；不表示外部总线CDC已验证。\\
+\code{p2_tb}&23049次检查，除法、重构、剪裁、溢出、11拍延迟；百万码扫描由独立oracle承担。\\
+\code{p2_oracle_tb}&1048576个码，固定小尺寸构造下dout等于输入及11拍延迟；非全部物理系数空间枚举。\\
+\code{p2_periph_tb}&709次检查，配置外设与状态/存储不变量；0 error。\\
+\code{p2_smoke_tb}&1154次检查，各分项零失配；链路冒烟而非全部结构覆盖。\\
+\code{p1_tb}&464823次检查，DEM状态/地址、交换、温度计和链路；七个分项零错误。\\
+\code{p3_top_tb}&4095笔兼容profile输出、16386检查、0 error；force替代dither源，DUT ID/flags未接，不构成其证据。\\
+\bottomrule\end{longtable}
+\normalsize
+\section{本轮新增的独立算术与结构证据}
+任意精度Python oracle独立生成90,058个向量：残差MAC 40,010个、ADC2解码40,000个、63/64-bit除法10,048个；另有8组输出标志序列。覆盖合法最小负值、96-bit边界、floor负商、半值向偶、非法范围与busy期间重复start。参考生成器没有导入被测RTL镜像；故意破坏最小负数判定与除法位组顺序，两项负控均被测试抓到。所有通过结论受其向量范围限制。
+
+结构协议新增120帧：57笔应提交、63笔应丢弃；共1,920次检查，逐个粗/细SAR决策位置丢失valid，检查截止、迟到活动、恢复、ID与注入归属。在时钟沿之间施加两次相位总线扰动，旧版和取消信号变异版分别在234/242\,ns失败，修复版通过。该测试证明数字使能不再直接响应所施加的译码扰动；不是门级延迟模型或物理无毛刺保证。
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figures/30_arithmetic_protocol_audit.png}
+\caption{首轮定向实跑日志与manifest的证据概览；后续跨版本审计另立来源。每个计数都有原始数据；图是覆盖样本和判据的展示，不是人为绘制的电路波形。}
+\end{figure}
+
+面积导向归约另有新旧模块并排miter：7种几何、1,430,848次逐位比较，全部通过。生产几何枚举所有43,758种8-of-18集合，交叉16种轨模式和2种采样模式；同时测试极值、重复/越界ID和合法随机重排。落地版本再通过物理校准2,048样本、恢复2,048样本、拟合权重128样本/1,278系数，以及1,048,576码小尺寸全码oracle。miter有配套整数代数与位宽论证，但仍不应称为全设计形式等价证明。
+
+\input{sections/verification_method.tex}
+\input{sections/final_regression_evidence.tex}
+
+\chapter{综合、时序与下一阶段实施}
+\section{平台验收口径}
+用户已明确确认：640\,MHz 保留为 ASIC 目标；Virtex-7 FPGA 按实测可实现频率验证，并独立报告与目标的差距。FPGA 每 16 拍接收一笔样本的名义速率为 \(f_{\rm clk}/16\)，不能在较低 FPGA 时钟下仍沿用 40\,MS/s 标签。OOC 实现的外部时钟和 IO 为指定上下文假设，尚不能替代整板 IO、模拟宏和目标 ASIC 工艺签核。
+
+\section{当前主要硬件风险}
+\begin{enumerate}
+\item \textbf{权重存储和宽并行读：}接口容量为18$\times$71$\times$48=61,344 bit，全表并行可见。合法权重的最高位恒零，显式掩码后只有60,066个系数数据位可能变化；行和缓存另增加18$\times$54=972个状态位，装载完整性位和其他控制状态另计。以上是源码位数，实际FF数以综合为准。窄掩码到物理行的改写减少了宽18:1选择的源码路径，但带来了更多零门控叶子。普通SRAM很难直接提供同拍568项读取，不能仅凭RTL数组语法判定存储映射与面积。
+\item \textbf{组合关键路径：}同拍物理权重归约、带符号 64-bit 乘法、132-bit 容器中的加减与边界比较，随后迭代除法每拍串接 7 级试减与余数选择。修复版默认采用63-bit余数和64-bit借位差，复用一次减法的借位；原实现的比较加减法不能继续当作当前结构。\code{P_STAGES=7} 是每拍展开数，不是 7 级流水。令每拍展开数为 \(p\)，当 \(p=7,6,5\) 时，\(\lceil63/p\rceil+2\) 分别为 11、13、15 拍；三种配置的 \code{busy} 释放及下一笔启动已由历史参数回归验证。小于 5 的配置已被顶层参数守卫拒绝。
+\item \textbf{频率：}16 相位$\times$40\,MS/s 要求 640\,MHz，即 1.5625\,ns 周期；代码能仿真并不说明在 40\,nm、指定 PVT 和真实布线后能满足。10\,ns 约束对应仅 6.25\,MS/s 的数字节拍。
+\item \textbf{模拟边界：}Flash、两路粗比较器、后级比较器、RDAC、RA、参考、AUX、TP 同步都缺真实时序/幅值约束；比较器数据未经异步握手 CDC 证明。现有相位规划若无法在模拟建立预算内闭合，须改时序或并行化，不应通过放宽约束仍保留 40\,MS/s 标签。
+\end{enumerate}
+
+\section{可执行的工程化里程碑}
+\begin{longtable}{>{\raggedright\arraybackslash}p{12mm}>{\raggedright\arraybackslash}p{54mm}>{\raggedright\arraybackslash}p{86mm}}\toprule 优先级&实施项&客观验收准则\\\midrule\endfirsthead\toprule 优先级&实施项&客观验收准则\\\midrule\endhead
+P0&冻结当前 RTL/参数/向量/测试工具哈希，配置导入增加 epoch 与排列校验；补专利 [12] 差距 issue。&权重读回与加载镜像逐项一致；跨样本 ID/epoch 不错配；issue 含 claim 1 每一限定与接口设计。\\
+P0&校准算术形式化/约束随机：极端合法权重、\(G=0\)、重复 ID、负商、半值向偶、溢出上下边界。&独立任意精度 oracle 位精确；输出码、flags、hold、valid、ID 全部逐笔一致。\\
+P1&规划权重 bank、配置期聚合及归约流水；对当前结构与候选结构分别综合。&相同库、角、约束下四个单元及顶层的面积、关键路径、存储映射、功耗活动假设、网表可复现；功能逐位等价。\\
+P1&模拟宏接口契约：TP/AZ/参考/AUX/比较器 valid 的 setup/hold、非重叠、最大建立误差与电压域。&Spectre/AMS 瞬态及 PVT 含最坏码跳变；每个接口量有预算与测量波形。\\
+P1&明确 [12] tracking 属于专利覆盖差距，并确认目标架构是否采用；若采用再增加最新码寄存、来源 ID 和有效性。&双通道交叉激励证明因果更新；迟到码、丢码、复位/clear 不污染下一样本。\\
+P2&数字顶层 DC/等价/STA 与混合信号协同闭环。&1.5625\,ns 目标下 setup/hold、未约束端点、组合环、锁存器、DRC、PVT 和功耗报告齐全；否则正式降级吞吐规格。\\
+P2&最终系统级 SNR/DR、SNDR、SFDR、INL/DNL、温漂及输入带宽。&从连续时间或晶体管/硅片数据提取，报告采样数、窗函数、频率、置信界和原始数据；不能复用数字 testbench 指标。\\
+\bottomrule\end{longtable}
+
+\section{面向综合的保守优化顺序}
+先用当前 RTL 在同一目标工艺和真实 SDC 建立基线，分别报告 权重存储、权重归约、残差乘加、除法器和集成顶层，确认最差路径究竟在权重选择、归约、乘法还是除法。随后只改一个瓶颈：若前端归约为主，优先配置期预聚合、物理行局部和、有限级流水；若宽乘法为主，先形式证明合法输入的紧位宽，再缩小乘数；若除法为主，比较分块流水、并行除法器或“倒数近似 + 逐位精确修正”。每次优化都必须保留 \(\lfloor\cdot\rfloor\)、溢出边界和逐样本标记，验证 initiation interval 与 latency 同时满足固定 16 相位。面向高频的最终结果必须在布线后 STA 而非 RTL 逻辑深度推测下确认。
+
+Vivado 综合只能提供 FPGA 结构筛选和对应器件下的资源/时序结果。ASIC 的面积、功耗与时序比较必须使用相同标准单元库、PVT 角和约束；FPGA 的 LUT、DSP、BRAM 与时序结果不能替代 40\,nm ASIC 的 PPA 签核。
+
+
+\section{已实施的面积导向归约改写}
+采样dither的第 \(j\) 个轨在所有活跃slice中相同。原先逐单元取正负、再求和，可以在整数精确域内交换顺序：
+\begin{align}
+C_j &= \sum_{s\in\mathcal A}W_{s,u_j}, & M &= \sum_j C_j,\\
+G &= \begin{cases}T-M,&\text{sampling dither开启}\\T,&\text{关闭}\end{cases}, &
+R_d &= \begin{cases}\sum_j r_j C_j,&\text{开启}\\0,&\text{关闭}\end{cases}.
+\end{align}
+\code{cal_weight_reduce.sv} 保留原有 \(T\) 和 \(W_{on}\) 树，并共用物理叶子。新列树先得到4个 \(C_j\)，再做4次条件取负，取代原来的 \(18\times4=72\) 次。没有增加寄存器、额外宽观测口、系数状态或流水拍；没有改变取整、饱和和标志。\(M\) 是 \(T\) 的子集，且原有位宽守卫覆盖全部系数和，因此 \(T-M\) 不发生无符号借位回绕。无效/重复ID仍按原协议报警，而求和位图语义也保持一致。
+
+消除补零节点并共享原设计相同子树后，原先受dither影响的独立gain加法为178个、dither加法为71个；候选为列加法68个、mask汇总3个、轨汇总3个、gain减法1个。该部分加减表达式由249减为75，减少174个；条件取负由72减为4。\textbf{这是源码结构计数，不是LUT、标准单元面积、功耗或频率实测。}新gain多一个末端减法，可能改变关键路径；只有相同库或器件、相同约束的综合对照才能判断实际收益。不能把“表达式少70\%”写成“芯片面积少70\%”。
+
+此处列归约改写本身没有改变61,344 bit的权重接口容量；后续最高位掩码与行和缓存的状态变化在第\ref{ch:synthesis-repair}章单列。当前全表并行读语义不会自动成为单块SRAM。可编程系数、异常范围和16拍启动间隔均保留。除法默认7保持不变，5与6作为可复现候选；不在缺少映射数据时盲目更改默认值。
+
+\section{保持16拍吞吐的三参数实际比较}
+前代精简权重版本（内容摘要 \code{fd885e882ad5}）分别以5、6、7展开数运行完整18-slice结构顶层。每种配置均有438笔正确输出、7,680次逐拍检查、438笔真实接受沿到提交沿的延迟检查；三种模式、18个slice均覆盖。证据为 \code{docs/evidence/20260930/compact_profiles/} 下的原始运行日志、manifest和源码摘要，编译与运行退出码均为0。实测输出延迟仍为15、13、11拍。
+这一前代 RTL 内容摘要也已在 \code{ci_rtl_0c4a/} 的 \code{recon_ppa_latency_tb} 中重新通过各32笔连续16拍启动检查，busy释放仍为14/12/10拍。该项是缩小阵列的重构夹具；\code{compact_profiles/} 则是18-slice结构顶层的438笔检查。下表的busy与输出拍数由这两种不同范围的实际回归相互核对，不把缩小夹具扩称为完整模拟系统吞吐证明。
+\begin{center}\begin{tabular}{rrrrr}\toprule
+展开数&除法迭代拍数&busy释放拍&输出提交拍&距下一次请求\\\midrule
+5&13&14&15&1拍\\
+6&11&12&13&3拍\\
+7&9&10&11&5拍\\\bottomrule
+\end{tabular}\end{center}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figures/31_divider_profiles.png}
+\caption{P5/P6/P7 的数字周期预算与前代 \code{compact_profiles/} 实测输出延迟；源码内容摘要为 \code{fd885e882ad5}。横轴是数字时钟拍数，没有门级时延，不能据此推导640\,MHz达标。}
+\end{figure}
+
+\section{Vivado 可执行筛选与实跑条件}
+新增 \code{synth/run_vivado_ssh.py} 和 \code{run_vivado_ooc.tcl}，显式指定已安装FPGA器件，统一顶层、OOC模式、1.5625\,ns周期、0.05\,ns不确定度、零I/O延迟；比较5/6/7展开配置，保留源文件与全部头文件SHA、工具版本、参数、分层资源、关键路径、DRC及vectorless功耗报告。零I/O延迟仅是筛选假设，真实宏接口预算须后续补齐。完成工件、参数及无驱动门禁检查后，runner归一化结果码0才表示受约束setup WNS非负；Windows外层raw 0本身不能作为这一判据。该状态也不表示hold、未约束端点、DRC或布线签核通过。
+
+旧默认地址直连失败后，按用户给出的参考会话核对SSH配置，已通过 \code{windows-codex} 登录Windows主机，实测启动Vivado 2018.3，并确认 \code{xc7vx690tffg1761-2} 已安装。本轮请求1.5625\,ns，工具实际舍入为1.563\,ns；两线程、顺序运行以限制资源占用。最初两份仅替换reducer的快照均因无驱动缺陷被否定；新的完整对照共同修复树连接，再比较归约与除法组合优化。51项mock/Tcl流程测试验证打包、参数、状态校验、Windows编码与失败传播，不能替代实跑结果。实际综合、映射功能与实现结果的口径见第\ref{ch:synthesis-repair}章；ASIC PPA仍需标准单元库与物理实现结果。
+
+\section{2026-09-30 复核修订与解释边界}
+本次独立复核重算原证据清单的63项SHA-256，全部一致；同时核实基线PR的9项CI已全部成功。哈希核对确认交付文件与清单一致，不单独证明每项科学结论。复核发现报告中证据归属和文献映射的错误，已纠正如下：P3测试台计数不再被当成DUT ID；具体学习算法不再被归为论文已披露；百万码oracle写明小尺寸恒等构造；63+8分段注明工程选择；[10]补上基于dither修改粗码的必要路径，[14]将claim 1与claim 12分开；[12] tracking区分专利覆盖差距和论文强制结构；补列论文两端口dither范围扩展尚未闭合。
+
+算术说明也需与实现一致：\(r=x-2^k\lfloor x/2^k\rfloor\) 是非负余数；96-bit合法区间包含 \(-2^{95}\)，只在小于该下界时溢出。采样dither后的\emph{合成}轨系数 \(s=1-2on+r\) 可以为 \(-2,0,2\)，有别于单独轨 \(r=\pm1\)；有符号表示至少需3bit。单笔 \code{result_flags} 与历史粘滞输出必须分列，历史异常不会因后一正常结果自动消失。
+
+本次新增定向验证及 RTL 变更的状态、命令、源文件摘要与结果见仓库审查记录：\par\noindent\code{docs/rtl/FULL_AUDIT_20260930.md}。\par{}原始16项CI仅对其基线成立；旧版修复基线的21项本地全量回归与三参数结构回归分别登记于 \code{final_rtl/}、\code{final_profiles/}；前代定向复验与compact三参数另立清单。当前缓存提交的22项RTL CI和9项workflow结论各有独立归档，不能追溯伪装成旧CI结果。模拟宏与目标ASIC库映射、PVT及布线后签核是独立验收项；本轮FPGA实验按第\ref{ch:synthesis-repair}章的限定口径解释。
+\input{sections/divider_timing.tex}
+
+\input{sections/synthesis_repair.tex}
+
+\input{sections/rtl_engineering_fsm.tex}
+\input{sections/engineering_sta.tex}
+
+\input{sections/implementation_plan.tex}
+
+\chapter{结论}
+本轮对26个生产RTL文件整理模块职责、符号/位宽、状态和取消边界，25个文件仅变更空白与注释，生成参数头保持原字节。18,149个有效token、预处理宏与工具pragma和受测共享选择器版本相同；历史物理证据仍保留原身份。新增工程FSM测试单独通过严格lint与当前源码实测，当前回归入口扩展到23项。四张源码状态图负责解释，两张实际逐沿轨迹图及原始CSV负责提供功能见证，综合/STA/布线指南与分阶段计划明确后续验收门禁。
+
+当前代码最完整且最可检验的是\textbf{数字校准链}：物理单元权重配置、DEM/采样轨对应、Q30/Q32 整数公式、精确 floor 除法、异常与 sample ID 协同输出。当前行和缓存版本已通过22项CI RTL回归、三类lint及独立算术审计，定向最大表与替换/clear检查、两项破坏负控和P5/P6/P7结构配置检查分别保留来源；独立整数oracle、负控和真实小单元映射见证补充了不同层级的证据。P5完整顶层综合网表又通过三模式438行公开端口功能检查，但不含SDF和非零flags；历史CI与逐样本图仍按原来源保留。
+
+首次P5基线在25\,ns下寄存器间setup为−0.280\,ns；逐行独立读选候选又因14.66\% LUT增长及拥塞等级7失败而弃用。最终共享单位读选版本通过完整22项RTL回归、三档结构检查及完整P5综合网表XSim，同约束真实BUFG布线setup为+0.946\,ns、寄存器间hold为+0.052\,ns，路由和DRC错误为0。当前40\,MHz核心在记录条件下实现，16拍节拍对应2.5\,MS/s。OOC外部hold仍为−2.278\,ns，整板接口尚未签核，ASIC 640\,MHz也未验证。综合LUT增加2.483\%，是当前时序修复的面积代价。
+
+论文的两路交替与 RDAC 已决位隔离已到数字控制层；采样时刻、辅助充电、动态参考、RA/AZ 和比较器仍要由模拟电路和版图证明。六项专利中 US10707889B1 的跨 ADC tracking 更新尚未覆盖，但缺少证据证明它是该论文芯片必须采用的路径；应作为专利覆盖差距管理。论文披露的两端口 dither 范围扩展 2 bit 则是当前 RTL 尚未闭合的明确架构差距。下一阶段优先按已测权重归约布线路径和93.72\%权重存储FF占比优化，评估后级转换期间预计算及降低系数读取项数。二维DEM前缀算法虽有3,354,624次整数比较见证，简单叠加缓存会额外增加72,432个状态位，故尚未纳入RTL。随后实现未闭合数字架构及模拟宏接口并完成混合信号验收；ASIC 640\,MHz目标与FPGA实测可实现频率分别报告。
+
+\appendix
+\chapter{来源与复现索引}
+工程化新增入口为\code{docs/rtl/RTL_ENGINEERING_GUIDE.md}和\code{synth/FPGA_SYNTHESIS_AND_STA.md}；源码恒等与实际FSM证据位于\code{docs/evidence/20261001/}。源码解释图与零延迟真实轨迹严格分开，重画命令见报告\code{audit_figures/README.md}。
+\begin{enumerate}
+\item [00] 用户提供的 ISSCC 2024 论文 PDF（文件名以 \code{[00]_A_9.3nV} 开头），第 1--3 页，尤其 Fig. 9.8.1--9.8.3。
+\item [00\_1] 用户提供：\code{[00_1]ISSCC2024_ppt.pdf}，第 10--35 页为架构、参考、DEM、RA/AZ；第 36--38 页为测量结果。
+\item [01] Hurrell 等，\emph{An 18 b 12.5 MS/s ADC With 93 dB SNR}，用户 PDF 第1、3、5--6页：双级多位 SAR、非易失权重修正、后级 dither 与功耗口径。
+\item [02] ElShater 等，\emph{A 10-mW 16-b 15-MS/s Two-Step SAR ADC With 95-dB DR Using Dual-Deadzone Ring Amplifier}，用户 PDF 第1、7、10页：RA 结构、片上建立表征及不同采样率下的 DR/功耗。
+\item [03] Li 等，\emph{A Rail-to-Rail 12 MS/s 91.3 dB SNDR 94.1 dB DR Two-Step SAR ADC With Integrated Input Buffer Using Predictive Level-Shifting}，用户 PDF 第1--3、8页：预测性输入驱动和测量条件。
+\item [04] Bannon 等，\emph{An 18 b 5 MS/s SAR ADC with 100.2 dB Dynamic Range}，用户 PDF 第1--2页：三级子 ADC、残差放大、熔丝修正及不同功耗边界。
+\item [05] Analog Devices，\emph{LTC2387-18 Datasheet}，用户 PDF 第1页及电气特性表：外部接口、参考与产品典型值。
+\item [06] Steensgaard 等，\emph{A 24b 2MS/s SAR ADC with 0.03ppm INL and 106.3dB DR in 180nm CMOS}，用户 PDF 第1页：DEM/dither 失配整形、AZ 与 core 功耗。
+\item [07] Texas Instruments，\emph{ADC358x Datasheet}，用户 PDF 第1、6页：ADC3583 型号、噪声与外部参考/双线接口功耗条件。
+\item [08] Shen 等，\emph{A 16-bit 16-MS/s SAR ADC With On-Chip Calibration in 55-nm CMOS}，用户 PDF 第1、8页：片上前台位权测量、储能参考、LSB 重复与统计余差。
+\item 附件身份清单：\code{audit_figures/reference_input_manifest.json} 记录 [00]、[00\_1]、[01]--[14] 共16份用户 PDF 的文件名、页数、字节数和 SHA-256；报告包不附原件。
+\item [09] \url{https://patents.google.com/patent/US10516408B2/en}，claim 1 及相关图。
+\item [10] \url{https://patents.google.com/patent/US10505561B2/en}，claim 1、5--11。
+\item [11] \url{https://patents.google.com/patent/US10511316B2/en}，claim 1、7、8、15、20。
+\item [12] \url{https://patents.google.com/patent/US10707889B1/en}，claim 1/12/23；tracking 限定必须单独核对。用户论文 PDF 第3页参考[12]印为10,797,889；按附件、题名和作者核对，交织专利为10,707,889 B1。前一号码对应另一项DLOA专利。此勘误已登记在仓库第六份外部复核文档，本文明确沿用订正号。
+\item [13] \url{https://patents.google.com/patent/US10541702B1/en}，claim 1、2、6。
+\item [14] \url{https://patents.google.com/patent/US10826519B1/en}，claim 1、12。
+\item 仓库审查基线：PR \#4，\url{https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/pull/4}。CI run 36429986692 可从 PR 的 Checks 打开。
+\item 本地独立证据包：\code{sar_adc_sim_evidence_20260928}，含报告、\code{manifest.json}、原始 CI 日志、逐样本轨迹与图。报告中的图片是原始数据可视化。
+\item 旧版修复基线本地21项回归：\code{docs/evidence/20260930/final_rtl/result.json}、\code{source_manifest.json}、\code{sha256.json}，并列保存21份run log与3份lint log。
+\item 旧版修复基线三参数结构回归：\code{docs/evidence/20260930/final_profiles/}，含5/6/7展开的命令、源文件摘要、逐配置manifest、延迟及协议日志。
+\item 当前缓存版的真实CI原始材料：\code{docs/evidence/20260930/ci_rtl_417f/}逐项保存22份RTL测试台日志、三类严格lint及独立算术审计；\code{ci_workflow_417f/}单独保存同一head的9项工作流最终结论。两份清单均有文件SHA-256。
+\item 本地独立归约验收：\code{docs/evidence/20260930/reducer_scheduler/}记录旧实现、新的列共享实现和逐单元scalar oracle在七种几何下的1,430,848次比较；\code{weight_row_cache/}另存行和装载、更替、clear、极值和两项变异负控。它们不是额外芯片样本。
+\item 独立算术入口与原始负控：\code{docs/evidence/20260930/arithmetic_runner_ci/}保存两版Verilator日志、MAC/ADC2/除法/flags的正向计数及故意引入错误后的失败行；历史\code{ci_rtl_0c4a/}仍保留旧CI失败，不被后来的通过覆盖。
+\item 已完成的P7完整顶层综合对照：\code{docs/evidence/20260930/vivado_complete_p7/}保留两份原始报告子集、精确源码包、日志、DCP哈希、状态和对照JSON。其1.5625\,ns约束下负WNS不代表达频，也不是当前缓存版的同约束PPA对照。
+\item 前代精简P5超时记录：\code{docs/evidence/20260930/vivado_compact_p5_timeout/}保存7,200\,s时限及运行阶段，无完整DCP和资源/时序值；它是失败历史，不能填入PPA表。
+\item 当前缓存P5完整顶层综合和功能网表：\code{docs/evidence/20260930/vivado_cached_p5/}保存原始报告、无驱动检查及DCP摘要；\code{vivado_cached_p5_full_mapped/}保存三次XSim尝试、最终438行trace、日志及96项文件哈希。图\ref{fig:full-mapped-p5}限定为功能证据，不代替物理时序。
+\item 当前缓存P5的25\,ns实际布线失败：\code{docs/evidence/20260930/vivado_cached_p5_route_25ns_fail/}保存完整路由、DRC、setup/hold与功耗报告；\code{regreg_followup/}在同一布线DCP上按顺序引脚重算寄存器间setup/hold。图\ref{fig:p5-route-25ns}分开OOC外部端口与内部寄存器，未把负WNS归入时序通过。
+\item 局部行更新候选的RTL实测：\code{docs/evidence/20260930/local_row_trial_rtl/}绑定唯一RTL内容摘要，保留官方Verilator 5.020的22项run/build日志、三类lint、P5/P6追加结构测试及57项文件哈希。图\ref{fig:local-row-profiles}显示P5/P6/P7各自15/13/11拍，不把零延迟拍数当作物理纳秒。
+\item 局部行更新候选的真实EDA负证据：\code{docs/evidence/20260930/local_row_trial_synth/}保存同约束P5综合、完整DCP摘要、源码差异仅一文件的A/B比较；\code{local_row_trial_route_congestion/}保存\code{Route 35-3}拥塞等级7失败的原始日志及状态。图\ref{fig:local-row-ppa}只对比有效综合资源及路由是否完成，不存在可称为通过的最终路由时序。
+\item 最终共享单位读选修复的四组完整来源：\code{docs/evidence/20260930/shared_old_trial_rtl/}、\code{shared_old_trial_synth/}、\code{shared_old_trial_route_25ns/}、\code{shared_old_trial_full_mapped/}分别绑定最终源码、同约束综合、真正寄存器间时序与完整XSim公共端口记录。图\ref{fig:shared-old-ppa}与图\ref{fig:shared-old-mapped}不继承历史失败候选的身份。
+\item 后续PPA算法分析：\code{audit_figures/audit_dem_prefix_math.py}与\code{dem_prefix_math.result.json}记录独立前向物理排列、全部状态/计数、基向量和错误一维环负控；这是数学等价证据，未实现为RTL。
+\item 图件来源：\code{audit_figures/}中的自写生成器及\code{*.sha256.json}核对图件、原始日志和生成脚本；仓库报告包的\code{history/}逐代保存旧图，避免把不同源码版本的曲线误合并。
+\end{enumerate}
+\end{document}

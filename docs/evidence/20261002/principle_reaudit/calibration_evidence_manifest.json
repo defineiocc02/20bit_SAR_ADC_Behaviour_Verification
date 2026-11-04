@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-02",
+  "base_head": "71935ab54238c7ed638f5fa66c5ffb58e10287bb",
+  "scope": "CALIBRATION_SOURCE_REVIEW_BOUNDED_TWO_COMBINATIONAL_RTL_BENCHES_AND_EXACT_CALCULATION_NOT_FULL_TOP_NOT_EDA_NOT_ANALOG_NOT_SIGNOFF",
+  "verilator": "Verilator 5.020 2024-01-01 rev UNKNOWN.REV",
+  "runtime_wrapper": "external Apple libc++ adapter with C++20; production RTL unchanged",
+  "commands_repo_cwd": [
+    "/tmp/sar_verilator_5_020_build/verilator5020 --binary --timing --timescale 1ns/1ps --top-module calibration_domain_tb -Irtl/params rtl/core/cal_residue_mac.sv /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/calibration_domain_tb.sv --Mdir /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/calibration_domain_build",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/calibration_domain_build/Vcalibration_domain_tb",
+    "/tmp/sar_verilator_5_020_build/verilator5020 --binary --timing --timescale 1ns/1ps --top-module adc2_rounding_semantics_tb -Irtl/params rtl/core/adc2_dec.sv /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/adc2_rounding_semantics_tb.sv --Mdir /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/adc2_rounding_semantics_build",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/adc2_rounding_semantics_build/Vadc2_rounding_semantics_tb"
+  ],
+  "math_command_output_cwd": "python3 calibration_math_check.py",
+  "payloads": [
+    {
+      "path": "calibration_audit.md",
+      "bytes": 28677,
+      "sha256": "e7f8a1a1f13c61e05ac3bb5801d9d60f0ff7367d6e1c07001a2aa914375eee34"
+    },
+    {
+      "path": "calibration_math_check.py",
+      "bytes": 6167,
+      "sha256": "347c8d42cb082c11d1c8d2b228c54fb68fe7a176b2af734124b075ea67d42b29"
+    },
+    {
+      "path": "calibration_math_result.json",
+      "bytes": 3990,
+      "sha256": "3f9df7ae45ae9380cd1fdb5f76e924136701cad4ed73d501554ad33d8b125897"
+    },
+    {
+      "path": "calibration_math_check.log",
+      "bytes": 3990,
+      "sha256": "3f9df7ae45ae9380cd1fdb5f76e924136701cad4ed73d501554ad33d8b125897"
+    },
+    {
+      "path": "calibration_domain_nominal_mirror.json",
+      "bytes": 21289,
+      "sha256": "9e8a3625f9b3ccea6f735462b03209de82569b6e87bad0563ae3d43c049288f1"
+    },
+    {
+      "path": "calibration_domain_scaled_2pow20_mirror.json",
+      "bytes": 28957,
+      "sha256": "8c2ea5b922d280a3d85e8acf3de6265f53ad41ba8df53b333b00ebb3e9621043"
+    },
+    {
+      "path": "calibration_domain_tb.sv",
+      "bytes": 1649,
+      "sha256": "72a0393dd9468e232c08212361e92d3c1d0b3a49eff92ab1683a114e6434eb52"
+    },
+    {
+      "path": "calibration_domain_build.log",
+      "bytes": 5194,
+      "sha256": "fdb38fb3b4240c77ddacd04d6ac991b42bc9142c87468a97531c1df371085efc"
+    },
+    {
+      "path": "calibration_domain_run.log",
+      "bytes": 862,
+      "sha256": "19e342131888455d807a66b26a1c8b35cdbb5ac1e4b7f52d9a0159a077fa0e68"
+    },
+    {
+      "path": "adc2_rounding_semantics_tb.sv",
+      "bytes": 1565,
+      "sha256": "eae3a290600359a0545cf8250cba96a56a6592eb748436a1b91a97765f075213"
+    },
+    {
+      "path": "adc2_rounding_semantics_build.log",
+      "bytes": 5314,
+      "sha256": "886109b11f0842ad0d7882fa3795623ca69fc11b9d76901b0c2ae17b55dde86e"
+    },
+    {
+      "path": "adc2_rounding_semantics_run.log",
+      "bytes": 1218,
+      "sha256": "0c64bb2a86aa7adf55c5c308eb23750689150d61dfb6543f240119d43dccbbe6"
+    },
+    {
+      "path": "calibration_frozen_source/rtl/core/cal_sample_context.sv",
+      "bytes": 3317,
+      "sha256": "bb2dbbcf0b154d4f955e9fecc03085385eacb7d3063d45085d84aa0a59b1baaa"
+    },
+    {
+      "path": "calibration_frozen_source/rtl/core/cal_weight_reduce.sv",
+      "bytes": 9728,
+      "sha256": "c41bd2fce6c43d330f7d5d37aab3400c1cdcf797781f8eb4c371cc2b14e5bb07"
+    },
+    {
+      "path": "calibration_frozen_source/rtl/core/cal_residue_mac.sv",
+      "bytes": 4835,
+      "sha256": "8acf4dbc698e9e13d1c6fedfeeb0ad927998608658d2bfb7202a6621e27b0644"
+    },
+    {
+      "path": "calibration_frozen_source/rtl/core/adc2_dec.sv",
+      "bytes": 5802,
+      "sha256": "113dab4a9f7770eafdc48b2f7b883155df3894cb2d02a1df97749a56d5941afa"
+    },
+    {
+      "path": "calibration_frozen_source/rtl/core/div_floor.sv",
+      "bytes": 6709,
+      "sha256": "dd8afd4c9cc378ab78e993b7f2a8d82bed09eb63f05237454c5f97c0cb9e15ce"
+    },
+    {
+      "path": "calibration_frozen_source/rtl/core/cal_output_stage.sv",
+      "bytes": 3462,
+      "sha256": "b0396b20835a7710903d3e225f611eb78817e4906133b47757c7ef585909aadd"
+    },
+    {
+      "path": "calibration_frozen_source/rtl/core/recon_core.sv",
+      "bytes": 11748,
+      "sha256": "9cd22072bf244c60966a4132d7727430b17a1929eeae2c44e12ba2d81a899c2e"
+    },
+    {
+      "path": "calibration_frozen_source/rtl/core/weight_store.sv",
+      "bytes": 7270,
+      "sha256": "32eccfc231d4b8a5ff793e38174e5d5c6560dfd65c8670b3ab225368155948af"
+    },
+    {
+      "path": "calibration_frozen_source/rtl/core/calib_regs.sv",
+      "bytes": 8092,
+      "sha256": "7bd4019bbddfa65f03b7cf8a99110177122230d549b6009fc5df4f74b34fce8d"
+    },
+    {
+      "path": "calibration_frozen_source/rtl/core/sar_structural_ctrl.sv",
+      "bytes": 12542,
+      "sha256": "c6f5ac43086dc4aef6045d85b8fde244f3c758991c525a689b18bffdb80b349a"
+    },
+    {
+      "path": "calibration_frozen_source/rtl/top/sar20_digital_core.sv",
+      "bytes": 30410,
+      "sha256": "382f1242ea18b636ab9ea3b65c1b607a8a646ac8c050f4b77d0fb115548f4fa3"
+    },
+    {
+      "path": "calibration_frozen_source/rtl/params/rtl_params.vh",
+      "bytes": 3764,
+      "sha256": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654"
+    },
+    {
+      "path": "calibration_frozen_source/src/adi_model/weight_calibration.py",
+      "bytes": 22801,
+      "sha256": "a662857ae0cec1b149d48b79f33b287c1c1739ecdd4d53059904837986c0425c"
+    },
+    {
+      "path": "calibration_frozen_source/src/adi_model/fixed_point.py",
+      "bytes": 11037,
+      "sha256": "b2eb01a7e20a05960eb2ca233faf61dd5252be53e479d6a0f7b3b69f1f7dcbbb"
+    }
+  ]
+}

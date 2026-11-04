@@ -1,0 +1,6 @@
+MAC_DIAG line=1 raw_f=ffffdffffffffffe port_f=ffffdffffffffffe raw_o=0000000100000000 port_o=0000000100000000 diff=1ffffdffefffffffe op1=ffffffffffffff7ffbfffffff80000000 shifted=1fffff7ffffffffff8000000000000 a=3ffffffffffc0000 expected=3ffffffffffc0000 ov=1 expected_ov=1
+MAC_DIAG line=2 raw_f=ffffdfffffffffff port_f=ffffdfffffffffff raw_o=0000000100000000 port_o=0000000100000000 diff=1ffffdffefffffffe op1=ffffffffffffff7ffbfffffff80000000 shifted=1fffff7ffffffffff8000000000000 a=3ffffffffffc0000 expected=3ffffffffffe0000 ov=1 expected_ov=1
+MAC_DIAG line=3 raw_f=ffffe00000000000 port_f=ffffe00000000000 raw_o=0000000100000000 port_o=0000000100000000 diff=1ffffdffefffffffe op1=ffffffffffffff7ffbfffffff80000000 shifted=1fffff7ffffffffff8000000000000 a=3ffffffffffc0000 expected=4000000000000000 ov=1 expected_ov=0
+[3000] %Fatal: observed.sv:25: Assertion failed in TOP.arithmetic_audit_tb.comb.unnamedblk1: MAC mismatch line=3 ov=1 expected=0 a=3ffffffffffc0000 expected=4000000000000000
+%Error: /tmp/sar_arithmetic_runner_fix_20260930/original_probe/observed.sv:25: Verilog $stop
+Aborting...

@@ -1,0 +1,340 @@
+{
+  "repo": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure",
+  "head": "01ed2b3e4fc4c7c9efd2153cfbfa5d456b10fb74",
+  "branch": "codex/calibration-closure-20260928",
+  "git_worktree_dirty": false,
+  "rtl_sources": 24,
+  "hashed_input_and_evidence_files": 65,
+  "python": "3.9.6",
+  "platform": "macOS-26.6.2-arm64-arm-64bit",
+  "verilator_current_path": "not found on PATH",
+  "files": [
+    {
+      "path": "/Users/zhaoyi/.codex/skills/asic-rtl-timing/SKILL.md",
+      "sha256": "98ad0d99c0e3aadf66b8795f78ba0837944ba35bd791b452843d006b2a97ab2d",
+      "bytes": 5797
+    },
+    {
+      "path": "/Users/zhaoyi/.codex/skills/asic-rtl-timing/references/framework.md",
+      "sha256": "379c4514340be6bc7774175b320114dc4ae741036d476110a6f7881773bdb103",
+      "bytes": 3402
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/cross_review/analysis_reviewed_draft.md",
+      "sha256": "4bb4c940e3c1670cbc520cba5e6dff8792c0fe346cf8d3b49fa5f9fa76cb84e7",
+      "bytes": 21550,
+      "original_path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/ANALYSIS.md",
+      "snapshot_note": "draft frozen before applying functional crossreview wording corrections"
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/baseline/github_pr_ci.json",
+      "sha256": "4be79b6bed3166c6680b6996e92abd75a0a27e933ac007a4fbfc9f4262706923",
+      "bytes": 2946
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/function/FUNCTION_REVIEW.md",
+      "sha256": "718527963e1cd1fab35642ba1a9308ca682b2759d68d1be732edc7c7ba87ae14",
+      "bytes": 17662
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/function/current_test_attempt.json",
+      "sha256": "3cdabff5cfce39df1c549428c3a2291a4bb8b3004d9063e8ff2c267838f37c24",
+      "bytes": 625
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/function/current_test_attempt.log",
+      "sha256": "c49a9fb1a68caa550017ea52d1b148bf5640c41a8dae3243d02ea4f1365d2885",
+      "bytes": 279
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/function/historical_evidence_hashes.json",
+      "sha256": "d642f6e192b4b0f6ad3aa033ff28686b141b6260545c574a1bf0301ac5d92d81",
+      "bytes": 2841
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/function/prior_rtl_identity_comparison.json",
+      "sha256": "106cd89ca3089aea944735d593f995de78d7cb93f0d07d83cbe2957a2b60bfd5",
+      "bytes": 7183
+    },
+    {
+      "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/.github/workflows/ci.yml",
+      "sha256": "e1b8088938979e0df47f08b02c8cbdd745c30158867d8ee9e9128f97a6675862",
+      "bytes": 5210
+    },
+    {
+      "path": "docs/evidence/20261002/principle_reaudit/adc2_rounding_semantics_run.log",
+      "sha256": "0c64bb2a86aa7adf55c5c308eb23750689150d61dfb6543f240119d43dccbbe6",
+      "bytes": 1218
+    },
+    {
+      "path": "docs/evidence/20261002/principle_reaudit/calibration_domain_run.log",
+      "sha256": "19e342131888455d807a66b26a1c8b35cdbb5ac1e4b7f52d9a0159a077fa0e68",
+      "bytes": 862
+    },
+    {
+      "path": "docs/evidence/20261002/principle_reaudit/calibration_evidence_manifest.json",
+      "sha256": "00ec984416088d8ddafe3e6f4db8a8ba3ffaed1c2d80cb3e3f6375591b12fecd",
+      "bytes": 6147
+    },
+    {
+      "path": "docs/evidence/20261002/principle_reaudit/control_minimal_witness/result_manifest.json",
+      "sha256": "bdb06f84ed4b4e32d6c8392c2d094cc63ce2d8c5922f15a5973869a0e25b7280",
+      "bytes": 7054
+    },
+    {
+      "path": "docs/evidence/20261002/principle_reaudit/control_minimal_witness/run.log",
+      "sha256": "5d07e7b065f19b64b0fd564bb8fda0815b0b509870e1f39284e76c9be81486a5",
+      "bytes": 122
+    },
+    {
+      "path": "docs/evidence/20261002/principle_reaudit/control_minimal_witness/structural_run.log",
+      "sha256": "5c0a40d7a20897c90b1c164577d680d4f9ada592ef54d5a4b974803cf1081770",
+      "bytes": 333
+    },
+    {
+      "path": "docs/evidence/20261002/principle_reaudit/source_identity_public.json",
+      "sha256": "73b014dca4f390b2b54aae2625dc2d93896d95061d6bb3de2b23c556d27af507",
+      "bytes": 7311
+    },
+    {
+      "path": "docs/rtl/RTL_ARITHMETIC_CONTRACT.md",
+      "sha256": "c30de7bd4675efb7cfb385d0db51a22c6ed33ccc216f47c8adce35351209c3e1",
+      "bytes": 18551
+    },
+    {
+      "path": "docs/rtl/RTL_ENGINEERING_GUIDE.md",
+      "sha256": "b878360dc4c5de12a5d1b8e033af4b2c62b8ea75f7c8119632ef2ab2059246e5",
+      "bytes": 15795
+    },
+    {
+      "path": "docs/rtl/reaudit_20261002/calibration_audit.md",
+      "sha256": "e7f8a1a1f13c61e05ac3bb5801d9d60f0ff7367d6e1c07001a2aa914375eee34",
+      "bytes": 28677
+    },
+    {
+      "path": "docs/rtl/reaudit_20261002/control_patent_audit.md",
+      "sha256": "a8e226c93553597f49e4bffdad212c040b40e7019789793b9dba696c819e9971",
+      "bytes": 24761
+    },
+    {
+      "path": "docs/rtl/reaudit_20261002/synthesis_structure_audit.md",
+      "sha256": "8059ea43eba95ffe0cf00891e354efa659b685f7050b4a449e1c343db3c51e2a",
+      "bytes": 28144
+    },
+    {
+      "path": "rtl/core/adc2_dec.sv",
+      "sha256": "113dab4a9f7770eafdc48b2f7b883155df3894cb2d02a1df97749a56d5941afa",
+      "bytes": 5802
+    },
+    {
+      "path": "rtl/core/analog_phase_ctrl.sv",
+      "sha256": "2c33405498aba0fe7c3530fcd3f8acf840ed019274d1070736f786255bb76c02",
+      "bytes": 2726
+    },
+    {
+      "path": "rtl/core/cal_output_stage.sv",
+      "sha256": "b0396b20835a7710903d3e225f611eb78817e4906133b47757c7ef585909aadd",
+      "bytes": 3462
+    },
+    {
+      "path": "rtl/core/cal_residue_mac.sv",
+      "sha256": "8acf4dbc698e9e13d1c6fedfeeb0ad927998608658d2bfb7202a6621e27b0644",
+      "bytes": 4835
+    },
+    {
+      "path": "rtl/core/cal_sample_context.sv",
+      "sha256": "bb2dbbcf0b154d4f955e9fecc03085385eacb7d3063d45085d84aa0a59b1baaa",
+      "bytes": 3317
+    },
+    {
+      "path": "rtl/core/cal_weight_reduce.sv",
+      "sha256": "c41bd2fce6c43d330f7d5d37aab3400c1cdcf797781f8eb4c371cc2b14e5bb07",
+      "bytes": 9728
+    },
+    {
+      "path": "rtl/core/calib_regs.sv",
+      "sha256": "7bd4019bbddfa65f03b7cf8a99110177122230d549b6009fc5df4f74b34fce8d",
+      "bytes": 8092
+    },
+    {
+      "path": "rtl/core/ctrl_fsm.sv",
+      "sha256": "ec49018d6af765c883a647284b2b9ebc44ac5b5980b7e18e1ee275f385ad5723",
+      "bytes": 5615
+    },
+    {
+      "path": "rtl/core/dem_addr_gen.sv",
+      "sha256": "a8d6ad4df32652d47007956e86f820ed882efa3a0e777dae7cf3853a75de7eaa",
+      "bytes": 5045
+    },
+    {
+      "path": "rtl/core/dem_state_gen.sv",
+      "sha256": "d5bf4ceff09a819af5e10fc86260483e18f647b982c37a4cd1206c972988a121",
+      "bytes": 4595
+    },
+    {
+      "path": "rtl/core/dither_gen.sv",
+      "sha256": "4510cde8c800660b0de8503da0640698a4a40ff4aa33ad9830a8208e5b1de7cb",
+      "bytes": 3533
+    },
+    {
+      "path": "rtl/core/div_floor.sv",
+      "sha256": "dd8afd4c9cc378ab78e993b7f2a8d82bed09eb63f05237454c5f97c0cb9e15ce",
+      "bytes": 6709
+    },
+    {
+      "path": "rtl/core/rdac_drv.sv",
+      "sha256": "2b826d593414c7e76ec7a1a10a7e26d9758377c6ba609bcc790fb1490828c82f",
+      "bytes": 4177
+    },
+    {
+      "path": "rtl/core/recon_core.sv",
+      "sha256": "9cd22072bf244c60966a4132d7727430b17a1929eeae2c44e12ba2d81a899c2e",
+      "bytes": 11748
+    },
+    {
+      "path": "rtl/core/sar_structural_ctrl.sv",
+      "sha256": "c6f5ac43086dc4aef6045d85b8fde244f3c758991c525a689b18bffdb80b349a",
+      "bytes": 12542
+    },
+    {
+      "path": "rtl/core/sar_trial_ctrl.sv",
+      "sha256": "dca169cd89e9fab1235f9264c76079e5783969e593bc098206a4bd4de1a9fbf2",
+      "bytes": 3142
+    },
+    {
+      "path": "rtl/core/slice_alloc.sv",
+      "sha256": "1993a12578cc8e29e7cab4f4f61ed71d01b2b6cf85a0d19afea875df9fa45f3e",
+      "bytes": 4824
+    },
+    {
+      "path": "rtl/core/slice_pool_ctrl.sv",
+      "sha256": "fd8dfc97d6c9db8427f99303feff8d8b9d5daf18012973c6f5db4b1a4f3bc492",
+      "bytes": 3193
+    },
+    {
+      "path": "rtl/core/status_regs.sv",
+      "sha256": "391ce2d8439bdc7b775fc56830480ba8db84180ccaa4aee93a811fbc3ef4b981",
+      "bytes": 5570
+    },
+    {
+      "path": "rtl/core/swap_decode.sv",
+      "sha256": "ec923be46ff8924323ec0fcfc5d471cf748c41e5cef8038c026981d40f6945b6",
+      "bytes": 5843
+    },
+    {
+      "path": "rtl/core/unit_therm.sv",
+      "sha256": "387c80474d06b0dd10d33f6c73a753650ed836285bceea9894c492853b21eae1",
+      "bytes": 3647
+    },
+    {
+      "path": "rtl/core/weight_store.sv",
+      "sha256": "32eccfc231d4b8a5ff793e38174e5d5c6560dfd65c8670b3ab225368155948af",
+      "bytes": 7270
+    },
+    {
+      "path": "rtl/params/rtl_error_codes.vh",
+      "sha256": "3fce073cf9e0585f85e394943e81d7c08c4b162292e4a4a3525b91743dd2dbc1",
+      "bytes": 1203
+    },
+    {
+      "path": "rtl/params/rtl_params.vh",
+      "sha256": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+      "bytes": 3764
+    },
+    {
+      "path": "rtl/rtl_sources.f",
+      "sha256": "edd37615fffd18cecfad620de2beab15f581639e8bc8520891b33487b7e98f7e",
+      "bytes": 610
+    },
+    {
+      "path": "rtl/top/sadc_enc.sv",
+      "sha256": "dc69bfc3e5be0855f7648a1631d34948bba0959233f8d662815747ee5bdde82f",
+      "bytes": 3151
+    },
+    {
+      "path": "rtl/top/sar20_digital_core.sv",
+      "sha256": "382f1242ea18b636ab9ea3b65c1b607a8a646ac8c050f4b77d0fb115548f4fa3",
+      "bytes": 30410
+    },
+    {
+      "path": "sim/artifacts/open_rtl/p2_tb.run.log",
+      "sha256": "c5889c69e27f8204af8fd62d4d115959ef401e18e6aad92ee0092524e2c03e9e",
+      "bytes": 1316
+    },
+    {
+      "path": "sim/artifacts/open_rtl/p3_top_tb.run.log",
+      "sha256": "836e24123400e91440377ab669acb7a2ae32512bddd4f979cc158d9bba2a7b84",
+      "bytes": 2415
+    },
+    {
+      "path": "sim/artifacts/open_rtl/review_config_tb.run.log",
+      "sha256": "ea7cd9d9c8ad0bddf39321eb6f3fe3156e7f91171d1ab440e5dbfa9955688b8e",
+      "bytes": 84
+    },
+    {
+      "path": "sim/artifacts/open_rtl/review_recon_protocol_tb.run.log",
+      "sha256": "bd61e46b62371076337f6dba4fbfc062dc28b8e20fad77d2fb9a3233a88e1d21",
+      "bytes": 88
+    },
+    {
+      "path": "sim/artifacts/open_rtl/sar_trial_tb.run.log",
+      "sha256": "26d36d67e86b6703e49252c6ec98d119d49452217f646aee3ce2689c2bd74d80",
+      "bytes": 120
+    },
+    {
+      "path": "sim/artifacts/open_rtl/structural_protocol_tb.run.log",
+      "sha256": "7630ce9d3e9702d1d2015cd921062169a4b6dd2aecdd0c7d7bda34b615ed3c98",
+      "bytes": 162
+    },
+    {
+      "path": "sim/artifacts/open_rtl/version.log",
+      "sha256": "3f9bfcb7543b9426d374af92579531e07af169001fd870b792cbcc54c44fee51",
+      "bytes": 43
+    },
+    {
+      "path": "sim/tb/p2_tb.sv",
+      "sha256": "88c829e74da4c8c32fd91e099e2de5d699b837c9c170d67a43af51ebd040d097",
+      "bytes": 37586
+    },
+    {
+      "path": "sim/tb/p3_top_tb.sv",
+      "sha256": "a7c8d406b38e3a24e8a7e2213f87b2b54454532afc3423df628d48cb90881016",
+      "bytes": 45974
+    },
+    {
+      "path": "sim/tb/review_config_tb.sv",
+      "sha256": "66084ee90a3ab8a08e322696fad77bba9980bf515cd534079ee11925cccbc33f",
+      "bytes": 4665
+    },
+    {
+      "path": "sim/tb/review_recon_protocol_tb.sv",
+      "sha256": "74c093db80e3c5aba8d2e065665fad93004fe8a5287489e5137654541176965f",
+      "bytes": 2839
+    },
+    {
+      "path": "sim/tb/review_top_protocol_tb.sv",
+      "sha256": "37ca964501085c611cedafd4a797c2b9b97f5a88adf2c21f816d73893ce5deec",
+      "bytes": 8811
+    },
+    {
+      "path": "sim/tb/sar_trial_tb.sv",
+      "sha256": "aa950287ce516d8c04c622b7caf89842e79996731ff54b55437bd748d30d106a",
+      "bytes": 2238
+    },
+    {
+      "path": "sim/tb/structural_protocol_tb.sv",
+      "sha256": "b7d295bba4710f21be7d7a38d71669b3f8f9cc629fa7146f46b151ed09de48c4",
+      "bytes": 5314
+    },
+    {
+      "path": "tools/audit_rtl_arithmetic.py",
+      "sha256": "5ff125d5d20bfbc93975aee04eb19d7b3080341f80cab0560416c85a8024d803",
+      "bytes": 12278
+    },
+    {
+      "path": "tools/run_open_rtl.py",
+      "sha256": "16f98e99b5a1dd2bb7914ca8fe5de59960cf822bcaae807b4e2776f99dc750a9",
+      "bytes": 7789
+    }
+  ]
+}

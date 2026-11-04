@@ -1,0 +1,10 @@
+Determinism (byte-identical rerun)	Run regression twice and compare	2026-09-30T14:11:46.0685224Z ^[[36;1mprint('OK: results.json byte-identical across runs')^[[0m
+Determinism (byte-identical rerun)	Run regression twice and compare	2026-09-30T14:18:27.3440186Z 硬性验收: 全部通过（52 条判据）
+Determinism (byte-identical rerun)	Run regression twice and compare	2026-09-30T14:25:10.8334505Z 硬性验收: 全部通过（52 条判据）
+Determinism (byte-identical rerun)	Run regression twice and compare	2026-09-30T14:25:10.9643232Z OK: results.json byte-identical across runs
+RTL simulation (Verilator)	Synthesis flow regression without EDA licenses	2026-09-30T14:12:08.8010309Z 273 passed in 10.70s
+Test (py3.10)	Unit + integration + audit regressions (fast)	2026-09-30T14:26:53.6343725Z 976 passed, 3 deselected in 891.47s (0:14:51)
+Test (py3.13)	Unit + integration + audit regressions (fast)	2026-09-30T14:19:26.9599924Z 976 passed, 3 deselected in 457.66s (0:07:37)
+Test (py3.12)	Unit + integration + audit regressions (fast)	2026-09-30T14:21:02.6506596Z 976 passed, 3 deselected in 555.99s (0:09:15)
+Test (py3.12)	Full acceptance sweep	2026-09-30T14:27:56.0176926Z 硬性验收: 全部通过（52 条判据）
+Test (py3.11)	Unit + integration + audit regressions (fast)	2026-09-30T14:20:30.2820067Z 976 passed, 3 deselected in 524.53s (0:08:44)

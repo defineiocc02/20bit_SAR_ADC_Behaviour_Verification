@@ -1,0 +1,5 @@
+REVIEW_TOP_PROTOCOL_COMPLETE checks=1108 outputs=38
+- sim/tb/review_top_protocol_tb.sv:175: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.49
+- Verilator: $finish at 91us; walltime 0.016 s; speed 5.770 ms/s
+- Verilator: cpu 0.016 s on 1 threads; allocated 2 MB

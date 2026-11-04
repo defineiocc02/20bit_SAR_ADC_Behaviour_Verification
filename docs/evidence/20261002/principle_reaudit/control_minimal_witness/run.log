@@ -1,0 +1,2 @@
+ANALOG_STATUS_BOUNDARY_PASS checks=16 edges=16
+- control_minimal_witness/analog_status_boundary_tb.sv:67: Verilog $finish

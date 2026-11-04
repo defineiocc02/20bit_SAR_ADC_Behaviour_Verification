@@ -1,0 +1,61 @@
+Vivado Simulator 2018.3
+Copyright 1986-1999, 2001-2018 Xilinx, Inc. All Rights Reserved.
+Running: D:/Academic/Vivado2018/Vivado/2018.3/bin/unwrapped/win64.o/xelab.exe structural_mapped_tb glbl -L unisims_ver -s full_mapped_p5 -mt 2 -generic_top P_RECON_STAGES=5 
+Using 2 slave threads.
+Starting static elaboration
+Completed static elaboration
+Starting simulation data flow analysis
+Completed simulation data flow analysis
+Time Resolution for simulation is 1ps
+Compiling module unisims_ver.GND
+Compiling module unisims_ver.FDRE_default
+Compiling module unisims_ver.x_lut2_mux4
+Compiling module unisims_ver.LUT2
+Compiling module unisims_ver.LUT6
+Compiling module unisims_ver.LUT4
+Compiling module unisims_ver.x_lut3_mux8
+Compiling module unisims_ver.LUT3
+Compiling module unisims_ver.LUT5
+Compiling module unisims_ver.x_lut1_mux2
+Compiling module unisims_ver.LUT1
+Compiling module unisims_ver.CARRY4
+Compiling module unisims_ver.FDSE_default
+Compiling module work.calib_regs
+Compiling module unisims_ver.DSP48E1(ACASCREG=0,ALUMODEREG=0,...
+Compiling module work.adc2_dec
+Compiling module work.div_floor
+Compiling module work.cal_output_stage
+Compiling module unisims_ver.DSP48E1(ALUMODEREG=0,CARRYINREG=...
+Compiling module work.cal_residue_mac
+Compiling module work.cal_weight_reduce
+Compiling module work.recon_core
+Compiling module work.status_regs
+Compiling module work.sar_trial_ctrl
+Compiling module work.sar_trial_ctrl_0
+Compiling module work.cal_sample_context
+Compiling module work.swap_decode
+Compiling module work.dem_state_gen__parameterized0
+Compiling module work.sar_trial_ctrl__parameterized0
+Compiling module work.dem_addr_gen
+Compiling module work.analog_phase_ctrl
+Compiling module unisims_ver.MUXF7
+Compiling module work.slice_pool_ctrl
+Compiling module work.dither_gen__parameterized0
+Compiling module work.rdac_drv
+Compiling module work.unit_therm
+Compiling module work.sar_structural_ctrl
+Compiling module unisims_ver.MUXF8
+Compiling module work.weight_store
+Compiling module work.sar20_digital_core
+Compiling module work.structural_mapped_tb(P_RECON_STA...
+Compiling module work.glbl
+Built simulation snapshot full_mapped_p5
+
+****** Webtalk v2018.3 (64-bit)
+  **** SW Build 2405991 on Thu Dec  6 23:38:27 MST 2018
+  **** IP Build 2404404 on Fri Dec  7 01:43:56 MST 2018
+    ** Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
+
+source C:/Users/Administrator/adc_rtl_vivado/run.cf20668601ce488fae0114abdb176dbf/out/xsim.dir/full_mapped_p5/webtalk/xsim_webtalk.tcl -notrace
+webtalk_transmit: Time (s): cpu = 00:00:00 ; elapsed = 00:00:05 . Memory (MB): peak = 62.660 ; gain = 0.000
+INFO: [Common 17-206] Exiting Webtalk at Wed Sep 30 10:50:00 2026...

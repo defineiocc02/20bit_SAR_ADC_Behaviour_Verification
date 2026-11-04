@@ -1,0 +1,185 @@
+{
+  "scope": "FROZEN_ZERO_DELAY_RTL_LOG_EVIDENCE_NOT_STA_OR_ANALOG_SIGNOFF",
+  "script_sha256": "1c63f791244535c87f561905bcc3fcd1ea2ffe6c1bd460976620c46028ce77f8",
+  "inputs_sha256": {
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_f028/sha256.json": "40392404d3c835a37d6d6998eb0fc8121bb657d02a44e98159416cddd76c226c",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_f028/arithmetic-audit/manifest.json": "935a27e77f35b928c6eef0228af66deba00e07cd15f4f59c1f20f683028c898b",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_f028/arithmetic-audit/run.log": "5467d016354e6fd707d078fe8a15664aeace2e218f4c83806cc026de66fd3e39",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_f028/job_metadata.json": "66ef2dc322f1c3d062663700096f4dab1455ae08aa4188ab6c65ba3e5b050db6",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_f028/manifest.json": "2c17203f667ac94a66e106c775acc14602e8fa9f6ba97c60c9477d5b1346c5a5",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_f028/open_rtl/version.log": "26daf9ad1ba36ee1c20cab9a869d0a1fbb8117230c80c78ec2d8cf597f64c4a5",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_f028/rtl_content_identity.json": "41cfe30f8b4db7373f4363d4cbca4770c15e82e7f1697db9dd5a5dfe0d8f080e",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_f028/tested_inputs_sha256.json": "2e39e58b99e56d04ae7ead3225f1ab44104aaf444219a0190e712d4a8585b774",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_f028/tested_merge_commit.json": "1a348d36a6709e9a79ab3c648af358755d4f911273c3c823a8c4cbdb6320ed20",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_f028/open_rtl/sar_trial_tb.run.log": "26d36d67e86b6703e49252c6ec98d119d49452217f646aee3ce2689c2bd74d80",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_f028/open_rtl/structural_adc_tb.run.log": "5e659a733e2ddc9a10c133e702659c6c7ca66163974053b0bbad232e9c1fcdac",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_f028/open_rtl/structural_protocol_tb.run.log": "7630ce9d3e9702d1d2015cd921062169a4b6dd2aecdd0c7d7bda34b615ed3c98",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_f028/open_rtl/recon_ppa_latency_tb.run.log": "e11c863bc24d576545234085dcd03df9be8d6f9aa9a8e4c5ba6f01f230c1f31c",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_f028/open_rtl/review_recon_protocol_tb.run.log": "bd61e46b62371076337f6dba4fbfc062dc28b8e20fad77d2fb9a3233a88e1d21",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_f028/open_rtl/review_top_protocol_tb.run.log": "6a9f3440b8050c81b1b6bc2e5adc58f42df9a2cb075ae11fe55bfc42882ee023",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/ci_rtl_f028/open_rtl/review_config_tb.run.log": "ea7cd9d9c8ad0bddf39321eb6f3fe3156e7f91171d1ab440e5dbfa9955688b8e"
+  },
+  "images_sha256": {
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_protocol.png": "4df46c1f095b93647f36534fa544aa7b3da0eaf075d79b0cda2c45acdb38209e",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_protocol.pdf": "5c9c1292c30d94030a0f4ec3d94a04c06f2966f863e0fbed909fecd653d70045"
+  },
+  "benches": {
+    "sar_trial_tb": {
+      "marker": "SAR_TRIAL_COMPLETE",
+      "metrics": {
+        "distinct_fine_codes": 4096,
+        "distinct_coarse_codes": 512
+      },
+      "oracle": "Ideal comparator against target code;\nstalled trial hold, done and cancellation.",
+      "limitation": "No comparator noise or metastability model.",
+      "tb_lines": [
+        25,
+        46
+      ],
+      "tb_source": "git:f028ec5bb4f64a79414bac59c1b91bc1eaeee190:sim/tb/sar_trial_tb.sv",
+      "tb_sha256": "aa950287ce516d8c04c622b7caf89842e79996731ff54b55437bd748d30d106a"
+    },
+    "structural_adc_tb": {
+      "marker": "STRUCTURAL_ADC_COMPLETE",
+      "metrics": {
+        "modes": 3,
+        "outputs": 438,
+        "checked_ticks": 7680,
+        "slices": 18,
+        "stages": 7,
+        "latency_cycles": 11,
+        "latency_checks": 438
+      },
+      "oracle": "Physical-switch 256-bit scoreboard;\ncode/flags/ID, bank ownership and latency.",
+      "limitation": "Behavioral analog boundaries; 3 modes.",
+      "tb_lines": [
+        71,
+        195
+      ],
+      "tb_source": "git:f028ec5bb4f64a79414bac59c1b91bc1eaeee190:sim/tb/structural_adc_tb.sv",
+      "tb_sha256": "28359c4f09507cb802c3dd39ec06b5e2ea3a64177a0d445dc05b5d22f322684d"
+    },
+    "structural_protocol_tb": {
+      "marker": "STRUCTURAL_PROTOCOL_COMPLETE",
+      "metrics": {
+        "frames": 120,
+        "launches": 57,
+        "expected_drops": 63,
+        "checked_ticks": 1920,
+        "perturbations": 2
+      },
+      "oracle": "Expected accept/drop schedule;\ncaptured context + edge-stable enables.",
+      "limitation": "Two phase-decode perturbations are injected.",
+      "tb_lines": [
+        60,
+        115
+      ],
+      "tb_source": "git:f028ec5bb4f64a79414bac59c1b91bc1eaeee190:sim/tb/structural_protocol_tb.sv",
+      "tb_sha256": "b7d295bba4710f21be7d7a38d71669b3f8f9cc629fa7146f46b151ed09de48c4"
+    },
+    "recon_ppa_latency_tb": {
+      "marker": "RECON_PPA_PROFILE_PASS stages=7 samples=32",
+      "metrics": {
+        "profiles_stages_samples_busy_latency_II": [
+          [
+            5,
+            32,
+            14,
+            15,
+            16
+          ],
+          [
+            6,
+            32,
+            12,
+            13,
+            16
+          ],
+          [
+            7,
+            32,
+            10,
+            11,
+            16
+          ]
+        ]
+      },
+      "oracle": "Per-profile code/ID scoreboard;\nbusy-release and completion timestamps.",
+      "limitation": "Clock intervals, not measured nanoseconds.",
+      "tb_lines": [
+        29,
+        53
+      ],
+      "tb_source": "git:f028ec5bb4f64a79414bac59c1b91bc1eaeee190:sim/tb/recon_ppa_latency_tb.sv",
+      "tb_sha256": "66c421f3aec278d65abb2eb49be0c26395410041dd4d0ae700c85a6c61e016f7"
+    },
+    "review_recon_protocol_tb": {
+      "marker": "REVIEW_RECON_PROTOCOL_COMPLETE",
+      "metrics": {
+        "total_checks": null
+      },
+      "oracle": "Directed unconfigured/cancel/error\nscenarios; ID/flags and prior-output hold.",
+      "limitation": "Completion only: no total check count logged.",
+      "tb_lines": [
+        20,
+        55
+      ],
+      "tb_source": "git:f028ec5bb4f64a79414bac59c1b91bc1eaeee190:sim/tb/review_recon_protocol_tb.sv",
+      "tb_sha256": "19a08952dc4c4db4d476bfa217b187b45a64fa0eaabfa8868c8ec439858fa26f"
+    },
+    "review_top_protocol_tb": {
+      "marker": "REVIEW_TOP_PROTOCOL_COMPLETE",
+      "metrics": {
+        "check_calls": 1108,
+        "reported_outputs": 38
+      },
+      "oracle": "Top-port configuration and result oracle;\nreadback, rejection, epochs and IDs.",
+      "limitation": "38 outputs is the TB's printed count.",
+      "tb_lines": [
+        29,
+        175
+      ],
+      "tb_source": "git:f028ec5bb4f64a79414bac59c1b91bc1eaeee190:sim/tb/review_top_protocol_tb.sv",
+      "tb_sha256": "37ca964501085c611cedafd4a797c2b9b97f5a88adf2c21f816d73893ce5deec"
+    },
+    "review_config_tb": {
+      "marker": "REVIEW_CONFIG_COMPLETE",
+      "metrics": {
+        "output_valid_events": 624,
+        "assertion_count": null
+      },
+      "oracle": "Configuration completeness/collision\nand atomic epoch guards; dither-bin checks.",
+      "limitation": "624 outputs are not 624 independent tests.",
+      "tb_lines": [
+        25,
+        82
+      ],
+      "tb_source": "git:f028ec5bb4f64a79414bac59c1b91bc1eaeee190:sim/tb/review_config_tb.sv",
+      "tb_sha256": "66084ee90a3ab8a08e322696fad77bba9980bf515cd534079ee11925cccbc33f"
+    }
+  },
+  "ci_provenance": {
+    "schema": "CI_RTL_STEP_AND_JOB_CONCLUSIONS",
+    "pr_head_sha": "f028ec5bb4f64a79414bac59c1b91bc1eaeee190",
+    "tested_merge_sha": "ae11d8b0cf73a47e073dbb5394db64fa91f9229a",
+    "git_tree_sha": "d84022bd83195a9ad6443009f368d3764a0a7d3f",
+    "rtl_content_sha256": "fd885e882ad5447f87626dc034fb59a6853a86f01050957a93b8a6407ebbbc13",
+    "workflow_run_id": 36629118047,
+    "job_id": 109613555598,
+    "rtl_step_conclusion": "success",
+    "overall_job_conclusion": "success",
+    "independent_arithmetic_step_conclusion": "success",
+    "workflow_observation": {
+      "observed_utc": "2026-09-29T21:05:46.693367+00:00",
+      "run_id": 36629118047,
+      "head_sha": "f028ec5bb4f64a79414bac59c1b91bc1eaeee190",
+      "status_at_metadata_retrieval": "in_progress",
+      "conclusion_at_metadata_retrieval": null,
+      "scope": "This archive certifies only the completed RTL job. Other jobs and final workflow conclusion are not inferred.",
+      "html_url": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36629118047"
+    },
+    "later_failed_step": null,
+    "tool_version": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+    "immutable_git_inputs_verified": 87
+  }
+}

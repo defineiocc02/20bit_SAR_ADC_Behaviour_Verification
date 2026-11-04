@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-07",
+  "standalone_tex_sha256": "686aa194fbc26bb6e5d02379a40c0f494c658c4a60590343e62b35d445fffd21",
+  "pdf_sha256": "9ba9cf25203de34d72bd7d1f1ee200f4029784fd130bf7874462d5c0a8b8e8b2",
+  "native_compiler": {
+    "status": "success",
+    "scope": "built-in desktop compiler; final source compiled after diagram/CJK locator repairs; no PDF export from this tool"
+  },
+  "local_compile": {
+    "status": "success",
+    "compiler": "/Users/zhaoyi/Library/TinyTeX/bin/universal-darwin/xelatex",
+    "command": "compile_xelatex_twice.sh report.tex",
+    "passes": 2,
+    "logs": [
+      "compile.log",
+      "report.log"
+    ]
+  },
+  "visual_qa": {
+    "status": "pass",
+    "all_pages_visually_checked": 33,
+    "render_scale": 2,
+    "final_whitespace_reexport_pixel_identity": "33/33 identical to visually reviewed pages",
+    "record": "pdf_qa/visual_review.md",
+    "sha_inventory": "pdf_qa/qa_sha256.json"
+  },
+  "pages": 33
+}

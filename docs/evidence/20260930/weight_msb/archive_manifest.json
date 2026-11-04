@@ -1,0 +1,116 @@
+{
+  "archive_utc": "2026-09-29T20:23:42.203752+00:00",
+  "scope": "Byte-preserving compact archive of completed weight_msb_candidate evidence; no tests rerun",
+  "external_source_root": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate",
+  "copied_files": [
+    {
+      "path": "weight_store.before.sv",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/weight_store.before.sv",
+      "sha256": "15c0a33322e6edf5fbc99ec2058ef2b720c356763362c22639d8619ceda5be8a",
+      "bytes": 6431
+    },
+    {
+      "path": "weight_store.after.sv",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/weight_store.after.sv",
+      "sha256": "d4e8e6d6b36ce5f52c9cca6ed761ccba6fa2d4afa3fa5e4822a0d597a1f22085",
+      "bytes": 6653
+    },
+    {
+      "path": "weight_store_before.sv",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/weight_store_before.sv",
+      "sha256": "ac28e8a19123c29c56b8399e0dce966a80a3048567ffc63df1b117afd8423044",
+      "bytes": 6438
+    },
+    {
+      "path": "weight_msb_equiv_tb.sv",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/weight_msb_equiv_tb.sv",
+      "sha256": "86651726e13107ecea254fc5b0d3f790f9d43caed79900b7a31ad829a2319629",
+      "bytes": 3972
+    },
+    {
+      "path": "equiv.run.log",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/equiv.run.log",
+      "sha256": "a8db6d0ed84c4b9c99a08782022de78a2307258f644499b6d8359db88b26cb84",
+      "bytes": 547
+    },
+    {
+      "path": "existing_benches.log",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/existing_benches.log",
+      "sha256": "cad62cb1df7b7f336c78deb16271191d45ee535dfcb49f69eb0481d86f08c922",
+      "bytes": 1854
+    },
+    {
+      "path": "verification_manifest.json",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/verification_manifest.json",
+      "sha256": "1ded8c95aa5a492e963919bf7dde9e24a289652068d4c4657e26053d1aaaa4a4",
+      "bytes": 5260
+    },
+    {
+      "path": "snapshot_manifest.json",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/snapshot_manifest.json",
+      "sha256": "2d8907bc3c0e84fdd1aa874e4613651cb87330627ea0b4d835673e8c04caadcf",
+      "bytes": 8558
+    },
+    {
+      "path": "README.md",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/README.md",
+      "sha256": "b24c3d10785cb6d2580b680ecd28f94a585ae1b98a9ccc4818f317d09aed8267",
+      "bytes": 1757
+    },
+    {
+      "path": "snapshot/sim/artifacts/open_rtl/p2_periph_tb.run.log",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/snapshot/sim/artifacts/open_rtl/p2_periph_tb.run.log",
+      "sha256": "a3138f77bdc7629d9c0423a2069a858809f3a40711363f18ff1692a174dde3d4",
+      "bytes": 1346
+    },
+    {
+      "path": "snapshot/sim/artifacts/open_rtl/review_config_tb.run.log",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/snapshot/sim/artifacts/open_rtl/review_config_tb.run.log",
+      "sha256": "3093d37f944854a7dd23a7a527fc8b69586329266736efa16c68f93ae9ddf668",
+      "bytes": 256
+    },
+    {
+      "path": "snapshot/sim/artifacts/open_rtl/review_leaf_tb.run.log",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/snapshot/sim/artifacts/open_rtl/review_leaf_tb.run.log",
+      "sha256": "abb9c04d62610db2413b25a554669929bd588968c7a6518273a6512cb8e827ac",
+      "bytes": 252
+    },
+    {
+      "path": "snapshot/sim/artifacts/open_rtl/sadc_enc.standalone.lint.log",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/snapshot/sim/artifacts/open_rtl/sadc_enc.standalone.lint.log",
+      "sha256": "ded17e532a1857a80943cdd76cc7c020e013691a6c73580b37b483e7ac4a8a29",
+      "bytes": 287
+    },
+    {
+      "path": "snapshot/sim/artifacts/open_rtl/sar20_digital_core.compatibility.lint.log",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/snapshot/sim/artifacts/open_rtl/sar20_digital_core.compatibility.lint.log",
+      "sha256": "ed6dbdfe14d5a525718d7e89b778291083d500d8b0b4f9305b4aa2f0ae914606",
+      "bytes": 288
+    },
+    {
+      "path": "snapshot/sim/artifacts/open_rtl/sar20_digital_core.structural.lint.log",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/snapshot/sim/artifacts/open_rtl/sar20_digital_core.structural.lint.log",
+      "sha256": "e8a6ccd373a922129ef1274ca760012b38018a497b2679feafa578bfb3f1aef8",
+      "bytes": 288
+    },
+    {
+      "path": "snapshot/sim/artifacts/open_rtl/version.log",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/snapshot/sim/artifacts/open_rtl/version.log",
+      "sha256": "a1c478e9817c5bbcbc5095b6b8abefac89015612a2a1921d283138267d117a2e",
+      "bytes": 36
+    },
+    {
+      "path": "rtl_params.vh",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/weight_msb_candidate/snapshot/rtl/params/rtl_params.vh",
+      "sha256": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+      "bytes": 3764
+    }
+  ],
+  "omitted": [
+    "build logs except references retained in original manifest",
+    "build objects and executables",
+    "full 85-file snapshot (identity retained in snapshot_manifest.json)",
+    "tool installation"
+  ],
+  "production_weight_store_sha256": "d4e8e6d6b36ce5f52c9cca6ed761ccba6fa2d4afa3fa5e4822a0d597a1f22085"
+}

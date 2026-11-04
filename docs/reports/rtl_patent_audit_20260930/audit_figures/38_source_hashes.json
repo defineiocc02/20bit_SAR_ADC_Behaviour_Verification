@@ -1,0 +1,56 @@
+{
+  "figure": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_patent_rtl_report_20260928/figures/38_tree_mapping_trace.png",
+  "figure_sha256": "b554be90f1c51e7b13d589e80207b4fdc5e61320092148a314610397fa870289",
+  "script_sha256": "d830e1c5a69e0386aac606919a01b96d8a031239212258a2d382064b29aebe91",
+  "inputs": {
+    "manifest": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/tree_fix/mapped_trace_final/manifest.json",
+      "sha256": "bad0bd44ed748b3eaac5cc08220a2336695767555354702c5359991e2e36770b"
+    },
+    "after": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/tree_fix/mapped_trace_final/trace_after/trace.csv",
+      "sha256": "64accf5fcae0e656766d74231cc6e003ecaa2563d1b0e40eef858ff80a5f60f7"
+    },
+    "baseline_fixed": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/tree_fix/mapped_trace_final/trace_baseline_fixed/trace.csv",
+      "sha256": "64accf5fcae0e656766d74231cc6e003ecaa2563d1b0e40eef858ff80a5f60f7"
+    },
+    "negative_flash": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/tree_fix/mapped_trace_final/trace_before/trace.csv",
+      "sha256": "1febfaac2fcb7ce801ef3727fd38707d3b6dcd2a1a8a17cc50dc6f1ae277aab4"
+    },
+    "negative_reducer": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/tree_fix/mapped_trace_final/trace_before/reducer_negative.csv",
+      "sha256": "10d30f47ccd584e404e2d09315a8129b414b42663e83a0d3d2f5fdcfbb1ec7c7"
+    },
+    "before_fanout": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/tree_fix/mapped_witness_retry/out_before/input_fanout.csv",
+      "sha256": "a15c6d4d0fd56c96ac154098d7a8ae8ac034fb503742af5787c99be50ab340d3"
+    },
+    "after_fanout": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/tree_fix/mapped_witness_retry/out_after/input_fanout.csv",
+      "sha256": "ccb7420dd304fc4a15bb80805b6c551ca1bbdcb29a27d41157352b0dc6d79cd9"
+    },
+    "baseline_fixed_fanout": {
+      "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/tree_fix/mapped_witness_retry/out_baseline_fixed/input_fanout.csv",
+      "sha256": "16e2c36c02b954687f6fe40d59a9c57bf603b68acb1d1a009464daa3b42e3878"
+    }
+  },
+  "mapped_checks_per_formula": 12904,
+  "mapped_input_reachability": {
+    "before": 10,
+    "after": 969,
+    "baseline_fixed": 969
+  },
+  "plotted_subsets": {
+    "flash": [
+      1,
+      128
+    ],
+    "rails": [
+      641,
+      768
+    ]
+  },
+  "scope": "SMALL_COMBINATIONAL_MAPPED_FUNCTIONAL_WITNESS_NOT_FULLTOP_PPA"
+}

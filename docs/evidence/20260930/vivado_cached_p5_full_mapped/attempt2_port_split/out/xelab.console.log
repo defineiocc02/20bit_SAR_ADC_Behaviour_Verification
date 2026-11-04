@@ -1,0 +1,8 @@
+Vivado Simulator 2018.3
+Copyright 1986-1999, 2001-2018 Xilinx, Inc. All Rights Reserved.
+Running: D:/Academic/Vivado2018/Vivado/2018.3/bin/unwrapped/win64.o/xelab.exe structural_mapped_tb glbl -L unisims_ver -s full_mapped_p5 -mt 2 -generic_top P_RECON_STAGES=5 
+Using 2 slave threads.
+Starting static elaboration
+ERROR: [VRFC 10-3180] cannot find port 'dither_sw' on this module [C:/Users/Administrator/adc_rtl_vivado/run.11678faf43494f28b0fb47a6e81c8ab6/out/input/structural_mapped_tb.sv:60]
+ERROR: [VRFC 10-3180] cannot find port 'quantizer_dither' on this module [C:/Users/Administrator/adc_rtl_vivado/run.11678faf43494f28b0fb47a6e81c8ab6/out/input/structural_mapped_tb.sv:58]
+ERROR: [XSIM 43-3322] Static elaboration of top level Verilog design unit(s) in library work failed.

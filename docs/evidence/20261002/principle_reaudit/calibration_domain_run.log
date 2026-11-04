@@ -1,0 +1,8 @@
+DOMAIN_CASE name=nominal_midscale gain=34359738368 fine=26215 offset=26215 ov=0 a1=18014398509481984
+DOMAIN_CASE name=legal_coefficients_scaled_2pow20 gain=36028797018963968 fine=26215 offset=26215 ov=1 a1=0
+DOMAIN_CASE name=midscale_last_safe_gain gain=8796093022207 fine=0 offset=0 ov=0 a1=4611686018426863616
+DOMAIN_CASE name=midscale_first_overflow_gain gain=8796093022208 fine=0 offset=0 ov=1 a1=4611686018427387904
+DOMAIN_CASE name=positive_fullscale_last_safe_gain gain=4398046511103 fine=17592186044412 offset=0 ov=0 a1=4611686018426339328
+DOMAIN_CASE name=positive_fullscale_first_overflow_gain gain=4398046511104 fine=17592186044416 offset=0 ov=1 a1=4611686018427387904
+CALIBRATION_DOMAIN_PASS cases=6 scope=MAC_ONLY_NOT_FULL_TOP
+- /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_principle_reaudit_20261002/calibration_domain_tb.sv:30: Verilog $finish

@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "/Library/Developer/CommandLineTools/usr/bin/python3",
+    "tools/run_open_rtl.py",
+    "--tops",
+    "sar_trial_tb",
+    "review_config_tb",
+    "review_recon_protocol_tb",
+    "structural_protocol_tb",
+    "p2_tb",
+    "p3_top_tb"
+  ],
+  "cwd": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure",
+  "exit_code": 1,
+  "stdout": "",
+  "stderr": "Verilator is required; install it or set VERILATOR\n",
+  "log_sha256": "c49a9fb1a68caa550017ea52d1b148bf5640c41a8dae3243d02ea4f1365d2885",
+  "scope": "Current targeted RTL rerun attempt; no EDA tool installation attempted."
+}

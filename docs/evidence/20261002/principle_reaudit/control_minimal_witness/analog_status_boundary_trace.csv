@@ -1,0 +1,17 @@
+edge,scenario,capture,quiet,current_id,current_bad,analog_bad,launch,clear,fine_valid,fine_id,fine_analog_bad,top_equivalent_event,analog_sticky
+1,reset,0,0,0,0,0,0,0,0,0,0,0,0
+2,rdac_bad_frozen_at_capture,1,0,101,1,0,0,0,0,0,0,0,0
+3,rdac_bad_transfer_to_fine,0,1,101,0,0,0,0,1,101,1,0,0
+4,launch_latches_sticky,0,0,101,0,0,1,0,1,101,1,1,1
+5,clear_sticky,0,0,101,0,0,0,1,1,101,1,0,0
+6,next_residue_capture,1,0,202,0,0,0,0,1,101,1,0,0
+7,analog_bad_sampled_at_quiet,0,1,202,0,1,0,0,1,202,1,0,0
+8,no_launch_bad_retained_sticky_zero_1,0,0,202,0,0,0,0,1,202,1,0,0
+9,no_launch_bad_retained_sticky_zero_2,0,0,202,0,0,0,0,1,202,1,0,0
+10,replacement_residue_capture,1,0,203,0,0,0,0,1,202,1,0,0
+11,cancelled_bad_context_replaced,0,1,203,0,0,0,0,1,203,0,0,0
+12,replacement_good_launch_cannot_report_old_bad,0,0,203,0,0,1,0,1,203,0,0,0
+13,pulse_before_quiet_not_latched,1,0,303,0,1,0,0,1,203,0,0,0
+14,pulse_absent_at_quiet_not_reported,0,1,303,0,0,0,0,1,303,0,0,0
+15,launch_after_missing_hold,0,0,303,0,0,1,0,1,303,0,0,0
+16,disable_cancels_context,0,0,303,0,0,0,0,0,0,0,0,0

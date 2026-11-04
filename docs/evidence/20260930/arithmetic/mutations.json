@@ -1,0 +1,10 @@
+{
+  "reject_negative_limit": {
+    "returncode": 1,
+    "assertion": "%Error: /tmp/sar_cal_audit_20260930/repo/sim/tb/arithmetic_audit_tb.sv:24: Verilog $stop"
+  },
+  "reverse_quotient_chunk": {
+    "returncode": 1,
+    "assertion": "%Error: /tmp/sar_cal_audit_20260930/repo/sim/tb/arithmetic_audit_tb.sv:95: Verilog $stop"
+  }
+}

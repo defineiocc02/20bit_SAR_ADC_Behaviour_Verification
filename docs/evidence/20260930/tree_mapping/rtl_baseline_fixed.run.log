@@ -1,0 +1,5 @@
+TREE_MAPPING_COMPLETE checks=12904
+- /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_vivado_20260930/tree_fix/rtl_trace/source/baseline_fixed/sim/tb/tree_mapping_tb.sv:109: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.49
+- Verilator: $finish at 13us; walltime 0.059 s; speed 226.878 us/s
+- Verilator: cpu 0.058 s on 1 threads; allocated 2 MB

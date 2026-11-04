@@ -1,0 +1,41 @@
+{
+  "status": "PASS",
+  "scope": "EXACT_CALCULATION_AND_SOURCE_FORMULAS_NOT_RTL_NOT_EDA_NOT_FORMAL",
+  "frozen_source_head": "71935ab54238c7ed638f5fa66c5ffb58e10287bb",
+  "reproduction_head": "71935ab54238c7ed638f5fa66c5ffb58e10287bb",
+  "rtl_source_hashes_checked": 26,
+  "arithmetic_outputs_byte_identical": 3,
+  "structure_equal_except_documentation_head": true,
+  "payloads": [
+    {
+      "path": "calibration_domain_nominal_mirror.json",
+      "sha256": "9e8a3625f9b3ccea6f735462b03209de82569b6e87bad0563ae3d43c049288f1",
+      "bytes": 21289
+    },
+    {
+      "path": "calibration_domain_scaled_2pow20_mirror.json",
+      "sha256": "8c2ea5b922d280a3d85e8acf3de6265f53ad41ba8df53b333b00ebb3e9621043",
+      "bytes": 28957
+    },
+    {
+      "path": "calibration_math_check.log",
+      "sha256": "3f9df7ae45ae9380cd1fdb5f76e924136701cad4ed73d501554ad33d8b125897",
+      "bytes": 3990
+    },
+    {
+      "path": "calibration_math_result.json",
+      "sha256": "3f9df7ae45ae9380cd1fdb5f76e924136701cad4ed73d501554ad33d8b125897",
+      "bytes": 3990
+    },
+    {
+      "path": "synthesis_structure_counts.json",
+      "sha256": "0305c5d6cdf9f2b710a4b540c9fc23af9ec4f5570188ab9d19758b9d63fa8ddd",
+      "bytes": 25611
+    },
+    {
+      "path": "synthesis_structure_counts.log",
+      "sha256": "9ee93825c73b7bee1f139c933285353a1839575ad395e58daa7eafc230a028a4",
+      "bytes": 236
+    }
+  ]
+}

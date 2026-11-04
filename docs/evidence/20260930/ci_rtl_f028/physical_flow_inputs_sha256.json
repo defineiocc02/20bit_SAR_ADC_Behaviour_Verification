@@ -1,0 +1,131 @@
+{
+  "tested_merge_sha": "ae11d8b0cf73a47e073dbb5394db64fa91f9229a",
+  "git_tree_sha": "d84022bd83195a9ad6443009f368d3764a0a7d3f",
+  "scope": "Selected flow/test/config/fixture inputs bound by whole-tree identity. Unit and Tcl mock tests, not a remote implementation run.",
+  "files": {
+    "pyproject.toml": {
+      "bytes": 9860,
+      "sha256": "9e5a181806c5d02517458c2100b1d5a6b20a8847c5577e9acf51585027786ac9"
+    },
+    "synth/.gitignore": {
+      "bytes": 543,
+      "sha256": "0ecfd2260e779271bc34af314b928b5642ab13e13a7bee50ed6e60f717f8a2df"
+    },
+    "synth/README.md": {
+      "bytes": 51573,
+      "sha256": "d4a7bc58d5a8f3c2c38ec5739e7671a690eadc77a62780a8ffd62091e5ae00b8"
+    },
+    "synth/VIVADO_SCREEN.md": {
+      "bytes": 3930,
+      "sha256": "0690d681e29d1236794951dcdf6f089a674d99711149505c017350a92d936c24"
+    },
+    "synth/audit_full_mapped.py": {
+      "bytes": 1338,
+      "sha256": "ef456b45938f0483d201bb79d741a4ad3c1ec0b23daea738742f6f47cddbbde2"
+    },
+    "synth/check_syntax.sh": {
+      "bytes": 2155,
+      "sha256": "738fffea138fb967b6277d85988bae5f106dac01cc69293cf7593f4d8a61900a"
+    },
+    "synth/check_tree_mapping.tcl": {
+      "bytes": 1823,
+      "sha256": "225cbd22594803924152644bef741cb4983ad042f1f7711add798a5f1208fc27"
+    },
+    "synth/inspect_clockless_paths.tcl": {
+      "bytes": 10984,
+      "sha256": "8fbd29f71d23785305d11a26dea2f6cbf95d2f65c1286360786ab9542776200b"
+    },
+    "synth/run_dc.tcl": {
+      "bytes": 40063,
+      "sha256": "b7835eb7a84464eb0d667b4100530319876593eb78a2f4328bcfaf76387facab"
+    },
+    "synth/run_synth.py": {
+      "bytes": 16677,
+      "sha256": "a90eb5dbfe4f828823807d4602d56ca3ab4e326b51cbcc996de8acc3ed3c9317"
+    },
+    "synth/run_synth.sh": {
+      "bytes": 12807,
+      "sha256": "e66d11cad52656fac268de5880261631b209c4a7eb21f1e6427d3b415624620c"
+    },
+    "synth/run_vivado_buffered_impl.tcl": {
+      "bytes": 22146,
+      "sha256": "b93ade7accd8d22cf917b80a591988a1588367300f10265a25fc82f6ea14ceac"
+    },
+    "synth/run_vivado_full_mapped.py": {
+      "bytes": 16230,
+      "sha256": "b0914cfa28db49175f64e9a689f87b1df0c55850af5aa88022076dad24abcb95"
+    },
+    "synth/run_vivado_full_mapped.tcl": {
+      "bytes": 2287,
+      "sha256": "19f7cba67ff433623d9a22d7bfa1e0c16bc16db72649dd6c79c59e67955555be"
+    },
+    "synth/run_vivado_impl.tcl": {
+      "bytes": 6113,
+      "sha256": "5a272b366b5b9ac1d7f3d42ebedb49289c63776a306b57bedb1fcbc29377eca5"
+    },
+    "synth/run_vivado_ooc.tcl": {
+      "bytes": 3500,
+      "sha256": "f9084c25618a94b8bd492e2dc699d6cb15a46d72a8be8e55d4c453b623487ed7"
+    },
+    "synth/run_vivado_ssh.py": {
+      "bytes": 14139,
+      "sha256": "2dfd7a2fd9145be597265f502ed72650fdcc35c2c6b268431d9d734850bb730f"
+    },
+    "synth/smoke/top_smoke.sv": {
+      "bytes": 6459,
+      "sha256": "b6fb403c6730cadf801d3783e822f2527c749cc1014b70a6fa6ab7d84b37f06f"
+    },
+    "synth/sweep_p_stages.sh": {
+      "bytes": 5163,
+      "sha256": "e39d6ce1a8a8b751048195ff7a0c4be47f8857ff2201f55f47a555efd1fb0bef"
+    },
+    "synth/tests/badparams/rtl_params.vh": {
+      "bytes": 4590,
+      "sha256": "54d66cf29f0c47ea549885e8c343233004f3016a6435f503df0086ac4b08761c"
+    },
+    "synth/tests/param_probe.sv": {
+      "bytes": 2773,
+      "sha256": "5becae5eeac44c14b53ff173fed4994ab18f6e6ada0370ac6550e950858edfce"
+    },
+    "tests/conftest.py": {
+      "bytes": 1233,
+      "sha256": "eb7bf31842ea5b495aec31a63ee8e8d5af8e42d98647dc43aeae15ae2dfe6252"
+    },
+    "tests/fixtures/vivado_2018_3_buffered/check_timing.rpt": {
+      "bytes": 3054,
+      "sha256": "da19107a07badfaa583abd5123f91d95d204f67434bda318cb14551cb94152dd"
+    },
+    "tests/fixtures/vivado_2018_3_buffered/provenance.json": {
+      "bytes": 845,
+      "sha256": "da2161e4b5d504f5dd0397d42e8c13a5da52bf464ba623665d0eb81599ba4807"
+    },
+    "tests/fixtures/vivado_2018_3_buffered/timing_summary.rpt": {
+      "bytes": 52122,
+      "sha256": "0d9a0faa2c132bbb97e0e30ff12d3348e7f1573b1cec2eb4e6d9428e967bfd37"
+    },
+    "tests/unit/test_clockless_inspection.py": {
+      "bytes": 6849,
+      "sha256": "09ce7d0c8e569a6003c3fb574a8c168d94943294907926b676a6c376ffd9b593"
+    },
+    "tests/unit/test_synth_flow.py": {
+      "bytes": 7050,
+      "sha256": "4e49f2315c16cb4da08709e684c5b082782cc0b58a7f77d724a58bbbff221917"
+    },
+    "tests/unit/test_vivado_buffered_impl.py": {
+      "bytes": 25606,
+      "sha256": "b604ffcad3b80d7cdd9bd3002f2727aa13480624d29baa47f63cee4b8ff8a9db"
+    },
+    "tests/unit/test_vivado_flow.py": {
+      "bytes": 20036,
+      "sha256": "07daab10fceb7e93954cda32334eb1c59595c3967b85ceb918d1ce00f0470a0f"
+    },
+    "tests/unit/test_vivado_full_mapped.py": {
+      "bytes": 11690,
+      "sha256": "5508a230c547a77a65ebb2fcb669afa65cab16fad1af8e4a1bba21f0d8a8e695"
+    },
+    "tests/unit/test_vivado_impl.py": {
+      "bytes": 9256,
+      "sha256": "f91098916147a318e399bed9942820d19efd42a0578903aceea22985e4ac4445"
+    }
+  }
+}

@@ -1,0 +1,1364 @@
+
+****** Vivado v2018.3 (64-bit)
+  **** SW Build 2405991 on Thu Dec  6 23:38:27 MST 2018
+  **** IP Build 2404404 on Fri Dec  7 01:43:56 MST 2018
+    ** Copyright 1986-2018 Xilinx, Inc. All Rights Reserved.
+
+source synth/run_vivado_ooc.tcl
+# if {$argc != 4} {
+#     puts stderr "Usage: PART OUT PERIOD_NS P_RECON_STAGES"
+#     exit 2
+# }
+# lassign $argv part out period stages
+# if {![string is double -strict $period] || $period <= 0 ||
+#     ![string is integer -strict $stages] || $stages < 5 || $stages > 63} {
+#     puts stderr "Invalid clock period or divider parameter"
+#     exit 2
+# }
+# set root [file normalize [file join [file dirname [info script]] ..]]
+# set out [file normalize $out]
+# if {[file exists $out]} {
+#     puts stderr "Refusing to reuse output directory: $out"
+#     exit 2
+# }
+# file mkdir $out
+Command: synth_design -top sar20_digital_core -part xc7vx690tffg1761-2 -mode out_of_context -flatten_hierarchy rebuilt -generic P_RECON_STAGES=5
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7vx690t'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7vx690t'
+INFO: Launching helper process for spawning children vivado processes
+INFO: Helper process launched with PID 21044 
+WARNING: [Synth 8-992] legacy_slice_sel is already implicitly declared earlier [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/top/sar20_digital_core.sv:498]
+WARNING: [Synth 8-992] legacy_main_sw is already implicitly declared earlier [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/top/sar20_digital_core.sv:499]
+WARNING: [Synth 8-992] legacy_sub_sw is already implicitly declared earlier [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/top/sar20_digital_core.sv:500]
+WARNING: [Synth 8-992] legacy_dither_sw is already implicitly declared earlier [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/top/sar20_digital_core.sv:501]
+---------------------------------------------------------------------------------
+Starting RTL Elaboration : Time (s): cpu = 00:00:01 ; elapsed = 00:00:01 . Memory (MB): peak = 445.855 ; gain = 113.398
+---------------------------------------------------------------------------------
+INFO: [Synth 8-6157] synthesizing module 'sar20_digital_core' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/top/sar20_digital_core.sv:11]
+	Parameter P_STRUCTURAL bound to: 1'b1 
+	Parameter P_RECON_STAGES bound to: 32'sb00000000000000000000000000000101 
+	Parameter P_REF_ON bound to: 32'sb00000000000000000000000000001010 
+	Parameter P_RESIDUE_CAPTURE bound to: 32'sb00000000000000000000000000001001 
+	Parameter P_SHUFFLE_SEED bound to: 1831565813 - type: integer 
+	Parameter ERR_NONE bound to: 0 - type: integer 
+	Parameter ERR_W_RANGE bound to: 1 - type: integer 
+	Parameter ERR_W_SUM bound to: 2 - type: integer 
+	Parameter ERR_RANGE_EMPTY bound to: 3 - type: integer 
+	Parameter ERR_V_RANGE bound to: 4 - type: integer 
+	Parameter ERR_CFG_WRITE bound to: 5 - type: integer 
+	Parameter ERR_INCOMPLETE bound to: 6 - type: integer 
+	Parameter ERR_SADC_NOT_READY bound to: 7 - type: integer 
+	Parameter ERR_ADC2_NOT_READY bound to: 8 - type: integer 
+	Parameter ERR_RECON_BUSY bound to: 9 - type: integer 
+	Parameter ERR_DITHER_MODE bound to: 10 - type: integer 
+	Parameter ERR_RDAC_RANGE bound to: 11 - type: integer 
+	Parameter W_MAX bound to: 48'b100000000000000000000000000000000000000000000000 
+INFO: [Synth 8-6157] synthesizing module 'weight_store' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/weight_store.sv:42]
+	Parameter P_N_SLICES bound to: 18 - type: integer 
+	Parameter P_N_UNITS bound to: 71 - type: integer 
+	Parameter SUM_BITS bound to: 32'sb00000000000000000000000001000000 
+	Parameter W_ZERO bound to: 48'b000000000000000000000000000000000000000000000000 
+	Parameter W_MAX bound to: 48'b100000000000000000000000000000000000000000000000 
+	Parameter SUM_MAX bound to: 64'b0001000000000000000000000000000000000000000000000000000000000000 
+	Parameter STATIC_SUM_SAFE bound to: 1'b1 
+WARNING: [Synth 8-5856] 3D RAM w_q_reg  for this pattern/configuration is not supported. This will most likely be implemented in registers
+WARNING: [Synth 8-6014] Unused sequential element sum_all_reg was removed.  [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/weight_store.sv:105]
+INFO: [Synth 8-6155] done synthesizing module 'weight_store' (1#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/weight_store.sv:42]
+INFO: [Synth 8-6157] synthesizing module 'calib_regs' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/calib_regs.sv:47]
+	Parameter P_ADC2_BITS bound to: 12 - type: integer 
+	Parameter ERR_NONE bound to: 0 - type: integer 
+	Parameter ERR_W_RANGE bound to: 1 - type: integer 
+	Parameter ERR_W_SUM bound to: 2 - type: integer 
+	Parameter ERR_RANGE_EMPTY bound to: 3 - type: integer 
+	Parameter ERR_V_RANGE bound to: 4 - type: integer 
+	Parameter ERR_CFG_WRITE bound to: 5 - type: integer 
+	Parameter ERR_INCOMPLETE bound to: 6 - type: integer 
+	Parameter ERR_SADC_NOT_READY bound to: 7 - type: integer 
+	Parameter ERR_ADC2_NOT_READY bound to: 8 - type: integer 
+	Parameter ERR_RECON_BUSY bound to: 9 - type: integer 
+	Parameter ERR_DITHER_MODE bound to: 10 - type: integer 
+	Parameter ERR_RDAC_RANGE bound to: 11 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'calib_regs' (2#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/calib_regs.sv:47]
+INFO: [Synth 8-6157] synthesizing module 'ctrl_fsm' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/ctrl_fsm.sv:42]
+	Parameter P_PHASES bound to: 16 - type: integer 
+	Parameter PW bound to: 32'sb00000000000000000000000000000100 
+	Parameter PH_LAST bound to: 4'b1111 
+	Parameter PH_ACQ_END bound to: 4'b0110 
+INFO: [Synth 8-6155] done synthesizing module 'ctrl_fsm' (3#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/ctrl_fsm.sv:42]
+INFO: [Synth 8-6157] synthesizing module 'slice_alloc' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/slice_alloc.sv:44]
+	Parameter ONE bound to: 1 - type: integer 
+	Parameter EIGHT bound to: 5'b01000 
+INFO: [Synth 8-6155] done synthesizing module 'slice_alloc' (4#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/slice_alloc.sv:44]
+INFO: [Synth 8-6157] synthesizing module 'dem_state_gen' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/dem_state_gen.sv:45]
+	Parameter A_RED bound to: 433 - type: integer 
+	Parameter W bound to: 32'sb00000000000000000000000000001001 
+	Parameter STEP bound to: 9'b110110001 
+	Parameter MASK bound to: 9'b111111111 
+INFO: [Synth 8-6155] done synthesizing module 'dem_state_gen' (5#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/dem_state_gen.sv:45]
+INFO: [Synth 8-6157] synthesizing module 'dem_addr_gen' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/dem_addr_gen.sv:37]
+	Parameter N_MAIN bound to: 63 - type: integer 
+	Parameter N_SUB bound to: 8 - type: integer 
+	Parameter W_ROT bound to: 8 - type: integer 
+	Parameter H_ROT bound to: 8 - type: integer 
+	Parameter LW bound to: 32'sb00000000000000000000000000000011 
+	Parameter LH bound to: 32'sb00000000000000000000000000000011 
+	Parameter LS bound to: 32'sb00000000000000000000000000000011 
+INFO: [Synth 8-6155] done synthesizing module 'dem_addr_gen' (6#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/dem_addr_gen.sv:37]
+INFO: [Synth 8-6157] synthesizing module 'dither_gen' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/dither_gen.sv:15]
+	Parameter D bound to: 2 - type: integer 
+	Parameter SEED bound to: 324508639 - type: integer 
+	Parameter SPAN bound to: 32'sb00000000000000000000000000001000 
+	Parameter LIMIT bound to: 32'sb00000000000000000000000100000000 
+	Parameter TAPS bound to: -2145386493 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'dither_gen' (7#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/dither_gen.sv:15]
+INFO: [Synth 8-6157] synthesizing module 'swap_decode' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/swap_decode.sv:37]
+	Parameter N_ACT bound to: 8 - type: integer 
+	Parameter LV bound to: 512 - type: integer 
+	Parameter HALF bound to: 32'sb00000000000000000000000000000100 
+	Parameter UL1 bound to: 18'sb000000000000000001 
+	Parameter KLO bound to: 18'sb000000000000000000 
+	Parameter LMAX bound to: 18'sb000000000111111111 
+	Parameter ZERO bound to: 18'sb000000000000000000 
+INFO: [Synth 8-6155] done synthesizing module 'swap_decode' (8#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/swap_decode.sv:37]
+INFO: [Synth 8-6157] synthesizing module 'unit_therm' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/unit_therm.sv:33]
+INFO: [Synth 8-6155] done synthesizing module 'unit_therm' (9#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/unit_therm.sv:33]
+INFO: [Synth 8-6157] synthesizing module 'rdac_drv' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/rdac_drv.sv:30]
+INFO: [Synth 8-6155] done synthesizing module 'rdac_drv' (10#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/rdac_drv.sv:30]
+INFO: [Synth 8-6157] synthesizing module 'sar_structural_ctrl' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/sar_structural_ctrl.sv:7]
+	Parameter P_REF_ON bound to: 32'sb00000000000000000000000000001010 
+	Parameter P_RESIDUE_CAPTURE bound to: 32'sb00000000000000000000000000001001 
+	Parameter P_SHUFFLE_SEED bound to: 1831565813 - type: integer 
+	Parameter ERR_NONE bound to: 0 - type: integer 
+	Parameter ERR_W_RANGE bound to: 1 - type: integer 
+	Parameter ERR_W_SUM bound to: 2 - type: integer 
+	Parameter ERR_RANGE_EMPTY bound to: 3 - type: integer 
+	Parameter ERR_V_RANGE bound to: 4 - type: integer 
+	Parameter ERR_CFG_WRITE bound to: 5 - type: integer 
+	Parameter ERR_INCOMPLETE bound to: 6 - type: integer 
+	Parameter ERR_SADC_NOT_READY bound to: 7 - type: integer 
+	Parameter ERR_ADC2_NOT_READY bound to: 8 - type: integer 
+	Parameter ERR_RECON_BUSY bound to: 9 - type: integer 
+	Parameter ERR_DITHER_MODE bound to: 10 - type: integer 
+	Parameter ERR_RDAC_RANGE bound to: 11 - type: integer 
+INFO: [Synth 8-6157] synthesizing module 'sar_trial_ctrl' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/sar_trial_ctrl.sv:6]
+	Parameter P_BITS bound to: 32'sb00000000000000000000000000001001 
+	Parameter P_SEED_BITS bound to: 32'sb00000000000000000000000000000011 
+	Parameter IW bound to: 32'sb00000000000000000000000000000100 
+INFO: [Synth 8-6155] done synthesizing module 'sar_trial_ctrl' (11#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/sar_trial_ctrl.sv:6]
+INFO: [Synth 8-6157] synthesizing module 'analog_phase_ctrl' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/analog_phase_ctrl.sv:5]
+	Parameter P_PHASES bound to: 32'sb00000000000000000000000000010000 
+	Parameter P_REF_ON bound to: 32'sb00000000000000000000000000001010 
+	Parameter P_CAPTURE bound to: 32'sb00000000000000000000000000001001 
+	Parameter PW bound to: 32'sb00000000000000000000000000000100 
+INFO: [Synth 8-4471] merging register 'ref_accurate_reg' into 'ra_amplify_reg' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/analog_phase_ctrl.sv:26]
+WARNING: [Synth 8-6014] Unused sequential element ref_accurate_reg was removed.  [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/analog_phase_ctrl.sv:26]
+INFO: [Synth 8-6155] done synthesizing module 'analog_phase_ctrl' (12#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/analog_phase_ctrl.sv:5]
+INFO: [Synth 8-6157] synthesizing module 'slice_pool_ctrl' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/slice_pool_ctrl.sv:6]
+	Parameter P_SEED bound to: 1831565813 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'slice_pool_ctrl' (13#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/slice_pool_ctrl.sv:6]
+INFO: [Synth 8-6157] synthesizing module 'sadc_enc' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/top/sadc_enc.sv:30]
+	Parameter P_B1 bound to: 32'sb00000000000000000000000000000011 
+	Parameter P_N_CMP bound to: 32'sb00000000000000000000000000000111 
+	Parameter ACC_W bound to: 32'sb00000000000000000000000000000011 
+	Parameter LEAVES bound to: 32'sb00000000000000000000000000001000 
+INFO: [Synth 8-6155] done synthesizing module 'sadc_enc' (14#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/top/sadc_enc.sv:30]
+INFO: [Synth 8-6157] synthesizing module 'sar_trial_ctrl__parameterized0' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/sar_trial_ctrl.sv:6]
+	Parameter P_BITS bound to: 32'sb00000000000000000000000000001100 
+	Parameter P_SEED_BITS bound to: 32'sb00000000000000000000000000000000 
+	Parameter IW bound to: 32'sb00000000000000000000000000000100 
+INFO: [Synth 8-6155] done synthesizing module 'sar_trial_ctrl__parameterized0' (14#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/sar_trial_ctrl.sv:6]
+INFO: [Synth 8-6157] synthesizing module 'dem_state_gen__parameterized0' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/dem_state_gen.sv:45]
+	Parameter A_RED bound to: 433 - type: integer 
+	Parameter W bound to: 32'sb00000000000000000000000000001001 
+	Parameter STEP bound to: 9'b110110001 
+	Parameter MASK bound to: 9'b111111111 
+INFO: [Synth 8-6155] done synthesizing module 'dem_state_gen__parameterized0' (14#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/dem_state_gen.sv:45]
+INFO: [Synth 8-6157] synthesizing module 'dither_gen__parameterized0' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/dither_gen.sv:15]
+	Parameter D bound to: 2 - type: integer 
+	Parameter SEED bound to: 324508639 - type: integer 
+	Parameter SPAN bound to: 32'sb00000000000000000000000000001000 
+	Parameter LIMIT bound to: 32'sb00000000000000000000000100000000 
+	Parameter TAPS bound to: -2145386493 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'dither_gen__parameterized0' (14#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/dither_gen.sv:15]
+INFO: [Synth 8-6157] synthesizing module 'cal_sample_context' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/cal_sample_context.sv:5]
+	Parameter CW bound to: 32'sb00000000000000000000001011000101 
+INFO: [Synth 8-6155] done synthesizing module 'cal_sample_context' (15#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/cal_sample_context.sv:5]
+INFO: [Synth 8-6155] done synthesizing module 'sar_structural_ctrl' (16#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/sar_structural_ctrl.sv:7]
+INFO: [Synth 8-6157] synthesizing module 'recon_core' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/recon_core.sv:53]
+	Parameter P_N_ACTIVE bound to: 8 - type: integer 
+	Parameter P_N_MAIN bound to: 63 - type: integer 
+	Parameter P_N_SUB bound to: 8 - type: integer 
+	Parameter P_N_SLICES bound to: 18 - type: integer 
+	Parameter P_ADC2_BITS bound to: 12 - type: integer 
+	Parameter P_STAGES bound to: 32'sb00000000000000000000000000000101 
+	Parameter P_DIT_N bound to: 32'sb00000000000000000000000000000100 
+	Parameter P_DIT_END bound to: 71 - type: integer 
+	Parameter N_U bound to: 32'sb00000000000000000000000001000111 
+	Parameter SUM_BITS bound to: 32'sb00000000000000000000000001000000 
+	Parameter W_RAIL bound to: 32'sb00000000000000000000000001000010 
+	Parameter W_OP3 bound to: 32'sb00000000000000000000000010000010 
+	Parameter W_WIDE bound to: 32'sb00000000000000000000000010000100 
+	Parameter W_S1 bound to: 32'sb00000000000000000000000001100001 
+	Parameter W_SHIFT bound to: 32'sb00000000000000000000000001110101 
+	Parameter W_A bound to: 32'sb00000000000000000000000000111111 
+	Parameter W_TOP bound to: 32'sb00000000000000000000000000010110 
+	Parameter DIT_BEG bound to: 32'sb00000000000000000000000001000011 
+	Parameter N_CYC bound to: 32'sb00000000000000000000000000001101 
+	Parameter RECON_LAT bound to: 32'sb00000000000000000000000000001111 
+	Parameter LIM_ONE bound to: 132'b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001 
+	Parameter LIM_HI_U bound to: 132'b000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 
+	Parameter LIM_LO_U bound to: 132'b111111111111111111111111111111111111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 
+	Parameter ZERO_A bound to: 63'sb000000000000000000000000000000000000000000000000000000000000000 
+	Parameter OUT_CNT bound to: 63'sb000000000000000000000000000000000000000000100000000000000000000 
+	Parameter GAIN_MAX bound to: 64'b0100000000000000000000000000000000000000000000000000000000000000 
+INFO: [Synth 8-6157] synthesizing module 'cal_weight_reduce' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/cal_weight_reduce.sv:7]
+	Parameter P_N_ACTIVE bound to: 8 - type: integer 
+	Parameter P_N_MAIN bound to: 63 - type: integer 
+	Parameter P_N_SUB bound to: 8 - type: integer 
+	Parameter P_N_SLICES bound to: 18 - type: integer 
+	Parameter P_DIT_N bound to: 32'sb00000000000000000000000000000100 
+	Parameter P_DIT_END bound to: 71 - type: integer 
+	Parameter SUM_BITS bound to: 32'sb00000000000000000000000001000000 
+	Parameter W_RAIL bound to: 32'sb00000000000000000000000001000010 
+	Parameter N_U bound to: 32'sb00000000000000000000000001000111 
+	Parameter DIT_BEG bound to: 32'sb00000000000000000000000001000011 
+	Parameter N_TERMS bound to: 32'sb00000000000000000000010011111110 
+	Parameter TREE_LEAVES bound to: 32'sb00000000000000000000100000000000 
+	Parameter COL_LEAVES bound to: 32'sb00000000000000000000000000100000 
+	Parameter MASK_LEAVES bound to: 32'sb00000000000000000000000000000100 
+INFO: [Synth 8-6155] done synthesizing module 'cal_weight_reduce' (17#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/cal_weight_reduce.sv:7]
+INFO: [Synth 8-6157] synthesizing module 'adc2_dec' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/adc2_dec.sv:45]
+	Parameter P_ADC2_BITS bound to: 12 - type: integer 
+	Parameter K bound to: 32'sb00000000000000000000000000001101 
+	Parameter W_MUL bound to: 32'sb00000000000000000000000001001110 
+	Parameter W_SUM bound to: 32'sb00000000000000000000000001001111 
+	Parameter V_ONE bound to: 79'b0000000000000000000000000000000000000000000000000000000000000000000000000000001 
+	Parameter V_HI_U bound to: 79'b0000000000000001000000000000000000000000000000000000000000000000000000000000000 
+	Parameter V_LO_U bound to: 79'b1111111111111111000000000000000000000000000000000000000000000000000000000000000 
+	Parameter V_MAX_U bound to: 79'b0000000000000000111111111111111111111111111111111111111111111111111111111111111 
+INFO: [Synth 8-6155] done synthesizing module 'adc2_dec' (18#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/adc2_dec.sv:45]
+INFO: [Synth 8-6157] synthesizing module 'cal_residue_mac' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/cal_residue_mac.sv:5]
+	Parameter SUM_BITS bound to: 32'sb00000000000000000000000001000000 
+	Parameter W_RAIL bound to: 32'sb00000000000000000000000001000010 
+	Parameter W_OP3 bound to: 32'sb00000000000000000000000010000010 
+	Parameter W_WIDE bound to: 32'sb00000000000000000000000010000100 
+	Parameter W_S1 bound to: 32'sb00000000000000000000000001100001 
+	Parameter W_SHIFT bound to: 32'sb00000000000000000000000001110101 
+	Parameter W_A bound to: 32'sb00000000000000000000000000111111 
+	Parameter W_TOP bound to: 32'sb00000000000000000000000000010110 
+	Parameter LIM_ONE bound to: 132'b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001 
+	Parameter LIM_HI_U bound to: 132'b000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 
+	Parameter LIM_LO_U bound to: 132'b111111111111111111111111111111111111100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 
+	Parameter GAIN_MAX bound to: 64'b0100000000000000000000000000000000000000000000000000000000000000 
+INFO: [Synth 8-6155] done synthesizing module 'cal_residue_mac' (19#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/cal_residue_mac.sv:5]
+INFO: [Synth 8-6157] synthesizing module 'div_floor' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/div_floor.sv:57]
+	Parameter P_W_A bound to: 32'sb00000000000000000000000000111111 
+	Parameter P_W_D bound to: 32'sb00000000000000000000000001000000 
+	Parameter P_STAGES bound to: 32'sb00000000000000000000000000000101 
+	Parameter W_R bound to: 32'sb00000000000000000000000000111111 
+	Parameter N_CYC bound to: 32'sb00000000000000000000000000001101 
+	Parameter W_PAD bound to: 32'sb00000000000000000000000001000001 
+	Parameter W_CNT bound to: 32'sb00000000000000000000000000000100 
+WARNING: [Synth 8-3936] Found unconnected internal register 'r_chain_reg[4]' and it is trimmed from '63' to '62' bits. [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/div_floor.sv:118]
+WARNING: [Synth 8-3936] Found unconnected internal register 'r_chain_reg[3]' and it is trimmed from '63' to '62' bits. [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/div_floor.sv:118]
+WARNING: [Synth 8-3936] Found unconnected internal register 'r_chain_reg[2]' and it is trimmed from '63' to '62' bits. [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/div_floor.sv:118]
+WARNING: [Synth 8-3936] Found unconnected internal register 'r_chain_reg[1]' and it is trimmed from '63' to '62' bits. [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/div_floor.sv:118]
+INFO: [Synth 8-6155] done synthesizing module 'div_floor' (20#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/div_floor.sv:57]
+INFO: [Synth 8-6157] synthesizing module 'cal_output_stage' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/cal_output_stage.sv:5]
+	Parameter P_OUT_BITS bound to: 20 - type: integer 
+INFO: [Synth 8-6155] done synthesizing module 'cal_output_stage' (21#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/cal_output_stage.sv:5]
+INFO: [Synth 8-6155] done synthesizing module 'recon_core' (22#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/recon_core.sv:53]
+INFO: [Synth 8-6157] synthesizing module 'status_regs' [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/status_regs.sv:42]
+	Parameter CLR_MASK bound to: 32'b00000000000000000000000000100111 
+INFO: [Synth 8-6155] done synthesizing module 'status_regs' (23#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/status_regs.sv:42]
+WARNING: [Synth 8-6014] Unused sequential element adc2_hold_reg was removed.  [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/top/sar20_digital_core.sv:344]
+WARNING: [Synth 8-6014] Unused sequential element inj_hold_reg was removed.  [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/top/sar20_digital_core.sv:344]
+WARNING: [Synth 8-6014] Unused sequential element adc2_ok_reg was removed.  [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/top/sar20_digital_core.sv:340]
+WARNING: [Synth 8-6014] Unused sequential element analog_sample_reg was removed.  [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/top/sar20_digital_core.sv:345]
+WARNING: [Synth 8-6014] Unused sequential element input_err_reg was removed.  [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/top/sar20_digital_core.sv:346]
+WARNING: [Synth 8-6014] Unused sequential element legacy_sw_valid_reg was removed.  [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/top/sar20_digital_core.sv:493]
+INFO: [Synth 8-6155] done synthesizing module 'sar20_digital_core' (24#1) [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/top/sar20_digital_core.sv:11]
+WARNING: [Synth 8-3331] design status_regs has unconnected port err_code[31]
+WARNING: [Synth 8-3331] design status_regs has unconnected port err_code[30]
+WARNING: [Synth 8-3331] design status_regs has unconnected port err_code[29]
+WARNING: [Synth 8-3331] design status_regs has unconnected port err_code[28]
+WARNING: [Synth 8-3331] design status_regs has unconnected port err_code[27]
+WARNING: [Synth 8-3331] design status_regs has unconnected port err_code[26]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[11]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[10]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[9]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[8]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[7]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[6]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[5]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[4]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[3]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[2]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[1]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[0]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_rdy
+---------------------------------------------------------------------------------
+Finished RTL Elaboration : Time (s): cpu = 00:00:22 ; elapsed = 00:00:24 . Memory (MB): peak = 992.027 ; gain = 659.570
+---------------------------------------------------------------------------------
+
+Report Check Netlist: 
++------+------------------+-------+---------+-------+------------------+
+|      |Item              |Errors |Warnings |Status |Description       |
++------+------------------+-------+---------+-------+------------------+
+|1     |multi_driven_nets |      0|        0|Passed |Multi driven nets |
++------+------------------+-------+---------+-------+------------------+
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:25 ; elapsed = 00:00:27 . Memory (MB): peak = 992.027 ; gain = 659.570
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 1 : Time (s): cpu = 00:00:25 ; elapsed = 00:00:27 . Memory (MB): peak = 992.027 ; gain = 659.570
+---------------------------------------------------------------------------------
+INFO: [Device 21-403] Loading part xc7vx690tffg1761-2
+INFO: [Project 1-570] Preparing netlist for logic optimization
+
+Processing XDC Constraints
+Initializing timing engine
+Parsing XDC File [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/out/screening.xdc]
+Finished Parsing XDC File [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/out/screening.xdc]
+INFO: [Project 1-236] Implementation specific constraints were found while reading constraint file [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/out/screening.xdc]. These constraints will be ignored for synthesis but will be used in implementation. Impacted constraints are listed in the file [.Xil/sar20_digital_core_propImpl.xdc].
+Resolution: To avoid this warning, move constraints listed in [.Xil/sar20_digital_core_propImpl.xdc] to another XDC file and exclude this new file from synthesis with the used_in_synthesis property (File Properties dialog in GUI) and re-run elaboration/synthesis.
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.021 . Memory (MB): peak = 2034.023 ; gain = 0.449
+Completed Processing XDC Constraints
+
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.024 . Memory (MB): peak = 2037.270 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.019 . Memory (MB): peak = 2037.270 ; gain = 0.000
+Constraint Validation Runtime : Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.089 . Memory (MB): peak = 2037.270 ; gain = 0.000
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:59 ; elapsed = 00:01:01 . Memory (MB): peak = 2037.270 ; gain = 1704.813
+---------------------------------------------------------------------------------
+INFO: [Synth 8-5580] Multithreading enabled for synth_design using a maximum of 2 processes.
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7vx690tffg1761-2
+INFO: [Synth 8-5546] ROM "w_q_reg[17][70]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][69]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][68]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][67]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][66]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][65]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][64]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][63]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][62]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][61]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][60]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][59]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][58]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][57]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][56]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][55]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][54]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][53]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][52]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][51]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][50]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][49]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][48]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][47]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][46]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][45]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][44]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][43]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][42]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][41]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][40]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][39]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][38]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][37]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][36]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][35]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][34]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][33]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][32]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][31]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][30]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][29]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][28]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][27]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][26]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][25]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][24]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][23]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][22]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][21]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][20]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][19]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][18]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][17]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][16]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][15]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][14]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][13]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][12]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][11]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][10]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][9]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][8]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][7]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][6]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][5]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][4]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][3]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][2]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][1]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][0]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5544] ROM "off_r" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "min_r" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "max_r" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "dem_r" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "brg_r" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "smk_r" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "err_code" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "scalar_written" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "off_r" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "min_r" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "max_r" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "dem_r" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "brg_r" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "smk_r" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "err_code" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "scalar_written" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "err_code" won't be mapped to Block RAM because address size (1) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "err_code" won't be mapped to Block RAM because address size (1) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "err_code" won't be mapped to Block RAM because address size (1) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "err_code" won't be mapped to Block RAM because address size (1) smaller than threshold (5)
+INFO: [Synth 8-5545] ROM "next_phase" won't be mapped to RAM because address size (32) is larger than maximum supported(25)
+INFO: [Synth 8-5544] ROM "bit_index" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "busy" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "bit_index" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "busy" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "fine_code" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5818] HDL ADVISOR - The operator resource <adder> is shared. To prevent sharing consider applying a KEEP on the output of the operator [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/cal_weight_reduce.sv:112]
+INFO: [Synth 8-5818] HDL ADVISOR - The operator resource <adder> is shared. To prevent sharing consider applying a KEEP on the output of the operator [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/cal_weight_reduce.sv:112]
+INFO: [Synth 8-5818] HDL ADVISOR - The operator resource <adder> is shared. To prevent sharing consider applying a KEEP on the output of the operator [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/cal_weight_reduce.sv:112]
+INFO: [Synth 8-5818] HDL ADVISOR - The operator resource <adder> is shared. To prevent sharing consider applying a KEEP on the output of the operator [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/cal_weight_reduce.sv:112]
+INFO: [Synth 8-5546] ROM "active" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "active" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5845] Not enough pipeline registers after wide multiplier. Recommended levels of pipeline registers is 4 [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/adc2_dec.sv:82]
+INFO: [Synth 8-5845] Not enough pipeline registers after wide multiplier. Recommended levels of pipeline registers is 16 [C:/Users/Administrator/adc_rtl_vivado/run.a5de995384b84955ba9bb5499ca88d25/rtl/core/cal_residue_mac.sv:46]
+INFO: [Synth 8-5545] ROM "mag" won't be mapped to RAM because address size (32) is larger than maximum supported(25)
+INFO: [Synth 8-5545] ROM "run" won't be mapped to RAM because address size (32) is larger than maximum supported(25)
+INFO: [Synth 8-5545] ROM "q" won't be mapped to RAM because address size (32) is larger than maximum supported(25)
+INFO: [Synth 8-5544] ROM "cal_sel" won't be mapped to Block RAM because address size (1) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "merged_err" won't be mapped to Block RAM because address size (1) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "bus_err0" won't be mapped to Block RAM because address size (1) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "sadc_hold" won't be mapped to Block RAM because address size (1) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "dith_q" won't be mapped to Block RAM because address size (1) smaller than threshold (5)
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:01:23 ; elapsed = 00:01:28 . Memory (MB): peak = 2037.270 ; gain = 1704.813
+---------------------------------------------------------------------------------
+
+Report RTL Partitions: 
++------+------------------------------------+------------+----------+
+|      |RTL Partition                       |Replication |Instances |
++------+------------------------------------+------------+----------+
+|1     |weight_store__GB0                   |           1|     28590|
+|2     |weight_store__GB1                   |           1|     18690|
+|3     |weight_store__GB2                   |           1|     37334|
+|4     |unit_therm                          |           2|     18868|
+|5     |rdac_drv__GBM0                      |           1|     40352|
+|6     |rdac_drv__GBM1                      |           1|     11601|
+|7     |rdac_drv__GBM2                      |           1|     13242|
+|8     |sar_structural_ctrl__GC0            |           1|     22732|
+|9     |datapath__862_cal_weight_reduce__GD |           1|    276716|
+|10    |cal_weight_reduce__GB1              |           1|      6816|
+|11    |cal_weight_reduce__GB2              |           1|     55776|
+|12    |cal_weight_reduce__GB3              |           1|     19248|
+|13    |datapath__855_cal_weight_reduce__GD |           1|    276716|
+|14    |cal_weight_reduce__GB5              |           1|      2256|
+|15    |cal_weight_reduce__GB6              |           1|     41532|
+|16    |cal_weight_reduce__GB7              |           1|     13824|
+|17    |cal_weight_reduce__GB8              |           1|     22421|
+|18    |recon_core__GC0                     |           1|     13457|
+|19    |sar20_digital_core__GCB0            |           1|     27847|
+|20    |sar20_digital_core__GCB1            |           1|      7344|
+|21    |sar20_digital_core__GCB2            |           1|      9792|
+|22    |sar20_digital_core__GCB3            |           1|     11424|
+|23    |sar20_digital_core__GCB4            |           1|     15651|
++------+------------------------------------+------------+----------+
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
++---Adders : 
+	   4 Input    132 Bit       Adders := 1     
+	   4 Input    129 Bit       Adders := 1     
+	   2 Input     97 Bit       Adders := 1     
+	   2 Input     79 Bit       Adders := 1     
+	   2 Input     78 Bit       Adders := 2     
+	   4 Input     66 Bit       Adders := 1     
+	   8 Input     66 Bit       Adders := 1     
+	   3 Input     65 Bit       Adders := 2     
+	   3 Input     64 Bit       Adders := 6     
+	   2 Input     63 Bit       Adders := 3     
+	1278 Input     59 Bit       Adders := 2     
+	   4 Input     55 Bit       Adders := 1     
+	  18 Input     53 Bit       Adders := 4     
+	   2 Input     32 Bit       Adders := 25    
+	   3 Input     32 Bit       Adders := 1     
+	   4 Input     32 Bit       Adders := 1     
+	   5 Input     32 Bit       Adders := 1     
+	   6 Input     32 Bit       Adders := 1     
+	   7 Input     32 Bit       Adders := 1     
+	   8 Input     32 Bit       Adders := 1     
+	   9 Input     32 Bit       Adders := 1     
+	   2 Input     18 Bit       Adders := 2     
+	   2 Input     16 Bit       Adders := 1     
+	   2 Input     11 Bit       Adders := 2     
+	   2 Input     10 Bit       Adders := 16    
+	   2 Input      9 Bit       Adders := 6     
+	   2 Input      8 Bit       Adders := 2     
+	   3 Input      6 Bit       Adders := 126   
+	   2 Input      5 Bit       Adders := 18    
+	   2 Input      4 Bit       Adders := 6     
+	   2 Input      3 Bit       Adders := 51    
+	   7 Input      3 Bit       Adders := 1     
+	   2 Input      2 Bit       Adders := 1     
++---XORs : 
+	   2 Input     32 Bit         XORs := 24    
++---Registers : 
+	              709 Bit    Registers := 1     
+	               71 Bit    Registers := 18    
+	               66 Bit    Registers := 1     
+	               65 Bit    Registers := 2     
+	               64 Bit    Registers := 10    
+	               63 Bit    Registers := 47    
+	               48 Bit    Registers := 1278  
+	               32 Bit    Registers := 8     
+	               20 Bit    Registers := 1     
+	               18 Bit    Registers := 4     
+	               12 Bit    Registers := 3     
+	                9 Bit    Registers := 11    
+	                8 Bit    Registers := 47    
+	                5 Bit    Registers := 27    
+	                4 Bit    Registers := 45    
+	                3 Bit    Registers := 1     
+	                2 Bit    Registers := 2     
+	                1 Bit    Registers := 58    
++---Muxes : 
+	   2 Input     71 Bit        Muxes := 180   
+	   2 Input     66 Bit        Muxes := 5     
+	   3 Input     65 Bit        Muxes := 1     
+	   2 Input     65 Bit        Muxes := 1     
+	   2 Input     64 Bit        Muxes := 2     
+	   3 Input     64 Bit        Muxes := 1     
+	   2 Input     63 Bit        Muxes := 361   
+	   2 Input     62 Bit        Muxes := 4     
+	   2 Input     48 Bit        Muxes := 2556  
+	   2 Input     32 Bit        Muxes := 5     
+	   7 Input     32 Bit        Muxes := 1     
+	  12 Input     32 Bit        Muxes := 1     
+	   4 Input     32 Bit        Muxes := 2     
+	   5 Input     32 Bit        Muxes := 1     
+	   3 Input     32 Bit        Muxes := 1     
+	   2 Input     20 Bit        Muxes := 2     
+	   2 Input     18 Bit        Muxes := 34    
+	   2 Input     16 Bit        Muxes := 3     
+	   2 Input     12 Bit        Muxes := 6     
+	   2 Input     11 Bit        Muxes := 48    
+	   2 Input      9 Bit        Muxes := 26    
+	   2 Input      8 Bit        Muxes := 366   
+	   2 Input      7 Bit        Muxes := 1     
+	   4 Input      5 Bit        Muxes := 1     
+	   2 Input      5 Bit        Muxes := 263   
+	   2 Input      4 Bit        Muxes := 374   
+	   3 Input      4 Bit        Muxes := 2     
+	   4 Input      4 Bit        Muxes := 2     
+	   6 Input      4 Bit        Muxes := 1     
+	   3 Input      3 Bit        Muxes := 4     
+	  11 Input      3 Bit        Muxes := 1     
+	   2 Input      3 Bit        Muxes := 1     
+	   2 Input      2 Bit        Muxes := 2     
+	   3 Input      2 Bit        Muxes := 1     
+	   4 Input      2 Bit        Muxes := 1     
+	   2 Input      1 Bit        Muxes := 1425  
+	   4 Input      1 Bit        Muxes := 2     
+	   3 Input      1 Bit        Muxes := 1     
+	   9 Input      1 Bit        Muxes := 17    
+	   7 Input      1 Bit        Muxes := 7     
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start RTL Hierarchical Component Statistics 
+---------------------------------------------------------------------------------
+Hierarchical RTL Component report 
+Module sar20_digital_core 
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input      2 Bit       Adders := 1     
++---Registers : 
+	               32 Bit    Registers := 1     
+	                9 Bit    Registers := 2     
+	                8 Bit    Registers := 1     
+	                5 Bit    Registers := 1     
+	                4 Bit    Registers := 1     
+	                2 Bit    Registers := 1     
+	                1 Bit    Registers := 1     
++---Muxes : 
+	   2 Input     64 Bit        Muxes := 1     
+	   5 Input     32 Bit        Muxes := 1     
+	   4 Input     32 Bit        Muxes := 1     
+	   3 Input     32 Bit        Muxes := 1     
+	   2 Input     32 Bit        Muxes := 3     
+	   2 Input     16 Bit        Muxes := 1     
+	   2 Input      9 Bit        Muxes := 2     
+	   2 Input      8 Bit        Muxes := 2     
+	   2 Input      7 Bit        Muxes := 1     
+	   2 Input      5 Bit        Muxes := 1     
+	   2 Input      4 Bit        Muxes := 2     
+	   2 Input      3 Bit        Muxes := 1     
+	   4 Input      2 Bit        Muxes := 1     
+	   2 Input      2 Bit        Muxes := 1     
+	   2 Input      1 Bit        Muxes := 3     
+Module weight_store 
+Detailed RTL Component Info : 
++---Registers : 
+	               71 Bit    Registers := 18    
+	               48 Bit    Registers := 1278  
++---Muxes : 
+	   2 Input     71 Bit        Muxes := 36    
+	   2 Input      1 Bit        Muxes := 1350  
+Module rdac_drv 
+Detailed RTL Component Info : 
++---Registers : 
+	               63 Bit    Registers := 18    
+	               18 Bit    Registers := 1     
+	                8 Bit    Registers := 18    
+	                4 Bit    Registers := 18    
++---Muxes : 
+	   2 Input     63 Bit        Muxes := 179   
+	   2 Input     18 Bit        Muxes := 7     
+	   2 Input      8 Bit        Muxes := 179   
+	   2 Input      4 Bit        Muxes := 179   
+Module analog_phase_ctrl 
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input      4 Bit       Adders := 1     
++---Registers : 
+	                4 Bit    Registers := 1     
+	                1 Bit    Registers := 4     
++---Muxes : 
+	   2 Input      4 Bit        Muxes := 1     
+Module slice_pool_ctrl 
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input     32 Bit       Adders := 25    
+	   3 Input     32 Bit       Adders := 1     
+	   4 Input     32 Bit       Adders := 1     
+	   5 Input     32 Bit       Adders := 1     
+	   6 Input     32 Bit       Adders := 1     
+	   7 Input     32 Bit       Adders := 1     
+	   8 Input     32 Bit       Adders := 1     
+	   9 Input     32 Bit       Adders := 1     
+	   2 Input      5 Bit       Adders := 18    
+	   2 Input      3 Bit       Adders := 1     
++---XORs : 
+	   2 Input     32 Bit         XORs := 8     
++---Registers : 
+	               32 Bit    Registers := 1     
+	               18 Bit    Registers := 2     
+	                5 Bit    Registers := 17    
+	                1 Bit    Registers := 2     
++---Muxes : 
+	   2 Input     32 Bit        Muxes := 1     
+	   2 Input     18 Bit        Muxes := 17    
+	   4 Input      5 Bit        Muxes := 1     
+	   2 Input      5 Bit        Muxes := 262   
+	   3 Input      4 Bit        Muxes := 1     
+	   2 Input      4 Bit        Muxes := 1     
+	   2 Input      2 Bit        Muxes := 1     
+Module sadc_enc 
+Detailed RTL Component Info : 
++---Adders : 
+	   7 Input      3 Bit       Adders := 1     
+Module sar_trial_ctrl__parameterized0 
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input      4 Bit       Adders := 1     
++---Registers : 
+	               12 Bit    Registers := 2     
+	                4 Bit    Registers := 1     
+	                1 Bit    Registers := 3     
++---Muxes : 
+	   2 Input     12 Bit        Muxes := 6     
+	   3 Input      4 Bit        Muxes := 1     
+	   2 Input      4 Bit        Muxes := 1     
+	   3 Input      3 Bit        Muxes := 1     
+	   2 Input      1 Bit        Muxes := 7     
+Module dem_state_gen__parameterized0 
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input      9 Bit       Adders := 2     
++---Registers : 
+	                9 Bit    Registers := 2     
++---Muxes : 
+	   2 Input      9 Bit        Muxes := 4     
+	   2 Input      1 Bit        Muxes := 2     
+Module dem_addr_gen__1 
+Detailed RTL Component Info : 
++---Adders : 
+	   3 Input      6 Bit       Adders := 63    
+	   2 Input      3 Bit       Adders := 19    
+Module dither_gen__parameterized0 
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input      9 Bit       Adders := 1     
+	   2 Input      8 Bit       Adders := 1     
++---XORs : 
+	   2 Input     32 Bit         XORs := 8     
++---Registers : 
+	               32 Bit    Registers := 1     
+Module swap_decode__1 
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input     18 Bit       Adders := 1     
+	   2 Input     11 Bit       Adders := 1     
+	   2 Input     10 Bit       Adders := 8     
+	   2 Input      3 Bit       Adders := 6     
++---Muxes : 
+	   2 Input     11 Bit        Muxes := 24    
+	   2 Input      9 Bit        Muxes := 1     
+	   4 Input      1 Bit        Muxes := 1     
+Module cal_sample_context 
+Detailed RTL Component Info : 
++---Registers : 
+	              709 Bit    Registers := 1     
+	               64 Bit    Registers := 1     
+	               63 Bit    Registers := 8     
+	               32 Bit    Registers := 1     
+	                8 Bit    Registers := 8     
+	                5 Bit    Registers := 8     
+	                4 Bit    Registers := 1     
+	                1 Bit    Registers := 5     
++---Muxes : 
+	   2 Input      1 Bit        Muxes := 1     
+Module sar_trial_ctrl__1 
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input      4 Bit       Adders := 1     
++---Registers : 
+	                9 Bit    Registers := 2     
+	                4 Bit    Registers := 1     
+	                1 Bit    Registers := 3     
++---Muxes : 
+	   2 Input      9 Bit        Muxes := 6     
+	   4 Input      4 Bit        Muxes := 1     
+	   3 Input      3 Bit        Muxes := 1     
+	   2 Input      1 Bit        Muxes := 7     
+Module sar_trial_ctrl 
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input      4 Bit       Adders := 1     
++---Registers : 
+	                9 Bit    Registers := 2     
+	                4 Bit    Registers := 1     
+	                1 Bit    Registers := 3     
++---Muxes : 
+	   2 Input      9 Bit        Muxes := 6     
+	   4 Input      4 Bit        Muxes := 1     
+	   3 Input      3 Bit        Muxes := 1     
+	   2 Input      1 Bit        Muxes := 7     
+Module sar_structural_ctrl 
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input     16 Bit       Adders := 1     
++---Registers : 
+	               64 Bit    Registers := 1     
+	               12 Bit    Registers := 1     
+	                9 Bit    Registers := 1     
+	                8 Bit    Registers := 2     
+	                4 Bit    Registers := 1     
+	                2 Bit    Registers := 1     
+	                1 Bit    Registers := 8     
++---Muxes : 
+	   2 Input     18 Bit        Muxes := 2     
+	   2 Input     16 Bit        Muxes := 1     
+	   2 Input      9 Bit        Muxes := 2     
+	   2 Input      8 Bit        Muxes := 6     
+	   6 Input      4 Bit        Muxes := 1     
+	   3 Input      2 Bit        Muxes := 1     
+	   2 Input      1 Bit        Muxes := 13    
+	   3 Input      1 Bit        Muxes := 1     
+Module cal_weight_reduce 
+Detailed RTL Component Info : 
++---Adders : 
+	   4 Input     66 Bit       Adders := 1     
+	   8 Input     66 Bit       Adders := 1     
+	   3 Input     64 Bit       Adders := 1     
+	1278 Input     59 Bit       Adders := 2     
+	   4 Input     55 Bit       Adders := 1     
+	  18 Input     53 Bit       Adders := 4     
++---Muxes : 
+	   2 Input     71 Bit        Muxes := 144   
+	   2 Input     66 Bit        Muxes := 5     
+	   2 Input     64 Bit        Muxes := 1     
+	   2 Input     48 Bit        Muxes := 2556  
+	   2 Input     18 Bit        Muxes := 1     
+	   9 Input      1 Bit        Muxes := 17    
+	   7 Input      1 Bit        Muxes := 1     
+	   2 Input      1 Bit        Muxes := 1     
+Module adc2_dec 
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input     79 Bit       Adders := 1     
+	   2 Input     78 Bit       Adders := 2     
+	   3 Input     65 Bit       Adders := 1     
++---Muxes : 
+	   3 Input     64 Bit        Muxes := 1     
+Module cal_residue_mac 
+Detailed RTL Component Info : 
++---Adders : 
+	   4 Input    132 Bit       Adders := 1     
+	   4 Input    129 Bit       Adders := 1     
+	   2 Input     97 Bit       Adders := 1     
+	   3 Input     65 Bit       Adders := 1     
+Module div_floor 
+Detailed RTL Component Info : 
++---Adders : 
+	   3 Input     64 Bit       Adders := 5     
+	   2 Input     63 Bit       Adders := 3     
+	   2 Input      4 Bit       Adders := 1     
++---Registers : 
+	               65 Bit    Registers := 2     
+	               63 Bit    Registers := 3     
+	                4 Bit    Registers := 1     
+	                1 Bit    Registers := 6     
++---Muxes : 
+	   3 Input     65 Bit        Muxes := 1     
+	   2 Input     65 Bit        Muxes := 1     
+	   2 Input     63 Bit        Muxes := 3     
+	   2 Input     62 Bit        Muxes := 4     
+	   2 Input      1 Bit        Muxes := 8     
+Module cal_output_stage 
+Detailed RTL Component Info : 
++---Registers : 
+	               32 Bit    Registers := 1     
+	               20 Bit    Registers := 1     
+	                5 Bit    Registers := 1     
+	                1 Bit    Registers := 6     
++---Muxes : 
+	   2 Input      1 Bit        Muxes := 2     
+Module recon_core 
+Detailed RTL Component Info : 
++---Registers : 
+	               66 Bit    Registers := 1     
+	               64 Bit    Registers := 5     
+	               32 Bit    Registers := 1     
+	                1 Bit    Registers := 5     
++---Muxes : 
+	   2 Input     20 Bit        Muxes := 2     
+	   2 Input      1 Bit        Muxes := 2     
+Module status_regs 
+Detailed RTL Component Info : 
++---Registers : 
+	                1 Bit    Registers := 6     
++---Muxes : 
+	   2 Input      1 Bit        Muxes := 1     
+Module swap_decode 
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input     18 Bit       Adders := 1     
+	   2 Input     11 Bit       Adders := 1     
+	   2 Input     10 Bit       Adders := 8     
+	   2 Input      3 Bit       Adders := 6     
++---Muxes : 
+	   2 Input     11 Bit        Muxes := 24    
+	   2 Input      9 Bit        Muxes := 1     
+	   4 Input      1 Bit        Muxes := 1     
+Module dither_gen 
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input      9 Bit       Adders := 1     
+	   2 Input      8 Bit       Adders := 1     
++---XORs : 
+	   2 Input     32 Bit         XORs := 8     
++---Registers : 
+	               32 Bit    Registers := 1     
+Module dem_addr_gen 
+Detailed RTL Component Info : 
++---Adders : 
+	   3 Input      6 Bit       Adders := 63    
+	   2 Input      3 Bit       Adders := 19    
+Module dem_state_gen 
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input      9 Bit       Adders := 2     
++---Registers : 
+	                9 Bit    Registers := 2     
++---Muxes : 
+	   2 Input      9 Bit        Muxes := 4     
+	   2 Input      1 Bit        Muxes := 2     
+Module slice_alloc 
+Detailed RTL Component Info : 
++---Registers : 
+	                1 Bit    Registers := 1     
++---Muxes : 
+	   2 Input      4 Bit        Muxes := 8     
+Module ctrl_fsm 
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input      4 Bit       Adders := 1     
++---Registers : 
+	                4 Bit    Registers := 1     
++---Muxes : 
+	   2 Input     16 Bit        Muxes := 1     
+	   2 Input      4 Bit        Muxes := 1     
+	   2 Input      1 Bit        Muxes := 2     
+Module calib_regs 
+Detailed RTL Component Info : 
++---Registers : 
+	               64 Bit    Registers := 3     
+	               32 Bit    Registers := 1     
+	                3 Bit    Registers := 1     
+	                1 Bit    Registers := 5     
++---Muxes : 
+	   7 Input     32 Bit        Muxes := 1     
+	   2 Input     32 Bit        Muxes := 1     
+	  12 Input     32 Bit        Muxes := 1     
+	   4 Input     32 Bit        Muxes := 1     
+	   2 Input      4 Bit        Muxes := 2     
+	  11 Input      3 Bit        Muxes := 1     
+	   3 Input      3 Bit        Muxes := 1     
+	   2 Input      1 Bit        Muxes := 17    
+	   7 Input      1 Bit        Muxes := 6     
+---------------------------------------------------------------------------------
+Finished RTL Hierarchical Component Statistics
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 3600 (col length:200)
+BRAMs: 2940 (col length: RAMB18 200 RAMB36 100)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[11]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[10]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[9]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[8]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[7]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[6]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[5]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[4]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[3]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[2]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[1]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_code[0]
+WARNING: [Synth 8-3331] design sar20_digital_core has unconnected port adc2_rdy
+INFO: [Synth 8-5546] ROM "w_q_reg[17][66]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][62]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][51]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][50]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][49]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][44]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][43]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][42]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][39]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][37]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][35]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][32]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][24]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][22]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][13]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][9]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][4]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][1]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][10]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][11]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][20]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][23]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][25]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][26]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][28]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][29]" won't be mapped to RAM because it is too sparse
+INFO: [Synth 8-5546] ROM "w_q_reg[17][45]" won't be mapped to RAM because it is too sparse
+INFO: [Common 17-14] Message 'Synth 8-5546' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][70][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][2][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][3][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][5][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][6][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][7][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][8][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][69][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][68][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][67][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][12][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][14][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][15][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][16][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][17][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][18][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][19][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][60][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][21][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][57][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][56][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][55][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][54][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][27][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][53][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][30][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][31][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][47][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][33][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][34][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][46][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][36][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][41][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][38][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][40][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][41][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][40][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][38][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][36][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][46][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][47][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][34][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][33][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][31][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][30][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][53][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][54][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][55][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][56][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][57][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][27][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][21][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][60][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][19][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][18][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][17][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][16][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][67][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][68][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][69][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[0][70][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][0][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][15][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][2][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][3][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][14][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][5][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][6][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][7][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][8][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][12][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][8][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][12][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][7][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][14][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][15][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][16][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][17][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][18][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][19][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][21][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][6][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][5][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][3][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][2][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][27][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[17][0][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[16][70][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][30][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][31][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[16][69][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][33][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][34][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[16][68][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][36][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[16][67][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][38][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[16][60][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][40][47] )
+INFO: [Synth 8-3333] propagating constant 0 across sequential element (\w_q_reg[1][41][47] )
+INFO: [Common 17-14] Message 'Synth 8-3333' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+INFO: [Common 17-14] Message 'Synth 8-3333' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+INFO: [Synth 8-5544] ROM "u_fine/bit_index" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "u_fine/busy" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "g_coarse[0].u_sar/bit_index" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "g_coarse[0].u_sar/busy" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "g_coarse[1].u_sar/bit_index" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "g_coarse[1].u_sar/busy" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5544] ROM "fine_code" won't be mapped to Block RAM because address size (4) smaller than threshold (5)
+INFO: [Synth 8-5545] ROM "u_phase/next_phase" won't be mapped to RAM because address size (32) is larger than maximum supported(25)
+INFO: [Synth 8-3886] merging instance 'acquiring_dither_reg[3]' (FDRE) to 'acquiring_dither_reg[4]'
+INFO: [Synth 8-3886] merging instance 'acquiring_dither_reg[4]' (FDRE) to 'acquiring_dither_reg[5]'
+INFO: [Synth 8-3886] merging instance 'acquiring_dither_reg[5]' (FDRE) to 'acquiring_dither_reg[6]'
+INFO: [Synth 8-3886] merging instance 'acquiring_dither_reg[6]' (FDRE) to 'acquiring_dither_reg[7]'
+INFO: [Synth 8-3886] merging instance 'current_dither_reg[6]' (FDRE) to 'current_dither_reg[3]'
+INFO: [Synth 8-3886] merging instance 'current_dither_reg[5]' (FDRE) to 'current_dither_reg[3]'
+INFO: [Synth 8-3886] merging instance 'current_dither_reg[4]' (FDRE) to 'current_dither_reg[3]'
+INFO: [Synth 8-3886] merging instance 'current_dither_reg[3]' (FDRE) to 'current_dither_reg[7]'
+INFO: [Synth 8-3886] merging instance 'acquiring_dither_reg[2]' (FDRE) to 'acquiring_dither_reg[7]'
+INFO: [Synth 8-3886] merging instance 'current_dither_reg[2]' (FDRE) to 'current_dither_reg[7]'
+DSP Report: Generating DSP n, operation Mode is: A*B.
+DSP Report: operator n is absorbed into DSP n.
+DSP Report: operator n is absorbed into DSP n.
+DSP Report: Generating DSP n, operation Mode is: (PCIN>>17)+A*B.
+DSP Report: operator n is absorbed into DSP n.
+DSP Report: operator n is absorbed into DSP n.
+DSP Report: Generating DSP n, operation Mode is: A*B.
+DSP Report: operator n is absorbed into DSP n.
+DSP Report: operator n is absorbed into DSP n.
+DSP Report: Generating DSP n, operation Mode is: (PCIN>>17)+A*B.
+DSP Report: operator n is absorbed into DSP n.
+DSP Report: operator n is absorbed into DSP n.
+DSP Report: Generating DSP op3_w, operation Mode is: A*B.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: Generating DSP op3_w, operation Mode is: (PCIN>>17)+A*B.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: Generating DSP op3_w, operation Mode is: PCIN+A*B.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: Generating DSP op3_w, operation Mode is: (PCIN>>17)+A*B.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: Generating DSP op3_w, operation Mode is: A*B.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: Generating DSP op3_w, operation Mode is: PCIN+A*B.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: Generating DSP op3_w, operation Mode is: (PCIN>>17)+A*B.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: Generating DSP op3_w, operation Mode is: PCIN+A*B.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: Generating DSP op3_w, operation Mode is: A*B.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: Generating DSP op3_w, operation Mode is: PCIN+A*B.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: Generating DSP op3_w, operation Mode is: (PCIN>>17)+A*B.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: Generating DSP op3_w, operation Mode is: PCIN+A*B.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: Generating DSP op3_w, operation Mode is: A*B.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: Generating DSP op3_w, operation Mode is: (PCIN>>17)+A*B.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: Generating DSP op3_w, operation Mode is: PCIN+A*B.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: Generating DSP op3_w, operation Mode is: (PCIN>>17)+A*B.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+DSP Report: operator op3_w is absorbed into DSP op3_w.
+INFO: [Synth 8-5545] ROM "mag" won't be mapped to RAM because address size (32) is larger than maximum supported(25)
+INFO: [Synth 8-5545] ROM "run" won't be mapped to RAM because address size (32) is larger than maximum supported(25)
+INFO: [Synth 8-5545] ROM "q" won't be mapped to RAM because address size (32) is larger than maximum supported(25)
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[7][4] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[7][2] driven by constant 1
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[7][1] driven by constant 1
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[7][0] driven by constant 1
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[6][4] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[6][2] driven by constant 1
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[6][1] driven by constant 1
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[6][0] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[5][4] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[5][2] driven by constant 1
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[5][1] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[5][0] driven by constant 1
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[4][4] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[4][2] driven by constant 1
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[4][1] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[4][0] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[3][4] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[3][2] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[3][1] driven by constant 1
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[3][0] driven by constant 1
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[2][4] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[2][2] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[2][1] driven by constant 1
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[2][0] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[1][4] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[1][2] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[1][1] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[1][0] driven by constant 1
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[0][4] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[0][2] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[0][1] driven by constant 0
+WARNING: [Synth 8-3917] design sar20_digital_core__GCB4 has port conv_slices[0][0] driven by constant 0
+INFO: [Synth 8-3886] merging instance 'u_dith/lfsr_reg[12]' (FDSE) to 'u_dith/lfsr_reg[8]'
+INFO: [Synth 8-3886] merging instance 'u_dith/lfsr_reg[8]' (FDSE) to 'u_dith/lfsr_reg[9]'
+INFO: [Synth 8-3886] merging instance 'u_dith/lfsr_reg[11]' (FDSE) to 'u_dith/lfsr_reg[2]'
+INFO: [Synth 8-3886] merging instance 'u_dith/lfsr_reg[6]' (FDSE) to 'u_dith/lfsr_reg[2]'
+INFO: [Synth 8-3886] merging instance 'u_dith/lfsr_reg[4]' (FDSE) to 'u_dith/lfsr_reg[7]'
+INFO: [Synth 8-3886] merging instance 'u_dith/lfsr_reg[3]' (FDSE) to 'u_dith/lfsr_reg[7]'
+INFO: [Synth 8-3886] merging instance 'u_dith/lfsr_reg[5]' (FDRE) to 'u_dith/lfsr_reg[13]'
+INFO: [Synth 8-3886] merging instance 'u_dith/lfsr_reg[7]' (FDSE) to 'u_dith/lfsr_reg[9]'
+INFO: [Synth 8-3886] merging instance 'u_dith/lfsr_reg[24]' (FDSE) to 'u_dith/lfsr_reg[9]'
+INFO: [Synth 8-3886] merging instance 'dith_q_reg[3]' (FDRE) to 'dith_q_reg[7]'
+INFO: [Synth 8-3886] merging instance 'dith_q_reg[4]' (FDRE) to 'dith_q_reg[7]'
+INFO: [Synth 8-3886] merging instance 'dith_q_reg[5]' (FDRE) to 'dith_q_reg[7]'
+INFO: [Synth 8-3886] merging instance 'dith_q_reg[6]' (FDRE) to 'dith_q_reg[7]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[14]' (FDRE) to 'u_calib/err_code_reg[15]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[15]' (FDRE) to 'u_calib/err_code_reg[12]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[12]' (FDRE) to 'u_calib/err_code_reg[13]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[13]' (FDRE) to 'u_calib/err_code_reg[8]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[8]' (FDRE) to 'u_calib/err_code_reg[9]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[9]' (FDRE) to 'u_calib/err_code_reg[10]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[10]' (FDRE) to 'u_calib/err_code_reg[11]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[11]' (FDRE) to 'u_calib/err_code_reg[6]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[6]' (FDRE) to 'u_calib/err_code_reg[7]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[7]' (FDRE) to 'u_calib/err_code_reg[4]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[4]' (FDRE) to 'u_calib/err_code_reg[5]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[5]' (FDRE) to 'u_calib/err_code_reg[31]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[31]' (FDRE) to 'u_calib/err_code_reg[30]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[30]' (FDRE) to 'u_calib/err_code_reg[28]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[28]' (FDRE) to 'u_calib/err_code_reg[29]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[29]' (FDRE) to 'u_calib/err_code_reg[24]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[24]' (FDRE) to 'u_calib/err_code_reg[25]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[25]' (FDRE) to 'u_calib/err_code_reg[26]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[26]' (FDRE) to 'u_calib/err_code_reg[27]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[27]' (FDRE) to 'u_calib/err_code_reg[18]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[18]' (FDRE) to 'u_calib/err_code_reg[19]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[19]' (FDRE) to 'u_calib/err_code_reg[16]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[16]' (FDRE) to 'u_calib/err_code_reg[17]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[17]' (FDRE) to 'u_calib/err_code_reg[22]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[22]' (FDRE) to 'u_calib/err_code_reg[23]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[23]' (FDRE) to 'u_calib/err_code_reg[20]'
+INFO: [Synth 8-3886] merging instance 'u_calib/err_code_reg[20]' (FDRE) to 'u_calib/err_code_reg[21]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[14]' (FDRE) to 'bus_err_reg[15]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[15]' (FDRE) to 'bus_err_reg[12]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[12]' (FDRE) to 'bus_err_reg[13]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[13]' (FDRE) to 'bus_err_reg[8]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[8]' (FDRE) to 'bus_err_reg[9]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[9]' (FDRE) to 'bus_err_reg[10]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[10]' (FDRE) to 'bus_err_reg[11]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[11]' (FDRE) to 'bus_err_reg[3]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[3]' (FDRE) to 'bus_err_reg[6]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[6]' (FDRE) to 'bus_err_reg[7]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[7]' (FDRE) to 'bus_err_reg[4]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[4]' (FDRE) to 'bus_err_reg[5]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[5]' (FDRE) to 'bus_err_reg[31]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[31]' (FDRE) to 'bus_err_reg[30]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[30]' (FDRE) to 'bus_err_reg[28]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[28]' (FDRE) to 'bus_err_reg[29]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[29]' (FDRE) to 'bus_err_reg[24]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[24]' (FDRE) to 'bus_err_reg[25]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[25]' (FDRE) to 'bus_err_reg[26]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[26]' (FDRE) to 'bus_err_reg[27]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[27]' (FDRE) to 'bus_err_reg[18]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[18]' (FDRE) to 'bus_err_reg[19]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[19]' (FDRE) to 'bus_err_reg[16]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[16]' (FDRE) to 'bus_err_reg[17]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[17]' (FDRE) to 'bus_err_reg[22]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[22]' (FDRE) to 'bus_err_reg[23]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[23]' (FDRE) to 'bus_err_reg[20]'
+INFO: [Synth 8-3886] merging instance 'bus_err_reg[20]' (FDRE) to 'bus_err_reg[21]'
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:04:06 ; elapsed = 00:05:09 . Memory (MB): peak = 2037.270 ; gain = 1704.813
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start ROM, RAM, DSP and Shift Register Reporting
+---------------------------------------------------------------------------------
+
+DSP: Preliminary Mapping  Report (see note below)
++----------------+----------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+|Module Name     | DSP Mapping    | A Size | B Size | C Size | D Size | P Size | AREG | BREG | CREG | DREG | ADREG | MREG | PREG | 
++----------------+----------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+|adc2_dec        | A*B            | 18     | 14     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|adc2_dec        | (PCIN>>17)+A*B | 14     | 14     | -      | -      | 27     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|adc2_dec        | A*B            | 18     | 14     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|adc2_dec        | (PCIN>>17)+A*B | 18     | 14     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|cal_residue_mac | A*B            | 18     | 14     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|cal_residue_mac | (PCIN>>17)+A*B | 18     | 13     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|cal_residue_mac | PCIN+A*B       | 18     | 14     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|cal_residue_mac | (PCIN>>17)+A*B | 14     | 13     | -      | -      | 27     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|cal_residue_mac | A*B            | 18     | 18     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|cal_residue_mac | PCIN+A*B       | 18     | 14     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|cal_residue_mac | (PCIN>>17)+A*B | 18     | 13     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|cal_residue_mac | PCIN+A*B       | 18     | 18     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|cal_residue_mac | A*B            | 18     | 18     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|cal_residue_mac | PCIN+A*B       | 18     | 18     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|cal_residue_mac | (PCIN>>17)+A*B | 18     | 13     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|cal_residue_mac | PCIN+A*B       | 18     | 18     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|cal_residue_mac | A*B            | 18     | 18     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|cal_residue_mac | (PCIN>>17)+A*B | 18     | 18     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|cal_residue_mac | PCIN+A*B       | 18     | 18     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
+|cal_residue_mac | (PCIN>>17)+A*B | 18     | 18     | -      | -      | 48     | 0    | 0    | -    | -    | -     | 0    | 0    | 
++----------------+----------------+--------+--------+--------+--------+--------+------+------+------+------+-------+------+------+
+
+Note: The table above is a preliminary report that shows the DSPs inferred at the current stage of the synthesis flow. Some DSP may be reimplemented as non DSP primitives later in the synthesis flow. Multiple instantiated DSPs are reported only once.
+---------------------------------------------------------------------------------
+Finished ROM, RAM, DSP and Shift Register Reporting
+---------------------------------------------------------------------------------
+
+Report RTL Partitions: 
++------+------------------------------------+------------+----------+
+|      |RTL Partition                       |Replication |Instances |
++------+------------------------------------+------------+----------+
+|1     |weight_store__GB0                   |           1|     21945|
+|2     |weight_store__GB1                   |           1|     15676|
+|3     |weight_store__GB2                   |           1|     31428|
+|4     |unit_therm                          |           2|     12067|
+|5     |rdac_drv__GBM0                      |           2|     19417|
+|6     |rdac_drv__GBM1                      |           2|      5753|
+|7     |rdac_drv__GBM2                      |           2|      3679|
+|8     |sar_structural_ctrl__GC0            |           1|      6463|
+|9     |datapath__862_cal_weight_reduce__GD |           1|    288739|
+|10    |cal_weight_reduce__GB1              |           1|     10272|
+|11    |cal_weight_reduce__GB2              |           1|     84144|
+|12    |cal_weight_reduce__GB3              |           1|     29040|
+|13    |datapath__855_cal_weight_reduce__GD |           1|    288739|
+|14    |cal_weight_reduce__GB5              |           1|      3456|
+|15    |cal_weight_reduce__GB6              |           1|     55729|
+|16    |cal_weight_reduce__GB7              |           1|     20928|
+|17    |cal_weight_reduce__GB8              |           1|     19894|
+|18    |recon_core__GC0                     |           1|      6765|
+|19    |sar20_digital_core__GCB0            |           1|     27847|
+|20    |sar20_digital_core__GCB1            |           1|      7344|
+|21    |sar20_digital_core__GCB2            |           1|      9792|
+|22    |sar20_digital_core__GCB3            |           1|     11424|
+|23    |sar20_digital_core__GCB4            |           1|      7093|
++------+------------------------------------+------------+----------+
+---------------------------------------------------------------------------------
+Start Applying XDC Timing Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Applying XDC Timing Constraints : Time (s): cpu = 00:04:28 ; elapsed = 00:05:33 . Memory (MB): peak = 2037.270 ; gain = 1704.813
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+INFO: [Synth 8-3886] merging instance 'u_reconi_24/total_s_reg[59]' (FDRE) to 'u_reconi_24/total_s_reg[60]'
+INFO: [Synth 8-3886] merging instance 'u_reconi_24/total_s_reg[60]' (FDRE) to 'u_reconi_24/total_s_reg[61]'
+INFO: [Synth 8-3886] merging instance 'u_reconi_24/total_s_reg[61]' (FDRE) to 'u_reconi_24/total_s_reg[62]'
+INFO: [Synth 8-3886] merging instance 'u_reconi_24/total_s_reg[62]' (FDRE) to 'u_reconi_24/total_s_reg[63]'
+INFO: [Synth 8-3886] merging instance 'u_reconi_24/rails_s_reg[61]' (FDRE) to 'u_reconi_24/rails_s_reg[62]'
+INFO: [Synth 8-3886] merging instance 'u_reconi_24/rails_s_reg[62]' (FDRE) to 'u_reconi_24/rails_s_reg[63]'
+INFO: [Synth 8-3886] merging instance 'u_reconi_24/rails_s_reg[63]' (FDRE) to 'u_reconi_24/rails_s_reg[64]'
+INFO: [Synth 8-3886] merging instance 'u_reconi_24/rails_s_reg[64]' (FDRE) to 'u_reconi_24/rails_s_reg[65]'
+INFO: [Synth 8-3886] merging instance 'u_reconi_24/gain_s_reg[60]' (FDRE) to 'u_reconi_24/gain_s_reg[61]'
+INFO: [Synth 8-3886] merging instance 'u_reconi_24/gain_s_reg[61]' (FDRE) to 'u_reconi_24/gain_s_reg[62]'
+INFO: [Synth 8-3886] merging instance 'u_reconi_24/gain_s_reg[62]' (FDRE) to 'u_reconi_24/gain_s_reg[63]'
+INFO: [Synth 8-3886] merging instance 'u_reconi_24/u_div/dv_reg[60]' (FDRE) to 'u_reconi_24/u_div/dv_reg[61]'
+INFO: [Synth 8-3886] merging instance 'u_reconi_24/u_div/dv_reg[61]' (FDRE) to 'u_reconi_24/u_div/dv_reg[62]'
+INFO: [Synth 8-3886] merging instance 'u_reconi_24/u_div/dv_reg[62]' (FDRE) to 'u_reconi_24/u_div/dv_large_reg'

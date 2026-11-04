@@ -1,0 +1,2 @@
+CALIBRATION_PHYSICAL_COMPLETE samples=2048 physical_slices=18
+- sim/tb/calibration_physical_tb.sv:92: Verilog $finish

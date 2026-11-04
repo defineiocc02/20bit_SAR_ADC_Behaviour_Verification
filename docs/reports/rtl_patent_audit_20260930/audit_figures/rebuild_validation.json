@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "scope": "LOCAL_FIGURE_REBUILD_ONLY_NO_NEW_SIMULATION_NO_FIGURE32",
+  "python": "3.12.14 (main, Aug 25 2026, 13:50:33) [Clang 22.1.3 ]",
+  "ruff_config": {
+    "path": "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/pyproject.toml",
+    "sha256": "9e5a181806c5d02517458c2100b1d5a6b20a8847c5577e9acf51585027786ac9"
+  },
+  "scripts_sha256": {
+    "make_arithmetic_protocol_overview.py": "89a28455d3813a7a379431d64a8d6bf224973193d2062b4f9a420c2266b54ff0",
+    "make_divider_profiles.py": "89aacb45dab9977806fd0577664faa0ba5a1994db0858001468cd07b0c82441e",
+    "make_final_regression_evidence.py": "0052d35df56c0b84683dc8801e0554de4fe399722698aa5e6f8e580b8fd46336",
+    "make_tree_mapping_trace.py": "d830e1c5a69e0386aac606919a01b96d8a031239212258a2d382064b29aebe91",
+    "make_vivado_comparison.py": "2eb1125cf58ddebc749352881243b4b78782bdaa924cbe1ba2627f3ac604180d"
+  },
+  "source_manifests_sha256": {
+    "30_source_hashes.json": "28cc0a711f9b016424bca30c9943f1cd2d0e52c73ccd7517afcf3970e7d3cedd",
+    "31_source_hashes.json": "c2cbf37ee700bc813ac2129ae5e588c5d4734b05c29b7fdfaf9f1293bd928c76",
+    "38_source_hashes.json": "aae87a5164101be37577fc7e24a32d0a2e93c17c172a7688568696ba6fff79c0",
+    "final_regression_arithmetic.sha256.json": "7c7cf1c9ac696a7816ccd052db923f673ab92859b754f057046512092afcc8b1",
+    "final_regression_protocol.sha256.json": "73ee164fa9b4e1d3d758637d2ca704cb68c78430e30aa6f85da58af9795437c7",
+    "final_regression_quantitative.sha256.json": "cd54ca159901d3bcdfdb0e9fcf67e12a801d116ececb76a201cb126188754e71",
+    "final_regression_system.sha256.json": "1dacfc347f5338cf406049fd221626c3418aabd9972948d33261cf9d66b60f0d"
+  },
+  "seven_pngs_byte_identical_to_pre_format": true,
+  "png_sha256": {
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/30_arithmetic_protocol_audit.png": "b1f2785f3ac60e2cc0b29c1b776ede3e45986a51ee3b7b13866a62b55227c7b0",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/31_divider_profiles.png": "55a631061cf88f943b9af5e5d578161d8ded050b868c235bd09f37b3ea6d2d16",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/38_tree_mapping_trace.png": "b554be90f1c51e7b13d589e80207b4fdc5e61320092148a314610397fa870289",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_arithmetic.png": "e1a19c9f9cbf57b2dad182d4da507c6fde5fafe882c05d68323955c5db7fc789",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_protocol.png": "e30a2053e593fa46a137732eff8104381942a49849b47fed4a3967fd6b4e9305",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_quantitative.png": "9e4511e933f28cf3a30a010787399e3976e9e85f5ce647286193dae4ea571053",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_system.png": "7bdfd82b0c94315462f6d578d8ea2b0c8607cd8ba492c84b103b301405762895"
+  }
+}

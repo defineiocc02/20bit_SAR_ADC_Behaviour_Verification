@@ -1,0 +1,15 @@
+{
+  "status": "REMOTE_LOCAL_DCP_SHA256_MATCH",
+  "verified_utc": "2026-09-29T21:09:05.295533+00:00",
+  "input_manifest_sha256": "61ecfd702ecfd1130621fbf8632fe871005a1e13345dc98b02992644f3f1aa44",
+  "local_path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_optimized/synth/artifacts/vivado/20260929T195145.299826Z_p7/out/post_synth.dcp",
+  "remote_dcp_identity": {
+    "path": "C:/Users/Administrator/adc_rtl_vivado/run.65790c010b22494db855a859b6021f2b/out/post_synth.dcp",
+    "bytes": 71421073,
+    "sha256": "4712577f4291fed3c43ce9f5987098984cd04a87b9c05ed894b99e282ad3b642",
+    "last_write_utc": "2026-09-29T21:00:46.6088104Z"
+  },
+  "remote_query_powershell": "$ErrorActionPreference='Stop'; $ProgressPreference='SilentlyContinue'; $p='C:/Users/Administrator/adc_rtl_vivado/run.65790c010b22494db855a859b6021f2b/out/post_synth.dcp'; $f=Get-Item -LiteralPath $p; $h=Get-FileHash -Algorithm SHA256 -LiteralPath $p; [ordered]@{path=$p;bytes=$f.Length;sha256=$h.Hash.ToLowerInvariant();last_write_utc=$f.LastWriteTimeUtc.ToString('o')} | ConvertTo-Json -Compress",
+  "remote_stdout": "{\"path\":\"C:/Users/Administrator/adc_rtl_vivado/run.65790c010b22494db855a859b6021f2b/out/post_synth.dcp\",\"bytes\":71421073,\"sha256\":\"4712577f4291fed3c43ce9f5987098984cd04a87b9c05ed894b99e282ad3b642\",\"last_write_utc\":\"2026-09-29T21:00:46.6088104Z\"}\n",
+  "remote_stderr": ""
+}

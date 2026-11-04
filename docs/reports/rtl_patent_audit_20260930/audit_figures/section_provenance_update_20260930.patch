@@ -1,0 +1,157 @@
+--- before/verification_method.tex
++++ sections/verification_method.tex
+@@ -43,7 +43,9 @@
+ \subsection{延迟和协议波形}
+ 延迟以接受 start 的有效沿为零点，而不是以驱动器试图发 start 的时刻为零点。busy 期间的 start 被拒绝时，不应计入成功事务。完成边沿和下一次启动边沿可能不同；因而同时记录结果延迟、busy 释放时刻和可接受下一样本的间隔。
+ 
+-P5/P6/P7 在本轮测试中分别观察到 15/13/11 拍重构延迟，并在每 16 拍输入时无合法样本丢失。这证明当前 RTL 协议节拍允许这三种展开数；并未证明实际 FPGA 的每一拍都能做到约 1.563 ns。仿真中的时钟周期是激励条件，只有加入正确的延迟模型并满足实现时序后，才能把它与物理频率联系起来。
++P5/P6/P7 的 15/13/11 拍重构延迟有两代来源。旧版修复基线的连续启动夹具对每档各发出 32 笔、间隔 16 拍的请求，并检查无合法样本丢失及 busy 释放。最新精简权重存储版本的 \code{compact_profiles/} 则重新运行生产结构顶层：每档检查 438 次输出、438 次精确延迟和 7,680 个协议节拍，三档仍分别得到 15/13/11 拍。后一次没有重新运行前一项 32 笔连续启动夹具，因此其 busy 释放结果仍按历史来源保留。
++
++这些是 RTL 协议和功能仿真的拍数，不能证明实际 FPGA 的每一拍都能做到约 1.563 ns。仿真中的时钟周期是激励条件，只有加入正确的延迟模型并满足实现时序后，才能把它与物理频率联系起来。
+ 
+ \section{覆盖矩阵的实质内容}
+ 覆盖矩阵应围绕故障机制组织，不能只按文件名列出“已测”。例如，采样注入符号、主子组权重排列和负数 floor 都会影响最终码，但需要不同激励才能区分。下面给出本工程已有测试与应继续补足的关系。
+@@ -56,7 +58,7 @@
+ 物理地址错配&1278 项镜像加载、留出事务与物理校准夹具&真实电容版图地址和软件排序还需系统集成核验。\\
+ 错误位晚一笔&定向异常、保持行为和当前 ID 检查&ADC2 告警与硬错误的消费策略需软件遵守。\\
+ 跨相位污染&120 帧丢失 valid/迟到活动/恢复测试&异步模拟比较器的 CDC 和亚稳态不在零延迟 TB 内。\\
+-归约代数改写&1,430,848 次新旧比较、7 个几何&原始 miter 是 RTL 语义等价，不能发现特定综合器丢失树。\\
++归约代数改写&两个 Verilator 版本各 1,430,848 次检查、7 个几何；新旧实现均对照独立 scalar oracle&补强后的判据检出共同错误；RTL 结果仍不能发现特定综合器丢失树。\\
+ 前向引用综合差异&旧网表 warning、常量化及无扇出；两种连接修复见证均通过12904次XSim比较&小单元的输入因果与功能检查不能代替完整顶层的约束和实现验收。\\
+ 除法组合链过深&真实 timing path 的 carry 级与起止寄存器&单独优化除法后，最坏路径可能转移到归约或 MAC。\\
+ 配置并发冲突&完整性 bitmap、clear/validate/写入冲突回归&外部总线跨域协议不是当前同步接口自动提供。\\
+@@ -85,9 +87,9 @@
+ \section{本轮 CI 编译超时与测试失败如何区分}
+ 发布提交 \code{50b5733} 后，RTL CI 在七几何归约 miter 的 Verilator/C++ 编译阶段超过 300 s，尚未进入该 bench 的运行断言。该状态不是功能通过，也不是已经证实算术失败；正确记录是“此运行没有获得结果”。本轮将该大型 bench 的编译限时单独设为 900 s，并把 RTL job 总限时调整为 45 分钟，运行期仍使用单独的有限预算。
+ 
+-这项修复没有减少向量数、屏蔽断言或把超时改成成功。编译日志和运行日志分开保存，先删除旧的 run log，再创建新工件。对于其他普通 bench 仍保留原来的 300 s 编译限时，以便真实卡死及时暴露。最终冻结源码已在本地完整重跑21项RTL测试和3类lint，\code{final_rtl/result.json}记录整体退出码0及21项完成标记；其中大型归约miter保留全部1430848次比较。新提交的GitHub CI状态仍须独立确认，不能把本地通过或旧提交的绿色状态贴到新源文件上。
++这项修复没有减少向量数、屏蔽断言或把超时改成成功。编译日志和运行日志分开保存，先删除旧的 run log，再创建新工件。对于其他普通 bench 仍保留原来的 300 s 编译限时，以便真实卡死及时暴露。旧版修复基线（RTL 内容摘要前缀 \code{169f957dc7fe}）曾在本地完整重跑 21 项 RTL 测试和 3 类 lint，\code{final_rtl/result.json} 记录该轮整体退出码 0 及 21 项完成标记；其中旧版归约 miter 记录全部 1,430,848 次比较。它使用当时的测试台和判据，不包含下节随后加入的独立 scalar 检查，也不能改标为精简权重存储版本的全量重跑。新提交的GitHub CI状态仍须独立确认，不能把本地通过或旧提交的绿色状态贴到新源文件上。
+ 
+-本轮本地全量回归还有一次构建环境失败：make调用的进程PATH里没有Python。该尝试没有有效仿真结果，原失败记录保留；补齐当前进程PATH后从冻结源码完整重跑，才形成\code{final_rtl/}的成功证据。这个例子说明“环境修复”和“算法修复”应分别登记，避免把一次未运行的测试写成曾经算术失败。
++本轮本地全量回归还有一次构建环境失败：make调用的进程PATH里没有Python。该尝试没有有效仿真结果，原失败记录保留；补齐当次进程 PATH 后从旧版冻结源码完整重跑，才形成 \code{final_rtl/} 的历史成功证据。这个例子说明“环境修复”和“算法修复”应分别登记，避免把一次未运行的测试写成曾经算术失败。
+ 
+ \section{两份实现共同错误时，miter 为什么也会漏检}
+ 提交 \code{39e9c27} 的后续 CI 在 Verilator 5.020 上进入实际运行后，
+@@ -110,15 +112,38 @@
+ checker 与刺激生成分开，首个有效捕获沿安排在仿真启动之后；
+ 每个几何还校验原有检查数量，避免忽略首样本或提前退出后仍打印完成。
+ 这里只增加 testbench 的事务边界，没有给组合 DUT 增加生产流水级。
+-完整修复结果以最终归档日志为准，早期单几何通过不替代七实例全量回归。
++最终归档 \code{docs/evidence/20260930/reducer_scheduler/manifest.json} 记录：
++修复后的同一测试台在 Verilator 5.020 与 5.49 下分别退出 0，
++每次均出现七种几何的完成记录及总完成标记，检查总数各为 1,430,848。
++生产尺寸的 43,758 个分配组合包含在上述计数中；两个工具运行同一激励集合，不能相加成更多覆盖。
++对应 \code{after_5020.run.log} 与 \code{after_549.run.log} 保存原始结果，
++被测归约器内容摘要前缀均为 \code{c5fc7f6ef58b}，也与 compact 版本一致。
++
++共同错误负控只把两份实现共享的权重快照清零，保持原始刺激及 scalar oracle 不变。
++5.020 运行在第 9 个检查点报参考值失配并以 134 退出：正确的 \(T,G,R\) 均为 24，
++两份实现却均为 0。它说明新判据能识别原 miter 会接受的“双方同错”，
++不把断言预期失败当作工具崩溃或成功仿真。
++图\ref{fig:reducer-scheduler-evidence} 展示日志实际保留的前 16 个检查点及该负控，
++原始失败日志与 printf-only 诊断副本一并保留，未覆盖历史运行。
++
++\input{sections/reducer_scheduler_figure.tex}
++
++\subsection{Python 位级镜像的宽度同步}
+ 
+ 同一提交的 Python CI 还正确发现另一类问题：生产除法器的余数宽度已改为
+ \(W_R=P_{W_A}\)，位级镜像却仍使用 \(\max(P_{W_A},P_{W_D})+1\)。
+ 修复同步了宽度、高位分母分类和 \(W_R+1\) 位借位减法，保留原有反漂移门禁。
+ 新增六种小几何共枚举 55,432 个输入对，包含 308 个零分母、31,744 个高位分母分类用例，
+ 以及最负数、非整除的展开 padding；25 项镜像测试全部通过。
+-本地其他 Python 回归另得到 918 项通过，新增映射流程测试单独验证，
+-这些计数不相加为 RTL 向量数，也不代替最终 GitHub 提交的 CI 状态。
++本地非 slow Python 回归执行 \code{PYTHONPATH=$PWD/src python -m pytest -m "not slow" -q}，
++日志记录 918 项通过、3 项未被选入，用时 678.00 s。
++该次收集之后新增的完整顶层映射流程测试另行验证，不能据此把 918 称为当前全部测试数。
++证据位于本地实验目录 \code{sar_adc_vivado_20260930/python_regression/manifest.json}；
++其原始日志摘要为 \code{82fad3175aa905eac17a80e78fe4a0f98b74f7fe779808225b75373e913bfc74}。
++六个小几何的独立复核及 25 项镜像测试另见同一实验目录的
++\code{full_mapped_flow_checks/mirror_independent_review.json}。
++镜像用例、Python 测试与 RTL 向量有不同计数单位，也有重叠的回归范围，
++不能将它们相加为覆盖率或替代最终 GitHub 提交的 CI 状态。
+ 
+ \section{未来动态性能验证应怎样接入}
+ 数字重构修复完成后，可把真实行为模型或混合信号仿真的连续输出导入 ADC 指标工具。但输入必须含均匀采样时间或明确的缺样记录，且剔除启动阶段的方法事先规定。发生错误但保留旧码的事务不能悄悄当作正常样本送入 FFT；要报告错误率，并明确频谱是否来自仅成功的连续区间。
+--- before/final_regression_evidence.tex
++++ sections/final_regression_evidence.tex
+@@ -1,26 +1,30 @@
+ % Standalone fragment; insert after verification_method.tex, before synthesis chapter.
+-% Sources are frozen final_rtl logs. Never substitute these charts for STA.
++% Historical 169f RTL snapshot and then-current testbenches. Do not relabel as compact reruns or STA.
+ \clearpage
+-\section{最终冻结回归：21 项逐项图证}
+-本节对最终冻结快照的全部 21 项 testbench 补齐图证，来源为仓库 \code{docs/evidence/20260930/final_rtl/}。
+-程序核对成功状态、退出码、完成标记，以及全部日志和对应测试台的冻结 SHA。
++\section{旧版修复基线：21 项逐项图证}
++\label{sec:historical-21-evidence}
++本节四幅图保留旧版修复基线的 21 项 testbench 结果，来源为仓库 \code{docs/evidence/20260930/final_rtl/}。
++该轮 RTL 内容集合摘要前缀为 \code{169f957dc7fe}，不同于最新精简权重存储版本的 \code{fd885e882ad5}；两者都是内容摘要，不是 Git 提交号。
++程序核对该轮成功状态、退出码、完成标记，以及全部日志和对应测试台的冻结 SHA。
++后续归约测试台增加独立 scalar oracle 并完成双版本复验；最新 compact 三档结构顶层也已另立清单。
++这两项补充见前述方法分析及本节末尾，不能把旧图中的日志替换成“最新 21 项已重跑”的声明。
+ 每项列出计数、参考计算或断言对象及覆盖边界。\textbf{样本、输入码、断言、节拍和参数条件分别保留单位，不合成“总覆盖量”。}
+ 
+ \begin{figure}[H]\centering
+ \includegraphics[width=.96\textwidth]{figures/final_regression_arithmetic.pdf}
+-\caption{算术与校准的七项最终回归。全码恒等测试只遍历一个简化配置；除法穷举覆盖六个小位宽参数实例；归约等价测试验证新旧结构逐位一致。物理权重、恢复和外部拟合测试分别使用独立宽整数公式、合成余差及冻结留出数据，不能相互替代。}
++\caption{旧版修复基线中算术与校准的七项回归。全码恒等测试只遍历一个简化配置；除法穷举覆盖六个小位宽参数实例；归约测试当时只判定新旧结构逐位一致，不能排除双方共同错误。独立 scalar 判据及双版本通过见图\ref{fig:reducer-scheduler-evidence}。物理权重、恢复和外部拟合测试分别使用独立宽整数公式、合成余差及冻结留出数据，不能相互替代。}
+ \label{fig:final-regression-arithmetic}
+ \end{figure}
+ 
+ \clearpage
+ \subsection{事务、取消与结构调度}
+-图\ref{fig:final-regression-protocol}中的 438 是结构顶层输出数，7,680 是该测试的检查节拍数，438 次延迟检查逐笔对应这些输出；三者不能相加为独立样本。
++图\ref{fig:final-regression-protocol}取自旧版 21 项运行，其中 438 是结构顶层输出数，7,680 是该测试的检查节拍数，438 次延迟检查逐笔对应这些输出；三者不能相加为独立样本。
+ \code{review_recon_protocol_tb} 只打印完成标记，没有总检查计数，因此图中如实标为未记录。
+ \code{review_top_protocol_tb} 的 38 是测试台打印的固定输出数，图中不把它提升为独立的动态计数器证据。
+ 
+ \begin{figure}[H]\centering
+ \includegraphics[width=\textwidth]{figures/final_regression_protocol.pdf}
+-\caption{事务和调度的七项证据。检查对象包括 SAR 停顿/取消、前后样本上下文隔离、ID/flags 对齐、无效配置屏蔽及 clear 后禁止旧 epoch 泄漏。展开级数 5/6/7 的输出延迟分别为 15/13/11 个完整时钟间隔，每项各 32 笔请求；这些是功能仿真的拍数，不是门级纳秒时延或 640\,MHz 签核。}
++\caption{旧版修复基线中事务和调度的七项证据。检查对象包括 SAR 停顿/取消、前后样本上下文隔离、ID/flags 对齐、无效配置屏蔽及 clear 后禁止旧 epoch 泄漏。展开级数 5/6/7 的输出延迟分别为 15/13/11 个完整时钟间隔，每项各 32 笔请求，属于旧版连续启动夹具；最新 compact 的 438 笔逐档回归另列。这些是功能仿真的拍数，不是门级纳秒时延或 640\,MHz 签核。}
+ \label{fig:final-regression-protocol}
+ \end{figure}
+ 
+@@ -32,7 +36,7 @@
+ 
+ \begin{figure}[H]\centering
+ \includegraphics[width=\textwidth]{figures/final_regression_system.pdf}
+-\caption{基础模块、配置与兼容顶层的七项证据。兼容顶层比较 4,095 行输出，跳过向量文件第 0 行，并通过 force 注入 dither；因此不覆盖该模式下片内 dither 源。其 analog-overflow 按累积 OR 的粘滞口径比较，不能改用逐样本标志判断失配。}
++\caption{旧版修复基线中基础模块、配置与兼容顶层的七项证据。兼容顶层比较 4,095 行输出，跳过向量文件第 0 行，并通过 force 注入 dither；因此不覆盖该模式下片内 dither 源。其 analog-overflow 按累积 OR 的粘滞口径比较，不能改用逐样本标志判断失配。}
+ \label{fig:final-regression-system}
+ \end{figure}
+ 
+@@ -44,11 +48,29 @@
+ 
+ \begin{figure}[H]\centering
+ \includegraphics[width=\textwidth]{figures/final_regression_quantitative.pdf}
+-\caption{最终日志的定量观测。A/B 为逐样本序列；C 为 2,048 笔合成失配测试的最大误差摘要；D 为七种 dither 条件的已打印统计量，均值除以幅度 $D$，虚线与点线分别为测试台的 $\pm0.025$ 与 $\pm0.03$ 门限。$D=0$ 方差为零，测试台跳过相关性计算，图中亦不将打印的初始化零值画成有效相关系数。}
++\caption{旧版修复基线日志的定量观测。A/B 为逐样本序列；C 为 2,048 笔合成失配测试的最大误差摘要；D 为七种 dither 条件的已打印统计量，均值除以幅度 $D$，虚线与点线分别为测试台的 $\pm0.025$ 与 $\pm0.03$ 门限。$D=0$ 方差为零，测试台跳过相关性计算，图中亦不将打印的初始化零值画成有效相关系数。}
+ \label{fig:final-regression-quantitative}
+ \end{figure}
+ 
+ D 面板还保留两项限制：日志只给六位小数的均值/相关系数，图不声称更高精度；PMF 检查虽由测试台执行，但该日志未保留各直方图 bin，故不能从完成标记补画分布。其余三个矩阵没有时序序列，使用证据矩阵而非合成波形。
+ 
+ 制图脚本为 \code{audit_figures/make_final_regression_evidence.py}，在报告目录运行即可重建四张 PNG/PDF；每张同名 \code{audit_figures/final_regression_*.sha256.json} 记录输入日志、测试台、结果清单、脚本和图件的 SHA-256，并保存解析后的计数和绘图数据。源码来源清单 SHA-256 为 \code{8c781172b9b9db072462da9305f98ec2580099da5d4577b206274ae533327caa}。
+-本节没有运行新的仿真，亦不提供 STA、模拟电路或硅片性能签核。
++本节四幅图只重建上述历史日志，不提供 STA、模拟电路或硅片性能签核。
++
++\subsection{后续修复如何补充而不覆盖历史证据}
++最新 compact 版本只改变合法系数写入时的恒零高位表达，生产源文件集合共 26 项，
++完整摘要登记于 \code{docs/evidence/20260930/compact_profiles/rtl_compact_identity.json}。
++同目录 \code{manifest.json} 及三份运行日志证明：P5/P6/P7 分别编译、运行退出 0，
++各包含 3 种模式、18 个物理 slice、438 次输出、438 次延迟检查和 7,680 个协议检查节拍，
++精确重构延迟分别为 15、13、11 拍。
++图件 \code{figures/31_divider_profiles.png} 已按这些新日志重建，
++其输入摘要见 \code{audit_figures/31_source_hashes.json}。
++此次未重新运行旧 21 项的全部 testbench，亦未重跑旧版 32 笔连续启动夹具，
++因此这里不以三档通过替代一次未执行的全量回归。
++
++归约器在两个工具版本上的完整复验及共同错误负控，见图\ref{fig:reducer-scheduler-evidence}。
++其生产模块未因测试台调度修复而改变，且摘要与 compact 源码一致；
++该图的制图脚本与来源清单分别为 \code{audit_figures/make_reducer_scheduler.py} 和
++\code{audit_figures/39_source_hashes.json}。
++Python 镜像的 55,432 个小几何输入对与 918 项非 slow 回归也在前述小节独立说明，
++不混入此处 21 项 RTL 图证的计数。

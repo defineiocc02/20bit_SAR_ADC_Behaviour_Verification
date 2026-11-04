@@ -1,0 +1,115 @@
+{
+  "status": "PASS",
+  "process_exit_code": 0,
+  "benches_passed": 21,
+  "source_manifest_sha256": "8c781172b9b9db072462da9305f98ec2580099da5d4577b206274ae533327caa",
+  "records": {
+    "sar_trial_tb": {
+      "completion_marker": "SAR_TRIAL_COMPLETE",
+      "run_sha256": "6a18d2dd905b64d685eb28b884543e89271fc576e9134315364b52cdd9150607",
+      "build_sha256": "8859e8204e30d401ad40dc758329c963cc26ea0c0ccba4d6a1e79fe1aeaf9b57"
+    },
+    "calibration_recovery_tb": {
+      "completion_marker": "CALIBRATION_RECOVERY_COMPLETE",
+      "run_sha256": "505f8ec3b4ffb5ec9563d4806b58b314b296ae0d2b05cce4a8796a200d7b0892",
+      "build_sha256": "d1060861a44182d29bc214c3c970090af75632bf41ab964ef9020c5da8a7ed6a"
+    },
+    "calibration_fit_tb": {
+      "completion_marker": "CALIBRATION_FIT_COMPLETE",
+      "run_sha256": "c6573922c21a6eaca38261ea91e6ed7e954be8f610555f0433be61a09057fe60",
+      "build_sha256": "525cb955210be6ccd0cd809bc7b7c64b0900795cc2664661db1b1030063052f3"
+    },
+    "structural_adc_tb": {
+      "completion_marker": "STRUCTURAL_ADC_COMPLETE",
+      "run_sha256": "d0434b9a9d5935aeeebc86a0e4ed8087cd125cd00cbee9a7353bcdd1eeb19b62",
+      "build_sha256": "09e7e95465dae016856c856ea395accf352dcffb2c0db3919d8c153bb270621f"
+    },
+    "structural_protocol_tb": {
+      "completion_marker": "STRUCTURAL_PROTOCOL_COMPLETE",
+      "run_sha256": "7c7e3d1961b528d96c21323a5b23bf6ab31c31940a65e7f0afdee36e8dede1f4",
+      "build_sha256": "517c775340dd761d028080306f1b534b3bf982e534893dc11ca817665c7ddb43"
+    },
+    "recon_ppa_latency_tb": {
+      "completion_marker": "RECON_PPA_PROFILE_PASS stages=7 samples=32",
+      "run_sha256": "3e8e9d1c1f9d2d093f63598e7564a98aa07ad5753f0deec890c2740d35e01c9a",
+      "build_sha256": "744a91bd2ca2fdf499904b4b6789d29711f6afd8b373130c951fe6414c606d99"
+    },
+    "divider_borrow_tb": {
+      "completion_marker": "DIVIDER_BORROW_COMPLETE exhaustive_checks=67592",
+      "run_sha256": "1d77b485b6ce72b0047c5774f676f07469cf0a6e3815eb31b9b623ab86a82c25",
+      "build_sha256": "01765e19be3f6de1e0aa8aaff0108f48059ed7d6651a20fb1b4f6259e405a3e4"
+    },
+    "tree_mapping_tb": {
+      "completion_marker": "TREE_MAPPING_COMPLETE checks=12904",
+      "run_sha256": "6b0fcafa7d1d4e48c16a456391c76ba6ef3946b71c2064ccc11186a72b64ef77",
+      "build_sha256": "ae72275e024119f8e7d71682f45d9e09bc339898aa94828c63cd1f3fdb42e2ed"
+    },
+    "cal_weight_reduce_ppa_tb": {
+      "completion_marker": "CAL_WEIGHT_REDUCE_PPA_COMPLETE",
+      "run_sha256": "6e74de8996c5c58b8d349ff8ea3041ac85bfc0d2acf9ca61dd980270c12280dc",
+      "build_sha256": "491f5f3dd366ff337da96e8ed03bbbc2f114f6eaa6e5fc1f517e3bc1ffd38cd6"
+    },
+    "calibration_physical_tb": {
+      "completion_marker": "CALIBRATION_PHYSICAL_COMPLETE",
+      "run_sha256": "55712f89783d0466cc4df6a99d6b094dc333baad6985869ed792d4d012ebd00a",
+      "build_sha256": "b9db045164dd1f185d7c4cdf95dcf4a652b7a2b0cc6a02b13b5e53eeafa3a6e5"
+    },
+    "review_top_protocol_tb": {
+      "completion_marker": "REVIEW_TOP_PROTOCOL_COMPLETE",
+      "run_sha256": "bde2daf74471b2eaae58a1c9039534642813c598da3fafc2a81497e4441c7a1f",
+      "build_sha256": "21a14611ffe90b5bb497c73e2ac64d2ca27387e9377c6e871cc39caa62c97083"
+    },
+    "review_leaf_tb": {
+      "completion_marker": "REVIEW_LEAF_COMPLETE",
+      "run_sha256": "cc38225865113a09ed0d4ad4657f6904471d63e243c9db7c267454e890f05b9d",
+      "build_sha256": "bf1de490ee253bbf5d468f695456da9e7725e9da9a76214953e07720e8b6a395"
+    },
+    "review_recon_protocol_tb": {
+      "completion_marker": "REVIEW_RECON_PROTOCOL_COMPLETE",
+      "run_sha256": "97b573b6dd220a29cddfa78cc2aa36664669320df4fdbf6fc4df8acc4aed32d5",
+      "build_sha256": "59127707decb9cb8513515fb2825e48f4efcf883575c8baf6b1c64869e4e64a0"
+    },
+    "review_dither_tb": {
+      "completion_marker": "REVIEW_DITHER_COMPLETE",
+      "run_sha256": "7bc0545fcc9b51c23b4ce021bf3d7f6017a3506302da9d474dea2920fde6bc12",
+      "build_sha256": "0890a26c5a7338be0027be236c2574995658dac9f2a03ef29ffe174ec962590b"
+    },
+    "review_config_tb": {
+      "completion_marker": "REVIEW_CONFIG_COMPLETE",
+      "run_sha256": "d112199ce0e2378d4321662724d7e3b5aadbfe5e26a3298cd6b61c1a267f380a",
+      "build_sha256": "4b2753ce1f5a5916889ccd309dfa03e16720b82c631d6a1536b7338ce1250dcb"
+    },
+    "p2_tb": {
+      "completion_marker": "P2 RESULT: PASS",
+      "run_sha256": "01db724fc78867435ccbd0ab19abb9fca015fb3ab82126e65435485b212311ba",
+      "build_sha256": "5b9da1724fd930d7040b4cc0c27e9c8105529eed03674e5df3d865b15e8950b5"
+    },
+    "p2_oracle_tb": {
+      "completion_marker": "P2_ORACLE_COMPLETE codes=1048576 errors=0",
+      "run_sha256": "20c016e8e8f183fab7ced1c83b2c6a18f4a8f1f641641a3bba0d98e24fb74829",
+      "build_sha256": "a0173c25af9b324715f9a55e8623667a340e4a70eb1408c3aa98f38098c39276"
+    },
+    "p2_periph_tb": {
+      "completion_marker": "p2_periph PASS",
+      "run_sha256": "3498d5b1a4ffd180bb31ed58471a46fecb3206b40435fba8671e80251050c494",
+      "build_sha256": "1dee87ab973349f013da4afb914b700bb5e4ae8910449f59c046e03d6e2962b5"
+    },
+    "p2_smoke_tb": {
+      "completion_marker": "p2_smoke PASS",
+      "run_sha256": "54013c17fb183ef9fa85c7a0d89fc7563ab206d3a42a29378ea046f149fec9f7",
+      "build_sha256": "0361d9948bf20bc03a09bee573582df339e2145a6666d607b8775a9534b97b12"
+    },
+    "p1_tb": {
+      "completion_marker": "P1 RESULT: PASS",
+      "run_sha256": "26d7b998953f7d7593ab237adb6d611d65ad76b81a1b0e70251564ee2f3aa88e",
+      "build_sha256": "1e64e4b0901e3c6226a856c2f378f2322c27b9ac3bb5db71fd9ee609913e6bda"
+    },
+    "p3_top_tb": {
+      "completion_marker": "P3 TOP RESULT: PASS",
+      "run_sha256": "6d71e3b56a5110b478679740aadb365c1aee8d94096f1ce8b2f9b6893469ddde",
+      "build_sha256": "9fe8a6ffeda8997468ce2dabc9fc0eba65b50dd10f2498b1669d3285f11ef4d9"
+    }
+  },
+  "environment": "Verilator5.49 timing/assert, two build jobs, C++20, runtime bin prefixed to process PATH",
+  "first_attempt": "attempt1 was a build environment failure (python absent from make PATH); no successful simulation result was inferred."
+}

@@ -1,0 +1,26 @@
+341: 2026-09-29T20:29:57.5125644Z SAR_TRIAL_COMPLETE fine_codes=4096 coarse_codes=512 stalls_and_cancel=PASS
+343: 2026-09-29T20:30:06.9191924Z CALIBRATION_RECOVERY_COMPLETE samples=2048 max_calibrated_error=4 max_uncalibrated_error=504
+473: 2026-09-29T20:30:28.3589285Z CALIBRATION_FIT_COMPLETE samples=128 fitted_external_weights=1278 cfg_commit=PASS
+475: 2026-09-29T20:30:45.4526459Z STRUCTURAL_ADC_COMPLETE modes=3 outputs=438 checks=7680 physical_slices=18 recon_stages=7 recon_latency=11 latency_checks=438
+477: 2026-09-29T20:30:49.1140269Z STRUCTURAL_PROTOCOL_COMPLETE frames=120 launches=57 expected_drops=63 checks=1920 decoder_perturbations=2
+481: 2026-09-29T20:30:52.4473002Z RECON_PPA_PROFILE_PASS stages=7 samples=32 busy_release=10 latency=11 initiation_interval=16
+489: 2026-09-29T20:31:06.1666372Z DIVIDER_BORROW_COMPLETE exhaustive_checks=67592
+491: 2026-09-29T20:31:14.4985007Z TREE_MAPPING_COMPLETE checks=12904
+516: 2026-09-29T20:32:43.3016085Z CAL_WEIGHT_REDUCE_PPA_COMPLETE
+518: 2026-09-29T20:32:51.8402453Z CALIBRATION_PHYSICAL_COMPLETE samples=2048 physical_slices=18
+520: 2026-09-29T20:33:10.5445769Z REVIEW_TOP_PROTOCOL_COMPLETE checks=1108 outputs=38
+522: 2026-09-29T20:33:16.0360567Z REVIEW_LEAF_COMPLETE checks=91142
+524: 2026-09-29T20:33:19.2151859Z REVIEW_RECON_PROTOCOL_COMPLETE
+533: 2026-09-29T20:33:24.9623503Z REVIEW_DITHER_COMPLETE
+535: 2026-09-29T20:33:42.1412431Z REVIEW_CONFIG_COMPLETE outputs=624
+558: 2026-09-29T20:34:17.3961244Z P2 RESULT: PASS
+564: 2026-09-29T20:34:33.0939692Z P2_ORACLE_COMPLETE codes=1048576 errors=0
+585: 2026-09-29T20:34:46.4636118Z p2_periph PASS
+596: 2026-09-29T20:35:04.1824646Z p2_smoke PASS
+609: 2026-09-29T20:35:12.9627188Z P1 RESULT: PASS
+638: 2026-09-29T20:35:32.7218161Z P3 TOP RESULT: PASS
+653: 2026-09-29T20:35:33.5245382Z FAIL: command returned 127: /usr/bin/verilator --binary --timing --top-module arithmetic_audit_tb -Wno-fatal -CFLAGS -std=c++20 -MAKEFLAGS 'PYTHON3=/tmp/sar-arithmetic-audit-zfcv0zyv/python3 CFG_CXXFLAGS_PCH_I=-include' -I/tmp/sar-arithmetic-audit-zfcv0zyv/repo/rtl/params --Mdir /tmp/sar-arithmetic-audit-zfcv0zyv/obj /tmp/sar-arithmetic-audit-zfcv0zyv/repo/rtl/core/cal_residue_mac.sv /tmp/sar-arithmetic-audit-zfcv0zyv/repo/rtl/core/adc2_dec.sv /tmp/sar-arithmetic-audit-zfcv0zyv/repo/rtl/core/div_floor.sv /tmp/sar-arithmetic-audit-zfcv0zyv/repo/rtl/core/cal_output_stage.sv /tmp/sar-arithmetic-audit-zfcv0zyv/repo/sim/tb/arithmetic_audit_tb.sv
+654: 2026-09-29T20:35:33.5249988Z sh: 1: exec: /tmp/sar-arithmetic-audit-zfcv0zyv/verilator/verilator_bin: not found
+655: 2026-09-29T20:35:33.5254775Z %Error: Command Failed ulimit -s unlimited 2>/dev/null; exec /tmp/sar-arithmetic-audit-zfcv0zyv/verilator/verilator_bin --binary --timing --top-module arithmetic_audit_tb -Wno-fatal -CFLAGS -std=c++20 -MAKEFLAGS PYTHON3=/tmp/sar-arithmetic-audit-zfcv0zyv/python3\ CFG_CXXFLAGS_PCH_I=-include -I/tmp/sar-arithmetic-audit-zfcv0zyv/repo/rtl/params --Mdir /tmp/sar-arithmetic-audit-zfcv0zyv/obj /tmp/sar-arithmetic-audit-zfcv0zyv/repo/rtl/core/cal_residue_mac.sv /tmp/sar-arithmetic-audit-zfcv0zyv/repo/rtl/core/adc2_dec.sv /tmp/sar-arithmetic-audit-zfcv0zyv/repo/rtl/core/div_floor.sv /tmp/sar-arithmetic-audit-zfcv0zyv/repo/rtl/core/cal_output_stage.sv /tmp/sar-arithmetic-audit-zfcv0zyv/repo/sim/tb/arithmetic_audit_tb.sv
+656: 2026-09-29T20:35:33.5259536Z 
+657: 2026-09-29T20:35:33.5336970Z ##[error]Process completed with exit code 1.

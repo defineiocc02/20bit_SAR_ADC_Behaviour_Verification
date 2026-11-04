@@ -1,0 +1,710 @@
+
+-- Running command `script /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/cal_residue_mac.ys' --
+
+-- Executing script file `/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/cal_residue_mac.ys' --
+
+1. Executing Verilog-2005 frontend: rtl/core/cal_residue_mac.sv
+Parsing SystemVerilog input from `rtl/core/cal_residue_mac.sv' to AST representation.
+Generating RTLIL representation for module `\cal_residue_mac'.
+Successfully finished Verilog frontend.
+
+2. Executing HIERARCHY pass (managing design hierarchy).
+
+2.1. Analyzing design hierarchy..
+Top module:  \cal_residue_mac
+
+2.2. Analyzing design hierarchy..
+Top module:  \cal_residue_mac
+Removed 0 unused modules.
+
+3. Executing PROC pass (convert processes to netlists).
+
+3.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+3.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Removed a total of 0 dead cases.
+
+3.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 0 redundant assignments.
+Promoted 2 assignments to connections.
+
+3.4. Executing PROC_INIT pass (extract init attributes).
+
+3.5. Executing PROC_ARST pass (detect async resets in processes).
+
+3.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+
+3.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+Creating decoders for process `\cal_residue_mac.$proc$rtl/core/cal_residue_mac.sv:84$23'.
+
+3.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+No latch inferred for signal `\cal_residue_mac.\any_ovf' from process `\cal_residue_mac.$proc$rtl/core/cal_residue_mac.sv:84$23'.
+No latch inferred for signal `\cal_residue_mac.\shifted_ok' from process `\cal_residue_mac.$proc$rtl/core/cal_residue_mac.sv:84$23'.
+
+3.9. Executing PROC_DFF pass (convert process syncs to FFs).
+
+3.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+3.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Removing empty process `cal_residue_mac.$proc$rtl/core/cal_residue_mac.sv:84$23'.
+Cleaned up 0 empty switches.
+
+3.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module cal_residue_mac.
+<suppressed ~5 debug messages>
+
+4. Executing OPT pass (performing simple optimizations).
+
+4.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module cal_residue_mac.
+
+4.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\cal_residue_mac'.
+Computing hashes of 27 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+Removed a total of 0 cells.
+
+4.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \cal_residue_mac..
+  Creating internal representation of mux trees.
+  No muxes found in this module.
+Removed 0 multiplexer ports.
+
+4.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \cal_residue_mac.
+Performed a total of 0 changes.
+
+4.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\cal_residue_mac'.
+Computing hashes of 27 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+Removed a total of 0 cells.
+
+4.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+4.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \cal_residue_mac..
+Removed 0 unused cells and 17 unused wires.
+<suppressed ~1 debug messages>
+
+4.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module cal_residue_mac.
+
+4.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+4.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \cal_residue_mac..
+  Creating internal representation of mux trees.
+  No muxes found in this module.
+Removed 0 multiplexer ports.
+
+4.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \cal_residue_mac.
+Performed a total of 0 changes.
+
+4.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\cal_residue_mac'.
+Computing hashes of 27 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+Removed a total of 0 cells.
+
+4.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+4.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \cal_residue_mac..
+
+4.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module cal_residue_mac.
+
+4.16. Finished fast OPT passes. (There is nothing left to do.)
+
+5. Executing CHECK pass (checking for obvious problems).
+Checking module cal_residue_mac...
+Found and reported 0 problems.
+
+6. Printing statistics.
+
+=== cal_residue_mac ===
+
+        +----------Local Count, excluding submodules.
+        | 
+       41 wires
+     1791 wire bits
+       25 public wires
+     1644 public wire bits
+        8 ports
+      450 port bits
+       27 cells
+        1   $add_97
+        4   $ge_132
+        1   $ge_64
+        1   $logic_not_1
+        1   $logic_not_22
+        5   $logic_or_1
+        4   $lt_132
+        1   $mul_130
+        5   $or_1
+        1   $reduce_and_22
+        2   $sub_132
+        1   $sub_65
+
+7. Executing JSON backend.
+
+8. Executing SYNTH pass.
+
+8.1. Executing HIERARCHY pass (managing design hierarchy).
+
+8.1.1. Analyzing design hierarchy..
+Top module:  \cal_residue_mac
+
+8.1.2. Analyzing design hierarchy..
+Top module:  \cal_residue_mac
+Removed 0 unused modules.
+
+8.2. Executing PROC pass (convert processes to netlists).
+
+8.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+8.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Removed a total of 0 dead cases.
+
+8.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 0 redundant assignments.
+Promoted 0 assignments to connections.
+
+8.2.4. Executing PROC_INIT pass (extract init attributes).
+
+8.2.5. Executing PROC_ARST pass (detect async resets in processes).
+
+8.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+
+8.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+
+8.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+
+8.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+
+8.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+8.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+8.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module cal_residue_mac.
+
+8.3. Executing OPT_EXPR pass (perform const folding).
+Optimizing module cal_residue_mac.
+
+8.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \cal_residue_mac..
+
+8.5. Executing CHECK pass (checking for obvious problems).
+Checking module cal_residue_mac...
+Found and reported 0 problems.
+
+8.6. Executing OPT pass (performing simple optimizations).
+
+8.6.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module cal_residue_mac.
+
+8.6.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\cal_residue_mac'.
+Computing hashes of 27 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+Removed a total of 0 cells.
+
+8.6.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \cal_residue_mac..
+  Creating internal representation of mux trees.
+  No muxes found in this module.
+Removed 0 multiplexer ports.
+
+8.6.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \cal_residue_mac.
+Performed a total of 0 changes.
+
+8.6.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\cal_residue_mac'.
+Computing hashes of 27 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+Removed a total of 0 cells.
+
+8.6.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+8.6.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \cal_residue_mac..
+
+8.6.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module cal_residue_mac.
+
+8.6.9. Finished fast OPT passes. (There is nothing left to do.)
+
+8.7. Executing FSM pass (extract and optimize FSM).
+
+8.7.1. Executing FSM_DETECT pass (finding FSMs in design).
+
+8.7.2. Executing FSM_EXTRACT pass (extracting FSM from design).
+
+8.7.3. Executing FSM_OPT pass (simple optimizations of FSMs).
+
+8.7.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \cal_residue_mac..
+
+8.7.5. Executing FSM_OPT pass (simple optimizations of FSMs).
+
+8.7.6. Executing FSM_RECODE pass (re-assigning FSM state encoding).
+
+8.7.7. Executing FSM_INFO pass (dumping all available information on FSM cells).
+
+8.7.8. Executing FSM_MAP pass (mapping FSMs to basic logic).
+
+8.8. Executing OPT pass (performing simple optimizations).
+
+8.8.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module cal_residue_mac.
+
+8.8.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\cal_residue_mac'.
+Computing hashes of 27 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+Removed a total of 0 cells.
+
+8.8.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \cal_residue_mac..
+  Creating internal representation of mux trees.
+  No muxes found in this module.
+Removed 0 multiplexer ports.
+
+8.8.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \cal_residue_mac.
+Performed a total of 0 changes.
+
+8.8.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\cal_residue_mac'.
+Computing hashes of 27 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+Removed a total of 0 cells.
+
+8.8.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+8.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \cal_residue_mac..
+
+8.8.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module cal_residue_mac.
+
+8.8.9. Finished fast OPT passes. (There is nothing left to do.)
+
+8.9. Executing WREDUCE pass (reducing word size of cells).
+Converting cell cal_residue_mac.$sub$rtl/core/cal_residue_mac.sv:57$1 ($sub) from unsigned to signed.
+Removed top 1 bits (of 65) from port A of cell cal_residue_mac.$sub$rtl/core/cal_residue_mac.sv:57$1 ($sub).
+Removed top 1 bits (of 65) from port B of cell cal_residue_mac.$sub$rtl/core/cal_residue_mac.sv:57$1 ($sub).
+Converting cell cal_residue_mac.$mul$rtl/core/cal_residue_mac.sv:65$4 ($mul) from unsigned to signed.
+Removed top 65 bits (of 130) from port A of cell cal_residue_mac.$mul$rtl/core/cal_residue_mac.sv:65$4 ($mul).
+Removed top 66 bits (of 130) from port B of cell cal_residue_mac.$mul$rtl/core/cal_residue_mac.sv:65$4 ($mul).
+Removed top 1 bits (of 130) from port Y of cell cal_residue_mac.$mul$rtl/core/cal_residue_mac.sv:65$4 ($mul).
+Converting cell cal_residue_mac.$sub$rtl/core/cal_residue_mac.sv:68$5 ($sub) from unsigned to signed.
+Removed top 37 bits (of 132) from port A of cell cal_residue_mac.$sub$rtl/core/cal_residue_mac.sv:68$5 ($sub).
+Removed top 34 bits (of 132) from port B of cell cal_residue_mac.$sub$rtl/core/cal_residue_mac.sv:68$5 ($sub).
+Removed top 33 bits (of 132) from port Y of cell cal_residue_mac.$sub$rtl/core/cal_residue_mac.sv:68$5 ($sub).
+Converting cell cal_residue_mac.$sub$rtl/core/cal_residue_mac.sv:68$6 ($sub) from unsigned to signed.
+Removed top 33 bits (of 132) from port A of cell cal_residue_mac.$sub$rtl/core/cal_residue_mac.sv:68$6 ($sub).
+Removed top 3 bits (of 132) from port B of cell cal_residue_mac.$sub$rtl/core/cal_residue_mac.sv:68$6 ($sub).
+Removed top 2 bits (of 132) from port Y of cell cal_residue_mac.$sub$rtl/core/cal_residue_mac.sv:68$6 ($sub).
+Removed top 37 bits (of 132) from port A of cell cal_residue_mac.$ge$rtl/core/cal_residue_mac.sv:70$7 ($ge).
+Removed top 35 bits (of 132) from port B of cell cal_residue_mac.$ge$rtl/core/cal_residue_mac.sv:70$7 ($ge).
+Removed top 37 bits (of 132) from port A of cell cal_residue_mac.$lt$rtl/core/cal_residue_mac.sv:70$8 ($lt).
+Removed top 36 bits (of 132) from port B of cell cal_residue_mac.$lt$rtl/core/cal_residue_mac.sv:70$8 ($lt).
+Removed top 34 bits (of 132) from port A of cell cal_residue_mac.$ge$rtl/core/cal_residue_mac.sv:71$10 ($ge).
+Removed top 35 bits (of 132) from port B of cell cal_residue_mac.$ge$rtl/core/cal_residue_mac.sv:71$10 ($ge).
+Removed top 34 bits (of 132) from port A of cell cal_residue_mac.$lt$rtl/core/cal_residue_mac.sv:71$11 ($lt).
+Removed top 36 bits (of 132) from port B of cell cal_residue_mac.$lt$rtl/core/cal_residue_mac.sv:71$11 ($lt).
+Removed top 3 bits (of 132) from port A of cell cal_residue_mac.$ge$rtl/core/cal_residue_mac.sv:72$13 ($ge).
+Removed top 35 bits (of 132) from port B of cell cal_residue_mac.$ge$rtl/core/cal_residue_mac.sv:72$13 ($ge).
+Removed top 3 bits (of 132) from port A of cell cal_residue_mac.$lt$rtl/core/cal_residue_mac.sv:72$14 ($lt).
+Removed top 36 bits (of 132) from port B of cell cal_residue_mac.$lt$rtl/core/cal_residue_mac.sv:72$14 ($lt).
+Removed top 2 bits (of 132) from port A of cell cal_residue_mac.$ge$rtl/core/cal_residue_mac.sv:73$16 ($ge).
+Removed top 35 bits (of 132) from port B of cell cal_residue_mac.$ge$rtl/core/cal_residue_mac.sv:73$16 ($ge).
+Removed top 2 bits (of 132) from port A of cell cal_residue_mac.$lt$rtl/core/cal_residue_mac.sv:73$17 ($lt).
+Removed top 36 bits (of 132) from port B of cell cal_residue_mac.$lt$rtl/core/cal_residue_mac.sv:73$17 ($lt).
+Removed top 1 bits (of 64) from port B of cell cal_residue_mac.$ge$rtl/core/cal_residue_mac.sv:74$19 ($ge).
+Removed top 1 bits (of 97) from wire cal_residue_mac.gv.
+
+8.10. Executing PEEPOPT pass (run peephole optimizers).
+
+8.11. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \cal_residue_mac..
+Removed 0 unused cells and 1 unused wires.
+<suppressed ~1 debug messages>
+
+8.12. Executing ALUMACC pass (create $alu and $macc cells).
+Extracting $alu and $macc cells in module cal_residue_mac:
+  creating $macc model for $add$rtl/core/cal_residue_mac.sv:77$21 ($add).
+  creating $macc model for $mul$rtl/core/cal_residue_mac.sv:65$4 ($mul).
+  creating $macc model for $sub$rtl/core/cal_residue_mac.sv:57$1 ($sub).
+  creating $macc model for $sub$rtl/core/cal_residue_mac.sv:68$5 ($sub).
+  creating $macc model for $sub$rtl/core/cal_residue_mac.sv:68$6 ($sub).
+  merging $macc model for $sub$rtl/core/cal_residue_mac.sv:68$5 into $sub$rtl/core/cal_residue_mac.sv:68$6.
+  creating $alu model for $macc $sub$rtl/core/cal_residue_mac.sv:57$1.
+  creating $alu model for $macc $add$rtl/core/cal_residue_mac.sv:77$21.
+  creating $macc cell for $mul$rtl/core/cal_residue_mac.sv:65$4: $auto$alumacc.cc:382:replace_macc$34
+  creating $macc cell for $sub$rtl/core/cal_residue_mac.sv:68$6: $auto$alumacc.cc:382:replace_macc$35
+  creating $alu model for $ge$rtl/core/cal_residue_mac.sv:70$7 ($ge): new $alu
+  creating $alu model for $ge$rtl/core/cal_residue_mac.sv:71$10 ($ge): new $alu
+  creating $alu model for $ge$rtl/core/cal_residue_mac.sv:72$13 ($ge): new $alu
+  creating $alu model for $ge$rtl/core/cal_residue_mac.sv:73$16 ($ge): new $alu
+  creating $alu model for $ge$rtl/core/cal_residue_mac.sv:74$19 ($ge): new $alu
+  creating $alu model for $lt$rtl/core/cal_residue_mac.sv:70$8 ($lt): new $alu
+  creating $alu model for $lt$rtl/core/cal_residue_mac.sv:71$11 ($lt): new $alu
+  creating $alu model for $lt$rtl/core/cal_residue_mac.sv:72$14 ($lt): new $alu
+  creating $alu model for $lt$rtl/core/cal_residue_mac.sv:73$17 ($lt): new $alu
+  creating $alu cell for $lt$rtl/core/cal_residue_mac.sv:73$17: $auto$alumacc.cc:512:replace_alu$45
+  creating $alu cell for $lt$rtl/core/cal_residue_mac.sv:72$14: $auto$alumacc.cc:512:replace_alu$52
+  creating $alu cell for $lt$rtl/core/cal_residue_mac.sv:71$11: $auto$alumacc.cc:512:replace_alu$59
+  creating $alu cell for $lt$rtl/core/cal_residue_mac.sv:70$8: $auto$alumacc.cc:512:replace_alu$66
+  creating $alu cell for $ge$rtl/core/cal_residue_mac.sv:74$19: $auto$alumacc.cc:512:replace_alu$73
+  creating $alu cell for $ge$rtl/core/cal_residue_mac.sv:73$16: $auto$alumacc.cc:512:replace_alu$86
+  creating $alu cell for $ge$rtl/core/cal_residue_mac.sv:72$13: $auto$alumacc.cc:512:replace_alu$101
+  creating $alu cell for $ge$rtl/core/cal_residue_mac.sv:71$10: $auto$alumacc.cc:512:replace_alu$116
+  creating $alu cell for $ge$rtl/core/cal_residue_mac.sv:70$7: $auto$alumacc.cc:512:replace_alu$131
+  creating $alu cell for $add$rtl/core/cal_residue_mac.sv:77$21: $auto$alumacc.cc:512:replace_alu$146
+  creating $alu cell for $sub$rtl/core/cal_residue_mac.sv:57$1: $auto$alumacc.cc:512:replace_alu$149
+  created 11 $alu and 2 $macc cells.
+
+8.13. Executing SHARE pass (SAT-based resource sharing).
+
+8.14. Executing OPT pass (performing simple optimizations).
+
+8.14.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module cal_residue_mac.
+
+8.14.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\cal_residue_mac'.
+Computing hashes of 64 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+Removed a total of 0 cells.
+
+8.14.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \cal_residue_mac..
+  Creating internal representation of mux trees.
+  No muxes found in this module.
+Removed 0 multiplexer ports.
+
+8.14.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \cal_residue_mac.
+Performed a total of 0 changes.
+
+8.14.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\cal_residue_mac'.
+Computing hashes of 64 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+Removed a total of 0 cells.
+
+8.14.6. Executing OPT_DFF pass (perform DFF optimizations).
+
+8.14.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \cal_residue_mac..
+Removed 1 unused cells and 10 unused wires.
+<suppressed ~2 debug messages>
+
+8.14.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module cal_residue_mac.
+
+8.14.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+8.14.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \cal_residue_mac..
+  Creating internal representation of mux trees.
+  No muxes found in this module.
+Removed 0 multiplexer ports.
+
+8.14.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \cal_residue_mac.
+Performed a total of 0 changes.
+
+8.14.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\cal_residue_mac'.
+Computing hashes of 63 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+Removed a total of 0 cells.
+
+8.14.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+8.14.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \cal_residue_mac..
+
+8.14.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module cal_residue_mac.
+
+8.14.16. Finished fast OPT passes. (There is nothing left to do.)
+
+8.15. Executing MEMORY pass.
+
+8.15.1. Executing OPT_MEM pass (optimize memories).
+Performed a total of 0 transformations.
+
+8.15.2. Executing OPT_MEM_PRIORITY pass (removing unnecessary memory write priority relations).
+Performed a total of 0 transformations.
+
+8.15.3. Executing OPT_MEM_FEEDBACK pass (finding memory read-to-write feedback paths).
+
+8.15.4. Executing MEMORY_BMUX2ROM pass (converting muxes to ROMs).
+
+8.15.5. Executing MEMORY_DFF pass (merging $dff cells to $memrd).
+
+8.15.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \cal_residue_mac..
+
+8.15.7. Executing MEMORY_SHARE pass (consolidating $memrd/$memwr cells).
+
+8.15.8. Executing OPT_MEM_WIDEN pass (optimize memories where all ports are wide).
+Performed a total of 0 transformations.
+
+8.15.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \cal_residue_mac..
+
+8.15.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+8.16. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \cal_residue_mac..
+
+8.17. Executing OPT pass (performing simple optimizations).
+
+8.17.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module cal_residue_mac.
+<suppressed ~137 debug messages>
+
+8.17.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\cal_residue_mac'.
+Computing hashes of 761 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+Computing hashes of 443 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+<suppressed ~954 debug messages>
+Removed a total of 318 cells.
+
+8.17.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+8.17.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \cal_residue_mac..
+Removed 0 unused cells and 823 unused wires.
+<suppressed ~1 debug messages>
+
+8.17.5. Finished fast OPT passes.
+
+8.18. Executing MEMORY_MAP pass (converting memories to logic and flip-flops).
+
+8.19. Executing OPT pass (performing simple optimizations).
+
+8.19.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module cal_residue_mac.
+
+8.19.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\cal_residue_mac'.
+Computing hashes of 443 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+Removed a total of 0 cells.
+
+8.19.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \cal_residue_mac..
+  Creating internal representation of mux trees.
+  No muxes found in this module.
+Removed 0 multiplexer ports.
+
+8.19.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \cal_residue_mac.
+Performed a total of 0 changes.
+
+8.19.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\cal_residue_mac'.
+Computing hashes of 443 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+Removed a total of 0 cells.
+
+8.19.6. Executing OPT_SHARE pass.
+
+8.19.7. Executing OPT_DFF pass (perform DFF optimizations).
+
+8.19.8. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \cal_residue_mac..
+
+8.19.9. Executing OPT_EXPR pass (perform const folding).
+Optimizing module cal_residue_mac.
+
+8.19.10. Finished fast OPT passes. (There is nothing left to do.)
+
+8.20. Executing TECHMAP pass (map to technology primitives).
+
+8.20.1. Executing Verilog-2005 frontend: /Users/zhaoyi/Obsidan/项目库/outputs/adc_spi_interface_20261001/.tools-native-yosys/lib/python3.9/site-packages/pyosys/share/techmap.v
+Parsing Verilog input from `/Users/zhaoyi/Obsidan/项目库/outputs/adc_spi_interface_20261001/.tools-native-yosys/lib/python3.9/site-packages/pyosys/share/techmap.v' to AST representation.
+Generating RTLIL representation for module `\_90_simplemap_bool_ops'.
+Generating RTLIL representation for module `\_90_simplemap_reduce_ops'.
+Generating RTLIL representation for module `\_90_simplemap_logic_ops'.
+Generating RTLIL representation for module `\_90_simplemap_compare_ops'.
+Generating RTLIL representation for module `\_90_simplemap_various'.
+Generating RTLIL representation for module `\_90_simplemap_registers'.
+Generating RTLIL representation for module `\_90_shift_ops_shr_shl_sshl_sshr'.
+Generating RTLIL representation for module `\_90_shift_shiftx'.
+Generating RTLIL representation for module `\_90_fa'.
+Generating RTLIL representation for module `\_90_lcu_brent_kung'.
+Generating RTLIL representation for module `\_90_alu'.
+Generating RTLIL representation for module `\_90_macc'.
+Generating RTLIL representation for module `\_90_alumacc'.
+Generating RTLIL representation for module `$__div_mod_u'.
+Generating RTLIL representation for module `$__div_mod_trunc'.
+Generating RTLIL representation for module `\_90_div'.
+Generating RTLIL representation for module `\_90_mod'.
+Generating RTLIL representation for module `$__div_mod_floor'.
+Generating RTLIL representation for module `\_90_divfloor'.
+Generating RTLIL representation for module `\_90_modfloor'.
+Generating RTLIL representation for module `\_90_pow'.
+Generating RTLIL representation for module `\_90_demux'.
+Generating RTLIL representation for module `\_90_lut'.
+Generating RTLIL representation for module `$connect'.
+Generating RTLIL representation for module `$input_port'.
+Successfully finished Verilog frontend.
+
+8.20.2. Continuing TECHMAP pass.
+Using extmapper simplemap for cells of type $not.
+Using template $paramod$eae77c8810a0e9d7d8d00203455be6a44da79b12\_90_alu for cells of type $alu.
+Using template $paramod$5a0b1a6f7ecae297064761342f915632b9e27154\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $reduce_or.
+Using extmapper simplemap for cells of type $or.
+Using extmapper simplemap for cells of type $reduce_and.
+Using extmapper simplemap for cells of type $xor.
+Using template $paramod$0cf90cc92a8a726f7480da3c1dd521ff92701be4\_90_alu for cells of type $alu.
+Using template $paramod$acf5ee781c77b898d3bdc54c59bb9c663376a7a9\_90_alu for cells of type $alu.
+Using template $paramod$4b7c1cb0ed318ca2bd4aca1f4686cd8481ede615\_90_alu for cells of type $alu.
+Using template $paramod$815e3e27dbb964f659b3c774d228f07b6d16dfba\_90_alu for cells of type $alu.
+Using template $paramod$ba698a254f9a5947e85cbe7beae6b161eefc5386\_90_alu for cells of type $alu.
+Using template $paramod$b52b1c34c6942a4262a8b287ee6ae3a092dfc180\_90_alu for cells of type $alu.
+Using template $paramod$af987c41eb15cea3e227fb6b88cf36e74f01ad31\_90_alu for cells of type $alu.
+Using template $paramod$f13acf36b961a9b99fedd5da3f5d1bfbe7bcba94\_90_alu for cells of type $alu.
+Using template $paramod$8ebd538ea3dc23ea821c549b74b6a3fb672b85aa\_90_alu for cells of type $alu.
+Using extmapper maccmap for cells of type $macc_v2.
+  add { \diff 30'000000000000000000000000000000 } (95 bits, signed)
+  sub \op3_w [128:0] (129 bits, signed)
+  sub { \rails_s 32'00000000000000000000000000000000 } (98 bits, signed)
+  add { 1'0 \total_s } * \inj_r (65x64 bits, signed)
+Using extmapper simplemap for cells of type $logic_or.
+Using extmapper simplemap for cells of type $logic_not.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000010000001 for cells of type $fa.
+Using template $paramod$047629db2ddfd8f97b28de89f87caea898a3a90c\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $and.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000010000010 for cells of type $fa.
+Using template $paramod$0793a9b38d3a93efd1ccd97fa049bbd2f4f49008\_90_alu for cells of type $alu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000001000001 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000001000001 for cells of type $lcu.
+Using extmapper simplemap for cells of type $pos.
+Using extmapper simplemap for cells of type $mux.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000000010 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000000010 for cells of type $lcu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000000011 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000000011 for cells of type $lcu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000100010 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000100010 for cells of type $lcu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000100011 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000100011 for cells of type $lcu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000000001 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000000001 for cells of type $lcu.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000010000001 for cells of type $lcu.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000010000010 for cells of type $lcu.
+No more expansions possible.
+<suppressed ~5184 debug messages>
+
+8.21. Executing OPT pass (performing simple optimizations).
+
+8.21.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module cal_residue_mac.
+<suppressed ~27517 debug messages>
+
+8.21.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\cal_residue_mac'.
+Computing hashes of 30162 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+Computing hashes of 29841 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+Computing hashes of 29829 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+Computing hashes of 29824 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+Computing hashes of 29822 cells of `\cal_residue_mac'.
+Finding duplicate cells in `\cal_residue_mac'.
+<suppressed ~1020 debug messages>
+Removed a total of 340 cells.
+
+8.21.3. Executing OPT_DFF pass (perform DFF optimizations).
+
+8.21.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \cal_residue_mac..
+Removed 665 unused cells and 1579 unused wires.
+<suppressed ~666 debug messages>
+
+8.21.5. Finished fast OPT passes.
+
+8.22. Executing HIERARCHY pass (managing design hierarchy).
+Attribute `top' found on module `cal_residue_mac'. Setting top module to cal_residue_mac.
+
+8.22.1. Analyzing design hierarchy..
+Top module:  \cal_residue_mac
+
+8.22.2. Analyzing design hierarchy..
+Top module:  \cal_residue_mac
+Removed 0 unused modules.
+
+8.23. Printing statistics.
+
+=== cal_residue_mac ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     2150 wires
+    55524 wire bits
+       25 public wires
+     1643 public wire bits
+        8 ports
+      450 port bits
+    29157 cells
+    14597   $_AND_
+      524   $_NOT_
+     4775   $_OR_
+     9261   $_XOR_
+
+8.24. Executing CHECK pass (checking for obvious problems).
+Checking module cal_residue_mac...
+Found and reported 0 problems.
+
+9. Executing CHECK pass (checking for obvious problems).
+Checking module cal_residue_mac...
+Found and reported 0 problems.
+
+10. Printing statistics.
+
+=== cal_residue_mac ===
+
+        +----------Local Count, excluding submodules.
+        | 
+     2150 wires
+    55524 wire bits
+       25 public wires
+     1643 public wire bits
+        8 ports
+      450 port bits
+    29157 cells
+    14597   $_AND_
+      524   $_NOT_
+     4775   $_OR_
+     9261   $_XOR_
+
+11. Executing JSON backend.
+
+12. Executing Verilog backend.
+
+12.1. Executing BMUXMAP pass.
+
+12.2. Executing DEMUXMAP pass.
+Dumping module `\cal_residue_mac'.

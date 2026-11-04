@@ -1,0 +1,89 @@
+{
+  "repo_head": "01ed2b3e4fc4c7c9efd2153cfbfa5d456b10fb74",
+  "tool": {
+    "python": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/adc_spi_interface_20261001/.tools-native-yosys/bin/python",
+    "adapter": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/adc_spi_interface_20261001/scripts/yosys_native.py",
+    "version_command": [
+      "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/adc_spi_interface_20261001/.tools-native-yosys/bin/python",
+      "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/adc_spi_interface_20261001/scripts/yosys_native.py",
+      "-V"
+    ],
+    "version_output": "Yosys 0.66 (git sha1 86f2ddebc, clang++ 17.0.0 -fPIC -O3)"
+  },
+  "inputs": {
+    "rtl/core/adc2_dec.sv": "113dab4a9f7770eafdc48b2f7b883155df3894cb2d02a1df97749a56d5941afa",
+    "rtl/core/cal_residue_mac.sv": "8acf4dbc698e9e13d1c6fedfeeb0ad927998608658d2bfb7202a6621e27b0644",
+    "rtl/core/div_floor.sv": "dd8afd4c9cc378ab78e993b7f2a8d82bed09eb63f05237454c5f97c0cb9e15ce",
+    "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654"
+  },
+  "cases": {
+    "adc2_dec": {
+      "top": "adc2_dec",
+      "parameters": {},
+      "command": [
+        "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/adc_spi_interface_20261001/.tools-native-yosys/bin/python",
+        "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/adc_spi_interface_20261001/scripts/yosys_native.py",
+        "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/adc2_dec.ys"
+      ],
+      "cwd": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure",
+      "returncode": 0,
+      "script": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/adc2_dec.ys",
+      "log": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/adc2_dec.log",
+      "pre_json": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/adc2_dec.pre.json",
+      "generic_json": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/adc2_dec.generic.json",
+      "generic_verilog": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/adc2_dec.generic.v"
+    },
+    "cal_residue_mac": {
+      "top": "cal_residue_mac",
+      "parameters": {},
+      "command": [
+        "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/adc_spi_interface_20261001/.tools-native-yosys/bin/python",
+        "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/adc_spi_interface_20261001/scripts/yosys_native.py",
+        "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/cal_residue_mac.ys"
+      ],
+      "cwd": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure",
+      "returncode": 0,
+      "script": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/cal_residue_mac.ys",
+      "log": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/cal_residue_mac.log",
+      "pre_json": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/cal_residue_mac.pre.json",
+      "generic_json": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/cal_residue_mac.generic.json",
+      "generic_verilog": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/cal_residue_mac.generic.v"
+    },
+    "div_floor_p5": {
+      "top": "div_floor",
+      "parameters": {
+        "P_STAGES": 5
+      },
+      "command": [
+        "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/adc_spi_interface_20261001/.tools-native-yosys/bin/python",
+        "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/adc_spi_interface_20261001/scripts/yosys_native.py",
+        "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/div_floor_p5.ys"
+      ],
+      "cwd": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure",
+      "returncode": 0,
+      "script": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/div_floor_p5.ys",
+      "log": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/div_floor_p5.log",
+      "pre_json": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/div_floor_p5.pre.json",
+      "generic_json": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/div_floor_p5.generic.json",
+      "generic_verilog": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/div_floor_p5.generic.v"
+    },
+    "div_floor_p7": {
+      "top": "div_floor",
+      "parameters": {
+        "P_STAGES": 7
+      },
+      "command": [
+        "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/adc_spi_interface_20261001/.tools-native-yosys/bin/python",
+        "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/adc_spi_interface_20261001/scripts/yosys_native.py",
+        "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure/outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/div_floor_p7.ys"
+      ],
+      "cwd": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_review_20260919/calibration-closure",
+      "returncode": 0,
+      "script": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/div_floor_p7.ys",
+      "log": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/div_floor_p7.log",
+      "pre_json": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/div_floor_p7.pre.json",
+      "generic_json": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/div_floor_p7.generic.json",
+      "generic_verilog": "outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/div_floor_p7.generic.v"
+    }
+  }
+}

@@ -1,0 +1,3040 @@
+//=========================================================================== 
+// adc2_dec.sv -- 原始后端码 -> Q32 bin center（唯一的运行时舍入） 
+//=========================================================================== 
+// 职责一句话 
+//   把 ADC2 的原始整数码变成**码仓中心**电压（归一化 V/Vfs，Q32 有符号）， 
+//   并按 ties-to-even 舍入。纯组合。 
+//   本模块**不**做后端偏移扣除（那是 recon_core 里 (F - O) 的事）。 
+// 来源 
+//   docs/rtl/RTL_ARITHMETIC_CONTRACT.md §3.1（唯一运行时舍入）： 
+//       n     = (2*adc2_code + 1) * (adc2_max_q - adc2_min_q) 
+//       fine  = adc2_min_q + round_half_even_shift(n, adc2_n_bits + 1) 
+//   既有判据：tests/unit/test_fixed_point.py::test_signed_ties_to_even 
+//       （除数 2 上固定了 -7->-4, -5->-2, -3->-2, -1->0, 1->0, 3->2, 5->2, 7->4） 
+// round_half_even_shift 的硬件形态（契约 §3.1 注记的落地） 
+//   q    = $signed(x) >>> k        // 算术右移 == floor(x / 2^k) 
+//   r    = x[k-1:0]                // 二补数低 k 位 == x mod 2^k == 余数 
+//                                  //   对负数同样成立（这正是"向 -inf"的体现） 
+//   half = 2^(k-1) 
+//   res  = q + ((r > half) || ((r == half) && q[0])) 
+//   除数 2^k 是 2 的幂 -> 硬件上只有移位 + 一组比较器，**无除法器**。 
+// 单位契约 
+//   电压一律为"归一化到 Vfs"的 Q32 有符号整数；本模块不做任何浮点运算， 
+//   也不出现伏特值（契约 §1.1 的措辞修正：禁止的是浮点伏特**运算**， 
+//   不是禁止用定点编码承载模拟观测量）。 
+// 参数来源分级 
+//   P_ADC2_BITS 默认取自 rtl_params.vh 的 ADC2_BITS（[披露]，ADR 0014）。 
+//   模块参数存在的唯一理由是让 L2 的全码 oracle 能用另一套尺寸重例化 
+//   （见 docs/rtl/P2_INTERFACE.md §12）；它不是第二份参数表。 
+// 契约与不变量 / 适用域 
+//   * 输入采样：纯组合，延迟 0。 
+//   * `ovf = 1` 表示 `adc2_min_q + sh` 装不进 V_BITS 位有符号寄存器； 
+//     此时 `fine_q` 输出**钳位值**（不是回绕值）。契约 §4 的 6 个受检操作数 
+//     不含本量，所以这个标志是**额外的安全网**，不是等价替换。 
+//   * 本模块**不**检查 `adc2_max_q > adc2_min_q`：那是载入期校验 
+//     （calib_regs.validate -> ERR_RANGE_EMPTY），不是逐样本的事。 
+//     空量程会让 delta = 0，输出恒等于 adc2_min_q —— 合法但不有用。 
+//=========================================================================== 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+// ---- 定点格式 —— docs/rtl/RTL_ARITHMETIC_CONTRACT.md §2 ---- 
+localparam [5:0] W_FRAC = 6'd30;  // derived: ADR 0014 
+localparam [6:0] W_BITS = 7'd48;  // derived: ADR 0014 
+localparam [5:0] V_FRAC = 6'd32;  // derived: ADR 0014 
+localparam [6:0] V_BITS = 7'd64;  // derived: ADR 0014 
+localparam [7:0] ACC_BITS = 8'd96;  // derived: ADR 0014 
+localparam [5:0] OUT_BITS = 6'd20;  // derived: ADR 0014 
+// ---- 阵列几何 ---- 
+localparam [4:0] N_SLICES = 5'd18;  // derived: config.n_slices 
+localparam [3:0] N_ACTIVE = 4'd8;  // derived: config.n_active 
+localparam [6:0] N_UNIT_MAIN = 7'd63;  // derived: config.dac_n_main 
+localparam [4:0] N_UNIT_SUB = 5'd8;  // derived: config.dac_n_sub 
+localparam [6:0] N_UNIT_TOTAL = 7'd71;  // derived: dac_n_main + dac_n_sub 
+localparam [9:0] DAC_LEVELS = 10'd512;  // derived: config.dac_levels 
+localparam [0:0] DAC_COMPLETE_RANGE = 1'd1;  // derived: config 
+// ---- 码栅格（唯一真相源，勿在 RTL 内重复推导：ADR 0004） ---- 
+localparam [3:0] B1 = 4'd9;  // derived: config.b1 
+localparam [9:0] STAGE1_LEVELS = 10'd512;  // derived: config.stage1_levels 
+localparam [9:0] N_UNITS_SIG = 10'd512;  // derived: config.n_units_sig 
+localparam [9:0] UNITS_PER_LSB1 = 10'd1;  // derived: config.units_per_lsb1 
+localparam [9:0] UNITS_PER_D1 = 10'd1;  // derived: sadc 
+localparam [9:0] N_UNITS_HEADROOM = 10'd0;  // derived: config 
+localparam [9:0] K0 = 10'd0;  // derived: mapper.encode 
+localparam [4:0] ADC2_BITS = 5'd12;  // derived: config.adc2_n_bits 
+// ---- DEM 状态机与开关置换几何（dem.py 为开关译码主路径） ---- 
+localparam [9:0] DEM_STATES = 10'd512;  // derived: mapper.N_DEM_STATES 
+localparam [31:0] DEM_LCG_A = 32'd2654435761;  // derived: mapper._LCG_A 
+localparam [9:0] DEM_LCG_A_MOD = 10'd433;  // derived: mapper._LCG_A mod mapper.N_DEM_STATES - RTL 只需低位，勿手算 
+localparam [3:0] DEM_ROT_WIDTH = 4'd8;  // derived: dem.py: ceil(sqrt(n_main)) 
+localparam [3:0] DEM_ROT_HEIGHT = 4'd8;  // derived: dem.py: ceil(n_main/width) 
+localparam [4:0] DEM_SUB_ROLL = 5'd8;  // derived: dem.py: sub_order period 
+localparam [0:0] DEM_ENABLE = 1'd0;  // derived: config.dem_enable - 复位默认值；运行时由寄存器覆盖 
+localparam [0:0] DEM_BRIDGE_ENABLE = 1'd1;  // derived: config.dem_bridge_enable - 复位默认值；仅当 DEM_ENABLE 同时为 1 才生效 
+// ---- dither 模式与掩码 ---- 
+localparam [1:0] DITHER_MODE = 2'd0;  // derived: 0 off/1 analog/2 quantizer/3 sampling 
+localparam [3:0] DITHER_UNITS_TOTAL = 4'd0;  // derived: config.dither_units_total 
+localparam [0:0] DITHER_SPLIT_IS_SUB = 1'd1;  // derived: config.dither_split_bank 
+localparam [0:0] DITHER_DISCRETE = 1'd1;  // derived: config.dither_discrete 
+localparam [3:0] DITHER_UNITS_RANGE = 4'd2;  // derived: config.dither_units_range 
+// ---- RTL 专有量 [假设] —— 非模型参数，改动需同步计划与 ADR ---- 
+localparam [5:0] PHASES = 6'd16;  // assumed: RTL 设计选择，见计划 §4.2 
+  // RTL_PARAMS_VH 
+module adc2_dec #(
+    parameter int P_ADC2_BITS = int'(ADC2_BITS)
+) (
+    input  logic [P_ADC2_BITS-1:0]   adc2_code,
+    input  logic signed [V_BITS-1:0] adc2_min_q,
+    input  logic signed [V_BITS-1:0] adc2_max_q,
+    output logic signed [V_BITS-1:0] fine_q,
+    output logic                     ovf
+);
+  localparam int K     = P_ADC2_BITS + 1;
+  localparam int W_MUL = P_ADC2_BITS + 1 + int'(V_BITS) + 1;   // 78：装得下 (2^K)*(|delta| < 2^64) 
+  localparam int W_SUM = W_MUL + 1;                      // 79 
+  logic [K-1:0]            two_c_plus_1;   // 2*code + 1 = {code, 1'b1} 
+  logic signed [V_BITS:0]  delta;          // max - min，65 位 
+  logic signed [W_MUL-1:0] delta_ext;
+  logic signed [W_MUL-1:0] n;
+  logic signed [W_MUL-1:0] q_shift;
+  logic signed [W_MUL-1:0] sh;
+  logic [K-1:0]            r_bits;
+  logic [K-1:0]            half;
+  logic                    inc;
+  logic signed [W_SUM-1:0] sum_wide;
+  logic signed [W_SUM-1:0] min_ext;
+  localparam logic [W_SUM-1:0] V_ONE  = {{(W_SUM-1){1'b0}}, 1'b1};
+  localparam logic [W_SUM-1:0] V_HI_U = V_ONE << (int'(V_BITS) - 1);        // 2^63 
+  localparam logic [W_SUM-1:0] V_LO_U = ~V_HI_U + V_ONE;              // -2^63 
+  localparam logic [W_SUM-1:0] V_MAX_U = V_HI_U - V_ONE;              // 2^63 - 1 
+  assign two_c_plus_1 = {adc2_code, 1'b1};
+  assign delta        = $signed(adc2_max_q) - $signed(adc2_min_q);
+  assign delta_ext    = {{(W_MUL - (int'(V_BITS) + 1)){delta[V_BITS]}}, delta};
+  // n 用**有符号**乘：两个操作数都显式 $signed，避免 P1 的 RTL-3 那类 
+  // "表达式里混进无符号操作数 -> 整条按无符号算"的坑。 
+  assign n = $signed({{(W_MUL - K){1'b0}}, two_c_plus_1}) * delta_ext;
+  assign q_shift = $signed(n) >>> K;
+  assign r_bits  = n[K-1:0];
+  assign half    = {{(K - 1){1'b0}}, 1'b1} << (K - 1);
+  assign inc     = (r_bits > half) || ((r_bits == half) && q_shift[0]);
+  assign sh      = q_shift + {{(W_MUL - 1){1'b0}}, inc};
+  assign min_ext  = {{(W_SUM - int'(V_BITS)){adc2_min_q[V_BITS-1]}}, adc2_min_q};
+  assign sum_wide = min_ext + {{(W_SUM - W_MUL){sh[W_MUL-1]}}, sh};
+  assign ovf     = (sum_wide >= $signed(V_HI_U)) || (sum_wide < $signed(V_LO_U));
+  assign fine_q  = ovf
+                 ? (sum_wide[W_SUM-1] ? V_LO_U[V_BITS-1:0] : V_MAX_U[V_BITS-1:0])
+                 : sum_wide[V_BITS-1:0];
+endmodule
+// Clock-domain control boundaries for the analog macros. These are enables, 
+// not physical non-overlap/level-shifter cells. Implement the shared TP edge 
+// and local series-enable/hold-low FETs in the analog macro (paper Fig9.8.2). 
+// Default 16 ticks/sample is the project's budget, not the published 7ns SAR. 
+module analog_phase_ctrl #(
+    parameter int P_PHASES=16,
+    parameter int P_REF_ON=10,
+    parameter int P_CAPTURE=9
+) (
+    input wire clk,rst_n,enable,
+    output logic [$clog2(P_PHASES)-1:0] phase,
+    output wire quiet_sample, bank_advance, residue_capture,
+    output logic tp_clock, ra_az, ra_amplify, ref_precharge, ref_accurate
+);
+  initial begin
+    if(P_PHASES<16 || P_CAPTURE<9 || P_REF_ON<=P_CAPTURE || P_REF_ON>=P_PHASES)
+      $fatal(1,"analog_phase_ctrl: invalid schedule");
+  end
+  localparam int PW=$clog2(P_PHASES);
+  wire [PW-1:0] next_phase=(int'(phase)==P_PHASES-1)?'0:phase+1'b1;
+  // Never drive an analog switch/clock from a multi-bit counter decoder: 
+  // counter carry skew could otherwise create extra TP edges. Registered 
+  // controls retain a full dead tick between precharge and accurate reference. 
+  always_ff @(posedge clk) begin
+    if(!rst_n || !enable) begin
+      phase<='0;tp_clock<=0;ra_az<=0;ra_amplify<=0;ref_precharge<=0;ref_accurate<=0;
+    end else begin
+      phase<=next_phase;
+      tp_clock<=next_phase!=0;
+      ra_az<=next_phase>=1 && int'(next_phase)<P_CAPTURE;
+      ra_amplify<=int'(next_phase)>=P_REF_ON || next_phase==0;
+      ref_precharge<=next_phase>=2 && int'(next_phase)<P_CAPTURE;
+      ref_accurate<=int'(next_phase)>=P_REF_ON || next_phase==0;
+    end
+  end
+  assign quiet_sample=rst_n && enable && phase==0;
+  assign bank_advance=rst_n && enable && phase==1;
+  assign residue_capture=rst_n && enable && int'(phase)==P_CAPTURE;
+endmodule
+// Registered calibrated output and per-conversion validity. Overflow/gain errors 
+// preserve the last good word; sticky flags cannot silently turn a bad result into 
+// a good one. A configuration cancellation discards both the word and its events. 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module cal_output_stage #(
+    parameter int P_OUT_BITS = int'(OUT_BITS)
+) (
+    input wire clk, rst_n, cfg_ready, clr_ovf, complete,
+    input wire [P_OUT_BITS-1:0] candidate,
+    input wire [31:0] candidate_sample_id,
+    input wire candidate_clip_low, candidate_clip_high,
+    input wire candidate_acc_ovf, candidate_gain_err, candidate_adc2_ovf,
+    output logic [P_OUT_BITS-1:0] dout,
+    output logic dout_valid, clip_low, clip_high,
+    output logic acc_ovf, gain_err, adc2_ovf,
+    output logic [31:0] result_sample_id,
+    output logic [4:0] result_flags
+);
+  always_ff @(posedge clk) begin
+    if (!rst_n) begin
+      dout <= '0;
+      result_sample_id <= '0;
+      result_flags <= '0;
+      dout_valid <= 1'b0;
+      clip_low <= 1'b0;
+      clip_high <= 1'b0;
+      acc_ovf <= 1'b0;
+      gain_err <= 1'b0;
+      adc2_ovf <= 1'b0;
+    end else begin
+      dout_valid <= 1'b0;
+      if (clr_ovf) begin
+        acc_ovf <= 1'b0;
+        gain_err <= 1'b0;
+        adc2_ovf <= 1'b0;
+      end
+      if (cfg_ready && complete) begin
+        dout_valid <= 1'b1;
+        result_sample_id <= candidate_sample_id;
+        result_flags <= {
+          !(candidate_acc_ovf || candidate_gain_err) && candidate_clip_high,
+          !(candidate_acc_ovf || candidate_gain_err) && candidate_clip_low,
+          candidate_adc2_ovf, candidate_gain_err, candidate_acc_ovf};
+        adc2_ovf <= (clr_ovf ? 1'b0 : adc2_ovf) | candidate_adc2_ovf;
+        if (candidate_acc_ovf) acc_ovf <= 1'b1;
+        if (candidate_gain_err) gain_err <= 1'b1;
+        if (!(candidate_acc_ovf || candidate_gain_err)) begin
+          dout <= candidate;
+          clip_low <= candidate_clip_low;
+          clip_high <= candidate_clip_high;
+        end
+      end
+      if (!cfg_ready) begin
+        result_sample_id <= '0;
+        result_flags <= '0;
+        dout <= '0;
+        dout_valid <= 1'b0;
+        clip_low <= 1'b0;
+        clip_high <= 1'b0;
+      end
+    end
+  end
+endmodule
+// Calibrated residue equation and explicit overflow qualification (combinational). 
+// Inputs are one snapshotted physical sample. Denominator/gain must travel with 
+// numerator through the controller; never recompute gain from a newer allocation. 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module cal_residue_mac #(
+    parameter int SUM_BITS = 64
+) (
+    input wire signed [V_BITS-1:0] fine_r, off_r, inj_r,
+    input wire [SUM_BITS-1:0] gain_s, total_s,
+    input wire signed [SUM_BITS+1:0] rails_s,
+    output wire [int'(ACC_BITS)-int'(V_FRAC)-2:0] a1,
+    output logic any_ovf
+);
+  localparam int W_RAIL   = SUM_BITS + 2;                // |rails| <= 3*2^60 < 2^62 
+  localparam int W_OP3    = SUM_BITS + int'(V_BITS) + 2;       // 130：total * inj_q 
+  localparam int W_WIDE   = W_OP3 + 2;                   // 132：受检操作数的精确宽度 
+  localparam int W_S1     = int'(ACC_BITS) + 1;                // 97 
+  localparam int W_SHIFT  = int'(ACC_BITS) + int'(OUT_BITS) + 1;     // 117 
+  localparam int W_A      = int'(ACC_BITS) - (int'(V_FRAC) + 1);     // 63：shifted >>> 33 
+  localparam int W_TOP    = W_SHIFT - int'(ACC_BITS) + 1;      // 22：shifted[116:95] 
+  localparam logic [W_WIDE-1:0] LIM_ONE  = {{(W_WIDE-1){1'b0}}, 1'b1};
+  localparam logic [W_WIDE-1:0] LIM_HI_U = LIM_ONE << (int'(ACC_BITS) - 1);
+  localparam logic [W_WIDE-1:0] LIM_LO_U = ~LIM_HI_U + LIM_ONE;
+  localparam logic [SUM_BITS-1:0] GAIN_MAX = {{(SUM_BITS-1){1'b0}}, 1'b1}
+                                             << (int'(ACC_BITS) - 1 - (int'(V_FRAC) + 1));
+  logic signed [V_BITS:0]     diff;
+  logic signed [W_WIDE-1:0]   op1, op2, op3, num;
+  logic signed [W_OP3-1:0]    op3_w;
+  logic signed [W_WIDE-1:0]   rails_ext;
+  logic signed [W_S1-1:0]     gv, s1;
+  logic signed [W_SHIFT-1:0]  shifted;
+  logic [W_TOP-1:0]           shifted_top;
+  logic                       bad_op1, bad_op2, bad_op3, bad_num, bad_den;
+  logic                       shifted_ok;
+  assign diff = $signed(fine_r) - $signed(off_r);
+  assign op1  = $signed({{(W_WIDE - (int'(V_BITS) + 1)){diff[V_BITS]}}, diff}) <<< W_FRAC;
+  assign rails_ext = {{(W_WIDE - W_RAIL){rails_s[W_RAIL-1]}}, rails_s};
+  assign op2       = rails_ext <<< V_FRAC;
+  // total 是**无符号**量：先显式零扩展到 W_OP3 再乘，避免"混一个无符号操作数 
+  // 就让整条表达式按无符号算"（P1 的 RTL-3）。 
+  assign op3_w = $signed({{(W_OP3-SUM_BITS){1'b0}}, total_s}) * $signed(inj_r);
+  assign op3   = {{(W_WIDE - W_OP3){op3_w[W_OP3-1]}}, op3_w};
+  assign num = op1 - op2 - op3;
+  assign bad_op1 = (op1 >= $signed(LIM_HI_U)) || (op1 < $signed(LIM_LO_U));
+  assign bad_op2 = (op2 >= $signed(LIM_HI_U)) || (op2 < $signed(LIM_LO_U));
+  assign bad_op3 = (op3 >= $signed(LIM_HI_U)) || (op3 < $signed(LIM_LO_U));
+  assign bad_num = (num >= $signed(LIM_HI_U)) || (num < $signed(LIM_LO_U));
+  assign bad_den = (gain_s >= GAIN_MAX);
+  assign gv      = $signed({{(W_S1 - SUM_BITS){1'b0}}, gain_s}) <<< V_FRAC;
+  assign s1      = $signed(num[W_S1-1:0]) + gv;
+  assign shifted = $signed({{(W_SHIFT - W_S1){s1[W_S1-1]}}, s1}) <<< OUT_BITS;
+  // A1 = shifted >>> 33，取其低 W_A 位即精确值（前提：shifted 检查已通过）。 
+  assign a1          = shifted[W_A-1+(int'(V_FRAC)+1) : int'(V_FRAC)+1];
+  assign shifted_top = shifted[W_SHIFT-1:int'(ACC_BITS)-1];
+  always_comb begin
+    // 位 116..95 全 0  =>  0 <= shifted < 2^95 
+    // 位 116..95 全 1  =>  -2^95 <= shifted < 0 
+    shifted_ok = (shifted_top == {W_TOP{1'b0}}) || (&shifted_top);
+    any_ovf    = bad_op1 | bad_op2 | bad_op3 | bad_num | bad_den | (!shifted_ok);
+  end
+endmodule
+// Two distinct sample contexts: the current RDAC residue and the previous 
+// residue now held by ADC2. Capture physical switch decisions, not live DEM 
+// state or current bank identity. Coefficients are locked for the entire epoch. 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module cal_sample_context (
+    input wire clk,rst_n,enable,residue_capture,quiet_sample,current_valid,
+    input wire [31:0] current_id,
+    input wire [N_ACTIVE-1:0][4:0] current_slices,
+    input wire [N_ACTIVE-1:0][N_UNIT_MAIN-1:0] current_main,
+    input wire [N_ACTIVE-1:0][N_UNIT_SUB-1:0] current_sub,
+    input wire [2*DITHER_UNITS_RANGE-1:0] current_rails,
+    input wire current_sampling,
+    input wire signed [63:0] current_injection,
+    input wire analog_bad,current_bad,
+    output logic fine_valid,
+    output logic [31:0] fine_id,
+    output logic [N_ACTIVE-1:0][4:0] fine_slices,
+    output logic [N_ACTIVE-1:0][N_UNIT_MAIN-1:0] fine_main,
+    output logic [N_ACTIVE-1:0][N_UNIT_SUB-1:0] fine_sub,
+    output logic [2*DITHER_UNITS_RANGE-1:0] fine_rails,
+    output logic fine_sampling,fine_analog_bad,
+    output logic signed [63:0] fine_injection
+);
+  // Packed packet layout is local; named ports preserve independent debug. 
+  localparam int CW=32+int'(N_ACTIVE)*(5+int'(N_UNIT_MAIN)+int'(N_UNIT_SUB))+
+                    2*int'(DITHER_UNITS_RANGE)+1+64;
+  logic [CW-1:0] residue;
+  logic residue_valid,residue_bad;
+  always_ff @(posedge clk) begin
+    if(!rst_n || !enable) begin
+      residue<='0;residue_valid<=0;residue_bad<=0;fine_valid<=0;fine_id<='0;
+      fine_slices<='0;fine_main<='0;fine_sub<='0;fine_rails<='0;
+      fine_sampling<=0;fine_injection<='0;fine_analog_bad<=0;
+    end else begin
+      if(residue_capture) begin
+        residue_valid<=current_valid;residue_bad<=current_bad;
+        residue<={current_id,current_slices,current_main,current_sub,
+                  current_rails,current_sampling,current_injection};
+      end
+      if(quiet_sample) begin
+        fine_valid<=residue_valid;
+        {fine_id,fine_slices,fine_main,fine_sub,fine_rails,fine_sampling,fine_injection}<=residue;
+        fine_analog_bad<=analog_bad || residue_bad;
+        residue_valid<=0;
+      end
+    end
+  end
+endmodule
+// Physical-cell weighted correction terms. No quantizer truth, floating point, 
+// or fitted analog state is accessible here. Coefficients are supplied by the 
+// committed physical slice/unit store; caller snapshots these sums with a sample. 
+// Paper [00] specifies externally derived weights corrected on chip; this exact 
+// Q30/Q32 arithmetic realization is an engineering implementation (ADR 0014). 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module cal_weight_reduce #(
+    parameter int P_N_ACTIVE = int'(N_ACTIVE),
+    parameter int P_N_MAIN = int'(N_UNIT_MAIN),
+    parameter int P_N_SUB = int'(N_UNIT_SUB),
+    parameter int P_N_SLICES = int'(N_SLICES),
+    parameter int P_DIT_N = 2*int'(DITHER_UNITS_RANGE),
+    parameter int P_DIT_END = int'(N_UNIT_TOTAL),
+    // Direct coefficient-only users retain the uncached interface behavior. 
+    // The production top supplies exact configuration-time row totals. 
+    parameter bit P_USE_ROW_TOTALS = 0,
+    parameter int SUM_BITS = 64,
+    parameter int W_RAIL = SUM_BITS+2
+) (
+    input wire sampling_mask_en,
+    input wire [P_N_ACTIVE-1:0][4:0] slice_id,
+    input wire [P_N_ACTIVE-1:0][P_N_MAIN-1:0] main_on,
+    input wire [P_N_ACTIVE-1:0][P_N_SUB-1:0] sub_on,
+    input wire [P_DIT_N-1:0] dither_rail,
+    input wire [P_N_SLICES-1:0][P_N_MAIN+P_N_SUB-1:0][W_BITS-1:0] w_rom,
+    input wire [P_N_SLICES-1:0][SUM_BITS-1:0] row_total,
+    output wire [SUM_BITS-1:0] sum_W,
+    output wire [SUM_BITS-1:0] sum_Wa,
+    output wire signed [W_RAIL-1:0] rails,
+    output logic invalid_slice
+);
+  localparam int N_U = P_N_MAIN+P_N_SUB;
+  localparam int DIT_BEG = P_DIT_END-P_DIT_N;
+  localparam int N_TERMS = P_N_SLICES * N_U;
+  localparam int TREE_LEAVES = 1 << $clog2(N_TERMS);
+  localparam int COL_LEAVES = 1 << $clog2(P_N_SLICES);
+  localparam int MASK_LEAVES = 1 << $clog2(P_DIT_N);
+  // Module-scope edges avoid Vivado 2018.3's undriven forward-generate nodes. 
+  // Every read/write index is an elaboration-time constant. split_var tells 
+  // the simulator to analyze each edge separately; it is not a warning waiver. 
+  wire [SUM_BITS-1:0] total_tree [1:2*TREE_LEAVES-1] /* verilator split_var */ ;
+  wire [SUM_BITS-1:0] on_tree [1:2*TREE_LEAVES-1] /* verilator split_var */ ;
+  wire [SUM_BITS-1:0] column_tree [0:P_DIT_N-1][1:2*COL_LEAVES-1] /* verilator split_var */ ;
+  wire [SUM_BITS-1:0] mask_tree [1:2*MASK_LEAVES-1] /* verilator split_var */ ;
+  wire signed [W_RAIL-1:0] rail_tree [1:2*MASK_LEAVES-1] /* verilator split_var */ ;
+  wire [SUM_BITS-1:0] row_tree [1:2*COL_LEAVES-1] /* verilator split_var */ ;
+  assign sum_W = P_USE_ROW_TOTALS ? row_tree[1] : total_tree[1];
+  wire [SUM_BITS-1:0] mask_total = mask_tree[1];
+  assign sum_Wa = sampling_mask_en ? (sum_W - mask_total) : sum_W;
+  wire [SUM_BITS-1:0] sum_Won = on_tree[1];
+  wire signed [W_RAIL-1:0] sum_Wr = sampling_mask_en ? rail_tree[1] : '0;
+  initial begin
+    if (P_N_ACTIVE < 1 || P_N_MAIN < 1 || P_N_SUB < 1 ||
+        P_N_SLICES < P_N_ACTIVE || P_N_SLICES > 32 || P_DIT_N < 1 || DIT_BEG < 0 ||
+        SUM_BITS < int'(W_BITS)+$clog2(N_TERMS) || W_RAIL != SUM_BITS+2)
+      $fatal(1, "cal_weight_reduce: unsupported dimensions");
+  end
+  always_comb begin
+    invalid_slice = sampling_mask_en && (P_DIT_END > N_U);
+    for (int a = 0; a < P_N_ACTIVE; a++)
+      invalid_slice |= (int'(slice_id[a]) >= P_N_SLICES);
+    for (int a = 0; a < P_N_ACTIVE; a++)
+      for (int b = 0; b < a; b++)
+        invalid_slice |= (slice_id[a] == slice_id[b]);
+  end
+  // Move the narrow switch mask to its physical row, rather than selecting 
+  // 48-bit coefficient buses through eight independent 18:1 crossbars. 
+  // Every coefficient is statically wired to its own physical unit. This trades 
+  // more zero-gated adder leaves for substantially narrower selection wiring; 
+  // mapped area/timing still require a target-library synthesis comparison. 
+  logic [P_N_SLICES-1:0] active;
+  logic [P_N_SLICES-1:0][N_U-1:0] physical_on;
+  always_comb begin
+    active='0;physical_on='0;
+    for(int s=0;s<P_N_SLICES;s++) begin
+      for(int a=0;a<P_N_ACTIVE;a++) begin
+        if(slice_id[a]==5'(s)) begin
+          active[s]=1'b1;
+          physical_on[s] |= {sub_on[a],main_on[a]};
+        end
+      end
+    end
+  end
+  // Only the physical-row active mask changes per sample. Coefficients remain 
+  // fixed during conversions, so the loader can cache each row's exact sum. 
+  // Duplicate IDs still activate a physical row once. No pipeline stage is added. 
+  for (genvar t=1;t<2*COL_LEAVES;t++) begin:g_row_tree
+    if (!P_USE_ROW_TOTALS) begin:g_unused
+      assign row_tree[t]='0;
+    end else if (t<COL_LEAVES) begin:g_branch
+      assign row_tree[t]=row_tree[2*t]+row_tree[2*t+1];
+    end else if (t-COL_LEAVES<P_N_SLICES) begin:g_leaf
+      localparam int S=t-COL_LEAVES;
+      assign row_tree[t]=active[S] ? row_total[S] : '0;
+    end else begin:g_padding
+      assign row_tree[t]='0;
+    end
+  end
+  // The acquisition dither rail for unit J is shared across every active slice. 
+  // C[J] = sum_s W[s,J]; M = sum_J C[J]. Factor the sign AFTER each column: 
+  // gain = sampling ? total-M : total; Wr = sampling ? sum_J sign[J]*C[J] : 0. 
+  // All coefficients enter as unsigned bit patterns. M is a subset of total, 
+  // and the width guard above bounds both exactly, including invalid-ID inputs. 
+  // Production 18x4 dither cells need 4 conditional negations instead of 72. 
+  // No registers, narrowed operands, configuration state, or latency are added. 
+  for (genvar j=0;j<P_DIT_N;j++) begin:g_col
+    localparam int U=DIT_BEG+j;
+    for (genvar t=1;t<2*COL_LEAVES;t++) begin:g_sum
+      if(t<COL_LEAVES) begin:g_branch
+        assign column_tree[j][t]=column_tree[j][2*t]+column_tree[j][2*t+1];
+      end else if(t-COL_LEAVES<P_N_SLICES && U<N_U) begin:g_leaf
+        localparam int S=t-COL_LEAVES;
+        // Reuse the exact physical leaf; do not add a second coefficient selector. 
+        assign column_tree[j][t]=total_tree[TREE_LEAVES+S*N_U+U];
+      end else begin:g_padding
+        assign column_tree[j][t]='0;
+      end
+    end
+  end
+  for (genvar t=1;t<2*MASK_LEAVES;t++) begin:g_mask_tree
+    if(t<MASK_LEAVES) begin:g_branch
+      assign mask_tree[t]=mask_tree[2*t]+mask_tree[2*t+1];
+      assign rail_tree[t]=rail_tree[2*t]+rail_tree[2*t+1];
+    end else if(t-MASK_LEAVES<P_DIT_N) begin:g_leaf
+      localparam int J=t-MASK_LEAVES;
+      wire signed [W_RAIL-1:0] signed_column=$signed({{(W_RAIL-SUM_BITS){1'b0}},column_tree[J][1]});
+      assign mask_tree[t]=column_tree[J][1];
+      assign rail_tree[t]=dither_rail[J] ? signed_column : -signed_column;
+    end else begin:g_padding
+      assign mask_tree[t]='0;
+      assign rail_tree[t]='0;
+    end
+  end
+  // Tree nodes refer to predeclared net elements, never later generate scopes. 
+  for (genvar t = 1; t < 2*TREE_LEAVES; t++) begin : g_node
+    if (t < TREE_LEAVES) begin : g_branch
+      if (P_USE_ROW_TOTALS) begin:g_cached
+        // Leaves remain live: the dither-column tree reuses them below. 
+        assign total_tree[t] = '0;
+      end else begin:g_uncached
+        assign total_tree[t] = total_tree[2*t] + total_tree[2*t+1];
+      end
+      assign on_tree[t] = on_tree[2*t] + on_tree[2*t+1];
+    end else if (t-TREE_LEAVES < N_TERMS) begin : g_leaf
+      localparam int S = (t-TREE_LEAVES) / N_U;
+      localparam int U = (t-TREE_LEAVES) % N_U;
+      wire [W_BITS-1:0] weight = active[S] ? w_rom[S][U] : '0;
+      wire [SUM_BITS-1:0] extended = {{(SUM_BITS-int'(W_BITS)){1'b0}}, weight};
+      assign total_tree[t] = extended;
+      assign on_tree[t] = physical_on[S][U] ? extended : '0;
+    end else begin : g_padding
+      assign total_tree[t] = '0;
+      assign on_tree[t] = '0;
+    end
+  end
+  assign rails = $signed({2'b0, sum_W}) - $signed({1'b0, sum_Won, 1'b0}) + sum_Wr;
+endmodule
+//=========================================================================== 
+// calib_regs.sv -- 标定系数寄存器 + 合法性校验 + cfg_ready 
+//=========================================================================== 
+// 职责一句话 
+//   保存 offset_q / adc2_min_q / adc2_max_q 三个 Q32 电压系数与 dem_en / 
+//   bridge_en / sampling_mask_en / quantizer_dither_en 四个控制位；接受 `validate` 脉冲做合法性校验， 
+//   通过才把 `cfg_ready` 拉高；`clear_valid` 撤销生效状态以便重载。 
+//   本模块**不做**权重存储（weight_store 的事）也不做任何算术。 
+// 来源 
+//   docs/rtl/P2_INTERFACE.md §9（M13）；rtl/README.md §3.2； 
+//   docs/rtl/RTL_ARITHMETIC_CONTRACT.md §4.3 / §5； 
+//   adi_model/fixed_point.FixedPointReconstructor.__post_init__ 的校验口径。 
+//   寄存器镜像字段名对齐 sim/vectors/registers_*.json。 
+// 单位契约 
+//   电压系数一律为"归一化到 Vfs"的 Q32 有符号整数（V_BITS = 64）。 
+//   四个控制位为 0/1。 
+// 参数来源分级 
+//   P_ADC2_BITS 默认取自 rtl_params.vh（[披露]）。本模块**不消费**该参数 —— 
+//   它是冻结接口的一部分（P2 §9），为的是让调用方不必记忆"哪些模块需要它"。 
+//   控制位的复位默认值取头文件的 DEM_ENABLE / DEM_BRIDGE_ENABLE（[推导]）。 
+// 契约与不变量 / 适用域 
+//   * 读写窗口（P2 §9 表）：`cfg_ready = 0` 且 `wr_en` -> 写入生效； 
+//     `cfg_ready = 1` 且 `wr_en` -> 写入被忽略、`err_code = ERR_CFG_WRITE`。 
+//   * validate 仅在无写入、无 config_busy、权重与三标量完整时提交（ADR 0016）。 
+//     通过则 `cfg_ready <= 1` 且 `err_code <= 0`； 
+//     失败则 `cfg_ready <= 0` 且 `err_code` 置为对应错误码。 
+//   * `clear_valid = 1` -> cfg_ready 与 scalar_written 清零（要求完整重载）。它与 `validate` 同拍时 
+//     **clear 胜**（撤销优先于生效）。 
+//   * **DEM 陷阱（P1 §0.2）**：`DEM_ENABLE`（头文件）是**复位默认值 0**，而 
+//     `DEM_BRIDGE_ENABLE` 是 1。看起来"桥接开着"，实际 DEM 不工作。这是**故意的**： 
+//     运行时必须由软件写 `sel = 3, data_b = 1` 把 dem_en 打开。任何"忘了打开"的 
+//     联调都会安静地退化（全绿但什么都没覆盖）。 
+//   * **如实登记：`ERR_V_RANGE` 在本模块内不可能触发。** 三个电压系数的端口宽度 
+//     恰为 V_BITS 位有符号，`[-2^63, 2^63)` 是**类型系统保证**的，RTL 里不存在 
+//     可观测的越界输入，加一个恒假的比较器只会浪费面积并制造"检查过了"的假象。 
+//     该检查在**回读/载入工具**一侧（JSON 解析）落地。同理 `ERR_W_RANGE` / 
+//     `ERR_W_SUM` 属于权重检查，而本模块的冻结端口表没有权重输入，故由 
+//     weight_store 在写入点守卫（见其模块头）。错误编码见 rtl_error_codes.vh。 
+//   * `err_code` 是**寄存器**（保存最近一次错误），不是脉冲；成功 validate 会清它。 
+//=========================================================================== 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module calib_regs #(
+    parameter int P_ADC2_BITS = int'(ADC2_BITS)
+) (
+    input  logic                      clk,
+    input  logic                      rst_n,
+    input  logic                      wr_en,        // 一拍脉冲 
+    input  logic [3:0]                sel,          // 0 offset_q / 1 adc2_min_q / 2 adc2_max_q 
+                                                   // 3 dem_en / 4 bridge_en / 5 sampling_mask_en 
+    input  logic signed [V_BITS-1:0]  data_v,       // sel <= 2 用 
+    input  logic                      data_b,       // sel >= 3 用 
+    input  logic                      controls_write, // atomic update of the four control bits 
+    input  logic [3:0]                controls_data,
+    output logic                      quantizer_dither_en,
+    input  logic                      weights_ready, // all weights written in this load epoch 
+    input  logic                      config_busy,   // top-level write/serialization/in-flight work 
+    input  logic                      validate,     // 一拍脉冲：跑合法性校验 
+    input  logic                      clear_valid,  // 一拍脉冲：撤销 cfg_ready 
+    output logic                      cfg_ready,
+    output logic [31:0]               err_code,
+    output logic signed [V_BITS-1:0]  offset_q,
+    output logic signed [V_BITS-1:0]  adc2_min_q,
+    output logic signed [V_BITS-1:0]  adc2_max_q,
+    output logic                      dem_en,
+    output logic                      bridge_en,
+    output logic                      sampling_mask_en
+);
+   // Static interface constants, independent of generated rtl_params.vh. 
+// Include INSIDE each module: intentionally no global include guard because 
+// these localparams belong to each module scope. 
+localparam logic [31:0] ERR_NONE          = 32'd0;
+localparam logic [31:0] ERR_W_RANGE       = 32'd1;
+localparam logic [31:0] ERR_W_SUM         = 32'd2;
+localparam logic [31:0] ERR_RANGE_EMPTY   = 32'd3;
+localparam logic [31:0] ERR_V_RANGE       = 32'd4;
+localparam logic [31:0] ERR_CFG_WRITE     = 32'd5;
+localparam logic [31:0] ERR_INCOMPLETE    = 32'd6;
+localparam logic [31:0] ERR_SADC_NOT_READY = 32'd7;
+localparam logic [31:0] ERR_ADC2_NOT_READY = 32'd8;
+localparam logic [31:0] ERR_RECON_BUSY    = 32'd9;
+localparam logic [31:0] ERR_DITHER_MODE   = 32'd10;
+localparam logic [31:0] ERR_RDAC_RANGE    = 32'd11;
+  logic [2:0] scalar_written;
+  logic signed [V_BITS-1:0] off_r, min_r, max_r;
+  logic                     dem_r, brg_r, smk_r, qdith_r;
+  assign offset_q         = off_r;
+  assign adc2_min_q       = min_r;
+  assign adc2_max_q       = max_r;
+  assign dem_en           = dem_r;
+  assign bridge_en        = brg_r;
+  assign sampling_mask_en = smk_r;
+  assign quantizer_dither_en = qdith_r;
+  always_ff @(posedge clk) begin
+    if (!rst_n) begin
+      off_r     <= {V_BITS{1'b0}};
+      min_r     <= {V_BITS{1'b0}};
+      max_r     <= {V_BITS{1'b0}};
+      dem_r     <= DEM_ENABLE[0];          // 复位默认 = 0（故意的，见模块头 DEM 陷阱） 
+      brg_r     <= DEM_BRIDGE_ENABLE[0];   // 复位默认 = 1 
+      qdith_r   <= (DITHER_MODE == 2);
+      smk_r     <= (DITHER_MODE == 3);
+      cfg_ready <= 1'b0;
+      err_code  <= ERR_NONE;
+      scalar_written <= 3'b000;
+    end else begin
+      // An epoch starts at reset/clear. Commit and writes are mutually 
+      // exclusive; never validate old values and accept new ones on one edge. 
+      if (clear_valid) begin
+        cfg_ready <= 1'b0;
+        scalar_written <= 3'b000;
+        err_code <= ERR_NONE;
+      end else if (validate) begin
+        if (wr_en || controls_write || config_busy) begin
+          err_code <= ERR_CFG_WRITE; // reject commit, preserve active config 
+        end else if (smk_r && qdith_r) begin
+          cfg_ready <= 1'b0;
+          err_code <= ERR_DITHER_MODE;
+        end else if (!($signed(min_r) < $signed(max_r))) begin
+          cfg_ready <= 1'b0;
+          err_code <= ERR_RANGE_EMPTY;
+        end else if (!weights_ready || !(&scalar_written)) begin
+          cfg_ready <= 1'b0;
+          err_code <= ERR_INCOMPLETE;
+        end else begin
+          cfg_ready <= 1'b1;
+          err_code <= ERR_NONE;
+        end
+      end else if (controls_write) begin
+        if (cfg_ready || wr_en) err_code <= ERR_CFG_WRITE;
+        else {qdith_r, smk_r, brg_r, dem_r} <= controls_data;
+      end else if (wr_en) begin
+        if (cfg_ready) begin
+          err_code <= ERR_CFG_WRITE;
+        end else begin
+          case (sel)
+            4'd0: begin off_r <= data_v; scalar_written[0] <= 1'b1; end
+            4'd1: begin min_r <= data_v; scalar_written[1] <= 1'b1; end
+            4'd2: begin max_r <= data_v; scalar_written[2] <= 1'b1; end
+            4'd3: dem_r <= data_b;
+            4'd4: brg_r <= data_b;
+            4'd5: smk_r <= data_b;
+            default: err_code <= ERR_CFG_WRITE;
+          endcase
+        end
+      end
+    end
+  end
+endmodule
+//=========================================================================== 
+// ctrl_fsm.sv -- 相位节拍生成 + 流水控制脉冲 
+//=========================================================================== 
+// 职责一句话 
+//   产生 16 拍一循环的相位节拍（one-hot 与二进制各一份），并在指定相位输出 
+//   sample_en / sadc_latch / dem_advance / rdac_load / adc2_latch / recon_start 
+//   六个单拍脉冲，同时维护样本序号。 
+//   本模块**不做**任何数据通路运算，只是一个节拍源。 
+// 来源 
+//   docs/rtl/P2_INTERFACE.md §7 的相位分配表（PHASES = 16，RTL 设计选择 [假设]）： 
+//       0     新样本；sample_en、slice_alloc 推进 
+//       0-6   采集/跟踪（acq_phase 为高） 
+//       7     采样沿 t1（无脉冲输出） 
+//       8     SADC 判决编码（sadc_latch） 
+//       9     保留 
+//       10    DEM 状态推进 + k 合并（dem_advance） 
+//       11    RDAC 置位（rdac_load） 
+//       12-14 RA 建立 + ADC2 采样量化；14 为 adc2_latch 
+//       15    后端译码 + 定点重构（recon_start） 
+// 单位契约 
+//   无量纲。phase ∈ [0, P_PHASES)；sample_idx 为已发出的 sample_en 脉冲数。 
+// 参数来源分级 
+//   P_PHASES 默认取自 rtl_params.vh 的 PHASES（[假设] —— RTL 设计选择，不是模型参数）。 
+//   允许重例化是为了让 L2/L3 TB 能换相位预算验证"固定延迟"口径。 
+// 契约与不变量 / 适用域 
+//   * **cfg_ready = 0 时**：phase 恒 0，**所有脉冲恒 0**（含 sample_en）—— 
+//     即"未配置时不产生任何转换节拍"。这是 §7 明文要求的不变量。 
+//   * `run = 0`（已配置但未启动）时同样回到 phase 0 且不发脉冲；重新拉高 run 会从 
+//     相位 0 重新开始一个样本周期。这属适用域内的行为，如实登记。 
+//   * `sample_idx` 只在相位 0 且推进使能时递增（一个样本恰好加 1）。 
+//   * 脉冲宽度恰为 1 拍：相位寄存器的每个取值每 16 拍出现一次，脉冲是相位的 
+//     纯组合译码，故不会出现"宽脉冲"。 
+//   * 本模块与 slice_alloc 各自维护一个 sample_idx，两者在相位 0 同拍递增， 
+//     因此逐拍相等（由 TB 断言）。 
+//=========================================================================== 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module ctrl_fsm #(
+    parameter int P_PHASES = int'(PHASES)          // = 16 
+) (
+    input  logic                        clk,
+    input  logic                        rst_n,
+    input  logic                        cfg_ready,
+    input  logic                        run,             // 高 = 连续转换 
+    output logic [P_PHASES-1:0]         phase_onehot,    // 相位节拍（one-hot） 
+    output logic [$clog2(P_PHASES)-1:0] phase,
+    output logic                        sample_en,       // 相位 0 的脉冲 = 新样本 
+    output logic                        acq_phase,       // 相位 0..6 为高：采集/跟踪 
+    output logic                        sadc_latch,      // 相位 8 
+    output logic                        dem_advance,     // 相位 10 
+    output logic                        rdac_load,       // 相位 11 
+    output logic                        adc2_latch,      // 相位 14 
+    output logic                        recon_start,     // 相位 15 
+    output logic [31:0]                 sample_idx
+);
+  initial begin
+    if (P_PHASES < 16) $fatal(1, "ctrl_fsm: phase 15 must exist");
+  end
+  localparam int PW = $clog2(P_PHASES);    // 4 
+  localparam logic [PW-1:0] PH_LAST = PW'(P_PHASES - 1);
+  localparam logic [PW-1:0] PH_ACQ_END = PW'(6);
+  logic [PW-1:0] ph;
+  logic          adv;                       // 节拍推进使能 
+  assign adv   = rst_n && cfg_ready && run;
+  assign phase = ph;
+  always_ff @(posedge clk) begin
+    if (!rst_n) begin
+      ph <= {PW{1'b0}};
+    end else if (!cfg_ready) begin
+      ph <= {PW{1'b0}};                     // 未配置：恒 0（§7 不变量） 
+    end else if (run) begin
+      ph <= (ph == PH_LAST) ? {PW{1'b0}}
+                            : ph + {{(PW-1){1'b0}}, 1'b1};
+    end else begin
+      ph <= {PW{1'b0}};                     // 已配置但未启动：空转在相位 0 
+    end
+  end
+  always_ff @(posedge clk) begin
+    if (!rst_n) begin
+      sample_idx <= 32'd0;
+    end else if (adv && (ph == {PW{1'b0}})) begin
+      sample_idx <= sample_idx + 32'd1;
+    end
+  end
+  always_comb begin
+    sample_en    = adv && (ph == {PW{1'b0}});
+    acq_phase    = adv && (ph <= PH_ACQ_END);
+    sadc_latch   = adv && (ph == PW'(8));
+    dem_advance  = adv && (ph == PW'(10));
+    rdac_load    = adv && (ph == PW'(11));
+    adc2_latch   = adv && (ph == PW'(14));
+    recon_start  = adv && (ph == PW'(15));
+    phase_onehot = adv ? ({{(P_PHASES-1){1'b0}}, 1'b1} << ph)
+                       : {P_PHASES{1'b0}};
+  end
+endmodule
+//=========================================================================== 
+// dem_addr_gen.sv -- DEM 状态 -> 每个物理地址的逻辑位置 
+//=========================================================================== 
+// 职责一句话 
+//   把 sid 解成一个"物理地址 -> 逻辑位置"的映射，供 unit_therm 做温度计比较。 
+//   本模块**不做**温度计展开、不做计数（那是 unit_therm 的事）。 
+// 来源 
+//   adi_model/dem.split_switch_command() 的 `order` 数组（**开关译码主路径**）， 
+//   以及 adi_model/weight_calibration._terms() 消费它的方式： 
+//       plus[..., order] = take,  take[i] = 1 iff i < count 
+//   即"物理地址 order[i] 被打开  <=>  逻辑位置 i < count"。 
+//   RTL 需要的是**反向**映射 j(p)，于是 on[p] = (j(p) < count)。 
+// 单位契约 
+//   无量纲整数。main_logical[p] ∈ [0, N_MAIN)、sub_logical[q] ∈ [0, N_SUB)。 
+// 参数来源分级 
+//   N_MAIN / N_SUB / W_ROT / H_ROT 由 rtl_params.vh 给出（[推导]）； 
+//   闭式变换的等价性由 sim/ref/dem_closed_form.py 与 P1 向量穷举证明。 
+// 契约与不变量 / 适用域 
+//   * 闭式（已穷举验证：512 sid x 71 地址，0 失配）： 
+//       ch = sid mod W_ROT;  rh = (sid / W_ROT) mod H_ROT;  sh = sid / (W_ROT*H_ROT) 
+//       i* = ((H_ROT-1-rh) mod H_ROT)*W_ROT + ((W_ROT-1-ch) mod W_ROT)   // 唯一被过滤掉的 cell 
+//       cell(p) = ((p / W_ROT - rh) mod H_ROT)*W_ROT + ((p mod W_ROT - ch) mod W_ROT) 
+//       j(p)    = cell(p) - (cell(p) > i* ? 1 : 0) 
+//       j_sub(q) = (q - sh) mod N_SUB 
+//   * **适用域**：要求 W_ROT 与 H_ROT 都是 2 的幂（本拓扑 8/8）， 
+//     故 rh/ch/sh 可用位切片实现；且要求 H_ROT*W_ROT == 64 时 i* 的 "唯一被过滤 cell" 
+//     前提成立。换拓扑必须重新验证 —— 生成器 export_rtl_vectors.py 会直接拒绝。 
+//   * 不变量：cell(p) != i*，对全部 p ∈ [0, N_MAIN) 成立（否则说明拓扑前提被破坏）。 
+//   * 纯组合，延迟 0。 
+//=========================================================================== 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module dem_addr_gen #(
+    parameter int N_MAIN = int'(N_UNIT_MAIN),
+    parameter int N_SUB  = int'(N_UNIT_SUB),
+    parameter int W_ROT  = int'(DEM_ROT_WIDTH),
+    parameter int H_ROT  = int'(DEM_ROT_HEIGHT)
+) (
+    input  logic [8:0]             sid,
+    output logic [N_MAIN-1:0][5:0] main_logical,
+    output logic [N_SUB-1:0][2:0]  sub_logical
+);
+  initial begin
+    if (N_MAIN != 63 || N_SUB != 8 || W_ROT != 8 || H_ROT != 8)
+      $fatal(1, "dem_addr_gen: only the verified 63/8, 8x8 topology is supported");
+  end
+  localparam int LW = $clog2(W_ROT);  // 3 
+  localparam int LH = $clog2(H_ROT);  // 3 
+  localparam int LS = 9 - LW - LH;    // 3 
+  logic [LW-1:0] ch;
+  logic [LH-1:0] rh;
+  logic [LS-1:0] sh;
+  assign ch = sid[LW-1:0];
+  assign rh = sid[LW+:LH];
+  assign sh = sid[LW+LH+:LS];
+  // 唯一被 order < N_MAIN 过滤掉的 cell（对应 order 值 = W_ROT*H_ROT-1） 
+  logic [LW+LH-1:0] i_star;
+  // cell = {row, col}，故**低位是列、高位是行**。早先把两半写反了， 
+  // 结果是 i* 与真实的被过滤 cell 差了 (row,col) 互换后的位置， 
+  // 只在 cell 落在两者之间时表现成差 1 —— P1 向量把它抓了出来。 
+  assign i_star[LW-1:0]    = (LW'(W_ROT - 1) - LW'(ch)) & LW'({LW{1'b1}});
+  assign i_star[LW+LH-1:LW] = (LH'(H_ROT - 1) - LH'(rh)) & LH'({LH{1'b1}});
+  genvar p;
+  generate
+    for (p = 0; p < N_MAIN; p++) begin : g_main
+      localparam int P_ROW = p / W_ROT;
+      localparam int P_COL = p % W_ROT;
+      logic [LH-1:0] row_rot;
+      logic [LW-1:0] col_rot;
+      logic [5:0]    cell_idx;
+      assign row_rot = (LH'(P_ROW) - rh) & LH'({LH{1'b1}});
+      assign col_rot = (LW'(P_COL) - ch) & LW'({LW{1'b1}});
+      assign cell_idx = {row_rot, col_rot};
+      assign main_logical[p] = cell_idx - 6'(cell_idx > i_star);
+    end
+  endgenerate
+  genvar q;
+  generate
+    for (q = 0; q < N_SUB; q++) begin : g_sub
+      assign sub_logical[q] = (3'(q) - 3'(sh)) & 3'h7;
+    end
+  endgenerate
+endmodule
+//=========================================================================== 
+// dem_state_gen.sv -- 按 bank 独立推进的确定性 DEM 状态序列 
+//=========================================================================== 
+// 职责一句话 
+//   产生每个 bank 的 DEM 状态索引 sid，序列**逐项等于** Python 模型的 
+//   `sid(n) = (n * 2654435761) mod 512`（n = 该 bank 内的样本序号）。 
+//   本模块**不做**开关译码、不做地址置换（那是 dem_addr_gen / unit_therm 的事）。 
+// 来源 
+//   adi_model/mapper.dem_state_sequence()：`sid = (seq * _LCG_A) % N_DEM_STATES`， 
+//   其中 seq 是 **bank 内序号**。 
+//   历史坑（勿回退）：按**全局样本序号**推进时 gcd(2a, 512) = 2，两个 bank 各自只落在 
+//   偶数/奇数序号上，于是各只遍历 256/512 个状态 —— 另一半 LUT 永远用不到。 
+// 推导（本模块采用加性递推，而不是每次做一次乘法） 
+//   A = 2654435761，A mod 2**W = 433（W = 9）。 
+//       sid(n)      = (n * A) mod 2**W 
+//       sid(n + 1)  = (n*A + A) mod 2**W = (sid(n) + 433) mod 2**W 
+//   故只需一个 W 位累加器 + 常数加法；`mod 2**W` 就是按位与。 
+//   这条递推与定义式**逐项等价**，由 `p1_m1_sid.hex` 的 1024 拍逐拍比对钉住 
+//   （验证的是**状态顺序与样本对齐**，不只是"走满 512 态"）。 
+// 单位契约 
+//   全为无量纲整数。sid_a / sid_b ∈ [0, 2**W)，W = log2(DEM_STATES) = 9。 
+// 参数来源分级 
+//   A_RED = _LCG_A mod 2**W 是 [推导] 值，由 tools/export_rtl_params.py 从 
+//   adi_model 导出（`DEM_LCG_A_MOD`）。**RTL 不得手算这个常数** —— 
+//   契约 §9 禁止第二份参数表；`tests/unit/test_rtl_export.py` 会核对导出值。 
+// 契约与不变量 / 适用域 
+//   * **先使用、后推进**：`sid_*` 是**寄存器输出**，表示"本拍要用的状态"； 
+//     `en_*` 在时钟沿把对应 bank 推进一格。消费者必须在 `en_*` 为高的那一拍 
+//     采样 `sid_*`；延迟 = 0（当拍有效）。 
+//   * 复位后初态 = 0，即该 bank 的第 0 个样本用 sid = 0（与模型一致）。 
+//   * `load` 优先于 `en_*`（载入初值同拍不推进）。 
+//   * `en_a` 与 `en_b` 可同时为高（两 bank 独立计数），与模型一致。 
+//   * `dem_en` 为低时对外 `sid_*` 恒 0**且内部状态不推进**（对应模型 
+//     `dem_enable=False` 时 `dem_state_sequence` 返回全 0）。 
+//   * `gcd(A, 2**W) = 1` 是"512 个状态全遍历"的结构性前提；由 TB 的 
+//     "每 bank 看满 512 个不同 sid" 断言把关（A 与 2**W 不互质时该断言必红）。 
+//=========================================================================== 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module dem_state_gen #(
+    parameter int A_RED = int'(DEM_LCG_A_MOD),
+    parameter int W     = 9
+) (
+    input  logic         clk,
+    input  logic         rst_n,
+    input  logic         dem_en,
+    input  logic         load,
+    input  logic [W-1:0] init_a,
+    input  logic [W-1:0] init_b,
+    input  logic         en_a,
+    input  logic         en_b,
+    output logic [W-1:0] sid_a,
+    output logic [W-1:0] sid_b
+);
+  initial begin
+    if (W < 1 || W > 32 || (A_RED & 1) == 0)
+      $fatal(1, "dem_state_gen: W must be 1..32 and step must be odd");
+  end
+  // 只在能装下 A_RED 的宽度里截取，且**不用 size cast 造无符号常量**： 
+  // RTL 里"表达式含一个无符号操作数就整条按无符号算"是踩过的坑（见 swap_decode.sv）。 
+  localparam logic [W-1:0] STEP = A_RED[W-1:0];
+  localparam logic [W-1:0] MASK = {W{1'b1}};
+  logic [W-1:0] state_a, state_b;
+  always_ff @(posedge clk) begin
+    if (!rst_n) begin
+      state_a <= {W{1'b0}};
+      state_b <= {W{1'b0}};
+    end else if (load) begin
+      state_a <= init_a;
+      state_b <= init_b;
+    end else if (dem_en) begin
+      if (en_a) state_a <= (state_a + STEP) & MASK;
+      if (en_b) state_b <= (state_b + STEP) & MASK;
+    end
+  end
+  assign sid_a = dem_en ? state_a : {W{1'b0}};
+  assign sid_b = dem_en ? state_b : {W{1'b0}};
+endmodule
+// Integer sampling dither: same PMF as round(uniform(-D,D)) in sampler.py. 
+// Endpoints have half the probability of an interior integer. This is not a 
+// bit-exact replacement for PCG64; the PRNG sequence is an RTL design choice. 
+// Right-shift Galois LFSR, period 2^32-1 for every nonzero seed. The reduction 
+// polynomial is verified independently in tests/unit/test_rtl_review_regressions.py. 
+// IMPORTANT: shift in ZERO before XOR. Rotating bit0 into bit31 cancels the 
+// feedback MSB and makes raw[31:24] collapse to zero (review R1, 2026-09-19). 
+// Advance eight LFSR bits per draw to avoid overlapping 8-bit windows. 
+// gcd(8, 2^32-1)=1, so decimation preserves the full state period. 
+// en=0 holds state. Rejected draws have valid=0 and must not be consumed. 
+// D=0 produces zero. Supported D is 0..63; a zero seed is prohibited. 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module dither_gen #(
+    parameter int D = int'(DITHER_UNITS_RANGE),
+    parameter logic [31:0] SEED = 32'h1357_9BDF
+) (
+    input logic clk,
+    input logic rst_n,
+    input logic en,
+    output logic signed [7:0] dither_code,
+    output logic valid
+);
+  localparam int SPAN = (D == 0) ? 1 : 4 * D;
+  localparam int LIMIT = (256 / SPAN) * SPAN;
+  localparam logic [31:0] TAPS = 32'h8020_0003;
+  logic [31:0] lfsr, next_lfsr;
+  logic [7:0] raw, reduced;
+  logic [8:0] rounded;
+  logic signed [9:0] centered;
+  initial begin
+    if (D < 0 || D > 63) $fatal(1, "dither_gen: D must be in 0..63");
+    if (SEED == 0) $fatal(1, "dither_gen: SEED must be nonzero");
+  end
+  assign raw = lfsr[31:24];
+  assign reduced = raw % 8'(SPAN);
+  assign valid = (9'(raw) < 9'(LIMIT));
+  // 4D equiprobable cells -> 1 endpoint cell, 2 per interior, 1 endpoint. 
+  assign rounded = ({1'b0, reduced} + 9'd1) >> 1;
+  assign centered = $signed({1'b0, rounded}) - 10'(D);
+  assign dither_code = (D == 0) ? 8'sd0 : centered[7:0];
+  always_comb begin
+    next_lfsr = lfsr;
+    for (int k = 0; k < 8; k++)
+      next_lfsr = {1'b0, next_lfsr[31:1]} ^ (next_lfsr[0] ? TAPS : 32'h0);
+  end
+  always_ff @(posedge clk) begin
+    if (!rst_n) lfsr <= SEED;
+    else if (en) lfsr <= next_lfsr;
+  end
+endmodule
+//=========================================================================== 
+// div_floor.sv -- 有符号 floor 除法（全数字核里唯一的除法） 
+//=========================================================================== 
+// 职责一句话 
+//   计算 q = floor(a / d)：a 有符号、d 无符号且 > 0，向 **-inf** 取整。 
+//   本模块**不做**乘法、不做饱和、不做溢出判定；它只保证"除法本身"的取整方向。 
+// 来源 
+//   docs/rtl/RTL_ARITHMETIC_CONTRACT.md §3.5： 
+//       word = floor(shifted / denom) 
+//   RTL 的 `/` 向 0 截断，Python 的 `//` 向 -inf 取整 —— 负商差 1 个 LSB， 
+//   且**只在半个码流上出错**。仿真激励选得好就发现不了，所以必须单独验证。 
+// 算法（恢复余数法，逐位） 
+//   mag = |a|（无符号 P_W_A 位），高位补零到 W_PAD = ceil(P_W_A/P_STAGES)*P_STAGES 
+//   R = 0; Q = 0 
+//   for i = 0 .. W_PAD-1（从高位到低位）: 
+//       R = (R << 1) | mag[i] 
+//       if (R >= d) { R -= d; Q[i] = 1 } else { Q[i] = 0 } 
+//   q_abs = Q[P_W_A-1:0] 
+//   q     = a[MSB] ? -(q_abs + (R != 0)) : q_abs 
+// 正确性论证（供复核者复算，四条都独立可查） 
+//   1. 恢复余数法对 mag/d（d > 0）给出**精确**的商与余数 —— 标准结论。 
+//   2. W_PAD >= P_W_A，高位补零只产生**前导 0 商位**，商值不变。 
+//   3. 负修正：a < 0 时 floor(a/d) = -ceil(|a|/d) = -(q_abs + (R != 0))。 
+//   4. **不可能溢出**：a >= 0 时 0 <= q <= a <= 2^(P_W_A-1)-1； 
+//      a < 0 时 a <= floor(a/d) <= -1。包含最小负数 a=-2^(P_W_A-1)， 
+//      其无符号幅度也能用 P_W_A 位保存。因此有符号输出不溢出。 
+// 单位契约 
+//   无量纲整数。a 与 q 同为 P_W_A 位有符号；d 为 P_W_D 位无符号。 
+// 参数来源分级 
+//   P_W_A 默认 = ACC_BITS - (V_FRAC + 1) = 63（由契约 §3.5.1 的 33 位移位推来） 
+//   P_W_D 默认 = 60（由契约 §5 的 SigmaW < 2^60 推来） 
+//   二者都是 [推导] 值，且默认取自 rtl_params.vh。**RTL 不另立参数表。** 
+// 契约与不变量 / 适用域 
+//   * d == 0 判为 `err`（结构性错误，对应契约 §4.3），此时 q 强制为 0。 
+//   * 固定延迟：空闲时在第 t 拍接受 `start` -> `done` 在第 t+N_CYC 拍为高 
+//     （N_CYC = W_PAD/P_STAGES）。`busy` 期间到来的 `start` 被**忽略** 
+//     （不做反压；由 ctrl_fsm 保证不重叠）。 
+//   * **组内位序**：一个时钟内级联 P_STAGES 级，第 s 级产生的商位落在该组的 
+//     第 (P_STAGES-1-s) 位（MSB 优先）。写反了会得到"每 P_STAGES 位一块的位反转"， 
+//     且 P_STAGES=1 时看不出来 —— 改动这里必须用 `sim/tb/p2_tb.sv` 的 T1/T2 单向测试复核。 
+//   * 位序反例：P_W_A=63、P_STAGES=7、a=1、d=1 时 q 必须为 1。 
+//     若把 qbits[P_STAGES-1-s] 误写成 qbits[s]，最后一组的 bit 0 会搬到 
+//     bit 6，结果错误地成为 64。用正数单一置位避免混淆幅度与有符号码。 
+//   * 本模块是**迭代**实现：单次占用 N_CYC 拍。P_STAGES 是面积/时序旋钮。 
+//     若为时序把 P_STAGES 调小，**吞吐会掉**，调用方必须重算相位预算。 
+//     替代方案（阵列除法器 / 倒数 ROM + 修正）登记为 P6 优化项， 
+//     采用前必须补"商误差恰为 0"的证明与独立验证。 
+//=========================================================================== 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module div_floor #(
+    parameter int P_W_A    = ACC_BITS - (V_FRAC + 1),
+    parameter int P_W_D    = 60,
+    parameter int P_STAGES = 7
+) (
+    input  logic                    clk,
+    input  logic                    rst_n,
+    input  logic                    start,
+    input  logic signed [P_W_A-1:0] a,
+    input  logic        [P_W_D-1:0] d,
+    output logic signed [P_W_A-1:0] q,
+    output logic                    err,
+    output logic                    busy,
+    output logic                    done
+);
+  // After each consumed bit, 0 <= remainder <= consumed numerator prefix 
+  // <= |a| <= 2^(P_W_A-1). P_W_A bits therefore hold every shifted trial 
+  // remainder, even when the unsigned denominator has more bits than a. 
+  localparam int W_R   = P_W_A;
+  localparam int N_CYC = (P_W_A + P_STAGES - 1) / P_STAGES;
+  localparam int W_PAD = N_CYC * P_STAGES;
+  localparam int W_CNT = (N_CYC < 2) ? 1 : $clog2(N_CYC);
+  logic [W_PAD-1:0]    mag;
+  logic [W_R-1:0]      dv;
+  logic                dv_large;
+  logic [W_R-1:0]      rem;
+  logic [W_PAD-1:0]    quo;
+  logic                neg;
+  logic [W_CNT-1:0]    cnt;
+  logic                run;
+  logic                err_r;
+  logic [W_R-1:0]      r_chain [0:P_STAGES];
+  logic [P_STAGES-1:0] qbits;
+  logic [W_R-1:0]      r_next;
+  logic [W_PAD-1:0]    q_next;
+  logic [W_R-1:0]      shifted;
+  logic [W_R:0]        trial_difference;
+  wire                 input_d_large;
+  // A denominator >= 2^P_W_A is larger than every possible numerator 
+  // magnitude. Preserve its full-width meaning instead of truncating it: 
+  // quotient magnitude stays zero, while the final floor correction still 
+  // returns -1 for a negative nonzero numerator. 
+  if (P_W_D > W_R) begin : g_wide_denominator
+    assign input_d_large = |d[P_W_D-1:W_R];
+  end else begin : g_narrow_denominator
+    assign input_d_large = 1'b0;
+  end
+  integer s;
+  initial begin
+    if (P_W_A < 2 || P_W_D < 1 || P_STAGES < 1)
+      $fatal(1, "div_floor: widths and unroll must be positive (numerator >= 2)");
+  end
+  assign busy = run;
+  always_comb begin
+    r_chain[0] = rem;
+    for (s = 0; s < P_STAGES; s = s + 1) begin
+      // Consume a fixed high-order chunk; the magnitude shifts between cycles. 
+      // Avoid a counter-controlled variable bit selection on every unrolled stage. 
+      shifted = {r_chain[s][W_R-2:0], mag[W_PAD-1-s]};
+      // One widened unsigned subtraction supplies both the result and its 
+      // borrow. Do not infer a separate full-width compare plus subtract. 
+      trial_difference = {1'b0, shifted} - {1'b0, dv};
+      // ⚠️ 真 bug 记录（2026-09-18，P2 单向测试抓出）： 
+      // 商是 **MSB 优先**产生的，所以一个时钟内第 s 级产生的商位，必须落到这一组 
+      // 7 位里的**高位**。原先写成 `qbits[s]`，于是 `q_next = (quo << P_STAGES) | qbits` 
+      // 把整组按位倒序拼进去了 —— 表现为"每个 7 位块内部位序反转"。 
+      // 只有当 P_STAGES == 1 时反转不可见（一位一组没有内部顺序），所以 P1 的模块查不出来。 
+      // 位序反例见模块头：a=1、d=1 的正确商为 1，组内反序会得到 64。 
+      if (!dv_large && !trial_difference[W_R]) begin
+        r_chain[s+1]                = trial_difference[W_R-1:0];
+        qbits[P_STAGES-1-s]         = 1'b1;
+      end else begin
+        r_chain[s+1]                = shifted;
+        qbits[P_STAGES-1-s]         = 1'b0;
+      end
+    end
+    r_next = r_chain[P_STAGES];
+    q_next = (quo << P_STAGES) | {{(W_PAD - P_STAGES){1'b0}}, qbits};
+  end
+  always_ff @(posedge clk) begin
+    if (!rst_n) begin
+      mag   <= {W_PAD{1'b0}};
+      dv    <= {W_R{1'b0}};
+      dv_large <= 1'b0;
+      rem   <= {W_R{1'b0}};
+      quo   <= {W_PAD{1'b0}};
+      neg   <= 1'b0;
+      cnt   <= {W_CNT{1'b0}};
+      run   <= 1'b0;
+      err_r <= 1'b0;
+      q     <= {P_W_A{1'b0}};
+      err   <= 1'b0;
+      done  <= 1'b0;
+    end else begin
+      done <= 1'b0;
+      if (start && !run) begin
+        mag   <= {{(W_PAD - P_W_A){1'b0}}, (a[P_W_A-1] ? (~a + 1'b1) : a)};
+        dv    <= W_R'(d);
+        dv_large <= input_d_large;
+        rem   <= {W_R{1'b0}};
+        quo   <= {W_PAD{1'b0}};
+        neg   <= a[P_W_A-1];
+        cnt   <= {W_CNT{1'b0}};
+        run   <= 1'b1;
+        err_r <= (d == {P_W_D{1'b0}});
+      end else if (run) begin
+        if (int'(cnt) == N_CYC - 1) begin
+          // 最后一拍结算。q_abs 的高位（>= P_W_A）必然为 0 —— 见模块头论证 4。 
+          if (err_r) q <= {P_W_A{1'b0}};
+          else       q <= neg ? -(q_next[P_W_A-1:0] + {{(P_W_A-1){1'b0}}, (r_next != 0)})
+                              :   q_next[P_W_A-1:0];
+          err  <= err_r;
+          run  <= 1'b0;
+          done <= 1'b1;
+        end else begin
+          mag <= mag << P_STAGES;
+          rem <= r_next;
+          quo <= q_next;
+          cnt <= cnt + {{(W_CNT-1){1'b0}}, 1'b1};
+        end
+      end
+    end
+  end
+endmodule
+//=========================================================================== 
+// rdac_drv.sv -- 8 个活动 slice 的开关码扇出到 18 个物理 slice 
+//=========================================================================== 
+// 职责一句话 
+//   把"8 个活动 slice 的 unary 开关掩码 + 采样 dither 轨"按物理 slice 号写进 
+//   对应的寄存器位置，其余物理 slice 清零。输出是**寄存器**，load 之外保持不变。 
+//   本模块**不做**计数计算（swap_decode 的事）也不做温度计展开（unit_therm 的事）。 
+// 来源 
+//   docs/rtl/P2_INTERFACE.md §6；拓扑图（P2 §1）里 unit_therm -> rdac_drv 的那条 
+//   扇出边。物理含义对应 adi_model 里"开关命令 -> 物理底板"的那一步散射。 
+// 单位契约 
+//   无量纲 0/1 开关码。slice_sel 为 18 位选择掩码（正常为 8-hot）（未选中的物理 slice 恒 0）。 
+// 参数来源分级 
+//   尺寸直接取 rtl_params.vh（[推导]）。本模块无模块参数（理由同 slice_alloc）。 
+// 契约与不变量 / 适用域 
+//   * **边界声明（勿误解）**：本模块只是**数字侧的寄存器扇出**，**不是**底板开关 
+//     驱动电路。真实驱动的时序、电荷注入、非交叠时钟属模拟域，由 Spectre 承接。 
+//   * `slice_id` 必须两两不同（INV-4b）。若出现重复，本模块的行为是"后者覆盖前者" 
+//     （循环里最后一次非阻塞赋值胜出），**不报错** —— 这是刻意的：把错误报在 
+//     slice_alloc 的不变量回归中，而不是在这里做隐式防护（防护会掩盖上游的 bug）。 
+//   * `load` 之外输出保持（寄存器），故相位 11 之后的整段转换期开关码稳定。 
+//   * 复位为全 0（无 slice 被选中）。 
+//=========================================================================== 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module rdac_drv (
+    input  logic                                  clk,
+    input  logic                                  rst_n,
+    input  logic                                  load,        // 一拍脉冲 
+    input  logic [N_ACTIVE-1:0][4:0]              slice_id,
+    input  logic [N_ACTIVE-1:0][N_UNIT_MAIN-1:0]  main_on,
+    input  logic [N_ACTIVE-1:0][N_UNIT_SUB-1:0]   sub_on,
+    input  logic [2*DITHER_UNITS_RANGE-1:0]       dither_rail,
+    output logic [N_SLICES-1:0]                   slice_sel,
+    output logic [N_SLICES-1:0][N_UNIT_MAIN-1:0]  main_sw,
+    output logic [N_SLICES-1:0][N_UNIT_SUB-1:0]   sub_sw,
+    output logic [N_SLICES-1:0][2*DITHER_UNITS_RANGE-1:0] dither_sw
+);
+  integer s, a;
+  always_ff @(posedge clk) begin
+    if (!rst_n) begin
+      slice_sel <= '0;
+      main_sw   <= '0;
+      sub_sw    <= '0;
+      dither_sw <= '0;
+    end else if (load) begin
+      // 先整体清零，再按物理号写入 8 个活动 slice —— 于是"未被选中的物理 slice 
+      // 恒 0"是结构性成立的，而不是靠调用方保证。 
+      slice_sel <= '0;
+      for (s = 0; s < N_SLICES; s = s + 1) begin
+        main_sw[s]   <= '0;
+        sub_sw[s]    <= '0;
+        dither_sw[s] <= '0;
+      end
+      for (a = 0; a < N_ACTIVE; a = a + 1) begin
+        // Both compatibility banks and the full 18-slice pool are legal. 
+        if (int'(slice_id[a]) < int'(N_SLICES)) begin
+        slice_sel[slice_id[a]]  <= 1'b1;
+        main_sw[slice_id[a]]    <= main_on[a];
+        sub_sw[slice_id[a]]     <= sub_on[a];
+        dither_sw[slice_id[a]]  <= dither_rail;
+        end
+      end
+    end
+  end
+endmodule
+//=========================================================================== 
+// recon_core.sv -- 物理权重校正流水控制（独立算术模块见 ADR0018） 
+//=========================================================================== 
+// 职责一句话 
+//   把"本次开关状态 + 后端码 + 已知注入"变成最终的 20 bit offset-binary 码： 
+//       rails = Sigma W*s      gain = Sigma W*a      total = Sigma W 
+//       num   = (F - O)*wscale - rails*vscale - total*I 
+//       shifted = (num + gain*vscale) * count 
+//       word  = floor(shifted / (gain*2^33)) = floor((shifted >>> 33) / gain) 
+//       dout  = clamp(word, 0, 2^20 - 1)，clip_* 单独保留 
+//   本模块**不做** DEM 置换、**不做**地址译码、**不做**权重存取。 
+// 来源 
+//   docs/rtl/RTL_ARITHMETIC_CONTRACT.md §3.2-§3.5 + §4（冻结） 
+//   adi_model/fixed_point.FixedPointReconstructor.reconstruct() 
+//   既有判据：tests/unit/test_fixed_point.py（4 项独立检验 + 斜坡） 
+// 单位契约 
+//   权重 Q30（48 bit 有符号，实为正）；电压 Q32（64 bit 有符号）；输出 20 bit。 
+//   全部为整数编码，**不做浮点伏特运算**（契约 §1.1 的措辞修正）。 
+// 参数来源分级 
+//   尺寸默认值一律取自 rtl_params.vh（[披露]/[推导]）。模块参数存在的唯一理由 
+//   是让 L2 的全码 oracle 能用 straight_backend 的尺寸（1/1/2, adc2_bits=20） 
+//   重例化（见 docs/rtl/P2_INTERFACE.md §12）。**不是第二份参数表。** 
+// 契约与不变量 / 适用域 
+//   * 求和口径：rails = sum_W - 2*sum_Won + sum_Wr，gain = Sigma W*a， 
+//     total = Sigma W。其中 a = 0 且 s 额外带 ±1 的只有**采样 dither 掩码单位** 
+//     （u in [P_DIT_END-P_DIT_N, P_DIT_END)）。这个展开式与 _terms 的语义逐项对应， 
+//     且比"直接算 Sigma W*s"少一层条件取负。 
+//   * 溢出语义（契约 §4）：6 个受检操作数中任一越出 [-2^95, 2^95) -> acc_ovf 
+//     **粘滞**置位且输出保持上一拍合法值，**绝不 wrap**。gain <= 0 是结构性错误， 
+//     走 gain_err，与溢出**分开**。 
+//   * **`dout_valid` 在溢出与结构性错误时同样是 1**（契约 §4.4 的表：这两种情形 
+//     dout 保持、但"时序不打断"）。原先只写了保持 dout 而没拉高 valid —— 那会让 
+//     下游以为这一次转换从未发生。由 T8b 的等待超时暴露。 
+//   * 降级计算的口径（必须与 Python 判定集合相同）： 
+//       Python 侧抛 OverflowError 当且仅当 {op1..op6 中任一越界} 或 {gain <= 0}。 
+//       RTL 侧在 ovf_ops 已成立时 shifted 的窄位宽计算可能不再精确 —— 但这不影响 
+//       可观测行为（两种情况下都是"置标志 + 保持输出"）。 
+//       反过来：ovf_ops 不成立时 shifted 的 117 位计算**不得回绕**，论证见下。 
+//   * 位宽论证（勿改宽度而不复核）：ovf_ops 不成立 ==> |num| < 2^95 且 denom < 2^95 
+//     ==> gain < 2^62 ==> |gain*vscale| < 2^94 ==> |s1| < 2^95 + 2^94 < 2^96 
+//     ==> |shifted| < 2^116（117 位装得下）。且 |shifted| < 2^95（shifted 检查通过） 
+//     ==> |A1| < 2^62 ==> 取 shifted[95:33] 即精确的 A1。 
+//   * 延迟：RECON_LAT = N_CYC + 2 = 11 个完整时钟间隔（P_STAGES=7），从接受 start 的沿算起。 
+//     含接受沿共 12 个沿；以 sim/tb/p2_tb.sv 的 T4 **实测**为准（11 个间隔）。 
+//   * cfg_ready = 0 时输出恒 0、dout_valid 恒 0。 
+//=========================================================================== 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module recon_core #(
+    parameter int P_N_ACTIVE  = int'(N_ACTIVE),
+    parameter int P_N_MAIN    = int'(N_UNIT_MAIN),
+    parameter int P_N_SUB     = int'(N_UNIT_SUB),
+    parameter int P_N_SLICES  = int'(N_SLICES),
+    parameter int P_ADC2_BITS = int'(ADC2_BITS),
+    parameter int P_STAGES    = 7,
+    parameter bit P_USE_ROW_TOTALS = 0,
+    parameter int P_DIT_N     = 2 * DITHER_UNITS_RANGE,
+    parameter int P_DIT_END   = DITHER_SPLIT_IS_SUB ? int'(N_UNIT_TOTAL) : int'(N_UNIT_MAIN)
+) (
+    input  logic                                   clk,
+    input  logic                                   rst_n,
+    input  logic                                   cfg_ready,
+    input  logic                                   start,
+    input  logic [31:0]                            sample_id,
+    input  logic                                   clr_ovf,
+    input  logic                                   sampling_mask_en,
+    input  logic [P_N_ACTIVE-1:0][4:0]             slice_id,
+    input  logic [P_N_ACTIVE-1:0][P_N_MAIN-1:0]    main_on,
+    input  logic [P_N_ACTIVE-1:0][P_N_SUB-1:0]     sub_on,
+    input  logic [P_DIT_N-1:0]                     dither_rail,
+    input  logic [P_ADC2_BITS-1:0]                 adc2_code,
+    input  logic signed [V_BITS-1:0]               inj_q,
+    input  logic [P_N_SLICES-1:0][P_N_MAIN+P_N_SUB-1:0][W_BITS-1:0] w_rom,
+    input  logic [P_N_SLICES-1:0][63:0]             row_total,
+    input  logic signed [V_BITS-1:0]               offset_q,
+    input  logic signed [V_BITS-1:0]               adc2_min_q,
+    input  logic signed [V_BITS-1:0]               adc2_max_q,
+    output logic [OUT_BITS-1:0]                    dout,
+    output logic                                   dout_valid,
+    output logic                                   clip_low,
+    output logic                                   clip_high,
+    output logic                                   acc_ovf,
+    output logic                                   gain_err,
+    output logic                                   adc2_ovf,
+    output logic                                   busy,
+    output logic [31:0]                            result_sample_id,
+    output logic [4:0]                             result_flags
+);
+  localparam int N_U      = P_N_MAIN + P_N_SUB;
+  localparam int SUM_BITS = 64;                          // SigmaW < 2^60（契约 §5）留 4 位余量 
+  localparam int W_RAIL   = SUM_BITS + 2;                // |rails| <= 3*2^60 < 2^62 
+  localparam int W_OP3    = SUM_BITS + int'(V_BITS) + 2;       // 130：total * inj_q 
+  localparam int W_WIDE   = W_OP3 + 2;                   // 132：受检操作数的精确宽度 
+  localparam int W_S1     = int'(ACC_BITS) + 1;                // 97 
+  localparam int W_SHIFT  = int'(ACC_BITS) + int'(OUT_BITS) + 1;     // 117 
+  localparam int W_A      = int'(ACC_BITS) - (int'(V_FRAC) + 1);     // 63：shifted >>> 33 
+  localparam int W_TOP    = W_SHIFT - int'(ACC_BITS) + 1;      // 22：shifted[116:95] 
+  localparam int DIT_BEG  = P_DIT_END - P_DIT_N;
+  localparam int N_CYC    = (W_A + P_STAGES - 1) / P_STAGES;
+  // 固定延迟。口径见 docs/rtl/P2_INTERFACE.md §4.3：从 `start` 那一拍起算 dout_valid 
+  // 所在沿与接受 start 沿之间的完整时钟间隔 => N_CYC + 2 = 11（P_STAGES=7）。 
+  // 由 sim/tb/p2_tb.sv 的 T4 **实测**；常量与实测不符时 T4 报错。 
+  localparam int RECON_LAT = N_CYC + 2;
+  // ---- 常量（不允许就地造无符号字面量：P1 的 RTL-3 就是栽在符号混用上）---- 
+  localparam logic [W_WIDE-1:0] LIM_ONE  = {{(W_WIDE-1){1'b0}}, 1'b1};
+  localparam logic [W_WIDE-1:0] LIM_HI_U = LIM_ONE << (int'(ACC_BITS) - 1);
+  localparam logic [W_WIDE-1:0] LIM_LO_U = ~LIM_HI_U + LIM_ONE;
+  // ⚠️ 比较常量必须**显式声明为 signed**：见下面 clip_* 的真 bug 记录。 
+  localparam logic signed [W_A-1:0] ZERO_A  = {W_A{1'b0}};
+  localparam logic signed [W_A-1:0] OUT_CNT = {{(W_A-1){1'b0}}, 1'b1} << OUT_BITS;
+  localparam logic [SUM_BITS-1:0] GAIN_MAX = {{(SUM_BITS-1){1'b0}}, 1'b1}
+                                             << (int'(ACC_BITS) - 1 - (int'(V_FRAC) + 1));
+  //========================================================================= 
+  // 1) 三个掩码和（组合） 
+  //========================================================================= 
+  wire [SUM_BITS-1:0] sum_W, sum_Wa;
+  wire signed [W_RAIL-1:0] rails;
+  wire invalid_slice;
+  cal_weight_reduce #(
+      .P_N_ACTIVE(P_N_ACTIVE), .P_N_MAIN(P_N_MAIN), .P_N_SUB(P_N_SUB),
+      .P_N_SLICES(P_N_SLICES), .P_DIT_N(P_DIT_N), .P_DIT_END(P_DIT_END),
+      .P_USE_ROW_TOTALS(P_USE_ROW_TOTALS), .SUM_BITS(SUM_BITS), .W_RAIL(W_RAIL)
+  ) u_weight_reduce (
+      .sampling_mask_en(sampling_mask_en), .slice_id(slice_id),
+      .main_on(main_on), .sub_on(sub_on), .dither_rail(dither_rail), .w_rom(w_rom), .row_total(row_total),
+      .sum_W(sum_W), .sum_Wa(sum_Wa), .rails(rails), .invalid_slice(invalid_slice)
+  );
+  //========================================================================= 
+  // 2) 后端译码（M9） 
+  //========================================================================= 
+  logic signed [V_BITS-1:0] fine_c;
+  logic                     adc2_o;
+  adc2_dec #(.P_ADC2_BITS(P_ADC2_BITS)) u_adc2 (
+      .adc2_code  (adc2_code),
+      .adc2_min_q (adc2_min_q),
+      .adc2_max_q (adc2_max_q),
+      .fine_q     (fine_c),
+      .ovf        (adc2_o)
+  );
+  //========================================================================= 
+  // 3) 流水寄存器（阶段 A 的锁存目标） 
+  //========================================================================= 
+  logic [31:0] sample_id_r;
+  logic signed [V_BITS-1:0]   fine_r, off_r, inj_r;
+  logic [SUM_BITS-1:0]        gain_s, total_s;
+  logic signed [W_RAIL-1:0]   rails_s;
+  logic                       stage_b, ovf_pend, gerr_pend, a2ovf_pend, bad_slice_r;
+  //========================================================================= 
+  // 4) 受检算术（组合，在 stage B 那一拍求值） 
+  //========================================================================= 
+  wire [W_A-1:0] a1;
+  wire any_ovf;
+  cal_residue_mac u_residue_mac (
+      .fine_r(fine_r), .off_r(off_r), .inj_r(inj_r),
+      .gain_s(gain_s), .total_s(total_s), .rails_s(rails_s),
+      .a1(a1), .any_ovf(any_ovf)
+  );
+  //========================================================================= 
+  // 5) 除法器（唯一的运行时除法） 
+  //========================================================================= 
+  logic                   div_busy, div_done, div_err;
+  logic signed [W_A-1:0]  div_q;
+  logic                   clip_lo_c, clip_hi_c;
+  div_floor #(
+      .P_W_A    (W_A),
+      .P_W_D    (SUM_BITS),
+      .P_STAGES (P_STAGES)
+  ) u_div (
+      .clk   (clk),
+      .rst_n (rst_n && cfg_ready),
+      .start (stage_b && cfg_ready),
+      .a     (a1),
+      .d     (gain_s),
+      .q     (div_q),
+      .err   (div_err),
+      .busy  (div_busy),
+      .done  (div_done)
+  );
+  // ⚠️ 真 bug 记录（2026-09-18，P2 的 T8 剪裁边界用例抓出）： 
+  // 原写法 `(div_q < {W_A{1'b0}})` / `(div_q >= OUT_COUNT)` 的右操作数是**无符号** 
+  // localparam/字面量。Verilog 规则：表达式里只要有一个无符号操作数就**整条按无符号算**， 
+  // 于是 div_q = -1（位型 0x7FFF...F）被当成巨大正数 -> 
+  //   **clip_low 永不置位、clip_high 反而置位**（dout 被剪到 2^20-1 而不是 0）。 
+  // 这与 P1 的 RTL-3 是**同一族**缺陷（有符号/无符号混用）。教训：比较有符号量时， 
+  // 两个操作数都要是 signed；不要拿 `{N{1'b0}}` 这种无符号字面量去比。 
+  // 为什么大用例全绿：T5/T6/T7/T9 里 word 恒在 [0, 2^20)，两个标志都该为 0 —— 
+  // 错误写法与正确写法给出**同一个答案**。只有"恰好跨过 0/2^20 边界"的定向行能区分。 
+  assign clip_lo_c = (div_q <  ZERO_A);
+  assign clip_hi_c = (div_q >= OUT_CNT);
+  assign busy      = stage_b | div_busy;
+  wire [OUT_BITS-1:0] candidate_word = clip_lo_c ? '0 :
+                                      clip_hi_c ? '1 : div_q[OUT_BITS-1:0];
+  cal_output_stage u_output (
+      .clk(clk), .rst_n(rst_n), .cfg_ready(cfg_ready), .clr_ovf(clr_ovf),
+      .complete(div_done), .candidate(candidate_word), .candidate_sample_id(sample_id_r),
+      .result_sample_id(result_sample_id), .result_flags(result_flags),
+      .candidate_clip_low(clip_lo_c), .candidate_clip_high(clip_hi_c),
+      .candidate_acc_ovf(ovf_pend), .candidate_gain_err(gerr_pend || div_err),
+      .candidate_adc2_ovf(a2ovf_pend), .dout(dout), .dout_valid(dout_valid),
+      .clip_low(clip_low), .clip_high(clip_high), .acc_ovf(acc_ovf),
+      .gain_err(gain_err), .adc2_ovf(adc2_ovf)
+  );
+  //========================================================================= 
+  // 6) 主状态机 
+  //========================================================================= 
+  always_ff @(posedge clk) begin
+    if (!rst_n) begin
+      sample_id_r <= '0;
+      fine_r     <= {V_BITS{1'b0}};
+      off_r      <= {V_BITS{1'b0}};
+      inj_r      <= {V_BITS{1'b0}};
+      gain_s     <= {SUM_BITS{1'b0}};
+      total_s    <= {SUM_BITS{1'b0}};
+      rails_s    <= {W_RAIL{1'b0}};
+      stage_b    <= 1'b0;
+      bad_slice_r <= 1'b0;
+      ovf_pend   <= 1'b0;
+      gerr_pend  <= 1'b0;
+      a2ovf_pend <= 1'b0;
+    end else begin
+      // ---- 阶段 A：锁存本拍的求和与输入 ---- 
+      if (cfg_ready && start && !busy) begin
+        sample_id_r <= sample_id;
+        bad_slice_r <= invalid_slice;
+        fine_r     <= fine_c;
+        off_r      <= offset_q;
+        inj_r      <= inj_q;
+        gain_s     <= sum_Wa;
+        total_s    <= sum_W;
+        rails_s    <= rails;
+        a2ovf_pend <= adc2_o;
+        stage_b    <= 1'b1;
+      end else if (stage_b) begin
+        // WARNING 真 bug 记录（2026-09-18，P2 的定向溢出用例抓出）： 
+        // any_ovf 与 gain_s == 0 都依赖 stage-A 寄存器，而 stage-A 是在 start 那一拍 
+        // 才锁存的 —— 那一拍寄存器里装的还是**上一个样本**的值。原先把这两个锁存写在 
+        // start 块里，于是 acc_ovf / gain_err **晚一个样本**才反映。 
+        // 为什么长期没暴露：2^20 全码 oracle、512 行真实掩码、2044 行斜坡**都不发生溢出**， 
+        // 两种写法给出同一个答案（恒 0）。**只有定向溢出激励能区分** —— 
+        // 大规模测试全绿 与 边界正确 是两件不同的事。 
+        // 修法：挪到 stage_b 那一拍（此时寄存器正是本样本的值）。 
+        // div_start = stage_b 与 a1 都不变，所以**延迟不变**。 
+        ovf_pend  <= any_ovf;
+        gerr_pend <= bad_slice_r || (gain_s == {SUM_BITS{1'b0}});
+        stage_b   <= 1'b0;
+      end
+      // ---- 未配置：输出强制为 0（放在最后，优先级最高）---- 
+      if (!cfg_ready) begin
+        stage_b <= 1'b0;
+        ovf_pend <= 1'b0;
+        gerr_pend <= 1'b0;
+        a2ovf_pend <= 1'b0;
+        bad_slice_r <= 1'b0;
+        sample_id_r <= '0;
+      end
+    end
+  end
+endmodule
+// Source-aligned digital macro controls, with explicit implementation choices: 
+// dual seeded binary SARs, shared 3-bit flash, causal 8/18 allocation, and one 
+// shared backend converting the PREVIOUS residue. See ADR0018 for disclosure 
+// limits, physical unit mapping and timing. All comparator inputs share clk; 
+// the analog macro must meet setup/hold and assert valid after settling. 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module sar_structural_ctrl #(
+    parameter int P_REF_ON=10,
+    parameter int P_RESIDUE_CAPTURE=9,
+    parameter logic [31:0] P_SHUFFLE_SEED=32'h6d2b79f5
+) (
+    input wire clk,rst_n,enable,dem_en,bridge_en,sampling_en,quantizer_en,
+    input wire [6:0] flash_therm,
+    input wire flash_valid,
+    input wire [1:0] coarse_cmp_valid,coarse_cmp_ge,
+    input wire fine_cmp_valid,fine_cmp_ge,
+    input wire signed [63:0] injection_q,
+    input wire analog_bad,recon_busy,
+    output wire [3:0] phase,
+    output wire quiet_sample,tp_clock,ra_az,ra_amplify,ref_precharge,ref_accurate,
+    output wire [17:0] acquiring_mask,converting_mask,
+    output wire [17:0] aux_charge_enable,hold_low_enable,
+    output wire [1:0] coarse_compare_enable,
+    output logic [1:0] coarse_acquire_enable,
+    output logic flash_acquire_enable,fine_acquire_enable,
+    output wire [1:0][8:0] coarse_trial,
+    output wire [1:0][7:0] quantizer_dither,
+    output wire [3:0] acquisition_dither_rails,
+    output wire [11:0] fine_trial,
+    output wire fine_compare_enable,
+    output wire flash_sample,
+    output wire [17:0] slice_sel,
+    output wire [17:0][62:0] main_sw,
+    output wire [17:0][7:0] sub_sw,
+    output wire [17:0][3:0] dither_sw,
+    output logic sw_valid,
+    output wire recon_start,
+    output wire [31:0] context_id,
+    output wire [7:0][4:0] context_slices,
+    output wire [7:0][62:0] context_main,
+    output wire [7:0][7:0] context_sub,
+    output wire [3:0] context_rails,
+    output wire context_sampling,context_analog_bad,
+    output wire signed [63:0] context_injection,
+    output logic [11:0] fine_code,
+    output logic [31:0] error_code
+);
+   // Static interface constants, independent of generated rtl_params.vh. 
+// Include INSIDE each module: intentionally no global include guard because 
+// these localparams belong to each module scope. 
+localparam logic [31:0] ERR_NONE          = 32'd0;
+localparam logic [31:0] ERR_W_RANGE       = 32'd1;
+localparam logic [31:0] ERR_W_SUM         = 32'd2;
+localparam logic [31:0] ERR_RANGE_EMPTY   = 32'd3;
+localparam logic [31:0] ERR_V_RANGE       = 32'd4;
+localparam logic [31:0] ERR_CFG_WRITE     = 32'd5;
+localparam logic [31:0] ERR_INCOMPLETE    = 32'd6;
+localparam logic [31:0] ERR_SADC_NOT_READY = 32'd7;
+localparam logic [31:0] ERR_ADC2_NOT_READY = 32'd8;
+localparam logic [31:0] ERR_RECON_BUSY    = 32'd9;
+localparam logic [31:0] ERR_DITHER_MODE   = 32'd10;
+localparam logic [31:0] ERR_RDAC_RANGE    = 32'd11;
+  wire advance,capture;
+  analog_phase_ctrl #(.P_REF_ON(P_REF_ON),.P_CAPTURE(P_RESIDUE_CAPTURE)) u_phase(.clk(clk),.rst_n(rst_n),.enable(enable),.phase(phase),
+    .quiet_sample(quiet_sample),.bank_advance(advance),.residue_capture(capture),
+    .tp_clock(tp_clock),.ra_az(ra_az),.ra_amplify(ra_amplify),
+    .ref_precharge(ref_precharge),.ref_accurate(ref_accurate));
+  wire [7:0][4:0] acq_ids,conv_ids;
+  wire conv_valid;
+  wire [31:0] current_id;
+  slice_pool_ctrl #(.P_SEED(P_SHUFFLE_SEED)) u_pool(.clk(clk),.rst_n(rst_n),.enable(enable),.advance(advance),
+    .shuffle(dem_en),.acquiring_ids(acq_ids),.converting_ids(conv_ids),
+    .acquiring_mask(acquiring_mask),.converting_mask(converting_mask),
+    .conversion_valid(conv_valid),.sample_id(current_id));
+  // Aux supplies parasitic/boost charge while acquiring (patent13 Fig2/11). 
+  // Optional capacitor precharge embodiments require a separate analog macro. 
+  assign aux_charge_enable=(enable && rst_n)?acquiring_mask:'0;
+  assign hold_low_enable=(enable && rst_n)?~acquiring_mask:'1;
+  assign flash_sample=quiet_sample;
+  // Analog acquisition/compare enables must not see a multi-bit phase decode. 
+  // Register the next-phase decisions alongside the phase counter. In 
+  // particular, carry skew at phase 7->8 must not resemble phase 14 and reopen 
+  // fine acquisition or cancel a comparator evaluation between clock edges. 
+  logic coarse_cancel,fine_cancel;
+  logic bank;
+  wire [2:0] flash_code;
+  sadc_enc #(.P_B1(3)) u_flash(.cmp_raw(flash_therm),.sadc_code(flash_code));
+  wire [1:0] coarse_busy,coarse_done,coarse_update;
+  wire [1:0][8:0] resolved;
+  for(genvar b=0;b<2;b++) begin : g_coarse
+    sar_trial_ctrl #(.P_BITS(9),.P_SEED_BITS(3)) u_sar(
+      .clk(clk),.rst_n(rst_n),.enable(enable),
+      .start(advance && flash_valid && bank==1'(b)),.cancel(coarse_cancel),
+      .seed_code({flash_code,6'b0}),.cmp_valid(coarse_cmp_valid[b]),.cmp_ge(coarse_cmp_ge[b]),
+      .trial_code(coarse_trial[b]),.resolved_code(resolved[b]),.busy(coarse_busy[b]),
+      .done(coarse_done[b]),.resolved_valid(coarse_update[b]),.compare_enable(coarse_compare_enable[b]));
+  end
+  wire fine_busy,fine_done,fine_update;
+  wire [11:0] fine_resolved;
+  wire context_valid;
+  sar_trial_ctrl #(.P_BITS(12),.P_SEED_BITS(0)) u_fine(
+    .clk(clk),.rst_n(rst_n),.enable(enable),.start(advance && context_valid),.cancel(fine_cancel),
+    .seed_code(12'd0),.cmp_valid(fine_cmp_valid),.cmp_ge(fine_cmp_ge),
+    .trial_code(fine_trial),.resolved_code(fine_resolved),.busy(fine_busy),.done(fine_done),
+    .resolved_valid(fine_update),.compare_enable(fine_compare_enable));
+  wire [8:0] sid_a,sid_b;
+  logic [8:0] sid;
+  dem_state_gen u_dem(.clk(clk),.rst_n(rst_n && enable),.dem_en(dem_en),
+    .load(1'b0),.init_a(9'd0),.init_b(9'd0),.en_a(advance && !bank),.en_b(advance && bank),
+    .sid_a(sid_a),.sid_b(sid_b));
+  wire [62:0][5:0] main_order;
+  wire [7:0][2:0] sub_order;
+  dem_addr_gen u_order(.sid(sid),.main_logical(main_order),.sub_logical(sub_order));
+  wire signed [7:0] random_dither;
+  wire random_valid;
+  logic signed [7:0] acquiring_dither,current_dither;
+  logic signed [63:0] current_injection;
+  dither_gen u_random(.clk(clk),.rst_n(rst_n && enable),.en(advance),
+    .dither_code(random_dither),.valid(random_valid));
+  for(genvar b=0;b<2;b++) begin : g_qdither
+    assign quantizer_dither[b]=!quantizer_en?8'd0:
+      ((bank==1'(b))?current_dither:acquiring_dither);
+  end
+  // For D=2: negative rails followed by positive rails, matching unit_therm. 
+  for(genvar d=0;d<4;d++) begin : g_acq_rails
+    assign acquisition_dither_rails[d]=sampling_en && ((int'(d)-2)<int'($signed(acquiring_dither)));
+  end
+  wire [7:0][6:0] main_count;
+  wire [7:0][2:0] sub_count;
+  wire [7:0][62:0] main_on;
+  wire [7:0][7:0] sub_on;
+  wire [3:0] rails;
+  wire rdac_over;
+  wire signed [15:0] remove_dither=quantizer_en? -16'(current_dither):16'sd0;
+  swap_decode u_decode(.coarse(resolved[bank]),.dither_code(remove_dither),
+    .dem_en(dem_en),.bridge_en(bridge_en && sid[8]),.sid_low(sid[2:0]),
+    .main_count(main_count),.sub_count(sub_count),.rdac_over(rdac_over));
+  unit_therm u_units(.main_logical(main_order),.sub_logical(sub_order),
+    .main_count(main_count),.sub_count(sub_count),.bank_dither(sampling_en?current_dither:8'sd0),
+    .main_on(main_on),.sub_on(sub_on),.dither_rail(rails));
+  wire load_rdac=enable && conv_valid && coarse_update[bank] && phase>=2 && phase<=8;
+  rdac_drv u_rdac(.clk(clk),.rst_n(rst_n && enable),.load(load_rdac),.slice_id(conv_ids),
+    .main_on(main_on),.sub_on(sub_on),.dither_rail(rails),.slice_sel(slice_sel),
+    .main_sw(main_sw),.sub_sw(sub_sw),.dither_sw(dither_sw));
+  logic coarse_ok,fine_ok;
+  cal_sample_context u_context(.clk(clk),.rst_n(rst_n),.enable(enable),
+    .residue_capture(capture),.quiet_sample(quiet_sample),.current_valid(conv_valid && coarse_ok),
+    .current_id(current_id),.current_slices(conv_ids),.current_main(main_on),.current_sub(sub_on),
+    .current_rails(rails),.current_sampling(sampling_en),.current_injection(current_injection),
+    .analog_bad(analog_bad),.current_bad(rdac_over),.fine_valid(context_valid),.fine_id(context_id),
+    .fine_slices(context_slices),.fine_main(context_main),.fine_sub(context_sub),
+    .fine_rails(context_rails),.fine_sampling(context_sampling),
+    .fine_analog_bad(context_analog_bad),.fine_injection(context_injection));
+  assign recon_start=enable && phase==15 && context_valid && fine_ok && !recon_busy;
+  always_ff @(posedge clk) begin
+    if(!rst_n || !enable) begin
+      flash_acquire_enable<=0;fine_acquire_enable<=0;coarse_cancel<=0;fine_cancel<=0;
+      coarse_acquire_enable<=2'b00;bank<=0;sid<='0;acquiring_dither<=0;current_dither<=0;current_injection<=0;
+      coarse_ok<=0;fine_ok<=0;fine_code<=0;sw_valid<=0;error_code<=0;
+    end else begin
+      // Fixed 16-phase look-ahead: next phase is (phase+1) modulo 16. 
+      flash_acquire_enable<=phase!=0;
+      fine_acquire_enable<=phase>=13;
+      // Keep cancellation asserted through the edge that clears busy. Its 
+      // release then cannot race busy's falling edge in compare_enable. 
+      coarse_cancel<=phase==7 || phase==8;
+      fine_cancel<=phase==13 || phase==14;
+      sw_valid<=load_rdac;
+      if(quiet_sample) begin
+        bank<=!bank;current_dither<=acquiring_dither;current_injection<=injection_q;
+        coarse_ok<=0;fine_ok<=0;
+      end
+      if(advance) begin
+        coarse_acquire_enable<=bank?2'b01:2'b10;
+        sid<=bank?sid_b:sid_a;
+        acquiring_dither<=((sampling_en || quantizer_en) && random_valid)?random_dither:8'sd0;
+        if(!flash_valid) error_code<=ERR_SADC_NOT_READY;
+      end
+      if(phase==8) begin
+        coarse_ok<=coarse_done[bank];
+        if(conv_valid && !coarse_done[bank]) error_code<=ERR_SADC_NOT_READY;
+      end
+      if(phase==14) begin
+        fine_ok<=fine_done;fine_code<=fine_resolved;
+        if(context_valid && !fine_done) error_code<=ERR_ADC2_NOT_READY;
+      end
+      if(capture && conv_valid && rdac_over) error_code<=ERR_RDAC_RANGE;
+      if(phase==15 && context_valid && fine_ok && recon_busy) error_code<=ERR_RECON_BUSY;
+    end
+  end
+endmodule
+// Binary SAR sequencer with optional flash seed. Comparator convention: 
+// cmp_ge=1 accepts the current DAC trial (input >= trial). Resolved excludes 
+// the pending trial bit: only resolved_valid may update the separate RDAC. 
+// Binary radix and clocked compare handshake are engineering choices, not a 
+// disclosure of the chip's transistor-level/asynchronous SAR implementation. 
+module sar_trial_ctrl #(
+    parameter int P_BITS=9,
+    parameter int P_SEED_BITS=3
+) (
+    input wire clk, rst_n, enable, start, cancel,
+    input wire [P_BITS-1:0] seed_code,
+    input wire cmp_valid, cmp_ge,
+    output logic [P_BITS-1:0] trial_code, resolved_code,
+    output logic busy, done, resolved_valid,
+    output wire compare_enable
+);
+  localparam int IW=(P_BITS>1)?$clog2(P_BITS):1;
+  logic [IW-1:0] bit_index;
+  logic [P_BITS-1:0] accepted;
+  initial begin
+    if(P_BITS<1 || P_SEED_BITS<0 || P_SEED_BITS>=P_BITS)
+      $fatal(1,"sar_trial_ctrl: invalid seed/resolution");
+  end
+  assign compare_enable=enable && busy && !cancel;
+  always_comb begin
+    accepted=resolved_code;
+    accepted[bit_index]=cmp_ge;
+  end
+  always_ff @(posedge clk) begin
+    if(!rst_n || !enable) begin
+      trial_code<='0;resolved_code<='0;bit_index<='0;
+      busy<=0;done<=0;resolved_valid<=0;
+    end else if(cancel) begin
+      busy<=0;done<=0;resolved_valid<=0;
+    end else begin
+      done<=0;resolved_valid<=0;
+      if(start && !busy) begin
+        resolved_code <= (seed_code >> (P_BITS-P_SEED_BITS)) << (P_BITS-P_SEED_BITS);
+        trial_code <= ((seed_code >> (P_BITS-P_SEED_BITS)) << (P_BITS-P_SEED_BITS)) |
+                      (P_BITS'(1) << (P_BITS-P_SEED_BITS-1));
+        bit_index<=IW'(P_BITS-P_SEED_BITS-1);busy<=1;resolved_valid<=1;
+      end else if(busy && cmp_valid) begin
+        resolved_code<=accepted;resolved_valid<=1;
+        if(bit_index==0) begin
+          trial_code<=accepted;busy<=0;done<=1;
+        end else begin
+          trial_code<=accepted | (P_BITS'(1) << (bit_index-1'b1));
+          bit_index<=bit_index-1'b1;
+        end
+      end
+    end
+  end
+endmodule
+//=========================================================================== 
+// slice_alloc.sv -- 18-of-8 物理 slice 分配（A/B ping-pong） 
+//=========================================================================== 
+// 职责一句话 
+//   从 18 个物理 slice 中按 A/B ping-pong 选出 8 个，给出"本样本正在采集的 
+//   8 个 slice"与"本样本正在转换的 8 个 slice"，并输出 bank 与样本序号。 
+//   本模块**不做**开关译码（swap_decode / unit_therm 的事），也**不做**把 
+//   开关码扇出到物理 slice（rdac_drv 的事）。 
+// 来源 
+//   adi_model/timing.build_slice_plan 的 strategy="pingpong"、spare_period=None 分支： 
+//       groups  = arange(2*N_ACTIVE).reshape(2, N_ACTIVE)   // [0..7] 与 [8..15] 
+//       parity  = n % 2 
+//       acq[n]  = groups[parity] 
+//       conv[n] = groups[1 - parity] 
+//       valid   = n >= 1 
+// 单位契约 
+//   无量纲。acq_slices/conv_slices 的元素 ∈ [0, 16)（见 INV-4d）；sample_idx 为 
+//   已发出的 sample_en 脉冲计数（复位后为 0）。 
+// 参数来源分级 
+//   尺寸直接取 rtl_params.vh（[推导]）。本模块**没有**模块参数：与头文件常量同名的 
+//   参数会自引用（`parameter int N_ACTIVE = N_ACTIVE`），另起名字则等于在 RTL 里维护 
+//   第二份参数表 —— 两者都被 P1 §0.4 禁止。 
+// 契约与不变量 / 适用域 
+//   * INV-4a（所有权传递，18-of-8 的核心）：conv[n] 逐元素等于 acq[n-1]。 
+//   * INV-4b：acq_slices 内部无重复；conv_slices 内部无重复。 
+//   * INV-4c：同一 n 上 conv_slices 与 acq_slices 不相交。 
+//   * INV-4d：元素恒 < 16。如实登记 —— n_slices = 18，但 pingpong 只用 0..15， 
+//     物理 slice 16/17 在 pingpong 策略下**永远不被选中**（与模型一致，不是 bug）。 
+//   * `bank` 取 `n % 2`。P2 §5 要求它与模型实测值核对（由 
+//     tools/export_rtl_vectors.py 的 `all(result.bank == arange(n) % 2)` 报告）。 
+//     若模型给出相反极性，改这里而不是改 TB。 
+//   * 推进条件 = `cfg_ready && sample_en`。`sample_en` 由 ctrl_fsm 在相位 0 给出， 
+//     而 ctrl_fsm 在 cfg_ready=0 时**不发**任何脉冲；这里的 cfg_ready 门是冗余的 
+//     第二道防线，代价为 0。 
+//   * acq/conv/bank/sample_idx 为计数器 n 的组合函数；conv_valid 由首样本 
+//     标志保持，避免 n 在 2^32 次采样回绕时重新进入无效预热态。 
+//=========================================================================== 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module slice_alloc (
+    input  logic                       clk,
+    input  logic                       rst_n,
+    input  logic                       cfg_ready,
+    input  logic                       sample_en,     // 每样本第一拍的脉冲 
+    output logic [N_ACTIVE-1:0][4:0]   acq_slices,
+    output logic [N_ACTIVE-1:0][4:0]   conv_slices,
+    output logic                       conv_valid,
+    output logic                       bank,          // 0/1 交替，驱动 DEM 的 en_a/en_b 
+    output logic [31:0]                sample_idx,
+    output logic [N_ACTIVE-1:0][4:0]   group          // = conv_slices（便于清点） 
+);
+  localparam logic [31:0] ONE = 32'd1;
+  localparam logic [4:0]  EIGHT = 5'd8;
+  logic [31:0] n;             // 已推进到的样本序号；复位后 0 
+  integer      a;
+  logic seen_sample;
+  always_ff @(posedge clk) begin
+    if (!rst_n) begin
+      n <= 32'd0;
+      seen_sample <= 1'b0;
+    end else if (cfg_ready && sample_en) begin
+      n <= n + ONE;
+      seen_sample <= 1'b1;
+    end
+  end
+  // bank = n % 2 只取最低位（n 无符号，n[0] 即奇偶）。 
+  assign bank       = n[0];
+  assign conv_valid = seen_sample; // remains valid across the 32-bit counter wrap 
+  assign sample_idx = n;
+  always_comb begin
+    for (a = 0; a < N_ACTIVE; a = a + 1) begin
+      // parity=0: acq = [0..7], conv = [8..15] 
+      // parity=1: acq = [8..15], conv = [0..7] 
+      acq_slices[a]  = bank ? (5'(a) + EIGHT) : 5'(a);
+      conv_slices[a] = bank ? 5'(a)           : (5'(a) + EIGHT);
+    end
+  end
+  assign group = conv_slices;
+endmodule
+// Causal 8-of-18 allocation. The bank that actually acquired the previous 
+// period is promoted to conversion. Select the next acquiring bank from its 
+// complement; two idle spares participate in service. A reproducible PRNG 
+// chooses the cyclic scan origin. This is not a uniform draw from all 8-of-18 
+// subsets, nor a claim to reproduce the unpublished silicon randomizer. 
+module slice_pool_ctrl #(parameter logic [31:0] P_SEED=32'h6d2b79f5) (
+    input wire clk, rst_n, enable, advance, shuffle,
+    output logic [7:0][4:0] acquiring_ids, converting_ids,
+    output logic [17:0] acquiring_mask, converting_mask,
+    output logic conversion_valid,
+    output logic [31:0] sample_id
+);
+  logic primed;
+  logic [31:0] random_state,random_next;
+  initial if(P_SEED==0) $fatal(1,"slice_pool_ctrl: zero PRNG seed");
+  always_comb begin
+    random_next=random_state;
+    for(int k=0;k<8;k++)
+      random_next={1'b0,random_next[31:1]} ^ (random_next[0]?32'h80200003:32'd0);
+  end
+  logic [4:0] cursor;
+  logic [7:0][4:0] next_ids;
+  logic [17:0] next_mask;
+  integer count, candidate;
+  always_comb begin
+    next_ids='0;next_mask='0;count=0;candidate=0;
+    for(int k=0;k<18;k++) begin
+      candidate=int'(cursor)+k;
+      if(candidate>=18) candidate-=18;
+      if(!acquiring_mask[candidate] && count<8) begin
+        next_ids[count]=5'(candidate);next_mask[candidate]=1;count++;
+      end
+    end
+  end
+  always_ff @(posedge clk) begin
+    if(!rst_n || !enable) begin
+      for(int a=0;a<8;a++) begin acquiring_ids[a]<=5'(a);converting_ids[a]<='0;end
+      acquiring_mask<=18'h000ff;converting_mask<='0;conversion_valid<=0;
+      random_state<=P_SEED;cursor<=5'd8;primed<=0;sample_id<=0;
+    end else if(advance) begin
+      converting_ids<=acquiring_ids;converting_mask<=acquiring_mask;
+      conversion_valid<=primed;primed<=1;sample_id<=sample_id+1'b1;
+      acquiring_ids<=next_ids;acquiring_mask<=next_mask;
+      if(shuffle) begin
+        random_state<=random_next;
+        if(random_state[31:24]<8'd252) cursor<=5'(random_state[31:24]%8'd18);
+      end
+      else cursor<=0;
+    end
+  end
+endmodule
+//=========================================================================== 
+// status_regs.sv -- 粘滞状态标志与错误码寄存器 
+//=========================================================================== 
+// 职责一句话 
+//   把逐样本事件（溢出/剪裁/模拟饱和/结构性错误）按"粘滞 vs 逐样本"两种口径 
+//   汇总成一组状态位，并拼成一个 32 位 status_word 供上层回读。 
+//   本模块**不做**任何判定（判定在 recon_core / 顶层），只做寄存与粘滞。 
+// 来源 
+//   docs/rtl/RTL_ARITHMETIC_CONTRACT.md §4.4（RTL 的行为约定）与 §4.6 
+//   （模拟溢出标志必须独立保留）；docs/rtl/P2_INTERFACE.md §8。 
+//   既有判据：tests/unit/test_fixed_point.py::test_output_saturation_is_separate_from_analog_saturation 
+// 单位契约 
+//   全为 0/1 状态位与 32 位整数错误码。无模拟量。 
+// 参数来源分级 
+//   本模块无模块参数（尺寸与标志个数都是接口契约的一部分，不是可调尺寸）。 
+//   错误码常量定义于 rtl_error_codes.vh，本模块只**透传** err_code，不解释它。 
+// 契约与不变量 / 适用域 
+//   * **粘滞**（acc_ovf / gain_err / adc2_ovf / analog_ovf）：一旦置位，只由 
+//     `clr` 或 `rst_n` 解除。理由（契约 §4.4）：Python 侧对同一情形是 `raise`， 
+//     即"这次转换的结论不可信"；RTL 无法抛异常，粘滞标志是它在硬件上唯一诚实的 
+//     等价物 —— **不允许它自己消失**。 
+//   * **非粘滞**（clip_low_last / clip_high_last）：逐拍跟随 `ev_clip_*`。 
+//     做成粘滞会让"码到边"看起来像"芯片坏了"（P2 §8 明文）。 
+//     注意 recon_core 只在 `div_done` 那拍更新 clip_*，其余时间保持，故"逐拍跟随" 
+//     与"逐样本更新"等价。 
+//   * `clr` 只清 4 个粘滞标志，**不清** clip_*，也**不改** err_code。 
+//   * `status_word = {err_code[25:0], 6 个标志}` —— 位分配是本模块的**设计选择** 
+//     （P2 §8 只写了 `{err_code, 6 个标志}`，未给位序/截位口径）： 
+//         [5] analog_ovf_sticky  [4] clip_high_last  [3] clip_low_last 
+//         [2] adc2_ovf_sticky    [1] gain_err_sticky [0] acc_ovf_sticky 
+//          [31:6] = err_code[25:0] 
+//     选择 [5:0] 放标志是为了让"码到边/溢出"这类高频观察量落在低位。 
+//   * `status_clr_value` 定义为 4 个粘滞位的掩码（32'h0000_0027；不含两个 clip 位）。 
+//     P2 §8 只给了端口名未给语义，这是设计选择；顶层用不上它，留给软件侧使用。 
+//=========================================================================== 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module status_regs (
+    input  logic        clk,
+    input  logic        rst_n,
+    input  logic        clr,             // 显式清除（清粘滞标志，不影响错误码） 
+    // 事件输入（各与 dout 同拍或独立） 
+    input  logic        ev_acc_ovf,
+    input  logic        ev_gain_err,
+    input  logic        ev_adc2_ovf,
+    input  logic        ev_clip_low,
+    input  logic        ev_clip_high,
+    input  logic        ev_analog_ovf,   // rdac_ovf | adc2_ovf | ra_sat 
+    input  logic [31:0] err_code,        // 来自 calib_regs / weight_store 
+    output logic        acc_ovf_sticky,  // 粘滞，只由 clr / rst_n 解除 
+    output logic        gain_err_sticky,
+    output logic        adc2_ovf_sticky,
+    output logic        clip_low_last,
+    output logic        clip_high_last,
+    output logic        analog_ovf_sticky,
+    output logic [31:0] status_word,     // {err_code, 6 个标志} 
+    output logic [31:0] status_clr_value
+);
+  localparam logic [31:0] CLR_MASK = {26'b0, 6'b100111};
+  always_ff @(posedge clk) begin
+    if (!rst_n) begin
+      acc_ovf_sticky    <= 1'b0;
+      gain_err_sticky   <= 1'b0;
+      adc2_ovf_sticky   <= 1'b0;
+      analog_ovf_sticky <= 1'b0;
+      clip_low_last     <= 1'b0;
+      clip_high_last    <= 1'b0;
+    end else begin
+      if (clr) begin
+        // 显式清除：4 个粘滞位一起归零。clip_* 不在其中（非粘滞，见模块头）。 
+        acc_ovf_sticky    <= 1'b0;
+        gain_err_sticky   <= 1'b0;
+        adc2_ovf_sticky   <= 1'b0;
+        analog_ovf_sticky <= 1'b0;
+      end else begin
+        acc_ovf_sticky    <= acc_ovf_sticky    | ev_acc_ovf;
+        gain_err_sticky   <= gain_err_sticky   | ev_gain_err;
+        adc2_ovf_sticky   <= adc2_ovf_sticky   | ev_adc2_ovf;
+        analog_ovf_sticky <= analog_ovf_sticky | ev_analog_ovf;
+      end
+      // 非粘滞：逐拍跟随（与"逐样本更新"等价，理由见模块头） 
+      clip_low_last  <= ev_clip_low;
+      clip_high_last <= ev_clip_high;
+    end
+  end
+  assign status_word = {err_code[25:0],
+                        analog_ovf_sticky, clip_high_last, clip_low_last,
+                        adc2_ovf_sticky, gain_err_sticky, acc_ovf_sticky};
+  assign status_clr_value = CLR_MASK;
+endmodule
+//=========================================================================== 
+// swap_decode.sv -- 粗码 + dither -> 每 slice 的主/子单位计数 
+//=========================================================================== 
+// 职责一句话 
+//   依次做四件事：拼出命令 k、裁剪、可选的桥接零和交换、拆成 (main_count, sub_count)。 
+//   本模块**不做**温度计展开（unit_therm 的事），也不做 DEM 地址置换（dem_addr_gen 的事）。 
+// 来源 
+//   adi_model/mapper.Mapper.encode()：k = coarse*units_per_lsb1 + k0（dither 另列） 
+//   adi_model/dem.split_switch_command()：clip、桥接零和交换、divmod(code, n_sub) 
+//   adi_model/sim.SimResult.rdac_over：溢出口径 (k < 0) | (k > dac_levels-1) 
+// 单位契约 
+//   无量纲整数。coarse [码仓号]；dither_code [RDAC 单位当量]（调用方保证为整数： 
+//   契约 §A4 拒绝小数掩码）；main_count ∈ [0, N_UNIT_MAIN]；sub_count ∈ [0, N_UNIT_SUB)。 
+// 参数来源分级 
+//   本模块**没有**模块参数：全部尺寸直接取 `rtl_params.vh` 的常量（[推导]，由 
+//   tools/export_rtl_params.py 从 Config 生成）。刻意的选择 —— 模块参数若与头文件 
+//   常量同名，参数默认值会自引用（`parameter int N_ACTIVE = N_ACTIVE`）， 
+//   而另起一套名字就等于在 RTL 里维护第二份参数表（契约 §9 禁止）。 
+//   换配置请重跑导出器，不要就地改数字。 
+// 契约与不变量 / 适用域 
+//   * `amount = min(1, min(code, DAC_LEVELS-1-code))` 这道守卫使 slice_code 恒落在 
+//     [0, DAC_LEVELS-1]：code = 0 或 code = DAC_LEVELS-1 时 amount = 0，桥接不会把码 
+//     推出量程。这是"桥接零和交换不越界"的结构性理由，由 TB 穷举确认。 
+//   * 由该守卫可知 slice_code ≥ 0，故 `>> 3` 与 `[2:0]` 就是精确的 
+//     `divmod(slice_code, N_SUB)`（N_SUB = 8）。**注意**：这里靠的是 
+//     "非负"这一前提，不是"算术右移对负数也是 floor"—— 对 7 位的 main_count 而言， 
+//     负数经 `[9:3]` 截取会得到错值。适用域之外的行为不在契约内。 
+//   * 桥接仅在 `dem_en && bridge_en` 时生效（对应模型的 `dem_enable and dem_bridge_enable`）。 
+//   * 纯组合，延迟 0。 
+//=========================================================================== 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module swap_decode (
+    input  logic [8:0]               coarse,
+    input  logic signed [15:0]       dither_code,
+    input  logic                     dem_en,
+    input  logic                     bridge_en,
+    input  logic [2:0]               sid_low,
+    output logic [N_ACTIVE-1:0][6:0] main_count,
+    output logic [N_ACTIVE-1:0][2:0] sub_count,
+    output logic                     rdac_over
+);
+  localparam int N_ACT = int'(N_ACTIVE);
+  localparam int LV    = int'(DAC_LEVELS);
+  localparam int HALF  = N_ACT / 2;
+  // ⚠️ 全部走**有符号** localparam。Verilog 的规则是"表达式里只要有一个无符号 
+  // 操作数，整个表达式就按无符号算"：早先写成 
+  //     $signed({9'b0,coarse}) * 18'(UNITS_PER_LSB1) + 18'(K0) + $signed(dither_code) 
+  // 时 `18'(...)` 是无符号的，于是负 dither 变成大正数（-8 -> 65528）， 
+  // k_cmd 不再是 -8，裁剪与溢出判定在**整段越界用例**上全错。 
+  // P1 的 85 条定向用例（dither -8..8）抓出来的就是这条。 
+  localparam signed [17:0] UL1  = 18'(UNITS_PER_LSB1);
+  localparam signed [17:0] KLO  = 18'(K0);
+  localparam signed [17:0] LMAX = 18'(int'(DAC_LEVELS) - 1);
+  localparam signed [17:0] ZERO = 18'sd0;
+  // ---- 1) 命令拼装（k 未裁剪；溢出口径取它，与 SimResult.rdac_over 一致） ---- 
+  logic signed [17:0] k_cmd;
+  assign k_cmd = $signed({9'b0, coarse}) * UL1 + KLO + 18'($signed(dither_code));
+  assign rdac_over = (k_cmd < ZERO) || (k_cmd > LMAX);
+  // ---- 2) 裁剪到可实现的 DAC 电平 ---- 
+  logic [8:0] code;
+  assign code = (k_cmd < ZERO) ? 9'd0
+                : (k_cmd > LMAX) ? 9'(LV - 1)
+                                 : k_cmd[8:0];
+  // ---- 3) 桥接零和交换的幅度：min(1, min(code, LV-1-code)) ---- 
+  logic [8:0] head, tail, amount;
+  assign head   = code;
+  assign tail   = 9'(LV - 1) - code;
+  assign amount = (head < tail) ? ((head < 9'd1) ? 9'd0 : 9'd1)
+                                : ((tail < 9'd1) ? 9'd0 : 9'd1);
+  // ---- 4) 逐 slice：符号 + 拆分 ---- 
+  genvar a;
+  generate
+    for (a = 0; a < N_ACT; a++) begin : g_slice
+      logic [2:0]         rank;
+      logic               sign_pos, sign_neg;
+      logic signed [10:0] delta, slice_code;
+      // 取模必须在**能装下 N_ACT 的宽度**里做。写成 3'(N_ACT) 会把 8 截成 0， 
+      // 于是变成"对常量 0 取模"，rank 全错、整段符号逻辑失效 —— 
+      // 只在桥接打开时才表现出来（P1 的 8192 穷举把它抓了出来）。 
+      assign rank     = 3'((32'(a) - 32'(sid_low)) % 32'(N_ACT));
+      assign sign_pos = (32'(rank) < 32'(HALF));
+      assign sign_neg = !sign_pos && (32'(rank) < 32'(N_ACT));
+      assign delta = (dem_en && bridge_en)
+                     ? (sign_pos ? $signed({2'b0, amount})
+                                 : (sign_neg ? -$signed({2'b0, amount}) : 11'sd0))
+                     : 11'sd0;
+      assign slice_code = $signed({2'b0, code}) + delta;
+      assign main_count[a] = slice_code[9:3];   // 非负前提下的 floor(x/8) 
+      assign sub_count[a]  = slice_code[2:0];   // 非负前提下的 x mod 8 
+    end
+  endgenerate
+endmodule
+//=========================================================================== 
+// unit_therm.sv -- 温度计展开与采样 dither 的轨选择 
+//=========================================================================== 
+// 职责一句话 
+//   把"每 slice 的单位计数 + 物理地址的逻辑位置"变成实际的开关掩码； 
+//   并给出采样态 dither 那 2D 个单位的底板轨极性。 
+//   本模块**不做**计数计算（swap_decode 的事）也不做地址置换（dem_addr_gen 的事）。 
+// 来源 
+//   adi_model/weight_calibration._terms()： 
+//       plus[..., order] = take,  take[i] = 1 iff i < count 
+//   即"掩码的物理地址 p 打开  <=>  逻辑位置 j(p) < count"。 
+//   采样 dither 的轨：`v_fs * (2*(i < D + d) - 1)`，故 rail[i] = (i < D + d)。 
+// 单位契约 
+//   无量纲整数。main_logical / sub_logical 来自 dem_addr_gen； 
+//   main_count ∈ [0, N_UNIT_MAIN]；bank_dither ∈ [-D, +D]。 
+// 参数来源分级 
+//   尺寸取头文件常量（[推导]）。本模块**没有**模块参数：同名参数会与 
+//   rtl_params.vh 自引用（见 swap_decode.sv 的同样说明）。 
+// 契约与不变量 / 适用域 
+//   * 结构性不变量（TB 断言）：`popcount(main_on[a]) == main_count[a]`， 
+//     `popcount(sub_on[a]) == sub_count[a]`。温度计展开若退化成"任意掩码"， 
+//     DAC 的名义守恒（契约 §6 A1）立刻失效。 
+//   * `main_count` 超出 [0, N_UNIT_MAIN] 时掩码饱和到全 1（比较即饱和）， 
+//     这属于适用域之外；swap_decode 的桥接守卫保证不会发生。 
+//   * 纯组合，延迟 0。 
+//=========================================================================== 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module unit_therm (
+    input  logic [N_UNIT_MAIN-1:0][5:0]        main_logical,
+    input  logic [N_UNIT_SUB-1:0][2:0]         sub_logical,
+    input  logic [N_ACTIVE-1:0][6:0]           main_count,
+    input  logic [N_ACTIVE-1:0][2:0]           sub_count,
+    input  logic signed [7:0]                  bank_dither,
+    output logic [N_ACTIVE-1:0][N_UNIT_MAIN-1:0] main_on,
+    output logic [N_ACTIVE-1:0][N_UNIT_SUB-1:0]  sub_on,
+    output logic [2*DITHER_UNITS_RANGE-1:0]      dither_rail
+);
+  integer a, p, k, i;
+  always_comb begin
+    for (a = 0; a < N_ACTIVE; a++) begin
+      for (p = 0; p < N_UNIT_MAIN; p++) begin
+        main_on[a][p] = (9'(main_logical[p]) < 9'(main_count[a]));
+      end
+      for (k = 0; k < N_UNIT_SUB; k++) begin
+        sub_on[a][k] = (4'(sub_logical[k]) < 4'(sub_count[a]));
+      end
+    end
+    for (i = 0; i < 2 * DITHER_UNITS_RANGE; i++) begin
+      dither_rail[i] = (i - int'(DITHER_UNITS_RANGE)) < int'($signed(bank_dither));
+    end
+  end
+endmodule
+//=========================================================================== 
+// weight_store.sv -- 18 x 71 Q30 权重存储（带写入窗口与合法性守卫） 
+//=========================================================================== 
+// 职责一句话 
+//   保存 18 个物理 slice x 71 个单位（63 主 + 8 子）的 Q30 权重，向 recon_core 
+//   提供只读的 `w_q` 与精确行和缓存；写端口在**未生效期**接受单点写入，并对每个写做合法性与 
+//   容量守卫。本模块**不做**一致性校验的最终裁决（那是 calib_regs.validate 的 
+//   职责范围内的部分）；维护写入期总和以检查容量，不执行样本重构算术。 
+// 来源 
+//   docs/rtl/P2_INTERFACE.md §9（M12）；rtl/README.md §3.2（读写窗口）； 
+//   docs/rtl/RTL_ARITHMETIC_CONTRACT.md §5（载入期算术的口径）。 
+//   寄存器镜像的字段名与顺序对齐 sim/vectors/registers_*.json 的 `weights_q`。 
+// 单位契约 
+//   权重为 Q30 无量纲整数（W_BITS = 48 位**无符号**存放，合法值落在 (0, 2^47)）。 
+//   契约 §5 的载入期算术保证真实权重为正，故这里按无符号比较即可，不需要符号扩展。 
+// 参数来源分级 
+//   P_N_SLICES / P_N_UNITS 默认取自 rtl_params.vh（[推导]）。允许重例化是为了让 
+//   TB 能用小尺寸构造定向用例；它不是第二份参数表。 
+// 契约与不变量 / 适用域 
+//   * **写入窗口**：`cfg_ready = 1`（配置已生效 / 转换进行中）时**拒绝写入**， 
+//     `err_write` 拉高一拍，数据不变。这是 rtl/README.md §3.2 承诺的契约。 
+//   * **写入守卫（本模块把两条权重合法性检查做成了结构性不变量）**： 
+//       1. `0 < W < 2^47`              —— 超范围的一次写被拒； 
+//       2. 写入后 `Sigma W < 2^60`      —— 会使总和越界的一次写被拒。 
+//     写入守卫只保证已写项合法；reset 后的零和遗漏项由 written bitmap 检出。 
+//     clear_load 开启新装载 epoch，保留数值但清空 bitmap；只有合法接受的写置位。 
+//     load_complete 必须参与最终 validate，详见 ADR 0016。 
+//   * `Sigma W` 的累加宽度取 `SUM_BITS = 64`，**与 recon_core 内部同一口径** 
+//     （P2 §9 明令："两者都用 SUM_BITS = 64，并在 TB 里用同一个向量核对"）。 
+//     64 位对 18*71 = 1278 个 < 2^48 的项（上界 < 2^59）余量充足。 
+//   * 越界的 `wr_slice` / `wr_unit` 一律判为拒绝（不是截断或环绕）：读路径用 
+//     掩蔽后的索引，避免越界读产生 X。 
+//   * 复位后全 0。全 0 权重**不是**合法配置（`gain = 0` -> recon_core 报 gain_err）， 
+//     load_complete=0 阻止该不完整配置生效。 
+//=========================================================================== 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module weight_store #(
+    parameter int P_N_SLICES = int'(N_SLICES),
+    parameter int P_N_UNITS  = int'(N_UNIT_TOTAL)
+) (
+    input  logic              clk,
+    input  logic              rst_n,
+    input  logic              cfg_ready,     // 1 = 已生效 -> **禁止写** 
+    input  logic              clear_load,    // new configuration epoch; invalidate written bitmap 
+    output logic              load_complete, // every physical weight written in this epoch 
+    input  logic              wr_en,         // 一拍脉冲 
+    input  logic [4:0]        wr_slice,
+    input  logic [6:0]        wr_unit,
+    input  logic [W_BITS-1:0] wr_data,
+    output logic              err_write,     // 1 = 本次写被拒 
+    output logic [P_N_SLICES-1:0][P_N_UNITS-1:0][W_BITS-1:0] w_q,
+    output wire [P_N_SLICES-1:0][63:0] row_total,
+    output wire [W_BITS-1:0] selected_weight // same address as write; invalid address reads zero 
+);
+  initial begin
+    if (P_N_SLICES < 1 || P_N_SLICES > 32 || P_N_UNITS < 1 || P_N_UNITS > 128)
+      $fatal(1, "weight_store: dimensions exceed address width");
+  end
+  localparam int SUM_BITS = 64;            // 与 recon_core 同一口径（P2 §9） 
+  localparam logic [W_BITS-1:0]   W_ZERO  = {W_BITS{1'b0}};
+  localparam logic [W_BITS-1:0]   W_MAX   = 48'd1 << 47;   // 2^47 
+  localparam logic [SUM_BITS-1:0] SUM_MAX = 64'd1 << 60; // 2^60 
+  // For every supported production geometry the capacity predicate is 
+  // statically true: 32*128*(2^47-1) < 2^59 < 2^60.  Keep the dynamic guard 
+  // as an elaboration-time fallback if either width/limit changes later. 
+  // Synthesis can prune the global subtract/add/compare path and sum_all 
+  // register. The old-word read is shared by row replacement and cfg readback. 
+  localparam logic STATIC_SUM_SAFE =
+      (64'(P_N_SLICES) * 64'(P_N_UNITS) * (64'(W_MAX) - 64'd1)) < SUM_MAX;
+  // Each accepted coefficient is < 2^47. Therefore a row of U coefficients 
+  // is < U*2^47 <= 2^(47+ceil(log2(U))); ROW_BITS is exact for all U=1..128. 
+  // A replacement subtracts the retained old word, even after clear_load: 
+  // the bitmap describes this epoch, not the numeric contents of the store. 
+  localparam int ROW_BITS = 47 + $clog2(P_N_UNITS);
+  logic [P_N_SLICES-1:0][ROW_BITS-1:0] row_q;
+  logic [P_N_SLICES-1:0][P_N_UNITS-1:0] written;
+  assign load_complete = &written;
+  logic                idx_ok;
+  logic                w_ok;
+  logic                accept;
+  logic [4:0]          s_idx;
+  logic [6:0]          u_idx;
+  logic [SUM_BITS-1:0] sum_all;
+  logic [SUM_BITS-1:0] sum_excl;
+  logic [SUM_BITS-1:0] sum_new;
+  logic [W_BITS-1:0]   cur_w;
+  wire [P_N_SLICES-1:0][W_BITS-1:0] old_by_slice;
+  // Maintain the exact sum on accepted writes instead of rebuilding a 
+  // 1278-word combinational reduction. Replacement subtracts the old word. 
+  // clear_load invalidates completeness only; weights and sum both survive. 
+  // ---- 守卫 ---- 
+  assign idx_ok  = (int'(wr_slice) < P_N_SLICES) && (int'(wr_unit) < P_N_UNITS);
+  assign w_ok    = (wr_data != W_ZERO) && (wr_data < W_MAX);
+  // 用的是**掩蔽后**的索引：越界地址不会去读超出声明维度的位置（否则仿真出 X、 
+  // 综合出锁存/越界网）。 
+  assign s_idx   = idx_ok ? wr_slice : 5'd0;
+  assign u_idx   = idx_ok ? wr_unit  : 7'd0;
+  assign cur_w   = old_by_slice[s_idx];
+  assign selected_weight = idx_ok ? cur_w : '0;
+  // sum_all >= cur_w 恒成立（无符号），故减法不回绕。 
+  assign sum_excl = sum_all - {{(SUM_BITS - int'(W_BITS)){1'b0}}, cur_w};
+  assign sum_new  = sum_excl + {{(SUM_BITS - int'(W_BITS)){1'b0}}, wr_data};
+  assign accept    = wr_en && (!clear_load) && (!cfg_ready) && idx_ok && w_ok && (STATIC_SUM_SAFE || (sum_new < SUM_MAX));
+  assign err_write = wr_en && (!accept);
+  for (genvar s = 0; s < P_N_SLICES; s++) begin : g_row_output
+    assign row_total[s] = {{(64-ROW_BITS){1'b0}}, row_q[s]};
+    // Keep each row replacement local to its physical slice. A global 
+    // row_q[s_idx]/w_q[s_idx][u_idx] mux made the selected-slice state traverse 
+    // the configuration readback tree before reaching every row register. 
+    assign old_by_slice[s] = w_q[s][u_idx];
+    wire [W_BITS-1:0] old_in_row = old_by_slice[s];
+    wire [ROW_BITS-1:0] next_row =
+        row_q[s] - ROW_BITS'(old_in_row) + ROW_BITS'(wr_data);
+    always_ff @(posedge clk) begin
+      if (!rst_n) row_q[s] <= '0;
+      else if (accept && wr_slice == 5'(s)) row_q[s] <= next_row;
+    end
+  end
+  always_ff @(posedge clk) begin
+    if (!rst_n) begin
+      for (int s = 0; s < P_N_SLICES; s++)
+        for (int u = 0; u < P_N_UNITS; u++) w_q[s][u] <= '0;
+      written <= '0;
+      sum_all <= '0;
+    end else if (clear_load) begin
+      written <= '0;
+    end else if (accept) begin
+      // accept already guarantees 0 < wr_data < W_MAX. Expose the proven 
+      // zero high bit to synthesis without changing the wide port, precision, 
+      // or rejection of out-of-range writes. 
+      w_q[wr_slice][wr_unit] <= wr_data & (W_MAX - W_BITS'(1));
+      sum_all <= sum_new;
+      written[wr_slice][wr_unit] <= 1'b1;
+    end
+  end
+endmodule
+//=========================================================================== 
+// sadc_enc.sv -- 比较器阵列温度计码 -> 二进制粗码（核外） 
+//=========================================================================== 
+// 职责一句话 
+//   把 SADC 比较器阵列的温度计判决向量编码成 B1 位二进制粗码，即 popcount。 
+//   本模块**不做**比较器本体、不做阈值生成、不做任何判决 —— 那些属模拟域。 
+// 来源 
+//   docs/rtl/P2_INTERFACE.md §10；rtl/README.md §3.1（层级决定）； 
+//   adi_model 里 SADC 判决到粗码的那一步。 
+// 单位契约 
+//   无量纲整数。cmp_raw 的 bit i 表示 `x > thr[i]`；sadc_code = popcount(cmp_raw) 
+//   ∈ [0, 2^B1 - 1]。 
+// 参数来源分级 
+//   P_B1 默认取自 rtl_params.vh 的 B1（[推导]）；P_N_CMP = (1<<B1)-1 = 511 是 
+//   由 B1 推来的温度计宽度（[推导]）。允许重例化是为了让 TB 用小尺寸做定向用例。 
+// 契约与不变量 / 适用域 
+//   * **`cmp_raw` 必须是温度计码**（1 连续在前或连续在后）。若不是，popcount 仍 
+//     给出一个值 —— **RTL 不做合法性检查**，由模拟侧保证；TB 只对合法输入断言。 
+//     加一个"是否温度计"的检查会引入 O(2^B1) 的比较逻辑，收益为 0： 
+//     不合法的比较器输出本来就是模拟域的故障，应在那里检出。 
+//   * 纯组合，延迟 0。 
+//   * 累加器宽度取 `$clog2(P_N_CMP + 1)` = 9，恰好装下最大值 511，无截断风险。 
+//=========================================================================== 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module sadc_enc #(
+    parameter int P_B1    = int'(B1),
+    parameter int P_N_CMP = (1 << P_B1) - 1        // = 511 
+) (
+    input  logic [P_N_CMP-1:0] cmp_raw,          // 比较器阵列温度计（bit i = x > thr[i]） 
+    output logic [P_B1-1:0]    sadc_code
+);
+  localparam int ACC_W = $clog2(P_N_CMP + 1);    // 9：装得下 [0, P_N_CMP] 
+  localparam int LEAVES = 1 << $clog2(P_N_CMP);
+  initial begin
+    if (P_B1 < 1 || P_B1 > 16 || P_N_CMP < 1 || ACC_W > P_B1)
+      $fatal(1, "sadc_enc: invalid comparator count/output width");
+  end
+  // Declare every tree edge before generate elaboration. Vivado 2018.3 drops 
+  // forward hierarchical g_node[2*i].count references as undriven nets. 
+  // split_var lets Verilator analyze the constant-index DAG per element; it 
+  // changes simulator partitioning only, not HDL connectivity or arithmetic. 
+  wire [ACC_W-1:0] count_tree [1:2*LEAVES-1] /* verilator split_var */ ;
+  for (genvar i = 1; i < 2*LEAVES; i++) begin : g_node
+    if (i < LEAVES) assign count_tree[i] = count_tree[2*i] + count_tree[2*i+1];
+    else if (i-LEAVES < P_N_CMP) assign count_tree[i] = ACC_W'(cmp_raw[i-LEAVES]);
+    else assign count_tree[i] = '0;
+  end
+  assign sadc_code = P_B1'(count_tree[1]);
+endmodule
+// sar20_digital_core: shared configuration and physical-weight calibration. 
+// P_STRUCTURAL=1: dual SAR/shared flash/18-slice macro controls and previous- 
+// residue context (ADR0018). Comparator data must be synchronous with clk. 
+// P_STRUCTURAL=0: legacy externally supplied coarse/fine codes, phase8/14 
+// capture (ADR0017). Explicit compatibility profile for old oracle vectors. 
+// A configuration epoch locks every coefficient and control until clear. 
+// Reconstruction latency: ceil(63/P_RECON_STAGES)+2 complete clock periods 
+// after accepted start (11 for the default P_RECON_STAGES=7). 
+ // --------------------------------------------------------------------------- 
+// rtl_params.vh —— 由 tools/export_rtl_params.py 自动生成，请勿手工编辑。 
+// config      : paper_literal 
+// fixed point : W_FRAC/Q30 W_BITS/48 V_FRAC/Q32 V_BITS/64 ACC_BITS/96 OUT_BITS/20 
+// payload sha : 39b12360d1858e7cfbe05f18614d5d2f270e11627fda33b942b00f4a266d83a8 
+// 算术契约    : docs/rtl/RTL_ARITHMETIC_CONTRACT.md（冻结；改动须走新 ADR） 
+// 本文件是 config 的纯函数：不含任何随提交变化的来源标识； 
+// 工作树身份见 sim/vectors/export_manifest_*.json（那份刻意不进 `--check`）。 
+// --------------------------------------------------------------------------- 
+  // RTL_PARAMS_VH 
+module sar20_digital_core #(
+    parameter bit P_STRUCTURAL = 1,
+    parameter int P_RECON_STAGES = 7,
+    parameter int P_REF_ON = 10,
+    parameter int P_RESIDUE_CAPTURE = 9,
+    parameter logic [31:0] P_SHUFFLE_SEED = 32'h6d2b79f5
+) (
+    input  logic        clk,
+    input  logic        rst_n,
+    // Structural macro boundary; active when P_STRUCTURAL=1 (default). 
+    input wire [6:0] flash_therm,
+    input wire flash_valid,
+    input wire [1:0] coarse_cmp_valid, coarse_cmp_ge,
+    input wire fine_cmp_valid, fine_cmp_ge,
+    output wire [3:0] analog_phase,
+    output wire quiet_sample, tp_clock, ra_az, ra_amplify, ref_precharge, ref_accurate,
+    output wire [17:0] acquiring_mask, converting_mask, aux_charge_enable, hold_low_enable,
+    output wire [1:0] coarse_compare_enable,coarse_acquire_enable,
+    output wire flash_acquire_enable,fine_acquire_enable,
+    output wire [1:0][8:0] coarse_trial,
+    output wire [1:0][7:0] quantizer_dither,
+    output wire [3:0] acquisition_dither_rails,
+    output wire [11:0] fine_trial,
+    output wire fine_compare_enable, flash_sample,
+    // ---- 配置/寄存器接口 ---- 
+    input  logic        cfg_wr,
+    input  logic [15:0] cfg_addr,
+    input  logic [63:0] cfg_wdata,
+    output logic [63:0] cfg_rdata,
+    input  logic        cfg_validate,
+    input  logic        cfg_clear_valid,
+    output logic        cfg_ready,
+    // ---- 模拟域回读（数字输入）---- 
+    input  logic [B1-1:0]        sadc_code,
+    input  logic                 sadc_rdy,
+    input  logic [ADC2_BITS-1:0] adc2_code,
+    input  logic                 adc2_rdy,
+    input  logic                 ra_sat,
+    input  logic                 rdac_ovf,
+    // ⚠️ 契约修正（2026-09-18，L3 测试发现）：`analog_ovf` 的构成里含模型的 `adc2_over` 
+    // （ADC2 输入电压落在 [`adc2_v_min`,`adc2_v_max`] **严格外侧**，见 `adi_model/adc2.py` 
+    // 的 `over = (v < vmin) | (v > vmax)`）。它**不可能从 `adc2_code` 反推** —— 
+    // 码到轨既可能"恰好在轨"（模型不算 over）也可能"越轨被夹住"（算 over）。 
+    // 所以它是与 `ra_sat`/`rdac_ovf` 同级的**模拟域回读输入**，必须由外部给出。 
+    input  logic                 adc2_over,
+    input  logic signed [V_BITS-1:0] inj_q,     // 本样本已知注入，Q32 
+    // ---- 数字输出到模拟域 ---- 
+    output logic [N_SLICES-1:0]                       slice_sel,
+    output logic [N_SLICES-1:0][N_UNIT_MAIN-1:0]      main_sw,
+    output logic [N_SLICES-1:0][N_UNIT_SUB-1:0]       sub_sw,
+    output logic [N_SLICES-1:0][2*DITHER_UNITS_RANGE-1:0] dither_sw,
+    output logic                                      sw_valid,
+    // ---- 最终输出 ---- 
+    output logic [OUT_BITS-1:0] dout,
+    output logic                dout_valid,
+    output logic                clip_low,
+    output logic                clip_high,
+    output logic                analog_ovf,
+    output logic                acc_ovf,
+    // ---- 观测 ---- 
+    output logic [31:0]         status_word,
+    output logic [31:0]         dout_sample_id,
+    output logic [4:0]          dout_flags
+);
+  //========================================================================= 
+  // 0) 精化期一致性断言（零成本：只做常量比较，不生成逻辑） 
+  //========================================================================= 
+  // 目的：让"头文件被人手篡改 / 换配置时忘了重跑导出器 / TB 与 RTL 用了不同的 
+  //      参数集"这三类事故在**精化期**就炸掉，而不是在仿真里表现为某些路径恒 0。 
+  initial begin
+    if(P_RECON_STAGES<5 || P_RECON_STAGES>63)
+      $fatal(1,"sar20_digital_core: divider throughput exceeds 16-tick frame budget");
+    if (N_ACTIVE      != 8)   $fatal(1, "sar20_digital_core: N_ACTIVE != 8");
+    if (N_SLICES      != 18)  $fatal(1, "sar20_digital_core: N_SLICES != 18");
+    if (N_UNIT_MAIN   != 63)  $fatal(1, "sar20_digital_core: N_UNIT_MAIN != 63");
+    if (N_UNIT_SUB    != 8)   $fatal(1, "sar20_digital_core: N_UNIT_SUB != 8");
+    if (N_UNIT_TOTAL  != 71)  $fatal(1, "sar20_digital_core: N_UNIT_TOTAL != 71");
+    if (DAC_LEVELS    != 512) $fatal(1, "sar20_digital_core: DAC_LEVELS != 512");
+    if (B1            != 9)   $fatal(1, "sar20_digital_core: B1 != 9");
+    if (ADC2_BITS     != 12)  $fatal(1, "sar20_digital_core: ADC2_BITS != 12");
+    if (OUT_BITS      != 20)  $fatal(1, "sar20_digital_core: OUT_BITS != 20");
+    if (W_BITS        != 48)  $fatal(1, "sar20_digital_core: W_BITS != 48");
+    if (V_BITS        != 64)  $fatal(1, "sar20_digital_core: V_BITS != 64");
+    if (W_FRAC        != 30)  $fatal(1, "sar20_digital_core: W_FRAC != 30");
+    if (V_FRAC        != 32)  $fatal(1, "sar20_digital_core: V_FRAC != 32");
+    if (ACC_BITS      != 96)  $fatal(1, "sar20_digital_core: ACC_BITS != 96");
+    if (PHASES        != 16)  $fatal(1, "sar20_digital_core: PHASES != 16");
+    if (((1 << B1) - 1) != 511) $fatal(1, "sar20_digital_core: SADC 温度计宽度 != 511");
+    if (int'(N_UNIT_MAIN) + int'(N_UNIT_SUB) != int'(N_UNIT_TOTAL))
+      $fatal(1, "sar20_digital_core: 主+子单位数 != 总单位数");
+  end
+  //========================================================================= 
+  // 1) 错误码常量（静态共享头文件；不是参数导出器的生成物） 
+  //========================================================================= 
+   // Static interface constants, independent of generated rtl_params.vh. 
+// Include INSIDE each module: intentionally no global include guard because 
+// these localparams belong to each module scope. 
+localparam logic [31:0] ERR_NONE          = 32'd0;
+localparam logic [31:0] ERR_W_RANGE       = 32'd1;
+localparam logic [31:0] ERR_W_SUM         = 32'd2;
+localparam logic [31:0] ERR_RANGE_EMPTY   = 32'd3;
+localparam logic [31:0] ERR_V_RANGE       = 32'd4;
+localparam logic [31:0] ERR_CFG_WRITE     = 32'd5;
+localparam logic [31:0] ERR_INCOMPLETE    = 32'd6;
+localparam logic [31:0] ERR_SADC_NOT_READY = 32'd7;
+localparam logic [31:0] ERR_ADC2_NOT_READY = 32'd8;
+localparam logic [31:0] ERR_RECON_BUSY    = 32'd9;
+localparam logic [31:0] ERR_DITHER_MODE   = 32'd10;
+localparam logic [31:0] ERR_RDAC_RANGE    = 32'd11;
+  localparam logic [W_BITS-1:0] W_MAX = 48'd1 << 47;  // 2^47 
+  //========================================================================= 
+  // 2) 配置地址译码 
+  //========================================================================= 
+  //  0x0000 + u*8        (u = 0..70)  权重数据（slice 由窗口寄存器选） 
+  //  0x1000 / 0x1008 / 0x1010         offset_q / adc2_min_q / adc2_max_q 
+  //  0x1018                           控制位 {…, quantizer_dither_en, sampling_mask_en, bridge_en, dem_en} 
+  //  0x1020                           status_word（只读） 
+  //  0x2000 + s*0x100                权重窗口：slice 号 s 
+  logic        is_weight, is_calib, is_win;
+  logic        is_off, is_min, is_max, is_ctrl, is_stat;
+  logic [6:0]  dw_unit;
+  logic [4:0]  win_slice;
+  assign is_weight  = (cfg_addr[15:12] == 4'h0);
+  assign is_calib   = (cfg_addr[15:12] == 4'h1);
+  assign is_win     = (cfg_addr[15:13] == 3'b001);
+  assign dw_unit    = cfg_addr[9:3];
+  assign win_slice  = cfg_addr[12:8] & 5'h1F;
+  assign is_off     = is_calib && (cfg_addr[11:0] == 12'h000);
+  assign is_min     = is_calib && (cfg_addr[11:0] == 12'h008);
+  assign is_max     = is_calib && (cfg_addr[11:0] == 12'h010);
+  assign is_ctrl    = is_calib && (cfg_addr[11:0] == 12'h018);
+  assign is_stat    = is_calib && (cfg_addr[11:0] == 12'h020);
+  // Cross-profile signals are declared before either controller first uses them. 
+  wire [17:0] legacy_slice_sel,structural_slice_sel;
+  wire [17:0][62:0] legacy_main_sw,structural_main_sw;
+  wire [17:0][7:0] legacy_sub_sw,structural_sub_sw;
+  wire [17:0][3:0] legacy_dither_sw,structural_dither_sw;
+  logic legacy_sw_valid;
+  wire structural_sw_valid,structural_launch;
+  wire [31:0] structural_error,structural_id;
+  wire [7:0][4:0] structural_ids;
+  wire [7:0][62:0] structural_main;
+  wire [7:0][7:0] structural_sub;
+  wire [3:0] structural_rails;
+  wire structural_sampling,structural_analog_bad;
+  wire signed [63:0] structural_injection;
+  wire [11:0] structural_fine;
+  // ---- 权重窗口寄存器 ---- 
+  logic [4:0] cur_slice;
+  logic cfg_bus_ok, cfg_addr_valid, cfg_bus_reject, bad_weight_width;
+  logic weight_addr_valid, window_addr_valid, bad_control_bits;
+  wire epoch_rst_n = rst_n && !cfg_clear_valid;
+  logic [31:0] bus_err;
+  logic weights_ready;
+  logic rc_busy;
+  assign weight_addr_valid = is_weight && cfg_addr[11:10] == 0 && cfg_addr[2:0] == 0
+                             && int'(dw_unit) < int'(N_UNIT_TOTAL);
+  assign window_addr_valid = is_win && cfg_addr[7:0] == 0 && int'(win_slice) < int'(N_SLICES);
+  assign cfg_addr_valid = weight_addr_valid || is_off || is_min || is_max || is_ctrl || window_addr_valid;
+  assign bad_weight_width = is_weight && ((|cfg_wdata[63:int'(W_BITS)]) ||
+                             cfg_wdata[W_BITS-1:0] == 0 || cfg_wdata[W_BITS-1:0] >= W_MAX);
+  assign bad_control_bits = is_ctrl && (|cfg_wdata[63:4]);
+  assign cfg_bus_ok = cfg_wr && cfg_addr_valid && !bad_weight_width && !bad_control_bits
+                     && !cfg_ready && !cfg_validate && !cfg_clear_valid && ctrl_seq == 0;
+  assign cfg_bus_reject = cfg_wr && !cfg_bus_ok;
+  always_ff @(posedge clk) begin
+    if (!rst_n || cfg_clear_valid) bus_err <= ERR_NONE;
+    else if (cfg_bus_reject) bus_err <= bad_weight_width ? ERR_W_RANGE : ERR_CFG_WRITE;
+    else if (ws_err_write) bus_err <= ERR_W_SUM;
+    else if (cfg_validate && ctrl_seq == 0 && !rc_busy) bus_err <= ERR_NONE;
+  end
+  always_ff @(posedge clk) begin
+    if (!epoch_rst_n) begin
+      cur_slice <= 5'd0;
+    end else if (cfg_bus_ok && is_win) begin
+      cur_slice <= win_slice;
+    end
+  end
+  // ---- 0x1018：保持三拍等待窗口，在 ctrl_seq=1 的时钟沿原子写入四位 ---- 
+  // validate 冲突暂停序列；clear 取消尚未提交的整笔控制写。 
+  logic [1:0] ctrl_seq;
+  logic [3:0] ctrl_bits;
+  always_ff @(posedge clk) begin
+    if (!rst_n || cfg_clear_valid) begin
+      ctrl_seq  <= 2'd0;
+      ctrl_bits <= 4'd0;
+    end else begin
+      if (cfg_bus_ok && is_ctrl) begin
+        ctrl_seq  <= 2'd3;
+        ctrl_bits <= cfg_wdata[3:0];
+      end else if (ctrl_seq != 2'd0 && !cfg_validate) begin
+        ctrl_seq <= ctrl_seq - 2'd1;
+      end
+    end
+  end
+  //========================================================================= 
+  // 3) 寄存器子系统 
+  //========================================================================= 
+  logic [N_SLICES-1:0][N_UNIT_TOTAL-1:0][W_BITS-1:0] w_q;
+  wire [N_SLICES-1:0][63:0] row_total;
+  wire [W_BITS-1:0] selected_weight;
+  logic        ws_err_write;
+  logic        ws_wr_en;
+  assign ws_wr_en = cfg_bus_ok && is_weight && (cfg_addr[2:0] == 3'b000)
+                   && (dw_unit < 7'(N_UNIT_TOTAL));
+  weight_store #(
+      .P_N_SLICES (int'(N_SLICES)),
+      .P_N_UNITS  (int'(N_UNIT_TOTAL))
+  ) u_wstore (
+      .clk       (clk),
+      .rst_n     (rst_n),
+      .cfg_ready (cfg_ready),
+      .clear_load(cfg_clear_valid),
+      .load_complete(weights_ready),
+      .wr_en     (ws_wr_en),
+      .wr_slice  (cur_slice),
+      .wr_unit   (dw_unit),
+      .wr_data   (cfg_wdata[W_BITS-1:0]),
+      .err_write (ws_err_write),
+      .w_q       (w_q),
+      .row_total (row_total),
+      .selected_weight(selected_weight)
+  );
+  logic [31:0]              cal_err_code;
+  logic signed [V_BITS-1:0] c_off, c_min, c_max;
+  logic                     c_dem_en, c_bridge_en, c_smask_en, c_qdither_en;
+  logic                     cal_wr_en;
+  logic [3:0]               cal_sel;
+  logic                     cal_data_b;
+  assign cal_wr_en = cfg_bus_ok && (is_off | is_min | is_max);
+  always_comb begin
+    cal_sel    = 4'd0;
+    cal_data_b = 1'b0;
+    if (cfg_bus_ok && is_off) begin
+      cal_sel = 4'd0;
+    end else if (cfg_bus_ok && is_min) begin
+      cal_sel = 4'd1;
+    end else if (cfg_bus_ok && is_max) begin
+      cal_sel = 4'd2;
+    end
+  end
+  calib_regs #(
+      .P_ADC2_BITS (int'(ADC2_BITS))
+  ) u_calib (
+      .clk              (clk),
+      .rst_n            (rst_n),
+      .wr_en            (cal_wr_en),
+      .sel              (cal_sel),
+      .data_v           (cfg_wdata[V_BITS-1:0]),
+      .data_b           (cal_data_b),
+      .controls_write   (ctrl_seq == 1 && !cfg_validate),
+      .controls_data    (ctrl_bits),
+      .quantizer_dither_en(c_qdither_en),
+      .weights_ready    (weights_ready),
+      .config_busy      (cfg_wr || ctrl_seq != 0 || rc_busy),
+      .validate         (cfg_validate),
+      .clear_valid      (cfg_clear_valid),
+      .cfg_ready        (cfg_ready),
+      .err_code         (cal_err_code),
+      .offset_q         (c_off),
+      .adc2_min_q       (c_min),
+      .adc2_max_q       (c_max),
+      .dem_en           (c_dem_en),
+      .bridge_en        (c_bridge_en),
+      .sampling_mask_en (c_smask_en)
+  );
+  // err_code 合并：总线协议错误优先，其次校验错误、权重拒绝。 
+  logic [31:0] merged_err, input_err;
+  always_comb begin
+    if (bus_err != ERR_NONE) begin
+      merged_err = bus_err;
+    end else if (cal_err_code != ERR_NONE) begin
+      merged_err = cal_err_code;
+    end else if (ws_err_write) begin
+      if (cfg_ready) begin
+        merged_err = ERR_CFG_WRITE;
+      end else if ((cfg_wdata[W_BITS-1:0] == {W_BITS{1'b0}}) ||
+                   (cfg_wdata[W_BITS-1:0] >= W_MAX)) begin
+        merged_err = ERR_W_RANGE;
+      end else begin
+        merged_err = ERR_W_SUM;
+      end
+    end else begin
+      merged_err = P_STRUCTURAL ? structural_error : input_err;
+    end
+  end
+  //========================================================================= 
+  // 4) 相位与流水控制 
+  //========================================================================= 
+  logic [PHASES-1:0]         phase_onehot;
+  logic [$clog2(PHASES)-1:0] phase;
+  logic                      sample_en, acq_phase;
+  logic                      sadc_latch, dem_advance, rdac_load, adc2_latch, recon_start;
+  logic [31:0]               fsm_sample_idx;
+  ctrl_fsm #(
+      .P_PHASES (int'(PHASES))
+  ) u_ctrl (
+      .clk          (clk),
+      .rst_n        (epoch_rst_n),
+      .cfg_ready    (cfg_ready && !P_STRUCTURAL),
+      .run          (cfg_ready),          // 配置生效后连续运行 
+      .phase_onehot (phase_onehot),
+      .phase        (phase),
+      .sample_en    (sample_en),
+      .acq_phase    (acq_phase),
+      .sadc_latch   (sadc_latch),
+      .dem_advance  (dem_advance),
+      .rdac_load    (rdac_load),
+      .adc2_latch   (adc2_latch),
+      .recon_start  (recon_start),
+      .sample_idx   (fsm_sample_idx)
+  );
+  //========================================================================= 
+  // 5) slice 分配 
+  //========================================================================= 
+  logic [N_ACTIVE-1:0][4:0] acq_slices, conv_slices, grp;
+  logic                     conv_valid, bank;
+  logic [31:0]              alloc_sample_idx;
+  slice_alloc u_alloc (
+      .clk         (clk),
+      .rst_n       (epoch_rst_n),
+      .cfg_ready   (cfg_ready),
+      .sample_en   (sample_en),
+      .acq_slices  (acq_slices),
+      .conv_slices (conv_slices),
+      .conv_valid  (conv_valid),
+      .bank        (bank),
+      .sample_idx  (alloc_sample_idx),
+      .group       (grp)
+  );
+  // Fixed-phase synchronous interface: sample coarse at phase 8 and the fine 
+  // code/injection/analog flags together at phase 14. Ready is a deadline, not 
+  // a CDC synchronizer or a request to stall the 16-phase schedule. 
+  logic [B1-1:0] sadc_hold;
+  logic [ADC2_BITS-1:0] adc2_hold;
+  logic signed [V_BITS-1:0] inj_hold;
+  logic sadc_ok, adc2_ok, analog_sample;
+  wire legacy_launch = recon_start && sadc_ok && adc2_ok && !rc_busy;
+  wire launch_recon = P_STRUCTURAL ? structural_launch : legacy_launch;
+  always_ff @(posedge clk) begin
+    if (!epoch_rst_n) begin
+      sadc_hold <= '0; adc2_hold <= '0; inj_hold <= '0;
+      sadc_ok <= 1'b0; adc2_ok <= 1'b0; analog_sample <= 1'b0;
+      input_err <= ERR_NONE;
+    end else begin
+      if (sample_en) begin
+        sadc_ok <= 1'b0; adc2_ok <= 1'b0; analog_sample <= 1'b0;
+      end
+      if (sadc_latch) begin
+        sadc_ok <= sadc_rdy;
+        if (sadc_rdy) sadc_hold <= sadc_code;
+        else input_err <= ERR_SADC_NOT_READY;
+      end
+      if (adc2_latch) begin
+        adc2_ok <= adc2_rdy;
+        if (adc2_rdy) begin
+          adc2_hold <= adc2_code;
+          inj_hold <= inj_q;
+          analog_sample <= rdac_ovf | adc2_over | ra_sat | rdac_over;
+        end else input_err <= ERR_ADC2_NOT_READY;
+      end
+      if (recon_start && sadc_ok && adc2_ok && rc_busy)
+        input_err <= ERR_RECON_BUSY;
+    end
+  end
+  //========================================================================= 
+  // 6) DEM：状态序列 -> 地址逻辑位置 
+  //========================================================================= 
+  logic [8:0] sid_a, sid_b, sid_cur, sid_hold;
+  dem_state_gen #(
+      .A_RED (int'(DEM_LCG_A_MOD)),
+      .W     (9)
+  ) u_dem (
+      .clk    (clk),
+      .rst_n  (epoch_rst_n),
+      .dem_en (c_dem_en),                 // 头文件复位默认 0（故意的，见模块头） 
+      .load   (1'b0),                     // 初值恒 0，与模型一致 
+      .init_a (9'd0),
+      .init_b (9'd0),
+      .en_a   (dem_advance && !bank),     // 只推进本次样本用到的那一个 bank 
+      .en_b   (dem_advance &&  bank),
+      .sid_a  (sid_a),
+      .sid_b  (sid_b)
+  );
+  assign sid_cur = bank ? sid_b : sid_a;
+  // 在 dem_advance 那一拍捕获"本次样本用的"状态，之后再推进。 
+  always_ff @(posedge clk) begin
+    if (!epoch_rst_n) begin
+      sid_hold <= 9'd0;
+    end else if (dem_advance) begin
+      sid_hold <= sid_cur;
+    end
+  end
+  logic [N_UNIT_MAIN-1:0][5:0] main_logical;
+  logic [N_UNIT_SUB-1:0][2:0]  sub_logical;
+  dem_addr_gen u_daddr (
+      .sid          (sid_hold),
+      .main_logical (main_logical),
+      .sub_logical  (sub_logical)
+  );
+  //========================================================================= 
+  // 7) dither（片上随机源，统计验收；按模式与 valid 门控寄存） 
+  //========================================================================= 
+  logic signed [7:0] dith_code;
+  logic              dith_valid;
+  logic signed [7:0] dith_q;
+  dither_gen #(
+      .D    (int'(DITHER_UNITS_RANGE)),
+      .SEED (32'h1357_9BDF)
+  ) u_dith (
+      .clk         (clk),
+      .rst_n       (epoch_rst_n),
+      .en          (dem_advance && (c_smask_en || c_qdither_en)),
+      .dither_code (dith_code),
+      .valid       (dith_valid)
+  );
+  always_ff @(posedge clk) begin
+    if (!epoch_rst_n) begin
+      dith_q <= 8'sd0;
+    end else if (dem_advance && (c_smask_en || c_qdither_en) && dith_valid) begin
+      dith_q <= dith_code;
+    end
+  end
+  //========================================================================= 
+  // 8) 开关译码 -> 温度计展开 
+  //========================================================================= 
+  logic [N_ACTIVE-1:0][6:0]             main_count;
+  logic [N_ACTIVE-1:0][2:0]             sub_count;
+  logic                                 rdac_over;
+  logic [N_ACTIVE-1:0][N_UNIT_MAIN-1:0] main_on;
+  logic [N_ACTIVE-1:0][N_UNIT_SUB-1:0]  sub_on;
+  logic [2*DITHER_UNITS_RANGE-1:0]      dither_rail;
+  // Separate named nets preserve the sampling/quantizer paths and provide 
+  // legal force/release points for L3 (do not force child input variables). 
+  wire signed [15:0] swap_dither_code;
+  wire signed [7:0] sampling_dither_code;
+  assign swap_dither_code = c_qdither_en ? {{8{dith_q[7]}}, dith_q} : 16'sd0;
+  assign sampling_dither_code = c_smask_en ? dith_q : 8'sd0;
+  swap_decode u_swap (
+      .coarse      (sadc_hold),                     // 粗码已在相位 8 捕获（编码器在核外） 
+      .dither_code (swap_dither_code),      // 显式符号扩展到 16 位 
+      .dem_en      (c_dem_en),
+      .bridge_en   (c_bridge_en),
+      .sid_low     (sid_hold[2:0]),
+      .main_count  (main_count),
+      .sub_count   (sub_count),
+      .rdac_over   (rdac_over)
+  );
+  unit_therm u_therm (
+      .main_logical (main_logical),
+      .sub_logical  (sub_logical),
+      .main_count   (main_count),
+      .sub_count    (sub_count),
+      .bank_dither  (sampling_dither_code),
+      .main_on      (main_on),
+      .sub_on       (sub_on),
+      .dither_rail  (dither_rail)
+  );
+  //========================================================================= 
+  // 9) RDAC 扇出 
+  //========================================================================= 
+  rdac_drv u_rdrv (
+      .clk         (clk),
+      .rst_n       (epoch_rst_n),
+      .load        (rdac_load && sadc_ok),
+      .slice_id    (conv_slices),
+      .main_on     (main_on),
+      .sub_on      (sub_on),
+      .dither_rail (dither_rail),
+      .slice_sel   (legacy_slice_sel),
+      .main_sw     (legacy_main_sw),
+      .sub_sw      (legacy_sub_sw),
+      .dither_sw   (legacy_dither_sw)
+  );
+  always_ff @(posedge clk) begin                                       // 开关加载事件打一拍 
+    if (!epoch_rst_n) legacy_sw_valid <= 1'b0;
+    else        legacy_sw_valid <= rdac_load && sadc_ok;
+  end
+  sar_structural_ctrl #(.P_REF_ON(P_REF_ON),.P_RESIDUE_CAPTURE(P_RESIDUE_CAPTURE),
+    .P_SHUFFLE_SEED(P_SHUFFLE_SEED)) u_structure(
+    .clk(clk),.rst_n(epoch_rst_n),.enable(cfg_ready && P_STRUCTURAL),
+    .dem_en(c_dem_en),.bridge_en(c_bridge_en),.sampling_en(c_smask_en),.quantizer_en(c_qdither_en),
+    .flash_therm(flash_therm),.flash_valid(flash_valid),
+    .coarse_cmp_valid(coarse_cmp_valid),.coarse_cmp_ge(coarse_cmp_ge),
+    .fine_cmp_valid(fine_cmp_valid),.fine_cmp_ge(fine_cmp_ge),
+    .injection_q(inj_q),.analog_bad(ra_sat || rdac_ovf || adc2_over),.recon_busy(rc_busy),
+    .phase(analog_phase),.quiet_sample(quiet_sample),.tp_clock(tp_clock),
+    .ra_az(ra_az),.ra_amplify(ra_amplify),.ref_precharge(ref_precharge),.ref_accurate(ref_accurate),
+    .acquiring_mask(acquiring_mask),.converting_mask(converting_mask),
+    .aux_charge_enable(aux_charge_enable),.hold_low_enable(hold_low_enable),
+    .coarse_compare_enable(coarse_compare_enable),.coarse_trial(coarse_trial),
+    .coarse_acquire_enable(coarse_acquire_enable),.flash_acquire_enable(flash_acquire_enable),
+    .fine_acquire_enable(fine_acquire_enable),
+    .quantizer_dither(quantizer_dither),.acquisition_dither_rails(acquisition_dither_rails),
+    .fine_trial(fine_trial),.fine_compare_enable(fine_compare_enable),.flash_sample(flash_sample),
+    .slice_sel(structural_slice_sel),.main_sw(structural_main_sw),.sub_sw(structural_sub_sw),
+    .dither_sw(structural_dither_sw),.sw_valid(structural_sw_valid),.recon_start(structural_launch),
+    .context_id(structural_id),.context_slices(structural_ids),.context_main(structural_main),
+    .context_sub(structural_sub),.context_rails(structural_rails),
+    .context_sampling(structural_sampling),.context_analog_bad(structural_analog_bad),
+    .context_injection(structural_injection),.fine_code(structural_fine),.error_code(structural_error));
+  assign slice_sel = P_STRUCTURAL ? structural_slice_sel : legacy_slice_sel;
+  assign main_sw = P_STRUCTURAL ? structural_main_sw : legacy_main_sw;
+  assign sub_sw = P_STRUCTURAL ? structural_sub_sw : legacy_sub_sw;
+  assign dither_sw = P_STRUCTURAL ? structural_dither_sw : legacy_dither_sw;
+  assign sw_valid = P_STRUCTURAL ? structural_sw_valid : legacy_sw_valid;
+  //========================================================================= 
+  // 10) 定点重构 
+  //========================================================================= 
+  logic [OUT_BITS-1:0] rc_dout;
+  logic                rc_dout_valid, rc_clip_low, rc_clip_high;
+  logic                rc_acc_ovf, rc_gain_err, rc_adc2_ovf;
+  recon_core #(
+      .P_N_ACTIVE  (int'(N_ACTIVE)),
+      .P_N_MAIN    (int'(N_UNIT_MAIN)),
+      .P_N_SUB     (int'(N_UNIT_SUB)),
+      .P_N_SLICES  (int'(N_SLICES)),
+      .P_ADC2_BITS (int'(ADC2_BITS)),
+      .P_STAGES    (P_RECON_STAGES),
+      .P_USE_ROW_TOTALS(1),
+      .P_DIT_N     (2 * DITHER_UNITS_RANGE),
+      .P_DIT_END   (DITHER_SPLIT_IS_SUB ? int'(N_UNIT_TOTAL) : int'(N_UNIT_MAIN))
+  ) u_recon (
+      .clk              (clk),
+      .rst_n            (rst_n && !cfg_clear_valid),
+      .cfg_ready        (cfg_ready),
+      .start            (launch_recon),
+      .sample_id        (P_STRUCTURAL ? structural_id : alloc_sample_idx),
+      .result_sample_id (dout_sample_id),
+      .result_flags     (dout_flags),
+      .clr_ovf          (cfg_clear_valid),
+      .sampling_mask_en (P_STRUCTURAL ? structural_sampling : c_smask_en),
+      .slice_id         (P_STRUCTURAL ? structural_ids : conv_slices),
+      .main_on          (P_STRUCTURAL ? structural_main : main_on),
+      .sub_on           (P_STRUCTURAL ? structural_sub : sub_on),
+      .dither_rail      (P_STRUCTURAL ? structural_rails : dither_rail),
+      .adc2_code        (P_STRUCTURAL ? structural_fine : adc2_hold),
+      .inj_q            (P_STRUCTURAL ? structural_injection : inj_hold),          // 已捕获的同样本注入 
+      .w_rom            (w_q),
+      .row_total        (row_total),
+      .offset_q         (c_off),
+      .adc2_min_q       (c_min),
+      .adc2_max_q       (c_max),
+      .dout             (rc_dout),
+      .dout_valid       (rc_dout_valid),
+      .clip_low         (rc_clip_low),
+      .clip_high        (rc_clip_high),
+      .acc_ovf          (rc_acc_ovf),
+      .gain_err         (rc_gain_err),
+      .adc2_ovf         (rc_adc2_ovf),
+      .busy             (rc_busy)
+  );
+  assign dout        = rc_dout;
+  assign dout_valid  = rc_dout_valid;
+  assign clip_low    = rc_clip_low;
+  assign clip_high   = rc_clip_high;
+  //========================================================================= 
+  // 11) 状态寄存器 
+  //========================================================================= 
+  logic        analog_ovf_raw;
+  logic [31:0] status_clr_value_unused;
+  // 模拟标志按本样本相位 14 捕获，接受重构时进入独立粘滞状态。 
+  // 注意三者的来源不同，不能混： 
+  //   rdac_ovf  / ra_sat  / adc2_over  <- 模拟域回读（输入端口） 
+  //   rc_adc2_ovf                      <- `adc2_dec` 的**寄存器溢出**标志（另一回事，结构性不可达） 
+  assign analog_ovf_raw = (launch_recon && (P_STRUCTURAL ? structural_analog_bad : analog_sample)) | rc_adc2_ovf;
+  status_regs u_status (
+      .clk               (clk),
+      .rst_n             (rst_n),
+      .clr               (cfg_clear_valid),
+      .ev_acc_ovf        (rc_acc_ovf),
+      .ev_gain_err       (rc_gain_err),
+      .ev_adc2_ovf       (rc_adc2_ovf),
+      .ev_clip_low       (rc_clip_low),
+      .ev_clip_high      (rc_clip_high),
+      .ev_analog_ovf     (analog_ovf_raw),
+      .err_code          (merged_err),
+      .acc_ovf_sticky    (acc_ovf),
+      .gain_err_sticky   (),
+      .adc2_ovf_sticky   (),
+      .clip_low_last     (),
+      .clip_high_last    (),
+      .analog_ovf_sticky (analog_ovf),
+      .status_word       (status_word),
+      .status_clr_value  (status_clr_value_unused)
+  );
+  //========================================================================= 
+  // 12) cfg_rdata 回读 
+  //========================================================================= 
+  always_comb begin
+    cfg_rdata = 64'd0;
+    if (weight_addr_valid) begin
+      cfg_rdata = {{(64 - W_BITS){1'b0}}, selected_weight};
+    end else if (is_off) begin
+      cfg_rdata = c_off;
+    end else if (is_min) begin
+      cfg_rdata = c_min;
+    end else if (is_max) begin
+      cfg_rdata = c_max;
+    end else if (is_ctrl) begin
+      cfg_rdata = {60'b0, c_qdither_en, c_smask_en, c_bridge_en, c_dem_en};
+    end else if (is_stat) begin
+      cfg_rdata = {32'b0, status_word};
+    end else if (window_addr_valid) begin
+      cfg_rdata = {59'b0, cur_slice};
+    end else begin
+      cfg_rdata = 64'd0;
+    end
+  end
+  // 未接出顶层的观测量：phase_onehot/acq_phase、分配器组信息和样本序号。 
+  // ready、phase、锁存脉冲与 rc_busy 均参与功能控制，不能视为未使用输入。 
+endmodule

@@ -1,0 +1,17 @@
+CACHE_MAXIMUM_LOADED slices=1 units=1 words=1 row_last=00007fffffffffff
+CACHE_POST_CLEAR_REPLACEMENT slices=1 units=1 row0=0000000000000001
+CACHE_MAXIMUM_LOADED slices=32 units=1 words=32 row_last=00007fffffffffff
+CACHE_POST_CLEAR_REPLACEMENT slices=32 units=1 row0=0000000000000001
+CACHE_MAXIMUM_LOADED slices=1 units=128 words=128 row_last=003fffffffffff80
+CACHE_POST_CLEAR_REPLACEMENT slices=1 units=128 row0=003f7fffffffff82
+WEIGHT_ROW_CACHE_CASE_PASS slices=1 units=1 steps=1018 accepted=6 rejected=510 clears=30
+WEIGHT_ROW_CACHE_CASE_PASS slices=32 units=1 steps=1080 accepted=69 rejected=493 clears=30
+WEIGHT_ROW_CACHE_CASE_PASS slices=1 units=128 steps=1272 accepted=269 rejected=528 clears=30
+CACHE_MAXIMUM_LOADED slices=18 units=71 words=1278 row_last=00237fffffffffb9
+CACHE_POST_CLEAR_REPLACEMENT slices=18 units=71 row0=0022ffffffffffbb
+WEIGHT_ROW_CACHE_CASE_PASS slices=18 units=71 steps=3572 accepted=2600 rejected=475 clears=30
+CACHE_MAXIMUM_LOADED slices=32 units=128 words=4096 row_last=003fffffffffff80
+CACHE_POST_CLEAR_REPLACEMENT slices=32 units=128 row0=003f7fffffffff82
+WEIGHT_ROW_CACHE_CASE_PASS slices=32 units=128 steps=9208 accepted=8318 rejected=395 clears=30
+WEIGHT_ROW_CACHE_COMPLETE geometries=5 steps=16150
+- sim/tb/weight_row_cache_tb.sv:105: Verilog $finish

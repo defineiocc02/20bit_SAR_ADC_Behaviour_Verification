@@ -1,0 +1,167 @@
+{
+  "scope": "FROZEN_ZERO_DELAY_RTL_LOG_EVIDENCE_NOT_STA_OR_ANALOG_SIGNOFF",
+  "script_sha256": "0052d35df56c0b84683dc8801e0554de4fe399722698aa5e6f8e580b8fd46336",
+  "inputs_sha256": {
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/result.json": "2f15efd09ca6cb32762f5f2e89524ed3128b9741492be1556db6de55e6582c32",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/source_manifest.json": "8c781172b9b9db072462da9305f98ec2580099da5d4577b206274ae533327caa",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/tree_mapping_tb.run.log": "6b0fcafa7d1d4e48c16a456391c76ba6ef3946b71c2064ccc11186a72b64ef77",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/tree_mapping_tb.sv": "2a5a9d9d4d4c37f13b1589b2e1f74983b30b91afb410b206c68a6ac0c30dea54",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/review_leaf_tb.run.log": "cc38225865113a09ed0d4ad4657f6904471d63e243c9db7c267454e890f05b9d",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/review_leaf_tb.sv": "fd48b977214ae9aa01193675c86e931285a351844fc5191327978a91fc272952",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/review_dither_tb.run.log": "7bc0545fcc9b51c23b4ce021bf3d7f6017a3506302da9d474dea2920fde6bc12",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/review_dither_tb.sv": "fcd79afc5f3239a21186d06781d4e963418f8857a38f07b0c95344dbed82fa52",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/p1_tb.run.log": "26d7b998953f7d7593ab237adb6d611d65ad76b81a1b0e70251564ee2f3aa88e",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/p1_tb.sv": "5e2036b927890f7f83ce3bae540ded035572d228bb3fdfd74ccc1d45e3813498",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/p2_periph_tb.run.log": "3498d5b1a4ffd180bb31ed58471a46fecb3206b40435fba8671e80251050c494",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/p2_periph_tb.sv": "1d932de5f4028c9be8f9caca9c058f71c35513fa3eac2c557081b97e2dfd60b2",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/p2_smoke_tb.run.log": "54013c17fb183ef9fa85c7a0d89fc7563ab206d3a42a29378ea046f149fec9f7",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/p2_smoke_tb.sv": "f42290f8e0f332b8d40bc20399f0efa4fdb16315bdd24d500d46e969fe58de78",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/docs/evidence/20260930/final_rtl/p3_top_tb.run.log": "6d71e3b56a5110b478679740aadb365c1aee8d94096f1ce8b2f9b6893469ddde",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/sim/tb/p3_top_tb.sv": "a7c8d406b38e3a24e8a7e2213f87b2b54454532afc3423df628d48cb90881016"
+  },
+  "images_sha256": {
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_system.png": "7bdfd82b0c94315462f6d578d8ea2b0c8607cd8ba492c84b103b301405762895",
+    "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_patent_rtl_report_20260928/figures/final_regression_system.pdf": "4862a9b6f9f2311d681f96c8438c91baf7ad473a81449e061cad22a1791a0895"
+  },
+  "benches": {
+    "tree_mapping_tb": {
+      "marker": "TREE_MAPPING_COMPLETE checks=12904",
+      "metrics": {
+        "stimulus_rows": 12904
+      },
+      "oracle": "Loop popcount and direct cell sums;\nT/G/R + invalid-ID comparison.",
+      "limitation": "This archive is RTL, not mapped-netlist proof.",
+      "tb_lines": [
+        25,
+        109
+      ]
+    },
+    "review_leaf_tb": {
+      "marker": "REVIEW_LEAF_COMPLETE",
+      "metrics": {
+        "check_calls": 91142
+      },
+      "oracle": "Popcount/thermometer rules, address\nbounds, allocation wrap and floor oracle.",
+      "limitation": "The logged count is assertion calls.",
+      "tb_lines": [
+        45,
+        93
+      ]
+    },
+    "review_dither_tb": {
+      "marker": "REVIEW_DITHER_COMPLETE",
+      "metrics": {
+        "conditions": [
+          {
+            "D": 0,
+            "seed": "13579bdf",
+            "accepted": 200000,
+            "mean": 0.0,
+            "corr": 0.0
+          },
+          {
+            "D": 1,
+            "seed": "13579bdf",
+            "accepted": 200000,
+            "mean": -0.00175,
+            "corr": -0.000786
+          },
+          {
+            "D": 2,
+            "seed": "13579bdf",
+            "accepted": 200000,
+            "mean": -0.00459,
+            "corr": -0.001488
+          },
+          {
+            "D": 3,
+            "seed": "13579bdf",
+            "accepted": 196866,
+            "mean": -0.004155,
+            "corr": -0.000851
+          },
+          {
+            "D": 63,
+            "seed": "13579bdf",
+            "accepted": 196866,
+            "mean": 0.066279,
+            "corr": 0.002793
+          },
+          {
+            "D": 2,
+            "seed": "00000001",
+            "accepted": 200000,
+            "mean": 0.006405,
+            "corr": 0.00107
+          },
+          {
+            "D": 2,
+            "seed": "ffffffff",
+            "accepted": 200000,
+            "mean": 0.00486,
+            "corr": -0.001918
+          }
+        ]
+      },
+      "oracle": "Support/PMF/mean/lag-1 checks;\nhold and seed-reset invariants.",
+      "limitation": "Accepted draws differ from 200k clock cycles.",
+      "tb_lines": [
+        14,
+        63
+      ]
+    },
+    "p1_tb": {
+      "marker": "P1 RESULT: PASS",
+      "metrics": {
+        "TB_check_counter": 464823,
+        "errors": 0
+      },
+      "oracle": "M1-M5 golden vectors plus structural\nproperties, dither support and connected chain.",
+      "limitation": "464,823 is the TB check counter, not codes.",
+      "tb_lines": [
+        1,
+        24
+      ]
+    },
+    "p2_periph_tb": {
+      "marker": "p2_periph PASS",
+      "metrics": {
+        "TB_check_counter": 709,
+        "errors": 0
+      },
+      "oracle": "Directed guards, sticky status, RDAC\nfanout, phase schedule and register rules.",
+      "limitation": "Full-table load cannot trigger unreachable sum guard.",
+      "tb_lines": [
+        1,
+        65
+      ]
+    },
+    "p2_smoke_tb": {
+      "marker": "p2_smoke PASS",
+      "metrics": {
+        "TB_check_counter": 1154,
+        "errors": 0
+      },
+      "oracle": "Configuration readback; allocator\ninvariants and selected popcount inputs.",
+      "limitation": "Smoke coverage, not complete acceptance.",
+      "tb_lines": [
+        1,
+        16
+      ]
+    },
+    "p3_top_tb": {
+      "marker": "P3 TOP RESULT: PASS",
+      "metrics": {
+        "TB_check_counter": 16386,
+        "errors": 0,
+        "compared_output_rows": 4095
+      },
+      "oracle": "File oracle for dout/clip + cumulative\nOR for sticky analog-overflow status.",
+      "limitation": "Forced dither; file row 0 skipped; no dither-source test.",
+      "tb_lines": [
+        1,
+        65
+      ]
+    }
+  }
+}

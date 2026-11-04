@@ -281,6 +281,18 @@ def test_bitwise_div_floor_matches_floor_for_real():
     assert m.div_floor_bitwise(-1, 2)[0] != 0
 
 
+@pytest.mark.parametrize(
+    ("wa", "wd", "stages"),
+    [(2, 1, 1), (4, 3, 3), (5, 7, 1), (6, 5, 5), (6, 8, 3), (7, 8, 7)],
+)
+def test_borrow_mirror_exhaustive_small_geometries(wa, wd, stages):
+    """Check every input, including d's discarded high bits, against integer floor."""
+    for a in range(-(1 << (wa - 1)), 1 << (wa - 1)):
+        for d in range(1 << wd):
+            expected = (a // d, False) if d else (0, True)
+            assert m.div_floor_bitwise(a, d, wa, wd, stages) == expected, (wa, wd, stages, a, d)
+
+
 def _reverse_bit_groups(value: int, width: int, stages: int) -> int:
     """把 ``value`` 的 ``width`` 位按每 ``stages`` 位一组**组内**倒序（低位组在前）。"""
     out = 0

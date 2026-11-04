@@ -1,0 +1,182 @@
+\chapter{精确除法器：位宽证明、结构改进与时序边界}
+\label{chap:divider-timing}
+
+\section{问题为何集中在除法器}
+数字重构需要的是精确整数码，不能容忍依据信号正负或除法余数偶发相差一个码。
+\code{recon_core} 送入除法器的分子是经 96-bit 溢出检查后右移 33 位的有符号 63-bit 数，
+分母是完整的无符号 64-bit 权重和。保留该分母的高位具有明确的异常与边界语义，
+不能因为正常配置的权重较小就直接截断。下述修改只涉及恢复余数法的实现，
+不改变输入快照、配置 epoch、结果 ID、异常保持策略、默认 7 级展开或 16 相位入口。
+
+2026 年 9 月 30 日的初次 Vivado 2018.3 诊断在 Virtex-7
+\code{7vx690t-ffg1761-2} 上报告：\code{u_recon/u_div/mag_reg[62]}
+到 \code{u_recon/u_div/q_reg[60]} 的 setup 路径延迟为
+17.389\,ns，含 135 级逻辑及 119 个 CARRY4；1.563\,ns 周期下 slack 为
+$-15.874$\,ns。其中逻辑延迟 12.810\,ns，估算布线延迟 4.579\,ns。
+\textbf{同批完整顶层网表另有归约树被常量化问题，因此这些数字只用于定位真实存在的除法链，
+不能作为有效的全设计 PPA 对照基线。}路径中标明 \code{unplaced}，也不能称为布线后 STA。
+有效网表的重新综合与实现结果须独立引用对应源码冻结清单。
+
+原实现每拍连续消耗 7 个分子位；一位的余数决定下一位是否减去分母。
+因此 7 级在数据依赖上串行，\(\lceil63/7\rceil=9\) 拍的运算次数
+不意味着每一级拥有 9 个时钟周期。给这条逐拍更新的路径加 multicycle 或 false-path
+会改变约束含义，不能解决电路问题。本轮没有增加这类例外约束。
+
+\begin{figure}[H]\centering
+\begin{tikzpicture}[box/.style={draw,rounded corners,minimum height=9mm,align=center,fill=blue!5},arr/.style={-{Latex[length=1.8mm]}}]
+\node[box,minimum width=19mm] (r) at (0,0) {余数寄存器\\$R_0$};
+\node[box,minimum width=21mm] (s1) at (2.6,0) {移入一位\\试减、选余数};
+\node[box,minimum width=21mm] (s2) at (5.4,0) {移入一位\\试减、选余数};
+\node (dots) at (7.5,0) {$\cdots$};
+\node[box,minimum width=21mm] (s7) at (9.6,0) {第 7 级\\试减、选余数};
+\node[box,minimum width=19mm] (rn) at (12.3,0) {余数寄存器\\$R_7$};
+\draw[arr](r)--(s1);\draw[arr](s1)--(s2);\draw[arr](s2)--(dots);\draw[arr](dots)--(s7);\draw[arr](s7)--(rn);
+\node[align=center] at (6.1,-1.15) {同一时钟间隔中的 7 级真实依赖；修改后仍保留这一迭代结构};
+\end{tikzpicture}
+\caption{恢复余数法的一拍展开。图示解释源码数据依赖，不是仿真波形或综合测量。}
+\end{figure}
+
+\section{把比较与减法合为一次借位运算}
+设当前试探余数为 $X$，寄存分母为 $D$，两者均为 $W$ 位无符号数。
+原代码分别描述 \code{X >= D} 和 \code{X - D}，由综合器决定是否共享逻辑。
+新代码显式用一个 $W+1$ 位结果：
+\begin{align}
+\Delta&=\{0,X\}-\{0,D\}\pmod{2^{W+1}},\\
+q_i&=\neg \Delta_W,\qquad
+R_{i+1}=q_i\,\Delta_{W-1:0}+(1-q_i)X.
+\end{align}
+因为 $-(2^W-1)\le X-D\le2^W-1$，最高位为 1 当且仅当发生借位，
+故它同时给出比较结果；低 $W$ 位直接作为成功试减后的余数。
+对于高位分母旁路，下述 \code{dv_large} 还会强制 $q_i=0$。
+
+\begin{table}[H]\centering\small
+\begin{tabularx}{\textwidth}{p{36mm}XX}\toprule
+生产配置中的对象&修改前&修改后\\\midrule
+分子／分母接口&63-bit 有符号／64-bit 无符号&保持全部输入位的数值语义\\
+余数寄存器&65 bit&63 bit\\
+分母寄存状态&64 bit&63-bit 低位与 1-bit 高位分类\\
+每一级源码运算&65-bit 比较、条件减法&64-bit 扩展试减，借位作选择\\
+每拍展开／迭代拍数&7 级／9 拍&7 级／9 拍\\
+重构输出延迟&11 个完整时钟间隔&11 个完整时钟间隔\\
+\bottomrule\end{tabularx}
+\caption{可由源码确认的变化。寄存位数与运算表达式不是映射面积、功耗或频率测量。}
+\end{table}
+
+这一改写确保比较与差值来自相同的试减运算，但不能按“少写一个比较”估计 LUT 数减少一半。
+旧综合器可能已经部分共享两条表达式，末级符号恢复、余数选择器和布线也会影响关键路径。
+119 个 CARRY4 的诊断结果说明宽进位链串行是实质问题；本次收窄和表达式合并是低风险改进，
+并不足以在未经新综合的情况下推断 640\,MHz 已达到。
+
+\section{为何 63-bit 余数足够，64-bit 分母仍然精确}
+令 $A=|a|$，$P_k$ 为按从高位到低位次序已经消耗的分子前缀。
+对于 $d>0$，恢复余数法保持
+\begin{equation}
+P_k=Q_kd+R_k,\qquad 0\le R_k<d,\qquad R_k\le P_k\le A.
+\end{equation}
+下一步移入 $b\in\{0,1\}$ 时，试探余数
+\(X=2R_k+b\le2P_k+b=P_{k+1}\le A\)。
+有符号 $W_A$ 位输入满足 $A\le2^{W_A-1}$，包括最小负数，
+所以 \textbf{余数与移位后的试探值都可用无符号 $W_A$ 位表示}。
+展开需要的高位补零只增加前导零前缀，不改变该不变量。
+因此生产配置取 $W=63$ 足够，无需沿用 $\max(W_A,W_D)+1=65$。
+
+当 $W_D>W_A$ 时，对完整分母计算
+\begin{equation}
+L=\bigvee d[W_D-1:W_A].
+\end{equation}
+$L=1$ 意味着 $d\ge2^{W_A}>A$，因此幅度商必为零，内部幅度余数为 $A$。
+新电路把该分类结果与分母低位同拍保存为 \code{dv_large} 和 \code{dv}；
+所有试减商位强制为零，最后仍对负数执行精确 floor 修正。
+这里省掉的是已能由不等式判定的宽比较，\textbf{没有丢弃分母高位的信息}。
+$L=0$ 时分母低 $W_A$ 位就是完整分母，借位运算直接适用。
+$W_D\le W_A$ 的参数实例将 $L$ 固定为零，窄分母作无符号扩展。
+
+设恢复除法输出幅度商 $Q$ 和幅度余数 $R$，则
+\begin{equation}
+\operatorname{floor}(a/d)=
+\begin{cases}
+ Q,&a\ge0,\\
+ -(Q+\mathbf{1}_{R\ne0}),&a<0.
+\end{cases}
+\end{equation}
+内部 $R=|a|\bmod d$ 与负数 floor 定义中的 $a-qd$ 并不是同一个余数；
+前者仅用于判定是否整除。例如 $a=-8,d=3$ 时内部 $Q=2,R=2$，
+最终商为 $-3$，而 $a-qd=1$。
+对最小负数 $a=-2^{62},d=1$，幅度 $2^{62}$ 能用 63 位无符号数保存，
+最终负商恰好仍在 63 位有符号域中；不能先在同位宽有符号域求一个正的绝对值。
+
+\section{固定延迟、异常与独立验证}
+除法器空闲接受 \code{start} 的沿记为 $t$。接受沿只保存输入并置 \code{busy}；
+随后 9 个迭代沿消费全部 63 位，在 $t+9$ 输出商、\code{err} 与单拍 \code{done}。
+忙期间的 \code{start} 被忽略，输入变化不替换已保存分母的高位分类；
+\code{q/err} 在下一次完成以前保持。
+重构在其接受沿先保存输入，下一沿启动除法，除法完成后的下一沿提交码与元数据，
+因而总延迟仍为 11 拍，能保留每 16 拍一次的输入节拍。
+\code{cfg_ready} 撤销导致重构取消并复位除法器，此协议由集成控制负责。
+
+$d=0$ 仍按固定延迟完成并返回 $q=0,err=1$；零分母判定直接检查完整输入，
+并不把截断后的低分母为零误认作除零。
+\code{recon_core} 将除零与本样本增益错误合并，输出阶段发出有效事件、保留前一次合法码，
+并随本样本 ID 提交结果标志。粘滞错误位与 \code{result_flags} 是两个不同对象：
+前者保留历史异常，后者说明当前样本。除法器的结构改写没有改变这些接口。
+
+\begin{table}[H]\centering\small
+\begin{tabularx}{\textwidth}{p{43mm}Xr}\toprule
+独立检查&覆盖和完成门禁&通过数\\\midrule
+Python 任意精度 oracle&有符号 63-bit 分子、完整 64-bit 分母；最值、$2^k\pm1$、多种分母位长；9 拍延迟&10,048\\
+约简位宽全穷举&$W_A=6,W_D=8$；展开级数 1、2、3、7，各穷举全部输入&65,536\\
+窄分母／最小位宽&$6/5$ 位、展开 5；$2/1$ 位、展开 1&2,056\\
+相邻算术模块回归&MAC 任意精度比较；ADC2 舍入与完整输入域随机；输出 flags 时序&40,010／40,000／8 组\\
+\bottomrule\end{tabularx}
+\caption{本次修改后的独立检查。小位宽合计 67,592 组，每例同时验证定义不等式、除零、延迟、busy 和结果保持。}
+\end{table}
+
+约简位宽测试直接核对 $qd\le a<(q+1)d$（$d>0$），并检查接受后的忙状态、
+未完成时旧结果保持、忙期间拒绝新请求、完成沿忙状态清除以及 \code{done} 单拍脉冲。
+生产位宽 oracle 由固定种子 20260930 生成，使用 Python 整数 \code{//}，
+不导入项目原有浮点模型。长商输入与超大分母分别覆盖，避免全 64 位均匀随机分母
+导致绝大部分答案仅为 0 或 $-1$ 的盲区。进程正常退出、唯一完成标记和精确计数共同构成通过条件。
+
+\begin{table}[H]\centering\small
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{40mm}>{\raggedright\arraybackslash}X}\toprule
+仅在临时副本注入的错误&实际 oracle 检出结果\\\midrule
+移除高分母保护&第 7 例：$a=-2^{62},d=2^{63}$，错误商 0，正确商 $-1$；进程失败。\\
+移除负数余数补偿&第 4 例：$a=-2^{62},d=3$，错误商 $-1537228672809129301$，正确商 $-1537228672809129302$；进程失败。\\
+\bottomrule\end{tabularx}
+\caption{负对照证明 oracle 能识别本次改写最关键的两类错误。生产 RTL 未注入缺陷。}
+\end{table}
+
+\begingroup\raggedright
+紧凑原始证据位于仓库 \code{docs/evidence/20260930/divider/}：
+\code{arithmetic.manifest.json} 记录完整位宽检查及源码 SHA；
+\code{exhaustive.manifest.json} 与 \code{exhaustive.run.log} 记录六组参数穷举；
+\code{mutations.json} 及对应失败日志记录负对照。
+本轮 \code{div_floor.sv} 的 SHA-256 为
+\code{cc3b0bd9c5e6c8491af10d0696f82e59373426c538c3212c210093dbc84c515c}。
+这些结果证明所列输入集和协议判据成立；完整生产位宽并未穷举，也不是形式化等价证明。\par\endgroup
+
+\section{ASIC 640 MHz 的后续可实施路径}
+验收边界是 ASIC 640\,MHz 目标与 FPGA 可实现频率验证。FPGA 的 LUT、CARRY4 和布线结构
+不能直接换算成目标 ASIC 单元库的面积或时序；同样，FPGA 可工作并不代表 ASIC 已完成 STA。
+本轮先保留已验证、修改集中的借位优化，由有效全顶层网表识别新关键路径。
+如果除法仍主导，存在严格保持最终输出语义的缩域方法：
+\begin{equation}
+\begin{split}
+a<0&\Rightarrow C=0,\quad clip_{low}=1;\\
+a\ge0,\ (a\gg20)\ge d&\Rightarrow C=2^{20}-1,\quad clip_{high}=1;\\
+\text{其余}&\Rightarrow 0\le q<2^{20},\quad R_0=a\gg20.
+\end{split}
+\end{equation}
+上述分类以 $d>0$ 为前提；除零与 MAC 异常仍保留原样本错误协议。
+在第三类只须从 $R_0$ 开始处理 $a[19:0]$ 的 20 个商位，所有分子位和余数仍被精确保留。
+这是针对最终饱和输出的等价变换，不能直接替换一个对外承诺完整 63-bit 商的通用除法接口。
+
+若目标库仍要求切断 64-bit 进位传播，可把借位链切成四段，每段约 16 bit，并交织样本上下文。
+一条每拍接收一次试减的 radix-2 流水，每样本需要 20 次试减，平均需求为
+$20/16>1$，所以单条资源不可能维持 II=16；两条共享流水各接收每隔 32 拍的样本才有足够服务能力。
+另一个候选是每轮产生两位的 radix-4：并行试减 $d,2d,3d$，每样本 10 轮，
+但需额外处理 $3d$ 生成、余数选择、流水上下文及元数据延迟。
+这两条方案均会增加寄存状态和控制成本，应比较映射后的面积、最长路径和翻转活动，
+不能仅按减法器个数宣布 PPA 优势。
+若实施更深流水，必须同时变更结果 ID/flags 的上下文队列、清配置取消行为、固定输出延迟和拥塞证明，
+并重新运行独立 oracle、集成吞吐与取消回归。本轮未用这种复杂架构替换已验证的默认实现。

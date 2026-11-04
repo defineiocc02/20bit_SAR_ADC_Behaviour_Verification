@@ -1,5 +1,12 @@
 # `synth/` —— Design Compiler 综合通路（TSMC 28nm HPC+ / RVT）
 
+> 当前完整顶层的可复核实现入口见 [FPGA 综合、布线与 STA 指南](FPGA_SYNTHESIS_AND_STA.md)：
+> SSH 别名 `windows-codex`，Vivado 2018.3，`xc7vx690tffg1761-2`，P5/25 ns。
+> 已归档的寄存器间 setup/hold 为 +0.946/+0.052 ns；零 I/O OOC 全路径 hold 仍为 −2.278 ns，不能称为全接口时序闭合。
+> **下文 DC、TSMC 28 nm、`yian@192.168.38.129` 及相关 PPA 均为历史记录，未在本轮重新实测，不能用于证明当前 RTL 的 ASIC 性能。**
+> 工程排版版与旧硬件的有效 token 恒等需单独核对；它的 raw SHA 与旧冻结源包不同，不继承旧源码摘要。
+> 后续执行见 [综合、STA 与布线实施计划](IMPLEMENTATION_PLAN.md)：逐阶段门禁、真实端口 min/max 填写表、PPA 对照与 ASIC 资料/实现步骤。
+
 本目录把「SystemVerilog → DC 综合 → 面积/时序报告」这条链路固定成可复用脚本。
 目标不是跑一次出个数字，而是**下次换模块只改参数、不重写流程**，并且
 **流程失败与「时序没收敛」必须是两个不同的退出码**，不会被混成「跑完了」。

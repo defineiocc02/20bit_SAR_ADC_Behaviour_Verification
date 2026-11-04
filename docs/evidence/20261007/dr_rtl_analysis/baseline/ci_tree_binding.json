@@ -1,0 +1,180 @@
+{
+  "run": 37009772249,
+  "head_sha": "01ed2b3e4fc4c7c9efd2153cfbfa5d456b10fb74",
+  "actual_checkout_sha": "86499bbfa99c942a319c398151335648cdd4b114",
+  "checkout_source": "ci_rtl.log git log -1 --format=%H",
+  "tested_merge_tree": "ea0bdcfa2d74b201ed6ca22057596b76ce94b22a",
+  "head_tree": "d6e6ff37ff1a117cf7c46d1cfc499a60476bebbd",
+  "trees_equal": false,
+  "metadata_args": [
+    "gh",
+    "api",
+    "repos/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/git/commits/86499bbfa99c942a319c398151335648cdd4b114"
+  ],
+  "metadata_sha256": "33df130a1d1bbcb2cdf9b9c09d269018ac6474548d69398d29d11533795e36eb",
+  "rtl_blob_binding": [
+    {
+      "path": "rtl/core/adc2_dec.sv",
+      "local_git_blob": "ade9676c74d57132edefeebfba524fe1ae6eca1c",
+      "ci_git_blob": "ade9676c74d57132edefeebfba524fe1ae6eca1c",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/analog_phase_ctrl.sv",
+      "local_git_blob": "ff1959b231f60470df1917b69b9ef4ed1373ff34",
+      "ci_git_blob": "ff1959b231f60470df1917b69b9ef4ed1373ff34",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/cal_output_stage.sv",
+      "local_git_blob": "8e93551bc0272d1cecfa759eb0a4788bb754c3ee",
+      "ci_git_blob": "8e93551bc0272d1cecfa759eb0a4788bb754c3ee",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/cal_residue_mac.sv",
+      "local_git_blob": "df446974ff7a751ab4a0b5bf3b7e3f146594a517",
+      "ci_git_blob": "df446974ff7a751ab4a0b5bf3b7e3f146594a517",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/cal_sample_context.sv",
+      "local_git_blob": "6625b4cfc2631eeaf377108ce2527cd3c2843285",
+      "ci_git_blob": "6625b4cfc2631eeaf377108ce2527cd3c2843285",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/cal_weight_reduce.sv",
+      "local_git_blob": "985f7a1e64d6e84489edd19ea3ca420a93e47270",
+      "ci_git_blob": "985f7a1e64d6e84489edd19ea3ca420a93e47270",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/calib_regs.sv",
+      "local_git_blob": "2ea674fc763618dda5e7d24c7078a99002e8acbd",
+      "ci_git_blob": "2ea674fc763618dda5e7d24c7078a99002e8acbd",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/ctrl_fsm.sv",
+      "local_git_blob": "e923890dff8da80988e0ac98ddeca9a76e5c9742",
+      "ci_git_blob": "e923890dff8da80988e0ac98ddeca9a76e5c9742",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/dem_addr_gen.sv",
+      "local_git_blob": "497b37f28f8d2a319b443552c9f669fdf04d98de",
+      "ci_git_blob": "497b37f28f8d2a319b443552c9f669fdf04d98de",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/dem_state_gen.sv",
+      "local_git_blob": "ba9ae5e10a65a4f3458054240bac62f2cfd0f749",
+      "ci_git_blob": "ba9ae5e10a65a4f3458054240bac62f2cfd0f749",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/dither_gen.sv",
+      "local_git_blob": "18aedad4600b036fb6f3ea03ee89398f17c6d481",
+      "ci_git_blob": "18aedad4600b036fb6f3ea03ee89398f17c6d481",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/div_floor.sv",
+      "local_git_blob": "2c28cbecdb44f1761d602d7fff37841a41ba3e35",
+      "ci_git_blob": "2c28cbecdb44f1761d602d7fff37841a41ba3e35",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/rdac_drv.sv",
+      "local_git_blob": "8150c10a8754461da28e8471338eda52adeab337",
+      "ci_git_blob": "8150c10a8754461da28e8471338eda52adeab337",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/recon_core.sv",
+      "local_git_blob": "2435498eecb6e6b8a53c3ea403e17c7edee3062b",
+      "ci_git_blob": "2435498eecb6e6b8a53c3ea403e17c7edee3062b",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/sar_structural_ctrl.sv",
+      "local_git_blob": "768f140ff78d74740c292c8f06385b18953b59c0",
+      "ci_git_blob": "768f140ff78d74740c292c8f06385b18953b59c0",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/sar_trial_ctrl.sv",
+      "local_git_blob": "0ae47707cae70f1aebc3b26e551e032404305901",
+      "ci_git_blob": "0ae47707cae70f1aebc3b26e551e032404305901",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/slice_alloc.sv",
+      "local_git_blob": "c388154505973b7dd7d09c70c3e6f228d284e479",
+      "ci_git_blob": "c388154505973b7dd7d09c70c3e6f228d284e479",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/slice_pool_ctrl.sv",
+      "local_git_blob": "fea5e67470afd4480eacbee2c927102522faf6e3",
+      "ci_git_blob": "fea5e67470afd4480eacbee2c927102522faf6e3",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/status_regs.sv",
+      "local_git_blob": "ef48650bbf71594a75cfb1041bc666fef594fc03",
+      "ci_git_blob": "ef48650bbf71594a75cfb1041bc666fef594fc03",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/swap_decode.sv",
+      "local_git_blob": "03560d619631f96da0df5f7e8a3fbb59e393ef76",
+      "ci_git_blob": "03560d619631f96da0df5f7e8a3fbb59e393ef76",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/unit_therm.sv",
+      "local_git_blob": "a48762bccad5d6a98a1878c96fc84c355932988e",
+      "ci_git_blob": "a48762bccad5d6a98a1878c96fc84c355932988e",
+      "equal": true
+    },
+    {
+      "path": "rtl/core/weight_store.sv",
+      "local_git_blob": "cf2a0417645b2c403cbbabb458b33a509f7e051d",
+      "ci_git_blob": "cf2a0417645b2c403cbbabb458b33a509f7e051d",
+      "equal": true
+    },
+    {
+      "path": "rtl/top/sadc_enc.sv",
+      "local_git_blob": "6e3a938e7b486ae9874cc7de49ce4ff26bde1156",
+      "ci_git_blob": "6e3a938e7b486ae9874cc7de49ce4ff26bde1156",
+      "equal": true
+    },
+    {
+      "path": "rtl/top/sar20_digital_core.sv",
+      "local_git_blob": "656ab6228bc671291dc5c99de660cc169bede208",
+      "ci_git_blob": "656ab6228bc671291dc5c99de660cc169bede208",
+      "equal": true
+    },
+    {
+      "path": "rtl/params/rtl_params.vh",
+      "local_git_blob": "41991a4fd4392138a8f6ab700089eaed17b0eaf4",
+      "ci_git_blob": "41991a4fd4392138a8f6ab700089eaed17b0eaf4",
+      "equal": true
+    },
+    {
+      "path": "rtl/params/rtl_error_codes.vh",
+      "local_git_blob": "8b2387c399593854382a4c7666044b8e2726d59a",
+      "ci_git_blob": "8b2387c399593854382a4c7666044b8e2726d59a",
+      "equal": true
+    }
+  ],
+  "all_changed_paths_vs_review_head": [
+    "README.md"
+  ],
+  "code_or_flow_changed_paths": [],
+  "merge_tree_source": "ci_tested_merge_tree.json",
+  "merge_tree_sha256": "c7323adbdf04341869599cb6da086d422c3139979399245ab3a83692e307a847",
+  "scope": "CI ran tested merge commit, not branch commit. Exact26 RTL git blobs match current analysis source. Other code/flow differences listed independently."
+}

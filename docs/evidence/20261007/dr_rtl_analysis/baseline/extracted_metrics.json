@@ -1,0 +1,174 @@
+{
+  "timing_core_max": {
+    "slack_ns": 0.946,
+    "source": "u_structure/u_context/fine_slices_reg[1][3]/C",
+    "destination": "u_recon/rails_s_reg[65]/D",
+    "data_delay_ns": 23.914,
+    "cell_delay_ns": 5.291,
+    "net_delay_ns": 18.623,
+    "logic_levels": 40.0,
+    "report_sha256": "d64625f006fece3d5b1359bf10f91ad0344e4e82502c0e3f456eda9aa6763a48"
+  },
+  "timing_core_min": {
+    "slack_ns": 0.052,
+    "source": "u_structure/u_context/residue_reg[570]/C",
+    "destination": "u_structure/u_context/fine_main_reg[6][59]/D",
+    "data_delay_ns": 0.263,
+    "cell_delay_ns": 0.118,
+    "net_delay_ns": 0.145,
+    "logic_levels": 0.0,
+    "report_sha256": "c65c81f8bc9400e11420f6c79ba1c1f8e6f27b98c2765cdc79a87abfe5ab8c4f"
+  },
+  "timing_min_paths": {
+    "slack_ns": -2.278,
+    "source": "cfg_wdata[3]",
+    "destination": "u_wstore/w_q_reg[13][36][3]/D",
+    "data_delay_ns": 0.51,
+    "cell_delay_ns": 0.0,
+    "net_delay_ns": 0.51,
+    "logic_levels": 0.0,
+    "report_sha256": "865494e8a194ecc618580fad757320ca1ee580bbd897f586fd51945245d41637"
+  },
+  "summary": {
+    "setup_wns_ns": 0.946,
+    "setup_tns_ns": 0.0,
+    "setup_failing_endpoints": 0,
+    "setup_total_endpoints": 200285,
+    "hold_wns_ns": -2.278,
+    "hold_tns_ns": -110433.469,
+    "hold_failing_endpoints": 65048,
+    "hold_total_endpoints": 200285,
+    "wpws_ns": 12.1,
+    "tpws_ns": 0.0,
+    "pulse_failing_endpoints": 0,
+    "pulse_total_endpoints": 66493
+  },
+  "fanout": [
+    {
+      "net": "u_wstore/SR[0]",
+      "fanout": 61236,
+      "driver": "LUT1"
+    },
+    {
+      "net": "u_wstore/u_idx[2]",
+      "fanout": 6776,
+      "driver": "LUT6"
+    },
+    {
+      "net": "u_calib/phase0",
+      "fanout": 1864,
+      "driver": "LUT2"
+    },
+    {
+      "net": "u_structure/u_phase/phase_reg[3]_2[0]",
+      "fanout": 1369,
+      "driver": "LUT5"
+    },
+    {
+      "net": "u_calib/cfg_ready_reg_4[0]",
+      "fanout": 1368,
+      "driver": "LUT2"
+    },
+    {
+      "net": "u_wstore/cfg_clear_valid_0",
+      "fanout": 1323,
+      "driver": "LUT2"
+    },
+    {
+      "net": "cfg_wdata[46]",
+      "fanout": 1322,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[0]",
+      "fanout": 1321,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[12]",
+      "fanout": 1321,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[13]",
+      "fanout": 1321,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[14]",
+      "fanout": 1321,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[15]",
+      "fanout": 1321,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[16]",
+      "fanout": 1321,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[17]",
+      "fanout": 1321,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[18]",
+      "fanout": 1321,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[19]",
+      "fanout": 1321,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[1]",
+      "fanout": 1321,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[24]",
+      "fanout": 1321,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[25]",
+      "fanout": 1321,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[26]",
+      "fanout": 1321,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[27]",
+      "fanout": 1321,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[2]",
+      "fanout": 1321,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[3]",
+      "fanout": 1321,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[4]",
+      "fanout": 1321,
+      "driver": "PORT"
+    },
+    {
+      "net": "cfg_wdata[5]",
+      "fanout": 1321,
+      "driver": "PORT"
+    }
+  ],
+  "scope": "Vivado2018.3; same frozen P5 routed DCP; 25ns unchanged constraints; FPGA not ASIC/current P7"
+}

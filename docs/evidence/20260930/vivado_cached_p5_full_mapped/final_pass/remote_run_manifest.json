@@ -1,0 +1,231 @@
+{
+  "status": "FULL_MAPPED_FUNCTIONAL_PASS",
+  "origin": {
+    "part": "xc7vx690tffg1761-2",
+    "stages": 5,
+    "dcp_sha256": "670d019aaec0efe80e060342ff0dbd748c0029b4c01d6a42e741de32ecb05ff1",
+    "binding": "manifest.remote_dcp_identity",
+    "synthesis_status": "SYNTH_COMPLETE_TIMING_MET",
+    "synthesis_wns_ns": 10.64
+  },
+  "input_synthesis_manifest": "repair_cached/synth/artifacts/vivado/20260929T235031.384711Z_p5_recovered/manifest.json",
+  "input_synthesis_manifest_sha256": "75979b4b0b1e10727b474d3e0b8d4ec89809246b59f5530c54b408410ffa8d4d",
+  "input_sha256": {
+    "synth/run_vivado_full_mapped.py": "ce553faec4ab6ef0e704b6aa2c14cc9ca6fdd8a756223aeddd1f0c36eb3462ce",
+    "synth/run_vivado_full_mapped.tcl": "7acae8383b5988e2484fd5c19e7fad5abaa4debacdcc963af0abe5b3b23fd395",
+    "synth/audit_full_mapped.py": "ef456b45938f0483d201bb79d741a4ad3c1ec0b23daea738742f6f47cddbbde2",
+    "sim/tb/structural_mapped_tb.sv": "bef8eb307497195fee47ca55ba316984c89088127a8b4387dfc1fa7b0289d7f0"
+  },
+  "remote_directory": "C:/Users/Administrator/adc_rtl_vivado/run.cf20668601ce488fae0114abdb176dbf",
+  "ssh_returncode": 0,
+  "collection_status": "COLLECTED",
+  "measured_manifest": {
+    "status": "FULL_MAPPED_FUNCTIONAL_PASS",
+    "scope": "FULL_TOP_POST_SYNTH_FUNCTIONAL_NO_SDF_NOT_TIMING",
+    "origin": {
+      "part": "xc7vx690tffg1761-2",
+      "stages": 5,
+      "dcp_sha256": "670d019aaec0efe80e060342ff0dbd748c0029b4c01d6a42e741de32ecb05ff1",
+      "binding": "manifest.remote_dcp_identity",
+      "synthesis_status": "SYNTH_COMPLETE_TIMING_MET",
+      "synthesis_wns_ns": 10.64
+    },
+    "steps": [
+      {
+        "step": "export",
+        "argv": [
+          "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\vivado.bat",
+          "-mode",
+          "batch",
+          "-nojournal",
+          "-log",
+          "export.vivado.log",
+          "-source",
+          "input/run_vivado_full_mapped.tcl",
+          "-tclargs",
+          "input/post_synth.dcp",
+          "export",
+          "xc7vx690tffg1761-2",
+          "5"
+        ],
+        "raw_returncode": 0,
+        "console_sha256": "43801a50d228441698853dd47630a2fb9ffcaf7fc69d4b4fd0b6d630a0c7b9eb"
+      },
+      {
+        "step": "xvlog",
+        "argv": [
+          "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xvlog.bat",
+          "--sv",
+          "-d",
+          "FULL_MAPPED_VENDOR_PORTS",
+          "export/full_top_funcsim.v",
+          "input/structural_mapped_tb.sv",
+          "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\data\\verilog\\src\\glbl.v"
+        ],
+        "raw_returncode": 0,
+        "console_sha256": "ad14d4350b3448fe61354471006fcd0ebdfde1f719daf7ab326d70ef6921a9d1"
+      },
+      {
+        "step": "xelab",
+        "argv": [
+          "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xelab.bat",
+          "structural_mapped_tb",
+          "glbl",
+          "-L",
+          "unisims_ver",
+          "-s",
+          "full_mapped_p5",
+          "-mt",
+          "2",
+          "-generic_top",
+          "P_RECON_STAGES=5"
+        ],
+        "raw_returncode": 0,
+        "console_sha256": "e377b2d0fefa1cb77b5ecdd118aa189a957992d1ef3ecd3203fbd3692e2d28a6"
+      },
+      {
+        "step": "xsim",
+        "argv": [
+          "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xsim.bat",
+          "full_mapped_p5",
+          "-R",
+          "-testplusarg",
+          "mapped_trace=trace.csv",
+          "-log",
+          "xsim.log"
+        ],
+        "raw_returncode": 0,
+        "console_sha256": "fa0e67a9731c87256d5b9bb966fd57f45a4e9556960cdd51247b0ca83355be36"
+      }
+    ],
+    "helper_sha256": "ce553faec4ab6ef0e704b6aa2c14cc9ca6fdd8a756223aeddd1f0c36eb3462ce",
+    "input_sha256": {
+      "post_synth.dcp": "670d019aaec0efe80e060342ff0dbd748c0029b4c01d6a42e741de32ecb05ff1",
+      "synthesis_manifest.json": "75979b4b0b1e10727b474d3e0b8d4ec89809246b59f5530c54b408410ffa8d4d",
+      "structural_mapped_tb.sv": "bef8eb307497195fee47ca55ba316984c89088127a8b4387dfc1fa7b0289d7f0",
+      "run_vivado_full_mapped.tcl": "7acae8383b5988e2484fd5c19e7fad5abaa4debacdcc963af0abe5b3b23fd395",
+      "run_vivado_full_mapped.py": "ce553faec4ab6ef0e704b6aa2c14cc9ca6fdd8a756223aeddd1f0c36eb3462ce",
+      "audit_full_mapped.py": "ef456b45938f0483d201bb79d741a4ad3c1ec0b23daea738742f6f47cddbbde2"
+    },
+    "commands": [
+      [
+        "export",
+        [
+          "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\vivado.bat",
+          "-mode",
+          "batch",
+          "-nojournal",
+          "-log",
+          "export.vivado.log",
+          "-source",
+          "input/run_vivado_full_mapped.tcl",
+          "-tclargs",
+          "input/post_synth.dcp",
+          "export",
+          "xc7vx690tffg1761-2",
+          "5"
+        ]
+      ],
+      [
+        "xvlog",
+        [
+          "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xvlog.bat",
+          "--sv",
+          "-d",
+          "FULL_MAPPED_VENDOR_PORTS",
+          "export/full_top_funcsim.v",
+          "input/structural_mapped_tb.sv",
+          "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\data\\verilog\\src\\glbl.v"
+        ]
+      ],
+      [
+        "xelab",
+        [
+          "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xelab.bat",
+          "structural_mapped_tb",
+          "glbl",
+          "-L",
+          "unisims_ver",
+          "-s",
+          "full_mapped_p5",
+          "-mt",
+          "2",
+          "-generic_top",
+          "P_RECON_STAGES=5"
+        ]
+      ],
+      [
+        "xsim",
+        [
+          "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xsim.bat",
+          "full_mapped_p5",
+          "-R",
+          "-testplusarg",
+          "mapped_trace=trace.csv",
+          "-log",
+          "xsim.log"
+        ]
+      ]
+    ],
+    "tool_sha256": {
+      "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\vivado.bat": "ee806dfd48801247b5344ba5c45b1c0d42a0efa46b5151f569973e9e2e40d41f",
+      "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\data\\verilog\\src\\glbl.v": "c48753ff3481f46872a09160eee14b5596b37444c1bf2b84bf2acd922e7c982d",
+      "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xvlog.bat": "b0084c144b39f47a8b7d142052fbadb3049550f341abe462233d411327d15999",
+      "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xelab.bat": "b0084c144b39f47a8b7d142052fbadb3049550f341abe462233d411327d15999",
+      "D:\\Academic\\Vivado2018\\Vivado\\2018.3\\bin\\xsim.bat": "b0084c144b39f47a8b7d142052fbadb3049550f341abe462233d411327d15999"
+    },
+    "export_status": {
+      "STATUS": "FULL_MAPPED_EXPORT_COMPLETE",
+      "TOP": "sar20_digital_core",
+      "CHECKPOINT_DESIGN_NAME": "checkpoint_post_synth",
+      "PART": "xc7vx690tffg1761-2",
+      "P_RECON_STAGES": "5",
+      "STAGE_BINDING": "CALLER_SYNTHESIS_MANIFEST_AND_DCP_SHA256",
+      "VIVADO_VERSION": "2018.3",
+      "SCOPE": "FULL_TOP_POST_SYNTH_FUNCTIONAL_NO_SDF_NOT_TIMING"
+    },
+    "netlist_sha256": "ef849140112a32f10a8a30f15e1c1133f8862a52c1768daa8f7b3c62e1750bfa",
+    "audit": {
+      "status": "PASS",
+      "scope": "TB_TRACE_CONSISTENCY_NOT_NETLIST_IDENTITY_OR_TIMING",
+      "recon_stages": 5,
+      "rows": 438,
+      "rows_per_mode": [
+        146,
+        146,
+        146
+      ],
+      "config_readbacks": 3900,
+      "protocol_checks": 7680,
+      "physical_slices": 18,
+      "cancelled": 3,
+      "code_mismatches": 0,
+      "flag_mismatches": 0,
+      "internal_launch_latency_checked": false,
+      "nonzero_flags_exercised": false,
+      "trace_sha256": "c40ce4404bbbeae26df514be6484722682f936a626c56bd156ada9b5ae8d2073",
+      "log_sha256": "9fa7a40887f0f0931fe379273ed567d0a856eb82b1b494d5762e8c6cad5517d6"
+    }
+  },
+  "independent_local_audit": {
+    "status": "PASS",
+    "scope": "TB_TRACE_CONSISTENCY_NOT_NETLIST_IDENTITY_OR_TIMING",
+    "recon_stages": 5,
+    "rows": 438,
+    "rows_per_mode": [
+      146,
+      146,
+      146
+    ],
+    "config_readbacks": 3900,
+    "protocol_checks": 7680,
+    "physical_slices": 18,
+    "cancelled": 3,
+    "code_mismatches": 0,
+    "flag_mismatches": 0,
+    "internal_launch_latency_checked": false,
+    "nonzero_flags_exercised": false,
+    "trace_sha256": "c40ce4404bbbeae26df514be6484722682f936a626c56bd156ada9b5ae8d2073",
+    "log_sha256": "9fa7a40887f0f0931fe379273ed567d0a856eb82b1b494d5762e8c6cad5517d6"
+  }
+}

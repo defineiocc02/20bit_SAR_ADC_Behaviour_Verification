@@ -1,0 +1,161 @@
+%Warning-TIMESCALEMOD: rtl/core/adc2_dec.sv:45:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   45 | module adc2_dec #(
+      |        ^~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+                       ... For warning description see https://verilator.org/warn/TIMESCALEMOD?v=5.020
+                       ... Use "/* verilator lint_off TIMESCALEMOD */" and lint_on around source to disable this message.
+%Warning-TIMESCALEMOD: rtl/core/analog_phase_ctrl.sv:5:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    5 | module analog_phase_ctrl #(
+      |        ^~~~~~~~~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/cal_output_stage.sv:5:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    5 | module cal_output_stage #(
+      |        ^~~~~~~~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/cal_residue_mac.sv:5:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    5 | module cal_residue_mac #(
+      |        ^~~~~~~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/cal_sample_context.sv:5:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    5 | module cal_sample_context (
+      |        ^~~~~~~~~~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/cal_weight_reduce.sv:7:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    7 | module cal_weight_reduce #(
+      |        ^~~~~~~~~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/calib_regs.sv:47:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   47 | module calib_regs #(
+      |        ^~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/ctrl_fsm.sv:42:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   42 | module ctrl_fsm #(
+      |        ^~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/dem_addr_gen.sv:37:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   37 | module dem_addr_gen #(
+      |        ^~~~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/dem_state_gen.sv:45:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   45 | module dem_state_gen #(
+      |        ^~~~~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/dither_gen.sv:15:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   15 | module dither_gen #(
+      |        ^~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/div_floor.sv:57:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   57 | module div_floor #(
+      |        ^~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/rdac_drv.sv:30:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   30 | module rdac_drv (
+      |        ^~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/recon_core.sv:53:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   53 | module recon_core #(
+      |        ^~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/sar_structural_ctrl.sv:7:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    7 | module sar_structural_ctrl #(
+      |        ^~~~~~~~~~~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/sar_trial_ctrl.sv:6:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    6 | module sar_trial_ctrl #(
+      |        ^~~~~~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/slice_alloc.sv:44:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   44 | module slice_alloc (
+      |        ^~~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/slice_pool_ctrl.sv:6:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+    6 | module slice_pool_ctrl #(parameter logic [31:0] P_SEED=32'h6d2b79f5) (
+      |        ^~~~~~~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/status_regs.sv:42:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   42 | module status_regs (
+      |        ^~~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/swap_decode.sv:37:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   37 | module swap_decode (
+      |        ^~~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/unit_therm.sv:33:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   33 | module unit_therm (
+      |        ^~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/core/weight_store.sv:42:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   42 | module weight_store #(
+      |        ^~~~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/top/sadc_enc.sv:30:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   30 | module sadc_enc #(
+      |        ^~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-TIMESCALEMOD: rtl/top/sar20_digital_core.sv:11:8: Timescale missing on this module as other modules have it (IEEE 1800-2017 3.14.2.3)
+   11 | module sar20_digital_core #(
+      |        ^~~~~~~~~~~~~~~~~~
+                       sim/tb/recon_ppa_latency_tb.sv:4:8: ... Location of module with timescale
+    4 | module recon_ppa_latency_tb;
+      |        ^~~~~~~~~~~~~~~~~~~~
+%Warning-WIDTHTRUNC: sim/tb/recon_ppa_latency_tb.sv:33:16: Logical operator LOGAND expects 1 bit on the RHS, but RHS's VARREF 'busy' generates 3 bits.
+                                                         : ... note: In instance 'recon_ppa_latency_tb'
+   33 |       if(start && busy) $fatal(1,"16-tick request rejected tick=%0d busy=%b",tick,busy);
+      |                ^~
+make: Entering directory '/tmp/sar_rtl_363_vo_t'
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -c -o verilated.o /usr/share/verilator/include/verilated.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -c -o verilated_timing.o /usr/share/verilator/include/verilated_timing.cpp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -c -o verilated_threads.o /usr/share/verilator/include/verilated_threads.cpp
+/usr/bin/python3 /usr/share/verilator/bin/verilator_includer -DVL_INCLUDE_OPT=include Vrecon_ppa_latency_tb.cpp Vrecon_ppa_latency_tb___024root__DepSet_h694f17fd__0.cpp Vrecon_ppa_latency_tb___024root__DepSet_h03052c59__0.cpp Vrecon_ppa_latency_tb__main.cpp Vrecon_ppa_latency_tb___024root__Slow.cpp Vrecon_ppa_latency_tb___024root__DepSet_h694f17fd__0__Slow.cpp Vrecon_ppa_latency_tb___024root__DepSet_h03052c59__0__Slow.cpp Vrecon_ppa_latency_tb___024unit__Slow.cpp Vrecon_ppa_latency_tb___024unit__DepSet_hf729da7a__0__Slow.cpp Vrecon_ppa_latency_tb__Syms.cpp > Vrecon_ppa_latency_tb__ALL.cpp
+echo "" > Vrecon_ppa_latency_tb__ALL.verilator_deplist.tmp
+g++ -Os  -I.  -MMD -I/usr/share/verilator/include -I/usr/share/verilator/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0 -faligned-new -fcf-protection=none -Wno-bool-operation -Wno-overloaded-virtual -Wno-shadow -Wno-sign-compare -Wno-uninitialized -Wno-unused-but-set-parameter -Wno-unused-but-set-variable -Wno-unused-parameter -Wno-unused-variable     -DVL_TIME_CONTEXT   -fcoroutines -c -o Vrecon_ppa_latency_tb__ALL.o Vrecon_ppa_latency_tb__ALL.cpp
+Archive ar -rcs Vrecon_ppa_latency_tb__ALL.a Vrecon_ppa_latency_tb__ALL.o
+g++     verilated.o verilated_timing.o verilated_threads.o Vrecon_ppa_latency_tb__ALL.a    -pthread -lpthread -latomic   -o Vrecon_ppa_latency_tb
+rm Vrecon_ppa_latency_tb__ALL.verilator_deplist.tmp
+make: Leaving directory '/tmp/sar_rtl_363_vo_t'

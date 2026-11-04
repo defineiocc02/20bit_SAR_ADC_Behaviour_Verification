@@ -1,0 +1,11 @@
+slices,units,stage,actual_decimal,expected_decimal,actual_hex,expected_hex,source_line
+1,1,maximum_loaded,140737488355327,140737488355327,00007fffffffffff,00007fffffffffff,CACHE_MAXIMUM_LOADED slices=1 units=1 words=1 row_last=00007fffffffffff
+1,1,post_clear_replacement,1,1,0000000000000001,0000000000000001,CACHE_POST_CLEAR_REPLACEMENT slices=1 units=1 row0=0000000000000001
+1,128,maximum_loaded,18014398509481856,18014398509481856,003fffffffffff80,003fffffffffff80,CACHE_MAXIMUM_LOADED slices=1 units=128 words=128 row_last=003fffffffffff80
+1,128,post_clear_replacement,17873661021126530,17873661021126530,003f7fffffffff82,003f7fffffffff82,CACHE_POST_CLEAR_REPLACEMENT slices=1 units=128 row0=003f7fffffffff82
+18,71,maximum_loaded,9992361673228217,9992361673228217,00237fffffffffb9,00237fffffffffb9,CACHE_MAXIMUM_LOADED slices=18 units=71 words=1278 row_last=00237fffffffffb9
+18,71,post_clear_replacement,9851624184872891,9851624184872891,0022ffffffffffbb,0022ffffffffffbb,CACHE_POST_CLEAR_REPLACEMENT slices=18 units=71 row0=0022ffffffffffbb
+32,1,maximum_loaded,140737488355327,140737488355327,00007fffffffffff,00007fffffffffff,CACHE_MAXIMUM_LOADED slices=32 units=1 words=32 row_last=00007fffffffffff
+32,1,post_clear_replacement,1,1,0000000000000001,0000000000000001,CACHE_POST_CLEAR_REPLACEMENT slices=32 units=1 row0=0000000000000001
+32,128,maximum_loaded,18014398509481856,18014398509481856,003fffffffffff80,003fffffffffff80,CACHE_MAXIMUM_LOADED slices=32 units=128 words=4096 row_last=003fffffffffff80
+32,128,post_clear_replacement,17873661021126530,17873661021126530,003f7fffffffff82,003f7fffffffff82,CACHE_POST_CLEAR_REPLACEMENT slices=32 units=128 row0=003f7fffffffff82

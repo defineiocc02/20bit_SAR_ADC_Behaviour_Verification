@@ -1,0 +1,14 @@
+{
+  "scope": "LOCAL_ROW_ZERO_DELAY_RTL_FUNCTIONAL_NOT_PPA",
+  "archive": "docs/evidence/20260930/local_row_trial_rtl",
+  "archive_payloads_verified": 57,
+  "rtl_content_sha256": "6b27c64df11838428e7f364ac165c5986b51be586fd8cca1722d8095e54e7a22",
+  "profiles": {
+    "P5": 15,
+    "P6": 13,
+    "P7": 11
+  },
+  "generator_sha256": "237a953cbc77c4f85dd3599a11b11deb8e7d56bb694f8d928808bf58b03732d3",
+  "pdf_sha256": "c605a77bb8b3844a41b9703afb0d83242a64c294b26673a4af6b34051a34fae1",
+  "png_sha256": "c853611e7d5e2cb3d15dfb3a632c20fe7feb6c020ec0f727fee88d8d7aa75247"
+}

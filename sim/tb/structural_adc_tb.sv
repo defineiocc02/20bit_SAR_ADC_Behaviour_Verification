@@ -2,7 +2,8 @@
 // Pin-driven structural integration. Ideal comparator models respond to the
 // actual SAR trial pins. Oracle uses physical RDAC pins and independently
 // retained coefficient fixtures; it cannot see reconstruction internal sums.
-module structural_adc_tb;
+module structural_adc_tb #(parameter int P_RECON_STAGES=7);
+  localparam int RECON_LAT=(63+P_RECON_STAGES-1)/P_RECON_STAGES+2;
   logic clk=0,rst_n=0,cfg_wr=0,cfg_validate=0,cfg_clear_valid=0;
   always #1 clk=~clk;
   logic [15:0] cfg_addr=0;
@@ -36,7 +37,7 @@ module structural_adc_tb;
   assign coarse_ge[0]=(coarse_target+int'($signed(qdither[0])))>=int'(trials[0]);
   assign coarse_ge[1]=(coarse_target+int'($signed(qdither[1])))>=int'(trials[1]);
   assign fine_ge=fine_target>=int'(fine_trial);
-  sar20_digital_core dut(
+  sar20_digital_core #(.P_RECON_STAGES(P_RECON_STAGES)) dut(
     .clk(clk),.rst_n(rst_n),.cfg_wr(cfg_wr),.cfg_addr(cfg_addr),.cfg_wdata(cfg_wdata),
     .cfg_rdata(cfg_rdata),.cfg_validate(cfg_validate),.cfg_clear_valid(cfg_clear_valid),.cfg_ready(cfg_ready),
     .sadc_code(9'd0),.sadc_rdy(1'b0),.adc2_code(12'd0),.adc2_rdy(1'b0),
@@ -60,6 +61,23 @@ module structural_adc_tb;
   int residue_id,outputs=0,expected_count=0,frame=-1,checks=0;
   logic [17:0] acquired_at_edge,used='0;
   int mode=0,cancelled=0;
+  int clock_count=0,launch_clock[600],latency_checks=0;
+  // Observe transaction boundaries only; the code oracle below still uses
+  // physical RDAC pins and its own coefficient fixture. All profiles must
+  // commit each result at the derived latency while preserving sample ID.
+  always @(posedge clk) begin
+    clock_count++;
+    if(rst_n && cfg_ready && dut.launch_recon) begin
+      if(dut.structural_id>=600) $fatal(1,"launch ID outside scoreboard");
+      launch_clock[dut.structural_id]=clock_count;
+    end
+    #0.001;
+    if(dout_valid) begin
+      if(id>=600 || clock_count-launch_clock[id]!=RECON_LAT)
+        $fatal(1,"reconstruction latency stages=%0d id=%0d observed=%0d expected=%0d",P_RECON_STAGES,id,clock_count-launch_clock[id],RECON_LAT);
+      latency_checks++;
+    end
+  end
   task automatic write_cfg(input logic [15:0] a,input logic [63:0] d);
     @(negedge clk);cfg_addr=a;cfg_wdata=d;cfg_wr=1;
     @(negedge clk);cfg_wr=0;
@@ -173,7 +191,8 @@ module structural_adc_tb;
       repeat(16) begin @(negedge clk);if(dout_valid || cfg_ready) $fatal(1,"epoch leaked");end
     end
     if(used!='1 || outputs<400) $fatal(1,"insufficient physical slice/result coverage");
-    $display("STRUCTURAL_ADC_COMPLETE modes=3 outputs=%0d checks=%0d physical_slices=18",outputs,checks);$finish;
+    if(latency_checks!=outputs) $fatal(1,"latency/result scoreboard count mismatch");
+    $display("STRUCTURAL_ADC_COMPLETE modes=3 outputs=%0d checks=%0d physical_slices=18 recon_stages=%0d recon_latency=%0d latency_checks=%0d",outputs,checks,P_RECON_STAGES,RECON_LAT,latency_checks);$finish;
   end
   initial begin #100000; $fatal(1,"structural watchdog");end
 endmodule

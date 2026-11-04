@@ -4,6 +4,8 @@
 数字校正拆为独立模块；旧向量通过显式兼容模式运行。
 本报告区分可综合数字实现、文献披露、模型假设和待模拟/物理验证项。
 详细来源与端口时序见 [ADR0018](../adr/0018-physical-calibration-and-structural-controls.md)。
+外部拟合系数经真实寄存器装载、提交到 RTL 留出样本输出的补充闭环见
+[ADR0019](../adr/0019-fitted-weight-rtl-closure.md)。
 
 ## 1. 本次修复的重要结构问题
 

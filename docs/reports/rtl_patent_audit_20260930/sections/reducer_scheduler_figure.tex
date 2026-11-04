@@ -1,0 +1,6 @@
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{figures/39_reducer_scheduler.png}
+  \caption{归约验证中的数值证据与共同错误负对照。前三个面板仅绘制32个物理slice、8个活动slice、每slice含3个单元这一配置的前16个日志检查点；两个工具版本的DUT结果与逐物理单元的独立参考在这些点重合。完整回归在每个工具版本下分别检查1,430,848个样本，覆盖7种几何配置及43,758个生产分配组合，不能把两次工具运行的数量相加当作额外覆盖。右下角将双方共用的权重快照故意清零，原始刺激参考仍为24，在第9个检查点被断言检出。横轴是检查序号，图中没有重建模拟波形，也没有给出静态时序结论。}
+  \label{fig:reducer-scheduler-evidence}
+\end{figure}

@@ -1,0 +1,13 @@
+{
+  "status": "MATCH",
+  "source_hashes_revalidated": {
+    "rtl/core/cal_residue_mac.sv": "082a93293cda83f79ff0ac7ef72e484043f8bbceb914361f270059b4bb764f71",
+    "rtl/core/adc2_dec.sv": "268d279bdc1c2cdd7161072733c5046e701524c7e217b52ff0c7ca08951154f5",
+    "rtl/core/div_floor.sv": "f798b5d5b905c10cf21164821ecd8e6829fdd05c260c2cc73f36339b5feff62d",
+    "rtl/core/cal_output_stage.sv": "30cb3de766b0c2f316bd65f519304e95a35897b55568564e56c999c8bac0c0c2",
+    "sim/tb/arithmetic_audit_tb.sv": "c1582600cde5d6f267c723bd93f5726cb059bc7ca5abd207c3d34488bdef1ce8",
+    "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+    "tools/audit_rtl_arithmetic.py": "59de68fd4c0ee8efc51217ec81f92b1f54e15b4a840912f94f8c9eeae1cd278e"
+  },
+  "manifest_sha256": "05c4d6f40d2b6cd6a3bcbee60d6f7bd2e355b3d6976f4f47754dea2ab57d590f"
+}

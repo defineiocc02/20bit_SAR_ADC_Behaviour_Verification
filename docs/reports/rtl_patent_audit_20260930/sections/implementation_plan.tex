@@ -1,0 +1,113 @@
+\chapter{后续综合、STA与布线实施计划}
+\label{chap:implementation-plan}
+\section{有限里程碑与目标口径}
+本章是下一阶段计划，详细命令、对象查询与输入身份检查分别见\code{synth/FPGA_SYNTHESIS_AND_STA.md}和\code{synth/IMPLEMENTATION_PLAN.md}，不另建runner。已测旧冻结P5/25\,ns核心setup/hold为+0.946/+0.052\,ns，零I/O OOC全路径hold仍为$-2.278$\,ns；本章没有把待开展实验写成已经通过。
+
+ASIC 640\,MHz意味着每时钟1.5625\,ns、16拍一帧、每样本25\,ns，即40\,MS/s；现有FPGA每时钟25\,ns，一帧400\,ns，对应2.5\,MS/s。两种25\,ns对象不同。当前ASIC时序库、LEF与工艺技术数据、RC、MMMC、memory及模拟宏模型与工具环境均需确认，不以历史DC/TSMC目录填默认值。阶段“通过”在布局布线前可指流程与诊断完整；负setup/hold仍须登记，最终闭合才要求全部适用路径与规则达标。
+
+\begingroup\small\setlength{\tabcolsep}{3pt}
+\begin{longtable}{p{13mm}p{65mm}p{75mm}}
+\toprule 里程碑&完成定义&不能替代它的材料\\\midrule\endfirsthead
+\toprule 里程碑&完成定义&不能替代它的材料\\\midrule\endhead
+M0&当前raw SHA、有效token对照、模块/状态/数学边界与RTL/lint&排版截图、旧源码SHA\\
+M1&FPGA同源综合、DCP、各物理节点max/min与完整mapped功能；最终核心闭合&只看综合setup或波形\\
+M2&真实I/O预算、引脚/clock结构及板级全部要求路径/规则闭合&零I/O OOC寄存器间通过\\
+M3&同条件参数/结构A/B、活动覆盖、资源/时序/功耗及保留/否决理由&理论节省项数、vectorless值、外推Fmax\\
+M4&获授权ASIC库/RC/宏/模式资料齐全，预算可分析&旧PDK路径、FPGA面积换算\\
+M5&ASIC同源网表/寄生/场景的实现、ECO、功能/等价和PPA验收&零线负载综合、单一corner\\
+M6&修改RTL/报告/证据身份链和残留项进入同一Git交付&给旧图改标题或口头保证\\
+\bottomrule\end{longtable}\endgroup
+不预测任意日期、机器时长或成本。每个里程碑结束保留输入、原始日志、SHA、具体失败与回退点；连接超时先查询原任务，不重复启动新EDA。资料未知时继续预算与RTL准备，不发布未验证的ASIC指标。
+
+\section{FPGA：每阶段的操作、报告与回退}
+本机\code{run_vivado_ssh.py}综合入口显式传\code{windows-codex}、Windows、已测Vivado 2018.3、\code{xc7vx690tffg1761-2}、P5与25\,ns。实现只有\code{run_vivado_buffered_impl.tcl}四位置参数入口，没有同名Python包装；full-mapped runner运行在真实Vivado主机，默认prepare-only，\code{--execute}才执行，当前仅支持P5/P7。
+\begingroup\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{longtable}{p{12mm}p{21mm}p{30mm}p{36mm}p{29mm}p{25mm}}
+\toprule 阶段&输入&操作&必须保留报告&通过条件&失败回退\\\midrule\endfirsthead
+\toprule 阶段&输入&操作&必须保留报告&通过条件&失败回退\\\midrule\endhead
+F0&RTL/头文件/源列表/TB/XDC&冻结raw SHA及token对照；相关RTL/lint&源包、manifest、完整日志、参数/拍数&位精确、ID/flags/取消成立，差异可定位&回最近合格候选，不改旧证据\\
+F1&F0、part/P5/25\,ns&全核OOC综合；查blackbox/latch/undriven及max/min&日志/status、资源、时钟/覆盖、max/min、DRC、综合DCP&输入/工具一致、路径报告完整；违规登记&先修流程或未驱动结构，不做无效PPA\\
+F2&F1完整DCP与source tar&源包逐项SHA；两端独立核完整DCP&大小/SHA、传输与身份记录、原manifest&来源有效且两端一致&重新传同一产物，隔离错身份\\
+F3&F2、冻结实现Tcl/BUFG条件&真实BUFG、opt/place/phys\_opt；逐节点max/min&各checkpoint、clock端点集、max/min/覆盖、拥塞/DRC&端点未改、clock唯一、风险可定位&回身份/布局；一项变量重做\\
+F4&F3、相同约束&全部route；内部pin与全路径并列STA&路由DCP、完整max/min/覆盖/例外/PW、route/DRC&路由完整、无漏分析；核心/IO闭合分开&按核心/IO、logic/route、max/min回对应阶段\\
+F5&同一综合DCP、mapped TB&vendor primitives完整功能XSim&网表/TB/DCP身份、工具日志与trace&所测公共事务符合判据；注明no-SDF范围&先查绑定/参数再查功能\\
+F6&真实I/O/引脚/活动&板级全实现与同条件活动PPA&预算来源、全部STA/DRC、activity覆盖/对照&实际接口通过，A/B条件一致&补接口/活动，否决无益候选\\
+\bottomrule\end{longtable}\endgroup
+
+现存综合Python status只按setup筛查分类；现存实现Tcl的详细报告集中在post-route。下一次实验应在冻结脚本副本的post-ECO、post-place、post-phys-opt节点分别追加\code{report_timing_summary} \code{-delay_type} \code{min_max} \code{-report_unconstrained}、\code{check_timing}、资源/DRC和checkpoint；每次重新取真实register clock/data pin集合作max/min。新增记录点未在本轮运行，新脚本也有新SHA。阶段延迟注明综合估算、放置估算或真实route，不以早期正裕量发布Fmax。
+
+\section{真实端口预算与1.5625 ns三方分工}
+表中均为待填写字段，不等于零。每组展开到具体port/bit、参考边沿、模式、来源、负载与min/max；结构模式裁掉的兼容接口写明不适用。顶层当前输入契约是同步\code{clk}；实物异步时须设计CDC/握手或表征同步模拟边界。
+\begingroup\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{longtable}{p{58mm}p{37mm}p{58mm}}
+\toprule 实际顶层端口组&参考/消费条件&待填预算及来源\\\midrule\endfirsthead
+\toprule 实际顶层端口组&参考/消费条件&待填预算及来源\\\midrule\endhead
+\code{clk}, \code{rst_n}&真实入芯片主clock；同步reset&duty/jitter/source latency、reset到达/slew/释放；clock与reset设计\\
+\code{cfg_wr}, \code{cfg_addr}, \code{cfg_wdata}, \code{cfg_validate}, \code{cfg_clear_valid}&正沿请求，clear/validate/write优先级&发送端clock-to-out与走线相位差、min/max/slew；总线桥/上游寄存器\\
+\code{cfg_rdata}, \code{cfg_ready}&组合读回，无read握手&消费边沿、setup/hold、load与addr到rdata窗口；接收接口规格\\
+\code{flash_therm}, \code{flash_valid}&Flash冻结及同样本valid&eval到决策min/max、valid/data skew；Flash PVT宏\\
+\code{coarse_cmp_valid}, \code{coarse_cmp_ge}, \code{fine_cmp_valid}, \code{fine_cmp_ge}&粗/细比较接受、deadline、前代residue&decision latency与稳定窗、异步与否；三路comparator宏\\
+\code{sadc_code}, \code{sadc_rdy}, \code{adc2_code}, \code{adc2_rdy}&兼容phase8/14&码/ready同样本min/max；外部编码/量化器\\
+\code{inj_q}, \code{ra_sat}, \code{rdac_ovf}, \code{adc2_over}&同本笔上下文ID/capture&稳定/同步规则与min/max；注入/模拟异常源\\
+\code{coarse_trial}, \code{quantizer_dither}, \code{coarse_compare_enable}, \code{coarse_acquire_enable}&粗试探/DAC/评估窗&传播、DAC建立、控制脉宽/load；粗DAC/comparator宏\\
+\code{fine_trial}, \code{fine_compare_enable}, \code{fine_acquire_enable}&后级试探与比较窗&传播min/max、settling、有效宽度/load；后级宏\\
+\code{analog_phase}, \code{quiet_sample}, \code{tp_clock}, \code{ra_az}, \code{ra_amplify}, \code{ref_precharge}, \code{ref_accurate}&相位区间、AZ/参考/采样死区&切换min/max、脉宽、dead time、模拟建立/load；参考/RA/采样宏\\
+\code{acquiring_mask}, \code{converting_mask}, \code{aux_charge_enable}, \code{hold_low_enable}&18路所有权/资源晋升&AUX/开关skew与有效窗口/load；slice/AUX宏\\
+\code{flash_acquire_enable}, \code{flash_sample}, \code{acquisition_dither_rails}&Flash/采样轨冻结&脉宽/轨建立min/max/load；Flash/dither宏\\
+\code{slice_sel}, \code{main_sw}, \code{sub_sw}, \code{dither_sw}, \code{sw_valid}&物理unit ID、已决码更新&bit skew、传播/建立/load/电荷规则；RDAC驱动与RC\\
+\code{dout}, \code{dout_valid}, \code{dout_sample_id}, \code{dout_flags}, \code{clip_low}, \code{clip_high}, \code{analog_ovf}, \code{acc_ovf}, \code{status_word}&输出事务、sticky/last观察&接收setup/hold、output min/max/load及无背压；接收模块规格\\
+\bottomrule\end{longtable}\endgroup
+\code{tp_clock}和compare/acquire/sample控制不是自动生成的数字时钟。真实宏若以它们为评估/锁存参考，应表征边沿关系；纯模拟接收节点用有效窗/建立要求，不能捏造数字FF的output delay。I/O delay是数据与参考clock路径相位差，可为正/负，不能当自由“余量”。方法见\href{https://docs.amd.com/v/u/2018.3-English/ug903-vivado-using-constraints}{UG903 v2018.3第100--103页}。
+
+模拟方给出DAC/参考建立、comparator/valid/data min/max、PVT/load及迟到处理；数字方给出捕获边沿、每级数据依赖、ID/epoch/flags与16拍吞吐；物理/时钟方给出目标库clock-to-Q、setup/hold、RC、skew/uncertainty与OCV。不能将1.5625\,ns平均分成三份。定义\(\Delta t_{clk}=t_{capture}-t_{launch}\)，同域一拍的基本预算为
+\begin{align*}
+t_{CQ,max}+t_{logic,max}+t_{wire,max}+t_{setup}+U_{setup}&\leq1.5625\,\mathrm{ns}+\Delta t_{clk},\\
+t_{CQ,min}+t_{logic,min}+t_{wire,min}&\geq t_{hold}+U_{hold}+\Delta t_{clk}.
+\end{align*}
+实际STA仍按具体边沿、corner/OCV、CPR与宏弧计算。16拍帧不能自动作为内部多周期；没有稳定/捕获证明，不加false path或multicycle。
+
+\paragraph{未填写的部分SDC模板，不能签核。}
+该模板不代表ASIC工具已经安装；真实工具对象查询和库单位须核对。文档完整模板故意报错，以下仅示例配置输入组；宏/复位/读回/其他输出等仍须逐项填写。
+\begingroup\footnotesize
+\begin{verbatim}
+error "TEMPLATE_INCOMPLETE: library/IO/MMMC not approved"
+set ASIC_PERIOD_NS 1.5625 ;# only after confirming 1 ns library unit
+# CLK_U_SETUP_NS/CLK_U_HOLD_NS/CFG_IN_MIN_NS/CFG_IN_MAX_NS are unfilled.
+create_clock -name core_clk -period $ASIC_PERIOD_NS [get_ports clk]
+set_clock_uncertainty -setup $CLK_U_SETUP_NS [get_clocks core_clk]
+set_clock_uncertainty -hold $CLK_U_HOLD_NS [get_clocks core_clk]
+set cfg_in [get_ports {cfg_wr cfg_addr* cfg_wdata* cfg_validate cfg_clear_valid}]
+set_input_delay -clock core_clk -max $CFG_IN_MAX_NS $cfg_in
+set_input_delay -clock core_clk -min $CFG_IN_MIN_NS $cfg_in
+\end{verbatim}
+\endgroup
+
+\section{关键路径和同条件PPA实验的优先顺序}
+每次先看真实start/end pin、参考边沿、path group和max/min场景，再读cell/net增量、fanout/cap/slew、位置与拥塞；先确认工作机制，再改结构。当前fine IDs到rail树的23.914\,ns路径有18.623\,ns互连，占77.875\%，应优先检查冻结ID\(\to\)活跃行掩码\(\to\)unit/row树\(\to\)signed rail捕获。后级SAR期间预计算\(T/G/R\)可减少phase15前依赖，但中间量必须带ID/epoch/valid/bad，cancel/clear后失效；这是未实现收益的候选。
+
+其他类型按顺序检查：系数写入的守卫/本行旧值选择/row替换；ADC2的符号扩展、round-even乘法与残差MAC的DSP/carry/overflow；floor除法的余数/除数和每拍展开级；资源/相位到宏控制的注册、扇出及负载；I/O最短链的真实最早到达与clock关系；clock/reset/enable的真实接收pin。分别复验同沿写与读回、96-bit/负floor/round-even、busy/16拍启动、所有权/死区/迟到取消以及hold/PW；不依模块外观换算法。
+
+参数对照先固定工具/part、P\_STRUCTURAL、相位/seed、25\,ns、uncertainty、BUFG与实现命令，只改变\code{--stages}为5/6/7。每点新建输入/DCP/route身份，15/13/11拍latency与16拍帧分别验证。P6的RTL通过不等于完整mapped通过，现有runner仅P5/P7，P6需明确适配。选定参数后另做只改变周期的扫描，不由正裕量外推Fmax。
+
+权重62,316 FF占总66,492 FF的93.72\%，先证明读取带宽可以减少再比较分银行RAM/SRAM/结构DEM前缀。保留18\(\times\)71并行读口仅改声明不能得到BRAM；在原表外追加朴素前缀会增72,432状态位。PPA A/B同工具、clock、load、PVT与活动窗口，记录综合/route LUT/FF/DSP/BRAM、logic/net延迟、max/min/失败终点、拥塞及活动覆盖。功耗分装载、连续转换、DEM/dither、取消/重配并检查未注释/X/Z节点；现有vectorless0.477\,W不能当作功耗优势。
+
+\section{ASIC资料门禁、物理实现与ECO闭环}
+\begingroup\scriptsize\setlength{\tabcolsep}{3pt}
+\begin{longtable}{p{12mm}p{25mm}p{29mm}p{35mm}p{28mm}p{24mm}}
+\toprule 阶段&输入&操作&必须保留报告&通过条件&失败回退\\\midrule\endfirsthead
+\toprule 阶段&输入&操作&必须保留报告&通过条件&失败回退\\\midrule\endhead
+A0&真实lib、LEF、RC、MMMC、memory与模拟宏及工具&单位/角/授权/接口评审&模型身份、单位与角、预算、模式clock关系&每活动路径有适用模型，未知补齐&继续准备，补资料，不借历史数字\\
+A1&冻结RTL与合法1.5625\,ns SDC&综合/link；查参数/blackbox/latch与max/min；逻辑等价&mapped网表、SDC/库/日志、资源/时序/覆盖、等价&逻辑有效、数值不变、初步违规完整&修结构/预算/库，不删守卫截位\\
+A2&网表、真实macro/pin/供电/面积方案&floorplan/placement，估算RC max/min&placed库、密度/拥塞、宏/供电、max/min/规则&放置合法、接口完整、风险可定位&区域/容量一变量；逻辑改变回综合\\
+A3&placed结果、真实clock来源与树目标&CTS/传播clock；查skew、latency、slew、PW与max/min&CTS、端点树、max/min/覆盖、适用reset规则&时钟接收有树、分析无漏项&回clock预算/布局/短路径\\
+A4&CTS与真实routing规则&global/detail route、DRC/antenna、时序&route库/网表、拥塞/DRC/antenna/变更&路由完整，规则状态明确&长/短线与宏边界分别回退\\
+A5&route与extraction deck/RC角&寄生提取，查单位/层/网络/耦合&SPEF或真实寄生格式、日志/覆盖、corner身份&寄生与当前route/网表匹配&修提取/缺网，不用pre-route替换\\
+A6&寄生、全MMMC、真实宏&postroute setup/hold、适用recovery/removal、PW/gating/电气及DRC&全场景max/min、endpoint/coverage、宏/clock、规则&要求场景均达标，无漏项/无解释不明例外&按路径类型回对应阶段\\
+A7&具体违例与代价预算&最小ECO；重合法化/route/提取/全部STA与DRC&ECO差异、网表/数据库/寄生与完整重跑&修目标，无其他角/功能回归&回退ECO，重新找原因\\
+A8&最终网表/约束/宏/活动&等价、功能/必要时序仿真、活动功耗、交付&等价/功能范围、活动覆盖、PPA、最终身份&算法/ID/flags/拍数与全部物理条件成立&功能回ECO前；活动不足重建\\
+\bottomrule\end{longtable}\endgroup
+MMMC不预填SS/FF电压、温度或RC名字。依据实际库/寄生建立正常转换、配置、复位/测试等存在的模式，所有宏PVT与场景相容；单一慢库不保证所有setup最坏，单一快库不保证所有hold最坏。当前核内reset同步，async recovery/removal若不适用须说明；macro或后续设计有异步reset/set或clock-gating pin时纳入相应检查。
+
+ECO后不能只重查修过的一条路径：重新route、提取、全MMMC max/min/coverage、适用PW/recovery/removal、电气/DRC，并与正确参考做等价/完整功能及活动功耗。只有真实全核、macro边界与要求场景均通过才判断640\,MHz/PPA；计划完备不等于这些里程碑已经完成。
+
+数字STA与路由DRC不替代芯片交付的LVS、制造级DRC、供电IR/EM、模拟版图与可靠性等真实签核。后续若加入DFT/scan或clock gating，应先冻结功能/test模式、测试clock、移位/捕获规则和新增端点，再纳入等价、MMMC及适用clock-gating/脉宽/复位检查；未完成项如实保留，不默默裁掉test路径。

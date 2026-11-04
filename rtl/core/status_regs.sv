@@ -1,5 +1,5 @@
 //===========================================================================
-// status_regs.sv -- 粘滞状态标志与错误码寄存器
+// status_regs.sv -- 粘滞/逐样本状态寄存与错误码拼接
 //===========================================================================
 // 职责一句话
 //   把逐样本事件（溢出/剪裁/模拟饱和/结构性错误）按"粘滞 vs 逐样本"两种口径
@@ -36,6 +36,10 @@
 //     选择 [5:0] 放标志是为了让"码到边/溢出"这类高频观察量落在低位。
 //   * `status_clr_value` 定义为 4 个粘滞位的掩码（32'h0000_0027；不含两个 clip 位）。
 //     P2 §8 只给了端口名未给语义，这是设计选择；顶层用不上它，留给软件侧使用。
+//   * rst_n 为同步低有效复位。clr 对四个粘滞位优先于同拍事件，故 clear
+//     与新错误同拍时输出清零；clip_* 在非复位拍始终跟随输入，不受 clr 门控。
+//   * err_code 是本模块的组合透传输入，其保存/清除由上游负责；status_word
+//     没有额外寄存器。读回时应以顶层配置/输出协议确保各字段属于所需时刻。
 //===========================================================================
 `include "rtl_params.vh"
 
@@ -63,6 +67,7 @@ module status_regs (
 
   localparam logic [31:0] CLR_MASK = {26'b0, 6'b100111};
 
+  // 时序边界：仅六个状态位进入 FF，不在这里重新检测数值范围或增设流水级。
   always_ff @(posedge clk) begin
     if (!rst_n) begin
       acc_ovf_sticky    <= 1'b0;
@@ -90,9 +95,12 @@ module status_regs (
     end
   end
 
-  assign status_word = {err_code[25:0],
-                        analog_ovf_sticky, clip_high_last, clip_low_last,
-                        adc2_ovf_sticky, gain_err_sticky, acc_ovf_sticky};
+  // 组合回读：截取 err_code 低 26 位，再按固定 ABI 顺序拼接六个标志。
+  assign status_word = {
+    err_code[25:0],
+    analog_ovf_sticky, clip_high_last, clip_low_last,
+    adc2_ovf_sticky, gain_err_sticky, acc_ovf_sticky
+  };
 
   assign status_clr_value = CLR_MASK;
 

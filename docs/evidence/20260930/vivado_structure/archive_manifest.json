@@ -1,0 +1,51 @@
+{
+  "archive_utc": "2026-09-29T20:23:42.203752+00:00",
+  "scope": "Byte-preserving read-only structure audit of repaired baseline P7, before MSB change",
+  "copied_files": [
+    {
+      "path": "baseline_structure_audit.md",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/baseline_structure_audit.md",
+      "sha256": "b7bc7a562ece73d3d960807aaad400797f7faaea13c4d753dcb26e5ae70eae50",
+      "bytes": 7604
+    },
+    {
+      "path": "baseline_structure_audit.json",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/baseline_structure_audit.json",
+      "sha256": "bc9dc35383fb43542e7f662b66802a7ac3715b083658f6eec04436f1503fdf1e",
+      "bytes": 110587
+    },
+    {
+      "path": "baseline_weight_msb_witness.json",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/baseline_weight_msb_witness.json",
+      "sha256": "4a6e8c63bcf12f657e26894061f1ca33b015cc28a3438e4305f0ba6f044fba2a",
+      "bytes": 1130
+    },
+    {
+      "path": "audit_edif_hierarchy_20260930.py.txt",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/audit_edif_hierarchy_20260930.py",
+      "sha256": "c684fba4dff1431ff70c56c50251f1c65d646e6e345afc2a8875ff03e54c6cce",
+      "bytes": 3886
+    },
+    {
+      "path": "utilization_hier.rpt",
+      "source": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_baseline/synth/artifacts/vivado/20260929T190955.260429Z_p7_recovered/out/utilization_hier.rpt",
+      "sha256": "20f0444c6469cf27d84cc2a431010a731ca62918e73c772f98dced0c777b2beb",
+      "bytes": 5295
+    }
+  ],
+  "external_dcp": {
+    "path": "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_vivado_20260930/repair_baseline/synth/artifacts/vivado/20260929T190955.260429Z_p7_recovered/out/post_synth.dcp",
+    "sha256": "9c3bc09dd193d0bffcd6d00f9af83cc887fde5423402416af751f4a2d1ef506b",
+    "bytes": 69108593,
+    "zip_member": {
+      "path": "sar20_digital_core.edf",
+      "uncompressed_bytes": 370648226,
+      "crc32_hex": "2762d676"
+    }
+  },
+  "omitted": [
+    "large post_synth.dcp and extracted EDIF",
+    "EDA build objects and additional reports"
+  ],
+  "no_eda_or_simulation_started": true
+}

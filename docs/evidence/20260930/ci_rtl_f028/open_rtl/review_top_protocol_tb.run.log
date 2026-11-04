@@ -1,0 +1,2 @@
+REVIEW_TOP_PROTOCOL_COMPLETE checks=1108 outputs=38
+- sim/tb/review_top_protocol_tb.sv:175: Verilog $finish

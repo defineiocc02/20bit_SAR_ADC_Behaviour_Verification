@@ -1,0 +1,44 @@
+# 只读复核命令记录
+
+工作目录：`/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure`
+
+实际使用的检查类别和命令（只读；未运行综合、STA、仿真或形式工具）：
+
+```sh
+cat /Users/zhaoyi/.codex/skills/asic-rtl-timing/SKILL.md
+cat /Users/zhaoyi/.codex/skills/asic-rtl-timing/references/framework.md
+cat /Users/zhaoyi/.codex/skills/asic-rtl-timing/references/sdc-sta.md
+cat /Users/zhaoyi/.codex/skills/asic-rtl-timing/references/timing-diagnosis.md
+cat /Users/zhaoyi/.codex/skills/asic-rtl-timing/references/dr-rtl-patterns.md  # only relevant strategy sections inspected
+git status --short --branch
+git rev-parse HEAD
+rg -n -i 'create_clock|create_generated_clock|set_input_delay|set_output_delay|set_multicycle_path|set_false_path|set_clock_groups|set_clock_uncertainty' synth/*.tcl
+rg -n 'always_ff|posedge|negedge|rst_n|synchron' rtl
+sed -n '1,190p' docs/evidence/20260930/shared_old_trial_route_25ns/out/timing_min_paths.rpt
+sed -n '1,100p' docs/evidence/20260930/shared_old_trial_route_25ns/out/timing_max_paths.rpt
+sed -n '1,100p' docs/evidence/20260930/shared_old_trial_route_25ns/out/internal_max_paths.rpt
+cat docs/evidence/20260930/shared_old_trial_route_25ns/out/status.txt
+cat docs/evidence/20260930/shared_old_trial_route_25ns/out/exceptions.rpt
+cat docs/evidence/20260930/shared_old_trial_route_25ns/reviewed_result.json
+cat docs/evidence/20260930/shared_old_trial_synth/readings.json
+cat docs/evidence/20260930/vivado_complete_p7/comparison.json
+sha256sum <listed-sources-and-reports>
+```
+
+Current-vs-historical raw source hashes were independently compared against the P5/P7 manifests. The P5 token identity values come from the separately written `../baseline/source_identity.json`. This comparison is evidence review, not a synthesis or equivalence run.
+
+本代理没有连接 EDA 主机，也未在本机打开 DCP。本次新增的 P5 DCP 报告来自父任务协调的远端只读重导，证据目录为 `/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/baseline/reopened_route/`；`execution.json` 记录 DCP 重导前后 SHA 一致，`scope.txt` 明确 `NO_SYNTHESIS_OR_PLACE_ROUTE=1`、`NO_CONSTRAINT_EDIT=1`。该重导只生成报告，没有综合、布局、布线、约束修改或 PPA 候选。
+
+追加的本地只读检查：
+
+```sh
+python3 -c 'from pathlib import Path; p=Path("/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/baseline/reopened_route/out"); print((p/"loaded_constraints.xdc").read_text()); print((p/"exceptions.rpt").read_text()); print((p/"high_fanout.rpt").read_text())'
+sed -n '1,150p' /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/baseline/reopened_route/out/timing_core_max.rpt
+sed -n '1,90p' /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/baseline/reopened_route/out/timing_core_min.rpt
+sed -n '1,100p' /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/baseline/reopened_route/out/timing_max_paths.rpt
+sed -n '1,75p' /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/baseline/reopened_route/out/timing_min_paths.rpt
+find /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/baseline/reopened_route -type f -exec shasum -a 256 {} \;
+shasum -a 256 /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/rtl/top/sar20_digital_core.sv /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/rtl/core/weight_store.sv /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/rtl/core/cal_sample_context.sv /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/rtl/core/sar_structural_ctrl.sv /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/rtl/core/recon_core.sv /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_review_20260919/calibration-closure/rtl/params/rtl_params.vh /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/baseline/source_identity.json /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/baseline/reopened_route_sha256.json /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/constraints/STA_CONSTRAINT_REVIEW_20261007.md /Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/constraints/commands.txt
+```
+
+No generated SDC was changed, no PPA candidate was created, and no test suite was run.

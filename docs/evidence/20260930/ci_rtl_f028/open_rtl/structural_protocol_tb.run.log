@@ -1,0 +1,2 @@
+STRUCTURAL_PROTOCOL_COMPLETE frames=120 launches=57 expected_drops=63 checks=1920 decoder_perturbations=2
+- sim/tb/structural_protocol_tb.sv:115: Verilog $finish

@@ -1,0 +1,6 @@
+COMMAND: /Library/Developer/CommandLineTools/usr/bin/python3 tools/run_open_rtl.py --tops sar_trial_tb review_config_tb review_recon_protocol_tb structural_protocol_tb p2_tb p3_top_tb
+EXIT_CODE: 1
+--- STDOUT ---
+
+--- STDERR ---
+Verilator is required; install it or set VERILATOR

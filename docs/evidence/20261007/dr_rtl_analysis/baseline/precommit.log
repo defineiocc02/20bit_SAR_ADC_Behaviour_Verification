@@ -1,0 +1,10 @@
+trim trailing whitespace.................................................Passed
+fix end of files.........................................................Passed
+check yaml...............................................................Passed
+check toml...........................................(no files to check)Skipped
+check for added large files..............................................Passed
+check for merge conflicts................................................Passed
+debug statements (python)............................(no files to check)Skipped
+ruff.................................................(no files to check)Skipped
+ruff-format..........................................(no files to check)Skipped
+mypy.................................................(no files to check)Skipped

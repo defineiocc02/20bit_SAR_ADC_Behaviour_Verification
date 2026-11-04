@@ -1,0 +1,403 @@
+\chapter{综合语义修复与实际 FPGA 实验}
+\label{ch:synthesis-repair}
+本章区分三类实验：用于定位错误的失效网表、通过独立功能见证的小单元网表，以及完整顶层的综合和实现。它们采用的 DUT 尺寸、通过判据和可推论范围不同，不能合并成一个笼统的“Vivado PASS”。所有原始失败工件保留；最终评审状态通过额外记录说明，不覆盖历史 manifest。
+
+\section{为什么原先的综合数字必须作废}
+第一次完整顶层综合虽然生成了利用率和时序报告，日志却出现五条无驱动诊断，
+编号均为\code{Synth 8-3848}。
+其中包括 \code{sadc_enc} 的树根计数，以及 \code{cal_weight_reduce} 的根归约量。
+旧写法把节点信号定义在每个 generate 作用域中，再以
+\code{g_node[2*t].total} 等前向层级名称连接子节点。
+在本次 Vivado 2018.3 实跑中，这些根节点的驱动关系未被正确保留。
+同一源码在 Verilator 中能正确求值，说明只用一个 RTL 仿真器不足以发现该类映射差异。
+
+随后读取 DCP 内的网表，发现基线的 Flash 输入仅保留端口声明，没有通向逻辑的实际扇出；
+归约模块则丢失了正常输入和加权树。进一步的小单元网表仿真在第一个 Flash 检查就观察到高阻态 Z，
+而独立参考值为零。这是功能不一致的直接证据。
+因此，原来的 35,902 LUT、65,454 FF 与 $-15.874$\,ns WNS 只保留为故障诊断数据；
+同类旧列共享快照的 35,806 LUT、65,370 FF 与 $-16.228$\,ns WNS 也不属于有效 PPA 比较。
+资源数很小有时意味着逻辑被错误删除，不能先把它解释为优化收益。
+
+\section{修复的结构原则}
+修复后，树边信号在模块作用域显式声明，generate 只负责给确定索引的节点赋值。
+每个有效节点仍满足
+\begin{equation}
+Y_t=Y_{2t}+Y_{2t+1},\qquad 1\le t<L,
+\end{equation}
+叶子与补零规则不变，根输出仍为 \(Y_1\)。
+这里 \(L\) 为覆盖有效叶子数的二次幂。
+改写没有把平衡树变成一个顺序累加环，也没有增加寄存器或改变结果延迟。
+所有节点有唯一驱动；padding、单叶几何和最大支持几何都必须能展开。
+
+旧版之所以选择命名节点，是为了避免某些 lint 工具把聚合数组误判为循环。
+新实现对 Verilator 使用 \code{split_var} 注释，指明常量索引元素可以分开分析；
+该注释不是屏蔽 \code{UNOPTFLAT} 之类的诊断，也不会改变 Vivado 的逻辑方程。
+严格 lint 继续作为失败门禁。两种工具对写法的可接受性都纳入验证后，才算解决了工程兼容性问题。
+
+\section{同一刺激下的 RTL 与网表对照}
+独立见证模块同时包含 3-bit 和 9-bit Flash 编码器，以及 3 个物理 slice、每个 2 主加 1 子单元的归约器。
+它有 969 个输入位，使用 48-bit 系数、64-bit 总和和 66-bit 带符号轨和。
+这是一种为快速映射检查选定的小尺寸，不是 18\(\times\)71 生产几何的替代。
+
+参考算法逐个物理单元累加，既不遍历 DUT 的树，也不调用 DUT 的借位或归约辅助函数。
+12,904 个默认检查由五组构成：128 个 3-bit 编码器输入位型、512 个 9-bit 温度计状态、
+3072 个合法两-slice 选择与开关/模式组合、8192 个全部地址编码与轨模式组合，
+以及 1000 个全 48-bit 系数和非温度计 Flash 位型的伪随机组合。
+相同 testbench 分别驱动原始 RTL 和 Vivado 导出的功能网表。
+
+\begin{table}[H]\centering\small
+\begin{tabularx}{\textwidth}{p{36mm}X X X}\toprule
+版本&RTL 语义检查&网表输入因果&XSim 功能检查\\\midrule
+旧前向引用写法&12,904 次通过&959/969 个输入无端点扇出&首个 Flash 检查失败，得到 Z\\
+旧公式，仅修树连线&12,904 次通过&969/969 个输入有端点扇出&12,904 次通过\\
+列共享公式，修树连线&12,904 次通过&969/969 个输入有端点扇出&12,904 次通过\\
+\bottomrule\end{tabularx}
+\caption{相同独立见证下的真实对照。扇出恢复是必要条件；逐值检查进一步检验函数，二者不能互相替代。}
+\end{table}
+
+小单元映射的旧公式连接修复版为 2834 LUT，列共享修复版为 1837 LUT，两者均为纯组合见证，
+FF 和 DSP 为零。该实验说明列共享在这个具体尺寸和工具设置中有资源收益，
+但不能把减少的 997 LUT 或局部比例外推到包含系数存储、MAC、调度和除法器的完整 ADC 数字顶层。
+错误旧版只剩 2 LUT，明确排除在收益计算之外。
+
+\IfFileExists{figures/38_tree_mapping_trace.png}{
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figures/38_tree_mapping_trace.png}
+\caption{映射见证的实际输出、期望值和故障行。图由原始 XSim CSV 及输入扇出记录生成；高阻/未知值作为错误保留，不转换为数值零。}
+\end{figure}
+}{}
+
+\section{完整顶层的公平对比条件}
+新完整基线和优化版均先修复树连线与 Flash 编码器的映射问题。
+基线保留列共享之前的归约公式和原除法实现；优化版包含列共享与借位复用两项算术优化。
+因此，完整顶层前后差异属于这两项优化的组合效果；若要分别归因，还需要增加仅改变其中一项的实验。
+两份隔离快照保留所有文件 SHA，其他生产 RTL、器件、工具和脚本保持一致。
+后续精简 P5 配置还包含权重恒零最高位的显式掩蔽。
+因此，P7 基线对 P7 列共享/借位版是第一组公平 A/B；
+该 P7 版对精简 P5 版则同时改变除法展开参数、权重存储表达式和周期约束（P5为25\,ns），
+属于整体配置比较，不能把全部差值单独归因于 P5 参数，也不能称为同约束面积对照。
+
+器件为 \code{xc7vx690tffg1761-2}，Vivado 版本为 2018.3，综合顶层为
+\code{sar20_digital_core}，结构模式开启，保留全部可写物理权重。
+采用 \code{out_of_context} 与 \code{flatten_hierarchy=rebuilt}，线程数为 2。
+申请周期 1.5625\,ns 在该版本的时间网格上成为 1.563\,ns；报告同时保留申请值与实际值。
+0.05\,ns 用户时钟不确定性和零 I/O delay 是结构筛选条件，不能据此假定真实比较器或板级接口无需建立时间。
+
+P5/P6/P7 的 RTL 协议回归都保持 16 拍输入间隔，输出延迟分别为 15/13/11 拍。
+综合配置的比较还需考虑关键路径是否从除法转移到权重归约或 MAC。
+将一条路径缩短后，新的最坏路径可能来自另一模块；这是优先级转移，而不是测量矛盾。
+不应只摘取 \code{u_div} 的改善值来宣称顶层频率提高。
+
+\IfFileExists{sections/vivado_measured_table.tex}{\input{sections/vivado_measured_table.tex}}{}
+\IfFileExists{figures/32_vivado_comparison.png}{
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figures/32_vivado_comparison.png}
+\caption{有效完整顶层快照在相同 FPGA、工具和申请周期下的综合后对照。负 WNS 表示与该目标的差距；该图不表示布线后或 ASIC 时序闭合。}
+\end{figure}
+}{}
+
+
+\section{资源开销的解释与进一步缩减条件}
+有效完整基线的 \code{weight_store} 实测为 62,622 FF，
+恰好等于 \(18\times71\times(48+1)\)：每项 48-bit 系数加一位本 epoch 已写标记。
+它约占该基线全部 66,817 FF 的 93.7\%。
+因此，单纯把除法余数寄存器缩窄几位，无法解决主要寄存器开销。
+这个数字也说明，当前“全部物理权重可同时读取”的接口具有实在的面积成本。
+必须把这种成本与论文未披露的实际系数存储结构区分开。
+
+这里还能提取一个可综合的不变量。合法写入必须满足 \(0<W<2^{47}\)，
+复位将权重置零，clear 只清除已写标记，拒绝写入保持原值。
+因此，从复位状态开始逐拍归纳可得所有物理权重的 bit 47 恒为零。
+基线 DCP 仍存在 1278 个名为 \code{w_q_reg[s][u][47]} 的 FDRE，
+表明综合器没有利用跨越写入许可逻辑的这一数值关系。
+本轮后续精简版将接受写入时的存储表达式显式写为
+\begin{equation}
+W_{\rm stored}=W_{\rm data}\mathbin{\&}(W_{\max}-1),\qquad W_{\max}=2^{47}.
+\end{equation}
+对任何被接受的写入，该表达式逐位等于原始数据；原 48-bit 端口和非法写入拒绝条件不变。
+这属于把已经成立的常量位显式暴露给综合器，不是降低合法系数精度。
+实际删除数量仍以该精简版 DCP 和资源表为准，不能仅按预计数填入测量栏。
+\input{sections/weight_msb_figure.tex}
+
+综合报告没有推断出 BRAM。若改为块 RAM，必须同时设计读端口数、系数供给带宽、
+样本上下文流水与 epoch 清空协议，不能只把数组声明换一个关键字。
+每笔 8 个活动 slice、每个 71 个权重，若完全逐项读取则每笔至少需要 568 次系数访问。
+16 拍启动间隔意味着平均至少 35.5 项每拍；这是访存下界，尚未计入配置读回和装载。
+即使总带宽足够，每个活动物理 slice 都需要在窗口内供出自身 71 项，
+所以按 slice 分 bank 的双端口 RAM 还会遇到每 bank 的独立带宽限制。
+增加复制读端口、预存前缀和或装载期预聚合，都需要新的面积、同步和数值等价测量。
+
+另一个无需增加寄存器的组合候选是利用同一物理行的共享选择条件：
+\begin{equation}
+T=\sum_s A_s\!\left(\sum_u W_{s,u}\right),\qquad A_s\in\{0,1\}.
+\end{equation}
+它把逐权重选择改为逐行总和选择；开关项若能证明 \(on_{s,u}=1\Rightarrow A_s=1\)，
+也可以消去重复的活动行门控。
+但生产几何下，简单二级平衡树可能形成 \(7+5=12\) 层，原全局树为 11 层。
+活动行控制到输出可能缩短，而系数寄存器到输出可能增长；因此必须分别测量两类路径，
+不能只数门控数量便断言时序改善。这一候选尚未计入本轮资源收益。
+
+静态 \(T\) 与部分模式相关 \(G\) 可以候选地在配置装载期累计，
+但当前结果依赖物理 slice 组合、采样 dither 掩码和 DEM 后的物理开关。
+对 \(R\) 的优化必须保留真实 \(on\) 与轨极性，不能把物理失配权重退化为均匀权重或名义码乘常数。
+一种可检查的推进顺序是：先缓存每个 slice 的总和与专用采样单元和，
+再将未加权的选择状态同缓存版本一起锁定到 epoch；
+最后以现有逐物理单元 oracle 对最大系数、所有模式、重复地址及 clear 中断逐值核对。
+上述方案中的每行总和缓存已在后文实现并做定向验证；专用采样单元和缓存、额外流水及存储bank仍为候选。功能验证通过不等于面积改善，行和缓存的资源收益须以独立同约束综合对照为准。
+
+还需注意 \code{flatten_hierarchy=rebuilt} 的资源归属。
+Vivado 会在扁平优化后重建层级，逻辑可以跨原始 RTL 边界移动；
+例如有效基线重建的 \code{cal_sample_context} 接口包含原 RTL 没有的归约相关端口。
+因此，“该层级下 LUT 很多”不能直接推成“打包上下文寄存器产生了这些 LUT”。
+顶层利用率才是整体 A/B 比较的直接计数；模块优化的归因还需要保留边界的独立综合、
+原始 primitive 连接与功能检查，不能只根据重建层级名称修改 RTL。
+
+\section{可实现频率与布局布线验收}
+用户确认的验收口径允许 FPGA 使用实测可实现频率，并保留 ASIC 640\,MHz 目标。
+实现流程读取已验证和冻结的 DCP，不覆盖原综合结果；在新输出目录设置明确周期，
+依次运行 \code{opt_design}、\code{place_design}、\code{phys_opt_design} 和 \code{route_design}。
+setup、hold、脉宽、路由完整性和 DRC Error 分别检查，不能只按 setup WNS 生成成功标记。
+
+原始外部时钟筛选流程通过 \code{HD.CLK_SRC} 指定实际存在的 BUFGCTRL site。
+AMD/Xilinx 文档明确指出：当缓冲器位于 OOC 模块之外时，该全局时钟不在模块实现中实际布线；
+该属性提供驱动位置/类型以改进时钟延迟、偏斜与共同路径悲观移除估计。
+因此，本次进一步准备了带内部 BUFG 的实现流程：仅断开顶层 \code{clk} 端口与原时钟网的直接连接，
+将端口接至 BUFG 输入，再以其输出驱动原来的完整时钟负载集合。
+ECO 前后所有时钟端点的排序列表、数量与 SHA-256 必须相同；只允许增加一个 BUFG，
+不能因引入时钟缓冲而删改数据通路或丢失寄存器。
+
+实现后另检查 BUFG 输出网的实际 \code{ROUTE_STATUS=ROUTED}、非空 routing nodes/pips，
+并分别读取全设计与内部寄存器路径的 setup/hold 最坏裕量。
+还要求脉宽裕量非负，TNS/THS/TPWS 与三类失败端点数均为零；
+\code{check_timing} 的16项覆盖计数必须齐全且全部为零，未约束与忽略路径分组必须为空。
+报告缺失、字段不全、非有限数或摘要与逐路径查询不一致均不能产生通过结论。
+这只说明记录下来的 OOC 约束被完整检查，不证明零 I/O 延迟适合真实板级接口。
+\code{HD.CLK_SRC} 的估计上下文不再代替内部时钟布线。
+该流程依然是 OOC：端口至 BUFG 输入的外部时钟边界及零 I/O delay 不是整板接口约束。
+所以内部时钟实际布线与整板时钟签核必须分别表述；本流程不输出整板 bitstream 验收，
+也不替代 ASIC PVT 与物理库签核。
+参见 \href{https://docs.amd.com/api/khub/documents/dUZkF9u9qQ4x4MtRgpH9aQ/content}{UG905 v2018.3}。
+109 个缓冲时钟流程与报告解析用例已通过；六组流程合计272项通过。
+这些是前置工程验证；只有后面的实际运行表能证明布局布线结果。
+
+Vivado runner 的 Windows 外层批处理可能在 Tcl 负时序退出后仍返回 raw 0。
+流程保留原始返回码，只在完整状态文件、参数、工具版本、全部所需报告和负 WNS 一致时，
+才把它解释为“综合完成、时序未满足”。任何无驱动告警则使综合完整性失败，
+不能再把该网表放入有效 PPA 对照。用于控制这种行为的 mocked tests 验证流程逻辑，
+真实综合/实现报告验证 EDA 的实际结果，两者分开计数。
+
+\input{sections/row_cache_design.tex}
+
+\section{P5同约束对照的超时记录}
+为了判断行和缓存是否真正带来面积与时序收益，已冻结前代精简版和当前缓存版的源码，
+计划在相同\code{xc7vx690tffg1761-2}、Vivado 2018.3、\(P_{\rm STAGES}=5\)、25\,ns请求周期、
+同一综合脚本与XDC下逐项比较。前代精简版的第一轮运行在7,200\,s运行时限处被脚本终止，
+结束前仍处于时序优化阶段；没有\code{status.txt}、DCP、完整利用率或时序报告。
+该轮原始失败记录见\code{docs/evidence/20260930/vivado_compact_p5_timeout/}，
+其manifest摘要为\code{ad645b3f5a9304a69636b39737eb74bd0b2595060190cff0ca1b116f409501dd}。
+它只说明在记录的机器负载与时限下未完成综合，不能判为WNS不达标，也不能作缓存版的PPA基线。
+只有两份完整且通过无驱动检查的报告都取得后，才能填写同约束资源差值。
+
+\subsection{当前缓存版 P5 的有效综合后快照}
+当前行和缓存提交的冻结源码另在相同器件、Vivado 2018.3、P5、25\,ns申请周期下完成了一次完整 OOC 综合。
+其实际远端运行\code{run.c97c940ad1274c699c40b8c78ff00602}返回\code{SYNTH_COMPLETE}；
+原始\code{scp}回传在900\,s上限中断，保留失败manifest后从\emph{同一次远端运行}独立取回全部报告、
+续传49,687,597字节DCP，并与远端SHA-256逐字节核对。其完整摘要由下面两行连续拼接：
+\par\noindent\code{670d019aaec0efe80e060342ff0dbd74}\quad
+\code{8c0029b4c01d6a42e741de32ecb05ff1}。\par
+归档\code{docs/evidence/20260930/vivado_cached_p5/}的25个payload文件均通过\code{sha256.json}复验；
+恢复过程没有重新综合、替换输入源码或删除传输失败记录。
+原始综合日志无\code{Synth 8-3848}无驱动诊断，\code{check_timing}的16类检查全为零，
+DRC无错误但有49项警告。这使下面的\emph{综合后}数值可用，但不构成布线或板级时序签核。
+
+\begin{table}[H]\centering\small
+\begin{tabular}{lrrl}\toprule
+指标&实测值&器件可用值/端点总数&判读\\\midrule
+Slice LUT&106,205&433,200&24.52\%\\
+触发器&66,520&866,400&7.68\%\\
+DSP48E1&20&3,600&0.56\%\\
+BRAM tile/锁存器&0/0&1,470/866,400&未推断出BRAM\\
+setup WNS/TNS&+10.640\,ns/0&200,389&失效端点0\\
+hold WHS/THS&$-0.264$\,ns/$-14,943.110$\,ns&200,389&失效端点60,455\\
+pulse WPWS/TPWS&+12.150\,ns/0&66,520&失效端点0\\\bottomrule
+\end{tabular}
+\caption{冻结的当前缓存版P5完整顶层OOC综合后报告。25\,ns是申请周期；setup通过而hold未通过，因此“全时序满足”和“40\,MHz已实现”都不是本表结论。}
+\label{tab:cached-p5-synth}
+\end{table}
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figures/cached_p5_synthesis.pdf}
+\caption{当前缓存版P5的原始\code{utilization.rpt}、\code{timing_summary.rpt}和\code{timing_paths.rpt}重绘：A为器件资源占用，B将setup/hold/pulse分开，C拆出最坏除法路径的逻辑延迟与\emph{综合后估算}互连延迟。图中25\,ns为申请约束，hold负值仍然保留；脚本与来源哈希见\code{audit_figures/make_cached_p5_synth_evidence.py}及同名\code{*.sha256.json}。}
+\end{figure}
+
+最坏setup路径仍是\code{u_recon/u_div/rem_reg[0]/C}到\code{u_recon/u_div/q_reg[60]/D}：
+估算数据路径14.312\,ns，110级逻辑，含93级CARRY4；该路径没有因行和缓存自动消失。
+hold负裕量与未布线、无真实内部时钟缓冲的OOC状态有关，是否能由布局布线消除仍需后述BUFG实跑判定。
+这一单独快照与前代P5的超时记录不能构成同约束资源收益；
+也不能把此处的P5数值同P7的1.5625\,ns数据归因为缓存效果。
+当前P5的\code{power_vectorless.rpt}另给出总功耗0.408\,W，其中动态0.083\,W、静态0.324\,W；
+报告标明\code{Simulation Activity File=---}、置信等级Medium，并警告高扇出复位网络的活动假设可能使估算失准。
+它不是活动数据标注的实测值；与下节P7的1.580\,W来自不同的周期及结构配置，不能相减作为缓存节能量。
+
+\subsection{完整顶层综合映射后的功能见证}
+为检验上述有效P5网表是否只在报告中保留面积数字、却在功能上丢失输入因果，
+本轮从同一49,687,597字节DCP导出Vivado 2018.3功能网表，使用XSim直接实例化完整
+\code{sar20_digital_core}。测试台仅驱动公开端口，不用\code{force}或读取内部信号；
+它配置18个物理单元，逐项读回3,900次配置值，并运行三种确定性输入模式。
+第一次尝试因DCP设计名为\code{checkpoint_post_synth}而非预设顶层名，在仿真前停止；
+第二次尝试发现Vivado把多维端口拆成58个转义行端口，在\code{xelab}处停止。
+修正\emph{测试台连接及导出流程}后的第三次运行才得到\code{FULL\_MAPPED\_FUNCTIONAL\_PASS}；
+三次原始记录全部保留，不能将前两次称为功能通过。
+
+最终运行的\code{xsim.log}明示三模式共438个输出行、7,680项协议检查和三次取消。
+本地另从CSV逐行复算：每种模式146个有效sample ID，2--158之间各跳过11个，
+159为取消；438个\code{code}与测试台独立期望值一致，438个\code{flags}均与期望0一致。
+每种模式相邻的145对已接受样本满足
+\(\Delta\texttt{clock}=16\Delta\texttt{sample\_id}\)，合计435对。
+原始trace、日志及96项payload哈希见
+\code{docs/evidence/20260930/vivado_cached_p5_full_mapped/}；
+其中trace的SHA-256由下面两行连续拼接：
+\par\noindent\code{c40ce4404bbbeae26df514be6484722}\quad
+\code{682f936a626c56bd156ada9b5ae8d2073}。\par
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figures/mapped_p5_full_top.pdf}
+\caption{完整P5顶层功能网表的实际XSim CSV：A逐点对照独立期望码，B标出每模式146个有效、11个跳过及取消样本，C检查435对相邻有效输出的16拍/样本ID节拍。原始数据和图件由\code{audit_figures/make_mapped_p5_evidence.py}及同名\code{*.sha256.json}逐项绑定。它不是SDF仿真，也不验证非零flags、内部启动延迟、模拟宏或物理时序。}
+\label{fig:full-mapped-p5}
+\end{figure}
+
+这组结果把“已完整综合”进一步推进到\emph{选定刺激下的完整顶层映射功能一致}；
+P5综合报告的负hold裕量仍然存在。该见证没有SDF反标，没有非零输出flag激励，
+也没有检测内部重构启动延迟，因此既不是全面等价证明，也不是40\,MHz的布线结论。
+
+\subsection{真实 BUFG 布线：25 ns 未闭合及路径归因}
+在上述同一P5 DCP上插入器件原生\code{BUFGCTRL\_X0Y0}，确认原有66,536个时钟端点集合不变，
+然后进行实际\code{place\_design}、\code{phys\_opt\_design}与\code{route\_design}。
+Vivado 2018.3 报告完整布线、0项路由错误、0项DRC错误以及16类\code{check\_timing}均为0；
+内部BUFG到顺序端点的网络含75,600个节点和75,599条PIP，状态为\code{ROUTED}。
+外部\code{clk}到BUFG输入仍是OOC边界；输入和输出均假设0\,ns延迟，
+这些检查并非FPGA板级接口签核。\code{TIMING\_MET=0}是该次运行的真实结论：
+25\,ns下setup WNS为$-0.280$\,ns、TNS为$-11.625$\,ns，158/200,369个端点失败；
+hold WHS为$-2.361$\,ns、THS为$-108,383.945$\,ns，66,728/200,369个端点失败；
+脉宽裕量为+12.100\,ns，失败端点为0。
+
+最差setup从\code{cur\_slice\_reg[3]}进入\code{u\_wstore/row\_q\_reg[13][51]}，
+数据路径25.231\,ns中单元逻辑1.603\,ns，布线23.628\,ns，占93.6\%。
+具体路径绕过权重读回的多级选择网络，再进入行和的减加逻辑；
+这说明单纯给精确除法增加流水并不能修复\emph{本次布线}的最差路径。
+作为下一轮候选，\code{weight\_store.sv}把每个slice的旧权重读取、行和替换与寄存器使能放在同一个生成块，
+保留相同的配置接受条件和精确整数结果；其资源和时序必须重新综合/布线测量，不能依据源码直接认定改善。
+
+最差\emph{全路径}hold从OOC配置端口\code{cfg\_wdata[17]}到偏移寄存器，
+输入假设为0\,ns，数据路径0.510\,ns，而目的时钟网络延迟2.559\,ns。
+原脚本的“internal”查询用\code{-from/-to [get\_clocks core\_clk]}，
+仍包括带同一时钟约束的外部端口，故该字段不能当作寄存器间hold。
+随后在\emph{同一布线DCP上只读重做STA}，显式限定所有顺序单元的时钟引脚到数据引脚：
+66,536个起点时钟引脚、199,524个捕获数据引脚，最差寄存器间setup仍是$-0.280$\,ns，
+而最差寄存器间hold为\textbf{+0.062\,ns}。
+这区分了核心时序和外部边界假设；不能据此忽略配置输入的hold问题，
+实际板卡必须提供输入最短延迟、引脚和外部时钟关系，并重新实现及签核。
+按当前最差输入路径作一阶预算，0\,ns外部最短到达假设若保持其他条件不变，
+至少需要约2.361\,ns的正向最短到达修正才可使\emph{这一条}hold路径到零裕量；
+它不是可直接填写的板级\code{set\_input\_delay -min}数值，因为还须核实
+时钟相位、板线、器件输入延迟和所有其余端口，同时以\code{-max}约束重查setup。
+
+\begin{figure}[H]\centering
+\includegraphics[width=\textwidth]{figures/p5_route_25ns.pdf}
+\caption{同一P5 DCP的综合后估算与25\,ns实际布线对照。A显示setup从正转负；B拆开最差路径的单元与真实布线延迟；C分开OOC全路径hold和独立寄存器引脚筛选后的hold。原始路由及只读STA见\code{docs/evidence/20260930/vivado_cached_p5_route_25ns_fail/}，制图脚本和逐字节来源见\code{audit_figures/make_p5_route_evidence.py}及同名\code{*.sha256.json}。图不是时序成功证明。}
+\label{fig:p5-route-25ns}
+\end{figure}
+
+完成布线后的LUT为106,190、FF为66,520、DSP为20、BRAM为0。
+\code{power\_vectorless.rpt}给出0.455\,W总功耗，其中动态0.130\,W、静态0.325\,W；
+仍没有活动文件，不能把它作为实际转换能耗。
+该次运行的原始报告、源脚本和校验摘要被完整保留，\code{post\_route.dcp}的
+SHA-256为\code{6afdfe88962140bd5387f8f8c5d0f18feb44858183406ccf3851b7229787d448}，
+未复制到Git。不能把此处的25\,ns申请周期或全路径负WHS写成“40\,MHz已实现”。
+
+\subsection{局部行反馈候选：有效综合面积回退、布线拥塞失败}
+为修复上述行缓存反馈路径，把旧系数选择和减加运算分别放到18个物理行生成块。
+这一候选保持同沿更新、完整配置接口和16拍节拍，22项RTL回归及P5/P6/P7顶层定向测试通过。
+然而功能正确不等于综合优越。我们冻结28项Vivado输入，只改
+\code{rtl/core/weight_store.sv}；器件、P5、25\,ns、综合Tcl与XDC逐字节相同。
+两份完整有效综合报告及输入DCP均通过SHA-256核对，见
+\code{docs/evidence/20260930/local_row_trial_synth/comparison_vs_cached.json}。
+
+\begin{center}
+\begin{tabular}{lrrr}\toprule
+P5同约束综合指标&原缓存版&逐行独立读选版&变化\\\midrule
+Slice LUT&106,205&121,772&+15,567（+14.66\%）\\
+FF&66,520&66,509&$-11$\\
+DSP/BRAM&20/0&20/0&0/0\\
+setup WNS/ns&+10.640&+10.640&0\\
+hold WHS/ns&$-0.264$&$-0.264$&0\\\bottomrule
+\end{tabular}
+\end{center}
+逐行副本主要把\code{u_wstore}层级LUT从20,618推至36,030；
+因\code{flatten_hierarchy rebuilt}可迁移逻辑，层级行只作归因线索，
+完整顶层的15,567 LUT增量才是有效比较。综合后WNS不变是因为估算关键路径仍在除法器，
+并不能预测局部化后的\emph{真实}布局路径。
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.95\textwidth]{figures/local_row_ppa.pdf}
+\caption{局部行更新候选的同约束有效综合及物理门禁。左图的两根柱子取自冻结的完整顶层综合报告；右图区分原缓存版虽布通但setup不达标，与逐行候选根本未布通。后者没有最终WNS或hold，不能画成一根时序柱。自写\code{audit_figures/make_local_row_ppa.py}在绘图前逐项核验基线布线35项、综合26项与失败布线20项原始文件哈希。}
+\label{fig:local-row-ppa}
+\end{figure}
+
+同一54,553,541字节综合DCP的SHA-256由下面两行连续拼接：
+\par\noindent\code{95a876bc7bdafa2ccf627f18bd6db6d87cb4d}
+\quad\code{6f4281eede9ae77143722d2fdc2}。\par
+使用相同BUFG站点实际布局布线时，Vivado首先报告\code{Place 46-14}高度拥塞，
+随后给出\code{Route 35-447}拥塞警告及\code{Route 35-3}“congestion level 7，无法布通”错误，
+\code{out/status.txt}最终为\code{FAILED}。
+因此\emph{没有完整路由、最终WNS或最终hold}；初始布线前的
+\code{WNS=+2.114 ns}只是中间值，不能算已实现频率。
+原始失败记录、脚本、日志及哈希见
+\code{docs/evidence/20260930/local_row_trial_route_congestion/}。
+这个候选在面积和可布性两项门禁均失败，生产RTL回退到先前缓存版。
+下一候选显式共用每行\code{w_q[s][u_idx]}的局部选择结果：
+行更新直接使用本行旧值，配置读回再在18行结果中选择，
+保留局部反馈却避免复制读选择网络；其22项本地回归及三档顶层结构测试已通过。
+该共享结构仍须完成同约束综合与实际布线，不能只以RTL仿真替代PPA验收。
+
+\section{功耗验收不能由LUT数量替代}
+前述P7归约/除法候选的原始\code{power_vectorless.rpt}给出下列模型分项。
+它对应1.5625\,ns请求周期、尚未布局布线的网表，\code{Simulation Activity File}为空，
+报告置信等级为Medium；这些数值是工具估计，不是芯片或FPGA板卡实测功耗。
+\begin{center}
+\begin{tabular}{lr}\toprule
+模型分项&估计功耗/W\\\midrule
+Clocks&0.664\\
+Slice Logic&0.319\\
+Signals&0.260\\
+Dynamic合计&1.243\\
+Device Static&0.337\\
+Total On-Chip&1.580\\\bottomrule
+\end{tabular}
+\end{center}
+Clocks约占该次模型动态功耗的53.4\%，说明只看LUT数量不能覆盖所有功耗来源。
+这个比例也不能移用到25\,ns约束、缓存版本或布线后实现；时钟分项中的Used计数不等于独立时钟域数。
+系数在运行期保持不变，并不自动证明其所有时钟网络都停止翻转；新增行和状态的开销必须一起计入。
+
+官方\href{https://docs.amd.com/v/u/2018.3-English/ug907-vivado-power-analysis-optimization}{UG907 v2018.3，第33、78页}
+说明向量无关估计依赖输入和控制信号的活动假设，FPGA的CE可用于减少无效状态更新；
+这不构成对本设计的节能比例保证。本工程下一轮功耗实验应在相同器件、电压、温度、周期和实现阶段下，
+分别记录配置装载、稳定16拍事务流及空闲三个工作区间，再导入各自真实活动数据。
+应同时交代活动数据的时间窗口、实例匹配、未标注网络和复位占比，不能用装载期或长时间复位的低活动掩盖正常转换功耗。
+若评估每样本能耗，应把稳态功耗除以实际通过的样本率，并单列装载能量，避免把不同吞吐的总瓦数直接排序。
+
+时钟使能、操作数保持和专用时钟门控是不同层级的措施。当前RTL保留单一同步时钟，
+本轮不以组合门直接改写时钟，也未完成ASIC集成时钟门控单元的映射、测试使能或时钟树验证。
+若后续导入该类ASIC单元，必须重新检查门控建立/保持、复位可达性、测试模式和功能等价；
+不能把FPGA的CE映射当成ASIC时钟树已经优化。面积、时序和有活动数据的功耗应分别形成证据，再判断整体PPA取舍。
+
+\input{sections/shared_selector_closure.tex}
+
+\section{ASIC 目标仍需什么证据}
+ASIC 的 640\,MHz 目标需要指定标准单元库、PVT、负载、时钟树、布线寄生和模拟宏接口预算。
+FPGA 的 CARRY4、LUT 和 DSP48E1 与 ASIC 单元的延迟结构不同，不能按单一比例换算。
+报告给出的除法分段、精确饱和商缩域和系数预聚合方案，是可以继续综合验证的结构候选；
+只有在相同目标库下证明功能和约束完整，再取得有效的面积/时序/活动功耗对照，才能宣称 ASIC PPA 优势。
+
+这一限制不妨碍本轮修复具有明确价值：已经排除了被综合器删除功能的实现方式，
+使精确整数校准在 RTL 与映射见证中保持一致，并建立不会把无效网表或负时序当成成功的运行门禁。
+后续每一个面积和频率数字都能追溯到相应源码、约束和原始报告，而不依赖文档作者的主观判断。

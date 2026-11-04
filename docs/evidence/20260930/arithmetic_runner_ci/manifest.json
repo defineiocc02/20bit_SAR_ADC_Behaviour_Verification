@@ -1,0 +1,128 @@
+{
+  "status": "PASS_FOR_LOCAL_REPAIR; next Ubuntu CI remains separate",
+  "ci": {
+    "commit": "0c4a772",
+    "run_id": 36626662809,
+    "job_id": 109605295575,
+    "source_log": "/tmp/sar_ci_0c4a_rtl_job.clean.log",
+    "source_log_sha256": "582320d3ec06b45c21b0f81800887954b7fe3fe91c49ce455d2075e05886044b",
+    "first_failure_line": 653,
+    "failure": "Runner injected a header runtime root into VERILATOR_ROOT, redirecting the installed launcher to a missing verilator_bin; exit 127 before compilation.",
+    "preceding_rtl_benches_completed": 21
+  },
+  "scheduler_diagnosis": {
+    "tool": "official Verilator 5.020, external macOS coroutine header bridge only",
+    "observed_log": "before_observed_5020.run.log",
+    "observation_scope": "Only display statements added to original TB; diagnostic, not acceptance.",
+    "finding": "Rows 2 and 3 update both raw fine input and DUT input port, while diff/op1/shifted/output remain row 1.",
+    "generated_cpp_sha256": "9b68d2bb4093b5a2ef6de882939c9e78a720968a80a73dcbf8e33e17bbb9467e",
+    "generated_cpp_original_path": "/tmp/sar_arithmetic_runner_fix_20260930/original_probe/obj/Varithmetic_audit_tb___024root__DepSet_hc0575250__0__Slow.cpp",
+    "assignment_scope": "mac.diff assignments appear only in generated __stl_sequent__TOP__0 of the Slow.cpp settle source in this diagnostic build.",
+    "upstream_bug_id": "not claimed"
+  },
+  "accepted_simulations": {
+    "5020": {
+      "returncode": 0,
+      "manifest": "after_5020.manifest.json",
+      "run_log": "after_5020.run.log",
+      "counts": {
+        "mac": 40010,
+        "mac_nonoverflow": 20859,
+        "adc": 40000,
+        "div": 10048,
+        "flag_sequences": 8
+      }
+    },
+    "549": {
+      "returncode": 0,
+      "manifest": "after_549.manifest.json",
+      "run_log": "after_549.run.log",
+      "counts": {
+        "mac": 40010,
+        "mac_nonoverflow": 20859,
+        "adc": 40000,
+        "div": 10048,
+        "flag_sequences": 8
+      }
+    }
+  },
+  "negative_controls": {
+    "stale_mac": {
+      "runner_returncode": 1,
+      "simulator_returncode": -6,
+      "first_failure": "MAC line 3",
+      "patch": "stale_mac.patch"
+    },
+    "stale_adc": {
+      "runner_returncode": 1,
+      "simulator_returncode": -6,
+      "first_failure": "ADC line 2",
+      "patch": "stale_adc.patch"
+    },
+    "split_install_root_injection": {
+      "scope": "unit launcher fixture, not actual Verilator",
+      "returncode": 127,
+      "positive_fixed_returncode": 0
+    }
+  },
+  "source_hashes": {
+    "tools/audit_rtl_arithmetic.py": "5ff125d5d20bfbc93975aee04eb19d7b3080341f80cab0560416c85a8024d803",
+    "sim/tb/arithmetic_audit_tb.sv": "e39fffd568a74f4896e2a71b71b5f10318a28329504789f5a0bdffb963e0c95b",
+    "tests/unit/test_arithmetic_audit_runner.py": "d16903cb59241ce6574b08df7cd76989a4a3a2ddcdf4227cb2df9c932b3f931f"
+  },
+  "unit_tests": {
+    "passed": 8,
+    "log": "runner_unit_tests.log",
+    "scope": "Runtime-path/environment handling; no RTL result inferred from mocks"
+  },
+  "production_rtl_changed": false,
+  "coverage_reduced": false,
+  "vectors_unchanged_sha256": {
+    "mac.hex": "c660e54c9636a53fceda4dfb03cc65e03eb3321f0917376f0e4b04b451eb73e2",
+    "adc.hex": "413a6e8ac1637a0bb3093b7408e03ebd74d11e16735bc78e8a287ac1978f8d25",
+    "div.hex": "ed6c4e03bb5c9b98123f695d7c92e866a0c01c715e4c4eb3432a2533c25ff758"
+  },
+  "no_pass_manifests_on_failed_runs": true,
+  "copy_sources": {
+    "before_5020.run.log": {
+      "path": "/tmp/sar_arithmetic_runner_fix_20260930/v5020/run.log",
+      "sha256": "d58962cdf6ddb3b959f3d1410f242eaa994351c729d82a0af6274de29eecd9de"
+    },
+    "before_observed_5020.run.log": {
+      "path": "/tmp/sar_arithmetic_runner_fix_20260930/original_probe/run.log",
+      "sha256": "b6cd8d856a27f902e04eeb19b4b8321ffc2bd6e6e877fd4b3d5a6c0ea79b7450"
+    },
+    "after_5020.run.log": {
+      "path": "/tmp/sar_arithmetic_runner_fix_20260930/clocked_v5020/run.log",
+      "sha256": "85f4787a1f96928eff11024100a294c989bd2781dc435c8d2a33d77f7232bad4"
+    },
+    "after_5020.manifest.json": {
+      "path": "/tmp/sar_arithmetic_runner_fix_20260930/clocked_v5020/manifest.json",
+      "sha256": "4aa57d495405809e97bb493370a92629df645c54b531c82d06f91c2216ad7fdd"
+    },
+    "after_549.run.log": {
+      "path": "/tmp/sar_arithmetic_runner_fix_20260930/clocked_v549/run.log",
+      "sha256": "37f2892806f7f47126d4de532872540f627ae29b6725ce2967b8387f9bfe0f81"
+    },
+    "after_549.manifest.json": {
+      "path": "/tmp/sar_arithmetic_runner_fix_20260930/clocked_v549/manifest.json",
+      "sha256": "f4e39c6b7fddf5bc69965f7f066c02617adc1aa0a38379d7845e38ba0fa3d734"
+    },
+    "stale_mac_5020.run.log": {
+      "path": "/tmp/sar_arithmetic_runner_fix_20260930/stale_mac_result/run.log",
+      "sha256": "c100dc5cbf2e84cf0d0c48fb73a47d870b1f2786540a0582b1cea5792aa82f1f"
+    },
+    "stale_adc_5020.run.log": {
+      "path": "/tmp/sar_arithmetic_runner_fix_20260930/stale_adc_result/run.log",
+      "sha256": "8bd5987e0d2808d4213ddbb304c944ca64cdf44e8cc5af2d9d2c3313c078aace"
+    },
+    "runner_unit_tests.log": {
+      "path": "/tmp/sar_arithmetic_runner_fix_20260930/runner_unit_tests.log",
+      "sha256": "d3a6ec31c848e3f4c49f79debdea7688c8feff31ab30d518d552e6c898d9f660"
+    },
+    "before_observed_tb.sv": {
+      "path": "/tmp/sar_arithmetic_runner_fix_20260930/original_probe/observed.sv",
+      "sha256": "2216776acdeac8cb96c4cce1f0a869f87b40cdeb55ccc2c59e0106ae78aff210"
+    }
+  }
+}

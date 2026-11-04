@@ -1,0 +1,5 @@
+REVIEW_LEAF_COMPLETE checks=91142
+- sim/tb/review_leaf_tb.sv:93: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.49
+- Verilator: $finish at 66us; walltime 0.022 s; speed 3.050 ms/s
+- Verilator: cpu 0.022 s on 1 threads; allocated 2 MB

@@ -3,8 +3,30 @@
 // residue context (ADR0018). Comparator data must be synchronous with clk.
 // P_STRUCTURAL=0: legacy externally supplied coarse/fine codes, phase8/14
 // capture (ADR0017). Explicit compatibility profile for old oracle vectors.
-// A configuration epoch locks every coefficient and control until clear.
-// Reconstruction latency: 11 complete clock periods after accepted start.
+// Engineering contract (all sequential resets are synchronous, active low):
+//   cfg bus, macro comparators and ready flags share clk; no CDC is inserted.
+//   accepted cfg write = rst_n && cfg_bus_ok at posedge; reads are
+//   combinational, with no read handshake. Reset priority suppresses all writes.
+//   cfg_validate is a commit request, not an automatic retry or load-complete bit.
+//   A configuration epoch locks every coefficient and control until clear.
+//   clear aborts controller/reconstruction state and clears the loaded bitmap;
+//   weight data and row totals survive clear, so every unit must be reloaded.
+//   Coefficient estimation remains off-chip. This core applies loaded physical
+//   weights; it does not implement an on-chip LMS/RLS learning engine.
+//   Structural fine conversion uses the previous residue's frozen context;
+//   live DEM/slice state must never replace that context in u_recon.
+//   Error readback priority: bus > calibration > weight rejection > controller.
+//   dout_flags describe the completed transaction; status_word also has sticky
+//   events. A held previous dout on error is meaningful only with those flags.
+// Implementation / timing contract:
+//   P_STRUCTURAL is an elaboration parameter; unused compatibility logic can
+//   be trimmed. No runtime profile mux or generated clock is introduced here.
+//   Large physical-weight buses and combinational reduce/MAC paths dominate
+//   implementation cost. Comments/formatting do not reduce gates or route delay.
+//   New pipelines require context/ID/error alignment and revalidation of the
+//   fixed 16-clock frame. See synth/FPGA_SYNTHESIS_AND_STA.md for measured scope.
+// Reconstruction latency: ceil(63/P_RECON_STAGES)+2 complete clock periods
+// after accepted start (11 for the default P_RECON_STAGES=7).
 `include "rtl_params.vh"
 
 module sar20_digital_core #(
@@ -78,8 +100,8 @@ module sar20_digital_core #(
   // 目的：让"头文件被人手篡改 / 换配置时忘了重跑导出器 / TB 与 RTL 用了不同的
   //      参数集"这三类事故在**精化期**就炸掉，而不是在仿真里表现为某些路径恒 0。
   initial begin
-    if(P_RECON_STAGES<5 || P_RECON_STAGES>63)
-      $fatal(1,"sar20_digital_core: divider throughput exceeds 16-tick frame budget");
+    if (P_RECON_STAGES < 5 || P_RECON_STAGES > 63)
+      $fatal(1, "sar20_digital_core: divider throughput exceeds 16-tick frame budget");
     if (N_ACTIVE      != 8)   $fatal(1, "sar20_digital_core: N_ACTIVE != 8");
     if (N_SLICES      != 18)  $fatal(1, "sar20_digital_core: N_SLICES != 18");
     if (N_UNIT_MAIN   != 63)  $fatal(1, "sar20_digital_core: N_UNIT_MAIN != 63");
@@ -132,6 +154,22 @@ module sar20_digital_core #(
   assign is_ctrl    = is_calib && (cfg_addr[11:0] == 12'h018);
   assign is_stat    = is_calib && (cfg_addr[11:0] == 12'h020);
 
+  // Cross-profile signals are declared before either controller first uses them.
+  wire [17:0] legacy_slice_sel,structural_slice_sel;
+  wire [17:0][62:0] legacy_main_sw,structural_main_sw;
+  wire [17:0][7:0] legacy_sub_sw,structural_sub_sw;
+  wire [17:0][3:0] legacy_dither_sw,structural_dither_sw;
+  logic legacy_sw_valid;
+  wire structural_sw_valid,structural_launch;
+  wire [31:0] structural_error,structural_id;
+  wire [7:0][4:0] structural_ids;
+  wire [7:0][62:0] structural_main;
+  wire [7:0][7:0] structural_sub;
+  wire [3:0] structural_rails;
+  wire structural_sampling,structural_analog_bad;
+  wire signed [63:0] structural_injection;
+  wire [11:0] structural_fine;
+
   // ---- 权重窗口寄存器 ----
   logic [4:0] cur_slice;
   logic cfg_bus_ok, cfg_addr_valid, cfg_bus_reject, bad_weight_width;
@@ -153,10 +191,14 @@ module sar20_digital_core #(
   assign cfg_bus_reject = cfg_wr && !cfg_bus_ok;
 
   always_ff @(posedge clk) begin
-    if (!rst_n || cfg_clear_valid) bus_err <= ERR_NONE;
-    else if (cfg_bus_reject) bus_err <= bad_weight_width ? ERR_W_RANGE : ERR_CFG_WRITE;
-    else if (ws_err_write) bus_err <= ERR_W_SUM;
-    else if (cfg_validate && ctrl_seq == 0 && !rc_busy) bus_err <= ERR_NONE;
+    if (!rst_n || cfg_clear_valid)
+      bus_err <= ERR_NONE;
+    else if (cfg_bus_reject)
+      bus_err <= bad_weight_width ? ERR_W_RANGE : ERR_CFG_WRITE;
+    else if (ws_err_write)
+      bus_err <= ERR_W_SUM;
+    else if (cfg_validate && ctrl_seq == 0 && !rc_busy)
+      bus_err <= ERR_NONE;
   end
 
   always_ff @(posedge clk) begin
@@ -190,6 +232,8 @@ module sar20_digital_core #(
   // 3) 寄存器子系统
   //=========================================================================
   logic [N_SLICES-1:0][N_UNIT_TOTAL-1:0][W_BITS-1:0] w_q;
+  wire [N_SLICES-1:0][63:0] row_total;
+  wire [W_BITS-1:0] selected_weight;
   logic        ws_err_write;
   logic        ws_wr_en;
 
@@ -210,7 +254,9 @@ module sar20_digital_core #(
       .wr_unit   (dw_unit),
       .wr_data   (cfg_wdata[W_BITS-1:0]),
       .err_write (ws_err_write),
-      .w_q       (w_q)
+      .w_q       (w_q),
+      .row_total (row_total),
+      .selected_weight(selected_weight)
   );
 
   logic [31:0]              cal_err_code;
@@ -340,17 +386,25 @@ module sar20_digital_core #(
   wire launch_recon = P_STRUCTURAL ? structural_launch : legacy_launch;
   always_ff @(posedge clk) begin
     if (!epoch_rst_n) begin
-      sadc_hold <= '0; adc2_hold <= '0; inj_hold <= '0;
-      sadc_ok <= 1'b0; adc2_ok <= 1'b0; analog_sample <= 1'b0;
+      sadc_hold <= '0;
+      adc2_hold <= '0;
+      inj_hold <= '0;
+      sadc_ok <= 1'b0;
+      adc2_ok <= 1'b0;
+      analog_sample <= 1'b0;
       input_err <= ERR_NONE;
     end else begin
       if (sample_en) begin
-        sadc_ok <= 1'b0; adc2_ok <= 1'b0; analog_sample <= 1'b0;
+        sadc_ok <= 1'b0;
+        adc2_ok <= 1'b0;
+        analog_sample <= 1'b0;
       end
       if (sadc_latch) begin
         sadc_ok <= sadc_rdy;
-        if (sadc_rdy) sadc_hold <= sadc_code;
-        else input_err <= ERR_SADC_NOT_READY;
+        if (sadc_rdy)
+          sadc_hold <= sadc_code;
+        else
+          input_err <= ERR_SADC_NOT_READY;
       end
       if (adc2_latch) begin
         adc2_ok <= adc2_rdy;
@@ -358,7 +412,8 @@ module sar20_digital_core #(
           adc2_hold <= adc2_code;
           inj_hold <= inj_q;
           analog_sample <= rdac_ovf | adc2_over | ra_sat | rdac_over;
-        end else input_err <= ERR_ADC2_NOT_READY;
+        end else
+          input_err <= ERR_ADC2_NOT_READY;
       end
       if (recon_start && sadc_ok && adc2_ok && rc_busy)
         input_err <= ERR_RECON_BUSY;
@@ -450,7 +505,7 @@ module sar20_digital_core #(
   assign sampling_dither_code = c_smask_en ? dith_q : 8'sd0;
 
   swap_decode u_swap (
-      .coarse      (sadc_hold),                     // 粗码已在相位 8 捕获（编码器在核外）
+      .coarse      (sadc_hold),                     // 兼容模式：核外编码、相位 8 捕获
       .dither_code (swap_dither_code),      // 显式符号扩展到 16 位
       .dem_en      (c_dem_en),
       .bridge_en   (c_bridge_en),
@@ -489,48 +544,74 @@ module sar20_digital_core #(
   );
 
   always_ff @(posedge clk) begin                                       // 开关加载事件打一拍
-    if (!epoch_rst_n) legacy_sw_valid <= 1'b0;
-    else        legacy_sw_valid <= rdac_load && sadc_ok;
+    if (!epoch_rst_n)
+      legacy_sw_valid <= 1'b0;
+    else
+      legacy_sw_valid <= rdac_load && sadc_ok;
   end
 
 
-  wire [17:0] legacy_slice_sel,structural_slice_sel;
-  wire [17:0][62:0] legacy_main_sw,structural_main_sw;
-  wire [17:0][7:0] legacy_sub_sw,structural_sub_sw;
-  wire [17:0][3:0] legacy_dither_sw,structural_dither_sw;
-  logic legacy_sw_valid;
-  wire structural_sw_valid,structural_launch;
-  wire [31:0] structural_error,structural_id;
-  wire [7:0][4:0] structural_ids;
-  wire [7:0][62:0] structural_main;
-  wire [7:0][7:0] structural_sub;
-  wire [3:0] structural_rails;
-  wire structural_sampling,structural_analog_bad;
-  wire signed [63:0] structural_injection;
-  wire [11:0] structural_fine;
-  sar_structural_ctrl #(.P_REF_ON(P_REF_ON),.P_RESIDUE_CAPTURE(P_RESIDUE_CAPTURE),
-    .P_SHUFFLE_SEED(P_SHUFFLE_SEED)) u_structure(
-    .clk(clk),.rst_n(epoch_rst_n),.enable(cfg_ready && P_STRUCTURAL),
-    .dem_en(c_dem_en),.bridge_en(c_bridge_en),.sampling_en(c_smask_en),.quantizer_en(c_qdither_en),
-    .flash_therm(flash_therm),.flash_valid(flash_valid),
-    .coarse_cmp_valid(coarse_cmp_valid),.coarse_cmp_ge(coarse_cmp_ge),
-    .fine_cmp_valid(fine_cmp_valid),.fine_cmp_ge(fine_cmp_ge),
-    .injection_q(inj_q),.analog_bad(ra_sat || rdac_ovf || adc2_over),.recon_busy(rc_busy),
-    .phase(analog_phase),.quiet_sample(quiet_sample),.tp_clock(tp_clock),
-    .ra_az(ra_az),.ra_amplify(ra_amplify),.ref_precharge(ref_precharge),.ref_accurate(ref_accurate),
-    .acquiring_mask(acquiring_mask),.converting_mask(converting_mask),
-    .aux_charge_enable(aux_charge_enable),.hold_low_enable(hold_low_enable),
-    .coarse_compare_enable(coarse_compare_enable),.coarse_trial(coarse_trial),
-    .coarse_acquire_enable(coarse_acquire_enable),.flash_acquire_enable(flash_acquire_enable),
-    .fine_acquire_enable(fine_acquire_enable),
-    .quantizer_dither(quantizer_dither),.acquisition_dither_rails(acquisition_dither_rails),
-    .fine_trial(fine_trial),.fine_compare_enable(fine_compare_enable),.flash_sample(flash_sample),
-    .slice_sel(structural_slice_sel),.main_sw(structural_main_sw),.sub_sw(structural_sub_sw),
-    .dither_sw(structural_dither_sw),.sw_valid(structural_sw_valid),.recon_start(structural_launch),
-    .context_id(structural_id),.context_slices(structural_ids),.context_main(structural_main),
-    .context_sub(structural_sub),.context_rails(structural_rails),
-    .context_sampling(structural_sampling),.context_analog_bad(structural_analog_bad),
-    .context_injection(structural_injection),.fine_code(structural_fine),.error_code(structural_error));
+  // Production structure: registered analog controls, dual coarse SAR,
+  // shared flash seed, fine SAR and previous-residue physical context.
+  sar_structural_ctrl #(
+      .P_REF_ON(P_REF_ON),
+      .P_RESIDUE_CAPTURE(P_RESIDUE_CAPTURE),
+      .P_SHUFFLE_SEED(P_SHUFFLE_SEED)
+  ) u_structure (
+      .clk(clk),
+      .rst_n(epoch_rst_n),
+      .enable(cfg_ready && P_STRUCTURAL),
+      .dem_en(c_dem_en),
+      .bridge_en(c_bridge_en),
+      .sampling_en(c_smask_en),
+      .quantizer_en(c_qdither_en),
+      .flash_therm(flash_therm),
+      .flash_valid(flash_valid),
+      .coarse_cmp_valid(coarse_cmp_valid),
+      .coarse_cmp_ge(coarse_cmp_ge),
+      .fine_cmp_valid(fine_cmp_valid),
+      .fine_cmp_ge(fine_cmp_ge),
+      .injection_q(inj_q),
+      .analog_bad(ra_sat || rdac_ovf || adc2_over),
+      .recon_busy(rc_busy),
+      .phase(analog_phase),
+      .quiet_sample(quiet_sample),
+      .tp_clock(tp_clock),
+      .ra_az(ra_az),
+      .ra_amplify(ra_amplify),
+      .ref_precharge(ref_precharge),
+      .ref_accurate(ref_accurate),
+      .acquiring_mask(acquiring_mask),
+      .converting_mask(converting_mask),
+      .aux_charge_enable(aux_charge_enable),
+      .hold_low_enable(hold_low_enable),
+      .coarse_compare_enable(coarse_compare_enable),
+      .coarse_trial(coarse_trial),
+      .coarse_acquire_enable(coarse_acquire_enable),
+      .flash_acquire_enable(flash_acquire_enable),
+      .fine_acquire_enable(fine_acquire_enable),
+      .quantizer_dither(quantizer_dither),
+      .acquisition_dither_rails(acquisition_dither_rails),
+      .fine_trial(fine_trial),
+      .fine_compare_enable(fine_compare_enable),
+      .flash_sample(flash_sample),
+      .slice_sel(structural_slice_sel),
+      .main_sw(structural_main_sw),
+      .sub_sw(structural_sub_sw),
+      .dither_sw(structural_dither_sw),
+      .sw_valid(structural_sw_valid),
+      .recon_start(structural_launch),
+      .context_id(structural_id),
+      .context_slices(structural_ids),
+      .context_main(structural_main),
+      .context_sub(structural_sub),
+      .context_rails(structural_rails),
+      .context_sampling(structural_sampling),
+      .context_analog_bad(structural_analog_bad),
+      .context_injection(structural_injection),
+      .fine_code(structural_fine),
+      .error_code(structural_error)
+  );
   assign slice_sel = P_STRUCTURAL ? structural_slice_sel : legacy_slice_sel;
   assign main_sw = P_STRUCTURAL ? structural_main_sw : legacy_main_sw;
   assign sub_sw = P_STRUCTURAL ? structural_sub_sw : legacy_sub_sw;
@@ -551,6 +632,7 @@ module sar20_digital_core #(
       .P_N_SLICES  (int'(N_SLICES)),
       .P_ADC2_BITS (int'(ADC2_BITS)),
       .P_STAGES    (P_RECON_STAGES),
+      .P_USE_ROW_TOTALS(1),
       .P_DIT_N     (2 * DITHER_UNITS_RANGE),
       .P_DIT_END   (DITHER_SPLIT_IS_SUB ? int'(N_UNIT_TOTAL) : int'(N_UNIT_MAIN))
   ) u_recon (
@@ -570,6 +652,7 @@ module sar20_digital_core #(
       .adc2_code        (P_STRUCTURAL ? structural_fine : adc2_hold),
       .inj_q            (P_STRUCTURAL ? structural_injection : inj_hold),          // 已捕获的同样本注入
       .w_rom            (w_q),
+      .row_total        (row_total),
       .offset_q         (c_off),
       .adc2_min_q       (c_min),
       .adc2_max_q       (c_max),
@@ -594,7 +677,9 @@ module sar20_digital_core #(
   logic        analog_ovf_raw;
   logic [31:0] status_clr_value_unused;
 
-  // 模拟标志按本样本相位 14 捕获，接受重构时进入独立粘滞状态。
+  // 结构模式在 residue_capture 冻结 RDAC 范围错误，并在下一 quiet_sample
+  // 将模拟回读异常与旧 residue_bad 合并到 fine context；兼容模式在相位 14
+  // 捕获模拟异常。接受重构时进入独立粘滞状态。
   // 注意三者的来源不同，不能混：
   //   rdac_ovf  / ra_sat  / adc2_over  <- 模拟域回读（输入端口）
   //   rc_adc2_ovf                      <- `adc2_dec` 的**寄存器溢出**标志（另一回事，结构性不可达）
@@ -624,16 +709,10 @@ module sar20_digital_core #(
   //=========================================================================
   // 12) cfg_rdata 回读
   //=========================================================================
-  logic [4:0] rd_slice;
-  logic [6:0] rd_unit;
-
-  assign rd_slice = (cur_slice < 5'(N_SLICES)) ? cur_slice : 5'd0;
-  assign rd_unit  = (dw_unit   < 7'(N_UNIT_TOTAL)) ? dw_unit : 7'd0;
-
   always_comb begin
     cfg_rdata = 64'd0;
     if (weight_addr_valid) begin
-      cfg_rdata = {{(64 - W_BITS){1'b0}}, w_q[rd_slice][rd_unit]};
+      cfg_rdata = {{(64 - W_BITS){1'b0}}, selected_weight};
     end else if (is_off) begin
       cfg_rdata = c_off;
     end else if (is_min) begin

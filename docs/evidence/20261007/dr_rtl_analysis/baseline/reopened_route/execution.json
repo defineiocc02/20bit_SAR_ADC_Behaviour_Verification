@@ -1,0 +1,9 @@
+﻿{
+    "script_sha256":  "f17e4d60c111a991672f059f36728f959e8474b1d13034abbd251341a83bc28b",
+    "scope":  "re-export frozen P5 DCP; no synthesis/placement/routing/constraint edits",
+    "vivado_raw_exit_code":  0,
+    "after_sha256":  "fba86312b0c96add78ca388b972a52ab77c1b781eec34c1b91027b1ea7358072",
+    "dcp":  "C:/Users/Administrator/adc_rtl_vivado/run.86ebbd7c9da34a33b49af64888b4797e/out/post_route.dcp",
+    "work":  "C:/Users/Administrator/adc_rtl_vivado/analysis.20261007.753387dfc10a4c9ca8f2f917fce3d5ec",
+    "before_sha256":  "fba86312b0c96add78ca388b972a52ab77c1b781eec34c1b91027b1ea7358072"
+}

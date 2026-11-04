@@ -1,0 +1,30 @@
+[
+  {
+    "args": [
+      "gh",
+      "run",
+      "view",
+      "--repo",
+      "defineiocc02/20bit_SAR_ADC_Behaviour_Verification",
+      "--job",
+      "110846444951",
+      "--log"
+    ],
+    "returncode": 0,
+    "log": "ci_rtl.log"
+  },
+  {
+    "args": [
+      "gh",
+      "run",
+      "view",
+      "--repo",
+      "defineiocc02/20bit_SAR_ADC_Behaviour_Verification",
+      "--job",
+      "110846444953",
+      "--log"
+    ],
+    "returncode": 0,
+    "log": "ci_python311.log"
+  }
+]

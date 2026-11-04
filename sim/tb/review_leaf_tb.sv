@@ -21,10 +21,10 @@ module review_leaf_tb;
   logic err32,err128;
   weight_store #(.P_N_SLICES(32),.P_N_UNITS(1)) ws32(
     .clk(clk),.rst_n(rst_n),.cfg_ready(1'b0),.clear_load(1'b0),.load_complete(),
-    .wr_en(wr),.wr_slice(5'd31),.wr_unit(7'd0),.wr_data(48'd19),.err_write(err32),.w_q(w32));
+    .wr_en(wr),.wr_slice(5'd31),.wr_unit(7'd0),.wr_data(48'd19),.err_write(err32),.w_q(w32), .row_total(), .selected_weight());
   weight_store #(.P_N_SLICES(1),.P_N_UNITS(128)) ws128(
     .clk(clk),.rst_n(rst_n),.cfg_ready(1'b0),.clear_load(1'b0),.load_complete(),
-    .wr_en(wr),.wr_slice(5'd0),.wr_unit(7'd127),.wr_data(48'd23),.err_write(err128),.w_q(w128));
+    .wr_en(wr),.wr_slice(5'd0),.wr_unit(7'd127),.wr_data(48'd23),.err_write(err128),.w_q(w128), .row_total(), .selected_weight());
 
   logic sample_en=0, conv_valid;
   logic [31:0] sample_idx;

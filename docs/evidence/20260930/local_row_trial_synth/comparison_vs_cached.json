@@ -1,0 +1,83 @@
+{
+  "scope": "VALID_SAME_CONSTRAINT_P5_POST_SYNTH_ONLY_NOT_ROUTE_NOT_ASIC",
+  "tool": "Vivado 2018.3",
+  "part": "xc7vx690tffg1761-2",
+  "stages": 5,
+  "period_ns": 25.0,
+  "identical_xdc_sha256": "19cb72c5eb1c295798846e1564aa4805b8c0719b86ec3c6fe77717cd2d7a7b6c",
+  "identical_synthesis_tcl_sha256": "f9084c25618a94b8bd492e2dc699d6cb15a46d72a8be8e55d4c453b623487ed7",
+  "changed_source_only": [
+    "rtl/core/weight_store.sv"
+  ],
+  "source_sha256": {
+    "cached": "146ad97a147d55b6bb8e6cc8e8a145a9db4a449dd01f5cf16ba85d3a61bd65f7",
+    "local_row": "ebe1cfcc2d933091f1d5c4e456c8b9c2cb4e797e1048a0d95e7229c0150cf409"
+  },
+  "dcp_sha256": {
+    "cached": "670d019aaec0efe80e060342ff0dbd748c0029b4c01d6a42e741de32ecb05ff1",
+    "local_row": "95a876bc7bdafa2ccf627f18bd6db6d87cb4d6f4281eede9ae77143722d2fdc2"
+  },
+  "metrics": {
+    "lut": {
+      "cached": 106205,
+      "local_row": 121772,
+      "delta": 15567,
+      "delta_percent": 14.657502000847412
+    },
+    "ff": {
+      "cached": 66520,
+      "local_row": 66509,
+      "delta": -11,
+      "delta_percent": -0.01653638003608071
+    },
+    "dsp": {
+      "cached": 20,
+      "local_row": 20,
+      "delta": 0,
+      "delta_percent": 0.0
+    },
+    "bram_tiles": {
+      "cached": 0,
+      "local_row": 0,
+      "delta": 0,
+      "delta_percent": null
+    },
+    "latch": {
+      "cached": 0,
+      "local_row": 0,
+      "delta": 0,
+      "delta_percent": null
+    },
+    "wns_ns": {
+      "cached": 10.64,
+      "local_row": 10.64,
+      "delta": 0.0,
+      "delta_percent": 0.0
+    },
+    "whs_ns": {
+      "cached": -0.264,
+      "local_row": -0.264,
+      "delta": 0.0,
+      "delta_percent": 0.0
+    },
+    "wpws_ns": {
+      "cached": 12.15,
+      "local_row": 12.15,
+      "delta": 0.0,
+      "delta_percent": 0.0
+    },
+    "setup_failing_endpoints": {
+      "cached": 0,
+      "local_row": 0,
+      "delta": 0,
+      "delta_percent": null
+    },
+    "hold_failing_endpoints": {
+      "cached": 60455,
+      "local_row": 61421,
+      "delta": 966,
+      "delta_percent": 1.5978827226863057
+    }
+  },
+  "interpretation": "Local row update adds 14.6575 percent LUT at equal post-synthesis setup WNS. No area advantage; physical route must determine any timing benefit. Post-synthesis hold remains negative and no Fmax is certified."
+}

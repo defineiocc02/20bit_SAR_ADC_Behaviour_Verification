@@ -1,0 +1,142 @@
+{
+  "status": "PASS",
+  "scope": "Testbench scheduling compatibility and independent scalar verification; no production RTL modification in this fix.",
+  "source_sha256": {
+    "rtl/core/cal_weight_reduce.sv": "c5fc7f6ef58b8e7497042ac9dc2e48cc44e895c7a39908de987f5ed17165b4f2",
+    "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+    "sim/tb/cal_weight_reduce_ppa_tb.sv": "4e7d97c5d3fb7339f30de129746da251015dbac2fc85ed373ea72c5c4a4cf28e"
+  },
+  "original_testbench_sha256": "3534cbb4f6a8f896008723073780cb916fe99b9f02fe1fab4b02e878436c81e5",
+  "reference_body_unchanged": true,
+  "reference_body_sha256": "dca3e69178f6da6abeb67bbe4e06e603a8a85948174aad872b12030d8f8cb4dc",
+  "compile_common": [
+    "--binary",
+    "--timing",
+    "--assert",
+    "--unroll-count",
+    "8192",
+    "-j",
+    "2",
+    "-Wno-fatal",
+    "--top-module",
+    "cal_weight_reduce_ppa_tb"
+  ],
+  "source_order_recorded_runs": [
+    "testbench",
+    "rtl/core/cal_weight_reduce.sv"
+  ],
+  "versions": {
+    "5.020": {
+      "version_stdout": "Verilator 5.020 2024-01-01 rev UNKNOWN.REV",
+      "official_commit": "5c5314b39cd888f427807d626e1502cbf222c292",
+      "cflags": "-std=c++20 -I/tmp/sar_verilator_5_020_build/compat",
+      "runtime_compatibility": "Only an external experimental/coroutine header adapter; translator and runtime arithmetic unchanged."
+    },
+    "5.49": {
+      "version_stdout": " rev vUNKNOWN-built20260516-4e853d8",
+      "runtime_report": "Verilator 5.49",
+      "cflags": "-std=c++20",
+      "makeflags": "PYTHON3=python3 CFG_CXXFLAGS_PCH_I=-include",
+      "walltime_s_from_runtime_report": 26.198
+    }
+  },
+  "runs": {
+    "before_5020": {
+      "exit_code": 134,
+      "expected_failure": true,
+      "failure": "slices check13 original miter mismatch"
+    },
+    "before_5020_observed": {
+      "exit_code": 134,
+      "diagnostic_only": true,
+      "failure": "same original check13; printf-only observation also detects both outputs stale by check9"
+    },
+    "after_5020": {
+      "exit_code": 0,
+      "checked_cases": 1430848,
+      "completion": "CAL_WEIGHT_REDUCE_PPA_COMPLETE"
+    },
+    "after_549": {
+      "exit_code": 0,
+      "checked_cases": 1430848,
+      "completion": "CAL_WEIGHT_REDUCE_PPA_COMPLETE"
+    },
+    "common_stale_mutation_5020": {
+      "exit_code": 134,
+      "expected_failure": true,
+      "failure": "reference scalar mismatch NS32 NA8 NM2 check9",
+      "mutation": "Both DUT weight inputs sampled as zero; raw stimulus and oracle unchanged."
+    }
+  },
+  "per_geometry": [
+    {
+      "slices": 1,
+      "active": 1,
+      "units": 2,
+      "dither": 1,
+      "end": 2,
+      "checks": 2176,
+      "allocations": 0
+    },
+    {
+      "slices": 3,
+      "active": 2,
+      "units": 3,
+      "dither": 2,
+      "end": 3,
+      "checks": 2608,
+      "allocations": 0
+    },
+    {
+      "slices": 3,
+      "active": 2,
+      "units": 3,
+      "dither": 2,
+      "end": 4,
+      "checks": 2608,
+      "allocations": 0
+    },
+    {
+      "slices": 32,
+      "active": 8,
+      "units": 3,
+      "dither": 1,
+      "end": 3,
+      "checks": 3072,
+      "allocations": 0
+    },
+    {
+      "slices": 1,
+      "active": 1,
+      "units": 128,
+      "dither": 4,
+      "end": 128,
+      "checks": 3408,
+      "allocations": 0
+    },
+    {
+      "slices": 32,
+      "active": 32,
+      "units": 2,
+      "dither": 1,
+      "end": 2,
+      "checks": 6144,
+      "allocations": 0
+    },
+    {
+      "slices": 18,
+      "active": 8,
+      "units": 71,
+      "dither": 4,
+      "end": 71,
+      "checks": 1410832,
+      "allocations": 43758
+    }
+  ],
+  "non_claims": [
+    "No formal all-state equivalence proof.",
+    "No silicon or STA result.",
+    "No attribution to an unverified upstream issue number.",
+    "Aborted large diagnostic builds are not passing tests."
+  ]
+}

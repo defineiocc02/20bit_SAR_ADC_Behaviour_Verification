@@ -1,0 +1,552 @@
+{
+  "archived_utc": "2026-09-29T23:51:24.781547+00:00",
+  "scope": "FINAL_WORKFLOW_STATUS_FOR_PUBLISHED_417F_ROW_CACHE_ONLY",
+  "repository": "defineiocc02/20bit_SAR_ADC_Behaviour_Verification",
+  "workflow_run_id": 36633152469,
+  "run_attempt": 1,
+  "workflow_status": "completed",
+  "workflow_conclusion": "success",
+  "workflow_updated_at": "2026-09-29T21:50:15Z",
+  "workflow_url": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36633152469",
+  "pr_head_sha": "417f261f24fe917552ac71f6aadb6b3dbf779c5f",
+  "tested_merge_sha": "63e9887fa0faf23565c35b6bd1a4edfa9eb8edd7",
+  "git_tree_sha": "f0be3b81c49fdf17f3113331b7429a559d08aa7b",
+  "source_binding": {
+    "prior_evidence": "../ci_rtl_417f/manifest.json",
+    "prior_manifest_sha256": "d844428a90a45bdcff3bc7e4939151428bf6fda36b262c15b3b8a5711d15ed25",
+    "prior_tested_inputs": "../ci_rtl_417f/tested_inputs_sha256.json",
+    "prior_tested_inputs_sha256": "a265a71f9981d137d2cd763e7341e2c7992c2280bf61ab0111a1a85a2726be33",
+    "prior_merge_metadata": "../ci_rtl_417f/tested_merge_commit.json",
+    "prior_merge_metadata_sha256": "24399d3dd3b85db28d091cc1e42ee0d40b9b743ef3f3e4403f28a04006f0a400",
+    "scope": "The prior archive establishes head/merge whole-tree identity. All five newly downloaded job logs independently show this exact tested merge. No current working-tree equivalence is asserted.",
+    "published_417f_row_cache_candidate_covered": true
+  },
+  "jobs_total": 9,
+  "jobs_success": 9,
+  "jobs": [
+    {
+      "id": 109627111755,
+      "name": "Type check (mypy)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-29T21:25:24Z",
+      "completed_at": "2026-09-29T21:25:57Z",
+      "html_url": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36633152469/job/109627111755"
+    },
+    {
+      "id": 109627112039,
+      "name": "Lint (ruff)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-29T21:25:24Z",
+      "completed_at": "2026-09-29T21:25:31Z",
+      "html_url": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36633152469/job/109627112039"
+    },
+    {
+      "id": 109627112072,
+      "name": "Determinism (byte-identical rerun)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-29T21:25:26Z",
+      "completed_at": "2026-09-29T21:42:24Z",
+      "html_url": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36633152469/job/109627112072"
+    },
+    {
+      "id": 109627112125,
+      "name": "RTL simulation (Verilator)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-29T21:25:25Z",
+      "completed_at": "2026-09-29T21:35:29Z",
+      "html_url": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36633152469/job/109627112125"
+    },
+    {
+      "id": 109627112198,
+      "name": "Build and installed wheel CLI",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-29T21:25:26Z",
+      "completed_at": "2026-09-29T21:25:57Z",
+      "html_url": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36633152469/job/109627112198"
+    },
+    {
+      "id": 109627112269,
+      "name": "Test (py3.13)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-29T21:25:25Z",
+      "completed_at": "2026-09-29T21:38:20Z",
+      "html_url": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36633152469/job/109627112269"
+    },
+    {
+      "id": 109627112298,
+      "name": "Test (py3.10)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-29T21:25:26Z",
+      "completed_at": "2026-09-29T21:40:23Z",
+      "html_url": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36633152469/job/109627112298"
+    },
+    {
+      "id": 109627112331,
+      "name": "Test (py3.11)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-29T21:25:24Z",
+      "completed_at": "2026-09-29T21:31:38Z",
+      "html_url": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36633152469/job/109627112331"
+    },
+    {
+      "id": 109627112432,
+      "name": "Test (py3.12)",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-09-29T21:25:25Z",
+      "completed_at": "2026-09-29T21:50:14Z",
+      "html_url": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/36633152469/job/109627112432"
+    }
+  ],
+  "test_observations": [
+    {
+      "job_id": 109627112072,
+      "name": "Determinism (byte-identical rerun)",
+      "python_version": "3.12.14",
+      "tested_merge_sha": "63e9887fa0faf23565c35b6bd1a4edfa9eb8edd7",
+      "acceptance_runs": [
+        {
+          "criteria_passed": 52,
+          "final_marker": "2026-09-29T21:34:03.1224068Z \u786c\u6027\u9a8c\u6536: \u5168\u90e8\u901a\u8fc7\uff0852 \u6761\u5224\u636e\uff09"
+        },
+        {
+          "criteria_passed": 52,
+          "final_marker": "2026-09-29T21:42:21.9899116Z \u786c\u6027\u9a8c\u6536: \u5168\u90e8\u901a\u8fc7\uff0852 \u6761\u5224\u636e\uff09"
+        }
+      ],
+      "determinism": {
+        "result": "PASS",
+        "comparison": "results.json raw bytes from /tmp/run1 and /tmp/run2, as executed by CI",
+        "final_marker": "2026-09-29T21:42:22.1082127Z OK: results.json byte-identical across runs",
+        "scope": "CI performed the comparison; result files were not separately downloaded or re-compared during archival."
+      },
+      "excerpt": "excerpts/job_109627112072.excerpt.log"
+    },
+    {
+      "job_id": 109627112269,
+      "name": "Test (py3.13)",
+      "python_version": "3.13.15",
+      "tested_merge_sha": "63e9887fa0faf23565c35b6bd1a4edfa9eb8edd7",
+      "pytest_passed": 975,
+      "pytest_deselected": 3,
+      "pytest_seconds": 745.5,
+      "pytest_final_marker": "2026-09-29T21:38:18.2437760Z 975 passed, 3 deselected in 745.50s (0:12:25)",
+      "pytest_command": "pytest -m \"not slow\" -q --cov --cov-report=xml",
+      "pytest_version": "9.1.1",
+      "acceptance_step_conclusion": "skipped",
+      "excerpt": "excerpts/job_109627112269.excerpt.log"
+    },
+    {
+      "job_id": 109627112298,
+      "name": "Test (py3.10)",
+      "python_version": "3.10.21",
+      "tested_merge_sha": "63e9887fa0faf23565c35b6bd1a4edfa9eb8edd7",
+      "pytest_passed": 975,
+      "pytest_deselected": 3,
+      "pytest_seconds": 864.51,
+      "pytest_final_marker": "2026-09-29T21:40:20.4294784Z 975 passed, 3 deselected in 864.51s (0:14:24)",
+      "pytest_command": "pytest -m \"not slow\" -q --cov --cov-report=xml",
+      "pytest_version": "9.1.1",
+      "acceptance_step_conclusion": "skipped",
+      "excerpt": "excerpts/job_109627112298.excerpt.log"
+    },
+    {
+      "job_id": 109627112331,
+      "name": "Test (py3.11)",
+      "python_version": "3.11.16",
+      "tested_merge_sha": "63e9887fa0faf23565c35b6bd1a4edfa9eb8edd7",
+      "pytest_passed": 975,
+      "pytest_deselected": 3,
+      "pytest_seconds": 344.37,
+      "pytest_final_marker": "2026-09-29T21:31:36.4377416Z 975 passed, 3 deselected in 344.37s (0:05:44)",
+      "pytest_command": "pytest -m \"not slow\" -q --cov --cov-report=xml",
+      "pytest_version": "9.1.1",
+      "acceptance_step_conclusion": "skipped",
+      "excerpt": "excerpts/job_109627112331.excerpt.log"
+    },
+    {
+      "job_id": 109627112432,
+      "name": "Test (py3.12)",
+      "python_version": "3.12.14",
+      "tested_merge_sha": "63e9887fa0faf23565c35b6bd1a4edfa9eb8edd7",
+      "pytest_passed": 975,
+      "pytest_deselected": 3,
+      "pytest_seconds": 863.93,
+      "pytest_final_marker": "2026-09-29T21:40:21.0573198Z 975 passed, 3 deselected in 863.93s (0:14:23)",
+      "pytest_command": "pytest -m \"not slow\" -q --cov --cov-report=xml",
+      "pytest_version": "9.1.1",
+      "acceptance_step_conclusion": "success",
+      "acceptance_runs": [
+        {
+          "criteria_passed": 52,
+          "final_marker": "2026-09-29T21:50:09.1666451Z \u786c\u6027\u9a8c\u6536: \u5168\u90e8\u901a\u8fc7\uff0852 \u6761\u5224\u636e\uff09"
+        }
+      ],
+      "excerpt": "excerpts/job_109627112432.excerpt.log"
+    }
+  ],
+  "excerpts": [
+    {
+      "path": "excerpts/job_109627112072.excerpt.log",
+      "sha256": "6b3a483ac3cc378cbcc93b0380d4c94c88064eeef55a934beaf3df56bb7ecd96",
+      "bytes": 1823,
+      "source_log": "/tmp/sar_ci_workflow_417f_final/job_109627112072.log",
+      "source_log_sha256": "3e73d1be51e30b7bbd6ceb9d0e148715d544ac219d9be47021d9d57aed170c98",
+      "source_log_bytes": 1641709,
+      "source_lines_and_byte_ranges": [
+        {
+          "line_1based": 122,
+          "byte_offset_0based": 9084,
+          "bytes": 145
+        },
+        {
+          "line_1based": 125,
+          "byte_offset_0based": 9341,
+          "bytes": 70
+        },
+        {
+          "line_1based": 141,
+          "byte_offset_0based": 10310,
+          "bytes": 67
+        },
+        {
+          "line_1based": 5032,
+          "byte_offset_0based": 835614,
+          "bytes": 46
+        },
+        {
+          "line_1based": 5033,
+          "byte_offset_0based": 835660,
+          "bytes": 258
+        },
+        {
+          "line_1based": 5034,
+          "byte_offset_0based": 835918,
+          "bytes": 30
+        },
+        {
+          "line_1based": 5035,
+          "byte_offset_0based": 835948,
+          "bytes": 115
+        },
+        {
+          "line_1based": 5036,
+          "byte_offset_0based": 836063,
+          "bytes": 55
+        },
+        {
+          "line_1based": 5037,
+          "byte_offset_0based": 836118,
+          "bytes": 58
+        },
+        {
+          "line_1based": 5038,
+          "byte_offset_0based": 836176,
+          "bytes": 68
+        },
+        {
+          "line_1based": 5039,
+          "byte_offset_0based": 836244,
+          "bytes": 30
+        },
+        {
+          "line_1based": 5040,
+          "byte_offset_0based": 836274,
+          "bytes": 74
+        },
+        {
+          "line_1based": 9725,
+          "byte_offset_0based": 1638466,
+          "bytes": 46
+        },
+        {
+          "line_1based": 9726,
+          "byte_offset_0based": 1638512,
+          "bytes": 258
+        },
+        {
+          "line_1based": 9727,
+          "byte_offset_0based": 1638770,
+          "bytes": 30
+        },
+        {
+          "line_1based": 9728,
+          "byte_offset_0based": 1638800,
+          "bytes": 115
+        },
+        {
+          "line_1based": 9729,
+          "byte_offset_0based": 1638915,
+          "bytes": 55
+        },
+        {
+          "line_1based": 9730,
+          "byte_offset_0based": 1638970,
+          "bytes": 58
+        },
+        {
+          "line_1based": 9731,
+          "byte_offset_0based": 1639028,
+          "bytes": 68
+        },
+        {
+          "line_1based": 9732,
+          "byte_offset_0based": 1639096,
+          "bytes": 30
+        },
+        {
+          "line_1based": 9733,
+          "byte_offset_0based": 1639126,
+          "bytes": 74
+        },
+        {
+          "line_1based": 9734,
+          "byte_offset_0based": 1639200,
+          "bytes": 73
+        }
+      ],
+      "method": "Concatenate selected complete original byte lines in source order. No timestamp, ANSI escape, CRLF, encoding, or content normalization. Not a complete log."
+    },
+    {
+      "path": "excerpts/job_109627112269.excerpt.log",
+      "sha256": "af0ed753b7104033ec6e76482dce843343dcc2b131b58fb52a0ab4a0399405ce",
+      "bytes": 1270,
+      "source_log": "/tmp/sar_ci_workflow_417f_final/job_109627112269.log",
+      "source_log_sha256": "726e21665c2dba79f323e018afa7a1b92600eedbf090f6944f4c58f059396ca0",
+      "source_log_bytes": 39187,
+      "source_lines_and_byte_ranges": [
+        {
+          "line_1based": 123,
+          "byte_offset_0based": 9200,
+          "bytes": 145
+        },
+        {
+          "line_1based": 126,
+          "byte_offset_0based": 9457,
+          "bytes": 70
+        },
+        {
+          "line_1based": 143,
+          "byte_offset_0based": 10468,
+          "bytes": 67
+        },
+        {
+          "line_1based": 323,
+          "byte_offset_0based": 30350,
+          "bytes": 824
+        },
+        {
+          "line_1based": 324,
+          "byte_offset_0based": 31174,
+          "bytes": 89
+        },
+        {
+          "line_1based": 372,
+          "byte_offset_0based": 36470,
+          "bytes": 75
+        }
+      ],
+      "method": "Concatenate selected complete original byte lines in source order. No timestamp, ANSI escape, CRLF, encoding, or content normalization. Not a complete log."
+    },
+    {
+      "path": "excerpts/job_109627112298.excerpt.log",
+      "sha256": "58985f9bb08c883ccf88c8dd4a41abcb7656b7d14ba6d369a41e516552c4f4c1",
+      "bytes": 1303,
+      "source_log": "/tmp/sar_ci_workflow_417f_final/job_109627112298.log",
+      "source_log_sha256": "9b19197e0c07853ceb08a3fc2fce6c0bac02bf6507b8ba802dbef21a83f204ae",
+      "source_log_bytes": 39475,
+      "source_lines_and_byte_ranges": [
+        {
+          "line_1based": 123,
+          "byte_offset_0based": 9199,
+          "bytes": 145
+        },
+        {
+          "line_1based": 126,
+          "byte_offset_0based": 9456,
+          "bytes": 70
+        },
+        {
+          "line_1based": 143,
+          "byte_offset_0based": 10467,
+          "bytes": 67
+        },
+        {
+          "line_1based": 327,
+          "byte_offset_0based": 30605,
+          "bytes": 857
+        },
+        {
+          "line_1based": 328,
+          "byte_offset_0based": 31462,
+          "bytes": 89
+        },
+        {
+          "line_1based": 376,
+          "byte_offset_0based": 36758,
+          "bytes": 75
+        }
+      ],
+      "method": "Concatenate selected complete original byte lines in source order. No timestamp, ANSI escape, CRLF, encoding, or content normalization. Not a complete log."
+    },
+    {
+      "path": "excerpts/job_109627112331.excerpt.log",
+      "sha256": "0ea1d9d5c511bf957dcbae344d656710d337e21c00045685b1ae81d711804164",
+      "bytes": 1270,
+      "source_log": "/tmp/sar_ci_workflow_417f_final/job_109627112331.log",
+      "source_log_sha256": "491a7293b3d9e8310e4fbd0e46ebffde662617f1020837bf2c4de0047abd1fd8",
+      "source_log_bytes": 39031,
+      "source_lines_and_byte_ranges": [
+        {
+          "line_1based": 123,
+          "byte_offset_0based": 9195,
+          "bytes": 145
+        },
+        {
+          "line_1based": 126,
+          "byte_offset_0based": 9452,
+          "bytes": 70
+        },
+        {
+          "line_1based": 143,
+          "byte_offset_0based": 10463,
+          "bytes": 67
+        },
+        {
+          "line_1based": 322,
+          "byte_offset_0based": 30155,
+          "bytes": 824
+        },
+        {
+          "line_1based": 323,
+          "byte_offset_0based": 30979,
+          "bytes": 89
+        },
+        {
+          "line_1based": 371,
+          "byte_offset_0based": 36314,
+          "bytes": 75
+        }
+      ],
+      "method": "Concatenate selected complete original byte lines in source order. No timestamp, ANSI escape, CRLF, encoding, or content normalization. Not a complete log."
+    },
+    {
+      "path": "excerpts/job_109627112432.excerpt.log",
+      "sha256": "96b1b1a337ff04c6f5e04a4ead8cc82bdfea979002ea01f5ee85791f70569ba5",
+      "bytes": 2084,
+      "source_log": "/tmp/sar_ci_workflow_417f_final/job_109627112432.log",
+      "source_log_sha256": "6163b20c764257e7b98e5e1c132ddf9d219662eb6873152764bdfff06e46a19a",
+      "source_log_bytes": 845739,
+      "source_lines_and_byte_ranges": [
+        {
+          "line_1based": 123,
+          "byte_offset_0based": 9193,
+          "bytes": 145
+        },
+        {
+          "line_1based": 126,
+          "byte_offset_0based": 9450,
+          "bytes": 70
+        },
+        {
+          "line_1based": 143,
+          "byte_offset_0based": 10461,
+          "bytes": 67
+        },
+        {
+          "line_1based": 324,
+          "byte_offset_0based": 30415,
+          "bytes": 824
+        },
+        {
+          "line_1based": 325,
+          "byte_offset_0based": 31239,
+          "bytes": 89
+        },
+        {
+          "line_1based": 373,
+          "byte_offset_0based": 36553,
+          "bytes": 75
+        },
+        {
+          "line_1based": 374,
+          "byte_offset_0based": 36628,
+          "bytes": 79
+        },
+        {
+          "line_1based": 5071,
+          "byte_offset_0based": 839684,
+          "bytes": 46
+        },
+        {
+          "line_1based": 5072,
+          "byte_offset_0based": 839730,
+          "bytes": 258
+        },
+        {
+          "line_1based": 5073,
+          "byte_offset_0based": 839988,
+          "bytes": 30
+        },
+        {
+          "line_1based": 5074,
+          "byte_offset_0based": 840018,
+          "bytes": 115
+        },
+        {
+          "line_1based": 5075,
+          "byte_offset_0based": 840133,
+          "bytes": 55
+        },
+        {
+          "line_1based": 5076,
+          "byte_offset_0based": 840188,
+          "bytes": 58
+        },
+        {
+          "line_1based": 5077,
+          "byte_offset_0based": 840246,
+          "bytes": 69
+        },
+        {
+          "line_1based": 5078,
+          "byte_offset_0based": 840315,
+          "bytes": 30
+        },
+        {
+          "line_1based": 5079,
+          "byte_offset_0based": 840345,
+          "bytes": 74
+        }
+      ],
+      "method": "Concatenate selected complete original byte lines in source order. No timestamp, ANSI escape, CRLF, encoding, or content normalization. Not a complete log."
+    }
+  ],
+  "api_metadata": {
+    "workflow_metadata.json": "Unmodified bytes of gh api response for final run",
+    "jobs_metadata.json": "Unmodified bytes of gh api response containing all 9 final jobs (per_page=100; total_count=9)",
+    "retrieval.json": "Local retrieval times, API endpoints and full original-response SHA256; full logs stay outside Git"
+  },
+  "earlier_archive_preserved": {
+    "path": "../ci_rtl_417f",
+    "workflow_observation_unchanged": "in_progress/null at earlier observation time; this new archive adds a later final observation",
+    "files_checked_unchanged": 43
+  },
+  "boundaries": [
+    "This verifies final CI status for the published 417f row-cache source only, not later RTL edits.",
+    "Four Python jobs each run the same selected suite; 975 per version is not 3900 unique tests. Three deselected cases are not counted as passed.",
+    "Acceptance sweep is a software behavioral-model result. No analog circuit, synthesis, routing, timing closure, board validation or silicon validation is newly performed or certified here.",
+    "The full acceptance step runs only on Python 3.12; metadata marks it skipped on the other three versions.",
+    "Successful determinism applies to results.json bytes for the two recorded runs, not every produced image/file or every seed.",
+    "The earlier RTL archive separately contains 22 benches, 3 lint profiles, arithmetic audit and flow mocks. CI success does not turn mocks into actual EDA results."
+  ],
+  "no_eda_or_simulation_rerun": true
+}

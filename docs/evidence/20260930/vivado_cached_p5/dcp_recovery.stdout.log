@@ -1,0 +1,1 @@
+sftp> reget "adc_rtl_vivado/run.c97c940ad1274c699c40b8c78ff00602/out/post_synth.dcp" "/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_vivado_20260930/repair_cached/synth/artifacts/vivado/20260929T235031.384711Z_p5_recovered/out/post_synth.dcp"

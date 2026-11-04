@@ -823,7 +823,11 @@ def build(
         }
         if stimulus > 0:
             stim_text, exp_text, summary = _stimulus_files(cfg, result, data, stimulus, cfg_name)
-            summary["register_payload_sha256"] = sha
+            # Bind the stimulus to the exact register image it was generated
+            # with.  The parameter payload hash above does not cover weights.
+            summary["register_payload_sha256"] = hashlib.sha256(
+                _json_text(register_image).encode("utf-8")
+            ).hexdigest()
             out["stimulus_text"] = stim_text
             out["expected_text"] = exp_text
             out["stimulus_summary"] = summary

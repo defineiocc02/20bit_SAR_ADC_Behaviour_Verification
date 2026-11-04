@@ -1,0 +1,50 @@
+{
+  "status": "PASS",
+  "seed": 20260930,
+  "scope": "Negative controls: production source is not modified.",
+  "sources_sha256": {
+    "rtl/core/cal_residue_mac.sv": "082a93293cda83f79ff0ac7ef72e484043f8bbceb914361f270059b4bb764f71",
+    "rtl/core/adc2_dec.sv": "268d279bdc1c2cdd7161072733c5046e701524c7e217b52ff0c7ca08951154f5",
+    "rtl/core/div_floor.sv": "cc3b0bd9c5e6c8491af10d0696f82e59373426c538c3212c210093dbc84c515c",
+    "rtl/core/cal_output_stage.sv": "30cb3de766b0c2f316bd65f519304e95a35897b55568564e56c999c8bac0c0c2",
+    "sim/tb/arithmetic_audit_tb.sv": "c1582600cde5d6f267c723bd93f5726cb059bc7ca5abd207c3d34488bdef1ce8",
+    "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+    "tools/audit_rtl_arithmetic.py": "299013236b42e9facf4eaede46f627a676e65156c8094d56a470a098e1edd930"
+  },
+  "mutations": [
+    {
+      "mutation": "truncate_high_denominator",
+      "status": "DETECTED",
+      "old": "if (!dv_large && !trial_difference[W_R]) begin",
+      "new": "if (!trial_difference[W_R]) begin",
+      "runner_returncode": 1,
+      "divider_original_sha256": "cc3b0bd9c5e6c8491af10d0696f82e59373426c538c3212c210093dbc84c515c",
+      "divider_mutated_sha256": "d8a2343a6d52dbdd98fe5743b93f06c9b77c3ff315f1bd07cb66a78ed074cfae",
+      "failure_line": "[172000] %Fatal: arithmetic_audit_tb.sv:95: Assertion failed in arithmetic_audit_tb.seq.unnamedblk1: DIV mismatch line=7 got=0000000000000000 expected=7fffffffffffffff err=0 expected_err=0 latency=9",
+      "log_sha256": "ae80982048441f4de93f7984cb351bd78e66bfb745364cde2c31eab4717a5c5c",
+      "command": [
+        "/Library/Developer/CommandLineTools/usr/bin/python3",
+        "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/sar-divider-negative-70lfrska/tools/audit_rtl_arithmetic.py",
+        "--output-dir",
+        "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_divider_borrow_20260930/mutations/truncate_high_denominator"
+      ]
+    },
+    {
+      "mutation": "omit_negative_floor_correction",
+      "status": "DETECTED",
+      "old": "(r_next != 0)",
+      "new": "1'b0",
+      "runner_returncode": 1,
+      "divider_original_sha256": "cc3b0bd9c5e6c8491af10d0696f82e59373426c538c3212c210093dbc84c515c",
+      "divider_mutated_sha256": "6aae0279374be31e0dff95a7c1ff81e7a93d57c048206276c8f866880b9f5bcc",
+      "failure_line": "[106000] %Fatal: arithmetic_audit_tb.sv:95: Assertion failed in arithmetic_audit_tb.seq.unnamedblk1: DIV mismatch line=4 got=6aaaaaaaaaaaaaab expected=6aaaaaaaaaaaaaaa err=0 expected_err=0 latency=9",
+      "log_sha256": "1cde3b4b0954a309019c08fa3deaa575daa8c7972fa0ffb405eb88b8821f5fe9",
+      "command": [
+        "/Library/Developer/CommandLineTools/usr/bin/python3",
+        "/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/sar-divider-negative-yiyt5sqn/tools/audit_rtl_arithmetic.py",
+        "--output-dir",
+        "/Users/zhaoyi/Obsidan/\u9879\u76ee\u5e93/outputs/sar_adc_divider_borrow_20260930/mutations/omit_negative_floor_correction"
+      ]
+    }
+  ]
+}

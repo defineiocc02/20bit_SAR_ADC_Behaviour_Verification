@@ -1,0 +1,98 @@
+--- Vcal_weight_reduce_ppa_tb___024root__DepSet_h59fee747__8.cpp
++++ Vcal_weight_reduce_ppa_tb___024root__DepSet_h59fee747__8.cpp.observed
+@@ -3741,4 +3741,11 @@
+         VL_ADD_W(3, __Vtemp_77, __Vtemp_66, __Vtemp_76);
+         VL_ADD_W(3, __Vtemp_78, __Vtemp_46, __Vtemp_77);
++        if (vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__checks <= 16) {
++            printf("CXX_INPUT weight00=%012llx old_active=%08x new_active=%08x old_on0=%08x new_on0=%08x\n", (unsigned long long)(((uint64_t)(vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__weights[1]&0xffffU)<<32)|vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__weights[0]), vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__ref_dut__DOT__active,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__dut__DOT__active,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__ref_dut__DOT__physical_on[0],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__dut__DOT__physical_on[0]);
++            printf("CXX_DIAG check=%u oldT=%016llx newT=%016llx oldG=%016llx newG=%016llx oldR_raw=%08x:%08x:%08x newR_raw=%08x:%08x:%08x oldFlag=%u newFlag=%u\n",
++              vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__checks, (unsigned long long)(((uint64_t)__Vtemp_41[3]<<32)|__Vtemp_41[2]), (unsigned long long)vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_total,
++              (unsigned long long)(((uint64_t)__Vtemp_41[1]<<32)|__Vtemp_41[0]), (unsigned long long)vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_gain,
++              __Vtemp_78[2],__Vtemp_78[1],__Vtemp_78[0], vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[2],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[1],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[0], vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__old_invalid,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_invalid);
++        }
+         if (VL_UNLIKELY((0U != (((((((((vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[0U] 
+                                         << 1U) | (IData)(vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_invalid)) 
+@@ -5509,4 +5516,11 @@
+         VL_ADD_W(3, __Vtemp_158, __Vtemp_147, __Vtemp_157);
+         VL_ADD_W(3, __Vtemp_159, __Vtemp_127, __Vtemp_158);
++        if (vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__checks <= 16) {
++            printf("CXX_INPUT weight00=%012llx old_active=%08x new_active=%08x old_on0=%08x new_on0=%08x\n", (unsigned long long)(((uint64_t)(vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__weights[1]&0xffffU)<<32)|vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__weights[0]), vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__ref_dut__DOT__active,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__dut__DOT__active,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__ref_dut__DOT__physical_on[0],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__dut__DOT__physical_on[0]);
++            printf("CXX_DIAG check=%u oldT=%016llx newT=%016llx oldG=%016llx newG=%016llx oldR_raw=%08x:%08x:%08x newR_raw=%08x:%08x:%08x oldFlag=%u newFlag=%u\n",
++              vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__checks, (unsigned long long)(((uint64_t)__Vtemp_122[3]<<32)|__Vtemp_122[2]), (unsigned long long)vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_total,
++              (unsigned long long)(((uint64_t)__Vtemp_122[1]<<32)|__Vtemp_122[0]), (unsigned long long)vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_gain,
++              __Vtemp_159[2],__Vtemp_159[1],__Vtemp_159[0], vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[2],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[1],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[0], vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__old_invalid,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_invalid);
++        }
+         if (VL_UNLIKELY((0U != (((((((((vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[0U] 
+                                         << 1U) | (IData)(vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_invalid)) 
+@@ -7278,4 +7292,11 @@
+         VL_ADD_W(3, __Vtemp_239, __Vtemp_228, __Vtemp_238);
+         VL_ADD_W(3, __Vtemp_240, __Vtemp_208, __Vtemp_239);
++        if (vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__checks <= 16) {
++            printf("CXX_INPUT weight00=%012llx old_active=%08x new_active=%08x old_on0=%08x new_on0=%08x\n", (unsigned long long)(((uint64_t)(vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__weights[1]&0xffffU)<<32)|vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__weights[0]), vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__ref_dut__DOT__active,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__dut__DOT__active,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__ref_dut__DOT__physical_on[0],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__dut__DOT__physical_on[0]);
++            printf("CXX_DIAG check=%u oldT=%016llx newT=%016llx oldG=%016llx newG=%016llx oldR_raw=%08x:%08x:%08x newR_raw=%08x:%08x:%08x oldFlag=%u newFlag=%u\n",
++              vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__checks, (unsigned long long)(((uint64_t)__Vtemp_203[3]<<32)|__Vtemp_203[2]), (unsigned long long)vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_total,
++              (unsigned long long)(((uint64_t)__Vtemp_203[1]<<32)|__Vtemp_203[0]), (unsigned long long)vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_gain,
++              __Vtemp_240[2],__Vtemp_240[1],__Vtemp_240[0], vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[2],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[1],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[0], vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__old_invalid,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_invalid);
++        }
+         if (VL_UNLIKELY((0U != (((((((((vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[0U] 
+                                         << 1U) | (IData)(vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_invalid)) 
+@@ -9046,4 +9067,11 @@
+         VL_ADD_W(3, __Vtemp_320, __Vtemp_309, __Vtemp_319);
+         VL_ADD_W(3, __Vtemp_321, __Vtemp_289, __Vtemp_320);
++        if (vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__checks <= 16) {
++            printf("CXX_INPUT weight00=%012llx old_active=%08x new_active=%08x old_on0=%08x new_on0=%08x\n", (unsigned long long)(((uint64_t)(vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__weights[1]&0xffffU)<<32)|vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__weights[0]), vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__ref_dut__DOT__active,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__dut__DOT__active,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__ref_dut__DOT__physical_on[0],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__dut__DOT__physical_on[0]);
++            printf("CXX_DIAG check=%u oldT=%016llx newT=%016llx oldG=%016llx newG=%016llx oldR_raw=%08x:%08x:%08x newR_raw=%08x:%08x:%08x oldFlag=%u newFlag=%u\n",
++              vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__checks, (unsigned long long)(((uint64_t)__Vtemp_284[3]<<32)|__Vtemp_284[2]), (unsigned long long)vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_total,
++              (unsigned long long)(((uint64_t)__Vtemp_284[1]<<32)|__Vtemp_284[0]), (unsigned long long)vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_gain,
++              __Vtemp_321[2],__Vtemp_321[1],__Vtemp_321[0], vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[2],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[1],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[0], vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__old_invalid,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_invalid);
++        }
+         if (VL_UNLIKELY((0U != (((((((((vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[0U] 
+                                         << 1U) | (IData)(vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_invalid)) 
+@@ -10817,4 +10845,11 @@
+         VL_ADD_W(3, __Vtemp_401, __Vtemp_390, __Vtemp_400);
+         VL_ADD_W(3, __Vtemp_402, __Vtemp_370, __Vtemp_401);
++        if (vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__checks <= 16) {
++            printf("CXX_INPUT weight00=%012llx old_active=%08x new_active=%08x old_on0=%08x new_on0=%08x\n", (unsigned long long)(((uint64_t)(vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__weights[1]&0xffffU)<<32)|vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__weights[0]), vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__ref_dut__DOT__active,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__dut__DOT__active,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__ref_dut__DOT__physical_on[0],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__dut__DOT__physical_on[0]);
++            printf("CXX_DIAG check=%u oldT=%016llx newT=%016llx oldG=%016llx newG=%016llx oldR_raw=%08x:%08x:%08x newR_raw=%08x:%08x:%08x oldFlag=%u newFlag=%u\n",
++              vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__checks, (unsigned long long)(((uint64_t)__Vtemp_365[3]<<32)|__Vtemp_365[2]), (unsigned long long)vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_total,
++              (unsigned long long)(((uint64_t)__Vtemp_365[1]<<32)|__Vtemp_365[0]), (unsigned long long)vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_gain,
++              __Vtemp_402[2],__Vtemp_402[1],__Vtemp_402[0], vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[2],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[1],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[0], vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__old_invalid,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_invalid);
++        }
+         if (VL_UNLIKELY((0U != (((((((((vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[0U] 
+                                         << 1U) | (IData)(vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_invalid)) 
+@@ -12585,4 +12620,11 @@
+         VL_ADD_W(3, __Vtemp_482, __Vtemp_471, __Vtemp_481);
+         VL_ADD_W(3, __Vtemp_483, __Vtemp_451, __Vtemp_482);
++        if (vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__checks <= 16) {
++            printf("CXX_INPUT weight00=%012llx old_active=%08x new_active=%08x old_on0=%08x new_on0=%08x\n", (unsigned long long)(((uint64_t)(vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__weights[1]&0xffffU)<<32)|vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__weights[0]), vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__ref_dut__DOT__active,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__dut__DOT__active,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__ref_dut__DOT__physical_on[0],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__dut__DOT__physical_on[0]);
++            printf("CXX_DIAG check=%u oldT=%016llx newT=%016llx oldG=%016llx newG=%016llx oldR_raw=%08x:%08x:%08x newR_raw=%08x:%08x:%08x oldFlag=%u newFlag=%u\n",
++              vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__checks, (unsigned long long)(((uint64_t)__Vtemp_446[3]<<32)|__Vtemp_446[2]), (unsigned long long)vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_total,
++              (unsigned long long)(((uint64_t)__Vtemp_446[1]<<32)|__Vtemp_446[0]), (unsigned long long)vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_gain,
++              __Vtemp_483[2],__Vtemp_483[1],__Vtemp_483[0], vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[2],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[1],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[0], vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__old_invalid,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_invalid);
++        }
+         if (VL_UNLIKELY((0U != (((((((((vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[0U] 
+                                         << 1U) | (IData)(vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_invalid)) 
+@@ -14354,4 +14396,11 @@
+         VL_ADD_W(3, __Vtemp_563, __Vtemp_552, __Vtemp_562);
+         VL_ADD_W(3, __Vtemp_564, __Vtemp_532, __Vtemp_563);
++        if (vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__checks <= 16) {
++            printf("CXX_INPUT weight00=%012llx old_active=%08x new_active=%08x old_on0=%08x new_on0=%08x\n", (unsigned long long)(((uint64_t)(vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__weights[1]&0xffffU)<<32)|vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__weights[0]), vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__ref_dut__DOT__active,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__dut__DOT__active,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__ref_dut__DOT__physical_on[0],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__dut__DOT__physical_on[0]);
++            printf("CXX_DIAG check=%u oldT=%016llx newT=%016llx oldG=%016llx newG=%016llx oldR_raw=%08x:%08x:%08x newR_raw=%08x:%08x:%08x oldFlag=%u newFlag=%u\n",
++              vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__checks, (unsigned long long)(((uint64_t)__Vtemp_527[3]<<32)|__Vtemp_527[2]), (unsigned long long)vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_total,
++              (unsigned long long)(((uint64_t)__Vtemp_527[1]<<32)|__Vtemp_527[0]), (unsigned long long)vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_gain,
++              __Vtemp_564[2],__Vtemp_564[1],__Vtemp_564[0], vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[2],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[1],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[0], vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__old_invalid,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_invalid);
++        }
+         if (VL_UNLIKELY((0U != (((((((((vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[0U] 
+                                         << 1U) | (IData)(vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_invalid)) 
+@@ -16122,4 +16171,11 @@
+         VL_ADD_W(3, __Vtemp_644, __Vtemp_633, __Vtemp_643);
+         VL_ADD_W(3, __Vtemp_645, __Vtemp_613, __Vtemp_644);
++        if (vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__checks <= 16) {
++            printf("CXX_INPUT weight00=%012llx old_active=%08x new_active=%08x old_on0=%08x new_on0=%08x\n", (unsigned long long)(((uint64_t)(vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__weights[1]&0xffffU)<<32)|vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__weights[0]), vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__ref_dut__DOT__active,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__dut__DOT__active,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__ref_dut__DOT__physical_on[0],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__dut__DOT__physical_on[0]);
++            printf("CXX_DIAG check=%u oldT=%016llx newT=%016llx oldG=%016llx newG=%016llx oldR_raw=%08x:%08x:%08x newR_raw=%08x:%08x:%08x oldFlag=%u newFlag=%u\n",
++              vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__checks, (unsigned long long)(((uint64_t)__Vtemp_608[3]<<32)|__Vtemp_608[2]), (unsigned long long)vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_total,
++              (unsigned long long)(((uint64_t)__Vtemp_608[1]<<32)|__Vtemp_608[0]), (unsigned long long)vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_gain,
++              __Vtemp_645[2],__Vtemp_645[1],__Vtemp_645[0], vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[2],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[1],vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[0], vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__old_invalid,vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_invalid);
++        }
+         if (VL_UNLIKELY((0U != (((((((((vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_rails[0U] 
+                                         << 1U) | (IData)(vlSelf->cal_weight_reduce_ppa_tb__DOT__slices__DOT__new_invalid)) 

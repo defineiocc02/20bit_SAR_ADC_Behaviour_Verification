@@ -31,6 +31,9 @@
 //     负数经 `[9:3]` 截取会得到错值。适用域之外的行为不在契约内。
 //   * 桥接仅在 `dem_en && bridge_en` 时生效（对应模型的 `dem_enable and dem_bridge_enable`）。
 //   * 纯组合，延迟 0。
+//     coarse/dither_code/sid_low 必须来自同一个冻结样本；本模块没有 clk、
+//     reset 或握手，也不会保存前一拍命令。桥接改变各 slice 的单位分布，
+//     当前 N_ACT=8 下正负各四路、总交换量为零。
 //===========================================================================
 `include "rtl_params.vh"
 
@@ -40,8 +43,8 @@ module swap_decode (
     input  logic                     dem_en,
     input  logic                     bridge_en,
     input  logic [2:0]               sid_low,
-    output logic [N_ACTIVE-1:0][6:0] main_count,
-    output logic [N_ACTIVE-1:0][2:0] sub_count,
+    output logic [N_ACTIVE - 1:0][6:0] main_count,
+    output logic [N_ACTIVE - 1:0][2:0] sub_count,
     output logic                     rdac_over
 );
 
@@ -69,15 +72,15 @@ module swap_decode (
   // ---- 2) 裁剪到可实现的 DAC 电平 ----
   logic [8:0] code;
   assign code = (k_cmd < ZERO) ? 9'd0
-                : (k_cmd > LMAX) ? 9'(LV - 1)
-                                 : k_cmd[8:0];
+    : (k_cmd > LMAX) ? 9'(LV - 1)
+    : k_cmd[8:0];
 
   // ---- 3) 桥接零和交换的幅度：min(1, min(code, LV-1-code)) ----
   logic [8:0] head, tail, amount;
   assign head   = code;
   assign tail   = 9'(LV - 1) - code;
   assign amount = (head < tail) ? ((head < 9'd1) ? 9'd0 : 9'd1)
-                                : ((tail < 9'd1) ? 9'd0 : 9'd1);
+    : ((tail < 9'd1) ? 9'd0 : 9'd1);
 
   // ---- 4) 逐 slice：符号 + 拆分 ----
   genvar a;
@@ -94,10 +97,11 @@ module swap_decode (
       assign sign_pos = (32'(rank) < 32'(HALF));
       assign sign_neg = !sign_pos && (32'(rank) < 32'(N_ACT));
 
+      // amount 扩为有符号 11 位后再取负；先截位再符号转换会改变边界值。
       assign delta = (dem_en && bridge_en)
-                     ? (sign_pos ? $signed({2'b0, amount})
-                                 : (sign_neg ? -$signed({2'b0, amount}) : 11'sd0))
-                     : 11'sd0;
+        ? (sign_pos ? $signed({2'b0, amount})
+          : (sign_neg ? -$signed({2'b0, amount}) : 11'sd0))
+        : 11'sd0;
 
       assign slice_code = $signed({2'b0, code}) + delta;
 

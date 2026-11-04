@@ -1,0 +1,14 @@
+{
+  "algorithm": "sha256",
+  "base": "directory containing this file",
+  "files": {
+    "cal_weight_reduce_ppa_tb.run.log": "6f1a9e3c1cf1ccec8fe7fad8a14d43a6461d1597a444158c66058d901dc63e75",
+    "calibration_fit_tb.run.log": "457fb932b61e68606d7d4ee6973c3d12b091aa7eb8f1023648ec32520fa14616",
+    "calibration_physical_tb.run.log": "3e0741401fb3943ffbff8d5f1535e3b3959288b44ce5cfb1b00df22010061608",
+    "calibration_recovery_tb.run.log": "cc76e0c30b4ba113efe54ff8aae4826ded70143ae539e22fe58bad71902be0bb",
+    "integration_source_manifest.json": "6a14c0dfe56326fa239a2a47409040e2594ee8b89e79a8e7173cd6ca96c2ea39",
+    "manifest.json": "56ae1ce7daf28b5dd0d2b3d6e3e30956d76bce59e365736c8bc562a7666ec033",
+    "p2_oracle_tb.run.log": "6a82327e45628954c9199766536dd83b808053691228177c6ab127df29ce7e84",
+    "source_readback.json": "b836431968b1bb1c69440d67f81ca3db962cacd002d3f215e233b69291cf4500"
+  }
+}

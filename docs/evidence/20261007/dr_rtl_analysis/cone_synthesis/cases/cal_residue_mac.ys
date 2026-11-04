@@ -1,0 +1,12 @@
+read_verilog -sv -Irtl/params rtl/core/cal_residue_mac.sv
+hierarchy -check -top cal_residue_mac
+proc
+opt
+check -assert
+stat -width
+write_json outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/cal_residue_mac.pre.json
+synth -top cal_residue_mac -noabc
+check -assert
+stat -width
+write_json outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/cal_residue_mac.generic.json
+write_verilog -noattr outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/cal_residue_mac.generic.v

@@ -1,0 +1,12 @@
+read_verilog -sv -Irtl/params rtl/core/adc2_dec.sv
+hierarchy -check -top adc2_dec
+proc
+opt
+check -assert
+stat -width
+write_json outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/adc2_dec.pre.json
+synth -top adc2_dec -noabc
+check -assert
+stat -width
+write_json outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/adc2_dec.generic.json
+write_verilog -noattr outputs/sar_adc_dr_rtl_analysis_20261007/cone_synthesis/cases/adc2_dec.generic.v

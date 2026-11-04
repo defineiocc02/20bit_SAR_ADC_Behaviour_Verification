@@ -24,7 +24,14 @@ def main() -> None:
     benches = {
         "sar_trial_tb": "SAR_TRIAL_COMPLETE",
         "calibration_recovery_tb": "CALIBRATION_RECOVERY_COMPLETE",
+        "calibration_fit_tb": "CALIBRATION_FIT_COMPLETE",
         "structural_adc_tb": "STRUCTURAL_ADC_COMPLETE",
+        "structural_protocol_tb": "STRUCTURAL_PROTOCOL_COMPLETE",
+        "recon_ppa_latency_tb": "RECON_PPA_PROFILE_PASS stages=7 samples=32",
+        "divider_borrow_tb": "DIVIDER_BORROW_COMPLETE exhaustive_checks=67592",
+        "tree_mapping_tb": "TREE_MAPPING_COMPLETE checks=12904",
+        "cal_weight_reduce_ppa_tb": "CAL_WEIGHT_REDUCE_PPA_COMPLETE",
+        "weight_row_cache_tb": "WEIGHT_ROW_CACHE_COMPLETE geometries=5 steps=16150",
         "calibration_physical_tb": "CALIBRATION_PHYSICAL_COMPLETE",
         "review_top_protocol_tb": "REVIEW_TOP_PROTOCOL_COMPLETE",
         "review_leaf_tb": "REVIEW_LEAF_COMPLETE",
@@ -37,6 +44,7 @@ def main() -> None:
         "p2_smoke_tb": "p2_smoke PASS",
         "p1_tb": "P1 RESULT: PASS",
         "p3_top_tb": "P3 TOP RESULT: PASS",
+        "engineering_fsm_tb": "ENGINEERING_FSM_COMPLETE",
     }
     parser.add_argument(
         "--tops", nargs="+", choices=list(benches), help="Run selected testbenches only"
@@ -117,10 +125,21 @@ def main() -> None:
                 build,
             ]
             args += [str(p.relative_to(REPO)) for p in sources]
+            if top == "tree_mapping_tb":
+                args += ["sim/tb/tree_mapping_dut.sv"]
             args += [f"sim/tb/{top}.sv"]
             with (out / f"{top}.build.log").open("w") as log:
                 subprocess.run(
-                    args, cwd=REPO, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=300
+                    args,
+                    cwd=REPO,
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    check=True,
+                    # The seven-geometry equivalence miter elaborates all
+                    # reducers, including a 32x128 array. GitHub's two-core
+                    # runner exceeded the ordinary 300 s compilation budget.
+                    # Keep execution limits separate from compilation limits.
+                    timeout=900 if top == "cal_weight_reduce_ppa_tb" else 300,
                 )
             # Only delegate T5 when the independent full-code bench is selected.
             delegate_oracle = top == "p2_tb" and (not selected or "p2_oracle_tb" in selected)
@@ -140,7 +159,13 @@ def main() -> None:
                     stdout=log,
                     stderr=subprocess.STDOUT,
                     # A standalone legacy P2 run still includes the full oracle.
-                    timeout=900 if top == "p2_tb" and not delegate_oracle else 120,
+                    timeout=(
+                        900
+                        if top == "p2_tb" and not delegate_oracle
+                        else 300
+                        if top == "cal_weight_reduce_ppa_tb"
+                        else 120
+                    ),
                 )
             output = run_log.read_text(encoding="utf-8")
             if cp.returncode:

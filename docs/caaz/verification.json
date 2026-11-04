@@ -8,13 +8,13 @@
   "production_rtl_modules": 43,
   "pytest": {
     "status": "PASS",
-    "passed": 1166,
+    "passed": 1167,
     "deselected": 3,
     "not_run_reason": "Three slow remote VCS mutation experiments require the remote licensed execution path"
   },
   "caaz_python_tests": {
     "status": "PASS",
-    "passed": 29
+    "passed": 30
   },
   "default_acceptance": {
     "status": "PASS",
@@ -74,7 +74,23 @@
     "resumed_benches": 20,
     "resume_method": "Separate testbench builds; unchanged production RTL, headers, runner, fixtures and each reused bench verified by SHA-256. The previously untested DSP caller was repaired before its fresh build. Completed checkpoints are not presented as a single uninterrupted run.",
     "initial_failures": "An initial full run failed on optional-port separators in an old testbench. A later partial run was interrupted to repair an untested DSP testbench caller. Both logs were retained.",
-    "source_drift_for_consumed_inputs": []
+    "source_drift_for_consumed_inputs": [],
+    "post_checkpoint_bench_revalidation": {
+      "bench": "sim/tb/caaz_python_vectors_tb.sv",
+      "previous_sha256": "1712e4a0a1414e96f1ed8a9a195d7a65b7ec5558dd2f477434cfabe5d5073b81",
+      "current_sha256": "d6a43cd9421a0139f8748628dd1357e76242ea151beed001608ddec5f3525783",
+      "change": "Read ten DUT stimulus fields into independent staging values, then drive ports explicitly on the same falling edge. No fixture, expectation, assertion, production RTL or clock timing changed.",
+      "trigger": "Verilator5.020 CI run41902708918 failed case0/cycle2 with the original direct $sscanf-to-port driver; both manual-input CAAZ benches passed.",
+      "local_status": "PASS",
+      "local_versions": [
+        "5.30",
+        "5.49"
+      ],
+      "cycles": 468,
+      "valid_outputs": 206,
+      "checks": 6553,
+      "new_5_020_ci": "PENDING_AT_COMMIT"
+    }
   },
   "shared_python_rtl_vectors": {
     "status": "PASS",
@@ -155,7 +171,7 @@
     "sim/tb/bridge_mask_audit_tb.sv": "372633af756a299c9a69ac191a7ae2b0991178800e0d6381d5415ef0a2778c36",
     "sim/tb/caaz_context_contract_tb.sv": "4a5dbc8a5d9e50b9e87c6a05bd6b32f5c461e38ad559fb2358764cc4256f8b65",
     "sim/tb/caaz_pair_processor_tb.sv": "38fd21f2e27f5160e0b208cfade1f9dc8c4b7bb3f878ccbf8d415ef866bd6751",
-    "sim/tb/caaz_python_vectors_tb.sv": "1712e4a0a1414e96f1ed8a9a195d7a65b7ec5558dd2f477434cfabe5d5073b81",
+    "sim/tb/caaz_python_vectors_tb.sv": "d6a43cd9421a0139f8748628dd1357e76242ea151beed001608ddec5f3525783",
     "sim/tb/cal_weight_reduce_ppa_tb.sv": "f70b141a5c93f383f3dc5be61b2a664aa3bd8813dbd19cc25a1ef91c491181f2",
     "sim/tb/calibration_fit_tb.sv": "fdf7e371e6261e1b97c7d6b5ea909734683b7590a653771f56c0a52dae285983",
     "sim/tb/calibration_physical_tb.sv": "9557763fc677f36cc2c131d85995ab7c1648628ae7e3d807f919d9d315c19a93",

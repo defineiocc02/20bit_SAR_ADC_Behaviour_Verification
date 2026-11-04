@@ -18,6 +18,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added disabled-by-default sample-domain chopping-assisted AZ, native RA-output error injection before clipping/ADC2, full-word pairing and explicit raw40/pair20 rate/bandwidth contracts. Noise amplitudes are assumed independently, not fitted to the source's measured 4.3 dB benefit.
 - Added optional digital-core AZ capture/hold and polarity/generation context, 21-bit pair difference, 20-bit floor output, raw observation and sticky fault rejection. Existing raw behavior is retained when disabled; analog storage/circuit implementation, rejection counters, automatic recovery and DSP-wrapper activation remain open.
 - Added paired-noise, hold-loss, actual slice-gain leakage, sliding-window counterexample and integer/metadata tests, plus original experiment and bandwidth figures. New RTL folders are covered by the mutation inventory and byte-preserving source copy.
+- Separated shared-vector parsing from explicit RTL input driving for simulator portability, retaining all 468 input cycles, 206 expected outputs and checks. Added a current-model regeneration gate against the checked-in cross-language fixture.
 
 ## [8.2.2] — 2026-09-26
 

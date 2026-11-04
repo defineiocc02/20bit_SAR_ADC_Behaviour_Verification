@@ -224,6 +224,31 @@ def test_off_and_baseline_do_not_consume_inactive_az_rng():
         assert generator.bit_generator.state == before
 
 
+def test_shared_rtl_fixture_regenerates_from_current_full_model(tmp_path):
+    """Fail when the checked-in cross-language fixture no longer matches the model."""
+    import json
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    output = tmp_path / "new_vectors"
+    subprocess.run(
+        [sys.executable, str(root / "tools/export_caaz_vectors.py"), "--out", str(output)],
+        cwd=root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert (output / "caaz_pair_contract.txt").read_bytes() == (
+        root / "sim/vectors/caaz_pair_contract.txt"
+    ).read_bytes()
+    manifest = json.loads((output / "caaz_pair_contract_manifest.json").read_text())
+    assert len(manifest["cases"]) == 15
+    assert manifest["cycle_count"] == 468
+    assert manifest["valid_output_count"] == 206
+
+
 def test_sine_pair_reference_cosine_response_and_midpoint_timestamp():
     """CAAZ-16: independent sine identity and output-rate time reference."""
     cfg = ideal()

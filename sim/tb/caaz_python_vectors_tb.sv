@@ -52,6 +52,20 @@ module caaz_python_vectors_tb;
   int expected_pending;
   int expected_fault_code;
 
+  // Parse into independent storage, then explicitly publish the transaction.
+  // Older Verilator releases may not reschedule DUT combinational sensitivity
+  // when $sscanf writes a connected input directly. Clock timing is unchanged.
+  int parsed_rst_n;
+  int parsed_epoch_clear;
+  int parsed_valid;
+  int parsed_code;
+  int unsigned parsed_sample_id;
+  int parsed_chop_neg;
+  int unsigned parsed_az_pair_id;
+  int parsed_az_valid;
+  int parsed_flags;
+  int parsed_analog_bad;
+
   task automatic require_ok(input bit condition, input string message);
     assertions_checked++;
     if (!condition)
@@ -69,13 +83,24 @@ module caaz_python_vectors_tb;
         @(negedge clk);
         fields_read = $sscanf(line,
             "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
-            case_id, cycle_id, rst_n, epoch_clear, in_valid, in_code, in_sample_id,
-            in_chop_neg, in_az_pair_id, in_az_valid, in_flags, in_analog_bad,
+            case_id, cycle_id, parsed_rst_n, parsed_epoch_clear, parsed_valid,
+            parsed_code, parsed_sample_id, parsed_chop_neg, parsed_az_pair_id,
+            parsed_az_valid, parsed_flags, parsed_analog_bad,
             expected_valid, expected_code, expected_last_id, expected_first_id,
             expected_pair_id, expected_flags, expected_analog_bad,
             expected_difference, expected_difference_valid, expected_fault,
             expected_fault_pulse, expected_pending, expected_fault_code);
         require_ok(fields_read == 25, "malformed fixture row");
+        rst_n = 1'(parsed_rst_n);
+        epoch_clear = 1'(parsed_epoch_clear);
+        in_valid = 1'(parsed_valid);
+        in_code = 20'(parsed_code);
+        in_sample_id = parsed_sample_id;
+        in_chop_neg = 1'(parsed_chop_neg);
+        in_az_pair_id = parsed_az_pair_id;
+        in_az_valid = 1'(parsed_az_valid);
+        in_flags = 5'(parsed_flags);
+        in_analog_bad = 1'(parsed_analog_bad);
         @(posedge clk);
         #1;
         require_ok(out_valid == 1'(expected_valid), "valid differs from Python");

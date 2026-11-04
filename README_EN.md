@@ -24,9 +24,7 @@ The Python profiles are not identical circuit models. A nominal sample-rate sett
 
 ## Mapping public sources to this project
 
-![Public mechanisms and project code mapping](docs/readme/fig/unified_2_sources.png)
-
-*Figure 2. An original illustration derived from the machine-readable mechanism ledger; a dot identifies a cited source, not a transistor-level implementation.*
+The table maps published mechanisms to the implemented paths and their limits.
 
 | Mechanism | Implemented here | Boundary |
 |---|---|---|
@@ -42,33 +40,33 @@ See [`mechanism_inventory.json`](mechanism_inventory.json), [`sources_manifest.j
 
 ![External fitting to RTL reconstruction](docs/readme/fig/unified_3_calibration.png)
 
-*Figure 3. Original project illustration of the existing external fit and RTL reconstruction path.*
+*Figure 2. Original project illustration of the existing external fit and RTL reconstruction path.*
 
 Digital observations and an independent reference input feed a Python batch estimator. Frozen effective unit weights are quantized into Q30 weights and Q32 scalars, loaded into RTL `weight_store` and `calib_regs`, and applied by `recon_core`. The fixed example uses 2048 training records, a full-rank 1279-column matrix and 128 independent holdout records; see [ADR 0019](docs/adr/0019-fitted-weight-rtl-closure.md).
 
-![40 MS/s capacitor mismatch before and after fitting](docs/readme/fig/unified_6_calibration_effect.png)
+![1.05 MHz before and after capacitor calibration](docs/paper_comparisons/figures/02_ac_calibration.png)
 
-*Figure 4. Independently redrawn from behavioral audit data: 40 MS/s, 2.2 V peak, N=16384, seed 42, mismatch σ=1000 ppm. The right plots are error spectra; SNDR in their titles comes from the output code stream. Training and holdout records are separate, while sharing the simulated physical pool and an exact external training reference.*
+*Figure 3. A behavioral comparison at the input frequency reported on slide 38: 40 MS/s, 1.05 MHz, 2.85 V peak, N=16000, seed 42. Training and holdout records are separate, share the simulated physical pool, and use an exact external training reference. The slides do not disclose amplitude, FFT settings, or complete noise conditions.*
 
-With sampling and RA noise enabled, the error standard deviation changes from **81.61 to 43.43 µV**, and output SNDR from **85.61 to 91.08 dB**. The 94.2 dB noise budget includes fitted parameters; the values characterize only this simulation. Data, source revision and the plotting script are in [`docs/readme/data/`](docs/readme/data/) and [`make_unified_figures.py`](docs/readme/make_unified_figures.py).
+With noise enabled, output SNDR improves **88.88 to 92.46 dB** and input-referred error standard deviation improves **72.53 to 48.04 µV**. The 94.6 dB noise budget is fitted, so this is not an independent prediction of paper SNR. The [experiment comparison](docs/paper_comparisons/README.md) includes static and noiseless results.
 
 The RTL holdout test shows that fitted registers can be loaded and applied to obtain expected fixed-point results; its training observations originate in the Python model. A complete **structural DUT observation → fitting → load → independent DUT holdout** loop is still missing and is not an on-chip self-calibration claim.
 
 ## Interleaving mismatch: spurs and total error
 
-![40 MS/s interleaving mismatch and scheduling effects](docs/readme/fig/unified_7_interleave_effect.png)
+![10 ps timing skew and scheduler output spectra](docs/paper_comparisons/figures/01_timing_skew.png)
 
-*Figure 5. Project behavioral model at 40 MS/s, N=2048, approximately 2.949 MHz / 2.2 V peak input, seed 42 and random noise disabled; neither scheduling option estimates mismatch parameters.*
+*Figure 4. Inspired by slides 21–22: 40 MS/s and a nominal 10 ps skew. The project assumes independent static Gaussian slice skew, an approximately 4.0015 MHz / 2.85 V peak input, N=16384, and no random noise. The slides do not disclose the exact input, 10 ps statistical definition, or FFT setup.*
 
-Slice offset can produce interleaving-related error at `fs/2`; slice capacitor/gain mismatch can produce a sideband at `fs/2 − fin`. In this example, random 8-of-18 scheduling reduces the selected spurs by about 22 dB and 18 dB, while total error RMS increases from **8.12 to 15.74 µV** and from **7.10 to 11.15 µV**. This is a redistribution of the error spectrum, not calibration.
+The `fs/2 − fin` bin falls from **−96.44 to −123.05 dBFS/bin** when fixed rotation is replaced by random 8-of-18 scheduling. Reference error RMS rises from **127.97 to 182.15 µV** in this example. The scheduler redistributes error; it does not estimate or correct timing skew. Other seeds, a second 10 ps interpretation and the remaining slide comparisons are in the [experiment comparison](docs/paper_comparisons/README.md).
 
-Timing skew couples to input slope. Bandwidth mismatch requires the dynamic acquisition/settling path to be enabled. Both can be explored behaviorally, but dedicated skew/bandwidth estimation and hardware correction are not closed.
+Slice offset, gain, and bandwidth differences also cause interleaving errors; the [offset/gain comparison](docs/readme/fig/unified_7_interleave_effect.png) shows that spur and total RMS changes can differ. Dedicated hardware learners and compensation for per-slice timing and bandwidth are not closed.
 
 ## DSP connection and fault handling
 
 ![SAR-to-DSP code formats and faults](docs/readme/fig/unified_4_dsp.png)
 
-*Figure 6. An original illustration of the current RTL integration boundary.*
+*Figure 5. An original illustration of the current RTL integration boundary.*
 
 [`sar20_system_top.sv`](ad4080_dsp/rtl/sar20_system_top.sv) instantiates the SAR digital core and DSP. Alternatively, connect [`sar20_ad4080_top.sv`](ad4080_dsp/rtl/sar20_ad4080_top.sv) separately to the SAR result, per-sample flags and independent sticky `analog_ovf`. It converts offset binary to the DSP's two's-complement input and converts the parallel output back; serial payloads remain two's complement. Any result flag or sticky analog overflow halts the stream and latches a fault. `dsp_restart` or `sar_epoch_clear` resets the DSP, **including FIFO, filter state and register configuration**; the SAR epoch clear is needed to clear its sticky analog fault before reconfiguration.
 
@@ -76,13 +74,27 @@ Acceptance/rejection events and IDs exist at the input boundary; filtered and FI
 
 The separate `cal_two_point` block currently fits `y=m·x+c` at fixed x coordinates. If x is a known input and y is the measured raw code, its result describes the **forward transfer**, not the inverse correction to apply to raw codes; it is not connected to an automatic top-level learning flow.
 
+## Digital work packages
+
+Five functional packages describe their role in the signal chain and main work:
+
+| Work package | Purpose | Main work |
+|---|---|---|
+| SAR control and conversion timing | Coordinate sampling, successive decisions, residue conversion and output for the same sample | Complete phase and decision timing; align Python and structural RTL reference events and sample/status association |
+| DEM and interleaving error treatment | DEM selects slices and reorders capacitor units to redistribute fixed mismatch in the error spectrum; interleaving compensation estimates and corrects slice offset, gain, skew or bandwidth differences | Check 8-of-18 scheduling, unit permutations and bridge masks; add identifiable observations, estimation and correction, then compare spurs and total error. DEM is not mismatch calibration |
+| Capacitor calibration and reconstruction | Fit effective capacitor weights using an external reference, freeze the coefficients and combine coarse/fine outputs | Close structural DUT observation → fitting → loading → independent holdout; address ADC2 nonlinearity and faults |
+| DSP and output path | Filter and buffer reconstructed data, support configuration and fault handling, and provide external output | Correct inverse two-point compensation, connect FIFO to output, resolve serial throughput and output/status association |
+| Integration and verification | Check that assembled modules meet their data, control and fault contracts | Close end-to-end sample association and reset contracts; obtain formal equivalence, CDC/RDC and target-PDK synthesis/STA evidence |
+
+SAR control, DEM, weight fitting and DSP prototypes exist; a complete hardware learning/correction loop for individual slices does not. See [known limitations](docs/rtl/KNOWN_LIMITS_20261104.md) and the [experiment comparison](docs/paper_comparisons/README.md).
+
 ## Provenance and verification
 
 ![Parameter provenance and evidence limits](docs/readme/fig/unified_5_evidence.png)
 
-*Figure 7. Original illustration generated from the runtime parameter provenance ledger. Fitted and assumed results are not disclosed facts or chip measurements.*
+*Figure 6. Original illustration generated from the runtime parameter provenance ledger. Fitted and assumed results are not disclosed facts or chip measurements.*
 
-Behavioral models, RTL simulation, historical FPGA evidence and target-PDK synthesis/STA are separate evidence levels. Figure 4 comes from the independent audit of baseline `40ae71d`; Figure 5 comes from a 40 MS/s behavioral probe on integrated baseline `d809da6`. Neither represents transistor or silicon data. Historical detailed documentation is retained in [`docs/history/`](docs/history/); historical tests are not automatically new results for the present checkout.
+Behavioral models, RTL simulation, historical FPGA evidence and target-PDK synthesis/STA are separate evidence levels. Figures 3–4 are 40 MS/s behavioral simulations on baseline `6863fc3`; neither represents transistor or silicon data. Historical detailed documentation is retained in [`docs/history/`](docs/history/); historical tests are not automatically new results for the present checkout.
 
 ### Quick start
 

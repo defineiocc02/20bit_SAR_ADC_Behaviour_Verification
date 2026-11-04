@@ -1,0 +1,26 @@
+{
+  "fs_hz": 40000000.0,
+  "period_ns": 25.0,
+  "assumed_ra_interval_ns": 10.0,
+  "assumed_switch_ns": 6.5,
+  "assumed_ra_bw_MHz": 120.0,
+  "assumed_adc2_wide_MHz": 150.0,
+  "assumed_adc2_narrow_MHz": 15.0,
+  "assumed_ref_tau_ns": 3.0,
+  "assumed_ref_drive_mV": 5.0,
+  "target_v": 0.25,
+  "gain_assumption": 32,
+  "cases": {
+    "wide_only": {
+      "max_difference_v": 2.914335439641036e-16,
+      "adc2_final_v": 0.24988968327770592,
+      "input_referred_final_error_v": -3.4473975716901514e-06
+    },
+    "wide_then_narrow": {
+      "max_difference_v": 2.611771909855065e-12,
+      "adc2_final_v": 0.2458220370480826,
+      "input_referred_final_error_v": -0.00013056134224741917
+    }
+  },
+  "scope": "signal transient only; numeric bandwidths, 10 ns interval, switch fraction and initial reference error are assumptions; no noise transfer simulation or 1.3 dB prediction"
+}

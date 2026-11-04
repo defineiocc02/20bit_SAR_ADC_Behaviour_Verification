@@ -1,0 +1,20 @@
+{
+  "fs_hz": 40000000.0,
+  "n": 16384,
+  "range_v": [
+    -2.85,
+    2.85
+  ],
+  "lsb_v": 5.7220458984375e-06,
+  "physical_pool_fabrication_seed": 8143,
+  "calibration": "frozen coefficients trained on independent sine/dither; loaded from ac105_nonoise",
+  "noise_enabled": false,
+  "before_error_std_lsb": 11.893408450258917,
+  "after_error_std_lsb": 0.35953313276915955,
+  "before_error_max_abs_lsb": 52.955313434746735,
+  "after_error_max_abs_lsb": 1.0925288409149896,
+  "overflow_count": 0,
+  "before_clipped": 0,
+  "after_clipped": 0,
+  "scope": "Sparse reconstruction-error sweep only; not a code-density test and not INL/DNL; no full ADC2 capacitor nonlinearity or temperature model."
+}

@@ -145,6 +145,7 @@ src = ["src", "tests", "tools"]
 # changing their formatting would invalidate the corresponding figure provenance.
 extend-exclude = [
     "__pycache__",
+    "docs/paper_comparisons/scripts/reference_behavioral_validation.py", # frozen audit runner
     ".venv",
     "build",
     "dist",

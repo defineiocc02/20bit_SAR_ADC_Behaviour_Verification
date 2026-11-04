@@ -23,6 +23,21 @@ The paper discloses a 20 b / 40 MS/s converter, an 18-slice structure and a shar
 
 The Python profiles are not identical circuit models. A nominal sample-rate setting is not evidence of attainable RTL timing. See [`config.py`](src/adi_model/config.py), [`sadc.py`](src/adi_model/sadc.py) and the [RTL arithmetic contract](docs/rtl/RTL_ARITHMETIC_CONTRACT.md).
 
+## Digital work: purpose, current results and open problems
+
+The digital work is grouped into four packages: conversion control, unit/interleaving mismatch treatment, ADC-core calibration and reconstruction, and system correction and data output. “Available” means a **research prototype verified under stated conditions**.
+
+| Work package and main task | Available now | Still needed |
+|---|---|---|
+| **Conversion control and sample ownership:** coordinate sampling, coarse decisions, residue formation and ADC2 | Structural RTL has 16-phase control, comparator interfaces, slice scheduling, sample IDs and fault flags. The Python structural profile matches the RTL slice order, samples and seven resolved RDAC events | Real comparator completion, analog switch and reference-phase contracts; system-wide fault and reset propagation |
+| **DEM, dither and interleaving mismatch:** redistribute unit/slice error, inject known dither and address slice differences | Python has fixed physical pools and interleaving experiments; RTL has slice allocation, DEM addressing, a bridge candidate and dither generation. Physical masks and three dither modes are compared against Python | DEM redistributes error; full per-slice hardware estimation/correction of offset, gain, timing and bandwidth is missing. The complete slide bridge circuit and dual-port dither enhancement are not reproduced |
+| **Capacitor calibration and digital reconstruction:** estimate effective weights from an independent reference and digital observations, then reconstruct using known dither and frozen coefficients | Structural RTL observations, external fitting, quantized coefficient loading and independent holdouts are connected. Two static-mismatch results are shown in [Figure 4](#capacitor-mismatch-calibration-and-effect) and [ADR 0021](docs/adr/0021-structural-contract-calibration.md) | Real reference and observation transport; dynamic settling, drift and ADC2 nonlinearity. The 748-bit parallel observation port has no FIFO, backpressure or physical transport |
+| **System correction, DSP and data output:** correct overall gain/offset and provide filtering, buffering and an external interface | SAR and DSP tops are connected; correction, SINC filtering, FIFO, SPI and fault-stop blocks are prototypes | Invert the two-point coefficients from raw to target codes; complete filter coefficients, FIFO-to-serial routing, output metadata and a lossless DDR/differential interface |
+
+**Shared verification and priorities:** first provide real reference, calibration-observation transport and analog-phase interfaces; then study identifiable per-slice correction and dynamic errors; finally complete DSP and output. Sample IDs, faults and reset checks span all four packages. Formal equivalence, CDC/RDC, target-library STA and analog post-layout verification remain open. The 640 MHz clock implied by 16 phases at 40 MS/s is an ideal budget, not proven target-process timing.
+
+ADC-core capacitor-weight correction and the system gain/offset correction in the [AD4080 data sheet](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf) act at different levels. The [historical task assessment](docs/digital_task_assessment.md) lists integration verification separately; here it is shared by all four packages.
+
 ## Mapping public sources to this project
 
 The table maps published mechanisms to the implemented paths and their limits.
@@ -88,24 +103,6 @@ Slice offset, gain, and bandwidth differences also cause interleaving errors; th
 Acceptance/rejection events and IDs exist at the input boundary; filtered and FIFO outputs **do not yet carry per-output IDs or source flags**. Both sides require the same clock and synchronous reset release; no new CDC is provided. The single-lane serial prototype cannot losslessly send 20-bit frames when inputs arrive every 16 clocks, and FIFO read data is not connected to the serializer. DDR differential PHY is absent and the default SINC5 compensation coefficients are placeholders. See the [DSP README](ad4080_dsp/README.md) for the remaining boundaries.
 
 The separate `cal_two_point` block currently fits `y=m·x+c` at fixed x coordinates. If x is a known input and y is the measured raw code, its result describes the **forward transfer**, not the inverse correction to apply to raw codes; it is not connected to an automatic top-level learning flow.
-
-## Digital work: purpose, current results and open problems
-
-These five packages use reproducible behavioral models and digital RTL to study a two-stage ADC, mismatch treatment and data delivery, while identifying the interfaces and verification still required for a real analog implementation. “Available” below means a prototype implemented and checked under stated conditions.
-
-| Work package and purpose | Available now | Main open problems |
-|---|---|---|
-| **SAR control and conversion timing:** coordinate sampling, decisions, residue generation and ADC2 with sample ownership | Structural RTL has phase control, external comparator interfaces, flash seed and SAR decisions, slice control and sample IDs; a corresponding behavioral chain exists | Seven resolved RDAC events and 16 structural phases match Python; real comparator completion, analog phases and faults remain to be aligned. At one clock per phase, 16 phases imply a 640 MHz ideal clock budget only |
-| **DEM, dither and interleaving errors:** redistribute mismatch spurs through slice/unit selection, use known perturbations for linearization, and address slice differences | Python has a fixed physical pool, skew/offset sensitivity and scheduling experiments; RTL has slice allocation, DEM addressing and a dither generator | Bridge masks and three dither-mode contracts are compared; add identifiable per-slice observations. The paper mainly addresses timing and bandwidth with matched clocks/switches and sampling bandwidth; digital timing estimation is a project research extension |
-| **Capacitor calibration and reconstruction:** estimate effective unit weights using independent reference inputs and reconstruct the ADC-core output | Structural DUT observations, external full-rank fitting, frozen coefficient loading and independent holdouts are connected, with per-sample analog flags | Add real reference and observation transport; cover dynamic settling, drift, ADC2 nonlinearity and hardware cost |
-| **System correction, DSP and data output:** correct overall signal-chain gain/offset and provide filtering, buffering and external data | The SAR and DSP tops are connected; correction, SINC, FIFO, SPI and fault-stop blocks are prototypes | Derive two-point correction in the raw-to-target direction; complete filter coefficients, FIFO-to-serial path, output metadata and DDR/differential interface; validate continuous throughput |
-| **Integration and verification:** check that paths operate on the same samples under the same conditions | Python regressions, RTL simulations, fixed-point holdouts and repeatable known-limit diagnostics exist | Extend sample ID, fault and reset propagation across the system; obtain formal equivalence, CDC/RDC, target-library STA and analog post-layout evidence |
-
-**Assessment:** five packages are appropriate. Grouping DEM with interleaving shares slice/sample context, while redistribution and parameter correction still need separate acceptance. Package two owns dither generation/injection and package three owns digital removal/reconstruction; integration verification spans all packages.
-
-**Order:** the structural switch, reference-event, dither and sample-context contracts and static calibration loop are now compared. Next validate interleaving errors and real analog timing/settling, then close DSP and output paths for the selected interface. DEM redistributes error; it does not by itself estimate mismatch.
-
-The paper's ADC-array weight correction and the [AD4080 data sheet](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf) system gain/offset correction operate at different levels. The data sheet is an interface reference; the paper and patents are architecture/mechanism references. Shared specifications or names do not establish the internal implementation of AD4080. The [independent task assessment](docs/digital_task_assessment.md) gives source, code, evidence and open boundaries for each package.
 
 ## Provenance and verification
 

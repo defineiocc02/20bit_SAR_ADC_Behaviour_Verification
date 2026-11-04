@@ -38,7 +38,16 @@ module rdac_event_contract_tb;
     .slice_sel(selected),.main_sw(main_sw),.sub_sw(sub_sw),.dither_sw(),.sw_valid(sw_valid),
     .recon_start(),.context_id(),.context_coarse(),.context_sid(),.context_dither(),
     .context_slices(),.context_main(),.context_sub(),.context_rails(),.context_sampling(),
-    .context_analog_bad(),.context_injection(),.fine_code(),.error_code()
+    .context_analog_bad(),.context_injection(),.fine_code(),.error_code(),
+
+      // Optional CAAZ ports are explicit; the legacy profile stays disabled.
+      .caaz_az_capture_ok(1'b1),
+      .caaz_input_chop_neg(),
+      .caaz_az_capture_en(),
+      .caaz_az_hold(),
+      .context_chop_neg(),
+      .context_az_pair_id(),
+      .context_az_valid()
   );
   initial begin
     if (!$value$plusargs("outdir=%s",outdir)) outdir=".";

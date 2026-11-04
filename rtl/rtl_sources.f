@@ -1,4 +1,6 @@
 rtl/core/adc2_dec.sv
+rtl/control/caaz_cycle_ctrl.sv
+rtl/calibration/caaz_pair_processor.sv
 rtl/core/analog_phase_ctrl.sv
 rtl/core/cal_output_stage.sv
 rtl/core/cal_residue_mac.sv

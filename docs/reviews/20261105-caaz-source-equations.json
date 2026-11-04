@@ -1,0 +1,24 @@
+{
+  "sign_convention": "even input positive;odd input negative, following Fig6 notation",
+  "source_AZ": "V_AZ[k]=A1*(V_OS_AZ[k]+e[k])",
+  "source_even": "D2[2k]=...+G*(r[2k]+e[k])",
+  "source_odd": "D2[2k+1]=...+G*(-r[2k+1]+e[k])",
+  "source_pair": "D2_pair[k]=(D2[2k]-D2[2k+1])/2=...+G*(r[2k]+r[2k+1])/2",
+  "engineering_fullword_raw": "u[n]=c[n]*x[n]+a[n]*e[floor(n/2)]+b[n]+eta[n]",
+  "engineering_pair": "y[k]=(u[2k]-u[2k+1])/2=(x[2k]+x[2k+1])/2+(a_even-a_odd)*e[k]/2+(b_even-b_odd)/2+(eta_even-eta_odd)/2",
+  "hold_generalization": "e_odd=h*e_even+delta_e => az_res=(a_even-a_odd*h)*e_even/2-a_odd*delta_e/2",
+  "equivalent_demodulation": "v[n]=c[n]*u[n]; y[k]=(v[2k]+v[2k+1])/2. This is an equivalent engineering implementation, not a separately drawn source block.",
+  "full_rate_sliding_even_residual": "(e[k]-e[k-1])/2 for gain-normalized held-pair error; aligned odd window residual is 0",
+  "pair_rate_choice": {
+    "raw_hz": 40000000.0,
+    "pair_hz": 20000000.0,
+    "status": "ENGINEERING_CHOICE; source headline 6 MS/s raw-versus-pair remains OPEN"
+  },
+  "response": "H2(exp(jw))=exp(-jw/2)*cos(w/2); |H2|=abs(cos(pi*f/fraw)); group_delay=Traw/2",
+  "unproven": "No claim that source physical ODR,loop dynamics,noise magnitudes or silicon performance have been reproduced.",
+  "source_ids": [
+    "PKU_VLSI2025_C32_1_PAPER",
+    "PKU_VLSI2025_C32_1_SLIDES"
+  ],
+  "evidence_boundary": "Source equations and stated engineering derivations; not project execution or analog-circuit signoff."
+}

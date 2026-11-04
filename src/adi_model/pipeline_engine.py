@@ -44,6 +44,7 @@ def execute_split(
     pool: PhysicalSlicePool | None = None,
     derivative_fn=input_derivative,
     runner: str = "run_pipeline",
+    ra_output_error_v: np.ndarray | None = None,
 ) -> SimResult:
     """Execute one independently primed physical split-pipeline record.
 
@@ -59,18 +60,32 @@ def execute_split(
         pool: Persistent fabricated pool; electrical state is reset for this record.
         derivative_fn: Aperture-slope provider, separately testable.
         runner: Public entry-point name for metadata.
+        ra_output_error_v: Optional finite N-vector [RA-output V]; caller-defined
+            error inserted after existing noise and before RA clip/ADC2. This
+            interface rejects dynamic reference/conversion state rather than
+            bypassing its causal trajectory. None preserves the ordinary path.
 
     Returns:
         Result with actual slice, held-sample and stored-charge traces.
 
     Raises:
-        ConfigError: Invalid length or incompatible physical topology.
+        ConfigError: Invalid length, topology, or explicit error stream.
+
+    Side effects:
+        Resets pool electrical state and consumes active RNG sources. An explicit
+        error stream adds no random draws and never changes clipping limits.
     """
     cfg.check_legal()
     cfg = replace(cfg, dac_arch="split")
     cfg.check_legal()
     if n_samples < 1:
         raise ConfigError("n_samples must be positive")
+    if ra_output_error_v is not None:
+        ra_output_error_v = np.asarray(ra_output_error_v, dtype=float)
+        if ra_output_error_v.shape != (n_samples,) or np.any(~np.isfinite(ra_output_error_v)):
+            raise ConfigError("explicit RA output error must be finite and match sample count")
+        if cfg.dyn_ref_settling or cfg.conversion.dynamic:
+            raise ConfigError("explicit RA output error is currently a sample-domain interface")
     if pool is None:
         pool = PhysicalSlicePool(cfg, np.random.default_rng(cfg.seed + 8101), chip=chip)
     if tuple(np.asarray(cfg.mismatch_gradient, dtype=float)) != pool._mismatch_gradient:
@@ -405,7 +420,7 @@ def execute_split(
     stored = sample.x_rdac + e_input
     residue = stored - vd_true
     if joint is None:
-        vra, ra_sat = ra.evaluate(residue, sample_rng, g=gain)
+        vra, ra_sat = ra.evaluate(residue, sample_rng, g=gain, error_v=ra_output_error_v)
         adc2_input = vra
     else:
         # Existing noise is output-equivalent at the aperture; do not filter it

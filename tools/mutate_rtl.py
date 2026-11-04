@@ -4,8 +4,8 @@ r"""SystemVerilog 子集变异注入器（VeriBugBench 算子的**转用**实现
 ## 这是什么
 
 按 ``docs/rtl/MUTATION_AUDIT_VS_VERIBUGBENCH.md`` §6.1 自写的注入器：每条算子 =
-**matcher + guard + transform** 三件套，只改**副本**（把 ``rtl/core`` + ``rtl/top``
-拷到 ``<out-root>/<name>/rtl/`` 再改），**原 ``rtl/`` 一个字节都不动**。
+**matcher + guard + transform** 三件套，只改**副本**（按相对路径把 ``rtl/``
+下所有生产 SV 拷到 ``<out-root>/<name>/rtl/`` 再改），**原 ``rtl/`` 一个字节都不动**。
 
 ## 转用声明（与审计文档 §0 同句搬运，不得删）
 
@@ -49,7 +49,6 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RTL_ROOT = REPO_ROOT / "rtl"
-SRC_SUBDIRS = ("core", "top")
 DEFAULT_OUT_ROOT = REPO_ROOT / "sim" / "artifacts" / "mut"
 
 # ---------------------------------------------------------------------------
@@ -878,10 +877,8 @@ OPERATORS: tuple[Operator, ...] = (
 
 
 def rtl_files(rtl_root: Path) -> list[Path]:
-    out: list[Path] = []
-    for sub in SRC_SUBDIRS:
-        out.extend(sorted((rtl_root / sub).glob("*.sv")))
-    return out
+    """Enumerate all production SV paths, independent of responsibility folders."""
+    return sorted(rtl_root.rglob("*.sv"))
 
 
 def enumerate_sites(rtl_root: Path = RTL_ROOT) -> list[Site]:
@@ -937,8 +934,10 @@ def inject(
     if dst_root.exists():
         shutil.rmtree(dst_root)
     (dst_root / "rtl").mkdir(parents=True)
-    for sub in SRC_SUBDIRS:
-        shutil.copytree(rtl_root / sub, dst_root / "rtl" / sub)
+    for source in rtl_files(rtl_root):
+        destination = dst_root / "rtl" / source.relative_to(rtl_root)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
 
     by_file: dict[str, list[Site]] = {}
     for s in sites:

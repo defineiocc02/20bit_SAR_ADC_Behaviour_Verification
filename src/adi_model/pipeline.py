@@ -11,7 +11,16 @@ from .sampler import input_derivative
 
 
 def run_pipeline(
-    cfg, input_fn, n_samples, chip=None, state=None, rng=None, scheduler=None, *, pool=None
+    cfg,
+    input_fn,
+    n_samples,
+    chip=None,
+    state=None,
+    rng=None,
+    scheduler=None,
+    *,
+    pool=None,
+    ra_output_error_v=None,
 ):
     """Run the physical split pipeline with explicit capacitor ownership.
 
@@ -24,9 +33,16 @@ def run_pipeline(
         rng: Optional sampling/noise random stream.
         scheduler: Optional compatible acquisition scheduler.
         pool: Optional existing PhysicalSlicePool; resets electrical state only.
+        ra_output_error_v: Optional finite raw-length RA-output error stream [V],
+            inserted before original clipping and ADC2 quantization; sample-domain
+            only, with caller-defined source. None preserves existing behavior.
 
     Returns:
         SimResult with charge, sample IDs, actual converting slices and errors.
+
+    Side effects:
+        Resets pool electrical state and consumes active sampling/noise RNGs.
+        Explicit error does not alter the noise budget, clipping or RNG sequence.
     """
     return execute_split(
         cfg,
@@ -38,4 +54,5 @@ def run_pipeline(
         scheduler=scheduler,
         pool=pool,
         derivative_fn=input_derivative,
+        ra_output_error_v=ra_output_error_v,
     )

@@ -19,6 +19,12 @@
       "date": "2026-11-05",
       "baseline_commit": "d1e1f87e5c87ce6f09b87acdc5958af39cdfbb09",
       "scope": "implementation_degree描述Python机制集成；rtl_contract独立描述数字实现，二者不得合成一个完成标记。静态引用检查不证明原文语义、模拟电路或签核。"
+    },
+    "caaz_extension_review": {
+      "date": "2026-11-05",
+      "baseline_commit": "86106fc66083eafb7798402040b92c83625d2aad",
+      "source_scope": "2 unique CAAZ documents / 45 pages; optional source extension, not target-chip baseline",
+      "completion": "PARTIAL_SAMPLE_DOMAIN"
     }
   },
   "axes": {
@@ -55,7 +61,8 @@
     "PAPER_BASELINE": "论文 [00] 基线（目标芯片结构）",
     "PATENT_STANDALONE": "专利独立实施例（不与基线强行拼接，保留可运行独立场景）",
     "COMPATIBLE_INTEGRATION": "与基线兼容的集成场景",
-    "PROJECT_EXTENSION": "本项目原创扩展（不归属 ADI）"
+    "PROJECT_EXTENSION": "本项目原创扩展（不归属 ADI）",
+    "OPTIONAL_SOURCE_EXTENSION": "引入其他器件已披露机制的可选工程扩展；不归属ISSCC目标芯片原架构，也不声明为本仓库原创。"
   },
   "experiment_status_values": [
     "PASS",
@@ -1043,6 +1050,103 @@
         "tests": [],
         "boundary": "KTC噪声观察为明确标注的研究扩展；RTL不提供其模拟观测器或闭环。"
       }
+    },
+    {
+      "id": "X02",
+      "title": "Chopping-assisted AZ：默认关闭的样本域配对研究扩展",
+      "task_refs": [
+        "T11",
+        "T12"
+      ],
+      "sources": [
+        {
+          "id": "PKU_VLSI2025_C32_1_PAPER",
+          "location": "PDF p.1机制说明；PDF p.2 Figs.5–6输入chop、AZ存储及完整码配对",
+          "citation_status": "page_checked"
+        },
+        {
+          "id": "PKU_VLSI2025_C32_1_SLIDES",
+          "location": "PDF pp.28–35采样/AZ/残差归属与共享噪声；pp.37–41原型测量边界",
+          "citation_status": "page_checked"
+        }
+      ],
+      "claim": "偶数raw输入为正、奇数raw输入反相；偶数捕获的同一AZ误差样本保持到奇数，完整校准raw码重构后作非重叠(even−odd)/2。默认关闭；项目raw40MS/s到pair20MS/s为工程选择。",
+      "embodiment": "OPTIONAL_SOURCE_EXTENSION",
+      "source_origin": "Wang等，VLSI2025 C32-1（北大/清华）；与ISSCC2024的目标架构分别登记。",
+      "evidence_source": [
+        "DISCLOSED",
+        "DERIVED",
+        "ASSUMED"
+      ],
+      "implementation_degree": "INTEGRATED_SCENARIO",
+      "completion": "PARTIAL_SAMPLE_DOMAIN",
+      "default_enabled": false,
+      "default_disable_contract": {
+        "python": "ChoppingAZParameters.mode='off'",
+        "rtl": "P_CAAZ_ENABLE=0"
+      },
+      "verification_nature": [
+        "ENGINEERING_REGRESSION",
+        "MATH_CONSISTENCY"
+      ],
+      "code": [
+        "src/adi_model/chopping_az.py",
+        "src/adi_model/ra.py",
+        "src/adi_model/pipeline.py",
+        "src/adi_model/pipeline_engine.py"
+      ],
+      "tests": [
+        "tests/unit/test_chopping_az.py::test_default_off_preserves_ordinary_az_raw_numbers_exactly",
+        "tests/unit/test_chopping_az.py::test_full_adc_input_is_chopped_and_adc2_window_is_not_changed",
+        "tests/unit/test_chopping_az.py::test_injection_is_before_real_ra_clip_and_adc2_quantization",
+        "tests/unit/test_chopping_az.py::test_same_independent_white_noise_and_held_noise_cancellation",
+        "tests/unit/test_chopping_az.py::test_hold_transfer_mismatch_leaves_predicted_pair_residual",
+        "tests/unit/test_chopping_az.py::test_unsigned_pair_words_widen_before_difference",
+        "tests/unit/test_chopping_az.py::test_fresh_record_rejects_wrong_ids",
+        "tests/unit/test_chopping_az.py::test_sine_pair_reference_cosine_response_and_midpoint_timestamp",
+        "tests/unit/test_chopping_az.py::test_full_rate_sliding_demodulation_retains_cross_generation_az_noise",
+        "tests/unit/test_chopping_az.py::test_real_slice_gain_changes_leak_common_ra_output_error_after_frozen_calibration"
+      ],
+      "experiments": [],
+      "observables": [
+        "raw/pair采样率、采样中点、raw样本ID与成对归属",
+        "实际输入chop符号、AZ刷新/保持样本及RA原有clip/ADC2标志",
+        "完整校准码的有符号pair差、再量化输出与异常状态"
+      ],
+      "gaps": [
+        "只建立样本域全输入chop和原有RAclip/ADC2之前的显式误差源；连续动态chopper、器件电荷注入及实际1/f/AZ噪声传递未建立。",
+        "FGA/CP-FIA晶体管、储能供电、超轨开关可靠性及PVT/PEX均未验证。",
+        "源headline6MS/s的raw时钟与pair输出速率关系仍OPEN；不反推内部12MS/s。",
+        "源4.3dB=1.3dB AZ样本项+3dB普通平均是原型结果；本工程不以该数值拟合或声称已复现。",
+        "两点pair滤波会改变信号幅频和有效输出率，不是充分的抗混叠滤波；输入带宽和错误/epoch读出须按项目合同验证。",
+        "CAAZ-17仍PARTIAL：错误pair的reject/drop计数未实现，当前异常响应为sticky fault停流至clear/reset，未自动重启下一pair的even/AZ。",
+        "顶层尚未转接pair处理器fault_pulse/pending；三项定向RTL回归通过只覆盖已实现数字子范围，不等于20条来源/工程要求全通过。"
+      ],
+      "rtl_contract": {
+        "status": "DIGITAL_IMPLEMENTED",
+        "code": [
+          "rtl/control/caaz_cycle_ctrl.sv",
+          "rtl/calibration/caaz_pair_processor.sv",
+          "rtl/core/slice_pool_ctrl.sv",
+          "rtl/core/sar_structural_ctrl.sv",
+          "rtl/core/cal_sample_context.sv",
+          "rtl/top/sar20_digital_core.sv",
+          "ad4080_dsp/rtl/sar20_system_top.sv"
+        ],
+        "tests": [
+          "sim/tb/caaz_pair_processor_tb.sv",
+          "sim/tb/caaz_context_contract_tb.sv",
+          "sim/tb/caaz_python_vectors_tb.sv"
+        ],
+        "boundary": "默认P_CAAZ_ENABLE=0；可选结构控制模式实现输入极性与AZ捕获/保持标签、完整重构raw码后的非重叠pair、扩位有符号差分，以及ID/极性/AZ代际/复位检查。异常策略限于sticky fault停流至clear/reset；错误pair的reject/drop计数、下一pair自动even/AZ恢复及顶层fault_pulse/pending转接仍未实现。仅针对当前统一bin-center/floor码合同的纯数字处理；三项定向RTL回归及Python共享向量已执行通过，不代表20条要求全部关闭或完整模拟CAAZ、物理输入chopper、CBIAS保持、FGA/CP-FIA或原型6 MS/s读出已实现。748位原有观察总线保留，CAAZ上下文与raw/pair观察独立输出。"
+      },
+      "review_records": [
+        "docs/reviews/20261105-caaz-source-coverage.json",
+        "docs/reviews/20261105-caaz-source-requirements.json",
+        "docs/reviews/20261105-caaz-source-equations.json",
+        "docs/reviews/20261105-caaz-source-code-coverage.json",
+        "docs/reviews/20261105-caaz-source-review.md"
+      ]
     }
   ],
   "coverage_obligations": {

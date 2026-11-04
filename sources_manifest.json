@@ -1,7 +1,7 @@
 {
   "meta": {
     "artifact": "sources_manifest",
-    "version": "1.1",
+    "version": "1.2",
     "generated": "2026-09-12",
     "repo_commit_at_generation": "ffcc011",
     "purpose": "任务书 §2.1/§2.2：逐份固定原文证据（文件名、SHA256、页数、角色、定位规则）。本清单只登记条目；原文 PDF/PPT 不随本仓库分发（引用合规见 NOTICE 与 docs/engineering_vs_patents_papers.md §8）。",
@@ -13,10 +13,29 @@
       "hash_mismatch": "硬性失败（门禁退出码非零）",
       "file_missing": "登记 BLOCKED，不伪造工具运行或 PDK/原文数据"
     },
-    "page_count_source": "pypdf 逐份统计（2026-09-12，见 HANDOFF.md 执行记录）",
+    "page_count_source": "原18份/596页的页数按历史登记保留；2026-11-05 CAAZ扩展对2份唯一原件重新统计为3页与42页。同SHA别名不计作新增文档。",
     "reviewed": "2026-11-05",
-    "corpus_pages": 596,
-    "corpus_documents": 18
+    "corpus_pages": 641,
+    "corpus_documents": 20,
+    "baseline_corpus": {
+      "documents": 18,
+      "pages": 596,
+      "coverage_record": "docs/reviews/20261105-source-coverage.json"
+    },
+    "corpus_extensions": [
+      {
+        "id": "CAAZ_VLSI2025",
+        "documents": 2,
+        "pages": 45,
+        "source_ids": [
+          "PKU_VLSI2025_C32_1_PAPER",
+          "PKU_VLSI2025_C32_1_SLIDES"
+        ],
+        "coverage_record": "docs/reviews/20261105-caaz-source-coverage.json",
+        "role": "OPTIONAL_RESEARCH_EXTENSION",
+        "alias_counted_as_document": false
+      }
+    ]
   },
   "sources": [
     {
@@ -125,7 +144,7 @@
     }
   ],
   "background_sources": {
-    "note": "背景及补充资料的版本、页数与SHA-256均已登记；不同器件/实施例用于比较，不叠加为目标芯片强制要求。原件在仓库外，ADC_SOURCES_DIR可提供包含这些文件名的材料目录。",
+    "note": "背景、补充与可选来源扩展的版本、页数与SHA-256均登记，source_role区分其用途；不同器件/实施例不叠加为ISSCC目标芯片强制要求。原件在仓库外，ADC_SOURCES_DIR可提供包含规范文件名的材料目录。",
     "items": [
       {
         "id": "01",
@@ -246,6 +265,46 @@
         "citation_status": "page_checked",
         "source_role": "SUPPLEMENTARY_COMPARISON",
         "review_date": "2026-11-05"
+      },
+      {
+        "id": "PKU_VLSI2025_C32_1_PAPER",
+        "file": "PKU_VLSI2025_C32_1_PAPER.pdf",
+        "title": "An 88.8dB-SNDR 6-MS/s Pipelined SAR ADC with A Closed-Loop Dynamic Amplifier Featuring Highly-Linear Full-Scale Output Swing",
+        "authors": "Zongnan Wang, Haoyang Luo, Rongjia Bao, Lu Jie, Xiyuan Tang",
+        "venue": "2025 Symposium on VLSI Technology and Circuits, C32-1",
+        "doi": "10.23919/VLSITechnologyandCir65189.2025.11075015",
+        "sha256": "eb958cfa40eed665abfffe2c7e9fc96aa031473da1e22c762d836410207ff550",
+        "pages": 3,
+        "bytes": 1480856,
+        "role": "可选CAAZ研究扩展来源：输入chopping、共享AZ样本保持与完整重构后的非重叠pair处理；不属于ISSCC 2024目标芯片原架构",
+        "hash_registered": true,
+        "citation_status": "page_checked",
+        "source_role": "OPTIONAL_RESEARCH_EXTENSION",
+        "review_date": "2026-11-05"
+      },
+      {
+        "id": "PKU_VLSI2025_C32_1_SLIDES",
+        "file": "PKU_VLSI2025_C32_1_SLIDES.pdf",
+        "title": "An 88.8dB-SNDR 6-MS/s Pipelined SAR ADC with A Closed-Loop Dynamic Amplifier Featuring Highly-Linear Full-Scale Output Swing — presentation slides",
+        "authors": "Zongnan Wang, Haoyang Luo, Rongjia Bao, Lu Jie, Xiyuan Tang",
+        "venue": "2025 Symposium on VLSI Technology and Circuits, C32-1 presentation",
+        "doi": null,
+        "sha256": "5921d65cfae061ca6301a6104460c2eff3803245c1bc976acecac16adfa79759",
+        "pages": 42,
+        "bytes": 5288256,
+        "role": "可选CAAZ研究扩展来源：输入chopping、共享AZ样本保持与完整重构后的非重叠pair处理；不属于ISSCC 2024目标芯片原架构",
+        "hash_registered": true,
+        "citation_status": "page_checked",
+        "source_role": "OPTIONAL_RESEARCH_EXTENSION",
+        "review_date": "2026-11-05",
+        "aliases": [
+          {
+            "file": "C32_C32-1.pdf",
+            "sha256": "5921d65cfae061ca6301a6104460c2eff3803245c1bc976acecac16adfa79759",
+            "pages": 42,
+            "counted_as_document": false
+          }
+        ]
       }
     ]
   },

@@ -1,5 +1,6 @@
 // 模块：cal_sample_context；当前residue到下一周期fine的物理样本上下文。
-// 职责：current→residue packet→fine packet，冻结ID、coarse/sid/dither、物理mask、rail与注入。
+// 职责：current→residue→fine，冻结ID、coarse/sid/dither、物理mask、rail、注入及CAAZ tag。
+// CAAZ的34位{chop,AZ代,AZ资格}与同一residue保存，不从当前bank反推旧样本。
 // 端口/单位：ID与状态为整数；main/sub/rail为物理选择位；injection为有符号Q32。
 // 时钟/复位：clk上升沿、同步低有效rst_n；disable丢弃两份在途packet并清valid。
 // 周期：默认phase9保存当前residue，下一周期quiet_sample转交给共享fine SAR。
@@ -12,6 +13,9 @@ module cal_sample_context (
     input wire [31:0] current_id,
     input wire [8:0] current_coarse, current_sid,
     input wire signed [7:0] current_dither,
+    input wire current_chop_neg,
+    input wire [31:0] current_az_pair_id,
+    input wire current_az_valid,
     input wire [N_ACTIVE - 1:0][4:0] current_slices,
     input wire [N_ACTIVE - 1:0][N_UNIT_MAIN - 1:0] current_main,
     input wire [N_ACTIVE - 1:0][N_UNIT_SUB - 1:0] current_sub,
@@ -23,6 +27,9 @@ module cal_sample_context (
     output logic [31:0] fine_id,
     output logic [8:0] fine_coarse, fine_sid,
     output logic signed [7:0] fine_dither,
+    output logic fine_chop_neg,
+    output logic [31:0] fine_az_pair_id,
+    output logic fine_az_valid,
     output logic [N_ACTIVE - 1:0][4:0] fine_slices,
     output logic [N_ACTIVE - 1:0][N_UNIT_MAIN - 1:0] fine_main,
     output logic [N_ACTIVE - 1:0][N_UNIT_SUB - 1:0] fine_sub,
@@ -31,7 +38,7 @@ module cal_sample_context (
     output logic signed [63:0] fine_injection
 );
   // Packed packet layout is local; named ports preserve independent debug.
-  localparam int CW = 32 + 9 + 9 + 8 + int'(N_ACTIVE) * (5 + int'(N_UNIT_MAIN) + int'(N_UNIT_SUB)) +
+  localparam int CW = 32 + 9 + 9 + 8 + 34 + int'(N_ACTIVE) * (5 + int'(N_UNIT_MAIN) + int'(N_UNIT_SUB)) +
       2 * int'(DITHER_UNITS_RANGE) + 1 + 64;
   logic [CW - 1:0] residue;
   logic residue_valid, residue_bad;
@@ -47,6 +54,9 @@ module cal_sample_context (
       fine_coarse <= '0;
       fine_sid <= '0;
       fine_dither <= '0;
+      fine_chop_neg <= 1'b0;
+      fine_az_pair_id <= '0;
+      fine_az_valid <= 1'b0;
       fine_slices <= '0;
       fine_main <= '0;
       fine_sub <= '0;
@@ -59,6 +69,7 @@ module cal_sample_context (
         residue_valid <= current_valid;
         residue_bad <= current_bad;
         residue <= {current_id, current_coarse, current_sid, current_dither,
+            current_chop_neg, current_az_pair_id, current_az_valid,
             current_slices, current_main, current_sub,
             current_rails, current_sampling, current_injection};
       end
@@ -69,7 +80,8 @@ module cal_sample_context (
       // analog_bad is sampled at transfer, while current_bad was frozen earlier.
       if (quiet_sample) begin
         fine_valid <= residue_valid;
-        {fine_id, fine_coarse, fine_sid, fine_dither, fine_slices, fine_main,
+        {fine_id, fine_coarse, fine_sid, fine_dither, fine_chop_neg, fine_az_pair_id,
+            fine_az_valid, fine_slices, fine_main,
             fine_sub, fine_rails, fine_sampling, fine_injection} <= residue;
         fine_analog_bad <= analog_bad || residue_bad;
         residue_valid <= 0;

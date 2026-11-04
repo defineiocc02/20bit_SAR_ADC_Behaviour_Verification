@@ -174,7 +174,12 @@ class ResidueAmplifier:
         return np.asarray(c_active, dtype=float) / c_feedback_true
 
     def evaluate(
-        self, residue: np.ndarray, rng: np.random.Generator, g: np.ndarray | float | None = None
+        self,
+        residue: np.ndarray,
+        rng: np.random.Generator,
+        g: np.ndarray | float | None = None,
+        *,
+        error_v: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
         """放大 + 加噪 + 饱和。
 
@@ -183,11 +188,17 @@ class ResidueAmplifier:
             rng:     噪声生成器（与主循环共用，保证可复现）。
             g:       逐样本增益 [无量纲]；charge 模式**必传**
                      （gain_vector 的结果），缺省仅适用于 fixed 模式。
+            error_v: 显式 RA 输出等效误差流 [V]，形状与 residue 相同、全有限；
+                     在已有噪声之后、原 ra_v_clip 钳位及 ADC2 量化之前注入。
+                     None 保留原数值和 RNG 消费顺序。来源为调用方定义的扰动，
+                     本接口不把它解释为特定器件噪声或由指标反推的系数。
         Returns:
             (vra, sat)
             vra: RA 输出电压 [V]，已按 ra_v_clip 钳位。
             sat: 逐样本布尔，|vra| ≥ ra_v_clip（饱和统计口径见 metrics）。
-        Side effects: 无（噪声按事件生成，但状态在 rng 里，不在本类）。
+        Side effects:
+            消费已有 rng 中的白噪声/闪烁噪声样本；显式 error_v 不消费 RNG，
+            不修改输入数组和饱和范围。噪声状态在 rng 里，不在本类。
         """
         if g is None:
             g = self.cfg.g_actual
@@ -204,6 +215,11 @@ class ResidueAmplifier:
                 residue.shape[0], self.cfg.fs, self.cfg.flicker_corner_hz, self.flicker_white, rng
             )
             v = v + g * nf
+        if error_v is not None:
+            error = np.asarray(error_v, dtype=float)
+            if error.shape != residue.shape or np.any(~np.isfinite(error)):
+                raise ValueError("explicit RA output error must be finite and match the record")
+            v = v + error
         sat = np.abs(v) >= self.cfg.ra_v_clip
         v = np.clip(v, -self.cfg.ra_v_clip, self.cfg.ra_v_clip)
         return v, sat

@@ -8,6 +8,8 @@ This research repository studies slice scheduling, capacitor mismatch, digital c
 
 This independent maintenance review covered **18 documents / 596 pages**, plus the full text of **49 Python and 41 RTL production modules**. It repairs reference recovery, configuration/export boundaries, error units and CNV/SPI protocol defects. See the [2026-11-05 review](docs/reviews/20261105-independent-maintenance.md) for source coverage, source ambiguities, functional changes and remaining requirements. Reading coverage and implementation verification are recorded separately.
 
+A subsequent extension reviewed the **3-page paper and 42-page presentation** for PKU VLSI 2025 C32-1 and added optional, disabled-by-default chopping-assisted auto-zeroing (CAAZ). The combined source corpus is **20 documents / 641 pages**, with **50 Python / 43 RTL production modules**; new and changed modules received a separate complete-text review. See the [CAAZ technical note](docs/caaz/README.md) for source ambiguities, implementation scope and evidence.
+
 ## Results at a glance
 
 | Question | Project approach | What was observed under the stated conditions |
@@ -107,11 +109,34 @@ The `fs/2 − fin` bin falls from **−96.44 to −123.05 dBFS/bin** when fixed 
 
 Slice offset, gain, and bandwidth differences also cause interleaving errors; the [offset/gain comparison](docs/readme/fig/unified_7_interleave_effect.png) shows that spur and total RMS changes can differ. Dedicated hardware learners and compensation for per-slice timing and bandwidth are not closed.
 
+## Chopping-assisted auto-zeroing: the PKU VLSI 2025 mechanism
+
+[Wang et al., C32-1](https://doi.org/10.23919/VLSITechnologyandCir65189.2025.11075015) and its presentation disclose **chopping the complete ADC input, capturing AZ on even conversions, retaining that same noise realization on odd conversions, and differencing complete reconstructed words before division by two**. For equal input-referred AZ contributions:
+
+$$
+u_{2k}=x_{2k}+a_k+\eta_{2k},\quad
+u_{2k+1}=-x_{2k+1}+a_k+\eta_{2k+1},\quad
+y_k=\frac{u_{2k}-u_{2k+1}}2
+=\frac{x_{2k}+x_{2k+1}}2+\frac{\eta_{2k}-\eta_{2k+1}}2.
+$$
+
+![Held AZ noise, actual reconstruction error and hold sensitivity](docs/caaz/fig/caaz_mechanism_results.png)
+
+*Figure 7. An original figure generated from full behavioral-ADC experiments and public equations, not copied source artwork. 8192 raw conversions; 40 MS/s raw → 20 MS/s pairs; approximately 1.001 MHz / 2 V peak input; G=32. AZ and ordinary errors are each assumed to be 1 mV RMS at the RA output. Capacitor mismatch and the old fitted noise budget are disabled. Panel D disables ordinary error and varies hold retention.*
+
+Error standard deviations are **44.27 → 31.14 → 22.28 µV**: ordinary pair averaging explains the first reduction; shared AZ cancellation provides the second. The paper's measured **4.3 dB = 1.3 dB AZ benefit + 3 dB averaging benefit** is not a fitted target here. Imperfect retention, unequal transfer gains or incorrect pairing leave residual error.
+
+**Current integration.** Python injects owned error before RA clipping and ADC2 quantization, reconstructs the complete coarse/fine word, and then performs integer pairing. RTL adds input-polarity/AZ control, stored-generation tags, pair arithmetic and fault rejection. Default operation retains 40 MS/s raw output. Enabled CAAZ uses the project's **20 MS/s pair-output contract**, with a raw observation port. Pairing changes signal bandwidth: the [technical note](docs/caaz/README.md#速率带宽和时间戳) documents $|\cos(\pi f/f_{raw})|$, timestamps and aliasing limits.
+
+**Still needed.** Physical input choppers, separate CBIAS capture/hold/isolation and reservoir-reset controls, plus leakage, injection, settling, unequal gain and low-frequency noise-transfer validation. The model is restricted to sample-domain operation; the FGA/CP-FIA transistor implementation and continuous chopping dynamics remain unverified. See the [CAAZ note](docs/caaz/README.md) for modules, source pages and reproduction commands. The source's internal raw/pair rate relation remains undisclosed.
+
+CAAZ remains within the four work areas: polarity and AZ state belong to conversion control; each raw word first receives capacitor-weight reconstruction; pair readout belongs to output processing. DEM and slice-mismatch tasks retain their existing responsibilities.
+
 ## DSP connection and fault handling
 
 ![SAR-to-DSP code formats and faults](docs/readme/fig/unified_4_dsp.png)
 
-*Figure 7. An original illustration of the current RTL integration boundary.*
+*Figure 8. An original illustration of the current RTL integration boundary.*
 
 [`sar20_system_top.sv`](ad4080_dsp/rtl/sar20_system_top.sv) instantiates the SAR digital core and DSP. Alternatively, connect [`sar20_ad4080_top.sv`](ad4080_dsp/rtl/sar20_ad4080_top.sv) separately to the SAR result, per-sample flags and independent sticky `analog_ovf`. The SAR now has a per-result `dout_analog_bad` aligned with the sample ID, while the DSP still stops on the sticky analog flag. It converts offset binary to the DSP's two's-complement input and converts the parallel output back; serial payloads remain two's complement. Any result flag or sticky analog overflow halts the stream and latches a fault. `dsp_restart` or `sar_epoch_clear` resets the DSP, **including FIFO, filter state and register configuration**; the SAR epoch clear is needed to clear its sticky analog fault before reconfiguration.
 
@@ -123,7 +148,7 @@ The separate `cal_two_point` block currently fits `y=m·x+c` at fixed x coordina
 
 ![Parameter provenance and evidence limits](docs/readme/fig/unified_5_evidence.png)
 
-*Figure 8. Original illustration of top-level `Config` fields from the runtime provenance ledger. Nested model parameters are documented by their owning interfaces and are not individually expanded in this chart. Fitted and assumed results are not disclosed facts or chip measurements.*
+*Figure 9. Original illustration of top-level `Config` fields from the runtime provenance ledger. Nested model parameters are documented by their owning interfaces and are not individually expanded in this chart. Fitted and assumed results are not disclosed facts or chip measurements.*
 
 Behavioral models, RTL simulation, historical FPGA evidence and target-PDK synthesis/STA are separate evidence levels. Figures 3 and 6 are 40 MS/s behavioral simulations on baseline `6863fc3`; Figure 4 combines the current structural digital DUT with a static behavioral plant. None is transistor or silicon data. Historical detailed documentation is retained in [`docs/history/`](docs/history/); historical tests are not automatically new results for the present checkout.
 

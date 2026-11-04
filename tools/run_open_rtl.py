@@ -22,6 +22,9 @@ REPO = Path(__file__).resolve().parents[1]
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     benches = {
+        "caaz_pair_processor_tb": "CAAZ_PAIR_PROCESSOR_COMPLETE",
+        "caaz_context_contract_tb": "CAAZ_CONTEXT_CONTRACT_COMPLETE",
+        "caaz_python_vectors_tb": "CAAZ_PYTHON_VECTORS_COMPLETE",
         "cnv_ctrl_contract_tb": "CNV_CTRL_CONTRACT_COMPLETE",
         "spi_abort_contract_tb": "SPI_ABORT_CONTRACT_COMPLETE",
         "sar_trial_tb": "SAR_TRIAL_COMPLETE",
@@ -90,6 +93,8 @@ def main() -> None:
     for lint_top, profile, parameters in (
         ("sar20_digital_core", "structural", []),
         ("sar20_digital_core", "structural_observer", ["-GP_CAL_OBSERVE=1'b1"]),
+        ("sar20_digital_core", "caaz", ["-GP_CAAZ_ENABLE=1'b1"]),
+        ("sar20_digital_core", "caaz_observer", ["-GP_CAAZ_ENABLE=1'b1", "-GP_CAL_OBSERVE=1'b1"]),
         ("sar20_digital_core", "compatibility", ["-GP_STRUCTURAL=1'b0"]),
         ("sadc_enc", "standalone", []),
         ("sar20_system_top", "system", ["-Wno-TIMESCALEMOD"]),

@@ -57,3 +57,23 @@ preferred-citation:
     The published architecture this model studies. This repository is an
     independent academic model and is not affiliated with, endorsed by, or
     licensed from Analog Devices, Inc.
+references:
+  - type: article
+    title: "An 88.8dB-SNDR 6-MS/s Pipelined SAR ADC with a Closed-Loop Dynamic Amplifier Featuring Highly-Linear Full-Scale Output Swing"
+    year: 2025
+    authors:
+      - family-names: Wang
+        given-names: Zongnan
+      - family-names: Luo
+        given-names: Haoyang
+      - family-names: Bao
+        given-names: Rongjia
+      - family-names: Jie
+        given-names: Lu
+      - family-names: Tang
+        given-names: Xiyuan
+    collection-title: Symposium on VLSI Technology and Circuits
+    doi: 10.23919/VLSITechnologyandCir65189.2025.11075015
+    notes: >-
+      Source of the optional chopping-assisted auto-zero mechanism, not the
+      ISSCC architecture target or a measured result of this repository.

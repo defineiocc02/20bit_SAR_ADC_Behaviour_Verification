@@ -40,7 +40,20 @@ module sar20_dsp_integration_tb;
     .slice_sel(), .main_sw(), .sub_sw(), .dither_sw(), .sw_valid(),
     .dout(sar_dout), .dout_valid(sar_valid), .clip_low(), .clip_high(),
     .analog_ovf(sar_analog_ovf), .acc_ovf(), .status_word(), .dout_sample_id(sar_id),
-    .dout_flags(sar_flags), .cal_obs_valid(), .cal_obs_data(), .dout_analog_bad()
+    .dout_flags(sar_flags), .cal_obs_valid(), .cal_obs_data(), .dout_analog_bad(),
+    .caaz_az_capture_ok(1'b1),
+    .caaz_input_chop_neg(),
+    .caaz_az_capture_en(),
+    .caaz_az_hold(),
+    .cal_obs_caaz_data(),
+    .caaz_raw_valid(),
+    .caaz_raw_data(),
+    .caaz_pair_difference(),
+    .caaz_pair_difference_valid(),
+    .caaz_pair_first_sample_id(),
+    .caaz_pair_id(),
+    .caaz_pair_fault(),
+    .caaz_pair_fault_code()
   );
 
   logic inject_mode = 1, inject_valid = 0, inject_analog_ovf = 0, restart = 0;

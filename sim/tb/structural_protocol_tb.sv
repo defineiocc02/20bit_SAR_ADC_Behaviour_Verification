@@ -47,7 +47,15 @@ module structural_protocol_tb;
     .recon_start(launch),.context_id(id),.context_slices(ids),.context_main(cm),.context_sub(cs),
     .context_rails(cr),.context_sampling(csm),.context_analog_bad(cab),.context_injection(ci),
     .context_coarse(),.context_sid(),.context_dither(),
-    .fine_code(fc),.error_code(err));
+    .fine_code(fc),.error_code(err),
+      // Optional CAAZ ports are explicit; the legacy profile stays disabled.
+      .caaz_az_capture_ok(1'b1),
+      .caaz_input_chop_neg(),
+      .caaz_az_capture_en(),
+      .caaz_az_hold(),
+      .context_chop_neg(),
+      .context_az_pair_id(),
+      .context_az_valid());
   // A zero-delay RTL simulation cannot establish physical glitch freedom.
   // Deliberately perturb only the phase bus between clocks to test isolation
   // of analog-facing enables from transient decoder values. This is a

@@ -24,7 +24,22 @@ module review_top_protocol_tb;
     .slice_sel(slice_sel),.main_sw(main_sw),.sub_sw(sub_sw),.dither_sw(dither_sw),.sw_valid(sw_valid),
       .dout_sample_id(), .dout_flags(), .cal_obs_valid(), .cal_obs_data(), .dout_analog_bad()
   ,
-      .flash_therm('0), .flash_valid('0), .coarse_cmp_valid('0), .coarse_cmp_ge('0), .fine_cmp_valid('0), .fine_cmp_ge('0), .analog_phase(), .quiet_sample(), .tp_clock(), .ra_az(), .ra_amplify(), .ref_precharge(), .ref_accurate(), .acquiring_mask(), .converting_mask(), .aux_charge_enable(), .hold_low_enable(), .coarse_compare_enable(), .coarse_trial(), .quantizer_dither(), .acquisition_dither_rails(), .fine_trial(), .fine_compare_enable(), .coarse_acquire_enable(),.flash_acquire_enable(),.fine_acquire_enable(),.flash_sample()
+      .flash_therm('0), .flash_valid('0), .coarse_cmp_valid('0), .coarse_cmp_ge('0), .fine_cmp_valid('0), .fine_cmp_ge('0), .analog_phase(), .quiet_sample(), .tp_clock(), .ra_az(), .ra_amplify(), .ref_precharge(), .ref_accurate(), .acquiring_mask(), .converting_mask(), .aux_charge_enable(), .hold_low_enable(), .coarse_compare_enable(), .coarse_trial(), .quantizer_dither(), .acquisition_dither_rails(), .fine_trial(), .fine_compare_enable(), .coarse_acquire_enable(),.flash_acquire_enable(),.fine_acquire_enable(),.flash_sample(),
+
+      // Optional CAAZ ports are explicit; the legacy profile stays disabled.
+      .caaz_az_capture_ok(1'b1),
+      .caaz_input_chop_neg(),
+      .caaz_az_capture_en(),
+      .caaz_az_hold(),
+      .cal_obs_caaz_data(),
+      .caaz_raw_valid(),
+      .caaz_raw_data(),
+      .caaz_pair_difference(),
+      .caaz_pair_difference_valid(),
+      .caaz_pair_first_sample_id(),
+      .caaz_pair_id(),
+      .caaz_pair_fault(),
+      .caaz_pair_fault_code()
   );
   task automatic check(input bit ok,input string msg);
     checks++; if(!ok) $fatal(1,"%s",msg);

@@ -8,9 +8,11 @@
 // 周期：16tick帧；重构延迟ceil(63/P_RECON_STAGES)+2，P5/P6/P7为15/13/11完整拍。
 // 结果：dout_valid是完成事件，必须同时消费ID/flags/dout_analog_bad；错误可能保留上一合法字。
 // 观测：P_CAL_OBSERVE启用748位同接受沿packet，无背压或片外传输保证；元数据来自冻结context。
-// 错误优先级：bus>calibration>weight rejection>profile controller；status与本次flags的时刻/粘滞语义不同。
+// 错误优先级：bus>calibration>weight rejection>CAAZ pair>profile controller；status与flags语义不同。
 // 实现边界：片外求系数、片上应用；不包含在线学习器、模拟宏、CDC或ASIC/板级时序签核。
-// 来源：RTL_ARITHMETIC_CONTRACT.md、ADR0014/0017/0018、RTL_ENGINEERING_GUIDE.md。
+// P_CAAZ_ENABLE默认关闭；开启仅支持结构模式，主输出为raw/2的pair，额外保留92位raw观测。
+// 原748位cal_obs不变，34位CAAZ sideband另接；odd采样只保持CBIAS，不取消legacy RA reset。
+// 来源：RTL_ARITHMETIC_CONTRACT.md、ADR0014/0017/0018；CAAZ为PKU C32-1来源约束下工程实现。
 `include "rtl_params.vh"
 
 module sar20_digital_core #(
@@ -19,6 +21,7 @@ module sar20_digital_core #(
     parameter int P_REF_ON = 10,
     parameter int P_RESIDUE_CAPTURE = 9,
     parameter bit P_CAL_OBSERVE = 0,
+    parameter bit P_CAAZ_ENABLE = 1'b0,
     parameter logic [31:0] P_SHUFFLE_SEED = 32'h6d2b79f5,
     parameter logic [31:0] P_DITHER_SEED = 32'h13579bdf
 ) (
@@ -78,7 +81,22 @@ module sar20_digital_core #(
     // Optional same-edge calibration packet; see the documented 748-bit layout.
     output wire                 cal_obs_valid,
     output wire [747:0]         cal_obs_data,
-    output wire                 dout_analog_bad
+    output wire                 dout_analog_bad,
+    // Optional CAAZ macro controls and sample-domain observation. The legacy
+    // ra_az reset/preparation output remains active every cycle.
+    input wire                  caaz_az_capture_ok,
+    output wire                 caaz_input_chop_neg,
+    output wire                 caaz_az_capture_en,
+    output wire                 caaz_az_hold,
+    output wire [33:0]          cal_obs_caaz_data,
+    output wire                 caaz_raw_valid,
+    output wire [91:0]          caaz_raw_data,
+    output wire signed [20:0]   caaz_pair_difference,
+    output wire                 caaz_pair_difference_valid,
+    output wire [31:0]          caaz_pair_first_sample_id,
+    output wire [31:0]          caaz_pair_id,
+    output wire                 caaz_pair_fault,
+    output wire [3:0]           caaz_pair_fault_code
 );
 
   //=========================================================================
@@ -86,6 +104,8 @@ module sar20_digital_core #(
   //=========================================================================
   // 精化期拒绝头文件、端口几何或实例参数与冻结数字合同不一致的配置。
   initial begin
+    if (P_CAAZ_ENABLE && !P_STRUCTURAL)
+      $fatal(1, "sar20_digital_core: CAAZ requires the structural profile");
     if (P_RECON_STAGES < 5 || P_RECON_STAGES > 63)
       $fatal(1, "sar20_digital_core: divider throughput exceeds 16-tick frame budget");
     if (N_ACTIVE      != 8)   $fatal(1, "sar20_digital_core: N_ACTIVE != 8");
@@ -150,6 +170,9 @@ module sar20_digital_core #(
   wire [31:0] structural_error,structural_id;
   wire [8:0] structural_coarse, structural_sid;
   wire signed [7:0] structural_dither;
+  wire structural_chop_neg;
+  wire [31:0] structural_az_pair_id;
+  wire structural_az_valid;
   wire [7:0][4:0] structural_ids;
   wire [7:0][62:0] structural_main;
   wire [7:0][7:0] structural_sub;
@@ -311,7 +334,8 @@ module sar20_digital_core #(
         merged_err = ERR_W_SUM;
       end
     end else begin
-      merged_err = P_STRUCTURAL ? structural_error : input_err;
+      merged_err = caaz_pair_fault ? ERR_CAAZ_PAIR :
+          (P_STRUCTURAL ? structural_error : input_err);
     end
   end
 
@@ -546,6 +570,7 @@ module sar20_digital_core #(
   // Production structure: registered analog controls, dual coarse SAR,
   // shared flash seed, fine SAR and previous-residue physical context.
   sar_structural_ctrl #(
+      .P_CAAZ_ENABLE(P_CAAZ_ENABLE),
       .P_REF_ON(P_REF_ON),
       .P_RESIDUE_CAPTURE(P_RESIDUE_CAPTURE),
       .P_SHUFFLE_SEED(P_SHUFFLE_SEED),
@@ -567,6 +592,10 @@ module sar20_digital_core #(
       .injection_q(inj_q),
       .analog_bad(ra_sat || rdac_ovf || adc2_over),
       .recon_busy(rc_busy),
+      .caaz_az_capture_ok(caaz_az_capture_ok),
+      .caaz_input_chop_neg(caaz_input_chop_neg),
+      .caaz_az_capture_en(caaz_az_capture_en),
+      .caaz_az_hold(caaz_az_hold),
       .phase(analog_phase),
       .quiet_sample(quiet_sample),
       .tp_clock(tp_clock),
@@ -598,6 +627,9 @@ module sar20_digital_core #(
       .context_coarse(structural_coarse),
       .context_sid(structural_sid),
       .context_dither(structural_dither),
+      .context_chop_neg(structural_chop_neg),
+      .context_az_pair_id(structural_az_pair_id),
+      .context_az_valid(structural_az_valid),
       .context_slices(structural_ids),
       .context_main(structural_main),
       .context_sub(structural_sub),
@@ -625,6 +657,8 @@ module sar20_digital_core #(
       structural_sampling, structural_analog_bad, structural_injection,
       structural_fine
   } : '0;
+  assign cal_obs_caaz_data = P_CAL_OBSERVE && P_CAAZ_ENABLE ?
+      {structural_chop_neg, structural_az_pair_id, structural_az_valid} : '0;
 
   //=========================================================================
   // 10) 定点重构
@@ -632,6 +666,8 @@ module sar20_digital_core #(
   logic [OUT_BITS-1:0] rc_dout;
   logic                rc_dout_valid, rc_clip_low, rc_clip_high;
   logic                rc_acc_ovf, rc_gain_err, rc_adc2_ovf;
+  wire [31:0] raw_result_sample_id;
+  wire [4:0] raw_result_flags;
 
   recon_core #(
       .P_N_ACTIVE  (int'(N_ACTIVE)),
@@ -649,8 +685,8 @@ module sar20_digital_core #(
       .cfg_ready        (cfg_ready),
       .start            (launch_recon),
       .sample_id        (P_STRUCTURAL ? structural_id : alloc_sample_idx),
-      .result_sample_id (dout_sample_id),
-      .result_flags     (dout_flags),
+      .result_sample_id (raw_result_sample_id),
+      .result_flags     (raw_result_flags),
       .clr_ovf          (cfg_clear_valid),
       .sampling_mask_en (P_STRUCTURAL ? structural_sampling : c_smask_en),
       .slice_id         (P_STRUCTURAL ? structural_ids : conv_slices),
@@ -674,21 +710,63 @@ module sar20_digital_core #(
       .busy             (rc_busy)
   );
 
-  assign dout        = rc_dout;
-  assign dout_valid  = rc_dout_valid;
-  assign clip_low    = rc_clip_low;
-  assign clip_high   = rc_clip_high;
+  assign clip_low = P_CAAZ_ENABLE ? 1'b0 : rc_clip_low;
+  assign clip_high = P_CAAZ_ENABLE ? 1'b0 : rc_clip_high;
 
   // The reconstruction is single-in-flight and completes before the next
   // 16-phase launch. Carry the matching analog flag through that transaction.
   logic pending_analog_bad;
+  logic pending_chop_neg;
+  logic [31:0] pending_az_pair_id;
+  logic pending_az_valid;
   always_ff @(posedge clk) begin
-    if (!rst_n || cfg_clear_valid || !cfg_ready)
+    if (!rst_n || cfg_clear_valid || !cfg_ready) begin
       pending_analog_bad <= 1'b0;
-    else if (launch_recon)
+      pending_chop_neg <= 1'b0;
+      pending_az_pair_id <= '0;
+      pending_az_valid <= 1'b0;
+    end else if (launch_recon) begin
       pending_analog_bad <= P_STRUCTURAL ? structural_analog_bad : analog_sample;
+      pending_chop_neg <= structural_chop_neg;
+      pending_az_pair_id <= structural_az_pair_id;
+      pending_az_valid <= structural_az_valid;
+    end
   end
-  assign dout_analog_bad = rc_dout_valid && pending_analog_bad;
+  wire raw_result_analog_bad = rc_dout_valid && pending_analog_bad;
+  assign caaz_raw_valid = P_CAAZ_ENABLE && rc_dout_valid;
+  assign caaz_raw_data = P_CAAZ_ENABLE ? {
+      raw_result_sample_id, rc_dout, pending_chop_neg, pending_az_pair_id,
+      pending_az_valid, raw_result_flags, raw_result_analog_bad
+  } : '0;
+
+  // Complete calibrated words are paired. CAAZ off is a zero-latency bypass;
+  // CAAZ on emits one pair for two raw records, with the odd sample's ID.
+  caaz_pair_processor #(.P_CAAZ_ENABLE(P_CAAZ_ENABLE)) u_caaz_pair (
+      .clk(clk),
+      .rst_n(rst_n),
+      .epoch_clear(cfg_clear_valid || !cfg_ready),
+      .in_valid(rc_dout_valid),
+      .in_code(rc_dout),
+      .in_sample_id(raw_result_sample_id),
+      .in_chop_neg(pending_chop_neg),
+      .in_az_pair_id(pending_az_pair_id),
+      .in_az_valid(pending_az_valid),
+      .in_flags(raw_result_flags),
+      .in_analog_bad(raw_result_analog_bad),
+      .out_valid(dout_valid),
+      .out_code(dout),
+      .out_sample_id(dout_sample_id),
+      .out_first_sample_id(caaz_pair_first_sample_id),
+      .out_az_pair_id(caaz_pair_id),
+      .out_flags(dout_flags),
+      .out_analog_bad(dout_analog_bad),
+      .pair_difference(caaz_pair_difference),
+      .pair_difference_valid(caaz_pair_difference_valid),
+      .fault(caaz_pair_fault),
+      .fault_pulse(),
+      .pair_pending(),
+      .fault_code(caaz_pair_fault_code)
+  );
 
   //=========================================================================
   // 11) 状态寄存器

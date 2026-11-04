@@ -119,8 +119,23 @@ module sar20_system_top #(
         .clip_low(sar_clip_low), .clip_high(sar_clip_high), .analog_ovf(sar_analog_ovf),
         .acc_ovf(sar_acc_ovf), .status_word(sar_status_word), .dout_sample_id(sar_sample_id),
         .dout_flags(sar_flags), .dout_analog_bad(sar_result_analog_bad),
-        .cal_obs_valid(cal_obs_valid), .cal_obs_data(cal_obs_data)
-    );
+        .cal_obs_valid(cal_obs_valid), .cal_obs_data(cal_obs_data),
+
+      // Optional CAAZ ports are explicit; the legacy profile stays disabled.
+      .caaz_az_capture_ok(1'b1),
+      .caaz_input_chop_neg(),
+      .caaz_az_capture_en(),
+      .caaz_az_hold(),
+      .cal_obs_caaz_data(),
+      .caaz_raw_valid(),
+      .caaz_raw_data(),
+      .caaz_pair_difference(),
+      .caaz_pair_difference_valid(),
+      .caaz_pair_first_sample_id(),
+      .caaz_pair_id(),
+      .caaz_pair_fault(),
+      .caaz_pair_fault_code()
+  );
 
     sar20_ad4080_top #(.FIFO_DEPTH(DSP_FIFO_DEPTH)) u_dsp (
         .clk(clk), .rst_n(rst_n), .sar_epoch_clear(cfg_clear_valid), .dsp_restart(dsp_restart),

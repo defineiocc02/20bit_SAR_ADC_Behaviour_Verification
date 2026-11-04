@@ -33,6 +33,23 @@ Background / alternative architectures (NOT part of the target chip)
 [06] Steensgaard et al., 24b 2 MS/s SAR ADC, ISSCC 2022
 [07] Texas Instruments ADC3583 datasheet
 [08] Shen et al., 16-bit 16-MS/s SAR ADC in 55 nm CMOS, JSSC 2018
+[AD4080_REVB] Analog Devices AD4080 datasheet, Rev. B.
+[HUANG2024_THESIS] Huang, Advanced Clock Multiplier and SAR ADC Design
+                   Techniques for High-Resolution Signal Chain Systems, 2024.
+
+Optional mechanism adopted from a separate ADC (NOT the ISSCC target chip)
+-------------------------------------------------------------------------
+[PKU_VLSI2025_C32_1_PAPER] Zongnan Wang, Haoyang Luo, Rongjia Bao, Lu Jie
+and Xiyuan Tang, "An 88.8dB-SNDR 6-MS/s Pipelined SAR ADC with a Closed-Loop
+Dynamic Amplifier Featuring Highly-Linear Full-Scale Output Swing", 2025
+Symposium on VLSI Technology and Circuits, C32-1.
+DOI: 10.23919/VLSITechnologyandCir65189.2025.11075015
+[PKU_VLSI2025_C32_1_SLIDES] Corresponding 42-page C32-1 presentation slides.
+
+Chopping-assisted auto-zeroing is attributed to Wang et al. The optional
+sample-domain model and digital pairing protocol adapt that published mechanism
+to this project's architecture. They do not reproduce its transistor circuit,
+its measured performance, or an undisclosed raw/effective sampling-rate relation.
 
 The KTC-noise cancellation branch implemented in adi_model/ktc.py is an
 ORIGINAL RESEARCH EXTENSION by this repository's authors. It is explicitly

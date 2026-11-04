@@ -6,15 +6,18 @@
 // 同沿规则：转换读取旧采集组，next_ids使用旧cursor；PRNG更新只影响下一次扫描起点。
 // 调度：shuffle时8步LFSR更新游标，byte252..255保留旧游标；关闭shuffle后游标固定0。
 // 边界：循环扫描保持8/8/2及组内唯一/组间互斥，不是所有8-of-18子集的均匀随机抽样。
+// acquisition_primed暴露真实数字分配历史，不是模拟建立完成或采样精度证明。
 // 来源：项目因果slice池合同；随机策略为工程选择，不声明复刻未披露硅实现。
 module slice_pool_ctrl #(parameter logic [31:0] P_SEED = 32'h6d2b79f5) (
     input wire clk, rst_n, enable, advance, shuffle,
     output logic [7:0][4:0] acquiring_ids, converting_ids,
     output logic [17:0] acquiring_mask, converting_mask,
     output logic conversion_valid,
-    output logic [31:0] sample_id
+    output logic [31:0] sample_id,
+    output wire acquisition_primed
 );
   logic primed;
+  assign acquisition_primed = primed;
   logic [31:0] random_state, random_next;
   initial if (P_SEED == 0) $fatal(1, "slice_pool_ctrl: zero PRNG seed");
 

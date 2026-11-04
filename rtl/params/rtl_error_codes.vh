@@ -18,3 +18,4 @@ localparam logic [31:0] ERR_ADC2_NOT_READY = 32'd8;
 localparam logic [31:0] ERR_RECON_BUSY    = 32'd9;
 localparam logic [31:0] ERR_DITHER_MODE   = 32'd10;
 localparam logic [31:0] ERR_RDAC_RANGE    = 32'd11;
+localparam logic [31:0] ERR_CAAZ_PAIR     = 32'd12;

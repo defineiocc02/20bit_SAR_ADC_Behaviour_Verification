@@ -1,0 +1,116 @@
+{
+  "schema": "caaz-pair-v1",
+  "evidence": "Independent Python contract oracle plus full-model capture; not an analog CAAZ silicon claim",
+  "source": "C32.1 Fig6 even-minus-odd; IDs, fault/epoch and integer-floor are project interface choices",
+  "source_commit": "86106fc+local_CAAZ",
+  "raw_rate_hz": 40000000.0,
+  "pair_rate_hz": 20000000.0,
+  "rate_grade": "ENGINEERING_CHOICE",
+  "input_columns": [
+    "rst_n",
+    "epoch_clear",
+    "in_valid",
+    "in_code",
+    "in_sample_id",
+    "in_chop_neg",
+    "in_az_pair_id",
+    "in_az_valid",
+    "in_flags",
+    "in_analog_bad"
+  ],
+  "expected_columns": [
+    "out_valid",
+    "out_code",
+    "out_sample_id",
+    "out_first_sample_id",
+    "out_az_pair_id",
+    "out_flags",
+    "out_analog_bad",
+    "pair_difference",
+    "pair_difference_valid",
+    "fault",
+    "fault_pulse",
+    "pair_pending",
+    "fault_code"
+  ],
+  "cases": [
+    {
+      "case_id": 0,
+      "name": "physical_python_capture_dc_0p7V_seed9001",
+      "cycles": 129
+    },
+    {
+      "case_id": 1,
+      "name": "unsigned_integer_boundaries_and_128_random_pairs",
+      "cycles": 273
+    },
+    {
+      "case_id": 2,
+      "name": "valid_idle_gaps",
+      "cycles": 5
+    },
+    {
+      "case_id": 3,
+      "name": "uint32_id_and_az_generation_wrap",
+      "cycles": 5
+    },
+    {
+      "case_id": 4,
+      "name": "missing_sample_id_then_sticky_fault",
+      "cycles": 5
+    },
+    {
+      "case_id": 5,
+      "name": "wrong_first_phase_then_sticky_fault",
+      "cycles": 4
+    },
+    {
+      "case_id": 6,
+      "name": "wrong_second_phase",
+      "cycles": 5
+    },
+    {
+      "case_id": 7,
+      "name": "wrong_pair_az_generation",
+      "cycles": 5
+    },
+    {
+      "case_id": 8,
+      "name": "next_pair_generation_gap",
+      "cycles": 6
+    },
+    {
+      "case_id": 9,
+      "name": "raw_flags",
+      "cycles": 5
+    },
+    {
+      "case_id": 10,
+      "name": "analog_bad",
+      "cycles": 5
+    },
+    {
+      "case_id": 11,
+      "name": "az_invalid",
+      "cycles": 5
+    },
+    {
+      "case_id": 12,
+      "name": "epoch_clear_dominates_pending_odd_then_restarts",
+      "cycles": 5
+    },
+    {
+      "case_id": 13,
+      "name": "epoch_clear_does_not_pair_stray_odd",
+      "cycles": 6
+    },
+    {
+      "case_id": 14,
+      "name": "clear_releases_sticky_fault",
+      "cycles": 5
+    }
+  ],
+  "cycle_count": 468,
+  "valid_output_count": 206,
+  "fixture_sha256": "549aea6310a6db7b5220098870382a60e93437b29ba39255d746cfda068a51a4"
+}

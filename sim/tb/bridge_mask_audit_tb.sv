@@ -15,7 +15,15 @@ module bridge_mask_audit_tb;
     .coarse_trial(),.quantizer_dither(),.acquisition_dither_rails(),.fine_trial(),.fine_compare_enable(),.flash_sample(),
     .slice_sel(),.main_sw(),.sub_sw(),.dither_sw(),.sw_valid(),.recon_start(),.context_id(),.context_slices(),
     .context_main(),.context_sub(),.context_rails(),.context_sampling(),.context_analog_bad(),.context_injection(),
-    .context_coarse(),.context_sid(),.context_dither(),.fine_code(),.error_code());
+    .context_coarse(),.context_sid(),.context_dither(),.fine_code(),.error_code(),
+      // Optional CAAZ ports are explicit; the legacy profile stays disabled.
+      .caaz_az_capture_ok(1'b1),
+      .caaz_input_chop_neg(),
+      .caaz_az_capture_en(),
+      .caaz_az_hold(),
+      .context_chop_neg(),
+      .context_az_pair_id(),
+      .context_az_valid());
   integer fd,details,fail_cases=0,total_cases=0,total_changed_bits=0,nominal_fail=0;
   integer first_sid=-1,first_code=-1;
   integer order[63],sub_order[8];

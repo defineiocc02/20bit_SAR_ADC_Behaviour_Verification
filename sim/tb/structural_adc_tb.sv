@@ -66,7 +66,21 @@ module structural_adc_tb #(parameter int P_RECON_STAGES=7, parameter bit P_OBSER
     .slice_sel(selected),.main_sw(main_sw),.sub_sw(sub_sw),.dither_sw(dith_sw),.sw_valid(sw_valid),
     .dout(dout),.dout_valid(dout_valid),.clip_low(clip_low),.clip_high(clip_high),
     .analog_ovf(analog_ovf),.acc_ovf(acc_ovf),.status_word(status),.dout_sample_id(id),.dout_flags(flags),
-    .cal_obs_valid(observer_valid),.cal_obs_data(observer_data),.dout_analog_bad(result_analog_bad));
+    .cal_obs_valid(observer_valid),.cal_obs_data(observer_data),.dout_analog_bad(result_analog_bad),
+      // Optional CAAZ ports are explicit; the legacy profile stays disabled.
+      .caaz_az_capture_ok(1'b1),
+      .caaz_input_chop_neg(),
+      .caaz_az_capture_en(),
+      .caaz_az_hold(),
+      .cal_obs_caaz_data(),
+      .caaz_raw_valid(),
+      .caaz_raw_data(),
+      .caaz_pair_difference(),
+      .caaz_pair_difference_valid(),
+      .caaz_pair_first_sample_id(),
+      .caaz_pair_id(),
+      .caaz_pair_fault(),
+      .caaz_pair_fault_code());
   logic [47:0] weights[18][71];
   logic [19:0] expected[600];
   logic [4:0] expected_flags[600];

@@ -8,9 +8,12 @@
 // 配置：sampling与quantizer互斥；bridge在enable且sid[8]=1时活动；采样dither与RDAC使用匹配单位。
 // 异常：valid缺失不停止全局相位，到deadline取消；错误保持至reset/disable或后续错误覆盖。
 // 上下文：冻结实际物理ID/mask/rails及coarse/sid/dither，供下一周期fine与可选观测packet使用。
-// 来源：ADR0018及项目16tick预算；模拟开关、本地保持、比较器建立和参考电路不在本模块实现。
+// 可选CAAZ：input chop属于acquiring，AZcapture属于current RA，fine tag属于旧residue。
+// legacy ra_az每cycle保持；新增even-only capture只更新CBIAS，实际模拟开关/保持须独立验收。
+// 来源：ADR0018及项目16tick预算；CAAZ见PKU_VLSI2025_C32_1_PAPER PDF2 Fig5/6。
 `include "rtl_params.vh"
 module sar_structural_ctrl #(
+    parameter bit P_CAAZ_ENABLE = 0,
     parameter int P_REF_ON = 10,
     parameter int P_RESIDUE_CAPTURE = 9,
     parameter logic [31:0] P_SHUFFLE_SEED = 32'h6d2b79f5,
@@ -23,6 +26,10 @@ module sar_structural_ctrl #(
     input wire fine_cmp_valid, fine_cmp_ge,
     input wire signed [63:0] injection_q,
     input wire analog_bad, recon_busy,
+    input wire caaz_az_capture_ok,
+    output wire caaz_input_chop_neg,
+    output wire caaz_az_capture_en,
+    output wire caaz_az_hold,
     output wire [3:0] phase,
     output wire quiet_sample, tp_clock, ra_az, ra_amplify, ref_precharge, ref_accurate,
     output wire [17:0] acquiring_mask, converting_mask,
@@ -45,6 +52,9 @@ module sar_structural_ctrl #(
     output wire [31:0] context_id,
     output wire [8:0] context_coarse, context_sid,
     output wire signed [7:0] context_dither,
+    output wire context_chop_neg,
+    output wire [31:0] context_az_pair_id,
+    output wire context_az_valid,
     output wire [7:0][4:0] context_slices,
     output wire [7:0][62:0] context_main,
     output wire [7:0][7:0] context_sub,
@@ -77,6 +87,10 @@ module sar_structural_ctrl #(
   wire [7:0][4:0] acq_ids, conv_ids;
   wire conv_valid;
   wire [31:0] current_id;
+  wire acquisition_primed;
+  wire current_chop_neg;
+  wire [31:0] current_az_pair_id;
+  wire current_az_valid;
   slice_pool_ctrl #(
       .P_SEED(P_SHUFFLE_SEED)
   ) u_pool (
@@ -90,7 +104,26 @@ module sar_structural_ctrl #(
       .acquiring_mask(acquiring_mask),
       .converting_mask(converting_mask),
       .conversion_valid(conv_valid),
-      .sample_id(current_id)
+      .sample_id(current_id),
+      .acquisition_primed(acquisition_primed)
+  );
+
+  // Legacy RA reset/preparation remains unchanged every cycle. Only this
+  // independent capture pin controls CBIAS AZ refresh; odd cycles hold it.
+  caaz_cycle_ctrl #(.P_CAAZ_ENABLE(P_CAAZ_ENABLE)) u_caaz_cycle (
+      .clk(clk),
+      .rst_n(rst_n),
+      .enable(enable),
+      .quiet_sample(quiet_sample),
+      .acquisition_primed(acquisition_primed),
+      .phase(phase),
+      .az_capture_ok(caaz_az_capture_ok),
+      .input_chop_neg(caaz_input_chop_neg),
+      .az_capture_en(caaz_az_capture_en),
+      .az_hold(caaz_az_hold),
+      .current_chop_neg(current_chop_neg),
+      .current_az_pair_id(current_az_pair_id),
+      .current_az_valid(current_az_valid)
   );
 
   // Aux supplies parasitic/boost charge while acquiring (patent13 Fig2/11).
@@ -261,6 +294,9 @@ module sar_structural_ctrl #(
       .current_coarse(resolved[bank]),
       .current_sid(sid),
       .current_dither(current_dither),
+      .current_chop_neg(current_chop_neg),
+      .current_az_pair_id(current_az_pair_id),
+      .current_az_valid(current_az_valid),
       .current_slices(conv_ids),
       .current_main(main_on),
       .current_sub(sub_on),
@@ -274,6 +310,9 @@ module sar_structural_ctrl #(
       .fine_coarse(context_coarse),
       .fine_sid(context_sid),
       .fine_dither(context_dither),
+      .fine_chop_neg(context_chop_neg),
+      .fine_az_pair_id(context_az_pair_id),
+      .fine_az_valid(context_az_valid),
       .fine_slices(context_slices),
       .fine_main(context_main),
       .fine_sub(context_sub),

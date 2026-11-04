@@ -24,6 +24,10 @@ for version history; its open-item statements are not current capabilities.
   independent known input and reload weights for a static-plant holdout.
 * Correct one-sided PSD, band integration, alias/rank diagnostics, distinct
   published benchmark records and stationary finite-band low-frequency state.
+* Optional sample-domain [chopping-assisted AZ](caaz/README.md), adapted from
+  a separately reviewed VLSI 2025 ADC: full-input polarity, held AZ error
+  before RA clip/ADC2, complete-word reconstruction and nonoverlapping pairing.
+  It is disabled by default; the project chooses 40 MS/s raw and 20 MS/s pairs.
 
 ## Assumptions and limits
 
@@ -38,6 +42,7 @@ for version history; its open-item statements are not current capabilities.
 | Codes | Real 20-bit integer reconstruction is available; exhaustive digital and local carry tests do not establish full-chip noisy INL/DNL. Mean-error curves are conditional statistics. |
 | Low frequency | Stationary 1/f needs an assumed low cutoff; finite log-frequency quadrature is checked for convergence. A 64 s slow-component probe is not a full 2.56 billion-sample conversion simulation. |
 | KTC extension | Research observer, not attributed to the ISSCC device. Its unquantized correction is rejected by the integer output API. |
+| CAAZ source extension | Sample-domain mechanism and digital-core protocol only. Independent assumed AZ amplitudes; rejects unsupported continuous-chopper/old AZ-budget combinations. Physical CBIAS hold, FGA/CP-FIA, target timing and DSP-wrapper enablement remain open. See the separate source and implementation evidence in the CAAZ note. |
 | Devices | No PDK/layout/transistor measurements; mismatch, area, power and yield remain sensitivity assumptions. |
 
 ## Evidence and units

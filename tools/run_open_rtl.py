@@ -87,11 +87,11 @@ def main() -> None:
     # behind the simulation compile's allowance for testbench warnings.
     for lint_top, profile, parameters in (
         ("sar20_digital_core", "structural", []),
-        ("sar20_digital_core", "structural_observer", ["-GP_CAL_OBSERVE=1"]),
-        ("sar20_digital_core", "compatibility", ["-GP_STRUCTURAL=0"]),
+        ("sar20_digital_core", "structural_observer", ["-GP_CAL_OBSERVE=1'b1"]),
+        ("sar20_digital_core", "compatibility", ["-GP_STRUCTURAL=1'b0"]),
         ("sadc_enc", "standalone", []),
         ("sar20_system_top", "system", ["-Wno-TIMESCALEMOD"]),
-        ("sar20_system_top", "system_observer", ["-Wno-TIMESCALEMOD", "-GP_CAL_OBSERVE=1"]),
+        ("sar20_system_top", "system_observer", ["-Wno-TIMESCALEMOD", "-GP_CAL_OBSERVE=1'b1"]),
     ):
         lint_sources = sources
         if profile in {"system", "system_observer"}:

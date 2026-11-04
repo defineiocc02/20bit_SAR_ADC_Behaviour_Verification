@@ -1,11 +1,13 @@
 """Independent checks of structural sample, bridge and reference contracts."""
 
 import csv
+import subprocess
+import sys
 from dataclasses import replace
+from pathlib import Path
 
 import numpy as np
 import pytest
-from tools.verify_rdac_events import verify
 
 from adi_model import Config, ConfigError, sine_input
 from adi_model.closure_experiments import signed_reference_loading
@@ -61,8 +63,12 @@ def test_reference_event_trace_rejects_a_repeated_nonadjacent_sample(tmp_path):
             ]
         )
         writer.writerows(group(0) + group(1) + group(0) + group(1) * 1533)
-    with pytest.raises(ValueError, match="duplicated RDAC sample group"):
-        verify(trace)
+    runner = Path(__file__).resolve().parents[2] / "tools/verify_rdac_events.py"
+    result = subprocess.run(
+        [sys.executable, str(runner), str(trace)], capture_output=True, text=True, check=False
+    )
+    assert result.returncode != 0
+    assert "duplicated RDAC sample group" in result.stderr
 
 
 def test_rtl16_profile_reports_actual_phase_times_and_sample_ownership():

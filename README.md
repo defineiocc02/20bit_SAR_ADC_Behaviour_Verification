@@ -36,7 +36,7 @@
 | dither | 行为注入/数字补偿和 RTL 发生器 | 不同模式的范围、注入与补偿合同须分别检查；大输入可能越界 |
 | RA、参考与 ADC2 | RA/参考动态行为和理想 ADC2 量化 | 参考负载事件与结构 RTL 已决位事件仍有差异；ADC2 自身非线性学习、模拟电路和 PDK 验证未完成 |
 
-完整出处和代码定位见 [`mechanism_inventory.json`](mechanism_inventory.json)、[`sources_manifest.json`](sources_manifest.json) 和 [工程与文献对照](docs/engineering_vs_patents_papers.md)。主要公开资料包括 [量化器与残差 DAC 分离](https://patents.google.com/patent/US10516408B2/en)、[dither](https://patents.google.com/patent/US10505561B2/en)、[DEM](https://patents.google.com/patent/US10511316B2/en) 与 [交织跟踪](https://patents.google.com/patent/US10707889B1/en)。公开资料与项目候选实现不是一一还原关系。
+完整出处和代码定位见 [`mechanism_inventory.json`](mechanism_inventory.json)、[`sources_manifest.json`](sources_manifest.json)、[工程与文献对照](docs/engineering_vs_patents_papers.md)和 [已知限制](docs/rtl/KNOWN_LIMITS_20261104.md)。主要公开资料包括 [量化器与残差 DAC 分离](https://patents.google.com/patent/US10516408B2/en)、[dither](https://patents.google.com/patent/US10505561B2/en)、[DEM](https://patents.google.com/patent/US10511316B2/en) 与 [交织跟踪](https://patents.google.com/patent/US10707889B1/en)。公开资料与项目候选实现不是一一还原关系。
 
 ## 电容失配：如何校准，效果是什么
 
@@ -70,9 +70,11 @@ slice 失调会在 `fs/2` 产生交织相关误差；slice 电容/增益失配�
 
 *图 6．工程接入示意：按当前 RTL 独立绘制。*
 
-[`sar20_system_top.sv`](ad4080_dsp/rtl/sar20_system_top.sv) 实例化 SAR 数字核与 DSP；也可单独使用 [`sar20_ad4080_top.sv`](ad4080_dsp/rtl/sar20_ad4080_top.sv) 接收 SAR 的 `dout`、`dout_valid`、`dout_sample_id` 和 `dout_flags`。入口将 offset-binary 转为 DSP 内部补码，并行出口转回 offset-binary；串行数据仍为补码。任一 SAR 错误标志触发拒收并锁存故障，防止 SAR 保持的旧码混入滤波器。`dsp_restart` 或 `sar_epoch_clear` 复位 DSP，**同时清空其 FIFO、滤波状态和寄存器配置**，重启后需重新配置。
+[`sar20_system_top.sv`](ad4080_dsp/rtl/sar20_system_top.sv) 实例化 SAR 数字核与 DSP；也可单独使用 [`sar20_ad4080_top.sv`](ad4080_dsp/rtl/sar20_ad4080_top.sv) 接收 SAR 结果、逐样本标志及独立的 `analog_ovf` 粘滞位。入口将 offset-binary 转为 DSP 内部补码，并行出口转回 offset-binary；串行数据仍为补码。任一结果标志或模拟溢出粘滞位触发阻断并锁存故障。`dsp_restart` 或 `sar_epoch_clear` 复位 DSP，**同时清空其 FIFO、滤波状态和寄存器配置**；模拟粘滞位须由 SAR 的 epoch clear 清除，随后需要重新配置。
 
-接口侧输出接受/拒收事件与 ID；滤波和 FIFO 的结果**尚不携带逐结果 ID 或输入标志**。两侧要求同一时钟及同步释放复位，没有新增 CDC。DSP 支持的校正、滤波、SPI、FIFO 和串行数字逻辑及其未完成事项见 [DSP README](ad4080_dsp/README.md)；不包含 DDR 差分 PHY，SINC5 补偿系数默认是占位值。
+接口侧输出接受/拒收事件与 ID；滤波和 FIFO 的结果**尚不携带逐结果 ID 或输入标志**。两侧要求同一时钟及同步释放复位，没有新增 CDC。单 lane 数字串行器在每 16 时钟一个输入样本的条件下不能无损发送 20 位帧，且 FIFO 数据未接入串行发送器；不包含 DDR 差分 PHY。SINC5 补偿系数默认是占位值。其余事项见 [DSP README](ad4080_dsp/README.md)。
+
+DSP 的独立 `cal_two_point` 当前对固定横坐标拟合 `y=m·x+c`。若以固定已知输入为横坐标、测得原始码为纵坐标，得到的是**正向传递系数**，不能直接作为原始码的逆向校正；它也没有接入顶层自动学习流程。
 
 ## 来源与验证
 

@@ -1,10 +1,12 @@
-"""AD4080 数字校正的定点参考模型（与 RTL 逐拍一致）。
+"""AD4080 数字校正及固定横坐标两点拟合的定点参考模型。
 
 与 ad4080_rtl/rtl/sys_error_corr.sv 和 cal_two_point.sv 的定点运算**逐一对应**：
 - 20-bit 二进制补码（手册 Rev.B p.20 Table 7）
 - GAIN 斜率分母 511（0x001/0x3FF 各偏 0x200 恰好 511 码、±1.5594%）
 - K_GAIN=512，SHIFT_G=24；INV_DX_K=40961，SHIFT_K=20；INV_DX=1280，SHIFT_O=30
 - 测试点 x1=-419430（10%）、x2=+419430（90%），DX=838860
+- ``cal_two`` 拟合固定 x 到输入 y 的正向仿射关系；当 y 是固定参考输入
+  所得到的测量原始码时，它不是逆向校正系数的计算器。
 
 用法：python3 ad4080_cal_model.py
 """
@@ -41,7 +43,7 @@ def sys_corr(x, off, gain):
 
 
 def cal_two(y1, y2):
-    """与 cal_two_point.sv 完全一致：常数乘法代替除法。"""
+    """拟合固定 x 到输入 y 的仿射关系，与 RTL 的常数乘法一致。"""
     dy = y2 - y1
     num_g = dy - DX
     gd = (num_g * INV_DX_K + (1 << (SHIFT_K - 1))) >> SHIFT_K

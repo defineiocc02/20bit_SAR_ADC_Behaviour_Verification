@@ -233,7 +233,7 @@ def dsp_bridge():
         "同一时钟域；输入事件 ID 在接口侧可观察，滤波/FIFO 输出尚不携带该 ID",
     )
     blocks = [
-        ("SAR 重构输出", "offset-binary + ID + flags"),
+        ("SAR 重构输出", "码 + ID + flags + 模拟溢出"),
         ("接入层", "翻转最高位 / 故障门控"),
         ("DSP", "补码校正 · 滤波 · FIFO"),
         ("并行输出", "转回 offset-binary"),
@@ -249,8 +249,8 @@ def dsp_bridge():
         1.55,
         6.35,
         1.55,
-        "任一 SAR 标志 → 拒收并锁故障",
-        "抑制后续结果；重启会清空 DSP 状态与配置。",
+        "数字标志或模拟溢出 → 锁故障",
+        "重启清空 DSP；模拟粘滞位须由 SAR 清除。",
         ORANGE,
     )
     box(
@@ -260,7 +260,7 @@ def dsp_bridge():
         6.35,
         1.55,
         "串行输出仍为补码",
-        "抽取/FIFO 输出无逐样本 ID；DDR PHY 未实现。",
+        "单 lane 20 位帧 / 16 周期采样：不能无损发送。",
         PURPLE,
     )
     finish(fig, "unified_4_dsp.png")

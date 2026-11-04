@@ -48,10 +48,21 @@ def main() -> None:
         "sar20_dsp_integration_tb": "SAR20_DSP_INTEGRATION_COMPLETE",
         "sar20_system_top_tb": "SAR20_SYSTEM_TOP_COMPLETE",
     }
+    # These opt-in benches succeed only while a documented counterexample is
+    # reproducible. Their completion markers do not mean the requirement passes.
+    known_limit_benches = {
+        "two_point_direction_tb": "TWO_POINT_DIRECTION_COUNTEREXAMPLE",
+        "lvds_cadence_tb": "LVDS_CADENCE_PROBE_COMPLETE",
+        "bridge_mask_audit_tb": "BRIDGE_AUDIT_COMPLETE",
+    }
     parser.add_argument(
-        "--tops", nargs="+", choices=list(benches), help="Run selected testbenches only"
+        "--tops",
+        nargs="+",
+        choices=[*benches, *known_limit_benches],
+        help="Run selected testbenches; diagnostic tops confirm known limitations",
     )
     selected = parser.parse_args().tops
+    run_benches = {**benches, **known_limit_benches} if selected else benches
     command = shlex.split(os.environ.get("VERILATOR", "verilator"))
     if not command or shutil.which(command[0]) is None:
         raise SystemExit("Verilator is required; install it or set VERILATOR")
@@ -108,7 +119,7 @@ def main() -> None:
         if lint_result.returncode:
             print((out / f"{lint_top}.{profile}.lint.log").read_text(), flush=True)
             lint_result.check_returncode()
-    for top, marker in benches.items():
+    for top, marker in run_benches.items():
         if selected and top not in selected:
             continue
         (out / f"{top}.run.log").unlink(missing_ok=True)
@@ -133,7 +144,12 @@ def main() -> None:
             args += [str(p.relative_to(REPO)) for p in sources]
             if top == "tree_mapping_tb":
                 args += ["sim/tb/tree_mapping_dut.sv"]
-            if top in {"sar20_dsp_integration_tb", "sar20_system_top_tb"}:
+            if top in {
+                "sar20_dsp_integration_tb",
+                "sar20_system_top_tb",
+                "two_point_direction_tb",
+                "lvds_cadence_tb",
+            }:
                 args += [
                     str(p.relative_to(REPO)) for p in sorted((REPO / "ad4080_dsp/rtl").glob("*.sv"))
                 ]
@@ -185,6 +201,8 @@ def main() -> None:
             cp.check_returncode()
             if marker not in output:
                 raise RuntimeError(f"{top}: missing completion marker")
+            if top in known_limit_benches:
+                print(f"KNOWN LIMIT CONFIRMED: {top} (not a requirement PASS)", flush=True)
             print(output, end="", flush=True)
 
 

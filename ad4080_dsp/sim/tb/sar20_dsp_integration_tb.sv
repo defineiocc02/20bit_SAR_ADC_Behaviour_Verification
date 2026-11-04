@@ -18,7 +18,7 @@ module sar20_dsp_integration_tb;
   assign coarse_ge[1] = coarse_target >= int'(coarse_trial[1]);
   wire fine_ge = fine_target >= int'(fine_trial);
   wire [19:0] sar_dout;
-  wire sar_valid;
+  wire sar_valid, sar_analog_ovf;
   wire [31:0] sar_id;
   wire [4:0] sar_flags;
 
@@ -39,11 +39,11 @@ module sar20_dsp_integration_tb;
     .ra_sat(1'b0), .rdac_ovf(1'b0), .adc2_over(1'b0), .inj_q(64'sd0),
     .slice_sel(), .main_sw(), .sub_sw(), .dither_sw(), .sw_valid(),
     .dout(sar_dout), .dout_valid(sar_valid), .clip_low(), .clip_high(),
-    .analog_ovf(), .acc_ovf(), .status_word(), .dout_sample_id(sar_id),
+    .analog_ovf(sar_analog_ovf), .acc_ovf(), .status_word(), .dout_sample_id(sar_id),
     .dout_flags(sar_flags)
   );
 
-  logic inject_mode = 1, inject_valid = 0, restart = 0;
+  logic inject_mode = 1, inject_valid = 0, inject_analog_ovf = 0, restart = 0;
   logic [19:0] inject_data = 0;
   logic [31:0] inject_id = 0;
   logic [4:0] inject_flags = 0;
@@ -51,6 +51,7 @@ module sar20_dsp_integration_tb;
   wire in_valid = inject_mode ? inject_valid : sar_valid;
   wire [31:0] in_id = inject_mode ? inject_id : sar_id;
   wire [4:0] in_flags = inject_mode ? inject_flags : sar_flags;
+  wire in_analog_ovf = inject_mode ? inject_analog_ovf : sar_analog_ovf;
   wire accepted, rejected, rejected_after_fault, fault;
   wire [31:0] accepted_id, rejected_id;
   wire [4:0] rejected_flags;
@@ -62,7 +63,8 @@ module sar20_dsp_integration_tb;
   sar20_ad4080_top #(.FIFO_DEPTH(32)) dut (
     .clk(clk), .rst_n(rst_n), .sar_epoch_clear(cfg_clear), .dsp_restart(restart),
     .sar_dout(in_data), .sar_dout_valid(in_valid), .sar_sample_id(in_id),
-    .sar_flags(in_flags), .sample_accepted(accepted), .accepted_sample_id(accepted_id),
+    .sar_flags(in_flags), .sar_analog_ovf(in_analog_ovf),
+    .sample_accepted(accepted), .accepted_sample_id(accepted_id),
     .sample_rejected(rejected), .rejected_sample_id(rejected_id),
     .rejected_flags(rejected_flags), .rejected_after_fault(rejected_after_fault),
     .stream_fault(fault), .cs_n(1'b1), .sclk(1'b1), .sdi(1'b0), .sdo(), .sdo_oe(),
@@ -170,6 +172,24 @@ module sar20_dsp_integration_tb;
       end_inject();
       restart_dsp();
     end
+    // The SAR's sticky analog overflow is separate from the five result flags.
+    inject(20'h81234, 0, 250);
+    #1; inject_analog_ovf = 1;
+    #1;
+    if (!rejected || accepted || dout_valid) $fatal(1, "analog overflow did not block input");
+    @(posedge clk); #1;
+    if (!fault) $fatal(1, "analog overflow did not latch fault");
+    end_inject();
+    @(negedge clk); #1; restart = 1;
+    repeat (2) @(negedge clk); #1;
+    if (fault) $fatal(1, "DSP reset did not clear local fault");
+    restart = 0;
+    @(posedge clk); #1;
+    if (!fault) $fatal(1, "uncleared SAR analog status did not restore fault");
+    @(negedge clk); #1; inject_analog_ovf = 0; cfg_clear = 1;
+    repeat (2) @(negedge clk); #1; cfg_clear = 0;
+    repeat (2) @(negedge clk);
+    if (fault) $fatal(1, "epoch clear did not recover analog fault");
     inject(20'habcde, 0, 300); end_inject();
     repeat (8) @(negedge clk);
     if (wr != 5 || rd != 5) $fatal(1, "restart did not restore data stream");
@@ -190,7 +210,7 @@ module sar20_dsp_integration_tb;
     cfg_clear = 1; #1;
     if (dout_valid || fault) $fatal(1, "epoch clear did not reset DSP");
     @(negedge clk); #1; cfg_clear = 0;
-    $display("SAR20_DSP_INTEGRATION_COMPLETE boundaries=4 flag_cases=5 rejected=%0d real_sar_samples=%0d", rejects, real_samples);
+    $display("SAR20_DSP_INTEGRATION_COMPLETE boundaries=4 flag_cases=5 analog_guard=PASS rejected=%0d real_sar_samples=%0d", rejects, real_samples);
     $finish;
   end
   initial begin #300000; $fatal(1, "integration timeout"); end

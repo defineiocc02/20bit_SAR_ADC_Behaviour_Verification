@@ -1,8 +1,9 @@
 //=============================================================================
 // @file    cal_two_point.sv
-// @brief   两点增益/失调校准（常数除法）
-// @details 由两点 (x1,y1)/(x2,y2) 求 m、c，再折算成 GAIN/OFFSET 寄存器值；
-//          x1/x2 为编译期常数，除法退化为常数乘法。
+// @brief   固定横坐标的两点线性系数拟合（常数除法）
+// @details 由固定 x1/x2 和输入 y1/y2 求 y=m*x+c 的系数。
+//          若 x 是已知输入、y 是实测原始码，得到的是正向传递关系，
+//          不能直接作为原始码到已知输入的逆向校正系数。
 // @project AD4080 数字子系统
 // @author  AD4080 Digital Team
 // @date    2026-10-19
@@ -26,7 +27,10 @@
 //     GAIN[9:0] = 512 + (m - 1) / (0.015594/511)
 //     OFFSET[11:0] = round(c)  (1 LSB = ADC LSB, 12-bit two's complement)
 //
-//   本模块假设两点测试码 x1/x2 是**已知常数**（默认 10%/90% 满幅）。
+//   本模块假设横坐标 x1/x2 是**已知常数**（默认 10%/90% 满幅），y1/y2
+//   是这两个横坐标对应的目标值。只有在固定 x 是未校正码、y 是期望
+//   校正码时，输出才表示校正；常见的固定参考输入 / 变化的测得原始码
+//   需要以原始码差为分母求逆，本模块不提供这一计算。
 //   因此 1/(x2-x1) 和 1/((x2-x1)*K) 都是编译期常数，除法变成常数乘法，
 //   不需要运行时除法器。若 x1/x2 需要运行时配置，必须另加除法器/倒数 LUT。
 //
@@ -71,10 +75,10 @@ module cal_two_point #(
     localparam int DX = X2_CODE - X1_CODE;
 
     // 显式定宽常数：避免 int/无符号把乘法结果截到 32 位
-    localparam logic signed [IN_W:0]       DX_S        = DX;
-    localparam logic signed [IN_W:0]       X1_S        = X1_CODE;
-    localparam logic signed [17:0]         INV_DX_K_S  = INV_DX_K;
-    localparam logic signed [11:0]         INV_DX_S    = INV_DX;
+    localparam logic signed [IN_W:0]       DX_S        = (IN_W+1)'(DX);
+    localparam logic signed [IN_W:0]       X1_S        = (IN_W+1)'(X1_CODE);
+    localparam logic signed [17:0]         INV_DX_K_S  = 18'(INV_DX_K);
+    localparam logic signed [11:0]         INV_DX_S    = 12'(INV_DX);
 
     localparam int PROD_G_W  = (IN_W + 2) + 18;   // 22 + 18 = 40
     localparam int OFF_NUM_W = (IN_W + 2) + (IN_W + 1); // 42
@@ -92,7 +96,10 @@ module cal_two_point #(
 
     wire signed [PROD_G_W-1:0]    gd_s2  = (gprod_s2 + (1 << (SHIFT_K-1))) >>> SHIFT_K;
     wire signed [OFF_PROD_W-1:0]  oc_s2  = (offprod_s2 + (1 << (SHIFT_O-1))) >>> SHIFT_O;
-    wire signed [PROD_G_W-1:0]    gain_calc = 11'sd512 + gd_s2;   // 夹紧前先算，避免有符号->无符号转换
+    wire signed [PROD_G_W-1:0]    gain_calc = PROD_G_W'(512) + gd_s2;
+    wire signed [IN_W+1:0] y1_gain_ext = $signed({{2{y1[IN_W-1]}}, y1});
+    wire signed [IN_W+1:0] y2_gain_ext = $signed({{2{y2[IN_W-1]}}, y2});
+    wire signed [IN_W+1:0] dx_gain_ext = $signed({DX_S[IN_W], DX_S});
 
     logic [9:0]                   gain_s3;
     logic signed [11:0]           off_s3;
@@ -107,7 +114,7 @@ module cal_two_point #(
             v_s1     <= 1'b0;
         end else if (start) begin
             dy_s1    <= $signed(y2) - $signed(y1);
-            num_g_s1 <= ($signed(y2) - $signed(y1)) - DX_S;
+            num_g_s1 <= (y2_gain_ext - y1_gain_ext) - dx_gain_ext;
             y1_s1    <= y1;
             v_s1     <= 1'b1;
         end else begin
@@ -144,8 +151,8 @@ module cal_two_point #(
         end else begin
             v_s3 <= v_s2;
             if (v_s2) begin
-                if (11'sd512 + gd_s2 < 0)        gain_s3 <= 10'd0;
-                else if (11'sd512 + gd_s2 > 1023) gain_s3 <= 10'd1023;
+                if (gain_calc < PROD_G_W'(0))         gain_s3 <= 10'd0;
+                else if (gain_calc > PROD_G_W'(1023)) gain_s3 <= 10'd1023;
                 else                              gain_s3 <= gain_calc[9:0];
 
                 if (oc_s2 < -2048)      off_s3 <= -12'sd2048;

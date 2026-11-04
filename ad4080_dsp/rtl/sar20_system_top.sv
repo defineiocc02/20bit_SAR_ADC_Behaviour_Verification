@@ -102,7 +102,7 @@ module sar20_system_top #(
     sar20_ad4080_top #(.FIFO_DEPTH(DSP_FIFO_DEPTH)) u_dsp (
         .clk(clk), .rst_n(rst_n), .sar_epoch_clear(cfg_clear_valid), .dsp_restart(dsp_restart),
         .sar_dout(sar_dout), .sar_dout_valid(sar_dout_valid), .sar_sample_id(sar_sample_id),
-        .sar_flags(sar_flags), .sample_accepted(sample_accepted),
+        .sar_flags(sar_flags), .sar_analog_ovf(sar_analog_ovf), .sample_accepted(sample_accepted),
         .accepted_sample_id(accepted_sample_id), .sample_rejected(sample_rejected),
         .rejected_sample_id(rejected_sample_id), .rejected_flags(rejected_flags),
         .rejected_after_fault(rejected_after_fault), .stream_fault(stream_fault),

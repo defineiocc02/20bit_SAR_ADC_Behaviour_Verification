@@ -20,6 +20,8 @@ module sar20_ad4080_top #(
     input  logic        sar_dout_valid,
     input  logic [31:0] sar_sample_id,
     input  logic [4:0]  sar_flags,
+    // SAR analog_ovf is sticky and is not part of sar_flags.
+    input  logic        sar_analog_ovf,
 
     // Input-side audit stream. IDs are not attached to filtered/FIFO outputs.
     output logic        sample_accepted,
@@ -60,7 +62,7 @@ module sar20_ad4080_top #(
 );
     wire dsp_rst_n = rst_n && !sar_epoch_clear && !dsp_restart;
     wire input_fault = sar_dout_valid && (|sar_flags);
-    wire stream_active = dsp_rst_n && !stream_fault && !input_fault;
+    wire stream_active = dsp_rst_n && !stream_fault && !input_fault && !sar_analog_ovf;
     wire [19:0] signed_input = {~sar_dout[19], sar_dout[18:0]};
     wire [19:0] signed_output;
     wire inner_valid;
@@ -72,12 +74,13 @@ module sar20_ad4080_top #(
     // prevents an error-held SAR word from silently contaminating a filter.
     always_ff @(posedge clk or negedge dsp_rst_n) begin
         if (!dsp_rst_n) stream_fault <= 1'b0;
-        else if (input_fault) stream_fault <= 1'b1;
+        else if (input_fault || sar_analog_ovf) stream_fault <= 1'b1;
     end
 
     assign sample_accepted = stream_active && sar_dout_valid;
     assign accepted_sample_id = sar_sample_id;
-    assign sample_rejected = dsp_rst_n && sar_dout_valid && (stream_fault || input_fault);
+    assign sample_rejected = dsp_rst_n && sar_dout_valid &&
+                             (stream_fault || input_fault || sar_analog_ovf);
     assign rejected_sample_id = sar_sample_id;
     assign rejected_flags = sar_flags;
     assign rejected_after_fault = sample_rejected && stream_fault;

@@ -32,7 +32,7 @@
 `include "rtl_params.vh"
 
 module div_floor #(
-    parameter int P_W_A = ACC_BITS - (V_FRAC + 1),
+    parameter int P_W_A = int'(ACC_BITS) - (int'(V_FRAC) + 1),
     parameter int P_W_D = 60,
     parameter int P_STAGES = 7
 ) (

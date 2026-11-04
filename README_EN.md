@@ -6,6 +6,16 @@ This research repository studies slice scheduling, capacitor mismatch, digital c
 
 > **Evidence boundary:** This is a research prototype. A 20-bit output word does not imply 20-bit ENOB. The plotted performance figures are conditional behavioral simulations, not silicon measurements, PDK signoff or timing closure.
 
+## Results at a glance
+
+| Question | Project approach | What was observed under the stated conditions |
+|---|---|---|
+| **Capacitor mismatch** | Fit effective weights externally and load them into the digital RTL | For two static mismatch fixtures, independent holdout error standard deviation is **55.75 → 2.08 µV** and **59.38 → 2.14 µV**; see [Figure 4](#capacitor-mismatch-calibration-and-effect) |
+| **Interleaving timing skew** | Randomize slice selection to spread the spur | Under the stated 10 ps assumption, the `fs/2−fin` spur changes **−96.44 → −123.05 dBFS/bin**, while total error RMS increases; see [Figure 6](#interleaving-mismatch-spurs-and-total-error) |
+| **Model/RTL agreement** | Align switch masks, reference events and sample ownership | Under the project contract, **262144** code/DEM-state masks and **10752** reference events across three dither modes match; see [ADR 0021](docs/adr/0021-structural-contract-calibration.md) |
+
+These results use static behavioral fixtures or stated behavioral-simulation conditions. Random scheduling is not a per-slice timing calibration, and these are not silicon measurements.
+
 ## Architecture and configurations
 
 ![Two-stage SAR architecture and project configurations](docs/readme/fig/unified_1_architecture.png)
@@ -25,18 +35,19 @@ The Python profiles are not identical circuit models. A nominal sample-rate sett
 
 ## Digital work: purpose, current results and open problems
 
-The digital work is grouped into four packages: conversion control, unit/interleaving mismatch treatment, ADC-core calibration and reconstruction, and system correction and data output. “Available” means a **research prototype verified under stated conditions**.
+The digital work has four packages. “Available” means a research prototype verified under stated conditions.
 
-| Work package and main task | Available now | Still needed |
-|---|---|---|
-| **Conversion control and sample ownership:** coordinate sampling, coarse decisions, residue formation and ADC2 | Structural RTL has 16-phase control, comparator interfaces, slice scheduling, sample IDs and fault flags. The Python structural profile matches the RTL slice order, samples and seven resolved RDAC events | Real comparator completion, analog switch and reference-phase contracts; system-wide fault and reset propagation |
-| **DEM, dither and interleaving mismatch:** redistribute unit/slice error, inject known dither and address slice differences | Python has fixed physical pools and interleaving experiments; RTL has slice allocation, DEM addressing, a bridge candidate and dither generation. Physical masks and three dither modes are compared against Python | DEM redistributes error; full per-slice hardware estimation/correction of offset, gain, timing and bandwidth is missing. The complete slide bridge circuit and dual-port dither enhancement are not reproduced |
-| **Capacitor calibration and digital reconstruction:** estimate effective weights from an independent reference and digital observations, then reconstruct using known dither and frozen coefficients | Structural RTL observations, external fitting, quantized coefficient loading and independent holdouts are connected. Two static-mismatch results are shown in [Figure 4](#capacitor-mismatch-calibration-and-effect) and [ADR 0021](docs/adr/0021-structural-contract-calibration.md) | Real reference and observation transport; dynamic settling, drift and ADC2 nonlinearity. The 748-bit parallel observation port has no FIFO, backpressure or physical transport |
-| **System correction, DSP and data output:** correct overall gain/offset and provide filtering, buffering and an external interface | SAR and DSP tops are connected; correction, SINC filtering, FIFO, SPI and fault-stop blocks are prototypes | Invert the two-point coefficients from raw to target codes; complete filter coefficients, FIFO-to-serial routing, output metadata and a lossless DDR/differential interface |
+**1. Conversion control and sample ownership.** Coordinate sampling, coarse decisions, residue formation and ADC2. The structural RTL has 16-phase control, comparator interfaces, slice scheduling, sample IDs and fault flags; Python and RTL agree on slice order and seven resolved RDAC events. **Still needed:** real comparator completion, analog switch/reference phase contracts and system-wide fault/reset handling.
 
-**Shared verification and priorities:** first provide real reference, calibration-observation transport and analog-phase interfaces; then study identifiable per-slice correction and dynamic errors; finally complete DSP and output. Sample IDs, faults and reset checks span all four packages. Formal equivalence, CDC/RDC, target-library STA and analog post-layout verification remain open. The 640 MHz clock implied by 16 phases at 40 MS/s is an ideal budget, not proven target-process timing.
+**2. DEM, dither and interleaving mismatch.** Rearrange slices and capacitor units to spread error and inject known perturbations. The project has fixed physical pools, interleaving experiments, RTL slice allocation, DEM addressing, a bridge candidate and a dither generator; physical masks and three dither modes have been compared. **Still needed:** identifiable per-slice offset, gain, timing and bandwidth estimation/correction. The complete slide bridge circuit and dual-port dither enhancement remain unreproduced. DEM redistributes error; it does not measure mismatch.
 
-ADC-core capacitor-weight correction and the system gain/offset correction in the [AD4080 data sheet](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf) act at different levels. The [historical task assessment](docs/digital_task_assessment.md) lists integration verification separately; here it is shared by all four packages.
+**3. Capacitor calibration and digital reconstruction.** Estimate effective weights from a known reference and digital observations, then reconstruct using frozen coefficients and known dither. Structural RTL observation, external fitting, quantized loading and independent holdouts are connected; see [ADR 0021](docs/adr/0021-structural-contract-calibration.md). **Still needed:** real reference and observation transport, dynamic settling/drift and ADC2 nonlinearity verification; the 748-bit observation port has no FIFO or backpressure.
+
+**4. System correction, DSP and data output.** Correct overall signal-chain gain/offset and provide filtering, buffering and external interfaces. SAR and DSP tops are connected; correction, SINC, FIFO, SPI and fault-stop blocks are prototypes. **Still needed:** correct the two-point coefficient direction, complete filter coefficients, FIFO-to-serial routing, output metadata and a lossless DDR/differential interface.
+
+**Shared priorities.** First establish real reference, observation transport and analog-phase interfaces; then study per-slice correction and dynamic error; finally complete DSP and output. Sample IDs, faults, reset and verification span all four packages. Formal equivalence, CDC/RDC, target-library STA and analog post-layout verification remain open. The 640 MHz clock implied by 16 phases at 40 MS/s is an ideal budget.
+
+ADC-core weight correction and system gain/offset correction in the [AD4080 data sheet](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf) act at different levels. The [historical task assessment](docs/digital_task_assessment.md) listed integration verification separately; here it is shared work.
 
 ## Mapping public sources to this project
 
@@ -56,7 +67,7 @@ See [`mechanism_inventory.json`](mechanism_inventory.json), [`sources_manifest.j
 
 ![External fitting to RTL reconstruction](docs/readme/fig/unified_3_calibration.png)
 
-*Figure 2. Original project illustration of the existing external fit and RTL reconstruction path.*
+*Figure 2. Structural digital RTL observation, external fitting and independent holdout. This original illustration uses retained results from a static behavioral mismatch fixture, not silicon.*
 
 Digital observations and an independent reference input feed a Python batch estimator. Frozen effective unit weights are quantized into Q30 weights and Q32 scalars, loaded into RTL `weight_store` and `calib_regs`, and applied by `recon_core`. [ADR 0019](docs/adr/0019-fitted-weight-rtl-closure.md) used Python training observations; the current flow also captures real structural-DUT observations, as described in [ADR 0021](docs/adr/0021-structural-contract-calibration.md).
 
@@ -111,6 +122,16 @@ The separate `cal_two_point` block currently fits `y=m·x+c` at fixed x coordina
 *Figure 8. Original illustration generated from the runtime parameter provenance ledger. Fitted and assumed results are not disclosed facts or chip measurements.*
 
 Behavioral models, RTL simulation, historical FPGA evidence and target-PDK synthesis/STA are separate evidence levels. Figures 3 and 6 are 40 MS/s behavioral simulations on baseline `6863fc3`; Figure 4 combines the current structural digital DUT with a static behavioral plant. None is transistor or silicon data. Historical detailed documentation is retained in [`docs/history/`](docs/history/); historical tests are not automatically new results for the present checkout.
+
+### Code and data entry points
+
+| Looking for | Entry point |
+|---|---|
+| Behavioral model, configuration and switching | [`src/adi_model/`](src/adi_model/) |
+| Structural RTL and observation/reconstruction interface | [`sar20_digital_core.sv`](rtl/top/sar20_digital_core.sv) · [RTL contract](docs/adr/0021-structural-contract-calibration.md) |
+| Calibration training, loading and holdouts | [`run_structural_calibration.py`](tools/run_structural_calibration.py) · [result data](docs/readme/data/) |
+| Interleaving, reference and paper comparisons | [Experiment comparisons](docs/paper_comparisons/README.md) |
+| DSP and external interfaces | [DSP README](ad4080_dsp/README.md) · [SAR interface](ad4080_dsp/docs/SAR20_INTERFACE.md) |
 
 ### Quick start
 

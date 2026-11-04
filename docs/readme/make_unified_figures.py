@@ -195,18 +195,31 @@ def matrix():
 
 
 def calibration():
-    """Illustrate the fitted-weight and RTL holdout path."""
-    manifest = json.loads((ROOT / "sim/vectors/fitted18_manifest.json").read_text())
+    """Illustrate the structural RTL fit and independent holdout evidence."""
+    report = json.loads((ROOT / "docs/readme/data/structural_calibration_summary.json").read_text())
+    cases = {row["chip_seed"]: row for row in report["results"]}
+    first, second = cases[42], cases[91]
+    if any(
+        row["noise_rms_uv"] != 0
+        or not row["rtl_matches_independent_integer"]
+        or not row["python_rtl_sample_switch_contract"]
+        for row in (first, second)
+    ):
+        raise ValueError("structural calibration figure requires the verified noiseless cases")
+    if any(
+        first[key] != second[key] for key in ("training_samples", "holdout_samples", "matrix_rank")
+    ):
+        raise ValueError("structural calibration cases use incompatible sample counts or ranks")
     fig, ax = canvas(
-        "外部拟合系数进入 RTL",
-        "现有证据覆盖数字校正链路；不等于从真实结构 DUT 采集训练数据的硬件闭环",
+        "结构 RTL 电容权重校准：从观测到独立复验",
+        f'{report["sample_rate_hz"] / 1e6:g} MS/s 理想节拍 · 数字 RTL + 静态行为失配夹具',
     )
     blocks = [
-        ("数字观测 + 参考", "Python 模型生成训练输入"),
-        ("片外权重拟合", f'{manifest["training_samples"]} 笔 · 秩 {manifest["rank"]}'),
-        ("量化并导出", "Q30 权重 / Q32 标量"),
-        ("RTL 装载与重构", "weight_store + recon_core"),
-        ("独立留出对拍", f'{manifest["holdout_samples"]} 笔参考码'),
+        ("RTL 观测 + 参考", "开关掩码、ADC2 和已知输入"),
+        ("片外权重拟合", f'{first["training_samples"]} 笔 · 秩 {first["matrix_rank"]}'),
+        ("量化并装载", "Q30 权重 / Q32 标量"),
+        ("RTL 数字重构", "装入冻结系数"),
+        ("独立留出复验", f'{first["holdout_samples"]} 笔 · 逐码对拍'),
     ]
     for i, (title, detail) in enumerate(blocks):
         x = 0.25 + 2.7 * i
@@ -219,9 +232,17 @@ def calibration():
         1.55,
         13.15,
         1.38,
-        "仍缺：真实结构 DUT 原始观测 → 学习 → 装载 → 独立 DUT 复验",
-        "采样标识、物理 mask、dither、ADC2 原始码与异常状态需要有可对齐的观测合同。",
-        ORANGE,
+        "静态夹具：校准前 → 校准后的留出误差标准差",
+        f'种子 42：{first["before_error_std_uv"]:.2f} → {first["after_error_std_uv"]:.2f} µV'
+        f'       种子 91：{second["before_error_std_uv"]:.2f} → {second["after_error_std_uv"]:.2f} µV',
+        TEAL,
+    )
+    ax.text(
+        0.35,
+        0.75,
+        "真实参考与观测传输、动态建立及 ADC2 非线性尚未闭合；这些数值不是芯片实测。",
+        fontsize=10,
+        color=MUTED,
     )
     finish(fig, "unified_3_calibration.png")
 

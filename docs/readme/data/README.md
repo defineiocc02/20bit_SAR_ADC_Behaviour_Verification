@@ -13,7 +13,13 @@
   基线 `d809da6`；没有使用逐 slice 失配估计器。可在当前工程运行
   `../reproduce_interleave_40m.py --out <新目录> --compare-frozen` 复现并
   对照序列；建议设置 `OPENBLAS_NUM_THREADS=1`。
+- `structural_calibration_holdout.npz` 保存两个静态失配种子的独立留出输入、
+  样本 ID 及结构 RTL 校准前后输出码。`structural_calibration_summary.json`
+  记录无额外噪声的训练／留出条件、结果和源文件哈希；
+  `structural_calibration_noise_summary.json` 记录假设 48 µV RMS 输入等效
+  噪声的另一组测试。它们是数字 RTL 与静态行为夹具的仿真，不是芯片测量。
 
-`../make_unified_figures.py` 从这些文件重画对应曲线，
+`../make_unified_figures.py` 从这些文件重画对应曲线和当前校准流程图，
+`../make_contract_figures.py` 重画 bridge 与结构留出误差图；
 `tests/unit/test_readme_effect_evidence.py` 独立检查序列与数字指标是否一致。
 不同 NumPy/BLAS 环境重新拟合时末位可能不同；画图不需要重新拟合。

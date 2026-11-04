@@ -16,7 +16,7 @@
 set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BUILD="$ROOT/sim/build"
+BUILD="${BUILD_DIR:-$ROOT/sim/build}"
 mkdir -p "$BUILD"
 
 if [ -n "${SIM:-}" ]; then

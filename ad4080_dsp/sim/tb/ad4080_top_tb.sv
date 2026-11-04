@@ -127,6 +127,7 @@ module ad4080_top_tb;
       .gpio_o     (gpio_o),
       .gpio_oe    (gpio_oe),
 
+      .correction_clip_low(), .correction_clip_high(),
       .dout       (dout),
       .dout_valid (dout_valid),
       .status     (status)

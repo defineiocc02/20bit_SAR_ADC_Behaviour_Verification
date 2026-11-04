@@ -88,7 +88,9 @@ module ad4080_top #(
     // ---- 结果 ----
     output logic [IN_W-1:0]      dout,
     output logic                 dout_valid,
-    output logic [7:0]           status                   // DEVICE_STATUS 镜像，供 SPI 回读
+    output logic [7:0]           status,                  // DEVICE_STATUS 镜像，供 SPI 回读
+    output logic                 correction_clip_low,      // 校正级事件，不随滤波/FIFO 延迟
+    output logic                 correction_clip_high
 );
 
     // ------------------------------------------------------------------
@@ -152,6 +154,9 @@ module ad4080_top #(
     logic               fifo_event;
     logic [1:0]         ser_data_i, ser_frame_i;
     logic               dco_i;
+
+    assign correction_clip_low  = clip_low;
+    assign correction_clip_high = clip_high;
 
     assign fsync_all      = filter_sync | gpio_fsync | fsync_pulse;
     assign cnv_err_routed = cnv_err_pulse & cnv_err_route;

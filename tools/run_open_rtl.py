@@ -45,6 +45,7 @@ def main() -> None:
         "p1_tb": "P1 RESULT: PASS",
         "p3_top_tb": "P3 TOP RESULT: PASS",
         "engineering_fsm_tb": "ENGINEERING_FSM_COMPLETE",
+        "sar20_dsp_integration_tb": "SAR20_DSP_INTEGRATION_COMPLETE",
     }
     parser.add_argument(
         "--tops", nargs="+", choices=list(benches), help="Run selected testbenches only"
@@ -127,7 +128,13 @@ def main() -> None:
             args += [str(p.relative_to(REPO)) for p in sources]
             if top == "tree_mapping_tb":
                 args += ["sim/tb/tree_mapping_dut.sv"]
-            args += [f"sim/tb/{top}.sv"]
+            if top == "sar20_dsp_integration_tb":
+                args += [
+                    str(p.relative_to(REPO)) for p in sorted((REPO / "ad4080_dsp/rtl").glob("*.sv"))
+                ]
+                args += [f"ad4080_dsp/sim/tb/{top}.sv"]
+            else:
+                args += [f"sim/tb/{top}.sv"]
             with (out / f"{top}.build.log").open("w") as log:
                 subprocess.run(
                     args,

@@ -1,8 +1,7 @@
 //===========================================================================
 // ad4080_cal_tb.sv -- self-checking TB for AD4080 y=m*x+c + two-point cal
 //===========================================================================
-// 说明：本机没有 Verilator/VCS，本 TB 未在本机运行；用于仓库 CI 的
-//       Verilator/XSim 回归。期望值来自 /tmp/ad4080_cal_model.py 的定点模型。
+// Regression for Verilator/XSim. Expected values come from the fixed-point model.
 //===========================================================================
 `timescale 1ns/1ps
 
@@ -73,11 +72,11 @@ module ad4080_cal_tb;
         input int exp_y
     );
         begin
-            x = tx; valid_in <= 1'b1;
-            @(posedge clk); valid_in <= 1'b0;
-            @(posedge clk);
-            @(posedge clk);
-            #1;   // 等 NBA 更新后再采样，避免与时钟沿竞争
+            // Drive away from the active edge and sample the registered
+            // output on a falling edge; avoids simulator-specific TB races.
+            @(negedge clk); x = tx; valid_in = 1'b1;
+            @(negedge clk); valid_in = 1'b0;
+            for (int cycle = 0; cycle < 5 && !valid_out; cycle++) @(negedge clk);
             if (!valid_out) begin
                 $display("FAIL %s: valid_out low", name);
                 errors++;

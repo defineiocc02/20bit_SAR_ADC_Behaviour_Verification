@@ -563,6 +563,13 @@ def test_sdist_excludes_the_third_party_report_figures():
         "docs/readme/fig/fig5_provenance_grades.png",
         "docs/readme/fig/fig6_verification.png",
         "docs/readme/fig/fig7_mapping.png",
+        "docs/readme/fig/unified_1_architecture.png",
+        "docs/readme/fig/unified_2_sources.png",
+        "docs/readme/fig/unified_3_calibration.png",
+        "docs/readme/fig/unified_4_dsp.png",
+        "docs/readme/fig/unified_5_evidence.png",
+        "docs/readme/fig/unified_6_calibration_effect.png",
+        "docs/readme/fig/unified_7_interleave_effect.png",
         "docs/report/figs/fig1_interleave.png",
         "tools/results/results.json",
     ]

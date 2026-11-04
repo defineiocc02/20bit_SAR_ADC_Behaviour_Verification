@@ -1,0 +1,148 @@
+{
+  "description": "Frozen plotting subset of independent behavioral audit at 40ae71d; full raw observations retained in local audit artifact. Not hardware data.",
+  "cases": {
+    "ideal_noise": {
+      "source": "audit_20261104_40ae71d/model/raw_data/cal_40M_s42_zero/validation.npz",
+      "sha256": "62f741cab31ed47cc53dd62af5a8c8b980ef893ae3dfe2c2d9267238a8428966",
+      "validation": {
+        "fs_hz": 40000000.0,
+        "fin_hz": 749511.71875,
+        "amplitude_v": 2.2,
+        "phase_rad": 0.5,
+        "n": 16384,
+        "seed": 42,
+        "noise_enabled": false,
+        "mismatch_sigma": 0.001
+      },
+      "before_integer": {
+        "samples": 16384,
+        "error_mean_v": 4.661735147357296e-06,
+        "error_rms_v": 7.000220502041751e-05,
+        "error_std_v": 6.984681047217876e-05,
+        "error_max_abs_v": 0.0002786680141184106,
+        "dc_fundamental_removed_rms_v": 6.980057334118226e-05,
+        "SNDR_dB": 86.96095971094378,
+        "SNR_dB_10_harmonics_excluded": 86.96322947006095,
+        "SFDR_dBc": 98.64649604402223,
+        "THD_dB_2_to_10": -119.7801399615812,
+        "ENOB_bits": 14.152983340688337,
+        "fundamental_bin": 307,
+        "coherence_error_cycles": 0.0,
+        "fft_contract": {
+          "window": "rectangular",
+          "window_power_correction": 1,
+          "dc": "excluded",
+          "fundamental": "single coherent bin",
+          "harmonics": "included in SNDR; orders 2..10 excluded only in reported SNR",
+          "power_normalization": "one-sided |FFT/N|^2; interior bins doubled",
+          "plot_unit": "dBFS/bin relative to vfs^2/2",
+          "analysis_bandwidth_hz": 20000000.0,
+          "full_scale_sine_peak_v": 3.0,
+          "sample_rate_hz": 40000000.0,
+          "tone_hz": 749511.71875
+        }
+      },
+      "after_integer": {
+        "samples": 16384,
+        "error_mean_v": 3.492460849988755e-10,
+        "error_rms_v": 1.944000856948925e-06,
+        "error_std_v": 1.944000825577327e-06,
+        "error_max_abs_v": 4.9038863014772005e-06,
+        "dc_fundamental_removed_rms_v": 1.9438573802401407e-06,
+        "SNDR_dB": 118.06486562714043,
+        "SNR_dB_10_harmonics_excluded": 118.07057148668223,
+        "SFDR_dBc": 147.55069453383732,
+        "THD_dB_2_to_10": -146.88235059107595,
+        "ENOB_bits": 19.31974512078745,
+        "fundamental_bin": 307,
+        "coherence_error_cycles": 0.0,
+        "fft_contract": {
+          "window": "rectangular",
+          "window_power_correction": 1,
+          "dc": "excluded",
+          "fundamental": "single coherent bin",
+          "harmonics": "included in SNDR; orders 2..10 excluded only in reported SNR",
+          "power_normalization": "one-sided |FFT/N|^2; interior bins doubled",
+          "plot_unit": "dBFS/bin relative to vfs^2/2",
+          "analysis_bandwidth_hz": 20000000.0,
+          "full_scale_sine_peak_v": 3.0,
+          "sample_rate_hz": 40000000.0,
+          "tone_hz": 749511.71875
+        }
+      },
+      "overflow_count": 0
+    },
+    "noise_94p2": {
+      "source": "audit_20261104_40ae71d/model/raw_data/cal_40M_s42_noise_paper94p2/validation.npz",
+      "sha256": "ce5883d4b4b3270cbfd2e4bac902c79b439d5513422f66fb90ecf916a47a27b3",
+      "validation": {
+        "fs_hz": 40000000.0,
+        "fin_hz": 749511.71875,
+        "amplitude_v": 2.2,
+        "phase_rad": 0.5,
+        "n": 16384,
+        "seed": 42,
+        "noise_enabled": true,
+        "mismatch_sigma": 0.001,
+        "target_dr_noise_budget_db": 94.2
+      },
+      "before_integer": {
+        "samples": 16384,
+        "error_mean_v": 4.856614396095585e-06,
+        "error_rms_v": 8.175513088136047e-05,
+        "error_std_v": 8.16107512649897e-05,
+        "error_max_abs_v": 0.0003804628054275838,
+        "dc_fundamental_removed_rms_v": 8.155977057884625e-05,
+        "SNDR_dB": 85.60861765645402,
+        "SNR_dB_10_harmonics_excluded": 85.6119683212549,
+        "SFDR_dBc": 98.63545301062746,
+        "THD_dB_2_to_10": -116.73682616045888,
+        "ENOB_bits": 13.928341803397677,
+        "fundamental_bin": 307,
+        "coherence_error_cycles": 0.0,
+        "fft_contract": {
+          "window": "rectangular",
+          "window_power_correction": 1,
+          "dc": "excluded",
+          "fundamental": "single coherent bin",
+          "harmonics": "included in SNDR; orders 2..10 excluded only in reported SNR",
+          "power_normalization": "one-sided |FFT/N|^2; interior bins doubled",
+          "plot_unit": "dBFS/bin relative to vfs^2/2",
+          "analysis_bandwidth_hz": 20000000.0,
+          "full_scale_sine_peak_v": 3.0,
+          "sample_rate_hz": 40000000.0,
+          "tone_hz": 749511.71875
+        }
+      },
+      "after_integer": {
+        "samples": 16384,
+        "error_mean_v": 3.841705739806905e-09,
+        "error_rms_v": 4.342689633473155e-05,
+        "error_std_v": 4.342689616480572e-05,
+        "error_max_abs_v": 0.00018845667607481076,
+        "dc_fundamental_removed_rms_v": 4.3425758746401806e-05,
+        "SNDR_dB": 91.0832036391638,
+        "SNR_dB_10_harmonics_excluded": 91.09069552656905,
+        "SFDR_dBc": 120.50711335892512,
+        "THD_dB_2_to_10": -118.71887973948644,
+        "ENOB_bits": 14.837741468299635,
+        "fundamental_bin": 307,
+        "coherence_error_cycles": 0.0,
+        "fft_contract": {
+          "window": "rectangular",
+          "window_power_correction": 1,
+          "dc": "excluded",
+          "fundamental": "single coherent bin",
+          "harmonics": "included in SNDR; orders 2..10 excluded only in reported SNR",
+          "power_normalization": "one-sided |FFT/N|^2; interior bins doubled",
+          "plot_unit": "dBFS/bin relative to vfs^2/2",
+          "analysis_bandwidth_hz": 20000000.0,
+          "full_scale_sine_peak_v": 3.0,
+          "sample_rate_hz": 40000000.0,
+          "tone_hz": 749511.71875
+        }
+      },
+      "overflow_count": 0
+    }
+  }
+}

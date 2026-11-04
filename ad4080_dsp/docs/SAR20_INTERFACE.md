@@ -3,7 +3,9 @@
 `rtl/sar20_ad4080_top.sv` 是独立 DSP 的项目接入顶层；其 `sar_*` 端口接
 `sar20_digital_core` 的 `dout`、`dout_valid`、`dout_sample_id`、
 `dout_flags`，`sar_epoch_clear` 接 `cfg_clear_valid`。原 `ad4080_top` 仍可
-按原来的补码接口独立使用。转换核与 DSP 是两个实例，由上层接线。
+按原来的补码接口独立使用。项目组合顶层 [`sar20_system_top.sv`](../rtl/sar20_system_top.sv)
+实例化实际 SAR 数字核与该 DSP 接入层，并直接完成这些信号的连接；模拟比较器、
+溢出及其他外部输入仍由系统提供。也可以不使用组合顶层，由系统自己接线。
 
 | 项 | 契约 |
 |---|---|
@@ -15,6 +17,7 @@
 | 重启/换配置 | `dsp_restart` 或 `sar_epoch_clear` 置位会复位整个 DSP，包括滤波、FIFO、寄存器和输入故障；输入事件在复位期间忽略。释放后须重新配置 DSP。此契约不提供无损切换。 |
 | DSP 饱和 | `correction_clip_low/high` 是**校正级**同拍事件；经过抽取和 FIFO 后不携带逐结果标签。它们与 SAR 输入侧标志分开。 |
 | 滤波和 FIFO | 每个 DSP 输出可能聚合多个输入或经 FIFO 延迟；当前没有随输出对齐的 sample ID、输入 flags 或完整窗口标记。使用这些模式必须由上层自行保留/解释元数据，不能假定一个输出对应一个输入。 |
+| 源文件与 FIFO | 工程组合时同时编译 `rtl/rtl_sources.f` 和 `ad4080_dsp/rtl/*.sv`，并加入 `rtl/params` 头文件目录；标准回归入口已做此事。默认 FIFO 深度为 16384；测试中较小深度只用于 FIFO 关闭的直通场景，不代表全部捕获模式可参数化。 |
 | 速度 | `40 MS/s` 是系统目标设置；SAR 结构使用 16 相位时要求相应时钟预算。该封装没有目标工艺综合、STA 或 CDC/RDC 签核，不保证 40 MS/s 实际时序。 |
 
 接口验证包含码制边界、正常输入、各错误位、故障保持、重启和换配置等场景。

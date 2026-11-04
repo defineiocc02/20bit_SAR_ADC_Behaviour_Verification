@@ -43,7 +43,7 @@ run_tb () {
   local vvp="$BUILD/${name}.vvp"
   echo
   echo "==================== $name ===================="
-  if ! "$IVERILOG" -g2012 -o "$vvp" "$tb" "$@" 2>"$BUILD/${name}.compile.log"; then
+  if ! "$IVERILOG" -g2012 -s "$(basename "$tb" .sv)" -o "$vvp" "$tb" "$@" 2>"$BUILD/${name}.compile.log"; then
     echo "[COMPILE FAIL] 见 $BUILD/${name}.compile.log"
     sed -n '1,12p' "$BUILD/${name}.compile.log"
     fail=1

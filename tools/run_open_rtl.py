@@ -46,6 +46,7 @@ def main() -> None:
         "p3_top_tb": "P3 TOP RESULT: PASS",
         "engineering_fsm_tb": "ENGINEERING_FSM_COMPLETE",
         "sar20_dsp_integration_tb": "SAR20_DSP_INTEGRATION_COMPLETE",
+        "sar20_system_top_tb": "SAR20_SYSTEM_TOP_COMPLETE",
     }
     parser.add_argument(
         "--tops", nargs="+", choices=list(benches), help="Run selected testbenches only"
@@ -74,7 +75,11 @@ def main() -> None:
         ("sar20_digital_core", "structural", []),
         ("sar20_digital_core", "compatibility", ["-GP_STRUCTURAL=0"]),
         ("sadc_enc", "standalone", []),
+        ("sar20_system_top", "system", ["-Wno-TIMESCALEMOD"]),
     ):
+        lint_sources = sources
+        if profile == "system":
+            lint_sources = sources + sorted((REPO / "ad4080_dsp/rtl").glob("*.sv"))
         with (out / f"{lint_top}.{profile}.lint.log").open("w", encoding="utf-8") as log:
             lint_result = subprocess.run(
                 [
@@ -92,7 +97,7 @@ def main() -> None:
                     "-Werror-CASEINCOMPLETE",
                     "-Werror-PINMISSING",
                     "-Werror-SELRANGE",
-                    *[str(p.relative_to(REPO)) for p in sources],
+                    *[str(p.relative_to(REPO)) for p in lint_sources],
                 ],
                 cwd=REPO,
                 stdout=log,
@@ -128,7 +133,7 @@ def main() -> None:
             args += [str(p.relative_to(REPO)) for p in sources]
             if top == "tree_mapping_tb":
                 args += ["sim/tb/tree_mapping_dut.sv"]
-            if top == "sar20_dsp_integration_tb":
+            if top in {"sar20_dsp_integration_tb", "sar20_system_top_tb"}:
                 args += [
                     str(p.relative_to(REPO)) for p in sorted((REPO / "ad4080_dsp/rtl").glob("*.sv"))
                 ]

@@ -1,7 +1,7 @@
 //===========================================================================
 // sinc5_decim_tb.sv -- smoke test for the 5-stage CIC decimator
 //===========================================================================
-// 本机没有 Verilator/VCS，本 TB 未在本机执行；用于仓库 CI。
+// Behavioral smoke test; tool-specific execution results live in run logs.
 //===========================================================================
 `timescale 1ns/1ps
 

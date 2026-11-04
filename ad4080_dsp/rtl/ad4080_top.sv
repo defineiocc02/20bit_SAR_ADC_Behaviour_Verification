@@ -34,7 +34,8 @@
 //
 //   边界（如实声明）：
 //     1. 这是**数字子系统**。SAR 模拟核、采样网络、比较器、基准、时钟 PLL 不在内。
-//     2. SPI 为单字节访问；SHORT_INSTRUCTION / ADDR_ASCENSION / streaming 未实现。
+//     2. SPI 已建模短指令、地址方向、streaming 和可选 CRC；多字节顺序与
+//        CRC 后续种子等仍需外部资料或器件验证。
 //     3. LVDS 是 SDR 数字并串 + 1/2 lane；DDR PHY、差分驱动、Manchester 编码
 //        （0x16 bit2）未实现，寄存器位可配但不生效。
 //     4. SPI 回读数据通道（0x15 bit0 = 1，用 DCS/DCLK 读 FIFO）未实现；

@@ -70,7 +70,7 @@ slice 失调会在 `fs/2` 产生交织相关误差；slice 电容/增益失配�
 
 *图 6．工程接入示意：按当前 RTL 独立绘制。*
 
-[`sar20_ad4080_top.sv`](ad4080_dsp/rtl/sar20_ad4080_top.sv) 接收 SAR 的 `dout`、`dout_valid`、`dout_sample_id` 和 `dout_flags`：入口将 offset-binary 转为 DSP 内部补码，并行出口转回 offset-binary；串行数据仍为补码。任一 SAR 错误标志触发拒收并锁存故障，防止 SAR 保持的旧码混入滤波器。`dsp_restart` 或 `sar_epoch_clear` 复位 DSP，**同时清空其 FIFO、滤波状态和寄存器配置**，重启后需重新配置。
+[`sar20_system_top.sv`](ad4080_dsp/rtl/sar20_system_top.sv) 实例化 SAR 数字核与 DSP；也可单独使用 [`sar20_ad4080_top.sv`](ad4080_dsp/rtl/sar20_ad4080_top.sv) 接收 SAR 的 `dout`、`dout_valid`、`dout_sample_id` 和 `dout_flags`。入口将 offset-binary 转为 DSP 内部补码，并行出口转回 offset-binary；串行数据仍为补码。任一 SAR 错误标志触发拒收并锁存故障，防止 SAR 保持的旧码混入滤波器。`dsp_restart` 或 `sar_epoch_clear` 复位 DSP，**同时清空其 FIFO、滤波状态和寄存器配置**，重启后需重新配置。
 
 接口侧输出接受/拒收事件与 ID；滤波和 FIFO 的结果**尚不携带逐结果 ID 或输入标志**。两侧要求同一时钟及同步释放复位，没有新增 CDC。DSP 支持的校正、滤波、SPI、FIFO 和串行数字逻辑及其未完成事项见 [DSP README](ad4080_dsp/README.md)；不包含 DDR 差分 PHY，SINC5 补偿系数默认是占位值。
 
@@ -95,7 +95,7 @@ pytest -m 'not slow' -q
 RTL 回归需要 Verilator 5.x 和 C++ 编译器；DSP 独立脚本需要 Icarus Verilog：
 
 ```bash
-python tools/run_open_rtl.py --tops calibration_fit_tb sar20_dsp_integration_tb
+python tools/run_open_rtl.py --tops calibration_fit_tb sar20_dsp_integration_tb sar20_system_top_tb
 BUILD_DIR="${TMPDIR:-/tmp}/ad4080-dsp-build" bash ad4080_dsp/sim/run_all.sh
 MPLBACKEND=Agg PYTHONPATH=src python docs/readme/make_unified_figures.py
 PYTHONPATH=src python docs/readme/reproduce_interleave_40m.py \

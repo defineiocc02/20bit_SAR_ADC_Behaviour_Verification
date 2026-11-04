@@ -4,7 +4,7 @@
 
 ## 与本工程连接
 
-项目顶层 [`sar20_ad4080_top.sv`](rtl/sar20_ad4080_top.sv) 接收 `sar20_digital_core` 的输出码、valid、sample ID 和结果标志；两侧同 `clk`，不包含 CDC。入口把工程的 20 位 offset-binary 转成 DSP 的二进制补码；并行输出转回 offset-binary，串行 payload 仍为补码。原 [`ad4080_top.sv`](rtl/ad4080_top.sv) 仍可单独使用，其输入和输出均为补码。
+项目组合顶层 [`sar20_system_top.sv`](rtl/sar20_system_top.sv) 同时实例化真实 SAR 数字核和 DSP 接入层；也可单独实例化 [`sar20_ad4080_top.sv`](rtl/sar20_ad4080_top.sv)，从外部连接 SAR 的输出码、valid、sample ID 和结果标志。两侧同 `clk`，不包含 CDC。入口把工程的 20 位 offset-binary 转成 DSP 的二进制补码；并行输出转回 offset-binary，串行 payload 仍为补码。原 [`ad4080_top.sv`](rtl/ad4080_top.sv) 仍可单独使用，其输入和输出均为补码。
 
 SAR 任一结果标志置位时，接入层拒收该样本并锁存 `stream_fault`；此后输入被拒收，结果 valid 和串行输出受到抑制。恢复需要 `dsp_restart` 或 SAR 的 `cfg_clear_valid` 接到 `sar_epoch_clear`。**这会复位整个 DSP，并清空 FIFO、滤波状态和寄存器配置**。输入接受/拒收事件携带对应 ID，但滤波或 FIFO 输出尚无逐结果 ID 和输入标志。完整时序、复位优先级与适用范围见 [SAR20 接口契约](docs/SAR20_INTERFACE.md)。
 
@@ -26,7 +26,7 @@ SAR 任一结果标志置位时，接入层拒收该样本并锁存 `stream_faul
 
 ```bash
 # 在仓库根目录：SAR 结构核接入 DSP 的实际集成测试
-python tools/run_open_rtl.py --tops sar20_dsp_integration_tb
+python tools/run_open_rtl.py --tops sar20_dsp_integration_tb sar20_system_top_tb
 
 # 独立的 5 个 DSP 自检台（需要 Icarus Verilog）
 BUILD_DIR="${TMPDIR:-/tmp}/ad4080-dsp-build" bash ad4080_dsp/sim/run_all.sh

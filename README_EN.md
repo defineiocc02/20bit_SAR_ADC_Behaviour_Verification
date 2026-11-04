@@ -70,7 +70,7 @@ Timing skew couples to input slope. Bandwidth mismatch requires the dynamic acqu
 
 *Figure 6. An original illustration of the current RTL integration boundary.*
 
-[`sar20_ad4080_top.sv`](ad4080_dsp/rtl/sar20_ad4080_top.sv) accepts the SAR `dout`, `dout_valid`, `dout_sample_id` and `dout_flags`. It converts offset binary to the DSP's two's-complement input and converts the parallel output back; serial payloads remain two's complement. Any SAR result flag rejects the sample and latches a stream fault, preventing an error-held old SAR word from entering the filter. `dsp_restart` or `sar_epoch_clear` resets the DSP, **including FIFO, filter state and register configuration**; configure it again after reset.
+[`sar20_system_top.sv`](ad4080_dsp/rtl/sar20_system_top.sv) instantiates the SAR digital core and DSP. Alternatively, connect [`sar20_ad4080_top.sv`](ad4080_dsp/rtl/sar20_ad4080_top.sv) separately to SAR `dout`, `dout_valid`, `dout_sample_id` and `dout_flags`. It converts offset binary to the DSP's two's-complement input and converts the parallel output back; serial payloads remain two's complement. Any SAR result flag rejects the sample and latches a stream fault, preventing an error-held old SAR word from entering the filter. `dsp_restart` or `sar_epoch_clear` resets the DSP, **including FIFO, filter state and register configuration**; configure it again after reset.
 
 Acceptance/rejection events and IDs exist at the input boundary; filtered and FIFO outputs **do not yet carry per-output IDs or source flags**. Both sides require the same clock and synchronous reset release; no new CDC is provided. See the [DSP README](ad4080_dsp/README.md) for correction, filtering, SPI, FIFO, serial digital logic and unresolved items. DDR differential PHY is absent and the default SINC5 compensation coefficients are placeholders.
 
@@ -95,7 +95,7 @@ pytest -m 'not slow' -q
 RTL regression requires Verilator 5.x and a C++ compiler; the independent DSP script requires Icarus Verilog:
 
 ```bash
-python tools/run_open_rtl.py --tops calibration_fit_tb sar20_dsp_integration_tb
+python tools/run_open_rtl.py --tops calibration_fit_tb sar20_dsp_integration_tb sar20_system_top_tb
 BUILD_DIR="${TMPDIR:-/tmp}/ad4080-dsp-build" bash ad4080_dsp/sim/run_all.sh
 MPLBACKEND=Agg PYTHONPATH=src python docs/readme/make_unified_figures.py
 PYTHONPATH=src python docs/readme/reproduce_interleave_40m.py \

@@ -1,4 +1,4 @@
-"""digital_core.py -- 数字核：数字侧算法的唯一入口与数据流边界。
+"""digital_core.py -- unary参考数字接口与数据流边界。
 
 ============================================================================
 数据流边界（工业级约束，验收强制检查）
@@ -18,7 +18,7 @@
     │      x̂ = ( vD0 + fine/Ĝ − d_corr ) / α                  │
     │      Ĝ/κ/α 全部来自数字状态，禁止读 chip.C_true          │
     │ 3. calibrate（慢时标，温度量级）：                        │
-    │      gain LMS / beta 回归 / 权重校正系数                 │
+    │      批量gain回归 / beta回归 / 独立权重估计接口                 │
     │      输入只能是 (out, 已知校准输入, 数字码, dither 码)   │
     └─────────────────────────────────────────────────────────┘
 
@@ -60,12 +60,13 @@ class PipelineState:
 class DigitalCore:
     """数字侧算法集合：粗细码合并、DEM、dither、校准。
 
-    pipeline.py 的转换相按以下顺序调用（与论文 Fig.9.8.1 的数据流一致）：
+    此接口保留unary参考算法；生产split引擎直接调用共享重构与位权模块，
+    不实例化DigitalCore。以下是本接口的概念调用顺序：
         1. sadc.convert()            -> 粗码（量化器是独立 sDAC）
         2. switch_commands()         -> (k_eq, sid, dither 码)
         3. （物理 RDAC 置位、RA、ADC2 —— 模拟域）
         4. reconstruct(vd0, fine)    -> 输出
-        5. （慢时标）calibrate_gain / calibrate_beta
+        5. 显式calibrate_gain；beta更新由reconstruction.Calibrator提供
     """
 
     def __init__(self, cfg: Config):

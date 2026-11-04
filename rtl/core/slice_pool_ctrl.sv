@@ -1,13 +1,12 @@
-// Causal 8-of-18 allocation. The bank that actually acquired the previous
-// period is promoted to conversion. Select the next acquiring bank from its
-// complement; two idle spares participate in service. A reproducible PRNG
-// chooses the cyclic scan origin. This is not a uniform draw from all 8-of-18
-// subsets, nor a claim to reproduce the unpublished silicon randomizer.
-//
-// The initial acquiring set is IDs 0..7. The first advance only primes the
-// allocator: conversion_valid stays low because no preceding acquisition
-// period has completed. Subsequent advances expose the previous acquiring set
-// for conversion and independently prepare eight IDs from its ten-ID complement.
+// 模块：slice_pool_ctrl；因果8-of-18采集/转换所有权调度。
+// 职责：上一采集组晋升转换，从其10个ID补集中选新8个采集slice，保留2个空闲。
+// 端口/单位：acquiring/converting为物理ID与18位mask；sample_id为32位采样编号。
+// 时钟/复位：clk上升沿、同步低有效rst_n；disable同步清历史、恢复初始采集IDs0..7。
+// 启动：首advance只priming，conversion_valid读取旧primed=0；后续advance才有效。
+// 同沿规则：转换读取旧采集组，next_ids使用旧cursor；PRNG更新只影响下一次扫描起点。
+// 调度：shuffle时8步LFSR更新游标，byte252..255保留旧游标；关闭shuffle后游标固定0。
+// 边界：循环扫描保持8/8/2及组内唯一/组间互斥，不是所有8-of-18子集的均匀随机抽样。
+// 来源：项目因果slice池合同；随机策略为工程选择，不声明复刻未披露硅实现。
 module slice_pool_ctrl #(parameter logic [31:0] P_SEED = 32'h6d2b79f5) (
     input wire clk, rst_n, enable, advance, shuffle,
     output logic [7:0][4:0] acquiring_ids, converting_ids,

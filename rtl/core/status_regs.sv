@@ -1,46 +1,11 @@
-//===========================================================================
-// status_regs.sv -- 粘滞/逐样本状态寄存与错误码拼接
-//===========================================================================
-// 职责一句话
-//   把逐样本事件（溢出/剪裁/模拟饱和/结构性错误）按"粘滞 vs 逐样本"两种口径
-//   汇总成一组状态位，并拼成一个 32 位 status_word 供上层回读。
-//   本模块**不做**任何判定（判定在 recon_core / 顶层），只做寄存与粘滞。
-//
-// 来源
-//   docs/rtl/RTL_ARITHMETIC_CONTRACT.md §4.4（RTL 的行为约定）与 §4.6
-//   （模拟溢出标志必须独立保留）；docs/rtl/P2_INTERFACE.md §8。
-//   既有判据：tests/unit/test_fixed_point.py::test_output_saturation_is_separate_from_analog_saturation
-//
-// 单位契约
-//   全为 0/1 状态位与 32 位整数错误码。无模拟量。
-//
-// 参数来源分级
-//   本模块无模块参数（尺寸与标志个数都是接口契约的一部分，不是可调尺寸）。
-//   错误码常量定义于 rtl_error_codes.vh，本模块只**透传** err_code，不解释它。
-//
-// 契约与不变量 / 适用域
-//   * **粘滞**（acc_ovf / gain_err / adc2_ovf / analog_ovf）：一旦置位，只由
-//     `clr` 或 `rst_n` 解除。理由（契约 §4.4）：Python 侧对同一情形是 `raise`，
-//     即"这次转换的结论不可信"；RTL 无法抛异常，粘滞标志是它在硬件上唯一诚实的
-//     等价物 —— **不允许它自己消失**。
-//   * **非粘滞**（clip_low_last / clip_high_last）：逐拍跟随 `ev_clip_*`。
-//     做成粘滞会让"码到边"看起来像"芯片坏了"（P2 §8 明文）。
-//     注意 recon_core 只在 `div_done` 那拍更新 clip_*，其余时间保持，故"逐拍跟随"
-//     与"逐样本更新"等价。
-//   * `clr` 只清 4 个粘滞标志，**不清** clip_*，也**不改** err_code。
-//   * `status_word = {err_code[25:0], 6 个标志}` —— 位分配是本模块的**设计选择**
-//     （P2 §8 只写了 `{err_code, 6 个标志}`，未给位序/截位口径）：
-//         [5] analog_ovf_sticky  [4] clip_high_last  [3] clip_low_last
-//         [2] adc2_ovf_sticky    [1] gain_err_sticky [0] acc_ovf_sticky
-//          [31:6] = err_code[25:0]
-//     选择 [5:0] 放标志是为了让"码到边/溢出"这类高频观察量落在低位。
-//   * `status_clr_value` 定义为 4 个粘滞位的掩码（32'h0000_0027；不含两个 clip 位）。
-//     P2 §8 只给了端口名未给语义，这是设计选择；顶层用不上它，留给软件侧使用。
-//   * rst_n 为同步低有效复位。clr 对四个粘滞位优先于同拍事件，故 clear
-//     与新错误同拍时输出清零；clip_* 在非复位拍始终跟随输入，不受 clr 门控。
-//   * err_code 是本模块的组合透传输入，其保存/清除由上游负责；status_word
-//     没有额外寄存器。读回时应以顶层配置/输出协议确保各字段属于所需时刻。
-//===========================================================================
+// 模块：status_regs；粘滞事件、逐拍clip状态及错误码组合回读。
+// 端口/单位：输入为离散事件/状态；输出status_word[5:0]为六标志，[31:6]为err_code低26位。
+// 时钟/复位：clk上升沿、同步低有效rst_n；clr对四个sticky位优先于同沿事件。
+// 标志：sticky={analog_ovf,adc2_ovf,gain_err,acc_ovf}，只由reset/clr清除；clip_last逐拍跟随。
+// 同沿规则：clip不受clr门控；本模块无valid资格，调用方须提供所需最近合法结果的clip电平。
+// 回读：err_code直接组合透传，不在此保存；其来源、优先级与清除由顶层定义。
+// ABI：flags[5:0]={analog,clip_high,clip_low,adc2,gain,acc}；status_clr_value=0x27不含clip。
+// 来源：RTL_ARITHMETIC_CONTRACT.md §4与P2_INTERFACE.md §8；不重新判定数值范围。
 `include "rtl_params.vh"
 
 module status_regs (

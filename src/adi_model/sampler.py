@@ -367,15 +367,16 @@ def spectral_derivative(x: np.ndarray, dt: float) -> np.ndarray:
     Why not ``np.gradient``
     -----------------------
     A central difference has amplitude response
-    ``sin(2*pi*f/fs) / (2*pi*f/fs)``. At f = fs/2 that factor is **0.0524**
+    ``sin(2*pi*f/fs) / (2*pi*f/fs)``. At f = 0.95*(fs/2) it is about **0.0524**
     -- the derivative is underestimated by ~25.6 dB, so any effect that is
     proportional to ``dx/dt`` (interleaving timing skew is exactly that) is
     silently suppressed near Nyquist. An external audit measured this on v6.1
     (finding A07.3) and warned that low-frequency skew results must not be
     extrapolated.
 
-    The spectral derivative has unit response across [0, fs/2] and is exact
-    for a band-limited, periodically-sampled record. It is the fallback when
+    The spectral derivative is exact for resolved periodic tones strictly
+    below Nyquist. A real Nyquist-bin component does not determine its continuous
+    derivative; this routine returns its real spectral derivative (zero). It is the fallback when
     the input function cannot supply an analytic derivative.
 
     Args:
@@ -402,7 +403,8 @@ def input_derivative(input_fn, t: np.ndarray) -> np.ndarray:
        attribute; a general callable may do the same. Exact at any ``fin``,
        including near Nyquist.
     2. **Spectral.** Otherwise :func:`spectral_derivative` on the uniform
-       grid -- unit response up to ``fs/2``.
+       periodic grid, for resolved content strictly below ``fs/2``. At Nyquist
+       the continuous derivative is not identifiable without extra information.
 
     ``np.gradient`` is deliberately **not** used: see
     :func:`spectral_derivative` for the 25.6 dB near-Nyquist bias that made

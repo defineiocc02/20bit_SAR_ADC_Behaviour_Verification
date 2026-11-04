@@ -1,25 +1,11 @@
-//===========================================================================
-// cal_residue_mac.sv -- 定点残差分子与溢出资格检查（纯组合）
-//===========================================================================
-// 职责：由 recon_core 已捕获的一次样本计算 A1；增益、总权重、rails 与电压
-// 必须属于同一 sample_id/configuration epoch。此模块不锁存输入、没有时钟
-// 或复位；输入变化立即影响 a1/any_ovf，调用方在下一阶段统一采样。
-//
-// 算术：num = (fine_r - off_r)*2^W_FRAC - rails_s*2^V_FRAC
-//             - total_s*inj_r；shifted = (num + gain_s*2^V_FRAC)*2^OUT_BITS。
-// a1 传递 shifted >>> (V_FRAC + 1) 的二补码位型，div_floor.a 将其按有符号
-// 数解释。权重/增益为无符号整数，电压与 rails 为有符号整数；乘法前的显式
-// 扩展不可删除，否则表达式的符号/精度会改变。
-//
-// 异常：any_ovf 合并三个操作数、分子、分母尺度和 shifted 的受检范围。
-// gain_s == 0 由 recon_core 独立上报 gain_err。any_ovf 为 1 时 a1 无有效
-// 数值保证；调用方必须保留最后合法输出，不把截断位型当成合法校准结果。
-//
-// 综合：宽乘法与移位/加减法均在这一组合阶段；SUM_BITS 默认 64。下面的
-// 130/132/97/117/63/22 位注释指默认配置。缩短路径须重新证明符号、溢出
-// 及 floor 契约并核对流水延迟；不能只凭仿真正常范围缩窄受检算术。
-// 来源：RTL_ARITHMETIC_CONTRACT.md；ADR 0018。
-//===========================================================================
+// 模块：cal_residue_mac；冻结样本的定点残差分子与溢出资格检查。
+// 职责：num=(F-O)*2^W_FRAC-rails*2^V_FRAC-total*I；shifted=(num+gain*2^V_FRAC)*2^OUT_BITS。
+// 端口/单位：F/O/I为有符号Q32；gain/total为无符号Q30和；rails为有符号加权和。
+// 时序：纯组合，无时钟/复位；全部输入须来自同一 sample ID 与配置 epoch。
+// 精度：默认精确临时位宽132/117位，受检算术域为[-2^95,2^95)。a1传递移位后63位二补码。
+// 异常：六项受检范围任一失败置any_ovf，此时a1无合法数值保证；gain=0由上层独立报告。
+// 适用域：生产 SUM_BITS=64、Q30/Q32/96位合同；缩窄或改参数须重新证明扩展与界限。
+// 来源：RTL_ARITHMETIC_CONTRACT.md；ADR0018；本模块不保存状态或提交输出。
 `include "rtl_params.vh"
 module cal_residue_mac #(
     parameter int SUM_BITS = 64
@@ -60,8 +46,7 @@ module cal_residue_mac #(
   assign rails_ext = {{(W_WIDE - W_RAIL){rails_s[W_RAIL - 1]}}, rails_s};
   assign op2 = rails_ext <<< V_FRAC;
 
-  // total 是**无符号**量：先显式零扩展到 W_OP3 再乘，避免"混一个无符号操作数
-  // 就让整条表达式按无符号算"（P1 的 RTL-3）。
+  // total先零扩展到W_OP3再转signed，与有符号injection相乘。
   assign op3_w = $signed({{(W_OP3 - SUM_BITS){1'b0}}, total_s}) * $signed(inj_r);
   assign op3 = {{(W_WIDE - W_OP3){op3_w[W_OP3 - 1]}}, op3_w};
 

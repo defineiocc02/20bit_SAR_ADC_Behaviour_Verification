@@ -1,7 +1,7 @@
 {
   "meta": {
     "artifact": "mechanism_inventory",
-    "version": "1.1",
+    "version": "1.2",
     "generated": "2026-09-13",
     "repo_commit_at_generation": "merge 0c83fdd (v8.0.0 PR #1 + phase-A f74a5de)",
     "purpose": "任务书 §2.3：机器可读的机制/实施例/来源/状态总清单。三条轴线（证据来源、实现程度、验证性质）与实验状态分开登记，绝不合并成一个通过标记。来源文件与哈希见 sources_manifest.json。",
@@ -9,7 +9,17 @@
       "page_checked": "页码/图号已对原文逐页核实（[12]/[13]/[14] 于 v7.0.8-v7.0.10 轮次完成）",
       "inherited": "条目位置继承自已复核文档（engineering_vs_patents_papers.md 等），页码级复核在阶段 A 后续轮次补全"
     },
-    "v8_refresh_note": "v8.0.0 合并后重刷：M11/M12 升 INTEGRATED_SCENARIO，P02/P04/P05/P06 由 v8 检查点证据关闭；P01/P03/P08 仍未做；2026-09-19 复核：P09/P10 含未完成物理模型，恢复 NOT_RUN，已完成子项保留在 resolution。"
+    "v8_refresh_note": "v8.0.0 合并后重刷：M11/M12 升 INTEGRATED_SCENARIO，P02/P04/P05/P06 由 v8 检查点证据关闭；P01/P03/P08 仍未做；2026-09-19 复核：P09/P10 含未完成物理模型，恢复 NOT_RUN，已完成子项保留在 resolution。",
+    "current_review": {
+      "date": "2026-11-05",
+      "baseline_commit": "d1e1f87e5c87ce6f09b87acdc5958af39cdfbb09",
+      "scope": "当前实现与验证入口复核；保留历史缺口，来源语义核查与静态引用门禁分别记录。"
+    },
+    "industrial_review": {
+      "date": "2026-11-05",
+      "baseline_commit": "d1e1f87e5c87ce6f09b87acdc5958af39cdfbb09",
+      "scope": "implementation_degree描述Python机制集成；rtl_contract独立描述数字实现，二者不得合成一个完成标记。静态引用检查不证明原文语义、模拟电路或签核。"
+    }
   },
   "axes": {
     "evidence_source": {
@@ -105,7 +115,19 @@
       ],
       "gaps": [
         "b1 读法非唯一（paper_literal/legacy_v61 保留）"
-      ]
+      ],
+      "rtl_contract": {
+        "status": "DIGITAL_IMPLEMENTED",
+        "code": [
+          "rtl/core/sar_structural_ctrl.sv",
+          "rtl/core/sar_trial_ctrl.sv",
+          "rtl/core/rdac_drv.sv"
+        ],
+        "tests": [
+          "sim/tb/structural_adc_tb.sv"
+        ],
+        "boundary": "两套带Flash前缀的SAR控制和独立RDAC；具体二进制位数、同步相位与63+8映射是项目选定合同。"
+      }
     },
     {
       "id": "M02",
@@ -150,7 +172,18 @@
         "窗口内 4.45 mV err≈0；窗口外 4.92 mV→10.9 µV、7.03 mV→302 µV",
         "Δτ=20 ps 窗口内 SNDR 不变；100 ps 超窗 SNDR 93.7→75.7 dB（边界两侧）"
       ],
-      "gaps": []
+      "gaps": [],
+      "rtl_contract": {
+        "status": "CONTROL_ONLY",
+        "code": [
+          "rtl/core/sar_structural_ctrl.sv",
+          "rtl/core/recon_core.sv"
+        ],
+        "tests": [
+          "sim/tb/structural_adc_tb.sv"
+        ],
+        "boundary": "提供粗细结果重构和越界标志；误差能否落入后级窗口取决于模拟残差范围与建立，RTL不能证明模拟自愈裕量。"
+      }
     },
     {
       "id": "M03",
@@ -194,7 +227,18 @@
       ],
       "gaps": [
         "sampling_tau_mismatch 数值为 [假设]"
-      ]
+      ],
+      "rtl_contract": {
+        "status": "CONTROL_ONLY",
+        "code": [
+          "rtl/core/analog_phase_ctrl.sv",
+          "rtl/core/sar_structural_ctrl.sv"
+        ],
+        "tests": [
+          "sim/tb/structural_adc_tb.sv"
+        ],
+        "boundary": "仅输出采样和比较相位；开关RC、时序/带宽匹配与版图由模拟宏落实。"
+      }
     },
     {
       "id": "M04",
@@ -225,7 +269,9 @@
       ],
       "code": [
         "src/adi_model/sampler.py",
-        "src/adi_model/reconstruction.py"
+        "src/adi_model/reconstruction.py",
+        "src/adi_model/sampling_charge.py",
+        "src/adi_model/pipeline_engine.py"
       ],
       "tests": [
         "tests/audit/test_audit_findings.py::TestF3DitherUnits"
@@ -246,7 +292,21 @@
       ],
       "gaps": [
         "N1：静态线性化收益在本配置为负结果（条件性）"
-      ]
+      ],
+      "rtl_contract": {
+        "status": "DIGITAL_IMPLEMENTED",
+        "code": [
+          "rtl/core/dither_gen.sv",
+          "rtl/core/swap_decode.sv",
+          "rtl/core/unit_therm.sv",
+          "rtl/core/recon_core.sv"
+        ],
+        "tests": [
+          "sim/tb/structural_adc_tb.sv",
+          "sim/tb/rdac_event_contract_tb.sv"
+        ],
+        "boundary": "已对齐off/sampling/quantizer离散合同；lower/upper双总线的原芯片电荷实现及范围增强仍未复现。"
+      }
     },
     {
       "id": "M05",
@@ -272,7 +332,8 @@
       ],
       "code": [
         "src/adi_model/mapper.py",
-        "src/adi_model/dac_arch.py"
+        "src/adi_model/dac_arch.py",
+        "src/adi_model/dem.py"
       ],
       "tests": [],
       "experiments": [
@@ -286,7 +347,21 @@
       ],
       "gaps": [
         "R16：联合排列空间 64 ≠ 512 标签；本模型 DEM 数字不得引用为 [11] 三维机制的定量收益"
-      ]
+      ],
+      "rtl_contract": {
+        "status": "DIGITAL_IMPLEMENTED",
+        "code": [
+          "rtl/core/dem_state_gen.sv",
+          "rtl/core/dem_addr_gen.sv",
+          "rtl/core/swap_decode.sv",
+          "rtl/core/unit_therm.sv"
+        ],
+        "tests": [
+          "sim/tb/bridge_mask_audit_tb.sv",
+          "sim/tb/p1_tb.sv"
+        ],
+        "boundary": "实现项目物理单元置换与sid[8]零和bridge代理；不证明与讲稿全部跨权重互换开关相同。"
+      }
     },
     {
       "id": "M06",
@@ -325,7 +400,13 @@
       ],
       "gaps": [
         "[11] 原始三维映射（slice 选择 ⊗ 横向 ⊗ 纵向 + binary-to-unary 边界交换）未按原文映射图重建，现有映射为本工程候选实现（R16 钉子）"
-      ]
+      ],
+      "rtl_contract": {
+        "status": "NOT_APPLICABLE",
+        "code": [],
+        "tests": [],
+        "boundary": "物理桥接电容/浮动子节点的器件方程在Python，不是数字RTL器件；有效权重校正由M16负责。"
+      }
     },
     {
       "id": "M07",
@@ -371,7 +452,13 @@
       ],
       "gaps": [
         "校准算法为本工程实现，非原芯片算法（T12 口径）"
-      ]
+      ],
+      "rtl_contract": {
+        "status": "NOT_IMPLEMENTED",
+        "code": [],
+        "tests": [],
+        "boundary": "矩阵秩与有效权重学习由片外Python计算；RTL无片内SVD或内部测位权状态机。"
+      }
     },
     {
       "id": "M08",
@@ -403,7 +490,8 @@
       "code": [
         "src/adi_model/scheduler.py",
         "src/adi_model/slice_pool.py",
-        "src/adi_model/pipeline.py"
+        "src/adi_model/pipeline.py",
+        "src/adi_model/pipeline_engine.py"
       ],
       "tests": [
         "tests/audit/test_audit_findings.py::TestF2SliceCausality",
@@ -423,10 +511,28 @@
         "reserve_dual 逐样本两两不相交（invariants 断言）"
       ],
       "gaps": [
+        "逐 slice 失调、增益、时序和带宽的完整硬件估计/补偿闭环尚未完成；调度的行为实验不能替代参数学习",
+        "原芯片的完整采样时钟/开关/版图与随机选择实施细节未公开，工程 allocator 不构成逐电路复现"
+      ],
+      "historical_gaps": [
         "R1/R2：PhysicalSlicePool 跨周期因果（8191/8191）已验证但未接入主入口——主链路 conv[n]=acq[n−1] 仅 0/8191",
         "M2 的 31.4/42 dB 抑制数字来自非因果洗牌实现，不得用作匹配预算",
         "offset/gain/bandwidth/skew 四类失配的固定相位与随机抖动分别统计未完成"
-      ]
+      ],
+      "resolution": "当前 run_pipeline 调用 pipeline_engine.execute_split，PhysicalSlicePool 实际驱动持有电荷、逐样本增益、噪声及样本归属；P02 关闭的是生产行为路径接入，非目标工艺或逐 slice 硬件校准。",
+      "rtl_contract": {
+        "status": "DIGITAL_IMPLEMENTED",
+        "code": [
+          "rtl/core/slice_pool_ctrl.sv",
+          "rtl/core/slice_alloc.sv",
+          "rtl/core/cal_sample_context.sv"
+        ],
+        "tests": [
+          "sim/tb/structural_protocol_tb.sv",
+          "sim/tb/structural_adc_tb.sv"
+        ],
+        "boundary": "18选8调度与样本上下文已实现；逐slice时序、带宽和失调的数字学习仍未实现。"
+      }
     },
     {
       "id": "M09",
@@ -453,7 +559,9 @@
         "LITERATURE_COMPARISON"
       ],
       "code": [
-        "src/adi_model/dynamics.py"
+        "src/adi_model/dynamics.py",
+        "src/adi_model/conversion.py",
+        "src/adi_model/input_network.py"
       ],
       "tests": [
         "tests/audit/test_review_contracts.py::TestR17CommonModeTau"
@@ -471,7 +579,18 @@
       "gaps": [
         "dyn_* 参数全部 [假设]，用形状与趋势不用值",
         "R17：星形网络公共模式 τ 上界口径已限定"
-      ]
+      ],
+      "rtl_contract": {
+        "status": "CONTROL_ONLY",
+        "code": [
+          "rtl/core/analog_phase_ctrl.sv",
+          "rtl/core/sar_structural_ctrl.sv"
+        ],
+        "tests": [
+          "sim/tb/structural_adc_tb.sv"
+        ],
+        "boundary": "输出参考与采样控制；输入RC/参考恢复/电串扰动态是模拟模型，不以数字相位替代其电气验证。"
+      }
     },
     {
       "id": "M10",
@@ -520,7 +639,13 @@
       ],
       "gaps": [
         "十六片全通过不等于高良率已证实（任务书 §5.5）；需置信区间与样本量收敛"
-      ]
+      ],
+      "rtl_contract": {
+        "status": "NOT_APPLICABLE",
+        "code": [],
+        "tests": [],
+        "boundary": "失配预算与灵敏度扫描属于片外模型实验；不对应独立可综合模块或硅片良率证明。"
+      }
     },
     {
       "id": "M11",
@@ -547,7 +672,9 @@
         "MATH_CONSISTENCY"
       ],
       "code": [
-        "src/adi_model/interleave_tracking.py"
+        "src/adi_model/interleave_tracking.py",
+        "src/adi_model/pretracking.py",
+        "src/adi_model/pipeline_engine.py"
       ],
       "tests": [
         "tests/unit/test_patent12_interleave_tracking.py::TestTrackPolicyValidation",
@@ -565,7 +692,13 @@
       "gaps": [
         "介电吸收预失真需先有记忆误差模型——未建"
       ],
-      "resolution": "v8.0.0 (PR #1, M4.4)：QuantizedPretracker 进 pipeline_engine，信息源合法性由 causal/available-decision 测试覆盖（tests/integration/test_input_assistance.py）"
+      "resolution": "v8.0.0 (PR #1, M4.4)：QuantizedPretracker 进 pipeline_engine，信息源合法性由 causal/available-decision 测试覆盖（tests/integration/test_input_assistance.py）",
+      "rtl_contract": {
+        "status": "NOT_IMPLEMENTED",
+        "code": [],
+        "tests": [],
+        "boundary": "基于另一ADC最新数字结果的预跟踪更新属于Python候选；当前RTL无该历史码预置通路。"
+      }
     },
     {
       "id": "M12",
@@ -576,11 +709,11 @@
       "sources": [
         {
           "id": "13",
-          "location": "p.12（50 kHz 信号也要求 77 MHz 滤波带宽）；FIG.4/5（gate-boost）",
+          "location": "PDF p.3 Fig.2（与 Fig.1 传统接法对照）；PDF p.6 Fig.5 / p.7 Fig.6（辅助 gate-boost）；PDF p.14–15 说明",
           "citation_status": "page_checked"
         }
       ],
-      "claim": "辅助开关从经输入 RC 滤波器的节点给背栅寄生充电，滤波器只需服务信号电荷",
+      "claim": "在辅助输入实施例中，由独立 VIN_AUX 经辅助开关为输入开关背栅寄生及相关自举节点供给充电电荷，绕过主输入 RC 滤波器，从而减轻主信号路径的瞬态负载；VIN_AUX 可有独立信号调理。",
       "embodiment": "PATENT_STANDALONE",
       "evidence_source": [
         "DISCLOSED",
@@ -592,7 +725,9 @@
         "MATH_CONSISTENCY"
       ],
       "code": [
-        "src/adi_model/aux_input.py"
+        "src/adi_model/aux_input.py",
+        "src/adi_model/input_network.py",
+        "src/adi_model/pipeline_engine.py"
       ],
       "tests": [
         "tests/unit/test_patent13_aux_input.py::TestInformationFlow",
@@ -609,7 +744,18 @@
       "gaps": [
         "C_pg 无披露值→比例 [假设]"
       ],
-      "resolution": "v8.0.0 (PR #1, M4.1/M4.4)：input_network 三节点 KCL + auxiliary_cap_f 预充电/组合实施例（precharge/combined 9b 测试）"
+      "resolution": "v8.0.0 (PR #1, M4.1/M4.4)：input_network 三节点 KCL + auxiliary_cap_f 预充电/组合实施例（precharge/combined 9b 测试）",
+      "source_review_note": "2026-11-05 按原图复核：Fig.1/Fig.4 为主 RC 后供寄生电荷的传统对照，Fig.2/Fig.5/Fig.6 引入独立 AUX；感测电压的节点与实际充电电流通路不能混为一谈。",
+      "rtl_contract": {
+        "status": "CONTROL_ONLY",
+        "code": [
+          "rtl/core/sar_structural_ctrl.sv"
+        ],
+        "tests": [
+          "sim/tb/structural_adc_tb.sv"
+        ],
+        "boundary": "aux_charge_enable仅表示辅助充电窗口；VIN_AUX、背栅和自举电荷的物理通路需模拟电路实现。"
+      }
     },
     {
       "id": "M13",
@@ -654,7 +800,17 @@
         "[14] 整定回路事件（threshold_gain/A06 分析）未进 pipeline 主链路（N2）",
         "误差检测可实现性（控制器不能无损知道真实参考误差）未建模"
       ],
-      "resolution": "联立动态部分由 v8.0.0 M4.2/M4.3 覆盖（reference_charge 有符号事件 + 有限带宽/压摆 RA 与 ADC2 孔径联立，ADR 0011）；整定回路本身未集成"
+      "resolution": "联立动态部分由 v8.0.0 M4.2/M4.3 覆盖（reference_charge 有符号事件 + 有限带宽/压摆 RA 与 ADC2 孔径联立，ADR 0011）；整定回路本身未集成",
+      "rtl_contract": {
+        "status": "CONTROL_ONLY",
+        "code": [
+          "rtl/core/analog_phase_ctrl.sv"
+        ],
+        "tests": [
+          "sim/tb/structural_adc_tb.sv"
+        ],
+        "boundary": "仅有ref_precharge/ref_accurate窗口；专利比较器、低功耗闭环参考缓冲等器件实施例未在RTL实现。"
+      }
     },
     {
       "id": "M14",
@@ -681,7 +837,9 @@
       ],
       "code": [
         "src/adi_model/ra.py",
-        "src/adi_model/adc2.py"
+        "src/adi_model/adc2.py",
+        "src/adi_model/pipeline_engine.py",
+        "src/adi_model/conversion.py"
       ],
       "tests": [
         "tests/regression/test_observer_headroom.py::TestObserverCorrectionIsDigital"
@@ -696,10 +854,26 @@
         "−1.238/+0.923 dB 预算 vs 实测 −1.233/+0.917（差 0.006 dB，预算内部一致）"
       ],
       "gaps": [
+        "AZ 的 C_AZ 存储/释放、相关噪声折叠及宽窄带切换噪声传递未建，现有信号瞬态与孔径噪声预算不能替代",
+        "RA/ADC2 带宽、有限增益、压摆与摆幅参数仍含工程假设，未由目标电路和 PDK 后仿验证"
+      ],
+      "historical_gaps": [
         "主入口 gain_vector 仍是固定 c_sig 常向量——逐样本物理增益未在主入口成立",
         "AZ 相位级噪声传递（存储/校正/释放 + C_AZ/开关）未建模，只有预算倍率",
         "RA 有限建立/复用历史/摆幅限流未建模（−1.6/+1.3 dB 只可作预算对照）"
-      ]
+      ],
+      "resolution": "生产 execute_split 根据实际活动电容生成逐样本增益；开启参考动态或 conversion.dynamic 时运行 ConversionEngine 的有限带宽/有限增益/压摆/ADC2 跟踪信号响应。相关独立卷积/ODE/边界测试见 tests/unit/test_joint_conversion.py；这不关闭 AZ 噪声转移和模拟电路验证缺口。",
+      "rtl_contract": {
+        "status": "CONTROL_ONLY",
+        "code": [
+          "rtl/core/analog_phase_ctrl.sv",
+          "rtl/core/sar_structural_ctrl.sv"
+        ],
+        "tests": [
+          "sim/tb/structural_adc_tb.sv"
+        ],
+        "boundary": "仅有RA复位/放大及ADC2采样控制；增益、AZ噪声和动态带宽是行为/模拟验证项。"
+      }
     },
     {
       "id": "M15",
@@ -741,12 +915,19 @@
         }
       ],
       "observables": [
-        "逐相位节点方程独立真值；电荷闭合 ≈6 个电子"
+        "连续电荷模型的数值闭合误差约 1e-25 C；不用于推断电路噪声或电子计数"
       ],
       "gaps": [
         "SPICE/Spectre 小规模测试台未执行（工具可用时补，接口先交付）",
         "手工可核对完整数值例子（初始连接→残差→重构）未成文"
-      ]
+      ],
+      "review_note": "原“约6个电子”单位换算有误：1.06e-25 C / 1.602176634e-19 C 约为 6.62e-7。此处仅报告连续模型的数值闭合。",
+      "rtl_contract": {
+        "status": "NOT_APPLICABLE",
+        "code": [],
+        "tests": [],
+        "boundary": "独立节点方程为片外物理参考，不合成为硬件，也不以其数值一致性代替后仿。"
+      }
     },
     {
       "id": "M16",
@@ -760,7 +941,7 @@
           "location": "数字重构架构（ADR 0006 为本工程边界决策）"
         }
       ],
-      "claim": "数字算法禁止读 chip.C_true；观察器校正值先量化后扣除，不进 ADC2 量程",
+      "claim": "有效权重拟合只接收数字观测与独立已知参考，不读取物理电容真值；最终整数输出由 SimResult.to_codes 显式生成，执行检查过的 Q30/Q32 定点重构，未量化 KTC 观察器路径被该整数 API 拒绝。",
       "embodiment": "PAPER_BASELINE",
       "evidence_source": [
         "DERIVED"
@@ -771,19 +952,46 @@
       ],
       "code": [
         "src/adi_model/digital_core.py",
-        "src/adi_model/adc2.py"
+        "src/adi_model/adc2.py",
+        "src/adi_model/fixed_point.py",
+        "src/adi_model/weight_calibration.py",
+        "src/adi_model/rtl_observation.py"
       ],
       "tests": [
         "tests/regression/test_observer_headroom.py::TestObserverCorrectionIsDigital"
       ],
       "experiments": [],
       "observables": [
-        "近 Nyquist 校正项 1.18 V 不再塞进模拟量程"
+        "最终整数 API 从数字观测与名义/冻结系数重构，独立于浮点 out 诊断",
+        "未量化 KTC 研究观察器和不可实现的非整数掩码由整数 API 拒绝；不将其研究校正量写入 ADC2 模拟量程"
       ],
       "gaps": [
+        "定点功能对拍不证明目标工艺时序；跨 DSP 滤波/FIFO 的逐结果样本元数据仍需完整传递",
+        "整数 API 的原始观测与静态有效权重合同不包含片内自学习或完整模拟非线性校准"
+      ],
+      "historical_gaps": [
         "有限字长数字核（舍入/饱和/系数量化/流水延迟）未建（T12 要求）",
         "浮点 vs 有限字长对照未做"
-      ]
+      ],
+      "resolution": "SimResult.to_codes 调用 FixedPointReconstructor，显式执行最终整数输出；run_pipeline.out 保留浮点诊断，不能将一次浮点运行称为已经运行定点核。P06 与 ADR 0014 记录算术/舍入/饱和及对照；结构 RTL 观测到冻结权重的复验另见 ADR 0021。",
+      "historical_observables": [
+        "近 Nyquist 校正项 1.18 V 不再塞进模拟量程"
+      ],
+      "rtl_contract": {
+        "status": "DIGITAL_IMPLEMENTED",
+        "code": [
+          "rtl/core/cal_sample_context.sv",
+          "rtl/core/weight_store.sv",
+          "rtl/core/calib_regs.sv",
+          "rtl/core/recon_core.sv",
+          "rtl/top/sar20_digital_core.sv"
+        ],
+        "tests": [
+          "sim/tb/structural_calibration_observe_tb.sv",
+          "sim/tb/calibration_fit_tb.sv"
+        ],
+        "boundary": "实际RTL观测、片外训练、冻结量化装载与静态夹具留出复验已贯通；无片内自学习或实物观测传输。"
+      }
     },
     {
       "id": "X01",
@@ -791,12 +999,7 @@
       "task_refs": [
         "T14"
       ],
-      "sources": [
-        {
-          "id": null,
-          "location": "无文献源头；NOTICE 声明，不归属 ADI"
-        }
-      ],
+      "sources": [],
       "claim": "同一采样噪声实现同时进残差与观测通路，物理相关性建模；三推论逐项验证",
       "embodiment": "PROJECT_EXTENSION",
       "evidence_source": [
@@ -832,7 +1035,14 @@
       "gaps": [
         "X2 为理想读出上界（无量化器/编码/延迟模型）",
         "摆幅 ≠ 建立（R13）"
-      ]
+      ],
+      "source_review_note": "原创研究扩展，无文献源头；NOTICE 明确不归属 ADI。空 sources 表示没有文献引用，不以 null ID 伪造一个引用。",
+      "rtl_contract": {
+        "status": "NOT_IMPLEMENTED",
+        "code": [],
+        "tests": [],
+        "boundary": "KTC噪声观察为明确标注的研究扩展；RTL不提供其模拟观测器或闭环。"
+      }
     }
   ],
   "coverage_obligations": {
@@ -858,7 +1068,9 @@
         "task_ref": "T05",
         "title": "逐位切换大 DAC vs RDAC 直接设最终状态的对照实验（参考电荷/峰值电流/建立时间）",
         "status": "NOT_RUN",
-        "note": "直接设码已隐含于 SplitDAC 顶板保持，但对照未建"
+        "note": "完整物理参考电流/缓冲器指标尚未验证；不能将已完成的行为电荷与信号响应对照称为该物理指标已通过。",
+        "status_scope": "器件参考电流、缓冲器峰值与功耗验证",
+        "resolution": "signed_reference_loading 已分别运行最终设码与 Flash 前缀/已决位装载，记录有符号参考电荷、参考状态、有限 RA/ADC2 跟踪及最终整数 SNDR，并用独立递推核对。真实参考缓冲器电流波形、峰值及功耗仍未建模；不能由总电荷绝对值直接推导这些指标。"
       },
       {
         "id": "P04",
@@ -889,7 +1101,7 @@
         "title": "低频 1/f 与温漂的观察时长/等效方法验证 + MC 良率置信区间与样本量收敛",
         "status": "NOT_RUN",
         "note": "F9 只做了带限检查；F10 只做了 per-chip 样本保留",
-        "reason": "低频 1/f 与温漂的观察时长/等效方法已由 v8.0.0 M6.2 覆盖（物理时间状态 + 协方差/分块/64s PSD 收敛，ADR 0015）；MC 良率置信区间与样本量收敛仍未做"
+        "reason": "已完成：低频 1/f 的物理时间状态、协方差、分块及 64s PSD/模态收敛验证（ADR 0015）。未完成：温度/PVT 漂移模型，以及 MC 良率置信区间与样本量收敛；低频噪声验证不能替代这些项目。"
       },
       {
         "id": "P08",

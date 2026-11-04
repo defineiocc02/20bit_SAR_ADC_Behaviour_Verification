@@ -26,13 +26,15 @@ SAR 任一结果标志或单独的模拟溢出粘滞位置位时，接入层停�
 
 AD4080 手册的两点校正以**测得原始码**为横坐标、已知输入对应的目标码为纵坐标；一般情况下原始码差是变化的分母。当前 `cal_two_point` 的分母是编译期固定值，只有调用方能提供固定原始码对应的目标码时才可按这一方式使用。实际器件的外部两点测量若采用固定输入和可变原始码，仍需逆向系数计算及验证，不能把现有正向拟合测试当成校正闭环。手册正文的每码增益分辨率按 512 描述，而寄存器表的正负端点跨 511 码；本原型选择后者，具体器件一致性仍待确认。
 
+CNV数字代理以`cnv_p`表示逻辑正相，LVDS模式的互补引脚不能通过XOR当作数据；真实差分接收器仍在RTL之外。配置SPI现在只在同步片选有效、完整数据/CRC边界提交，片选退出会清除残帧状态；共享SCLK在同步片选取消后不得产生寄存器写。该保证以同步检测到的CS为边界，主机仍须满足过采样和片选建立/保持裕量。新自检台`cnv_ctrl_contract_tb`及`spi_abort_contract_tb`覆盖此合同，并检查长/短指令状态回传位序。
+
 ## 验证
 
 ```bash
 # 在仓库根目录：SAR 结构核接入 DSP 的实际集成测试
 python tools/run_open_rtl.py --tops sar20_dsp_integration_tb sar20_system_top_tb
 
-# 独立的 5 个 DSP 自检台（需要 Icarus Verilog）
+# 独立的 7 个 DSP 自检台（需要 Icarus Verilog）
 BUILD_DIR="${TMPDIR:-/tmp}/ad4080-dsp-build" bash ad4080_dsp/sim/run_all.sh
 
 # Python 定点参考模型

@@ -1,21 +1,11 @@
-//===========================================================================
-// cal_output_stage.sv -- 每次转换的输出提交与粘滞异常（同步寄存器）
-//===========================================================================
-// 捕获：仅在 cfg_ready && complete 的上升沿提交候选结果、sample ID 和
-// result_flags，并使 dout_valid 高一拍。此模块不重复计算校准算术。
-// flags[4:0] = {clip_high, clip_low, adc2_ovf, gain_err, acc_ovf}；其中
-// clip 位在候选 acc_ovf/gain_err 时屏蔽，ID 与标志仍标记这次完成的转换。
-//
-// 异常：acc_ovf/gain_err 时保留最后合法 dout 及 clip 状态，dout_valid 仍
-// 产生完成事件。adc2_ovf 独立报告，不阻止字更新；下游必须结合 flags 判读。
-// clr_ovf 清除三个粘滞错误；同沿有新的完成错误时，新错误优先重新置位。
-// clr_ovf 不清除 clip 状态，clip 仅随合法字更新或配置取消复位。
-//
-// 复位/取消：rst_n 为同步低有效复位。cfg_ready == 0 的分支最后执行，
-// 把输出字/ID/本次标志/valid/clip 清零，丢弃同沿完成；已积累的三个粘滞
-// 错误只由 reset 或 clr_ovf 清除。无额外 FIFO，提交延迟为一个寄存器沿。
-// 综合：只有寄存器和小量资格/屏蔽逻辑，不能通过删掉异常事件提高吞吐。
-//===========================================================================
+// 模块：cal_output_stage；转换结果、sample ID 与异常标志的同步提交。
+// 端口/单位：candidate/dout 为无符号输出码；ID 为32位样本号；flags为离散状态位。
+// 时钟/复位：clk 上升沿、同步低有效 rst_n；cfg_ready=0 取消同沿提交并清字/ID/valid/clip。
+// 接受：cfg_ready&&complete 时 dout_valid 置1一拍，ID与本次 flags 原子更新。
+// flags[4:0]={clip_high,clip_low,adc2_ovf,gain_err,acc_ovf}，与粘滞状态分开。
+// 异常：acc_ovf/gain_err 仍提交ID/flags，但保持最后合法字和clip；单独adc2_ovf不阻止字更新。
+// 同沿优先级：reset最高；clr_ovf先清粘滞位，同沿新完成错误重新置位；配置取消最后覆盖。
+// 来源：RTL_ARITHMETIC_CONTRACT.md §4；本模块不重新执行校准运算。
 `include "rtl_params.vh"
 module cal_output_stage #(
     parameter int P_OUT_BITS = int'(OUT_BITS)

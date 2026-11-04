@@ -1,48 +1,24 @@
 //=============================================================================
 // @file    ad4080_top.sv
-// @brief   AD4080 数字子系统顶层
-// @details 集成校正、滤波、FIFO 捕获、事件检测、GPIO 路由、LVDS 并串与配置 SPI。
-//          单时钟域；异步引脚（sclk/cs_n/cnv/gpio）先 2FF 同步再进逻辑。
-// @project AD4080 数字子系统
-// @author  AD4080 Digital Team
-// @date    2026-10-19
-// @version 2.0.0
+// @brief   AD4080风格数字处理原型的组合顶层
+// @details 输入/并行输出为补码；组合配置SPI、校正、滤波、捕获FIFO、事件、GPIO和串行帧。
+//          CNV只提供启动脉冲及忙时再次启动的数字代理检查，不测量模拟tCONV。
+// @project SAR20 / AD4080风格数字原型
+// @author  项目维护者（贡献记录见版本库）
+// @date    2026-11-05
+// @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : AD4080 Rev.B p.14-95（逐条对照见 docs/ad4080_traceability.md）
-// 时钟域   : clk 单时钟；sclk/cs_n/cnv_p/cnv_n/gpio_i 为异步输入，2FF 同步
-// 复位     : rst_n 异步低有效
-// 延迟     : 各子模块延迟见其文件头；顶层不额外加流水
-// 吞吐     : 1 sample/clk（由 valid_in 节奏决定）
-// 可综合性 : 是；16K FIFO 需替换为工艺 SRAM 宏（见 synthesis_review.md）
-// 依赖     : ad4080_regs, spi_slave, cnv_ctrl, ad4080_dsp_chain,
-//            event_detect, fifo_capture, gpio_ctrl, lvds_framer
-// 修订记录 :
-//   1.0.0 2026-10-19 初版数字子集
-//   2.0.0 2026-10-19 按手册补齐寄存器/事件/GPIO/LVDS；数据通路改补码
+// 手册依据 : 功能映射见docs/ad4080_traceability.md；不声称器件逐拍等价。
+// 时钟域   : clk；SPI/CNV/GPIO为异步引脚，由各入口处理；其余控制必须同步
+// 复位     : rst_n异步低有效；系统集成必须同步释放
+// 延迟     : 由子模块决定；顶层不增加数据流水
+// 吞吐     : 并行输入最多1样本/clk；串行路径另有位预算
+// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
+// 依赖     : ad4080_regs、spi_slave、cnv_ctrl、ad4080_dsp_chain、event_detect、fifo_capture、gpio_ctrl、lvds_framer
+// 边界     : IN_W=20、FIFO_DEPTH=16384为当前工程配置；未证明所有参数组合。
+//          串行发送使用滤波结果，不使用FIFO读口；SPI数据读出、DDR PHY、Manchester未实现。
+//          软件寄存器复位不清FIFO；完整重新开始需外部rst_n或项目封装的DSP restart。
 //=============================================================================
-// 设计说明（迁移自原文件头，保留原始意图）：
-//   数据通路：
-//     x(20b 补码) -> sys_error_corr -> SINC1/SINC5/SINC5+comp/bypass
-//          |                                   |
-//          |                                   +-> event_detect (HI/LO/HYST)
-//          |                                   +-> fifo_capture (4 modes) -> dout
-//          |                                   +-> lvds_framer (1/2 lane, 重复帧)
-//          +-> cnv_ctrl (CNV 同步 + tCONV 错误检测)
-//     SPI(Mode3, CRC-8 可选) -> ad4080_regs -> 所有配置
-//     gpio_ctrl: 4 路，按手册 SEL 编码路由
-//
-//
-//   边界（如实声明）：
-//     1. 这是**数字子系统**。SAR 模拟核、采样网络、比较器、基准、时钟 PLL 不在内。
-//     2. SPI 已建模短指令、地址方向、streaming 和可选 CRC；多字节顺序与
-//        CRC 后续种子等仍需外部资料或器件验证。
-//     3. LVDS 是 SDR 数字并串 + 1/2 lane；DDR PHY、差分驱动、Manchester 编码
-//        （0x16 bit2）未实现，寄存器位可配但不生效。
-//     4. SPI 回读数据通道（0x15 bit0 = 1，用 DCS/DCLK 读 FIFO）未实现；
-//        当前 FIFO 只能通过并行 rd_en/dout 读出。
-//     5. 复位为异步复位；真实芯片需复位同步释放（见 docs/synthesis_review.md）。
-//=============================================================================
-
 `timescale 1ns/1ps
 `default_nettype none
 

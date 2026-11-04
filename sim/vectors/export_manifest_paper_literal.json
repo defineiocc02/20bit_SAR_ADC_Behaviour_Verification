@@ -1,16 +1,16 @@
 {
   "artifacts": {
-    "rtl/params/rtl_params.vh": "7c46249c0544e1f33e88b843416c737eff4fd3f46507de8a1d575cfa93144654",
+    "rtl/params/rtl_params.vh": "ceb645c056c0923c9ac401c77f1f1fbdfdcd46f2b9787f3c819be74ab0390931",
     "sim/vectors/expected_paper_literal.hex": "2610a01e18539d8dbe0a5f3709165a54b4d36da9a1a020d6f998088107bf0554",
-    "sim/vectors/params_paper_literal.json": "6f6f3ac8dab82b91cc2eeb7dc9a8c21ee8eb9e5964c73999c00a4dcc8c858fd4",
+    "sim/vectors/params_paper_literal.json": "a65829f5a1cefaa22887b3576452147c9288d3ae746498e015f98722b1d05732",
     "sim/vectors/registers_paper_literal.json": "646f566fd904fd1a4867c03f5e68ca988459cc45f6eaa7b4252ded06a4a52ca2",
     "sim/vectors/stimulus_paper_literal.hex": "3cb07341e4b473e94df865886d12599b12d5746da1af200ac1060446f4d3068c"
   },
   "generator": "tools/export_rtl_params.py",
   "invocation": "python tools/export_rtl_params.py --config paper_literal --phases 16 --image-samples 32 --emit-stimulus 64",
   "revision": {
-    "commit": "f224be897ba8cd4d2c715abd0e4f8593a84bc3f9",
-    "describe": "f224be8",
+    "commit": "d1e1f87e5c87ce6f09b87acdc5958af39cdfbb09",
+    "describe": "d1e1f87",
     "dirty": "1"
   },
   "schema_version": 1,

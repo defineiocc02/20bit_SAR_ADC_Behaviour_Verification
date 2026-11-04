@@ -1,6 +1,7 @@
 # Current model scope — physical behavioral closure
 
-The active implementation and evidence ledger is [IMPLEMENTATION_CHECKPOINT.md](IMPLEMENTATION_CHECKPOINT.md).
+The current maintenance review is [20261105-independent-maintenance.md](reviews/20261105-independent-maintenance.md).
+Earlier implementation milestones remain in [IMPLEMENTATION_CHECKPOINT.md](IMPLEMENTATION_CHECKPOINT.md).
 The former v7 scope statement is retained in [history/v7-model_scope.md](history/v7-model_scope.md)
 for version history; its open-item statements are not current capabilities.
 

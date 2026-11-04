@@ -1,52 +1,12 @@
-//===========================================================================
-// calib_regs.sv -- 标定系数寄存器 + 合法性校验 + cfg_ready
-//===========================================================================
-// 职责一句话
-//   保存 offset_q / adc2_min_q / adc2_max_q 三个 Q32 电压系数与 dem_en /
-//   bridge_en / sampling_mask_en / quantizer_dither_en 四个控制位；接受 `validate` 脉冲做合法性校验，
-//   通过才把 `cfg_ready` 拉高；`clear_valid` 撤销生效状态以便重载。
-//   本模块**不做**权重存储（weight_store 的事）或逐样本重构运算。
-//
-// 来源
-//   docs/rtl/P2_INTERFACE.md §9（M13）；rtl/README.md §3.2；
-//   docs/rtl/RTL_ARITHMETIC_CONTRACT.md §4.3 / §5；
-//   adi_model/fixed_point.FixedPointReconstructor.__post_init__ 的校验口径。
-//   寄存器镜像字段名对齐 sim/vectors/registers_*.json。
-//
-// 单位契约
-//   电压系数一律为"归一化到 Vfs"的 Q32 有符号整数（V_BITS = 64）。
-//   四个控制位为 0/1。
-//
-// 参数来源分级
-//   P_ADC2_BITS 默认取自 rtl_params.vh（[披露]）。本模块**不消费**该参数 ——
-//   它是冻结接口的一部分（P2 §9），为的是让调用方不必记忆"哪些模块需要它"。
-//   控制位的复位默认值取头文件的 DEM_ENABLE / DEM_BRIDGE_ENABLE（[推导]）。
-//
-// 契约与不变量 / 适用域
-//   * 读写窗口（P2 §9 表）：`cfg_ready = 0` 且 `wr_en` -> 写入生效；
-//     `cfg_ready = 1` 且 `wr_en` -> 写入被忽略、`err_code = ERR_CFG_WRITE`。
-//   * validate 仅在无写入、无 config_busy、权重与三标量完整时提交（ADR 0016）。
-//     通过则 `cfg_ready <= 1` 且 `err_code <= 0`；
-//     失败则 `cfg_ready <= 0` 且 `err_code` 置为对应错误码。
-//   * `clear_valid = 1` -> cfg_ready 与 scalar_written 清零（要求完整重载）。它与 `validate` 同拍时
-//     **clear 胜**（撤销优先于生效）。
-//   * **DEM 陷阱（P1 §0.2）**：`DEM_ENABLE`（头文件）是**复位默认值 0**，而
-//     `DEM_BRIDGE_ENABLE` 是 1。看起来"桥接开着"，实际 DEM 不工作。这是**故意的**：
-//     运行时必须由软件写 `sel = 3, data_b = 1` 把 dem_en 打开。任何"忘了打开"的
-//     联调都会安静地退化（全绿但什么都没覆盖）。
-//   * **如实登记：`ERR_V_RANGE` 在本模块内不可能触发。** 三个电压系数的端口宽度
-//     恰为 V_BITS 位有符号，`[-2^63, 2^63)` 是**类型系统保证**的，RTL 里不存在
-//     可观测的越界输入，加一个恒假的比较器只会浪费面积并制造"检查过了"的假象。
-//     该检查在**回读/载入工具**一侧（JSON 解析）落地。同理 `ERR_W_RANGE` /
-//     `ERR_W_SUM` 属于权重检查，而本模块的冻结端口表没有权重输入，故由
-//     weight_store 在写入点守卫（见其模块头）。错误编码见 rtl_error_codes.vh。
-//   * `err_code` 是**寄存器**（保存最近一次错误），不是脉冲；成功 validate 会清它。
-//   * 同步低有效复位。每拍的控制优先级为
-//     reset > clear_valid > validate > controls_write > wr_en > 保持。
-//     clear_valid 只撤销提交与三标量完成位，保留系数和控制位的旧值供回读；
-//     保留旧值不等于完整重载，必须重新写满三个标量及权重后才能 validate。
-//   * config_busy 守卫 validate；普通写入能否进入本模块由顶层 cfg 接口仲裁。
-//===========================================================================
+// 模块：calib_regs；标量/控制配置、完整性校验与配置生效状态。
+// 端口/单位：offset/min/max为有符号V/Vfs Q32；四控制位为{quantizer,sampling,bridge,DEM}。
+// 时钟/复位：clk上升沿、同步低有效rst_n；clear撤销ready及标量完成位，保留数值供回读。
+// 同沿优先级：reset>clear>validate>controls_write>wr_en>保持。
+// 提交：无写/忙冲突、权重和三标量完整、min<max且两种dither互斥时validate使ready=1。
+// 异常：提交冲突只报ERR_CFG_WRITE并保留ready；其余合法性失败撤销ready；错误码保持至clear/成功提交。
+// 写入：ready后拒写；leaf旧sel3..5接口保留，生产顶层由0x1018延迟原子提交全部四控制位。
+// 适用域：64位端口类型已限制电压数值范围，JSON解析器负责载入前越界校验；P_ADC2_BITS不参与运算。
+// 来源：RTL_ARITHMETIC_CONTRACT.md §4/§5、P2_INTERFACE.md；片外求系数、片上应用。
 `include "rtl_params.vh"
 
 module calib_regs #(
@@ -96,7 +56,7 @@ module calib_regs #(
       off_r     <= {V_BITS{1'b0}};
       min_r     <= {V_BITS{1'b0}};
       max_r     <= {V_BITS{1'b0}};
-      dem_r     <= DEM_ENABLE[0];          // 复位默认 = 0（故意的，见模块头 DEM 陷阱）
+      dem_r     <= DEM_ENABLE[0];          // 复位默认0；通过原子控制写启用
       brg_r     <= DEM_BRIDGE_ENABLE[0];   // 复位默认 = 1
       qdith_r   <= (DITHER_MODE == 2);
       smk_r     <= (DITHER_MODE == 3);

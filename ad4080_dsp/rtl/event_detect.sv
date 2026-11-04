@@ -1,43 +1,23 @@
 //=============================================================================
 // @file    event_detect.sv
-// @brief   HI/LO 阈值与迟滞事件检测（补码；level + sticky 双通道）
-// @details 阈值 12-bit 补码，LSB=1.46484 mV=256 ADC LSB，直接对齐 data[19:8]。
-//          迟滞电平通道 HI_DTCT/LO_DTCT：越过阈值置位，回到迟滞带内清除，
-//          用于 GPIO(0100/0101)、ALERT(0110，低有效) 与 FIFO 事件触发。
-//          状态通道 HI_STATUS/LO_STATUS：dtct 置位沿锁存，仅 W1C/复位清除。
-//          ALERT 是电平型（dtct 消失即回高），不是粘滞型。
-// @project AD4080 数字子系统
-// @author  AD4080 Digital Team
-// @date    2026-10-19
-// @version 3.0.0
+// @brief   补码阈值、迟滞电平、粘滞事件及延迟ALERT
+// @details 20-bit补码data[19:8]对应12-bit阈值，hysteresis为无符号阈值步长。
+//          dtct按迟滞保持；sticky flag在新置位沿锁存，只有W1C/复位清除。
+// @project SAR20 / AD4080风格数字原型
+// @author  项目维护者（贡献记录见版本库）
+// @date    2026-11-05
+// @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : AD4080 Rev.B p.54-56（Figure 82/84, Table 26）、
-//            p.90-92（Table 55-59）、p.83（DEVICE_STATUS W1C）
-// 时钟域   : clk 单时钟
-// 复位     : rst_n 异步低有效
-// 延迟     : sample_valid -> dtct 1 clk；-> 状态/ALERT 再延迟 2 个样本（手册 p.55）
-// 吞吐     : 1 sample/clk
-// 可综合性 : 是（两个 13-bit 比较器 + 少量触发器）
+// 手册依据 : 功能映射见docs/ad4080_traceability.md；不声称器件逐拍等价。
+// 时钟域   : clk；sample_valid及配置必须同步
+// 复位     : rst_n异步低有效；disable清电平和ALERT流水，保留sticky
+// 延迟     : 接受样本沿更新dtct/flag；ALERT使用dtct的两级样本延迟，flag不走该流水
+// 吞吐     : 最多1样本/clk；ALERT延迟按有效样本推进
+// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
 // 依赖     : 无
-// 修订记录 :
-//   1.0.0 2026-10-19 初版（无符号比较，错误）
-//   2.0.0 2026-10-19 改为补码比较；增加 hi/lo 脉冲输出
-//   3.0.0 2026-10-19 拆分 level/sticky 双通道；ALERT 改电平型低有效语义；
-//                    状态/ALERT 增加 2 样本延迟
-//-----------------------------------------------------------------------------
-// 设计说明：
-//   数据手册依据：AD4080 Rev.B p.54-56, p.90-92
-//     - HI_THRESHOLD / LO_THRESHOLD：二进制补码，LSB = 1.46484 mV
-//     - HYSTERESIS：无符号，LSB = 1.46484 mV
-//     - HI_DTCT/LO_DTCT 是事件检测的**电平**输出（迟滞防抖）
-//     - HI_STATUS/LO_STATUS 是 DEVICE_STATUS 里的粘滞位，写 1 清除
-//   关键换算（这是旧版本出错的地方）：
-//     p.20 Table 7 明确：20-bit 输出是二进制补码（0x00000 = 0 V）。
-//     1 个阈值 LSB = 1.46484 mV = 256 个 20-bit ADC LSB = 2^8。
-//     因此阈值正好对齐 data[19:8]，该切片本身就是 12-bit 补码，
-//     直接 $signed(data_in[19:8])，不需要 offset-binary 的异或。
+// 边界     : 阈值步长为256个20-bit ADC LSB；电压换算依赖实际满量程。
+//          clear_hi/lo与新事件同沿时清除优先。ALERT为电平型，未产生新有效样本时保持。
 //=============================================================================
-
 `timescale 1ns/1ps
 `default_nettype none
 
@@ -73,13 +53,13 @@ module event_detect (
     assign hi_clr_th = hi_th_s - hyst_s;
     assign lo_clr_th = lo_th_s + hyst_s;
 
-    // 置位/清除条件（同拍同时满足时以置位优先，避免毛刺漏事件）
+    // 迟滞电平判据；下面W1C清sticky的优先级高于同沿新事件。
     assign hi_set     = (d12 >= hi_th_s);
     assign lo_set     = (d12 <= lo_th_s);
     assign hi_clr_evt = (d12 <  hi_clr_th);
     assign lo_clr_evt = (d12 >  lo_clr_th);
 
-    // 2 样本延迟链：手册 p.55 事件到状态位/ALERT 有 2 个 CNV 延迟
+    // ALERT延迟链按sample_valid推进；不用于sticky flag。
     logic hi_d1, hi_d2, lo_d1, lo_d2;
 
     always_ff @(posedge clk or negedge rst_n) begin
@@ -120,7 +100,7 @@ module event_detect (
                     lo_flag  <= 1'b1;
                 end
 
-                // 状态/ALERT 的 2 样本延迟
+                // ALERT的2级样本延迟；sticky flag由置位沿直接更新。
                 hi_d1 <= hi_dtct;
                 hi_d2 <= hi_d1;
                 lo_d1 <= lo_dtct;

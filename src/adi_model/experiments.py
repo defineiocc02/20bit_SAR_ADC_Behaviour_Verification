@@ -75,7 +75,7 @@ def calibrate_mismatch_for_sndr(
         论文披露值，后续所有失配实验才在同一基准上比较（[拟合]）。
     方法：在 [lo,hi] 做 iters 次几何二分，每次用 sndr_at 在该 sigma 下跑 n 点
         正弦得 SNDR，与 target_sndr_db 比较收紧边界。
-    判据：sndr_at(mid) > 目标则 lo=mid（sigma 偏大、SNDR 偏低），否则 hi=mid；
+        判据：sndr_at(mid)>目标则lo=mid（当前sigma偏小），否则hi=mid；
         最终取 sqrt(lo·hi) 为拟合值，并回报告实测 SNDR。
     注意：这是行为学标定，不是 PDK 值，不得用于良率结论。
 
@@ -1652,7 +1652,7 @@ def _sawtooth_fit(e_dac: np.ndarray, k_eq: np.ndarray, n_s: int) -> dict:
     res = e_dac - X @ coef
     return {
         "sawtooth_pp_uV": float(abs(coef[2]) * 1e6),
-        "random_rms_uV": float(np.std(res) * 1e6),
+        "random_rms_uV": float(np.sqrt(np.mean(res**2)) * 1e6),
         "gain_coef": float(coef[1]),
     }
 
@@ -1847,18 +1847,30 @@ def stage12_split_arch(c0: Config, n: int = 2**14) -> dict:
         )
         worst_r = max(worst_r, abs(float(np.asarray(r_z.vra).ravel()[-1])))
     out["charge_closure"] = {
+        "closedform_vs_nodalmatrix_max_C": worst_cf,
+        "closedform_vs_nodalmatrix_equivalent_max_V": worst_cf / chip_id.C_feedback_true,
+        # Compatibility only: this historical key held charge despite its name.
         "closedform_vs_nodalmatrix_max_V": worst_cf,
+        "deprecated_fields": {
+            "closedform_vs_nodalmatrix_max_V": {
+                "actual_unit": "C",
+                "replacement": "closedform_vs_nodalmatrix_max_C",
+                "note": "historical misnamed charge field; value preserved for compatibility",
+            }
+        },
         "eval_vs_nodal_max_V": worst_q,
         "residue_zero_max_V": worst_r,
+        "residue_zero_node": "RA output; the test input is displaced by 1 nV",
         "判据": (
-            f"闭式解 vs 节点矩阵求解器最大偏差 {worst_cf*1e15:.3f} fV；"
+            f"闭式解 vs 节点矩阵求解器最大电荷偏差 {worst_cf:.3e} C"
+            f"（除以 C_F 后的等效输出电压偏差 "
+            f"{worst_cf/chip_id.C_feedback_true:.3e} V）；"
             f"evaluate_physical 与独立节点方程最大偏差 {worst_q*1e12:.3f} pV；"
-            f"输入=输入等效DAC电压(+1e-9V 内移)时主循环残差最大 {worst_r*1e9:.2f} nV "
+            f"输入=输入等效DAC电压(+1e-9V 内移)时RA输出残差最大 {worst_r*1e9:.2f} nV "
             "（修复前 142.75 mV）—— 模拟中间节点必须符合独立电荷方程，"
             "数字自洽重构不能作为证据。"
-            "注意：本验收覆盖**无 dither 采样相位**；sampling dither 改变"
-            "采样电荷系数（α 从掩码推导，见 config.dither_alpha），"
-            "带 dither 的相位闭合是下一版工作。"
+            "本项仅覆盖无dither采样相位；sampling dither的信号/掩码电荷"
+            "另由stage18逐相位节点方程校验。两项都是所声明电路假设下的数值一致性。"
         ),
     }
 
@@ -1939,27 +1951,91 @@ def stage12_split_arch(c0: Config, n: int = 2**14) -> dict:
 
 
 def _dem_rotation_period(cfg: Config) -> int:
-    """Split 拓扑下主/子轮转组合的完整周期（v5.1 三轮审计 §3.1）。
+    """Return a complete cycle of the production bank-local DEM state stream.
 
-    order_for_state 用 (sid·a) mod n 生成顺序：主阵列周期 = n_m/gcd(a_m,n_m)，
-    子阵列同理，组合周期 = lcm。默认 (64,8) 时主 64、子 8 → 周期 64。
-    静态测试的重复次数必须覆盖"每个 bank 的完整周期"，即 rep = 2×周期
-    （A/B 两个 bank 各自从 0 独立推进，全局样本数 = 每 bank 样本数 × 2）。
-    固定写 rep=96 只覆盖 48/64 组合 —— INL 是未完成平均下的确定值。
+    The physical split runner decodes row/column/subarray states from the
+    9-bit state word. The aggregate SplitDAC cyclic order is a separate oracle
+    and cannot supply the production averaging period. The odd LCG increment
+    visits all 512 states per bank; a two-bank record needs twice this count.
 
     Args:
         cfg: split 拓扑配置（提供 dac_n_main / dac_n_sub）。[结构]
 
     Returns:
-        主/子轮转组合的完整周期（整数，单位：DEM 状态步）。
+        Production state-stream period (integer DEM steps per bank).
     """
-    import math as _m
+    from .mapper import N_DEM_STATES
 
-    a_m, a_s = 331, 173  # 与 dac_arch._A_MAIN/_A_SUB 一致
-    n_m, n_s = int(cfg.dac_n_main), int(cfg.dac_n_sub)
-    p_m = n_m // _m.gcd(a_m, n_m)
-    p_s = n_s // _m.gcd(a_s, n_s)
-    return p_m * n_s // _m.gcd(p_m, p_s) if p_s else p_m
+    return N_DEM_STATES if cfg.dem_enable else 1
+
+
+def _sub_weight_inl_probe(cbase, chip, dac, lsb20):
+    """Measure only the aggregate sub-weight INL using the supplied realization.
+
+    Args:
+        cbase: Resolved historical split configuration (64 main / 8 sub).
+        chip: The same fixed aggregate capacitor realization used by the caller.
+        dac: Its aggregate DAC evaluator; no ADC simulation is started here.
+        lsb20: Target input-referred output step [V].
+
+    Returns:
+        Pure-DAC measured and predicted INL in target LSB units, with the full
+        production state-word cycle enumerated. This excludes chain-level INL.
+    """
+    _B = chip.C_sub.sum()
+    _g_true = chip.beta_true() * _B / chip.c_sig_true()
+    _g_nom = chip.beta_nom() * chip.B_nominal() / chip.c_sig_nom()
+    _sub_modulated = (int(cbase.units_per_lsb1) % int(cbase.dac_n_sub)) != 0
+    _codes = np.arange(0, 2 ** int(cbase.b1))
+    _keq = (_codes * int(cbase.units_per_lsb1)).astype(float)
+    _n_state = max(1, int(_dem_rotation_period(cbase)))
+    _acc = np.zeros(len(_keq))
+    for _s in range(_n_state):
+        _acc += dac.evaluate_physical(_keq, np.full(len(_keq), _s))
+    _err = ((_acc / _n_state) - dac.evaluate_nominal(_keq)) / lsb20
+    _Amat = np.column_stack([_keq, np.ones_like(_keq)])
+    _coef, *_ = np.linalg.lstsq(_Amat, _err, rcond=None)
+    _resid = _err - _Amat @ _coef
+    _meas_sub = float(np.max(np.abs(_resid)))
+    _pred_sub = 0.5 * cbase.v_fs * abs(_g_true - _g_nom) / lsb20 if _sub_modulated else 0.0
+    return {
+        "units_per_lsb1": int(cbase.units_per_lsb1),
+        "dac_n_sub": int(cbase.dac_n_sub),
+        "sub_code_modulated": bool(_sub_modulated),
+        "dem_states_averaged": _n_state,
+        "g_true": float(_g_true),
+        "g_nom": float(_g_nom),
+        "sub_weight_rel_err": float(abs(_g_true - _g_nom) / _g_nom),
+        "predicted_INL_max_LSB20": float(_pred_sub),
+        "measured_dac_only_INL_max_LSB20": _meas_sub,
+        "ratio": float(_meas_sub / _pred_sub) if _pred_sub > 0 else None,
+        "PASS": bool(abs(_meas_sub / _pred_sub - 1.0) < 0.25)
+        if _pred_sub > 0
+        else bool(_meas_sub < 1.5),
+        "判据": "子阵列被码调制（units_per_lsb1 % n_sub != 0）时，纯 DAC 的确定性 "
+        "INL = 0.5·v_FS·|g_true−g_nom|/LSB20（±25%）；不被调制时 < 1.5 LSB20。"
+        "该子权失配由论文的 binary-to-unary bridging 校正处理，本模型未实现，"
+        "故整链 base 行高于论文 INL —— 如实入账，见 docs/model_scope.md。",
+    }
+
+
+def sub_weight_inl_probe(c0: Config) -> dict:
+    """Run the bounded sub-weight experiment without the unrelated rho scan.
+
+    Args:
+        c0: Base configuration; the historical 64+8 aggregate comparison and
+            enabled DEM are resolved exactly as in stage13_dynamics.
+
+    Returns:
+        Sub-weight INL results for all 512 state words. Chain-level base-row INL
+        is added only by stage13_dynamics after its actual ADC simulations.
+    """
+    from .dac_arch import SplitDAC, build_split_chip
+
+    cbase = _clone(c0, dac_arch="split", dac_n_main=64, dac_n_sub=8, dem_enable=True)
+    chip = build_split_chip(cbase)
+    dac = SplitDAC(cbase, chip)
+    return _sub_weight_inl_probe(cbase, chip, dac, c0.lsb_target)
 
 
 def stage13_dynamics(c0: Config, n: int = 2**14, n_lvl: int = 129, rep: int | None = None) -> dict:
@@ -1974,8 +2050,8 @@ def stage13_dynamics(c0: Config, n: int = 2**14, n_lvl: int = 129, rep: int | No
         （旧版曾用 sqrt(peak²-floor²) 给峰值去噪：max|e+n| 是非线性统计量，
         方差相减不成立 —— 实测真实 INL=0 的曲线被报出 2.18 LSB 中位数。）
       * **DEM 覆盖（v5.1）**：重复次数由实际物理轮转周期反推
-        （rep = 2×_dem_rotation_period，默认 128），并验证 rep→2rep 峰值
-        不变（确定性协议的收敛判据）。旧 rep=96 只覆盖 48/64 组合。
+        （rep=2×512=1024，覆盖两个bank），并验证rep→2rep峰值
+        不变（确定性协议的收敛判据）；不能沿用独立aggregate参考的轮转周期。
       * **ρ 反推（v5.1）**：电平网格 24→257（粗码边界两侧必须被覆盖），
         跨越 2.2 LSB 的区间再做 3 次二分细化；结果标注为
         **当前网格下的条件性估计**，不是收敛后的规格 —— 输入网格加密、
@@ -1987,7 +2063,7 @@ def stage13_dynamics(c0: Config, n: int = 2**14, n_lvl: int = 129, rep: int | No
         c0: 基础配置（split 拓扑）。[结构]
         n: 采样点数（SNDR/动态协议）。[无量纲]
         n_lvl: 静态测试电平数（确定性 INL 协议）。[无量纲]
-        rep: 每 bank 重复次数；None 时取 2×_dem_rotation_period。[无量纲]
+        rep: 每电平保留的总样本数（含两个bank）；None取2×512，另跑一个warm-up样本。
 
     Returns:
         rows: 各动态设置一行（SNDR_dB/THD_dB/SFDR_dB/INL_max_LSB20/INL_rms_LSB20/
@@ -2003,9 +2079,9 @@ def stage13_dynamics(c0: Config, n: int = 2**14, n_lvl: int = 129, rep: int | No
     from .sim_split import run_sim_split
 
     if rep is None:
-        rep = 2 * _dem_rotation_period(c0)
+        rep = 2 * _dem_rotation_period(_clone(c0, dem_enable=True))
 
-    out = {}
+    out: dict = {}
     cbase = _clone(c0, dac_arch="split", dac_n_main=64, dac_n_sub=8, dem_enable=True)
     chip = build_split_chip(cbase)
     dac = SplitDAC(cbase, chip)
@@ -2033,10 +2109,10 @@ def stage13_dynamics(c0: Config, n: int = 2**14, n_lvl: int = 129, rep: int | No
 
         def run_fn(level, reps, cc=cc_det):
             """确定性 INL 协议：跑静态转移曲线并剔除首个启动瞬态样本。"""
-            # v5.1 三轮审计 §3.2：剔除首个样本 —— v_prev[0]=0 是启动瞬态，
-            # 在不同 rep 下占均值权重不同，会破坏"完整周期后 INL 不变"的
-            # 收敛判据（实测 rep=128 vs 256 差 2.7e-3 LSB）。
-            return run_sim_split(cc, dc_input(level), reps, chip=chip).out[1:]
+            # Run startup separately so discarding it does not shorten either
+            # bank's retained 512-state cycle. Remaining settling is tested by
+            # the explicit rep -> 2*rep convergence comparison below.
+            return run_sim_split(cc, dc_input(level), reps + 1, chip=chip).out[1:]
 
         levels = np.linspace(
             g["v_lo"] + 0.02 * g["vfs_eff"], g["v_lo"] + 0.98 * 2 * g["vfs_eff"], n_lvl
@@ -2055,7 +2131,8 @@ def stage13_dynamics(c0: Config, n: int = 2**14, n_lvl: int = 129, rep: int | No
                 "INL_max_LSB20": inl["inl_max_lsb"],
                 "INL_rms_LSB20": inl_rms,
                 "INL口径": "确定性（噪声关）",
-                "err_rms_uV": float(np.std(r.err)) * 1e6,
+                "err_rms_uV": float(np.sqrt(np.mean(r.err**2))) * 1e6,
+                "err_std_uV": float(np.std(r.err)) * 1e6,
             }
         )
     out["rows"] = rows
@@ -2078,42 +2155,8 @@ def stage13_dynamics(c0: Config, n: int = 2**14, n_lvl: int = 129, rep: int | No
     # 与论文的关系：这一项正是 PPT p.31「Binary-to-unary bridging」要校正的
     # 子权失配；本模型未实现该校正（见 docs/model_scope.md §4），所以采用
     # 7b+2b 读数时整链 base 行（4.2 LSB20）高于论文 2.2 LSB —— **如实入账**。
-    _B = chip.C_sub.sum()
-    _g_true = chip.beta_true() * _B / chip.c_sig_true()
-    _g_nom = chip.beta_nom() * chip.B_nominal() / chip.c_sig_nom()
-    _sub_modulated = (int(cbase.units_per_lsb1) % int(cbase.dac_n_sub)) != 0
-    _codes = np.arange(0, 2 ** int(cbase.b1))
-    _keq = (_codes * int(cbase.units_per_lsb1)).astype(float)
-    _n_state = max(1, int(_dem_rotation_period(cbase)))
-    _acc = np.zeros(len(_keq))
-    for _s in range(_n_state):
-        _acc += dac.evaluate_physical(_keq, np.full(len(_keq), _s))
-    _err = ((_acc / _n_state) - dac.evaluate_nominal(_keq)) / lsb20
-    _Amat = np.column_stack([_keq, np.ones_like(_keq)])
-    _coef, *_ = np.linalg.lstsq(_Amat, _err, rcond=None)
-    _resid = _err - _Amat @ _coef
-    _meas_sub = float(np.max(np.abs(_resid)))
-    _pred_sub = 0.5 * cbase.v_fs * abs(_g_true - _g_nom) / lsb20 if _sub_modulated else 0.0
-    out["sub_weight_inl"] = {
-        "units_per_lsb1": int(cbase.units_per_lsb1),
-        "dac_n_sub": int(cbase.dac_n_sub),
-        "sub_code_modulated": bool(_sub_modulated),
-        "dem_states_averaged": _n_state,
-        "g_true": float(_g_true),
-        "g_nom": float(_g_nom),
-        "sub_weight_rel_err": float(abs(_g_true - _g_nom) / _g_nom),
-        "predicted_INL_max_LSB20": float(_pred_sub),
-        "measured_dac_only_INL_max_LSB20": _meas_sub,
-        "ratio": float(_meas_sub / _pred_sub) if _pred_sub > 0 else None,
-        "measured_chain_base_row_LSB20": float(rows[0]["INL_max_LSB20"]),
-        "PASS": bool(abs(_meas_sub / _pred_sub - 1.0) < 0.25)
-        if _pred_sub > 0
-        else bool(_meas_sub < 1.5),
-        "判据": "子阵列被码调制（units_per_lsb1 % n_sub != 0）时，纯 DAC 的确定性 "
-        "INL = 0.5·v_FS·|g_true−g_nom|/LSB20（±25%）；不被调制时 < 1.5 LSB20。"
-        "该子权失配由论文的 binary-to-unary bridging 校正处理，本模型未实现，"
-        "故整链 base 行高于论文 INL —— 如实入账，见 docs/model_scope.md。",
-    }
+    out["sub_weight_inl"] = _sub_weight_inl_probe(cbase, chip, dac, lsb20)
+    out["sub_weight_inl"]["measured_chain_base_row_LSB20"] = float(rows[0]["INL_max_LSB20"])
 
     # ---- 13.2 Ron 码调制系数 rho 的灵敏度扫描 -> 反推设计边界 ----
     # v5 审计修正：**"tau 与码无关 -> 纯增益误差" 只在 epsilon<<1 时成立。**
@@ -2163,9 +2206,9 @@ def stage13_dynamics(c0: Config, n: int = 2**14, n_lvl: int = 129, rep: int | No
         """
         cc = _clone(cfg_ideal, dyn_input_settling=True, dyn_ron_code_coeff=rho)
         st = static_test(
-            lambda lev, reps, cc=cc: run_sim_split(cc, dc_input(lev), reps, chip=chip_ideal).out[
-                1:
-            ],
+            lambda lev, reps, cc=cc: run_sim_split(
+                cc, dc_input(lev), reps + 1, chip=chip_ideal
+            ).out[1:],
             levels_r,
             rep_r,
         )
@@ -2201,10 +2244,14 @@ def stage13_dynamics(c0: Config, n: int = 2**14, n_lvl: int = 129, rep: int | No
     pk_2rep, _, _ = _inl_peak_at_rho(0.0, lv_rho, 2 * rep)
     out["rep_convergence"] = {
         "rep": rep,
-        "period_per_bank": _dem_rotation_period(c0),
+        "period_per_bank": _dem_rotation_period(cbase),
+        "discarded_startup_samples_per_level": 1,
+        "retained_samples_per_level": rep,
+        "complete_bank_state_cycle": rep % (2 * _dem_rotation_period(cbase)) == 0,
         "INL_at_rep": rr[0]["INL_max_LSB20"],
         "INL_at_2rep": pk_2rep,
-        "PASS": abs(pk_2rep - rr[0]["INL_max_LSB20"]) < 1e-9,
+        "PASS": rep % (2 * _dem_rotation_period(cbase)) == 0
+        and abs(pk_2rep - rr[0]["INL_max_LSB20"]) < 1e-9,
     }
     out["rho_max_for_2p2LSB"] = rho_max
     out["rho_max_INL_at_rho_max"] = rho_max_pk
@@ -2472,7 +2519,9 @@ def stage14_observability(c0: Config, n_cal: int = 4096) -> dict:
                 "映射": mode,
                 "evalA_整数码残差_uV": float(np.std(resA)) * 1e6,
                 "evalB_分数码残差_uV": float(np.std(resB)) * 1e6,
-                "e_true_rms_uV": float(np.std(e_ev)) * 1e6,
+                "e_true_rms_uV": float(np.sqrt(np.mean(e_ev**2))) * 1e6,
+                "e_true_std_uV": float(np.std(e_ev)) * 1e6,
+                "residual_metric": "evalA/evalB, improvement and LSB fields use centered standard deviation",
                 "改善倍数_A": float(np.std(e_ev) / max(np.std(resA), 1e-12)),
                 "折_LSB20_A": float(np.std(resA) / c0.lsb_target),
                 "折_LSB20_B": float(np.std(resB) / c0.lsb_target),
@@ -3221,7 +3270,7 @@ def stage18_dither_charge_closure(c0: Config, n: int = 1 << 13) -> dict:
             rng=np.random.default_rng(c0.seed + 181),
         )
         m = sine_fit_metrics(rr.out, c2.fs, _coherent_fin(c2, 1 << 14))
-        return m["SNDR_dB"], float(np.std(rr.err)) * 1e6
+        return m["SNDR_dB"], float(np.sqrt(np.mean(rr.err**2))) * 1e6
 
     sndr_disc, err_disc = _sndr(True)
     sndr_cont, err_cont = _sndr(False)

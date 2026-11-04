@@ -1,40 +1,23 @@
 //=============================================================================
 // @file    sinc1_decim.sv
-// @brief   SINC1 抽取滤波器（运行时抽取率，补码）
-// @details 块平均 y=(1/D)Σx；D=2^(code+1)，code>9 夹到 1024；
-//          累加位宽 IN_W+11，四舍五入后输出。
-// @project AD4080 数字子系统
-// @author  AD4080 Digital Team
-// @date    2026-10-19
-// @version 3.0.0
+// @brief   锁存抽取率的补码块平均
+// @details D=2^(code+1)，超过9的编码夹为1024；块边界更新D，filter_sync取消在途状态。
+//          最后一个样本与累加结果相加并加D/2，再按锁存log2(D)算术右移。
+// @project SAR20 / AD4080风格数字原型
+// @author  项目维护者（贡献记录见版本库）
+// @date    2026-11-05
+// @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : AD4080 Rev.B p.20 Table 7, p.64-66 Table 28/29/62
-// 时钟域   : clk 单时钟
-// 复位     : rst_n 异步低有效；filter_sync 清相位
-// 延迟     : D 个输入 + 1 clk
-// 吞吐     : 1 sample/clk 输入，1/D 输出
-// 可综合性 : 是；D=1024 时累加器 31 bit
+// 手册依据 : 功能映射见docs/ad4080_traceability.md；不声称器件逐拍等价。
+// 时钟域   : clk；输入/config/filter_sync同步
+// 复位     : rst_n异步低有效；filter_sync优先于valid并清相位/流水
+// 延迟     : 完成D个有效输入后再1个完整clk间隔输出；空闲valid不增加样本计数
+// 吞吐     : 最多1输入/clk，平均每D个有效输入1输出
+// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
 // 依赖     : 无
-// 修订记录 :
-//   1.0.0 2026-10-19 初版（编译期 DECIM，无符号）
-//   2.0.0 2026-10-19 运行时 dec_sel；改补码；块边界锁存
-//   3.0.0 2026-10-19 增加 settled（settling = 2+D+1）
+// 边界     : IN_W=20工程配置，累加为IN_W+12位；平均输出在输入补码范围内。
+//          舍入半码向正无穷；settled按有效输入计数，与FIFO输出标签无关。
 //=============================================================================
-// 设计说明（迁移自原文件头，保留原始意图）：
-//   数据手册依据：AD4080 Rev.B p.20 Table 7（输出为 20-bit 补码）、
-//     p.64-66 Table 28/29/62：
-//     FILTER_SEL=01 -> SINC1，D = 2,4,...,1024
-//     SINC_DEC_RATE: D = 2^(code+1)，code>9 -> 1024
-//     settling = 2 + D + 1 个 CNV
-//
-//   结构：块平均 y[k] = (1/D) * sum x[kD+i]
-//   定点：有符号累加（20-bit 补码输入），ACC_W = IN_W+11（D=1024 时 30 位 + 符号）；
-//         输出前四舍五入 (sum + D/2) >>> log2(D)。
-//
-//   运行时抽取率：dec_sel 在块边界锁存，块中途改码不影响当前块；
-//     filter_sync 强制重锁（手册要求改 FILTER_SEL 后必须发 FILTER_SYNC）。
-//=============================================================================
-
 `timescale 1ns/1ps
 `default_nettype none
 
@@ -49,7 +32,7 @@ module sinc1_decim #(
     input  logic [3:0]           dec_sel,
     output logic [IN_W-1:0]      data_out,     // 补码
     output logic                 valid_out,    // 输出有效，单拍
-    output logic                 settled       // 建立完成（2+D+1 个样本后）                // 输出有效，单拍
+    output logic                 settled       // 建立完成；按有效输入计数。
 );
 
     localparam int ACC_W  = IN_W + 11;

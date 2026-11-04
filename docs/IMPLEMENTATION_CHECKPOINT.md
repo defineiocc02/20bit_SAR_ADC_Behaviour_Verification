@@ -2,6 +2,10 @@
 
 > 本文档最后核对于 2026-10-19，基线以 main 为准。
 
+> 2026-11-05 的来源、配置、参考恢复、测量单位和协议维护以
+> [独立复核记录](reviews/20261105-independent-maintenance.md)为准。
+> 本文保留此前实施里程碑，不将其中历史“已通过”解释为后续源版本的自动验证。
+
 Requested outcome: implement the 2026-09-12 review recommendations, perform full
 verification, and submit the resulting changes to GitHub. Baseline: ffcc011
 (v7.0.10; historical). Current branch: `main` — `codex/physical-behavioral-closure`

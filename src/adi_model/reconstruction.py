@@ -16,7 +16,7 @@ v2 是 ADC2 输出（RA 输出口径），除以 G_hat 折回残差口径再与 
 参数来源分级：
     G_hat 初值 = g0          [披露-推断]
     G_hat 估计（校准开启）    [拟合]（stage10 验收：回归量必须含 dither
-                             名义项与 vd0，否则 33.6 -> 6.68 dB 的崩塌）
+                             名义项与vd0；33.6→6.68为增益估计值，并非dB）
     alpha（dither 衰减）      [推导]（config.dither_alpha，由同一份掩码生成）
 """
 
@@ -93,7 +93,7 @@ def reconstruct(
 
 
 class Calibrator:
-    """前台校准（真实芯片用后台校准；v1 只验证接口与收益来源）。"""
+    """使用已知外部输入的前台回归；不声明参考芯片的内部学习实现。"""
 
     def __init__(self, cfg: Config, state: DigitalState):
         """绑定配置与数字状态（前台校准用）。

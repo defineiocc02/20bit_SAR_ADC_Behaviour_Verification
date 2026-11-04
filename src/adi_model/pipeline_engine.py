@@ -73,6 +73,11 @@ def execute_split(
         raise ConfigError("n_samples must be positive")
     if pool is None:
         pool = PhysicalSlicePool(cfg, np.random.default_rng(cfg.seed + 8101), chip=chip)
+    if tuple(np.asarray(cfg.mismatch_gradient, dtype=float)) != pool._mismatch_gradient:
+        raise ConfigError(
+            "mismatch_gradient cannot change an existing physical pool; "
+            "use its fabrication configuration or construct an explicit aggregate chip"
+        )
     if not pool.is_split or (pool.cfg.dac_n_main, pool.cfg.dac_n_sub, pool.cfg.n_slices) != (
         cfg.dac_n_main,
         cfg.dac_n_sub,

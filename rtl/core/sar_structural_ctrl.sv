@@ -1,24 +1,14 @@
-// Source-aligned digital macro controls, with explicit implementation choices:
-// dual seeded binary SARs, shared 3-bit flash, causal 8/18 allocation, and one
-// shared backend converting the PREVIOUS residue. See ADR0018 for disclosure
-// limits, physical unit mapping and timing. All comparator inputs share clk;
-// the analog macro must meet setup/hold and assert valid after settling.
-//
-// Two transactions overlap: the selected coarse bank converts the CURRENT
-// acquired sample, while ADC2 converts the PREVIOUS saved residue packet.
-// cal_sample_context freezes physical IDs/switch decisions so reconstruction
-// never depends on the live DEM state of a later sample. This is a synchronous
-// macro-control implementation; analog switch circuits and settling are external.
-//
-// Default edge schedule below refers to phase BEFORE the rising edge:
-//   0: bank swap / previous residue -> fine context / current input snapshot.
-//   1: acquiring -> converting / seeded coarse start / previous-context fine start.
-//   2..7: six available coarse decisions; resolved updates drive RDAC one edge later.
-//   8: latch coarse_done; 9: capture current residue context.
-//   2..13: twelve available fine decisions; 14: latch fine_done and result.
-//   15: start reconstruction only for valid context, fine_ok and idle reconstructor.
-// Missing comparator-valid pulses do not stall phase; deadline cancellation
-// suppresses an unfinished conversion and error_code records the cause.
+// 模块：sar_structural_ctrl；双coarse SAR、共享Flash及前代fine的结构控制。
+// 职责：当前采样的3-bit Flash seed+双9-bit SAR，与前代residue的12-bit fine SAR并行。
+// 端口/单位：比较器valid/data同属clk；9/12位码无符号，dither的8位packed值按二补数解释。
+// 时钟/复位：clk上升沿、同步低有效rst_n；disable取消两代事务并清状态/错误。
+// 前沿相位：0转交context/换bank；1推进pool并启动SAR；2..7粗比较；8截止；9保存residue。
+// 前代fine：2..13比较，14锁存done/code，15在context有效且重构空闲时发start。
+// 同沿规则：消费者读旧sid/随机值/已决码；RDAC只跟随resolved update，不加载pending trial。
+// 配置：sampling与quantizer互斥；bridge在enable且sid[8]=1时活动；采样dither与RDAC使用匹配单位。
+// 异常：valid缺失不停止全局相位，到deadline取消；错误保持至reset/disable或后续错误覆盖。
+// 上下文：冻结实际物理ID/mask/rails及coarse/sid/dither，供下一周期fine与可选观测packet使用。
+// 来源：ADR0018及项目16tick预算；模拟开关、本地保持、比较器建立和参考电路不在本模块实现。
 `include "rtl_params.vh"
 module sar_structural_ctrl #(
     parameter int P_REF_ON = 10,

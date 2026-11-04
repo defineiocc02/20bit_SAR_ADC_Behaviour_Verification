@@ -253,10 +253,10 @@ class RefTrackRun:
             float: 精度位数（bit）。
         """
         w = self.err_end_of_cycle[sl]
-        std = float(np.std(w))
+        rms = float(np.sqrt(np.mean(np.square(w))))
         # 零误差 → 无穷大位数（与 a06_analysis 的口径一致；此前此处对同样的
         # 零误差直接 raise，同一类输入两种行为，独立审查 2026-09-25）
-        return reference_precision_bits(std, span_v) if std > 0 else float("inf")
+        return reference_precision_bits(rms, span_v) if rms > 0 else float("inf")
 
     def err_final_bits(self, span_v: float) -> float:
         """末段（最后 3/4 周期）参考误差的等效精度位数（[推导]）。

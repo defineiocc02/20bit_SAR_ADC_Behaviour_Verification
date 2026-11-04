@@ -1479,7 +1479,7 @@ def build_p2_link(cfg: Config) -> tuple[dict[str, str], dict[str, Any], FixedPoi
         "both_rdac_and_adc2": int(np.count_nonzero(rdac_over & adc2_over)),
         "only_rdac": int(np.count_nonzero(rdac_over & ~adc2_over.astype(bool))),
         "only_adc2": int(np.count_nonzero(~rdac_over.astype(bool) & adc2_over)),
-        "only_ra_sat": int(np.count_nonzero(ra_sat & ~analog_or.astype(bool))),
+        "only_ra_sat": int(np.count_nonzero(ra_sat & ~(rdac_over | adc2_over).astype(bool))),
         "neither_rdac_nor_adc2": int(
             np.count_nonzero(~rdac_over.astype(bool) & ~adc2_over.astype(bool))
         ),

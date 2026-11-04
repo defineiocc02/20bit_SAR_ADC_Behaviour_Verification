@@ -50,14 +50,9 @@ class ConfigError(ValueError):
 # 逐字段核对未声明取值确实被拒绝
 # （TestR4ConfigTakesEffectAtTheRunner::test_an_illegal_enum_is_refused_for_every_declared_field）。
 #
-# 范围声明：本表**只声明取值集合**，不代表每个字段都已被下游读取。据实登记：
-#   * 有比较分支：dac_arch / calibration / dither_mode / dither_split_bank /
-#     dither_quant_transfer / dither_transfer_model / ra_gain_model；
-#   * **无读取点**：`stage1_reading`（全库无 `self.stage1_reading` 比较点，只在
-#     工厂方法里被写入，用来记录采用了哪种读数；实际差别体现在该工厂同时设定
-#     的 b1 / units_per_lsb1 等字段值上）、`dem_mode`（见下方注释）。
-# 这两个字段仍然入表：拼错的取值应当被拒绝；同时它们是"字段名承诺了未接线的
-# 机制"这一缺陷类的实例，登记在这里比让它们看起来已生效要诚实。
+# 本表声明合法取值。stage1_reading记录架构读数并由legality约束b1；
+# dem_mode由scheduler.make_scheduler选择固定A/B或因果slice洗牌。
+# 字段合法不代表在所有runner生效；unary不支持的动态请求由run_sim明确拒绝。
 # --------------------------------------------------------------------------
 LEGAL_VALUES: dict[str, tuple[str, ...]] = {
     "stage1_reading": ("paper_consistent", "paper_literal", "legacy_codeword"),
@@ -68,10 +63,8 @@ LEGAL_VALUES: dict[str, tuple[str, ...]] = {
     "ra_gain_model": ("charge", "fixed"),
     "calibration": ("none", "gain", "gain_beta", "weights"),
     # dem_mode 现在**真的决定调度器**：三个仿真入口都经 scheduler.make_scheduler
-    # 取调度器（rotate -> Scheduler，permute -> ShuffledScheduler），显式传入的
-    # 调度器与它不一致时拒绝运行。注意"接线"不等于"调度正确"：洗牌调度器自身
-    # 的样本归属缺陷仍未闭合（见 tests/audit/test_review_contracts.py 的
-    # TestR1SampleOwnership，xfail(strict=True)）。
+    # 取调度器（rotate -> Scheduler，permute -> ShuffledScheduler）。
+    # 显式调度器与配置冲突时拒绝运行；所有权由当前因果slice计划检查。
     "dem_mode": ("rotate", "permute"),
     "dac_arch": ("unary", "split"),
 }
@@ -104,7 +97,7 @@ class Config:
 
     # ---------------- 系统与目标 ----------------
     fs: float = 40e6  # 采样率
-    n_bits_target: int = 20  # 目标位数（只用于定义 LSB 目标，不参与内部运算）
+    n_bits_target: int = 20  # 定义目标LSB；最终整数码宽由FixedPointFormat另行指定
     v_fs: float = 3.0  # 差分满幅峰值（V），输入范围 = ±v_fs
     target_dr_db: float = 94.6  # 发表值；用于反推 RA 噪声预算（ra_out_noise_rms=None 时）
 
@@ -134,7 +127,7 @@ class Config:
     # 这是**信号相关**的误差（与频率、幅度成正比），会直接进残差并吃掉余量，
     # 与静态增益失配（sadc_rdac_gain_mismatch）是两类不同的东西。
     # 专利的对策是在输入开关支路串一个稳定的电阻 280，降低 τ 对 R_on 变化的敏感度。
-    sampling_tau_mismatch: float = 0.0  # Δτ [s]；>0 表示 SADC 通路更快
+    sampling_tau_mismatch: float = 0.0  # Δτ=τ_SADC−τ_RDAC [s]；误差近似−Δτ·dx/dt
     sadc_mismatch_enable: bool = False
     sadc_mismatch_sigma: float = 0.0  # SADC 阈值失配 sigma（V，折输入）
 
@@ -168,10 +161,10 @@ class Config:
     # 它不是 PDK 值 —— 由 mismatch_from_pdk() 估算的物理值约 1e-3，差 ~10 倍，
     # 这个缺口正是"必须做单位权重校准"的证据（见报告）。
     mismatch_sigma0: float = 1e-4
-    # 失配的**空间分解**（v2）。三项平方和为 1，保证总 sigma 不变：
+    # 失配的空间分解：字段为方差份额，归一化后求和为1；标准差权重取平方根。
     #   global : 全阵列共模（C_fb 失配 + 整体工艺偏差）。DEM 完全无效。
     #   slice  : slice 级共模（版图梯度 / 刻蚀负载）。DEM 跨 slice 有效。
-    #   unit   : unit 级独立随机（Pelgrom A/sqrt(WL)）。DEM 完全有效。
+    #   unit   : unit级独立随机（Pelgrom A/sqrt(WL)）；DEM可改变误差谱，不保证总误差降低。
     # (0,0,1) 退化为 v1 的纯独立假设——那是物理上的乐观下界，不能当设计依据。
     mismatch_split: tuple = (0.15, 0.35, 0.50)  # (global, slice, unit) 的**方差**占比
     # 显式线性版图梯度，单位 = **相对失配 / 单位坐标**（绝对量，不被 sigma 缩放），
@@ -243,7 +236,7 @@ class Config:
     # dt = Ts/256 时该上限约 5.6 MHz，正好覆盖 PPT 标注的 "DC - 5MHz" 信号带。
     ktc_dt_fraction: float = 1.0 / 256.0
     calibration: str = "none"  # none | gain | gain_beta
-    dem_mode: str = "rotate"  # rotate（循环轮转）| permute（每状态独立随机排列）
+    dem_mode: str = "rotate"  # rotate=固定A/B分组；permute=因果slice洗牌；单位DEM另由dem_enable控制
 
     # ================================================================
     # v6 架构口径字段：显式记录"读法"以避免审计中出现的口径混淆。
@@ -287,7 +280,9 @@ class Config:
     dyn_r_on: float = 20.0  # 采样开关导通电阻 [ohm]（自举开关量级）
     dyn_t_sample_frac: float = 0.45  # 采样相时长 / Ts
     # 开关导通电阻随信号电平的调制（V_GS 随输入变）-> tau 与码相关 -> 真 INL
-    dyn_ron_code_coeff: float = 0.1  # rho：tau = tau0 * (1 + rho*(2k/N - 1))
+    dyn_ron_code_coeff: float = (
+        0.1  # 生产split：Ron=Ron0·[1+rho·(Vin/Vfs)^2]；旧aggregate代理另有定义
+    )
 
     # --- (b) 参考建立：每次切换从参考抽取电荷，有限去耦 + 有限恢复带宽 ---
     dyn_ref_settling: bool = False
@@ -780,8 +775,8 @@ class Config:
           而旧的 512 等权公式给 508/512 = 0.992188 —— 数值接近但来源错误，
           换拓扑/换 D 后偏差会放大。
 
-        仍未闭合的问题（已标注）：α 目前只覆盖**信号电荷**这一份；
-        输入负载与噪声传递系数尚未由同一份掩码生成（下一版逐相位推导）。
+        当前物理pool还由同一掩码计算输入负载和信号系数；噪声等效电容
+        保留掩码电容的采样噪声贡献，见slice_pool.split_coefficients。
 
         Returns:
             信号传递系数 α（无量纲，0 < α ≤ 1）。[派生]
@@ -828,7 +823,8 @@ class Config:
             c_active: 本次实际参与采样的电容（F）。[派生]
 
         Returns:
-            逐样本 kT/C 噪声 rms（Vrms），= sqrt(kT / c_active)。[派生]
+            差分χ=2口径的kT/C噪声rms（Vrms），=sqrt(2kT/c_active)。
+            生产capture按cfg.chi另行计算；本静态辅助函数固定χ=2。
         """
         return math.sqrt(2.0 * K_B * TEMP_K / c_active) if c_active > 0 else 0.0
 
@@ -1061,10 +1057,7 @@ class Config:
             if not 0 < self.dyn_t_sample_frac <= 1:
                 bad.append("dyn_t_sample_frac must be in (0, 1]")
             if not math.isfinite(self.dyn_ron_code_coeff) or not 0 <= self.dyn_ron_code_coeff <= 1:
-                bad.append(
-                    "dyn_ron_code_coeff must be in [0, 1]：>1 时低码 R_on 调制因子变负，"
-                    "tau 被静默钳到 1e-18 等于宣称'完美建立'（独立审查 2026-09-25）"
-                )
+                bad.append("dyn_ron_code_coeff must be in [0, 1] under the declared Config domain")
         for field_name, allowed in LEGAL_VALUES.items():
             actual = getattr(self, field_name)
             if actual not in allowed:
@@ -1090,6 +1083,31 @@ class Config:
             bad.append(f"fs={self.fs!r} 必须为正有限值（采样率 [Hz]）")
         if not math.isfinite(self.g0) or self.g0 <= 0:
             bad.append(f"g0={self.g0!r} 必须为有限正值（名义级间增益）")
+        for name in ("cap_scale", "chi", "c_sadc", "ra_v_clip"):
+            value = getattr(self, name)
+            if not math.isfinite(value) or value <= 0:
+                bad.append(f"{name} must be finite and positive")
+        for name in (
+            "driver_noise_rms",
+            "ra_out_noise_rms",
+            "ktc_noise_n",
+            "mismatch_sigma0",
+            "sadc_mismatch_sigma",
+            "dac_bridge_mismatch_sigma",
+            "dac_parasitic_spread",
+            "slice_bw_spread",
+            "slice_timing_skew_s",
+            "slice_offset_sigma_v",
+        ):
+            value = getattr(self, name)
+            if value is None and name == "ra_out_noise_rms":
+                continue
+            if value is None or not math.isfinite(value) or value < 0:
+                bad.append(f"{name} must be finite and nonnegative")
+        if not math.isfinite(self.gain_error) or (
+            self.ra_gain_model == "fixed" and self.gain_error <= -1
+        ):
+            bad.append("gain_error must be finite and preserve positive fixed-mode gain")
         if self.n_slices < 1:
             bad.append(f"n_slices={self.n_slices!r} 必须 >= 1（slice 池大小）")
         if self.n_unit_per_slice < 1:

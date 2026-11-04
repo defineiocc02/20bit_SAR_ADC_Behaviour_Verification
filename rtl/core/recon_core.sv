@@ -1,40 +1,13 @@
-//===========================================================================
-// recon_core.sv -- 物理权重校正的数据捕获、算术和输出提交控制
-//===========================================================================
-// 数据流：物理权重归约 + ADC2 解码 -> stage-A 快照 -> 残差 MAC ->
-//          迭代 floor 除法 -> 饱和裁剪 -> 输出提交。
-// num = (F - O)*2^W_FRAC - rails*2^V_FRAC - total*I；
-// word = floor(((num + gain*2^V_FRAC)*2^OUT_BITS >>> (V_FRAC+1))/gain)。
-// 输出为 OUT_BITS 位 offset-binary 码，默认 20 位。此模块不生成 DEM、
-// 不存储权重、不估计校准系数；论文/专利披露与实现差异见 ADR 0014/0018。
-//
-// 捕获边界：仅 cfg_ready && start && !busy 接受一次转换，同时锁存已归约
-// 的权重、后端电压、offset、注入、sample_id 和后端异常。之后所有数值与
-// 标志都来自这次快照；调用方必须保证配置期间权重稳定。
-//
-// 控制状态（编码为 stage_b 与除法器 run，没有另设枚举 FSM）：
-//   IDLE：stage_b=0 且 div_busy=0，允许 start 捕获；
-//   MAC_LAUNCH：stage_b=1，下一沿捕获本样本 MAC 异常并启动除法；
-//   DIV_RUN：div_busy=1，busy 期间不接受 start；
-//   COMMIT：div_done 的下一沿提交旧结果，此时 busy 已为 0，可同时接受
-//           下一次 start。sample_id_r 的非阻塞赋值保证提交使用旧样本 ID。
-// cfg_ready 下降取消流水：清 stage_b/待提交事件，除法器同步复位，输出清零。
-// rst_n 为同步低有效复位；clear 错误不取消转换，由输出模块处理粘滞事件。
-//
-// 数值契约：权重 Q30 以 48 位无符号整数存储（合法权重 <2^47）；电压
-// Q32 为 64 位有符号整数。rails 为有符号，gain/total 为无符号。
-// 默认受检范围 [-2^95,2^95)，MAC 越界时置 acc_ovf；gain==0、无效 slice
-// 或除法器 err 置 gain_err。两类错误仍产生有效的完成事件、保留最后合法字；
-// 本次 result_flags 与粘滞 flags 的意义不同，下游必须保留 sample_id。
-// 裁剪比较的两侧均为 signed，负 word 只产生 clip_low，不能改成无符号比较。
-//
-// 延迟：N_CYC=ceil(63/P_STAGES)，接受 start 到 dout_valid 为 N_CYC+2
-// 个完整时钟间隔；默认 P_STAGES=7 为 11 拍，生产 P_STAGES=5 为 15 拍。
-// 每次 busy 占用期间不接受新 start；输出提交沿可以接收下一次请求。
-// 综合：前级组合归约/MAC 与组内 P_STAGES 级恢复除法均需单独查看 STA。
-// 改 P_STAGES 要重算 16 相位预算；位宽/捕获沿/树拓扑不得凭面积估算删减。
-// 来源：docs/rtl/RTL_ARITHMETIC_CONTRACT.md；p2_tb/全顶层回归。
-//===========================================================================
+// 模块：recon_core；物理权重校正的接受、快照、算术与结果提交。
+// 数据流：T/G/rails归约与ADC2码中心→stage-A快照→残差MAC→floor除法→饱和/ID/flags提交。
+// 端口/单位：W为48位unsigned Q30；电压为64位signed Q32；输出为20位offset-binary码。
+// 时钟/复位：clk上升沿、同步低有效rst_n；cfg_ready=0同步取消在途计算并清有效输出。
+// 接受：cfg_ready&&start&&!busy冻结同一样本的所有数据；其后不得混入下一笔实时mask或系数。
+// 周期：ceil(63/P_STAGES)+2完整拍；默认P7为11，P5为15；busy期间拒绝start。
+// 同沿规则：div_done之后的提交沿可同时接受下一start，NBA保证提交使用旧sample_id/flags。
+// 异常：acc_ovf/gain_err仍产生完成ID/flags但保留合法字；adc2_ovf单独上报；负商只向低端clip。
+// 精度：96位受检域、宽MAC临时值及63位floor商；P_USE_ROW_TOTALS仅使用精确配置缓存。
+// 来源：RTL_ARITHMETIC_CONTRACT.md、ADR0014/0018；不生成DEM、存权重或运行学习器。
 `include "rtl_params.vh"
 
 module recon_core #(
@@ -267,7 +240,7 @@ module recon_core #(
         stage_b <= 1'b0;
       end
 
-      // ---- 未配置：输出强制为 0（放在最后，优先级最高）----
+      // 配置取消最后覆盖本沿的待提交资格与ID。
       if (!cfg_ready) begin
         stage_b <= 1'b0;
         ovf_pend <= 1'b0;

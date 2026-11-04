@@ -81,6 +81,19 @@ class FixedPointReconstructor:
 
     def __post_init__(self):
         """Validate register values and the bounded int64 mask-sum stage."""
+        if (
+            not np.isfinite(self.spec.v_fs)
+            or self.spec.v_fs <= 0
+            or not np.isfinite(self.spec.adc2_v_min)
+            or not np.isfinite(self.spec.adc2_v_max)
+            or self.spec.adc2_v_min >= self.spec.adc2_v_max
+        ):
+            raise ValueError(
+                "register image requires a positive finite full-scale voltage "
+                "and finite increasing ADC2 voltage bounds"
+            )
+        if type(self.spec.adc2_n_bits) is not int or not 1 <= self.spec.adc2_n_bits <= 30:
+            raise ValueError("register image ADC2 width must be an integer in [1, 30]")
         w = np.asarray(self.weights_q)
         if (
             w.shape != self.spec.shape

@@ -1,15 +1,12 @@
-// Binary SAR sequencer with optional flash seed. Comparator convention:
-// cmp_ge=1 accepts the current DAC trial (input >= trial). Resolved excludes
-// the pending trial bit: only resolved_valid may update the separate RDAC.
-// Binary radix and clocked compare handshake are engineering choices, not a
-// disclosure of the chip's transistor-level/asynchronous SAR implementation.
-//
-// State is encoded by busy, not a separate FSM register. Rising-edge priority:
-//   reset/disable > cancel > start while idle > valid comparison while busy.
-// Disable resets the result; cancel retains trial/resolved codes and bit_index
-// but clears busy and both event pulses. A busy start is ignored; a concurrent
-// valid comparison still advances the conversion. Comparator data is consumed
-// only when busy && cmp_valid, so settling can take multiple clock intervals.
+// 模块：sar_trial_ctrl；带可选Flash seed的二进制SAR顺序控制。
+// 端口/单位：trial/resolved/seed为P_BITS位码，cmp_ge=1表示输入不小于当前trial。
+// 时钟/复位：clk上升沿、同步低有效rst_n；reset/disable清全部状态。
+// 同沿优先级：reset/disable>cancel>idle start>busy有效比较；busy start忽略但不阻止同沿比较。
+// 数据：resolved只含已决位，trial另含当前试探位；只有resolved_valid能触发后级RDAC更新。
+// 周期：每个busy&&cmp_valid接受一位；valid=0保持；最后一位清busy并脉冲done/resolved_valid。
+// 取消：cancel保留码/index并清busy/事件；接受start时只保留seed高位并置首个未决trial。
+// 适用域：P_BITS>=1、0<=P_SEED_BITS<P_BITS；所有比较器信号须满足统一clk时序。
+// 来源：项目同步SAR宏合同；二进制与clocked握手不声明复制论文异步晶体管SAR。
 module sar_trial_ctrl #(
     parameter int P_BITS = 9,
     parameter int P_SEED_BITS = 3

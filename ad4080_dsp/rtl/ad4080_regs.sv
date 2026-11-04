@@ -1,65 +1,24 @@
 //=============================================================================
 // @file    ad4080_regs.sv
-// @brief   AD4080 配置寄存器堆（按 Rev.B 逐位实现）
-// @details 实现 0x00-0x0A / 0x10-0x11 / 0x14-0x17 / 0x19-0x1B / 0x1C-0x29；
-//          写 0x1C 产生 FIFO arm 脉冲；写 0x29 产生 filter_sync 脉冲；
-//          写 0x00 = 0x81 触发软复位（ADDR_ASCENSION 除外，手册 p.75）。
-// @project AD4080 数字子系统
-// @author  AD4080 Digital Team
-// @date    2026-10-19
-// @version 3.0.0
+// @brief   配置寄存器、状态回读和单拍控制事件
+// @details 写提交由we限定，读为组合地址译码；写0x1C产生FIFO arm，写0x29产生filter_sync。
+//          SW_RESET仅恢复所列配置寄存器；FIFO/滤波器不由该脉冲复位。
+// @project SAR20 / AD4080风格数字原型
+// @author  项目维护者（贡献记录见版本库）
+// @date    2026-11-05
+// @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : AD4080 Rev.B p.73-94 Table 32-62
-// 时钟域   : clk 单时钟（SPI 侧已由 spi_slave 过采样同步）
-// 复位     : rst_n 异步低有效；另有 SW_RESET 软复位（配置寄存器，FIFO 不受影响）
-// 延迟     : 写 1 clk；读组合
-// 吞吐     : 1 次访问/clk
-// 可综合性 : 是（纯寄存器 + 地址译码）
+// 手册依据 : 功能映射见docs/ad4080_traceability.md；不声称器件逐拍等价。
+// 时钟域   : clk；SPI写事务已由spi_slave转换到本域
+// 复位     : rst_n异步低有效；SW_RESET优先于普通写和状态更新
+// 延迟     : 写在接受沿生效，读为组合；派生控制事件保持一个clk周期
+// 吞吐     : 最多1次寄存器写/clk
+// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
 // 依赖     : 无
-// 修订记录 :
-//   1.0.0 2026-10-19 初版子集
-//   2.0.0 2026-10-19 补齐 GENERAL_CONFIG/GPIO/LVDS/状态 W1C/watermark 钳位
-//   3.0.0 2026-10-19 增加 0x00-0x0A 接口配置区、SW_RESET、FILTER_SYNC 脉冲、
-//                    SDO_ENABLE/ADDR_ASCENSION/SINGLE_INST/SHORT_INSTRUCTION
+// 边界     : 状态W1C与新事件同沿时清除优先；软件应按此避免丢事件。
+//          软件复位保留addr_asc、scratch和POR相关保持位；细节以分支赋值为准。
+//          多字节系数更新不是原子提交；运行中修改可能产生中间系数。
 //=============================================================================
-// 设计说明：
-//   地址与复位值全部取自 AD4080 Rev.B p.73-94：
-//     0x00 INTERFACE_CONFIG_A   reset 0x10  [7] SW_RESET [5] ADDR_ASCENSION
-//                                          [4] SDO_ENABLE [0] SW_RESETX
-//     0x01 INTERFACE_CONFIG_B   reset 0x00  [7] SINGLE_INST [3] SHORT_INSTRUCTION
-//     0x02 DEVICE_CONFIG        reset 0x00  [1:0] OPERATING_MODES
-//     0x03 CHIP_TYPE            reset 0x07  只读
-//     0x04 PRODUCT_ID_L         reset 0x50  只读
-//     0x05 PRODUCT_ID_H         reset 0x00  只读
-//     0x06 CHIP_GRADE           reset 0x02  只读
-//     0x0A SCRATCH_PAD          reset 0x00  R/W 测试位
-//     0x10 INTERFACE_CONFIG_C   reset 0x23  CRC_ENABLE[7:6]/STRICT[5]/SEND_STATUS[4]/CRC_ENABLEB[1:0]
-//     0x11 INTERFACE_STATUS_A   reset 0x00  W1C：CRC_ERR / CLOCK_COUNT_ERR / ADDRESS_INVALID_ERR
-//     0x14 DEVICE_STATUS        reset 0x09  {FIFO_FULL,FIFO_READ_DONE,HI,LO,POR_ANA,CNV_ERR,ROM_CRC,POR}
-//     0x15 ADC_DATA_INTF_A      reset 0x40  [6]=1, [4] INTF_CHK_EN, [2] SPI_LVDS_LANES, [0] DATA_INTF_MODE
-//     0x16 ADC_DATA_INTF_B      reset 0x00  [7:4] LVDS_CNV_CLK_CNT, [3] SELF_CLK, [2] MNC, [0] LVDS_CNV_EN
-//     0x17 ADC_DATA_INTF_C      reset 0x20  [7] RX_CURRENT, [6:4] LVDS_VOD
-//     0x19 GPIO_CONFIG_A        reset 0x01  [7:4] DATA, [3:0] GPO_EN
-//     0x1A/0x1B GPIO_CONFIG_B/C reset 0x00  [7:4]/[3:0] = GPIO_x_SEL（4 bit）
-//     0x1C GENERAL_CONFIG       reset 0x00  [7] INT_EVENT_EN, [6] HI_ROUTE,
-//                                            [5] LO_ROUTE, [4] ADC_CNV_ERR_ROUTE, [1:0] FIFO_MODE
-//     0x1D/0x1E FIFO_WATERMARK  reset 0x4000（15 bit，写 0 夹到 1，写 >16384 夹到 16384）
-//     0x1F/0x20 EVENT_HYSTERESIS reset 0x0000
-//     0x21/0x22 HI_THRESHOLD     reset 0x0000（补码）
-//     0x23/0x24 LO_THRESHOLD     reset 0x0000（补码）
-//     0x25/0x26 OFFSET           reset 0x0000（补码，LSB=0.00572 mV）
-//     0x27/0x28 GAIN             reset 0x0200（0x200 = 1.0）
-//     0x29 FILTER_CONFIG        reset 0x00  [6:3] SINC_DEC_RATE, [1:0] FILTER_SEL
-//
-//   行为说明：
-//     - 写 0x1C 产生 fifo_arm 单拍脉冲（手册：a FIFO_MODE write command arms the FIFO）。
-//     - 写 0x29 产生 fsync_pulse 单拍脉冲（手册 p.94：改 FILTER_SEL 后必须 FILTER_SYNC）。
-//     - 写 0x14 的 bit5/4/3/2/0 是 W1C；hi_clr/lo_clr 送 event_detect 清粘滞位。
-//     - 写 0x11 的 bit3/4/0 是 W1C，用于清 CRC/时钟数/地址错误。
-//     - 写未映射地址置 ADDRESS_INVALID_ERR（0x11[0]），写入被丢弃。
-//     - 未实现：0x0E STREAM_MODE 回环计数、0x0F TRANSFER_CONFIG（登记为 P2）。
-//=============================================================================
-
 `timescale 1ns/1ps
 `default_nettype none
 

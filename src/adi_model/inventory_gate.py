@@ -5,9 +5,9 @@
 1. **来源清单**（``sources_manifest.json``）：SHA256 格式；原文文件在
    本地材料目录可定位时逐一比对哈希（不匹配=硬失败；缺失=BLOCKED，
    不伪造原文证据）。
-2. **机制清单**（``mechanism_inventory.json``）：轴线枚举合法；代码路径、
-   测试 ID（文件+类名）、来源 ID、实验状态全部真实存在——清单引用
-   不存在的锚点与引用错误的锚点同样是造假。
+2. **机制清单**（``mechanism_inventory.json``）：轴线枚举合法；代码和测试
+   路径限定在仓库内；来源 ID 和位置登记有效；测试 ID 精确指向文件内的
+   顶层类或函数声明；实验状态枚举合法。
 3. **覆盖完整性**：任务书 §4 的 T01-T14 每一项都必须被至少一个机制或
    待建项引用；机制 ID 唯一。
 
@@ -17,13 +17,15 @@
 
     python -m adi_model.inventory_gate [--repo-root PATH] [--summary PATH]
 
-本模块只依赖标准库，是清单↔代码库的静态一致性检查；
-物理机制的验收仍在 pytest 与 ``adi-run-all``。
+本模块只依赖标准库。静态引用通过只说明登记的锚点存在，不说明已经阅读
+原文、实现与文献语义一致或测试已执行；物理机制验收仍需独立复核、pytest
+与 ``adi-run-all``。
 """
 
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 import re
@@ -35,7 +37,13 @@ SOURCES_FILE = "sources_manifest.json"
 INVENTORY_FILE = "mechanism_inventory.json"
 TASK_IDS = tuple(f"T{i:02d}" for i in range(1, 15))
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
-TEST_ID_RE = re.compile(r"^(?P<path>tests/[\w/]+\.py)::(?P<cls>\w+)$")
+TEST_ID_RE = re.compile(r"^(?P<path>tests/[\w/]+\.py)::(?P<symbol>\w+)$")
+RTL_CONTRACT_STATUSES = (
+    "DIGITAL_IMPLEMENTED",
+    "CONTROL_ONLY",
+    "NOT_IMPLEMENTED",
+    "NOT_APPLICABLE",
+)
 
 
 @dataclass
@@ -101,26 +109,55 @@ def _resolve_sources_dir(manifest: dict[str, object]) -> list[Path]:
     return candidates
 
 
-def _check_sources(repo_root: Path, manifest: dict[str, object], result: GateResult) -> None:
+def _check_sources(repo_root: Path, manifest: dict[str, object], result: GateResult) -> set[str]:
+    """Check registered source files and return IDs usable by static references.
+
+    Background entries without registered hashes remain explicitly blocked.
+    The returned IDs identify declarations, including blocked local files; they
+    do not certify source content or the meaning of a literature citation.
+    """
     sources = manifest.get("sources", [])
     if not isinstance(sources, list) or not sources:
         result.add("sources.present", "FAIL", "sources_manifest 缺少 sources 数组")
-        return
+        return set()
+    entries = [(source, False) for source in sources]
+    background = manifest.get("background_sources", {})
+    if not isinstance(background, dict):
+        result.add("sources.background", "FAIL", "background_sources 必须是对象")
+    else:
+        items = background.get("items", [])
+        if not isinstance(items, list):
+            result.add("sources.background", "FAIL", "background_sources.items 必须是数组")
+        else:
+            entries.extend((source, True) for source in items)
     resolve_dirs = _resolve_sources_dir(manifest)
     ids: set[str] = set()
-    for src in sources:
+    for src, is_background in entries:
         if not isinstance(src, dict):
             result.add("sources.entry", "FAIL", "sources 数组存在非对象条目")
             continue
-        sid = str(src.get("id", "?"))
+        sid = src.get("id")
+        if not isinstance(sid, str) or not sid.strip():
+            result.add("sources.id", "FAIL", "来源 ID 必须是非空字符串")
+            continue
         if sid in ids:
             result.add("sources.duplicate_id", "FAIL", f"来源 id 重复：{sid}")
         ids.add(sid)
+        if is_background and src.get("hash_registered") is False:
+            result.add(
+                f"sources.{sid}.registration",
+                "BLOCKED",
+                "背景来源未登记哈希；内容校验 NOT_RUN，来源声明不等于原文已复核",
+            )
+            continue
         digest = str(src.get("sha256", ""))
         if not SHA256_RE.match(digest):
             result.add(f"sources.{sid}.sha256", "FAIL", "SHA256 缺失或格式非法")
             continue
-        fname = str(src.get("file", ""))
+        fname = src.get("file")
+        if not isinstance(fname, str) or not fname.strip():
+            result.add(f"sources.{sid}.file", "FAIL", "来源文件名必须是非空字符串")
+            continue
         found: Path | None = None
         for d in resolve_dirs:
             p = d / fname
@@ -144,10 +181,64 @@ def _check_sources(repo_root: Path, manifest: dict[str, object], result: GateRes
                 "FAIL",
                 f"{found} 哈希不一致：清单 {digest[:12]}… 实际 {actual[:12]}…",
             )
+    return ids
+
+
+def _repo_file(repo_root: Path, relative_path: str) -> Path | None:
+    """Resolve a portable repository-relative file without following an escape."""
+    path = Path(relative_path)
+    if path.is_absolute():
+        return None
+    root = repo_root.resolve()
+    resolved = (root / path).resolve()
+    return resolved if resolved.is_relative_to(root) and resolved.is_file() else None
+
+
+def _top_level_declarations(path: Path) -> set[str]:
+    """Read exact top-level Python class/function names without importing code."""
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    return {
+        node.name
+        for node in tree.body
+        if isinstance(node, ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef)
+    }
+
+
+def _check_rtl_contract(
+    repo_root: Path, mechanism_id: str, contract: object, result: GateResult
+) -> None:
+    """Check optional RTL status and file anchors without asserting behavior."""
+    check = f"mechanisms.{mechanism_id}.rtl_contract"
+    if not isinstance(contract, dict):
+        result.add(check, "FAIL", "rtl_contract 必须是对象")
+        return
+    status = contract.get("status")
+    if status not in RTL_CONTRACT_STATUSES:
+        result.add(check, "FAIL", f"RTL 完成状态非法：{status}")
+    boundary = contract.get("boundary")
+    if not isinstance(boundary, str) or not boundary.strip():
+        result.add(check, "FAIL", "RTL 功能边界必须是非空字符串")
+    for field_name in ("code", "tests"):
+        references = contract.get(field_name, [])
+        if not isinstance(references, list):
+            result.add(check, "FAIL", f"RTL {field_name} 必须是数组")
+            continue
+        if status in ("DIGITAL_IMPLEMENTED", "CONTROL_ONLY") and not references:
+            result.add(check, "FAIL", f"RTL 状态 {status} 必须有 {field_name} 引用")
+        for reference in references:
+            if not isinstance(reference, str) or _repo_file(repo_root, reference) is None:
+                result.add(
+                    check,
+                    "FAIL",
+                    f"RTL {field_name} 路径不在仓库内或文件不存在：{reference}",
+                )
 
 
 def _check_code_and_tests(
-    repo_root: Path, inventory: dict[str, object], result: GateResult
+    repo_root: Path,
+    inventory: dict[str, object],
+    result: GateResult,
+    source_ids: set[str],
 ) -> None:
     mechanisms = inventory.get("mechanisms", [])
     if not isinstance(mechanisms, list) or not mechanisms:
@@ -164,10 +255,12 @@ def _check_code_and_tests(
 
     seen_ids: set[str] = set()
     covered_tasks: set[str] = set()
+    test_declarations: dict[Path, set[str]] = {}
     for mech in mechanisms:
         if not isinstance(mech, dict):
             result.add("mechanisms.entry", "FAIL", "mechanisms 数组存在非对象条目")
             continue
+        record_start = len(result.records)
         mid = str(mech.get("id", "?"))
         if mid in seen_ids:
             result.add(f"mechanisms.{mid}.id", "FAIL", "机制 ID 重复")
@@ -186,6 +279,38 @@ def _check_code_and_tests(
             bad = [v for v in ev if v not in axes_ok.get("evidence_source", [])]
             if bad:
                 result.add(f"mechanisms.{mid}.evidence", "FAIL", f"证据来源枚举非法：{bad}")
+        nature = mech.get("verification_nature", [])
+        if not isinstance(nature, list) or not nature:
+            result.add(
+                f"mechanisms.{mid}.verification_nature", "FAIL", "验证性质轴线缺失（不可为空）"
+            )
+        else:
+            bad_nature = [
+                value for value in nature if value not in axes_ok.get("verification_nature", [])
+            ]
+            if bad_nature:
+                result.add(
+                    f"mechanisms.{mid}.verification_nature",
+                    "FAIL",
+                    f"验证性质枚举非法：{bad_nature}",
+                )
+
+        source_refs = mech.get("sources", [])
+        if not isinstance(source_refs, list):
+            result.add(f"mechanisms.{mid}.sources", "FAIL", "sources 必须是数组")
+        elif not source_refs and emb != "PROJECT_EXTENSION":
+            result.add(f"mechanisms.{mid}.sources", "FAIL", "文献机制必须登记来源引用")
+        else:
+            for source_ref in source_refs:
+                if not isinstance(source_ref, dict):
+                    result.add(f"mechanisms.{mid}.sources", "FAIL", "来源引用必须是对象")
+                    continue
+                source_id = source_ref.get("id")
+                if not isinstance(source_id, str) or source_id not in source_ids:
+                    result.add(f"mechanisms.{mid}.sources", "FAIL", f"来源 ID 未登记：{source_id}")
+                location = source_ref.get("location")
+                if not isinstance(location, str) or not location.strip():
+                    result.add(f"mechanisms.{mid}.sources", "FAIL", "来源位置必须是非空字符串")
 
         task_refs = mech.get("task_refs", [])
         if not isinstance(task_refs, list) or not task_refs:
@@ -197,14 +322,24 @@ def _check_code_and_tests(
                 else:
                     result.add(f"mechanisms.{mid}.task_refs", "FAIL", f"未知任务条目 {t}")
 
-        for rel in mech.get("code", []) or []:
+        code_refs = mech.get("code", [])
+        if not isinstance(code_refs, list):
+            result.add(f"mechanisms.{mid}.code", "FAIL", "code 必须是数组")
+            code_refs = []
+        for rel in code_refs:
             if not isinstance(rel, str):
                 result.add(f"mechanisms.{mid}.code", "FAIL", "code 数组存在非字符串")
                 continue
-            if not (repo_root / rel).is_file():
-                result.add(f"mechanisms.{mid}.code", "FAIL", f"代码路径不存在：{rel}")
+            if _repo_file(repo_root, rel) is None:
+                result.add(
+                    f"mechanisms.{mid}.code", "FAIL", f"代码路径不在仓库内或文件不存在：{rel}"
+                )
 
-        for tid in mech.get("tests", []) or []:
+        test_refs = mech.get("tests", [])
+        if not isinstance(test_refs, list):
+            result.add(f"mechanisms.{mid}.tests", "FAIL", "tests 必须是数组")
+            test_refs = []
+        for tid in test_refs:
             if not isinstance(tid, str):
                 result.add(f"mechanisms.{mid}.tests", "FAIL", "tests 数组存在非字符串")
                 continue
@@ -212,17 +347,27 @@ def _check_code_and_tests(
             if m is None:
                 result.add(f"mechanisms.{mid}.tests", "FAIL", f"测试 ID 格式非法：{tid}")
                 continue
-            tpath = repo_root / m.group("path")
-            if not tpath.is_file():
-                result.add(f"mechanisms.{mid}.tests", "FAIL", f"测试文件不存在：{tid}")
+            tpath = _repo_file(repo_root, m.group("path"))
+            if tpath is None:
+                result.add(
+                    f"mechanisms.{mid}.tests", "FAIL", f"测试路径不在仓库内或文件不存在：{tid}"
+                )
                 continue
-            cls = m.group("cls")
-            declared = any(
-                line.lstrip().startswith(f"class {cls}")
-                for line in tpath.read_text(encoding="utf-8").splitlines()
-            )
-            if not declared:
-                result.add(f"mechanisms.{mid}.tests", "FAIL", f"测试类未在该文件声明：{tid}")
+            try:
+                if tpath not in test_declarations:
+                    test_declarations[tpath] = _top_level_declarations(tpath)
+            except (OSError, SyntaxError, UnicodeError) as error:
+                result.add(
+                    f"mechanisms.{mid}.tests", "FAIL", f"测试文件无法静态解析：{tid}；{error}"
+                )
+                continue
+            if m.group("symbol") not in test_declarations[tpath]:
+                result.add(
+                    f"mechanisms.{mid}.tests", "FAIL", f"测试类或函数未在该文件顶层声明：{tid}"
+                )
+
+        if "rtl_contract" in mech:
+            _check_rtl_contract(repo_root, mid, mech["rtl_contract"], result)
 
         for exp in mech.get("experiments", []) or []:
             if isinstance(exp, dict):
@@ -233,6 +378,12 @@ def _check_code_and_tests(
                         "FAIL",
                         f"实验状态 {status} 不在 PASS/FAIL/BLOCKED/NOT_RUN",
                     )
+        if not any(record.level == "FAIL" for record in result.records[record_start:]):
+            result.add(
+                f"mechanisms.{mid}.static_refs",
+                "PASS",
+                "来源 ID/位置、代码和测试锚点及枚举合法；仅静态引用检查，未执行测试或核验文献语义和物理机制",
+            )
 
     pending = inventory.get("coverage_obligations", {})
     pending_items = pending.get("pending_items", []) if isinstance(pending, dict) else []
@@ -266,12 +417,13 @@ def verify(repo_root: Path) -> GateResult:
 
     manifest: dict[str, object] = {}
     inventory: dict[str, object] = {}
+    source_ids: set[str] = set()
     if sources_path.is_file():
         manifest = _load_json(sources_path)
-        _check_sources(repo_root, manifest, result)
+        source_ids = _check_sources(repo_root, manifest, result)
     if inventory_path.is_file():
         inventory = _load_json(inventory_path)
-        _check_code_and_tests(repo_root, inventory, result)
+        _check_code_and_tests(repo_root, inventory, result, source_ids)
     return result.finalize()
 
 

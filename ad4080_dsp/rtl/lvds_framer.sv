@@ -1,40 +1,23 @@
 //=============================================================================
 // @file    lvds_framer.sv
-// @brief   LVDS 结果并串（1/2 lane，空闲重复上一帧）
-// @details MSB first；单 lane 20 个 bit_en/帧，双 lane 每 lane 10 个；
-//          无新数据时重复上一帧（手册 Figure 97 行为）。SDR 数字模型。
-// @project AD4080 数字子系统
-// @author  AD4080 Digital Team
-// @date    2026-10-19
-// @version 2.0.0
+// @brief   单/双lane的SDR位序与重复帧原型
+// @details 每bit_en输出单lane的1bit或双lane各1bit，MSB先行；帧尾装载下一帧。
+//          只有一个latest-pending寄存器，无ready/队列；相邻valid可覆盖尚未装帧的结果。
+// @project SAR20 / AD4080风格数字原型
+// @author  项目维护者（贡献记录见版本库）
+// @date    2026-11-05
+// @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : AD4080 Rev.B p.45-53, p.66 Figure 97
-// 时钟域   : clk 单时钟；bit_en 为位速率使能
-// 复位     : rst_n 异步低有效
-// 延迟     : valid_in -> 下一帧起点装载
-// 吞吐     : 1 bit/lane/bit_en
-// 可综合性 : 是；dco 为寄存输出
+// 手册依据 : 功能映射见docs/ad4080_traceability.md；不声称器件逐拍等价。
+// 时钟域   : clk；valid/data/lane_sel/bit_en必须同步
+// 复位     : rst_n异步低有效；先发送复位零帧
+// 延迟     : 新数据在后续帧边界装载；与边界同沿valid由data_in优先
+// 吞吐     : 单lane20次bit_en/帧；双lane10次，不等同16tick输入的无损接口
+// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
 // 依赖     : 无
-// 修订记录 :
-//   1.0.0 2026-10-19 初版（SDR，单 lane，只发一次）
-//   2.0.0 2026-10-19 增加 2 lane、重复帧、dco 寄存
+// 边界     : dco是bit_en寄存电平；bit_en恒高时dco不翻转，不能当真实回送时钟。
+//          不实现DDR/差分PHY/Manchester；lane_sel必须在系统定义的空闲/复位边界更改。
 //=============================================================================
-// 设计说明（迁移自原文件头，保留原始意图）：
-//   数据手册依据：AD4080 Rev.B p.45-53
-//     - 结果 MSB first；每 lane 最高 800 Mbps；DCO 为回送时钟。
-//     - 0x15 bit2 SPI_LVDS_LANES：0 = 单 lane，1 = 双 lane。
-//     - p.66 Figure 97：新数据到来前，移位寄存器里保留上一个结果，
-//       接口会**重复发送**旧结果，主机可重读或忽略。
-//
-//   本模块只做数字并串，不含 DDR PHY / 差分驱动 / 曼彻斯特编码：
-//     - SDR 模型：每个 bit_en 移 1 位；真实器件是 DDR，用 2:1 mux 或 ODDR 实现，
-//       位时序等价（同样 20 bit / 样本），差别只在电气层。
-//     - 1 lane：20 个 bit_en 发完一帧；2 lane：每 lane 10 个 bit_en。
-//     - 帧空闲时**自动重复上一帧**，与 Figure 97 的行为一致（旧版本只发一次就停）。
-//
-//   时序：valid_in 写入 dat_r；下一帧起点装载；ser_data 与 ser_frame 同拍寄存。
-//=============================================================================
-
 `timescale 1ns/1ps
 `default_nettype none
 

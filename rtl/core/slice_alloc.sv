@@ -1,48 +1,11 @@
-//===========================================================================
-// slice_alloc.sv -- 8 路活动 slice 的兼容 A/B ping-pong 分配
-//===========================================================================
-// 职责一句话
-//   在 18 个物理 slice 的编号空间中按固定 A/B ping-pong 选出 8 个，给出"本样本正在采集的
-//   8 个 slice"与"本样本正在转换的 8 个 slice"，并输出 bank 与样本序号。
-//   本模块**不做**开关译码（swap_decode / unit_therm 的事），也**不做**把
-//   开关码扇出到物理 slice（rdac_drv 的事）。
-//
-// 来源
-//   adi_model/timing.build_slice_plan 的 strategy="pingpong"、spare_period=None 分支：
-//       groups  = arange(2*N_ACTIVE).reshape(2, N_ACTIVE)   // [0..7] 与 [8..15]
-//       parity  = n % 2
-//       acq[n]  = groups[parity]
-//       conv[n] = groups[1 - parity]
-//       valid   = n >= 1
-//
-// 单位契约
-//   无量纲。acq_slices/conv_slices 的元素 ∈ [0, 16)（见 INV-4d）；sample_idx 为
-//   已发出的 sample_en 脉冲计数（复位后为 0）。
-//
-// 参数来源分级
-//   尺寸直接取 rtl_params.vh（[推导]）。本模块**没有**模块参数：与头文件常量同名的
-//   参数会自引用（`parameter int N_ACTIVE = N_ACTIVE`），另起名字则等于在 RTL 里维护
-//   第二份参数表 —— 两者都被 P1 §0.4 禁止。
-//
-// 契约与不变量 / 适用域
-//   * INV-4a（所有权传递，18-of-8 的核心）：conv[n] 逐元素等于 acq[n-1]。
-//   * INV-4b：acq_slices 内部无重复；conv_slices 内部无重复。
-//   * INV-4c：同一 n 上 conv_slices 与 acq_slices 不相交。
-//   * INV-4d：元素恒 < 16。如实登记 —— n_slices = 18，但 pingpong 只用 0..15，
-//     物理 slice 16/17 在 pingpong 策略下**永远不被选中**（与模型一致，不是 bug）。
-//   * `bank` 取 `n % 2`。P2 §5 要求它与模型实测值核对（由
-//     tools/export_rtl_vectors.py 的 `all(result.bank == arange(n) % 2)` 报告）。
-//     若模型给出相反极性，改这里而不是改 TB。
-//   * 推进条件 = `cfg_ready && sample_en`。`sample_en` 由 ctrl_fsm 在相位 0 给出，
-//     而 ctrl_fsm 在 cfg_ready=0 时**不发**任何脉冲；这里的 cfg_ready 门是冗余的
-//     第二道防线，是否消去由实际综合决定。
-//   * acq/conv/bank/sample_idx 为计数器 n 的组合函数；conv_valid 由首样本
-//     标志保持，避免 n 在 2^32 次采样回绕时重新进入无效预热态。
-//   * 本模块是固定 0..15 编号的兼容分配器；18-slice 的动态池调度由
-//     slice_pool_ctrl 承接，不能把这里的两组静态分配视为完整专利调度。
-//   * rst_n 为同步低有效复位；cfg_ready 撤销只暂停推进，不清除 n 或
-//     seen_sample。同沿消费者读取更新前的 bank/ID，随后组合输出才切换组别。
-//===========================================================================
+// 模块：slice_alloc；兼容码域模式的固定A/B ping-pong分配。
+// 职责：在18个物理ID空间中使用0..7与8..15两组；slice16/17不参与该兼容策略。
+// 端口/单位：acq/conv/group为8个物理slice ID，bank为样本奇偶，sample_idx为32位计数。
+// 时钟/复位：clk上升沿、同步低有效rst_n；cfg_ready&&sample_en推进，其他周期保持。
+// 同沿规则：消费者读旧bank/ID，计数NBA生效后组合组别切换；conv[n]=acq[n-1]。
+// 启动：seen_sample在首个推进后置位，计数回绕不重新进入无效预热；仅reset清历史。
+// 适用域：固定8路兼容几何；完整8-of-18动态池由slice_pool_ctrl实现。
+// 来源：timing.build_slice_plan的pingpong/spare_period=None分支及P2接口合同。
 `include "rtl_params.vh"
 
 module slice_alloc (

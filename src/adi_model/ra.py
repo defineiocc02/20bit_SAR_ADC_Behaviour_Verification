@@ -6,7 +6,7 @@
 论文 [00]：RA 是共享的（PPT p.11 "Shared residue amplifier, 40% of ADC
 power consumption"），GMR + OTA 架构、带 auto-zero（PPT p.34-35：消
 offset/漂移、噪声代价 -1.6 dB、ADC2 动态采样带宽 +1.3 dB —— 这两个 dB
-结构**未建模**，见"适用域"）。行为模型取电荷守恒口径：
+电路未复现；下述噪声倍率仅作现象预算，见适用域）。行为模型取电荷守恒口径：
 
     G[n]   = C_active[n] / C_F_true      （v3 审计修正：逐样本，由同一组
                                             物理电容决定，失配由此走增益通路）
@@ -26,15 +26,15 @@ offset/漂移、噪声代价 -1.6 dB、ADC2 动态采样带宽 +1.3 dB —— �
 
 参数来源分级：
     g0 = 32               [披露]（PPT 图标注）
-    ra_v_clip = 3.6 V     [假设]（3.3V 器件 + 余量的工程取值）
+    ra_v_clip             [假设]（由profile指定；不是器件摆幅签核）
     noise_out             [拟合]（由 target_dr_db=94.6 反推，逐字审计：
                           论文正文写 94.2，取 PPT 94.6 因与 NSD 8.8nV 自洽）
 
 适用域声明（勿夸大）：
     * auto-zero：v6.1 起结构化建模 —— ra_autozero=True 时白噪声按折叠因子
       10^(1.6/20) 放大（PPT 披露代价）、1/f 整体移除（auto-zero 的收益面）；
-      RA 自身的静态 offset 仍不单独建模（它被 auto-zero 消除，且残差链路
-      对恒定偏移不敏感 —— 数字增益校准吸收）；
+      RA自身静态offset未作为独立物理源注入；不能据此声称它已被器件消除。
+      全局有效offset可由权重回归估计，仅估gain的旧校准不等于offset校准；
     * 本类提供静态增益/孔径噪声；生产 split 通路的有限带宽、压摆与摆幅
       由 conversion.ConversionEngine 联合求解。信号响应不等于开关噪声传递；
     * 不建模 RA 复用/功耗循环（PPT ~50% idle time）——对输出行为无影响，
@@ -128,7 +128,7 @@ class ResidueAmplifier:
             cfg: 模型配置（Config）。决定 noise_out（[拟合]，由
                  target_dr_db 反推）、auto-zero 倍率（[披露] -1.6 dB）、
                  ADC2 动态带宽倍率（[推导] +1.3 dB）与闪烁白底；
-                 全部系数在此固化。g0=32 [披露]，ra_v_clip=3.6V [假设]。
+                 全部系数在此固化。g0=32为参考锚点；摆幅由当前profile指定。
         Side effects: 计算并固化 self.noise_out 与 self.flicker_white。
         """
         self.cfg = cfg

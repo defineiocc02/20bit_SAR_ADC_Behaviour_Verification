@@ -21,7 +21,7 @@ recursive-include docs *.md
 recursive-include tests *.py
 recursive-include tools *.py
 
-# 参考输出：README 中所有数字与 7 张图的来源，也是 CI 可复现性 job 的基准
+# 历史参考输出；当前首页各图的数据与来源另见 docs/readme 和 docs/paper_comparisons。
 recursive-include tools/results *.json *.png
 
 # CI 工作流与模板一并带上：CI 里跑的命令就是 README 承诺的复现路径，

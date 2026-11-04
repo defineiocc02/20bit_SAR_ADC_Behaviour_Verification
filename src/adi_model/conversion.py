@@ -317,6 +317,13 @@ class ConversionEngine:
                 r.reference_peak_v[i] = max(r.reference_peak_v[i], float(np.max(np.abs(self.rail))))
                 r.reference_event_error_v[i, event] = self.rail
                 previous_time = t
+            # Resolved RDAC outputs can precede RA entry (rtl16: tick 9 -> 10).
+            # Recover the reference during that interval while holding RA/ADC2
+            # state. Otherwise a full conversion silently omits one clock tick.
+            before_amplification = p.quantizer_time_s - previous_time
+            if before_amplification < -1e-12 / cfg.fs:
+                raise ValueError("RDAC load events must not occur after RA entry")
+            self.rail *= np.exp(-max(0.0, before_amplification) / cfg.dyn_tau_ref)
             sensitivity = program.sensitivity[-1]
         else:
             sensitivity = np.zeros(2)

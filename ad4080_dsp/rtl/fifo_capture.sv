@@ -1,40 +1,24 @@
 //=============================================================================
 // @file    fifo_capture.sv
-// @brief   结果 FIFO 四种触发模式的捕获控制
-// @details mode 00 关闭 / 01 立即 / 10 事件后最近 WATERMARK /
-//          11 环形保留全部 16K（事件后再写 WATERMARK 个）。
-//          full_flag 在收满 WATERMARK 时置位、首个读出时清除（手册 Figure 86）；
-//          mode 11 捕获完成时把事件位置自动写回 FIFO_WATERMARK。
-// @project AD4080 数字子系统
-// @author  AD4080 Digital Team
-// @date    2026-10-19
-// @version 3.0.0
+// @brief   四种FIFO捕获模式及捕获后读控制
+// @details mode00禁用并清捕获控制；01立即捕获，10事件后捕获，11环形写并在事件后计数。
+//          full_flag在捕获完成置位、首读清除；模式11写回事件位置。
+// @project SAR20 / AD4080风格数字原型
+// @author  项目维护者（贡献记录见版本库）
+// @date    2026-11-05
+// @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : AD4080 Rev.B p.57-63（Table 27, Figure 86-92）、p.90-91（Table 55-56）
-// 时钟域   : clk 单时钟
-// 复位     : rst_n 异步低有效
-// 延迟     : arm 后按模式计数；读延迟由 result_fifo 决定（1 clk）
-// 吞吐     : 1 sample/clk
-// 可综合性 : 是；组合比较链为关键路径候选
+// 手册依据 : 功能映射见docs/ad4080_traceability.md；不声称器件逐拍等价。
+// 时钟域   : clk；arm/event/rd_en/valid及配置必须同步
+// 复位     : rst_n异步低有效；控制优先级为mode00、arm、正常写读
+// 延迟     : 捕获由有效样本计数；寄存器读口延迟按result_fifo合同
+// 吞吐     : 最多1样本写入及1结果读出/clk
+// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
 // 依赖     : result_fifo
-// 修订记录 :
-//   1.0.0 2026-10-19 初版
-//   2.0.0 2026-10-19 mode 11 四倍数对齐；读侧 captured 门控；event 改名 event_in
-//   3.0.0 2026-10-19 增加 full_flag（首读即清）、mode 00 清内部状态、
-//                    mode 11 事件位置回写 WATERMARK
-//-----------------------------------------------------------------------------
-// 设计说明：
-//   手册约束：
-//     - WATERMARK < 1 夹到 1，> 16384 夹到 16384（已在 ad4080_regs 完成）。
-//     - mode 11 的 WATERMARK 必须是 4 的倍数；非法值向下取整到 4 的倍数
-//       （NOTE(choice): 不报错，只取整；手册只说"必须"，未定义非法行为）。
-//     - 写 FIFO_MODE 即 arm（arm 由 ad4080_regs 的 fifo_arm 提供）。
-//     - mode 11：环形写直到事件，事件后再写 WATERMARK 个；捕获完成后
-//       事件位置写回 FIFO_WATERMARK（p.57）。
-//     - "FIFO_WATERMARK + three conversion clocks" 是主机侧时序要求；
-//       本模型中 valid_in 已是转换完成后的结果，无需实现（NOTE）。
+// 边界     : 当前完整模式合同面向DEPTH=16384；wr_total按16384回绕，其他深度未完成全模式验证。
+//          mode00/arm只清控制，不清存储FIFO；未读数据重arm的会话边界由系统约束。
+//          arm同沿可能仍由旧armed组合产生写；不能将任意运行中arm视为原子冲洗。
 //=============================================================================
-
 `timescale 1ns/1ps
 `default_nettype none
 

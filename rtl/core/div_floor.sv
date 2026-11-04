@@ -1,34 +1,12 @@
-//===========================================================================
-// div_floor.sv -- 有符号 floor 除法（恢复余数法，组内逐位展开）
-//===========================================================================
-// 职责：q=floor(a/d)，a 为 P_W_A 位有符号整数，d 为 P_W_D 位无符号整数。
-// floor 向负无穷取整，不能换成 SystemVerilog 的向零截断 `/` 运算。
-// 负数结果为 -(abs_quotient + (remainder != 0))；正数直接采用幅度商。
-// 最小负数的无符号幅度可由 P_W_A 位保存，不需要有符号 abs 临时变量。
-//
-// 捕获/状态：仅 !run && start 的上升沿捕获 a/d 的幅度、符号与零分母事件。
-//   IDLE(run=0) --start--> RUN(run=1,cnt=0)；
-//   RUN 且 cnt<N_CYC-1：消费 P_STAGES 位、更新余数/商、cnt 加 1；
-//   RUN 且 cnt==N_CYC-1：同沿提交最终商/err，run 清零、done 拉高一拍；
-//   IDLE 无 start：保留 q/err，done 在下一沿回到 0。
-// RUN 期间所有 start 均忽略，包括最后计算沿；最终沿之后才能接受新请求。
-// rst_n 是同步低有效复位，取消运算并清 q/err/busy/done 及内部状态。
-//
-// 延迟：N_CYC=ceil(P_W_A/P_STAGES)，W_PAD=N_CYC*P_STAGES，高位补零。
-// 从接受沿 t 起，done 在 t+N_CYC 沿置位；默认 63/7 为 9 拍，生产 63/5
-// 为 13 拍。每个组内商位按 MSB 优先排列到 qbits[P_STAGES-1-s]。
-// a=1,d=1 必须得到 1；组内位序反转会把默认 7 位组的结果错写为 64。
-//
-// 异常/宽分母：d==0 仍占用固定 N_CYC 拍，提交 q=0、err=1；没有早退。
-// 若 P_W_D>P_W_A，高位非零的 d 大于所有可能幅度，商幅度保持 0；负且
-// 非零的 a 仍通过余数 floor 修正得到 -1。不能把 d 直接截断成窄分母。
-//
-// 综合：每拍级联 P_STAGES 个宽减法/借位测试，以一份减法同时得到比较和
-// 余数更新；mag 固定从最高组取位，每拍左移，避免计数控制的逐级位选 mux。
-// 改 P_STAGES 是组合路径长度与迭代拍数的取舍，调用方须重新验证相位预算。
-// 不做输出饱和或校准溢出检查；由 recon_core/cal_output_stage 负责这些资格。
-// 来源：RTL_ARITHMETIC_CONTRACT.md §3.5；div_wide_den_tb/p2_tb 定向验证。
-//===========================================================================
+// 模块：div_floor；组内逐位展开的固定周期有符号floor除法。
+// 职责：q=floor(a/d)，a为P_W_A位signed，d为P_W_D位unsigned；负非整商向负无穷取整。
+// 时钟/复位：clk上升沿、同步低有效rst_n；reset取消运算并清q/err/busy/done。
+// 接受：仅!run&&start捕获操作数，RUN中start包括最终计算沿均忽略；完成后才能接新请求。
+// 周期：N_CYC=ceil(P_W_A/P_STAGES)，接受沿t后t+N_CYC提交q/err并脉冲done。
+// 异常：d=0仍占固定周期，输出q=0/err=1；宽分母高位不截丢，负非零小分子仍得-1。
+// 精度：无符号幅度可容纳最小负数；P_W_A位余数按已消费前缀界限保存，组内MSB优先。
+// 适用域：P_W_A>=2、P_W_D>=1、P_STAGES>=1；不做最终输出饱和或校准溢出资格检查。
+// 来源：RTL_ARITHMETIC_CONTRACT.md §3.5；P_STAGES为路径长度/迭代周期的工程参数。
 `include "rtl_params.vh"
 
 module div_floor #(

@@ -140,7 +140,7 @@ REQUIRED_RECORDS: frozenset[str] = frozenset(
         "s13_summary.Ron 局部非线性与独立 RC 解一致",
         "s13_summary.rho 扫描状态与实测网格一致（未跨越不产生规格）",
         # 电荷口径闭合 —— 分段 DAC 物理求值 = 独立节点方程的唯一机器证据。
-        "s12_summary.电荷口径闭合：闭式解 = 节点矩阵求解器（fV 级）",
+        "s12_summary.电荷口径闭合：闭式解 = 节点矩阵求解器（等效输出误差 <1 pV）",
         "s12_summary.电荷口径闭合：evaluate_physical = 独立节点方程（pV 级）",
         "s12_summary.电荷口径闭合：输入=输入等效DAC电压 -> 残差为零（nV 级）",
         "s12_summary.DEM 对 C_C 锯齿无效（结构性质，DEM 开/关偏差 ≤5%）",

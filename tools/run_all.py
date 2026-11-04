@@ -251,10 +251,10 @@ _s12_pass = {
     / max(_bs_off, _bs_on, 1e-9)
     < 0.05,
     "分段拓扑 SNDR 与 unary 同量级": all(85 < r["SNDR_dB"] < 100 for r in R["s12"]["topologies"]),
-    "电荷口径闭合：闭式解 = 节点矩阵求解器（fV 级）": R["s12"]["charge_closure"][
-        "closedform_vs_nodalmatrix_max_V"
+    "电荷口径闭合：闭式解 = 节点矩阵求解器（等效输出误差 <1 pV）": R["s12"]["charge_closure"][
+        "closedform_vs_nodalmatrix_equivalent_max_V"
     ]
-    < 1e-15,
+    < 1e-12,
     "电荷口径闭合：evaluate_physical = 独立节点方程（pV 级）": R["s12"]["charge_closure"][
         "eval_vs_nodal_max_V"
     ]

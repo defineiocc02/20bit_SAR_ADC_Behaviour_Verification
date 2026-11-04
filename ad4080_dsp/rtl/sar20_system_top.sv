@@ -1,6 +1,23 @@
-// Optional project-level assembly: actual SAR digital core + standalone DSP.
-// The analog macro still supplies synchronous comparator/overflow signals.
-// Both instances share clk; reset release must be synchronized externally.
+//=============================================================================
+// @file    sar20_system_top.sv
+// @brief   同一时钟下组合实际SAR核与DSP接入层
+// @details 显式连接SAR退休码、ID、flags、模拟sticky与DSP封装；SAR原始结果和校准观察口另行接出。
+//          sar_result_analog_bad只作观察，DSP当前仍按模拟sticky停流合同处理。
+// @project SAR20 / AD4080风格数字原型
+// @author  项目维护者（贡献记录见版本库）
+// @date    2026-11-05
+// @version 由Git内容版本追溯，不单独声明器件版本
+//-----------------------------------------------------------------------------
+// 手册依据 : 无；本项目接口合同。
+// 时钟域   : clk；模拟比较器/越界与外部控制必须满足各子核同步合同
+// 复位     : rst_n外部异步断言、同步释放；需让同步复位的SAR实际采到复位沿
+// 延迟     : 由SAR和DSP子模块决定，不提供额外固定延迟
+// 吞吐     : SAR为16tick帧预算；DSP各输出口另有吞吐限制
+// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
+// 依赖     : sar20_digital_core、sar20_ad4080_top
+// 边界     : 本文件是项目组合接口，不提供模拟宏、DDR PHY或目标工艺签核。
+//          P_CAL_OBSERVE决定校准观察开关；观察口不等同外部传输协议。
+//=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
 

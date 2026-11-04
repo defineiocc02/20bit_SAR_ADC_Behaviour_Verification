@@ -22,6 +22,8 @@ REPO = Path(__file__).resolve().parents[1]
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     benches = {
+        "cnv_ctrl_contract_tb": "CNV_CTRL_CONTRACT_COMPLETE",
+        "spi_abort_contract_tb": "SPI_ABORT_CONTRACT_COMPLETE",
         "sar_trial_tb": "SAR_TRIAL_COMPLETE",
         "calibration_recovery_tb": "CALIBRATION_RECOVERY_COMPLETE",
         "calibration_fit_tb": "CALIBRATION_FIT_COMPLETE",
@@ -152,6 +154,8 @@ def main() -> None:
             if top == "tree_mapping_tb":
                 args += ["sim/tb/tree_mapping_dut.sv"]
             if top in {
+                "cnv_ctrl_contract_tb",
+                "spi_abort_contract_tb",
                 "sar20_dsp_integration_tb",
                 "sar20_system_top_tb",
                 "two_point_direction_tb",

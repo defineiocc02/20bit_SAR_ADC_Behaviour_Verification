@@ -1,32 +1,16 @@
-// sar20_digital_core: shared configuration and physical-weight calibration.
-// P_STRUCTURAL=1: dual SAR/shared flash/18-slice macro controls and previous-
-// residue context (ADR0018). Comparator data must be synchronous with clk.
-// P_STRUCTURAL=0: legacy externally supplied coarse/fine codes, phase8/14
-// capture (ADR0017). Explicit compatibility profile for old oracle vectors.
-// Engineering contract (all sequential resets are synchronous, active low):
-//   cfg bus, macro comparators and ready flags share clk; no CDC is inserted.
-//   accepted cfg write = rst_n && cfg_bus_ok at posedge; reads are
-//   combinational, with no read handshake. Reset priority suppresses all writes.
-//   cfg_validate is a commit request, not an automatic retry or load-complete bit.
-//   A configuration epoch locks every coefficient and control until clear.
-//   clear aborts controller/reconstruction state and clears the loaded bitmap;
-//   weight data and row totals survive clear, so every unit must be reloaded.
-//   Coefficient estimation remains off-chip. This core applies loaded physical
-//   weights; it does not implement an on-chip LMS/RLS learning engine.
-//   Structural fine conversion uses the previous residue's frozen context;
-//   live DEM/slice state must never replace that context in u_recon.
-//   Error readback priority: bus > calibration > weight rejection > controller.
-//   dout_flags describe the completed transaction; status_word also has sticky
-//   events. A held previous dout on error is meaningful only with those flags.
-// Implementation / timing contract:
-//   P_STRUCTURAL is an elaboration parameter; unused compatibility logic can
-//   be trimmed. No runtime profile mux or generated clock is introduced here.
-//   Large physical-weight buses and combinational reduce/MAC paths dominate
-//   implementation cost. Comments/formatting do not reduce gates or route delay.
-//   New pipelines require context/ID/error alignment and revalidation of the
-//   fixed 16-clock frame. See synth/FPGA_SYNTHESIS_AND_STA.md for measured scope.
-// Reconstruction latency: ceil(63/P_RECON_STAGES)+2 complete clock periods
-// after accepted start (11 for the default P_RECON_STAGES=7).
+// 模块：sar20_digital_core；配置、结构控制、物理权重校正与观测的完整数字核。
+// 接口/单位：比较器与配置总线同属clk；W为48位unsigned Q30，电压为64位signed Q32，输出20位offset-binary。
+// 时钟/复位：clk上升沿、同步低有效rst_n；无自动CDC；cfg_clear撤销epoch并取消在途转换。
+// 配置：1278物理权重及三标量完整、min<max、dither互斥后validate；ACTIVE期间拒写。
+// 控制写：0x1018的四位经三沿等待后原子安装；冲突不自动重试，clear取消未提交序列。
+// 模式：P_STRUCTURAL为精化参数；默认双9-bit seeded SAR/共享3-bit Flash/18slice池/前代12-bit fine。
+// 兼容模式：核外coarse/fine码在phase8/14捕获；两模式共享配置与定点重构，不支持运行时切换。
+// 周期：16tick帧；重构延迟ceil(63/P_RECON_STAGES)+2，P5/P6/P7为15/13/11完整拍。
+// 结果：dout_valid是完成事件，必须同时消费ID/flags/dout_analog_bad；错误可能保留上一合法字。
+// 观测：P_CAL_OBSERVE启用748位同接受沿packet，无背压或片外传输保证；元数据来自冻结context。
+// 错误优先级：bus>calibration>weight rejection>profile controller；status与本次flags的时刻/粘滞语义不同。
+// 实现边界：片外求系数、片上应用；不包含在线学习器、模拟宏、CDC或ASIC/板级时序签核。
+// 来源：RTL_ARITHMETIC_CONTRACT.md、ADR0014/0017/0018、RTL_ENGINEERING_GUIDE.md。
 `include "rtl_params.vh"
 
 module sar20_digital_core #(
@@ -70,11 +54,8 @@ module sar20_digital_core #(
     input  logic                 adc2_rdy,
     input  logic                 ra_sat,
     input  logic                 rdac_ovf,
-    // ⚠️ 契约修正（2026-09-18，L3 测试发现）：`analog_ovf` 的构成里含模型的 `adc2_over`
-    // （ADC2 输入电压落在 [`adc2_v_min`,`adc2_v_max`] **严格外侧**，见 `adi_model/adc2.py`
-    // 的 `over = (v < vmin) | (v > vmax)`）。它**不可能从 `adc2_code` 反推** ——
-    // 码到轨既可能"恰好在轨"（模型不算 over）也可能"越轨被夹住"（算 over）。
-    // 所以它是与 `ra_sat`/`rdac_ovf` 同级的**模拟域回读输入**，必须由外部给出。
+    // adc2_over表示真实后端电压严格超出配置区间；到轨码不能区分恰好到轨与越轨饱和。
+    // 该标志与ra_sat/rdac_ovf均由外部模拟宏提供，不能由adc2_code反推。
     input  logic                 adc2_over,
     input  logic signed [V_BITS-1:0] inj_q,     // 本样本已知注入，Q32
     // ---- 数字输出到模拟域 ----
@@ -103,8 +84,7 @@ module sar20_digital_core #(
   //=========================================================================
   // 0) 精化期一致性断言（零成本：只做常量比较，不生成逻辑）
   //=========================================================================
-  // 目的：让"头文件被人手篡改 / 换配置时忘了重跑导出器 / TB 与 RTL 用了不同的
-  //      参数集"这三类事故在**精化期**就炸掉，而不是在仿真里表现为某些路径恒 0。
+  // 精化期拒绝头文件、端口几何或实例参数与冻结数字合同不一致的配置。
   initial begin
     if (P_RECON_STAGES < 5 || P_RECON_STAGES > 63)
       $fatal(1, "sar20_digital_core: divider throughput exceeds 16-tick frame budget");
@@ -439,7 +419,7 @@ module sar20_digital_core #(
   ) u_dem (
       .clk    (clk),
       .rst_n  (epoch_rst_n),
-      .dem_en (c_dem_en),                 // 头文件复位默认 0（故意的，见模块头）
+      .dem_en (c_dem_en),                 // 参数头复位默认0；运行时配置控制
       .load   (1'b0),                     // 初值恒 0，与模型一致
       .init_a (9'd0),
       .init_b (9'd0),
@@ -721,7 +701,7 @@ module sar20_digital_core #(
   // 捕获模拟异常。接受重构时进入独立粘滞状态。
   // 注意三者的来源不同，不能混：
   //   rdac_ovf  / ra_sat  / adc2_over  <- 模拟域回读（输入端口）
-  //   rc_adc2_ovf                      <- `adc2_dec` 的**寄存器溢出**标志（另一回事，结构性不可达）
+  //   rc_adc2_ovf                      <- ADC2数字译码范围溢出；合法量程下不可达
   assign analog_ovf_raw = (launch_recon && (P_STRUCTURAL ? structural_analog_bad : analog_sample)) | rc_adc2_ovf;
 
   status_regs u_status (

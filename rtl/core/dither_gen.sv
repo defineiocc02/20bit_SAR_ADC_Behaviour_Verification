@@ -1,26 +1,11 @@
-// Integer sampling dither: same PMF as round(uniform(-D,D)) in sampler.py.
-// Endpoints have half the probability of an interior integer. This is not a
-// bit-exact replacement for PCG64; the PRNG sequence is an RTL design choice.
-//
-// Right-shift Galois LFSR, period 2^32-1 for every nonzero seed. The reduction
-// polynomial is verified independently in tests/unit/test_rtl_review_regressions.py.
-// IMPORTANT: shift in ZERO before XOR. Rotating bit0 into bit31 cancels the
-// feedback MSB and makes raw[31:24] collapse to zero (review R1, 2026-09-19).
-//
-// Advance eight LFSR bits per draw to avoid overlapping 8-bit windows.
-// gcd(8, 2^32-1)=1, so decimation preserves the full state period.
-// en=0 holds state. Rejected draws have valid=0 and must not be consumed.
-// D=0 produces zero. Supported D is 0..63; a zero seed is prohibited.
-//
-// 工程边界
-//   当前 LFSR 状态组合生成 raw/valid/dither_code；en 只推进状态，不门控 valid。
-//   调用方必须在需要抽样且 valid=1 时才冻结 dither_code；无效抽样仍需推进
-//   LFSR 后重新抽样，不能把 invalid 的数值当成零或停在同一个被拒绝状态。
-//   rst_n 为同步低有效复位，优先于 en；没有运行时 seed 重载接口。
-//   raw/reduced 为无符号 8 位；rounded 为 9 位；centered 是有符号 10 位，
-//   合法抽样映射到 [-D,+D]，再截为接口的 8 位二补数。无浮点或高斯噪声模型。
-//   上述 PMF 指理想均匀 raw 下的整数映射；实际 LFSR 序列的分布与相关性
-//   仍需统计回归，不应据此宣称与软件随机数序列或模拟噪声逐项等价。
+// 模块：dither_gen；确定种子的离散整数dither源。
+// 职责：32位非零种子的右移Galois LFSR每次展开8步，将均匀raw映射到[-D,+D]整数。
+// 端口/单位：dither_code为8位有符号码，valid为拒绝采样资格；不输出模拟噪声电压。
+// 时钟/复位：clk上升沿、同步低有效rst_n；en推进状态，en=0保持，valid不由en门控。
+// 分布：端点概率为内部整数一半；LIMIT拒绝尾端余数，不能将invalid抽样当作正常零值。
+// 适用域：D=0..63、SEED非零；默认D2的LIMIT=256，无拒绝区；无运行时seed重载接口。
+// 边界：LFSR序列为工程选择，PMF合同不声称与PCG64逐项等价；相关性须独立统计验证。
+// 来源：sampler.py整数dither分布、RTL随机源接口合同。
 `include "rtl_params.vh"
 
 module dither_gen #(

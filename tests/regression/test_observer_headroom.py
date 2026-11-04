@@ -158,15 +158,32 @@ class TestSubWeightInducedINL:
     """The sub-node parasitic INL must match its analytic prediction."""
 
     def test_prediction_matches_measurement(self, cfg):
-        from adi_model.experiments import stage13_dynamics
+        from adi_model.experiments import sub_weight_inl_probe
 
-        out = stage13_dynamics(cfg, n=2**12, n_lvl=33)["sub_weight_inl"]
+        out = sub_weight_inl_probe(cfg)
+        assert out["dem_states_averaged"] == 512
         assert out["sub_code_modulated"] is True
         assert out["ratio"] == pytest.approx(1.0, abs=0.25)
 
     def test_legacy_reading_does_not_excite_the_sub_dac(self):
-        from adi_model.experiments import stage13_dynamics
+        from adi_model.experiments import sub_weight_inl_probe
 
-        out = stage13_dynamics(Config.legacy_v61(), n=2**12, n_lvl=33)["sub_weight_inl"]
+        out = sub_weight_inl_probe(Config.legacy_v61())
+        assert out["dem_states_averaged"] == 512
         assert out["sub_code_modulated"] is False
         assert out["measured_dac_only_INL_max_LSB20"] == pytest.approx(0.0, abs=1e-9)
+
+
+@pytest.mark.parametrize("constructor", [Config, Config.legacy_v61])
+def test_sub_weight_probe_has_no_unrelated_pipeline_or_rho_work(constructor, monkeypatch):
+    """A focused pure-DAC check must not launch the full engineering sweep."""
+    from adi_model import experiments, sim_split
+
+    def reject_unrelated_work(*args, **kwargs):
+        raise AssertionError("sub-weight probe must not start an ADC/rho scan")
+
+    monkeypatch.setattr(experiments, "stage13_dynamics", reject_unrelated_work)
+    monkeypatch.setattr(sim_split, "run_sim_split", reject_unrelated_work)
+    result = experiments.sub_weight_inl_probe(constructor())
+    assert result["dem_states_averaged"] == 512
+    assert "measured_chain_base_row_LSB20" not in result

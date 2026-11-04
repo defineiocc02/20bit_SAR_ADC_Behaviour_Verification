@@ -1,49 +1,11 @@
-//===========================================================================
-// ctrl_fsm.sv -- 相位节拍生成 + 流水控制脉冲
-//===========================================================================
-// 职责一句话
-//   产生 16 拍一循环的相位节拍（one-hot 与二进制各一份），并在指定相位输出
-//   sample_en / sadc_latch / dem_advance / rdac_load / adc2_latch / recon_start
-//   六个单拍脉冲，同时维护样本序号。
-//   本模块**不做**任何数据通路运算，只是一个节拍源。
-//   这是兼容模式的节拍源；结构模式使用 analog_phase_ctrl/sar_structural_ctrl，
-//   有前代 residue 上下文与逐次比较握手，不能把本模块的相位表套到结构模式。
-//
-// 来源
-//   docs/rtl/P2_INTERFACE.md §7 的相位分配表（PHASES = 16，RTL 设计选择 [假设]）：
-//       0     新样本；sample_en、slice_alloc 推进
-//       0-6   采集/跟踪（acq_phase 为高）
-//       7     采样沿 t1（无脉冲输出）
-//       8     SADC 判决编码（sadc_latch）
-//       9     保留
-//       10    DEM 状态推进 + k 合并（dem_advance）
-//       11    RDAC 置位（rdac_load）
-//       12-14 RA 建立 + ADC2 采样量化；14 为 adc2_latch
-//       15    后端译码 + 定点重构（recon_start）
-//
-// 单位契约
-//   无量纲。phase ∈ [0, P_PHASES)；sample_idx 为已发出的 sample_en 脉冲数。
-//
-// 参数来源分级
-//   P_PHASES 默认取自 rtl_params.vh 的 PHASES（[假设] —— RTL 设计选择，不是模型参数）。
-//   允许重例化是为了让 L2/L3 TB 能换相位预算验证"固定延迟"口径。
-//
-// 契约与不变量 / 适用域
-//   * **cfg_ready = 0 时**：phase 恒 0，**所有脉冲恒 0**（含 sample_en）——
-//     即"未配置时不产生任何转换节拍"。这是 §7 明文要求的不变量。
-//   * `run = 0`（已配置但未启动）时同样回到 phase 0 且不发脉冲；重新拉高 run 会从
-//     相位 0 重新开始一个样本周期。这属适用域内的行为，如实登记。
-//   * `sample_idx` 只在相位 0 且推进使能时递增（一个样本恰好加 1）。
-//   * 脉冲宽度恰为 1 拍：相位寄存器的每个取值每 16 拍出现一次，脉冲是相位的
-//     纯组合译码，故不会出现"宽脉冲"。
-//   * 本模块与 slice_alloc 各自维护一个 sample_idx，两者在相位 0 同拍递增，
-//     因此逐拍相等（由 TB 断言）。
-//   * rst_n 为同步低有效复位。cfg_ready/run 撤销会同步把相位置 0，并以 adv
-//     组合门控立即抑制脉冲；sample_idx 仅由 rst_n 清零，停机或未配置时保持。
-//   * 所有脉冲按上升沿到来前的 ph 解码。相位 0 上升沿同时递增 sample_idx
-//     并将 ph 推进到 1；同沿下游寄存器读取的是旧 sample_idx/旧 ph。
-//   * 组合译码只用于数字控制。外部模拟开关必须使用结构模式注册控制边界。
-//===========================================================================
+// 模块：ctrl_fsm；兼容码域模式的固定相位节拍。
+// 职责：输出one-hot/二进制相位及sample、SADC、DEM、RDAC、ADC2、recon六个单拍条件。
+// 端口/单位：phase为tick编号；sample_idx为已发出的sample_en计数；不执行数据算术。
+// 时钟/复位：clk上升沿、同步低有效rst_n；cfg_ready/run撤销立即抑制组合脉冲并于下一沿归相位0。
+// 相位合同：sample0、SADC8、DEM10、RDAC11、ADC2 14、recon15；acquisition区间0..6。
+// 同沿规则：消费者读取旧ph/sample_idx；sample_idx只由reset清零，停机时保持。
+// 适用域：P_PHASES>=16，默认16；结构模式使用独立analog_phase_ctrl/sar_structural_ctrl。
+// 来源：P2_INTERFACE.md §7、ADR0017；本模块组合译码只用于数字控制。
 `include "rtl_params.vh"
 
 module ctrl_fsm #(

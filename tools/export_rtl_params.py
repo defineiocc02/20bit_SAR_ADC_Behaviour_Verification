@@ -30,12 +30,15 @@ r"""把 ``Config`` 导出为 RTL 参数包、定点寄存器镜像与黄金激�
 
 参数来源分级
 ------------
-* Config **字段**：直接读 :func:`adi_model.provenance.annotate_config`，本脚本不自行判断等级。
+* Config **字段**和直接转录项：读取 :func:`adi_model.provenance.annotate_config` 的
+  ``effective_grade``；被覆盖的披露/推导值不能继续继承原来源，原始等级另记 ``declared_grade``。
 * **派生量**（如 ``dac_levels``、``units_per_lsb1``）：按**最弱输入**传播 ——
   输入里只要有一个 ``[假设]``，派生量就是 ``[假设]``。排序
   ``DISCLOSED < DERIVED < FITTED < ASSUMED < RESEARCH_EXTENSION``。
+  算术运算本身至少为 ``DERIVED``；每项的 ``input_fields`` 明列实际依赖。
   这条规则是机械的、可复核的，目的是让"从假设推出来的数字"不可能伪装成披露值。
-* **RTL 专有量**（如 ``PHASES``）：标 ``[假设]``，并注明它是 RTL 设计选择而非模型参数。
+* **RTL 实现选择**（定点格式、LCG、编码与 ``PHASES``）：至少标 ``[假设]``，
+  不把仓库采用的格式/PRNG当作论文直接披露；更弱的输入等级仍然传播。
 
 契约与不变量 / 适用域
 --------------------
@@ -171,20 +174,20 @@ def repo_identity(root: Path) -> dict[str, str]:
         always see that provenance is missing.
     """
 
-    def _run(args: list[str]) -> str:
+    def _run(args: list[str]) -> str | None:
         try:
             out = subprocess.run(
                 args, cwd=root, capture_output=True, text=True, check=True, timeout=20
             )
         except (OSError, subprocess.SubprocessError):
-            return "unknown"
-        return out.stdout.strip() or "unknown"
+            return None
+        return out.stdout.strip()
 
     dirty = _run(["git", "status", "--porcelain"])
     return {
-        "commit": _run(["git", "rev-parse", "HEAD"]),
-        "describe": _run(["git", "describe", "--tags", "--always"]),
-        "dirty": "unknown" if dirty == "unknown" else ("1" if dirty else "0"),
+        "commit": _run(["git", "rev-parse", "HEAD"]) or "unknown",
+        "describe": _run(["git", "describe", "--tags", "--always"]) or "unknown",
+        "dirty": "unknown" if dirty is None else ("1" if dirty else "0"),
     }
 
 
@@ -294,7 +297,8 @@ def rtl_localparams(cfg: Config, fmt: FixedPointFormat, phases: int) -> list[dic
 
     Returns:
         One entry per constant: ``name``, ``value``, ``width``, ``group``, ``grade``,
-        ``source`` and an optional ``comment``.
+        ``source`` and explicit ``input_fields``. Direct fields inherit the
+        current value's effective grade; arithmetic cannot outrank its inputs.
 
     Raises:
         ValueError: If a value does not fit the declared width, or if
@@ -411,6 +415,56 @@ def rtl_localparams(cfg: Config, fmt: FixedPointFormat, phases: int) -> list[dic
         ("PHASES", int(phases), 6, "rtl_choice", "RTL 设计选择，见计划 §4.2"),
     ]
 
+    direct_fields = {
+        "N_SLICES": "n_slices",
+        "N_ACTIVE": "n_active",
+        "N_UNIT_MAIN": "dac_n_main",
+        "N_UNIT_SUB": "dac_n_sub",
+        "DAC_COMPLETE_RANGE": "dac_complete_range",
+        "B1": "b1",
+        "N_UNITS_HEADROOM": "n_units_headroom",
+        "ADC2_BITS": "adc2_n_bits",
+        "DEM_SUB_ROLL": "dac_n_sub",
+        "DEM_ENABLE": "dem_enable",
+        "DEM_BRIDGE_ENABLE": "dem_bridge_enable",
+        "DITHER_DISCRETE": "dither_discrete",
+    }
+    signal_inputs = ("n_active", "n_unit_per_slice", "n_units_headroom")
+    grid_inputs = (*signal_inputs, "b1")
+    derived_fields = {
+        "N_UNIT_TOTAL": ("dac_n_main", "dac_n_sub"),
+        "DAC_LEVELS": (
+            ("dac_arch", "n_active", "n_unit_per_slice")
+            if cfg.dac_arch == "unary"
+            else ("dac_arch", "dac_n_main", "dac_complete_range", "dac_n_sub")
+        ),
+        "STAGE1_LEVELS": ("b1",),
+        "N_UNITS_SIG": signal_inputs,
+        "UNITS_PER_LSB1": grid_inputs,
+        "UNITS_PER_D1": grid_inputs,
+        "K0": ("n_units_headroom",),
+        "DEM_ROT_WIDTH": ("dac_n_main",),
+        "DEM_ROT_HEIGHT": ("dac_n_main",),
+        "DITHER_UNITS_TOTAL": ("dither_mode", "dither_units_range"),
+        "DITHER_UNITS_RANGE": ("dither_units_range",),
+    }
+    # These values are implementation choices rather than published ADC facts.
+    # Qualified names identify non-Config inputs in the exported dependency list.
+    rtl_choices = {
+        "W_FRAC": ("format.weight_fraction_bits",),
+        "W_BITS": ("format.coefficient_bits",),
+        "V_FRAC": ("format.voltage_fraction_bits",),
+        "V_BITS": ("format.voltage_bits",),
+        "ACC_BITS": ("format.accumulator_bits",),
+        "OUT_BITS": ("format.output_bits",),
+        "DEM_STATES": ("mapper.N_DEM_STATES",),
+        "DEM_LCG_A": ("mapper._LCG_A",),
+        "DEM_LCG_A_MOD": ("mapper._LCG_A", "mapper.N_DEM_STATES"),
+        "DITHER_MODE": ("dither_mode",),
+        "DITHER_SPLIT_IS_SUB": ("dither_split_bank",),
+        "PHASES": ("phases",),
+    }
+    annotated = annotate_config(cfg)
     out: list[dict[str, Any]] = []
     for name, value, width, group, source in raw:
         # raw 的全部 value 在构造处即为 int（见 raw 的类型标注：fmt.* 由
@@ -419,7 +473,24 @@ def rtl_localparams(cfg: Config, fmt: FixedPointFormat, phases: int) -> list[dic
         # 若将来引入浮点项，须在此恢复有限性校验。
         if value < 0 or value >= 1 << width:
             raise ValueError(f"{name}={value} does not fit in {width} bits")
-        grade = SourceGrade.ASSUMED if group == "rtl_choice" else SourceGrade.DERIVED
+        if name in direct_fields:
+            inputs = (direct_fields[name],)
+            grade = annotated[inputs[0]].effective_grade
+        elif name in derived_fields:
+            inputs = derived_fields[name]
+            grade = weakest_grade(
+                [SourceGrade.DERIVED, *(annotated[field].effective_grade for field in inputs)]
+            )
+        elif name in rtl_choices:
+            inputs = rtl_choices[name]
+            grade = weakest_grade(
+                [
+                    SourceGrade.ASSUMED,
+                    *(annotated[field].effective_grade for field in inputs if field in annotated),
+                ]
+            )
+        else:
+            raise ValueError(f"{name}: localparam provenance inputs are not registered")
         out.append(
             {
                 "name": name,
@@ -428,6 +499,7 @@ def rtl_localparams(cfg: Config, fmt: FixedPointFormat, phases: int) -> list[dic
                 "group": group,
                 "grade": grade.value,
                 "source": source,
+                "input_fields": list(inputs),
             }
         )
     return out
@@ -443,8 +515,46 @@ def analog_references(cfg: Config) -> list[dict[str, Any]]:
         One entry per quantity: ``name``, ``exact`` rational, ``unit``, ``input_fields``
         (the Config fields it rests on) and the propagated ``grade``.
     """
-    from adi_model.provenance import grade_of
-
+    step_inputs = (
+        ("dac_arch", "v_fs", "n_active", "n_unit_per_slice", "n_units_headroom")
+        if cfg.dac_arch == "unary"
+        else ("dac_arch", "v_fs", "dac_n_main", "dac_n_sub")
+    )
+    if cfg.dither_mode != "sampling":
+        alpha_inputs = ("dither_mode",)
+    elif cfg.dac_arch == "unary":
+        alpha_inputs = (
+            "dither_mode",
+            "dither_units_range",
+            "dac_arch",
+            "n_active",
+            "n_unit_per_slice",
+        )
+    else:
+        # Follow the implemented charge formula, including dac_unit_cap inputs;
+        # do not silently drop fields because common scale factors cancel.
+        alpha_inputs = (
+            "dither_mode",
+            "dither_units_range",
+            "dac_arch",
+            "dither_split_bank",
+            "dac_n_main",
+            "dac_n_sub",
+            "dac_parasitic_ratio",
+            "c_total0",
+            "cap_scale",
+        )
+    if not cfg.ktc_enable:
+        kappa_inputs = beta_inputs = ("ktc_enable",)
+    else:
+        kappa_inputs = (
+            ("ktc_enable", "ktc_kappa", "ktc_gain_n", "g0")
+            if cfg.ktc_kappa is None
+            else ("ktc_enable", "ktc_kappa")
+        )
+        beta_inputs = tuple(
+            dict.fromkeys(("ktc_enable", "ktc_beta_error", *kappa_inputs, "ktc_gain_n", "g0"))
+        )
     items: list[tuple[str, float, str, tuple[str, ...]]] = [
         ("FS", float(cfg.fs), "Hz", ("fs",)),
         ("V_FS", float(cfg.v_fs), "V", ("v_fs",)),
@@ -455,36 +565,43 @@ def analog_references(cfg: Config) -> list[dict[str, Any]]:
             "NOMINAL_RDAC_STEP",
             float(cfg.nominal_rdac_step),
             "V",
-            ("v_fs", "dac_n_main", "dac_n_sub"),
+            step_inputs,
         ),
         ("ADC2_STEP", float(cfg.delta2), "V", ("adc2_v_min", "adc2_v_max", "adc2_n_bits")),
         ("G0", float(cfg.g0), "1", ("g0",)),
-        ("KAPPA_EFF", float(cfg.kappa_eff()), "1", ("ktc_kappa", "ktc_gain_n", "g0")),
+        ("KAPPA_EFF", float(cfg.kappa_eff()), "1", kappa_inputs),
         (
             "BETA_EFF",
             float(cfg.beta_eff()),
             "1",
-            ("ktc_beta_error", "ktc_kappa", "ktc_gain_n", "g0"),
+            beta_inputs,
         ),
         (
             "DITHER_ALPHA",
             float(cfg.dither_alpha),
             "1",
-            ("dither_mode", "dither_units_range", "dither_split_bank"),
+            alpha_inputs,
         ),
         ("RA_V_CLIP", float(cfg.ra_v_clip), "V", ("ra_v_clip",)),
-        ("C_ACTIVE_NOMINAL", float(cfg.c_active_nominal()), "F", ("c_total0", "cap_scale")),
+        (
+            "C_ACTIVE_NOMINAL",
+            float(cfg.c_active_nominal()),
+            "F",
+            ("c_total0", "cap_scale", "n_active", "n_unit_per_slice", "n_units_headroom"),
+        ),
     ]
 
+    annotated = annotate_config(cfg)
+    direct_names = {"FS", "V_FS", "N_BITS_TARGET", "G0", "RA_V_CLIP"}
     out: list[dict[str, Any]] = []
     for name, value, unit, inputs in items:
         grades = []
         sources = []
         for field in inputs:
-            grade, source = grade_of(field)
-            grades.append(grade)
-            sources.append(f"{field}: {source}")
-        grade = weakest_grade(grades)
+            graded = annotated[field]
+            grades.append(graded.effective_grade)
+            sources.append(f"{field}: {graded.source}")
+        grade = weakest_grade(grades if name in direct_names else [SourceGrade.DERIVED, *grades])
         out.append(
             {
                 "name": name,
@@ -493,8 +610,13 @@ def analog_references(cfg: Config) -> list[dict[str, Any]]:
                 "grade": grade.value,
                 "grade_label": grade.label_zh,
                 "inputs": list(inputs),
+                "input_fields": list(inputs),
                 "sources": sources,
-                "note": "derived: weakest-input propagation (see exporter docstring)",
+                "note": (
+                    "direct Config value: effective grade"
+                    if name in direct_names
+                    else "derived: weakest effective input grade (see exporter docstring)"
+                ),
             }
         )
     return out
@@ -513,8 +635,10 @@ def config_field_entries(cfg: Config) -> dict[str, Any]:
         cfg: Resolved configuration.
 
     Returns:
-        Mapping ``field -> {"value", "grade", "grade_label", "quotable", "source",
-        "unit", "note", "overridden"}``.
+        Mapping ``field -> {"value", "grade", "declared_grade", "grade_label",
+        "quotable", "source", "unit", "note", "overridden"}``. ``grade`` and
+        ``quotable`` describe the current value; ``declared_grade`` retains the
+        original field declaration when an override demotes its authority.
     """
     annotated = annotate_config(cfg)
     values = cfg.to_dict()
@@ -523,9 +647,10 @@ def config_field_entries(cfg: Config) -> dict[str, Any]:
         graded = annotated[name]
         out[name] = {
             "value": values[name],
-            "grade": graded.grade.value,
-            "grade_label": graded.grade.label_zh,
-            "quotable": bool(graded.grade.quotable),
+            "grade": graded.effective_grade.value,
+            "declared_grade": graded.grade.value,
+            "grade_label": graded.effective_grade.label_zh,
+            "quotable": bool(graded.effective_grade.quotable),
             "source": graded.source,
             "unit": graded.unit,
             "note": graded.note,

@@ -1,47 +1,11 @@
-//===========================================================================
-// adc2_dec.sv -- 原始后端码 -> Q32 bin center（唯一的运行时舍入）
-//===========================================================================
-// 职责一句话
-//   把 ADC2 的原始整数码变成**码仓中心**电压（归一化 V/Vfs，Q32 有符号），
-//   并按 ties-to-even 舍入。纯组合。
-//   本模块**不**做后端偏移扣除（那是 recon_core 里 (F - O) 的事）。
-//
-// 来源
-//   docs/rtl/RTL_ARITHMETIC_CONTRACT.md §3.1（唯一运行时舍入）：
-//       n     = (2*adc2_code + 1) * (adc2_max_q - adc2_min_q)
-//       fine  = adc2_min_q + round_half_even_shift(n, adc2_n_bits + 1)
-//   既有判据：tests/unit/test_fixed_point.py::test_signed_ties_to_even
-//       （除数 2 上固定了 -7->-4, -5->-2, -3->-2, -1->0, 1->0, 3->2, 5->2, 7->4）
-//
-// round_half_even_shift 的硬件形态（契约 §3.1 注记的落地）
-//   q    = $signed(x) >>> k        // 算术右移 == floor(x / 2^k)
-//   r    = x[k-1:0]                // 二补数低 k 位 == x mod 2^k == 余数
-//                                  //   对负数同样成立（这正是"向 -inf"的体现）
-//   half = 2^(k-1)
-//   res  = q + ((r > half) || ((r == half) && q[0]))
-//   除数 2^k 是 2 的幂 -> 硬件上只有移位 + 一组比较器，**无除法器**。
-//
-// 单位契约
-//   电压一律为"归一化到 Vfs"的 Q32 有符号整数；本模块不做任何浮点运算，
-//   也不出现伏特值（契约 §1.1 的措辞修正：禁止的是浮点伏特**运算**，
-//   不是禁止用定点编码承载模拟观测量）。
-//
-// 参数来源分级
-//   P_ADC2_BITS 默认取自 rtl_params.vh 的 ADC2_BITS（[披露]，ADR 0014）。
-//   模块参数存在的唯一理由是让 L2 的全码 oracle 能用另一套尺寸重例化
-//   （见 docs/rtl/P2_INTERFACE.md §12）；它不是第二份参数表。
-//
-// 契约与不变量 / 适用域
-//   * 输入采样：纯组合，延迟 0。
-//     无 clk/reset/enable；输入或量程系数变化会立即影响输出。样本冻结与
-//     输出 valid 的对齐由调用方负责，不能把组合输出直接当成已接受的样本。
-//   * `ovf = 1` 表示 `adc2_min_q + sh` 装不进 V_BITS 位有符号寄存器；
-//     此时 `fine_q` 输出**钳位值**（不是回绕值）。契约 §4 的 6 个受检操作数
-//     不含本量，所以这个标志是**额外的安全网**，不是等价替换。
-//   * 本模块**不**检查 `adc2_max_q > adc2_min_q`：那是载入期校验
-//     （calib_regs.validate -> ERR_RANGE_EMPTY），不是逐样本的事。
-//     空量程会让 delta = 0，输出恒等于 adc2_min_q —— 合法但不有用。
-//===========================================================================
+// 模块：adc2_dec；ADC2 原始码到归一化 Q32 码仓中心的组合译码。
+// 职责：fine_q=min+round_half_even((2*code+1)*(max-min)/2^(P_ADC2_BITS+1))。
+// 端口/单位：adc2_code 为无符号码；min/max/fine_q 为有符号 V/Vfs 的 Q32。
+// 时序：无时钟、复位或握手；调用方必须冻结输入并对齐样本 valid。
+// 精度：量程差保留 V_BITS+1 位，乘法保留完整宽度，余数比较实现 ties-to-even。
+// 异常：fine_q 超出 V_BITS 有符号范围时饱和并置 ovf；min<max 由配置端检查。
+// 适用域：生产 P_ADC2_BITS=12、V_BITS=64；参数实例用于独立算术验证。
+// 来源：RTL_ARITHMETIC_CONTRACT.md §3.1；Q32、舍入及接口为项目工程合同。
 `include "rtl_params.vh"
 
 module adc2_dec #(
@@ -77,13 +41,12 @@ module adc2_dec #(
   localparam logic [W_SUM - 1:0] V_LO_U  = ~V_HI_U + V_ONE;            // 默认 -2^63
   localparam logic [W_SUM - 1:0] V_MAX_U = V_HI_U - V_ONE;            // 默认 2^63 - 1
 
-  // 组合段 1：形成奇数码仓中心与有符号量程。delta 保留 V_BITS+1 位。
+  // 组合段1：奇数码仓中心与有符号量程；delta保留V_BITS+1位。
   assign two_c_plus_1 = {adc2_code, 1'b1};
   assign delta       = $signed(adc2_max_q) - $signed(adc2_min_q);
   assign delta_ext   = {{(W_MUL - (int'(V_BITS) + 1)){delta[V_BITS]}}, delta};
 
-  // n 用**有符号**乘：两个操作数都显式 $signed，避免 P1 的 RTL-3 那类
-  // "表达式里混进无符号操作数 -> 整条按无符号算"的坑。
+  // 两个乘法操作数均显式转换为signed，避免无符号操作数改变乘积扩展。
   assign n = $signed({{(W_MUL - K){1'b0}}, two_c_plus_1}) * delta_ext;
 
   // 组合段 2：除以固定 2^K，余数比较实现 ties-to-even。此处不推断除法器；

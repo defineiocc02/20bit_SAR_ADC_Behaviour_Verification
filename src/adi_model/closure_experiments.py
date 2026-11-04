@@ -16,6 +16,16 @@ from .low_frequency_noise import BandLimitedFlicker
 from .metrics import power_spectral_density, sine_fit_metrics
 
 
+def _error_statistics(error) -> dict[str, float]:
+    """Report RMS, standard deviation and mean separately, all in volts."""
+    values = np.asarray(error, dtype=float)
+    return {
+        "rms_v": float(np.sqrt(np.mean(values**2))),
+        "std_v": float(np.std(values)),
+        "mean_v": float(np.mean(values)),
+    }
+
+
 def long_record_noise() -> dict:
     """Verify 40 Hz state over 64 seconds using sparse actual 40 MS/s timestamps."""
     from scipy.special import sici
@@ -113,6 +123,9 @@ def long_record_noise() -> dict:
 
 def noisy_weight_holdout() -> dict:
     """Train two noisy sizes on two full physical chips and score frozen final words."""
+    from dataclasses import replace
+
+    from .reconstruction import initialize_state
     from .sampler import sine_input
     from .weight_calibration import run_with_split_calibration
 
@@ -133,9 +146,13 @@ def noisy_weight_holdout() -> dict:
             r = run_with_split_calibration(cfg, sine_input(2.2, fin, 0.5), n_val, n_cal=n_cal)
             model = r.state.weight_calibration
             codes = r.to_codes()
+            # Reuse the identical raw ADC2 record and switching metadata. Only
+            # the frozen digital coefficients change; both outputs use 20 bits.
+            nominal_codes = replace(r, state=initialize_state(r.cfg)).to_codes()
             error = codes.voltage - r.x_ref
-            before = float(np.std(r.uncalibrated_out - r.x_ref))
-            after = float(np.std(error))
+            before_stats = _error_statistics(nominal_codes.voltage - r.x_ref)
+            after_stats = _error_statistics(error)
+            before, after = before_stats["rms_v"], after_stats["rms_v"]
             metrics = sine_fit_metrics(codes.voltage, cfg.fs, fin)
             row = {
                 "chip_seed": seed,
@@ -146,6 +163,11 @@ def noisy_weight_holdout() -> dict:
                 "coefficient_se_rms": float(np.sqrt(np.mean(model.standard_error[:-1] ** 2))),
                 "before_error_rms_v": before,
                 "after_error_rms_v": after,
+                "before_error_std_v": before_stats["std_v"],
+                "after_error_std_v": after_stats["std_v"],
+                "before_error_mean_v": before_stats["mean_v"],
+                "after_error_mean_v": after_stats["mean_v"],
+                "comparison_domain": "same raw capture; both final 20-bit integer outputs",
                 "fixed_vs_float_peak_v": float(np.max(np.abs(codes.voltage - r.out))),
                 "SNDR_dB": metrics["SNDR_dB"],
                 "SFDR_dB": metrics["SFDR_dB"],
@@ -228,6 +250,7 @@ def signed_reference_loading(c0, n=16384) -> dict:
                 )
                 peak = max(peak, float(np.max(np.abs(rail - trace.reference_event_error_v[i, e]))))
                 previous = instant
+            rail *= np.exp(-(cc.conversion.quantizer_time_s - previous) / cc.dyn_tau_ref)
             rail *= np.exp(-fine_duration / (cc.conversion.fine_reference_tau_s or cc.dyn_tau_ref))
             peak = max(peak, float(np.max(np.abs(rail - trace.reference_error_v[i]))))
         words = r.to_codes()

@@ -1,46 +1,24 @@
 //=============================================================================
 // @file    sys_error_corr.sv
-// @brief   系统误差校正 y = m·x + c（补码）
-// @details OFFSET 12-bit 补码（1 LSB=1 ADC LSB），GAIN 10-bit（0x200=1.0，
-//          两端 ±1.5594%）；delta=x·(GAIN-512)·512>>>24；输出饱和并报 clip。
-// @project AD4080 数字子系统
-// @author  AD4080 Digital Team
-// @date    2026-10-19
-// @version 2.0.0
+// @brief   补码输入的仿射系统校正与饱和事件
+// @details delta=(x*(GAIN-512)*512+2^23)>>>24；y=saturate(x+delta+OFFSET)。
+//          默认GAIN512/OFFSET0为单位映射；clip与对应校正输出同拍，非sticky。
+// @project SAR20 / AD4080风格数字原型
+// @author  项目维护者（贡献记录见版本库）
+// @date    2026-11-05
+// @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : AD4080 Rev.B p.20 Table 7, p.71, p.93 Table 60/61
-// 时钟域   : clk 单时钟
-// 复位     : rst_n 异步低有效
-// 延迟     : 2 clk
-// 吞吐     : 1 sample/clk
-// 可综合性 : 是；20x11 乘法 + 20x10 乘法，建议单拍内完成或用 DSP
+// 手册依据 : 功能映射见docs/ad4080_traceability.md；不声称器件逐拍等价。
+// 时钟域   : clk；valid、数据和系数同步
+// 复位     : rst_n异步低有效；无运行中flush输入
+// 延迟     : 接受valid沿到输出valid为2个完整clk间隔
+// 吞吐     : 可连续每clk接受1样本
+// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
 // 依赖     : 无
-// 修订记录 :
-//   1.0.0 2026-10-19 初版（无符号，K=511）
-//   2.0.0 2026-10-19 改补码；K=512；合并重复表达式
+// 边界     : 工程使用IN_W20/OFFSET_W12/GAIN_W10/K_GAIN512/SHIFT24；其他组合需单独验证。
+//          输入输出为20-bit补码；gain为直二进制，offset为ADC LSB整数。
+//          加半码后算术右移，半码向正无穷；输出饱和到-2^19..2^19-1。
 //=============================================================================
-// 设计说明（迁移自原文件头，保留原始意图）：
-//   数据手册依据：AD4080 Rev.B
-//     p.20 Table 7：ADC 输出是 **20-bit 二进制补码**
-//         0x00000 = 中点(0 V)，0x7FFFF = +FS-1LSB，0x80000 = -FS
-//     p.71 / p.93 Table 60/61：
-//         OFFSET[11:0] 补码，1 LSB = 0.00572 mV = 1 个 ADC LSB，范围 -2048..+2047
-//         GAIN[9:0]    直二进制，0x200 = 1.0
-//         0x3FF -> +1.5594% FS，0x001 -> -1.5594% FS
-//     => m = 1 + (GAIN - 512) * (0.015594 / 511)
-//
-//   旧版本的两个错误（本次修正）：
-//     1. 把 x 当无符号：负半轴（0x80000..0xFFFFF）会被当成接近满幅的正数，
-//        校正结果整段错乱。
-//     2. K_GAIN 取 511：斜率少 0.2%，满偏处约 16 LSB。正确值 512
-//        （因为 2^24 × 0.015594/511 = 511.996）。
-//
-//   定点实现：
-//     delta = (x * (GAIN-512) * 512 + 2^23) >>> 24
-//     y     = clamp(x + delta + OFFSET, -2^19, 2^19-1)
-//     流水 2 级：valid_in -> valid_out 延迟 2 个时钟。
-//=============================================================================
-
 `timescale 1ns/1ps
 `default_nettype none
 
@@ -70,7 +48,7 @@ module sys_error_corr #(
     localparam logic signed [IN_W-1:0] MAX_CODE =   (1 << (IN_W-1)) - 1;   // +524287
     localparam logic signed [IN_W-1:0] MIN_CODE = - (1 << (IN_W-1));       // -524288
     // NOTE: 512 在 10-bit 有符号里会溢出成 -512（10'sd512 == -512），
-    //       必须用 11 bit。这个坑会让增益校正整体反号。
+    //       因而基准常数必须使用11-bit有符号表示。
     localparam logic signed [10:0]     K_GAIN_S = K_GAIN[10:0];
 
     // ---- Stage 1 ----
@@ -94,7 +72,7 @@ module sys_error_corr #(
 
     assign prodk_s2 = prod_s1 * K_GAIN_S;
     // WAIVER(width-truncate): 增益项 |delta| <= 2^19*1.56% = 8176，18 bit 足够；
-    // 这里显式截到 SUM_W，高位是符号扩展，不损失有效信息。
+    // 此处显式截到18位；默认参数下高位仅为符号扩展。
     // verilator lint_off WIDTHTRUNC
     assign corr_s2  = (prodk_s2 + (1 << (SHIFT-1))) >>> SHIFT;   // 18 bit 足够（|delta|<=8176）
     // verilator lint_on WIDTHTRUNC

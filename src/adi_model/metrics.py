@@ -6,9 +6,10 @@
     sigma_e(x) = sqrt(Var(x_hat | x))    输出离散程度（DEM 可能让它变大）
 
 平均误差曲线不能直接冒充严格码密度法得到的 DNL；v1 不跑完整 20 bit 码密度测试。
-单位契约：频谱 dBFS（相对 2·v_fs 满幅正弦 RMS）；INL [LSB@20b]；误差 [V/µV]。
+单位契约：幅度谱dBFS以峰值v_fs（RMS=v_fs/√2）的满幅正弦为参考；
+PSD为V²/Hz，不能与幅度谱混用；INL类量以目标LSB归一，误差为V/µV。
 适用域：SFDR 必须**扣除基波后全谱搜索**（保护带 LSQ 会把窗泄漏拟合成
--25 dBc 假杂散）；静态 INL 有估计噪声底 σ_e/√rep，rep≥384 才可信。
+-25 dBc 假杂散）；静态均值有估计噪声底σ_e/√rep；所需rep取决于目标精度、噪声和DEM覆盖。
 
 """
 
@@ -158,7 +159,7 @@ def _bh4(n: int) -> np.ndarray:
         n: 窗长（样本数） [无量纲]。
 
     Returns:
-        (n,) 窗系数数组 [无量纲]；峰值约 1，相干增益约 0.5（用于 FFT
+        (n,) 窗系数数组 [无量纲]；峰值约1，长记录相干增益约0.35875（用于 FFT
         幅值归一化时除以 sum(w)/2）。
     """
     a = (0.35875, 0.48829, 0.14128, 0.01168)
@@ -425,7 +426,7 @@ def sine_fit_metrics(x: np.ndarray, fs: float, fin: float, nharm: int = 12) -> d
 
     Returns:
         指标字典，字段与单位：
-            amp [V] / noise_rms [V] / nd_rms [V]   基波、噪声、噪声+失真 RMS；
+            amp [V] 为基波峰值；noise_rms / nd_rms [V]分别为噪声、噪声+失真RMS；
             SNDR_dB / SNR_dB / THD_dB / SFDR_dB / harm_SFDR_dB [dB]；
             spur_Hz [Hz]；ENOB [bit]；
             NSD_V_rtHz [V/√Hz]   噪声谱密度；
@@ -508,7 +509,7 @@ def spectrum_dbfs(
         x: 实数信号数组 [V]。
         fs: 采样率 [Hz]。
         v_fs: 差分满幅峰值 [V]，作为 0 dBFS 参考（峰值幅度 = v_fs 的正弦
-            为 0 dBFS）；v_fs 来源 [推导]（2*v_fs/√2 对齐 NSD 8.8 nV/√Hz）。
+            为0dBFS，等效RMS为v_fs/√2）。
         window: 窗类型，"blackman" 或 "blackmanharris"（默认 4 项 BH）。
 
     Returns:
@@ -540,8 +541,7 @@ def static_test(run_fn, levels: np.ndarray, repeats: int) -> dict:
         run_fn: 可调用 ``run_fn(level, repeats) -> out``；给定输入电平与重复
             次数，返回该电平下 ADC 输出数组 [V]。
         levels: 待测输入电平数组 [V]，范围应在 ±v_fs 内。
-        repeats: 每个电平的重复采样数 [无量纲]；需 ≥ 384 才可信（σ_e/√rep
-            估计噪声底，见模块头适用域）。
+        repeats: 每个电平重复采样数；按σ_e/√rep误差预算及实际DEM状态覆盖选择。
 
     Returns:
         字典，字段与单位：

@@ -1,4 +1,4 @@
-"""Machine-checkable source grading for every number the model produces.
+"""Source grading for configuration and explicitly annotated quantities.
 
 Why this module exists
 ----------------------

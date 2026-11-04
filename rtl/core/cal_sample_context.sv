@@ -1,13 +1,11 @@
-// Two distinct sample contexts: the current RDAC residue and the previous
-// residue now held by ADC2. Capture physical switch decisions, not live DEM
-// state or current bank identity. Coefficients are locked for the entire epoch.
-//
-// Data flow is current -> residue packet -> fine packet. At phase 9 the
-// current coarse conversion freezes its physical slice IDs, switch decisions,
-// sampling flag and injection. At the NEXT period's quiet_sample (phase 0),
-// that saved packet is assigned to fine_* for the shared backend. ADC2 therefore
-// reconstructs the previous residue while the coarse frontend begins a new one.
-// This module carries decisions, not an analog residue voltage or coefficients.
+// 模块：cal_sample_context；当前residue到下一周期fine的物理样本上下文。
+// 职责：current→residue packet→fine packet，冻结ID、coarse/sid/dither、物理mask、rail与注入。
+// 端口/单位：ID与状态为整数；main/sub/rail为物理选择位；injection为有符号Q32。
+// 时钟/复位：clk上升沿、同步低有效rst_n；disable丢弃两份在途packet并清valid。
+// 周期：默认phase9保存当前residue，下一周期quiet_sample转交给共享fine SAR。
+// 同沿规则：capture和quiet若同时有效，fine读取旧residue，后执行的residue_valid清零优先，无旁路。
+// 异常：current_bad随residue冻结；analog_bad在fine转交时采样，并与旧residue_bad合并。
+// 来源：ADR0018；packet只携带数字决定，不携带模拟residue电压或学习系数。
 `include "rtl_params.vh"
 module cal_sample_context (
     input wire clk, rst_n, enable, residue_capture, quiet_sample, current_valid,

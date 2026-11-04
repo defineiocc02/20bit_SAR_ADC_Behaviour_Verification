@@ -6,6 +6,8 @@ This research repository studies slice scheduling, capacitor mismatch, digital c
 
 > **Evidence boundary:** This is a research prototype. A 20-bit output word does not imply 20-bit ENOB. The plotted performance figures are conditional behavioral simulations, not silicon measurements, PDK signoff or timing closure.
 
+This independent maintenance review covered **18 documents / 596 pages**, plus the full text of **49 Python and 41 RTL production modules**. It repairs reference recovery, configuration/export boundaries, error units and CNV/SPI protocol defects. See the [2026-11-05 review](docs/reviews/20261105-independent-maintenance.md) for source coverage, source ambiguities, functional changes and remaining requirements. Reading coverage and implementation verification are recorded separately.
+
 ## Results at a glance
 
 | Question | Project approach | What was observed under the stated conditions |
@@ -33,13 +35,15 @@ The paper discloses a 20 b / 40 MS/s converter, an 18-slice structure and a shar
 
 The Python profiles are not identical circuit models. A nominal sample-rate setting is not evidence of attainable RTL timing. See [`config.py`](src/adi_model/config.py), [`sadc.py`](src/adi_model/sadc.py) and the [RTL arithmetic contract](docs/rtl/RTL_ARITHMETIC_CONTRACT.md).
 
+The static unary entry rejects unsupported dynamic/slice-error requests; use the split-array `run_pipeline` path for those effects. Nonzero spatial gradients require the explicit aggregate-chip reference; the default physical pool does not assume layout coordinates.
+
 ## Digital work: purpose, current results and open problems
 
-The digital work has four packages. “Available” means a research prototype verified under stated conditions.
+The digital work has four packages. “Available” means a research prototype verified under stated conditions. Sample-by-sample Python/RTL comparison uses `Config.rtl_structural()` and the [structural contract](docs/adr/0021-structural-contract-calibration.md), with disclosed behavior and project assumptions recorded separately. See the [engineering standards](docs/ENGINEERING_STANDARDS.md) for code maintenance rules.
 
 **1. Conversion control and sample ownership.** Coordinate sampling, coarse decisions, residue formation and ADC2. The structural RTL has 16-phase control, comparator interfaces, slice scheduling, sample IDs and fault flags; Python and RTL agree on slice order and seven resolved RDAC events. **Still needed:** real comparator completion, analog switch/reference phase contracts and system-wide fault/reset handling.
 
-**2. DEM, dither and interleaving mismatch.** Rearrange slices and capacitor units to spread error and inject known perturbations. The project has fixed physical pools, interleaving experiments, RTL slice allocation, DEM addressing, a bridge candidate and a dither generator; physical masks and three dither modes have been compared. **Still needed:** identifiable per-slice offset, gain, timing and bandwidth estimation/correction. The complete slide bridge circuit and dual-port dither enhancement remain unreproduced. DEM redistributes error; it does not measure mismatch.
+**2. DEM, dither and interleaving mismatch.** Rearrange slices and capacitor units to spread error and inject known perturbations. The project has fixed physical pools, interleaving experiments, RTL slice allocation, DEM addressing, a bridge candidate and a dither generator; physical masks and three dither modes have been compared. **Still needed:** identifiable per-slice offset, gain, timing and bandwidth estimation/correction; these digital learners are evaluated separately as project extensions. The complete slide bridge circuit and dual-port dither enhancement remain unreproduced. DEM redistributes error; it does not measure mismatch.
 
 **3. Capacitor calibration and digital reconstruction.** Estimate effective weights from a known reference and digital observations, then reconstruct using frozen coefficients and known dither. Structural RTL observation, external fitting, quantized loading and independent holdouts are connected; see [ADR 0021](docs/adr/0021-structural-contract-calibration.md). **Still needed:** real reference and observation transport, dynamic settling/drift and ADC2 nonlinearity verification; the 748-bit observation port has no FIFO or backpressure.
 
@@ -119,7 +123,7 @@ The separate `cal_two_point` block currently fits `y=m·x+c` at fixed x coordina
 
 ![Parameter provenance and evidence limits](docs/readme/fig/unified_5_evidence.png)
 
-*Figure 8. Original illustration generated from the runtime parameter provenance ledger. Fitted and assumed results are not disclosed facts or chip measurements.*
+*Figure 8. Original illustration of top-level `Config` fields from the runtime provenance ledger. Nested model parameters are documented by their owning interfaces and are not individually expanded in this chart. Fitted and assumed results are not disclosed facts or chip measurements.*
 
 Behavioral models, RTL simulation, historical FPGA evidence and target-PDK synthesis/STA are separate evidence levels. Figures 3 and 6 are 40 MS/s behavioral simulations on baseline `6863fc3`; Figure 4 combines the current structural digital DUT with a static behavioral plant. None is transistor or silicon data. Historical detailed documentation is retained in [`docs/history/`](docs/history/); historical tests are not automatically new results for the present checkout.
 

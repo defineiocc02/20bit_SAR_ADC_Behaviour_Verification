@@ -64,6 +64,8 @@ run_tb cal     "$ROOT/sim/tb/ad4080_cal_tb.sv"   "$ROOT/rtl/sys_error_corr.sv" "
 run_tb sinc5   "$ROOT/sim/tb/sinc5_decim_tb.sv"  "$ROOT/rtl/sinc5_decim.sv"
 run_tb fifo    "$ROOT/sim/tb/result_fifo_tb.sv"  "$ROOT/rtl/result_fifo.sv"
 run_tb spi     "$ROOT/sim/tb/spi_slave_tb.sv"    "$ROOT/rtl/spi_slave.sv" "$ROOT/rtl/ad4080_regs.sv"
+run_tb cnv_contract "$ROOT/sim/tb/cnv_ctrl_contract_tb.sv" "$ROOT/rtl/cnv_ctrl.sv"
+run_tb spi_abort "$ROOT/sim/tb/spi_abort_contract_tb.sv" "$ROOT/rtl/spi_slave.sv"
 run_tb top     "$ROOT/sim/tb/ad4080_top_tb.sv"   "$ROOT"/rtl/*.sv
 
 echo

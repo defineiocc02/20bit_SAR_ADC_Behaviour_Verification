@@ -84,6 +84,8 @@ jobs:
           python-version: "3.12"
       - run: pip install -e .[dev]
       - run: mypy --config-file=pyproject.toml
+      - name: Check source and implementation references
+        run: python -m adi_model.inventory_gate --summary /tmp/inventory-summary.json
 
   test:
     name: Test (py${{ matrix.python-version }})
@@ -103,9 +105,9 @@ jobs:
         run: pytest -m "not slow" -q --cov --cov-report=xml
       - name: Full acceptance sweep
         if: matrix.python-version == '3.12'
-        # The sweep is the `run_all.py` acceptance driver, not a pytest marker:
-        # there are no tests marked `slow`, so `pytest -m "slow"` would collect
-        # nothing and pass without exercising a single experiment.
+        # The complete acceptance experiments are owned by this CLI driver.
+        # The `slow` pytest marker selects a separate targeted subset and does
+        # not establish that the acceptance sweep ran.
         run: adi-run-all --results-dir /tmp/sweep
       - uses: actions/upload-artifact@v4
         if: matrix.python-version == '3.12'

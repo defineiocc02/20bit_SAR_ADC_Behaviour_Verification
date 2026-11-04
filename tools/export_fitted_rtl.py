@@ -20,6 +20,13 @@ from adi_model.weight_calibration import CalibrationSpec, FrozenCalibration
 from export_rtl_params import _CONFIG_FACTORIES, _json_text
 
 
+def _paths_alias(first: Path, second: Path) -> bool:
+    """Detect lexical, symbolic-link and existing hard-link aliases."""
+    if first.resolve() == second.resolve():
+        return True
+    return first.exists() and second.exists() and first.samefile(second)
+
+
 def build_fitted_registers(
     config_name: str,
     frozen_json: bytes,
@@ -74,10 +81,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out-manifest", required=True, type=Path)
     ap.add_argument("--check", action="store_true", help="verify existing outputs byte for byte")
     args = ap.parse_args(argv)
-    if args.out_registers == args.out_manifest or args.frozen in (
-        args.out_registers,
-        args.out_manifest,
-    ):
+    paths = (args.frozen, args.out_registers, args.out_manifest)
+    if any(_paths_alias(paths[i], paths[j]) for i in range(3) for j in range(i)):
         ap.error("input and output paths must be distinct")
     register_text, manifest_text = build_fitted_registers(
         args.config,

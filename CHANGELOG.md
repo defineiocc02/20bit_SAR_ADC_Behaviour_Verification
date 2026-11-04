@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 2026-11-05
+
+- Independently reviewed 18 source documents / 596 pages, 49 Python production modules and 41 RTL production modules; retain page/file coverage and explicit source ambiguities in `docs/reviews/`.
+- Fixed module CLI option forwarding, complete reference-recovery timing, configuration/register input validation, RMS versus standard-deviation measurements, matched integer calibration comparisons and complete production DEM averaging.
+- Corrected charge units and use an explicit 1 pV equivalent-output numerical consistency check; retain the old misnamed charge key with a deprecation/unit declaration.
+- Prevent frozen-calibration input overwrite through path aliases; preserve effective provenance grades and complete integer/analog parameter dependencies; correct clean-repository identity and exclusive RA saturation statistics.
+- Fixed digital differential CNV interpretation, SPI frame-abort writes and the first status bit. Added directed protocol checks without changing public RTL ports or register addresses.
+- Standardized production RTL contracts and professional comments; 39 modules preserve every noncomment token and semantic directive, with functional changes confined to CNV/SPI.
+- Rebased the shipped `tools/results/results.json` on a new full acceptance execution. SHA-256: `5ff9ef9ade0eac30d3a9851a4c52b0cdff22f0e2374d3a2bac5b08a84e394123` → `3724a8ada35da8d8bba59696f9f025356be379ba9a515e6fcbfa44450741d092`. The previous snapshot predated the present mainline; accumulated value/schema changes are recorded, not attributed solely to this patch. Historical `tools/results/fig` images remain identified separately.
+- Parameter/vector metadata is regenerated with unchanged numeric localparams and register values; source-grade and dependency records change deliberately. README retains four work packages and eight original figures with reproducible evidence.
+
 ## [8.2.2] — 2026-09-26
 
 **发布动因是 v8.2.1 的 CI 全红**：4 个 Python 版本矩阵全部失败（`1 failed, 707 passed`），

@@ -1,14 +1,12 @@
-// Clock-domain control boundaries for the analog macros. These are enables,
-// not physical non-overlap/level-shifter cells. Implement the shared TP edge
-// and local series-enable/hold-low FETs in the analog macro (paper Fig9.8.2).
-// Default 16 ticks/sample is the project's budget, not the published 7ns SAR.
-//
-// Edge contract: phase names the interval BEFORE the next rising edge. The
-// sequential block installs next_phase and its registered analog enables
-// together. Consumers of quiet_sample/bank_advance/residue_capture sample the
-// OLD phase on that edge; those three digital handshakes are not analog clocks.
-// Reset is synchronous, active low. Dropping enable also synchronously clears
-// the schedule and cancels every registered analog enable; it is not a pause.
+// 模块：analog_phase_ctrl；模拟宏边界的相位和注册使能。
+// 职责：生成 phase、TP、RA AZ/amplify、参考 precharge/accurate 及数字事务 strobes。
+// 端口/单位：phase 为 tick 编号；其余输出为使能电平或数字接受条件，均不代表晶体管时钟。
+// 时钟/复位：clk 上升沿、同步低有效 rst_n；enable=0 同步取消并重启相位。
+// 周期：消费者在前沿读取旧 phase；本模块同沿安装 next_phase 及对应注册模拟电平。
+// 默认区间：TP=1..15；AZ=1..8；precharge=2..8；amplify/accurate=10..15及0。
+// 启动：复位 phase=0 但注册使能全低，首次回绕后才形成稳态 phase0 电平。
+// 适用域：P_PHASES>=16、9<=P_CAPTURE<P_REF_ON<P_PHASES；非法参数在 elaboration 拒绝。
+// 来源：ADR0018 与项目16tick预算；模拟非交叠、本地采样保持和建立时间由模拟宏验收。
 module analog_phase_ctrl #(
     parameter int P_PHASES = 16,
     parameter int P_REF_ON = 10,

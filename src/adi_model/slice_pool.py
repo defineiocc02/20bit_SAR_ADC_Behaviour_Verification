@@ -68,7 +68,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .config import Config
+from .config import Config, ConfigError
 from .dac_arch import SplitChip, build_split_chip
 from .dem import split_switch_command
 from .provenance import SourceGrade
@@ -177,6 +177,16 @@ class PhysicalSlicePool:
             Consumes draws from ``rng``; no global state is touched.
         """
         self.cfg = cfg
+        gradient = np.asarray(cfg.mismatch_gradient, dtype=float)
+        if gradient.shape != (2,) or np.any(~np.isfinite(gradient)):
+            raise ConfigError("mismatch_gradient must contain two finite relative gradients")
+        if np.any(gradient != 0) and (chip is None or cfg.dac_arch != "split"):
+            raise ConfigError(
+                "mismatch_gradient requires an explicit aggregate chip: "
+                "PhysicalSlicePool has no layout coordinates; use build_split_chip "
+                "and pass chip= for the documented aggregate gradient model"
+            )
+        self._mismatch_gradient = tuple(gradient)
         n_slices = int(cfg.n_slices)
         n_up = int(n_unit_per_slice or cfg.n_unit_per_slice)
         self.is_split = cfg.dac_arch == "split"

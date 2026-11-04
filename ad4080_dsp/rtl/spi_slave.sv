@@ -1,41 +1,24 @@
 //=============================================================================
 // @file    spi_slave.sv
-// @brief   AD4080 配置 SPI 从机（Mode 3；streaming / 短指令 / CRC-8 / 状态回传）
-// @details 指令相 = 1 命令位 + 15 或 7 地址位（SHORT_INSTRUCTION）；
-//          数据相为任意字节数：SINGLE_INST=0（默认 streaming）时按
-//          ADDR_ASCENSION 自动增/减地址指针并在 0x0000/0x7FFF 回绕。
-//          CRC-8（0x07，种子 0xA5）按寄存器逐字节校验；写操作 CRC 不过不提交。
-//          SEND_STATUS=1 时指令相在 SDO 回传状态字节（长指令回传两遍）。
-// @project AD4080 数字子系统
-// @author  AD4080 Digital Team
-// @date    2026-10-19
-// @version 3.0.0
+// @brief   Mode3配置SPI到同步寄存器事务
+// @details SCLK/CS用clk过采样；支持长/短指令、streaming、地址方向、可选CRC和状态输出。
+//          写仅在选中且完整字节/有效CRC边界提交；CS退出丢弃未完成帧状态。
+// @project SAR20 / AD4080风格数字原型
+// @author  项目维护者（贡献记录见版本库）
+// @date    2026-11-05
+// @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : AD4080 Rev.B p.34-43（Figure 53/54/66）、p.75-76（0x00/0x01）、
-//            p.81-82（0x10/0x11）
-// 时钟域   : clk 单时钟；sclk/cs_n 异步输入，2FF 同步 + 边沿检测
-// 复位     : rst_n 异步低有效
-// 延迟     : 写提交在字节尾（无 CRC）或 CRC 尾（有 CRC），单拍 we
-// 吞吐     : 1 字节/8 个 SCLK
-// 可综合性 : 是
-// 依赖     : ad4080_regs（经 addr/wdata/we/rdata）
-// 修订记录 :
-//   1.0.0 2026-10-19 初版（单字节、无 CRC）
-//   2.0.0 2026-10-19 增加 CRC-8、SEND_STATUS、时钟数检查
-//   3.0.0 2026-10-19 增加 streaming（SINGLE_INST=0）、短指令、地址递增/递减回绕、
-//                    写数据相 SDO 驱 0、状态字节长指令回传两遍
-//-----------------------------------------------------------------------------
-// 设计说明：
-//   SCLK/CS 由 clk 过采样（2FF + 边沿检测），要求 clk >= 8 x SCLK；
-//   寄存器堆只有一个时钟域，不存在 CDC。
-//   ASSUMPTION: streaming 模式下第 2 个及以后寄存器的 CRC 种子构成（"seeded
-//   with the starting address and the corresponding data"），手册文本未给位序，
-//   这里按 CRC8(0xA5, addr[15:8], addr[7:0], data) 实现。
-//   ASSUMPTION: SEND_STATUS 的位序/重复次数手册只用图表示（Figure 53），
-//   这里按"状态字节 MSB first、长指令回传两遍、短指令回传一遍"实现。
-//   TODO(P2): 0x0E STREAM_MODE 回环计数、0x0F TRANSFER_CONFIG 未实现。
+// 手册依据 : 功能映射见docs/ad4080_traceability.md；不声称器件逐拍等价。
+// 时钟域   : clk>=8*SCLK；CS/SCLK先同步，SDI须满足相对SCLK的稳定窗口
+// 复位     : rst_n异步低有效；复位禁止we并清帧状态
+// 延迟     : 同步后的数据/CRC末位到同域寄存器接受沿提交；CS需足够同步裕量
+// 吞吐     : 数据字节8个SCLK；CRC开启另8个，指令另8/16个
+// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
+// 依赖     : ad4080_regs经addr/wdata/we/rdata连接
+// 边界     : 仅同步CS和其延迟寄存器进入frame控制；首级同步寄存器只供下一级。
+//          CRC后续字节播种与状态位序按本工程合同，仍需器件/原文一致性证据。
+//          不实现SPI结果FIFO读口、STREAM_MODE计数或TRANSFER_CONFIG。
 //=============================================================================
-
 `timescale 1ns/1ps
 `default_nettype none
 
@@ -65,19 +48,19 @@ module spi_slave (
 );
 
     // ---------------- 同步与边沿 ----------------
-    logic cs_s0, cs_s1, sck_s0, sck_s1, sck_p;
+    logic cs_s0, cs_s1, cs_p, sck_s0, sck_s1, sck_p;
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            cs_s0 <= 1'b1; cs_s1 <= 1'b1;
+            cs_s0 <= 1'b1; cs_s1 <= 1'b1; cs_p <= 1'b1;
             sck_s0 <= 1'b1; sck_s1 <= 1'b1; sck_p <= 1'b1;
         end else begin
-            cs_s0 <= cs_n;  cs_s1 <= cs_s0;
+            cs_s0 <= cs_n;  cs_s1 <= cs_s0; cs_p <= cs_s1;
             sck_s0 <= sclk; sck_s1 <= sck_s0; sck_p <= sck_s1;
         end
     end
 
-    wire cs_fall  = cs_s1 & ~cs_s0;
-    wire cs_rise  = ~cs_s1 & cs_s0;
+    wire cs_fall  = cs_p & ~cs_s1;
+    wire cs_rise  = ~cs_p & cs_s1;
     wire sck_rise = sck_s1 & ~sck_p;
     wire sck_fall = ~sck_s1 & sck_p;
 
@@ -136,7 +119,10 @@ module spi_slave (
     // streaming 已经把 addr 推到下一个寄存器（默认递减 -> 写到 addr-1）。
     wire we_byte = byte_done && !cmd_r && !crc_en;
     wire we_crc  = crc_done  && !cmd_r && crc_en && (crc_rx_nxt == crc_calc);
-    wire we_comb = we_byte | we_crc;
+    // Commit uses the same synchronized frame boundary as the state machine.
+    // Pending SCLK edges must never commit a partial byte after CS cancellation.
+    wire frame_active = rst_n && !cs_s1 && !cs_fall && !cs_rise;
+    wire we_comb = frame_active && (we_byte | we_crc);
 
     // ---------------- 主时序 ----------------
     always_ff @(posedge clk or negedge rst_n) begin
@@ -183,9 +169,23 @@ module spi_slave (
             end else if (cs_rise) begin
                 // 帧必须在组边界结束：bitcnt 应为 0
                 if (bitcnt != 5'd0) clk_err_r <= 1'b1;
+                phase    <= PH_INSTR;
+                bitcnt   <= '0;
+                instr    <= '0;
+                addr_ptr <= '0;
+                byte_cnt <= '0;
+                shin     <= '0;
+                shout    <= '0;
+                stat_sr  <= '0;
+                stat_cnt <= '0;
+                wdata_r  <= '0;
+                crc_calc <= 8'hA5;
+                crc_rx   <= '0;
                 sdo_r <= 1'b0;
                 oe_r  <= 1'b0;
             end else if (cs_s1) begin
+                phase  <= PH_INSTR;
+                bitcnt <= '0;
                 sdo_r <= 1'b0;
                 oe_r  <= 1'b0;
             end else begin
@@ -268,7 +268,7 @@ module spi_slave (
                             if (send_status) begin
                                 // 状态字节 MSB first，长指令传两遍，短指令传一遍
                                 stat_sr  <= {stat_sr[6:0], 1'b0};
-                                sdo_r    <= stat_sr[6];
+                                sdo_r    <= stat_sr[7];
                                 if (stat_cnt == 3'd7) begin
                                     stat_sr  <= status_byte;
                                     stat_cnt <= '0;

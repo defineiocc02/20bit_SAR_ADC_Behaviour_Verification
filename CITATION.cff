@@ -2,7 +2,8 @@ cff-version: 1.2.0
 title: 20-bit SAR ADC Behavioural Verification Model
 message: >-
   If you use this software, please cite both this repository and the
-  architecture it studies (ISSCC 2024, Session 9.8). See README.md section 10.
+  architecture it studies (ISSCC 2024, Session 9.8). See the License and citation
+  section of README.md.
 type: software
 authors:
   - family-names: Zhao
@@ -16,8 +17,8 @@ repository-code: "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verifi
 url: "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
 abstract: >-
   A phase-accurate behavioural model of a two-stage residual SAR ADC, written
-  to be audited rather than believed. Every model parameter carries a
-  machine-checkable source grade (disclosed / derived / fitted / assumed /
+  with reproducible contracts and evidence. Top-level configuration fields and
+  explicitly annotated quantities carry machine-checkable source grades (disclosed / derived / fitted / assumed /
   research-extension), so that a reviewer can see which published facts and
   which free assumptions a headline number rests on. Includes a physical
   18-slice pool with cross-cycle causality, a shared physical pipeline plus an independent algebraic oracle, and one adversarial regression

@@ -1,40 +1,11 @@
-//===========================================================================
-// swap_decode.sv -- 粗码 + dither -> 每 slice 的主/子单位计数
-//===========================================================================
-// 职责一句话
-//   依次做四件事：拼出命令 k、裁剪、可选的桥接零和交换、拆成 (main_count, sub_count)。
-//   本模块**不做**温度计展开（unit_therm 的事），也不做 DEM 地址置换（dem_addr_gen 的事）。
-//
-// 来源
-//   adi_model/mapper.Mapper.encode()：k = coarse*units_per_lsb1 + k0（dither 另列）
-//   adi_model/dem.split_switch_command()：clip、桥接零和交换、divmod(code, n_sub)
-//   adi_model/sim.SimResult.rdac_over：溢出口径 (k < 0) | (k > dac_levels-1)
-//
-// 单位契约
-//   无量纲整数。coarse [码仓号]；dither_code [RDAC 单位当量]（调用方保证为整数：
-//   契约 §A4 拒绝小数掩码）；main_count ∈ [0, N_UNIT_MAIN]；sub_count ∈ [0, N_UNIT_SUB)。
-//
-// 参数来源分级
-//   本模块**没有**模块参数：全部尺寸直接取 `rtl_params.vh` 的常量（[推导]，由
-//   tools/export_rtl_params.py 从 Config 生成）。刻意的选择 —— 模块参数若与头文件
-//   常量同名，参数默认值会自引用（`parameter int N_ACTIVE = N_ACTIVE`），
-//   而另起一套名字就等于在 RTL 里维护第二份参数表（契约 §9 禁止）。
-//   换配置请重跑导出器，不要就地改数字。
-//
-// 契约与不变量 / 适用域
-//   * `amount = min(1, min(code, DAC_LEVELS-1-code))` 这道守卫使 slice_code 恒落在
-//     [0, DAC_LEVELS-1]：code = 0 或 code = DAC_LEVELS-1 时 amount = 0，桥接不会把码
-//     推出量程。这是"桥接零和交换不越界"的结构性理由，由 TB 穷举确认。
-//   * 由该守卫可知 slice_code ≥ 0，故 `>> 3` 与 `[2:0]` 就是精确的
-//     `divmod(slice_code, N_SUB)`（N_SUB = 8）。**注意**：这里靠的是
-//     "非负"这一前提，不是"算术右移对负数也是 floor"—— 对 7 位的 main_count 而言，
-//     负数经 `[9:3]` 截取会得到错值。适用域之外的行为不在契约内。
-//   * 桥接仅在 `dem_en && bridge_en` 时生效（对应模型的 `dem_enable and dem_bridge_enable`）。
-//   * 纯组合，延迟 0。
-//     coarse/dither_code/sid_low 必须来自同一个冻结样本；本模块没有 clk、
-//     reset 或握手，也不会保存前一拍命令。桥接改变各 slice 的单位分布，
-//     当前 N_ACT=8 下正负各四路、总交换量为零。
-//===========================================================================
+// 模块：swap_decode；粗码与dither到每slice主/子单位计数的组合译码。
+// 职责：有符号命令k=coarse*UNITS_PER_LSB1+K0+dither，随后越界检测、裁剪、bridge交换及divmod。
+// 端口/单位：coarse为9位码；dither_code为16位signed RDAC单位当量；输出为非负单元计数。
+// 时序：无时钟、复位或握手；所有输入须属于同一个冻结样本。
+// 桥接：dem_en&&bridge_en时按sid_low进行4正4负零和交换，端点幅度0，内部码幅度1。
+// 异常：rdac_over使用裁剪前k，合法mask使用裁剪后码；名义总和守恒不证明失配下的物理等价。
+// 适用域：当前8活动slice、63main/8sub、512级；几何来自参数头，顶层另作一致性检查。
+// 来源：mapper.encode、dem.split_switch_command、RTL算术合同；不生成地址或温度计mask。
 `include "rtl_params.vh"
 
 module swap_decode (
@@ -52,12 +23,7 @@ module swap_decode (
   localparam int LV    = int'(DAC_LEVELS);
   localparam int HALF  = N_ACT / 2;
 
-  // ⚠️ 全部走**有符号** localparam。Verilog 的规则是"表达式里只要有一个无符号
-  // 操作数，整个表达式就按无符号算"：早先写成
-  //     $signed({9'b0,coarse}) * 18'(UNITS_PER_LSB1) + 18'(K0) + $signed(dither_code)
-  // 时 `18'(...)` 是无符号的，于是负 dither 变成大正数（-8 -> 65528），
-  // k_cmd 不再是 -8，裁剪与溢出判定在**整段越界用例**上全错。
-  // P1 的 85 条定向用例（dither -8..8）抓出来的就是这条。
+  // 命令及边界常量均声明为signed；负dither必须先符号扩展再参与命令运算。
   localparam signed [17:0] UL1  = 18'(UNITS_PER_LSB1);
   localparam signed [17:0] KLO  = 18'(K0);
   localparam signed [17:0] LMAX = 18'(int'(DAC_LEVELS) - 1);
@@ -90,9 +56,7 @@ module swap_decode (
       logic               sign_pos, sign_neg;
       logic signed [10:0] delta, slice_code;
 
-      // 取模必须在**能装下 N_ACT 的宽度**里做。写成 3'(N_ACT) 会把 8 截成 0，
-      // 于是变成"对常量 0 取模"，rank 全错、整段符号逻辑失效 ——
-      // 只在桥接打开时才表现出来（P1 的 8192 穷举把它抓了出来）。
+      // 取模操作数先扩为32位，保证N_ACT=8不被3位截断成零。
       assign rank     = 3'((32'(a) - 32'(sid_low)) % 32'(N_ACT));
       assign sign_pos = (32'(rank) < 32'(HALF));
       assign sign_neg = !sign_pos && (32'(rank) < 32'(N_ACT));

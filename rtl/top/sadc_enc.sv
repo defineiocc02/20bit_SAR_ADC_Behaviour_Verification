@@ -1,32 +1,11 @@
-//===========================================================================
-// sadc_enc.sv -- 比较器阵列判决向量 -> 二进制 population count
-//===========================================================================
-// 职责一句话
-//   把 SADC 比较器阵列的温度计判决向量编码成 B1 位二进制粗码，即 popcount。
-//   本模块**不做**比较器本体、不做阈值生成、不做任何判决 —— 那些属模拟域。
-//
-// 来源
-//   docs/rtl/P2_INTERFACE.md §10；docs/adr/0018-physical-calibration-and-structural-controls.md；
-//   adi_model 里 SADC 判决到粗码的那一步。
-//
-// 单位契约
-//   无量纲整数。cmp_raw 的 bit i 表示 `x > thr[i]`；sadc_code = popcount(cmp_raw)
-//   ∈ [0, 2^B1 - 1]。
-//
-// 参数来源分级
-//   standalone 默认 B1=9，511 个输入；结构模式在 sar_structural_ctrl 内例化
-//   P_B1=3，编码 7 个共享 flash 比较器，提供粗 SAR 的 3 个种子位。
-//   兼容模式接收核外已编码的 sadc_code。文件所在 top/ 不决定例化层级。
-//
-// 契约与不变量 / 适用域
-//   * **`cmp_raw` 必须是温度计码**（1 连续在前或连续在后）。若不是，popcount 仍
-//     给出 population count；**RTL 不做合法性检查**。输入气泡/亚稳态的电气
-//     成因及数字容错策略需模拟宏接口另行定义，不能从本模块推出已处理。
-//   * 纯组合，没有寄存器周期延迟；实际门延迟由综合和 STA 决定。
-//   * 累加器 ACC_W=$clog2(P_N_CMP+1)，standalone 为 9，结构 flash 为 3。
-//   * 补零到 LEAVES 个叶子，以平衡加法树计算 popcount，深度 log2(LEAVES)。
-//     若以流水树替换，必须连同 flash_valid 和种子接收相位修改，不能孤立加拍。
-//===========================================================================
+// 模块：sadc_enc；比较器判决向量的平衡population-count编码。
+// 职责：sadc_code=popcount(cmp_raw)，补零到2次幂叶数的组合加法树。
+// 端口/单位：cmp_raw bit i表示x>threshold[i]的数字判决，输出为P_B1位无符号码。
+// 时序：无时钟、复位或寄存器周期；实际门延迟由映射与STA决定。
+// 适用域：P_B1=1..16，1<=P_N_CMP<2^P_B1；standalone默认9/511，结构Flash实例为3/7。
+// 边界：不生成阈值或比较器，不检查温度计气泡/亚稳态；任意输入仍只得到其置1位数。
+// 集成：增加流水必须同步修改flash_valid与种子接受相位；split_var不改变硬件连接。
+// 来源：P2_INTERFACE.md §10、ADR0018；比较器电气行为属于外部模拟宏。
 `include "rtl_params.vh"
 
 module sadc_enc #(

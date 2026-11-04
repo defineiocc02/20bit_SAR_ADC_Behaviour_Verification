@@ -297,15 +297,18 @@ def test_ref_track_zero_error_window_returns_inf():
 
     from adi_model.ref_track import reference_precision_bits
 
-    # 严格零误差窗口（std=0）→ inf，与 a06 口径一致，且不抛异常
+    # 严格零误差的RMS为0，等效精度为inf。
     assert make(np.zeros(16))._window_bits(slice(None), span_v=1.0) == float("inf")
-    # 常数窗口同样 std=0：是"零窗口"而非"小误差窗口"，必须也是 inf
-    assert make(np.full(16, 1e-6))._window_bits(slice(None), span_v=1.0) == float("inf")
+    # 非零常数是DC误差；std为0不能将它误报为无误差。
+    constant = make(np.full(16, 1e-6))._window_bits(slice(None), span_v=1.0)
+    assert constant == pytest.approx(reference_precision_bits(1e-6, 1.0))
+    assert np.isfinite(constant)
     # 非退化（非常数）微误差窗口 → 有限位数，且与公开换算函数逐位一致
     err = np.linspace(-1e-6, 1e-6, 16)
     finite = make(err)._window_bits(slice(None), span_v=1.0)
     assert np.isfinite(finite)
-    assert finite == pytest.approx(reference_precision_bits(float(np.std(err)), 1.0), rel=1e-12)
+    rms = float(np.sqrt(np.mean(err**2)))
+    assert finite == pytest.approx(reference_precision_bits(rms, 1.0), rel=1e-12)
     assert finite == pytest.approx(18.841282446503264, rel=1e-12)
 
 

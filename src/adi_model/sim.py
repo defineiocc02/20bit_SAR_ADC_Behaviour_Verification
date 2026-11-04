@@ -13,8 +13,8 @@
         vdt    = rdac.evaluate_physical(cmd)
         vra    = ra.evaluate(x_R - vdt, g = C_active[n]/C_F)   # 电荷一致增益
         vnc    = ktc.observe(...)
-        fine   = adc2.quantize(vra - kappa*vnc)
-        out    = vd0 + fine/G_hat - d_corr) / alpha
+        fine   = adc2.decode_codes(adc2.quantize_codes(vra)[0]) - kappa*vnc
+        out    = (vd0 + fine/G_hat - d_corr) / alpha
 
 **哪个物理量改变了、哪条通路受到影响、哪个指标因此变化** —— 三者必须严格对应：
 同一组 C_active[n] 同时决定 (1) 采样噪声 kT/C (2) RA 增益 (3) KTC 的逐样本 beta。
@@ -33,7 +33,7 @@ import numpy as np
 
 from .adc2 import ADC2
 from .chip import Chip, build_chip
-from .config import Config
+from .config import Config, ConfigError
 from .ktc import KTCBranch
 from .mapper import DitherState, Mapper, dem_state_sequence, dither_transfer_code, make_dither_state
 from .ra import ResidueAmplifier
@@ -60,7 +60,7 @@ class SimResult:
         out: ``(N,)`` [V] 重构输出 x_hat。
         err: ``(N,)`` [V] = out − 设计目标 x_ref（KTC 关→对齐 x1，
             KTC 开→对齐 x1+dx，即 beta=1 的设计目标）。
-        x_ref: ``(N,)`` [V] 上述设计目标（数字端已知，非物理真值）。
+        x_ref: ``(N,)`` [V] 仿真评分目标；不是普通硬件运行中可直接获得的输入。
         sample: SampleBatch（采样事件级实现；字段单位见其 docstring）。
         coarse: ``(N,)`` int64 粗码 c[n]。
         k: ``(N,)`` int64 RDAC 电平码 k_eq。
@@ -70,7 +70,7 @@ class SimResult:
         residue: ``(N,)`` [V] 残差 = x_R − vd_true。
         vra: ``(N,)`` [V] RA 输出。
         vnc: ``(N,)`` [V] KTC 观测支路输出。
-        fine: ``(N,)`` [V] ADC2 量化后的精细项（折输入）。
+        fine: ``(N,)`` [V] ADC2解码并扣除数字观察器后的精细项（RA输出口径，尚未除增益）。
         ra_sat: ``(N,)`` RA 饱和标志。
         adc2_over: ``(N,)`` ADC2 溢出标志。
         ktc_sat: ``(N,)`` KTC 饱和标志。
@@ -82,12 +82,12 @@ class SimResult:
         err_to_x1: ``(N,)`` [V] = out − x(t1)，对齐**第一级输入**的固定参考
             （校准/评价常用）；未计算时为 None。
         err_to_x2: ``(N,)`` [V] = out − x(t2)，对齐**第二级输入**的固定参考
-            （beta=1 的设计目标）；未计算时为 None。
+            （输入信号较晚时刻、beta=1的设计目标，并非ADC2残差输入）；未计算时为None。
         err_vs_clean: ``(N,)`` [V] = out − x1_clean，对齐**驱动器噪声加入之前**
             的干净输入的整链误差（A07.6）；driver_noise_rms=0 时与 err_to_x1
             逐位相同，否则才暴露驱动器噪声伪影；未计算时为 None。
         g_vec: ``(N,)`` 逐样本 RA 增益（charge 模式 = C_active/C_F）。
-        c_active: ``(N,)`` [F] 逐样本活跃采样电容（kT/C 噪声与增益共用）。
+        c_active: ``(N,)`` [F] 噪声计算用电容；unary为活跃总电容，split为噪声等效电容，不能代替信号电容。
         calibration_applied: tuple 实际执行过的校准步骤（run_with_calibration 填充）。
     """
 
@@ -270,6 +270,29 @@ def run_sim(
         raise ValueError("physical split-unit weights require run_pipeline or run_sim_split")
     cfg = replace(cfg, dac_arch="unary")
     cfg.check_legal()
+    unsupported = [
+        name
+        for name in (
+            "dyn_input_settling",
+            "dyn_ref_settling",
+            "dyn_crosstalk",
+            "slice_bw_spread",
+            "slice_timing_skew_s",
+            "slice_offset_sigma_v",
+        )
+        if getattr(cfg, name)
+    ]
+    defaults = Config()
+    if cfg.input_network != defaults.input_network:
+        unsupported.append("input_network")
+    if cfg.conversion != defaults.conversion:
+        unsupported.append("conversion")
+    if unsupported:
+        raise ConfigError(
+            "run_sim is the static unary runner and does not implement: "
+            + ", ".join(unsupported)
+            + "; use run_pipeline or run_sim_split for physical split dynamics"
+        )
     if rng is None:
         rng = np.random.default_rng(cfg.seed)
     if chip is None:

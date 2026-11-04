@@ -2,7 +2,7 @@
 
 [00_1]ISSCC2024_ppt.pdf p.32 明确点名这三项是限制 INL 的非理想源。
 v1-v4 完全没有建模它们，所以模型算出的 |INL| = 0.07 LSB，
-而论文实测 2.2 LSB —— 差 30 倍的缺口**主要就在这里**，而不是失配参数不对。
+这些独立假设用于敏感度分析，不能据此认定论文实测误差的主要成因。
 
 三项的共同特征（也是它们危险的原因）：
 
@@ -172,8 +172,8 @@ def bitwise_eta_dyn(cfg: Config) -> float:
 
         eta_dyn = Σ_i w_i·exp(−(B−i)/B·T_conv/τ)   vs   单次抽取 exp(−T_conv/τ)
 
-    早抽取的位有更多恢复时间 -> eta_dyn >> eta_single（τ_ref >> T_conv 时
-    改善 ~ln2·B/... 量级）。    **静态分量不受影响**（DC 负载贯穿整个转换相，
+    相对于全部电荷在起始时刻抽取，较晚的载荷恢复时间更短，因此
+    eta_dyn >= eta_single；峰值载荷分散不等于最终参考误差更小。静态代理项不变（
     与装载时序无关）—— 口径：只建终态；转换中途瞬态不在行为级预测范围。
 
     Args:
@@ -182,7 +182,7 @@ def bitwise_eta_dyn(cfg: Config) -> float:
 
     Returns:
         动态分量残余压降因子 [无量纲] = Σ_i w_i·exp(-(B-i)/B·T_conv/τ)；
-        tau_ref ≤ 0 时返回 0。逐位装载下远小于单次抽取的 exp(-T_conv/τ)。
+        tau_ref≤0时返回0；这是历史aggregate代理，生产使用有符号实际开关事件。
     Side effects: 无（纯函数）。
     """
     t_conv = cfg.dyn_t_conv_frac / cfg.fs

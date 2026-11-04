@@ -112,7 +112,7 @@ def test_m5_golden_is_independent_of_the_bridge_because_counts_would_differ(expo
     cfg = replace(Config.paper_literal(), dem_enable=True, dem_bridge_enable=True)
     from adi_model.dem import split_switch_command
 
-    command = split_switch_command(cfg, np.array([1.0]), np.array([0], dtype=np.int64))
+    command = split_switch_command(cfg, np.array([1.0]), np.array([256], dtype=np.int64))
     per_slice = np.unique(command.sub_counts[0])
     assert per_slice.size > 1, "bridge must make slice counts non-uniform, else the note is stale"
 

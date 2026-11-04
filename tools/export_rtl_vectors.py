@@ -209,7 +209,9 @@ def build_m3(cfg: Config) -> tuple[str, dict[str, Any]]:
             cfg_b = bridged if bridge else plain
             sid = np.full(1, 0, dtype=np.int64)
             for sid_low in range(n_active):
-                sid[0] = sid_low
+                # The leaf receives the effective bridge enable directly;
+                # use a full state with bit 8 set when that input is enabled.
+                sid[0] = sid_low + 256 * bridge
                 mc, sc = _m3_counts(cfg_b, np.array([code]), sid)
                 lines.append(
                     f"{_hex(code, 3)} {_shex(0, 2)} {bridge} {sid_low} "

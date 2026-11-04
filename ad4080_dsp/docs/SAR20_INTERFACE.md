@@ -13,7 +13,7 @@
 | 码制 | SAR 和本封装并行输出都是 20 位 offset-binary；DSP 内部和串行 payload 为二进制补码。入口和并行出口各翻转一次最高位。 |
 | 输入事件 | `sample_accepted` 和 `sample_rejected` 随输入有效事件给出；对应 ID 和标志在**输入侧**有效，不是滤波或 FIFO 输出的标签。无 ready/backpressure。 |
 | 标志 | `sar_flags` 顺序为 `{clip_high, clip_low, adc2_ovf, gain_err, acc_ovf}`；其中 `adc2_ovf` 是数字译码标志。任一位置位都拒绝本样本并锁存 `stream_fault`；后续事件也拒绝，`rejected_after_fault` 区分后续拒绝。 |
-| 模拟异常 | `sar_analog_ovf` 独立于 `sar_flags`，覆盖 SAR 捕获的 RA 饱和、RDAC/ADC2 模拟越界。该粘滞位一旦置位立即停止输入和输出并锁故障；它不携带出错样本 ID，因此不能据此逐笔归因。 |
+| 模拟异常 | SAR 现提供与结果 ID 对齐的 `dout_analog_bad`，但本 DSP 接入层尚未消费它；当前 `sar_analog_ovf` 独立于 `sar_flags`，覆盖 SAR 捕获的 RA 饱和、RDAC/ADC2 模拟越界。该粘滞位一旦置位立即停止输入和输出并锁故障；它不携带出错样本 ID，因此不能据此逐笔归因。 |
 | 故障 | 有错误的同一周期以及故障保持期间，封装抑制并行输出 valid、FIFO 读使能及串行输出；先前已进入 DSP 但尚未输出的数据也不再承诺交付。`sample_rejected` 不能由软件错过，若需软件读取须在系统外实现事件队列。 |
 | 重启/换配置 | `dsp_restart` 或 `sar_epoch_clear` 置位会复位整个 DSP，包括滤波、FIFO、寄存器和输入故障；输入事件在复位期间忽略。单独 `dsp_restart` 不清 SAR 的模拟粘滞位，未清时会再次阻断；`sar_epoch_clear` 须覆盖上升沿，清 SAR 状态并使 SAR 系数失效。释放后须重新配置。此契约不提供无损切换。 |
 | DSP 饱和 | `correction_clip_low/high` 是**校正级**同拍事件；经过抽取和 FIFO 后不携带逐结果标签。它们与 SAR 输入侧标志分开。 |

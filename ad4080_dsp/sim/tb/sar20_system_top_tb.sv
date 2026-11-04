@@ -36,7 +36,7 @@ module sar20_system_top_tb;
     .slice_sel(), .main_sw(), .sub_sw(), .dither_sw(), .sw_valid(),
     .sar_dout(sar_dout), .sar_dout_valid(sar_valid), .sar_clip_low(), .sar_clip_high(),
     .sar_analog_ovf(sar_analog_ovf), .sar_acc_ovf(), .sar_status_word(), .sar_sample_id(sar_id),
-    .sar_flags(sar_flags), .dsp_restart(dsp_restart), .sample_accepted(accepted),
+    .sar_flags(sar_flags), .sar_result_analog_bad(), .cal_obs_valid(), .cal_obs_data(), .dsp_restart(dsp_restart), .sample_accepted(accepted),
     .accepted_sample_id(accepted_id), .sample_rejected(rejected),
     .rejected_sample_id(), .rejected_flags(), .rejected_after_fault(), .stream_fault(stream_fault),
     .cs_n(1'b1), .sclk(1'b1), .sdi(1'b0), .sdo(), .sdo_oe(),

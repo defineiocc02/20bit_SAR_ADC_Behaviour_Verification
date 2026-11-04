@@ -18,6 +18,7 @@ The paper discloses a 20 b / 40 MS/s converter, an 18-slice structure and a shar
 |---|---:|---|---|
 | `Config()` | 40 MS/s | 7-bit, unary | Retained behavioral default; Python SADC uses threshold search rather than bit-by-bit SAR timing |
 | `Config.paper_literal()` | 40 MS/s | 9-bit, 63+8 split | Candidate matching the paper's coarse-bit reading; physical 63+8 allocation is a project assumption |
+| `Config.rtl_structural()` | 40 MS/s | 9-bit, 63+8 split | Matches structural priming, slice ordering, dither and 16-phase reference events under the project contract |
 | Structural `sar20_digital_core` | 40 MS/s target | 9-bit, 63+8 split | 16 digital phases/sample imply a 640 MHz clock budget if one clock is used per phase; target-library STA is unavailable |
 
 The Python profiles are not identical circuit models. A nominal sample-rate setting is not evidence of attainable RTL timing. See [`config.py`](src/adi_model/config.py), [`sadc.py`](src/adi_model/sadc.py) and the [RTL arithmetic contract](docs/rtl/RTL_ARITHMETIC_CONTRACT.md).
@@ -29,10 +30,10 @@ The table maps published mechanisms to the implemented paths and their limits.
 | Mechanism | Implemented here | Boundary |
 |---|---|---|
 | Separate quantizer and residue DAC | Python quantization/charge models and structural RTL signal path | Capacitor allocation and switch timing include assumptions; no complete paper netlist |
-| Capacitor mismatch and DEM | Fixed physical units, weight fitting, element permutations and RTL reconstruction | DEM redistributes error rather than measuring it; the Python/RTL bridge-mask contract remains unresolved |
+| Capacitor mismatch and DEM | Fixed physical units, weight fitting, element permutations and RTL reconstruction | DEM redistributes error rather than measuring it; Python and RTL masks now agree under the project candidate; the original chip bridge circuit remains undisclosed |
 | Interleaving mismatch | Slice offset, timing skew, bandwidth spread and scheduling sensitivity models | No complete hardware estimation/correction loop for slice offset, skew and bandwidth |
-| Dither | Behavioral injection/digital correction and RTL generator | Injection, range and correction contracts differ by mode; large inputs can overflow |
-| RA, reference and ADC2 | RA/reference dynamics and ideal ADC2 quantization | Reference-loading event contracts differ; ADC2 nonlinearity learning, analog implementation and PDK verification remain open |
+| Dither | Behavioral injection/digital correction and RTL generator | Structural off, sampling and quantizer modes are compared; dual-port range enhancement and large-input overflow remain open |
+| RA, reference and ADC2 | RA/reference dynamics and ideal ADC2 quantization | Seven resolved reference events agree in the structural profile; ADC2 nonlinearity learning, analog implementation and PDK verification remain open |
 
 See [`mechanism_inventory.json`](mechanism_inventory.json), [`sources_manifest.json`](sources_manifest.json), the [source comparison](docs/engineering_vs_patents_papers.md) and the [known limitations](docs/rtl/KNOWN_LIMITS_20261104.md). Selected public references cover [quantizer/RDAC separation](https://patents.google.com/patent/US10516408B2/en), [dither](https://patents.google.com/patent/US10505561B2/en), [DEM](https://patents.google.com/patent/US10511316B2/en) and [interleaved tracking](https://patents.google.com/patent/US10707889B1/en). The candidate implementation is not a complete reconstruction of a disclosed product. The [paper](https://doi.org/10.1109/ISSCC49657.2024.10454329) prints reference [12] as 10,797,889, while its title and authors match [US 10,707,889 B1](https://patents.google.com/patent/US10707889B1/en); this project uses the latter based on that comparison, not an author-issued erratum.
 
@@ -42,7 +43,7 @@ See [`mechanism_inventory.json`](mechanism_inventory.json), [`sources_manifest.j
 
 *Figure 2. Original project illustration of the existing external fit and RTL reconstruction path.*
 
-Digital observations and an independent reference input feed a Python batch estimator. Frozen effective unit weights are quantized into Q30 weights and Q32 scalars, loaded into RTL `weight_store` and `calib_regs`, and applied by `recon_core`. The fixed example uses 2048 training records, a full-rank 1279-column matrix and 128 independent holdout records; see [ADR 0019](docs/adr/0019-fitted-weight-rtl-closure.md).
+Digital observations and an independent reference input feed a Python batch estimator. Frozen effective unit weights are quantized into Q30 weights and Q32 scalars, loaded into RTL `weight_store` and `calib_regs`, and applied by `recon_core`. [ADR 0019](docs/adr/0019-fitted-weight-rtl-closure.md) used Python training observations; the current flow also captures real structural-DUT observations, as described in [ADR 0021](docs/adr/0021-structural-contract-calibration.md).
 
 ![1.05 MHz before and after capacitor calibration](docs/paper_comparisons/figures/02_ac_calibration.png)
 
@@ -50,13 +51,27 @@ Digital observations and an independent reference input feed a Python batch esti
 
 With noise enabled, output SNDR improves **88.88 to 92.46 dB** and input-referred error standard deviation improves **72.53 to 48.04 µV**. The 94.6 dB noise budget is fitted, so this is not an independent prediction of paper SNR. The [experiment comparison](docs/paper_comparisons/README.md) includes static and noiseless results.
 
-The RTL holdout test shows that fitted registers can be loaded and applied to obtain expected fixed-point results; its training observations originate in the Python model. A complete **structural DUT observation → fitting → load → independent DUT holdout** loop is still missing and is not an on-chip self-calibration claim.
+![Before and after errors on real structural RTL holdouts](docs/readme/fig/structural_calibration_holdout.png)
+
+*Figure 4. Real structural digital DUT results for 512 holdout samples: seed 42, an ideal 640 MHz phase clock corresponding to 40 MS/s, a static fixed-mismatch plant, 4096 training samples and no added noise. The two panels use different vertical scales. The plot is independently drawn from the retained DUT inputs and output data.*
+
+The off-chip estimator receives DUT physical-switch observations and independently known inputs, not the plant's capacitor truth. Error standard deviations for two mismatch seeds are **55.75 → 2.08 µV** and **59.38 → 2.14 µV**. A separate test with an assumed 48 µV RMS input-referred noise yields **71.25 → 54.40 µV**. Frozen weights are reloaded into the DUT and its outputs compared word by word with an independent fixed-point reconstruction. This is a digital RTL plus static behavioral-plant loop, not on-chip learning or a silicon measurement.
+
+### What is the binary-to-unary bridge?
+
+![Illustrative boundary error and project bridge candidate](docs/readme/fig/bridge_state_example.png)
+
+*Figure 5. Top: an illustrative mismatch changes the 7→8 charge step from 1.00 to 1.20 units. Bottom: nominal zero-sum exchange generated by the project Python switching decoder. This original illustration does not reconstruct the complete paper circuit.*
+
+The slides place unary units labeled 8 beside binary/dither units labeled 4, 2 and 1. Error in their actual capacitance ratio affects the charge step at segment boundaries. This project assumes 63 main units and eight subunits: `176=22×8+0`. For `sid[8]=0`, all eight active slices use 176; for `sid[8]=1`, four use 177 and four use 175, retaining a total nominal code of 1408. The 175 code is `21×8+7`, across the segment boundary. This is a bridge-related engineering proxy that changes physical-unit usage and mismatch error distribution; it **does not reproduce the slide's complete exchange circuit or automatically remove mismatch**. The actual structural RTL masks match an independent project reference for all 512 codes × 512 DEM states. This 50% state gating is an engineering assumption, not a verified implementation of the slide's `P=50%` truth table.
+
+The similarly named `C_bridge` is a **physical capacitor** between the main and sub arrays and changes the effective subarray weight. See the [bridge explanation](docs/binary_unary_bridge.md) for examples, dither interaction and undisclosed circuit details.
 
 ## Interleaving mismatch: spurs and total error
 
 ![10 ps timing skew and scheduler output spectra](docs/paper_comparisons/figures/01_timing_skew.png)
 
-*Figure 4. Inspired by slides 21–22: 40 MS/s and a nominal 10 ps skew. The project assumes independent static Gaussian slice skew, an approximately 4.0015 MHz / 2.85 V peak input, N=16384, and no random noise. The slides do not disclose the exact input, 10 ps statistical definition, or FFT setup.*
+*Figure 6. Inspired by slides 21–22: 40 MS/s and a nominal 10 ps skew. The project assumes independent static Gaussian slice skew, an approximately 4.0015 MHz / 2.85 V peak input, N=16384, and no random noise. The slides do not disclose the exact input, 10 ps statistical definition, or FFT setup.*
 
 The `fs/2 − fin` bin falls from **−96.44 to −123.05 dBFS/bin** when fixed rotation is replaced by random 8-of-18 scheduling. Reference error RMS rises from **127.97 to 182.15 µV** in this example. The scheduler redistributes error; it does not estimate or correct timing skew. Other seeds, a second 10 ps interpretation and the remaining slide comparisons are in the [experiment comparison](docs/paper_comparisons/README.md).
 
@@ -66,9 +81,9 @@ Slice offset, gain, and bandwidth differences also cause interleaving errors; th
 
 ![SAR-to-DSP code formats and faults](docs/readme/fig/unified_4_dsp.png)
 
-*Figure 5. An original illustration of the current RTL integration boundary.*
+*Figure 7. An original illustration of the current RTL integration boundary.*
 
-[`sar20_system_top.sv`](ad4080_dsp/rtl/sar20_system_top.sv) instantiates the SAR digital core and DSP. Alternatively, connect [`sar20_ad4080_top.sv`](ad4080_dsp/rtl/sar20_ad4080_top.sv) separately to the SAR result, per-sample flags and independent sticky `analog_ovf`. It converts offset binary to the DSP's two's-complement input and converts the parallel output back; serial payloads remain two's complement. Any result flag or sticky analog overflow halts the stream and latches a fault. `dsp_restart` or `sar_epoch_clear` resets the DSP, **including FIFO, filter state and register configuration**; the SAR epoch clear is needed to clear its sticky analog fault before reconfiguration.
+[`sar20_system_top.sv`](ad4080_dsp/rtl/sar20_system_top.sv) instantiates the SAR digital core and DSP. Alternatively, connect [`sar20_ad4080_top.sv`](ad4080_dsp/rtl/sar20_ad4080_top.sv) separately to the SAR result, per-sample flags and independent sticky `analog_ovf`. The SAR now has a per-result `dout_analog_bad` aligned with the sample ID, while the DSP still stops on the sticky analog flag. It converts offset binary to the DSP's two's-complement input and converts the parallel output back; serial payloads remain two's complement. Any result flag or sticky analog overflow halts the stream and latches a fault. `dsp_restart` or `sar_epoch_clear` resets the DSP, **including FIFO, filter state and register configuration**; the SAR epoch clear is needed to clear its sticky analog fault before reconfiguration.
 
 Acceptance/rejection events and IDs exist at the input boundary; filtered and FIFO outputs **do not yet carry per-output IDs or source flags**. Both sides require the same clock and synchronous reset release; no new CDC is provided. The single-lane serial prototype cannot losslessly send 20-bit frames when inputs arrive every 16 clocks, and FIFO read data is not connected to the serializer. DDR differential PHY is absent and the default SINC5 compensation coefficients are placeholders. See the [DSP README](ad4080_dsp/README.md) for the remaining boundaries.
 
@@ -80,15 +95,15 @@ These five packages use reproducible behavioral models and digital RTL to study 
 
 | Work package and purpose | Available now | Main open problems |
 |---|---|---|
-| **SAR control and conversion timing:** coordinate sampling, decisions, residue generation and ADC2 with sample ownership | Structural RTL has phase control, external comparator interfaces, flash seed and SAR decisions, slice control and sample IDs; a corresponding behavioral chain exists | Align Python and RTL RDAC reference-load events; align real comparator completion, analog phases and faults. At one clock per phase, 16 phases imply a 640 MHz ideal clock budget only |
-| **DEM, dither and interleaving errors:** redistribute mismatch spurs through slice/unit selection, use known perturbations for linearization, and address slice differences | Python has a fixed physical pool, skew/offset sensitivity and scheduling experiments; RTL has slice allocation, DEM addressing and a dither generator | Align bridge masks and dither injection/removal; add identifiable per-slice observations. The paper mainly addresses timing and bandwidth with matched clocks/switches and sampling bandwidth; digital timing estimation is a project research extension |
-| **Capacitor calibration and reconstruction:** estimate effective unit weights using independent reference inputs and reconstruct the ADC-core output | Python implements rank checking, external fitting and frozen coefficients; RTL loads weights and performs fixed-point reconstruction with a behavioral-training holdout comparison | Close structural DUT observation → fitting → loading → independent DUT holdout, including dither removal, overflows and ADC2's own nonlinearity |
+| **SAR control and conversion timing:** coordinate sampling, decisions, residue generation and ADC2 with sample ownership | Structural RTL has phase control, external comparator interfaces, flash seed and SAR decisions, slice control and sample IDs; a corresponding behavioral chain exists | Seven resolved RDAC events and 16 structural phases match Python; real comparator completion, analog phases and faults remain to be aligned. At one clock per phase, 16 phases imply a 640 MHz ideal clock budget only |
+| **DEM, dither and interleaving errors:** redistribute mismatch spurs through slice/unit selection, use known perturbations for linearization, and address slice differences | Python has a fixed physical pool, skew/offset sensitivity and scheduling experiments; RTL has slice allocation, DEM addressing and a dither generator | Bridge masks and three dither-mode contracts are compared; add identifiable per-slice observations. The paper mainly addresses timing and bandwidth with matched clocks/switches and sampling bandwidth; digital timing estimation is a project research extension |
+| **Capacitor calibration and reconstruction:** estimate effective unit weights using independent reference inputs and reconstruct the ADC-core output | Structural DUT observations, external full-rank fitting, frozen coefficient loading and independent holdouts are connected, with per-sample analog flags | Add real reference and observation transport; cover dynamic settling, drift, ADC2 nonlinearity and hardware cost |
 | **System correction, DSP and data output:** correct overall signal-chain gain/offset and provide filtering, buffering and external data | The SAR and DSP tops are connected; correction, SINC, FIFO, SPI and fault-stop blocks are prototypes | Derive two-point correction in the raw-to-target direction; complete filter coefficients, FIFO-to-serial path, output metadata and DDR/differential interface; validate continuous throughput |
-| **Integration and verification:** check that paths operate on the same samples under the same conditions | Python regressions, RTL simulations, fixed-point holdouts and repeatable known-limit diagnostics exist | Close sample ID, fault and reset semantics; obtain structural DUT end-to-end, formal equivalence, CDC/RDC, target-library STA and analog post-layout evidence |
+| **Integration and verification:** check that paths operate on the same samples under the same conditions | Python regressions, RTL simulations, fixed-point holdouts and repeatable known-limit diagnostics exist | Extend sample ID, fault and reset propagation across the system; obtain formal equivalence, CDC/RDC, target-library STA and analog post-layout evidence |
 
 **Assessment:** five packages are appropriate. Grouping DEM with interleaving shares slice/sample context, while redistribution and parameter correction still need separate acceptance. Package two owns dither generation/injection and package three owns digital removal/reconstruction; integration verification spans all packages.
 
-**Order:** align physical switch, reference-event, dither and sample-context contracts first; close the structural-DUT weight-calibration loop; in parallel, validate interleaving errors and analog timing/settling; then close DSP and output paths for the selected interface. DEM redistributes error; it does not by itself estimate mismatch.
+**Order:** the structural switch, reference-event, dither and sample-context contracts and static calibration loop are now compared. Next validate interleaving errors and real analog timing/settling, then close DSP and output paths for the selected interface. DEM redistributes error; it does not by itself estimate mismatch.
 
 The paper's ADC-array weight correction and the [AD4080 data sheet](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf) system gain/offset correction operate at different levels. The data sheet is an interface reference; the paper and patents are architecture/mechanism references. Shared specifications or names do not establish the internal implementation of AD4080. The [independent task assessment](docs/digital_task_assessment.md) gives source, code, evidence and open boundaries for each package.
 
@@ -96,9 +111,9 @@ The paper's ADC-array weight correction and the [AD4080 data sheet](https://www.
 
 ![Parameter provenance and evidence limits](docs/readme/fig/unified_5_evidence.png)
 
-*Figure 6. Original illustration generated from the runtime parameter provenance ledger. Fitted and assumed results are not disclosed facts or chip measurements.*
+*Figure 8. Original illustration generated from the runtime parameter provenance ledger. Fitted and assumed results are not disclosed facts or chip measurements.*
 
-Behavioral models, RTL simulation, historical FPGA evidence and target-PDK synthesis/STA are separate evidence levels. Figures 3–4 are 40 MS/s behavioral simulations on baseline `6863fc3`; neither represents transistor or silicon data. Historical detailed documentation is retained in [`docs/history/`](docs/history/); historical tests are not automatically new results for the present checkout.
+Behavioral models, RTL simulation, historical FPGA evidence and target-PDK synthesis/STA are separate evidence levels. Figures 3 and 6 are 40 MS/s behavioral simulations on baseline `6863fc3`; Figure 4 combines the current structural digital DUT with a static behavioral plant. None is transistor or silicon data. Historical detailed documentation is retained in [`docs/history/`](docs/history/); historical tests are not automatically new results for the present checkout.
 
 ### Quick start
 
@@ -116,11 +131,13 @@ RTL regression requires Verilator 5.x and a C++ compiler; the independent DSP sc
 python tools/run_open_rtl.py --tops calibration_fit_tb sar20_dsp_integration_tb sar20_system_top_tb
 BUILD_DIR="${TMPDIR:-/tmp}/ad4080-dsp-build" bash ad4080_dsp/sim/run_all.sh
 MPLBACKEND=Agg PYTHONPATH=src python docs/readme/make_unified_figures.py
+MPLBACKEND=Agg PYTHONPATH=src python docs/readme/make_contract_figures.py \
+  --out "${TMPDIR:-/tmp}/sar-adc-contract-figures"
 PYTHONPATH=src python docs/readme/reproduce_interleave_40m.py \
   --out "${TMPDIR:-/tmp}/sar-adc-interleave-new" --compare-frozen
 ```
 
-The plotting script redraws the retained small data sets; it does not retrain the model. The interleaving reproduction script requires a new, non-existent `--out` directory. Store full new simulation outputs outside the repository, for example `adi-run-all --results-dir "${TMPDIR:-/tmp}/sar-adc-results"`. See the [file conventions](docs/PROJECT_LAYOUT.md) for directory responsibilities and historical evidence exceptions.
+The plotting scripts redraw retained small data sets; they do not retrain the model. Structural observation and calibration reproduction commands are in [ADR 0021](docs/adr/0021-structural-contract-calibration.md). The interleaving reproduction script requires a new, non-existent `--out` directory. Store full new simulation outputs outside the repository, for example `adi-run-all --results-dir "${TMPDIR:-/tmp}/sar-adc-results"`. See the [file conventions](docs/PROJECT_LAYOUT.md) for directory responsibilities and historical evidence exceptions.
 
 ## License and citation
 

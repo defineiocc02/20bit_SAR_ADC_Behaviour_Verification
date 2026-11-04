@@ -40,7 +40,7 @@ module sar20_dsp_integration_tb;
     .slice_sel(), .main_sw(), .sub_sw(), .dither_sw(), .sw_valid(),
     .dout(sar_dout), .dout_valid(sar_valid), .clip_low(), .clip_high(),
     .analog_ovf(sar_analog_ovf), .acc_ovf(), .status_word(), .dout_sample_id(sar_id),
-    .dout_flags(sar_flags)
+    .dout_flags(sar_flags), .cal_obs_valid(), .cal_obs_data(), .dout_analog_bad()
   );
 
   logic inject_mode = 1, inject_valid = 0, inject_analog_ovf = 0, restart = 0;

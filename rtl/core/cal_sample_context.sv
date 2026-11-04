@@ -12,6 +12,8 @@
 module cal_sample_context (
     input wire clk, rst_n, enable, residue_capture, quiet_sample, current_valid,
     input wire [31:0] current_id,
+    input wire [8:0] current_coarse, current_sid,
+    input wire signed [7:0] current_dither,
     input wire [N_ACTIVE - 1:0][4:0] current_slices,
     input wire [N_ACTIVE - 1:0][N_UNIT_MAIN - 1:0] current_main,
     input wire [N_ACTIVE - 1:0][N_UNIT_SUB - 1:0] current_sub,
@@ -21,6 +23,8 @@ module cal_sample_context (
     input wire analog_bad, current_bad,
     output logic fine_valid,
     output logic [31:0] fine_id,
+    output logic [8:0] fine_coarse, fine_sid,
+    output logic signed [7:0] fine_dither,
     output logic [N_ACTIVE - 1:0][4:0] fine_slices,
     output logic [N_ACTIVE - 1:0][N_UNIT_MAIN - 1:0] fine_main,
     output logic [N_ACTIVE - 1:0][N_UNIT_SUB - 1:0] fine_sub,
@@ -29,7 +33,7 @@ module cal_sample_context (
     output logic signed [63:0] fine_injection
 );
   // Packed packet layout is local; named ports preserve independent debug.
-  localparam int CW = 32 + int'(N_ACTIVE) * (5 + int'(N_UNIT_MAIN) + int'(N_UNIT_SUB)) +
+  localparam int CW = 32 + 9 + 9 + 8 + int'(N_ACTIVE) * (5 + int'(N_UNIT_MAIN) + int'(N_UNIT_SUB)) +
       2 * int'(DITHER_UNITS_RANGE) + 1 + 64;
   logic [CW - 1:0] residue;
   logic residue_valid, residue_bad;
@@ -42,6 +46,9 @@ module cal_sample_context (
       residue_bad <= 0;
       fine_valid <= 0;
       fine_id <= '0;
+      fine_coarse <= '0;
+      fine_sid <= '0;
+      fine_dither <= '0;
       fine_slices <= '0;
       fine_main <= '0;
       fine_sub <= '0;
@@ -53,7 +60,8 @@ module cal_sample_context (
       if (residue_capture) begin
         residue_valid <= current_valid;
         residue_bad <= current_bad;
-        residue <= {current_id, current_slices, current_main, current_sub,
+        residue <= {current_id, current_coarse, current_sid, current_dither,
+            current_slices, current_main, current_sub,
             current_rails, current_sampling, current_injection};
       end
       // Both if blocks use pre-edge values because assignments are nonblocking.
@@ -63,7 +71,8 @@ module cal_sample_context (
       // analog_bad is sampled at transfer, while current_bad was frozen earlier.
       if (quiet_sample) begin
         fine_valid <= residue_valid;
-        {fine_id, fine_slices, fine_main, fine_sub, fine_rails, fine_sampling, fine_injection} <= residue;
+        {fine_id, fine_coarse, fine_sid, fine_dither, fine_slices, fine_main,
+            fine_sub, fine_rails, fine_sampling, fine_injection} <= residue;
         fine_analog_bad <= analog_bad || residue_bad;
         residue_valid <= 0;
       end

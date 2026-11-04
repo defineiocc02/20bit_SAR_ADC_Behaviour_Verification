@@ -255,7 +255,9 @@ def bridge_signs_simple(sid: np.ndarray, n_active: int) -> np.ndarray:
 def bridge_slice_codes(
     code: np.ndarray, sid: np.ndarray, n_active: int, dac_levels: int
 ) -> np.ndarray:
-    """桥接后的逐 slice 码：``clip(code) + signs * min(1, min(code, levels-1-code))``。
+    """桥接后的逐 slice 码：``clip(code) + signs * amount * sid[8]``。
+
+    其中 ``amount = min(1, min(code, levels-1-code))``。
 
     Args:
         code: (N,) 逻辑 RDAC 码 [无量纲，单位当量]。
@@ -270,6 +272,7 @@ def bridge_slice_codes(
     code = np.clip(np.asarray(code, dtype=np.int64), 0, dac_levels - 1)
     signs = bridge_signs(sid, n_active)
     amount = np.minimum(1, np.minimum(code, dac_levels - 1 - code))
+    amount *= (np.asarray(sid, dtype=np.int64) & 0x100) != 0
     return (code[:, None] + signs * amount[:, None]).astype(float)
 
 
@@ -480,8 +483,9 @@ def main() -> None:
     )
     delta_slice = cmd2.main_counts * ns + cmd2.sub_counts - codes_t[:, None]
     amount_t = np.minimum(1, np.minimum(codes_t, levels - 1 - codes_t))
+    amount_t *= (sids_t & 0x100) != 0
     check(
-        "逐 slice 交换量 == signs * min(1, min(code, levels-1-code))（闭式）",
+        "逐 slice 交换量 == signs * amount * sid[8]（闭式）",
         bool(np.array_equal(delta_slice, bridge_signs(sids_t, n_act) * amount_t[:, None])),
         int(codes_t.size * n_act),
     )
@@ -500,7 +504,8 @@ def main() -> None:
     i_star_demo = int(excluded_cell(np.array([1]), width, height)[0])
     print(
         f"RTL 要点: sid=(seq*{LCG_A_LOW})&511; rh=(sid>>3)&7, ch=sid&7; j=cell-(cell>i*); "
-        f"k=(q-(sid>>6))&7; amount=min(1,min(code,{levels-1}-code)); sign=+1 iff ((i-sid)&7)<4"
+        f"k=(q-(sid>>6))&7; amount=((sid>>8)&1)*min(1,min(code,{levels-1}-code)); "
+        "sign=+1 iff ((i-sid)&7)<4"
     )
     print(f"          i* 随 sid 变（例：sid=1 -> i*={i_star_demo}）")
 

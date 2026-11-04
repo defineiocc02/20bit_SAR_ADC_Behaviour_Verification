@@ -72,6 +72,12 @@ class DigitalObservation:
     common_injection_v: np.ndarray
     overflow: np.ndarray
     static_charge_domain: bool
+    # Optional physical switch observations from the structural RTL. When
+    # absent, the existing behavioral record regenerates masks from code/sid.
+    main_masks: np.ndarray | None = None
+    sub_masks: np.ndarray | None = None
+    dither_rails: np.ndarray | None = None
+    sample_ids: np.ndarray | None = None
 
     @classmethod
     def from_result(cls, result) -> DigitalObservation:
@@ -166,6 +172,29 @@ class DigitalObservation:
             or np.any(np.abs(self.bank_dither) > spec.dither_units_range)
         ):
             raise ValueError("sampling-dither bank codes must be legal discrete commands")
+        masks = (self.main_masks, self.sub_masks, self.dither_rails)
+        if any(v is not None for v in masks):
+            if any(v is None for v in masks):
+                raise ValueError("observed main, sub and dither masks must be supplied together")
+            expected_shapes = (
+                (n, spec.n_active, spec.dac_n_main),
+                (n, spec.n_active, spec.dac_n_sub),
+                (n, int(2 * spec.dither_units_range)),
+            )
+            for value, shape in zip(masks, expected_shapes, strict=True):
+                assert value is not None
+                a = np.asarray(value)
+                if a.shape != shape or not np.all((a == 0) | (a == 1)):
+                    raise ValueError("observed switch masks must be binary and match the geometry")
+        if self.sample_ids is not None:
+            ids = np.asarray(self.sample_ids)
+            if (
+                ids.shape != (n,)
+                or not np.issubdtype(ids.dtype, np.integer)
+                or np.any(ids < 0)
+                or np.any(ids > 0xFFFF_FFFF)
+            ):
+                raise ValueError("sample IDs must be uint32-valued integers matching the record")
 
     @property
     def fine_v(self) -> np.ndarray:
@@ -176,15 +205,18 @@ class DigitalObservation:
 def _terms(data: DigitalObservation, start: int, stop: int):
     spec = data.spec
     code = data.rdac_code[start:stop]
-    command = split_switch_command(spec, code, data.dem_state[start:stop])
     shape = (len(code), spec.n_active, spec.shape[1])
-    plus = np.empty(shape)
-    for offset, size, order, count in (
-        (0, spec.dac_n_main, command.main_order, command.main_counts),
-        (spec.dac_n_main, spec.dac_n_sub, command.sub_order, command.sub_counts),
-    ):
-        take = np.clip(count[..., None] - np.arange(size), 0, 1)
-        np.put_along_axis(plus[:, :, offset : offset + size], order[:, None, :], take, axis=2)
+    if data.main_masks is not None and data.sub_masks is not None:
+        plus = np.concatenate((data.main_masks[start:stop], data.sub_masks[start:stop]), axis=2)
+    else:
+        command = split_switch_command(spec, code, data.dem_state[start:stop])
+        plus = np.empty(shape)
+        for offset, size, order, count in (
+            (0, spec.dac_n_main, command.main_order, command.main_counts),
+            (spec.dac_n_main, spec.dac_n_sub, command.sub_order, command.sub_counts),
+        ):
+            take = np.clip(count[..., None] - np.arange(size), 0, 1)
+            np.put_along_axis(plus[:, :, offset : offset + size], order[:, None, :], take, axis=2)
     b_minus_dac = data.common_injection_v[start:stop, None, None] - spec.v_fs * (2 * plus - 1)
     signal = np.ones(shape)
     if spec.dither_mode == "sampling":
@@ -194,9 +226,12 @@ def _terms(data: DigitalObservation, start: int, stop: int):
             mask = slice(end - mask_count, end)
             signal[:, :, mask] = 0
             d = data.bank_dither[start:stop]
-            voltage = spec.v_fs * (
-                2 * (np.arange(mask_count)[None, :] < mask_count // 2 + d[:, None]) - 1
+            rails = (
+                data.dither_rails[start:stop]
+                if data.dither_rails is not None
+                else np.arange(mask_count)[None, :] < mask_count // 2 + d[:, None]
             )
+            voltage = spec.v_fs * (2 * np.asarray(rails, dtype=float) - 1)
             b_minus_dac[:, :, mask] += voltage[:, None, :]
     return data.slice_ids[start:stop], signal, b_minus_dac
 
@@ -372,6 +407,9 @@ def fit_unit_weights(
         data.common_injection_v,
     ):
         digest.update(array.tobytes())
+    for optional_array in (data.main_masks, data.sub_masks, data.dither_rails, data.sample_ids):
+        if optional_array is not None:
+            digest.update(optional_array.tobytes())
     return FrozenCalibration(
         _readonly(weights),
         float(theta[-1]),

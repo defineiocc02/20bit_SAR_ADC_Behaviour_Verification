@@ -45,12 +45,14 @@ class ReferenceProgram:
 
 
 def sar_loading_codes(coarse: int, bits: int, units: int, dither: float) -> np.ndarray:
-    """Return trial/decision loads for a binary-search SADC with a known dither.
+    """Return the historical trial/decision load hypothesis.
 
     Comparisons are against the resolved static SADC decision, so thresholds and
     offset already included by that quantizer are preserved. The SADC reference
     is assumed independent of the modeled RDAC reference. Each trial is loaded,
     then retained or rejected; the final command includes the transferred dither.
+    This is retained for historical studies. The structural RDAC follows only
+    resolved decisions; production conversion uses :func:`resolved_loading_codes`.
     """
     # 独立审查 2026-09-25：coarse/units/dither 须为有限值
     if (
@@ -74,6 +76,38 @@ def sar_loading_codes(coarse: int, bits: int, units: int, dither: float) -> np.n
             decided = trial
         codes.append(decided * units + dither)
     return np.asarray(codes, dtype=float)
+
+
+def resolved_loading_codes(
+    coarse: int, bits: int, units: int, dither: float, *, seed_bits: int = 3
+) -> np.ndarray:
+    """Return the Flash prefix followed by accepted SAR decision states.
+
+    Duplicate codes are retained because each is a real valid event in the
+    structural controller. The dither is the signed RDAC command adjustment;
+    physical clipping is performed by the switch decoder, not hidden here.
+    """
+    if (
+        type(bits) is not int
+        or type(seed_bits) is not int
+        or not 1 <= bits <= 20
+        or not 0 <= seed_bits <= bits
+        or not np.isfinite(coarse)
+        or coarse != int(coarse)
+        or not 0 <= coarse < 2**bits
+        or not np.isfinite(units)
+        or units < 1
+        or not np.isfinite(dither)
+    ):
+        raise ValueError("resolved RDAC events require legal integer decisions and finite units")
+    code = int(coarse)
+    remaining = bits - seed_bits
+    resolved = (code >> remaining) << remaining
+    events = [resolved * units + dither]
+    for bit in range(remaining - 1, -1, -1):
+        resolved |= code & (1 << bit)
+        events.append(resolved * units + dither)
+    return np.asarray(events, dtype=float)
 
 
 def sampled_bottom_voltages(cfg: Config, held_v, bank_code: float) -> np.ndarray:

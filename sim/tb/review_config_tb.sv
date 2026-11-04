@@ -13,7 +13,7 @@ module review_config_tb;
     .ra_sat(1'b0),.rdac_ovf(1'b0),.adc2_over(1'b0),.inj_q(64'sd0),.dout_valid(dout_valid),
     .slice_sel(),.main_sw(),.sub_sw(),.dither_sw(),.sw_valid(),.dout(),
     .clip_low(),.clip_high(),.analog_ovf(),.acc_ovf(),.status_word(),
-      .dout_sample_id(), .dout_flags()
+      .dout_sample_id(), .dout_flags(), .cal_obs_valid(), .cal_obs_data(), .dout_analog_bad()
   ,
       .flash_therm('0), .flash_valid('0), .coarse_cmp_valid('0), .coarse_cmp_ge('0), .fine_cmp_valid('0), .fine_cmp_ge('0), .analog_phase(), .quiet_sample(), .tp_clock(), .ra_az(), .ra_amplify(), .ref_precharge(), .ref_accurate(), .acquiring_mask(), .converting_mask(), .aux_charge_enable(), .hold_low_enable(), .coarse_compare_enable(), .coarse_trial(), .quantizer_dither(), .acquisition_dither_rails(), .fine_trial(), .fine_compare_enable(), .coarse_acquire_enable(),.flash_acquire_enable(),.fine_acquire_enable(),.flash_sample()
   );

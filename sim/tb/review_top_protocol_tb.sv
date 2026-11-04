@@ -22,7 +22,7 @@ module review_top_protocol_tb;
     .rdac_ovf(rov),.adc2_over(aov),.ra_sat(rsat),.inj_q(inj),.dout(dout),.dout_valid(valid),
     .clip_low(),.clip_high(),.analog_ovf(analog_ovf),.acc_ovf(),.status_word(status_word),
     .slice_sel(slice_sel),.main_sw(main_sw),.sub_sw(sub_sw),.dither_sw(dither_sw),.sw_valid(sw_valid),
-      .dout_sample_id(), .dout_flags()
+      .dout_sample_id(), .dout_flags(), .cal_obs_valid(), .cal_obs_data(), .dout_analog_bad()
   ,
       .flash_therm('0), .flash_valid('0), .coarse_cmp_valid('0), .coarse_cmp_ge('0), .fine_cmp_valid('0), .fine_cmp_ge('0), .analog_phase(), .quiet_sample(), .tp_clock(), .ra_az(), .ra_amplify(), .ref_precharge(), .ref_accurate(), .acquiring_mask(), .converting_mask(), .aux_charge_enable(), .hold_low_enable(), .coarse_compare_enable(), .coarse_trial(), .quantizer_dither(), .acquisition_dither_rails(), .fine_trial(), .fine_compare_enable(), .coarse_acquire_enable(),.flash_acquire_enable(),.fine_acquire_enable(),.flash_sample()
   );
@@ -152,17 +152,17 @@ module review_top_protocol_tb;
           head++;
         end
         if(dut.phase==15) begin
-          expected[tail]=expected_code(250+(mode==0?int'($signed(dut.dith_q)):0),
+          expected[tail]=expected_code(250+(mode==0?-int'($signed(dut.dith_q)):int'($signed(dut.dith_q))),
             2048,0,mode==1,int'($signed(dut.dith_q)));
           tail++;
         end
         if(dut.phase==12) begin
           if(dut.dith_q!=0) observed_nonzero=1;
           if(mode==0) begin
-            check(dut.swap_dither_code==16'($signed(dut.dith_q)),"quantizer route sign extension");
+            check(dut.swap_dither_code==-16'($signed(dut.dith_q)),"quantizer route sign extension");
             check(dut.sampling_dither_code==0,"quantizer mode must not inject sampling rails");
           end else begin
-            check(dut.swap_dither_code==0,"sampling mode must not change coarse quantizer code");
+            check(dut.swap_dither_code==16'($signed(dut.dith_q)),"sampling route RDAC adjustment");
             check(dut.sampling_dither_code==dut.dith_q,"sampling route code");
             check(int'($countones(dut.dither_rail))==2+int'($signed(dut.dith_q)),"sampling rail count");
           end

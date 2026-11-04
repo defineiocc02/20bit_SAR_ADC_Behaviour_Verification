@@ -29,6 +29,7 @@ from .scheduler import Scheduler, make_scheduler
 from .sim import SimResult
 from .sim_split import xtalk_profile
 from .slice_pool import PhysicalSlicePool
+from .timing import build_rtl_slice_plan, rtl_dither_codes
 
 
 def execute_split(
@@ -88,8 +89,18 @@ def execute_split(
     state = initialize_state(cfg) if state is None else state
     sample_rng = np.random.default_rng(cfg.seed) if rng is None else rng
     schedule_rng = np.random.default_rng(cfg.seed + 8201)
-    sched = make_scheduler(cfg, schedule_rng, scheduler)
-    conv, acq = sched.reserve_dual(n_samples)
+    if cfg.conversion.rdac_event_timing == "rtl16":
+        if scheduler is not None:
+            raise ConfigError(
+                "rtl16 profile owns its allocator; an external scheduler is not allowed"
+            )
+        plan = build_rtl_slice_plan(
+            n_samples, shuffle=cfg.dem_enable, seed=cfg.conversion.rtl_shuffle_seed
+        )
+        conv, acq = plan.conv, plan.acq
+    else:
+        sched = make_scheduler(cfg, schedule_rng, scheduler)
+        conv, acq = sched.reserve_dual(n_samples)
     if n_samples > 1 and not np.array_equal(np.sort(conv[1:]), np.sort(acq[:-1])):
         raise ConfigError("scheduler violates cross-cycle sample ownership")
     if np.any(
@@ -98,7 +109,12 @@ def execute_split(
     ):
         raise ConfigError("conversion and acquisition slices collide")
     bank = np.arange(n_samples, dtype=np.int64) % 2
-    sid = dem_state_sequence(n_samples, cfg, bank)
+    if cfg.conversion.rdac_event_timing == "rtl16" and cfg.dem_enable:
+        # One invalid startup acquisition already advanced its DEM bank.
+        primed_banks = np.arange(n_samples + 1, dtype=np.int64) % 2
+        sid = dem_state_sequence(n_samples + 1, cfg, primed_banks)[1:]
+    else:
+        sid = dem_state_sequence(n_samples, cfg, bank)
 
     coeff = pool.split_coefficients(conv, cfg=cfg)
     c_sig, c_load, c_noise = coeff["c_signal"], coeff["c_load"], coeff["c_noise"]
@@ -115,6 +131,12 @@ def execute_split(
         sample_rng,
         c_active=c_noise,
         dither_rng=np.random.default_rng(cfg.seed + 8202),
+        dither_codes=(
+            rtl_dither_codes(n_samples, cfg.conversion.rtl_dither_seed)
+            if cfg.conversion.rdac_event_timing == "rtl16"
+            and cfg.dither_mode in ("sampling", "quantizer")
+            else None
+        ),
     )
     if cfg.dither_mode == "sampling":
         sampling_dither_injection(cfg, chip, sample, step, chip.c_sig_true())
@@ -135,7 +157,13 @@ def execute_split(
     )
     e_input = np.zeros(n_samples)
     e_sadc = np.zeros(n_samples)
-    held = np.broadcast_to(np.arange(n_samples)[:, None], conv.shape).copy()
+    # Generic records are zero-based. The explicit structural profile includes
+    # the RTL allocator's two startup advances in its externally visible ID.
+    sample_id_base = 2 if cfg.conversion.rdac_event_timing == "rtl16" else 0
+    sample_ids = np.arange(n_samples, dtype=np.int64) + sample_id_base
+    if sample_id_base:
+        sample_ids &= 0xFFFF_FFFF
+    held = np.broadcast_to(sample_ids[:, None], conv.shape).copy()
     joint = (
         ConversionEngine(cfg, pool, int(units), n_samples)
         if cfg.dyn_ref_settling or cfg.conversion.dynamic
@@ -207,7 +235,11 @@ def execute_split(
                     prediction = tracker.predict(ids, begin, assist_parameters.pretrack_mode)
                     assist.pretrack_start_s[n] = begin
                     assist.pretrack_target_v[n] = prediction.voltage_v
-                    assist.pretrack_source_ids[n] = prediction.source_ids
+                    source_ids = prediction.source_ids.copy()
+                    if sample_id_base:
+                        used = source_ids >= 0
+                        source_ids[used] = (source_ids[used] + sample_id_base) & 0xFFFF_FFFF
+                    assist.pretrack_source_ids[n] = source_ids
                     assist.pretrack_available_s[n] = prediction.ready_times_s
                     tau_pre = (
                         assist_parameters.pretrack_source_ohm + cfg.dyn_r_on * pool.tau_rel[ids]
@@ -301,8 +333,8 @@ def execute_split(
             acquisition_voltage[n] = values
             pool.v_top[ids] = values
             pool.held_valid[ids] = True
-            pool.held_sample[ids] = n
-            if not np.all(pool.held_sample[ids] == n):
+            pool.held_sample[ids] = sample_ids[n]
+            if not np.all(pool.held_sample[ids] == sample_ids[n]):
                 raise RuntimeError("conversion does not own its sampled charge")
             e_input[n] = np.dot(coeff["signal_slice"][n], values - source_endpoint) / c_sig[n]
             command = coarse[n] * units + d_code[n]
@@ -400,7 +432,7 @@ def execute_split(
             uses = np.flatnonzero(np.any(conv == physical_id, axis=1))
             if uses.size:
                 pool.v_top[physical_id] = residue[uses[-1]]
-                pool.held_sample[physical_id] = uses[-1]
+                pool.held_sample[physical_id] = sample_ids[uses[-1]]
                 pool.n_conversions[physical_id] = uses.size
     result = SimResult(
         runner=runner,
@@ -434,7 +466,7 @@ def execute_split(
         conv_slice_ids=conv,
         acq_slice_ids=acq,
         held_sample=held,
-        sample_id=np.arange(n_samples),
+        sample_id=sample_ids,
         stored_charge=stored * c_sig,
         acquisition_error=e_input,
         sadc_acquisition_error=e_sadc,

@@ -321,7 +321,7 @@
           "min": 0
         },
         "dout": {
-          "distinct": 3888,
+          "distinct": 3887,
           "max": 1048575,
           "min": 0
         }
@@ -331,7 +331,7 @@
     "p2_link_stim.hex": {
       "columns": {
         "adc2_code": {
-          "distinct": 2349,
+          "distinct": 2381,
           "max": 4095,
           "min": 0
         },
@@ -396,7 +396,7 @@
     "p2_masks.hex": {
       "columns": {
         "adc2_code": {
-          "distinct": 478,
+          "distinct": 480,
           "max": 3779,
           "min": 285
         },
@@ -412,7 +412,7 @@
         },
         "exp_word": {
           "distinct": 512,
-          "max": 849345,
+          "max": 849346,
           "min": 199227
         },
         "inj_q": {
@@ -426,37 +426,37 @@
           "min": 3839
         },
         "main_on[1]": {
-          "distinct": 455,
+          "distinct": 449,
           "max": 9223372036854710512,
           "min": 3839
         },
         "main_on[2]": {
-          "distinct": 458,
+          "distinct": 452,
           "max": 9223372036854710512,
           "min": 3839
         },
         "main_on[3]": {
-          "distinct": 454,
+          "distinct": 447,
           "max": 9223372036854710512,
           "min": 3839
         },
         "main_on[4]": {
-          "distinct": 457,
+          "distinct": 447,
           "max": 9223372036854710512,
           "min": 3839
         },
         "main_on[5]": {
-          "distinct": 452,
-          "max": 9223372036854710512,
-          "min": 3839
-        },
-        "main_on[6]": {
           "distinct": 448,
           "max": 9223372036854710512,
           "min": 3839
         },
+        "main_on[6]": {
+          "distinct": 445,
+          "max": 9223372036854710512,
+          "min": 3839
+        },
         "main_on[7]": {
-          "distinct": 452,
+          "distinct": 450,
           "max": 9223372036854710512,
           "min": 3839
         },
@@ -927,12 +927,12 @@
     "adc2_code_max": 4095,
     "analog_ovf_cases": 202,
     "clip_high_cases": 3,
-    "clip_low_cases": 2,
+    "clip_low_cases": 1,
     "coarse_range": [
       0,
       511
     ],
-    "distinct_adc2_codes": 2349,
+    "distinct_adc2_codes": 2381,
     "distinct_sids": 512,
     "dither_range": [
       -6,

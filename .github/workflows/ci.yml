@@ -31,10 +31,19 @@ jobs:
           verilator --version
       - name: Synthesis flow regression without EDA licenses
         run: |
-          pip install pytest numpy
+          pip install -e . pytest
           pytest tests/unit/test_synth_flow.py tests/unit/test_vivado_flow.py tests/unit/test_vivado_impl.py tests/unit/test_clockless_inspection.py tests/unit/test_vivado_buffered_impl.py tests/unit/test_vivado_full_mapped.py -q
       - name: Compile and execute RTL regressions
         run: python tools/run_open_rtl.py
+      - name: Compare RTL reference events and Python samples
+        run: PYTHONPATH=src python tools/verify_rdac_events.py sim/artifacts/open_rtl/rdac_events.csv
+      - name: Fit RTL observations and check frozen holdouts
+        run: |
+          PYTHONPATH=src python tools/run_structural_calibration.py \
+            --output /tmp/structural-calibration --train 4096 --holdout 512 --chip-seeds 42 91
+          PYTHONPATH=src python tools/run_structural_calibration.py \
+            --output /tmp/structural-calibration-noise --train 8192 --holdout 1024 \
+            --chip-seeds 42 --noise-rms-uv 48
       - name: Independent arbitrary-precision arithmetic audit
         run: python tools/audit_rtl_arithmetic.py --output-dir sim/artifacts/arithmetic-audit
       - uses: actions/upload-artifact@v4
@@ -44,6 +53,8 @@ jobs:
           path: |
             sim/artifacts/open_rtl/*.log
             sim/artifacts/arithmetic-audit/
+            /tmp/structural-calibration/summary.json
+            /tmp/structural-calibration-noise/summary.json
 
   lint:
     name: Lint (ruff)

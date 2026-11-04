@@ -14,7 +14,8 @@ module bridge_mask_audit_tb;
     .coarse_compare_enable(),.coarse_acquire_enable(),.flash_acquire_enable(),.fine_acquire_enable(),
     .coarse_trial(),.quantizer_dither(),.acquisition_dither_rails(),.fine_trial(),.fine_compare_enable(),.flash_sample(),
     .slice_sel(),.main_sw(),.sub_sw(),.dither_sw(),.sw_valid(),.recon_start(),.context_id(),.context_slices(),
-    .context_main(),.context_sub(),.context_rails(),.context_sampling(),.context_analog_bad(),.context_injection(),.fine_code(),.error_code());
+    .context_main(),.context_sub(),.context_rails(),.context_sampling(),.context_analog_bad(),.context_injection(),
+    .context_coarse(),.context_sid(),.context_dither(),.fine_code(),.error_code());
   integer fd,details,fail_cases=0,total_cases=0,total_changed_bits=0,nominal_fail=0;
   integer first_sid=-1,first_code=-1;
   integer order[63],sub_order[8];
@@ -51,7 +52,7 @@ module bridge_mask_audit_tb;
         for(a=0;a<8;a++)begin
           rank=(a+8-sid%8)%8;
           sc=code;
-          if(code>0 && code<511)begin if(rank<4)sc++;else sc--;end
+          if(sid>=256 && code>0 && code<511)begin if(rank<4)sc++;else sc--;end
           nmain=sc/8;nsub=sc%8;ref_main[a]='0;ref_sub[a]='0;
           for(j=0;j<nmain;j++)ref_main[a][order[j]]=1'b1;
           for(j=0;j<nsub;j++)ref_sub[a][sub_order[j]]=1'b1;
@@ -83,10 +84,10 @@ module bridge_mask_audit_tb;
       end
     end
     $fclose(fd);$fclose(details);
-    // Expiring diagnostic: success means the documented project-contract
-    // mismatch is still observable, not that the bridge requirement passed.
-    if(total_cases!=262144 || fail_cases==0)
-      $fatal(1,"bridge mismatch changed or vanished; review the known-limit diagnostic");
+    // The independently constructed reference includes the explicit sid[8]
+    // activation contract. Any physical mask difference is a real failure.
+    if(total_cases!=262144 || fail_cases!=0 || nominal_fail!=0)
+      $fatal(1,"bridge physical masks differ from independent reference");
     $display("BRIDGE_AUDIT_COMPLETE cases=%0d mismatch_cases=%0d changed_bits=%0d nominal_sum_mismatches=%0d first_sid=%0d first_code=%0d synthetic_weight_max_uv=%.9g synthetic_weight_rms_uv=%.9g",total_cases,fail_cases,total_changed_bits,nominal_fail,first_sid,first_code,max_error_uv,$sqrt(sum_error_sq/real'(total_cases)));
     $finish;
   end

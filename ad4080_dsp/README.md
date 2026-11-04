@@ -1,5 +1,7 @@
 # AD4080 风格数字子系统与 SAR 工程接入
 
+> 结构 SAR 现有逐结果 `dout_analog_bad` 和可选校准观测口；本 DSP 接入层仍用模拟异常粘滞位停流，未传播该逐样本位。见 [接口合同](docs/SAR20_INTERFACE.md) 和 [ADR 0021](../docs/adr/0021-structural-contract-calibration.md)。
+
 这是独立的数字处理原型：系统失调/增益校正、SINC 抽取、FIFO 捕获、SPI 寄存器、事件检测与串行帧逻辑。它与主工程共享验证环境，但不是 AD4080 芯片实现，也不包含模拟 ADC、DDR 差分 PHY、工艺 SRAM 或 ASIC 时序签核。
 
 ## 与本工程连接

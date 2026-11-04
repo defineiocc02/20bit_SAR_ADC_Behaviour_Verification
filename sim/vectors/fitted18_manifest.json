@@ -1,17 +1,17 @@
 {
   "artifacts_sha256": {
-    "fitted18_frozen.json": "72b7f20914bdba75c264e0eb51809a0363c51fabd1045b083acd7e61f1b062c8",
-    "fitted18_holdout.hex": "796befc24d29d0ee67bddbb7932abd2ec7a3eee244bcc8aae525227a1decb8ba",
-    "fitted18_registers.json": "cd62240b69e3e4a89333bb9982838667b3f42b0f9bff770010ef7479b5268020",
-    "fitted18_scalars.hex": "e78026a60e476f5dc504537b8b4ee8e0064c22c8f65c6dd7ed7c30226fdc554f",
-    "fitted18_weights.hex": "51ce33a67dab900d50a444822fec4d77cb636beccfb67337b2efe1ba636aec29"
+    "fitted18_frozen.json": "4b1ae92bec97eefc4d5dc9b0c5ad1f5098416e9027a7b8fd69de64507a4901ed",
+    "fitted18_holdout.hex": "ceaca51db117ceef24873d61a792728c9068bd5ea1434ad55ca0ed11bb56c8bc",
+    "fitted18_registers.json": "eb1b15d92dbef8ac6177b5e0a6a362154a8222c31e2de88e84d13baf889b52df",
+    "fitted18_scalars.hex": "b6010b30445123fbdb840bd4174b737ccd9e7769105b31d10ce73de647fd9ab5",
+    "fitted18_weights.hex": "a890b78290b677b7f7ea58e086cbdd0151c7824edca9e89ff186c461855551d8"
   },
-  "condition": 710.0725222521625,
-  "fitted_rms_v": 7.293299736534808e-05,
+  "condition": 890.4425512225092,
+  "fitted_rms_v": 7.352638200784246e-05,
   "holdout_samples": 128,
-  "nominal_rms_v": 0.0004201865488827881,
+  "nominal_rms_v": 0.00041788286597143937,
   "rank": 1279,
   "schema_version": 1,
-  "training_digest": "e68f7f7711e9ef6ea5f3bd04e66f3022601680efa381db40cf0ecad29000f76a",
+  "training_digest": "20103c47d5bbf9c686ecca86554142ee0a4c581e77136b941ca39e25311cecd5",
   "training_samples": 2048
 }

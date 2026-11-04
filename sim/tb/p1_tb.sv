@@ -392,7 +392,8 @@ module p1_tb;
       m2_sid        = bank[0] ? m1_sid_b : m1_sid_a;   // <- 来自 M1，不是文件
       m3_coarse     = coarse[8:0];
       m3_dither_raw = dither[7:0];
-      m3_bridge     = bridge[0];
+      // The leaf receives the effective enable after the frozen sid[8] gate.
+      m3_bridge     = bridge[0] && m2_sid[8];
       m3_dem        = 1'b1;
       m3_sidlow     = m2_sid[2:0];                     // <- 来自链路，不是文件
       #1;

@@ -392,6 +392,9 @@
         "ra_bandwidth_hz": null,
         "ra_dc_gain": null,
         "ra_slew_v_s": null,
+        "rdac_event_timing": "scaled",
+        "rtl_dither_seed": 324508639,
+        "rtl_shuffle_seed": 1831565813,
         "rtol": 1e-09
       }
     },

@@ -88,6 +88,7 @@ def capture(
     dither_rng: np.random.Generator | None = None,
     chip=None,
     c_active: np.ndarray | None = None,
+    dither_codes: np.ndarray | None = None,
 ) -> SampleBatch:
     """按采样事件生成噪声；同一个 n_R 实现贯穿该样本的全部后续处理。
 
@@ -113,6 +114,8 @@ def capture(
         chip: 虚拟芯片（用于 dither 掩码失配与兼容路径的 c_active 取值）。
         c_active: 可选 ``(N,)`` float64 逐样本活跃电容 [F]
             （kT/C 绑定真实采样集合；缺省退回名义活跃电容）。
+        dither_codes: 可选的已知整数扰动序列 [RDAC 单位]；用于结构 RTL
+            精确对照，普通行为仿真仍使用独立随机源。
 
     Returns:
         SampleBatch（字段单位见 SampleBatch 的 docstring）。
@@ -145,6 +148,17 @@ def capture(
         x2 = x2 + nd
         dx = x2 - x1
 
+    if dither_codes is not None:
+        dither_codes = np.asarray(dither_codes)
+        if (
+            dither_codes.shape != (n_samples,)
+            or cfg.dither_mode not in ("sampling", "quantizer")
+            or np.any(~np.isfinite(dither_codes))
+            or np.any(dither_codes != np.rint(dither_codes))
+            or np.any(np.abs(dither_codes) > cfg.dither_units_range)
+        ):
+            raise ValueError("explicit dither codes must be legal integer samples")
+
     # dither：两种物理实现，代价形式完全不同
     dither = np.zeros(n_samples)  # 加到采样值上的电压（数字端已知）
     dither_code = np.zeros(n_samples)  # 码域配对量（单位 = RDAC 单位）
@@ -164,7 +178,11 @@ def capture(
         # 仅供诊断；真正写进开关码的取整在主循环做，因为粒度依赖拓扑 step0）。
         drng = dither_rng if dither_rng is not None else rng
         amp = cfg.dither_amplitude_lsb1 * cfg.delta1
-        dither = drng.uniform(-amp, amp, n_samples)
+        dither = (
+            drng.uniform(-amp, amp, n_samples)
+            if dither_codes is None
+            else dither_codes * cfg.nominal_rdac_step
+        )
         dither_code = dither / cfg.delta1
         if cfg.dither_discrete:
             dither = np.round(dither / cfg.nominal_rdac_step) * cfg.nominal_rdac_step
@@ -175,7 +193,7 @@ def capture(
         #   信号衰减 α = (N−2D)/N 恒定，与 d_u 无关
         drng = dither_rng if dither_rng is not None else rng
         D = cfg.dither_units_range
-        dcode = drng.uniform(-D, D, n_samples)
+        dcode = drng.uniform(-D, D, n_samples) if dither_codes is None else dither_codes.copy()
         if getattr(cfg, "dither_discrete", False):
             # 离散掩码口径（stage18）：物理开关只能整数单位选择。
             # 连续均匀分布保留为数学基准；离散化后 d_u ∈ {−D..D} 共 2D+1 个码。

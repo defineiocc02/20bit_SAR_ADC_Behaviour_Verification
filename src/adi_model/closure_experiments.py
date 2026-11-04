@@ -253,7 +253,7 @@ def signed_reference_loading(c0, n=16384) -> dict:
     checks = {
         "signed_recovery_recurrence": max(x["signed_event_oracle_peak_v"] for x in rows) < 1e-12,
         "real_loading_sequences": rows[0]["events_per_conversion"] == 1
-        and rows[1]["events_per_conversion"] == 2 * cfg.b1 + 1,
+        and rows[1]["events_per_conversion"] == 1 + cfg.b1 - 3,
         "signed_charge_not_fixed_binary_proxy": rows[1]["negative_rail_charge_min_c"]
         < 0
         < rows[1]["positive_rail_charge_max_c"],
@@ -268,7 +268,7 @@ def signed_reference_loading(c0, n=16384) -> dict:
         "PASS": all(checks.values()),
         "checks": checks,
         "rows": rows,
-        "判据": "实际有符号电荷事件与独立跨周期恢复递推一致；逐位序列改变参考/RA/ADC2 联合响应；分别报告两种装载的最终整数码 SNDR。具体 SAR 试探次序与相位时间为假设，不预设逐位必然降低峰值或噪声。",
+        "判据": "实际有符号电荷事件与独立跨周期恢复递推一致；Flash 前缀与已决位序列改变参考/RA/ADC2 联合响应；分别报告两种装载的最终整数码 SNDR。相位时间为工程假设，不预设逐位必然降低峰值或噪声。",
     }
 
 

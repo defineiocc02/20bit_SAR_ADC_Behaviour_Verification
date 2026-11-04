@@ -2,7 +2,7 @@
 // Pin-driven structural integration. Ideal comparator models respond to the
 // actual SAR trial pins. Oracle uses physical RDAC pins and independently
 // retained coefficient fixtures; it cannot see reconstruction internal sums.
-module structural_adc_tb #(parameter int P_RECON_STAGES=7);
+module structural_adc_tb #(parameter int P_RECON_STAGES=7, parameter bit P_OBSERVER=1);
   localparam int RECON_LAT=(63+P_RECON_STAGES-1)/P_RECON_STAGES+2;
   logic clk=0,rst_n=0,cfg_wr=0,cfg_validate=0,cfg_clear_valid=0;
   always #1 clk=~clk;
@@ -32,12 +32,26 @@ module structural_adc_tb #(parameter int P_RECON_STAGES=7);
   wire dout_valid,clip_low,clip_high,analog_ovf,acc_ovf;
   wire [31:0] status,id;
   wire [4:0] flags;
+  wire observer_valid, result_analog_bad;
+  wire [747:0] observer_data;
+  wire [31:0] obs_id;
+  wire [8:0] obs_coarse, obs_sid;
+  wire signed [7:0] obs_dither;
+  wire [7:0][4:0] obs_ids;
+  wire [7:0][62:0] obs_main;
+  wire [7:0][7:0] obs_sub;
+  wire [3:0] obs_rails;
+  wire obs_sampling, obs_analog_bad;
+  wire signed [63:0] obs_injection;
+  wire [11:0] obs_fine;
+  assign {obs_id,obs_coarse,obs_sid,obs_dither,obs_ids,obs_main,obs_sub,
+      obs_rails,obs_sampling,obs_analog_bad,obs_injection,obs_fine}=observer_data;
   logic signed [63:0] injection=0;
   int coarse_target=256,fine_target=2048;
   assign coarse_ge[0]=(coarse_target+int'($signed(qdither[0])))>=int'(trials[0]);
   assign coarse_ge[1]=(coarse_target+int'($signed(qdither[1])))>=int'(trials[1]);
   assign fine_ge=fine_target>=int'(fine_trial);
-  sar20_digital_core #(.P_RECON_STAGES(P_RECON_STAGES)) dut(
+  sar20_digital_core #(.P_RECON_STAGES(P_RECON_STAGES),.P_CAL_OBSERVE(P_OBSERVER)) dut(
     .clk(clk),.rst_n(rst_n),.cfg_wr(cfg_wr),.cfg_addr(cfg_addr),.cfg_wdata(cfg_wdata),
     .cfg_rdata(cfg_rdata),.cfg_validate(cfg_validate),.cfg_clear_valid(cfg_clear_valid),.cfg_ready(cfg_ready),
     .sadc_code(9'd0),.sadc_rdy(1'b0),.adc2_code(12'd0),.adc2_rdy(1'b0),
@@ -51,16 +65,24 @@ module structural_adc_tb #(parameter int P_RECON_STAGES=7);
     .fine_trial(fine_trial),.fine_compare_enable(fine_en),.coarse_acquire_enable(),.flash_acquire_enable(),.fine_acquire_enable(),.flash_sample(flash_sample),
     .slice_sel(selected),.main_sw(main_sw),.sub_sw(sub_sw),.dither_sw(dith_sw),.sw_valid(sw_valid),
     .dout(dout),.dout_valid(dout_valid),.clip_low(clip_low),.clip_high(clip_high),
-    .analog_ovf(analog_ovf),.acc_ovf(acc_ovf),.status_word(status),.dout_sample_id(id),.dout_flags(flags));
+    .analog_ovf(analog_ovf),.acc_ovf(acc_ovf),.status_word(status),.dout_sample_id(id),.dout_flags(flags),
+    .cal_obs_valid(observer_valid),.cal_obs_data(observer_data),.dout_analog_bad(result_analog_bad));
   logic [47:0] weights[18][71];
   logic [19:0] expected[600];
   logic [4:0] expected_flags[600];
   bit pending[600];
+  logic [17:0] saved_selected[600];
+  logic [17:0][62:0] saved_main[600];
+  logic [17:0][7:0] saved_sub[600];
+  logic [3:0] saved_rails[600];
+  logic [8:0] saved_coarse[600], saved_sid[600];
+  logic signed [7:0] saved_dither[600];
+  logic signed [63:0] saved_injection[600];
   logic signed [255:0] residue_total,residue_gain,residue_rails,residue_inj;
   bit residue_valid;
   int residue_id,outputs=0,expected_count=0,frame=-1,checks=0;
   logic [17:0] acquired_at_edge,used='0;
-  int mode=0,cancelled=0;
+  int mode=0,cancelled=0,sampling_offset=0;
   int clock_count=0,launch_clock[600],latency_checks=0;
   // Observe transaction boundaries only; the code oracle below still uses
   // physical RDAC pins and its own coefficient fixture. All profiles must
@@ -114,6 +136,7 @@ module structural_adc_tb #(parameter int P_RECON_STAGES=7);
     resolved_prefix=(resolved_prefix >> (9-int'(phase))) << (9-int'(phase));
     expected_command=resolved_prefix;
     if(mode==2) expected_command-=int'($signed(qdither[(frame+1)%2]));
+    if(mode==1) expected_command+=sampling_offset;
     if(expected_command<0) expected_command=0;
     if(expected_command>511) expected_command=511;
     equivalent_sum=0;
@@ -130,9 +153,18 @@ module structural_adc_tb #(parameter int P_RECON_STAGES=7);
     residue_id=frame+1;residue_inj=256'(injection);
     residue_total=0;residue_gain=0;residue_rails=0;
     if(residue_valid) begin
+      saved_selected[residue_id]=selected;
+      saved_injection[residue_id]=injection;
+      saved_main[residue_id]=main_sw;
+      saved_sub[residue_id]=sub_sw;
+      saved_sid[residue_id]=dut.u_structure.sid;
+      saved_coarse[residue_id]=9'(coarse_target+(mode==2 ? int'($signed(qdither[(frame+1)%2])) : 0));
+      saved_dither[residue_id]=(mode==1) ? 8'(sampling_offset)
+          : ((mode==2) ? $signed(qdither[(frame+1)%2]) : 8'sd0);
       if(selected!==conv) $fatal(1,"RDAC physical selection did not follow acquired bank");
       used|=selected;
       for(int s=0;s<18;s++) if(selected[s]) begin
+        saved_rails[residue_id]=dith_sw[s];
         equivalent=$countones(main_sw[s])*8+$countones(sub_sw[s]);
         // Bridge exchanges one sub-unit, with 4 positive/4 negative slices.
         if(equivalent<coarse_target-3 || equivalent>coarse_target+3)
@@ -159,6 +191,7 @@ module structural_adc_tb #(parameter int P_RECON_STAGES=7);
       for(int tick=0;tick<16*160;tick++) begin
         if(phase==0) begin
           frame++;acquired_at_edge=acq;
+          sampling_offset=(mode==1) ? ($countones(acq_rails)-2) : 0;
           coarse_target=16+(frame*37)%480;
           fine_target=512+(frame*43)%3072;
           injection=64'(frame*9173);
@@ -166,6 +199,21 @@ module structural_adc_tb #(parameter int P_RECON_STAGES=7);
           fine_valid=(frame%41!=13);
           flash_therm=7'((1<<((coarse_target+int'($signed(qdither[(frame+1)%2])))>>6))-1);
           queue_expected();
+        end
+        if(!P_OBSERVER && (observer_valid || observer_data != '0))
+          $fatal(1,"disabled calibration observer leaked data");
+        if(P_OBSERVER && observer_valid) begin
+          if(obs_id>=600 || !pending[obs_id] || obs_sampling!=(mode==1) || obs_analog_bad ||
+             obs_fine!=12'(fine_target) || obs_injection!=saved_injection[obs_id] ||
+             obs_coarse!=saved_coarse[obs_id] || obs_sid!=saved_sid[obs_id] ||
+             obs_dither!=saved_dither[obs_id] || obs_rails!=saved_rails[obs_id])
+            $fatal(1,"observer context mismatch id=%0d frame=%0d",obs_id,frame);
+          for(int a=0;a<8;a++) begin
+            if(obs_ids[a]>=18 || !saved_selected[obs_id][obs_ids[a]] ||
+               obs_main[a]!==saved_main[obs_id][obs_ids[a]] ||
+               obs_sub[a]!==saved_sub[obs_id][obs_ids[a]])
+              $fatal(1,"observer physical mask mismatch id=%0d slot=%0d",obs_id,a);
+          end
         end
         if(phase==2 && conv!==acquired_at_edge)
           $fatal(1,"converted a bank that did not acquire the preceding interval");
@@ -178,6 +226,7 @@ module structural_adc_tb #(parameter int P_RECON_STAGES=7);
           check_resolved_follower();
         if(phase==9) save_residue();
         if(dout_valid) begin
+          if(result_analog_bad) $fatal(1,"unexpected per-result analog fault");
           if(!pending[id] || dout!==expected[id] || flags!==expected_flags[id])
             $fatal(1,"calibrated context mode=%0d frame=%0d id=%0d got=%0d expected=%0d flags=%b expflags=%b pending=%b",mode,frame,id,dout,expected[id],flags,expected_flags[id],pending[id]);
           pending[id]=0;outputs++;

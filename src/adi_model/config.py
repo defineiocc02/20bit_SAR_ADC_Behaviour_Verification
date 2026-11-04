@@ -540,6 +540,31 @@ class Config:
             ra_v_clip=base.ra_v_clip if "ra_v_clip" in overrides else 1.2 * hi,
         )
 
+    @classmethod
+    def rtl_structural(cls, **overrides) -> Config:
+        """Build the explicit 16-phase timing profile used by the RTL.
+
+        This is an engineering timing contract, not a statement about the
+        unpublished silicon clock. Callers may override other model parameters;
+        incompatible timing or geometry is rejected by ``check_legal``.
+        """
+        fs = overrides.get("fs", cls().fs)
+        if not math.isfinite(fs) or fs <= 0:
+            raise ConfigError("rtl_structural requires a positive finite sample rate")
+        overrides.setdefault(
+            "conversion",
+            ConversionParameters(quantizer_time_s=10 / (16 * fs), rdac_event_timing="rtl16"),
+        )
+        overrides.setdefault("dyn_t_conv_frac", 6 / 16)
+        overrides.setdefault("rdac_bitwise_loading", True)
+        overrides.setdefault("dither_transfer_model", "range")
+        overrides.setdefault(
+            "dem_mode", "permute" if overrides.get("dem_enable", False) else "rotate"
+        )
+        cfg = cls.paper_literal(**overrides)
+        cfg.check_legal()
+        return cfg
+
     @property
     def nominal_rdac_step(self) -> float:
         """Nominal RDAC input-referred step [V], independent of true capacitors.
@@ -980,6 +1005,34 @@ class Config:
             return bad
         bad.extend(self.input_network.violations())
         bad.extend(self.conversion.violations())
+        if self.conversion.rdac_event_timing == "rtl16" and (
+            not math.isfinite(self.fs)
+            or self.fs <= 0
+            or self.b1 != 9
+            or self.n_slices != 18
+            or self.n_active != 8
+            or self.dac_n_main != 63
+            or self.dac_n_sub != 8
+            or self.dac_arch != "split"
+            or not self.dac_complete_range
+            or self.adc2_n_bits != 12
+            or self.n_bits_target != 20
+            or self.dem_mode != ("permute" if self.dem_enable else "rotate")
+            or self.dither_mode not in ("off", "sampling", "quantizer")
+            or not self.dither_discrete
+            or self.dither_units_range != 2
+            or self.dither_split_bank != "sub"
+            or self.dither_transfer_model != "range"
+            or not self.rdac_bitwise_loading
+            or not math.isclose(self.dyn_t_conv_frac, 6 / 16, rel_tol=0, abs_tol=1e-15)
+            or not math.isclose(
+                self.conversion.quantizer_time_s,
+                10 / (16 * self.fs),
+                rel_tol=1e-12,
+                abs_tol=0,
+            )
+        ):
+            bad.append("rtl16 timing requires the 9-bit, 18/8, 63+8 structural schedule")
         if self.dyn_ref_settling or self.conversion.dynamic:
             if not math.isfinite(self.dyn_tau_ref) or self.dyn_tau_ref <= 0:
                 bad.append("dyn_tau_ref must be finite and positive [s]")
@@ -989,7 +1042,8 @@ class Config:
                 bad.append("dyn_t_conv_frac must be in (0, 1]")
             if (
                 self.fs > 0
-                and self.conversion.quantizer_time_s + self.dyn_t_conv_frac / self.fs > 1 / self.fs
+                and self.conversion.quantizer_time_s + self.dyn_t_conv_frac / self.fs
+                > (1 + 1e-12) / self.fs
             ):
                 bad.append("quantizer and RA/ADC2 phases must fit within one sample period")
         if self.dyn_input_settling:

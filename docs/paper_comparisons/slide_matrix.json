@@ -2,6 +2,7 @@
   "source": "ISSCC 2024 Session 9.8 slides, locally held PDF; figures are original and source PDF is not redistributed",
   "source_pdf_sha256": "e7074c0f612c31bb76ad276fefaf6e6cf36479292248dc41085c4dadd1f8193a",
   "model_revision": "6863fc3d011647cfbf73b1e7f447b32a79461138",
+  "status_scope": "Historical baseline only. Current structural event and bridge contracts are recorded in ADR 0021; this matrix is retained as historical evidence.",
   "entries": [
     {
       "slides": [

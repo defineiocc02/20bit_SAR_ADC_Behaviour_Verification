@@ -1,5 +1,7 @@
 # ADR 0019：外部拟合系数到 RTL 结果的闭环
 
+> **当前状态更新：**本 ADR 保留历史决策与证据；结构 DUT 观测、开关和参考事件的新合同见 [ADR 0021](0021-structural-contract-calibration.md)。
+
 日期：2026-09-28。状态：已实现，依据为 `calibration_fit_tb`、Python 回归及随附产物摘要。
 
 ## 决策

@@ -129,7 +129,11 @@ module structural_mapped_tb #(parameter int P_RECON_STAGES=7);
 `endif
     .sw_valid(sw_valid),
     .dout(dout),.dout_valid(dout_valid),.clip_low(clip_low),.clip_high(clip_high),
-    .analog_ovf(analog_ovf),.acc_ovf(acc_ovf),.status_word(status),.dout_sample_id(id),.dout_flags(flags));
+    .analog_ovf(analog_ovf),.acc_ovf(acc_ovf),.status_word(status),.dout_sample_id(id),.dout_flags(flags)
+`ifndef FULL_MAPPED_VENDOR_PORTS
+    ,.cal_obs_valid(),.cal_obs_data(),.dout_analog_bad()
+`endif
+    );
   logic [47:0] weights[18][71];
   logic [19:0] expected[600];
   logic [4:0] expected_flags[600];

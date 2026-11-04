@@ -46,6 +46,7 @@ module structural_protocol_tb;
     .flash_sample(),.slice_sel(sel),.main_sw(ms),.sub_sw(ss),.dither_sw(ds),.sw_valid(sv),
     .recon_start(launch),.context_id(id),.context_slices(ids),.context_main(cm),.context_sub(cs),
     .context_rails(cr),.context_sampling(csm),.context_analog_bad(cab),.context_injection(ci),
+    .context_coarse(),.context_sid(),.context_dither(),
     .fine_code(fc),.error_code(err));
   // A zero-delay RTL simulation cannot establish physical glitch freedom.
   // Deliberately perturb only the phase bus between clocks to test isolation

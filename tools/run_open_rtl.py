@@ -26,6 +26,7 @@ def main() -> None:
         "calibration_recovery_tb": "CALIBRATION_RECOVERY_COMPLETE",
         "calibration_fit_tb": "CALIBRATION_FIT_COMPLETE",
         "structural_adc_tb": "STRUCTURAL_ADC_COMPLETE",
+        "structural_adc_observer_off_tb": "STRUCTURAL_ADC_COMPLETE",
         "structural_protocol_tb": "STRUCTURAL_PROTOCOL_COMPLETE",
         "recon_ppa_latency_tb": "RECON_PPA_PROFILE_PASS stages=7 samples=32",
         "divider_borrow_tb": "DIVIDER_BORROW_COMPLETE exhaustive_checks=67592",
@@ -47,13 +48,15 @@ def main() -> None:
         "engineering_fsm_tb": "ENGINEERING_FSM_COMPLETE",
         "sar20_dsp_integration_tb": "SAR20_DSP_INTEGRATION_COMPLETE",
         "sar20_system_top_tb": "SAR20_SYSTEM_TOP_COMPLETE",
+        "bridge_mask_audit_tb": "BRIDGE_AUDIT_COMPLETE",
+        "structural_calibration_observe_tb": "STRUCTURAL_CALIBRATION_OBSERVE_COMPLETE",
+        "rdac_event_contract_tb": "RDAC_EVENT_CONTRACT_COMPLETE",
     }
     # These opt-in benches succeed only while a documented counterexample is
     # reproducible. Their completion markers do not mean the requirement passes.
     known_limit_benches = {
         "two_point_direction_tb": "TWO_POINT_DIRECTION_COUNTEREXAMPLE",
         "lvds_cadence_tb": "LVDS_CADENCE_PROBE_COMPLETE",
-        "bridge_mask_audit_tb": "BRIDGE_AUDIT_COMPLETE",
     }
     parser.add_argument(
         "--tops",
@@ -84,12 +87,14 @@ def main() -> None:
     # behind the simulation compile's allowance for testbench warnings.
     for lint_top, profile, parameters in (
         ("sar20_digital_core", "structural", []),
+        ("sar20_digital_core", "structural_observer", ["-GP_CAL_OBSERVE=1"]),
         ("sar20_digital_core", "compatibility", ["-GP_STRUCTURAL=0"]),
         ("sadc_enc", "standalone", []),
         ("sar20_system_top", "system", ["-Wno-TIMESCALEMOD"]),
+        ("sar20_system_top", "system_observer", ["-Wno-TIMESCALEMOD", "-GP_CAL_OBSERVE=1"]),
     ):
         lint_sources = sources
-        if profile == "system":
+        if profile in {"system", "system_observer"}:
             lint_sources = sources + sorted((REPO / "ad4080_dsp/rtl").glob("*.sv"))
         with (out / f"{lint_top}.{profile}.lint.log").open("w", encoding="utf-8") as log:
             lint_result = subprocess.run(
@@ -142,6 +147,8 @@ def main() -> None:
                 build,
             ]
             args += [str(p.relative_to(REPO)) for p in sources]
+            if top == "structural_adc_observer_off_tb":
+                args += ["sim/tb/structural_adc_tb.sv"]
             if top == "tree_mapping_tb":
                 args += ["sim/tb/tree_mapping_dut.sv"]
             if top in {

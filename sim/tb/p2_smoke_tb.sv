@@ -91,7 +91,7 @@ module p2_smoke_tb;
       .analog_ovf (analog_ovf), .acc_ovf (acc_ovf),
       .status_word (status_word)
   ,
-      .dout_sample_id(), .dout_flags()
+      .dout_sample_id(), .dout_flags(), .cal_obs_valid(), .cal_obs_data(), .dout_analog_bad()
   ,
       .flash_therm('0), .flash_valid('0), .coarse_cmp_valid('0), .coarse_cmp_ge('0), .fine_cmp_valid('0), .fine_cmp_ge('0), .analog_phase(), .quiet_sample(), .tp_clock(), .ra_az(), .ra_amplify(), .ref_precharge(), .ref_accurate(), .acquiring_mask(), .converting_mask(), .aux_charge_enable(), .hold_low_enable(), .coarse_compare_enable(), .coarse_trial(), .quantizer_dither(), .acquisition_dither_rails(), .fine_trial(), .fine_compare_enable(), .coarse_acquire_enable(),.flash_acquire_enable(),.fine_acquire_enable(),.flash_sample()
   );

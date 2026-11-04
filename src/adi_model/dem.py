@@ -53,8 +53,10 @@ def split_switch_command(
         sid: Digital DEM states, shape (N,).
 
     Returns:
-        Realizable orders/counts with invariant mean nominal fine code. The
-        redundant mapping is a model assumption, not a disclosed switch matrix.
+        Realizable orders/counts with invariant mean nominal fine code. When
+        enabled, the candidate bridge acts only for states with bit 8 set, as
+        in the structural RTL. Its connection to the paper's 50% annotation is
+        an engineering hypothesis, not a disclosed switch matrix.
 
     Raises:
         ValueError: Non-finite codes or inconsistent array shapes.
@@ -82,6 +84,7 @@ def split_switch_command(
         half = cfg.n_active // 2
         signs = (rank < half).astype(float) - ((rank >= half) & (rank < 2 * half))
         amount = np.minimum(1, np.minimum(code, cfg.dac_levels - 1 - code))
+        amount *= (states & 0x100) != 0
         slice_codes += signs * amount[:, None]
     main_counts = np.floor(slice_codes / ns)
     sub_counts = slice_codes - ns * main_counts

@@ -34,7 +34,9 @@ module sar20_digital_core #(
     parameter int P_RECON_STAGES = 7,
     parameter int P_REF_ON = 10,
     parameter int P_RESIDUE_CAPTURE = 9,
-    parameter logic [31:0] P_SHUFFLE_SEED = 32'h6d2b79f5
+    parameter bit P_CAL_OBSERVE = 0,
+    parameter logic [31:0] P_SHUFFLE_SEED = 32'h6d2b79f5,
+    parameter logic [31:0] P_DITHER_SEED = 32'h13579bdf
 ) (
     input  logic        clk,
     input  logic        rst_n,
@@ -91,7 +93,11 @@ module sar20_digital_core #(
     // ---- 观测 ----
     output logic [31:0]         status_word,
     output logic [31:0]         dout_sample_id,
-    output logic [4:0]          dout_flags
+    output logic [4:0]          dout_flags,
+    // Optional same-edge calibration packet; see the documented 748-bit layout.
+    output wire                 cal_obs_valid,
+    output wire [747:0]         cal_obs_data,
+    output wire                 dout_analog_bad
 );
 
   //=========================================================================
@@ -162,6 +168,8 @@ module sar20_digital_core #(
   logic legacy_sw_valid;
   wire structural_sw_valid,structural_launch;
   wire [31:0] structural_error,structural_id;
+  wire [8:0] structural_coarse, structural_sid;
+  wire signed [7:0] structural_dither;
   wire [7:0][4:0] structural_ids;
   wire [7:0][62:0] structural_main;
   wire [7:0][7:0] structural_sub;
@@ -470,7 +478,7 @@ module sar20_digital_core #(
 
   dither_gen #(
       .D    (int'(DITHER_UNITS_RANGE)),
-      .SEED (32'h1357_9BDF)
+      .SEED (P_DITHER_SEED)
   ) u_dith (
       .clk         (clk),
       .rst_n       (epoch_rst_n),
@@ -501,14 +509,18 @@ module sar20_digital_core #(
   // legal force/release points for L3 (do not force child input variables).
   wire signed [15:0] swap_dither_code;
   wire signed [7:0] sampling_dither_code;
-  assign swap_dither_code = c_qdither_en ? {{8{dith_q[7]}}, dith_q} : 16'sd0;
+  assign swap_dither_code = c_qdither_en ? -16'($signed(dith_q))
+      : (c_smask_en ? (DITHER_SPLIT_IS_SUB ? 16'($signed(dith_q))
+          : 16'($signed(dith_q)) * 16'(N_UNIT_SUB)) : 16'sd0);
   assign sampling_dither_code = c_smask_en ? dith_q : 8'sd0;
 
   swap_decode u_swap (
       .coarse      (sadc_hold),                     // 兼容模式：核外编码、相位 8 捕获
       .dither_code (swap_dither_code),      // 显式符号扩展到 16 位
       .dem_en      (c_dem_en),
-      .bridge_en   (c_bridge_en),
+      // Match the structural profile: bridge exchange is active only for
+      // the upper half of the frozen nine-bit DEM-state space.
+      .bridge_en   (c_bridge_en && sid_hold[8]),
       .sid_low     (sid_hold[2:0]),
       .main_count  (main_count),
       .sub_count   (sub_count),
@@ -556,7 +568,8 @@ module sar20_digital_core #(
   sar_structural_ctrl #(
       .P_REF_ON(P_REF_ON),
       .P_RESIDUE_CAPTURE(P_RESIDUE_CAPTURE),
-      .P_SHUFFLE_SEED(P_SHUFFLE_SEED)
+      .P_SHUFFLE_SEED(P_SHUFFLE_SEED),
+      .P_DITHER_SEED(P_DITHER_SEED)
   ) u_structure (
       .clk(clk),
       .rst_n(epoch_rst_n),
@@ -602,6 +615,9 @@ module sar20_digital_core #(
       .sw_valid(structural_sw_valid),
       .recon_start(structural_launch),
       .context_id(structural_id),
+      .context_coarse(structural_coarse),
+      .context_sid(structural_sid),
+      .context_dither(structural_dither),
       .context_slices(structural_ids),
       .context_main(structural_main),
       .context_sub(structural_sub),
@@ -617,6 +633,18 @@ module sar20_digital_core #(
   assign sub_sw = P_STRUCTURAL ? structural_sub_sw : legacy_sub_sw;
   assign dither_sw = P_STRUCTURAL ? structural_dither_sw : legacy_dither_sw;
   assign sw_valid = P_STRUCTURAL ? structural_sw_valid : legacy_sw_valid;
+
+  // The packet is sampled on the same edge as recon_core.start. The source
+  // fields are already frozen in the previous-residue context. No backpressure
+  // or off-chip transport is implied by this opt-in debug interface.
+  assign cal_obs_valid = P_CAL_OBSERVE && P_STRUCTURAL && rst_n &&
+      !cfg_clear_valid && structural_launch;
+  assign cal_obs_data = P_CAL_OBSERVE && P_STRUCTURAL ? {
+      structural_id, structural_coarse, structural_sid, structural_dither,
+      structural_ids, structural_main, structural_sub, structural_rails,
+      structural_sampling, structural_analog_bad, structural_injection,
+      structural_fine
+  } : '0;
 
   //=========================================================================
   // 10) 定点重构
@@ -670,6 +698,17 @@ module sar20_digital_core #(
   assign dout_valid  = rc_dout_valid;
   assign clip_low    = rc_clip_low;
   assign clip_high   = rc_clip_high;
+
+  // The reconstruction is single-in-flight and completes before the next
+  // 16-phase launch. Carry the matching analog flag through that transaction.
+  logic pending_analog_bad;
+  always_ff @(posedge clk) begin
+    if (!rst_n || cfg_clear_valid || !cfg_ready)
+      pending_analog_bad <= 1'b0;
+    else if (launch_recon)
+      pending_analog_bad <= P_STRUCTURAL ? structural_analog_bad : analog_sample;
+  end
+  assign dout_analog_bad = rc_dout_valid && pending_analog_bad;
 
   //=========================================================================
   // 11) 状态寄存器

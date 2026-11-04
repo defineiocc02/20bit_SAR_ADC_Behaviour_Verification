@@ -30,6 +30,70 @@ class SlicePlan:
         return int(self.conv.shape[0])
 
 
+def _lfsr8(state: int) -> int:
+    for _ in range(8):
+        state = (state >> 1) ^ (0x80200003 if state & 1 else 0)
+    return state
+
+
+def rtl_dither_codes(n_samples: int, seed: int) -> np.ndarray:
+    """Return the structural D=2 LFSR dither sequence after acquisition priming."""
+    if type(n_samples) is not int or n_samples < 0:
+        raise ValueError("RTL dither needs a nonnegative integer sample count")
+    if type(seed) is not int or not 0 < seed <= 0xFFFF_FFFF:
+        raise ValueError("RTL dither seed must be a nonzero uint32")
+    out = np.empty(n_samples, dtype=np.int64)
+    state = seed
+    for i in range(n_samples):
+        reduced = (state >> 24) % 8
+        out[i] = ((reduced + 1) >> 1) - 2
+        state = _lfsr8(state)
+    return out
+
+
+def build_rtl_slice_plan(n_samples: int, *, shuffle: bool, seed: int) -> SlicePlan:
+    """Reproduce the structural allocator's priming, ordering and LFSR cursor.
+
+    This fixed 18/8 profile is an engineering implementation, not a claim that
+    the paper discloses its PRNG. The first advance is discarded as invalid.
+    """
+    if type(n_samples) is not int or n_samples < 0:
+        raise ValueError("RTL schedule needs a nonnegative integer sample count")
+    if type(shuffle) is not bool or type(seed) is not int or not 0 < seed <= 0xFFFF_FFFF:
+        raise ValueError("RTL schedule needs a boolean shuffle and a nonzero uint32 seed")
+    conv = np.empty((n_samples, 8), dtype=np.int64)
+    acq = np.empty_like(conv)
+    current = np.arange(8, dtype=np.int64)
+    cursor, state = 8, seed
+    for cycle in range(n_samples + 1):
+        used = set(map(int, current))
+        following: list[int] = []
+        for k in range(18):
+            candidate = (cursor + k) % 18
+            if candidate not in used and len(following) < 8:
+                following.append(candidate)
+        next_ids = np.asarray(following, dtype=np.int64)
+        if cycle:
+            conv[cycle - 1] = current
+            acq[cycle - 1] = next_ids
+        current = next_ids
+        if shuffle:
+            raw = state >> 24
+            state = _lfsr8(state)
+            if raw < 252:
+                cursor = raw % 18
+        else:
+            cursor = 0
+    return SlicePlan(
+        conv,
+        acq,
+        np.arange(n_samples, dtype=np.int64) - 1,
+        np.ones(n_samples, dtype=bool),
+        "rtl16",
+        {"shuffle": shuffle, "seed": seed, "startup_advances": 2},
+    )
+
+
 def build_slice_plan(
     cfg: Config,
     n_samples: int,

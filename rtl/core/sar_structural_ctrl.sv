@@ -23,7 +23,8 @@
 module sar_structural_ctrl #(
     parameter int P_REF_ON = 10,
     parameter int P_RESIDUE_CAPTURE = 9,
-    parameter logic [31:0] P_SHUFFLE_SEED = 32'h6d2b79f5
+    parameter logic [31:0] P_SHUFFLE_SEED = 32'h6d2b79f5,
+    parameter logic [31:0] P_DITHER_SEED = 32'h13579bdf
 ) (
     input wire clk, rst_n, enable, dem_en, bridge_en, sampling_en, quantizer_en,
     input wire [6:0] flash_therm,
@@ -52,6 +53,8 @@ module sar_structural_ctrl #(
     output logic sw_valid,
     output wire recon_start,
     output wire [31:0] context_id,
+    output wire [8:0] context_coarse, context_sid,
+    output wire signed [7:0] context_dither,
     output wire [7:0][4:0] context_slices,
     output wire [7:0][62:0] context_main,
     output wire [7:0][7:0] context_sub,
@@ -189,7 +192,7 @@ module sar_structural_ctrl #(
   wire random_valid;
   logic signed [7:0] acquiring_dither, current_dither;
   logic signed [63:0] current_injection;
-  dither_gen u_random (
+  dither_gen #(.SEED(P_DITHER_SEED)) u_random (
       .clk(clk),
       .rst_n(rst_n && enable),
       .en(advance),
@@ -211,10 +214,16 @@ module sar_structural_ctrl #(
   wire [7:0][7:0] sub_on;
   wire [3:0] rails;
   wire rdac_over;
-  wire signed [15:0] remove_dither = quantizer_en ? -16'(current_dither) : 16'sd0;
+  // Sampling dither is injected into the held charge and added to the RDAC
+  // command in matching units. Quantizer dither is instead removed from the
+  // decision. The two control modes are mutually exclusive at configuration.
+  wire signed [15:0] sampling_dither = DITHER_SPLIT_IS_SUB
+      ? 16'(current_dither) : (16'(current_dither) * 16'(N_UNIT_SUB));
+  wire signed [15:0] rdac_dither_adjust = quantizer_en ? -16'(current_dither)
+      : (sampling_en ? sampling_dither : 16'sd0);
   swap_decode u_decode (
       .coarse(resolved[bank]),
-      .dither_code(remove_dither),
+      .dither_code(rdac_dither_adjust),
       .dem_en(dem_en),
       .bridge_en(bridge_en && sid[8]),
       .sid_low(sid[2:0]),
@@ -259,6 +268,9 @@ module sar_structural_ctrl #(
       .quiet_sample(quiet_sample),
       .current_valid(conv_valid && coarse_ok),
       .current_id(current_id),
+      .current_coarse(resolved[bank]),
+      .current_sid(sid),
+      .current_dither(current_dither),
       .current_slices(conv_ids),
       .current_main(main_on),
       .current_sub(sub_on),
@@ -269,6 +281,9 @@ module sar_structural_ctrl #(
       .current_bad(rdac_over),
       .fine_valid(context_valid),
       .fine_id(context_id),
+      .fine_coarse(context_coarse),
+      .fine_sid(context_sid),
+      .fine_dither(context_dither),
       .fine_slices(context_slices),
       .fine_main(context_main),
       .fine_sub(context_sub),

@@ -9,7 +9,9 @@ module sar20_system_top #(
     parameter int P_RECON_STAGES = 7,
     parameter int P_REF_ON = 10,
     parameter int P_RESIDUE_CAPTURE = 9,
+    parameter bit P_CAL_OBSERVE = 0,
     parameter logic [31:0] P_SHUFFLE_SEED = 32'h6d2b79f5,
+    parameter logic [31:0] P_DITHER_SEED = 32'h13579bdf,
     parameter int DSP_FIFO_DEPTH = 16384
 ) (
     input  logic clk, rst_n,
@@ -49,6 +51,8 @@ module sar20_system_top #(
     output logic sar_dout_valid, sar_clip_low, sar_clip_high, sar_analog_ovf, sar_acc_ovf,
     output logic [31:0] sar_status_word, sar_sample_id,
     output logic [4:0] sar_flags,
+    output logic sar_result_analog_bad, cal_obs_valid,
+    output logic [747:0] cal_obs_data,
     // DSP input acceptance and rejection events; no output-side sample ID.
     input  logic dsp_restart,
     output logic sample_accepted,
@@ -74,7 +78,8 @@ module sar20_system_top #(
     sar20_digital_core #(
         .P_STRUCTURAL(P_STRUCTURAL), .P_RECON_STAGES(P_RECON_STAGES),
         .P_REF_ON(P_REF_ON), .P_RESIDUE_CAPTURE(P_RESIDUE_CAPTURE),
-        .P_SHUFFLE_SEED(P_SHUFFLE_SEED)
+        .P_SHUFFLE_SEED(P_SHUFFLE_SEED), .P_DITHER_SEED(P_DITHER_SEED),
+        .P_CAL_OBSERVE(P_CAL_OBSERVE)
     ) u_sar (
         .clk(clk), .rst_n(rst_n), .flash_therm(flash_therm), .flash_valid(flash_valid),
         .coarse_cmp_valid(coarse_cmp_valid), .coarse_cmp_ge(coarse_cmp_ge),
@@ -96,7 +101,8 @@ module sar20_system_top #(
         .sw_valid(sw_valid), .dout(sar_dout), .dout_valid(sar_dout_valid),
         .clip_low(sar_clip_low), .clip_high(sar_clip_high), .analog_ovf(sar_analog_ovf),
         .acc_ovf(sar_acc_ovf), .status_word(sar_status_word), .dout_sample_id(sar_sample_id),
-        .dout_flags(sar_flags)
+        .dout_flags(sar_flags), .dout_analog_bad(sar_result_analog_bad),
+        .cal_obs_valid(cal_obs_valid), .cal_obs_data(cal_obs_data)
     );
 
     sar20_ad4080_top #(.FIFO_DEPTH(DSP_FIFO_DEPTH)) u_dsp (

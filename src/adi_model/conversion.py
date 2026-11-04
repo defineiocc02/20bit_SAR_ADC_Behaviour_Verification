@@ -26,6 +26,12 @@ class ConversionParameters:
 
     Attributes:
         quantizer_time_s: Time from sampling to the start of residue amplification.
+        rdac_event_timing: ``scaled`` uses an abstract timing budget; ``rtl16``
+            uses the structural controller's 16-phase RDAC output schedule.
+        rtl_shuffle_seed: Nonzero 32-bit initial state of the structural slice
+            allocator. It is independent of the analog mismatch random seed.
+        rtl_dither_seed: Nonzero 32-bit initial state of the structural dither
+            generator; its accepted values are consumed in acquisition order.
         fine_reference_tau_s: Fine buffer recovery time; None uses dyn_tau_ref.
         ra_bandwidth_hz: Closed-loop RA signal bandwidth, not OTA unity-gain GBW.
         ra_dc_gain: OTA open-loop gain; None eliminates finite-gain error.
@@ -38,6 +44,9 @@ class ConversionParameters:
     """
 
     quantizer_time_s: float = 7e-9
+    rdac_event_timing: str = "scaled"
+    rtl_shuffle_seed: int = 0x6D2B79F5
+    rtl_dither_seed: int = 0x13579BDF
     fine_reference_tau_s: float | None = None
     ra_bandwidth_hz: float | None = None
     ra_dc_gain: float | None = None
@@ -67,6 +76,12 @@ class ConversionParameters:
                 bad.append(f"conversion.{name} must be finite and positive")
         if not 0 < self.narrow_start_fraction < 1:
             bad.append("conversion.narrow_start_fraction must be in (0, 1)")
+        if self.rdac_event_timing not in ("scaled", "rtl16"):
+            bad.append("conversion.rdac_event_timing must be scaled or rtl16")
+        if type(self.rtl_shuffle_seed) is not int or not 0 < self.rtl_shuffle_seed <= 0xFFFF_FFFF:
+            bad.append("conversion.rtl_shuffle_seed must be a nonzero uint32")
+        if type(self.rtl_dither_seed) is not int or not 0 < self.rtl_dither_seed <= 0xFFFF_FFFF:
+            bad.append("conversion.rtl_dither_seed must be a nonzero uint32")
         if self.ra_slew_v_s is not None and self.ra_bandwidth_hz is None:
             bad.append("conversion.ra_slew_v_s requires a finite ra_bandwidth_hz")
         if self.adc2_narrow_bandwidth_hz is not None and self.adc2_wide_bandwidth_hz is None:
@@ -218,12 +233,15 @@ class ConversionEngine:
         self.tra = cfg.dyn_t_conv_frac / cfg.fs
         self.aperture = p.quantizer_time_s + self.tra
         self.fine_tau = p.fine_reference_tau_s or cfg.dyn_tau_ref
-        events = 2 * cfg.b1 + 1 if cfg.rdac_bitwise_loading else 1
-        times = (
-            np.linspace(0, p.quantizer_time_s, events)
-            if events > 1
-            else np.array([p.quantizer_time_s])
-        )
+        events = 1 + cfg.b1 - min(cfg.b1, 3) if cfg.rdac_bitwise_loading else 1
+        if cfg.rdac_bitwise_loading and p.rdac_event_timing == "rtl16":
+            times = np.arange(3, 3 + events, dtype=float) / (16 * cfg.fs)
+        else:
+            times = (
+                np.linspace(0, p.quantizer_time_s, events)
+                if events > 1
+                else np.array([p.quantizer_time_s])
+            )
         self.result = ConversionResult(
             ra_v=np.zeros(n_samples),
             adc2_v=np.zeros(n_samples),
@@ -257,8 +275,8 @@ class ConversionEngine:
         """
         from .reference_charge import (
             physical_reference_program,
+            resolved_loading_codes,
             sampled_bottom_voltages,
-            sar_loading_codes,
         )
 
         if i != self.next_sample or i >= len(self.result.ra_v):
@@ -267,14 +285,18 @@ class ConversionEngine:
             )
         cfg, p, r = self.cfg, self.cfg.conversion, self.result
         if i:
-            self.rail *= np.exp(-(1 / cfg.fs - self.aperture) / cfg.dyn_tau_ref)
+            # A phase-aligned aperture may equal the next sample boundary;
+            # roundoff must not turn a zero interval into reference growth.
+            self.rail *= np.exp(-max(0.0, 1 / cfg.fs - self.aperture) / cfg.dyn_tau_ref)
         if cfg.ra_autozero:
             # Explicit ideal zeroing phase, with a separately declared noise budget.
             self.y = 0.0
         if cfg.dyn_ref_settling:
             dither = code - coarse * self.units
             loads = (
-                sar_loading_codes(int(coarse), cfg.b1, self.units, dither)
+                resolved_loading_codes(
+                    int(coarse), cfg.b1, self.units, dither, seed_bits=min(cfg.b1, 3)
+                )
                 if cfg.rdac_bitwise_loading
                 else np.array([code])
             )

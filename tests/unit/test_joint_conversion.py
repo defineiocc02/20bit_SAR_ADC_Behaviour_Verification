@@ -153,7 +153,7 @@ def test_reference_state_and_loading_are_in_the_production_signal_path():
     )
     r = run_pipeline(cfg, sine_input(1.3, cfg.fs * 17 / 128), 128)
     trace = r.conversion_trace
-    assert trace.reference_charge_c.shape == (128, 2 * cfg.b1 + 1, 2)
+    assert trace.reference_charge_c.shape == (128, 1 + cfg.b1 - min(cfg.b1, 3), 2)
     assert np.any(trace.reference_charge_c > 0) and np.any(trace.reference_charge_c < 0)
     assert np.max(trace.reference_peak_v) > 1e-5
     assert np.max(trace.reference_peak_v) / cfg.v_fs < 0.01

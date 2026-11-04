@@ -1,5 +1,7 @@
 # ADR 0018：按物理单元校正与论文结构控制
 
+> **当前状态更新：**本 ADR 保留历史决策与证据；结构 DUT 观测、开关和参考事件的新合同见 [ADR 0021](0021-structural-contract-calibration.md)。
+
 日期：2026-09-20。状态：已实现，验证结果见 `docs/rtl/STRUCTURAL_CALIBRATION_20260920.md`。
 承接 ADR0017；用户明确授权扩展顶层端口与内部结构，并要求分模块、优先数字校准。
 

@@ -1,5 +1,5 @@
 `timescale 1ns/1fs
-// Real RTL timing at an ideal 160MHz clock. This is functional timing only.
+// Real RTL timing at an ideal 640MHz clock. This is functional timing only.
 module structural_trace_40m_tb;
  logic clk=0,rst_n=0,enable=0,sampling_en=0,quantizer_en=0;
  always #0.78125 clk=~clk;
@@ -22,7 +22,8 @@ module structural_trace_40m_tb;
   .flash_acquire_enable(),.fine_acquire_enable(),.coarse_trial(trials),.quantizer_dither(qdither),.acquisition_dither_rails(),
   .fine_trial(fine_trial),.fine_compare_enable(fine_en),.flash_sample(),.slice_sel(sel),.main_sw(main_sw),.sub_sw(sub_sw),
   .dither_sw(dith_sw),.sw_valid(swvalid),.recon_start(recon),.context_id(context_id),.context_slices(),.context_main(),
-  .context_sub(),.context_rails(),.context_sampling(),.context_analog_bad(),.context_injection(),.fine_code(fine_code),.error_code(err));
+  .context_sub(),.context_rails(),.context_sampling(),.context_analog_bad(),.context_injection(),
+  .context_coarse(),.context_sid(),.context_dither(),.fine_code(fine_code),.error_code(err));
  integer fd,tick,mode,s,nominal,checks=0,reopen_ticks=0,recon_count=0,events=0;
  logic [17:0] sampled_mask;
  string outdir,vcdf;

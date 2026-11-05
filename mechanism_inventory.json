@@ -327,7 +327,7 @@
           "location": "等权置换机制；主/子不同步长轮转"
         }
       ],
-      "claim": "任意 DEM state 下选中单位数 = 逻辑码（名义守恒结构性成立）",
+      "claim": "合法码域内保持名义DAC电荷：unary等权单位选择按对应计数守恒；结构63+8候选以8*main_count+sub_count的slot加权和守恒，不把不同权值物理电容个数直接等同逻辑码。统计等使用是另一个判据。",
       "embodiment": "PATENT_STANDALONE",
       "evidence_source": [
         "DISCLOSED"
@@ -353,7 +353,9 @@
         "k_per_code 逐码核验；DAC_nominal(M(c,state))=V_target(c) 对任意 state 成立"
       ],
       "gaps": [
-        "R16：联合排列空间 64 ≠ 512 标签；本模型 DEM 数字不得引用为 [11] 三维机制的定量收益"
+        "R16限定legacy SplitDAC.full_order的64-main/8-sub共同SID轮转：512标签仅64种联合排列；不能套用到当前63+8 split_switch_command结构译码。当前262144组掩码一致只证明项目合同，不证明原芯片三维DEM定量收益或完整开关矩阵。",
+        "DEM/slice/dither与CAAZ的组合仍须满足真实AZ存储保持、注入点和H_AZ/K_signal合同，见docs/randomization_caaz/README.md。",
+        "固定k10/512SID主56使用16次、其余62单元各8次；bridge后固定slot子计数128/160/128/128/128/96/128/128。名义守恒不等于等使用，真实物理exposure与最终性能分别评估。"
       ],
       "rtl_contract": {
         "status": "DIGITAL_IMPLEMENTED",
@@ -372,7 +374,7 @@
     },
     {
       "id": "M06",
-      "title": "主/子边界残差与桥接 C_C 锯齿（DEM 消不掉项）",
+      "title": "主/子比例误差与桥接C_C锯齿：阵列内部置换的限制",
       "task_refs": [
         "T06"
       ],
@@ -382,7 +384,7 @@
           "location": "主/子边界难点；binary-to-unary bridging（逻辑映射 ≠ 物理桥接电容）"
         }
       ],
-      "claim": "主/子各自 DEM 后逼近各自平均值，桥接比例误差产生周期锯齿，DEM 无效；C_C 比例误差是一阶系统性 INL",
+      "claim": "主/子阵列各自内部置换逼近各自平均权重，但不改变实际桥接比例误差；跨slice零和bridge候选与内部置换分别评估，不把本项泛化为所有DEM均无效。",
       "embodiment": "PATENT_STANDALONE",
       "evidence_source": [
         "DERIVED"
@@ -1120,7 +1122,8 @@
         "源4.3dB=1.3dB AZ样本项+3dB普通平均是原型结果；本工程不以该数值拟合或声称已复现。",
         "两点pair滤波会改变信号幅频和有效输出率，不是充分的抗混叠滤波；输入带宽和错误/epoch读出须按项目合同验证。",
         "CAAZ-17仍PARTIAL：错误pair的reject/drop计数未实现，当前异常响应为sticky fault停流至clear/reset，未自动重启下一pair的even/AZ。",
-        "顶层尚未转接pair处理器fault_pulse/pending；三项定向RTL回归通过只覆盖已实现数字子范围，不等于20条来源/工程要求全通过。"
+        "顶层尚未转接pair处理器fault_pulse/pending；三项定向RTL回归通过只覆盖已实现数字子范围，不等于20条来源/工程要求全通过。",
+        "组合审查：数字pair标签不检查实际H_AZ/K_signal相等；旧AZ控制须与CBIAS保持真实拆分，TP/chop/mask边界需本地隔离；当前结构DEM位耦合slice shuffle，不能假定存在独立冻结同pair物理组开关。详docs/randomization_caaz/README.md。"
       ],
       "rtl_contract": {
         "status": "DIGITAL_IMPLEMENTED",

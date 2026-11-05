@@ -1,5 +1,7 @@
 # Behavioral closure implementation checkpoint
 
+> 历史实施记录：当前实现、验证边界与下一步以 [STATUS.md](STATUS.md) 为入口；本页的里程碑和旧计数不作为后续提交的实时状态。
+
 > 本文档最后核对于 2026-10-19，基线以 main 为准。
 
 > 2026-11-05 的来源、配置、参考恢复、测量单位和协议维护以

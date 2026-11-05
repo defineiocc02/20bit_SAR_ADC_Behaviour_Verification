@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Render original README illustrations from the repository's evidence ledgers."""
+"""保留旧版多图布局的原创绘图入口，不是当前首页的生产重绘工具。
+
+本脚本读取当前随库数据和参数账本，不重新仿真或训练；默认会写入旧版
+unified_*图片路径。历史图和旧基线需要先保留，不能将重绘当成历史复现。
+当前首页已收敛为make_overview_figures.py的四图，优先使用该明确--out入口。
+旧四案例交织布局使用内部浮点误差，不等同当前三策略最终整数码频谱。
+"""
 
 from __future__ import annotations
 

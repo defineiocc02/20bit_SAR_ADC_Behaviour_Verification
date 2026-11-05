@@ -1,0 +1,123 @@
+{
+  "artifact": "original_README_overview_redraw",
+  "operation": "frozen_data_redraw_only_no_simulation_or_training",
+  "renderer_sha256": "694b1ad240ebabf34488621c74ab730dd623a5d1ac7688e860db6e0b097a5c10",
+  "render_runtime": {
+    "matplotlib": "3.11.2",
+    "numpy": "2.5.3",
+    "font": "PingFang SC"
+  },
+  "selected": [
+    "architecture",
+    "calibration",
+    "interleave",
+    "dither_headroom"
+  ],
+  "inputs": {
+    "dither_headroom.json": {
+      "sha256": "aeffc8d39d7ad25846ad212faedcc98554bc8ac0d9ee43058228b38d52061da9",
+      "bytes": 49629
+    },
+    "interleave_40m.json": {
+      "sha256": "dbbefe2aa7bd6df71651608733d510ec793d6264ca04cd82e7abfada213107a3",
+      "bytes": 32237
+    },
+    "interleave_timing_40m.npz": {
+      "sha256": "55cbea6fdc5266d63e795e9f6b689713d67ee29685eab6c1e712edc62c364e92",
+      "bytes": 188438
+    },
+    "randomization_contract.json": {
+      "sha256": "564a0c80a2cd15e9487fdaa3c2427b376c902b823e574ca589c293c38c064a7a",
+      "bytes": 15757
+    },
+    "structural_calibration_holdout.npz": {
+      "sha256": "32aa312bc49406ac5a97daab7218e24e56cc454e57eb95a7d07429a255aea44b",
+      "bytes": 18703
+    },
+    "structural_calibration_summary.json": {
+      "sha256": "04ba6b780144dccf8363f80408384138a0cf7c2627da8e3c6794653ff12e0e10",
+      "bytes": 11106
+    }
+  },
+  "figures": {
+    "architecture": {
+      "evidence": "project_concept_structure",
+      "slice_pool": 18,
+      "converting": 8,
+      "acquiring": 8,
+      "spare": 2
+    },
+    "calibration": {
+      "evidence": "structural_digital_DUT_static_plant_holdout",
+      "chip_seed": 42,
+      "samples": 512,
+      "statistics": [
+        {
+          "mean_uv": 7.747701021629954,
+          "std_uv": 55.75104071947907,
+          "rms_uv": 56.286813841481376
+        },
+        {
+          "mean_uv": 0.08105358739533594,
+          "std_uv": 2.082585660966576,
+          "rms_uv": 2.0841623543508416
+        }
+      ],
+      "voltage_contract": {
+        "fullscale_peak_v": 3,
+        "output_bits": 20
+      }
+    },
+    "interleave": {
+      "evidence": "Python_final_integer_code_timing_experiment",
+      "conditions": [
+        "fixed",
+        "generic_random",
+        "rtl_allocator"
+      ],
+      "sndr_db": [
+        95.98257132300098,
+        84.22367996368371,
+        84.93364066005904
+      ],
+      "sfdr_dbc": [
+        95.99766680045954,
+        108.75098533963936,
+        110.9313871811134
+      ],
+      "reference_rms_uv": [
+        127.9741973757926,
+        182.14691227896003,
+        176.44422008378712
+      ],
+      "fit_residual_rms_uv": [
+        32.00378082285428,
+        123.92125796093138,
+        114.19520120005188
+      ]
+    },
+    "dither_headroom": {
+      "evidence": "Python_ideal_plant_headroom_sweep",
+      "cells": 24,
+      "N": 2048,
+      "selected_peak_v": 2.99,
+      "selected_node_counts": {
+        "SADC_input_outside": 18,
+        "RA_sat": 4,
+        "ADC2_over": 15,
+        "RDAC_over": 0,
+        "digital_clip": 0
+      }
+    }
+  },
+  "outputs": {
+    "current_architecture.png": "523902bf9e873c810458c13acc3ecfdded1871cb873b23349d13b64059172968",
+    "current_architecture.svg": "68d80eda7925c82d587fb2ce14049c1dbfb58365d64afcf74cd7f92a090f4e94",
+    "current_calibration.png": "56e2c32802c1c114da35f2e394d7cd7f284760f3a7c4faba744a2d67d788a20b",
+    "current_calibration.svg": "f1f7c6d3203cdcee93d1cb0acdaeba9dbaf520ccd8646c561e054ebfb18d909e",
+    "current_interleave.png": "762d1e720a27580f685b269f0d4399f0b1592730253e446fcb2b7e1a6e74e05a",
+    "current_interleave.svg": "91f512ffd7e4e89f98f5490f5b8bcf0201979dda6576e4f71172c2c3e27d82f2",
+    "current_dither_headroom.png": "43ebe73bb5307036b55c2707bd9ed8105bda5b4c7e06997f4403a0ab6e89171b",
+    "current_dither_headroom.svg": "e762c01f998582492b1af78af9b668884c5d54ca2658a24d82c21452dc683d44"
+  }
+}

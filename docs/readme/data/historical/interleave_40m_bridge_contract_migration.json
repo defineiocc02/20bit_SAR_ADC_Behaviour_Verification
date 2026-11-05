@@ -1,0 +1,127 @@
+{
+  "historical_source_head": "d809da6cfe35a6ad02d109dbb6144259469900d6",
+  "current_generation_head": "10172263d3358a533e04677e09c35e354cd1a682",
+  "current_worktree_dirty": true,
+  "reason": "sid[8] bridge gate aligned by 0108b56/ADR0021; historical helper-only diagnostic substitution exactly restores old arrays; production algorithm was not reverted.",
+  "historical_archives": [
+    {
+      "path": "docs/readme/data/historical/interleave_40m_d809da6.json",
+      "sha256": "988a1b89cf2ea6abacde70663a97cd42b8af721b4cd90625b47190c4356f2660"
+    },
+    {
+      "path": "docs/readme/data/historical/interleave_40m_d809da6.npz",
+      "sha256": "ec0d0ae86a2fbb9e47f6756e6a056f6857004570ec3293aeaf6ce659b222598b"
+    }
+  ],
+  "new_current_data": [
+    {
+      "path": "docs/readme/data/interleave_40m.json",
+      "sha256": "24ff2bb076f6275ebd2337abecc18a6398ccd2f5fc09364945b0180380e7f967",
+      "bytes": 32237
+    },
+    {
+      "path": "docs/readme/data/interleave_40m.npz",
+      "sha256": "ce65e5b480d5d2d1222c27031fa6dffd99f44d65ba2adfcd4bcb7ebdfb7f0040",
+      "bytes": 50048
+    },
+    {
+      "path": "docs/readme/data/interleave_timing_40m.npz",
+      "sha256": "55cbea6fdc5266d63e795e9f6b689713d67ee29685eab6c1e712edc62c364e92",
+      "bytes": 188438
+    },
+    {
+      "path": "docs/readme/data/interleave_timing_codes_40m.npz",
+      "sha256": "90c77344e88d4992de760498d7bff6c1da610922277e9c0ec285873910f3ae7c",
+      "bytes": 154188
+    }
+  ],
+  "legacy_array_differences": [
+    {
+      "name": "offset_rotate",
+      "changed_samples": 0,
+      "max_abs_delta_v": 0.0,
+      "strict_atol_1e-14_pass": true,
+      "before_sha256": "96d908d55cf38abacfc96fd59bf1cd293ffcee13c24ffa2017a837157b7bcebf",
+      "after_sha256": "96d908d55cf38abacfc96fd59bf1cd293ffcee13c24ffa2017a837157b7bcebf"
+    },
+    {
+      "name": "offset_permute",
+      "changed_samples": 0,
+      "max_abs_delta_v": 0.0,
+      "strict_atol_1e-14_pass": true,
+      "before_sha256": "01f411e321d7968ac89e44d76e407fe0d8ab775dd76fd1cd9933f17d55b633d6",
+      "after_sha256": "01f411e321d7968ac89e44d76e407fe0d8ab775dd76fd1cd9933f17d55b633d6"
+    },
+    {
+      "name": "slice_gain_rotate",
+      "changed_samples": 322,
+      "max_abs_delta_v": 2.0599365234463818e-05,
+      "strict_atol_1e-14_pass": false,
+      "before_sha256": "3a9bcbb4a6e04b8cb3b08dd93af620c1e5da3c9efb5e13799ee0b7bd16f04267",
+      "after_sha256": "00d2432da715b916b189841596a818268d53a48753f685e148aea0ebb5bf587b"
+    },
+    {
+      "name": "slice_gain_permute",
+      "changed_samples": 324,
+      "max_abs_delta_v": 4.806518554678618e-05,
+      "strict_atol_1e-14_pass": false,
+      "before_sha256": "fd98beb3e62ef0159ccbf49f0fed46662767b58696ee9fa733d70005d316c100",
+      "after_sha256": "a552bee34f907d027f85269eb7a4f93a7c5ef354992164bd707a80ffd69a6b58"
+    }
+  ],
+  "legacy_rows_common_key_changes": [
+    {
+      "case": "slice_gain_rotate",
+      "key": "error_std_v",
+      "before": 6.345759195225947e-06,
+      "after": 5.693248830030818e-06
+    },
+    {
+      "case": "slice_gain_rotate",
+      "key": "error_rms_v",
+      "before": 7.098003804858391e-06,
+      "after": 6.553333246216838e-06
+    },
+    {
+      "case": "slice_gain_rotate",
+      "key": "spur_fs2_dbfs_bin",
+      "before": -144.77821523222642,
+      "after": -143.7683953868294
+    },
+    {
+      "case": "slice_gain_rotate",
+      "key": "spur_fs2_minus_fin_dbfs_bin",
+      "before": -118.87453271310669,
+      "after": -118.67162819350447
+    },
+    {
+      "case": "slice_gain_permute",
+      "key": "error_std_v",
+      "before": 1.060992121378728e-05,
+      "after": 9.896446179212143e-06
+    },
+    {
+      "case": "slice_gain_permute",
+      "key": "error_rms_v",
+      "before": 1.115415185992149e-05,
+      "after": 1.0536354363757292e-05
+    },
+    {
+      "case": "slice_gain_permute",
+      "key": "spur_fs2_dbfs_bin",
+      "before": -143.45629392001916,
+      "after": -138.01672994778252
+    },
+    {
+      "case": "slice_gain_permute",
+      "key": "spur_fs2_minus_fin_dbfs_bin",
+      "before": -136.45135526593916,
+      "after": -136.5449355028304
+    }
+  ],
+  "legacy_tolerance_unchanged": {
+    "rtol": 0,
+    "atol_v": 1e-14
+  },
+  "new_timing_comparisons": "exact integer codes and exact one-sided linear power; all keys and shapes checked"
+}

@@ -1,192 +1,114 @@
-# 20-bit / 40 MS/s Pipelined SAR ADC: Models and Digital RTL
+# 20-bit / 40 MS/s Pipelined SAR ADC: Behavioral Models and Digital Implementation
 
-[中文](README.md) · [Repository layout](docs/PROJECT_LAYOUT.md) · [Model scope](docs/model_scope.md) · [DSP interface](ad4080_dsp/docs/SAR20_INTERFACE.md)
+[中文](README.md) · [Current status](docs/STATUS.md) · [Papers and presentations](references/README.md) · [Environment and contributing](CONTRIBUTING.md)
 
-Reference originals: [three paper/presentation pairs](references/README.md).
-This research repository studies slice scheduling, capacitor mismatch, digital calibration and post-processing for a two-stage residue SAR ADC, guided by [ISSCC 2024 Session 9.8](https://doi.org/10.1109/ISSCC49657.2024.10454329) and related patents. It contains a Python behavioral model, SAR digital RTL and a separate AD4080-inspired DSP subsystem. The default sampling rate is **40 MS/s**.
+This project studies how capacitor mismatch, sampling/interleaving errors and digital reconstruction jointly affect a multi-slice, two-stage SAR ADC. It contains a Python behavioral model with a fixed physical capacitor pool, SAR conversion-control and weight-reconstruction RTL, and a separate output-DSP prototype. The default sample-rate parameter is **40 MS/s**.
 
-> **Evidence boundary:** This is a research prototype. A 20-bit output word does not imply 20-bit ENOB. The plotted performance figures are conditional behavioral simulations, not silicon measurements, PDK signoff or timing closure.
+Its clearest current result is an off-chip calibration flow: fit effective weights from observations emitted by the structural RTL DUT and independently known inputs, freeze and reload them into the DUT, then reduce output error on independent holdout samples from the same static mismatch plant. **20 bits is the final word width; behavioral simulation, digital RTL, joint validation with a static plant, and silicon performance are different evidence levels.** Target-process STA, transistor-level and post-layout signoff have not been established. A model sample-rate parameter does not demonstrate hardware throughput.
 
-This independent maintenance review covered **18 documents / 596 pages**, plus the full text of **49 Python and 41 RTL production modules**. It repairs reference recovery, configuration/export boundaries, error units and CNV/SPI protocol defects. See the [2026-11-05 review](docs/reviews/20261105-independent-maintenance.md) for source coverage, source ambiguities, functional changes and remaining requirements. Reading coverage and implementation verification are recorded separately.
+## System architecture and configurations
 
-A subsequent extension reviewed the **3-page paper and 42-page presentation** for PKU VLSI 2025 C32-1 and added optional, disabled-by-default chopping-assisted auto-zeroing (CAAZ). The combined source corpus is **20 documents / 641 pages**, with **50 Python / 43 RTL production modules**; new and changed modules received a separate complete-text review. See the [CAAZ technical note](docs/caaz/README.md) for source ambiguities, implementation scope and evidence.
+![Signal chain, randomization locations and training/application boundary](docs/readme/fig/current_architecture.png)
 
-## Results at a glance
+*Figure 1. An independently drawn engineering structure based on current execution paths and interface contracts, not the original chip's complete circuit. The 18 slices form an RDAC sampling/capacitor resource pool: eight convert, eight acquire and two remain available in the same cycle, sharing the RA and ADC2. They are not 18 complete independent ADCs.*
 
-| Question | Project approach | What was observed under the stated conditions |
-|---|---|---|
-| **Capacitor mismatch** | Fit effective weights externally and load them into the digital RTL | For two static mismatch fixtures, independent holdout error standard deviation is **55.75 → 2.08 µV** and **59.38 → 2.14 µV**; see [Figure 4](#capacitor-mismatch-calibration-and-effect) |
-| **Interleaving timing skew** | Randomize slice selection to spread the spur | Under the stated 10 ps assumption, the `fs/2−fin` spur changes **−96.44 → −123.05 dBFS/bin**, while total error RMS increases; see [Figure 6](#interleaving-mismatch-spurs-and-total-error) |
-| **Model/RTL agreement** | Align switch masks, reference events and sample ownership | Under the project contract, **262144** code/DEM-state masks and **10752** reference events across three dither modes match; see [ADR 0021](docs/adr/0021-structural-contract-calibration.md) |
+| Entry point | First stage / DAC | Dither and scheduling | Intended use |
+|---|---|---|---|
+| `Config()` | Retained 7-bit / unary reference | Original baseline settings; each runner has its own restrictions | Budgets and early mechanisms. Do not treat it as the same circuit as the 9-bit RTL |
+| `Config.paper_literal()` | 9-bit / 63+8 split candidate | Generic scheduling; an ideal dual-port candidate when quantizer dither is enabled | Physical-pool and mechanism sensitivity studies, not a complete chip netlist |
+| `Config.rtl_structural()` | 9-bit / 63+8 split, 12-bit ADC2 | Discrete range model; 16 phases; the DEM enable bit also controls slice shuffle | Sample, mask and event comparisons against the project's structural RTL |
 
-These results use static behavioral fixtures or stated behavioral-simulation conditions. Random scheduling is not a per-slice timing calibration, and these are not silicon measurements.
+Dither is disabled by default in all three factories; the table describes the contracts when the corresponding mode is enabled. If each of the structural configuration's 16 ideal phases occupies one clock, the clock budget is 640 MHz. The 63+8 allocation, bridge gating and some analog parameters are engineering choices. The [configuration and model scope](docs/model_scope.md) explains where the entry points cannot be interchanged.
 
-## Architecture and configurations
+## Four work areas: implementation and verification scope
 
-![Two-stage SAR architecture and project configurations](docs/readme/fig/unified_1_architecture.png)
+| Work area | Problem addressed | Current implementation | Verification scope | Gaps and next step |
+|---|---|---|---|---|
+| **Conversion and physical signal chain** | Preserve charge, timing and sample ownership | Python sampling pool and dynamic chain are connected; RTL supplies phases, codes and IDs | Charge/causality checks, structural events and static-plant comparisons; dynamic models have their own approximations | Establish real comparator/macro completion edges, local hold and reference-settling contracts |
+| **DEM, dither and slice scheduling** | Reduce input-correlated mismatch effects and observe interleaving errors | Physical masks, a zero-sum bridge candidate, perturbation injection, code adjustment and per-raw reconstruction are connected | Project mask/event agreement; fixed-code usage counts and behavioral experiments with specified mismatch | Bound usage bias and near-full-scale headroom; per-slice learning and the original chip's complete switching circuit are separate work |
+| **Training, freezing and fixed-point reconstruction** | Correct static effective weights and related gain | Fit C/Cf using an off-chip known reference; freeze, load Q30/Q32 coefficients and reconstruct integer words | Structural RTL DUT plus fixed static plant; separate training/holdout and integer comparisons | Validate the real reference, observation readout/bandwidth, drift and dynamic errors |
+| **Output and system extensions** | Correction, buffering, transport and noise research | DSP/FIFO/SPI prototypes; disabled-by-default sample-domain CAAZ and digital pairing | Directed interface/fault checks; CAAZ experiments under specific noise and combination conditions | Two-point correction direction, filter coefficients, FIFO/serial connectivity and metadata remain open; CAAZ analog macros are unverified |
 
-*Figure 1. An original illustration based on public descriptions and repository code, not a reproduction of the paper figure.*
+DEM rearranges physical units, dither injects a known perturbation, and slice shuffle changes the physical group used for a conversion. None automatically measures per-slice timing skew or capacitor weights. The [DEM and dither implementation figures](docs/randomization_caaz/README.md) show actual masks, reference rails and digital processing order separately. In the current structural interface, one bit controls both unit DEM and slice shuffle; they cannot be assumed independently switchable.
 
-The paper discloses a 20 b / 40 MS/s converter, an 18-slice structure and a shared residue amplifier. The model connects acquisition, coarse quantization, residue charge, RA, ADC2 and digital reconstruction. Structural RTL implements phase control, comparator interfaces and reconstruction; a project interface connects the DSP to the reconstructed result.
+Detailed status, conditions and dependencies are maintained on the [current status page](docs/STATUS.md). The referenced CICC continuous-time backend / LSB tracking averaging has not been implemented; existing output SINC or CAAZ is not evidence of its reproduction.
 
-| Profile | Sampling rate | Coarse quantization and DAC | Boundary |
-|---|---:|---|---|
-| `Config()` | 40 MS/s | 7-bit, unary | Retained behavioral default; Python SADC uses threshold search rather than bit-by-bit SAR timing |
-| `Config.paper_literal()` | 40 MS/s | 9-bit, 63+8 split | Candidate matching the paper's coarse-bit reading; physical 63+8 allocation is a project assumption |
-| `Config.rtl_structural()` | 40 MS/s | 9-bit, 63+8 split | Matches structural priming, slice ordering, dither and 16-phase reference events under the project contract |
-| Structural `sar20_digital_core` | 40 MS/s target | 9-bit, 63+8 split | 16 digital phases/sample imply a 640 MHz clock budget if one clock is used per phase; target-library STA is unavailable |
+## Three representative results
 
-The Python profiles are not identical circuit models. A nominal sample-rate setting is not evidence of attainable RTL timing. See [`config.py`](src/adi_model/config.py), [`sadc.py`](src/adi_model/sadc.py) and the [RTL arithmetic contract](docs/rtl/RTL_ARITHMETIC_CONTRACT.md).
+### Static capacitor mismatch: does training and frozen reconstruction help?
 
-The static unary entry rejects unsupported dynamic/slice-error requests; use the split-array `run_pipeline` path for those effects. Nonzero spatial gradients require the explicit aggregate-chip reference; the default physical pool does not assume layout coordinates.
+![Calibration errors on independent holdout data from the same static plant](docs/readme/fig/current_calibration.png)
 
-## Digital work: purpose, current results and open problems
+*Figure 2. Structural RTL DUT plus a static mismatch behavioral plant; seed 42, DEM plus sampling D=2, 4096 training samples, 512 independent holdout samples and no added random noise. The main panel uses the same vertical scale before and after calibration; the right panel explicitly enlarges the calibrated residual. This is not full-code INL/DNL or a silicon measurement.*
 
-The digital work has four packages. “Available” means a research prototype verified under stated conditions. Sample-by-sample Python/RTL comparison uses `Config.rtl_structural()` and the [structural contract](docs/adr/0021-structural-contract-calibration.md), with disclosed behavior and project assumptions recorded separately. See the [engineering standards](docs/ENGINEERING_STANDARDS.md) for code maintenance rules.
+Only the frozen reconstruction coefficients change; nominal and fitted reconstructions use the same holdout raw observations. The estimator reads digital masks, codes and independently known inputs, not the plant's true capacitors. Input-referred error standard deviations for two chips are **55.75→2.08 µV** and **59.38→2.14 µV**, supporting static effective-weight correction. This does not validate dynamic settling, reference errors, drift or ADC2 nonlinearity. Error mean, RMS and conditions are in the [data summary](docs/readme/data/structural_calibration_summary.json).
 
-**1. Conversion control and sample ownership.** Coordinate sampling, coarse decisions, residue formation and ADC2. The structural RTL has 16-phase control, comparator interfaces, slice scheduling, sample IDs and fault flags; Python and RTL agree on slice order and seven resolved RDAC events. **Still needed:** real comparator completion, analog switch/reference phase contracts and system-wide fault/reset handling.
+[Data and reproduction](docs/REPRODUCING.md#静态权重训练与结构dut留出) · [Contract and observation fields](docs/adr/0021-structural-contract-calibration.md)
 
-**2. DEM, dither and interleaving mismatch.** Rearrange slices and capacitor units to spread error and inject known perturbations. The project has fixed physical pools, interleaving experiments, RTL slice allocation, DEM addressing, a bridge candidate and a dither generator; physical masks and three dither modes have been compared. **Still needed:** identifiable per-slice offset, gain, timing and bandwidth estimation/correction; these digital learners are evaluated separately as project extensions. The complete slide bridge circuit and dual-port dither enhancement remain unreproduced. DEM redistributes error; it does not measure mismatch.
+### Interleaving skew: can smaller spurs accompany larger total error?
 
-**3. Capacitor calibration and digital reconstruction.** Estimate effective weights from a known reference and digital observations, then reconstruct using frozen coefficients and known dither. Structural RTL observation, external fitting, quantized loading and independent holdouts are connected; see [ADR 0021](docs/adr/0021-structural-contract-calibration.md). **Still needed:** real reference and observation transport, dynamic settling/drift and ADC2 nonlinearity verification; the 748-bit observation port has no FIFO or backpressure.
+![Final integer-code spectra and metrics for three Python scheduling contracts with identical skew](docs/readme/fig/current_interleave.png)
 
-**4. System correction, DSP and data output.** Correct overall signal-chain gain/offset and provide filtering, buffering and external interfaces. SAR and DSP tops are connected; correction, SINC, FIFO, SPI and fault-stop blocks are prototypes. **Still needed:** correct the two-point coefficient direction, complete filter coefficients, FIFO-to-serial routing, output metadata and a lossless DDR/differential interface.
+*Figure 3. 40 MS/s, approximately 4.001465 MHz / 2.85 V peak, N=16384 and a coherent rectangular window; the same fixed realization of nominal 10 ps Gaussian slice skew, with other random noise disabled. This is Python behavioral simulation. The third strategy follows the RTL allocation contract; its spectrum is not captured directly from an SV DUT. Spectra use final 20-bit codes and one-sided dBFS/bin, not a matched-condition reproduction of undisclosed paper settings.*
 
-**Shared priorities.** First establish real reference, observation transport and analog-phase interfaces; then study per-slice correction and dynamic error; finally complete DSP and output. Sample IDs, faults, reset and verification span all four packages. Formal equivalence, CDC/RDC, target-library STA and analog post-layout verification remain open. The 640 MHz clock implied by 16 phases at 40 MS/s is an ideal budget.
+For fixed A/B, generic random scheduling and the Python strategy following the RTL allocation contract, **SNDR is 95.98 / 84.22 / 84.93 dB and SFDR is 96.00 / 108.75 / 110.93 dBc**. In this example, randomization spreads spurs while increasing residual power outside DC and the fundamental. Fitting is used only for metrics; no gain or phase correction is applied to the output. Total error RMS against the ideal input is **127.97 / 182.15 / 176.44 µV**. That RMS retains fundamental gain/phase error and differs from the fitted-fundamental residual used for SNDR. SFDR alone cannot establish an overall benefit.
 
-ADC-core weight correction and system gain/offset correction in the [AD4080 data sheet](https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf) act at different levels. The [historical task assessment](docs/digital_task_assessment.md) listed integration verification separately; here it is shared work.
+See [conditions, data and reproduction](docs/REPRODUCING.md#交织调度的当前严格基线). Fixed rotation, generic random selection and RTL allocation follow different rules; one “random” label cannot stand for all three.
 
-## Mapping public sources to this project
+### Dither: why can the backend overflow while the RDAC code remains legal?
 
-The table maps published mechanisms to the implemented paths and their limits.
+![Node headroom and fault counts for near-full-scale dither](docs/readme/fig/current_dither_headroom.png)
 
-| Mechanism | Implemented here | Boundary |
-|---|---|---|
-| Separate quantizer and residue DAC | Python quantization/charge models and structural RTL signal path | Capacitor allocation and switch timing include assumptions; no complete paper netlist |
-| Capacitor mismatch and DEM | Fixed physical units, weight fitting, element permutations and RTL reconstruction | DEM redistributes error rather than measuring it; Python and RTL masks now agree under the project candidate; the original chip bridge circuit remains undisclosed |
-| Interleaving mismatch | Slice offset, timing skew, bandwidth spread and scheduling sensitivity models | No complete hardware estimation/correction loop for slice offset, skew and bandwidth |
-| Dither | Behavioral injection/digital correction and RTL generator | Structural off, sampling and quantizer modes are compared; dual-port range enhancement and large-input overflow remain open |
-| RA, reference and ADC2 | RA/reference dynamics and ideal ADC2 quantization | Seven resolved reference events agree in the structural profile; ADC2 nonlinearity learning, analog implementation and PDK verification remain open |
+*Figure 4. Structural range configuration with ideal devices; 40 MS/s, N=2048, fin=251Fs/2048 and coherent inputs. All specified amplitudes are swept, with failed points retained.*
 
-See [`mechanism_inventory.json`](mechanism_inventory.json), [`sources_manifest.json`](sources_manifest.json), the [source comparison](docs/engineering_vs_patents_papers.md) and the [known limitations](docs/rtl/KNOWN_LIMITS_20261104.md). Selected public references cover [quantizer/RDAC separation](https://patents.google.com/patent/US10516408B2/en), [dither](https://patents.google.com/patent/US10505561B2/en), [DEM](https://patents.google.com/patent/US10511316B2/en) and [interleaved tracking](https://patents.google.com/patent/US10707889B1/en). The candidate implementation is not a complete reconstruction of a disclosed product. The [paper](https://doi.org/10.1109/ISSCC49657.2024.10454329) prints reference [12] as 10,797,889, while its title and authors match [US 10,707,889 B1](https://patents.google.com/patent/US10707889B1/en); this project uses the latter based on that comparison, not an author-issued erratum.
+At 2.99 V input peak, quantizer dither keeps the RDAC command within 0…511 and produces no final digital clipping, yet the SADC input exceeds its nominal range 18 times, the RA saturates four times and ADC2 overflows 15 times. Off and sampling modes have none of these analog excursions under the same conditions. This range implementation therefore needs a separate near-full-scale headroom check; “no final code clipping” is insufficient. The structural dither sequence is determined by D=2. Its effective-configuration report now explicitly marks the requested floating amplitude as inactive.
 
-## Capacitor mismatch: calibration and effect
+See [data, boundary definitions and reproduction](docs/REPRODUCING.md#dither的近满幅余量). Unit-usage bias and conditional bridge statistics are in the [mechanism note](docs/randomization_caaz/README.md).
 
-![External fitting to RTL reconstruction](docs/readme/fig/unified_3_calibration.png)
+## The most important next steps
 
-*Figure 2. Structural digital RTL observation, external fitting and independent holdout. This original illustration uses retained results from a static behavioral mismatch fixture, not silicon.*
+1. **Analog timing and observation transport.** Real hold/reset behavior, reference timing and ADC2 completion edges remain open, limiting the move from functional fixtures to circuits. Establish macro and observation-transport contracts first. Completion requires physical evidence of sample hold, non-overlap and settling by the closing edge, plus actual readable observations and an independent reference completing training, freezing and holdout without combining samples across epochs.
+2. **Confirmed gaps in the output prototypes.** Complete inverse two-point correction, usable filter coefficients, FIFO-to-serial routing and per-result metadata separately. Acceptance must check continuous output codes, IDs and fault consistency, not merely module instantiation.
+3. **Separate range studies from extensions.** Keep strict diagnostics for DEM usage bias, dither headroom and scheduling tradeoffs. Per-slice estimation, the original chip's complete bridge/dual-port circuit, CAAZ analog macros and the CICC backend are independent research items. Each needs its own observations, targets and closure criteria; they should not all be classified as project defects.
 
-Digital observations and an independent reference input feed a Python batch estimator. Frozen effective unit weights are quantized into Q30 weights and Q32 scalars, loaded into RTL `weight_store` and `calib_regs`, and applied by `recon_core`. [ADR 0019](docs/adr/0019-fitted-weight-rtl-closure.md) used Python training observations; the current flow also captures real structural-DUT observations, as described in [ADR 0021](docs/adr/0021-structural-contract-calibration.md).
+Combining CAAZ with randomization also requires actual CBIAS retention across two cycles, correct dither injection locations and matched normalized noise transfer for both samples. Adjacent slice groups cannot simply be locked to the same group. See the [combination conditions](docs/randomization_caaz/README.md).
 
-![1.05 MHz before and after capacitor calibration](docs/paper_comparisons/figures/02_ac_calibration.png)
+## Where to reproduce results
 
-*Figure 3. A behavioral comparison at the input frequency reported on slide 38: 40 MS/s, 1.05 MHz, 2.85 V peak, N=16000, seed 42. Training and holdout records are separate, share the simulated physical pool, and use an exact external training reference. The slides do not disclose amplitude, FFT settings, or complete noise conditions.*
+Install Python dependencies using the [environment instructions](CONTRIBUTING.md). Structural-DUT experiments additionally require Verilator 5.x and a C++ compiler. All new simulation/training commands use a **new output directory that does not yet exist**.
 
-With noise enabled, output SNDR improves **88.88 to 92.46 dB** and input-referred error standard deviation improves **72.53 to 48.04 µV**. The 94.6 dB noise budget is fitted, so this is not an independent prediction of paper SNR. The [experiment comparison](docs/paper_comparisons/README.md) includes static and noiseless results.
+**A. Quick functional check:** checks structural reference events, sample ownership and rejection of illegal geometry. It needs no Verilator and does not establish performance.
 
-![Before and after errors on real structural RTL holdouts](docs/readme/fig/structural_calibration_holdout.png)
+```bash
+PYTHONPATH=src pytest -q tests/unit/test_structural_contract.py
+```
 
-*Figure 4. Real structural digital DUT results for 512 holdout samples: seed 42, an ideal 640 MHz phase clock corresponding to 40 MS/s, a static fixed-mismatch plant, 4096 training samples and no added noise. The two panels use different vertical scales. The plot is independently drawn from the retained DUT inputs and output data.*
+**B. Retrain and simulate:** structural profile, fixed mismatch plant and independent training/holdout; outputs raw observations, frozen coefficients and summary.json. Success also requires holdout improvement, independent integer agreement and zero faults in the summary.
 
-The off-chip estimator receives DUT physical-switch observations and independently known inputs, not the plant's capacitor truth. Error standard deviations for two mismatch seeds are **55.75 → 2.08 µV** and **59.38 → 2.14 µV**. A separate test with an assumed 48 µV RMS input-referred noise yields **71.25 → 54.40 µV**. Frozen weights are reloaded into the DUT and its outputs compared word by word with an independent fixed-point reconstruction. This is a digital RTL plus static behavioral-plant loop, not on-chip learning or a silicon measurement.
+```bash
+OPENBLAS_NUM_THREADS=1 PYTHONPATH=src python tools/run_structural_calibration.py \
+  --output "${TMPDIR:-/tmp}/sar-calibration-new" --train 4096 --holdout 512 --chip-seeds 42 91
+```
 
-### What is the binary-to-unary bridge?
+**C. Redraw retained data only:** reads the repository's frozen data without simulation or retraining and produces the original PNG/SVG figures above. A successful redraw establishes only agreement between the data and their presentation.
 
-![Illustrative boundary error and project bridge candidate](docs/readme/fig/bridge_state_example.png)
+```bash
+MPLBACKEND=Agg PYTHONPATH=src python docs/readme/make_overview_figures.py \
+  --out "${TMPDIR:-/tmp}/sar-overview-figures"
+```
 
-*Figure 5. Top: an illustrative mismatch changes the 7→8 charge step from 1.00 to 1.20 units. Bottom: nominal zero-sum exchange generated by the project Python switching decoder. This original illustration does not reconstruct the complete paper circuit.*
+See the [complete reproduction guide](docs/REPRODUCING.md) for interleaving/dither simulation, success criteria, node/spectrum definitions and historical-data handling.
 
-The slides place unary units labeled 8 beside binary/dither units labeled 4, 2 and 1. Error in their actual capacitance ratio affects the charge step at segment boundaries. This project assumes 63 main units and eight subunits: `176=22×8+0`. For `sid[8]=0`, all eight active slices use 176; for `sid[8]=1`, four use 177 and four use 175, retaining a total nominal code of 1408. The 175 code is `21×8+7`, across the segment boundary. This is a bridge-related engineering proxy that changes physical-unit usage and mismatch error distribution; it **does not reproduce the slide's complete exchange circuit or automatically remove mismatch**. The actual structural RTL masks match an independent project reference for all 512 codes × 512 DEM states. This 50% state gating is an engineering assumption, not a verified implementation of the slide's `P=50%` truth table.
+## Find code and documents by question
 
-The similarly named `C_bridge` is a **physical capacitor** between the main and sub arrays and changes the effective subarray weight. See the [bridge explanation](docs/binary_unary_bridge.md) for examples, dither interaction and undisclosed circuit details.
-
-## Interleaving mismatch: spurs and total error
-
-![10 ps timing skew and scheduler output spectra](docs/paper_comparisons/figures/01_timing_skew.png)
-
-*Figure 6. Inspired by slides 21–22: 40 MS/s and a nominal 10 ps skew. The project assumes independent static Gaussian slice skew, an approximately 4.0015 MHz / 2.85 V peak input, N=16384, and no random noise. The slides do not disclose the exact input, 10 ps statistical definition, or FFT setup.*
-
-The `fs/2 − fin` bin falls from **−96.44 to −123.05 dBFS/bin** when fixed rotation is replaced by random 8-of-18 scheduling. Reference error RMS rises from **127.97 to 182.15 µV** in this example. The scheduler redistributes error; it does not estimate or correct timing skew. Other seeds, a second 10 ps interpretation and the remaining slide comparisons are in the [experiment comparison](docs/paper_comparisons/README.md).
-
-Slice offset, gain, and bandwidth differences also cause interleaving errors; the [offset/gain comparison](docs/readme/fig/unified_7_interleave_effect.png) shows that spur and total RMS changes can differ. Dedicated hardware learners and compensation for per-slice timing and bandwidth are not closed.
-
-## Chopping-assisted auto-zeroing: the PKU VLSI 2025 mechanism
-
-[Wang et al., C32-1](https://doi.org/10.23919/VLSITechnologyandCir65189.2025.11075015) and its presentation disclose **chopping the complete ADC input, capturing AZ on even conversions, retaining that same noise realization on odd conversions, and differencing complete reconstructed words before division by two**. For equal input-referred AZ contributions:
-
-$$
-u_{2k}=x_{2k}+a_k+\eta_{2k},\quad
-u_{2k+1}=-x_{2k+1}+a_k+\eta_{2k+1},\quad
-y_k=\frac{u_{2k}-u_{2k+1}}2
-=\frac{x_{2k}+x_{2k+1}}2+\frac{\eta_{2k}-\eta_{2k+1}}2.
-$$
-
-![Held AZ noise, actual reconstruction error and hold sensitivity](docs/caaz/fig/caaz_mechanism_results.png)
-
-*Figure 7. An original figure generated from full behavioral-ADC experiments and public equations, not copied source artwork. 8192 raw conversions; 40 MS/s raw → 20 MS/s pairs; approximately 1.001 MHz / 2 V peak input; G=32. AZ and ordinary errors are each assumed to be 1 mV RMS at the RA output. Capacitor mismatch and the old fitted noise budget are disabled. Panel D disables ordinary error and varies hold retention.*
-
-Error standard deviations are **44.27 → 31.14 → 22.28 µV**: ordinary pair averaging explains the first reduction; shared AZ cancellation provides the second. The paper's measured **4.3 dB = 1.3 dB AZ benefit + 3 dB averaging benefit** is not a fitted target here. Imperfect retention, unequal transfer gains or incorrect pairing leave residual error.
-
-**Current integration.** Python injects owned error before RA clipping and ADC2 quantization, reconstructs the complete coarse/fine word, and then performs integer pairing. RTL adds input-polarity/AZ control, stored-generation tags, pair arithmetic and fault rejection. Default operation retains 40 MS/s raw output. Enabled CAAZ uses the project's **20 MS/s pair-output contract**, with a raw observation port. Pairing changes signal bandwidth: the [technical note](docs/caaz/README.md#速率带宽和时间戳) documents $|\cos(\pi f/f_{raw})|$, timestamps and aliasing limits.
-
-**Still needed.** Physical input choppers, separate CBIAS capture/hold/isolation and reservoir-reset controls, plus leakage, injection, settling, unequal gain and low-frequency noise-transfer validation. The model is restricted to sample-domain operation; the FGA/CP-FIA transistor implementation and continuous chopping dynamics remain unverified. See the [CAAZ note](docs/caaz/README.md) for modules, source pages and reproduction commands. The source's internal raw/pair rate relation remains undisclosed.
-
-CAAZ remains within the four work areas: polarity and AZ state belong to conversion control; each raw word first receives capacitor-weight reconstruction; pair readout belongs to output processing. DEM and slice-mismatch tasks retain their existing responsibilities.
-
-## DSP connection and fault handling
-
-![SAR-to-DSP code formats and faults](docs/readme/fig/unified_4_dsp.png)
-
-*Figure 8. An original illustration of the current RTL integration boundary.*
-
-[`sar20_system_top.sv`](ad4080_dsp/rtl/sar20_system_top.sv) instantiates the SAR digital core and DSP. Alternatively, connect [`sar20_ad4080_top.sv`](ad4080_dsp/rtl/sar20_ad4080_top.sv) separately to the SAR result, per-sample flags and independent sticky `analog_ovf`. The SAR now has a per-result `dout_analog_bad` aligned with the sample ID, while the DSP still stops on the sticky analog flag. It converts offset binary to the DSP's two's-complement input and converts the parallel output back; serial payloads remain two's complement. Any result flag or sticky analog overflow halts the stream and latches a fault. `dsp_restart` or `sar_epoch_clear` resets the DSP, **including FIFO, filter state and register configuration**; the SAR epoch clear is needed to clear its sticky analog fault before reconfiguration.
-
-Acceptance/rejection events and IDs exist at the input boundary; filtered and FIFO outputs **do not yet carry per-output IDs or source flags**. Both sides require the same clock and synchronous reset release; no new CDC is provided. The single-lane serial prototype cannot losslessly send 20-bit frames when inputs arrive every 16 clocks, and FIFO read data is not connected to the serializer. DDR differential PHY is absent and the default SINC5 compensation coefficients are placeholders. See the [DSP README](ad4080_dsp/README.md) for the remaining boundaries.
-
-The separate `cal_two_point` block currently fits `y=m·x+c` at fixed x coordinates. If x is a known input and y is the measured raw code, its result describes the **forward transfer**, not the inverse correction to apply to raw codes; it is not connected to an automatic top-level learning flow.
-
-## Provenance and verification
-
-![Parameter provenance and evidence limits](docs/readme/fig/unified_5_evidence.png)
-
-*Figure 9. Original illustration of top-level `Config` fields from the runtime provenance ledger. Nested model parameters are documented by their owning interfaces and are not individually expanded in this chart. Fitted and assumed results are not disclosed facts or chip measurements.*
-
-Behavioral models, RTL simulation, historical FPGA evidence and target-PDK synthesis/STA are separate evidence levels. Figures 3 and 6 are 40 MS/s behavioral simulations on baseline `6863fc3`; Figure 4 combines the current structural digital DUT with a static behavioral plant. None is transistor or silicon data. Historical detailed documentation is retained in [`docs/history/`](docs/history/); historical tests are not automatically new results for the present checkout.
-
-### Code and data entry points
-
-| Looking for | Entry point |
+| What to understand | Entry point |
 |---|---|
-| Behavioral model, configuration and switching | [`src/adi_model/`](src/adi_model/) |
-| Structural RTL and observation/reconstruction interface | [`sar20_digital_core.sv`](rtl/top/sar20_digital_core.sv) · [RTL contract](docs/adr/0021-structural-contract-calibration.md) |
-| Calibration training, loading and holdouts | [`run_structural_calibration.py`](tools/run_structural_calibration.py) · [result data](docs/readme/data/) |
-| Interleaving, reference and paper comparisons | [Experiment comparisons](docs/paper_comparisons/README.md) |
-| DSP and external interfaces | [DSP README](ad4080_dsp/README.md) · [SAR interface](ad4080_dsp/docs/SAR20_INTERFACE.md) |
+| Full physical behavioral chain and configurations | [pipeline_engine.py](src/adi_model/pipeline_engine.py) · [config.py](src/adi_model/config.py) · [Scope](docs/model_scope.md) |
+| DEM, bridge and actual physical groups | [dem.py](src/adi_model/dem.py) · [slice_pool.py](src/adi_model/slice_pool.py) · [Scheduling](src/adi_model/timing.py) · [Interleaving reproduction](docs/readme/reproduce_interleave_40m.py) · [Metrics](src/adi_model/metrics.py) · [Implementation figures](docs/randomization_caaz/README.md) |
+| Where dither is injected and removed | [sampler.py](src/adi_model/sampler.py) · [sampling_charge.py](src/adi_model/sampling_charge.py) · [Digital observations and charge terms](src/adi_model/weight_calibration.py) |
+| How weights are learned, frozen and loaded | [weight_calibration.py](src/adi_model/weight_calibration.py) · [fixed_point.py](src/adi_model/fixed_point.py) · [ADR0021](docs/adr/0021-structural-contract-calibration.md) |
+| RTL interfaces, samples and faults | [Digital core](rtl/top/sar20_digital_core.sv) · [RTL arithmetic contract](docs/rtl/RTL_ARITHMETIC_CONTRACT.md) · [DSP interface](ad4080_dsp/docs/SAR20_INTERFACE.md) |
+| Current limits and this review | [Current status](docs/STATUS.md) · [Model scope](docs/model_scope.md) · [Review record](docs/reviews/20261105-readability-maintenance.md) |
+| Originals and historical evidence | [Three paper/presentation pairs](references/README.md) · [Source manifest](sources_manifest.json) · [Historical documents](docs/history/) |
 
-### Quick start
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install -e '.[dev]'
-python -c 'from adi_model import Config; print(Config().fs, Config().b1, Config().dac_arch)'
-pytest -m 'not slow' -q
-```
-
-RTL regression requires Verilator 5.x and a C++ compiler; the independent DSP script requires Icarus Verilog:
-
-```bash
-python tools/run_open_rtl.py --tops calibration_fit_tb sar20_dsp_integration_tb sar20_system_top_tb
-BUILD_DIR="${TMPDIR:-/tmp}/ad4080-dsp-build" bash ad4080_dsp/sim/run_all.sh
-MPLBACKEND=Agg PYTHONPATH=src python docs/readme/make_unified_figures.py
-MPLBACKEND=Agg PYTHONPATH=src python docs/readme/make_contract_figures.py \
-  --out "${TMPDIR:-/tmp}/sar-adc-contract-figures"
-PYTHONPATH=src python docs/readme/reproduce_interleave_40m.py \
-  --out "${TMPDIR:-/tmp}/sar-adc-interleave-new" --compare-frozen
-```
-
-The plotting scripts redraw retained small data sets; they do not retrain the model. Structural observation and calibration reproduction commands are in [ADR 0021](docs/adr/0021-structural-contract-calibration.md). The interleaving reproduction script requires a new, non-existent `--out` directory. Store full new simulation outputs outside the repository, for example `adi-run-all --results-dir "${TMPDIR:-/tmp}/sar-adc-results"`. See the [file conventions](docs/PROJECT_LAYOUT.md) for directory responsibilities and historical evidence exceptions.
-
-## License and citation
-
-Code is distributed under [BSD-3-Clause](LICENSE); see [NOTICE](NOTICE) and [CITATION.cff](CITATION.cff) for third-party and patent statements. Illustrations and result plots are independently drawn and do not copy source artwork. Six maintainer-selected local originals are retained in [references/](references/README.md), with original rights and embedded notices preserved; they are not relicensed under BSD or included in Python distribution packages. This independent project has no affiliation with or endorsement from Analog Devices and grants no patent license.
+Code is distributed under [BSD-3-Clause](LICENSE). Selected originals retain their original copyright and embedded notices; see [NOTICE](NOTICE). This project is independent of the original device authors/manufacturers and grants no patent license. Version history and detailed validation records remain in linked documents rather than the main README.

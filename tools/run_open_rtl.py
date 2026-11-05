@@ -57,6 +57,11 @@ def main() -> None:
         "structural_calibration_observe_tb": "STRUCTURAL_CALIBRATION_OBSERVE_COMPLETE",
         "rdac_event_contract_tb": "RDAC_EVENT_CONTRACT_COMPLETE",
     }
+    # Opt-in digital diagnostics are excluded from the default 34-bench suite.
+    # Their markers do not establish analog transfer matching or macro safety.
+    diagnostic_benches = {
+        "caaz_randomization_probe_tb": "CAAZ_RANDOMIZATION_PROBE_COMPLETE",
+    }
     # These opt-in benches succeed only while a documented counterexample is
     # reproducible. Their completion markers do not mean the requirement passes.
     known_limit_benches = {
@@ -66,11 +71,11 @@ def main() -> None:
     parser.add_argument(
         "--tops",
         nargs="+",
-        choices=[*benches, *known_limit_benches],
-        help="Run selected testbenches; diagnostic tops confirm known limitations",
+        choices=[*benches, *diagnostic_benches, *known_limit_benches],
+        help="Run selected testbenches; opt-in diagnostics have a limited digital scope",
     )
     selected = parser.parse_args().tops
-    run_benches = {**benches, **known_limit_benches} if selected else benches
+    run_benches = {**benches, **diagnostic_benches, **known_limit_benches} if selected else benches
     command = shlex.split(os.environ.get("VERILATOR", "verilator"))
     if not command or shutil.which(command[0]) is None:
         raise SystemExit("Verilator is required; install it or set VERILATOR")
@@ -219,6 +224,12 @@ def main() -> None:
                 raise RuntimeError(f"{top}: missing completion marker")
             if top in known_limit_benches:
                 print(f"KNOWN LIMIT CONFIRMED: {top} (not a requirement PASS)", flush=True)
+            if top in diagnostic_benches:
+                print(
+                    f"DIGITAL DIAGNOSTIC COMPLETE: {top} "
+                    "(does not prove H_AZ/K matching or analog macro safety)",
+                    flush=True,
+                )
             print(output, end="", flush=True)
 
 

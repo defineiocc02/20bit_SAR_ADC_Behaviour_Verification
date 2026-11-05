@@ -6,11 +6,11 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
+from _synth_test_support import tool
 
 FLOW = Path(__file__).resolve().parents[2] / "synth/run_vivado_buffered_impl.tcl"
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures/vivado_2018_3_buffered"
@@ -104,9 +104,9 @@ proc get_lib_cells {args} {
     return UNISIMS/BUFG
 }
 proc get_clocks {args} {
-    if {$::failure eq "extra_clock"} {return {core_clk wrong_clk}}
+    if {$::failure eq "extra_clock"} {return [list $::env(TEST_CLOCK_NAME) wrong_clk]}
     if {$::failure eq "clock_propagation" && $::created && [arg $args -of_objects] ne ""} {return {}}
-    return core_clk
+    return $::env(TEST_CLOCK_NAME)
 }
 proc get_nets {args} {
     set of [arg $args -of_objects]
@@ -168,7 +168,7 @@ proc get_property {key object} {
             return BUFG
         }
         PERIOD {
-            if {$::failure eq "period_readback"} {return 21}
+            if {$::failure eq "zero_period_readback"} {return 0}
             return $::period
         }
         ROUTE_STATUS {
@@ -225,6 +225,10 @@ proc step {name} {
     puts "STEP $name"
     if {$::failure eq $name} {error "$name failed"}
     if {$name eq "route_design"} {
+        if {$::failure in {xdc_drift dcp_drift}} {
+            set key [expr {$::failure eq "xdc_drift" ? "TEST_ORIGINAL_XDC" : "TEST_ORIGINAL_DCP"}]
+            set fh [open $::env($key) a];puts $fh changed;close $fh
+        }
         set ::routed 1
         if {$::failure eq "route_replication"} {
             lappend ::ep u2/C
@@ -302,14 +306,28 @@ def probe(
     hash_style="unix",
     existing_out=False,
     input_exists=True,
+    xdc_exists=True,
+    xdc_text=None,
+    clock_port="clk",
+    clock_name="core_clk",
 ):
-    tclsh = shutil.which("tclsh")
-    if not tclsh or not shutil.which("shasum"):
-        pytest.skip("Local mock requires tclsh and shasum, not Vivado")
+    tclsh = tool("tclsh")
+    tool("shasum")
     checkpoint = tmp_path / "input source.dcp"
     original = b"MOCK INPUT DCP; must remain byte-identical\n"
     if input_exists:
         checkpoint.write_bytes(original)
+    constraints = tmp_path / "user constraints.xdc"
+    if xdc_text is None:
+        xdc_text = (
+            "# Synthetic caller-supplied XDC; not physical timing evidence\n"
+            f"create_clock -name {clock_name} -period {period} [get_ports {clock_port}]\n"
+            f"set_clock_uncertainty 0.09 [get_clocks {clock_name}]\n"
+            f"set_input_delay 0.17 -clock {clock_name} [get_ports -filter {{DIRECTION == IN}}]\n"
+            f"set_output_delay 0.23 -clock {clock_name} [all_outputs]\n"
+        )
+    if xdc_exists:
+        constraints.write_text(xdc_text)
     out = tmp_path / "new output"
     if existing_out:
         out.mkdir()
@@ -333,7 +351,16 @@ def probe(
         )
     timing.write_text(summary_report)
     result = subprocess.run(
-        [tclsh, str(harness), str(checkpoint), str(out), period, site],
+        [
+            tclsh,
+            str(harness),
+            str(checkpoint),
+            str(out),
+            str(constraints),
+            clock_port,
+            clock_name,
+            site,
+        ],
         env={
             **os.environ,
             "TEST_FLOW": str(FLOW),
@@ -343,14 +370,19 @@ def probe(
             "TEST_WHS": whs,
             "TEST_CHECK_REPORT": str(coverage),
             "TEST_SUMMARY_REPORT": str(timing),
+            "TEST_CLOCK_NAME": clock_name,
+            "TEST_ORIGINAL_XDC": str(constraints),
+            "TEST_ORIGINAL_DCP": str(checkpoint),
         },
         capture_output=True,
         text=True,
         timeout=15,
         check=False,
     )
-    if input_exists:
+    if input_exists and failure != "dcp_drift":
         assert checkpoint.read_bytes() == original
+    if xdc_exists and failure != "xdc_drift":
+        assert constraints.read_text() == xdc_text
     return result, out
 
 
@@ -383,7 +415,12 @@ def test_single_bufg_eco_preserves_complete_endpoint_set_and_records_real_hashes
     assert "report_route_status -of_objects clk_net" in result.stdout
     assert "INTERNAL_CLOCK_ROUTE_STATUS=ROUTED" in status
     assert "INTERNAL_CLOCK_NODES=2\nINTERNAL_CLOCK_PIPS=2" in status
-    xdc = (out / "screening.xdc").read_text()
+    xdc = (out / "input_constraints.xdc").read_text()
+    assert xdc == (tmp_path / "user constraints.xdc").read_text()
+    assert "USER_CONSTRAINTS_SHA256=" + hashlib.sha256(xdc.encode()).hexdigest() in status
+    assert "EFFECTIVE_PERIOD_NS=20" in status
+    assert "INPUT_DELAY 0.17" in result.stdout and "OUTPUT_DELAY 0.23" in result.stdout
+    assert "UNCERTAINTY 0.09" in result.stdout
     assert "create_clock -name core_clk -period 20 [get_ports clk]" in xdc
     for forbidden in [
         "HD.CLK_SRC",
@@ -399,13 +436,13 @@ def test_single_bufg_eco_preserves_complete_endpoint_set_and_records_real_hashes
     "failure,reason",
     {
         "open": "open failure",
-        "version": "qualified only for Vivado 2018.3",
+        "version": "requires the Vivado 2018.3 API",
         "part": "limited to 7-series",
         "blackbox": "Black box",
         "already_routed": "Expected unrouted",
-        "clock_port": "Missing/non-input clk",
-        "clock_direction": "Missing/non-input clk",
-        "extra_clock": "Expected sole core_clk",
+        "clock_port": "Missing/non-input explicitly selected clock port",
+        "clock_direction": "Missing/non-input explicitly selected clock port",
+        "extra_clock": "Expected sole explicitly named clock",
         "buffered": "Already buffered",
         "clock_site": "Invalid BUFGCTRL site",
         "site_type": "Invalid BUFGCTRL site",
@@ -442,7 +479,9 @@ def test_single_bufg_eco_preserves_complete_endpoint_set_and_records_real_hashes
         "no_all_min": "Missing all min constrained path",
         "no_internal_max": "Missing internal max constrained path",
         "no_internal_min": "Missing internal min constrained path",
-        "period_readback": "Effective period differs",
+        "zero_period_readback": "No finite positive user clock period",
+        "xdc_drift": "Input constraints changed on disk",
+        "dcp_drift": "Input checkpoint changed on disk",
     }.items(),
 )
 def test_invalid_network_or_failed_routing_cannot_report_completion(tmp_path, failure, reason):
@@ -606,9 +645,11 @@ def test_summary_completeness_and_crosscheck(tmp_path, mutation):
 
 
 @pytest.mark.parametrize("period", ["0", "-1", "NaN", "Inf", "1e999", "bad"])
-def test_bad_period_is_rejected_before_dcp_open(tmp_path, period):
+def test_invalid_period_read_from_user_xdc_cannot_complete(tmp_path, period):
     result, out = probe(tmp_path, period=period)
-    assert result.returncode == 1 and "OPEN " not in result.stdout and not out.exists()
+    assert result.returncode == 1 and "OPEN " in result.stdout
+    assert "No finite positive user clock period" in result.stderr
+    assert "STATUS=FAILED" in (out / "status.txt").read_text()
 
 
 def test_site_wildcard_is_rejected_before_open(tmp_path):
@@ -647,3 +688,34 @@ def test_existing_directory_is_not_overwritten(tmp_path):
 def test_missing_input_is_not_accepted(tmp_path):
     result, out = probe(tmp_path, input_exists=False)
     assert result.returncode == 1 and "OPEN " not in result.stdout and not out.exists()
+
+
+@pytest.mark.parametrize(
+    "kw",
+    [
+        {"xdc_exists": False},
+        {"xdc_text": ""},
+        {"clock_port": "clk*"},
+        {"clock_name": "clock with spaces"},
+    ],
+)
+def test_required_user_constraints_and_clock_names_fail_before_checkpoint_open(tmp_path, kw):
+    result, out = probe(tmp_path, **kw)
+    assert result.returncode == 1 and "OPEN " not in result.stdout and not out.exists()
+
+
+def test_user_clock_name_is_forwarded_without_core_clk_default(tmp_path):
+    result, out = probe(tmp_path, clock_name="sample_clock")
+    assert result.returncode == 0, result.stdout + result.stderr
+    status = (out / "status.txt").read_text()
+    assert "CLOCK_NAME=sample_clock" in status
+    assert "PROPAGATED sample_clock" in result.stdout
+    assert "create_clock -name sample_clock" in (out / "input_constraints.xdc").read_text()
+
+
+def test_user_xdc_execution_failure_is_recorded_and_not_repaired(tmp_path):
+    text = "error {invalid caller constraint}\\n".replace("\\n", "\n")
+    result, out = probe(tmp_path, xdc_text=text)
+    assert result.returncode == 1 and "invalid caller constraint" in result.stderr
+    assert "STATUS=FAILED" in (out / "status.txt").read_text()
+    assert (out / "input_constraints.xdc").read_text() == text

@@ -1,29 +1,27 @@
 //=============================================================================
 // @file    sinc5_decim.sv
-// @brief   五级流水积分/梳状 CIC 抽取器。
-// @details D=2..256，超范围编码夹为 256；积分器按 valid 逐级寄存，抽取事件随样本
-//          延迟。梳状器按抽取事件逐级寄存，再经加半码、移位和饱和流水，按 D^5 归一化。
-// @project SAR20 / AD4080风格数字原型
-// @author  项目维护者（贡献记录见版本库）
+// @brief   五级流水 CIC 抽取滤波器。
+// @details N=2..256；五级积分和五级梳状差分后按 N^5 归一化。
+//          抽取事件跟随已接受样本的流水，不按空闲时钟周期推进。
+// @project SAR20 / source-bounded digital processing
+// @author  Project maintainers; contributions are tracked by Git.
 // @date    2026-11-05
-// @version 由Git内容版本追溯，不单独声明器件版本
+// @version Git content version; no separate device revision is implied.
 //-----------------------------------------------------------------------------
-// 手册依据: 功能映射见 docs/ad4080_traceability.md，不声称器件逐拍等价。
-// 时钟域: clk；积分与抽取相位均按 valid 事件推进。
-// 复位: rst_n 异步低有效；filter_sync 优先清积分、梳状、相位和输出流水。
-// 延迟: 含五级输入样本流水与五级抽取事件流水，不能简化为 D 个输入加 2 clk。
-// 吞吐: 每个 clk 最多一个输入，稳态每 D 个有效输入输出一个结果。
-// 可综合性: RTL 结构；目标库映射、约束、SRAM/PHY 与 STA 须单独验收。
+// 手册依据: AD4080 Rev.B pp.64–69/94 的模式与抽取率；精确流水和舍入为工程约定。
+// 时钟域: clk；积分与抽取按有效事件推进。
+// 复位: rst_n 低有效、异步置位；filter_sync 清积分、梳状历史和输出流水。
+// 延迟: 五级样本流水加梳状事件/归一化流水，不能简化为 N+2。
+// 吞吐: 每个 clk 可输入一个样本；稳态每 N 个被接受样本输出一次。
+// 可综合性: 可综合结构；工艺映射、约束与 STA 需分别验收。
 // 依赖: 无子模块。
-// 边界: IN_W=20 时积分/梳状各 61 bit，归一化/饱和使用 62 bit。
-//     D 在抽取事件锁存；修改 D 须配合 filter_sync，避免旧流水与新尺度混合。
-//     settled 采用输出计数门限，不是模拟物理建立证据。
+// 边界: 只支持 20 bit 补码；改变 N 须使用 filter_sync，不生成未绑定的物理稳定时序。
 //=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
 
 module sinc5_decim #(
-    parameter int IN_W = 20  // IN_W: 补码输入/输出位宽，工程配置为 20 bit。
+    parameter int IN_W = 20  // IN_W: 仅支持 20 bit 补码输入/输出。
 ) (
     input  logic                 clk,
     input  logic                 rst_n,
@@ -32,9 +30,12 @@ module sinc5_decim #(
     input  logic [IN_W-1:0]      data_in,      // 补码
     input  logic [3:0]           dec_sel,
     output logic [IN_W-1:0]      data_out,     // 补码
-    output logic                 valid_out,    // 输出有效，单拍
-    output logic                 settled       // 建立完成；按输出计数门限。
+    output logic                 valid_out     // 数值输出有效，不建模基于 CNV 的 ready。
 );
+
+    initial begin
+        if (IN_W != 20) $fatal(1, "numerical SINC: only the signed20 contract is supported");
+    end
 
     localparam int MAX_LOG2D = 8;
     localparam int ACC_W     = IN_W + 5*MAX_LOG2D + 1;   // 61
@@ -65,8 +66,8 @@ module sinc5_decim #(
     always_comb begin
         d_map = dec_d(dec_sel);
         l_map = dec_l(dec_sel);
-        // 归一化使用已锁存的 l_cur，使 5*log2(D) 与累加的 d_cur 属于同一块；
-        // 若用 l_map，块中途改码会采用错误增益。
+        // 归一化必须使用已锁存的 l_cur，使 5*log2(D) 与累加使用的 d_cur
+        // 属于同一数据块；改用 l_map 会在块中途改码时使用错误增益。
         shift_amt = {2'b0, l_cur, 2'b00} + {4'b0, l_cur};   // 5*l
     end
 
@@ -78,8 +79,8 @@ module sinc5_decim #(
 
     assign data_ext = $signed({{(ACC_W-IN_W){data_in[IN_W-1]}}, data_in});
 
-    // 每级积分器包含一个寄存器，第 D 个样本在四个后续有效输入沿后到达
-    // integ[4]；抽取事件须在有效样本域对齐，空闲 clk 不计入推进。
+    // 每级积分器包含一个寄存器，第 D 个样本在四个后续有效输入沿后
+    // 到达 integ[4]。抽取事件因此须在有效样本域对齐，空闲 clk 不计入推进。
     wire dec_now = valid_in && (cnt == d_cur - 11'd1);
 
     always_ff @(posedge clk or negedge rst_n) begin
@@ -101,7 +102,7 @@ module sinc5_decim #(
         end else if (filter_sync) begin
             integ[0] <= '0; integ[1] <= '0; integ[2] <= '0; integ[3] <= '0; integ[4] <= '0;
         end else if (valid_in) begin
-            // 每级流水只完成一次加法，避免同一级串联五个 61 bit 加法器。
+            // 每级流水仅完成一次加法，避免在同一级串联五个 61 bit 加法器。
             integ[0] <= integ[0] + data_ext;
             integ[1] <= integ[1] + integ[0];
             integ[2] <= integ[2] + integ[1];
@@ -110,8 +111,8 @@ module sinc5_decim #(
         end
     end
 
-    // 五级梳状器采用收缩式流水，每个 dec_evt 同时更新各级。第 i 级取上一
-    // 抽取事件的第 i-1 级结果完成 ACC_W 位减法，避免串联五级减法器。
+    // 五级梳状器采用收缩式流水，每个 dec_evt 同时更新各级。第 i 级
+    // 使用上一抽取事件的第 i-1 级结果完成 ACC_W 位减法，避免串联五级减法器。
     logic signed [ACC_W-1:0]  comb_s [0:4];
     logic signed [ACC_WX-1:0] out_r;
     logic [7:0]               shift_r;
@@ -121,8 +122,8 @@ module sinc5_decim #(
     logic signed [ACC_WX-1:0] norm_w;
     logic signed [ACC_WX-1:0] shifted;
 
-    // dec_pipe[4] 在有效样本速率下保持一个 valid 周期，与 valid_in 相与产生单拍
-    // 事件。第 D 个样本占用五个有效输入沿传播到 integ[4]，每级一拍。
+    // dec_pipe[4] 在有效样本速率下保持一个 valid 周期，与 valid_in 相与
+    // 生成单拍事件。第 D 个样本占用五个有效输入沿传播到 integ[4]，每级一拍。
     wire dec_evt = valid_in && dec_pipe[4];
 
     assign rnd_w  = $signed({{(ACC_WX-1){1'b0}}, 1'b1} << (shift_r - 8'd1));
@@ -193,32 +194,6 @@ module sinc5_decim #(
                     data_out <= shifted[IN_W-1:0];
                 valid_out <= 1'b1;
             end
-        end
-    end
-
-    // 建立门限以手册 p.69 的 2+5D+4 个 CNV 数值为起点。输出整体后移，
-    // 因此本实现按 ceil(settling/D) 个已输出结果计数，避免仅按输入样本过早置 settled。
-    // 该数字门限不证明模拟建立过程。
-    localparam int SET_W = 16;
-    logic [SET_W-1:0] out_cnt;
-    logic [SET_W-1:0] n_out_settle;
-    wire  [SET_W-1:0] settle_cnv = (SET_W'(d_cur) << 2) + SET_W'(d_cur) + 16'd6;
-    wire  [SET_W-1:0] settle_out = (settle_cnv + SET_W'(d_cur) - 16'd1) >> l_cur;
-
-    // 收缩式梳状器后移四个抽取点，另有两拍归一化；输出计数门限再加 5，
-    // 用于本工程的流水建立判定。
-    assign n_out_settle = settle_out + 16'd5;
-
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            out_cnt <= '0;
-            settled <= 1'b0;
-        end else if (filter_sync) begin
-            out_cnt <= '0;
-            settled <= 1'b0;
-        end else if (valid_out && !settled) begin
-            out_cnt <= out_cnt + 16'd1;
-            if (out_cnt + 16'd1 >= n_out_settle) settled <= 1'b1;
         end
     end
 

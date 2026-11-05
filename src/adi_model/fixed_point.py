@@ -1,11 +1,10 @@
 """split ADC的冻结系数装载与整数重构。
 
-输入为数字观测、名义电压栅格和冻结有效C/Cf系数，不读模拟输出或未知输入。
-默认电压寄存器是归一化V/Vfs的signed Q32，权重为signed Q30；检查96bit有符号累加后作整数除法。
+输入为数字观测、名义电压栅格和冻结有效C/Cf系数，不读模拟输出或未知输入。电压寄存器使用归一化V/Vfs，
+权重为正的有效C/Cf；分数位、存储位宽和受检累加位宽由调用者显式提供。
 最终20bit offset-binary采用[-Vfs,+Vfs)半开midrise箱，floor确定输出码，voltage属性只解码箱中心[输入V]作诊断。
 
-系数量化使用ties-to-even；模拟越界与最终数字裁剪分别保留。没有KTC浮点观测器的整数接口，
-也不把20bit码宽当作实测20bit线性度。
+系数量化使用ties-to-even；模拟越界与最终数字裁剪分别保留。20bit码宽不代表实测20bit线性度。
 """
 
 from __future__ import annotations
@@ -28,17 +27,17 @@ def round_even_divide(n: int, d: int) -> int:
 
 @dataclass(frozen=True)
 class FixedPointFormat:
-    """硬件整数算术合同；涉及有符号量时，位宽包含符号位。"""
+    """显式整数算术约定，包含有符号电压寄存器与累加器位宽。"""
 
-    weight_fraction_bits: int = 30
-    voltage_fraction_bits: int = 32
-    voltage_bits: int = 64
-    coefficient_bits: int = 48
-    accumulator_bits: int = 96
+    weight_fraction_bits: int
+    voltage_fraction_bits: int
+    voltage_bits: int
+    coefficient_bits: int
+    accumulator_bits: int
     output_bits: int = 20
 
     def __post_init__(self):
-        """拒绝不支持或含糊的整数格式。"""
+        """拒绝不支持或含义不明确的整数格式。"""
         for name, value in asdict(self).items():
             if type(value) is not int or value <= 0:
                 raise ValueError(f"{name} must be a positive integer")
@@ -47,7 +46,7 @@ class FixedPointFormat:
             and self.voltage_fraction_bits <= 48
             and self.voltage_fraction_bits < self.voltage_bits <= 64
             and 8 <= self.accumulator_bits <= 256
-            and self.output_bits <= 30
+            and self.output_bits == 20
         ):
             raise ValueError("unsupported fixed-point format")
 
@@ -72,7 +71,7 @@ class CodeStream:
 
 @dataclass(frozen=True)
 class FixedPointReconstructor:
-    """冻结量化系数；处理记录时只执行整数算术。"""
+    """冻结后的量化系数；记录处理采用整数算术。"""
 
     spec: CalibrationSpec
     format: FixedPointFormat
@@ -82,7 +81,9 @@ class FixedPointReconstructor:
     adc2_max_q: int
 
     def __post_init__(self):
-        """校验寄存器值及受界限约束的 int64 mask 求和阶段。"""
+        """检查寄存器数值和受限的 int64 掩码求和阶段。"""
+        if not isinstance(self.format, FixedPointFormat):
+            raise ValueError("an explicit FixedPointFormat is required for integer reconstruction")
         if (
             not np.isfinite(self.spec.v_fs)
             or self.spec.v_fs <= 0
@@ -117,119 +118,128 @@ class FixedPointReconstructor:
         object.__setattr__(self, "weights_q", _readonly(w, np.int64))
 
     @classmethod
-    def from_weights(cls, spec, weights, offset_v=0.0, *, format=None):
-        """一次性量化名义系数或独立校准系数，正好居中时舍入到偶数。"""
-        fmt = FixedPointFormat() if format is None else format
+    def from_weights(cls, spec, weights, offset_v, *, format: FixedPointFormat):
+        """一次量化名义或独立校准系数，居中时取偶数。"""
+        if not isinstance(format, FixedPointFormat):
+            raise ValueError("an explicit FixedPointFormat is required to quantize coefficients")
+        fmt = format
         w = np.asarray(weights, dtype=float)
         scale = 2**fmt.weight_fraction_bits
-        if np.any(~np.isfinite(w)) or np.any(w <= 0) or np.any(w * scale >= 2**62):
+        with np.errstate(over="ignore", invalid="ignore"):
+            quantized_w = np.rint(w * scale)
+        if (
+            np.any(~np.isfinite(quantized_w))
+            or np.any(quantized_w <= 0)
+            or np.any(quantized_w >= 2 ** (fmt.coefficient_bits - 1))
+        ):
             raise ValueError("weight values cannot be represented")
         v = np.asarray([offset_v, spec.adc2_v_min, spec.adc2_v_max]) / spec.v_fs
-        if np.any(~np.isfinite(v)) or np.any(np.abs(v) >= 2**30):
+        with np.errstate(over="ignore", invalid="ignore"):
+            quantized_v = np.rint(v * 2**fmt.voltage_fraction_bits)
+        if np.any(~np.isfinite(quantized_v)):
             raise ValueError("invalid normalized voltage coefficients")
-        q = [int(np.rint(x * 2**fmt.voltage_fraction_bits)) for x in v]
-        return cls(spec, fmt, np.rint(w * scale).astype(np.int64), *q)
+        q = [int(value) for value in quantized_v]
+        return cls(spec, fmt, quantized_w.astype(np.int64), *q)
 
     @classmethod
-    def from_result(cls, result, *, format=None):
-        """从名义几何或冻结训练结果构造数字寄存器。"""
+    def from_result(cls, result, *, format: FixedPointFormat, calibration=None):
+        """从显式提供或已经冻结的拟合模型建立寄存器。
+
+        缺少拟合模型时拒绝。名义对照须由调用方把已声明的系数矩阵显式传给 from_weights。
+        """
         data = DigitalObservation.from_result(result)
-        model = result.state.weight_calibration
-        if model is not None:
-            return cls.from_frozen_calibration(data.spec, model, format=format)
-        spec = data.spec
-        beta = 1 / spec.dac_n_sub
-        unit = result.state.estimated_gain / (
-            spec.n_active * (spec.dac_n_main + beta * spec.dac_n_sub)
-        )
-        weights = np.full(spec.shape, unit)
-        weights[:, spec.dac_n_main :] *= beta
-        return cls.from_weights(spec, weights, format=format)
+        model = result.state.weight_calibration if calibration is None else calibration
+        if not isinstance(model, FrozenCalibration):
+            raise ValueError(
+                "integer reconstruction requires frozen effective C/Cf coefficients; "
+                "supply calibration or explicitly construct nominal registers with from_weights"
+            )
+        return cls.from_frozen_calibration(data.spec, model, format=format)
 
     @classmethod
     def from_frozen_calibration(
-        cls, spec: CalibrationSpec, model: FrozenCalibration, *, format=None
+        cls,
+        spec: CalibrationSpec,
+        model: FrozenCalibration,
+        *,
+        format: FixedPointFormat,
     ):
-        """仅在几何与电压尺度匹配时量化外部拟合系数。"""
-        if model.weights.shape != spec.shape or model.v_fs != spec.v_fs:
+        """仅在完整解码规格匹配时量化外部拟合系数。"""
+        if model.spec != spec:
             raise ValueError(
-                "frozen calibration geometry or Vfs differs from the RTL configuration"
+                "frozen calibration specification differs from the digital configuration"
             )
         return cls.from_weights(spec, model.weights, model.offset_v, format=format)
 
     def reconstruct(self, data: DigitalObservation) -> CodeStream:
-        """由raw ADC2码和可实现开关mask产生最终整数码。
+        """从显式绑定的数字 a 和电压项重构整数码。
 
-        Args:
-            data: DigitalObservation；单位码必须为整数，
-                geometry/nominal ADC2标度必须与寄存器spec完全匹配。只用控制/码，
-                不读模拟out或未知输入。
-
-        Returns:
-            CodeStream，含(N,)offset-binary码、输入等效箱中心的解码接口和独立
-            模拟/数字裁剪标志。归约使用Q30权重，Q32电压与权重乘加后按同笔
-            signal-mask权重和归一化，再floor到输出箱；超出累加器范围直接拒绝。
-            不丢弃模拟越界点，不隐式绕回，KTC没有接受的整数观测接口。
+        每个已知逐单元电压项先按声明的归一化电压寄存器格式量化，居中时取偶数。
+        随后用 Python 整数完成乘加，并在 floor 除法和最终饱和之前检查声明的累加范围；
+        不推断任何物理掩码。
         """
         data.validate()
         if data.spec != self.spec:
             raise ValueError("digital record does not match the frozen register interface")
-        if np.any(data.rdac_code != np.rint(data.rdac_code)):
-            raise ValueError("fixed-point reconstruction requires discrete RDAC commands")
-        n = len(data.rdac_code)
-        output = np.empty(n, dtype=np.int64)
-        low, high = np.zeros(n, bool), np.zeros(n, bool)
+        n = len(data.adc2_code)
+        output: np.ndarray = np.empty(n, dtype=np.int64)
+        low: np.ndarray = np.zeros(n, bool)
+        high: np.ndarray = np.zeros(n, bool)
         vscale, wscale = 2**self.format.voltage_fraction_bits, 2**self.format.weight_fraction_bits
         count = 2**self.format.output_bits
         limit = 2 ** (self.format.accumulator_bits - 1)
+        voltage_limit = 2 ** (self.format.voltage_bits - 1)
         peak = 1
         for start in range(0, n, 256):
             stop = min(start + 256, n)
-            ids, signal, b_minus_dac = _terms(data, start, stop)
-            # This extraction converts ideal digital switch signs to integers;
-            # no analog node voltage, floating output or unknown input is read.
-            injection = data.common_injection_v[start:stop]
-            rail_sign = (b_minus_dac - injection[:, None, None]) / self.spec.v_fs
-            if not np.allclose(rail_sign, np.rint(rail_sign), atol=1e-12, rtol=0):
-                raise ValueError("fractional switch masks have no accepted integer interface")
+            ids, signal, known_term = _terms(data, start, stop)
+            with np.errstate(over="ignore", invalid="ignore"):
+                scaled = np.rint(known_term / self.spec.v_fs * vscale)
+            if (
+                np.any(~np.isfinite(scaled))
+                or np.any(scaled < -voltage_limit)
+                or np.any(scaled >= voltage_limit)
+            ):
+                raise OverflowError(
+                    "known digital voltage term exceeds its declared voltage register"
+                )
+            terms_q = scaled.astype(np.int64)
             weights = self.weights_q[ids]
-            rails = np.sum(weights * np.rint(rail_sign).astype(np.int64), axis=(1, 2))
             gains = np.sum(weights * signal.astype(np.int64), axis=(1, 2))
-            totals = np.sum(weights, axis=(1, 2))
             for j in range(stop - start):
                 k = start + j
                 fine_q = self.adc2_min_q + round_even_divide(
                     (2 * int(data.adc2_code[k]) + 1) * (self.adc2_max_q - self.adc2_min_q),
                     2 ** (self.spec.adc2_n_bits + 1),
                 )
-                normalized_injection = injection[j] / self.spec.v_fs
-                if abs(normalized_injection) >= 2 ** (self.format.voltage_bits - 1) / vscale:
-                    raise OverflowError("digital injection exceeds its voltage register")
-                inj_q = int(np.rint(normalized_injection * vscale))
                 gain = int(gains[j])
                 if gain <= 0:
                     raise ValueError("quantized signal gain must be positive")
-                numerator = (
-                    (fine_q - self.offset_q) * wscale
-                    - int(rails[j]) * vscale
-                    - int(totals[j]) * inj_q
-                )
+                term_products = [
+                    int(weight) * int(term)
+                    for weight, term in zip(weights[j].flat, terms_q[j].flat, strict=True)
+                ]
+                known_sum = sum(term_products)
+                fine_product = (fine_q - self.offset_q) * wscale
+                numerator = fine_product - known_sum
                 shifted = (numerator + gain * vscale) * count
                 denominator = 2 * gain * vscale
                 operands = (
-                    (fine_q - self.offset_q) * wscale,
-                    int(rails[j]) * vscale,
-                    int(totals[j]) * inj_q,
+                    *term_products,
+                    known_sum,
+                    fine_product,
                     numerator,
                     shifted,
                     denominator,
                 )
-                peak = max(peak, *(abs(x).bit_length() + 1 for x in operands))
-                if any(not -limit <= x < limit for x in operands):
+                peak = max(
+                    peak,
+                    *((value if value >= 0 else ~value).bit_length() + 1 for value in operands),
+                )
+                if any(not -limit <= value < limit for value in operands):
                     raise OverflowError(
                         "fixed-point accumulator overflow; widen the declared format"
                     )
-                # Floor implements the specified half-open mid-rise ADC bins.
                 word = shifted // denominator
                 low[k], high[k] = word < 0, word >= count
                 output[k] = min(max(word, 0), count - 1)

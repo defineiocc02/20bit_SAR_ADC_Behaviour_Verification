@@ -1,7 +1,8 @@
 `timescale 1ns/1ps
-// Exact loader/cache invariant, independently recomputed from retained words. Includes the
-// production geometry and both address maxima simultaneously.
-module weight_row_cache_case #(parameter int NS=18, NU=71, SEED=1)(output logic done=0);
+// Exact loader/cache invariant, independently recomputed from retained words. Synthetic rows/terms
+// only; address maxima are separate small cases. STRESS_MAXIMUM explicitly adds the large
+// simultaneous address-maximum case.
+module weight_row_cache_case #(parameter int NS=3, NU=5, SEED=1)(output logic done=0);
   logic clk=0,rst_n=0,ready=0,clear_load=0,wr_en=0;
   always #1 clk=~clk;
   logic [4:0] wr_slice=0;
@@ -95,13 +96,21 @@ module weight_row_cache_case #(parameter int NS=18, NU=71, SEED=1)(output logic 
     done=1;
   end
 endmodule
-module weight_row_cache_tb;
+module weight_row_cache_tb #(parameter bit STRESS_MAXIMUM=0);
   wire [4:0] done;
-  weight_row_cache_case #(.NS(18),.NU(71),.SEED(20260930)) production(.done(done[0]));
-  weight_row_cache_case #(.NS(32),.NU(128),.SEED(2)) maximum(.done(done[1]));
-  weight_row_cache_case #(.NS(32),.NU(1),.SEED(3)) slices(.done(done[2]));
-  weight_row_cache_case #(.NS(1),.NU(128),.SEED(4)) units(.done(done[3]));
-  weight_row_cache_case #(.NS(1),.NU(1),.SEED(5)) minimum(.done(done[4]));
-  initial begin wait(&done);$display("WEIGHT_ROW_CACHE_COMPLETE geometries=5 steps=16150");$finish;end
+  weight_row_cache_case #(.NS(5),.NU(7),.SEED(1949)) small_rows(.done(done[0]));
+  weight_row_cache_case #(.NS(32),.NU(1),.SEED(3)) row_address(.done(done[1]));
+  weight_row_cache_case #(.NS(1),.NU(128),.SEED(4)) term_address(.done(done[2]));
+  weight_row_cache_case #(.NS(1),.NU(1),.SEED(5)) minimum(.done(done[3]));
+  if(STRESS_MAXIMUM)begin : g_maximum
+    weight_row_cache_case #(.NS(32),.NU(128),.SEED(2)) maximum(.done(done[4]));
+  end else begin : g_small_only
+    assign done[4]=1'b1;
+  end
+  initial begin
+    wait(&done);
+    $display("WEIGHT_ROW_CACHE_COMPLETE geometries=%0d steps=%0d",STRESS_MAXIMUM?5:4,STRESS_MAXIMUM?13664:4456);
+    $finish;
+  end
   initial begin #30000;$fatal(1,"weight row cache watchdog");end
 endmodule

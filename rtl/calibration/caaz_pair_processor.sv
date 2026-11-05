@@ -3,14 +3,15 @@
 // CodeStream码中心合同：d=code_even-code_odd，Vpair=LSB*d/2；
 // 最终20位使用现有uniform floor：floor((2^20+d)/2)，不宣称再量化无偏。
 // clk上升沿、同步低有效rst_n；epoch_clear同沿优先并丢弃未完成pair。
-// 开启时每个odd接受沿最多提交一个pair；raw flags/bad/无AZ状态或错配会置sticky fault，
-// 直至clear/reset，不用后续valid记录自动修补缺样。
+// 开启时每个odd接受沿最多提交一个pair；raw flags/bad/无AZ状态或错配会置sticky fault，直至
+// clear/reset，不用后续valid记录自动修补缺样。
 // 默认关闭为旧code/valid/ID/flags/analog_bad的零拍组合旁路。
 // 旁路自身不门控reset/clear，须由上游提供有效资格；开启时reset/clear最高优先取消同沿odd。
 // ID/chop/AZ代只验证数字配对；没有slice/权重或H_AZ输入，不能验证实际共享噪声与a=H_AZ/K相等。
 // 时钟空洞可保持pending，不提供wallclock超时；缺样在下一笔ID检查时检出，fault后不自动重配。
 // Source: PKU_VLSI2025_C32_1_PAPER PDF2/printed2 Fig5/6; PKU_VLSI2025_C32_1_SLIDES PDF28..35/footer
 // Slide27..34.
+`timescale 1ns/1ps
 module caaz_pair_processor #(
     parameter bit P_CAAZ_ENABLE = 1'b0
 ) (
@@ -40,6 +41,7 @@ module caaz_pair_processor #(
     output wire [3:0] fault_code
 );
   if (!P_CAAZ_ENABLE) begin : g_bypass
+    wire unused_disabled_controls = ^{clk, rst_n, epoch_clear, in_chop_neg, in_az_valid};
     assign out_valid = in_valid;
     assign out_code = in_code;
     assign out_sample_id = in_sample_id;
@@ -86,7 +88,10 @@ module caaz_pair_processor #(
     // 加2^20后范围1..2^21-1，保留22位signed再右移，不能对20位码直接做二补数取负。
     wire signed [21:0] offset_sum = 22'sd1048576 +
         $signed({exact_difference[20], exact_difference});
-    wire signed [21:0] floor_output_code = offset_sum >>> 1;
+    // The proven positive range makes bits20:1 the exact unsigned floor code. Bit21 is its zero
+    // sign extension; bit0 is the discarded half-LSB.
+    wire [19:0] floor_output_code = offset_sum[20:1];
+    wire unused_floor_extension_and_fraction = offset_sum[21] ^ offset_sum[0];
 
     // 拒收优先级：raw flags > analog_bad > AZ无效 > ID缺口 > 极性/存储代。
     // ID/代按模2^32递增；首记录必须正相，但本叶不硬编码它必须是顶层启动ID2。
@@ -148,7 +153,7 @@ module caaz_pair_processor #(
               waiting_for_odd <= 1'b1;
             end else begin
               pair_difference_reg <= exact_difference;
-              pair_output_code <= floor_output_code[19:0];
+              pair_output_code <= floor_output_code;
               pair_first_sample_id <= even_sample_id;
               pair_last_sample_id <= in_sample_id;
               pair_output_az_id <= in_az_pair_id;

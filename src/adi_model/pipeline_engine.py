@@ -1,504 +1,674 @@
-"""带显式电容与样本归属的split生产信号链。
+"""显式物理数据与数字binding驱动的唯一pipeline实现。
 
-每笔先持有所选slice的采样电荷，再生成SADC粗码、RDAC实际开关及残差，经共享RA、ADC2后作数字重构。
-首笔显式priming；下笔转换组必须等于前笔采集组，同一tick的采集组与转换组不相交。
-generic和rtl16使用不同的调度合同。
-
-内部输入/残差为输入等效V，RA与ADC2节点为RA输出V。物理C/G/alpha仅用于plant和评分；
-冻结数字重构只读数字观测。动态网络/参考/RA由已启用的求解分支处理。
+每笔用真实采集组保存主/sub自由电荷，随后同一笔转换组消费它；跨周期组与slot重排都按SlicePlan核对。
+残差输入等效r=−(Qfree_eff+QDAC)/Cnorm；Cnorm是全Signal连接的归一化电容，
+实际Signal连接系数另由采集mask给出。理想RA输出为(Cnorm/Cf)*(r+显式RA输入误差)。
+浮置top的参考响应另乘−Ceff/Cnorm；有限A0的噪声增益为1+Ceff/Cf，不能由Cnorm/Cf代替。
+制造值仅用于plant、资格检查和事后评分，不进入数字学习feature。
 """
 
 from __future__ import annotations
-
-from dataclasses import replace
 
 import numpy as np
 
 from .adc2 import ADC2
 from .config import Config, ConfigError
-from .conversion import ConversionEngine
-from .dac_arch import SplitDAC
-from .dynamics import apply_dynamics, crosstalk_error
-from .input_network import OffsetWaveform, PassiveTrackingNetwork, track_interval
-from .ktc import KTCBranch
-from .mapper import dem_state_sequence, dither_transfer_code, make_dither_state
-from .pretracking import InputAssistTrace, QuantizedPretracker
+from .dac_arch import NominalCodebook
+from .dem import REF_HIGH, REF_LOW, SIGNAL, SamplingConnections, SplitSwitchCommand, _integer_array
+from .dither import Fig19DitherProgram, complete_flash3_sar6_prefix_table
+from .mapper import MappedCodes, Mapper
 from .ra import ResidueAmplifier
 from .reconstruction import DigitalState, initialize_state, reconstruct
-from .sadc import build_first_stage_quantizer, units_per_first_stage_step
-from .sampler import capture, input_derivative
-from .sampling_charge import sampling_dither_injection
-from .scheduler import Scheduler, make_scheduler
+from .sadc import build_first_stage_quantizer
+from .sampler import capture, finite_record
+from .sampling_charge import digital_connection_terms
 from .sim import SimResult
-from .sim_split import xtalk_profile
 from .slice_pool import PhysicalSlicePool
-from .timing import build_rtl_slice_plan, rtl_dither_codes
+from .weight_calibration import CalibrationSpec, DigitalObservation, apply_frozen_calibration
 
 
-def execute_split(
+def _reference_record(value, n: int, name: str):
+    return None if value is None else finite_record(value, (n,), name)
+
+
+def _reference_at(value, index: int):
+    return None if value is None else float(value[index])
+
+
+def _binding_name(value) -> str:
+    if value is None:
+        return "UNBOUND"
+    return f"{getattr(value, '__module__', type(value).__module__)}.{getattr(value, '__qualname__', type(value).__qualname__)}"
+
+
+def _same_book(left: NominalCodebook, right: NominalCodebook) -> bool:
+    return (
+        left.code_min == right.code_min
+        and left.code_max == right.code_max
+        and np.array_equal(left.voltage_v, right.voltage_v)
+    )
+
+
+def execute_pipeline(
     cfg: Config,
     input_fn,
     n_samples: int,
     *,
-    chip=None,
+    pool: PhysicalSlicePool,
+    mapper: Mapper,
+    sample_ids,
+    dem_states,
+    sampled_top_v,
+    sampled_subnode_v,
+    reference_high_v,
+    reference_low_v,
+    nominal_reference_high_v,
+    nominal_reference_low_v,
+    static_charge_domain: bool,
     state: DigitalState | None = None,
-    rng: np.random.Generator | None = None,
-    scheduler: Scheduler | None = None,
-    pool: PhysicalSlicePool | None = None,
-    derivative_fn=input_derivative,
-    runner: str = "run_pipeline",
-    ra_output_error_v: np.ndarray | None = None,
+    rng=None,
+    ra_input_error_v=None,
+    rdac_noise_cap_f=None,
+    sampling_control=None,
+    initial_reference_error_v=None,
+    initial_ra_output_v=None,
+    initial_adc2_input_v=None,
+    dither_program: Fig19DitherProgram | None = None,
 ) -> SimResult:
-    """执行一段独立priming的物理split记录。
+    """执行一段显式priming的记录，不修改Config或制造电容。
 
     Args:
-        cfg: 配置；本入口将拓扑标签解析为split，保留profile的其他合同。
-        input_fn: t[s]到输入电压[V]的波形。
-        n_samples: priming后保留的N笔raw转换。
-        chip: 可选aggregate split实现；不传则pool分别生成每个物理slice。
-        state: 数字系数状态；可含独立训练后冻结的有效C/Cf权重。
-        rng: 采样/RA噪声RNG；制造、调度、dither使用独立流。
-        scheduler: generic允许与dem_mode一致的调度器；rtl16由profile独占。
-        pool: 固定物理芯片，电容不重抽；本次运行重置其电气历史。
-        derivative_fn: 孔径斜率提供器，用于输入节点的一阶时偏误差。
-        runner: 结果中的入口标签。
-        ra_output_error_v: 可选(N,)有限RA输出等效误差[V]；在已有噪声后、原RA钳位和ADC2量化前加入；
-            动态参考/转换求解下明确拒绝此样本域接口。
+        cfg: 冻结schema的显式运行合同，不执行profile/架构重写。
+        input_fn: 单孔径输入[V]，时间[s]；每记录时间原点为0。
+        n_samples: 正整数raw数，所有无效/饱和事务均保留。
+        pool: 显式chip、nominal_codebook与实际mask/acquisition/schedule binding。
+        mapper: 512粗码到RDAC整数码的明确表；参考动态另需明确逐事件表。
+        sample_ids: (N,)实际连续uint32身份，保留回绕，不从ID制造启动相位。
+        dem_states: (N,)实际整数状态；DEM关闭时必须保持同一状态。
+        sampled_top_v: 显式标量或(N,A)采样主节点V，列按本笔实际acquisition组顺序；
+            首笔外部预采集使用conv[0]顺序。
+        sampled_subnode_v: 同顺序的显式采样sub节点V，不默填零。
+        reference_high_v: 实际全局高参考驱动基准V，标量或(N,)，未连接轨可None；
+            动态轨误差另由Engine状态叠加，不将基准称为已包含droop的采集节点。
+        reference_low_v: 实际全局低参考驱动基准V，标量或(N,)，不从v_fs推导。
+        nominal_reference_high_v: 独立数字名义高轨V，标量或(N,)。
+        nominal_reference_low_v: 独立数字名义低轨V，只有名义轨进入学习term。
+        static_charge_domain: 请求静态学习资格；引擎还须检查物理/动态条件，
+            True不是绕过资格检查的声明。
+        state: 可选已有数字状态/冻结权重；None仅用来源名义g0作float诊断。
+        rng: 可选显式噪声Generator；活跃噪声无此对象时使用明确cfg.seed。
+        ra_input_error_v: 可选(N,)RA输入等效[V]，不注入数字学习项。
+        rdac_noise_cap_f: 采样噪声启用时必填(N,)显式噪声等效电容[F]。
+        sampling_control: 原样传给数字采集binding的明确控制数据，无物理truth。
+        initial_reference_error_v: 活跃动态参考所需显式初始两轨误差V。
+        initial_ra_output_v: 活跃动态RA所需显式初始输出V。
+        initial_adc2_input_v: 活跃动态ADC2所需显式初始输入V，不默填0。
+        dither_program: 同一raw的Fig19静态等效Q32控制。SADC采x-L、RDAC存x-T，
+            各resolved命令减U；数字公共项为-T，不再额外纠正U。
 
     Returns:
-        SimResult，含(N,n_active)实际slice归属、raw码、节点电压、完整溢出标志。
-        generic的sample ID从0开始；rtl16包含allocator两次启动推进，首ID为2。
+        SimResult；未装载冻结权重时out只为名义标量诊断，整数输出另调用to_codes。
 
-    Side effects:
-        重置pool电气状态并消费活跃RNG；不改制造电容、ADC2范围或调用方系数。
-        需要时应用已冻结权重；不在此入口估计未知输入或在线学习权重。
+    Raises:
+        ConfigError: 缺绑定、控制冲突、未支持电路域或缺活跃物理参数。
+
+    Side effects: 重置并消费pool采集资格；消费启用噪声RNG，不学习系数。
     """
-    cfg.check_legal()
-    cfg = replace(cfg, dac_arch="split")
-    cfg.check_legal()
-    if n_samples < 1:
-        raise ConfigError("n_samples must be positive")
-    if ra_output_error_v is not None:
-        ra_output_error_v = np.asarray(ra_output_error_v, dtype=float)
-        if ra_output_error_v.shape != (n_samples,) or np.any(~np.isfinite(ra_output_error_v)):
-            raise ConfigError("explicit RA output error must be finite and match sample count")
-        if cfg.dyn_ref_settling or cfg.conversion.dynamic:
-            raise ConfigError("explicit RA output error is currently a sample-domain interface")
-    if pool is None:
-        pool = PhysicalSlicePool(cfg, np.random.default_rng(cfg.seed + 8101), chip=chip)
-    if tuple(np.asarray(cfg.mismatch_gradient, dtype=float)) != pool._mismatch_gradient:
-        raise ConfigError(
-            "mismatch_gradient cannot change an existing physical pool; "
-            "use its fabrication configuration or construct an explicit aggregate chip"
-        )
-    if not pool.is_split or (pool.cfg.dac_n_main, pool.cfg.dac_n_sub, pool.cfg.n_slices) != (
-        cfg.dac_n_main,
-        cfg.dac_n_sub,
-        cfg.n_slices,
-    ):
-        raise ConfigError("pool and runner require identical physical topology")
-    chip = pool.template_chip
-    assert chip is not None
-    pool.v_top[:] = 0
-    pool.held_valid[:] = False
-    pool.held_sample[:] = -1
-    pool.n_conversions[:] = 0
-    pool.v_top_q[:] = 0
-    state = initialize_state(cfg) if state is None else state
-    sample_rng = np.random.default_rng(cfg.seed) if rng is None else rng
-    schedule_rng = np.random.default_rng(cfg.seed + 8201)
-    if cfg.conversion.rdac_event_timing == "rtl16":
-        if scheduler is not None:
+    if not isinstance(pool, PhysicalSlicePool) or not isinstance(mapper, Mapper):
+        raise ConfigError("run_pipeline requires an explicit PhysicalSlicePool and Mapper")
+    cfg.check_legal(geometry=pool.geometry)
+    if bool(cfg.dither_enable) != (dither_program is not None):
+        raise ConfigError("dither_enable requires an explicit Fig19 dither_program, and vice versa")
+    if dither_program is not None and not isinstance(dither_program, Fig19DitherProgram):
+        raise ConfigError("dither_program must be Fig19DitherProgram")
+    if isinstance(n_samples, bool) or not isinstance(n_samples, int | np.integer) or n_samples < 1:
+        raise ConfigError("n_samples must be a positive integer")
+    n_samples = int(n_samples)
+    if type(static_charge_domain) is not bool:
+        raise ConfigError("static_charge_domain must be bool and is independently qualified")
+    for name in ("nominal_codebook", "mask_binding", "acquisition_binding", "schedule_binding"):
+        if getattr(pool, name, None) is None:
+            raise ConfigError(f"physical pipeline requires explicitly bound pool.{name}")
+    assert pool.nominal_codebook is not None
+    if not _same_book(pool.nominal_codebook, mapper.nominal_codebook):
+        raise ConfigError("pool and coarse Mapper nominal codebooks conflict")
+    if len(mapper.rdac_code_by_coarse) != 512:
+        raise ConfigError("source-target Mapper needs 512 explicitly supplied coarse rows")
+    if dither_program is not None:
+        if dither_program.words.shape != (n_samples,) or dither_program.spec.v_fs != cfg.v_fs:
+            raise ConfigError("Fig19 program raw length/Vfs conflicts with the actual record")
+        if (
+            cfg.dem_enable
+            or cfg.dyn_input_settling
+            or cfg.dyn_ref_settling
+            or cfg.dyn_crosstalk
+            or cfg.conversion is not None
+            or cfg.enable_sampling_noise
+            or (cfg.ra_enable_noise and cfg.ra_out_noise_rms != 0)
+            or cfg.driver_noise_rms not in (None, 0)
+            or cfg.sampling_tau_mismatch not in (None, 0)
+        ):
             raise ConfigError(
-                "rtl16 profile owns its allocator; an external scheduler is not allowed"
+                "Fig19 static v1 requires explicit zero-noise, no dynamics/response approximation "
+                "and no DEM combination; requested features are not silently disabled"
             )
-        plan = build_rtl_slice_plan(
-            n_samples, shuffle=cfg.dem_enable, seed=cfg.conversion.rtl_shuffle_seed
+        expected_book = -cfg.v_fs + np.arange(512) * dither_program.spec.coarse_step_v
+        if (
+            mapper.nominal_codebook.code_min != 0
+            or mapper.nominal_codebook.code_max != 511
+            or not np.array_equal(mapper.rdac_code_by_coarse, np.arange(512))
+            or not np.allclose(
+                mapper.nominal_codebook.voltage_v,
+                expected_book,
+                rtol=0,
+                atol=32 * np.finfo(float).eps * cfg.v_fs,
+            )
+            or mapper.event_codes_by_coarse is None
+            or not np.array_equal(mapper.event_codes_by_coarse, complete_flash3_sar6_prefix_table())
+        ):
+            raise ConfigError(
+                "Fig19 v1 needs the explicit uniform512 codebook/identity decoder and complete "
+                "Flash3/SAR6 seven-event table; no prefix or codebook fallback"
+            )
+    if cfg.dyn_input_settling:
+        raise ConfigError(
+            "continuous acquisition requires a complete SADC/RDAC phase and initial-node binding; "
+            "this static connection runner does not supply it or shorten the full-Ts RDAC window"
         )
-        conv, acq = plan.conv, plan.acq
-    else:
-        sched = make_scheduler(cfg, schedule_rng, scheduler)
-        conv, acq = sched.reserve_dual(n_samples)
-    if n_samples > 1 and not np.array_equal(np.sort(conv[1:]), np.sort(acq[:-1])):
-        raise ConfigError("scheduler violates cross-cycle sample ownership")
-    if np.any(
-        np.sort(np.concatenate((conv, acq), axis=1))[:, 1:]
-        == np.sort(np.concatenate((conv, acq), axis=1))[:, :-1]
+    if cfg.dyn_crosstalk:
+        raise ConfigError(
+            "crosstalk needs an explicit edge/coupling circuit binding; legacy code-distance proxy removed"
+        )
+    if cfg.input_network is not None and (
+        cfg.input_network.pretrack_mode != "off"
+        or cfg.input_network.auxiliary_cap_f not in (None, 0)
     ):
-        raise ConfigError("conversion and acquisition slices collide")
-    bank = np.arange(n_samples, dtype=np.int64) % 2
-    if cfg.conversion.rdac_event_timing == "rtl16" and cfg.dem_enable:
-        # One invalid startup acquisition already advanced its DEM bank.
-        primed_banks = np.arange(n_samples + 1, dtype=np.int64) % 2
-        sid = dem_state_sequence(n_samples + 1, cfg, primed_banks)[1:]
-    else:
-        sid = dem_state_sequence(n_samples, cfg, bank)
-
-    coeff = pool.split_coefficients(conv, cfg=cfg)
-    c_sig, c_load, c_noise = coeff["c_signal"], coeff["c_load"], coeff["c_noise"]
-    ra = ResidueAmplifier(cfg)
-    gain = ra.gain_vector(c_sig, chip.C_feedback_true)
-    dac = SplitDAC(cfg, chip)
-    step = cfg.nominal_rdac_step
-    units = units_per_first_stage_step(cfg, dac)
-    sadc = build_first_stage_quantizer(cfg, dac)
+        raise ConfigError("pretracking/AUX requires a complete active acquisition-state binding")
+    plan = pool.plan(n_samples)
+    acquisition_ids = np.vstack((plan.conv[0:1], plan.acq[:-1]))
+    if dither_program is not None:
+        used = np.unique(acquisition_ids)
+        if any(
+            getattr(pool, name) is not None and np.any(getattr(pool, name)[used] != 0)
+            for name in ("t_skew", "v_os")
+        ):
+            raise ConfigError("Fig19 static v1 has no active-slice offset/skew phase binding")
+    sid = _integer_array(dem_states, "actual DEM states", ndim=1)
+    if sid.shape != (n_samples,) or np.any(sid < 0):
+        raise ConfigError("DEM states must explicitly identify every raw with nonnegative integers")
+    if not cfg.dem_enable and np.any(sid != sid[0]):
+        raise ConfigError("DEM disabled requires a held actual state, not a varying sequence")
+    ids = _integer_array(sample_ids, "sample IDs", ndim=1)
+    if ids.shape != (n_samples,):
+        raise ConfigError("sample IDs must explicitly identify all raw records")
+    if len(ids) > 1 and np.any((np.diff(ids) & 0xFFFF_FFFF) != 1):
+        raise ConfigError(
+            "this waveform producer requires continuous raw IDs; do not hide missing periods"
+        )
+    top = finite_record(sampled_top_v, (n_samples, cfg.n_active), "sampled top node [V]")
+    subnode = finite_record(sampled_subnode_v, top.shape, "sampled sub node [V]")
+    injected = (
+        None
+        if ra_input_error_v is None
+        else finite_record(ra_input_error_v, (n_samples,), "RA input error [V]", scalar=False)
+    )
+    if dither_program is not None and (
+        np.any(top != 0) or (injected is not None and np.any(injected != 0))
+    ):
+        raise ConfigError(
+            "Fig19 v1 requires explicit zero top reset and no additional RA disturbance"
+        )
+    feedback = pool.chip.require_feedback()
+    pool.chip.require_main_parasitic()
+    coefficients = pool.split_coefficients(plan.conv)
+    c_effective = coefficients["c_eff"]
+    if not isinstance(c_effective, np.ndarray):
+        raise ConfigError("actual main parasitic capacitance is required for sampled-node charge")
+    random_active = (
+        cfg.ra_enable_noise or cfg.enable_sampling_noise or cfg.driver_noise_rms is not None
+    )
+    if rng is not None and not isinstance(rng, np.random.Generator):
+        raise ConfigError("rng must be a Generator")
+    if rng is None and random_active:
+        rng = np.random.default_rng(cfg.seed)
     sample = capture(
         cfg,
         input_fn,
         n_samples,
-        sample_rng,
-        c_active=c_noise,
-        dither_rng=np.random.default_rng(cfg.seed + 8202),
-        dither_codes=(
-            rtl_dither_codes(n_samples, cfg.conversion.rtl_dither_seed)
-            if cfg.conversion.rdac_event_timing == "rtl16"
-            and cfg.dither_mode in ("sampling", "quantizer")
-            else None
-        ),
+        sample_ids=ids,
+        rng=rng,
+        rdac_noise_cap_f=rdac_noise_cap_f,
+        dither_program=dither_program,
     )
-    if cfg.dither_mode == "sampling":
-        sampling_dither_injection(cfg, chip, sample, step, chip.c_sig_true())
-        assert sample.dither_bank_code is not None
-        sampled, injection = pool.split_sampling_charge(
-            conv, sample.x1, sample.dither_bank_code, cfg=cfg
-        )
-        sample.x_rdac = sampled + sample.n_R
-        sample.dither = injection
-        sample.signal_alpha = coeff["alpha"]
-
-    d_code = dither_transfer_code(
-        cfg,
-        sample.dither,
-        step_rdac=step,
-        step_coarse=units * step,
-        dither_code_sampling=sample.dither_code,
-    )
-    e_input = np.zeros(n_samples)
-    e_sadc = np.zeros(n_samples)
-    # Generic records are zero-based. The explicit structural profile includes
-    # the RTL allocator's two startup advances in its externally visible ID.
-    sample_id_base = 2 if cfg.conversion.rdac_event_timing == "rtl16" else 0
-    sample_ids = np.arange(n_samples, dtype=np.int64) + sample_id_base
-    if sample_id_base:
-        sample_ids &= 0xFFFF_FFFF
-    held = np.broadcast_to(sample_ids[:, None], conv.shape).copy()
-    joint = (
-        ConversionEngine(cfg, pool, int(units), n_samples)
-        if cfg.dyn_ref_settling or cfg.conversion.dynamic
-        else None
-    )
-    xtalk = xtalk_profile(cfg, cfg.dac_n_units, np.random.default_rng(cfg.seed + 8204))
-    active_dynamics = (
-        cfg.dyn_input_settling
-        or cfg.slice_timing_skew_s > 0
-        or cfg.slice_offset_sigma_v > 0
-        or joint is not None
-    )
-    coarse = sadc.convert(sample.x_sadc)
-    assist_parameters = cfg.input_network
-    assist = (
-        InputAssistTrace.allocate(n_samples, cfg.n_active)
-        if cfg.dyn_input_settling
-        and (assist_parameters.pretrack_mode != "residue" or assist_parameters.auxiliary_cap_f > 0)
-        else None
-    )
-    tracker = (
-        QuantizedPretracker(
-            cfg.n_slices,
-            cfg.b1,
-            -cfg.v_fs,
-            units * step,
-            cfg.dither_alpha,
-            assist_parameters.pretrack_weights,
-        )
-        if assist is not None and assist_parameters.pretrack_mode != "residue"
-        else None
-    )
-    auxiliary_history = np.zeros(cfg.n_slices)
-    acquisition_voltage = None
-    source_charge = None
-    bus_voltage = None
-    if active_dynamics:
-        slope = (
-            derivative_fn(input_fn, sample.t1)
-            if cfg.slice_timing_skew_s > 0
-            else np.zeros(n_samples)
-        )
-        tacq = cfg.dyn_t_sample_frac / cfg.fs
-        acquisition_voltage = np.empty((n_samples, cfg.n_active))
-        source_charge = np.zeros(n_samples)
-        bus_voltage = np.zeros(n_samples)
-        bus = 0.0
-        has_bus = cfg.input_network.filter_cap_f > 0 and cfg.dyn_r_source > 0
-        idle_network = (
-            PassiveTrackingNetwork([cfg.input_network.filter_cap_f], [cfg.dyn_r_source], 0)
-            if has_bus
-            else None
-        )
-        for n, ids in enumerate(conv):
-            # This acquisition belongs to the group converting sample n; it
-            # spans the preceding clock interval, including the explicit prime.
-            source_fn = (
-                OffsetWaveform(input_fn, sample.dither[n])
-                if cfg.dither_mode == "analog"
-                else input_fn
-            )
-            source_endpoint = float(source_fn(sample.t1[n]))
-            perturbation = pool.v_os[ids] + pool.t_skew[ids] * slope[n]
-            if cfg.dyn_input_settling:
-                t1, t0 = sample.t1[n], sample.t1[n] - tacq
-                if tracker is not None:
-                    assert assist is not None
-                    begin = t0 - assist_parameters.pretrack_time_s
-                    prediction = tracker.predict(ids, begin, assist_parameters.pretrack_mode)
-                    assist.pretrack_start_s[n] = begin
-                    assist.pretrack_target_v[n] = prediction.voltage_v
-                    source_ids = prediction.source_ids.copy()
-                    if sample_id_base:
-                        used = source_ids >= 0
-                        source_ids[used] = (source_ids[used] + sample_id_base) & 0xFFFF_FFFF
-                    assist.pretrack_source_ids[n] = source_ids
-                    assist.pretrack_available_s[n] = prediction.ready_times_s
-                    tau_pre = (
-                        assist_parameters.pretrack_source_ohm + cfg.dyn_r_on * pool.tau_rel[ids]
-                    ) * coeff["load_slice"][n]
-                    after_pre = prediction.voltage_v + (
-                        pool.v_top[ids] - prediction.voltage_v
-                    ) * np.exp(-assist_parameters.pretrack_time_s / tau_pre)
-                    q_pre = float(np.dot(coeff["load_slice"][n], after_pre - pool.v_top[ids]))
-                    pool.v_top[ids] = after_pre
-                    q_target = float(np.mean(prediction.voltage_v))
-                    q_after = q_target + (pool.v_top_q[n % 2] - q_target) * np.exp(
-                        -assist_parameters.pretrack_time_s
-                        / ((assist_parameters.pretrack_source_ohm + cfg.dyn_r_on) * cfg.c_sadc)
-                    )
-                    assist.pretrack_source_charge_c[n] = q_pre + cfg.c_sadc * (
-                        q_after - pool.v_top_q[n % 2]
-                    )
-                    pool.v_top_q[n % 2] = q_after
-                if idle_network is not None and n > 0 and cfg.dyn_t_sample_frac < 1:
-                    bus = float(idle_network.advance([bus], sample.t1[n - 1], t0, input_fn)[0])
-                previous = np.r_[pool.v_top[ids], pool.v_top_q[n % 2]]
-                caps = np.r_[coeff["load_slice"][n], cfg.c_sadc]
-                switches = cfg.dyn_r_on * np.r_[pool.tau_rel[ids], 1.0]
-                auxiliary_cap = assist_parameters.auxiliary_cap_f
-                auxiliary_on_bus = auxiliary_cap > 0 and not assist_parameters.auxiliary_bypass
-                if auxiliary_cap > 0:
-                    assert assist is not None
-                    # A clock-driven reset happens while the parasitic branch
-                    # is disconnected from both signal sources, before tracking.
-                    assist.auxiliary_reset_charge_c[n] = -auxiliary_cap * np.mean(
-                        auxiliary_history[ids]
-                    )
-                if auxiliary_on_bus:
-                    caps = np.r_[caps, auxiliary_cap]
-                    switches = np.r_[switches, assist_parameters.auxiliary_resistance_ohm]
-                    previous = np.r_[previous, 0.0]
-                if has_bus:
-                    previous = np.r_[previous, bus]
-                voltages, source_charge[n] = track_interval(
-                    caps,
-                    switches,
-                    cfg.dyn_r_source,
-                    previous,
-                    t0,
-                    t1,
-                    source_fn,
-                    parameters=cfg.input_network,
-                    ron_coefficient=cfg.dyn_ron_code_coeff,
-                    voltage_scale=cfg.v_fs,
-                )
-                values = voltages[: cfg.n_active] + perturbation
-                if auxiliary_cap > 0:
-                    assert assist is not None
-                    if auxiliary_on_bus:
-                        auxiliary_v = voltages[cfg.n_active + 1]
-                    else:
-                        auxiliary_state, _ = track_interval(
-                            [auxiliary_cap],
-                            [assist_parameters.auxiliary_resistance_ohm],
-                            0,
-                            [0.0],
-                            t0,
-                            t1,
-                            source_fn,
-                            parameters=replace(assist_parameters, filter_cap_f=0),
-                        )
-                        auxiliary_v = auxiliary_state[0]
-                        assist.auxiliary_source_charge_c[n] = auxiliary_cap * auxiliary_v
-                    assist.auxiliary_voltage_v[n] = auxiliary_v
-                    assist.auxiliary_branch_charge_c[n] = auxiliary_cap * auxiliary_v
-                    auxiliary_history[ids] = auxiliary_v
-                # Nominal SADC attenuation matches the sampling-mask signal
-                # scale. Its continuous tracking error passes through it too.
-                e_sadc[n] = cfg.dither_alpha * (voltages[cfg.n_active] - source_endpoint)
-                pool.v_top_q[n % 2] = voltages[cfg.n_active]
-                coarse[n] = sadc.convert(np.array([sample.x_sadc[n] + e_sadc[n]]))[0]
-                if has_bus:
-                    bus = float(voltages[-1])
-                elif cfg.dyn_r_source > 0:
-                    ron = switches.copy()
-                    ron *= 1 + cfg.dyn_ron_code_coeff * (source_endpoint / cfg.v_fs) ** 2
-                    bus = float(
-                        (source_endpoint / cfg.dyn_r_source + np.sum(voltages / ron))
-                        / (1 / cfg.dyn_r_source + np.sum(1 / ron))
-                    )
-                else:
-                    bus = source_endpoint
-                bus_voltage[n] = bus
-            else:
-                values = source_endpoint + perturbation
-            acquisition_voltage[n] = values
-            pool.v_top[ids] = values
-            pool.held_valid[ids] = True
-            pool.held_sample[ids] = sample_ids[n]
-            if not np.all(pool.held_sample[ids] == sample_ids[n]):
-                raise RuntimeError("conversion does not own its sampled charge")
-            e_input[n] = np.dot(coeff["signal_slice"][n], values - source_endpoint) / c_sig[n]
-            command = coarse[n] * units + d_code[n]
-            if tracker is not None:
-                tracker.record(
-                    n,
-                    sample.t1[n] + cfg.conversion.quantizer_time_s,
-                    ids,
-                    coarse[n],
-                    sample.dither[n] if cfg.dither_mode in ("analog", "quantizer") else 0.0,
-                )
-            vd = pool.split_dac_voltage(
-                conv[n : n + 1], np.array([command]), sid[n : n + 1], cfg=cfg
-            )[0]
-            vd += crosstalk_error(
-                cfg,
-                np.array([command]),
-                sid[n : n + 1],
-                dac.levels,
-                cfg.dac_n_units,
-                xtalk,
-                dac.full_order,
-                c_sig[n],
-            )[0]
-            residue_n = sample.x_rdac[n] + e_input[n] - vd
-            if joint is not None:
-                reference_error = joint.step(
-                    n,
-                    ids,
-                    coarse[n],
-                    command,
-                    sid[n],
-                    values,
-                    sample.dither_bank_code[n] if sample.dither_bank_code is not None else 0.0,
-                    residue_n,
-                    gain[n],
-                )
-                residue_n -= reference_error
-            pool.v_top[ids] = residue_n
-            pool.release(ids)
-
-    k = coarse * units + d_code
-    vd0 = dac.evaluate_nominal(k)
-    vd_true = pool.split_dac_voltage(conv, k, sid, cfg=cfg)
-    dyn = apply_dynamics(
-        replace(cfg, dyn_input_settling=False, dyn_ref_settling=False),
-        x=sample.x_rdac,
-        v_prev=np.zeros(n_samples),
-        v_nominal=vd0,
-        code=k,
-        sid=sid,
-        c_active=c_load,
-        n_levels=dac.levels,
-        n_units=cfg.dac_n_units,
-        xtalk_profile=xtalk,
-        perm_fn=dac.full_order,
-        c_xtalk_out=c_sig,
-        c_load_ref=float(c_load.mean()),
-    )
-    vd_true += dyn.e_dac
-    if joint is not None:
-        vd_true += joint.result.dac_reference_error_v
-    stored = sample.x_rdac + e_input
-    residue = stored - vd_true
-    if joint is None:
-        vra, ra_sat = ra.evaluate(residue, sample_rng, g=gain, error_v=ra_output_error_v)
-        adc2_input = vra
-    else:
-        # Existing noise is output-equivalent at the aperture; do not filter it
-        # by signal bandwidth and also apply a phenomenological noise reduction.
-        noise, noise_sat = ra.evaluate(np.zeros(n_samples), sample_rng, g=gain)
-        vra = joint.result.ra_v + noise
-        ra_sat = joint.result.ra_sat | noise_sat | (np.abs(vra) >= cfg.ra_v_clip)
-        vra = np.clip(vra, -cfg.ra_v_clip, cfg.ra_v_clip)
-        adc2_input = (
-            vra if cfg.conversion.adc2_wide_bandwidth_hz is None else joint.result.adc2_v + noise
-        )
-    ktc = KTCBranch(cfg)
-    alpha_physical = coeff["alpha"] if cfg.dither_mode == "sampling" else 1.0
-    vnc, ktc_sat = ktc.observe(sample.n_R, alpha_physical * sample.dx, sample_rng)
+    sadc = build_first_stage_quantizer(cfg)
     backend = ADC2(cfg)
+    ra = ResidueAmplifier(cfg)
+    state = initialize_state(cfg) if state is None else state
+    if not isinstance(state, DigitalState):
+        raise ConfigError(
+            "state must be DigitalState; physical truth is not a digital coefficient source"
+        )
+    coarse, sadc_over = sadc.convert_codes(sample.x_sadc)
+    mapped = mapper.encode(coarse)
+    dither_trace = None
+    if dither_program is not None:
+        assert mapped.event_codes is not None
+        dither_trace = dither_program.commands(
+            coarse,
+            mapped.event_codes,
+            code_min=mapper.nominal_codebook.code_min,
+            code_max=mapper.nominal_codebook.code_max,
+        )
+        mapped = MappedCodes(dither_trace.rdac_code, dither_trace.rdac_event_codes)
+    assert pool.acquisition_binding is not None
+    sampled = pool.acquisition_binding(
+        pool.geometry, ids.copy(), acquisition_ids.copy(), sampling_control
+    )
+    if not isinstance(sampled, SamplingConnections):
+        raise ConfigError("acquisition binding must return actual SamplingConnections")
+    sampled = sampled.validated(pool.geometry, n_samples)
+    if dither_program is not None and (
+        np.any(sampled.main != SIGNAL) or np.any(sampled.sub != SIGNAL)
+    ):
+        raise ConfigError(
+            "Fig19 static v1 common-voltage equivalence requires actual allSIGNAL acquisition"
+        )
+    if cfg.dyn_ref_settling and (np.any(sampled.main != SIGNAL) or np.any(sampled.sub != SIGNAL)):
+        raise ConfigError(
+            "reference-connected acquisition requires a shared sampling/reference event binding; dynamic reference currently requires allSIGNAL acquisition"
+        )
+    command = pool.select(mapped.codes, sid, slice_ids=plan.conv)
+    high_used = (
+        np.any(sampled.main == REF_HIGH, axis=(1, 2))
+        | np.any(sampled.sub == REF_HIGH, axis=(1, 2))
+        | np.any(command.main_on, axis=(1, 2))
+        | np.any(command.sub_on, axis=(1, 2))
+    )
+    low_used = (
+        np.any(sampled.main == REF_LOW, axis=(1, 2))
+        | np.any(sampled.sub == REF_LOW, axis=(1, 2))
+        | np.any(~command.main_on, axis=(1, 2))
+        | np.any(~command.sub_on, axis=(1, 2))
+    )
+    # A reference-event plant consumes its explicit two-rail driver contract;
+    # static endpoint arithmetic only consumes rails actually connected here.
+    high_needed = bool(np.any(high_used) or cfg.dyn_ref_settling)
+    low_needed = bool(np.any(low_used) or cfg.dyn_ref_settling)
+    high = (
+        _reference_record(reference_high_v, n_samples, "actual high reference [V]")
+        if high_needed
+        else None
+    )
+    low = (
+        _reference_record(reference_low_v, n_samples, "actual low reference [V]")
+        if low_needed
+        else None
+    )
+    nominal_high = (
+        _reference_record(nominal_reference_high_v, n_samples, "nominal high reference [V]")
+        if np.any(high_used)
+        else None
+    )
+    nominal_low = (
+        _reference_record(nominal_reference_low_v, n_samples, "nominal low reference [V]")
+        if np.any(low_used)
+        else None
+    )
+    used_physical_ids = np.unique(acquisition_ids)
+    reasons = []
+    if not static_charge_domain:
+        reasons.append("caller did not request static training qualification")
+    for name in ("t_skew", "v_os"):
+        value = getattr(pool, name)
+        if value is not None and np.any(value[used_physical_ids] != 0):
+            reasons.append(f"active physical {name} is outside the static training equation")
+    if injected is not None and np.any(injected != 0):
+        reasons.append("external RA-input disturbance is not an observed static-training term")
+    if np.any(top != 0):
+        reasons.append("nonzero sampled top charge includes unmodeled parasitic/reset terms")
+    for name, actual, nominal, used in (
+        ("high", high, nominal_high, high_used),
+        ("low", low, nominal_low, low_used),
+    ):
+        if (
+            actual is not None
+            and nominal is not None
+            and not np.array_equal(actual[used], nominal[used])
+        ):
+            reasons.append(f"actual {name} rail differs from the declared digital reference")
+    joint = None
+    if cfg.dyn_ref_settling or cfg.conversion is not None:
+        if cfg.conversion is None:
+            raise ConfigError("active conversion requires explicit ConversionParameters")
+        active_state_dynamics = cfg.dyn_ref_settling or cfg.conversion.dynamic
+        if active_state_dynamics:
+            reasons.append(
+                "nonideal reference/RA/ADC2 response is outside static unit-weight training"
+            )
+        if active_state_dynamics and (
+            (cfg.ra_enable_noise and cfg.ra_out_noise_rms != 0) or cfg.enable_sampling_noise
+        ):
+            raise ConfigError(
+                "sample-domain white-noise composition with this nonideal conversion is not implemented; no noise transfer is inferred from signal response"
+            )
+        if cfg.dyn_ref_settling and mapped.event_codes is None:
+            raise ConfigError(
+                "reference recovery requires explicit per-coarse RDAC event-code records"
+            )
+        from .conversion import ConversionEngine
+
+        joint = ConversionEngine(
+            cfg,
+            n_samples,
+            initial_reference_error_v=initial_reference_error_v,
+            initial_ra_output_v=initial_ra_output_v,
+            initial_adc2_input_v=initial_adc2_input_v,
+        )
+    elif any(
+        value is not None
+        for value in (initial_reference_error_v, initial_ra_output_v, initial_adc2_input_v)
+    ):
+        raise ConfigError(
+            "dynamic initial states were supplied without an active stateful consumer"
+        )
+    pool.reset_electrical_state()
+    shape = (n_samples, cfg.n_active)
+    recorded_main = np.empty((n_samples, cfg.n_active, pool.geometry.n_main), dtype=np.int64)
+    recorded_sub = np.empty((n_samples, cfg.n_active, pool.geometry.n_sub), dtype=np.int64)
+    node_charge = np.empty((*shape, 2))
+    held = np.empty(shape, dtype=np.int64)
+    q_free = np.empty(n_samples)
+    q_residue = np.empty(n_samples)
+    c_input = np.empty(n_samples)
+    c_normalize = np.empty(n_samples)
+    gains = np.empty(n_samples)
+    vd_true = np.empty(n_samples)
+    residue = np.empty(n_samples)
+    vra = np.empty(n_samples)
+    adc2_input = np.empty(n_samples)
+    ra_sat: np.ndarray = np.empty(n_samples, dtype=bool)
+    for index, converting in enumerate(plan.conv):
+        group = acquisition_ids[index]
+        values = np.full(cfg.n_active, sample.rdac_input_v[index])
+        if pool.t_skew is not None and np.any(pool.t_skew[group] != 0):
+            values = (
+                finite_record(
+                    input_fn(sample.aperture_s[index] + pool.t_skew[group]),
+                    (cfg.n_active,),
+                    "per-slice skewed input [V]",
+                )
+                + sample.driver_noise_v[index]
+            )
+        if pool.v_os is not None:
+            values += pool.v_os[group]
+        connection = SamplingConnections(
+            sampled.main[index : index + 1], sampled.sub[index : index + 1]
+        )
+        packet = pool.acquire(
+            group,
+            values,
+            sample_id=int(ids[index]),
+            sampled_top_v=top[index],
+            sampled_subnode_v=subnode[index],
+            connections=connection,
+            reference_high_v=_reference_at(high, index),
+            reference_low_v=_reference_at(low, index),
+        )
+        order = np.array([int(np.flatnonzero(group == physical)[0]) for physical in converting])
+        recorded_main[index] = sampled.main[index, order]
+        recorded_sub[index] = sampled.sub[index, order]
+        node_charge[index] = pool.held_node_charge(converting, sample_id=int(ids[index]))
+        held[index] = pool.held_sample[converting]
+        q_free[index] = pool.held_effective_node_charge(converting, sample_id=int(ids[index]))
+        c_input[index] = packet.signal_capacitance_f[0]
+        c_normalize[index] = packet.normalization_capacitance_f[0]
+        gains[index] = ra.gain_vector(c_normalize[index : index + 1], feedback)[0]
+        conversion_mask = SplitSwitchCommand(
+            command.main_on[index : index + 1], command.sub_on[index : index + 1]
+        )
+        drive = pool.charge_from_masks(
+            converting[None, :],
+            conversion_mask,
+            reference_high_v=_reference_at(high, index),
+            reference_low_v=_reference_at(low, index),
+        )
+        vd_true[index] = drive.input_equivalent_v[0]
+        q_residue[index] = (
+            -q_free[index] - drive.charge_c[0] + c_normalize[index] * sample.rdac_noise_v[index]
+        )
+        residue[index] = q_residue[index] / c_normalize[index]
+        if joint is None:
+            error = None if injected is None else injected[index : index + 1]
+            output, saturated = ra.evaluate(
+                residue[index : index + 1], rng, gains[index : index + 1], input_error_v=error
+            )
+            vra[index], adc2_input[index], ra_sat[index] = output[0], output[0], saturated[0]
+        else:
+            assert cfg.conversion is not None
+            program = None
+            if cfg.dyn_ref_settling:
+                from .reference_charge import physical_reference_program
+
+                assert mapped.event_codes is not None and cfg.conversion is not None
+                event_codes = mapped.event_codes[index]
+                events = pool.select(
+                    event_codes,
+                    np.full(len(event_codes), sid[index], dtype=np.int64),
+                    slice_ids=np.broadcast_to(converting, (len(event_codes), cfg.n_active)),
+                )
+                if not np.array_equal(
+                    events.main_on[-1], conversion_mask.main_on[0]
+                ) or not np.array_equal(events.sub_on[-1], conversion_mask.sub_on[0]):
+                    raise ConfigError(
+                        "reference event binding does not end at the actual final conversion mask"
+                    )
+                program = physical_reference_program(
+                    slice_ids=converting,
+                    main_caps_f=pool.chip.C_main[converting],
+                    sub_caps_f=pool.chip.C_sub[converting],
+                    bridge_caps_f=pool.chip.C_bridge[converting],
+                    main_parasitic_f=pool.chip.require_main_parasitic()[converting],
+                    sub_parasitic_f=pool.chip.c_p_sub[converting],
+                    main_on=events.main_on,
+                    sub_on=events.sub_on,
+                    times_s=cfg.conversion.rdac_event_times_s,
+                    sampled_main_bottom_v=packet.main_bottom_v[0, order],
+                    sampled_sub_bottom_v=packet.sub_bottom_v[0, order],
+                    sampled_top_v=top[index, order],
+                    sampled_subnode_v=subnode[index, order],
+                    ref_high_v=_reference_at(high, index),
+                    ref_low_v=_reference_at(low, index),
+                )
+            reference_correction = joint.step(
+                index,
+                program=program,
+                residue_v=residue[index] + (0.0 if injected is None else injected[index]),
+                gain=gains[index],
+                reference_to_residue_scale=(-c_effective[index] / c_normalize[index])
+                if cfg.dyn_ref_settling
+                else None,
+                sample_time_s=float(sample.aperture_s[index]),
+                feedback_noise_gain=(1.0 + c_effective[index] / feedback)
+                if cfg.conversion.ra_dc_gain != "ideal"
+                else None,
+            )
+            residue[index] -= reference_correction
+            q_residue[index] = residue[index] * c_normalize[index]
+            vd_true[index] += reference_correction
+            vra[index] = joint.result.ra_v[index]
+            adc2_input[index] = joint.result.adc2_v[index]
+            ra_sat[index] = joint.result.ra_sat[index]
+            if not cfg.dyn_ref_settling and not cfg.conversion.dynamic:
+                error = None if injected is None else injected[index : index + 1]
+                point_output, point_sat = ra.evaluate(
+                    residue[index : index + 1], rng, gains[index : index + 1], input_error_v=error
+                )
+                vra[index] = point_output[0]
+                adc2_input[index] = point_output[0]
+                ra_sat[index] |= point_sat[0]
+        pool.release(converting, sample_id=int(ids[index]))
     adc2_code, adc2_over = backend.quantize_codes(adc2_input)
-    fine = backend.decode_codes(adc2_code) - state.kappa * vnc
-    dither = make_dither_state(cfg, sample.dither)
-    if cfg.dither_mode == "sampling":
-        dither.digital_correction = sample.dither_code * step
-    elif cfg.dither_mode == "quantizer":
-        dither.digital_correction = np.asarray(sample.rdac_dither)
-    out = reconstruct(vd0, fine, state.estimated_gain, dither.digital_correction, cfg.dither_alpha)
-    x_ref = sample.x1 + (sample.dx if cfg.ktc_enable else 0)
-    # Ideal electrical limit is vectorized, but the final physical state is
-    # still the actual last conversion of each slice, not an unrelated template.
-    if not active_dynamics:
-        for physical_id in range(cfg.n_slices):
-            uses = np.flatnonzero(np.any(conv == physical_id, axis=1))
-            if uses.size:
-                pool.v_top[physical_id] = residue[uses[-1]]
-                pool.held_sample[physical_id] = sample_ids[uses[-1]]
-                pool.n_conversions[physical_id] = uses.size
+    fine = backend.decode_codes(adc2_code)
+    vd0 = mapper.nominal_codebook.evaluate(mapped.codes)
+    if np.any(ra_sat) or np.any(adc2_over):
+        reasons.append("RA/ADC2 clipping violates the linear training equation")
+    actual_sampling = SamplingConnections(recorded_main, recorded_sub)
+    signal_mask, term = digital_connection_terms(
+        pool.geometry,
+        actual_sampling,
+        command,
+        nominal_reference_high_v=None
+        if nominal_high is None
+        else nominal_high[:, None] * np.ones((1, cfg.n_active)),
+        nominal_reference_low_v=None
+        if nominal_low is None
+        else nominal_low[:, None] * np.ones((1, cfg.n_active)),
+    )
+    if dither_program is not None:
+        # 同一显式数字program定义已知采样公共项；不读取实际电容/保持电压。
+        term = term - dither_program.total_v[:, None, None]
+    diagnostic_reasons = []
+    if cfg.dyn_ref_settling or (
+        cfg.conversion is not None
+        and (
+            cfg.conversion.ra_response_model == "single_pole"
+            or cfg.conversion.adc2_response_model in ("single_pole", "wide_narrow")
+        )
+    ):
+        diagnostic_reasons.append(
+            "stateful reference/RA/ADC2 response is outside this scalar diagnostic subset"
+        )
+    if np.any(top != 0):
+        diagnostic_reasons.append(
+            "nonzero sampled top terms have no explicit nominal scalar correction"
+        )
+    if not np.all(signal_mask):
+        diagnostic_reasons.append(
+            "sampling signal_mask is not allSIGNAL; no scalar alpha is inferred"
+        )
+    try:
+        diagnostic_gain = float(finite_record(state.estimated_gain, (), "nominal scalar gain [1]"))
+        if diagnostic_gain <= 0:
+            raise ConfigError("nominal scalar gain must be positive")
+    except ConfigError:
+        diagnostic_reasons.append("a finite positive nominal scalar gain is required")
+        diagnostic_gain = None
+    # Actual C/G/reference errors and clipping remain visible in the nominal
+    # output. They are never used to normalize it or select error-free records.
+    diagnostic_available = not diagnostic_reasons
+    if diagnostic_available:
+        assert diagnostic_gain is not None
+        correction = np.zeros(n_samples) if dither_program is None else -dither_program.total_v
+        out = reconstruct(vd0, fine, diagnostic_gain, correction, 1.0)
+    else:
+        out = np.full(n_samples, np.nan)
+    bad = sadc_over | ra_sat | adc2_over | ~plan.valid
+    observation = DigitalObservation(
+        CalibrationSpec.from_config(cfg, geometry=pool.geometry),
+        plan.conv,
+        adc2_code,
+        command.main_on,
+        command.sub_on,
+        signal_mask,
+        term,
+        bad,
+        ids,
+        static_charge_domain and not reasons,
+    )
+    dither_metadata = None
+    if dither_program is not None:
+        assert dither_trace is not None
+        dither_metadata = {
+            **dither_program.spec.to_dict(),
+            "prefix_events": int(dither_trace.rdac_event_codes.shape[1]),
+            "event_flag_scope": "resolved RDAC integer range; no per-event analog settling claim",
+            "stored_rdac_input": "sample.rdac_input_v = input_v - T; actual pool.acquire",
+            "sadc_input": "sample.x_sadc = input_v - L in this zero-noise v1",
+            "digital_known_common_q": "-total_q; no second upper correction",
+        }
     result = SimResult(
-        runner=runner,
-        out=out,
-        err=out - x_ref,
-        x_ref=x_ref,
+        cfg=cfg,
+        pool=pool,
+        state=state,
         sample=sample,
+        sample_id=ids.copy(),
+        conv_slice_ids=plan.conv.copy(),
+        acq_slice_ids=acquisition_ids.copy(),
+        next_acq_slice_ids=plan.acq.copy(),
+        held_sample_ids=held,
+        plan_valid=plan.valid.copy(),
         coarse=coarse,
-        k=k,
+        sadc_over=sadc_over,
+        k=mapped.codes,
+        sid=sid,
+        main_masks=command.main_on,
+        sub_masks=command.sub_on,
+        sampling_main_connections=recorded_main,
+        sampling_sub_connections=recorded_sub,
+        sampled_node_charge_c=node_charge,
+        sampled_effective_charge_c=q_free,
+        residue_charge_c=q_residue,
+        signal_capacitance_f=c_input,
+        normalization_capacitance_f=c_normalize,
+        g_vec=gains,
         vd0=vd0,
         vd_true=vd_true,
-        e_dac=vd_true - vd0,
         residue=residue,
         vra=vra,
-        vnc=vnc,
+        adc2_input_voltage=adc2_input,
+        adc2_code=adc2_code,
         fine=fine,
         ra_sat=ra_sat,
         adc2_over=adc2_over,
-        ktc_sat=ktc_sat,
-        bank=bank,
-        sid=sid,
-        cfg=cfg,
-        chip=chip,
-        state=state,
-        err_to_x1=out - sample.x1,
-        err_to_x2=out - sample.x2,
-        err_vs_clean=out - np.asarray(sample.x1_clean),
-        g_vec=gain,
-        c_active=c_noise,
-        pool=pool,
-        conv_slice_ids=conv,
-        acq_slice_ids=acq,
-        held_sample=held,
-        sample_id=sample_ids,
-        stored_charge=stored * c_sig,
-        acquisition_error=e_input,
-        sadc_acquisition_error=e_sadc,
-        acquisition_start=sample.t1 - cfg.dyn_t_sample_frac / cfg.fs,
-        acquisition_voltage=acquisition_voltage,
-        input_source_charge_c=source_charge,
-        input_bus_voltage=bus_voltage,
-        conversion_trace=joint.result if joint is not None else None,
-        adc2_input_voltage=adc2_input,
-        adc2_code=adc2_code,
-        input_assist_trace=assist,
+        out=out,
+        err=out - sample.input_clean_v,
+        x_ref=sample.input_clean_v,
+        static_domain_reasons=tuple(dict.fromkeys(reasons)),
+        nominal_diagnostic_available=diagnostic_available,
+        nominal_diagnostic_reasons=tuple(diagnostic_reasons),
+        binding_metadata={
+            "mask": _binding_name(pool.mask_binding),
+            "acquisition": _binding_name(pool.acquisition_binding),
+            "schedule": _binding_name(pool.schedule_binding),
+            "schedule_strategy": plan.strategy,
+            "source_alignment": "EXPLICIT_USER_BINDINGS; not independently proved source mapping",
+            "acquisition_window": "full raw period; point-domain endpoint for this runner",
+            "continuous_acquisition_status": "NOT_IMPLEMENTED without complete phase/initial-node binding",
+            "event_code_table_applied": bool(cfg.dyn_ref_settling),
+            "inactive_runtime_inputs": (
+                (
+                    ["initial_reference_error_v"]
+                    if initial_reference_error_v is not None and not cfg.dyn_ref_settling
+                    else []
+                )
+                + (["reference_high_v"] if reference_high_v is not None and not high_needed else [])
+                + (["reference_low_v"] if reference_low_v is not None and not low_needed else [])
+                + (
+                    ["nominal_reference_high_v"]
+                    if nominal_reference_high_v is not None and not np.any(high_used)
+                    else []
+                )
+                + (
+                    ["nominal_reference_low_v"]
+                    if nominal_reference_low_v is not None and not np.any(low_used)
+                    else []
+                )
+            ),
+            "unused_slice_parameter_ids": {
+                name: np.setdiff1d(
+                    np.flatnonzero(getattr(pool, name) != 0), used_physical_ids
+                ).tolist()
+                for name in ("t_skew", "v_os")
+                if getattr(pool, name) is not None
+            },
+            "RA_error_node": "RA input-equivalent V before actual gain/clipping/ADC2",
+            "dither": dither_metadata,
+        },
+        digital_observation=observation,
+        dither_program=dither_program,
+        dither_trace=dither_trace,
+        conversion_trace=None if joint is None else joint.result,
     )
     if state.weight_calibration is not None:
-        from .weight_calibration import apply_frozen_calibration
-
         apply_frozen_calibration(result, state.weight_calibration)
     return result

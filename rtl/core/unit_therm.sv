@@ -1,44 +1,36 @@
-// 模块：unit_therm；逻辑位置/计数到物理温度计mask与采样rail。
-// 职责：main_on[a][p]=(main_logical[p]<main_count[a])，sub同理；rail[i]=(i-D<bank_dither)。
-// 端口/单位：地址数组下标为物理unit ID，值为逻辑顺序；bank_dither为8位signed整数。
-// 时序：纯组合，无时钟/复位；调用方在load时冻结来自同一样本的地址、计数和dither。
-// 适用域：main_count=0..N_MAIN、sub_count<N_SUB、bank_dither=-D..D；超范围计数会自然饱和mask。
-// 边界：输出只是数字选择，不代表模拟电压幅值、无毛刺驱动或非交叠已满足。
-// a是活动slot、p/k是物理unit；slot对应哪颗slice由上层冻结的slice_id决定。
-// 同一列rail供所有活动slice使用，补偿仍须使用各slice实际有效权重，不能只扣名义dither。
-// 来源：数字物理mask合同、weight_calibration特征定义与参数头。
+// Generic numerical thermometer expansion with an explicit rank for each cell. This component
+// supplies no physical permutation, bridge mapping or dither. ON[p] means supplied_rank[p] <
+// supplied_count; counts beyond the array extent saturate the numerical mask. A physical producer
+// must separately reject any command that is illegal under its binding; this primitive is not that
+// producer.
+`timescale 1ns/1ps
 `include "rtl_params.vh"
-
-module unit_therm (
-    input  logic [N_UNIT_MAIN - 1:0][5:0]          main_logical,
-    input  logic [N_UNIT_SUB - 1:0][2:0]           sub_logical,
-    input  logic [N_ACTIVE - 1:0][6:0]             main_count,
-    input  logic [N_ACTIVE - 1:0][2:0]             sub_count,
-    input  logic signed [7:0]                    bank_dither,
-    output logic [N_ACTIVE - 1:0][N_UNIT_MAIN - 1:0] main_on,
-    output logic [N_ACTIVE - 1:0][N_UNIT_SUB - 1:0]  sub_on,
-    output logic [2 * DITHER_UNITS_RANGE - 1:0]      dither_rail
+module unit_therm #(
+    parameter int P_N_ACTIVE = int'(N_ACTIVE),
+    parameter int P_N_MAIN = int'(N_UNIT_MAIN),
+    parameter int P_N_SUB = int'(N_UNIT_SUB),
+    parameter int MAIN_RANK_BITS = P_N_MAIN > 1 ? $clog2(P_N_MAIN) : 1,
+    parameter int SUB_RANK_BITS = P_N_SUB > 1 ? $clog2(P_N_SUB) : 1,
+    parameter int MAIN_COUNT_BITS = $clog2(P_N_MAIN + 1),
+    parameter int SUB_COUNT_BITS = $clog2(P_N_SUB + 1)
+) (
+    input wire [P_N_MAIN-1:0][MAIN_RANK_BITS-1:0] main_logical,
+    input wire [P_N_SUB-1:0][SUB_RANK_BITS-1:0] sub_logical,
+    input wire [P_N_ACTIVE-1:0][MAIN_COUNT_BITS-1:0] main_count,
+    input wire [P_N_ACTIVE-1:0][SUB_COUNT_BITS-1:0] sub_count,
+    output logic [P_N_ACTIVE-1:0][P_N_MAIN-1:0] main_on,
+    output logic [P_N_ACTIVE-1:0][P_N_SUB-1:0] sub_on
 );
-
-  integer a, p, k, i;
-
-  // 全部输出在每次组合执行中赋值；各 unit 比较器在综合时并行展开， for 循环不产生逐 unit
-  // 扫描状态机，也没有未赋值路径推断锁存器。
+  initial begin
+    if (P_N_ACTIVE < 1 || P_N_MAIN < 1 || P_N_SUB < 1)
+      $fatal(1, "unit_therm: positive numerical dimensions are required");
+  end
   always_comb begin
-    for (a = 0; a < N_ACTIVE; a++) begin
-      for (p = 0; p < N_UNIT_MAIN; p++) begin
-        main_on[a][p] = (9'(main_logical[p]) < 9'(main_count[a]));
-      end
-      for (k = 0; k < N_UNIT_SUB; k++) begin
-        sub_on[a][k] = (4'(sub_logical[k]) < 4'(sub_count[a]));
-      end
-    end
-    // 1/0表示参考正/负轨，不能把0当作零伏。D=2、d=0时rail=0011，
-    // “dither关闭”须由上层sampling门控解释，不能用rail是否全0来判断。
-    // i-D < d等价于i < D+d；明确signed后才能保留负扰动的轨选择。
-    for (i = 0; i < 2 * DITHER_UNITS_RANGE; i++) begin
-      dither_rail[i] = (i - int'(DITHER_UNITS_RANGE)) < int'($signed(bank_dither));
+    for (int a = 0; a < P_N_ACTIVE; a++) begin
+      for (int p = 0; p < P_N_MAIN; p++)
+        main_on[a][p] = int'(main_logical[p]) < int'(main_count[a]);
+      for (int p = 0; p < P_N_SUB; p++)
+        sub_on[a][p] = int'(sub_logical[p]) < int'(sub_count[a]);
     end
   end
-
 endmodule

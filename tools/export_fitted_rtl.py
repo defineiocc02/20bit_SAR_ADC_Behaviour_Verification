@@ -1,104 +1,81 @@
 #!/usr/bin/env python3
-"""将外部已拟合的物理单元校准系数导出为 RTL 寄存器。
+"""将外部固定拟合系数量化为显式绑定的 RTL 寄存器镜像。
 
-输入训练 JSON 来自 FrozenCalibration.to_dict()。工具不估计系数或读取模拟
-物理真值，只核对所选名义接口、量化一次并记录寄存器所用训练文件。
+本工具不训练、不读取物理真值，也不回退到名义系数。
+输出训练统计来自调用方提供的拟合记录，不代表本次重新执行过训练。
 """
 
 from __future__ import annotations
 
 import argparse
 import hashlib
-import json
-from dataclasses import replace
+import shutil
 from pathlib import Path
 
 from adi_model.fixed_point import FixedPointReconstructor
-from adi_model.weight_calibration import CalibrationSpec, FrozenCalibration
-from export_rtl_params import _CONFIG_FACTORIES, _json_text
-
-
-def _paths_alias(first: Path, second: Path) -> bool:
-    """检查文本路径、符号链接及现有硬链接别名。"""
-    if first.resolve() == second.resolve():
-        return True
-    return first.exists() and second.exists() and first.samefile(second)
+from adi_model.weight_calibration import FrozenCalibration
+from export_rtl_params import _json_text, _object, load_contract
 
 
 def build_fitted_registers(
-    config_name: str,
-    frozen_json: bytes,
-    *,
-    dither_mode: str | None = None,
-    dem_enable: bool | None = None,
-    dem_mode: str | None = None,
+    config_path: Path, format_path: Path, binding_path: Path, frozen_path: Path
 ) -> tuple[str, str]:
-    """返回规范化寄存器镜像及独立的来源旁车清单。"""
-    cfg = _CONFIG_FACTORIES[config_name]()
-    if dither_mode is not None:
-        cfg = replace(cfg, dither_mode=dither_mode)
-    if dem_enable is not None:
-        cfg = replace(cfg, dem_enable=dem_enable)
-    if dem_mode is not None:
-        cfg = replace(cfg, dem_mode=dem_mode)
-    spec = CalibrationSpec.from_config(cfg)
-    frozen = FrozenCalibration.from_dict(json.loads(frozen_json))
-    decoder = FixedPointReconstructor.from_frozen_calibration(spec, frozen)
+    """校验所选接口及完整校准规格，再量化调用方提供的固定系数。
+
+    Returns:
+        寄存器镜像 JSON 文本与导出清单 JSON 文本；输入训练统计仅作为元数据保留。
+    """
+    data = load_contract(config_path, format_path, binding_path)
+    if not frozen_path.is_file() or frozen_path.stat().st_size >= 300 * 1024 * 1024:
+        raise ValueError("frozen calibration must be a readable file smaller than 300 MB")
+    frozen = FrozenCalibration.from_dict(_object(frozen_path))
+    decoder = FixedPointReconstructor.from_frozen_calibration(
+        data["spec"], frozen, format=data["format"]
+    )
     register_text = _json_text(decoder.to_dict())
-    register_sha = hashlib.sha256(register_text.encode("utf-8")).hexdigest()
     manifest = {
         "schema_version": 1,
-        "config": config_name,
-        "dither_mode": cfg.dither_mode,
-        "dem_enable": cfg.dem_enable,
-        "dem_mode": cfg.dem_mode,
-        "register_sha256": register_sha,
-        "frozen_file_sha256": hashlib.sha256(frozen_json).hexdigest(),
+        "scope": "FROZEN_FIT_REGISTER_EXPORT_NOT_TRAINING_OR_ANALOG_VALIDATION",
+        "input_sha256": {
+            **data["input_sha256"],
+            "frozen_fit": hashlib.sha256(frozen_path.read_bytes()).hexdigest(),
+        },
+        "register_sha256": hashlib.sha256(register_text.encode("utf-8")).hexdigest(),
+        "training_statistics_are_supplied_metadata": True,
         "training_digest": frozen.training_digest,
         "training_samples": frozen.training_samples,
         "rank": frozen.rank,
         "condition": frozen.condition,
         "residual_rms_v": frozen.residual_rms_v,
+        "shape": list(data["spec"].shape),
         "weight_unit": "effective C/Cf",
-        "weight_fraction_bits": decoder.format.weight_fraction_bits,
-        "voltage_fraction_bits": decoder.format.voltage_fraction_bits,
-        "shape": list(spec.shape),
-        "v_fs": spec.v_fs,
+        "voltage_register_unit": "normalized V/Vfs",
     }
     return register_text, _json_text(manifest)
 
 
-def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--config", required=True, choices=sorted(_CONFIG_FACTORIES))
-    ap.add_argument("--dither-mode", choices=("off", "analog", "quantizer", "sampling"))
-    ap.add_argument("--dem-enable", action="store_true")
-    ap.add_argument("--dem-mode", choices=("rotate", "permute"))
-    ap.add_argument("--frozen", required=True, type=Path)
-    ap.add_argument("--out-registers", required=True, type=Path)
-    ap.add_argument("--out-manifest", required=True, type=Path)
-    ap.add_argument("--check", action="store_true", help="verify existing outputs byte for byte")
-    args = ap.parse_args(argv)
-    paths = (args.frozen, args.out_registers, args.out_manifest)
-    if any(_paths_alias(paths[i], paths[j]) for i in range(3) for j in range(i)):
-        ap.error("input and output paths must be distinct")
-    register_text, manifest_text = build_fitted_registers(
-        args.config,
-        args.frozen.read_bytes(),
-        dither_mode=args.dither_mode,
-        dem_enable=True if args.dem_enable else None,
-        dem_mode=args.dem_mode,
-    )
-    for path, content in (
-        (args.out_registers, register_text),
-        (args.out_manifest, manifest_text),
-    ):
-        if args.check:
-            if not path.is_file() or path.read_bytes() != content.encode("utf-8"):
-                raise SystemExit(f"calibration export drift: {path}")
-        else:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(content, encoding="utf-8")
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    for name in ("config", "format", "binding", "frozen", "out"):
+        parser.add_argument("--" + name, required=True, type=Path)
+    parser.add_argument("--check", action="store_true")
+    args = parser.parse_args()
+    register, manifest = build_fitted_registers(args.config, args.format, args.binding, args.frozen)
+    files = {"registers.json": register, "fitted_register_manifest.json": manifest}
+    if args.check:
+        for name, content in files.items():
+            target = args.out / name
+            if not target.is_file() or target.read_bytes() != content.encode("utf-8"):
+                raise SystemExit(f"fitted register drift: {target}")
+    else:
+        args.out.mkdir(parents=True, exist_ok=False)
+        try:
+            for name, content in files.items():
+                (args.out / name).write_text(content, encoding="utf-8")
+        except OSError:
+            shutil.rmtree(args.out)
+            raise
+    print("FITTED_REGISTER_EXPORT_COMPLETE files=2 estimator_executed=0")
     return 0
 
 

@@ -7,6 +7,7 @@
 // 取消：cancel保留码/index并清busy/事件；接受start时只保留seed高位并置首个未决trial。
 // 适用域：P_BITS>=1、0<=P_SEED_BITS<P_BITS；所有比较器信号须满足统一clk时序。
 // 来源：项目同步SAR宏合同；二进制与clocked握手不声明复制论文异步晶体管SAR。
+`timescale 1ns/1ps
 module sar_trial_ctrl #(
     parameter int P_BITS = 9,
     parameter int P_SEED_BITS = 3

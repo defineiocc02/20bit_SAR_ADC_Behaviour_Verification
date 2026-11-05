@@ -1,68 +1,87 @@
-"""主链路的因果预跟踪：仅从已可用的 SADC coarse code 生成预充电目标。
+"""从已可见数字判决生成预跟踪目标，不接受模拟输入或电容真值。
 
-输入来自真实量化器判决及其完成时刻，不接受理想输入、物理电容/阈值或逐 slice 时偏真值。
-离线仿真虽能预先生成全记录，pending 队列仍只在ready_s<=预跟踪起点时发布结果，
-避免用未来判决改善当前建立。
+codebook_v由调用方明确给出，单位为判决输入节点V。减去同笔已知注入并除signal_scale后，
+目标才处于外部输入等效V。控制器不能用plant的物理阈值、真实输入或误差反推码表。
+[12]允许使用另一ADC的partial/MSB判决。
 
-名义估计为 (lower_v+(coarse_code+0.5)*coarse_step_v-known_injection_v) /signal_scale：
-先取 coarse bin 中心，再减已知注入，最后恢复名义输入尺度。这里是量化历史的预置器，不是电容权重拟合、
-交织补偿或低频学习器。后续若加低频学习，须用数字可见记录和独立参考验证可辨识性，
-不能把pool 的 v_os/t_skew/tau_rel 等 plant 真值作为学习输入。
-
-输出为各物理 slice 的预跟踪目标 [外部输入等效 V] 及来源样本 ID/时间；
-主链路再按有限预充电网络推进电压。本模块不求解连续建立、介电吸收或真实开关/辅助驱动电路，
-不能由目标更准确直接推断器件带宽/噪声收益。
+本模块只核验ready时刻和来源组：它不生成ADC完成时间、DAC电容开关或目标空闲窗口。
+无合法来源时valid=False，不能把零电压冒充一次真实预置。
 """
 
 from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass
+from numbers import Real
+from typing import cast
 
 import numpy as np
+
+from ._arrays import readonly
+
+
+def _finite_scalar(value) -> bool:
+    # cast 补全 NumPy 的标量存根类型，ufunc 仍接收原对象。
+    return (
+        isinstance(value, Real)
+        and not isinstance(value, bool | np.bool_)
+        and bool(np.isfinite(cast(float, value)))
+    )
+
+
+def _physical_ids(values, n_slices: int) -> tuple[int, ...]:
+    ids = np.asarray(values)
+    if (
+        ids.ndim != 1
+        or ids.size == 0
+        or not np.issubdtype(ids.dtype, np.integer)
+        or np.any(ids < 0)
+        or np.any(ids >= n_slices)
+        or len(np.unique(ids)) != len(ids)
+    ):
+        raise ValueError("pretracking.slice_ids needs unique in-range physical integer IDs")
+    return tuple(map(int, ids))
 
 
 @dataclass(frozen=True)
 class DecisionRecord:
-    """一笔名义输入估计及其数字来源，字段不可变。
+    """真实数字判决及来源；ready_s为可用时刻[s]，estimate_v为名义目标[V]。
 
-    sample_id 标识来源转换；ready_s 为判决可用时刻 [s]；slices 为曾采集该样本的物理 ID 元组，
-    不能当作组内 slot；estimate_v 为名义输入估计 [V]。
+    sample_id为调用方单调记录ID，不隐式处理硬件计数器回绕；slices为物理ID。
     """
 
     sample_id: int
     ready_s: float
     slices: tuple[int, ...]
+    coarse_code: int
     estimate_v: float
 
 
 @dataclass(frozen=True)
 class PretrackPrediction:
-    """按请求物理 ID 顺序返回目标与最多三笔来源。
+    """按目标物理ID排序的只读候选：电压/valid为(A,)，来源为(A,H)。
 
-    voltage_v 为 (A,) 输入等效目标 [V]，A 为本次请求片数；source_ids 和ready_times_s 为 (A,3)，
-    分别是 sample ID 与可用时刻 [s]。未用来源用-1/NaN 标记，不能当作真实来源 0；
-    数组列次序为最近到更早。
+    无合法来源时电压/时间为NaN、ID=-1、valid=False；调用方先检查valid再推进实际状态。
+    H是所选数字历史深度，不是ADC物理数量。
     """
 
     voltage_v: np.ndarray
     source_ids: np.ndarray
     ready_times_s: np.ndarray
+    valid: np.ndarray
 
 
 @dataclass(frozen=True)
 class InputAssistTrace:
-    """保存主链路预跟踪和辅助输入网络的观测，不参与数字学习。
+    """来源、目标及分源电荷观测；电压V、时间s、电荷C。
 
-    pretrack_start_s 为 (N,) 起点 [s]，pretrack_target_v 为 (N,A) 目标 [V]；
-    pretrack_source_ids/pretrack_available_s 为 (N,A,3) 来源 sample ID/时刻。
-    pretrack_source_charge_c 及 auxiliary_*charge_c 为 (N,) 电荷 [C]，
-    auxiliary_voltage_v 为 (N,) 辅助节点电压 [V]。这些与输入源电荷、时钟驱动电荷分列，
-    不能全部算作从外部输入信号源抽取的同一种电荷。
+    target/valid为(N,A)，来源为(N,A,H)。预充电源、AUX源和clock reset电荷分列，
+    不能全部并入主输入信号源电荷；观测不作为数字估计器的真值输入。
     """
 
     pretrack_start_s: np.ndarray
     pretrack_target_v: np.ndarray
+    pretrack_valid: np.ndarray
     pretrack_source_ids: np.ndarray
     pretrack_available_s: np.ndarray
     pretrack_source_charge_c: np.ndarray
@@ -72,23 +91,27 @@ class InputAssistTrace:
     auxiliary_reset_charge_c: np.ndarray
 
     @classmethod
-    def allocate(cls, n: int, active: int) -> InputAssistTrace:
-        """分配空观测数组，不产生预测或推进网络状态。
+    def allocate(cls, n: int, active: int, *, history: int) -> InputAssistTrace:
+        """分配观测，不生成预测；无充电事件的电荷为零。
 
         Args:
-            n: raw 样本数 N。
-            active: 每组片数 A，即逻辑 slot 数。
+            n: 正整数样本数N。
+            active: 正整数物理组大小A。
+            history: 明确选择的正整数数字历史深度H。
 
         Returns:
-            InputAssistTrace；缺失来源 ID=-1、时刻=NaN，其余电压/电荷初值为零。
+            未发生的电压/来源保持NaN/-1的独立数组。
         """
+        if any(type(v) is not int or v < 1 for v in (n, active, history)):
+            raise ValueError("input-assist trace dimensions must be positive integers")
         return cls(
             np.full(n, np.nan),
-            np.zeros((n, active)),
-            np.full((n, active, 3), -1, dtype=np.int64),
-            np.full((n, active, 3), np.nan),
+            np.full((n, active), np.nan),
+            np.zeros((n, active), dtype=bool),
+            np.full((n, active, history), -1, dtype=np.int64),
+            np.full((n, active, history), np.nan),
             np.zeros(n),
-            np.zeros(n),
+            np.full(n, np.nan),
             np.zeros(n),
             np.zeros(n),
             np.zeros(n),
@@ -96,162 +119,144 @@ class InputAssistTrace:
 
 
 class QuantizedPretracker:
-    """带可用时间队列的名义码估计器，按物理 slice 保存最近来源。
+    """发布已完成判决，拒绝同组历史冒充另一ADC。
 
-    pending 保存尚未可见的判决；recent 保存最多三笔已可见判决；
-    own 按物理 ID 保存该片最近采样的判决。构造后历史为空，跨调用是否复用由调用方决定；
-    主 runner 在每次记录开始构造新实例。
+    latest只检查最近一笔已完成记录；同组则无更新，不悄悄回退自身历史。
+    weighted要求明确完整历史窗口均来自不重叠组；暖机不足不更新。目标组是否处于合法预置空闲相，
+    仍由上层物理调度核验。
     """
 
-    def __init__(
-        self,
-        n_slices: int,
-        bits: int,
-        lower_v: float,
-        coarse_step_v: float,
-        signal_scale: float = 1.0,
-        weights=(0.6, 0.3, 0.1),
-    ):
-        """绑定数字端已知的 coarse 网格并建立空历史。
+    def __init__(self, n_slices: int, *, codebook_v, signal_scale: float, weights=None):
+        """绑定数字可见码表，不生成物理网格或默认加权系数。
 
         Args:
-            n_slices: 物理 slice 总数，正值。
-            bits: SADC 判决位数，不是最终输出位宽。
-            lower_v: coarse 量化网格下界 [V]，有限。
-            coarse_step_v: coarse bin 步长 delta1 [V/code]，有限且正；
-                不等同 RDAC 单位步长 deltaDAC 或最终 LSB20。
-            signal_scale: 名义输入信号比例，无量纲且正，采样掩码时通常为 alpha。
-            weights: 最近到更早三笔历史的非负权重；首项必须为正。
+            n_slices: 正整数物理池大小。
+            codebook_v: (K,)有限名义数字码表[判决输入节点V]。
+            signal_scale: 显式名义信号传递比例，无量纲且正。
+            weights: 可选(H,)非负数字权重，H>=2；给出后按总和归一化。None不选择加权，历史深度为一。
 
         Raises:
-            ValueError: 非法片数/位数、网格、尺度，或权重非有限、形状非 (3,)、存在负值/首项为零。
-
-        Side effects:
-            复制权重，清空 pending/recent/own；不读取物理真值或消费 RNG。
+            ValueError: 非法维度、非有限码表/尺度或无效权重。
         """
+        if np.iscomplexobj(codebook_v):
+            raise ValueError("pretracking.codebook_v must be real [V]")
+        table = np.asarray(codebook_v, dtype=float)
         if (
-            n_slices < 1
-            or bits < 1
-            or not np.isfinite(lower_v)  # 名义网格必须有限，不能让 NaN 进入预置目标。
-            or not np.isfinite(coarse_step_v)
-            or coarse_step_v <= 0
-            or not np.isfinite(signal_scale)
+            type(n_slices) is not int
+            or n_slices < 1
+            or table.ndim != 1
+            or len(table) < 2
+            or np.any(~np.isfinite(table))
+            or not _finite_scalar(signal_scale)
             or signal_scale <= 0
         ):
-            raise ValueError("pretracking requires positive slice/decision counts and nominal step")
-        self.bits, self.lower_v, self.step_v = bits, lower_v, coarse_step_v
-        self.signal_scale = signal_scale
-        self._weights = np.asarray(weights, dtype=float).copy()
-        if (
-            self._weights.shape != (3,)
-            or np.any(~np.isfinite(self._weights))
-            or np.any(self._weights < 0)
-            or self._weights[0] <= 0
-        ):
             raise ValueError(
-                "pretracking requires three nonnegative weights with a positive newest weight"
+                "pretracking needs physical IDs and an explicit finite digital codebook [V]"
             )
+        self.n_slices = n_slices
+        self.codebook_v = readonly(table)
+        self.signal_scale = float(signal_scale)
+        self._weights = None
+        if weights is not None:
+            w = np.asarray(weights, dtype=float)
+            if (
+                w.ndim != 1
+                or len(w) < 2
+                or np.any(~np.isfinite(w))
+                or np.any(w < 0)
+                or w[0] <= 0
+                or not np.isfinite(w.sum())
+                or w.sum() <= 0
+            ):
+                raise ValueError(
+                    "pretracking.weights needs at least two finite nonnegative weights"
+                )
+            self._weights = readonly(w / w.sum())
+        self.history_depth = 1 if self._weights is None else len(self._weights)
         self._pending: deque[DecisionRecord] = deque()
-        self._recent: deque[DecisionRecord] = deque(maxlen=3)
-        self._own: list[DecisionRecord | None] = [None] * n_slices
+        self._recent: deque[DecisionRecord] = deque(maxlen=self.history_depth)
         self._last_id = -1
         self._last_ready = -np.inf
         self._last_query = -np.inf
 
-    def record(self, sample_id, ready_s, slice_ids, coarse_code, known_injection_v=0.0):
-        """登记 coarse 判决及真正可用时刻，暂不发布给预测器。
+    def record(self, sample_id, ready_s, slice_ids, coarse_code, *, known_injection_v):
+        """登记同笔整数判决、可用时刻与数字已知注入。
 
         Args:
-            sample_id: 来源转换的单调递增 ID，不是 bank、slot 或物理 slice ID。
-            ready_s: 判决完成时刻 [s]，有限且按登记顺序非递减，允许同刻完成。
-            slice_ids: 采过该来源样本的物理 slice ID 集合，非空、不重复且在池内。
-            coarse_code: SADC 整数码 [0,2**bits)，不是 RDAC 加 dither 后的命令。
-            known_injection_v: 量化器已知注入电压 [V]，按名义 bin 中心扣除；
-                不是从理想输入差值反推的未知扰动或物理失配真值。
+            sample_id: 非负且严格递增的来源记录ID。
+            ready_s: 有限且按登记顺序非递减的可用时刻[s]。
+            slice_ids: 来源样本的实际物理ID。
+            coarse_code: 整数判决，范围[0,len(codebook_v))。
+            known_injection_v: 同笔已知注入[判决输入节点V]；关闭时显式给零，不能从真实输入误差反推。
 
         Side effects:
-            将名义 bin 中心估计加入 pending，推进最后登记 ID/完成时间。
-            只有后续 predict 查询达到 ready_s，记录才进入 recent/own。
+            仅加入pending；predict达到ready_s后才发布。
 
         Raises:
-            ValueError: ID/时间失序、非法 coarse 码、片集合或非有限注入。
+            ValueError: ID/时间失序、非法整数码/片集合或非有限注入。
         """
-        ids = tuple(int(i) for i in slice_ids)
+        ids = _physical_ids(slice_ids, self.n_slices)
         if (
-            sample_id <= self._last_id
+            not isinstance(sample_id, int | np.integer)
+            or isinstance(sample_id, bool | np.bool_)
+            or sample_id <= self._last_id
+            or not _finite_scalar(ready_s)
             or ready_s < self._last_ready
-            or not np.isfinite(ready_s)
-            or not np.isfinite(coarse_code)
-            or coarse_code != int(coarse_code)
-            or not 0 <= coarse_code < 2**self.bits
-            or not ids
-            or len(set(ids)) != len(ids)
-            or min(ids) < 0
-            or max(ids) >= len(self._own)
-            or not np.isfinite(known_injection_v)
+            or not isinstance(coarse_code, int | np.integer)
+            or isinstance(coarse_code, bool | np.bool_)
+            or not 0 <= coarse_code < len(self.codebook_v)
+            or not _finite_scalar(known_injection_v)
         ):
             raise ValueError(
-                "pretracking decisions require ordered IDs/times and legal integer codes"
+                "pretracking requires ordered decision IDs/times and in-range integer codes"
             )
-        # coarse bin 中心处于注入后的码域；先减已知注入，再除名义输入比例。
-        estimate = (
-            self.lower_v + (coarse_code + 0.5) * self.step_v - known_injection_v
-        ) / self.signal_scale
-        self._pending.append(DecisionRecord(sample_id, ready_s, ids, float(estimate)))
-        self._last_id, self._last_ready = sample_id, ready_s
+        estimate = (self.codebook_v[int(coarse_code)] - known_injection_v) / self.signal_scale
+        self._pending.append(
+            DecisionRecord(int(sample_id), float(ready_s), ids, int(coarse_code), float(estimate))
+        )
+        self._last_id, self._last_ready = int(sample_id), float(ready_s)
 
     def predict(self, slice_ids, at_s: float, mode: str) -> PretrackPrediction:
-        """在预跟踪开始时选择已可见历史，按请求物理 ID 生成目标。
+        """只在完整且不同组的已完成来源齐备时返回有效目标。
 
         Args:
-            slice_ids: (A,) 物理 slice ID；输出顺序保持与此数组一致。
-            at_s: 查询起点 [s]，有限且相对前次查询非递减；ready_s==at_s的判决在本次即为可用。
-            mode: reset_mid 输出零；latest 使用最近一笔；own 使用各片最后一次采样来源；
-                weighted 使用最多三笔最近记录，截取后重新归一权重。
+            slice_ids: 目标物理组；与来源任一片重叠即不满足另一ADC条件。
+            at_s: 有限、单调非递减查询时刻[s]；同刻ready可见。
+            mode: off、latest或weighted；weighted必须先提供权重。
 
         Returns:
-            PretrackPrediction；缺少历史时目标为零、source ID=-1、时刻=NaN。
-            own 保存的是物理片的历史，绝不按逻辑 slot 偷换来源。
+            只读候选；无合法更新时valid全False。
 
         Side effects:
-            先推进最后查询时刻，再把可用 pending 移入 recent/own；不读取未来
-            记录、真实输入或模拟失配。非法片 ID 的检查发生在队列推进之后，
-            因此异常调用不具备事务回滚语义。
+            输入检查完成后，发布ready_s<=at_s的pending记录。
 
         Raises:
-            ValueError: 未知模式、查询时间失序/非有限，或片 ID 越界/非一维。
+            ValueError: 非法模式、片组、时间或缺失加权合同。
         """
-        if mode not in ("reset_mid", "latest", "own", "weighted"):
-            raise ValueError("unknown pretracking mode")
-        if not np.isfinite(at_s) or at_s < self._last_query:
-            raise ValueError("pretracking query times must be finite and monotonic")
-        self._last_query = at_s
-        # 同一时刻完成的判决可见；离线已生成但尚未 ready 的判决必须留在队列。
+        ids = _physical_ids(slice_ids, self.n_slices)
+        if mode not in ("off", "latest", "weighted"):
+            raise ValueError("pretracking.mode must be off, latest or weighted")
+        if not _finite_scalar(at_s) or at_s < self._last_query:
+            raise ValueError("pretracking query times must be finite and monotonic [s]")
+        if mode == "weighted" and self._weights is None:
+            raise ValueError("pretracking.weights [unitless] is required for weighted updates")
+        self._last_query = float(at_s)
         while self._pending and self._pending[0].ready_s <= at_s:
-            record = self._pending.popleft()
-            self._recent.appendleft(record)
-            for physical in record.slices:
-                self._own[physical] = record
-        ids = np.asarray(slice_ids, dtype=np.int64)
-        if ids.ndim != 1 or np.any(ids < 0) or np.any(ids >= len(self._own)):
-            raise ValueError("pretracking slice IDs are out of bounds")
-        voltage = np.zeros(len(ids))
-        sources = np.full((len(ids), 3), -1, dtype=np.int64)
-        ready = np.full((len(ids), 3), np.nan)
-        for j, physical in enumerate(ids):
-            own = self._own[physical]
-            if mode == "own":
-                selected = [] if own is None else [own]
-            elif mode == "latest":
-                selected = list(self._recent)[:1]
-            elif mode == "weighted":
-                selected = list(self._recent)
-            else:
-                selected = []
-            if selected:
-                weights = self._weights[: len(selected)].copy()
-                weights /= weights.sum()
-                voltage[j] = np.dot(weights, [r.estimate_v for r in selected])
-                sources[j, : len(selected)] = [r.sample_id for r in selected]
-                ready[j, : len(selected)] = [r.ready_s for r in selected]
-        return PretrackPrediction(voltage, sources, ready)
+            self._recent.appendleft(self._pending.popleft())
+        count = self.history_depth if mode == "weighted" else 1
+        selected = list(self._recent)[:count] if mode != "off" else []
+        eligible = len(selected) == count and all(set(ids).isdisjoint(r.slices) for r in selected)
+        voltage = np.full(len(ids), np.nan)
+        sources = np.full((len(ids), self.history_depth), -1, dtype=np.int64)
+        ready = np.full(sources.shape, np.nan)
+        valid = np.zeros(len(ids), dtype=bool)
+        if selected and eligible:
+            w = np.ones(1) if mode == "latest" else self._weights
+            assert w is not None
+            voltage[:] = np.dot(w, [r.estimate_v for r in selected])
+            sources[:, :count] = [r.sample_id for r in selected]
+            ready[:, :count] = [r.ready_s for r in selected]
+            valid[:] = True
+        return PretrackPrediction(
+            readonly(voltage), readonly(sources, np.int64), readonly(ready), readonly(valid, bool)
+        )

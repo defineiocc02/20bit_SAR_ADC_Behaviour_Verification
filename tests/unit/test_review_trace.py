@@ -1,8 +1,10 @@
 """检查按日期保留的审阅快照及扩展覆盖是否完整且可追溯。"""
 
 import hashlib
+import importlib
 import json
 import re
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -180,17 +182,32 @@ def test_reviewed_production_file_inventory_includes_baseline_and_extension():
     extension_rows = extension["files"]
     extension_paths = {row["path"] for row in extension_rows}
     assert len(extension_paths) == len(extension_rows)
-    expected = {p.relative_to(ROOT).as_posix() for p in (ROOT / "src/adi_model").glob("*.py")}
-    expected |= {p.relative_to(ROOT).as_posix() for p in (ROOT / "rtl").rglob("*.sv")}
-    expected |= {p.relative_to(ROOT).as_posix() for p in (ROOT / "ad4080_dsp/rtl").glob("*.sv")}
-    assert baseline_paths | extension_paths == expected
+    # 日期化快照只与当时Git基线比较，不改写历史JSON去冒充当前源。
+    historical = subprocess.run(
+        ["git", "ls-tree", "-r", "--name-only", baseline["baseline_commit"]],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    expected_baseline = {
+        name
+        for name in historical
+        if (name.startswith("src/adi_model/") and name.endswith(".py"))
+        or (name.startswith("rtl/") and name.endswith(".sv"))
+        or (name.startswith("ad4080_dsp/rtl/") and name.endswith(".sv"))
+    }
+    assert baseline_paths == expected_baseline
+    expected_extension = baseline_paths | set(extension["added_files"])
+    assert baseline_paths | extension_paths == expected_extension
+    assert extension["current_inventory"]["production_modules"] == len(expected_extension)
     assert set(extension["added_files"]) == extension_paths - baseline_paths
     assert set(extension["rereviewed_files"]) == extension_paths & baseline_paths
     assert extension["added_files"], "An extension cannot claim new-module coverage without rows"
     assert extension["current_inventory"] == {
-        "production_python_modules": sum(path.endswith(".py") for path in expected),
-        "production_rtl_modules": sum(path.endswith(".sv") for path in expected),
-        "production_modules": len(expected),
+        "production_python_modules": sum(path.endswith(".py") for path in expected_extension),
+        "production_rtl_modules": sum(path.endswith(".sv") for path in expected_extension),
+        "production_modules": len(expected_extension),
     }
     assert extension["extension_totals"] == {
         "files": len(extension_rows),
@@ -225,3 +242,40 @@ def test_caaz_review_records_exclude_private_paths_and_source_payloads():
         assert '"text_path"' not in text
         assert '"image_file"' not in text
         assert '"ocr_evidence"' not in text
+
+
+def test_current_runtime_source_set_has_current_imports_and_explicit_rtl_manifest():
+    """当前集合另检可定位/可导入/清单完整，不把静态集合检查写作已审读或已仿真。"""
+    current_python = {p.name: p for p in (ROOT / "src/adi_model").glob("*.py")}
+    assert {
+        "defaults.py",
+        "dither.py",
+        "pipeline_engine.py",
+        "weight_calibration.py",
+    } <= current_python.keys()
+    assert not {"ktc.py", "ref_track.py", "sim_split.py", "digital_core.py"} & current_python.keys()
+    for filename, path in current_python.items():
+        name = "adi_model" if filename == "__init__.py" else "adi_model." + path.stem
+        loaded = importlib.import_module(name)
+        assert Path(loaded.__file__).resolve() == path.resolve()
+    manifest = (ROOT / "rtl/rtl_sources.f").read_text().splitlines()
+    declared = [
+        line.strip() for line in manifest if line.strip() and not line.lstrip().startswith("#")
+    ]
+    current_rtl = {p.relative_to(ROOT).as_posix() for p in (ROOT / "rtl").rglob("*.sv")}
+    assert len(declared) == len(set(declared))
+    assert set(declared) == current_rtl
+    inventory = json.loads((ROOT / "mechanism_inventory.json").read_text())
+    current_production = current_rtl | {
+        p.relative_to(ROOT).as_posix() for p in current_python.values()
+    }
+    current_production |= {
+        p.relative_to(ROOT).as_posix() for p in (ROOT / "ad4080_dsp/rtl").glob("*.sv")
+    }
+    referenced = {
+        name
+        for row in inventory["mechanisms"]
+        for name in row["code"]
+        if name.startswith(("src/adi_model/", "rtl/", "ad4080_dsp/rtl/"))
+    }
+    assert referenced <= current_production

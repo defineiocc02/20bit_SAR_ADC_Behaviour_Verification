@@ -6,6 +6,7 @@
 // 边界：不生成阈值或比较器，不检查温度计气泡/亚稳态；任意输入仍只得到其置1位数。
 // 集成：增加流水必须同步修改flash_valid与种子接受相位；split_var不改变硬件连接。
 // 来源：P2_INTERFACE.md §10、ADR0018；比较器电气行为属于外部模拟宏。
+`timescale 1ns/1ps
 `include "rtl_params.vh"
 
 module sadc_enc #(
@@ -29,12 +30,13 @@ module sadc_enc #(
   // changes simulator partitioning only, not HDL connectivity or arithmetic.
   wire [ACC_W-1:0] count_tree [1:2*LEAVES-1] /* verilator split_var */;
   for (genvar i = 1; i < 2*LEAVES; i++) begin : g_node
-    if (i < LEAVES)
+    if (i < LEAVES) begin : g_branch
       assign count_tree[i] = count_tree[2*i] + count_tree[2*i+1];
-    else if (i-LEAVES < P_N_CMP)
+    end else if (i-LEAVES < P_N_CMP) begin : g_input
       assign count_tree[i] = ACC_W'(cmp_raw[i-LEAVES]);
-    else
+    end else begin : g_padding
       assign count_tree[i] = '0;
+    end
   end
   assign sadc_code = P_B1'(count_tree[1]);
 endmodule

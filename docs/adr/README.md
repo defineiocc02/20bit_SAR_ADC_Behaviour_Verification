@@ -4,6 +4,8 @@ Identifiers are unique. ADR 0001–0008 retain their historical numbering.
 The physical-closure records use 0009–0015; references in current documentation
 follow these identifiers. Historical decisions can be superseded by later records.
 
+当前source binding、两采集端口、calobs v2与整数算术的正式入口是[现行合同草案](../rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)，待RTL／校准owner联合冻结。0018／0019及更新它们的0021均保留历史语义，不能沿用旧748位、mode地址或码域为新接口。
+
 - [架构决策记录（ADR）](0001-adr-conventions.md)
 - [ADR 0002 — 冻结 v6.1 基线，另建仓库重构](0002-frozen-baseline-and-repo-split.md)
 - [ADR 0003 — 第一级分辨率的架构读数](0003-stage-1-resolution.md)

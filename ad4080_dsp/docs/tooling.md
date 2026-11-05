@@ -1,183 +1,79 @@
-# RTL 与 Agent 协同：工具链选型与实测记录
+# 显式工具入口与验证层级
 
-> 日期：2026-10-19 · 环境：macOS arm64（zhaoyi）· Python 3.13.12
->
-> 本文只记录**实际跑过**的东西，以及跑不通时的原始证据。没有验证过的不写"支持"。
+本页给出实际脚本入口、显式输入及证据范围。旧2026-10-19工具选型、下载问题及版本数保留于[9bdf记录](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/ad4080_dsp/docs/tooling.md)，不能用它判断当前宿主能力。
 
----
-
-## 1. 结论先行
-
-| 工具 | 用途 | 本机状态 | 结论 |
-|---|---|---|---|
-| **pyslang 12.0.0** | SystemVerilog 解析 + elaboration | ✅ 可用 | **已接入门禁**，抓出 5 个真实缺陷 |
-| **Verible v0.0-4296** | lint + format | ❌ 不可执行 | 官方 macOS 资产实际是 Linux ELF（见 §2） |
-| **RTLCoder（HKUST）** | RTL 生成模型 + 评测流程 | ⚠️ 部分可用 | 仓库可克隆；模型权重不可达（见 §3） |
-| Verilator / Icarus | 仿真 | ❌ 未安装 | 本机无仿真能力，TB 只能静态检查 |
-| Docker | 跑 Linux 版 Verible | ❌ 未安装 | 无法用容器绕过 ELF 问题 |
-
-**当前可执行的门禁**：
+## 语法、文本与文件头
 
 ```bash
-cd ad4080_rtl
-bash scripts/lint.sh          # pyslang + 文件头 + 风格
-STRICT=1 bash scripts/lint.sh # 连警告一起判失败
+# 必须明确给文件和依赖；PYTHON指向已有pyslang的解释器
+STRICT=1 bash ad4080_dsp/scripts/lint.sh ad4080_dsp/rtl/sinc1_decim.sv
+python ad4080_dsp/scripts/sv_lint.py --strict ad4080_dsp/rtl/sinc1_decim.sv
+python ad4080_dsp/scripts/check_headers.py ad4080_dsp/rtl/sinc1_decim.sv
 ```
 
-最近一次结果：
+| 入口 | 实际检查 | 不代表什么 |
+| :--- | :--- | :--- |
+| sv_lint.py | 显式文件的pyslang解析／elaboration及文本规则；--strict将警告计为失败 | 不代表功能、CDC、综合或时序通过 |
+| check_headers.py | 所选文件头字段 | 不验证来源真实性、接口数值或作者归属 |
+| lint.sh | 上述检查加可选Verible；无参数退出2 | 可选工具NOT_RUN不计已执行；不隐式扫描RTL或补参数包 |
 
-```
-== pyslang: 15 files, 0 errors, 5 warnings ==
-== style: 0 violations ==
-15/15 files compliant
-RESULT: PASS
-```
+可用`PYTHON`／`VERIBLE_BIN`选择已配置工具；不能从旧主机路径或历史工具表推断当前环境。工具缺失、输入不可读或未满足依赖必须可见，禁止降级为打印PASS。
 
-5 条警告全部是**有意的混合位宽乘法/截断**，已在代码行上方用
-`// WAIVER(...)` 写明理由，不是未处理项。
-
----
-
-## 2. Verible：为什么没跑起来
-
-从 GitHub Releases 下载 `verible-v0.0-4296-g0f262651-macOS.tar.gz`（15 MB，
-校验为 gzip），解压后执行：
-
-```
-$ file verible-v0.0-4296-g0f262651/bin/verible-verilog-lint
-verible-verilog-lint: ELF 64-bit LSB executable, ARM aarch64,
-  version 1 (GNU/Linux), statically linked, ... for GNU/Linux 3.7.0
-$ ./verible-verilog-lint --version
-(eval):1: exec format error
-```
-
-即：**macOS 资产里装的是 Linux ARM64 二进制**，不是 Mach-O。这不是本机环境
-问题，是上游打包问题。本机又没有 Docker/Homebrew，因此无法在本机执行。
-
-在 Linux CI 上应补跑（命令已写进 `scripts/lint.sh` 的可选分支）：
+## 编译与仿真
 
 ```bash
-verible-verilog-lint --rules_config=.verible.rules rtl/*.sv
-verible-verilog-format --verify --inplace=false rtl/*.sv
+python tools/run_open_rtl.py --tops result_fifo_tb --out ../sar-output/fifo-check-001
+# 完整核组件另需 --inputs-dir；数值／向量组件另需对应format或数据
 ```
 
-`.verible.rules` 已按 Google/CHIPS Alliance 的规则名写好；由于本机无法执行，
-**这份规则文件尚未被 Verible 本身验证过**，首次在 CI 上跑时需要
-`--help_rules` 核对当前版本的规则名。这一点如实登记，不假装已验证。
+`--tops`与库外新`--out`必填；`--simulator`选择已配置的verilator／vcs／iverilog。`VERILATOR`、`VCS`、`IVERILOG`／`VVP`按实际runner支持选择命令。每个已登记组件只编译明确依赖，并检查完成marker、正计数／零错误项与必要OPEN说明。
 
----
+`ad4080_dsp/sim/run_all.sh`转发同一显式runner，不是默认全库套件；`run_top.sh`只选ad4080_top_tb，其余输入仍须提供。未登记、未绑定、编译失败或没有有效完成证据都不算通过；没有旧golden／二进制自动回退。
 
-## 3. RTLCoder：拿到了什么、没拿到什么
+## 复现指定的14个场景
 
-仓库：<https://github.com/hkust-zhiyao/RTL-Coder>（IEEE TCAD 2025 / LAD 2024）
-
-### 3.1 实际动作
+实际system场景使用2+1单元、6位ADC2的[数学夹具](../../sim/fixtures/source_control_component/fixture_manifest.json)。权重、标量和coarse／fine目标属于夹具；两采集端口的合成偏移不作为真实Fig.19电荷网络。控制文件按状态0..6、word0..3的有序笛卡尔积生成，每行十六进制。
 
 ```bash
-git clone --depth 1 git@github.com:hkust-zhiyao/RTL-Coder.git /tmp/rtl_coder   # SSH 成功
-# HTTPS 克隆被代理拒绝：CONNECT tunnel failed, response 502
-curl https://huggingface.co          # 000（DNS 污染/不可达）
-curl https://hf-mirror.com           # 200（镜像可达）
+SAR_DSP_ROOT="$(mktemp -d)"
+SAR_DSP_FIXTURE=sim/fixtures/source_control_component
+PYTHONPATH=src python tools/export_rtl_params.py \
+  --config "$SAR_DSP_FIXTURE/config.json" --format "$SAR_DSP_FIXTURE/format.json" \
+  --binding "$SAR_DSP_FIXTURE/binding.json" --out "$SAR_DSP_ROOT/inputs"
+
+python - "$SAR_DSP_FIXTURE" "$SAR_DSP_ROOT/controls.hex" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+fixture, output = map(Path, sys.argv[1:])
+stream = json.loads((fixture / "fixture_manifest.json").read_text())["recommended_stream"]
+word_bits = json.loads((fixture / "binding.json").read_text())["control_word_bits"]
+with output.open("x", encoding="ascii") as handle:
+    for state in stream["legal_state_values"]:
+        for word in stream["control_word_values"]:
+            handle.write(f"{word | (state << word_bits):x}\n")
+PY
+
+python tools/run_open_rtl.py --out "$SAR_DSP_ROOT/run" --tops \
+  result_fifo_tb cnv_ctrl_contract_tb sys_error_corr_contract_tb sinc5_decim_tb \
+  spi_slave_tb fifo_capture_contract_tb fifo_capture_16k ad4080_top_tb \
+  sinc5_comp_contract_tb sar20_dsp_integration_tb ad4080_regs_rejection_tb \
+  spi_unbound_contract_tb sinc_rate_oracle_tb sar20_system_top_tb \
+  --inputs-dir "$SAR_DSP_ROOT/inputs" --weights "$SAR_DSP_FIXTURE/weights.hex" \
+  --scalars "$SAR_DSP_FIXTURE/scalars.hex" --controls "$SAR_DSP_ROOT/controls.hex" \
+  --coarse-target 173 --fine-target 32
 ```
 
-- 仓库内容：`benchmark_inference/`（VerilogEval / RTLLM 推理脚本）、
-  `dataset/Resyn27k.json`（55 MB，2.7 万条指令-代码对）、`train/`（MLE /
-  scoring / 梯度分割）、`data_generation/`。
-- 模型：`ishorn5/RTLCoder-v1.1`、`-Deepseek-v1.1`、`-gptq-4bit`、
-  `-gguf-4bit`。**权重在 HuggingFace，本机不可达**；镜像虽通，但 4-bit GGUF
-  约 4 GB，且 7B 模型在本机 CPU 上生成一个完整模块的时间不可接受，因此
-  **没有实际跑模型推理**。这一点不掩饰。
+14场景含FIFO同一bench的两个深度。普通runner的所选lint与handoff003的5个严格`-Wall` profile分开；不能用此命令宣称已执行全部严格profile。真实system比较以SAR输出整数码为参考，核码制、握手、故障锁停及恢复，不是模拟精度实验。
 
-### 3.2 真正被采用的三件事
+## 当前发布需要的记录
 
-1. **提示词结构**（来自 `test_on_rtllm.py` / `rtllm-1.1.json`）：
-   ```
-   Please act as a professional verilog designer.
-   <功能描述>
-   Module name: <name>
-   Input ports:  <逐端口：名字、位宽、含义>
-   Output ports: <逐端口：名字、位宽、含义>
-   Implementation: <时序/复位/边界条件>
-   ```
-   本项目所有 Agent 任务书都按这个结构写（见 `docs/coding_standard.md` §11）。
+| 记录 | 必须绑定的身份 |
+| :--- | :--- |
+| 源／输入 | 精确SHA、Config／format／binding、两只source模块和packet schema |
+| 工具与执行 | 实际命令、版本、编译／运行日志、完成marker及非空计数 |
+| 数字结果 | 码、ID、flags、拒绝／恢复、独立参考及工作域；不能只报用例存在 |
+| 工艺层级 | 顶层、库／器件、SDC、角、阶段与原始STA；没有则明确未执行 |
 
-2. **输出后处理**（`scripts/rtl_postprocess.py`）：
-   - 取 Markdown 围栏内容；
-   - 丢弃第一个 `module` 之前的解释文字；
-   - 在 `endmodulemodule` 处截断（Deepseek 版的重复结束符）；
-   - 截到最后一个 `endmodule`，缺则补；
-   - 可选补 `` `default_nettype none/wire ``；
-   - `--check` 直接调 pyslang 做语法门禁。
-
-3. **"生成 → 语法 → 仿真"闭环**：RTLCoder 用 iverilog 做功能门禁；本机没有
-   iverilog，用 pyslang 的 elaboration 替代语法门禁，功能验证留给 TB（当前
-   无仿真器，如实标注未运行）。
-
-### 3.3 没有采用的部分
-
-- 27K 数据集：与 AD4080 这种"按手册逐位实现"的任务分布不匹配，且样本由
-  GPT-3.5 生成、作者自己声明不保证正确。直接检索会引入错误先验。
-- 训练脚本：无 GPU、无权重，跑不动。
-- VerilogEval / RTLLM 基准：题目是通用小模块（加法器、FIFO、FSM），不能
-  验证 AD4080 的寄存器语义与定点位宽。
-
----
-
-## 4. pyslang 抓到的真实缺陷（这是引入工具的直接收益）
-
-| # | 文件 | 现象 | 根因 | 修复 |
-|---|---|---|---|---|
-| 1 | `fifo_capture.sv` | 语法错误 | 端口名 `event` 是 SV 保留字 | 改名 `event_in` |
-| 2 | `sys_error_corr.sv` | `K_GAIN_S` 变成 −512 | `512` 放进 `signed [9:0]` 溢出 | 改 11 bit |
-| 3 | `cal_two_point.sv` | `INV_DX_K` 变成 −24495 | `41041` 放进 `signed [15:0]` 溢出 | 改 18 bit，常数重算为 40961 |
-| 4 | `cal_two_point.sv` | 增益基准从 −512 起算 | `10'sd512` 在 10-bit 有符号里是 −512 | 改 `11'sd512` |
-| 5 | 全数据通路 | 负半轴算反 | 手册 Table 7 明确输出是**补码**，RTL 按无符号写 | 校正/滤波/事件全部改 signed |
-
-第 5 条是架构级错误：旧版把 `0x80000` 当成接近满幅的正数，任何负输入都会
-被校正与滤波彻底算错。它不是 lint 风格问题，是功能错误。
-
----
-
-## 5. 最终工作流（人 + 多 Agent）
-
-```
-需求/手册条目
-   │
-   ├─ Agent A: 读手册 → docs/review_*.md（只写报告，不改码）
-   ├─ Agent B: 读专利/论文 → docs/review_*.md
-   │
-   ▼
-主设计者裁决：每条差异 → 改 / 不改（写明理由）
-   │
-   ▼
-Agent 生成或修改 RTL
-   │
-   ├─ scripts/rtl_postprocess.py --check   # 输出清洗 + 语法
-   ├─ scripts/sv_lint.py                   # elaboration + 风格
-   ├─ scripts/check_headers.py             # 文件头完整性
-   ▼
-人工评审（位宽/符号/复位/CDC/时序假设）
-   │
-   ▼
-提交（一个 commit 只对应一条差异）
-```
-
-原则：
-- **Agent 不做最终裁决**。审查报告是输入，改不改由主设计者定。
-- **没有仿真就说没有仿真**。pyslang 通过 ≠ 功能正确。
-- **每条假设有标签**：`ASSUMPTION` / `WAIVER` / `TODO` / `FIXME`。
-- **接口冻结**：顶层端口清单改动必须先改文档，再改代码。
-
----
-
-## 6. 参考
-
-- Verible: <https://github.com/chipsalliance/verible> ·
-  lint 规则 <https://chipsalliance.github.io/verible/verilog_lint.html>
-- Google SystemVerilog Style Guide:
-  <https://chipsalliance.github.io/verible/verilog_lint.html>
-- systemverilog.io Style Guide: <https://systemverilog.io/styleguide>
-- pyslang / slang: <https://github.com/MikePopoloski/slang>
-- RTLCoder: <https://github.com/hkust-zhiyao/RTL-Coder>
-- RTLLM: <https://github.com/hkust-zhiyao/RTLLM>
-- VerilogEval: <https://github.com/NVlabs/verilog-eval>
+[旧仿真](verification_sim.md)、[BMC](formal.md)、[ECP5](synthesis_ecp5.md)和手算面积／延时继续按原版本引用。RTLCoder、Verible下载或pyslang旧故事不作为当前门禁成绩；自动后处理工具也不能据模板编造来源、作者、版本或当前能力。当前结果按[B表](../../docs/digital_status_matrix.md)的实际场景及证据范围引用。

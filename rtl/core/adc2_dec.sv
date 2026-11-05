@@ -4,8 +4,9 @@
 // 时序：无时钟、复位或握手；调用方必须冻结输入并对齐样本 valid。
 // 精度：量程差保留 V_BITS+1 位，乘法保留完整宽度，余数比较实现 ties-to-even。
 // 异常：fine_q 超出 V_BITS 有符号范围时饱和并置 ovf；min<max 由配置端检查。
-// 适用域：生产 P_ADC2_BITS=12、V_BITS=64；参数实例用于独立算术验证。
+// 适用域：P_ADC2_BITS来自显式输入头；整核支持1..12位，独立算术实例可另设位宽。
 // 来源：RTL_ARITHMETIC_CONTRACT.md §3.1；Q32、舍入及接口为项目工程合同。
+`timescale 1ns/1ps
 `include "rtl_params.vh"
 
 module adc2_dec #(
@@ -49,8 +50,8 @@ module adc2_dec #(
   // 两个乘法操作数均显式转换为signed，避免无符号操作数改变乘积扩展。
   assign n = $signed({{(W_MUL - K){1'b0}}, two_c_plus_1}) * delta_ext;
 
-  // 组合段 2：除以固定 2^K，余数比较实现 ties-to-even。此处不推断除法器；前面的 n
-  // 仍是量程可配置的乘法，综合时应单独查看其 DSP/LUT 映射。
+  // 组合段 2：除以固定 2^K，余数比较实现 ties-to-even。此处不推断除法器；前面的 n 仍是量程可配置的
+  // 乘法，综合时应单独查看其 DSP/LUT 映射。
   assign q_shift = $signed(n) >>> K;
   assign r_bits  = n[K - 1:0];
   assign half    = {{(K - 1){1'b0}}, 1'b1} << (K - 1);

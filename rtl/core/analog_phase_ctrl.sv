@@ -7,6 +7,7 @@
 // 启动：复位 phase=0 但注册使能全低，首次回绕后才形成稳态 phase0 电平。
 // 适用域：P_PHASES>=16、9<=P_CAPTURE<P_REF_ON<P_PHASES；非法参数在 elaboration 拒绝。
 // 来源：ADR0018 与项目16tick预算；模拟非交叠、本地采样保持和建立时间由模拟宏验收。
+`timescale 1ns/1ps
 module analog_phase_ctrl #(
     parameter int P_PHASES = 16,
     parameter int P_REF_ON = 10,

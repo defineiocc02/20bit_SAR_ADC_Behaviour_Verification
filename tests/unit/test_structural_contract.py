@@ -1,104 +1,101 @@
-"""独立检查结构样本归属、桥接电容与参考事件合同。"""
+"""检查显式样本归属、已声明事件及结构接口与电气模型的边界。"""
 
-import csv
-import subprocess
-import sys
 from dataclasses import replace
-from pathlib import Path
 
 import numpy as np
 import pytest
 
-from adi_model import Config, ConfigError, sine_input
-from adi_model.closure_experiments import signed_reference_loading
-from adi_model.mapper import dem_state_sequence
+from adi_model.config import Config, ConfigError
+from adi_model.dither import complete_flash3_sar6_prefix_table
+from adi_model.mapper import Mapper
 from adi_model.pipeline import run_pipeline
-from adi_model.reference_charge import resolved_loading_codes
+from adi_model.reference_charge import physical_reference_program
+from adi_model.sampler import dc_input
 
 
-def test_all_nine_bit_resolved_events_have_flash_prefix_and_no_trial_loads():
-    for code in range(512):
-        expected = [((code >> shift) << shift) for shift in range(6, -1, -1)]
-        actual = resolved_loading_codes(code, bits=9, units=1, dither=0)
-        np.testing.assert_array_equal(actual, expected)
+def test_reference_program_keeps_all_resolved_events_and_uses_actual_connections(
+    toy_physical_case,
+):
+    case = toy_physical_case
+    events = complete_flash3_sar6_prefix_table()[173]
+    main = np.zeros((7, 8, 2), dtype=bool)
+    sub = np.zeros((7, 8, 2), dtype=bool)
+    for index, code in enumerate(events):
+        main[index, :, 0] = bool(code & 0x20)
+        main[index, :, 1] = bool(code & 0x08)
+        sub[index, :, 0] = bool(code & 0x04)
+        sub[index, :, 1] = bool(code & 0x01)
+    ids = case.ids[0]
+    chip = case.chip
+    result = physical_reference_program(
+        slice_ids=ids,
+        main_caps_f=chip.C_main[ids],
+        sub_caps_f=chip.C_sub[ids],
+        bridge_caps_f=chip.C_bridge[ids],
+        main_parasitic_f=chip.c_p_main[ids],
+        sub_parasitic_f=chip.c_p_sub[ids],
+        main_on=main,
+        sub_on=sub,
+        times_s=np.arange(7) * 1e-9,
+        sampled_main_bottom_v=np.full((8, 2), 0.2),
+        sampled_sub_bottom_v=np.full((8, 2), 0.2),
+        sampled_top_v=np.zeros(8),
+        sampled_subnode_v=np.zeros(8),
+        ref_high_v=3.0,
+        ref_low_v=-3.0,
+    )
+    assert result.charge_c.shape == (7, 2)
+    np.testing.assert_array_equal(result.times_s, np.arange(7) * 1e-9)
+    np.testing.assert_array_equal(result.charge_c[[2, 5]], 0)
+    assert np.any(result.charge_c != 0)
+
+
+def test_mapper_freezes_only_the_explicit_event_table_and_never_invents_one(
+    explicit_pipeline_factory,
+):
+    _cfg, controls = explicit_pipeline_factory(n_samples=4)
+    book = controls["pool"].nominal_codebook
+    coarse = np.arange(512)
+    no_events = Mapper(coarse, nominal_codebook=book)
+    assert no_events.encode(np.array([173])).event_codes is None
+    table = complete_flash3_sar6_prefix_table().copy()
+    actual = Mapper(coarse, nominal_codebook=book, event_codes_by_coarse=table)
+    table[173, 0] = 0
     np.testing.assert_array_equal(
-        resolved_loading_codes(173, bits=9, units=1, dither=-2),
-        [126, 158, 158, 166, 170, 170, 171],
+        actual.encode(np.array([173])).event_codes[0], [128, 160, 160, 168, 172, 172, 173]
     )
+    assert not actual.event_codes_by_coarse.flags.writeable
 
 
-def test_reference_loading_acceptance_uses_resolved_events_and_charge_oracle():
-    result = signed_reference_loading(Config(), n=512)
-    assert [row["events_per_conversion"] for row in result["rows"]] == [1, 7]
-    assert all(result["checks"].values())
-    assert result["PASS"]
-
-
-def test_reference_event_trace_rejects_a_repeated_nonadjacent_sample(tmp_path):
-    cfg = Config.rtl_structural(dem_enable=True)
-    states = dem_state_sequence(3, cfg, np.arange(3) % 2)[1:]
-
-    def group(target):
-        return [
-            (0, target + 2, target, target, 0, phase, phase * 25 / 16, int(code), states[target])
-            for phase, code in zip(
-                range(3, 10), resolved_loading_codes(target, 9, 1, 0), strict=True
-            )
-        ]
-
-    trace = tmp_path / "events.csv"
-    with trace.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.writer(stream)
-        writer.writerow(
-            [
-                "mode",
-                "sample_id",
-                "target",
-                "coarse",
-                "dither",
-                "phase",
-                "elapsed_ns",
-                "command",
-                "sid",
-            ]
-        )
-        writer.writerows(group(0) + group(1) + group(0) + group(1) * 1533)
-    runner = Path(__file__).resolve().parents[2] / "tools/verify_rdac_events.py"
-    result = subprocess.run(
-        [sys.executable, str(runner), str(trace)], capture_output=True, text=True, check=False
+def test_structural_profile_keeps_explicit_sample_ids_and_full_acquisition_period(
+    explicit_pipeline_factory,
+):
+    cfg, controls = explicit_pipeline_factory(n_samples=8)
+    cfg = replace(cfg, execution_profile="rtl16")
+    original = controls["sample_ids"].copy()
+    result = run_pipeline(cfg, dc_input(0.2), 8, **controls)
+    np.testing.assert_array_equal(result.sample_id, np.arange(8))
+    np.testing.assert_array_equal(
+        result.held_sample_ids, np.broadcast_to(np.arange(8)[:, None], (8, 8))
     )
-    assert result.returncode != 0
-    assert "duplicated RDAC sample group" in result.stderr
-
-
-def test_rtl16_profile_reports_actual_phase_times_and_sample_ownership():
-    cfg = Config.rtl_structural(
-        dyn_ref_settling=True,
-        enable_sampling_noise=False,
-        ra_enable_noise=False,
-        sadc_rdac_gain_mismatch=0,
-    )
-    result = run_pipeline(cfg, sine_input(1, 100e3), 8)
-    np.testing.assert_array_equal(result.sample_id, np.arange(2, 10))
-    np.testing.assert_array_equal(result.held_sample, np.tile(np.arange(2, 10)[:, None], (1, 8)))
+    np.testing.assert_array_equal(controls["sample_ids"], original)
     np.testing.assert_allclose(
-        result.conversion_trace.event_times_s,
-        np.arange(3, 10) / (16 * cfg.fs),
-        rtol=0,
+        result.sample.aperture_s - result.sample.acquisition_start_s,
+        1 / cfg.fs,
         atol=1e-23,
+        rtol=0,
     )
-    assert result.conversion_trace.reference_charge_c.shape == (8, 7, 2)
-    assert result.conversion_trace.phase_times_s[0] == pytest.approx(10 / (16 * cfg.fs))
-    assert result.conversion_trace.phase_times_s[-1] == pytest.approx(1 / cfg.fs)
+    assert result.conversion_trace is None
+    assert result.effective_config["execution_profile"] == "rtl16"
 
 
-def test_structural_profile_rejects_silently_incompatible_timing_or_geometry():
+def test_structural_interface_does_not_supply_missing_analog_or_clock_models():
     cfg = Config.rtl_structural()
-    with pytest.raises(ConfigError, match="rtl16 timing"):
-        replace(cfg, b1=7).check_legal()
-    with pytest.raises(ConfigError, match="rtl16 timing"):
-        replace(cfg, dyn_t_conv_frac=0.4).check_legal()
-    with pytest.raises(ConfigError, match="rtl16 timing"):
-        replace(cfg, rdac_bitwise_loading=False).check_legal()
-    round_trip = Config.from_dict(cfg.to_dict())
-    assert round_trip == cfg
+    assert cfg.adc2_n_bits is None and cfg.conversion is None
+    with pytest.raises(ConfigError, match="missing"):
+        cfg.check_legal()
+    assert Config.from_dict(cfg.to_dict()) == cfg
+    with pytest.raises(TypeError):
+        Config.from_dict({"rdac_bitwise_loading": True})
+    with pytest.raises(TypeError):
+        Config.from_dict({"dyn_t_conv_frac": 0.4})

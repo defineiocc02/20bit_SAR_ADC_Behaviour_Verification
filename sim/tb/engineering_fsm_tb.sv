@@ -1,9 +1,14 @@
 `timescale 1ns/1ps
-// Small-geometry functional FSM witness. This is zero-delay RTL simulation, not a timing/analog/PPA
-// measurement. Inputs change only on falling edges; every assertion/CSV post-state observes 1 ps
-// after the rising edge (NBA done). Optional +trace_dir=<existing fresh directory> writes three
-// real edge traces.
+`include "rtl_params.vh"
+// COMPONENT_SYNTHETIC_DIGITAL: explicit identity arithmetic and leaf-control witness. This is
+// zero-delay RTL simulation, Not a source-control/physical ADC claim. Inputs change only on falling
+// edges; every assertion/CSV post-state observes 1 ps after the rising edge (NBA done). Optional
+// +trace_dir=<existing fresh directory> writes three real edge traces.
 module engineering_fsm_tb;
+  initial begin
+    if(W_BITS!=48 || W_FRAC!=30 || V_BITS!=64 || V_FRAC!=32 || ACC_BITS!=96 || OUT_BITS!=20 || ADC2_BITS!=20)
+      $fatal(1,"explicit engineering_protocol numerical format required");
+  end
   logic clk = 0;
   always #5 clk = ~clk;
 
@@ -12,7 +17,7 @@ module engineering_fsm_tb;
   wire [3:0] phase;
   wire quiet_sample, bank_advance, residue_capture;
   wire tp_clock, ra_az, ra_amplify, ref_precharge, ref_accurate;
-  analog_phase_ctrl u_phase (
+  analog_phase_ctrl #(.P_PHASES(16),.P_REF_ON(10),.P_CAPTURE(9)) u_phase (
       .clk(clk), .rst_n(rst_n), .enable(phase_enable), .phase(phase),
       .quiet_sample(quiet_sample), .bank_advance(bank_advance),
       .residue_capture(residue_capture), .tp_clock(tp_clock), .ra_az(ra_az),
@@ -25,7 +30,7 @@ module engineering_fsm_tb;
   wire [8:0] trial_code, resolved_code;
   wire sar_busy, sar_done, resolved_valid, compare_enable;
   wire cmp_ge = sar_target >= trial_code;
-  sar_trial_ctrl u_sar (
+  sar_trial_ctrl #(.P_BITS(9),.P_SEED_BITS(3)) u_sar (
       .clk(clk), .rst_n(rst_n), .enable(sar_enable), .start(sar_start),
       .cancel(sar_cancel), .seed_code(seed_code), .cmp_valid(cmp_valid),
       .cmp_ge(cmp_ge), .trial_code(trial_code), .resolved_code(resolved_code),
@@ -47,8 +52,7 @@ module engineering_fsm_tb;
       .P_ADC2_BITS(20), .P_STAGES(7)
   ) u_recon (
       .clk(clk), .rst_n(rst_n), .cfg_ready(cfg_ready), .start(recon_start),
-      .sample_id(sample_id), .clr_ovf(clr_ovf), .sampling_mask_en(1'b0),
-      .slice_id(slice_id), .main_on(2'd0), .sub_on(1'b0), .dither_rail(4'd0),
+      .sample_id(sample_id), .clr_ovf(clr_ovf), .slice_id(slice_id), .main_on(2'd0), .sub_on(1'b0),
       .adc2_code(adc2_code), .inj_q(64'sd0), .w_rom(weights), .row_total('0),
       .offset_q(64'sd0), .adc2_min_q(64'sd0), .adc2_max_q(64'sd8589934592),
       .dout(dout), .dout_valid(dout_valid), .clip_low(clip_low),

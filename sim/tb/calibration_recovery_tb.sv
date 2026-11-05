@@ -1,7 +1,9 @@
 `timescale 1ns/1ps
-// End-to-end mismatch recovery: synthesize analog residue from the true cell weights and a known
-// input code, quantize it independently, and require the corrected RTL output to stay within the
-// backend quantization uncertainty.
+`include "rtl_params.vh"
+// COMPONENT_SYNTHETIC_DIGITAL: given-coefficient correction, not coefficient learning. Explicit
+// 18-row/8-slot/7+1-term affine fixture and independent 12-bit quantizer. The exact fixture
+// coefficients generate observations and are supplied to one reconstructor; a second uses nominal
+// coefficients. No physical ADC is modeled.
 module calibration_recovery_tb;
   logic clk=0,rst_n=0,start=0;
   always #1 clk=~clk;
@@ -13,18 +15,17 @@ module calibration_recovery_tb;
   logic [19:0] out_cal,out_raw;
   wire valid_cal,valid_raw;
   wire [4:0] flags_cal,flags_raw;
-  // Eight equal cells per slice; nominal total = 32*2^30 (effective C/Cf, RA gain32). Main/sub here
-  // are physical coefficient test fixtures, not the paper's capacitor geometry.
-  recon_core #(.P_N_ACTIVE(8),.P_N_MAIN(7),.P_N_SUB(1),.P_N_SLICES(18),.P_DIT_N(1),.P_DIT_END(8)) cal(
+  // Eight equal numeric terms per selected row; nominal total is32*2^30.
+  recon_core #(.P_N_ACTIVE(8),.P_N_MAIN(7),.P_N_SUB(1),.P_N_SLICES(18),.P_ADC2_BITS(12),.P_STAGES(7),.P_USE_ROW_TOTALS(0)) cal(
     .clk(clk),.rst_n(rst_n),.cfg_ready(1'b1),.start(start),.sample_id(32'd0),.clr_ovf(1'b0),
-    .sampling_mask_en(1'b0),.slice_id(ids),.main_on(main_on),.sub_on(sub_on),.dither_rail(1'b0),
+    .slice_id(ids),.main_on(main_on),.sub_on(sub_on),
     .adc2_code(fine),.inj_q(64'sd0),.w_rom(weights),.offset_q(64'sd0),
     .adc2_min_q(-64'sd4294967296),.adc2_max_q(64'sd4294967296),
     .dout(out_cal),.dout_valid(valid_cal),.clip_low(),.clip_high(),.acc_ovf(),.gain_err(),.adc2_ovf(),
     .busy(),.result_sample_id(),.result_flags(flags_cal), .row_total('0));
-  recon_core #(.P_N_ACTIVE(8),.P_N_MAIN(7),.P_N_SUB(1),.P_N_SLICES(18),.P_DIT_N(1),.P_DIT_END(8)) raw(
+  recon_core #(.P_N_ACTIVE(8),.P_N_MAIN(7),.P_N_SUB(1),.P_N_SLICES(18),.P_ADC2_BITS(12),.P_STAGES(7),.P_USE_ROW_TOTALS(0)) raw(
     .clk(clk),.rst_n(rst_n),.cfg_ready(1'b1),.start(start),.sample_id(32'd0),.clr_ovf(1'b0),
-    .sampling_mask_en(1'b0),.slice_id(ids),.main_on(main_on),.sub_on(sub_on),.dither_rail(1'b0),
+    .slice_id(ids),.main_on(main_on),.sub_on(sub_on),
     .adc2_code(fine),.inj_q(64'sd0),.w_rom(nominal),.offset_q(64'sd0),
     .adc2_min_q(-64'sd4294967296),.adc2_max_q(64'sd4294967296),
     .dout(out_raw),.dout_valid(valid_raw),.clip_low(),.clip_high(),.acc_ovf(),.gain_err(),.adc2_ovf(),
@@ -43,15 +44,15 @@ module calibration_recovery_tb;
       for(int a=0;a<8;a++) begin
         next_ids[a]=5'((n+7*a)%18);
         for(int u=0;u<8;u++) begin
-          // Rotate the unit selection independently of physical slice choice.
+          // Vary the supplied binary term masks independently of row addresses.
           if(u<7) next_main[a][u]=((a*8+u+n)%64)<coarse;
           else next_sub[a][0]=((a*8+u+n)%64)<coarse;
           w=256'(weights[next_ids[a]][u]);total+=w;
           rail_sum+=(((a*8+u+n)%64)<coarse)?-w:w;
         end
       end
-      // Solve the analog transfer equation for the midpoint of target code. v is normalized input
-      // in Q32; fexact is the ADC2 voltage after RA gain32.
+      // Solve this declared affine integer fixture at a target-bin midpoint. v and fexact are Q32
+      // numerical quantities, not measured analog nodes.
       v=(2*256'(target)+1)*256'sd4096-256'sd4294967296;
       fexact=(total*v+(rail_sum<<<32)) / 256'sd1073741824;
       c=(fexact+256'sd4294967296)/256'sd2097152;

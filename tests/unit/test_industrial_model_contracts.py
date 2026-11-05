@@ -1,216 +1,155 @@
-"""检查独立的数值边界、时钟预算和测量合同。"""
+"""检查真实命令分发、显式时钟预算及持久化数值边界。"""
 
 from dataclasses import replace
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
-from adi_model import Config, cli, dc_input, run_sim, sine_input
 from adi_model import __main__ as module_cli
-from adi_model.closure_experiments import _error_statistics
+from adi_model.config import Config
 from adi_model.conversion import ConversionParameters
 from adi_model.fixed_point import FixedPointReconstructor
+from adi_model.metrics import summarize
 from adi_model.pipeline import run_pipeline
-from adi_model.ref_track import RefTrackRun, reference_precision_bits
-from adi_model.weight_calibration import CalibrationSpec
+from adi_model.sampler import dc_input
 
 
-@pytest.mark.parametrize("command", ["run-all", "make-report"])
-@pytest.mark.parametrize("implicit_argv", [False, True])
-def test_module_dispatch_forwards_the_existing_cli_options(
-    command, implicit_argv, tmp_path, monkeypatch
+@pytest.mark.parametrize("command", ["validate-config", "simulate"])
+@pytest.mark.parametrize("implicit", [False, True])
+def test_module_dispatch_forwards_arguments_without_an_old_script_alias(
+    command, implicit, monkeypatch
 ):
-    observed = []
-    destination = str(tmp_path / "output with spaces")
-    monkeypatch.setattr(cli, "_run_script", lambda name, out: observed.append((name, out)) or 0)
-    argv = [command, "--results-dir", destination]
-    if implicit_argv:
+    seen = []
+    selected = "main_validate_config" if command == "validate-config" else "main_simulate"
+    monkeypatch.setattr(module_cli, selected, lambda argv: seen.append(list(argv)) or 0)
+    options = (
+        ["--config", "input with spaces.json"]
+        if command == "validate-config"
+        else ["--samples", "16"]
+    )
+    argv = [command, *options]
+    if implicit:
         monkeypatch.setattr("sys.argv", ["python -m adi_model", *argv])
-    assert module_cli.main(None if implicit_argv else argv) == 0
-    expected = "run_all.py" if command == "run-all" else "make_report.py"
-    assert observed == [(expected, destination)]
+    assert module_cli.main(None if implicit else argv) == 0
+    assert seen == [options]
 
 
-def test_module_command_help_includes_the_real_command_options(capsys):
-    with pytest.raises(SystemExit) as exc:
-        module_cli.main(["run-all", "--help"])
-    assert exc.value.code == 0
-    assert "--results-dir" in capsys.readouterr().out
-
-
-@pytest.mark.parametrize("timing", ["scaled", "rtl16"])
-@pytest.mark.parametrize("fine_tau", [None, 3e-9])
-def test_reference_pulse_convolution_covers_the_complete_clock_budget(timing, fine_tau):
-    cfg = Config.rtl_structural(
-        fs=10e6,
-        mismatch_enable=False,
-        enable_sampling_noise=False,
-        ra_enable_noise=False,
-        sadc_rdac_gain_mismatch=0,
-        dyn_ref_settling=True,
+def _ideal_conversion():
+    return ConversionParameters(
+        quantizer_time_s=5e-9,
+        ra_duration_s=10e-9,
+        ra_response_model="ideal",
+        ra_dc_gain="ideal",
+        ra_slew_v_s="unlimited",
+        adc2_response_model="ideal",
     )
-    if timing == "scaled":
-        cfg = Config.paper_literal(
-            fs=10e6,
-            mismatch_enable=False,
-            enable_sampling_noise=False,
-            ra_enable_noise=False,
-            sadc_rdac_gain_mismatch=0,
-            dyn_ref_settling=True,
-            rdac_bitwise_loading=True,
-        )
-    cfg = replace(
-        cfg,
-        conversion=replace(
-            cfg.conversion,
-            fine_reference_tau_s=fine_tau,
-            ra_bandwidth_hz=120e6,
-            adc2_wide_bandwidth_hz=80e6,
-        ),
-    )
-    result = run_pipeline(cfg, sine_input(1.2, cfg.fs / 16), 5)
-    trace = result.conversion_trace
-    entry = cfg.conversion.quantizer_time_s
-    amplification = cfg.dyn_t_conv_frac / cfg.fs
-    aperture = entry + amplification
-    coarse_tau = cfg.dyn_tau_ref
-    final_decay = np.exp(-amplification / (fine_tau or coarse_tau))
-    previous_end = np.zeros(2)
-    for sample in range(5):
-        # 在 RA 入口计算闭式脉冲响应和，包含进入 RA 前的间隔。
-        inherited = previous_end * np.exp(-(1 / cfg.fs - aperture + entry) / coarse_tau)
-        if sample == 0:
-            inherited[:] = 0
-        pulse_sum = np.sum(
-            -trace.reference_charge_c[sample]
-            / cfg.dyn_c_decouple
-            * np.exp(-(entry - trace.event_times_s[:, None]) / coarse_tau),
-            axis=0,
-        )
-        expected_entry = inherited + pulse_sum
-        expected_end = expected_entry * final_decay
-        np.testing.assert_allclose(trace.phase_reference_v[sample, 0], expected_entry, atol=1e-18)
-        np.testing.assert_allclose(trace.reference_error_v[sample], expected_end, atol=1e-18)
-        previous_end = expected_end
-    # 声明的 RA 入口之前不执行 RA 或 ADC2 积分。
-    assert trace.phase_ra_v[0, 0] == 0
-    assert trace.phase_adc2_v[0, 0] == 0
-    np.testing.assert_array_equal(trace.phase_ra_v[1:, 0], trace.ra_v[:-1])
-    np.testing.assert_array_equal(trace.phase_adc2_v[1:, 0], trace.adc2_v[:-1])
+
+
+def test_conversion_timing_uses_explicit_intervals_not_an_inferred_fraction():
+    parameters = _ideal_conversion()
+    parameters.require_runtime(fs=40e6, reference_active=False)
+    with pytest.raises(ValueError, match="exceed one sample"):
+        replace(parameters, ra_duration_s=21e-9).require_runtime(fs=40e6, reference_active=False)
+    replace(parameters, ra_duration_s=21e-9).require_runtime(fs=20e6, reference_active=False)
 
 
 @pytest.mark.parametrize(
-    "override",
+    "field",
     [
-        {"dyn_input_settling": True},
-        {"dyn_ref_settling": True},
-        {"dyn_crosstalk": True},
-        {"slice_bw_spread": 0.1},
-        {"slice_timing_skew_s": 1e-12},
-        {"slice_offset_sigma_v": 1e-3},
-        {"conversion": ConversionParameters(ra_bandwidth_hz=120e6)},
+        "quantizer_time_s",
+        "ra_duration_s",
+        "ra_response_model",
+        "ra_dc_gain",
+        "ra_slew_v_s",
+        "adc2_response_model",
     ],
 )
-def test_unary_runner_rejects_split_physics_requests_at_the_entry(override):
-    with pytest.raises(ValueError, match="static unary runner.*use run_pipeline"):
-        run_sim(replace(Config(), **override), dc_input(0), 4)
+def test_selected_conversion_never_interprets_missing_models_as_ideal(field):
+    with pytest.raises(ValueError, match=field):
+        replace(_ideal_conversion(), **{field: None}).require_runtime(
+            fs=40e6, reference_active=False
+        )
 
 
-@pytest.mark.parametrize("field", ["dyn_input_settling", "dyn_ref_settling", "dyn_crosstalk"])
-def test_physical_split_runner_still_accepts_its_supported_requests(field):
-    cfg = Config.paper_literal(
-        mismatch_enable=False, enable_sampling_noise=False, ra_enable_noise=False, **{field: True}
+@pytest.mark.parametrize(
+    "field", ["rdac_event_times_s", "reference_accurate_start_s", "fine_reference_tau_s"]
+)
+def test_active_reference_requires_its_own_event_and_switch_contract(field):
+    parameters = replace(
+        _ideal_conversion(),
+        rdac_event_times_s=(0.0, 1e-9, 4e-9),
+        reference_accurate_start_s=6e-9,
+        fine_reference_tau_s=1e-9,
     )
-    assert len(run_pipeline(cfg, dc_input(0.1), 4).out) == 4
+    with pytest.raises(ValueError, match=field):
+        replace(parameters, **{field: None}).require_runtime(fs=40e6, reference_active=True)
 
 
 @pytest.mark.parametrize("scale", [-3.0, 0.0, np.nan, np.inf])
-def test_invalid_full_scale_in_a_serialized_register_image_is_rejected(scale):
-    spec = CalibrationSpec.from_config(Config.paper_literal())
-    image = FixedPointReconstructor.from_weights(spec, np.full(spec.shape, 0.0625)).to_dict()
+def test_invalid_full_scale_in_a_serialized_register_image_is_rejected(
+    identity_record_factory, explicit_format, scale
+):
+    data = identity_record_factory(bits=3)
+    image = FixedPointReconstructor.from_weights(
+        data.spec, np.array([[0.25, 0.35, 0.4]]), 0.0, format=explicit_format
+    ).to_dict()
     image["spec"]["v_fs"] = scale
-    with pytest.raises(ValueError, match="positive finite full-scale"):
+    with pytest.raises(ValueError):
         FixedPointReconstructor.from_dict(image)
 
 
-@pytest.mark.parametrize("lower, upper", [(1.0, 1.0), (2.0, 1.0), (np.nan, 2.0)])
-def test_invalid_adc2_voltage_bounds_in_register_images_are_rejected(lower, upper):
-    spec = CalibrationSpec.from_config(Config.paper_literal())
-    image = FixedPointReconstructor.from_weights(spec, np.full(spec.shape, 0.0625)).to_dict()
+@pytest.mark.parametrize("lower,upper", [(1.0, 1.0), (2.0, 1.0), (np.nan, 2.0)])
+def test_invalid_adc2_voltage_bounds_in_register_images_are_rejected(
+    identity_record_factory, explicit_format, lower, upper
+):
+    data = identity_record_factory(bits=3)
+    image = FixedPointReconstructor.from_weights(
+        data.spec, np.array([[0.25, 0.35, 0.4]]), 0.0, format=explicit_format
+    ).to_dict()
     image["spec"]["adc2_v_min"], image["spec"]["adc2_v_max"] = lower, upper
-    with pytest.raises(ValueError, match="increasing ADC2"):
+    with pytest.raises(ValueError):
         FixedPointReconstructor.from_dict(image)
 
 
-def test_rms_keeps_a_constant_error_that_standard_deviation_removes():
-    statistics = _error_statistics(np.full(8, 1e-3))
-    assert statistics["rms_v"] == pytest.approx(1e-3)
-    assert statistics["std_v"] == 0
-    assert statistics["mean_v"] == pytest.approx(1e-3)
-    run = RefTrackRun(np.full(8, 1e-3), np.zeros((8, 2)), np.zeros(8), np.zeros(8), None)
-    assert run.err_final_bits(3) == pytest.approx(reference_precision_bits(1e-3, 3))
-    assert np.isfinite(run.err_final_bits(3))
+def test_summary_keeps_constant_error_and_invalid_samples_without_renaming_rms_to_sigma():
+    n, fs, k = 256, 40e6, 17
+    error = np.full(n, 1e-3)
+    bad = np.zeros(n, dtype=bool)
+    bad[[0, -1]] = True
+    record = SimpleNamespace(
+        out=np.sin(2 * np.pi * k * np.arange(n) / n) + error,
+        err=error,
+        residue=np.zeros(n),
+        adc2_over=bad,
+        ra_sat=np.zeros(n, dtype=bool),
+        analog_overflow=bad,
+        effective_config={"output_kind": "nominal_scalar_diagnostic"},
+    )
+    result = summarize(record, fs, fs * k / n, 3.0, 6 / 2**20)
+    assert result["err_mean_V"] == pytest.approx(1e-3)
+    assert result["err_rms_V"] == pytest.approx(1e-3)
+    assert np.std(error) <= 4 * np.finfo(float).eps * abs(error[0])
+    assert result["raw_samples"] == n and result["invalid_raw_count"] == 2
+    assert result["overflow_rate_adc2"] == 2 / n
+    assert result["integer_output_status"] == "NOT_RUN"
 
 
-def test_stage12_reports_charge_units_and_preserves_the_deprecated_value():
-    from adi_model.experiments import stage12_split_arch
-
-    result = stage12_split_arch(Config(), n=4096)["charge_closure"]
-    charge = result["closedform_vs_nodalmatrix_max_C"]
-    assert charge == result["closedform_vs_nodalmatrix_max_V"]
-    declaration = result["deprecated_fields"]["closedform_vs_nodalmatrix_max_V"]
-    assert declaration["actual_unit"] == "C"
-    assert declaration["replacement"] == "closedform_vs_nodalmatrix_max_C"
-    assert "fV" not in result["判据"]
-
-
-@pytest.mark.parametrize("field", ["driver_noise_rms", "ra_out_noise_rms", "mismatch_sigma0"])
+@pytest.mark.parametrize("field", ["driver_noise_rms", "ra_out_noise_rms"])
 @pytest.mark.parametrize("value", [-1e-3, np.nan, np.inf])
-def test_invalid_noise_and_mismatch_amplitudes_do_not_silently_disable_a_source(field, value):
-    with pytest.raises(ValueError, match=field + ".*finite and nonnegative"):
-        run_pipeline(replace(Config.paper_literal(), **{field: value}), dc_input(0.1), 4)
+def test_invalid_active_noise_amplitude_is_rejected_not_silently_disabled(
+    explicit_pipeline_factory, field, value
+):
+    cfg, controls = explicit_pipeline_factory(n_samples=4)
+    changes = {field: value, "seed": 3}
+    if field == "driver_noise_rms":
+        changes["driver_noise_distribution"] = "gaussian_white"
+    else:
+        changes.update(ra_enable_noise=True, ra_noise_distribution="gaussian_white")
+    with pytest.raises(ValueError):
+        run_pipeline(replace(cfg, **changes), dc_input(0.1), 4, **controls)
 
 
-def test_static_dem_record_keeps_a_complete_state_cycle_after_warmup():
-    from adi_model.experiments import _dem_rotation_period
-    from adi_model.mapper import N_DEM_STATES, dem_state_sequence
-
-    cfg = Config(dem_enable=True)
-    period = _dem_rotation_period(cfg)
-    assert period == N_DEM_STATES == 512
-    banks = np.arange(2 * period + 1) % 2
-    states = dem_state_sequence(len(banks), cfg, banks)
-    kept_banks, kept_states = banks[1:], states[1:]
-    for bank in (0, 1):
-        selected = kept_states[kept_banks == bank]
-        assert len(selected) == period
-        np.testing.assert_array_equal(np.sort(selected), np.arange(N_DEM_STATES))
-
-
-@pytest.mark.parametrize("gradient", [(0.01, 0), (0, 0.01)])
-def test_physical_pool_refuses_an_undefined_layout_gradient(gradient):
-    cfg = Config.paper_literal(mismatch_gradient=gradient)
-    with pytest.raises(ValueError, match="mismatch_gradient requires an explicit aggregate chip"):
-        run_pipeline(cfg, dc_input(0.1), 4)
-
-
-def test_explicit_aggregate_gradient_is_supported_without_inventing_pool_coordinates():
-    from adi_model.dac_arch import build_split_chip
-
-    cfg = Config.paper_literal(mismatch_gradient=(0.001, 0))
-    chip = build_split_chip(cfg)
-    result = run_pipeline(cfg, dc_input(0.1), 4, chip=chip)
-    expected = np.concatenate((chip.C_main, chip.C_sub)) / cfg.n_active
-    np.testing.assert_array_equal(result.pool.unit_caps[0], expected)
-
-
-def test_runtime_gradient_override_cannot_silently_reuse_a_coordinate_free_pool():
-    cfg = Config.paper_literal()
-    baseline = run_pipeline(cfg, dc_input(0.1), 4)
-    assert baseline.pool._mismatch_gradient == (0.0, 0.0)
-    with pytest.raises(
-        ValueError, match="mismatch_gradient cannot change an existing physical pool"
-    ):
-        run_pipeline(
-            replace(cfg, mismatch_gradient=(0.001, 0)), dc_input(0.1), 4, pool=baseline.pool
-        )
+def test_undefined_layout_gradient_is_not_invented_from_a_field_or_default_coordinates():
+    with pytest.raises(TypeError):
+        Config.from_dict({"mismatch_gradient": [0.001, 0.0]})

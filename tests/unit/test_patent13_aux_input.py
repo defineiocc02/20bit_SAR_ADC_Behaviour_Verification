@@ -1,150 +1,91 @@
-"""专利 [13] US 10,541,702 B1 -- 辅助输入与电荷核算的机制级测试。
-
-覆盖：
-1. **建立标度律**：辅助供电让 R_f 允许放大 (C_f+C_pg)/C_f 倍，
-   带宽上限同比例压缩，驱动噪声降 sqrt 倍（公式恒等式）；
-2. **信息流**：寄生支路的时间常数在辅助模式下不经过 R_f；
-3. **电荷核算**：驱动器每样本电荷减少的份额 = C_pg·ΔV；
-4. **gate_boost**：r_on 的信号调制结构性归零（FIG.4/5 的机制主张）；
-5. **入口拒绝**：非法模式显式报错，不静默退化。
-"""
-
-import math
+"""检查显式辅助源电路的边界，不将电荷比例直接等同带宽收益。"""
 
 import numpy as np
 import pytest
 
-from adi_model.aux_input import AuxInputStage, build_stage
 from adi_model.config import Config
+from adi_model.input_network import InputNetworkParameters, PassiveTrackingNetwork
+from adi_model.sampler import dc_input
 
 
-@pytest.fixture()
-def stage() -> AuxInputStage:
-    cfg = Config()
-    return build_stage(cfg, c_parasitic_ratio=0.02, r_filter=100.0)
+def test_auxiliary_source_removes_only_its_real_load_from_the_main_source():
+    # 显式无源小型拓扑不用于推断驱动功耗或带宽收益。
+    main_cap, parasitic, filter_cap = 2.5e-12, 8e-12, 12e-12
+    main_source, switch, auxiliary_source, auxiliary_switch = 100.0, 20.0, 30.0, 20.0
+    duration = 5e-9
+    source = dc_input(1.0)
+    off = PassiveTrackingNetwork(
+        [main_cap, parasitic], [switch, auxiliary_switch], main_source, filter_cap
+    )
+    on = PassiveTrackingNetwork([main_cap], [switch], main_source, filter_cap)
+    auxiliary = PassiveTrackingNetwork([parasitic], [auxiliary_switch], auxiliary_source, 0.0)
+    off_end = off.advance(np.zeros(3), 0, duration, source)
+    on_end = on.advance(np.zeros(2), 0, duration, source)
+    aux_end = auxiliary.advance(np.zeros(1), 0, duration, source)
+    q_off = off.charge_change(np.zeros(3), off_end)
+    q_main = on.charge_change(np.zeros(2), on_end)
+    q_aux = auxiliary.charge_change(np.zeros(1), aux_end)
+    assert q_main < q_off
+    expected_aux = parasitic * (
+        1 - np.exp(-duration / ((auxiliary_source + auxiliary_switch) * parasitic))
+    )
+    assert q_aux == pytest.approx(expected_aux, rel=1e-13)
+    assert q_aux > 0 and q_main > 0
+    assert not np.isclose(q_main, q_main + q_aux, rtol=0, atol=1e-25)
 
 
-class TestSettlingScaling:
-    def test_r_filter_max_ratio_identity(self, stage):
-        """R_f 允许放大倍数 = (C_f + C_pg)/C_f（[13] 机制的直接推论）。"""
-        expected = (stage.c_filter + stage.c_parasitic) / stage.c_filter
-        assert stage.r_filter_max_ratio == pytest.approx(expected)
-
-    def test_aux_lowers_required_bandwidth(self, stage):
-        bw_off = stage.required_filter_bw("off", eps=0.01)
-        bw_aux = stage.required_filter_bw("dedicated_pin", eps=0.01)
-        assert bw_aux < bw_off
-        # 比例恒等：带宽压缩比 = C_f/(C_f+C_pg)
-        assert bw_off / bw_aux == pytest.approx(stage.r_filter_max_ratio)
-
-    def test_opamp_midpoint_matches_dedicated_pin(self, stage):
-        """FIG.2 与 FIG.3 的差别只在物理实现；低阻供电的核算口径相同。"""
-        assert stage.required_filter_bw("opamp_midpoint") == pytest.approx(
-            stage.required_filter_bw("dedicated_pin")
-        )
-
-    def test_noise_scales_with_sqrt_of_bw_ratio(self, stage):
-        assert stage.driver_noise_ratio() == pytest.approx(np.sqrt(stage.bw_ratio), rel=1e-12)
-        # en_density 不参与比值（约掉）
-        assert stage.driver_noise_ratio(en_density=7.0) == pytest.approx(
-            stage.driver_noise_ratio(en_density=1.0)
-        )
-
-    def test_tighter_eps_requires_more_bandwidth(self, stage):
-        """建立目标越紧（ε 越小），所需最低带宽越高（ln(1/ε) 单调）。"""
-        assert stage.required_filter_bw("off", eps=0.001) > stage.required_filter_bw("off", eps=0.1)
-
-    def test_gate_boost_keeps_off_bw_constraint(self, stage):
-        """自举省的是 r_on 调制，不是寄生电荷——建立约束与 off 相同。"""
-        assert stage.required_filter_bw("gate_boost") == pytest.approx(
-            stage.required_filter_bw("off")
-        )
+def test_independent_auxiliary_input_is_required_not_copied_from_signal():
+    parameters = InputNetworkParameters(
+        filter_cap_f=12e-12,
+        auxiliary_cap_f=8e-12,
+        auxiliary_bypass=True,
+        auxiliary_source_ohm=30.0,
+        auxiliary_resistance_ohm=20.0,
+    )
+    with pytest.raises(ValueError, match="auxiliary_input_fn"):
+        parameters.require_auxiliary_source(None)
+    parameters.require_auxiliary_source(dc_input(0.2))
 
 
-class TestInformationFlow:
-    def test_parasitic_tau_bypasses_r_filter_with_aux(self, stage):
-        """辅助模式下寄生支路时间常数 = R_aux·C_pg，不经过 R_f。"""
-        assert stage.parasitic_tau("off") == pytest.approx(
-            stage.r_filter * (stage.c_filter + stage.c_parasitic)
-        )
-        assert stage.parasitic_tau("dedicated_pin") == pytest.approx(
-            stage.r_aux * stage.c_parasitic
-        )
-        # 核心主张：辅助通路的寄生建立比经 R_f 快得多
-        assert stage.parasitic_tau("dedicated_pin") < 0.01 * stage.parasitic_tau("off")
-
-    def test_signal_tau_unchanged(self, stage):
-        """信号电荷始终走 R_f·C_f——辅助只接管寄生，不改信号通路。"""
-        for _mode in ("off", "dedicated_pin", "opamp_midpoint", "gate_boost"):
-            assert stage.signal_tau() == pytest.approx(stage.r_filter * stage.c_filter)
-
-
-class TestChargeAccounting:
-    def test_driver_charge_reduction(self, stage):
-        acc = stage.driver_charge_per_sample(dv=1.0)
-        assert acc["off_coulomb"] == pytest.approx((stage.c_filter + stage.c_parasitic) * 1.0)
-        assert acc["aux_coulomb"] == pytest.approx(stage.c_filter * 1.0)
-        assert acc["ratio"] == pytest.approx(stage.c_filter / (stage.c_filter + stage.c_parasitic))
-
-    def test_negative_dv_refused(self, stage):
-        with pytest.raises(ValueError, match="不能为负"):
-            stage.driver_charge_per_sample(dv=-0.1)
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("auxiliary_source_ohm", None),
+        ("auxiliary_source_ohm", np.nan),
+        ("auxiliary_source_ohm", -1.0),
+        ("auxiliary_resistance_ohm", None),
+        ("auxiliary_resistance_ohm", 0.0),
+        ("auxiliary_cap_f", None),
+    ],
+)
+def test_auxiliary_consumers_require_finite_declared_electrical_inputs(field, value):
+    values = {
+        "filter_cap_f": 0.0,
+        "auxiliary_cap_f": 8e-12,
+        "auxiliary_bypass": True,
+        "auxiliary_source_ohm": 30.0,
+        "auxiliary_resistance_ohm": 20.0,
+    }
+    values[field] = value
+    with pytest.raises(ValueError):
+        InputNetworkParameters(**values).require_auxiliary_source(dc_input(0.1))
 
 
-class TestGateBoost:
-    def test_ron_modulation_ideal_bootstrap_contrast(self, stage):
-        """FIG.4/5：理想自举对照下调制因子 = 0（仅关闭 V_GS 调制项；
-
-        阈值漂移/体效应/有限 V_DS/自举建立误差均未保留——理想化假设，
-        非器件结论）。
-        """
-        boosted = AuxInputStage(**{**stage.__dict__, "mode": "gate_boost"})
-        assert boosted.ron_modulation_factor() == 0.0
-        for mode in ("off", "dedicated_pin", "opamp_midpoint"):
-            st = AuxInputStage(**{**stage.__dict__, "mode": mode})
-            assert st.ron_modulation_factor() == 1.0
-
-    def test_boost_voltage_is_the_disclosed_example(self, stage):
-        assert stage.boost_voltage == pytest.approx(3.3)  # [13] FIG.4：3.3 V 例
+def test_dc_rc_residual_follows_its_actual_time_constant():
+    cap, ron, source = 2e-12, 20.0, 30.0
+    tau = (ron + source) * cap
+    network = PassiveTrackingNetwork([cap], [ron], source, 0.0)
+    early = network.advance([0.0], 0, tau, dc_input(1.0))[0]
+    late = network.advance([0.0], 0, 3 * tau, dc_input(1.0))[0]
+    assert 1 - early == pytest.approx(np.exp(-1), rel=1e-13)
+    assert 1 - late == pytest.approx(np.exp(-3), rel=1e-13)
+    assert abs(1 - late) < abs(1 - early)
 
 
-class TestValidation:
-    def test_illegal_mode_refused(self):
-        with pytest.raises(ValueError, match="不是已实现取值"):
-            build_stage(Config(), mode="wireless").validated()
-
-    def test_nonpositive_params_refused(self):
-        cfg = Config()
-        st = build_stage(cfg)
-        # B1 闭环后守卫在 __post_init__ 即生效，故非正参数在构造时就拒
-        # （此前只在 .validated() 调用时拒）；本测试定位不变：非正参数必抛 ValueError。
-        with pytest.raises(ValueError, match="必须为正"):
-            AuxInputStage(**{**st.__dict__, "c_parasitic": -1.0})
-
-    def test_bad_eps_refused(self, stage):
-        with pytest.raises(ValueError, match="必须在"):
-            stage.required_filter_bw(eps=0.0)
-
-
-class TestAuxFeasibility:
-    """带宽收益的成立前提（第八份外部复核）：辅助通路必须来得及建立。"""
-
-    def test_slow_aux_path_refused(self, stage):
-        """R_aux 大到 τ_aux 超窗时，required_filter_bw 拒绝报告收益。"""
-        slow = AuxInputStage(**{**stage.__dict__, "r_aux": 1.0e6})
-        assert not slow.aux_ready()
-        with pytest.raises(ValueError, match="不可行"):
-            slow.required_filter_bw("dedicated_pin")
-
-    def test_fast_aux_path_reports_bw(self, stage):
-        """默认 R_aux=1 Ω 下辅助支路轻松建立 -> 收益照常报告。"""
-        assert stage.aux_ready()
-        assert stage.required_filter_bw("dedicated_pin") < stage.required_filter_bw("off")
-
-    def test_aux_residual_monotone(self, stage):
-        """残余比例 exp(-t/τ_aux) 单调：t 越长越接近 0，t=τ 时 ≈ 1/e。"""
-        tau = stage.parasitic_tau("dedicated_pin")
-        assert stage.aux_residual(tau) == pytest.approx(1.0 / math.e, rel=1e-9)
-        assert stage.aux_residual(10 * tau) < stage.aux_residual(tau)
-        with pytest.raises(ValueError):
-            stage.aux_residual(0.0)
+def test_source_voltage_does_not_invent_a_bootstrap_or_ron_improvement():
+    for legacy in ("boost_voltage", "r_aux"):
+        with pytest.raises(TypeError):
+            Config.from_dict({legacy: 3.3})
+    network = PassiveTrackingNetwork([2e-12], [20.0], 30.0, 0.0)
+    # 非线性开关定律须单独显式输入，不能只用模式标签代替。
+    assert np.isfinite(network.advance([0.0], 0, 1e-9, dc_input(0.1))).all()

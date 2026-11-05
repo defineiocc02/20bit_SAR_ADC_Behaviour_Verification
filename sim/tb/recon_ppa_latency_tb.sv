@@ -1,7 +1,13 @@
 `timescale 1ns/1ps
+`include "rtl_params.vh"
+// COMPONENT_SYNTHETIC_DIGITAL; use the explicit engineering_protocol fixture.
 // Functional latency/initiation-interval contract for three synthesis profiles.
 // This zero-delay RTL test does not measure area, power, or achieved frequency.
 module recon_ppa_latency_tb;
+  initial begin
+    if(W_BITS!=48 || W_FRAC!=30 || V_BITS!=64 || V_FRAC!=32 || ACC_BITS!=96 || OUT_BITS!=20 || ADC2_BITS!=20)
+      $fatal(1,"explicit engineering_protocol numerical format required");
+  end
   logic clk=0,rst_n=0,ready=0,start=0;
   always #1 clk=~clk;
   logic [19:0] code;
@@ -16,7 +22,7 @@ module recon_ppa_latency_tb;
     recon_core #(.P_N_ACTIVE(1),.P_N_MAIN(2),.P_N_SUB(1),.P_N_SLICES(1),
       .P_ADC2_BITS(20),.P_STAGES(g+5),.P_USE_ROW_TOTALS(1)) d(
       .clk(clk),.rst_n(rst_n),.cfg_ready(ready),.start(start),.sample_id(id),.clr_ovf(1'b0),
-      .sampling_mask_en(1'b0),.slice_id(5'd0),.main_on(2'd0),.sub_on(1'b0),.dither_rail(4'd0),
+      .slice_id(5'd0),.main_on(2'd0),.sub_on(1'b0),
       .adc2_code(code),.inj_q(64'sd0),.w_rom(weights),.offset_q(64'sd0),
       .adc2_min_q(64'sd0),.adc2_max_q(64'sd8589934592),.dout(dout[g]),.dout_valid(valid[g]),
       .clip_low(),.clip_high(),.acc_ovf(),.gain_err(),.adc2_ovf(),.busy(busy[g]),
@@ -52,6 +58,7 @@ module recon_ppa_latency_tb;
       if(count[g]!=32) $fatal(1,"sample count mismatch");
       $display("RECON_PPA_PROFILE_PASS stages=%0d samples=%0d busy_release=%0d latency=%0d initiation_interval=16",g+5,count[g],(63+g+4)/(g+5)+1,(63+g+4)/(g+5)+2);
     end
+    $display("RECON_PPA_LATENCY_COMPLETE profiles=3 samples_per_profile=32 outputs=96");
     $finish;
   end
 endmodule

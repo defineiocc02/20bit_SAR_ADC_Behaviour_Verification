@@ -5,8 +5,8 @@ build-backend = "hatchling.build"
 # ----------------------------------------------------------------- 项目元数据
 [project]
 name = "sar-adc-behaviour-verification"
-version = "8.2.2"
-description = "Behavioural model of a two-stage residual SAR ADC inspired by ISSCC 2024 / Session 9.8 (Bodnar et al., 20-bit 40 MS/s precision SAR)."
+version = "9.0.0"
+description = "SAR ADC behavioral model with visible engineering defaults and digital calibration."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
@@ -54,15 +54,11 @@ Issues = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/i
 Changelog = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/main/CHANGELOG.md"
 
 [project.scripts]
-adi-run-all = "adi_model.cli:main_run_all"
-adi-make-report = "adi_model.cli:main_make_report"
+adi-validate-config = "adi_model.cli:main_validate_config"
+adi-simulate = "adi_model.cli:main_simulate"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/adi_model"]
-
-[tool.hatch.build.targets.wheel.force-include]
-"tools/run_all.py" = "adi_model/_tools/run_all.py"
-"tools/make_report.py" = "adi_model/_tools/make_report.py"
 
 # ---------------------------------------------------------------------------
 # sdist 的版权闸门（**结构性**，不依赖 .gitignore 生效）。
@@ -73,7 +69,8 @@ packages = ["src/adi_model"]
 # `!docs/**/*.png`（跟踪文档配图）会盖过目录级排除
 # `docs/robustness_review_2026/`，把内部审查报告里 `fig/paper_p*.png`（ISSCC
 # 2024 9.8 论文页面截图）与 `fig/patent1*_fig.png`（专利首页截图）打进 sdist
-# ——与 NOTICE 中 "None of them is redistributed here" 直接矛盾。
+# ——与当时 NOTICE 的不分发声明直接矛盾。
+# 当前仅Git资料目录保存明确选定原件；它们仍不进入wheel/sdist且不转BSD许可。
 # 已在构建层复现：`python -m build` 后 sdist 内确实含这 6 个文件。
 #
 # 因此在构建层显式排除，与 .gitignore 形成两道独立闸门。
@@ -112,9 +109,10 @@ addopts = [
     "--doctest-modules",
 ]
 markers = [
-    "slow: full-sweep experiments (seconds to minutes)",
+    "slow: explicitly selected long-running or external-tool verification",
+    "source_contract: disclosed requirements and explicit-input boundaries",
     "audit: adversarial regression derived from the v6.1 external audit",
-    "golden: compares against committed reference numbers",
+    "golden: explicitly scoped frozen numerical fixtures, not silicon reproduction",
     "integration: multi-module end-to-end",
 ]
 filterwarnings = [
@@ -141,21 +139,12 @@ fail_under = 35
 line-length = 100
 target-version = "py310"
 src = ["src", "tests", "tools"]
-# These figure generators and the frozen runner are archived with byte-exact source hashes;
-# changing their formatting would invalidate the corresponding figure provenance.
+# Exclude generated environments/build trees. Active source is checked.
 extend-exclude = [
     "__pycache__",
-    "docs/paper_comparisons/scripts/reference_behavioral_validation.py", # frozen audit runner
     ".venv",
     "build",
-    "dist",
-    "docs/reports/rtl_patent_audit_20260930/audit_figures/make_compact_divider_profiles.py",
-    "docs/reports/rtl_patent_audit_20260930/audit_figures/make_divider_profiles.py",
-    "docs/reports/rtl_patent_audit_20260930/history/final_regression_ci_0c4a_before_f028/audit_figures/make_final_regression_evidence.py",
-    "docs/evidence/20261001/engineering_fsm/runner_source.py",
-    "docs/evidence/20261002/principle_reaudit/calibration_math_check.py",
-    "docs/evidence/20261002/principle_reaudit/count_synthesis_structure.py",
-    "docs/evidence/20261002/principle_reaudit/generate_audit_figures.py",
+    "dist"
 ]
 
 [tool.ruff.lint]
@@ -208,11 +197,6 @@ ignore = [
 # 它的价值在"能不能被独立复算"，不在 pydocstyle 的 docstring 形状。
 # 只免除形状规则，D101/D102 等仍然生效。
 "sim/ref/*" = ["D100", "D103", "D417"]
-# experiments.py keeps a module-level narrative docstring style; the per-stage
-# functions are documented at length in Chinese prose rather than pydocstyle's
-# D103 shape.
-"src/adi_model/experiments.py" = ["D103"]
-
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
@@ -242,14 +226,3 @@ no_implicit_optional = true
 check_untyped_defs = true
 ignore_missing_imports = true
 exclude = ["^tests/", "^tools/"]
-
-# experiments.py is a top-to-bottom *narrative* script: each stage function
-# assembles heterogeneous dicts of floats, strings and tables, which no
-# annotation can describe usefully. It is a module (not a package), so the
-# override must name it exactly — `adi_model.experiments.*` matches nothing
-# and silently let the exemption lapse.
-[[tool.mypy.overrides]]
-module = "adi_model.experiments"
-check_untyped_defs = false
-disable_error_code = ["assignment", "arg-type", "index", "return-value",
-                      "operator", "union-attr", "attr-defined"]

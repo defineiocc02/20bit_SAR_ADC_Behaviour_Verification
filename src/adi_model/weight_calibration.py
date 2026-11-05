@@ -1,12 +1,8 @@
-"""从已知外部输入与数字观测辨识、冻结split有效权重。
+"""从显式数字连接记录外部估计静态权重。
 
-静态RA输出节点满足fine=Σw*(a*x_known+b-Vdac)+offset；w是每物理unit的有效C/Cf，sub权重包含beta，
-a是已知采样连接mask。w不是直接读出的电容值。估计器只见独立known_input和DigitalObservation；物理C、
-实际G、误差truth不得输入。
-
-训练用秩揭示SVD识别全部权重和一个有效后端offset，再冻结用于未知输入重构。有限建立、时偏/带宽、
-参考动态、漂移及ADC2非线性不由这组静态线性参数消除；ADC2以已知线性栅格量化，
-外部参考系统误差也不在拟合标准误内。
+RA 输出满足 fine = sum(w * (a*x_known + term)) + offset。a 为观测到的信号连接掩码，
+term=b-VD 是由控制和显式名义参考绑定给出的已知采样/参考电压减转换参考电压 [V]。主权重为有效 C/Cf，
+子权重另含静态桥接比例。a 和 term 均不得含隐藏模拟测量；本项目 SVD 方法不是原芯片披露的学习算法。
 """
 
 from __future__ import annotations
@@ -14,246 +10,247 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-from dataclasses import asdict, dataclass, fields, replace
+from dataclasses import asdict, dataclass, fields
+from numbers import Real
+from typing import Any
 
 import numpy as np
 from scipy.linalg import svd
 
 from ._arrays import readonly as _readonly
-from .dem import SplitSwitchGeometry, split_switch_command
+
+STATIC_OBSERVATION_DOMAIN = "static_charge_connections_v2"
 
 
 @dataclass(frozen=True)
-class CalibrationSpec(SplitSwitchGeometry):
-    """只含名义数字接口，不包含物理失配或噪声字段。"""
+class CalibrationSpec:
+    """显式数字几何与所选后端解码模型。
+
+    uniform_midrise 表示无符号递增原始码、等宽量化箱，并在箱中心解码 [RA 输出节点 V]。
+    adc2_endpoint_policy 明确选择上端点有效或标溢出；上游有效性与原始码分开保留。这些是工程假设，
+    不是 ADC2 电路披露。
+    """
 
     n_slices: int
+    n_active: int
+    dac_n_main: int
+    dac_n_sub: int
     v_fs: float
     adc2_n_bits: int
     adc2_v_min: float
     adc2_v_max: float
-    dither_mode: str
-    dither_split_bank: str
-    dither_units_range: float
-    dither_discrete: bool
+    adc2_codebook: str
+    adc2_endpoint_policy: str
+
+    def __post_init__(self):
+        """检查显式维数、电压尺度与后端约定。"""
+        for name in ("n_slices", "n_active", "dac_n_main", "dac_n_sub", "adc2_n_bits"):
+            value = getattr(self, name)
+            if type(value) is not int or value <= 0:
+                raise ValueError(f"{name} must be an explicitly supplied positive integer")
+        if self.n_active > self.n_slices or self.adc2_n_bits > 30:
+            raise ValueError("calibration geometry or backend code width is unsupported")
+        if not all(
+            isinstance(v, Real) and not isinstance(v, bool) and math.isfinite(v)
+            for v in (self.v_fs, self.adc2_v_min, self.adc2_v_max)
+        ):
+            raise ValueError("Vfs and ADC2 voltage bounds must be finite [V]")
+        if self.v_fs <= 0 or self.adc2_v_min >= self.adc2_v_max:
+            raise ValueError("Vfs must be positive and ADC2 voltage bounds increasing [V]")
+        if not math.isfinite(self.adc2_step_v) or self.adc2_step_v <= 0:
+            raise ValueError(
+                "the explicit ADC2 window and width must yield a finite positive step [V]"
+            )
+        if self.adc2_codebook != "uniform_midrise":
+            raise ValueError(
+                "calibration requires an explicit supported ADC2 codebook: uniform_midrise"
+            )
+        if self.adc2_endpoint_policy not in ("closed", "half_open"):
+            raise ValueError(
+                "calibration requires an explicit ADC2 endpoint policy: closed or half_open"
+            )
 
     @classmethod
-    def from_config(cls, cfg) -> CalibrationSpec:
-        """按白名单提取名义维数、开关控制及后端码单位。"""
-        cfg.check_legal()
-        if cfg.dac_arch != "split":
-            raise ValueError("split weight calibration requires a split topology")
-        return cls(**{f.name: getattr(cfg, f.name) for f in fields(cls)})
+    def from_config(cls, cfg, *, geometry=None) -> CalibrationSpec:
+        """只读已明确提供的名义字段，不推算缺失数值。"""
+        values: dict[str, Any] = {f.name: getattr(cfg, f.name, None) for f in fields(cls)}
+        if geometry is not None:
+            for name, geometry_name in (
+                ("n_slices", "n_slices"),
+                ("n_active", "n_active"),
+                ("dac_n_main", "n_main"),
+                ("dac_n_sub", "n_sub"),
+            ):
+                declared = getattr(geometry, geometry_name, None)
+                if values[name] is not None and declared != values[name]:
+                    raise ValueError(f"calibration geometry conflicts with the declared {name}")
+                values[name] = declared
+        missing = [name for name, value in values.items() if value is None]
+        if missing:
+            raise ValueError(
+                "calibration nominal interface requires explicit fields: " + ", ".join(missing)
+            )
+        return cls(**values)
 
     @property
     def shape(self) -> tuple[int, int]:
-        """物理权重数组的形状，不包含任何权重值。"""
+        """返回物理权重数组的维数，不包含电容数值。"""
         return self.n_slices, self.dac_n_main + self.dac_n_sub
 
     @property
     def adc2_step_v(self) -> float:
-        """名义后端码步长 [V]。"""
+        """返回显式选定均匀后端模型的步长 [V]。"""
         return (self.adc2_v_max - self.adc2_v_min) / 2**self.adc2_n_bits
 
 
 @dataclass(frozen=True)
 class DigitalObservation:
-    """数字运行时记录与名义几何，不包含未知输入或物理电容。
+    """不可变数字控制、原始码与显式绑定的已知项。
 
-    slice_ids 是 (N,n_active) 物理 slice ID，不是 slot；rdac_code 为 RDAC 细栅格命令，
-    adc2_code 为原始 ADC2 整数码，dem_state/bank_dither 为同笔控制上下文。
-    common_injection_v 是已知控制按名义尺度换算的输入节点注入 [V]，不是模拟测量真值。
-    连续 analog/dual_port 在本模型假定注入电压已知，硬件还需建立该电压基准/观测合同。
-
-    main/sub/dither 物理 mask 和 sample_ids 可由结构观测口提供；
-    from_result 兼容路径用数字命令重生成 mask。overflow 包含行为 plant 的 RA/ADC2/RDAC 标志；
-    硬件集成必须另有可读的状态/样本归属合同，不能把这个 Python 容器当作已完成的采集接口。
+    main/sub mask 描述实际转换开关 [0/1]；
+    signal_mask 和 known_voltage_term_v 的形状均为 (samples, active slices, physical units)。
+    它们必须来自数字控制及声明的名义电压绑定，不以实际电容、保持电压、增益或噪声为输入。
+    不从 tail 单元、DEM 状态或 dither 模式重建缺失数据。
     """
 
     spec: CalibrationSpec
     slice_ids: np.ndarray
-    rdac_code: np.ndarray
-    dem_state: np.ndarray
     adc2_code: np.ndarray
-    bank_dither: np.ndarray
-    common_injection_v: np.ndarray
+    main_masks: np.ndarray
+    sub_masks: np.ndarray
+    signal_mask: np.ndarray
+    known_voltage_term_v: np.ndarray
     overflow: np.ndarray
+    sample_ids: np.ndarray
     static_charge_domain: bool
-    # Optional physical switch observations from the structural RTL. When
-    # absent, the existing behavioral record regenerates masks from code/sid.
-    main_masks: np.ndarray | None = None
-    sub_masks: np.ndarray | None = None
-    dither_rails: np.ndarray | None = None
-    sample_ids: np.ndarray | None = None
+
+    def __post_init__(self):
+        """按原离散或实数类型冻结数字输入快照。"""
+        for name in (
+            "slice_ids",
+            "adc2_code",
+            "main_masks",
+            "sub_masks",
+            "signal_mask",
+            "known_voltage_term_v",
+            "overflow",
+            "sample_ids",
+        ):
+            value = np.asarray(getattr(self, name))
+            object.__setattr__(self, name, _readonly(value, value.dtype))
+        self.validate()
 
     @classmethod
-    def from_result(cls, result) -> DigitalObservation:
-        """从行为结果白名单提取数字特征与有效性标志。
+    def from_result(cls, result, *, observation=None) -> DigitalObservation:
+        """接收运行入口绑定的数字记录，拒绝未绑定的结果。
 
-        Args:
-            result: SimResult；需实际slice ID、RDAC命令、DEM/dither上下文和ADC2 raw码。
-
-        Returns:
-            只读DigitalObservation。RA/ADC2/RDAC溢出仅用于拒绝训练，不作为幅度特征。
-            不读取out、residue、真实G/C或干净输入；KTC校正后fine不替代raw ADC2码。
-            动态/时偏/offset配置会标非静态域；参考输入由调用方单独提供。
+        运行入口或调用方须由实际控制和显式参考绑定构造记录。本方法不检查物理状态，
+        也不根据历史开关假设重新生成 a/b。
         """
-        cfg = result.cfg
-        if result.adc2_code is None or result.conv_slice_ids is None:
-            raise ValueError("calibration requires raw backend codes and actual digital slice IDs")
-        if cfg.ktc_enable:
+        data = getattr(result, "digital_observation", None) if observation is None else observation
+        if not isinstance(data, cls):
             raise ValueError(
-                "the KTC observer is outside the static unit-charge calibration domain"
+                "digital reconstruction requires explicitly bound DigitalObservation: "
+                "actual conversion masks, signal_mask and known_voltage_term_v [V]"
             )
-        n = len(result.adc2_code)
-        bank = result.sample.dither_bank_code
-        if cfg.dither_mode == "quantizer":
-            injection = np.broadcast_to(result.sample.rdac_dither, (n,))
-        elif cfg.dither_mode == "analog":
-            injection = result.sample.dither
-        else:
-            injection = np.zeros(n)
-        static = cfg.ra_gain_model == "charge" and not (
-            cfg.dyn_input_settling
-            or cfg.dyn_ref_settling
-            or cfg.dyn_crosstalk
-            or cfg.conversion.dynamic
-            or cfg.slice_timing_skew_s
-            or cfg.slice_offset_sigma_v
-        )
-        return cls(
-            CalibrationSpec.from_config(cfg),
-            _readonly(result.conv_slice_ids, np.int64),
-            _readonly(result.k),
-            _readonly(result.sid, np.int64),
-            _readonly(result.adc2_code, np.int64),
-            _readonly(np.zeros(n) if bank is None else bank),
-            _readonly(injection),
-            _readonly(result.rdac_over | result.adc2_over | result.ra_sat, bool),
-            bool(static),
-        )
+        data.validate()
+        if result.adc2_code is None or not np.array_equal(data.adc2_code, result.adc2_code):
+            raise ValueError("bound digital observations do not match the result's raw ADC2 codes")
+        result_ids = getattr(result, "sample_id", None)
+        if result_ids is not None and not np.array_equal(data.sample_ids, result_ids):
+            raise ValueError("bound digital observations do not match the result's sample IDs")
+        return data
 
     def validate(self) -> None:
-        """在分配校准矩阵前拒绝格式非法的数字记录。"""
-        n = len(self.rdac_code)
+        """检查实际记录维数、离散控制与电压单位。"""
+        if not isinstance(self.spec, CalibrationSpec):
+            raise ValueError("digital observations require an explicit CalibrationSpec")
+        if type(self.static_charge_domain) is not bool:
+            raise ValueError("static charge-domain validity must be explicitly declared")
+        n = self.adc2_code.size
         spec = self.spec
-        if self.slice_ids.shape != (n, spec.n_active) or n == 0:
-            raise ValueError("digital slice allocation has the wrong shape")
-        # 在矩阵乘法前检查SVD因子有限性，防止0*inf先污染残差，或NaN比较被误当作秩不足。
-        if not all(
-            math.isfinite(v)
-            for v in (spec.v_fs, spec.adc2_v_min, spec.adc2_v_max, spec.dither_units_range)
+        if n == 0 or self.adc2_code.shape != (n,):
+            raise ValueError("raw ADC2 codes must be a nonempty one-dimensional record")
+        if self.slice_ids.shape != (n, spec.n_active) or not np.issubdtype(
+            self.slice_ids.dtype, np.integer
         ):
-            raise ValueError(
-                "calibration physical scales must be finite; the design matrix, the decoded "
-                "fine voltages and the dither masks all derive from them"
-            )
-        if not np.issubdtype(self.slice_ids.dtype, np.integer) or not np.issubdtype(
-            self.dem_state.dtype, np.integer
-        ):
-            raise ValueError("slice IDs and DEM states must be integer digital data")
+            raise ValueError("digital slice IDs must be an integer (samples, active slices) array")
         if np.any(self.slice_ids < 0) or np.any(self.slice_ids >= spec.n_slices):
-            raise ValueError("digital slice IDs are outside the nominal pool")
+            raise ValueError("digital slice IDs are outside the explicitly supplied geometry")
         if np.any(np.diff(np.sort(self.slice_ids, axis=1), axis=1) == 0):
             raise ValueError("duplicate physical slice in one digital allocation")
-        for a in (
-            self.rdac_code,
-            self.dem_state,
-            self.adc2_code,
-            self.bank_dither,
-            self.common_injection_v,
-            self.overflow,
-        ):
-            if a.shape != (n,) or np.any(~np.isfinite(a)):
-                raise ValueError("digital observation vectors must be finite and equally sized")
         if (
             not np.issubdtype(self.adc2_code.dtype, np.integer)
             or np.any(self.adc2_code < 0)
             or np.any(self.adc2_code >= 2**spec.adc2_n_bits)
         ):
             raise ValueError("calibration needs legal raw integer ADC2 codes")
-        if spec.dither_mode == "sampling" and not spec.dither_discrete:
-            raise ValueError("unit calibration requires discrete physical sampling-dither masks")
-        if spec.dither_mode == "sampling" and (
-            np.any(self.bank_dither != np.floor(self.bank_dither))
-            or np.any(np.abs(self.bank_dither) > spec.dither_units_range)
+        for mask, size in ((self.main_masks, spec.dac_n_main), (self.sub_masks, spec.dac_n_sub)):
+            if mask.shape != (n, spec.n_active, size) or not np.all((mask == 0) | (mask == 1)):
+                raise ValueError(
+                    "actual conversion masks must be binary and match the declared geometry"
+                )
+        term_shape = (n, spec.n_active, spec.shape[1])
+        if self.signal_mask.shape != term_shape or not np.all(
+            (self.signal_mask == 0) | (self.signal_mask == 1)
         ):
-            raise ValueError("sampling-dither bank codes must be legal discrete commands")
-        masks = (self.main_masks, self.sub_masks, self.dither_rails)
-        if any(v is not None for v in masks):
-            if any(v is None for v in masks):
-                raise ValueError("observed main, sub and dither masks must be supplied together")
-            expected_shapes = (
-                (n, spec.n_active, spec.dac_n_main),
-                (n, spec.n_active, spec.dac_n_sub),
-                (n, int(2 * spec.dither_units_range)),
+            raise ValueError(
+                "signal_mask must explicitly supply one binary input connection per unit"
             )
-            for value, shape in zip(masks, expected_shapes, strict=True):
-                assert value is not None
-                a = np.asarray(value)
-                if a.shape != shape or not np.all((a == 0) | (a == 1)):
-                    raise ValueError("observed switch masks must be binary and match the geometry")
-        if self.sample_ids is not None:
-            ids = np.asarray(self.sample_ids)
-            if (
-                ids.shape != (n,)
-                or not np.issubdtype(ids.dtype, np.integer)
-                or np.any(ids < 0)
-                or np.any(ids > 0xFFFF_FFFF)
-            ):
-                raise ValueError("sample IDs must be uint32-valued integers matching the record")
+        if (
+            np.iscomplexobj(self.known_voltage_term_v)
+            or self.known_voltage_term_v.shape != term_shape
+            or np.any(~np.isfinite(self.known_voltage_term_v))
+        ):
+            raise ValueError(
+                "known_voltage_term_v must explicitly supply finite bound terms [V] per unit"
+            )
+        if self.overflow.shape != (n,) or not np.all((self.overflow == 0) | (self.overflow == 1)):
+            raise ValueError("overflow must supply one digital validity flag per sample")
+        if (
+            self.sample_ids.shape != (n,)
+            or not np.issubdtype(self.sample_ids.dtype, np.integer)
+            or np.any(self.sample_ids < 0)
+            or np.any(self.sample_ids > 0xFFFF_FFFF)
+        ):
+            raise ValueError("sample IDs must explicitly supply one uint32-valued ID per sample")
+        if n > 1:
+            signed_ids: np.ndarray[Any, np.dtype[np.int64]] = self.sample_ids.astype(np.int64)
+            steps = np.diff(signed_ids) & 0xFFFF_FFFF
+            if np.any(steps == 0) or np.any(steps > 0x7FFF_FFFF):
+                raise ValueError("digital observations must preserve sample order within one epoch")
 
     @property
     def fine_v(self) -> np.ndarray:
-        """将原始后端码解码为未作观察器校正的电压 [V]。"""
+        """解码显式选定的均匀 midrise 码中心 [RA 输出节点 V]。"""
         return self.spec.adc2_v_min + (self.adc2_code + 0.5) * self.spec.adc2_step_v
+
+    @property
+    def observation_domain(self) -> str:
+        """标识实际 mask、a 和 term 容器的数值语义。"""
+        return STATIC_OBSERVATION_DOMAIN
 
 
 def _terms(data: DigitalObservation, start: int, stop: int):
-    spec = data.spec
-    code = data.rdac_code[start:stop]
-    shape = (len(code), spec.n_active, spec.shape[1])
-    if data.main_masks is not None and data.sub_masks is not None:
-        plus = np.concatenate((data.main_masks[start:stop], data.sub_masks[start:stop]), axis=2)
-    else:
-        command = split_switch_command(spec, code, data.dem_state[start:stop])
-        plus = np.empty(shape)
-        for offset, size, order, count in (
-            (0, spec.dac_n_main, command.main_order, command.main_counts),
-            (spec.dac_n_main, spec.dac_n_sub, command.sub_order, command.sub_counts),
-        ):
-            take = np.clip(count[..., None] - np.arange(size), 0, 1)
-            np.put_along_axis(plus[:, :, offset : offset + size], order[:, None, :], take, axis=2)
-    b_minus_dac = data.common_injection_v[start:stop, None, None] - spec.v_fs * (2 * plus - 1)
-    signal = np.ones(shape)
-    if spec.dither_mode == "sampling":
-        mask_count = int(2 * spec.dither_units_range)
-        end = spec.dac_n_main if spec.dither_split_bank == "main" else spec.shape[1]
-        if mask_count:
-            mask = slice(end - mask_count, end)
-            signal[:, :, mask] = 0
-            d = data.bank_dither[start:stop]
-            rails = (
-                data.dither_rails[start:stop]
-                if data.dither_rails is not None
-                else np.arange(mask_count)[None, :] < mask_count // 2 + d[:, None]
-            )
-            voltage = spec.v_fs * (2 * np.asarray(rails, dtype=float) - 1)
-            b_minus_dac[:, :, mask] += voltage[:, None, :]
-    return data.slice_ids[start:stop], signal, b_minus_dac
+    """返回已记录的 a 与 b-VD，不推断电路绑定。"""
+    return (
+        data.slice_ids[start:stop],
+        data.signal_mask[start:stop],
+        data.known_voltage_term_v[start:stop],
+    )
 
 
 class CalibrationUnidentifiableError(ValueError):
-    """训练不能独立辨识所请求的物理权重。"""
+    """所给测量不足以辨识请求的有效权重时的异常。"""
 
 
 @dataclass(frozen=True)
 class FrozenCalibration:
-    """冻结的有效C/Cf权重与一个后端有效offset[RA输出V]。
+    """冻结有效 C/Cf 与一个有效 RA 输出失调 [V]。
 
-    weights形状(n_slices,n_main+n_sub)；standard_error对应全部weight和offset。
-    标准误仅为已知参考/静态线性模型条件下的边际估计，不含参考幅值/时间系统误差、漂移或未建动态。
-    正值、可辨识性及量纲验证后数组只读；不暗示硬件在线学习器已实现。
+    标准误差以显式已知参考和静态线性传递为条件，
+    不包括源幅度/时间误差、漂移、ADC2 非线性或未建立的电路动态。完整解码规格和观测域版本随拟合冻结，
+    但不认证物理芯片身份；同一实例捕获仍是外部条件。
     """
 
     weights: np.ndarray
@@ -264,53 +261,55 @@ class FrozenCalibration:
     residual_rms_v: float
     training_samples: int
     training_digest: str
-    v_fs: float
+    spec: CalibrationSpec
+    observation_domain: str
 
     def __post_init__(self):
-        """校验装载系数，并移除可变数组的共享后备存储。"""
+        """检查拟合系数，并冻结其数值存储。"""
+        if not isinstance(self.spec, CalibrationSpec):
+            raise ValueError("frozen calibration requires its complete explicit CalibrationSpec")
+        if self.observation_domain != STATIC_OBSERVATION_DOMAIN:
+            raise ValueError("unknown frozen calibration observation domain")
         weights, se = np.asarray(self.weights), np.asarray(self.standard_error)
-        if weights.ndim != 2 or np.any(~np.isfinite(weights)) or np.any(weights <= 0):
-            raise ValueError("calibrated weights must be finite and positive")
+        if (
+            np.iscomplexobj(weights)
+            or weights.ndim != 2
+            or not weights.size
+            or np.any(~np.isfinite(weights))
+            or np.any(weights <= 0)
+        ):
+            raise ValueError("calibrated effective weights must be finite and positive")
+        if weights.shape != self.spec.shape:
+            raise ValueError("frozen effective weights do not match their complete specification")
         if se.shape != (weights.size + 1,) or np.any(~np.isfinite(se)) or np.any(se < 0):
-            raise ValueError("standard errors must match every weight and the offset")
+            raise ValueError("standard errors must match every effective weight and the offset")
         if self.rank != weights.size + 1 or self.training_samples <= self.rank:
             raise ValueError(
                 "frozen calibration must identify all coefficients with residual degrees of freedom"
             )
         if (
-            not np.all(np.isfinite([self.offset_v, self.condition, self.residual_rms_v, self.v_fs]))
+            not np.all(np.isfinite([self.offset_v, self.condition, self.residual_rms_v]))
             or self.condition < 1
             or self.residual_rms_v < 0
-            or self.v_fs <= 0
         ):
             raise ValueError("calibration diagnostics and voltage scale must be finite and legal")
         object.__setattr__(self, "weights", _readonly(weights))
         object.__setattr__(self, "standard_error", _readonly(se))
 
     def reconstruct(self, data: DigitalObservation) -> np.ndarray:
-        """以冻结权重从独立未知输入数字记录解静态电荷方程。
-
-        Args:
-            data: 与训练geometry/Vfs匹配的数字观测；mask/注入可随工作模式变化。
-
-        Returns:
-            (N,)输入等效重构[V]：分子为fine-offset-Σw*(b-Vdac)，
-            分母为Σw*a。分母必须正；不同sampling mask可改变有效信号归一化。
-            不读取未知输入或plant真值，也不重新训练系数。
-        """
+        """按已记录的静态电荷方程求解未知输入 [V]。"""
         data.validate()
-        if data.spec.shape != self.weights.shape or data.spec.v_fs != self.v_fs:
+        if data.spec != self.spec or data.observation_domain != self.observation_domain:
             raise ValueError(
-                "calibrated geometry/reference scale does not match the digital record"
+                "frozen calibration specification or observation domain does not match the digital record"
             )
-        out = np.empty(len(data.rdac_code))
-        fine = data.fine_v
+        out = np.empty(len(data.adc2_code))
         for start in range(0, len(out), 256):
             stop = min(start + 256, len(out))
-            ids, signal, b_minus_dac = _terms(data, start, stop)
+            ids, signal, term = _terms(data, start, stop)
             weights = self.weights[ids]
             numerator = (
-                fine[start:stop] - self.offset_v - np.sum(weights * b_minus_dac, axis=(1, 2))
+                data.fine_v[start:stop] - self.offset_v - np.sum(weights * term, axis=(1, 2))
             )
             denominator = np.sum(weights * signal, axis=(1, 2))
             if np.any(denominator <= 0):
@@ -319,57 +318,55 @@ class FrozenCalibration:
         return out
 
     def to_dict(self) -> dict:
-        """导出单位、系数和拟合诊断，不导出物理真值。"""
+        """导出有效单位、不可变拟合值与条件性诊断。"""
         result = asdict(self)
         result["weights"] = self.weights.tolist()
         result["standard_error"] = self.standard_error.tolist()
-        result["schema_version"] = 1
+        result["schema_version"] = 2
         result["weight_unit"] = "effective C/Cf"
         return result
 
     @classmethod
     def from_dict(cls, value: dict) -> FrozenCalibration:
-        """恢复序列化的冻结拟合，拒绝未知版本或非法记录。"""
+        """恢复显式有效权重格式，不访问物理模型。"""
         values = dict(value)
         if (
-            values.pop("schema_version", None) != 1
+            values.pop("schema_version", None) != 2
             or values.pop("weight_unit", None) != "effective C/Cf"
         ):
             raise ValueError("unknown calibrated-weight schema or units")
-        values["weights"] = _readonly(values["weights"])
-        values["standard_error"] = _readonly(values["standard_error"])
-        if (
-            values["weights"].ndim != 2
-            or np.any(~np.isfinite(values["weights"]))
-            or np.any(values["weights"] <= 0)
-        ):
-            raise ValueError("calibrated weights must be finite and positive")
+        if values.get("observation_domain") != STATIC_OBSERVATION_DOMAIN:
+            raise ValueError("missing or unsupported frozen observation domain")
+        if set(values) != {field.name for field in fields(cls)}:
+            raise ValueError("schema2 contains missing or unknown frozen-calibration fields")
+        specification = values.get("spec")
+        if not isinstance(specification, dict) or set(specification) != {
+            field.name for field in fields(CalibrationSpec)
+        }:
+            raise ValueError("schema2 requires the complete explicit CalibrationSpec")
+        values["spec"] = CalibrationSpec(**specification)
+        values["weights"] = np.asarray(values["weights"])
+        values["standard_error"] = np.asarray(values["standard_error"])
         return cls(**values)
 
 
 def fit_unit_weights(
     data: DigitalObservation, known_input_v, *, rank_rtol: float = 1e-10
 ) -> FrozenCalibration:
-    """用受控静态观测和独立已知输入拟合有效unit权重及offset。
+    """从独立已知参考拟合静态有效权重与失调。
 
-    Args:
-        data: 数字观测白名单；不得包含物理C/G、干净输入或误差truth。
-        known_input_v: (N,)外部参考输入[V]，与raw样本一一对应，独立于data提供。
-        rank_rtol: 相对奇异值判秩门限；不以名义先验填补不可观方向。
-
-    Returns:
-        FrozenCalibration。须N>参数数且设计矩阵满秩，有效权重有限且正，offset允许有符号且有限；
-        clipped或非静态训练明确拒绝。输入噪声设置不在此函数改写，参考误差不被自动估计。
+    数值 SVD 控制是实现选择。调用方提供全部连接、电压尺度、激励与静态域声明；缺少可辨识方向时拒绝，
+    不以名义先验或物理真值补足。
     """
     data.validate()
     if not data.static_charge_domain:
-        raise ValueError("unit-weight training requires a controlled static charge-gain dataset")
+        raise ValueError("unit-weight training requires a controlled static charge-domain dataset")
     if np.any(data.overflow):
-        raise ValueError(
-            f"training has {np.count_nonzero(data.overflow)} clipped conversions; fix headroom"
-        )
+        raise ValueError(f"training has {np.count_nonzero(data.overflow)} clipped conversions")
+    if np.iscomplexobj(known_input_v):
+        raise ValueError("the independent training reference must be real [V]")
     x = np.asarray(known_input_v, dtype=float)
-    n = len(data.rdac_code)
+    n = len(data.adc2_code)
     p = int(np.prod(data.spec.shape)) + 1
     if x.shape != (n,) or np.any(~np.isfinite(x)) or not 0 < rank_rtol < 1:
         raise ValueError(
@@ -382,188 +379,71 @@ def fit_unit_weights(
     design = np.zeros((n, p))
     for start in range(0, n, 256):
         stop = min(start + 256, n)
-        ids, signal, b_minus_dac = _terms(data, start, stop)
-        terms = signal * x[start:stop, None, None] + b_minus_dac
+        ids, signal, term = _terms(data, start, stop)
+        terms = signal * x[start:stop, None, None] + term
         block = design[start:stop, :-1].reshape(stop - start, *data.spec.shape)
         for active in range(data.spec.n_active):
             block[np.arange(stop - start), ids[:, active], :] = terms[:, active]
     design[:, -1] = 1
-    u, s, vh = svd(design, full_matrices=False, check_finite=False, lapack_driver="gesdd")
-    # 在矩阵乘法前检查SVD因子有限性，防止0*inf先污染残差，或NaN比较被误当作秩不足。
-    if not (np.all(np.isfinite(u)) and np.all(np.isfinite(s)) and np.all(np.isfinite(vh))):
+    if np.any(~np.isfinite(design)):
         raise ValueError(
-            "singular value decomposition returned non-finite factors; "
-            "the design matrix is ill-conditioned or the LAPACK backend diverged"
+            "the explicitly supplied reference and connection terms overflowed the design matrix"
         )
+    u, s, vh = svd(design, full_matrices=False, check_finite=False, lapack_driver="gesdd")
+    if not (np.all(np.isfinite(u)) and np.all(np.isfinite(s)) and np.all(np.isfinite(vh))):
+        raise ValueError("singular value decomposition returned non-finite factors")
     rank = int(np.count_nonzero(s > rank_rtol * s[0]))
     if rank < p:
         raise CalibrationUnidentifiableError(
-            f"rank {rank}/{p}: change DEM allocation and dither excitation; more repetitions alone cannot recover null directions"
+            f"rank {rank}/{p}: the supplied digital connections and reference do not identify all coefficients"
         )
     theta = vh.T @ ((u.T @ data.fine_v) / s)
     residual = data.fine_v - design @ theta
     variance = float(np.dot(residual, residual) / (n - p))
     se = np.sqrt(variance * np.sum((vh.T / s) ** 2, axis=1))
     weights = theta[:-1].reshape(data.spec.shape)
-    # 拒绝非有限值，避免其进入后续电荷或数值计算。
     if np.any(~np.isfinite(weights)) or np.any(weights <= 0):
-        raise ValueError(
-            "estimated physical weights are nonpositive or non-finite; improve excitation/noise or check model validity"
-        )
+        raise ValueError("estimated effective weights are nonpositive or non-finite")
     digest = hashlib.sha256()
-    digest.update(json.dumps(asdict(data.spec), sort_keys=True).encode())
+    digest.update(
+        json.dumps(
+            {"spec": asdict(data.spec), "observation_domain": data.observation_domain},
+            sort_keys=True,
+        ).encode()
+    )
     digest.update(x.tobytes())
     for array in (
         data.slice_ids,
-        data.rdac_code,
-        data.dem_state,
         data.adc2_code,
-        data.bank_dither,
-        data.common_injection_v,
+        data.main_masks,
+        data.sub_masks,
+        data.signal_mask,
+        data.known_voltage_term_v,
+        data.overflow,
+        data.sample_ids,
     ):
         digest.update(array.tobytes())
-    for optional_array in (data.main_masks, data.sub_masks, data.dither_rails, data.sample_ids):
-        if optional_array is not None:
-            digest.update(optional_array.tobytes())
     return FrozenCalibration(
-        _readonly(weights),
+        weights,
         float(theta[-1]),
-        _readonly(se),
+        se,
         rank,
         float(s[0] / s[-1]),
         float(np.sqrt(np.mean(residual**2))),
         n,
         digest.hexdigest(),
-        data.spec.v_fs,
+        data.spec,
+        data.observation_domain,
     )
 
 
 def apply_frozen_calibration(result, calibration: FrozenCalibration):
-    """应用冻结数字系数，再更新独立的仿真评分。
-
-    只有 DigitalObservation 进入重构算法。此实验封装随后读取干净/理想输入，仅用于报告误差。
-    """
+    """先执行数字推理，再更新单列的仿真评分。"""
     out = calibration.reconstruct(DigitalObservation.from_result(result))
     if result.uncalibrated_out is None:
         result.uncalibrated_out = result.out.copy()
     result.out = out
     result.err = out - result.x_ref
-    result.err_to_x1 = out - result.sample.x1
-    result.err_to_x2 = out - result.sample.x2
-    clean = result.sample.x1_clean if result.sample.x1_clean is not None else result.sample.x1
-    result.err_vs_clean = out - clean
     result.state.weight_calibration = calibration
     result.calibration_applied = tuple(dict.fromkeys((*result.calibration_applied, "unit_weights")))
     return result
-
-
-def run_with_split_calibration(
-    cfg,
-    input_fn,
-    n_samples: int,
-    *,
-    pool=None,
-    chip=None,
-    n_cal: int = 8192,
-    calibration_input_fn=None,
-    rng=None,
-):
-    """Train noisy physical-unit weights, freeze them and validate on the same chip.
-
-    Args:
-        cfg: Requested split configuration; charge gain and KTC-off are required.
-        input_fn: Independent validation input waveform [V] versus time [s].
-        n_samples: Validation record length.
-        pool: Optional fixed fabricated pool, reused in training and validation.
-        chip: Optional aggregate split realization when constructing the pool.
-        n_cal: Training sample count; must exceed the number of fitted coefficients.
-        calibration_input_fn: Known reference waveform; default is a distinct full-range sine.
-            Driver noise is not substituted into this reference.
-        rng: Optional validation noise generator; training uses its own stream.
-
-    Returns:
-        SimResult with frozen state.weight_calibration, raw and corrected outputs
-        and a serializable calibration_report including the actual training setup.
-
-    Notes:
-        Training is an explicitly controlled static transfer measurement, with
-        DEM permutation and discrete sub-bank dither. Sampling/RA/driver noise
-        remain enabled as requested. Validation retains the requested dynamics.
-        This is a behavioral calibration experiment, not an on-chip calibration
-        timing/power implementation or a claim about reference-source accuracy.
-    """
-    from .conversion import ConversionParameters
-    from .pipeline import run_pipeline
-    from .reconstruction import initialize_state
-    from .sampler import sine_input
-    from .scheduler import ShuffledScheduler
-    from .slice_pool import PhysicalSlicePool
-
-    cfg = replace(cfg, dac_arch="split", calibration="weights")
-    cfg.check_legal()
-    if cfg.ra_gain_model != "charge" or cfg.ktc_enable:
-        raise ValueError("split-unit calibration requires charge gain and a disabled KTC observer")
-    if n_cal <= cfg.n_slices * cfg.dac_n_units + 1:
-        raise CalibrationUnidentifiableError(
-            "training needs more samples than unit weights plus offset"
-        )
-    if pool is not None and chip is not None:
-        raise ValueError("supply a fixed pool or an aggregate chip, not both")
-    if pool is None:
-        pool = PhysicalSlicePool(cfg, np.random.default_rng(cfg.seed + 8101), chip=chip)
-    training_cfg = replace(
-        cfg,
-        calibration="none",
-        dem_enable=True,
-        dem_bridge_enable=True,
-        dem_mode="permute",
-        dither_mode="sampling",
-        dither_split_bank="sub",
-        dither_discrete=True,
-        dither_units_range=min(2, cfg.dac_n_sub // 2),
-        dyn_input_settling=False,
-        dyn_ref_settling=False,
-        dyn_crosstalk=False,
-        conversion=ConversionParameters(),
-        slice_timing_skew_s=0,
-        slice_offset_sigma_v=0,
-    )
-    train_fn = calibration_input_fn
-    if train_fn is None:
-        cycles = 103 if n_cal > 206 else 31
-        train_fn = sine_input(0.8 * cfg.v_fs, cfg.fs * cycles / n_cal)
-    training = run_pipeline(
-        training_cfg,
-        train_fn,
-        n_cal,
-        pool=pool,
-        rng=np.random.default_rng(cfg.seed + 19001),
-        scheduler=ShuffledScheduler(training_cfg, np.random.default_rng(cfg.seed + 19003)),
-    )
-    known = np.asarray(train_fn(training.sample.t1), dtype=float)
-    model = fit_unit_weights(DigitalObservation.from_result(training), known)
-    state = initialize_state(cfg)
-    state.weight_calibration = model
-    validation = run_pipeline(
-        cfg,
-        input_fn,
-        n_samples,
-        pool=pool,
-        state=state,
-        rng=np.random.default_rng(cfg.seed + 19002) if rng is None else rng,
-    )
-    validation.calibration_report = {
-        "method": "static_unit_charge_svd",
-        "training_config": training_cfg.to_dict(),
-        "training_samples": n_cal,
-        "validation_samples": n_samples,
-        "rank": model.rank,
-        "condition": model.condition,
-        "training_residual_rms_v": model.residual_rms_v,
-        "training_digest": model.training_digest,
-        "same_physical_pool": training.pool is validation.pool,
-        "sampling_noise_retained": training_cfg.enable_sampling_noise,
-        "ra_noise_retained": training_cfg.ra_enable_noise,
-        "reference_source_uncertainty": "not inferred; must be included in a hardware calibration budget",
-    }
-    return validation

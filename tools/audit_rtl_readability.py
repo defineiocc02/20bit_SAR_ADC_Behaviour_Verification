@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """检查指定冻结 RTL 源集的词法单元、指令及工具注释是否保持一致。
 
-有限词法器只覆盖本仓库使用的 SV 子集，不是形式化 HDL 检查器。工具执行时
-还调用 Verilator 预处理，分别比较包含文件和宏展开后的词法单元。
+有限词法器只覆盖本仓库使用的 SV 子集，不是形式化 HDL 检查器。工具
+可按显式选项调用 Verilator 预处理，分别比较包含文件和宏展开后的词法单元。
 遇到未知字符或不支持的续行指令即报错，不生成等价结论。
 """
 
@@ -11,14 +11,11 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import re
-import shlex
 import subprocess
 import tempfile
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[1]
 TOKEN = re.compile(
     r'"(?:\\.|[^"\\])*"|\\[^\s]+|'
     r"(?:[0-9][0-9_]*\s*)?'[sS]?[bBoOdDhH][0-9a-fA-FxXzZ?_]+|"
@@ -73,94 +70,241 @@ def tokens(source: str) -> tuple[list[str], list[str]]:
     return result, directives
 
 
-def git_bytes(commit: str, path: str) -> bytes:
-    return subprocess.run(
-        ["git", "show", f"{commit}:{path}"], cwd=REPO, check=True, capture_output=True
-    ).stdout
+def _relative(name: str, *, include_root: bool = False) -> Path:
+    path = Path(name)
+    if include_root and name == ".":
+        return path
+    if path.is_absolute() or not path.parts or any(p in {".", ".."} for p in path.parts):
+        raise ValueError(f"files/includes must be explicit relative paths: {name}")
+    return path
 
 
-def preprocess(root: Path, command: list[str], files: list[str]) -> bytes:
-    proc = subprocess.run(
-        [*command, "-E", "-P", "--pp-comments", "-Irtl/params", *files],
+def _read(root: Path, name: str) -> bytes:
+    path = (root / _relative(name)).resolve()
+    if not path.is_relative_to(root) or not path.is_file() or path.stat().st_size >= 300 * 1024**2:
+        raise ValueError(f"declared input missing, outside its root, or too large: {name}")
+    return path.read_bytes()
+
+
+def _new_output(path: Path, input_roots: tuple[Path, ...]) -> Path:
+    if path.expanduser().exists() or path.expanduser().is_symlink():
+        raise ValueError("output path already exists")
+    out = path.expanduser().resolve()
+    if (
+        out.exists()
+        or any(out.is_relative_to(root) for root in input_roots)
+        or any((p / ".git").exists() for p in (out, *out.parents))
+    ):
+        raise ValueError("output must be a new directory outside Git working trees")
+    out.mkdir(parents=True, exist_ok=False)
+    return out
+
+
+def _git_commit(root: Path, reference: str) -> str:
+    result = subprocess.run(
+        ["git", "rev-parse", "--verify", "--end-of-options", reference + "^{commit}"],
         cwd=root,
         check=True,
         capture_output=True,
+        text=True,
+    ).stdout.strip()
+    if not re.fullmatch(r"[0-9a-f]{40}", result):
+        raise ValueError("baseline did not resolve to one immutable commit")
+    return result
+
+
+def git_bytes(root: Path, commit: str, path: str) -> bytes:
+    """Read a declared path from an already resolved immutable Git commit."""
+    return subprocess.run(
+        ["git", "show", f"{commit}:{path}"], cwd=root, check=True, capture_output=True
+    ).stdout
+
+
+def preprocess(
+    root: Path, executable: str, files: list[str], includes: list[str], defines: list[str]
+) -> bytes:
+    """Run explicitly requested Verilator preprocessing on declared snapshots only."""
+    sources = [name for name in files if Path(name).suffix in {".sv", ".v"}]
+    if not sources:
+        raise ValueError("preprocessing requires at least one declared .sv/.v source")
+    result = subprocess.run(
+        [
+            executable,
+            "-E",
+            "-P",
+            "--pp-comments",
+            *[f"-I{x}" for x in includes],
+            *[f"-D{x}" for x in defines],
+            *sources,
+        ],
+        cwd=root,
+        check=False,
+        capture_output=True,
         timeout=120,
     )
-    if proc.stderr:
-        raise RuntimeError(f"Preprocessing diagnostic must be reviewed: {proc.stderr.decode()}")
-    return proc.stdout
+    if result.returncode != 0 or result.stderr:
+        raise RuntimeError(
+            f"preprocessor rc={result.returncode}; diagnostic={result.stderr.decode(errors='backslashreplace')}"
+        )
+    return result.stdout
 
 
-def main() -> None:
+def main(argv=None) -> int:
+    """Compare an explicit nonempty source set; never substitute a device profile."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--baseline", default="71e7d5a017246340b9fa1f71cbbe99e20b6503f6")
-    parser.add_argument("--out", required=True, type=Path, help="New audit output directory")
-    args = parser.parse_args()
-    command = shlex.split(os.environ.get("VERILATOR", "verilator"))
-    if not command:
-        raise ValueError("VERILATOR must name an executable")
-    files = (REPO / "rtl/rtl_sources.f").read_text().splitlines()
-    files = [p for p in files if p.strip()]
-    files += ["rtl/params/rtl_params.vh", "rtl/params/rtl_error_codes.vh"]
-    if len(files) != 26 or len(set(files)) != len(files):
-        raise ValueError("Expected the frozen 24 SV + 2 header file set")
-    if git_bytes(args.baseline, "rtl/rtl_sources.f") != (REPO / "rtl/rtl_sources.f").read_bytes():
-        raise ValueError("Source file manifest changed")
-    rows = []
-    before_all, after_all = [], []
-    with tempfile.TemporaryDirectory(prefix="sar_rtl_baseline_") as temp:
-        baseline_root = Path(temp)
-        for name in files:
-            before = git_bytes(args.baseline, name)
-            after = (REPO / name).read_bytes()
-            old_tokens, old_directives = tokens(before.decode("utf-8"))
-            new_tokens, new_directives = tokens(after.decode("utf-8"))
-            if old_tokens != new_tokens or old_directives != new_directives:
-                raise ValueError(f"Effective source tokens/directives changed: {name}")
-            if name.endswith("rtl_params.vh") and before != after:
-                raise ValueError("Generated parameter header was edited")
-            target = baseline_root / name
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(before)
-            before_all.append(old_tokens)
-            after_all.append(new_tokens)
-            rows.append(
+    origin = parser.add_mutually_exclusive_group(required=True)
+    origin.add_argument("--before-root", type=Path)
+    origin.add_argument("--baseline", help="Git reference resolved to an immutable commit")
+    parser.add_argument("--candidate-root", type=Path, required=True)
+    parser.add_argument(
+        "--files", nargs="+", required=True, help="Exact relative source/header paths"
+    )
+    parser.add_argument("--include-dirs", nargs="*")
+    parser.add_argument("--defines", nargs="*", default=[])
+    parser.add_argument("--verilator", help="Optional existing executable; no PATH/tool default")
+    parser.add_argument("--out", type=Path, required=True)
+    args = parser.parse_args(argv)
+    out = None
+    result = {
+        "schema_version": 1,
+        "status": "VALIDATING",
+        "scope": "FINITE_SV_TOKEN_IDENTITY_NOT_SYNTAX_FORMAL_OR_TIMING_PROOF",
+        "preprocessing": "NOT_REQUESTED",
+        "files": [],
+    }
+    try:
+        candidate = args.candidate_root.expanduser().resolve()
+        before = args.before_root.expanduser().resolve() if args.before_root else None
+        if (
+            not candidate.is_dir()
+            or before is not None
+            and (not before.is_dir() or before == candidate)
+        ):
+            raise ValueError("candidate and optional baseline must be distinct existing roots")
+        names = [str(_relative(name)) for name in args.files]
+        if len(names) != len(set(names)) or any(
+            Path(name).suffix not in {".sv", ".v", ".vh", ".svh"} for name in names
+        ):
+            raise ValueError("declare unique SV/Verilog source or header paths")
+        includes = [str(_relative(name, include_root=True)) for name in (args.include_dirs or [])]
+        if args.verilator and args.include_dirs is None:
+            raise ValueError("requested preprocessing requires an explicit --include-dirs list")
+        if any(
+            not re.fullmatch(r"[A-Za-z_]\w*(?:=[A-Za-z0-9_+'.-]+)?", value)
+            for value in args.defines
+        ):
+            raise ValueError("unsupported explicit define encoding")
+        commit = _git_commit(candidate, args.baseline) if args.baseline else None
+        result.update(
+            {
+                "baseline_commit": commit,
+                "before_root": str(before) if before else None,
+                "candidate_root": str(candidate),
+                "include_dirs": includes,
+                "defines": args.defines,
+            }
+        )
+        out = _new_output(args.out, (candidate, before) if before is not None else (candidate,))
+        payloads = {}
+        token_streams = []
+        for name in names:
+            old = _read(before, name) if before is not None else git_bytes(candidate, commit, name)
+            new = _read(candidate, name)
+            if len(old) >= 300 * 1024**2:
+                raise ValueError("baseline input exceeds 300 MiB")
+            left, left_directives = tokens(old.decode("utf-8"))
+            right, right_directives = tokens(new.decode("utf-8"))
+            row = {
+                "path": name,
+                "baseline_sha256": digest(old),
+                "candidate_sha256": digest(new),
+                "tokens": len(left),
+                "tokens_equal": left == right,
+                "directives_equal": left_directives == right_directives,
+                "bytes_changed": old != new,
+            }
+            result["files"].append(row)
+            if not left or not right or left != right or left_directives != right_directives:
+                raise ValueError(f"empty or changed declared token/directive stream: {name}")
+            payloads[name] = (old, new)
+            token_streams.append(right)
+        for name, (old, new) in payloads.items():
+            for label, data in (("baseline", old), ("candidate", new)):
+                target = out / "input_snapshot" / label / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(data)
+        if args.verilator:
+            import shutil
+
+            result["preprocessing"] = "REQUESTED_NOT_STARTED"
+            executable = shutil.which(args.verilator)
+            if executable is None:
+                raise ValueError("explicit Verilator executable not found; no fallback performed")
+            result["preprocessing"] = "REQUESTED_NOT_COMPLETED"
+            with tempfile.TemporaryDirectory(prefix="rtl_identity_") as temporary:
+                snapshot = Path(temporary)
+                for name, (old, new) in payloads.items():
+                    for label, data in (("before", old), ("candidate", new)):
+                        target = snapshot / label / name
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        target.write_bytes(data)
+                for label in ("before", "candidate"):
+                    for directory in includes:
+                        (snapshot / label / directory).mkdir(parents=True, exist_ok=True)
+                old_pp = preprocess(snapshot / "before", executable, names, includes, args.defines)
+                new_pp = preprocess(
+                    snapshot / "candidate", executable, names, includes, args.defines
+                )
+            (out / "baseline.preprocessed.sv").write_bytes(old_pp)
+            (out / "candidate.preprocessed.sv").write_bytes(new_pp)
+            if not tokens(old_pp.decode("utf-8"))[0] or tokens(old_pp.decode("utf-8")) != tokens(
+                new_pp.decode("utf-8")
+            ):
+                raise ValueError("expanded token/directive streams differ or are empty")
+            result.update(
                 {
-                    "path": name,
-                    "baseline_sha256": digest(before),
-                    "current_sha256": digest(after),
-                    "tokens": len(old_tokens),
-                    "bytes_changed": before != after,
+                    "preprocessing": "DECLARED_SNAPSHOTS_TOKEN_IDENTITY_CONFIRMED",
+                    "preprocessor": executable,
+                    "baseline_preprocessed_sha256": digest(old_pp),
+                    "candidate_preprocessed_sha256": digest(new_pp),
                 }
             )
-        old_pp = preprocess(baseline_root, command, files[:24])
-        new_pp = preprocess(REPO, command, files[:24])
-        if tokens(old_pp.decode("utf-8")) != tokens(new_pp.decode("utf-8")):
-            raise ValueError("Verilator expanded tokens/tool comments changed")
-    args.out.mkdir(parents=True, exist_ok=False)
-    (args.out / "baseline.preprocessed.sv").write_bytes(old_pp)
-    (args.out / "current.preprocessed.sv").write_bytes(new_pp)
-    version = subprocess.run([*command, "--version"], check=True, capture_output=True, text=True)
-    result = {
-        "status": "PASS",
-        "baseline_commit": args.baseline,
-        "files": rows,
-        "file_count": len(rows),
-        "changed_files": sum(r["bytes_changed"] for r in rows),
-        "effective_tokens": sum(r["tokens"] for r in rows),
-        "token_sha256": digest(json.dumps(after_all, ensure_ascii=False).encode()),
-        "baseline_preprocessed_sha256": digest(old_pp),
-        "current_preprocessed_sha256": digest(new_pp),
-        "verilator": version.stdout.strip(),
-        "scope": "Source/token/macro/tool-pragma identity, not formal/STA/analog signoff",
-    }
-    (args.out / "result.json").write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
-    print(
-        f"RTL_READABILITY_PASS files={len(rows)} changed={result['changed_files']} "
-        f"tokens={result['effective_tokens']}"
-    )
+        if any(
+            digest(_read(candidate, name)) != row["candidate_sha256"]
+            for name, row in zip(names, result["files"], strict=True)
+        ):
+            raise RuntimeError("candidate input changed while identity was checked")
+        result.update(
+            {
+                "status": "DECLARED_TOKEN_IDENTITY_CONFIRMED",
+                "file_count": len(result["files"]),
+                "effective_tokens": sum(x["tokens"] for x in result["files"]),
+                "token_sha256": digest(json.dumps(token_streams).encode()),
+            }
+        )
+        (out / "result.json").write_text(
+            json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+        )
+        print(
+            f"RTL_TOKEN_IDENTITY_COMPLETE files={len(names)} tokens={result['effective_tokens']} preprocessing={result['preprocessing']} formal=NOT_ASSESSED"
+        )
+        return 0
+    except (
+        OSError,
+        UnicodeError,
+        ValueError,
+        RuntimeError,
+        subprocess.CalledProcessError,
+        subprocess.TimeoutExpired,
+    ) as error:
+        if out is not None:
+            result.update({"status": "FAILED", "error": str(error)})
+            (out / "result.json").write_text(
+                json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+            )
+        print(f"rtl_readability: {error}", file=__import__("sys").stderr)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

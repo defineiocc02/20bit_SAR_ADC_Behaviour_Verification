@@ -1,0 +1,295 @@
+{
+  "schema_version": 1,
+  "fig19": {
+    "scope": "RESTRICTED_STATIC_FIG19_PORTS_AND_ACTUAL_REJECTED_PREFIX",
+    "source_reproduction": false,
+    "repo_source_sha256": {
+      "rtl/calibration/caaz_pair_processor.sv": "04c68fb79974185d998d3bd49d8aabeef5cb2fb5f02050948c9fe2724c8181b8",
+      "rtl/control/caaz_cycle_ctrl.sv": "7829d53cbdfb90bcd7ea6c5d478bb0af1fda2966c4eb62954e21bf2100c592a0",
+      "rtl/core/adc2_dec.sv": "53d82e15b2525e7a6dc7b5efa8f33752f82fab44bcaf79e626eeead8338c9cca",
+      "rtl/core/analog_phase_ctrl.sv": "10b29de6e1e9a6c1625c76eb09d34ecf62f2a888e6712828a843194373a2c068",
+      "rtl/core/cal_output_stage.sv": "4edf061ba492418e48a36403473afd1a65e788dd6cfd3fd6e4955acfc562a415",
+      "rtl/core/cal_residue_mac.sv": "e810c02bbaa181884849f37342c889f46eb55574b62843f15b8b413553bda694",
+      "rtl/core/cal_sample_context.sv": "b7f61a3e58d1def8879f7b03a56a2dd19360f36cf61304d32a31e505a7cf0d50",
+      "rtl/core/cal_weight_reduce.sv": "1f004a5455d2cde4601e46c847ca75518da3c474ba0be265c12219861f029647",
+      "rtl/core/calib_regs.sv": "561a8770f52af6f8d48444e844b69ceeca588b3b55345c1eb7a66ec91507294e",
+      "rtl/core/div_floor.sv": "4b399a517ef80686f180a8819c7f8ef62c3093b1db1ed3832422e52dcd68a9c5",
+      "rtl/core/rdac_drv.sv": "1432c440a9234f1888a89e2b7866a302ccf97bb179bfe4fcc7f9da8c72ba7c32",
+      "rtl/core/recon_core.sv": "9d142f4f0392416873f9f8858c36c05a59253eecb90dca7f9294a3e0b43c9f00",
+      "rtl/core/sar_structural_ctrl.sv": "e63ef7674f016e7baf2deea044e81160a2e11c5e3d1dc70ca4bf9f2a1a64485f",
+      "rtl/core/sar_trial_ctrl.sv": "c7569d1cef42e08419b88c372336ac846db6638b22cc13c1d846d708dea1ab96",
+      "rtl/core/slice_pool_ctrl.sv": "06f42c272256741a1622119201734c00135c0e100b475702385f0010cff533ab",
+      "rtl/core/status_regs.sv": "8d58070dbd2bca03a39d56b6cfce24006cfa966e9cf157d65faf8cb7c6ffa0d5",
+      "rtl/core/unit_therm.sv": "af4a252d47dd20369be04d5b6cef6860ed206e4b4f5f998d1253e9ecee595e8b",
+      "rtl/core/weight_store.sv": "9f3240b9e27e14cd852b7e451febc39c386d459b24f3a4dbaf3c27509b81998c",
+      "rtl/params/rtl_error_codes.vh": "48fad1bf62f272687e0618fad28a11f87a64d2166da164cde4141e6671a42aa5",
+      "rtl/top/sadc_enc.sv": "da718df08ea2a13393e24bad9e89c615030f09a1a19aca6e2892b96d10437794",
+      "rtl/top/sar20_digital_core.sv": "65bfddbd480dccd9f9db444800af785567e47e73eaf997b1efad96da253a22ca",
+      "sim/tb/fig19_static_plant_tb.sv": "0070f2e20046fb40b94eda46b609dcd3f70d1ee4beb7adaa66a5fb788f2ff193",
+      "tools/export_fitted_rtl.py": "b214c88657d2c3b9778c48382ee6bbab5307c7690300eb6634d54ac1f5d775d7",
+      "tools/export_rtl_params.py": "5c686a02368c77e656029d6cb4f59f3160226cae4a176c5ab3ec6a6976d6abef",
+      "tools/run_fig19_rtl_calibration.py": "fe510f3217063b143212cc6005c85b58d7277f2e43e702ec0d3c30a7925e3ba1",
+      "tools/run_open_rtl.py": "b5af7fcd9917dd8d3305117e0f2601b59f759b1e783f3aa2cd5b54e213975ef2",
+      "src/adi_model/__init__.py": "97d112ae9c93fc1f593f5f8f0ab8ad0fc2b3bf6e0e7420c811c0cfcd91bb7bf1",
+      "src/adi_model/__main__.py": "fa5ec6a248cfda00aadc8d13741670a5d2fd3b7f7d09a10337bac97c9ab37ce4",
+      "src/adi_model/_arrays.py": "d1eeedeb7b6851a76650ef575d58ce456cf6d7ae22b91b5d79dc3517d1608df6",
+      "src/adi_model/adc2.py": "5def18421646999612abc46613736603b160447e8c2d64bb0774f8d56545f3a3",
+      "src/adi_model/benchmarks.py": "63f492e7737c03fd5ae766b48a22cf89ef65cf45127136c23b125653b4533dff",
+      "src/adi_model/calib.py": "0107df9831af15680900e1b5f983e655da7e5fedb016ba3d30b5762676d2520d",
+      "src/adi_model/charge_ref.py": "74856592cdc665c4533744754b953cee55a6e8649368b8483b6ddbf619a0cebc",
+      "src/adi_model/chopping_az.py": "78f2208d54708085fdfadbc98b45abdb26660b5ee98a0340ca695d1f68cd5819",
+      "src/adi_model/cli.py": "0e0daea02b79f3f6750164c6fdbde5c2aa8a4265c6ad193fe3f49331bd53b661",
+      "src/adi_model/config.py": "a3c784167864c08d8cfa8a2db2c1ff254f6330eb19878e7cb70fac5ab3dd8d7d",
+      "src/adi_model/conversion.py": "55855a86663d0127a997585764d7d146af477858c33946ad9a1f54117c26f00a",
+      "src/adi_model/dac_arch.py": "79ccd3dcc3b39070f49d33df73942be7336c8e50bbd5d18a5a14e04b3942b0f1",
+      "src/adi_model/defaults.py": "2580d3e49002291e76dbefa2e5c8cf2d0d3e77d0be9801e60e74ddbc4cd9de3f",
+      "src/adi_model/dem.py": "3f23e753e78d8d93b6b8fa24a9ed3bde204e7bd9352ff168eefff48611012668",
+      "src/adi_model/dither.py": "562367d484aaddfd85e76cb13e787508318a0e670ec7a5128fef4b9caf6495e0",
+      "src/adi_model/dynamics.py": "3c2fd52ab6b79251cc81882f8be5b38ad0cdaae3396394d55ceddaae1f99a0b9",
+      "src/adi_model/fixed_point.py": "041be974e401e8394f3c7d66c1da57fec0d5516ff03c54b7d03dbe0ddd015482",
+      "src/adi_model/input_network.py": "e361644263ccb582d4a8282395f1f77b5d0ff4e368c3c95749a7e5307f428be0",
+      "src/adi_model/inventory_gate.py": "610b9e2fe5bcdd059dcf8b4b284b8c410e3b590b895bddc15d2b107175fa4a63",
+      "src/adi_model/low_frequency_noise.py": "2319b65974015795342e230adf664f52efe0e36518e31ea7cef4a133d9c89e83",
+      "src/adi_model/mapper.py": "71dcf86a06034c06632e35d32fff7290ec74a47086094aeb054519d8869f5b07",
+      "src/adi_model/metrics.py": "8877c362ac6ab765cb26f7dcd2a42263c9b0a0915d78134af9b322109edec5d9",
+      "src/adi_model/pipeline.py": "58dec0a982bfbc5134461dac5e6c5f7e429d9bbc1afedd0a8043354ced981c3a",
+      "src/adi_model/pipeline_engine.py": "8bccd20f58bb3fdbe335d017b88cf1745a4b37da31dce66fdbdab21d7ab57acb",
+      "src/adi_model/pretracking.py": "5da8b080e173d5e5c88b0017854d20c18869eb8c5d744ec67a0150bfaa6d8a8a",
+      "src/adi_model/provenance.py": "34cef99af3873b932bad5b5b287548edbcc9c53358ac6519840173567901d477",
+      "src/adi_model/ra.py": "c8bc782cce4056536c6e987b90499a6c4da5768fc2bc7f13baf2aabab9ee1fb3",
+      "src/adi_model/reconstruction.py": "dff957b997863229bf4b5c8f6ebf6f543a9c834e7412e92d8faecf5e577ec936",
+      "src/adi_model/reference_charge.py": "d95dce7a332173f410ed67244931860302cfb7363eaf6b56563033b2e6397781",
+      "src/adi_model/rtl_observation.py": "03782d44c6ce082299357382b9aa1b8f52592a26428ee0e26cb39db6a47c86b2",
+      "src/adi_model/sadc.py": "fac93fd126c0232b39bb5a6cda8f3ce97b7a0369af14d294adea644a928c468c",
+      "src/adi_model/sampler.py": "18b2dafbd8af583533a8461e39c4b200dedde4ba2a0109a54162f7fb0015278e",
+      "src/adi_model/sampling_charge.py": "717589ecc9d96c327a5f6f48435e00fae59ca3e1ff1cd75b83960e42f22e72c8",
+      "src/adi_model/scheduler.py": "94e2fa781373013054217404fdad53439897b1b9792ea7db09fab1e923b1ada4",
+      "src/adi_model/serialization.py": "9689ba9d937180a2acf18f33476964474a101d75473a48f26fef150203b8cc52",
+      "src/adi_model/sim.py": "e7a9a764a57b0393e1272daabd6f154847f3f5b76c08e1954584d1a4780286c2",
+      "src/adi_model/slice_pool.py": "f4c9e03a00fdbcf065b9501f5552bdc71a91d2c06fc275aae521ca1c37149e2e",
+      "src/adi_model/timing.py": "1763938120d2ece799856fb30e8effd674dc943b5690b869b272c3369fd65c19",
+      "src/adi_model/weight_calibration.py": "ebd3118ee76e3f878d1c701d5c6a7e67cda734eb98bd0dc9b4953dedac1a039e",
+      "tools/verify_source_bound_replay.py": "5cfb5ef5e99a4b91caf4ec5a97fd18a80be2b7249c9734f1f2d9692a54c7f554",
+      "tools/run_static_calibration.py": "fcd2e5f3d443186e2aafb12268807b69734ef00b62a6424701ebe3a77d684e0e"
+    },
+    "source_basis": {
+      "patent": "US10505561B2",
+      "location": "PDF22 Fig.19; PDF33",
+      "assumptions": [
+        "subtract-equivalent analog polarity",
+        "Q32 rounding of4:2:1/7",
+        "seven-slice source example mapped onto18/8 common-voltage ports"
+      ]
+    },
+    "negative": {
+      "input_v": -2.9,
+      "word": 32,
+      "sample_id": 3,
+      "coarse": 8,
+      "upper": 4,
+      "prefix_before_upper": [
+        0,
+        0,
+        0,
+        8,
+        8,
+        8,
+        8
+      ],
+      "candidate_codes": [
+        -4,
+        -4,
+        -4,
+        4,
+        4,
+        4,
+        4
+      ],
+      "accepted": [
+        false,
+        false,
+        false,
+        true,
+        true,
+        true,
+        true
+      ],
+      "phases": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "final_code": 4,
+      "code_domain": [
+        0,
+        512
+      ],
+      "sadc_shift_q": 0,
+      "rdac_shift_q": -67108864,
+      "sadc_sample_v": -2.9,
+      "rdac_sample_v": -2.946875
+    },
+    "verified_capture": {
+      "capture_targets": 6,
+      "retired": 4,
+      "rejected_ids": [
+        3,
+        6
+      ],
+      "expected_negative_controller_fault": true,
+      "scope": "DUT negative finite window, not a normal status0 capture"
+    },
+    "original_rtl_manifest_sha256": "13059b66c91a3fb67d45c2b4dbd8be6b9f4361db8799c8ff81fe779081de70dc",
+    "original_negative_trace_sha256": {
+      "controls.csv": "83645ad109169f4b3d38dbde1f5e48a99c6aed8e9cc5fe532ed1b584572c574f",
+      "events.csv": "5e299c804032ab3ba9a0cc3d7b76a8ae7d3d80b781c33d85f14c71ffed66c2d7",
+      "rdac_events.csv": "b23c1870d10abc8d610dd7ec15c26102754fb65882dcc22d7e0cf4961496a930",
+      "residues.csv": "6552675b5a30302cbbecd222dc521175e5a19ad76768a6696d6b496eb38c7079",
+      "samples.csv": "ff1842cf36e322fc60369a8ed0c6002af73ce2710e2416ebec01e39bb45d832f"
+    },
+    "normal_fitted_replay_receipt_sha256": "fe3e8c481648a493e9cb74bc5cf41ea3d083e3be83ca0a1b4e55cdfea178c1e7",
+    "normal_component_replay_receipt_sha256": "bfe527dd8b3a389fbd2af7ed300da03202f4e3339c87a1ab285f0cfe69a4fd33",
+    "negative_verifier_receipt_sha256": "63ff1af792cc17783daaacba93bb42817489544945c4d734c005292438499481",
+    "negative_checks": {
+      "status": "PASS",
+      "checks": 25,
+      "all_rejected": true,
+      "case_returncodes": {
+        "packet_id_plus1": 1,
+        "packet_coarse_plus1": 1,
+        "packet_state_flip": 1,
+        "packet_word_flip": 1,
+        "packet_mask_flip": 1,
+        "packet_ordered_slot_swap": 1,
+        "physical_mask_flip": 1,
+        "epoch_flip": 1,
+        "unknown_kind": 1,
+        "status_error": 1,
+        "conversion_fault": 1,
+        "missing_third_control": 1,
+        "third_control_id_changed": 1,
+        "third_control_ordered_group_changed": 1,
+        "missing_physical_tails": 1,
+        "missing_target_out": 1,
+        "extra_tail_obs": 1,
+        "sampled_acquiring_mask": 1,
+        "inactive_residue_main": 1,
+        "inactive_event_sub": 1,
+        "overflow_residue_sub": 1,
+        "overflow_event_main": 1,
+        "single_out_before_obs": 1,
+        "all_out_before_obs": 1,
+        "conv_and_packet_order_swap": 1
+      },
+      "run_label": "negative_trace_25",
+      "original_receipt_sha256": "63ff1af792cc17783daaacba93bb42817489544945c4d734c005292438499481",
+      "producer_sha256": "5cfb5ef5e99a4b91caf4ec5a97fd18a80be2b7249c9734f1f2d9692a54c7f554",
+      "acquisition_mask_rejected": true,
+      "unselected_rows_and_excess_width_rejected": true
+    },
+    "source_dem_implemented": false,
+    "source_binding_negative_checks": {
+      "status": "PASS",
+      "checks": 25,
+      "all_rejected": true,
+      "case_returncodes": {
+        "manifest_input_config_json": 1,
+        "manifest_input_format_json": 1,
+        "manifest_input_binding_json": 1,
+        "manifest_input_source_sv": 1,
+        "manifest_input_acquisition_sv": 1,
+        "raw_source_changed": 1,
+        "raw_acq_changed": 1,
+        "input_hash_missing": 1,
+        "input_hash_extra": 1,
+        "extra_bundle_member": 1,
+        "packet_input_changed": 1,
+        "symlink_member": 1,
+        "artifact_key_alias": 1,
+        "format_declaration": 1,
+        "extra_case_hash": 1,
+        "prefix_duplicate": 1,
+        "prefix_nonfinite": 1,
+        "prefix_limit": 1,
+        "bundle_limit": 1,
+        "scalar_2p64": 1,
+        "scalar_leading_17": 1,
+        "scalar_negative_zero": 1,
+        "scalar_nonhex": 1,
+        "scalar_missing_line": 1,
+        "scalar_extra_line": 1
+      },
+      "run_label": "negative_identity_scalar_file_25",
+      "original_receipt_sha256": "97fb44cb9dc63a04cbca41ab7c86b24d737fbbd523b26c8fd235e2a31afd3da0",
+      "producer_sha256": "5cfb5ef5e99a4b91caf4ec5a97fd18a80be2b7249c9734f1f2d9692a54c7f554"
+    },
+    "fresh_python_endpoint_checks": [
+      {
+        "input_v": -2.0,
+        "samples": 64,
+        "analog_invalid": 0,
+        "clipped": 0
+      },
+      {
+        "input_v": 2.0,
+        "samples": 64,
+        "analog_invalid": 0,
+        "clipped": 0
+      }
+    ],
+    "fresh_python_negative_trace": {
+      "coarse": [
+        8
+      ],
+      "rdac_code": [
+        4
+      ],
+      "prefix_before_upper": [
+        [
+          0,
+          0,
+          0,
+          8,
+          8,
+          8,
+          8
+        ]
+      ],
+      "rdac_event_codes": [
+        [
+          -4,
+          -4,
+          -4,
+          4,
+          4,
+          4,
+          4
+        ]
+      ],
+      "final_range_overflow": [
+        false
+      ],
+      "event_range_overflow": [
+        [
+          true,
+          true,
+          true,
+          false,
+          false,
+          false,
+          false
+        ]
+      ]
+    },
+    "replay_rollup_receipts_sha256": {
+      "TYPEFIX_REPLAY_POSITIVE_RECEIPT.json": "10aa9682d28643569a39990e2b8f882b40f7360c29eea6749a5dedb715e6591e",
+      "TYPEFIX_COMPONENT_REPLAY_RECEIPT.json": "18569f4c4c82e096faf6382dca3d214e89d305f2d211e63919380ec078fa8e63",
+      "TYPEFIX_REPLAY_NEGATIVE_RECEIPT.json": "5a9410752c754c702ec3809bdb456cc9c38df8c56f9759208b36b828ad9f872a"
+    },
+    "final_combined_receipt_sha256": "2871d82209a4cc2ba3a0b0c36ae294b32f605a94518fc841b66e29fed75ca0c1"
+  }
+}

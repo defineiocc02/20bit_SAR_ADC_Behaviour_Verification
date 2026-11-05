@@ -1,94 +1,121 @@
-"""用电荷与量程方程检查架构候选，不以配置标签代替数值边界。"""
+"""检查显式绑定的物理组件；不执行完整目标 ADC 仿真。"""
 
 from dataclasses import replace
 
 import numpy as np
 import pytest
 
-from adi_model import Config, build_split_chip, sine_input
-from adi_model.dac_arch import SplitDAC
-from adi_model.pipeline import run_pipeline
+from adi_model.config import Config, ConfigError
+from adi_model.dac_arch import (
+    SplitChip,
+    SplitDAC,
+    charge_from_masks,
+    topplate_voltage_from_effective_charge,
+)
+from adi_model.dem import SplitSwitchCommand
 from adi_model.sadc import build_first_stage_quantizer
-from adi_model.sim import run_sim
-from adi_model.sim_split import run_sim_split
+from adi_model.slice_pool import PhysicalSlicePool
 
 
-def ideal_literal(**overrides):
-    return Config.paper_literal(
-        mismatch_enable=False,
-        enable_sampling_noise=False,
-        ra_enable_noise=False,
-        sadc_rdac_gain_mismatch=0,
-        **overrides,
+def test_nine_unknown_input_bits_do_not_come_from_dither_or_rdac_truth(
+    synthetic_sadc_thresholds, toy_physical_case
+):
+    cfg = Config(sadc_thresholds_v=synthetic_sadc_thresholds, sadc_endpoint_policy="half_open")
+    adc = build_first_stage_quantizer(cfg)
+    assert adc.n_code == 512
+    with pytest.raises(TypeError):
+        build_first_stage_quantizer(cfg, toy_physical_case.chip)
+    with pytest.raises(TypeError):
+        Config(dither_enhancement_bits=2)
+
+
+def test_explicit_capacitor_charge_agrees_with_independent_two_node_kcl(toy_physical_case):
+    case = toy_physical_case
+    charge = charge_from_masks(
+        case.chip, case.ids, case.command, reference_high_v=3, reference_low_v=-1
+    )
+    c = case.capacitance
+    matrix = c * np.array([[4.25, -2], [-2, 4.5]])
+    expected = np.linalg.solve(matrix, c * np.array([2.0, 2.0]))
+    np.testing.assert_allclose(charge.charge_c, [8 * (2 + 4 / 9 * 2) * c], rtol=1e-14)
+    np.testing.assert_allclose(charge.input_equivalent_v, [1.0], rtol=1e-14)
+    top = topplate_voltage_from_effective_charge(case.chip, case.ids, charge.charge_c)
+    np.testing.assert_allclose(top, [expected[0]], rtol=1e-14)
+    assert not np.allclose(top, charge.input_equivalent_v)
+
+
+def test_mapping_receives_digital_controls_not_capacitor_truth(toy_physical_case):
+    case = toy_physical_case
+    seen = []
+
+    def binding(geometry, code, state, actual_ids):
+        assert not hasattr(geometry, "C_main") and not hasattr(geometry, "gain")
+        seen.append((code.copy(), state.copy(), actual_ids.copy()))
+        return case.command
+
+    pool = PhysicalSlicePool(
+        case.cfg, chip=case.chip, nominal_codebook=case.book, mask_binding=binding
+    )
+    selected = pool.select(np.array([0]), np.array([913]), slice_ids=case.ids)
+    np.testing.assert_array_equal(selected.main_on, case.command.main_on)
+    np.testing.assert_array_equal(seen[0][2], case.ids)
+    assert seen[0][1][0] == 913
+
+
+def test_missing_mapping_is_not_replaced_by_a_legacy_off_or_rotator(toy_physical_case):
+    case = toy_physical_case
+    pool = PhysicalSlicePool(case.cfg, chip=case.chip, nominal_codebook=case.book)
+    with pytest.raises(ConfigError, match="unbound"):
+        pool.select([0], [0], slice_ids=case.ids)
+
+
+@pytest.mark.parametrize("code", [[0.5], [-1], [1]])
+def test_command_must_be_in_the_explicit_integer_codebook(toy_physical_case, code):
+    case = toy_physical_case
+    pool = PhysicalSlicePool(
+        case.cfg,
+        chip=case.chip,
+        nominal_codebook=case.book,
+        mask_binding=lambda *args: case.command,
+    )
+    with pytest.raises(ConfigError):
+        pool.select(code, [0], slice_ids=case.ids)
+
+
+def test_fractional_capacitor_masks_are_not_physical_switches(toy_physical_case):
+    case = toy_physical_case
+    invalid = SplitSwitchCommand(case.command.main_on.astype(float), case.command.sub_on)
+    with pytest.raises(ConfigError):
+        charge_from_masks(case.chip, case.ids, invalid, reference_high_v=3, reference_low_v=-1)
+
+
+def test_unknown_feedback_and_parasitic_are_required_only_when_consumed(toy_physical_case):
+    case = toy_physical_case
+    without_feedback = SplitChip(
+        case.chip.C_main, case.chip.C_sub, case.chip.C_bridge, case.chip.c_p_sub, case.chip.c_p_main
+    )
+    charge = charge_from_masks(
+        without_feedback, case.ids, case.command, reference_high_v=3, reference_low_v=-1
+    )
+    assert np.isfinite(charge.charge_c).all()
+    with pytest.raises(ConfigError, match="feedback"):
+        SplitDAC(case.cfg, without_feedback).static_ra_output_from_charge([case.capacitance])
+    without_main_parasitic = SplitChip(
+        case.chip.C_main, case.chip.C_sub, case.chip.C_bridge, case.chip.c_p_sub
+    )
+    with pytest.raises(ConfigError):
+        topplate_voltage_from_effective_charge(without_main_parasitic, case.ids, charge.charge_c)
+    np.testing.assert_allclose(
+        SplitDAC(case.cfg, case.chip).static_ra_output_from_charge([case.capacitance]), [2.5]
     )
 
 
-def test_literal_decisions_and_dither_ratio_are_independent():
-    cfg = ideal_literal()
-    cfg.check_legal()
-    dac = SplitDAC(cfg, build_split_chip(cfg))
-    q = build_first_stage_quantizer(cfg, dac)
-    assert q.n_code == 512
-    assert cfg.dither_rdac_ratio == 4
-    assert cfg.adc2_n_bits == 12
-    assert cfg.adc2_v_max == pytest.approx(0.4125)
-    assert "dither 增强位数 == log2(DAC 电平数 / 2**b1)" not in cfg.validate(False)
-    other = replace(cfg, dither_enhancement_bits=3)
-    assert other.dither_rdac_ratio == 8
-    np.testing.assert_array_equal(q.thresholds, build_first_stage_quantizer(other, dac).thresholds)
-
-
-def test_complete_count_topology_covers_full_scale_with_real_capacitors():
-    cfg = ideal_literal()
-    chip = build_split_chip(cfg)
-    dac = SplitDAC(cfg, chip)
-    k = np.arange(512)
-    actual = dac.evaluate_physical(k, np.zeros_like(k))
-    # Independent bottom-plate charge sum; 63 main caps plus 8 attenuated sub.
-    cm, cs = k // 8, k % 8
-    expected = 3 * ((2 * cm - 63) + (2 * cs - 8) / 8) / 64
-    np.testing.assert_allclose(actual, expected, atol=2e-15)
-    np.testing.assert_allclose(actual, -3 + k * 6 / 512, atol=2e-15)
-    assert chip.A + chip.B + chip.C_bridge == pytest.approx(cfg.c_total0, rel=1e-14)
-    assert cfg.nominal_rdac_step == pytest.approx(6 / 512)
-
-
-@pytest.mark.parametrize("runner", [run_sim_split, run_pipeline])
-@pytest.mark.parametrize("mode", ["off", "sampling", "quantizer"])
-def test_nine_bit_chain_and_dither_ports_reconstruct(runner, mode):
-    cfg = ideal_literal(dither_mode=mode)
-    n = 2048
-    result = runner(cfg, sine_input(2.7, cfg.fs * 251 / n), n)
-    assert not np.any(result.rdac_over)
-    assert not np.any(result.adc2_over)
-    assert np.max(np.abs(result.err)) <= cfg.delta2 / (2 * cfg.g0 * cfg.dither_alpha) + 1e-13
-    if mode == "quantizer":
-        np.testing.assert_allclose(result.sample.rdac_dither, 4 * result.sample.dither)
-        np.testing.assert_allclose(
-            result.sample.x_rdac - result.sample.x1, 4 * result.sample.dither, atol=1e-15
-        )
-
-
-def test_full_input_dc_boundaries_and_clipping_are_observable():
-    cfg = ideal_literal()
-    # Sweep just above and below every coarse boundary, including both rails.
-    values = np.ravel(
-        np.column_stack((np.linspace(-3, 3, 513) - 1e-8, np.linspace(-3, 3, 513) + 1e-8))
-    )
-    result = run_sim_split(cfg, lambda t: values[: len(t)], len(values))
-    in_range = (values >= -3) & (values < 3)
-    assert not np.any(result.adc2_over[in_range])
-    assert np.max(np.abs(result.err[in_range])) < cfg.delta2 / (2 * cfg.g0) + 1e-13
-    # A deliberately excessive dither amplitude consumes real command range.
-    stressed = replace(cfg, dither_mode="quantizer", dither_amplitude_lsb1=64)
-    r = run_pipeline(stressed, sine_input(2.9, cfg.fs * 101 / 1024), 1024)
-    assert np.any(r.rdac_over)
-    assert r.effective_config["rdac_overflow_count"] > 0
-
-
-def test_unary_quantizer_dither_uses_the_same_two_port_contract():
-    cfg = replace(ideal_literal(dither_mode="quantizer"), dac_arch="unary")
-    n = 2048
-    r = run_sim(cfg, sine_input(2.5, cfg.fs * 251 / n), n)
-    assert not np.any(r.adc2_over)
-    assert np.max(np.abs(r.err)) < cfg.delta2 / (2 * cfg.g0) + 1e-13
+def test_given_physical_arrays_are_immutable_and_never_uniformly_redistributed(toy_physical_case):
+    case = toy_physical_case
+    values = case.chip.C_main.copy()
+    values[7, 1] *= 1.03
+    chip = replace(case.chip, C_main=values)
+    pool = PhysicalSlicePool(case.cfg, chip=chip)
+    np.testing.assert_array_equal(pool.chip.C_main, values)
+    assert pool.chip.C_main[0, 1] != pool.chip.C_main[7, 1]
+    assert not pool.chip.C_main.flags.writeable

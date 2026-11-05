@@ -7,6 +7,7 @@
 // 精度：无符号幅度可容纳最小负数；P_W_A位余数按已消费前缀界限保存，组内MSB优先。
 // 适用域：P_W_A>=2、P_W_D>=1、P_STAGES>=1；不做最终输出饱和或校准溢出资格检查。
 // 来源：RTL_ARITHMETIC_CONTRACT.md §3.5；P_STAGES为路径长度/迭代周期的工程参数。
+`timescale 1ns/1ps
 `include "rtl_params.vh"
 
 module div_floor #(

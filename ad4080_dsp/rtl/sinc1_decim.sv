@@ -1,28 +1,27 @@
 //=============================================================================
 // @file    sinc1_decim.sv
-// @brief   锁存抽取率的补码块平均。
-// @details D=2^(code+1)，编码超过 9 时夹为 1024；在块边界更新 D，filter_sync
-//          取消在途状态。末样本计入块和后加 D/2，再按锁存的 log2(D) 算术右移。
-// @project SAR20 / AD4080风格数字原型
-// @author  项目维护者（贡献记录见版本库）
+// @brief   有符号块平均抽取滤波器。
+// @details N=2..1024；按 Table 62，超出有效码范围的抽取码选择最大 N。
+//          先将末样本计入块和，再加半个量化步长并算术右移归一化。
+// @project SAR20 / source-bounded digital processing
+// @author  Project maintainers; contributions are tracked by Git.
 // @date    2026-11-05
-// @version 由Git内容版本追溯，不单独声明器件版本
+// @version Git content version; no separate device revision is implied.
 //-----------------------------------------------------------------------------
-// 手册依据: 功能映射见 docs/ad4080_traceability.md，不声称器件逐拍等价。
-// 时钟域: clk；输入、配置与 filter_sync 同步。
-// 复位: rst_n 异步低有效；filter_sync 优先于 valid，清相位和流水。
-// 延迟: 完成 D 个有效输入后再经过一个完整 clk 间隔输出；空闲 valid 不增加计数。
-// 吞吐: 每个 clk 最多一个输入，平均每 D 个有效输入输出一个结果。
-// 可综合性: RTL 结构；目标库映射、约束、SRAM/PHY 与 STA 须单独验收。
+// 手册依据: AD4080 Rev.B pp.64–69/94 的模式与抽取率；舍入和流水为工程约定。
+// 时钟域: clk；valid、配置与 filter_sync 均同步。
+// 复位: rst_n 低有效、异步置位；filter_sync 清相位并取消待输出结果。
+// 延迟: 接受 N 个样本后，从末样本沿再经过一个完整 clk 间隔输出。
+// 吞吐: 每个 clk 可输入一个样本；每 N 个被接受样本输出一次。
+// 可综合性: 可综合结构；工艺映射、约束与 STA 需分别验收。
 // 依赖: 无子模块。
-// 边界: 工程使用 IN_W=20，累加位宽为 IN_W+12，平均输出落在输入补码范围。
-//     舍入半码向正无穷；settled 按有效输入计数，与 FIFO 输出标签无关。
+// 边界: 只支持 20 bit 补码；修改配置须使用 filter_sync，不生成基于 CNV 的稳定输出指示。
 //=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
 
 module sinc1_decim #(
-    parameter int IN_W = 20  // IN_W: 补码输入/输出位宽，工程配置为 20 bit。
+    parameter int IN_W = 20  // IN_W: 仅支持 20 bit 补码输入/输出。
 ) (
     input  logic                 clk,
     input  logic                 rst_n,
@@ -31,9 +30,12 @@ module sinc1_decim #(
     input  logic [IN_W-1:0]      data_in,      // 补码
     input  logic [3:0]           dec_sel,
     output logic [IN_W-1:0]      data_out,     // 补码
-    output logic                 valid_out,    // 输出有效，单拍
-    output logic                 settled       // 建立完成；按有效输入计数。
+    output logic                 valid_out     // 数值输出有效，不隐藏启动瞬态。
 );
+
+    initial begin
+        if (IN_W != 20) $fatal(1, "numerical SINC: only the signed20 contract is supported");
+    end
 
     localparam int ACC_W  = IN_W + 11;
     localparam int ACC_WX = ACC_W + 1;
@@ -67,14 +69,14 @@ module sinc1_decim #(
     logic signed [ACC_WX-1:0] sum;
     logic signed [ACC_WX-1:0] data_ext;
     logic signed [ACC_WXX-1:0] sum_r;      // 寄存块和，分开加法与桶形移位路径。
-    logic signed [ACC_WXX-1:0] avg_pipe;   // 第二拍使用的移位结果。
+    logic signed [IN_W-1:0] avg_pipe;   // 第二拍使用的移位结果。
     logic [4:0]               l_sum;       // 与 sum_r 属于同一块的 log2(D)。
     logic                     avg_v;
 
     // 显式符号扩展到累加位宽：避免工具对混合位宽的有符号加法做不同解释。
     assign data_ext = $signed({{(ACC_WX-IN_W){data_in[IN_W-1]}}, data_in});
     assign sum = acc + data_ext + $signed({{(ACC_WX-11){1'b0}}, (d_cur >> 1)});
-    assign avg_pipe = sum_r >>> l_sum;
+    assign avg_pipe = IN_W'(sum_r >>> l_sum);
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -101,7 +103,7 @@ module sinc1_decim #(
             avg_v     <= 1'b0;
             if (valid_in) begin
                 if (cnt == d_cur - 11'd1) begin
-                    // 第一拍保存包含末样本与半步舍入项的块和。
+                    // 第一拍保存包含末样本及半步舍入项的块和。
                     sum_r     <= $signed({{(ACC_WXX-ACC_WX){sum[ACC_WX-1]}}, sum});
                     l_sum     <= l_cur;
                     avg_v     <= 1'b1;
@@ -114,32 +116,10 @@ module sinc1_decim #(
                     cnt <= cnt + 11'd1;
                 end
             end
-            // 第二拍按同一块的移位量输出，valid 与结果同拍。
+            // 第二拍对前一拍的块和移位，输出与 valid 同拍。
             if (avg_v) begin
                 data_out  <= avg_pipe[IN_W-1:0];
                 valid_out <= 1'b1;
-            end
-        end
-    end
-
-    // 建立计数采用手册 p.69 的 2+D+1 数值门限，但本实现按 valid_in 计数，
-    // 不能将此门限当作已验证的物理 CNV 时序。
-    localparam int SET_W = 16;
-    logic [SET_W-1:0] settle_cnt;
-    wire  [SET_W-1:0] settle_target = SET_W'(d_cur) + 16'd3;
-
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            settle_cnt <= '0;
-            settled    <= 1'b0;
-        end else if (filter_sync) begin
-            settle_cnt <= '0;
-            settled    <= 1'b0;
-        end else if (valid_in && !settled) begin
-            if (settle_cnt == settle_target - 16'd1) begin
-                settled <= 1'b1;
-            end else begin
-                settle_cnt <= settle_cnt + 16'd1;
             end
         end
     end

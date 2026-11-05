@@ -1,270 +1,60 @@
-//===========================================================================
-// result_fifo_tb.sv: 16384×20 FIFO 的计数、边界和顺序自检。
-//
-// P0 检查 empty/almost_empty 复位为 1，其余满/错误标志为 0。P1 写满 DEPTH
-// 个字，逐拍核对占用和阈值；P2 检查满写拒绝、粘滞 overflow，以及满时同拍
-// 写读保守拒写、正常读出的 count-1 行为。P3 按顺序排空，检查空读置 underflow
-// 并保持 rd_data。
-//
-// P4 在预填后运行 10000 拍随机写读，逐拍核对 count、full/empty、almost_*、
-// rd_valid 与顺序数据。P5 再走一整轮 DEPTH 写读以检查回绕；P6 在部分占用时
-// 复位，再检查指针/标志清零及后续读写。随机种子可由 +seed=<n> 指定。
-//
-// dut.count/dut.overflow 的层次访问用于内部不变量白盒检查，同时保留端口检查。
-// 是否实际执行及结果以对应运行日志为准；本文件不固定本机工具状态或通过结论。
-//===========================================================================
 `timescale 1ns/1ps
-
-module result_fifo_tb;
-
-  localparam int DATA_W = 20;
-  localparam int DEPTH  = 16384;
-  localparam int AF_M   = 16;
-  localparam int AE_L   = 16;
-  localparam int AW     = $clog2(DEPTH) + 1;
-
-  logic               clk = 1'b0;
-  logic               rst_n = 1'b0;
-  logic               wr_en = 1'b0;
-  logic [DATA_W-1:0]  wr_data = '0;
-  logic               rd_en = 1'b0;
-  logic [DATA_W-1:0]  rd_data;
-  logic               rd_valid;
-  logic               full, empty, almost_full, almost_empty, overflow, underflow;
-
-  always #1 clk = ~clk;
-
-  result_fifo #(
-      .DATA_W      (DATA_W),
-      .DEPTH       (DEPTH),
-      .P_AF_MARGIN (AF_M),
-      .P_AE_LEVEL  (AE_L)
-  ) dut (
-      .clk(clk), .rst_n(rst_n),
-      .wr_en(wr_en), .overwrite_en(1'b0), .wr_data(wr_data),
-      .rd_en(rd_en), .rd_data(rd_data), .rd_valid(rd_valid),
-      .full(full), .empty(empty),
-      .almost_full(almost_full), .almost_empty(almost_empty),
-      .overflow(overflow), .underflow(underflow)
-  );
-
-  // 检查/统计
-  int errors = 0;
-  int checks = 0;
-
-  `define CHK(cond, msg) \
-    begin \
-      checks++; \
-      if (!(cond)) begin \
-        errors++; \
-        if (errors <= 25) $display("[%0t] FAIL: %s", $time, msg); \
-      end \
-    end
-
-  // scoreboard：按写入顺序排队，读出必须逐项相等
-  logic [DATA_W-1:0] sb[$];
-
-  // 参考模型（只模拟"计数 + 标志"，数据顺序交给 scoreboard）
-  int   m_count = 0;
-  logic m_ovf   = 1'b0;
-  logic m_unf   = 1'b0;
-
-  // 单拍驱动：negedge 驱动 -> posedge DUT 采样 -> #0.5 结算后再检查
-  task automatic tick(input logic do_wr, input logic [DATA_W-1:0] wd, input logic do_rd);
-    logic was_full, was_empty;
-    logic [DATA_W-1:0] exp;
-
-    @(negedge clk);
-    was_full  = full;      // 采样沿之前的状态
-    was_empty = empty;
-    wr_en     = do_wr;
-    wr_data   = wd;
-    rd_en     = do_rd;
-
-    @(posedge clk);
-    #0.5;                  // 停在两个时钟沿之间，跨过 NBA 区取本拍结果
-                           // （不能用 #1：会正好落在下一个 negedge 上产生竞争）
-
-    // 参考模型推进
-    if (do_wr && !was_full) begin
-      sb.push_back(wd);
-      m_count++;
-    end else if (do_wr && was_full) begin
-      m_ovf = 1'b1;
-    end
-
-    if (do_rd && !was_empty) begin
-      if (sb.size() == 0) begin
-        `CHK(1'b0, "scoreboard underflow (read fired with empty queue)")
-      end else begin
-        exp = sb.pop_front();
-        m_count--;
-        if (rd_data !== exp)
-          `CHK(1'b0, $sformatf("read data mismatch: got %05h exp %05h", rd_data, exp))
-      end
-    end else if (do_rd && was_empty) begin
-      m_unf = 1'b1;
-    end
-
-    // 端口与模型比对
-    `CHK(dut.count == m_count,      "internal count != model count")
-    `CHK(empty        === (m_count == 0),      "empty mismatch")
-    `CHK(full         === (m_count == DEPTH),  "full mismatch")
-    `CHK(almost_full  === (m_count >= DEPTH - AF_M), "almost_full mismatch")
-    `CHK(almost_empty === (m_count <= AE_L),   "almost_empty mismatch")
-    `CHK(rd_valid     === (do_rd && !was_empty), "rd_valid mismatch")
-    `CHK(overflow     === m_ovf, "overflow mismatch (sticky)")
-    `CHK(underflow    === m_unf, "underflow mismatch (sticky)")
-    `CHK(sb.size() == m_count, "scoreboard size != model count")
+// 小规模功能测试使用独立队列/RAM 预期模型，只比较已知内容，不假定 RAM 初始化。
+module result_fifo_tb #(parameter int DEPTH=32);
+  localparam int W=20,AW=$clog2(DEPTH),AF=3,AE=2;
+  logic clk=0,rst_n=0,clear=0,wr_en=0,overwrite_en=0,rd_en=0,snapshot_rd_en=0;
+  logic [W-1:0]wr_data=0;logic[AW-1:0]snapshot_addr=0;
+  wire[W-1:0]rd_data;wire rd_valid,full,empty,almost_full,almost_empty,overflow,underflow,access_reject;
+  always #5 clk=~clk;
+  result_fifo #(.DATA_W(W),.DEPTH(DEPTH),.P_AF_MARGIN(AF),.P_AE_LEVEL(AE)) dut(.*);
+  logic[W-1:0]memory[DEPTH];bit known[DEPTH];
+  int wp=0,rp=0,count=0,checks=0,reads=0,snapshots=0,collisions=0,writes=0;
+  bit ov=0,un=0;
+  task automatic require(input bit yes,input string why);
+    checks++;if(!yes)$fatal(1,"FIFO: %s",why);
   endtask
-
-  task automatic do_reset();
+  task automatic step(input bit w,input int data,input bit q,input bit s,input int sa,input bit ow,input bit cl);
+    bit col,wfire,qfire,sfire,compare;logic[W-1:0]expected;
     @(negedge clk);
-    rst_n   = 1'b0;
-    wr_en   = 1'b0;
-    rd_en   = 1'b0;
-    wr_data = '0;
-    repeat (3) @(negedge clk);
-    rst_n = 1'b1;
-    @(negedge clk);
-    m_count = 0;
-    m_ovf   = 1'b0;
-    m_unf   = 1'b0;
-    sb.delete();
+    wr_en=w;wr_data=W'(data);rd_en=q;snapshot_rd_en=s;snapshot_addr=AW'(sa);overwrite_en=ow;clear=cl;
+    col=s&&(w||q);wfire=!cl&&!col&&w&&(count<DEPTH||ow);
+    qfire=!cl&&!col&&q&&(count>0);sfire=!cl&&!col&&s;
+    compare=(qfire&&known[rp])||(sfire&&known[sa]);expected=memory[sfire?sa:rp];
+    if(cl)begin wp=0;rp=0;count=0;end
+    else if(!col)begin
+      if(w&&count==DEPTH&&!ow)ov=1;
+      if(q&&count==0)un=1;
+      if(qfire)begin rp=(rp+1)%DEPTH;count--;reads++;end
+      else if(wfire&&count==DEPTH&&ow)begin rp=(rp+1)%DEPTH;count--;end
+      if(wfire)begin memory[wp]=W'(data);known[wp]=1;wp=(wp+1)%DEPTH;count++;writes++;end
+      if(sfire)snapshots++;
+    end else collisions++;
+    @(posedge clk);#1;
+    require(rd_valid==(qfire||sfire),"read valid");
+    if(compare)require(rd_data===expected,"ordered data or snapshot mismatch");
+    require(full==(count==DEPTH)&&empty==(count==0),"occupancy flags");
+    require(almost_full==(count>=DEPTH-AF)&&almost_empty==(count<=AE),"almost flags");
+    require(overflow==ov&&underflow==un,"sticky error flags");
+    require(access_reject==(!cl&&col),"snapshot/queue exclusivity");
+    require(int'(dut.count)==count,"pointer count differs from independent occupancy");
   endtask
-
-  // 主流程
-  initial begin : main
-    int            i;
-    int            seed;
-    int unsigned   rnd;
-    int            exp_idx;
-    logic [DATA_W-1:0] d;
-
-    if (DATA_W != 20)
-      $fatal(1, "TB DATA_W=%0d; standalone AD4080 DSP uses 20-bit results", DATA_W);
-
-    seed = 32'h1234_5678;
-    void'($value$plusargs("seed=%d", seed));
-    rnd = $urandom(seed);
-
-    // P0 复位
-    rst_n = 1'b0;
-    repeat (4) @(negedge clk);
-    rst_n = 1'b1;
-    @(negedge clk);
-    `CHK(empty === 1'b1,          "P0 empty != 1 after reset")
-    `CHK(almost_empty === 1'b1,   "P0 almost_empty != 1 after reset")
-    `CHK(full === 1'b0,           "P0 full != 0 after reset")
-    `CHK(almost_full === 1'b0,    "P0 almost_full != 0 after reset")
-    `CHK(overflow === 1'b0,       "P0 overflow != 0 after reset")
-    `CHK(underflow === 1'b0,      "P0 underflow != 0 after reset")
-    `CHK(rd_valid === 1'b0,       "P0 rd_valid != 0 after reset")
-    `CHK(dut.count == 0,          "P0 count != 0 after reset")
-    $display("[%0t] P0 reset OK", $time);
-
-    // P1 写满
-    for (i = 0; i < DEPTH; i++) begin
-      tick(1'b1, i[DATA_W-1:0], 1'b0);
-      if (i == DEPTH - AF_M - 1)
-        `CHK(almost_full === 1'b1, "P1 almost_full 未在 count=DEPTH-AF_M 时置位")
-      if (i == DEPTH - AF_M - 2)
-        `CHK(almost_full === 1'b0, "P1 almost_full 提前置位")
-    end
-    `CHK(full === 1'b1,        "P1 full != 1 after DEPTH writes")
-    `CHK(empty === 1'b0,       "P1 empty != 0 when full")
-    `CHK(almost_full === 1'b1, "P1 almost_full != 1 when full")
-    `CHK(dut.count == DEPTH,   "P1 count != DEPTH")
-    $display("[%0t] P1 fill %0d OK (errors=%0d)", $time, DEPTH, errors);
-
-    // P2 满时写：overflow、不覆盖
-    for (i = 0; i < 4; i++) tick(1'b1, 20'hBAD00 + i[DATA_W-1:0], 1'b0);
-    `CHK(overflow === 1'b1,    "P2 overflow 未在满写时置位")
-    `CHK(dut.count == DEPTH,   "P2 满写改变了 count")
-    `CHK(full === 1'b1,        "P2 满写后 full 掉了")
-    // 粘滞性：再空转 3 拍仍为 1
-    repeat (3) tick(1'b0, '0, 1'b0);
-    `CHK(overflow === 1'b1,    "P2 overflow 不是粘滞的")
-
-    // 满时同拍写+读：写被拒、读正常（保守语义）
-    d = 20'h5A5A5;
-    tick(1'b1, d, 1'b1);
-    `CHK(dut.count == DEPTH - 1, "P2 满时同拍写+读后 count != DEPTH-1")
-    `CHK(overflow === 1'b1,      "P2 满时同拍写+读后 overflow 掉了")
-    $display("[%0t] P2 full/overflow OK", $time);
-
-    // P3 排空 + underflow
-    // P2 的同拍读已经取走 head（data=0），故从 1 开始比对。
-    exp_idx = 1;
-    for (i = 0; i < DEPTH - 1; i++) begin
-      tick(1'b0, '0, 1'b1);
-      if (rd_data !== exp_idx[DATA_W-1:0])
-        `CHK(1'b0, $sformatf("P3 顺序错: got %05h exp %05h @%0d", rd_data, exp_idx, i))
-      exp_idx++;
-    end
-    `CHK(empty === 1'b1,        "P3 读完后 empty != 1")
-    `CHK(almost_empty === 1'b1, "P3 读完后 almost_empty != 1")
-    `CHK(full === 1'b0,         "P3 读完后 full != 0")
-    `CHK(dut.count == 0,        "P3 读完后 count != 0")
-
-    d = rd_data;                 // 空读前后 rd_data 必须保持
-    for (i = 0; i < 4; i++) tick(1'b0, '0, 1'b1);
-    `CHK(underflow === 1'b1,     "P3 underflow 未在空读时置位")
-    `CHK(rd_data === d,          "P3 空读改变了 rd_data")
-    `CHK(rd_valid === 1'b0,      "P3 空读时 rd_valid 为 1")
-    `CHK(dut.count == 0,         "P3 空读改变了 count")
-    $display("[%0t] P3 drain/underflow OK (errors=%0d)", $time, errors);
-
-    // P4 随机 10000 拍
-    // 先复位清掉粘滞标志，再预填 2000 个，使随机游走有足够余量。
-    do_reset();
-    for (i = 0; i < 2000; i++) tick(1'b1, 20'h10000 + i[DATA_W-1:0], 1'b0);
-    `CHK(underflow === 1'b0 && overflow === 1'b0, "P4 预填阶段误置粘滞标志")
-
-    for (i = 0; i < 10000; i++) begin
-      rnd = $urandom(seed);
-      // 读只在非空时发起（空读已由 P3 单独覆盖），写按随机位
-      tick(rnd[0], rnd[19:0], (m_count > 0) ? rnd[1] : 1'b0);
-    end
-    $display("[%0t] P4 random 10000 OK (count=%0d, errors=%0d)", $time, dut.count, errors);
-
-    // P5 指针回绕：再走一整轮
-    while (!empty) tick(1'b0, '0, 1'b1);
-    for (i = 0; i < DEPTH; i++) tick(1'b1, 20'h20000 + i[DATA_W-1:0], 1'b0);
-    `CHK(full === 1'b1, "P5 第二轮未写满")
-    for (i = 0; i < DEPTH; i++) tick(1'b0, '0, 1'b1);
-    `CHK(empty === 1'b1, "P5 第二轮未读空")
-    `CHK(dut.count == 0, "P5 第二轮 count != 0")
-    $display("[%0t] P5 wrap OK", $time);
-
-    // P6 中途复位
-    for (i = 0; i < 100; i++) tick(1'b1, i[DATA_W-1:0], 1'b0);
-    do_reset();
-    `CHK(empty === 1'b1 && full === 1'b0, "P6 复位后指针未清")
-    `CHK(overflow === 1'b0 && underflow === 1'b0, "P6 复位未清粘滞标志")
-    `CHK(dut.wr_ptr == 0 && dut.rd_ptr == 0, "P6 复位后指针非 0")
-    for (i = 0; i < 10; i++) tick(1'b1, 20'h30000 + i[DATA_W-1:0], 1'b0);
-    for (i = 0; i < 10; i++) tick(1'b0, '0, 1'b1);
-    `CHK(empty === 1'b1, "P6 复位后功能异常")
-    $display("[%0t] P6 mid-reset OK", $time);
-
-    if (errors == 0) begin
-      $display("=================================================");
-      $display(" RESULT_FIFO_TB PASS: %0d checks, 0 errors", checks);
-      $display("=================================================");
-      $finish;
-    end else begin
-      $display("=================================================");
-      $display(" RESULT_FIFO_TB FAIL: %0d checks, %0d errors", checks, errors);
-      $display("=================================================");
-      $fatal(1, "result_fifo_tb failed");
-    end
-  end
-
-  // 看门狗：正常约 2e5 拍 = 4e5 ns；给足余量
   initial begin
-    #10_000_000;
-    $fatal(1, "result_fifo_tb timeout");
+    for(int i=0;i<DEPTH;i++)known[i]=0;
+    repeat(3)@(negedge clk);rst_n=1;
+    step(0,0,0,0,0,0,0);
+    for(int i=0;i<DEPTH;i++)step(1,i+100,0,0,0,0,0);
+    step(1,9999,0,0,0,0,0);step(1,8888,1,0,0,0,0);
+    while(count>0)step(0,0,1,0,0,0,0);
+    step(0,0,1,0,0,0,0);
+    for(int i=0;i<DEPTH+5;i++)step(1,200+i,0,0,0,1,0);
+    step(1,999,1,1,0,1,0);step(0,0,0,1,3,0,0);
+    while(count>0)step(0,0,1,0,0,0,0);
+    step(0,0,0,0,0,0,1);
+    // 逻辑清除后仍应保留先前写入的 RAM 内容，快照读取据此比较。
+    for(int i=0;i<DEPTH;i++)step(0,0,0,1,i,0,0);
+    for(int i=0;i<256;i++)step((i%3)!=0,i*37,(i%4)==0,(i%17)==0,i%DEPTH,(i%7)==0,0);
+    require(reads>DEPTH&&snapshots>=DEPTH&&collisions>0&&writes>2*DEPTH,"nonzero oracle coverage");
+    $display("RESULT_FIFO_CONTRACT_COMPLETE depth=%0d queue_reads=%0d snapshot_reads=%0d collisions=%0d writes=%0d checks=%0d",DEPTH,reads,snapshots,collisions,writes,checks);$finish;
   end
-
+  initial begin #200000;$fatal(1,"FIFO watchdog");end
 endmodule

@@ -1,134 +1,129 @@
-"""以独立电气方程和因果关系检查流水线，不复用共享运行器作为参考。"""
+"""检查显式小型流水线夹具；其参数和结果不代表原芯片或器件性能。"""
 
 from dataclasses import replace
 
 import numpy as np
 import pytest
 
-from adi_model import Config, sine_input
-from adi_model.dem import split_switch_command
 from adi_model.pipeline import run_pipeline
-from adi_model.sim import run_sim
-from adi_model.sim_split import run_sim_split, run_sim_split_reference
+from adi_model.sampler import AnalyticInput, dc_input, sine_input
 from adi_model.slice_pool import PhysicalSlicePool
 
 
-def cfg_ideal(**kw):
-    return replace(
-        Config(
-            dac_arch="split",
-            mismatch_enable=False,
-            enable_sampling_noise=False,
-            ra_enable_noise=False,
-            sadc_rdac_gain_mismatch=0,
-        ),
-        **kw,
+def test_nominal_signal_matches_independent_charge_and_backend_limits(explicit_pipeline_factory):
+    cfg, controls = explicit_pipeline_factory(n_samples=32)
+    source = sine_input(2.0, cfg.fs * 3 / 32, 0.2)
+    result = run_pipeline(cfg, source, 32, **controls)
+    nominal = -3 + 6 * result.coarse / 512
+    np.testing.assert_allclose(result.vd_true, nominal, atol=2e-14, rtol=0)
+    np.testing.assert_allclose(
+        result.vra, 32 * (result.sample.input_v - nominal), atol=2e-12, rtol=0
     )
+    assert not result.analog_overflow.any()
+    assert result.nominal_diagnostic_available
+    assert np.max(abs(result.err)) <= cfg.delta2 / (2 * 32) + 2e-12
+    assert result.effective_config["output_kind"] == "nominal_scalar_diagnostic"
+    assert "not independently proved" in result.binding_metadata["source_alignment"]
 
 
-def test_shared_engine_matches_independent_aggregate_ideal_limit():
-    cfg = cfg_ideal()
-    fn = sine_input(2.7, cfg.fs * 317 / 4096)
-    physical = run_pipeline(cfg, fn, 4096)
-    oracle = run_sim_split_reference(cfg, fn, 4096)
-    np.testing.assert_allclose(physical.vd_true, oracle.vd_true, atol=3e-15)
-    np.testing.assert_allclose(physical.g_vec, oracle.g_vec, atol=1e-13)
-    assert np.max(np.abs(physical.out - oracle.out)) <= cfg.delta2 / cfg.g0 + 1e-13
-
-
-def test_priming_and_held_charge_are_bound_to_the_sample():
-    cfg = cfg_ideal(dem_mode="permute")
-    r = run_pipeline(cfg, sine_input(2, cfg.fs * 101 / 1024), 1024)
-    np.testing.assert_array_equal(r.conv_slice_ids[1:], r.acq_slice_ids[:-1])
-    np.testing.assert_array_equal(r.held_sample, np.broadcast_to(r.sample_id[:, None], (1024, 8)))
-    coeff = r.pool.split_coefficients(r.conv_slice_ids)
-    np.testing.assert_allclose(r.stored_charge, r.sample.x1 * coeff["c_signal"], atol=1e-25)
-    assert r.acquisition_start[0] < 0
-    assert r.pool.n_conversions.sum() == 1024 * cfg.n_active
-
-
-@pytest.mark.parametrize("runner", [run_pipeline, run_sim_split])
-def test_nonuniform_capacitor_perturbation_is_local_and_predictable(runner):
-    cfg = cfg_ideal(dem_mode="permute")
-    fn = sine_input(1.7, cfg.fs * 97 / 1024)
-    before = runner(cfg, fn, 1024)
-    pool = before.pool
-    victim = 4
-    pool.unit_caps[victim, 0] *= 1.02
-    after = runner(cfg, fn, 1024, pool=pool)
-    uses = np.any(before.conv_slice_ids == victim, axis=1)
-    assert np.any(after.e_dac[uses] != before.e_dac[uses])
-    np.testing.assert_array_equal(after.e_dac[~uses], before.e_dac[~uses])
-    # Independent direct sign-charge sum for one affected conversion.
-    n = np.flatnonzero(uses)[7]
-    ids = after.conv_slice_ids[n]
-    caps = pool.unit_caps[ids]
-    a, b = caps[:, :64].sum(axis=1), caps[:, 64:].sum(axis=1)
-    beta = pool.bridge_caps[ids] / (pool.bridge_caps[ids] + b + pool.sub_parasitic[ids])
-    main, sub = divmod(int(after.k[n]), 8)
-    qm = 2 * caps[:, :main].sum(axis=1) - a
-    qs = 2 * caps[:, 64 : 64 + sub].sum(axis=1) - b
-    expected = cfg.v_fs * (qm + beta * qs).sum() / (a + beta * b).sum()
-    assert after.vd_true[n] == pytest.approx(expected, abs=2e-15)
-
-
-@pytest.mark.parametrize("nm,complete", [(64, False), (63, True)])
-def test_multidimensional_masks_are_realizable_and_preserve_nominal_charge(nm, complete):
-    cfg = cfg_ideal(
-        dac_n_main=nm, dac_complete_range=complete, dem_enable=True, dem_bridge_enable=True
+def test_actual_acquisition_is_bound_to_ids_and_the_previous_control_group(
+    explicit_pipeline_factory,
+):
+    cfg, controls = explicit_pipeline_factory(n_samples=32)
+    result = run_pipeline(cfg, dc_input(0.2), 32, **controls)
+    np.testing.assert_array_equal(result.conv_slice_ids, result.acq_slice_ids)
+    np.testing.assert_array_equal(
+        np.sort(result.conv_slice_ids[1:], axis=1), np.sort(result.next_acq_slice_ids[:-1], axis=1)
     )
-    k = np.arange(512)
-    cmd = split_switch_command(cfg, k, np.arange(512))
-    for order, count in [(cmd.main_order, nm), (cmd.sub_order, 8)]:
-        np.testing.assert_array_equal(
-            np.sort(order, axis=1), np.broadcast_to(np.arange(count), order.shape)
-        )
-    np.testing.assert_allclose((8 * cmd.main_counts + cmd.sub_counts).mean(axis=1), k)
-    assert np.all(cmd.main_counts == np.floor(cmd.main_counts))
-    assert np.all(cmd.sub_counts == np.floor(cmd.sub_counts))
-    pool = PhysicalSlicePool(cfg, np.random.default_rng(1))
-    ids = np.tile(np.arange(8), (512, 1))
-    actual = pool.split_dac_voltage(ids, k, np.arange(512))
-    np.testing.assert_allclose(actual, -cfg.v_fs + k * cfg.nominal_rdac_step, atol=3e-15)
-    maps = {tuple(np.r_[a, b]) for a, b in zip(cmd.main_order, cmd.sub_order, strict=True)}
-    assert len(maps) == 512
-
-
-def test_unary_dac_uses_the_same_selected_slices_as_its_gain():
-    cfg = replace(cfg_ideal(dem_mode="permute", mismatch_enable=True), dac_arch="unary")
-    r = run_sim(cfg, sine_input(1.5, cfg.fs * 101 / 1024), 1024)
-    n = 17
-    caps = r.chip.C_true[r.conv_slice_ids[n]].reshape(-1)
-    # DEM disabled: mapper interleaves slice rows; obtain nominal order only.
-    from adi_model.mapper import unit_rank_arrays
-
-    rows, cols = unit_rank_arrays(cfg)
-    ordered = r.chip.C_true[r.conv_slice_ids[n][rows[0]], cols[0]]
-    expected = cfg.v_fs * (2 * ordered[: int(r.k[n])].sum() / caps.sum() - 1)
-    assert r.vd_true[n] == pytest.approx(expected, abs=2e-15)
-
-
-def test_noise_switches_do_not_redraw_capacitors_or_schedule():
-    cfg = cfg_ideal(mismatch_enable=True, dem_mode="permute")
-    fn = sine_input(1, cfg.fs * 101 / 1024)
-    a = run_pipeline(cfg, fn, 1024)
-    b = run_pipeline(replace(cfg, enable_sampling_noise=True, ra_enable_noise=True), fn, 1024)
-    np.testing.assert_array_equal(a.pool.unit_caps, b.pool.unit_caps)
-    np.testing.assert_array_equal(a.pool.t_skew, b.pool.t_skew)
-    np.testing.assert_array_equal(a.conv_slice_ids, b.conv_slice_ids)
-
-
-def test_reused_chip_obeys_runtime_masks_without_changing_fabrication_controls():
-    cfg = cfg_ideal()
-    pool = PhysicalSlicePool(cfg, np.random.default_rng(1))
-    caps = pool.unit_caps.copy()
-    changed = replace(
-        cfg, dither_mode="sampling", dither_discrete=True, dem_enable=True, dem_bridge_enable=True
+    np.testing.assert_array_equal(
+        result.held_sample_ids, np.broadcast_to(result.sample_id[:, None], (32, 8))
     )
-    fn = sine_input(1.3, cfg.fs * 47 / 1024)
-    reused = run_pipeline(changed, fn, 1024, pool=pool)
-    fresh = run_pipeline(changed, fn, 1024)
-    np.testing.assert_array_equal(reused.out, fresh.out)
-    np.testing.assert_array_equal(pool.unit_caps, caps)
-    assert pool.cfg.dither_mode == "off"
-    assert np.max(abs(reused.err)) < changed.delta2 / changed.g0 / changed.dither_alpha
+    assert {16, 17} <= set(result.conv_slice_ids.ravel())
+    assert result.sample.acquisition_start_s[0] == pytest.approx(-1 / cfg.fs)
+    assert result.pool.n_conversions.sum() == 32 * 8
+
+
+def test_physical_perturbation_moves_only_samples_using_that_slice(explicit_pipeline_factory):
+    cfg, controls = explicit_pipeline_factory(n_samples=32)
+    source = sine_input(1.5, cfg.fs * 3 / 32, 0.2)
+    before = run_pipeline(cfg, source, 32, **controls)
+    old_pool = controls["pool"]
+    caps = old_pool.chip.C_main.copy()
+    caps[4, 0] *= 1.02
+    new_pool = PhysicalSlicePool(
+        cfg,
+        chip=replace(old_pool.chip, C_main=caps),
+        nominal_codebook=old_pool.nominal_codebook,
+        mask_binding=old_pool.mask_binding,
+        acquisition_binding=old_pool.acquisition_binding,
+        schedule_binding=old_pool.schedule_binding,
+    )
+    after = run_pipeline(cfg, source, 32, **{**controls, "pool": new_pool})
+    uses = np.any(before.conv_slice_ids == 4, axis=1)
+    assert uses.any() and not uses.all()
+    assert np.any(after.vra[uses] != before.vra[uses])
+    np.testing.assert_array_equal(after.vra[~uses], before.vra[~uses])
+    np.testing.assert_array_equal(after.coarse, before.coarse)
+    np.testing.assert_array_equal(after.main_masks, before.main_masks)
+
+
+def test_sadc_only_response_error_changes_coarse_but_self_heals_inside_explicit_window(
+    explicit_pipeline_factory,
+):
+    cfg, controls = explicit_pipeline_factory(n_samples=32)
+    slope = (6 / 512) * cfg.fs
+    source = AnalyticInput(
+        lambda t: -1.5 + 0.0002 + slope * np.asarray(t),
+        lambda t: np.zeros_like(np.asarray(t), dtype=float) + slope,
+    )
+    before = run_pipeline(cfg, source, 32, **controls)
+    after = run_pipeline(replace(cfg, sampling_tau_mismatch=1e-9), source, 32, **controls)
+    assert np.any(before.coarse != after.coarse)
+    assert not after.analog_overflow.any()
+    assert after.digital_observation.static_charge_domain
+    assert not after.static_domain_reasons
+    assert np.max(abs(after.err)) <= cfg.delta2 / (2 * 32) + 2e-12
+
+
+def test_noise_does_not_refabricate_capacitors_or_reassign_samples(explicit_pipeline_factory):
+    cfg, controls = explicit_pipeline_factory(n_samples=32)
+    source = dc_input(0.2)
+    base = run_pipeline(cfg, source, 32, **controls)
+    noisy_cfg = replace(
+        cfg,
+        ra_enable_noise=True,
+        ra_out_noise_rms=0.0032,
+        ra_noise_distribution="gaussian_white",
+        seed=9,
+    )
+    noisy = run_pipeline(noisy_cfg, source, 32, **controls)
+    assert noisy.pool.chip is base.pool.chip
+    np.testing.assert_array_equal(noisy.conv_slice_ids, base.conv_slice_ids)
+    np.testing.assert_array_equal(noisy.main_masks, base.main_masks)
+    np.testing.assert_array_equal(noisy.coarse, base.coarse)
+    assert np.std(noisy.vra - base.vra) == pytest.approx(0.0032, rel=0.4)
+
+
+def test_missing_physical_binding_is_rejected_without_synthetic_fallback(explicit_pipeline_factory):
+    cfg, controls = explicit_pipeline_factory(n_samples=4)
+    pool = controls["pool"]
+    missing = PhysicalSlicePool(
+        cfg,
+        chip=pool.chip,
+        nominal_codebook=pool.nominal_codebook,
+        acquisition_binding=pool.acquisition_binding,
+        schedule_binding=pool.schedule_binding,
+    )
+    with pytest.raises(ValueError, match="pool.mask_binding"):
+        run_pipeline(cfg, dc_input(0.2), 4, **{**controls, "pool": missing})
+
+
+def test_raw_result_cannot_generate_frozen_integer_coefficients(
+    explicit_pipeline_factory, explicit_format
+):
+    cfg, controls = explicit_pipeline_factory(n_samples=4)
+    result = run_pipeline(cfg, dc_input(0.2), 4, **controls)
+    with pytest.raises(TypeError):
+        result.to_codes()
+    with pytest.raises(ValueError, match="frozen effective"):
+        result.to_codes(format=explicit_format)

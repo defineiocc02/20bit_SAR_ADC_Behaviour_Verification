@@ -126,3 +126,7 @@ docs/evidence/20261002/principle_reaudit/report_xelatex.log -whitespace
 
 # Dr. RTL analysis keeps source/report/API snapshots and remote CRLF verbatim.
 docs/evidence/20261007/dr_rtl_analysis/** -text -whitespace -diff
+
+# Generated SVG path data contains serializer whitespace; preserve exact bytes
+# while retaining text diffs and all other whitespace checks.
+docs/readme/fig/source_bound_*.svg -text whitespace=-blank-at-eol

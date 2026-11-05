@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""从保留的全 ADC 实验记录绘制原创 CAAZ 说明图。
+"""从清理前保留的实验记录重绘历史 CAAZ 说明图。
 
-数值记录由 tools/reproduce_caaz.py 的实验流程生成；第二幅图使用独立于 ADC
-噪声拟合的两样本解析响应。时序图另读保留的 RTL 上下文 CSV。
-本脚本只重绘记录，不复制第三方图片的像素或几何形状。
+输入摘要保存误差测量与解析预测；两样本响应图使用解析公式，不参与 ADC
+噪声拟合。时序说明另读取保留的 RTL 上下文 CSV。本脚本只重绘这些记录，
+不重新生成实验数据，也不使用第三方图片的像素或几何形状。RA输出噪声hook、
+固定G=32和旧RTL上下文均为历史工程试验，不验证当前API、宏开关或原片。
+输出限库外新目录，historical_*文件不会覆盖旧图。
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -19,10 +22,23 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[1]
 BLUE, RED, GREEN = "#0072B2", "#D55E00", "#009E73"
 
 
+def _sha(path: Path) -> str:
+    if path.stat().st_size > 300 * 1024**2:
+        raise ValueError(f"历史输入超过300 MiB限制：{path}")
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def _save(figure, destination: Path) -> None:
+    if figure._suptitle is None:
+        figure.suptitle(
+            "HISTORICAL RECORD — redraw only; current implementation not verified", fontsize=10
+        )
+    else:
+        figure._suptitle.set_text("HISTORICAL RECORD — " + figure._suptitle.get_text())
     for extension in ("png", "svg"):
         figure.savefig(
             destination.with_suffix(f".{extension}"),
@@ -97,26 +113,36 @@ def _draw_rtl_context(trace_file: Path, destination: Path) -> None:
         axis.grid(alpha=0.2, lw=0.6)
         axis.set_axisbelow(True)
     figure.suptitle(
-        "Actual structural RTL: acquisition, residue and fine-result ownership\n"
-        "Ideal 640 MHz simulation clock; engineering macro-control contract, not analog settling or STA",
+        "Archived RTL trace: acquisition, residue and fine-result ownership\n"
+        "Old 640 MHz control-tag experiment; no current ABI, analog storage, settling or STA proof",
         fontsize=11,
     )
-    _save(figure, destination / "caaz_rtl_context")
+    _save(figure, destination / "historical_caaz_rtl_context")
 
 
-def draw(data_file: Path, destination: Path) -> None:
+def draw(data_file: Path, destination: Path, *, rtl_trace: Path | None = None) -> None:
     """将保留的误差记录、保持敏感性和带宽代价绘制到指定目录。
 
-    同名 PNG/SVG 会被覆盖；绘图过程不重新运行 ADC。
+    输出为库外新目录中的historical_* PNG/SVG；不重新运行ADC，不验证当前实现。
 
     Args:
         data_file: 含测量结果、解析预测及假设的摘要 JSON 路径。
-        destination: 图片输出目录；不存在时创建。
+        destination: 仓库外的新图片输出目录；已有路径拒绝。
+        rtl_trace: 历史上下文CSV；默认使用同目录保留的旧trace。
     """
+    trace_file = HERE / "data/rtl_context_trace.csv" if rtl_trace is None else rtl_trace
+    inputs = {"summary": data_file, "rtl_context": trace_file}
+    before = {name: _sha(path) for name, path in inputs.items()}
     data = json.loads(data_file.read_text(encoding="utf-8"))
     if data["evidence_level"] != "SAMPLE_DOMAIN_BEHAVIORAL_SIMULATION":
         raise ValueError("CAAZ figures require the declared experiment evidence")
-    destination.mkdir(parents=True, exist_ok=True)
+    destination = destination.expanduser().absolute()
+    if destination.exists() or destination.is_symlink():
+        raise ValueError("--out必须是新目录；不覆盖已有路径")
+    resolved_output = destination.resolve()
+    if resolved_output == ROOT or ROOT in resolved_output.parents:
+        raise ValueError("历史重绘只允许输出到仓库外")
+    destination.mkdir(parents=True, exist_ok=False)
     plt.rcParams.update(
         {
             "font.family": "Arial",
@@ -229,7 +255,7 @@ def draw(data_file: Path, destination: Path) -> None:
         "AZ and ordinary errors = 1 mV RMS at RA output (assumed); G = 32",
         fontsize=12,
     )
-    _save(figure, destination / "caaz_mechanism_results")
+    _save(figure, destination / "historical_caaz_mechanism_results")
 
     figure, axis = plt.subplots(figsize=(7.3, 3.6), layout="constrained")
     raw_fs = assumptions["raw_sample_rate_hz"]
@@ -269,13 +295,46 @@ def draw(data_file: Path, destination: Path) -> None:
         color=RED,
         ha="center",
     )
-    _save(figure, destination / "caaz_bandwidth")
-    _draw_rtl_context(HERE / "data/rtl_context_trace.csv", destination)
+    _save(figure, destination / "historical_caaz_bandwidth")
+    _draw_rtl_context(trace_file, destination)
+    if any(_sha(path) != before[name] for name, path in inputs.items()):
+        raise RuntimeError("重绘期间历史输入发生变化；本次图不能作为完成记录")
+    manifest = {
+        "artifact": "historical_CAAZ_frozen_data_redraw",
+        "operation": "historical_redraw_only_no_simulation_or_training",
+        "evidence_period": "PRE_SOURCE_API_CLEANUP_ARCHIVE",
+        "current_implementation_verification": False,
+        "source_conformance": "NOT_ASSESSED",
+        "renderer_sha256": _sha(Path(__file__).resolve()),
+        "inputs": {
+            name: {"sha256": before[name], "bytes": path.stat().st_size}
+            for name, path in inputs.items()
+        },
+        "limits": [
+            "Historical additive RA-output noise assumption; not the paper's physical AZ node",
+            "Old RTL tags do not prove physical held AZ noise or current macro switches",
+            "40raw/20pair budget and G32 are archived engineering conditions, not prototype ODR proof",
+        ],
+        "outputs": {
+            f"historical_caaz_{name}.{suffix}": _sha(
+                destination / f"historical_caaz_{name}.{suffix}"
+            )
+            for name in ("mechanism_results", "bandwidth", "rtl_context")
+            for suffix in ("png", "svg")
+        },
+    }
+    (destination / "historical_caaz_figures_manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n"
+    )
+    print(
+        json.dumps({"historical_redraw": True, "out": str(destination), "simulation_rerun": False})
+    )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, default=HERE / "data/summary.json")
+    parser.add_argument("--rtl-trace", type=Path, default=HERE / "data/rtl_context_trace.csv")
     parser.add_argument("--out", type=Path, required=True)
     arguments = parser.parse_args()
-    draw(arguments.data, arguments.out)
+    draw(arguments.data, arguments.out, rtl_trace=arguments.rtl_trace)

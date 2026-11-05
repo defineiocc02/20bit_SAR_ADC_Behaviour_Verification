@@ -23,12 +23,12 @@ def check(path: Path) -> list[str]:
     """返回单个文件的文本合规问题；空列表表示本函数未发现问题。
 
     Args:
-        path: 待检查的 UTF-8 RTL 文件路径；解码错误用替代字符保留。
+        path: 待检查的 UTF-8 RTL 文件路径；不可读或编码错误由调用方报告。
 
     Returns:
         文件头字段、文件/模块名或末尾换行问题的中文列表。
     """
-    text = path.read_text(encoding="utf-8", errors="replace")
+    text = path.read_text(encoding="utf-8")
     head = "\n".join(text.splitlines()[:60])
     problems: list[str] = []
 
@@ -45,7 +45,9 @@ def check(path: Path) -> list[str]:
 
     # 模块名与文件名一致性（Verible 也会查，这里给出更早的提示）
     mod = re.search(r"^\s*module\s+([A-Za-z_]\w*)", text, re.MULTILINE)
-    if mod and mod.group(1) != path.stem:
+    if not mod:
+        problems.append("没有 module 声明")
+    elif mod.group(1) != path.stem:
         problems.append(f"module {mod.group(1)} 与文件名 {path.stem} 不一致")
 
     if not text.endswith("\n"):
@@ -62,7 +64,14 @@ def main(argv: list[str]) -> int:
 
     bad = 0
     for path in files:
-        problems = check(path)
+        try:
+            if path.suffix != ".sv" or not path.is_file():
+                raise ValueError("须提供可读的 .sv 文件")
+            if path.stat().st_size > 300_000_000:
+                raise ValueError("文件超过本机 300 MB 审计限制")
+            problems = check(path)
+        except (OSError, UnicodeError, ValueError) as error:
+            problems = [str(error)]
         if problems:
             bad += 1
             print(f"[FAIL] {path}")

@@ -1,8 +1,8 @@
 """ADC 输出的频谱、误差统计和条件平均转移曲线。
 
 输入通常为某一明确节点的实数电压记录 (N,)。调用方负责选择内部浮点重构或最终整数码解码后的电压；
-本模块不把两者混用，也不自动筛掉溢出样本。采样率 fs [Hz]、记录时长 N/fs [s]、
-FFT 间隔 df=fs/N [Hz/bin] 相互独立。
+本模块不把两者混用，也不自动筛掉溢出样本。
+采样率 fs [Hz]、记录时长 N/fs [s]、FFT 间隔 df=fs/N [Hz/bin] 相互独立。
 
 口径：SNDR 含基波拟合后的全部残余；SNR 再扣除可分辨的指定谐波；SFDR搜索基波扣除后的最大非直流谱线；
 THD 只累加指定、可分辨的谐波。幅度谱以满幅正弦峰值 v_fs [V] 为 0 dBFS，
@@ -120,6 +120,17 @@ def integrate_noise_band(spectrum: dict, low_hz: float, high_hz: float) -> dict:
         "last_center_hz": float(f[mask][-1]),
         "df_hz": float(df),
     }
+
+
+def reference_precision_bits(err_rms: float, span_v: float) -> float:
+    """将 RMS 电压误差换算为等效均匀量化位数。
+
+    span_v 为完整电压跨度 [V]，err_rms 为正 RMS 误差 [V]。换算式为 log2(span/(sqrt(12)*RMS))；
+    不测量电路准确度、不推断噪声分布，也不把平均绝对误差当作可互换统计量。
+    """
+    if not np.isfinite(err_rms) or err_rms <= 0 or not np.isfinite(span_v) or span_v <= 0:
+        raise ValueError("RMS voltage error and full voltage span must be finite and positive [V]")
+    return float(np.log2(span_v) - np.log2(err_rms) - 0.5 * np.log2(12.0))
 
 
 def _harmonic_design(n: int, fs: float, fin: float, nharm: int):
@@ -597,35 +608,56 @@ def summarize(res, fs: float, fin: float, v_fs: float, lsb: float) -> dict:
     """汇总指定电压输出的频谱、误差和模拟支路饱和统计。
 
     Args:
-        res: SimResult；out、err 为 (N,) 输入等效电压 [V]；residue 为RDAC 顶板残差 [V]。
-            adc2_over/ra_sat/ktc_sat 为各模拟支路标志。当前使用 res.out 浮点重构，
-            不会隐式调用 to_codes()。
+        res: SimResult；out、err 为 (N,) 输入等效电压 [V]；residue 为电荷残差归一到输入端的电压r，
+            不是共享浮置top电压。adc2_over/ra_sat 为模拟支路标志。
+            out必须已有可用名义诊断或冻结权重浮点重构；不会隐式调用to_codes()或补不可用结果。
         fs: 此记录实际采样率 [Hz]，不在函数内固定为 40 MS/s。
         fin: 已知基波频率 [Hz]，供 sine_fit_metrics 使用。
         v_fs: 满幅正弦峰值 [V]，用于白噪声等效 NSD 的 dBFS/Hz 参考。
         lsb: 误差归一化步长 [V/LSB]，通常为目标 LSB20。
 
     Returns:
-        包含 sine_fit_metrics 字段；另含 err_mean_V、err_rms_V [V]，
-        err_rms_LSB、err_max_LSB [LSB]。RMS 保留直流误差，不能写作 sigma。
-        overflow_rate_adc2/ra/ktc 为各支路置标志的样本比例；它们与最终
-        整数输出 clipped_low/clipped_high 不同，后者须由 CodeStream 单列。
-        residue_min/max_V 是 RA 放大前残差，NSD_dBFS_Hz 以 v_fs/sqrt(2)
-        归一白噪声等效密度，不是从某个 bin 幅度直接转换的结果。
+        包含 sine_fit_metrics 字段；另含 err_mean_V、err_rms_V [V]，err_rms_LSB、err_max_LSB [LSB]。
+        RMS 保留直流误差，不能写作 sigma。overflow_rate_adc2/ra 为各支路置标志的样本比例；
+        它们与最终整数输出 clipped_low/clipped_high 不同，后者须由 CodeStream 单列。
+        residue_min/max_V 是输入等效电荷残差，NSD_dBFS_Hz 以 v_fs/sqrt(2)归一白噪声等效密度，
+        不是从某个 bin 幅度直接转换的结果。output_domain保留结果的实际浮点种类；
+        integer_output_status=NOT_RUN。
 
     Side effects:
         不修改 res，也不剔除异常样本；调用方负责分开报告码域和有效带宽。
     """
-    m = sine_fit_metrics(res.out, fs, fin)
+    kind = res.effective_config["output_kind"]
+    if kind not in ("nominal_scalar_diagnostic", "floating_frozen_weights"):
+        raise ValueError(
+            "floating output is unavailable; an explicit applicable coefficient set is required"
+        )
+    output = _record(res.out, fs)
+    error = np.asarray(res.err, dtype=float)
+    if error.shape != output.shape or np.any(~np.isfinite(error)):
+        raise ValueError(
+            "summary requires the complete finite reference-error record; no NaN filtering"
+        )
+    if not np.isfinite(v_fs) or v_fs <= 0 or not np.isfinite(lsb) or lsb <= 0:
+        raise ValueError(
+            "summary full-scale peak and normalization LSB must be finite and positive [V]"
+        )
+    invalid = np.asarray(res.analog_overflow, dtype=bool)
+    if invalid.shape != output.shape:
+        raise ValueError("summary requires one retained raw-validity flag per output sample")
+    m = sine_fit_metrics(output, fs, fin)
     m.update(
         {
-            "err_mean_V": float(res.err.mean()),
-            "err_rms_V": float(np.sqrt(np.mean(res.err**2))),
-            "err_rms_LSB": float(np.sqrt(np.mean(res.err**2)) / lsb),
-            "err_max_LSB": float(np.max(np.abs(res.err)) / lsb),
+            "err_mean_V": float(error.mean()),
+            "err_rms_V": float(np.sqrt(np.mean(error**2))),
+            "err_rms_LSB": float(np.sqrt(np.mean(error**2)) / lsb),
+            "err_max_LSB": float(np.max(np.abs(error)) / lsb),
             "overflow_rate_adc2": float(res.adc2_over.mean()),
             "overflow_rate_ra": float(res.ra_sat.mean()),
-            "overflow_rate_ktc": float(res.ktc_sat.mean()),
+            "output_domain": kind,
+            "integer_output_status": "NOT_RUN",
+            "raw_samples": len(output),
+            "invalid_raw_count": int(np.count_nonzero(invalid)),
             "residue_min_V": float(res.residue.min()),
             "residue_max_V": float(res.residue.max()),
             "NSD_dBFS_Hz": float(20 * np.log10(m["NSD_V_rtHz"] / (v_fs / np.sqrt(2)))),

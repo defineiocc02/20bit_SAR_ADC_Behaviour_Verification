@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """在新目录运行并核对小几何 RTL 状态机轨迹。
 
---out 为显式新目录。使用现有支持时序的 Verilator 5.x 及 C++20 工具链，
-只编译 engineering_fsm_tb；生产 RTL 检查及完整回归由 run_open_rtl.py 管理。
-CSV 在非阻塞赋值后 1 ps 采样；功能仿真不证明布线后时序、模拟行为或 ASIC 频率。
+入口要求 --out 和 --fixture-json；使用现有支持时序的 Verilator 5.x 及 C++20
+工具链。只编译 engineering_fsm_tb 的九文件数值组件，生产 RTL 检查仍由
+run_open_rtl.py 管理。CSV 在非阻塞赋值后的 1 ps 采样；该功能仿真不证明
+布线后时序、模拟建立或 ASIC 工作频率。
 """
 
 from __future__ import annotations
@@ -13,9 +14,8 @@ import csv
 import hashlib
 import json
 import os
-import shlex
-import shutil
 import subprocess
+import sys
 import tempfile
 from decimal import Decimal
 from pathlib import Path
@@ -39,11 +39,11 @@ def write_json(path: Path, value: object) -> None:
 
 
 def audit_csv(trace_dir: Path) -> dict:
-    """由实际 CSV 字节独立复算状态及外部输出，不用 PASS 标记代替逐行检查。
+    """从实际 CSV 字节独立复算状态转移和外部输出。
 
-    夹具使用正 Q30 权重，总和为 2^30，没有选通单元或扰动；ADC2 电压数值跨度为
-    2^33，后级为 20 位，因此整数方程简化为 word=code。无效物理切片应保持上一次
-    合法输出。这些是主线此测试夹具的数值条件，不是器件参数。
+    不以 PASS 标记代替逐行核对。显式夹具使用总和为 2^30 的正 Q30 权重、全零
+    转换选通、2^33 的 ADC2 电压数值跨度和 20 位后级，因此整数方程简化为
+    word=code。无效数值行索引应保持上一次合法输出。
     """
     traces = {}
     for name, columns in (("sar", 20), ("recon", 31), ("phase", 18)):
@@ -347,54 +347,136 @@ def audit_csv(trace_dir: Path) -> dict:
     }
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--out", type=Path, required=True, help="New, nonexistent trace directory")
-    output = parser.parse_args().out.expanduser().resolve()
-    command = shlex.split(os.environ.get("VERILATOR", "verilator"))
-    if not command or shutil.which(command[0]) is None:
-        raise SystemExit("Verilator is required; install it or set VERILATOR")
-    if output.exists():
-        raise SystemExit(f"Refusing to overwrite existing output: {output}")
-    sources = (REPO / "rtl/rtl_sources.f").read_text(encoding="utf-8").splitlines()
-    files = [
-        *sources,
-        "rtl/params/rtl_params.vh",
-        "rtl/params/rtl_error_codes.vh",
-        "rtl/rtl_sources.f",
-        f"sim/tb/{BENCH}.sv",
-    ]
-    for name in files:
-        path = Path(name)
-        require(
-            not path.is_absolute() and ".." not in path.parts,
-            f"Unsafe source-manifest path: {name}",
-        )
-        require((REPO / path).is_file(), f"Missing source: {name}")
+# 以下字段明确声明该数值夹具，不作为器件默认参数。
+FIXTURE_VALUES = {
+    "voltage_bits": 64,
+    "voltage_fraction_bits": 32,
+    "weight_bits": 48,
+    "weight_fraction_bits": 30,
+    "accumulator_bits": 96,
+    "output_bits": 20,
+    "adc2_bits": 20,
+    "n_slices": 1,
+    "n_active": 1,
+    "n_main": 2,
+    "n_sub": 1,
+    "recon_stages": 7,
+}
+SOURCES = (
+    "rtl/core/analog_phase_ctrl.sv",
+    "rtl/core/sar_trial_ctrl.sv",
+    "rtl/core/cal_weight_reduce.sv",
+    "rtl/core/adc2_dec.sv",
+    "rtl/core/cal_residue_mac.sv",
+    "rtl/core/div_floor.sv",
+    "rtl/core/cal_output_stage.sv",
+    "rtl/core/recon_core.sv",
+    "sim/tb/engineering_fsm_tb.sv",
+)
+
+
+def load_fixture(path: Path) -> dict:
+    """只接受此处显式声明的整数协议夹具，不隐式补充几何参数。"""
+    value = json.loads(path.read_text(encoding="utf-8"))
+    require(isinstance(value, dict), "fixture-json must be an object")
     require(
-        len(sources) == 24 and len(set(files)) == 28,
-        "FSM source bundle expects 24 SV + 2 headers + manifest + bench",
+        set(value) == {"schema_version", "scope", "description", *FIXTURE_VALUES},
+        "fixture-json must explicitly state every numerical field",
     )
-    output.mkdir(parents=True)
-    stage = "freeze source"
+    require(
+        value["schema_version"] == 1 and value["scope"] == "COMPONENT_SYNTHETIC_DIGITAL",
+        "fixture-json is not a synthetic component fixture",
+    )
+    require(
+        isinstance(value["description"], str) and bool(value["description"].strip()),
+        "fixture requires its numerical-only scope description",
+    )
+    require(
+        all(type(value[k]) is int and value[k] == wanted for k, wanted in FIXTURE_VALUES.items()),
+        "fixture does not match the explicitly supported engineering identity format",
+    )
+    return value
+
+
+def write_fixture_header(path: Path, value: dict) -> None:
+    """根据显式夹具写隔离头文件，不使用仓库默认参数。"""
+    names = {
+        "V_BITS": "voltage_bits",
+        "V_FRAC": "voltage_fraction_bits",
+        "W_BITS": "weight_bits",
+        "W_FRAC": "weight_fraction_bits",
+        "ACC_BITS": "accumulator_bits",
+        "OUT_BITS": "output_bits",
+        "ADC2_BITS": "adc2_bits",
+        "N_SLICES": "n_slices",
+        "N_ACTIVE": "n_active",
+        "N_UNIT_MAIN": "n_main",
+        "N_UNIT_SUB": "n_sub",
+    }
+    path.write_text(
+        "// COMPONENT_SYNTHETIC_DIGITAL: exact integer fixture only; no device mapping.\n"
+        "`ifndef ENGINEERING_PROTOCOL_NUMERIC_VH\n`define ENGINEERING_PROTOCOL_NUMERIC_VH\n"
+        + "".join(f"localparam int {name} = {value[field]};\n" for name, field in names.items())
+        + f"localparam int N_UNIT_TOTAL = {value['n_main'] + value['n_sub']};\n"
+        + "`endif\n",
+        encoding="utf-8",
+    )
+
+
+def main(argv=None) -> int:
+    from run_open_rtl import (
+        alias_runtime,
+        checked_run,
+        command_for,
+        completion,
+        new_output,
+        verilator_compiler_args,
+    )
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--out", type=Path, required=True, help="New directory outside all checkouts"
+    )
+    parser.add_argument(
+        "--fixture-json",
+        type=Path,
+        required=True,
+        help="Explicit engineering_protocol/format.json numerical fixture",
+    )
+    parser.add_argument("--timeout", type=int, default=180)
+    args = parser.parse_args(argv)
+    if args.timeout <= 0:
+        parser.error("timeout must be positive")
+    fixture_path = args.fixture_json.expanduser().resolve()
+    output = None
+    stage = "validate explicit fixture"
     try:
+        fixture = load_fixture(fixture_path)
+        output = new_output(args.out)
+        command = command_for("verilator")
         snapshot = output / "source_snapshot"
-        for name in files:
-            destination = snapshot / name
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes((REPO / name).read_bytes())
-        write_json(output / "source_sha256.json", {name: sha256(snapshot / name) for name in files})
-        stage = "read Verilator version"
-        with (output / "version.log").open("w", encoding="utf-8") as log:
-            subprocess.run(
-                [*command, "--version"],
-                stdout=log,
-                stderr=subprocess.STDOUT,
-                check=True,
-                timeout=30,
-            )
-        with tempfile.TemporaryDirectory(prefix="sar_engineering_fsm_") as build:
-            args = [
+        for name in SOURCES:
+            source = REPO / name
+            require(source.is_file(), f"missing selected dependency: {name}")
+            target = snapshot / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(source.read_bytes())
+        source_hashes = {name: sha256(snapshot / name) for name in SOURCES}
+        write_json(output / "source_sha256.json", source_hashes)
+        write_json(output / "fixture.json", fixture)
+        write_fixture_header(output / "rtl_params.vh", fixture)
+        stage = "read existing simulator identity"
+        env = os.environ.copy()
+        version = checked_run(
+            [*command, "-V"], cwd=output, env=env, log=output / "version.log", timeout=30
+        )
+        with tempfile.TemporaryDirectory(prefix="engineering_numeric_") as temporary:
+            work = Path(temporary)
+            alias_runtime(work, env, version)
+            (work / "repo").symlink_to(snapshot, target_is_directory=True)
+            (work / "output").symlink_to(output, target_is_directory=True)
+            include = work / "output"
+            build_command = [
                 *command,
                 "--binary",
                 "--unroll-count",
@@ -402,75 +484,71 @@ def main() -> None:
                 "--timing",
                 "--assert",
                 "-j",
-                "2",
+                "1",
                 "-Wno-fatal",
                 "-Werror-PINMISSING",
                 "-Werror-SELRANGE",
+                *verilator_compiler_args(),
                 "--top-module",
                 BENCH,
-                "-Irtl/params",
+                f"-I{include}",
                 "--Mdir",
-                build,
-                *sources,
-                f"sim/tb/{BENCH}.sv",
+                str(work / "obj"),
+                *[str(work / "repo" / name) for name in SOURCES],
             ]
-            run_args = [str(Path(build) / f"V{BENCH}"), f"+trace_dir={output}"]
+            stage = "compile numerical FSM component"
+            checked_run(
+                build_command,
+                cwd=work,
+                env=env,
+                log=output / "engineering_fsm_tb.build.log",
+                timeout=args.timeout,
+            )
+            run_command = [str(work / "obj" / f"V{BENCH}"), f"+trace_dir={work / 'output'}"]
             write_json(
                 output / "command.json",
                 {
-                    "build_command": args,
-                    "build_cwd": str(snapshot),
-                    "run_command": run_args,
-                    "run_cwd": str(snapshot),
+                    "build_command": build_command,
+                    "run_command": run_command,
+                    "selected_sources": list(SOURCES),
+                    "fixture_sha256": sha256(fixture_path),
+                    "scope": "COMPONENT_SYNTHETIC_DIGITAL",
                 },
             )
-            stage = "compile FSM bench"
-            with (output / "engineering_fsm_tb.build.log").open("w", encoding="utf-8") as log:
-                subprocess.run(
-                    args,
-                    cwd=snapshot,
-                    stdout=log,
-                    stderr=subprocess.STDOUT,
-                    check=True,
-                    timeout=300,
-                )
-            stage = "execute FSM bench"
-            with (output / "engineering_fsm_tb.run.log").open("w", encoding="utf-8") as log:
-                subprocess.run(
-                    run_args,
-                    cwd=snapshot,
-                    stdout=log,
-                    stderr=subprocess.STDOUT,
-                    check=True,
-                    timeout=30,
-                )
-        require(
-            MARKER in (output / "engineering_fsm_tb.run.log").read_text(encoding="utf-8"),
-            "FSM completion marker missing",
-        )
-        stage = "audit real CSV transitions"
-        result = audit_csv(output)
-        result["status"] = "PASS"
-        result["artifact_sha256"] = {
-            name: sha256(output / name)
-            for name in (
-                "version.log",
-                "source_sha256.json",
-                "command.json",
-                "engineering_fsm_tb.build.log",
-                "engineering_fsm_tb.run.log",
+            stage = "execute numerical FSM component"
+            text = checked_run(
+                run_command,
+                cwd=work,
+                env=env,
+                log=output / "engineering_fsm_tb.run.log",
+                timeout=30,
             )
-        }
+        completion(text, MARKER, ("recon_accepts", "recon_results", "recon_cancels", "edges"))
+        stage = "independent real CSV audit"
+        result = audit_csv(output)
+        require(
+            all(sha256(REPO / name) == expected for name, expected in source_hashes.items()),
+            "selected sources changed during execution",
+        )
+        result.update(
+            status="PASS",
+            source_sha256=source_hashes,
+            fixture_sha256=sha256(fixture_path),
+            scope="COMPONENT_SYNTHETIC_DIGITAL",
+        )
         write_json(output / "result.json", result)
         print(
             f"ENGINEERING_FSM_TRACE_PASS rows=175 recon_results=7 cancelled=2 overlap=1 out={output}"
         )
-    except (OSError, ValueError, subprocess.SubprocessError) as error:
-        write_json(output / "result.json", {"status": "FAIL", "stage": stage, "error": str(error)})
-        raise SystemExit(
-            f"FSM trace failed during {stage}: {error}\nEvidence retained at {output}"
-        ) from error
+        return 0
+    except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:
+        if output is not None:
+            write_json(
+                output / "result.json", {"status": "FAIL", "stage": stage, "error": str(error)}
+            )
+        print(f"FSM trace failed during {stage}: {error}", file=sys.stderr)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -1,169 +1,114 @@
-"""独立SADC的静态阈值行为模型。
+"""显式SADC阈值的静态数学核。
 
-在SADC采样输入节点[V]对已声明阈值数组作searchsorted，得到0..n_code-1粗码；标准工厂n_code=2**b1，
-显式阈值则为len(thresholds)-1。这是flash式行为替代，不含逐位SAR时序。7bit对照、
-9bit候选与dither已知端口是不同概念；实际构造统一经build_first_stage_quantizer。
-
-采样热噪声/响应误差由sampler或生产输入网络提供，噪声和物理负载使用c_sadc；
-sadc_cap_ratio是保留且不活跃的参数。粗码误差只有在后级有足够残差余量时才能被重构吸收；
-越过SADC输入范围时粗码钳位，不能保证RA/ADC2仍然合法。
-
-阈值及输入单位为SADC节点V；粗码无量纲。阈值失调/增益/非线性每芯片构造一次，
-不是原芯片量化器电路的晶体管或动态验证。
+输入与阈值均为SADC采样节点[V]；N+1个阈值定义N个整数码仓。这只是searchsorted量化，
+不包含逐位SAR时序、采样网络或随机失配生成。生产目标需要显式513个实际阈值；
+不再把未知RDAC几何/桥接比或旧7+2读数当成SADC阈值来源。
+热噪声、动态响应及dither绑定由各自真实输入接口负责。
 """
 
 from __future__ import annotations
-
-from typing import Protocol, runtime_checkable
 
 import numpy as np
 
 from .config import Config, ConfigError
 
 
-@runtime_checkable
-class SplitDacLike(Protocol):
-    """The part of a segmented DAC that the first stage depends on.
-
-    Declared structurally on purpose: ``dac_arch`` imports this module's neighbours, so a concrete
-    import here would close a cycle. Anything that exposes ``levels`` and ``_nominal_endpoints()``
-    satisfies the contract, which is exactly what the first stage needs and nothing more.
-    """
-
-    levels: int
-
-    def _nominal_endpoints(self) -> tuple[float, float]:
-        """Return the nominal DAC output range ``(v_lo, v_hi)`` [V].
-
-        Returns:
-            元组 (v_lo, v_hi)：标称 DAC 输出下限与上限（V）。
-            实现方只需暴露标称栅格，不得暴露物理真值。
-        """
-        ...
-
-
 class SADC:
-    """粗量化器：N+1 个阈值 -> N 个码仓的 flash 式转换。
+    """无记忆静态量化器，支持显式有限递增阈值的通用数学测试。"""
 
-    Attributes:
-        thresholds: (n_code+1,)严格单调实际阈值[SADC节点V]，convert不改写。
-        n_code: 码仓数 = 2^b1（显式阈值模式 = len(thresholds)-1）。
-    """
-
-    def __init__(
-        self,
-        cfg: Config,
-        rng: np.random.Generator | None = None,
-        thresholds: np.ndarray | None = None,
-        gain_center: float = 0.0,
-    ):
-        """两种构造模式：
+    def __init__(self, thresholds: np.ndarray, *, endpoint_policy: str):
+        """冻结实际节点阈值，不生成偏移、增益或失配分布。
 
         Args:
-            cfg: 全局配置。
-            rng: 阈值失配的生成器；None 时按 cfg.seed+977 播种。（失败保守化：
-                调用方传入 rng 则必须自己保证与其它失配的独立性——本模块不复用主 rng。）
-            thresholds: 显式名义阈值 [V]；同样施加配置中的全部非理想性。
-            gain_center: 增益失配的名义电压中心 [V]，不能来自物理真值。
+            thresholds: (N+1,)有限严格递增实际阈值[SADC节点V]。
+            endpoint_policy: 必须显式closed或half_open；后者上端点越界。
 
         Raises:
-            ConfigError: 名义或实际阈值非有限/非单调，或者增益非正。
+            ConfigError: 阈值形状/有限性/单调性或端点约定非法。
+
+        Side effects: 拷贝并只读保存阈值，不修改输入、不消耗随机源。
+
+        Source: 通用静态量化数学；N=512仅为当前目标的决策区间数。
         """
-        self.cfg = cfg
-        if thresholds is not None:
-            thr = np.array(thresholds, dtype=float, copy=True)
-        else:
-            thr = -cfg.v_fs + np.arange(2**cfg.b1 + 1) * cfg.delta1
+        try:
+            if np.iscomplexobj(thresholds):
+                raise ValueError("complex thresholds are not physical node voltages")
+            values = np.array(thresholds, dtype=float, copy=True)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ConfigError("SADC thresholds must be real finite voltages [V]") from exc
         if (
-            thr.ndim != 1
-            or thr.size < 2
-            or not np.all(np.isfinite(thr))
-            or np.any(np.diff(thr) <= 0)
+            values.ndim != 1
+            or values.size < 2
+            or not np.all(np.isfinite(values))
+            or np.any(values[1:] <= values[:-1])
         ):
-            raise ConfigError("SADC nominal thresholds must be finite and strictly increasing")
-        if not np.isfinite(gain_center) or 1 + cfg.sadc_rdac_gain_mismatch <= 0:
-            raise ConfigError("SADC gain must be positive and its center finite")
-        self.nominal_thresholds = thr.copy()
-        n_code = len(thr) - 1
-        c = np.arange(n_code + 1)
+            raise ConfigError("SADC thresholds must be finite and strictly increasing [V]")
+        if endpoint_policy not in ("closed", "half_open"):
+            raise ConfigError("SADC endpoint_policy must be closed or half_open")
+        values.setflags(write=False)
+        self.thresholds = values
+        self.n_code = values.size - 1
+        self.endpoint_policy = endpoint_policy
 
-        if cfg.sadc_mismatch_enable and cfg.sadc_mismatch_sigma > 0:
-            rng = rng or np.random.default_rng(cfg.seed + 977)
-            # 每个单位步长的偏差，累积成阈值误差，再去掉端点增益（保持满幅不变）
-            # —— 即把失配分解为"失调 + 增益 + 纯非线性"三项中的后一项。
-            step_dev = rng.normal(0.0, cfg.sadc_mismatch_sigma, n_code)
-            w = np.concatenate([[0.0], np.cumsum(step_dev)])
-            w = w - (c / n_code) * w[-1]
-            thr = thr + w
-
-        # 失调 + 与 RDAC 的增益失配（增益失配会被 G 放大，直接吃掉 ADC2 余量；
-        # 预算检查见 config.validate["SADC/RDAC 失配占用余量"]）
-        self.thresholds = gain_center + (thr - gain_center - cfg.sadc_offset) / (
-            1.0 + cfg.sadc_rdac_gain_mismatch
-        )
-        if not np.all(np.isfinite(self.thresholds)) or np.any(np.diff(self.thresholds) <= 0):
-            raise ConfigError("SADC physical thresholds must be finite and strictly increasing")
-        self.n_code = n_code
-
-    def convert(self, x: np.ndarray) -> np.ndarray:
-        """Flash 式转换：x 落入哪个码仓。
+    def convert_codes(self, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """转换并保留输入范围标志，所有有限越界样本均夹码返回。
 
         Args:
-            x: 输入电压 [V]（SADC 采样口径，含量化器通路误差时由调用方加）。
+            x: 任意形状SADC输入节点电压[V]。
 
         Returns:
-            与x形状相同的int64粗码，正常runner为(N,)；越界钳位到0或n_code-1。
+            同形状(int64粗码,bool越界)。内部阈值归入上侧码仓；closed包含首末端点，
+            half_open只包含下端点，末端点均返回最后码。
 
-        Side effects: 无（阈值只读）。
+        Raises:
+            ValueError: 输入含NaN或无穷，不能作为转换。
+
+        Side effects: 无；阈值及输入不改写。
         """
-        v = np.asarray(x, dtype=float)
-        if np.any(~np.isfinite(v)):
-            raise ValueError(
-                "SADC input voltage must be finite"
-                "（与 ADC2.convert 同口径；此前 NaN 被 searchsorted 静默排到末仓，"
-                "独立审查 2026-09-25）"
-            )
-        code = np.searchsorted(self.thresholds, v, side="right") - 1
-        return np.clip(code, 0, self.n_code - 1).astype(np.int64)
+        values = np.asarray(x, dtype=float)
+        if np.any(~np.isfinite(values)):
+            raise ValueError("SADC input voltage must be finite [V]")
+        over = (values < self.thresholds[0]) | (
+            (values > self.thresholds[-1])
+            if self.endpoint_policy == "closed"
+            else (values >= self.thresholds[-1])
+        )
+        code = np.searchsorted(self.thresholds, values, side="right") - 1
+        return np.clip(code, 0, self.n_code - 1).astype(np.int64), over
+
+    def convert(self, x: np.ndarray) -> np.ndarray:
+        """只取夹码粗码；需要范围诊断的调用者必须用convert_codes。
+
+        Args:
+            x: 任意形状SADC输入节点电压[V]。
+
+        Returns:
+            同形状int64粗码，范围0..n_code-1。
+
+        Side effects: 无；未删除越界样本。
+        """
+        code, _over = self.convert_codes(x)
+        return code
 
 
-def units_per_first_stage_step(cfg: Config, dac: SplitDacLike | None = None) -> int:
-    """第一级一个判决步长 = 多少个 DAC 单位步。
-
-    这是 ``stage1_reading`` 与 DAC 拓扑之间的**唯一**换算关系，任何需要它的人都必须调用本函数，
-    不得自行推导（外部审计 B16）。
-
-    Args:
-        cfg: 全局配置。
-        dac: 分段拓扑的 :class:`~adi_model.dac_arch.SplitDAC`；等权拓扑传``None``。
-
-    Returns:
-        单位步数（``int``，至少为 1）。
-        等权拓扑下等于 ``cfg.units_per_lsb1`` = ``n_units_sig // 2**b1``；
-        分段拓扑下等于 ``dac.levels // 2**b1``。两种口径在拓扑自洽时相等。
-    """
-    if dac is None:
-        return max(int(cfg.units_per_lsb1), 1)
-    return max(int(dac.levels) // (2**cfg.b1), 1)
-
-
-def build_first_stage_quantizer(cfg: Config, dac: SplitDacLike | None = None) -> SADC:
-    """构造与当前名义RDAC栅格对齐的独立SADC。
+def build_first_stage_quantizer(cfg: Config) -> SADC:
+    """从显式目标阈值构造9bit SADC，不消费其他块物理输入。
 
     Args:
-        cfg: 决策位数及SADC非理想配置。
-        dac: 可选split名义接口；不读取真实电容来生成数字判决基准。
+        cfg: sadc_thresholds_v必须为513个实际节点阈值，端点约定必须显式。
 
     Returns:
-        SADC。split阈值thr[c]=v_lo+c*(units_per_decision*ΔDAC)，
-        无饱和/失配时k=coarse*units_per_decision对齐该阈值；unary使用Δ1。
-        输入dither或SADC非理想可把残差推出名义bin，仍需单独检查RA/ADC2余量。
+        含512个码仓的独立SADC。
+
+    Raises:
+        ConfigError: 缺阈值、端点、错误决策位数或非法阈值。
+
+    Side effects: 无；不从RDAC物理真值或名义端点产生阈值。
     """
-    if dac is None:
-        return SADC(cfg)
-    v_lo, v_hi = dac._nominal_endpoints()
-    levels = int(dac.levels)
-    step0 = (v_hi - v_lo) / (levels - 1.0)
-    unit = units_per_first_stage_step(cfg, dac)
-    thr = v_lo + np.arange(2**cfg.b1 + 1) * (unit * step0)
-    return SADC(cfg, thresholds=thr, gain_center=0.5 * (v_lo + v_hi))
+    bad = cfg.sadc_violations()
+    if type(cfg.b1) is not int or cfg.b1 != 9:
+        bad.append("b1 must be 9 for the source-target SADC factory")
+    if bad:
+        raise ConfigError("SADC cannot run:\n  - " + "\n  - ".join(bad))
+    assert cfg.sadc_thresholds_v is not None and cfg.sadc_endpoint_policy is not None
+    return SADC(np.asarray(cfg.sadc_thresholds_v), endpoint_policy=cfg.sadc_endpoint_policy)

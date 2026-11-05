@@ -1,56 +1,95 @@
-"""相位流水线的公开入口，物理实现位于 pipeline_engine。
-
-采集电荷绑定样本及其物理 slice 组。首笔显式预充，转换不消费其他组的采样电荷。
-"""
+"""唯一公开pipeline入口；所有未知物理与数字绑定由调用者显式提供。"""
 
 from __future__ import annotations
 
-from .pipeline_engine import execute_split
-from .sampler import input_derivative
+from .pipeline_engine import execute_pipeline
 
 
 def run_pipeline(
     cfg,
     input_fn,
     n_samples,
-    chip=None,
+    *,
+    pool,
+    mapper,
+    sample_ids,
+    dem_states,
+    sampled_top_v,
+    sampled_subnode_v,
+    reference_high_v,
+    reference_low_v,
+    nominal_reference_high_v,
+    nominal_reference_low_v,
+    static_charge_domain,
     state=None,
     rng=None,
-    scheduler=None,
-    *,
-    pool=None,
-    ra_output_error_v=None,
+    ra_input_error_v=None,
+    rdac_noise_cap_f=None,
+    sampling_control=None,
+    initial_reference_error_v=None,
+    initial_ra_output_v=None,
+    initial_adc2_input_v=None,
+    dither_program=None,
 ):
-    """运行具有显式电容归属的物理 split 流水线。
+    """执行实际pool、整数控制与独立数字观测的raw记录。
 
     Args:
-        cfg: 配置；入口按 split 拓扑解析。
-        input_fn: 输入电压函数，时间单位 s，输出单位 V。
-        n_samples: 首笔预充之后的输出样本数。
-        chip: 可选的 aggregate split 制造实现。
-        state: 可选的冻结数字系数状态。
-        rng: 可选的采样/噪声随机流。
-        scheduler: 可选的兼容采集调度器。
-        pool: 可选的已有 PhysicalSlicePool；仅重置电气状态。
-        ra_output_error_v: 可选的 raw 长度有限误差流 [RA 输出 V]，在原有钳位及 ADC2 量化前注入。
-            仅支持调用方定义来源的样本域误差；None 保留既有行为。
+        cfg: 显式Config，9bit目标不被入口改写。
+        input_fn: 单孔径波形t[s]→输入V。
+        n_samples: raw笔数N；无效样本保留。
+        pool: 明确chip/codebook/mask/acquisition/schedule绑定的PhysicalSlicePool。
+        mapper: 显式粗码→RDAC码表，参考动态另有逐事件表。
+        sample_ids: (N,)实际整数身份，不生成或跳过启动事务。
+        dem_states: (N,)实际DEM整数状态，不生成旧PRNG。
+        sampled_top_v: 采集顺序的标量或(N,A)真实主节点V。
+        sampled_subnode_v: 同顺序真实sub节点V，不能默认零。
+        reference_high_v: 实际全局高参考驱动基准V，标量或(N,)；动态误差另叠加。
+        reference_low_v: 实际全局低参考驱动基准V，标量或(N,)。
+        nominal_reference_high_v: 独立数字已知高轨V。
+        nominal_reference_low_v: 独立数字已知低轨V。
+        static_charge_domain: 请求静态学习资格，实际域由引擎保守核验。
+        state: 可选DigitalState；没有冻结系数时只产生float诊断。
+        rng: 可选噪声Generator，活跃源仍有明确参数和seed合同。
+        ra_input_error_v: 可选(N,)RA输入等效V，真实进入增益/限幅/ADC2前。
+        rdac_noise_cap_f: 活跃采样噪声所需显式(N,)Ceq[F]。
+        sampling_control: 仅传给实际采集binding的数字控制。
+        initial_reference_error_v: 动态参考所需显式初始两轨误差V。
+        initial_ra_output_v: 动态RA所需显式初始输出V。
+        initial_adc2_input_v: 动态ADC2所需显式初始输入V，不默填零。
+        dither_program: 可选Fig19静态等效lower/upper控制；与dither_enable一致，
+            真实进入SADC/RDAC采样及逐事件码处理，不是RA或最终码后加扰动。
 
     Returns:
-        SimResult，含电荷、样本 ID、实际转换 slice 及误差。
+        SimResult；to_codes须显式format与冻结/显式校准系数。
 
     Side effects:
-        重置 pool 电气状态，并消费启用的采样/噪声随机流。
-        显式误差不改变噪声预算、钳位规则或随机数消费序列。
+        重置并消费pool电气采集资格及活跃RNG，不学习、不改制造数据或Config。
+
+    Source:
+        源9bit/18/8架构与本轮显式绑定合同；Fig19仅为标明假设的静态等效端口。
     """
-    return execute_split(
+    return execute_pipeline(
         cfg,
         input_fn,
         n_samples,
-        chip=chip,
+        pool=pool,
+        mapper=mapper,
+        sample_ids=sample_ids,
+        dem_states=dem_states,
+        sampled_top_v=sampled_top_v,
+        sampled_subnode_v=sampled_subnode_v,
+        reference_high_v=reference_high_v,
+        reference_low_v=reference_low_v,
+        nominal_reference_high_v=nominal_reference_high_v,
+        nominal_reference_low_v=nominal_reference_low_v,
+        static_charge_domain=static_charge_domain,
         state=state,
         rng=rng,
-        scheduler=scheduler,
-        pool=pool,
-        derivative_fn=input_derivative,
-        ra_output_error_v=ra_output_error_v,
+        ra_input_error_v=ra_input_error_v,
+        rdac_noise_cap_f=rdac_noise_cap_f,
+        sampling_control=sampling_control,
+        initial_reference_error_v=initial_reference_error_v,
+        initial_ra_output_v=initial_ra_output_v,
+        initial_adc2_input_v=initial_adc2_input_v,
+        dither_program=dither_program,
     )

@@ -1,95 +1,153 @@
-"""检查 18 切片池的跨周期因果归属及失配绑定。
+"""检查实际保存的节点电荷、物理切片编号及显式因果控制记录。"""
 
-随机 8/18 选择须转换前周期已采集的电容，并实际改变 DAC 权重。
-历史 v6.1 固定与随机调度逐位相同、max|delta|=0.0 µV，本组保留对应反例。
-"""
-
-from __future__ import annotations
+from dataclasses import replace
 
 import numpy as np
 import pytest
 
-from adi_model.slice_pool import (
-    PhysicalSlicePool,
-    check_causality,
-)
+from adi_model.config import ConfigError
+from adi_model.dac_arch import charge_from_masks, charge_from_sampling_connections
+from adi_model.scheduler import Scheduler
+from adi_model.slice_pool import PhysicalSlicePool, check_causality
+from adi_model.timing import SlicePlan
 
-STRATEGIES = ("pingpong", "shuffle_causal")
 
-
-def _make_pool(cfg, seed=20260910):
-    return PhysicalSlicePool(cfg, np.random.default_rng(seed))
+def _plan():
+    a = np.arange(8)
+    b = np.arange(8, 16)
+    spare = np.r_[np.arange(6), 16, 17]
+    return SlicePlan(
+        np.stack((a, b, spare)),
+        np.stack((b, spare, b)),
+        np.array([-1, 0, 1]),
+        np.array([False, True, True]),
+        "explicit-synthetic-control",
+        {"bank": [0, 1, 0]},
+    )
 
 
 class TestCausality:
-    @pytest.mark.parametrize("strategy", STRATEGIES)
-    def test_no_cross_cycle_violations(self, cfg, strategy):
-        pool = _make_pool(cfg)
-        plan = pool.plan(8192, np.random.default_rng(20260910), strategy=strategy)
-        chk = check_causality(plan)
-        assert chk["violations"] == 0, (
-            f"strategy={strategy!r} produced {chk['violations']} cross-cycle "
-            f"violations in 8191 transitions"
-        )
+    def test_no_cross_cycle_violations(self, toy_physical_case):
+        plan = Scheduler(toy_physical_case.cfg, binding=_plan()).plan(3)
+        result = check_causality(plan)
+        assert result["transitions"] == 2 and result["violations"] == 0
+        np.testing.assert_array_equal(plan.conv[1:], plan.acq[:-1])
+        assert all(not set(c) & set(a) for c, a in zip(plan.conv, plan.acq, strict=True))
 
-    def test_mean_coverage_full(self, cfg):
-        pool = _make_pool(cfg)
-        plan = pool.plan(8192, np.random.default_rng(20260910), strategy="shuffle_causal")
-        chk = check_causality(plan)
-        assert chk["mean_coverage"] == pytest.approx(8.0, abs=1e-9), (
-            "with causal binding, every converted slice must come from the "
-            "previous cycle's acquisition group; the mean coverage must be 8/8"
-        )
+    def test_mean_coverage_full(self, toy_physical_case):
+        plan = Scheduler(toy_physical_case.cfg, binding=_plan()).plan(3)
+        assert check_causality(plan)["mean_coverage"] == 8
+        assert {16, 17} <= set(plan.conv.ravel())
 
-    def test_invalid_mask_does_not_silently_pass(self, cfg):
-        # A plan whose `valid` mask is empty must still pass if its conv/acq
-        # arrays are causally consistent. check_causality only inspects the
-        # slice arrays, by design.
-        pool = _make_pool(cfg)
-        plan = pool.plan(8, np.random.default_rng(1), strategy="shuffle_causal")
-        plan.valid[:] = False
-        chk = check_causality(plan)
-        assert chk["violations"] == 0
+    def test_invalid_mask_does_not_silently_pass(self, toy_physical_case):
+        plan = _plan()
+        changed = plan.conv.copy()
+        changed[2] = np.arange(8)
+        with pytest.raises(ConfigError, match="preceding acquisition"):
+            Scheduler(toy_physical_case.cfg, binding=replace(plan, conv=changed)).plan(3)
+
+    def test_missing_schedule_and_bank_are_not_inferred(self, toy_physical_case):
+        with pytest.raises(ConfigError, match="schedule binding"):
+            Scheduler(toy_physical_case.cfg, binding=None)
+        plan = replace(_plan(), meta={})
+        with pytest.raises(ConfigError, match="bank"):
+            Scheduler(toy_physical_case.cfg, binding=plan).reserve(3)
 
 
 class TestMismatchBinding:
-    """检查实际切片选择会改变 DAC 误差，而不只是改变调度标签。"""
-
-    def test_dac_error_changes_with_slice_selection(self, cfg):
-        pool = _make_pool(cfg, seed=7)
-        n = 2048
-        k = (np.arange(n) % 512).astype(float)
-        sid = np.arange(n) % 512
-
-        conv_a = np.tile(np.arange(8), (n, 1))
-        conv_b = np.tile(np.arange(10, 18), (n, 1))
-
-        e_a = pool.dac_error(conv_a, k, sid)
-        e_b = pool.dac_error(conv_b, k, sid)
-        diff = np.max(np.abs(e_a - e_b)) * 1e6  # uV
-        assert diff > 1.0, (
-            f"fixed conv_a vs conv_b produce bit-identical e_dac (max "
-            f"|delta| = {diff:.3f} uV); the 8/18 choice is not bound to the "
-            f"physical capacitors. This is exactly the v6.1 finding F2b."
+    def test_dac_error_changes_only_for_selections_using_perturbed_physical_slice(
+        self, toy_physical_case
+    ):
+        case = toy_physical_case
+        groups = np.vstack((np.arange(8), np.arange(8, 16)))
+        command = replace(
+            case.command,
+            main_on=np.repeat(case.command.main_on, 2, axis=0),
+            sub_on=np.repeat(case.command.sub_on, 2, axis=0),
+        )
+        before = charge_from_masks(
+            case.chip, groups, command, reference_high_v=3, reference_low_v=-1
+        )
+        changed = case.chip.C_main.copy()
+        changed[4, 0] *= 1.02
+        chip = replace(case.chip, C_main=changed)
+        after = charge_from_masks(chip, groups, command, reference_high_v=3, reference_low_v=-1)
+        assert after.charge_c[0] != before.charge_c[0]
+        assert after.input_equivalent_v[0] != before.input_equivalent_v[0]
+        np.testing.assert_array_equal(after.charge_c[1:], before.charge_c[1:])
+        np.testing.assert_array_equal(
+            after.signal_capacitance_f[1:], before.signal_capacitance_f[1:]
         )
 
-    def test_signal_capacitance_changes_with_selection(self, cfg):
-        pool = _make_pool(cfg)
-        c_a = pool.signal_capacitance(np.array([[0, 1, 2, 3, 4, 5, 6, 7]] * 64))
-        c_b = pool.signal_capacitance(np.array([[10, 11, 12, 13, 14, 15, 16, 17]] * 64))
-        ppm = (c_a.mean() - c_b.mean()) / c_a.mean() * 1e6
-        # At least 10 ppm of gain modulation across slice sets — not zero.
-        assert abs(ppm) > 10.0
+    def test_actual_capacitance_and_clock_parameters_are_not_randomly_fabricated(
+        self, toy_physical_case, monkeypatch
+    ):
+        case = toy_physical_case
+        monkeypatch.setattr(
+            np.random, "default_rng", lambda *args: pytest.fail("pool invented a random source")
+        )
+        pool = PhysicalSlicePool(case.cfg, chip=case.chip, nominal_codebook=case.book)
+        np.testing.assert_array_equal(pool.chip.C_main, case.chip.C_main)
+        assert not pool.chip.C_main.flags.writeable
+        with pytest.raises(ValueError):
+            pool.chip.C_main[0, 0] = 0
+        with pytest.raises(ConfigError, match="t_skew"):
+            pool.require_slice_parameter("t_skew", "s")
 
 
-class TestStrategiesProduceDifferentPlans:
-    def test_pingpong_vs_shuffle_different(self, cfg):
-        pool = _make_pool(cfg, seed=20260910)
-        rng = np.random.default_rng(42)
-        p_pp = pool.plan(64, rng, strategy="pingpong")
-        rng = np.random.default_rng(42)
-        p_sh = pool.plan(64, rng, strategy="shuffle_causal")
-        # First cycle must be deterministic equal (no prior acquisition).
-        assert np.array_equal(p_pp.conv[0], p_sh.conv[0])
-        # Later cycles must differ.
-        assert not np.array_equal(p_pp.conv[10], p_sh.conv[10])
+def test_actual_acquisition_ownership_and_release_are_required(toy_physical_case):
+    case = toy_physical_case
+    pool = PhysicalSlicePool(case.cfg, chip=case.chip, nominal_codebook=case.book)
+    with pytest.raises(ConfigError):
+        pool.held_node_charge(case.ids[0], sample_id=7)
+    expected = charge_from_sampling_connections(
+        case.chip,
+        case.ids,
+        case.connections,
+        input_voltage_v=1.2,
+        sampled_top_v=0.2,
+        sampled_subnode_v=-0.1,
+    )
+    pool.acquire(
+        case.ids[0],
+        1.2,
+        sample_id=7,
+        sampled_top_v=0.2,
+        sampled_subnode_v=-0.1,
+        connections=case.connections,
+    )
+    np.testing.assert_allclose(
+        pool.held_node_charge(case.ids[0], sample_id=7), expected.node_charge_c[0]
+    )
+    with pytest.raises(ConfigError):
+        pool.held_node_charge(case.ids[0], sample_id=8)
+    with pytest.raises(ConfigError):
+        pool.acquire(
+            case.ids[0],
+            1.2,
+            sample_id=8,
+            sampled_top_v=0.2,
+            sampled_subnode_v=-0.1,
+            connections=case.connections,
+        )
+    pool.release(case.ids[0], sample_id=7)
+    assert not pool.held_valid[case.ids[0]].any()
+    assert np.all(pool.n_conversions[case.ids[0]] == 1)
+    with pytest.raises(ConfigError):
+        pool.held_node_charge(case.ids[0], sample_id=7)
+
+
+def test_sampling_nodes_and_connections_cannot_be_guessed(toy_physical_case):
+    case = toy_physical_case
+    pool = PhysicalSlicePool(case.cfg, chip=case.chip)
+    with pytest.raises(ConfigError):
+        pool.acquire(case.ids[0], 1.2, sample_id=7, sampled_top_v=0.2, sampled_subnode_v=-0.1)
+    with pytest.raises(ConfigError):
+        pool.acquire(
+            case.ids[0],
+            1.2,
+            sample_id=7,
+            sampled_top_v=None,
+            sampled_subnode_v=-0.1,
+            connections=case.connections,
+        )

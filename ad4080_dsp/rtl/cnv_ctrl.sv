@@ -1,57 +1,40 @@
 //=============================================================================
 // @file    cnv_ctrl.sv
-// @brief   CNV 逻辑电平同步、上升沿与忙时错误代理。
-// @details 两种数字模式均以 cnv_p 作为接收后逻辑正相；cnv_n/lvds_en 保留电气
-//          接口描述。合法互补输入不能用 XOR 译码；真实差分接收、共模和端接由外部提供。
-// @project SAR20 / AD4080风格数字原型
-// @author  项目维护者（贡献记录见版本库）
+// @brief   已译码输入事件的边沿监视与外部忙状态检测。
+// @details cnv_p 必须已由外部接收器译码。本模块只同步并监视逻辑事件，
+//          不启动 SAR 转换，也不实现电气输入模式。
+// @project SAR20 / source-bounded digital processing
+// @author  Project maintainers; contributions are tracked by Git.
 // @date    2026-11-05
-// @version 由Git内容版本追溯，不单独声明器件版本
+// @version Git content version; no separate device revision is implied.
 //-----------------------------------------------------------------------------
-// 手册依据: 功能映射见 docs/ad4080_traceability.md，不声称器件逐拍等价。
-// 时钟域: cnv_p 异步，经两级同步后检测边沿；busy 属于 clk 域。
-// 复位: rst_n 异步低有效，释放须满足系统复位约定。
-// 延迟: 同步后产生单 clk 上升沿脉冲；cnv_err 再经过一个寄存沿。
-// 吞吐: 受同步器可观测稳定窗口和模拟转换周期约束，不保证捕获任意窄脉冲。
-// 可综合性: RTL 结构；目标库映射、约束、SRAM/PHY 与 STA 须单独验收。
+// 手册依据: [设计约定] 逻辑事件监视；AD4080 Rev.B p.33 仅提供外部 CNV 背景。
+// 时钟域: cnv_p 经过两级同步寄存器；busy 必须属于 clk 域。
+// 复位: rst_n 低有效、异步置位，由外部同步释放。
+// 延迟: 输入经过两级同步；忙时事件错误再经过一个寄存沿。
+// 吞吐: 调用方须保证脉宽可被同步采样；不支持任意窄脉冲。
+// 可综合性: 可综合结构；工艺映射、约束与 STA 需分别验收。
 // 依赖: 无子模块。
-// 边界: CMOS 模式 cnv_n 可接低；LVDS 数字测试须提供稳定互补输入。
-//     busy 时再次 CNV 只报告代理错误，模拟建立时间需另行验证。
+// 边界: 不实现差分接收器、最小 tCONV 测量或转换启动集成。
 //=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
-
 module cnv_ctrl (
-    input  logic clk,                                     // 系统时钟
-    input  logic rst_n,                                   // 异步复位，低有效
-    input  logic cnv_p,                                   // CNV 正端
-    input  logic cnv_n,                                   // CNV 负端（LVDS 模式）
-    input  logic lvds_en,                                 // 0 = CMOS / 1 = LVDS
-    input  logic busy,        // 转换进行中（由上层维护）
-    output logic cnv_pulse,                               // 同步后的上升沿，单拍
-    output logic cnv_err                                  // 忙时又来 CNV 产生的单拍错误标志
+    input logic clk, rst_n, cnv_p, busy,
+    output logic cnv_pulse, cnv_err
 );
-
-    logic raw, s0, s1, s2;
-    logic err_r;
-
-    // 两种数字模式都将 cnv_p 视为译码后的逻辑正相；物理差分接收器须由外部提供。
-    assign raw = cnv_p;
-
+    (* ASYNC_REG="TRUE" *) logic input_meta, input_sync;
+    logic previous, error_r;
     always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            s0 <= 1'b0; s1 <= 1'b0; s2 <= 1'b0; err_r <= 1'b0;
-        end else begin
-            s0 <= raw;
-            s1 <= s0;
-            s2 <= s1;
-            err_r <= (s1 & ~s2) & busy;
+        if (!rst_n) begin input_meta<=1'b0; input_sync<=1'b0; previous<=1'b0; error_r<=1'b0; end
+        else begin
+            input_meta<=cnv_p;
+            input_sync<=input_meta;
+            previous<=input_sync;
+            error_r<=(input_sync && !previous) && busy;
         end
     end
-
-    assign cnv_pulse = s1 & ~s2;
-    assign cnv_err   = err_r;
-
+    assign cnv_pulse=input_sync && !previous;
+    assign cnv_err=error_r;
 endmodule
-
 `default_nettype wire

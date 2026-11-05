@@ -3,17 +3,22 @@
 from __future__ import annotations
 
 import os
-import shutil
 import subprocess
 from pathlib import Path
 
 import pytest
+from _synth_test_support import digest, tool
 
 FLOW = Path(__file__).resolve().parents[2] / "synth/inspect_clockless_paths.tcl"
 
 HARNESS = r"""
 set ::scenario $::env(SCENARIO)
 set ::bulk_calls 0
+proc open_checkpoint {path} {
+    puts "OPEN $path"
+    if {$::scenario eq "open_error"} {error "injected checkpoint failure"}
+    if {$::scenario eq "changed_input"} {set f [open $path a];puts $f changed;close $f}
+}
 proc current_design {} {return design}
 proc version {args} {return mock-only}
 proc report_stub {args} {
@@ -96,27 +101,56 @@ proc get_nets {args} {
 proc get_ports {args} {return {}}
 proc get_clocks {args} {return {}}
 source $::env(FLOW)
-if {$::scenario eq "limited"} {set clockless_audit::source_limit 1}
-clockless_audit::run $::env(OUT)
+clockless_audit::run $::env(DCP) $::env(OUT) $::env(PATH_LIMIT) $::env(SOURCE_LIMIT)
 puts "BULK_CALLS=$::bulk_calls"
 """
 
 
-def run_probe(tmp_path, scenario):
-    tcl = shutil.which("tclsh")
-    if not tcl:
-        pytest.skip("tclsh required for query-control mock; not EDA validation")
+def run_probe(
+    tmp_path,
+    scenario,
+    *,
+    path_limit="256",
+    source_limit="64",
+    input_exists=True,
+    input_bytes=b"SYNTHETIC DCP TEXT ONLY\n",
+    input_suffix=".dcp",
+    existing=False,
+    git_output=False,
+):
+    tcl = tool("tclsh")
+    tool("shasum")
+    checkpoint = tmp_path / ("input checkpoint" + input_suffix)
+    if input_exists:
+        checkpoint.write_bytes(input_bytes)
+    if scenario == "limited":
+        source_limit = "1"
+    if git_output:
+        (tmp_path / ".git").write_text("gitdir: external\n")
     harness = tmp_path / "probe.tcl"
     harness.write_text(HARNESS)
     out = tmp_path / "out"
+    if existing:
+        out.mkdir()
+        (out / "sentinel").write_text("preserve")
     cp = subprocess.run(
         [tcl, str(harness)],
-        env={**os.environ, "FLOW": str(FLOW), "OUT": str(out), "SCENARIO": scenario},
+        env={
+            **os.environ,
+            "FLOW": str(FLOW),
+            "OUT": str(out),
+            "SCENARIO": scenario,
+            "DCP": str(checkpoint),
+            "PATH_LIMIT": path_limit,
+            "SOURCE_LIMIT": source_limit,
+        },
         capture_output=True,
         text=True,
         timeout=10,
         check=False,
     )
+    if input_exists and scenario != "changed_input":
+        assert checkpoint.read_bytes() == input_bytes
     return cp, out
 
 
@@ -142,6 +176,10 @@ def test_selected_constant_chain_is_classified_without_claiming_full_coverage(
     assert "CONSTANT_SOURCES=2" in status
     assert "AREG=0 ACASCREG=0" in (out / "constant_connections.txt").read_text()
     assert "PASS" not in status
+    assert "COMPLETENESS=PARTIAL_BOUNDED_PATH_SAMPLING" in status
+    assert "INPUT_DCP_SHA256=" + digest(tmp_path / "input checkpoint.dcp") in status
+    assert "PATHS_PER_GROUP_LIMIT=256" in status
+    assert "SOURCE_INSPECTION_LIMIT=64" in status
 
 
 @pytest.mark.parametrize("scenario", ["registered", "multiple_drivers", "dynamic", "empty_net"])
@@ -171,3 +209,44 @@ def test_limit_and_empty_path_sample_do_not_silently_certify_completeness(tmp_pa
     assert "OBSERVED_MISSING_CLOCK_STARTPOINTS=0" in (out / "status.txt").read_text()
     assert "COMPLETENESS=PARTIAL" in (out / "status.txt").read_text()
     assert "bulk_DSP_ACOUT" in (out / "source_classification.tsv").read_text()
+
+
+@pytest.mark.parametrize(
+    "kw",
+    [
+        {"path_limit": "0"},
+        {"path_limit": "-1"},
+        {"path_limit": "bad"},
+        {"source_limit": "0"},
+        {"source_limit": "1.5"},
+        {"source_limit": ""},
+        {"input_exists": False},
+        {"input_bytes": b""},
+        {"input_suffix": ".txt"},
+    ],
+)
+def test_required_checkpoint_and_positive_query_limits_fail_before_open(tmp_path, kw):
+    cp, out = run_probe(tmp_path, "direct", **kw)
+    assert cp.returncode != 0 and "OPEN " not in cp.stdout
+    assert not out.exists()
+
+
+@pytest.mark.parametrize(
+    "scenario,reason", [("open_error", "checkpoint failure"), ("changed_input", "changed on disk")]
+)
+def test_checkpoint_failure_or_mutation_does_not_become_a_query_result(tmp_path, scenario, reason):
+    cp, out = run_probe(tmp_path, scenario)
+    assert cp.returncode != 0 and reason in cp.stderr
+    assert "STATUS=FAILED" in (out / "status.txt").read_text()
+
+
+def test_existing_or_git_output_is_not_reused(tmp_path):
+    a = tmp_path / "existing"
+    a.mkdir()
+    cp, out = run_probe(a, "direct", existing=True)
+    assert cp.returncode != 0 and "OPEN " not in cp.stdout
+    assert (out / "sentinel").read_text() == "preserve"
+    b = tmp_path / "git"
+    b.mkdir()
+    cp, out = run_probe(b, "direct", git_output=True)
+    assert cp.returncode != 0 and "outside Git" in cp.stderr and not out.exists()

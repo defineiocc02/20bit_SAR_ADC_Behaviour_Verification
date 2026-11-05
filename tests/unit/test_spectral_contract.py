@@ -1,4 +1,4 @@
-"""检查独立谱密度、谐波拟合秩及端点归一化。"""
+"""检查独立谱密度、谐波拟合秩和频带端点归一化。"""
 
 import numpy as np
 import pytest
@@ -98,8 +98,8 @@ def test_paper_and_slides_are_separate_rounded_measurement_anchors():
         assert row["noise_rms_from_dr_v"] == pytest.approx(
             row["noise_rms_from_flat_nsd_v"], rel=0.01
         )
-        cfg = profile.configuration()
-        assert cfg.target_dr_db == dr and cfg.b1 == 9
+        assert row["source_grade"] == "published measurement (not a behavioral prediction)"
+        assert not hasattr(profile, "configuration")
     assert (
         PAPER_BENCHMARK.to_dict()["noise_rms_from_dr_v"]
         > SLIDES_BENCHMARK.to_dict()["noise_rms_from_dr_v"]

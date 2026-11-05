@@ -6,6 +6,7 @@
 // 异常：六项受检范围任一失败置any_ovf，此时a1无合法数值保证；gain=0由上层独立报告。
 // 适用域：生产 SUM_BITS=64、Q30/Q32/96位合同；缩窄或改参数须重新证明扩展与界限。
 // 来源：RTL_ARITHMETIC_CONTRACT.md；ADR0018；本模块不保存状态或提交输出。
+`timescale 1ns/1ps
 `include "rtl_params.vh"
 module cal_residue_mac #(
     parameter int SUM_BITS = 64
@@ -23,6 +24,7 @@ module cal_residue_mac #(
   localparam int W_SHIFT = int'(ACC_BITS) + int'(OUT_BITS) + 1; // W_SHIFT: 117
   localparam int W_A = int'(ACC_BITS) - (int'(V_FRAC) + 1); // W_A: 63：shifted >>> 33
   localparam int W_TOP = W_SHIFT - int'(ACC_BITS) + 1; // W_TOP: 22：shifted[116:95]
+  localparam int W_HIGH = W_SHIFT - (int'(V_FRAC) + 1);
 
   localparam logic [W_WIDE - 1:0] LIM_ONE = {{(W_WIDE - 1){1'b0}}, 1'b1};
   localparam logic [W_WIDE - 1:0] LIM_HI_U = LIM_ONE << (int'(ACC_BITS) - 1);
@@ -35,7 +37,7 @@ module cal_residue_mac #(
   logic signed [W_OP3 - 1:0] op3_w;
   logic signed [W_WIDE - 1:0] rails_ext;
   logic signed [W_S1 - 1:0] gv, s1;
-  logic signed [W_SHIFT - 1:0] shifted;
+  logic signed [W_SHIFT - 1:int'(V_FRAC) + 1] shifted_high;
   logic [W_TOP - 1:0] shifted_top;
   logic bad_op1, bad_op2, bad_op3, bad_num, bad_den;
   logic shifted_ok;
@@ -60,11 +62,14 @@ module cal_residue_mac #(
 
   assign gv = $signed({{(W_S1 - SUM_BITS){1'b0}}, gain_s}) <<< V_FRAC;
   assign s1 = $signed(num[W_S1 - 1:0]) + gv;
-  assign shifted = $signed({{(W_SHIFT - W_S1){s1[W_S1 - 1]}}, s1}) <<< OUT_BITS;
+  // Explicitly retain only the high portion after the exact W_SHIFT-bit left shift. Low V_FRAC+1
+  // bits are intentionally discarded by floor; no overflow/sign-check bit is removed. Both casts
+  // fix expression widths.
+  assign shifted_high = W_HIGH'((W_SHIFT'($signed(s1)) <<< OUT_BITS) >>> (int'(V_FRAC) + 1));
 
   // A1 = shifted >>> 33，取其低 W_A 位即精确值（前提：shifted 检查已通过）。
-  assign a1 = shifted[W_A - 1 + (int'(V_FRAC) + 1) : int'(V_FRAC) + 1];
-  assign shifted_top = shifted[W_SHIFT - 1:int'(ACC_BITS) - 1];
+  assign a1 = shifted_high[W_A - 1 + (int'(V_FRAC) + 1) : int'(V_FRAC) + 1];
+  assign shifted_top = shifted_high[W_SHIFT - 1:int'(ACC_BITS) - 1];
 
   always_comb begin
     // 位 116..95 全 0  =>  0 <= shifted < 2^95 位 116..95 全 1  =>  -2^95 <= shifted < 0

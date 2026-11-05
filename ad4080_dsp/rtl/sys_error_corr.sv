@@ -1,143 +1,118 @@
 //=============================================================================
 // @file    sys_error_corr.sv
-// @brief   补码输入的仿射系统校正与饱和事件。
-// @details delta=(x*(GAIN-512)*512+2^23)>>>24，y=saturate(x+delta+OFFSET)。
-//          默认 GAIN=512、OFFSET=0 为单位映射；clip 为非粘滞事件，与校正结果同拍。
-// @project SAR20 / AD4080风格数字原型
-// @author  项目维护者（贡献记录见版本库）
+// @brief   非单位增益须显式绑定的有符号系统校正。
+// @details GAIN=512 表示单位增益，OFFSET 采用有符号 ADC 码；非单位增益没有
+//          默认物理映射。整数加半步并算术右移后，再饱和到 20 bit 补码范围。
+// @project SAR20 / source-bounded digital processing
+// @author  Project maintainers; contributions are tracked by Git.
 // @date    2026-11-05
-// @version 由Git内容版本追溯，不单独声明器件版本
+// @version Git content version; no separate device revision is implied.
 //-----------------------------------------------------------------------------
-// 手册依据: 功能映射见 docs/ad4080_traceability.md，不声称器件逐拍等价。
-// 时钟域: clk；valid、数据与系数同步。
-// 复位: rst_n 异步低有效，无运行中 flush 输入。
-// 延迟: 接受 valid 沿到输出 valid 经过两个完整 clk 间隔。
-// 吞吐: 每个 clk 可连续接受一个样本。
-// 可综合性: RTL 结构；目标库映射、约束、SRAM/PHY 与 STA 须单独验收。
+// 手册依据: AD4080 Rev.B pp.71/92/93；增益传递与舍入是显式数值约定，不代表器件内部实现。
+// 时钟域: clk；样本与系数输入均同步。
+// 复位: rst_n 低有效、异步置位；cancel 优先于输入 valid，清除在途有效标志。
+// 延迟: 从接受输入的时钟沿到输出经过两个完整 clk 间隔。
+// 吞吐: 每个 clk 最多接受一个样本。
+// 可综合性: 可综合结构；工艺映射、约束与 STA 需分别验收。
 // 依赖: 无子模块。
-// 边界: 工程配置为 IN_W=20、OFFSET_W=12、GAIN_W=10、K_GAIN=512、SHIFT=24；
-//     其他参数组合须单独验证。输入输出采用 20 bit 补码，gain 为直二进制，offset 为 ADC LSB 整数。
-//     加半码后算术右移，半码向正无穷；输出饱和到 -2^19..2^19-1。
+// 边界: 只支持 20/12/10 bit 接口；缺少活动映射时拒绝处理，不实现器件增益旁路时序。
 //=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
 
 module sys_error_corr #(
-    parameter int IN_W      = 20,  // IN_W: 补码样本位宽，工程配置为 20 bit。
-    parameter int OFFSET_W  = 12,  // OFFSET_W: 补码偏移位宽，工程配置为 12 bit。
-    parameter int GAIN_W    = 10,  // GAIN_W: 直二进制增益码位宽，工程配置为 10 bit。
-    parameter int K_GAIN    = 512,  // K_GAIN: 增益增量乘数，须与定点映射一致。
-    parameter int SHIFT     = 24  // SHIFT: 增益乘积右移位数，工程配置为 24。
+    parameter int IN_W = 20,  // IN_W: 仅支持 20 bit 补码样本。
+    parameter int OFFSET_W = 12,  // OFFSET_W: 仅支持 12 bit 补码 ADC 偏移码。
+    parameter int GAIN_W = 10,  // GAIN_W: 仅支持 10 bit 增益码，512 为单位增益。
+    parameter bit P_GAIN_MAP_VALID = 1'b0,  // P_GAIN_MAP_VALID: 调用方已绑定非单位增益映射。
+    parameter int K_GAIN = -1,  // K_GAIN: 映射有效时，整数分子须在 1..1023。
+    parameter int SHIFT = -1,  // SHIFT: 映射有效时，小数位数须在 1..30。
+    parameter bit P_GAIN_CODE0_SUPPORTED = 1'b0  // P_GAIN_CODE0_SUPPORTED: 明确允许零增益码端点。
 ) (
-    input  logic                       clk,
-    input  logic                       rst_n,
-    input  logic                       valid_in,
-    input  logic [IN_W-1:0]            x,             // 二进制补码
+    input  logic clk, rst_n, valid_in, cancel,
+    input  logic [IN_W-1:0] x,
     input  logic signed [OFFSET_W-1:0] offset_code,
-    input  logic [GAIN_W-1:0]          gain_code,
-    output logic [IN_W-1:0]            y,             // 二进制补码
-    output logic                       valid_out,
-    output logic                       clip_low,
-    output logic                       clip_high          // 高于 +FS 饱和
+    input  logic [GAIN_W-1:0] gain_code,
+    output logic [IN_W-1:0] y,
+    output logic valid_out, clip_low, clip_high,
+    output logic processing_reject
 );
+    localparam bit GAIN_BINDING_VALID=P_GAIN_MAP_VALID && K_GAIN>=1 && K_GAIN<=1023 && SHIFT>=1 && SHIFT<=30;
+    localparam int PROD_W = 42;
+    localparam int SUM_W = 44;
+    localparam logic signed [SUM_W-1:0] MAX_CODE = 44'sd524287;
+    localparam logic signed [SUM_W-1:0] MIN_CODE = -44'sd524288;
+    initial begin
+        if (IN_W != 20 || OFFSET_W != 12 || GAIN_W != 10)
+            $fatal(1, "sys_error_corr: only the 20/12/10-bit contract is supported");
+        if (P_GAIN_MAP_VALID && (K_GAIN < 1 || K_GAIN > 1023 || SHIFT < 1 || SHIFT > 30))
+            $fatal(1, "sys_error_corr: explicit gain numerator/shift is missing or invalid");
+    end
 
-    // 20 bit 有符号样本乘以 11 bit 有符号 (gain-512)，结果使用 31 bit。
-    localparam int PROD_W  = IN_W + GAIN_W + 1;        // 31
-    localparam int PRODK_W = PROD_W + 11;              // 42
-    localparam int SUM_W   = IN_W + 2;                 // 22
-    localparam logic signed [IN_W-1:0] MAX_CODE =   (1 << (IN_W-1)) - 1;   // +524287
-    localparam logic signed [IN_W-1:0] MIN_CODE = - (1 << (IN_W-1));       // -524288
-    // NOTE: 512 在 10 bit 有符号数中变为 -512（10'sd512 == -512），
-    //     因此基准常数须使用 11 bit 有符号表示。
-    localparam logic signed [10:0]     K_GAIN_S = K_GAIN[10:0];
+    logic signed [19:0] x_s1;
+    logic signed [11:0] offset_s1;
+    logic valid_s1;
+    logic signed [PROD_W-1:0] scaled_gain;
+    logic [19:0] sum_s2;
+    logic valid_s2, low_s2, high_s2;
+    wire gain_supported = (gain_code == 10'd512) ||
+                          (GAIN_BINDING_VALID && ((gain_code != 10'd0) || P_GAIN_CODE0_SUPPORTED));
 
-    // 第一级寄存样本、偏移与增益乘积，第二级计算饱和前的三项和。
-    logic signed [IN_W-1:0]          x_s1;
-    logic signed [OFFSET_W-1:0]      off_s1;
-    logic signed [PROD_W-1:0]        prod_s1;
-    logic                            v_s1;
+    generate
+        if (GAIN_BINDING_VALID) begin : g_bound_gain
+            logic signed [10:0] gain_delta_s1;
+            always_ff @(posedge clk or negedge rst_n) begin
+                if (!rst_n) gain_delta_s1 <= '0;
+                else if (cancel) gain_delta_s1 <= '0;
+                else if (valid_in && gain_supported)
+                    gain_delta_s1 <= $signed({1'b0,gain_code}) - 11'sd512;
+            end
+            localparam logic signed [10:0] NUMERATOR = 11'(K_GAIN);
+            logic signed [30:0] product;
+            logic signed [PROD_W-1:0] scaled_product;
+            assign product = x_s1 * gain_delta_s1;
+            assign scaled_product = product * NUMERATOR;
+            assign scaled_gain = (scaled_product + (42'sd1 << (SHIFT-1))) >>> SHIFT;
+        end else begin : g_unity_only
+            assign scaled_gain = '0;
+        end
+    endgenerate
 
-
-    logic signed [PRODK_W-1:0]       prodk_s2;
-    logic signed [17:0]              corr_s2;
-    logic signed [SUM_W-1:0]         sum_s2;
-    logic signed [SUM_W-1:0]         x_ext, off_ext, sum_comb;
-    logic                            v_s2, lo_s2, hi_s2;
-
-    // 显式符号扩展，保证三数相加在位宽与符号上无歧义。
-    assign x_ext    = $signed({{(SUM_W-IN_W){x_s1[IN_W-1]}}, x_s1});
-    assign off_ext  = $signed({{(SUM_W-OFFSET_W){off_s1[OFFSET_W-1]}}, off_s1});
-    wire signed [SUM_W-1:0] corr_ext = $signed({{(SUM_W-18){corr_s2[17]}}, corr_s2});
-    assign sum_comb = x_ext + corr_ext + off_ext;
-
-    assign prodk_s2 = prod_s1 * K_GAIN_S;
-    // WAIVER(width-truncate): 增益项 |delta| <= 2^19*1.56% = 8176，18 bit 足够。
-    //     此处显式截为 18 bit；默认参数下高位仅为符号扩展。
-    // verilator lint_off WIDTHTRUNC
-    assign corr_s2  = (prodk_s2 + (1 << (SHIFT-1))) >>> SHIFT;   // 18 bit 足够（|delta|<=8176）
-    // verilator lint_on WIDTHTRUNC
+    wire signed [SUM_W-1:0] total =
+        {{24{x_s1[19]}}, x_s1} + {{32{offset_s1[11]}}, offset_s1} +
+        {{2{scaled_gain[PROD_W-1]}}, scaled_gain};
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            x_s1    <= '0;
-            off_s1  <= '0;
-            prod_s1 <= '0;
-            v_s1    <= 1'b0;
-        end else if (valid_in) begin
-            x_s1    <= $signed(x);
-            off_s1  <= offset_code;
-            // WAIVER(arith-width): 20-bit x 11-bit 有符号乘，结果 31 bit；
-            // 不要把两个操作数都扩到 31 bit，否则综合会多出大量无效部分积。
-            // verilator lint_off WIDTHEXPAND
-            prod_s1 <= $signed(x) * ($signed({1'b0, gain_code}) - 11'sd512);
-            // verilator lint_on WIDTHEXPAND
-            v_s1    <= 1'b1;
+            x_s1 <= '0; offset_s1 <= '0;
+            valid_s1 <= 1'b0; processing_reject <= 1'b0;
+            sum_s2 <= '0; valid_s2 <= 1'b0; low_s2 <= 1'b0; high_s2 <= 1'b0;
+            y <= '0; valid_out <= 1'b0; clip_low <= 1'b0; clip_high <= 1'b0;
+        end else if (cancel) begin
+            valid_s1 <= 1'b0; valid_s2 <= 1'b0; valid_out <= 1'b0;
+            clip_low <= 1'b0; clip_high <= 1'b0; processing_reject <= 1'b0;
         end else begin
-            v_s1    <= 1'b0;
-        end
-    end
-
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            sum_s2    <= '0;
-            v_s2      <= 1'b0;
-            lo_s2     <= 1'b0;
-            hi_s2     <= 1'b0;
-            y         <= '0;
-            valid_out <= 1'b0;
-            clip_low  <= 1'b0;
-            clip_high <= 1'b0;
-        end else begin
-            v_s2 <= v_s1;
-            if (v_s1) begin
-                sum_s2 <= sum_comb;
-                lo_s2  <= sum_comb < $signed({{(SUM_W-IN_W){MIN_CODE[IN_W-1]}}, MIN_CODE});
-                hi_s2  <= sum_comb > $signed({{(SUM_W-IN_W){MAX_CODE[IN_W-1]}}, MAX_CODE});
+            processing_reject <= valid_in && !gain_supported;
+            valid_s1 <= valid_in && gain_supported;
+            if (valid_in && gain_supported) begin
+                x_s1 <= $signed(x);
+                offset_s1 <= offset_code;
             end
-
-            if (v_s2) begin
-                if (lo_s2) begin
-                    y         <= {1'b1, {(IN_W-1){1'b0}}};   // MIN_CODE
-                    clip_low  <= 1'b1;
-                    clip_high <= 1'b0;
-                end else if (hi_s2) begin
-                    y         <= {1'b0, {(IN_W-1){1'b1}}};   // MAX_CODE
-                    clip_low  <= 1'b0;
-                    clip_high <= 1'b1;
-                end else begin
-                    y         <= sum_s2[IN_W-1:0];
-                    clip_low  <= 1'b0;
-                    clip_high <= 1'b0;
-                end
-                valid_out <= 1'b1;
-            end else begin
-                valid_out <= 1'b0;
-                clip_low  <= 1'b0;
-                clip_high <= 1'b0;
+            valid_s2 <= valid_s1;
+            if (valid_s1) begin
+                sum_s2 <= total[19:0];
+                low_s2 <= total < MIN_CODE;
+                high_s2 <= total > MAX_CODE;
+            end
+            valid_out <= valid_s2;
+            clip_low <= valid_s2 && low_s2;
+            clip_high <= valid_s2 && high_s2;
+            if (valid_s2) begin
+                if (low_s2) y <= 20'h80000;
+                else if (high_s2) y <= 20'h7ffff;
+                else y <= sum_s2[19:0];
             end
         end
     end
-
 endmodule
-
 `default_nettype wire

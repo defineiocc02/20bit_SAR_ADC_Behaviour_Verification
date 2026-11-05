@@ -1,46 +1,32 @@
-# README 结果图的数据
+# 首页历史数据与新结果的身份
 
-这些小文件是绘图所需的冻结数据，不是器件测量或完整仿真产物。
+af8／9bdf原有的JSON、NPZ与图数据按原字节保留。af8功能合同及9bdf文档保存了这些记录；实际受测源码仍由各JSON中的commit、dirty状态、源SHA和原输入确定，不能统称9bdf新运行。
 
-- `calibration_40m.npz` 保存两种噪声条件下的留出输入、标称权重输出和拟合
-  权重输出，各 16384 点；`calibration_40m.json` 记录 2026-11-04 对基线
-  `40ae71d` 的独立审计来源、原始文件 SHA-256、完整配置、训练摘要、留出
-  指标和异常计数。训练各 16384 点，参考为精确外部已知正弦。两条曲线的
-  留出数据与训练数据不同，但使用同一个模拟物理池。完整原始训练和观测
-  保留在当次审计产物中；本目录保存重画结果图所需的子集。
-- 当前 `interleave_40m.npz` 保留四个固定 A/B／generic 随机调度设置的
-  **内部浮点重构误差**，包括失调与电容/增益失配；`interleave_40m.json`
-  的 `rows` 与这些数组对应。它们已按当前 `sid[8]` bridge 合同重建，
-  不再使用旧合同数字。原始 `d809da6` 冻结原字节保存在
-  `historical/interleave_40m_d809da6.{json,npz}`，新旧 SHA、逐数组和逐键差异见
-  `historical/interleave_40m_bridge_contract_migration.json`。
-- 当前 `interleave_timing_40m.npz` 保存三条**最终 20 位整数码**对应的单边
-  线性功率谱及 `frequency_hz`，供首页三策略图读取；
-  `interleave_timing_codes_40m.npz` 保存同一三条 uint32 码序列。
-  `interleave_40m.json` 的 `timing_comparison` 记录固定 A/B、generic 空闲池
-  随机选择与结构 RTL allocator 的 Python 合同。它们共享 seed42 的物理时偏池、
-  输入和输出量化；结构项不表示本轮重新执行了 SV DUT。
-  参考误差 RMS 保留增益/相位偏差，SNDR 与 fit residual RMS 则剔除拟合基波，
-  不能将两种 RMS 当作同一指标。未使用逐 slice 失配估计器。
-- 在仓库根目录用现有工程 Python 环境重新仿真：
-  `python docs/readme/reproduce_interleave_40m.py --out <新外置目录> --compare-frozen`。
-  四个浮点误差数组保持 `rtol=0, atol=1e-14 V`；三条整数码及功率谱精确比较，
-  所有 key 和形状都必须一致，不能删除失败 case。JSON 自动记录实际生成时的
-  `source_head`、工作区 dirty 状态和含 producer 的 `source_sha256`；这些字段标识
-  生成快照，不手改成后续提交。未来 HEAD 不同不自动意味着数组已经失效。
-- `structural_calibration_holdout.npz` 保存两个静态失配种子的独立留出输入、
-  样本 ID 及结构 RTL 校准前后输出码。`structural_calibration_summary.json`
-  记录无额外噪声的训练／留出条件、结果和源文件哈希；
-  `structural_calibration_noise_summary.json` 记录假设 48 µV RMS 输入等效
-  噪声的另一组测试。它们是数字 RTL 与静态行为夹具的仿真，不是芯片测量。
+| 资产组 | 原用途与范围 | 当前使用方式 |
+| :--- | :--- | :--- |
+| calibration_40m.{json,npz} | 40ae71d等旧模型的独立静态校准，训练／留出分开 | 历史比较，不作为新默认模型或新RTL闭环性能 |
+| structural_calibration*_summary.json、structural_calibration_holdout.npz | 旧结构DUT＋固定静态plant，两颗失配种子及另一个48 µV假设噪声条件 | 保留原raw、均值／标准差／RMS、系数和源SHA；新calobs v2不沿用旧观察包 |
+| interleave_40m及timing数组 | 旧A/B、generic与旧RTL规则Python调度；浮点误差、最终整数码和谱分别保存 | 不称SV频谱或当前时偏／带宽补偿；原source_head与dirty记录不刷新 |
+| dither_headroom.json | 旧range／sampling／quantizer幅度网格，保留全部失败点与原端点 | 退役方案的历史诊断，不作为新Fig.19结果 |
+| randomization_contract.json及DEM专题 | 旧SID／零和bridge候选的名义规则与使用统计 | 解释旧方案，不能冒充源3D DEM或新效果 |
+| historical/ | d809da6等更早数组、迁移记录与原图身份 | 只按对应完整版本、输入和假设恢复 |
 
-`../make_unified_figures.py` 从这些文件重画对应曲线和当前校准流程图，
-`../make_contract_figures.py` 重画 bridge 与结构留出误差图；
-`tests/unit/test_readme_effect_evidence.py` 独立检查序列与数字指标是否一致。
-不同 NumPy/BLAS 环境重新拟合时末位可能不同；画图不需要重新拟合。
+只读历史重绘器`make_overview_figures.py`从冻结数据出图，输出`historical_architecture`、`historical_calibration`、`historical_interleave`、`historical_dither_headroom`的PNG／SVG及独立manifest。它不运行当前ADC或训练器，不覆盖库内原图／数据。
 
-## 本轮结构留出摘要
+```bash
+MPLBACKEND=Agg python docs/readme/make_overview_figures.py --out ../sar-output/history-overview-001
+```
 
-两份 structural_calibration*_summary.json 已由本轮最终冻结源码实际重新运行后更新；没有手工刷新旧运行的来源摘要。旧标准差、观察数据、冻结系数及寄存器摘要保持相同，新加的 mean/RMS 从实际最终整数码中心误差计算。raw留出轻量NPZ字节保持不变，重绘可独立重算统计。完整过程与来源对照见[本轮复核](../../reviews/20261105-readability-maintenance.md)。
+已删除的`reproduce_interleave_40m.py`和旧DEM／dither／结构训练复现器只在[9bdf完整快照](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/tree/9bdf7708f42733896d7ead89935be41b4258fb6f)恢复；当前树不保兼容入口。旧图重绘成功仅说明冻结数值与显示一致。
 
-本轮图1–4由 ../make_overview_figures.py 只读绘制；旧 unified_7 布局已从首页撤下，预维护图副本及摘要见 historical/interleave_figure_archive.json。
+新架构快照和新结果使用独立名称、源SHA、数据及绘图清单。中间Python003图／数组仅留库外；本轮最终Python／RTL结果须由实际冻结后的新运行产生，不更改旧JSON来继承通过。
+
+旧`sim/vectors/`的35个文件已按原字节迁至`docs/history/legacy_vectors_af8/`，配套README与SHA256SUMS用于核身份；旧manifest内部路径不改。另9份历史配置／系数／寄存器JSON保留原路径原字节。它们退出当前运行配置，完整历史实验仍须从[Git af8快照](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/tree/af8aa37d43db40eb896e369305883ec89786547b)恢复，不将历史bundle装作新schema2输入。
+
+`source_bound_static_calibration.json`和`source_bound_static_holdout.npz`提取自最终源码的实际`fullspan_positive`／`midrange_rank_negative`，绑定37c247c1…静态总收据、producer及36个loaded源码。中幅4096笔在rank1224/1279拒绝；正例512笔留出只覆盖[−2.6,+2.7] V，采样／RA随机噪声、dither和单元DEM关闭。[重新训练](../../REPRODUCING.md#3-静态校准重新训练固定与留出)与只读重绘分开；原执行的git_head和dirty状态原样保留。
+
+`source_bound_rtl_calibration.json`和`source_bound_rtl_holdout.npz`提取自实际`full_typechecked_001`的512个目标OUT、同ID参考以及同版5cfb生产Python／独立整数码。原DUT manifest及其PENDING字段不变；数据账本追加2871d822…统一收据，登记训练、名义、固定、组件四个实际重放，以及两组各25类损坏拒绝。`source_bound_fig19_evidence.json`使用同一DUT的实际早prefix记录，并在当前Python上重跑±2 V的64字离散点及−2.9 V／word32反例。
+
+本版重新提取的两件逐点NPZ和八件PNG／SVG与前次真实运行逐字相同；六份来源、生成与资产索引JSON绑定新记录。旧012／013、005／050–055及其中间收据仍保原身份；本次没有用新SHA改写原始记录。
+
+[资产索引](source_bound_assets_manifest.json)列出四张新图的PNG／SVG、绘图脚本、参数／逐点输入和生成清单。图数据仅为指定工程静态用例；未建立源3D DEM、连续全幅、真实参考建立、CAAZ组合或工艺签核。

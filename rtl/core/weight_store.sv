@@ -1,14 +1,15 @@
 // 模块：weight_store；物理权重、装载完整位图与精确行和缓存。
-// 端口/单位：默认18×71个48位unsigned Q30系数，合法0<W<2^47；row_total零扩展为64位。
+// 端口/单位：数组尺寸来自显式几何头；48位unsigned Q30系数满足0<W<2^47，行和为64位。
 // 时钟/复位：clk上升沿、同步低有效rst_n；reset清数值/行和/位图；clear只清位图并保留数值。
 // 接受：wr_en&&!clear_load&&!cfg_ready且地址/数值/容量合法时写；拒绝标志err_write为组合电平。
 // 替换：row_new=row_old-old_weight+new_weight，clear后仍须减去保留旧值；每row共享读旧值路径。
 // 读回：selected_weight为同写地址的组合值，越界返回0；load_complete表示本epoch全部物理项写过。
 // 适用域：1..32slice、1..128unit；静态容量界<2^59，可移除全局容量反馈但不改变合法写集合。
 // 实现边界：当前并行读系数映射为寄存器；改成RAM须重新建立带宽、延迟与调度合同。
-// 外部给定有效C/Cf（名义值或拟合后冻结值）；默认unit0..62为main、63..70为sub，不是物理C真值。
+// 外部给定有效C/Cf（名义值或拟合后冻结值）；unit先main后sub，分界由N_UNIT_MAIN声明，非物理C真值。
 // load_complete只证明本epoch每项都被合法写过，不证明训练满秩、拟合精度或动态误差已校准。
 // 来源：RTL_ARITHMETIC_CONTRACT.md §5、P2_INTERFACE.md §9；不运行参数学习。
+`timescale 1ns/1ps
 `include "rtl_params.vh"
 
 module weight_store #(
@@ -36,6 +37,8 @@ module weight_store #(
   end
 
   localparam int SUM_BITS = 64; // SUM_BITS: 与 recon_core 同一口径（P2 §9）
+  localparam int SLICE_INDEX_BITS = P_N_SLICES > 1 ? $clog2(P_N_SLICES) : 1;
+  localparam int UNIT_INDEX_BITS = P_N_UNITS > 1 ? $clog2(P_N_UNITS) : 1;
 
   localparam logic [W_BITS - 1:0] W_ZERO = {W_BITS{1'b0}};
   localparam logic [W_BITS - 1:0] W_MAX = 48'd1 << 47; // W_MAX: 2^47
@@ -49,8 +52,8 @@ module weight_store #(
       (64'(P_N_SLICES) * 64'(P_N_UNITS) * (64'(W_MAX) - 64'd1)) < SUM_MAX;
 
   // 每项<2^47，U项行和<2^(47+ceil(log2(U)))，故ROW_BITS足够且不丢精度。
-  // written描述“本epoch已写过”，不描述存储内容是否为0；clear后替换仍须减旧值，
-  // 否则第二次装载会把保留的数值重复累加，破坏重构分母与系数一致性。
+  // written描述“本epoch已写过”，不描述存储内容是否为0；clear后替换仍须减旧值，否则第二次装载会把保
+  // 留的数值重复累加，破坏重构分母与系数一致性。
   localparam int ROW_BITS = 47 + $clog2(P_N_UNITS);
   logic [P_N_SLICES - 1:0][ROW_BITS - 1:0] row_q;
 
@@ -117,10 +120,12 @@ module weight_store #(
     end else if (accept) begin
       // accept already guarantees 0 < wr_data < W_MAX. Expose the proven
       // zero high bit to synthesis without changing the wide port, precision,
-      // or rejection of out-of-range writes.
-      w_q[wr_slice][wr_unit] <= wr_data & (W_MAX - W_BITS'(1));
+      // or rejection of out-of-range writes. accept checked the full address before these
+      // width-qualified indexes. Invalid high bits are rejected, never aliased to a smaller
+      // geometry.
+      w_q[SLICE_INDEX_BITS'(wr_slice)][UNIT_INDEX_BITS'(wr_unit)] <= wr_data & (W_MAX - W_BITS'(1));
       sum_all <= sum_new;
-      written[wr_slice][wr_unit] <= 1'b1;
+      written[SLICE_INDEX_BITS'(wr_slice)][UNIT_INDEX_BITS'(wr_unit)] <= 1'b1;
     end
   end
 

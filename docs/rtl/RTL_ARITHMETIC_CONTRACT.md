@@ -1,5 +1,8 @@
 # RTL 算术契约（RTL arithmetic contract）
 
+> **历史合同（af8功能合同／9bdf文档快照）：**以下接口、码域、地址、位域和数值保留原记录，不作为新source binding／两采集端口／calobs v2的现行规范。当前合同的冻结状态见[CURRENT_INTERFACE_AND_ARITHMETIC.md](CURRENT_INTERFACE_AND_ARITHMETIC.md)。
+
+
 - 状态：**已冻结（P0 交付物 1/2）**，2026-09-18
 - 上位依据：`docs/adr/0014-fixed-point-output-contract.md`（不可变）、`src/adi_model/fixed_point.py`（实现）
 - 既有判据：`tests/unit/test_fixed_point.py`（8 个用例，本契约不得与之冲突）

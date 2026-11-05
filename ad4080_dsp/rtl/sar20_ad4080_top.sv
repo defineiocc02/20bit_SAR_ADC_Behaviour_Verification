@@ -1,125 +1,104 @@
 //=============================================================================
 // @file    sar20_ad4080_top.sv
-// @brief   SAR 结果到 DSP 的码制、故障与复位边界。
-// @details 入口和并行出口翻转最高位，在偏移二进制码与补码间转换；串行载荷保持补码。
-//          任一输入 flags 或模拟粘滞异常停止接收和输出，直至整个 DSP 重启。
-// @project SAR20 / AD4080风格数字原型
-// @author  项目维护者（贡献记录见版本库）
+// @brief   SAR 结果退役适配与持续故障隔离。
+// @details SAR 和本工程输出采用偏移二进制码，DSP 数值通路采用 20 bit 补码。
+//          任一 SAR 结果标志或模拟粘滞故障均停止接收，直至明确执行完整重启。
+//          上游 conversion_fault 独立传递无结果的转换失败，不按 valid 间隙或 ID 跳号推断。
+// @project SAR20 / source-bounded digital processing
+// @author  Project maintainers; contributions are tracked by Git.
 // @date    2026-11-05
-// @version 由Git内容版本追溯，不单独声明器件版本
+// @version Git content version; no separate device revision is implied.
 //-----------------------------------------------------------------------------
-// 手册依据: 无；本项目接口规则。
-// 时钟域: clk；SAR 数据、标志与控制均同步，不含 CDC。
-// 复位: 外部 rst_n 或 sar_epoch_clear/dsp_restart 异步断言 DSP 复位，须同步释放。
-// 延迟: sample_accepted/rejected 是入口组合事件，ID 仅在对应事件有效时解释。
-// 吞吐: 输入无 ready/反压，下游速率依赖滤波、FIFO 与串行配置。
-// 可综合性: RTL 结构；目标库映射、约束、SRAM/PHY 与 STA 须单独验收。
+// 手册依据: [设计约定] SAR 结果退役、配置代次与 DSP_G1_ACTIVE_2；不推断 AD4080 内部结构。
+// 时钟域: clk；所有结果退役和控制输入均同步。
+// 复位: rst_n 低有效；sar_epoch_clear 或 dsp_restart 也清 DSP 状态，不跨越缺失样本自动续流。
+// 延迟: 由所选 DSP 通路决定；入口接受/拒绝 ID 是组合诊断事件。
+// 吞吐: 每个 clk 最多一个退役结果。
+// 可综合性: 可综合结构；工艺映射、约束与 STA 需分别验收。
 // 依赖: ad4080_top。
-// 边界: DSP 重启清配置、滤波和 FIFO 控制状态，不清 SAR 模拟粘滞故障或初始化 RAM。
-//     输出不携带滤波窗口或结果 ID，不能将入口 accepted ID 当作滤波/FIFO 输出标签。
+// 边界: adc_idle/interface_ready 由外部判定；入口 ID 不是滤波或 FIFO 输出 ID。
 //=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
-
 module sar20_ad4080_top #(
-    parameter int FIFO_DEPTH = 16384
+    parameter int FIFO_DEPTH=16384,
+    parameter bit P_GAIN_MAP_VALID=1'b0,
+    parameter int K_GAIN=-1,
+    parameter int SHIFT=-1,
+    parameter bit P_GAIN_CODE0_SUPPORTED=1'b0,
+    parameter bit P_COMP_COEFF_VALID=1'b0,
+    parameter int C0=32'h40000000,
+    parameter int C1=32'h40000000,
+    parameter int C2=32'h40000000,
+    parameter int P_MULTIBYTE_ORDER=-1,
+    parameter int P_OFFSET_LSB_ADDR=-1,
+    parameter int P_PRODUCT_ID_L=-1,
+    parameter int P_SHORT_ADDR_BITS=-1,
+    parameter int P_WRITE_SDO_DRIVE=-1
 ) (
-    input  logic        clk,
-    input  logic        rst_n,
-    // 两个脉冲均复位 DSP 配置、滤波和 FIFO 控制状态；RAM 内容本身不初始化。
-    input  logic        sar_epoch_clear,
-    input  logic        dsp_restart,
-
-    // SAR 退役接口的 flags 顺序为 {clip_high, clip_low, adc2_ovf, gain_err, acc_ovf}，
-    // 五个标志均按故障处理。
-    input  logic [19:0] sar_dout,
-    input  logic        sar_dout_valid,
-    input  logic [31:0] sar_sample_id,
-    input  logic [4:0]  sar_flags,
-    // SAR analog_ovf 是独立粘滞状态，不在 sar_flags 内。
-    input  logic        sar_analog_ovf,
-
-    // ID 只限定入口接受/拒绝事件，不附加到滤波或 FIFO 输出。
-    output logic        sample_accepted,
+    input logic clk, rst_n, sar_epoch_clear, dsp_restart,
+    input logic [19:0] sar_dout,
+    input logic sar_dout_valid,
+    input logic [31:0] sar_sample_id,
+    input logic [4:0] sar_flags,
+    input logic sar_analog_ovf, sar_conversion_fault,
+    output logic sample_accepted,
     output logic [31:0] accepted_sample_id,
-    output logic        sample_rejected,
+    output logic sample_rejected,
     output logic [31:0] rejected_sample_id,
-    output logic [4:0]  rejected_flags,
-    output logic        rejected_after_fault,
-    output logic        stream_fault,
-
-    input  logic        cs_n,
-    input  logic        sclk,
-    input  logic        sdi,
-    output logic        sdo,
-    output logic        sdo_oe,
-    input  logic        cnv_p,
-    input  logic        cnv_n,
-    output logic        cnv_pulse,
-    input  logic        filter_sync,
-    input  logic        ext_event,
-    input  logic        arm,
-    input  logic        rd_en,
-    input  logic        bit_en,
-    output logic [1:0]  ser_data,
-    output logic [1:0]  ser_frame,
-    output logic        dco,
-    input  logic [3:0]  gpio_i,
-    output logic [3:0]  gpio_o,
-    output logic [3:0]  gpio_oe,
-
-    // 并行输出与 SAR 输入均采用偏移二进制码，串行载荷仍采用 DSP 的补码格式。
+    output logic [4:0] rejected_flags,
+    output logic rejected_after_fault, stream_fault,
+    input logic cs_n, sclk, sdi,
+    output logic sdo, sdo_oe,
+    input logic adc_idle, interface_ready,
+    input logic filter_sync, ext_event, arm, rd_en,
+    input logic [3:0] gpio_i,
+    output logic [3:0] gpio_o, gpio_oe,
     output logic [19:0] dout,
-    output logic        dout_valid,
-    output logic [7:0]  status,
-    output logic        correction_clip_low,
-    output logic        correction_clip_high
+    output logic dout_valid,
+    output logic [7:0] status,
+    output logic correction_clip_low, correction_clip_high,
+    output logic cfg_reject,
+    output logic [3:0] cfg_reject_reason,
+    output logic processing_reject
 );
-    wire dsp_rst_n = rst_n && !sar_epoch_clear && !dsp_restart;
-    wire input_fault = sar_dout_valid && (|sar_flags);
-    wire stream_active = dsp_rst_n && !stream_fault && !input_fault && !sar_analog_ovf;
-    wire [19:0] signed_input = {~sar_dout[19], sar_dout[18:0]};
-    wire [19:0] signed_output;
-    wire inner_valid;
-    wire [1:0] inner_ser_data, inner_ser_frame;
-    wire inner_dco;
-    wire inner_clip_low, inner_clip_high;
-
-    // 带标志的退役结果停止后续接收，直至整个 DSP 重启，避免 SAR 错误保持码进入滤波器。
+    wire dsp_rst_n=rst_n && !sar_epoch_clear && !dsp_restart;
+    wire input_fault=sar_dout_valid && (|sar_flags);
+    wire conversion_fault_active=(sar_conversion_fault !== 1'b0);
+    wire stream_active=dsp_rst_n && !stream_fault && !input_fault &&
+                       !sar_analog_ovf && !conversion_fault_active;
+    wire [19:0] signed_input={~sar_dout[19],sar_dout[18:0]};
+    logic [19:0] signed_output;
+    logic inner_valid,clip_low,clip_high;
     always_ff @(posedge clk or negedge dsp_rst_n) begin
-        if (!dsp_rst_n) stream_fault <= 1'b0;
-        else if (input_fault || sar_analog_ovf) stream_fault <= 1'b1;
+        if (!dsp_rst_n) stream_fault<=1'b0;
+        else if (input_fault || sar_analog_ovf || conversion_fault_active) stream_fault<=1'b1;
     end
-
-    assign sample_accepted = stream_active && sar_dout_valid;
-    assign accepted_sample_id = sar_sample_id;
-    assign sample_rejected = dsp_rst_n && sar_dout_valid &&
-                             (stream_fault || input_fault || sar_analog_ovf);
-    assign rejected_sample_id = sar_sample_id;
-    assign rejected_flags = sar_flags;
-    assign rejected_after_fault = sample_rejected && stream_fault;
-
-    ad4080_top #(.IN_W(20), .FIFO_DEPTH(FIFO_DEPTH)) u_dsp (
-        .clk(clk), .rst_n(dsp_rst_n),
-        .cs_n(cs_n), .sclk(sclk), .sdi(sdi), .sdo(sdo), .sdo_oe(sdo_oe),
-        .cnv_p(cnv_p), .cnv_n(cnv_n), .cnv_pulse(cnv_pulse),
-        .valid_in(sample_accepted), .x(signed_input),
-        .filter_sync(filter_sync), .ext_event(ext_event), .arm(arm),
-        .rd_en(rd_en && stream_active), .bit_en(bit_en),
-        .ser_data(inner_ser_data), .ser_frame(inner_ser_frame), .dco(inner_dco),
-        .gpio_i(gpio_i), .gpio_o(gpio_o), .gpio_oe(gpio_oe),
-        .dout(signed_output), .dout_valid(inner_valid), .status(status),
-        .correction_clip_low(inner_clip_low), .correction_clip_high(inner_clip_high)
+    assign sample_accepted=stream_active && sar_dout_valid;
+    assign accepted_sample_id=sar_sample_id;
+    assign sample_rejected=dsp_rst_n && sar_dout_valid &&
+                           (stream_fault || input_fault || sar_analog_ovf || conversion_fault_active);
+    assign rejected_sample_id=sar_sample_id;
+    assign rejected_flags=sar_flags;
+    assign rejected_after_fault=sample_rejected && stream_fault;
+    ad4080_top #(.IN_W(20),.FIFO_DEPTH(FIFO_DEPTH),
+        .P_GAIN_MAP_VALID(P_GAIN_MAP_VALID),.K_GAIN(K_GAIN),.SHIFT(SHIFT),
+        .P_GAIN_CODE0_SUPPORTED(P_GAIN_CODE0_SUPPORTED),.P_COMP_COEFF_VALID(P_COMP_COEFF_VALID),
+        .C0(C0),.C1(C1),.C2(C2),.P_MULTIBYTE_ORDER(P_MULTIBYTE_ORDER),
+        .P_OFFSET_LSB_ADDR(P_OFFSET_LSB_ADDR),.P_PRODUCT_ID_L(P_PRODUCT_ID_L),
+        .P_SHORT_ADDR_BITS(P_SHORT_ADDR_BITS),.P_WRITE_SDO_DRIVE(P_WRITE_SDO_DRIVE)) u_dsp (
+        .clk(clk),.rst_n(dsp_rst_n),.cs_n(cs_n),.sclk(sclk),.sdi(sdi),.sdo(sdo),.sdo_oe(sdo_oe),
+        .adc_idle(adc_idle),.interface_ready(interface_ready),
+        .valid_in(sample_accepted),.x(signed_input),.filter_sync(filter_sync),
+        .ext_event(ext_event),.arm(arm),.rd_en(rd_en && stream_active),
+        .gpio_i(gpio_i),.gpio_o(gpio_o),.gpio_oe(gpio_oe),
+        .dout(signed_output),.dout_valid(inner_valid),.status(status),
+        .correction_clip_low(clip_low),.correction_clip_high(clip_high),
+        .cfg_reject(cfg_reject),.cfg_reject_reason(cfg_reject_reason),.processing_reject(processing_reject)
     );
-
-    assign dout = {~signed_output[19], signed_output[18:0]};
-    // 故障同时抑制更早的在途结果；重启清除滤波/FIFO 状态，不跨缺失样本自动续流。
-    assign dout_valid = inner_valid && stream_active;
-    assign ser_data = stream_active ? inner_ser_data : 2'b00;
-    assign ser_frame = stream_active ? inner_ser_frame : 2'b00;
-    assign dco = stream_active && inner_dco;
-    assign correction_clip_low = inner_clip_low && stream_active;
-    assign correction_clip_high = inner_clip_high && stream_active;
+    assign dout={~signed_output[19],signed_output[18:0]};
+    assign dout_valid=inner_valid && stream_active;
+    assign correction_clip_low=clip_low && stream_active;
+    assign correction_clip_high=clip_high && stream_active;
 endmodule
-
 `default_nettype wire

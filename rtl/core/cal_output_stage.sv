@@ -8,6 +8,7 @@
 // 保留的dout却可能来自前次。下游必须按flags拒收，不能把旧字配给当前样本。
 // 同沿优先级：reset最高；clr_ovf先清粘滞位，同沿新完成错误重新置位；配置取消最后覆盖。
 // 来源：RTL_ARITHMETIC_CONTRACT.md §4；本模块不重新执行校准运算。
+`timescale 1ns/1ps
 `include "rtl_params.vh"
 module cal_output_stage #(
     parameter int P_OUT_BITS = int'(OUT_BITS)

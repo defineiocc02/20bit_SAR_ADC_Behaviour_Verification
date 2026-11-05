@@ -1,44 +1,49 @@
-# AD4080 风格数字子系统与 SAR 工程接入
+# SAR工程的并行DSP扩展
 
-> 结构 SAR 现有逐结果 `dout_analog_bad` 和可选校准观测口；本 DSP 接入层仍用模拟异常粘滞位停流，未传播该逐样本位。见 [接口合同](docs/SAR20_INTERFACE.md) 和 [ADR 0021](../docs/adr/0021-structural-contract-calibration.md)。
+> 15个现行模块的限定数字证据为handoff003：14指定场景、5严格lint profile。旧`cal_two_point`、`lvds_framer`和`settled`仅在af8／9bdf历史快照中解释。
 
-这是独立的数字处理原型：系统失调/增益校正、SINC 抽取、FIFO 捕获、SPI 寄存器、事件检测与串行帧逻辑。它与主工程共享验证环境，但不是 AD4080 芯片实现，也不包含模拟 ADC、DDR 差分 PHY、工艺 SRAM 或 ASIC 时序签核。
+本扩展实现系统增益／失调应用、输出SINC、捕获FIFO、配置SPI／寄存器和GPIO。它与SAR行为／数字校准工程连接，但不实现模拟ADC、片内位权学习、结果数据PHY、工艺SRAM或目标ASIC时序。[追溯表](docs/ad4080_traceability.md)将手册功能与工程选择分开。
 
-## 与本工程连接
+## 与SAR连接
 
-项目组合顶层 [`sar20_system_top.sv`](rtl/sar20_system_top.sv) 同时实例化真实 SAR 数字核和 DSP 接入层；也可单独实例化 [`sar20_ad4080_top.sv`](rtl/sar20_ad4080_top.sv)，从外部连接 SAR 的输出码、valid、sample ID 和结果标志。两侧同 `clk`，不包含 CDC。入口把工程的 20 位 offset-binary 转成 DSP 的二进制补码；并行输出转回 offset-binary，串行 payload 仍为补码。原 [`ad4080_top.sv`](rtl/ad4080_top.sv) 仍可单独使用，其输入和输出均为补码。
+[sar20_system_top](rtl/sar20_system_top.sv)连接真实SAR数字核和[sar20_ad4080_top](rtl/sar20_ad4080_top.sv)。核心仍需完整显式输入包、两只source绑定与真实模拟宏返回；DSP组合不会补齐这些设计输入。
 
-SAR 任一结果标志或单独的模拟溢出粘滞位置位时，接入层停止接收并锁存 `stream_fault`；结果 valid 和串行输出受到抑制。`dsp_restart` 清 DSP 故障但不清 SAR 模拟粘滞位，后者未清时会再次阻断；`sar_epoch_clear` 接 SAR 的 `cfg_clear_valid`，可同时清除并使 SAR 系数失效。**两种复位均清空 DSP 的 FIFO、滤波状态和寄存器配置**。输入接受/拒收事件携带对应 ID，但模拟粘滞位本身和滤波/FIFO 输出尚无逐结果 ID。完整时序和复位优先级见 [SAR20 接口契约](docs/SAR20_INTERFACE.md)。
+SAR端和适配层并行输出为20位offset-binary，内部DSP使用补码，入口／出口各翻转一次最高位。各结果、控制和清除按同一clk合同；SPI／GPIO同步器不代表整个系统CDC/RDC已签核。[SAR20接口](docs/SAR20_INTERFACE.md)定义接受、拒绝、异常和复位边界。
 
-## 数字功能
+任一SAR结果flag、模拟sticky或已报告的`conversion_fault`会live门控输入／输出并锁存stream_fault；该故障包括controller错误及CAAZ pair fault，独立于合并status的总线优先级。无raw有效时不伪造rejected ID；后续真实good raw即使flags0仍被拒收。输入侧accepted／rejected携带实际raw ID，滤波、FIFO与最终输出仍没有完整逐结果ID／flags／配置代次；未报告的任意ID缺口不由此检测或精确归因。
 
-| 模块 | 当前代码功能 | 边界 |
-|---|---|---|
-| [`sys_error_corr`](rtl/sys_error_corr.sv) | 20 位补码输入；增益、失调、饱和及校正级 clip 事件 | 定点系数和舍入按代码合同，需结合系统误差预算 |
-| [`cal_two_point`](rtl/cal_two_point.sv) | 固定横坐标 `x1/x2` 下的两点仿射拟合 | 若横坐标是已知输入、纵坐标是测得原始码，结果是正向传递系数，不能直接用作反向校正；未连接顶层自动学习控制器 |
-| [`sinc1_decim`](rtl/sinc1_decim.sv)、[`sinc5_decim`](rtl/sinc5_decim.sv)、[`sinc5_comp`](rtl/sinc5_comp.sv) | 直通、SINC1、SINC5 和 SINC5+额外 2 倍抽取结构 | SINC5 补偿 FIR 默认系数 `(1,0,0)` 为占位，不代表真实器件频响 |
-| [`result_fifo`](rtl/result_fifo.sv)、[`fifo_capture`](rtl/fifo_capture.sv) | FIFO 数据与捕获模式原型 | 与实际 SRAM 时序及器件所有边界条件尚未等价验证 |
-| [`spi_slave`](rtl/spi_slave.sv)、[`ad4080_regs`](rtl/ad4080_regs.sv) | Mode 3 SPI、寄存器、CRC 和 streaming 等数字逻辑 | 多字节访问顺序和 CRC 后续种子等仍需外部证据确认 |
-| [`lvds_framer`](rtl/lvds_framer.sv) | 单/双 lane 数字帧和 SDR 串行逻辑 | 单 lane 20 次使能/帧，16 时钟/样本的连续输入会覆盖数据；`bit_en` 恒高时 `dco` 不翻转；FIFO 读出未接入该串行路径。不含 DDR/差分 PHY |
-| [`ad4080_top`](rtl/ad4080_top.sv) | 将上述处理、控制和事件逻辑集成为数字顶层 | 尚无目标工艺综合和 STA；不能由仿真时钟证明 40 MS/s 时序 |
+## 实际模块与支持域
 
-`sys_error_corr` 的代码公式为 `delta = (x × (GAIN − 512) × 512 + 2^23) >>> 24`，然后加补码 OFFSET 并饱和。默认 `GAIN=512`、`OFFSET=0`。原有旧版说明中的无符号码制和 `511` 系数不适用于当前源码。
+| 组 | 当前模块与功能 | 需要保留的边界 |
+| :--- | :--- | :--- |
+| 系统校正 | [sys_error_corr](rtl/sys_error_corr.sv)应用增益／失调并报告clip；[ad4080_dsp_chain](rtl/ad4080_dsp_chain.sv)组合处理 | 非unity增益律必须显式绑定；没有逆向两点系数求解或片内C/Cf学习器 |
+| 输出滤波 | [sinc1_decim](rtl/sinc1_decim.sv)、[sinc5_decim](rtl/sinc5_decim.sv)、[sinc5_comp](rtl/sinc5_comp.sv) | valid只是数值输出；没有基于真实CNV的settled／ready承诺。补偿需明确有效系数，缺项拒绝，不放单位占位 |
+| 捕获与队列 | [result_fifo](rtl/result_fifo.sv)、[fifo_capture](rtl/fifo_capture.sv) | 一条捕获链；完成／未完成记录、早事件和再arm分别检查。存储宏与物理时序另验 |
+| 配置与GPIO | [spi_slave](rtl/spi_slave.sv)、[ad4080_regs](rtl/ad4080_regs.sv)、[event_detect](rtl/event_detect.sv)、[gpio_ctrl](rtl/gpio_ctrl.sv) | 实体访问、CRC／状态、SDO使能、事件路由与拒绝原因有实现；器件全协议和电气仍需验证 |
+| 顶层与代理 | [ad4080_top](rtl/ad4080_top.sv)、两个SAR封装和[cnv_ctrl](rtl/cnv_ctrl.sv) | 并行DSP加配置接口；cnv_ctrl是独立数字代理，不是差分接收器或SAR转换启动 |
 
-AD4080 手册的两点校正以**测得原始码**为横坐标、已知输入对应的目标码为纵坐标；一般情况下原始码差是变化的分母。当前 `cal_two_point` 的分母是编译期固定值，只有调用方能提供固定原始码对应的目标码时才可按这一方式使用。实际器件的外部两点测量若采用固定输入和可变原始码，仍需逆向系数计算及验证，不能把现有正向拟合测试当成校正闭环。手册正文的每码增益分辨率按 512 描述，而寄存器表的正负端点跨 511 码；本原型选择后者，具体器件一致性仍待确认。
+无法从手册唯一确证的增益映射、字节顺序、地址／ID、短指令范围、写相SDO行为及补偿系数，由明确参数绑定或拒绝受影响的功能。参数存在／可保存不表示相应物理接口完成。
 
-CNV数字代理以`cnv_p`表示逻辑正相，LVDS模式的互补引脚不能通过XOR当作数据；真实差分接收器仍在RTL之外。配置SPI现在只在同步片选有效、完整数据/CRC边界提交，片选退出会清除残帧状态；共享SCLK在同步片选取消后不得产生寄存器写。该保证以同步检测到的CS为边界，主机仍须满足过采样和片选建立/保持裕量。新自检台`cnv_ctrl_contract_tb`及`spi_abort_contract_tb`覆盖此合同，并检查长/短指令状态回传位序。
+已删除的正向两点拟合不能恢复成默认校准器。真正的系统逆校准需以测得raw码与独立已知输入求系数，再验证定点应用；这与本工程上游有效C/Cf训练也不是同一任务。旧SDR串行候选删除后，结果数据PHY仍是未实现项。
 
-## 验证
+## 复位与外部资格
+
+硬复位、dsp_restart和sar_epoch_clear按适配层合同撤销状态；epoch clear同时使SAR系数失效并要求重载。配置SPI的软件复位是另一协议：仅在外部adc_idle真实为真且没有未完成捕获／读写活动时允许，重置配置并保留已完成捕获记录的读出会话。不可把adc_idle或interface_ready常绑1来绕过资格。
+
+实际系统已验证三类controller来源：必要source边界缺失(error13)、coarse valid缺失(error7)、fine valid缺失(error8)；每类故障后4个真实good raw被拒，dsp_restart无法越过持续的上游fault，真实epoch clear＋完整系数重载恢复。核心仍继续转换／观察，fault不是模拟idle。正常停采→排空→park→独立idle ack后的非空捕获记录跨软件复位仍OPEN；native DSP的保记录正例不替代系统quiet条件。CAAZ＋DSP尚未启用验证。
+
+## 怎样验证
 
 ```bash
-# 在仓库根目录：SAR 结构核接入 DSP 的实际集成测试
-python tools/run_open_rtl.py --tops sar20_dsp_integration_tb sar20_system_top_tb
-
-# 独立的 7 个 DSP 自检台（需要 Icarus Verilog）
-BUILD_DIR="${TMPDIR:-/tmp}/ad4080-dsp-build" bash ad4080_dsp/sim/run_all.sh
-
-# Python 定点参考模型
-python ad4080_dsp/model/ad4080_cal_model.py
+# 从仓库根目录显式选择独立组件与库外新目录
+python tools/run_open_rtl.py --tops result_fifo_tb --out ../sar-output/fifo-check-001
+# 需要完整SAR绑定的系统检查另外提供 --inputs-dir 等明确输入
 ```
 
-集成测试使用实际 `sar20_digital_core` 与项目接入顶层，另注入边界码和五类 SAR 结果错误，检查故障与重启。独立测试覆盖校正、SINC5、FIFO、SPI 和 DSP 顶层；通过状态以实际运行日志为准。[历史完成度记录](docs/status_completion.md) 与 [历史仿真记录](docs/verification_sim.md) 是产生时的归档，含旧版评估和工具环境，不替代当前回归或 ASIC 签核。
+handoff003的15源SHA与当前模块一致，14个指定场景实际通过（FIFO含同bench的两个深度，不是14个独立顶层）；5个严格-Wall profile无warning／waiver。真实系统有185次完整20位比较、214次source握手、15448项检查，三个epoch恢复与三个restart阻断均有非空事件。原收据SHA256为`5daa8995a78ac9a34d51a09a4802099d3d6f6c37a0cc2f6575c7c84062a9b5f3`，复现所用输入与数学参数见[tooling](docs/tooling.md)。
+
+整链数值对拍覆盖unity／OFFSET0与bypass。SINC1／SINC5和补偿FIR有各自独立数值oracle，但filter_sel1/2/3经过完整DSP链的数值路由尚未对拍；kernel正确不能替代选择器与链路组合验证。GPIO／事件检测的证据限native top中实际输入回读、释放、阈值路由与ALERT，不声称所有选择功能或CDC通过。[逐模块证据](../docs/digital_status_matrix.md#15个dsp扩展模块)分开登记。
+
+`ad4080_dsp/sim/run_all.sh`只是同一显式组件runner的转发；不再代表默认7台或历史5/5集合。源、工具、参数、计数和断言范围以每次manifest为准。静态／文本工具用法见[tooling](docs/tooling.md)，注释与代码约定见[coding_standard](docs/coding_standard.md)。
+
+[历史仿真](docs/verification_sim.md)、[旧BMC](docs/formal.md)、[ECP5记录](docs/synthesis_ecp5.md)和[完成度百分比](docs/status_completion.md)保留旧身份，不作为当前源通过。当前全局状态以[B表](../docs/digital_status_matrix.md)及最终新收据为准。

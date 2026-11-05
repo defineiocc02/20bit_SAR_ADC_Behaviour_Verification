@@ -1,5 +1,7 @@
 # 系统级斩波辅助自归零：原文机制与本工程接入合同
 
+> **af8／9bdf历史专题。** 本页原正文、数据、图和命令按原字节保留；其中“当前”“本轮”和通过数量仅描述原记录，不表示新主线实现。旧SID／bridge、sampling／range／固定4倍扰动及旧748位接口已退出当前运行，正文命令须在对应完整Git历史下解释。现行来源与未实现项见[A表](../current_digital_source_map.md)，实际状态与证据见[B表](../digital_status_matrix.md)，接口见[ABI2合同](../rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)。[原专题固定快照](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/caaz/README.md)保留旧链接语境；此横幅不改变旧结论或数值。
+
 CAAZ（chopping-assisted auto-zero）在偶数次原始转换时更新自归零，奇数次保持同一个自归零噪声样本并反转输入，最后对两笔已校准结果做“偶减奇、除以二”。本工程采用 **40 MS/s 原始转换、20 MS/s 成对输出**作为候选合同。该速率是工程选择；原型的“6 MS/s”没有在现有资料中明确拆成内部原始转换率和成对有效输出率。
 
 该机制登记为 `X02 / OPTIONAL_SOURCE_EXTENSION`；本合同要求扩展默认关闭。本文给出来源、模拟状态和数字接口。来源已逐页核读；候选模型、RTL、模拟电路及目标工艺时序应分别验收，具体实现结果由各自证据记录补充。

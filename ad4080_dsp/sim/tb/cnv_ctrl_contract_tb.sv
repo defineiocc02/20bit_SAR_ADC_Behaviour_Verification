@@ -1,51 +1,36 @@
 `timescale 1ns/1ps
-// 检查两种数字 CNV 配置下的逻辑上升沿、单拍事件和忙时错误计数，不验证差分接收器。
+// 检查已译码输入边沿的单拍事件、busy 错误计数和复位释放，不验证电气 CNV 接收。
 module cnv_ctrl_contract_tb;
-  logic clk=0;
-  always #5 clk=~clk;
-  logic rst_n=0,cnv_p=0,cnv_n=0,lvds_en=0,busy=0;
+  logic clk=0,rst_n=0,cnv_p=0,busy=0;
   wire cnv_pulse,cnv_err;
-  cnv_ctrl dut(.*);
-  int pulse_count=0,error_count=0,checks=0;
-  logic previous_pulse=0;
-  task automatic tick(input int count);
-    repeat(count)begin @(negedge clk);#1;end
+  always #5 clk=~clk;
+  cnv_ctrl dut(.clk(clk),.rst_n(rst_n),.cnv_p(cnv_p),.busy(busy),.cnv_pulse(cnv_pulse),.cnv_err(cnv_err));
+  int pulses=0,errors=0,checks=0;
+  bit previous_pulse=0;
+  task automatic tick(input int n); repeat(n) begin @(negedge clk); #1; end endtask
+  task automatic require(input bit yes,input string why);
+    checks++; if(!yes)$fatal(1,"CNV: %s",why);
   endtask
-  task automatic require(input bit condition,input string message);
-    checks++;
-    if(!condition)$fatal(1,"CNV contract: %s",message);
-  endtask
-  always @(posedge clk)begin
+  always @(posedge clk) begin
     #1;
-    if(!rst_n)begin
-      pulse_count=0;error_count=0;previous_pulse=0;
-    end else begin
-      require(!(previous_pulse && cnv_pulse),"pulse wider than one clk");
-      if(cnv_pulse)pulse_count++;
-      if(cnv_err)error_count++;
+    if(rst_n)begin
+      require(!(previous_pulse&&cnv_pulse),"decoded event pulse wider than one clock");
+      if(cnv_pulse)pulses++;
+      if(cnv_err)errors++;
       previous_pulse=cnv_pulse;
-    end
+    end else previous_pulse=0;
   end
   initial begin
-    for(int mode=0;mode<2;mode++)begin
-      rst_n=0;lvds_en=1'(mode);cnv_p=0;cnv_n=1'(mode);busy=0;
-      tick(3);rst_n=1;tick(6);
-      require(pulse_count==0,"idle reset release produced a CNV");
-      for(int k=0;k<3;k++)begin
-        cnv_p=1;cnv_n=0;tick(5);
-        cnv_p=0;cnv_n=1'(mode);tick(5);
-      end
-      require(pulse_count==3,"three input rising edges must yield three pulses");
-      require(error_count==0,"idle converter produced a busy error");
-      busy=1;
-      for(int k=0;k<2;k++)begin
-        cnv_p=1;cnv_n=0;tick(5);
-        cnv_p=0;cnv_n=1'(mode);tick(5);
-      end
-      require(pulse_count==5 && error_count==2,"busy error count mismatch");
+    tick(3);rst_n=1;tick(6);
+    require(pulses==0&&errors==0,"idle release produced event");
+    for(int n=0;n<5;n++)begin
+      busy=(n>=3);cnv_p=1;tick(5);cnv_p=0;tick(5);
     end
-    $display("CNV_CTRL_CONTRACT_COMPLETE modes=2 input_edges=10 checks=%0d",checks);
-    $display("CNV_CTRL_CONTRACT_TB PASS");$finish;
+    require(pulses==5&&errors==2,"decoded event/busy counts");
+    rst_n=0;tick(3);rst_n=1;busy=0;tick(5);
+    require(pulses==5&&errors==2,"reset release produced spurious event");
+    require(checks>40,"vacuous checks");
+    $display("CNV_CTRL_CONTRACT_COMPLETE input_edges=5 busy_errors=%0d pulses=%0d checks=%0d",errors,pulses,checks);$finish;
   end
   initial begin #20000;$fatal(1,"CNV watchdog");end
 endmodule

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
-import shutil
 import sys
 from pathlib import Path
 
@@ -31,6 +30,21 @@ def _load(name: str, path: Path):
 mrt = _load("mutate_rtl_under_test", TOOLS / "mutate_rtl.py")
 
 OP_NAMES = {op.name for op in mrt.OPERATORS}
+
+
+@pytest.fixture
+def declared_headers(tmp_path, monkeypatch):
+    """从显式component声明生成参数头，另提供实际错误码头，不依赖旧默认包。"""
+    from _rtl_test_support import blob, copy_inputs, load_tool
+
+    inputs = copy_inputs(tmp_path)
+    exporter = load_tool("export_rtl_params", monkeypatch)
+    content = exporter.build(inputs.config, inputs.format, inputs.binding)["rtl_params.vh"]
+    directory = tmp_path / "declared_headers"
+    directory.mkdir()
+    parameters = directory / "rtl_params.vh"
+    parameters.write_bytes(blob(content))
+    return (TOOLS.parent / "rtl/params/rtl_error_codes.vh", parameters)
 
 
 def _hash_tree(root: Path) -> dict[str, str]:
@@ -180,7 +194,9 @@ def test_expr_delete_reproduces_documented_mutants(
         if site.op == "ExprDelete" and site.rel == rel and site.line == line
     ]
     assert len(sites) == (6 if term == 5 else 2)
-    destination = mrt.inject(sites=[sites[term]], name="t", out_root=tmp_path, rtl_root=rtl_root)
+    destination = mrt.inject(
+        sites=[sites[term]], name="t", out_root=tmp_path, rtl_root=rtl_root, headers=[]
+    )
     got = (destination / rel).read_bytes()
     assert got == source.replace(source_line, expect_line).encode("utf-8")
     got_line = got.splitlines()[line - 1].decode("utf-8")
@@ -190,7 +206,7 @@ def test_expr_delete_reproduces_documented_mutants(
     assert original.read_bytes() == source.encode("utf-8")
 
 
-def test_expr_delete_removes_current_sticky_self_hold(tmp_path):
+def test_expr_delete_removes_current_sticky_self_hold(tmp_path, declared_headers):
     """当前生产状态寄存器仍支持单行自保持删除，按符号定位而不绑定旧行号。"""
     rel = "rtl/core/status_regs.sv"
     line = _code_line(rel, "<= acc_ovf_sticky")
@@ -201,13 +217,19 @@ def test_expr_delete_removes_current_sticky_self_hold(tmp_path):
     ]
     assert len(sites) == 2
     before = _hash_tree(mrt.RTL_ROOT)
-    destination = mrt.inject(sites=[sites[0]], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT)
+    destination = mrt.inject(
+        sites=[sites[0]],
+        name="t",
+        out_root=tmp_path,
+        rtl_root=mrt.RTL_ROOT,
+        headers=declared_headers,
+    )
     got = (destination / rel).read_text(encoding="utf-8").splitlines()
     assert got[line - 1] == "        acc_ovf_sticky    <= ev_acc_ovf;"
     assert _hash_tree(mrt.RTL_ROOT) == before
 
 
-def test_injection_is_byte_faithful_outside_the_site(tmp_path):
+def test_injection_is_byte_faithful_outside_the_site(tmp_path, declared_headers):
     """检查目标行以外逐字节不变，目标行的换行形式也保持原样。
 
     检出策略可产生 LF，旧工作树也可能保留 CRLF；本断言不选择哪一种正确，只要求
@@ -221,7 +243,9 @@ def test_injection_is_byte_faithful_outside_the_site(tmp_path):
         and s.rel == "rtl/core/weight_store.sv"
         and s.line == _code_line("rtl/core/weight_store.sv", "assign w_ok")
     )
-    dst = mrt.inject(sites=[site], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT)
+    dst = mrt.inject(
+        sites=[site], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT, headers=declared_headers
+    )
 
     changed = []
     for rel, h in before.items():
@@ -245,21 +269,32 @@ def test_injection_is_byte_faithful_outside_the_site(tmp_path):
     assert _hash_tree(mrt.RTL_ROOT) == before
 
 
-def test_injection_never_touches_the_original_rtl(tmp_path):
+def test_injection_never_touches_the_original_rtl(tmp_path, declared_headers):
     """注入**不得**改动原 `rtl/`（这是"原 rtl 一个字节不动"的可执行凭据）。"""
     before = _hash_tree(mrt.RTL_ROOT)
-    mrt.enumerate_sites(mrt.RTL_ROOT)
-    sites = mrt.enumerate_sites(mrt.RTL_ROOT)[:5]
-    mrt.inject(sites=sites, name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT)
+    sites = []
+    selected_files = set()
+    for site in mrt.enumerate_sites(mrt.RTL_ROOT):
+        if site.rel not in selected_files:
+            sites.append(site)
+            selected_files.add(site.rel)
+        if len(sites) == 5:
+            break
+    assert len(sites) == 5
+    mrt.inject(
+        sites=sites, name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT, headers=declared_headers
+    )
     assert _hash_tree(mrt.RTL_ROOT) == before
 
 
-def test_nsub_delete_keeps_line_numbering(tmp_path):
+def test_nsub_delete_keeps_line_numbering(tmp_path, declared_headers):
     """`NSubDelete` 以注释形式落回原行 ⇒ 行数不变，行号可用作回溯坐标。"""
     sites = [s for s in mrt.enumerate_sites(mrt.RTL_ROOT) if s.op == "NSubDelete"]
     assert sites
     s = sites[0]
-    dst = mrt.inject(sites=[s], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT)
+    dst = mrt.inject(
+        sites=[s], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT, headers=declared_headers
+    )
     src_n = len(
         (mrt.RTL_ROOT.parent / s.rel).read_text(encoding="utf-8", errors="replace").splitlines()
     )
@@ -268,14 +303,16 @@ def test_nsub_delete_keeps_line_numbering(tmp_path):
     assert new[s.line - 1].strip().startswith("// [MUT NSubDelete]")
 
 
-def test_nsub_move_swaps_two_adjacent_lines(tmp_path):
+def test_nsub_move_swaps_two_adjacent_lines(tmp_path, declared_headers):
     """`NSubMove` 交换相邻两条同缩进非阻塞赋值，且**不改变行数**。"""
     sites = [s for s in mrt.enumerate_sites(mrt.RTL_ROOT) if s.op == "NSubMove"]
     assert sites
     s = sites[0]
     src = (mrt.RTL_ROOT.parent / s.rel).read_text(encoding="utf-8", errors="replace").splitlines()
     assert "\n" in s.span, "move 的 span 必须跨两行"
-    dst = mrt.inject(sites=[s], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT)
+    dst = mrt.inject(
+        sites=[s], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT, headers=declared_headers
+    )
     new = (dst / s.rel).read_text(encoding="utf-8", errors="replace").splitlines()
     assert len(new) == len(src)
     assert new[s.line - 1] == src[s.line] and new[s.line] == src[s.line - 1]
@@ -298,12 +335,14 @@ def test_uniform_sampling_is_seeded_and_deduplicated():
     assert [x.key for x in a] != [x.key for x in c]
 
 
-def test_manifest_records_every_site(tmp_path):
+def test_manifest_records_every_site(tmp_path, declared_headers):
     """`mutant.json` 必须逐条记下 from/to/op/位置，否则 campaign 无法回链证据。"""
     import json
 
     s = next(x for x in mrt.enumerate_sites(mrt.RTL_ROOT) if x.op == "EdgeFlip")
-    dst = mrt.inject(sites=[s], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT)
+    dst = mrt.inject(
+        sites=[s], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT, headers=declared_headers
+    )
     man = json.loads((dst / "mutant.json").read_text(encoding="utf-8"))
     assert man["sites"][0]["op"] == "EdgeFlip"
     assert man["sites"][0]["rel"] == s.rel
@@ -322,12 +361,60 @@ def test_rtl_files_match_the_compilation_manifest():
     assert not any("params" in r for r in rels)
 
 
-def test_shutil_rmtree_guard_is_used(tmp_path):
-    """同名变异体目录会被干净重建（不会把上一次的残留混进来）。"""
+def test_existing_mutant_is_rejected_without_destroying_previous_results(
+    tmp_path, declared_headers
+):
     s = next(x for x in mrt.enumerate_sites(mrt.RTL_ROOT) if x.op == "EdgeFlip")
-    d1 = mrt.inject(sites=[s], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT)
-    (d1 / "STALE").write_text("x", encoding="utf-8")
-    d2 = mrt.inject(sites=[s], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT)
-    assert d1 == d2
-    assert not (d2 / "STALE").exists()
-    shutil.rmtree(tmp_path / "t", ignore_errors=True)
+    first = mrt.inject(
+        sites=[s], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT, headers=declared_headers
+    )
+    marker = first / "STALE"
+    marker.write_bytes(b"preserved user evidence")
+    original = {
+        p.relative_to(first).as_posix(): p.read_bytes() for p in first.rglob("*") if p.is_file()
+    }
+    with pytest.raises(FileExistsError, match="refusing existing"):
+        mrt.inject(
+            sites=[s], name="t", out_root=tmp_path, rtl_root=mrt.RTL_ROOT, headers=declared_headers
+        )
+    assert {
+        p.relative_to(first).as_posix(): p.read_bytes() for p in first.rglob("*") if p.is_file()
+    } == original
+
+
+def test_all_declared_headers_are_copied_with_identity_but_no_compile_claim(
+    tmp_path, declared_headers
+):
+    import json
+
+    site = next(s for s in mrt.enumerate_sites(mrt.RTL_ROOT) if s.op == "EdgeFlip")
+    destination = mrt.inject(
+        sites=[site],
+        name="headers",
+        out_root=tmp_path,
+        rtl_root=mrt.RTL_ROOT,
+        headers=declared_headers,
+    )
+    manifest = json.loads((destination / "mutant.json").read_text())
+    assert manifest["status"] == "GENERATED_NOT_COMPILED"
+    assert manifest["compiled"] is False and manifest["simulation_executed"] is False
+    assert manifest["header_sha256"] == {
+        str(p.resolve()): hashlib.sha256(p.read_bytes()).hexdigest() for p in declared_headers
+    }
+    for original in declared_headers:
+        copies = list(destination.rglob(original.name))
+        assert len(copies) == 1
+        assert copies[0].read_bytes() == original.read_bytes()
+
+
+def test_overlapping_sites_are_rejected_before_any_output_is_created(tmp_path, declared_headers):
+    site = next(s for s in mrt.enumerate_sites(mrt.RTL_ROOT) if s.op == "EdgeFlip")
+    with pytest.raises(ValueError, match="overlapping"):
+        mrt.inject(
+            sites=[site, site],
+            name="overlap",
+            out_root=tmp_path,
+            rtl_root=mrt.RTL_ROOT,
+            headers=declared_headers,
+        )
+    assert not (tmp_path / "overlap").exists()

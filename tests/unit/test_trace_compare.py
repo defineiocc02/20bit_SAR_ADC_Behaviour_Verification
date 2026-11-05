@@ -1,8 +1,7 @@
-"""用正、反例检查 tools/trace_compare.py 的公共前缀判据。
+"""检查完整显式轨迹的逐字段字符串比较与失败关闭边界。
 
-按行序比较公共前缀内每个字段的字符串，时间列也参与比较；X/Z 是已观测值，
-公共前缀之外的行不计差异。每项同时设置有差异与无差异案例，避免恒判 killed
-或恒判 unobserved 的实现仍通过。原判据说明见审计文档 §4。
+保留 X/Z、全部字段及正反对照；空轨迹、缺行、多行或缺列均拒绝，不能由公共
+前缀相同推断执行完整或 HDL 等价。
 """
 
 from __future__ import annotations
@@ -90,20 +89,14 @@ def test_index_field_difference_is_killed(tmp_path):
     assert r["per_field"]["sample_idx"] == 1
 
 
-def test_beyond_common_prefix_is_not_observable(tmp_path):
-    """**公共前缀之外不算**：变异体少跑了几行不构成差异（但要标 truncated）。"""
-    r = _cmp(tmp_path, GOLD, GOLD[:3])
-    assert r["verdict"] == "unobserved"
-    assert r["common_prefix"] == 3
-    assert r["truncated"] is True
+def test_shortened_trace_is_rejected_without_an_unobserved_verdict(tmp_path):
+    with pytest.raises(ValueError, match="lengths"):
+        _cmp(tmp_path, GOLD, GOLD[:3])
 
 
-def test_extra_rows_in_mutant_are_not_observable(tmp_path):
-    """变异体多出来的行同样不算差异（论文只比公共前缀）。"""
-    r = _cmp(tmp_path, GOLD, [*GOLD, "5 0f 0 1", "6 10 0 1"])
-    assert r["verdict"] == "unobserved"
-    assert r["common_prefix"] == len(GOLD)
-    assert r["truncated"] is False
+def test_extra_rows_are_rejected_instead_of_ignored(tmp_path):
+    with pytest.raises(ValueError, match="lengths"):
+        _cmp(tmp_path, GOLD, [*GOLD, "5 0f 0 1", "6 10 0 1"])
 
 
 def test_x_z_count_as_observed_values(tmp_path):
@@ -138,24 +131,16 @@ def test_comment_and_blank_lines_are_skipped(tmp_path):
     assert r["n_golden"] == len(GOLD)
 
 
-def test_empty_mutant_trace_is_unobserved_but_truncated(tmp_path):
-    """检查空变异轨迹没有公共前缀差异，但必须记录 truncated。
-
-    完整执行是独立判据，截断不并入 verdict，也不能据 unobserved 推断等价。
-    截断诊断供调用方按执行完整性规则处理。
-    """
-    r = _cmp(tmp_path, GOLD, [])
-    assert r["verdict"] == "unobserved"
-    assert r["common_prefix"] == 0
-    assert r["truncated"] is True
-    assert r["n_mutant"] == 0
+def test_empty_trace_is_rejected_before_any_comparison(tmp_path):
+    with pytest.raises(ValueError, match="no observed"):
+        _cmp(tmp_path, GOLD, [])
 
 
 def test_bad_column_count_is_an_error(tmp_path):
     """列数不等于 schema 时必须报错，不能静默按前缀切。"""
     g = _write(tmp_path / "g.txt", GOLD)
     m = _write(tmp_path / "m.txt", ["0 0a 0"])
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError):
         tc.read_trace(m, FIELDS)
     assert tc.read_trace(g, FIELDS)[0].fields == ("0", "0a", "0", "0")
 
@@ -177,3 +162,73 @@ def test_each_field_can_independently_kill(tmp_path, mutant_row, expect_field):
     assert r["killed"] is True
     assert r["per_field"][expect_field] == 1
     assert sum(r["per_field"].values()) == 1
+
+
+@pytest.mark.parametrize("fields", [(), ("a", "a"), ("a b",), ("",)])
+def test_field_schema_must_be_explicit_unique_single_tokens(fields):
+    with pytest.raises(ValueError):
+        tc.compare([tc.Row(1, ("0",))], [tc.Row(1, ("0",))], fields)
+
+
+@pytest.mark.parametrize("expected", [0, True, 4, 6])
+def test_declared_row_count_cannot_be_filled_or_coerced(tmp_path, expected):
+    path = _write(tmp_path / "exact.txt", GOLD)
+    records = tc.read_trace(path, FIELDS)
+    with pytest.raises(ValueError):
+        tc.compare(records, records, FIELDS, expected_rows=expected)
+
+
+def test_cli_records_exact_input_bytes_without_claiming_hdl_execution(tmp_path, capsys):
+    import hashlib
+    import json
+
+    golden = _write(tmp_path / "gold.trace", GOLD)
+    mutant = _write(tmp_path / "mutant.trace", [*GOLD[:-1], "4 changed 0 1"])
+    output = tmp_path / "analysis"
+    rc = tc.main(
+        [
+            "--golden",
+            str(golden),
+            "--mutant",
+            str(mutant),
+            "--fields",
+            ",".join(FIELDS),
+            "--expected-rows",
+            "5",
+            "--out",
+            str(output),
+            "--json",
+        ]
+    )
+    assert rc == 0
+    result = json.loads(capsys.readouterr().out)
+    assert result["compared_rows"] == 5 and result["diff_rows"] == 1
+    assert result["equivalence_proof"] is False and result["hdl_execution_verified"] is False
+    assert result["input_sha256"]["golden"] == hashlib.sha256(golden.read_bytes()).hexdigest()
+    assert (output / "golden.trace").read_bytes() == golden.read_bytes()
+    assert (output / "mutant.trace").read_bytes() == mutant.read_bytes()
+    original = (output / "trace_comparison.json").read_bytes()
+    assert (
+        tc.main(
+            [
+                "--golden",
+                str(golden),
+                "--mutant",
+                str(mutant),
+                "--fields",
+                ",".join(FIELDS),
+                "--expected-rows",
+                "5",
+                "--out",
+                str(output),
+            ]
+        )
+        == 2
+    )
+    assert (output / "trace_comparison.json").read_bytes() == original
+
+
+def test_malformed_rows_are_rejected_even_when_both_lists_have_equal_length():
+    incomplete = [tc.Row(1, ("0", "word", "0"))]
+    with pytest.raises(ValueError, match="all declared"):
+        tc.compare(incomplete, incomplete, FIELDS, expected_rows=1)

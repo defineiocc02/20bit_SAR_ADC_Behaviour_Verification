@@ -1,228 +1,101 @@
 `timescale 1ns/1ps
-// 连接真实 SAR 结构顶层与 DSP 封装，以正常结果及单独注入的错误退役检查入口约定。
+// 检查真实退役适配器与 DSP 的集成；不包含 SAR 算术验证或模拟宏模型。
 module sar20_dsp_integration_tb;
-  logic clk = 0, rst_n = 0;
-  always #5 clk = ~clk;
-
-  logic cfg_wr = 0, cfg_validate = 0, cfg_clear = 0;
-  logic [15:0] cfg_addr = 0;
-  logic [63:0] cfg_wdata = 0;
-  wire cfg_ready;
-  logic [6:0] flash_therm = 0;
-  wire [1:0] coarse_ge;
-  wire [1:0][8:0] coarse_trial;
-  wire [11:0] fine_trial;
-  int coarse_target = 256, fine_target = 2048;
-  assign coarse_ge[0] = coarse_target >= int'(coarse_trial[0]);
-  assign coarse_ge[1] = coarse_target >= int'(coarse_trial[1]);
-  wire fine_ge = fine_target >= int'(fine_trial);
-  wire [19:0] sar_dout;
-  wire sar_valid, sar_analog_ovf;
-  wire [31:0] sar_id;
-  wire [4:0] sar_flags;
-
-  sar20_digital_core u_sar (
-    .clk(clk), .rst_n(rst_n),
-    .flash_therm(flash_therm), .flash_valid(1'b1),
-    .coarse_cmp_valid(2'b11), .coarse_cmp_ge(coarse_ge),
-    .fine_cmp_valid(1'b1), .fine_cmp_ge(fine_ge),
-    .analog_phase(), .quiet_sample(), .tp_clock(), .ra_az(), .ra_amplify(),
-    .ref_precharge(), .ref_accurate(), .acquiring_mask(), .converting_mask(),
-    .aux_charge_enable(), .hold_low_enable(), .coarse_compare_enable(),
-    .coarse_acquire_enable(), .flash_acquire_enable(), .fine_acquire_enable(),
-    .coarse_trial(coarse_trial), .quantizer_dither(), .acquisition_dither_rails(),
-    .fine_trial(fine_trial), .fine_compare_enable(), .flash_sample(),
-    .cfg_wr(cfg_wr), .cfg_addr(cfg_addr), .cfg_wdata(cfg_wdata), .cfg_rdata(),
-    .cfg_validate(cfg_validate), .cfg_clear_valid(cfg_clear), .cfg_ready(cfg_ready),
-    .sadc_code(9'd0), .sadc_rdy(1'b0), .adc2_code(12'd0), .adc2_rdy(1'b0),
-    .ra_sat(1'b0), .rdac_ovf(1'b0), .adc2_over(1'b0), .inj_q(64'sd0),
-    .slice_sel(), .main_sw(), .sub_sw(), .dither_sw(), .sw_valid(),
-    .dout(sar_dout), .dout_valid(sar_valid), .clip_low(), .clip_high(),
-    .analog_ovf(sar_analog_ovf), .acc_ovf(), .status_word(), .dout_sample_id(sar_id),
-    .dout_flags(sar_flags), .cal_obs_valid(), .cal_obs_data(), .dout_analog_bad(),
-    .caaz_az_capture_ok(1'b1),
-    .caaz_input_chop_neg(),
-    .caaz_az_capture_en(),
-    .caaz_az_hold(),
-    .cal_obs_caaz_data(),
-    .caaz_raw_valid(),
-    .caaz_raw_data(),
-    .caaz_pair_difference(),
-    .caaz_pair_difference_valid(),
-    .caaz_pair_first_sample_id(),
-    .caaz_pair_id(),
-    .caaz_pair_fault(),
-    .caaz_pair_fault_code()
-  );
-
-  logic inject_mode = 1, inject_valid = 0, inject_analog_ovf = 0, restart = 0;
-  logic [19:0] inject_data = 0;
-  logic [31:0] inject_id = 0;
-  logic [4:0] inject_flags = 0;
-  wire [19:0] in_data = inject_mode ? inject_data : sar_dout;
-  wire in_valid = inject_mode ? inject_valid : sar_valid;
-  wire [31:0] in_id = inject_mode ? inject_id : sar_id;
-  wire [4:0] in_flags = inject_mode ? inject_flags : sar_flags;
-  wire in_analog_ovf = inject_mode ? inject_analog_ovf : sar_analog_ovf;
-  wire accepted, rejected, rejected_after_fault, fault;
-  wire [31:0] accepted_id, rejected_id;
-  wire [4:0] rejected_flags;
-  wire [19:0] dout;
-  wire dout_valid;
-  wire [1:0] ser_data, ser_frame;
-  wire dco;
-
-  sar20_ad4080_top #(.FIFO_DEPTH(32)) dut (
-    .clk(clk), .rst_n(rst_n), .sar_epoch_clear(cfg_clear), .dsp_restart(restart),
-    .sar_dout(in_data), .sar_dout_valid(in_valid), .sar_sample_id(in_id),
-    .sar_flags(in_flags), .sar_analog_ovf(in_analog_ovf),
-    .sample_accepted(accepted), .accepted_sample_id(accepted_id),
-    .sample_rejected(rejected), .rejected_sample_id(rejected_id),
-    .rejected_flags(rejected_flags), .rejected_after_fault(rejected_after_fault),
-    .stream_fault(fault), .cs_n(1'b1), .sclk(1'b1), .sdi(1'b0), .sdo(), .sdo_oe(),
-    .cnv_p(1'b0), .cnv_n(1'b0), .cnv_pulse(), .filter_sync(1'b0),
-    .ext_event(1'b0), .arm(1'b0), .rd_en(1'b0), .bit_en(1'b1),
-    .ser_data(ser_data), .ser_frame(ser_frame), .dco(dco),
-    .gpio_i(4'd0), .gpio_o(), .gpio_oe(), .dout(dout), .dout_valid(dout_valid),
-    .status(), .correction_clip_low(), .correction_clip_high()
-  );
-
-  logic [19:0] expected [0:1023];
-  int wr = 0, rd = 0, real_samples = 0, rejects = 0;
-  bit scoreboard_enabled = 1;
-  // 复位默认采用单位增益、零偏移、滤波直通和 FIFO 关闭；两次独立码制转换
-  // 须保留完整的 20 bit 字，入口 ID 仍在接受事件处单独核对。
-  always @(negedge clk) begin
-    if (rst_n && scoreboard_enabled && accepted) begin
-      if (wr >= 1024) $fatal(1, "scoreboard overflow");
-      expected[wr] = in_data;
-      wr++;
-      if (accepted_id !== in_id) $fatal(1, "input ID lost");
-      if (!inject_mode) real_samples++;
+  logic clk=0,rst_n=0,sar_epoch_clear=0,dsp_restart=0;
+  logic[19:0]sar_dout=0;logic sar_dout_valid=0,sar_analog_ovf=0,sar_conversion_fault=0;
+  logic[31:0]sar_sample_id=0;logic[4:0]sar_flags=0;
+  wire sample_accepted,sample_rejected,rejected_after_fault,stream_fault;
+  wire[31:0]accepted_sample_id,rejected_sample_id;wire[4:0]rejected_flags;
+  logic cs_n=1,sclk=1,sdi=0,adc_idle=0,interface_ready=1;
+  logic filter_sync=0,ext_event=0,arm=0,rd_en=0;logic[3:0]gpio_i=0;
+  wire sdo,sdo_oe;wire[3:0]gpio_o,gpio_oe,cfg_reject_reason;
+  wire[19:0]dout;wire dout_valid,correction_clip_low,correction_clip_high,cfg_reject,processing_reject;
+  wire[7:0]status;
+  int checks=0,accepted=0,rejected=0,compares=0,canceled=0,after_fault=0,flag_cases=0,sticky_cases=0,restarts=0;
+  int conversion_cases=0,held_fault_restarts=0;
+  logic[19:0]expected[$];logic[31:0]expected_ids[$];
+  always #5 clk=~clk;
+  sar20_ad4080_top #(.FIFO_DEPTH(32)) dut(.*);
+  task automatic require(input bit yes,input string why);checks++;if(!yes)$fatal(1,"SAR_DSP_INGRESS: %s",why);endtask
+  always @(posedge clk)begin
+    logic[19:0]word_expected;logic[31:0]id_expected;
+    if(!rst_n||dsp_restart||sar_epoch_clear)begin canceled+=expected.size();expected.delete();expected_ids.delete();end
+    else begin
+      if((sar_dout_valid&&sar_flags!=0)||sar_analog_ovf||sar_conversion_fault)begin
+        canceled+=expected.size();expected.delete();expected_ids.delete();
+      end
+      if(sample_accepted)begin
+        require(accepted_sample_id==sar_sample_id&&sar_flags==0&&!sar_analog_ovf&&
+            !sar_conversion_fault&&!stream_fault,"accept ID/qualification");
+        expected.push_back(sar_dout);expected_ids.push_back(sar_sample_id);accepted++;
+      end
+      if(sample_rejected)begin
+        require(rejected_sample_id==sar_sample_id&&rejected_flags==sar_flags,"reject ID/flags");rejected++;
+        if(rejected_after_fault)after_fault++;
+      end
+      require(!(sample_accepted&&sample_rejected),"accept/reject overlap");
     end
-    if (rst_n && scoreboard_enabled && dout_valid) begin
-      if (rd >= wr || dout !== expected[rd])
-        $fatal(1, "DSP mismatch index=%0d got=%h expected=%h", rd, dout, expected[rd]);
-      rd++;
-    end
-    if (rst_n && fault && (dout_valid || ser_data != 0 || ser_frame != 0 || dco))
-      $fatal(1, "fault must suppress output validity and serial pins");
-  end
-
-  task automatic inject(input logic [19:0] word, input logic [4:0] flags,
-                        input int sample_id);
-    @(negedge clk); #1;
-    inject_data = word; inject_valid = 1; inject_flags = flags; inject_id = 32'(sample_id);
-  endtask
-  task automatic end_inject;
-    @(negedge clk); #1; inject_valid = 0; inject_flags = 0;
-  endtask
-  task automatic restart_dsp;
-    @(negedge clk); #1; restart = 1; inject_valid = 0; inject_flags = 0;
-    repeat (2) @(negedge clk);
-    #1; restart = 0;
-    repeat (2) @(negedge clk);
-    if (fault) $fatal(1, "fault did not clear on restart");
-  endtask
-  task automatic write_cfg(input logic [15:0] addr, input logic [63:0] data);
-    @(negedge clk); #1; cfg_addr = addr; cfg_wdata = data; cfg_wr = 1;
-    @(negedge clk); #1; cfg_wr = 0;
-  endtask
-  task automatic configure_sar;
-    for (int s = 0; s < 18; s++) begin
-      write_cfg(16'(16'h2000 + s*256), 64'd0);
-      for (int u = 0; u < 71; u++)
-        write_cfg(16'(u*8), 64'((u < 63 ? 67108864 : 8388608) + s*873 + u*91));
-    end
-    write_cfg(16'h1000, 64'd0);
-    write_cfg(16'h1008, -64'sd4294967296);
-    write_cfg(16'h1010, 64'sd4294967296);
-    write_cfg(16'h1018, 64'd0);
-    repeat (4) @(negedge clk);
-    #1; cfg_validate = 1;
-    @(negedge clk); #1; cfg_validate = 0;
-    if (!cfg_ready) $fatal(1, "SAR configuration failed");
-  endtask
-
-  initial begin
-    repeat (3) @(negedge clk); #1; rst_n = 1;
-    repeat (3) @(negedge clk);
-    // 连续传输覆盖两端、接近中点及中点的码字边界。
-    inject(20'h00000, 0, 1);
-    inject(20'h7ffff, 0, 2);
-    inject(20'h80000, 0, 3);
-    inject(20'hfffff, 0, 4);
-    end_inject();
-    repeat (8) @(negedge clk);
-    if (wr != 4 || rd != 4) $fatal(1, "boundary transfer count wr=%0d rd=%0d", wr, rd);
-
-    // 正常输入后紧接故障退役；若前一结果仍在 DSP 流水中，故障须同时抑制该结果。
-    scoreboard_enabled = 0;
-    inject(20'h81234, 0, 50);
-    inject(20'h80000, 5'b00001, 51);
-    @(posedge clk); #1;
-    if (!fault || dout_valid) $fatal(1, "in-flight fault did not latch");
-    end_inject();
-    repeat (8) @(negedge clk);
-    restart_dsp();
-    scoreboard_enabled = 1;
-
-    for (int bit_index = 0; bit_index < 5; bit_index++) begin
-      inject(20'h91234, 5'(1 << bit_index), 100 + bit_index);
-      #1;
-      if (!rejected || accepted || rejected_id != 32'(100 + bit_index) ||
-          rejected_flags != 5'(1 << bit_index) || rejected_after_fault)
-        $fatal(1, "first fault event is not reported");
-      @(posedge clk); #1;
-      if (!fault || dout_valid) $fatal(1, "fault did not latch");
-      inject(20'h80000, 0, 200 + bit_index);
-      #1;
-      if (!rejected || !rejected_after_fault || accepted)
-        $fatal(1, "post-fault sample not rejected");
-      rejects += 2;
-      end_inject();
-      restart_dsp();
-    end
-    // SAR 模拟粘滞越界与五个结果标志独立，须单独检查。
-    inject(20'h81234, 0, 250);
-    #1; inject_analog_ovf = 1;
     #1;
-    if (!rejected || accepted || dout_valid) $fatal(1, "analog overflow did not block input");
-    @(posedge clk); #1;
-    if (!fault) $fatal(1, "analog overflow did not latch fault");
-    end_inject();
-    @(negedge clk); #1; restart = 1;
-    repeat (2) @(negedge clk); #1;
-    if (fault) $fatal(1, "DSP reset did not clear local fault");
-    restart = 0;
-    @(posedge clk); #1;
-    if (!fault) $fatal(1, "uncleared SAR analog status did not restore fault");
-    @(negedge clk); #1; inject_analog_ovf = 0; cfg_clear = 1;
-    repeat (2) @(negedge clk); #1; cfg_clear = 0;
-    repeat (2) @(negedge clk);
-    if (fault) $fatal(1, "epoch clear did not recover analog fault");
-    inject(20'habcde, 0, 300); end_inject();
-    repeat (8) @(negedge clk);
-    if (wr != 5 || rd != 5) $fatal(1, "restart did not restore data stream");
-
-    configure_sar();
-    @(negedge clk); #1; inject_mode = 0;
-    for (int tick = 0; tick < 16*80; tick++) begin
-      @(negedge clk); #1;
-      coarse_target = 220 + ((tick / 16) % 72);
-      fine_target = 1900 + ((tick / 16) % 240);
+    if(rst_n&&!dsp_restart&&!sar_epoch_clear)begin
+      require(!cfg_reject&&!processing_reject,"inactive config or unity processing unexpectedly rejected");
+      if(dout_valid)begin
+        require(expected.size()>0&&expected_ids.size()>0,"unmatched or fault-leaked output");
+        word_expected=expected.pop_front();id_expected=expected_ids.pop_front();
+        require(dout===word_expected,$sformatf("all20 codec/order mismatch for acceptedID%0d",id_expected));
+        require(!correction_clip_low&&!correction_clip_high,"unity offset-binary codec clipped");compares++;
+      end
+      if(stream_fault||sar_conversion_fault)require(!dout_valid&&!sample_accepted,"persistent fault leaked output");
+      if(sar_conversion_fault&&!sar_dout_valid)require(!sample_rejected,"no-result fault invented rejected ID");
     end
-    // 等待最后一个真实转换排空后再切换注入来源，避免切换引入未记账结果。
-    repeat (30) @(negedge clk);
-    #1; inject_mode = 1; inject_valid = 0;
-    repeat (8) @(negedge clk);
-    if (fault || real_samples < 50 || wr != rd)
-      $fatal(1, "real SAR stream failed samples=%0d wr=%0d rd=%0d fault=%b", real_samples, wr, rd, fault);
-    cfg_clear = 1; #1;
-    if (dout_valid || fault) $fatal(1, "epoch clear did not reset DSP");
-    @(negedge clk); #1; cfg_clear = 0;
-    $display("SAR20_DSP_INTEGRATION_COMPLETE boundaries=4 flag_cases=5 analog_guard=PASS rejected=%0d real_sar_samples=%0d", rejects, real_samples);
-    $finish;
   end
-  initial begin #300000; $fatal(1, "integration timeout"); end
+  task automatic issue(input logic[19:0]word,input logic[4:0]flags);
+    @(negedge clk);sar_dout=word;sar_flags=flags;sar_dout_valid=1;sar_sample_id++;
+  endtask
+  task automatic stop_and_drain;
+    @(negedge clk);sar_dout_valid=0;sar_flags=0;repeat(12)@(negedge clk);
+  endtask
+  task automatic restart;
+    @(negedge clk);sar_dout_valid=0;sar_flags=0;sar_analog_ovf=0;sar_conversion_fault=0;dsp_restart=1;
+    @(negedge clk);dsp_restart=0;repeat(3)@(negedge clk);require(!stream_fault,"explicit restart did not clear fault");restarts++;
+  endtask
+  initial begin
+    repeat(4)@(negedge clk);rst_n=1;
+    issue(20'h00000,0);issue(20'h7ffff,0);issue(20'h80000,0);issue(20'hfffff,0);
+    for(int i=0;i<64;i++)issue(20'(i*13457+123),0);
+    stop_and_drain();require(expected.size()==0&&compares==68,"bypass retirement count/order");
+    for(int f=0;f<5;f++)begin
+      issue(20'h12345,0);issue(20'habcde,0);issue(20'h54321,5'(1<<f));
+      @(negedge clk);sar_dout_valid=0;require(stream_fault,"flag did not latch persistent fault");flag_cases++;
+      for(int i=0;i<4;i++)issue(20'(i+100),0);
+      stop_and_drain();require(stream_fault&&expected.size()==0,"postfault stream resumed implicitly");restart();
+    end
+    // 即使没有有效退役结果，模拟粘滞输入仍须触发持续故障锁存。
+    @(negedge clk);sar_dout_valid=0;sar_analog_ovf=1;@(negedge clk);sar_analog_ovf=0;
+    require(stream_fault,"analog sticky without valid ignored");sticky_cases++;
+    issue(20'h33333,0);stop_and_drain();restart();
+    // 上游转换丢失无 raw word：先建立非空在途队列，再断言独立故障资格。
+    issue(20'h11111,0);issue(20'heeeee,0);
+    @(negedge clk);sar_dout_valid=0;sar_conversion_fault=1;
+    require(expected.size()>0,"conversion fault pending fixture is empty");
+    @(negedge clk);require(stream_fault&&!dout_valid,"no-result conversion fault did not fence pending output");
+    conversion_cases++;
+    issue(20'h12345,0);
+    @(negedge clk);sar_dout_valid=0;dsp_restart=1;
+    @(negedge clk);dsp_restart=0;
+    repeat(3)@(negedge clk);
+    require(sar_conversion_fault&&stream_fault&&!sample_accepted&&!dout_valid,"restart bypassed held upstream fault");
+    held_fault_restarts++;
+    sar_conversion_fault=0;issue(20'h54321,0);stop_and_drain();
+    require(stream_fault,"live fault deassertion silently resumed stream");restart();
+    issue(20'h0a55a,0);issue(20'hf1234,0);
+    @(negedge clk);sar_dout_valid=0;sar_epoch_clear=1;
+    @(negedge clk);sar_epoch_clear=0;repeat(3)@(negedge clk);
+    issue(20'h23456,0);issue(20'hfedcb,0);stop_and_drain();
+    require(expected.size()==0&&accepted>75&&rejected>=28&&compares>=70&&canceled>=12&&
+        after_fault>=22&&flag_cases==5&&sticky_cases==1&&conversion_cases==1&&held_fault_restarts==1,
+        "nonzero ingress/isolation coverage");
+    require(adc_idle==0,"adapter test must not fabricate macro idle");
+    $display("SAR20_DSP_INGRESS_CONTRACT_COMPLETE accepted=%0d rejected=%0d comparisons=%0d canceled=%0d after_fault=%0d flag_cases=%0d sticky_cases=%0d restarts=%0d conversion_cases=%0d held_fault_restarts=%0d checks=%0d",accepted,rejected,compares,canceled,after_fault,flag_cases,sticky_cases,restarts,conversion_cases,held_fault_restarts,checks);$finish;
+  end
+  initial begin #100000;$fatal(1,"SAR DSP ingress watchdog");end
 endmodule

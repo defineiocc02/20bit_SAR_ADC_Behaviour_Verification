@@ -1,12 +1,10 @@
-"""检查机制、来源清单的静态引用一致性（阶段 A，任务书 §10）。
+"""检查当前仓库清单的引用有效性及静态检查的证据边界。
 
-核对 mechanism_inventory.json 与 sources_manifest.json 登记的代码路径、
-测试标识、来源和枚举锚点，并检查任务书 T01–T14 的清单覆盖。
-静态引用可定位不表示相应机制已执行验证或达到性能要求。
+必需条目由清单显式登记，不从旧 T01–T14 常量补全。状态未就绪必须保留，
+静态引用成功不能被改称模型、RTL 或文献语义已经验证。
 """
 
-from __future__ import annotations
-
+import json
 from pathlib import Path
 
 from adi_model.inventory_gate import build_summary, verify
@@ -14,41 +12,48 @@ from adi_model.inventory_gate import build_summary, verify
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
-def _result():
-    return verify(REPO_ROOT)
+def test_gate_passes_on_the_current_checkout():
+    result = verify(REPO_ROOT)
+    failures = [f"{r.check}: {r.detail}" for r in result.records if r.level == "FAIL"]
+    assert result.static_refs_pass, "静态清单错误：" + "; ".join(failures)
 
 
-def test_gate_passes_on_the_current_checkout() -> None:
-    """检查清单登记的代码路径、测试标识、来源及枚举可定位。"""
-    result = _result()
-    failures = [r for r in result.records if r.level == "FAIL"]
-    assert result.ok, "清单门禁失败：" + "; ".join(f"{r.check}: {r.detail}" for r in failures)
+def test_sources_are_locatable_or_explicitly_blocked():
+    result = verify(REPO_ROOT)
+    sources = [r for r in result.records if r.check.startswith("sources.")]
+    assert sources
+    assert all(r.level in ("PASS", "BLOCKED") for r in sources)
+    for record in sources:
+        if record.level == "BLOCKED":
+            assert record.detail.strip()
 
 
-def test_sources_are_locatable_or_explicitly_blocked() -> None:
-    """检查原文摘要匹配，或显式登记 BLOCKED，不静默跳过。"""
-    result = _result()
-    checks = {r.check: r.level for r in result.records if r.check.startswith("sources.")}
-    assert checks, "来源清单没有任何校验记录"
-    for check, level in checks.items():
-        assert level in ("PASS", "BLOCKED"), f"{check} 处于非法状态 {level}"
+def test_explicit_required_task_coverage_has_no_gaps():
+    inventory = json.loads((REPO_ROOT / "mechanism_inventory.json").read_text())
+    required = inventory["coverage_obligations"]["required_task_ids"]
+    assert required and len(set(required)) == len(required)
+    result = verify(REPO_ROOT)
+    checks = [r for r in result.records if r.check == "coverage.required_task_ids"]
+    assert checks and all(r.level == "PASS" for r in checks)
 
 
-def test_task_coverage_has_no_gaps() -> None:
-    """检查 T01–T14 均由机制或待建项覆盖，范围见任务书 §4。"""
-    result = _result()
-    coverage = [r for r in result.records if r.check == "coverage.T01-T14"]
-    assert coverage and coverage[0].level == "PASS", "T01-T14 覆盖存在缺口"
-
-
-def test_summary_is_strictly_typed() -> None:
-    """检查 validation_summary 的 ok 为布尔值，三个 counts 均为非负整数。"""
-    result = _result()
+def test_summary_preserves_unresolved_states_without_claiming_executed_tests():
+    result = verify(REPO_ROOT)
     summary = build_summary(result, REPO_ROOT)
-    assert isinstance(summary["ok"], bool)
-    assert summary["ok"] is True
-    counts = summary["counts"]
-    assert set(counts) == {"PASS", "FAIL", "BLOCKED"}
-    assert all(isinstance(v, int) and v >= 0 for v in counts.values())
-    for rec in summary["records"]:
-        assert set(rec) == {"check", "level", "detail"}
+    assert type(summary["static_refs_pass"]) is bool
+    assert type(summary["required_states_ready"]) is bool
+    assert summary["source_conformance"] == "SOURCE_CONFORMANCE_NOT_ASSESSED"
+    assert summary["model_tests_run"] is False
+    assert summary["rtl_or_eda_run"] is False
+    assert summary["evidence_scope"] == "STATIC_IDENTITY_AND_REFERENCE_CHECK_ONLY"
+    assert set(summary["counts"]) == {"PASS", "FAIL", "BLOCKED"}
+    assert all(type(v) is int and v >= 0 for v in summary["counts"].values())
+    expected = [
+        {"check": r.check, "level": r.level, "detail": r.detail}
+        for r in result.records
+        if r.scope == "REGISTERED_REQUIRED_STATE" and r.level != "PASS"
+    ]
+    assert summary["unresolved_required_states"] == expected
+    assert summary["required_states_ready"] is (not expected)
+    for record in summary["records"]:
+        assert set(record) == {"check", "level", "detail", "scope"}

@@ -1,43 +1,50 @@
-"""检查预留比例与当前生效的 SADC 电容分开报告。"""
+"""检查有效参数由实际消费者决定，旧预留字段不再静默接受。"""
 
 from dataclasses import replace
 
 import numpy as np
+import pytest
 
-from adi_model import Config, sine_input
+from adi_model.config import Config
 from adi_model.pipeline import run_pipeline
-from adi_model.slice_pool import PhysicalSlicePool
+from adi_model.sampler import capture, dc_input
 
 
-def test_reserved_sadc_ratio_is_inactive_while_c_sadc_changes_physical_sampling_load():
-    cfg = Config.paper_literal(
-        mismatch_enable=False,
-        enable_sampling_noise=False,
-        ra_enable_noise=False,
-        sadc_rdac_gain_mismatch=0,
-        dyn_input_settling=True,
-        dyn_r_source=70,
-        sadc_cap_ratio=0.01,
-        seed=42,
-    )
-    pool = PhysicalSlicePool(cfg, np.random.default_rng(91))
-    fn = sine_input(0.7, cfg.fs * 3 / 128)
-    low = run_pipeline(cfg, fn, 128, pool=pool, rng=np.random.default_rng(92))
-    high = run_pipeline(
-        replace(cfg, sadc_cap_ratio=0.9), fn, 128, pool=pool, rng=np.random.default_rng(92)
-    )
-    np.testing.assert_array_equal(low.adc2_code, high.adc2_code)
-    np.testing.assert_array_equal(low.to_codes().code, high.to_codes().code)
-    np.testing.assert_array_equal(low.acquisition_voltage, high.acquisition_voltage)
-    for result in (low, high):
+def test_retired_sadc_ratio_is_rejected_rather_than_reported_as_an_accepted_override():
+    with pytest.raises(TypeError):
+        Config.from_dict({"sadc_cap_ratio": 0.9})
+
+
+def test_unused_sadc_capacitance_is_recorded_without_changing_static_conversion(
+    explicit_pipeline_factory,
+):
+    cfg, controls = explicit_pipeline_factory(n_samples=16)
+    small = run_pipeline(replace(cfg, c_sadc=1e-12), dc_input(0.2), 16, **controls)
+    large = run_pipeline(replace(cfg, c_sadc=4e-12), dc_input(0.2), 16, **controls)
+    np.testing.assert_array_equal(small.adc2_code, large.adc2_code)
+    np.testing.assert_array_equal(small.out, large.out)
+    for result in (small, large):
         metadata = result.effective_config
-        assert metadata["requested"]["sadc_cap_ratio"] == result.cfg.sadc_cap_ratio
-        assert metadata["inactive_overrides"]["sadc_cap_ratio"] == (
-            "reserved; SADC noise and physical split sampling load use c_sadc"
+        assert metadata["requested"]["c_sadc"] == result.cfg.c_sadc
+        assert metadata["inactive_overrides"]["c_sadc"] == (
+            "no sampling-noise or input-network consumer selected"
         )
-    active = run_pipeline(
-        replace(cfg, c_sadc=4e-12), fn, 128, pool=pool, rng=np.random.default_rng(92)
+
+
+def test_active_sadc_noise_uses_its_explicit_capacitance_with_a_separate_rdac_source():
+    n = 64
+    cfg = Config(
+        c_sadc=1e-12,
+        enable_sampling_noise=True,
+        sampling_noise_distribution="gaussian_white",
+        temperature_k=300.0,
+        chi=2.0,
+        seed=72,
     )
-    assert not np.array_equal(low.acquisition_voltage, active.acquisition_voltage)
-    assert not np.array_equal(low.adc2_code, active.adc2_code)
-    assert not np.array_equal(low.to_codes().code, active.to_codes().code)
+    arguments = {"sample_ids": np.arange(n), "rdac_noise_cap_f": np.full(n, 20e-12)}
+    small = capture(cfg, dc_input(0.2), n, **arguments)
+    large = capture(replace(cfg, c_sadc=4e-12), dc_input(0.2), n, **arguments)
+    np.testing.assert_array_equal(small.input_v, large.input_v)
+    np.testing.assert_array_equal(small.rdac_noise_v, large.rdac_noise_v)
+    np.testing.assert_allclose(large.sadc_noise_v, small.sadc_noise_v / 2, atol=1e-20, rtol=0)
+    assert np.any(small.sadc_noise_v != large.sadc_noise_v)

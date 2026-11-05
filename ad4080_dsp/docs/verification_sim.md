@@ -1,3 +1,5 @@
+> **历史记录（2026-10-19，af8／9bdf保留）：**本文的原始工具、数字和结论保持不变，只描述当时源码。cal_two_point、LVDS及settled等旧接口已退役；本页不作为当前环境或回归通过。当前实现见[追溯表](ad4080_traceability.md)，最终证据见[B表](../../docs/digital_status_matrix.md)。
+
 # 功能仿真结果（Icarus Verilog）
 
 > 日期：2026-10-19 · 工具：**Icarus Verilog 14.0**（OSS CAD Suite, darwin-arm64）

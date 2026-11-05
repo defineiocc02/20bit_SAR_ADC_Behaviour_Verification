@@ -1,117 +1,75 @@
-"""样本域斩波辅助 AZ（CAAZ）研究入口，默认关闭。
+"""源图支持的样本域斩波协助AZ与完整码配对，默认不启用。
 
-信号链顺序为：
-整个 ADC 输入按 raw 样本交替极性 -> RA 输出误差注入 -> RA 钳位/ADC2 量化 -> 每个 raw 完整位权重构 -> 按归属配对读出。
-不可先平均模拟真值再量化，否则会隐藏逐 raw 的失配、溢出和量化影响。
+PKU VLSI2025 C32.1 Fig.5/6披露整输入换向、偶周期AZ刷新、奇周期保存同一输入等效状态及两个完整结果的半差。
+本模块不抽取噪声，不从原型4.3dB或整机指标分配部件RMS。启用AZ时，
+调用方须给出输入等效状态记录和每笔传递到RA输入的系数；奇次保持损失也须明确给出。
+有效噪声传递为物理G乘该系数。
 
-C32.1 Figs.5-6 披露偶数更新 AZ、奇数保持、偶减奇的机制。
-若同一份 AZ误差 a_k [RA 输出 V] 被两次等增益传递，pair 差分中的共同项相消；
-保持rho 和奇次传递 r 不匹配时，线性 RA 输出等效残留为 (1-rho*r)*a_k/2。转换增益、非线性、
-裁剪和码量化仍可破坏输入等效抵消。
-
-raw 40 MS/s -> 非重叠 pair 20 MS/s 是本项目明确选择；文献 6 MS/s标题未唯一说明 raw/effective 口径。
-AZ 幅度、保持和传递差异均为假设，没有用测得 4.3 dB 反推标量。本模型与 ra.py 的旧 AZ 噪声倍率分开，
-配对模式拒绝将两者叠加。没有 FGA/CP-FIA 晶体管、连续斩波或 1/f 电路传递。来源：Wang 等，
-VLSI 2025 C32.1，DOI 10.23919/VLSITechnologyandCir65189.2025.11075015。
+状态按放大器输入等效V定义，经RA增益后进入原有限幅与后级量化。每个raw先完整重构为整数码，
+再按样本归属配对；全部raw码和异常保留。只实现样本域，
+不实现连续斩波、CBIAS/FGA/CP-FIA电路或真实噪声传递。显式零输入仅为控制，不能证明噪声校准有效。
+单次速率与两点输出响应分别报告。
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from ._arrays import readonly
-from .config import Config, ConfigError
-from .fixed_point import CodeStream
-from .pipeline import run_pipeline
-from .sim import SimResult
+from .config import ConfigError
+
+if TYPE_CHECKING:
+    from .config import Config
+    from .fixed_point import CodeStream, FixedPointFormat
+    from .sim import SimResult
+    from .weight_calibration import FrozenCalibration
 
 
 @dataclass(frozen=True)
 class ChoppingAZParameters:
-    """显式研究控制；所有误差幅度均在 RA 输出节点定义。
+    """只定义AZ更新/配对选择；不隐藏任何物理噪声幅度或传递默认值。
 
-    Args:
-        mode: off 保留普通 raw 输出；baseline 无新增 AZ 噪声、只做配对平均；
-            conventional_az 每次 raw 独立采 AZ 噪声并做配对平均；
-            chopping_assisted 对完整 ADC 输入交替极性，偶数刷新、奇数保持同一份 AZ 误差，
-            再对重构码偶减奇。均不从模拟输入真值估计误差。
-        az_noise_rms_v: 新增 AZ 采样误差的 RA 输出 RMS [V]；独立假设源，不是外部输入等效噪声，
-            也不是从论文 4.3 dB 测量拟合的系数。
-        post_az_offset_v: AZ 后的常量残余 [RA 输出 V]，不是失调消除电路模型。
-        odd_hold_retention: 奇次保持偶次误差的比例 rho，范围 [0,1]；仅 CAAZ。
-        odd_transfer_ratio: 奇/偶误差传递比 r，无量纲；仅 CAAZ，校验仅要求有限。
-
-    Side effects:
-        参数不可变；显式 validate 在生成数据前拒绝非法或无效非默认控制。
+    mode为off、conventional_az或chopping_assisted。off直接运行普通主链；
+    conventional_az每笔刷新并作普通两点平均；chopping_assisted偶刷新/奇保持，
+    整输入反相后作整码偶减奇/2。后者必须显式给保持比例rho[0,1]。保持比例只表示给定两周期预算，
+    不推断泄漏时间常数或器件统计。
     """
 
     mode: str = "off"
-    az_noise_rms_v: float = 0.0
-    post_az_offset_v: float = 0.0
-    odd_hold_retention: float = 1.0
-    odd_transfer_ratio: float = 1.0
+    odd_hold_retention: float | None = None
 
     def validate(self) -> None:
-        """在生成样本前拒绝未知模式、非有限值和不生效的非默认参数。
-
-        Returns:
-            None；成功不代表物理参数已由器件测量确认。
-
-        Raises:
-            ConfigError: 模式未知，RMS 为负，保持比例越界，或关闭/不适用模式下仍请求新增 AZ 噪声、
-                保持/传递控制或残余误差。
-
-        Side effects:
-            不修改参数、不消费任何随机流。
-        """
-        if self.mode not in ("off", "baseline", "conventional_az", "chopping_assisted"):
-            raise ConfigError("unknown sampled-AZ research mode")
-        values = [
-            self.az_noise_rms_v,
-            self.post_az_offset_v,
-            self.odd_hold_retention,
-            self.odd_transfer_ratio,
-        ]
-        if not np.all(np.isfinite(values)) or self.az_noise_rms_v < 0:
-            raise ConfigError("AZ amplitudes must be finite and noise RMS nonnegative")
-        if not 0 <= self.odd_hold_retention <= 1:
-            raise ConfigError("AZ hold retention must lie in [0, 1]")
-        if self.mode in ("off", "baseline") and self.az_noise_rms_v != 0:
-            raise ConfigError("off/baseline modes require zero added AZ sample noise")
-        if self.mode != "chopping_assisted" and self.odd_hold_retention != 1:
-            raise ConfigError("hold retention only applies to chopping-assisted AZ")
-        if self.mode != "chopping_assisted" and self.odd_transfer_ratio != 1:
-            raise ConfigError("odd transfer ratio only applies to chopping-assisted AZ")
-        if self.mode == "off" and self.post_az_offset_v != 0:
-            raise ConfigError("off mode cannot silently ignore requested AZ perturbations")
+        """拒绝未知模式、缺少有效保持预算和不消费的非空保持参数。"""
+        if self.mode not in ("off", "conventional_az", "chopping_assisted"):
+            raise ConfigError("unknown sample-domain AZ mode")
+        if self.mode == "chopping_assisted":
+            value = self.odd_hold_retention
+            if (
+                value is None
+                or isinstance(value, bool | np.bool_)
+                or not isinstance(value, int | float | np.integer | np.floating)
+                or np.ndim(value) != 0
+                or np.iscomplexobj(value)
+                or not np.isfinite(value)
+                or not 0 <= value <= 1
+            ):
+                raise ConfigError("chopping_assisted requires explicit odd_hold_retention in [0,1]")
+        elif self.odd_hold_retention is not None:
+            raise ConfigError("odd_hold_retention is inactive outside chopping_assisted")
 
 
 @dataclass(frozen=True)
 class ChoppingAZResult:
-    """同时保留 N 个原始结果和独立的 raw/pair 输出视图。
+    """保留原始结果、实际状态和输出视图；电压字段直接标明参考节点。
 
-    Attributes:
-        raw: N 次完整 ADC 的 SimResult，保留 RA/ADC2 模拟溢出标志。
-        raw_words: 每次 raw 冻结位权重构后的 CodeStream，配对算术之前。
-        output_code: offset-binary 整数码；off 长 N，其余长 M=N/2。
-        output_v: 对应输出码的 bin 中心 [外部输入等效 V]。
-        prequantized_output_v: raw bin 中心的精确平均/半差 [输入等效 V]，
-            用于分离最终配对再量化误差，不是未量化模拟真值。
-        output_time_s: off 为 raw 孔径时刻，pair 为两次孔径中点 [s]。
-        source_sample_ids: off 为 (N,1)，pair 为 (M,2) 的实际 raw 样本 ID。
-        invalid: 输出内任一 raw 模拟溢出/数字裁剪的 OR，保留全部输出位置。
-        raw_sample_rate_hz: 原始转换速率 [Hz]。
-        output_sample_rate_hz: off 为 raw 速率，其余为 raw/2 [Hz]。
-        chop_sign: (N,) 每次 raw 的实际输入极性 +1/-1。
-        az_refresh: (N,) 显式 AZ 源是否刷新。
-        az_sample_error_v: (N,) 更新/保持并应用奇次传递后的误差 [RA 输出 V]。
-        injected_ra_error_v: (N,) 进入 RA 钳位前的总显式误差 [RA 输出 V]。
-        mode: 实际研究模式。
-
-    Side effects:
-        输出诊断数组只读；raw 保留 SimResult 原有语义，不丢弃失败样本。
+    az_sample_input_v是每笔使用的AZ状态[RA输入等效V]，已含奇次保持损失；
+    az_transfer_to_input是调用方明确给出的每笔传递；injected_ra_input_error_v是它们的乘积，
+    也是实际传入RA输入的误差。az_input_evidence区分未施加、显式零控制和非零显式记录，
+    任何一种均不自动成为物理噪声验证结论。output_v为最终码中心[外部输入等效V]，
+    prequantized_output_v只是raw码中心的精确平均/半差，不是模拟真值。
     """
 
     raw: SimResult
@@ -126,8 +84,10 @@ class ChoppingAZResult:
     output_sample_rate_hz: float
     chop_sign: np.ndarray
     az_refresh: np.ndarray
-    az_sample_error_v: np.ndarray
-    injected_ra_error_v: np.ndarray
+    az_sample_input_v: np.ndarray
+    az_transfer_to_input: np.ndarray
+    injected_ra_input_error_v: np.ndarray
+    az_input_evidence: str
     mode: str
 
 
@@ -201,14 +161,12 @@ def _fresh_pair_ids(raw: SimResult, n_samples: int) -> np.ndarray:
         raise ConfigError("fresh AZ capture requires explicit unsigned 32-bit raw sample IDs")
     ids = ids.astype(np.int64)
     if ids[0] % 2 or np.any(((ids[1:] - ids[:-1]) & 0xFFFF_FFFF) != 1):
-        raise ConfigError(
-            "fresh AZ capture requires continuous IDs and an even positive first phase"
-        )
+        raise ConfigError("fresh AZ capture requires continuous IDs and an even first phase")
     return ids
 
 
 class _SampleIndexedChop:
-    """仅在各 raw 样本孔径处施加极性，两次孔径 t1/t2 使用同一符号。
+    """仅在各raw样本的唯一孔径处按所属样本施加极性。
 
     依靠样本所有权索引，不按任意时间的 floor/ceil 猜测相位；
     因此不能用作连续时间开关波形或传入动态斩波电路求解器。
@@ -224,31 +182,94 @@ class _SampleIndexedChop:
         return self.signs * self.source(values)
 
 
-def _require_sample_domain(cfg: Config) -> None:
-    unsupported = []
-    for name in (
-        "ra_autozero",
-        "dyn_input_settling",
-        "dyn_ref_settling",
-        "dyn_crosstalk",
-        "slice_timing_skew_s",
-        "slice_offset_sigma_v",
-        "slice_bw_spread",
-        "sampling_tau_mismatch",
-        "driver_noise_rms",
-        "flicker_corner_hz",
-        "ktc_enable",
-    ):
-        if getattr(cfg, name):
-            unsupported.append(name)
-    if cfg.conversion.dynamic:
+def _require_sample_domain(cfg: Config, pool) -> None:
+    """只接受现有样本域操作，不将孔径换向当作连续开关求解。"""
+    unsupported = [
+        name
+        for name in (
+            "dyn_input_settling",
+            "dyn_ref_settling",
+            "dyn_crosstalk",
+        )
+        if getattr(cfg, name, None)
+    ]
+    conversion = getattr(cfg, "conversion", None)
+    if conversion is not None and conversion.dynamic:
         unsupported.append("conversion.dynamic")
-    if cfg.adc2_dyn_bw_ratio is not None:
-        unsupported.append("adc2_dyn_bw_ratio")
+    if pool is None:
+        raise ConfigError("active sample-domain AZ requires its explicit physical pool")
+    for name in ("t_skew", "v_os"):
+        value = getattr(pool, name, None)
+        if value is not None and np.any(np.asarray(value) != 0):
+            unsupported.append(f"pool.{name}")
     if unsupported:
         raise ConfigError(
             "sample-domain AZ does not implement or combine: " + ", ".join(unsupported)
         )
+
+
+def _input_record(value, length: int, name: str) -> np.ndarray:
+    """复制调用边界的显式实数记录，不广播、填补或截断样本。"""
+    if value is None or np.iscomplexobj(value):
+        raise ConfigError(f"{name} is required as a finite real record")
+    try:
+        record = np.asarray(value, dtype=float)
+    except (TypeError, ValueError) as error:
+        raise ConfigError(f"{name} must be a finite real record") from error
+    if record.shape != (length,) or np.any(~np.isfinite(record)):
+        raise ConfigError(f"{name} must have shape ({length},) with finite values")
+    return record.copy()
+
+
+def _az_input_state(
+    az: ChoppingAZParameters,
+    n_samples: int,
+    az_input_samples_v,
+    az_transfer_to_input,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, str]:
+    """构建显式AZ记录的样本归属，不产生随机幅度或噪声分布。
+
+    conventional_az需要N份采集记录；chopping_assisted需要N/2份，奇次仅按明确rho保持。
+    az_transfer_to_input始终是(N,)的每笔无量纲传递，不能缺省为1。
+    原文理想输入等效关系也要由调用方显式给全1/保持1，而非内部补值。
+    """
+    if not isinstance(az, ChoppingAZParameters):
+        raise ConfigError("az must be an explicit ChoppingAZParameters value")
+    az.validate()
+    if type(n_samples) is not int or n_samples < 1:
+        raise ConfigError("raw sample count must be a positive integer")
+    signs = np.ones(n_samples, dtype=np.int64)
+    refresh = np.zeros(n_samples, dtype=bool)
+    sampled = np.zeros(n_samples)
+    transfer = np.zeros(n_samples)
+    injected = np.zeros(n_samples)
+    if az.mode == "off":
+        if az_input_samples_v is not None or az_transfer_to_input is not None:
+            raise ConfigError("off mode cannot silently ignore supplied AZ records")
+        return signs, refresh, sampled, transfer, injected, "NOT_APPLIED"
+    if n_samples % 2:
+        raise ConfigError("sample-domain AZ pairing requires an even raw sample count")
+    source_length = n_samples // 2 if az.mode == "chopping_assisted" else n_samples
+    samples = _input_record(az_input_samples_v, source_length, "az_input_samples_v [RA-input V]")
+    transfer = _input_record(az_transfer_to_input, n_samples, "az_transfer_to_input [1]")
+    if az.mode == "chopping_assisted":
+        retention = az.odd_hold_retention
+        if retention is None:
+            raise ConfigError("odd_hold_retention is required by the active AZ hold")
+        refresh[::2] = True
+        sampled[::2] = samples
+        sampled[1::2] = retention * samples
+        signs[1::2] = -1
+    else:
+        refresh[:] = True
+        sampled[:] = samples
+    with np.errstate(over="raise", invalid="raise"):
+        try:
+            injected = transfer * sampled
+        except FloatingPointError as error:
+            raise ConfigError("transferred AZ input record is not representable") from error
+    evidence = "ZERO_INPUT_CONTROL" if not np.any(injected) else "EXPLICIT_INPUT_RECORD"
+    return signs, refresh, sampled, transfer, injected, evidence
 
 
 def run_caaz_pipeline(
@@ -256,102 +277,61 @@ def run_caaz_pipeline(
     input_fn,
     n_samples: int,
     *,
+    format: FixedPointFormat,
+    calibration: FrozenCalibration | None = None,
     az: ChoppingAZParameters | None = None,
-    post_az_error_v=None,
-    az_rng: np.random.Generator | None = None,
+    az_input_samples_v=None,
+    az_transfer_to_input=None,
     **pipeline_kwargs,
 ) -> ChoppingAZResult:
-    """先运行完整 raw ADC 和逐码重构，再做有归属的成对读出。
+    """先逐笔执行 ADC 和整数重构，再按真实样本 ID 配对读出。
 
-    Args:
-        cfg: 现有 ADC 配置；fs 是 raw 转换率 [Hz]，不是 pair 输出率。
-        input_fn: 外部输入电压函数，按归属明确的 raw 孔径时间 [s] 求值。
-        n_samples: 正整数 raw 数 N；非 off 模式要求偶数。
-        az: 显式模式及假设的 RA 输出误差参数；None 等价默认 off。
-        post_az_error_v: 可选 (N,) 有限的 AZ 后误差 [RA 输出 V]；是调用方定义的扰动，
-            不自动成为器件 1/f 或失调消除模型。
-        az_rng: 独立的 AZ 随机流；off/baseline 不消费，另两模式均抽 N 个创新样本以便同流比较，
-            CAAZ 只使用偶数创新，奇数创新未被采入。
-        **pipeline_kwargs: run_pipeline 的 chip/state/rng/scheduler/pool 参数；
-            state 可包含独立训练并冻结的位权，不能在留出数据上重拟合。
+    激活 AZ 时，az_input_samples_v 是 FGA/RA 输入等效采集状态 [V]：conventional_az 长度为 N，
+    chopping_assisted 为 N/2。az_transfer_to_input 是长度 N 的显式传递；
+    实际 RA 输入误差为 transfer*held_sample，再乘物理 G。
+    本入口没有额外 RMS、分布、RNG、输出误差或偏置的隐含物理默认值。
 
-    Returns:
-        ChoppingAZResult，保留每个 raw 码和标志。CAAZ 的每个 raw 同时在
-        SADC/RDAC 孔径按样本 ID 取 +/− 极性，误差在 RA 钳位前注入。
-        非 off 输出 N/2 个码、pair 中点时间及 fs/2 速率。两点读出的信号
-        幅频响应为 abs(cos(pi*fin/fs))；高于 pair Nyquist 的信号会混叠。
-        基线也做同样两点平均，需分开评价平均降噪和相关 AZ 误差相消。
+    format 必须明确提供；calibration 直接透传整数重构器。未显式给模型时，
+    只允许使用结果中已有的冻结模型，不生成名义系数。启用配对时输出速率为 cfg.fs/2，
+    时间取两个孔径中点，信号幅频响应为 abs(cos(pi*fin/cfg.fs))；off 模式保留原速率与孔径。
 
-    Side effects:
-        使用启用噪声源的 RNG；run_pipeline 重置 pool 电气状态而保留制造
-        电容。不更改 Config、ADC2 窗口、旧噪声预算或普通默认输出。
-        off 直接委托普通主链。此 fresh runner 不连续继承跨调用的配对状态。
-
-    Raises:
-        ConfigError: 非法参数/长度/显式误差流，重复 RA 误差入口，或非 off记录的 ID 归属不合法。
-            非 off 还拒绝未实现的动态斩波、旧 AZ、flicker、KTC 及若干切片/驱动动态组合；
-            独立孔径采样白噪声可保留。
-
-    Notes:
-        [C32.1 Figs.5-6] 支持输入斩波、偶更新/奇保持及偶减奇。raw40/pair20
-        是项目选择，噪声幅度、rho/r 为假设；这些条件不是原芯片同条件复现。
+    两点响应与码中心 floor 是明确计算规则。无噪控制、数字同代或运行成功，
+    不证明实际 CBIAS 保持或噪声收益。
     """
+    from .pipeline import run_pipeline
+
     az = ChoppingAZParameters() if az is None else az
-    az.validate()
-    if type(n_samples) is not int or n_samples < 1:
-        raise ConfigError("raw sample count must be a positive integer")
-    if "ra_output_error_v" in pipeline_kwargs:
-        raise ConfigError("use the named AZ perturbation inputs, not two RA-error streams")
-    external = (
-        np.zeros(n_samples) if post_az_error_v is None else np.asarray(post_az_error_v, float)
-    )
-    if external.shape != (n_samples,) or np.any(~np.isfinite(external)):
-        raise ConfigError("post-AZ error must be a finite RA-output-V stream of raw length")
-    signs = np.ones(n_samples, dtype=np.int64)
-    refresh = np.zeros(n_samples, dtype=bool)
-    sampled = np.zeros(n_samples)
-    injected = np.zeros(n_samples)
+    state = _az_input_state(az, n_samples, az_input_samples_v, az_transfer_to_input)
+    signs, refresh, sampled, transfer, injected, evidence = state
+    if "ra_input_error_v" in pipeline_kwargs:
+        raise ConfigError("use the explicit AZ records, not two RA-input error streams")
     if az.mode == "off":
-        if post_az_error_v is not None:
-            raise ConfigError("off mode cannot silently ignore a post-AZ error stream")
         raw = run_pipeline(cfg, input_fn, n_samples, **pipeline_kwargs)
     else:
-        _require_sample_domain(cfg)
-        if n_samples % 2:
-            raise ConfigError("sampled-AZ research modes require an even raw sample count")
-        if az.mode in ("conventional_az", "chopping_assisted"):
-            generator = np.random.default_rng(cfg.seed + 120001) if az_rng is None else az_rng
-            # 共享同一创新序列可比较相同物理假设；CAAZ 只采偶次，奇次重用保持值。
-            # 仍抽 N 个数，保持 conventional/CAAZ 的随机流消耗一致。
-            innovation = generator.normal(0, az.az_noise_rms_v, n_samples)
-            if az.mode == "conventional_az":
-                refresh[:] = True
-                sampled[:] = innovation
-            else:
-                refresh[::2] = True
-                sampled[::2] = innovation[::2]
-                sampled[1::2] = az.odd_hold_retention * innovation[::2]
-                signs[1::2] = -1
-            sampled[1::2] *= az.odd_transfer_ratio
-        injected = sampled + external + az.post_az_offset_v
+        _require_sample_domain(cfg, pipeline_kwargs.get("pool"))
         waveform = (
             _SampleIndexedChop(input_fn, signs) if az.mode == "chopping_assisted" else input_fn
         )
-        raw = run_pipeline(cfg, waveform, n_samples, ra_output_error_v=injected, **pipeline_kwargs)
-    # 每次 raw 先独立完成位权重构/最终码量化，再配对；保留逐 raw 的异常标志。
-    words = raw.to_codes()
-    invalid_raw = words.analog_overflow | words.clipped_low | words.clipped_high
-    ids = np.arange(n_samples) if raw.sample_id is None else raw.sample_id
-    if az.mode != "off":
-        ids = _fresh_pair_ids(raw, n_samples)
+        raw = run_pipeline(cfg, waveform, n_samples, ra_input_error_v=injected, **pipeline_kwargs)
+    words = raw.to_codes(format=format, calibration=calibration)
     if az.mode == "off":
-        output, voltage, exact, invalid = words.code, words.voltage, words.voltage, invalid_raw
-        times, source_ids, output_fs = raw.sample.t1, ids[:, None], cfg.fs
+        ids = np.asarray(raw.sample_id)
+        if (
+            ids.shape != (n_samples,)
+            or not np.issubdtype(ids.dtype, np.integer)
+            or np.any(ids < 0)
+            or np.any(ids >= 2**32)
+        ):
+            raise ConfigError("raw pipeline must provide explicit sample ownership")
+        output, voltage, exact = words.code, words.voltage, words.voltage
+        invalid = words.analog_overflow | words.clipped_low | words.clipped_high
+        times, source_ids, output_fs = raw.sample.aperture_s, ids[:, None], cfg.fs
     else:
+        ids = _fresh_pair_ids(raw, n_samples)
         output, voltage, exact, invalid = pair_readout(
             words, difference=az.mode == "chopping_assisted"
         )
-        times = (raw.sample.t1[::2] + raw.sample.t1[1::2]) / 2
+        times = (raw.sample.aperture_s[::2] + raw.sample.aperture_s[1::2]) / 2
         source_ids, output_fs = ids.reshape(-1, 2), cfg.fs / 2
     return ChoppingAZResult(
         raw,
@@ -367,6 +347,8 @@ def run_caaz_pipeline(
         readonly(signs, np.int64),
         readonly(refresh, bool),
         readonly(sampled),
+        readonly(transfer),
         readonly(injected),
+        evidence,
         az.mode,
     )

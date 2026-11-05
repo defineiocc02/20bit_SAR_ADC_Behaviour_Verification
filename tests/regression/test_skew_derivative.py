@@ -1,206 +1,115 @@
-"""检查采样时偏使用的输入导数（外部审计 A07.3）。
-
-v6.1 在样本网格上用 np.gradient 求导，其中心差分响应为
-H(f)=sin(2*pi*f/fs)/(2*pi*f/fs)。fs=40 MHz 时，5/10/19 MHz 对应
-0.9003/0.6366/0.0524，接近 Nyquist 时斜率被低估达 25.6 dB，不能将低频
-时偏结果直接外推。
-
-主线 input_derivative 优先使用输入自带解析导数，普通可调用输入则使用周期
-谱求导。本文件检查该回退路径及其实际调用位置。
-"""
-
-from __future__ import annotations
+"""检查显式解析导数与物理切片编号对应的采样时偏，不隐式回退到 FFT 求导。"""
 
 import numpy as np
 import pytest
 
-from adi_model import Config
+from adi_model.pipeline import run_pipeline
 from adi_model.sampler import (
+    AnalyticInput,
     dc_input,
     input_derivative,
     sine_input,
     spectral_derivative,
 )
-
-FS = 40e6
-FIN_LIST = [1.25e6, 5e6, 10e6, 15e6, 19e6, 19.9e6]
+from adi_model.slice_pool import PhysicalSlicePool
 
 
-def _central_difference(x: np.ndarray, dt: float) -> np.ndarray:
-    """保留 v6.1 中心差分估计器，作为反例对照。"""
-    return np.gradient(x, dt)
+@pytest.mark.parametrize("frequency", [1e3, 1e6, 19e6])
+def test_analytic_derivative_is_exact(frequency):
+    amplitude, phase = 1.3, 0.2
+    time = np.arange(4000) / 40e6
+    actual = input_derivative(sine_input(amplitude, frequency, phase), time)
+    expected = amplitude * 2 * np.pi * frequency * np.cos(2 * np.pi * frequency * time + phase)
+    np.testing.assert_allclose(actual, expected, rtol=0, atol=1e-7)
 
 
-class TestSkewDerivative:
-    """检查采样时偏使用的斜率在接近 Nyquist 时仍准确。"""
-
-    @pytest.mark.parametrize("fin", FIN_LIST)
-    def test_analytic_derivative_is_exact(self, fin):
-        """检查 sine_input 自带的解析导数在所列频率准确。"""
-        n = 4096
-        t = np.arange(n) / FS
-        amp = 2.7
-        fn = sine_input(amp, fin)
-        got = input_derivative(fn, t)
-        want = 2 * np.pi * fin * amp * np.cos(2 * np.pi * fin * t)
-        assert np.allclose(got, want, rtol=0, atol=1e-9)
-
-    @pytest.mark.parametrize("fin", FIN_LIST)
-    def test_spectral_derivative_beats_central_difference(self, fin):
-        """检查无解析导数时的 FFT 求导幅度接近单位增益。"""
-        n = 4096
-        t = np.arange(n) / FS
-        amp = 2.7
-        x = amp * np.sin(2 * np.pi * fin * t)
-        want_rms = 2 * np.pi * fin * amp / np.sqrt(2)
-
-        got_rms = float(np.std(spectral_derivative(x, 1.0 / FS)))
-        old_rms = float(np.std(_central_difference(x, 1.0 / FS)))
-
-        assert (
-            abs(got_rms / want_rms - 1.0) < 0.02
-        ), f"spectral derivative gain {got_rms / want_rms:.4f} at fin={fin/1e6} MHz"
-        if fin > 10e6:
-            assert old_rms < 0.7 * want_rms, (
-                "counterfactual guard: the central difference must be visibly "
-                "wrong this close to Nyquist, otherwise this test is vacuous"
-            )
-
-    def test_nineteen_mhz_bias_is_the_audited_25_6_db(self):
-        """检查 fs=40 MHz、fin=19 MHz 时中心差分响应为约 0.0524，即 -25.6 dB（A07.3）。"""
-        fin, fs = 19e6, FS
-        x = fin / fs
-        ratio = np.sin(2 * np.pi * x) / (2 * np.pi * x)
-        assert ratio == pytest.approx(0.0524, abs=5e-4)
-        assert 20 * np.log10(ratio) == pytest.approx(-25.6, abs=0.2)
-
-    def test_derivative_is_invariant_to_frequency_scaling(self):
-        """检查正弦导数幅度随频率成比例；中心差分接近 Nyquist 时不满足此性质。"""
-        n = 4096
-        t = np.arange(n) / FS
-        amp = 1.0
-        r1 = float(np.std(input_derivative(sine_input(amp, 5e6), t)))
-        r2 = float(np.std(input_derivative(sine_input(amp, 10e6), t)))
-        assert r2 / r1 == pytest.approx(2.0, rel=1e-6)
-
-    def test_dc_input_has_zero_slope(self):
-        t = np.arange(512) / FS
-        d = input_derivative(dc_input(0.7), t)
-        assert np.all(d == 0.0)
-
-    def test_fallback_handles_a_plain_lambda(self):
-        """检查无 derivative 属性的普通可调用输入使用主线谱求导回退。"""
-        t = np.arange(2048) / FS
-        fin, amp = 3e6, 1.5
-        plain = lambda tt: amp * np.sin(2 * np.pi * fin * np.asarray(tt))  # noqa: E731
-        got = input_derivative(plain, t)
-        want = 2 * np.pi * fin * amp * np.cos(2 * np.pi * fin * t)
-        # Non-coherent record -> small edge/leakage error, but the gain is right.
-        assert abs(float(np.std(got)) / float(np.std(want)) - 1.0) < 0.05
+def test_explicit_periodic_spectral_derivative_beats_central_difference():
+    fs, frequency, n = 40e6, 19e6, 4000
+    time = np.arange(n) / fs
+    values = np.sin(2 * np.pi * frequency * time)
+    expected = 2 * np.pi * frequency * np.cos(2 * np.pi * frequency * time)
+    actual = spectral_derivative(values, 1 / fs)
+    np.testing.assert_allclose(actual, expected, rtol=0, atol=0.002)
+    wrong = (np.roll(values, -1) - np.roll(values, 1)) * fs / 2
+    ratio = np.linalg.norm(wrong) / np.linalg.norm(expected)
+    assert ratio == pytest.approx(0.0524, abs=0.0005)
+    assert 20 * np.log10(ratio) == pytest.approx(-25.6, abs=0.2)
 
 
-class TestSkewEntersThePipeline:
-    """检查流水线消费准确导数，不自行使用 np.gradient。"""
+def test_derivative_is_invariant_to_frequency_scaling():
+    time = np.arange(4000) / 40e6
+    first = input_derivative(sine_input(1.0, 1e6, 0.0), time)
+    second = input_derivative(sine_input(1.0, 2e6, 0.0), time)
+    assert np.std(second) / np.std(first) == pytest.approx(2.0, rel=1e-12)
 
-    def test_pipeline_source_does_not_use_np_gradient(self):
-        """仅检查可执行词法单元中不存在 np.gradient 调用。
 
-        源码 docstring 中可能提到该禁用规则；tokenize 排除注释和字符串，避免把说明
-        文字当成调用位置。
-        """
-        import inspect
-        import io
-        import tokenize
+def test_dc_input_has_zero_slope():
+    np.testing.assert_array_equal(input_derivative(dc_input(0.3), np.arange(16) / 40e6), 0)
 
-        import adi_model.pipeline as pipeline_mod
 
-        src = inspect.getsource(pipeline_mod)
-        lines = src.splitlines()
-        code_by_row: dict[int, list[str]] = {}
-        for tok in tokenize.generate_tokens(io.StringIO(src).readline):
-            if tok.type in (tokenize.COMMENT, tokenize.STRING):
-                continue
-            code_by_row.setdefault(tok.start[0], []).append(tok.string)
+def test_plain_callable_requires_a_declared_derivative_instead_of_automatic_fallback():
+    with pytest.raises(ValueError, match="derivative"):
+        input_derivative(lambda t: np.sin(t), np.arange(16) / 40e6)
 
-        offenders = [
-            (row, lines[row - 1].strip())
-            for row, parts in sorted(code_by_row.items())
-            # Tokens are concatenated without whitespace, so `np . gradient`
-            # can never masquerade as a call site.
-            if "np.gradient" in "".join(parts)
-        ]
-        assert not offenders, (
-            "np.gradient is back in the signal path — its near-Nyquist gain is "
-            f"0.052 at 19 MHz (audit A07.3): {offenders}"
-        )
 
-    @pytest.mark.parametrize(
-        "fin,min_ratio",
-        [
-            (5e6, 1.05),  # |H| = 0.9003 -> 1.11x
-            (10e6, 1.40),  # |H| = 0.6366 -> 1.57x
-            (15e6, 2.80),  # |H| = 0.3001 -> 3.33x
-            (18e6, 7.00),  # |H| = 0.1093 -> 9.15x
-            (19e6, 12.0),  # |H| = 0.0524 -> 19.1x
-        ],
+@pytest.mark.parametrize("bad", [np.nan, np.inf, -np.inf])
+def test_nonfinite_declared_derivative_is_rejected(bad):
+    source = AnalyticInput(lambda t: np.zeros_like(t), lambda t: np.full_like(t, bad))
+    with pytest.raises(ValueError, match="finite"):
+        input_derivative(source, np.arange(16) / 40e6)
+
+
+def _with_skew(cfg, controls):
+    original = controls["pool"]
+    skew = np.linspace(-10e-12, 10e-12, 18)
+    pool = PhysicalSlicePool(
+        cfg,
+        chip=original.chip,
+        nominal_codebook=original.nominal_codebook,
+        mask_binding=original.mask_binding,
+        acquisition_binding=original.acquisition_binding,
+        schedule_binding=original.schedule_binding,
+        t_skew=skew,
     )
-    def test_np_gradient_would_have_suppressed_the_effect(self, monkeypatch, fin, min_ratio):
-        """用相同记录对照主线导数与重新注入的 np.gradient。
+    return {**controls, "pool": pool}, skew
 
-        检查时偏效应的抑制符合中心差分 H(fin) 响应，重现 A07.3 的估计器问题；
-        结果针对该求导路径，不代替 ADC 性能结论。
-        """
-        import adi_model.pipeline as pipeline_mod
-        from adi_model.experiments import _clone
 
-        n = 2**13
-        cfg = _clone(
-            Config(),
-            # Isolate timing skew: continuous RC phase lag is an independent,
-            # much larger error and must not be attributed to slope estimation.
-            dyn_input_settling=False,
-            dyn_ron_code_coeff=0.0,
-            slice_timing_skew_s=10e-12,
-            enable_sampling_noise=False,
-            ra_enable_noise=False,
-            mismatch_enable=False,
-            dem_enable=False,
-            dither_mode="off",
-        )
-        fn = sine_input(0.7 * cfg.v_fs, fin)
+def test_skew_enters_the_pipeline_at_each_actual_physical_aperture(
+    explicit_pipeline_factory,
+):
+    cfg, controls = explicit_pipeline_factory(n_samples=16)
+    source = sine_input(1.0, 19e6, 0.2)
+    baseline = run_pipeline(cfg, source, 16, **controls)
+    changed, skew = _with_skew(cfg, controls)
+    result = run_pipeline(cfg, source, 16, **changed)
+    time = result.sample.aperture_s
+    exact_values = source(time[:, None] + skew[result.acq_slice_ids])
+    expected = 32 * np.mean(exact_values - source(time)[:, None], axis=1)
+    first_order = 32 * np.mean(skew[result.acq_slice_ids], axis=1) * input_derivative(source, time)
+    assert np.max(abs(expected - first_order)) > 1e-6
+    assert np.max(abs(expected)) > 1e-4
+    np.testing.assert_allclose(result.vra - baseline.vra, expected, rtol=0, atol=5e-12)
+    np.testing.assert_array_equal(result.coarse, baseline.coarse)
+    assert not result.analog_overflow.any()
+    assert not result.digital_observation.static_charge_domain
 
-        good = (
-            float(
-                np.std(
-                    np.asarray(
-                        pipeline_mod.run_pipeline(cfg, fn, n, rng=np.random.default_rng(5)).err
-                    )
-                )
-            )
-            * 1e6
-        )
 
-        monkeypatch.setattr(
-            pipeline_mod,
-            "input_derivative",
-            lambda f, t: np.gradient(np.asarray(f(t), dtype=float), t),
-        )
-        old = (
-            float(
-                np.std(
-                    np.asarray(
-                        pipeline_mod.run_pipeline(cfg, fn, n, rng=np.random.default_rng(5)).err
-                    )
-                )
-            )
-            * 1e6
-        )
+def test_skew_path_can_evaluate_a_plain_callable_at_actual_apertures(explicit_pipeline_factory):
+    cfg, controls = explicit_pipeline_factory(n_samples=16)
+    controls, _ = _with_skew(cfg, controls)
+    source = sine_input(1.0, 19e6, 0.2)
+    analytic = run_pipeline(cfg, source, 16, **controls)
+    plain = run_pipeline(
+        cfg, lambda t: np.sin(2 * np.pi * 19e6 * np.asarray(t) + 0.2), 16, **controls
+    )
+    np.testing.assert_allclose(plain.vra, analytic.vra, rtol=0, atol=1e-14)
 
-        assert old > 0.0, "counterfactual produced no skew error at all"
-        ratio = good / old
-        assert ratio >= min_ratio, (
-            f"at fin={fin/1e6:.1f} MHz the accurate slope gives {good:.2f} uV "
-            f"vs {old:.2f} uV for np.gradient (ratio {ratio:.2f}, expected "
-            f">= {min_ratio:.2f}); the near-Nyquist suppression (A07.3) is not "
-            "reproduced, so this test has lost its counterfactual"
-        )
+
+def test_response_approximation_still_requires_a_declared_analytic_derivative(
+    explicit_pipeline_factory,
+):
+    cfg, controls = explicit_pipeline_factory(
+        n_samples=16, config_changes={"sampling_tau_mismatch": 1e-9}
+    )
+    with pytest.raises(ValueError, match="derivative"):
+        run_pipeline(cfg, lambda t: np.sin(2 * np.pi * 19e6 * np.asarray(t)), 16, **controls)

@@ -1,0 +1,320 @@
+{
+  "scope": "SOURCE_FAMILY_FIG19_IDEAL_PORTS; nominal fixture only, not learned coefficients",
+  "coefficient_source": "nominal Cu/Cb/Cf, constructed before actual fabrication; not fit or true unknown plant",
+  "source_locations": [
+    "US10505561B2 PDF22 Fig19",
+    "US10505561B2 PDF33 text"
+  ],
+  "assumptions": [
+    "negative equivalent node polarity",
+    "63+8 canonical geometry",
+    "causal_pool_scan engineering schedule/seed",
+    "ADC2 window/12bit/uniform_midrise",
+    "ideal static nodes/no noise/CP=0/no real physical switches"
+  ],
+  "validation_input_peak_v": 2.0,
+  "negative_control": "near-2.9V,U>0 with finallegal but firstprefixillegal",
+  "nominal_gain": 32.0,
+  "parameter_inference": {
+    "fs_hz": {
+      "value": 40000000.0,
+      "grade": "DISCLOSED",
+      "reason": "ISSCC2024 source anchor; overrides are a custom model",
+      "unit": "Hz"
+    },
+    "input_differential_peak_v": {
+      "value": 3.0,
+      "grade": "DISCLOSED",
+      "reason": "ISSCC2024 source anchor; overrides are a custom model",
+      "unit": "V"
+    },
+    "stage1_bits": {
+      "value": 9,
+      "grade": "DISCLOSED",
+      "reason": "ISSCC2024 source anchor; overrides are a custom model",
+      "unit": "bit"
+    },
+    "output_bits": {
+      "value": 20,
+      "grade": "DISCLOSED",
+      "reason": "ISSCC2024 source anchor; overrides are a custom model",
+      "unit": "bit"
+    },
+    "nominal_residue_gain": {
+      "value": 32.0,
+      "grade": "DISCLOSED",
+      "reason": "ISSCC2024 source anchor; overrides are a custom model",
+      "unit": "V/V"
+    },
+    "n_slices": {
+      "value": 18,
+      "grade": "DISCLOSED",
+      "reason": "ISSCC2024 source anchor; overrides are a custom model",
+      "unit": "count"
+    },
+    "n_active": {
+      "value": 8,
+      "grade": "DISCLOSED",
+      "reason": "ISSCC2024 source anchor; overrides are a custom model",
+      "unit": "count"
+    },
+    "active_capacitance_anchor_f": {
+      "value": 2.05e-11,
+      "grade": "DISCLOSED_ANCHOR_WITH_NODE_ASSUMPTION",
+      "reason": "reported20.5pF mapped to nominal Cnorm, not an extracted input-load network",
+      "unit": "F"
+    },
+    "n_main": {
+      "value": 63,
+      "grade": "ASSUMED_GEOMETRY",
+      "reason": "one explicit512-code segmented realization",
+      "unit": ""
+    },
+    "n_sub": {
+      "value": 8,
+      "grade": "ASSUMED_GEOMETRY",
+      "reason": "not disclosed fabricated unit count",
+      "unit": ""
+    },
+    "unit_cap_f": {
+      "value": 4.00390625e-14,
+      "grade": "DERIVED_WITH_ASSUMPTION",
+      "reason": "default20.5pF/[8*(63+8/8)]; independent overrides remain explicit",
+      "unit": "F"
+    },
+    "bridge_cap_f": {
+      "value": 4.575892857142857e-14,
+      "grade": "DERIVED_WITH_ASSUMPTION",
+      "reason": "default8*Cu/7 with zero subnode parasitic",
+      "unit": "F"
+    },
+    "feedback_cap_f": {
+      "value": 6.40625e-13,
+      "grade": "DERIVED_WITH_ASSUMPTION",
+      "reason": "default20.5pF/32",
+      "unit": "F"
+    },
+    "beta_nominal": {
+      "value": 0.125,
+      "grade": "DERIVED_FROM_NOMINAL_INPUTS",
+      "reason": "Cb/(Cb+Nsub*Cu+Cp_sub)",
+      "unit": ""
+    },
+    "nominal_active_Cnorm_f": {
+      "value": 2.05e-11,
+      "grade": "DERIVED_FROM_NOMINAL_INPUTS",
+      "reason": "8*(A+beta*B); not physical load or noise capacitance",
+      "unit": "F"
+    },
+    "nominal_capacitance_gain": {
+      "value": 32.0,
+      "grade": "DERIVED_FROM_NOMINAL_INPUTS",
+      "reason": "Cnorm_nom/Cf_nom",
+      "unit": ""
+    },
+    "main_parasitic_f": {
+      "value": 0.0,
+      "grade": "NOMINAL_IDEALIZATION_NOT_DEVICE_MEASUREMENT",
+      "reason": "default0 is not device measurement",
+      "unit": "F"
+    },
+    "sub_parasitic_f": {
+      "value": 0.0,
+      "grade": "NOMINAL_IDEALIZATION_NOT_DEVICE_MEASUREMENT",
+      "reason": "default0 is not device measurement",
+      "unit": "F"
+    },
+    "sadc_cap_f": {
+      "value": 2.5625e-12,
+      "grade": "DERIVED_MATCHED_SLICE_ASSUMPTION",
+      "reason": "default20.5pF/8",
+      "unit": "F"
+    },
+    "sadc_thresholds": {
+      "value": {
+        "edge_count": 513,
+        "first_v": -3.0,
+        "last_v": 3.0
+      },
+      "grade": "IDEAL_QUANTIZER_ASSUMPTION",
+      "reason": "default uniform -Vfs..+Vfs; explicit overrides are retained in config_overrides",
+      "unit": "V at SADC input"
+    },
+    "endpoint_policy": {
+      "value": "half_open",
+      "grade": "NUMERICAL_CONVENTION",
+      "reason": "half_open default",
+      "unit": ""
+    },
+    "adc2_codebook": {
+      "value": "uniform_midrise",
+      "grade": "IDEAL_QUANTIZER_ASSUMPTION",
+      "reason": "uniform_midrise",
+      "unit": ""
+    },
+    "adc2_n_bits": {
+      "value": 12,
+      "grade": "INFERRED_RESOLUTION_BUDGET",
+      "reason": "default12b; no targetDR back-solving",
+      "unit": ""
+    },
+    "adc2_window_v": {
+      "value": [
+        -0.037500000000000006,
+        0.41250000000000003
+      ],
+      "grade": "INFERRED_HEADROOM",
+      "reason": "default[-0.1,+1.1]*32*(6/512)",
+      "unit": "V at RA output"
+    },
+    "ra_clip_v": {
+      "value": 0.5,
+      "grade": "ASSUMED_SWING",
+      "reason": "default0.5V is not disclosed device swing",
+      "unit": "V"
+    },
+    "temperature_k": {
+      "value": 300.0,
+      "grade": "ASSUMED_TEST_CONDITION",
+      "reason": "default300K",
+      "unit": "K"
+    },
+    "chi": {
+      "value": 2.0,
+      "grade": "ASSUMED_DIFFERENTIAL_NOISE_MODEL",
+      "reason": "default2",
+      "unit": ""
+    },
+    "ra_noise_rms_v": {
+      "value": 0.001,
+      "grade": "ASSUMED_NOISE_BUDGET",
+      "reason": "rounded1mV output budget, not inferred measured component",
+      "unit": "Vrms"
+    },
+    "noise_distribution": {
+      "value": "gaussian_white",
+      "grade": "MODELING_ASSUMPTION",
+      "reason": "independent sampled sources",
+      "unit": ""
+    },
+    "sampling_Ceq": {
+      "value": "Cnorm^2/sum(Cmain+beta^2*Csub)",
+      "grade": "ASSUMED_SAMPLING_CHARGE_MODEL",
+      "reason": "independent main/sub sampled charge; actual values used only by plant",
+      "unit": ""
+    },
+    "unit_mismatch_std": {
+      "value": 0.0,
+      "grade": "USER_OVERRIDE",
+      "reason": "iid relative Gaussian stress when nonzero; not PDK data",
+      "unit": "relative RMS",
+      "default_grade": "ASSUMED_SENSITIVITY"
+    },
+    "bridge_mismatch_std": {
+      "value": 0.0,
+      "grade": "USER_OVERRIDE",
+      "reason": "iid relative Gaussian stress when nonzero; not PDK data",
+      "unit": "relative RMS",
+      "default_grade": "ASSUMED_SENSITIVITY"
+    },
+    "feedback_mismatch_std": {
+      "value": 0.0,
+      "grade": "NOMINAL_BASELINE",
+      "reason": "iid relative Gaussian stress when nonzero; not PDK data",
+      "unit": "relative RMS"
+    },
+    "sadc_static_mismatch": {
+      "value": 0.0,
+      "grade": "NOMINAL_BASELINE",
+      "reason": "max absolute configured threshold deviation from uniform[-Vfs,+Vfs]; not a random mismatch sigma",
+      "unit": "V at SADC input"
+    },
+    "reference_coordinates": {
+      "value": [
+        3.0,
+        -3.0
+      ],
+      "grade": "DIFFERENTIAL_EQUIVALENT_COORDINATE",
+      "reason": "not single-ended transistor pin voltages",
+      "unit": "V"
+    },
+    "sampled_reset": {
+      "value": [
+        0.0,
+        0.0
+      ],
+      "grade": "ASSUMED_STATIC_RESET",
+      "reason": "differential top zero; sub coordinate cancels statically",
+      "unit": "V"
+    },
+    "base_decoder": {
+      "value": "main=k//Nsub,sub=k%Nsub; canonical integer masks",
+      "grade": "INFERRED_BASIC_DECODER",
+      "reason": "not source3DDEM or binary-unary bridging",
+      "unit": ""
+    },
+    "schedule": {
+      "value": "uniform8-of-idle10 with explicit seed",
+      "grade": "BEHAVIORAL_SCHEDULING_ASSUMPTION",
+      "reason": "causal18/8/8/2; not original-chip PRNG",
+      "unit": ""
+    },
+    "fixed_point": {
+      "value": {
+        "weight_fraction_bits": 30,
+        "voltage_fraction_bits": 32,
+        "voltage_bits": 64,
+        "coefficient_bits": 48,
+        "accumulator_bits": 96,
+        "output_bits": 20
+      },
+      "grade": "ENGINEERING_ARITHMETIC_CHOICE",
+      "reason": "Q30/Q32/64/48/96/20 default; not paper format",
+      "unit": ""
+    },
+    "fig19_optional_static_binding": {
+      "value": {
+        "voltage_fraction_bits": 32,
+        "step_q": 16777216,
+        "fractional_lower_weights_q": [
+          9586981,
+          4793490,
+          2396745
+        ],
+        "equivalent_polarity": "subtract"
+      },
+      "grade": "ASSUMED_TARGET_PORT_EQUIVALENCE",
+      "reason": "US10505561 Fig19 seven-slice example interpreted as common voltage ports on this 18/8 model; Q32 ratio/sign/target binding are explicit engineering assumptions, not fabricated-chip disclosure",
+      "unit": ""
+    },
+    "seed": {
+      "value": 42,
+      "grade": "NUMERICAL_REPRODUCIBILITY_CONTROL",
+      "reason": "SeedSequence fabrication/schedule/noise partition",
+      "unit": ""
+    },
+    "sadc_endpoint_policy": {
+      "value": "half_open",
+      "grade": "NUMERICAL_CONVENTION",
+      "reason": "half_open default",
+      "unit": ""
+    }
+  },
+  "config_overrides_from_nominal": {
+    "enable_sampling_noise": false,
+    "ra_enable_noise": false,
+    "dither_enable": true
+  },
+  "artifact_sha256": {
+    "scalars_nominal.hex": "eb75aa0c31a94e622f014e80efee95bfa7fef9338fccb10d6c73cbf4133b1b8c",
+    "binding.json": "b5152d5cdffc3a02518bfb0cbb51a5fed6e8531a7463360da982ca973f2ba958",
+    "config.json": "ffadf4fd349801167f1601f90abaea65dff904154437bb4f7062a98e10f1fba6",
+    "rdac_prefix_table.json": "552c55b1113563d86ce67f861e514cc9b8d6aec033ab8d7dfcbae8c1e1759939",
+    "weights_nominal.hex": "72749f36fbc8ecac81834293a171e534b9dcb62b4b3f2d582e95eb2ad35da29d",
+    "source_control_binding.sv": "9f99890a93cf4e6860a6ead379bac9a4245210a2e5fd9bfbf00f3068c65ab403",
+    "homogeneous_code_reference.json": "1431c063d9a48cfefe7cd37a4a43936088383db37ec153d7c0dd5e3f8dd6755f",
+    "registers_nominal.json": "a371dbad26cd233bdf82bf9f86788779154c66b6c1561b421060204698303a0e",
+    "format.json": "2c7b5765d533cdef32741bc8771fa67d585b04814c7d6c7b1ee69cb5a64cb3ca",
+    "source_acquisition_binding.sv": "580bc96a9682efd685fbb130917644ce27896d8e6a976e4bd99d732fd065a0dd"
+  }
+}

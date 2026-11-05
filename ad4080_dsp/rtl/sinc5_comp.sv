@@ -1,31 +1,31 @@
 //=============================================================================
 // @file    sinc5_comp.sv
-// @brief   SINC5 后接三抽头 FIR 与额外二倍抽取。
-// @details FIR 对 SINC5 输出的偶数相位计算，保存前两点；系数为缩放 2^15 的
-//          17 bit 有符号整数。默认 (32768,0,0) 只保持结构与二倍抽取，不代表真实补偿频响。
-// @project SAR20 / AD4080风格数字原型
-// @author  项目维护者（贡献记录见版本库）
+// @brief   SINC5 后接显式三抽头 FIR 与二倍抽取。
+// @details 三个系数均为缩放 2^15 的 17 bit 有符号整数，启用时必须明确提供。
+//          缺少系数绑定时拒绝处理，不用单位系数代替补偿滤波器。
+// @project SAR20 / source-bounded digital processing
+// @author  Project maintainers; contributions are tracked by Git.
 // @date    2026-11-05
-// @version 由Git内容版本追溯，不单独声明器件版本
+// @version Git content version; no separate device revision is implied.
 //-----------------------------------------------------------------------------
-// 手册依据: 功能映射见 docs/ad4080_traceability.md，不声称器件逐拍等价。
-// 时钟域: clk；valid、配置与 filter_sync 同步。
-// 复位: rst_n 异步低有效；filter_sync 取消 CIC/FIR 内部流水。
-// 延迟: 含 CIC 样本域流水、FIR 启动前两点与输出寄存，不能简化为 N+2 clk。
-// 吞吐: 每 2N 个有效输入最多一个结果，启动时还须填充 FIR 历史。
-// 可综合性: RTL 结构；目标库映射、约束、SRAM/PHY 与 STA 须单独验收。
+// 手册依据: AD4080 Rev.B pp.64–70/94 的外部模式与抽取率；三抽头系数/顺序由调用方绑定。
+// 时钟域: clk；valid、配置与 filter_sync 均同步。
+// 复位: rst_n 低有效、异步置位；filter_sync 取消 CIC/FIR 在途结果。
+// 延迟: CIC 流水加两个 FIR 历史样本与寄存归一化。
+// 吞吐: FIR 历史填充后，每 2N 个输入最多输出一次。
+// 可综合性: 可综合结构；工艺映射、约束与 STA 需分别验收。
 // 依赖: sinc5_decim。
-// 边界: C0/C1/C2 采用 17 bit 补码，整数范围 -65536..65535，缩放 2^15。
-//     输出加半码后算术右移并饱和；settled 门限使用当前 dec_sel，改配置须配合 filter_sync。
+// 边界: 加半步舍入后饱和到 20 bit 补码；频响符合性需要独立验证的系数组。
 //=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
 
 module sinc5_comp #(
-    parameter int IN_W = 20,  // IN_W: 补码输入/输出位宽，工程配置为 20 bit。
-    parameter int C0   = 32768,   // C0: 当前样本的系数整数，缩放 2^15，默认表示 1.0。
-    parameter int C1   = 0,  // C1: 前一样本的系数整数，缩放 2^15。
-    parameter int C2   = 0  // C2: 前两样本的系数整数，缩放 2^15。
+    parameter int IN_W = 20,  // IN_W: 仅支持 20 bit 补码输入/输出。
+    parameter bit P_COMP_COEFF_VALID = 1'b0,  // P_COMP_COEFF_VALID: 三个系数已明确绑定。
+    parameter int C0 = 32'h40000000,  // C0: 当前样本系数，缩放 2^15；绑定有效时须在 -65536..65535。
+    parameter int C1 = 32'h40000000,  // C1: 前一样本系数，缩放 2^15；绑定有效时须在 -65536..65535。
+    parameter int C2 = 32'h40000000  // C2: 前两样本系数，缩放 2^15；绑定有效时须在 -65536..65535。
 ) (
     input  logic                 clk,
     input  logic                 rst_n,
@@ -34,9 +34,25 @@ module sinc5_comp #(
     input  logic [IN_W-1:0]      data_in,      // 补码
     input  logic [3:0]           dec_sel,
     output logic [IN_W-1:0]      data_out,     // 补码
-    output logic                 valid_out,    // 输出有效，单拍
-    output logic                 settled       // 建立完成；按有效输入计数。
+    output logic                 valid_out,
+    output logic                 processing_reject
 );
+
+    localparam bit COEFF_BINDING_VALID=P_COMP_COEFF_VALID &&
+        C0>=-65536 && C0<=65535 && C1>=-65536 && C1<=65535 && C2>=-65536 && C2<=65535;
+
+    initial begin
+        if (IN_W != 20) $fatal(1, "sinc5_comp: only signed20 is supported");
+        if (P_COMP_COEFF_VALID &&
+            (C0 < -65536 || C0 > 65535 || C1 < -65536 || C1 > 65535 ||
+             C2 < -65536 || C2 > 65535))
+            $fatal(1, "sinc5_comp: all three explicit signed17 Q15 coefficients are required");
+    end
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) processing_reject <= 1'b0;
+        else if (filter_sync) processing_reject <= 1'b0;
+        else processing_reject <= valid_in && !COEFF_BINDING_VALID;
+    end
 
     localparam int COEF_W = 17;                  // 17 bit 补码整数，缩放 2^15，范围 -65536..65535。
     localparam int PROD_W = IN_W + COEF_W + 2;   // 三项相加再留 2 位
@@ -50,12 +66,11 @@ module sinc5_comp #(
 
     logic [IN_W-1:0] s5_data;
     logic            s5_valid;
-    logic            s5_settled_unused;   // 建立计数在本层独立实现，内部实例不消费
 
     sinc5_decim #(.IN_W(IN_W)) u_sinc5 (
         .clk(clk), .rst_n(rst_n), .filter_sync(filter_sync),
-        .valid_in(valid_in), .data_in(data_in), .dec_sel(dec_sel),
-        .data_out(s5_data), .valid_out(s5_valid), .settled(s5_settled_unused)
+        .valid_in(valid_in && COEFF_BINDING_VALID), .data_in(data_in), .dec_sel(dec_sel),
+        .data_out(s5_data), .valid_out(s5_valid)
     );
 
     logic [IN_W-1:0] x1, x2;
@@ -107,7 +122,7 @@ module sinc5_comp #(
 
             if (s5_valid) begin
                 if (phase == 1'b0) begin
-                    // 当前 SINC5 样本为 x[2m]，历史填充完整后才允许输出。
+                    // 当前 SINC5 样本为 x[2m]；历史填充完整后才允许输出。
                     acc_r <= acc;
                     v_r   <= (primed == 2'd2) || (primed == 2'd3);
                 end
@@ -125,37 +140,6 @@ module sinc5_comp #(
                 else
                     data_out <= q_w[IN_W-1:0];
                 valid_out <= 1'b1;
-            end
-        end
-    end
-
-    // 建立计数采用手册 p.69 的 2+35N+10 数值门限，本实现按 valid_in 推进。
-    // 该计数不是物理 CNV 建立证据。
-    localparam int SET_W = 16;
-    logic [SET_W-1:0] settle_cnt;
-    logic [10:0]      n_d;
-    wire  [SET_W-1:0] settle_target;
-
-    // N 的编码映射与内部 SINC5 相同，超过 7 时采用最大抽取率 256。
-    always_comb begin
-        if (dec_sel > 4'd7) n_d = 11'd256;
-        else                n_d = 11'd1 << (dec_sel + 4'd1);
-    end
-    // 35N + 12 = (N<<5) + (N<<1) + N + 12
-    assign settle_target = (SET_W'(n_d) << 5) + (SET_W'(n_d) << 1) + SET_W'(n_d) + 16'd12;
-
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            settle_cnt <= '0;
-            settled    <= 1'b0;
-        end else if (filter_sync) begin
-            settle_cnt <= '0;
-            settled    <= 1'b0;
-        end else if (valid_in && !settled) begin
-            if (settle_cnt == settle_target - 16'd1) begin
-                settled <= 1'b1;
-            end else begin
-                settle_cnt <= settle_cnt + 16'd1;
             end
         end
     end

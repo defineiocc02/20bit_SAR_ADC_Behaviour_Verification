@@ -1,58 +1,64 @@
 # 当前实现、验证范围与下一步
 
-本页按工作组织当前状态；首页按三项交付物与扩展提供摘要，[数字状态表](digital_status_matrix.md)逐模块汇总交付归属、证据层级和未完成项，[原文对照](current_digital_source_map.md)记录机制依据。ADR解释设计合同，IMPLEMENTATION_CHECKPOINT／HANDOFF保留历史过程。实现状态、验证层级和适用配置分别判断，不用测试数量替代完成状态。
+首页按三项交付物和扩展介绍；本页按四组工作组织。[数字状态表](digital_status_matrix.md)逐模块登记证据，[原文对照](current_digital_source_map.md)区分披露与工程选择，[ABI2合同](rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)给出经复核的字段、事件和算术。
 
-本轮从 main@1e973cb82bb6ba39dba3b7d82e43f10ec42434c3 核对。结构 dither 的有效配置报告已单独修正于8550c05：只增加报告，不改变扰动、ADC2或最终整数码。保留字段sadc_cap_ratio的不生效报告另在1017226修正，真实负载使用c_sadc；结构校准报告的均值/RMS字段由3ea94a7独立补充。当前数据与本轮执行结果见[本轮复核](reviews/20261105-readability-maintenance.md)。[8238cc3的完整CI](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/41904500234)是历史受测提交，不冒充后续提交已重新通过。
+转换控制和随机化横跨行为模型与RTL；训练属于静态校准流程，固定系数重构同时进入RTL。DSP与CAAZ单列扩展。
 
-## 配置先分清
+## 默认与低层配置
 
-| 入口 | 用途 | 边界 |
-|---|---|---|
-| Config() | 历史七位一级量化／unary基准，常用于预算和早期机制实验 | 不与九位RTL逐拍混用；run_sim是静态unary入口，run_pipeline会解析成自己的split合同 |
-| Config.paper_literal() | 九位、63+8完整计数split候选，dither默认关；quantizer启用时采用理想dual-port假设 | 几何与双端口是工程假设；generic调度按dem_mode与单元DEM分别控制 |
-| Config.rtl_structural() | 结构数字核的九位、63+8、离散range、16相位对照 | DEM位同时控制单元置换与slice shuffle；ID从2开始；量化器dither实际由固定D=2序列驱动 |
+| 入口 | 实际职责 | 边界 |
+| :--- | :--- | :--- |
+| `simulate()`／`default_model()`／`adi-simulate` | 集中工程默认；返回raw、名义20位码、异常和推断表 | 默认没有训练；默认关闭dither、单元DEM和CAAZ |
+| `Config()` | 9位目标的低层规格；缺少ADC2、门限、网络或活跃噪声输入时拒绝 | 不回填七位／unary、旧DR噪声或旧扰动方案 |
+| `Config.rtl_structural()` | 选择`rtl16`执行接口，调用方补全参数 | 不自动提供物理几何、码制、开关或模拟宏 |
+| 外部source binding | 用实际码／word／state／slice决定mask和两采集端口项；显式导出8文件包 | 哈希与合法性检查不证明原芯片物理正确；未绑定能力拒绝 |
 
-默认采样率参数均为40MS/s。16个理想相位若各占一拍，对应640MHz预算；功能仿真不证明目标工艺能达到该时钟。20位是最终码宽，不等同ENOB。
+40 MS/s是默认raw时间轴，20位是输出码宽；16相位若各占一拍，对应640 MHz预算。当前没有目标工艺时序或模拟精度签核。
 
-## 四组工作
+## 三项交付物对应的四组工作
 
-| 工作 | 当前接入 | 证据与条件 | 仍缺什么 |
-|---|---|---|---|
-| **转换控制与物理信号链** | 因果slice池、一级量化、残差电荷、共享RA/ADC2；数字相位、比较器接口、ID和异常上下文 | 结构样本、已决RDAC事件、物理mask与静态plant对照；generic split另有共享源阻抗、参考恢复和有限RA/ADC2动态模型 | 比较器／模拟宏真实完成沿、本地保持、非交叠与参考建立合同；晶体管、PEX和目标工艺时序未验证 |
-| **随机化与失配实验** | slice调度、单元DEM、零和bridge候选、sampling/quantizer dither及逐raw重构项 | 项目mask合同已统一；三模式事件对拍；固定失配池／指定时偏行为实验。名义守恒、使用次数、总误差各有不同判据 | 63单元与bridge使用偏置、近满幅dither余量是范围限制。逐slice时偏/带宽学习、原芯片完整bridge及dual-port电路尚未实现 |
-| **位权训练与定点重构** | 片外已知参考与数字观察拟合有效C/Cf；冻结、Q30/Q32装载和逐码重构 | 真实结构数字DUT与独立静态plant联合；训练/留出分开；相同raw用名义/冻结系数比较并对拍独立整数模型 | 真实参考误差、观察输送、漂移/动态训练与ADC2自身非线性。有效权重不唯一确定绝对电容F值 |
-| **输出、DSP与可选扩展** | SAR—DSP码制接入；原型校正/SINC/FIFO/SPI；默认关闭CAAZ样本域与数字pair控制 | 默认/异常接口定向验证；CAAZ有held-noise、量化、保持失配及条件组合实验 | 两点方向、有效滤波系数、FIFO—串行连通、逐结果元数据、无损PHY未闭合；CAAZ真实存储与H/K未测，DSP系统顶层未启用它 |
+| 工作组 | 实际完成的实现 | 当前证据边界 | 下一步 |
+| :--- | :--- | :--- | :--- |
+| **转换控制与物理信号链** | 行为模型的独立SADC、18/8物理池、RA／ADC2；RTL的9位SAR、16相位、采集与重构归属 | 当前DUT指定有限窗有实际采集、mask、已决事件和calobs v2同池对拍 | 真实关闭沿、非交叠、参考／RA／ADC2建立及宏时序 |
+| **随机化与失配机制** | 资源计划和实际mask接口；Fig.19六位字与双采集端口静态等效，逐事件检查 | 64字同池有限窗已核；近负端早prefix非法已定位并拒绝；源3D DEM未实现 | 完整物理开关／dither失配噪声、有效端点、逐slice孔径／带宽与补偿 |
+| **位权训练与定点重构** | 独立参考、SVD秩检查、schema2固定模型与受检整数重构；DUT回装固定系数 | 当前Python与DUT＋同池重放分别有独立留出；中幅激励不足被拒；默认名义系数未训练 | 真实参考和观察输送、含噪／漂移／非线性适用性 |
+| **输出、DSP与可选扩展** | 15模块并行DSP；CAAZ显式输入等效AZ及数字pair | DSP handoff003有14场景和5严格profile；仅限定数字域。CAAZ另有现行8包数字配对；主学习用例与DSP系统仍关闭 | 整链滤波选择、输出元数据、真实数据PHY／CNV、停采park后保记录软件复位；CAAZ＋DSP与模拟宏仍OPEN |
 
-### 校准实际做到哪一步
+## 校准与扰动的证据
 
-训练器只接收数字coarse/ADC2码、实际slice ID、DEM与开关/扰动观察，以及独立已知输入；不读取plant真实单位电容。可辨识、满秩后冻结有效C/Cf系数和后级偏移，装回同一DUT，在不同激励的留出记录上检查最终20位字。
+训练使用ADC2原码、实际slice／mask、信号系数／已知电压项和独立参考，不读取模拟电容、真实增益或保持电压。可辨识性不足时拒绝拟合。有效权重是C/Cf，不能由此唯一反求绝对电容。Frozen模型schema2与定点寄存器镜像的独立schema1分开；两者均须携带完整规格。
 
-这能处理模型中的静态有效权重、桥接衰减及相关增益项，不是片内背景学习器，也不自动估计时偏、带宽、参考动态、温漂或ADC2非线性。748位观察口当前没有FIFO/ready/外部输送；40MS/s的名义观察总线量为29.92Gbit/s，实际系统需要受控捕获、带宽预算和缺样/epoch协议。见[ADR0021](adr/0021-structural-contract-calibration.md)。
+| 当前实验 | 实际记录与结论 | 可查入口 |
+| :--- | :--- | :--- |
+| 无dither Python静态 | 当前全跨度正例／中幅反例绑定工具及36个loaded源码。4096全跨度训练rank1279、512独立留出仅[−2.6,+2.7] V，RMS85.829→2.07577 µV；512整数码一致、异常／clip为0；中幅rank1224拒绝 | [逐点与收据](readme/data/source_bound_static_calibration.json)、[重跑命令](REPRODUCING.md#3-静态校准重新训练固定与留出) |
+| DUT静态训练、回装与留出 | `full_typechecked_001`用4096个word0观测片外训练，rank1279；同一非均匀池、同512留出、64字各8次，RMS97.04090→1.99287 µV。最终checker5cfb重放训练、名义与固定留出；512固定码与实际DUT及独立整数oracle一致 | [逐点、5类CSV摘要与同版收据](readme/data/source_bound_rtl_calibration.json)、[实际重跑](REPRODUCING.md#5-显式导出与rtl组件执行) |
+| Fig.19早事件反例 | −2.9 V／word32最终k=4合法，前三个候选−4被拒，不加载非法mask；命名负例6个目标中4笔退休，ID3／6不退休 | [事件及图](readme/data/source_bound_fig19_evidence.json)、[ABI2端点合同](rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md#2-两采集端口与同笔归属) |
 
-### 随机化和可选扩展的分工
+正常留出为515条程序／514笔物理采样／512笔目标退休，3条程序尾不退休；status／sticky／fault与结果flags为0。同池重放核对3598个已决事件（含两笔实际尾采样），以及采集mask、全物理总线、OBS先于对应OUT、同笔有序采集／转换ID。另有25个trace损坏、25个来源／标量／文件边界损坏被拒。DUT原manifest的PENDING字段保留原字节，以后续真实收据建立关联。有限窗口与真实停机、排空和模拟idle分别验收。
 
-- slice调度决定实际物理组；相邻转换组必须不相交。
-- 单元DEM改变同一码的物理实现；名义守恒不保证每个单元等次数使用。
-- dither的注入、改码、逐raw重构必须配套；结构range的dQ不能当作又应扣一次的模拟dR。
-- 逐slice校正需要估计、观察和冻结应用；随机选择本身不是时偏/带宽估计器。
-- CAAZ需要真实AZ状态保持及归一化噪声系数匹配；标签检查不证明CBIAS保持或H/K匹配。
+calobs v2的位宽由schema、word／state和几何决定。Fig.19实例为733位；旧748位及固定29.92 Gbit/s不能沿用。报文不含配置epoch、捕获FIFO、ready或外部传输，真实带宽和缺样仍由系统解决。
 
-机制图与条件见[DEM/dither/CAAZ专题](randomization_caaz/README.md)。CICC2026的连续时间后级、LSB重复和SINC² tracking averaging只是参考，当前未实现；现有输出SINC、预跟踪和CAAZ都不能代替它。
+已测组合是Fig.19受限静态等效、18/8因果计划、固定非均匀池与冻结权重。切片选择安排物理资源，不等于单元DEM，也不补偿时偏／带宽。v1拒绝单元DEM、动态、转换随机噪声与额外非零RA扰动；真实共享AZ组合、专用dither电容和开关失配／噪声网络仍无证据。±2 V指已测点和指定激励，逐事件整数域检查不证明模拟建立。
+
+CAAZ默认关闭。现行8包指定组件有56OBS、54RAW、4个数字配对；独立13周期配对单元另有325字段核对。[组件复现](REPRODUCING.md#caaz数字组件)不证明CBIAS保持或H/K相等；未来slice／单元DEM改变信号增益后，AZ归一化传递须重新核对。CICC2026连续时间后级、LSB重复和SINC² tracking averaging未实现，输出SINC与预跟踪各有自己的职责。
+
+DSP的真实系统场景核到控制错误13／7／8触发独立conversion_fault；上游持续故障期间restart仍阻断，真实epoch clear＋完整重载恢复。185次20位比较／214握手限指定数字合同。无raw不造reject ID；并非任意未上报缺样的检测器。整链只对拍unity／OFFSET0和bypass；独立滤波内核oracle不证明filter_sel1/2/3的整链数值路由。
 
 ## 按依赖排序的未闭合项
 
-| 类型与问题 | 影响 | 下一步动作 | 完成标志 |
-|---|---|---|---|
-| **模拟接口证据不足**：采样保持、AZ/普通复位、参考与ADC2关闭沿 | 裸TP/mask可能重开旧组；旧AZ可能刷新CAAZ要求保持的CBIAS；动态性能取决于真实截止 | 先冻结节点与宏时序，验证本地锁存/隔离/非交叠、建立和噪声传递 | 逐raw ID有真实保持/建立证据；CAAZ另满足预算化H/K和两周期存储相关性 |
-| **工程接口未实现**：外部参考与校准观察读出 | 静态训练夹具不能直接变成芯片连续自校准 | 明确参考误差、观察带宽/FIFO或受控采集、缺样和epoch合同 | 实际可读观察与独立参考完成训练/冻结/留出；异常不被静默拼接 |
-| **输出原型缺口**：两点校正、滤波、缓存和串行 | 方向错误或重复/丢样影响输出含义与吞吐 | 分别修两点逆向校正、有效系数、FIFO路径与元数据；PHY独立实现 | 码/ID/异常端到端一致，达到约定连续输出率 |
-| **范围限制与可选研究** | DEM偏置、dither余量和调度取舍需可见；扩展不能自动算完成 | 保留严格诊断/当前基线；需要时分别研究独立随机化控制、逐slice学习、原芯片bridge/双端口与CAAZ/CICC电路 | 各项有独立目标、观察、适用域与组合验收；不用单个杂散下降代替总体性能 |
+以下按[机制账本](../mechanism_inventory.json)归并13项待证记录。具备完整本机来源时，静态来源与登记门禁为67通过、0失败、13未就绪；它核标识、引用和登记状态，不执行模型／RTL或审读文献语义。组件通过不自动关闭整条验收要求。
 
-## 文档分工
+| 类型 | 下一步 | 所需证据 |
+| :--- | :--- | :--- |
+| 余量、随机化与交织（M05／P02／P12） | 定义来源支持的负端处理，落实源3D／bridge矩阵；联合评价电容、时偏、失调、带宽及其补偿 | 保留逐事件越界与拒绝；同一失配池、输入和带宽的SFDR、SNDR、使用统计及失败域 |
+| 连续采集与预跟踪（P01／P04／P09） | 补SADC／RDAC相位和初始网络、真实驱动／AUX背栅自举；落实历史码连续预置与介电吸收记忆 | 同条件短／完整周期采集与噪声对照、开关节点波形及数据归属 |
+| 参考及残差动态（M13／P03／P05） | 建立真实参考缓冲电流、峰值与功耗，比较器延迟、阈值积分／负载补偿，以及RA／ADC2建立 | 带实际载荷和时序的闭环记录；总电荷或合法RDAC码不替代电流／功耗 |
+| 真实观察输送（P13） | 明确独立参考误差、实际捕获带宽、FIFO／ready、配置代次与缺样协议 | 实物可读数据完成校准，证明参考准确度和读出完整性 |
+| 温漂、AZ与物理（P07／P08／P10） | 补低频／温漂／PVT模型、MC置信与收敛；验证CBIAS保持、H/K和噪声传递 | 当前目标网表／PDK、SPICE／PEX及实际宏时序；目标综合／STA和CDC/RDC分别验收 |
+| 停采及输出扩展 | 建立停采→排空→park→独立模拟idle；完成DSP整链滤波、元数据、PHY和真实CAAZ组合 | 系统非空记录跨软件复位正例，以及对应宏、滤波窗口和数据协议证据 |
 
-- [首页](../README.md)：目标、三项交付物、扩展、代表结果及最短入口。
-- 本页：当前实现/验证边界、依赖和解除条件。
-- [model_scope.md](model_scope.md)：物理模型、近似和入口的适用域。
-- [ADR0021](adr/0021-structural-contract-calibration.md)等ADR：设计选择与位域/码域合同。
-- [IMPLEMENTATION_CHECKPOINT.md](IMPLEMENTATION_CHECKPOINT.md)、[HANDOFF](../HANDOFF.md)：历史实施记录，旧待办不自动回到当前缺陷表。
-- [RTL限制](rtl/KNOWN_LIMITS_20261104.md)、[本轮复核](reviews/20261105-readability-maintenance.md)：具体反例、线索裁定和运行版本。
+## 历史结果怎样使用
+
+af8功能合同、9bdf文档保留的图与JSON保持原字节；实际执行身份由各记录的源码SHA和输入确定。中间Python003、RTL001／002和旧checker不作当前通过结论。001／002尾部SOURCE13不会因逐结果flags为0而消失；先前012／013、005与其重放收据仍保留原身份。当前DUT使用连续合法程序与明确尾记录，仅在有限窗内核验。
+
+[历史数据](readme/data/README.md)、[旧可执行档案](history/EXECUTABLE_ARCHIVES.md)、[ADR0021](adr/0021-structural-contract-calibration.md)和[旧算术合同](rtl/RTL_ARITHMETIC_CONTRACT.md)保留原语境。旧FPGA、BMC、代理结果及旧CI不升级为当前源或工艺签核。

@@ -1,86 +1,51 @@
-// 模块：cal_weight_reduce；物理单元权重的组合归约。
-// 职责：按实际slice ID及main/sub/rail计算总权重T、有效增益G与有符号rails。
-// 端口/单位：系数为W_BITS位无符号Q30位型；T/G为无符号和，rails额外保留符号与余量。
-// 时序：无时钟/复位；上层接受start时锁存归约结果，转换期间配置和上下文必须稳定。
-// 映射：活动mask归回物理row；越界ID不激活row，重复ID的mask按OR合并且权重只计一次。
-// 异常：无效ID/重复ID或采样dither范围越界置invalid_slice，上层将其作为gain_err完成事件。
-// 缓存：生产P_USE_ROW_TOTALS=1使用配置时精确行和；调用方保证row_total与实际w_rom一致。
-// 采样dither：只在sampling模式从G扣对应单元，并按每列实际rail加入有符号补偿。
-// W是有效C/Cf（含静态桥接/反馈比例）的量化值，不是法拉，也不能分别辨识每个物理电容。
-// sampling时T=sum(W)、G=T-M、rails=T-2*sum(W_on)+sum(sign_rail*W_dither)；否则用G=T且无rail附加项。
-// 数字信号比例alpha=G/T按所装有效权重计算；后级除以G已含该比例修正，不能再扣一次名义比例。
-// 适用域：维度/精度由initial守卫检查；树为组合DAG，split_var仅划分仿真依赖。
-// 来源：RTL_ARITHMETIC_CONTRACT.md与ADR0014/0018；不读取模拟真值或运行学习。
+// 模块：cal_weight_reduce；AllSIGNAL严格子集的物理权重归约。
+// T=ΣW，G=T，R=ΣW*(1-2*actual_conversion_mask)。物理ID选权重，mask只来自已接受的实际转换开关；不生
+// 成SID、bridge、dither或未披露采集连接。
+// 所选binding必须独立证明每unit a=1、termQ=commonQ+R_unit*Vscale。
+// 纯组合树；invalid_slice标出越界或重复ID。原始非法ID的数值结果不是合法样本。
+// row_total仅允许使用与w_rom同epoch的精确缓存；它不是估计的增益。
+`timescale 1ns/1ps
 `include "rtl_params.vh"
 module cal_weight_reduce #(
     parameter int P_N_ACTIVE = int'(N_ACTIVE),
     parameter int P_N_MAIN = int'(N_UNIT_MAIN),
     parameter int P_N_SUB = int'(N_UNIT_SUB),
     parameter int P_N_SLICES = int'(N_SLICES),
-    parameter int P_DIT_N = 2 * int'(DITHER_UNITS_RANGE),
-    parameter int P_DIT_END = int'(N_UNIT_TOTAL),
-    // Direct coefficient-only users retain the uncached interface behavior. The production top
-    // supplies exact configuration-time row totals.
     parameter bit P_USE_ROW_TOTALS = 0,
     parameter int SUM_BITS = 64,
     parameter int W_RAIL = SUM_BITS + 2
 ) (
-    input wire sampling_mask_en,
-    input wire [P_N_ACTIVE - 1:0][4:0] slice_id,
-    input wire [P_N_ACTIVE - 1:0][P_N_MAIN - 1:0] main_on,
-    input wire [P_N_ACTIVE - 1:0][P_N_SUB - 1:0] sub_on,
-    input wire [P_DIT_N - 1:0] dither_rail,
-    input wire [P_N_SLICES - 1:0][P_N_MAIN + P_N_SUB - 1:0][W_BITS - 1:0] w_rom,
-    input wire [P_N_SLICES - 1:0][SUM_BITS - 1:0] row_total,
-    output wire [SUM_BITS - 1:0] sum_W,
-    output wire [SUM_BITS - 1:0] sum_Wa,
-    output wire signed [W_RAIL - 1:0] rails,
+    input wire [P_N_ACTIVE-1:0][4:0] slice_id,
+    input wire [P_N_ACTIVE-1:0][P_N_MAIN-1:0] main_on,
+    input wire [P_N_ACTIVE-1:0][P_N_SUB-1:0] sub_on,
+    input wire [P_N_SLICES-1:0][P_N_MAIN+P_N_SUB-1:0][W_BITS-1:0] w_rom,
+    input wire [P_N_SLICES-1:0][SUM_BITS-1:0] row_total,
+    output wire [SUM_BITS-1:0] sum_W,
+    output wire [SUM_BITS-1:0] sum_Wa,
+    output wire signed [W_RAIL-1:0] rails,
     output logic invalid_slice
 );
   localparam int N_U = P_N_MAIN + P_N_SUB;
-  localparam int DIT_BEG = P_DIT_END - P_DIT_N;
   localparam int N_TERMS = P_N_SLICES * N_U;
-  localparam int TREE_LEAVES = 1 << $clog2(N_TERMS);
-  localparam int COL_LEAVES = 1 << $clog2(P_N_SLICES);
-  localparam int MASK_LEAVES = 1 << $clog2(P_DIT_N);
-  // Module-scope edges avoid Vivado 2018.3's undriven forward-generate nodes. Every read/write
-  // index is an elaboration-time constant. split_var tells the simulator to analyze each edge
-  // separately; it is not a warning waiver.
-  wire [SUM_BITS - 1:0] total_tree [1:2 * TREE_LEAVES - 1] /* verilator split_var */;
-  wire [SUM_BITS - 1:0] on_tree [1:2 * TREE_LEAVES - 1] /* verilator split_var */;
-  wire [SUM_BITS - 1:0] column_tree
-      [0:P_DIT_N - 1][1:2 * COL_LEAVES - 1] /* verilator split_var */;
-  wire [SUM_BITS - 1:0] mask_tree [1:2 * MASK_LEAVES - 1] /* verilator split_var */;
-  wire signed [W_RAIL - 1:0] rail_tree [1:2 * MASK_LEAVES - 1] /* verilator split_var */;
-  wire [SUM_BITS - 1:0] row_tree [1:2 * COL_LEAVES - 1] /* verilator split_var */;
-  assign sum_W = P_USE_ROW_TOTALS ? row_tree[1] : total_tree[1];
-  wire [SUM_BITS - 1:0] mask_total = mask_tree[1];
-  assign sum_Wa = sampling_mask_en ? (sum_W - mask_total) : sum_W;
-  wire [SUM_BITS - 1:0] sum_Won = on_tree[1];
-  wire signed [W_RAIL - 1:0] sum_Wr = sampling_mask_en ? rail_tree[1] : '0;
-
+  localparam int LEAVES = 1 << $clog2(N_TERMS);
+  localparam int ROW_LEAVES = 1 << $clog2(P_N_SLICES);
+  logic [P_N_SLICES-1:0] active;
+  logic [P_N_SLICES-1:0][N_U-1:0] physical_on;
   initial begin
-    if (P_N_ACTIVE < 1 || P_N_MAIN < 1 || P_N_SUB < 1 ||
-        P_N_SLICES < P_N_ACTIVE || P_N_SLICES > 32 || P_DIT_N < 1 || DIT_BEG < 0 ||
-        SUM_BITS < int'(W_BITS) + $clog2(N_TERMS) || W_RAIL != SUM_BITS + 2)
-      $fatal(1, "cal_weight_reduce: unsupported dimensions");
+    if (P_N_ACTIVE < 1 || P_N_ACTIVE > P_N_SLICES || P_N_SLICES > 32 ||
+        P_N_MAIN < 1 || P_N_SUB < 1 || SUM_BITS < int'(W_BITS) + $clog2(N_TERMS) ||
+        W_RAIL != SUM_BITS + 2)
+      $fatal(1, "cal_weight_reduce: unsupported numerical dimensions");
   end
-  always_comb begin
-    invalid_slice = sampling_mask_en && (P_DIT_END > N_U);
-    for (int a = 0; a < P_N_ACTIVE; a++)
-      invalid_slice |= (int'(slice_id[a]) >= P_N_SLICES);
-    for (int a = 0; a < P_N_ACTIVE; a++)
-      for (int b = 0; b < a; b++)
-        invalid_slice |= (slice_id[a] == slice_id[b]);
-  end
-
-  // 先按物理slice铺开窄mask，再对固定连接的权重求和，避免每个slot单独选择宽权重总线。
-  // 重复ID虽按OR合并且只计一次权重，仍标invalid_slice，不能当成合法的8路样本继续归一化。
-  logic [P_N_SLICES - 1:0] active;
-  logic [P_N_SLICES - 1:0][N_U - 1:0] physical_on;
   always_comb begin
     active = '0;
     physical_on = '0;
+    invalid_slice = 1'b0;
+    for (int a = 0; a < P_N_ACTIVE; a++) begin
+      invalid_slice |= int'(slice_id[a]) >= P_N_SLICES;
+      for (int b = 0; b < a; b++)
+        invalid_slice |= slice_id[a] == slice_id[b];
+    end
     for (int s = 0; s < P_N_SLICES; s++) begin
       for (int a = 0; a < P_N_ACTIVE; a++) begin
         if (slice_id[a] == 5'(s)) begin
@@ -90,78 +55,36 @@ module cal_weight_reduce #(
       end
     end
   end
-
-  // 缓存的是每个物理row的精确和，不是全局固定增益；切换slice组仍须重新选择并求和。
-  // 配置在转换期间冻结。调用方须保证row_total[s]==sum_u(w_rom[s][u])，本路径不重新校验缓存；
-  // weight_store的替换写必须同步维护系数和行和。
-  for (genvar t = 1; t < 2 * COL_LEAVES; t++) begin : g_row_tree
-    if (!P_USE_ROW_TOTALS) begin : g_unused
-      assign row_tree[t] = '0;
-    end else if (t < COL_LEAVES) begin : g_branch
-      assign row_tree[t] = row_tree[2 * t] + row_tree[2 * t + 1];
-    end else if (t - COL_LEAVES < P_N_SLICES) begin : g_leaf
-      localparam int S = t - COL_LEAVES;
-      assign row_tree[t] = active[S] ? row_total[S] : '0;
+  // Distinct generated nets expose the acyclic tree to older HDL tools.
+  for (genvar t = 1; t < 2 * LEAVES; t++) begin : g_unit
+    wire [SUM_BITS-1:0] total, on_sum;
+    if (t < LEAVES) begin : g_branch
+      assign total = g_unit[2*t].total + g_unit[2*t+1].total;
+      assign on_sum = g_unit[2*t].on_sum + g_unit[2*t+1].on_sum;
+    end else if (t - LEAVES < N_TERMS) begin : g_leaf
+      localparam int S = (t - LEAVES) / N_U;
+      localparam int U = (t - LEAVES) % N_U;
+      wire [SUM_BITS-1:0] weight = active[S] ?
+          {{(SUM_BITS-int'(W_BITS)){1'b0}}, w_rom[S][U]} : '0;
+      assign total = weight;
+      assign on_sum = physical_on[S][U] ? weight : '0;
     end else begin : g_padding
-      assign row_tree[t] = '0;
+      assign total = '0;
+      assign on_sum = '0;
     end
   end
-
-  // 各活动slice共享同一列的采样rail，但其W可以不同：先按物理列求C[J]=sum_s(W[s,J])，
-  // 再施加rail符号。M为这些列的总和；默认sub-bank集合是物理unit67..70。
-  // 全部权重先零扩展，再转signed处理负rail，避免正权重最高位被误解释为符号。
-  for (genvar j = 0; j < P_DIT_N; j++) begin : g_col
-    localparam int U = DIT_BEG + j;
-    for (genvar t = 1; t < 2 * COL_LEAVES; t++) begin : g_sum
-      if (t < COL_LEAVES) begin : g_branch
-        assign column_tree[j][t] = column_tree[j][2 * t] + column_tree[j][2 * t + 1];
-      end else if (t - COL_LEAVES < P_N_SLICES && U < N_U) begin : g_leaf
-        localparam int S = t - COL_LEAVES;
-        // Reuse the exact physical leaf; do not add a second coefficient selector.
-        assign column_tree[j][t] = total_tree[TREE_LEAVES + S * N_U + U];
-      end else begin : g_padding
-        assign column_tree[j][t] = '0;
-      end
-    end
-  end
-  for (genvar t = 1; t < 2 * MASK_LEAVES; t++) begin : g_mask_tree
-    if (t < MASK_LEAVES) begin : g_branch
-      assign mask_tree[t] = mask_tree[2 * t] + mask_tree[2 * t + 1];
-      assign rail_tree[t] = rail_tree[2 * t] + rail_tree[2 * t + 1];
-    end else if (t - MASK_LEAVES < P_DIT_N) begin : g_leaf
-      localparam int J = t - MASK_LEAVES;
-      wire signed [W_RAIL - 1:0] signed_column =
-          $signed({{(W_RAIL - SUM_BITS){1'b0}}, column_tree[J][1]});
-      assign mask_tree[t] = column_tree[J][1];
-      assign rail_tree[t] = dither_rail[J] ? signed_column : -signed_column;
+  for (genvar t = 1; t < 2 * ROW_LEAVES; t++) begin : g_row
+    wire [SUM_BITS-1:0] total;
+    if (t < ROW_LEAVES) begin : g_branch
+      assign total = g_row[2*t].total + g_row[2*t+1].total;
+    end else if (t - ROW_LEAVES < P_N_SLICES) begin : g_leaf
+      localparam int S = t - ROW_LEAVES;
+      assign total = active[S] ? row_total[S] : '0;
     end else begin : g_padding
-      assign mask_tree[t] = '0;
-      assign rail_tree[t] = '0;
+      assign total = '0;
     end
   end
-
-  // Tree nodes refer to predeclared net elements, never later generate scopes.
-  for (genvar t = 1; t < 2 * TREE_LEAVES; t++) begin : g_node
-    if (t < TREE_LEAVES) begin : g_branch
-      if (P_USE_ROW_TOTALS) begin : g_cached
-        // Leaves remain live: the dither-column tree reuses them below.
-        assign total_tree[t] = '0;
-      end else begin : g_uncached
-        assign total_tree[t] = total_tree[2 * t] + total_tree[2 * t + 1];
-      end
-      assign on_tree[t] = on_tree[2 * t] + on_tree[2 * t + 1];
-    end else if (t - TREE_LEAVES < N_TERMS) begin : g_leaf
-      localparam int S = (t - TREE_LEAVES) / N_U;
-      localparam int U = (t - TREE_LEAVES) % N_U;
-      wire [W_BITS - 1:0] weight = active[S] ? w_rom[S][U] : '0;
-      wire [SUM_BITS - 1:0] extended = {{(SUM_BITS - int'(W_BITS)){1'b0}}, weight};
-      assign total_tree[t] = extended;
-      assign on_tree[t] = physical_on[S][U] ? extended : '0;
-    end else begin : g_padding
-      assign total_tree[t] = '0;
-      assign on_tree[t] = '0;
-    end
-  end
-  assign rails = $signed({2'b0, sum_W}) - $signed({1'b0, sum_Won, 1'b0}) + sum_Wr;
-
+  assign sum_W = P_USE_ROW_TOTALS ? g_row[1].total : g_unit[1].total;
+  assign sum_Wa = sum_W;
+  assign rails = $signed({2'b0, sum_W}) - $signed({1'b0, g_unit[1].on_sum, 1'b0});
 endmodule

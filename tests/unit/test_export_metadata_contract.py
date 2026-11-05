@@ -1,249 +1,228 @@
-"""独立检查参数导出的来源分级及仓库身份合同。"""
+"""检查实际输入字节与完整 calobs-v2 接口的一致绑定。"""
 
-import importlib.util
-import subprocess
-from dataclasses import replace
-from pathlib import Path
+from __future__ import annotations
+
+import json
+import re
 
 import pytest
-
-from adi_model import Config, FixedPointFormat
-from adi_model.provenance import PARAM_GRADES, SourceGrade, annotate_config
-
-ROOT = Path(__file__).resolve().parents[2]
+from _rtl_test_support import BUNDLE_FILES, blob, copy_inputs, load_tool, read_json, sha, write_json
 
 
 @pytest.fixture
-def exporter():
-    spec = importlib.util.spec_from_file_location(
-        "export_metadata_contract_target", ROOT / "tools/export_rtl_params.py"
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+def inputs(tmp_path):
+    return copy_inputs(tmp_path)
 
 
-def _params(exporter, cfg):
-    return {
-        entry["name"]: entry
-        for entry in exporter.rtl_localparams(cfg, FixedPointFormat(), phases=16)
+@pytest.fixture
+def exporter(monkeypatch):
+    return load_tool("export_rtl_params", monkeypatch)
+
+
+def test_manifest_identifies_every_input_and_artifact_byte(exporter, inputs):
+    files = exporter.build(inputs.config, inputs.format, inputs.binding)
+    manifest = json.loads(files["rtl_input_manifest.json"])
+    assert manifest["schema_version"] == 1
+    assert manifest["status"] == "EXPLICIT_RTL_INPUTS_GENERATED"
+    assert manifest["scope"] == "DIGITAL_BINDING_NOT_ANALOG_OR_TIMING_SIGNOFF"
+    assert set(manifest["artifact_sha256"]) == BUNDLE_FILES - {"rtl_input_manifest.json"}
+    assert manifest["artifact_sha256"] == {
+        name: sha(content) for name, content in files.items() if name != "rtl_input_manifest.json"
     }
-
-
-def test_successful_empty_git_status_is_clean_and_untracked_status_is_dirty(exporter, tmp_path):
-    repo = tmp_path / "repo"
-    subprocess.run(["git", "init", "-q", str(repo)], check=True, capture_output=True)
-    assert subprocess.check_output(["git", "status", "--porcelain"], cwd=repo) == b""
-    assert exporter.repo_identity(repo)["dirty"] == "0"
-    (repo / "untracked.txt").write_text("audit fixture\n", encoding="utf-8")
-    assert exporter.repo_identity(repo)["dirty"] == "1"
-
-
-def test_non_git_directory_reports_unknown_instead_of_clean(exporter, tmp_path, monkeypatch):
-    root = tmp_path / "no_git"
-    root.mkdir()
-    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path))
-    assert exporter.repo_identity(root) == {
-        "commit": "unknown",
-        "describe": "unknown",
-        "dirty": "unknown",
+    assert manifest["input_sha256"] == {
+        "config_json": sha(inputs.config.read_bytes()),
+        "format_json": sha(inputs.format.read_bytes()),
+        "binding_json": sha(inputs.binding.read_bytes()),
+        "source_sv": sha(inputs.source.read_bytes()),
+        "acquisition_sv": sha(inputs.acquisition.read_bytes()),
     }
+    assert all(re.fullmatch(r"[0-9a-f]{64}", h) for h in manifest["artifact_sha256"].values())
+    for name, path in (
+        ("config.json", inputs.config),
+        ("format.json", inputs.format),
+        ("binding.json", inputs.binding),
+        ("source_control_binding.sv", inputs.source),
+        ("source_acquisition_binding.sv", inputs.acquisition),
+    ):
+        assert blob(files[name]) == path.read_bytes()
 
 
-def test_unavailable_git_reports_unknown_without_inventing_identity(
-    exporter, tmp_path, monkeypatch
-):
-    def unavailable(*args, **kwargs):
-        raise FileNotFoundError("test fixture has no git executable")
-
-    monkeypatch.setattr(exporter.subprocess, "run", unavailable)
-    assert set(exporter.repo_identity(tmp_path).values()) == {"unknown"}
-
-
-@pytest.mark.parametrize("factory", [Config, Config.paper_literal])
-def test_direct_localparams_inherit_current_value_authority(exporter, factory):
-    cfg = factory()
-    annotated = annotate_config(cfg)
-    entries = _params(exporter, cfg)
-    direct = {
-        "N_SLICES": "n_slices",
-        "N_ACTIVE": "n_active",
-        "N_UNIT_MAIN": "dac_n_main",
-        "N_UNIT_SUB": "dac_n_sub",
-        "DAC_COMPLETE_RANGE": "dac_complete_range",
-        "B1": "b1",
-        "N_UNITS_HEADROOM": "n_units_headroom",
-        "ADC2_BITS": "adc2_n_bits",
-        "DEM_SUB_ROLL": "dac_n_sub",
-        "DEM_ENABLE": "dem_enable",
-        "DEM_BRIDGE_ENABLE": "dem_bridge_enable",
-        "DITHER_DISCRETE": "dither_discrete",
-    }
-    for name, field in direct.items():
-        assert entries[name]["input_fields"] == [field]
-        assert entries[name]["grade"] == annotated[field].effective_grade.value
-
-
-def test_overridden_published_count_is_not_still_disclosed(exporter):
-    entry = _params(exporter, Config(n_slices=19))["N_SLICES"]
-    assert entry["value"] == 19
-    assert entry["grade"] == "assumed"
-
-
-def test_arithmetic_dependencies_are_explicit_and_do_not_promote_assumptions(exporter):
-    entries = _params(exporter, Config.paper_literal())
-    expected = {
-        "N_UNIT_TOTAL": ["dac_n_main", "dac_n_sub"],
-        "DAC_LEVELS": ["dac_arch", "dac_n_main", "dac_complete_range", "dac_n_sub"],
-        "STAGE1_LEVELS": ["b1"],
-        "N_UNITS_SIG": ["n_active", "n_unit_per_slice", "n_units_headroom"],
-        "UNITS_PER_LSB1": ["n_active", "n_unit_per_slice", "n_units_headroom", "b1"],
-        "UNITS_PER_D1": ["n_active", "n_unit_per_slice", "n_units_headroom", "b1"],
-        "K0": ["n_units_headroom"],
-        "DEM_ROT_WIDTH": ["dac_n_main"],
-        "DEM_ROT_HEIGHT": ["dac_n_main"],
-        "DITHER_UNITS_TOTAL": ["dither_mode", "dither_units_range"],
-        "DITHER_UNITS_RANGE": ["dither_units_range"],
-    }
-    for name, fields in expected.items():
-        assert entries[name]["input_fields"] == fields
-        assert entries[name]["grade"] == "assumed"
-    assert _params(exporter, Config())["DAC_LEVELS"]["input_fields"] == [
-        "dac_arch",
-        "n_active",
-        "n_unit_per_slice",
+def test_calobs_v2_has_one_order_and_consistent_bit_count(exporter, inputs):
+    files = exporter.build(inputs.config, inputs.format, inputs.binding)
+    packet = json.loads(files["packet_schema.json"])
+    manifest = json.loads(files["rtl_input_manifest.json"])
+    ordered = [
+        ("sample_id", 32),
+        ("coarse", 9),
+        ("state", 3),
+        ("control_word", 2),
+        ("adc2_code", 6),
+        ("known_common_q", 64),
+        ("slice_ids", 40),
+        ("main_masks", 16),
+        ("sub_masks", 8),
+        ("analog_bad", 1),
     ]
+    assert packet["schema_version"] == 2
+    assert packet["field_order_msb_to_lsb"] == [name for name, _ in ordered]
+    assert packet["field_widths"] == dict(ordered)
+    assert packet["packet_bits"] == sum(width for _, width in ordered)
+    assert packet["packet_bits"] == manifest["parameters"]["CAL_OBS_BITS"]
+    assert packet["packed_index_order"] == "slot0_lsb_unit0_lsb"
+    assert packet["payload_encoding"] == "hex_msb_first"
+    assert packet["connection_binding_required"] is True
+    assert packet["input_sha256"] == manifest["input_sha256"]
+    assert packet["source_binding_sha256"] == sha(inputs.binding.read_bytes())
+    assert packet["fixed_point_format"] == read_json(inputs.format)
+    assert packet["geometry"] == read_json(inputs.binding)["geometry"]
+    assert "COMPONENT_SYNTHETIC_DIGITAL" in packet["scope"]
+
+
+def test_common_contribution_is_not_relabelled_as_source_dither(exporter, inputs):
+    manifest = json.loads(
+        exporter.build(inputs.config, inputs.format, inputs.binding)["rtl_input_manifest.json"]
+    )
+    assert manifest["source_dither"] == read_json(inputs.binding)["dither_contract"]
+    assert manifest["source_dither"]["kind"] == "none"
+    assert manifest["parameters"]["SOURCE_DITHER_REQUEST"] == 0
+    assert manifest["fold"] == "a=1; term_q=known_common_q+(1-2*actual_mask)*2^V_FRAC per unit"
+
+
+def test_pool_shuffle_and_dem_request_are_distinct_inputs(exporter, inputs):
+    cfg = read_json(inputs.config)
+    cfg["dem_enable"] = False
+    write_json(inputs.config, cfg)
+    manifest = json.loads(
+        exporter.build(inputs.config, inputs.format, inputs.binding)["rtl_input_manifest.json"]
+    )
+    assert manifest["parameters"]["SOURCE_DEM_REQUEST"] == 0
+    assert manifest["parameters"]["POOL_SHUFFLE_ENABLE"] == 1
+    cfg["dem_enable"] = True
+    write_json(inputs.config, cfg)
+    binding = read_json(inputs.binding)
+    binding["scheduler"]["shuffle_enable"] = False
+    write_json(inputs.binding, binding)
+    manifest = json.loads(
+        exporter.build(inputs.config, inputs.format, inputs.binding)["rtl_input_manifest.json"]
+    )
+    assert manifest["parameters"]["SOURCE_DEM_REQUEST"] == 1
+    assert manifest["parameters"]["POOL_SHUFFLE_ENABLE"] == 0
+
+
+def test_unused_electrical_parameters_stay_unknown(exporter, inputs):
+    manifest = json.loads(
+        exporter.build(inputs.config, inputs.format, inputs.binding)["rtl_input_manifest.json"]
+    )
+    for name in ("c_sadc", "ra_out_noise_rms", "temperature_k", "ra_v_clip", "sadc_thresholds_v"):
+        assert manifest["config"][name] is None
+    assert manifest["format"] == read_json(inputs.format)
+    assert manifest["calibration_spec"]["adc2_endpoint_policy"] == "closed"
+
+
+def test_input_whitespace_is_preserved_and_changes_identity(exporter, inputs):
+    first = exporter.build(inputs.config, inputs.format, inputs.binding)
+    inputs.config.write_text(
+        json.dumps(read_json(inputs.config), indent=4) + "\n", encoding="utf-8"
+    )
+    second = exporter.build(inputs.config, inputs.format, inputs.binding)
+    assert first["rtl_params.vh"] == second["rtl_params.vh"]
+    assert first["config.json"] != second["config.json"]
+    assert (
+        json.loads(first["rtl_input_manifest.json"])["input_sha256"]
+        != json.loads(second["rtl_input_manifest.json"])["input_sha256"]
+    )
 
 
 @pytest.mark.parametrize(
-    ("input_grade", "expected"),
+    "name",
     [
-        (SourceGrade.DISCLOSED, "derived"),
-        (SourceGrade.FITTED, "fitted"),
-        (SourceGrade.ASSUMED, "assumed"),
-        (SourceGrade.RESEARCH_EXTENSION, "research_extension"),
+        "schema_version",
+        "geometry",
+        "timing",
+        "scheduler",
+        "source_control",
+        "acquisition_control",
+        "dither_contract",
+        "reconstruction_fold",
+        "provenance",
     ],
 )
-def test_arithmetic_grade_cannot_be_stronger_than_any_input(
-    exporter, monkeypatch, input_grade, expected
-):
-    # Change only the authority fixture, not production numerical behavior.
-    monkeypatch.setitem(PARAM_GRADES, "b1", (input_grade, "test authority fixture"))
-    assert _params(exporter, Config())["STAGE1_LEVELS"]["grade"] == expected
+def test_binding_evidence_is_required(exporter, inputs, name):
+    binding = read_json(inputs.binding)
+    del binding[name]
+    write_json(inputs.binding, binding)
+    with pytest.raises(ValueError):
+        exporter.build(inputs.config, inputs.format, inputs.binding)
 
 
-def test_format_prng_and_encoding_choices_have_no_published_authority(exporter):
-    entries = _params(exporter, Config.paper_literal())
-    choices = {
-        "W_FRAC",
-        "W_BITS",
-        "V_FRAC",
-        "V_BITS",
-        "ACC_BITS",
-        "OUT_BITS",
-        "DEM_STATES",
-        "DEM_LCG_A",
-        "DEM_LCG_A_MOD",
-        "DITHER_MODE",
-        "DITHER_SPLIT_IS_SUB",
-        "PHASES",
-    }
-    assert all(entries[name]["grade"] == "assumed" for name in choices)
-    assert all(entry["input_fields"] for entry in entries.values())
-    assert entries["W_FRAC"]["input_fields"] == ["format.weight_fraction_bits"]
-    assert entries["DEM_LCG_A_MOD"]["input_fields"] == [
-        "mapper._LCG_A",
-        "mapper.N_DEM_STATES",
-    ]
+@pytest.mark.parametrize("row_kind", ["main", "sub"])
+def test_all_signal_fold_needs_actual_per_unit_connections(exporter, inputs, row_kind):
+    binding = read_json(inputs.binding)
+    binding["reconstruction_fold"][f"sampling_{row_kind}"][0][0] = 1
+    write_json(inputs.binding, binding)
+    with pytest.raises(ValueError, match="UNSUPPORTED"):
+        exporter.build(inputs.config, inputs.format, inputs.binding)
 
 
-def test_analog_overrides_lose_original_publication_authority(exporter):
-    cfg = replace(Config(), fs=80e6, v_fs=2.5, adc2_n_bits=13)
-    entries = {entry["name"]: entry for entry in exporter.analog_references(cfg)}
-    for name in ("FS", "V_FS", "LSB_TARGET", "DELTA1", "ADC2_STEP"):
-        assert entries[name]["grade"] == "assumed"
-    assert entries["G0"]["grade"] == "disclosed"
-    assert entries["FS"]["exact"]["float"] == 80e6
+def test_binding_digest_is_checked_against_actual_sv_bytes(exporter, inputs):
+    inputs.source.write_text(inputs.source.read_text() + "// changed binding\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="digest"):
+        exporter.build(inputs.config, inputs.format, inputs.binding)
 
 
-def test_analog_dependency_lists_follow_actual_config_formulas(exporter):
-    cfg = Config.paper_literal(dither_mode="sampling")
-    entries = {entry["name"]: entry for entry in exporter.analog_references(cfg)}
-    assert entries["C_ACTIVE_NOMINAL"]["input_fields"] == [
-        "c_total0",
-        "cap_scale",
-        "n_active",
-        "n_unit_per_slice",
-        "n_units_headroom",
-    ]
-    assert entries["NOMINAL_RDAC_STEP"]["input_fields"] == [
-        "dac_arch",
-        "v_fs",
-        "dac_n_main",
-        "dac_n_sub",
-    ]
-    assert entries["DITHER_ALPHA"]["input_fields"] == [
-        "dither_mode",
-        "dither_units_range",
-        "dac_arch",
-        "dither_split_bank",
-        "dac_n_main",
-        "dac_n_sub",
-        "dac_parasitic_ratio",
-        "c_total0",
-        "cap_scale",
-    ]
-    for entry in entries.values():
-        assert entry["inputs"] == entry["input_fields"]
-        assert entry["input_fields"]
+@pytest.mark.parametrize("input_name", ["config", "format", "binding"])
+def test_duplicate_and_nonfinite_json_is_not_normalized(exporter, inputs, input_name):
+    path = getattr(inputs, input_name)
+    original = path.read_bytes()
+    path.write_text('{"duplicated": 1, "duplicated": 2}', encoding="utf-8")
+    with pytest.raises(ValueError, match="duplicate"):
+        exporter.build(inputs.config, inputs.format, inputs.binding)
+    path.write_text('{"invalid": NaN}', encoding="utf-8")
+    with pytest.raises(ValueError, match="nonfinite"):
+        exporter.build(inputs.config, inputs.format, inputs.binding)
+    path.write_bytes(original)
 
 
-def test_config_field_serialization_exposes_effective_and_declared_grades(exporter):
-    fields = exporter.config_field_entries(Config(fs=80e6))
-    assert fields["fs"]["grade"] == "assumed"
-    assert fields["fs"]["declared_grade"] == "disclosed"
-    assert fields["fs"]["overridden"]
-    assert not fields["fs"]["quotable"]
+@pytest.mark.parametrize(
+    "field",
+    [
+        "kind",
+        "sv_module_name",
+        "sv_path",
+        "sha256",
+        "voltage_unit",
+        "sadc_input_shift",
+        "rdac_input_shift",
+        "connection_contract",
+    ],
+)
+def test_both_actual_acquisition_ports_need_complete_declarations(exporter, inputs, field):
+    binding = read_json(inputs.binding)
+    binding["acquisition_control"].pop(field)
+    write_json(inputs.binding, binding)
+    with pytest.raises(ValueError):
+        exporter.build(inputs.config, inputs.format, inputs.binding)
 
 
-@pytest.mark.parametrize("enabled, kappa", [(False, None), (True, None), (True, 2.0)])
-def test_ktc_analog_dependencies_include_the_enable_and_sentinel_branches(exporter, enabled, kappa):
-    cfg = Config(ktc_enable=enabled, ktc_kappa=kappa)
-    entries = {entry["name"]: entry for entry in exporter.analog_references(cfg)}
-    if not enabled:
-        assert entries["KAPPA_EFF"]["input_fields"] == ["ktc_enable"]
-        assert entries["BETA_EFF"]["input_fields"] == ["ktc_enable"]
-    else:
-        expected = ["ktc_enable", "ktc_kappa"]
-        if kappa is None:
-            expected += ["ktc_gain_n", "g0"]
-        assert entries["KAPPA_EFF"]["input_fields"] == expected
-        assert set(entries["BETA_EFF"]["input_fields"]) == {
-            "ktc_enable",
-            "ktc_beta_error",
-            "ktc_kappa",
-            "ktc_gain_n",
-            "g0",
-        }
+def test_acquisition_source_digest_is_checked_against_its_own_actual_file(exporter, inputs):
+    inputs.acquisition.write_bytes(inputs.acquisition.read_bytes() + b"// changed acquisition\n")
+    with pytest.raises(ValueError, match="digest"):
+        exporter.build(inputs.config, inputs.format, inputs.binding)
 
 
-def test_unary_and_disabled_analog_branches_have_their_own_dependencies(exporter):
-    off = {entry["name"]: entry for entry in exporter.analog_references(Config())}
-    assert off["DITHER_ALPHA"]["input_fields"] == ["dither_mode"]
-    assert off["NOMINAL_RDAC_STEP"]["input_fields"] == [
-        "dac_arch",
-        "v_fs",
-        "n_active",
-        "n_unit_per_slice",
-        "n_units_headroom",
-    ]
-    sampling = {
-        entry["name"]: entry for entry in exporter.analog_references(Config(dither_mode="sampling"))
-    }
-    assert sampling["DITHER_ALPHA"]["input_fields"] == [
-        "dither_mode",
-        "dither_units_range",
-        "dac_arch",
-        "n_active",
-        "n_unit_per_slice",
-    ]
+def test_each_sv_source_must_declare_its_one_correctly_named_module(exporter, inputs):
+    binding = read_json(inputs.binding)
+    payload = b"module source_control_binding; endmodule\n"
+    inputs.acquisition.write_bytes(payload)
+    binding["acquisition_control"]["sha256"] = sha(payload)
+    write_json(inputs.binding, binding)
+    with pytest.raises(ValueError, match="module"):
+        exporter.build(inputs.config, inputs.format, inputs.binding)
+
+
+def test_none_dither_binding_cannot_accept_a_source_dither_request(exporter, inputs):
+    cfg = read_json(inputs.config)
+    cfg["dither_enable"] = True
+    write_json(inputs.config, cfg)
+    with pytest.raises(ValueError, match="dither"):
+        exporter.build(inputs.config, inputs.format, inputs.binding)

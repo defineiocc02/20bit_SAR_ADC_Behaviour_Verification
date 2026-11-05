@@ -1,45 +1,72 @@
-"""检查实际后级码范围与数字观测校正的边界。"""
+"""检查独立 ADC2 的显式码本与节点有效性边界。"""
+
+from dataclasses import replace
 
 import numpy as np
 import pytest
 
-from adi_model import Config, sine_input
 from adi_model.adc2 import ADC2
-from adi_model.pipeline import run_pipeline
-from adi_model.sim import run_sim
-from adi_model.sim_split import run_sim_split_reference
+from adi_model.config import Config, ConfigError
 
 
-def test_all_backend_codes_decode_and_reencode_exactly():
-    adc = ADC2(Config.paper_literal())
-    codes = np.arange(adc.n_code, dtype=np.int64)
-    values = adc.decode_codes(codes)
-    actual, over = adc.quantize_codes(values)
+@pytest.mark.parametrize("bits", [1, 2, 3, 4, 12, 20])
+def test_all_backend_codes_decode_and_reencode_exactly(adc2_config_factory, bits):
+    # 改变位宽只检查数值子模块，不改变目标 ADC 架构。
+    adc = ADC2(adc2_config_factory(bits=bits, lo=-1.0, hi=1.0, endpoint="half_open"))
+    codes = np.arange(2**bits, dtype=np.int64)
+    voltage = adc.decode_codes(codes)
+    actual, over = adc.quantize_codes(voltage)
     np.testing.assert_array_equal(actual, codes)
-    assert not np.any(over)
-    edges = np.array([adc.vmin - adc.step, adc.vmin, adc.vmax, adc.vmax + adc.step])
-    actual, over = adc.quantize_codes(edges)
-    np.testing.assert_array_equal(actual, [0, 0, adc.n_code - 1, adc.n_code - 1])
-    np.testing.assert_array_equal(over, [True, False, False, True])
+    assert not over.any()
+    np.testing.assert_allclose(voltage, -1 + (codes + 0.5) * 2 / 2**bits, rtol=0, atol=0)
 
 
-@pytest.mark.parametrize("runner", [run_pipeline, run_sim, run_sim_split_reference])
-def test_raw_code_is_observable_before_digital_correction(runner):
-    cfg = Config(ktc_enable=True, ktc_noise_n=1e-5)
-    r = runner(cfg, sine_input(1.2, cfg.fs * 31 / 1024), 1024)
-    assert np.issubdtype(r.adc2_code.dtype, np.integer)
-    np.testing.assert_allclose(
-        ADC2(r.cfg).decode_codes(r.adc2_code) - r.state.kappa * r.vnc, r.fine, atol=0, rtol=0
-    )
+@pytest.mark.parametrize("endpoint,upper_over", [("closed", False), ("half_open", True)])
+def test_endpoint_policy_changes_validity_without_dropping_codes(
+    adc2_config_factory, endpoint, upper_over
+):
+    adc = ADC2(adc2_config_factory(bits=4, lo=-1.0, hi=1.0, endpoint=endpoint))
+    code, over = adc.quantize_codes(np.array([-1.01, -1, 1, 1.01]))
+    np.testing.assert_array_equal(code, [0, 0, 15, 15])
+    np.testing.assert_array_equal(over, [True, False, upper_over, True])
 
 
-@pytest.mark.parametrize("v", [np.nan, np.inf, -np.inf])
-def test_nonfinite_analog_input_cannot_become_a_valid_code(v):
+def test_raw_code_and_analog_range_flags_precede_any_digital_correction(adc2_config_factory):
+    adc = ADC2(adc2_config_factory(bits=4, lo=-1.0, hi=1.0, endpoint="half_open"))
+    raw, over = adc.quantize_codes(np.array([-0.7, 0.2, 1.1]))
+    saved_raw, saved_over = raw.copy(), over.copy()
+    corrected = adc.decode_codes(raw) - np.array([100.0, -100.0, 0.0])
+    assert np.any(abs(corrected) > 1)
+    np.testing.assert_array_equal(raw, saved_raw)
+    np.testing.assert_array_equal(over, saved_over)
+    np.testing.assert_array_equal(over, [False, False, True])
+
+
+@pytest.mark.parametrize("value", [np.nan, np.inf, -np.inf])
+def test_nonfinite_analog_input_cannot_become_a_valid_code(adc2_config_factory, value):
+    adc = ADC2(adc2_config_factory(bits=4, lo=-1.0, hi=1.0, endpoint="closed"))
     with pytest.raises(ValueError, match="finite"):
-        ADC2(Config()).quantize_codes([v])
+        adc.quantize_codes([value])
 
 
-@pytest.mark.parametrize("code", [[0.0], [-1], [2**14], [True]])
-def test_malformed_digital_buffers_are_refused(code):
+@pytest.mark.parametrize("code", [[-1], [16], [1.5], [np.nan], [True]])
+def test_malformed_digital_buffers_are_refused(adc2_config_factory, code):
+    adc = ADC2(adc2_config_factory(bits=4, lo=-1.0, hi=1.0, endpoint="closed"))
     with pytest.raises(ValueError, match="codes must be integers"):
-        ADC2(Config()).decode_codes(code)
+        adc.decode_codes(code)
+
+
+@pytest.mark.parametrize(
+    "field", ["adc2_n_bits", "adc2_v_min", "adc2_v_max", "adc2_codebook", "adc2_endpoint_policy"]
+)
+def test_each_consumed_backend_input_is_mandatory(adc2_config_factory, field):
+    cfg = adc2_config_factory(bits=4, lo=-1.0, hi=1.0, endpoint="closed")
+    with pytest.raises(ConfigError, match=field):
+        ADC2(replace(cfg, **{field: None}))
+
+
+def test_source_output_bits_do_not_imply_backend_bits():
+    cfg = Config()
+    assert cfg.n_bits_target == 20 and cfg.adc2_n_bits is None
+    with pytest.raises(ConfigError, match="adc2_n_bits"):
+        ADC2(cfg)

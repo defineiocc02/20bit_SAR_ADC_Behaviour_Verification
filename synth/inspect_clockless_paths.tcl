@@ -1,12 +1,26 @@
-# Read-only, bounded inspection of an ALREADY OPEN, caller-validated DCP.
+# Read-only bounded inspection of an explicit caller-supplied DCP.
 # source synth/inspect_clockless_paths.tcl
-# clockless_audit::run NEW_OUT_DIR
+# clockless_audit::run INPUT_DCP NEW_OUT_DIR PATH_LIMIT SOURCE_LIMIT
 # No clocks, exceptions, case analysis, netlist edits or implementation commands
 # are applied. PARTIAL is deliberate: bounded timing samples are not all paths.
 namespace eval clockless_audit {
-    variable group_path_limit 256
-    variable source_limit 256
     variable dumped_cells
+}
+
+proc clockless_audit::sha256 {path} {
+    if {$::tcl_platform(platform) eq "windows"} {
+        set raw [exec certutil -hashfile $path SHA256]
+        set matches {}
+        foreach line [split $raw \n] {
+            set line [string map {" " "" "\r" "" "\t" ""} $line]
+            if {[regexp {^[0-9a-fA-F]{64}$} $line]} {lappend matches [string tolower $line]}
+        }
+        if {[llength $matches] != 1} {error "Cannot identify input DCP SHA256"}
+        return [lindex $matches 0]
+    }
+    set raw [exec shasum -a 256 -- $path]
+    if {![regexp {^([0-9a-fA-F]{64})[ \t]} $raw -> value]} {error "Cannot identify input DCP SHA256"}
+    return [string tolower $value]
 }
 
 proc clockless_audit::names {objects} {
@@ -91,15 +105,27 @@ proc clockless_audit::constant_trace {pin fh visited} {
     return [constant_trace [lindex $drivers 0] $fh $visited]
 }
 
-proc clockless_audit::run {out} {
-    variable group_path_limit
-    variable source_limit
+proc clockless_audit::run {input_dcp out group_path_limit source_limit} {
     variable dumped_cells
     set dumped_cells {}
+    if {![string is integer -strict $group_path_limit] || $group_path_limit <= 0 ||
+        ![string is integer -strict $source_limit] || $source_limit <= 0} {error "Explicit positive query limits required"}
+    set input_dcp [file normalize $input_dcp]
+    if {![file isfile $input_dcp] || [file size $input_dcp] == 0 ||
+        [string tolower [file extension $input_dcp]] ne ".dcp"} {error "Explicit nonempty DCP required"}
     set out [file normalize $out]
     if {[file exists $out]} {error "Refusing to reuse output directory: $out"}
+    set parent $out
+    while {1} {
+        if {[file exists [file join $parent .git]]} {error "Output must be outside Git working trees"}
+        set next [file dirname $parent]
+        if {$next eq $parent} {break}
+        set parent $next
+    }
     file mkdir $out
+    set input_sha [sha256 $input_dcp]
     set rc [catch {
+        open_checkpoint $input_dcp
         # The raw reports retain total unconstrained endpoint counts and any
         # other category; nothing is reclassified or waived by this script.
         report_timing_summary -delay_type min_max -report_unconstrained \
@@ -204,7 +230,11 @@ proc clockless_audit::run {out} {
         close $fh
         close $detail
         set fh [open [file join $out status.txt] w]
+        if {[sha256 $input_dcp] ne $input_sha} {error "Input checkpoint changed on disk"}
         puts $fh "STATUS=QUERY_COMPLETE"
+        puts $fh "INPUT_DCP=$input_dcp"
+        puts $fh "INPUT_DCP_SHA256=$input_sha"
+        puts $fh "CONSTRAINT_SOURCE=INPUT_DCP_NO_ADDITIONAL_SDC_APPLIED"
         puts $fh "COMPLETENESS=PARTIAL_BOUNDED_PATH_SAMPLING"
         puts $fh "REGISTER_DATA_PINS=$register_count"
         puts $fh "BULK_GRAPH_STARTPOINTS=[llength $roots]"

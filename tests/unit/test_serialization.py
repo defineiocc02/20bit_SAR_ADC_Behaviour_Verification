@@ -1,11 +1,10 @@
-"""检查标准 JSON 保留布尔类型，并显式表示未定义数值。"""
+"""检查标准 JSON 保留布尔类型并显式表示未定义数值。"""
 
 import json
 
 import numpy as np
 import pytest
 
-from adi_model.acceptance import hard_failures
 from adi_model.serialization import result_document, write_results
 
 
@@ -30,7 +29,8 @@ def test_recursive_nonfinite_annotations_and_boolean_verdicts(tmp_path):
         "/a~1b~0c/3",
         "/scalar",
     ]
-    assert hard_failures(doc) == ["pipeline.PASS"]
+    assert loaded["pipeline"]["PASS"] is False
+    assert type(loaded["pipeline"]["PASS"]) is bool
     assert np.isnan(raw["a/b~c"][1])
 
 

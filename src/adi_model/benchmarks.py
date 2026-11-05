@@ -1,4 +1,4 @@
-"""分别保存论文披露的基准记录与拟合的行为噪声假设。"""
+"""分开保存公开测试指标与行为噪声模型，避免混用来源。"""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ import numpy as np
 
 @dataclass(frozen=True)
 class PublishedBenchmark:
-    """One source's rounded measured headline values, without merging sources."""
+    """单一来源给出的舍入后实测指标，不合并不同来源的数值。"""
 
     name: str
     source: str
@@ -32,22 +32,9 @@ class PublishedBenchmark:
         )
         return result
 
-    def configuration(self, **overrides):
-        """Create a nine-decision-bit candidate with this source's DR noise anchor.
-
-        RA noise is fitted from the requested DR when ra_out_noise_rms=None. Recovering that DR is a
-        budget-consistency check, not silicon validation. The topology, backend range and device
-        noise allocation remain assumed.
-        """
-        from .config import Config
-
-        values = {"target_dr_db": self.dr_db, "fs": self.sample_rate_hz, "v_fs": self.input_peak_v}
-        values.update(overrides)
-        return Config.paper_literal(**values)
-
 
 PAPER_BENCHMARK = PublishedBenchmark(
-    "isscc2024_digest", "[00] ISSCC 2024 Session 9.8, p.1 and Fig.9.8.7", 94.2, 9.3e-9
+    "isscc2024_digest", "[00] ISSCC 2024 Session 9.8, p.1 measurements and Fig.9.8.6", 94.2, 9.3e-9
 )
 SLIDES_BENCHMARK = PublishedBenchmark(
     "isscc2024_slides",

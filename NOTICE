@@ -66,7 +66,8 @@ DOI: 10.1109/CICC65509.2026.11509489
 连续时间后级、LSB重复与SINC² tracking averaging仅作参考，本工程尚未实现。
 现有输出SINC、预跟踪或CAAZ数字配对不等同于上述机制。
 
-The KTC-noise cancellation branch implemented in adi_model/ktc.py is an
-ORIGINAL RESEARCH EXTENSION by this repository's authors. It is explicitly
-labelled [RESEARCH_EXTENSION] and is NOT a feature disclosed in [00] or in
-patents [09]-[14]. Do not attribute it to Analog Devices.
+The KTC-noise cancellation branch formerly implemented in adi_model/ktc.py is
+retained as a historical af8 snapshot and has been removed from the current
+implementation. It remains an ORIGINAL RESEARCH EXTENSION by this repository's
+authors, labelled [RESEARCH_EXTENSION], and is NOT a feature disclosed in [00]
+or in patents [09]-[14]. Do not attribute it to Analog Devices.

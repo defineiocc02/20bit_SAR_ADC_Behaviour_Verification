@@ -1,6 +1,7 @@
-# Vivado 2018.3 / 7-series OOC implementation with one real internal BUFG.
+# Explicit-input 7-series OOC implementation with one internal BUFG.
+# API target: Vivado 2018.3; this revision has no new vendor execution evidence.
 # Usage: vivado -mode batch -source synth/run_vivado_buffered_impl.tcl \
-#        -tclargs INPUT_DCP NEW_OUT_DIR PERIOD_NS BUFGCTRL_XxYy
+#        -tclargs INPUT_DCP NEW_OUT_DIR INPUT_XDC CLOCK_PORT CLOCK_NAME BUFGCTRL_XxYy
 # Caller must validate/freeze the synthesized DCP. No synthesis, source edit,
 # false path, multicycle, dedicated-route waiver or input-DCP overwrite occurs.
 # BUFG/O -> registers is routed; external clk -> BUFG/I remains an OOC boundary.
@@ -64,15 +65,15 @@ proc buffered_impl::property_or_empty {key object} {
 }
 # Clock-pin set is all sequential primitives (including DSP/BRAM), not a sample.
 # Reject other clock domains, undriven clock pins and use of clk as ordinary data.
-proc buffered_impl::check_clock_loads {net} {
+proc buffered_impl::check_clock_loads {net clock_name} {
     set endpoints [names [all_registers -clock_pins]]
     require {[llength $endpoints] > 0} "No sequential clock endpoints"
     require {[names [loads $net]] eq $endpoints} "Clock loads differ from all register clock pins"
-    require {[names [all_registers -clock core_clk -clock_pins]] eq $endpoints} \
+    require {[names [all_registers -clock $clock_name -clock_pins]] eq $endpoints} \
         "A sequential endpoint is outside core_clk"
     return $endpoints
 }
-proc buffered_impl::check_buffer {cell_name input_net clock_port clock_site} {
+proc buffered_impl::check_buffer {cell_name input_net clock_port clock_site clock_name} {
     set cell [get_cells $cell_name]
     require {[llength $cell] == 1} "Inserted BUFG is missing or nonunique"
     require {[get_property REF_NAME $cell] in {BUFG BUFGCTRL}} "Inserted cell is not a global BUFG"
@@ -93,7 +94,7 @@ proc buffered_impl::check_buffer {cell_name input_net clock_port clock_site} {
     require {![llength [drivers $input_net]]} "External clock net has a primitive driver"
     require {[names [get_ports -of_objects [segments $input_net]]] eq [names $clock_port]} \
         "External clock has another port driver"
-    require {[names [get_clocks -of_objects $pin_o]] eq {core_clk}} "core_clk did not propagate through BUFG"
+    require {[names [get_clocks -of_objects $pin_o]] eq [list $clock_name]} "core_clk did not propagate through BUFG"
     return $global_net
 }
 
@@ -190,34 +191,46 @@ proc buffered_impl::timing_summary_metrics {path} {
     return $metrics
 }
 
-if {$argc != 4} {
-    puts stderr "Usage: INPUT_DCP NEW_OUT_DIR PERIOD_NS BUFGCTRL_XxYy"
+if {$argc != 6} {
+    puts stderr "Usage: INPUT_DCP NEW_OUT_DIR INPUT_XDC CLOCK_PORT CLOCK_NAME BUFGCTRL_XxYy"
     exit 1
 }
-lassign $argv input_dcp out period clock_site
+lassign $argv input_dcp out constraints clock_port_name clock_name clock_site
+set constraints [file normalize $constraints]
 set input_dcp [file normalize $input_dcp]
 set out [file normalize $out]
-if {![buffered_impl::finite $period] || $period <= 0 ||
+if {![file isfile $constraints] || ![file readable $constraints] || [file size $constraints] == 0 ||
+    ![regexp {^[A-Za-z_][A-Za-z0-9_]*$} $clock_port_name] || ![regexp {^[A-Za-z_][A-Za-z0-9_]*$} $clock_name] ||
     ![regexp {^BUFGCTRL_X[0-9]+Y[0-9]+$} $clock_site] ||
     ![file isfile $input_dcp] || ![file readable $input_dcp] || [file size $input_dcp] == 0 ||
     [string tolower [file extension $input_dcp]] ne ".dcp" || [file exists $out]} {
-    puts stderr "Require a new output directory, nonempty DCP, positive period and exact BUFGCTRL site"
+    puts stderr "Require a new output directory, nonempty DCP/user XDC, explicit clock port/name and exact BUFGCTRL site"
     exit 1
 }
+set parent $out
+while {1} {
+    if {[file exists [file join $parent .git]]} {error "Output must be outside Git working trees"}
+    set next [file dirname $parent]
+    if {$next eq $parent} {break}
+    set parent $next
+}
 if {[catch {file mkdir $out} error_text]} {puts stderr $error_text; exit 1}
-set scope "FPGA_POST_ROUTE_OOC_INTERNAL_BUFG_EXTERNAL_BOUNDARY_ZERO_IO_VECTORLESS_NOT_ASIC_OR_BOARD"
+set scope "FPGA_POST_ROUTE_OOC_INTERNAL_BUFG_USER_CONSTRAINTS_VECTORLESS_NOT_ASIC_OR_BOARD"
 set rc [catch {
     set input_sha [buffered_impl::sha256 $input_dcp]
+    set constraint_sha [buffered_impl::sha256 $constraints]
+    file copy $constraints [file join $out input_constraints.xdc]
     set_param general.maxThreads 2
     open_checkpoint $input_dcp
-    buffered_impl::require {[string match 2018.3* [version -short]]} "This flow is qualified only for Vivado 2018.3"
+    read_xdc -mode out_of_context [file join $out input_constraints.xdc]
+    buffered_impl::require {[string match 2018.3* [version -short]]} "This flow requires the Vivado 2018.3 API; revision validation remains external"
     buffered_impl::require {[string match xc7* [get_property PART [current_design]]]} "This BUFG flow is limited to 7-series"
     buffered_impl::require {![llength [get_cells -hierarchical -filter {IS_BLACKBOX == 1}]]} "Black box in checkpoint"
     buffered_impl::require {![report_route_status -has_routing]} "Expected unrouted post-synthesis DCP"
-    set clock_port [get_ports clk]
-    buffered_impl::require {[llength $clock_port] == 1 && [get_property DIRECTION $clock_port] eq "IN"} "Missing/non-input clk port"
-    buffered_impl::require {[buffered_impl::names [get_clocks *]] eq {core_clk} &&
-        [buffered_impl::names [get_clocks -of_objects $clock_port]] eq {core_clk}} "Expected sole core_clk sourced at clk"
+    set clock_port [get_ports $clock_port_name]
+    buffered_impl::require {[llength $clock_port] == 1 && [get_property DIRECTION $clock_port] eq "IN"} "Missing/non-input explicitly selected clock port"
+    buffered_impl::require {[buffered_impl::names [get_clocks *]] eq [list $clock_name] &&
+        [buffered_impl::names [get_clocks -of_objects $clock_port]] eq [list $clock_name]} "Expected sole explicitly named clock sourced at the selected port"
     buffered_impl::require {![llength [get_cells -hierarchical -filter {REF_NAME =~ BUFG* || REF_NAME =~ BUFR* || REF_NAME =~ BUFH* || REF_NAME =~ BUFIO* || REF_NAME =~ MMCME* || REF_NAME =~ PLLE*}]]} \
         "Already buffered or noncanonical clock network"
     set site [get_sites $clock_site]
@@ -230,9 +243,9 @@ set rc [catch {
     buffered_impl::require {![llength [get_cells -quiet $cell_name]] && ![llength [get_nets -quiet $input_name]]} "ECO names already exist"
     set original_net [buffered_impl::top_net $clock_port]
     buffered_impl::require {![llength [buffered_impl::drivers $original_net]]} "Clock net has a primitive driver"
-    buffered_impl::require {[buffered_impl::names [get_ports -of_objects [buffered_impl::segments $original_net]]] eq {clk}} \
+    buffered_impl::require {[buffered_impl::names [get_ports -of_objects [buffered_impl::segments $original_net]]] eq [list $clock_port_name]} \
         "Clock net has additional external port connections"
-    set before [buffered_impl::check_clock_loads $original_net]
+    set before [buffered_impl::check_clock_loads $original_net $clock_name]
     set before_sha [buffered_impl::save_names [file join $out clock_endpoints.before.txt] $before]
     set cells_before [buffered_impl::names [get_cells -hierarchical *]]
     set ports_before [buffered_impl::names [get_ports *]]
@@ -254,30 +267,25 @@ set rc [catch {
     set_property DONT_TOUCH true $bufg
     buffered_impl::require {[buffered_impl::names [get_cells -hierarchical *]] eq [lsort -ascii [concat $cells_before [list $cell_name]]]} "ECO changed original cell set"
     buffered_impl::require {[buffered_impl::names [get_ports *]] eq $ports_before} "ECO changed port set"
-    set global_net [buffered_impl::check_buffer $cell_name $input_net $clock_port $clock_site]
-    set after [buffered_impl::check_clock_loads $global_net]
+    set global_net [buffered_impl::check_buffer $cell_name $input_net $clock_port $clock_site $clock_name]
+    set after [buffered_impl::check_clock_loads $global_net $clock_name]
     set after_sha [buffered_impl::save_names [file join $out clock_endpoints.after_eco.txt] $after]
     buffered_impl::require {$before eq $after && $before_sha eq $after_sha} "ECO changed the complete clock endpoint set"
 
-    set fh [open [file join $out screening.xdc] w]
-    puts $fh [format {create_clock -name core_clk -period %.9g [get_ports clk]} $period]
-    puts $fh {set_clock_uncertainty 0.05 [get_clocks core_clk]}
-    puts $fh {set_propagated_clock [get_clocks core_clk]}
-    puts $fh {set_input_delay 0.0 -clock core_clk [get_ports -filter {DIRECTION == IN && NAME != clk}]}
-    puts $fh {set_output_delay 0.0 -clock core_clk [all_outputs]}
-    close $fh
-    read_xdc -mode out_of_context [file join $out screening.xdc]
-    buffered_impl::require {[buffered_impl::names [get_clocks *]] eq {core_clk}} "Extra clock after constraints"
-    set actual_period [get_property PERIOD [get_clocks core_clk]]
-    buffered_impl::require {[buffered_impl::finite $actual_period] && abs($actual_period-$period) <= 0.00051} "Effective period differs beyond 1 ps rounding"
+    # Propagation reflects the inserted/routed buffer; IO and uncertainty remain user SDC.
+    set_propagated_clock [get_clocks $clock_name]
+    buffered_impl::require {[buffered_impl::names [get_clocks *]] eq [list $clock_name]} "Extra clock after user constraints"
+    set actual_period [get_property PERIOD [get_clocks $clock_name]]
+    buffered_impl::require {[buffered_impl::finite $actual_period] && $actual_period > 0} "No finite positive user clock period"
+    write_xdc [file join $out constraints.after_eco.xdc]
     write_checkpoint [file join $out post_clock_eco.dcp]
     opt_design
     place_design
     phys_opt_design
     route_design
 
-    set global_net [buffered_impl::check_buffer $cell_name $input_net $clock_port $clock_site]
-    set routed [buffered_impl::check_clock_loads $global_net]
+    set global_net [buffered_impl::check_buffer $cell_name $input_net $clock_port $clock_site $clock_name]
+    set routed [buffered_impl::check_clock_loads $global_net $clock_name]
     set routed_sha [buffered_impl::save_names [file join $out clock_endpoints.post_route.txt] $routed]
     report_route_status -of_objects $global_net -show_all -file [file join $out internal_clock_route.rpt]
     set clock_route_status [get_property ROUTE_STATUS $global_net]
@@ -344,6 +352,7 @@ set rc [catch {
         [dict get $slacks internal_max] >= 0 && [dict get $slacks internal_min] >= 0
     }]
     buffered_impl::require {[buffered_impl::sha256 $input_dcp] eq $input_sha} "Input checkpoint changed on disk"
+    buffered_impl::require {[buffered_impl::sha256 $constraints] eq $constraint_sha} "Input constraints changed on disk"
     set fh [open [file join $out status.txt] w]
     foreach {key value} [list STATUS BUFFERED_IMPL_COMPLETE TIMING_MET $timing_met \
         REGREG_TIMING_MET $register_timing_met INTERNAL_FILTER REGISTER_CLOCK_TO_REGISTER_DATA \
@@ -358,8 +367,8 @@ set rc [catch {
         CHECK_TIMING_CATEGORIES $coverage_categories CHECK_TIMING_ISSUES 0 UNCONSTRAINED_PATH_GROUPS 0 IGNORED_PATH_GROUPS 0 \
         ROUTED_FULLY $fully_routed ROUTE_ERRORS $route_errors DRC_ERRORS $drc_errors \
         INPUT_DCP $input_dcp INPUT_DCP_SHA256 $input_sha PART [get_property PART [current_design]] \
-        REQUESTED_PERIOD_NS $period EFFECTIVE_PERIOD_NS $actual_period CLOCK_SITE $clock_site \
-        CLOCK_UNCERTAINTY_NS 0.05 REMOVED_HD_CLK_SRC $old_hd \
+        USER_CONSTRAINTS $constraints USER_CONSTRAINTS_SHA256 $constraint_sha EFFECTIVE_PERIOD_NS $actual_period CLOCK_SITE $clock_site CLOCK_PORT $clock_port_name CLOCK_NAME $clock_name \
+        REMOVED_HD_CLK_SRC $old_hd \
         ENDPOINTS_BEFORE [llength $before] ENDPOINTS_AFTER_ECO [llength $after] ENDPOINTS_POST_ROUTE [llength $routed] \
         ENDPOINTS_BEFORE_SHA256 $before_sha ENDPOINTS_AFTER_ECO_SHA256 $after_sha ENDPOINTS_POST_ROUTE_SHA256 $routed_sha \
         POST_ROUTE_ENDPOINT_SET_CHANGED [expr {$before ne $routed}] \

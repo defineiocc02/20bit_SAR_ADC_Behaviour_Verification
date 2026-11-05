@@ -1,90 +1,127 @@
-"""检查含噪估计、仿真物理池留出及固定数字校准系数的接口合同。"""
+"""以显式合成观测检查拟合及固定系数的数字推理。
+
+小型线性记录只验证数值合同，不代表 ADC 仿真、实际电容提取、目标芯片校准
+或 RTL 性能证据。
+"""
 
 import json
-from dataclasses import FrozenInstanceError, fields, replace
+from dataclasses import FrozenInstanceError, asdict, fields, replace
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
-from adi_model import Config, sine_input
-from adi_model.pipeline import run_pipeline
-from adi_model.reconstruction import initialize_state
+from adi_model.fixed_point import FixedPointReconstructor
+from adi_model.reconstruction import DigitalState
 from adi_model.weight_calibration import (
     CalibrationUnidentifiableError,
     DigitalObservation,
     FrozenCalibration,
+    apply_frozen_calibration,
     fit_unit_weights,
-    run_with_split_calibration,
 )
 
 
-@pytest.fixture(scope="module")
-def noisy_fit():
-    cfg = Config.paper_literal(
-        n_slices=4,
-        n_active=1,
-        dem_enable=True,
-        dem_mode="permute",
-        dither_mode="sampling",
-        mismatch_sigma0=0.001,
-        sadc_rdac_gain_mismatch=0,
+@pytest.fixture
+def noisy_fit(synthetic_linear_data):
+    case = synthetic_linear_data
+    data = case.data
+    voltage = (
+        case.weights[data.slice_ids]
+        * (data.signal_mask * case.known[:, None, None] + data.known_voltage_term_v)
+    ).sum((1, 2)) + case.offset
+    # 误差在合成响应节点显式声明，不通过目标动态范围反解。
+    error = np.random.default_rng(101).normal(0, 5e-5, len(voltage))
+    code = np.floor((voltage + error - data.spec.adc2_v_min) / data.spec.adc2_step_v).astype(
+        np.int64
     )
-    fn = sine_input(2.4, cfg.fs * 103 / 4096)
-    training = run_pipeline(cfg, fn, 4096)
-    data = DigitalObservation.from_result(training)
-    model = fit_unit_weights(data, fn(training.sample.t1))
-    return cfg, training, data, model, fn
+    observed = replace(data, adc2_code=code)
+    return case, observed, fit_unit_weights(observed, case.known), error
 
 
-def test_training_really_contains_noise_and_reports_identifiability(noisy_fit):
-    cfg, training, _, model, _ = noisy_fit
-    assert cfg.enable_sampling_noise and cfg.ra_enable_noise
-    assert np.std(training.sample.n_R) > 10e-6
-    assert model.rank == cfg.n_slices * cfg.dac_n_units + 1
-    assert 1e-4 < model.residual_rms_v < 3e-3
+def test_training_contains_explicit_measurement_noise_and_reports_identifiability(noisy_fit):
+    case, data, model, error = noisy_fit
+    assert 3e-5 < np.std(error) < 7e-5
+    assert model.rank == case.weights.size + 1 == 7
+    assert model.training_samples == len(data.adc2_code) == 128
+    assert 2e-5 < model.residual_rms_v < 8e-5
     assert np.all(model.standard_error > 0)
-    assert 1 < model.condition < 1000
+    assert model.condition >= 1 and np.isfinite(model.condition)
+    np.testing.assert_allclose(model.weights, case.weights, atol=5e-4, rtol=0)
 
 
-@pytest.mark.parametrize("dither", ["sampling", "off", "quantizer"])
-def test_independent_same_chip_validation_uses_frozen_coefficients_in_the_runner(noisy_fit, dither):
-    cfg, training, _, model, _ = noisy_fit
-    validation_cfg = replace(cfg, dither_mode=dither)
-    fn = sine_input(2.2, cfg.fs * 307 / 8192, 0.5)
-    before = run_pipeline(
-        validation_cfg, fn, 8192, pool=training.pool, rng=np.random.default_rng(893)
+def _held_out(case):
+    """构造单独声明的线性激励，不使用模拟模型或隐藏芯片状态。"""
+    data = case.data
+    generator = np.random.default_rng(893)
+    n = 64
+    ids = generator.integers(0, 2, (n, 1))
+    signal = generator.integers(0, 2, (n, 1, 3))
+    signal[:, :, 0] = 1
+    term = generator.uniform(-0.2, 0.2, (n, 1, 3))
+    known = generator.uniform(-0.35, 0.35, n)
+    voltage = (case.weights[ids] * (signal * known[:, None, None] + term)).sum((1, 2)) + case.offset
+    code = np.floor((voltage - data.spec.adc2_v_min) / data.spec.adc2_step_v).astype(np.int64)
+    observed = DigitalObservation(
+        data.spec,
+        ids,
+        code,
+        generator.integers(0, 2, (n, 1, 2)),
+        generator.integers(0, 2, (n, 1, 1)),
+        signal,
+        term,
+        np.zeros(n, bool),
+        np.arange(1000, 1000 + n),
+        True,
     )
-    state = initialize_state(validation_cfg)
-    state.weight_calibration = model
-    coefficients_before = model.weights.tobytes()
-    after = run_pipeline(
-        validation_cfg, fn, 8192, pool=training.pool, state=state, rng=np.random.default_rng(893)
-    )
-    assert after.pool is training.pool
-    assert model.weights.tobytes() == coefficients_before
-    assert after.calibration_applied == ("unit_weights",)
-    np.testing.assert_array_equal(after.adc2_code, before.adc2_code)
-    assert np.std(after.err) < 60e-6
-    assert np.std(after.err) < 0.3 * np.std(before.err)
+    return observed, known
 
 
-def test_estimator_record_does_not_include_physical_truth(noisy_fit):
-    _, training, data, _, _ = noisy_fit
-    assert {f.name for f in fields(data.spec)}.isdisjoint(
-        {"gain_error", "mismatch_sigma0", "ra_out_noise_rms", "c_feedback0", "C_true"}
+def test_independent_holdout_uses_unchanged_frozen_coefficients(noisy_fit):
+    case, training, model, _ = noisy_fit
+    held, known = _held_out(case)
+    frozen_bytes = model.weights.tobytes()
+    nominal = np.full_like(case.weights, 0.1)
+    weights = nominal[held.slice_ids]
+    before = (held.fine_v - np.sum(weights * held.known_voltage_term_v, axis=(1, 2))) / np.sum(
+        weights * held.signal_mask, axis=(1, 2)
     )
-    # Poison diagnostics without changing any digital observation.
-    old_error, old_gain = training.e_dac, training.g_vec
-    training.e_dac, training.g_vec = np.full(4096, np.nan), np.full(4096, np.nan)
-    extracted = DigitalObservation.from_result(training)
-    np.testing.assert_array_equal(extracted.adc2_code, data.adc2_code)
-    np.testing.assert_array_equal(extracted.common_injection_v, data.common_injection_v)
-    training.e_dac, training.g_vec = old_error, old_gain
-    assert not hasattr(extracted, "pool") and not hasattr(extracted, "x_known")
+    after = model.reconstruct(held)
+    assert model.weights.tobytes() == frozen_bytes
+    assert not np.array_equal(held.sample_ids, training.sample_ids)
+    assert np.std(after - known) < 0.1 * np.std(before - known)
+    assert np.max(abs(after - known)) < 0.002
+
+
+def test_estimator_record_does_not_include_physical_truth(synthetic_linear_data):
+    data = synthetic_linear_data.data
+    assert {f.name for f in fields(data)}.isdisjoint(
+        {"pool", "x_known", "gain", "C_true", "held_voltage"}
+    )
+
+    class Result:
+        digital_observation = data
+        adc2_code = data.adc2_code
+        sample_id = data.sample_ids
+
+        @property
+        def pool(self):
+            raise AssertionError("digital extraction read physical truth")
+
+        @property
+        def g_vec(self):
+            raise AssertionError("digital extraction read per-sample gain")
+
+        @property
+        def e_dac(self):
+            raise AssertionError("digital extraction read physical DAC error")
+
+    assert DigitalObservation.from_result(Result()) is data
+    assert not hasattr(data, "pool") and not hasattr(data, "x_known")
 
 
 def test_frozen_coefficients_remain_immutable_after_standard_json_round_trip(noisy_fit):
-    _, _, data, model, _ = noisy_fit
+    _, data, model, _ = noisy_fit
     restored = FrozenCalibration.from_dict(json.loads(json.dumps(model.to_dict(), allow_nan=False)))
     np.testing.assert_array_equal(restored.reconstruct(data), model.reconstruct(data))
     with pytest.raises(ValueError):
@@ -95,96 +132,124 @@ def test_frozen_coefficients_remain_immutable_after_standard_json_round_trip(noi
         restored.offset_v = 0
 
 
-def test_missing_excitation_is_rejected_instead_of_hidden_by_nominal_priors(noisy_fit):
-    cfg, _, _, _, _ = noisy_fit
-    cfg = replace(cfg, dem_enable=False, dem_mode="rotate", dither_mode="off")
-    fn = sine_input(2.4, cfg.fs * 101 / 1024)
-    r = run_pipeline(cfg, fn, 1024)
-    with pytest.raises(CalibrationUnidentifiableError, match="rank.*change DEM"):
-        fit_unit_weights(DigitalObservation.from_result(r), fn(r.sample.t1))
+def test_missing_excitation_is_rejected_instead_of_hidden_by_nominal_priors(synthetic_linear_data):
+    data = synthetic_linear_data.data
+    deficient = replace(data, slice_ids=np.zeros_like(data.slice_ids))
+    with pytest.raises(CalibrationUnidentifiableError, match="rank"):
+        fit_unit_weights(deficient, synthetic_linear_data.known)
 
 
-def test_dynamic_training_cannot_be_mislabeled_as_static_weights(noisy_fit):
-    _, _, data, _, fn = noisy_fit
-    with pytest.raises(ValueError, match="controlled static"):
-        fit_unit_weights(replace(data, static_charge_domain=False), fn(np.arange(4096) / 40e6))
+def test_dynamic_or_clipped_training_cannot_be_mislabeled_as_static_weights(synthetic_linear_data):
+    data, known = synthetic_linear_data.data, synthetic_linear_data.known
+    with pytest.raises(ValueError, match="static charge-domain"):
+        fit_unit_weights(replace(data, static_charge_domain=False), known)
+    flags = np.zeros(len(known), bool)
+    flags[3] = True
+    with pytest.raises(ValueError, match="clipped conversions"):
+        fit_unit_weights(replace(data, overflow=flags), known)
 
 
-def test_engineered_workflow_records_the_actual_training_setup(noisy_fit):
-    cfg = replace(noisy_fit[0], dither_mode="off", dem_enable=False, dem_mode="rotate")
-    r = run_with_split_calibration(cfg, sine_input(2.1, cfg.fs * 127 / 2048), 2048, n_cal=4096)
-    report = r.calibration_report
-    assert report["same_physical_pool"]
-    assert report["sampling_noise_retained"] and report["ra_noise_retained"]
-    assert report["training_config"]["dither_mode"] == "sampling"
-    assert r.cfg.dither_mode == "off"
-    assert r.calibration_applied == ("unit_weights",)
-    assert not r.effective_config["calibration_pending"]
-    assert r.uncalibrated_out is not None
-    assert np.std(r.err) < 60e-6
-
-
-def test_legacy_gain_training_does_not_silently_disable_sampling_noise(monkeypatch):
-    import adi_model.sim as sim_module
-
-    seen = []
-    real = sim_module.run_sim
-
-    def inspect(*args, **kwargs):
-        r = real(*args, **kwargs)
-        seen.append((r.cfg.enable_sampling_noise, float(np.std(r.sample.n_R))))
-        return r
-
-    monkeypatch.setattr(sim_module, "run_sim", inspect)
-    cfg = Config(calibration="gain", dem_enable=True)
-    sim_module.run_with_calibration(cfg, sine_input(1.2, cfg.fs * 17 / 128), 128, n_cal=128)
-    assert len(seen) == 10
-    assert all(enabled and sigma > 0 for enabled, sigma in seen)
-
-
-def test_quantized_frozen_weights_preserve_the_holdout_calibration_benefit(noisy_fit):
-    cfg, training, _, model, _ = noisy_fit
-    state = initialize_state(cfg)
-    state.weight_calibration = model
-    r = run_pipeline(
-        cfg,
-        sine_input(2.2, cfg.fs * 307 / 8192, 0.5),
-        8192,
-        pool=training.pool,
-        state=state,
-        rng=np.random.default_rng(893),
+def test_digital_application_preserves_raw_observations_and_separate_scores(noisy_fit):
+    case, _, model, _ = noisy_fit
+    data, known = _held_out(case)
+    raw = data.adc2_code.copy()
+    result = SimpleNamespace(
+        digital_observation=data,
+        adc2_code=data.adc2_code,
+        sample_id=data.sample_ids,
+        x_ref=known,
+        out=np.zeros(len(known)),
+        uncalibrated_out=None,
+        state=DigitalState(32.0),
+        calibration_applied=(),
     )
-    stream = r.to_codes()
-    assert np.max(np.abs(stream.voltage - r.out)) < 0.51 * cfg.lsb_target
-    assert np.std(stream.voltage - r.x_ref) < 60e-6
-    assert np.std(stream.voltage - r.x_ref) < 0.3 * np.std(r.uncalibrated_out - r.x_ref)
+    apply_frozen_calibration(result, model)
+    np.testing.assert_array_equal(result.adc2_code, raw)
+    np.testing.assert_array_equal(result.out, model.reconstruct(data))
+    np.testing.assert_array_equal(result.err, result.out - known)
+    np.testing.assert_array_equal(result.uncalibrated_out, np.zeros(len(known)))
+    assert result.calibration_applied == ("unit_weights",)
+    assert result.state.weight_calibration is model
+    # 评分参考不应改变已经固定系数的未知输入推理。
+    result.x_ref = np.full(len(known), np.nan)
+    apply_frozen_calibration(result, model)
+    np.testing.assert_array_equal(result.out, model.reconstruct(data))
+    assert np.isnan(result.err).all()
 
 
-def test_fitted_coefficients_export_as_the_exact_rtl_register_image(noisy_fit, monkeypatch):
-    import hashlib
-    import importlib
-    from pathlib import Path
-
-    from adi_model.fixed_point import FixedPointReconstructor
-    from adi_model.weight_calibration import CalibrationSpec
-
-    cfg, training, _, model, _ = noisy_fit
-    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[2] / "tools"))
-    exporter = importlib.import_module("export_fitted_rtl")
-    monkeypatch.setitem(exporter._CONFIG_FACTORIES, "fit_fixture", lambda: cfg)
-    frozen_bytes = json.dumps(model.to_dict(), allow_nan=False).encode("utf-8")
-    registers, manifest = exporter.build_fitted_registers("fit_fixture", frozen_bytes)
-    info = json.loads(manifest)
-    assert info["register_sha256"] == hashlib.sha256(registers.encode("utf-8")).hexdigest()
-    assert info["frozen_file_sha256"] == hashlib.sha256(frozen_bytes).hexdigest()
-    assert info["training_digest"] == model.training_digest
-    decoder = FixedPointReconstructor.from_dict(json.loads(registers))
-    direct = FixedPointReconstructor.from_frozen_calibration(
-        CalibrationSpec.from_config(cfg), model
+def test_quantized_frozen_weights_preserve_holdout_benefit(noisy_fit, explicit_format):
+    case, _, model, _ = noisy_fit
+    data, known = _held_out(case)
+    decoder = FixedPointReconstructor.from_frozen_calibration(
+        data.spec, model, format=explicit_format
     )
-    data = DigitalObservation.from_result(training)
-    np.testing.assert_array_equal(decoder.reconstruct(data).code, direct.reconstruct(data).code)
-    with pytest.raises(ValueError, match="geometry or Vfs"):
+    stream = decoder.reconstruct(data)
+    assert np.max(abs(stream.voltage - model.reconstruct(data))) < 0.51 * 6 / 2**20
+    assert np.max(abs(stream.voltage - known)) < 0.002
+    assert not np.any(stream.clipped_low | stream.clipped_high | stream.analog_overflow)
+
+
+def test_fitted_register_image_roundtrip_and_scale_mismatch(noisy_fit, explicit_format):
+    _, data, model, _ = noisy_fit
+    decoder = FixedPointReconstructor.from_frozen_calibration(
+        data.spec, model, format=explicit_format
+    )
+    encoded = json.loads(json.dumps(decoder.to_dict(), allow_nan=False))
+    restored = FixedPointReconstructor.from_dict(encoded)
+    np.testing.assert_array_equal(restored.reconstruct(data).code, decoder.reconstruct(data).code)
+    with pytest.raises(ValueError, match="specification differs"):
         FixedPointReconstructor.from_frozen_calibration(
-            CalibrationSpec.from_config(replace(cfg, v_fs=cfg.v_fs * 1.01)), model
+            replace(data.spec, v_fs=3.01), model, format=explicit_format
         )
+
+
+@pytest.mark.parametrize("value", [np.nan, np.inf, -np.inf])
+def test_training_reference_must_be_finite(synthetic_linear_data, value):
+    known = synthetic_linear_data.known.copy()
+    known[0] = value
+    with pytest.raises(ValueError, match="finite"):
+        fit_unit_weights(synthetic_linear_data.data, known)
+
+
+def test_fit_freezes_the_complete_observation_specification(noisy_fit):
+    _, data, model, _ = noisy_fit
+    payload = model.to_dict()
+    assert model.spec == data.spec
+    assert model.observation_domain == "static_charge_connections_v2"
+    assert payload["schema_version"] == 2
+    assert payload["spec"] == asdict(data.spec)
+    assert payload["observation_domain"] == "static_charge_connections_v2"
+    assert "v_fs" not in payload
+    assert {f.name for f in fields(model)}.isdisjoint({"pool", "chip_id", "physical_weights"})
+
+
+def test_schema_one_is_rejected_instead_of_assumed_current(noisy_fit):
+    _, _, model, _ = noisy_fit
+    old = model.to_dict()
+    old["schema_version"] = 1
+    old.pop("spec")
+    old.pop("observation_domain")
+    old["v_fs"] = 3.0
+    with pytest.raises(ValueError, match="unknown calibrated-weight schema"):
+        FrozenCalibration.from_dict(old)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"adc2_n_bits": 25},
+        {"adc2_v_min": -1.5},
+        {"adc2_v_max": 1.5},
+        {"adc2_endpoint_policy": "closed"},
+    ],
+)
+def test_same_shape_but_different_backend_contract_cannot_reuse_coefficients(
+    noisy_fit, explicit_format, change
+):
+    _, data, model, _ = noisy_fit
+    different = replace(data.spec, **change)
+    assert different.shape == data.spec.shape
+    with pytest.raises(ValueError, match="specification or observation domain"):
+        model.reconstruct(replace(data, spec=different))
+    with pytest.raises(ValueError, match="specification differs"):
+        FixedPointReconstructor.from_frozen_calibration(different, model, format=explicit_format)

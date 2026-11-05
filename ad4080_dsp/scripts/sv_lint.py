@@ -10,12 +10,13 @@ ARM64 ELF（``ELF 64-bit ... ARM aarch64``），不能在 macOS 执行，
 Linux CI 仍应按上述规范运行 verible-verilog-lint。该记录不作为本次环境探测。
 
 用法：``python3 scripts/sv_lint.py rtl/*.sv``；``--strict`` 将警告计为失败。
-退出码 0 表示本门禁通过，1 表示错误、风格问题或 strict 模式警告，
-2 表示没有提供文件。
+退出码 0 只表示所选语法/文本检查通过，1 表示诊断或文本问题，
+2 表示命令、输入或工具不可用；不选择默认套件。
 """
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -42,12 +43,12 @@ def parse_diagnostics(files: list[Path]) -> tuple[list[str], list[str]]:
 
     Returns:
         ``(errors, warnings)``；各项采用 ``file:line: code`` 字符串。
-        缺少 pyslang 时错误列表包含安装提示，不视为完成检查。
+        缺少 pyslang 时抛出 RuntimeError，不视为完成检查。
     """
     try:
         from pyslang import ast, syntax
-    except ImportError:
-        return (["pyslang 未安装：pip install pyslang"], [])
+    except ImportError as error:
+        raise RuntimeError("pyslang 不可用；请通过 PYTHON 指定已安装该工具的解释器") from error
 
     trees = [syntax.SyntaxTree.fromFile(str(f)) for f in files]
     sm = trees[0].sourceManager
@@ -70,7 +71,7 @@ def parse_diagnostics(files: list[Path]) -> tuple[list[str], list[str]]:
 def style_check(path: Path) -> list[str]:
     """按工程编码规范返回文本问题列表，不进行 HDL 语义验证。"""
     problems: list[str] = []
-    text = path.read_text(encoding="utf-8", errors="replace")
+    text = path.read_text(encoding="utf-8")
     lines = text.splitlines()
 
     head = "\n".join(lines[:80])
@@ -112,16 +113,23 @@ def main(argv: list[str]) -> int:
 
     ``--strict`` 使警告也导致失败；argv 不包含脚本文件名。
     """
-    strict = "--strict" in argv
-    files = [Path(a) for a in argv if not a.startswith("--")]
-    if not files:
-        print(__doc__)
-        return 2
-
-    errors, warnings = parse_diagnostics(files)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--strict", action="store_true", help="将解析器警告计为失败")
+    parser.add_argument("files", type=Path, nargs="+", help="显式 RTL 文件与所需依赖")
+    args = parser.parse_args(argv)
+    files = args.files
     style = []
-    for f in files:
-        style.extend(style_check(f))
+    try:
+        for path in files:
+            if path.suffix != ".sv" or not path.is_file():
+                raise ValueError(f"不是可读的 .sv 文件：{path}")
+            if path.stat().st_size > 300_000_000:
+                raise ValueError(f"文件超过本机 300 MB 审计限制：{path}")
+            style.extend(style_check(path))
+        errors, warnings = parse_diagnostics(files)
+    except (OSError, UnicodeError, ValueError, RuntimeError) as error:
+        print(f"RESULT: BLOCKED: {error}", file=sys.stderr)
+        return 2
 
     print(f"== pyslang: {len(files)} files, {len(errors)} errors, {len(warnings)} warnings ==")
     for e in errors:
@@ -133,7 +141,7 @@ def main(argv: list[str]) -> int:
     for s in style:
         print(f"[STYLE] {s}")
 
-    if errors or style or (strict and warnings):
+    if errors or style or (args.strict and warnings):
         print("\nRESULT: FAIL")
         return 1
     print("\nRESULT: PASS")

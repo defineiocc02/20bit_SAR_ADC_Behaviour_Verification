@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""只读取冻结数据重绘首页四图，不重新仿真、拟合或训练。
+"""只读取清理前冻结数据重绘历史四图，不重新仿真、拟合或训练。
 
 --data 指定的目录提供名义随机化合同、结构 DUT 留出记录、三种 Python 调度的
 最终整数码功率谱，以及完整扰动幅度网格；默认读取随库 data/。
---out 中同名原创 PNG/SVG 会被覆盖，并记录输入数据和绘图源码的摘要。
+--out 必须是库外新目录，输出 historical_* 原创 PNG/SVG 及输入/源码摘要。
 
 校准图区分误差均值、标准差和 RMS；交织图同时保留杂散与非基波残差指标；
 扰动图保留全部失败点和各节点计数，不按最终码裁剪筛除样本。
-重绘成功仅说明冻结数据、指标和图示通过本脚本的一致性检查，不证明芯片性能。
+旧配置、调度和扰动方案已退役；这些记录不验证当前默认模型或原文符合性。
+重绘成功仅说明历史数据、指标和图示的一致性，不证明当前代码或芯片性能。
 """
 
 from __future__ import annotations
@@ -27,12 +28,15 @@ from matplotlib import font_manager
 from matplotlib.patches import Circle, FancyArrowPatch, FancyBboxPatch, Rectangle
 
 HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[1]
 BLUE, ORANGE, TEAL = "#27658e", "#cf8535", "#218578"
 INK, MUTED, PALE, GRAY = "#203044", "#5a6878", "#edf2f6", "#81909f"
 FIGURES = ("architecture", "calibration", "interleave", "dither_headroom")
 
 
 def _sha(path: Path) -> str:
+    if path.stat().st_size > 300 * 1024**2:
+        raise ValueError(f"历史输入超过300 MiB限制：{path}")
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
@@ -69,6 +73,8 @@ def _setup() -> None:
 
 
 def _save(fig, destination: Path) -> None:
+    if fig._suptitle is not None:
+        fig._suptitle.set_text("历史归档｜" + fig._suptitle.get_text())
     for suffix in ("png", "svg"):
         path = destination.with_suffix(f".{suffix}")
         fig.savefig(
@@ -211,7 +217,7 @@ def architecture(data: Path, out: Path) -> dict:
         fontsize=10,
         color=MUTED,
     )
-    _save(fig, out / "current_architecture")
+    _save(fig, out / "historical_architecture")
     return {
         "evidence": "project_concept_structure",
         "slice_pool": ns,
@@ -296,7 +302,7 @@ def calibration(data: Path, out: Path) -> dict:
         fontsize=10,
         color=MUTED,
     )
-    _save(fig, out / "current_calibration")
+    _save(fig, out / "historical_calibration")
     return {
         "evidence": "structural_digital_DUT_static_plant_holdout",
         "chip_seed": 42,
@@ -427,7 +433,7 @@ def interleave(data: Path, out: Path) -> dict:
         fontsize=10.5,
         color=MUTED,
     )
-    _save(fig, out / "current_interleave")
+    _save(fig, out / "historical_interleave")
     return {
         "evidence": "Python_final_integer_code_timing_experiment",
         "conditions": names,
@@ -560,7 +566,7 @@ def dither_headroom(data: Path, out: Path) -> dict:
         fontsize=10,
         color=MUTED,
     )
-    _save(fig, out / "current_dither_headroom")
+    _save(fig, out / "historical_dither_headroom")
     return {
         "evidence": "Python_ideal_plant_headroom_sweep",
         "cells": len(summary["cells"]),
@@ -577,14 +583,18 @@ def dither_headroom(data: Path, out: Path) -> dict:
 
 
 def main() -> None:
-    """重绘选定图片，记录数据摘要与输出；不运行模型或训练器。"""
+    """在库外新目录重绘历史图片；不运行当前模型或训练器。"""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--out", type=Path, required=True, help="明确的输出目录；覆盖其中同名图")
+    parser.add_argument("--out", type=Path, required=True, help="库外新目录；不覆盖已有路径")
     parser.add_argument("--data", type=Path, default=HERE / "data", help="冻结JSON/NPZ数据目录")
     parser.add_argument("--only", nargs="+", choices=FIGURES, default=list(FIGURES))
     args = parser.parse_args()
-    args.out.mkdir(parents=True, exist_ok=True)
-    _setup()
+    args.out = args.out.expanduser().absolute()
+    if args.out.exists() or args.out.is_symlink():
+        parser.error("--out必须是新目录；不覆盖已有路径")
+    resolved_output = args.out.resolve()
+    if resolved_output == ROOT or ROOT in resolved_output.parents:
+        parser.error("历史重绘只允许输出到仓库外")
     renderers = {
         "architecture": architecture,
         "calibration": calibration,
@@ -602,12 +612,22 @@ def main() -> None:
     }
     inputs = sorted({p for name in args.only for p in requirements[name]})
     before = {name: _sha(args.data / name) for name in inputs}
+    args.out.mkdir(parents=True, exist_ok=False)
+    _setup()
     records = {name: renderers[name](args.data, args.out) for name in args.only}
     if any(_sha(args.data / name) != before[name] for name in inputs):
         raise RuntimeError("重绘期间输入发生变化；冻结数据后重新运行，不发布本次图")
     manifest = {
-        "artifact": "original_README_overview_redraw",
-        "operation": "frozen_data_redraw_only_no_simulation_or_training",
+        "artifact": "historical_README_overview_redraw",
+        "operation": "historical_frozen_data_redraw_only_no_simulation_or_training",
+        "evidence_period": "PRE_SOURCE_API_CLEANUP_ARCHIVE",
+        "current_implementation_verification": False,
+        "source_conformance": "NOT_ASSESSED",
+        "limits": [
+            "旧配置工厂、调度接口及采样/量化器互斥扰动入口已退役",
+            "历史量化器扰动不是当前Fig19分位双端口实现的证据",
+            "图中架构、整数格式及640MHz等旧工程条件不验证当前实现",
+        ],
         "renderer_sha256": _sha(Path(__file__).resolve()),
         "render_runtime": {
             "matplotlib": matplotlib.__version__,
@@ -621,17 +641,22 @@ def main() -> None:
         },
         "figures": records,
         "outputs": {
-            f"current_{name}.{suffix}": _sha(args.out / f"current_{name}.{suffix}")
+            f"historical_{name}.{suffix}": _sha(args.out / f"historical_{name}.{suffix}")
             for name in args.only
             for suffix in ("png", "svg")
         },
     }
-    (args.out / "current_figures_manifest.json").write_text(
+    (args.out / "historical_figures_manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2) + "\n"
     )
     print(
         json.dumps(
-            {"redrawn": args.only, "out": str(args.out), "simulation_rerun": False},
+            {
+                "historical_redraw": args.only,
+                "out": str(args.out),
+                "simulation_rerun": False,
+                "current_implementation_verification": False,
+            },
             ensure_ascii=False,
         )
     )

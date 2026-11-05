@@ -9,9 +9,11 @@
 // 精度：96位受检域、宽MAC临时值及63位floor商；P_USE_ROW_TOTALS仅使用精确配置缓存。
 // 节点：F/offset是ADC2输入（RA输出）域的V/Vfs Q32；inj是已知ADC输入域的V/Vfs Q32。
 // 重构：num=(F-O)*2^30-rails*2^32-T*inj；word=floor((num+G*2^32)*2^20/(G*2^33))。
-// G是本样本所装有效权重的信号和，sampling时已扣dither单元；其归一化不代表物理估计无误差。
+// G是本样本所装有效权重的信号和，本核仅支持已独立证明的AllSIGNAL子集，G=T；其归一化不代表物理估计无
+// 误差。
 // 权重量化在片外完成；运行时只有ADC2码中心用ties-to-even，其后移位与除法均为floor。
 // 来源：RTL_ARITHMETIC_CONTRACT.md、ADR0014/0018；不生成DEM、存权重或运行学习器。
+`timescale 1ns/1ps
 `include "rtl_params.vh"
 
 module recon_core #(
@@ -21,9 +23,7 @@ module recon_core #(
     parameter int P_N_SLICES = int'(N_SLICES),
     parameter int P_ADC2_BITS = int'(ADC2_BITS),
     parameter int P_STAGES = 7,
-    parameter bit P_USE_ROW_TOTALS = 0,
-    parameter int P_DIT_N = 2 * DITHER_UNITS_RANGE,
-    parameter int P_DIT_END = DITHER_SPLIT_IS_SUB ? int'(N_UNIT_TOTAL) : int'(N_UNIT_MAIN)
+    parameter bit P_USE_ROW_TOTALS = 0
 ) (
     input logic clk,
     input logic rst_n,
@@ -31,11 +31,9 @@ module recon_core #(
     input logic start,
     input logic [31:0] sample_id,
     input logic clr_ovf,
-    input logic sampling_mask_en,
     input logic [P_N_ACTIVE - 1:0][4:0] slice_id,
     input logic [P_N_ACTIVE - 1:0][P_N_MAIN - 1:0] main_on,
     input logic [P_N_ACTIVE - 1:0][P_N_SUB - 1:0] sub_on,
-    input logic [P_DIT_N - 1:0] dither_rail,
     input logic [P_ADC2_BITS - 1:0] adc2_code,
     input logic signed [V_BITS - 1:0] inj_q,
     input logic [P_N_SLICES - 1:0][P_N_MAIN + P_N_SUB - 1:0][W_BITS - 1:0] w_rom,
@@ -55,31 +53,17 @@ module recon_core #(
     output logic [4:0] result_flags
 );
 
-  localparam int N_U = P_N_MAIN + P_N_SUB;
   localparam int SUM_BITS = 64; // SUM_BITS: SigmaW < 2^60（契约 §5）留 4 位余量
   localparam int W_RAIL = SUM_BITS + 2; // W_RAIL: |rails| <= 3*2^60 < 2^62
-  localparam int W_OP3 = SUM_BITS + int'(V_BITS) + 2; // W_OP3: 130：total * inj_q
-  localparam int W_WIDE = W_OP3 + 2; // W_WIDE: 132：受检操作数的精确宽度
-  localparam int W_S1 = int'(ACC_BITS) + 1; // W_S1: 97
-  localparam int W_SHIFT = int'(ACC_BITS) + int'(OUT_BITS) + 1; // W_SHIFT: 117
   localparam int W_A = int'(ACC_BITS) - (int'(V_FRAC) + 1); // W_A: 63：shifted >>> 33
-  localparam int W_TOP = W_SHIFT - int'(ACC_BITS) + 1; // W_TOP: 22：shifted[116:95]
-  localparam int DIT_BEG = P_DIT_END - P_DIT_N;
-  localparam int N_CYC = (W_A + P_STAGES - 1) / P_STAGES;
-  // 延迟按接受start沿到dout_valid沿的完整间隔计数：阶段A快照、阶段B启动除法、
-  // N_CYC次除法和提交的组合合同为N_CYC+2；P7=11、P5=15，必须能容纳16tick帧。
-  // 对应延迟自检在sim/tb/p2_tb.sv；这不是目标工艺的组合路径时序证明。
-  localparam int RECON_LAT = N_CYC + 2;
+  // 延迟按接受start沿到dout_valid沿的完整间隔计数：阶段A快照、阶段B启动除法、 N_CYC次除法和提交的组
+  // 合合同为N_CYC+2；P7=11、P5=15，必须能容纳16tick帧。
+  // 对应延迟须由独立数学/协议夹具验证；这不是目标工艺的组合路径时序证明。
 
-  // Width-qualified constants; signed clipping bounds stay signed.
-  localparam logic [W_WIDE - 1:0] LIM_ONE = {{(W_WIDE - 1){1'b0}}, 1'b1};
-  localparam logic [W_WIDE - 1:0] LIM_HI_U = LIM_ONE << (int'(ACC_BITS) - 1);
-  localparam logic [W_WIDE - 1:0] LIM_LO_U = ~LIM_HI_U + LIM_ONE;
-  // Use signed bounds for the signed quotient; unsigned bounds break negatives.
+  // Width-qualified constants; signed clipping bounds stay signed. Use signed bounds for the signed
+  // quotient; unsigned bounds break negatives.
   localparam logic signed [W_A - 1:0] ZERO_A = {W_A{1'b0}};
   localparam logic signed [W_A - 1:0] OUT_CNT = {{(W_A - 1){1'b0}}, 1'b1} << OUT_BITS;
-  localparam logic [SUM_BITS - 1:0] GAIN_MAX = {{(SUM_BITS - 1){1'b0}}, 1'b1}
-      << (int'(ACC_BITS) - 1 - (int'(V_FRAC) + 1));
 
   // 1) Total weight, effective gain and signed rails (combinational)
   wire [SUM_BITS - 1:0] sum_W, sum_Wa;
@@ -90,17 +74,13 @@ module recon_core #(
       .P_N_MAIN(P_N_MAIN),
       .P_N_SUB(P_N_SUB),
       .P_N_SLICES(P_N_SLICES),
-      .P_DIT_N(P_DIT_N),
-      .P_DIT_END(P_DIT_END),
       .P_USE_ROW_TOTALS(P_USE_ROW_TOTALS),
       .SUM_BITS(SUM_BITS),
       .W_RAIL(W_RAIL)
   ) u_weight_reduce (
-      .sampling_mask_en(sampling_mask_en),
       .slice_id(slice_id),
       .main_on(main_on),
       .sub_on(sub_on),
-      .dither_rail(dither_rail),
       .w_rom(w_rom),
       .row_total(row_total),
       .sum_W(sum_W),
@@ -224,8 +204,8 @@ module recon_core #(
         a2ovf_pend <= adc2_o;
         stage_b <= 1'b1;
       end else if (stage_b) begin
-        // 检错必须读阶段A已冻结的同笔数据；若在start沿读取这些寄存器，NBA只会看到前一笔数值，
-        // 异常和sample ID就会错代。busy期间不接受新的start。
+        // 检错必须读阶段A已冻结的同笔数据；若在start沿读取这些寄存器，NBA只会看到前一笔数值，异常和
+        // sample ID就会错代。busy期间不接受新的start。
         ovf_pend <= any_ovf;
         gerr_pend <= bad_slice_r || (gain_s == {SUM_BITS{1'b0}});
         stage_b <= 1'b0;

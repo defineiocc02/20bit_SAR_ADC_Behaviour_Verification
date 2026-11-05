@@ -1,5 +1,7 @@
 # DEM、dither、slice 选择与 CAAZ 的组合条件
 
+> **af8／9bdf历史专题。** 本页原正文、数据、图和命令按原字节保留；其中“当前”“本轮”和通过数量仅描述原记录，不表示新主线实现。旧SID／bridge、sampling／range／固定4倍扰动及旧748位接口已退出当前运行，正文命令须在对应完整Git历史下解释。现行来源与未实现项见[A表](../current_digital_source_map.md)，实际状态与证据见[B表](../digital_status_matrix.md)，接口见[ABI2合同](../rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)。[原专题固定快照](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/randomization_caaz/README.md)保留旧链接语境；此横幅不改变旧结论或数值。
+
 **它们并非必然互斥，但不能仅凭各自通过就宣称组合成立。** 当前数字实现的逐笔归属与算术可验证；真实组合还要求 AZ 存储不被奇数周期复位破坏、dither 注入点与扣除域一致，以及两笔 AZ 噪声经数字归一化后的传递系数足够匹配。
 
 组合初核以主线 `8238cc3` 为输入；后续注释和有效配置报告维护见[本轮复核](../reviews/20261105-readability-maintenance.md)。组合分析没有改变转换算法或RTL控制行为，邻接数据保留实际生成版本和来源摘要。来源包含 ISSCC 2024 9.8 论文／讲稿、US10511316B2、US10505561B2 和北大 VLSI 2025 C32-1。实验区分数字功能、样本域行为、独立代数反例和仍未获得的模拟证据。

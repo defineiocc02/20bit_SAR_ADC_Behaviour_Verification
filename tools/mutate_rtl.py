@@ -2,12 +2,11 @@
 """在本项目 SystemVerilog 子集中枚举和注入变异。
 
 按 docs/rtl/MUTATION_AUDIT_VS_VERIBUGBENCH.md §6.1，将匹配、守卫与变换组合为
-各个算子。注入只修改 <out-root>/<name>/rtl/ 中的生产 SV 副本，原 rtl/ 保持只读。
-同名变异体目录按现有注入逻辑重建；清单和抽样选择不表示产物已经编译或被检出。
+各个算子。注入只修改 <out-root>/<name>/<source-root-name>/ 中的 SV 副本，输入保持只读。
+输出为显式库外新目录；已有结果拒绝覆盖。清单和抽样选择不表示产物已经编译或被检出。
 
-本实现转用 VeriBugBench（arXiv:2609.18022）的算子分类和保留判据，衡量本项目
-测试台对所注入故障的检出情况。原论文的测度针对基准构造及产物质量，不是调试
-技术性能；这里的结果不能解释为达到该基准的某个性能水平。
+历史审计将分类对应到 VeriBugBench（arXiv:2609.18022）；本工具只枚举并生成文本
+变异体，不执行编译保留或测试台检出判定，也不复现该论文的基准构造和性能测度。
 
 论文前端使用 Pyverilog 的 Verilog 子集；本项目还使用 logic、always_ff、'0、
 $signed 和打包数组。因此本工具采用行内文本匹配及显式守卫，只是本 SV 子集
@@ -22,18 +21,18 @@ $signed 和打包数组。因此本工具采用行内文本匹配及显式守卫
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import random
 import re
-import shutil
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RTL_ROOT = REPO_ROOT / "rtl"
-DEFAULT_OUT_ROOT = REPO_ROOT / "sim" / "artifacts" / "mut"
 
 # ---------------------------------------------------------------------------
 # 站点与算子
@@ -782,7 +781,7 @@ OPERATORS: tuple[Operator, ...] = (
         "Bit-vector & access",
         "delete",
         "把 `[A:B]` 收缩成最高位单比特 `[A]`；排除端口声明行与『显然在赋值左值上』的位选"
-        "（那类宽度失配必然编译失败）。已知副作用：仍有一部产物会因宽度失配被判据①丢弃。",
+        "（避免明显改变赋值目标位宽）。生成后仍须另行编译检查位宽和语法。",
         _partselect_delete,
     ),
     Operator(
@@ -813,7 +812,7 @@ OPERATORS: tuple[Operator, ...] = (
         "NSubMove",
         "Assignment",
         "move",
-        "只交换**相邻两行且缩进相同**的非阻塞赋值语句（即 `recon_core` 溢出锁存那类缺陷的形态）。"
+        "只交换**相邻两行且缩进相同**的非阻塞赋值语句。"
         "不跨 `if/else` 分支搬移、不跨 `begin/end`、不做远距离重排。",
         _nsub_move,
     ),
@@ -822,7 +821,7 @@ OPERATORS: tuple[Operator, ...] = (
         "Timing",
         "update",
         "只翻 `always_ff @(posedge X)` 的沿（`posedge` <-> `negedge`）。仅 `always_ff`；"
-        "不处理 `always @(...)`（本子集为 0 处）与 `always_comb`（无事件控制）。",
+        "不处理 `always @(...)` 与 `always_comb`（无事件控制）。",
         _edge_flip,
     ),
     Operator(
@@ -830,15 +829,15 @@ OPERATORS: tuple[Operator, ...] = (
         "Timing",
         "insert",
         "给**单沿** `always_ff` 事件控制插入 ` or negedge rst_n`，且仅当该文件确实有 `rst_n`。"
-        "本子集的复位是同步的，故该插入改变的是复位语义（这正是它作为一种注入的价值）。",
+        "该插入改变事件触发条件；原输入是否采用同步复位须由调用者核对。",
         _edge_insert,
     ),
     Operator(
         "EdgeDelete",
         "Timing",
         "delete",
-        "只删**多沿**事件控制里的一个沿。⚠️ 本子集 `always_ff` 全是单沿 ⇒ **机会数实测 0**，"
-        "这是『不可达（删掉唯一沿后 `always_ff` 非法）』而不是『漏测』；与 IOFlip 的方向翻转同类。",
+        "只删**多沿**事件控制里的一个沿。机会数按当前显式源集枚举，不继承历史零计数；"
+        "没有多沿形式时不生成位点；删掉唯一沿会产生非法 always_ff，因此排除该形式。",
         _edge_delete,
     ),
     Operator(
@@ -846,7 +845,7 @@ OPERATORS: tuple[Operator, ...] = (
         "Port",
         "update",
         "两种模式：① 端口**位宽**边界对调 `[A:B]` -> `[B:A]`；② 端口**方向** `input` <-> `output`"
-        "（`clk`/`rst_n` 跳过）。边界：方向翻转多数造成多驱动/悬空，会被保留判据①（编译）丢弃 —— "
+        "（`clk`/`rst_n` 跳过）。方向翻转可能造成多驱动或悬空，须另行编译检查；"
         "报数时『机会数』与『可保留数』必须分开说，不得混为一谈。",
         _io_flip,
     ),
@@ -858,37 +857,58 @@ OPERATORS: tuple[Operator, ...] = (
 # ---------------------------------------------------------------------------
 
 
+def _source_root(path: Path) -> Path:
+    root = path.expanduser().resolve()
+    if not root.is_dir() or not root.name:
+        raise ValueError("an explicit existing source root is required")
+    return root
+
+
 def rtl_files(rtl_root: Path) -> list[Path]:
-    """递归枚举生产 SV 文件，不按责任子目录排除模块。"""
-    return sorted(rtl_root.rglob("*.sv"))
+    """Enumerate the explicitly selected SV subtree, rejecting external symlinks."""
+    root = _source_root(rtl_root)
+    files = sorted(p for p in root.rglob("*.sv") if p.is_file())
+    if not files:
+        raise ValueError("selected source root contains no .sv files")
+    if any(
+        not p.resolve().is_relative_to(root) or p.stat().st_size >= 300 * 1024**2 for p in files
+    ):
+        raise ValueError("SV input escapes the selected root or exceeds 300 MiB")
+    return files
 
 
-def enumerate_sites(rtl_root: Path = RTL_ROOT) -> list[Site]:
-    sites: list[Site] = []
+def enumerate_sites(rtl_root: Path) -> list[Site]:
+    """Enumerate sites without compiling or declaring any mutant retained."""
+    rtl_root = _source_root(rtl_root)
+    sites = []
     for path in rtl_files(rtl_root):
         rel = path.relative_to(rtl_root.parent).as_posix()
         lines = _read_text(path).splitlines()
-        for op in OPERATORS:
-            sites.extend(op.find(rel, lines))
+        for operator in OPERATORS:
+            sites.extend(operator.find(rel, lines))
     return sites
 
 
-def inventory(rtl_root: Path = RTL_ROOT) -> dict:
+def inventory(rtl_root: Path) -> dict:
+    """Report actual opportunities in the declared source subtree only."""
+    rtl_root = _source_root(rtl_root)
     sites = enumerate_sites(rtl_root)
-    per_op: dict[str, dict] = {}
-    for op in OPERATORS:
-        mine = [s for s in sites if s.op == op.name]
-        by_file: dict[str, int] = {}
-        for s in mine:
-            by_file[s.rel] = by_file.get(s.rel, 0) + 1
-        per_op[op.name] = {
-            "family": op.family,
-            "action": op.action,
-            "opportunities": len(mine),
+    per_op = {}
+    for operator in OPERATORS:
+        selected = [site for site in sites if site.op == operator.name]
+        by_file = {}
+        for site in selected:
+            by_file[site.rel] = by_file.get(site.rel, 0) + 1
+        per_op[operator.name] = {
+            "family": operator.family,
+            "action": operator.action,
+            "opportunities": len(selected),
             "by_file": dict(sorted(by_file.items())),
-            "bounds": op.bounds,
+            "bounds": operator.bounds,
         }
     return {
+        "status": "SOURCE_SITE_INVENTORY_ONLY",
+        "compiled": False,
         "rtl_root": rtl_root.as_posix(),
         "files": [p.relative_to(rtl_root.parent).as_posix() for p in rtl_files(rtl_root)],
         "operators": per_op,
@@ -899,104 +919,171 @@ def inventory(rtl_root: Path = RTL_ROOT) -> dict:
 _MANIFEST = "mutant.json"
 
 
+def _external_container(path: Path, source: Path) -> Path:
+    if path.expanduser().is_symlink():
+        raise ValueError("mutation output container cannot be a symbolic-link alias")
+    out = path.expanduser().resolve()
+    if out == source or out.is_relative_to(source):
+        raise ValueError("mutation output must be outside its source subtree")
+    if any((p / ".git").exists() for p in (out, *out.parents)):
+        raise ValueError("mutation output must be outside Git working trees")
+    return out
+
+
+def _headers(paths: list[Path] | tuple[Path, ...]) -> list[Path]:
+    result = [path.expanduser().resolve() for path in paths]
+    if len(result) != len(set(result)):
+        raise ValueError("duplicate declared header")
+    if any(
+        not p.is_file() or p.suffix not in {".vh", ".svh"} or p.stat().st_size >= 300 * 1024**2
+        for p in result
+    ):
+        raise ValueError("declare existing .vh/.svh headers smaller than 300 MiB")
+    return result
+
+
 def inject(
     *,
     sites: list[Site],
     name: str,
-    out_root: Path = DEFAULT_OUT_ROOT,
-    rtl_root: Path = RTL_ROOT,
+    out_root: Path,
+    rtl_root: Path,
+    headers: list[Path] | tuple[Path, ...],
 ) -> Path:
-    """将 sites 注入 <out_root>/<name>/rtl/ 副本并返回变异体根目录。
+    """Write one fresh mutant from immutable input bytes; never delete old results.
 
-    原 rtl/ 仅供读取。同名目标目录会按当前逻辑重建；各站点在写入前精确核对
-    原文本。替换以绝对字符偏移计算，以支持 NSubMove 跨两行的区间。
+    Every site and header is explicit. The output records generated source only;
+    compilation, semantic retention, simulation and trace completeness are not run.
     """
-    dst_root = out_root / name
-    if dst_root.exists():
-        shutil.rmtree(dst_root)
-    (dst_root / "rtl").mkdir(parents=True)
-    for source in rtl_files(rtl_root):
-        destination = dst_root / "rtl" / source.relative_to(rtl_root)
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, destination)
-
-    by_file: dict[str, list[Site]] = {}
-    for s in sites:
-        by_file.setdefault(s.rel, []).append(s)
-
-    applied: list[dict] = []
-    for rel, group in sorted(by_file.items()):
-        path = dst_root / rel
-        text = _read_text(path)
-        nl = _detect_nl(text)
+    if not sites or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", name):
+        raise ValueError("nonempty sites and a simple fresh mutant name required")
+    rtl_root = _source_root(rtl_root)
+    container = _external_container(out_root, rtl_root)
+    destination = container / name
+    if destination.exists() or destination.is_symlink():
+        raise FileExistsError(f"refusing existing mutant output: {destination}")
+    source_files = rtl_files(rtl_root)
+    header_files = _headers(headers)
+    data = {p.relative_to(rtl_root.parent).as_posix(): p.read_bytes() for p in source_files}
+    original_sha = {rel: hashlib.sha256(value).hexdigest() for rel, value in data.items()}
+    known_operators = {op.name for op in OPERATORS}
+    groups = {}
+    for site in sites:
+        if site.op not in known_operators or site.rel not in data:
+            raise ValueError("site must name a declared operator and selected SV input")
+        if type(site.line) is not int or site.line < 1 or type(site.col) is not int or site.col < 0:
+            raise ValueError("site line/column must be explicit nonnegative integer coordinates")
+        if (
+            not isinstance(site.span, str)
+            or not isinstance(site.repl, str)
+            or site.span == site.repl
+        ):
+            raise ValueError("site must change a declared text interval")
+        groups.setdefault(site.rel, []).append(site)
+    mutated = {}
+    applied = []
+    for rel, group in sorted(groups.items()):
+        text = data[rel].decode("utf-8")
+        newline = _detect_nl(text)
         keep = text.splitlines(keepends=True)
-        starts: list[int] = []
-        acc = 0
+        starts, offset = [], 0
         for line in keep:
-            starts.append(acc)
-            acc += len(line)
-
-        edits: list[tuple[int, int, Site]] = []
-        for s in group:
-            if s.line < 1 or s.line > len(keep):
-                raise SystemExit(f"注入点行号越界：{rel}:{s.line}")
-            off = starts[s.line - 1] + s.col
-            # 枚举时 splitlines() 移除了原行尾，站点 span/repl 统一以 \n 表示换行；
-            # 应用前还原为文件实际换行，使跨行 NSubMove 能精确匹配。
-            span = s.span.replace("\n", nl) if nl != "\n" else s.span
-            got = text[off : off + len(span)]
-            if got != span:
-                raise SystemExit(
-                    f"注入点失配（源码已变？）{rel}:{s.line}:{s.col} " f"期望 {span!r} 实得 {got!r}"
+            starts.append(offset)
+            offset += len(line)
+        edits = []
+        for site in group:
+            if site.line > len(keep) or site.col > len(keep[site.line - 1].rstrip("\r\n")):
+                raise ValueError(f"site coordinate outside source: {rel}:{site.line}:{site.col}")
+            start = starts[site.line - 1] + site.col
+            span = site.span.replace("\n", newline) if newline != "\n" else site.span
+            if text[start : start + len(span)] != span:
+                raise ValueError(
+                    f"site text changed before injection: {rel}:{site.line}:{site.col}"
                 )
-            edits.append((off, off + len(span), s))
-        for off, end, s in sorted(edits, key=lambda x: x[0], reverse=True):
-            repl = s.repl.replace("\n", nl) if nl != "\n" else s.repl
-            text = text[:off] + repl + text[end:]
+            edits.append((start, start + len(span), site))
+        ordered = sorted(edits, key=lambda item: (item[0], item[1]))
+        for previous, current in pairwise(ordered):
+            if current[0] < previous[1] or current[0] == previous[0]:
+                raise ValueError("overlapping mutation intervals are unsupported")
+        for start, end, site in reversed(ordered):
+            replacement = site.repl.replace("\n", newline) if newline != "\n" else site.repl
+            text = text[:start] + replacement + text[end:]
             applied.append(
                 {
-                    "op": s.op,
-                    "family": s.family,
-                    "action": s.action,
-                    "rel": s.rel,
-                    "line": s.line,
-                    "col": s.col,
-                    "from": s.span,
-                    "to": s.repl,
-                    "note": s.note,
+                    "op": site.op,
+                    "family": site.family,
+                    "action": site.action,
+                    "rel": site.rel,
+                    "line": site.line,
+                    "col": site.col,
+                    "from": site.span,
+                    "to": site.repl,
+                    "note": site.note,
                 }
             )
-        _write_text(path, text)
-
-    (dst_root / _MANIFEST).write_text(
-        json.dumps({"name": name, "sites": applied}, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
+        mutated[rel] = text.encode("utf-8")
+    support = {}
+    for header in header_files:
+        rel = (
+            (Path(rtl_root.name) / header.relative_to(rtl_root)).as_posix()
+            if header.is_relative_to(rtl_root)
+            else (Path("include") / header.name).as_posix()
+        )
+        if rel in support:
+            raise ValueError("declared headers would shadow the same output path")
+        support[rel] = (header, header.read_bytes())
+    targets = [*data, *support]
+    if len({path.casefold() for path in targets}) != len(targets):
+        raise ValueError("declared inputs shadow a case-insensitive output path")
+    destination.mkdir(parents=True, exist_ok=False)
+    for rel, raw in data.items():
+        target = destination / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(mutated.get(rel, raw))
+    for rel, (_header, raw) in support.items():
+        target = destination / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(raw)
+    if any(
+        hashlib.sha256(p.read_bytes()).hexdigest()
+        != original_sha[p.relative_to(rtl_root.parent).as_posix()]
+        for p in source_files
+    ):
+        raise RuntimeError("input source changed during mutant generation")
+    if any(header.read_bytes() != raw for header, raw in support.values()):
+        raise RuntimeError("declared header changed during mutant generation")
+    record = {
+        "schema_version": 1,
+        "status": "GENERATED_NOT_COMPILED",
+        "scope": "DECLARED_SOURCE_MUTATION_NOT_RETENTION_OR_RTL_VERIFICATION",
+        "name": name,
+        "source_root": str(rtl_root),
+        "source_sha256": original_sha,
+        "header_sha256": {
+            str(header): hashlib.sha256(raw).hexdigest() for header, raw in support.values()
+        },
+        "artifact_sha256": {
+            rel: hashlib.sha256((destination / rel).read_bytes()).hexdigest()
+            for rel in [*data, *support]
+        },
+        "include_dirs": sorted({str((destination / rel).parent) for rel in support}),
+        "sites": applied,
+        "compiled": False,
+        "simulation_executed": False,
+    }
+    (destination / _MANIFEST).write_text(
+        json.dumps(record, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
-    return dst_root
-
-
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
+    return destination
 
 
 def _print_list(rtl_root: Path) -> None:
-    inv = inventory(rtl_root)
-    print(f"rtl_root = {inv['rtl_root']}   ({len(inv['files'])} 个 .sv)")
-    print(f"{'算子':<20}{'构族':<22}{'动作':<8}{'机会数':>7}")
-    print("-" * 62)
-    for name, info in inv["operators"].items():
-        print(f"{name:<20}{info['family']:<22}{info['action']:<8}{info['opportunities']:>7}")
-    print("-" * 62)
-    print(f"{'合计':<20}{'':<22}{'':<8}{inv['total_opportunities']:>7}")
-    print()
-    for name, info in inv["operators"].items():
-        if not info["by_file"]:
-            print(f"[{name}] 机会 0 —— 见该算子的 BOUNDS 说明")
-            continue
-        print(f"[{name}] 机会 {info['opportunities']}")
-        for rel, n in info["by_file"].items():
-            print(f"    {n:>4}  {rel}")
+    report = inventory(rtl_root)
+    print(
+        f"SOURCE_SITE_INVENTORY files={len(report['files'])} opportunities={report['total_opportunities']} compiled=NOT_RUN"
+    )
+    for name, info in report["operators"].items():
+        print(f"{name}: opportunities={info['opportunities']} bounds={info['bounds']}")
 
 
 def _pick(
@@ -1010,89 +1097,133 @@ def _pick(
     sample: int | None,
     seed: int | None,
 ) -> list[Site]:
-    mine = [s for s in sites if s.op == op_name]
-    if not mine:
-        raise SystemExit(f"算子 {op_name} 在本 rtl_root 下没有合法注入点")
-    if rel is not None or line is not None:
-        sel = [s for s in mine if s.rel == rel and s.line == line]
-        if not sel:
-            raise SystemExit(f"在 {rel}:{line} 找不到 {op_name} 的注入点")
-        if term is not None:
-            if not 0 <= term < len(sel):
-                raise SystemExit(f"--term 越界：0..{len(sel) - 1}")
-            return [sel[term]]
-        if len(sel) > 1:
-            print(
-                f"注意：{rel}:{line} 上 {op_name} 有 {len(sel)} 个位点，"
-                f"默认取**最后**一个（--term 0..{len(sel) - 1} 可指定）"
-            )
-        return [sel[-1]]
+    selected = [site for site in sites if site.op == op_name]
+    if not selected:
+        raise ValueError(f"operator {op_name} has no legal sites in this source set")
+    if (rel is None) != (line is None):
+        raise ValueError("--file and --line must be supplied together")
+    modes = int(rel is not None) + int(index is not None) + int(sample is not None)
+    if modes != 1:
+        raise ValueError("select exactly one of --file/--line, --index, or --sample")
+    if rel is not None:
+        choices = [site for site in selected if site.rel == rel and site.line == line]
+        if not choices:
+            raise ValueError("no site matches the exact file/line")
+        if term is None and len(choices) != 1:
+            raise ValueError("multiple sites share this line; explicit --term required")
+        if term is not None and (type(term) is not int or not 0 <= term < len(choices)):
+            raise ValueError("--term is outside the exact line's site set")
+        return [choices[0 if term is None else term]]
+    if term is not None:
+        raise ValueError("--term requires --file/--line")
     if index is not None:
-        if not 0 <= index < len(mine):
-            raise SystemExit(f"--index 越界：0..{len(mine) - 1}")
-        return [mine[index]]
-    if sample is not None:
-        rng = random.Random(seed)
-        k = min(sample, len(mine))
-        return rng.sample(mine, k)
-    raise SystemExit("需要 --file/--line、--index 或 --sample 之一")
+        if type(index) is not int or not 0 <= index < len(selected):
+            raise ValueError("--index outside actual operator sites")
+        return [selected[index]]
+    if type(sample) is not int or not 1 <= sample <= len(selected):
+        raise ValueError("--sample must select a nonzero available number of sites")
+    if type(seed) is not int or seed < 0:
+        raise ValueError("sampling requires an explicit nonnegative --seed")
+    return random.Random(seed).sample(selected, sample)
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    ap.add_argument("--rtl-root", default=str(RTL_ROOT), help="被变异的 rtl 根（默认仓库 rtl/）")
-    ap.add_argument("--out-root", default=str(DEFAULT_OUT_ROOT), help="变异产物根目录")
-    ap.add_argument("--list", action="store_true", help="打印注入点清单与机会总数")
-    ap.add_argument("--json", action="store_true", help="打印机器可读清单")
-    ap.add_argument("--op", help="算子名")
-    ap.add_argument("--file", help="精确注入：相对仓库的文件路径，如 rtl/core/calib_regs.sv")
-    ap.add_argument("--line", type=int, help="精确注入：1-based 行号")
-    ap.add_argument("--index", type=int, help="精确注入：在该算子的机会列表里的下标")
-    ap.add_argument(
-        "--term",
-        type=int,
-        help="精确注入：同一行上有多个位点时的下标（如 ExprDelete 的顶层项序号）",
-    )
-    ap.add_argument("--sample", type=int, help="均匀抽样 b 个（每个位点产出独立变异体）")
-    ap.add_argument("--seed", type=int, default=0, help="抽样随机种子")
-    ap.add_argument("--name", help="精确注入时的变异体名（默认由算子+位点生成）")
-    args = ap.parse_args(argv)
-
-    rtl_root = Path(args.rtl_root)
-    if args.json:
-        print(json.dumps(inventory(rtl_root), indent=2, ensure_ascii=False))
+    """Generate fresh out-of-tree source artifacts, or list opportunities read-only."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--rtl-root", type=Path, required=True)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--list", action="store_true")
+    mode.add_argument("--json", action="store_true")
+    mode.add_argument("--op", choices=tuple(op.name for op in OPERATORS))
+    parser.add_argument("--headers", type=Path, nargs="*")
+    parser.add_argument("--out-root", type=Path)
+    parser.add_argument("--file")
+    parser.add_argument("--line", type=int)
+    parser.add_argument("--index", type=int)
+    parser.add_argument("--term", type=int)
+    parser.add_argument("--sample", type=int)
+    parser.add_argument("--seed", type=int)
+    parser.add_argument("--name")
+    args = parser.parse_args(argv)
+    try:
+        root = _source_root(args.rtl_root)
+        if args.list or args.json:
+            if any(
+                value is not None
+                for value in (
+                    args.out_root,
+                    args.headers,
+                    args.file,
+                    args.line,
+                    args.index,
+                    args.term,
+                    args.sample,
+                    args.seed,
+                    args.name,
+                )
+            ):
+                raise ValueError("inventory mode does not accept mutation selectors or outputs")
+            if args.json:
+                print(json.dumps(inventory(root), indent=2, ensure_ascii=False))
+            else:
+                _print_list(root)
+            return 0
+        if args.out_root is None or args.headers is None:
+            raise ValueError(
+                "mutation requires explicit --out-root and --headers (an empty list is valid)"
+            )
+        picked = _pick(
+            enumerate_sites(root),
+            op_name=args.op,
+            rel=args.file,
+            line=args.line,
+            term=args.term,
+            index=args.index,
+            sample=args.sample,
+            seed=args.seed,
+        )
+        if args.name and len(picked) != 1:
+            raise ValueError("--name is only valid for one selected site")
+        if args.name and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", args.name):
+            raise ValueError("--name must be a simple mutant name")
+        if args.seed is not None and args.sample is None:
+            raise ValueError("--seed is only consumed by --sample")
+        out = _external_container(args.out_root, root)
+        if out.exists() or out.is_symlink():
+            raise FileExistsError("mutation batch output already exists")
+        _headers(args.headers)
+        out.mkdir(parents=True, exist_ok=False)
+        made = []
+        for number, site in enumerate(picked):
+            stem = re.sub(r"[^A-Za-z0-9_.-]", "_", Path(site.rel).stem)
+            name = args.name or f"{args.op.lower()}_{stem}_L{site.line}_{number}"
+            made.append(
+                inject(sites=[site], name=name, out_root=out, rtl_root=root, headers=args.headers)
+            )
+        if len(made) != len(picked) or not made:
+            raise RuntimeError("mutation generation did not complete all declared sites")
+        (out / "generation.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "status": "GENERATION_COMPLETE_NOT_COMPILED",
+                    "mutants": [str(p) for p in made],
+                    "compiled": False,
+                    "simulation_executed": False,
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        print(
+            f"MUTATION_GENERATION_COMPLETE mutants={len(made)} compiled=NOT_RUN simulation=NOT_RUN"
+        )
         return 0
-    if args.list or not args.op:
-        _print_list(rtl_root)
-        return 0
-
-    sites = enumerate_sites(rtl_root)
-    picked = _pick(
-        sites,
-        op_name=args.op,
-        rel=args.file,
-        line=args.line,
-        term=args.term,
-        index=args.index,
-        sample=args.sample,
-        seed=args.seed,
-    )
-    out_root = Path(args.out_root)
-    made: list[Path] = []
-    for n, site in enumerate(picked):
-        if args.name and len(picked) == 1:
-            name = args.name
-        else:
-            stem = Path(site.rel).stem
-            name = f"{args.op.lower()}_{stem}_L{site.line}" + (f"_{n}" if len(picked) > 1 else "")
-        made.append(inject(sites=[site], name=name, out_root=out_root, rtl_root=rtl_root))
-        print(f"注入 {site.op} @ {site.rel}:{site.line}:{site.col}  {site.note}")
-        print(f"  产物 -> {made[-1]}")
-    print(f"共 {len(made)} 个变异体，位于 {out_root}")
-    return 0
+    except (OSError, UnicodeError, ValueError, RuntimeError) as error:
+        print(f"mutate_rtl: {error}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

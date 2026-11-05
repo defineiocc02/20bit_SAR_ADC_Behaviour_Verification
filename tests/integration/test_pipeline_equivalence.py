@@ -1,206 +1,88 @@
-"""检查跨模块不变量及短记录确定性。
+"""检查唯一入口的确定性与组件边界，不使用旧运行器别名。"""
 
-这些检查覆盖单个模块无法发现的接口差异。历史阈值口径错误曾产生 2.9 V
-输出回归，而原先只能通过约 37 s 的完整运行发现；这里使用固定种子及较短记录
-分别检查双实现、共享阈值、电荷与增益定义。
-"""
-
-from __future__ import annotations
+from dataclasses import replace
 
 import numpy as np
 import pytest
 
-from adi_model import Config, sine_input
+from adi_model.config import ConfigError
 from adi_model.pipeline import run_pipeline
-from adi_model.sim import run_sim
-from adi_model.sim_split import run_sim_split
-
-BASE_OFF = {
-    "dither_mode": "off",
-    "ktc_enable": False,
-    "dem_enable": False,
-    "mismatch_enable": False,
-    "dac_bridge_mismatch_sigma": 0.0,
-    "dac_parasitic_spread": 0.0,
-    "enable_sampling_noise": False,
-    "ra_enable_noise": False,
-    "dyn_input_settling": False,
-    "dyn_ref_settling": False,
-    "dyn_crosstalk": False,
-    "sadc_offset": 0.0,
-    "sadc_rdac_gain_mismatch": 0.0,
-    "sadc_mismatch_enable": False,
-}
+from adi_model.sadc import build_first_stage_quantizer
+from adi_model.sampler import dc_input, sine_input
 
 
-def _cfg(**kw) -> Config:
-    return Config(**{**Config().__dict__, **kw})
+def test_repeated_explicit_run_is_bitwise_reproducible(explicit_pipeline_factory):
+    cfg, controls = explicit_pipeline_factory(n_samples=16)
+    source = sine_input(1.0, cfg.fs * 3 / 16, 0.2)
+    before = cfg.to_dict()
+    first = run_pipeline(cfg, source, 16, **controls)
+    second = run_pipeline(cfg, source, 16, **controls)
+    for name in ("coarse", "k", "vra", "adc2_code", "out", "err", "main_masks", "conv_slice_ids"):
+        np.testing.assert_array_equal(getattr(first, name), getattr(second, name))
+    assert cfg.to_dict() == before
+    assert cfg.dac_n_main is None and cfg.dac_n_sub is None  # 实际几何由独立输入提供。
 
 
-@pytest.fixture(scope="module")
-def n_small() -> int:
-    return 2**12
+def test_explicit_threshold_constructor_is_independent_of_rdac_truth(explicit_pipeline_factory):
+    cfg, controls = explicit_pipeline_factory(n_samples=16)
+    adc = build_first_stage_quantizer(cfg)
+    expected = np.asarray(cfg.sadc_thresholds_v)
+    assert adc.n_code == 512 and len(expected) == 513
+    np.testing.assert_array_equal(adc.thresholds, expected)
+    assert not adc.thresholds.flags.writeable
+    with pytest.raises(TypeError):
+        build_first_stage_quantizer(cfg, controls["pool"].chip)
 
 
-@pytest.fixture(scope="module")
-def coherent_input():
-    cfg = Config()
-    n = 2**12
-    # odd, coprime bin for a coherent single tone
-    return sine_input(0.7 * cfg.v_fs, cfg.fs * 331 / n), n
+def test_backend_quantization_error_is_bounded_by_the_explicit_step(explicit_pipeline_factory):
+    cfg, controls = explicit_pipeline_factory(n_samples=16)
+    result = run_pipeline(cfg, sine_input(1.0, cfg.fs * 3 / 16, 0.2), 16, **controls)
+    assert not result.analog_overflow.any()
+    expected = (result.fine - result.vra) / 32
+    np.testing.assert_allclose(result.err, expected, rtol=0, atol=2e-12)
+    assert np.max(abs(expected)) <= cfg.delta2 / 64 + 1e-15
 
 
-class TestPipelineEquivalence:
-    """检查 pipeline.py 与 sim_split.py 的独立循环在关闭非理想项后逐位一致。
-
-    历史两版各自推导 SADC 步长，分别使用 cfg.delta1 和 n_sub*step0；b1=6 时
-    恰好相等，b1=7 时相差 4 倍，产生 2.9 V 输出偏差。共享
-    sadc.build_first_stage_quantizer 用于统一该构造。
-    """
-
-    def test_degenerate_equivalence_is_bitwise(self, coherent_input):
-        inp, n = coherent_input
-        cfg = _cfg(dac_arch="split", **BASE_OFF)
-        r1 = run_sim_split(cfg, inp, n, rng=np.random.default_rng(cfg.seed + 3))
-        r2 = run_pipeline(cfg, inp, n, rng=np.random.default_rng(cfg.seed + 3))
-        assert np.array_equal(r1.out, r2.out), (
-            "pipeline and sim_split disagree with all non-idealities off — "
-            "they are interpreting a shared interface differently"
-        )
-        assert np.array_equal(r1.err, r2.err)
-
-    def test_both_loops_stay_inside_the_adc2_window(self, coherent_input):
-        inp, n = coherent_input
-        cfg = _cfg(dac_arch="split", **BASE_OFF)
-        for fn in (run_sim_split, run_pipeline):
-            r = fn(cfg, inp, n, rng=np.random.default_rng(cfg.seed + 4))
-            assert np.mean(r.adc2_over) == 0.0, f"{fn.__name__}: residue left the ADC2 window"
-            assert np.max(np.abs(r.vra)) <= cfg.ra_v_clip + 1e-9
-
-    def test_error_floor_is_the_backend_quantisation(self, coherent_input):
-        """关闭全部模拟非理想项后，检查剩余误差仅为输入折算的 ADC2 量化误差。"""
-        inp, n = coherent_input
-        cfg = _cfg(dac_arch="split", **BASE_OFF)
-        r = run_sim_split(cfg, inp, n, rng=np.random.default_rng(cfg.seed + 5))
-        err = float(np.sqrt(np.mean(r.err**2)))
-        floor = cfg.delta2 / cfg.g_actual / np.sqrt(12.0)
-        assert err < 3.0 * floor, f"err {err * 1e6:.2f} uV vs floor {floor * 1e6:.2f} uV"
+def test_uint32_wrap_is_preserved_without_restart_or_implicit_ids(explicit_pipeline_factory):
+    cfg, controls = explicit_pipeline_factory(n_samples=4)
+    ids = np.array([2**32 - 2, 2**32 - 1, 0, 1], dtype=np.uint32)
+    result = run_pipeline(cfg, dc_input(0.2), 4, **{**controls, "sample_ids": ids})
+    np.testing.assert_array_equal(result.sample_id, ids)
+    np.testing.assert_array_equal(result.digital_observation.sample_ids, ids)
+    np.testing.assert_array_equal(result.held_sample_ids, np.broadcast_to(ids[:, None], (4, 8)))
 
 
-class TestSADCThresholdConsistency:
-    """检查不同循环调用共享构造器时得到相同阈值网格。"""
-
-    def test_shared_constructor_matches_config_grid(self):
-        from adi_model.dac_arch import SplitDAC, build_split_chip
-        from adi_model.sadc import build_first_stage_quantizer
-
-        cfg = Config(dac_arch="split", sadc_rdac_gain_mismatch=0.0)
-        dac = SplitDAC(cfg, build_split_chip(cfg))
-        q = build_first_stage_quantizer(cfg, dac)
-        v_lo, v_hi = dac._nominal_endpoints()
-        step0 = (v_hi - v_lo) / (dac.levels - 1.0)
-        unit = dac.levels // (2**cfg.b1)
-        expect = v_lo + np.arange(2**cfg.b1 + 1) * (unit * step0)
-        assert np.allclose(q.thresholds, expect)
-        assert q.n_code == 2**cfg.b1
-
-    def test_unary_constructor_matches_the_ideal_grid(self):
-        from adi_model.sadc import build_first_stage_quantizer
-
-        cfg = Config(
-            dac_arch="unary",
-            sadc_offset=0.0,
-            sadc_rdac_gain_mismatch=0.0,
-            sadc_mismatch_enable=False,
-        )
-        q = build_first_stage_quantizer(cfg, None)
-        expect = -cfg.v_fs + np.arange(2**cfg.b1 + 1) * cfg.delta1
-        assert np.allclose(q.thresholds, expect)
-
-    def test_step_is_not_independently_derived(self):
-        """静态检查两条循环调用共享辅助函数，不各自重算阈值步长。"""
-        import inspect
-
-        from adi_model import pipeline_engine, sim_split
-
-        for mod in (pipeline_engine, sim_split):
-            src = inspect.getsource(mod)
-            assert (
-                "build_first_stage_quantizer" in src
-            ), f"{mod.__name__} must build its quantiser through the shared constructor"
-            assert "units_per_first_stage_step" in src
+@pytest.mark.parametrize("ids", [[0, 0, 1, 2], [0, 2, 1, 3], [-1, 0, 1, 2], [0.5, 1, 2, 3]])
+def test_invalid_sample_identity_cannot_be_repaired(explicit_pipeline_factory, ids):
+    cfg, controls = explicit_pipeline_factory(n_samples=4)
+    with pytest.raises(ValueError):
+        run_pipeline(cfg, dc_input(0.2), 4, **{**controls, "sample_ids": np.array(ids)})
 
 
-class TestDeterminism:
-    """检查固定随机种子的逐位可复现性，保留重构前后既有确定性合同。"""
+def test_unsupported_dynamic_acquisition_does_not_degrade_to_point_settling(
+    explicit_pipeline_factory,
+):
+    from adi_model.input_network import InputNetworkParameters
 
-    def test_sim_is_bitwise_reproducible(self):
-        cfg = _cfg(dac_arch="unary", **BASE_OFF)
-        n = 2**11
-        inp = sine_input(0.6 * cfg.v_fs, cfg.fs * 101 / n)
-        a = run_sim(cfg, inp, n, rng=np.random.default_rng(cfg.seed))
-        b = run_sim(cfg, inp, n, rng=np.random.default_rng(cfg.seed))
-        assert np.array_equal(a.out, b.out)
-
-    def test_sim_split_is_bitwise_reproducible(self):
-        cfg = _cfg(dac_arch="split", **BASE_OFF)
-        n = 2**11
-        inp = sine_input(0.6 * cfg.v_fs, cfg.fs * 101 / n)
-        a = run_sim_split(cfg, inp, n, rng=np.random.default_rng(cfg.seed))
-        b = run_sim_split(cfg, inp, n, rng=np.random.default_rng(cfg.seed))
-        assert np.array_equal(a.out, b.out)
-
-    def test_no_bare_global_random_state(self):
-        """检查随机调用使用显式 Generator，使同一种子可以复现运行。"""
-        import inspect
-
-        from adi_model import experiments, pipeline, ra, sampler, sim, sim_split
-
-        for mod in (sim, sim_split, pipeline, sampler, ra, experiments):
-            src = inspect.getsource(mod)
-            for bad in ("np.random.seed(", "np.random.rand(", "np.random.randn("):
-                assert bad not in src, f"{mod.__name__} uses {bad}"
+    cfg, controls = explicit_pipeline_factory(
+        n_samples=4,
+        config_changes={
+            "dyn_input_settling": True,
+            "c_sadc": 2.5e-12,
+            "dyn_r_source": 30.0,
+            "dyn_r_on": 20.0,
+            "dyn_ron_code_coeff": 0.0,
+            "input_network": InputNetworkParameters(filter_cap_f=0.0),
+        },
+    )
+    with pytest.raises((ValueError, NotImplementedError), match="binding|phase|implemented"):
+        run_pipeline(cfg, dc_input(0.2), 4, **controls)
 
 
-class TestChargeConsistency:
-    """检查电荷记账闭合，保留审计确认的名义不变量。"""
-
-    def test_nominal_gain_is_charge_consistent(self):
-        """检查 C_F=C_sig_nom/G0 的名义定义，使闭环增益按电荷关系恰为 G0。"""
-        cfg = Config(
-            dac_arch="split",
-            mismatch_enable=False,
-            dac_bridge_mismatch_sigma=0.0,
-            dac_parasitic_spread=0.0,
-        )
-        from adi_model.dac_arch import SplitDAC, build_split_chip
-
-        chip = build_split_chip(cfg)
-        SplitDAC(cfg, chip)
-        ratio = chip.c_sig_true() / chip.C_feedback_true
-        assert ratio == pytest.approx(cfg.g_actual, rel=1e-12)
-
-    def test_achieved_gain_error_is_bounded_by_mismatch(self):
-        """检查开启失配后增益偏离 G0 的量级由失配预算约束。
-
-        gain_error() 报告的应是同一偏离；边界由配置的失配分量推导，不另写固定阈值。
-        """
-        cfg = Config(dac_arch="split")
-        from adi_model.dac_arch import build_split_chip
-
-        chip = build_split_chip(cfg)
-        rel = chip.c_sig_true() / chip.C_feedback_true / cfg.g_actual - 1.0
-        sigma = cfg.sigma_mismatch_unit(cfg.dac_unit_cap())
-        # A 6-sigma envelope over the (global + slice + feedback) terms.
-        assert abs(rel) < 6.0 * sigma, (
-            f"achieved gain error {rel * 1e6:.1f} ppm exceeds the mismatch budget "
-            f"{6 * sigma * 1e6:.1f} ppm — the gain is not explained by the mismatch "
-            f"model"
-        )
-        assert abs(rel) < 1e-3, "gain error is far beyond a matching-scale effect"
-
-    def test_nominal_digital_conservation(self):
-        from adi_model.digital_core import DigitalCore
-
-        c = DigitalCore(Config())
-        assert c.verify_nominal_conservation()["ok"] is True
+def test_invalid_target_bits_are_rejected_instead_of_becoming_a_legacy_runner(
+    explicit_pipeline_factory,
+):
+    cfg, controls = explicit_pipeline_factory(n_samples=4)
+    for bits in (6, 7):
+        with pytest.raises(ConfigError, match="b1"):
+            run_pipeline(replace(cfg, b1=bits), dc_input(0.2), 4, **controls)

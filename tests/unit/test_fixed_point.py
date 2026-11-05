@@ -1,146 +1,151 @@
-"""检查整数位宽、舍入、端点及独立原始码参考。"""
+"""使用显式系数、选通和数值格式检查整数算术。
 
-import json
+三权重观测是独立译码恒等式，不是三切片 ADC 架构，也不表示物理后级为 20 位。
+"""
+
 from dataclasses import replace
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
 
-from adi_model import Config, FixedPointFormat, FixedPointReconstructor, sine_input
-from adi_model.fixed_point import round_even_divide
-from adi_model.pipeline import run_pipeline
-from adi_model.weight_calibration import CalibrationSpec, DigitalObservation
+from adi_model.fixed_point import FixedPointFormat, FixedPointReconstructor, round_even_divide
+from adi_model.weight_calibration import DigitalObservation
 
 
 @pytest.mark.parametrize(
-    "n, expected", [(-7, -4), (-5, -2), (-3, -2), (-1, 0), (1, 0), (3, 2), (5, 2), (7, 4)]
+    "n,expected", [(-7, -4), (-5, -2), (-3, -2), (-1, 0), (1, 0), (3, 2), (5, 2), (7, 4)]
 )
 def test_signed_ties_to_even(n, expected):
     assert round_even_divide(n, 2) == expected
 
 
-def straight_backend(nbits=20):
-    # All RDAC plates at -Vfs; sum(weights)=1. Thus x=fine-Vfs.
-    # An independent backend transfer produces every final code exactly once.
-    spec = CalibrationSpec(
-        1, 2, 1, True, False, False, 1, 3.0, nbits, 0.0, 6.0, "off", "sub", 0, True
-    )
-    count = 2**nbits
-    data = DigitalObservation(
-        spec,
-        np.zeros((count, 1), np.int64),
-        np.zeros(count),
-        np.zeros(count, np.int64),
-        np.arange(count, dtype=np.int64),
-        np.zeros(count),
-        np.zeros(count),
-        np.zeros(count, bool),
-        True,
-    )
-    model = FixedPointReconstructor.from_weights(spec, [[0.5, 0.25, 0.25]])
-    return data, model
+@pytest.mark.parametrize("denominator", [0, -1])
+def test_rounding_rejects_a_nonpositive_denominator(denominator):
+    with pytest.raises(ValueError, match="positive"):
+        round_even_divide(7, denominator)
 
 
-def test_every_twenty_bit_word_and_code_width_without_a_huge_analog_record():
-    data, model = straight_backend()
+def test_every_twenty_bit_word_and_code_width_without_a_huge_analog_record(
+    identity_record_factory, explicit_format
+):
+    data = identity_record_factory(bits=20)
+    model = FixedPointReconstructor.from_weights(
+        data.spec, [[0.5, 0.25, 0.25]], 0.0, format=explicit_format
+    )
     result = model.reconstruct(data)
     np.testing.assert_array_equal(result.code, np.arange(2**20))
     assert np.all(np.diff(result.voltage) == 6 / 2**20)
     assert result.voltage[0] == -3 + 3 / 2**20
     assert result.voltage[-1] == 3 - 3 / 2**20
     assert not np.any(result.clipped_low | result.clipped_high | result.analog_overflow)
-    assert result.peak_accumulator_bits <= 96
+    assert result.peak_accumulator_bits <= explicit_format.accumulator_bits
 
 
-def test_output_saturation_is_separate_from_analog_saturation():
-    data, model = straight_backend(4)
-    # Known digital injection shifts corrected input beyond both endpoints.
-    inj = np.zeros(16)
-    inj[0], inj[-1] = 0.4, -0.4
+def test_output_saturation_is_separate_from_analog_saturation(
+    identity_record_factory, explicit_format
+):
+    data = identity_record_factory(bits=4)
+    term = np.zeros((16, 1, 3))
+    term[0], term[-1] = 0.4, -0.4
     flags = np.zeros(16, bool)
     flags[8] = True
-    result = model.reconstruct(replace(data, common_injection_v=inj, overflow=flags))
+    model = FixedPointReconstructor.from_weights(
+        data.spec, [[0.5, 0.25, 0.25]], 0.0, format=explicit_format
+    )
+    result = model.reconstruct(replace(data, known_voltage_term_v=term, overflow=flags))
     assert np.flatnonzero(result.clipped_low).tolist() == [0]
     assert np.flatnonzero(result.clipped_high).tolist() == [15]
     assert np.flatnonzero(result.analog_overflow).tolist() == [8]
     assert result.code[0] == 0 and result.code[-1] == 2**20 - 1
 
 
-def test_accumulator_overflow_is_an_error_instead_of_a_wrapped_word():
-    data, model = straight_backend(4)
+def test_accumulator_overflow_is_an_error_instead_of_a_wrapped_word(
+    identity_record_factory, explicit_format
+):
+    data = identity_record_factory(bits=4)
+    model = FixedPointReconstructor.from_weights(
+        data.spec, [[0.5, 0.25, 0.25]], 0.0, format=explicit_format
+    )
     with pytest.raises(OverflowError, match="accumulator"):
-        replace(model, format=FixedPointFormat(accumulator_bits=64)).reconstruct(data)
+        replace(model, format=replace(explicit_format, accumulator_bits=64)).reconstruct(data)
 
 
-def test_register_image_roundtrip_and_illegal_widths():
-    data, model = straight_backend(4)
-    restored = FixedPointReconstructor.from_dict(
-        json.loads(json.dumps(model.to_dict(), allow_nan=False))
+def test_register_image_roundtrip_and_illegal_widths(identity_record_factory, explicit_format):
+    data = identity_record_factory(bits=4)
+    model = FixedPointReconstructor.from_weights(
+        data.spec, [[0.5, 0.25, 0.25]], 0.0, format=explicit_format
     )
+    restored = FixedPointReconstructor.from_dict(model.to_dict())
     np.testing.assert_array_equal(restored.reconstruct(data).code, model.reconstruct(data).code)
-    with pytest.raises(ValueError):
-        restored.weights_q.setflags(write=True)
-    with pytest.raises(ValueError):
-        FixedPointFormat(weight_fraction_bits=48)
     with pytest.raises(ValueError, match="weights"):
-        replace(model, weights_q=np.zeros((1, 3), dtype=np.int64))
+        replace(model, weights_q=np.zeros((1, 3), np.int64))
+    with pytest.raises(TypeError):
+        FixedPointFormat()
+    with pytest.raises(ValueError):
+        replace(explicit_format, output_bits=18)
 
 
-@pytest.mark.parametrize("mode", ["off", "sampling", "quantizer"])
-def test_production_raw_codes_agree_with_independent_float_reconstruction(mode):
-    cfg = Config.paper_literal(
-        dither_mode=mode,
-        dither_discrete=True,
-        mismatch_sigma0=0,
-        dac_bridge_mismatch_sigma=0,
-        dac_parasitic_spread=0,
-        sadc_rdac_gain_mismatch=0,
+def test_format_and_offset_cannot_be_supplied_by_hidden_defaults(
+    identity_record_factory, explicit_format
+):
+    data = identity_record_factory(bits=4)
+    with pytest.raises(TypeError):
+        FixedPointReconstructor.from_weights(data.spec, [[0.5, 0.25, 0.25]])
+    with pytest.raises(TypeError):
+        FixedPointReconstructor.from_weights(data.spec, [[0.5, 0.25, 0.25]], 0.0)
+    with pytest.raises(ValueError, match="explicit"):
+        FixedPointReconstructor.from_weights(data.spec, [[0.5, 0.25, 0.25]], 0.0, format=None)
+    assert explicit_format.output_bits == 20
+
+
+def test_unknown_result_cannot_generate_nominal_coefficients(
+    identity_record_factory, explicit_format
+):
+    data = identity_record_factory(bits=4)
+    result = SimpleNamespace(
+        digital_observation=data,
+        adc2_code=data.adc2_code,
+        sample_id=data.sample_ids,
+        state=SimpleNamespace(weight_calibration=None),
     )
-    r = run_pipeline(cfg, sine_input(2.4, cfg.fs * 73 / 2048), 2048)
-    baseline = r.out.copy()
-    # Prove that neither ideal input nor the precomputed floating reconstruction
-    # is a dependency of the integer digital core.
-    r.out[:] = np.nan
-    r.x_ref[:] = np.nan
-    stream = r.to_codes()
-    assert np.max(np.abs(stream.voltage - baseline)) < 0.501 * cfg.lsb_target
-    assert not np.any(stream.clipped_low | stream.clipped_high | stream.analog_overflow)
+    with pytest.raises(ValueError, match="frozen effective"):
+        FixedPointReconstructor.from_result(result, format=explicit_format)
+    with pytest.raises(ValueError, match="explicitly bound"):
+        DigitalObservation.from_result(SimpleNamespace())
 
 
-def test_observer_and_fractional_masks_require_an_explicit_digital_interface():
-    cfg = Config.paper_literal(ktc_enable=True)
-    r = run_pipeline(cfg, sine_input(1, 1e6), 16)
-    with pytest.raises(ValueError, match="KTC observer"):
-        r.to_codes()
-    data, model = straight_backend(4)
-    with pytest.raises(ValueError, match="discrete RDAC"):
-        model.reconstruct(replace(data, rdac_code=np.full(16, 0.5)))
+def test_each_voltage_term_is_quantized_before_weighted_sum(identity_record_factory):
+    data = identity_record_factory(bits=4)
+    # 显式粗电压算术使逐单元舍入差异可观测。
+    fmt = FixedPointFormat(8, 4, 16, 16, 64)
+    term = np.full((16, 1, 3), 0.49 * 3 / 16)
+    model = FixedPointReconstructor.from_weights(data.spec, [[1.0, 1.0, 1.0]], 0.0, format=fmt)
+    result = model.reconstruct(replace(data, known_voltage_term_v=term))
+    # 各项独立舍入均为零；先折叠 3*0.49 会得到不同结果。
+    expected_voltage = data.fine_v / 3
+    expected = np.floor((expected_voltage / 3 + 1) * 2**19).astype(np.int64)
+    np.testing.assert_array_equal(result.code, expected)
+    assert round(3 * 0.49) != 3 * round(0.49)
 
 
-def test_all_coarse_carries_preserve_monotonicity_and_bounded_code_width():
-    cfg = Config.paper_literal(
-        dither_mode="off",
-        dem_enable=False,
-        mismatch_enable=False,
-        enable_sampling_noise=False,
-        ra_enable_noise=False,
-        sadc_mismatch_enable=False,
-        sadc_rdac_gain_mismatch=0,
+def test_zero_recorded_signal_gain_is_not_a_valid_denominator(
+    identity_record_factory, explicit_format
+):
+    data = identity_record_factory(bits=4)
+    model = FixedPointReconstructor.from_weights(
+        data.spec, [[0.5, 0.25, 0.25]], 0.0, format=explicit_format
     )
-    lsb = cfg.lsb_target
-    # Dense local ramps around every 9-bit boundary, 1/16 final LSB spacing.
-    centers = -cfg.v_fs + np.arange(1, 512) * (2 * cfg.v_fs / 512)
-    values = (centers[:, None] + np.arange(-64, 65)[None, :] * lsb / 16).ravel()
+    with pytest.raises(ValueError, match="signal gain"):
+        model.reconstruct(replace(data, signal_mask=np.zeros((16, 1, 3), bool)))
 
-    def waveform(t):
-        return np.interp(t * cfg.fs, np.arange(values.size), values)
 
-    result = run_pipeline(cfg, waveform, len(values))
-    words = result.to_codes().code.reshape(511, -1)
-    increments = np.diff(words, axis=1)
-    assert np.all((increments >= 0) & (increments <= 1))
-    # This is a local backend/coarse-carry test, not a full-chip code-density INL.
-    for row in words:
-        _, widths = np.unique(row, return_counts=True)
-        assert np.min(widths[1:-1]) >= 8
-        assert np.max(widths[1:-1]) <= 24
+@pytest.mark.parametrize(
+    "missing", ["main_masks", "sub_masks", "signal_mask", "known_voltage_term_v"]
+)
+def test_observation_never_infers_missing_connection_records(identity_record_factory, missing):
+    data = identity_record_factory(bits=4)
+    values = {name: getattr(data, name) for name in data.__dataclass_fields__}
+    values.pop(missing)
+    with pytest.raises(TypeError):
+        DigitalObservation(**values)

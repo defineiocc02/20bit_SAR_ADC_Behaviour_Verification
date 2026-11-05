@@ -1,103 +1,33 @@
-# AD4080 数字 RTL 逐行可追溯表
+# AD4080扩展：现行功能与来源追溯
 
-> 日期：2026-10-19 · 规则：每一条手册功能都给出 手册页码 → RTL 文件:行号 → 证据摘句。
-> 未实现项单独列在末尾，不允许混进"已实现"。
+> 本表覆盖现行15模块。旧`cal_two_point`、LVDS、`settled`及固定增益常数以[9bdf原表](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/ad4080_dsp/docs/ad4080_traceability.md)解释。handoff003的14场景与5严格profile只支持[B表](../../docs/digital_status_matrix.md)所列数字范围。
 
----
+页码均为已登记AD4080 Rev.B的PDF页码，身份见[A表](../../docs/current_digital_source_map.md#ref-ad4080)。手册说明的是外部器件功能，不公开本工程内部算法。没有唯一来源绑定的字段不得通过默认值假装已确证。
 
-## 1. 数据通路
+| 功能／模块 | 手册位置 | 当前实现与检查边界 | 状态 |
+| :--- | :--- | :--- | :--- |
+| 码制与封装 | p20 Table7 | SAR offset-binary与DSP补码在边界翻转MSB；入口ID／flags只作输入事件 | 工程接入，逐输出元数据未完成 |
+| 系统校正：sys_error_corr | p71 Fig.108/109；p92–93 Tables60/61 | 显式增益律、失调和clip；非unity映射／零码端点需声明支持 | 机制接口已有，精确数值与器件符合性分别验证 |
+| 两点系数学习 | p71 Fig.108/109 | 旧固定横坐标正向拟合退役；当前没有自动逆向系数求解控制器 | 未实现；不等于上游C/Cf训练 |
+| SINC1／SINC5 | p64–70 Fig.96–107、Tables28–30；p94 Table62 | 数学积分／梳状、按valid推进；不把valid或计数写成真实CNV建立时间 | 机制实现，全配置频响／时间基准待验证 |
+| SINC5补偿 | p64–70补偿通带及额外2倍抽取 | P_COMP_COEFF_VALID及明确三系数才允许；缺失拒绝，无单位占位回退 | 系数绑定与实际通带证据待验 |
+| 16k结果FIFO／四捕获模式 | p56–63 Table27、Fig.86–95 | 完成／未完成记录、早事件、读出和再arm分别管理 | 生命周期实现；SRAM及器件全部边界另验 |
+| 事件、状态与路由 | p54–56 Tables25/26、Fig.83–85；p90 Table55 | 阈值／迟滞、HI／LO路由、ALERT与真实状态；物理CNV延时不由滤波valid替代 | 数字实现，真实时间基准待验 |
+| GPIO与SDO使能 | p52–56、p87–90 Tables52–55 | 输入电平回读，输出使能随实际SDO／路由资格 | 数字实现；pad／电气未实现 |
+| SPI实体访问 | p34–42 Fig.53–66、Tables14–19；p37/81 strict | entity宽度、原子提交、SINGLE_INST、partial／CRC／取消及拒绝原因 | 受支持域已实现；短地址／写相SDO等未知项须绑定 |
+| 复位／就绪 | p27/34软件复位；p73–94寄存器 | 外部adc_idle／interface_ready、未完成捕获与活动读写资格；完成记录不因配置软件复位丢弃 | 最终真实停流／恢复收据待补 |
+| CNV代理 | p19 Fig.31/32、p33；p7–8 Table2 | 只接收解码后的逻辑控制，不生成差分接收器或实际SAR启动 | 独立代理，物理启动未实现 |
+| 结果数据接口 | p45–50 Fig.74–81、Tables20/21；p60 Fig.89 | 当前只提供并行处理／捕获读口；旧SDR串行器移除 | 数据PHY／结果SPI／持续吞吐未实现 |
 
-| 手册功能 | 手册依据 | RTL | 证据 |
-|---|---|---|---|
-| 20-bit 二进制补码输出 | p.20 Table 7 | 全链路 | `event_detect.sv:69` `$signed(data_in[19:8])`；`sys_error_corr.sv:110` `$signed(x)` |
-| 系统误差校正 y=m·x+c | p.71 | `sys_error_corr.sv` | `:110` 乘法，`:97` 舍入移位，`:136-145` 饱和 |
-| OFFSET 12-bit 补码、±2048 | p.93 Table 60 | `ad4080_regs.sv` | `0x25/0x26` 写分支；`offset_code` 输出 |
-| GAIN 10-bit，0x200=1.0，±1.5594% | p.93 Table 61 | `ad4080_regs.sv` + `sys_error_corr.sv` | `0x27/0x28`；`K_GAIN=512`（分母 511） |
-| 两点校准 | p.71 | `cal_two_point.sv` | `:53` 测试点补码，`:128` 增益积，`:147` 夹紧 |
+## 明确的工程绑定
 
-## 2. 数字滤波
+| 输入或选择 | 当前规则 | 原文／实现边界 |
+| :--- | :--- | :--- |
+| P_GAIN_MAP_VALID、K_GAIN、SHIFT、零增益码支持 | 非unity律和端点由调用方明确声明；无绑定不启用相关能力 | 手册正文与寄存器端点的口径须独立确认，不硬选旧511／512常数 |
+| 补偿系数 | 只有明确有效系数与对应选择允许 | FIR结构存在不证明真实器件通带被补平 |
+| 字节顺序、地址／ID、短指令位数及写相SDO | 使用显式参数与支持域；未绑定或不支持拒绝 | 不从旧代码或孤立图示推导器件唯一实现 |
+| 工程cfg_reject与processing_reject | 为本工程诊断，单独输出原因 | 不擅自占用／重定义厂商保留寄存器位 |
 
-| 手册功能 | 手册依据 | RTL | 证据 |
-|---|---|---|---|
-| FILTER_SEL 四路径 | p.94 Table 62 | `ad4080_dsp_chain.sv` | `case(filter_sel)` |
-| SINC_DEC_RATE N=2^(code+1) | p.94 | `sinc1_decim.sv:58` / `sinc5_decim.sv:64` | `dec_map` |
-| 非法码落最大抽取 | p.94 | 同上 | `code>9/7` 分支 |
-| SINC1 建立 2+D+1 | p.69 | `sinc1_decim.sv:123` | `settle_target = d_cur + 3` |
-| SINC5 建立 2+5D+4 | p.69 | `sinc5_decim.sv:179` | `(d_cur<<2)+d_cur+6` |
-| SINC5+comp 建立 2+35N+10 | p.69 | `sinc5_comp.sv:138-150` | `35N+12` |
-| SINC5+comp 总抽取 N×2 | p.94 | `sinc5_comp.sv:111` | `phase==0` 才输出 |
-| FILTER_SYNC 复位滤波器 | p.64, p.94 | `ad4080_regs.sv:317` → `fsync_pulse` | 写 0x29 产生脉冲 |
+代码定位以[15模块A表](../../docs/current_digital_source_map.md#3-15个dsp扩展模块)和[接口](SAR20_INTERFACE.md)为准；此处不保留会随整合漂移的旧行号。当前最高执行层级及未完成项由[B表](../../docs/digital_status_matrix.md)按最终源收据更新。
 
-## 3. 结果 FIFO
-
-| 手册功能 | 手册依据 | RTL | 证据 |
-|---|---|---|---|
-| 16K 深度 | p.57 | `result_fifo.sv` | `DEPTH=16384` |
-| 四种 FIFO_MODE | p.57 Table 27 | `fifo_capture.sv` | `case(mode)` |
-| 写 FIFO_MODE 即 arm | p.62 | `ad4080_regs.sv:303` | `fifo_arm_r<=1` |
-| mode 00 复位捕获状态 | p.57 | `fifo_capture.sv:123` | 清 armed/event_seen/… |
-| mode 11 四倍数 WATERMARK | p.91 | `fifo_capture.sv:81` | `wm_quad` |
-| FIFO_FULL 收满即置位 | p.58 Fig.86 | `fifo_capture.sv:156` | `full_flag<=1` |
-| FIFO_FULL 首读即清 | p.53 | `fifo_capture.sv:177` | `full_flag<=0` |
-| mode 11 事件位置回写 | p.57 | `fifo_capture.sv:158` + `ad4080_regs.sv` | `wm_wb_valid/data` → `wm_r` |
-| FIFO_READ_DONE | p.83 | `fifo_capture.sv` | `read_done` |
-
-## 4. 事件检测 / 告警 / GPIO
-
-| 手册功能 | 手册依据 | RTL | 证据 |
-|---|---|---|---|
-| 阈值 12-bit 补码 | p.92 | `event_detect.sv:69` | 补码比较 |
-| 迟滞 11-bit 无符号 | p.91 | `event_detect.sv:73-75` | `hyst_s` |
-| HI/LO 迟滞电平（HI_DTCT/LO_DTCT） | p.54-56 | `event_detect.sv:108-115` | `hi_dtct/lo_dtct` |
-| 状态位粘滞 + W1C | p.55, p.83 | `event_detect.sv` + `ad4080_regs.sv:284` | `hi_flag` + `0x14` W1C |
-| ALERT 低有效电平型 | p.53, p.55 | `event_detect.sv:137` | `alert_n = ~(hi_d2|lo_d2)` |
-| 2 CNV 延迟 | p.55 | `event_detect.sv:126-131` | `hi_d1/hi_d2` |
-| HI_ROUTE/LO_ROUTE/CNV_ERR_ROUTE | p.90 | `ad4080_regs.sv` + `ad4080_top.sv:159` | `event_en ? 内部 : 外部` |
-| GPIO SEL 4-bit 编码 | p.88-89 | `gpio_ctrl.sv:81-104` | 10 个编码 |
-| GPIO 复位 0x01（GPIO0=SDO） | p.87 | `ad4080_regs.sv` | `gdir_r<=4'b0001` |
-| FILTER_SYNC/EXT_EVENT 输入路由 | p.88-89 | `gpio_ctrl.sv:81-88` | 1000/1001 |
-
-## 5. SPI / 接口
-
-| 手册功能 | 手册依据 | RTL | 证据 |
-|---|---|---|---|
-| Mode 3（CPOL=1, CPHA=1） | p.34 | `spi_slave.sv` | 2FF + 边沿检测 |
-| 16-bit 指令（1+15） | p.35 | `spi_slave.sv:126` | `instr_done` |
-| 短指令（1+7） | p.76 | `spi_slave.sv` | `instr_len_r` |
-| streaming（默认）+ 地址递增/递减 + 回绕 | p.35-36, p.75-76 | `spi_slave.sv:119` | `addr_next` |
-| 写数据相 SDO 驱 0 | p.35 | `spi_slave.sv` PH_DATA | `sdo=0, oe=1` |
-| CRC-8 x^8+x^2+x+1，种子 0xA5 | p.40-41 | `spi_slave.sv:104` | `crc_step` |
-| CRC 互补使能 | p.81 | `ad4080_regs.sv:273` | `wdata[7:6]==01 && wdata[1:0]==10` |
-| CRC 不过不提交写 | p.40 | `spi_slave.sv:246` | `we_r` 条件 |
-| 读 CRC 只验首字节 | p.42 | `spi_slave.sv:242` | `!cmd_r \|\| first_byte` |
-| 时钟数错误 | p.82 | `spi_slave.sv` | `clk_err_r` |
-| SEND_STATUS 指令相回传 | p.81 | `spi_slave.sv` PH_INSTR | `stat_sr` |
-| SW_RESET（0x81，ADDR_ASCENSION 除外） | p.75 | `ad4080_regs.sv:170` | `sw_reset_now` |
-| SDO_ENABLE | p.75 | `ad4080_regs.sv` + `ad4080_top.sv:177` | `sdo_en` |
-| 只读 ID 0x03/0x04/0x05/0x06 | p.77-78 | `ad4080_regs.sv` | 0x07/0x50/0x00/0x02 |
-| DEVICE_STATUS 0x14 位序+复位 0x09 | p.83 | `ad4080_regs.sv:284` | `status` 拼接 |
-| INTERFACE_STATUS 0x11 W1C | p.82 | `ad4080_regs.sv:279` | `crc_err_r` 等 |
-
-## 6. LVDS / CNV
-
-| 手册功能 | 手册依据 | RTL | 证据 |
-|---|---|---|---|
-| MSB first | p.45-53 | `lvds_framer.sv:76` | `shreg[19]` |
-| 1/2 lane | p.84 | `lvds_framer.sv:58` | `lane2` |
-| 空闲重复上一帧 | p.66 Fig.97 | `lvds_framer.sv:83` | `phase==last` 重装 |
-| CNV CMOS/LVDS | p.33, p.45 | `cnv_ctrl.sv` | `lvds_en` 选择 |
-| ADC_CNV_ERR（忙时 CNV） | p.83 | `cnv_ctrl.sv` | `busy` 检测 |
-
----
-
-## 未实现 / 待确认（不许混进"已实现"）
-
-| 项 | 状态 | 说明 |
-|---|---|---|
-| 0x0E STREAM_MODE 回环、0x0F TRANSFER_CONFIG | 未实现 | P2 |
-| STRICT_REGISTER_ACCESS 部分访问报错 | 未实现 | P2 |
-| streaming 多字节寄存器起始字节序 | [待确认] | 手册 Fig.58/59 是图 |
-| SINC5+comp 补偿系数 | [待确认] | 手册只给响应曲线；参数 C0/C1/C2 占位 |
-| LVDS DDR PHY / 差分驱动 / Manchester | 未实现 | 电气层，不属于数字 RTL |
-| SPI 回读数据通道（DCS/DCLK） | 未实现 | 需另立数据 SPI |
-| 仿真验证 | 未做 | 本机无 Verilator/Icarus/VCS |
+明确controller／CAAZ fault由core conversion_fault经system sar_conversion_fault进入adapter；对已报告的13／7／8故障有真实fail-stop／restart阻断／epoch重载恢复。该设计不检测未报告的任意ID跳号，也不声明CAAZ＋DSP实际运行。源SHA、14场景及5profile的限定范围见[DSP说明](../README.md#怎样验证)。

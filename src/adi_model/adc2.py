@@ -1,105 +1,81 @@
-"""adc2.py -- 后端 ADC2：量化、余量裁剪与溢出统计。
+"""显式ADC2静态量化核：RA输出节点[V]到整数码及bin-center[V]。
 
-============================================================================
-物理模型与文献出处
-============================================================================
-论文 [00] 结构：两级 SAR，第一级（SADC + RDAC 跟随器 + RA）解出高位，ADC2 解放大后的残差。
-本模块只模拟 ADC2 的**静态量化**：
-
-    code = floor((v - vmin) / Δ2)，输出等效输入电压 = vmin + (code+0.5)·Δ2
-
-* ADC2 是**单极性**口径：名义残差 r ∈ [0, Δ1]，RA 放大后 ∈ [0, G0·Δ1] = [0, 1.5 V]，
-  配置范围 [adc2_v_min, adc2_v_max] = [-0.15, +1.65] V 提供上下各 ~10% 余量。余量的消费者：
-  SADC/RDAC 匹配误差 × G（stage19 验收②）、RA 输出噪声、dither 残项。
-* **观察器校正量不进 ADC2 量程**（v6.1 遗留缺陷的修复，
-  见docs/adr/0006-observer-correction-is-digital.md）：
-  KTC 观察支路的校正项 κ·v_N = G_R·(η_n n_R − η_x Δx) 由**数字端**计算并扣除，
-  因此 `quantize_with_correction` 先量化 RA 输出、再减校正量。旧实现写成 `quantize(vra - κ·v_N)`，
-  把校正量塞进 ADC2 的模拟量程：斜率项 κ·G_N·η_x·Δx 在近 Nyquist、
-  满幅时达 G_R·η_x·(2π f_S/2 · Δt · v_FS) ≈ 1.18 V（RA 满摆幅 1.5 V 的 79 %），
-  近 Nyquist 时直接把 10 % 余量吃穿，单音 5 MHz 下即已 10.3 % 溢出、
-  残差 RMS 1.19 mV（审计后的回归实测）。校正量是频率相关量，
-  模拟口径的余量无法用固定百分比覆盖 —— 这是**结构性**错误，不是余量不够大。
-* 量化噪声 Δ2/√12 折算到输入 = 0.6·LSB20（config.validate 判据 1：Δ2/G0 ≤ LSB20，
-  后端分辨能力必须不劣于 20b 目标）。
-* 本类只定义后端静态量化。
-  生产 split 通路的 ADC2 采样电压来自conversion.ConversionEngine 的实际宽/窄带跟踪；
-  RA 输出可与该电压不同。独立 ADC2 热噪声、阈值失配和器件级电容尚未给出，不能声称可忽略。
-
-单位契约：输入/输出均为 [V]（RA 输出口径，非输入折算）。
-
-参数来源分级：
-    adc2_n_bits / adc2_v_min / adc2_v_max  [推导]（PPT 未给 ADC2 细节；
-    三者由 Config.paper_consistent() 从 G0·Δ1 派生，使 Δ2/G0 = 0.6·LSB20。
-    见 docs/adr/0003-stage-1-resolution.md —— 改第一级读数时它们必须跟着变，
-    手改单值会让残差溢出，validate() 会报 FAIL）
-
-契约与不变量：
-    * 非有限输入被拒绝；原始整数码在任何数字观察器校正之前产生；
-    * 溢出标志 over 是**逐样本布尔**，统计口径见 metrics；
-      溢出样本的输出被钳位在量程端点 bin —— 物理上等价于"读数为饱和码"，不是丢弃。
+当前实现的码制为uniform_midrise：code=floor((v-vmin)/delta)，decode=vmin+(code+0.5)*delta。
+位数、窗口和端点约定全部由调用者提供，不从目标DR、G0或第一级位数反推。有限越界输入夹码并保留标志，
+不丢样本。本核没有热噪声、阈值随机失配、采集带宽或器件级电容模型。
 """
 
 from __future__ import annotations
 
 import numpy as np
 
-from .config import Config
+from .config import Config, ConfigError
 
 
 class ADC2:
-    """后端 flash/SAR 量化器的行为模型（静态、无记忆）。
-
-    Attributes:
-        step: 量化步长 Δ2 = (vmax - vmin)/2^n_bits [V]。
-        vmin/vmax: 量程边界 [V]，来自 config（单极性残差口径）。
-        n_code: 输出码数 = 2^adc2_n_bits。
-    """
+    """无记忆后端量化器；只检查本块实际消费的五个配置字段。"""
 
     def __init__(self, cfg: Config):
-        """按配置构造第二级量化器：步长、输入窗口与限幅门限。
+        """冻结显式静态量化合同，不要求其他块的电阻、电容或阈值。
 
         Args:
-            cfg: 模型配置（Config）。提供 delta2、adc2_v_min/v_max、
-                adc2_n_bits——三者由 Config.paper_consistent() 从G0·Δ1 派生（来源分级 [推导]）。
-                改第一级读数时须同步，否则残差溢出、validate() 报 FAIL。
-
-        Side effects: 固化 step / vmin / vmax / n_code。
-        """
-        self.cfg = cfg
-        self.step = cfg.delta2
-        self.vmin = cfg.adc2_v_min
-        self.vmax = cfg.adc2_v_max
-        self.n_code = 2**cfg.adc2_n_bits
-
-    def quantize_codes(self, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Return raw integer ADC2 codes and analog-window overflow flags.
-
-        Args:
-            v: Finite ADC2 acquisition voltage [V], arbitrary shape.
-
-        Returns:
-            (int64 code, bool overflow) of the same shape. The specified input
-            operating range includes both rails; the upper rail maps to the
-            last code. Out-of-window finite inputs saturate, with flags retained.
+            cfg: 显式adc2_n_bits、adc2_v_min/max[V]、adc2_codebook和endpoint。
 
         Raises:
-            ValueError: NaN or infinity, which cannot represent a conversion.
+            ConfigError: 本块输入缺失或非法，或请求未实现码制。
+
+        Side effects: 保存量化参数；不修改Config、不生成随机状态。
         """
-        v = np.asarray(v, dtype=float)
-        if np.any(~np.isfinite(v)):
-            raise ValueError("ADC2 acquisition voltage must be finite")
-        over = (v < self.vmin) | (v > self.vmax)
-        vc = np.clip(v, self.vmin, self.vmax)
-        code = np.floor((vc - self.vmin) / self.step)
+        bad = cfg.adc2_violations()
+        if bad:
+            raise ConfigError("ADC2 cannot run:\n  - " + "\n  - ".join(bad))
+        assert cfg.adc2_n_bits is not None
+        assert cfg.adc2_v_min is not None and cfg.adc2_v_max is not None
+        assert cfg.adc2_endpoint_policy is not None
+        self.vmin = float(cfg.adc2_v_min)
+        self.vmax = float(cfg.adc2_v_max)
+        self.n_code = 2**cfg.adc2_n_bits
+        self.step = (self.vmax - self.vmin) / self.n_code
+        self.endpoint_policy = cfg.adc2_endpoint_policy
+
+    def quantize_codes(self, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """量化有限输入并独立返回逐样本窗口标志。
+
+        Args:
+            v: 任意形状的RA输出节点电压[V]。
+
+        Returns:
+            同形状(int64原始码,bool溢出)。closed包含两端；
+            half_open为[vmin,vmax)。exact vmax两种约定都夹到最后码，标志不同。
+
+        Raises:
+            ValueError: 非有限电压，不能解释为有效转换。
+
+        Side effects: 无；输入不改写，饱和样本保留。
+        """
+        values = np.asarray(v, dtype=float)
+        if np.any(~np.isfinite(values)):
+            raise ValueError("ADC2 acquisition voltage must be finite [V]")
+        over = (values < self.vmin) | (
+            (values > self.vmax) if self.endpoint_policy == "closed" else (values >= self.vmax)
+        )
+        clipped = np.clip(values, self.vmin, self.vmax)
+        code = np.floor((clipped - self.vmin) / self.step)
         return np.clip(code, 0, self.n_code - 1).astype(np.int64), over
 
     def decode_codes(self, code: np.ndarray) -> np.ndarray:
-        """Decode legal raw integer codes to nominal ADC2 bin-center voltages [V].
+        """将合法原始整数码还原为名义bin-center电压[V]。
+
+        Args:
+            code: 任意形状整数数组，值域0..n_code-1。
+
+        Returns:
+            同形状RA输出节点电压[V]。
 
         Raises:
-            ValueError: Noninteger or out-of-range code data. A malformed code buffer is not
-                silently clipped during digital reconstruction.
+            ValueError: 非整数、负值或超范围码；不静默夹错误原始数据。
+
+        Side effects: 无。
         """
         code = np.asarray(code)
         if (
@@ -108,50 +84,18 @@ class ADC2:
             or np.any(code >= self.n_code)
         ):
             raise ValueError("ADC2 codes must be integers within the backend code range")
-        return self.vmin + (code + 0.5) * self.step
+        return self.vmin + (code.astype(np.float64) + 0.5) * self.step
 
     def quantize(self, v: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """量化并统计溢出。
+        """返回bin-center电压[V]与原始模拟窗口标志。
 
         Args:
-            v: RA 输出口径的输入电压 [V]，任意形状。
+            v: 任意形状的有限RA输出节点电压[V]。
 
         Returns:
-            (vq, over)
-            vq:   量化后的等效输入电压 [V]——落在所在 bin 的**中点**
-                  （flash ADC 的标准行为模型；码值本身不返回，
-                  因为下游只需要电压量级的残差）。
-            over: 逐样本布尔，True = 输入超出 [vmin, vmax]（被钳位）。
+            (解码电压,溢出)；二者均与输入同形状。
 
-        Side effects: 无（本类无状态）。
+        Side effects: 无，不包含数字观察器或外部校正替身。
         """
         code, over = self.quantize_codes(v)
         return self.decode_codes(code), over
-
-    def quantize_with_correction(
-        self, v: np.ndarray, correction: np.ndarray
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """先量化 RA 输出，再在数字域扣除观察器校正量。
-
-        数字端重构式（reconstruction.reconstruct）里的 v₂ 是"RA 输出口径"的电压，
-        因此校正量与量化结果在同一口径相加即可：
-
-            v₂ = quantize(vra) − κ·v_N
-
-        与旧写法 ``quantize(vra − κ·v_N)`` 的差别只有 ADC2 的量化噪声（两者相差一次 Δ2 的重化），
-        但量程占用完全不同：本写法下ADC2 只承担 RA 输出本身，
-        κ·v_N 无论多大都不会把它顶出[vmin, vmax] —— 这正是 docs/adr/0006 记录的修复点。
-
-        Args:
-            v: RA 输出口径的输入电压 [V]。
-                **不是**已减去校正量的中间量 —— 上游不得再自行做 κ·v_N 的模拟相减。
-            correction: κ·v_N [V]，与 v 同形状；数字端已知量。
-
-        Returns:
-            (v2, over)：v2 为校正后的 RA 口径残差 [V]；over 只反映 v
-            本身是否越界（即 ADC2 真实看到的量）。
-
-        Side effects: 无。
-        """
-        vq, over = self.quantize(v)
-        return vq - np.asarray(correction, dtype=float), over

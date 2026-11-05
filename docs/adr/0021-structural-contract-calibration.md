@@ -1,5 +1,8 @@
 # ADR 0021：结构样本合同与真实 RTL 观测校准
 
+> **历史合同（af8功能合同／9bdf文档快照）：**以下接口、码域、地址、位域和数值保留原记录，不作为新source binding／两采集端口／calobs v2的现行规范。当前合同的冻结状态见[CURRENT_INTERFACE_AND_ARITHMETIC.md](../rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)。
+
+
 日期：2026-11-04。适用范围：本项目 18/8 slice、9 位粗量化、63+8 分裂 RDAC、12 位 ADC2 的结构研究配置。该工程合同与公开资料的对应关系、未经披露之处见 [bridge 说明](../binary_unary_bridge.md)。它更新 ADR 0018/0019 的当前状态，但保留其历史证据。
 
 ## 决策

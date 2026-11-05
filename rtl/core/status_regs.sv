@@ -6,6 +6,7 @@
 // 回读：err_code直接组合透传，不在此保存；其来源、优先级与清除由顶层定义。
 // ABI：flags[5:0]={analog,clip_high,clip_low,adc2,gain,acc}；status_clr_value=0x27不含clip。
 // 来源：RTL_ARITHMETIC_CONTRACT.md §4与P2_INTERFACE.md §8；不重新判定数值范围。
+`timescale 1ns/1ps
 `include "rtl_params.vh"
 
 module status_regs (
@@ -61,6 +62,8 @@ module status_regs (
   end
 
   // 组合回读：截取 err_code 低 26 位，再按固定 ABI 顺序拼接六个标志。
+  // The upper six project-code bits are intentionally outside this status ABI.
+  wire unused_upper_error_bits = |err_code[31:26];
   assign status_word = {
     err_code[25:0],
     analog_ovf_sticky, clip_high_last, clip_low_last,

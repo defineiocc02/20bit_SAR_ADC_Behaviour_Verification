@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "geometry": {
+    "n_main": 2,
+    "n_sub": 1,
+    "n_slices": 18,
+    "n_active": 8,
+    "code_min": 0,
+    "code_max": 511
+  },
+  "control_word_bits": 2,
+  "state_bits": 3,
+  "sample_id_bits": 32,
+  "timing": {
+    "phases": 16,
+    "residue_capture_phase": 9,
+    "reference_on_phase": 10,
+    "fine_decision_deadline_phase": 14,
+    "tick_period_ns": 1.5625
+  },
+  "scheduler": {
+    "kind": "causal_pool_scan",
+    "shuffle_enable": true,
+    "seed": 1831565813
+  },
+  "divider_stages": 7,
+  "source_control": {
+    "kind": "sv_module",
+    "sv_module_name": "source_control_binding",
+    "sv_path": "source_control_binding.sv",
+    "sha256": "5c79f99858b2da70349bd3f62456a1011fb8f320968897a25ebb9c51eb8df5b1",
+    "connection_contract": "Explicit all-SIGNAL per-unit mathematical fixture with symmetric +/-3V rails. Code-to-mask map is arbitrary synthetic digital control, not a chip map. State7 is an explicit unsupported-command test; it must reject without updating RDAC."
+  },
+  "reconstruction_fold": {
+    "kind": "all_signal_symmetric_common_v1",
+    "sampling_main": [
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ],
+      [
+        0,
+        0
+      ]
+    ],
+    "sampling_sub": [
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ]
+    ],
+    "reference_low_v": -3.0,
+    "reference_high_v": 3.0,
+    "common_input_unit": "normalized_signed_q",
+    "term_quantizer": "ties_even_per_unit"
+  },
+  "provenance": "COMPONENT_SYNTHETIC_DIGITAL; 2+1 units, ADC2=6 and Q format are explicit math fixtures, not original device parameters.",
+  "acquisition_control": {
+    "kind": "sv_module",
+    "sv_module_name": "source_acquisition_binding",
+    "voltage_unit": "normalized_signed_q",
+    "sadc_input_shift": "add_to_sadc_sampled_input",
+    "rdac_input_shift": "add_to_all_rdac_sampled_units",
+    "connection_contract": "Explicit component numerical input ports: SADC zero, RDAC known word<<8; not a device injection network.",
+    "sv_path": "source_acquisition_binding.sv",
+    "sha256": "9eb5093acdd6c74a9512dc8d24675e98f41fcc9fd4944af6b2b355ae9d830e1d"
+  },
+  "dither_contract": {
+    "kind": "none",
+    "provenance": "No source-derived dither capability in the arbitrary component fixture. Nonzero common input shifts are explicit mathematical data."
+  }
+}

@@ -1,158 +1,107 @@
-"""AD4080 风格数字校正与固定横坐标两点拟合的定点参考。
+"""显式 DSP 算术约定的整数系统校正参考。
 
-计算对应 ad4080_dsp/rtl/sys_error_corr.sv 与 cal_two_point.sv 的工程
-数值规则：20 bit 补码（手册 Rev.B p.20、Table 7），GAIN 以 0x200 为中心。
-0x001/0x3FF 各偏 511 码，对应原定标 ±1.5594%；以下系数是本工程实现参数，
-不代表已独立证明器件内部实现。
-
-增益运算使用 K_GAIN=512、SHIFT_G=24；两点拟合使用 INV_DX_K=40961、
-SHIFT_K=20、INV_DX=1280、SHIFT_O=30。固定点 X1=-419430（10%）、
-X2=+419430（90%），DX=838860，所有样本与偏移均以 ADC 码计。
-
-cal_two 拟合固定 x 到输入 y 的正向仿射关系；若 y 是已知参考输入对应的
-原始测量码，所得系数仍是正向传递系数，不能直接当作逆向校正系数。
-用法：``python3 ad4080_cal_model.py``。
+AD4080 Rev.B pp.71/93 未唯一确定非单位增益码的步长。调用方须提供
+定点传递关系；本模块不定义物理增益映射，也不执行固定输入的前向拟合。
+样本和 OFFSET 均采用 ADC 码。
 """
 
-import random
+from numbers import Integral
 
 IN_W = 20
-MAXC = (1 << (IN_W - 1)) - 1  # +524287
-MINC = -(1 << (IN_W - 1))  # -524288
-
-X1 = -419430
-X2 = +419430
-DX = X2 - X1  # 838860
-
-K_GAIN = 512
-SHIFT_G = 24
-INV_DX_K = 40961  # round(1/(DX * 0.015594/511) * 2^20)
-SHIFT_K = 20
-INV_DX = 1280  # round(2^30 / DX)
-SHIFT_O = 30
+MAXC = (1 << (IN_W - 1)) - 1
+MINC = -(1 << (IN_W - 1))
 
 
-def clip(v):
-    """将数值饱和到 20 bit 补码范围 [MINC, MAXC]，即 [-524288, 524287]。
+def _integer(name, value, minimum, maximum, unit):
+    """检查公共整数码边界，拒绝布尔值、非整数和范围外取值。
 
-    调用方提供可比较的标量，本函数不检查类型，也不将范围内数值强制转为整数。
+    name 与 unit 只用于错误定位；返回 Python 整数，不作截断或舍入。
     """
-    return MINC if v < MINC else MAXC if v > MAXC else v
+    if isinstance(value, bool) or not isinstance(value, Integral):
+        raise ValueError(f"sys_corr: {name} [{unit}] must be an integer in [{minimum}, {maximum}]")
+    result = int(value)
+    if not minimum <= result <= maximum:
+        raise ValueError(f"sys_corr: {name} [{unit}] must be an integer in [{minimum}, {maximum}]")
+    return result
 
 
-def sys_corr(x, off, gain):
-    """按固定增益算式计算校正码与饱和标志。
-
-    增量为 ``(x * (gain-512) * 512 + 2**23) >> 24``，随后加 off 并饱和。
-    整数加半步再右移，半步向正无穷舍入；这与本工程 RTL 的默认运算对应，
-    不是器件内部数值实现的证明。参数类型和输入合法范围由调用方保证。
+def clip(value):
+    """将整数饱和到 20 bit 补码输出范围 [-524288, 524287]。
 
     Args:
-        x: 20 bit 补码样本，单位为 ADC 码。
-        off: 12 bit 补码偏移，单位为 ADC 码。
-        gain: 10 bit 直二进制增益码，512 表示单位增益。
+        value: ADC 整数码，不接受布尔值。
 
     Returns:
-        四元组：饱和后码、低端饱和布尔值、高端饱和布尔值和增益增量。
-        标志按饱和前结果判断，增量单位仍为 ADC 码。
+        饱和后的 Python 整数码。
+
+    Raises:
+        ValueError: value 为布尔值或非整数。
     """
-    gd = gain - 512
-    delta = (x * gd * K_GAIN + (1 << (SHIFT_G - 1))) >> SHIFT_G
-    y = x + delta + off
-    return clip(y), (y < MINC), (y > MAXC), delta
+    if isinstance(value, bool) or not isinstance(value, Integral):
+        raise ValueError("clip: value [ADC codes] must be an integer")
+    return max(MINC, min(MAXC, int(value)))
 
 
-def cal_two(y1, y2):
-    """拟合固定 X1/X2 到 y1/y2 的正向仿射关系。
+def sys_corr(
+    x,
+    off,
+    gain,
+    *,
+    gain_numerator=None,
+    gain_shift=None,
+    gain_code_zero_supported=False,
+):
+    """应用调用方绑定的增益传递、OFFSET 和有符号饱和。
 
-    采用与默认 RTL 对应的预计算倒数和常数乘法，加半步右移后分别钳位。
-    不求逆向校正，也不检查输入单调性或端点是否来自实际测量。
+    非单位增益斜率为
+    ``1 + (gain - 512) * gain_numerator / 2**gain_shift``。整数乘积先加
+    半个量化步长再算术右移，正好半步时向正无穷方向舍入。这是工程数值规则，
+    不代表器件未披露的内部舍入实现。GAIN=512 时不使用增益映射参数。
 
     Args:
-        y1: 固定 X1=-419430 对应的补码响应标量，单位为 ADC 码。
-        y2: 固定 X2=+419430 对应的补码响应标量，单位为 ADC 码。
+        x: 20 bit 补码样本，范围 [-524288, 524287]，单位为 ADC 码。
+        off: 12 bit 补码偏移，范围 [-2048, 2047]，单位为 ADC 码。
+        gain: 10 bit 增益码，范围 [0, 1023]，512 表示单位增益。
+        gain_numerator: 非单位增益所需的无量纲整数分子，范围 [1, 1023]。
+        gain_shift: 非单位增益所需的小数位数，范围 [1, 30]。
+        gain_code_zero_supported: 必须为 bool；为 True 才允许非单位增益的零码端点。
 
     Returns:
-        ``(gain, off)``，gain 钳位到 0..1023，off 钳位到 -2048..2047。
+        四元组：饱和后的整数码、低端溢出布尔值、高端溢出布尔值和增益增量。
+        两个溢出标志根据饱和前结果判断，增益增量仍采用 ADC 码。
+
+    Raises:
+        ValueError: 整数码或映射参数类型/范围非法，缺少非单位增益映射，
+            或零码端点未获调用方明确绑定。
     """
-    dy = y2 - y1
-    num_g = dy - DX
-    gd = (num_g * INV_DX_K + (1 << (SHIFT_K - 1))) >> SHIFT_K
-    gain = 512 + gd
-    gain = 0 if gain < 0 else 1023 if gain > 1023 else gain
-    offnum = y1 * DX - dy * X1
-    oc = (offnum * INV_DX + (1 << (SHIFT_O - 1))) >> SHIFT_O
-    off = -2048 if oc < -2048 else 2047 if oc > 2047 else oc
-    return gain, off
-
-
-def ideal_y(x, m, c):
-    """返回 ``round(m * x + c)`` 的整数 ADC 码，舍入遵循 Python round。"""
-    return round(m * x + c)
-
-
-def test_case(name, m, c):
-    """在指定增益/偏移下比较十个固定边界码点，打印最大绝对误差。
-
-    参考响应和拟合端点均先饱和。该比较验证正向定点近似，不证明逆向校准效果。
-
-    Args:
-        name: 输出中使用的案例名称。
-        m: 目标正向响应的无量纲增益。
-        c: 目标正向响应的偏移，单位为 ADC 码。
-    """
-    y1 = clip(ideal_y(X1, m, c))
-    y2 = clip(ideal_y(X2, m, c))
-    g, o = cal_two(y1, y2)
-    errs = []
-    for x in [MINC, MINC + 1, -300000, -1, 0, 1, 1000, 300000, MAXC - 1, MAXC]:
-        yt = clip(ideal_y(x, m, c))
-        yc, _, _, _ = sys_corr(x, o, g)
-        errs.append(yc - yt)
-    print(
-        f"{name:26s} y1={y1:8d} y2={y2:8d} -> GAIN={g:4d} OFF={o:5d} "
-        f"maxerr={max(abs(e) for e in errs):4d} LSB"
-    )
-
-
-def main():
-    """打印典型与固定种子随机案例的正向近似误差，不设置通过阈值。
-
-    随机部分使用 2000 个增益/偏移组合，每组比较五个随机码；最后打印
-    0x001/0x200/0x3FF 增益端点与期望斜率的差值，不据此自动判定精度达标。
-    """
-    print("== 定点参考模型（补码，K_GAIN=512，分母 511） ==")
-    test_case("ideal", 1.0, 0.0)
-    test_case("gain +1%", 1.01, 0.0)
-    test_case("gain -1%", 0.99, 0.0)
-    test_case("gain +1.5594% (满偏)", 1.015594, 0.0)
-    test_case("gain -1.5594% (满偏)", 0.984406, 0.0)
-    test_case("offset +100", 1.0, 100.0)
-    test_case("offset -100", 1.0, -100.0)
-    test_case("gain +0.5% off +50", 1.005, 50.0)
-    test_case("gain -0.5% off -50", 0.995, -50.0)
-
-    random.seed(1)
-    worst = 0
-    for _ in range(2000):
-        m = 1 + random.uniform(-0.01, 0.01)
-        c = random.uniform(-200, 200)
-        y1 = clip(ideal_y(X1, m, c))
-        y2 = clip(ideal_y(X2, m, c))
-        g, o = cal_two(y1, y2)
-        for x in [random.randrange(MINC, MAXC + 1) for _ in range(5)]:
-            yt = clip(ideal_y(x, m, c))
-            yc, _, _, _ = sys_corr(x, o, g)
-            worst = max(worst, abs(yc - yt))
-    print("random max error (LSB):", worst)
-
-    # 打印满偏端点与期望斜率的差值；此处没有自动通过/失败断言。
-    for g, want_m in [(0x001, 0.984406), (0x200, 1.0), (0x3FF, 1.015594)]:
-        x = 100000
-        y, _, _, _ = sys_corr(x, 0, g)
-        exp = round(x * want_m)
-        print(f"gain=0x{g:03X} m={want_m:.6f}  y={y} exp={exp} err={y-exp}")
+    x = _integer("x", x, MINC, MAXC, "ADC codes")
+    off = _integer("off", off, -2048, 2047, "ADC codes")
+    gain = _integer("gain", gain, 0, 1023, "GAIN codes")
+    if type(gain_code_zero_supported) is not bool:
+        raise ValueError("gain_code_zero_supported: expected an explicit bool")
+    if gain == 512:
+        delta = 0
+    else:
+        missing = []
+        if gain_numerator is None:
+            missing.append("gain_numerator [dimensionless numerator]")
+        if gain_shift is None:
+            missing.append("gain_shift [fraction bits]")
+        if missing:
+            raise ValueError("sys_corr: non-unity correction requires " + ", ".join(missing))
+        gain_numerator = _integer(
+            "gain_numerator", gain_numerator, 1, 1023, "dimensionless numerator"
+        )
+        gain_shift = _integer("gain_shift", gain_shift, 1, 30, "fraction bits")
+        if gain == 0 and not gain_code_zero_supported:
+            raise ValueError("sys_corr: GAIN=0 requires an explicit endpoint binding")
+        delta = (x * (gain - 512) * gain_numerator + (1 << (gain_shift - 1))) >> gain_shift
+    corrected = x + delta + off
+    return clip(corrected), corrected < MINC, corrected > MAXC, delta
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(
+        "The fixed-input forward-fit CLI is retired. Import sys_corr; "
+        "use the sys_error_corr_contract_tb verification target for RTL checks."
+    )

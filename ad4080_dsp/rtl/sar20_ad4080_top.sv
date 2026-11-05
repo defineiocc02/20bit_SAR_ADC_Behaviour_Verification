@@ -1,22 +1,22 @@
 //=============================================================================
 // @file    sar20_ad4080_top.sv
-// @brief   SAR结果到DSP的码制、故障和复位边界
-// @details 入口/并行出口翻转最高位以转换offset-binary与补码；串行payload保持补码。
-//          任一输入flags或模拟sticky异常停止接收与输出，直到全DSP重启。
+// @brief   SAR 结果到 DSP 的码制、故障与复位边界。
+// @details 入口和并行出口翻转最高位，在偏移二进制码与补码间转换；串行载荷保持补码。
+//          任一输入 flags 或模拟粘滞异常停止接收和输出，直至整个 DSP 重启。
 // @project SAR20 / AD4080风格数字原型
 // @author  项目维护者（贡献记录见版本库）
 // @date    2026-11-05
 // @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : 无；本项目接口合同。
-// 时钟域   : clk；所有SAR数据、标志和控制同步，不含CDC
-// 复位     : 外部rst_n或sar_epoch_clear/dsp_restart异步断言DSP复位；必须同步释放
-// 延迟     : sample_accepted/rejected为输入侧组合事件，ID只在对应事件有效
-// 吞吐     : 输入无ready/反压；下游吞吐依赖滤波/FIFO/串行配置
-// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
-// 依赖     : ad4080_top
-// 边界     : DSP重启同时清配置/滤波/FIFO；仅DSP重启不清SAR模拟sticky。
-//          输出不携带过滤窗口/结果ID；不能把输入accepted ID当成滤波/FIFO输出标签。
+// 手册依据: 无；本项目接口规则。
+// 时钟域: clk；SAR 数据、标志与控制均同步，不含 CDC。
+// 复位: 外部 rst_n 或 sar_epoch_clear/dsp_restart 异步断言 DSP 复位，须同步释放。
+// 延迟: sample_accepted/rejected 是入口组合事件，ID 仅在对应事件有效时解释。
+// 吞吐: 输入无 ready/反压，下游速率依赖滤波、FIFO 与串行配置。
+// 可综合性: RTL 结构；目标库映射、约束、SRAM/PHY 与 STA 须单独验收。
+// 依赖: ad4080_top。
+// 边界: DSP 重启清配置、滤波和 FIFO 控制状态，不清 SAR 模拟粘滞故障或初始化 RAM。
+//     输出不携带滤波窗口或结果 ID，不能将入口 accepted ID 当作滤波/FIFO 输出标签。
 //=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
@@ -26,20 +26,20 @@ module sar20_ad4080_top #(
 ) (
     input  logic        clk,
     input  logic        rst_n,
-    // Both pulses reset the DSP, including configuration and FIFO contents.
+    // 两个脉冲均复位 DSP 配置、滤波和 FIFO 控制状态；RAM 内容本身不初始化。
     input  logic        sar_epoch_clear,
     input  logic        dsp_restart,
 
-    // sar20_digital_core retirement interface. flags = {clip_high, clip_low,
-    // adc2_ovf, gain_err, acc_ovf}. All five flags are treated as a fault.
+    // SAR 退役接口的 flags 顺序为 {clip_high, clip_low, adc2_ovf, gain_err, acc_ovf}，
+    // 五个标志均按故障处理。
     input  logic [19:0] sar_dout,
     input  logic        sar_dout_valid,
     input  logic [31:0] sar_sample_id,
     input  logic [4:0]  sar_flags,
-    // SAR analog_ovf is sticky and is not part of sar_flags.
+    // SAR analog_ovf 是独立粘滞状态，不在 sar_flags 内。
     input  logic        sar_analog_ovf,
 
-    // Input-side audit stream. IDs are not attached to filtered/FIFO outputs.
+    // ID 只限定入口接受/拒绝事件，不附加到滤波或 FIFO 输出。
     output logic        sample_accepted,
     output logic [31:0] accepted_sample_id,
     output logic        sample_rejected,
@@ -68,8 +68,7 @@ module sar20_ad4080_top #(
     output logic [3:0]  gpio_o,
     output logic [3:0]  gpio_oe,
 
-    // Project-facing parallel output is offset binary, like the SAR input.
-    // The serial payload stays in the AD4080 DSP's two's-complement format.
+    // 并行输出与 SAR 输入均采用偏移二进制码，串行载荷仍采用 DSP 的补码格式。
     output logic [19:0] dout,
     output logic        dout_valid,
     output logic [7:0]  status,
@@ -86,8 +85,7 @@ module sar20_ad4080_top #(
     wire inner_dco;
     wire inner_clip_low, inner_clip_high;
 
-    // Any flagged retirement halts acceptance until a full DSP restart. This
-    // prevents an error-held SAR word from silently contaminating a filter.
+    // 带标志的退役结果停止后续接收，直至整个 DSP 重启，避免 SAR 错误保持码进入滤波器。
     always_ff @(posedge clk or negedge dsp_rst_n) begin
         if (!dsp_rst_n) stream_fault <= 1'b0;
         else if (input_fault || sar_analog_ovf) stream_fault <= 1'b1;
@@ -115,8 +113,7 @@ module sar20_ad4080_top #(
     );
 
     assign dout = {~signed_output[19], signed_output[18:0]};
-    // The fault also suppresses older in-flight results; restart clears all
-    // filter/FIFO state rather than resuming across a missing sample.
+    // 故障同时抑制更早的在途结果；重启清除滤波/FIFO 状态，不跨缺失样本自动续流。
     assign dout_valid = inner_valid && stream_active;
     assign ser_data = stream_active ? inner_ser_data : 2'b00;
     assign ser_frame = stream_active ? inner_ser_frame : 2'b00;

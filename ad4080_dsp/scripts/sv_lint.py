@@ -1,22 +1,17 @@
 #!/usr/bin/env python3
-"""AD4080 RTL 静态检查门禁。
+"""组合 pyslang 语法/elaboration 诊断与工程文本风格检查。
 
-做两件事：
-  1. 用 pyslang 做**完整语法解析 + elaboration**，报告 file:line 级诊断。
-  2. 按 docs/coding_standard.md 做文本级风格检查。
+pyslang 负责完整语法解析和 elaboration，诊断带文件与行号；文本规则
+对应 docs/coding_standard.md。此门禁不代替仿真、CDC 或综合/STA。
 
-为什么不用 Verible：
-  Verible 官方 v0.0-4296 的 macOS 资产实际打包的是 Linux ARM64 ELF
-  （`file` 显示 "ELF 64-bit ... ARM aarch64"），在 macOS 上无法执行；
-  本机也没有 Docker/Homebrew。因此这里用 pyslang（slang 的 Python 绑定，
-  工业级 SystemVerilog 前端）承担语法/位宽/符号检查，风格规则用文本检查补齐。
-  在 Linux CI 上仍应加跑 `verible-verilog-lint`（命令见 docs/coding_standard.md）。
+既有工具选型记录指出，Verible v0.0-4296 的 macOS 资产实际为 Linux
+ARM64 ELF（``ELF 64-bit ... ARM aarch64``），不能在 macOS 执行，
+当时本机也无 Docker/Homebrew，因此采用 slang 的 Python 绑定 pyslang。
+Linux CI 仍应按上述规范运行 verible-verilog-lint。该记录不作为本次环境探测。
 
-用法：
-    python3 scripts/sv_lint.py rtl/*.sv
-    python3 scripts/sv_lint.py --strict rtl/*.sv   # 警告也判失败
-退出码：
-    0 通过；1 有错误（或 --strict 下有警告）；2 参数错误
+用法：``python3 scripts/sv_lint.py rtl/*.sv``；``--strict`` 将警告计为失败。
+退出码 0 表示本门禁通过，1 表示错误、风格问题或 strict 模式警告，
+2 表示没有提供文件。
 """
 
 from __future__ import annotations
@@ -24,7 +19,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-MAX_LINE = 120  # 中英混排，取 120；纯英文项目建议 100
+MAX_LINE = 120  # 文本检查按字符计数；中英混排上限 120，纯英文项目建议 100。
 REQUIRED_HEADER = (
     "@file",
     "@brief",
@@ -40,7 +35,15 @@ REQUIRED_HEADER = (
 
 
 def parse_diagnostics(files: list[Path]) -> tuple[list[str], list[str]]:
-    """Return (errors, warnings) as 'file:line: code' strings."""
+    """解析并 elaboration 所选文件，分开返回错误与警告。
+
+    Args:
+        files: 非空路径列表；调用方负责提供可解析的源码依赖闭包。
+
+    Returns:
+        ``(errors, warnings)``；各项采用 ``file:line: code`` 字符串。
+        缺少 pyslang 时错误列表包含安装提示，不视为完成检查。
+    """
     try:
         from pyslang import ast, syntax
     except ImportError:
@@ -65,7 +68,7 @@ def parse_diagnostics(files: list[Path]) -> tuple[list[str], list[str]]:
 
 
 def style_check(path: Path) -> list[str]:
-    """Text-level rules from the project coding standard."""
+    """按工程编码规范返回文本问题列表，不进行 HDL 语义验证。"""
     problems: list[str] = []
     text = path.read_text(encoding="utf-8", errors="replace")
     lines = text.splitlines()
@@ -105,7 +108,10 @@ def style_check(path: Path) -> list[str]:
 
 
 def main(argv: list[str]) -> int:
-    """命令行入口：解析 .sv 诊断，--strict 时把警告也计为错误。"""
+    """检查 argv 指定的 RTL 文件，打印诊断并返回门禁退出码。
+
+    ``--strict`` 使警告也导致失败；argv 不包含脚本文件名。
+    """
     strict = "--strict" in argv
     files = [Path(a) for a in argv if not a.startswith("--")]
     if not files:

@@ -1,4 +1,4 @@
-"""Rail-charge checks using direct capacitor/node equations."""
+"""用逐电容、逐节点的直接方程检查参考轨电荷。"""
 
 import numpy as np
 import pytest
@@ -25,7 +25,7 @@ def test_rail_charge_includes_sampled_charge_and_floating_node_redistribution():
     sampled = sampled_bottom_voltages(cfg, np.linspace(-0.7, 0.6, 8), 0)
     codes = [17, 143, 17, 17]
     result = physical_reference_program(cfg, pool, ids, codes, np.arange(4) * 1e-9, 0, sampled)
-    # Independent capacitor-by-capacitor node equations, with no DEM helper.
+    # 独立逐电容节点方程，不调用 DEM 辅助函数。
     previous = pool.unit_caps[ids] * sampled
     expected = []
     for code in codes:

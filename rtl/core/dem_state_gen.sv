@@ -38,8 +38,8 @@ module dem_state_gen #(
   logic [W - 1:0] state_a, state_b;
 
   // 时序边界：reset > load > dem_en 下独立的 en_a/en_b > 保持。
-  // 两个bank分别消费旧状态。若改成全局样本计数再按奇偶分bank，每个bank只能
-  // 看到隔一个取一个的状态子集；独立加法才能各自覆盖全部2^W状态。
+  // 两个bank分别消费旧状态。若改成全局样本计数再按奇偶分bank，
+  // 每个bank只能看到隔一个取一个的状态子集；独立加法才能各自覆盖全部2^W状态。
   always_ff @(posedge clk) begin
     if (!rst_n) begin
       state_a <= {W{1'b0}};

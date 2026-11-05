@@ -1,23 +1,23 @@
 //=============================================================================
 // @file    spi_slave.sv
-// @brief   Mode3配置SPI到同步寄存器事务
-// @details SCLK/CS用clk过采样；支持长/短指令、streaming、地址方向、可选CRC和状态输出。
-//          写仅在选中且完整字节/有效CRC边界提交；CS退出丢弃未完成帧状态。
+// @brief   将 Mode 3 配置 SPI 转换为同步寄存器字节事务。
+// @details SCLK/CS 由 clk 过采样，提供长/短指令、流式地址方向、可选 CRC 和状态
+//          输出。仅在选中且字节完整/CRC 有效的边界提交写入，CS 退出丢弃未完成帧状态。
 // @project SAR20 / AD4080风格数字原型
 // @author  项目维护者（贡献记录见版本库）
 // @date    2026-11-05
 // @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : 功能映射见docs/ad4080_traceability.md；不声称器件逐拍等价。
-// 时钟域   : clk>=8*SCLK；CS/SCLK先同步，SDI须满足相对SCLK的稳定窗口
-// 复位     : rst_n异步低有效；复位禁止we并清帧状态
-// 延迟     : 同步后的数据/CRC末位到同域寄存器接受沿提交；CS需足够同步裕量
-// 吞吐     : 数据字节8个SCLK；CRC开启另8个，指令另8/16个
-// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
-// 依赖     : ad4080_regs经addr/wdata/we/rdata连接
-// 边界     : 仅同步CS和其延迟寄存器进入frame控制；首级同步寄存器只供下一级。
-//          CRC后续字节播种与状态位序按本工程合同，仍需器件/原文一致性证据。
-//          不实现SPI结果FIFO读口、STREAM_MODE计数或TRANSFER_CONFIG。
+// 手册依据: 功能映射见 docs/ad4080_traceability.md，不声称器件逐拍等价。
+// 时钟域: clk>=8*SCLK；CS/SCLK 先同步，SDI 须满足相对 SCLK 的稳定窗口。
+// 复位: rst_n 异步低有效；禁止 we 并清帧状态。
+// 延迟: 同步后的数据/CRC 末位在同域寄存器接受沿提交，CS 须留足同步裕量。
+// 吞吐: 数据字节占 8 个 SCLK，启用 CRC 时另加 8 个；指令占 8/16 个。
+// 可综合性: RTL 结构；目标库映射、约束、SRAM/PHY 与 STA 须单独验收。
+// 依赖: 经 addr/wdata/we/rdata 与 ad4080_regs 连接。
+// 边界: 仅同步 CS 及其延迟寄存器参与帧控制，首级同步寄存器只供下一级。
+//     CRC 后续字节播种与状态位序为本工程规则，仍缺器件/原文一致性证据。
+//     不实现 SPI 结果 FIFO 读口、STREAM_MODE 计数或 TRANSFER_CONFIG。
 //=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
@@ -47,7 +47,7 @@ module spi_slave (
     output logic        clk_cnt_err_pulse                   // 帧长错误脉冲
 );
 
-    // ---------------- 同步与边沿 ----------------
+    // 帧状态只使用第二级同步量及其延迟值，首级寄存器不直接参与边沿判定。
     logic cs_s0, cs_s1, cs_p, sck_s0, sck_s1, sck_p;
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -64,7 +64,7 @@ module spi_slave (
     wire sck_rise = sck_s1 & ~sck_p;
     wire sck_fall = ~sck_s1 & sck_p;
 
-    // ---------------- 状态 ----------------
+
     localparam logic [1:0] PH_INSTR = 2'd0;
     localparam logic [1:0] PH_DATA  = 2'd1;
     localparam logic [1:0] PH_CRC   = 2'd2;
@@ -82,13 +82,13 @@ module spi_slave (
     logic        sdo_r, oe_r;
     logic        crc_err_r, clk_err_r;
 
-    // ---------------- CRC-8 (poly 0x07, seed 0xA5, MSB first) ----------------
+    // CRC-8 使用多项式 0x07、初值 0xA5，按 MSB 先行推进。
     logic [7:0] crc_calc, crc_rx;
     wire  [7:0] crc_step = {crc_calc[6:0], 1'b0} ^
                            ((crc_calc[7] ^ sdi) ? 8'h07 : 8'h00);
     wire  [7:0] crc_rx_nxt = {crc_rx[6:0], sdi};
 
-    // Verilog-2001 风格函数体：Icarus 与 Yosys 的 SV 前端都接受
+    // 保留 Verilog-2001 式函数体，兼容本工程 Icarus/Yosys 前端使用方式。
     function automatic [7:0] crc8_byte(input [7:0] c, input [7:0] b);
         integer i;
         logic [7:0] r;
@@ -100,7 +100,7 @@ module spi_slave (
         end
     endfunction
 
-    // 下一个地址（streaming 增/减 + 回绕）
+    // 流式访问按方向推进并在 15 bit 地址域回绕；single_inst 为 1 时抑制地址推进。
     wire [15:0] addr_next = addr_asc ? (addr_ptr == 16'h7FFF ? 16'h0000 : addr_ptr + 16'd1)
                                      : (addr_ptr == 16'h0000 ? 16'h7FFF : addr_ptr - 16'd1);
 
@@ -112,19 +112,18 @@ module spi_slave (
     wire byte_done  = (phase == PH_DATA)  && sck_rise && (bitcnt == 5'd7);
     wire crc_done   = (phase == PH_CRC)   && sck_rise && (bitcnt == 5'd7);
 
-    // 本帧是否在第一字节（CRC 语义按手册分首字节/后续字节）
+    // CRC 处理区分本帧首字节与后续字节，具体覆盖范围采用本工程的接口规则。
     wire first_byte = (byte_cnt == 8'd0);
 
-    // 写提交必须与 addr/wdata **同拍**：we 若是寄存输出，等它拉高时
-    // streaming 已经把 addr 推到下一个寄存器（默认递减 -> 写到 addr-1）。
+    // 写提交须与 addr/wdata 同拍。若将 we 再寄存，流式地址会先推进到下一
+    // 寄存器；默认递减时将错写到 addr-1。
     wire we_byte = byte_done && !cmd_r && !crc_en;
     wire we_crc  = crc_done  && !cmd_r && crc_en && (crc_rx_nxt == crc_calc);
-    // Commit uses the same synchronized frame boundary as the state machine.
-    // Pending SCLK edges must never commit a partial byte after CS cancellation.
+    // 提交与状态机共用同步帧边界，CS 取消后的待处理 SCLK 边沿不得提交不完整字节。
     wire frame_active = rst_n && !cs_s1 && !cs_fall && !cs_rise;
     wire we_comb = frame_active && (we_byte | we_crc);
 
-    // ---------------- 主时序 ----------------
+
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             phase       <= PH_INSTR;
@@ -189,7 +188,7 @@ module spi_slave (
                 sdo_r <= 1'b0;
                 oe_r  <= 1'b0;
             end else begin
-                // ================= 上升沿：采样 =================
+                // 同步后的 SCLK 上升沿采样指令、数据和 CRC。
                 if (sck_rise) begin
                     case (phase)
                         PH_INSTR: begin
@@ -215,10 +214,9 @@ module spi_slave (
                         PH_DATA: begin
                             shin   <= shin_nxt;
                             bitcnt <= bitcnt + 5'd1;
-                            // 写：按 sdi 逐位入 CRC。
-                            // 读：首字节的 CRC 只覆盖指令；后续字节在字节尾按
-                            //     刚发出的 rdata 整字节更新（不能用 sdi，主机在读时
-                            //     送的是 padding）。
+                            // 写入按 sdi 逐位更新 CRC。读取的首字节只覆盖指令，后续
+                            // 字节在字节尾使用刚发出的 rdata 更新；主机 sdi 是填充数据，
+                            // 不能代替实际读回字节。
                             if (!cmd_r) crc_calc <= crc_step;
                             if (byte_done) begin
                                 if (!cmd_r) wdata_r <= shin_nxt;   // 先存，等 CRC
@@ -261,12 +259,12 @@ module spi_slave (
                     endcase
                 end
 
-                // ================= 下降沿：更新 SDO =================
+                // 同步后的 SCLK 下降沿更新 SDO，供下个采样沿使用。
                 if (sck_fall) begin
                     case (phase)
                         PH_INSTR: begin
                             if (send_status) begin
-                                // 状态字节 MSB first，长指令传两遍，短指令传一遍
+                            // 状态字节按 MSB 先行发送，长指令传两遍，短指令传一遍。
                                 stat_sr  <= {stat_sr[6:0], 1'b0};
                                 sdo_r    <= stat_sr[7];
                                 if (stat_cnt == 3'd7) begin
@@ -316,17 +314,9 @@ module spi_slave (
     end
 
 `ifdef FORMAL
-    // ------------------------------------------------------------------
-    // 形式不变量（仅 -DFORMAL 时编译，不参与综合）
-    //   1) 写提交必须落在当前指令地址上：这是仿真抓到过的 addr 偏移 bug
-    //   2) 读事务绝不能产生写
-    //   3) 地址只用 15 位
-    // ------------------------------------------------------------------
-    // 形式不变量（仅 -DFORMAL，不参与综合/仿真）：
-    //   1) 写提交必须落在本字节的指令地址上（addr_ptr 在 cs_fall 会清零，
-    //      而 addr 保留上一帧值，所以只在 we=1 时相等）；
-    //   2) 读事务绝不会产生写；
-    //   3) 地址只用 15 位。
+
+    // 仅在 -DFORMAL 下检查提交地址、读写方向和 15 bit 地址域。addr_ptr 在
+    // cs_fall 清零而 addr 保留上一帧值，因此仅在 we=1 时要求两者相等。
     initial begin
         addr     = 16'd0;
         addr_ptr = 16'd0;

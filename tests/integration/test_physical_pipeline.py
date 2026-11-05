@@ -1,4 +1,4 @@
-"""Electrical and causal checks independent of the shared runner implementation."""
+"""以独立电气方程和因果关系检查流水线，不复用共享运行器作为参考。"""
 
 from dataclasses import replace
 

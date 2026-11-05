@@ -1,23 +1,17 @@
 //===========================================================================
-// result_fifo_tb.sv -- result_fifo 自检 TB
-//===========================================================================
-// 覆盖内容（与 /tmp/fifo_report.md 的"已写但未跑"清单一一对应）
-//   P0 复位值：empty/almost_empty=1，full/almost_full=0，overflow/underflow=0
-//   P1 写满 DEPTH 个：每拍核对 count/full/empty/almost_*，并用 scoreboard 记序
-//   P2 满时继续写：overflow 置位（粘滞）、count 不变、旧数据不被覆盖
-//      满时同拍写+读：写被拒（overflow 保持）、读正常，count-1
-//   P3 排空：逐个比对数据顺序；最后 empty=1；空读使 underflow 置位且 rd_data 不跳变
-//   P4 随机 10000 拍：每拍比对 count/full/empty/almost_*/rd_valid，读数据对 scoreboard
-//   P5 指针回绕：再走一整轮 DEPTH 写 + DEPTH 读（回绕位第二次翻转）
-//   P6 复位中途清空：部分占用的 FIFO 复位后指针/标志全清，随后功能正常
+// result_fifo_tb.sv: 16384×20 FIFO 的计数、边界和顺序自检。
 //
-// 用法（本机没有 Verilator/VCS，**本 TB 尚未执行过**）：
-//   sim/run_vcs.sh -top result_fifo_tb -incdir rtl/params \
-//       rtl/dsp/result_fifo.sv sim/tb/result_fifo_tb.sv
-//   可选 +seed=<n> 改变随机相位种子。
+// P0 检查 empty/almost_empty 复位为 1，其余满/错误标志为 0。P1 写满 DEPTH
+// 个字，逐拍核对占用和阈值；P2 检查满写拒绝、粘滞 overflow，以及满时同拍
+// 写读保守拒写、正常读出的 count-1 行为。P3 按顺序排空，检查空读置 underflow
+// 并保持 rd_data。
 //
-// 说明：TB 直接层次化访问 dut.count / dut.overflow 是**故意**的 —— count 是
-// 内部不变量的观测点，从端口看不到；这属于白盒检查，不替代黑盒端口检查。
+// P4 在预填后运行 10000 拍随机写读，逐拍核对 count、full/empty、almost_*、
+// rd_valid 与顺序数据。P5 再走一整轮 DEPTH 写读以检查回绕；P6 在部分占用时
+// 复位，再检查指针/标志清零及后续读写。随机种子可由 +seed=<n> 指定。
+//
+// dut.count/dut.overflow 的层次访问用于内部不变量白盒检查，同时保留端口检查。
+// 是否实际执行及结果以对应运行日志为准；本文件不固定本机工具状态或通过结论。
 //===========================================================================
 `timescale 1ns/1ps
 
@@ -54,9 +48,7 @@ module result_fifo_tb;
       .overflow(overflow), .underflow(underflow)
   );
 
-  // --------------------------------------------------------------------------
   // 检查/统计
-  // --------------------------------------------------------------------------
   int errors = 0;
   int checks = 0;
 
@@ -77,9 +69,7 @@ module result_fifo_tb;
   logic m_ovf   = 1'b0;
   logic m_unf   = 1'b0;
 
-  // --------------------------------------------------------------------------
   // 单拍驱动：negedge 驱动 -> posedge DUT 采样 -> #0.5 结算后再检查
-  // --------------------------------------------------------------------------
   task automatic tick(input logic do_wr, input logic [DATA_W-1:0] wd, input logic do_rd);
     logic was_full, was_empty;
     logic [DATA_W-1:0] exp;
@@ -95,7 +85,7 @@ module result_fifo_tb;
     #0.5;                  // 停在两个时钟沿之间，跨过 NBA 区取本拍结果
                            // （不能用 #1：会正好落在下一个 negedge 上产生竞争）
 
-    // ---- 参考模型推进 ----
+    // 参考模型推进
     if (do_wr && !was_full) begin
       sb.push_back(wd);
       m_count++;
@@ -116,7 +106,7 @@ module result_fifo_tb;
       m_unf = 1'b1;
     end
 
-    // ---- 端口与模型比对 ----
+    // 端口与模型比对
     `CHK(dut.count == m_count,      "internal count != model count")
     `CHK(empty        === (m_count == 0),      "empty mismatch")
     `CHK(full         === (m_count == DEPTH),  "full mismatch")
@@ -143,9 +133,7 @@ module result_fifo_tb;
     sb.delete();
   endtask
 
-  // --------------------------------------------------------------------------
   // 主流程
-  // --------------------------------------------------------------------------
   initial begin : main
     int            i;
     int            seed;
@@ -160,7 +148,7 @@ module result_fifo_tb;
     void'($value$plusargs("seed=%d", seed));
     rnd = $urandom(seed);
 
-    // ---------------- P0 复位 ----------------
+    // P0 复位
     rst_n = 1'b0;
     repeat (4) @(negedge clk);
     rst_n = 1'b1;
@@ -175,7 +163,7 @@ module result_fifo_tb;
     `CHK(dut.count == 0,          "P0 count != 0 after reset")
     $display("[%0t] P0 reset OK", $time);
 
-    // ---------------- P1 写满 ----------------
+    // P1 写满
     for (i = 0; i < DEPTH; i++) begin
       tick(1'b1, i[DATA_W-1:0], 1'b0);
       if (i == DEPTH - AF_M - 1)
@@ -189,7 +177,7 @@ module result_fifo_tb;
     `CHK(dut.count == DEPTH,   "P1 count != DEPTH")
     $display("[%0t] P1 fill %0d OK (errors=%0d)", $time, DEPTH, errors);
 
-    // ---------------- P2 满时写：overflow、不覆盖 ----------------
+    // P2 满时写：overflow、不覆盖
     for (i = 0; i < 4; i++) tick(1'b1, 20'hBAD00 + i[DATA_W-1:0], 1'b0);
     `CHK(overflow === 1'b1,    "P2 overflow 未在满写时置位")
     `CHK(dut.count == DEPTH,   "P2 满写改变了 count")
@@ -205,7 +193,7 @@ module result_fifo_tb;
     `CHK(overflow === 1'b1,      "P2 满时同拍写+读后 overflow 掉了")
     $display("[%0t] P2 full/overflow OK", $time);
 
-    // ---------------- P3 排空 + underflow ----------------
+    // P3 排空 + underflow
     // P2 的同拍读已经取走 head（data=0），故从 1 开始比对。
     exp_idx = 1;
     for (i = 0; i < DEPTH - 1; i++) begin
@@ -227,7 +215,7 @@ module result_fifo_tb;
     `CHK(dut.count == 0,         "P3 空读改变了 count")
     $display("[%0t] P3 drain/underflow OK (errors=%0d)", $time, errors);
 
-    // ---------------- P4 随机 10000 拍 ----------------
+    // P4 随机 10000 拍
     // 先复位清掉粘滞标志，再预填 2000 个，使随机游走有足够余量。
     do_reset();
     for (i = 0; i < 2000; i++) tick(1'b1, 20'h10000 + i[DATA_W-1:0], 1'b0);
@@ -240,7 +228,7 @@ module result_fifo_tb;
     end
     $display("[%0t] P4 random 10000 OK (count=%0d, errors=%0d)", $time, dut.count, errors);
 
-    // ---------------- P5 指针回绕：再走一整轮 ----------------
+    // P5 指针回绕：再走一整轮
     while (!empty) tick(1'b0, '0, 1'b1);
     for (i = 0; i < DEPTH; i++) tick(1'b1, 20'h20000 + i[DATA_W-1:0], 1'b0);
     `CHK(full === 1'b1, "P5 第二轮未写满")
@@ -249,7 +237,7 @@ module result_fifo_tb;
     `CHK(dut.count == 0, "P5 第二轮 count != 0")
     $display("[%0t] P5 wrap OK", $time);
 
-    // ---------------- P6 中途复位 ----------------
+    // P6 中途复位
     for (i = 0; i < 100; i++) tick(1'b1, i[DATA_W-1:0], 1'b0);
     do_reset();
     `CHK(empty === 1'b1 && full === 1'b0, "P6 复位后指针未清")
@@ -260,7 +248,6 @@ module result_fifo_tb;
     `CHK(empty === 1'b1, "P6 复位后功能异常")
     $display("[%0t] P6 mid-reset OK", $time);
 
-    // ---------------- 总结 ----------------
     if (errors == 0) begin
       $display("=================================================");
       $display(" RESULT_FIFO_TB PASS: %0d checks, 0 errors", checks);

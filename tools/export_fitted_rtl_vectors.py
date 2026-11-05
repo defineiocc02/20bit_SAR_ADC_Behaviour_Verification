@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-"""Generate a deterministic fitted-weight RTL holdout fixture (18 physical slices).
+"""生成确定的拟合权重 RTL 留出夹具，使用 18 个仿真物理切片。
 
-Training sees only a separate reference input and digital observations.  The
-holdout retains the same simulated physical pool but changes tone and phase.
-The vectors carry quantized coefficients, observed backend codes and physical
-switch masks; no true capacitance or ideal residue is exported to the RTL.
+训练仅接收单独参考输入和数字观测；留出沿用同一仿真物理池，改变频率与相位。
+向量包含量化系数、后级码及物理开关掩码，不向 RTL 导出电容真值或理想残差。
 """
 
 from __future__ import annotations

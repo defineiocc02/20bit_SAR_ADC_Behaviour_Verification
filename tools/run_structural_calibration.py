@@ -70,7 +70,7 @@ def _read_capture(path: Path, spec: CalibrationSpec):
 
 
 def _check_model_contract(cfg: Config, data, x: np.ndarray) -> None:
-    """Compare the structural Python profile with the real observed schedule."""
+    """将结构 Python 配置与实际观察到的调度比较。"""
 
     def known_input(time_s):
         index = np.rint(np.asarray(time_s) * cfg.fs).astype(np.int64)
@@ -104,7 +104,7 @@ def _run_capture(
     check_clear: bool = False,
     noise_rms_uv: float = 0.0,
 ) -> Path:
-    """Run the same real RTL with a selected plant, data set and coefficient image."""
+    """使用所选电气模型、数据集及系数镜像运行同一 RTL。"""
     destination = output / name
     destination.mkdir()
     alias = temp_root / name
@@ -385,7 +385,7 @@ def run(
 
 
 def main() -> None:
-    """Parse paths and bounded experiment settings."""
+    """解析路径及有界实验设置。"""
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--output", type=Path, required=True)
     ap.add_argument("--train", type=int, default=4096)

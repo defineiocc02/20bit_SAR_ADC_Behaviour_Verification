@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""Reproduce the optional CAAZ sample-domain experiment, without fitting silicon.
+"""复现可选 CAAZ 样本域实验，不拟合硅片性能。
 
-The independent AZ and ordinary error RMS values below are explicit ASSUMED
-RA-output voltages. Errors enter the native RA before clipping and ADC2; final
-words are reconstructed before pairing. C32-1 Fig. 6 supplies the held-noise
-mechanism, not these amplitudes, the target architecture, or its 40/20 MS/s rates.
-Run products go to a new external directory. No existing evidence is overwritten.
+自归零及普通误差 RMS 是显式 ASSUMED 的 RA 输出电压，进入原有 RA 后先限幅、
+再经过 ADC2，最终码重构后配对。C32-1 图 6 提供保持噪声机制，不提供这些幅度、
+目标架构或 40/20 MS/s 速率。产物写入新建库外目录，不覆盖已有证据。
 """
 
 from __future__ import annotations
@@ -30,16 +28,16 @@ def _statistics(error_v: np.ndarray) -> dict[str, float]:
 
 
 def reproduce(destination: Path) -> None:
-    """Run matched full-ADC cases and a held-noise sensitivity experiment.
+    """运行匹配的完整 ADC 案例和保持噪声敏感性实验。
+
+    向尚不存在的 destination 独占创建目录，保存摘要及原始数值记录。
+    各 ADC 记录独立预置，不覆盖已有证据。
 
     Args:
-        destination: New directory for summary JSON and raw numerical captures.
+        destination: 新输出目录。
 
     Returns:
-        None; writes reproducible numerical evidence under destination.
-
-    Side effects:
-        Creates destination exclusively and runs independently primed ADC records.
+        None；数值记录写入 destination。
     """
     destination.mkdir(parents=True, exist_ok=False)
     cfg = Config.rtl_structural(

@@ -28,8 +28,8 @@ module sar_trial_ctrl #(
 
   assign compare_enable = enable && busy && !cancel;
 
-  // The pending bit is applied to a temporary copy. resolved_code contains
-  // only accepted decisions; trial_code additionally raises the next test bit.
+  // The pending bit is applied to a temporary copy. resolved_code contains only accepted decisions;
+  // trial_code additionally raises the next test bit.
   always_comb begin
     accepted = resolved_code;
     accepted[bit_index] = cmp_ge;
@@ -48,8 +48,8 @@ module sar_trial_ctrl #(
       done <= 0;
       resolved_valid <= 0;
     end else begin
-      // Pulses refer to the update just committed by this rising edge. Other
-      // always_ff blocks observe these pulses on the FOLLOWING rising edge.
+      // Pulses refer to the update just committed by this rising edge. Other always_ff blocks
+      // observe these pulses on the FOLLOWING rising edge.
       done <= 0;
       resolved_valid <= 0;
       if (start && !busy) begin

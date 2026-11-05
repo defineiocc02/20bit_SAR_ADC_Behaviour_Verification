@@ -1,38 +1,22 @@
 #!/usr/bin/env python3
-r"""SystemVerilog 子集变异注入器（VeriBugBench 算子的**转用**实现）。
+"""在本项目 SystemVerilog 子集中枚举和注入变异。
 
-## 这是什么
+按 docs/rtl/MUTATION_AUDIT_VS_VERIBUGBENCH.md §6.1，将匹配、守卫与变换组合为
+各个算子。注入只修改 <out-root>/<name>/rtl/ 中的生产 SV 副本，原 rtl/ 保持只读。
+同名变异体目录按现有注入逻辑重建；清单和抽样选择不表示产物已经编译或被检出。
 
-按 ``docs/rtl/MUTATION_AUDIT_VS_VERIBUGBENCH.md`` §6.1 自写的注入器：每条算子 =
-**matcher + guard + transform** 三件套，只改**副本**（按相对路径把 ``rtl/``
-下所有生产 SV 拷到 ``<out-root>/<name>/rtl/`` 再改），**原 ``rtl/`` 一个字节都不动**。
+本实现转用 VeriBugBench（arXiv:2609.18022）的算子分类和保留判据，衡量本项目
+测试台对所注入故障的检出情况。原论文的测度针对基准构造及产物质量，不是调试
+技术性能；这里的结果不能解释为达到该基准的某个性能水平。
 
-## 转用声明（与审计文档 §0 同句搬运，不得删）
+论文前端使用 Pyverilog 的 Verilog 子集；本项目还使用 logic、always_ff、'0、
+$signed 和打包数组。因此本工具采用行内文本匹配及显式守卫，只是本 SV 子集
+中的近似实现，不能与论文算子逐条等同。各算子的 BOUNDS 声明适用范围和未覆盖
+形式；可比较的范围限于分类与保留判据，详见原论文 §5.6 和审计文档。
 
-论文（VeriBugBench, arXiv:2609.18022）的测度描写的是"基准构造与产物质量，
-**而非某个调试技术的性能**"。我们拿它的算子分类与保留判据来量**我们自己 TB 的
-故障检出强度**，属**转用**；**不得**反过来声称"我们的 TB 达到了该基准的某个水平"。
-
-## ⚠️ 与论文的算子实现**不可逐条对照**（论文 §5.6 / 本文件 §"算子边界"）
-
-论文前端是 **Pyverilog（Verilog 子集）**，本项目 ``rtl/`` 是 **SystemVerilog**
-（``logic`` / ``always_ff`` / ``'0`` / ``$signed`` / 打包数组），Pyverilog 解析不了。
-故本注入器**不是**论文算子的等价实现，而是：在**本项目 SV 子集**内用
-**行内联文本匹配 + 显式守卫**做出的近似；每条算子的 ``BOUNDS`` 里写明了它在本子集下
-的适用边界与已知不覆盖情形。**可对照的只有"分类"与"保留判据"，不是实现细节。**
-
-## 用法
-
-    # 清单：枚举合法注入点 + 每个算子的机会总数（含按文件分解）
-    python tools/mutate_rtl.py --list
-    python tools/mutate_rtl.py --json > inventory.json
-
-    # 精确注入一个已知位点（端到端验证用）
-    python tools/mutate_rtl.py --op ExprUpdate --file rtl/core/calib_regs.sv --line 107 \\
-        --name cb_le_eq --out-root sim/artifacts/mut
-
-    # 均匀抽样 b 个（论文 b=20；Phase 1a 只验机制，不跑 campaign）
-    python tools/mutate_rtl.py --op ExprDelete --sample 3 --seed 20260919
+--list 或 --json 枚举位点及逐文件机会数；注入通过 --op 配合 --file/--line、
+--index 或 --sample 选择。--sample 对合法位点均匀抽样，--seed 控制复现；
+每个位点写一个独立变异体。论文的 b=20 与本工具的抽样参数不是测试覆盖保证。
 """
 
 from __future__ import annotations
@@ -58,7 +42,15 @@ DEFAULT_OUT_ROOT = REPO_ROOT / "sim" / "artifacts" / "mut"
 
 @dataclass(frozen=True)
 class Site:
-    """一个合法注入点：``rel`` 第 ``line`` 行的 ``[col, col+len(span))`` 换成 ``repl``。"""
+    """记录一个合法注入点及替换内容。
+
+    Attributes:
+        rel: 源文件相对路径。
+        line: 从 1 开始的源行号。
+        col: 从 0 开始的字符列号；替换区间为 [col, col + len(span))。
+        span: 必须与源内容精确匹配的文本，可跨行。
+        repl: 用于替换 span 的文本。
+    """
 
     op: str
     family: str
@@ -72,13 +64,13 @@ class Site:
 
     @property
     def key(self) -> str:
-        """本注入点的稳定唯一键（用于去重与"同一变异复现"）。"""
+        """返回由文件、行、列和算子组成的稳定键，用于去重与复现。"""
         return f"{self.rel}:{self.line}:{self.col}:{self.op}"
 
 
 @dataclass(frozen=True)
 class Operator:
-    """一条变异算子 = **matcher + guard + transform** 三件套 + 本 SV 子集下的边界声明。"""
+    """组合算子名称、分类、动作、适用边界及位点枚举函数。"""
 
     name: str
     family: str
@@ -96,7 +88,7 @@ _IDENT_RE = re.compile(r"^[A-Za-z_]\w*$")
 
 
 def _code(line: str) -> str:
-    """去掉行尾 ``//`` 注释；本 RTL 无字符串字面量，故朴素切割安全。"""
+    """移除行尾 // 注释；此简化切分只适用于不含相关字符串字面量的输入子集。"""
     i = line.find("//")
     return line if i < 0 else line[:i]
 
@@ -114,10 +106,10 @@ def _lhs_tokens_before(line: str, idx: int, width: int = 48) -> str:
 
 
 def _is_stmt_nba(line: str) -> bool:
-    """粗略判定：本行是**语句级**非阻塞赋值（``lhs <= ...``），不是比较 ``<=``。
+    """识别单行的简单非阻塞赋值，区分赋值符号与关系运算符 <=。
 
-    判据：行首（去空白）起是"简单左值 + 可选位选"后紧跟 ``<=``，且末尾为 ``;``。
-    本 RTL 的非阻塞赋值都是一行一条、左值形式规整，故该判据足够；边界见各算子 BOUNDS。
+    支持简单左值和可选位选，要求语句以分号结束。多行赋值及更复杂语法的适用性
+    由各算子的 BOUNDS 限定，不能由此谓词推断支持。
     """
     code = _code(line).rstrip()
     if not code.endswith(";"):
@@ -132,7 +124,7 @@ def _is_stmt_nba(line: str) -> bool:
 
 
 def _nba_parts(line: str) -> tuple[str, str, str] | None:
-    """返回 ``(缩进, 左值, 右值)``；不是语句级非阻塞赋值则 ``None``。"""
+    """将语句级非阻塞赋值拆为缩进、左值和右值；不匹配时返回 None。"""
     if not _is_stmt_nba(line):
         return None
     code = _code(line)
@@ -143,7 +135,7 @@ def _nba_parts(line: str) -> tuple[str, str, str] | None:
 
 
 def _top_level_terms(expr: str, joiner: str) -> list[str]:
-    """按**顶层** ``joiner`` 切分（不切括号内的）。"""
+    """按顶层 joiner 切分表达式，保留括号内部的连接词。"""
     parts, depth, cur = [], 0, []
     i = 0
     while i < len(expr):
@@ -164,10 +156,9 @@ def _top_level_terms(expr: str, joiner: str) -> list[str]:
 
 
 def _find_top_joiners(expr: str, joiner: str) -> list[tuple[int, int]]:
-    """返回该表达式里**顶层** ``joiner`` 的 ``[(start, end)]``（相对 expr 的下标）。
+    """返回顶层连接词的 [start, end) 字符区间，索引相对于 expr。
 
-    单字符连接词（``&`` / ``|`` / ``^``）必须排除它是 ``&&`` / ``||`` 一半的情形，
-    否则 ``&&`` 会被数成两个 ``&`` —— 那正是第一版切错顶层项的根因之一。
+    匹配单字符 &、| 或 ^ 时排除较长连接词的组成部分，避免把 && 计作两个 &。
     """
     out, depth, i = [], 0, 0
     while i < len(expr):
@@ -191,12 +182,10 @@ def _find_top_joiners(expr: str, joiner: str) -> list[tuple[int, int]]:
 
 
 def _expr_region_start(code: str) -> int:
-    """返回本行**表达式起点**：顶层语句级赋值号（``=`` 或 ``<=``）之后的位置；无则 0。
+    """返回顶层语句级 = 或 <= 后的位置；未找到赋值时返回 0。
 
-    为什么需要它：本注入器是行级的，若直接对整行找 ``&&``，则"第 0 项"其实是
-    ``assign w_ok = wr_en`` 这一整段前缀 —— 删掉它会毁行（第一版就产出过
-    ``wr_en  (!cfg_ready) && …`` 这种非法语法）。限定在赋值号右侧后，
-    "第 k 项"才是真正的操作数。
+    只在赋值右侧枚举操作数，避免将 assign w_ok = wr_en 等语句前缀误当作
+    可删除的首个表达式项。
     """
     depth, last, i = 0, -1, 0
     while i < len(code):
@@ -216,12 +205,10 @@ def _expr_region_start(code: str) -> int:
 
 
 def _read_text(path: Path) -> str:
-    """按**原始字节**读文本：不把 CRLF 归一成 LF。
+    """保留原始换行形式读取 UTF-8 文本，不将 CRLF 归一为 LF。
 
-    为什么必须这样读：本仓库在 Windows worktree 上的检出是 **CRLF**（提交里的 blob 是 LF，
-    见 ``git show HEAD:sim/run_vcs.sh``），而"副本除注入点外与原文件逐字节相同"这条
-    保真性声明要求**行尾也不能被顺手改掉**。用 ``Path.read_text()`` 会把 CRLF 归一成 LF，
-    于是所有变异副本都会静默地把整个文件的行尾改掉 —— 那会让"只改了一处"变成假话。
+    注入副本要求除目标区间外逐字节保真；普通文本读取的换行归一化会破坏该约束。
+    此处通过 newline="" 保留源文件换行，兼容 LF 与 CRLF 检出。
     """
     with path.open("r", encoding="utf-8", newline="") as fh:
         return fh.read()
@@ -254,10 +241,9 @@ _OPTOKEN_RE = re.compile(r"[<>=!&|^~+*/%-]+")
 
 
 def _operator_token_at(code: str, i: int) -> str:
-    """返回 ``code[i]`` 所在的那个**极大算子 token**（如 ``&&`` / ``<=`` / ``>>>``）。
+    """返回 code[i] 所在的最长连续算子词法单元，例如 &&、<= 或 >>>。
 
-    这是 ExprUpdate 的关键守卫：否则 ``&`` 会匹配到 ``&&`` 里、``<`` 会匹配到 ``<=`` 里，
-    产出 ``|&`` 这种非法语法（本注入器第一版就这么错过，实测产出不可编译产物）。
+    该守卫避免将短算子匹配到长算子内部，否则可能生成 |& 等非法文本。
     """
     if i < 0 or i >= len(code) or code[i] not in _OPCHARS:
         return ""
@@ -271,7 +257,7 @@ def _operator_token_at(code: str, i: int) -> str:
 
 
 def _expr_update(rel: str, lines: list[str]) -> list[Site]:
-    """Expression / update：把**二元算子**换成同族的另一个（含关系算子）。"""
+    """替换同族二元运算符，包括关系运算符；跳过非阻塞赋值本身的 <=。"""
     menu = [
         (">>>", ">>"),
         ("<<", ">>"),
@@ -289,7 +275,7 @@ def _expr_update(rel: str, lines: list[str]) -> list[Site]:
         code = _code(raw)
         if not code.strip() or _port_decl(code):
             continue
-        # 语句级非阻塞赋值里的那一个 `<=` 是赋值算子，不是关系算子 -> 只跳过它
+        # 跳过语句级非阻塞赋值的 <=，其余关系运算符仍可枚举。
         nba_le = code.index("<=") if _is_stmt_nba(code) else -1
         for op, new in menu:
             hit = False
@@ -332,15 +318,11 @@ def _expr_update(rel: str, lines: list[str]) -> list[Site]:
 
 
 def _expr_delete(rel: str, lines: list[str]) -> list[Site]:
-    """Expression / delete：删掉一个**顶层**项（``ws_capoff`` / ``sr_nonsticky`` 形态）。
+    """删除赋值右侧的一个顶层项，支持 &&、||、&、| 和 ^ 连接词。
 
-    只在**赋值号右侧**的表达式里切（见 ``_expr_region_start``），连接词覆盖
-    ``&&`` / ``||`` / ``&`` / ``|`` / ``^``（后者使 ``acc_ovf_sticky | ev_acc_ovf``
-    这类"自保持项 + 事件项"也能被删，即审计文档 §2 的 #11 形态）。
-
-    删第 ``k`` 项的切法：``k == 0`` 删 ``term0 + joiner0``；否则删 ``joiner_{k-1} + term_k``。
-    守卫：① 连接词 >= 1 且项 >= 2；② **所有项都非空**（否则 ``assign x = |main_sw;``
-    这类归约算子的空首项会被删成 ``assign x = ;``）；③ 末项的删除不吞行尾分号。
+    首项删除 term0 及其后连接词，其他项删除其前连接词及 term_k。
+    要求至少一个连接词、两个非空项；拒绝归约运算的空首项，并保留末尾分号。
+    该形式覆盖审计文档 §2 的 ws_capoff 与 sr_nonsticky 类单行表达式。
     """
     out: list[Site] = []
     for ln, raw in enumerate(lines, 1):
@@ -368,7 +350,7 @@ def _expr_delete(rel: str, lines: list[str]) -> list[Site]:
                     t_end = js[k][0] if k < n - 1 else (limit - rs)
                     span_s, span_e = rs + js[k - 1][0], rs + t_end
                 while span_s > rs and code[span_s - 1] == " ":
-                    span_s -= 1  # 顺手吞掉前导空白，免得留下 `w_ok ;`
+                    span_s -= 1  # 连同目标项前的空白删除，避免留下 w_ok ;。
                 out.append(
                     Site(
                         "ExprDelete",
@@ -390,7 +372,7 @@ _BV_DECL_RE = re.compile(r"\blogic\s+(?:signed\s+)?\[[^\]]+\]\s+([A-Za-z_]\w*)")
 
 
 def _expr_insert(rel: str, lines: list[str]) -> list[Site]:
-    """Expression / insert（**有限**形式）：在非阻塞赋值右值前插入一元 ``~``。"""
+    """在支持的非阻塞赋值右值前插入一元 ~，仅匹配本文件声明的位向量标识符。"""
     decls = set()
     for raw in lines:
         for m in _BV_DECL_RE.finditer(_code(raw)):
@@ -409,7 +391,7 @@ def _expr_insert(rel: str, lines: list[str]) -> list[Site]:
             continue
         head = re.match(r"^([A-Za-z_]\w*)", rhs)
         if not head or head.group(1) not in decls:
-            continue  # 只对同文件里声明过的位向量标识符做，避免类型/函数误伤
+            continue  # 仅处理同文件声明的位向量标识符，排除类型名和函数名。
         out.append(
             Site(
                 "ExprInsert",
@@ -427,7 +409,7 @@ def _expr_insert(rel: str, lines: list[str]) -> list[Site]:
 
 
 def _partselect_update(rel: str, lines: list[str]) -> list[Site]:
-    """Bit-vector & access / update：``[A:B]`` 边界对调。"""
+    """交换位段 [A:B] 的两个边界；端口位宽由 IOFlip 单独处理。"""
     out: list[Site] = []
     for ln, raw in enumerate(lines, 1):
         code = _code(raw)
@@ -456,7 +438,7 @@ def _partselect_update(rel: str, lines: list[str]) -> list[Site]:
 
 
 def _partselect_delete(rel: str, lines: list[str]) -> list[Site]:
-    """Bit-vector & access / delete：``[A:B]`` 收缩成最高位单比特 ``[A:A]``。"""
+    """将支持的位段 [A:B] 缩减为其 A 端单比特访问。"""
     out: list[Site] = []
     for ln, raw in enumerate(lines, 1):
         code = _code(raw)
@@ -487,7 +469,7 @@ def _partselect_delete(rel: str, lines: list[str]) -> list[Site]:
 
 
 def _pointer_update(rel: str, lines: list[str]) -> list[Site]:
-    """Bit-vector & access / update：单索引 ``[X]`` 做 ±1 扰动（X 非纯字面量）。"""
+    """对非纯字面量的单索引 [X] 作受限 ±1 扰动，复杂索引见 BOUNDS。"""
     out: list[Site] = []
     for ln, raw in enumerate(lines, 1):
         code = _code(raw)
@@ -502,7 +484,7 @@ def _pointer_update(rel: str, lines: list[str]) -> list[Site]:
             else:
                 mm = re.match(r"^([A-Za-z_]\w*)\s*([+-])\s*(\d+)$", x)
                 if not mm:
-                    continue  # 复杂索引留给人工，边界见 BOUNDS
+                    continue  # 此有限匹配器不处理复杂索引，适用边界见 BOUNDS。
                 base, sign, k = mm.group(1), mm.group(2), int(mm.group(3))
                 new = f"{base} {sign} {k + 1}" if sign == "+" else f"{base} - {max(k - 1, 0)}"
             out.append(
@@ -523,7 +505,7 @@ def _pointer_update(rel: str, lines: list[str]) -> list[Site]:
 
 
 def _nsub_update(rel: str, lines: list[str]) -> list[Site]:
-    """Assignment / update：``lhs <= rhs`` -> ``lhs <= ~(rhs)``。"""
+    """将支持的 lhs <= rhs 右值改为按位取反 ~(rhs)。"""
     out: list[Site] = []
     for ln, raw in enumerate(lines, 1):
         parts = _nba_parts(raw)
@@ -555,10 +537,10 @@ def _nsub_update(rel: str, lines: list[str]) -> list[Site]:
 
 
 def _nsub_delete(rel: str, lines: list[str]) -> list[Site]:
-    """Assignment / delete：整条非阻塞赋值语句注释掉（**行数不变**，便于回溯）。"""
+    """将整条非阻塞赋值注释在原行，保持行数供注入位置追溯。"""
     nb = [ln for ln, raw in enumerate(lines, 1) if _is_stmt_nba(raw)]
     if len(nb) < 2:
-        return []  # 只剩 0/1 条赋值的 always 块不删，避免把块删空（边界见 BOUNDS）
+        return []  # 文件内匹配赋值少于两条时不枚举删除；检查范围见 BOUNDS。
     out: list[Site] = []
     for ln in nb:
         raw = lines[ln - 1]
@@ -579,7 +561,7 @@ def _nsub_delete(rel: str, lines: list[str]) -> list[Site]:
 
 
 def _nsub_move(rel: str, lines: list[str]) -> list[Site]:
-    """Assignment / move：交换**相邻两行**同缩进的非阻塞赋值语句。"""
+    """交换相邻两行且缩进相同的非阻塞赋值，保持行数。"""
     out: list[Site] = []
     for ln in range(1, len(lines)):
         a, b = lines[ln - 1], lines[ln]
@@ -609,7 +591,7 @@ _EDGE_RE = re.compile(r"always_ff\s*@\s*\(\s*(posedge|negedge)\s+([A-Za-z_]\w*)\
 
 
 def _edge_flip(rel: str, lines: list[str]) -> list[Site]:
-    """Timing / update：``always_ff @(posedge clk)`` -> ``@(negedge clk)``。"""
+    """交换单沿 always_ff 事件控制中的 posedge 与 negedge。"""
     out: list[Site] = []
     for ln, raw in enumerate(lines, 1):
         code = _code(raw)
@@ -636,7 +618,7 @@ def _edge_flip(rel: str, lines: list[str]) -> list[Site]:
 
 
 def _edge_insert(rel: str, lines: list[str]) -> list[Site]:
-    """Timing / insert：给单沿事件控制插入一条异步复位沿（仅当模块确有 rst_n 端口）。"""
+    """在支持的单沿事件控制中插入异步复位沿，要求源文本包含 rst_n。"""
     if not any(re.search(r"\brst_n\b", ln) for ln in lines):
         return []
     out: list[Site] = []
@@ -670,10 +652,10 @@ _MULTIEDGE_RE = re.compile(r"@\s*\(\s*[^)]*\bor\b[^)]*\)")
 
 
 def _edge_delete(rel: str, lines: list[str]) -> list[Site]:
-    """Timing / delete：从**多沿**事件控制里删掉一个沿。
+    """仅从多沿事件控制中删除一个沿。
 
-    本子集里全部是单沿 ``always_ff @(posedge clk)``（实测 16/16），删掉唯一一个沿后
-    ``always_ff`` 没有事件控制 = 非法 SV，故**机会数为 0** —— 这是"不可达"而非"漏测"。
+    单沿 always_ff 删除唯一事件后会成为非法 SV，因此不生成此类位点。
+    原说明的冻结源集曾登记 16/16 为单沿、机会数为 0；该历史计数不替代当前枚举。
     """
     out: list[Site] = []
     for ln, raw in enumerate(lines, 1):
@@ -711,10 +693,10 @@ _PORT_W_RE = re.compile(
 
 
 def _io_flip(rel: str, lines: list[str]) -> list[Site]:
-    """Port / update：端口**位宽**边界对调，或**方向** input<->output。
+    """交换端口位宽边界，或翻转 input/output 方向。
 
-    边界：方向翻转在本子集里多数会造成多驱动/悬空 -> 被保留判据①（编译）丢弃；
-    这不是算子的缺陷，而是"该构族在本设计上大多不可保留"的事实，故两种模式都枚举、都报数。
+    方向翻转可能产生多驱动或悬空，此类产物须由编译保留判据排除；枚举机会数
+    不表示该变异已经成为可保留的有效测试案例。
     """
     out: list[Site] = []
     for ln, raw in enumerate(lines, 1):
@@ -877,7 +859,7 @@ OPERATORS: tuple[Operator, ...] = (
 
 
 def rtl_files(rtl_root: Path) -> list[Path]:
-    """Enumerate all production SV paths, independent of responsibility folders."""
+    """递归枚举生产 SV 文件，不按责任子目录排除模块。"""
     return sorted(rtl_root.rglob("*.sv"))
 
 
@@ -924,11 +906,10 @@ def inject(
     out_root: Path = DEFAULT_OUT_ROOT,
     rtl_root: Path = RTL_ROOT,
 ) -> Path:
-    """把 ``sites`` 写进 ``<out_root>/<name>/rtl/`` 的**副本**里；返回该目录。
+    """将 sites 注入 <out_root>/<name>/rtl/ 副本并返回变异体根目录。
 
-    原 ``rtl/`` 只读：本函数只读它、只写副本。
-
-    位置用**绝对字符偏移**计算（不是行数组替换），因为 ``NSubMove`` 的 span 可以跨两行。
+    原 rtl/ 仅供读取。同名目标目录会按当前逻辑重建；各站点在写入前精确核对
+    原文本。替换以绝对字符偏移计算，以支持 NSubMove 跨两行的区间。
     """
     dst_root = out_root / name
     if dst_root.exists():
@@ -960,8 +941,8 @@ def inject(
             if s.line < 1 or s.line > len(keep):
                 raise SystemExit(f"注入点行号越界：{rel}:{s.line}")
             off = starts[s.line - 1] + s.col
-            # 站点里的 span/repl 用 `\n` 表达（因为枚举时 `splitlines()` 去掉了行尾），
-            # 这里按该文件**实际的行尾**还原 —— 跨行的 NSubMove 靠这一步才匹配得上。
+            # 枚举时 splitlines() 移除了原行尾，站点 span/repl 统一以 \n 表示换行；
+            # 应用前还原为文件实际换行，使跨行 NSubMove 能精确匹配。
             span = s.span.replace("\n", nl) if nl != "\n" else s.span
             got = text[off : off + len(span)]
             if got != span:

@@ -1,8 +1,8 @@
-"""``tools/mutate_rtl.py`` 的门禁：合法注入点必须**真的**合法，且保真性不能被悄悄破坏。
+"""检查变异位点的合法性、替换保真性和来源追溯。
 
-这里刻意不放"注入器能跑出 1000 个位点"这类规模断言 —— 那种断言对正确性毫无约束。
-放的每一条都是**能在第一版注入器上真的变红**的性质（第一版确实产出过
-``wr_en  (!cfg_ready) && …`` 这类非法语法，也把整个文件的行尾从 CRLF 改成了 LF）。
+断言针对词法边界、分号、跨行区间、原源码只读及换行保留等性质。
+不以位点数量规模代替正确性；历史注入器曾产生非法表达式，并将 CRLF 归一为
+LF，这些回归用于约束对应边界，而不是声称每个枚举产物已编译。
 """
 
 from __future__ import annotations
@@ -76,11 +76,9 @@ def test_edge_delete_is_declared_unreachable(sites):
 
 
 def test_every_site_actually_matches_source(sites):
-    """每个枚举出来的位点，其 span 必须在源文件里按 (line, col) 换算出的**绝对偏移**逐字命中。
+    """检查每个位点的 span 在其绝对字符偏移处逐字匹配源码。
 
-    这条是"清单不是凭空编的"的最低凭据：序号漂了、列算错了，这里就红。
-    ⚠️ 必须按绝对偏移比而不是"按行比"：`NSubMove` 的 span **跨两行**，按行比必假红
-    （本测试第一版就这么错过）。
+    NSubMove 的区间跨两行，因此先按行、列求绝对偏移，不能只比较单行。
     """
     cache: dict[str, str] = {}
     assert sites
@@ -95,10 +93,7 @@ def test_every_site_actually_matches_source(sites):
 
 
 def test_expr_update_never_splits_a_wider_operator(sites):
-    """`ExprUpdate` 的改名结果不能落在更长算子里。
-
-    第一版把 `&&` 里的 `&` 当成位与算子，产出 `|&` 这种非法语法 —— 这条断言就是为它设的。
-    """
+    """检查 ExprUpdate 不把 && 中的 & 等短算子误识别为独立目标，避免生成 |&。"""
     bad = []
     for s in sites:
         if s.op != "ExprUpdate":
@@ -166,11 +161,11 @@ def _code_line(rel, needle):
 def test_expr_delete_reproduces_documented_mutants(
     rel, source, source_line, term, expect_line, tmp_path
 ):
-    """冻结完整赋值fixture复现审计文档 §2 的 #10/#11 两条语法形态。
+    """用冻结单行赋值夹具检查审计文档 §2 #10/#11 的语法形式。
 
-    它们不是从当前生产源码注入：当前accept是跨行赋值，有限行内注入器不覆盖；
-    文档容量项也不含后来加入的STATIC_SUM_SAFE。这里明确冻结单行历史形态，
-    继续钉住删错连接词与吞末尾分号两类缺陷，不把排版位置当作注入器契约。
+    当前 accept 为跨行表达式，有限行内匹配器不覆盖；文档容量条件也未包含后加的
+    STATIC_SUM_SAFE。因此这里仅用历史完整单行形态，约束连接词删除与末尾分号保留，
+    不将当前排版行号视为注入合同。
     """
     rtl_root = tmp_path / "documented_fixture" / "rtl"
     for sub in ("core", "top"):
@@ -213,15 +208,10 @@ def test_expr_delete_removes_current_sticky_self_hold(tmp_path):
 
 
 def test_injection_is_byte_faithful_outside_the_site(tmp_path):
-    """副本除"命中那一行"外必须逐字节相同 —— **包括行尾**。
+    """检查目标行以外逐字节不变，目标行的换行形式也保持原样。
 
-    第一版用 ``Path.read_text()``/``write_text()``，把整个文件的 CRLF 静默换成 LF，
-    于是"只改了一处"就成了假话。所以这条断言必须真的比较字节，而不是"文本相等"。
-
-    **但不断言"检出用哪种行尾"**：仓库已加 ``.gitattributes``（``* text=auto eol=lf``），
-    检出可以是 LF，旧 checkout 也可能是 CRLF。这里只要求"命中行的行尾与源文件一致"
-    （即注入没有顺手改行尾）。把检出策略写进断言会再造一条"随 checkout 变红"的假门禁 ——
-    本仓 2026-09-19 已因这类假门禁吃过三次亏。
+    检出策略可产生 LF，旧工作树也可能保留 CRLF；本断言不选择哪一种正确，只要求
+    注入不改变来源换行。仅比较归一化后的文本不能证明该约束。
     """
     before = _hash_tree(mrt.RTL_ROOT)
     site = next(
@@ -323,7 +313,7 @@ def test_manifest_records_every_site(tmp_path):
 
 
 def test_rtl_files_match_the_compilation_manifest():
-    """All production modules must be both compiled and available for mutation."""
+    """检查生产模块同时列入编译清单和变异范围。"""
     rels = [p.relative_to(mrt.RTL_ROOT.parent).as_posix() for p in mrt.rtl_files(mrt.RTL_ROOT)]
     manifest = (mrt.RTL_ROOT / "rtl_sources.f").read_text().splitlines()
     assert sorted(rels) == sorted(manifest)

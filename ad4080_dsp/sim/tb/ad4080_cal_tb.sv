@@ -1,7 +1,8 @@
 //===========================================================================
-// ad4080_cal_tb.sv -- self-checking TB for AD4080 y=m*x+c + two-point cal
-//===========================================================================
-// Regression for Verilator/XSim. Expected values come from the fixed-point model.
+// ad4080_cal_tb.sv: 仿射系统校正与正向两点拟合的自检测试。
+//
+// 预期整数值来自固定点 Python 模型，面向 Verilator/XSim 回归；
+// 不将正向拟合与应用结果解释为逆向校准有效性或器件精度证据。
 //===========================================================================
 `timescale 1ns/1ps
 
@@ -15,7 +16,7 @@ module ad4080_cal_tb;
     logic rst_n = 0;
     integer errors = 0;
 
-    // ---- two-point calibration ----
+    // 检查固定横坐标的正向两点拟合。
     logic start;
     logic [IN_W-1:0] y1, y2;
     logic [9:0] gain_code;
@@ -29,7 +30,7 @@ module ad4080_cal_tb;
         .done(done), .error(cal_error)
     );
 
-    // ---- system error correction ----
+    // 将拟合的正向系数用于仿射数值通路比较。
     logic valid_in;
     logic [IN_W-1:0] x, y;
     logic valid_out, clip_low, clip_high;
@@ -72,8 +73,7 @@ module ad4080_cal_tb;
         input int exp_y
     );
         begin
-            // Drive away from the active edge and sample the registered
-            // output on a falling edge; avoids simulator-specific TB races.
+            // 避开 DUT 有效采样沿驱动，并在下降沿观察寄存结果，减少不同模拟器的调度竞争。
             @(negedge clk); x = tx; valid_in = 1'b1;
             @(negedge clk); valid_in = 1'b0;
             for (int cycle = 0; cycle < 5 && !valid_out; cycle++) @(negedge clk);
@@ -95,7 +95,7 @@ module ad4080_cal_tb;
         rst_n = 1;
         repeat (2) @(posedge clk);
 
-        // Two-point calibration cases (two's complement, from Python model)
+        // 两点拟合预期值来自 Python 定点模型，输入采用补码。
         check_cal("ideal",       -419430, 419430, 512,    0);
         check_cal("gain +1%",    -423624, 423624, 840,    0);
         check_cal("gain -1%",    -415236, 415236, 184,    0);
@@ -103,10 +103,10 @@ module ad4080_cal_tb;
         check_cal("offset -100", -419530, 419330, 512, -100);
         check_cal("gain+0.5 off+50", -421477, 421577, 676, 50);
 
-        // Apply the last calibration (gain=676, off=50) to x=500000
-        // exp = round(1.005*500000 + 50) = 502550; tolerance = 8 LSB
+        // 对 x=500000 应用最后得到的 gain=676、off=50，比较
+        // round(1.005*500000+50)=502550，容差为 8 LSB。
         check_corr("corr x=500000", 500000, 8, 502550);
-        // 负半轴必须对称（旧无符号实现必错）
+        // 负半轴同时检查符号处理，避免无符号解释只在正码点通过。
         check_corr("corr x=-500000", -500000, 8, -502450);
 
         if (errors == 0) $display("TB PASS");

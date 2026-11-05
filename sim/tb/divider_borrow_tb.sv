@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 
-// Exhaustive reduced-width checks complement the independent 63/64-bit Python
-// oracle. Exercise numerator/divisor width relations and padded unroll groups.
+// Exhaustive reduced-width checks complement the independent 63/64-bit Python oracle. Exercise
+// numerator/divisor width relations and padded unroll groups.
 module divider_borrow_case #(
     parameter int WA = 6, WD = 8, STAGES = 7
 ) (

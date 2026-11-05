@@ -1,27 +1,24 @@
 """charge_ref.py -- 独立电荷参考求解器（v5 第二轮审计 §7-2）。
 
-目的：**不调用** SplitDAC 的闭式解，用逐相位节点方程独立生成参考答案，
-防止"某个公式局部替换后，另一模块仍用旧口径"的系统性风险。
+目的：**不调用** SplitDAC 的闭式解，用逐相位节点方程独立生成参考答案，防止"某个公式局部替换后，
+另一模块仍用旧口径"的系统性风险。
 
 相位连接声明（与 sim_split/dac_arch 引用的桥接方程一致）：
   * 采样相：主/子顶极板钳位到共模 V_cm（取 0），全部底板接输入 x；
-  * 放大相：主顶极板 P 成为虚地（RA 理想），子顶极板 Q 浮置，
-    桥接 C_C 保持连接，反馈电容 C_F 从复位态开始（常数偏移由数字吸收）。
+  * 放大相：主顶极板 P 成为虚地（RA 理想），子顶极板 Q 浮置，桥接 C_C 保持连接，
+    反馈电容 C_F 从复位态开始（常数偏移由数字吸收）。
 
-节点方程（放大相）：
-  Q 节点（浮置，电荷守恒自采样相）：
+节点方程（放大相）：Q 节点（浮置，电荷守恒自采样相）：
       V_Q*(C_C + B + C_p_sub) - S_S - C_C*V_P = -B*x
   P 节点（V_P = 0，电荷差经 C_F 流入输出）：
       C_F * v_R = A*x - S_M - C_C*V_Q
 消去 V_Q（D = C_C + B + C_p_sub, beta = C_C/D）：
       C_F * v_R = (A + beta*B)*x - (S_M + beta*S_S)
                 =  C_sig * x  -  Q_D
-即：**残差电荷 = C_sig*x - Q_D**，输入等效 DAC 电压 = Q_D / C_sig。
-这是全链路唯一的电荷真值来源；SplitDAC 与 sim_split 必须与它一致。
-单位契约：电荷 [C]（fF/µV 级别交叉核对用）；节点电压 [V]。
-适用域：独立参考求解器——**禁止**为通过验收而反向修改本模块去凑
-主循环结果；两边不一致时先怀疑主循环口径（审计方法论）。
-
+即：**残差电荷 = C_sig*x - Q_D**，输入等效 DAC 电压 = Q_D / C_sig。这是全链路唯一的电荷真值来源；
+SplitDAC 与 sim_split 必须与它一致。单位契约：电荷 [C]（fF/µV 级别交叉核对用）；节点电压 [V]。
+适用域：独立参考求解器——**禁止**为通过验收而反向修改本模块去凑主循环结果；
+两边不一致时先怀疑主循环口径（审计方法论）。
 """
 
 from __future__ import annotations
@@ -104,8 +101,8 @@ def ref_ra_charge_nodal(
         [ C_C          C_F ] [ v_R ] = [ A*x - S_M ]
 
     （Q 节点浮置电荷守恒；P 节点虚地，电荷差经 C_F 流出。）
-    闭式解 ref_ra_charge 只是它的解析消元结果 —— 两者的最大偏差是
-    stage12 电荷闭合验收的一部分，防止两份代码同时抄错同一个代数式。
+    闭式解 ref_ra_charge 只是它的解析消元结果 —— 两者的最大偏差是stage12 电荷闭合验收的一部分，
+    防止两份代码同时抄错同一个代数式。
 
     Args:
         chip: 虚拟芯片（SplitChip），提供主/子/桥接/反馈电容真值。
@@ -168,8 +165,8 @@ def ref_ra_charge_nodal(
 def ref_input_equiv_dac(chip: SplitChip, v_fs: float, k: float, levels: int) -> float:
     """名义参数下码 k 的输入等效 DAC 电压 = Q_D_nom / C_sig_nom。
 
-    用名义参数（等电容、名义 C_C/寄生）独立算出 —— 数字端的名义栅格
-    必须由同一关系生成，不得用另一口径（顶板电压）拼凑。
+    用名义参数（等电容、名义 C_C/寄生）独立算出 —— 数字端的名义栅格必须由同一关系生成，
+    不得用另一口径（顶板电压）拼凑。
 
     Args:
         chip: 虚拟芯片（SplitChip），只用其名义参数（等电容、名义桥接/寄生）。
@@ -220,9 +217,8 @@ def dither_mask_charge(
 ) -> tuple:
     """返回 (Q_mask, C_mask)：掩码单位的 dither 电荷与总电容。
 
-    掩码 = bank 阵列**末尾** n_mask=2D 个单位（与 sampler/sim_split 的
-    eps_d 取法一致）；s_j = +1 for 前 D+d_u 个、−1 for 其余。
-    d_units 可为标量或逐样本数组（返回同形 Q_mask）。
+    掩码 = bank 阵列**末尾** n_mask=2D 个单位（与 sampler/sim_split 的eps_d 取法一致）；
+    s_j = +1 for 前 D+d_u 个、−1 for 其余。d_units 可为标量或逐样本数组（返回同形 Q_mask）。
 
     Args:
         chip: 虚拟芯片（SplitChip）。
@@ -348,8 +344,7 @@ def ref_ra_charge_dither_nodal(
 ) -> np.ndarray:
     """真·节点矩阵版（不写闭式）：逐单位 w/b 组装节点方程数值求解。
 
-    与 ref_ra_charge_dither_closed 的最大偏差进 stage18 验收 ——
-    防止"闭式恒等式"本身被抄错而没有第二意见。
+    与 ref_ra_charge_dither_closed 的最大偏差进 stage18 验收 ——防止"闭式恒等式"本身被抄错而没有第二意见。
     全向量化：b 矩阵按码前缀选择，w 矩阵按采样掩码赋 ±V_FS。
 
     Args:

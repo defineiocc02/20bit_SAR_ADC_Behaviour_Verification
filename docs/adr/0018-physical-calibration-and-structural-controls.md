@@ -19,7 +19,7 @@ RTL 不是 CDAC、参考缓冲器、RA 或采样 MOS 的晶体管网表。
 ## 来源逐项映射
 
 | 来源 | 可核实的结构/机制 | 本次 RTL 对应 | 仍需区分的实现选择 |
-|---|---|---|---|
+| :--- | :--- | :--- | :--- |
 | [00] p1、Fig9.8.1；[00_1] slide12 | 两套 SAR、共享 3-bit Flash、独立 RDAC | `sar_trial_ctrl` ×2、`sadc_enc(P_B1=3)` | 二进制基数、逐拍握手不是原芯片 SAR 的完整时序披露 |
 | [00]、专利 [09] US10516408B2 | RDAC 跟随已决位，不承受 SAR 暂态试探 | `resolved_code/resolved_valid` 到 RDAC 驱动 | 63+8 单元展开为原项目模型选择，不等于版图单元数 |
 | [00]、[00_1] | 18 中选 8 转换、8 采集、2 备用 | `slice_pool_ctrl` | PRNG 扫描起点和排列策略为工程实现，不声称均匀遍历全部组合 |
@@ -49,7 +49,9 @@ RTL 不是 CDAC、参考缓冲器、RA 或采样 MOS 的晶体管网表。
 [interleaving](https://patents.google.com/patent/US10707889B1/en)、
 [AUX](https://patents.google.com/patent/US10541702B1/en)、
 [reference](https://patents.google.com/patent/US10826519B1/en)。
-本仓库只保存来源定位与自行实现的 RTL，不重新分发用户提供的全文/图像。
+上述专利原件不随仓库分发。当前另随附维护者选定的三组论文／讲稿共6份PDF，
+清单见 [references](../../references/README.md)；其他原件不随仓库分发，选定PDF不纳入
+Python wheel／sdist，原版权与内嵌声明保持不变。
 
 ## 校正公式与数据归属
 
@@ -93,7 +95,7 @@ clear 撤销配置并清空在途转换，保留数值用于回读但必须重�
 SAR，需要专用握手/CDC方案，不能把当前同步逐拍实现直接当作相同时序。
 
 | 默认 phase | 行为 |
-|---|---|
+| :--- | :--- |
 | 0 | TP 为低的安静窗口；锁存上一笔 RA 上下文至 ADC2，上周期 acquisition 的 dither/injection 成为当前样本 |
 | 1 | 曾经 acquisition 的 8 slice 晋升 conversion；从其补集选择下一组 acquisition；采集 Flash 种子并启动当前 SAR/上一笔 ADC2；更新非关键 EN |
 | 2–7 | 6 次粗 SAR 已决位更新；RDAC 跟随已决码；另一个量化器继续采集 |

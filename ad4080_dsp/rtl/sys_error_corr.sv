@@ -1,33 +1,33 @@
 //=============================================================================
 // @file    sys_error_corr.sv
-// @brief   补码输入的仿射系统校正与饱和事件
-// @details delta=(x*(GAIN-512)*512+2^23)>>>24；y=saturate(x+delta+OFFSET)。
-//          默认GAIN512/OFFSET0为单位映射；clip与对应校正输出同拍，非sticky。
+// @brief   补码输入的仿射系统校正与饱和事件。
+// @details delta=(x*(GAIN-512)*512+2^23)>>>24，y=saturate(x+delta+OFFSET)。
+//          默认 GAIN=512、OFFSET=0 为单位映射；clip 为非粘滞事件，与校正结果同拍。
 // @project SAR20 / AD4080风格数字原型
 // @author  项目维护者（贡献记录见版本库）
 // @date    2026-11-05
 // @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : 功能映射见docs/ad4080_traceability.md；不声称器件逐拍等价。
-// 时钟域   : clk；valid、数据和系数同步
-// 复位     : rst_n异步低有效；无运行中flush输入
-// 延迟     : 接受valid沿到输出valid为2个完整clk间隔
-// 吞吐     : 可连续每clk接受1样本
-// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
-// 依赖     : 无
-// 边界     : 工程使用IN_W20/OFFSET_W12/GAIN_W10/K_GAIN512/SHIFT24；其他组合需单独验证。
-//          输入输出为20-bit补码；gain为直二进制，offset为ADC LSB整数。
-//          加半码后算术右移，半码向正无穷；输出饱和到-2^19..2^19-1。
+// 手册依据: 功能映射见 docs/ad4080_traceability.md，不声称器件逐拍等价。
+// 时钟域: clk；valid、数据与系数同步。
+// 复位: rst_n 异步低有效，无运行中 flush 输入。
+// 延迟: 接受 valid 沿到输出 valid 经过两个完整 clk 间隔。
+// 吞吐: 每个 clk 可连续接受一个样本。
+// 可综合性: RTL 结构；目标库映射、约束、SRAM/PHY 与 STA 须单独验收。
+// 依赖: 无子模块。
+// 边界: 工程配置为 IN_W=20、OFFSET_W=12、GAIN_W=10、K_GAIN=512、SHIFT=24；
+//     其他参数组合须单独验证。输入输出采用 20 bit 补码，gain 为直二进制，offset 为 ADC LSB 整数。
+//     加半码后算术右移，半码向正无穷；输出饱和到 -2^19..2^19-1。
 //=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
 
 module sys_error_corr #(
-    parameter int IN_W      = 20,
-    parameter int OFFSET_W  = 12,
-    parameter int GAIN_W    = 10,
-    parameter int K_GAIN    = 512,
-    parameter int SHIFT     = 24
+    parameter int IN_W      = 20,  // IN_W: 补码样本位宽，工程配置为 20 bit。
+    parameter int OFFSET_W  = 12,  // OFFSET_W: 补码偏移位宽，工程配置为 12 bit。
+    parameter int GAIN_W    = 10,  // GAIN_W: 直二进制增益码位宽，工程配置为 10 bit。
+    parameter int K_GAIN    = 512,  // K_GAIN: 增益增量乘数，须与定点映射一致。
+    parameter int SHIFT     = 24  // SHIFT: 增益乘积右移位数，工程配置为 24。
 ) (
     input  logic                       clk,
     input  logic                       rst_n,
@@ -41,23 +41,23 @@ module sys_error_corr #(
     output logic                       clip_high          // 高于 +FS 饱和
 );
 
-    // 20-bit signed x 11-bit signed (gain-512) -> 31 bit signed
+    // 20 bit 有符号样本乘以 11 bit 有符号 (gain-512)，结果使用 31 bit。
     localparam int PROD_W  = IN_W + GAIN_W + 1;        // 31
     localparam int PRODK_W = PROD_W + 11;              // 42
     localparam int SUM_W   = IN_W + 2;                 // 22
     localparam logic signed [IN_W-1:0] MAX_CODE =   (1 << (IN_W-1)) - 1;   // +524287
     localparam logic signed [IN_W-1:0] MIN_CODE = - (1 << (IN_W-1));       // -524288
-    // NOTE: 512 在 10-bit 有符号里会溢出成 -512（10'sd512 == -512），
-    //       因而基准常数必须使用11-bit有符号表示。
+    // NOTE: 512 在 10 bit 有符号数中变为 -512（10'sd512 == -512），
+    //     因此基准常数须使用 11 bit 有符号表示。
     localparam logic signed [10:0]     K_GAIN_S = K_GAIN[10:0];
 
-    // ---- Stage 1 ----
+    // 第一级寄存样本、偏移与增益乘积，第二级计算饱和前的三项和。
     logic signed [IN_W-1:0]          x_s1;
     logic signed [OFFSET_W-1:0]      off_s1;
     logic signed [PROD_W-1:0]        prod_s1;
     logic                            v_s1;
 
-    // ---- Stage 2 ----
+
     logic signed [PRODK_W-1:0]       prodk_s2;
     logic signed [17:0]              corr_s2;
     logic signed [SUM_W-1:0]         sum_s2;
@@ -71,8 +71,8 @@ module sys_error_corr #(
     assign sum_comb = x_ext + corr_ext + off_ext;
 
     assign prodk_s2 = prod_s1 * K_GAIN_S;
-    // WAIVER(width-truncate): 增益项 |delta| <= 2^19*1.56% = 8176，18 bit 足够；
-    // 此处显式截到18位；默认参数下高位仅为符号扩展。
+    // WAIVER(width-truncate): 增益项 |delta| <= 2^19*1.56% = 8176，18 bit 足够。
+    //     此处显式截为 18 bit；默认参数下高位仅为符号扩展。
     // verilator lint_off WIDTHTRUNC
     assign corr_s2  = (prodk_s2 + (1 << (SHIFT-1))) >>> SHIFT;   // 18 bit 足够（|delta|<=8176）
     // verilator lint_on WIDTHTRUNC

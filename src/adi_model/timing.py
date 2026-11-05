@@ -2,8 +2,8 @@
 
 build_slice_plan负责generic固定A/B或从空闲池中随机选组；
 build_rtl_slice_plan负责结构18/8 allocator的LFSR游标、扫描顺序与启动预充。
-两者都要求当周期conv/acq不交叉、acq[n]交给conv[n+1]，但随机分布不相同。
-这里输出物理slice ID与状态，不估计时偏/带宽，不等同完整模拟采样电路。
+两者都要求当周期conv/acq不交叉、acq[n]交给conv[n+1]，但随机分布不相同。这里输出物理slice ID与状态，
+不估计时偏/带宽，不等同完整模拟采样电路。
 """
 
 from __future__ import annotations
@@ -19,10 +19,9 @@ from .config import Config
 class SlicePlan:
     """逐周期采集/转换归属；数组第二维是逻辑slot，元素是物理slice ID。
 
-    conv/acq: (N, n_active)，当周期转换/采集组；集合逐行不相交。
-    conv_source_cycle: (N,)，对应采集周期索引，可为启动预充周期-1。
-    generic计划的首周期valid=False，runner须预充后消费；RTL计划已丢弃无效
-    启动advance，返回的valid全True。组内顺序是接线/slot顺序，不是另一笔采样。
+    conv/acq: (N, n_active)，当周期转换/采集组；集合逐行不相交。conv_source_cycle: (N,)，
+    对应采集周期索引，可为启动预充周期-1。generic计划的首周期valid=False，runner须预充后消费；
+    RTL计划已丢弃无效启动advance，返回的valid全True。组内顺序是接线/slot顺序，不是另一笔采样。
     """
 
     conv: np.ndarray
@@ -77,9 +76,9 @@ def rtl_dither_codes(n_samples: int, seed: int) -> np.ndarray:
 def build_rtl_slice_plan(n_samples: int, *, shuffle: bool, seed: int) -> SlicePlan:
     """重现结构18/8 allocator的预充、接线顺序与LFSR游标。
 
-    每周期从cursor开始环扫18个物理ID，跳过当前8个conv，取前8个空闲ID作acq。
-    shuffle=True只改变游标；它不是在全部8-of-18组合中均匀抽样。高字节>=252时
-    保留游标，LFSR仍推进。shuffle=False在启动后使用固定游标0。
+    每周期从cursor开始环扫18个物理ID，跳过当前8个conv，取前8个空闲ID作acq。shuffle=True只改变游标；
+    它不是在全部8-of-18组合中均匀抽样。高字节>=252时保留游标，LFSR仍推进。
+    shuffle=False在启动后使用固定游标0。
 
     Args:
         n_samples: 非负整数，有效raw周期数N。

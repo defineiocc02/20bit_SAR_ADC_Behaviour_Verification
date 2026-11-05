@@ -27,12 +27,10 @@
   * dither 的模拟注入 / 码修改 / 数字扣除三者**成对出现**（DitherState）；
   * 校准回归量必须含 dither 名义项（v3：漏 d_once -> G_hat 崩到 6.68）；
   * 增益校准禁止用 out 对 x 回归（vD0 是 x 的阶梯函数，斜率恒 ~1）；
-  * 数字侧永不读物理真值（chip.C_true / e_dac），真值只做事后评分。
-单位契约：k / dither_code [单位当量]；sid / bank [无量纲索引]；
-estimated_gain / kappa / alpha [无量纲]。
-契约与不变量（验收强制）：① 数字侧禁读 chip 真值（C_true/e_dac）；
-② 名义守恒 DAC(M(c)) 与 DEM 状态无关；③ 校准回归量必须含 dither 名义项。
-
+  * 数字侧永不读物理真值（chip.C_true / e_dac），真值只做事后评分。单位契约：
+    k / dither_code [单位当量]；sid / bank [无量纲索引]；estimated_gain / kappa / alpha [无量纲]。
+    契约与不变量（验收强制）：① 数字侧禁读 chip 真值（C_true/e_dac）；
+    ② 名义守恒 DAC(M(c)) 与 DEM 状态无关；③ 校准回归量必须含 dither 名义项。
 """
 
 from __future__ import annotations
@@ -60,8 +58,8 @@ class PipelineState:
 class DigitalCore:
     """数字侧算法集合：粗细码合并、DEM、dither、校准。
 
-    此接口保留unary参考算法；生产split引擎直接调用共享重构与位权模块，
-    不实例化DigitalCore。以下是本接口的概念调用顺序：
+    此接口保留unary参考算法；生产split引擎直接调用共享重构与位权模块，不实例化DigitalCore。
+    以下是本接口的概念调用顺序：
         1. sadc.convert()            -> 粗码（量化器是独立 sDAC）
         2. switch_commands()         -> (k_eq, sid, dither 码)
         3. （物理 RDAC 置位、RA、ADC2 —— 模拟域）
@@ -73,8 +71,8 @@ class DigitalCore:
         """按配置装配数字核心：映射器、流水线状态与校准器。
 
         Args:
-            cfg: 模型配置（Config）。g0 / kappa_eff / beta_eff /
-                 rdac_step 用于初始化数字状态初值。
+            cfg: 模型配置（Config）。g0 / kappa_eff / beta_eff / rdac_step 用于初始化数字状态初值。
+
         Side effects: 构造 self.mapper 与 self.state（含 DigitalState 初值）。
         """
         self.cfg = cfg
@@ -97,17 +95,18 @@ class DigitalCore:
     ) -> SwitchCommand:
         """生成物理 RDAC 的开关指令。
 
-        DEM 状态按 **bank 内序号**推进（全局序号会让每个 bank 只走一半
-        状态空间 —— gcd(2a,512)=2 的历史坑）。dither 码单独存放，
-        由 RDAC 在标称/物理两次求值里统一使用（不能在 encode 里预加）。
+        DEM 状态按 **bank 内序号**推进（全局序号会让每个 bank 只走一半状态空间 —— gcd(2a,512)=2 的历史坑）。
+        dither 码单独存放，由 RDAC 在标称/物理两次求值里统一使用（不能在 encode 里预加）。
 
         Args:
-            coarse:       粗码 c[n] [单位当量]（SADC 粗量化结果）。
-            bank:         每样本所属 bank [无量纲索引]（0=A，1=B）。
-            dither_code:  可选 dither 码 [单位当量]；None = 不加 dither。
+            coarse: 粗码 c[n] [单位当量]（SADC 粗量化结果）。
+            bank: 每样本所属 bank [无量纲索引]（0=A，1=B）。
+            dither_code: 可选 dither 码 [单位当量]；None = 不加 dither。
+
         Returns:
             SwitchCommand，含 k（单位当量数组）、sid（DEM 状态号）、
             dither 码；不变量 DAC_nominal(M(c,state))=V_target(c) 成立。
+
         Side effects: 推进 state.dem_counter_a / dem_counter_b（按 bank）。
         """
         n = len(coarse)
@@ -135,12 +134,14 @@ class DigitalCore:
         Ĝ/κ/α 全部来自数字状态（self.state.digital），禁止读 chip.C_true。
 
         Args:
-            vd0:              粗码对应标称电压 vD0 [V]。
-            fine:             ADC2 输出等效电压 v2 [V]（RA 输出口径）。
+            vd0: 粗码对应标称电压 vD0 [V]。
+            fine: ADC2 输出等效电压 v2 [V]（RA 输出口径）。
             dither_correction: dither 名义扣除项 d_corr [V]。
-            alpha:            采样态 dither 恒定衰减 [无量纲]（注入模式 ≡1）。
+            alpha: 采样态 dither 恒定衰减 [无量纲]（注入模式 ≡1）。
+
         Returns:
             x̂ [V]，已折回输入口径（fine/Ĝ + vd0 − d_corr 后除以 α）。
+
         Side effects: 无（只读数字状态）。
         """
         return reconstruct(vd0, fine, self.state.digital.estimated_gain, dither_correction, alpha)
@@ -156,16 +157,20 @@ class DigitalCore:
         d_known: np.ndarray | None = None,
         alpha: float | None = None,
     ) -> float:
-        """G_hat 最小二乘更新。回归量 = α·x + d_nom − vD0（顺序与口径见 reconstruction.Calibrator.update_gain 的审计注释）。
+        """G_hat 最小二乘更新。
+
+        回归量 = α·x + d_nom − vD0（顺序与口径见 reconstruction.Calibrator.update_gain 的审计注释）。
 
         Args:
-            x_known:   已知校准输入 x [V]（可直接获取，非待测信号）。
-            vd0:       粗码标称电压 vD0 [V]。
-            fine:      ADC2 输出 v2 [V]（RA 输出口径）。
-            d_known:   可选 dither 名义项 d_nom [V]；缺失时退化为无 dither。
-            alpha:     可选衰减 α [无量纲]；None = 1。
+            x_known: 已知校准输入 x [V]（可直接获取，非待测信号）。
+            vd0: 粗码标称电压 vD0 [V]。
+            fine: ADC2 输出 v2 [V]（RA 输出口径）。
+            d_known: 可选 dither 名义项 d_nom [V]；缺失时退化为无 dither。
+            alpha: 可选衰减 α [无量纲]；None = 1。
+
         Returns:
             G_hat [无量纲]，更新后的增益估计（写入 state.digital.estimated_gain）。
+
         Side effects: 写 state.digital.estimated_gain；state.gain_updates +1；
             向 state.calib_history 追加 ("gain", g)。
         """
@@ -187,6 +192,7 @@ class DigitalCore:
                 "ok": 布尔，守恒且无重号/漏号（相邻码差恒等于 units_per_lsb1）。
                 "k_by_code": 逐逻辑码 -> 名义单位数 k [单位当量]。
                 "units_per_lsb1": 每 LSB1 单位数 [单位当量]。
+
         Side effects: 无（仅读 cfg 与 mapper，不修改状态）。
         """
         cfg = self.cfg

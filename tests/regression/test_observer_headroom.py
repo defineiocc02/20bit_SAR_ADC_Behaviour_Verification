@@ -1,20 +1,13 @@
-"""Regressions for the v6.2 refactor.
+"""保留 v6.2 重构时的观测校正余量及旧架构回归。
 
-Each test here pins a defect that was *found by running the model*, not by
-reading it. They exist so that the failure mode cannot come back silently.
+旧 KTC 校正曾在 ADC2 量化前相减，使频率相关项占用后级窗口。历史 5 MHz
+单音记录为 10.3% 溢出和 1.19 mV RMS，并随频率接近 Nyquist 继续增大，
+处理口径见 docs/adr/0006；TestObserverCorrectionIsDigital 检查校正位于数字域。
 
-1. ``TestObserverCorrectionIsDigital`` — the KTC observer correction used to be
-   subtracted **ahead** of ADC2's quantiser (``quantize(vra - kappa*v_N)``),
-   which put a frequency-dependent term inside the ADC2 range. At 5 MHz single
-   tone that was already 10.3 % overflow and a 1.19 mV RMS residual, and it
-   grew without bound towards Nyquist. See ``docs/adr/0006``.
-2. ``TestFirstStageObservableRank`` — the calibration-observability rank law
-   ``rank(U) = n_units_sig / n_active`` must hold for *every* reading, and the
-   code sweep must be derived from ``2**b1`` rather than hard-coded 64.
-3. ``TestSubWeightInducedINL`` — with the 7b + 2b-dither reading the sub-DAC is
-   code-modulated, so the lumped sub-node parasitics produce a deterministic
-   (period-2) INL that DEM cannot average. The analytic value must match the
-   measurement.
+TestFirstStageObservableRank 检查旧假设下 rank(U)=n_units_sig/n_active，
+扫掠码数由 2**b1 决定，不固定为 64。TestSubWeightInducedINL 比较历史 7 位
+粗码加 2 位扰动假设中的子节点寄生：子 DAC 被码调制后产生周期 2 的确定性
+误差，无法靠当时 DEM 平均消除。上述假设与接口仅作历史回归，不作为当前架构需求。
 """
 
 from __future__ import annotations
@@ -30,7 +23,7 @@ from adi_model.sim import initialize_state, run_sim
 
 
 class TestObserverCorrectionIsDigital:
-    """The observer correction must not consume ADC2 headroom."""
+    """检查旧观测校正发生在量化后，不占用 ADC2 模拟窗口。"""
 
     def test_zero_correction_is_identity(self, cfg):
         adc2 = ADC2(cfg)
@@ -41,7 +34,7 @@ class TestObserverCorrectionIsDigital:
         assert np.array_equal(over_plain, over_corr)
 
     def test_huge_correction_does_not_overflow(self, cfg):
-        """A correction far larger than the window must not clip ADC2."""
+        """检查远大于量化窗口的数字校正项不会引起 ADC2 输入溢出。"""
         adc2 = ADC2(cfg)
         v = np.linspace(cfg.adc2_v_min, cfg.adc2_v_max, 257)
         huge = np.full_like(v, 100.0 * (cfg.adc2_v_max - cfg.adc2_v_min))
@@ -49,18 +42,18 @@ class TestObserverCorrectionIsDigital:
         assert not over.any(), "correction must be applied after quantisation"
 
     def test_plain_quantize_would_have_overflowed(self, cfg):
-        """Guard the counterfactual: the old formulation is genuinely broken."""
+        """反向检查：同一夹具按旧的量化前相减方式确实越出窗口。"""
         adc2 = ADC2(cfg)
         v = np.full(16, cfg.adc2_v_max)
-        corr = np.full(16, -0.5)  # |kappa*v_N| ~ 0.3 V in practice
-        _, over_old = adc2.quantize(v - corr)  # the v6.1 form
+        corr = np.full(16, -0.5)  # 原历史观察夹具的 |kappa*v_N| 约为 0.3 V。
+        _, over_old = adc2.quantize(v - corr)  # v6.1 的量化前相减形式。
         assert over_old.all()
         _, over_new = adc2.quantize_with_correction(v, corr)
         assert not over_new.any()
 
     @pytest.mark.parametrize("fin_div", [2.0, 8.0])
     def test_no_overflow_with_ktc_at_worst_case(self, cfg, fin_div):
-        """KTC on, full-scale input, near Nyquist: ADC2 must stay in range."""
+        """检查所列满幅及接近 Nyquist 夹具中启用旧 KTC 后的节点有效性。"""
         from adi_model.experiments import _clone
 
         c = _clone(
@@ -86,7 +79,7 @@ class TestObserverCorrectionIsDigital:
         assert float(np.mean(r.ra_sat)) == 0.0
 
     def test_beta_calibration_recovers_the_target(self, cfg):
-        """The defect made this read 10.7 %; it must be < 1 %."""
+        """检查旧 beta 标定相对目标误差小于 1%；历史缺陷记录为 10.7%。"""
         from adi_model.experiments import _clone
         from adi_model.sim import run_with_calibration
 
@@ -109,7 +102,7 @@ class TestObserverCorrectionIsDigital:
 
 
 class TestFirstStageObservableRank:
-    """The rank law must be derived, not hard-coded to one reading."""
+    """检查旧可观测秩由所用口径推导，不固定到某一个 b1。"""
 
     @pytest.mark.parametrize("constructor", ["default", "legacy_v61"])
     def test_rank_equals_intra_slice_positions(self, constructor):
@@ -119,7 +112,7 @@ class TestFirstStageObservableRank:
         cfg = Config() if constructor == "default" else Config.legacy_v61()
         slice_rank, unit_idx = unit_rank_arrays(cfg)
         n_u = cfg.n_units_sig
-        codes = np.arange(0, 2**cfg.b1)  # derived, not 64
+        codes = np.arange(0, 2**cfg.b1)  # 码数由 b1 推导，不固定为 64。
         U = np.zeros((codes.size * NS, n_u), dtype=np.float32)
         row = 0
         for k_code in codes:
@@ -131,7 +124,7 @@ class TestFirstStageObservableRank:
         assert int(np.linalg.matrix_rank(U)) == n_u // cfg.n_active
 
     def test_code_sweep_must_span_the_reading(self):
-        """With b1 = 7 a sweep of only 64 codes reports a wrong rank."""
+        """保留历史 b1=7 时仅扫 64 个码会得到错误秩的反例。"""
         from adi_model.mapper import N_DEM_STATES as NS
         from adi_model.mapper import unit_rank_arrays
 
@@ -151,11 +144,11 @@ class TestFirstStageObservableRank:
             return int(np.linalg.matrix_rank(U))
 
         assert rank_for(2**cfg.b1) == n_u // cfg.n_active
-        assert rank_for(64) != n_u // cfg.n_active  # the stale constant
+        assert rank_for(64) != n_u // cfg.n_active  # 对照旧的固定码数。
 
 
 class TestSubWeightInducedINL:
-    """The sub-node parasitic INL must match its analytic prediction."""
+    """比较旧子节点寄生误差的解析值与所选探针结果。"""
 
     def test_prediction_matches_measurement(self, cfg):
         from adi_model.experiments import sub_weight_inl_probe
@@ -176,7 +169,7 @@ class TestSubWeightInducedINL:
 
 @pytest.mark.parametrize("constructor", [Config, Config.legacy_v61])
 def test_sub_weight_probe_has_no_unrelated_pipeline_or_rho_work(constructor, monkeypatch):
-    """A focused pure-DAC check must not launch the full engineering sweep."""
+    """检查聚焦 DAC 的探针不会触发无关的完整流水线或 rho 扫掠。"""
     from adi_model import experiments, sim_split
 
     def reject_unrelated_work(*args, **kwargs):

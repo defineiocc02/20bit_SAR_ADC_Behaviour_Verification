@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""只读取冻结数据，重绘首页四图；不重新仿真、拟合或训练。
+"""只读取冻结数据重绘首页四图，不重新仿真、拟合或训练。
 
-输入为 --data 目录中的名义随机化合同、结构 DUT 留出记录、三种 Python
-调度的最终整数码功率谱，以及完整 dither 幅度网格。默认读取随库 data/。
-命令会覆盖 --out 中同名原创 PNG/SVG，并记录数据和绘图源码摘要。
+--data 指定的目录提供名义随机化合同、结构 DUT 留出记录、三种 Python 调度的
+最终整数码功率谱，以及完整扰动幅度网格；默认读取随库 data/。
+--out 中同名原创 PNG/SVG 会被覆盖，并记录输入数据和绘图源码的摘要。
 
-校准图检验均值/标准差/RMS的区别；交织图同时保留杂散和非基波残余指标；
-dither图保留失败点及所有节点的计数，不根据最终clip删除输入点。
-重绘退出成功只证明冻结数据、指标和图表达自洽，不证明真实芯片性能。
+校准图区分误差均值、标准差和 RMS；交织图同时保留杂散与非基波残差指标；
+扰动图保留全部失败点和各节点计数，不按最终码裁剪筛除样本。
+重绘成功仅说明冻结数据、指标和图示通过本脚本的一致性检查，不证明芯片性能。
 """
 
 from __future__ import annotations
@@ -159,8 +159,8 @@ def architecture(data: Path, out: Path) -> dict:
         x += width
     _box(ax, 3.35, 4.45, 1.8, 0.9, "前级量化器 SADC", "独立采样／粗码 c₁")
     _box(ax, 5.70, 4.45, 1.9, 0.9, "残差数模转换器", "实际电容选择 RDAC")
-    # The quantizer and RDAC sample the same input through distinct branches;
-    # the quantizer does not consume the charge stored on the RDAC slice pool.
+    # 前级量化器与 RDAC 经独立支路采样同一输入；
+    # 前级量化器不读取 RDAC 切片池保存的电荷。
     _arrow(ax, [(0.3, 3.05), (0.3, 5.55), (3.08, 5.55), (3.08, 4.9), (3.32, 4.9)], BLUE)
     ax.text(
         1.65,
@@ -188,7 +188,7 @@ def architecture(data: Path, out: Path) -> dict:
     _arrow(ax, [(11.08, 3.25), (11.52, 3.25)], TEAL)
     _arrow(ax, [(7.63, 4.92), (9.98, 4.92), (9.98, 3.84)], GRAY, True)
     ax.text(9.25, 5.12, "粗码／选通／切片号／样本号", ha="center", fontsize=10, color=MUTED)
-    # These arrows identify control/injection locations, not an electrical layout.
+    # 箭头仅标记控制或扰动的作用点，不表示电气版图。
     ax.text(1.67, 4.54, "切片调度：只选空闲组", ha="center", fontsize=10.5, color=ORANGE)
     _arrow(ax, [(1.67, 4.30), (1.67, 3.84)], ORANGE)
     ax.text(4.25, 5.96, "量化器扰动 dQ", ha="center", fontsize=10.5, color=ORANGE)
@@ -222,7 +222,7 @@ def architecture(data: Path, out: Path) -> dict:
 
 
 def calibration(data: Path, out: Path) -> dict:
-    """从真实DUT留出码计算误差；检查统计摘要，不拟合或删样本。"""
+    """从保留的 DUT 留出码计算误差并核对统计摘要，不拟合或删除样本。"""
     summary = _json(data / "structural_calibration_summary.json")
     row = next(r for r in summary["results"] if r["chip_seed"] == 42)
     with np.load(data / "structural_calibration_holdout.npz") as a:
@@ -307,7 +307,7 @@ def calibration(data: Path, out: Path) -> dict:
 
 
 def interleave(data: Path, out: Path) -> dict:
-    """画相同物理时偏的三种Python调度；不将规则模型称作SV频谱。"""
+    """绘制同一物理时偏下三种 Python 调度的结果，不将规则模型称为 SV 频谱。"""
     summary = _json(data / "interleave_40m.json")["timing_comparison"]
     names = ("fixed", "generic_random", "rtl_allocator")
     rows = [next(r for r in summary["rows"] if r["condition"] == name) for name in names]

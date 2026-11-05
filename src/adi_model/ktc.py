@@ -1,14 +1,12 @@
 """ktc.py -- 噪声观测、保持、校正（**我们准备研究的扩展，不是 ADI 已公开实现的模块**）。
 
-记 x1 = x(t1)、x2 = x(t2)、dx = x2 - x1。RDAC 保存 x_R = x1 + n_R。
-按正向残差约定建立两条观测：
+记 x1 = x(t1)、x2 = x(t2)、dx = x2 - x1。RDAC 保存 x_R = x1 + n_R。按正向残差约定建立两条观测：
 
     v_R = G_R (x1 + n_R - vD_true) + e_R
     v_N = G_N (n_R - dx)           + e_N
     v_2 = Q_2(v_R) - kappa * v_N   （先量化，再作数字校正）
 
-**同一个 n_R 必须进入两条观测**——这是仿真器对物理相关性的建模，
-不是允许数字算法直接读取真实噪声。
+**同一个 n_R 必须进入两条观测**——这是仿真器对物理相关性的建模，不是允许数字算法直接读取真实噪声。
 
 推导结果（beta = kappa * G_N / G_R）：
 
@@ -37,21 +35,19 @@ from .config import Config
 class KTCBranch:
     """KTC 观测支路：噪声/斜率双通路观测、独立饱和、beta 前台校准。
 
-    [研究扩展] 本支路为本仓库的**原创研究扩展**，不是 [00] 或专利
-    [09]–[14] 披露的特性，**不得归属于 Analog Devices**（见仓库根目录
-    NOTICE）。ktc_* 全部参数在 provenance.PARAM_GRADES 中分级为
-    [研究扩展]，不得当作 ADI 已公开实现。
+    [研究扩展] 本支路为本仓库的**原创研究扩展**，不是 [00] 或专利[09]–[14] 披露的特性，
+    **不得归属于 Analog Devices**（见仓库根目录NOTICE）。
+    ktc_* 全部参数在 provenance.PARAM_GRADES 中分级为[研究扩展]，不得当作 ADI 已公开实现。
 
     Attributes:
-        g_n:     观测通路增益 G_N·(1+beta_error) —— beta 失配**必须落在
-                 物理通路上**（见 __init__ 内注释；写进公式是假仿真）。
+        g_n: 观测通路增益 G_N·(1+beta_error) —— beta 失配**必须落在物理通路上**（见 __init__ 内注释；
+            写进公式是假仿真）。
         eta_n/x: 阶跃/斜坡建立系数（v4 修正，二者不等，见下）。
-        kappa:   数字侧使用的标称值（数字侧**不知道** beta_error）。
+        kappa: 数字侧使用的标称值（数字侧**不知道** beta_error）。
         noise_n: 观测通路自身输出噪声 RMS [V]。
 
-    单位契约：n_R / dx / v_N [V]；g_r [无量纲]。
-    Side effects（构造时）：从 cfg 读取全部系数一次并固化——本类无逐样本
-    状态，噪声按事件经 rng 生成。
+    单位契约：n_R / dx / v_N [V]；g_r [无量纲]。Side effects（构造时）：
+    从 cfg 读取全部系数一次并固化——本类无逐样本状态，噪声按事件经 rng 生成。
     """
 
     def __init__(self, cfg: Config):
@@ -59,7 +55,8 @@ class KTCBranch:
 
         Args:
             cfg: 模型配置（Config）。KTC 全部系数自此读取一次并固化；
-                 相关 ktc_* 参数来源分级均为 [研究扩展]，非 ADI 披露特性。
+                相关 ktc_* 参数来源分级均为 [研究扩展]，非 ADI 披露特性。
+
         Side effects: 从 cfg 读取并固化 g_n/eta_n/eta_x/kappa/noise_n。
         """
         self.cfg = cfg
@@ -86,15 +83,15 @@ class KTCBranch:
 
         Args:
             g_r: 逐样本 RA 增益 G_R[n] [无量纲]；任意形状，内部转 float。
+
         Returns:
             beta_n [无量纲]，shape 同 g_r；决定噪声抵消深度
             （beta_n=1 时 (1-beta_n)*n_R 相消）。
 
         适用边界（独立审查 2026-09-25，B2）：入参须为正有限（由上方守卫保证）。
-        但**输出有限**的额外前提是 g_r 不低到让商 kappa*G_N*eta_n/g_r 溢出——
-        量级约 1e-300 以下（如 1e-308、nextafter(0,1)=5e-324）虽经守卫接受，
-        商会溢出为 inf。这是数值现实而非守卫漏洞，故**不拒绝极小正值**
-        （拒绝会误伤合法输入）。
+        但**输出有限**的额外前提是 g_r 不低到让商 kappa*G_N*eta_n/g_r 溢出——量级约 1e-300 以下（如 1e-308、
+        nextafter(0,1)=5e-324）虽经守卫接受，商会溢出为 inf。这是数值现实而非守卫漏洞，
+        故**不拒绝极小正值** （拒绝会误伤合法输入）。
         """
         g_r = np.asarray(g_r, dtype=float)
         if np.any(~np.isfinite(g_r)) or np.any(g_r <= 0):
@@ -109,15 +106,15 @@ class KTCBranch:
 
         Args:
             g_r: 逐样本 RA 增益 G_R[n] [无量纲]。
+
         Returns:
             beta_x [无量纲]，shape 同 g_r；决定信号时刻响应
             （beta_x=1 时输出恢复到 x2，与噪声抵消相互独立）。
 
         适用边界（独立审查 2026-09-25，B2）：入参须为正有限（由上方守卫保证）。
-        但**输出有限**的额外前提是 g_r 不低到让商 kappa*G_N*eta_x/g_r 溢出——
-        量级约 1e-300 以下（如 1e-308、nextafter(0,1)=5e-324）虽经守卫接受，
-        商会溢出为 inf。这是数值现实而非守卫漏洞，故**不拒绝极小正值**
-        （拒绝会误伤合法输入）。
+        但**输出有限**的额外前提是 g_r 不低到让商 kappa*G_N*eta_x/g_r 溢出——量级约 1e-300 以下（如 1e-308、
+        nextafter(0,1)=5e-324）虽经守卫接受，商会溢出为 inf。这是数值现实而非守卫漏洞，
+        故**不拒绝极小正值** （拒绝会误伤合法输入）。
         """
         g_r = np.asarray(g_r, dtype=float)
         if np.any(~np.isfinite(g_r)) or np.any(g_r <= 0):
@@ -132,6 +129,7 @@ class KTCBranch:
 
         Args:
             g_r: 逐样本 RA 增益 G_R[n] [无量纲]。
+
         Returns:
             beta_n [无量纲]，shape 同 g_r（等价 beta_n_of）。
         """
@@ -145,13 +143,15 @@ class KTCBranch:
         v_N = G_N * (eta_n * n_R  -  eta_x * dx) + e_N
 
         Args:
-            n_R: 采样噪声实现 [V]——**必须与残差通路是同一份**
-                 （三条底线③：相关性真实；传另一实现即是假仿真）。
-            dx:  提取窗口内输入变化 x2-x1 [V]；sim_split/pipeline 传
-                 dither_alpha·dx（KTC 观察衰减后采样域的口径，v5.1）。
+            n_R: 采样噪声实现 [V]——**必须与残差通路是同一份** （三条底线③：相关性真实；
+                传另一实现即是假仿真）。
+            dx: 提取窗口内输入变化 x2-x1 [V]；
+                sim_split/pipeline 传dither_alpha·dx（KTC 观察衰减后采样域的口径，v5.1）。
             rng: e_N 生成器。
+
         Returns:
             (v_N [V] 已按 ra_v_clip 钳位, sat 逐样本布尔)。
+
         Side effects: 推进 rng。
         """
         n = n_R.shape[0]
@@ -170,20 +170,19 @@ class KTCBranch:
     def estimate_beta(out_minus_x1: np.ndarray, dx: np.ndarray) -> float:
         """对 dx 回归 (out - x1) 得到 beta。
 
-        x_hat = x1 + beta*dx + (1-beta)*n_R - e_D + ...
-        beta_hat = <out - x1, dx> / <dx, dx>
+        x_hat = x1 + beta*dx + (1-beta) *n_R - e_D + ... beta_hat = <out - x1, dx> / <dx, dx>
 
-        v3 审计修正：旧版传入的 err 用的是 x_ref = x1 + beta_true*dx ——
-        参考本身已经代入待估参数，估计出来的永远是 1。现在必须用
-        **固定目标 x1**（t1 时刻的已知输入）构造回归量，
+        v3 审计修正：旧版传入的 err 用的是 x_ref = x1 + beta_true*dx ——参考本身已经代入待估参数，
+        估计出来的永远是 1。现在必须用**固定目标 x1**（t1 时刻的已知输入）构造回归量，
         噪声与 e_D 项在足够多样本下平均掉。
 
         Args:
             out_minus_x1: 输出减固定目标 x1 [V]（**禁用** x_ref 口径）。
-            dx:           窗口内输入变化 [V]；Var(dx)=0 时返回 1.0
-                          （不可观测的保守退化，避免除零）。
+            dx: 窗口内输入变化 [V]；Var(dx)=0 时返回 1.0 （不可观测的保守退化，避免除零）。
+
         Returns:
             beta_hat [无量纲]。
+
         Side effects: 无。
         """
         dx = np.asarray(dx, dtype=float)

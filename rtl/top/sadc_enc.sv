@@ -10,21 +10,21 @@
 
 module sadc_enc #(
     parameter int P_B1    = int'(B1),
-    parameter int P_N_CMP = (1 << P_B1) - 1        // = 511
+    parameter int P_N_CMP = (1 << P_B1) - 1        // P_N_CMP: = 511
 ) (
     input  logic [P_N_CMP-1:0] cmp_raw,          // 比较器阵列温度计（bit i = x > thr[i]）
     output logic [P_B1-1:0]    sadc_code
 );
 
-  localparam int ACC_W = $clog2(P_N_CMP + 1);    // 装得下 [0, P_N_CMP]
+  localparam int ACC_W = $clog2(P_N_CMP + 1);    // ACC_W: 装得下 [0, P_N_CMP]
 
   localparam int LEAVES = 1 << $clog2(P_N_CMP);
   initial begin
     if (P_B1 < 1 || P_B1 > 16 || P_N_CMP < 1 || ACC_W > P_B1)
       $fatal(1, "sadc_enc: invalid comparator count/output width");
   end
-  // Declare every tree edge before generate elaboration. Vivado 2018.3 drops
-  // forward hierarchical g_node[2*i].count references as undriven nets.
+  // Declare every tree edge before generate elaboration. Vivado 2018.3 drops forward hierarchical
+  // g_node[2*i].count references as undriven nets.
   // split_var lets Verilator analyze the constant-index DAG per element; it
   // changes simulator partitioning only, not HDL connectivity or arithmetic.
   wire [ACC_W-1:0] count_tree [1:2*LEAVES-1] /* verilator split_var */;

@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Draw DEM and dither contracts from the current production command decoders.
+"""根据现有生产命令译码器绘制 DEM 与扰动合同。
 
-The retained JSON contains nominal commands, not fabricated capacitance or ADC
-measurements. Figures establish command units and ordering; they do not establish
-Python/RTL bit equivalence, SNDR, or a silicon dither-range enhancement.
+保留 JSON 记录名义命令，不是制造电容或 ADC 测量。图示用于解释命令单位和
+排序，不证明 Python／RTL 逐位等价、SNDR 或硅片扰动范围增强。
 """
 
 from __future__ import annotations
@@ -61,7 +60,7 @@ SOURCE_FILES = (
 
 
 def _masks(command, main_size: int, sub_size: int) -> tuple[np.ndarray, np.ndarray]:
-    """Expand production orders/counts to physical-unit Boolean masks."""
+    """将生产顺序及计数展开为物理单元的布尔选通掩码。"""
     result = []
     for size, order, count in (
         (main_size, command.main_order, command.main_counts),
@@ -79,7 +78,7 @@ def _masks(command, main_size: int, sub_size: int) -> tuple[np.ndarray, np.ndarr
 
 
 def _hex_mask(bits: np.ndarray) -> str:
-    """Store bit p as physical unit p; no display-order ambiguity."""
+    """以第 p 位表示物理单元 p，避免显示顺序歧义。"""
     value = sum(int(bit) << index for index, bit in enumerate(bits))
     return f"0x{value:0{(len(bits) + 3) // 4}x}"
 
@@ -90,11 +89,10 @@ def _bits(hexadecimal: str, width: int) -> np.ndarray:
 
 
 def _sampling_connections(cfg: Config, codes: np.ndarray) -> tuple[np.ndarray, float]:
-    """Read the actual calibration charge terms for synthetic legal commands.
+    """读取合法合成命令对应的实际校准电荷项。
 
-    Dummy backend words only complete DigitalObservation's interface. No ADC
-    conversion or measured fine voltage is inferred from them. The production
-    _terms helper is used read-only to extract its physical rail connections.
+    后级占位码仅补齐 DigitalObservation 接口，不表示实际 ADC 转换或实测细电压。
+    只读调用生产 _terms 辅助函数，以取得其物理参考轨连接。
     """
     n = len(codes)
     ids = np.tile(np.arange(cfg.n_active), (n, 1))
@@ -129,7 +127,7 @@ def _sampling_connections(cfg: Config, codes: np.ndarray) -> tuple[np.ndarray, f
 
 
 def collect_contract() -> dict:
-    """Calculate nominal DEM masks, causal allocator groups and dither units."""
+    """计算名义 DEM 选通、因果分配组及扰动单位。"""
     cfg = Config.rtl_structural(dem_enable=True, dither_mode="off")
     if (cfg.n_slices, cfg.n_active, cfg.dac_n_main, cfg.dac_n_sub) != (18, 8, 63, 8):
         raise ValueError("these figures describe the explicit structural 18/8, 63+8 profile")
@@ -275,7 +273,7 @@ def collect_contract() -> dict:
 
 
 def validate_contract(data: dict) -> None:
-    """Reject stale hashes or retained values that differ from fresh decoders."""
+    """拒绝过期源码摘要及与新译码结果不同的保留数值。"""
     if data.get("schema_version") != 1:
         raise ValueError("unknown randomization-contract schema")
     if set(data["source_sha256"]) != set(SOURCE_FILES):
@@ -371,7 +369,7 @@ def _block(ax, x, y, width, height, title, detail, color=BLUE) -> None:
 
 
 def draw_dem(data: dict, out: Path) -> None:
-    """Show real physical selection, decoder masks and zero-sum slot counts."""
+    """显示物理选择、译码选通及零和槽位计数。"""
     fig = plt.figure(figsize=(14, 8.5))
     fig.text(0.045, 0.953, "DEM：改变物理分配；位权学习另行完成", fontsize=20, weight=600)
     fig.text(
@@ -551,7 +549,7 @@ def draw_dem(data: dict, out: Path) -> None:
 
 
 def _table(ax, columns, rows, widths, font_size=10) -> None:
-    """Draw a compact comparison table with fixed, explicitly allocated columns."""
+    """按显式列宽绘制紧凑比较表。"""
     ax.axis("off")
     table = ax.table(
         cellText=rows,
@@ -572,7 +570,7 @@ def _table(ax, columns, rows, widths, font_size=10) -> None:
 
 
 def draw_dither(data: dict, out: Path) -> None:
-    """Separate sampling rails, quantizer/range and ideal generic dual-port."""
+    """分别显示采样参考轨、量化器范围及理想通用双端口。"""
     fig = plt.figure(figsize=(14, 10.0))
     fig.text(
         0.045,
@@ -770,7 +768,7 @@ def draw_dither(data: dict, out: Path) -> None:
 
 
 def main() -> None:
-    """Write new data/fig subdirectories under a repository or external root."""
+    """在指定仓库或库外根目录下写新的 data/fig 子目录。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--out", required=True, type=Path, help="output root containing data/ and fig/"

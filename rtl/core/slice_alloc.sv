@@ -47,8 +47,7 @@ module slice_alloc (
   // 组合 ID 译码：循环变量 a 为活动通道号，赋给每个元素的值为物理 slice ID。
   always_comb begin
     for (a = 0; a < N_ACTIVE; a = a + 1) begin
-      // parity=0: acq = [0..7], conv = [8..15]
-      // parity=1: acq = [8..15], conv = [0..7]
+      // parity=0: acq = [0..7], conv = [8..15] parity=1: acq = [8..15], conv = [0..7]
       acq_slices[a]  = bank ? (5'(a) + EIGHT) : 5'(a);
       conv_slices[a] = bank ? 5'(a) : (5'(a) + EIGHT);
     end

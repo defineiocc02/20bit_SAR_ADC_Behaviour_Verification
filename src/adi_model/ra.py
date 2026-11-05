@@ -1,24 +1,23 @@
 """共享残差放大器：残差电压增益、孔径输出噪声和独立摆幅检查。
 
-输入 residue 是 RDAC 顶板残差 [V]，不是外部输入或 ADC2 码；输出 vra 是
-RA 输出/ADC2 输入节点电压 [V]。电荷一致增益 G[n]=C_signal[n]/C_feedback_true
-由相同活动物理电容决定。采样掩码使存储信号变为 alpha*x 时，外部输入
-信号传递为 G*alpha，不能把它与残差放大增益 G 混为一项。
+输入 residue 是 RDAC 顶板残差 [V]，不是外部输入或 ADC2 码；
+输出 vra 是RA 输出/ADC2 输入节点电压 [V]。
+电荷一致增益 G[n]=C_signal[n]/C_feedback_true由相同活动物理电容决定。
+采样掩码使存储信号变为 alpha*x 时，外部输入信号传递为 G*alpha，不能把它与残差放大增益 G 混为一项。
 
-白噪声 noise_out 是 RA 输出端 RMS [V]；折到已存残差输入需除 G，折到
-被 alpha 衰减的外部输入还需除 alpha。默认由所选 DR 锚点在 cap_scale=1
-拟合一次并锁定，是噪声预算校准，不是器件噪声预测；电容扫描不得逐点用
-剩余预算重新拟合。fixed 增益只作为隔离物理耦合的对照。
+白噪声 noise_out 是 RA 输出端 RMS [V]；折到已存残差输入需除 G，
+折到被 alpha 衰减的外部输入还需除 alpha。默认由所选 DR 锚点在 cap_scale=1拟合一次并锁定，
+是噪声预算校准，不是器件噪声预测；电容扫描不得逐点用剩余预算重新拟合。
+fixed 增益只作为隔离物理耦合的对照。
 
-ra_autozero 是旧的现象预算：白噪声乘 10**(cost_db/20)，并停用本类 1/f
-注入；没有实际 AZ 存储电容、保持噪声或静态失调源的电路消除。它与
-chopping_az.py 的逐 raw 更新/保持研究模型不同，后者拒绝叠加此预算。
-adc2_dyn_bw_ratio 同样只是输出噪声倍率，不是开关噪声传递函数。
+ra_autozero 是旧的现象预算：白噪声乘 10**(cost_db/20)，并停用本类 1/f注入；没有实际 AZ 存储电容、
+保持噪声或静态失调源的电路消除。它与chopping_az.py 的逐 raw 更新/保持研究模型不同，
+后者拒绝叠加此预算。adc2_dyn_bw_ratio 同样只是输出噪声倍率，不是开关噪声传递函数。
 
-[00]/[00_1] 披露共享 RA 和名义增益 32；摆幅限值为配置假设。讲稿的 AZ
-噪声代价及动态采样收益未唯一披露器件/整机参照，不能由倍率声称复原。
-有限建立、压摆与参考耦合由 ConversionEngine 的信号路径处理；本类噪声
-在孔径处叠加，不实现周期平稳噪声、晶体管 AZ、功耗循环或功耗预测。
+[00]/[00_1] 披露共享 RA 和名义增益 32；摆幅限值为配置假设。
+讲稿的 AZ噪声代价及动态采样收益未唯一披露器件/整机参照，不能由倍率声称复原。有限建立、
+压摆与参考耦合由 ConversionEngine 的信号路径处理；本类噪声在孔径处叠加，不实现周期平稳噪声、
+晶体管 AZ、功耗循环或功耗预测。
 """
 
 from __future__ import annotations
@@ -47,8 +46,8 @@ def flicker_series(
         sigma_white: 用于定义白底 S0=2*sigma_white**2/fs 的电压 RMS [V]；
             本函数仅生成 S(f)=S0*f_corner/f 的 1/f 分量，白底由调用方另加。
         rng: 1/f 实现的随机流。
-        t_obs: 假设的最低频率截止 f_low=1/t_obs [Hz]，有限且正；
-            不是本次记录时长，也不是已测得的漂移规律。
+        t_obs: 假设的最低频率截止 f_low=1/t_obs [Hz]，有限且正；不是本次记录时长，
+            也不是已测得的漂移规律。
         include_drift: 是否加入低于 fs/n、有限记录未分辨的平稳慢状态。
 
     Returns:
@@ -109,16 +108,16 @@ class ResidueAmplifier:
     Attributes:
         noise_out: 输出端白噪声 RMS [V]，已含启用的旧 AZ/动态带宽倍率；
             ra_enable_noise=False 时为零，不随逐样本 G 改变。
-        flicker_white: 1/f 过程的输入等效白底 RMS 锚点 [V]；仅在旧 AZ
-            预算关闭时注入，经逐样本 G 转为 RA 输出误差。
+        flicker_white: 1/f 过程的输入等效白底 RMS 锚点 [V]；仅在旧 AZ预算关闭时注入，
+            经逐样本 G 转为 RA 输出误差。
     """
 
     def __init__(self, cfg: Config):
         """固化输出噪声预算及输入等效 1/f 锚点，不生成运行时噪声。
 
         Args:
-            cfg: 模型配置；resolve_ra_noise 给出 AZ/动态带宽关闭的输出噪声
-                锚点，再依次应用 AZ 代价和 adc2_dyn_bw_ratio，不二次反推预算。
+            cfg: 模型配置；resolve_ra_noise 给出 AZ/动态带宽关闭的输出噪声锚点，
+                再依次应用 AZ 代价和 adc2_dyn_bw_ratio，不二次反推预算。
                 ra_v_clip 是当前配置的 RA 输出节点摆幅 [V]。
 
         Side effects:
@@ -150,8 +149,8 @@ class ResidueAmplifier:
         """返回残差电压增益 G=C_signal/C_feedback_true。
 
         Args:
-            c_active: (N,) 活动组等效 C_signal [F]；split 中不是所有物理电容
-                的直接和，也不是含 18 片的总池电容，见 split_coefficients。
+            c_active: (N,) 活动组等效 C_signal [F]；split 中不是所有物理电容的直接和，
+                也不是含 18 片的总池电容，见 split_coefficients。
             c_feedback_true: 本虚拟芯片固定的实际反馈电容 [F]。
 
         Returns:
@@ -175,12 +174,12 @@ class ResidueAmplifier:
         Args:
             residue: (N,) RDAC 顶板已存残差 r=stored_input-v_D_true [V]。
             rng: 运行时噪声随机流；不是制造电容随机流。
-            g: 标量或 (N,) 残差电压增益，无量纲。生产 charge 路径应显式传入
-                gain_vector 的物理结果；None 实际回落 cfg.g_actual，函数不会
-                因 charge 模式缺参而拒绝，也不会自动从物理池重算。
+            g: 标量或 (N,) 残差电压增益，无量纲。生产 charge 路径应显式传入gain_vector 的物理结果；
+                None 实际回落 cfg.g_actual，函数不会因 charge 模式缺参而拒绝，
+                也不会自动从物理池重算。
             error_v: 可选 (N,) 有限 RA 输出等效误差 [V]，在已有噪声之后、
-                RA 钳位与 ADC2 量化之前注入。来源由调用方定义，不自动解释为
-                器件噪声；None 不改变原 RNG 消费顺序。
+                RA 钳位与 ADC2 量化之前注入。来源由调用方定义，不自动解释为器件噪声；
+                None 不改变原 RNG 消费顺序。
 
         Returns:
             (vra, sat)，均为 (N,)；vra 为钳位后的 RA 输出电压 [V]；sat 为

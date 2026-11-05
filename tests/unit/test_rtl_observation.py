@@ -1,4 +1,4 @@
-"""Independent checks of the physical RTL observation packet contract."""
+"""独立检查物理 RTL 观察数据包合同。"""
 
 from dataclasses import replace
 
@@ -11,7 +11,7 @@ from adi_model.weight_calibration import CalibrationSpec, fit_unit_weights
 
 
 def _packet(sample_id=2, sid=256, coarse=173, dither=1, sampling=True, bad=False, inj=-13):
-    """Construct one packet from an independent forward enumeration of cells."""
+    """通过独立的正向单元枚举构造一个观察数据包。"""
     active = list(range(8))
     rank = [(slot - sid % 8) % 8 for slot in range(8)]
     main_bits = 0
@@ -101,7 +101,7 @@ def test_observation_wrap_and_bad_samples_are_not_hidden():
 
 
 def test_live_structural_capture_matches_python_sample_and_switch_contract():
-    """Replay a frozen, independently captured structural-DUT acquisition."""
+    """回放冻结、单独采集的结构 DUT 记录，核对采样及开关合同。"""
     import csv
     from pathlib import Path
 

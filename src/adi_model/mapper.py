@@ -1,13 +1,12 @@
 """数字命令与dither单位换算；不读取制造电容或估计器的隐藏真值。
 
-Mapper用于coarse code到RDAC单位信号码的兼容映射；split阵列的实际mask由
-dem.split_switch_command生成。dem_state_sequence是按bank分别推进的512状态
-确定性遍历，unit_rank_arrays是64等权unary几何助手。512状态覆盖不证明当前
-63+8 split单元等使用；物理slice选择还由独立allocator决定。
+Mapper用于coarse code到RDAC单位信号码的兼容映射；split阵列的实际mask由dem.split_switch_command生成。
+dem_state_sequence是按bank分别推进的512状态确定性遍历，unit_rank_arrays是64等权unary几何助手。
+512状态覆盖不证明当前63+8 split单元等使用；物理slice选择还由独立allocator决定。
 
-dither_transfer_code只返回RDAC单位的改码量；采样注入和最终数字扣除在
-sampler/pipeline/reconstruction配对处理。quantizer/range的d_R为0，不能把所有
-模式都写成最终减d_Q。具体双端口、range与granularity按各自单位合同解释。
+dither_transfer_code只返回RDAC单位的改码量；
+采样注入和最终数字扣除在sampler/pipeline/reconstruction配对处理。quantizer/range的d_R为0，
+不能把所有模式都写成最终减d_Q。具体双端口、range与granularity按各自单位合同解释。
 """
 
 from __future__ import annotations
@@ -206,8 +205,8 @@ class Mapper:
 class DitherState:
     """已知注入与数字扣除的诊断字段；实际RDAC改码由dither_transfer_code给出。
 
-    analog_injection/digital_correction为输入等效电压[V]；重构器显式减后者，
-    字段本身不预先取负。code_modification在本构造器中是兼容占位0，不代替真实改码。
+    analog_injection/digital_correction为输入等效电压[V]；重构器显式减后者，字段本身不预先取负。
+    code_modification在本构造器中是兼容占位0，不代替真实改码。
     """
 
     analog_injection: np.ndarray  # 加在模拟输入上的已知量

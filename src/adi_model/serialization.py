@@ -1,4 +1,4 @@
-"""Versioned UTF-8 result documents with explicit undefined-number metadata."""
+"""带格式版本的 UTF-8 结果文档，显式登记未定义数值。"""
 
 from __future__ import annotations
 
@@ -12,11 +12,10 @@ import numpy as np
 
 
 def result_document(results: dict) -> dict:
-    """Convert NumPy values and annotate every NaN/infinity as an explicit null.
+    """转换 NumPy 数值，并将每个 NaN/无穷值显式登记为 null。
 
-    This is serialization, not acceptance: failed gates remain failed, and
-    undefined numeric fields cannot become fabricated finite values. Paths use
-    JSON Pointer escaping. The source in-memory result is not modified.
+    这里只做序列化，不作验收：失败门禁仍保持失败，未定义字段不会变成虚构的有限数值。
+    路径采用 JSON Pointer 转义；不修改原内存结果。
     """
     undefined = (
         list(results.get("undefined_numeric_values", []))
@@ -61,7 +60,7 @@ def result_document(results: dict) -> dict:
 
 
 def write_results(path, results: dict) -> dict:
-    """Atomically write standard UTF-8 JSON and return the serialized document."""
+    """原子写入标准 UTF-8 JSON，并返回序列化后的文档。"""
     destination = Path(path)
     document = result_document(results)
     payload = json.dumps(document, ensure_ascii=False, indent=1, allow_nan=False) + "\n"

@@ -5,8 +5,8 @@
 ============================================================================
 失配预算分析已证明：PDK 估算的单位失配 sigma ≈ 1117 ppm，
 而达到 SNDR >= 93 dB 需要 sigma <= 约 300 ppm。差 3.7 倍。
-靠加面积补要 14 倍电容（sigma ∝ 1/sqrt(C)），不可行；DEM 在大失配下
-甚至让 SNDR 变差（v2 结论）。所以**只能估计出每个单位的真实权重并在数字端扣除**。
+靠加面积补要 14 倍电容（sigma ∝ 1/sqrt(C)），不可行；DEM 在大失配下甚至让 SNDR 变差（v2 结论）。
+所以**只能估计出每个单位的真实权重并在数字端扣除**。
 
 但"能不能估出来"取决于**使用矩阵 U 的秩**：
 
@@ -26,18 +26,15 @@ v4 实测当前交织映射下 rank = 64 / 512 —— 这不是数据量问题�
 ============================================================================
 为什么 rank 会退化（必须让设计者看到的机制）
 ============================================================================
-交织映射下，码值 +1 是"给下一个 slice 加一个单位"，于是
-8 个 slice 的**同位置单位永远同时切换**。观测只能看到它们的和，
-永远分不开 —— rank 被压到 64（= 每个 slice 的单位数 x ... 见实测）。
+交织映射下，码值 +1 是"给下一个 slice 加一个单位"，于是8 个 slice 的**同位置单位永远同时切换**。
+观测只能看到它们的和，永远分不开 —— rank 被压到 64（= 每个 slice 的单位数 x ... 见实测）。
 打破退化的手段：
   * DEM / 随机置换：让同一码值对应不同单位集合（同一个 k，不同 sid）
-  * 专门的校准模式：随机选单位而不是按固定顺序取前 k 个
-代价：都需要额外的激励与数据量。这是设计上的**真实成本**，必须量化。
-单位契约：权重 w [V/单位当量]；U 观测矩阵 [无量纲/V]；残差 [V]。
-适用域（勿夸大）：单位权重估计实验，非 split 校准闭环；
-必须 out-of-sample + 整数/分数码双口径（in-sample 自欺）；
-required_samples 是设计裕量公式，非物理硬下界。
-
+  * 专门的校准模式：随机选单位而不是按固定顺序取前 k 个代价：都需要额外的激励与数据量。
+    这是设计上的**真实成本**，必须量化。单位契约：权重 w [V/单位当量]；U 观测矩阵 [无量纲/V]；
+    残差 [V]。适用域（勿夸大）：单位权重估计实验，非 split 校准闭环；
+    必须 out-of-sample + 整数/分数码双口径（in-sample 自欺）；required_samples 是设计裕量公式，
+    非物理硬下界。
 """
 
 from __future__ import annotations
@@ -70,6 +67,7 @@ def use_matrix(
     Returns:
         U [n x n_units，无量纲]：第 n 次转换中单位 u 的选中权重
         （0/1，边界码为小数）。U 是权重校准的可观测性来源矩阵。
+
     Side effects: 无（纯函数）。
     """
     k = np.clip(np.asarray(k_float, dtype=float), 0.0, float(n_units))
@@ -141,6 +139,7 @@ def observability(U: np.ndarray, tol: float | None = None) -> Observability:
 
     Returns:
         Observability（见其字段单位）。空矩阵返回 rank=0、cond=inf。
+
     Side effects: 无（纯函数）。
     """
     if U.size == 0:
@@ -166,6 +165,7 @@ def group_aggregate(U: np.ndarray, groups: np.ndarray) -> np.ndarray:
 
     Returns:
         U_g [n x n_groups，无量纲]：每个 group 内单位列求和。
+
     Side effects: 无（纯函数）。
 
     Notes:
@@ -186,9 +186,9 @@ def group_aggregate(U: np.ndarray, groups: np.ndarray) -> np.ndarray:
 def ridge_fit(U: np.ndarray, y: np.ndarray, lam: float = 0.0):
     """在可辨识子空间上做岭回归。返回 (w_hat, used_rank)。
 
-    不用 np.linalg.lstsq 直接解：那样在秩亏时会给出**任意**一个特解
-    （最小范数解），看起来像估出来了，实际把不可辨识方向也填了数 ——
-    换一批数据验证就会崩。这里显式截断到可辨识子空间。
+    不用 np.linalg.lstsq 直接解：那样在秩亏时会给出**任意**一个特解（最小范数解），
+    看起来像估出来了，实际把不可辨识方向也填了数 ——换一批数据验证就会崩。
+    这里显式截断到可辨识子空间。
 
     Args:
         U: 观测矩阵 [n x n_units，无量纲]（来自 use_matrix）。
@@ -199,6 +199,7 @@ def ridge_fit(U: np.ndarray, y: np.ndarray, lam: float = 0.0):
         (w_hat, used_rank)：估计权重 [V/单位当量] 与所用工况秩 [int]。
         欠定（n < n_units）时走对偶形式（核技巧），等价于最小范数岭解；
         秩亏时零空间方向被岭项压到 0（前提是 y 在该方向无分量）。
+
     Side effects: 无（纯函数）。
 
     Notes:
@@ -246,6 +247,7 @@ def null_space_projection_error(U: np.ndarray, w_true: np.ndarray) -> float:
     Returns:
         落在不可观测零空间的比例 [0..1，无量纲]；0 表示全可辨识，
         1 表示完全不可观测。空矩阵返回 1。
+
     Side effects: 无（纯函数）。
 
     Notes:
@@ -284,18 +286,15 @@ def required_samples(
     给出"65 次观测估 512 个未知量"这个物理上不可能的答案）：
 
       1. 噪声约束：最小二乘协方差 σ²(UᵀU)⁻¹ 的迹要够小。
-         Var(ŵ) 按 ±1 奇异值分解写成 Σ Var_j = σ² Σ 1/s_i²；
-         要求平均 Var_j ≤ tgt²。把设计矩阵整体复制 k 倍时 s_i → √k·s_i，
-         所以 Σ Var_j 按 1/k 缩小，解出 k 即得噪声界。
-      2. 观测冗余（**设计裕量，非物理硬下界**）：rank(U)=N 只保证
-         "理论上可解"；是否需要 2N/4N 取决于噪声、条件数与目标精度
-         （零噪声下 U=I_N 时 N 次观测即可）。这里取 oversample×N
-         （默认 4×）作为工程裕量 —— 标注清楚，不要包装成必然。
+         Var(ŵ) 按 ±1 奇异值分解写成 Σ Var_j = σ² Σ 1/s_i²；要求平均 Var_j ≤ tgt²。
+         把设计矩阵整体复制 k 倍时 s_i → √k·s_i，所以 Σ Var_j 按 1/k 缩小，解出 k 即得噪声界。
+      2. 观测冗余（**设计裕量，非物理硬下界**）：rank(U)=N 只保证"理论上可解"；
+         是否需要 2N/4N 取决于噪声、条件数与目标精度（零噪声下 U=I_N 时 N 次观测即可）。
+         这里取 oversample×N （默认 4×）作为工程裕量 —— 标注清楚，不要包装成必然。
 
-    若 rank(U) < N（如交织映射），返回不可行 —— 再多数据也没用，
-    这是**结构约束**，不是数据量约束。但注意：秩不足 ≠ 运行态校正无效。
-    真正的判据是 Null(U_cal) ⊆ Null(U_run)：校准分辨不了的方向
-    若在运行映射下也不产生误差，就无需识别（v5 判据文本已注明）。
+    若 rank(U) < N（如交织映射），返回不可行 —— 再多数据也没用，这是**结构约束**，不是数据量约束。
+    但注意：秩不足 ≠ 运行态校正无效。真正的判据是 Null(U_cal) ⊆ Null(U_run)：
+    校准分辨不了的方向若在运行映射下也不产生误差，就无需识别（v5 判据文本已注明）。
 
     Args:
         cfg: Config（取 fs [披露] 40 MS/s，用于换算观测时间）。
@@ -317,6 +316,7 @@ def required_samples(
             at_fs_40MHz_seconds [s]   同上（显式标 40 MHz）；
             note [str]   方法说明。
         rank < n_units 时 feasible=False 并返回 null_directions 等结构信息。
+
     Side effects: 无（纯函数）。
 
     Notes:
@@ -397,8 +397,7 @@ def required_samples(
 def calibrate_unit_weights(U_cal: np.ndarray, err_cal: np.ndarray, lam: float = 0.0) -> np.ndarray:
     """从校准数据估单位权重偏差。
 
-    err = out - x_known = -sum_u w_u U[n,u] + noise
-    ->  目标量 y = -err = sum_u w_u U[n,u] - noise
+    err = out - x_known = -sum_u w_u U[n,u] + noise ->  目标量 y = -err = sum_u w_u U[n,u] - noise
 
     Args:
         U_cal: 校准观测矩阵 [n x n_units，无量纲]。
@@ -408,6 +407,7 @@ def calibrate_unit_weights(U_cal: np.ndarray, err_cal: np.ndarray, lam: float = 
     Returns:
         单位权重偏差估计 w [V/单位当量]（n_units,）。仅可辨识子空间可信；
         零空间方向由 ridge_fit 压到 0（见其数值失效说明）。
+
     Side effects: 无（纯函数）。
     """
     y = -np.asarray(err_cal, dtype=float)
@@ -424,6 +424,7 @@ def apply_weight_correction(U: np.ndarray, w: np.ndarray) -> np.ndarray:
 
     Returns:
         数字端扣除量数组 [V] = U @ w，从残差里减去即可抵消权重失配。
+
     Side effects: 无（纯函数）。
     """
     return U @ w

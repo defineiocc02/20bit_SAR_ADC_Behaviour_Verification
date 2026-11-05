@@ -1,76 +1,28 @@
 #!/usr/bin/env python3
-r"""把 ``Config`` 导出为 RTL 参数包、定点寄存器镜像与黄金激励向量（P0 交付物 2/2）。
+"""将主线 Config 导出为 RTL 参数、定点寄存器及可选参考向量（P0）。
 
-职责一句话
-----------
-把行为模型的**唯一参数源** :class:`adi_model.config.Config` 翻译成 RTL 侧需要的三样东西：
-``rtl/params/rtl_params.vh``（可综合常量）、``sim/vectors/params.json``（含来源分级的完整清单）、
-``sim/vectors/registers.json``（定点寄存器镜像），以及可选的一组黄金激励 + 期望码流。
-它只做转录，不引入数值模型，也不生成任何 RTL 逻辑。
+只转录现有模型，不生成 RTL 逻辑或另建物理模型。数值格式来源为 ADR 0014、
+fixed_point.py 和 RTL_ARITHMETIC_CONTRACT.md；来源分级读取 provenance，
+阵列及 DEM 几何读取 mapper、dem、dac_arch。
 
-物理模型与文献出处
-------------------
-本脚本不引入新的物理模型，只转录以下既有来源：
+rtl_params.vh 只包含无量纲整数：位宽、计数、状态数、旋转常数和模式码。
+fs、v_fs、delta1 等模拟量只写入 params.json，其有限浮点值用 num/2**den_exp
+精确表示，附带 float 仅供阅读。inj_q 为归一化 V/Vfs 的有符号 Q32，其他向量
+字段为整数码；列格式由文件头及 test_rtl_export.py 核对。
 
-* 定点格式与算式：``docs/adr/0014-fixed-point-output-contract.md`` 与 ``src/adi_model/fixed_point.py``；
-* 本仓库冻结的 RTL 算术契约：``docs/rtl/RTL_ARITHMETIC_CONTRACT.md``；
-* 参数来源分级：``adi_model.provenance.PARAM_GRADES``；
-* 阵列/DEM/开关几何：``adi_model.mapper``、``adi_model.dem``、``adi_model.dac_arch``。
+直接字段采用实际值的 effective_grade，另记 declared_grade；派生量按最弱
+输入传播，次序为 DISCLOSED、DERIVED、FITTED、ASSUMED、RESEARCH_EXTENSION，
+算术结果至少为 DERIVED。格式、LCG、编码和 PHASES 等 RTL 选择至少为 ASSUMED，
+各项保留 input_fields，不能把工程选择标成原文披露。
 
-单位契约
---------
-* ``rtl_params.vh`` 只含**无量纲整数**（位宽、计数、状态数、旋转常数、模式码）。
-  模拟量（``fs``、``v_fs``、``delta1``、各类步长）**不进 .vh** —— RTL 内部不出现伏特
-  （契约 §1.1），它们只出现在 ``params.json`` 里供测试台与 Spectre 转交使用。
-* ``params.json`` 中的模拟量以 ``{"num", "den_exp"}`` 给出**精确**有理数：IEEE754 有限浮点
-  本身是二进有理数，故 ``den`` 恒为 2 的幂，这是无损表示；另附 ``float`` 字段仅供人读，
-  **不用于任何计算**。
-* 激励向量：``inj_q`` 为 V/Vfs 口径的有符号 Q32 整数，其余字段为二进制/整数码。
-  列定义写在生成文件头部注释里，格式由 ``tests/unit/test_rtl_export.py`` 实际解析校验。
+受 --check 检查的 .vh、参数／寄存器 JSON 和激励／期望 hex 只依赖 Config，
+不写入 revision、dirty、describe 或提交 SHA。环境身份及各文件摘要单独记录于
+export_manifest_<stem>.json，旁车清单不参与 --check。这样提交本身不会使参数
+产物漂移；同一配置应生成相同字节。检查仅归一化 CRLF 为 LF，其他内容仍逐字比较。
 
-参数来源分级
-------------
-* Config **字段**和直接转录项：读取 :func:`adi_model.provenance.annotate_config` 的
-  ``effective_grade``；被覆盖的披露/推导值不能继续继承原来源，原始等级另记 ``declared_grade``。
-* **派生量**（如 ``dac_levels``、``units_per_lsb1``）：按**最弱输入**传播 ——
-  输入里只要有一个 ``[假设]``，派生量就是 ``[假设]``。排序
-  ``DISCLOSED < DERIVED < FITTED < ASSUMED < RESEARCH_EXTENSION``。
-  算术运算本身至少为 ``DERIVED``；每项的 ``input_fields`` 明列实际依赖。
-  这条规则是机械的、可复核的，目的是让"从假设推出来的数字"不可能伪装成披露值。
-* **RTL 实现选择**（定点格式、LCG、编码与 ``PHASES``）：至少标 ``[假设]``，
-  不把仓库采用的格式/PRNG当作论文直接披露；更弱的输入等级仍然传播。
-
-契约与不变量 / 适用域
---------------------
-* **单一真相源**：``rtl_params.vh`` 由本脚本生成，禁止手工编辑，也禁止在 RTL 里再写一份常量表。
-* **受检产物是 ``Config`` 的纯函数**：``rtl_params.vh``、``params_<stem>.json``、
-  ``registers_<stem>.json``、``stimulus|expected_<stem>.hex`` 里**不得**出现任何 git 派生字段
-  （``revision`` / ``dirty`` / 40 位 sha / ``describe``）。
-  历史缺陷：这些字段曾被写进 ``.vh`` 头部与 ``params.json`` 的 ``meta.revision``，
-  于是**提交这个动作本身**就让门禁作废 —— HEAD 一移动，这两个产物立刻被判漂移，
-  任何 clone 到这个 commit 的人跑 ``--check`` 都红。见下一节。
-* **工作树身份单独记在 manifest 里**：``sim/vectors/export_manifest_<stem>.json`` 记
-  ``revision / describe / dirty`` 与各产物的 sha256。它**刻意不进 ``--check``** ——
-  它记的就是"运行环境"，天生每次都可能不同（见该文件的 ``why_not_checked`` 字段）。
-  产物侧只保留"由 ``Config`` 唯一决定"的内容，身份侧只做人类追溯，两边不混。
-* **可复现**：同一 ``Config`` 下载重复运行输出逐字节一致（``tests/unit/test_rtl_export.py`` 强制）。
-  文件头写入载荷 SHA256，任何漂移都可 diff 出来；``--check`` 模式直接以此作为门禁。
-* **``--check`` 只归一 EOL，不放宽内容判据**：检出时 ``core.autocrlf=true`` 会把盘上文件
-  变成 CRLF，而生成器写 LF。比较前两边都做 ``\r\n -> \n`` 归一（**只**归一 EOL，其余字节照比），
-  否则门禁会因为"签出的行尾策略"而不是因为内容变化报红。数值/文本任何一处改动仍然会红
-  （``test_eol_only_differences_are_not_drift`` 双向验证）。
-* **适用域**：定点输出接口只覆盖 ``dac_arch="split"``。``unary`` 拓扑没有
-  :class:`~adi_model.weight_calibration.CalibrationSpec`，此时只导出 ``.vh`` 与 ``params.json``，
-  并在报告里**显式**写明寄存器镜像与激励被跳过——不静默省略。
-
-Usage::
-
-    python tools/export_rtl_params.py --config paper_literal --emit-stimulus 256
-    python tools/export_rtl_params.py --check
-
-``--check`` 是门禁：磁盘产物与当前源码不一致时退出码非零。
-
-需要先 ``python -m pip install -e '.[dev]'``（与 ``tools/`` 下其它脚本同一约定）。
+定点输出只支持 split；unary 缺少 CalibrationSpec 时只导出参数与 .vh，报告
+明确记下寄存器及激励跳过。可用 --config paper_literal --emit-stimulus 256
+生成指定记录，--check 比较现有产物并在漂移时返回非零。
 """
 
 from __future__ import annotations
@@ -122,14 +74,14 @@ _CONFIG_FACTORIES: dict[str, Callable[[], Config]] = {
 # 小工具
 # ----------------------------------------------------------------------
 def exact_rational(x: float) -> dict[str, Any]:
-    """Return an exact dyadic representation of a finite float.
+    """将有限浮点值表示为精确的二进有理数。
 
     Args:
-        x: A finite float.
+        x: 有限浮点值。
 
     Returns:
-        ``{"num": int, "den_exp": int, "float": float}`` with ``x == num / 2**den_exp``
-        exactly. ``float`` is for human reading only and must not be used downstream.
+        包含 num、den_exp、float 的映射，严格满足 x=num/2**den_exp。
+        float 仅供阅读，不用于下游计算。
     """
     value = float(x)
     if not math.isfinite(value):
@@ -142,16 +94,16 @@ def exact_rational(x: float) -> dict[str, Any]:
 
 
 def weakest_grade(grades: list[SourceGrade]) -> SourceGrade:
-    """Return the least quotable grade among the inputs.
+    """取得输入中最弱的来源等级。
 
     Args:
-        grades: Input grades; must be non-empty.
+        grades: 非空来源等级序列。
 
     Returns:
-        The grade with the largest severity, i.e. the weakest link.
+        严重程度最大、最不适合引用的等级。
 
     Raises:
-        ValueError: If ``grades`` is empty.
+        ValueError: 输入为空。
     """
     if not grades:
         raise ValueError("derived quantities must declare at least one input")
@@ -159,19 +111,16 @@ def weakest_grade(grades: list[SourceGrade]) -> SourceGrade:
 
 
 def repo_identity(root: Path) -> dict[str, str]:
-    """Return the git revision of the working tree, degrading gracefully.
+    """读取工作树 Git 身份，未知项显式写为 unknown。
 
-    **只用于 manifest**（``sim/vectors/export_manifest_<stem>.json``），绝不进受检产物：
-    这些值取决于运行环境而非 ``Config``，一旦写进 ``.vh`` / ``params.json``，
-    "提交"这个动作本身就会让 ``--check`` 失效。
+    仅供 export_manifest_<stem>.json 使用，不进入受检参数产物，避免提交本身
+    改变 --check 的结果。
 
     Args:
-        root: Repository root holding ``.git``.
+        root: 含 Git 身份的仓库根路径。
 
     Returns:
-        ``{"commit": ..., "describe": ..., "dirty": "0"|"1"}``; unknown values are
-        reported as the string ``"unknown"`` rather than omitted, so a consumer can
-        always see that provenance is missing.
+        commit、describe、dirty 字段；dirty 为字符串 0 或 1。
     """
 
     def _run(args: list[str]) -> str | None:
@@ -211,17 +160,16 @@ def manifest_text(
     identity: dict[str, str],
     artifacts: dict[str, str],
 ) -> str:
-    """Render the side-car manifest that records the *environment*, not the Config.
+    """生成记录运行环境的旁车清单，不参与 --check。
 
     Args:
-        stem: Artifact stem (``<config>[_<dither_mode>]``).
-        invocation: Exact command line that produced the artifacts.
-        identity: Output of :func:`repo_identity`.
-        artifacts: ``{repo-relative path: file text}``; sha256 of each is recorded.
+        stem: 产物名称前缀，形式为 <config>[_<dither_mode>]。
+        invocation: 产生这些文件的完整调用命令。
+        identity: repo_identity 返回的仓库身份。
+        artifacts: 仓库相对路径到文件文本的映射。
 
     Returns:
-        JSON text. Deliberately **never** compared by ``--check`` — see
-        :data:`MANIFEST_WHY_NOT_CHECKED`.
+        包含身份及逐文件 SHA256 的 JSON 文本。
     """
     return _json_text(
         {
@@ -240,12 +188,12 @@ def manifest_text(
 
 
 def _json_text(obj: Any) -> str:
-    """Serialise deterministically, refusing NaN/Infinity per repository policy."""
+    """确定性序列化 JSON，拒绝 NaN 和 Infinity。"""
     return json.dumps(obj, indent=2, sort_keys=True, ensure_ascii=False, allow_nan=False) + "\n"
 
 
 def _display(path: Path, root: Path) -> str:
-    """Return a path relative to ``root`` when possible, else the absolute path."""
+    """能相对 root 表示时返回相对路径，否则返回绝对路径。"""
     try:
         return str(path.relative_to(root))
     except ValueError:
@@ -253,24 +201,15 @@ def _display(path: Path, root: Path) -> str:
 
 
 def _normalize_eol(text: str) -> str:
-    r"""Collapse CRLF to LF **only**; every other byte stays as-is.
-
-    为什么需要：``core.autocrlf=true`` 的检出会把盘上的产物写成 CRLF，而生成器写 LF。
-    比较时若不归一，``--check`` 会因为"检出的行尾策略"报红，而不是因为内容变化。
-    这里**只**动 ``\\r\\n``，所以任何数值/文本改动仍然照红（见
-    ``tests/unit/test_rtl_export.py::test_eol_only_differences_are_not_drift``）。
-    注：``Path.read_text`` 的 universal newlines 当前已经做了同样的归一，
-    所以这一层是**显式**的防线 —— 若将来有人改成 ``newline=""`` 或二进制读，
-    判据不会因此被悄悄放宽。
-    """
+    """只将 CRLF 归一为 LF，其他字节不变，避免检出换行策略被误判为内容漂移。"""
     return text.replace("\r\n", "\n")
 
 
 def _write(path: Path, text: str, *, check: bool, drift: list[str]) -> bool:
-    """Write ``text`` to ``path``, or record drift when ``check`` is set.
+    """写入文本，或在 check 模式记录漂移。
 
     Returns:
-        ``True`` when the artifact is current (or was written), ``False`` on drift.
+        产物当前或已写入时为 True；存在内容漂移时为 False。
     """
     if check:
         current = path.read_text(encoding="utf-8") if path.is_file() else None
@@ -287,23 +226,19 @@ def _write(path: Path, text: str, *, check: bool, drift: list[str]) -> bool:
 # 参数清单
 # ----------------------------------------------------------------------
 def rtl_localparams(cfg: Config, fmt: FixedPointFormat, phases: int) -> list[dict[str, Any]]:
-    """Build the RTL-only localparam list (dimensionless integers).
+    """生成 RTL 使用的无量纲整数常量及来源记录。
 
     Args:
-        cfg: Resolved configuration.
-        fmt: Frozen fixed-point format (ADR 0014).
-        phases: RTL phase-tick count per conversion cycle. This is an **RTL design
-            choice**, not a model parameter, so it is graded ASSUMED.
+        cfg: 已解析配置。
+        fmt: ADR 0014 的固定数值格式。
+        phases: 每转换周期的 RTL 相位计数，属于标为 ASSUMED 的实现选择。
 
     Returns:
-        One entry per constant: ``name``, ``value``, ``width``, ``group``, ``grade``,
-        ``source`` and explicit ``input_fields``. Direct fields inherit the
-        current value's effective grade; arithmetic cannot outrank its inputs.
+        逐项 name、value、width、group、grade、source 及 input_fields；直接字段
+        继承实际值等级，算术推导不强于其输入。
 
     Raises:
-        ValueError: If a value does not fit the declared width, or if
-            ``units_per_lsb1`` disagrees with ``dac_levels // 2**b1`` (the single
-            source of truth required by ADR 0004).
+        ValueError: 数值超出声明位宽，或 units_per_lsb1 与 dac_levels//2**b1 不一致。
     """
     # M15（独立审查 2026-09-25 第三轮）：phases 是 raw 里唯一可能为浮点的入口。
     # 必须在 int(phases) 之前校验：非有限或非整数一律给契约内的 ValueError，
@@ -506,14 +441,13 @@ def rtl_localparams(cfg: Config, fmt: FixedPointFormat, phases: int) -> list[dic
 
 
 def analog_references(cfg: Config) -> list[dict[str, Any]]:
-    """List the analog-facing reference quantities (never emitted into ``.vh``).
+    """列出模拟侧参考量，不写入 .vh。
 
     Args:
-        cfg: Resolved configuration.
+        cfg: 已解析配置。
 
     Returns:
-        One entry per quantity: ``name``, ``exact`` rational, ``unit``, ``input_fields``
-        (the Config fields it rests on) and the propagated ``grade``.
+        各量的 name、exact 有理数、unit、依赖 input_fields 及传播后的 grade。
     """
     step_inputs = (
         ("dac_arch", "v_fs", "n_active", "n_unit_per_slice", "n_units_headroom")
@@ -623,22 +557,14 @@ def analog_references(cfg: Config) -> list[dict[str, Any]]:
 
 
 def config_field_entries(cfg: Config) -> dict[str, Any]:
-    """Dump every Config field with its declared provenance.
+    """导出全部 Config 字段及其来源。
 
-    Values come from ``Config.to_dict()`` so that nested parameter dataclasses
-    (``conversion``, ``input_network``) are serialised by the model's own routine
-    instead of a second copy written here. A nested block carries the grade of its
-    **parent field** as declared in ``PARAM_GRADES`` — the registry does not grade
-    the inner members individually, and this export does not invent grades for them.
-
-    Args:
-        cfg: Resolved configuration.
+    使用 Config.to_dict() 序列化嵌套 conversion、input_network 等参数，避免另写
+    一套序列化。嵌套块沿用父字段等级，不虚构未登记的内部成员等级。
 
     Returns:
-        Mapping ``field -> {"value", "grade", "declared_grade", "grade_label",
-        "quotable", "source", "unit", "note", "overridden"}``. ``grade`` and
-        ``quotable`` describe the current value; ``declared_grade`` retains the
-        original field declaration when an override demotes its authority.
+        字段到 value、grade、declared_grade、grade_label、quotable、source、unit、
+        note、overridden 的映射；实际值与原始声明的等级分别保留。
     """
     annotated = annotate_config(cfg)
     values = cfg.to_dict()
@@ -665,19 +591,18 @@ def config_field_entries(cfg: Config) -> dict[str, Any]:
 def render_verilog_header(
     params: list[dict[str, Any]], meta: dict[str, Any], payload_sha: str
 ) -> str:
-    """Render the ``rtl_params.vh`` text.
+    """生成以 LF 结尾的 rtl_params.vh 文本。
 
-    头部**只**写由 ``Config`` 决定的东西（config 名、定点格式、载荷 SHA256、契约指针）。
-    刻意不写 git revision / dirty：那两个值随每次提交变化，写进来会让"提交"本身把
-    ``--check`` 作废（历史缺陷，见模块 docstring 与 ``export_manifest_*.json``）。
+    头部只记录由 Config 决定的配置名、格式、参数载荷摘要及合同指针；不写随
+    提交变化的 Git revision／dirty。
 
     Args:
-        params: Entries from :func:`rtl_localparams`.
-        meta: Header metadata (config name, fixed-point format, guard).
-        payload_sha: SHA256 of the rendered parameter block, for drift detection.
+        params: rtl_localparams 返回的条目。
+        meta: 配置名、数值格式及 guard 等头部元数据。
+        payload_sha: 已渲染参数块的 SHA256。
 
     Returns:
-        The complete header text, LF-terminated.
+        完整头文件文本。
     """
     groups: dict[str, list[dict[str, Any]]] = {}
     for entry in params:
@@ -729,7 +654,7 @@ def render_verilog_header(
 
 
 def _payload_sha(params: list[dict[str, Any]]) -> str:
-    """Return the SHA256 of the canonical parameter payload."""
+    """计算规范化参数载荷的 SHA256。"""
     blob = json.dumps(params, sort_keys=True, ensure_ascii=False).encode("utf-8")
     return hashlib.sha256(blob).hexdigest()
 
@@ -740,26 +665,22 @@ def _payload_sha(params: list[dict[str, Any]]) -> str:
 def _stimulus_files(
     cfg: Config, result: Any, data: Any, limit: int, name: str
 ) -> tuple[str, str, dict[str, Any]]:
-    """Render the golden stimulus and expected-code streams as fixed-width hex text.
+    """将模型激励及期望码流转录为定宽十六进制文本。
+
+    已知注入直接读取 DigitalObservation，避免再次推导后与重构所消费的量不同。
 
     Args:
-        cfg: Resolved configuration that produced ``result``.
-        result: A :class:`adi_model.sim.SimResult`.
-        data: The :class:`~adi_model.weight_calibration.DigitalObservation` built from
-            ``result``. The known injection is read from it rather than re-derived, so
-            the stimulus cannot disagree with what the reconstruction actually consumed.
-        limit: Number of leading samples to emit.
-        name: Config label used in the file header.
+        cfg: 生成 result 的已解析配置。
+        result: 模型 SimResult。
+        data: 从 result 构造的 DigitalObservation。
+        limit: 导出开头多少个样本。
+        name: 文件头使用的配置名称。
 
     Returns:
-        ``(stimulus_text, expected_text, summary)``. ``summary`` records the sample
-        count, the accumulator peak and the clipping/overflow counts so the two files
-        cannot be silently paired with the wrong register image.
+        激励文本、期望文本及含样本数、累加峰值、裁剪和溢出计数的摘要。
 
     Raises:
-        ValueError: If the RDAC command is not integral (fractional masks have no
-            accepted integer interface — ADR 0014) or if the known injection overflows
-            its declared voltage register (contract §4.2).
+        ValueError: RDAC 命令非整数，或已知注入超出声明电压寄存器范围。
     """
     n = min(int(limit), len(result.k))
     k = np.asarray(result.k[:n], dtype=float)
@@ -835,24 +756,22 @@ def build(
     n_image: int,
     invocation: str = "",
 ) -> dict[str, Any]:
-    """Produce every artifact in memory, without touching the filesystem.
+    """在内存生成全部产物，不写文件。
 
     Args:
-        cfg_name: Key of :data:`_CONFIG_FACTORIES`.
-        phases: RTL phase-tick count per cycle (graded ASSUMED).
-        dither_mode: Optional override of ``cfg.dither_mode``.
-        stimulus: Number of golden-stimulus samples; 0 disables the stimulus.
-        n_image: Record length used to obtain the register image.
-        invocation: Exact command line that reproduces these artifacts. Recorded in
-            ``params.json`` so a reader never has to guess which flags produced them.
+        cfg_name: _CONFIG_FACTORIES 的配置键。
+        phases: 标为 ASSUMED 的每周期 RTL 相位数。
+        dither_mode: 可选扰动模式覆盖。
+        stimulus: 参考激励样本数，0 表示不生成激励。
+        n_image: 获取寄存器镜像的记录长度。
+        invocation: 可复现本次产物的完整命令，记录于参数 JSON。
 
     Returns:
-        ``{"vh": str, "params_json": str, "registers_json": str | None, ...}``
-        plus the metadata used to build the report.
+        vh、params_json、可为空的 registers_json 等文本，以及报告元数据。
 
     Raises:
-        KeyError: Unknown config name.
-        ValueError: ``dither_mode`` outside the legal enum.
+        KeyError: 配置名称未知。
+        ValueError: 扰动模式不在合法枚举中。
     """
     from dataclasses import replace
 
@@ -983,13 +902,13 @@ def build(
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run the exporter.
+    """执行主线参数导出入口。
 
     Args:
-        argv: Command-line arguments; ``None`` means ``sys.argv[1:]``.
+        argv: 命令行参数；None 表示 sys.argv[1:]。
 
     Returns:
-        Process exit code: 0 on success, 1 when ``--check`` reports drift.
+        成功为 0；--check 发现漂移时为 1。
     """
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--config", default="paper_literal", choices=sorted(_CONFIG_FACTORIES))

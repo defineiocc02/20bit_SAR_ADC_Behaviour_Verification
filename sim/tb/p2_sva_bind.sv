@@ -1,7 +1,4 @@
-//===========================================================================
-// p2_sva_bind.sv -- 把关键不变量做成**运行时断言**（用 bind，不改 RTL 源码）
-//===========================================================================
-// 为什么要这一层
+// p2_sva_bind.sv -- 把关键不变量做成**运行时断言**（用 bind，不改 RTL 源码） 为什么要这一层
 //   testbench 只能验"我选的那些向量"；断言验的是"**每一次**时钟沿"。
 //   计划 §6.4 要求 INV-1…INV-8 写成 SVA。这里落地其中**能在数字域表达**的几条。
 //
@@ -22,12 +19,9 @@
 // 用法：把本文件当**源文件**交给 VCS 即可（VCS 支持 `bind`）：
 //   tools/run_rtl_sim.py ... --tb sim/tb/p2_tb.sv sim/tb/p2_sva_bind.sv
 // 断言失败会让仿真退出码非零（已加 `-exitstatus`）。
-//===========================================================================
 `include "rtl_params.vh"
 
-//---------------------------------------------------------------------------
 // A1/A2/A3: slice_alloc —— 所有权传递与不重复
-//---------------------------------------------------------------------------
 module slice_alloc_sva (
     input logic                     clk,
     input logic                     rst_n,
@@ -53,8 +47,8 @@ module slice_alloc_sva (
     end
   end
 
-  // INV-4a：所有权传递。**只在 n 真的推进的那一拍之后**断言 ——
-  // n 稳定时 acq 与 conv 是**不同组**，逐拍比较会误报（这是本断言唯一的坑）。
+  // INV-4a：所有权传递。**只在 n 真的推进的那一拍之后**断言 —— n 稳定时 acq 与 conv 是**不同组**，
+  // 逐拍比较会误报（这是本断言唯一的坑）。
   A1_ownership: assert property (@(posedge clk) disable iff (!rst_n)
       (cfg_ready && sample_en) |=> (conv_slices == $past(acq_slices)));
 
@@ -69,12 +63,10 @@ bind slice_alloc slice_alloc_sva u_sva (
     .clk(clk), .rst_n(rst_n), .cfg_ready(cfg_ready), .sample_en(sample_en),
     .acq_slices(acq_slices), .conv_slices(conv_slices), .conv_valid(conv_valid));
 
-//---------------------------------------------------------------------------
-// A4: dem_addr_gen —— 主阵列置换必须是双射（INV-5）
-//---------------------------------------------------------------------------
-// ⚠️ `dem_addr_gen` 是**纯组合**模块，**没有 clk / rst_n 端口**。
-// 所以这里不能用并发属性（`assert property (@(posedge clk) ...)`），
-// 只能用 `always_comb` 里的**即时断言** —— 它在组合块重新求值时检查。
+// A4: dem_addr_gen —— 主阵列置换必须是双射（INV-5） ⚠️ `dem_addr_gen` 是**纯组合**模块，**没有 clk
+// / rst_n 端口**。
+// 所以这里不能用并发属性（`assert property (@(posedge clk) ...)`），只能用 `always_comb`
+// 里的**即时断言** —— 它在组合块重新求值时检查。
 module dem_addr_gen_sva (
     input logic [N_UNIT_MAIN-1:0][5:0]     main_logical,
     input logic [N_UNIT_SUB-1:0][2:0]      sub_logical
@@ -99,10 +91,10 @@ module dem_addr_gen_sva (
   end
 
   always_comb begin
-    // ⚠️ 必须用**延迟**即时断言 `assert #0`：它在当前时间步的 Observed 区求值，
-    // 即**所有 delta 周期都稳定之后**。写成普通 `assert(!perm_bad)` 会在中间态上求值 ——
-    // 当目标模块的多个输入在同一时刻被改、而它们经过的**组合链深度不同**时，
-    // 会看到"新 main_logical + 旧 sub_logical"这类混合态，产生**假阳性**。
+    // ⚠️ 必须用**延迟**即时断言 `assert #0`：它在当前时间步的 Observed 区求值，即**所有 delta
+    // 周期都稳定之后**。写成普通 `assert(!perm_bad)` 会在中间态上求值 ——
+    // 当目标模块的多个输入在同一时刻被改、而它们经过的**组合链深度不同**时，会看到"新 main_logical
+    // + 旧 sub_logical"这类混合态，产生**假阳性**。
     // 这是本项目实测到的坑：第一次跑 p2_tb 时这条断言命中 7166 行，而 TB 的数值比对全绿。
     assert #0 (!perm_bad)
       else $error("INV-5 violated: main/sub logical map is not a bijection");
@@ -112,9 +104,7 @@ endmodule
 bind dem_addr_gen dem_addr_gen_sva u_sva (
     .main_logical(main_logical), .sub_logical(sub_logical));
 
-//---------------------------------------------------------------------------
 // A5: unit_therm —— 掩码必须是**纯温度计**（popcount == 饱和后的计数）
-//---------------------------------------------------------------------------
 // 同上：`unit_therm` 也是纯组合模块，用即时断言。
 module unit_therm_sva (
     input logic [N_ACTIVE-1:0][6:0]         main_count,
@@ -148,8 +138,8 @@ module unit_therm_sva (
   end
 
   always_comb begin
-    // 同上：必须用 `assert #0`（Observed 区求值）。普通即时断言会在
-    // "计数已更新、掩码还没跟上的那个 delta"上求值 -> 假阳性（实测 7166 行）。
+    // 同上：必须用 `assert #0`（Observed 区求值）。普通即时断言会在 "计数已更新、掩码还没跟上的那个
+    // delta"上求值 -> 假阳性（实测 7166 行）。
     assert #0 (!bad)
       else $error("A1/A3 violated: mask is not a pure thermometer of the count");
   end
@@ -159,9 +149,7 @@ bind unit_therm unit_therm_sva u_sva (
     .main_count(main_count), .sub_count(sub_count),
     .main_on(main_on), .sub_on(sub_on));
 
-//---------------------------------------------------------------------------
 // A6/A7/A8: recon_core —— 粘滞标志与剪裁互斥
-//---------------------------------------------------------------------------
 module recon_core_sva (
     input logic clk,
     input logic rst_n,
@@ -182,9 +170,9 @@ module recon_core_sva (
       ($past(gain_err) && !$past(clr_ovf)) |-> gain_err);
 
   // 契约 §4.5：clip_low 与 clip_high 互斥（一个 word 不可能既 <0 又 >=2^20）。
-  // ⚠️ 必须**分开**两条，且都带 `$error` 打出真实值 —— 否则 VCS 的默认文案
-  // （`started at X failed at X`）**不含任何关键词**，用 grep 找 "violated"/"Error"
-  // 会漏掉它（本项目实测：13 次失败被漏过去，只看退出码才发现不对劲）。
+  // ⚠️ 必须**分开**两条，且都带 `$error` 打出真实值 —— 否则 VCS 的默认文案 （`started at X failed
+  // at X`）**不含任何关键词**，用 grep 找 "violated"/"Error" 会漏掉它（本项目实测：13
+  // 次失败被漏过去，只看退出码才发现不对劲）。
   // 分成两条是为了区分两种成因：X 传播 vs 真的同时为 1。
   A8a_clip_known: assert property (@(posedge clk) disable iff (!rst_n || !cfg_ready)
       !$isunknown({clip_low, clip_high}))
@@ -201,12 +189,9 @@ bind recon_core recon_core_sva u_sva (
     .acc_ovf(acc_ovf), .gain_err(gain_err), .adc2_ovf(adc2_ovf),
     .clip_low(clip_low), .clip_high(clip_high), .dout_valid(dout_valid));
 
-//---------------------------------------------------------------------------
-// A9: div_floor —— d == 0 必须报 err，而不是静默给一个商
-//---------------------------------------------------------------------------
-// ⚠️ 端口宽度必须与被 bind 的实例一致。本仓库里 `div_floor` 只有一种参数化
-// （`P_W_D = SUM_BITS = 64`，见 `recon_core` 与 `p2_tb`）；若将来出现别的宽度，
-// 这里要改成 `bind ... #(.W_D(<该宽度>))`，否则端口宽度不匹配会报错。
+// A9: div_floor —— d == 0 必须报 err，而不是静默给一个商 ⚠️ 端口宽度必须与被 bind 的实例一致。
+// 本仓库里 `div_floor` 只有一种参数化 （`P_W_D = SUM_BITS = 64`，见 `recon_core` 与 `p2_tb`）；
+// 若将来出现别的宽度，这里要改成 `bind ... #(.W_D(<该宽度>))`，否则端口宽度不匹配会报错。
 module div_floor_sva #(parameter int W_D = 64) (
     input logic         clk,
     input logic         rst_n,
@@ -215,8 +200,8 @@ module div_floor_sva #(parameter int W_D = 64) (
     input logic         err
 );
   // ⚠️ 用**有界**窗口：无界的 `##[1:$]` 是活性属性，仿真里永远不会"完成"，
-  // 既不会被判通过也不会被判失败（这是个安静的陷阱）。上界取 200 >
-  // N_CYC+2（P_STAGES=7 时约 11 拍），足够覆盖 err 的置起时刻。
+  // 既不会被判通过也不会被判失败（这是个安静的陷阱）。上界取 200 > N_CYC+2（P_STAGES=7 时约 11
+  // 拍），足够覆盖 err 的置起时刻。
   A9_zero_divisor: assert property (@(posedge clk) disable iff (!rst_n)
       (start && (d == '0)) |-> ##[1:200] err);
 endmodule

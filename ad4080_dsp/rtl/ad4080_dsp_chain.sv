@@ -1,29 +1,29 @@
 //=============================================================================
 // @file    ad4080_dsp_chain.sv
-// @brief   系统校正、可选抽取滤波与结果FIFO组合
-// @details 数据为IN_W位补码。校正后选择bypass、SINC1、SINC5或SINC5+FIR；仅选中分支接收新valid。
-//          filter_sync取消滤波器在途状态；模式/抽取率切换不是无损事务。USE_FIFO默认关闭。
+// @brief   系统校正、可选抽取滤波与结果 FIFO 的组合通路。
+// @details 数据采用 IN_W 位补码，校正后选择直通、SINC1、SINC5 或 SINC5+FIR。
+//          仅选中分支接收新 valid；filter_sync 取消滤波在途状态，切换并非无损事务。
 // @project SAR20 / AD4080风格数字原型
 // @author  项目维护者（贡献记录见版本库）
 // @date    2026-11-05
 // @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : 功能映射见docs/ad4080_traceability.md；不声称器件逐拍等价。
-// 时钟域   : clk；配置和数据同域，无跨域握手
-// 复位     : rst_n异步低有效；filter_sync优先于滤波器valid
-// 延迟     : bypass为校正级2个完整clk间隔；滤波/FIFO延迟按所选模块合同
-// 吞吐     : 校正最多1样本/clk；所选抽取率限制输出；FIFO读出由rd_en决定
-// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
-// 依赖     : sys_error_corr、sinc1_decim、sinc5_decim、sinc5_comp、result_fifo
-// 边界     : IN_W=20为本工程配置；其他位宽须与各子模块支持范围共同验证。
-//          clip为校正级事件；settled不是随FIFO输出延迟的逐结果标签。
+// 手册依据: 功能映射见 docs/ad4080_traceability.md，不声称器件逐拍等价。
+// 时钟域: clk；配置与数据同域，不含跨域握手。
+// 复位: rst_n 异步低有效；filter_sync 优先于滤波器 valid。
+// 延迟: 直通路径经过校正级的两个完整 clk 间隔；滤波/FIFO 延迟见各模块接口规则。
+// 吞吐: 校正最多一个样本/clk；输出受所选抽取率限制，FIFO 读出由 rd_en 决定。
+// 可综合性: RTL 结构；目标库映射、约束、SRAM/PHY 与 STA 须单独验收。
+// 依赖: sys_error_corr、sinc1_decim、sinc5_decim、sinc5_comp、result_fifo。
+// 边界: USE_FIFO 默认关闭；本工程使用 IN_W=20，其他位宽须与子模块一并验证。
+//     clip 是校正级事件；settled 不随 FIFO 读出延迟，不能作为逐结果标签。
 //=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
 
 module ad4080_dsp_chain #(
-    parameter int  IN_W     = 20,
-    parameter bit  USE_FIFO = 1'b0
+    parameter int  IN_W     = 20,  // IN_W: 补码样本位宽，工程配置为 20 bit。
+    parameter bit  USE_FIFO = 1'b0  // USE_FIFO: 为 1 时在所选滤波器后启用独立结果 FIFO。
 ) (
     input  logic                    clk,
     input  logic                    rst_n,
@@ -60,8 +60,8 @@ module ad4080_dsp_chain #(
     logic            s1_valid, s5_valid, s3_valid;
     logic            s1_settled, s5_settled, s3_settled;
 
-    // 仅被选中的滤波器接受新样本；未选分支仍可能完成已有输出流水。
-    // 选择切换前由filter_sync取消旧状态，不承诺无损切换。
+    // 仅选中滤波器接受新样本，未选分支仍可能完成已有输出流水。选择切换前
+    // 须由 filter_sync 取消旧状态；该切换不保证无损。
     wire v1 = corr_valid && (filter_sel == 2'd1);
     wire v2 = corr_valid && (filter_sel == 2'd2);
     wire v3 = corr_valid && (filter_sel == 2'd3);

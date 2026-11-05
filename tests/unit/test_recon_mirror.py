@@ -1,29 +1,15 @@
-"""RTL 位宽镜像的门禁：``sim/ref/recon_rtl_mirror.py`` 必须与黄金模型一致。
+"""检查 RTL 的位宽、截断与逐位除法镜像。
 
-为什么需要它
-    ``rtl/core/recon_core.sv`` 的每一步都有**显式截断**（SUM_BITS / W_RAIL / W_OP3 /
-    W_WIDE / W_S1 / W_SHIFT / W_A）。这些宽度选错时，VCS 仿真往往表现为"大部分样本对、
-    少数样本差几十个 LSB"，定位极慢。本文件让宽度选择在**几秒内**就被 Python 侧推翻。
+sim/ref/recon_rtl_mirror.py 的 SUM_BITS、W_RAIL、W_OP3、W_WIDE、W_S1、
+W_SHIFT、W_A 须与 RTL localparam 表达式一致。错误截断可能只影响少量样本，
+因此这里逐步检查掩码展开式、输出码及显式缩窄的负对照。
 
-    ``sim/ref/recon_rtl_mirror.py`` 里的宽度必须与 RTL 的 localparam 逐条一致 ——
-    改宽度要动两处，这是刻意的（防止单边静默改）。
+2026-09-18 的历史位序问题涉及单周期 7 级除法组：qbits[s] 应为
+qbits[P_STAGES-1-s]，错误会使每个 7 位块倒序，原四组配置比较未检出。
+逐位 div_floor_bitwise 与组内倒序反例共同检查该边界，不能只用 a//d 代替 RTL 步骤。
 
-为什么还要"位级"镜像（2026-09-18 补）
-    本文件原来只对拍**位宽**，``div_floor`` 在镜像里直接写成了 ``a // d`` —— 镜像的是
-    "应该做什么"，不是"RTL 实际怎么做的"。于是 ``rtl/core/div_floor.sv`` 里
-    "一个时钟内 7 级级联、第 s 级的商位该落在本组第几位"这类**位序** bug 天然逃逸：
-    真出过一次（``qbits[s]`` 应为 ``qbits[P_STAGES-1-s]``，表现是每个 7 位块内部位序反转，
-    而 4 组配置全 PASS）。现在 ``div_floor_bitwise`` 逐位复刻 RTL，并有
-    ``test_bitwise_mirror_would_catch_the_group_order_bug`` 证明它**确实**抓得到那个 bug ——
-    没有那条，"镜像"就只是又一份自说自话。
-
-判据
-    1. 四组 dither 配置下，"掩码和展开式"与模型 ``_terms`` 的定义逐项相等；
-    2. ``word`` 与 ``CodeStream.code`` 逐样本相等；
-    3. **能变红**：故意把镜像的一个宽度调窄，检查必须失败；
-    4. **能变红（位级）**：把组内位序切到历史 bug 的写法，镜像必须与 ``a // d`` 不符；
-    5. **反漂移**：镜像里的每个宽度常量都能在 RTL 源码里找到同名 localparam，
-       且**表达式**求值后逐条相等（改 RTL 忘了改镜像 = FAIL，不靠人记得）。
+检查还包括四组扰动配置的模型 _terms、CodeStream.code 逐样本比较，以及每个
+镜像位宽表达式与同名 RTL 参数的独立求值比较。
 """
 
 from __future__ import annotations
@@ -286,7 +272,7 @@ def test_bitwise_div_floor_matches_floor_for_real():
     [(2, 1, 1), (4, 3, 3), (5, 7, 1), (6, 5, 5), (6, 8, 3), (7, 8, 7)],
 )
 def test_borrow_mirror_exhaustive_small_geometries(wa, wd, stages):
-    """Check every input, including d's discarded high bits, against integer floor."""
+    """穷举小几何全部输入，包含除数被舍弃的高位，并与整数向下取整比较。"""
     for a in range(-(1 << (wa - 1)), 1 << (wa - 1)):
         for d in range(1 << wd):
             expected = (a // d, False) if d else (0, True)
@@ -498,7 +484,7 @@ def _int_localparams(path: Path) -> dict[str, str]:
 
 
 def _sv_int(value: int) -> int:
-    """SystemVerilog int cast: truncate to 32 bits and interpret as signed."""
+    """模拟 SystemVerilog int 强制转换：截为 32 位后按有符号解释。"""
     bits = value & 0xFFFFFFFF
     return bits - (1 << 32) if bits & (1 << 31) else bits
 

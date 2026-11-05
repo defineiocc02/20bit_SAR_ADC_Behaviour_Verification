@@ -1,4 +1,4 @@
-"""Independent algebraic counterexamples and mutation execution-integrity gates."""
+"""保留独立代数反例及变异运行完整性检查。"""
 
 from __future__ import annotations
 

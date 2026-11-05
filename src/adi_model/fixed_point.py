@@ -1,12 +1,11 @@
 """split ADC的冻结系数装载与整数重构。
 
 输入为数字观测、名义电压栅格和冻结有效C/Cf系数，不读模拟输出或未知输入。
-默认电压寄存器是归一化V/Vfs的signed Q32，权重为signed Q30；检查96bit
-有符号累加后作整数除法。最终20bit offset-binary采用[-Vfs,+Vfs)半开midrise箱，
-floor确定输出码，voltage属性只解码箱中心[输入V]作诊断。
+默认电压寄存器是归一化V/Vfs的signed Q32，权重为signed Q30；检查96bit有符号累加后作整数除法。
+最终20bit offset-binary采用[-Vfs,+Vfs)半开midrise箱，floor确定输出码，voltage属性只解码箱中心[输入V]作诊断。
 
-系数量化使用ties-to-even；模拟越界与最终数字裁剪分别保留。没有KTC浮点观测器
-的整数接口，也不把20bit码宽当作实测20bit线性度。
+系数量化使用ties-to-even；模拟越界与最终数字裁剪分别保留。没有KTC浮点观测器的整数接口，
+也不把20bit码宽当作实测20bit线性度。
 """
 
 from __future__ import annotations
@@ -20,7 +19,7 @@ from .weight_calibration import CalibrationSpec, DigitalObservation, FrozenCalib
 
 
 def round_even_divide(n: int, d: int) -> int:
-    """Round a signed integer ratio to nearest, with ties to even."""
+    """对有符号整数比就近舍入，正好居中时取偶数。"""
     if d <= 0:
         raise ValueError("denominator must be positive")
     q, r = divmod(n, d)
@@ -29,7 +28,7 @@ def round_even_divide(n: int, d: int) -> int:
 
 @dataclass(frozen=True)
 class FixedPointFormat:
-    """Hardware arithmetic contract; widths include a sign bit where applicable."""
+    """硬件整数算术合同；涉及有符号量时，位宽包含符号位。"""
 
     weight_fraction_bits: int = 30
     voltage_fraction_bits: int = 32
@@ -39,7 +38,7 @@ class FixedPointFormat:
     output_bits: int = 20
 
     def __post_init__(self):
-        """Reject unsupported or ambiguous integer formats."""
+        """拒绝不支持或含糊的整数格式。"""
         for name, value in asdict(self).items():
             if type(value) is not int or value <= 0:
                 raise ValueError(f"{name} must be a positive integer")
@@ -55,7 +54,7 @@ class FixedPointFormat:
 
 @dataclass(frozen=True)
 class CodeStream:
-    """Final offset-binary words and separately retained analog/digital clipping flags."""
+    """最终 offset-binary 码，以及分别保留的模拟越界和数字裁剪标志。"""
 
     code: np.ndarray
     clipped_low: np.ndarray
@@ -67,13 +66,13 @@ class CodeStream:
 
     @property
     def voltage(self) -> np.ndarray:
-        """Decode final words to input-referred mid-rise bin centers [V]."""
+        """将最终码解码为输入等效 midrise 箱中心电压 [V]。"""
         return self.v_fs * (2 * (self.code + 0.5) / 2**self.output_bits - 1)
 
 
 @dataclass(frozen=True)
 class FixedPointReconstructor:
-    """Frozen quantized coefficients; record processing uses integer arithmetic."""
+    """冻结量化系数；处理记录时只执行整数算术。"""
 
     spec: CalibrationSpec
     format: FixedPointFormat
@@ -83,7 +82,7 @@ class FixedPointReconstructor:
     adc2_max_q: int
 
     def __post_init__(self):
-        """Validate register values and the bounded int64 mask-sum stage."""
+        """校验寄存器值及受界限约束的 int64 mask 求和阶段。"""
         if (
             not np.isfinite(self.spec.v_fs)
             or self.spec.v_fs <= 0
@@ -119,7 +118,7 @@ class FixedPointReconstructor:
 
     @classmethod
     def from_weights(cls, spec, weights, offset_v=0.0, *, format=None):
-        """Quantize nominal or independently calibrated coefficients once, ties to even."""
+        """一次性量化名义系数或独立校准系数，正好居中时舍入到偶数。"""
         fmt = FixedPointFormat() if format is None else format
         w = np.asarray(weights, dtype=float)
         scale = 2**fmt.weight_fraction_bits
@@ -133,7 +132,7 @@ class FixedPointReconstructor:
 
     @classmethod
     def from_result(cls, result, *, format=None):
-        """Build digital registers from nominal geometry or a frozen training result."""
+        """从名义几何或冻结训练结果构造数字寄存器。"""
         data = DigitalObservation.from_result(result)
         model = result.state.weight_calibration
         if model is not None:
@@ -151,7 +150,7 @@ class FixedPointReconstructor:
     def from_frozen_calibration(
         cls, spec: CalibrationSpec, model: FrozenCalibration, *, format=None
     ):
-        """Quantize an external fit only when its geometry and voltage scale match."""
+        """仅在几何与电压尺度匹配时量化外部拟合系数。"""
         if model.weights.shape != spec.shape or model.v_fs != spec.v_fs:
             raise ValueError(
                 "frozen calibration geometry or Vfs differs from the RTL configuration"
@@ -162,8 +161,9 @@ class FixedPointReconstructor:
         """由raw ADC2码和可实现开关mask产生最终整数码。
 
         Args:
-            data: DigitalObservation；单位码必须为整数，geometry/nominal ADC2
-                标度必须与寄存器spec完全匹配。只用控制/码，不读模拟out或未知输入。
+            data: DigitalObservation；单位码必须为整数，
+                geometry/nominal ADC2标度必须与寄存器spec完全匹配。只用控制/码，
+                不读模拟out或未知输入。
 
         Returns:
             CodeStream，含(N,)offset-binary码、输入等效箱中心的解码接口和独立
@@ -244,7 +244,7 @@ class FixedPointReconstructor:
         )
 
     def to_dict(self) -> dict:
-        """Export a standard JSON register image with explicit units and schema."""
+        """导出带明确单位和格式版本的标准 JSON 寄存器映像。"""
         return {
             "schema_version": 1,
             "voltage_unit": "normalized V/Vfs",
@@ -258,7 +258,7 @@ class FixedPointReconstructor:
 
     @classmethod
     def from_dict(cls, value: dict):
-        """Restore and validate a register image without physical model objects."""
+        """恢复并检查寄存器映像，不访问物理模型对象。"""
         data = dict(value)
         if (
             data.pop("schema_version", None) != 1

@@ -1,12 +1,12 @@
 """从已知外部输入与数字观测辨识、冻结split有效权重。
 
-静态RA输出节点满足fine=Σw*(a*x_known+b-Vdac)+offset；w是每物理unit的
-有效C/Cf，sub权重包含beta，a是已知采样连接mask。w不是直接读出的电容值。
-估计器只见独立known_input和DigitalObservation；物理C、实际G、误差truth不得输入。
+静态RA输出节点满足fine=Σw*(a*x_known+b-Vdac)+offset；w是每物理unit的有效C/Cf，sub权重包含beta，
+a是已知采样连接mask。w不是直接读出的电容值。估计器只见独立known_input和DigitalObservation；物理C、
+实际G、误差truth不得输入。
 
-训练用秩揭示SVD识别全部权重和一个有效后端offset，再冻结用于未知输入重构。
-有限建立、时偏/带宽、参考动态、漂移及ADC2非线性不由这组静态线性参数消除；
-ADC2以已知线性栅格量化，外部参考系统误差也不在拟合标准误内。
+训练用秩揭示SVD识别全部权重和一个有效后端offset，再冻结用于未知输入重构。有限建立、时偏/带宽、
+参考动态、漂移及ADC2非线性不由这组静态线性参数消除；ADC2以已知线性栅格量化，
+外部参考系统误差也不在拟合标准误内。
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ from .dem import SplitSwitchGeometry, split_switch_command
 
 @dataclass(frozen=True)
 class CalibrationSpec(SplitSwitchGeometry):
-    """Nominal digital interface only; physical mismatch/noise fields are absent."""
+    """只含名义数字接口，不包含物理失配或噪声字段。"""
 
     n_slices: int
     v_fs: float
@@ -39,7 +39,7 @@ class CalibrationSpec(SplitSwitchGeometry):
 
     @classmethod
     def from_config(cls, cfg) -> CalibrationSpec:
-        """Whitelist nominal dimensions, switching controls and backend code units."""
+        """按白名单提取名义维数、开关控制及后端码单位。"""
         cfg.check_legal()
         if cfg.dac_arch != "split":
             raise ValueError("split weight calibration requires a split topology")
@@ -47,27 +47,27 @@ class CalibrationSpec(SplitSwitchGeometry):
 
     @property
     def shape(self) -> tuple[int, int]:
-        """Physical weight-array dimensions, without any weight values."""
+        """物理权重数组的形状，不包含任何权重值。"""
         return self.n_slices, self.dac_n_main + self.dac_n_sub
 
     @property
     def adc2_step_v(self) -> float:
-        """Nominal backend code step [V]."""
+        """名义后端码步长 [V]。"""
         return (self.adc2_v_max - self.adc2_v_min) / 2**self.adc2_n_bits
 
 
 @dataclass(frozen=True)
 class DigitalObservation:
-    """数字运行时记录与名义几何；不包含未知输入或物理电容。
+    """数字运行时记录与名义几何，不包含未知输入或物理电容。
 
-        slice_ids是(N,n_active)物理slice ID，不是slot；rdac_code为RDAC细栅格命令，
-        adc2_code为原始ADC2整数码，dem_state/bank_dither为同笔控制上下文。
-        common_injection_v是已知控制按名义尺度换算的输入节点注入[V]，不是模拟测量真值。
-    连续analog/dual_port在本模型假定注入电压已知，硬件还需建立该电压基准/观测合同。
+    slice_ids 是 (N,n_active) 物理 slice ID，不是 slot；rdac_code 为 RDAC 细栅格命令，
+    adc2_code 为原始 ADC2 整数码，dem_state/bank_dither 为同笔控制上下文。
+    common_injection_v 是已知控制按名义尺度换算的输入节点注入 [V]，不是模拟测量真值。
+    连续 analog/dual_port 在本模型假定注入电压已知，硬件还需建立该电压基准/观测合同。
 
-        main/sub/dither物理mask和sample_ids可由结构观测口提供；from_result兼容路径
-        用数字命令重生成mask。overflow含行为plant的RA/ADC2/RDAC标志；硬件集成必须另有
-        可读的状态/样本归属合同，不能把这个Python容器本身当作已经完成的采集接口。
+    main/sub/dither 物理 mask 和 sample_ids 可由结构观测口提供；
+    from_result 兼容路径用数字命令重生成 mask。overflow 包含行为 plant 的 RA/ADC2/RDAC 标志；
+    硬件集成必须另有可读的状态/样本归属合同，不能把这个 Python 容器当作已完成的采集接口。
     """
 
     spec: CalibrationSpec
@@ -134,7 +134,7 @@ class DigitalObservation:
         )
 
     def validate(self) -> None:
-        """Reject malformed digital data before allocating a calibration matrix."""
+        """在分配校准矩阵前拒绝格式非法的数字记录。"""
         n = len(self.rdac_code)
         spec = self.spec
         if self.slice_ids.shape != (n, spec.n_active) or n == 0:
@@ -205,7 +205,7 @@ class DigitalObservation:
 
     @property
     def fine_v(self) -> np.ndarray:
-        """Decode raw backend codes without an observer correction [V]."""
+        """将原始后端码解码为未作观察器校正的电压 [V]。"""
         return self.spec.adc2_v_min + (self.adc2_code + 0.5) * self.spec.adc2_step_v
 
 
@@ -244,7 +244,7 @@ def _terms(data: DigitalObservation, start: int, stop: int):
 
 
 class CalibrationUnidentifiableError(ValueError):
-    """Training cannot independently identify the requested physical weights."""
+    """训练不能独立辨识所请求的物理权重。"""
 
 
 @dataclass(frozen=True)
@@ -252,8 +252,8 @@ class FrozenCalibration:
     """冻结的有效C/Cf权重与一个后端有效offset[RA输出V]。
 
     weights形状(n_slices,n_main+n_sub)；standard_error对应全部weight和offset。
-    标准误仅为已知参考/静态线性模型条件下的边际估计，不含参考幅值/时间系统误差、
-    漂移或未建动态。正值、可辨识性及量纲验证后数组只读；不暗示硬件在线学习器已实现。
+    标准误仅为已知参考/静态线性模型条件下的边际估计，不含参考幅值/时间系统误差、漂移或未建动态。
+    正值、可辨识性及量纲验证后数组只读；不暗示硬件在线学习器已实现。
     """
 
     weights: np.ndarray
@@ -267,7 +267,7 @@ class FrozenCalibration:
     v_fs: float
 
     def __post_init__(self):
-        """Validate loaded coefficients and remove mutable array backing storage."""
+        """校验装载系数，并移除可变数组的共享后备存储。"""
         weights, se = np.asarray(self.weights), np.asarray(self.standard_error)
         if weights.ndim != 2 or np.any(~np.isfinite(weights)) or np.any(weights <= 0):
             raise ValueError("calibrated weights must be finite and positive")
@@ -319,7 +319,7 @@ class FrozenCalibration:
         return out
 
     def to_dict(self) -> dict:
-        """Export units, coefficients and fit diagnostics without physical truth."""
+        """导出单位、系数和拟合诊断，不导出物理真值。"""
         result = asdict(self)
         result["weights"] = self.weights.tolist()
         result["standard_error"] = self.standard_error.tolist()
@@ -329,7 +329,7 @@ class FrozenCalibration:
 
     @classmethod
     def from_dict(cls, value: dict) -> FrozenCalibration:
-        """Restore a serialized frozen fit, rejecting unknown or malformed versions."""
+        """恢复序列化的冻结拟合，拒绝未知版本或非法记录。"""
         values = dict(value)
         if (
             values.pop("schema_version", None) != 1
@@ -439,10 +439,9 @@ def fit_unit_weights(
 
 
 def apply_frozen_calibration(result, calibration: FrozenCalibration):
-    """Apply frozen digital coefficients, then update separate simulation scores.
+    """应用冻结数字系数，再更新独立的仿真评分。
 
-    Only DigitalObservation reaches the reconstruction algorithm. Clean/ideal
-    input values are read afterward by this harness solely to report errors.
+    只有 DigitalObservation 进入重构算法。此实验封装随后读取干净/理想输入，仅用于报告误差。
     """
     out = calibration.reconstruct(DigitalObservation.from_result(result))
     if result.uncalibrated_out is None:
@@ -478,8 +477,8 @@ def run_with_split_calibration(
         pool: Optional fixed fabricated pool, reused in training and validation.
         chip: Optional aggregate split realization when constructing the pool.
         n_cal: Training sample count; must exceed the number of fitted coefficients.
-        calibration_input_fn: Known reference waveform; default is a distinct
-            full-range sine. Driver noise is not substituted into this reference.
+        calibration_input_fn: Known reference waveform; default is a distinct full-range sine.
+            Driver noise is not substituted into this reference.
         rng: Optional validation noise generator; training uses its own stream.
 
     Returns:

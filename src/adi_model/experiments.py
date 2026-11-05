@@ -716,22 +716,20 @@ def scaling_sweep(
 def monte_carlo(cfg: Config, n_chips: int = 24, n: int = 2**13, seed0: int = 1000) -> dict:
     """Monte-Carlo over freshly drawn chips, returning **the per-chip samples**.
 
-    The audit's F10 finding was that a published "N-chip distribution" figure
-    had been drawn by resampling 400 numbers from the reported ``(mean, sigma)``
-    rather than from the simulated chips themselves — a figure that can then
-    never support a tail or yield statement. The fix is structural: the raw
-    per-chip array is part of the return value, so any histogram downstream is
+    The audit's F10 finding was that a published "N-chip distribution" figure had been drawn by
+    resampling 400 numbers from the reported ``(mean, sigma)`` rather than from the simulated chips
+    themselves — a figure that can then never support a tail or yield statement. The fix is
+    structural: the raw per-chip array is part of the return value, so any histogram downstream is
     necessarily drawn from real chips.
 
     Args:
         cfg: Base configuration; mismatch is re-drawn per chip.
         n_chips: Number of virtual chips.
         n: Samples per chip.
-        seed0: Root seed. Per-chip mismatch draws and noise realisations use
-            independent ``SeedSequence.spawn`` child streams (sharing one integer
-            seed made the noise stream replay the same values as the mismatch
-            draws — independent review 2026-09-25); ``seed0`` still reproduces
-            the whole ensemble exactly.
+        seed0: Root seed. Per-chip mismatch draws and noise realisations use independent
+            ``SeedSequence.spawn`` child streams
+            (sharing one integer seed made the noise stream replay the same values as the mismatch draws — independent review 2026-09-25)
+            ; ``seed0`` still reproduces the whole ensemble exactly.
 
     Returns:
         Dict with the usual summary statistics plus ``sndr_per_chip`` and
@@ -899,15 +897,15 @@ def monte_carlo_yield(
 ) -> dict:
     """Monte-Carlo at a given unit-mismatch sigma, returning per-chip samples.
 
-    See :func:`monte_carlo` for why the raw arrays are returned rather than
-    only their moments (audit F10: a histogram must be drawn from real chips).
+    See :func:`monte_carlo` for why the raw arrays are returned rather than only their moments
+    (audit F10: a histogram must be drawn from real chips) .
 
     Args:
-        sigma_ppm: Unit-capacitor mismatch sigma in ppm (relative).
+        sigma_ppm: Unit-capacitor mismatch sigma in ppm (relative) .
         dem: Whether DEM is enabled.
         n_chips: Number of virtual chips.
         n: Samples per chip.
-        seed0: First seed; chip ``i`` uses ``seed0 + i``.
+        seed0: First seed; chip ``i`` uses ``seed0 + i`` .
         split: ``(global, slice, unit)`` variance fractions of the mismatch.
 
     Returns:
@@ -962,16 +960,14 @@ def monte_carlo_yield(
 def mc_pdk_sigma(cfg: Config, n_chips: int = 60, n: int = 2**13, dem: bool = True) -> dict:
     """Monte-Carlo at the assumed-PDK unit-mismatch sigma, per-chip samples kept.
 
-    This is the study the audit's F10 finding referred to: the historical
-    "60-chip SNDR distribution" was plotted from 400 Gaussian draws
-    parameterised by the 60 chips' ``(mean, sigma)``. Returning
-    ``sndr_per_chip`` here makes that substitution impossible to perform
-    silently — a figure drawn any other way is visibly not using this data.
+    This is the study the audit's F10 finding referred to: the historical "60-chip SNDR
+    distribution" was plotted from 400 Gaussian draws parameterised by the 60 chips'
+    ``(mean, sigma)`` . Returning ``sndr_per_chip`` here makes that substitution impossible to
+    perform silently — a figure drawn any other way is visibly not using this data.
 
     Note the provenance: ``cfg.pdk_sigma_est_ppm`` is graded ``ASSUMED``
-    (a Pelgrom-style area-law estimate, *not* a PDK measurement), so this study
-    characterises sensitivity to an assumption; it is not a yield prediction for
-    the target chip.
+    (a Pelgrom-style area-law estimate, *not* a PDK measurement) , so this study characterises
+    sensitivity to an assumption; it is not a yield prediction for the target chip.
 
     Args:
         cfg: Configuration; ``pdk_sigma_est_ppm`` supplies the sigma.
@@ -1181,8 +1177,8 @@ def stage10_audit_acceptance(n: int = 2**13) -> dict:
         10.3 校准联调（dither 开/关下增益、beta 校准收敛）；
         10.4 指标已知答案（远/近端 spur、纯正弦无假谐波）；
         10.5 KTC 动态预算（观测带宽→建立残差→beta→时刻精度链条）。
-    方法：每小节独立构造对照并给出显式 PASS 阈值。
-    判据：见各子 dict 的 PASS 键与"判据"说明（阈值均显式写在代码里）。
+    方法：每小节独立构造对照并给出显式 PASS 阈值。判据：
+    见各子 dict 的 PASS 键与"判据"说明（阈值均显式写在代码里）。
 
     Args:
         n: 采样点数（部分小节用更短的对齐长度）。[无量纲]
@@ -1365,8 +1361,8 @@ def stage11_audit_v4(n: int = 2**14) -> dict:
         11.1 KTC 观测通路阶跃(n_R)与斜坡(dx)建立系数不同（eta_n≠eta_x）；
         11.2 全局失配误差是 δG·(x−vD0) 码相关锯齿，非整机增益误差；
         11.3 校准可观测性由使用矩阵 U 的秩决定（DEM 轮转群完全对称→零空间）。
-    方法：数值积分 vs 解析式验证 eta；锯齿残差 vs 噪声底；构造 U 算秩。
-    判据：见各子 dict 的 PASS 与"判据"键（阈值显式：11.1 阶跃/斜坡误差<1e-8、
+    方法：数值积分 vs 解析式验证 eta；锯齿残差 vs 噪声底；构造 U 算秩。判据：
+    见各子 dict 的 PASS 与"判据"键（阈值显式：11.1 阶跃/斜坡误差<1e-8、
         11.2 锯齿残差落噪声底、11.3 rank(U)=n_units/n_active）。
 
     Args:
@@ -1633,8 +1629,8 @@ def _sawtooth_fit(e_dac: np.ndarray, k_eq: np.ndarray, n_s: int) -> dict:
 
     验证什么：桥接电容比例误差产生的误差是周期 = n_s 的子码锯齿；本拟合把
         常数/增益/锯齿系数分离，锯齿峰峰即 C_C 失配的可观测量。
-    方法：对 [1, k_eq/max(k), (k_eq % n_s)/n_s] 三基做 lstsq，残差为随机项。
-    判据：sawtooth_pp_uV 即锯齿幅度；DEM 开/关应基本不变（DEM 动不了 C_C）。
+    方法：对 [1, k_eq/max(k), (k_eq % n_s)/n_s] 三基做 lstsq，残差为随机项。判据：
+    sawtooth_pp_uV 即锯齿幅度；DEM 开/关应基本不变（DEM 动不了 C_C）。
 
     Args:
         e_dac: DAC 物理误差序列（V）。[研究扩展]
@@ -1953,16 +1949,16 @@ def stage12_split_arch(c0: Config, n: int = 2**14) -> dict:
 def _dem_rotation_period(cfg: Config) -> int:
     """Return a complete cycle of the production bank-local DEM state stream.
 
-    The physical split runner decodes row/column/subarray states from the
-    9-bit state word. The aggregate SplitDAC cyclic order is a separate oracle
-    and cannot supply the production averaging period. The odd LCG increment
-    visits all 512 states per bank; a two-bank record needs twice this count.
+    The physical split runner decodes row/column/subarray states from the 9-bit state word. The
+    aggregate SplitDAC cyclic order is a separate oracle and cannot supply the production averaging
+    period. The odd LCG increment visits all 512 states per bank; a two-bank record needs twice this
+    count.
 
     Args:
         cfg: split 拓扑配置（提供 dac_n_main / dac_n_sub）。[结构]
 
     Returns:
-        Production state-stream period (integer DEM steps per bank).
+        Production state-stream period (integer DEM steps per bank) .
     """
     from .mapper import N_DEM_STATES
 
@@ -1973,7 +1969,7 @@ def _sub_weight_inl_probe(cbase, chip, dac, lsb20):
     """Measure only the aggregate sub-weight INL using the supplied realization.
 
     Args:
-        cbase: Resolved historical split configuration (64 main / 8 sub).
+        cbase: Resolved historical split configuration (64 main / 8 sub) .
         chip: The same fixed aggregate capacitor realization used by the caller.
         dac: Its aggregate DAC evaluator; no ADC simulation is started here.
         lsb20: Target input-referred output step [V].
@@ -2023,8 +2019,8 @@ def sub_weight_inl_probe(c0: Config) -> dict:
     """Run the bounded sub-weight experiment without the unrelated rho scan.
 
     Args:
-        c0: Base configuration; the historical 64+8 aggregate comparison and
-            enabled DEM are resolved exactly as in stage13_dynamics.
+        c0: Base configuration; the historical 64+8 aggregate comparison and enabled DEM are
+            resolved exactly as in stage13_dynamics.
 
     Returns:
         Sub-weight INL results for all 512 state words. Chain-level base-row INL
@@ -2041,21 +2037,18 @@ def sub_weight_inl_probe(c0: Config) -> dict:
 def stage13_dynamics(c0: Config, n: int = 2**14, n_lvl: int = 129, rep: int | None = None) -> dict:
     """stage13 -- 三项动态误差（输入建立/参考建立/数字串扰）。
 
-    [00_1] p.32 点名的三项。全部与码相关 -> 产生确定性 INL 结构；
-    共模部分 DEM 无效。这是模型 INL(0.07 LSB) 与论文 2.2 LSB 之间缺口的来源。
+    [00_1] p.32 点名的三项。全部与码相关 -> 产生确定性 INL 结构；共模部分 DEM 无效。
+    这是模型 INL(0.07 LSB) 与论文 2.2 LSB 之间缺口的来源。
 
     测量协议（v5 二轮审计 §4 / v5.1 三轮审计 §三，两套测试严格分开）：
-      * **确定性测试**（本表 INL 列）：关热噪声 + 关 dither + 固定芯片，
-        转移曲线是确定性的，直接报峰值/RMS —— 不做任何"去噪"换算。
-        （旧版曾用 sqrt(peak²-floor²) 给峰值去噪：max|e+n| 是非线性统计量，
-        方差相减不成立 —— 实测真实 INL=0 的曲线被报出 2.18 LSB 中位数。）
-      * **DEM 覆盖（v5.1）**：重复次数由实际物理轮转周期反推
-        （rep=2×512=1024，覆盖两个bank），并验证rep→2rep峰值
-        不变（确定性协议的收敛判据）；不能沿用独立aggregate参考的轮转周期。
+      * **确定性测试**（本表 INL 列）：关热噪声 + 关 dither + 固定芯片，转移曲线是确定性的，
+        直接报峰值/RMS —— 不做任何"去噪"换算。（旧版曾用 sqrt(peak²-floor²) 给峰值去噪：
+        max|e+n| 是非线性统计量，方差相减不成立 —— 实测真实 INL=0 的曲线被报出 2.18 LSB 中位数。）
+      * **DEM 覆盖（v5.1）**：重复次数由实际物理轮转周期反推（rep=2×512=1024，覆盖两个bank），
+        并验证rep→2rep峰值不变（确定性协议的收敛判据）；不能沿用独立aggregate参考的轮转周期。
       * **ρ 反推（v5.1）**：电平网格 24→257（粗码边界两侧必须被覆盖），
-        跨越 2.2 LSB 的区间再做 3 次二分细化；结果标注为
-        **当前网格下的条件性估计**，不是收敛后的规格 —— 输入网格加密、
-        完整逐码 DNL/INL 与启动样本剔除仍是开放项。
+        跨越 2.2 LSB 的区间再做 3 次二分细化；结果标注为**当前网格下的条件性估计**，
+        不是收敛后的规格 —— 输入网格加密、完整逐码 DNL/INL 与启动样本剔除仍是开放项。
       * **测量不确定度**：由 SNDR 行的动态仿真（噪声开）承担；
         静态均值噪声底的问题不再混进 INL 数字。
 
@@ -2322,8 +2315,7 @@ def stage14_observability(c0: Config, n_cal: int = 4096) -> dict:
     秩不足时不是数据量问题，是结构问题 —— 必须先让映射可辨识。
 
     Args:
-        c0: 基础配置（本 stage 内部用 mismatch_sigma0=1.117e-3 的 PDK 估算）。
-            [假设]
+        c0: 基础配置（本 stage 内部用 mismatch_sigma0=1.117e-3 的 PDK 估算）。[假设]
         n_cal: 校准样本数（限单个 bank）。[无量纲]
 
     Returns:
@@ -2561,8 +2553,7 @@ def stage14_observability(c0: Config, n_cal: int = 4096) -> dict:
 def stage15_design_guide(c0: Config, s12: dict, s13: dict, s14: dict) -> dict:
     """stage15 -- 设计反推：从 SNDR/INL 目标给出各物理参数的预算。
 
-    输入全部来自前面的实验结果，输出是"给设计者的规格行"，
-    每行标注参数来源：[披露]/[拟合]/[假设]。
+    输入全部来自前面的实验结果，输出是"给设计者的规格行"，每行标注参数来源：[披露]/[拟合]/[假设]。
 
     Args:
         c0: 基准配置（Config）。
@@ -2716,16 +2707,15 @@ def c_total_here(cfg: Config) -> float:
 def ktc_scale_matrix(c0: Config, n: int = 2**14) -> dict:
     """unary/split × dither 关/开 × KTC 开/关 的 **8 组合**回归矩阵。
 
-    背景（v5.1 三轮审计 §二）：KTC 观测尺度修复（观察 α·Δx 而非 Δx）当时只
-    进了 sim_split.py，sim.py（unary 主循环）漏改 —— 两条主循环各自解释
-    KTC 接口，单分支测试掩盖了遗漏。修复前 unary+dither+KTC 的
-    err_to_x2 = (1/α−1)·Δx ≈ 42.7 µV @5 MHz 的确定性尺度残差（split 是
-    1.0 µV）。本矩阵保证两条入口在所有组合下都回到 ADC2 量化底。
+    背景（v5.1 三轮审计 §二）：KTC 观测尺度修复（观察 α·Δx 而非 Δx）当时只进了 sim_split.py，
+    sim.py（unary 主循环）漏改 —— 两条主循环各自解释KTC 接口，单分支测试掩盖了遗漏。
+    修复前 unary+dither+KTC 的err_to_x2 = (1/α−1)·Δx ≈ 42.7 µV @5 MHz 的确定性尺度残差（split 是1.0 µV）。
+    本矩阵保证两条入口在所有组合下都回到 ADC2 量化底。
 
     条件：无失配 / 无热噪声 / 无动态误差 / KTC 理想带宽。
 
-    判据分两项（均为**推导式**，不写死 µV 阈值）：
-      ① ``PASS_interface``：KTC **关闭**时，两条主循环的 8→4 组合都必须回到
+    判据分两项（均为**推导式**，不写死 µV 阈值）：① ``PASS_interface``：KTC **关闭**时，
+    两条主循环的 8→4 组合都必须回到
          ADC2 量化底 ``delta2/G/sqrt(12)`` 的 2 倍以内。这检验本 stage 的
          原始命题 —— "两入口不得各自解释 KTC 接口"。
       ② ``PASS_window``：KTC **开启**时校正项 ∝ dx 必须落在 ADC2 窗口内。
@@ -2827,17 +2817,15 @@ def ktc_scale_matrix(c0: Config, n: int = 2**14) -> dict:
 def stage16_noise_transfer(c0: Config, n_mc: int = 1 << 20) -> dict:
     """stage16 -- 逐相位噪声状态传递（v5.1 三轮审计 §五）。
 
-    把噪声保留成状态向量 q=[q_M,q_S]（方差 kT·diag(A,B)），从相位连接
-    推导两条通路的组合向量：
+    把噪声保留成状态向量 q=[q_M,q_S]（方差 kT·diag(A,B)），从相位连接推导两条通路的组合向量：
         残差通路 a = [1, β]/C_sig（放大相节点方程直接给出）
         观测通路 b = [1, γβ]/C_sig（γ = 观测网络对子阵列噪声的覆盖比例）
     并验证三件事：
       1) Monte Carlo 协方差与解析 σ²=(a−κb)ᵀΣ(a−κb)+κ²σ_eN² 对账；
       2) γ=1 时残差回到观测通路噪声底 κ·σ_eN（a≈b，物理可观测可相消）；
       3) γ<1 时存在**结构性**残余 sqrt(aᵀΣa−(aᵀΣb)²/(bᵀΣb)) —— 调 κ 救不回来，
-         只能改观测网络的连接（这是"相关随机数数值抵消"与"物理可观测抵消"
-         的分界线）。
-    同时确认主循环口径：sqrt(aᵀΣa) = sqrt(chi·kT/C_n,eq)（C_n,eq=C_sig²/(A+β²B)）。
+         只能改观测网络的连接（这是"相关随机数数值抵消"与"物理可观测抵消"的分界线）。
+         同时确认主循环口径：sqrt(aᵀΣa) = sqrt(chi·kT/C_n,eq)（C_n,eq=C_sig²/(A+β²B)）。
 
     Args:
         c0: 基准配置（Config）。
@@ -2920,16 +2908,15 @@ def stage17_split_calib(c0: Config, n_cal: int = 1 << 14, n_val: int = 1 << 14) 
     """stage17 -- split 校准闭环 v1：主/子**有效权重**估计（v5.1 三轮审计 §六）。
 
     范围（刻意收窄）：只开桥接比例误差（单位电容/寄生/C_F 全理想），
-    校准算法只解决一个问题 —— 从**完整模拟链的 ADC2 输出**估计
-    主/子有效权重比。物理误差 e_DAC(k_m,k_s) 在固定相位下是 (k_m,k_s)
-    的仿射函数（C_sig 变化 -> 主码斜率；子权重变化 -> 子码斜率），
-    所以一阶闭环 = 对 [1, k_m, k_s] 的线性回归：
+    校准算法只解决一个问题 —— 从**完整模拟链的 ADC2 输出**估计主/子有效权重比。
+    物理误差 e_DAC(k_m,k_s) 在固定相位下是 (k_m,k_s)的仿射函数（C_sig 变化 -> 主码斜率；
+    子权重变化 -> 子码斜率），所以一阶闭环 = 对 [1, k_m, k_s] 的线性回归：
         e[n] = out[n] − x_known[n] = c0 + c1·k_m[n] + c2·k_s[n] + ν[n]
     数字校正 out_cal = out − (ĉ0 + ĉ1·k_m + ĉ2·k_s)。
 
     防自欺的三条纪律（stage14 教训）：
-      * 算法**只**使用 (out, 已知校准输入, 数字码 k) —— 真值 C_C、
-        e_dac、sub_weight_relative_error 一律不进回归（只做事后对账）；
+      * 算法**只**使用 (out, 已知校准输入, 数字码 k) —— 真值 C_C、e_dac、
+        sub_weight_relative_error 一律不进回归（只做事后对账）；
       * **out-of-sample** 验证：新频率/新幅度/新噪声实现的独立数据；
       * 整数码回归 + 锯齿幅度（k_s 结构）双口径报告。
 
@@ -3136,10 +3123,9 @@ def stage18_dither_charge_closure(c0: Config, n: int = 1 << 13) -> dict:
     """stage18 -- 带 dither 的采样相位电荷闭合 + 离散掩码（v5.1 三轮审计 §四）。
 
     第三轮审计指出：电荷闭合测试关掉了 dither，证明的是无 dither 相位；
-    α 修正后还需证明 **α 本身与实际开关网络一致**。本实验补上这一层：
-    把掩码（bank 末尾 2D 个单位，D+d_u 接 +V_FS、D−d_u 接 −V_FS）写进
-    逐相位节点方程（charge_ref.ref_ra_charge_dither_nodal，逐单位 w/b
-    组装 2x2 系统），验证恒等式
+    α 修正后还需证明 **α 本身与实际开关网络一致**。本实验补上这一层：把掩码（bank 末尾 2D 个单位，
+    D+d_u 接 +V_FS、D−d_u 接 −V_FS）写进逐相位节点方程（charge_ref.ref_ra_charge_dither_nodal，
+    逐单位 w/b组装 2x2 系统），验证恒等式
         C_F*v_R = C_sig,sample*x + w_bank*Q_mask − Q_D(k)
     与主循环逐样本一致，并确认四件事由**同一份掩码**生成：
         信号电荷（α） / dither 电荷（注入 LUT） / 输入负载 / 噪声传递（不变）。
@@ -3630,9 +3616,9 @@ def _psd_logfit(fb, ps, f_lo, f_hi, groups_per_dec=12):
     直接 polyfit 的斜率不确定度 ~1 dB/dec；分箱平均把方差压到 1/组内 bin 数。
 
     **配对口径（首版教训）**：FFT bin 线性分布，组内低频 bin 远多于高频；
-    若用 RMS 频率配对组均值 PSD，对 1/f 谱系统偏陡（精确 1/f 输入实测
-    −20 dB/dec）。改用**调和平均频率** f_h = 1/mean(1/f)：mean(psd)=C/f
-    的组均值 = C·mean(1/f) = C/f_h，(f_h, C/f_h) 配对对 1/f 与白谱均无偏。
+    若用 RMS 频率配对组均值 PSD，对 1/f 谱系统偏陡（精确 1/f 输入实测−20 dB/dec）。
+    改用**调和平均频率** f_h = 1/mean(1/f)：mean(psd)=C/f的组均值 = C·mean(1/f) = C/f_h，
+    (f_h, C/f_h) 配对对 1/f 与白谱均无偏。
 
     Args:
         fb: 频率轴（Hz，正频部分）。
@@ -3663,16 +3649,15 @@ def _psd_logfit(fb, ps, f_lo, f_hi, groups_per_dec=12):
 def stage20_interleave_offset(c0: Config, n: int = 2**13) -> dict:
     """stage20 -- 交织误差四件套收官：逐 slice 输入参考 offset（v6.1 逐字审计）。
 
-    论文 [00] 原文："offset, gain, timing and bandwidth mismatch artefacts
-    of the DACs"。gain/bandwidth/timing 三件已在 stage19 覆盖（后两者 ->
-    f_S/2±f_IN 信号相关杂散）；offset 是**常数型**误差：
+    论文 [00] 原文："offset, gain, timing and bandwidth mismatch artefacts of the DACs"。
+    gain/bandwidth/timing 三件已在 stage19 覆盖（后两者 -> f_S/2±f_IN 信号相关杂散）；
+    offset 是**常数型**误差：
         x_hold = x + V_os,i  ->  样本级误差 = mean(V_os[采集组])
-    固定 A/B 两组 -> (−1)^n 调制的**常数** -> 杂散在 **f_S/2** 且**不随
-    f_IN 平移** —— 与另外三件（f_S/2±f_IN）构成判别性指纹。
+    固定 A/B 两组 -> (−1)^n 调制的**常数** -> 杂散在 **f_S/2** 且**不随f_IN 平移** —— 与另外三件（f_S/2±f_IN）构成判别性指纹。
 
     验收：(1) 杂散位于 f_S/2 且为最大谱分量、f_S/2±f_IN 处无峰；
-    (2) 幅度 ∝ σ_os（同种子下精确线性 2×）；(3) err_rms/σ_os 落在
-    解析值 σ/√8 = 0.354 的统计涨落带内；(4) f_IN 无关性（skew 则 ∝f_IN）；
+    (2) 幅度 ∝ σ_os（同种子下精确线性 2×）；
+    (3) err_rms/σ_os 落在解析值 σ/√8 = 0.354 的统计涨落带内；(4) f_IN 无关性（skew 则 ∝f_IN）；
     (5) 8/18 洗牌抑制 >10 dB。
 
     Args:
@@ -3846,16 +3831,15 @@ def stage21_dither_quant(c0: Config, n: int = 2**14) -> dict:
 def stage22_autozero(c0: Config, n: int = 2**14) -> dict:
     """stage22 -- RA auto-zero 与 ADC2 动态采样带宽的预算归因（缺口 #3）。
 
-    PPT p.34-35 披露两个 dB 数：auto-zero 噪声代价 −1.6 dB（存储电容
-    kT/C + 噪声折叠）、ADC2 动态采样带宽 +1.3 dB（宽建立/窄噪声）。
-    行为建模（ra.py）：前者 = RA 白噪声 ×10^(1.6/20)，后者 = RA 输出噪声
-    ×10^(−1.3/20)。**口径要点**：PPT 的 −1.6/+1.3 dB 参照系未披露；
+    PPT p.34-35 披露两个 dB 数：auto-zero 噪声代价 −1.6 dB（存储电容kT/C + 噪声折叠）、
+    ADC2 动态采样带宽 +1.3 dB（宽建立/窄噪声）。行为建模（ra.py）：前者 = RA 白噪声 ×10^(1.6/20)，
+    后者 = RA 输出噪声×10^(−1.3/20)。**口径要点**：PPT 的 −1.6/+1.3 dB 参照系未披露；
     本模型整机预算中 RA 占噪声功率 ~74%（kT/C 20.1 µV、RA 34.2 µV），
-    折到整机 ΔSNDR 应为 −1.2 / +1.0 dB —— 本 stage 检验"预算推导 vs
-    全链路实测"的一致性（<0.15 dB），不硬凑披露值。
+    折到整机 ΔSNDR 应为 −1.2 / +1.0 dB —— 本 stage 检验"预算推导 vs全链路实测"的一致性（<0.15 dB），
+    不硬凑披露值。
 
-    验收：(1) auto-zero 开 -> ΔSNDR = 预算推导值 ±0.15 dB；
-    (2) ADC2 动态带宽开 -> 同上；(3) 两者叠加 = 各自之和（噪声功率线性）。
+    验收：(1) auto-zero 开 -> ΔSNDR = 预算推导值 ±0.15 dB；(2) ADC2 动态带宽开 -> 同上；
+    (3) 两者叠加 = 各自之和（噪声功率线性）。
 
     Args:
         c0: 基准配置（Config）。
@@ -3953,20 +3937,18 @@ def stage23_flicker(c0: Config, n: int = 2**15) -> dict:
     """stage23 -- 1/f 噪声（转角 40 Hz）与 auto-zero 的交互（缺口 #4）。
 
     PPT：系统输入参考噪声底 8.8 nV/√Hz、1/f 转角 ~40 Hz。模型（ra.py）：
-    注入源只生成 1/f 段（f<=fc），白底由系统热噪声承担；闪烁白底
-    S0 = ratio²·kT/C 白底，ratio = σ_total/σ_kTC ≈ 1.97 使系统转角 = fc。
+    注入源只生成 1/f 段（f<=fc），白底由系统热噪声承担；闪烁白底S0 = ratio²·kT/C 白底，
+    ratio = σ_total/σ_kTC ≈ 1.97 使系统转角 = fc。
 
     **统计口径（首版教训）**：单实现周期图每 bin 服从 χ²₂（±5.6 dB），
-    逐 bin/短带比较不可判 —— 发生器检验用 K=24 种子平均周期图（df 细，
-    谱形收敛到 −10.0 dB/dec）；系统内 df=1.22 kHz 只能用**带功率比**，
-    容差按 χ² 自由度定（带和的相对涨落 1/√(2·bins)）。
+    逐 bin/短带比较不可判 —— 发生器检验用 K=24 种子平均周期图（df 细，谱形收敛到 −10.0 dB/dec）；
+    系统内 df=1.22 kHz 只能用**带功率比**，容差按 χ² 自由度定（带和的相对涨落 1/√(2·bins)）。
 
-    验收：(1) 发生器谱形：K 平均后 −10 dB/dec（±0.5）、转角处 PSD=S0；
-    (2) 系统内 fc=40 kHz：5–20 kHz 带功率超出 = 带积分预测（±2 dB）、
-    低/高带比值同源预测（±3 dB）；(3) 40 Hz 转角对 AC 指标影响 <0.05 dB
-    —— 短记录分辨率不足，40 Hz 谱形由独立长时间状态实验验证；(4) 假想无 auto-zero（转角 100 kHz）
-    的 SNDR 代价 vs 预算推导（±0.15 dB）；(5) auto-zero 开 -> 带内闪烁
-    移除（回到折叠白底）。
+    验收：(1) 发生器谱形：K 平均后 −10 dB/dec（±0.5）、转角处 PSD=S0；(2) 系统内 fc=40 kHz：
+    5–20 kHz 带功率超出 = 带积分预测（±2 dB）、低/高带比值同源预测（±3 dB）；
+    (3) 40 Hz 转角对 AC 指标影响 <0.05 dB —— 短记录分辨率不足，40 Hz 谱形由独立长时间状态实验验证；
+    (4) 假想无 auto-zero（转角 100 kHz）的 SNDR 代价 vs 预算推导（±0.15 dB）；
+    (5) auto-zero 开 -> 带内闪烁移除（回到折叠白底）。
 
     Args:
         c0: 基准配置（Config）。

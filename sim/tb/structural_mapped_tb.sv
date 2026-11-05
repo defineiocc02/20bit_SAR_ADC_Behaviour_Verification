@@ -1,16 +1,14 @@
 `timescale 1ns/1ps
-// Public-port full-top functional witness, derived from structural_adc_tb.sv.
-// The independent 256-bit oracle retains its own coefficient fixture and uses
-// physical RDAC pins, not DUT arithmetic or optimized internal net names.
-// P_RECON_STAGES labels the separately synthesized netlist; it is deliberately
-// NOT passed to DUT. Supply a matching P5/P7 netlist. For local RTL checks only,
-// STRUCTURAL_MAPPED_DUT can name an external, parameterized RTL wrapper.
-// Vivado 2018.3 write_verilog splits packed multi-dimensional public ports
-// into escaped per-row names. FULL_MAPPED_VENDOR_PORTS connects those exact
-// synthesized ports; default RTL instantiation keeps aggregate port names.
-// No reconstruction-start latency is checked: that event has no public port.
-// The 2 ns clock is a functional stimulus, not an FPGA timing claim. Synchronous
-// reset stays low for 220 ns, including glbl's first 100 ns of GSR activity.
+// Public-port full-top functional witness, derived from structural_adc_tb.sv. The independent
+// 256-bit oracle retains its own coefficient fixture and uses physical RDAC pins, not DUT
+// arithmetic or optimized internal net names. P_RECON_STAGES labels the separately synthesized
+// netlist; it is deliberately NOT passed to DUT. Supply a matching P5/P7 netlist. For local RTL
+// checks only, STRUCTURAL_MAPPED_DUT can name an external, parameterized RTL wrapper. Vivado 2018.3
+// write_verilog splits packed multi-dimensional public ports into escaped per-row names.
+// FULL_MAPPED_VENDOR_PORTS connects those exact synthesized ports; default RTL instantiation keeps
+// aggregate port names. No reconstruction-start latency is checked: that event has no public port.
+// The 2 ns clock is a functional stimulus, not an FPGA timing claim. Synchronous reset stays low
+// for 220 ns, including glbl's first 100 ns of GSR activity.
 `ifndef STRUCTURAL_MAPPED_DUT
 `define STRUCTURAL_MAPPED_DUT sar20_digital_core
 `endif
@@ -147,8 +145,8 @@ module structural_mapped_tb #(parameter int P_RECON_STAGES=7);
   string trace_path;
   always @(posedge clk) clock_count++;
   task automatic read_cfg(input logic [15:0] a,input logic [63:0] want);
-    // Called with cfg_wr already deasserted. Read through the actual public
-    // bus, allowing a complete cycle for the asynchronous read mux to settle.
+    // Called with cfg_wr already deasserted. Read through the actual public bus, allowing a
+    // complete cycle for the asynchronous read mux to settle.
     cfg_addr=a;@(negedge clk);
     if(cfg_rdata!==want)
       $fatal(1,"config readback mode=%0d address=%h got=%h expected=%h",mode,a,cfg_rdata,want);

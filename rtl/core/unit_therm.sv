@@ -22,8 +22,8 @@ module unit_therm (
 
   integer a, p, k, i;
 
-  // 全部输出在每次组合执行中赋值；各 unit 比较器在综合时并行展开，
-  // for 循环不产生逐 unit 扫描状态机，也没有未赋值路径推断锁存器。
+  // 全部输出在每次组合执行中赋值；各 unit 比较器在综合时并行展开， for 循环不产生逐 unit
+  // 扫描状态机，也没有未赋值路径推断锁存器。
   always_comb begin
     for (a = 0; a < N_ACTIVE; a++) begin
       for (p = 0; p < N_UNIT_MAIN; p++) begin

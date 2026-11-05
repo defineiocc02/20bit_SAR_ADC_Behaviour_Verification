@@ -1,4 +1,4 @@
-"""Keep dated review snapshots and their extension coverage complete and linked."""
+"""检查按日期保留的审阅快照及扩展覆盖是否完整且可追溯。"""
 
 import hashlib
 import json
@@ -27,8 +27,8 @@ def _registered_sources() -> dict:
 def test_source_review_covers_each_registered_page_once():
     sources = _registered_sources()
     baseline, extension = (_load(name) for name in (SOURCE_BASELINE, SOURCE_EXTENSION))
-    # These are dated reading records. Add extensions instead of rewriting the
-    # original corpus as though later documents had already been read then.
+    # 这些是按日期冻结的阅读记录；后续资料通过扩展记录加入，
+    # 不改写原始集合以暗示当时已读过后来的资料。
     assert baseline["totals"] == {
         "documents": 18,
         "pages": 596,
@@ -49,7 +49,7 @@ def test_source_review_covers_each_registered_page_once():
     documents = baseline["documents"] + extension["documents"]
     assert len(documents) == len({row["source_id"] for row in documents}) == len(sources)
     assert {row["source_id"] for row in documents} == set(sources)
-    # Same-content aliases do not inflate the unique source corpus.
+    # 同内容的别名不增加唯一来源数量。
     assert len({row["sha256"] for row in documents}) == len(documents)
     for report in (baseline, extension):
         assert report["totals"]["documents"] == len(report["documents"])
@@ -134,7 +134,7 @@ def test_each_source_requirement_has_a_valid_applicability_and_mechanism_mapping
     for row in extension["requirements"]:
         assert row["scope"] == "optional_research_extension"
         assert row["mechanism_ids"] == ["X02"]
-        # Original-source reading is not an execution result for the project.
+        # 阅读原文不等于执行过本项目验证。
         assert row["source_branch_verification_status"] == "NOT_RUN"
         assert row["source_branch_implementation_status"] == "NOT_ASSESSED_BY_SOURCE_BRANCH"
         assert row["implementation_status_source"]["mechanism_id"] == "X02"
@@ -155,8 +155,8 @@ def test_caaz_remains_an_optional_source_derived_sample_domain_extension():
         "rtl": "P_CAAZ_ENABLE=0",
     }
     assert caaz["completion"] == "PARTIAL_SAMPLE_DOMAIN"
-    # The source discloses CAAZ; this project's selected raw/pair rates are
-    # engineering assumptions and cannot inherit its silicon performance.
+    # 原文披露 CAAZ；本项目选择的原始／配对采样率是
+    # 工程假设，不能据此继承原文硅片性能。
     assert set(caaz["evidence_source"]) == {"DISCLOSED", "DERIVED", "ASSUMED"}
     equations = _load("20261105-caaz-source-equations.json")
     assert equations["pair_rate_choice"]["raw_hz"] == 40_000_000
@@ -201,7 +201,7 @@ def test_reviewed_production_file_inventory_includes_baseline_and_extension():
     for row in baseline_rows:
         assert row["full_read"]
         assert row["read_ranges"] == [[1, row["baseline_lines"]]]
-        # Dated audit hashes identify the reviewed snapshot, not future HEADs.
+        # 按日期保留的审计摘要标识当时快照，不用于标识未来 HEAD。
         assert re.fullmatch(r"[0-9a-f]{64}", row["current_sha256"])
         assert re.fullmatch(r"[0-9a-f]{64}", row["baseline_sha256"])
     for row in extension_rows:

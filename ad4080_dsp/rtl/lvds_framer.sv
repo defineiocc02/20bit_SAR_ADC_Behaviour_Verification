@@ -1,22 +1,22 @@
 //=============================================================================
 // @file    lvds_framer.sv
-// @brief   单/双lane的SDR位序与重复帧原型
-// @details 每bit_en输出单lane的1bit或双lane各1bit，MSB先行；帧尾装载下一帧。
-//          只有一个latest-pending寄存器，无ready/队列；相邻valid可覆盖尚未装帧的结果。
+// @brief   单/双 lane 的 SDR 位序与重复帧原型。
+// @details 每次 bit_en 输出单 lane 的 1 bit，或双 lane 各 1 bit，MSB 先行。
+//          帧尾装载下一帧；仅有一个 latest-pending 寄存器，无 ready 或队列，相邻 valid 可覆盖待装帧结果。
 // @project SAR20 / AD4080风格数字原型
 // @author  项目维护者（贡献记录见版本库）
 // @date    2026-11-05
 // @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : 功能映射见docs/ad4080_traceability.md；不声称器件逐拍等价。
-// 时钟域   : clk；valid/data/lane_sel/bit_en必须同步
-// 复位     : rst_n异步低有效；先发送复位零帧
-// 延迟     : 新数据在后续帧边界装载；与边界同沿valid由data_in优先
-// 吞吐     : 单lane20次bit_en/帧；双lane10次，不等同16tick输入的无损接口
-// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
-// 依赖     : 无
-// 边界     : dco是bit_en寄存电平；bit_en恒高时dco不翻转，不能当真实回送时钟。
-//          不实现DDR/差分PHY/Manchester；lane_sel必须在系统定义的空闲/复位边界更改。
+// 手册依据: 功能映射见 docs/ad4080_traceability.md，不声称器件逐拍等价。
+// 时钟域: clk；valid、data、lane_sel、bit_en 须同步。
+// 复位: rst_n 异步低有效，先发送复位零帧。
+// 延迟: 新数据在后续帧边界装载；同沿 valid 的 data_in 优先。
+// 吞吐: 单 lane 每帧 20 次 bit_en，双 lane 每帧 10 次；不等于 16 tick 输入的无损接口。
+// 可综合性: RTL 结构；目标库映射、约束、SRAM/PHY 与 STA 须单独验收。
+// 依赖: 无子模块。
+// 边界: dco 是 bit_en 的寄存电平；bit_en 恒高时不翻转，不能用作真实回送时钟。
+//     不实现 DDR、差分 PHY 或 Manchester；lane_sel 须在系统规定的空闲/复位边界修改。
 //=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
@@ -55,7 +55,7 @@ module lvds_framer (
             if (valid_in) dat_r <= data_in;
 
             if (bit_en) begin
-                // 每个 bit_en 输出当前 MSB（1 lane 1 位，2 lane 2 位）
+                // 每次 bit_en 输出当前最高位；双 lane 同时输出相邻的两位。
                 ser_data[0]  <= shreg[19];
                 ser_data[1]  <= lane2 ? shreg[18] : 1'b0;
                 ser_frame[0] <= (phase == 5'd0);
@@ -64,7 +64,7 @@ module lvds_framer (
                                       : {shreg[18:0], 1'b0};
 
                 if (phase == last) begin
-                    // 帧尾：为下一帧装载。有新数据用新数据，否则重复上一帧。
+                    // 帧尾为下一帧装载；同沿 valid 直接取 data_in，否则重复最近保存的样本。
                     shreg <= valid_in ? data_in : dat_r;
                     phase <= 5'd0;
                 end else begin

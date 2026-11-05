@@ -1,8 +1,8 @@
 `timescale 1ns/1fs
-// Actual structural SAR core connected to a static, fixed-mismatch charge
-// plant. The plant's unit weights never enter the observation packet or fit.
-// Input references and the quantized backend comparator result are saved by ID.
-// This is a functional behavioral test, not an analog or timing signoff.
+// Actual structural SAR core connected to a static, fixed-mismatch charge plant. The plant's unit
+// weights never enter the observation packet or fit. Input references and the quantized backend
+// comparator result are saved by ID. This is a functional behavioral test, not an analog or timing
+// signoff.
 module structural_calibration_observe_tb;
   logic clk = 0, rst_n = 0, cfg_wr = 0, cfg_validate = 0, cfg_clear = 0;
   always #0.78125 clk = ~clk; // 640 MHz / 16 = 40 MS/s, functional only
@@ -79,8 +79,8 @@ module structural_calibration_observe_tb;
       .caaz_pair_fault_code()
   );
 
-  // A deterministic physical fixture. The distribution is deliberately known
-  // only inside the plant; the digital fitting input contains no such values.
+  // A deterministic physical fixture. The distribution is deliberately known only inside the plant;
+  // the digital fitting input contains no such values.
   function automatic real physical_weight(input int s, input int u);
     int unsigned h;
     real base, epsilon;
@@ -98,8 +98,8 @@ module structural_calibration_observe_tb;
     @(negedge clk); #0.01; cfg_wr = 0;
   endtask
 
-  // Values are recorded at actual reconstructor acceptance. The producer has
-  // no backpressure; this testbench consumes each complete parallel packet.
+  // Values are recorded at actual reconstructor acceptance. The producer has no backpressure; this
+  // testbench consumes each complete parallel packet.
   always @(posedge clk) begin
     if (rst_n && obs_valid && obs_count < requested) begin
       $fwrite(obs_fd, "%0187h\n", obs_data);
@@ -166,8 +166,8 @@ module structural_calibration_observe_tb;
         stimulus_state = stimulus_state * 32'd1664525 + 32'd1013904223;
         desired_fine = 0.03 + real'(stimulus_state % 3300) / 10000.0;
         nominal_dac = -3.0 + 6.0 * real'(coarse_target) / 512.0;
-        // Sampling dither is added to the RDAC code and cancels its nominal
-        // injected charge; the independent quantizer sees the attenuated input.
+        // Sampling dither is added to the RDAC code and cancels its nominal injected charge; the
+        // independent quantizer sees the attenuated input.
         x_now = (32.0 * nominal_dac + desired_fine) / 31.75;
         flash_therm = 7'((1 << (coarse_target >> 6)) - 1);
       end
@@ -183,9 +183,9 @@ module structural_calibration_observe_tb;
             fine_voltage += w * (sampled - dac);
           end
         end
-        // Independent uniform output-equivalent noise. Its specified RMS is
-        // input-referred and scaled by the assumed gain of 32; this is a
-        // stress fixture, not a measured analog-noise spectrum.
+        // Independent uniform output-equivalent noise. Its specified RMS is input-referred and
+        // scaled by the assumed gain of 32; this is a stress fixture, not a measured analog-noise
+        // spectrum.
         noise_state = noise_state * 32'd1664525 + 32'd1013904223;
         fine_voltage += (2.0 * real'(noise_state) / 4294967295.0 - 1.0) *
             noise_rms_uv * 1.0e-6 * 32.0 * 1.7320508075688772;

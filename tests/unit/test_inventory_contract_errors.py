@@ -1,4 +1,4 @@
-"""Reject malformed static inventory references without claiming semantic coverage."""
+"""拒绝格式或锚点错误的静态清单引用，不据此声称语义覆盖。"""
 
 from __future__ import annotations
 

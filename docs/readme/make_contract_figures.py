@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Redraw original bridge and held-out RTL calibration figures from retained data."""
+"""从保留数据重绘原创桥接机制与 RTL 校准留出图。"""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ def _style(ax) -> None:
 
 
 def redraw(out: Path) -> None:
-    """Redraw the project candidate and the same 512 DUT holdout records."""
+    """重绘工程候选及同一批 512 条 DUT 留出记录。"""
     out.mkdir(parents=True, exist_ok=True)
     plt.rcParams.update(
         {
@@ -153,7 +153,7 @@ def redraw(out: Path) -> None:
 
 
 def main() -> None:
-    """Write both figures into the requested output directory."""
+    """将两张图写入指定输出目录。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True, help="output directory")
     args = parser.parse_args()

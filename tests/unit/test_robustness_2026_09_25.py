@@ -1,12 +1,11 @@
-"""2026-09-25 独立审查修复的回归测试（v8.2.0 发布物的一部分）。
+"""保留 2026-09-25 独立审查的回归（原 v8.2.0 发布物）。
 
-每条测试对应一项已被独立复核的发现（F1–F17 来自 2026-09-25 首轮审查，
-N1–N5 来自同日的第二轮复查）。修复前的行为要么产生**静默垃圾数值**，
-要么抛出难以定位的裸异常；这里的断言把"入口必须拒绝 / 口径必须一致"
-钉死，防止后续改动把这些防护悄悄拿掉。
+F1–F17 来自当日首轮审查，N1–N5 来自第二轮复查。检查目标包括入口拒绝、
+数值口径、异常类型、独立随机流和分发内容；数值比较采用相应误差界，避免
+依赖具体随机实现。各项原编号及诊断背景保留，便于回溯。
 
-数值口径类断言（对拍、独立性）不写死具体数字，只写**界**，避免与随机
-实现细节耦合。
+本文件按当时的模型与导出接口保留断言。本轮只整理说明，不增加新的架构要求，
+也不以注释说明代替实际测试结果。
 """
 
 from __future__ import annotations
@@ -55,7 +54,7 @@ def test_monte_carlo_mismatch_and_noise_streams_are_independent():
 
 
 def test_spawn_does_not_consume_parent_stream():
-    """F2 的依据：sim.py 注释声称 spawn 不影响主流——把该假设钉成测试。"""
+    """F2：独立检查 spawn 不消耗父随机流的后续抽样序列。"""
     g1 = np.random.default_rng(42)
     g1.spawn(1)
     after = g1.normal(size=4)
@@ -99,7 +98,7 @@ def test_run_sim_gives_scheduler_an_independent_rng(monkeypatch):
     ],
 )
 def test_config_legality_rejects_illegal_values(kwargs):
-    """F3a：这五个量任何非法取值都必须在合法检查里报出来（旧实现静默放行）。"""
+    """F3a：检查所列五个物理或几何量的非法取值被合法性检查识别。"""
     assert Config(**kwargs).legality_violations()
 
 
@@ -134,8 +133,8 @@ def test_aux_input_rejects_nonpositive_r_aux(r_aux):
 
 
 def test_aux_input_accepts_positive_r_aux():
-    """F6 姊妹断言：合法正值（1.0）不被守卫误伤。"""
-    build_stage(Config(), r_aux=1.0).validated()  # 不抛异常即过关
+    """F6 正对照：合法 r_aux=1.0 被接受。"""
+    build_stage(Config(), r_aux=1.0).validated()  # 正对照要求正常返回。
 
 
 # --------------------------------------------------------------- F7
@@ -175,7 +174,7 @@ def test_dither_nodal_matches_closed_form_on_fractional_codes():
 
 # --------------------------------------------------------------- N4
 def test_dither_nmask_none_means_full_column_in_both_backends():
-    """N4：n_mask=None 的口径（文档：整列长度）在两个后端必须一致且不崩。"""
+    """N4：检查旧 n_mask=None 的整列含义在两个后端一致，且不引发异常。"""
     cfg = Config(dac_arch="split", dither_mode="sampling", dither_discrete=True)
     chip = build_split_chip(cfg)
     om, os_ = np.arange(chip.n_main), np.arange(chip.n_sub)
@@ -205,7 +204,7 @@ def test_dither_nmask_none_means_full_column_in_both_backends():
 
 
 def test_dither_mask_zero_is_explicit_noop():
-    """N4：n_mask=0 表示无掩码列，必须是零贡献而不是广播异常。"""
+    """N4：检查 n_mask=0 表示无选通列，贡献为零而不发生广播异常。"""
     cfg = Config(dac_arch="split")
     chip = build_split_chip(cfg)
     q, c = dither_mask_charge(chip, cfg.v_fs, np.array([0, 3, -2]), cfg.dither_split_bank, 0)
@@ -215,14 +214,14 @@ def test_dither_mask_zero_is_explicit_noop():
 
 # --------------------------------------------------------------- F9 / N2
 def test_crosstalk_activity_uses_fractional_half_units():
-    """F9/N2：单位串扰按 A(k)/2 个单位的**分数**前缀和计（独立逐项复算，不共用向量式）。
+    """F9/N2：逐项独立计算 A(k)/2 个单元的分数前缀和。
 
-    判别力：A(k)=3（分数码 k=1.5）时分数口径取 1.5 个单位、取整口径取 2 个，
-    两者必然不同 —— 断言实测值等于分数口径即证明用的是分数插值。
+    A(k)=3、分数码 k=1.5 时，分数口径取 1.5 个单元，取整口径取 2 个；
+    夹具使两者可区分，不复用被测向量表达式。
     """
     n_u, p0 = 63, 1e-15
     grad = np.linspace(-1.0, 1.0, n_u)
-    prof = p0 * (1.0 + 0.5 * grad)  # 梯度空间分布：本机制存在的意义所在
+    prof = p0 * (1.0 + 0.5 * grad)  # 使用空间梯度分布以区分分数与取整口径。
     cfg = Config(dyn_crosstalk=True, dyn_c_xtalk_common=0.0, dyn_c_xtalk_unit=p0, dyn_v_digital=1.0)
     n_levels = int(cfg.dac_levels)
     code = np.array([1.5, 2.0, 10.0, 20.0, 40.0])  # 首个是分数码 -> A(k)=3
@@ -258,12 +257,11 @@ def test_crosstalk_activity_uses_fractional_half_units():
 
 # --------------------------------------------------------------- F11 / F12
 def test_ridge_fit_lambda_zero_uses_min_norm_on_rank_deficient_matrix():
-    """F11（超定+秩亏分支）：lam=0 且 UᵀU 奇异时仍须给出最小范数解、且 used 如实为 1。
+    """F11：检查超定、秩亏、lam=0 时的最小范数解及 used=1。
 
-    定位说明（独立审查 2026-09-25，B3）：本测试钉住的是"秩亏时仍返回最小范数解、
-    used 不虚报"这一不变量/契约，**并非探测 ridge_fit 修复的回退**——因为超定+秩亏时
-    UᵀU 恰奇异，旧代码会走 except LinAlgError → lstsq 兜底，该侧本来就对，把本次修复
-    回退后本测试仍通过。勿误以为它给该修复上了护栏。
+    2026-09-25 独立审查 B3 已注明：旧实现在该分支会由奇异 UᵀU 触发
+    LinAlgError 后转入 lstsq，本来就能返回正确解。因此此断言维护数值合同，
+    不能单独检出后来 ridge_fit 修改的回退。
     """
     from adi_model.calib import ridge_fit
 
@@ -271,13 +269,13 @@ def test_ridge_fit_lambda_zero_uses_min_norm_on_rank_deficient_matrix():
     y = np.array([1.0, 2.0, 3.0])
     w, used = ridge_fit(U, y, lam=0.0)
     assert np.all(np.isfinite(w))
-    # 秩亏：只能辨识 1 个方向，不得报告成"全部估出"
+    # 秩亏时只能辨识一个方向，used 不应报告为全部参数。
     assert used == 1 and used < U.shape[1]
     # 手算核对：UtU=[[14,28],[28,56]]，Uty=14·[1,2] ⇒ 解空间 w0+2*w1=1；
     # 其上的最小范数点 = (1/5)·[1,2] = [0.2, 0.4]（唯一）
     assert np.allclose(w, [0.2, 0.4], rtol=1e-12, atol=1e-15)
     assert float(np.linalg.norm(w)) == pytest.approx(1.0 / np.sqrt(5.0), rel=1e-12)
-    # 同一残差的其他解（如 [1,0]）范数更大 ⇒ 证明取的是最小范数解而非任意特解
+    # [1,0] 等其他同残差解范数更大，用于区分最小范数解与任意特解。
     assert float(np.linalg.norm(w)) < float(np.linalg.norm([1.0, 0.0]))
 
 
@@ -325,9 +323,10 @@ def test_mapper_encode_validates_contract():
 
 
 def test_mapper_encode_rejects_fractional_coarse_code():
-    """F13（次要漏网）：域内分数粗码（如 2.5）此前被放行，会经
-    `k=coarse*units_per_lsb1+k0` 产生非整数单位数 k。SADC 只输出整数码。
-    同时守住既有"粗码越界"分支顺序与消息不回归。
+    """F13：检查域内分数粗码（如 2.5）被拒绝。
+
+    SADC 粗码应为整数；旧 k=coarse*units_per_lsb1+k0 会将分数传播为非整数单元数。
+    同时保留粗码越界的分支顺序和错误信息检查。
     """
     m = Mapper(Config())
     n_code = 2 ** Config().b1
@@ -343,8 +342,9 @@ def test_mapper_encode_rejects_fractional_coarse_code():
 
 # --------------------------------------------------------------- F10
 def test_run_with_calibration_short_record_stays_below_nyquist(monkeypatch):
-    """F10：短记录（<4096）beta 相干 bin 不得越 Nyquist。作者 39 条回归里**没有**
-    任何一条触达该修正——这里 runtime 捕获真正传给正弦前台的 `fin`，断言 0<fin<fs/2。
+    """F10：检查少于 4096 点的旧 beta 标定所用相干频点不越过 Nyquist。
+
+    直接截取传给正弦入口的 fin 并断言 0<fin<fs/2，覆盖原 39 条回归未触达的修正。
     """
     import adi_model.sampler as sampler_mod
 
@@ -368,8 +368,9 @@ def test_run_with_calibration_short_record_stays_below_nyquist(monkeypatch):
 
 # --------------------------------------------------------------- F11
 def test_ridge_fit_underdetermined_rank_deficient_uses_min_norm():
-    """F11：lam=0 的"欠定+秩亏"分支（U 行<列，走 U@U.T 对偶式）也必须给出
-    最小范数解，与独立 np.linalg.lstsq 一致。作者原测试只覆盖超定（3×2）分支。
+    """F11：检查欠定、秩亏、lam=0 的对偶分支也返回最小范数解。
+
+    U 行数小于列数，独立比较 np.linalg.lstsq；原测试只覆盖超定 3×2 分支。
     """
     from adi_model.calib import ridge_fit
 
@@ -384,13 +385,11 @@ def test_ridge_fit_underdetermined_rank_deficient_uses_min_norm():
 
 # --------------------------------------------------------------- F9 / N2
 def test_crosstalk_uniform_profile_numerically_unchanged():
-    """F9/N2：均匀开关活动 profile 下，修正后的 crosstalk 公式相对旧公式
-    `e_unit = dyn_v * cum[round(a_k)]` 数值不变（相对容差 ~1e-12）。
-    这条"均匀不变"承诺此前只存在于文字里，无回归断言。
+    """F9/N2：检查均匀活动分布下新旧公式数值一致，相对容差约 1e-12。
 
-    定位说明（独立审查 2026-09-25，B3）：本测试钉住的是"均匀 profile 下新旧公式
-    数值重合"这一契约，**并非探测本次 crosstalk 修复的回退**——均匀 profile 下新旧
-    公式按构造恰好重合，把本次修复回退后本测试仍会通过，勿误以为它给该修复上了护栏。
+    旧对照为 e_unit=dyn_v*cum[round(a_k)]。2026-09-25 独立审查 B3 已注明：
+    均匀分布下两公式按构造重合，因此这是均匀输入的不变性检查，不能单独检出
+    分数前缀串扰修正的回退。
     """
     n_u, p0 = 63, 1e-15
     cfg = Config(dyn_crosstalk=True, dyn_c_xtalk_common=0.0, dyn_c_xtalk_unit=p0, dyn_v_digital=1.0)
@@ -462,9 +461,9 @@ def test_ktc_rejects_nonpositive_ra_gain(g_r):
 
 
 def test_ktc_beta_x_of_shares_the_domain_guard():
-    """F16（对称缺口）：beta_x_of 此前**完全没有**域守卫，与 beta_n_of 同源的
-    nan/inf/<=0 漏网。修复后两函数必须拒绝同一组非法 g_r，且合法值有限且等于
-    kappa*g_n*eta_x/2（g_r=2.0 时）。
+    """F16：检查旧 beta_x_of 与 beta_n_of 拒绝同一组非法 g_r。
+
+    覆盖 nan、inf 及非正值；合法 g_r=2.0 时，结果应有限且为 kappa*g_n*eta_x/2。
     """
     kb = KTCBranch(Config(ktc_enable=True))
     for g_r in (0.0, -1.0, float("nan"), float("inf")):
@@ -513,7 +512,7 @@ def test_cli_reports_results_dir_pointing_at_a_file(tmp_path):
 
 # --------------------------------------------------------------- N3（合规兜底）
 def test_internal_review_report_dir_is_ignored():
-    """N3：含论文/专利截图的内部审查目录必须被 .gitignore 结构性拦住。"""
+    """N3：检查含论文、专利截图的内部审查目录受 .gitignore 约束。"""
     patterns = (REPO / ".gitignore").read_text(encoding="utf-8").splitlines()
     assert "docs/robustness_review_2026/" in patterns
     idx_allow = patterns.index("!docs/**/*.png")
@@ -522,19 +521,15 @@ def test_internal_review_report_dir_is_ignored():
 
 
 def test_sdist_excludes_the_third_party_report_figures():
-    """N3（真闸门）：**发行通道不由 .gitignore 管辖**，且目录型模式在构建后端失效。
+    """N3：直接检查构建后端的分发排除规则，并保留反向包含检查。
 
-    2026-09-25 发版实测两连击：
-      1) hatchling 对 .gitignore 的模拟与 git 语义不一致 —— git 规定“父目录被排除
-         时无法再反包含其中文件”，hatchling 却按模式顺序判定，于是 `!docs/**/*.png`
-         盖过目录级排除，把报告里的 ISSCC 论文页截图与专利首页截图打进 sdist；
-      2) 更隐蔽的是：hatchling 的 ``path_is_excluded`` 对**文件路径**调用
-         ``GitIgnoreSpec.match_file``，而 gitignore 的“目录型模式”（``dir`` / ``dir/``）
-         在文件路径上恒为 False（git 靠遍历剪枝目录而非匹配文件）。因此只写
-         ``docs/robustness_review_2026`` 时**一条文件都挡不住**，必须写成 ``dir/**``。
+    2026-09-25 发布记录显示，hatchling 逐模式匹配的行为与 Git 目录剪枝不同，
+    !docs/**/*.png 曾覆盖目录级排除，把 ISSCC 论文页和专利首页截图放入 sdist。
+    其 path_is_excluded 对文件路径调用 GitIgnoreSpec.match_file，单纯 dir 或 dir/
+    目录模式不足以匹配该路径，因此使用 dir/** 形式。
 
-    这条测试直接调用构建后端的判定函数（真实入口），并做双向断言 —— 只查
-    “配置里有没有这个字符串”会给出已合规的假象。
+    测试调用后端实际判定函数，既检查第三方截图被排除，也检查自有图片和参考
+    产物保留；仅搜索配置中的字符串不能证明分发边界。
     """
     pytest.importorskip("hatchling")  # 构建后端不可用时不适用（CI 装了 hatchling）
     from hatchling.builders.sdist import SdistBuilder
@@ -550,7 +545,7 @@ def test_sdist_excludes_the_third_party_report_figures():
     for rel in must_exclude:
         assert cfg.path_is_excluded(rel), f"{rel} 必须被 sdist 排除（第三方版权材料）"
 
-    # 反向断言：自有图与参考产物必须**仍在**包里，否则 README 的图会 404
+    # 反向检查自有图及参考产物仍进入分发包，避免 README 引用失效。
     must_keep = [
         "docs/release_v8.2.0/fig/headline_compare.png",
         "docs/release_v8.2.0/fig/significance_null.png",
@@ -558,7 +553,7 @@ def test_sdist_excludes_the_third_party_report_figures():
         "docs/release_v8.2.1/fig/byte_account_v821.png",
         "docs/release_v8.2.2/fig/ingress_closure_v822.png",
         "docs/release_v8.2.2/fig/byte_account_v822.png",
-        # README 的架构/对应关系配图：被首页引用，必须留在包内
+        # 首页引用的自有架构和对应关系图应保留在分发包中。
         "docs/readme/fig/fig1_architecture.png",
         "docs/readme/fig/fig2_modules.png",
         "docs/readme/fig/fig3_source_alignment.png",
@@ -627,16 +622,16 @@ def test_split_dac_nominal_endpoints_are_ordered():
     assert lo < hi
 
 
-# =============================================================== 第二批：补齐"只查符号未查有限性"的守卫
-# 以下守护 2026-09-25 独立审查第二批普查定位的 18 个站点：域校验谓词原本只查
-# 符号/区间，nan/inf 穿过守卫静默传播成 nan；现统一补上有限性检查
-# （标量用 math.isfinite，数组用 np.isfinite），合法有限输入行为不变。
+# 第二批：2026-09-25 独立审查定位的有限性检查。
+# 以下保留当时 18 个站点的回归；旧域校验仅检查
+# 符号或区间时，nan/inf 可能传播为 NaN，因此同时检查有限性
+# （标量用 math.isfinite，数组用 np.isfinite），并设置合法值正对照。
 
 _REPO = Path(__file__).resolve().parents[2]
 
 
 def _load_exporter():
-    """按 test_rtl_export 的方式按路径加载 tools/export_rtl_params.py（tools 不是包）。"""
+    """按路径加载 tools/export_rtl_params.py；tools 目录不是 Python 包。"""
     path = _REPO / "tools" / "export_rtl_params.py"
     spec = _ilu.spec_from_file_location("export_rtl_params_2", path)
     module = _ilu.module_from_spec(spec)
@@ -661,14 +656,14 @@ def test_config_fs_vfs_reject_nonfinite(field, bad):
 
 
 def test_config_fs_vfs_accept_finite():
-    """站点 1/2：合法有限值不被误伤。"""
+    """站点 1/2 正对照：有限、正的采样率及满幅被接受。"""
     assert Config(fs=40e6, v_fs=3.0).legality_violations() == []
 
 
 # --- 站点 3：reference_precision_bits ---
 @pytest.mark.parametrize("bad", [float("nan"), float("inf"), -float("inf")])
 def test_reference_precision_bits_rejects_nonfinite(bad):
-    """站点 3：err_rms / span_v 必须为正有限值。"""
+    """站点 3：检查误差 RMS 和电压跨度的非有限输入被拒绝。"""
     from adi_model.ref_track import reference_precision_bits
 
     with pytest.raises(ValueError, match="必须为正有限值"):
@@ -708,7 +703,7 @@ def test_reference_precision_bits_accepts_finite():
     ],
 )
 def test_reftrack_validated_rejects_nonfinite(field, bad):
-    """站点 4：十字段循环里 `v <= 0` 拦不住 nan/inf，现补有限性。"""
+    """站点 4：检查旧十字段校验同时约束有限性，不能仅比较 v<=0。"""
     with pytest.raises(ValueError, match="必须为正有限值"):
         RefTrackConfig(**{field: bad}).validated()
 
@@ -911,12 +906,12 @@ class _DynCfg:
 
 @pytest.mark.parametrize("bad", [float("nan"), float("inf")])
 def test_dyn_recovery_rejects_nonfinite(bad):
-    """站点 13：cfg 绕过 check_legal 时函数自身须拦非有限 dyn_tau_ref（不再静默返回 nan）。"""
+    """站点 13：绕过配置检查时，旧动态参考函数也不能把非有限 tau 传播为 NaN。"""
     from adi_model.dynamics import bitwise_eta_dyn, ref_recovery_factor
 
     cfg = _DynCfg()
     cfg.dyn_tau_ref = bad
-    # 非有限输入必须被拦：返回有限值（0.0），而非把 nan 传播出去
+    # 此旧接口对非有限输入返回有限值 0.0，不传播 NaN。
     assert np.isfinite(ref_recovery_factor(cfg))
     assert np.isfinite(bitwise_eta_dyn(cfg))
 
@@ -933,10 +928,10 @@ def test_dyn_recovery_accepts_finite():
 
 # --- 站点 14：fit_unit_weights 权重有限正值 ---
 def test_fit_unit_weights_rejects_nonfinite_or_nonpositive():
-    """站点 14：拟合权重须有限正值（用 scipy.linalg.svd 桩强制坏权重）。
+    """站点 14：检查拟合权重有限且为正，使用 SVD 替身定向注入异常。
 
-    分两层：非有限的 SVD 因子由"因子守卫"在任何矩阵乘法之前拦下；有限但非正的权重由
-    下游权重守卫拦下。两者断言不同的信息串，删除任一层都会让本测试失败。
+    非有限 SVD 因子应在矩阵乘法前拒绝；有限但非正的权重由下游权重检查拒绝。
+    两条路径分别断言对应错误信息，避免只检查最终出现某个异常。
     """
     import dataclasses
 
@@ -982,16 +977,16 @@ def test_fit_unit_weights_rejects_nonfinite_or_nonpositive():
 
         return f
 
-    # 合法有限权重（adc2_v_min 正 -> fine_v 正 -> 权重正）：不抛
+    # 合法有限正权重正对照：adc2_v_min 为正，构造的 fine_v 及权重为正。
     _wc.svd = fake(1.0)
     try:
         fit_unit_weights(make_obs(0.0), np.ones(n))
     finally:
         _wc.svd = _real_svd
-    # 非有限 SVD 因子：必须由"因子守卫"在任何矩阵乘法之前拦下。若该守卫被删，nan/inf 会
-    # 先走进 design @ theta，0 * inf 触发 RuntimeWarning —— 在 x86-64 后端（CI）是硬失败，
-    # 在 Apple Accelerate 上则静默滑到下游权重守卫、报出不同的信息。因此下面断言专属于因子
-    # 守卫的信息字符串，使本测试对"守卫被删/被移到算术后"这一变异敏感。
+    # 非有限 SVD 因子应在矩阵乘法前被拒绝；缺少该检查时，nan/inf 会
+    # 进入 design @ theta，0*inf 可能触发 RuntimeWarning。历史 x86-64 CI 将其判为失败，
+    # Apple Accelerate 则可能继续到权重检查并返回不同信息；因此分别检查因子
+    # 检查的信息字符串，以识别检查被删除或移到算术后的变异。
     for bad in (float("nan"), float("inf")):
         _wc.svd = fake(bad)
         try:
@@ -1020,11 +1015,11 @@ def test_fit_unit_weights_rejects_nonfinite_or_nonpositive():
     ],
 )
 def test_spec_physical_scales_must_be_finite(field_, bad):
-    """站点 14b：spec 标量非有限须在入口被拦（否则漏成 LAPACK 层 LinAlgError，或 0*inf）。
+    """站点 14b：检查手工构造的 spec 也在观测入口拒绝非有限标度。
 
-    `CalibrationSpec.from_config` 会走 `cfg.check_legal()`，但手工构造 / `dataclasses.replace`
-    的 spec 绕过了它。这些标量是 design 矩阵（v_fs）与 `fine_v`（adc2_v_min/v_max）的派生源，
-    必须在 `DigitalObservation.validate()` 处被拒——不能等到 svd 或下游权重守卫。
+    from_config 会调用配置检查，但手工构造或 dataclasses.replace 可绕过该入口。
+    v_fs 与 adc2_v_min/v_max 分别用于设计矩阵和后级电压；须在
+    DigitalObservation.validate() 拒绝，避免传播至 LAPACK 或 0*inf 运算。
     """
     import dataclasses
 
@@ -1049,7 +1044,7 @@ def test_spec_physical_scales_must_be_finite(field_, bad):
 
 
 def test_spec_physical_scales_accepts_finite():
-    """站点 14b 反向：合法有限标度不得被新闸门误伤（同一个 spec 能正常走到参数检查）。"""
+    """站点 14b 正对照：合法有限标度继续到参数检查，不被标度校验误拒绝。"""
     from adi_model.weight_calibration import CalibrationSpec, DigitalObservation, fit_unit_weights
 
     spec = CalibrationSpec.from_config(Config(dac_arch="split"))
@@ -1060,7 +1055,7 @@ def test_spec_physical_scales_accepts_finite():
     z = np.zeros(n)
     ov = np.zeros(n, dtype=bool)
     obs = DigitalObservation(spec, sid, z64, z64, z64, z, z, ov, True)
-    # 不应是标度闸门；这批数据的 design 必然秩亏，应由可辨识性检查拒绝。
+    # 标度检查不应拒绝；此夹具的设计矩阵秩亏，应由可辨识性检查拒绝。
     with pytest.raises(ValueError) as exc:
         fit_unit_weights(obs, np.ones(n))
     assert "physical scales must be finite" not in str(exc.value)
@@ -1068,7 +1063,7 @@ def test_spec_physical_scales_accepts_finite():
 
 # --- 站点 15：PhysicalSlicePool 电容/寄生有限性 ---
 def test_slice_pool_rejects_nonfinite_caps():
-    """站点 15：单位/桥接电容与寄生均须有限（用伪 RNG 注入 nan）。"""
+    """站点 15：用随机源替身注入 NaN，检查单位、桥接及寄生电容的有限性。"""
     from adi_model.slice_pool import PhysicalSlicePool
 
     class _NanRNG:
@@ -1131,11 +1126,10 @@ def test_export_rtl_params_rejects_out_of_range():
 
 @pytest.mark.parametrize("bad", [float("nan"), float("inf"), 3.5])
 def test_export_rtl_params_rejects_nonfinite(bad):
-    """站点 18 / M15：phases 是唯一浮点入口，须给契约内的 ValueError。
+    """站点 18/M15：检查旧 phases 入口以 ValueError 拒绝非有限或分数值。
 
-    修复前：非有限 phases 在 int(phases) 处抛裸 OverflowError（非契约异常，同类 N1），
-    且循环里 `not math.isfinite(value)` 对全-int 的 raw 永远为假、是死守卫。
-    现在入口即校验：nan/inf/非整数浮点（3.5）一律抛 ValueError，消息含"有限的整数值"。
+    旧 int(phases) 可先抛出 OverflowError，而全整数 raw 循环中的有限性判断无法
+    覆盖该入口。案例包括 nan、inf 和 3.5，断言错误信息含“有限的整数值”。
     """
     exporter = _load_exporter()
     with pytest.raises(ValueError, match="有限的整数值"):
@@ -1143,7 +1137,7 @@ def test_export_rtl_params_rejects_nonfinite(bad):
 
 
 def test_export_rtl_params_accepts_legal_integer_phases():
-    """站点 18 / M15：合法整数 phases（16）正常返回，不被入口校验误伤。"""
+    """站点 18/M15 正对照：旧接口接受合法整数 phases=16。"""
     exporter = _load_exporter()
     out = exporter.rtl_localparams(Config(), exporter.FixedPointFormat(), phases=16)
     assert any(r["name"] == "PHASES" and r["value"] == 16 for r in out)
@@ -1152,10 +1146,11 @@ def test_export_rtl_params_accepts_legal_integer_phases():
 # --- B1 闭环：AuxInputStage 直接构造须过 validated() 守卫 ---
 @pytest.mark.parametrize("bad", [float("inf"), float("nan")])
 def test_aux_stage_direct_construction_rejects_nonfinite_r_aux(bad):
-    """B1：绕过 build_stage 直接构造也必须在 __post_init__ 过 validated()——
-    r_aux 非有限（inf/nan）构造即抛 ValueError，而非静默放行到下游
-    （验证者实测：直接 AuxInputStage(r_aux=inf, mode="off") 后调
-    required_filter_bw 曾静默返回 8.8e6）。
+    """B1：检查绕过 build_stage 直接构造也执行入口校验。
+
+    r_aux=inf/nan 应在 __post_init__ 通过 validated() 拒绝。历史记录中
+    AuxInputStage(r_aux=inf, mode="off") 的 required_filter_bw 曾返回 8.8e6，
+    本测试针对该直接构造路径保留反例。
     """
     from adi_model.aux_input import AuxInputStage
 
@@ -1173,7 +1168,7 @@ def test_aux_stage_direct_construction_rejects_nonfinite_r_aux(bad):
 
 
 def test_aux_stage_direct_construction_accepts_legal():
-    """B1 姊妹断言：完全合法的直接构造仍能成功（守卫不误伤合法有限输入）。"""
+    """B1 正对照：合法有限输入可直接构造，入口检查不误拒绝。"""
     from adi_model.aux_input import AuxInputStage
 
     st = AuxInputStage(

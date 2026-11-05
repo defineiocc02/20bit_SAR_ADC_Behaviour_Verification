@@ -1,4 +1,4 @@
-"""Independent provenance and repository-identity contracts for parameter export."""
+"""独立检查参数导出的来源分级及仓库身份合同。"""
 
 import importlib.util
 import subprocess

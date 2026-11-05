@@ -1,4 +1,5 @@
 `timescale 1ns/1ps
+// 检查两种数字 CNV 配置下的逻辑上升沿、单拍事件和忙时错误计数，不验证差分接收器。
 module cnv_ctrl_contract_tb;
   logic clk=0;
   always #5 clk=~clk;

@@ -1,4 +1,4 @@
-"""Keep the externally fitted 18-slice RTL fixture bound to its register image."""
+"""检查外部拟合的 18 切片 RTL 夹具与其寄存器镜像绑定。"""
 
 import hashlib
 import importlib

@@ -1,10 +1,7 @@
-"""Joint reference recovery, residue-amplifier response and ADC2 acquisition.
+"""联合推进参考恢复、残差放大器响应和 ADC2 采集。
 
-Reference switching is a signed charge event. Between events, reference error
-recovers exponentially and drives the same finite-bandwidth amplifier sampled
-by ADC2. This retains the reference history even when its final voltage is near
-ideal. Parameters describe an assumed reduced circuit; they are not silicon
-bandwidth or slew-rate disclosures.
+参考切换按有符号电荷事件处理。事件之间的参考误差指数恢复，并驱动 ADC2 所采样的同一个有限带宽放大器；
+即使最终参考接近理想值，也保留之前的扰动历史。参数描述假设的简化电路，不是硅带宽或压摆率的披露值。
 """
 
 from __future__ import annotations
@@ -26,12 +23,12 @@ class ConversionParameters:
 
     Attributes:
         quantizer_time_s: Time from sampling to the start of residue amplification.
-        rdac_event_timing: ``scaled`` uses an abstract timing budget; ``rtl16``
-            uses the structural controller's 16-phase RDAC output schedule.
-        rtl_shuffle_seed: Nonzero 32-bit initial state of the structural slice
-            allocator. It is independent of the analog mismatch random seed.
-        rtl_dither_seed: Nonzero 32-bit initial state of the structural dither
-            generator; its accepted values are consumed in acquisition order.
+        rdac_event_timing: ``scaled`` uses an abstract timing budget; ``rtl16`` uses the structural
+            controller's 16-phase RDAC output schedule.
+        rtl_shuffle_seed: Nonzero 32-bit initial state of the structural slice allocator. It is
+            independent of the analog mismatch random seed.
+        rtl_dither_seed: Nonzero 32-bit initial state of the structural dither generator; its
+            accepted values are consumed in acquisition order.
         fine_reference_tau_s: Fine buffer recovery time; None uses dyn_tau_ref.
         ra_bandwidth_hz: Closed-loop RA signal bandwidth, not OTA unity-gain GBW.
         ra_dc_gain: OTA open-loop gain; None eliminates finite-gain error.
@@ -124,9 +121,9 @@ def response_interval(
 ) -> tuple[float, float, bool]:
     """Propagate one phase driven by target + reference_drive*exp(-t/tau).
 
-    Returns RA output [V], ADC2 acquisition voltage [V] and RA clipping flag.
-    Linear responses use a matrix exponential. Slew-limited or clipped responses
-    use an adaptive ODE solve on normalized time; integration failure is fatal.
+    Returns RA output [V], ADC2 acquisition voltage [V] and RA clipping flag. Linear responses use a
+    matrix exponential. Slew-limited or clipped responses use an adaptive ODE solve on normalized
+    time; integration failure is fatal.
     """
     # 独立审查 2026-09-25：tau_ref_s 与 clip_v 也须为有限正值
     if (
@@ -222,8 +219,8 @@ class ConversionResult:
 class ConversionEngine:
     """Causal shared electrical state, advanced once per acquired sample.
 
-    Noise is applied once by the runner as an output-equivalent aperture source;
-    signal bandwidth parameters do not define its spectral transfer function.
+    Noise is applied once by the runner as an output-equivalent aperture source; signal bandwidth
+    parameters do not define its spectral transfer function.
     """
 
     def __init__(self, cfg: Config, pool: PhysicalSlicePool, units: int, n_samples: int):
@@ -270,8 +267,8 @@ class ConversionEngine:
     def step(self, i, ids, coarse, code, sid, held_v, bank_dither, residue_v, gain) -> float:
         """Convert sample i and return its final reference-induced DAC error [V].
 
-        The returned physical residue correction must update the released slice
-        state before that slice's next acquisition. Calls out of order are errors.
+        The returned physical residue correction must update the released slice state before that
+        slice's next acquisition. Calls out of order are errors.
         """
         from .reference_charge import (
             physical_reference_program,

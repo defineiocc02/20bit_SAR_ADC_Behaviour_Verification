@@ -1,14 +1,14 @@
 """Signed reference-rail charge from physical split-DAC switch events.
 
-Terminal charge is evaluated from each actual main/sub capacitor and the
-conserved sampled subnode charge. A newly connected rail supplies the change in
-that capacitor's bottom-plate charge; a retained connection also supplies charge
-when another switch changes the floating subnode. Consequently a charge pulse
-is not a fixed positive bit-weight pattern. Differential rails are separate.
+Terminal charge is evaluated from each actual main/sub capacitor and the conserved sampled subnode
+charge. A newly connected rail supplies the change in that capacitor's bottom-plate charge; a
+retained connection also supplies charge when another switch changes the floating subnode.
+Consequently a charge pulse is not a fixed positive bit-weight pattern. Differential rails are
+separate.
 
-This linearized load program uses nominal rail voltages. A joint reference/RA
-solver may apply its reference-voltage perturbation through the returned DAC
-sensitivities. Large-droop charge redistribution requires a nonlinear rail solve.
+This linearized load program uses nominal rail voltages. A joint reference/RA solver may apply its
+reference-voltage perturbation through the returned DAC sensitivities. Large-droop charge
+redistribution requires a nonlinear rail solve.
 """
 
 from __future__ import annotations
@@ -32,8 +32,8 @@ class ReferenceProgram:
     Attributes:
         times_s: Nondecreasing event times from the sample aperture [s].
         codes: Fine RDAC commands after each event; duplicate codes give zero load.
-        charge_c: Signed rail-delivered charge at nominal rail voltages [C], (E, 2).
-        sensitivity: Input-referred DAC sensitivity dVdac/dVrail, (E, 2).
+        charge_c: Signed rail-delivered charge at nominal rail voltages [C], (E, 2) .
+        sensitivity: Input-referred DAC sensitivity dVdac/dVrail, (E, 2) .
         bottom_charge_c: Capacitor bottom-plate charge after the final event [C].
     """
 
@@ -47,12 +47,11 @@ class ReferenceProgram:
 def sar_loading_codes(coarse: int, bits: int, units: int, dither: float) -> np.ndarray:
     """Return the historical trial/decision load hypothesis.
 
-    Comparisons are against the resolved static SADC decision, so thresholds and
-    offset already included by that quantizer are preserved. The SADC reference
-    is assumed independent of the modeled RDAC reference. Each trial is loaded,
-    then retained or rejected; the final command includes the transferred dither.
-    This is retained for historical studies. The structural RDAC follows only
-    resolved decisions; production conversion uses :func:`resolved_loading_codes`.
+    Comparisons are against the resolved static SADC decision, so thresholds and offset already
+    included by that quantizer are preserved. The SADC reference is assumed independent of the
+    modeled RDAC reference. Each trial is loaded, then retained or rejected; the final command
+    includes the transferred dither. This is retained for historical studies. The structural RDAC
+    follows only resolved decisions; production conversion uses :func:`resolved_loading_codes`.
     """
     # 独立审查 2026-09-25：coarse/units/dither 须为有限值
     if (
@@ -83,9 +82,9 @@ def resolved_loading_codes(
 ) -> np.ndarray:
     """Return the Flash prefix followed by accepted SAR decision states.
 
-    Duplicate codes are retained because each is a real valid event in the
-    structural controller. The dither is the signed RDAC command adjustment;
-    physical clipping is performed by the switch decoder, not hidden here.
+    Duplicate codes are retained because each is a real valid event in the structural controller.
+    The dither is the signed RDAC command adjustment; physical clipping is performed by the switch
+    decoder, not hidden here.
     """
     if (
         type(bits) is not int
@@ -116,10 +115,10 @@ def sampled_bottom_voltages(cfg: Config, held_v, bank_code: float) -> np.ndarray
     Args:
         cfg: Nominal capacitor-bank and dither controls.
         held_v: One acquired voltage per active slice [V].
-        bank_code: Sampling-dither bank code (zero outside sampling mode).
+        bank_code: Sampling-dither bank code (zero outside sampling mode) .
 
     Returns:
-        Bottom-plate voltages [V], shape (n_active, n_main+n_sub). Fractional
+        Bottom-plate voltages [V], shape (n_active, n_main+n_sub) . Fractional
         dither is explicitly the continuous interpolation baseline.
     """
     held = np.asarray(held_v, dtype=float)
@@ -152,11 +151,11 @@ def physical_reference_program(
     Args:
         cfg: Resolved split topology and nominal rail voltage.
         pool: Fabricated capacitances; only selected slices participate.
-        slice_ids: Physical IDs for this conversion, shape (n_active,).
+        slice_ids: Physical IDs for this conversion, shape (n_active,) .
         codes: Fine RDAC commands after successive switching events.
         times_s: Nondecreasing event times [s], shape matching codes.
         sid: Nominal digital DEM state.
-        sampled_bottom_v: Physical sampling connections [V], (n_active, n_units).
+        sampled_bottom_v: Physical sampling connections [V], (n_active, n_units) .
 
     Returns:
         Signed rail charges and physical reference sensitivities. No physical

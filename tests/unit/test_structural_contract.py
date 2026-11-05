@@ -1,4 +1,4 @@
-"""Independent checks of structural sample, bridge and reference contracts."""
+"""独立检查结构样本归属、桥接电容与参考事件合同。"""
 
 import csv
 import subprocess

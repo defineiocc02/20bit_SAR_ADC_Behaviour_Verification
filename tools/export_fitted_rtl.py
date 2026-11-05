@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-"""Export an externally fitted physical-unit calibration as RTL registers.
+"""将外部已拟合的物理单元校准系数导出为 RTL 寄存器。
 
-The training JSON is produced by FrozenCalibration.to_dict().  This command
-does not estimate coefficients or inspect simulated physical truth.  It only
-checks the frozen fit against the selected nominal interface, quantizes it
-once, and records which training file supplied the register image.
+输入训练 JSON 来自 FrozenCalibration.to_dict()。工具不估计系数或读取模拟
+物理真值，只核对所选名义接口、量化一次并记录寄存器所用训练文件。
 """
 
 from __future__ import annotations
@@ -21,7 +19,7 @@ from export_rtl_params import _CONFIG_FACTORIES, _json_text
 
 
 def _paths_alias(first: Path, second: Path) -> bool:
-    """Detect lexical, symbolic-link and existing hard-link aliases."""
+    """检查文本路径、符号链接及现有硬链接别名。"""
     if first.resolve() == second.resolve():
         return True
     return first.exists() and second.exists() and first.samefile(second)
@@ -35,7 +33,7 @@ def build_fitted_registers(
     dem_enable: bool | None = None,
     dem_mode: str | None = None,
 ) -> tuple[str, str]:
-    """Return a canonical register image and a provenance sidecar."""
+    """返回规范化寄存器镜像及独立的来源旁车清单。"""
     cfg = _CONFIG_FACTORIES[config_name]()
     if dither_mode is not None:
         cfg = replace(cfg, dither_mode=dither_mode)

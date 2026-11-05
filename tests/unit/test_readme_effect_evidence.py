@@ -1,4 +1,4 @@
-"""Check that the public plots' claims are backed by the retained sample arrays."""
+"""检查公开图表的说明是否有保留样本数组支持。"""
 
 import json
 from pathlib import Path

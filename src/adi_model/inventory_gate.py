@@ -2,14 +2,11 @@
 
 校验三件事，任何硬性失败都以非零退出码结束：
 
-1. **来源清单**（``sources_manifest.json``）：SHA256 格式；原文文件在
-   本地材料目录可定位时逐一比对哈希（不匹配=硬失败；缺失=BLOCKED，
-   不伪造原文证据）。
-2. **机制清单**（``mechanism_inventory.json``）：轴线枚举合法；代码和测试
-   路径限定在仓库内；来源 ID 和位置登记有效；测试 ID 精确指向文件内的
-   顶层类或函数声明；实验状态枚举合法。
-3. **覆盖完整性**：任务书 §4 的 T01-T14 每一项都必须被至少一个机制或
-   待建项引用；机制 ID 唯一。
+1. **来源清单**（``sources_manifest.json``）：SHA256 格式；
+   原文文件在本地材料目录可定位时逐一比对哈希（不匹配=硬失败；缺失=BLOCKED，不伪造原文证据）。
+2. **机制清单**（``mechanism_inventory.json``）：轴线枚举合法；代码和测试路径限定在仓库内；
+   来源 ID 和位置登记有效；测试 ID 精确指向文件内的顶层类或函数声明；实验状态枚举合法。
+3. **覆盖完整性**：任务书 §4 的 T01-T14 每一项都必须被至少一个机制或待建项引用；机制 ID 唯一。
 
 产出 ``validation_summary.json``（严格类型），供报告元数据与 CI 消费。
 
@@ -17,9 +14,8 @@
 
     python -m adi_model.inventory_gate [--repo-root PATH] [--summary PATH]
 
-本模块只依赖标准库。静态引用通过只说明登记的锚点存在，不说明已经阅读
-原文、实现与文献语义一致或测试已执行；物理机制验收仍需独立复核、pytest
-与 ``adi-run-all``。
+本模块只依赖标准库。静态引用通过只说明登记的锚点存在，不说明已经阅读原文、
+实现与文献语义一致或测试已执行；物理机制验收仍需独立复核、pytest与 ``adi-run-all``。
 """
 
 from __future__ import annotations
@@ -112,9 +108,9 @@ def _resolve_sources_dir(manifest: dict[str, object]) -> list[Path]:
 def _check_sources(repo_root: Path, manifest: dict[str, object], result: GateResult) -> set[str]:
     """Check registered source files and return IDs usable by static references.
 
-    Background entries without registered hashes remain explicitly blocked.
-    The returned IDs identify declarations, including blocked local files; they
-    do not certify source content or the meaning of a literature citation.
+    Background entries without registered hashes remain explicitly blocked. The returned IDs
+    identify declarations, including blocked local files; they do not certify source content or the
+    meaning of a literature citation.
     """
     sources = manifest.get("sources", [])
     if not isinstance(sources, list) or not sources:
@@ -185,7 +181,7 @@ def _check_sources(repo_root: Path, manifest: dict[str, object], result: GateRes
 
 
 def _repo_file(repo_root: Path, relative_path: str) -> Path | None:
-    """Resolve a portable repository-relative file without following an escape."""
+    """解析可移植的仓库相对文件路径，拒绝越出仓库。"""
     path = Path(relative_path)
     if path.is_absolute():
         return None
@@ -207,7 +203,7 @@ def _top_level_declarations(path: Path) -> set[str]:
 def _check_rtl_contract(
     repo_root: Path, mechanism_id: str, contract: object, result: GateResult
 ) -> None:
-    """Check optional RTL status and file anchors without asserting behavior."""
+    """检查可选 RTL 状态与文件锚点，不断言其行为已获验证。"""
     check = f"mechanisms.{mechanism_id}.rtl_contract"
     if not isinstance(contract, dict):
         result.add(check, "FAIL", "rtl_contract 必须是对象")

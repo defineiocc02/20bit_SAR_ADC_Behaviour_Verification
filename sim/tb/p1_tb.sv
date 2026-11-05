@@ -1,7 +1,4 @@
-//===========================================================================
-// p1_tb.sv -- P1 自检式 testbench（M1–M5）
-//===========================================================================
-// 职责
+// p1_tb.sv -- P1 自检式 testbench（M1–M5） 职责
 //   读 tools/export_rtl_vectors.py 生成的黄金向量，逐位比对五个 DUT。
 //   **不做**任何参考计算：期望值全部来自文件（模型自身输出）。唯一的例外是
 //   M5 的结构性扫描（popcount / 单调包含），它检查的是**性质**而不是数值。
@@ -19,7 +16,6 @@
 //   T5 M5  结构性扫描    512 sid x count 0..63 的 popcount 与单调包含（性质，非数值）
 //   T6 M4  dither_gen    统计：支撑集精确 + 均匀性直方图落盘交 Python 复核
 //   T7 链路 M1->M2->M3->M5 真实连通：TB 只给 bank/coarse/dither/bridge，其余由 RTL 产生
-//===========================================================================
 `timescale 1ns/1ps
 `include "rtl_params.vh"
 
@@ -35,8 +31,8 @@ module p1_tb;
   int    errors = 0;
   int    checks = 0;
   int    shown  = 0;
-  // 每项测试的独立账本。只在最后打印总数是不够的：一旦误配很多，
-  // chk() 的打印限流会把后面所有测试的失败信息吞掉，定位能力归零。
+  // 每项测试的独立账本。只在最后打印总数是不够的：一旦误配很多， chk()
+  // 的打印限流会把后面所有测试的失败信息吞掉，定位能力归零。
   int    e1, e2, e3, e4, e5, e6, e7;
   int    err_base = 0;
 
@@ -44,8 +40,7 @@ module p1_tb;
   always #5 clk = ~clk;
   logic rst_n = 1'b0;
 
-  //---------------------------------------------------------------- DUT 信号
-  // M1
+  // DUT 信号 M1
   logic        m1_dem_en, m1_load;
   logic [8:0]  m1_init_a, m1_init_b;
   logic        m1_en_a, m1_en_b;
@@ -106,7 +101,7 @@ module p1_tb;
       .main_on(m5_main_on), .sub_on(m5_sub_on), .dither_rail(m5_rail)
   );
 
-  //---------------------------------------------------------------- 工具
+  // 工具
   function automatic int open_data(input string name);
     int    fd;
     string line, tok;
@@ -142,7 +137,7 @@ module p1_tb;
     if (rc != 1) $fatal(1, "short read (rc=%0d)", rc);
   endtask
 
-  //---------------------------------------------------------------- T1 M1
+  // T1 M1
   task automatic t1_m1();
     int    fd;
     logic [63:0] n, bank, en_a, en_b, sid_exp;
@@ -196,7 +191,7 @@ module p1_tb;
     $display("[T1] M1 done: %0d comparisons, errors=%0d", 1024, e1);
   endtask
 
-  //---------------------------------------------------------------- T2 M2
+  // T2 M2
   task automatic t2_m2();
     int          fd, s, p;
     logic [63:0] v;
@@ -222,7 +217,7 @@ module p1_tb;
              512 * (NM + NS), e2);
   endtask
 
-  //---------------------------------------------------------------- T3 M3
+  // T3 M3
   task automatic t3_m3();
     int          fd, i, a;
     logic [63:0] v;
@@ -251,7 +246,7 @@ module p1_tb;
     $display("[T3] M3 done: %0d lines (%0d comparisons), errors=%0d", lines, 8192 * 17 + 85 * 17, e3);
   endtask
 
-  //---------------------------------------------------------------- T4 M5
+  // T4 M5
   task automatic t4_m5();
     int          fd, i, a;
     logic [63:0] sid, mc, sc, v;
@@ -277,7 +272,7 @@ module p1_tb;
     $display("[T4] M5 done: 1248 lines (%0d comparisons), errors=%0d", 1248 * 2 * N_ACT, e4);
   endtask
 
-  //---------------------------------------------------------------- T5 M5 结构性
+  // T5 M5 结构性
   task automatic t5_m5_structure();
     int              s, c, a;
     logic [NM-1:0]   prev [N_ACT];
@@ -316,7 +311,7 @@ module p1_tb;
     $display("[T5] M5 structural sweep done: 512 sid x 64 counts, errors=%0d", e5);
   endtask
 
-  //---------------------------------------------------------------- T6 M4
+  // T6 M4
   task automatic t6_m4();
     int   fd, i, v;
     int   hist [ -D : D ];
@@ -369,9 +364,8 @@ module p1_tb;
              valids, cycles, real'(valids) / real'(cycles), e6);
   endtask
 
-  //---------------------------------------------------------------- T7 链路连通
-  // T1/T4/T5 各自把 DUT 输入直接喂进去，`m2_sid` 是 TB 写死的常量 —— 于是
-  // "M1 的 sid 有没有正确接到 M2"从未被验证。本项只提供 (bank, coarse, dither, bridge)，
+  // T7 链路连通 T1/T4/T5 各自把 DUT 输入直接喂进去，`m2_sid` 是 TB 写死的常量 —— 于是 "M1 的 sid
+  // 有没有正确接到 M2"从未被验证。本项只提供 (bank, coarse, dither, bridge)，
   // 其余全部由 RTL 自己串：M1 出 sid -> M2 出逻辑位置 -> M3（sid_low 取自 M1）出计数 -> M5 出掩码。
   task automatic t7_chain();
     int          fd, i, a;
@@ -420,7 +414,7 @@ module p1_tb;
              256 * 2 * N_ACT, e7);
   endtask
 
-  //---------------------------------------------------------------- 主流程
+  // 主流程
   initial begin
     if (!$value$plusargs("vdir=%s", vdir)) vdir = ".";
     if (!$value$plusargs("outdir=%s", outdir)) outdir = ".";

@@ -1,9 +1,7 @@
-"""Decode structural RTL calibration observations without analog truth.
+"""解码结构 RTL 的校准观测，不使用模拟真值。
 
-The 748-bit packet is emitted on the same edge as the structural reconstructor
-accepts a sample. Fields are physical switch/rail decisions and raw ADC2 codes;
-unknown capacitance and input voltage are deliberately absent. The caller owns
-configuration epochs and supplies a separate known input for training.
+748 bit 数据包在结构重构器接受样本的同一时钟沿发出，字段包含实际物理开关/参考轨决策和原始 ADC2 码，
+不含未知电容或输入电压。调用方负责配置 epoch，并单独提供训练所需的已知输入。
 """
 
 from __future__ import annotations
@@ -33,22 +31,23 @@ def observations_from_rtl(
     static_charge_domain: bool,
     require_consecutive: bool = True,
 ) -> DigitalObservation:
-    """Decode and independently check one epoch of structural observations.
+    """解码并独立检查一个配置 epoch 的结构观测。
 
     Args:
-        packets: Integer payloads or hexadecimal strings, in acceptance order.
-        spec: Frozen nominal geometry and the actual hardware dither mode.
-        static_charge_domain: Caller-declared model validity; false prevents fit.
-        require_consecutive: Reject dropped IDs by default, including at wrap.
+        packets: 按接受顺序排列的整数载荷或十六进制字符串。
+        spec: 冻结的名义几何和硬件实际 dither 模式。
+        static_charge_domain: 调用方声明的模型适用性；False 阻止拟合。
+        require_consecutive: 默认拒绝缺失 ID，包括数值回绕处。
 
     Returns:
-        Digital observations with actual physical masks and original uint32 IDs.
+        含实际物理 mask 和原始 uint32 样本 ID 的数字观测。
 
     Raises:
-        ValueError: Bad dimensions, masks, mode, ID order, or packet contents.
+        ValueError: 维数、mask、模式、ID 顺序或数据包内容非法。
 
-    A capture cannot silently cross reset/clear: call separately per epoch.
-    Timestamp and external reference alignment remain the caller's obligation.
+    Notes:
+        采集记录不能静默跨越复位/clear，每个 epoch 须分别调用。
+        时间戳及外部参考对齐仍由调用方负责。
     """
     if (
         spec.n_slices != 18

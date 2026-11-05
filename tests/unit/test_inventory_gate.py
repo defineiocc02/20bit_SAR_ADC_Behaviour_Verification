@@ -1,8 +1,8 @@
-"""机制/来源清单一致性门禁的自测（阶段 A，任务书 §10）。
+"""检查机制、来源清单的静态引用一致性（阶段 A，任务书 §10）。
 
-清单即证据：本测试保证 ``mechanism_inventory.json`` 与
-``sources_manifest.json`` 里登记的每个锚点真实存在，且任务书 T01-T14
-最低覆盖无缺口。清单引用与代码库脱节时，这里必须先红。
+核对 mechanism_inventory.json 与 sources_manifest.json 登记的代码路径、
+测试标识、来源和枚举锚点，并检查任务书 T01–T14 的清单覆盖。
+静态引用可定位不表示相应机制已执行验证或达到性能要求。
 """
 
 from __future__ import annotations
@@ -19,14 +19,14 @@ def _result():
 
 
 def test_gate_passes_on_the_current_checkout() -> None:
-    """清单登记的代码路径、测试 ID、来源 ID、枚举全部真实有效。"""
+    """检查清单登记的代码路径、测试标识、来源及枚举可定位。"""
     result = _result()
     failures = [r for r in result.records if r.level == "FAIL"]
     assert result.ok, "清单门禁失败：" + "; ".join(f"{r.check}: {r.detail}" for r in failures)
 
 
 def test_sources_are_locatable_or_explicitly_blocked() -> None:
-    """每份原文要么哈希比对通过，要么登记 BLOCKED——不允许静默跳过。"""
+    """检查原文摘要匹配，或显式登记 BLOCKED，不静默跳过。"""
     result = _result()
     checks = {r.check: r.level for r in result.records if r.check.startswith("sources.")}
     assert checks, "来源清单没有任何校验记录"
@@ -35,14 +35,14 @@ def test_sources_are_locatable_or_explicitly_blocked() -> None:
 
 
 def test_task_coverage_has_no_gaps() -> None:
-    """T01-T14 每项都被机制或待建项覆盖（任务书 §4 最低覆盖）。"""
+    """检查 T01–T14 均由机制或待建项覆盖，范围见任务书 §4。"""
     result = _result()
     coverage = [r for r in result.records if r.check == "coverage.T01-T14"]
     assert coverage and coverage[0].level == "PASS", "T01-T14 覆盖存在缺口"
 
 
 def test_summary_is_strictly_typed() -> None:
-    """validation_summary 内容严格类型：ok 布尔、counts 为三个非负整数。"""
+    """检查 validation_summary 的 ok 为布尔值，三个 counts 均为非负整数。"""
     result = _result()
     summary = build_summary(result, REPO_ROOT)
     assert isinstance(summary["ok"], bool)

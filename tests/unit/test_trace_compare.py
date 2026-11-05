@@ -1,10 +1,8 @@
-"""``tools/trace_compare.py`` 的门禁：论文判据（审计文档 §4）**逐条**都要有会红的反例。
+"""用正、反例检查 tools/trace_compare.py 的公共前缀判据。
 
-判据原文要点：以记录的时间字段为索引 → 按行序比较**公共行前缀** → 每个观测字段按
-**字符串**比较 → **X/Z 计为已观测值** → **超出公共前缀的部分不构成可观测性**。
-
-本文件对每一条都放"正例 + 反例"：只测正例等于没测（判据如果退化成"恒 killed"
-或"恒 unobserved"，都能过一半的用例）。
+按行序比较公共前缀内每个字段的字符串，时间列也参与比较；X/Z 是已观测值，
+公共前缀之外的行不计差异。每项同时设置有差异与无差异案例，避免恒判 killed
+或恒判 unobserved 的实现仍通过。原判据说明见审计文档 §4。
 """
 
 from __future__ import annotations
@@ -109,9 +107,9 @@ def test_extra_rows_in_mutant_are_not_observable(tmp_path):
 
 
 def test_x_z_count_as_observed_values(tmp_path):
-    """**X/Z 计为已观测值**：`x` 与 `0` 不同 ⇒ killed；`x` 与 `x` 相同 ⇒ 不算差异。
+    """检查 x 与 0 不同、x 与 x 相同，以及 z 字符串的差异。
 
-    这条是判据里最容易被实现成"解析成数值再比"的一处；一旦解析，`x` 会变成 NaN 或抛异常。
+    不将 X/Z 转为数值或 NaN，避免改变原字符串观测语义。
     """
     gold = ["0 bd8a2 0 0", "1 xxxxx 0 x", "2 0c 1 1"]
     same = list(gold)
@@ -141,10 +139,10 @@ def test_comment_and_blank_lines_are_skipped(tmp_path):
 
 
 def test_empty_mutant_trace_is_unobserved_but_truncated(tmp_path):
-    """变异体一行都没有（仿真胎死）：公共前缀为空 ⇒ 不构成差异，但必须标 truncated。
+    """检查空变异轨迹没有公共前缀差异，但必须记录 truncated。
 
-    这一条**故意不把 truncated 并进 verdict**：criterion ②（完整执行）是漏斗的另一条判据，
-    把"没跑完"算成"等价"会得到虚低的变异分数。诊断字段就是留给 campaign 去丢弃它的。
+    完整执行是独立判据，截断不并入 verdict，也不能据 unobserved 推断等价。
+    截断诊断供调用方按执行完整性规则处理。
     """
     r = _cmp(tmp_path, GOLD, [])
     assert r["verdict"] == "unobserved"

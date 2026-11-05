@@ -1,23 +1,24 @@
 //=============================================================================
 // @file    ad4080_top.sv
-// @brief   AD4080风格数字处理原型的组合顶层
-// @details 输入/并行输出为补码；组合配置SPI、校正、滤波、捕获FIFO、事件、GPIO和串行帧。
-//          CNV只提供启动脉冲及忙时再次启动的数字代理检查，不测量模拟tCONV。
+// @brief   AD4080 风格数字处理原型的组合顶层。
+// @details 补码输入/并行输出连接配置 SPI、校正、滤波、捕获 FIFO、事件、GPIO
+//          和串行帧。CNV 输出逻辑脉冲并作忙时事件代理，不测量模拟 tCONV。
 // @project SAR20 / AD4080风格数字原型
 // @author  项目维护者（贡献记录见版本库）
 // @date    2026-11-05
 // @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : 功能映射见docs/ad4080_traceability.md；不声称器件逐拍等价。
-// 时钟域   : clk；SPI/CNV/GPIO为异步引脚，由各入口处理；其余控制必须同步
-// 复位     : rst_n异步低有效；系统集成必须同步释放
-// 延迟     : 由子模块决定；顶层不增加数据流水
-// 吞吐     : 并行输入最多1样本/clk；串行路径另有位预算
-// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
-// 依赖     : ad4080_regs、spi_slave、cnv_ctrl、ad4080_dsp_chain、event_detect、fifo_capture、gpio_ctrl、lvds_framer
-// 边界     : IN_W=20、FIFO_DEPTH=16384为当前工程配置；未证明所有参数组合。
-//          串行发送使用滤波结果，不使用FIFO读口；SPI数据读出、DDR PHY、Manchester未实现。
-//          软件寄存器复位不清FIFO；完整重新开始需外部rst_n或项目封装的DSP restart。
+// 手册依据: 功能映射见 docs/ad4080_traceability.md，不声称器件逐拍等价。
+// 时钟域: clk；SPI/CNV/GPIO 异步引脚由入口处理，其余控制须同步。
+// 复位: rst_n 异步低有效；系统集成须同步释放。
+// 延迟: 由子模块决定，顶层不增加数据流水。
+// 吞吐: 并行输入最多一个样本/clk；串行路径另有位预算。
+// 可综合性: RTL 结构；目标库映射、约束、SRAM/PHY 与 STA 须单独验收。
+// 依赖: ad4080_regs、spi_slave、cnv_ctrl、ad4080_dsp_chain、event_detect、
+//     fifo_capture、gpio_ctrl、lvds_framer。
+// 边界: 当前工程配置为 IN_W=20、FIFO_DEPTH=16384，未证明所有参数组合。
+//     串行发送采用滤波结果而非 FIFO 读口；SPI 结果读出、DDR PHY 和 Manchester 未实现。
+//     软件寄存器复位不清 FIFO；完整重启须用外部 rst_n 或项目封装的 DSP restart。
 //=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
@@ -29,40 +30,40 @@ module ad4080_top #(
     input  logic                 clk,
     input  logic                 rst_n,
 
-    // ---- 配置 SPI（Mode 3）----
+    // 配置 SPI（Mode 3）
     input  logic                 cs_n,
     input  logic                 sclk,
     input  logic                 sdi,
     output logic                 sdo,
     output logic                 sdo_oe,
 
-    // ---- 转换启动 ----
+    // 转换启动
     input  logic                 cnv_p,
     input  logic                 cnv_n,
     output logic                 cnv_pulse,
 
-    // ---- ADC 核结果（20-bit 补码）----
+    // ADC 核结果（20-bit 补码）
     input  logic                 valid_in,
     input  logic [IN_W-1:0]      x,
 
-    // ---- 同步 / 触发 / 读出 ----
+    // 同步 / 触发 / 读出
     input  logic                 filter_sync,   // 高有效单拍
     input  logic                 ext_event,     // 外部事件触发
     input  logic                 arm,           // 软件 arm（与寄存器写 OR）
     input  logic                 rd_en,
 
-    // ---- LVDS ----
+    // LVDS
     input  logic                 bit_en,
     output logic [1:0]           ser_data,
     output logic [1:0]           ser_frame,
     output logic                 dco,
 
-    // ---- GPIO ----
+    // GPIO
     input  logic [3:0]           gpio_i,
     output logic [3:0]           gpio_o,
     output logic [3:0]           gpio_oe,
 
-    // ---- 结果 ----
+    // 结果
     output logic [IN_W-1:0]      dout,
     output logic                 dout_valid,
     output logic [7:0]           status,                  // DEVICE_STATUS 镜像，供 SPI 回读
@@ -70,9 +71,9 @@ module ad4080_top #(
     output logic                 correction_clip_high
 );
 
-    // ------------------------------------------------------------------
-    // 内部信号
-    // ------------------------------------------------------------------
+
+
+
     logic [15:0] addr;
     logic [7:0]  wdata, rdata;
     logic        we;
@@ -141,9 +142,9 @@ module ad4080_top #(
     assign fifo_event     = event_en ? ((hi_pulse & hi_route) | (lo_pulse & lo_route))
                                      : (ext_event | gpio_ext_event);
 
-    // ------------------------------------------------------------------
+
     // SPI + 寄存器
-    // ------------------------------------------------------------------
+
     spi_slave u_spi (
         .clk(clk), .rst_n(rst_n),
         .cs_n(cs_n), .sclk(sclk), .sdi(sdi),
@@ -191,9 +192,9 @@ module ad4080_top #(
         .status(status)
     );
 
-    // ------------------------------------------------------------------
-    // CNV 同步 + tCONV 违反检测
-    // ------------------------------------------------------------------
+
+    // CNV 同步与忙时事件代理；不测量模拟 tCONV。
+
     cnv_ctrl u_cnv (
         .clk(clk), .rst_n(rst_n),
         .cnv_p(cnv_p), .cnv_n(cnv_n), .lvds_en(lvds_cnv_en),
@@ -207,9 +208,9 @@ module ad4080_top #(
         else if (cnv_pulse) cnv_busy <= 1'b1;
     end
 
-    // ------------------------------------------------------------------
+
     // 校正 + 滤波
-    // ------------------------------------------------------------------
+
     ad4080_dsp_chain #(.IN_W(IN_W), .USE_FIFO(1'b0)) u_chain (
         .clk(clk), .rst_n(rst_n), .valid_in(valid_in), .x(x),
         .offset_code(offset_code), .gain_code(gain_code),
@@ -221,9 +222,9 @@ module ad4080_top #(
         .fifo_overflow(ch_ovf), .fifo_underflow(ch_unf)
     );
 
-    // ------------------------------------------------------------------
+
     // 事件检测（对滤波后的结果）
-    // ------------------------------------------------------------------
+
     event_detect u_event (
         .clk(clk), .rst_n(rst_n),
         .enable(event_en),
@@ -236,9 +237,9 @@ module ad4080_top #(
         .alert_n(alert_n)
     );
 
-    // ------------------------------------------------------------------
+
     // FIFO 捕获
-    // ------------------------------------------------------------------
+
     fifo_capture #(.DATA_W(IN_W), .DEPTH(FIFO_DEPTH)) u_capture (
         .clk(clk), .rst_n(rst_n),
         .arm(arm | fifo_arm), .event_in(fifo_event), .rd_en(rd_en),
@@ -252,16 +253,16 @@ module ad4080_top #(
         .wm_wb_valid(wm_wb_valid), .wm_wb_data(wm_wb_data)
     );
 
-    // FIFO_MODE=00 时 FIFO 关闭，结果直通到并行结果口（NOTE(choice):
-    // 真实器件此时数据只走 LVDS/SPI，dout 是本数字模型给验证用的观察口）。
+    // NOTE(choice): FIFO_MODE=00 时将结果直通到并行观察口 dout。该观察口
+    // 用于本数字模型验证；真实器件对应的数据路径是 LVDS/SPI。
     assign dout       = (fifo_mode == 2'b00) ? chain_y : fifo_rd_data;
     assign dout_valid = (fifo_mode == 2'b00) ? chain_valid : fifo_rd_valid;
     assign cap_full   = fifo_full | full_flag;
 
-    // ------------------------------------------------------------------
+
     // GPIO
-    // ------------------------------------------------------------------
-    // GPIO 是异步引脚，进数字域前先做 2FF 同步（综合时加 ASYNC_REG）
+
+    // GPIO 异步输入先经过两级同步；综合集成还需处理相应 ASYNC_REG 约束。
     logic [3:0] gpio_s0, gpio_s1;
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -286,13 +287,12 @@ module ad4080_top #(
         .filter_sync(gpio_fsync), .ext_event(gpio_ext_event)
     );
 
-    // ------------------------------------------------------------------
-    // LVDS 并串（1/2 lane，空闲重复上一帧）
-    //   intf_mode=1 表示数据改由 SPI 回读，LVDS 发送器掉电 -> 输出清零。
-    //   lvds_self_clk=1 表示自时钟模式，DCO 关闭。
-    //   lvds_mnc_en / lvds_cnv_clk_cnt 只做寄存器保存：Manchester 与
-    //   时钟对齐属于电气层，本数字模型不实现。
-    // ------------------------------------------------------------------
+
+    // LVDS 位序原型支持单/双 lane，空闲时重复最近一帧。intf_mode=1 时清零
+    // 串行输出，本模块没有因此实现 SPI 结果回读；lvds_self_clk=1 时关闭 DCO。
+    //
+    // lvds_mnc_en/lvds_cnv_clk_cnt 只保存寄存器值，不实现 Manchester 或电气时钟对齐。
+
     lvds_framer u_lvds (
         .clk(clk), .rst_n(rst_n),
         .valid_in(chain_valid), .data_in(chain_y),

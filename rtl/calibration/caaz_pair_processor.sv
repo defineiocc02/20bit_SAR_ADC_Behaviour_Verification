@@ -3,14 +3,14 @@
 // CodeStream码中心合同：d=code_even-code_odd，Vpair=LSB*d/2；
 // 最终20位使用现有uniform floor：floor((2^20+d)/2)，不宣称再量化无偏。
 // clk上升沿、同步低有效rst_n；epoch_clear同沿优先并丢弃未完成pair。
-// 开启时每个odd接受沿最多提交一个pair；raw flags/bad/无AZ状态或错配
-// 会置sticky fault，直至clear/reset，不用后续valid记录自动修补缺样。
+// 开启时每个odd接受沿最多提交一个pair；raw flags/bad/无AZ状态或错配会置sticky fault，
+// 直至clear/reset，不用后续valid记录自动修补缺样。
 // 默认关闭为旧code/valid/ID/flags/analog_bad的零拍组合旁路。
 // 旁路自身不门控reset/clear，须由上游提供有效资格；开启时reset/clear最高优先取消同沿odd。
 // ID/chop/AZ代只验证数字配对；没有slice/权重或H_AZ输入，不能验证实际共享噪声与a=H_AZ/K相等。
 // 时钟空洞可保持pending，不提供wallclock超时；缺样在下一笔ID检查时检出，fault后不自动重配。
-// Source: PKU_VLSI2025_C32_1_PAPER PDF2/printed2 Fig5/6;
-// PKU_VLSI2025_C32_1_SLIDES PDF28..35/footer Slide27..34.
+// Source: PKU_VLSI2025_C32_1_PAPER PDF2/printed2 Fig5/6; PKU_VLSI2025_C32_1_SLIDES PDF28..35/footer
+// Slide27..34.
 module caaz_pair_processor #(
     parameter bit P_CAAZ_ENABLE = 1'b0
 ) (

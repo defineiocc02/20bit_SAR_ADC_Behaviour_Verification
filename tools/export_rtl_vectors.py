@@ -1,49 +1,22 @@
 #!/usr/bin/env python3
-"""生成 P1（M1–M5）与 P2（M6/M7/M9/M11 + L2 oracle、L3 链路）的黄金向量。
+"""生成 P1（M1–M5）及 P2 算术、L2 参考和 L3 链路向量。
 
-职责一句话
-----------
-把 `adi_model` 的**自身输出**转成定宽 hex 向量文件（`sim/vectors/p1_*.hex`、
-`sim/vectors/p2_*.hex`），不做任何独立推导：M1 用 `mapper.dem_state_sequence`，
-M2 用 `dem.split_switch_command` 的 `order` 取逆，M3 用 `split_switch_command` 的
-`main_counts/sub_counts`，M5 用 `weight_calibration._terms` 的 `plus` 掩码；
-P2 的 `adc2_dec` 用 `fixed_point.round_even_divide`，`recon_core` 的期望字一律来自
-`FixedPointReconstructor.reconstruct`。闭式变换本身由 `sim/ref/dem_closed_form.py`
-单独穷举验证，本脚本不重复那条逻辑。
+产物为 sim/vectors/p1_*.hex、p2_*.hex，期望值转录自模型：M1 用状态序列，
+M2 取生产开关排列的逆，M3 用主／子计数，M5 从校准 _terms 提取选通；后级
+舍入与重构期望分别使用 round_even_divide、FixedPointReconstructor.reconstruct。
+闭式变换由 sim/ref/dem_closed_form.py 独立穷举，本导出器不重复该实现。
 
-唯一例外（**已在报告里声明**）：`div_floor` 的期望商用 Python 的 `a // d` —— 那是
-`reconstruct` 自己写的同一个算子（`shifted // denominator`），不是第二份实现；
-真正的独立判据在 TB 侧的定义式 `q*d <= a < (q+1)*d`。
+除法期望使用 Python a//d，与 reconstruct 使用同一算子，不能称为第二实现；
+测试台另按 q*d<=a<(q+1)*d、d>0 检查。接口及算术依据为 P1_INTERFACE.md、
+P2_INTERFACE.md、RTL_ARITHMETIC_CONTRACT.md 和所调用模型模块。
 
-物理模型与文献出处
-------------------
-不引入新模型。来源：`docs/rtl/P1_INTERFACE.md`、`docs/rtl/P2_INTERFACE.md`（接口与
-向量格式，冻结）、`docs/rtl/RTL_ARITHMETIC_CONTRACT.md`（算术）、
-`src/adi_model/{mapper,dem,weight_calibration,fixed_point,pipeline}.py`。
+文件为定宽十六进制、单空格分隔，// 注释后包含唯一 #DATA 标记；地址 0 在
+最低位，有符号字段按二进制补码编码。向量沿用模型参数来源等级，不另添参数。
+M4 扰动使用 PCG64，RTL 不逐序列复现，因此该项采用统计验收。
 
-单位契约
---------
-* 全部文件为定宽 hex，单空格分隔；`//` 开头为注释行，然后一行 `#DATA`，再是纯数字。
-* 打包字段一律 **LSB = 地址 0**（与 P1 同一约定）。
-* P2 的 signed 字段用二补码 hex（`_shex`）。
-
-参数来源分级
-------------
-* 向量只承载模型已分级的值，不新增参数；`params.json` 已记录配置的完整分级。
-* M4 的 dither 码**不在本脚本产出**：模型用 PCG64，RTL 无法复现，故 M4 走统计验收。
-
-契约与不变量 / 适用域
---------------------
-* **可复现**：同一 `Config` 下重复运行逐字节一致；`--check` 是漂移门禁。
-* **适用域**：只覆盖 `paper_literal`（split，`dac_n_main=63/complete_range=True`）的拓扑；
-  `H_ROT*W_ROT == 64`（即 `N_MAIN=63`）是 M2 闭式成立的前提。换拓扑须重新验证。
-* 生成的向量会被**提交进仓库**，故文件体积受 pre-commit 的 512 KB 限制约束。
-  `build_p2()` 对每个文件做硬性体积断言，超限直接失败而不是静默产出。
-
-Usage::
-
-    python tools/export_rtl_vectors.py --config paper_literal
-    python tools/export_rtl_vectors.py --check
+支持域限于 paper_literal 的 split、dac_n_main=63、complete_range=True，
+M2 闭式要求 H_ROT*W_ROT=64；其他拓扑需另行验证。同一 Config 产物应逐字节
+可复现，--check 检查漂移。P2 每文件执行 512 KB 上限检查，以满足入库限制。
 """
 
 from __future__ import annotations
@@ -78,14 +51,14 @@ M5_SUB_COUNTS = (0, 1, 4, 7)
 
 
 def _hex(value: int, digits: int) -> str:
-    """Render a non-negative integer as fixed-width hex."""
+    """将非负整数格式化为定宽十六进制。"""
     if value < 0:
         raise ValueError("_hex takes non-negative values; use _shex for signed fields")
     return f"{value:0{digits}x}"
 
 
 def _shex(value: int, digits: int) -> str:
-    """Render a signed integer as fixed-width two's-complement hex."""
+    """将有符号整数按声明位宽的二进制补码格式化。"""
     return f"{value & ((1 << (4 * digits)) - 1):0{digits}x}"
 
 
@@ -106,7 +79,7 @@ def _write(path: pathlib.Path, text: str, *, check: bool, drift: list[str]) -> N
 # M1：DEM 状态推进（按 bank 内序号）
 # ----------------------------------------------------------------------
 def build_m1(cfg: Config) -> tuple[str, dict[str, Any]]:
-    """Golden sid sequence for the model's real A/B bank alternation."""
+    """生成模型实际 A/B 交替的参考状态序列。"""
     bank = np.arange(M1_SAMPLES, dtype=np.int64) % 2
     sid = dem_state_sequence(M1_SAMPLES, cfg, bank)
     lines = [
@@ -137,7 +110,7 @@ def build_m1(cfg: Config) -> tuple[str, dict[str, Any]]:
 # M2：物理地址 -> 逻辑位置（order 的逆）
 # ----------------------------------------------------------------------
 def build_m2(cfg: Config) -> tuple[str, dict[str, Any], dict[str, np.ndarray]]:
-    """Exhaustive inverse-permutation golden for all 512 DEM states."""
+    """穷举全部 512 个 DEM 状态的逆排列参考。"""
     n_main, n_sub = int(cfg.dac_n_main), int(cfg.dac_n_sub)
     sids = np.arange(512, dtype=np.int64)
     command = split_switch_command(cfg, np.zeros(512), sids)
@@ -188,7 +161,7 @@ def _m3_counts(cfg_bridge: Config, codes: np.ndarray, sids: np.ndarray):
 
 
 def build_m3(cfg: Config) -> tuple[str, dict[str, Any]]:
-    """Exhaustive (code, bridge, sid_low) golden plus directed clipping cases."""
+    """穷举粗码、桥接及 sid_low，并加入定向裁剪案例。"""
     n_active = int(cfg.n_active)
     levels = int(cfg.dac_levels)
     plain = replace(cfg, dem_enable=True, dem_bridge_enable=False)
@@ -246,19 +219,11 @@ def build_m3(cfg: Config) -> tuple[str, dict[str, Any]]:
 # M5：温度计掩码
 # ----------------------------------------------------------------------
 def _m5_golden(cfg: Config, sids: np.ndarray, codes: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Return the model's own (main_on, sub_on) masks of shape (N, n_active, n_units).
+    """提取模型自身的主／子选通，形状为 (N,n_active,n_units)。
 
-    ``_terms`` does not return the ON mask directly: it folds it into
-    ``b_minus_dac = injection - v_fs*(2*plus - 1)`` and leaves ``signal`` at all
-    ones. With the injection set to zero that affine map is exactly invertible, so
-    the mask is recovered as ``(1 - b_minus_dac/v_fs) / 2``. The result is asserted
-    binary, which is what makes this an extraction rather than a guess: if
-    ``_terms`` ever changes that encoding, this raises instead of silently
-    producing a wrong golden.
-
-    只有 **sampling** 模式会在 `b_minus_dac` 上再叠加一层（掩码单位被改写成轨电压），
-    其余模式（off / analog / quantizer）这个仿射关系都是精确可逆的 —— 早先这里写成
-    "只允许 off"，过严，把 quantizer 的链路向量挡在了门外。
+    _terms 将选通编码进 b_minus_dac=injection-v_fs*(2*plus-1)，signal 全为 1；
+    令注入为零，可用 (1-b_minus_dac/v_fs)/2 精确还原并断言二值。只有 sampling
+    模式额外改写轨电压；off、analog、quantizer 均可精确反解，不能过度限制为 off。
     """
     if cfg.dither_mode == "sampling":
         raise ValueError("M5 golden extraction is invalid for dither_mode='sampling'")
@@ -285,14 +250,7 @@ def _m5_golden(cfg: Config, sids: np.ndarray, codes: np.ndarray) -> tuple[np.nda
 
 
 def _pack_bits(bits: np.ndarray) -> int:
-    """Pack a 0/1 vector into an integer, **LSB = physical address 0**.
-
-    LSB-first on purpose: the RTL port is ``logic [N-1:0] main_on`` where index p
-    is address p, so the testbench can compare the packed field with
-    ``{1'b0, main_on[a]}`` directly. MSB-first packing would force the TB to
-    reverse the field, which is exactly the kind of silent index error the
-    contract's §6 A8 warns about.
-    """
+    """打包 0/1 向量，最低位对应物理地址 0，与 RTL 端口索引一致。"""
     value = 0
     for index, bit in enumerate(bits):
         if int(bit):
@@ -301,13 +259,7 @@ def _pack_bits(bits: np.ndarray) -> int:
 
 
 def build_m5(cfg: Config) -> tuple[str, dict[str, Any]]:
-    """Direct bit-exact mask golden on a sid x (main_count, sub_count) grid.
-
-    The grid is stated in **unit counts**, not codes: a code ``c`` maps to
-    ``(main_count, sub_count) = (c // n_sub, c % n_sub)``, which is what the
-    thermometer actually receives. Codes are rebuilt from the grid so that the
-    golden still comes from the model's own ``_terms``.
-    """
+    """按状态及主／子单元计数网格生成选通参考；粗码由 c//n_sub、c%n_sub 重建。"""
     n_active, n_sub = int(cfg.n_active), int(cfg.dac_n_sub)
     # 桥接零和交换**故意**让各 slice 的计数不同（那正是它的 DEM 作用），
     # 所以这个"均匀计数"网格必须把桥接关掉。桥接本身在 M3 的穷举里单独覆盖；
@@ -361,27 +313,18 @@ def build_m5(cfg: Config) -> tuple[str, dict[str, Any]]:
 # 链路向量：M1 -> M2 -> M3 -> M5 真实连通
 # ----------------------------------------------------------------------
 def build_chain(cfg: Config, n_samples: int = 256) -> tuple[str, dict[str, Any]]:
-    """Stimulus + expected masks for the **connected** M1→M2→M3→M5 chain.
+    """生成连接后的 M1→M2→M3→M5 链路激励及期望选通。
 
-    Why this file exists: T1/T4/T5 各自把 DUT 的输入直接喂进去，`m2_sid` 是 TB 写死的
-    常量。于是"M1 的 sid 有没有正确接到 M2"这件事**从未被验证过** —— 独立复核
-    （2026-09-18）指出这是 P1 与后续阶段的接缝。本文件让 TB 只提供
-    (bank, coarse, dither, bridge)，其余全部由 RTL 自己串起来：
-    M1 出 sid -> M2 出逻辑位置 -> M3（sid_low 取自 M1）出计数 -> M5 出掩码。
-
-    期望掩码由模型自己的 `_terms` 给出（见 `_m5_golden` 的提取说明）。
-
-    Note:
-        用 `dither_mode="quantizer"`：该模式下 dither 非零（让 M3 的 dither 支路也进链路），
-        而 `_terms` 的采样 dither 分支**不会**被触发，故掩码提取仍然精确。
-        `dem_enable=True` 是硬要求 —— 见 §0.2 的陷阱说明。
+    测试台只提供 bank、coarse、dither、bridge，状态、逻辑位置及计数由 RTL
+    自身串接；期望选通来自模型 _terms。使用 quantizer 模式使扰动支路非零，
+    同时避免采样扰动改写电压项；显式要求 dem_enable=True。
 
     Args:
-        cfg: 已解析的配置；内部会施加本测试所需的覆盖项。
-        n_samples: 采样数。
+        cfg: 已解析配置，内部施加本测试需要的覆盖。
+        n_samples: 样本数。
 
     Returns:
-        ``(text, stats)``。
+        向量文本及统计记录。
     """
     from adi_model.pipeline import run_pipeline
     from adi_model.sampler import sine_input
@@ -472,19 +415,19 @@ _P2_MEMO: dict[str, Any] = {}
 
 
 def clear_p2_memo() -> None:
-    """Drop the P2 memo so a caller can force a full recomputation."""
+    """清除 P2 记忆化结果，使调用方可要求完整重算。"""
     _P2_MEMO.clear()
 
 
 def _memo(key: str, factory):
-    """Memoise one P2 sub-build; the 2**20 oracle is too expensive to redo."""
+    """记忆化一个 P2 子构建，避免重复执行 2**20 参考计算。"""
     if key not in _P2_MEMO:
         _P2_MEMO[key] = factory()
     return _P2_MEMO[key]
 
 
 def _p2_oracle_model() -> FixedPointReconstructor:
-    """Rebuild the ``straight_backend`` oracle by re-instantiating the module params."""
+    """由模块参数重新实例化 straight_backend 参考。"""
     spec = CalibrationSpec(
         dac_n_main=1,
         dac_n_sub=2,
@@ -506,7 +449,7 @@ def _p2_oracle_model() -> FixedPointReconstructor:
 
 
 def _p2_observation(spec, adc2_code, *, slice_ids=None, rdac_code=None, injection=None):
-    """Assemble the minimal legal observation a golden computation needs."""
+    """构造参考计算需要的最小合法观测。"""
     n = len(adc2_code)
     return DigitalObservation(
         spec,
@@ -524,12 +467,7 @@ def _p2_observation(spec, adc2_code, *, slice_ids=None, rdac_code=None, injectio
 
 
 def _p2_on_masks(cfg: Config, slice_ids, sids, codes):
-    """Recover the model's own unary ON masks by decoding ``_terms``.
-
-    ``_terms`` folds the ON mask into ``b_minus_dac``; with the injection set to
-    zero that affine map is exactly invertible. The result is asserted binary,
-    so a change of encoding raises instead of silently producing a wrong golden.
-    """
+    """从零注入时 _terms 的可逆编码提取模型一元选通，并断言结果为二值。"""
     if cfg.dither_mode == "sampling":
         raise ValueError("mask extraction is invalid for dither_mode='sampling'")
     spec = CalibrationSpec.from_config(cfg)
@@ -556,13 +494,7 @@ def _p2_on_masks(cfg: Config, slice_ids, sids, codes):
 
 
 def _p2_operand_peaks(model: FixedPointReconstructor, data: DigitalObservation):
-    """Measure the six checked operands and cross-check the model's own peak ledger.
-
-    The measurement repeats the operand list of ``FixedPointReconstructor.reconstruct``
-    only to obtain **width statistics** (contract §14 D3), never an expected value.
-    It is validated against ``CodeStream.peak_accumulator_bits``, which the model
-    computes independently; a disagreement raises.
-    """
+    """测量六个受检操作数的位宽峰值，并与 CodeStream.peak_accumulator_bits 账本核对；不生成期望码。"""
     fmt = model.format
     vscale = 2**fmt.voltage_fraction_bits
     wscale = 2**fmt.weight_fraction_bits
@@ -600,7 +532,7 @@ def _p2_operand_peaks(model: FixedPointReconstructor, data: DigitalObservation):
 
 
 def _p2_require_marker(text: str, name: str) -> None:
-    """Refuse to ship a vector whose ``#DATA`` marker or body is malformed."""
+    """拒绝 #DATA 标记或数据体格式错误的向量。"""
     lines = text.splitlines()
     markers = [i for i, line in enumerate(lines) if line == "#DATA"]
     if len(markers) != 1 or not lines[markers[0] + 1]:
@@ -610,7 +542,7 @@ def _p2_require_marker(text: str, name: str) -> None:
 
 
 def _p2_check_size(name: str, text: str) -> int:
-    """Enforce the pre-commit 512 KB per-file budget and return the byte count."""
+    """检查每文件 512 KB 入库上限并返回字节数。"""
     size = len(text.encode("utf-8"))
     if size >= VECTOR_LIMIT_BYTES:
         raise AssertionError(f"{name} is {size} B, over the {VECTOR_LIMIT_BYTES} B budget")
@@ -621,7 +553,7 @@ def _p2_check_size(name: str, text: str) -> int:
 # 覆盖账本：每个向量文件、每个输入列的 {min, max, distinct}
 # ----------------------------------------------------------------------
 def _rep(prefix: str, count: int, *, signed: bool = False) -> tuple[tuple[str, bool], ...]:
-    """Return ``count`` columns named ``prefix[0]`` … ``prefix[count-1]``."""
+    """返回名为 prefix[0] 至 prefix[count-1] 的 count 列。"""
     return tuple((f"{prefix}[{i}]", signed) for i in range(count))
 
 
@@ -706,7 +638,7 @@ P2_AUDIT_COLUMNS: dict[str, tuple[tuple[str, bool], ...]] = {
 
 
 def _decode_hex_token(token: str, signed: bool) -> int:
-    """Decode one hex token with the field's own width (``int(..., 16)`` alone can't sign)."""
+    """按字段位宽解码十六进制，不能仅依赖 int(...,16) 推断符号。"""
     value = int(token, 16)
     if signed:
         bits = 4 * len(token)
@@ -716,7 +648,7 @@ def _decode_hex_token(token: str, signed: bool) -> int:
 
 
 def _p2_data_rows(text: str) -> list[list[str]]:
-    """Return the token rows that follow the single ``#DATA`` marker."""
+    """返回唯一 #DATA 标记后的分列数据行。"""
     lines = text.splitlines()
     markers = [i for i, line in enumerate(lines) if line == "#DATA"]
     if len(markers) != 1:
@@ -725,11 +657,7 @@ def _p2_data_rows(text: str) -> list[list[str]]:
 
 
 def _p2_coverage_audit(files: dict[str, str]) -> dict[str, Any]:
-    """Ledger of ``{min, max, distinct}`` per input column, per vector file.
-
-    Why it exists: "某个量到底量到了哪些值" 原本要逐文件翻；更要紧的是"某一列意外
-    退化成常量"（例如 dither 全 0、inj_q 全 0）这类事故，在这里一眼可见。
-    """
+    """按文件和输入列记录 min、max、distinct，以显示范围及意外常量退化。"""
     audit: dict[str, Any] = {}
     for name, spec in P2_AUDIT_COLUMNS.items():
         text = files.get(name)
@@ -772,7 +700,7 @@ def _p2_coverage_audit(files: dict[str, str]) -> dict[str, Any]:
 # L2 oracle：2**20 全码恒等（矩阵不落文件，只落常量与位宽实测）
 # ----------------------------------------------------------------------
 def build_p2_oracle() -> tuple[dict[str, str], dict[str, Any]]:
-    """Export the oracle's three Q30 weights and its configuration constants."""
+    """导出参考的三个 Q30 权重及配置常量。"""
 
     def _factory():
         model = _p2_oracle_model()
@@ -845,7 +773,7 @@ def build_p2_oracle() -> tuple[dict[str, str], dict[str, Any]]:
 # L0 adc2_dec：定向用例（含 ties-to-even 的 8 个样例）
 # ----------------------------------------------------------------------
 def _p2_scalar_cases() -> list[tuple[int, int, int, int, int]]:
-    """Return ``(adc2_code, min_q, max_q, offset_q, n_bits)`` directed cases."""
+    """返回 adc2_code、min_q、max_q、offset_q、n_bits 的定向案例。"""
     cases: list[tuple[int, int, int, int, int]] = []
     # (1) ties-to-even。除数必须是 2：用 P_ADC2_BITS = 1（k = 2）驱动，
     #     并取 delta = 2x，于是 round_even_divide(2x, 4) == round_even_divide(x, 2)。
@@ -888,7 +816,7 @@ def _p2_scalar_cases() -> list[tuple[int, int, int, int, int]]:
 
 
 def build_p2_scalar() -> tuple[str, dict[str, Any]]:
-    """Export the directed ``adc2_dec`` golden (ties-to-even included)."""
+    """导出后级码解析参考，包含半步取偶案例。"""
     cases = _p2_scalar_cases()
     lines = [
         "// p2_scalar.hex  (generated by tools/export_rtl_vectors.py)",
@@ -949,7 +877,7 @@ def build_p2_scalar() -> tuple[str, dict[str, Any]]:
 # L0 div_floor：定向用例（穷举改成 TB 侧的定义式自检）
 # ----------------------------------------------------------------------
 def _p2_div_cases() -> list[tuple[int, int]]:
-    """Return ``(a, d)`` directed cases for the signed floor divider."""
+    """返回有符号向下除法的定向 (a,d) 案例。"""
     divisors = (1, 2, 3, 2**13, 2**30, 2**60 - 1)
     cases = [(a, d) for d in divisors for a in (0, 1, -1, 2, -2)]
     for d in divisors:
@@ -972,7 +900,7 @@ def _p2_div_cases() -> list[tuple[int, int]]:
 
 
 def build_p2_div() -> tuple[str, dict[str, Any]]:
-    """Export the directed ``div_floor`` golden plus its structural bound checks."""
+    """导出 div_floor 定向参考及其结构边界检查。"""
     cases = _p2_div_cases()
     lines = [
         "// p2_div.hex  (generated by tools/export_rtl_vectors.py)",
@@ -1009,7 +937,7 @@ def build_p2_div() -> tuple[str, dict[str, Any]]:
 # L2 饱和：输出剪裁与模拟饱和分开
 # ----------------------------------------------------------------------
 def _p2_sat_model(scale_bits: int) -> FixedPointReconstructor:
-    """Return the oracle-ish model used by the saturation vectors."""
+    """返回饱和向量使用的参考模型。"""
     spec = CalibrationSpec(
         dac_n_main=1,
         dac_n_sub=2,
@@ -1032,7 +960,7 @@ def _p2_sat_model(scale_bits: int) -> FixedPointReconstructor:
 
 
 def _p2_sat_probe(model, code: int, inj_q: int) -> tuple[int, int, int]:
-    """Return ``(word, clip_low, clip_high)`` for a one-sample probe."""
+    """返回单样本探针的 word、clip_low、clip_high。"""
     spec = model.spec
     data = _p2_observation(
         spec, np.array([code], np.int64), injection=np.array([inj_q * spec.v_fs / 2**32])
@@ -1042,7 +970,7 @@ def _p2_sat_probe(model, code: int, inj_q: int) -> tuple[int, int, int]:
 
 
 def _p2_sat_threshold(model, code: int, *, want_low: bool, hi_q: int = 2**34) -> int:
-    """Bisect the smallest ``|inj_q|`` whose probe clips at the requested end."""
+    """二分搜索指定端点首次裁剪的最小 |inj_q|。"""
     lo_q = 0
     while lo_q < hi_q:
         mid = (lo_q + hi_q) // 2
@@ -1057,7 +985,7 @@ def _p2_sat_threshold(model, code: int, *, want_low: bool, hi_q: int = 2**34) ->
 
 
 def build_p2_sat() -> tuple[str, dict[str, Any]]:
-    """Export the saturation golden: clipping flags are not the analog overflow flag."""
+    """导出饱和参考，保持数字裁剪与模拟越界标志分离。"""
     lines = [
         "// p2_sat.hex  (generated by tools/export_rtl_vectors.py)",
         "// cols: inj_q(16) adc2_code(3) w_scale(1) exp_word(5) exp_clip_low(1) exp_clip_high(1)",
@@ -1126,7 +1054,7 @@ def build_p2_sat() -> tuple[str, dict[str, Any]]:
 # L0 slice_alloc：pingpong 表
 # ----------------------------------------------------------------------
 def build_p2_alloc(cfg: Config) -> tuple[str, dict[str, Any]]:
-    """Export the 64-cycle A/B ping-pong allocation table straight from the model."""
+    """直接由模型导出 64 周期 A/B 乒乓分配表。"""
     from adi_model.pipeline import run_pipeline
     from adi_model.sampler import sine_input
 
@@ -1182,7 +1110,7 @@ def build_p2_alloc(cfg: Config) -> tuple[str, dict[str, Any]]:
 # L2 真实掩码 / L3 链路：共用的采样与掩码行格式化
 # ----------------------------------------------------------------------
 def _p2_mask_row(slice_ids, main_on, sub_on, adc2_code, inj_q, word, low, high, extra=""):
-    """Format one ``recon_core`` stimulus/expectation row (packed LSB = address 0)."""
+    """格式化重构激励／期望行，打包最低位为地址 0。"""
     n_act = len(slice_ids)
     fields = [_hex(int(v), 2) for v in slice_ids]
     fields += [_hex(_pack_bits(main_on[a]), 16) for a in range(n_act)]
@@ -1202,7 +1130,7 @@ def _p2_run(
     samples: int,
     phase: float = 0.0,
 ):
-    """Run the model on a sine and return the result plus its frozen register image."""
+    """对正弦运行模型，并返回结果及固定寄存器镜像。"""
     from adi_model.pipeline import run_pipeline
     from adi_model.sampler import sine_input
 
@@ -1219,7 +1147,7 @@ def _p2_run(
 
 
 def _p2_pack_run(run_cfg, result, data, model, stream, *, samples: int):
-    """Extract the shared per-sample fields the mask vectors need."""
+    """提取选通向量所需的逐样本共享字段。"""
     codes = np.asarray(np.rint(np.asarray(result.k)[:samples]), dtype=np.int64)
     sids = np.asarray(result.sid[:samples], dtype=np.int64)
     slice_ids = np.asarray(result.conv_slice_ids[:samples], dtype=np.int64)
@@ -1248,12 +1176,7 @@ def _p2_pack_run(run_cfg, result, data, model, stream, *, samples: int):
 
 
 def build_p2_masks(cfg: Config) -> tuple[str, dict[str, Any], FixedPointReconstructor]:
-    """Export 512 real ``recon_core`` mask cases taken from one production run.
-
-    The third return value is the very ``FixedPointReconstructor`` instance the
-    rows came from; ``build_p2_recon_coef`` reuses it instead of re-deriving the
-    register triple from a nominal Vfs conversion (which would round differently).
-    """
+    """从一次生产模型运行导出 512 个真实重构选通案例，并返回同一重构器供系数文件复用。"""
     samples = P2_MASKS_SAMPLES
     run_cfg, result, data, model, stream = _p2_run(
         cfg,
@@ -1313,7 +1236,7 @@ def build_p2_masks(cfg: Config) -> tuple[str, dict[str, Any], FixedPointReconstr
 
 
 def _p2_ramp_run(cfg: Config):
-    """Run the full 511 x 129 dense ramp of the model's own monotonicity test."""
+    """运行模型单调性测试的完整 511×129 密集斜坡。"""
     from adi_model.pipeline import run_pipeline
 
     ramp_cfg = Config.paper_literal(
@@ -1342,11 +1265,7 @@ def _p2_ramp_run(cfg: Config):
 
 
 def build_p2_ramp(cfg: Config) -> tuple[str, dict[str, Any], FixedPointReconstructor]:
-    """Export the thinned 511-carry ramp with both sides of every carry.
-
-    Like ``build_p2_masks``, the third return value is the model instance itself,
-    so the coefficient file can prove all three production runs agree.
-    """
+    """导出抽稀后的 511 个进位两侧斜坡，并返回同一重构器以核对系数来源。"""
     ramp_cfg, result, data, model, stream, total = _memo("ramp", lambda: _p2_ramp_run(cfg))
     span = 2 * P2_RAMP_HALF_SPAN + 1
     if total != P2_RAMP_CARRIES * span:
@@ -1435,11 +1354,7 @@ def build_p2_ramp(cfg: Config) -> tuple[str, dict[str, Any], FixedPointReconstru
 
 
 def build_p2_link(cfg: Config) -> tuple[dict[str, str], dict[str, Any], FixedPointReconstructor]:
-    """Export the L3 link stimulus, the expected code stream and the register image.
-
-    The third return value is the model behind ``p2_link_weights.hex`` /
-    ``p2_regs.json`` / ``p2_link_expected.hex``, reused by ``build_p2_recon_coef``.
-    """
+    """导出 L3 链路激励、期望码及寄存器；返回对应重构器供系数文件复用。"""
     samples = P2_LINK_SAMPLES
     run_cfg, result, data, model, stream = _p2_run(
         cfg,
@@ -1623,20 +1538,16 @@ def build_p2_link(cfg: Config) -> tuple[dict[str, str], dict[str, Any], FixedPoi
 def build_p2_recon_coef(
     models: dict[str, FixedPointReconstructor],
 ) -> tuple[str, dict[str, Any]]:
-    """Export the production ``(offset_q, adc2_min_q, adc2_max_q)`` triple as one row.
+    """将生产 offset_q、adc2_min_q、adc2_max_q 导出为单行三列。
 
-    The values are read off the **same** ``FixedPointReconstructor`` instances that
-    produced ``p2_masks.hex`` / ``p2_ramp.hex`` / ``p2_link_*.hex`` — never
-    re-derived from a nominal Vfs/adc2_v_max conversion, which rounds differently.
-    The three instances must agree; a disagreement raises instead of shipping one
-    of them silently.
+    直接读取产生 masks、ramp、link 向量的同一重构器实例，不按名义电压重新换算。
+    三个实例须一致，不一致即报错。
 
     Args:
-        models: ``{vector file name: the model instance that produced it}``.
+        models: 向量文件名到生成该向量的模型实例映射。
 
     Returns:
-        ``(text, stats)``; ``stats`` is also mirrored into the report's coverage
-        and into ``recon_coef_source``.
+        文本及统计；来源统计同时写入覆盖报告和 recon_coef_source。
     """
     if not models:
         raise AssertionError("the coefficient file needs at least one production model")
@@ -1683,13 +1594,7 @@ def build_p2_recon_coef(
 
 
 def build_p2(cfg: Config) -> tuple[dict[str, str], dict[str, Any]]:
-    """Assemble every P2 vector file plus its coverage/measurement report.
-
-    Every section is memoised: the 2**20 oracle costs seconds to redo, and the
-    drift gate compares against files **on disk**, so a stale memo cannot mask a
-    drift. ``clear_p2_memo()`` forces a full recomputation (used by the
-    determinism gate in ``tests/unit/test_rtl_vectors.py``).
-    """
+    """组装全部 P2 向量及覆盖／测量报告；子构建使用记忆化，确定性测试可显式清缓存重算。"""
     files: dict[str, str] = {}
     oracle_files, oracle_stats = _memo("oracle_section", lambda: build_p2_oracle())
     files.update(oracle_files)
@@ -1888,14 +1793,13 @@ def build_p2(cfg: Config) -> tuple[dict[str, str], dict[str, Any]]:
 # 主流程
 # ----------------------------------------------------------------------
 def build(cfg_name: str) -> dict[str, Any]:
-    """Produce every P1/P2 vector file in memory.
+    """在内存生成全部 P1/P2 向量。
 
     Args:
-        cfg_name: Key of the config factories; only ``paper_literal`` is supported
-            (see the module docstring's applicable domain).
+        cfg_name: 配置工厂键，仅支持模块说明所列 paper_literal 域。
 
     Returns:
-        ``{"files": {name: text}, "report": p1_report, "p2_report": p2_report}``.
+        文件名到文本的 files 映射，以及 P1 和 P2 报告。
     """
     if cfg_name != "paper_literal":
         raise ValueError(
@@ -1948,13 +1852,13 @@ def build(cfg_name: str) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run the P1/P2 vector exporter.
+    """执行主线 P1/P2 向量导出。
 
     Args:
-        argv: Command-line arguments; ``None`` means ``sys.argv[1:]``.
+        argv: 命令行参数；None 表示 sys.argv[1:]。
 
     Returns:
-        Process exit code: 0 on success, 1 when ``--check`` reports drift.
+        成功为 0；--check 发现漂移为 1。
     """
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--config", default="paper_literal")

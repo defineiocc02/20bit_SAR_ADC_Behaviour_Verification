@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
-// Independent scalar reference: never traverses the DUT's generated tree.
-// Reuse unchanged against write_verilog -mode funcsim and the RTL witness.
+// Independent scalar reference: never traverses the DUT's generated tree. Reuse unchanged against
+// write_verilog -mode funcsim and the RTL witness.
 module tree_mapping_tb;
     logic [6:0] flash3='0;
     logic [510:0] flash9='0;

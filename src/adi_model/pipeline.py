@@ -1,7 +1,6 @@
-"""Public phase-pipeline entry point; physical implementation is pipeline_engine.
+"""相位流水线的公开入口，物理实现位于 pipeline_engine。
 
-Acquisition charge is tied to its sample and physical slice group. The first
-record is explicitly primed; no conversion consumes a different group's charge.
+采集电荷绑定样本及其物理 slice 组。首笔显式预充，转换不消费其他组的采样电荷。
 """
 
 from __future__ import annotations
@@ -22,27 +21,26 @@ def run_pipeline(
     pool=None,
     ra_output_error_v=None,
 ):
-    """Run the physical split pipeline with explicit capacitor ownership.
+    """运行具有显式电容归属的物理 split 流水线。
 
     Args:
-        cfg: Configuration (resolved as split topology).
-        input_fn: Input voltage callable, with times in seconds.
-        n_samples: Number of output samples after priming.
-        chip: Optional aggregate fabricated split realization.
-        state: Optional frozen digital coefficients.
-        rng: Optional sampling/noise random stream.
-        scheduler: Optional compatible acquisition scheduler.
-        pool: Optional existing PhysicalSlicePool; resets electrical state only.
-        ra_output_error_v: Optional finite raw-length RA-output error stream [V],
-            inserted before original clipping and ADC2 quantization; sample-domain
-            only, with caller-defined source. None preserves existing behavior.
+        cfg: 配置；入口按 split 拓扑解析。
+        input_fn: 输入电压函数，时间单位 s，输出单位 V。
+        n_samples: 首笔预充之后的输出样本数。
+        chip: 可选的 aggregate split 制造实现。
+        state: 可选的冻结数字系数状态。
+        rng: 可选的采样/噪声随机流。
+        scheduler: 可选的兼容采集调度器。
+        pool: 可选的已有 PhysicalSlicePool；仅重置电气状态。
+        ra_output_error_v: 可选的 raw 长度有限误差流 [RA 输出 V]，在原有钳位及 ADC2 量化前注入。
+            仅支持调用方定义来源的样本域误差；None 保留既有行为。
 
     Returns:
-        SimResult with charge, sample IDs, actual converting slices and errors.
+        SimResult，含电荷、样本 ID、实际转换 slice 及误差。
 
     Side effects:
-        Resets pool electrical state and consumes active sampling/noise RNGs.
-        Explicit error does not alter the noise budget, clipping or RNG sequence.
+        重置 pool 电气状态，并消费启用的采样/噪声随机流。
+        显式误差不改变噪声预算、钳位规则或随机数消费序列。
     """
     return execute_split(
         cfg,

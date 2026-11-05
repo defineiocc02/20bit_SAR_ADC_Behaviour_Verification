@@ -1,8 +1,7 @@
 """dynamics.py -- 动态误差：输入建立 / 参考建立 / 数字串扰。
 
-[00_1]ISSCC2024_ppt.pdf p.32 明确点名这三项是限制 INL 的非理想源。
-v1-v4 完全没有建模它们，所以模型算出的 |INL| = 0.07 LSB，
-这些独立假设用于敏感度分析，不能据此认定论文实测误差的主要成因。
+[00_1]ISSCC2024_ppt.pdf p.32 明确点名这三项是限制 INL 的非理想源。v1-v4 完全没有建模它们，
+所以模型算出的 |INL| = 0.07 LSB，这些独立假设用于敏感度分析，不能据此认定论文实测误差的主要成因。
 
 三项的共同特征（也是它们危险的原因）：
 
@@ -18,9 +17,8 @@ v1-v4 完全没有建模它们，所以模型算出的 |INL| = 0.07 LSB，
 
     x_saved = x - eps * (x - V_prev),   eps = exp(-T_s / tau)
 
-若 tau 与码无关，这只是一阶 IIR（对正弦是群延迟 + 微小衰减），
-**不产生 INL**。真正的 INL 来自 tau 的码相关性：开关导通电阻随信号电平变
-（V_GS 随输入摆），
+若 tau 与码无关，这只是一阶 IIR（对正弦是群延迟 + 微小衰减），**不产生 INL**。
+真正的 INL 来自 tau 的码相关性：开关导通电阻随信号电平变（V_GS 随输入摆），
 
     tau(k) = tau0 * (1 + rho * (2k/N - 1))
 
@@ -29,19 +27,19 @@ v1-v4 完全没有建模它们，所以模型算出的 |INL| = 0.07 LSB，
 ============================================================================
 (b) 参考建立
 ============================================================================
-每次位试验都要从 V_ref 抽取电荷。片上去耦 C_dec 有限、参考缓冲恢复时间
-常数 tau_ref 有限，于是参考电压在一次转换内被拉低且来不及完全恢复：
+每次位试验都要从 V_ref 抽取电荷。片上去耦 C_dec 有限、参考缓冲恢复时间常数 tau_ref 有限，
+于是参考电压在一次转换内被拉低且来不及完全恢复：
 
     静态分量（DC 负载）  ∝ (2k/N - 1)        -> 关于中码奇对称
     动态分量（码跳变）   ∝ (k[n] - k[n-1])/N -> 与输入斜率相关
 
-恢复因子 eta_ref = 1 - exp(-T_conv/tau_ref)：转换相结束时残留的比例。
-DAC 输出正比于实际参考电压，于是
+恢复因子 eta_ref = 1 - exp(-T_conv/tau_ref)：转换相结束时残留的比例。DAC 输出正比于实际参考电压，
+于是
 
     e_ref = -v_nominal * gamma * (静态 + r_dyn * 动态)
 
-静态分量使 DAC 输出含 k^2 项 -> **抛物线形 INL**（经典 bow），
-这是高精度 SAR 最常见的 INL 形状之一，也是"为什么 INL 图是弓形"的答案。
+静态分量使 DAC 输出含 k^2 项 -> **抛物线形 INL**（经典 bow），这是高精度 SAR 最常见的 INL 形状之一，
+也是"为什么 INL 图是弓形"的答案。
 
 ============================================================================
 (c) 数字串扰
@@ -50,21 +48,19 @@ DAC 输出正比于实际参考电压，于是
 
     A(k) = 2 * min(k, N - k)      （三角形，中码最大）
 
-注入电荷 = c_xtalk * V_digital * A(k)，折成电压 /C_eff。
-分两部分：
+注入电荷 = c_xtalk * V_digital * A(k)，折成电压 /C_eff。分两部分：
     共模部分 c_xtalk_common * A(k)      -> DEM **无效**（只取决于翻转个数）
     单位部分 sum_{翻转的单位} c_x_unit  -> DEM **有效**（置换单位即置换注入量）
 
-这正是"为什么 DEM 开/关时 INL 形状会变"的物理来源。
-单位契约：三项误差均以 [V] 折入相应通路（e_input 进残差信号侧、
-e_dac 进 DAC 物理侧、参考/串扰按电荷口径折 C_sig）。
-参数来源分级：dyn_r_source/r_on/ron_code_coeff/c_xtalk_* 全部 [假设]
-（[00_1] p.32 只点名机理不给数值；只能做灵敏度排序，不能判良率）。
-适用域：一阶 RC 聚合口径。注意"聚合式偏保守"只在支路开关阻抗主导时成立；
-公共源阻抗项 R_s·C_load 不随 slice 划分缩小（星形网络公共模式
-τ = R_s·C_total + R_on·C_slice，见 pipeline.py 头部适用域声明与
-docs/review_response_2026-09-11d.md §5.2）；确定性 INL 协议见 stage13。
-
+这正是"为什么 DEM 开/关时 INL 形状会变"的物理来源。单位契约：
+三项误差均以 [V] 折入相应通路（e_input 进残差信号侧、e_dac 进 DAC 物理侧、
+参考/串扰按电荷口径折 C_sig）。参数来源分级：
+dyn_r_source/r_on/ron_code_coeff/c_xtalk_* 全部 [假设] （[00_1] p.32 只点名机理不给数值；
+只能做灵敏度排序，不能判良率）。适用域：一阶 RC 聚合口径。
+注意"聚合式偏保守"只在支路开关阻抗主导时成立；
+公共源阻抗项 R_s·C_load 不随 slice 划分缩小（星形网络公共模式τ = R_s·C_total + R_on·C_slice，
+见 pipeline.py 头部适用域声明与docs/review_response_2026-09-11d.md §5.2）；
+确定性 INL 协议见 stage13。
 """
 
 from __future__ import annotations
@@ -91,8 +87,9 @@ def input_settling_eps(
     tau = (R_source + R_on) * C_active；若给了 code 且 rho>0，则 tau 随码调制。
 
     Args:
-        cfg: Config；取 dyn_r_source / dyn_r_on / dyn_t_sample_frac /
-            dyn_ron_code_coeff（均 [假设]，无公开数值）。
+        cfg: Config；
+            取 dyn_r_source / dyn_r_on / dyn_t_sample_frac / dyn_ron_code_coeff（均 [假设]，
+            无公开数值）。
         c_active: 输入建立的**驱动负载**电容口径 [F]；split 用 A+B。
         code: 可选码数组 [单位当量]；给出且 rho≠0 时 tau 随码调制，
             None 表示 tau 与码无关（不产生 INL）。
@@ -101,6 +98,7 @@ def input_settling_eps(
     Returns:
         逐样本建立残差 eps [无量纲] = exp(-T_s/tau)；0 = 完全建立，
         越接近 1 表示采样相结束时残留越多。
+
     Side effects: 无（纯函数）。
     """
     t_s = cfg.dyn_t_sample_frac / cfg.fs
@@ -121,8 +119,7 @@ def input_settling_error(
     """采样值上残留的误差：x_saved - x = -eps * (x - V_prev)。
 
     Args:
-        cfg: Config（取 dyn_input_settling 开关与 input_settling_eps 所需
-            参数，均 [假设]）。
+        cfg: Config（取 dyn_input_settling 开关与 input_settling_eps 所需参数，均 [假设]）。
         x: 本样本输入电压 [V]。
         v_prev: 上一次转换残留到采样电容顶极板的电压 [V]。
         c_active: 驱动负载电容口径 [F]；split 用 A+B。
@@ -132,6 +129,7 @@ def input_settling_error(
     Returns:
         采样值残留误差数组 [V] = -eps*(x - v_prev)；dyn_input_settling
         关闭时返回全 0。
+
     Side effects: 无（纯函数）。
     """
     if not cfg.dyn_input_settling:
@@ -147,12 +145,13 @@ def ref_recovery_factor(cfg: Config) -> float:
     """转换相结束时参考还没恢复回来的比例 eta_ref（0 = 完全恢复）。
 
     Args:
-        cfg: Config；取 dyn_tau_ref（参考缓冲恢复时间常数 [s]，[假设]）
-            与 dyn_t_conv_frac（转换相时长占比，[假设]）。
+        cfg: Config；取 dyn_tau_ref（参考缓冲恢复时间常数 [s]，
+            [假设]）与 dyn_t_conv_frac（转换相时长占比，[假设]）。
 
     Returns:
         残余压降比例 eta_ref [无量纲] = exp(-T_conv/tau_ref)；
         dyn_tau_ref ≤ 0（理想无限带宽参考）时返回 0（完全恢复）。
+
     Side effects: 无（纯函数）。
     """
     t_conv = cfg.dyn_t_conv_frac / cfg.fs
@@ -165,24 +164,23 @@ def ref_recovery_factor(cfg: Config) -> float:
 def bitwise_eta_dyn(cfg: Config) -> float:
     """逐位装载下**动态分量**的残余压降因子（相对单次抽取的改善由此而来）。
 
-    论文："conversion results are loaded as they develop" —— 跟随器逐位
-    装载：SADC 结果分 B 位步写入 RDAC，第 i 步抽取总跳变电荷的 w_i 份
-    （SAR 次序 -> w_i = 2^-i，MSB 最大），到转换结束恢复了
-    exp(−(B−i)/B·T_conv/τ)。等效残余因子：
+    论文："conversion results are loaded as they develop" —— 跟随器逐位装载：
+    SADC 结果分 B 位步写入 RDAC，第 i 步抽取总跳变电荷的 w_i 份（SAR 次序 -> w_i = 2^-i，
+    MSB 最大），到转换结束恢复了exp(−(B−i)/B·T_conv/τ)。等效残余因子：
 
         eta_dyn = Σ_i w_i·exp(−(B−i)/B·T_conv/τ)   vs   单次抽取 exp(−T_conv/τ)
 
-    相对于全部电荷在起始时刻抽取，较晚的载荷恢复时间更短，因此
-    eta_dyn >= eta_single；峰值载荷分散不等于最终参考误差更小。静态代理项不变（
-    与装载时序无关）—— 口径：只建终态；转换中途瞬态不在行为级预测范围。
+    相对于全部电荷在起始时刻抽取，较晚的载荷恢复时间更短，因此eta_dyn >= eta_single；
+    峰值载荷分散不等于最终参考误差更小。静态代理项不变（与装载时序无关）—— 口径：只建终态；
+    转换中途瞬态不在行为级预测范围。
 
     Args:
-        cfg: Config；取 dyn_tau_ref [s]、dyn_t_conv_frac、rdac_bitwise_bits
-            B（均 [假设]）。
+        cfg: Config；取 dyn_tau_ref [s]、dyn_t_conv_frac、rdac_bitwise_bits B（均 [假设]）。
 
     Returns:
         动态分量残余压降因子 [无量纲] = Σ_i w_i·exp(-(B-i)/B·T_conv/τ)；
         tau_ref≤0时返回0；这是历史aggregate代理，生产使用有符号实际开关事件。
+
     Side effects: 无（纯函数）。
     """
     t_conv = cfg.dyn_t_conv_frac / cfg.fs
@@ -207,6 +205,7 @@ def bitwise_peak_ratio(cfg: Config) -> float:
     Returns:
         峰值瞬时电荷需求 / 单次装载 的比值 [无量纲] ≈ 0.5（B 位步时）；
         参考缓冲裕量指标，越小越好。
+
     Side effects: 无（纯函数）。
     """
     B = max(int(cfg.rdac_bitwise_bits), 1)
@@ -223,26 +222,26 @@ def ref_settling_error(
 ) -> np.ndarray:
     """参考未恢复造成的 DAC 输出误差（V，输入等效口径）。
 
-    gamma = C_drawn / C_dec * eta_ref —— 单位电荷抽取造成的相对压降。
-    v5 第二轮审计：C_drawn 是实际被开关的电容（split 用 A+B），
-    不能与信号电荷系数 C_sig 混用；缺省退回 c_total0 代理（unary 口径）。
-    静态分量用 (2k/N - 1)（对中码奇对称），动态分量用码差分（对斜率敏感）。
-    逐位装载（rdac_bitwise_loading）：动态分量的抽取分 B 位步进行、每步在
-    剩余时间恢复 -> gamma_dyn 用 bitwise_eta_dyn；静态分量不变（DC 负载
-    贯穿转换相，与装载时序无关）。终态码相同 -> 只改动态分量。
+    gamma = C_drawn / C_dec * eta_ref —— 单位电荷抽取造成的相对压降。v5 第二轮审计：
+    C_drawn 是实际被开关的电容（split 用 A+B），不能与信号电荷系数 C_sig 混用；
+    缺省退回 c_total0 代理（unary 口径）。静态分量用 (2k/N - 1)（对中码奇对称），
+    动态分量用码差分（对斜率敏感）。逐位装载（rdac_bitwise_loading）：动态分量的抽取分 B 位步进行、
+    每步在剩余时间恢复 -> gamma_dyn 用 bitwise_eta_dyn；静态分量不变（DC 负载贯穿转换相，
+    与装载时序无关）。终态码相同 -> 只改动态分量。
 
     Args:
-        cfg: Config；取 dyn_c_decouple [F]、dyn_ref_dynamic_ratio、
-            dyn_tau_ref、rdac_bitwise_loading / rdac_bitwise_bits（均 [假设]）。
+        cfg: Config；取 dyn_c_decouple [F]、dyn_ref_dynamic_ratio、dyn_tau_ref、
+            rdac_bitwise_loading / rdac_bitwise_bits（均 [假设]）。
         v_nominal: 名义 DAC 输出电压 [V]。
         code: 码数组 [单位当量]。
         n_levels: 可选总电平数 N [无量纲]；默认 cfg.dac_levels。
-        c_load_ref: 可选被开关电容口径 [F]；缺省退回 c_total0·cap_scale
-            （unary 口径，v5 第二轮审计）。
+        c_load_ref: 可选被开关电容口径 [F]；缺省退回 c_total0·cap_scale （unary 口径，
+            v5 第二轮审计）。
 
     Returns:
         参考未恢复造成的 DAC 输出误差 [V]（输入等效口径）；
         dyn_ref_settling 关闭时返回全 0。
+
     Side effects: 无（纯函数）。
     """
     if not cfg.dyn_ref_settling:
@@ -279,6 +278,7 @@ def switching_activity(cfg: Config, code: np.ndarray, n_levels: int | None = Non
     Returns:
         逐样本单位翻转数 A(k) [无量纲]（三角形，中码最大）；串扰共模分量
         的驱动项，DEM 无效（只取决于翻转个数）。
+
     Side effects: 无（纯函数）。
     """
     n = float(n_levels or cfg.dac_levels)
@@ -298,16 +298,14 @@ def crosstalk_error(
 ) -> np.ndarray:
     """数字串扰注入折成的 DAC 输出误差（V，输入等效口径）。
 
-    注入电荷 = c_x * V_digital * 翻转单位耦合电容之和，折成电压应除
-    **信号电荷系数 C_sig**（输入等效口径，v5 第二轮审计）——
-    旧代码除 c_total0 代理，把顶板电压口径与输入等效口径混用。
-    缺省退回 c_total0·cap_scale（unary 兼容）。
-    共模部分 ∝ A(k)                —— DEM 无效
-    单位部分 ∝ 被翻转单位的耦合电容之和 —— DEM 有效（置换即改变注入量）
+    注入电荷 = c_x * V_digital * 翻转单位耦合电容之和，
+    折成电压应除**信号电荷系数 C_sig**（输入等效口径，v5 第二轮审计）——旧代码除 c_total0 代理，
+    把顶板电压口径与输入等效口径混用。缺省退回 c_total0·cap_scale（unary 兼容）。
+    共模部分 ∝ A(k)                —— DEM 无效单位部分 ∝ 被翻转单位的耦合电容之和 —— DEM 有效（置换即改变注入量）
 
     Args:
-        cfg: Config；取 dyn_c_xtalk_common / dyn_c_xtalk_unit [F]、
-            dyn_v_digital [V]、dyn_crosstalk 开关（均 [假设]）。
+        cfg: Config；取 dyn_c_xtalk_common / dyn_c_xtalk_unit [F]、dyn_v_digital [V]、
+            dyn_crosstalk 开关（均 [假设]）。
         code: 码数组 [单位当量]。
         sid: 逐样本 slice 标签数组（决定 DEM 排列）。
         n_levels: 可选总电平数 N [无量纲]。
@@ -319,6 +317,7 @@ def crosstalk_error(
     Returns:
         数字串扰注入折成的 DAC 输出误差 [V]（输入等效口径，除 C_sig）；
         dyn_crosstalk 关闭时返回全 0。
+
     Side effects: 无（纯函数）。
     """
     if not cfg.dyn_crosstalk:
@@ -374,6 +373,7 @@ def _dem_fluctuation(prof: np.ndarray, sid: np.ndarray, frac: np.ndarray, perm_f
     Returns:
         逐样本 DEM 波动量 [F] = 抽中单位的均值耦合电容 - 总均值；
         反映单位串扰被 DEM 随机化的幅度（共模部分恒为 0）。
+
     Side effects: 无（纯函数）。
     """
     if prof.size == 0:
@@ -436,10 +436,9 @@ def apply_dynamics(
 ) -> DynamicsResult:
     """三项一次算齐。任何一项关闭时返回 0 向量，不产生副作用。
 
-    c_active：输入建立的**驱动负载**口径（split 用 A+B）；
-    c_xtalk_out：串扰电荷折电压的口径（split 用 C_sig，输入等效）；
-    c_load_ref：参考建立被开关电容口径（split 用 A+B）。
-    三个口径物理上不同，不得共用一个数（v5 第二轮审计 §3）。
+    c_active：输入建立的**驱动负载**口径（split 用 A+B）；c_xtalk_out：
+    串扰电荷折电压的口径（split 用 C_sig，输入等效）；c_load_ref：
+    参考建立被开关电容口径（split 用 A+B）。三个口径物理上不同，不得共用一个数（v5 第二轮审计 §3）。
 
     Args:
         cfg: Config（各动态开关与参数，均 [假设]）。
@@ -459,6 +458,7 @@ def apply_dynamics(
     Returns:
         DynamicsResult，含 e_input [V]、e_ref [V]、e_xtalk [V]、eps_settle
         [无量纲]、activity [无量纲]。任一开关关闭时对应分量返回 0 向量。
+
     Side effects: 无（纯函数，不改任何传入对象）。
     """
     eps = (

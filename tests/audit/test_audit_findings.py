@@ -1,32 +1,21 @@
-"""Adversarial regression tests derived from the external audit (v6.1).
+"""保留外部审计针对 v6.1 的反例及历史回归意图。
 
-Each test encodes one audit finding and asserts the *fixed* behaviour. Every
-test in this file would have FAILED against the v6.1 tree; that is the point.
-The tests are deliberately independent of the simulation's own self-assessment
-(``experiments.stage*``) — the audit's core lesson was that a stage which
-checks its own output against its own assumptions cannot catch this class of
-defect.
+每项检查对应一条审计发现，并独立于 experiments.stage* 的自评估。
+下列 A 编号来自审计报告，F 编号是 CHANGELOG.md 引用的稳定测试标识；
+此索引说明历史对应关系，实际通过状态以测试执行记录为准。
 
-Finding index — the audit report labels its findings ``A01``–``A07``; the
-shorter ``F`` labels below are stable *test* identifiers (referenced from
-``CHANGELOG.md``), and this table is the authoritative mapping:
+A01 前级分辨率口径 → F1 / TestF1FirstStageReading。
+A02 跨周期采样状态 → F2 / TestF2SliceCausality。
+A03 扰动码单位换算 → F3 / TestF3DitherUnits。
+A04 动态范围作为设定值 → F4 / TestF4NoiseBudgetIsAnAnchor。
+A07.1 静态测试与 20 位码域 → F8 / TestF8EvidenceScope。
+A07.2 主记录缺少闪烁分量 → F9 / TestF9FlickerBandLimit。
+A07.4 蒙特卡洛直方图来源 → F10 / TestF10MonteCarloProvenance。
+A07.5 低频指标异常 → TestExtraLowFrequencyMetrics。
 
-    A01  first-stage resolution reading      -> F1   TestF1FirstStageReading
-    A02  cross-cycle sampling state          -> F2   TestF2SliceCausality
-    A03  dither code unit conversion         -> F3   TestF3DitherUnits
-    A04  DR is prescribed, not predicted     -> F4   TestF4NoiseBudgetIsAnAnchor
-    A07.1 static test / 20-bit code domain   -> F8   TestF8EvidenceScope
-    A07.2 flicker absent from the main record-> F9   TestF9FlickerBandLimit
-    A07.4 Monte-Carlo histogram provenance   -> F10  TestF10MonteCarloProvenance
-    A07.5 low-frequency metrics crash        -> extra TestExtraLowFrequencyMetrics
-
-Findings whose fixes live in ``tests/regression/`` rather than here, because
-they were pinned by *running* the model:
-
-    A05/A06  observer correction headroom    -> tests/regression/test_observer_headroom.py
-    A07.3    skew slope (np.gradient bias)   -> tests/regression/test_skew_derivative.py
-
-See ``docs/audit_response.md`` for the full finding-by-finding response.
+A05/A06 的观测校正余量回归在 tests/regression/test_observer_headroom.py，
+A07.3 的采样时偏斜率回归在 tests/regression/test_skew_derivative.py。
+逐项审计记录见 docs/audit_response.md。
 """
 
 from __future__ import annotations
@@ -43,20 +32,18 @@ from adi_model.slice_pool import PhysicalSlicePool, check_causality
 
 
 # ===========================================================================
-# F1 — the first stage's resolution reading must be explicit and self-consistent
+# F1：前级分辨率口径及网格一致性。
 # ===========================================================================
 class TestF1FirstStageReading:
-    """The audit's first finding: v6.1 quietly read "9b quantization in the
-    first stage" as "6b coarse decision + 3b dither codeword", which does NOT
-    give 512 input decision levels.
+    """F1：区分未知输入的判决分辨率与扰动码字位数。
 
-    v6.1 evidence: b1=6 -> 64 levels, 93.75 mV step, ~93.75 mV max residue.
-    Fixed: the reading is an explicit field, and the config refuses
-    combinations where the DAC cannot express 2**b1 judgement levels.
+    v6.1 将 9 位前级解释为 6 位粗判决加 3 位扰动，只有 64 个输入判决电平；
+    对应步长及最大残差约为 93.75 mV，不能视为 512 个输入电平。
+    本组保留显式口径及 DAC 可表达电平数的历史一致性检查。
     """
 
     def test_readings_are_explicit_and_distinct(self):
-        """Three readings must exist and be selected by name, not by default."""
+        """检查历史接口中的三种口径可按名称显式区分。"""
         cfg = Config()
         assert cfg.stage1_reading in {
             "paper_consistent",
@@ -69,23 +56,17 @@ class TestF1FirstStageReading:
         assert consistent.stage1_reading == "paper_consistent"
 
     def test_decision_levels_equal_two_to_the_b1(self):
-        """The number of *input* decision levels must be 2**b1. This is the
-        quantity the audit measured as 64 instead of 512.
-        """
+        """检查输入判决电平数为 2**b1，区分审计中的 64 与 512 个电平。"""
         for cfg in (Config(), Config.paper_consistent(), Config.legacy_v61()):
             assert cfg.stage1_levels == 2**cfg.b1
 
     def test_step_is_two_vfs_over_levels(self):
-        """Delta1 must be 2*v_fs/2**b1 (the audit's 11.71875 mV for b1=9,
-        93.75 mV for b1=6).
-        """
+        """检查 Delta1=2*v_fs/2**b1；历史 9 位为 11.71875 mV，6 位为 93.75 mV。"""
         for cfg in (Config(), Config.paper_consistent(), Config.legacy_v61()):
             assert cfg.delta1 == pytest.approx(2.0 * cfg.v_fs / 2**cfg.b1)
 
     def test_reading_and_topology_must_be_consistent(self):
-        """A 1024-level reading on a 512-level DAC must be reported as FAIL,
-        not silently simulated into garbage.
-        """
+        """检查 1024 电平口径与 512 电平 DAC 的不一致会被报告。"""
         bad = Config(b1=10)
         checks = bad.validate(verbose=False)
         key = "第一级读数与 DAC 拓扑自洽（2**b1 <= DAC 电平数）"
@@ -95,10 +76,9 @@ class TestF1FirstStageReading:
         ), "b1=10 needs 1024 levels but the DAC has 512; validate() must FAIL"
 
     def test_historical_seven_bit_grid_ratio_is_preserved(self):
-        """Preserve the historical 7+2 grid hypothesis as a comparison.
+        """保留历史 7+2 网格假设的算术对照。
 
-        This arithmetic does not establish nine unknown-input decision bits;
-        the independently parameterized candidate is tested separately.
+        该比例不能建立 9 位未知输入判决能力；独立参数化候选由其他测试描述。
         """
         cfg = Config.paper_consistent()
         enh = float(np.log2(units_per_first_stage_step(cfg, None)))
@@ -106,25 +86,21 @@ class TestF1FirstStageReading:
         assert cfg.b1 + enh == pytest.approx(9.0)
 
     def test_legacy_reading_does_not_match_the_enhancement_disclosure(self):
-        """Guards the derivation: b1=6 gives 3b of grid headroom, which is NOT
-        the disclosed 2b, so it cannot be the paper-consistent reading either.
+        """检查历史 6 位口径的 3 位网格余量与披露的 2 位增强不同。
 
-        The config *declares* its own 3b (self-consistency is enforced by
-        ``validate()`` — see ``test_enhancement_bits_must_match_the_grid``);
-        the disagreement underneath the test is with the **paper's** 2b.
+        旧配置可在自身 3 位声明下自洽，但自身一致不代表符合论文的 2 位披露。
         """
-        disclosed_enh = 2  # [00]: "enhanced by 2b"
+        disclosed_enh = 2  # [00] 披露“增强 2 位”。
         legacy = Config.legacy_v61()
         grid_enh = float(np.log2(units_per_first_stage_step(legacy, None)))
         assert grid_enh == pytest.approx(3.0)
-        assert int(legacy.dither_enhancement_bits) == 3  # self-consistent
+        assert int(legacy.dither_enhancement_bits) == 3  # 仅检查旧声明自身一致。
         assert int(legacy.dither_enhancement_bits) != disclosed_enh
 
     def test_enhancement_bits_must_match_the_grid(self):
-        """The declared enhancement must equal log2(DAC levels / 2**b1).
+        """检查旧声明等于 log2(DAC 电平数 / 2**b1)。
 
-        This is the machine-checkable form of ADR 0003: silently moving ``b1``
-        without re-deriving the reading is a FAIL, not a quiet drift.
+        这是 ADR 0003 的历史机器检查，防止仅修改 b1 而遗漏相应网格声明。
         """
         key = "dither 增强位数 == log2(DAC 电平数 / 2**b1)"
         for cfg in (Config(), Config.paper_consistent(), Config.legacy_v61()):
@@ -132,10 +108,10 @@ class TestF1FirstStageReading:
             assert key in checks
             assert checks[key][2] is True, f"{cfg.stage1_reading} must be self-consistent"
 
-        # A hand-moved b1 without the matching grid declaration is caught.
+        # 单独修改 b1 而遗漏网格声明时应被检查发现。
         drifted = Config(
             b1=7,
-            dither_enhancement_bits=3,  # claims 3b on a 2b grid
+            dither_enhancement_bits=3,  # 在 2 位网格余量上声明 3 位。
             adc2_n_bits=14,
             adc2_v_min=-0.15,
             adc2_v_max=1.65,
@@ -145,9 +121,7 @@ class TestF1FirstStageReading:
         assert drifted.validate(verbose=False)[key][2] is False
 
     def test_backend_range_is_derived_from_delta1(self):
-        """ADC2's range and depth must follow Delta1, so that changing the
-        stage-1 reading cannot leave a stale, overflowing window behind.
-        """
+        """保留旧接口对 ADC2 范围及位数随 Delta1 变化的检查，避免遗留旧量化窗口。"""
         for cfg in (Config(), Config.paper_consistent(), Config.legacy_v61()):
             span = cfg.g_actual * cfg.delta1
             assert cfg.adc2_v_max == pytest.approx(1.10 * span, rel=1e-9)
@@ -156,16 +130,14 @@ class TestF1FirstStageReading:
 
 
 # ===========================================================================
-# F2 — physical slice state must carry across cycles
+# F2：物理切片采样状态跨周期保存。
 # ===========================================================================
 class TestF2SliceCausality:
-    """The audit's second finding: `ShuffledScheduler.reserve_dual()` redrew an
-    independent permutation every sample, so only 1 of 8191 transitions had the
-    converting group equal to the previous acquiring group (3.56/8 slices on
-    average). The converting capacitors therefore did not hold the sample being
-    converted.
+    """F2：检查转换电容确实持有所属样本的采样电荷。
 
-    Fixed: `PhysicalSlicePool` maintains acquisition state across cycles.
+    历史 ShuffledScheduler.reserve_dual() 每周期独立抽样，8191 次转移仅 1 次
+    满足转换组等于前周期采集组，平均交集为 3.56/8。本组目标是检查物理池跨周期
+    保存状态，而不只检查单周期两个组互斥。
     """
 
     @pytest.mark.parametrize("strategy", ["pingpong", "shuffle_causal"])
@@ -180,18 +152,14 @@ class TestF2SliceCausality:
 
     @pytest.mark.parametrize("strategy", ["pingpong", "shuffle_causal"])
     def test_full_coverage(self, cfg, strategy):
-        """Every converting slice must have been acquired — mean coverage 8/8.
-        v6.1's value was 3.56/8.
-        """
+        """检查每个转换切片都来自前周期采集组，覆盖应为 8/8；历史值为 3.56/8。"""
         pool = PhysicalSlicePool(cfg, np.random.default_rng(0))
         plan = pool.plan(4096, np.random.default_rng(20260910), strategy=strategy)
         chk = check_causality(plan)
         assert chk["mean_coverage"] == pytest.approx(8.0, abs=1e-9)
 
     def test_shuffle_keeps_randomness(self, cfg):
-        """Causality must not be bought by freezing the schedule: the shuffle
-        strategy must still visit many distinct converting groups.
-        """
+        """检查因果调度仍访问多个不同转换组，不通过固定调度满足归属条件。"""
         pool = PhysicalSlicePool(cfg, np.random.default_rng(5))
         plan = pool.plan(2048, np.random.default_rng(1), strategy="shuffle_causal")
         distinct = len({tuple(g) for g in plan.conv.tolist()})
@@ -200,10 +168,10 @@ class TestF2SliceCausality:
         )
 
     def test_mismatch_binds_to_the_physical_selection(self, cfg):
-        """The audit showed fixed and shuffled schedules produced bit-identical
-        DAC errors (`max|delta| = 0.0 uV`) because `evaluate_physical` never
-        received the 8/18 selection. The physical pool must make the error
-        depend on which slices convert.
+        """检查 DAC 误差随实际转换切片选择变化。
+
+        历史 evaluate_physical 未接收 8/18 选择，固定与随机调度误差逐位相同，
+        max|delta| 为 0.0 µV；本断言意在约束该物理选择的作用。
         """
         pool = PhysicalSlicePool(cfg, np.random.default_rng(7))
         n = 1024
@@ -219,14 +187,10 @@ class TestF2SliceCausality:
         )
 
     def test_signal_capacitance_depends_on_selection(self, cfg):
-        """The gain must also move with the selection, because the converting
-        slices contribute the sampling capacitance.
+        """检查采样增益随实际转换电容组变化。
 
-        Note on tolerances: the effect is a *matching* effect (~10 ppm at the
-        default 100 ppm unit mismatch), which is smaller than NumPy's default
-        ``allclose`` rtol of 1e-5 — so the assertion uses explicit tolerances
-        instead of ``allclose``, which would happily declare two different
-        capacitor banks equal.
+        100 ppm 单元失配下，这一匹配效应约 10 ppm，可能小于 NumPy 默认 allclose
+        的 rtol=1e-5。此处用显式容差区分两个不同电容组，不以默认近似吞掉差异。
         """
         pool = PhysicalSlicePool(cfg, np.random.default_rng(11))
         n = 512
@@ -243,8 +207,8 @@ class TestF2SliceCausality:
             "the selection is changing the gain by more than a matching " "artefact would"
         )
 
-        # A causally shuffled plan must modulate it sample by sample, and the
-        # modulation must stay at the matching level.
+        # 因果随机调度应使该值逐样本变化，
+        # 变化量应处于匹配误差量级。
         plan = pool.plan(n, np.random.default_rng(3), strategy="shuffle_causal")
         c = pool.signal_capacitance(plan.conv[plan.valid])
         assert np.unique(c).size > 1, "shuffling does not modulate the gain"
@@ -253,16 +217,15 @@ class TestF2SliceCausality:
 
 
 # ===========================================================================
-# F3 — the dither code unit conversion
+# F3：扰动码单位换算。
 # ===========================================================================
 class TestF3DitherUnits:
-    """The audit's third finding: the coarse-granularity branch computed
-    `d_code = -round(d / Delta_Q)` — a count in *coarse* steps — and added it
-    to a code expressed in *RDAC unit* steps. The missing factor was
-    Delta_Q/Delta_D (= 8 in v6.1's configuration).
+    """F3：检查粗码步长与 RDAC 单元步长之间的换算。
 
-    Correcting it moved the branch from 32.7% to 16.0% overflow and from
-    16308 uV to 5699 uV RMS, flipping the check from PASS to FAIL.
+    历史粗粒度分支将 -round(d/Delta_Q) 得到的粗步数直接加到 RDAC 单元码上，
+    遗漏 Delta_Q/Delta_D；v6.1 该比例为 8。审计记录中修正前后溢出率为
+    32.7%→16.0%，RMS 为 16308→5699 µV，并由此使原检查从通过变为失败。
+    这些数值是历史诊断记录，不表示当前模型已重跑。
     """
 
     def test_range_model_is_an_exact_unit_conversion(self, cfg):
@@ -274,10 +237,7 @@ class TestF3DitherUnits:
         assert np.array_equal(code, -np.round(d / cfg.rdac_step))
 
     def test_output_is_in_rdac_unit_steps(self, cfg):
-        """The returned code, multiplied by the RDAC step, must reproduce the
-        dither voltage to within half an RDAC step — i.e. it is a code in RDAC
-        units, not in coarse units.
-        """
+        """检查返回码乘 RDAC 步长可在半个 RDAC 步长内还原扰动电压。"""
         d = np.linspace(-0.5, 0.5, 21) * cfg.delta1
         cc = Config(
             **{**cfg.__dict__, "dither_mode": "quantizer", "dither_transfer_model": "range"}
@@ -290,9 +250,7 @@ class TestF3DitherUnits:
         )
 
     def test_missing_conversion_factor_is_reproduced(self, cfg):
-        """The audit's counterfactual: adding a coarse-unit count directly is
-        wrong by exactly step_coarse/step_rdac.
-        """
+        """构造缺少换算因子的反例，其比例误差为 step_coarse/step_rdac。"""
         d = np.array([1.0, -1.0]) * cfg.delta1
         correct = -np.round(d / cfg.rdac_step)
         wrong = -np.round(d / cfg.delta1)
@@ -315,14 +273,13 @@ class TestF3DitherUnits:
 
 
 # ===========================================================================
-# F4 — the noise budget is an anchor, not a prediction
+# F4：噪声预算的目标反解属性。
 # ===========================================================================
 class TestF4NoiseBudgetIsAnAnchor:
-    """The audit's fourth finding: `ra_out_noise_rms=None` reverse-solves the
-    RA noise from the target DR, so reproducing 94.6 dB is an identity, not a
-    prediction. The fix is not to change the maths but to *label* it: the
-    derived quantity must be graded FITTED (an anchor), never DISCLOSED or
-    DERIVED-as-a-prediction, and the user must be able to see it.
+    """F4：区分目标动态范围反解的噪声预算与独立预测。
+
+    历史 ra_out_noise_rms=None 按目标 DR 反解 RA 噪声，因此复现 94.6 dB 是
+    预算恒等式。本组意图是将该值标为 FITTED，并与披露值或独立推导分开。
     """
 
     def test_auto_resolved_ra_noise_is_graded_as_an_anchor(self, cfg):
@@ -337,10 +294,10 @@ class TestF4NoiseBudgetIsAnAnchor:
         assert "ANCHOR" in g.source.upper() or "anchor" in g.source
 
     def test_noise_budget_sums_to_the_target(self, cfg):
-        """Self-consistency: the components must add up to the target DR. The
-        audit confirmed this holds (90/94.6/98 dB -> 90.015/94.611/98.001 dB);
-        it is a check that the anchor is wired correctly, NOT evidence that the
-        circuit independently attains it.
+        """检查预算分量相加满足目标动态范围，仅作为预算连接的一致性检查。
+
+        审计历史记录为目标 90/94.6/98 dB 对应 90.015/94.611/98.001 dB；
+        这种一致性不能证明电路独立达到所设定性能。
         """
         from adi_model.config import noise_budget
 
@@ -356,10 +313,7 @@ class TestF4NoiseBudgetIsAnAnchor:
         assert dr == pytest.approx(cfg.target_dr_db, abs=0.5)
 
     def test_pdk_sigma_is_assumed_not_disclosed(self, cfg):
-        """The 1117 ppm figure comes from an assumed area law, not from a PDK
-        measurement; the audit flagged that it was being used to back out the
-        real chip's calibration factor.
-        """
+        """检查 1117 ppm 的假设面积定律估计不会被标为 PDK 测量或原文披露。"""
         from adi_model.provenance import SourceGrade, annotate_config
 
         ann = annotate_config(cfg)
@@ -367,13 +321,13 @@ class TestF4NoiseBudgetIsAnAnchor:
 
 
 # ===========================================================================
-# F8 — evidence scope: static test and the output code domain
+# F8：静态测试与输出码域的证据边界。
 # ===========================================================================
 class TestF8EvidenceScope:
-    """The audit's eighth finding: the static test is an *averaged mean-error*
-    curve, not a full code-density DNL; and `n_bits_target` only defines the
-    target LSB, it does not quantise the output. Presenting the former as INL
-    and the latter as a 20-bit encoder over-claims the evidence.
+    """F8：区分平均误差曲线、全码密度 DNL 与真正整数输出。
+
+    审计时静态曲线来自平均误差，n_bits_target 只设 LSB 参考，不对输出量化；
+    本组保留该历史证据边界，不能以标签代替对应测试域。
     """
 
     def test_static_test_reports_its_own_scope(self):
@@ -387,10 +341,7 @@ class TestF8EvidenceScope:
         )
 
     def test_n_bits_target_does_not_change_the_analog_output(self, cfg):
-        """n_bits_target only sets the LSB reference. Asserting it leaves the
-        simulator's output untouched documents *why* no 20-bit code-domain
-        claim can be made from this model.
-        """
+        """检查历史 n_bits_target 仅改变 LSB 参考的行为，不据此声称已建立 20 位码域。"""
         from adi_model.sim import run_sim
 
         a = Config(**{**cfg.__dict__, "n_bits_target": 20, "dac_arch": "unary"})
@@ -406,33 +357,29 @@ class TestF8EvidenceScope:
 
 
 # ===========================================================================
-# F9 — the flicker generator and the main record
+# F9：闪烁噪声生成器与主记录频带。
 # ===========================================================================
 class TestF9FlickerBandLimit:
-    """The audit's ninth finding: at fs=40 MHz / N=32768 the FFT bin is
-    ~1220 Hz, so a 40 Hz corner is far below the record and the generator used
-    to zero everything above the corner — leaving the main record with an
-    all-zero flicker sequence.
+    """F9：检查有限记录可分辨的闪烁功率及其声明范围。
 
-    The fix is twofold: the generator must expose how much of its power is
-    resolvable, and the main-record claim must be withdrawn rather than
-    implied. `stage23` validates the generator separately at a low fs.
+    历史 fs=40 MHz、N=32768 时频率分辨率约 1220 Hz，远高于 40 Hz 拐角；
+    旧生成器又清零拐角以上频点，导致主记录的闪烁序列全零。本组保留可分辨性及
+    独立低采样率生成器检查，避免把不可分辨功率描述成已在主记录验证。
     """
 
     def test_generator_has_power_below_the_record_band(self):
-        """Flicker must be non-zero in a record long enough to resolve 40 Hz."""
+        """检查足够长、能分辨 40 Hz 的记录具有非零闪烁分量。"""
         from adi_model.ra import flicker_series
 
-        n, fs = 2**16, 4000.0  # df = 0.061 Hz, resolves 40 Hz
+        n, fs = 2**16, 4000.0  # 频率分辨率 0.061 Hz，可以分辨 40 Hz。
         x = flicker_series(n, fs, f_corner=40.0, sigma_white=1e-6, rng=np.random.default_rng(0))
         assert np.any(x != 0.0)
         assert np.std(x) > 0.0
 
     def test_generator_power_is_zero_above_the_corner(self):
-        """The documented convention: the 1/f branch stops at the corner and
-        the white floor is supplied by the system's thermal source, so the
-        generator must not inject a second white floor (that cost 3 dB in the
-        stage-23 history).
+        """检查历史约定的 1/f 分支在拐角以上终止，白噪声由系统热噪声源单独提供。
+
+        该约定避免重复注入白底；旧 stage23 记录中重复白底造成过 3 dB 差异。
         """
         from adi_model.ra import flicker_series
 
@@ -446,9 +393,7 @@ class TestF9FlickerBandLimit:
         ), "the generator is still emitting power well above the corner"
 
     def test_main_record_claim_is_not_silently_made(self, cfg):
-        """At the default fs/N the corner is unresolvable; the model must not
-        pretend otherwise. Assert the resolvability arithmetic.
-        """
+        """检查默认 fs/N 无法分辨拐角的算术条件，不把该主记录称为已验证低频功率。"""
         n = 2**15
         df = cfg.fs / n
         assert df > 40.0, (
@@ -458,22 +403,17 @@ class TestF9FlickerBandLimit:
 
 
 # ===========================================================================
-# F10 — Monte-Carlo histogram provenance
+# F10：蒙特卡洛直方图样本来源。
 # ===========================================================================
 class TestF10MonteCarloProvenance:
-    """The audit's tenth finding: the "60-chip SNDR distribution" figure was
-    drawn from 400 freshly drawn Gaussian samples parameterised by the MC mean
-    and sigma, not from the 60 simulated chips. Such a figure cannot support
-    tail or yield statements.
+    """F10：检查直方图使用实际逐芯片样本。
 
-    The fix: Monte-Carlo results must be presented from real per-chip samples.
+    历史“60 芯片 SNDR 分布”图使用均值和标准差重新抽取 400 个高斯数值，
+    不能支持尾部或良率判断。本组约束保留并直接使用真实逐芯片结果。
     """
 
     def test_summary_keeps_per_chip_samples(self, cfg):
-        """The Monte-Carlo result must carry the per-chip SNDR array, and the
-        reported moments must be *computed from it* — so no downstream figure
-        can silently fall back to a Gaussian parametrised by (mean, sigma).
-        """
+        """检查结果保存逐芯片 SNDR 数组，统计矩由该数组计算。"""
         from adi_model.experiments import mc_pdk_sigma
 
         out = mc_pdk_sigma(cfg, n_chips=6, n=2**11)
@@ -483,21 +423,18 @@ class TestF10MonteCarloProvenance:
         )
         s = np.asarray(out["sndr_per_chip"])
         assert s.shape == (6,)
-        # The summary must be a deterministic function of the samples, not an
-        # independent description of them.
+        # 摘要必须由逐芯片样本确定，
+        # 不能作为独立于样本的另一组描述。
         assert out["SNDR_mean"] == pytest.approx(float(s.mean()), rel=1e-12)
         assert out["SNDR_std"] == pytest.approx(float(s.std()), rel=1e-12)
         assert out["SNDR_min"] == pytest.approx(float(s.min()), rel=1e-12)
         assert out["sigma_ppm"] == pytest.approx(float(cfg.pdk_sigma_est_ppm))
 
     def test_histogram_is_not_resampled(self):
-        """Static guard: nothing in ``src/`` or ``tools/`` may synthesise extra
-        samples from a (mean, sigma) pair — that was the audit's exact finding.
+        """静态检查 src/ 与 tools/ 不从均值、标准差重造直方图样本。
 
-        The first version of this guard only scanned ``adi_model.experiments``,
-        and the offending code was in ``tools/run_all.py``: the guard passed
-        while the defect shipped. Scanning the *tree* is the fix. ``tools/``
-        matters because that is where the figures are drawn.
+        只扫描 adi_model.experiments 曾遗漏 tools/run_all.py 中的绘图重抽样，
+        因此本断言覆盖两个目录。
         """
         import pathlib
         import re
@@ -506,7 +443,7 @@ class TestF10MonteCarloProvenance:
             pathlib.Path(__file__).resolve().parents[2] / "src",
             pathlib.Path(__file__).resolve().parents[2] / "tools",
         ]
-        # rng.normal(<something_mean>, <something_std>, <count>) — a resample.
+        # rng.normal(均值, 标准差, 数量) 形式表示按统计矩重新抽样。
         pattern = re.compile(
             r"(rng|np\.random\.[a-z_]*|default_rng\([^)]*\))\.normal\(\s*"
             r"[^)]*mean[^)]*,\s*[^)]*std[^)]*,"
@@ -523,7 +460,7 @@ class TestF10MonteCarloProvenance:
         )
 
     def test_monte_carlo_figure_uses_per_chip_samples(self):
-        """The figure generator must index ``sndr_per_chip``, not the moments."""
+        """检查绘图入口读取 sndr_per_chip，而非只读取统计矩。"""
         import pathlib
 
         run_all = pathlib.Path(__file__).resolve().parents[2] / "tools" / "run_all.py"
@@ -534,12 +471,7 @@ class TestF10MonteCarloProvenance:
         )
 
     def test_the_guard_would_catch_the_historical_line(self):
-        """Guard-the-guard: the v6.1 line must still match the pattern.
-
-        Without this, tightening/breaking the regex would silently turn the
-        static check into a no-op — exactly how the defect survived the first
-        version of the guard.
-        """
+        """用 v6.1 的历史问题行反向检查正则守卫，避免模式退化为无效检查。"""
         import re
 
         historical = '    samp = rng.normal(m["SNDR_mean"], m["SNDR_std"], 400)'
@@ -553,13 +485,13 @@ class TestF10MonteCarloProvenance:
 
 
 # ===========================================================================
-# extra — the low-frequency metrics crash
+# 附加回归：低频指标窗口异常。
 # ===========================================================================
 class TestExtraLowFrequencyMetrics:
-    """Not in the audit's numbered list, but found while reproducing it:
-    `sine_fit_metrics` raised `ValueError` for fin <= ~5 kHz because the
-    harmonic search window `fund_bin - guard : fund_bin + guard` went negative
-    once `fund_bin` was clamped to 1.
+    """检查审计复现时发现的低频谐波窗口边界。
+
+    旧 sine_fit_metrics 在 fin 约低于 5 kHz 时，将 fund_bin 限到 1 后仍使用
+    fund_bin±guard 切片；负索引导致空窗口并抛出 ValueError。
     """
 
     @pytest.mark.parametrize("fin", [1e3, 5e3, 1e5, 1e6, 5e6, 19e6])
@@ -573,9 +505,7 @@ class TestExtraLowFrequencyMetrics:
         assert m["SNDR_dB"] > 60.0
 
     def test_low_frequency_declares_harmonics_unreliable(self, cfg):
-        """When the fundamental is too low to separate harmonics, the function
-        must say so rather than return a silently wrong THD.
-        """
+        """基波过低而无法分离谐波时，应显式报告不可靠，不返回未说明限制的 THD。"""
         from adi_model.metrics import sine_fit_metrics
 
         n = 2**14
@@ -585,9 +515,7 @@ class TestExtraLowFrequencyMetrics:
         assert m["harmonics_reliable"] is False
 
     def test_spectral_band_helper_clamps_at_the_edges(self):
-        """`_band_max` must clamp instead of relying on Python's negative
-        slicing, which is what produced the empty window.
-        """
+        """检查 _band_max 显式裁切边界，不依赖 Python 负索引切片。"""
         from adi_model.metrics import _band_max
 
         X = np.arange(32, dtype=float)

@@ -1,9 +1,8 @@
-"""The declared console entry points must exist and resolve.
+"""检查已声明的控制台入口存在并能解析。
 
-``pyproject.toml`` advertises ``adi-run-all`` and ``adi-make-report``. Before
-this module existed, ``pip install`` succeeded and the commands failed with
-``ModuleNotFoundError: adi_model.cli`` — a broken install is worse than a
-missing feature, so the wiring is pinned by tests.
+pyproject.toml 提供 adi-run-all 与 adi-make-report。历史安装虽成功，命令曾因
+缺少 adi_model.cli 而抛 ModuleNotFoundError；本组分别检查入口、参数和 CI
+调用的一致性，不以安装成功代替命令可运行。
 """
 
 from __future__ import annotations
@@ -25,7 +24,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _accepted_flags(prog: str) -> set[str]:
-    """Every ``--flag`` the named launcher's parser will accept."""
+    """取得指定入口解析器实际接受的 --flag 集合。"""
     parser = cli._parser(prog, "help text is irrelevant here")
     return {opt for action in parser._actions for opt in action.option_strings}
 
@@ -74,10 +73,7 @@ class TestScriptDiscovery:
         assert "results.json" in capsys.readouterr().err
 
     def test_results_dir_is_honoured_and_environment_restored(self, tmp_path, monkeypatch):
-        """The launcher exports ADI_MODEL_RESULTS_DIR for the duration of the
-        run and restores the caller's value afterwards — running a sweep must
-        not leak state into the process that called it.
-        """
+        """检查调用期间设置 ADI_MODEL_RESULTS_DIR，并在结束后恢复调用方环境。"""
         import os
 
         captured: dict[str, str | None] = {}
@@ -105,13 +101,10 @@ class TestScriptDiscovery:
 
 
 class TestCIMatchesTheCLI:
-    """The workflow must call the launchers with flags that actually exist.
+    """检查 CI 使用入口解析器实际支持的参数。
 
-    The determinism job used to invoke ``adi-run-all --out DIR``. ``--out`` is
-    not a flag of the parser, so the job died on ``unrecognized arguments``
-    before running a single experiment — a green-looking pipeline that verified
-    nothing. These tests read the workflow and reject any invocation whose
-    flags the parser would refuse.
+    历史确定性任务使用不受支持的 adi-run-all --out DIR，在实验开始前即被
+    unrecognized arguments 拒绝；这里检查实际 run 命令与解析器的一致性。
     """
 
     WORKFLOW = REPO_ROOT / ".github" / "workflows" / "ci.yml"
@@ -144,11 +137,10 @@ class TestCIMatchesTheCLI:
             )
 
     def test_sweep_is_driven_by_the_acceptance_script(self):
-        """`pytest -m slow` collects nothing: no test carries that marker.
+        """检查 CI 实际执行 run_all.py 验收入口。
 
-        The real sweep is `run_all.py`. If CI stops calling it, the acceptance
-        criteria silently stop being exercised. Only ``run:`` commands count —
-        a comment mentioning the old command is documentation, not a defect.
+        按 run 命令而非注释中提到的命令判定，避免文档文字触发错误；也不以无对应
+        测试收集的 pytest -m slow 代替验收脚本。
         """
         commands = [
             line.split("run:", 1)[1].strip()

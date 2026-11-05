@@ -1,4 +1,4 @@
-"""Execute synthesis flow decisions with Tcl/Bash stubs, without claiming EDA signoff."""
+"""以 Tcl／Bash 替身检查综合流程决策，不形成 EDA 签核证据。"""
 
 from __future__ import annotations
 
@@ -101,7 +101,7 @@ def wrapper_probe(tmp_path, status, tool_rc, wns="1.0"):
         pytest.skip("bash is required; installed in the RTL CI environment")
     bindir = tmp_path / "bin"
     bindir.mkdir()
-    # The fake tool emits a success marker and then either succeeds or crashes.
+    # 工具替身先输出成功标记，再正常退出或异常退出，以检查真实返回码。
     tool = bindir / "fake_dc"
     tool.write_text(
         "#!/usr/bin/env bash\n"

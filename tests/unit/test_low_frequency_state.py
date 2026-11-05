@@ -1,4 +1,4 @@
-"""Physical-time, stationarity, covariance and long-record 1/f checks."""
+"""检查物理时间、平稳性、协方差及长记录 1/f 状态。"""
 
 import numpy as np
 import pytest

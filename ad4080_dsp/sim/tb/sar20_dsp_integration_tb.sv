@@ -1,6 +1,5 @@
 `timescale 1ns/1ps
-// Connect the real SAR structural top to the DSP wrapper and exercise its
-// ingress contract with separately injected error retirements.
+// 连接真实 SAR 结构顶层与 DSP 封装，以正常结果及单独注入的错误退役检查入口约定。
 module sar20_dsp_integration_tb;
   logic clk = 0, rst_n = 0;
   always #5 clk = ~clk;
@@ -91,8 +90,8 @@ module sar20_dsp_integration_tb;
   logic [19:0] expected [0:1023];
   int wr = 0, rd = 0, real_samples = 0, rejects = 0;
   bit scoreboard_enabled = 1;
-  // At the reset defaults (gain=1, offset=0, bypass, FIFO off), the two
-  // independent code conversions must preserve the complete 20-bit word.
+  // 复位默认采用单位增益、零偏移、滤波直通和 FIFO 关闭；两次独立码制转换
+  // 须保留完整的 20 bit 字，入口 ID 仍在接受事件处单独核对。
   always @(negedge clk) begin
     if (rst_n && scoreboard_enabled && accepted) begin
       if (wr >= 1024) $fatal(1, "scoreboard overflow");
@@ -148,7 +147,7 @@ module sar20_dsp_integration_tb;
   initial begin
     repeat (3) @(negedge clk); #1; rst_n = 1;
     repeat (3) @(negedge clk);
-    // Consecutive transfers cover both rails, just below/at midscale and zero.
+    // 连续传输覆盖两端、接近中点及中点的码字边界。
     inject(20'h00000, 0, 1);
     inject(20'h7ffff, 0, 2);
     inject(20'h80000, 0, 3);
@@ -157,8 +156,7 @@ module sar20_dsp_integration_tb;
     repeat (8) @(negedge clk);
     if (wr != 4 || rd != 4) $fatal(1, "boundary transfer count wr=%0d rd=%0d", wr, rd);
 
-    // A flagged retirement immediately after an accepted input must suppress
-    // that earlier input if it is still in flight through the DSP pipeline.
+    // 正常输入后紧接故障退役；若前一结果仍在 DSP 流水中，故障须同时抑制该结果。
     scoreboard_enabled = 0;
     inject(20'h81234, 0, 50);
     inject(20'h80000, 5'b00001, 51);
@@ -185,7 +183,7 @@ module sar20_dsp_integration_tb;
       end_inject();
       restart_dsp();
     end
-    // The SAR's sticky analog overflow is separate from the five result flags.
+    // SAR 模拟粘滞越界与五个结果标志独立，须单独检查。
     inject(20'h81234, 0, 250);
     #1; inject_analog_ovf = 1;
     #1;
@@ -214,7 +212,7 @@ module sar20_dsp_integration_tb;
       coarse_target = 220 + ((tick / 16) % 72);
       fine_target = 1900 + ((tick / 16) % 240);
     end
-    // Switch away only after the last real conversion has drained.
+    // 等待最后一个真实转换排空后再切换注入来源，避免切换引入未记账结果。
     repeat (30) @(negedge clk);
     #1; inject_mode = 1; inject_valid = 0;
     repeat (8) @(negedge clk);

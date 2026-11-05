@@ -1,22 +1,22 @@
 //=============================================================================
 // @file    sar20_system_top.sv
-// @brief   同一时钟下组合实际SAR核与DSP接入层
-// @details 显式连接SAR退休码、ID、flags、模拟sticky与DSP封装；SAR原始结果和校准观察口另行接出。
-//          sar_result_analog_bad只作观察，DSP当前仍按模拟sticky停流合同处理。
+// @brief   同一时钟域的实际 SAR 数字核与 DSP 接入层。
+// @details 显式连接 SAR 退役码、ID、flags、模拟粘滞故障与 DSP 封装，并另行引出
+//          原始结果和校准观察口。sar_result_analog_bad 仅作观察，DSP 仍按模拟粘滞停流。
 // @project SAR20 / AD4080风格数字原型
 // @author  项目维护者（贡献记录见版本库）
 // @date    2026-11-05
 // @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : 无；本项目接口合同。
-// 时钟域   : clk；模拟比较器/越界与外部控制必须满足各子核同步合同
-// 复位     : rst_n外部异步断言、同步释放；需让同步复位的SAR实际采到复位沿
-// 延迟     : 由SAR和DSP子模块决定，不提供额外固定延迟
-// 吞吐     : SAR为16tick帧预算；DSP各输出口另有吞吐限制
-// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
-// 依赖     : sar20_digital_core、sar20_ad4080_top
-// 边界     : 本文件是项目组合接口，不提供模拟宏、DDR PHY或目标工艺签核。
-//          P_CAL_OBSERVE决定校准观察开关；观察口不等同外部传输协议。
+// 手册依据: 无；本项目接口规则。
+// 时钟域: clk；模拟比较器/越界和外部控制须满足各子核的同步约定。
+// 复位: rst_n 外部异步断言、同步释放；须让同步复位的 SAR 实际采到复位沿。
+// 延迟: 由 SAR 和 DSP 子模块决定，不另设固定延迟。
+// 吞吐: SAR 采用 16 tick 帧预算；DSP 各输出口另有速率限制。
+// 可综合性: RTL 结构；目标库映射、约束、SRAM/PHY 与 STA 须单独验收。
+// 依赖: sar20_digital_core、sar20_ad4080_top。
+// 边界: 仅为项目组合接口，不提供模拟宏、DDR PHY 或目标工艺签核。
+//     P_CAL_OBSERVE 控制校准观察开关；内部观察口不等于外部传输协议。
 //=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
@@ -32,7 +32,7 @@ module sar20_system_top #(
     parameter int DSP_FIFO_DEPTH = 16384
 ) (
     input  logic clk, rst_n,
-    // SAR analog/macro boundary (same fixed geometry as sar20_digital_core).
+    // SAR 模拟宏边界使用与 sar20_digital_core 相同的固定几何配置。
     input  logic [6:0] flash_therm,
     input  logic flash_valid,
     input  logic [1:0] coarse_cmp_valid, coarse_cmp_ge,
@@ -63,14 +63,14 @@ module sar20_system_top #(
     output logic [17:0][7:0] sub_sw,
     output logic [17:0][3:0] dither_sw,
     output logic sw_valid,
-    // Raw SAR output remains separately observable for audit/debug.
+    // 原始 SAR 结果单独引出，供核查与调试。
     output logic [19:0] sar_dout,
     output logic sar_dout_valid, sar_clip_low, sar_clip_high, sar_analog_ovf, sar_acc_ovf,
     output logic [31:0] sar_status_word, sar_sample_id,
     output logic [4:0] sar_flags,
     output logic sar_result_analog_bad, cal_obs_valid,
     output logic [747:0] cal_obs_data,
-    // DSP input acceptance and rejection events; no output-side sample ID.
+    // DSP 入口接受/拒绝事件；输出侧不携带样本 ID。
     input  logic dsp_restart,
     output logic sample_accepted,
     output logic [31:0] accepted_sample_id,
@@ -121,7 +121,7 @@ module sar20_system_top #(
         .dout_flags(sar_flags), .dout_analog_bad(sar_result_analog_bad),
         .cal_obs_valid(cal_obs_valid), .cal_obs_data(cal_obs_data),
 
-      // Optional CAAZ ports are explicit; the legacy profile stays disabled.
+      // 明确接出可选 CAAZ 端口；当前默认配置禁用该路径，常量捕获确认不证明模拟宏。
       .caaz_az_capture_ok(1'b1),
       .caaz_input_chop_neg(),
       .caaz_az_capture_en(),

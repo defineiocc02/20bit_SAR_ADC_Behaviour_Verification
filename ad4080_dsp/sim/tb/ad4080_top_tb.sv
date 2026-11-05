@@ -1,31 +1,24 @@
 //===========================================================================
-// ad4080_top_tb.sv -- AD4080 digital top self-checking testbench
-//===========================================================================
-// 端口基准：当前 ad4080_top 接口；校正级 clip 事件在本测试中留空。
+// ad4080_top_tb.sv: AD4080 风格数字顶层的功能自检。
 //
-// 覆盖（TC1..TC7）：
-//   TC1 SPI 复位值  GAIN=0x0200 / WATERMARK=0x4000 / DEVICE_STATUS=0x09
-//   TC2 校正通路    OFFSET=+100, GAIN=0x200, x=100000 -> dout=100100 +/-1
-//   TC3 增益        GAIN=0x3FF, x=524288 -> dout=532465 +/-40
-//   TC4 SINC1 抽取  FILTER_SEL=01, N=4, 4x1000 -> 1 个输出 1000
-//   TC5 FIFO mode01 WATERMARK=8, arm, 8 递增样本 -> 顺序读出 + READ_DONE
-//   TC6 事件检测    HI_THRESHOLD=+100, EVENT_EN/HI_ROUTE -> status[5] + GPIO0
-//   TC7 非法抽取率  SINC5 + N=512 -> 钳到最大抽取率，不死锁
+// TC1 核对 GAIN=0x0200、WATERMARK=0x4000、DEVICE_STATUS=0x09；TC2 检查
+// OFFSET=+100 的直通结果。TC3 将 20'd524288 按补码解释为 -FS，检查增益后
+// 的负饱和，并以正样本单独比较增益。TC4/TC7/TC8 检查 SINC1、非法 SINC5
+// 抽取码夹位，以及 SINC5+FIR 的数值输出。
 //
-// 约定：
-//   * clk = 100 MHz (10 ns)，SPI SCLK = 100 ns 周期，空闲高（Mode 3）。
-//   * SPI：CS 下降沿起始，16 bit 指令（bit15=1 读 / 0 写，[14:0] 地址，MSB first），
-//          8 bit 数据；数据在 SCLK 下降沿更新，上升沿被从机采样。
-//   * 所有等待都有循环上限；超时记 FAIL，不无限 wait。
-//   * 任一 check 失败 -> 末尾 $fatal(1)。
+// TC5/TC13/TC14 检查 FIFO 模式 01/10/11 的顺序、事件窗口和位置回写；
+// TC6/TC12 检查阈值、迟滞、粘滞状态与 ALERT。TC9 检查单/双 lane 位序和
+// 重复帧；TC10 检查 CNV 逻辑模式和忙时错误代理；TC11 扫描 GPIO 功能。
+//
+// clk 为 100 MHz（10 ns），SPI SCLK 周期为 100 ns，Mode 3 空闲高。
+// 长指令为 16 bit，bit15 表示读写，[14:0] 为地址，MSB 先行；随后为 8 bit
+// 数据，SCLK 下降沿更新、上升沿采样。等待受局部上限和全局看门狗约束，
+// 任一检查失败在末尾触发 $fatal(1)。校正级 clip 事件在本测试中留空。
 //===========================================================================
 `timescale 1ns/1ps
 
 module ad4080_top_tb;
 
-  //-------------------------------------------------------------------------
-  // 参数
-  //-------------------------------------------------------------------------
   localparam int IN_W       = 20;
   localparam int FIFO_DEPTH = 16384;
 
@@ -47,9 +40,6 @@ module ad4080_top_tb;
   localparam int ST_ROM_CRC    = 1;
   localparam int ST_POR        = 0;
 
-  //-------------------------------------------------------------------------
-  // DUT 信号
-  //-------------------------------------------------------------------------
   logic clk = 1'b0;
   logic rst_n = 1'b0;
 
@@ -83,15 +73,9 @@ module ad4080_top_tb;
   logic dout_valid;
   logic [7:0] status;
 
-  //-------------------------------------------------------------------------
-  // 统计
-  //-------------------------------------------------------------------------
   int pass_cnt = 0;
   int fail_cnt = 0;
 
-  //-------------------------------------------------------------------------
-  // DUT
-  //-------------------------------------------------------------------------
   ad4080_top #(
       .IN_W       (IN_W),
       .FIFO_DEPTH (FIFO_DEPTH)
@@ -132,14 +116,9 @@ module ad4080_top_tb;
       .status     (status)
   );
 
-  //-------------------------------------------------------------------------
-  // 时钟
-  //-------------------------------------------------------------------------
   always #(CLK_HALF) clk = ~clk;
 
-  //-------------------------------------------------------------------------
   // 全局看门狗：任何意外挂死都不允许无限运行
-  //-------------------------------------------------------------------------
   initial begin
     #(TMO_GLOBAL);
     $display("[FAIL] GLOBAL WATCHDOG TIMEOUT @ %0t", $time);
@@ -147,9 +126,6 @@ module ad4080_top_tb;
     $fatal(1, "global watchdog timeout");
   end
 
-  //-------------------------------------------------------------------------
-  // 检查原语
-  //-------------------------------------------------------------------------
   task automatic chk(input string name, input bit cond);
     if (cond) begin
       pass_cnt = pass_cnt + 1;
@@ -183,9 +159,6 @@ module ad4080_top_tb;
     end
   endtask
 
-  //-------------------------------------------------------------------------
-  // 复位
-  //-------------------------------------------------------------------------
   task automatic do_reset();
     rst_n      = 1'b0;
     cs_n       = 1'b1;
@@ -204,11 +177,9 @@ module ad4080_top_tb;
     repeat (10) @(negedge clk);
   endtask
 
-  //-------------------------------------------------------------------------
-  // SPI：一次完整事务（16 bit 指令 + 8 bit 数据）
-  //   rd=1 读，rdv 返回读到的字节；rd=0 写，wdata 为待写字节。
-  //   从机在 SCLK 上升沿采样，SDO 在下降沿更新，因此读数据在低电平中点采样。
-  //-------------------------------------------------------------------------
+  // SPI 事务包含 16 bit 指令与 8 bit 数据。rd=1 时将字节返回 rdv，
+  // rd=0 时发送 wdata。从机在 SCLK 上升沿采样、下降沿更新 SDO，
+  // 因此读字节在下降沿之后、下一上升沿之前采样。
   task automatic spi_xfer(input  bit         rd,
                           input  logic [14:0] a,
                           input  logic [7:0]  wdata,
@@ -227,7 +198,7 @@ module ad4080_top_tb;
     sdi  = 1'b0;
     repeat (3) @(negedge clk);          // 让 CS 下降沿被 clk 域看到
 
-    // ---- 16 bit 指令，MSB first ----
+    // 16 bit 指令，MSB first
     for (i = 15; i >= 0; i--) begin
       sclk = 1'b0;
       sdi  = instr[i];
@@ -242,7 +213,7 @@ module ad4080_top_tb;
       end
     end
 
-    // ---- 8 bit 数据 ----
+    // 8 bit 数据
     for (i = 7; i >= 0; i--) begin
       sclk = 1'b0;
       sdi  = rd ? 1'b0 : wdata[i];
@@ -273,10 +244,7 @@ module ad4080_top_tb;
     spi_xfer(1'b1, a, 8'h00, d);
   endtask
 
-  //-------------------------------------------------------------------------
-  // 采样辅助
-  //-------------------------------------------------------------------------
-  // 连续打一拍 valid_in，x = v
+  // 在下降沿驱动 x=v，并将 valid_in 保持一个完整时钟周期。
   task automatic feed(input logic [IN_W-1:0] v);
     @(negedge clk);
     valid_in = 1'b1;
@@ -305,9 +273,7 @@ module ad4080_top_tb;
     end
   endtask
 
-  //-------------------------------------------------------------------------
   // TC1：SPI 复位值
-  //-------------------------------------------------------------------------
   task automatic tc1_reset_values();
     logic [7:0] v;
     $display("\n---- TC1: SPI reset values ----");
@@ -328,9 +294,7 @@ module ad4080_top_tb;
     chk_eq8("TC1 DEVICE_STATUS @0x14 == 0x09", v, 8'h09);
   endtask
 
-  //-------------------------------------------------------------------------
   // TC2：校正通路 OFFSET=+100, GAIN=0x200（直通）
-  //-------------------------------------------------------------------------
   task automatic tc2_offset_path();
     logic [7:0] v;
     $display("\n---- TC2: offset correction, FIFO bypass ----");
@@ -351,9 +315,7 @@ module ad4080_top_tb;
     chk_eq("TC2 dout == 100000+100 (FIFO 直通)", longint'(dout), 100100, 1);
   endtask
 
-  //-------------------------------------------------------------------------
   // TC3：增益 GAIN=0x3FF
-  //-------------------------------------------------------------------------
   task automatic tc3_gain_path();
     $display("\n---- TC3: gain correction GAIN=0x3FF ----");
 
@@ -365,12 +327,12 @@ module ad4080_top_tb;
     feed(20'd524288);
     repeat (3) @(posedge clk);
     #1;
-    // x=524288 在 20-bit 补码里是 -524288（-FS）；GAIN=0x3FF>1 时
-    // 结果必然负饱和到 0x80000。这不是缺陷，是补码 + 饱和的正确行为。
+    // 20'd524288 按 20 bit 补码为 -524288（-FS）；GAIN=0x3FF 对应增益大于 1，
+    // 因此本测试应得到负饱和码 0x80000。
     chk_eq("TC3 x=-FS with gain>1 saturates to 0x80000",
            longint'(dout), longint'(20'h80000), 0);
 
-    // TC3b：同一增益路径，取补码可表示的正数，单独证明增益系数正确。
+    // TC3b: 另取补码可表示的正数，单独比较同一增益路径的数值。
     feed(20'd500000);
     repeat (3) @(posedge clk);
     #1;
@@ -382,9 +344,7 @@ module ad4080_top_tb;
   always_ff @(posedge clk) if (dout_valid === 1'b1) mon_valid_count <= mon_valid_count + 1;
   initial mon_valid_count = 0;
 
-  //-------------------------------------------------------------------------
   // TC4：SINC1 抽取 FILTER_SEL=01, N=4
-  //-------------------------------------------------------------------------
   task automatic tc4_sinc1();
     bit   seen;
     int   pulses;
@@ -415,9 +375,7 @@ module ad4080_top_tb;
     chk_eq("TC4 exactly one output for 4 inputs", longint'(pulses), 1, 0);
   endtask
 
-  //-------------------------------------------------------------------------
   // TC5：FIFO mode 01, WATERMARK=8, arm, 8 递增样本
-  //-------------------------------------------------------------------------
   task automatic tc5_fifo_mode01();
     bit   done_seen;
     logic [IN_W-1:0] got [0:7];
@@ -475,9 +433,7 @@ module ad4080_top_tb;
     chk("TC5 READ_DONE set after 8 reads", done_seen);
   endtask
 
-  //-------------------------------------------------------------------------
   // TC6：事件检测 HI_THRESHOLD=+100 -> status[5] + GPIO0
-  //-------------------------------------------------------------------------
   task automatic tc6_event();
     bit hi_seen;
     bit gpio_seen;
@@ -488,7 +444,7 @@ module ad4080_top_tb;
     spi_write(15'h0021, 8'h64);   // HI_THRESHOLD[7:0]  = 0x64 (+100)
     spi_write(15'h0022, 8'h00);   // HI_THRESHOLD[11:8] = 0
     spi_write(15'h0019, 8'h01);   // GPIO0 方向 = 输出
-    spi_write(15'h001A, 8'h04);   // SEL0 = 3'b100 -> 事件功能
+    spi_write(15'h001A, 8'h04);   // SEL0=4'b0100，选择高阈值检测电平。
     spi_write(15'h001C, 8'hC0);   // EVENT_EN=1 (b7), HI_ROUTE=1 (b6), FIFO_MODE=00
     spi_write(15'h0029, 8'h00);   // bypass
     spi_write(15'h0025, 8'h00);
@@ -496,9 +452,8 @@ module ad4080_top_tb;
     spi_write(15'h0027, 8'h00);
     spi_write(15'h0028, 8'h02);   // GAIN=0x200
 
-    // data[19:8] = 0x100 -> 补码值 +256 > +100
-    // （等价于用例写法 data[19:8]^0x800 = 0x900 = 2304 > 100：
-    //   RTL 已按手册用真补码，不再需要异或偏移）
+    // data[19:8]=0x100 按补码为 +256，大于阈值 +100；直接比较有符号码，
+    // 不采用偏移二进制码的异或转换。
     feed(20'h10000);
 
     hi_seen = 1'b0;
@@ -524,9 +479,7 @@ module ad4080_top_tb;
     chk("TC6 GPIO0 outputs HI event (oe=1, o=1)", gpio_seen);
   endtask
 
-  //-------------------------------------------------------------------------
   // TC7：非法抽取率 SINC5 + N=512 -> 钳到最大抽取率，不死锁
-  //-------------------------------------------------------------------------
   task automatic tc7_illegal_dec();
     bit seen;
     int pulses;
@@ -582,9 +535,7 @@ module ad4080_top_tb;
     if (seen) chk("TC7 dout has no X", ($isunknown(val) === 1'b0));
   endtask
 
-  //-------------------------------------------------------------------------
   // 主流程
-  //-------------------------------------------------------------------------
   initial begin
     $display("============================================================");
     $display(" AD4080 digital top -- self-checking testbench");
@@ -646,9 +597,7 @@ module ad4080_top_tb;
     end
   end
 
-  //-------------------------------------------------------------------------
   // TC8：SINC5 + 补偿（FILTER_SEL=11, N=4 -> 总抽取 8）
-  //-------------------------------------------------------------------------
   task automatic tc8_sinc5_comp();
     bit seen; int pulses; int i; logic [IN_W-1:0] val;
     $display("\n---- TC8: SINC5 + compensation (N=4, total 8) ----");
@@ -669,9 +618,7 @@ module ad4080_top_tb;
     if (seen) chk_eq("TC8 comp DC == 1000", longint'(val), 1000, 1);
   endtask
 
-  //-------------------------------------------------------------------------
   // TC9：LVDS 并串（1 lane 20 bit / 2 lane 10+10）
-  //-------------------------------------------------------------------------
   task automatic lvds_frame(input int nbits, output logic [19:0] lane0, output logic [19:0] lane1,
                             output bit frame_seen);
     int i;
@@ -704,7 +651,7 @@ module ad4080_top_tb;
     lvds_frame(20, a, b, fs);
     chk_eq("TC9 idle frame repeats", longint'(a), longint'(pat), 0);
 
-    // 2 lane：lane0 = [19:10], lane1 = [9:0]
+    // 双 lane 使用下方明确列出的奇偶位交织映射，分别每次输出一位。
     spi_write(15'h0015, 8'h44);   // lane_sel=1
     pat = 20'hB6DB6;
     feed(pat); repeat (4) @(posedge clk);
@@ -725,9 +672,7 @@ module ad4080_top_tb;
     end
   endtask
 
-  //-------------------------------------------------------------------------
-  // TC10：CNV CMOS/LVDS 与 tCONV 违反
-  //-------------------------------------------------------------------------
+  // TC10: 检查 CNV 两种数字模式与忙时错误代理，不测量模拟 tCONV。
   task automatic tc10_cnv();
     logic [7:0] v;
     $display("\n---- TC10: CNV CMOS/LVDS + tCONV error ----");
@@ -742,7 +687,7 @@ module ad4080_top_tb;
     spi_read(15'h0014, v);
     chk("TC10 ADC_CNV_ERR set (0x14[2])", v[2] === 1'b1);
 
-    // LVDS 差分 CNV
+    // LVDS 配置下驱动逻辑 CNV 引脚，不包含差分接收器电气验证。
     spi_write(15'h0014, 8'h04);
     spi_write(15'h0016, 8'h01);   // LVDS_CNV_EN=1
     @(negedge clk); cnv_p = 1'b1; cnv_n = 1'b0;
@@ -751,9 +696,7 @@ module ad4080_top_tb;
     chk("TC10 LVDS CNV path exercised", 1'b1);
   endtask
 
-  //-------------------------------------------------------------------------
   // TC11：GPIO 方向 / SEL 路由
-  //-------------------------------------------------------------------------
   task automatic tc11_gpio();
     $display("\n---- TC11: GPIO direction + SEL mux ----");
     spi_write(15'h0019, 8'hFF);   // 全输出，DATA=0xF
@@ -782,9 +725,7 @@ module ad4080_top_tb;
     end
   endtask
 
-  //-------------------------------------------------------------------------
   // TC12：HI/LO 阈值 + 迟滞 + ALERT 电平语义
-  //-------------------------------------------------------------------------
   task automatic tc12_event_low();
     logic [7:0] v;
     $display("\n---- TC12: HI/LO threshold + hysteresis + ALERT ----");
@@ -822,9 +763,7 @@ module ad4080_top_tb;
   endtask
 
 
-  //-------------------------------------------------------------------------
   // TC13：FIFO mode 10（事件后捕获 WATERMARK 个）
-  //-------------------------------------------------------------------------
   task automatic tc13_fifo_mode10();
     logic [7:0] v;
     int i;
@@ -855,9 +794,7 @@ module ad4080_top_tb;
     end
   endtask
 
-  //-------------------------------------------------------------------------
   // TC14：FIFO mode 11（环形覆盖 + 事件位置回写）
-  //-------------------------------------------------------------------------
   task automatic tc14_fifo_mode11();
     logic [7:0] v;
     int i;

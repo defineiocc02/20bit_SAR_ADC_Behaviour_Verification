@@ -1,4 +1,4 @@
-"""Bounded read-only query and conservative constant classification; Tcl mocks only."""
+"""以 Tcl 模拟对象检查有界只读查询和保守的常量分类。"""
 
 from __future__ import annotations
 

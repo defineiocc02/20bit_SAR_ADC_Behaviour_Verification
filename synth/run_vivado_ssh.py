@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Upload only the RTL snapshot and run the Vivado OOC screen on the EDA host.
+"""上传 RTL 快照，在 EDA 主机执行 Vivado OOC 初筛。
 
-Requires an explicit installed FPGA part. Outputs are isolated for every run.
-Exit 0: synthesis and setup screen pass; 3: synthesis completed, negative slack;
-other nonzero: flow failed. Neither status is ASIC PPA or implementation signoff.
+调用方须指定现有 FPGA part，每次运行隔离输出。退出 0 表示综合及所检建立
+时间通过，3 表示综合完成但裕量为负，其他非零表示流程失败。
+这些结果不等同 ASIC PPA 或实现签核。
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ $OutputEncoding = $utf8
 
 
 def powershell_command(script: str) -> str:
-    """Encode the entire script so the Windows SSH default shell cannot reparse it."""
+    """编码完整脚本，避免 Windows SSH 默认 shell 再次解析其内容。"""
     encoded = base64.b64encode((POWERSHELL_PREAMBLE + script).encode("utf-16le")).decode("ascii")
     return (
         "powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass "
@@ -39,12 +39,12 @@ def powershell_command(script: str) -> str:
 
 
 def ps_literal(value: str) -> str:
-    """Quote one literal value inside the encoded PowerShell script."""
+    """在已编码 PowerShell 脚本内引用一个字面值。"""
     return "'" + value.replace("'", "''") + "'"
 
 
 def windows_launch_script(remote: str, batch: str, timeout: int) -> str:
-    """Run one isolated cmd tree; timeout kills only that process and descendants."""
+    """启动隔离 cmd 进程树，超时只终止该进程及其后代。"""
     batch_b64 = base64.b64encode(batch.encode("utf-8")).decode("ascii")
     return f"""$ErrorActionPreference = 'Stop'
 $run = {ps_literal(remote)}
@@ -79,7 +79,7 @@ try {{
 
 
 def main() -> int:
-    """Prepare an isolated source snapshot, then run and collect one screen."""
+    """准备隔离源码快照，再执行并收集一次初筛结果。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", default="yian@192.168.38.129")
     parser.add_argument("--remote-os", choices=("linux", "windows"), default="linux")

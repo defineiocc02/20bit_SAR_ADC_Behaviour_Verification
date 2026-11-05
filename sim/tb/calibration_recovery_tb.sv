@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
-// End-to-end mismatch recovery: synthesize analog residue from the true cell
-// weights and a known input code, quantize it independently, and require the
-// corrected RTL output to stay within the backend quantization uncertainty.
+// End-to-end mismatch recovery: synthesize analog residue from the true cell weights and a known
+// input code, quantize it independently, and require the corrected RTL output to stay within the
+// backend quantization uncertainty.
 module calibration_recovery_tb;
   logic clk=0,rst_n=0,start=0;
   always #1 clk=~clk;
@@ -13,8 +13,8 @@ module calibration_recovery_tb;
   logic [19:0] out_cal,out_raw;
   wire valid_cal,valid_raw;
   wire [4:0] flags_cal,flags_raw;
-  // Eight equal cells per slice; nominal total = 32*2^30 (effective C/Cf, RA gain32). Main/sub here are
-  // physical coefficient test fixtures, not the paper's capacitor geometry.
+  // Eight equal cells per slice; nominal total = 32*2^30 (effective C/Cf, RA gain32). Main/sub here
+  // are physical coefficient test fixtures, not the paper's capacitor geometry.
   recon_core #(.P_N_ACTIVE(8),.P_N_MAIN(7),.P_N_SUB(1),.P_N_SLICES(18),.P_DIT_N(1),.P_DIT_END(8)) cal(
     .clk(clk),.rst_n(rst_n),.cfg_ready(1'b1),.start(start),.sample_id(32'd0),.clr_ovf(1'b0),
     .sampling_mask_en(1'b0),.slice_id(ids),.main_on(main_on),.sub_on(sub_on),.dither_rail(1'b0),
@@ -50,14 +50,14 @@ module calibration_recovery_tb;
           rail_sum+=(((a*8+u+n)%64)<coarse)?-w:w;
         end
       end
-      // Solve the analog transfer equation for the midpoint of target code.
-      // v is normalized input in Q32; fexact is the ADC2 voltage after RA gain32.
+      // Solve the analog transfer equation for the midpoint of target code. v is normalized input
+      // in Q32; fexact is the ADC2 voltage after RA gain32.
       v=(2*256'(target)+1)*256'sd4096-256'sd4294967296;
       fexact=(total*v+(rail_sum<<<32)) / 256'sd1073741824;
       c=(fexact+256'sd4294967296)/256'sd2097152;
       if(c<0 || c>4095) $fatal(1,"residue fixture exceeded ADC2 range");
-      // Publish packed transaction fields atomically. Older simulator versions
-      // can fail to propagate coroutine-local element writes across input ports.
+      // Publish packed transaction fields atomically. Older simulator versions can fail to
+      // propagate coroutine-local element writes across input ports.
       ids=next_ids;main_on=next_main;sub_on=next_sub;
       fine=c[11:0];start=1;@(negedge clk);start=0;ticks=0;
       while(!valid_cal) begin @(negedge clk);ticks++;if(ticks>12) $fatal(1,"calibration recovery timeout");end

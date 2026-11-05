@@ -1,4 +1,4 @@
-"""Build a current-schema, self-contained HTML report from actual result records."""
+"""从实际结果记录生成符合当前 schema 的自包含 HTML 报告。"""
 
 from __future__ import annotations
 

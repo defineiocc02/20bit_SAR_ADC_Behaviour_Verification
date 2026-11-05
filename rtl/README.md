@@ -1,13 +1,15 @@
 # 可综合 RTL 入口
 
-当前顶层是 `top/sar20_digital_core.sv`。`rtl_sources.f` 固定编译顺序，含 **22 个 core + 2 个 top 目录模块**；`params/` 的两个 include 头文件使生产源码总数为 26。`sadc_enc` 是编码器模块，完整 ADC 顶层只有 `sar20_digital_core`。
+当前顶层是 `top/sar20_digital_core.sv`。`rtl_sources.f` 固定编译顺序，含 **26 个 SystemVerilog 模块：22 个 core、2 个 top 目录模块及 2 个可选 CAAZ 模块**；另有 `params/` 的两个 include 头文件，共 28 个生产源码文件。`sadc_enc` 是编码器模块，完整 ADC 顶层只有 `sar20_digital_core`。可选 CAAZ 模块属于扩展，其数字控制／配对不等于模拟自归零宏已实现。
 
 详细职责、状态、相位、配置、观测点和调试顺序见 [RTL_ENGINEERING_GUIDE.md](../docs/rtl/RTL_ENGINEERING_GUIDE.md)；综合与布线时序流程见 [FPGA_SYNTHESIS_AND_STA.md](../synth/FPGA_SYNTHESIS_AND_STA.md)。本入口解释当前实现；仿真、综合和时序结论以对应源码绑定的原始报告为准。
+
+逐模块原文依据见 [当前数字原文对照表](../docs/current_digital_source_map.md)；交付归属、当前状态及证据范围见 [数字状态总表](../docs/digital_status_matrix.md)。
 
 ## 两种精化 profile
 
 | 参数 | 模式 | 主要输入 |
-|---|---|---|
+| :--- | :--- | :--- |
 | `P_STRUCTURAL=1`，默认 | 双 9-bit seeded SAR、共享 3-bit Flash、18-slice 池、前代 residue 的 12-bit fine SAR | Flash 温度计与 valid；coarse/fine 比较器 valid/data |
 | `P_STRUCTURAL=0` | 既有码域向量兼容模式，phase8/14 捕获 | 外部 `sadc_code/sadc_rdy`、`adc2_code/adc2_rdy` |
 
@@ -19,7 +21,7 @@
 
 ```text
 rtl/
-  rtl_sources.f                 24 个 SystemVerilog 模块的唯一编译清单
+  rtl_sources.f                 26 个 SystemVerilog 模块的唯一编译清单
   core/
     analog_phase_ctrl.sv         注册相位/模拟宏使能
     sar_trial_ctrl.sv            seeded SAR试探与已决码
@@ -45,6 +47,10 @@ rtl/
   top/
     sadc_enc.sv                 独立可测编码器；结构模式也使用它
     sar20_digital_core.sv        完整数字核
+  control/
+    caaz_cycle_ctrl.sv          可选斩波极性与AZ存储代控制
+  calibration/
+    caaz_pair_processor.sv      可选完整校准码配对与异常检查
   params/
     rtl_params.vh               参数导出器生成物，禁止手工编辑
     rtl_error_codes.vh          静态接口错误码
@@ -64,7 +70,7 @@ rtl/
 python tools/run_open_rtl.py
 ```
 
-入口执行23bench（原22项及新增FSM见证）与结构核、兼容核、独立编码器3种严格lint，需要Verilator 5.x timing和C++20。单项选择和原始日志路径见工程指南。位宽、参数导出及向量漂移按 [RTL_ARITHMETIC_CONTRACT.md](../docs/rtl/RTL_ARITHMETIC_CONTRACT.md) 验收。
+入口默认执行34个bench及8个严格lint配置，需要Verilator 5.x timing和C++20；按需诊断不计入这34项。单项选择和原始日志路径见工程指南。位宽、参数导出及向量漂移按 [RTL_ARITHMETIC_CONTRACT.md](../docs/rtl/RTL_ARITHMETIC_CONTRACT.md) 验收。
 
 已归档的最终共享读选实现为 `71e7d5a`（26文件内容摘要前缀 `89b9f8153fea`）：原22bench/3lint、完整P5 XSim及真实25ns BUFG OOC路由分别保存于 [20260930证据入口](../docs/evidence/20260930/README.md)。该实测支持40MHz FPGA核心与2.5MS/s节拍；外部OOC hold仍不满足，ASIC640MHz及模拟性能尚未验收。排版与注释的新字节身份由当前报告交付清单记录，不能冒用旧运行的原始SHA。
 

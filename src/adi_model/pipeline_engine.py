@@ -1,11 +1,11 @@
 """带显式电容与样本归属的split生产信号链。
 
-每笔先持有所选slice的采样电荷，再生成SADC粗码、RDAC实际开关及残差，
-经共享RA、ADC2后作数字重构。首笔显式priming；下笔转换组必须等于前笔采集组，
-同一tick的采集组与转换组不相交。generic和rtl16使用不同的调度合同。
+每笔先持有所选slice的采样电荷，再生成SADC粗码、RDAC实际开关及残差，经共享RA、ADC2后作数字重构。
+首笔显式priming；下笔转换组必须等于前笔采集组，同一tick的采集组与转换组不相交。
+generic和rtl16使用不同的调度合同。
 
-内部输入/残差为输入等效V，RA与ADC2节点为RA输出V。物理C/G/alpha仅用于
-plant和评分；冻结数字重构只读数字观测。动态网络/参考/RA由已启用的求解分支处理。
+内部输入/残差为输入等效V，RA与ADC2节点为RA输出V。物理C/G/alpha仅用于plant和评分；
+冻结数字重构只读数字观测。动态网络/参考/RA由已启用的求解分支处理。
 """
 
 from __future__ import annotations
@@ -62,8 +62,8 @@ def execute_split(
         pool: 固定物理芯片，电容不重抽；本次运行重置其电气历史。
         derivative_fn: 孔径斜率提供器，用于输入节点的一阶时偏误差。
         runner: 结果中的入口标签。
-        ra_output_error_v: 可选(N,)有限RA输出等效误差[V]；在已有噪声后、
-            原RA钳位和ADC2量化前加入；动态参考/转换求解下明确拒绝此样本域接口。
+        ra_output_error_v: 可选(N,)有限RA输出等效误差[V]；在已有噪声后、原RA钳位和ADC2量化前加入；
+            动态参考/转换求解下明确拒绝此样本域接口。
 
     Returns:
         SimResult，含(N,n_active)实际slice归属、raw码、节点电压、完整溢出标志。

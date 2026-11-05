@@ -19,8 +19,8 @@
 **哪个物理量改变了、哪条通路受到影响、哪个指标因此变化** —— 三者必须严格对应：
 同一组 C_active[n] 同时决定 (1) 采样噪声 kT/C (2) RA 增益 (3) KTC 的逐样本 beta。
 
-单位契约：全程 [V] / [F] / [s]；SimResult 字段单位见其 docstring。
-适用域：unary 等权阵列口径（ADI 拓扑用 sim_split / pipeline）；
+单位契约：全程 [V] / [F] / [s]；SimResult 字段单位见其 docstring。适用域：
+unary 等权阵列口径（ADI 拓扑用 sim_split / pipeline）；
 退化口径下（动态/噪声/dither/失配关）与 pipeline 逐位等价是 stage19 验收①。
 """
 
@@ -53,13 +53,13 @@ if TYPE_CHECKING:
 class SimResult:
     """一次仿真的全部输出，含三套误差口径与逐样本物理量记录。
 
-    字段单位契约：电压量全为 ``(N,)`` float64 [V]，电容为 [F]，码为 int64，
-    除非特别说明。三套误差口径定义不同，勿互相冒充（v3 审计修正）：
+    字段单位契约：电压量全为 ``(N,)`` float64 [V]，电容为 [F]，码为 int64，除非特别说明。
+    三套误差口径定义不同，勿互相冒充（v3 审计修正）：
 
     Attributes:
         out: ``(N,)`` [V] 重构输出 x_hat。
-        err: ``(N,)`` [V] = out − 设计目标 x_ref（KTC 关→对齐 x1，
-            KTC 开→对齐 x1+dx，即 beta=1 的设计目标）。
+        err: ``(N,)`` [V] = out − 设计目标 x_ref（KTC 关→对齐 x1，KTC 开→对齐 x1+dx，
+            即 beta=1 的设计目标）。
         x_ref: ``(N,)`` [V] 仿真评分目标；不是普通硬件运行中可直接获得的输入。
         sample: SampleBatch（采样事件级实现；字段单位见其 docstring）。
         coarse: ``(N,)`` int64 粗码 c[n]。
@@ -79,15 +79,16 @@ class SimResult:
         cfg: Config（仿真所用配置，来源分级见 config.PARAM_GRADES）。
         chip: Chip（每颗芯片只生成一次的物理实现）。
         state: DigitalState（数字域状态，含 kappa/estimated_gain 等）。
-        err_to_x1: ``(N,)`` [V] = out − x(t1)，对齐**第一级输入**的固定参考
-            （校准/评价常用）；未计算时为 None。
-        err_to_x2: ``(N,)`` [V] = out − x(t2)，对齐**第二级输入**的固定参考
-            （输入信号较晚时刻、beta=1的设计目标，并非ADC2残差输入）；未计算时为None。
-        err_vs_clean: ``(N,)`` [V] = out − x1_clean，对齐**驱动器噪声加入之前**
-            的干净输入的整链误差（A07.6）；driver_noise_rms=0 时与 err_to_x1
-            逐位相同，否则才暴露驱动器噪声伪影；未计算时为 None。
+        err_to_x1: ``(N,)`` [V] = out − x(t1)，对齐**第一级输入**的固定参考（校准/评价常用）；
+            未计算时为 None。
+        err_to_x2: ``(N,)`` [V] = out − x(t2)，对齐**第二级输入**的固定参考（输入信号较晚时刻、
+            beta=1的设计目标，并非ADC2残差输入）；未计算时为None。
+        err_vs_clean: ``(N,)`` [V] = out − x1_clean，
+            对齐**驱动器噪声加入之前**的干净输入的整链误差（A07.6）；
+            driver_noise_rms=0 时与 err_to_x1逐位相同，否则才暴露驱动器噪声伪影；未计算时为 None。
         g_vec: ``(N,)`` 逐样本 RA 增益（charge 模式 = C_active/C_F）。
-        c_active: ``(N,)`` [F] 噪声计算用电容；unary为活跃总电容，split为噪声等效电容，不能代替信号电容。
+        c_active: ``(N,)`` [F] 噪声计算用电容；unary为活跃总电容，split为噪声等效电容，
+            不能代替信号电容。
         calibration_applied: tuple 实际执行过的校准步骤（run_with_calibration 填充）。
     """
 
@@ -146,9 +147,9 @@ class SimResult:
     def to_codes(self, *, format=None):
         """Reconstruct final integer split-ADC words from digital observations.
 
-        The returned stream includes separate input-range and analog clipping
-        flags. ``out`` remains the floating diagnostic for compatibility. This
-        explicit path rejects fractional masks and the unquantized KTC observer.
+        The returned stream includes separate input-range and analog clipping flags. ``out`` remains
+        the floating diagnostic for compatibility. This explicit path rejects fractional masks and
+        the unquantized KTC observer.
         """
         from .fixed_point import FixedPointReconstructor
         from .weight_calibration import DigitalObservation
@@ -174,8 +175,8 @@ class SimResult:
     def effective_config(self) -> dict:
         """Return serializable requested settings and the actual run contract.
 
-        Physical diagnostics are for inspection only; no digital algorithm may
-        consume this property. Calibration requested and applied are separate.
+        Physical diagnostics are for inspection only; no digital algorithm may consume this
+        property. Calibration requested and applied are separate.
 
         Returns:
             Configuration snapshot, topology-specific capacitance, gain range,
@@ -265,8 +266,8 @@ def run_sim(
 ) -> SimResult:
     """主信号链仿真（unary DAC 口径），返回 SimResult。
 
-    与 sim_split.run_sim_split 的对偶关系：两者共享 RA/KTC/ADC2/重构/校准
-    状态机，仅前端 DAC 求值不同（unary 等权 vs split 分段）；结果应互校，
+    与 sim_split.run_sim_split 的对偶关系：两者共享 RA/KTC/ADC2/重构/校准状态机，
+    仅前端 DAC 求值不同（unary 等权 vs split 分段）；结果应互校，
     退化等价下逐位一致（stage19 验收①）。
 
     Args:
@@ -283,8 +284,8 @@ def run_sim(
         SimResult（字段单位与三套误差口径见 SimResult 的 docstring）。
 
     Raises:
-        ConfigError: 配置不是可仿真的（枚举取值拼错、尺寸无意义等），入口直接
-            拒绝（外部复核 2026-09-11）。
+        ConfigError: 配置不是可仿真的（枚举取值拼错、尺寸无意义等），
+            入口直接拒绝（外部复核 2026-09-11）。
     """
     cfg.check_legal()
     if cfg.calibration == "weights" or (state is not None and state.weight_calibration is not None):
@@ -475,14 +476,12 @@ def run_with_calibration(
 ) -> SimResult:
     """两遍式前台校准：先估增益（+beta），再用估计值跑正式仿真。
 
-    **校准模式约定（v3 审计修正）**：增益校准使用已知直流输入 + 关闭 dither
-    是最稳的第一步。若保留 dither，回归自变量必须包含数字端已知的
-    d_nom = d_corr（update_gain 的 d_known 参数），否则估计器会被
-    dither 方差淹没（实测 G_hat 33.6 -> 6.68）。
+    **校准模式约定（v3 审计修正）**：增益校准使用已知直流输入 + 关闭 dither是最稳的第一步。
+    若保留 dither，回归自变量必须包含数字端已知的d_nom = d_corr（update_gain 的 d_known 参数），
+    否则估计器会被dither 方差淹没（实测 G_hat 33.6 -> 6.68）。
 
     Args:
-        cfg: 仿真配置（Config）；校准模式由 cfg.calibration 决定
-            （"none"/"gain"/"gain_beta"）。
+        cfg: 仿真配置（Config）；校准模式由 cfg.calibration 决定（"none"/"gain"/"gain_beta"）。
         input_fn: 正式仿真的输入波形 ``t -> x``（t [s]，返回 [V]）。
         n_samples: 正式仿真样本数 [无量纲]。
         chip: 虚拟芯片（默认 build_chip(cfg)，与校准共用同一颗）。

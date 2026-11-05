@@ -1,38 +1,18 @@
 #!/usr/bin/env python3
-"""synth/run_synth.py -- 本机侧综合驱动（Windows Git Bash / Linux 通用）
+"""同步指定 SystemVerilog 源到 EDA 虚拟机，远程执行 Design Compiler 并取回报告。
 
-把仓库里指定的 SystemVerilog 源同步到 EDA 虚拟机，远程跑 Design Compiler，
-再把报告与日志取回本地 ``synth/artifacts/<name>/``。
+本机入口适用于 Windows Git Bash 或 Linux，封装 ssh／scp、仓库相对路径及
+--files 通配符处理。目录递归展开 .sv/.v；.vh/.svh 由 --incdirs 提供。
+默认 smoke 连接五个子模块与 top_smoke；--params 通过 elaborate -parameters
+传递 HDL 参数；--dry-run 仅同步，不执行综合。结果保存到 synth/artifacts/<name>/。
 
-为什么要有这个驱动
-    ``scp`` + ``ssh`` 的参数拼装（相对路径 -> 远端 POSIX 路径、Windows 反斜杠、
-    ``--files`` 通配符展开）每次手敲都容易错，而且错了之后「综合跑的是旧文件」
-   这种事故没有报错、只有错的数字。这里把整条链路固定下来，并把远端退出码
-   原样传回本地。
+远端退出状态原样传回：0 为其成功及所检时序通过，1 流程失败，2 参数错误，
+3 时序未收敛，4 状态不可解析；本机路径、传输或目录错误返回 90。
+该状态只覆盖所选工具、库及约束，不是 ASIC 或物理签核结论。
 
-用法
-   # 默认 smoke：rtl/core 的 5 个子模块 + synth/smoke/top_smoke.sv
-   python synth/run_synth.py --name smoke_10ns --top top_smoke --clk-period 10
-
-   # 显式给文件列表（相对仓库根，支持 glob；**目录会递归展开 .sv/.v**）
-   python synth/run_synth.py --name myblk --top my_top --clk-period 4 \
-       --files rtl/core rtl/params --incdirs rtl/params
-
-   # 扫顶层 HDL 参数（走 elaborate -parameters），不必改源文件
-   python synth/run_synth.py --name recon_p4 --top recon_core --clk-period 10 \
-       --files rtl/core --incdirs rtl/params --params "P_STAGES=4"
-
-   # 只同步不跑
-   python synth/run_synth.py --name smoke --top top_smoke --clk-period 10 --dry-run
-
-退出码（与远端 run_synth.sh 一致，原样透传）
-   0 成功且时序收敛 / 1 流程失败 / 2 参数错 / 3 时序未收敛 / 4 状态不可解析
-   90 本地侧错误（找不到文件、ssh/scp 失败、远端目录不可用等）
-
-环境
-   本机需要 ssh / scp 在 PATH 中。本仓库开发机上 Bash 工具需先
-       export PATH="/usr/bin:/bin:/mingw64/bin:/c/Windows/System32"
-   python 走绝对路径 C:/Users/Administrator/miniconda3/python.exe。
+调用环境须已有 ssh／scp。原 Windows 开发环境使用 Git Bash 工具路径及
+C:/Users/Administrator/miniconda3/python.exe；这些是运行环境记录，不是此脚本
+安装或配置工具的承诺。
 """
 
 from __future__ import annotations
@@ -85,15 +65,15 @@ LOCAL_ERR = 90
 
 
 def log(msg: str) -> None:
-    """打印一行带 ``[run_synth]`` 前缀的进度/错误信息（立即 flush）。"""
+    """打印带 [run_synth] 前缀的进度或错误，立即刷新输出。"""
     print(f"[run_synth] {msg}", flush=True)
 
 
 def run(cmd: list[str], check: bool = True, capture: bool = True) -> subprocess.CompletedProcess:
-    """执行一条本地命令并回显 stdout/stderr。
+    """执行本地命令并按 capture 选择捕获或继承终端输出。
 
-    ``check=True`` 时命令失败即 ``sys.exit(LOCAL_ERR)``；``capture=False``
-    让子进程直接继承终端（用于 ssh 远端长任务，避免输出被缓冲住看不到）。
+    check=True 且返回码非零时，以 LOCAL_ERR 退出；capture=False 用于远端长任务，
+    使输出直接显示而不等待捕获完成。
     """
     log("$ " + " ".join(shlex.quote(c) for c in cmd))
     try:
@@ -112,16 +92,10 @@ def run(cmd: list[str], check: bool = True, capture: bool = True) -> subprocess.
 
 
 def expand_files(patterns: list[str]) -> list[Path]:
-    """把 glob 展开成仓库内的真实文件，保持去重后的稳定顺序。
+    """将 glob 或目录展开为去重后的稳定文件序列。
 
-    支持**目录模式**（如 ``--files rtl/core rtl/top``）：目录会递归展开成其中的
-    ``.sv`` / ``.v`` 源文件。为什么必须支持 —— 早先的写法对目录是 ``continue``
-    （静默跳过），于是 ``--files rtl/core rtl/top rtl/params`` 里三个目录全被丢掉，
-    直接以"no source files"退出；即便侥幸还有别的文件，也会在**少文件**的状态下
-    综合出一份看起来正常的报告。
-
-    目录展开**只收 .sv/.v**，不收 ``.vh``/``.svh``：那些是 ``include 目标，
-    应该走 ``--incdirs``（+incdir+），混进 analyze 的文件列表会报错。
+    目录递归只收 .sv/.v；.vh/.svh 是包含目标，经 --incdirs 提供，不交给 analyze。
+    没有匹配或最终无源文件时以 LOCAL_ERR 退出，不静默用不完整文件集继续。
     """
     out: list[Path] = []
     seen: set[Path] = set()
@@ -158,7 +132,7 @@ def expand_files(patterns: list[str]) -> list[Path]:
 
 
 def remote_rel(path: Path) -> str:
-    """本地绝对路径 -> 仓库内相对 POSIX 路径（远端用它复刻目录结构）。"""
+    """将本机绝对路径转换为仓库相对 POSIX 路径，供远端复刻结构。"""
     try:
         rel = path.resolve().relative_to(REPO_ROOT)
     except ValueError:
@@ -168,7 +142,7 @@ def remote_rel(path: Path) -> str:
 
 
 def main() -> int:
-    """解析命令行、同步源到远端、跑 dc_shell、取回报告，返回远端退出码。"""
+    """解析参数、同步源文件、执行远端 dc_shell 并取回报告，返回远端状态。"""
     ap = argparse.ArgumentParser(description="Sync RTL to the EDA VM and run Design Compiler.")
     ap.add_argument(
         "--name", required=True, help="本次运行的短名，远端目录名 + 本地 artifacts 子目录名"
@@ -273,7 +247,7 @@ def main() -> int:
     ssh = ["ssh", *SSH_OPTS, remote_ssh]
 
     def ssh_sh(body: str) -> list[str]:
-        """在远端 $HOME 下执行 body；remote_base 是相对 $HOME 的路径。"""
+        """在远端 HOME 下执行 body；remote_base 相对于该 HOME。"""
         return [*ssh, "bash", "-c", f'set -euo pipefail; cd "$HOME"; {body}']
 
     # 0) 远端准备目录

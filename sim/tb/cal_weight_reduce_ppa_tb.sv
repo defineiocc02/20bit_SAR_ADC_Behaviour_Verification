@@ -1,11 +1,11 @@
-// PPA refactoring equivalence test. The reference below preserves the previous
-// cal_weight_reduce implementation from commit 2de928066508e2cfd009df3e7c6b2936bec6837c.
-// Production all 43,758 unordered 8-of-18 allocations are crossed with every
-// 4-bit rail pattern and both sampling modes. This is a finite simulation miter,
-// not a formal all-state proof. Algebraic justification is in ADR 0020.
+// PPA refactoring equivalence test. The reference below preserves the previous cal_weight_reduce
+// implementation from commit 2de928066508e2cfd009df3e7c6b2936bec6837c. Production all 43,758
+// unordered 8-of-18 allocations are crossed with every 4-bit rail pattern and both sampling modes.
+// This is a finite simulation miter, not a formal all-state proof. Algebraic justification is in
+// ADR 0020.
 // A clocked input snapshot avoids Verilator 5.020 initial-task scheduling
-// optimization hazards. The raw-input scalar oracle also detects common-mode
-// errors that a new-versus-old miter alone cannot detect.
+// optimization hazards. The raw-input scalar oracle also detects common-mode errors that a
+// new-versus-old miter alone cannot detect.
 `timescale 1ns/1ps
 module cal_weight_reduce_ppa_case #(
  parameter int NS=18, NA=8, NM=63, NB=8, ND=4, DE=71, SEED=1,
@@ -145,8 +145,8 @@ module cal_weight_reduce_ppa_case #(
   // Start after all edge-sensitive testbench processes have subscribed.
   #0.5;
   base_ids();main_on='0;sub_on='0;dr='0;
-  // Legal extremes and illegal signed-looking bit patterns are compared bit-exactly.
-  // Weight ports are unsigned; negative encodings are deliberately outside loader validity.
+  // Legal extremes and illegal signed-looking bit patterns are compared bit-exactly. Weight ports
+  // are unsigned; negative encodings are deliberately outside loader validity.
   for(int pattern=0;pattern<6;pattern++)begin
    for(int s=0;s<NS;s++)for(int u=0;u<NM+NB;u++)begin
     case(pattern)
@@ -162,8 +162,8 @@ module cal_weight_reduce_ppa_case #(
    main_on='1;sub_on='1;all_rails();
   end
   random_weights();
-  // Every address value in every logical slot, every rail pattern, both modes.
-  // This exercises physical endpoints, duplicate IDs, and out-of-range IDs.
+  // Every address value in every logical slot, every rail pattern, both modes. This exercises
+  // physical endpoints, duplicate IDs, and out-of-range IDs.
   for(int a=0;a<NA;a++)for(int s=0;s<32;s++)begin
    base_ids();ids[a]=5'(s);all_rails();
   end
@@ -224,11 +224,11 @@ module cal_weight_reduce_ppa_tb;
  initial begin #3000000;$fatal(1,"reducer miter watchdog");end
 endmodule
 
-// Physical-cell weighted correction terms. No quantizer truth, floating point,
-// or fitted analog state is accessible here. Coefficients are supplied by the
-// committed physical slice/unit store; caller snapshots these sums with a sample.
-// Paper [00] specifies externally derived weights corrected on chip; this exact
-// Q30/Q32 arithmetic realization is an engineering implementation (ADR 0014).
+// Physical-cell weighted correction terms. No quantizer truth, floating point, or fitted analog
+// state is accessible here. Coefficients are supplied by the committed physical slice/unit store;
+// caller snapshots these sums with a sample. Paper [00] specifies externally derived weights
+// corrected on chip; this exact Q30/Q32 arithmetic realization is an engineering implementation
+// (ADR 0014).
 `include "rtl_params.vh"
 module cal_weight_reduce_reference #(
     parameter int P_N_ACTIVE = int'(N_ACTIVE),
@@ -275,10 +275,10 @@ module cal_weight_reduce_reference #(
         invalid_slice |= (slice_id[a] == slice_id[b]);
   end
 
-  // Move the narrow switch mask to its physical row, rather than selecting
-  // 48-bit coefficient buses through eight independent 18:1 crossbars.
-  // Every coefficient is statically wired to its own physical unit. This trades
-  // more zero-gated adder leaves for substantially narrower selection wiring;
+  // Move the narrow switch mask to its physical row, rather than selecting 48-bit coefficient buses
+  // through eight independent 18:1 crossbars. Every coefficient is statically wired to its own
+  // physical unit. This trades more zero-gated adder leaves for substantially narrower selection
+  // wiring;
   // mapped area/timing still require a target-library synthesis comparison.
   logic [P_N_SLICES-1:0] active;
   logic [P_N_SLICES-1:0][N_U-1:0] physical_on;
@@ -294,9 +294,9 @@ module cal_weight_reduce_reference #(
     end
   end
 
-  // Each generated node owns distinct nets: dependencies always point from
-  // t to 2*t/2*t+1. Do not coalesce them into one unpacked array: older tools
-  // conservatively report a loop on that aggregate despite this acyclic graph.
+  // Each generated node owns distinct nets: dependencies always point from t to 2*t/2*t+1. Do not
+  // coalesce them into one unpacked array: older tools conservatively report a loop on that
+  // aggregate despite this acyclic graph.
   for (genvar t = 1; t < 2*TREE_LEAVES; t++) begin : g_node
     wire [SUM_BITS-1:0] total, gain, on_sum;
     wire signed [W_RAIL-1:0] dither_sum;

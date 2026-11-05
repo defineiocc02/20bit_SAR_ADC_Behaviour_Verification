@@ -1,4 +1,4 @@
-"""Independent perturbations from the September 2026 physical-model review."""
+"""保留 2026 年 9 月物理模型审查中的独立参数扰动回归。"""
 
 from dataclasses import replace
 
@@ -47,7 +47,7 @@ def test_sadc_changes_decisions_consistently(runner, change):
 def test_dither_bank_units_cancel_in_ideal_chain(bank, runner, discrete):
     cfg = replace(BASE, dither_mode="sampling", dither_split_bank=bank, dither_discrete=discrete)
     result = runner(cfg, INPUT, N)
-    # Independent bank weight from the declared 64+8 topology, beta=1/8.
+    # 从此处显式 64+8 拓扑独立计算电容组权重，beta=1/8。
     step = 6.0 / 65.0 * (1.0 if bank == "main" else 1 / 8)
     np.testing.assert_allclose(
         result.sample.dither, result.sample.dither_bank_code * step, atol=1e-15
@@ -63,8 +63,8 @@ def test_mask_removes_real_input_charge(bank):
     caps = chip.C_main if bank == "main" else chip.C_sub
     caps[-1] *= 1.01
     result = run_sim_split(cfg, INPUT, N, chip=chip)
-    # Eliminate the floating subnode from its charge equation, then form the
-    # signal charge directly from connected caps (not the injection helper).
+    # 从电荷方程消去浮置子节点，再按实际连接电容
+    # 直接计算信号电荷，不调用被测扰动辅助函数。
     beta = chip.C_bridge / (chip.C_bridge + chip.C_sub.sum() + chip.c_p_sub)
     c_signal = chip.C_main.sum() + beta * chip.C_sub.sum()
     q_signal = (c_signal - caps[-4:].sum() * (beta if bank == "sub" else 1)) * result.sample.x1

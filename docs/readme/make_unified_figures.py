@@ -34,7 +34,7 @@ PURPLE = "#8e66a4"
 
 
 def setup():
-    """Select a Chinese font and prepare the output directory."""
+    """选择中文字体并准备输出目录。"""
     for font in ("PingFang SC", "Hiragino Sans GB", "STHeiti", "Arial Unicode MS"):
         try:
             font_manager.findfont(font, fallback_to_default=False)
@@ -50,7 +50,7 @@ def setup():
 
 
 def canvas(title, subtitle, height=5.4):
-    """Create a consistent illustration canvas."""
+    """创建统一样式的示意图画布。"""
     fig, ax = plt.subplots(figsize=(14, height))
     fig.patch.set_facecolor("white")
     ax.set(xlim=(0, 14), ylim=(0, 8))
@@ -61,7 +61,7 @@ def canvas(title, subtitle, height=5.4):
 
 
 def box(ax, x, y, w, h, title, detail, color=BLUE):
-    """Draw a labeled engineering block."""
+    """绘制带标签的工程框。"""
     ax.add_patch(
         FancyBboxPatch(
             (x, y),
@@ -88,21 +88,21 @@ def box(ax, x, y, w, h, title, detail, color=BLUE):
 
 
 def arrow(ax, x1, x2, y, color=BLUE):
-    """Connect two blocks with a directional arrow."""
+    """用有向箭头连接两个框。"""
     ax.add_patch(
         FancyArrowPatch((x1, y), (x2, y), arrowstyle="-|>", mutation_scale=13, color=color, lw=1.5)
     )
 
 
 def finish(fig, name):
-    """Write a figure and release its resources."""
+    """保存图片并释放画布资源。"""
     fig.savefig(OUT / name, dpi=180, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(OUT / name)
 
 
 def architecture():
-    """Compare the implemented signal chain and configuration profiles."""
+    """对照已实现信号链与配置模式。"""
     cfg, literal = Config(), Config.paper_literal()
     fig, ax = canvas(
         "两级 SAR：论文线索与工程信号链",
@@ -148,7 +148,7 @@ def architecture():
 
 
 def matrix():
-    """Draw source membership directly from the mechanism inventory."""
+    """直接按机制清单绘制来源对应关系。"""
     inventory = json.loads((ROOT / "mechanism_inventory.json").read_text())
     mechanisms = {item["id"]: item for item in inventory["mechanisms"]}
     rows = json.loads((ROOT / "docs/readme/unified_figure_rows.json").read_text())["rows"]
@@ -201,7 +201,7 @@ def matrix():
 
 
 def calibration():
-    """Illustrate the structural RTL fit and independent holdout evidence."""
+    """显示结构 RTL 拟合与单独留出证据。"""
     report = json.loads((ROOT / "docs/readme/data/structural_calibration_summary.json").read_text())
     cases = {row["chip_seed"]: row for row in report["results"]}
     first, second = cases[42], cases[91]
@@ -254,7 +254,7 @@ def calibration():
 
 
 def dsp_bridge():
-    """Illustrate the SAR-to-DSP data and fault interface."""
+    """显示 SAR 到 DSP 的数据和故障接口。"""
     fig, ax = canvas(
         "SAR 输出接入 DSP：码制与异常",
         "同一时钟域；输入事件 ID 在接口侧可观察，滤波/FIFO 输出尚不携带该 ID",
@@ -294,7 +294,7 @@ def dsp_bridge():
 
 
 def provenance():
-    """Summarize runtime parameter source grades."""
+    """汇总运行时参数来源分级。"""
     counts = Counter(value[0].value for value in PARAM_GRADES.values())
     grades = [
         ("disclosed", "披露", TEAL),
@@ -334,7 +334,7 @@ def provenance():
 
 
 def error_spectrum(error, vfs=3.0):
-    """One-sided rectangular-bin error spectrum in dBFS/bin."""
+    """计算矩形窗单边误差功率谱，单位 dBFS/bin。"""
     n = len(error)
     power = np.abs(np.fft.rfft(error - np.mean(error)) / n) ** 2
     power[1:-1] *= 2
@@ -342,7 +342,7 @@ def error_spectrum(error, vfs=3.0):
 
 
 def calibration_effect():
-    """Plot frozen 40 MS/s calibration before and after measurements."""
+    """绘制冻结的 40 MS/s 校准前后测量记录。"""
     data = np.load(ROOT / "docs/readme/data/calibration_40m.npz")
     meta = json.loads((ROOT / "docs/readme/data/calibration_40m.json").read_text())
     fig, axes = plt.subplots(2, 2, figsize=(13.5, 7.2), layout="constrained")
@@ -416,7 +416,7 @@ def calibration_effect():
 
 
 def interleave_effect():
-    """Plot 40 MS/s interleaving spurs and aggregate error."""
+    """绘制 40 MS/s 交织杂散及总体误差。"""
     data = np.load(ROOT / "docs/readme/data/interleave_40m.npz")
     meta = json.loads((ROOT / "docs/readme/data/interleave_40m.json").read_text())
     rows = {row["condition"]: row for row in meta["rows"]}

@@ -56,10 +56,9 @@ module structural_protocol_tb;
       .context_chop_neg(),
       .context_az_pair_id(),
       .context_az_valid());
-  // A zero-delay RTL simulation cannot establish physical glitch freedom.
-  // Deliberately perturb only the phase bus between clocks to test isolation
-  // of analog-facing enables from transient decoder values. This is a
-  // structural fault injection, not a gate-delay or silicon timing model.
+  // A zero-delay RTL simulation cannot establish physical glitch freedom. Deliberately perturb only
+  // the phase bus between clocks to test isolation of analog-facing enables from transient decoder
+  // values. This is a structural fault injection, not a gate-delay or silicon timing model.
   always @(posedge clk) begin
     last_clk_edge=$realtime;
     monitor_outputs=rst_n && enable;
@@ -77,8 +76,8 @@ module structural_protocol_tb;
         target=192+(frame*17)%64;
         fine_target=(frame*173)%4096;
         injection=frame*9173;
-        // Every isolated dropped decision is followed by a healthy frame.
-        // Also lose a Flash seed, then exercise late comparator activity.
+        // Every isolated dropped decision is followed by a healthy frame. Also lose a Flash seed,
+        // then exercise late comparator activity.
         drop_c=(frame%4==0)?2+((frame/4)%6):-1;
         drop_f=(frame%4==2)?2+((frame/4)%12):-1;
         flash_valid=frame%29!=5;
@@ -97,9 +96,9 @@ module structural_protocol_tb;
           launches++;
         end else drops++;
       end
-      // These values can occur transiently during a multi-bit counter carry.
-      // Restore the phase before any active clock edge, so the functional
-      // transaction oracle remains independent of this isolated perturbation.
+      // These values can occur transiently during a multi-bit counter carry. Restore the phase
+      // before any active clock edge, so the functional transaction oracle remains independent of
+      // this isolated perturbation.
       if(frame==7 && phase==3) begin
         force d.u_phase.phase=4'd1; #0.1;
         force d.u_phase.phase=4'd3; #0.1;

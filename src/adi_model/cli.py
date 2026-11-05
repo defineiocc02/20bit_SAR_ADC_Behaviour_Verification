@@ -58,7 +58,7 @@ _ENV_OUT = "ADI_MODEL_RESULTS_DIR"
 
 
 def find_tools_dir(start: Path | None = None) -> Path | None:
-    """Locate the directory holding ``run_all.py`` / ``make_report.py``.
+    """Locate the directory holding ``run_all.py`` / ``make_report.py`` .
 
     Args:
         start: Directory to search from. Defaults to this module's directory.
@@ -94,8 +94,8 @@ def _run_script(script_name: str, results_dir: str | None) -> int:
 
     Args:
         script_name: File name inside the tools directory.
-        results_dir: Output directory. ``None`` keeps the script's own default
-            (``<tools>/results``).
+        results_dir: Output directory. ``None`` keeps the script's own default (``<tools>/results``)
+            .
 
     Returns:
         Process exit code.
@@ -168,10 +168,10 @@ def _parser(prog: str, description: str) -> argparse.ArgumentParser:
 
 
 def main_run_all(argv: Sequence[str] | None = None) -> int:
-    """Run the full acceptance sweep (all experiment stages + figures + JSON).
+    """Run the full acceptance sweep (all experiment stages + figures + JSON) .
 
     Args:
-        argv: Argument list; defaults to ``sys.argv[1:]``.
+        argv: Argument list; defaults to ``sys.argv[1:]`` .
 
     Returns:
         Process exit code: 0 on success, 2 if the scripts cannot be located.
@@ -187,7 +187,7 @@ def main_make_report(argv: Sequence[str] | None = None) -> int:
     """Render the self-contained HTML report from an existing results.json.
 
     Args:
-        argv: Argument list; defaults to ``sys.argv[1:]``.
+        argv: Argument list; defaults to ``sys.argv[1:]`` .
 
     Returns:
         Process exit code: 0 on success, 2 if the scripts or results.json are

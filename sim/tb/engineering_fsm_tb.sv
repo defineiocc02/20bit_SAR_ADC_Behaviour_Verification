@@ -1,8 +1,8 @@
 `timescale 1ns/1ps
-// Small-geometry functional FSM witness. This is zero-delay RTL simulation,
-// not a timing/analog/PPA measurement. Inputs change only on falling edges;
-// every assertion/CSV post-state observes 1 ps after the rising edge (NBA done).
-// Optional +trace_dir=<existing fresh directory> writes three real edge traces.
+// Small-geometry functional FSM witness. This is zero-delay RTL simulation, not a timing/analog/PPA
+// measurement. Inputs change only on falling edges; every assertion/CSV post-state observes 1 ps
+// after the rising edge (NBA done). Optional +trace_dir=<existing fresh directory> writes three
+// real edge traces.
 module engineering_fsm_tb;
   logic clk = 0;
   always #5 clk = ~clk;
@@ -83,9 +83,9 @@ module engineering_fsm_tb;
     end
   end
 
-  // This observer captures all pre-edge inputs/state before any NBA update,
-  // then uses actual post-edge DUT state. The recon scoreboard checks external
-  // latency directly; it does not use div_done to decide when a result is due.
+  // This observer captures all pre-edge inputs/state before any NBA update, then uses actual
+  // post-edge DUT state. The recon scoreboard checks external latency directly; it does not use
+  // div_done to decide when a result is due.
   initial forever begin : observe_edge
     bit pre_rst, pre_pe, pre_se, pre_ss, pre_sc, pre_cv, pre_ge;
     bit pre_ready, pre_rs, pre_clr, pre_rb, pre_sb, pre_db, pre_dd;
@@ -226,9 +226,9 @@ module engineering_fsm_tb;
           due_edge = edge_count + 11;
           pending_id = pre_id;
           pending_error = pre_sid != 0;
-          // For these exact positive weights and ADC2 limits the independent
-          // integer equation reduces to dout=adc2_code. Invalid slice holds
-          // the previous legal word and reports gain_err for this sample.
+          // For these exact positive weights and ADC2 limits the independent integer equation
+          // reduces to dout=adc2_code. Invalid slice holds the previous legal word and reports
+          // gain_err for this sample.
           pending_word = pending_error ? last_good_word : pre_code;
         end
       end
@@ -351,8 +351,8 @@ module engineering_fsm_tb;
     while (!u_recon.div_done) begin
       tick();
     end
-    // div_done is now high and busy is low; the NEXT edge commits 201 and
-    // accepts 202. Both capture and observation conventions remain explicit.
+    // div_done is now high and busy is low; the NEXT edge commits 201 and accepts 202. Both capture
+    // and observation conventions remain explicit.
     @(negedge clk);
     recon_scenario = "commit_and_next_start";
     sample_id = 32'd202;

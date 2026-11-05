@@ -46,7 +46,7 @@ BLUE, ORANGE, TEAL, GRAY = "#27658e", "#cf8535", "#218578", "#81909c"
 
 
 def _masks(cfg, code, sid):
-    """Resolve physical-unit masks using the production order/count decoder."""
+    """按生产顺序／计数译码器解析物理单元选通。"""
     command = split_switch_command(cfg, code, sid)
     masks = []
     for size, order, count in (
@@ -63,7 +63,7 @@ def _masks(cfg, code, sid):
 
 
 def collect() -> dict:
-    """Run the original declared counts without training or parameter search."""
+    """按原先声明的样本数运行，不训练或搜索参数。"""
     cfg = Config.paper_literal(dem_enable=True, dither_mode="off")
     if (cfg.n_slices, cfg.n_active, cfg.dac_n_main, cfg.dac_n_sub) != (18, 8, 63, 8):
         raise RuntimeError("this probe requires the explicit 18/8 and 63+8 geometry")
@@ -162,7 +162,7 @@ def collect() -> dict:
 
 
 def draw(data: dict, out: Path) -> None:
-    """Redraw the four count views; shaded ranges are not confidence intervals."""
+    """重绘四种计数视图，阴影范围不是置信区间。"""
     for font in ("PingFang SC", "Noto Sans CJK SC", "Hiragino Sans GB", "Arial Unicode MS"):
         try:
             font_manager.findfont(font, fallback_to_default=False)

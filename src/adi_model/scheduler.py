@@ -1,8 +1,8 @@
 """Generic物理slice调度器：决定哪组采样电容承载哪笔输入。
 
-reserve返回转换组视角，reserve_dual同时返回conv/acq；二者使用
-timing.build_slice_plan并满足acq[n]交给conv[n+1]。固定A/B、备用顶替和
-空闲池随机选择均不改变该归属合同，也不估计或校正时偏/增益/带宽。
+reserve返回转换组视角，reserve_dual同时返回conv/acq；
+二者使用timing.build_slice_plan并满足acq[n]交给conv[n+1]。固定A/B、
+备用顶替和空闲池随机选择均不改变该归属合同，也不估计或校正时偏/增益/带宽。
 结构rtl16 profile由pipeline_engine直接调用build_rtl_slice_plan，不经本工厂；
 其LFSR游标扫描分布不能与generic ShuffledScheduler混写。
 """
@@ -23,8 +23,8 @@ class Allocation:
 
     Attributes:
         bank: (N,) int64，0/1是ping-pong相位标签；随机/备用策略下不代表固定物理组。
-        slice_ids: (N, n_active) int64，逻辑slot对应的物理slice ID；
-            配套采集组由reserve_dual返回，不保存在本对象。
+        slice_ids: (N, n_active) int64，逻辑slot对应的物理slice ID；配套采集组由reserve_dual返回，
+            不保存在本对象。
     """
 
     bank: np.ndarray  # (N,) int，0/1相位标签，不是物理slice ID
@@ -34,8 +34,8 @@ class Allocation:
 class Scheduler:
     """Generic固定A/B调度，支持声明周期的备用slice顶替。
 
-    bank_a/bank_b/spares保存名义分组。启用备用顶替或使用随机子类时，实际转换ID
-    必须读取reserve_dual的结果，不得由bank标签反推。
+    bank_a/bank_b/spares保存名义分组。启用备用顶替或使用随机子类时，
+    实际转换ID必须读取reserve_dual的结果，不得由bank标签反推。
     """
 
     def __init__(self, cfg: Config, spare_rotation: bool = False, spare_period: int = 97):

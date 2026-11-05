@@ -1,4 +1,4 @@
-"""Real backend-code range and digital observer boundaries."""
+"""检查实际后级码范围与数字观测校正的边界。"""
 
 import numpy as np
 import pytest

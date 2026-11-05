@@ -1,15 +1,11 @@
-"""Continuous passive input network, with explicit electrical state and SI units.
+"""具有显式电气状态的连续无源输入网络，使用 SI 单位。
 
-The source resistance is shared by all tracking capacitors, including the SADC.
-For a zero-capacitance bus, its voltage is eliminated by Kirchhoff's current
-law, not by dividing the source resistance among slices. An optional filter
-capacitor retains the bus voltage between acquisitions. Linear intervals are
-integrated exactly in capacitance-normalized modal coordinates. Arbitrary
-waveforms use first-order holds; voltage-dependent switch resistance uses
-piecewise midpoint values, with an explicit resolution for convergence studies.
+源电阻由全部跟踪电容共享，包括 SADC。总线电容为零时通过 KCL 消去总线电压，
+不能把源电阻平均分给各 slice。可选滤波电容在两次采集之间保持总线电压。
+线性区间在电容归一化的模态坐标内精确积分；任意波形采用一阶保持，电压相关开关电阻采用分段中点值，
+并显式提供收敛检查所需的时间分辨率。
 
-This is an assumed passive topology, not an extracted circuit. Sampling thermal
-noise is injected at the aperture elsewhere; it is not integrated a second time.
+这是假设的无源拓扑，不是提取网表。采样热噪声在其他模块的孔径事件处注入，本模块不再次积分该噪声。
 """
 
 from __future__ import annotations
@@ -25,13 +21,13 @@ class InputNetworkParameters:
     """Assumed network controls; all capacitances in F and voltages in V.
 
     Attributes:
-        filter_cap_f: Capacitance at the shared input bus (zero eliminates it).
-        integration_steps: Subintervals for nonlinear Ron or arbitrary waveforms.
-            Linear DC/sine inputs are exact and require only one interval.
+        filter_cap_f: Capacitance at the shared input bus (zero eliminates it) .
+        integration_steps: Subintervals for nonlinear Ron or arbitrary waveforms. Linear DC/sine
+            inputs are exact and require only one interval.
         auxiliary_cap_f: Aggregate active clocked parasitic input capacitance [F].
         auxiliary_bypass: True connects that parasitic to a separate source path.
         auxiliary_resistance_ohm: Parasitic branch/auxiliary driver resistance [ohm].
-        pretrack_mode: residue (unchanged), reset_mid, latest, own or weighted.
+        pretrack_mode: residue (unchanged) , reset_mid, latest, own or weighted.
         pretrack_time_s: Duration preceding main acquisition [s].
         pretrack_source_ohm: Independent precharge-driver resistance [ohm].
         pretrack_weights: Three newest-to-oldest digital averaging weights.
@@ -80,25 +76,25 @@ class InputNetworkParameters:
 
 
 class OffsetWaveform:
-    """A continuous source with an interval-constant analog injection [V]."""
+    """在连续输入源上叠加区间内恒定的模拟注入 [V]。"""
 
     def __init__(self, source, offset_v: float):
-        """Retain exact harmonic metadata where the underlying source has it."""
+        """原输入源带精确谐波描述时保留该描述。"""
         self.source = source
         self.offset_v = offset_v
         terms = getattr(source, "harmonics", None)
         self.harmonics = (*terms, (0.0, complex(offset_v))) if terms is not None else None
 
     def __call__(self, t):
-        """Return the source voltage plus held injection at time t [s]."""
+        """返回时刻 t [s] 的源电压与保持注入之和。"""
         return self.source(t) + self.offset_v
 
 
 class PassiveTrackingNetwork:
     """One linear shared-source RC network; each state is a capacitor voltage.
 
-    Input branches appear first in state arrays. A filter capacitor, if present,
-    is the last state. No mutable electrical state is retained by this solver.
+    Input branches appear first in state arrays. A filter capacitor, if present, is the last state.
+    No mutable electrical state is retained by this solver.
     """
 
     def __init__(self, caps_f, switch_ohm, source_ohm: float, filter_cap_f: float = 0):
@@ -108,8 +104,8 @@ class PassiveTrackingNetwork:
             caps_f: Positive one-dimensional branch capacitances [F].
             switch_ohm: Positive branch resistances [ohm], same shape.
             source_ohm: Nonnegative shared source resistance [ohm].
-            filter_cap_f: Nonnegative bus capacitance [F]. With zero source
-                resistance its voltage is prescribed by the ideal source.
+            filter_cap_f: Nonnegative bus capacitance [F]. With zero source resistance its voltage
+                is prescribed by the ideal source.
 
         Raises:
             ValueError: Invalid shape, sign or nonfinite circuit values.
@@ -157,8 +153,8 @@ class PassiveTrackingNetwork:
             t0: Interval start [s].
             t1: Interval end [s], strictly after t0.
             input_fn: Voltage callable. ``harmonics`` optionally contains
-                ``(frequency_hz, complex_phasor_v)`` terms using real phasors.
-                A plain callable is linearly interpolated within this interval.
+                ``(frequency_hz, complex_phasor_v)`` terms using real phasors. A plain callable is
+                linearly interpolated within this interval.
 
         Returns:
             New capacitor voltages [V]. Neither input nor state is modified.
@@ -229,9 +225,9 @@ def track_interval(
 ) -> tuple[np.ndarray, float]:
     """Integrate one acquisition and return state [V] and source charge [C].
 
-    Ron = Ron0 * (1 + ron_coefficient * (Vin/voltage_scale)**2). For nonlinear
-    Ron, compare results with twice ``integration_steps`` before relying on a
-    precision conclusion. Filter-bus state, if present, is last in ``previous``.
+    Ron = Ron0 * (1 + ron_coefficient * (Vin/voltage_scale) **2). For nonlinear Ron, compare results
+    with twice ``integration_steps`` before relying on a precision conclusion. Filter-bus state, if
+    present, is last in ``previous`` .
     """
     if parameters.violations():
         raise ValueError("; ".join(parameters.violations()))

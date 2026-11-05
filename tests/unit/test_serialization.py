@@ -1,4 +1,4 @@
-"""Standard JSON preserves booleans and explicitly identifies undefined numbers."""
+"""检查标准 JSON 保留布尔类型，并显式表示未定义数值。"""
 
 import json
 

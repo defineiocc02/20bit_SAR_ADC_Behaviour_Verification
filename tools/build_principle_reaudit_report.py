@@ -1,4 +1,4 @@
-"""Build this source-bound standalone audit; no external TeX project files."""
+"""构建与所列来源绑定的独立审计报告，不依赖外部 TeX 工程文件。"""
 
 import argparse
 import hashlib

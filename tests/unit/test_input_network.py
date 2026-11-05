@@ -1,4 +1,4 @@
-"""Independent KCL integration and analytic limits for continuous acquisition."""
+"""用独立 KCL 积分与解析极限检查连续采集网络。"""
 
 import json
 from dataclasses import replace
@@ -16,10 +16,10 @@ from adi_model.pipeline import run_pipeline
 
 
 def kcl_reference(caps, ron, rs, cf, previous, fn, t0, t1, rho=0, scale=3):
-    """RK4 directly from branch currents, independently of modal matrices.
+    """直接从支路电流作 RK4 积分，独立于模态矩阵。
 
-    The extra integral state is source current integrated to charge. It is not
-    calculated from final capacitor voltages, so charge closure is independent.
+    额外积分状态累计源电流得到电荷，不从最终电容电压反算，因此电荷闭合检查
+    与电压求解具有独立计算路径。
     """
     n = len(caps)
 

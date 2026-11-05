@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cross-check live structural RDAC pins against Python event and timing contracts."""
+"""将实际结构 RDAC 引脚与 Python 事件、时序合同交叉核对。"""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from adi_model.timing import rtl_dither_codes
 
 
 def verify(path: Path) -> int:
-    """Validate all events without dropping overflow or duplicate decision states."""
+    """核对全部事件，保留溢出状态及重复已决码。"""
     with path.open(newline="", encoding="utf-8") as stream:
         rows = list(csv.DictReader(stream))
     if len(rows) != 3 * 512 * 7:
@@ -99,7 +99,7 @@ def verify(path: Path) -> int:
 
 
 def main() -> None:
-    """Read the trace written by ``rdac_event_contract_tb``."""
+    """读取 rdac_event_contract_tb 写出的轨迹。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("trace", type=Path)
     args = parser.parse_args()

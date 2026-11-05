@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
-// Pin-driven structural integration. Ideal comparator models respond to the
-// actual SAR trial pins. Oracle uses physical RDAC pins and independently
-// retained coefficient fixtures; it cannot see reconstruction internal sums.
+// Pin-driven structural integration. Ideal comparator models respond to the actual SAR trial pins.
+// Oracle uses physical RDAC pins and independently retained coefficient fixtures; it cannot see
+// reconstruction internal sums.
 module structural_adc_tb #(parameter int P_RECON_STAGES=7, parameter bit P_OBSERVER=1);
   localparam int RECON_LAT=(63+P_RECON_STAGES-1)/P_RECON_STAGES+2;
   logic clk=0,rst_n=0,cfg_wr=0,cfg_validate=0,cfg_clear_valid=0;
@@ -98,9 +98,9 @@ module structural_adc_tb #(parameter int P_RECON_STAGES=7, parameter bit P_OBSER
   logic [17:0] acquired_at_edge,used='0;
   int mode=0,cancelled=0,sampling_offset=0;
   int clock_count=0,launch_clock[600],latency_checks=0;
-  // Observe transaction boundaries only; the code oracle below still uses
-  // physical RDAC pins and its own coefficient fixture. All profiles must
-  // commit each result at the derived latency while preserving sample ID.
+  // Observe transaction boundaries only; the code oracle below still uses physical RDAC pins and
+  // its own coefficient fixture. All profiles must commit each result at the derived latency while
+  // preserving sample ID.
   always @(posedge clk) begin
     clock_count++;
     if(rst_n && cfg_ready && dut.launch_recon) begin

@@ -1,8 +1,8 @@
 """split采样mask的真实电荷与数字码单位换算。
 
-aggregate实现用实际C/beta生成RDAC保存节点的输入等效注入[V]；数字扣除只用
-名义栅格。生产物理pool还会按实际selected slice同步重算信号与注入，不能把
-aggregate归一化直接当作18片共享同一物理电容。
+aggregate实现用实际C/beta生成RDAC保存节点的输入等效注入[V]；数字扣除只用名义栅格。
+生产物理pool还会按实际selected slice同步重算信号与注入，
+不能把aggregate归一化直接当作18片共享同一物理电容。
 """
 
 from __future__ import annotations

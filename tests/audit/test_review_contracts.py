@@ -1,98 +1,32 @@
-"""Behaviour contracts from the 2026-09-11 external review of v7.0.0.
+"""保留 2026-09-11 起多轮外部审阅的历史行为合同。
 
-Distinct from ``test_audit_findings.py``: that file pins findings against a
-*frozen baseline* (v6.1) and asserts they stay fixed. This file pins findings
-against **the current tree** — it encodes what an independent reviewer said the
-repository must be able to demonstrate, and it deliberately distinguishes:
+本文件侧重修复是否进入当时的结果生成入口，包括 run_sim_split、run_pipeline、
+audit_provenance 及 run_all 的结果判定。历史审阅曾区分普通断言与严格预期失败；
+是否存在相应标记应以现存装饰器为准；测试状态以执行记录为准。
+R 编号是本文件的稳定标识，不等同各轮审阅者的编号。
 
-* contracts that HOLD today (plain assertions), and
-* contracts that are demonstrably **not yet** satisfied, which are marked
-  ``xfail(strict=True)`` so that the defect is visible in the test report and
-  the marker is *forced* off the moment someone fixes it (a strict xfail turns
-  into a failure on XPASS — you cannot leave a stale marker behind).
+第二次审阅（v7.0.0）对应 docs/review_response_2026-09-11.md：
+R1→原 R1，跨周期样本归属；R2→原 R2，物理池进入主链；R3→原 R2/R2b，
+来源记录识别实际拟合值；R4→原 R6，配置作用于入口；R5→原 R5，数值失败影响
+退出状态；R6→原 R7，记录包含拐角以下闪烁功率。原文 R3 的 7+2=9 措辞、
+R4 的 KTC 理想数字观测边界、R8 的 ADR 0005 文档问题在该裁定文档跟踪，
+不在此另建行为断言。
 
-Motivation — the review's central charge was not "the code is wrong" but
-*"the fix landed in a helper and a test, not in the path that produces the
-result"*. A test that exercises the helper proves the helper. The tests below
-therefore always go through the real entry points (``run_sim_split``,
-``run_pipeline``, ``audit_provenance``, ``run_all``'s gate rule) rather than
-through the unit under discussion.
+第三次审阅（v7.0.1）对应 docs/review_response_2026-09-11b.md：
+R7→§2.1，检查配置自检表；R8→§2.4，覆盖值的来源约束；R9→§2.5，物理池
+因果关系（位于 R2）；R10→§3.1，dem_mode 与调度机制；R11→§2.2/§3.3，
+已知限制账本；§2.3 的非法配置入口拒绝位于 R4。这里的 §3.3 是裁定文档的
+KTC 带宽讨论；历史“第三轮审阅 §3.3”则指审阅者 §3 第 3 项的源字符串检查，
+对应裁定文档 §2.5，两者编号不同。
 
-Finding index. The ``R`` labels below are **local to this file and stable**
-(they appear in the ``xfail`` reasons, so renumbering them would invalidate
-those markers). They are *not* the reviewer's numbering; each group below is
-indexed against the adjudication document for its own round, so the two can be
-read side by side.
+第四次审阅（v7.0.2）对应 docs/review_response_2026-09-11c.md：
+R12→K1，f_max 约束节点；R13→K2，电容对样本的因果归属（位于 R2）；
+R14→K3，dem_mode 到达各入口（位于 R10）；R15→K4，布尔结果类型与必需结果集。
 
-Round 1 — second external review of v7.0.0, indexed against
-``docs/review_response_2026-09-11.md``:
-
-    local  there      contract                              test class
-    R1     R1         sample ownership across cycles        TestR1SampleOwnership
-    R2     R2         the physical pool is on the main path TestR2PhysicalPoolOnMainPath
-    R3     R2 / R2b   provenance sees the active fit        TestR3ProvenanceSeesTheActiveFit
-    R4     R6         config takes effect at the runner     TestR4ConfigTakesEffectAtTheRunner
-    R5     R5         numeric FAIL fails the command        TestR5HardGateBindsToExitCode
-    R6     R7         sub-corner flicker power is present   TestR6FlickerDriftBackfill
-
-That document's R3 (the ``7 + 2 = 9`` wording), R4 (KTC as an ideal digital
-observation bound) and R8 (an untrue ADR 0005 claim) have **no contract test
-here**: none of them is a testable behaviour contract — they are wording,
-architecture scope, and documentation, and they are tracked as such in that
-document.
-
-Round 2 — third external review, of v7.0.1; the labels continue the local
-sequence, and the second column is the section of
-``docs/review_response_2026-09-11b.md`` (that round's adjudication) which each
-one settles:
-
-    local  there                   contract                                test class
-    R7     §2.1                    the gate sees the config self-checks     TestR7GateCoversConfigChecks
-    R8     §2.4                    an overridden value cannot pass require  TestR8OverrideIsEnforced
-    R9     §2.5                    the pool contract is causal, not textual (inside TestR2)
-    R10    §3.1  (self-found)      dem_mode decides the scheduler           TestR10DemModeIsWired
-    R11    §2.2 + §3.3 (self-found) the one live FAIL is a registered limit  TestR11KnownLimits
-    —      §2.3                    an illegal config is refused at the entry (inside TestR4)
-
-Note that ``§3.3`` above means §3.3 **of that adjudication document**, which is
-the disposition of the KTC bandwidth limit. Where an ``xfail`` reason cites
-"§3.3 of the third review" it means the reviewer's own §3 item 3 (the
-source-string test), which is §2.5 of the adjudication document — the two
-numberings are different and are spelled out per citation.
-
-Round 3 — fourth external review, of v7.0.2; indexed against
-``docs/review_response_2026-09-11c.md``:
-
-    local  there                   contract                                  test class
-    R12    K1                      f_max is bound to the observed node       TestR12KtcMaxUsesTheObservedNode
-    R13    K2                      an output sample is attributable to its   (inside TestR2)
-                                   capacitors — by cause, not by attribute
-    R14    K3                      dem_mode reaches every entry point        (inside TestR10)
-    R15    K4                      a non-bool verdict is refused, and the    TestR15GateRefusesNonBooleanPass
-                                   required set cannot be trimmed away
-
-Round 3's K1 and K4 are also covered where they are cheapest to state: K1 in
-``TestR12KtcMaxUsesTheObservedNode`` (the bound is a number, so it is pinned as
-a number) and K4 in ``TestR15GateRefusesNonBooleanPass``. K3's
-*partial* state — bound at one entry, inert at two — is an ``xfail(strict)``
-inside ``TestR10DemModeIsWired``; see that class for why it is not closed here.
-
-Round 4 — fifth external review, of v7.0.4; indexed against
-``docs/review_response_2026-09-11d.md``:
-
-    local  there    contract                                    test class
-    R16    §4.2     the DEM permutation space is 64, not 512    TestR16DemPermutationSpace
-    R17    §5.2     the aggregate-τ "conservative" claim is     TestR17CommonModeTau
-                    qualified by the common source impedance
-    R18    §11      kappa_optimal with observer noise is the    TestR18KappaOptimalWithObserverNoise
-                    minimiser of the *total* residual noise
-
-R16 is a **passing** pin, not an xfail: 512 digital state labels collapsing
-into 64 distinct physical rotations is a fact of the current coupled-rotation
-design, not a bug to be fixed by rewiring — the pin exists so that the number
-cannot drift silently and so that no DEM sweep result is misread as the
-paper's three-dimensional mechanism. R17 and R18 are passing pins on the
-*qualified* statements this round added to the code comments.
+第五次审阅（v7.0.4）对应 docs/review_response_2026-09-11d.md：
+R16→§4.2，旧耦合旋转的 512 标签／64 物理排列；R17→§5.2，共享源阻抗下
+总时间常数的适用边界；R18→§11，观察噪声参与时的总残差最优系数。
+这些历史夹具及数值不构成当前架构需求，尤其不能以旧排列空间代替论文三维 DEM。
 """
 
 from __future__ import annotations
@@ -135,27 +69,27 @@ N_SMALL = 2048
 
 
 def _coherent(fs: float, n: int, cycles: int = 97) -> float:
-    """Coherent input frequency for an ``n``-sample record at ``fs``.
+    """计算在 fs 采样率、n 点记录中恰落 FFT 频点的输入频率。
 
     Args:
-        fs: Sampling rate [Hz].
-        n: Record length [samples].
-        cycles: Integer number of signal cycles in the record.
+        fs: 采样率，单位 Hz。
+        n: 记录长度，单位为样本数。
+        cycles: 记录内的整数信号周期数。
 
     Returns:
-        Input frequency [Hz] that lands exactly on an FFT bin.
+        相干输入频率，单位 Hz。
     """
     return fs * cycles / n
 
 
 def _lean_cfg(**over: object) -> Config:
-    """A fast, deterministic configuration with the slow mechanisms disabled.
+    """构造历史合同使用的短记录配置，关闭相应慢机制。
 
     Args:
-        **over: Field overrides applied on top of the lean base.
+        **over: 施加到该历史基准配置的字段覆盖。
 
     Returns:
-        A :class:`Config` suitable for short record-length contract tests.
+        供此文件旧接口测试使用的 Config；不是当前物理模型的默认参数声明。
     """
     base: dict[str, object] = {
         "dac_arch": "split",
@@ -176,26 +110,18 @@ def _lean_cfg(**over: object) -> Config:
 
 
 # ===========================================================================
-# R1 — a converting slice must hold a charge it actually acquired
+# R1：转换切片必须持有该样本实际采集的电荷。
 # ===========================================================================
 class TestR1SampleOwnership:
-    """The review's headline finding.
+    """检查组间互斥与跨周期电荷归属两项独立条件。
 
-    ``conv[n] ∩ acq[n] = ∅`` only proves the two groups do not collide *within*
-    one cycle. Physical sample ownership needs ``conv[n] = acq[n-1]``: a
-    capacitor cannot convert a charge it never sampled.
-
-    Both statements are checked separately, because conflating them is exactly
-    how v6.1 shipped a scheduler that passed its own invariant while ~55% of
-    conversions used the wrong capacitors.
+    conv[n] 与 acq[n] 不相交只说明同周期不争用；物理样本还要求
+    conv[n]=acq[n-1]。历史 v6.1 的调度只满足前者，约 55% 转换使用了错误电容。
+    因此两项条件分别断言，不能互相代替。
     """
 
     def test_default_scheduler_preserves_sample_ownership(self):
-        """The default ping-pong scheduler must convert the group it acquired.
-
-        This is the path ``run_pipeline`` takes when no scheduler is injected,
-        so it is the one that produces the committed reference results.
-        """
+        """检查当时默认乒乓入口转换的组等于其前周期采集组。"""
         cfg = Config()
         n = 4096
         conv, acq = Scheduler(cfg).reserve_dual(n, np.random.default_rng(20260911))
@@ -209,12 +135,10 @@ class TestR1SampleOwnership:
         )
 
     def test_shuffled_scheduler_preserves_sample_ownership(self):
-        """The shuffled scheduler must also honour sample ownership.
+        """检查随机调度同样保持样本归属。
 
-        Expected to FAIL until the main path adopts a causal shuffle. The
-        measured coverage (~3.55/8, versus E|C∩A| = 8·8/18 ≈ 3.556 for two
-        independent 8-of-18 draws) is the fingerprint of an *independent* draw,
-        which is why this cannot be dismissed as an unlucky seed.
+        历史平均交集约 3.55/8，接近两次独立 8-of-18 抽取的期望 8*8/18≈3.556，
+        用于区分独立重抽与因果传递，不能归因为个别随机种子。
         """
         cfg = Config()
         n = 8192
@@ -224,43 +148,21 @@ class TestR1SampleOwnership:
 
 
 # ===========================================================================
-# R2 — the physical pool must be on the path that produces results
+# R2：物理池与结果生成路径的因果连接。
 # ===========================================================================
 class TestR2PhysicalPoolOnMainPath:
-    """A fix that lives only in a helper is not a system-level fix.
+    """用定向电容扰动检查物理池与实际结果链的因果连接。
 
-    Two earlier versions of this class were rejected, and the reasons bound the
-    shape of what replaced them.
+    仅搜索 PhysicalSlicePool 字符串可被无效 import 或注释满足；仅检查结果属性
+    存在也可被常量占位满足。这里要求扰动某切片后，仅实际使用该切片的样本内部
+    电容、DAC 权重或残差增益变化，其他样本保持不变。
 
-    The first asserted ``assert "PhysicalSlicePool" in inspect.getsource(...)``:
-    an unused import, or even a comment, satisfies a text scan. The second
-    asserted that the result object carried four attribute *names*
-    (``hasattr(res, "sample_id")`` and friends). That is a statement about the
-    shape of an object, not about a physical cause — an attribute can be added
-    and filled with a constant, and the assertion still passes.
-
-    The contract is therefore stated as a **causal relation**: perturb the
-    capacitors of the slices that converted a sample, and the internal quantity
-    reported for *that* sample must move — while the samples whose conversion
-    group does not contain those slices must stay put. The second half is what
-    makes the relation causal rather than merely sensitive: a change applied to
-    every sample alike would satisfy the first half on its own.
-
-    Two positive controls sit above the contract. They pass today, and they
-    exist so the ``xfail`` cannot succeed for the wrong reason: they establish
-    that the causal relation is well defined and sharp *on the pool*, so what is
-    missing in the runner is the binding, not the physics.
+    两个组件正对照用于确认切片选择信息存在且物理池本身具有该局部因果关系；
+    这些检查描述测试目的，不声明现存入口已经具备所有历史接口。
     """
 
     def test_the_selection_information_exists_and_is_causal(self):
-        """Control 1: per-sample slice selections are already on hand.
-
-        Without this control the ``xfail`` below could pass for the wrong
-        reason — if the information never existed, the fix would have to
-        *invent* it rather than *bind* it. The scheduler already hands back
-        explicit index arrays for both chains, and they satisfy the cross-cycle
-        ownership relation.
-        """
+        """正对照一：检查每样本转换／采集编号已显式记录，并满足跨周期归属。"""
         cfg = _lean_cfg()
         sched = Scheduler(cfg)
         conv, acq = sched.reserve_dual(64, np.random.default_rng(0))
@@ -272,18 +174,14 @@ class TestR2PhysicalPoolOnMainPath:
         ), "precondition failed: even the default scheduler does not preserve ownership"
 
     def test_the_pool_ties_a_slice_to_exactly_the_samples_that_use_it(self):
-        """Control 2: the causal relation is well defined, and it is sharp.
+        """正对照二：扰动一个切片，仅包含该切片的转换样本电容变化。
 
-        Perturb the capacitors of one slice; the converting capacitance of
-        exactly the samples whose conversion group contains that slice must
-        change — no more and no fewer. Had this control been weaker ("the number
-        moves somehow"), the contract below could be satisfied by a global
-        sensitivity, and it would prove nothing about attribution.
+        同时检查受影响组与未受影响组，排除对全部样本施加统一变化的假归属。
         """
         cfg = _lean_cfg()
         pool = PhysicalSlicePool(cfg, np.random.default_rng(2))
-        # Cycle 0 has not acquired anything yet, so its group is not a physical
-        # conversion; drop it, as the pool's own planner marks it invalid.
+        # 周期 0 尚未完成采集，不作为有效物理转换；
+        # 按旧池规划器的有效性标记排除该启动周期。
         conv = pool.plan(48, np.random.default_rng(3)).conv[1:]
         before = pool.signal_capacitance(conv)
 
@@ -302,12 +200,10 @@ class TestR2PhysicalPoolOnMainPath:
         ), "a non-user of slice 0 moved — the coupling is not per-slice"
 
     def test_the_dac_error_does_not_see_the_selection(self):
-        """Pin the *current* coupling state of the main path.
+        """保留旧主链缺失转换组参数的检查。
 
-        ``SplitDAC.evaluate_physical`` takes ``(k_eq, sid)`` and no conversion
-        group, so in the main path the DAC error cannot depend on which 8 of 18
-        slices converted. This test documents that coupling as absent; it is
-        written to fail (and be rewritten) when the argument is added.
+        当时 SplitDAC.evaluate_physical 只接收 k_eq、sid，无法依据实际 8/18 组决定
+        误差。本断言记录该历史连接状态，不能作为当前接口必须保留该缺陷的要求。
         """
         from adi_model.dac_arch import SplitDAC
 
@@ -319,27 +215,19 @@ class TestR2PhysicalPoolOnMainPath:
         )
 
     def test_perturbing_the_capacitors_behind_a_sample_moves_that_sample(self):
-        """The reviewer's acceptance question, executed rather than paraphrased.
+        """检查某样本所用电容的扰动确实作用于该样本内部量。
 
-        Perturb the capacitors of the slices that actually converted sample
-        ``i``: the internal charge, DAC weight or residue gain reported *for
-        sample ``i``* must move accordingly, and the samples that did not use
-        those slices must not. The final output is deliberately **not** required
-        to change — a mismatch can cancel through the charge relation or the
-        digital reconstruction — so the contract is on the internal quantities
-        and on their attribution.
-
-        The body is written against the target interface so that wiring the pool
-        makes it *mean* something rather than merely turning green: the
-        attribution step is the only reason it does not run end to end today.
+        定向修改实际转换组后，关联样本的电荷、DAC 权重或残差增益应变化，未使用该
+        电容的样本不变。最终输出可能因电荷关系或数字重构抵消而不变，所以检查目标
+        是内部物理量及其样本归属，而非强制最终码变化。
         """
         cfg = _lean_cfg()
         x = sine_input(0.5 * cfg.v_fs, _coherent(cfg.fs, N_SMALL))
         res = run_sim_split(cfg, x, N_SMALL)
 
-        # Step 1 — attribution. Name the capacitors behind each sample. Without
-        # this the perturbation in step 2 cannot be aimed at anything, so the
-        # missing link is reported by name rather than as an AttributeError.
+        # 步骤一：先取得各样本对应的电容编号。
+        # 缺少编号时无法定向施加下一步扰动，
+        # 因此用命名断言报告缺失连接，避免仅抛 AttributeError。
         trace = {
             name: getattr(res, name, None)
             for name in ("conv_slice_ids", "acq_slice_ids", "held_sample", "pool")
@@ -353,10 +241,10 @@ class TestR2PhysicalPoolOnMainPath:
             "a perturbation cannot be aimed."
         )
 
-        # Step 2 — causality. Reachable only once step 1 passes: the caller can
-        # hand the runner the pool it draws from, and perturbing that pool's
-        # capacitors then moves e_dac for exactly the samples whose conversion
-        # group contains the perturbed slices.
+        # 步骤二：将调用方提供的物理池接入入口，再定向扰动；
+        # 被扰动电容应只改变实际使用它们的样本 e_dac，
+        # 其他转换组的样本应保持不变，
+        # 以同时约束敏感性和样本归属。
         pool = trace["pool"]
         conv = np.asarray(trace["conv_slice_ids"])
         victim = int(conv[1, 0])
@@ -378,18 +266,13 @@ class TestR2PhysicalPoolOnMainPath:
 
 
 # ===========================================================================
-# R3 — provenance must see fitted parameters that are actually in use
+# R3：来源记录识别实际使用的拟合值。
 # ===========================================================================
 class TestR3ProvenanceSeesTheActiveFit:
-    """``None`` means "a resolver supplies the value", not "switched off"."""
+    """检查历史 None 解析为拟合值时，来源记录仍识别实际启用的拟合。"""
 
     def test_default_config_raises_the_fit_into_fitted_in_use(self):
-        """The default RA-noise fit must appear in the report.
-
-        ``ra_out_noise_rms=None`` selects ``resolve_ra_noise``, so the fit is
-        active; filtering fitted parameters on ``value is not None`` hid exactly
-        the number a reviewer needs to see first.
-        """
+        """检查历史 resolve_ra_noise 解析的噪声值被列入实际使用的拟合参数。"""
         cfg = Config()
         assert resolve_ra_noise(cfg) > 0.0, "precondition: the resolver is active"
         report = audit_provenance(cfg)
@@ -399,12 +282,9 @@ class TestR3ProvenanceSeesTheActiveFit:
         assert report["resolved_sentinels"], "the resolved value must be reported"
 
     def test_overriding_a_disclosed_field_is_reported(self):
-        """A changed value must not keep claiming its original source.
+        """检查覆盖值不能继续沿用原披露数值的权威性。
 
-        ``fs`` is graded DISCLOSED with source "[00] abstract: 40 MS/s". Setting
-        ``fs=80e6`` leaves that source string untouched, so the report must
-        flag the field separately instead of quoting a source that no longer
-        describes the number in use.
+        历史 fs 的来源为 [00] 摘要 40 MS/s；手动改为 80e6 时，报告须识别该覆盖。
         """
         assert "fs" not in audit_provenance(Config())["overridden"]
         report = audit_provenance(Config(fs=80e6))
@@ -415,20 +295,17 @@ class TestR3ProvenanceSeesTheActiveFit:
 
 
 # ===========================================================================
-# R4 — a declared config field must take effect where it is declared to
+# R4：配置字段在声明的消费入口生效。
 # ===========================================================================
 class TestR4ConfigTakesEffectAtTheRunner:
-    """Test the real entry points, not the method that implements the option."""
+    """检查选项在实际运行入口生效，而不只在实现该选项的辅助方法中生效。"""
 
     @pytest.mark.parametrize("runner", [run_sim_split, run_pipeline])
     def test_ra_gain_model_fixed_reaches_both_runners(self, runner):
-        """``ra_gain_model="fixed"`` must change the output of both chains.
+        """检查历史 fixed 增益选项到达两条运行链。
 
-        ``ResidueAmplifier.gain_vector`` implemented the branch, but both
-        runners built the gain vector inline from capacitor ratios and passed it
-        explicitly, bypassing the option entirely — so the fixed-gain control
-        experiment silently never ran. ``gain_error`` is set so that the two
-        modes differ even with mismatch disabled.
+        旧入口内联计算电容比并显式传入增益，曾绕过 gain_vector 的 fixed 分支。
+        夹具设置 gain_error，使关闭失配时两种模式仍可区分。
         """
         cfg_charge = _lean_cfg(ra_gain_model="charge")
         cfg_fixed = _lean_cfg(ra_gain_model="fixed", gain_error=0.01)
@@ -444,13 +321,9 @@ class TestR4ConfigTakesEffectAtTheRunner:
         )
 
     def test_unknown_ra_gain_model_is_rejected(self):
-        """A typo must be rejected, not silently degraded to the default.
+        """检查未知增益模式被拒绝，不静默使用电容比路径。
 
-        Two distinct claims, and the second one is the one that matters: a
-        ``validate()`` table saying FAIL is *reporting*, while refusing to run
-        is *enforcement*. The third review noted that only the first existed —
-        ``gain_vector`` still fell through to the capacitor-ratio path for any
-        non-``"fixed"`` string, so an illegal config still produced numbers.
+        校验表报告失败与入口拒绝执行分别检查，避免非法配置仍生成貌似有效的结果。
         """
         key = "RA 增益口径 ra_gain_model ∈ {charge, fixed}"
         checks = _lean_cfg(ra_gain_model="Fixd").validate(verbose=False)
@@ -460,13 +333,7 @@ class TestR4ConfigTakesEffectAtTheRunner:
 
     @pytest.mark.parametrize("runner", [run_sim_split, run_pipeline])
     def test_an_illegal_config_is_refused_at_the_entry(self, runner):
-        """The runner must refuse, not report-and-continue.
-
-        The reviewer's contract: a config must take effect where it is declared,
-        or be explicitly refused. Refusal has to happen *at the entry*, because
-        that is the only place a caller cannot get a plausible-looking result
-        from a configuration that means nothing.
-        """
+        """检查非法配置在入口被拒绝，不采用报告失败后继续运行的行为。"""
         cfg = _lean_cfg(ra_gain_model="Fixd")
         inp = sine_input(0.5 * cfg.v_fs, _coherent(cfg.fs, N_SMALL))
         with pytest.raises(ConfigError) as ei:
@@ -476,9 +343,7 @@ class TestR4ConfigTakesEffectAtTheRunner:
         ), f"{runner.__name__} refused the config but did not say which field was wrong"
 
     def test_an_illegal_enum_is_refused_for_every_declared_field(self):
-        """Every field in ``LEGAL_VALUES`` must be enforced, not just the one
-        that happened to have a validate() record.
-        """
+        """检查 LEGAL_VALUES 中每个字段的枚举约束，而不只检查已有校验记录的一项。"""
         for field_name, allowed in LEGAL_VALUES.items():
             bad = _lean_cfg(**{field_name: "__no_such_value__"})
             violations = bad.legality_violations()
@@ -489,13 +354,13 @@ class TestR4ConfigTakesEffectAtTheRunner:
 
 
 # ===========================================================================
-# R5 — a numeric FAIL must fail the command
+# R5：数值 FAIL 进入命令退出状态。
 # ===========================================================================
 class TestR5HardGateBindsToExitCode:
-    """Determinism is not correctness: a green CI must mean the checks passed."""
+    """检查数值结果判定进入命令退出状态，确定性不能代替正确性。"""
 
     def test_pass_records_and_summaries_are_collected(self):
-        """Acceptance records must be found under both shapes used by run_all."""
+        """检查 run_all 使用的逐项记录与摘要两种结果容器均被收集。"""
         results = {
             "pipeline": {"PASS": False},
             "flicker": {"PASS": True},
@@ -504,7 +369,7 @@ class TestR5HardGateBindsToExitCode:
         assert hard_failures(results) == ["pipeline.PASS", "s12_summary.b"]
 
     def test_non_acceptance_dicts_are_ignored(self):
-        """Counter-example rows and switch values are not acceptance failures."""
+        """检查反例数据行及功能开关值不会被误判为验收失败。"""
         results = {
             "calibration_control": {"uncalibrated_sndr_db": -6.0, "dem_enable": False},
             "s7_dem_off": {"SNDR_dB": 90.0},
@@ -512,13 +377,10 @@ class TestR5HardGateBindsToExitCode:
         assert hard_failures(results) == []
 
     def test_run_all_binds_the_rule_to_a_nonzero_exit(self):
-        """``run_all`` must consult the rule and exit non-zero — statically.
+        """静态检查旧 run_all 入口连接判定规则与非零退出。
 
-        This one *is* a source check, and deliberately so: ``run_all`` is a
-        script whose import runs every experiment, so it cannot be exercised in
-        a unit test. The split is intentional — the rule itself is tested
-        behaviourally above (and in :class:`TestR7GateCoversConfigChecks`), and
-        only the two-line binding is pinned by text here.
+        该脚本导入即运行实验，因此此处不导入脚本；规则本身由其他行为测试检查，
+        这里只约束入口中的文本连接。
         """
         src = pathlib.Path("tools/run_all.py").read_text(encoding="utf-8")
         assert "gate(R)" in src, "run_all does not evaluate the hard gate"
@@ -528,17 +390,16 @@ class TestR5HardGateBindsToExitCode:
 
 
 # ===========================================================================
-# R6 — sub-corner flicker power must reach a short record
+# R6：短记录中的拐角以下闪烁功率。
 # ===========================================================================
 class TestR6FlickerDriftBackfill:
-    """The function documents a back-fill it can never reach."""
+    """检查短记录无法分辨的低频功率没有被当作不存在。"""
 
     def test_short_record_contains_the_unresolved_low_frequency_power(self):
-        """A short record with a 0.1 Hz assumed low cutoff must not be all-zero.
+        """检查假设低截止为 0.1 Hz 的短记录不应全零。
 
-        ``f_min = fs/n = 1220.7 Hz`` exceeds the corner, so the truncated
-        spectrum is empty; the power below ``f_min`` is unresolvable rather than
-        absent, and the drift model exists to represent it.
+        历史 f_min=fs/n=1220.7 Hz 高于拐角，离散谱为空；低于 f_min 的功率是不可分辨，
+        旧漂移模型的目标是表示这部分功率。
         """
         x = flicker_series(
             32768,
@@ -553,21 +414,17 @@ class TestR6FlickerDriftBackfill:
 
 
 # ===========================================================================
-# R7 — the gate must see the configuration self-checks
+# R7：总判定收集配置自检结果。
 # ===========================================================================
 class TestR7GateCoversConfigChecks:
-    """A gate that skips a whole table is a gate with a hole in it.
+    """检查配置自检表中的失败同样进入总结果判定。
 
-    The first version enumerated only ``results[name]["PASS"]`` and
-    ``results[name + "_summary"]``. ``run_all`` also writes
-    ``results["validate"][check]["PASS"]`` and
-    ``results["validate_ktc"][check]["PASS"]``, and *neither* was collected —
-    so a failing configuration check could not turn the command red. The
-    counterexample below is the reviewer's, reproduced against the real rule.
+    旧收集器只读 results[name]["PASS"] 和 results[name+"_summary"]，
+    遗漏 validate 和 validate_ktc 的逐项 PASS；本组保留该容器遗漏反例。
     """
 
     def test_a_failing_config_check_is_collected(self):
-        """A FAIL inside the config self-check tables must be a hard failure."""
+        """检查配置自检表中的 FAIL 被收集为失败。"""
         results = {
             "validate": {"invalid_config": {"PASS": False}},
             "validate_ktc": {"bw": {"PASS": False}},
@@ -575,7 +432,7 @@ class TestR7GateCoversConfigChecks:
         assert hard_failures(results) == ["validate.invalid_config", "validate_ktc.bw"]
 
     def test_the_explicit_lists_are_the_ones_run_all_actually_writes(self):
-        """The container list must not be a guess about someone else's schema."""
+        """检查显式容器列表与旧 run_all 实际写入的模式一致。"""
         assert set(ACCEPTANCE_CONTAINERS) <= {"validate", "validate_ktc"}
         src = pathlib.Path("tools/run_all.py").read_text(encoding="utf-8")
         for container in ACCEPTANCE_CONTAINERS:
@@ -584,7 +441,7 @@ class TestR7GateCoversConfigChecks:
             ), f"the rule collects {container!r} but run_all.py never writes it"
 
     def test_collecting_a_container_must_not_swallow_switch_values(self):
-        """Widening the scope must not re-introduce "any False is a failure"."""
+        """扩大结果容器覆盖时仍区分功能开关 False 与验收失败。"""
         results = {
             "validate": {"margin_v": {"PASS": True, "actual": None}},
             "calibration_control": {"dem_enable": False, "uncal_vs_cal_db": -6.0},
@@ -593,17 +450,13 @@ class TestR7GateCoversConfigChecks:
 
 
 # ===========================================================================
-# R8 — an overridden value must not pass a DISCLOSED check
+# R8：覆盖值不能沿用原披露值的来源权威性。
 # ===========================================================================
 class TestR8OverrideIsEnforced:
-    """Reporting an override and enforcing it are different guarantees.
+    """检查来源等级跟随实际值，而不是只跟随字段名。
 
-    v7.0.1 added ``audit_provenance(...)["overridden"]``, which a *reader* of
-    the report can act on. But ``annotate_config`` still attached the grade to
-    the field name, so
-    ``annotate_config(Config(fs=80e6))["fs"].require(DISCLOSED)`` returned
-    ``8e7`` — a downstream caller could obtain a hand-edited number under the
-    paper's authority. The grade must follow the value, not the name.
+    v7.0.1 曾报告覆盖标记，却仍允许 fs=80e6 通过 DISCLOSED 的 require 并返回 8e7；
+    该历史反例用于检查手动覆盖不能继承 40 MS/s 披露的权威性。
     """
 
     def test_an_overridden_value_is_not_quotable_as_disclosed(self):
@@ -616,7 +469,7 @@ class TestR8OverrideIsEnforced:
         ), "refused, but without saying why the declared source no longer applies"
 
     def test_the_unmodified_field_is_still_quotable(self):
-        """The enforcement must not turn into "nothing is ever quotable"."""
+        """正对照：未经覆盖且满足来源要求的字段仍可引用。"""
         assert Config().fs == 40e6
         ann = annotate_config(Config())
         assert ann["fs"].overridden is False
@@ -634,7 +487,7 @@ class TestR8OverrideIsEnforced:
         assert assumed.effective_grade is SourceGrade.ASSUMED
 
     def test_map_preserves_the_override_flag(self):
-        """A derived quantity must not launder an overridden ancestor."""
+        """检查派生量保留上游覆盖标记，不通过映射恢复来源权威性。"""
         ann = annotate_config(Config(fs=80e6))
         derived = ann["fs"].map(lambda v: v / 1e6)
         assert derived.overridden is True
@@ -643,36 +496,19 @@ class TestR8OverrideIsEnforced:
 
 
 # ===========================================================================
-# R10 — a declared field that is read nowhere (round 2) / reaches one entry only (round 3)
+# R10：历史调度字段消费情况；第二轮未消费，第三轮仅一入口生效。
 # ===========================================================================
 class TestR10DemModeIsWired:
-    """``dem_mode`` must decide the mechanism, at every entry that consumes one.
+    """保留历史 dem_mode 在各入口选择调度机制的检查。
 
-    Round 2 recorded the field as *declared and read by nobody*: which scheduling
-    behaviour you got was decided by which ``Scheduler`` subclass the caller
-    happened to instantiate. v7.0.2 routed all three entries through
-    ``make_scheduler``, so the name is now bound — and the tests below show that
-    this is only half the contract.
-
-    The binding is real at ``run_pipeline``, which consumes the per-cycle
-    ``(conv, acq)`` groups from :meth:`Scheduler.reserve_dual` — that method
-    *is* overridden by :class:`ShuffledScheduler`. It is **inert at**
-    ``run_sim`` and ``run_sim_split``: those call ``reserve`` only, which
-    ``ShuffledScheduler`` inherits unchanged from the base class, so selecting
-    the shuffled scheduler there still produces ping-pong slices. ``dem_mode``
-    therefore changes the mechanism at one entry out of three.
-
-    That gap is not closed here on purpose. Making ``ShuffledScheduler.reserve``
-    shuffled means deciding *which* shuffle — and the causal one
-    (``conv[n] == acq[n-1]``, as in ``PhysicalSlicePool.shuffle_causal``) is
-    exactly the R1 fix, which moves published stage-19 numbers. That is a
-    physical main-path change and is tracked as its own decision, not smuggled
-    in behind a switch that was supposed to be cosmetic. Hence the ordinary
-    assertions for what holds, and one ``xfail(strict)`` for what does not.
+    第二轮审阅记录该字段未被消费；v7.0.2 后三入口均经 make_scheduler，但当时
+    run_pipeline 调用被覆写的 reserve_dual，run_sim 和 run_sim_split 仅调用未覆写的
+    reserve，所以选择相同类不等于执行相同机制。因果随机调度还须满足
+    conv[n]=acq[n-1]；它会改变历史 stage19 数值，不能只按开关名称推断已实现。
     """
 
     def test_dem_mode_selects_the_scheduler_class(self):
-        """The binding itself: ``rotate`` -> base, ``permute`` -> shuffled."""
+        """检查旧 rotate 选择基础类、permute 选择随机调度类。"""
         rng = np.random.default_rng(0)
         rotate = make_scheduler(_lean_cfg(dem_mode="rotate"), rng)
         permute = make_scheduler(_lean_cfg(dem_mode="permute"), rng)
@@ -680,19 +516,16 @@ class TestR10DemModeIsWired:
         assert type(permute) is ShuffledScheduler, f"permute gave {type(permute).__name__}"
 
     def test_an_explicit_scheduler_that_contradicts_the_config_is_refused(self):
-        """Two statements about which schedule runs is one too many."""
+        """检查显式调度器与配置声明冲突时被拒绝。"""
         cfg = _lean_cfg(dem_mode="permute")
         with pytest.raises(ConfigError, match="dem_mode"):
             run_sim_split(cfg, sine_input(0.5 * cfg.v_fs, 1e6), 64, scheduler=Scheduler(cfg))
 
     def test_dem_mode_changes_the_pipeline_result(self):
-        """Positive evidence at the one entry that consumes the shuffle.
+        """检查实际消费逐周期组的旧流水线入口能区分两种模式。
 
-        ``dyn_input_settling`` is what puts the per-cycle groups into the loop
-        body (pipeline.py); without it the schedule is drawn and never read, so
-        the two modes agree for a reason that has nothing to do with
-        ``dem_mode``. Asserting on that configuration is the difference between
-        testing the binding and testing a coincidence.
+        该旧路径只有启用 dyn_input_settling 才将组选择用于循环；不消费组时结果相同
+        不能证明调度开关正确，所以夹具显式选择可观察的路径。
         """
         inp = sine_input(0.5 * _lean_cfg().v_fs, _coherent(_lean_cfg().fs, N_SMALL))
         common = {"dyn_input_settling": True, "slice_bw_spread": 0.3}
@@ -713,7 +546,7 @@ class TestR10DemModeIsWired:
         ), "dem_mode no longer reaches the pipeline — the binding was removed"
 
     def test_dem_mode_changes_the_result_at_every_entry(self):
-        """The switch must mean the same thing whichever entry you call."""
+        """检查历史各入口对同一调度开关具有一致含义。"""
         base = _lean_cfg()
         x = sine_input(0.5 * base.v_fs, _coherent(base.fs, N_SMALL))
         common = {"mismatch_enable": True, "dyn_input_settling": True}
@@ -731,19 +564,18 @@ class TestR10DemModeIsWired:
 
 
 # ===========================================================================
-# R11 — the published reference output must satisfy the gate
+# R11：保留参考结果与总判定规则。
 # ===========================================================================
 class TestR11KnownLimits:
-    """The shipped ``results.json`` is itself subject to the rule.
+    """检查保留的 results.json 与结果判定、已知限制账本相互一致。
 
-    Leaving this unchecked is how a gate silently drifts away from the artefact
-    it is supposed to be gating. Two things are pinned: the reference output
-    passes, and the known-limits ledger is neither stale nor unexplained.
+    本组目标包括参考输出受同一规则约束，以及每项限制都有原因且没有过期。
+    这些是待执行的断言目的，不是当前参考产物通过的声明。
     """
 
     @staticmethod
     def _reference_results() -> dict:
-        """The published reference output, as written by ``run_all.py``."""
+        """读取旧 run_all.py 写出的保留参考结果。"""
         path = pathlib.Path("tools/results/results.json")
         assert path.exists(), "the reference results.json is missing"
         import json
@@ -761,22 +593,16 @@ class TestR11KnownLimits:
         assert verdict.ok(), "the gate rejects the shipped reference output"
 
     def test_the_ledger_is_either_empty_or_explained_in_full(self):
-        """An exemption without a reason is a hidden failure. None is also fine.
+        """检查限制账本为空或每项均有完整说明，不要求为测试保留虚假限制。
 
-        v7.0.2 carried exactly one entry, for the KTC ``f_max`` bound. That entry
-        was the *consequence of a wrong-node judgement*, not of a circuit limit,
-        so the correct ledger today is empty — and the previous assertion
-        ("the ledger must be non-empty") had turned into a demand to keep a
-        false limitation alive in order to keep a test green. The machinery is
-        not deleted with the last entry, because it is the device that makes an
-        exemption impossible to hide; its behaviour is pinned directly below,
-        against synthetic input, instead of through production data.
+        历史 v7.0.2 的唯一 KTC f_max 项来自节点口径错误，不能将它当成电路极限。
+        账本本身仍由合成反例检查，以防失败被无理由豁免。
         """
         for name, reason in KNOWN_LIMITS.items():
             assert len(reason.strip()) > 40, f"exemption {name!r} has no real justification"
 
     def test_an_exemption_moves_a_failure_out_of_failures_and_is_reported(self):
-        """Exercise the ledger without requiring a real limitation to exist."""
+        """用合成输入检查豁免的移动与报告，不要求生产数据必须存在真实限制。"""
         results = {"pipeline": {"PASS": False}}
         assert "pipeline.PASS" in gate(results).failures, "precondition: it fails"
 
@@ -796,7 +622,7 @@ class TestR11KnownLimits:
         )
 
     def test_a_stale_exemption_is_an_error_not_a_silent_no_op(self):
-        """An entry that stops failing must be removed, not left to rot."""
+        """检查不再失败的豁免项被报告为过期错误。"""
         registry = {"pipeline.PASS": "Synthetic entry: long enough to clear the reason floor."}
         with pytest.MonkeyPatch.context() as patch:
             patch.setattr("adi_model.acceptance.KNOWN_LIMITS", registry)
@@ -805,14 +631,14 @@ class TestR11KnownLimits:
         assert not verdict.ok(), "a stale exemption was accepted"
 
     def test_an_exemption_without_a_reason_is_refused(self):
-        """A blank justification must raise, not pass quietly."""
+        """检查空理由的豁免被拒绝。"""
         with pytest.MonkeyPatch.context() as patch:
             patch.setattr("adi_model.acceptance.KNOWN_LIMITS", {"pipeline.PASS": "   "})
             with pytest.raises(ValueError, match="no reason"):
                 gate({"pipeline": {"PASS": False}})
 
     def test_coverage_floor_is_met_without_being_vacuous(self):
-        """The floor must be tight: a record class disappearing must be caught."""
+        """检查结果数量下限能发现整类记录缺失。"""
         actual = len(acceptance_records(self._reference_results()))
         assert actual == MIN_RECORDS, (
             f"MIN_RECORDS={MIN_RECORDS} but the reference output has {actual} records; "
@@ -821,27 +647,17 @@ class TestR11KnownLimits:
 
 
 # ===========================================================================
-# R12 — the KTC bandwidth bound must be read at the node it constrains
+# R12：在约束对应节点计算旧 KTC 带宽界。
 # ===========================================================================
 class TestR12KtcMaxUsesTheObservedNode:
-    """K1: ``f_max`` was a false failure produced by reading the wrong node.
+    """K1：保留 KTC 观察节点与后级量化窗口的历史边界比较。
 
-    v7.0.2 evaluated the bound against the **second stage's input range**:
-    ``f_max = (adc2_v_max - G·Δ1) / (2π·v_fs·G0·Δt)``, which on the default
-    configuration is 2.5465 MHz against a 5 MHz requirement, and registered
-    that number in the known-limits ledger. The premise is wrong. ADR 0006
-    removes the correction term in the *digital* domain
-    (``quantize(v_ra) − κ·v_N``), so ``κ·v_N`` never occupies second-stage
-    range regardless of its size; the quantity that is actually band-limited is
-    the **observation** path, whose usable swing is ``ra_v_clip`` and whose
-    observed step is scaled by ``ktc_gain_n``:
-
-        f_max = (ra_v_clip / ktc_gain_n) / (2π · v_fs · Δt)  = 134.45 MHz
-
-    Both numbers are computed here, from the same configuration object, so that
-    the口径 difference is pinned as arithmetic rather than as prose — the defect
-    *was* a number, and a test that only asserted "a check exists" would have
-    passed at either node.
+    v7.0.2 曾用 f_max=(adc2_v_max-G*Delta1)/(2*pi*v_fs*G0*Delta_t)，
+    在旧配置得到 2.5465 MHz，并与 5 MHz 要求比较。ADR 0006 的校正作用于数字域
+    quantize(v_ra)-kappa*v_N，校正项不占 ADC2 窗口；旧观察通路约束应使用其
+    ra_v_clip 与 ktc_gain_n，得到 (ra_v_clip/ktc_gain_n)/(2*pi*v_fs*Delta_t)
+    为 134.45 MHz。本组保留同一配置下两个节点口径的算术对照，不将旧观察模型
+    作为当前必备架构。
     """
 
     NAME = "KTC 观测通路摆幅上限 f_max (满幅)"
@@ -864,12 +680,7 @@ class TestR12KtcMaxUsesTheObservedNode:
         )
 
     def test_the_second_stage_node_would_fail_and_is_not_the_criterion(self):
-        """The counterfactual, so the wrong node cannot quietly come back.
-
-        Read at the second stage's input range, the same requirement fails by a
-        factor of ~50. Pinning the counterfactual is what distinguishes "the
-        bound passes" from "the bound passes *because it is read correctly*".
-        """
+        """保留错误后级节点的反例，区分约束数值通过与观察节点选择正确。"""
         cfg = Config(ktc_enable=True)
         g = cfg.g_actual
         adc2_margin = min(cfg.adc2_v_max - g * cfg.delta1, -cfg.adc2_v_min)
@@ -887,25 +698,15 @@ class TestR12KtcMaxUsesTheObservedNode:
 
 
 # ===========================================================================
-# R15 — the gate must refuse a verdict it would have to guess at
+# R15：拒绝需要猜测真值的非布尔结果。
 # ===========================================================================
 class TestR15GateRefusesNonBooleanPass:
-    """K4: ``bool("False")`` is ``True``, and that is how a FAIL became a pass.
+    """K4：检查布尔结果类型，防止 bool("False") 被读作 True。
 
-    v7.0.2 normalised every verdict with ``bool(raw)``. A single serialisation
-    change — writing ``"False"`` instead of ``False`` — therefore read as a
-    pass, and the gate had no way to notice, because it had already thrown the
-    type away. ``acceptance._verdict`` now refuses anything that is not a
-    boolean; refusing to read is the only behaviour that cannot be silently
-    wrong.
-
-    v7.0.4 narrows the refusal by exactly one type: ``numpy.bool_``. The
-    in-memory sweep builds records straight from numpy comparisons, and
-    ``s10_summary.C_F->增益(电荷一致)`` was born as ``np.True_`` — a *real*
-    verdict that the JSON round-trip would have turned into ``bool`` anyway.
-    Refusing it did not protect anything; it broke the very sweep the gate
-    exists to judge. The impostors the contract exists to catch ("False",
-    ``0``, ``1.0``, ``None``) are still refused — pinned below, unchanged.
+    旧 bool(raw) 强制转换会丢失类型，故检查字符串、整数、浮点及 None 均被拒绝。
+    v7.0.4 允许 numpy.bool_，因为内存结果可直接来自 NumPy 比较；原 v7.0.3 的
+    s10_summary.C_F→增益(电荷一致) 曾以 np.True_ 触发该问题。允许该类型仍须同时
+    保留真、假两种值，不能重新引入一般真值转换。
     """
 
     def test_a_stringified_false_is_refused_not_read_as_true(self):
@@ -913,39 +714,31 @@ class TestR15GateRefusesNonBooleanPass:
             acceptance_records({"validate": {"x": {"PASS": "False"}}})
 
     def test_every_non_boolean_type_is_refused(self):
-        """The ints matter: ``bool(0)`` and ``bool(1)`` are plausible mistakes."""
+        """检查非布尔类型被拒绝，特别覆盖易被 bool(0)／bool(1) 转换的整数。"""
         for raw in ("True", "False", 0, 1, 0.0, 1.0, None, [], {}):
             with pytest.raises(ValueError, match="not a bool"):
                 acceptance_records({"pipeline": {"PASS": raw}})
 
     def test_a_real_boolean_is_returned_unchanged(self):
-        """Control: the strictness must not reject the correct type."""
+        """正对照：实际布尔值保持原值。"""
         assert acceptance_records({"pipeline": {"PASS": False}}) == {"pipeline.PASS": False}
         assert acceptance_records({"pipeline": {"PASS": True}}) == {"pipeline.PASS": True}
 
     def test_a_numpy_boolean_is_a_verdict_not_an_impostor(self):
-        """np.bool_ is accepted and normalised, and stays False when False.
-
-        Regression pin for the v7.0.3 CI failure: the py3.12 acceptance sweep
-        died on ``s10_summary.C_F->增益(电荷一致)`` carrying ``np.True_``. The
-        normalisation must be value-preserving in *both* directions — a numpy
-        ``False`` must not come out as ``True`` on the far side.
-        """
+        """检查 np.bool_ 被保值归一化，False 不会转成 True。"""
         np_bool = type(np.True_)
         assert acceptance_records({"pipeline": {"PASS": np.True_}}) == {"pipeline.PASS": True}
         assert acceptance_records({"pipeline": {"PASS": np_bool(False)}}) == {
             "pipeline.PASS": False
         }
-        # a numpy *float* is still refused: truthiness is not a verdict
+        # NumPy 浮点仍被拒绝；一般真值不能代替布尔结果。
         with pytest.raises(ValueError, match="not a bool"):
             acceptance_records({"pipeline": {"PASS": np.float64(1.0)}})
 
     def test_the_required_set_is_enforced_by_id_not_by_count(self):
-        """Deleting one required record and adding another must not pass.
+        """检查必需记录以标识符约束，不能删一条再补无关记录满足数量下限。
 
-        This is the reason ``REQUIRED_RECORDS`` exists next to ``MIN_RECORDS``:
-        the floor counts, so it can be satisfied by a swap; the set names the
-        conclusions that would otherwise lose their only evidence.
+        MIN_RECORDS 约束总数；REQUIRED_RECORDS 约束具体结论对应的记录。
         """
         verdict = gate({"pipeline": {"PASS": True}})
         assert verdict.missing_required, "the required set is not enforced at all"
@@ -956,32 +749,18 @@ class TestR15GateRefusesNonBooleanPass:
 
 
 # ===========================================================================
-# R16-R18 — fifth external review (v7.0.4): permutation space, τ topology,
-#           optimal cancellation under observer noise
+# R16–R18：第五次外部审阅（v7.0.4）的排列空间、时间常数拓扑
+# 及包含观察噪声的最优校正系数。
 # ===========================================================================
 class TestR16DemPermutationSpace:
-    """§4.2: 512 digital state labels collapse into 64 physical rotations.
+    """§4.2：检查旧 512 个数字标签只形成 64 个联合物理旋转。
 
-    ``mapper.N_DEM_STATES`` is ``8·8·8 = 512`` — a name that invites reading
-    the digital state counter as three-dimensional DEM diversity. The DAC's
-    rotations are both driven by the *same* ``sid``:
+    旧主阵列偏移为 (sid*331) mod 64，子阵列为 (sid*173) mod 8；两个乘子分别
+    与各自模数互素，但共用同一 sid，使联合周期为 lcm(64,8)=64，而非乘积 512。
+    原无随机种子枚举记录为 64 种联合排列，每个主旋转只配一个子旋转。
 
-        om  = roll(arange(n_m), (sid·331) mod 64)
-        os_ = roll(arange(n_s), (sid·173) mod 8)
-
-    so the joint permutation is determined by the pair ((sid·331) mod 64,
-    (sid·173) mod 8), which has period lcm(64, 8) = 64 — a 331 that is coprime
-    to 64 and a 173 that is coprime to 8 make each rotation individually
-    full-cycle, but the *joint* cycle is the lcm, not the product. Measured
-    (this file, seed-free enumeration): 64 distinct joint permutations, each
-    main rotation paired with exactly one sub rotation.
-
-    This is pinned as a **passing** test on purpose. It is not a defect to be
-    fixed by rewiring — choosing the real three-dimensional mechanism (8/18
-    slice selection, lateral + vertical shuffling, binary-to-unary bridging)
-    is an architecture decision that moves published numbers. The pin exists
-    so that (a) the number cannot drift silently and (b) no DEM sweep in this
-    repo can be quoted as the paper's three-dimensional benefit.
+    此历史计数用于防止误称三维 DEM。论文中的 8/18 选择、横向／纵向重排及
+    二进制到一元桥接不能由该耦合旋转的标签数量推出。
     """
 
     def test_the_joint_permutation_space_is_64_not_512(self):
@@ -1017,12 +796,7 @@ class TestR16DemPermutationSpace:
         )
 
     def test_the_dac_realises_the_same_space_through_its_public_interface(self):
-        """End-to-end check through SplitDAC, not just the roll arithmetic.
-
-        ``_lean_cfg`` keeps ``dem_enable=False`` (identity order), so this
-        test enables DEM explicitly — the claim under test is about the DEM
-        space itself.
-        """
+        """通过旧 SplitDAC 公共接口检查排列空间，并显式开启该夹具默认关闭的 DEM。"""
         cfg = Config(dem_enable=True, dac_arch="split")
         dac = SplitDAC(cfg, build_split_chip(cfg))
         orders = {tuple(dac.full_order(sid).tolist()) for sid in range(512)}
@@ -1033,22 +807,12 @@ class TestR16DemPermutationSpace:
 
 
 class TestR17CommonModeTau:
-    """§5.2: the aggregate τ is *not* uniformly conservative.
+    """§5.2：检查共享源阻抗使总时间常数不能统一按切片数缩小。
 
-    The header of ``pipeline.py`` used to say the per-slice τ is "~8× smaller,
-    so the aggregate single-node RC is a conservative upper bound". That is
-    true only for the branch-switch term. In a star network — common source
-    impedance R_s feeding N branches of (R_on + C_slice) — the common-mode
-    time constant is
-
-        τ_common = R_s·C_total + R_on·C_slice,
-
-    so the R_s·C_load term of the aggregate formula does *not* shrink with the
-    slice partition. With the reviewer's numbers (N=8, C_total = 20.5 pF,
-    R_s = 30 Ω, R_on = 20 Ω): aggregate 1.025 ns, common-mode 0.666 ns (only
-    1.54× smaller), all-per-slice 0.128 ns. The header now states this
-    qualification; this test pins the arithmetic so the numbers in the comment
-    cannot rot.
+    星形网络由 R_s 驱动 N 个 R_on、C_slice 支路，共模时间常数为
+    R_s*C_total+R_on*C_slice；只有支路项随分片缩小，共享源阻抗项不缩小。
+    旧审阅夹具 N=8、C_total=20.5 pF、R_s=30 Ω、R_on=20 Ω，得到总模型 1.025 ns、
+    共模 0.666 ns（仅缩小 1.54 倍），全按切片缩小则为 0.128 ns。
     """
 
     def test_the_star_network_common_mode_time_constant(self):
@@ -1061,27 +825,22 @@ class TestR17CommonModeTau:
         assert tau_aggregate == pytest.approx(1.025e-9)
         assert tau_common == pytest.approx(0.666e-9, rel=1e-3)
         assert tau_all_per_slice == pytest.approx(0.128e-9, rel=1e-3)
-        # the ratio that the "~8×" claim silently assumed away:
+        # 对照原“约 8 倍”说法遗漏的共享源阻抗影响。
         assert tau_aggregate / tau_common < 2.0, (
             "with these source/switch numbers the aggregate bound is within 2× "
             "of the star-network common mode, not 8× — the conservative claim "
             "is qualified, as pipeline.py's header now states"
         )
-        # algebraic identity the qualification rests on:
+        # 核对上述限定所依据的代数恒等式。
         assert (n * rs + ron) * c_slice == pytest.approx(rs * c_total + ron * c_slice)
 
 
 class TestR18KappaOptimalWithObserverNoise:
-    """§11: deepest cancellation ≠ minimum total noise.
+    """§11：检查最小总残差同时计入观察噪声。
 
-    ``noise_phase.kappa_optimal`` used to return aᵀΣb / bᵀΣb — the minimiser
-    of the *sampling-noise residual only*. But ``sigma_res_analytic``, the
-    function that reports the final number, also charges κ²·σ_eN² for the
-    observer path. Minimising one while reporting the other is an internal
-    inconsistency the fifth review exposed by writing the correct joint
-    optimum: κ* = aᵀΣb / (bᵀΣb + σ_eN²). ``kappa_optimal`` now takes
-    ``sigma_eN`` (default 0 = historical behaviour); this pin holds it to the
-    joint optimum, in both directions.
+    只最小化采样噪声时系数为 aᵀΣb/(bᵀΣb)；报告总残差还含 kappa²*sigma_eN²，
+    因此联合最优为 aᵀΣb/(bᵀΣb+sigma_eN²)。本组保留旧 noise_phase 接口的正反向
+    算术检查，sigma_eN=0 对应其历史结果。
     """
 
     def _state(self) -> dict:
@@ -1094,7 +853,7 @@ class TestR18KappaOptimalWithObserverNoise:
         st = self._state()
         for sigma_eN in (0.0, 0.3, 1.0, 3.0):
             k = kappa_optimal(st, sigma_eN)
-            # optimality: total residual at κ* must not exceed any neighbour
+            # 最优性：κ* 处的总残差不得大于邻近系数处的总残差。
             grid = np.linspace(0.0, 2.0, 2001)
             totals = np.array([sigma_res_analytic(st, float(x), sigma_eN) for x in grid])
             at_k = sigma_res_analytic(st, k, sigma_eN)

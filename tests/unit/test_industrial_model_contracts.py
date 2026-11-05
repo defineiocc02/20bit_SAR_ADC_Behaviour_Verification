@@ -1,4 +1,4 @@
-"""Independent boundary, clock-budget and measurement-contract regressions."""
+"""检查独立的数值边界、时钟预算和测量合同。"""
 
 from dataclasses import replace
 
@@ -77,7 +77,7 @@ def test_reference_pulse_convolution_covers_the_complete_clock_budget(timing, fi
     final_decay = np.exp(-amplification / (fine_tau or coarse_tau))
     previous_end = np.zeros(2)
     for sample in range(5):
-        # Closed-form impulse sum at RA entry, including any pre-RA gap.
+        # 在 RA 入口计算闭式脉冲响应和，包含进入 RA 前的间隔。
         inherited = previous_end * np.exp(-(1 / cfg.fs - aperture + entry) / coarse_tau)
         if sample == 0:
             inherited[:] = 0
@@ -92,7 +92,7 @@ def test_reference_pulse_convolution_covers_the_complete_clock_budget(timing, fi
         np.testing.assert_allclose(trace.phase_reference_v[sample, 0], expected_entry, atol=1e-18)
         np.testing.assert_allclose(trace.reference_error_v[sample], expected_end, atol=1e-18)
         previous_end = expected_end
-    # No RA or ADC2 integration occurs before the declared RA entry.
+    # 声明的 RA 入口之前不执行 RA 或 ADC2 积分。
     assert trace.phase_ra_v[0, 0] == 0
     assert trace.phase_adc2_v[0, 0] == 0
     np.testing.assert_array_equal(trace.phase_ra_v[1:, 0], trace.ra_v[:-1])

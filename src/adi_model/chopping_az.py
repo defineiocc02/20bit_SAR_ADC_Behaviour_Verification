@@ -1,19 +1,18 @@
 """样本域斩波辅助 AZ（CAAZ）研究入口，默认关闭。
 
-信号链顺序为：整个 ADC 输入按 raw 样本交替极性 -> RA 输出误差注入 ->
-RA 钳位/ADC2 量化 -> 每个 raw 完整位权重构 -> 按归属配对读出。不可先
-平均模拟真值再量化，否则会隐藏逐 raw 的失配、溢出和量化影响。
+信号链顺序为：
+整个 ADC 输入按 raw 样本交替极性 -> RA 输出误差注入 -> RA 钳位/ADC2 量化 -> 每个 raw 完整位权重构 -> 按归属配对读出。
+不可先平均模拟真值再量化，否则会隐藏逐 raw 的失配、溢出和量化影响。
 
-C32.1 Figs.5-6 披露偶数更新 AZ、奇数保持、偶减奇的机制。若同一份 AZ
-误差 a_k [RA 输出 V] 被两次等增益传递，pair 差分中的共同项相消；保持
-rho 和奇次传递 r 不匹配时，线性 RA 输出等效残留为 (1-rho*r)*a_k/2。
-转换增益、非线性、裁剪和码量化仍可破坏输入等效抵消。
+C32.1 Figs.5-6 披露偶数更新 AZ、奇数保持、偶减奇的机制。
+若同一份 AZ误差 a_k [RA 输出 V] 被两次等增益传递，pair 差分中的共同项相消；
+保持rho 和奇次传递 r 不匹配时，线性 RA 输出等效残留为 (1-rho*r)*a_k/2。转换增益、非线性、
+裁剪和码量化仍可破坏输入等效抵消。
 
-raw 40 MS/s -> 非重叠 pair 20 MS/s 是本项目明确选择；文献 6 MS/s
-标题未唯一说明 raw/effective 口径。AZ 幅度、保持和传递差异均为假设，
-没有用测得 4.3 dB 反推标量。本模型与 ra.py 的旧 AZ 噪声倍率分开，配对
-模式拒绝将两者叠加。没有 FGA/CP-FIA 晶体管、连续斩波或 1/f 电路传递。
-来源：Wang 等，VLSI 2025 C32.1，DOI 10.23919/VLSITechnologyandCir65189.2025.11075015。
+raw 40 MS/s -> 非重叠 pair 20 MS/s 是本项目明确选择；文献 6 MS/s标题未唯一说明 raw/effective 口径。
+AZ 幅度、保持和传递差异均为假设，没有用测得 4.3 dB 反推标量。本模型与 ra.py 的旧 AZ 噪声倍率分开，
+配对模式拒绝将两者叠加。没有 FGA/CP-FIA 晶体管、连续斩波或 1/f 电路传递。来源：Wang 等，
+VLSI 2025 C32.1，DOI 10.23919/VLSITechnologyandCir65189.2025.11075015。
 """
 
 from __future__ import annotations
@@ -36,10 +35,10 @@ class ChoppingAZParameters:
     Args:
         mode: off 保留普通 raw 输出；baseline 无新增 AZ 噪声、只做配对平均；
             conventional_az 每次 raw 独立采 AZ 噪声并做配对平均；
-            chopping_assisted 对完整 ADC 输入交替极性，偶数刷新、奇数保持
-            同一份 AZ 误差，再对重构码偶减奇。均不从模拟输入真值估计误差。
-        az_noise_rms_v: 新增 AZ 采样误差的 RA 输出 RMS [V]；独立假设源，
-            不是外部输入等效噪声，也不是从论文 4.3 dB 测量拟合的系数。
+            chopping_assisted 对完整 ADC 输入交替极性，偶数刷新、奇数保持同一份 AZ 误差，
+            再对重构码偶减奇。均不从模拟输入真值估计误差。
+        az_noise_rms_v: 新增 AZ 采样误差的 RA 输出 RMS [V]；独立假设源，不是外部输入等效噪声，
+            也不是从论文 4.3 dB 测量拟合的系数。
         post_az_offset_v: AZ 后的常量残余 [RA 输出 V]，不是失调消除电路模型。
         odd_hold_retention: 奇次保持偶次误差的比例 rho，范围 [0,1]；仅 CAAZ。
         odd_transfer_ratio: 奇/偶误差传递比 r，无量纲；仅 CAAZ，校验仅要求有限。
@@ -61,8 +60,8 @@ class ChoppingAZParameters:
             None；成功不代表物理参数已由器件测量确认。
 
         Raises:
-            ConfigError: 模式未知，RMS 为负，保持比例越界，或关闭/不适用模式
-                下仍请求新增 AZ 噪声、保持/传递控制或残余误差。
+            ConfigError: 模式未知，RMS 为负，保持比例越界，或关闭/不适用模式下仍请求新增 AZ 噪声、
+                保持/传递控制或残余误差。
 
         Side effects:
             不修改参数、不消费任何随机流。
@@ -138,26 +137,24 @@ def pair_readout(
     """用整数码的精确 bin 中心执行配对，再量化为同位宽输出。
 
     Args:
-        words: 偶数长度 (N,) CodeStream；B=output_bits 在 [1,30]，码为
-            [0,2**B) 的 offset-binary 整数。v_fs 是有限正输入峰值 [V]，
-            三类 raw 标志须为同形布尔数组。
+        words: 偶数长度 (N,) CodeStream；B=output_bits 在 [1,30]，
+            码为[0,2**B) 的 offset-binary 整数。v_fs 是有限正输入峰值 [V]，三类 raw 标志须为同形布尔数组。
         difference: True 为偶减奇再除二；False 为普通配对平均。
 
     Returns:
-        四个只读 (N/2,) 数组：(offset-binary code, bin 中心输入等效 V,
-        精确配对电压 V, invalid)。设偶/奇码 ke/ko、M=2**B：平均输出为
-        floor((ke+ko+1)/2)，差分输出为 floor((ke-ko+M)/2)。常数项来自
-        midrise bin 中心及 offset-binary 零点，不是随意增加的舍入偏置。
-        无符号码先扩为 int64 再减，避免无符号回绕；invalid 为 pair 内
-        所有 raw 模拟溢出及数字裁剪标志的 OR，不过滤异常样本。
+        四个只读 (N/2,) 数组：(offset-binary code, bin 中心输入等效 V,精确配对电压 V, invalid)。
+        设偶/奇码 ke/ko、M=2**B：平均输出为floor((ke+ko+1)/2)，差分输出为 floor((ke-ko+M)/2)。
+        常数项来自midrise bin 中心及 offset-binary 零点，不是随意增加的舍入偏置。
+        无符号码先扩为 int64 再减，避免无符号回绕；
+        invalid 为 pair 内所有 raw 模拟溢出及数字裁剪标志的 OR，不过滤异常样本。
 
     Raises:
         ValueError: 长度、位宽、码制/范围、满幅或标志形状/类型非法。
 
     Notes:
-        本函数只做码算术，不推断样本 ID、epoch 或 AZ 存储归属；fresh
-        runner 在调用前检查连续偶数起始 ID。来源为 C32.1 Fig.6 的偶减奇
-        机制，midrise 再量化是本工程合同。
+        本函数只做码算术，不推断样本 ID、epoch 或 AZ 存储归属；
+        fresh runner 在调用前检查连续偶数起始 ID。来源为 C32.1 Fig.6 的偶减奇机制，
+        midrise 再量化是本工程合同。
     """
     code = np.asarray(words.code)
     if code.ndim != 1 or len(code) < 2 or len(code) % 2:
@@ -191,8 +188,8 @@ def pair_readout(
 def _fresh_pair_ids(raw: SimResult, n_samples: int) -> np.ndarray:
     """检查 fresh 记录属于连续偶数起始的 32 位 raw ID 序列。
 
-    按模 2**32 验证逐次加一，允许数值回绕；不把缺样、错序或奇数起始
-    自动重排成新 pair。此检查不提供跨调用的 epoch/存储代状态。
+    按模 2**32 验证逐次加一，允许数值回绕；不把缺样、错序或奇数起始自动重排成新 pair。
+    此检查不提供跨调用的 epoch/存储代状态。
     """
     ids = np.asarray(raw.sample_id)
     if (
@@ -213,8 +210,8 @@ def _fresh_pair_ids(raw: SimResult, n_samples: int) -> np.ndarray:
 class _SampleIndexedChop:
     """仅在各 raw 样本孔径处施加极性，两次孔径 t1/t2 使用同一符号。
 
-    依靠样本所有权索引，不按任意时间的 floor/ceil 猜测相位；因此不能
-    用作连续时间开关波形或传入动态斩波电路求解器。
+    依靠样本所有权索引，不按任意时间的 floor/ceil 猜测相位；
+    因此不能用作连续时间开关波形或传入动态斩波电路求解器。
     """
 
     def __init__(self, source, signs):
@@ -271,10 +268,10 @@ def run_caaz_pipeline(
         input_fn: 外部输入电压函数，按归属明确的 raw 孔径时间 [s] 求值。
         n_samples: 正整数 raw 数 N；非 off 模式要求偶数。
         az: 显式模式及假设的 RA 输出误差参数；None 等价默认 off。
-        post_az_error_v: 可选 (N,) 有限的 AZ 后误差 [RA 输出 V]；
-            是调用方定义的扰动，不自动成为器件 1/f 或失调消除模型。
-        az_rng: 独立的 AZ 随机流；off/baseline 不消费，另两模式均抽 N 个
-            创新样本以便同流比较，CAAZ 只使用偶数创新，奇数创新未被采入。
+        post_az_error_v: 可选 (N,) 有限的 AZ 后误差 [RA 输出 V]；是调用方定义的扰动，
+            不自动成为器件 1/f 或失调消除模型。
+        az_rng: 独立的 AZ 随机流；off/baseline 不消费，另两模式均抽 N 个创新样本以便同流比较，
+            CAAZ 只使用偶数创新，奇数创新未被采入。
         **pipeline_kwargs: run_pipeline 的 chip/state/rng/scheduler/pool 参数；
             state 可包含独立训练并冻结的位权，不能在留出数据上重拟合。
 
@@ -291,9 +288,9 @@ def run_caaz_pipeline(
         off 直接委托普通主链。此 fresh runner 不连续继承跨调用的配对状态。
 
     Raises:
-        ConfigError: 非法参数/长度/显式误差流，重复 RA 误差入口，或非 off
-            记录的 ID 归属不合法。非 off 还拒绝未实现的动态斩波、旧 AZ、
-            flicker、KTC 及若干切片/驱动动态组合；独立孔径采样白噪声可保留。
+        ConfigError: 非法参数/长度/显式误差流，重复 RA 误差入口，或非 off记录的 ID 归属不合法。
+            非 off 还拒绝未实现的动态斩波、旧 AZ、flicker、KTC 及若干切片/驱动动态组合；
+            独立孔径采样白噪声可保留。
 
     Notes:
         [C32.1 Figs.5-6] 支持输入斩波、偶更新/奇保持及偶减奇。raw40/pair20

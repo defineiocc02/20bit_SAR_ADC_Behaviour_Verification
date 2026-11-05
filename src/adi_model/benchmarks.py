@@ -1,4 +1,4 @@
-"""Separate published benchmark records from fitted behavioral noise assumptions."""
+"""分别保存论文披露的基准记录与拟合的行为噪声假设。"""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ class PublishedBenchmark:
     flicker_corner_hz: float | None = None
 
     def to_dict(self) -> dict:
-        """Report separately derived DR and flat-density noise estimates."""
+        """分别报告由 DR 与平坦噪声密度推算的噪声量。"""
         result = asdict(self)
         result.update(
             source_grade="published measurement (not a behavioral prediction)",
@@ -35,9 +35,9 @@ class PublishedBenchmark:
     def configuration(self, **overrides):
         """Create a nine-decision-bit candidate with this source's DR noise anchor.
 
-        RA noise is fitted from the requested DR when ra_out_noise_rms=None.
-        Recovering that DR is a budget-consistency check, not silicon validation.
-        The topology, backend range and device noise allocation remain assumed.
+        RA noise is fitted from the requested DR when ra_out_noise_rms=None. Recovering that DR is a
+        budget-consistency check, not silicon validation. The topology, backend range and device
+        noise allocation remain assumed.
         """
         from .config import Config
 

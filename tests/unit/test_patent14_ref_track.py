@@ -29,7 +29,7 @@ def run():
 
 class TestSettling:
     def test_settles_within_disclosed_order(self, run):
-        """[14]：'usually able to settle within 5 or 6 conversion cycles'。"""
+        """检查该假设参数组的整定周期与 [14] 披露的通常 5 或 6 周期处于相同量级。"""
         assert run.settle_cycle is not None
         assert run.settle_cycle <= 8
 

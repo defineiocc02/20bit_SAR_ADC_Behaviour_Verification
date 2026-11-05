@@ -1,4 +1,4 @@
-"""Available-code causality and real auxiliary/precharge electrical effects."""
+"""检查可用粗码的因果关系及辅助驱动、预充电的电气响应。"""
 
 from dataclasses import replace
 
@@ -71,8 +71,8 @@ def test_main_runner_only_uses_available_quantized_codes_and_changes_stored_stat
     assert np.all(trace.pretrack_source_ids[0] == -1)
     assert np.max(abs(assisted.acquisition_voltage - baseline.acquisition_voltage)) > 1e-3
     assert np.max(abs(trace.pretrack_source_charge_c)) > 1e-13
-    # Low-frequency input is a useful pretrack case. Success is not asserted
-    # for arbitrary high-frequency waveforms with delayed predictions.
+    # 低频输入用于检查预跟踪；带延迟预测的任意高频波形
+    # 不在该案例的成功断言范围内。
     assert np.std(assisted.acquisition_error[16:]) < np.std(baseline.acquisition_error[16:])
 
 
@@ -85,7 +85,7 @@ def test_auxiliary_load_and_reset_charges_are_accounted_at_their_actual_sources(
     r = run_pipeline(cfg, dc_input(0.5), 8)
     tr = r.input_assist_trace
     coeff = r.pool.split_coefficients(r.conv_slice_ids)
-    # The first aperture has zero initial charge on every branch and the bus.
+    # 第一个采样时刻各支路与总线的初始电荷均为零。
     q = np.dot(coeff["load_slice"][0], r.acquisition_voltage[0])
     q += cfg.c_sadc * (0.5 + r.sadc_acquisition_error[0])
     q += params.filter_cap_f * r.input_bus_voltage[0]

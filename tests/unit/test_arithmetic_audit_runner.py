@@ -1,4 +1,4 @@
-"""Exercise runtime-path handling; launcher fixtures do not simulate RTL."""
+"""检查运行库路径处理；启动器夹具不执行 RTL 仿真。"""
 
 from __future__ import annotations
 
@@ -16,9 +16,9 @@ assert SPEC and SPEC.loader
 AUDIT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(AUDIT)
 
-# Model the executable search boundary in the upstream 5.020 Perl launcher:
-# an explicit ROOT bypasses the launcher's own executable directory. The fixture
-# binary only prints a marker; this verifies process startup, not Verilator or RTL.
+# 模拟上游 5.020 Perl 启动器的可执行文件搜索边界：
+# 显式 ROOT 绕过启动器所在目录；夹具程序
+# 只打印标记，因此这里只检查进程启动，不验证 Verilator 或 RTL。
 LAUNCHER = """import os
 from pathlib import Path
 import sys
@@ -61,8 +61,8 @@ def test_split_install_starts_without_forcing_header_root(tmp_path):
     )
     assert result.returncode == 0, result.stderr
     assert result.stdout == "LAUNCHER_FIXTURE_STARTED\n"
-    # Negative control: the old runner injected this header-only root and broke
-    # the same otherwise-valid installation, before any RTL compilation began.
+    # 负对照：旧运行器注入仅含头文件的根路径，
+    # 在 RTL 编译前即破坏原本可启动的同一安装。
     result = subprocess.run(
         [sys.executable, str(launcher)],
         env={**env, "VERILATOR_ROOT": str(runtime)},

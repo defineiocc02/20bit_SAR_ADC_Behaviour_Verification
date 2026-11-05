@@ -1,7 +1,4 @@
-//===========================================================================
-// p3_top_tb.sv -- 顶层 L3 数值测试（端到端 bit-exact）
-//===========================================================================
-// 职责
+// p3_top_tb.sv -- 顶层 L3 数值测试（端到端 bit-exact） 职责
 //   只驱动 `sar20_digital_core` 的**顶层端口**，做"寄存器载入 -> cfg_ready ->
 //   逐样本驱动 -> 逐样本比对 dout/clip"的端到端验证。中间量（sid、掩码、计数、
 //   slice_id、bank）一律不给，全部由 RTL 自己产生 —— 这正是 P2 §12 的 L3 口径。
@@ -13,7 +10,7 @@
 //   p2_link_stim.hex      bank(1) coarse(3) dither(2) inj_q(16) adc2_code(3)  N 行
 //   p2_link_expected.hex  dout(5) clip_low(1) clip_high(1) analog_ovf(1)      N 行
 //
-// ---- 行对齐的推导（**必须复核**，这是本 TB 最容易被误配的地方）----------
+// 行对齐的推导（**必须复核**，这是本 TB 最容易被误配的地方）
 //   ctrl_fsm 在 cfg_ready 拉高的那一拍恰好处于 phase 0（因为 !cfg_ready 时被强制
 //   清 0），故设 c = 0 于"cfg_ready 首次读到 1 的那一拍"，则
 //       phase(c) = c mod 16
@@ -28,7 +25,7 @@
 //     NLAT = 12，**VCS 实测是 11**（首个 dout_valid 落在 c = 15 + 11 = 26）。
 //     本 TB 以**实测**为准（localparam NLAT = 11），并把这个出入登记在这里。
 //
-// ---- 两个已知阻塞（详见交付汇报，**已报给 team-lead，未自行改 rtl/**）------
+// 两个已知阻塞（详见交付汇报，**已报给 team-lead，未自行改 rtl/**）
 //   [A] **dither 无法注入**。`p2_link_stim.hex` 的 dither 列实测非零
 //       （512 行中 384 行非零，取值 {-6,-3,0,3,6}），而 `sar20_digital_core`
 //       的端口表里没有 dither 输入：顶层的 `swap_decode.dither_code` 接的是片内
@@ -59,7 +56,7 @@
 //       （P1 §0.1），故本测试**不覆盖** dither_gen / unit_therm 的 dither_rail 分支。
 //       这不是"全覆盖"。那些模块的验收仍归 P1 的统计判据。
 //
-// ---- 本 TB 的其它如实登记（不是"全覆盖"）---------------------------------
+// 本 TB 的其它如实登记（不是"全覆盖"）
 //   [C] 文件第 0 行在顶层无对应物（见上）。本 TB 只比对第 1..511 行。
 //   [D] `p2_link_stim.hex` 的 coarse 只覆盖 **[50, 462]**（实测），coarse<50 或 >462
 //       的点没有被向量覆盖。`+sweep` 在 force 状态下打到 coarse=0 时出现
@@ -143,24 +140,23 @@
 //       ⚠️ **只在显式给 `+trace` 时**才 fopen / 写文件 / 打印任何东西 —— 不给时该分支
 //       完全不执行，故**输出与改动前逐字节一致**。这条"没给 plusarg 就不变"的证明方式
 //       与"没给 `+injdith` 就是对照跑法"是同一套纪律。
-//===========================================================================
 `timescale 1ns/1ps
 `include "rtl_params.vh"
 
 module p3_top_tb;
 
-  // recon_start(ph15) -> dout_valid 的延迟。文档与我在 RTL 里的推导都写 12，
-  // **实测是 11**（首个 dout_valid 落在 c = 15 + 11 = 26）。以实测为准，已报 team-lead。
+  // recon_start(ph15) -> dout_valid 的延迟。文档与我在 RTL 里的推导都写 12， **实测是 11**（首个
+  // dout_valid 落在 c = 15 + 11 = 26）。以实测为准，已报 team-lead。
   localparam int NLAT    = 11;
   localparam int MAXROW  = 4096;
-  localparam int ROW_OFF = 1;      // RTL 转换 #k <-> 文件第 (k + ROW_OFF) 行
+  localparam int ROW_OFF = 1;      // ROW_OFF: RTL 转换 #k <-> 文件第 (k + ROW_OFF) 行
 
   string vdir = "sim/vectors";
   int    errors = 0;
   int    checks = 0;
   int    shown  = 0;
 
-  // ---- 观测 trace（`+trace=<file>`）：论文判据需要的"逐样本可观测字段" -------------
+  // 观测 trace（`+trace=<file>`）：论文判据需要的"逐样本可观测字段"
   // 列：`sample_idx dout clip analog_ovf`，其中 `clip` = `{clip_high, clip_low}` 一个 hex 数字。
   // ⚠️ 只在给了 `+trace` 时才 fopen / 写文件 / 打印任何东西 —— 未给时**输出与改动前逐字节
   //    一致**。这是"只加一条 plusarg 分支、不动既有判据与既有输出"的**证明方式**（见模块头 [I]）。
@@ -172,9 +168,7 @@ module p3_top_tb;
   always #5 clk = ~clk;
   logic rst_n = 1'b0;
 
-  //=========================================================================
   // DUT
-  //=========================================================================
   logic        cfg_wr, cfg_validate, cfg_clear_valid, cfg_ready;
   logic [15:0] cfg_addr;
   logic [63:0] cfg_wdata, cfg_rdata;
@@ -232,9 +226,7 @@ module p3_top_tb;
       .caaz_pair_fault_code()
   );
 
-  //=========================================================================
   // 向量容器
-  //=========================================================================
   int                 nrows;
   logic [8:0]         a_bank   [0:MAXROW-1];
   logic [8:0]         a_coarse [0:MAXROW-1];
@@ -275,8 +267,8 @@ module p3_top_tb;
   logic exp_an_cum_q = 1'b0;               // "期望 analog_ovf"的累积 OR（粘滞口径）
   int   an_ps_diff   = 0;                  // 与"逐样本期望"相比不同的行数（只统计、不断言）
 
-  // dither 注入（+injdith）：用层次化 force 把向量的 dither 列钉到 RTL 内部，
-  // 不改 RTL、不改顶层端口表。见模块头的"覆盖缺口"登记。
+  // dither 注入（+injdith）：用层次化 force 把向量的 dither 列钉到 RTL 内部，不改 RTL、
+  // 不改顶层端口表。见模块头的"覆盖缺口"登记。
   bit injdith = 1'b0;
   bit forced  = 1'b0;
   // ⚠️ VCS 不同意在 force 的右值里引用 automatic 变量（Error-[IRFPCA-AUTOVAR]），
@@ -302,10 +294,10 @@ module p3_top_tb;
     end
   endtask
 
-  // ---- 临时诊断（+dbgcfg）：追 `off_r` 的每一次变化 --------------------------
+  // 临时诊断（+dbgcfg）：追 `off_r` 的每一次变化
   // 起因：系数回读在多次运行里 offset_q 时而是 0、时而是 1（min/max 恒对）。
-  // 静态看 `off_r` 只可能被 0x1000 的一次写覆盖成 0，故必须实测到底是谁写了它，
-  // 还是 `cfg_read` 的采样本身有问题。只在 `+dbgcfg` 下工作，默认零开销。
+  // 静态看 `off_r` 只可能被 0x1000 的一次写覆盖成 0，故必须实测到底是谁写了它，还是 `cfg_read`
+  // 的采样本身有问题。只在 `+dbgcfg` 下工作，默认零开销。
   bit dbgcfg = 1'b0;
   initial dbgcfg = $test$plusargs("dbgcfg");
   logic [V_BITS-1:0] off_watch = '0;
@@ -323,9 +315,9 @@ module p3_top_tb;
     end
   end
 
-  // ---- 运行期粘滞观测（用时钟域累加，不依赖 TB 主循环的采样时序）--------
-  // 目的：判断"大面积饱和"是不是由 acc_ovf / gain_err 触发的 —— 这两个都不在
-  // analog_ovf 里（契约 §4.6），所以只看 analog_ovf 会漏掉它们。
+  // 运行期粘滞观测（用时钟域累加，不依赖 TB 主循环的采样时序）
+  // 目的：判断"大面积饱和"是不是由 acc_ovf / gain_err 触发的 —— 这两个都不在 analog_ovf 里（契约
+  // §4.6），所以只看 analog_ovf 会漏掉它们。
   int n_rdac_ovf_hi = 0, n_acc_ovf_hi = 0, n_sw_valid_hi = 0;
   always @(posedge clk) begin
     if (rst_n) begin
@@ -335,9 +327,7 @@ module p3_top_tb;
     end
   end
 
-  //=========================================================================
   // 通用工具（读法与 p2_tb.sv 一致：$sscanf 取 token 判 #DATA，不依赖字符位置）
-  //=========================================================================
   function automatic int open_data(input string name);
     int    fd;
     string line, tok;
@@ -383,9 +373,7 @@ module p3_top_tb;
     end
   endtask
 
-  //=========================================================================
   // 载入：18 x 71 权重（窗口寄存器 + 数据地址）
-  //=========================================================================
   task automatic load_weights(output int n_loaded);
     int          fd, s, u, cur_s;
     logic [63:0] vs, vu, vw;
@@ -423,16 +411,14 @@ module p3_top_tb;
     cfg_write(16'h1010, vx);          // adc2_max_q
   endtask
 
-  //=========================================================================
   // 载入：stim / expected
-  //=========================================================================
   task automatic load_vectors();
     int          fd;
     string       ln;
     logic [63:0] vb, vc, vd, vi, va, vr, v2, vrs, vdo, vcl, vch, van;
     nrows = 0;
     fd = open_data("p2_link_stim.hex");
-    // ---- 先探一行，数出列数：5 = 老格式（无模拟域回读列）/ 8 = 新格式（补了 3 列）----
+    // 先探一行，数出列数：5 = 老格式（无模拟域回读列）/ 8 = 新格式（补了 3 列）
     // 为什么要探：契约修正后 stim 会补 `rdac_over / adc2_over / ra_sat` 三列，
     // 而两种格式必须都能跑（探索期不能因为向量没更新就编译/加载失败）。
     if ($fgets(ln, fd) == 0) $fatal(1, "p3_top_tb: stim 没有数据行");
@@ -497,16 +483,14 @@ module p3_top_tb;
       sadc_code = a_coarse[r];
       adc2_code = a_adc2[r];
       inj_q     = a_inj[r];
-      // All fields describe the same transaction. The core captures coarse
-      // at phase 8 and fine/injection/analog flags together at phase 14.
+      // All fields describe the same transaction. The core captures coarse at phase 8 and
+      // fine/injection/analog flags together at phase 14.
       rdac_ovf = a_rdac[r]; adc2_over = a_a2ov[r]; ra_sat = a_rasat[r];
       if (injdith) inj_dith(a_dither[r]);
     end
   endtask
 
-  //=========================================================================
   // 主流程
-  //=========================================================================
   int i, k, c, ntest, ld;
   int last_cap_cyc;
   logic [63:0] sw_before;
@@ -515,7 +499,7 @@ module p3_top_tb;
     if (!$value$plusargs("vdir=%s", vdir)) vdir = "sim/vectors";
     injdith = $test$plusargs("injdith");
 
-    // ---- 观测 trace（可选）：只在显式给 `+trace=<file>` 时才产生任何副作用 ----
+    // 观测 trace（可选）：只在显式给 `+trace=<file>` 时才产生任何副作用
     trace_en = $value$plusargs("trace=%s", trace_path);
     if (trace_en) begin
       fd_trace = $fopen(trace_path, "w");
@@ -543,7 +527,7 @@ module p3_top_tb;
       $display("     `analog_ovf` 的失配数不具备判据意义（见模块头 [F]）。");
     end
 
-    // ---- 权重与系数（cfg_ready 必须还是 0，否则写会被拒）----
+    // 权重与系数（cfg_ready 必须还是 0，否则写会被拒）
     checks++;
     if (cfg_ready !== 1'b0) begin errors++; $display("  MISMATCH 载入前 cfg_ready 应为 0"); end
 
@@ -557,7 +541,7 @@ module p3_top_tb;
 
     load_coef();
 
-    // ---- 系数回读：证明"文件里的值"确实进了 RTL（不是只写进去就假定生效）----
+    // 系数回读：证明"文件里的值"确实进了 RTL（不是只写进去就假定生效）
     begin
       logic [63:0] r_off, r_min, r_max;
       cfg_read(16'h1000, r_off);
@@ -579,14 +563,14 @@ module p3_top_tb;
       end
     end
 
-    // ---- 控制位：quantizer_dither=1, sampling_mask=0, bridge=1, dem=1 ----
-    // 与 tools/export_rtl_vectors.py 的 `_p2_run` 一致：
+    // 控制位：quantizer_dither=1, sampling_mask=0, bridge=1, dem=1 与 tools/export_rtl_vectors.py
+    // 的 `_p2_run` 一致：
     //   replace(cfg, dem_enable=True, dither_mode="quantizer", dither_discrete=True)
     // dem_bridge_enable 未被覆盖 => 取 paper_literal 的 True。
     cfg_write(16'h1018, 64'hb);
     repeat (4) @(posedge clk);
 
-    // ---- 载入期不得有写被拒 ----
+    // 载入期不得有写被拒
     sw_before = {32'b0, status_word};
     checks++;
     if (status_word[31:6] !== 26'd0) begin
@@ -594,7 +578,7 @@ module p3_top_tb;
       $display("  MISMATCH 载入期出现错误码 err_code=%0d（写被拒）", status_word[31:6]);
     end
 
-    // ---- 生效 ----
+    // 生效
     @(negedge clk); cfg_validate = 1'b1;
     @(negedge clk); cfg_validate = 1'b0;
     repeat (2) @(posedge clk);
@@ -602,18 +586,14 @@ module p3_top_tb;
     if (cfg_ready !== 1'b1) begin errors++; $display("  MISMATCH validate 后 cfg_ready 未拉高"); end
     $display("[P3] cfg_ready=%0d", cfg_ready);
 
-    //=========================================================================
     // 逐样本跑：c = 0 定义为 cfg_ready 首次读到 1 的那一拍
-    //=========================================================================
     @(negedge clk);
     while (cfg_ready !== 1'b1) @(negedge clk);
 
-    //=========================================================================
-    // 诊断模式 `+sweep=1`：不用向量，直接扫 coarse，打印 RTL 的 coarse -> dout
-    // 传递曲线。模型侧的铁律是 dout ~= coarse/512 * 2^20（见 analyze 的 eff_exp 列），
-    // 所以这条曲线是否单调、斜率是否 ~1，能直接区分"对齐问题"与"映射本身错了"。
+    // 诊断模式 `+sweep=1`：不用向量，直接扫 coarse，打印 RTL 的 coarse -> dout 传递曲线。
+    // 模型侧的铁律是 dout ~= coarse/512 * 2^20（见 analyze 的 eff_exp 列），所以这条曲线是否单调、
+    // 斜率是否 ~1，能直接区分"对齐问题"与"映射本身错了"。
     // 只在确实要诊断时用；正常判据仍是下面的逐样本比对。
-    //=========================================================================
     if ($test$plusargs("sweep")) begin
       int sweep[0:8];
       int si, rep;
@@ -621,18 +601,18 @@ module p3_top_tb;
       sweep[4] = 256; sweep[5] = 320; sweep[6] = 384; sweep[7] = 448; sweep[8] = 511;
       adc2_code = 12'd0;
       inj_q     = 64'sd0;
-      // 注入模式下把 dither 钉成 0，让曲线是"coarse 的单值函数"；
-      // 不注入时用的是片内 LFSR dither（曲线会带一点序列依赖）。
+      // 注入模式下把 dither 钉成 0，让曲线是"coarse 的单值函数"；不注入时用的是片内 LFSR
+      // dither（曲线会带一点序列依赖）。
       if (injdith) inj_dith(16'sd0);
       $display("[P3-SWEEP] 恒定 adc2_code=0 inj_q=0 dither=%0s，每个 coarse 跑 3 次转换",
                injdith ? "注入0" : "片内LFSR");
       $display("  si coarse  i  c      dout    clip_low clip_high  eff=dout*512/2^20   <- coarse = 捕获时刻实际驱动的 sadc_code");
       k = 0;
-      // 相位表（ctrl_fsm §7）：rdac_load = 相位 11，recon_start = 相位 15，
-      // dout_valid 落在 recon_start + 11 = 相位 10。
+      // 相位表（ctrl_fsm §7）：rdac_load = 相位 11，recon_start = 相位 15， dout_valid 落在
+      // recon_start + 11 = 相位 10。
       // 于是"capture@相位10 的重构用的是**上一个窗口**相位11 的 rdac_load"——
-      // 换 coarse 只有在**捕获后立刻**做才赶得上本窗口的 rdac_load；
-      // 放到相位 0 去换会整整慢一个窗口（该窗口 rdac_load 仍是旧值）。踩过两次。
+      // 换 coarse 只有在**捕获后立刻**做才赶得上本窗口的 rdac_load；放到相位 0
+      // 去换会整整慢一个窗口（该窗口 rdac_load 仍是旧值）。踩过两次。
       sadc_code = sweep[0][8:0];
       for (si = 0; si < 9; si = si + 1) begin
         for (rep = 0; rep < 3; rep = rep + 1) begin
@@ -671,15 +651,15 @@ module p3_top_tb;
     last_cap_cyc = -1;
 
     while (1'b1) begin
-      // ---- 采样本拍（c 拍）----
+      // 采样本拍（c 拍）
       if (dout_valid) begin
         cap_dout[k] = dout;
         cap_cl[k]   = clip_low;
         cap_ch[k]   = clip_high;
         cap_an[k]   = analog_ovf;
         cap_cyc[k]  = c;
-        // ---- 观测 trace：逐样本一行；`sample_idx` 用本样本的 k（充当论文的"时间字段"）----
-        // 每行都 $fflush：即使后面某处 $fatal 中止，已落盘的 trace 也完整（不自欺）。
+        // 观测 trace：逐样本一行；`sample_idx` 用本样本的 k（充当论文的"时间字段"） 每行都
+        // $fflush：即使后面某处 $fatal 中止，已落盘的 trace 也完整（不自欺）。
         if (trace_en) begin
           $fwrite(fd_trace, "%0d %0h %0h %0h\n", k, dout, {clip_high, clip_low}, analog_ovf);
           $fflush(fd_trace);
@@ -688,7 +668,7 @@ module p3_top_tb;
       end
       @(posedge clk);
       c = c + 1;
-      // ---- 每 16 拍是一个新样本的相位 0：换上下一行的**数据通路**激励 ----
+      // 每 16 拍是一个新样本的相位 0：换上下一行的**数据通路**激励
       if ((c % 16) == 0) begin
         if ((ROW_OFF + (c / 16)) < nrows) drive_row(ROW_OFF + (c / 16));
       end
@@ -716,9 +696,7 @@ module p3_top_tb;
       end
     end
 
-    //=========================================================================
     // 逐样本比对
-    //=========================================================================
     // 明细 dump：即使比对不通过也要留下全量数据，供离线对齐分析（不要只留前 30 条）。
     begin
       int fd_dump;
@@ -737,10 +715,9 @@ module p3_top_tb;
       logic        exp_an_cum;
       r = ROW_OFF + i;
 
-      // ---- `analog_ovf` 的正确口径：**粘滞位**，可比的是"期望的累积 OR" ----
-      // 顶层的 `analog_ovf` 接的是 status_regs 的 analog_ovf_sticky（ADR 0014：一旦置位
-      // 只由 clr/rst_n 解除），而 expected 第 4 列是**逐样本**量。两者定义不同，
-      // 所以逐样本断言只能拿"到本样本为止的期望累积 OR"来比。
+      // `analog_ovf` 的正确口径：**粘滞位**，可比的是"期望的累积 OR" 顶层的 `analog_ovf` 接的是
+      // status_regs 的 analog_ovf_sticky（ADR 0014：一旦置位只由 clr/rst_n 解除），而 expected 第 4
+      // 列是**逐样本**量。两者定义不同，所以逐样本断言只能拿"到本样本为止的期望累积 OR"来比。
       // （不能每样本发 cfg_clear_valid 去清：那个端口同时接 calib_regs.clear_valid，
       //   会把 cfg_ready 撤掉、整条流水停摆 —— 试过，不能这么用。）
       if (a_ean[r] === 1'b1) exp_an_cum_q = 1'b1;
@@ -750,7 +727,7 @@ module p3_top_tb;
       if (is_dz) n_dz++; else n_dnz++;
       if (a_coarse[r] < 9'd50) n_lo++; else if (a_coarse[r] > 9'd462) n_hi++;
 
-      // ---- 模拟域回读三列的分布（不猜，用向量里的真实值数）----
+      // 模拟域回读三列的分布（不猜，用向量里的真实值数）
       if (a_rdac[r])  n_rdac_all++;
       if (a_a2ov[r])  n_a2ov_all++;
       if (a_rasat[r]) n_ra_all++;
@@ -796,7 +773,7 @@ module p3_top_tb;
         end
       end
 
-      // ---- analog_ovf：按**粘滞口径**断言（与期望的累积 OR 比，理由见循环上方注释）----
+      // analog_ovf：按**粘滞口径**断言（与期望的累积 OR 比，理由见循环上方注释）
       checks++;
       if (cap_an[i] !== exp_an_cum) begin
         errors++;
@@ -817,9 +794,7 @@ module p3_top_tb;
       if (cap_an[i] !== a_ean[r]) an_ps_diff++;
     end
 
-    //=========================================================================
     // 汇总
-    //=========================================================================
     $display("==================================================");
     $display("  p3_top  summary: checks=%0d errors=%0d", checks, errors);
     $display("  dout 比对：共 %0d 行（RTL 转换 #0..#%0d <=> 文件第 %0d..#%0d 行）",
@@ -832,7 +807,7 @@ module p3_top_tb;
     $display("    analog_ovf 失配（**粘滞口径**：与期望的累积 OR 比）：%0d 行（coarse<50 里 %0d 行 / [50,462] 里 %0d 行 / >462 里 %0d 行）",
              an_bad, an_lo, an_mid, an_hi);
     $display("    参考：若改拿**逐样本**期望去比，会有 %0d 行不同 —— 这不是失配，是口径不同（顶层 analog_ovf 是粘滞位）", an_ps_diff);
-    // ---- 模拟域回读三列：全体分布 + 在"期望 analog_ovf=1"行里的归属（真实值数出来的）----
+    // 模拟域回读三列：全体分布 + 在"期望 analog_ovf=1"行里的归属（真实值数出来的）
     $display("    模拟域回读列（本轮 stim %0d 列）：全体行里 rdac_over=%0d / adc2_over=%0d / ra_sat=%0d",
              n_stim_col, n_rdac_all, n_a2ov_all, n_ra_all);
     $display("    期望 analog_ovf=1 的行共 %0d 行，其归属：两者同时=%0d / 仅 rdac_over=%0d / 仅 adc2_over=%0d / 都不是=%0d（则应为 ra_sat）",
@@ -840,11 +815,11 @@ module p3_top_tb;
     $display("    这 %0d 行里三列各自的 1 计数：rdac_over=%0d / adc2_over=%0d / ra_sat=%0d",
              n_an_rows, n_rdac_an, n_a2ov_an, n_ra_an);
     $display("    文件第 0 行在顶层无对应物（RTL 的 conv_valid = n>=1 跳过 n=0）");
-    // ---- 溢出/粘滞诊断（决定"饱和"是不是 acc_ovf / gain_err 引起的）----
+    // 溢出/粘滞诊断（决定"饱和"是不是 acc_ovf / gain_err 引起的）
     $display("  rdac_ovf 高电平拍数=%0d  acc_ovf 高电平拍数=%0d  sw_valid 高电平拍数=%0d",
              n_rdac_ovf_hi, n_acc_ovf_hi, n_sw_valid_hi);
-    // status_word 的位序（status_regs.sv）：{err_code[25:0], analog_ovf, clip_high,
-    // clip_low, adc2_ovf, gain_err, acc_ovf} —— MSB 先拼接，所以 bit0 = acc_ovf。
+    // status_word 的位序（status_regs.sv）：{err_code[25:0], analog_ovf, clip_high, clip_low,
+    // adc2_ovf, gain_err, acc_ovf} —— MSB 先拼接，所以 bit0 = acc_ovf。
     $display("  status_word=0x%08h -> err_code=%0d acc_ovf(b0)=%0b gain_err(b1)=%0b adc2_ovf(b2)=%0b clip_low(b3)=%0b clip_high(b4)=%0b analog_ovf(b5)=%0b",
              status_word, status_word[31:6],
              status_word[0], status_word[1], status_word[2],
@@ -854,7 +829,7 @@ module p3_top_tb;
     $display("  dither 注入：injdith=%0b。1=force swap_decode.dither_code 取向量列、unit_therm.bank_dither 钉 0；0=不注入的对照跑法。注意 dither_gen / dither_rail 不在本测试覆盖内。", injdith);
     $display("==================================================");
     inj_release();
-    // ---- 观测 trace 收尾（仅在开了 `+trace` 时才有输出；未开时零副作用）----
+    // 观测 trace 收尾（仅在开了 `+trace` 时才有输出；未开时零副作用）
     if (trace_en) begin
       $fflush(fd_trace);
       if (k == ntest) $fwrite(fd_trace, "# P3_TRACE_COMPLETE rows=%0d\n", k);

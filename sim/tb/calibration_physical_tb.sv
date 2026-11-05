@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
-// Independent wide-integer oracle for calibration across all 18 physical slices.
-// No DUT partial sums, gains, numerator or divider values feed this oracle.
+// Independent wide-integer oracle for calibration across all 18 physical slices. No DUT partial
+// sums, gains, numerator or divider values feed this oracle.
 module calibration_physical_tb;
   logic clk=0, rst_n=0, ready=0, start=0;
   always #1 clk=~clk;

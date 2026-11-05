@@ -1,4 +1,5 @@
 `timescale 1ns/1ps
+// 检查未选中时钟、字节/CRC 中止、复位取消、状态位序与流式地址，断言不完整帧不提交。
 module spi_abort_contract_tb;
   logic clk=0;
   always #5 clk=~clk;

@@ -1,4 +1,4 @@
-"""Verify exporter file identity and independent analog-fault attribution."""
+"""检查导出文件身份及独立的模拟异常归属。"""
 
 import importlib
 import os

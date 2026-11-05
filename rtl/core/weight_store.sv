@@ -35,14 +35,14 @@ module weight_store #(
       $fatal(1, "weight_store: dimensions exceed address width");
   end
 
-  localparam int SUM_BITS = 64; // 与 recon_core 同一口径（P2 §9）
+  localparam int SUM_BITS = 64; // SUM_BITS: 与 recon_core 同一口径（P2 §9）
 
   localparam logic [W_BITS - 1:0] W_ZERO = {W_BITS{1'b0}};
-  localparam logic [W_BITS - 1:0] W_MAX = 48'd1 << 47; // 2^47
-  localparam logic [SUM_BITS - 1:0] SUM_MAX = 64'd1 << 60; // 2^60
+  localparam logic [W_BITS - 1:0] W_MAX = 48'd1 << 47; // W_MAX: 2^47
+  localparam logic [SUM_BITS - 1:0] SUM_MAX = 64'd1 << 60; // SUM_MAX: 2^60
   // For every supported production geometry the capacity predicate is
-  // statically true: 32*128*(2^47-1) < 2^59 < 2^60.  Keep the dynamic guard
-  // as an elaboration-time fallback if either width/limit changes later.
+  // statically true: 32*128*(2^47-1) < 2^59 < 2^60.  Keep the dynamic guard as an elaboration-time
+  // fallback if either width/limit changes later.
   // Synthesis can prune the global subtract/add/compare path and sum_all
   // register. The old-word read is shared by row replacement and cfg readback.
   localparam logic STATIC_SUM_SAFE =
@@ -71,12 +71,12 @@ module weight_store #(
   // reset清数据，clear_load优先于任何写；accept已排除clear及ACTIVE配置写入。
   // err_write是当前请求被拒的组合电平，不是完成脉冲，调用方应在wr_en有效沿消费。
 
-  // ---- 守卫 ----
+  // 守卫
   assign idx_ok = (int'(wr_slice) < P_N_SLICES) && (int'(wr_unit) < P_N_UNITS);
   assign w_ok = (wr_data != W_ZERO) && (wr_data < W_MAX);
 
-  // Mask both dimensions together before any array read. An invalid address
-  // selects safe internal element [0][0] but exposes zero on selected_weight.
+  // Mask both dimensions together before any array read. An invalid address selects safe internal
+  // element [0][0] but exposes zero on selected_weight.
   assign s_idx = idx_ok ? wr_slice : 5'd0;
   assign u_idx = idx_ok ? wr_unit : 7'd0;
   assign cur_w = old_by_slice[s_idx];

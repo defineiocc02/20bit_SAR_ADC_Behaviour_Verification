@@ -1,8 +1,8 @@
 `timescale 1ns/1ps
 `include "rtl_params.vh"
-// Isolate the complete T5 identity oracle from the production-size DUTs in
-// p2_tb. All 2^20 codes remain checked; unrelated 568-term reductions need
-// not be reevaluated for the ~27 million clock edges of this sweep.
+// Isolate the complete T5 identity oracle from the production-size DUTs in p2_tb. All 2^20 codes
+// remain checked; unrelated 568-term reductions need not be reevaluated for the ~27 million clock
+// edges of this sweep.
 module p2_oracle_tb;
   logic clk = 1'b0;
   always #1 clk = ~clk;

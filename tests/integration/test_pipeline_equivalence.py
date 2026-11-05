@@ -1,10 +1,8 @@
-"""Integration tests: cross-module invariants that no single module can check.
+"""检查跨模块不变量及短记录确定性。
 
-These are the tests whose absence let a 2.9 V regression sit in the tree: the
-audit noted that the only "test" was a 37 s full regression, so a change to a
-small module could not be caught without running everything.
-
-Everything here is deliberately fast (small N) and deterministic.
+这些检查覆盖单个模块无法发现的接口差异。历史阈值口径错误曾产生 2.9 V
+输出回归，而原先只能通过约 37 s 的完整运行发现；这里使用固定种子及较短记录
+分别检查双实现、共享阈值、电荷与增益定义。
 """
 
 from __future__ import annotations
@@ -53,15 +51,11 @@ def coherent_input():
 
 
 class TestPipelineEquivalence:
-    """`pipeline.py` and `sim_split.py` are two independent implementations of
-    the same split-DAC signal chain. They must agree bit-for-bit when every
-    non-ideality is switched off.
+    """检查 pipeline.py 与 sim_split.py 的独立循环在关闭非理想项后逐位一致。
 
-    History: they disagreed silently for two revisions because each derived the
-    SADC threshold step itself (`cfg.delta1` vs `n_sub*step0`). At b1=6 the two
-    numbers coincidentally matched; at b1=7 they differ by 4x, and the
-    divergence produced a 2.9 V output. The shared constructor
-    `sadc.build_first_stage_quantizer` is the fix.
+    历史两版各自推导 SADC 步长，分别使用 cfg.delta1 和 n_sub*step0；b1=6 时
+    恰好相等，b1=7 时相差 4 倍，产生 2.9 V 输出偏差。共享
+    sadc.build_first_stage_quantizer 用于统一该构造。
     """
 
     def test_degenerate_equivalence_is_bitwise(self, coherent_input):
@@ -84,9 +78,7 @@ class TestPipelineEquivalence:
             assert np.max(np.abs(r.vra)) <= cfg.ra_v_clip + 1e-9
 
     def test_error_floor_is_the_backend_quantisation(self, coherent_input):
-        """With every analogue imperfection off, the only error left is the
-        ADC2 quantisation referred to the input.
-        """
+        """关闭全部模拟非理想项后，检查剩余误差仅为输入折算的 ADC2 量化误差。"""
         inp, n = coherent_input
         cfg = _cfg(dac_arch="split", **BASE_OFF)
         r = run_sim_split(cfg, inp, n, rng=np.random.default_rng(cfg.seed + 5))
@@ -96,9 +88,7 @@ class TestPipelineEquivalence:
 
 
 class TestSADCThresholdConsistency:
-    """The shared constructor must produce the same grid regardless of which
-    loop asks for it.
-    """
+    """检查不同循环调用共享构造器时得到相同阈值网格。"""
 
     def test_shared_constructor_matches_config_grid(self):
         from adi_model.dac_arch import SplitDAC, build_split_chip
@@ -128,7 +118,7 @@ class TestSADCThresholdConsistency:
         assert np.allclose(q.thresholds, expect)
 
     def test_step_is_not_independently_derived(self):
-        """Guard: the two loops must call the shared helpers, not recompute."""
+        """静态检查两条循环调用共享辅助函数，不各自重算阈值步长。"""
         import inspect
 
         from adi_model import pipeline_engine, sim_split
@@ -142,10 +132,7 @@ class TestSADCThresholdConsistency:
 
 
 class TestDeterminism:
-    """The whole library must be reproducible from a seed: the audit and the
-    pre-refactor tree both achieved byte-identical reruns, and that property
-    must survive the refactor.
-    """
+    """检查固定随机种子的逐位可复现性，保留重构前后既有确定性合同。"""
 
     def test_sim_is_bitwise_reproducible(self):
         cfg = _cfg(dac_arch="unary", **BASE_OFF)
@@ -164,9 +151,7 @@ class TestDeterminism:
         assert np.array_equal(a.out, b.out)
 
     def test_no_bare_global_random_state(self):
-        """Every stochastic call must take an explicit Generator, so that a
-        seed reproduces the run exactly.
-        """
+        """检查随机调用使用显式 Generator，使同一种子可以复现运行。"""
         import inspect
 
         from adi_model import experiments, pipeline, ra, sampler, sim, sim_split
@@ -178,18 +163,10 @@ class TestDeterminism:
 
 
 class TestChargeConsistency:
-    """Charge bookkeeping must close. These are the invariants the audit found
-    *already* trustworthy and asked to preserve.
-    """
+    """检查电荷记账闭合，保留审计确认的名义不变量。"""
 
     def test_nominal_gain_is_charge_consistent(self):
-        """The nominal design identity.
-
-        ``C_F`` is *defined* as ``C_sig_nom / G0`` precisely so that the
-        closed-loop gain is exactly ``G0``. This is the invariant that must
-        hold — it is what makes the gain definition self-consistent rather than
-        a fitted constant.
-        """
+        """检查 C_F=C_sig_nom/G0 的名义定义，使闭环增益按电荷关系恰为 G0。"""
         cfg = Config(
             dac_arch="split",
             mismatch_enable=False,
@@ -204,14 +181,9 @@ class TestChargeConsistency:
         assert ratio == pytest.approx(cfg.g_actual, rel=1e-12)
 
     def test_achieved_gain_error_is_bounded_by_mismatch(self):
-        """With mismatch on, the achieved gain departs from ``G0`` — but only by
-        the unit-mismatch scale, and that departure is exactly what
-        ``gain_error()`` reports (the quantity a calibration removes, not a
-        modelling artefact).
+        """检查开启失配后增益偏离 G0 的量级由失配预算约束。
 
-        The bound is derived from the configuration's own mismatch budget rather
-        than hard-coded, so it tightens automatically if the mismatch model is
-        made more accurate.
+        gain_error() 报告的应是同一偏离；边界由配置的失配分量推导，不另写固定阈值。
         """
         cfg = Config(dac_arch="split")
         from adi_model.dac_arch import build_split_chip

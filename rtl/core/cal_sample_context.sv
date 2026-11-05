@@ -39,8 +39,8 @@ module cal_sample_context (
     output logic fine_sampling, fine_analog_bad,
     output logic signed [63:0] fine_injection
 );
-  // slot顺序与main/sub mask一起冻结。物理slice ID选权重，sid只解释开关置换，
-  // sample ID负责时域配对；缺样时不能拿当前bank或当前sid补写旧样本元数据。
+  // slot顺序与main/sub mask一起冻结。物理slice ID选权重，sid只解释开关置换， sample
+  // ID负责时域配对；缺样时不能拿当前bank或当前sid补写旧样本元数据。
   localparam int CW = 32 + 9 + 9 + 8 + 34 + int'(N_ACTIVE) * (5 + int'(N_UNIT_MAIN) + int'(N_UNIT_SUB)) +
       2 * int'(DITHER_UNITS_RANGE) + 1 + 64;
   logic [CW - 1:0] residue;

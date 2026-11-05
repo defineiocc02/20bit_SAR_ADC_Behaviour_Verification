@@ -60,9 +60,7 @@ from adi_model.dem import split_switch_command
 from adi_model.mapper import _LCG_A
 from adi_model.mapper import N_DEM_STATES as _N_DEM_STATES_MAPPER
 
-# --------------------------------------------------------------------------
 # 命题 1：LCG 归约
-# --------------------------------------------------------------------------
 N_DEM_STATES = 512
 LCG_A = int(_LCG_A)
 LCG_A_LOW = LCG_A % N_DEM_STATES  # RTL 里真正要乘的常量（9 位全加器）
@@ -74,6 +72,7 @@ def lcg_state(seq: np.ndarray | int) -> np.ndarray:
 
     Args:
         seq: bank 内序号 [无量纲，非负整数]（可为数组）。
+
     Returns:
         与 seq 同形的 int64 DEM 状态索引，值域 [0, 512)。
     """
@@ -85,20 +84,20 @@ def lcg_state_rtl(seq: np.ndarray | int) -> np.ndarray:
 
     Args:
         seq: bank 内序号 [无量纲，非负整数]（可为数组）。
+
     Returns:
         与 seq 同形的 int64 状态索引；恒等于 :func:`lcg_state`。
     """
     return ((np.asarray(seq, dtype=np.int64) & (N_DEM_STATES - 1)) * LCG_A_LOW) & (N_DEM_STATES - 1)
 
 
-# --------------------------------------------------------------------------
 # 几何（与 split_switch_command 同源）
-# --------------------------------------------------------------------------
 def geometry(cfg: Config) -> tuple[int, int, int, int]:
     """返回 (n_main, n_sub, width, height)，公式与 ``split_switch_command`` 逐字相同。
 
     Args:
         cfg: Config；取 dac_n_main / dac_n_sub。
+
     Returns:
         (n_main, n_sub, width, height)，均为无量纲整数。
     """
@@ -115,6 +114,7 @@ def shift_row_col(sid: np.ndarray | int, width: int, height: int) -> tuple[np.nd
         sid: DEM 状态 [无量纲整数]（可为数组）。
         width: 主阵列 cell 网格宽 [个]。
         height: 主阵列 cell 网格高 [个]。
+
     Returns:
         (rh, ch) 二元组，均为与 sid 同形的 int64 数组 [无量纲，物理单位序号位移]。
     """
@@ -128,6 +128,7 @@ def excluded_cell(sid: np.ndarray | int, width: int, height: int) -> np.ndarray:
     Args:
         sid: DEM 状态 [无量纲整数]（可为数组）。
         width: 网格宽 [个]；height: 网格高 [个]。
+
     Returns:
         与 sid 同形的 int64 数组，cell 索引 i* ∈ [0, height*width) [无量纲]。
         拓扑前提 ``height*width - n_main == 1`` 满足时该 cell 是唯一被滤掉的。
@@ -136,9 +137,7 @@ def excluded_cell(sid: np.ndarray | int, width: int, height: int) -> np.ndarray:
     return ((height - 1 - rh) % height) * width + ((width - 1 - ch) % width)
 
 
-# --------------------------------------------------------------------------
 # 命题 2：主阵列 逻辑位置 <- 物理地址
-# --------------------------------------------------------------------------
 def main_logical_index(addr: np.ndarray, sid: np.ndarray, width: int, height: int) -> np.ndarray:
     """主阵列逆映射：物理地址 -> 逻辑位置。
 
@@ -151,6 +150,7 @@ def main_logical_index(addr: np.ndarray, sid: np.ndarray, width: int, height: in
         addr: (A,) 物理地址 [无量纲，物理单位序号]，取值 [0, height*width)。
         sid: (S,) DEM 状态 [无量纲整数]。
         width: 网格宽 [个]；height: 网格高 [个]。
+
     Returns:
         (S, A) int64 逻辑位置 j [无量纲]；``j[p] < count`` 即"物理地址 p 被打开"。
         对 ``addr == height*width - 1``（即被排除的那一格）返回 i*，见模块 docstring。
@@ -171,6 +171,7 @@ def main_unit_on(count: np.ndarray, sid: np.ndarray, width: int, height: int) ->
         count: (S,) 主阵列导通的**单位个数** [无量纲，单位当量，整数]。
         sid: (S,) DEM 状态 [无量纲整数]。
         width/height: 网格尺寸 [个]。
+
     Returns:
         (S, height*width) bool。列 ``p < n_main`` 是真正的主阵列物理地址；
         列 ``p == height*width - 1`` 是 RTL 里不存在的地址（该格被过滤），
@@ -181,9 +182,7 @@ def main_unit_on(count: np.ndarray, sid: np.ndarray, width: int, height: int) ->
     return j < np.asarray(count, dtype=np.int64)[:, None]
 
 
-# --------------------------------------------------------------------------
 # 命题 3：子阵列 逻辑位置 <- 物理地址
-# --------------------------------------------------------------------------
 def sub_logical_index(
     addr: np.ndarray, sid: np.ndarray, width: int, height: int, n_sub: int
 ) -> np.ndarray:
@@ -194,6 +193,7 @@ def sub_logical_index(
         sid: (S,) DEM 状态 [无量纲整数]。
         width/height: 主阵列网格尺寸（用于取 ``width*height`` 这个位移除数）[个]。
         n_sub: 子阵列单位数 [个]。
+
     Returns:
         (S, A) int64 逻辑位置 k [无量纲]；``k < sub_count`` 即该物理地址被打开。
     """
@@ -202,15 +202,14 @@ def sub_logical_index(
     return (addr[None, :] - shift[:, None]) % n_sub
 
 
-# --------------------------------------------------------------------------
 # 命题 4：桥接零和交换
-# --------------------------------------------------------------------------
 def bridge_rank(sid: np.ndarray, n_active: int) -> np.ndarray:
     """桥接 rank：``(i - sid % n_active) % n_active``。
 
     Args:
         sid: (S,) DEM 状态 [无量纲整数]。
         n_active: 活动 slice 数 [个]。
+
     Returns:
         (S, n_active) int64 rank [无量纲]。
     """
@@ -224,6 +223,7 @@ def bridge_signs(sid: np.ndarray, n_active: int) -> np.ndarray:
     Args:
         sid: (S,) DEM 状态 [无量纲整数]。
         n_active: 活动 slice 数 [个]。
+
     Returns:
         (S, n_active) int64，取值 {-1, 0, +1} [无量纲]。
         n_active 为偶数时恒为 ±1（无 0），故逐 sid 零和。
@@ -239,6 +239,7 @@ def bridge_signs_simple(sid: np.ndarray, n_active: int) -> np.ndarray:
     Args:
         sid: (S,) DEM 状态 [无量纲整数]。
         n_active: 活动 slice 数 [个]（本模块只对**偶数** n_active 声明其等价）。
+
     Returns:
         (S, n_active) int64，取值 {+1, -1} [无量纲]。
         等价于"以 ``-sid`` 为起点、沿 i 递增的前一半 +1 / 后一半 -1"的循环窗。
@@ -264,6 +265,7 @@ def bridge_slice_codes(
         sid: (N,) DEM 状态 [无量纲整数]。
         n_active: 活动 slice 数 [个]。
         dac_levels: 可寻址电平总数 [个]（paper_literal 下 = 512）。
+
     Returns:
         (N, n_active) float，逐 slice 逻辑码 [无量纲，单位当量]。
         ``amount = min(1, min(code, dac_levels-1-code))`` 保证交换后仍在 [0, levels-1]，
@@ -286,6 +288,7 @@ def bridge_split_counts(
         sid: (N,) DEM 状态 [无量纲整数]。
         n_active: 活动 slice 数 [个]；n_sub: 子阵列单位数 [个]。
         dac_levels: 可寻址电平总数 [个]。
+
     Returns:
         (main_counts, sub_counts) 二元组，形状均为 (N, n_active) [无量纲，单位当量]；
         ``main_counts`` 最大为 floor((levels-1)/n_sub)，故一定可实现在主阵列上。
@@ -295,9 +298,7 @@ def bridge_split_counts(
     return mc, sc - n_sub * mc
 
 
-# --------------------------------------------------------------------------
 # 穷举自检
-# --------------------------------------------------------------------------
 def main() -> None:
     """穷举自检四个命题；任一 FAIL 则 SystemExit(1)。
 
@@ -323,7 +324,7 @@ def main() -> None:
     )
     sids = np.arange(N_DEM_STATES, dtype=np.int64)
 
-    # ---- 前提 0：拓扑与开关前提 ----
+    # 前提 0：拓扑与开关前提
     print("前提检查（适用域）")
     check("拓扑: height*width - n_main == 1", height * width - nm == 1, 1, f"{height*width}-{nm}")
     cfg_off = Config.paper_literal()  # 工厂默认 dem_enable=False
@@ -336,7 +337,7 @@ def main() -> None:
         f"Config.paper_literal() 默认 dem_enable={cfg_off.dem_enable}，必须显式覆盖",
     )
 
-    # ---- 命题 1：LCG 归约 ----
+    # 命题 1：LCG 归约
     print("命题1: LCG 归约 sid = (seq * A) % 512")
     g = math.gcd(LCG_A, N_DEM_STATES)
     check("gcd(A, 512) == 1（512 状态全遍历的结构性前提）", g == 1, 1, f"gcd={g}")
@@ -368,7 +369,7 @@ def main() -> None:
         "seq 为 bank 内序号（逐 bank 独立计数）",
     )
 
-    # ---- 命题 2：主阵列逆映射 ----
+    # 命题 2：主阵列逆映射
     print("命题2: 主阵列物理地址 -> 逻辑位置")
     code_dummy = np.full(N_DEM_STATES, 10.0)
     cmd = split_switch_command(cfg, code_dummy, sids.astype(float))
@@ -432,7 +433,7 @@ def main() -> None:
         "count 取遍 0..n_main",
     )
 
-    # ---- 命题 3：子阵列逆映射 ----
+    # 命题 3：子阵列逆映射
     print("命题3: 子阵列物理地址 -> 逻辑位置")
     so = cmd.sub_order  # (512, 8) 模型真实输出
     slots = np.concatenate([mo, nm + so], axis=1)  # (512, 71)
@@ -455,7 +456,7 @@ def main() -> None:
         N_DEM_STATES * ns,
     )
 
-    # ---- 命题 4：桥接零和交换 ----
+    # 命题 4：桥接零和交换
     print("命题4: 桥接零和交换")
     signs = bridge_signs(sids, n_act)
     check("signs 逐 sid 零和（512 个 sid）", bool(np.all(signs.sum(axis=1) == 0)), N_DEM_STATES)

@@ -1,4 +1,4 @@
-"""Noisy estimation, physical holdout and immutable digital calibration contracts."""
+"""检查含噪估计、仿真物理池留出及固定数字校准系数的接口合同。"""
 
 import json
 from dataclasses import FrozenInstanceError, fields, replace

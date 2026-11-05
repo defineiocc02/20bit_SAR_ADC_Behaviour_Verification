@@ -1,8 +1,7 @@
-"""Acceptance experiments for the physical and digital closure milestones.
+"""物理与数字闭环里程碑的验收实验。
 
-These protocols keep fabrication, independent noise, training and validation
-identities explicit. They produce numerical evidence and exact boolean gates;
-no fitted paper target is mislabeled as a silicon performance prediction.
+协议分别记录制造实现、独立噪声、训练和验证身份，产出数值证据及布尔判据。为复现论文目标而拟合的数值，
+不作为硅性能预测。
 """
 
 from __future__ import annotations
@@ -17,7 +16,7 @@ from .metrics import power_spectral_density, sine_fit_metrics
 
 
 def _error_statistics(error) -> dict[str, float]:
-    """Report RMS, standard deviation and mean separately, all in volts."""
+    """分别报告 RMS、标准差和均值，三者单位均为 V。"""
     values = np.asarray(error, dtype=float)
     return {
         "rms_v": float(np.sqrt(np.mean(values**2))),
@@ -27,7 +26,7 @@ def _error_statistics(error) -> dict[str, float]:
 
 
 def long_record_noise() -> dict:
-    """Verify 40 Hz state over 64 seconds using sparse actual 40 MS/s timestamps."""
+    """用稀疏的实际 40 MS/s 时间戳检查跨 64 s 的 40 Hz 状态。"""
     from scipy.special import sici
 
     fs, hop, samples, modes, count = 40e6, 156250, 16384, 128, 32
@@ -122,7 +121,7 @@ def long_record_noise() -> dict:
 
 
 def noisy_weight_holdout() -> dict:
-    """Train two noisy sizes on two full physical chips and score frozen final words."""
+    """在两颗完整物理芯片上用两种含噪训练长度拟合，并评分冻结后的最终码。"""
     from dataclasses import replace
 
     from .reconstruction import initialize_state
@@ -202,7 +201,7 @@ def noisy_weight_holdout() -> dict:
 
 
 def signed_reference_loading(c0, n=16384) -> dict:
-    """Verify signed rail-charge recurrence and joint settling on actual conversions."""
+    """用实际转换检查有符号参考电荷递推及联合建立。"""
     from dataclasses import replace
 
     from .config import Config
@@ -296,7 +295,7 @@ def signed_reference_loading(c0, n=16384) -> dict:
 
 
 def independent_dither_range(c0, n=16384) -> dict:
-    """Test known dither range scaling independently of unknown-input decisions."""
+    """独立于未知输入判决，检查已知 dither 的量程缩放。"""
     from .config import Config
     from .pipeline import run_pipeline
     from .sampler import sine_input
@@ -357,7 +356,7 @@ def independent_dither_range(c0, n=16384) -> dict:
 
 
 def ron_step_oracle() -> dict:
-    """Compare code-dependent Ron against an independent common-mode RC formula."""
+    """将码相关 Ron 与独立的共模 RC 公式对照。"""
     from .input_network import InputNetworkParameters, track_interval
     from .sampler import dc_input
 

@@ -1,7 +1,8 @@
 //===========================================================================
-// sinc5_decim_tb.sv -- smoke test for the 5-stage CIC decimator
-//===========================================================================
-// Behavioral smoke test; tool-specific execution results live in run logs.
+// sinc5_decim_tb.sv: 五级 CIC 的有符号直流 smoke 测试。
+//
+// 使用 D=4、输入 1000，检查输出存在及建立后的直流数值；启动输出视为瞬态。
+// 具体工具执行结果记录在运行日志，本测试不证明物理滤波建立时序。
 //===========================================================================
 `timescale 1ns/1ps
 
@@ -10,7 +11,7 @@ module sinc5_decim_tb;
     localparam logic [3:0] DEC_SEL = 4'd1;   // D = 2^(1+1) = 4
 
     logic clk = 0;
-    always #1 clk = ~clk;       // 500 MHz sim clock; functional only
+    always #1 clk = ~clk;       // 500 MHz 功能仿真时钟，不构成工作频率验收。
 
     logic rst_n = 0;
     logic filter_sync = 0;
@@ -40,14 +41,14 @@ module sinc5_decim_tb;
         repeat (4) @(posedge clk);
         rst_n = 1;
 
-        // DC 1000: after enough settling, every decimated output must be 1000.
+        // 输入直流 1000，充分建立后的抽取结果须保持 1000。
         for (int i = 0; i < 64; i++) push(1000);
         if (!settled) begin
             $display("FAIL: settled low after 64 samples (target 26)");
             errors++;
         end
 
-        // Drain and check the last outputs
+        // 排空流水后核对末次结果，避免只检查启动瞬态。
         repeat (8) @(posedge clk);
         if (outs == 0) begin
             $display("FAIL: no valid_out");
@@ -67,8 +68,8 @@ module sinc5_decim_tb;
     always_ff @(posedge clk) begin
         if (valid_out) begin
             outs++;
-            // 手册 p.69：SINC5 需要 2+5D+4 个样本才建立完成。
-            // 建立期内（settled=0）的输出是瞬态，不能按 1000 判。
+            // 建立门限参考手册 p.69 的 2+5D+4 数值，实际 settled 由 RTL 的
+            // 数字计数产生。settled=0 时输出仍为瞬态，不与稳态值 1000 比较。
             if (settled && (data_out < 999 || data_out > 1001)) begin
                 $display("FAIL: decimated output=%0d exp=1000 (settled)", data_out);
                 errors++;

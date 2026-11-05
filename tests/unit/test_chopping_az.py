@@ -1,4 +1,4 @@
-"""Isolated sample-domain CAAZ contract tests, not device-performance claims."""
+"""检查独立样本域 CAAZ 合同，不据此推断器件性能。"""
 
 from dataclasses import replace
 
@@ -225,7 +225,7 @@ def test_off_and_baseline_do_not_consume_inactive_az_rng():
 
 
 def test_shared_rtl_fixture_regenerates_from_current_full_model(tmp_path):
-    """Fail when the checked-in cross-language fixture no longer matches the model."""
+    """检查入库跨语言夹具与当前完整模型生成结果不一致时会失败。"""
     import json
     import subprocess
     import sys
@@ -250,7 +250,7 @@ def test_shared_rtl_fixture_regenerates_from_current_full_model(tmp_path):
 
 
 def test_sine_pair_reference_cosine_response_and_midpoint_timestamp():
-    """CAAZ-16: independent sine identity and output-rate time reference."""
+    """CAAZ-16：用独立正弦恒等式核对配对响应及输出时刻。"""
     cfg = ideal()
     amplitude, phase, count = 0.7, 0.31, 2048
     frequency = cfg.fs * 211 / count
@@ -285,7 +285,7 @@ def test_sine_pair_reference_cosine_response_and_midpoint_timestamp():
 
 
 def test_full_rate_sliding_demodulation_retains_cross_generation_az_noise():
-    """CAAZ-10: only aligned odd windows cancel the same held AZ sample."""
+    """CAAZ-10：只有对齐奇数端点的窗口共享同一保持自归零样本。"""
     cfg = ideal(seed=1801)
     level = 0.3
     result = run_caaz_pipeline(
@@ -312,7 +312,7 @@ def test_full_rate_sliding_demodulation_retains_cross_generation_az_noise():
 
 
 def test_real_slice_gain_changes_leak_common_ra_output_error_after_frozen_calibration():
-    """CAAZ-11: physical selected-slice gain matters without a fake odd ratio."""
+    """CAAZ-11：用实际所选仿真切片增益检查公共 RA 输出误差泄漏，不伪造奇数周期比值。"""
     from adi_model.reconstruction import initialize_state
     from adi_model.slice_pool import PhysicalSlicePool
     from adi_model.weight_calibration import DigitalObservation, fit_unit_weights

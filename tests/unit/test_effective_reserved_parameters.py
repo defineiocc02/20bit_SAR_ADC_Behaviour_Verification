@@ -1,4 +1,4 @@
-"""A reserved ratio is reported separately from the active SADC capacitance."""
+"""检查预留比例与当前生效的 SADC 电容分开报告。"""
 
 from dataclasses import replace
 

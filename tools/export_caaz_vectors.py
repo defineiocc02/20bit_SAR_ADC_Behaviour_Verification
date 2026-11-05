@@ -1,20 +1,14 @@
 #!/usr/bin/env python3
-"""Regenerate the frozen CAAZ Python/RTL pair contract in a new output directory.
+"""在新目录重新生成 CAAZ Python／RTL 配对合同向量。
 
-The first case executes the complete sample-domain ADC model (128 raw words,
-64 paired words). An independent scalar state oracle specifies integer math,
-actual phase/AZ tags, ID continuity and sticky-fault/reset behavior for 15 cases.
-No RTL simulation or existing fixture is read to manufacture expected values.
+首例运行完整样本域 ADC，产生 128 个原始码及 64 个配对码。独立标量状态参考
+规定 15 个案例的整数算术、相位／自归零标签、编号连续及粘滞故障／复位行为，
+不读取 RTL 仿真或已有夹具来制造期望值。
 
-Source: Wang et al., VLSI 2025 C32.1 Fig. 6, even-minus-odd pair operation.
-The raw40/pair20 profile, RA-output noise amplitude, integer floor and tag/fault
-protocol are project choices, not published prototype performance predictions.
-Random seeds are fixed. The historical fixture label is retained; current
-source bytes and this generator are separately hashed in the output manifest.
-
-Example from the checkout root (the output directory must not exist)::
-
-    PYTHONPATH=src python tools/export_caaz_vectors.py --out /tmp/new-caaz-vectors
+Wang 等 VLSI 2025 C32.1 图 6 提供偶数减奇数的配对机制；原始 40／配对
+20 MS/s、RA 输出噪声幅度、向下取整及标签／故障协议为工程选择，不是论文
+原型性能预测。随机种子固定；保留历史夹具名称，当前源字节与生成器另记摘要。
+--out 指定尚不存在的输出目录。
 """
 
 from __future__ import annotations
@@ -65,7 +59,7 @@ OUTPUTS = (
 
 @dataclass
 class _PairOracle:
-    """Behavior contract state, independent of SV simulation and code generators."""
+    """独立于 SV 仿真与向量生成器的行为合同状态。"""
 
     fault: int = 0
     fault_code: int = 0
@@ -75,7 +69,7 @@ class _PairOracle:
     held: tuple = (0, 0, 0, 0, 0)
 
     def cycle(self, event):
-        """Return all registered outputs after this rising-edge input event."""
+        """返回本上升沿输入事件之后的全部寄存输出。"""
         if not event["rst_n"] or event["epoch_clear"]:
             self.fault = 0
             self.fault_code = 0
@@ -128,7 +122,7 @@ class _PairOracle:
         return self.output(valid, pulse)
 
     def output(self, valid, pulse):
-        """Describe valid, held data and sticky fault state without advancing it."""
+        """描述有效位、保持数据及粘滞故障，不推进状态。"""
         word, last, first, generation, difference = self.held
         return dict(
             zip(
@@ -164,11 +158,10 @@ HISTORICAL_SOURCE_SNAPSHOT = "86106fc+local_CAAZ"
 
 
 def build_vectors() -> tuple[str, dict]:
-    """Build deterministic fixture text and provenance without writing files.
+    """在内存构建确定的夹具文本及来源记录。
 
-    The model and scalar oracle are checked against each other for all64 physical
-    pairs and136 unsigned boundary/random pairs. A changed canonical text hash
-    raises ValueError; it must be reviewed before changing the checked-in fixture.
+    模型与标量参考比较全部 64 对仿真物理样本和 136 对无符号边界／随机案例。
+    标准文本摘要变化即抛 ValueError；修改入库夹具前需审阅该变化。
     """
     cases = []
 
@@ -391,7 +384,7 @@ def build_vectors() -> tuple[str, dict]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Export deterministic vectors, rejecting an existing output before work."""
+    """导出确定性向量，开始工作前即拒绝已有输出目录。"""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
         "--out", type=Path, required=True, help="new output directory (must not exist)"

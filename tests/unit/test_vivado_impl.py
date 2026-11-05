@@ -1,4 +1,4 @@
-"""Check implementation-flow Tcl decisions with mocks, not FPGA timing or EDA semantics."""
+"""以模拟对象检查实现流程的 Tcl 决策，不验证 FPGA 时序或 EDA 语义。"""
 
 from __future__ import annotations
 

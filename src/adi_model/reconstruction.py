@@ -1,8 +1,8 @@
 """粗细码名义重构与已知输入的前台标量校准。
 
-x_hat=(vD0+v2/Ghat-d_corr)/alpha：v2为ADC2解码后的RA输出节点V，
-vD0/d_corr为输入等效V，Ghat/alpha无量纲。先扣注入再补偿信号衰减。
-名义alpha不能自动消除实际mask失配；逐物理unit的冻结C/Cf重构在weight_calibration。
+x_hat=(vD0+v2/Ghat-d_corr)/alpha：v2为ADC2解码后的RA输出节点V，vD0/d_corr为输入等效V，
+Ghat/alpha无量纲。先扣注入再补偿信号衰减。名义alpha不能自动消除实际mask失配；
+逐物理unit的冻结C/Cf重构在weight_calibration。
 
 数字端不得读取真实电容/增益。这里的标量gain/beta学习不等于逐slice时偏/带宽学习，
 也不是原芯片内部校准电路或KTC/CAAZ晶体管实现。
@@ -25,9 +25,8 @@ if TYPE_CHECKING:
 class DigitalState:
     """数字域系数状态。
 
-    estimated_gain/kappa/beta无量纲；W_nominal是名义RDAC步长[V/单位码]，
-    W_estimated为保留接口；有效unit权重另存weight_calibration的冻结C/Cf矩阵。
-    history仅供调用方记录，不参与物理plant。
+    estimated_gain/kappa/beta无量纲；W_nominal是名义RDAC步长[V/单位码]，W_estimated为保留接口；
+    有效unit权重另存weight_calibration的冻结C/Cf矩阵。history仅供调用方记录，不参与物理plant。
     """
 
     estimated_gain: float
@@ -87,9 +86,9 @@ class Calibrator:
         """绑定配置与数字状态（前台校准用）。
 
         Args:
-            cfg:   模型配置（Config），提供 dither 相关口径与校准开关。
-            state: 共享的 DigitalState；校准结果写回其 estimated_gain /
-                   beta / kappa。
+            cfg: 模型配置（Config），提供 dither 相关口径与校准开关。
+            state: 共享的 DigitalState；校准结果写回其 estimated_gain / beta / kappa。
+
         Side effects: 无（仅绑定引用）。
         """
         self.cfg = cfg
@@ -139,8 +138,7 @@ class Calibrator:
     def update_beta(self, out: np.ndarray, x1: np.ndarray, dx: np.ndarray) -> float:
         """以固定外部目标x1估计KTC有效beta并比例更新kappa。
 
-        beta_hat=<out-x1,dx>/<dx,dx>。目标x1不能预先含未知beta，
-        也不读取cfg.g_actual来替代估计。
+        beta_hat=<out-x1,dx>/<dx,dx>。目标x1不能预先含未知beta，也不读取cfg.g_actual来替代估计。
 
         Args:
             out: (N,)含噪重构结果[输入V]。

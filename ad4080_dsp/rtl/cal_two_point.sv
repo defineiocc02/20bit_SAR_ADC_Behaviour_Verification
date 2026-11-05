@@ -1,35 +1,35 @@
 //=============================================================================
 // @file    cal_two_point.sv
-// @brief   固定横坐标的两点仿射拟合工具
-// @details 由固定X1/X2与输入y1/y2拟合y=m*x+c，再编码gain/offset并钳位。
-//          若X是已知输入而y是测得原始码，结果为正向传递系数；本模块不自动求逆校正。
+// @brief   固定横坐标的两点仿射拟合工具。
+// @details 由固定 X1/X2 与输入 y1/y2 拟合 y=m*x+c，再编码并钳位 gain/offset。
+//          X 为已知输入、y 为测得原始码时，输出是正向传递系数，不自动求逆校正。
 // @project SAR20 / AD4080风格数字原型
 // @author  项目维护者（贡献记录见版本库）
 // @date    2026-11-05
 // @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : 功能映射见docs/ad4080_traceability.md；不声称器件逐拍等价。
-// 时钟域   : clk；start、y1、y2必须同域且在接受沿稳定
-// 复位     : rst_n异步低有效；每级valid独立传播
-// 延迟     : 接受start沿到done为2个完整clk间隔（含接受沿共3个寄存沿）
-// 吞吐     : 可连续每clk接受一次start，无busy/反压
-// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
-// 依赖     : 无；未连接到顶层自动学习控制器
-// 边界     : 默认IN_W=20补码、固定测试点及预计算倒数必须相互一致；非默认组合需单独验证。
-//          输出gain为0..1023，offset为-2048..2047；舍入为加半码后算术右移。
-//          error当前恒0，不表示运行时已检查单调性、分母或参数一致性。
+// 手册依据: 功能映射见 docs/ad4080_traceability.md，不声称器件逐拍等价。
+// 时钟域: clk；start、y1、y2 须同域，并在接受沿稳定。
+// 复位: rst_n 异步低有效；各级 valid 独立传播。
+// 延迟: 接受 start 沿到 done 为两个完整 clk 间隔，含接受沿共三个寄存沿。
+// 吞吐: 每个 clk 可接受一次 start，无 busy 或反压。
+// 可综合性: RTL 结构；目标库映射、约束、SRAM/PHY 与 STA 须单独验收。
+// 依赖: 无子模块，未连接顶层自动学习控制器。
+// 边界: 默认 IN_W=20 补码；固定测试点须与预计算倒数一致，非默认组合需另验。
+//     gain 范围 0..1023，offset 范围 -2048..2047；加半码后算术右移舍入。
+//     error 当前恒为 0，不表示已检查运行时单调性、分母或参数一致性。
 //=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
 
 module cal_two_point #(
-    parameter int IN_W      = 20,
-    parameter int X1_CODE   = -419430,
-    parameter int X2_CODE   = 419430,
-    parameter int INV_DX_K  = 40961,
-    parameter int SHIFT_K   = 20,
-    parameter int INV_DX    = 1280,
-    parameter int SHIFT_O   = 30
+    parameter int IN_W      = 20,  // IN_W: 补码端点响应位宽，默认 20 bit。
+    parameter int X1_CODE   = -419430,  // X1_CODE: 固定第一横坐标，单位为 ADC 码。
+    parameter int X2_CODE   = 419430,  // X2_CODE: 固定第二横坐标，单位为 ADC 码。
+    parameter int INV_DX_K  = 40961,  // INV_DX_K: 增益拟合的预计算倒数分子。
+    parameter int SHIFT_K   = 20,  // SHIFT_K: 增益拟合常数乘积的右移位数。
+    parameter int INV_DX    = 1280,  // INV_DX: 偏移拟合使用的预计算倒数分子。
+    parameter int SHIFT_O   = 30  // SHIFT_O: 偏移拟合常数乘积的右移位数。
 ) (
     input  logic                     clk,
     input  logic                     rst_n,
@@ -44,7 +44,7 @@ module cal_two_point #(
 
     localparam int DX = X2_CODE - X1_CODE;
 
-    // 显式定宽常数：避免 int/无符号把乘法结果截到 32 位
+    // 显式定义常数位宽与符号，避免 int/无符号混算将乘法结果截到 32 bit。
     localparam logic signed [IN_W:0]       DX_S        = (IN_W+1)'(DX);
     localparam logic signed [IN_W:0]       X1_S        = (IN_W+1)'(X1_CODE);
     localparam logic signed [17:0]         INV_DX_K_S  = 18'(INV_DX_K);
@@ -75,7 +75,7 @@ module cal_two_point #(
     logic signed [11:0]           off_s3;
     logic                         v_s3;
 
-    // Stage 1: dy = y2 - y1; num_g = dy - DX
+    // 第一级计算 dy=y2-y1、num_g=dy-DX，并与接受的 y1 一起保存。
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             dy_s1    <= '0;
@@ -92,7 +92,7 @@ module cal_two_point #(
         end
     end
 
-    // Stage 2: constant-multiply the two-point formulas
+    // 第二级以预计算倒数的常数乘法实现两点拟合公式，不包含运行时除法。
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             gprod_s2  <= '0;
@@ -111,7 +111,7 @@ module cal_two_point #(
         end
     end
 
-    // Stage 3: clamp and output; one new transaction may arrive every clk.
+    // 第三级钳位系数并输出；流水可每个 clk 接受一个新事务。
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             gain_s3  <= 10'd512;

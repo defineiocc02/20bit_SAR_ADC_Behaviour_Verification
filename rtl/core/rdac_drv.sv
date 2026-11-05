@@ -33,8 +33,8 @@ module rdac_drv (
       sub_sw    <= '0;
       dither_sw <= '0;
     end else if (load) begin
-      // 先整体清零，再按物理号写入 8 个活动 slice —— 于是"未被选中的物理 slice
-      // 恒 0"是结构性成立的，而不是靠调用方保证。
+      // 先整体清零，再按物理号写入 8 个活动 slice —— 于是"未被选中的物理 slice 恒
+      // 0"是结构性成立的，而不是靠调用方保证。
       slice_sel <= '0;
       for (s = 0; s < N_SLICES; s = s + 1) begin
         main_sw[s]   <= '0;

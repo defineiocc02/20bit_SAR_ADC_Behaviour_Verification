@@ -1,20 +1,13 @@
 #!/usr/bin/env python3
-"""README 配图生成器：架构总览、模块地图、专利论文对应关系、披露值锚点、来源分级、验证方法论。
+"""生成原创 README 示意图，涵盖架构、模块、文献对应、参数来源及验证方法。
 
-设计约束
---------
-* **全部为原创示意图**。本仓库从不分发第三方原文；本脚本亦**不复制**论文/专利的任何
-  图像，只按公开披露的**文字**描述重绘拓扑与对应关系（引用条目见 `NOTICE`）。
-* **计数现场推导，不硬编码**：参数分级来自运行时 `provenance.PARAM_GRADES`，
-  机制/来源/实现程度来自 `mechanism_inventory.json`，模块分组与文件系统实际内容做
-  集合相等断言（新模块漏登记会让脚本直接失败，而不是悄悄过期）。
-* 风格与 `docs/release_v8.2.1`、`docs/release_v8.2.2` 的配图一致（浅色、打印友好、
-  中文字体优先 PingFang SC、200 dpi）。
+图示按公开披露文字及工程账本重绘，不复制论文或专利原图，引用见 NOTICE。
+参数分级读取运行时 provenance.PARAM_GRADES，机制及实现程度读取
+mechanism_inventory.json；模块分组与实际文件集合比较，遗漏模块即报错。
 
-用法::
-
-    python docs/readme/make_readme_figures.py            # 全部
-    python docs/readme/make_readme_figures.py --only 1 3 # 只出指定图
+样式沿用 release_v8.2.1、release_v8.2.2 的浅色方案，优先使用 PingFang SC，
+分辨率为 200 dpi。无 --only 时绘制全部，--only 1 3 可只选择对应图号。
+绘图检查不代替机制的执行验证。
 """
 
 from __future__ import annotations

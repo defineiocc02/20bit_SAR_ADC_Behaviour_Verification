@@ -81,8 +81,8 @@ class SourceGrade(enum.Enum):
     def quotable(self) -> bool:
         """True if a value of this grade may be quoted as fact in a paper.
 
-        ``FITTED`` and ``ASSUMED`` are deliberately excluded: a fitted value
-        restates its own target, and an assumed value has no source.
+        ``FITTED`` and ``ASSUMED`` are deliberately excluded: a fitted value restates its own
+        target, and an assumed value has no source.
 
         Returns:
             True 若该等级可当事实引用（仅 DISCLOSED / DERIVED）；
@@ -116,24 +116,21 @@ class Graded(Generic[T]):
     """A value bundled with its provenance.
 
     Attributes:
-        value: The quantity itself, in the unit documented by ``unit``.
+        value: The quantity itself, in the unit documented by ``unit`` .
         grade: Where the number comes from.
-        source: The reference, derivation or reason. Free text; for
-            ``DISCLOSED`` this should be a document and page/slide number.
-        note: Optional clarification, e.g. domain-of-applicability caveats.
-            Also carries the runtime value of a sentinel field (see
-            ``RESOLVED_SENTINELS``), so a ``None`` placeholder cannot look like
-            a switched-off parameter.
-        unit: Unit string, e.g. ``"V"``, ``"F"``, ``"LSB@20b"``, ``"dB"``.
-        overridden: True when the field's *current value* no longer equals its
-            stock default while ``grade``/``source`` still describe the
-            original declaration. ``fs=80e6`` on a field sourced from
-            "[00] abstract: 40 MS/s" is the canonical case: that sentence is
-            still true *about the paper* and false about the number in use.
-            :meth:`require` refuses such a value at a ``DISCLOSED`` call site.
-            Without this flag the grading was attached to the field *name*, so
-            a hand-edited number inherited the paper's authority (external
-            review, 2026-09-11).
+        source: The reference, derivation or reason. Free text; for ``DISCLOSED`` this should be a
+            document and page/slide number.
+        note: Optional clarification, e.g. domain-of-applicability caveats. Also carries the runtime
+            value of a sentinel field (see ``RESOLVED_SENTINELS``) , so a ``None`` placeholder
+            cannot look like a switched-off parameter.
+        unit: Unit string, e.g. ``"V"`` , ``"F"`` , ``"LSB@20b"`` , ``"dB"`` .
+        overridden: True when the field's *current value* no longer equals its stock default while
+            ``grade`` /``source`` still describe the original declaration. ``fs=80e6`` on a field
+            sourced from "[00] abstract: 40 MS/s" is the canonical case: that sentence is still true
+            *about the paper* and false about the number in use. :meth:`require` refuses such a
+            value at a ``DISCLOSED`` call site. Without this flag the grading was attached to the
+            field *name*, so a hand-edited number inherited the paper's authority
+            (external review, 2026-09-11) .
     """
 
     value: T
@@ -147,10 +144,9 @@ class Graded(Generic[T]):
     def effective_grade(self) -> SourceGrade:
         """The grade that governs use of the current value.
 
-        A ``DISCLOSED``/``DERIVED`` number that has been overridden no longer
-        has evidence at its declared grade, so it is demoted to ``ASSUMED`` —
-        no published source covers *this* value; sensitivity studies only.
-        Every other grade is returned unchanged.
+        A ``DISCLOSED`` /``DERIVED`` number that has been overridden no longer has evidence at its
+        declared grade, so it is demoted to ``ASSUMED`` — no published source covers *this* value;
+        sensitivity studies only. Every other grade is returned unchanged.
 
         Returns:
             SourceGrade: 当前值真正可以主张的等级。
@@ -162,14 +158,13 @@ class Graded(Generic[T]):
     def require(self, *allowed: SourceGrade) -> T:
         """Return the value, or raise if it may not be used here.
 
-        This is the enforcement hook. Call it at every point where a number is
-        about to be used in a claim, so that an assumption silently
-        propagating into a performance claim becomes a test failure instead of
-        a correction after publication.
+        This is the enforcement hook. Call it at every point where a number is about to be used in a
+        claim, so that an assumption silently propagating into a performance claim becomes a test
+        failure instead of a correction after publication.
 
-        The check is against :attr:`effective_grade`, not ``grade``: a value
-        that has been changed away from the one its source documents cannot be
-        quoted as though the source still covered it.
+        The check is against :attr:`effective_grade`, not ``grade`` : a value that has been changed
+        away from the one its source documents cannot be quoted as though the source still covered
+        it.
 
         Args:
             *allowed: Grades acceptable at this call site.
@@ -178,7 +173,7 @@ class Graded(Generic[T]):
             The wrapped value.
 
         Raises:
-            GradingError: If :attr:`effective_grade` is not in ``allowed``.
+            GradingError: If :attr:`effective_grade` is not in ``allowed`` .
         """
         if self.effective_grade not in allowed:
             why = (
@@ -203,7 +198,6 @@ class Graded(Generic[T]):
         Args:
             fn: 作用于 value 的映射函数（callable）。若换算了单位，
                 调用方需自行更新返回对象的 unit 字段。
-
         """
         return Graded(
             fn(self.value),
@@ -377,9 +371,9 @@ def grade_of(name: str) -> tuple[SourceGrade, str]:
         Tuple of grade and source string.
 
     Raises:
-        KeyError: If the field has no declared grade. Callers should treat this
-            as a build-breaking condition; it is what stops an ungraded
-            parameter from silently becoming a "disclosed" one.
+        KeyError: If the field has no declared grade. Callers should treat this as a build-breaking
+            condition; it is what stops an ungraded parameter from silently becoming a "disclosed"
+            one.
     """
     return PARAM_GRADES[name]
 
@@ -410,7 +404,7 @@ def _resolve_sentinel(name: str, cfg: Any) -> Any:
         cfg: The configuration the resolver is applied to.
 
     Returns:
-        The resolved value (e.g. V for a noise amplitude), or ``None`` if the
+        The resolved value (e.g. V for a noise amplitude) , or ``None`` if the
         resolver is unavailable — a partial install must not make this module
         unimportable, and ``None`` here only means "cannot prove it is active".
     """
@@ -431,7 +425,7 @@ def _value_is_active(value: Any, resolved: bool) -> bool:
         resolved: True if a sentinel was resolved to a real number at runtime.
 
     Returns:
-        False for a disabled switch (``False``, ``0``), True for anything that
+        False for a disabled switch (``False``, ``0``) , True for anything that
         contributes. ``None`` returns ``resolved``: a sentinel is active exactly
         when its resolver produced a value.
     """
@@ -484,15 +478,14 @@ def config_defaults() -> dict[str, Any]:
 def annotate_config(cfg: Any) -> dict[str, Graded[Any]]:
     """Bundle every Config field with its declared grade.
 
-    For fields listed in :data:`RESOLVED_SENTINELS`, the runtime-resolved value
-    is recorded in ``Graded.note`` so that a sentinel cannot masquerade as an
-    inactive parameter.
+    For fields listed in :data:`RESOLVED_SENTINELS`, the runtime-resolved value is recorded in
+    ``Graded.note`` so that a sentinel cannot masquerade as an inactive parameter.
 
-    For ``DISCLOSED``/``DERIVED`` fields whose current value no longer equals
-    the stock :class:`~adi_model.config.Config` default, ``Graded.overridden``
-    is set. The grade stays attached to the field *name*, so without this flag
-    a hand-edited number would inherit the original source's authority and
-    ``require(DISCLOSED)`` would accept it (external review, 2026-09-11).
+    For ``DISCLOSED`` /``DERIVED`` fields whose current value no longer equals the stock
+    :class:`~adi_model.config.Config` default, ``Graded.overridden`` is set. The grade stays
+    attached to the field *name*, so without this flag a hand-edited number would inherit the
+    original source's authority and ``require(DISCLOSED)`` would accept it
+    (external review, 2026-09-11) .
 
     Args:
         cfg: A :class:`~adi_model.config.Config` instance.
@@ -529,8 +522,8 @@ def annotate_config(cfg: Any) -> dict[str, Graded[Any]]:
 def audit_provenance(cfg: Any) -> dict[str, Any]:
     """Summarise how much of a configuration rests on which grade.
 
-    Intended as the first thing a reviewer reads: if a headline number depends
-    on an ``ASSUMED`` parameter, this report says so explicitly.
+    Intended as the first thing a reviewer reads: if a headline number depends on an ``ASSUMED``
+    parameter, this report says so explicitly.
 
     Args:
         cfg: A :class:`~adi_model.config.Config` instance.

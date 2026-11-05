@@ -51,10 +51,9 @@ module div_floor #(
   logic [W_R:0] trial_difference;
   wire input_d_large;
 
-  // A denominator >= 2^P_W_A is larger than every possible numerator
-  // magnitude. Preserve its full-width meaning instead of truncating it:
-  // quotient magnitude stays zero, while the final floor correction still
-  // returns -1 for a negative nonzero numerator.
+  // A denominator >= 2^P_W_A is larger than every possible numerator magnitude. Preserve its
+  // full-width meaning instead of truncating it: quotient magnitude stays zero, while the final
+  // floor correction still returns -1 for a negative nonzero numerator.
   if (P_W_D > W_R) begin : g_wide_denominator
     assign input_d_large = |d[P_W_D - 1:W_R];
   end else begin : g_narrow_denominator
@@ -72,14 +71,14 @@ module div_floor #(
   always_comb begin
     r_chain[0] = rem;
     for (s = 0; s < P_STAGES; s = s + 1) begin
-      // Consume a fixed high-order chunk; the magnitude shifts between cycles.
-      // Avoid a counter-controlled variable bit selection on every unrolled stage.
+      // Consume a fixed high-order chunk; the magnitude shifts between cycles. Avoid a
+      // counter-controlled variable bit selection on every unrolled stage.
       shifted = {r_chain[s][W_R - 2:0], mag[W_PAD - 1 - s]};
-      // One widened unsigned subtraction supplies both the result and its
-      // borrow. Do not infer a separate full-width compare plus subtract.
+      // One widened unsigned subtraction supplies both the result and its borrow. Do not infer a
+      // separate full-width compare plus subtract.
       trial_difference = {1'b0, shifted} - {1'b0, dv};
-      // The high-order consumed bit produces the high-order bit of this group.
-      // Reversing this index corrupts every multi-stage quotient chunk.
+      // The high-order consumed bit produces the high-order bit of this group. Reversing this index
+      // corrupts every multi-stage quotient chunk.
       if (!dv_large && !trial_difference[W_R]) begin
         r_chain[s + 1] = trial_difference[W_R - 1:0];
         qbits[P_STAGES - 1 - s] = 1'b1;
@@ -120,8 +119,8 @@ module div_floor #(
         err_r <= (d == {P_W_D{1'b0}});
       end else if (run) begin
         if (int'(cnt) == N_CYC - 1) begin
-          // Final q_next already includes this cycle; do not commit old quo.
-          // Nonzero remainder rounds a negative quotient downward by one LSB.
+          // Final q_next already includes this cycle; do not commit old quo. Nonzero remainder
+          // rounds a negative quotient downward by one LSB.
           if (err_r)
             q <= {P_W_A{1'b0}};
           else

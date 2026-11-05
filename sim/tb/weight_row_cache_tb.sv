@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
-// Exact loader/cache invariant, independently recomputed from retained words.
-// Includes the production geometry and both address maxima simultaneously.
+// Exact loader/cache invariant, independently recomputed from retained words. Includes the
+// production geometry and both address maxima simultaneously.
 module weight_row_cache_case #(parameter int NS=18, NU=71, SEED=1)(output logic done=0);
   logic clk=0,rst_n=0,ready=0,clear_load=0,wr_en=0;
   always #1 clk=~clk;

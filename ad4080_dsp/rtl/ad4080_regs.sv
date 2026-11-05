@@ -1,23 +1,23 @@
 //=============================================================================
 // @file    ad4080_regs.sv
-// @brief   配置寄存器、状态回读和单拍控制事件
-// @details 写提交由we限定，读为组合地址译码；写0x1C产生FIFO arm，写0x29产生filter_sync。
-//          SW_RESET仅恢复所列配置寄存器；FIFO/滤波器不由该脉冲复位。
+// @brief   配置寄存器、状态回读与单拍控制事件。
+// @details we 限定写提交，读采用组合地址译码；写 0x1C 产生 FIFO arm，
+//          写 0x29 产生 filter_sync。SW_RESET 仅恢复所列配置，不直接复位 FIFO 或滤波器。
 // @project SAR20 / AD4080风格数字原型
 // @author  项目维护者（贡献记录见版本库）
 // @date    2026-11-05
 // @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : 功能映射见docs/ad4080_traceability.md；不声称器件逐拍等价。
-// 时钟域   : clk；SPI写事务已由spi_slave转换到本域
-// 复位     : rst_n异步低有效；SW_RESET优先于普通写和状态更新
-// 延迟     : 写在接受沿生效，读为组合；派生控制事件保持一个clk周期
-// 吞吐     : 最多1次寄存器写/clk
-// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
-// 依赖     : 无
-// 边界     : 状态W1C与新事件同沿时清除优先；软件应按此避免丢事件。
-//          软件复位保留addr_asc、scratch和POR相关保持位；细节以分支赋值为准。
-//          多字节系数更新不是原子提交；运行中修改可能产生中间系数。
+// 手册依据: 功能映射见 docs/ad4080_traceability.md，不声称器件逐拍等价。
+// 时钟域: clk；spi_slave 已将 SPI 写事务转换到本域。
+// 复位: rst_n 异步低有效；SW_RESET 优先于普通写入和状态更新。
+// 延迟: 写在接受沿生效，读为组合逻辑；派生控制事件保持一个 clk 周期。
+// 吞吐: 每个 clk 最多一次寄存器写入。
+// 可综合性: RTL 结构；目标库映射、约束、SRAM/PHY 与 STA 须单独验收。
+// 依赖: 无子模块。
+// 边界: 状态 W1C 清除优先于同沿新事件，软件须据此处理事件丢失风险。
+//     软件复位保留 addr_asc、scratch 和 POR 相关保持位，具体见复位分支。
+//     多字节系数更新不原子；运行中修改可能出现中间系数。
 //=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
@@ -90,7 +90,7 @@ module ad4080_regs (
     output logic [7:0]  status                              // DEVICE_STATUS 当前值
 );
 
-    // ---------------- 寄存器本体 ----------------
+    // 寄存器本体
     logic signed [11:0] offset_r;
     logic [9:0]  gain_r;
     logic [1:0]  fsel_r;
@@ -128,7 +128,7 @@ module ad4080_regs (
     // ASSUMPTION: 手册只说"两位必须同时写"，未说取值；按 ADI 同类器件惯例取 0x81。
     wire sw_reset_now = we && (addr == 16'h0000) && wdata[7] && wdata[0];
 
-    // ---------------- 写 ----------------
+    // 写
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             offset_r      <= 12'sd0;
@@ -283,7 +283,7 @@ module ad4080_regs (
         end
     end
 
-    // ---------------- 读 ----------------
+    // 读
     always_comb begin
         case (addr)
             16'h0000: rdata = {2'b00, addr_asc_r, sdo_en_r, 4'b0000};
@@ -325,7 +325,7 @@ module ad4080_regs (
     assign status = {st_fifo_full, st_fifo_read_done, st_hi_flag, st_lo_flag,
                      por_ana_r, cnv_err_r, rom_crc_r, por_flag_r};
 
-    // ---------------- 输出 ----------------
+    // 输出
     assign offset_code    = offset_r;
     assign gain_code      = gain_r;
     assign filter_sel     = fsel_r;

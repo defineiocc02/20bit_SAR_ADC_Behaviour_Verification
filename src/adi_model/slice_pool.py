@@ -265,8 +265,8 @@ class PhysicalSlicePool:
         Args:
             n_samples: 计划周期数 N，非负。
             rng: 独立的调度随机流，不读取物理失配或噪声真值。
-            strategy: pingpong 固定两组交替；shuffle_causal 从本周期不转换的
-                自由集合中选下一采样组。18/8 配置下是从 10 片选 8 片，余 2 片备用。
+            strategy: pingpong 固定两组交替；shuffle_causal 从本周期不转换的自由集合中选下一采样组。
+                18/8 配置下是从 10 片选 8 片，余 2 片备用。
 
         Returns:
             SlicePlan；conv/acq 为 (N, n_active) 物理 ID。conv[n+1]=acq[n]
@@ -364,8 +364,8 @@ class PhysicalSlicePool:
 
         Args:
             conv: (N, n_active) 物理 slice ID，须与该样本实际采样组一致。
-            k: (N,) 细 RDAC 单位码，包含已知 dither；物理求值前钳在
-                [0, dac_levels-1]。它不是 coarse code、ADC2 raw code 或 20 位输出码。
+            k: (N,) 细 RDAC 单位码，包含已知 dither；物理求值前钳在[0, dac_levels-1]。
+                它不是 coarse code、ADC2 raw code 或 20 位输出码。
             sid: (N,) DEM 状态；split_switch_command 解出主、子顺序及 bridge 选择。
             cfg: 运行时 DEM/掩码控制，不重抽物理电容。
 
@@ -419,8 +419,8 @@ class PhysicalSlicePool:
         Args:
             conv: (N, n_active) 本次采样的物理 slice ID。
             x: (N,) 外部输入节点的孔径电压 [V]。
-            bank_code: (N,) 已知采样 dither 码；离散模式按 2D 个保留单元选择
-                D+bank_code 个接 +v_fs，其余接 -v_fs；连续模式按电荷线性插值。
+            bank_code: (N,) 已知采样 dither 码；离散模式按 2D 个保留单元选择D+bank_code 个接 +v_fs，
+                其余接 -v_fs；连续模式按电荷线性插值。
             cfg: 运行时采样掩码；固定为所选阵列末尾 2D 个单元，不读取 sid。
 
         Returns:
@@ -558,10 +558,10 @@ class PhysicalSlicePool:
         Args:
             acq: (n_active,) 物理 slice ID。
             x: 外部输入节点目标电压 [V]。
-            eps: 标量或 (n_active,) 建立残留比例；
-                v_saved=target-eps*(target-v_previous)。0 表示完全建立。
-            skew: 可选 (n_slices,) 静态时偏 [s]。当前 helper 使用选中组时偏
-                的平均值乘 dxdt，属于一阶组平均近似，不是逐片孔径波形求值。
+            eps: 标量或 (n_active,) 建立残留比例；v_saved=target-eps*(target-v_previous)。
+                0 表示完全建立。
+            skew: 可选 (n_slices,) 静态时偏 [s]。当前 helper 使用选中组时偏的平均值乘 dxdt，
+                属于一阶组平均近似，不是逐片孔径波形求值。
             offset: 可选 (n_slices,) 输入等效失调 [V]，按物理 ID 加到各片目标。
             dxdt: 孔径附近外部输入斜率 [V/s]。
 

@@ -1,19 +1,13 @@
-"""注入器两端验证（Phase 1a 的验收门）：**必被检出**端与**必然等价**端。
+"""保留旧 P3 接口的变异注入正、负对照验证（Phase 1a）。
 
-审计文档 §6.5 把这一步定成"不做完不许跑 campaign"：给不出这两端，
-campaign 的变异分数就不可信（一个"恒 killed"的判据会虚高，一个"恒 unobserved"的会虚低）。
+审计文档 §6.5 要求先检查明确可检出的变异与有先验理由的无观测变异，
+避免比较器恒判 killed 或恒判 unobserved 仍生成误导分数。
+该测试保留原先远程 EDA VM／VCS 路径和显式 RTL_SIM_TWONECK=1 开关；
+默认跳过；启用后按所列入口核对完整执行及轨迹。
 
-本测试**默认不跑**（需要远程 EDA VM + VCS，分钟级）。两种开启方式：
-
-    RTL_SIM_TWONECK=1 PYTHONPATH=src python -m pytest tests/integration/test_mutation_twoneck.py -q
-
-它做的事：
-  1. 跑干净设计拿**金标** trace；
-  2. 端 1：注入 `ExprUpdate` @ `div_floor.sv` 的 `quo << P_STAGES`（`<<` -> `>>`）⇒ **必须 killed**；
-  3. 端 2：注入 `ExprDelete` @ `weight_store.sv` 的容量条件项（§2 的 #10 负对照形态）
-     ⇒ **必须 unobserved**。
-
-两端的**先验理由**写在下面各自的测试里 —— 不是"跑出来看结果再挑一个"。
+流程先取得未变异设计轨迹，再检查 div_floor.sv 的 quo << P_STAGES 改为右移
+应被检出，以及 weight_store.sv 的容量条件删除在所述冻结边界下应无观测差异。
+两类先验理由分别写在测试中；不能根据运行结果事后选择对照。
 """
 
 from __future__ import annotations
@@ -73,10 +67,10 @@ def _inject(op: str, rel: str, line: int, name: str, term: int | None = None) ->
 
 
 def _sim(name: str, rtl_prefix: Path | None) -> Path:
-    """跑一次仿真并把 trace 取回；`rtl_prefix=None` 表示干净设计。
+    """运行旧测试台并读取轨迹；rtl_prefix=None 表示未变异设计。
 
-    TB may report mismatches only after completing every expected observation.
-    Compilation, timeout, incomplete execution and stale traces are never verdicts.
+    允许的失配返回码仅在全部预期观测完成后用于判定。编译失败、超时、执行
+    不完整或旧轨迹均不能作为变异比较结论。
     """
     trace = REPO / "sim" / "artifacts" / name / "p3_trace.txt"
     trace.unlink(missing_ok=True)
@@ -162,7 +156,7 @@ def _site(rel: str, needle: str) -> int:
 
 @requires
 def test_clean_design_trace_is_not_empty():
-    """先证明金标 trace 有内容 —— 否则"两端都 unobserved"会假过。"""
+    """先检查未变异轨迹非空，避免空观测使两类对照都被判为 unobserved。"""
     g = _sim("twoneck_golden", None)
     rows = [x for x in g.read_text(encoding="utf-8").splitlines() if x.strip()]
     assert len(rows) > 4000, f"金标 trace 只有 {len(rows)} 行，判据没有观测面"
@@ -171,12 +165,11 @@ def test_clean_design_trace_is_not_empty():
 
 @requires
 def test_neck_kill_must_be_detected():
-    """端 1（必被检出）：`q_next = (quo << P_STAGES) | …` 的 `<<` 改成 `>>`。
+    """正对照：将 q_next=(quo<<P_STAGES)|… 中的左移改为右移。
 
-    先验理由：`quo` 是 MSB 优先累积的商，每个时钟把最新算出的 `P_STAGES` 位
-    **左移 P_STAGES** 后并进去；换成右移等于把每一组都搬到错误的位置 ⇒ 商错到
-    与真值差好几个数量级 ⇒ 20 位输出上远超 1 LSB ⇒ 必然可观测。
-    （这**不是**"跑完再挑"：本条的形状选自审计文档 §2 里 div_floor 那条已知缺陷族。）
+    商按最高位优先累积，每周期将已算商左移 P_STAGES 后并入新位；改为右移会
+    破坏组位位置，在所选 20 位输出夹具上产生超过 1 LSB 的可观测误差。
+    变异类型来自审计文档 §2 的 div_floor 缺陷族，不是根据本次输出事后挑选。
     """
     rtl = (
         _inject(
@@ -195,12 +188,12 @@ def test_neck_kill_must_be_detected():
 
 @requires
 def test_neck_capacity_guard_removal_must_not_be_detected():
-    """端 2（必然等价/无观测）：删掉 `weight_store` 的容量条件项（审计文档 §2 的 #10 负对照）。
+    """负对照：删除审计文档 §2 #10 的 weight_store 容量条件。
 
-    先验理由：该守卫要求 `ΣW + 新值 >= 2^60`；冻结尺寸下全库上界只有
-    `1278 × (2^47−1) ≈ 2^57.4`，且 `wr_slice`/`wr_unit` 的位宽把可寻址格数限死在
-    `32×128 = 4096` 格（`4096 × (2^47−1)` 仍 < 2^60）⇒ 这个条件**结构性不可达**，
-    删掉它不改变任何输出 ⇒ 必须 unobserved。这一端用来证明"断言不是无条件变红"。
+    先验边界为 ΣW+新值>=2^60；旧冻结库上界为 1278*(2^47-1)≈2^57.4。
+    wr_slice、wr_unit 位宽限制的 32*128=4096 个地址全部写满，也仍有
+    4096*(2^47-1)<2^60，因此在该声明边界内条件不可达。该对照检查比较器不会
+    无条件判差异；它不是对其他几何或当前所有状态的无界等价证明。
     """
     rtl = (
         _inject(

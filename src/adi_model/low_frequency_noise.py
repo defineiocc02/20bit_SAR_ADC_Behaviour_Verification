@@ -1,10 +1,8 @@
-"""Stationary band-limited 1/f state at physical timestamps.
+"""按物理时间戳生成平稳、限带的 1/f 状态。
 
-Random log-frequency quadrature represents S(f)=S0*fc/f on [fl,fh]. Independent
-Gaussian sine/cosine coefficients give stationary Gaussian states with exact
-ensemble total variance S0*fc*log(fh/fl). Finite mode density approximates the
-continuous covariance/spectrum; quadrature convergence is separately testable.
-No claim is made for an unbounded stationary 1/f spectrum or an AZ circuit.
+随机对数频率求积在 [fl,fh] 上表示 S(f)=S0*fc/f。独立高斯正弦/余弦系数给出平稳高斯状态，
+集合总方差精确为 S0*fc*log(fh/fl)。有限模态密度仅近似连续协方差和谱；求积收敛性需单独检查。
+不声明实现无界平稳 1/f 谱或 AZ 电路。
 """
 
 from __future__ import annotations

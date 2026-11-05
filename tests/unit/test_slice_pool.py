@@ -1,11 +1,7 @@
-"""Unit tests for the cross-cycle causal 18-slice pool.
+"""检查 18 切片池的跨周期因果归属及失配绑定。
 
-These tests enforce the binding the v6.1 audit found missing: the
-randomised 8/18 choice must (a) guarantee that the converting slice was
-acquired in a previous cycle, and (b) actually change the physical DAC
-weight vector. The v6.1 behaviour returned bit-identical output for
-fixed vs shuffled (max |delta| = 0.0 uV), which is the failure mode these
-tests detect.
+随机 8/18 选择须转换前周期已采集的电容，并实际改变 DAC 权重。
+历史 v6.1 固定与随机调度逐位相同、max|delta|=0.0 µV，本组保留对应反例。
 """
 
 from __future__ import annotations
@@ -57,7 +53,7 @@ class TestCausality:
 
 
 class TestMismatchBinding:
-    """The same architecture choice must actually move the DAC error."""
+    """检查实际切片选择会改变 DAC 误差，而不只是改变调度标签。"""
 
     def test_dac_error_changes_with_slice_selection(self, cfg):
         pool = _make_pool(cfg, seed=7)

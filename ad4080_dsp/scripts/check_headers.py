@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
-"""RTL 文件头合规检查（工业级交付门禁的一部分）。
+"""检查 RTL 文件头必需字段、文件名和模块名的一致性。
 
-检查每个 .sv 文件的前 60 行是否包含规范要求的字段：
-    @file @brief @details @author @date @version
-    手册依据 时钟域 复位 可综合性
-并校验 @file 字段与真实文件名一致。
+前 60 行须包含 @file、@brief、@details、@author、@date、@version，
+以及手册依据、时钟域、复位、可综合性；同时检查 POSIX 末尾换行。
+这只是文本合规检查，不进行 HDL 解析、综合或接口验收。
 
-用法:
-    python3 scripts/check_headers.py rtl/*.sv
-退出码:
-    0 = 全部合规；1 = 存在缺失（逐条打印）
+用法：``python3 scripts/check_headers.py rtl/*.sv``。全部合规返回 0，
+任一文件存在问题返回 1；未提供文件返回 2。
 """
 
 from __future__ import annotations
@@ -23,7 +20,14 @@ REQUIRED_CN = ("手册依据", "时钟域", "复位", "可综合性")
 
 
 def check(path: Path) -> list[str]:
-    """Return a list of human-readable problems for one file."""
+    """返回单个文件的文本合规问题；空列表表示本函数未发现问题。
+
+    Args:
+        path: 待检查的 UTF-8 RTL 文件路径；解码错误用替代字符保留。
+
+    Returns:
+        文件头字段、文件/模块名或末尾换行问题的中文列表。
+    """
     text = path.read_text(encoding="utf-8", errors="replace")
     head = "\n".join(text.splitlines()[:60])
     problems: list[str] = []
@@ -50,7 +54,7 @@ def check(path: Path) -> list[str]:
 
 
 def main(argv: list[str]) -> int:
-    """命令行入口：逐个检查 .sv 文件头是否符合规范，返回失败文件数。"""
+    """逐个检查 argv[1:] 指定的文件，打印问题并返回进程退出码。"""
     files = [Path(a) for a in argv[1:]]
     if not files:
         print("usage: check_headers.py <file.sv> [...]", file=sys.stderr)

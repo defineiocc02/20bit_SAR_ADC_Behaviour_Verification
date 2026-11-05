@@ -69,17 +69,16 @@ class TrackPolicy:
 
     Attributes:
         mode: 下列之一（非法值在 run() 入口拒绝）：
-            ``"reset_mid"``           传统复位到中点（对照组）。
-            ``"track_own"``           跳过复位、保持自己上一拍（[12] 背景：快信号更差）。
-            ``"track_other"``         **专利核心**：另一颗 sub-ADC 的最近转换结果。
+            ``"reset_mid"``           传统复位到中点（对照组）。``"track_own"``           跳过复位、
+            保持自己上一拍（[12] 背景：快信号更差）。``"track_other"``         **专利核心**：
+            另一颗 sub-ADC 的最近转换结果。
             ``"track_other_weighted"`` 最近 N 次转换加权组合（披露例 N=3、10/30/60%）。
         n_weighted: 加权模式的窗口长度 N（[披露] 例子 N=3）。
-        weights: 加权模式的权重（时间倒序；[披露] 例 0.6/0.3/0.1，
-            此处按"最近 -> 更早"排列）。
-        predistortion_sigma_v: 叠加在跟踪值上的随机数字值（介电吸收预失真）
-            的标准差 [V]；0 = 关闭。机制 [披露]，幅度 [假设]。
-        taud_noise_sigma_v: 转换结果里叠加的假设高斯扰动 sigma [V]；
-            0 = 理想转换，不是实际 SAR 量化误差的位级求解。
+        weights: 加权模式的权重（时间倒序；[披露] 例 0.6/0.3/0.1，此处按"最近 -> 更早"排列）。
+        predistortion_sigma_v: 叠加在跟踪值上的随机数字值（介电吸收预失真）的标准差 [V]；0 = 关闭。
+            机制 [披露]，幅度 [假设]。
+        taud_noise_sigma_v: 转换结果里叠加的假设高斯扰动 sigma [V]；0 = 理想转换，
+            不是实际 SAR 量化误差的位级求解。
         randomize: 是否随机化相位；相邻两拍以 0.25 概率交换是本项目假设。
             False = 纯轮转（确定性时序，供精确期望的测试使用）。
     """
@@ -122,11 +121,11 @@ class TrackRunResult:
     """保存每个复合周期的电荷核算及来源信息。
 
     Attributes:
-        charge: (N,) 从输入驱动节点补入的电荷幅值 [C]，
-            等于 c_dac*abs(x(t_n)-v_hold)，不是有符号净电荷。
+        charge: (N,) 从输入驱动节点补入的电荷幅值 [C]，等于 c_dac*abs(x(t_n)-v_hold)，
+            不是有符号净电荷。
         v_hold: (N,) 进入采集前的 DAC 预置/保持电压 [V]。
-        source_adc: (N,) 来源 sub-ADC 编号，复位/无历史时 -1；
-            加权模式仅记录最新贡献者，不代表全部来源列表。
+        source_adc: (N,) 来源 sub-ADC 编号，复位/无历史时 -1；加权模式仅记录最新贡献者，
+            不代表全部来源列表。
         source_age: (N,) 所记来源距今的复合周期数，缺省 -1。
         acquired_adc: (N,) 本周期采集的 sub-ADC 编号，不是 slot 或 sample ID。
         summary: 电荷均值 [C]、相同输入复位基线均值 [C] 和无量纲电荷比。
@@ -191,8 +190,8 @@ class TrackRunResult:
 def filter_bw_relative(t_cycle: float, eps: float = 0.01) -> float:
     """计算一阶相对建立约束对应的最低 3 dB 带宽 [Hz]。
 
-    exp(-T/(R_f*C_f))<=eps 给出 f_min=ln(1/eps)/(2*pi*T)。
-    电荷不进入相对误差比例；减小初始电荷不自动减小这个带宽下界。
+    exp(-T/(R_f*C_f))<=eps 给出 f_min=ln(1/eps)/(2*pi*T)。电荷不进入相对误差比例；
+    减小初始电荷不自动减小这个带宽下界。
 
     Args:
         t_cycle: 可用建立时间 T [s]，有限且正。
@@ -214,8 +213,8 @@ def filter_bw_absolute(q_kick: float, c_f: float, v_err_max: float, t_cycle: flo
     """计算一次电荷扰动在绝对残差约束下的最低 3 dB 带宽。
 
     初始滤波节点扰动为 q_kick/c_f [V]；要求经过 T 后不大于 v_err_max，
-    f_min=max(0,ln(q_kick/(c_f*v_err_max)))/(2*pi*T) [Hz]。
-    电荷只在对数中出现，不成立 f_min 与电荷成正比。
+    f_min=max(0,ln(q_kick/(c_f*v_err_max)))/(2*pi*T) [Hz]。电荷只在对数中出现，
+    不成立 f_min 与电荷成正比。
 
     Args:
         q_kick: 单次采集电荷幅值 [C]，有限且正。
@@ -299,8 +298,8 @@ class InterleavedSAR:
             input_fn: t->x(t)，t [s]，输出 [V]；支持标量广播或 (N,) 记录。
             n_cycles: 复合采样周期数 N。
             seed: 相位交换、预失真与行为转换噪声的随机种子。
-            c_dac: 每 sub-ADC 电容 [F]；None 使用
-                cfg.c_active_nominal()/cfg.n_active，不等同 18 片总池电容。
+            c_dac: 每 sub-ADC 电容 [F]；None 使用cfg.c_active_nominal()/cfg.n_active，
+                不等同 18 片总池电容。
 
         Raises:
             ValueError: n_adcs<2，或策略模式/加权组合非法。

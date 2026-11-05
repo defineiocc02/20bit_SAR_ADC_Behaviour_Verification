@@ -1,7 +1,4 @@
-//===========================================================================
-// p2_periph_tb.sv -- 外设/控制类子模块的**定向**覆盖补齐（P2 缺口 C）
-//===========================================================================
-// 为什么单独一个文件
+// p2_periph_tb.sv -- 外设/控制类子模块的**定向**覆盖补齐（P2 缺口 C） 为什么单独一个文件
 //   p2_smoke_tb.sv 只跑"顶层配置通路 + slice_alloc + sadc_enc"三件事，自报过 5 处
 //   没有定向覆盖。本文件把 5 个模块**各自单独例化**，一处一处打定向激励并断言，
 //   不去碰顶层（顶层通路与链路数值已由 p2_tb / p3_top_tb 覆盖）。
@@ -20,7 +17,6 @@
 //     +trace=<file> 观测 trace：逐观测节拍落一行**模块级观测面**（见 [I]）
 //   退出码：任何一处 MISMATCH -> 结束时报 FAIL 并 $fatal(1)。
 //
-// ---------------------------------------------------------------------------
 //   [I] **观测 trace（`+trace=<file>`）—— 模块级观测面，用于测量"我们的观测面有多大"**
 //
 //   动机：同一个变异体在**模块级 TB** 上可能被杀掉，而在**顶层 4 列 trace**
@@ -44,7 +40,6 @@
 //   **独立 `always` 块**里而不是插进既有 `initial`，就是为了让"没有动过任何既有行"
 //   成为**结构事实**（`git diff` 应为 +N/−0），而不是一句承诺。
 //
-// ---------------------------------------------------------------------------
 // 如实登记：**没有做成的**
 //   [U1] weight_store 的"写入后 Sigma W < 2^60"容量拒绝分支，在冻结尺寸下
 //        **不可达**，本 TB 无法用激励触发它 —— 见 T1 末尾的界证明（它是"结构性
@@ -55,15 +50,14 @@
 //        语义在本文件里是用"直接驱动 sel"的方式覆盖的。
 //   [U3] 本 TB **不覆盖** int/整数乘法以外的模拟量语义（rdac_drv 只是数字扇出，
 //        真实底板驱动在模拟域）。
-//===========================================================================
 `timescale 1ns/1ps
 `include "rtl_params.vh"
 
 module p2_periph_tb;
 
-  localparam int N_SLOT = N_SLICES * N_UNIT_TOTAL;      // 1278
-  localparam logic [W_BITS-1:0] WMAX  = {{(W_BITS-47){1'b0}}, 1'b1} << 47;  // 2^47
-  localparam logic [W_BITS-1:0] WMAX1 = WMAX - {{(W_BITS-1){1'b0}}, 1'b1};  // 2^47-1
+  localparam int N_SLOT = N_SLICES * N_UNIT_TOTAL;      // N_SLOT: 1278
+  localparam logic [W_BITS-1:0] WMAX  = {{(W_BITS-47){1'b0}}, 1'b1} << 47;  // WMAX: 2^47
+  localparam logic [W_BITS-1:0] WMAX1 = WMAX - {{(W_BITS-1){1'b0}}, 1'b1};  // WMAX1: 2^47-1
   // calib_regs 的错误码常量（与 calib_regs.sv 同值；那里是 localparam，无法 import）
   localparam logic [31:0] E_NONE  = 32'd0;
   localparam logic [31:0] E_EMPTY = 32'd3;
@@ -78,9 +72,9 @@ module p2_periph_tb;
   always #5 clk = ~clk;
   logic rst_n = 1'b0;
 
-  // ---- 观测 trace（`+trace=<file>`）：**模块级观测面**，逐观测节拍落一行 -----------
-  // 列见模块头 [I]。只在显式给 `+trace` 时才有任何副作用（fopen / 写文件 / 打印）；
-  // 不给时采样块每拍只做一次 `if`，**不产生任何输出**。
+  // 观测 trace（`+trace=<file>`）：**模块级观测面**，逐观测节拍落一行列见模块头 [I]。只在显式给
+  // `+trace` 时才有任何副作用（fopen / 写文件 / 打印）；不给时采样块每拍只做一次 `if`，
+  // **不产生任何输出**。
   // ⚠️ 采样刻意放在**独立的 always 块**里，而不是插进既有 initial ——
   //    这样"没有动过任何既有行"就是结构事实（git diff 应为 +N/−0），而不是承诺。
   // ⚠️ 采样块本体必须放在**所有 DUT 信号声明之后**（VCS 报 `Error-[IND] Identifier
@@ -110,9 +104,7 @@ module p2_periph_tb;
     end
   endtask
 
-  //=========================================================================
   // T1 DUT: weight_store（全尺寸）
-  //=========================================================================
   logic        ws_cfg_ready, ws_wr_en, ws_err;
   logic        ws_clear = 0;
   logic [4:0]  ws_slice;
@@ -148,9 +140,7 @@ module p2_periph_tb;
     end
   endtask
 
-  //=========================================================================
   // T2 DUT: status_regs
-  //=========================================================================
   logic        sr_clr, ev_acc, ev_gain, ev_adc2, ev_cl, ev_ch, ev_an;
   logic [31:0] sr_err, sr_word, sr_clrval;
   logic        st_acc, st_gain, st_adc2, st_an, st_cl, st_ch;
@@ -165,9 +155,7 @@ module p2_periph_tb;
       .status_clr_value (sr_clrval)
   );
 
-  //=========================================================================
   // T3 DUT: rdac_drv
-  //=========================================================================
   logic          rd_load;
   logic [N_ACTIVE-1:0][4:0]        rd_slice_id;
   logic [N_ACTIVE-1:0][N_UNIT_MAIN-1:0] rd_main_on;
@@ -185,9 +173,7 @@ module p2_periph_tb;
       .slice_sel (rd_sel), .main_sw (rd_main), .sub_sw (rd_sub), .dither_sw (rd_dsw)
   );
 
-  //=========================================================================
   // T4 DUT: ctrl_fsm
-  //=========================================================================
   logic        cf_cfg_ready, cf_run;
   logic [PHASES-1:0] cf_onehot;
   logic [$clog2(PHASES)-1:0] cf_phase;
@@ -202,9 +188,7 @@ module p2_periph_tb;
       .recon_start (cf_recon), .sample_idx (cf_idx)
   );
 
-  //=========================================================================
   // T5 DUT: calib_regs
-  //=========================================================================
   logic        cb_wr, cb_val, cb_clr, cb_ready;
   logic [3:0]  cb_sel;
   logic signed [V_BITS-1:0] cb_dv;
@@ -241,15 +225,13 @@ module p2_periph_tb;
     end
   endtask
 
-  //=========================================================================
   // 主流程
-  //=========================================================================
   int  i, s, u, n, n_sen;
   logic [31:0] idx0;
   logic [W_BITS-1:0] snap00;
   int  nz;
 
-  // ---- 观测 trace 采样块：**必须放在所有 DUT 信号声明之后**（VCS 要求先声明后使用）----
+  // 观测 trace 采样块：**必须放在所有 DUT 信号声明之后**（VCS 要求先声明后使用）
   always @(posedge clk) begin
     if (trace_en) begin
       $fwrite(fd_trace,
@@ -290,9 +272,7 @@ module p2_periph_tb;
     rst_n = 1'b1;
     repeat (2) @(posedge clk);
 
-    //=====================================================================
     $display("=== T1 weight_store：写守卫 / 写窗口 / 越界不落盘 / 灌满全库 ===");
-    //=====================================================================
     err_base = errors;
 
     ws_write(1'b1, 0, 0, {{(W_BITS-27){1'b0}}, 27'd67108864}, 1'b0);   // 2^26 正常写
@@ -370,9 +350,7 @@ module p2_periph_tb;
 
     sub("T1", err_base);
 
-    //=====================================================================
     $display("=== T2 status_regs：粘滞只由 clr/rst_n 解除 / clip 非粘滞 / 位序 ===");
-    //=====================================================================
     rst_n = 1'b0; repeat (3) @(posedge clk); rst_n = 1'b1; repeat (2) @(posedge clk);
     err_base = errors;
 
@@ -405,8 +383,8 @@ module p2_periph_tb;
     chk("T2 clip_low 撤销即落（非粘滞）", st_cl === 1'b0);
     chk("T2 clip_high 跟随 ev_ch=1", st_ch === 1'b1);
 
-    // clr：只清 4 个粘滞位，**不**碰 clip，也**不**改 err_code
-    // ⚠️ clip 是非粘滞（逐拍跟随 ev_clip_*），所以"clr 生效那一拍"必须让 ev_clip_*
+    // clr：只清 4 个粘滞位，**不**碰 clip，也**不**改 err_code ⚠️ clip 是非粘滞（逐拍跟随
+    // ev_clip_*），所以"clr 生效那一拍"必须让 ev_clip_*
     //    保持为 1，否则看到的是"ev 撤销导致 clip 落"，不是"clr 影响 clip"。踩过一次。
     sr_err = 32'h0000_002A;
     @(negedge clk); ev_cl = 1'b1; ev_ch = 1'b1;
@@ -459,9 +437,7 @@ module p2_periph_tb;
 
     sub("T2", err_base);
 
-    //=====================================================================
     $display("=== T3 rdac_drv：逐位扇出 / load 外保持 / slice_id 重复 ===");
-    //=====================================================================
     rst_n = 1'b0; repeat (3) @(posedge clk); rst_n = 1'b1; repeat (2) @(posedge clk);
     err_base = errors;
 
@@ -528,9 +504,7 @@ module p2_periph_tb;
 
     sub("T3", err_base);
 
-    //=====================================================================
     $display("=== T4 ctrl_fsm：相位图 / cfg_ready 与 run 的不变量 ===");
-    //=====================================================================
     rst_n = 1'b0; repeat (3) @(posedge clk); rst_n = 1'b1; repeat (2) @(posedge clk);
     err_base = errors;
 
@@ -600,9 +574,7 @@ module p2_periph_tb;
 
     sub("T4", err_base);
 
-    //=====================================================================
     $display("=== T5 calib_regs：空量程拒绝 / 写窗口 / 控制位 / clear 优先 ===");
-    //=====================================================================
     rst_n = 1'b0; repeat (3) @(posedge clk); rst_n = 1'b1; repeat (2) @(posedge clk);
     err_base = errors;
 
@@ -686,7 +658,6 @@ module p2_periph_tb;
       $display("[P2P-TRACE] trace 关闭：共 %0d 行 -> %s", trace_cyc, trace_path);
     end
 
-    //=====================================================================
     $display("================================================");
     $display("  p2_periph: checks=%0d errors=%0d", checks, errors);
     $display("================================================");

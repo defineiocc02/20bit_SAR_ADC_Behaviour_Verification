@@ -1,6 +1,6 @@
 # 当前实现、验证范围与下一步
 
-本页是当前状态入口；首页提供阅读摘要，ADR 解释设计合同，IMPLEMENTATION_CHECKPOINT／HANDOFF 保留历史过程。实现状态、验证层级和适用配置分别判断，不用测试数量替代完成状态。
+本页按工作组织当前状态；首页按三项交付物与扩展提供摘要，[数字状态表](digital_status_matrix.md)逐模块汇总交付归属、证据层级和未完成项，[原文对照](current_digital_source_map.md)记录机制依据。ADR解释设计合同，IMPLEMENTATION_CHECKPOINT／HANDOFF保留历史过程。实现状态、验证层级和适用配置分别判断，不用测试数量替代完成状态。
 
 本轮从 main@1e973cb82bb6ba39dba3b7d82e43f10ec42434c3 核对。结构 dither 的有效配置报告已单独修正于8550c05：只增加报告，不改变扰动、ADC2或最终整数码。保留字段sadc_cap_ratio的不生效报告另在1017226修正，真实负载使用c_sadc；结构校准报告的均值/RMS字段由3ea94a7独立补充。当前数据与本轮执行结果见[本轮复核](reviews/20261105-readability-maintenance.md)。[8238cc3的完整CI](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/41904500234)是历史受测提交，不冒充后续提交已重新通过。
 
@@ -50,7 +50,7 @@
 
 ## 文档分工
 
-- [首页](../README.md)：目标、结构、四组工作、代表结果及最短入口。
+- [首页](../README.md)：目标、三项交付物、扩展、代表结果及最短入口。
 - 本页：当前实现/验证边界、依赖和解除条件。
 - [model_scope.md](model_scope.md)：物理模型、近似和入口的适用域。
 - [ADR0021](adr/0021-structural-contract-calibration.md)等ADR：设计选择与位域/码域合同。

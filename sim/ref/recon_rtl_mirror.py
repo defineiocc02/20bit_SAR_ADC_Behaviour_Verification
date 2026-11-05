@@ -60,8 +60,8 @@ from adi_model.weight_calibration import DigitalObservation, _terms  # noqa: E40
 
 # --- 与 recon_core.sv / adc2_dec.sv / div_floor.sv 的 localparam 逐条对应 ---
 # 改一处必须改两处；`tests/unit/test_recon_mirror.py` 的
-# `test_localparams_are_not_drifting_from_the_rtl` 会从 RTL 源码里正则抽取这些
-# 表达式并逐条比对，人忘了改也会被机械地抓住。
+# `test_localparams_are_not_drifting_from_the_rtl` 会从 RTL 源码里正则抽取这些表达式并逐条比对，
+# 人忘了改也会被机械地抓住。
 V_BITS, ACC, OUT = 64, 96, 20
 W_BITS = 48
 W_FRAC, V_FRAC = 30, 32
@@ -100,8 +100,8 @@ def div_widths(
     所以这里写成函数：反漂移门禁会用**多组**参数求值并与 RTL 表达式比。
     """
     # Every consumed prefix is <= |a| <= 2^(P_W_A-1). The stored remainder
-    # therefore needs P_W_A bits; the trial subtraction has one extra borrow bit.
-    # Wider denominators retain their meaning through dv_large below.
+    # therefore needs P_W_A bits; the trial subtraction has one extra borrow bit. Wider denominators
+    # retain their meaning through dv_large below.
     w_r = P_W_A
     n_cyc = (P_W_A + P_STAGES - 1) // P_STAGES
     return w_r, n_cyc, n_cyc * P_STAGES

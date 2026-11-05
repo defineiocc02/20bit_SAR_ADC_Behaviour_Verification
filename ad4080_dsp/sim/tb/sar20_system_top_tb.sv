@@ -1,5 +1,5 @@
 `timescale 1ns/1ps
-// Exercise the deliverable assembly itself with ideal synchronous comparators.
+// 以理想同步比较器驱动组合顶层，核对数据顺序和模拟越界输入的数字故障隔离。
 module sar20_system_top_tb;
   logic clk = 0, rst_n = 0;
   always #5 clk = ~clk;
@@ -97,7 +97,7 @@ module sar20_system_top_tb;
     while (wr != rd) @(negedge clk);
     #1;
     if (rd < 50) $fatal(1, "too few completed system samples: %0d", rd);
-    // Exercise each physical overflow input in a new SAR configuration epoch.
+    // 在新的 SAR 配置代次分别注入各模拟越界输入，核对数字边界的停流行为。
     fault_test = 1;
     for (int kind = 0; kind < 3; kind++) begin
       int rejected_before;
@@ -112,7 +112,7 @@ module sar20_system_top_tb;
       if (!sar_analog_ovf || !stream_fault || accepted || dsp_valid ||
           analog_rejected == rejected_before)
         $fatal(1, "SAR analog overflow kind=%0d was not blocked", kind);
-      // DSP restart cannot erase SAR's sticky analog fault.
+      // DSP 重启不清 SAR 的模拟粘滞故障，故障保持时须再次阻断输出。
       dsp_restart = 1; repeat (2) @(negedge clk); #1; dsp_restart = 0;
       repeat (2) @(negedge clk);
       if (!sar_analog_ovf || !stream_fault) $fatal(1, "uncleared analog fault disappeared");

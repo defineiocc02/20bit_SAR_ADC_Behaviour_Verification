@@ -26,9 +26,9 @@ module dem_addr_gen #(
       $fatal(1, "dem_addr_gen: only the verified 63/8, 8x8 topology is supported");
   end
 
-  localparam int LW = $clog2(W_ROT);  // 3
-  localparam int LH = $clog2(H_ROT);  // 3
-  localparam int LS = 9 - LW - LH;   // 3
+  localparam int LW = $clog2(W_ROT);  // LW: 3
+  localparam int LH = $clog2(H_ROT);  // LH: 3
+  localparam int LS = 9 - LW - LH;   // LS: 3
 
   logic [LW - 1:0] ch;
   logic [LH - 1:0] rh;
@@ -45,8 +45,8 @@ module dem_addr_gen #(
   assign i_star[LW - 1:0]      = (LW'(W_ROT - 1) - LW'(ch)) & LW'({LW{1'b1}});
   assign i_star[LW + LH - 1:LW] = (LH'(H_ROT - 1) - LH'(rh)) & LH'({LH{1'b1}});
 
-  // 组合段 2：生成时展开到每个物理单元；p/8、p%8 是 elaboration 常量，
-  // 不是运行时除法器。旋转减法取低三位等价于模 8，不应改成模 63 的环。
+  // 组合段 2：生成时展开到每个物理单元；p/8、p%8 是 elaboration 常量，不是运行时除法器。
+  // 旋转减法取低三位等价于模 8，不应改成模 63 的环。
   genvar p;
   generate
     for (p = 0; p < N_MAIN; p++) begin : g_main

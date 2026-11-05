@@ -1,4 +1,4 @@
-"""Architecture candidates are checked against charge and range, not labels."""
+"""用电荷与量程方程检查架构候选，不以配置标签代替数值边界。"""
 
 from dataclasses import replace
 

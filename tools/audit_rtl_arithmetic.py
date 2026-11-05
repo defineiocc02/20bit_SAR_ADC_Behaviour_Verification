@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Audit RTL arithmetic against independent Python integers and directed flag sequences.
+"""用独立 Python 整数及定向标志序列审计 RTL 算术。
 
-Fixed seed by default; no project floating-point/model code is imported. Generated
-vectors and build files live in an isolated temporary directory. VERILATOR is a
-shell-like command string parsed with shlex and executed without a shell.
+默认固定种子，不导入工程浮点模型。向量及构建文件在隔离临时目录生成；
+VERILATOR 按 shell 风格字符串由 shlex 解析，实际执行不经过 shell。
 """
 
 from __future__ import annotations
@@ -150,7 +149,7 @@ def generate_vectors(root: Path, seed: int) -> dict[str, int]:
 
 
 def checked_run(command, *, cwd, env, timeout, log):
-    """Keep diagnostics and fail on a missing tool, timeout, or nonzero result."""
+    """保留诊断；工具缺失、超时或非零返回码均报错。"""
     try:
         result = subprocess.run(
             command,
@@ -174,7 +173,7 @@ def checked_run(command, *, cwd, env, timeout, log):
 
 
 def alias_bundled_runtime(work: Path, env: dict[str, str], version: str) -> None:
-    """Alias unsafe bundle paths without relocating a split installed toolchain."""
+    """仅为不安全的完整捆绑运行库路径建立别名，不重定位分离安装的工具链。"""
     root = env.get("VERILATOR_ROOT")
     if not root:
         match = re.search(r"^\s*VERILATOR_ROOT\s*=\s*(.+?)\s*$", version, re.MULTILINE)

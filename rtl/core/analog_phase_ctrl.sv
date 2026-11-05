@@ -25,9 +25,9 @@ module analog_phase_ctrl #(
   localparam int PW = $clog2(P_PHASES);
   wire [PW - 1:0] next_phase = (int'(phase) == P_PHASES - 1) ? '0 : phase + 1'b1;
 
-  // Never drive an analog switch/clock from a multi-bit counter decoder:
-  // counter carry skew could otherwise create extra TP edges. Registered
-  // controls retain a full dead tick between precharge and accurate reference.
+  // Never drive an analog switch/clock from a multi-bit counter decoder: counter carry skew could
+  // otherwise create extra TP edges. Registered controls retain a full dead tick between precharge
+  // and accurate reference.
   always_ff @(posedge clk) begin
     if (!rst_n || !enable) begin
       phase <= '0;
@@ -46,10 +46,10 @@ module analog_phase_ctrl #(
     end
   end
 
-  // Default steady-state schedule: AZ 1..8, precharge 2..8, both reference
-  // enables off at phase 9, and amplify/accurate-reference 10..15 plus phase 0.
-  // Immediately after reset, phase is 0 with all registered enables cleared;
-  // the steady-state phase-0 analog levels first appear on the wraparound.
+  // Default steady-state schedule: AZ 1..8, precharge 2..8, both reference enables off at phase 9,
+  // and amplify/accurate-reference 10..15 plus phase 0. Immediately after reset, phase is 0 with
+  // all registered enables cleared; the steady-state phase-0 analog levels first appear on the
+  // wraparound.
   assign quiet_sample = rst_n && enable && phase == 0;
   assign bank_advance = rst_n && enable && phase == 1;
   assign residue_capture = rst_n && enable && int'(phase) == P_CAPTURE;

@@ -4,9 +4,9 @@
     "version": "1.2",
     "generated": "2026-09-12",
     "repo_commit_at_generation": "ffcc011",
-    "purpose": "任务书 §2.1/§2.2：逐份固定原文证据（文件名、SHA256、页数、角色、定位规则）。本清单只登记条目；原文 PDF/PPT 不随本仓库分发（引用合规见 NOTICE 与 docs/engineering_vs_patents_papers.md §8）。",
+    "purpose": "任务书 §2.1/§2.2：逐份固定原文证据（文件名、SHA256、页数、角色、定位规则）。仓库 references/ 仅收录六份选定论文与讲稿 PDF，其他原件不随仓库分发；wheel 和 sdist 不包含这些 PDF。版权说明见 NOTICE。",
     "location_rule": {
-      "description": "原文存放在仓库外的本地材料目录。解析顺序：环境变量 ADC_SOURCES_DIR，其次默认目录。文件一律以本清单登记的文件名在该目录下查找。",
+      "description": "原文核查的本地材料目录解析顺序为环境变量 ADC_SOURCES_DIR，其次默认目录；按本清单登记的文件名查找。仓库 references/ 另收录六份选定论文与讲稿 PDF，文件名及哈希见其分发清单。",
       "env_var": "ADC_SOURCES_DIR",
       "default_dir": "~/Downloads/ISSCC2024_9.8_参考文献全集",
       "search_filenames_exactly_as_listed": true,
@@ -144,7 +144,7 @@
     }
   ],
   "background_sources": {
-    "note": "背景、补充与可选来源扩展的版本、页数与SHA-256均登记，source_role区分其用途；不同器件/实施例不叠加为ISSCC目标芯片强制要求。原件在仓库外，ADC_SOURCES_DIR可提供包含规范文件名的材料目录。",
+    "note": "背景、补充与可选来源扩展的版本、页数与SHA-256均登记，source_role区分其用途；不同器件/实施例不叠加为ISSCC目标芯片强制要求。选定的PKU论文和讲稿副本收录于仓库 references/；其他未收录原件可在 ADC_SOURCES_DIR 指定的材料目录查找。",
     "items": [
       {
         "id": "01",

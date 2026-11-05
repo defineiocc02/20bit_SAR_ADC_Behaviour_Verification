@@ -1,18 +1,9 @@
-"""Generate the v7→v8 README comparison figure.
+"""绘制 v7→v8 的 README 对照图。
 
-Reads the frozen v7.0.10 baseline from git (``git show v7.0.10:tools/results/results.json``)
-and the current ``tools/results/results.json``, then renders two panels in the
-same dark style as the other result figures:
-
-1. Headline dB-metric pairs (v7 vs v8) for the physical-pipeline integration.
-2. Metric accounting donut: how many shared leaves are identical / float-noise
-   level / genuinely changed, plus removed/added key counts.
-
-Usage::
-
-    python tools/make_readme_compare.py [--old-ref v7.0.10]
-
-Output: ``tools/results/fig/v7_v8_compare.png`` (150 dpi, dark background).
+读取 git 中 v7.0.10 的 tools/results/results.json 及当前结果，以相同深色样式
+绘制两栏：物理流水线的主要 dB 指标对照，以及共享叶子相同、浮点噪声级变化、
+实际变化和新增／移除键的统计。默认输出 tools/results/fig/v7_v8_compare.png，
+150 dpi；--old-ref 可改变旧参考标签。
 """
 
 from __future__ import annotations
@@ -88,7 +79,7 @@ def _leaves(d: object, prefix: str = "") -> dict[str, float]:
 
 
 def _dig(d: dict[str, float], path: str) -> float:
-    """Look up a dotted-path key in the flat leaf dict produced by ``_leaves``."""
+    """在 _leaves 产生的平坦字典中读取点分路径。"""
     return d[path]
 
 

@@ -1,4 +1,4 @@
-"""Independent density, harmonic-rank and endpoint normalization checks."""
+"""检查独立谱密度、谐波拟合秩及端点归一化。"""
 
 import numpy as np
 import pytest

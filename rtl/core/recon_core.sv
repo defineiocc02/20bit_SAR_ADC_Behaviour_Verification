@@ -56,14 +56,14 @@ module recon_core #(
 );
 
   localparam int N_U = P_N_MAIN + P_N_SUB;
-  localparam int SUM_BITS = 64; // SigmaW < 2^60（契约 §5）留 4 位余量
-  localparam int W_RAIL = SUM_BITS + 2; // |rails| <= 3*2^60 < 2^62
-  localparam int W_OP3 = SUM_BITS + int'(V_BITS) + 2; // 130：total * inj_q
-  localparam int W_WIDE = W_OP3 + 2; // 132：受检操作数的精确宽度
-  localparam int W_S1 = int'(ACC_BITS) + 1; // 97
-  localparam int W_SHIFT = int'(ACC_BITS) + int'(OUT_BITS) + 1; // 117
-  localparam int W_A = int'(ACC_BITS) - (int'(V_FRAC) + 1); // 63：shifted >>> 33
-  localparam int W_TOP = W_SHIFT - int'(ACC_BITS) + 1; // 22：shifted[116:95]
+  localparam int SUM_BITS = 64; // SUM_BITS: SigmaW < 2^60（契约 §5）留 4 位余量
+  localparam int W_RAIL = SUM_BITS + 2; // W_RAIL: |rails| <= 3*2^60 < 2^62
+  localparam int W_OP3 = SUM_BITS + int'(V_BITS) + 2; // W_OP3: 130：total * inj_q
+  localparam int W_WIDE = W_OP3 + 2; // W_WIDE: 132：受检操作数的精确宽度
+  localparam int W_S1 = int'(ACC_BITS) + 1; // W_S1: 97
+  localparam int W_SHIFT = int'(ACC_BITS) + int'(OUT_BITS) + 1; // W_SHIFT: 117
+  localparam int W_A = int'(ACC_BITS) - (int'(V_FRAC) + 1); // W_A: 63：shifted >>> 33
+  localparam int W_TOP = W_SHIFT - int'(ACC_BITS) + 1; // W_TOP: 22：shifted[116:95]
   localparam int DIT_BEG = P_DIT_END - P_DIT_N;
   localparam int N_CYC = (W_A + P_STAGES - 1) / P_STAGES;
   // 延迟按接受start沿到dout_valid沿的完整间隔计数：阶段A快照、阶段B启动除法、
@@ -71,7 +71,7 @@ module recon_core #(
   // 对应延迟自检在sim/tb/p2_tb.sv；这不是目标工艺的组合路径时序证明。
   localparam int RECON_LAT = N_CYC + 2;
 
-  // ---- Width-qualified constants; signed clipping bounds stay signed. ----
+  // Width-qualified constants; signed clipping bounds stay signed.
   localparam logic [W_WIDE - 1:0] LIM_ONE = {{(W_WIDE - 1){1'b0}}, 1'b1};
   localparam logic [W_WIDE - 1:0] LIM_HI_U = LIM_ONE << (int'(ACC_BITS) - 1);
   localparam logic [W_WIDE - 1:0] LIM_LO_U = ~LIM_HI_U + LIM_ONE;
@@ -81,9 +81,7 @@ module recon_core #(
   localparam logic [SUM_BITS - 1:0] GAIN_MAX = {{(SUM_BITS - 1){1'b0}}, 1'b1}
       << (int'(ACC_BITS) - 1 - (int'(V_FRAC) + 1));
 
-  //=========================================================================
   // 1) Total weight, effective gain and signed rails (combinational)
-  //=========================================================================
   wire [SUM_BITS - 1:0] sum_W, sum_Wa;
   wire signed [W_RAIL - 1:0] rails;
   wire invalid_slice;
@@ -111,9 +109,7 @@ module recon_core #(
       .invalid_slice(invalid_slice)
   );
 
-  //=========================================================================
   // 2) 后端译码（M9）
-  //=========================================================================
   logic signed [V_BITS - 1:0] fine_c;
   logic adc2_o;
 
@@ -125,18 +121,14 @@ module recon_core #(
       .ovf(adc2_o)
   );
 
-  //=========================================================================
   // 3) 流水寄存器（阶段 A 的锁存目标）
-  //=========================================================================
   logic [31:0] sample_id_r;
   logic signed [V_BITS - 1:0] fine_r, off_r, inj_r;
   logic [SUM_BITS - 1:0] gain_s, total_s;
   logic signed [W_RAIL - 1:0] rails_s;
   logic stage_b, ovf_pend, gerr_pend, a2ovf_pend, bad_slice_r;
 
-  //=========================================================================
   // 4) 受检算术（组合，在 stage B 那一拍求值）
-  //=========================================================================
   wire [W_A - 1:0] a1;
   wire any_ovf;
   cal_residue_mac u_residue_mac (
@@ -150,9 +142,7 @@ module recon_core #(
       .any_ovf(any_ovf)
   );
 
-  //=========================================================================
   // 5) 除法器（唯一的运行时除法）
-  //=========================================================================
   logic div_busy, div_done, div_err;
   logic signed [W_A - 1:0] div_q;
   logic clip_lo_c, clip_hi_c;
@@ -205,9 +195,7 @@ module recon_core #(
       .adc2_ovf(adc2_ovf)
   );
 
-  //=========================================================================
   // 6) 主状态机
-  //=========================================================================
   always_ff @(posedge clk) begin
     if (!rst_n) begin
       sample_id_r <= '0;
@@ -223,7 +211,7 @@ module recon_core #(
       gerr_pend <= 1'b0;
       a2ovf_pend <= 1'b0;
     end else begin
-      // ---- 阶段 A：锁存本拍的求和与输入 ----
+      // 阶段 A：锁存本拍的求和与输入
       if (cfg_ready && start && !busy) begin
         sample_id_r <= sample_id;
         bad_slice_r <= invalid_slice;
@@ -236,8 +224,8 @@ module recon_core #(
         a2ovf_pend <= adc2_o;
         stage_b <= 1'b1;
       end else if (stage_b) begin
-        // 检错必须读阶段A已冻结的同笔数据；若在start沿读取这些寄存器，NBA只会
-        // 看到前一笔数值，异常和sample ID就会错代。busy期间不接受新的start。
+        // 检错必须读阶段A已冻结的同笔数据；若在start沿读取这些寄存器，NBA只会看到前一笔数值，
+        // 异常和sample ID就会错代。busy期间不接受新的start。
         ovf_pend <= any_ovf;
         gerr_pend <= bad_slice_r || (gain_s == {SUM_BITS{1'b0}});
         stage_b <= 1'b0;

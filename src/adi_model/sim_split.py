@@ -1,12 +1,11 @@
-"""Split-ADC entries: shared physical pipeline and independent aggregate oracle.
+"""split ADC 入口：共享物理流水线与独立 aggregate 参考。
 
-run_sim_split delegates to pipeline_engine for actual slice ownership, shared
-continuous input, reference/RA/ADC2 dynamics and frozen digital reconstruction.
-run_sim_split_reference retains the aggregate algebraic comparison, whose
-legacy dynamic proxies are not the production physical model.
+run_sim_split 委托 pipeline_engine 处理实际 slice 归属、共享连续输入、
+参考/RA/ADC2 动态及冻结数字重构。run_sim_split_reference 保留 aggregate代数对照，
+其历史动态代理不是生产物理模型。
 
-All voltages are in volts. ADC2 is quantized before any experimental digital
-observer correction; sampling signal, loading and noise capacitances are distinct.
+电压单位均为 V。ADC2 先量化，之后才作研究性数字观察器校正；采样信号电容、
+负载电容和噪声等效电容使用不同定义。
 """
 
 from __future__ import annotations
@@ -38,8 +37,8 @@ def xtalk_profile(cfg: Config, n_units: int, rng: np.random.Generator) -> np.nda
     共模分量（dyn_c_xtalk_common）不在此列，DEM 无效。
 
     Args:
-        cfg: 仿真配置；相关字段来源分级见 config.PARAM_GRADES
-            （``dyn_c_xtalk_unit`` 为 [假设]，``dyn_c_xtalk_common`` 为 [假设]）。
+        cfg: 仿真配置；相关字段来源分级见 config.PARAM_GRADES （``dyn_c_xtalk_unit`` 为 [假设]，
+            ``dyn_c_xtalk_common`` 为 [假设]）。
         n_units: 参与切换的单位数 [无量纲]（= cfg.dac_n_units）。
         rng: 随机源（本函数目前为确定性分布，未消耗 rng）。
 
@@ -63,9 +62,9 @@ def run_sim_split_reference(
 ) -> SimResult:
     """Aggregate split reference model, retained for independent ideal-limit checks.
 
-    与 sim.run_sim 的对偶关系：两者**下游完全复用**（RA/KTC/ADC2/重构/校准
-    状态机），仅替换前端——DAC 求值（split 拓扑物理方程）与 v5 三项动态误差
-    （输入建立/参考建立/数字串扰）。退化等价下与 pipeline 逐位一致（stage19①）。
+    与 sim.run_sim 的对偶关系：两者**下游完全复用**（RA/KTC/ADC2/重构/校准状态机），
+    仅替换前端——DAC 求值（split 拓扑物理方程）与 v5 三项动态误差（输入建立/参考建立/数字串扰）。
+    退化等价下与 pipeline 逐位一致（stage19①）。
 
     Args:
         cfg: 仿真配置（Config）；相关字段来源分级见 config.PARAM_GRADES。
@@ -80,9 +79,8 @@ def run_sim_split_reference(
         SimResult（字段单位与三套误差口径见 adi_model.sim.SimResult 的 docstring）。
 
     Raises:
-        ConfigError: 配置不是可仿真的（枚举取值拼错、尺寸无意义等）。入口直接
-            拒绝，而不是静默退化成默认分支再跑出一份看起来正常的结果
-            （外部复核 2026-09-11）。
+        ConfigError: 配置不是可仿真的（枚举取值拼错、尺寸无意义等）。入口直接拒绝，
+            而不是静默退化成默认分支再跑出一份看起来正常的结果（外部复核 2026-09-11）。
     """
     cfg.check_legal()
     if rng is None:
@@ -292,7 +290,7 @@ def run_sim_split(
 
     Args:
         cfg: Split model configuration.
-        input_fn: Input voltage callable (seconds to volts).
+        input_fn: Input voltage callable (seconds to volts) .
         n_samples: Number of output samples after explicit priming.
         chip: Optional aggregate realization distributed over physical slices.
         state: Frozen digital calibration state.

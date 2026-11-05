@@ -1,4 +1,4 @@
-"""Tcl ECO/flow guards against a small stateful mock, never real FPGA routing."""
+"""以小型有状态模拟对象检查 Tcl ECO／流程规则，不执行 FPGA 布线。"""
 
 from __future__ import annotations
 
@@ -323,8 +323,8 @@ def probe(
     timing = tmp_path / "fixture_timing.rpt"
     if summary_report is None:
         summary_report = (FIXTURES / "timing_summary.rpt").read_text()
-        # Replace only the real report's first 12-column summary row. All
-        # retained path details remain historical fixture text, not mock STA.
+        # 只替换保留报告中的首个 12 列摘要行；
+        # 其余路径细节仍是历史夹具文本，不作为模拟对象的 STA 结果。
         summary_report = re.sub(
             r"(?m)^\s*-17\.426\s+-170862\.625\s+71067\s+201263\s+-0\.264\s+-15260\.233\s+61733\s+201263\s+0\.025\s+0\.000\s+0\s+66823\s*$",
             f"{wns} 0.000 {failing[0]} 201263 {whs} 0.000 {failing[1]} 201263 {wpws} {tpws} {failing[2]} 66823",
@@ -540,7 +540,7 @@ def test_nonempty_path_groups_cannot_report_constraint_coverage(tmp_path, title)
 @pytest.mark.parametrize(
     "wpws,tpws,failing",
     [
-        ("-0.001", "-0.001", (0, 0, 1)),  # Minimum period/high/low pulse check failure.
+        ("-0.001", "-0.001", (0, 0, 1)),  # 最小周期、高脉宽或低脉宽检查失败。
         ("-0.001", "0", (0, 0, 0)),
         ("0.025", "-0.001", (0, 0, 0)),
         ("0.025", "0", (0, 0, 1)),
@@ -598,8 +598,8 @@ def test_summary_completeness_and_crosscheck(tmp_path, mutation):
         text = text.replace(row, " ".join(row.split()[:-1]), 1)
     elif mutation == "missing_groups":
         text = text.replace("| Unconstrained Path Table", "| Missing section", 1)
-    # Unmodified fixture in query_mismatch has negative WNS/WHS, while the
-    # mocked timing-object query is positive; neither result may be promoted.
+    # query_mismatch 的原夹具具有负 WNS/WHS，
+    # 模拟的时序对象查询却为正；两者均不能提升为真实时序证据。
     result, out = probe(tmp_path, summary_report=text)
     assert result.returncode == 1
     assert "STATUS=FAILED" in (out / "status.txt").read_text()

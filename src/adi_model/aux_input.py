@@ -118,10 +118,10 @@ class AuxInputStage:
         """任何构造路径都强制过 validated() 守卫（B1 闭环，独立审查 2026-09-25）。
 
         守卫只读取字段、原样返回、不改状态，frozen dataclass 下可安全调用；
-        build_stage 内的再调用是幂等的。这样绕过 build_stage 直接构造
-        AuxInputStage 也逃不过 validated()，堵住防御纵深缺口
-        （验证者实测：直接 AuxInputStage(r_aux=inf, mode="off") 后调
-        required_filter_bw 曾静默返回 8.8e6）。
+        build_stage 内的再调用是幂等的。
+        这样绕过 build_stage 直接构造AuxInputStage 也逃不过 validated()，
+        堵住防御纵深缺口（验证者实测：
+        直接 AuxInputStage(r_aux=inf, mode="off") 后调required_filter_bw 曾静默返回 8.8e6）。
         """
         self.validated()
 
@@ -153,8 +153,8 @@ class AuxInputStage:
         """寄生电荷支路的一阶时间常数 [s]。
 
         ``off``    ：寄生电荷只能经 R_f -> τ = R_f·(C_f + C_pg)。
-        ``dedicated_pin`` / ``opamp_midpoint``：低阻辅助通路 -> τ = R_aux·C_pg。
-        ``gate_boost``：自举不改变寄生支路，返回与 off 相同的 τ
+        ``dedicated_pin`` / ``opamp_midpoint``：低阻辅助通路 -> τ = R_aux·C_pg。``gate_boost``：
+        自举不改变寄生支路，返回与 off 相同的 τ
             （它的收益在 r_on 调制，见 :meth:`ron_modulation_factor`）。
 
         Args:
@@ -197,9 +197,8 @@ class AuxInputStage:
     def aux_ready(self, eps_aux: float = 0.01) -> bool:
         """辅助通路能否在采集窗口内建立到 eps_aux（[推导] 可行性条件）。
 
-        约束：τ_aux = R_aux·C_pg ≤ t_acq/ln(1/ε_aux)。**带宽收益的
-        成立前提**（第八份外部复核补齐）：辅助通路若来不及建立，
-        "寄生电荷由低阻辅助通路供给"的前提不成立，
+        约束：τ_aux = R_aux·C_pg ≤ t_acq/ln(1/ε_aux)。**带宽收益的成立前提**（第八份外部复核补齐）：
+        辅助通路若来不及建立，"寄生电荷由低阻辅助通路供给"的前提不成立，
         :meth:`required_filter_bw` 会拒绝报告收益而不是静默给出。
 
         Args:
@@ -224,15 +223,13 @@ class AuxInputStage:
     ) -> float:
         """给定建立目标 ε，采集窗口内建立到位所需的**最低** 3dB 带宽 [Hz]。
 
-        建立约束：支路时间常数 τ = R_f·C_branch ≤ t_acq/ln(1/ε)
-        -> R_f 有上限 -> f_3dB = 1/(2π·R_f·C_f) 有**下界**（带宽低于它
-        就建立不到位）。辅助供电接管寄生支路后 C_branch 从 C_f+C_pg
-        降为 C_f，R_f 上限放大 (C_f+C_pg)/C_f 倍，带宽下界同比例下降——
-        这正是 [13] "允许更低滤波器带宽"的定量化。
+        建立约束：
+        支路时间常数 τ = R_f·C_branch ≤ t_acq/ln(1/ε) -> R_f 有上限 -> f_3dB = 1/(2π·R_f·C_f) 有**下界**（带宽低于它就建立不到位）。
+        辅助供电接管寄生支路后 C_branch 从 C_f+C_pg降为 C_f，R_f 上限放大 (C_f+C_pg)/C_f 倍，
+        带宽下界同比例下降——这正是 [13] "允许更低滤波器带宽"的定量化。
 
-        **可行性前提**：辅助模式下先检查辅助支路自身能在窗口内建立
-        （τ_aux ≤ t_acq/ln(1/ε_aux)）；不满足时抛 ValueError——
-        慢辅助通路不得仍无条件报告带宽收益（第八份外部复核）。
+        **可行性前提**：辅助模式下先检查辅助支路自身能在窗口内建立（τ_aux ≤ t_acq/ln(1/ε_aux)）；
+        不满足时抛 ValueError——慢辅助通路不得仍无条件报告带宽收益（第八份外部复核）。
 
         Args:
             mode: 覆盖 self.mode。
@@ -282,8 +279,8 @@ class AuxInputStage:
     def driver_noise_ratio(self, en_density: float = 1.0) -> float:
         """驱动器噪声比值（辅助 vs 无辅助）= sqrt(bw_ratio)（[推导]）。
 
-        一阶 RC + 平坦输入噪声 en 的输出噪声 = en·sqrt(π/2·f_3dB)，
-        因此比值只依赖带宽比。en_density 入参只为量纲提示，不参与比值。
+        一阶 RC + 平坦输入噪声 en 的输出噪声 = en·sqrt(π/2·f_3dB)，因此比值只依赖带宽比。
+        en_density 入参只为量纲提示，不参与比值。
 
         Args:
             en_density: 驱动器噪声密度 [V/√Hz]（比值中约掉；默认 1）。
@@ -296,15 +293,14 @@ class AuxInputStage:
     def driver_charge_per_sample(self, dv: float) -> dict[str, float]:
         """每样本驱动器必须提供的电荷（无辅助 vs 有辅助）。
 
-        无辅助：Q = (C_f + C_pg)·ΔV（寄生电荷也经驱动器）。
-        有辅助（dedicated_pin/opamp）：Q = C_f·ΔV（寄生由辅助通路供给）。
-        gate_boost 与 off 相同（自举省的是 r_on 调制，不是电荷）。
+        无辅助：Q = (C_f + C_pg)·ΔV（寄生电荷也经驱动器）。有辅助（dedicated_pin/opamp）：
+        Q = C_f·ΔV（寄生由辅助通路供给）。gate_boost 与 off 相同（自举省的是 r_on 调制，不是电荷）。
 
         Args:
             dv: 采集瞬间节点电压摆幅 [V]。
 
         Returns:
-            dict: ``off_coulomb`` / ``aux_coulomb`` / ``ratio``。
+            dict: ``off_coulomb`` / ``aux_coulomb`` / ``ratio`` 。
 
         Raises:
             ValueError: dv 为负。
@@ -323,11 +319,9 @@ class AuxInputStage:
     def ron_modulation_factor(self) -> float:
         """理想自举对照下的 r_on 信号调制因子（gate_boost = 0，其余 = 1）。
 
-        **口径（第八份外部复核）**：0 是"理想自举对照"的结果——固定
-        V_GS 只关闭 V_GS 调制这一项；阈值漂移、体效应、有限 V_DS、
-        自举电压建立误差等其余信号相关因素本模型一律未保留。因此
-        这是理想化假设下的对照值，**不是**"真实开关 r_on 完全不随
-        信号变化"的器件结论。
+        **口径（第八份外部复核）**：0 是"理想自举对照"的结果——固定V_GS 只关闭 V_GS 调制这一项；
+        阈值漂移、体效应、有限 V_DS、自举电压建立误差等其余信号相关因素本模型一律未保留。
+        因此这是理想化假设下的对照值，**不是**"真实开关 r_on 完全不随信号变化"的器件结论。
 
         Returns:
             float: 0（理想自举对照）或 1（调制保留）。

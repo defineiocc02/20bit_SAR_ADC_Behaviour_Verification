@@ -1,5 +1,6 @@
 // 模块：sar20_digital_core；配置、结构控制、物理权重校正与观测的完整数字核。
-// 接口/单位：比较器与配置总线同属clk；W为48位unsigned Q30，电压为64位signed Q32，输出20位offset-binary。
+// 接口/单位：比较器与配置总线同属clk；W为48位unsigned Q30，电压为64位signed Q32，
+// 输出20位offset-binary。
 // 时钟/复位：clk上升沿、同步低有效rst_n；无自动CDC；cfg_clear撤销epoch并取消在途转换。
 // 配置：1278物理权重及三标量完整、min<max、dither互斥后validate；ACTIVE期间拒写。
 // 控制写：0x1018的四位经三沿等待后原子安装；冲突不自动重试，clear取消未提交序列。
@@ -8,7 +9,8 @@
 // 周期：16tick帧；重构延迟ceil(63/P_RECON_STAGES)+2，P5/P6/P7为15/13/11完整拍。
 // 结果：dout_valid是完成事件，必须同时消费ID/flags/dout_analog_bad；错误可能保留上一合法字。
 // 观测：P_CAL_OBSERVE启用748位同接受沿packet，无背压或片外传输保证；元数据来自冻结context。
-// 错误优先级：bus>calibration>weight rejection>CAAZ pair>profile controller；status与flags语义不同。
+// 错误优先级：bus>calibration>weight rejection>CAAZ pair>profile controller；
+// status与flags语义不同。
 // 实现边界：片外求系数、片上应用；不包含在线学习器、模拟宏、CDC或ASIC/板级时序签核。
 // P_CAAZ_ENABLE默认关闭；开启仅支持结构模式，主输出为raw/2的pair，额外保留92位raw观测。
 // 原748位cal_obs不变，34位CAAZ sideband另接；odd采样只保持CBIAS，不取消legacy RA reset。
@@ -46,7 +48,7 @@ module sar20_digital_core #(
     output wire [3:0] acquisition_dither_rails,
     output wire [11:0] fine_trial,
     output wire fine_compare_enable, flash_sample,
-    // ---- 配置/寄存器接口 ----
+    // 配置/寄存器接口
     input  logic        cfg_wr,
     input  logic [15:0] cfg_addr,
     input  logic [63:0] cfg_wdata,
@@ -54,7 +56,7 @@ module sar20_digital_core #(
     input  logic        cfg_validate,
     input  logic        cfg_clear_valid,
     output logic        cfg_ready,
-    // ---- 模拟域回读（数字输入）----
+    // 模拟域回读（数字输入）
     input  logic [B1-1:0]        sadc_code,
     input  logic                 sadc_rdy,
     input  logic [ADC2_BITS-1:0] adc2_code,
@@ -65,20 +67,20 @@ module sar20_digital_core #(
     // 该标志与ra_sat/rdac_ovf均由外部模拟宏提供，不能由adc2_code反推。
     input  logic                 adc2_over,
     input  logic signed [V_BITS-1:0] inj_q,     // 本样本已知注入，Q32
-    // ---- 数字输出到模拟域 ----
+    // 数字输出到模拟域
     output logic [N_SLICES-1:0]                       slice_sel,
     output logic [N_SLICES-1:0][N_UNIT_MAIN-1:0]      main_sw,
     output logic [N_SLICES-1:0][N_UNIT_SUB-1:0]       sub_sw,
     output logic [N_SLICES-1:0][2*DITHER_UNITS_RANGE-1:0] dither_sw,
     output logic                                      sw_valid,
-    // ---- 最终输出 ----
+    // 最终输出
     output logic [OUT_BITS-1:0] dout,
     output logic                dout_valid,
     output logic                clip_low,
     output logic                clip_high,
     output logic                analog_ovf,
     output logic                acc_ovf,
-    // ---- 观测 ----
+    // 观测
     output logic [31:0]         status_word,
     output logic [31:0]         dout_sample_id,
     output logic [4:0]          dout_flags,
@@ -86,8 +88,8 @@ module sar20_digital_core #(
     output wire                 cal_obs_valid,
     output wire [747:0]         cal_obs_data,
     output wire                 dout_analog_bad,
-    // Optional CAAZ macro controls and sample-domain observation. The legacy
-    // ra_az reset/preparation output remains active every cycle.
+    // Optional CAAZ macro controls and sample-domain observation. The legacy ra_az
+    // reset/preparation output remains active every cycle.
     input wire                  caaz_az_capture_ok,
     output wire                 caaz_input_chop_neg,
     output wire                 caaz_az_capture_en,
@@ -103,9 +105,7 @@ module sar20_digital_core #(
     output wire [3:0]           caaz_pair_fault_code
 );
 
-  //=========================================================================
   // 0) 精化期一致性断言（零成本：只做常量比较，不生成逻辑）
-  //=========================================================================
   // 精化期拒绝头文件、端口几何或实例参数与冻结数字合同不一致的配置。
   initial begin
     if (P_CAAZ_ENABLE && !P_STRUCTURAL)
@@ -132,16 +132,12 @@ module sar20_digital_core #(
       $fatal(1, "sar20_digital_core: 主+子单位数 != 总单位数");
   end
 
-  //=========================================================================
   // 1) 错误码常量（静态共享头文件；不是参数导出器的生成物）
-  //=========================================================================
   `include "rtl_error_codes.vh"
 
-  localparam logic [W_BITS-1:0] W_MAX = 48'd1 << 47;  // 2^47
+  localparam logic [W_BITS-1:0] W_MAX = 48'd1 << 47;  // W_MAX: 2^47
 
-  //=========================================================================
   // 2) 配置地址译码
-  //=========================================================================
   //  0x0000 + u*8        (u = 0..70)  权重数据（slice 由窗口寄存器选）
   //  0x1000 / 0x1008 / 0x1010         offset_q / adc2_min_q / adc2_max_q
   //  0x1018                           控制位 {…, quantizer_dither_en, sampling_mask_en, bridge_en, dem_en}
@@ -185,7 +181,7 @@ module sar20_digital_core #(
   wire signed [63:0] structural_injection;
   wire [11:0] structural_fine;
 
-  // ---- 权重窗口寄存器 ----
+  // 权重窗口寄存器
   logic [4:0] cur_slice;
   logic cfg_bus_ok, cfg_addr_valid, cfg_bus_reject, bad_weight_width;
   logic weight_addr_valid, window_addr_valid, bad_control_bits;
@@ -224,8 +220,9 @@ module sar20_digital_core #(
     end
   end
 
-  // ---- 0x1018：保持三拍等待窗口，在 ctrl_seq=1 的时钟沿原子写入四位 ----
-  // 控制位必须与系数/ADC2量程同epoch提交；ACTIVE拒写，不能在一对CAAZ样本中途换模式。
+  // 0x1018：保持三拍等待窗口，在 ctrl_seq=1
+  // 的时钟沿原子写入四位控制位必须与系数/ADC2量程同epoch提交；ACTIVE拒写，
+  // 不能在一对CAAZ样本中途换模式。
   // validate 冲突暂停序列；clear 取消尚未提交的整笔控制写。
   logic [1:0] ctrl_seq;
   logic [3:0] ctrl_bits;
@@ -244,9 +241,7 @@ module sar20_digital_core #(
     end
   end
 
-  //=========================================================================
   // 3) 寄存器子系统
-  //=========================================================================
   logic [N_SLICES-1:0][N_UNIT_TOTAL-1:0][W_BITS-1:0] w_q;
   wire [N_SLICES-1:0][63:0] row_total;
   wire [W_BITS-1:0] selected_weight;
@@ -344,9 +339,7 @@ module sar20_digital_core #(
     end
   end
 
-  //=========================================================================
   // 4) 相位与流水控制
-  //=========================================================================
   logic [PHASES-1:0]         phase_onehot;
   logic [$clog2(PHASES)-1:0] phase;
   logic                      sample_en, acq_phase;
@@ -372,9 +365,7 @@ module sar20_digital_core #(
       .sample_idx   (fsm_sample_idx)
   );
 
-  //=========================================================================
   // 5) slice 分配
-  //=========================================================================
   logic [N_ACTIVE-1:0][4:0] acq_slices, conv_slices, grp;
   logic                     conv_valid, bank;
   logic [31:0]              alloc_sample_idx;
@@ -392,9 +383,9 @@ module sar20_digital_core #(
       .group       (grp)
   );
 
-  // Fixed-phase synchronous interface: sample coarse at phase 8 and the fine
-  // code/injection/analog flags together at phase 14. Ready is a deadline, not
-  // a CDC synchronizer or a request to stall the 16-phase schedule.
+  // Fixed-phase synchronous interface: sample coarse at phase 8 and the fine code/injection/analog
+  // flags together at phase 14. Ready is a deadline, not a CDC synchronizer or a request to stall
+  // the 16-phase schedule.
   logic [B1-1:0] sadc_hold;
   logic [ADC2_BITS-1:0] adc2_hold;
   logic signed [V_BITS-1:0] inj_hold;
@@ -437,9 +428,7 @@ module sar20_digital_core #(
     end
   end
 
-  //=========================================================================
   // 6) DEM：状态序列 -> 地址逻辑位置
-  //=========================================================================
   logic [8:0] sid_a, sid_b, sid_cur, sid_hold;
 
   dem_state_gen #(
@@ -478,9 +467,7 @@ module sar20_digital_core #(
       .sub_logical  (sub_logical)
   );
 
-  //=========================================================================
   // 7) dither（片上随机源，统计验收；按模式与 valid 门控寄存）
-  //=========================================================================
   logic signed [7:0] dith_code;
   logic              dith_valid;
   logic signed [7:0] dith_q;
@@ -504,9 +491,7 @@ module sar20_digital_core #(
     end
   end
 
-  //=========================================================================
   // 8) 开关译码 -> 温度计展开
-  //=========================================================================
   logic [N_ACTIVE-1:0][6:0]             main_count;
   logic [N_ACTIVE-1:0][2:0]             sub_count;
   logic                                 rdac_over;
@@ -514,8 +499,8 @@ module sar20_digital_core #(
   logic [N_ACTIVE-1:0][N_UNIT_SUB-1:0]  sub_on;
   logic [2*DITHER_UNITS_RANGE-1:0]      dither_rail;
 
-  // Separate named nets preserve the sampling/quantizer paths and provide
-  // legal force/release points for L3 (do not force child input variables).
+  // Separate named nets preserve the sampling/quantizer paths and provide legal force/release
+  // points for L3 (do not force child input variables).
   wire signed [15:0] swap_dither_code;
   wire signed [7:0] sampling_dither_code;
   assign swap_dither_code = c_qdither_en ? -16'($signed(dith_q))
@@ -527,8 +512,8 @@ module sar20_digital_core #(
       .coarse      (sadc_hold),                     // 兼容模式：核外编码、相位 8 捕获
       .dither_code (swap_dither_code),      // 显式符号扩展到 16 位
       .dem_en      (c_dem_en),
-      // Match the structural profile: bridge exchange is active only for
-      // the upper half of the frozen nine-bit DEM-state space.
+      // Match the structural profile: bridge exchange is active only for the upper half of the
+      // frozen nine-bit DEM-state space.
       .bridge_en   (c_bridge_en && sid_hold[8]),
       .sid_low     (sid_hold[2:0]),
       .main_count  (main_count),
@@ -547,9 +532,7 @@ module sar20_digital_core #(
       .dither_rail  (dither_rail)
   );
 
-  //=========================================================================
   // 9) RDAC 扇出
-  //=========================================================================
   rdac_drv u_rdrv (
       .clk         (clk),
       .rst_n       (epoch_rst_n),
@@ -664,9 +647,7 @@ module sar20_digital_core #(
   assign cal_obs_caaz_data = P_CAL_OBSERVE && P_CAAZ_ENABLE ?
       {structural_chop_neg, structural_az_pair_id, structural_az_valid} : '0;
 
-  //=========================================================================
   // 10) 定点重构
-  //=========================================================================
   logic [OUT_BITS-1:0] rc_dout;
   logic                rc_dout_valid, rc_clip_low, rc_clip_high;
   logic                rc_acc_ovf, rc_gain_err, rc_adc2_ovf;
@@ -772,15 +753,12 @@ module sar20_digital_core #(
       .fault_code(caaz_pair_fault_code)
   );
 
-  //=========================================================================
   // 11) 状态寄存器
-  //=========================================================================
   logic        analog_ovf_raw;
   logic [31:0] status_clr_value_unused;
 
-  // 结构模式在 residue_capture 冻结 RDAC 范围错误，并在下一 quiet_sample
-  // 将模拟回读异常与旧 residue_bad 合并到 fine context；兼容模式在相位 14
-  // 捕获模拟异常。接受重构时进入独立粘滞状态。
+  // 结构模式在 residue_capture 冻结 RDAC 范围错误，并在下一 quiet_sample 将模拟回读异常与旧
+  // residue_bad 合并到 fine context；兼容模式在相位 14 捕获模拟异常。接受重构时进入独立粘滞状态。
   // 注意三者的来源不同，不能混：
   //   rdac_ovf  / ra_sat  / adc2_over  <- 模拟域回读（输入端口）
   //   rc_adc2_ovf                      <- ADC2数字译码范围溢出；合法量程下不可达
@@ -807,9 +785,7 @@ module sar20_digital_core #(
       .status_clr_value  (status_clr_value_unused)
   );
 
-  //=========================================================================
   // 12) cfg_rdata 回读
-  //=========================================================================
   always_comb begin
     cfg_rdata = 64'd0;
     if (weight_addr_valid) begin

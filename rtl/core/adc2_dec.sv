@@ -19,8 +19,8 @@ module adc2_dec #(
 );
 
   localparam int K     = P_ADC2_BITS + 1;
-  localparam int W_MUL = P_ADC2_BITS + 1 + int'(V_BITS) + 1; // 默认 78 位
-  localparam int W_SUM = W_MUL + 1;                       // 默认 79 位
+  localparam int W_MUL = P_ADC2_BITS + 1 + int'(V_BITS) + 1; // W_MUL: 默认 78 位
+  localparam int W_SUM = W_MUL + 1;                       // W_SUM: 默认 79 位
 
   logic [K - 1:0]            two_c_plus_1; // 2*code + 1 = {code, 1'b1}
   logic signed [V_BITS:0]    delta;        // max - min，多一位保存符号与差值
@@ -34,12 +34,12 @@ module adc2_dec #(
   logic signed [W_SUM - 1:0] sum_wide;
   logic signed [W_SUM - 1:0] min_ext;
 
-  // 边界常量先在 W_SUM 位构造，再显式转为 signed 参与比较；不能先截到
-  // V_BITS 位再比较，否则正上界 2^63 会被解释为负数。
+  // 边界常量先在 W_SUM 位构造，再显式转为 signed 参与比较；不能先截到 V_BITS 位再比较，否则正上界
+  // 2^63 会被解释为负数。
   localparam logic [W_SUM - 1:0] V_ONE   = {{(W_SUM - 1){1'b0}}, 1'b1};
-  localparam logic [W_SUM - 1:0] V_HI_U  = V_ONE << (int'(V_BITS) - 1); // 默认 2^63
-  localparam logic [W_SUM - 1:0] V_LO_U  = ~V_HI_U + V_ONE;            // 默认 -2^63
-  localparam logic [W_SUM - 1:0] V_MAX_U = V_HI_U - V_ONE;            // 默认 2^63 - 1
+  localparam logic [W_SUM - 1:0] V_HI_U  = V_ONE << (int'(V_BITS) - 1); // V_HI_U: 默认 2^63
+  localparam logic [W_SUM - 1:0] V_LO_U  = ~V_HI_U + V_ONE;            // V_LO_U: 默认 -2^63
+  localparam logic [W_SUM - 1:0] V_MAX_U = V_HI_U - V_ONE;            // V_MAX_U: 默认 2^63 - 1
 
   // 组合段1：奇数码仓中心与有符号量程；delta保留V_BITS+1位。
   assign two_c_plus_1 = {adc2_code, 1'b1};
@@ -49,8 +49,8 @@ module adc2_dec #(
   // 两个乘法操作数均显式转换为signed，避免无符号操作数改变乘积扩展。
   assign n = $signed({{(W_MUL - K){1'b0}}, two_c_plus_1}) * delta_ext;
 
-  // 组合段 2：除以固定 2^K，余数比较实现 ties-to-even。此处不推断除法器；
-  // 前面的 n 仍是量程可配置的乘法，综合时应单独查看其 DSP/LUT 映射。
+  // 组合段 2：除以固定 2^K，余数比较实现 ties-to-even。此处不推断除法器；前面的 n
+  // 仍是量程可配置的乘法，综合时应单独查看其 DSP/LUT 映射。
   assign q_shift = $signed(n) >>> K;
   assign r_bits  = n[K - 1:0];
   assign half    = {{(K - 1){1'b0}}, 1'b1} << (K - 1);

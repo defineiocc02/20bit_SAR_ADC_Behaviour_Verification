@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Compile and execute portable RTL regressions; missing tools are failures.
+"""编译并执行可移植 RTL 回归，缺少工具即失败。
 
-Requires Verilator 5.x with timing support and a C++20 toolchain. Set VERILATOR
-as a shell-style command (e.g. 'python -m verilator' for a local wheel).
-Builds use temporary paths; reproducible logs are saved outside generated RTL.
+需要现有支持时序的 Verilator 5.x 及 C++20 工具链。VERILATOR 使用 shell 风格
+命令字符串，例如本地 wheel 可设为 python -m verilator。构建使用临时路径，
+可追溯日志单独保存；诊断完成标记不自动证明模拟性能或物理时序。
 """
 
 from __future__ import annotations

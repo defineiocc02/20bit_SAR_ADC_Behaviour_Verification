@@ -64,8 +64,8 @@ module calib_regs #(
       err_code  <= ERR_NONE;
       scalar_written <= 3'b000;
     end else begin
-      // An epoch starts at reset/clear. Commit and writes are mutually
-      // exclusive; never validate old values and accept new ones on one edge.
+      // An epoch starts at reset/clear. Commit and writes are mutually exclusive; never validate
+      // old values and accept new ones on one edge.
       if (clear_valid) begin
         cfg_ready <= 1'b0;
         scalar_written <= 3'b000;

@@ -1,7 +1,7 @@
-"""Reproduce the 2026-10-02 arithmetic/structure calculations in a fresh directory.
+"""在新目录复算 2026-10-02 的算术及结构记录。
 
-This does not run RTL, synthesis, STA or analog simulation. Captured scripts and
-logs remain unchanged; repository source hashes must match the frozen manifest.
+不运行 RTL、综合、静态时序分析或模拟电路仿真。保留的脚本和日志不改写，
+仓库源码摘要须与冻结清单匹配。
 """
 
 from __future__ import annotations

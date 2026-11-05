@@ -1,4 +1,4 @@
-"""Mock/static checks only: these tests do not run Vivado or validate FPGA behavior."""
+"""仅检查模拟对象与静态合同，不运行 Vivado 或验证 FPGA 行为。"""
 
 from __future__ import annotations
 

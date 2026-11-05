@@ -1,4 +1,4 @@
-"""Exercise Vivado flow control with subprocess/Tcl stubs, never claim EDA validation."""
+"""以子进程／Tcl 替身检查 Vivado 流程控制，不声称完成 EDA 验证。"""
 
 from __future__ import annotations
 
@@ -425,8 +425,8 @@ def tcl_probe(tmp_path, stages=5, slack="0.125", failure=""):
         pytest.skip("tclsh is needed to exercise flow control, not Vivado semantics")
     out = tmp_path / "out"
     harness = tmp_path / "probe.tcl"
-    # Only documented Vivado entry points are stubbed. In particular, do not
-    # invent Synopsys remove_from_collection to hide a broken Vivado XDC.
+    # 只替代已声明的 Vivado 入口，不虚构 Synopsys 的
+    # remove_from_collection 来掩盖 Vivado XDC 中不支持的调用。
     harness.write_text(
         f"""
 set argc 4

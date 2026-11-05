@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""重新仿真40 MS/s交织实验，并严格核对当前冻结数据。
+"""重跑 40 MS/s 交织实验，并按指定容差比较冻结数组。
 
-保留四个历史设置的内部浮点误差数组，另比较固定A/B、generic空闲池随机选择和
-结构RTL allocator的Python合同。三策略共享seed42、同一18-slice静态高斯时偏、
-相干正弦与20位输出量化；不训练/补偿失配，不改变默认模型或RTL。
+四种设置保留内部浮点误差；另比较固定 A/B、空闲池随机选择和结构 RTL 分配
+规则的 Python 模型。三策略使用 seed42、同一组 18 个物理切片静态高斯时偏、
+相干正弦与 20 位输出，不训练或补偿失配。
 
-输出interleave_40m.json、四条误差的interleave_40m.npz、三条最终整数码的
-interleave_timing_codes_40m.npz和绘图功率谱interleave_timing_40m.npz。
---compare-frozen保留原电压误差rtol=0/atol=1e-14；新增整数码和功率谱精确比较。
-正常退出表示生成/一致性检查通过，不表示随机调度改善SNDR或芯片动态性能达标。
+输出 interleave_40m.json、四条误差的 interleave_40m.npz、最终整数码的
+interleave_timing_codes_40m.npz，以及功率谱 interleave_timing_40m.npz。
+--compare-frozen 对电压误差使用 rtol=0、atol=1e-14 V，对整数码及功率谱精确比较。
+一致性检查不代表随机调度改善 SNDR，也不代表芯片动态性能达标。
 """
 
 from __future__ import annotations
@@ -48,12 +48,21 @@ SOURCE_FILES = (
 
 
 def _digest(array: np.ndarray) -> str:
-    """Hash numerical bytes without nondeterministic container metadata."""
+    """计算连续数值字节的 SHA256，排除容器元数据的非确定性。"""
     return hashlib.sha256(np.ascontiguousarray(array).tobytes()).hexdigest()
 
 
 def _spectrum(output_v: np.ndarray, fs_hz: float, v_fs: float) -> tuple[np.ndarray, np.ndarray]:
-    """One-sided rectangular-window power, normalized to a v_fs-peak sine."""
+    """计算矩形窗单边功率谱，以峰值为 v_fs 的正弦功率归一化。
+
+    Args:
+        output_v: 输出电压序列，单位 V；计算前去除均值。
+        fs_hz: 采样率，单位 Hz。
+        v_fs: 满幅正弦峰值，单位 V。
+
+    Returns:
+        频率数组（Hz）与归一化逐频点功率；该功率不是每 Hz 的谱密度。
+    """
     n = len(output_v)
     power = np.abs(np.fft.rfft(output_v - output_v.mean()) / n) ** 2
     power[1:-1] *= 2
@@ -62,11 +71,10 @@ def _spectrum(output_v: np.ndarray, fs_hz: float, v_fs: float) -> tuple[np.ndarr
 
 
 def _output_metrics(result, output_v: np.ndarray, k: int) -> dict:
-    """Keep reference error separate from a fitted-fundamental metric residual.
+    """分别报告对理想参考的误差与去拟合基波后的残差。
 
-    The 1/sin/cos fit is a reporting projection, not a calibration applied to
-    the output. Positive phase error means advance; equivalent delay is -dphi/w.
-    No overflow or clipped sample is dropped from the arrays or metrics.
+    常数、正弦和余弦的最小二乘拟合仅用于统计，不反馈修改输出。正相位误差
+    表示相位超前，等效延迟为 -dphi/w。溢出或裁剪样本仍全部参与数组与指标计算。
     """
     cfg = result.cfg
     reference_v = result.sample.x1_clean
@@ -125,7 +133,7 @@ def _output_metrics(result, output_v: np.ndarray, k: int) -> dict:
 
 
 def _legacy_cases() -> tuple[dict, list[dict], dict]:
-    """Preserve the original four settings and their internal-float array names."""
+    """保留原先四种设置及其内部浮点误差数组名称。"""
     base = Config.paper_literal(
         fs=40e6,
         seed=42,
@@ -197,13 +205,13 @@ def _legacy_cases() -> tuple[dict, list[dict], dict]:
 
 
 def _timing_cases() -> tuple[dict, dict, dict]:
-    """Compare three explicit allocator paths using identical physical skew bytes.
+    """用同一物理时偏数组比较三条实际调度调用链。
 
-    fixed: paper_literal/rotate -> Scheduler -> build_slice_plan(pingpong).
-    generic_random: paper_literal/permute -> ShuffledScheduler ->
-        build_slice_plan(shuffle_causal), randomly choosing from the free pool.
-    rtl_allocator: rtl_structural -> build_rtl_slice_plan(shuffle=True), using
-        the structural cursor/scan contract. This row is Python, not a new SV run.
+    fixed 经 paper_literal/rotate、Scheduler 和 build_slice_plan(pingpong)；
+    generic_random 经 paper_literal/permute、ShuffledScheduler 和
+    build_slice_plan(shuffle_causal)，从空闲池随机选择；rtl_allocator 经
+    rtl_structural 和 build_rtl_slice_plan(shuffle=True)，使用游标扫描规则。
+    第三条结果来自 Python 规则模型，不是一次 SV 仿真。
     """
     n, k, fs_hz = 16384, 1639, 40e6
     overrides = {
@@ -298,7 +306,7 @@ def _timing_cases() -> tuple[dict, dict, dict]:
 
 
 def _compare(path: Path, arrays: dict, *, atol: float) -> None:
-    """Compare all keys/shapes; never delete a disagreeing case or relax tolerance."""
+    """逐键、逐形状比较全部数组；失配时报错，不删案例或放宽容差。"""
     with np.load(path) as frozen:
         if set(frozen.files) != set(arrays):
             raise SystemExit(f"Frozen array keys differ: {path.name}")
@@ -312,7 +320,7 @@ def _compare(path: Path, arrays: dict, *, atol: float) -> None:
 
 
 def main() -> None:
-    """Generate a new directory; optional comparison is against current public freezes."""
+    """创建新输出目录；请求比较时使用随库保留的冻结数组。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", required=True, type=Path, help="A new output directory")
     parser.add_argument(

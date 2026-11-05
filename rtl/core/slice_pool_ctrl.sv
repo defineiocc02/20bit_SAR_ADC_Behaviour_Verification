@@ -36,8 +36,8 @@ module slice_pool_ctrl #(parameter logic [31:0] P_SEED = 32'h6d2b79f5) (
   logic [17:0] next_mask;
   integer count, candidate;
 
-  // 选组发生在转换前一周期的采集阶段。排除旧acquiring后尚余10组，
-  // 按游标顺序取前8组；因此既有因果约束，也有扫描偏置，不是任取8组的均匀抽签。
+  // 选组发生在转换前一周期的采集阶段。排除旧acquiring后尚余10组，按游标顺序取前8组；
+  // 因此既有因果约束，也有扫描偏置，不是任取8组的均匀抽签。
   always_comb begin
     next_ids = '0;
     next_mask = '0;
@@ -55,8 +55,8 @@ module slice_pool_ctrl #(parameter logic [31:0] P_SEED = 32'h6d2b79f5) (
   end
 
   always_ff @(posedge clk) begin
-    // reset/disable优先于advance。sample_id也计入首笔无效priming分配，
-    // 所以上层首个有效ID为2；它不是“成功输出个数”，缺比较器valid也不回退ID。
+    // reset/disable优先于advance。sample_id也计入首笔无效priming分配，所以上层首个有效ID为2；
+    // 它不是“成功输出个数”，缺比较器valid也不回退ID。
     if (!rst_n || !enable) begin
       for (int a = 0; a < 8; a++) begin
         acquiring_ids[a] <= 5'(a);

@@ -1,72 +1,34 @@
 #!/usr/bin/env python3
-"""论文判据比较器：两份观测 trace 的**字段级**可观测性判定（VeriBugBench §4 的转用）。
+"""按字段字符串比较两份观测轨迹的公共行前缀。
 
-## 判据（逐条照抄审计文档 §4，不增不减）
+本比较器转用 VeriBugBench 的输出可观测保留判据，具体约定见审计文档 §4。
+按记录行序取 common=min(两份行数)，逐字段比较字符串；sample_idx 时间字段
+本身也参与比较，不另行对齐行。x/z 是已观测字符串：x 与 0 不同，x 与 x 相同。
+公共前缀内任一字段不同即 killed，全同即 unobserved；超出公共前缀的行不计差异。
 
-1. 以记录的时间字段为索引 —— 本项目的 trace 里该字段是 ``sample_idx``；
-2. 按行序比较**公共行前缀**（``common = min(行数)``）；
-3. **每个观测字段按字符串比较**（不做数值解析，故 ``x``/``z`` 与数字同等对待）；
-4. **X/Z 计为已观测值**（它们就是字符串 ``x``/``z``，不特殊处理 —— 这正是"计为观测"的落地）；
-5. **超出公共前缀的部分不构成可观测性**（多出来的行、缺失的行都不算差异）。
+原论文用相关测度描述基准构造及产物质量，不是调试技术性能；这里的转用结果
+不能解释为测试台达到该基准的某种水平。本函数也不检查编译与完整执行，因而
+unobserved 不是等价证明。truncated、n_golden 和 n_mutant 提供截断诊断，调用方
+须根据完整执行判据处理，不得将未完成执行计为等价。
 
-任一行任一字段不同 ⇒ ``killed``；公共前缀内全同 ⇒ ``unobserved``。
+分类依赖比较器之外的证据。结构性等价需要预先说明理由并保留可复核的有界
+证明；观测面不足则应通过更宽观测面或不同采样点检验。原审计保留了三类案例：
+激励未进入差异分支、差异端口未列入轨迹，以及振荡差异在离散采样点偶然重合。
 
-## 转用声明（与审计文档 §0 同句搬运，不得删）
+历史配对记录中，calib_regs.sv:107 的 < 改为 <= 在顶层未观测，在模块级有
+41 行 cb_ready/cb_err/cb_min/cb_max 差异；calib_regs.sv:109 的 err_code 取反
+改变 status_word（0x00000020 变为 0xffffffe0，err_code 为 67108863），但旧
+四列轨迹没有该字段。status_regs.sv:82 的自保持表达式取反会逐拍翻转，末次
+采样可能回到 0x00000020；这类情况应区分差异存在与采样恰好重合。
+这些位置和计数是历史诊断记录，不是对当前源码重新执行的结果。
 
-本比较器实现的是该论文"保留判据"里"输出可观测"这一步的**转用**版本；论文用它刻画
-基准构造与产物质量，**而非**某个调试技术的性能。**不得**用它声称"我们的 TB 达到了该基准的某水平"。
+删除 weight_store 容量守卫只是冻结尺寸下的等价候选，仍需有界证明。
+2026-09-19 的更正也保留：~offset_q=-offset_q-1，不是结构性等价；已有合法
+反例为 524287→524288 和 524288→524289，见 test_rtl_review_regressions.py。
+旧向量的 unobserved 仅表示当时激励未观测到差异。原文所用更宽观测面为
+p2_periph_tb 的 27 列；选择观测面及运行额外实验均由调用方负责。
 
-## 与"完整执行"的关系（如实登记，别把它藏进 verdict 里）
-
-论文漏斗还有前两条判据（① 编译通过、② 完整执行）。本比较器**只管第 ③④⑤ 条**。
-若变异体在仿真中途死掉，它的 trace 会更短甚至为空 —— 那时公共前缀也会跟着变短，
-``killed`` 可能因"差异落在公共前缀之外"而变成 ``unobserved``。**这不是"等价"**，
-而是"没跑完"。故本比较器额外输出 ``truncated`` 与 ``n_golden``/``n_mutant`` 三个诊断字段，
-**由调用方（campaign）据 criterion ② 决定丢弃**。把这三项藏起来会得到虚低的变异分数。
-
-## 两类 `unobserved`（比较器**不**替你分，但调用方必须分）
-
-`unobserved` 只说明"这两份 trace 在公共前缀上逐字段相同"，它有好几种成因。
-Phase 1b 统计前必须自己区分 —— 否则"观测面盲区"会被算成"等价变异体"，分数系统性偏低。
-
-| 类别 | 判据 | 处理 |
-|:--|:--|:--|
-| **结构性等价** | 有**先验**理由（跑之前写下、不是跑完找的）+ **任何**观测面（含模块级 27 列）都测不出差异 + 理由可被第三方复核 | 可作为"等价变异体"登记 |
-| **观测面盲区** | 同一变异体在**更宽的观测面**（模块级 `p2_periph_tb` 的 27 列 trace）上**能**被杀 | **不得**算等价；计入"我们的观测面覆盖不足" |
-
-**盲区实测有三个轴**（同一个注入器、同一套比较器，配对测量得到；原文见提交信息）：
-
-* **轴 1 · 激励盲区** —— 顶层激励没走进那条分支。
-  例：`ExprUpdate @ calib_regs.sv:107`（`<` → `<=`，即审计文档 §2 的 #14 形态）。
-  顶层系数恒 `min<max` ⇒ 两条写法给同一个 `cfg_ready`。**模块级 killed（41 行差异，
-  `cb_ready/cb_err/cb_min/cb_max` 四个字段），顶层 unobserved（0 行差异）。**
-  补救方向：加激励 / 换 TB，**不是**加列。
-* **轴 2 · 列盲区** —— 差异**真实出现在顶层输出端口上**，但不在那 4 列里。
-  例：`NSubUpdate @ calib_regs.sv:109`（`err_code <= ERR_NONE` → `~(ERR_NONE)`）。
-  顶层**确实变了**（既有打印：`status_word=0x00000020 -> err_code=0` 变成
-  `status_word=0xffffffe0 -> err_code=67108863`），但 `status_word` 不是 trace 列
-  ⇒ unobserved；模块级 killed（`cb_err` 列）。补救方向：**加列**。
-* **轴 3 · 采样重合**（新登记，既不属等价也不属列缺）—— 差异是**振荡的**，在离散采样点上
-  偶然撞回原值。例：`NSubUpdate @ status_regs.sv:82`（`acc_ovf_sticky <= ~(… | ev)`）
-  每拍翻转，末次 `status_word` 采样恰好又是 `0x00000020`。**遇到这种要把"差异是否存在"
-  与"采样时刻是否撞上"分开说**，别当成等价。
-  （判法：如果同一变异体在**同一观测面**上换采样点会变红，就属这一类。）
-
-结构性等价的候选：删除 `weight_store` 容量守卫（冻结尺寸下不可达，需保留有界证明）。
-
-更正（2026-09-19）：`~offset_q` **不是**结构性等价。补码取反是 `-offset_q-1`，
-非零 offset 会改变符号与幅度；即使 offset=0，微小扰动也能跨过量化边界。
-已有合法反例输出 524287→524288 和 524288→524289，见
-`tests/unit/test_rtl_review_regressions.py`。旧向量上的 unobserved 只能登记为激励未观测。
-
-本比较器只给 `killed`/`unobserved` 与逐字段计数；**分类属于调用方**（campaign），
-因为判定要"换一个更宽的观测面再跑一次"（或换采样点），那是本比较器手里没有的信息。
-
-## 退出码
-
-    0  比较完成，verdict = killed
-    1  比较完成，verdict = unobserved
-    2  用法 / IO 错误
+退出码为 0（killed）、1（unobserved）或 2（用法／I/O 错误）。
 """
 
 from __future__ import annotations
@@ -82,14 +44,30 @@ DEFAULT_FIELDS = ("sample_idx", "dout", "clip", "analog_ovf")
 
 @dataclass(frozen=True)
 class Row:
-    """trace 里的一行：``n`` 是文件行号（仅诊断用），``fields`` 是各观测列的**字符串**。"""
+    """记录一行轨迹及其源文件行号。
+
+    Attributes:
+        n: 从 1 开始的源文件行号，仅用于诊断。
+        fields: 各观测列的原始字符串，不作数值解析。
+    """
 
     n: int
     fields: tuple[str, ...]
 
 
 def read_trace(path: Path, fields: tuple[str, ...]) -> list[Row]:
-    """读一个 trace：跳过空行与 ``#`` 注释行；每行按空白切分后要求列数与 ``fields`` 一致。"""
+    """读取轨迹，跳过空行及 # 注释行，按空白拆分观测字段。
+
+    Args:
+        path: UTF-8 轨迹路径。
+        fields: 期望列名及列数，顺序与输入一致。
+
+    Returns:
+        保留文件行号和字符串字段的记录列表。
+
+    Raises:
+        SystemExit: 任一数据行列数不符。
+    """
     rows: list[Row] = []
     for n, raw in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
         line = raw.strip()
@@ -103,7 +81,11 @@ def read_trace(path: Path, fields: tuple[str, ...]) -> list[Row]:
 
 
 def compare(golden: list[Row], mutant: list[Row], fields: tuple[str, ...]) -> dict:
-    """按论文判据比较两份 trace，返回结构化结论（不改判据、不加判据）。"""
+    """比较公共行前缀，分别返回可观测差异与截断诊断。
+
+    只比较字符串，不进行数值转换或时间对齐。返回差异行数、逐字段计数及首处
+    差异；轨迹长度不足单独记录，不并入 killed 判定。
+    """
     common = min(len(golden), len(mutant))
     per_field = {f: 0 for f in fields}
     diff_rows = 0
@@ -128,7 +110,7 @@ def compare(golden: list[Row], mutant: list[Row], fields: tuple[str, ...]) -> di
         "n_golden": len(golden),
         "n_mutant": len(mutant),
         "common_prefix": common,
-        # 诊断：变异体比金标短就意味着它没跑完（criterion ②），必须由 campaign 丢弃而不是当等价
+        # 截断诊断交由调用方按完整执行判据处理，不能直接解释为等价。
         "truncated": len(mutant) < len(golden),
         "diff_rows": diff_rows,
         "per_field": per_field,

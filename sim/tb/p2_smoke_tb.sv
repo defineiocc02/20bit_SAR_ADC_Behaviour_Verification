@@ -1,7 +1,4 @@
-//===========================================================================
-// p2_smoke_tb.sv -- P2/P3 最低频冒烟自检（**不是**完整验收）
-//===========================================================================
-// 职责
+// p2_smoke_tb.sv -- P2/P3 最低频冒烟自检（**不是**完整验收） 职责
 //   只做三件事，跑通即退出码 0：
 //     T1  顶层配置通路：calib_regs 写入 + cfg_validate -> cfg_ready 拉高；
 //         0x0000 权重写入与回读；cfg_ready=1 时的写拒绝（ERR_CFG_WRITE）。
@@ -15,7 +12,6 @@
 //   python tools/run_rtl_sim.py --top p2_smoke_tb --tb sim/tb/p2_smoke_tb.sv \
 //       --src rtl/core rtl/top rtl/params --incdir rtl/params --fresh
 //   退出码：任何一处 MISMATCH -> $fatal(1)。"跑完但没比对"不算通过。
-//===========================================================================
 `timescale 1ns/1ps
 `include "rtl_params.vh"
 
@@ -53,9 +49,7 @@ module p2_smoke_tb;
     end
   endtask
 
-  //=========================================================================
   // 顶层 DUT
-  //=========================================================================
   logic        cfg_wr;
   logic [15:0] cfg_addr;
   logic [63:0] cfg_wdata;
@@ -111,9 +105,7 @@ module p2_smoke_tb;
       .caaz_pair_fault_code()
   );
 
-  //=========================================================================
   // 独立实例：slice_alloc（T2）
-  //=========================================================================
   logic              sa_cfg_ready, sa_sample_en;
   logic [N_ACT-1:0][4:0] sa_acq, sa_conv, sa_grp;
   logic              sa_conv_valid, sa_bank;
@@ -127,9 +119,7 @@ module p2_smoke_tb;
       .sample_idx (sa_idx), .group (sa_grp)
   );
 
-  //=========================================================================
   // 独立实例：sadc_enc（T3）
-  //=========================================================================
   logic [N_CMP-1:0] se_cmp;
   logic [B1-1:0]    se_code;
 
@@ -137,9 +127,7 @@ module p2_smoke_tb;
       .cmp_raw (se_cmp), .sadc_code (se_code)
   );
 
-  //=========================================================================
   // 配置写任务：拉一拍 cfg_wr
-  //=========================================================================
   task automatic cfg_write(input logic [15:0] a, input logic [63:0] d);
     begin
       @(negedge clk);
@@ -151,9 +139,7 @@ module p2_smoke_tb;
     end
   endtask
 
-  //=========================================================================
   // 主流程
-  //=========================================================================
   logic [4:0] prev_acq [0:N_ACT-1];
   logic [4:0] cur_acq  [0:N_ACT-1];
   logic [4:0] cur_conv [0:N_ACT-1];
@@ -186,9 +172,7 @@ module p2_smoke_tb;
     rst_n = 1'b1;
     repeat (2) @(posedge clk);
 
-    //----------------------------------------------------------------------
     $display("=== T1 顶层配置通路（calib_regs / weight_store / cfg_rdata）===");
-    //----------------------------------------------------------------------
     chk("T1 复位后 cfg_ready=0",   cfg_ready   == 1'b0);
     chk("T1 复位后 dout_valid=0",  dout_valid  == 1'b0);
     chk("T1 复位后 slice_sel=0",   slice_sel   == {N_SLICES{1'b0}});
@@ -216,7 +200,7 @@ module p2_smoke_tb;
     repeat (2) @(posedge clk);
     chk("T1 validate 后 cfg_ready=1", cfg_ready == 1'b1);
 
-    // ---- 回读 ----
+    // 回读
     cfg_addr = 16'h1008; #1;
     chk("T1 回读 adc2_min_q", cfg_rdata == 64'hFFFF_FFFF_FCCB_CCCD);
     cfg_addr = 16'h1010; #1;
@@ -228,13 +212,13 @@ module p2_smoke_tb;
     cfg_addr = 16'h2000; #1;
     chk("T1 回读权重窗口 slice = 0", cfg_rdata[4:0] == 5'd0);
 
-    // ---- cfg_ready=1 时的写拒绝 ----
+    // cfg_ready=1 时的写拒绝
     cfg_write(16'h0008, 64'd67108864);             // u = 1，应被拒
     chk("T1 生效期写权重被拒 -> ERR_CFG_WRITE(5)", status_word[31:6] == 26'd5);
     repeat (2) @(posedge clk);
 
     sadc_rdy = 1'b1; adc2_rdy = 1'b1; // fixed-phase capture requires valid input
-    // ---- 生效后开始转换：dout_valid 必须在固定延迟内出现 ----
+    // 生效后开始转换：dout_valid 必须在固定延迟内出现
     inj_q     = 64'sd0;
     adc2_code = 12'd0;
     repeat (64) @(posedge clk);
@@ -244,9 +228,7 @@ module p2_smoke_tb;
     bump(0, "T1");
     $display("T1 小计：不匹配 %0d", e1);
 
-    //----------------------------------------------------------------------
     $display("=== T2 slice_alloc（INV-4a..4d）===");
-    //----------------------------------------------------------------------
     // 重新复位独立实例，用独立端口驱动
     rst_n = 1'b0;
     sa_cfg_ready = 1'b0; sa_sample_en = 1'b0;
@@ -311,9 +293,7 @@ module p2_smoke_tb;
     bump(err_base, "T2");
     $display("T2 小计：不匹配 %0d", e2);
 
-    //----------------------------------------------------------------------
     $display("=== T3 sadc_enc popcount ===");
-    //----------------------------------------------------------------------
     err_base = errors;
     // 3.1 低 v 位全 1 的温度计码 -> popcount = v
     for (k = 0; k <= N_CMP; k = k + 1) begin
@@ -333,7 +313,6 @@ module p2_smoke_tb;
     bump(err_base, "T3");
     $display("T3 小计：不匹配 %0d", e3);
 
-    //----------------------------------------------------------------------
     $display("================================================");
     $display("  p2_smoke: checks=%0d errors=%0d  (T1=%0d T2=%0d T3=%0d)",
              checks, errors, e1, e2, e3);

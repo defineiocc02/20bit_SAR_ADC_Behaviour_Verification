@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
-"""一次性迁移脚本：把既有 RTL 文件头改写为 docs/coding_standard.md 规定的格式。
+"""使用固定历史元数据迁移 RTL 文件头的一次性工具。
 
-规则：
-  1. 保留原文件中 `module` 之前的全部注释文字（去掉纯装饰线），
-     作为「设计说明」并入新文件头，不丢信息。
-  2. 生成 @file/@brief/@details/@author/@date/@version +
-     手册依据/时钟域/复位/延迟/吞吐/可综合性/依赖/修订记录。
-  3. 在 module 之前补 `timescale 与 `default_nettype none，
-     文件末尾补 `default_nettype wire。
+工具保留 module 前的注释（去除装饰线），将其作为设计说明并入
+新文件头；输出 @file/@brief/@details/@author/@date/@version 与
+手册依据、时钟域、复位、延迟、吞吐、可综合性、依赖和修订记录。
+同时补 timescale、default_nettype none 和末尾 default_nettype wire。
 
-用法：
-    python3 scripts/migrate_headers.py --dry-run rtl/ad4080_top.sv
-    python3 scripts/migrate_headers.py rtl/*.sv
+META 与生成模板是既有迁移时点的运行时数据，不从当前 RTL 自动推导。
+本工具会覆盖目标文件，不能将其历史元数据当作当前功能或验证结论。
+用法：``python3 scripts/migrate_headers.py --dry-run rtl/ad4080_top.sv``
+只预览；省略 ``--dry-run`` 则写入所选文件。
 """
 
 from __future__ import annotations
@@ -234,7 +232,11 @@ META: dict[str, dict[str, str]] = {
 
 
 def strip_prefix(text: str) -> tuple[str, str]:
-    """Split into (comment_prefix, remainder starting at module)."""
+    """将文本分为 module 前缀和从 module 开始的剩余正文。
+
+    Raises:
+        ValueError: 未找到行首 module 声明。
+    """
     import re
 
     m = re.search(r"^module\s+\w+", text, re.MULTILINE)
@@ -244,7 +246,15 @@ def strip_prefix(text: str) -> tuple[str, str]:
 
 
 def clean_notes(prefix: str, fname: str) -> list[str]:
-    """Turn the old banner block into plain prose lines."""
+    """将历史文件头前缀提取为说明行，保留内容顺序和主题间空行。
+
+    Args:
+        prefix: module 前的文本；只读取其中以 // 开头的行。
+        fname: 当前文件名，用于滤除旧文件名行。
+
+    Returns:
+        去除装饰线、既有字段和首尾空行后的说明行列表。
+    """
     out: list[str] = []
     for raw in prefix.splitlines():
         line = raw.strip()
@@ -266,7 +276,7 @@ def clean_notes(prefix: str, fname: str) -> list[str]:
         ):
             continue
         out.append(body)
-    # collapse leading/trailing blank lines
+    # 仅清理说明列表首尾空行，主题间的空行保持原有顺序。
     while out and not out[0]:
         out.pop(0)
     while out and not out[-1]:
@@ -275,7 +285,16 @@ def clean_notes(prefix: str, fname: str) -> list[str]:
 
 
 def build_header(fname: str, meta: dict[str, str], notes: list[str]) -> str:
-    """按固定版式拼出 2.0.0 文件头，可选保留迁移前的设计说明。"""
+    """按固定 2.0.0 历史模板生成文件头，可附加迁移前的设计说明。
+
+    Args:
+        fname: 写入 @file 的文件名。
+        meta: 含 brief/details/manual/cdc/reset/lat/thr/synth/deps/rev 的元数据。
+        notes: 按原顺序附加的设计说明行；空列表不生成该说明区域。
+
+    Returns:
+        带结尾换行的文件头字符串；不写文件。
+    """
     bar = "//" + "=" * 77
     sub = "//" + "-" * 77
     lines = [
@@ -308,7 +327,15 @@ def build_header(fname: str, meta: dict[str, str], notes: list[str]) -> str:
 
 
 def migrate(path: Path, dry: bool) -> str:
-    """为单个 .sv 生成新文件头，并补齐 timescale 与 default_nettype。"""
+    """为所选文件生成历史模板文件头，并补 timescale/default_nettype。
+
+    Args:
+        path: 待迁移 UTF-8 .sv 文件；不在 META 或已标记 2.0.0 时跳过。
+        dry: 为 True 时仅生成摘要，为 False 时覆盖 path。
+
+    Returns:
+        SKIP、DRY 或 OK 状态摘要；迁移说明包含保留的原注释行数。
+    """
     text = path.read_text(encoding="utf-8")
     fname = path.name
     if fname not in META:
@@ -332,7 +359,7 @@ def migrate(path: Path, dry: bool) -> str:
     notes = clean_notes(prefix, fname)
     header = build_header(fname, META[fname], notes)
 
-    body = body.replace("`timescale", "`timescale")  # no-op
+    body = body.replace("`timescale", "`timescale")  # 保留既有的无操作替换。
     if "`timescale" not in body:
         body = "`timescale 1ns/1ps\n\n" + body
     if "`default_nettype none" not in body:
@@ -349,7 +376,11 @@ def migrate(path: Path, dry: bool) -> str:
 
 
 def main(argv: list[str]) -> int:
-    """命令行入口：批量迁移文件头，支持 --dry-run 只预览不写盘。"""
+    """处理 argv 指定文件；``--dry-run`` 只预览，各文件异常逐项打印。
+
+    argv 不含脚本名。无文件返回 2；完成遍历返回 0，文件异常不会改变
+    该返回值，调用方须检查打印结果，不能仅凭退出码断言全部迁移成功。
+    """
     dry = "--dry-run" in argv
     files = [Path(a) for a in argv if not a.startswith("--")]
     if not files:

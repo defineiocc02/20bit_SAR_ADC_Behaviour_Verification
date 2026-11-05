@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
-// Independent holdout from a noisy external fit, quantized to actual RTL
-// registers.  The fixture generator sees digital observations and a separate
-// training reference; this bench only sees the resulting registers and codes.
+// Independent holdout from a noisy external fit, quantized to actual RTL registers.  The fixture
+// generator sees digital observations and a separate training reference; this bench only sees the
+// resulting registers and codes.
 module calibration_fit_tb;
   logic clk=0,rst_n=0,start=0;
   always #1 clk=~clk;
@@ -125,8 +125,8 @@ module calibration_fit_tb;
          dout!==expected || flags!==expected_flags)
         $fatal(1,"fitted holdout mismatch n=%0d got=%h expected=%h id=%0d latency=%0d flags=%b expected_flags=%b",
           samples,dout,expected,result_id,latency,flags,expected_flags);
-      // Preserve the observed result, not only a final PASS marker, so a
-      // reviewer can independently plot every held-out output and its timing.
+      // Preserve the observed result, not only a final PASS marker, so a reviewer can independently
+      // plot every held-out output and its timing.
       $display("FIT_ROW n=%0d actual=%05h expected=%05h flags=%02h expected_flags=%02h latency=%0d id=%0d",
                samples,dout,expected,flags,expected_flags,latency,result_id);
     end

@@ -9,7 +9,7 @@
 `include "rtl_params.vh"
 
 module ctrl_fsm #(
-    parameter int P_PHASES = int'(PHASES)          // = 16
+    parameter int P_PHASES = int'(PHASES)          // P_PHASES: = 16
 ) (
     input  logic                        clk,
     input  logic                        rst_n,
@@ -31,7 +31,7 @@ module ctrl_fsm #(
     if (P_PHASES < 16) $fatal(1, "ctrl_fsm: phase 15 must exist");
   end
 
-  localparam int PW = $clog2(P_PHASES);    // 4
+  localparam int PW = $clog2(P_PHASES);    // PW: 4
 
   localparam logic [PW - 1:0] PH_LAST = PW'(P_PHASES - 1);
   localparam logic [PW - 1:0] PH_ACQ_END = PW'(6);

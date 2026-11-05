@@ -1,18 +1,17 @@
 """主链路的因果预跟踪：仅从已可用的 SADC coarse code 生成预充电目标。
 
-输入来自真实量化器判决及其完成时刻，不接受理想输入、物理电容/阈值或
-逐 slice 时偏真值。离线仿真虽能预先生成全记录，pending 队列仍只在
-ready_s<=预跟踪起点时发布结果，避免用未来判决改善当前建立。
+输入来自真实量化器判决及其完成时刻，不接受理想输入、物理电容/阈值或逐 slice 时偏真值。
+离线仿真虽能预先生成全记录，pending 队列仍只在ready_s<=预跟踪起点时发布结果，
+避免用未来判决改善当前建立。
 
-名义估计为 (lower_v+(coarse_code+0.5)*coarse_step_v-known_injection_v)
-/signal_scale：先取 coarse bin 中心，再减已知注入，最后恢复名义输入
-尺度。这里是量化历史的预置器，不是电容权重拟合、交织补偿或低频学习器。
-后续若加低频学习，须用数字可见记录和独立参考验证可辨识性，不能把
-pool 的 v_os/t_skew/tau_rel 等 plant 真值作为学习输入。
+名义估计为 (lower_v+(coarse_code+0.5)*coarse_step_v-known_injection_v) /signal_scale：
+先取 coarse bin 中心，再减已知注入，最后恢复名义输入尺度。这里是量化历史的预置器，不是电容权重拟合、
+交织补偿或低频学习器。后续若加低频学习，须用数字可见记录和独立参考验证可辨识性，
+不能把pool 的 v_os/t_skew/tau_rel 等 plant 真值作为学习输入。
 
 输出为各物理 slice 的预跟踪目标 [外部输入等效 V] 及来源样本 ID/时间；
-主链路再按有限预充电网络推进电压。本模块不求解连续建立、介电吸收或
-真实开关/辅助驱动电路，不能由目标更准确直接推断器件带宽/噪声收益。
+主链路再按有限预充电网络推进电压。本模块不求解连续建立、介电吸收或真实开关/辅助驱动电路，
+不能由目标更准确直接推断器件带宽/噪声收益。
 """
 
 from __future__ import annotations
@@ -27,8 +26,8 @@ import numpy as np
 class DecisionRecord:
     """一笔名义输入估计及其数字来源，字段不可变。
 
-    sample_id 标识来源转换；ready_s 为判决可用时刻 [s]；slices 为曾采集
-    该样本的物理 ID 元组，不能当作组内 slot；estimate_v 为名义输入估计 [V]。
+    sample_id 标识来源转换；ready_s 为判决可用时刻 [s]；slices 为曾采集该样本的物理 ID 元组，
+    不能当作组内 slot；estimate_v 为名义输入估计 [V]。
     """
 
     sample_id: int
@@ -41,9 +40,9 @@ class DecisionRecord:
 class PretrackPrediction:
     """按请求物理 ID 顺序返回目标与最多三笔来源。
 
-    voltage_v 为 (A,) 输入等效目标 [V]，A 为本次请求片数；source_ids 和
-    ready_times_s 为 (A,3)，分别是 sample ID 与可用时刻 [s]。未用来源用
-    -1/NaN 标记，不能当作真实来源 0；数组列次序为最近到更早。
+    voltage_v 为 (A,) 输入等效目标 [V]，A 为本次请求片数；source_ids 和ready_times_s 为 (A,3)，
+    分别是 sample ID 与可用时刻 [s]。未用来源用-1/NaN 标记，不能当作真实来源 0；
+    数组列次序为最近到更早。
     """
 
     voltage_v: np.ndarray
@@ -58,8 +57,8 @@ class InputAssistTrace:
     pretrack_start_s 为 (N,) 起点 [s]，pretrack_target_v 为 (N,A) 目标 [V]；
     pretrack_source_ids/pretrack_available_s 为 (N,A,3) 来源 sample ID/时刻。
     pretrack_source_charge_c 及 auxiliary_*charge_c 为 (N,) 电荷 [C]，
-    auxiliary_voltage_v 为 (N,) 辅助节点电压 [V]。这些与输入源电荷、时钟
-    驱动电荷分列，不能全部算作从外部输入信号源抽取的同一种电荷。
+    auxiliary_voltage_v 为 (N,) 辅助节点电压 [V]。这些与输入源电荷、时钟驱动电荷分列，
+    不能全部算作从外部输入信号源抽取的同一种电荷。
     """
 
     pretrack_start_s: np.ndarray
@@ -99,9 +98,9 @@ class InputAssistTrace:
 class QuantizedPretracker:
     """带可用时间队列的名义码估计器，按物理 slice 保存最近来源。
 
-    pending 保存尚未可见的判决；recent 保存最多三笔已可见判决；own 按
-    物理 ID 保存该片最近采样的判决。构造后历史为空，跨调用是否复用由
-    调用方决定；主 runner 在每次记录开始构造新实例。
+    pending 保存尚未可见的判决；recent 保存最多三笔已可见判决；
+    own 按物理 ID 保存该片最近采样的判决。构造后历史为空，跨调用是否复用由调用方决定；
+    主 runner 在每次记录开始构造新实例。
     """
 
     def __init__(
@@ -125,8 +124,7 @@ class QuantizedPretracker:
             weights: 最近到更早三笔历史的非负权重；首项必须为正。
 
         Raises:
-            ValueError: 非法片数/位数、网格、尺度，或权重非有限、形状非 (3,)、
-                存在负值/首项为零。
+            ValueError: 非法片数/位数、网格、尺度，或权重非有限、形状非 (3,)、存在负值/首项为零。
 
         Side effects:
             复制权重，清空 pending/recent/own；不读取物理真值或消费 RNG。
@@ -207,10 +205,9 @@ class QuantizedPretracker:
 
         Args:
             slice_ids: (A,) 物理 slice ID；输出顺序保持与此数组一致。
-            at_s: 查询起点 [s]，有限且相对前次查询非递减；ready_s==at_s
-                的判决在本次即为可用。
-            mode: reset_mid 输出零；latest 使用最近一笔；own 使用各片最后一次
-                采样来源；weighted 使用最多三笔最近记录，截取后重新归一权重。
+            at_s: 查询起点 [s]，有限且相对前次查询非递减；ready_s==at_s的判决在本次即为可用。
+            mode: reset_mid 输出零；latest 使用最近一笔；own 使用各片最后一次采样来源；
+                weighted 使用最多三笔最近记录，截取后重新归一权重。
 
         Returns:
             PretrackPrediction；缺少历史时目标为零、source ID=-1、时刻=NaN。

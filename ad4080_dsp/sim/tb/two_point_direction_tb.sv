@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
-// Expiring diagnostic: a successful marker confirms a known forward-fit limit;
-// it does not mean the two-point inverse calibration requirement is satisfied.
+// 已知正向拟合限制的诊断；成功结束只表示反例仍存在，不表示逆向两点校准已满足。
+// 结果或系数变化时测试会失败，届时须重新评估该限制。
 module two_point_direction_tb;
   logic clk=0,rst_n=0,start=0,valid_in=0;
   always #5 clk=~clk;
@@ -13,7 +13,7 @@ module two_point_direction_tb;
   sys_error_corr u_apply(.clk(clk),.rst_n(rst_n),.valid_in(valid_in),.x(x),.offset_code(offset_code),.gain_code(gain),.y(y),.valid_out(valid_out),.clip_low(clip_low),.clip_high(clip_high));
   initial begin
     repeat(3) @(negedge clk);#1;rst_n=1;
-    // Known physical inputs -419430/+419430; measured raw codes for 1.01*x+100.
+    // 已知输入为 -419430/+419430，以 1.01*x+100 生成相应测量原始码。
     @(negedge clk);#1;y1=20'(-423524);y2=20'(423724);start=1;
     @(negedge clk);#1;start=0;
     while(!done) @(negedge clk);

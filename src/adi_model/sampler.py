@@ -1,12 +1,12 @@
 """生成SADC/RDAC孔径事件、dither端口量和采样噪声。
 
-x1/x2是dither前输入节点[V]；x_sadc是SADC输入，x_rdac是RDAC保存电荷的
-输入等效V。两条采样热噪声n_S/n_R独立；开启的驱动噪声在t1/t2使用同一实现。
-量化dither分d_Q与d_R：dual_port取d_R=ratio*d_Q，range/granularity的d_R=0；
-采样mask模式另生成alpha*x+d。后续物理pool会按实际选中电容重算采样注入。
+x1/x2是dither前输入节点[V]；x_sadc是SADC输入，x_rdac是RDAC保存电荷的输入等效V。
+两条采样热噪声n_S/n_R独立；开启的驱动噪声在t1/t2使用同一实现。量化dither分d_Q与d_R：
+dual_port取d_R=ratio*d_Q，range/granularity的d_R=0；采样mask模式另生成alpha*x+d。
+后续物理pool会按实际选中电容重算采样注入。
 
-时间单位s；coarse决策不在此模块，dither_bank_code是采样mask码，dither_code
-的模式含义见字段。这里是样本域事件模型，不是连续开关注入或噪声谱电路求解器。
+时间单位s；coarse决策不在此模块，dither_bank_code是采样mask码，dither_code的模式含义见字段。
+这里是样本域事件模型，不是连续开关注入或噪声谱电路求解器。
 """
 
 from __future__ import annotations
@@ -21,10 +21,12 @@ from .config import K_B, TEMP_K, Config
 
 @dataclass
 class SampleBatch:
-    """一次采样的全部事件级实现（不可变语义：下游只读，改写仅限 sampling_dither_injection 的注入重标定——它必须同步改 x_rdac 与 dither）。
+    """一次采样的全部事件级实现（不可变语义：下游只读，
 
-    字段单位契约：全部 ``(N,)`` float64 [V]，除 t1/t2 [s]、dither_code
-    [RDAC 单位当量]；x1_clean/x2_clean 为 ``(N,)`` float64 [V]（None=未保留）。
+    改写仅限 sampling_dither_injection 的注入重标定——它必须同步改 x_rdac 与 dither）。
+
+    字段单位契约：全部 ``(N,)`` float64 [V]，除 t1/t2 [s]、dither_code [RDAC 单位当量]；
+    x1_clean/x2_clean 为 ``(N,)`` float64 [V]（None=未保留）。
 
     Attributes:
         t1, t2: 采样时刻 [s]（t2 = t1 + ktc_dt）。
@@ -37,9 +39,8 @@ class SampleBatch:
         n_S: SADC 采样热噪声 [V]。
         dither: 模拟注入量 [V]（数字端已知，用于成对扣除）。
         dither_code: 码域配对量 [RDAC 单位当量]（sampling 模式用）。
-        x1_clean: 驱动器噪声加入**之前**的 x1 [V]；None=未保留
-            （driver_noise_rms=0 时与 x1 等同）。度量"相对干净输入的误差"
-            必须用此项，否则 1 mV 驱动器噪声会伪装成 1 µV 内部误差。
+        x1_clean: 驱动器噪声加入**之前**的 x1 [V]；None=未保留（driver_noise_rms=0 时与 x1 等同）。
+            度量"相对干净输入的误差"必须用此项，否则 1 mV 驱动器噪声会伪装成 1 µV 内部误差。
         x2_clean: 同 x1_clean，对应 x2 [V]；None=未保留。
     """
 
@@ -85,8 +86,8 @@ def capture(
         rng: 采样与驱动噪声的随机流。
         dither_rng: 可选独立dither流；给定时不消费采样噪声流。
         chip: 可选aggregate实现，兼容路径用其电容；不作为数字估计器输入。
-        c_active: 可选(N,)噪声等效电容[F]。split由C_signal²/Σ(A+beta²B)
-            给出，不等于整个18-slice池的物理电容总和。
+        c_active: 可选(N,)噪声等效电容[F]。split由C_signal²/Σ(A+beta²B)给出，
+            不等于整个18-slice池的物理电容总和。
         dither_codes: 可选(N,)整数码，用于指定实际序列；rtl16传固定D=2 LFSR。
             quantizer码单位为名义RDAC细栅格；sampling码为bank mask单位。
 
@@ -254,20 +255,19 @@ def capture(
 class AnalyticInput:
     """A ``t -> x`` input generator that also knows its own exact derivative.
 
-    Timing skew is proportional to ``dx/dt``, so an input that can supply an
-    analytic slope removes the last numerical approximation from that path.
-    A plain callable is still accepted everywhere; :func:`input_derivative`
-    falls back to the spectral estimate when ``.derivative`` is absent.
+    Timing skew is proportional to ``dx/dt`` , so an input that can supply an analytic slope removes
+    the last numerical approximation from that path. A plain callable is still accepted everywhere;
+    :func:`input_derivative` falls back to the spectral estimate when ``.derivative`` is absent.
     """
 
     def __init__(self, fn, derivative, *, harmonics=None):
         """绑定波形与其解析导数。
 
         Args:
-            fn:         ``t -> x(t)`` 波形，[V]。
+            fn: ``t -> x(t)`` 波形，[V]。
             derivative: ``t -> dx/dt``，[V/s]，须与 ``fn`` 精确对应。
-            harmonics: Optional (Hz, complex V) real-phasor terms for exact
-                continuous RC integration; not inferred from sampled data.
+            harmonics: Optional (Hz, complex V) real-phasor terms for exact continuous RC
+                integration; not inferred from sampled data.
         """
         self._fn = fn
         self.derivative = derivative
@@ -306,10 +306,12 @@ def sine_input(amp: float, fin: float, phase: float = 0.0) -> AnalyticInput:
     """正弦输入发生器。
 
     Args:
-        amp:   峰值 [V]（惯用 0.7·v_fs / 0.9·v_fs，留 dither/失配余量）。
-        fin:   频率 [Hz]；正式动态指标必须用 _coherent_fin 的相干频率
-               （非相干 + 窗函数会把泄漏拟合成假杂散，SFDR 陷阱见工作记忆）。
+        amp: 峰值 [V]（惯用 0.7·v_fs / 0.9·v_fs，留 dither/失配余量）。
+        fin: 频率 [Hz]；
+            正式动态指标必须用 _coherent_fin 的相干频率（非相干 + 窗函数会把泄漏拟合成假杂散，
+            SFDR 陷阱见工作记忆）。
         phase: 初相 [rad]。
+
     Returns:
         f(t) -> amp·sin(2π·fin·t + phase)，t 标量或 ndarray [s]。
 
@@ -326,8 +328,8 @@ def sine_input(amp: float, fin: float, phase: float = 0.0) -> AnalyticInput:
 def spectral_derivative(x: np.ndarray, dt: float) -> np.ndarray:
     """周期、均匀孔径序列的频域导数。
 
-    乘j*omega对已解析且严格低于Nyquist的周期分量求导；实Nyquist采样不能唯一
-    确定连续导数，本函数给出其实频域导数0。普通中心差分会按sin(w)/w压低高频斜率。
+    乘j*omega对已解析且严格低于Nyquist的周期分量求导；实Nyquist采样不能唯一确定连续导数，
+    本函数给出其实频域导数0。普通中心差分会按sin(w)/w压低高频斜率。
 
     Args:
         x: (N,)周期样本，单位可为输入V。
@@ -349,19 +351,17 @@ def input_derivative(input_fn, t: np.ndarray) -> np.ndarray:
 
     Preference order:
 
-    1. **Analytic.** ``sine_input`` / ``dc_input`` attach a ``.derivative``
-       attribute; a general callable may do the same. Exact at any ``fin``,
-       including near Nyquist.
-    2. **Spectral.** Otherwise :func:`spectral_derivative` on the uniform
-       periodic grid, for resolved content strictly below ``fs/2``. At Nyquist
-       the continuous derivative is not identifiable without extra information.
+    1. **Analytic.** ``sine_input`` / ``dc_input`` attach a ``.derivative`` attribute; a general
+       callable may do the same. Exact at any ``fin`` , including near Nyquist.
+    2. **Spectral.** Otherwise :func:`spectral_derivative` on the uniform periodic grid, for
+       resolved content strictly below ``fs/2`` . At Nyquist the continuous derivative is not
+       identifiable without extra information.
 
-    ``np.gradient`` is deliberately **not** used: see
-    :func:`spectral_derivative` for the 25.6 dB near-Nyquist bias that made
-    it unacceptable (audit A07.3).
+    ``np.gradient`` is deliberately **not** used: see :func:`spectral_derivative` for the 25.6 dB
+    near-Nyquist bias that made it unacceptable (audit A07.3) .
 
     Args:
-        input_fn: any callable ``t -> x``; may carry ``.derivative``.
+        input_fn: any callable ``t -> x`` ; may carry ``.derivative`` .
         t: ``(N,)`` uniform time grid [s].
 
     Returns:

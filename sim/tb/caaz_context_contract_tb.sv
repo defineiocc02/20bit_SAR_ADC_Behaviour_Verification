@@ -1,6 +1,6 @@
 `timescale 1ps/1fs
-// Real structural core, ideal640MHz clock. This verifies digital ownership,
-// not analog chopping, CBIAS noise storage, aperture settling, or target STA.
+// Real structural core, ideal640MHz clock. This verifies digital ownership, not analog chopping,
+// CBIAS noise storage, aperture settling, or target STA.
 module caaz_context_contract_tb;
   logic clk = 1'b0;
   always #781.25 clk = ~clk;
@@ -58,8 +58,8 @@ module caaz_context_contract_tb;
   int raw_code_by_id[64];
 
   always_comb begin
-    // Ideal comparator input follows the physically captured CURRENT chop,
-    // not the chopper already prepared for the next acquiring bank.
+    // Ideal comparator input follows the physically captured CURRENT chop, not the chopper already
+    // prepared for the next acquiring bank.
     coarse_target = dut.u_structure.current_chop_neg ? 192 : 320;
   end
   assign flash_therm = 7'((1 << (coarse_target >> 6)) - 1);
@@ -138,9 +138,9 @@ module caaz_context_contract_tb;
     require_ok(cfg_ready, "configuration rejected");
   endtask
 
-  // Independent reference starts at the actual input aperture: the physical
-  // chop wire is sampled BEFORE the DUT's NBA polarity update. The upcoming
-  // ID comes from the real pool, not an assumed ID parity relation.
+  // Independent reference starts at the actual input aperture: the physical chop wire is sampled
+  // BEFORE the DUT's NBA polarity update. The upcoming ID comes from the real pool, not an assumed
+  // ID parity relation.
   always @(posedge clk) begin
     int expected_id;
     if (rst_n && cfg_ready && !cfg_clear_valid && quiet_sample &&
@@ -174,8 +174,8 @@ module caaz_context_contract_tb;
     int expected_word;
     real even_voltage_lsb;
     real odd_voltage_lsb;
-    // The current RA owner is being installed at phase1, before pool advance
-    // updates current_id on its following edge.
+    // The current RA owner is being installed at phase1, before pool advance updates current_id on
+    // its following edge.
     owner_id = int'(dut.u_structure.current_id) + (phase == 1 ? 1 : 0);
     require_ok(ra_az == (phase >= 1 && phase <= 8), "legacy per-cycle RA reset was gated");
     if (owner_id >= 2 && owner_id < 64 && expected_present[owner_id]) begin

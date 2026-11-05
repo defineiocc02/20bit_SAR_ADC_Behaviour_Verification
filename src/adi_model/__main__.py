@@ -1,8 +1,7 @@
-"""Wire the :mod:`adi_model.cli` entry points to ``python -m adi_model``.
+"""将 adi_model.cli 的两个命令接到 python -m adi_model。
 
-Kept deliberately tiny: the sub-commands live in :mod:`adi_model.cli`, and the
-only job here is to expose the same two commands through the module runner so
-that ``python -m adi_model run-all`` and ``adi-run-all`` cannot diverge.
+子命令的参数解析由 cli 模块负责；此入口只分发 run-all 与 make-report，
+使模块启动方式与对应的 console script 使用相同实现。
 """
 
 from __future__ import annotations
@@ -13,13 +12,13 @@ from .cli import main_make_report, main_run_all
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Dispatch ``python -m adi_model <command>``.
+    """分发 python -m adi_model <command>。
 
     Args:
-        argv: Argument list; defaults to ``sys.argv[1:]``.
+        argv: 参数列表；None 使用 sys.argv[1:]。
 
     Returns:
-        Process exit code.
+        进程退出码。
     """
     parser = argparse.ArgumentParser(
         prog="python -m adi_model",

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Full-top DCP functional simulation; run locally or inside an isolated SSH directory.
+"""对完整顶层 DCP 作功能仿真，可在本机或隔离的远端目录内调用。
 
-Default is prepare-only. --execute starts the installed Vivado/XSim tools.
-No SSH transport, resynthesis, implementation, SDF, or timing claim is included.
+默认只准备输入；--execute 才启动已有 Vivado／XSim。工具本身不传输 SSH，
+不重新综合或实现，也不使用 SDF 或给出时序结论。
 """
 
 from __future__ import annotations
@@ -35,12 +35,12 @@ COLUMNS = [
 
 
 def sha256(path: Path) -> str:
-    """Digest one exact file byte stream."""
+    """对一个文件的精确字节序列计算摘要。"""
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def validate_origin(manifest: dict, dcp: Path, stages: int, expected_hash: str | None) -> dict:
-    """Bind the TB label to two manifest fields and an explicitly trusted DCP hash."""
+    """将测试台标签与两个清单字段及显式可信 DCP 摘要绑定。"""
     fields = manifest.get("vivado_status", {})
     args = manifest.get("arguments", {})
     if (
@@ -93,7 +93,7 @@ def validate_origin(manifest: dict, dcp: Path, stages: int, expected_hash: str |
 
 
 def audit_trace(trace: Path, log: Path, stages: int) -> dict:
-    """Independent ID schedule + strict row/log consistency, not a second code oracle."""
+    """独立核对编号时序及行／日志一致性，不另建码值参考。"""
     text = log.read_text(encoding="utf-8", errors="backslashreplace")
     if re.search(r"(?im)(?:^\s*(?:ERROR:|FATAL_ERROR\b)|\bFatal:|\bFATAL:)", text):
         raise ValueError("Simulator reported an error/fatal diagnostic")
@@ -168,7 +168,7 @@ def audit_trace(trace: Path, log: Path, stages: int) -> dict:
 
 
 def windows_batch(argv: list[str]) -> str:
-    """Quote literal batch arguments without percent or delayed expansion."""
+    """引用批处理字面参数，避免百分号或延迟展开。"""
     if any(any(c in arg for c in '%"\r\n\x00') for arg in argv):
         raise ValueError("Windows command arguments contain unsupported quoting characters")
     return (
@@ -179,7 +179,7 @@ def windows_batch(argv: list[str]) -> str:
 
 
 def run_step(name: str, argv: list[str], out: Path, timeout: int) -> dict:
-    """Keep raw return codes/logs; timeout terminates only the process tree we start."""
+    """保留实际返回码及日志；超时仅终止本工具启动的进程树。"""
     command = argv
     if os.name == "nt":
         batch = out / f"{name}.cmd"
@@ -217,7 +217,7 @@ def run_step(name: str, argv: list[str], out: Path, timeout: int) -> dict:
 
 
 def main() -> int:
-    """Capture inputs, optionally execute tools, then audit immutable results."""
+    """捕获输入，按选项执行工具，再审计固定的结果记录。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dcp", type=Path, required=True)
     parser.add_argument("--synthesis-manifest", type=Path, required=True)

@@ -1,22 +1,11 @@
-"""P0 gate for ``tools/export_rtl_params.py`` and ``docs/rtl/RTL_ARITHMETIC_CONTRACT.md``.
+"""检查参数导出及冻结 RTL 算术合同（P0）。
 
-This file is the executable form of the frozen RTL arithmetic contract. It has two
-kinds of checks, and the distinction matters:
+独立算术部分从合同重新推导，与模型 round_even_divide 及 DEM 开关几何比较。
+序列化部分重新解析 .vh／JSON／hex，并与新模型记录比较，只证明产物当前且
+转录无损，不构成另一套重构实现；相应 P2 责任见合同 §8。
 
-**Independent arithmetic checks** — the test re-derives the rule from the contract
-text and compares it against something the exporter cannot influence:
-``fixed_point.round_even_divide`` (the model), and ``dem.split_switch_command`` for
-the DEM geometry. If the contract and the model disagree, this file fails.
-
-**Serialization checks** — the exported ``.vh``/JSON/hex artifacts are re-parsed and
-compared against a fresh model run. These prove the artifacts are current and
-lossless; they are not a second implementation of the reconstruction (that is the
-P2 obligation, see the contract §8).
-
-The floor-division checks are deliberately built so that a *wrong* implementation
-fails: ``test_floor_via_truncation_correction_is_not_vacuous`` asserts the naive
-truncating version actually disagrees somewhere, so the correction rule cannot pass
-by accident.
+向零截断与向下取整的反例必须实际不同，防止修正规则在退化夹具上无条件通过。
+合同见 docs/rtl/RTL_ARITHMETIC_CONTRACT.md。
 """
 
 from __future__ import annotations
@@ -61,7 +50,7 @@ GIT_DERIVED_PATTERNS = {
 
 
 def _load_exporter():
-    """Import ``tools/export_rtl_params.py`` by path (``tools/`` is not a package)."""
+    """按路径导入 tools/export_rtl_params.py，tools 不是 Python 包。"""
     path = REPO / "tools" / "export_rtl_params.py"
     spec = importlib.util.spec_from_file_location("export_rtl_params", path)
     assert spec is not None and spec.loader is not None
@@ -78,7 +67,7 @@ def exporter():
 
 @functools.lru_cache(maxsize=1)
 def _golden_run(n: int = COMMITTED_STIMULUS):
-    """Reproduce the exact record the committed artifacts were exported from."""
+    """复现入库产物导出时使用的同一记录。"""
     from adi_model.pipeline import run_pipeline
     from adi_model.weight_calibration import DigitalObservation
 
@@ -97,7 +86,7 @@ def _golden_run(n: int = COMMITTED_STIMULUS):
 
 # ---------------------------------------------------------------- 契约 §3.1
 def _round_half_even_from_contract(n: int, d: int) -> int:
-    """Round-half-to-even as written in contract §3.1 (floor quotient + tie rule)."""
+    """按合同 §3.1 用向下商和半步取偶规则独立舍入。"""
     if d <= 0:
         raise ValueError("the contract requires a positive divisor")
     q = n // d
@@ -126,30 +115,27 @@ def test_contract_round_half_even_agrees_with_the_model():
 
 # ---------------------------------------------------------------- 契约 §3.5
 def _trunc_div(a: int, b: int) -> int:
-    """Signed division truncated toward zero — what a bare RTL ``/`` does."""
+    """有符号除法向零截断，对应直接 RTL / 的行为。"""
     q = abs(a) // abs(b)
     return q if (a < 0) == (b < 0) else -q
 
 
 def _floor_via_truncation_correction(a: int, b: int) -> int:
-    """Contract §3.5: floor division built from a truncating divider."""
+    """按合同 §3.5 在向零除法上修正为向下取整。"""
     q = _trunc_div(a, b)
     remainder = a - q * b  # C semantics: sign follows the dividend
     return q - 1 if (remainder != 0 and a < 0) else q
 
 
 def test_floor_via_truncation_correction_is_not_vacuous():
-    """A bare truncating divider must disagree somewhere, or the rule is untested."""
+    """检查裸向零除法至少在一个案例不同，确保修正规则有实际判别力。"""
     disagreements = [a for a in range(-20, 21) if _trunc_div(a, 2) != a // 2]
     assert disagreements, "truncation never differed from floor: the check is blind"
     assert -7 in disagreements
 
 
 def _random_wide(rng: np.random.Generator) -> int:
-    """A signed integer spread over the 96-bit accumulator domain.
-
-    Built from two 62/32-bit draws because ``numpy`` integers cannot hold 2**94.
-    """
+    """用 62 位及 32 位随机抽样组合覆盖 96 位有符号累加域，避免 NumPy 整数无法表示 2**94。"""
     magnitude = int(rng.integers(0, 1 << 32)) << 62 | int(rng.integers(0, 1 << 62))
     return -magnitude if rng.integers(0, 2) else magnitude
 
@@ -163,7 +149,7 @@ def test_floor_via_truncation_correction_equals_floor():
 
 
 def test_recommended_shift_decomposition_is_exact():
-    """Contract §3.5.1: floor(A/(G*2**33)) == floor((A >> 33) / G) for G > 0."""
+    """合同 §3.5.1：检查 G>0 时 floor(A/(G*2**33))=floor((A>>33)/G)。"""
     rng = np.random.default_rng(20260918)
     for _ in range(3000):
         a = _random_wide(rng)
@@ -174,7 +160,7 @@ def test_recommended_shift_decomposition_is_exact():
 
 
 def test_accumulator_limit_is_half_open():
-    """Contract §4.2: the checked interval is [-2**95, 2**95), not closed."""
+    """合同 §4.2：检查累加域为半开区间 [-2**95,2**95)。"""
     limit = 1 << 95
     for value in (-limit - 1, -limit, limit - 1, limit, limit + 1):
         inside = -limit <= value < limit
@@ -230,7 +216,7 @@ def test_localparams_match_the_config_independently(exporter):
 
 
 def test_units_per_lsb1_guard_refuses_an_ambiguous_grid(exporter):
-    """ADR 0004: two derivations of the same step must not silently disagree."""
+    """ADR 0004：检查同一步长的两种推导不一致时被拒绝。"""
     cfg = Config.paper_literal()
     broken = replace(cfg, n_unit_per_slice=32)  # n_units_sig=256 vs dac_levels=512
     assert broken.units_per_lsb1 != broken.dac_levels // 2**broken.b1
@@ -285,7 +271,7 @@ def test_analog_references_are_exact_and_never_in_the_verilog(exporter):
 
 # ---------------------------------------------------------------- DEM 几何
 def test_exported_dem_geometry_reproduces_split_switch_command(exporter):
-    """The exported rot width/height rebuild ``dem.py``'s orders bit for bit."""
+    """检查导出的旋转宽高逐位重建 dem.py 的排列。"""
     cfg = Config.paper_literal(dem_enable=True)
     exported = {
         p["name"]: p["value"]
@@ -310,7 +296,7 @@ def test_exported_dem_geometry_reproduces_split_switch_command(exporter):
 
 
 def test_dem_permutations_are_bijections(exporter):
-    """INV-5: an order that repeats or drops a unit would break nominal conservation."""
+    """INV-5：检查排列不重复或遗漏单元，以保持名义守恒。"""
     cfg = Config.paper_literal(dem_enable=True)
     command = split_switch_command(cfg, np.zeros(512), np.arange(512, dtype=np.int64))
     for sid in range(512):
@@ -431,7 +417,7 @@ def test_committed_hex_is_lossless_and_current():
     reason="rtl artifacts have not been exported into this checkout",
 )
 def test_committed_register_image_reproduces_the_committed_codes():
-    """The *file*, not an in-memory object, is what the RTL will be loaded from."""
+    """从实际寄存器文件重建并检查入库码流，不只比较内存对象。"""
     from adi_model.fixed_point import FixedPointReconstructor
 
     _, _, data, stream = _golden_run()

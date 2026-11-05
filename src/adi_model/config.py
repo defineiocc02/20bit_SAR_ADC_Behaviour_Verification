@@ -1,13 +1,12 @@
 """SAR行为模型的配置、节点单位与合法运行域。
 
-Config()保留7bit先级/unary对照；paper_literal()是9bit判决、63+8 split
-及理想dual-port注入候选；rtl_structural()保持同一9bit几何，另约束16相位、
-range转移、D=2序列和由dem_enable联动的实际分配器。工厂不会复原未公开电路。
+Config()保留7bit先级/unary对照；paper_literal()是9bit判决、63+8 split及理想dual-port注入候选；
+rtl_structural()保持同一9bit几何，另约束16相位、range转移、D=2序列和由dem_enable联动的实际分配器。
+工厂不会复原未公开电路。
 
-fs单位Hz；输入峰值v_fs单位输入节点V；ADC2/ra_v_clip单位RA输出节点V；
-电容单位F，失配为相对量。Δ1、RDAC细栅格ΔDAC、目标LSB分别定义，不可混用。
-合法性检查拒绝无定义分支/几何；validate只给名义预算，不能替代逐样本余量实验。
-来源分级在provenance；噪声和工艺假设不等于硅预测。
+fs单位Hz；输入峰值v_fs单位输入节点V；ADC2/ra_v_clip单位RA输出节点V；电容单位F，失配为相对量。Δ1、
+RDAC细栅格ΔDAC、目标LSB分别定义，不可混用。合法性检查拒绝无定义分支/几何；validate只给名义预算，
+不能替代逐样本余量实验。来源分级在provenance；噪声和工艺假设不等于硅预测。
 """
 
 from __future__ import annotations
@@ -62,8 +61,8 @@ READING_B1: dict[str, int] = {
 class Config:
     """模型配置；顶层字段的来源分级见provenance，嵌套控制见对应参数类。
 
-    裸构造器不自动随b1重推后端；需要成组切换架构时使用工厂方法。
-    字段被接受不代表在所有runner活跃，实际应用与保留项由effective_config说明。
+    裸构造器不自动随b1重推后端；需要成组切换架构时使用工厂方法。字段被接受不代表在所有runner活跃，
+    实际应用与保留项由effective_config说明。
     """
 
     # ---------------- 系统与目标 ----------------
@@ -388,10 +387,10 @@ class Config:
     def paper_consistent(cls) -> Config:
         """Return the historical seven-decision-bit hypothesis.
 
-        This preserves the legacy grid-ratio interpretation for comparison.
-        It does not establish that 7 decisions plus 2 dither bits reproduce the
-        paper's nine quantization bits. See `paper_literal` for the independent
-        range/decision candidate and ADR 0003 for the distinction.
+        This preserves the legacy grid-ratio interpretation for comparison. It does not establish
+        that 7 decisions plus 2 dither bits reproduce the paper's nine quantization bits. See
+        `paper_literal` for the independent range/decision candidate and ADR 0003 for the
+        distinction.
 
         Returns:
             Seven SADC bits, 14 backend bits and a [-0.15, 1.65] V backend.
@@ -416,14 +415,14 @@ class Config:
     def paper_literal(cls, **overrides) -> Config:
         """Build a nine-decision-bit candidate with independent dither range.
 
-        A 63-main/8-sub complete-count topology is an explicit modeling choice,
-        not a claim that the paper discloses these physical capacitor counts.
-        With beta=1/8 it spans 512 uniform codes over the full 6 V input range.
-        Dual-port dither is a separately declared ideal charge-injection model.
+        A 63-main/8-sub complete-count topology is an explicit modeling choice, not a claim that the
+        paper discloses these physical capacitor counts. With beta=1/8 it spans 512 uniform codes
+        over the full 6 V input range. Dual-port dither is a separately declared ideal
+        charge-injection model.
 
         Args:
-            **overrides: Explicit configuration overrides; backend settings are
-                rederived unless explicitly supplied.
+            **overrides: Explicit configuration overrides; backend settings are rederived unless
+                explicitly supplied.
 
         Returns:
             A legal 9b decision candidate with a 12b backend at nominal settings.
@@ -461,9 +460,9 @@ class Config:
     def rtl_structural(cls, **overrides) -> Config:
         """Build the explicit 16-phase timing profile used by the RTL.
 
-        This is an engineering timing contract, not a statement about the
-        unpublished silicon clock. Callers may override other model parameters;
-        incompatible timing or geometry is rejected by ``check_legal``.
+        This is an engineering timing contract, not a statement about the unpublished silicon clock.
+        Callers may override other model parameters; incompatible timing or geometry is rejected by
+        ``check_legal`` .
         """
         fs = overrides.get("fs", cls().fs)
         if not math.isfinite(fs) or fs <= 0:
@@ -678,8 +677,8 @@ class Config:
     def dither_alpha(self) -> float:
         """名义采样mask移走的信号电荷占比之补α。
 
-        unary为1-2D/N；split为1-2D*w_bank/C_signal_nom，main权重为Cu，
-        sub权重为beta*Cu。固定物理末2D个单位不接信号，不能用统一单位数比替代。
+        unary为1-2D/N；split为1-2D*w_bank/C_signal_nom，main权重为Cu，sub权重为beta*Cu。
+        固定物理末2D个单位不接信号，不能用统一单位数比替代。
 
         Returns:
             无量纲名义α；非sampling返回1。物理pool按选中slice重新计算实际α，
@@ -753,8 +752,8 @@ class Config:
         """单位电容面积律假设σ=σ0*sqrt(Cunit_ref/Cunit)。
 
         Args:
-            c_unit: 调用方给定的单位电容[F]；物理pool使用每slice单位，
-                aggregate chip使用其等效单位，二者不是同一个统计构造。
+            c_unit: 调用方给定的单位电容[F]；物理pool使用每slice单位，aggregate chip使用其等效单位，
+                二者不是同一个统计构造。
 
         Returns:
             无量纲相对σ；关闭失配返回0。参考c_unit0不随cap_scale同步缩放，
@@ -1051,8 +1050,8 @@ class Config:
         """Refuse to simulate an illegal configuration.
 
         Raises:
-            ConfigError: 若 :meth:`legality_violations` 非空；异常消息逐条列出
-                违规项，便于直接定位拼写错误。
+            ConfigError: 若 :meth:`legality_violations` 非空；异常消息逐条列出违规项，
+                便于直接定位拼写错误。
         """
         bad = self.legality_violations()
         if bad:
@@ -1329,8 +1328,8 @@ class Config:
 def noise_budget(cfg: Config) -> dict:
     """分配名义输入等效噪声预算，不生成随机样本。
 
-    预算与功能开关解耦；RA在cap_scale=1的预算锚点推算，随后不因采样电容
-    缩小而被重新扣到0。实际RA/采样随机过程分别由对应生产模块生成。
+    预算与功能开关解耦；RA在cap_scale=1的预算锚点推算，随后不因采样电容缩小而被重新扣到0。
+    实际RA/采样随机过程分别由对应生产模块生成。
 
     Args:
         cfg: Config，包含目标DR、标称电容、ADC2栅格和可选RA输出RMS[V]。

@@ -1,7 +1,5 @@
-//===========================================================================
-// p2_tb.sv -- P2 算术核自检式 testbench
-//===========================================================================
-// 设计原则（沿用 P1 的教训，见 docs/rtl/P1_INTERFACE.md §8.3）
+// p2_tb.sv -- P2 算术核自检式 testbench 设计原则（沿用 P1 的教训，见 docs/rtl/P1_INTERFACE.md
+// §8.3）
 //   1. 每项测试有**独立错误账本**，避免打印限流把后面测试的失败信息吞掉。
 //   2. 断言必须有"能变红"的对应变异实验（P2_INTERFACE.md §13 登记）。
 //   3. 出错就计数/报错，**绝不静默继续**。
@@ -22,7 +20,6 @@
 //   T7  recon_core 进位处密集斜坡（p2_ramp.hex）+ 单调性
 //   T8  溢出（粘滞、不 wrap）与剪裁（与 analog_ovf 分开）
 //   T9  L3 链路 M1->M2->M3->M5->recon_core，只给最外层激励
-//===========================================================================
 `timescale 1ns/1ps
 `include "rtl_params.vh"
 
@@ -39,8 +36,8 @@ module p2_tb;
   always #1 clk = ~clk;
 
   string vdir = "sim/vectors";
-  // `+only=<name>`：只跑指定测试。T5 的 2^20 oracle 要几分钟，
-  // 而在 T4/T6/T9 上定位问题时不必每次都付这个代价。空串 = 全跑。
+  // `+only=<name>`：只跑指定测试。T5 的 2^20 oracle 要几分钟，而在 T4/T6/T9
+  // 上定位问题时不必每次都付这个代价。空串 = 全跑。
   string only = "";
   int    errors = 0;
   int    checks = 0;
@@ -48,7 +45,7 @@ module p2_tb;
   int    err_base = 0;
   int    e1, e2, e3, e4, e5, e6, e7, e8, e9;
 
-  localparam int W_COUNT = int'(N_SLICES) * int'(N_UNIT_TOTAL);   // 1278
+  localparam int W_COUNT = int'(N_SLICES) * int'(N_UNIT_TOTAL);   // W_COUNT: 1278
 
   logic  rst_n;
 
@@ -88,9 +85,7 @@ module p2_tb;
 
   int    link_analog_ovf_count = 0;
 
-  //=========================================================================
   // 通用工具
-  //=========================================================================
   function automatic int open_data(input string name);
     int    fd;
     string line, tok;
@@ -122,9 +117,7 @@ module p2_tb;
     end
   endtask
 
-  //=========================================================================
   // T1/T2 除法器
-  //=========================================================================
   logic                d_start;
   logic signed [62:0]  d_a;
   logic [63:0]         d_d;
@@ -217,12 +210,10 @@ module p2_tb;
     $display("[T2] div_floor property (q*d<=a<(q+1)*d) done: errors=%0d", e2);
   endtask
 
-  //=========================================================================
-  // T3 adc2_dec（生产尺寸 12 bit）
-  //=========================================================================
-  // p2_scalar.hex **逐行**换 adc2_n_bits（实测用到 {1,2,3,4,8,12,20}）。而 P_ADC2_BITS 是
-  // **elaboration 期的参数**、不是运行时端口 —— 所以只能按用到的取值各例化一份，
-  // 再用一个多路选择器按行内的 n_bits 列分派。这是不得已，不是设计偏好。
+  // T3 adc2_dec（生产尺寸 12 bit） p2_scalar.hex **逐行**换 adc2_n_bits（实测用到
+  // {1,2,3,4,8,12,20}）。而 P_ADC2_BITS 是 **elaboration 期的参数**、不是运行时端口 ——
+  // 所以只能按用到的取值各例化一份，再用一个多路选择器按行内的 n_bits 列分派。这是不得已，
+  // 不是设计偏好。
   // 未覆盖的 n_bits 走 default 分支**强制置 ovf=1**，让断言必红而不是静默通过。
   logic [19:0]        c_code;
   logic [63:0]        c_nb;
@@ -272,11 +263,9 @@ module p2_tb;
     $display("[T3] adc2_dec directed (n_bits sweep + ties-to-even) done: errors=%0d", e3);
   endtask
 
-  //=========================================================================
   // T4/T5 oracle：recon_core 以 straight_backend 尺寸重例化
-  //=========================================================================
-  // 几何取自模型 straight_backend：CalibrationSpec(1, 2, 1, ...) => n_active=1,
-  // dac_n_main=2, dac_n_sub=1（shape = 1x3，与权重 [0.5,0.25,0.25] 一致）。
+  // 几何取自模型 straight_backend：CalibrationSpec(1, 2, 1, ...) => n_active=1, dac_n_main=2,
+  // dac_n_sub=1（shape = 1x3，与权重 [0.5,0.25,0.25] 一致）。
   // ⚠️ 初版写 1/2 是错的。T5 恰好不受影响（RDAC 码=0 时所有单位 plus=0、a=1，
   // 求和与主/子切分无关）—— 恰好不受影响 不等于 写对了。
   localparam int OR_NACT = 1, OR_NMAIN = 2, OR_NSUB = 1, OR_NSL = 1, OR_AB = 20;
@@ -383,9 +372,7 @@ module p2_tb;
     $display("[T5] 2^20 full-code oracle done: %0d codes checked, errors=%0d", 1 << 20, e5);
   endtask
 
-  //=========================================================================
   // T6/T7/T8 生产尺寸 recon_core
-  //=========================================================================
   recon_core u_recon (
       .clk(clk), .rst_n(rst_n), .cfg_ready(r_cfg_ready), .start(r_start),
       .clr_ovf(r_clr), .sampling_mask_en(r_smask), .slice_id(r_sid),
@@ -421,8 +408,8 @@ module p2_tb;
     for (i = 0; i < N_ACTIVE; i++) begin rd(fd, v); r_son[i] = v[N_UNIT_SUB-1:0]; end
   endtask
 
-  // 真 bug 记录：`$feof` 只在**读过界之后**才为真，所以"while (!$feof) { 读一行 }"会在
-  // 最后一行之后再读一次 -> short read -> $fatal。正确做法是**先读本行的第一个字段**，
+  // 真 bug 记录：`$feof` 只在**读过界之后**才为真，所以"while (!$feof) { 读一行
+  // }"会在最后一行之后再读一次 -> short read -> $fatal。正确做法是**先读本行的第一个字段**，
   // 读不到就当作 EOF 退出；行内其余字段再用 rd() 读（它们一定存在）。
   task automatic rd_masks_row(input int fd, output logic ok);
     logic [63:0] v;
@@ -487,9 +474,9 @@ module p2_tb;
       rd_masks_row(fd, rowok);
       if (!rowok) break;
       if ($fscanf(fd, "%h %h %h %h %h %h", vcode, vinj, vexp, vcl, vch, vrel) != 6) $fatal(1, "T7 short row");
-      // 真 bug 记录：rel_step 列只有 2 个 hex 字符。用 64 位 %h 读进来后**必须取低 8 位再
-      // 符号扩展**；直接 $signed(vrel) 会把 0xf0 当成 +240 而不是 −16，于是跨进位的跳变
-      // 也被当成进位内检查 —— 实测正好误报 511−1 = 510 次。
+      // 真 bug 记录：rel_step 列只有 2 个 hex 字符。用 64 位 %h 读进来后**必须取低 8
+      // 位再符号扩展**；直接 $signed(vrel) 会把 0xf0 当成 +240 而不是 −16，
+      // 于是跨进位的跳变也被当成进位内检查 —— 实测正好误报 511−1 = 510 次。
       vrel_s = $signed(vrel[7:0]);
       nrows  = nrows + 1;
       r_code = vcode[ADC2_BITS-1:0];
@@ -514,9 +501,9 @@ module p2_tb;
     $display("[T7] recon_core carry ramp done: rows=%0d errors=%0d", nrows, e7);
   endtask
 
-  // p2_sat.hex 复现的是 **4 bit oracle 后端**（straight_backend(4) 的尺寸 1/1/2），
-  // 并用 w_scale 把权重整体左移 8 位。所以 T8 不能用生产尺寸的实例，
-  // 必须再例化一份 4-bit 的 recon_core。掩码恒 0（fixture 里 RDAC 码 = 0）。
+  // p2_sat.hex 复现的是 **4 bit oracle 后端**（straight_backend(4) 的尺寸 1/1/2），并用 w_scale
+  // 把权重整体左移 8 位。所以 T8 不能用生产尺寸的实例，必须再例化一份 4-bit 的 recon_core。掩码恒
+  // 0（fixture 里 RDAC 码 = 0）。
   logic                       sa_start, sa_clr;
   logic [0:0][4:0]            sa_sid;
   logic [0:0][1:0]            sa_mon;
@@ -577,7 +564,7 @@ module p2_tb;
     $display("[T8] saturation (4-bit oracle) done: errors=%0d", e8);
   endtask
 
-  // ---- T8b：溢出粘滞与"输出保持"（TB 自建激励）----
+  // T8b：溢出粘滞与"输出保持"（TB 自建激励）
   // 为什么必须自建：p2_sat.hex 的冻结列里**没有** acc_ovf，表达不了"粘滞 + 保持上一拍"；
   // 而在合法寄存器下 adc2_dec 的 ovf 结构上不可达（|delta| < 2^64 时商不会越界）。
   // 触发方式是让 op3 = total*inj_q 越界：total ≈ 2^35.15，取 inj_q = 2^62 -> ~2^97 >= 2^95。
@@ -612,9 +599,7 @@ module p2_tb;
     $display("[T8b] sticky overflow / hold-previous done: cumulative T8 errors=%0d", e8);
   endtask
 
-  //=========================================================================
   // T9 L3 链路：M1 -> M2 -> M3 -> M5 -> recon_core
-  //=========================================================================
   dem_state_gen #(.A_RED(DEM_LCG_A_MOD), .W(9)) u_k_dem (
       .clk(clk), .rst_n(rst_n), .dem_en(k_dem_en), .load(1'b0),
       .init_a(9'd0), .init_b(9'd0),
@@ -655,9 +640,10 @@ module p2_tb;
     int          fd_s, fd_e, n, i;
     logic [63:0] vbank, vcoarse, vdither, vinj, vcode, vdout, vcl, vch, van;
     // `p2_link_stim.hex` 现在是 **8 列**（尾部追加 rdac_over(1) adc2_over(1) ra_sat(1)）。
-    // 本 TB 用的是 `recon_core` 实例（没有这三个模拟域端口），所以只需**读进来跳过**——
-    // 但**必须读完 8 个字段**，否则每行剩下的 3 列会被当成下一行的开头，整段错位。
-    // 消费这三列的是顶层 L3（`sim/tb/p3_top_tb.sv`，它把三者接到 `rdac_ovf`/`adc2_over`/`ra_sat`）。
+    // 本 TB 用的是 `recon_core` 实例（没有这三个模拟域端口），所以只需**读进来跳过**—— 但**必须读完
+    // 8 个字段**，否则每行剩下的 3 列会被当成下一行的开头，整段错位。
+    // 消费这三列的是顶层 L3（`sim/tb/p3_top_tb.sv`，它把三者接到
+    // `rdac_ovf`/`adc2_over`/`ra_sat`）。
     logic [63:0] vrdacf, vadcf, vrasf;
     int          nflag_any, nflag_rdac, nflag_adc2, nflag_ra;
     logic        first;
@@ -727,9 +713,7 @@ module p2_tb;
              nflag_any, nflag_rdac, nflag_adc2, nflag_ra);
   endtask
 
-  //=========================================================================
   // 主流程
-  //=========================================================================
   initial begin
     if (!$value$plusargs("vdir=%s", vdir)) vdir = "sim/vectors";
     if (!$value$plusargs("only=%s", only)) only = "";
@@ -763,10 +747,10 @@ module p2_tb;
     k_inj       = '0;
     k_code      = '0;
     k_sid_arr   = '0;
-    // ⚠️ 真缺陷记录（2026-09-18，SVA 层抓出）：原先这里**漏了 `o_code`**，而 T4
-    // 只检查 `dout_valid`、**从不检查 `dout` 的值**，所以 `o_code = X` 一路经
-    // `adc2_dec` -> `op1` -> `num` -> `a1` -> `div_q` -> `clip_lo_c/clip_hi_c`
-    // 传到 `clip_low`/`clip_high`（全部 X），**没有任何功能判据能发现**。
+    // ⚠️ 真缺陷记录（2026-09-18，SVA 层抓出）：原先这里**漏了 `o_code`**，而 T4 只检查
+    // `dout_valid`、**从不检查 `dout` 的值**，所以 `o_code = X` 一路经 `adc2_dec` -> `op1` -> `num`
+    // -> `a1` -> `div_q` -> `clip_lo_c/clip_hi_c` 传到 `clip_low`/`clip_high`（全部 X），
+    // **没有任何功能判据能发现**。
     // 断言 A8a（`!$isunknown({clip_low, clip_high})`）把它抓了出来 —— 实测探针：
     //   div_q=x x?=1 | clip_lo_c=x(1) clip_hi_c=x(1) | a1=x x?=1
     // 而 gain_s/total_s/rails_s 都是已知值。
@@ -781,7 +765,7 @@ module p2_tb;
     @(negedge clk);
 
     load_weights();
-    // ---- oracle 的权重与系数：从向量文件读，**不手写** ----
+    // oracle 的权重与系数：从向量文件读，**不手写**
     begin
       int          fd;
       logic [63:0] vab, vna, vnm, vns, vmin, vmax, voff, vid;
@@ -801,8 +785,8 @@ module p2_tb;
       if (vab[31:0] !== (1 << OUT_BITS)) begin errors++; $display("  MISMATCH oracle cfg out_count=%0d", vab); end
       if (vid[0]  !== 1'b1)    begin errors++; $display("  MISMATCH oracle cfg identity flag not set"); end
     end
-    // 生产配置的三系数：优先读专用文件；若尚未生成则退回 oracle cfg 的值
-    // （本配置下二者恰好相同：min_q=0 / max_q=2^33 / offset=0 —— 但这不是巧合依赖，
+    // 生产配置的三系数：优先读专用文件；若尚未生成则退回 oracle cfg 的值 （本配置下二者恰好相同：
+    // min_q=0 / max_q=2^33 / offset=0 —— 但这不是巧合依赖，
     //   TB 会打印出来，且 p2_recon_coef.hex 到位后以它为准）
     begin
       int          fd;
@@ -846,8 +830,8 @@ module p2_tb;
                u_oracle.a1, $isunknown(u_oracle.a1),
                u_oracle.u_residue_mac.shifted[ACC_BITS-1], u_oracle.ovf_pend, u_oracle.gerr_pend);
     end
-    // Portable CI runs the same full-code oracle in p2_oracle_tb, isolated
-    // from the unrelated production-size reconstructions in this testbench.
+    // Portable CI runs the same full-code oracle in p2_oracle_tb, isolated from the unrelated
+    // production-size reconstructions in this testbench.
     if (only == "" || only == "t5") begin
       if ($test$plusargs("skip_oracle")) $display("T5 delegated to p2_oracle_tb");
       else t5_oracle();

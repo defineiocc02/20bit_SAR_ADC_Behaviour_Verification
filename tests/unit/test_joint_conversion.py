@@ -1,4 +1,4 @@
-"""Convolution, independent ODE and causal pipeline tests for the joint chain."""
+"""用卷积、独立微分方程及因果流水线案例检查联合转换链。"""
 
 from dataclasses import replace
 

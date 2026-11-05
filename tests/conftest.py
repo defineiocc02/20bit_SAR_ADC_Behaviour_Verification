@@ -1,4 +1,4 @@
-"""Shared pytest fixtures for the adi_model test suite."""
+"""提供 adi_model 测试共享的随机源、默认配置及相干正弦夹具。"""
 
 from __future__ import annotations
 
@@ -19,13 +19,13 @@ if ROOT not in sys.path:
 # --------------------------------------------------------------------- rng
 @pytest.fixture
 def rng() -> np.random.Generator:
-    """A default_rng seeded for deterministic tests."""
+    """用固定种子创建 default_rng，供确定性测试使用。"""
     return np.random.default_rng(20260910)
 
 
 @pytest.fixture
 def cfg():
-    """A default Config() instance."""
+    """返回主线默认 Config() 实例。"""
     from adi_model import Config
 
     return Config()
@@ -34,7 +34,7 @@ def cfg():
 # --------------------------------------------------------------------- inputs
 @pytest.fixture
 def sine_input_fn(cfg):
-    """A single-tone sine input at a coherent bin for N = 2**14."""
+    """返回 N=2**14 记录下位于相干频点的单音正弦。"""
     from adi_model import sine_input
 
     n = 2**14
@@ -43,5 +43,5 @@ def sine_input_fn(cfg):
 
 @pytest.fixture
 def small_n() -> int:
-    """Small N for fast unit tests (must be coherent for the chosen fin)."""
+    """返回快速测试所用 N；须与选定输入频率相干。"""
     return 2**14

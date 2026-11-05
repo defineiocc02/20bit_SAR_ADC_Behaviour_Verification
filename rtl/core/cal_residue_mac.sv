@@ -16,13 +16,13 @@ module cal_residue_mac #(
     output wire [int'(ACC_BITS) - int'(V_FRAC) - 2:0] a1,
     output logic any_ovf
 );
-  localparam int W_RAIL = SUM_BITS + 2; // |rails| <= 3*2^60 < 2^62
-  localparam int W_OP3 = SUM_BITS + int'(V_BITS) + 2; // 130：total * inj_q
-  localparam int W_WIDE = W_OP3 + 2; // 132：受检操作数的精确宽度
-  localparam int W_S1 = int'(ACC_BITS) + 1; // 97
-  localparam int W_SHIFT = int'(ACC_BITS) + int'(OUT_BITS) + 1; // 117
-  localparam int W_A = int'(ACC_BITS) - (int'(V_FRAC) + 1); // 63：shifted >>> 33
-  localparam int W_TOP = W_SHIFT - int'(ACC_BITS) + 1; // 22：shifted[116:95]
+  localparam int W_RAIL = SUM_BITS + 2; // W_RAIL: |rails| <= 3*2^60 < 2^62
+  localparam int W_OP3 = SUM_BITS + int'(V_BITS) + 2; // W_OP3: 130：total * inj_q
+  localparam int W_WIDE = W_OP3 + 2; // W_WIDE: 132：受检操作数的精确宽度
+  localparam int W_S1 = int'(ACC_BITS) + 1; // W_S1: 97
+  localparam int W_SHIFT = int'(ACC_BITS) + int'(OUT_BITS) + 1; // W_SHIFT: 117
+  localparam int W_A = int'(ACC_BITS) - (int'(V_FRAC) + 1); // W_A: 63：shifted >>> 33
+  localparam int W_TOP = W_SHIFT - int'(ACC_BITS) + 1; // W_TOP: 22：shifted[116:95]
 
   localparam logic [W_WIDE - 1:0] LIM_ONE = {{(W_WIDE - 1){1'b0}}, 1'b1};
   localparam logic [W_WIDE - 1:0] LIM_HI_U = LIM_ONE << (int'(ACC_BITS) - 1);
@@ -67,8 +67,7 @@ module cal_residue_mac #(
   assign shifted_top = shifted[W_SHIFT - 1:int'(ACC_BITS) - 1];
 
   always_comb begin
-    // 位 116..95 全 0  =>  0 <= shifted < 2^95
-    // 位 116..95 全 1  =>  -2^95 <= shifted < 0
+    // 位 116..95 全 0  =>  0 <= shifted < 2^95 位 116..95 全 1  =>  -2^95 <= shifted < 0
     shifted_ok = (shifted_top == {W_TOP{1'b0}}) || (&shifted_top);
     any_ovf = bad_op1 | bad_op2 | bad_op3 | bad_num | bad_den | (!shifted_ok);
   end

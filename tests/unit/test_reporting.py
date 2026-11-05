@@ -1,4 +1,4 @@
-"""A report must show incomplete/failed evidence and escape result-provided text."""
+"""检查报告显示未完成或失败的证据，并转义结果记录提供的文本。"""
 
 from adi_model.reporting import render_report
 

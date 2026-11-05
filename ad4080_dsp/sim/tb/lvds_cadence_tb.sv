@@ -1,4 +1,6 @@
 `timescale 1ns/1ps
+// 以 16 tick 输入间隔驱动单 lane 的 20 bit 帧，记录样本遗漏与 bit_en 恒高的 DCO 电平。
+// 这是会随行为变化而失败的已知限制诊断，成功结束不等于无损串行传输通过。
 module lvds_cadence_tb;
   logic clk=0,rst_n=0,valid_in=0,bit_en=1;
   logic [19:0] data_in=0;
@@ -41,8 +43,8 @@ module lvds_cadence_tb;
     @(negedge clk);#1;valid_in=0;
     repeat(60) @(negedge clk);
     for(int k=0;k<12;k++) if(!seen[k]) missing++;
-    // This is an expiring diagnostic for a known limitation, not a pass claim.
-    // If either behavior changes, this bench fails so the limit must be reviewed.
+    // 样本遗漏或 DCO 电平行为变化时使诊断失败，强制重新评估已知限制；
+    // 成功结束不表示串行通路功能验收通过。
     if(input_count!=12 || low_cycles>2 || missing==0)
       $fatal(1,"known cadence limitation changed; review the diagnostic");
     $display("LVDS_CADENCE_PROBE_COMPLETE inputs=%0d frames=%0d missing=%0d dco_high=%0d dco_low=%0d",input_count,frame_count,missing,high_cycles,low_cycles);

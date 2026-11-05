@@ -1,30 +1,30 @@
 //=============================================================================
 // @file    fifo_capture.sv
-// @brief   四种FIFO捕获模式及捕获后读控制
-// @details mode00禁用并清捕获控制；01立即捕获，10事件后捕获，11环形写并在事件后计数。
-//          full_flag在捕获完成置位、首读清除；模式11写回事件位置。
+// @brief   四种 FIFO 捕获模式与捕获后读取控制。
+// @details mode00 禁用并清捕获控制；01 立即捕获，10 事件后捕获，11 环形写入
+//          并在事件后计数。完成捕获时置 full_flag，首读清除；模式 11 回写事件位置。
 // @project SAR20 / AD4080风格数字原型
 // @author  项目维护者（贡献记录见版本库）
 // @date    2026-11-05
 // @version 由Git内容版本追溯，不单独声明器件版本
 //-----------------------------------------------------------------------------
-// 手册依据 : 功能映射见docs/ad4080_traceability.md；不声称器件逐拍等价。
-// 时钟域   : clk；arm/event/rd_en/valid及配置必须同步
-// 复位     : rst_n异步低有效；控制优先级为mode00、arm、正常写读
-// 延迟     : 捕获由有效样本计数；寄存器读口延迟按result_fifo合同
-// 吞吐     : 最多1样本写入及1结果读出/clk
-// 可综合性 : RTL结构；目标库映射、约束、SRAM/PHY及STA需单独验收。
-// 依赖     : result_fifo
-// 边界     : 当前完整模式合同面向DEPTH=16384；wr_total按16384回绕，其他深度未完成全模式验证。
-//          mode00/arm只清控制，不清存储FIFO；未读数据重arm的会话边界由系统约束。
-//          arm同沿可能仍由旧armed组合产生写；不能将任意运行中arm视为原子冲洗。
+// 手册依据: 功能映射见 docs/ad4080_traceability.md，不声称器件逐拍等价。
+// 时钟域: clk；arm、event、rd_en、valid 和配置须同步。
+// 复位: rst_n 异步低有效；控制优先级依次为 mode00、arm、正常写读。
+// 延迟: 捕获按有效样本计数；寄存读口遵循 result_fifo 接口规则。
+// 吞吐: 每个 clk 最多写入一个样本、读出一个结果。
+// 可综合性: RTL 结构；目标库映射、约束、SRAM/PHY 与 STA 须单独验收。
+// 依赖: result_fifo。
+// 边界: 完整模式约定面向 DEPTH=16384；wr_total 按 16384 回绕，其他深度未完成全模式验证。
+//     mode00/arm 只清控制，不清存储 FIFO；未读数据重新 arm 的会话边界由系统约束。
+//     arm 同沿可能仍由旧 armed 组合产生写入，运行中 arm 不等于原子冲洗。
 //=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
 
 module fifo_capture #(
-    parameter int DATA_W = 20,      // 样本位宽
-    parameter int DEPTH  = 16384    // FIFO 深度，必须是 2 的幂
+    parameter int DATA_W = 20,      // DATA_W: 样本位宽，默认 20 bit。
+    parameter int DEPTH  = 16384    // DEPTH: FIFO 字数，须为二次幂；全模式约定面向 16384。
 ) (
     input  logic              clk,                        // 系统时钟
     input  logic              rst_n,                      // 异步复位，低有效
@@ -61,7 +61,7 @@ module fifo_capture #(
     logic             almost_full_unused, almost_empty_unused;
 
     wire [CNT_W-1:0] wm_raw   = (watermark == 15'd0) ? 15'd1 : watermark;
-    // mode 11 必须 4 的倍数：向下取整，最小 4
+    // mode11 的水位按 4 的倍数向下取整，最小为 4 个样本。
     wire [CNT_W-1:0] wm_quad  = (wm_raw < 15'd4) ? 15'd4 : {wm_raw[CNT_W-1:2], 2'b00};
 
     always_comb begin
@@ -102,8 +102,8 @@ module fifo_capture #(
         end else begin
             wm_wb_valid <= 1'b0;
 
-            // mode 00：FIFO 关闭，同时复位捕获状态（手册 p.57：写 00 即复位
-            // 并可在写目标模式后重新 arm）
+            // mode00 关闭并复位捕获控制；再写目标模式可重新 arm（手册 p.57）。
+            // 这里只清控制，未清除 result_fifo 的存储和指针。
             if (mode == 2'b00) begin
                 armed      <= 1'b0;
                 event_seen <= 1'b0;
@@ -130,7 +130,7 @@ module fifo_capture #(
                     evt_pos    <= wr_total;   // mode 11：事件位置
                 end
 
-                // ---- write side ----
+
                 if (wr_en) begin
                     if (overwrite) begin
                         wr_total <= (wr_total == 15'd16383) ? 15'd0 : wr_total + 15'd1;
@@ -156,7 +156,7 @@ module fifo_capture #(
                     end
                 end
 
-                // ---- read side ----
+
                 if (rd_fire) begin
                     full_flag <= 1'b0;                        // 首个读出即清 FIFO_FULL
                     if (rd_cnt == rd_target - 1'b1) begin
@@ -172,8 +172,8 @@ module fifo_capture #(
     result_fifo #(.DATA_W(DATA_W), .DEPTH(DEPTH)) u_fifo (
         .clk(clk), .rst_n(rst_n),
         .wr_en(wr_en), .overwrite_en(overwrite), .wr_data(data_in),
-        // 必须用门控后的 rd_fire：captured=1 之前不许真正弹栈，否则
-        // 未完成的捕获会被提前读空，rd_cnt 与 FIFO 指针错位、underflow 误置。
+        // 仅用门控后的 rd_fire 弹出数据，captured=1 前禁止真实读取。否则未完成
+        // 捕获会提前读空，使 rd_cnt 与 FIFO 指针错位，并误置 underflow。
         .rd_en(rd_fire), .rd_data(rd_data), .rd_valid(rd_valid),
         .full(full), .empty(empty),
         .almost_full(almost_full_unused), .almost_empty(almost_empty_unused),

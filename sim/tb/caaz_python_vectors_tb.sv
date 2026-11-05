@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
-// Independent Python model/oracle fixture, sampled after each clock edge.
-// The fixture includes full-model calibrated raw words and protocol faults.
+// Independent Python model/oracle fixture, sampled after each clock edge. The fixture includes
+// full-model calibrated raw words and protocol faults.
 module caaz_python_vectors_tb;
   logic clk = 1'b0;
   always #5 clk = ~clk;

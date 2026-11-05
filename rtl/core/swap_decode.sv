@@ -32,8 +32,8 @@ module swap_decode (
   localparam signed [17:0] LMAX = 18'(int'(DAC_LEVELS) - 1);
   localparam signed [17:0] ZERO = 18'sd0;
 
-  // coarse是量化器判决码，k_cmd才是RDAC子单位命令；dither_code已由上层按
-  // sampling加、quantizer减完成单位换算。RDAC合法不等于RA摆幅或ADC2窗口合法。
+  // coarse是量化器判决码，k_cmd才是RDAC子单位命令；dither_code已由上层按 sampling加、
+  // quantizer减完成单位换算。RDAC合法不等于RA摆幅或ADC2窗口合法。
   logic signed [17:0] k_cmd;
   assign k_cmd = $signed({9'b0, coarse}) * UL1 + KLO + 18'($signed(dither_code));
 
@@ -60,8 +60,8 @@ module swap_decode (
       logic               sign_pos, sign_neg;
       logic signed [10:0] delta, slice_code;
 
-      // a是8个活动slot的编号，稍后才由rdac_drv映射到物理slice ID；
-      // rank只旋转4正4负的slot分组。操作数先扩32位，避免常量8被3位截成0。
+      // a是8个活动slot的编号，稍后才由rdac_drv映射到物理slice ID； rank只旋转4正4负的slot分组。
+      // 操作数先扩32位，避免常量8被3位截成0。
       assign rank     = 3'((32'(a) - 32'(sid_low)) % 32'(N_ACT));
       assign sign_pos = (32'(rank) < 32'(HALF));
       assign sign_neg = !sign_pos && (32'(rank) < 32'(N_ACT));

@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Prove this documentation-only RTL edit preserves source/tool tokens.
+"""检查指定冻结 RTL 源集的词法单元、指令及工具注释是否保持一致。
 
-This finite lexer targets the repository's SV subset; it is not a formal HDL
-checker. Verilator preprocessing independently checks include/macro expansion.
-Failure is explicit; an unknown character or unsupported continued directive
-must not silently produce an equivalence result.
+有限词法器只覆盖本仓库使用的 SV 子集，不是形式化 HDL 检查器。工具执行时
+还调用 Verilator 预处理，分别比较包含文件和宏展开后的词法单元。
+遇到未知字符或不支持的续行指令即报错，不生成等价结论。
 """
 
 from __future__ import annotations
@@ -37,8 +36,8 @@ def digest(data: bytes) -> str:
 
 
 def tokens(source: str) -> tuple[list[str], list[str]]:
-    # Newlines terminate directives/macros. For the finite current source set,
-    # preserve the exact directive's tokens and reject line continuations.
+    # 换行终止指令或宏；对这里支持的有限源集，
+    # 逐项保留指令词法单元，并拒绝续行形式。
     directives = []
     for line in source.splitlines():
         if line.lstrip().startswith("`"):

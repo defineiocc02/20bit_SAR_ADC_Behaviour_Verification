@@ -1,4 +1,4 @@
-"""Render current-schema acceptance results without stale numerical narrative."""
+"""按当前 schema 的验收记录生成报告，不复用旧版本的数值叙述。"""
 
 from __future__ import annotations
 
@@ -30,11 +30,10 @@ def _table(rows, columns):
 
 
 def render_report(results: dict, figures_dir=None) -> str:
-    """Build a self-contained report from actual records and current gate status.
+    """根据实际记录及当前门禁状态生成自包含报告。
 
-    HTML escapes all source/result text. Unknown/undefined numerical values are
-    shown explicitly through the schema metadata and raw evidence sections.
-    No static headline numbers are copied from an earlier release.
+    来源与结果文本均作 HTML 转义；未定义数值通过 schema 元数据和原始证据节显式呈现。
+    不复制旧版本的静态标题数值。
     """
     verdict = gate(results)
     records = acceptance_records(results)

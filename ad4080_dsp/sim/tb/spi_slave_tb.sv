@@ -1,14 +1,10 @@
 //=============================================================================
 // @file    spi_slave_tb.sv
 // @brief   AD4080 配置 SPI 协议自检（Mode 3 / CRC-8 / streaming / 短指令）
-// @details 直接驱动 SCLK/CS/SDI，采样 SDO；寄存器侧接真实 ad4080_regs，
-//          通过 SPI 回读验证写入是否落在正确地址。
-//          覆盖：
-//            T1 单字节写/读（无 CRC）
-//            T2 CRC 正确 -> 提交；CRC 错误 -> 不提交 + 0x11[3] 置位
-//            T3 streaming：一帧两字节，ADDR_ASCENSION=1 递增写 0x1D/0x1E
-//            T4 streaming 递减（默认）写 0x1E/0x1D
-//            T5 SHORT_INSTRUCTION：8-bit 指令写 0x0A
+// @details 直接驱动 SCLK/CS/SDI 并采样 SDO；寄存器侧连接真实 ad4080_regs，
+//          通过 SPI 回读核对写入地址与数据。T1 检查无 CRC 单字节读写；T2 检查
+//          CRC 正确时提交，错误时不提交并置 0x11[3]。T3/T4 分别检查一帧两字节
+//          的递增/递减流式访问；T5 检查 8 bit 短指令写 0x0A。
 // @project AD4080 数字子系统
 // @author  AD4080 Digital Team
 // @date    2026-10-19
@@ -30,13 +26,13 @@ module spi_slave_tb;
     logic cs_n = 1, sclk = 1, sdi = 0;
     wire  sdo, sdo_oe;
 
-    // slave <-> regs
+    // SPI 与真实寄存器堆在同一 clk 域传递字节事务。
     wire [15:0] addr;
     wire [7:0]  wdata, rdata;
     wire        we;
     wire        crc_err_pulse, clk_cnt_err_pulse;
 
-    // regs 配置输出
+    // 以下配置由实际寄存器读写路径产生，供 DUT 与测试共同观察。
     wire signed [11:0] offset_code;
     wire [9:0]  gain_code;
     wire [1:0]  filter_sel;
@@ -112,7 +108,7 @@ module spi_slave_tb;
         end
     endtask
 
-    // CRC-8: x^8+x^2+x+1, seed 0xA5, MSB first（与 RTL 同算法）
+    // CRC-8 采用 x^8+x^2+x+1、初值 0xA5、MSB 先行，与 RTL 使用同一算法。
     function automatic [7:0] crc8_byte(input [7:0] c, input [7:0] b);
         integer i;
         logic [7:0] r;
@@ -142,8 +138,8 @@ module spi_slave_tb;
         end
     endtask
 
-    // 一帧：16-bit 长指令 / 8-bit 短指令；N 个数据字节；可选 CRC
-    //   crc_mode: 0 = 无 CRC, 1 = 正确 CRC, 2 = 故意错误 CRC
+    // 一帧包含 16 bit 长指令或 8 bit 短指令、N 个数据字节及可选 CRC。
+    // crc_mode: 0 不发送 CRC，1 发送正确 CRC，2 故意翻转一位。
     task automatic frame(
         input logic        is_read,
         input logic        is_short,
@@ -189,10 +185,9 @@ module spi_slave_tb;
             end
             if (k == 0) r0 = rb; else r1 = rb;
 
-            // CRC 字节（可选）
-            //   写：CRC 覆盖“指令相 + 本字节数据”（streaming 第 2 字节起
-            //       按手册改为“起始地址 + 数据”，这里用 addr_k 近似）。
-            //   读：手册规定只校验“命令 + 起始地址”，即只覆盖指令相。
+            // 可选 CRC 的写覆盖包含指令与当前字节。流式第二字节起，本测试
+            // 用 addr_k 近似地址与数据覆盖；该近似不是独立的器件协议证据。
+            // 读覆盖采用命令与起始地址，即当前测试中的指令相。
             if (crc_mode != 0) begin
                 crc = 8'hA5;
                 if (!is_short) crc = crc8_byte(crc, instr[15:8]);
@@ -219,7 +214,6 @@ module spi_slave_tb;
         cs_n = 1; #(2*HALF);
     endtask
 
-    // 便捷封装
     task automatic wr(input [14:0] a, input [7:0] d, input int crc_mode);
         logic [7:0] r0, r1;
         begin
@@ -247,7 +241,7 @@ module spi_slave_tb;
         rst_n = 1;
         repeat (5) @(posedge clk);
 
-        // ---------------- T1: 单字节写/读，无 CRC ----------------
+        // T1: 单字节写/读，无 CRC
         $display("\n---- T1 basic write/read (no CRC) ----");
         wr(15'h000A, 8'hA5, 0);
         rd(15'h000A, v, 0);
@@ -257,7 +251,7 @@ module spi_slave_tb;
         rd(15'h0027, v, 0);
         chk_eq8("T1 GAIN low readback", v, 8'h34);
 
-        // ---------------- T2: CRC ----------------
+        // T2: CRC
         $display("\n---- T2 CRC-8 good / bad ----");
         wr(15'h0010, 8'h42, 0);       // [7:6]=01 CRC_ENABLE, [1:0]=10 CRC_ENABLEB -> crc_en
         chk("T2 crc_en set by 0x10", crc_en === 1'b1);
@@ -277,7 +271,7 @@ module spi_slave_tb;
         wr(15'h0010, 8'h00, 1);
         chk("T2 crc_en cleared", crc_en === 1'b0);
 
-        // ---------------- T3: streaming 递增 ----------------
+        // T3: streaming 递增
         $display("\n---- T3 streaming, ADDR_ASCENSION=1 ----");
         wr(15'h0000, 8'h20, 0);       // ADDR_ASCENSION=1（SDO_ENABLE=0 不影响读）
         chk("T3 addr_asc set", addr_asc === 1'b1);
@@ -293,7 +287,7 @@ module spi_slave_tb;
         rd(15'h001E, v, 0);
         chk_eq8("T3 WM high after streamed write", v, 8'h00);
 
-        // ---------------- T4: streaming 递减（默认） ----------------
+        // T4: streaming 递减（默认）
         $display("\n---- T4 streaming, ADDR_ASCENSION=0 (decrement) ----");
         wr(15'h0000, 8'h10, 0);       // ADDR_ASCENSION=0
         chk("T4 addr_asc cleared", addr_asc === 1'b0);
@@ -308,7 +302,7 @@ module spi_slave_tb;
         rd(15'h001D, v, 0);
         chk_eq8("T4 WM low", v, 8'h00);
 
-        // ---------------- T5: 短指令 ----------------
+        // T5: 短指令
         $display("\n---- T5 SHORT_INSTRUCTION (7-bit address) ----");
         wr(15'h0001, 8'h08, 0);       // SHORT_INSTRUCTION=1
         chk("T5 short_instr set", short_instr === 1'b1);

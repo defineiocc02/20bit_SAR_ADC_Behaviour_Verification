@@ -19,8 +19,8 @@ module cal_weight_reduce #(
     parameter int P_N_SLICES = int'(N_SLICES),
     parameter int P_DIT_N = 2 * int'(DITHER_UNITS_RANGE),
     parameter int P_DIT_END = int'(N_UNIT_TOTAL),
-    // Direct coefficient-only users retain the uncached interface behavior.
-    // The production top supplies exact configuration-time row totals.
+    // Direct coefficient-only users retain the uncached interface behavior. The production top
+    // supplies exact configuration-time row totals.
     parameter bit P_USE_ROW_TOTALS = 0,
     parameter int SUM_BITS = 64,
     parameter int W_RAIL = SUM_BITS + 2
@@ -43,9 +43,9 @@ module cal_weight_reduce #(
   localparam int TREE_LEAVES = 1 << $clog2(N_TERMS);
   localparam int COL_LEAVES = 1 << $clog2(P_N_SLICES);
   localparam int MASK_LEAVES = 1 << $clog2(P_DIT_N);
-  // Module-scope edges avoid Vivado 2018.3's undriven forward-generate nodes.
-  // Every read/write index is an elaboration-time constant. split_var tells
-  // the simulator to analyze each edge separately; it is not a warning waiver.
+  // Module-scope edges avoid Vivado 2018.3's undriven forward-generate nodes. Every read/write
+  // index is an elaboration-time constant. split_var tells the simulator to analyze each edge
+  // separately; it is not a warning waiver.
   wire [SUM_BITS - 1:0] total_tree [1:2 * TREE_LEAVES - 1] /* verilator split_var */;
   wire [SUM_BITS - 1:0] on_tree [1:2 * TREE_LEAVES - 1] /* verilator split_var */;
   wire [SUM_BITS - 1:0] column_tree
@@ -92,8 +92,8 @@ module cal_weight_reduce #(
   end
 
   // 缓存的是每个物理row的精确和，不是全局固定增益；切换slice组仍须重新选择并求和。
-  // 配置在转换期间冻结。调用方须保证row_total[s]==sum_u(w_rom[s][u])，
-  // 本路径不重新校验缓存；weight_store的替换写必须同步维护系数和行和。
+  // 配置在转换期间冻结。调用方须保证row_total[s]==sum_u(w_rom[s][u])，本路径不重新校验缓存；
+  // weight_store的替换写必须同步维护系数和行和。
   for (genvar t = 1; t < 2 * COL_LEAVES; t++) begin : g_row_tree
     if (!P_USE_ROW_TOTALS) begin : g_unused
       assign row_tree[t] = '0;

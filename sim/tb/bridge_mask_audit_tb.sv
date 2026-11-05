@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
-// Exercise the real structural controller's mask network by forcing only
-// state/decision registers. Scheduling is intentionally tested separately.
+// Exercise the real structural controller's mask network by forcing only state/decision registers.
+// Scheduling is intentionally tested separately.
 module bridge_mask_audit_tb;
   logic clk=0,rst_n=1,enable=1;
   logic [8:0] sid_force=0,code_force=0;
@@ -99,8 +99,8 @@ module bridge_mask_audit_tb;
       end
     end
     $fclose(fd);$fclose(details);
-    // The independently constructed reference includes the explicit sid[8]
-    // activation contract. Any physical mask difference is a real failure.
+    // The independently constructed reference includes the explicit sid[8] activation contract. Any
+    // physical mask difference is a real failure.
     if(total_cases!=262144 || fail_cases!=0 || nominal_fail!=0)
       $fatal(1,"bridge physical masks differ from independent reference");
     $display("BRIDGE_AUDIT_COMPLETE cases=%0d mismatch_cases=%0d changed_bits=%0d nominal_sum_mismatches=%0d first_sid=%0d first_code=%0d synthetic_weight_max_uv=%.9g synthetic_weight_rms_uv=%.9g",total_cases,fail_cases,total_changed_bits,nominal_fail,first_sid,first_code,max_error_uv,$sqrt(sum_error_sq/real'(total_cases)));

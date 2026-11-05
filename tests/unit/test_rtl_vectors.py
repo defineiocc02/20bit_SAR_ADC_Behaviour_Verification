@@ -30,7 +30,7 @@ REPORT = VECTORS / "p1_vectors_report.json"
 
 
 def _load(name: str, relative: str):
-    """Import a ``tools/`` script by path (``tools/`` is not a package)."""
+    """按路径导入 tools 脚本，tools 不是 Python 包。"""
     spec = importlib.util.spec_from_file_location(name, REPO / relative)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -56,13 +56,13 @@ def test_export_is_deterministic(exporter):
 
 
 def test_only_paper_literal_is_supported(exporter):
-    """The M2 closed form assumes H_ROT*W_ROT == 64; refuse other topologies."""
+    """检查 M2 闭式所需 H_ROT*W_ROT=64 前提，拒绝其他拓扑。"""
     with pytest.raises(ValueError, match="paper_literal only"):
         exporter.build("paper_consistent")
 
 
 def test_the_dem_trap_is_refused_and_recorded(exporter):
-    """DEM off would make every permutation identity, so the vectors must say so."""
+    """检查 DEM 关闭导致恒等排列的情况被拒绝并写入报告。"""
     report = exporter.build("paper_literal")["report"]
     assert report["effective_overrides"]["dem_enable"] is True
     assert "dem_enable" in report["header_default_note"]
@@ -76,7 +76,7 @@ def test_the_dem_trap_is_refused_and_recorded(exporter):
 
 
 def test_m1_report_claims_both_banks_sweep_every_state(exporter):
-    """The per-bank-counter invariant is what the historical bug broke."""
+    """检查两个 bank 各自的计数器扫过全部状态。"""
     stats = exporter.build("paper_literal")["report"]["m1"]
     assert stats["distinct_sids"] == 512
     assert stats["per_bank_all_states_seen"] is True
@@ -103,11 +103,10 @@ def test_m5_report_covers_every_state(exporter):
 
 
 def test_m5_golden_is_independent_of_the_bridge_because_counts_would_differ(exporter):
-    """With the bridge on, the model gives slices *different* counts on purpose.
+    """检查 M5 均匀计数网格明确关闭桥接。
 
-    A uniform-count grid is therefore only meaningful with the bridge disabled —
-    and the report has to say so, or a reader would think the bridge were covered
-    here as well (it is covered exhaustively in M3 instead).
+    启用桥接时模型有意给不同切片不同计数，因此均匀计数网格不能声称覆盖桥接；
+    桥接由 M3 的穷举案例单独覆盖。
     """
     cfg = replace(Config.paper_literal(), dem_enable=True, dem_bridge_enable=True)
     from adi_model.dem import split_switch_command
@@ -118,7 +117,7 @@ def test_m5_golden_is_independent_of_the_bridge_because_counts_would_differ(expo
 
 
 def test_rdac_over_definition_matches_the_model(exporter):
-    """The exporter mirrors ``SimResult.rdac_over``; prove the mirror is faithful."""
+    """检查导出器对 SimResult.rdac_over 的转录与模型一致。"""
     from adi_model.pipeline import run_pipeline
     from adi_model.sampler import sine_input
 
@@ -138,7 +137,7 @@ def test_committed_vectors_are_current(exporter):
 
 @pytest.mark.skipif(not REPORT.is_file(), reason="P1 vectors have not been exported")
 def test_committed_vectors_have_a_data_marker(exporter):
-    """The TB uses ``$fscanf`` after a ``#DATA`` marker; both must be present."""
+    """检查向量包含测试台 $fscanf 所需 #DATA 标记及数据体。"""
     for name in ("p1_m1_sid.hex", "p1_m2_jinv.hex", "p1_m3.hex", "p1_m5_masks.hex", "p1_chain.hex"):
         text = (VECTORS / name).read_text(encoding="utf-8")
         lines = text.splitlines()
@@ -149,7 +148,7 @@ def test_committed_vectors_have_a_data_marker(exporter):
 
 
 def test_sid_sequence_matches_the_model_for_a_long_record(exporter):
-    """Independent re-derivation of the M1 golden straight from the model."""
+    """直接从模型独立重算较长记录的 M1 状态序列。"""
     cfg = replace(Config.paper_literal(), dem_enable=True)
     bank = np.arange(1024) % 2
     expected = dem_state_sequence(1024, cfg, bank)
@@ -213,7 +212,7 @@ P2_LIMIT = 512 * 1024
 
 
 def _data_rows(text: str) -> list[list[str]]:
-    """Return the token rows that follow the single ``#DATA`` marker."""
+    """返回唯一 #DATA 标记后的分列数据行。"""
     lines = text.splitlines()
     markers = [i for i, line in enumerate(lines) if line == "#DATA"]
     assert len(markers) == 1
@@ -225,28 +224,19 @@ def _disk_rows(path: pathlib.Path) -> list[list[str]]:
 
 
 def _unpack_bits(value: int, size: int) -> np.ndarray:
-    """Inverse of the exporter's LSB-first pack."""
+    """还原导出器最低位优先的打包。"""
     return np.array([(value >> p) & 1 for p in range(size)], dtype=np.int64)
 
 
 @pytest.fixture(scope="module")
 def p2(exporter):
-    """One P2 build for the whole module (the 2**20 oracle is seconds, not free)."""
+    """每模块共享一次 P2 构建，避免重复执行 2**20 全码参考。"""
     built = exporter.build("paper_literal")
     return built["files"], built["p2_report"]
 
 
 def _lf_size(path: pathlib.Path) -> int:
-    r"""Byte count of ``path``, measured in the **generator's** convention (LF).
-
-    Why not ``path.stat().st_size`` directly: a checkout with
-    ``core.autocrlf=true`` writes CRLF, while the exporter writes LF
-    (``newline="\\n"``) and ``p2_report.json`` records LF byte counts. Comparing the
-    two directly is false on every fresh checkout, so the gate would depend on the
-    checkout's line-ending policy instead of on the artifact's content — the same
-    defect class as ``export_rtl_params.py``'s ``--check`` comparison.
-    Only ``\\r\\n`` is collapsed; every other byte is compared as-is.
-    """
+    """按生成器 LF 口径计文件字节数，只归一化 CRLF，不改变其他字节。"""
     return len(path.read_bytes().replace(b"\r\n", b"\n"))
 
 
@@ -394,7 +384,7 @@ def test_oracle_report_declares_the_property_not_the_matrix(p2):
 
 # ---- L0 adc2_dec：ties-to-even --------------------------------------------
 def _scalar_fields(row: list[str]) -> tuple[int, int, int, int, int, int, int]:
-    """Decode one ``p2_scalar.hex`` row into plain Python integers."""
+    """将一行 p2_scalar.hex 解码为 Python 整数。"""
     return (
         int(row[0], 16),
         int(row[1], 16),

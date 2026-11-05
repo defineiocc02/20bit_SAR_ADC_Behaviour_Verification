@@ -1,11 +1,10 @@
 """Split RDAC的数字开关命令层：只读名义几何，不读取或估计真实电容。
 
-输入是RDAC单位码k和9位DEM状态sid；输出主/子阵列的物理单元顺序及每个
-活动slot的选通数。物理slice ID另由调度器提供，slot不是固定物理slice。
-当前63+8候选通过8×8行列旋转、删除缺失cell63及可选跨slot零和bridge实现。
-8个slot的名义平均码守恒，不等于每个物理单元等使用，也不等于失配电荷相等。
-k=10遍历512状态时，主单元56被选16次、其余主单元各8次；sid[8]门控又与
-子阵列旋转相关。真实物理使用分布还须结合allocator统计，不能从守恒式推断。
+输入是RDAC单位码k和9位DEM状态sid；输出主/子阵列的物理单元顺序及每个活动slot的选通数。
+物理slice ID另由调度器提供，slot不是固定物理slice。当前63+8候选通过8×8行列旋转、
+删除缺失cell63及可选跨slot零和bridge实现。8个slot的名义平均码守恒，不等于每个物理单元等使用，
+也不等于失配电荷相等。k=10遍历512状态时，主单元56被选16次、其余主单元各8次；
+sid[8]门控又与子阵列旋转相关。真实物理使用分布还须结合allocator统计，不能从守恒式推断。
 电容权重训练、输入时序误差估计和动态建立均不属于本模块。
 """
 
@@ -25,8 +24,8 @@ class SplitSwitchCommand:
 
     main_order/sub_order: (N, bank_size)，按选通先后排列的物理unit ID；
     main_counts/sub_counts: (N, n_active)，逐样本、逐逻辑slot的单位数。
-    整数命令的mask是order前count个元素；分数count仅用于连续插值基准，
-    不是可直接实现的二进制开关。将slot归到物理slice时必须使用同笔样本的ID。
+    整数命令的mask是order前count个元素；分数count仅用于连续插值基准，不是可直接实现的二进制开关。
+    将slot归到物理slice时必须使用同笔样本的ID。
     """
 
     main_order: np.ndarray
@@ -59,8 +58,7 @@ def split_switch_command(
 
     Args:
         cfg: 名义几何/控制；不得用真实电容或拟合权重决定选通顺序。
-        k: (N,) RDAC单位码；当前结构为0..511，越界值显式裁剪。
-           整数产生物理mask；分数只表示插值。
+        k: (N,) RDAC单位码；当前结构为0..511，越界值显式裁剪。整数产生物理mask；分数只表示插值。
         sid: (N,) 数字状态，调用合同为整数0..511；本函数转为int64。
 
     Returns:

@@ -1,4 +1,4 @@
-"""Integer bit-width, rounding, endpoints and independent raw-code oracles."""
+"""检查整数位宽、舍入、端点及独立原始码参考。"""
 
 import json
 from dataclasses import replace

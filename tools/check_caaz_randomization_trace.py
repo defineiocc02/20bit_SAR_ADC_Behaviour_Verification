@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Check the opt-in CAAZ randomization diagnostic using independent integer arithmetic.
+"""用独立整数算术检查可选 CAAZ 随机化数字诊断。
 
-Inputs are events.txt and ticks.csv from caaz_randomization_probe_tb. All eleven
-bounded epochs are required. Codes are 20-bit offset-binary; weights use Q30,
-injection/backend voltage use signed Q32, and time_ns records POST-NBA samples.
-A passing result establishes digital ownership and arithmetic only. It does not
-establish H_AZ/K matching, CBIAS storage, held-sample safety or physical timing.
-The complete production model and any analog calibration oracle are not imported.
+输入为 caaz_randomization_probe_tb 生成的 events.txt 和 ticks.csv，要求完整的
+11 个有界阶段。码为 20 位偏移二进制，权重为 Q30，注入及后级电压为有符号
+Q32，time_ns 记录非阻塞赋值后的采样。
+
+通过仅建立数字归属及算术一致性，不证明 H_AZ/K 匹配、CBIAS 储存、保持安全
+或物理时序；检查器不导入完整模型或模拟校准参考。
 """
 
 from __future__ import annotations
@@ -97,7 +97,7 @@ def round_even(numerator, denominator):
 
 
 def analyze_trace(trace_directory: Path, output_directory: Path) -> dict:
-    """Validate the fixed diagnostic trace and write reproducible result artifacts."""
+    """校验固定诊断轨迹并写可复核的结果产物。"""
     for name in ("events.txt", "ticks.csv"):
         path = trace_directory / name
         if not path.is_file() or path.stat().st_size > 300_000_000:
@@ -532,7 +532,7 @@ def analyze_trace(trace_directory: Path, output_directory: Path) -> dict:
 
 
 def main() -> None:
-    """Run the checker without overwriting an existing result directory."""
+    """运行检查器，拒绝覆盖已有结果目录。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--trace-dir",

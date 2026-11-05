@@ -8,8 +8,8 @@
 // Faults: missing coarse/fine valid, failed even AZ capture, clear with a pending even.
 // Limits: ideal comparator fixtures; no analog CBIAS storage, H_AZ/K equality,
 //         sample-switch safety, settling, PDK or static timing proof.
-// Interface: +outdir is required and must name a caller-owned result directory.
-// CSV fields and integer reference contract: tools/check_caaz_randomization_trace.py.
+// Interface: +outdir is required and must name a caller-owned result directory. CSV fields and
+// integer reference contract: tools/check_caaz_randomization_trace.py.
 module caaz_randomization_probe_tb;
   logic clk = 1'b0;
   always #781.25 clk = ~clk;
@@ -74,8 +74,8 @@ module caaz_randomization_probe_tb;
     if (mode == 2)
       coarse_target += int'($signed(dut.u_structure.current_dither));
   end
-  // External known analog injection is in the ADC input domain, after chopping.
-  // There is no analog-dither enable/generator in the production config API.
+  // External known analog injection is in the ADC input domain, after chopping. There is no
+  // analog-dither enable/generator in the production config API.
   assign injection = mode == 1 ?
       64'(int'((dut.u_structure.current_id + 1) % 5) - 2) * 64'sd100000 : 64'sd0;
   assign flash_therm = 7'((1 << (coarse_target >> 6)) - 1);
@@ -159,8 +159,8 @@ module caaz_randomization_probe_tb;
     require_ok(cfg_ready, "configuration rejected");
   endtask
 
-  // PRE-edge event records identify the exact accepted ownership. POST-edge
-  // ticks and completion records show registered outputs after NBA settling.
+  // PRE-edge event records identify the exact accepted ownership. POST-edge ticks and completion
+  // records show registered outputs after NBA settling.
   always @(posedge clk) begin
     if (tracing && rst_n && cfg_ready && !cfg_clear_valid) begin
       if (quiet_sample && dut.u_structure.acquisition_primed)

@@ -1,31 +1,22 @@
 #!/usr/bin/env python3
-"""Reproduce conditional sample-domain DEM/dither/CAAZ compatibility controls.
+"""复现有明确条件的样本域 DEM／扰动／CAAZ 兼容性对照。
 
-One command writes the fixed 42-cell matrix and five follow-up controls into a
-new directory. The model is a behavioral plant. The two AZ error-transfer
-hypotheses are explicit assumptions, not measurements of CBIAS/FGA noise.
-The source revision is recorded; no historical Git HEAD is required.
+一次命令在新目录写固定 42 个工况与五项追加对照。模型为行为级电气对象，
+两种自归零误差传递均是显式假设，不是 CBIAS／FGA 噪声测量；运行记录源版本，
+不要求检出某个历史 HEAD。
 
-Assumed stress: slice sigma=0.5%, unit sigma=0.02%, bridge/parasitic sigma=0.02%.
-These are experiment overrides, not default process mismatch or paper values.
-RA-output-equivalent 1mV RMS is an assumed added source; the same input-referred
-innovations also drive H_AZ=G_n as a distinct conditional transfer hypothesis.
+压力覆盖为切片 sigma=0.5%、单元 sigma=0.02%、桥接／寄生 sigma=0.02%，
+均为实验覆盖值而非默认工艺失配或论文参数。附加 RA 输出等效 1 mV RMS 为
+假设噪声；同一组输入等效创新量还驱动 H_AZ=G_n 的另一项条件性传递假设。
 
-Sampling-dither training fits effective per-unit C/Cf weights from whitelisted
-observations and a separately known input. Those fixed physical parameters can
-be reused at the same geometry/Vfs when DEM, scheduling and other dither modes
-change known masks/voltage terms. This is not an online learner and it does not
-calibrate dynamic settling/reference errors. Physical G/alpha are used only by
-the plant injection and the diagnostic oracle, never by the digital estimator.
+采样扰动训练从白名单数字观测及单独已知输入拟合逐单元 C/Cf；固定几何及
+Vfs 时，DEM、调度或扰动模式改变已知掩码／电压项，可复用这些固定物理参数。
+这不是在线学习，也不校准动态建立或参考误差。物理 G/alpha 只用于电气注入及
+诊断参考，不进入数字估计器。
 
-Example from the checkout root (the output directory must not exist)::
-
-    PYTHONPATH=src OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 \
-        python tools/reproduce_randomization_caaz.py --out /tmp/new-caaz-matrix
-
-Outputs include light summary.json, detailed matrix_results.json,
-followup_controls.json, source_lineage.json and full raw_data/ NPZ/fit records.
-Every output is retained; invalid flags are counted rather than hidden.
+--out 必须不存在；输出含 summary.json、matrix_results.json、followup_controls.json、
+source_lineage.json 及 raw_data/ 下的 NPZ／拟合记录。全部输出保留，异常标志只计数，
+不按有效性筛除。运行示例使用 PYTHONPATH=src，并可显式限制 BLAS／OMP 线程数。
 """
 
 from __future__ import annotations
@@ -122,7 +113,7 @@ def base_config(plant, structural=False, **kw):
 
 
 def run_experiment(OUT: Path) -> dict:
-    """Run the fixed matrix and controls without mutating repository sources."""
+    """运行固定工况矩阵及对照，不修改仓库源码。"""
     source_sha = source_hashes()
     version = revision_info()
     head = version["git_head"]
@@ -836,7 +827,7 @@ def run_experiment(OUT: Path) -> dict:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Write one reproducible bounded experiment to a new output directory."""
+    """向新目录写入一次有界且可复现的实验。"""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
         "--out", type=Path, required=True, help="new output directory, must not already exist"

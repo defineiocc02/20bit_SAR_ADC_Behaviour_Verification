@@ -4,10 +4,10 @@
 
 ## 1. 源码入口与两种结构
 
-`rtl/rtl_sources.f` 是编译清单，包含 **22 个 core 模块与 2 个 top 目录模块**；另有 2 个参数头文件通过 include 使用。共 26 个生产 RTL 文件。`sadc_enc` 位于 top 目录，是可独立测试的编码器，不是第二个完整 ADC 顶层。
+`rtl/rtl_sources.f` 是编译清单，包含 **26 个 SystemVerilog 模块：22 个 core、2 个 top 目录模块及 2 个可选 CAAZ 模块**；另有 2 个参数头文件通过 include 使用，共 28 个生产 RTL 文件。`sadc_enc` 位于 top 目录，是可独立测试的编码器，不是第二个完整 ADC 顶层。可选 CAAZ 模块属于扩展；原文依据、当前状态与证据范围分别见 [当前数字原文对照表](../current_digital_source_map.md) 和 [数字状态总表](../digital_status_matrix.md)。
 
 | 选择 | 输入和控制 | 实际职责 |
-|---|---|---|
+| :--- | :--- | :--- |
 | `P_STRUCTURAL=1`，默认 | `flash_therm/flash_valid`、两路 coarse 比较器、一路 fine 比较器 | 双 9-bit seeded SAR、共享 3-bit Flash、18-slice 池与前代 residue 上下文；使用 `analog_phase_ctrl/sar_structural_ctrl` |
 | `P_STRUCTURAL=0` | `sadc_code/sadc_rdy`、`adc2_code/adc2_rdy` | 兼容既有码域向量；phase 8/14 捕获外部完整码，使用 `ctrl_fsm/slice_alloc` |
 
@@ -18,7 +18,7 @@
 ## 2. 模块职责与调试入口
 
 | 文件 | 职责 | 首选观测点 |
-|---|---|---|
+| :--- | :--- | :--- |
 | `core/analog_phase_ctrl.sv` | 相位计数、注册 TP/AZ/参考/放大使能 | `phase/next_phase` 与注册输出 |
 | `core/sar_trial_ctrl.sv` | seeded 二进制 SAR，隔离 trial 与已决码 | `busy/bit_index/trial_code/resolved_code/done/resolved_valid` |
 | `core/sar_structural_ctrl.sv` | 结构模式集成、deadline、前后代样本控制 | `bank/sid/coarse_ok/fine_ok/error_code` |
@@ -43,6 +43,8 @@
 | `core/status_regs.sv` | 粘滞事件、上游组合错误码拼接与状态读回 | `status_word` |
 | `top/sadc_enc.sv` | 温度计输入的平衡计数树 | `cmp_raw/count_tree/sadc_code` |
 | `top/sar20_digital_core.sv` | 总线仲裁、profile、完整数字核集成 | `cfg_bus_ok/ctrl_seq/launch_recon/dout_sample_id/dout_flags` |
+| `control/caaz_cycle_ctrl.sv` | 可选斩波极性与AZ存储代控制；不实现模拟开关或保持电容 | `input_chop_neg/az_capture_en/az_hold/current_az_pair_id/current_az_valid` |
+| `calibration/caaz_pair_processor.sv` | 可选完整校准码配对与ID／极性／AZ代／异常检查；不验证实际H/K | `out_valid/pair_difference/pair_pending/fault/fault_code` |
 
 `params/rtl_params.vh` 是参数导出器生成物，不手工改动；`params/rtl_error_codes.vh` 是静态接口错误码。数值规格改变需先修改来源配置和导出契约，再运行漂移检查；源码排版不能改变参数或归约树。
 
@@ -69,7 +71,7 @@ RTL 仿真观测应在 NBA 更新后记录电平，并另保留“前沿接受�
 以下是默认 `P_RESIDUE_CAPTURE=9/P_REF_ON=10`。相位不停等 comparator-valid；缺失判决会在截止处取消并报错。
 
 | 前沿 phase | 数字事务 | 采样归属 |
-|---|---|---|
+| :--- | :--- | :--- |
 | 0 | bank 交换；旧 residue→fine；锁存 dither/injection；清 coarse_ok/fine_ok | fine 属于前代，coarse 准备当前代 |
 | 1 | pool 晋升；coarse 以 3-bit flash seed 启动；若 fine context 有效则启动 ADC2；锁存旧 sid/random 输出 | 当前 coarse 与前代 fine 并行 |
 | 2..7 | 最快每沿一次粗比较，六次解决其余 6 bit | 当前粗码 |
@@ -83,7 +85,7 @@ RTL 仿真观测应在 NBA 更新后记录电平，并另保留“前沿接受�
 注册电平的**当前 phase 区间**如下，与表中的“前沿事务”口径不同：
 
 | 信号 | 稳态为高的 phase |
-|---|---|
+| :--- | :--- |
 | TP | 1..15 |
 | RA AZ | 1..8 |
 | reference precharge | 2..8 |
@@ -116,7 +118,7 @@ RTL 仿真观测应在 NBA 更新后记录电平，并另保留“前沿接受�
 总线无独立 ready/ack。在 `rst_n=1` 的正常上升沿，写入是否被接受以顶层 `cfg_bus_ok` 为准；reset沿即使该组合条件为高也优先复位；非法写产生可定位错误，组合回读没有额外读握手。
 
 | 地址 | 用途 | 合法写条件 |
-|---|---|---|
+| :--- | :--- | :--- |
 | `0x0000 + 8*u`，u=0..70 | 当前 slice 的 Q30 权重 | 地址对齐、64-bit 高位为0、0<W<2^47 |
 | `0x2000 + 0x100*s`，s=0..17 | 选择权重 slice 窗口 | 低8位为0，slice合法 |
 | `0x1000/0x1008/0x1010` | offset/min/max，signed Q32 | cfg 尚未生效，提交/clear/控制序列空闲 |
@@ -148,7 +150,7 @@ RTL 仿真观测应在 NBA 更新后记录电平，并另保留“前沿接受�
 ## 8. 波形定位与验证顺序
 
 | 症状 | 先检查 | 再检查 |
-|---|---|---|
+| :--- | :--- | :--- |
 | cfg_ready 不起 | 1278 written、3 scalar_written、ctrl_seq | min/max、dither模式、提交时 raw cfg_wr/rc_busy |
 | 开机无输出 | primed/conversion_valid/context_valid | coarse_done@8、fine_done@14、launch@15 |
 | 粗码或RDAC偏一位 | bit_index/trial/resolved/cmp_valid | seed 写入与 resolved_valid 的下一沿消费 |
@@ -156,7 +158,7 @@ RTL 仿真观测应在 NBA 更新后记录电平，并另保留“前沿接受�
 | code异常但仿真未报错 | dout_flags和status | T/G/R/F/O/I 快照与独立整数 oracle |
 | 清配置后有旧结果 | epoch_rst_n/cfg_ready/div reset | dout_valid取消、written/scalar完整性重新建立 |
 
-建议从 `sar_trial_tb`、`structural_protocol_tb`、`review_config_tb`、`review_recon_protocol_tb` 定位协议，再运行全部23bench（原22项及新增FSM见证）与3种严格lint。实际命令由 [run_open_rtl.py](../../tools/run_open_rtl.py) 维护，例如：
+建议从 `sar_trial_tb`、`structural_protocol_tb`、`review_config_tb`、`review_recon_protocol_tb` 定位协议，再运行默认34个bench与8个严格lint配置；按需诊断不计入这34项。实际命令由 [run_open_rtl.py](../../tools/run_open_rtl.py) 维护，例如：
 
 ```sh
 python tools/run_open_rtl.py --tops sar_trial_tb structural_protocol_tb review_config_tb review_recon_protocol_tb

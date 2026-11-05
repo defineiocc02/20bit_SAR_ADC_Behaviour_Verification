@@ -1,4 +1,4 @@
-"""Requested amplitude and realized structural dither remain distinguishable."""
+"""检查请求扰动幅度与结构接口实际生成的扰动可以区分。"""
 
 from dataclasses import replace
 

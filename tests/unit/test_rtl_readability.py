@@ -1,4 +1,4 @@
-"""Counterexamples for the finite source-token identity guard."""
+"""以反例检查有限源码词法单元一致性守卫。"""
 
 import importlib.util
 from pathlib import Path

@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""Freeze and reproduce the small-geometry RTL FSM traces in a fresh directory.
+"""在新目录运行并核对小几何 RTL 状态机轨迹。
 
-Usage: VERILATOR='verilator' python tools/run_engineering_fsm.py --out /new/path
-Requires Verilator 5.x with timing support and a C++20 toolchain. This runner
-compiles only engineering_fsm_tb. Production lint/full regressions remain in
-run_open_rtl.py. CSV observations occur 1 ps after NBA; this is functional RTL
-simulation and does not prove routed timing, analog behavior, or ASIC frequency.
+--out 为显式新目录。使用现有支持时序的 Verilator 5.x 及 C++20 工具链，
+只编译 engineering_fsm_tb；生产 RTL 检查及完整回归由 run_open_rtl.py 管理。
+CSV 在非阻塞赋值后 1 ps 采样；功能仿真不证明布线后时序、模拟行为或 ASIC 频率。
 """
 
 from __future__ import annotations
@@ -41,12 +39,11 @@ def write_json(path: Path, value: object) -> None:
 
 
 def audit_csv(trace_dir: Path) -> dict:
-    """Recompute transitions and expected external results from real CSV bytes.
+    """由实际 CSV 字节独立复算状态及外部输出，不用 PASS 标记代替逐行检查。
 
-    No PASS-marker parsing is used here. The fixture uses exact positive Q30
-    weights summing to 2^30, no on-cells/dither, ADC2 voltage span 2^33 and a
-    20-bit backend, so the independent integer equation reduces to word=code.
-    An invalid physical slice must instead retain the last legal word.
+    夹具使用正 Q30 权重，总和为 2^30，没有选通单元或扰动；ADC2 电压数值跨度为
+    2^33，后级为 20 位，因此整数方程简化为 word=code。无效物理切片应保持上一次
+    合法输出。这些是主线此测试夹具的数值条件，不是器件参数。
     """
     traces = {}
     for name, columns in (("sar", 20), ("recon", 31), ("phase", 18)):

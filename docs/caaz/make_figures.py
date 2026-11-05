@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Draw original CAAZ figures from retained full-ADC experiment measurements.
+"""从保留的全 ADC 实验记录绘制原创 CAAZ 说明图。
 
-The numerical capture is reproduced by tools/reproduce_caaz.py. The second
-figure is the analytical two-sample response, independent of ADC noise fitting.
-No third-party figure geometry or pixels are used.
+数值记录由 tools/reproduce_caaz.py 的实验流程生成；第二幅图使用独立于 ADC
+噪声拟合的两样本解析响应。时序图另读保留的 RTL 上下文 CSV。
+本脚本只重绘记录，不复制第三方图片的像素或几何形状。
 """
 
 from __future__ import annotations
@@ -40,7 +40,7 @@ def _save(figure, destination: Path) -> None:
 
 def _draw_rtl_context(trace_file: Path, destination: Path) -> None:
     trace = np.genfromtxt(trace_file, delimiter=",", names=True)
-    # Scenario 2 is the clean run; scenarios 0/1 deliberately inject faults.
+    # 场景 2 是无故障记录；场景 0、1 含有意注入的故障。
     rows = trace[(trace["scenario"] == 2) & (trace["current_id"] >= 2) & (trace["current_id"] <= 8)]
     if not len(rows) or np.any(rows["pair_fault"]):
         raise ValueError("RTL timing illustration requires the clean, observed scenario")
@@ -105,17 +105,13 @@ def _draw_rtl_context(trace_file: Path, destination: Path) -> None:
 
 
 def draw(data_file: Path, destination: Path) -> None:
-    """Render measured errors and the rate/bandwidth trade into a chosen directory.
+    """将保留的误差记录、保持敏感性和带宽代价绘制到指定目录。
+
+    同名 PNG/SVG 会被覆盖；绘图过程不重新运行 ADC。
 
     Args:
-        data_file: Retained summary JSON with measured and analytical fields.
-        destination: Figure output directory, created if necessary.
-
-    Returns:
-        None; writes original PNG and SVG figures.
-
-    Side effects:
-        Replaces figures with these names in destination, without rerunning ADCs.
+        data_file: 含测量结果、解析预测及假设的摘要 JSON 路径。
+        destination: 图片输出目录；不存在时创建。
     """
     data = json.loads(data_file.read_text(encoding="utf-8"))
     if data["evidence_level"] != "SAMPLE_DOMAIN_BEHAVIORAL_SIMULATION":

@@ -111,8 +111,8 @@ module sar_structural_ctrl #(
       .acquisition_primed(acquisition_primed)
   );
 
-  // 旧ra_az继续每周期准备放大器/储能节点；若旧宏仍把它接到CBIAS采集开关，
-  // odd会重新抽取AZ噪声。新capture/hold引脚必须在真实宏中独立映射，不能仅改数字标签。
+  // 旧ra_az继续每周期准备放大器/储能节点；若旧宏仍把它接到CBIAS采集开关， odd会重新抽取AZ噪声。
+  // 新capture/hold引脚必须在真实宏中独立映射，不能仅改数字标签。
   caaz_cycle_ctrl #(.P_CAAZ_ENABLE(P_CAAZ_ENABLE)) u_caaz_cycle (
       .clk(clk),
       .rst_n(rst_n),
@@ -129,16 +129,16 @@ module sar_structural_ctrl #(
       .current_az_valid(current_az_valid)
   );
 
-  // Aux supplies parasitic/boost charge while acquiring (patent13 Fig2/11).
-  // Optional capacitor precharge embodiments require a separate analog macro.
+  // Aux supplies parasitic/boost charge while acquiring (patent13 Fig2/11). Optional capacitor
+  // precharge embodiments require a separate analog macro.
   assign aux_charge_enable = (enable && rst_n) ? acquiring_mask : '0;
   assign hold_low_enable = (enable && rst_n) ? ~acquiring_mask : '1;
   assign flash_sample = quiet_sample;
 
-  // Analog acquisition/compare enables must not see a multi-bit phase decode.
-  // Register the next-phase decisions alongside the phase counter. In
-  // particular, carry skew at phase 7->8 must not resemble phase 14 and reopen
-  // fine acquisition or cancel a comparator evaluation between clock edges.
+  // Analog acquisition/compare enables must not see a multi-bit phase decode. Register the
+  // next-phase decisions alongside the phase counter. In particular, carry skew at phase 7->8 must
+  // not resemble phase 14 and reopen fine acquisition or cancel a comparator evaluation between
+  // clock edges.
   logic coarse_cancel, fine_cancel;
   logic bank;
   wire [2:0] flash_code;
@@ -348,22 +348,20 @@ module sar_structural_ctrl #(
       sw_valid <= 0;
       error_code <= 0;
     end else begin
-      // Fixed 16-phase look-ahead: next phase is (phase+1) modulo 16.
-      // These registered values occupy the interval AFTER this rising edge:
-      // flash acquisition is low only at phase 1; fine acquisition is high
-      // at phases 14, 15 and 0. This is the implemented macro boundary timing.
+      // Fixed 16-phase look-ahead: next phase is (phase+1) modulo 16. These registered values
+      // occupy the interval AFTER this rising edge: flash acquisition is low only at phase 1; fine
+      // acquisition is high at phases 14, 15 and 0. This is the implemented macro boundary timing.
       flash_acquire_enable <= phase != 0;
       fine_acquire_enable <= phase >= 13;
-      // Keep cancellation asserted through the edge that clears busy. Its
-      // release then cannot race busy's falling edge in compare_enable.
-      // Coarse cancel spans current phases 8..9, fine cancel spans 14..15.
-      // done is therefore sampled on the deadline edge before SAR clears it.
+      // Keep cancellation asserted through the edge that clears busy. Its release then cannot race
+      // busy's falling edge in compare_enable. Coarse cancel spans current phases 8..9, fine cancel
+      // spans 14..15. done is therefore sampled on the deadline edge before SAR clears it.
       coarse_cancel <= phase == 7 || phase == 8;
       fine_cancel <= phase == 13 || phase == 14;
       sw_valid <= load_rdac;
       if (quiet_sample) begin
-        // 同沿先读旧acquiring数据归给本笔current，再由下方advance在下一tick
-        // 安装下一采集组/扰动；不能将实时bank或随机数直接接到旧residue重构。
+        // 同沿先读旧acquiring数据归给本笔current，再由下方advance在下一tick 安装下一采集组/扰动；
+        // 不能将实时bank或随机数直接接到旧residue重构。
         bank <= !bank;
         current_dither <= acquiring_dither;
         current_injection <= injection_q;
@@ -372,8 +370,8 @@ module sar_structural_ctrl #(
       end
       if (advance) begin
         coarse_acquire_enable <= bank ? 2'b01 : 2'b10;
-        // DEM与PRNG同沿也推进，但这里冻结旧输出；sid按当前coarse bank消费，
-        // 新random码归下一采集组。sample ID/物理slice ID/DEM sid是三种不同索引。
+        // DEM与PRNG同沿也推进，但这里冻结旧输出；sid按当前coarse bank消费，新random码归下一采集组。
+        // sample ID/物理slice ID/DEM sid是三种不同索引。
         sid <= bank ? sid_b : sid_a;
         acquiring_dither <= ((sampling_en || quantizer_en) && random_valid) ? random_dither : 8'sd0;
         if (!flash_valid) error_code <= ERR_SADC_NOT_READY;
@@ -387,9 +385,9 @@ module sar_structural_ctrl #(
         fine_code <= fine_resolved;
         if (context_valid && !fine_done) error_code <= ERR_ADC2_NOT_READY;
       end
-      // Error is retained until reset/disable or a later fault overwrites it.
-      // If fault conditions coincide, the last executed assignment wins:
-      // RECON_BUSY > RDAC_RANGE > ADC2_NOT_READY > SADC_NOT_READY.
+      // Error is retained until reset/disable or a later fault overwrites it. If fault conditions
+      // coincide, the last executed assignment wins: RECON_BUSY > RDAC_RANGE > ADC2_NOT_READY >
+      // SADC_NOT_READY.
       if (capture && conv_valid && rdac_over) error_code <= ERR_RDAC_RANGE;
       if (phase == 15 && context_valid && fine_ok && recon_busy) error_code <= ERR_RECON_BUSY;
     end

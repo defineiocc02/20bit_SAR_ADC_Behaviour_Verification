@@ -1,19 +1,12 @@
-"""Regression for the timing-skew derivative (external audit A07.3).
+"""检查采样时偏使用的输入导数（外部审计 A07.3）。
 
-The audit measured that v6.1 computed ``dx/dt`` with ``np.gradient`` on the
-sample grid. A central difference has amplitude response
+v6.1 在样本网格上用 np.gradient 求导，其中心差分响应为
+H(f)=sin(2*pi*f/fs)/(2*pi*f/fs)。fs=40 MHz 时，5/10/19 MHz 对应
+0.9003/0.6366/0.0524，接近 Nyquist 时斜率被低估达 25.6 dB，不能将低频
+时偏结果直接外推。
 
-    H(f) = sin(2*pi*f/fs) / (2*pi*f/fs)
-
-which is 0.9003 at 5 MHz, 0.6366 at 10 MHz and **0.0524** at 19 MHz for
-fs = 40 MHz — i.e. the slope is underestimated by up to **25.6 dB** near
-Nyquist. Every effect proportional to ``dx/dt`` (interleaving timing skew is
-exactly that) is therefore silently suppressed at high input frequencies, and
-low-frequency skew results cannot be extrapolated.
-
-The fix is :func:`adi_model.sampler.input_derivative`: use the analytic
-derivative when the input supplies one (``sine_input`` does), else a spectral
-derivative with unit response to ``fs/2``.
+主线 input_derivative 优先使用输入自带解析导数，普通可调用输入则使用周期
+谱求导。本文件检查该回退路径及其实际调用位置。
 """
 
 from __future__ import annotations
@@ -34,16 +27,16 @@ FIN_LIST = [1.25e6, 5e6, 10e6, 15e6, 19e6, 19.9e6]
 
 
 def _central_difference(x: np.ndarray, dt: float) -> np.ndarray:
-    """The v6.1 estimator, kept here as the counterfactual."""
+    """保留 v6.1 中心差分估计器，作为反例对照。"""
     return np.gradient(x, dt)
 
 
 class TestSkewDerivative:
-    """The slope used by timing skew must be accurate up to Nyquist."""
+    """检查采样时偏使用的斜率在接近 Nyquist 时仍准确。"""
 
     @pytest.mark.parametrize("fin", FIN_LIST)
     def test_analytic_derivative_is_exact(self, fin):
-        """``sine_input`` carries its own derivative: exact at any fin."""
+        """检查 sine_input 自带的解析导数在所列频率准确。"""
         n = 4096
         t = np.arange(n) / FS
         amp = 2.7
@@ -54,7 +47,7 @@ class TestSkewDerivative:
 
     @pytest.mark.parametrize("fin", FIN_LIST)
     def test_spectral_derivative_beats_central_difference(self, fin):
-        """Even without an analytic source, the FFT estimator has ~unit gain."""
+        """检查无解析导数时的 FFT 求导幅度接近单位增益。"""
         n = 4096
         t = np.arange(n) / FS
         amp = 2.7
@@ -74,11 +67,7 @@ class TestSkewDerivative:
             )
 
     def test_nineteen_mhz_bias_is_the_audited_25_6_db(self):
-        """Pin the exact number the audit reported (A07.3).
-
-        sin(2*pi*f/fs)/(2*pi*f/fs) at 19 MHz with fs = 40 MHz -> 0.0524,
-        i.e. -25.6 dB.
-        """
+        """检查 fs=40 MHz、fin=19 MHz 时中心差分响应为约 0.0524，即 -25.6 dB（A07.3）。"""
         fin, fs = 19e6, FS
         x = fin / fs
         ratio = np.sin(2 * np.pi * x) / (2 * np.pi * x)
@@ -86,11 +75,7 @@ class TestSkewDerivative:
         assert 20 * np.log10(ratio) == pytest.approx(-25.6, abs=0.2)
 
     def test_derivative_is_invariant_to_frequency_scaling(self):
-        """A useful sanity property: d/dt of A*sin(2*pi*f*t) scales with f.
-
-        The central difference does not satisfy this near Nyquist; both of our
-        estimators do.
-        """
+        """检查正弦导数幅度随频率成比例；中心差分接近 Nyquist 时不满足此性质。"""
         n = 4096
         t = np.arange(n) / FS
         amp = 1.0
@@ -104,7 +89,7 @@ class TestSkewDerivative:
         assert np.all(d == 0.0)
 
     def test_fallback_handles_a_plain_lambda(self):
-        """A callable without ``.derivative`` must still work (spectral path)."""
+        """检查无 derivative 属性的普通可调用输入使用主线谱求导回退。"""
         t = np.arange(2048) / FS
         fin, amp = 3e6, 1.5
         plain = lambda tt: amp * np.sin(2 * np.pi * fin * np.asarray(tt))  # noqa: E731
@@ -115,17 +100,13 @@ class TestSkewDerivative:
 
 
 class TestSkewEntersThePipeline:
-    """The pipeline must consume the accurate slope, not its own np.gradient."""
+    """检查流水线消费准确导数，不自行使用 np.gradient。"""
 
     def test_pipeline_source_does_not_use_np_gradient(self):
-        """Static guard: ``np.gradient`` must not come back into the pipeline.
+        """仅检查可执行词法单元中不存在 np.gradient 调用。
 
-        The guard inspects **code only**. `run_pipeline` carries a "do not
-        reintroduce np.gradient" warning inside its docstring, and a naive
-        line scan (`"np.gradient" in line and not line.startswith("#")`)
-        trips over it — the warning is documentation, not a call site. We
-        therefore let :mod:`tokenize` drop every COMMENT and STRING token and
-        match against what is left, which is exactly the executable surface.
+        源码 docstring 中可能提到该禁用规则；tokenize 排除注释和字符串，避免把说明
+        文字当成调用位置。
         """
         import inspect
         import io
@@ -164,13 +145,10 @@ class TestSkewEntersThePipeline:
         ],
     )
     def test_np_gradient_would_have_suppressed_the_effect(self, monkeypatch, fin, min_ratio):
-        """Counterfactual, driven through the real signal path.
+        """用相同记录对照主线导数与重新注入的 np.gradient。
 
-        Run the same record twice: once with the shipped estimator, once with
-        ``np.gradient`` substituted back in. The measured suppression must be
-        at least ``1/|H(fin)|``, where ``H`` is the central-difference
-        amplitude response. This is audit finding A07.3 reproduced end to end
-        -- not a claim about the numbers, a claim about the estimator.
+        检查时偏效应的抑制符合中心差分 H(fin) 响应，重现 A07.3 的估计器问题；
+        结果针对该求导路径，不代替 ADC 性能结论。
         """
         import adi_model.pipeline as pipeline_mod
         from adi_model.experiments import _clone

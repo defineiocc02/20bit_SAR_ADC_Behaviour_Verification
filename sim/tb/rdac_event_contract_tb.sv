@@ -1,7 +1,7 @@
 `timescale 1ns/1fs
-// Live structural RDAC pin events for every 9-bit code in off/sampling/
-// quantizer-dither modes. An independent prefix oracle checks each event;
-// the CSV is also consumed by Python's resolved-event contract checker.
+// Live structural RDAC pin events for every 9-bit code in off/sampling/ quantizer-dither modes. An
+// independent prefix oracle checks each event; the CSV is also consumed by Python's resolved-event
+// contract checker.
 module rdac_event_contract_tb;
   logic clk=0, rst_n=0, enable=0, sampling_en=0, quantizer_en=0;
   always #0.78125 clk=~clk; // 640 MHz, or 40 MS/s at 16 clocks/sample

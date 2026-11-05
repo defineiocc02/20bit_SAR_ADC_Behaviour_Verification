@@ -62,8 +62,8 @@ module review_top_protocol_tb;
     end
     write_cfg(16'h1000,0); write_cfg(16'h1008,0); write_cfg(16'h1010,64'd8589934592);
   endtask
-  // Independent exact integer form of the published reconstruction equation;
-  // no DUT internal sums or divider outputs are used as expected values.
+  // Independent exact integer form of the published reconstruction equation; no DUT internal sums
+  // or divider outputs are used as expected values.
   function automatic logic [19:0] expected_code(input int c,input int a,input longint iq,input bit sampling,input int dither);
     logic signed [255:0] g,total,rails,f,numerator,denominator,q;
     total=256'sd568*256'sd67108864;
@@ -107,8 +107,8 @@ module review_top_protocol_tb;
     check(dut.cal_err_code==10,"sampling and quantizer modes are exclusive");
     write_cfg(16'h1018,0); repeat(4) @(negedge clk); commit(1);
     head=0;tail=0;n=0;sticky=0;planned_c=57;planned_a=2011;planned_i=0;
-    // Check forty transactions, with two missing-ready deadlines and hostile
-    // data/flag changes outside the defined capture edges.
+    // Check forty transactions, with two missing-ready deadlines and hostile data/flag changes
+    // outside the defined capture edges.
     repeat(16*42) begin
       if(valid) begin
         check(head<tail,"unexpected output or stale transaction");

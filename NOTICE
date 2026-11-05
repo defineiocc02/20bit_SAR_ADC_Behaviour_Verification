@@ -2,8 +2,12 @@ NOTICE — third-party references and modelling sources
 =====================================================
 
 This model studies, but does not reproduce, a commercial integrated circuit.
-The following third-party documents were used as modelling references. None of
-them is redistributed here; each remains the property of its owner.
+The following third-party documents were used as modelling references. Six
+user-selected local originals are retained under references/ and enumerated in
+references/source_manifest.json. Their original copyright and embedded notices
+remain intact; they are not relicensed under this repository's BSD-3-Clause
+software license. Other referenced originals are not included. Reference PDFs
+are excluded from Python wheel and source-distribution packages.
 
 Primary architecture target
 ---------------------------

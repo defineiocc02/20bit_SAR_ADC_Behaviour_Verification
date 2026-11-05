@@ -1,6 +1,6 @@
 # 20 位 / 40 MS/s 流水 SAR ADC：行为模型与数字实现
 
-[English](README_EN.md) · [目录规范](docs/PROJECT_LAYOUT.md) · [模型范围](docs/model_scope.md) · [DSP 接口](ad4080_dsp/docs/SAR20_INTERFACE.md)
+[English](README_EN.md) · [论文与讲稿原件](references/README.md) · [目录规范](docs/PROJECT_LAYOUT.md) · [模型范围](docs/model_scope.md) · [DSP 接口](ad4080_dsp/docs/SAR20_INTERFACE.md)
 
 本仓库依据 [ISSCC 2024 Session 9.8 论文](https://doi.org/10.1109/ISSCC49657.2024.10454329)和相关专利，研究两级残差 SAR ADC 的切片调度、电容失配、数字校准与后处理。它包含 Python 行为模型、SAR 数字 RTL，以及独立的 AD4080 风格 DSP 子系统。默认采样率为 **40 MS/s**。
 
@@ -188,4 +188,4 @@ PYTHONPATH=src python docs/readme/reproduce_interleave_40m.py \
 
 ## 许可与引用
 
-代码采用 [BSD-3-Clause](LICENSE)，第三方权利和专利声明见 [NOTICE](NOTICE) 与 [CITATION.cff](CITATION.cff)。示意图和结果图由本仓库独立绘制，不复制论文、讲稿或专利原图；原文文件不随仓库分发。本项目与 Analog Devices 无从属或背书关系，不授予专利许可。
+代码采用 [BSD-3-Clause](LICENSE)，第三方权利和专利声明见 [NOTICE](NOTICE) 与 [CITATION.cff](CITATION.cff)。示意图和结果图由本仓库独立绘制，不复制论文、讲稿或专利原图。维护者选定的三组论文／讲稿原件另存于 [references/](references/README.md)，保留原版权与内嵌声明，不按本工程 BSD 许可重新授权，也不进入 Python 发行包。本项目与 Analog Devices 无从属或背书关系，不授予专利许可。

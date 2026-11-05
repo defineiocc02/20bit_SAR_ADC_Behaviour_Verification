@@ -13,7 +13,7 @@ CAAZ（chopping-assisted auto-zero）在偶数次原始转换时更新自归零�
 | `PKU_VLSI2025_C32_1_PAPER` | 3 页会议论文 | p.1 正文；p.2 Figs.2–6；p.3 测量、比较与参考文献 |
 | `PKU_VLSI2025_C32_1_SLIDES` | 42 页讲稿 | PDF pp.28–35，对应页脚 Slide 27–34；PDF pp.37–41 为测量与比较 |
 
-完整哈希、规范文件名和逐页记录由[来源清单](../../sources_manifest.json)与[CAAZ来源覆盖记录](../reviews/20261105-caaz-source-coverage.json)管理。`C32_C32-1.pdf` 与规范讲稿是同 SHA 的别名，不是另一篇论文。讲稿 PDF 页码比其页脚 Slide 编号大一；下文标明两者以免错页。公开仓库不分发论文、讲稿原件或版权原图。
+完整哈希、规范文件名和逐页记录由[来源清单](../../sources_manifest.json)与[CAAZ来源覆盖记录](../reviews/20261105-caaz-source-coverage.json)管理。`C32_C32-1.pdf` 与规范讲稿是同 SHA 的别名，不是另一篇论文。讲稿 PDF 页码比其页脚 Slide 编号大一；下文标明两者以免错页。本次维护者选定的原件另见[资料目录](../../references/README.md)，保留其原版权与内嵌声明；本专题的结果图仍由本工程独立生成。
 
 ## 电路中保存的是什么
 

@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "selection_date": "2026-11-05",
+  "content": "Six explicitly selected local paper/presentation originals, copied byte for byte. Presentation originals are PDFs, not editable PPTX.",
+  "copyright": "Original copyright and embedded notices remain with the respective authors/publishers. These files are not relicensed under the repository BSD-3-Clause license.",
+  "distribution_scope": "Repository reference assets; excluded from Python wheel and sdist.",
+  "review_scope": "File inventory (6 documents,158 pages) is distinct from historical complete source-reading coverage. CICC lecture identity was checked; no claim that all62 lecture pages have received complete technical review.",
+  "documents": [
+    {
+      "source_id": "ISSCC2024_PAPER",
+      "target_relative_path": "references/ISSCC2024_PAPER.pdf",
+      "pages": 3,
+      "bytes": 647939,
+      "sha256": "2277ec0a2b889ee954f0866f2668adc1bf95f2214fae386c9a1d70203435cd96"
+    },
+    {
+      "source_id": "ISSCC2024_SLIDES",
+      "target_relative_path": "references/ISSCC2024_SLIDES.pdf",
+      "pages": 44,
+      "bytes": 1950386,
+      "sha256": "e7074c0f612c31bb76ad276fefaf6e6cf36479292248dc41085c4dadd1f8193a"
+    },
+    {
+      "source_id": "PKU_VLSI2025_C32_1_PAPER",
+      "target_relative_path": "references/PKU_VLSI2025_C32_1_PAPER.pdf",
+      "pages": 3,
+      "bytes": 1480856,
+      "sha256": "eb958cfa40eed665abfffe2c7e9fc96aa031473da1e22c762d836410207ff550"
+    },
+    {
+      "source_id": "PKU_VLSI2025_C32_1_SLIDES",
+      "target_relative_path": "references/PKU_VLSI2025_C32_1_SLIDES.pdf",
+      "pages": 42,
+      "bytes": 5288256,
+      "sha256": "5921d65cfae061ca6301a6104460c2eff3803245c1bc976acecac16adfa79759"
+    },
+    {
+      "source_id": "CICC2026_13_6_PAPER",
+      "target_relative_path": "references/CICC2026_13_6_PAPER.pdf",
+      "pages": 4,
+      "bytes": 2351182,
+      "sha256": "7ef975d3d689436880cc049296b68d44eec8c1063897041bb569f3f7017f9167"
+    },
+    {
+      "source_id": "CICC2026_13_6_SLIDES",
+      "target_relative_path": "references/CICC2026_13_6_SLIDES.pdf",
+      "pages": 62,
+      "bytes": 3110942,
+      "sha256": "3b85bbbfc0fd4cbf071187bbccc8b3487c640094ddccb867a7f1dd2c7bdefce0"
+    }
+  ],
+  "documents_count": 6,
+  "pages_as_file_inventory": 158
+}

@@ -115,8 +115,8 @@ def _box(ax, x, y, w, h, title, detail, color=BLUE, dashed=False) -> None:
             linestyle="--" if dashed else "-",
         )
     )
-    ax.text(x + w / 2, y + h * 0.65, title, ha="center", va="center", fontsize=11, weight=600)
-    ax.text(x + w / 2, y + h * 0.28, detail, ha="center", va="center", fontsize=9.2, color=MUTED)
+    ax.text(x + w / 2, y + h * 0.65, title, ha="center", va="center", fontsize=11.5, weight=600)
+    ax.text(x + w / 2, y + h * 0.28, detail, ha="center", va="center", fontsize=10, color=MUTED)
 
 
 def architecture(data: Path, out: Path) -> dict:
@@ -131,7 +131,7 @@ def architecture(data: Path, out: Path) -> dict:
     ax.set(xlim=(0, 14.2), ylim=(0, 6.3))
     ax.axis("off")
     fig.suptitle(
-        "从物理采样到数字输出：随机化与训练分别作用在哪里",
+        "数字校准在信号链中的作用点",
         x=0.04,
         ha="left",
         fontsize=17,
@@ -140,11 +140,11 @@ def architecture(data: Path, out: Path) -> dict:
     fig.text(
         0.04,
         0.895,
-        "工程概念结构：蓝色框为模拟行为／接口，绿色框为数字RTL，灰色虚线框为输出原型",
+        "工程示意｜蓝框：模拟行为／接口　绿框：数字逻辑　灰色虚线框：输出原型",
         color=MUTED,
-        fontsize=10.5,
+        fontsize=11,
     )
-    _box(ax, 0.55, 2.7, 2.25, 1.1, f"{ns}-slice 电容资源池", "采样／保持，按ID归属")
+    _box(ax, 0.55, 2.7, 2.25, 1.1, f"{ns} 切片电容池", "采样／保持，按样本号归属")
     ax.text(0.10, 3.25, "输入", ha="left", va="center", fontsize=10)
     _arrow(ax, [(0.1, 3.05), (0.5, 3.05)])
     x = 0.57
@@ -155,17 +155,17 @@ def architecture(data: Path, out: Path) -> dict:
     ):
         width = 2.2 * count / ns
         ax.add_patch(Rectangle((x, 2.38), width, 0.19, color=color, lw=0))
-        ax.text(x + width / 2, 2.18, f"{count}{label}", ha="center", fontsize=8.8, color=color)
+        ax.text(x + width / 2, 2.18, f"{count}{label}", ha="center", fontsize=9.5, color=color)
         x += width
-    _box(ax, 3.35, 4.45, 1.8, 0.9, "一级量化器", "独立采样／粗码 c₁")
-    _box(ax, 5.70, 4.45, 1.9, 0.9, "残差 DAC", "实际电容 mask")
+    _box(ax, 3.35, 4.45, 1.8, 0.9, "前级量化器 SADC", "独立采样／粗码 c₁")
+    _box(ax, 5.70, 4.45, 1.9, 0.9, "残差数模转换器", "实际电容选择 RDAC")
     # The quantizer and RDAC sample the same input through distinct branches;
     # the quantizer does not consume the charge stored on the RDAC slice pool.
     _arrow(ax, [(0.3, 3.05), (0.3, 5.55), (3.08, 5.55), (3.08, 4.9), (3.32, 4.9)], BLUE)
     ax.text(
         1.65,
         5.94,
-        "独立SADC采样\n同笔bank／相位／ID／响应匹配",
+        "前级独立采样支路\n采样组／相位／样本号／响应匹配",
         ha="center",
         va="center",
         fontsize=9.5,
@@ -179,36 +179,36 @@ def architecture(data: Path, out: Path) -> dict:
     ax.text(5.23, 3.06, "+", fontsize=11, color=BLUE)
     _arrow(ax, [(6.65, 4.42), (6.65, 4.0), (5.6, 4.0), (5.6, 3.5)], BLUE)
     ax.text(5.93, 4.10, r"$-V_D$", fontsize=10, color=BLUE, ha="center")
-    _box(ax, 6.10, 2.7, 2.30, 1.1, "共享 RA ＋ ADC2", "模拟行为／数字控制接口")
+    _box(ax, 6.10, 2.7, 2.30, 1.1, "共享残差放大器 RA", "＋ 后级量化器 ADC2")
     _arrow(ax, [(5.84, 3.25), (6.07, 3.25)], BLUE)
-    _box(ax, 8.90, 2.7, 2.15, 1.1, "数字权重重构", "已接入：逐raw完整20位码", TEAL)
+    _box(ax, 8.90, 2.7, 2.15, 1.1, "数字权重重构", "按单次观测重构20位输出", TEAL)
     _arrow(ax, [(8.43, 3.25), (8.87, 3.25)], BLUE)
     ax.text(8.65, 3.47, "细码", ha="center", fontsize=9.5)
-    _box(ax, 11.55, 2.7, 2.1, 1.1, "输出处理／DSP", "滤波、FIFO、接口原型", GRAY, True)
+    _box(ax, 11.55, 2.7, 2.1, 1.1, "输出数字处理 DSP", "滤波／队列缓存／接口原型", GRAY, True)
     _arrow(ax, [(11.08, 3.25), (11.52, 3.25)], TEAL)
     _arrow(ax, [(7.63, 4.92), (9.98, 4.92), (9.98, 3.84)], GRAY, True)
-    ax.text(9.25, 5.12, "c₁／mask／slice ID／sample ID", ha="center", fontsize=9.2, color=MUTED)
+    ax.text(9.25, 5.12, "粗码／选通／切片号／样本号", ha="center", fontsize=10, color=MUTED)
     # These arrows identify control/injection locations, not an electrical layout.
-    ax.text(1.67, 4.54, "slice调度：只选空闲组", ha="center", fontsize=10, color=ORANGE)
+    ax.text(1.67, 4.54, "切片调度：只选空闲组", ha="center", fontsize=10.5, color=ORANGE)
     _arrow(ax, [(1.67, 4.30), (1.67, 3.84)], ORANGE)
-    ax.text(4.25, 5.96, "dither：量化器 dQ", ha="center", fontsize=10, color=ORANGE)
+    ax.text(4.25, 5.96, "量化器扰动 dQ", ha="center", fontsize=10.5, color=ORANGE)
     _arrow(ax, [(4.25, 5.73), (4.25, 5.39)], ORANGE)
-    ax.text(6.65, 5.96, "DEM／bridge：重排mask", ha="center", fontsize=10, color=TEAL)
+    ax.text(6.65, 5.96, "动态元件匹配（DEM）", ha="center", fontsize=10.5, color=TEAL)
     _arrow(ax, [(6.65, 5.73), (6.65, 5.39)], TEAL)
-    ax.text(3.87, 1.65, "dither：采样轨／保存电荷", ha="center", fontsize=9.8, color=ORANGE)
+    ax.text(3.87, 1.65, "采样扰动：采样轨／保存电荷", ha="center", fontsize=10.5, color=ORANGE)
     _arrow(ax, [(3.87, 1.88), (3.87, 3.18)], ORANGE)
-    _box(ax, 8.90, 0.50, 2.15, 1.05, "片外训练／冻结", "独立已知输入 ＋ 数字观察", ORANGE)
+    _box(ax, 8.90, 0.50, 2.15, 1.05, "片外训练／固定系数", "独立已知输入 ＋ 数字观察", ORANGE)
     _box(ax, 11.55, 0.50, 2.1, 1.05, "片上应用系数", "Q30权重／Q32标量", TEAL)
     _arrow(ax, [(8.65, 3.15), (8.65, 1.03), (8.87, 1.03)], GRAY, True)
-    ax.text(8.46, 2.02, "原码\nmask/ID", ha="right", fontsize=8.8, color=MUTED)
+    ax.text(8.46, 2.02, "原始观测\n选通／样本号", ha="right", fontsize=9.5, color=MUTED)
     _arrow(ax, [(11.08, 1.03), (11.52, 1.03)], ORANGE)
     _arrow(ax, [(12.6, 1.58), (12.6, 2.07), (9.98, 2.07), (9.98, 2.66)], TEAL)
-    ax.text(11.15, 2.20, "装载冻结系数", ha="center", fontsize=9.2, color=TEAL)
+    ax.text(11.15, 2.20, "装载固定系数", ha="center", fontsize=9.2, color=TEAL)
     fig.text(
         0.04,
         0.02,
-        "18个slice为电容资源，非18颗独立ADC；dither端按profile／模式启用，可选CAAZ见专题。本图为原创工程示意。",
-        fontsize=9.3,
+        "18个切片（slice）是电容资源，非18个独立ADC；扰动按配置／模式启用；可选斩波自归零见专题。原创工程示意。",
+        fontsize=10,
         color=MUTED,
     )
     _save(fig, out / "current_architecture")
@@ -252,44 +252,48 @@ def calibration(data: Path, out: Path) -> dict:
     fig, axes = plt.subplots(1, 2, figsize=(11.6, 4.8), gridspec_kw={"width_ratios": [1.8, 1]})
     fig.subplots_adjust(left=0.08, right=0.98, top=0.79, bottom=0.29, wspace=0.24)
     fig.suptitle(
-        "静态位权训练：同一留出记录，只改变重构系数", x=0.04, ha="left", fontsize=17, weight=600
+        f"校准前后误差标准差：{measured[0]['std_uv']:.2f} → {measured[1]['std_uv']:.2f} µV",
+        x=0.04,
+        ha="left",
+        fontsize=18,
+        weight=600,
     )
     fig.text(
         0.04,
         0.875,
-        f"结构数字DUT + 固定静态plant；seed 42；训练{row['training_samples']}／独立留出{row['holdout_samples']}；外加噪声{row['noise_rms_uv']:g} µV RMS",
-        fontsize=10.3,
+        f"同一留出记录，仅改变重构系数｜固定失配行为模型；seed 42；训练{row['training_samples']}／独立留出{row['holdout_samples']}；外加噪声{row['noise_rms_uv']:g} µV RMS",
+        fontsize=10.5,
         color=MUTED,
     )
     limit = np.ceil(max(abs(e).max() for e in errors) * 1.12 / 25) * 25
     zoom = np.ceil(abs(errors[1]).max() * 1.15)
-    for e, color, label in zip(errors, (ORANGE, BLUE), ("名义权重", "冻结拟合权重"), strict=True):
+    for e, color, label in zip(errors, (ORANGE, BLUE), ("未校准", "已校准"), strict=True):
         axes[0].scatter(x, e, s=9, alpha=0.65, color=color, label=label, rasterized=False)
     axes[0].axhspan(-zoom, zoom, color=BLUE, alpha=0.08, lw=0)
-    axes[0].set(ylim=(-limit, limit), title="同一纵轴比较前后误差")
-    axes[0].legend(frameon=False, fontsize=10, loc="upper left")
+    axes[0].set(ylim=(-limit, limit), title="同一纵轴：未校准／已校准")
+    axes[0].legend(frameon=False, fontsize=11, loc="upper left")
     axes[1].scatter(x, errors[1], s=13, alpha=0.75, color=BLUE)
-    axes[1].set(ylim=(-zoom, zoom), title="校准后局部放大（纵轴改变）")
+    axes[1].set(ylim=(-zoom, zoom), title="已校准局部放大（纵轴改变）")
     for axis in axes:
         axis.axhline(0, color=GRAY, lw=0.6)
         axis.set(xlim=(-3, 3), xlabel="独立已知留出输入（V）", ylabel="最终码中心 − 已知输入（µV）")
         axis.grid(alpha=0.2, lw=0.6)
         axis.set_axisbelow(True)
     for y, stats, color, label in zip(
-        (0.16, 0.105), measured, (ORANGE, BLUE), ("名义权重", "冻结权重"), strict=True
+        (0.16, 0.105), measured, (ORANGE, BLUE), ("未校准", "已校准"), strict=True
     ):
         fig.text(
             0.085,
             y,
             f"{label}：均值 {stats['mean_uv']:.2f} µV　标准差 {stats['std_uv']:.2f} µV　RMS {stats['rms_uv']:.2f} µV",
             color=color,
-            fontsize=10.7,
+            fontsize=11,
         )
     fig.text(
         0.085,
         0.035,
-        "所有留出样本保留；20位offset-binary码区间中心。局部误差图不是全码INL/DNL或芯片测量。",
-        fontsize=9.3,
+        "结构数字逻辑＋失配行为模型；全部样本保留，按20位偏移二进制码中心计算。非全码INL/DNL或芯片实测。",
+        fontsize=10,
         color=MUTED,
     )
     _save(fig, out / "current_calibration")
@@ -319,10 +323,10 @@ def interleave(data: Path, out: Path) -> dict:
         if row["output_domain"] != "final_20_bit_offset_binary_bin_center_V":
             raise ValueError("首页频谱要求最终整数码域")
     colors = (ORANGE, BLUE, TEAL)
-    labels = ("固定A/B", "generic随机", "RTL规则模型")
-    fig = plt.figure(figsize=(12.1, 5.7))
+    labels = ("固定A/B", "通用随机", "RTL规则Python策略")
+    fig = plt.figure(figsize=(12.1, 6.1))
     grid = fig.add_gridspec(2, 3, width_ratios=(1, 1, 1.15))
-    fig.subplots_adjust(left=0.075, right=0.98, top=0.79, bottom=0.27, wspace=0.38, hspace=0.58)
+    fig.subplots_adjust(left=0.075, right=0.98, top=0.75, bottom=0.25, wspace=0.38, hspace=0.58)
     spectral = fig.add_subplot(grid[:, :2])
     sndr = fig.add_subplot(grid[0, 2])
     sfdr = fig.add_subplot(grid[1, 2])
@@ -361,7 +365,7 @@ def interleave(data: Path, out: Path) -> dict:
         xlabel="频率（MHz）",
         ylabel="单边功率（dBFS/bin）",
     )
-    spectral.legend(frameon=False, fontsize=9.5, loc="upper right")
+    spectral.legend(frameon=False, fontsize=10.5, loc="upper right")
     spectral.axvline((rows[0]["fs_hz"] / 2 - rows[0]["fin_hz"]) / 1e6, color=GRAY, ls=":", lw=0.7)
     spectral.text(
         0.98,
@@ -370,7 +374,7 @@ def interleave(data: Path, out: Path) -> dict:
         transform=spectral.transAxes,
         ha="right",
         color=MUTED,
-        fontsize=9,
+        fontsize=10,
     )
     for axis, key, title, ylim in (
         (sndr, "SNDR_dB", "SNDR（dB）", (80, 100)),
@@ -379,46 +383,48 @@ def interleave(data: Path, out: Path) -> dict:
         values = [r[key] for r in rows]
         axis.scatter(np.arange(3), values, c=colors, s=45, zorder=3)
         for i, v in enumerate(values):
-            axis.text(i, v + 0.9, f"{v:.2f}", ha="center", fontsize=10)
+            axis.text(i, v + 0.9, f"{v:.2f}", ha="center", fontsize=11)
         axis.set(
             title=title,
             xlim=(-0.45, 2.45),
             ylim=ylim,
             xticks=np.arange(3),
-            xticklabels=("固定", "generic", "RTL规则"),
+            xticklabels=("固定", "通用随机", "RTL规则"),
         )
-        axis.tick_params(axis="x", labelsize=9)
+        axis.tick_params(axis="x", labelsize=10)
     for axis in (spectral, sndr, sfdr):
         axis.grid(axis="y", alpha=0.22, lw=0.6)
         axis.set_axisbelow(True)
-    fig.suptitle("调度改变杂散，也改变非基波残余功率", x=0.04, ha="left", fontsize=17, weight=600)
+    delta_sfdr = rows[2]["SFDR_dBc"] - rows[0]["SFDR_dBc"]
+    delta_sndr = rows[2]["SNDR_dB"] - rows[0]["SNDR_dB"]
+    fig.suptitle("按RTL规则的Python策略，相对固定A/B", x=0.04, ha="left", fontsize=17, weight=600)
     fig.text(
         0.04,
-        0.88,
-        f"Python行为仿真；{rows[0]['fs_hz']/1e6:g} MS/s／{rows[0]['fin_hz']/1e6:.6f} MHz／{rows[0]['amplitude_v_peak']:g} V峰值／N={rows[0]['n']}／相干矩形窗；固定同一时偏池",
-        fontsize=10,
+        0.875,
+        f"SFDR {delta_sfdr:+.2f} dB　／　SNDR {delta_sndr:+.2f} dB".replace("-", "−"),
+        fontsize=21,
+        weight=600,
+    )
+    fig.text(
+        0.04,
+        0.81,
+        f"均为Python结果，非SV DUT频谱｜{rows[0]['fs_hz']/1e6:g} MS/s／{rows[0]['fin_hz']/1e6:.6f} MHz／{rows[0]['amplitude_v_peak']:g} V峰值／N={rows[0]['n']}／相干矩形窗／同一时偏池，标称σ={rows[0]['skew_sigma_parameter_s']*1e12:g} ps",
+        fontsize=10.5,
         color=MUTED,
     )
     ref = "／".join(f"{r['error_rms_v']*1e6:.2f}" for r in rows)
     residual = "／".join(f"{r['fit_residual_rms_v']*1e6:.2f}" for r in rows)
     fig.text(
         0.075,
-        0.15,
-        f"参考误差 RMS：{ref} µV；拟合后残差 RMS：{residual} µV（固定／generic／RTL规则）。",
-        fontsize=10.1,
+        0.13,
+        f"参考误差RMS：{ref} µV；拟合残差RMS：{residual} µV。",
+        fontsize=10.8,
     )
     fig.text(
         0.075,
-        0.095,
-        "基波拟合只用于指标，未对输出作增益／相位校正；第三策略是Python结构合同，不是SV DUT频谱。",
-        fontsize=9.5,
-        color=MUTED,
-    )
-    fig.text(
-        0.075,
-        0.035,
-        f"全部Nyquist频点与输出保留；标称时偏σ={rows[0]['skew_sigma_parameter_s']*1e12:g} ps为本例假设。SFDR改善不等于总误差下降。",
-        fontsize=9.5,
+        0.06,
+        "固定／通用随机／RTL规则顺序；拟合仅评估指标，未校正输出。全频点保留；杂散改善不等于总误差下降。",
+        fontsize=10.5,
         color=MUTED,
     )
     _save(fig, out / "current_interleave")
@@ -465,10 +471,10 @@ def dither_headroom(data: Path, out: Path) -> dict:
     ]
     fig, axes = plt.subplots(1, 2, figsize=(11.8, 5.0), gridspec_kw={"width_ratios": [1.2, 1]})
     fig.subplots_adjust(left=0.08, right=0.98, top=0.78, bottom=0.29, wspace=0.27)
-    for mode, color, marker, size in (
-        ("off", GRAY, "o", 8),
-        ("sampling", BLUE, "x", 6),
-        ("quantizer", ORANGE, "s", 5),
+    for mode, label, color, marker, size in (
+        ("off", "关闭扰动", GRAY, "o", 8),
+        ("sampling", "采样端注入", BLUE, "x", 6),
+        ("quantizer", "量化器注入", ORANGE, "s", 5),
     ):
         axes[0].plot(
             amps,
@@ -477,44 +483,59 @@ def dither_headroom(data: Path, out: Path) -> dict:
             marker=marker,
             ms=size,
             lw=1.2,
-            label=mode,
+            label=label,
             markerfacecolor="none" if mode == "off" else color,
         )
     axes[0].set(
-        title="保留全部幅度点：ADC2溢出",
+        title="完整幅度扫描：后级量化器越界",
         xlabel="原始输入峰值（V）",
         ylabel=f"溢出次数／{summary['N']}笔",
         xlim=(min(amps) - 0.01, max(amps) + 0.01),
         ylim=(-1, None),
     )
-    axes[0].legend(frameon=False, fontsize=9.5, loc="upper left")
+    axes[0].legend(frameon=False, fontsize=10.5, loc="upper left")
     axes[0].axvline(2.99, color=GRAY, ls=":", lw=0.7)
+    axes[0].annotate(
+        f"2.99 V：{chosen['adc2_over_count']}次越界",
+        xy=(2.99, chosen["adc2_over_count"]),
+        xytext=(2.79, 21),
+        fontsize=12,
+        weight=600,
+        color=ORANGE,
+        arrowprops={"arrowstyle": "->", "color": ORANGE, "lw": 1.1},
+    )
     axes[1].bar(np.arange(5), values, color=(ORANGE, ORANGE, ORANGE, GRAY, GRAY), width=0.62)
     for i, value in enumerate(values):
         axes[1].text(i, value + 0.65, str(value), ha="center", fontsize=11)
     axes[1].set(
-        title="quantizer：峰值2.99 V的逐节点检查",
+        title="量化器注入：2.99 V逐节点定位",
         ylabel=f"次数／{summary['N']}笔",
         xticks=np.arange(5),
-        xticklabels=("SADC输入\n域外", "RA\n饱和", "ADC2\n溢出", "RDAC码\n越界", "最终码\nclip"),
+        xticklabels=(
+            "前级量化器\n输入越界",
+            "残差放大器\n饱和",
+            "后级量化器\n越界",
+            "残差数模器\n码越界",
+            "最终码\n限幅",
+        ),
         ylim=(0, max(values) * 1.25),
     )
-    axes[1].tick_params(axis="x", labelsize=9)
+    axes[1].tick_params(axis="x", labelsize=10)
     for axis in axes:
         axis.grid(axis="y", alpha=0.2, lw=0.6)
         axis.set_axisbelow(True)
     fig.suptitle(
-        "dither近满幅余量：RDAC合法／最终clip为零，后级仍可能越界",
+        "dither 2.99 V失败点：问题已定位，后级越界仍存在",
         x=0.04,
         ha="left",
-        fontsize=16,
+        fontsize=18,
         weight=600,
     )
     fig.text(
         0.04,
         0.88,
-        f"理想器件、结构range配置；{summary['common_config']['fs']/1e6:g} MS/s／{summary['fin_hz']/1e6:.6f} MHz／N={summary['N']}；无外加随机噪声。",
-        fontsize=10.2,
+        f"理想器件／结构范围配置；{summary['common_config']['fs']/1e6:g} MS/s／{summary['fin_hz']/1e6:.6f} MHz／N={summary['N']}；无外加随机噪声。",
+        fontsize=10.5,
         color=MUTED,
     )
     upper = next(r for r in groups["sampling"] if r["input_peak_v"] == max(amps))
@@ -522,21 +543,21 @@ def dither_headroom(data: Path, out: Path) -> dict:
     fig.text(
         0.08,
         0.15,
-        f"{max(amps):g} V点保留：SADC按半开量化域检查，sampling最终clip={clips}。恰好上端点计数不等同新增电气故障。",
-        fontsize=9.7,
+        f"{max(amps):.1f} V端点保留：采样扰动模式最终码裁剪{clips}次；关闭扰动的上端点计数不等同新增电气故障。",
+        fontsize=10.5,
         color=MUTED,
     )
     fig.text(
         0.08,
         0.09,
-        "右侧节点次数可重叠，不能相加；检查模拟越界与最终码clip是两项不同判据。",
-        fontsize=9.8,
+        "节点次数可重叠，不能相加；最终码未限幅，不代表模拟节点未越界。",
+        fontsize=11,
     )
     fig.text(
         0.08,
         0.035,
-        "这是有限相干幅度网格的行为边界，不是全范围保证、完整INL/DNL或真实模拟宏测量。",
-        fontsize=9.5,
+        "仅覆盖该相干幅度网格，非全范围保证、完整INL/DNL或芯片实测；所有工况与样本保留。",
+        fontsize=10,
         color=MUTED,
     )
     _save(fig, out / "current_dither_headroom")

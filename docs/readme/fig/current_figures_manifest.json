@@ -1,7 +1,7 @@
 {
   "artifact": "original_README_overview_redraw",
   "operation": "frozen_data_redraw_only_no_simulation_or_training",
-  "renderer_sha256": "694b1ad240ebabf34488621c74ab730dd623a5d1ac7688e860db6e0b097a5c10",
+  "renderer_sha256": "3de720bc1afcbef57d647f75714e517dbb95f78c8cc35648d3f6f81b7605d165",
   "render_runtime": {
     "matplotlib": "3.11.2",
     "numpy": "2.5.3",
@@ -111,13 +111,13 @@
     }
   },
   "outputs": {
-    "current_architecture.png": "523902bf9e873c810458c13acc3ecfdded1871cb873b23349d13b64059172968",
-    "current_architecture.svg": "68d80eda7925c82d587fb2ce14049c1dbfb58365d64afcf74cd7f92a090f4e94",
-    "current_calibration.png": "56e2c32802c1c114da35f2e394d7cd7f284760f3a7c4faba744a2d67d788a20b",
-    "current_calibration.svg": "f1f7c6d3203cdcee93d1cb0acdaeba9dbaf520ccd8646c561e054ebfb18d909e",
-    "current_interleave.png": "762d1e720a27580f685b269f0d4399f0b1592730253e446fcb2b7e1a6e74e05a",
-    "current_interleave.svg": "91f512ffd7e4e89f98f5490f5b8bcf0201979dda6576e4f71172c2c3e27d82f2",
-    "current_dither_headroom.png": "43ebe73bb5307036b55c2707bd9ed8105bda5b4c7e06997f4403a0ab6e89171b",
-    "current_dither_headroom.svg": "e762c01f998582492b1af78af9b668884c5d54ca2658a24d82c21452dc683d44"
+    "current_architecture.png": "d52167069a31a14789e817fb0654d058b3fbfbcefb52281b84dcfbc115cc2600",
+    "current_architecture.svg": "5c6746e9cd9885835a1078170d59c7742fea7f112e1c8d62a52fb40d1ce59daf",
+    "current_calibration.png": "17f0b11347d368ac8006f36f3b549e2a0d3157c3806d0d08b93c0b7d6651ea2d",
+    "current_calibration.svg": "e06ad9f3242b04be856e6f6352d15868fa9e9bff4503c2ebbf0f382262ae271a",
+    "current_interleave.png": "482f05afefc2ccb4a8b9d1047be7df6255c7d15a31948df2977c74fc4d669f95",
+    "current_interleave.svg": "770ed77bde1f8b0d0e6e003efcf4c9da905c8b76126fab413d60b64d8c7032dc",
+    "current_dither_headroom.png": "d33f34a31e15c2d17715eef963026298e306af5f9d34a381ba45d5e524757492",
+    "current_dither_headroom.svg": "bac69e86b8f149861510a5011f4fecc468868f224da5d60a5c73c8f57a939ee7"
   }
 }

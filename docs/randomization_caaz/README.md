@@ -29,7 +29,7 @@ DEM 的执行顺序是：先取得本笔实际 slice ID，再按该 bank 的状�
 
 ![固定逻辑slot与实际物理单元的DEM使用分布](fig/dem_usage.png)
 
-*上半图为固定码／固定slot遍历；下半图为16384笔实际调度，以各物理slice被选机会作分母，保留全体单元范围。它只说明使用统计，未将偏置直接换算为性能。原始计数与分母见[数据](data/dem_usage.json)，命令见[复现入口](../REPRODUCING.md#demcaaz及数字组合的详细入口)。*
+*上半图为固定码／固定slot遍历，分母为512状态；下半图为16384笔实际调度，各物理slice分别以自身被选机会作分母，保留全体单元范围。计数针对mask=1的正轨选择，mask=0仍有负轨电荷项。它只说明选择统计，未将偏置直接换算为性能。原始计数与分母见[数据](data/dem_usage.json)，命令见[复现入口](../REPRODUCING.md#demcaaz及数字组合的详细入口)。*
 
 ![dither的注入、码修改和逐raw重构](../readme/fig/dither_implementation.png)
 

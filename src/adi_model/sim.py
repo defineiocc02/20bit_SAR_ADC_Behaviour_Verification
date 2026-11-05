@@ -181,7 +181,9 @@ class SimResult:
             Configuration snapshot, topology-specific capacitance, gain range,
             pending calibration and overrides inactive at this entry point.
         """
-        inactive = {}
+        inactive = {
+            "sadc_cap_ratio": ("reserved; SADC noise and physical split sampling load use c_sadc")
+        }
         dither_sequence = None
         if self.cfg.conversion.rdac_event_timing == "rtl16" and self.cfg.dither_mode == "quantizer":
             inactive["dither_amplitude_lsb1"] = (

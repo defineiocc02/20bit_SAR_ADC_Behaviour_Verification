@@ -4,6 +4,8 @@
 // 接受：cfg_ready&&complete 时 dout_valid 置1一拍，ID与本次 flags 原子更新。
 // flags[4:0]={clip_high,clip_low,adc2_ovf,gain_err,acc_ovf}，与粘滞状态分开。
 // 异常：acc_ovf/gain_err 仍提交ID/flags，但保持最后合法字和clip；单独adc2_ovf不阻止字更新。
+// 因此valid是“本次计算完成”，不是“本字数值可信”；错误完成的ID/flags属于本次，
+// 保留的dout却可能来自前次。下游必须按flags拒收，不能把旧字配给当前样本。
 // 同沿优先级：reset最高；clr_ovf先清粘滞位，同沿新完成错误重新置位；配置取消最后覆盖。
 // 来源：RTL_ARITHMETIC_CONTRACT.md §4；本模块不重新执行校准运算。
 `include "rtl_params.vh"
@@ -40,6 +42,7 @@ module cal_output_stage #(
         adc2_ovf <= 1'b0;
       end
       if (cfg_ready && complete) begin
+        // clr_ovf只清历史粘滞状态，不取消当前完成；本沿新异常会在后文重新置位。
         dout_valid <= 1'b1;
         result_sample_id <= candidate_sample_id;
         result_flags <= {

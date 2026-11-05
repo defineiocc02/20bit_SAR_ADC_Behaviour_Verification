@@ -7,6 +7,10 @@
 // 同沿规则：div_done之后的提交沿可同时接受下一start，NBA保证提交使用旧sample_id/flags。
 // 异常：acc_ovf/gain_err仍产生完成ID/flags但保留合法字；adc2_ovf单独上报；负商只向低端clip。
 // 精度：96位受检域、宽MAC临时值及63位floor商；P_USE_ROW_TOTALS仅使用精确配置缓存。
+// 节点：F/offset是ADC2输入（RA输出）域的V/Vfs Q32；inj是已知ADC输入域的V/Vfs Q32。
+// 重构：num=(F-O)*2^30-rails*2^32-T*inj；word=floor((num+G*2^32)*2^20/(G*2^33))。
+// G是本样本所装有效权重的信号和，sampling时已扣dither单元；其归一化不代表物理估计无误差。
+// 权重量化在片外完成；运行时只有ADC2码中心用ties-to-even，其后移位与除法均为floor。
 // 来源：RTL_ARITHMETIC_CONTRACT.md、ADR0014/0018；不生成DEM、存权重或运行学习器。
 `include "rtl_params.vh"
 
@@ -62,9 +66,9 @@ module recon_core #(
   localparam int W_TOP = W_SHIFT - int'(ACC_BITS) + 1; // 22：shifted[116:95]
   localparam int DIT_BEG = P_DIT_END - P_DIT_N;
   localparam int N_CYC = (W_A + P_STAGES - 1) / P_STAGES;
-  // 固定延迟。口径见 docs/rtl/P2_INTERFACE.md §4.3：从 `start` 那一拍起算 dout_valid
-  // 所在沿与接受 start 沿之间的完整时钟间隔 => N_CYC + 2 = 11（P_STAGES=7）。
-  // 由 sim/tb/p2_tb.sv 的 T4 **实测**；常量与实测不符时 T4 报错。
+  // 延迟按接受start沿到dout_valid沿的完整间隔计数：阶段A快照、阶段B启动除法、
+  // N_CYC次除法和提交的组合合同为N_CYC+2；P7=11、P5=15，必须能容纳16tick帧。
+  // 对应延迟自检在sim/tb/p2_tb.sv；这不是目标工艺的组合路径时序证明。
   localparam int RECON_LAT = N_CYC + 2;
 
   // ---- Width-qualified constants; signed clipping bounds stay signed. ----
@@ -169,8 +173,8 @@ module recon_core #(
       .done(div_done)
   );
 
-  // Both comparison operands are signed. In particular, -1 must clip low,
-  // not become a large unsigned value and clip high.
+  // MAC先算术右移33位，相当于第一次floor；div_floor再除正G，等价于一次总分母floor。
+  // 负商仍保留signed直到饱和比较，不能先截成20位把负值变成高端大码。
   assign clip_lo_c = (div_q < ZERO_A);
   assign clip_hi_c = (div_q >= OUT_CNT);
   assign busy = stage_b | div_busy;
@@ -232,9 +236,8 @@ module recon_core #(
         a2ovf_pend <= adc2_o;
         stage_b <= 1'b1;
       end else if (stage_b) begin
-        // These tests must use stage-A registers of the accepted sample.
-        // Evaluating/latching them on the start edge would observe the prior
-        // sample and shift error attribution by one conversion.
+        // 检错必须读阶段A已冻结的同笔数据；若在start沿读取这些寄存器，NBA只会
+        // 看到前一笔数值，异常和sample ID就会错代。busy期间不接受新的start。
         ovf_pend <= any_ovf;
         gerr_pend <= bad_slice_r || (gain_s == {SUM_BITS{1'b0}});
         stage_b <= 1'b0;

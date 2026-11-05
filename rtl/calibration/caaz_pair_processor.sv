@@ -1,4 +1,4 @@
-// CAAZ完整校准码的成对后处理。输入斩波和CBIAS存储由外部模拟宏实现。
+// 模块：caaz_pair_processor；CAAZ完整校准码成对后处理，输入斩波/CBIAS存储由模拟宏实现。
 // 单位：code为20位offset-binary，pair_difference为21位signed半LSB差。
 // CodeStream码中心合同：d=code_even-code_odd，Vpair=LSB*d/2；
 // 最终20位使用现有uniform floor：floor((2^20+d)/2)，不宣称再量化无偏。
@@ -6,6 +6,9 @@
 // 开启时每个odd接受沿最多提交一个pair；raw flags/bad/无AZ状态或错配
 // 会置sticky fault，直至clear/reset，不用后续valid记录自动修补缺样。
 // 默认关闭为旧code/valid/ID/flags/analog_bad的零拍组合旁路。
+// 旁路自身不门控reset/clear，须由上游提供有效资格；开启时reset/clear最高优先取消同沿odd。
+// ID/chop/AZ代只验证数字配对；没有slice/权重或H_AZ输入，不能验证实际共享噪声与a=H_AZ/K相等。
+// 时钟空洞可保持pending，不提供wallclock超时；缺样在下一笔ID检查时检出，fault后不自动重配。
 // Source: PKU_VLSI2025_C32_1_PAPER PDF2/printed2 Fig5/6;
 // PKU_VLSI2025_C32_1_SLIDES PDF28..35/footer Slide27..34.
 module caaz_pair_processor #(
@@ -79,13 +82,14 @@ module caaz_pair_processor #(
 
     wire signed [20:0] exact_difference =
         $signed({1'b0, even_sample_code}) - $signed({1'b0, in_code});
-    // Legal20-bit inputs bound this positive sum to1..2^21-1, so22signed
-    // bits retain its value. The shift implements uniform floor without wrap.
+    // offset-binary码中心为c+0.5-2^19；两码相减的0.5相消，所以21位d精确表示半LSB结果。
+    // 加2^20后范围1..2^21-1，保留22位signed再右移，不能对20位码直接做二补数取负。
     wire signed [21:0] offset_sum = 22'sd1048576 +
         $signed({exact_difference[20], exact_difference});
     wire signed [21:0] floor_output_code = offset_sum >>> 1;
 
-    // Error priority is part of the interface contract. IDs/generations wrap mod2^32.
+    // 拒收优先级：raw flags > analog_bad > AZ无效 > ID缺口 > 极性/存储代。
+    // ID/代按模2^32递增；首记录必须正相，但本叶不硬编码它必须是顶层启动ID2。
     always_comb begin
       input_reject_reason = 4'd0;
       if (in_flags != 0)

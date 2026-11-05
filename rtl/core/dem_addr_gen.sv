@@ -4,6 +4,9 @@
 // 时序：无时钟、复位或enable；上游负责冻结同一样本的sid。
 // 几何：ch=sid[2:0]、rh=sid[5:3]、sh=sid[8:6]；主阵列逆映射包含缺失cell的压缩修正。
 // 适用域：只支持63main/8sub及8×8几何，非法参数在elaboration拒绝；不可换成模63的简单环。
+// 输出是“该物理unit在本次温度计顺序中的名次”，不是该逻辑位将要访问的物理地址。
+// 每次映射是一一排列，但删去第64格后，固定码遍历512状态仍可能有使用偏置；
+// sub轮转又与上层bridge的sid[8]门控相关，不能由名义守恒推导所有单元等频使用。
 // 来源：dem.split_switch_command、P1接口合同及独立闭式参考；不执行开关计数或权重读取。
 `include "rtl_params.vh"
 
@@ -58,7 +61,8 @@ module dem_addr_gen #(
       assign col_rot = (LW'(P_COL) - ch) & LW'({LW{1'b1}});
       assign cell_idx = {row_rot, col_rot};
 
-      // 跳过唯一的物理 cell 63 后，后续逻辑位置减一，保持 0..62 连续。
+      // 去掉缺失格占据的逻辑位置，后续名次压缩一位，保持0..62连续。
+      // 这一步保持每次排列合法；它没有把63单元变成统计均匀的模63循环。
       assign main_logical[p] = cell_idx - 6'(cell_idx > i_star);
     end
   endgenerate

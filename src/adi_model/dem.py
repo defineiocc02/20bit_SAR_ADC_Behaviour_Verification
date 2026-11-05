@@ -1,4 +1,13 @@
-"""Nominal, realizable split-DAC switch maps, independent of fabricated weights."""
+"""Split RDAC的数字开关命令层：只读名义几何，不读取或估计真实电容。
+
+输入是RDAC单位码k和9位DEM状态sid；输出主/子阵列的物理单元顺序及每个
+活动slot的选通数。物理slice ID另由调度器提供，slot不是固定物理slice。
+当前63+8候选通过8×8行列旋转、删除缺失cell63及可选跨slot零和bridge实现。
+8个slot的名义平均码守恒，不等于每个物理单元等使用，也不等于失配电荷相等。
+k=10遍历512状态时，主单元56被选16次、其余主单元各8次；sid[8]门控又与
+子阵列旋转相关。真实物理使用分布还须结合allocator统计，不能从守恒式推断。
+电容权重训练、输入时序误差估计和动态建立均不属于本模块。
+"""
 
 from __future__ import annotations
 
@@ -12,11 +21,12 @@ from .config import Config
 
 @dataclass(frozen=True)
 class SplitSwitchCommand:
-    """Compact physical masks: capacitor orders and selected counts.
+    """压缩的物理开关命令，供物理plant与冻结位权重构共同解释。
 
-    Orders have shape (N, bank_size); counts have shape (N, n_active).
-    Fractional counts are interpolation baselines. Integer commands produce
-    integer counts and realizable binary masks in every slice.
+    main_order/sub_order: (N, bank_size)，按选通先后排列的物理unit ID；
+    main_counts/sub_counts: (N, n_active)，逐样本、逐逻辑slot的单位数。
+    整数命令的mask是order前count个元素；分数count仅用于连续插值基准，
+    不是可直接实现的二进制开关。将slot归到物理slice时必须使用同笔样本的ID。
     """
 
     main_order: np.ndarray
@@ -27,7 +37,7 @@ class SplitSwitchCommand:
 
 @dataclass(frozen=True)
 class SplitSwitchGeometry:
-    """Digital-only geometry for mask generation; no fabricated parameters."""
+    """生成mask所需的名义数字几何与开关；不含制造失配或学习得到的权重。"""
 
     dac_n_main: int
     dac_n_sub: int
@@ -38,28 +48,33 @@ class SplitSwitchGeometry:
 
     @property
     def dac_levels(self) -> int:
-        """Return the number of nominal realizable RDAC codes."""
+        """返回名义RDAC电平数；complete_range允许主阵列选到全部单元。"""
         return (self.dac_n_main + int(self.dac_complete_range)) * self.dac_n_sub
 
 
 def split_switch_command(
     cfg: Config | SplitSwitchGeometry, k: np.ndarray, sid: np.ndarray
 ) -> SplitSwitchCommand:
-    """Decode independent row/column/subarray states and optional zero-sum bridge.
+    """由RDAC单位码和DEM状态生成行/列/子阵列置换及可选零和bridge。
 
     Args:
-        cfg: Nominal topology, never a physical chip object.
-        k: Fine RDAC codes, shape (N,); saturation is physical and explicit.
-        sid: Digital DEM states, shape (N,).
+        cfg: 名义几何/控制；不得用真实电容或拟合权重决定选通顺序。
+        k: (N,) RDAC单位码；当前结构为0..511，越界值显式裁剪。
+           整数产生物理mask；分数只表示插值。
+        sid: (N,) 数字状态，调用合同为整数0..511；本函数转为int64。
 
     Returns:
-        Realizable orders/counts with invariant mean nominal fine code. When
-        enabled, the candidate bridge acts only for states with bit 8 set, as
-        in the structural RTL. Its connection to the paper's 50% annotation is
-        an engineering hypothesis, not a disclosed switch matrix.
+        SplitSwitchCommand。63主单元嵌入8×8后跳过物理cell63，8子单元环旋转。
+        dem_enable=False时按sid=0译码。当前8活动slot在bridge使能且sid[8]=1时
+        进行4正/4负零和交换；整数内部码幅度1、端码0，分数按距端点限幅。因此每样本
+        sum(8*main_count+sub_count)=8*k_clipped，但使用频次可有条件偏置。
+        该bridge及状态编码是工程合同，不是原芯片开关矩阵的复原。
 
     Raises:
-        ValueError: Non-finite codes or inconsistent array shapes.
+        ValueError: k非有限、不是一维或sid与k形状不同。
+
+    Side effects:
+        无；不读取物理真值、不学习权重，不报告模拟溢出或性能。
     """
     code = np.asarray(k, dtype=float)
     states = np.asarray(sid, dtype=np.int64)

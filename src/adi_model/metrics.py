@@ -1,29 +1,28 @@
-"""metrics.py -- 频谱、均值误差、条件方差、溢出统计。
+"""ADC 输出的频谱、误差统计和条件平均转移曲线。
 
-静态测试拆成两项，**必须一起看**：
+输入通常为某一明确节点的实数电压记录 (N,)。调用方负责选择内部浮点重构
+或最终整数码解码后的电压；本模块不把两者混用，也不自动筛掉溢出样本。
+采样率 fs [Hz]、记录时长 N/fs [s]、FFT 间隔 df=fs/N [Hz/bin] 相互独立。
 
-    mu_e(x)    = E[x_hat | x] - x        平均误差（DEM 能把这条曲线拉直）
-    sigma_e(x) = sqrt(Var(x_hat | x))    输出离散程度（DEM 可能让它变大）
+口径：SNDR 含基波拟合后的全部残余；SNR 再扣除可分辨的指定谐波；SFDR
+搜索基波扣除后的最大非直流谱线；THD 只累加指定、可分辨的谐波。
+幅度谱以满幅正弦峰值 v_fs [V] 为 0 dBFS，显示的是每个 FFT bin 的相干
+幅度（常标 dBFS/bin），不是噪声密度。PSD 返回 [V²/Hz]，积分时乘 df；
+dBc 是相对实际基波的幅度比，不能把 dBFS/bin、dBFS/Hz 和 dBc 直接互换。
 
-平均误差曲线不能直接冒充严格码密度法得到的 DNL；v1 不跑完整 20 bit 码密度测试。
-单位契约：幅度谱dBFS以峰值v_fs（RMS=v_fs/√2）的满幅正弦为参考；
-PSD为V²/Hz，不能与幅度谱混用；INL类量以目标LSB归一，误差为V/µV。
-适用域：SFDR 必须**扣除基波后全谱搜索**（保护带 LSQ 会把窗泄漏拟合成
--25 dBc 假杂散）；静态均值有估计噪声底σ_e/√rep；所需rep取决于目标精度、噪声和DEM覆盖。
-
+静态电平测试分别报告均值误差 mu_e=E[x_hat|x]-x 与条件标准差 sigma_e；
+总误差 RMS 还包含均值项。DEM 可能减小均值曲线的弯曲，同时增大 sigma_e。
+稀疏电平的平均曲线及去直线残差属于 INL 类指标，不是完整码密度 INL/DNL。
+有限记录、谐波混叠及窗泄漏的限制通过返回标志或 NaN 暴露，详见 ADR 0015。
 """
 
 from __future__ import annotations
 
 import numpy as np
 
-# Minimum bin index of the fundamental below which FFT harmonic extraction
-# is considered unreliable: the 2nd harmonic then sits inside the window main
-# lobe, so the reported THD is window leakage rather than a real tone.
-# 16 bins is conservative; corresponds to ~40 MHz / 16 / N, i.e. ~24 kHz at
-# N = 16384. Below this frequency the function returns NaN for THD and harm-
-# SFDR with a "harmonics_unreliable" marker instead of a plausible-looking
-# number. Finding B11 from the v6.1 audit.
+# 基波低于 16 bin 时，窗主瓣可能污染 FFT 谐波估计，显式标记不可靠。
+# 对应阈值为 16*fs/N；fs=40 MHz、N=16384 时约 39.06 kHz。
+# 阈值只保护 FFT THD/harm_SFDR，不替代时域拟合的秩与自由度检查。
 _MIN_FUND_BIN_FOR_HARMONICS = 16
 
 
@@ -51,12 +50,24 @@ def _window(n, name):
 
 
 def power_spectral_density(x, fs: float, *, window="blackmanharris", remove_mean=True) -> dict:
-    """Return a one-sided density [V²/Hz], distinct from tone amplitude [V].
+    """计算实数电压记录的单边功率谱密度，不返回幅度谱。
 
-    Density is |FFT(w*x)|²/(fs*sum(w²)); interior positive-frequency bins
-    receive a factor of two. DC and an even-record Nyquist bin do not.
-    Summing PSD*df equals sum(w²*x²)/sum(w²), including endpoints. ENBW
-    is fs*sum(w²)/sum(w)² and does not get applied a second time.
+    Args:
+        x: (N,) 有限实数电压 [V]，N>=4；节点与是否经过码量化由调用方注明。
+        fs: 正且有限的采样率 [Hz]。
+        window: boxcar、hann、blackman 或 blackmanharris。
+        remove_mean: 是否在加窗前去除算术均值；默认移除直流。
+
+    Returns:
+        frequency_hz、density_v2_hz 为 (N//2+1,)；分别为 bin 中心 [Hz] 与
+        PSD [V²/Hz]。df_hz=fs/N；enbw_hz=fs*sum(w²)/sum(w)² 是窗等效
+        噪声带宽；coherent_gain=mean(w) 是幅度相干增益。
+        PSD=|FFT(w*x)|²/(fs*sum(w²))，内部正频率加倍，DC 和偶数 N 的
+        Nyquist 不加倍。sum(PSD*df) 等于去均值后信号的窗平方加权均方值，
+        不是任意窗下未经加权的 mean(x²)。不要再乘/除一次 ENBW。
+
+    Raises:
+        ValueError: 复数、非一维/过短/非有限记录，非法 fs 或未知窗。
     """
     data = _record(x, fs)
     n = len(data)
@@ -77,11 +88,23 @@ def power_spectral_density(x, fs: float, *, window="blackmanharris", remove_mean
 
 
 def integrate_noise_band(spectrum: dict, low_hz: float, high_hz: float) -> dict:
-    """Sum PSD times bin width over bins whose centers lie in [low,high].
+    """按 bin 中心范围积分 PSD，得到指定频带的均方值和 RMS。
 
-    Reports actual included bin centers. Bands finer than the record resolution
-    are not silently interpolated. Input should be a residual/noise PSD if a
-    noise-only result is intended; signal and harmonics are not auto-excluded.
+    Args:
+        spectrum: power_spectral_density 的结果；密度 [V²/Hz]、df [Hz/bin]。
+        low_hz: 包含的最低中心频率 [Hz]，须非负。
+        high_hz: 包含的最高中心频率 [Hz]，须不超过返回频率轴上界。
+
+    Returns:
+        power_v2=sum(PSD*df) [V²]、rms_v=sqrt(power_v2) [V]，以及实际
+        纳入的 bin 数和首末中心频率。边界不插值，不补造小于 df 的分辨率。
+
+    Raises:
+        ValueError: 非有限/越界/反向频带，或频带不含任何已分辨 bin。
+
+    Notes:
+        函数不会自动排除基波和谐波。欲报告纯噪声，须传入已按明确规则
+        扣除信号的残余 PSD；全 Nyquist 与输出带内噪声应分别积分。
     """
     f = np.asarray(spectrum["frequency_hz"])
     p = np.asarray(spectrum["density_v2_hz"])
@@ -126,21 +149,20 @@ def _harmonic_design(n: int, fs: float, fin: float, nharm: int):
 
 # ------------------------------------------------------------------ 频谱
 def _lsq_amp(x: np.ndarray, freqs: list[float], fs: float) -> list[float]:
-    """对**已知频率**集合做联合最小二乘，返回各成分幅度。
-
-    用于近端杂散：当 spur 落在窗主瓣/保护带内时，频域幅值被窗泄漏污染，
-    无法从 FFT 读数。但基波与 spur 的频率都精确已知，可以在时域做
-    [1, sin f1, cos f1, sin f2, cos f2, ...] 联合拟合直接分离幅度 ——
-    相干整数 bin 下各列离散正交（完美分离）；非相干时仍可解，
-    只是两频率过近时条件数变差（记录长度内相位差 <~2 rad 时不可分）。
+    """对已知频率做联合时域最小二乘，返回各成分峰值幅度。
 
     Args:
-        x: 实数信号数组（时域样本） [V]。
-        freqs: 已知频率列表 [Hz]；每个频率拆成 sin/cos 两列参与拟合。
+        x: (N,) 实数电压记录 [V]。
+        freqs: 已知频率列表 [Hz]；每项构成一对 sin/cos 列，另有直流列。
         fs: 采样率 [Hz]。
 
     Returns:
-        各频率成分 0-peak 幅度列表 [V]，顺序与 freqs 一一对应。
+        与 freqs 等长的正弦峰值幅度 [V]。
+
+    Notes:
+        频率必须来自独立已知激励或明确估计；有限记录内过近频率、DC、
+        Nyquist 和混叠重复可能使列相关。本 helper 不做秩检查或频率去重，
+        不能据此保证窗主瓣内的任意未知杂散均可分离。
     """
     n = x.size
     t = np.arange(n) / fs
@@ -153,14 +175,14 @@ def _lsq_amp(x: np.ndarray, freqs: list[float], fs: float) -> list[float]:
 
 
 def _bh4(n: int) -> np.ndarray:
-    """4 项 Blackman-Harris 窗（numpy 2.x 已移除 np.blackmanharris）。
+    """生成四项 Blackman-Harris 窗，用于幅度谱和残余搜峰。
 
     Args:
-        n: 窗长（样本数） [无量纲]。
+        n: 窗长，即样本数；调用方应保证 n>=2。
 
     Returns:
-        (n,) 窗系数数组 [无量纲]；峰值约1，长记录相干增益约0.35875（用于 FFT
-        幅值归一化时除以 sum(w)/2）。
+        (n,) 无量纲窗系数。幅度相干增益是 sum(w)/n，长记录约 0.35875；
+        内部正频率的正弦峰值幅度用 |FFT|/(sum(w)/2) 归一化。
     """
     a = (0.35875, 0.48829, 0.14128, 0.01168)
     k = np.arange(n)
@@ -173,17 +195,19 @@ def _bh4(n: int) -> np.ndarray:
 
 
 def _estimate_fund_freq(xc: np.ndarray, fs: float) -> float:
-    """基波频率估计：窗 FFT 粗定位 + DTFT 幅度黄金分割细化。
-
-    必须精确到 ~0.01 bin。后续要用 LSQ 从时域扣除基波，频率误差 0.5 bin
-    会在残余里留下约 −40 dBc 的扣除残差，直接被当成杂散误报。
+    """先以窗 FFT 定位基波，再在相邻 bin 内细化 DTFT 峰值。
 
     Args:
-        xc: 去均值后的实数信号 [V]。
-        fs: 采样率 [Hz]。
+        xc: (N,) 已去均值的实数电压 [V]；应由单一基波主导。
+        fs: 采样率 [Hz]，df=fs/N 为频率网格间隔。
 
     Returns:
-        基波频率估计值 [Hz]，精度约 1e-3 bin（记录长度内相位差足够区分）。
+        基波频率估计 [Hz]。搜索区间宽度收敛至约 1e-3 bin；这只说明
+        数值搜索精度，不是所有噪声/失真条件下的频率估计准确度保证。
+
+    Notes:
+        后续 SFDR 会在时域扣除基波。频率误差会留下扣除残差，故已知输入
+        频率时应直接传入，不能把搜索精度当成近端杂散的可分辨率。
     """
     n = xc.size
     w = _bh4(n)
@@ -216,55 +240,33 @@ def _estimate_fund_freq(xc: np.ndarray, fs: float) -> float:
 def _fft_sfdr(
     x: np.ndarray, fs: float, guard_bins: int | None = None, fin: float | None = None
 ) -> tuple[float, float]:
-    """全谱 SFDR：**先扣除基波，再对残余做加窗全谱搜峰**。
-
-    ==========================================================================
-    v5 审计修正 —— 这里原来有一个会把 SFDR 钳死在 25 dB 的静默 bug
-    ==========================================================================
-    旧实现用「保护区内逐 bin 的 [基波, 怀疑杂散] 联合 LSQ」来分离主瓣内的
-    近端杂散。它只在**相干采样**（fin 恰为整数 bin）下成立 —— 此时设计矩阵
-    离散正交。非相干采样下两列频率间隔仅 3~8 bin，记录长度内相位差很小，
-    设计矩阵接近奇异，拟合出的"杂散幅度"实际是在拟合窗函数的主瓣滚降。
-
-    实证（v5 自查）：**零噪声、零杂散的纯正弦被报出 SFDR = 25.05 dB**，
-    且拟合幅度随离基波距离单调衰减（-8bin:34.4 -> +3bin:25.1 -> +8bin:33.8 dBc），
-    形状与 BH4 主瓣完全吻合 —— 分离根本没有发生。
-    旧自检（stage10.4 / stage11.5）全部用相干 fin，所以从未触发；
-    正式流程也全程用 _coherent_fin()，故已发布报告未受污染。
-    但这是**静默错误**：任何非相干输入（真实 ADC 测试的常见做法）都会跌到
-    25 dB 且不报错。
-
-    修正原理：窗泄漏来自**信号本身**（有限长截断 + 加窗），不是杂散。
-    用精确频率的 LSQ 把基波从时域扣掉后，残余里就不再有主瓣泄漏，
-    近端 bin 与远端 bin 因此变得一视同仁，直接全谱搜峰即可。
-    LSQ 扣除精度与频率是否整数 bin 无关，故本方法对非相干输入同样成立。
-
-    fin 已知时应直接传入（sine_fit_metrics 就是这么做的）；
-    fin=None 时内部用 DTFT 峰值细化估计到 ~1e-3 bin。
+    """先扣除直流和基波，再对残余加窗全谱搜峰。
 
     Args:
-        x: 实数信号数组（已含噪声/杂散） [V]。
+        x: (N,) 已含噪声和杂散的实数电压 [V]。
         fs: 采样率 [Hz]。
-        guard_bins: 基波附近置零的半宽 [bin]；None 时 fin 已知取 0、
-            未知取 3（吸收频率估计残差，并标注近端适用限制）。
-        fin: 已知基波频率 [Hz]；None 则内部用 DTFT 峰值细化估计。
+        guard_bins: 残余谱中屏蔽基波 bin 两侧的半宽 [bin]。None 时已知
+            fin 取 0，仅屏蔽基波 bin；未知 fin 取 3，吸收频率估计残差。
+        fin: 独立已知基波频率 [Hz]；None 时内部估计。
 
     Returns:
-        (SFDR_dB, spur_Hz)：扣除基波后全谱搜峰得到的杂散抑制比 [dB] 与
-        杂散频率 [Hz]。无杂散（残余被基波主导）时返回 (inf, 0.0)。
-    Side effects: 无（纯函数，不改 x 也不存内部状态）。
+        (SFDR_dB, spur_Hz)：基波与最大保留谱线的幅度比 [dB]、对应频率
+        [Hz]。内部正频率按正弦峰值比较，Nyquist 换成相同 RMS 功率的
+        正弦等效峰值。没有可用残余谱线时返回 (inf, 0.0)。
+
+    Notes:
+        窗泄漏来自有限记录内的基波本身，先在时域扣除可避免把主瓣滚降
+        当作杂散。频率估计误差及保护带仍限制近端检测；保护带内谱线、
+        同频成分、非相干杂散的栅栏损失均不能据此宣称被精确分离。
+        纯函数，不修改输入；本 helper 由已检查记录的上层入口调用。
     """
     x0 = np.asarray(x, dtype=float)
     n = x0.size
     xc = x0 - x0.mean()
     t = np.arange(n) / fs
 
-    # ---- 1) 基波频率：已知优先，否则估计 ----
-    # v5 第二轮审计 §6：fin 精确已知时，LSQ 扣除在任意 bin 距离上都近完美，
-    # 保护区只保留基波 bin 本身 —— ±3 bin 的旧屏蔽会把 +1/+2/+3 bin 的
-    # -80 dBc 真杂散一起抹掉（实测漏报成 115.8/94.1/83.3 dB）。
-    # fin 未知（内部估计）时保留 ±3 bin 吸收估计误差产生的扣除残差，
-    # 并在报告里注明该口径的近端适用限制。
+    # 已知 fin 时只屏蔽基波 bin，避免连带删除相邻真实谱线；
+    # 未知 fin 时 ±3 bin 用于吸收估计残差，代价是该范围无法检出杂散。
     fin_known = fin is not None
     f_fund = float(fin) if fin is not None else _estimate_fund_freq(xc, fs)
     if guard_bins is None:
@@ -284,7 +286,7 @@ def _fft_sfdr(
     w = _bh4(n)
     mag = np.abs(np.fft.rfft(resid * w)) / (np.sum(w) / 2.0)
     if n % 2 == 0:
-        # Equivalent sine peak for an RMS-power spur comparison.
+        # Nyquist 只有一个实分量；换成同 RMS 功率的正弦峰值后再比较。
         mag[-1] /= np.sqrt(2.0)
     mag[0] = 0.0
     k_fund = int(round(f_fund * n / fs))
@@ -302,21 +304,19 @@ def _fft_sfdr(
 
 
 def _band_max(X: np.ndarray, bin_idx: int, guard: int) -> float:
-    """Peak magnitude in a +/- guard-bin window, with the window clamped.
-
-    Clamping matters: at low input frequencies ``fund_bin`` can be 1, and the
-    unclamped slice ``X[1-4 : 1+4+1]`` wraps to an empty array, which raised
-    ``ValueError: zero-size array to reduction operation maximum`` for
-    ``f_in <= 5 kHz``. Reported by independent review (finding B11).
+    """在谱线附近的有限 bin 范围取峰值。
 
     Args:
-        X: Magnitude spectrum, ``(n // 2 + 1,)``.
-        bin_idx: Centre bin.
-        guard: Half-width of the window, in bins.
+        X: (N//2+1,) 幅度谱，单位沿用调用方。
+        bin_idx: 中心 bin 的整数索引。
+        guard: 两侧半宽 [bin]。
 
     Returns:
-        Maximum magnitude in the clamped window, or 0.0 if the spectrum is
-        empty.
+        裁至 [0, len(X)) 后的最大幅度；空谱或空区间返回 0。
+
+    Notes:
+        下边界必须裁至零；Python 负索引会从谱尾计数，低频主瓣附近
+        直接切片可能意外得到空数组。
     """
     if X.size == 0:
         return 0.0
@@ -330,29 +330,25 @@ def _band_max(X: np.ndarray, bin_idx: int, guard: int) -> float:
 def _fft_harmonics(
     x: np.ndarray, fs: float, fin: float, nharm: int = 12, guard_bins: int = 4
 ) -> dict:
-    """FFT 口径的谐波提取（相干采样），**折叠频率 + 去重**。
-
-    v3 审计修正：高频输入时部分谐波混叠后与基波或其他谐波重合
-    （fs=40 MHz、fin=5 MHz 时 7/9 次谐波折回 5 MHz 与基波重合）。
-    时域最小二乘在这类频点上设计矩阵共线，会把基波能量重复计入，
-    实测纯 5 MHz 正弦被报出 THD=-6.5 dB 的假谐波。
-    规则：混叠后落在基波 guard 带内的谐波丢弃；与已计谐波重合的丢弃。
+    """用 FFT 主瓣峰值提取指定谐波，并折叠、去除不可分辨项。
 
     Args:
-        x: 实数信号数组（相干采样前提） [V]。
+        x: (N,) 实数电压 [V]；定量幅度比较以整数 bin 相干输入为前提。
         fs: 采样率 [Hz]。
-        fin: 基波频率 [Hz]，必须相干（整数 bin）否则混叠去重失效。
-        nharm: 考察的最高谐波次数 [无量纲]，默认 12。
-        guard_bins: 谐波/基波保护的半宽 [bin]，默认 4。
+        fin: 已知基波频率 [Hz]；本 helper 本身不拒绝非相干输入。
+        nharm: 考察到的最高谐波次数，无量纲。
+        guard_bins: 基波/谐波主瓣保护半宽 [bin]。
 
     Returns:
-        字典，字段与单位：
-            A1 [V]           基波 0-peak 幅度；
-            harmonics        谐波列表 [(次数, 幅度 V)]；
-            dropped          被丢弃谐波列表 [(次数, 原因)]；
-            THD_dB [dB]      谐波口径总失真（不含噪声）；
-            harm_SFDR_dB [dB] 谐波口径杂散抑制比。
-    Side effects: 无（纯函数）。
+        A1 为基波峰值 [V]；harmonics 为 (次数, 幅度 V) 列表；
+        dropped 记录不可分辨的项。THD_dB 为保留谐波 RMS 合成后相对
+        基波 RMS 的比值；harm_SFDR_dB 仅比较最大保留谐波，不是全谱 SFDR。
+        Nyquist 分量仅有一个实列，其 amplitude 按实际 RMS 处理。
+
+    Notes:
+        谐波先折回 [0, fs/2]；DC/边界主瓣、与基波或已计谐波重合的项
+        被丢弃，不能重复计功率，也不能据丢弃项推断器件没有该失真。
+        非相干输入会有栅栏和泄漏误差；入口另用基波 bin 数给出低频可靠性标志。
     """
     n = x.size
     a = (0.35875, 0.48829, 0.14128, 0.01168)
@@ -413,26 +409,34 @@ def _fft_harmonics(
 
 
 def sine_fit_metrics(x: np.ndarray, fs: float, fin: float, nharm: int = 12) -> dict:
-    """正弦指标：SNDR/SNR 用时域最小二乘拟合；THD/SFDR 用 FFT（含混叠去重）。
-
-    SFDR = 全谱（保护带按窗主瓣）；THD = FFT 谐波口径，混叠重合的谐波
-    折叠去重（见 _fft_harmonics）。
+    """对同一电压记录分别计算 SNDR、SNR、谐波失真和全谱 SFDR。
 
     Args:
-        x: 实数信号数组 [V]。
-        fs: 采样率 [Hz]。
-        fin: 基波频率 [Hz]（已知，供 _fft_sfdr 精确扣除基波）。
-        nharm: 考察的最高谐波次数 [无量纲]，默认 12。
+        x: (N,) 有限实数电压 [V]，N>=4；调用方注明是内部浮点输出还是
+            最终整数码解码值。函数不会剔除模拟溢出或数字裁剪样本。
+        fs: 正且有限的采样率 [Hz]。
+        fin: 独立已知输入基波频率 [Hz]，严格位于 (0, fs/2)。
+        nharm: 正整数，时域去谐波和 FFT 谐波提取的最高次数。
 
     Returns:
-        指标字典，字段与单位：
-            amp [V] 为基波峰值；noise_rms / nd_rms [V]分别为噪声、噪声+失真RMS；
-            SNDR_dB / SNR_dB / THD_dB / SFDR_dB / harm_SFDR_dB [dB]；
-            spur_Hz [Hz]；ENOB [bit]；
-            NSD_V_rtHz [V/√Hz]   噪声谱密度；
-            harmonics [(次数, 幅度 V) 数组]；harmonics_dropped [list]；
-            harmonics_reliable [bool]   基波 bin < 16 时为 False（THD 置 nan）。
-    Side effects: 无（纯函数）。
+        amp 为基波峰值 [V]。nd_rms 为仅扣直流/基波后的 RMS [V]，
+        noise_rms 为再扣指定、可辨识谐波后的 RMS [V]；未拟合失真、杂散
+        和估计误差仍可能留在 noise_rms 中。
+        SNDR_dB=20*log10((amp/sqrt(2))/nd_rms)，SNR_dB 同理使用 noise_rms；
+        THD_dB 使用 FFT 谐波 RMS，SFDR_dB 搜索完整残余谱，harm_SFDR_dB
+        只搜谐波。ENOB=(SNDR-1.76)/6.02 是正弦等效位数，不是输出码宽。
+        NSD_V_rtHz=noise_rms/sqrt(fs/2) 是全 Nyquist 白噪声等效密度
+        [V/sqrt(Hz)]，不是逐频 PSD，也不证明噪声平坦。
+        返回混叠丢弃项、拟合秩/条件数/自由度、N/fs 时长、fs/N 分辨率和
+        相干标记。基波 bin<16 时 FFT THD/harm_SFDR 置 NaN；SNR 的
+        noise_fit_reliable 则只说明列秩和自由度，不保证信号/噪声模型正确。
+
+    Raises:
+        ValueError: 非法实数记录、采样率、基波频率或谐波次数。
+
+    Notes:
+        谐波与基波同频或彼此混叠时无法分离；相干标记仅报告，不拒绝
+        非相干输入。FFT 谐波幅值仍受窗泄漏与栅栏损失限制。
     """
     x = _record(x, fs)
     if not np.isfinite(fin) or not 0 < fin < fs / 2:
@@ -448,9 +452,10 @@ def sine_fit_metrics(x: np.ndarray, fs: float, fin: float, nharm: int = 12) -> d
     r_nd = float(np.sqrt(np.mean(resid_nd**2)))
 
     # 含谐波（低频输入、无混叠时仍最稳）
+    # 混叠后重复的谐波只拟合一次；Nyquist 只使用 cos 实列，避免虚假秩亏。
     Dh, fit_dropped = _harmonic_design(n, fs, fin, nharm)
     ch, _, fit_rank, singular = np.linalg.lstsq(Dh, x, rcond=1e-10)
-    resid_n = x - Dh @ ch  # 仅噪声
+    resid_n = x - Dh @ ch  # 扣除指定可辨识谐波后的残余，可能仍含其他失真/杂散。
     r_n = float(np.sqrt(np.mean(resid_n**2)))
 
     a_rms = A / np.sqrt(2.0)
@@ -462,11 +467,8 @@ def sine_fit_metrics(x: np.ndarray, fs: float, fin: float, nharm: int = 12) -> d
     sfdr_h = fft_h["harm_SFDR_dB"]
     sfdr, spur_hz = _fft_sfdr(x, fs, fin=fin)
 
-    # ---- 可靠性标记 ----------------------------------------------------
-    # 记录长度给不出足够低的频率分辨率时，二次谐波落在基波窗主瓣内，
-    # 谐波口径的 THD/harm_SFDR 会把基波泄漏当成谐波（fin=5 kHz、N=16384
-    # 时实测报出 THD=-13 dB 的假谐波）。这里不静默返回一个好看的数，
-    # 而是显式置 nan 并标记不可靠 —— 与审计"有数字不等于有证据"一致。
+    # 有限记录不能分辨低频主瓣中的谐波时，明确置 NaN，避免把泄漏当失真。
+    # 此标志不保证高于阈值后的所有非相干或混叠谐波均可准确提取。
     fund_bin = int(round(fin * n / fs))
     harmonics_reliable = fund_bin >= _MIN_FUND_BIN_FOR_HARMONICS
     if not harmonics_reliable:
@@ -503,19 +505,28 @@ def sine_fit_metrics(x: np.ndarray, fs: float, fin: float, nharm: int = 12) -> d
 def spectrum_dbfs(
     x: np.ndarray, fs: float, v_fs: float, window: str = "blackmanharris"
 ) -> tuple[np.ndarray, np.ndarray]:
-    """返回 (freq, dBFS) 用于画图。
+    """返回按满幅正弦峰值归一化的单边幅度谱，供绘图使用。
 
     Args:
-        x: 实数信号数组 [V]。
-        fs: 采样率 [Hz]。
-        v_fs: 差分满幅峰值 [V]，作为 0 dBFS 参考（峰值幅度 = v_fs 的正弦
-            为0dBFS，等效RMS为v_fs/√2）。
-        window: 窗类型，"blackman" 或 "blackmanharris"（默认 4 项 BH）。
+        x: (N,) 有限实数电压 [V]，N>=4；不自动从整数码换算电压。
+        fs: 正且有限的采样率 [Hz]。
+        v_fs: 差分满幅正弦峰值 [V]；其 RMS=v_fs/sqrt(2)，峰值 v_fs
+            的相干正弦为 0 dBFS。这里不是 2*v_fs 的峰峰值。
+        window: boxcar、hann、blackman 或 blackmanharris。
 
     Returns:
-        (freq, dBFS)：频率轴 [Hz] 与对应谱线 [dBFS]（按 0-peak 幅度归一到
-        v_fs）。dBFS = 20·log10(mag/v_fs)，mag 为各谱线峰值幅度。
-    Side effects: 无（纯函数）。
+        两个 (N//2+1,) 数组：(bin 中心频率 [Hz], 幅度 [dBFS])。
+        内部正频率 mag=2*|FFT|/sum(w)，DC/偶数 N 的 Nyquist 不乘二；
+        dBFS=20*log10(mag/v_fs)。图可标 dBFS/bin 以表明是离散 bin 幅度。
+        此函数始终先去均值，所以直流线不用于测失调。
+
+    Raises:
+        ValueError: 非法记录、fs、v_fs 或未知窗。
+
+    Notes:
+        这是相干增益归一的幅度谱；噪声底随 N 和窗 ENBW 变化，不能
+        当作 dBFS/Hz。需密度时用 power_spectral_density；需 dBc 时还应
+        以实际基波幅度为参考。非相干谱线峰值存在栅栏损失。
     """
     x = _record(x, fs)
     if not np.isfinite(v_fs) or v_fs <= 0:
@@ -535,25 +546,26 @@ def spectrum_dbfs(
 
 # ------------------------------------------------------------------ 静态
 def static_test(run_fn, levels: np.ndarray, repeats: int) -> dict:
-    """run_fn(level, repeats) -> out 数组。返回每个电平的均值误差与条件标准差。
+    """按逐次原始输出统计各电平的均值误差和条件标准差。
 
     Args:
-        run_fn: 可调用 ``run_fn(level, repeats) -> out``；给定输入电平与重复
-            次数，返回该电平下 ADC 输出数组 [V]。
-        levels: 待测输入电平数组 [V]，范围应在 ±v_fs 内。
-        repeats: 每个电平重复采样数；按σ_e/√rep误差预算及实际DEM状态覆盖选择。
+        run_fn: run_fn(level, repeats)->out，返回该外部输入电平下的
+            repeats 个 ADC 输出电压 [V]；调用方决定配置和是否用最终整数码。
+        levels: (L,) 外部输入电平 [V]，应在被测配置的有效范围内。
+        repeats: 每电平重复次数，须由噪声预算和 DEM 状态覆盖选择。
 
     Returns:
-        字典，字段与单位：
-            levels [V]    输入电平；
-            mu_e [V]      各电平的平均误差 E[x_hat|x] - x（DEM 可拉直）；
-            sigma_e [V]   条件标准差 √Var(x_hat|x)（repeats=1 时为 0）。
-    Side effects: 无（纯函数；只调用 run_fn，不修改其状态）。
+        levels、mu_e、sigma_e 均为 (L,)；mu_e=mean(out-level) [V]，
+        sigma_e 是 ddof=1 的条件标准差 [V]，repeats=1 时为 0。
+        均值的估计噪声量级为 sigma_e/sqrt(repeats)，不是确定性 INL。
+
+    Side effects:
+        调用 run_fn，可能推进该函数持有的物理池、估计器或 RNG 状态；
+        本函数自身不保存状态，也不从均值/方差重新合成输出分布。
 
     Notes:
-        审计教训（勿回退）：mu_e / sigma_e 必须由**逐次原始输出**直接统计，
-        严禁用 mean/sigma 重采样伪造分布（历史缺陷 A07.4）——那样会抹平真实
-        直方图的多峰/偏态，使静态 INL/DNL 失真。本函数不做任何重采样。
+        均值、标准差与 RMS 不可互换。稀疏电平统计没有覆盖全部码宽，
+        不能作为严格码密度 DNL/INL 或完整芯片线性度证明。
     """
     mu = np.zeros(levels.size)
     sd = np.zeros(levels.size)
@@ -566,23 +578,18 @@ def static_test(run_fn, levels: np.ndarray, repeats: int) -> dict:
 
 
 def inl_from_mean_error(levels: np.ndarray, mu_e: np.ndarray, lsb: float) -> dict:
-    """去掉最佳拟合直线（失调 + 增益）后的残差 = INL 类指标。
-
-    注意：这是**平均转移曲线的非线性**，不是严格码密度法 DNL/INL。
+    """从平均误差曲线去除最佳拟合直线，返回 INL 类残差。
 
     Args:
-        levels: 输入电平数组 [V]（与 mu_e 等长）。
-        mu_e: 各电平的平均误差数组 [V]（通常来自 static_test）。
-        lsb: LSB 电压步长 [V]，LSB = 2·v_fs / 2**20（[推导]）。
+        levels: (L,) 输入电平 [V]，应有足够不同电平供直线拟合。
+        mu_e: (L,) 对应平均误差 [V]，通常来自 static_test。
+        lsb: 正的归一化步长 [V/LSB]。目标 20 位时 LSB20=2*v_fs/2**20；
+            不是一级量化步长 delta1 或 RDAC 单位步长 nominal_rdac_step。
 
     Returns:
-        字典，字段与单位：
-            inl_v [V]          去最佳拟合直线后的残差；
-            inl_lsb [LSB]      以 lsb 归一化的 INL；
-            inl_max_lsb [LSB]  峰值 |INL|；
-            offset_v [V]       拟合失调；
-            gain_err [无量纲]  拟合增益误差（直线斜率）。
-    Side effects: 无（纯函数）。
+        inl_v 为去掉 offset+gain*levels 后的残差 [V]；inl_lsb 和
+        inl_max_lsb 以传入 lsb 归一；offset_v [V]、gain_err 无量纲。
+        该名称不代表已完成逐码转换边界或码密度测试。
     """
     p = np.polyfit(levels, mu_e, 1)
     inl = mu_e - np.polyval(p, levels)
@@ -597,24 +604,27 @@ def inl_from_mean_error(levels: np.ndarray, mu_e: np.ndarray, lsb: float) -> dic
 
 # ------------------------------------------------------------------ 汇总
 def summarize(res, fs: float, fin: float, v_fs: float, lsb: float) -> dict:
-    """把一次仿真的结果汇总成指标字典（SNDR/THD 与误差统计）。
+    """汇总指定电压输出的频谱、误差和模拟支路饱和统计。
 
     Args:
-        res: 一次仿真的 SimResult，需含属性 out [V]、err [V]、adc2_over /
-            ra_sat / ktc_sat [bool 数组]、residue [V]。
-        fs: 采样率 [Hz]（[披露] 40 MS/s）。
-        fin: 基波频率 [Hz]（供 sine_fit_metrics）。
-        v_fs: 差分满幅峰值 [V]（[推导]，用于 NSD dBFS 归一口径）。
-        lsb: LSB 电压步长 [V]（[推导]）。
+        res: SimResult；out、err 为 (N,) 输入等效电压 [V]；residue 为
+            RDAC 顶板残差 [V]。adc2_over/ra_sat/ktc_sat 为各模拟支路标志。
+            当前使用 res.out 浮点重构，不会隐式调用 to_codes()。
+        fs: 此记录实际采样率 [Hz]，不在函数内固定为 40 MS/s。
+        fin: 已知基波频率 [Hz]，供 sine_fit_metrics 使用。
+        v_fs: 满幅正弦峰值 [V]，用于白噪声等效 NSD 的 dBFS/Hz 参考。
+        lsb: 误差归一化步长 [V/LSB]，通常为目标 LSB20。
 
     Returns:
-        聚合字典，含 sine_fit_metrics 全部字段，另加：
-            err_mean_V / err_rms_V [V]   残差均值/均方根；
-            err_rms_LSB / err_max_LSB [LSB]   残差以 lsb 归一；
-            overflow_rate_adc2 / ra / ktc [无量纲]   各支路饱和率（0..1）；
-            residue_min_V / residue_max_V [V]   残差摆幅；
-            NSD_dBFS_Hz [dBFS/Hz]   噪声谱密度（以 v_fs/√2 为参考）。
-    Side effects: 无（纯函数，不改 res）。
+        包含 sine_fit_metrics 字段；另含 err_mean_V、err_rms_V [V]，
+        err_rms_LSB、err_max_LSB [LSB]。RMS 保留直流误差，不能写作 sigma。
+        overflow_rate_adc2/ra/ktc 为各支路置标志的样本比例；它们与最终
+        整数输出 clipped_low/clipped_high 不同，后者须由 CodeStream 单列。
+        residue_min/max_V 是 RA 放大前残差，NSD_dBFS_Hz 以 v_fs/sqrt(2)
+        归一白噪声等效密度，不是从某个 bin 幅度直接转换的结果。
+
+    Side effects:
+        不修改 res，也不剔除异常样本；调用方负责分开报告码域和有效带宽。
     """
     m = sine_fit_metrics(res.out, fs, fin)
     m.update(

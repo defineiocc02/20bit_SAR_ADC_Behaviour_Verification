@@ -1,41 +1,19 @@
-"""interleave_tracking.py -- 专利 [12] US 10,707,889 B1 的跟踪相位机制。
+"""交织 SAR 跟踪相位的独立机制基准，不是主链路校准器。
 
-============================================================================
-专利披露的机制（机制级转述，原文不入库；见 NOTICE 引用原则）
-============================================================================
-[12] 面向 time-interleaved SAR ADC：多颗 sub-ADC 交替经历
-ACQUISITION -> CONVERSION -> IDLE（或 TRACKING）三个相位，相位错开、
-顺序可随机化。IDLE 相位有两种用法：
+[12] US 10,707,889 B1 描述多 sub-ADC 的 ACQUISITION/CONVERSION/IDLE
+交错相位：IDLE 可复位中点、保持本颗上次结果，或用另一颗最近结果预置
+DAC；还给出三次结果 60%/30%/10% 加权及数字随机预失真的例子。
 
-* **reset-to-midscale**（传统做法）：转换结束后把电容阵列复位到中点，
-  重新进入采集时驱动器需提供 Q = A·C_IN（信号电平相对中点）的电荷；
-  复位的动机是快速信号下"保持上一拍"反而更差——对 Nyquist 输入，
-  保持前拍需 Q = 2·A·C_IN（[12] 背景段自己给出的算术）。
-* **TRACKING（本专利核心）**：IDLE 相位改为**跟踪**——用**另一颗
-  sub-ADC 的最近一次转换结果**（可叠加一个随机数字值做低-K 电容
-  介电吸收的预失真；也可对最近 N 次转换加权，披露例 N=3、权重
-  10%/30%/60%）更新本颗 DAC 的电容阵列。由于交织相位错开，"另一颗
-  最近一拍"距今只有一个复合采样周期，进入采集时电容上已保持在前
-  一样本电平附近 -> kickback 大幅减小 -> 驱动器/滤波器带宽可以放低
-  -> 采样噪声更低、驱动功耗更低。
+本模块只核算进入采集时的电荷 q=C_dac*abs(x-v_hold) [C]。转换结果
+采用理想输入加可选行为噪声，不含实际 SAR 判决、转换延迟分布或有限
+预充电建立，因此只能作受专利启发的机制对照。主 split 链使用
+pretracking.QuantizedPretracker，从按时间可用的实际 coarse code 估计，
+这里的理想输入结果不会进入生产预跟踪，也不能作为低频学习的运行时观测。
 
-============================================================================
-本实现的口径（勿夸大）
-============================================================================
-* 这是**机制级电荷核算模型**：核算"进入采集瞬间驱动器要补多少电荷"。
-  **带宽/噪声收益不按电荷比例换算**（第八份外部复核订正）：相对建立
-  约束下 f_min = ln(1/ε)/(2πT) 与电荷无关；绝对残差约束下电荷只进
-  对数项（见 ``filter_bw_relative`` / ``filter_bw_absolute``）。
-  电荷减少是带宽/噪声收益的**必要条件，不是换算系数**。本模块不模拟
-  SAR 位判决回路（转换结果 = 该 sub-ADC 采样时刻的理想输入 + 可选
-  量化噪声）。
-* 只对复合采样率 f_s 建模；sub-ADC 采样率 = f_s / n_adcs。
-* 参数分级：机制结构 = [披露]（[12]）；C_IN 默认锚到本仓库活跃采样
-  电容（[推导]，c_active_nominal）；随机化幅度、预失真幅度、权重
-  组合等数值全部 [假设]（[12] 只给了 N=3/10-30-60 这个例子）。
-* 本模块保留独立机制基准。主链路使用 pretracking.QuantizedPretracker
-  的带时间戳真实 SADC 判决与有限预充电状态，见 ADR 0012；本模块的理想
-  输入估计不会进入该生产路径。
+相位随机化是相邻顺序交换的项目假设，不是物理 18/8 自由集合分配器。
+电荷比不能直接写成带宽比或噪声比：相对建立的 f_min 与 q 无关；绝对
+残差约束下 q 只进入对数项。C_dac 默认锚到本项目单片电容；预失真/噪声
+幅度为假设，电荷核算不能预测器件驱动噪声、功耗或带宽收益。
 
 Examples:
 -------
@@ -81,7 +59,7 @@ TRACK_GRADES = {
 }
 
 
-# LEGAL_VALUES 契约：本模块的模式在入口显式拒绝非法取值（宁可拒绝不静默）。
+# 模式在入口验证；这些策略属于独立电荷基准，不是生产调度器选择。
 TRACK_MODES = ("reset_mid", "track_own", "track_other", "track_other_weighted")
 
 
@@ -100,9 +78,9 @@ class TrackPolicy:
             此处按"最近 -> 更早"排列）。
         predistortion_sigma_v: 叠加在跟踪值上的随机数字值（介电吸收预失真）
             的标准差 [V]；0 = 关闭。机制 [披露]，幅度 [假设]。
-        taud_noise_sigma_v: 转换结果里叠加的行为级量化噪声 sigma [V]；
-            0 = 理想转换（电荷核算不依赖它）。
-        randomize: 是否启用 [12] 的相位随机化（相邻两拍以 0.25 概率交换）。
+        taud_noise_sigma_v: 转换结果里叠加的假设高斯扰动 sigma [V]；
+            0 = 理想转换，不是实际 SAR 量化误差的位级求解。
+        randomize: 是否随机化相位；相邻两拍以 0.25 概率交换是本项目假设。
             False = 纯轮转（确定性时序，供精确期望的测试使用）。
     """
 
@@ -133,7 +111,7 @@ class TrackPolicy:
             if len(self.weights) < self.n_weighted:
                 raise ValueError(f"weights={self.weights} 至少要有 n_weighted={self.n_weighted} 个")
             w = np.asarray(self.weights[: self.n_weighted], dtype=float)
-            # 独立审查 2026-09-25：权重须为有限值
+            # 加权组合要求有限非负且总权重为正，避免 NaN 传播或零分母。
             if not np.all(np.isfinite(w)) or w.sum() <= 0 or np.any(w < 0):
                 raise ValueError(f"weights={self.weights} 必须有限、非负且不全为零")
         return self
@@ -141,22 +119,21 @@ class TrackPolicy:
 
 @dataclass
 class TrackRunResult:
-    """一次跟踪机制核算的输出。
+    """保存每个复合周期的电荷核算及来源信息。
 
     Attributes:
-        charge: ``(N,)`` float64 —— 每周期进入采集的 sub-ADC 从驱动器/滤波器
-            抽取的电荷 [C]，= c_dac·|x(t_n) − v_hold|。
-        v_hold: ``(N,)`` float64 —— 进入采集瞬间 DAC 保持的电压 [V]。
-        source_adc: ``(N,)`` int64 —— v_hold 的信息来源 sub-ADC 编号；
-            reset_mid 恒为 −1（无来源）。
-        source_age: ``(N,)`` int64 —— 来源结果距今的复合周期数；reset_mid 为 −1。
-        acquired_adc: ``(N,)`` int64 —— 本周期处于采集相的 sub-ADC 编号。
-        summary: 汇总标量（见 run() 返回说明）。
+        charge: (N,) 从输入驱动节点补入的电荷幅值 [C]，
+            等于 c_dac*abs(x(t_n)-v_hold)，不是有符号净电荷。
+        v_hold: (N,) 进入采集前的 DAC 预置/保持电压 [V]。
+        source_adc: (N,) 来源 sub-ADC 编号，复位/无历史时 -1；
+            加权模式仅记录最新贡献者，不代表全部来源列表。
+        source_age: (N,) 所记来源距今的复合周期数，缺省 -1。
+        acquired_adc: (N,) 本周期采集的 sub-ADC 编号，不是 slot 或 sample ID。
+        summary: 电荷均值 [C]、相同输入复位基线均值 [C] 和无量纲电荷比。
 
-    电荷 -> 带宽/噪声的换算**不在 summary 里**（第八份复核订正：旧
-    "带宽比=电荷比"量纲不成立）。需要换算时用
-    :meth:`bw_ratio_absolute` / :meth:`driver_noise_ratio_absolute`，
-    并显式给出 C_f 与绝对残差容差（绝对误差契约，电荷进对数项）。
+    Notes:
+        summary 不把电荷比转换为带宽/噪声比。辅助推导需显式输入滤波电容
+        和绝对容差；带宽要求还受信号频率和实际电路约束。
     """
 
     charge: np.ndarray
@@ -167,17 +144,20 @@ class TrackRunResult:
     summary: dict = field(default_factory=dict)
 
     def bw_ratio_absolute(self, c_f: float, v_err_max: float) -> float:
-        """绝对误差契约下（跟踪 vs 复位）的最低带宽比（[推导]）。
-
-        f_min(q) = max(0, ln(q/(C_f·v_err_max)))/(2π·T)，电荷进对数项；
-        两侧任一 q 低于阈值（无约束，f_min=0）时本比值无定义，返回 nan。
+        """按同一绝对建立容差估计跟踪/复位的最低带宽比。
 
         Args:
-            c_f: 滤波电容 [F]（[假设]，两侧相同）。
-            v_err_max: 采集节点绝对残差容差 [V]（[假设]）。
+            c_f: 两侧相同的滤波电容 [F]，调用方应保证有限且正。
+            v_err_max: 采集节点绝对残差容差 [V]，调用方应保证有限且正。
 
         Returns:
-            float: 带宽下界之比；任一侧无约束时 nan。
+            max(0,ln(q_track/(c_f*v_err_max))) 与复位侧对应量之比；共同的
+            2*pi*T 因子相消。复位侧无正带宽下界或电荷无效时返回 NaN；
+            跟踪侧低于阈值而复位侧受限时可返回 0。
+
+        Notes:
+            使用平均电荷代入单次恢复公式，仅作机制估算，不保证峰值残差或
+            目标带宽。此 helper 不执行独立参数校验，也不消费随机流。
         """
         q_t = float(self.summary.get("charge_mean", np.nan))
         q_r = float(self.summary.get("charge_reset_mean", np.nan))
@@ -194,70 +174,63 @@ class TrackRunResult:
         return a / b
 
     def driver_noise_ratio_absolute(self, c_f: float, v_err_max: float) -> float:
-        """绝对误差契约下的驱动噪声 rms 比 = sqrt(带宽比)（[推导]）。
+        """在相同白噪声和一阶滤波假设下取带宽比的平方根。
 
         Args:
-            c_f: 滤波电容 [F]（[假设]，两侧相同）。
-            v_err_max: 采集节点绝对残差容差 [V]（[假设]）。
+            c_f: 两侧相同的滤波电容 [F]，有限且正。
+            v_err_max: 相同采集节点绝对残差容差 [V]，有限且正。
 
         Returns:
-            float: 噪声比（sqrt(带宽比)；任一侧无约束时 nan）。
+            sqrt(bw_ratio_absolute) 的 RMS 噪声比；带宽比无定义时 NaN。
+            不是从电荷比直接开方，也不包含真实驱动器的非白噪声和信号带宽。
         """
         r = self.bw_ratio_absolute(c_f, v_err_max)
         return float(np.sqrt(r)) if np.isfinite(r) else float("nan")
 
 
 def filter_bw_relative(t_cycle: float, eps: float = 0.01) -> float:
-    """相对建立约束的最低滤波器带宽 [Hz]（[推导]，量纲自洽）。
+    """计算一阶相对建立约束对应的最低 3 dB 带宽 [Hz]。
 
-    一阶系统在 t_cycle 内把初始扰动建立到相对比例 eps：
-    exp(-T/(R_f C_f)) <= eps  ->  f_3dB >= ln(1/eps)/(2π·t_cycle)。
-
-    **电荷 q 不进入此式**：相对建立条件与扰动大小无关（第八份外部
-    复核订正；旧版 `kickback_filter_bw` 的 q/(T·a_tol) 量纲为 F/s，
-    不是 Hz，已撤回）。
+    exp(-T/(R_f*C_f))<=eps 给出 f_min=ln(1/eps)/(2*pi*T)。
+    电荷不进入相对误差比例；减小初始电荷不自动减小这个带宽下界。
 
     Args:
-        t_cycle: 建立可用时间（复合采样周期）[s]。
-        eps: 相对建立残差目标 [无量纲]。
+        t_cycle: 可用建立时间 T [s]，有限且正。
+        eps: 目标相对残留比例，无量纲，严格位于 (0,1)。
 
     Returns:
-        float: 最低 3dB 带宽 [Hz]。
+        一阶模型的最低 3 dB 带宽 [Hz]，不含信号通带等其他约束。
 
     Raises:
-        ValueError: 非正输入。
+        ValueError: 非法建立时间或残留比例。
     """
-    # 独立审查 2026-09-25：t_cycle 须为有限正值
+    # 恢复指数需要有限正时间，eps 则是严格小于 1 的比例。
     if not np.isfinite(t_cycle) or t_cycle <= 0 or not 0 < eps < 1:
         raise ValueError(f"非法输入: t={t_cycle}, eps={eps}（须为有限值）")
     return float(np.log(1.0 / eps) / (2.0 * np.pi * t_cycle))
 
 
 def filter_bw_absolute(q_kick: float, c_f: float, v_err_max: float, t_cycle: float) -> float:
-    """绝对误差约束的最低滤波器带宽 [Hz]（[推导]，量纲自洽）。
+    """计算一次电荷扰动在绝对残差约束下的最低 3 dB 带宽。
 
-    电荷 q 在滤波电容上造成初始扰动 ΔV0 = q/C_f，要求一个周期后
-    绝对残差 ΔV0·exp(-T/(R_f C_f)) <= v_err_max：
-    f_3dB >= max(0, ln(q/(C_f·v_err_max))) / (2π·t_cycle)。
-
-    **电荷进对数项，不成立 f ∝ q**：q 低于 C_f·v_err_max 时无带宽
-    约束（返回 0）；q 每加倍，f_min 只增加 1/(2πT)·ln2（第八份
-    外部复核订正）。注意这只是单次扰动恢复约束，不含信号带宽等
-    其他要求，不可直接当设计带宽用。
+    初始滤波节点扰动为 q_kick/c_f [V]；要求经过 T 后不大于 v_err_max，
+    f_min=max(0,ln(q_kick/(c_f*v_err_max)))/(2*pi*T) [Hz]。
+    电荷只在对数中出现，不成立 f_min 与电荷成正比。
 
     Args:
-        q_kick: 单次采集的 kickback 电荷 [C]。
-        c_f: 滤波电容 [F]（固定，噪声-负载权衡的另一自由度）。
-        v_err_max: 采集节点允许的绝对残差 [V]。
-        t_cycle: 建立可用时间 [s]。
+        q_kick: 单次采集电荷幅值 [C]，有限且正。
+        c_f: 滤波电容 [F]，有限且正。
+        v_err_max: 采集节点允许的绝对残差 [V]，有限且正。
+        t_cycle: 可用建立时间 T [s]，有限且正。
 
     Returns:
-        float: 最低 3dB 带宽 [Hz]（q 低于阈值时为 0）。
+        最低 3 dB 带宽 [Hz]；q_kick<=c_f*v_err_max 时返回 0。
+        仅是单次扰动恢复下界，不能直接作为完整滤波器设计带宽。
 
     Raises:
-        ValueError: 非正输入。
+        ValueError: 任一参数非有限或非正。
     """
-    # 独立审查 2026-09-25：各参数须为有限正值
+    # 对数自变量必须由有限正的电荷、电容和电压组成。
     if (
         not np.isfinite(q_kick)
         or q_kick <= 0
@@ -278,35 +251,33 @@ def filter_bw_absolute(q_kick: float, c_f: float, v_err_max: float, t_cycle: flo
 
 
 def noise_ratio_from_bw(bw: float, bw_ref: float) -> float:
-    """平坦噪声经一阶 RC 的输出 rms 噪声比 = sqrt(bw/bw_ref)（[推导]）。
-
-    一阶 RC + 平坦输入噪声谱的输出噪声 = en·sqrt(π/2·f_3dB)，
-    因此噪声比只依赖带宽比（**不**依赖电荷比）。
+    """按同一平坦输入噪声和一阶 RC 模型计算输出 RMS 噪声比。
 
     Args:
-        bw: 待评带宽 [Hz]。
-        bw_ref: 参照带宽 [Hz]。
+        bw: 待评 3 dB 带宽 [Hz]，有限且非负。
+        bw_ref: 参照 3 dB 带宽 [Hz]，有限且正。
 
     Returns:
-        float: 噪声 rms 比（sqrt(带宽比)）。
+        sqrt(bw/bw_ref)，因为一阶滤波后的电压噪声 RMS 为
+        e_n*sqrt(pi*bw/2)。不依赖电荷比，也不证明器件噪声是白噪声。
 
     Raises:
-        ValueError: 负输入。
+        ValueError: 非有限或超出上述范围的带宽。
     """
-    # 独立审查 2026-09-25：带宽须为有限值
+    # 允许待评带宽为零；参照带宽必须为有限正值。
     if not np.isfinite(bw) or bw < 0 or not np.isfinite(bw_ref) or bw_ref <= 0:
         raise ValueError(f"非法输入: bw={bw}, bw_ref={bw_ref}（须为有限值）")
     return float(np.sqrt(bw / bw_ref))
 
 
 class InterleavedSAR:
-    """n_adcs 颗 sub-ADC 的交织时序 + IDLE 相位处置的电荷核算（[12]）。
+    """独立的多 sub-ADC 预置机制核算器，不参与最终 ADC 码重构。
 
     Attributes:
-        cfg: 模型配置（只用 fs 与 c_active_nominal 锚点）。
-        policy: 跟踪策略（TrackPolicy）。
-        c_dac: 每颗 sub-ADC 的 DAC 输入电容 [F]。
-        n_adcs: sub-ADC 数量（[披露] 例 3 或 4）。
+        cfg: 只使用 fs 和单片电容锚点，不读取 slice 失配真值。
+        policy: IDLE 预置策略。
+        c_dac: 每 sub-ADC 在输入节点的电容 [F]。
+        n_adcs: 独立机制基准中的 sub-ADC 数，不是生产 18-slice 池的数量。
     """
 
     def __init__(
@@ -319,20 +290,20 @@ class InterleavedSAR:
         seed: int = 0,
         c_dac: float | None = None,
     ) -> None:
-        """绑定时序、策略与输入。
+        """绑定机制基准的复合时钟、策略和理想激励。
 
         Args:
-            cfg: 模型配置；fs 为复合采样率 [Hz]。
-            n_adcs: sub-ADC 数量（>=2；[披露] 例 3/4）。
-            policy: IDLE 相位策略；非法取值在构造时即拒绝。
-            input_fn: ``t -> x``，复合采样时刻的输入 [V]。
-            n_cycles: 仿真周期数 [无量纲]。
-            seed: 随机源（相位随机化 + 预失真噪声）。
-            c_dac: 每 sub-ADC 的 DAC 电容 [F]；None = 用
-                ``c_active_nominal()/n_active`` 锚定（[推导]）。
+            cfg: fs 为复合采样率 [Hz]，每 sub-ADC 平均采样率为 fs/n_adcs。
+            n_adcs: sub-ADC 数量，至少 2；专利示例为 3 或 4。
+            policy: IDLE 预置策略，构造时验证模式和加权组合。
+            input_fn: t->x(t)，t [s]，输出 [V]；支持标量广播或 (N,) 记录。
+            n_cycles: 复合采样周期数 N。
+            seed: 相位交换、预失真与行为转换噪声的随机种子。
+            c_dac: 每 sub-ADC 电容 [F]；None 使用
+                cfg.c_active_nominal()/cfg.n_active，不等同 18 片总池电容。
 
         Raises:
-            ValueError: n_adcs < 2。
+            ValueError: n_adcs<2，或策略模式/加权组合非法。
         """
         if n_adcs < 2:
             raise ValueError(f"n_adcs={n_adcs} 必须 >= 2（交织至少两颗）")
@@ -346,23 +317,21 @@ class InterleavedSAR:
 
     # ------------------------------------------------------------------
     def run(self) -> TrackRunResult:
-        """逐周期推进交织时序并核算 kickback 电荷。
+        """按复合周期先选择历史预置，再核算本次采集电荷。
 
-        时序（相位错开的流水线，[12] FIG.5B/6 的结构）：每周期恰好一颗
-        sub-ADC 处于采集相；顺序按 (n mod n_adcs) 轮转，并按 [12] 的
-        随机化选项以概率 0.25 交换相邻两拍的顺序（随机化影响"谁是最近
-        一拍"，从而影响 track_other 的信息来源——这正是专利要它工作的
-        场景）。
+        每周期一颗 sub-ADC 采集。轮转序列可按项目假设以 0.25 概率相邻交换；
+        本周期 x[i]+行为噪声在本周期核算结束后写入历史，因此下一周期才可用。
+        这是一步延迟的理想机制模型，没有模拟位判决完成时间或忙状态。
 
         Returns:
-            TrackRunResult: 逐周期数组 + summary：
-                ``charge_mean``（平均 kickback 电荷 [C]）、
-                ``charge_ratio_vs_reset``（对 reset_mid 基线的电荷比）。
-                带宽/噪声换算不在此处（见 TrackRunResult 的
-                ``bw_ratio_absolute``，第八份复核订正后口径）。
+            TrackRunResult；charge_mean、charge_reset_mean 为电荷幅值均值 [C]，
+            charge_ratio_vs_reset 为同一输入对 reset_mid 的比值，不是降噪系数。
+            reset 基线直接用 c_dac*abs(x) 解析计算，无须重新抽随机数。
 
-        Raises:
-            ValueError: policy 非法（由 validated() 抛出）。
+        Side effects:
+            每次调用重建本次历史和组序列，但继续消费 self.rng。历史最多保存
+            8 次结果；加权模式使用其中可用的其他 ADC 结果，缺历史时复位中点。
+            这里的理想 xhat 仅供电荷基准，不允许进入运行时校准/低频学习接口。
         """
         pol = self.policy
         n = self.n_cycles

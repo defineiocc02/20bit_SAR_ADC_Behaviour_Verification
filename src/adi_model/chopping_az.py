@@ -1,14 +1,19 @@
-"""Sample-domain chopping-assisted AZ research entry, disabled by default.
+"""样本域斩波辅助 AZ（CAAZ）研究入口，默认关闭。
 
-C32.1 Fig.6 discloses even-cycle AZ sampling, odd-cycle hold and pair difference.
-The 40 MS/s -> 20 MS/s nonoverlapping readout is this project's explicit choice;
-the paper's 6 MS/s headline does not resolve its raw/effective rate convention.
-AZ voltage amplitudes, hold retention and transfer mismatch here are ASSUMED.
-Source: Wang et al., VLSI 2025 C32.1, DOI
-10.23919/VLSITechnologyandCir65189.2025.11075015, Figs. 5-6. The pair readout
-uses the disclosed even-minus-odd convention. A demodulate-then-average view is
-an equivalent expression for these aligned pairs, not a separate source block.
-No FGA/CP-FIA transistor, dynamic chopper or 1/f circuit transfer is implemented.
+信号链顺序为：整个 ADC 输入按 raw 样本交替极性 -> RA 输出误差注入 ->
+RA 钳位/ADC2 量化 -> 每个 raw 完整位权重构 -> 按归属配对读出。不可先
+平均模拟真值再量化，否则会隐藏逐 raw 的失配、溢出和量化影响。
+
+C32.1 Figs.5-6 披露偶数更新 AZ、奇数保持、偶减奇的机制。若同一份 AZ
+误差 a_k [RA 输出 V] 被两次等增益传递，pair 差分中的共同项相消；保持
+rho 和奇次传递 r 不匹配时，线性 RA 输出等效残留为 (1-rho*r)*a_k/2。
+转换增益、非线性、裁剪和码量化仍可破坏输入等效抵消。
+
+raw 40 MS/s -> 非重叠 pair 20 MS/s 是本项目明确选择；文献 6 MS/s
+标题未唯一说明 raw/effective 口径。AZ 幅度、保持和传递差异均为假设，
+没有用测得 4.3 dB 反推标量。本模型与 ra.py 的旧 AZ 噪声倍率分开，配对
+模式拒绝将两者叠加。没有 FGA/CP-FIA 晶体管、连续斩波或 1/f 电路传递。
+来源：Wang 等，VLSI 2025 C32.1，DOI 10.23919/VLSITechnologyandCir65189.2025.11075015。
 """
 
 from __future__ import annotations
@@ -26,26 +31,21 @@ from .sim import SimResult
 
 @dataclass(frozen=True)
 class ChoppingAZParameters:
-    """Research controls; all error amplitudes are RA-output-equivalent volts.
-
-    mode: off preserves the old raw readout; baseline has no added AZ sample
-    noise but uses matched pair averaging; conventional_az resamples each raw
-    cycle; chopping_assisted chops the complete ADC input and holds even AZ
-    noise for odd conversion. post_az_offset_v is an explicit residual error,
-    not a claimed model of an offset- or flicker-cancellation circuit.
+    """显式研究控制；所有误差幅度均在 RA 输出节点定义。
 
     Args:
-        mode: Explicit research mode; default off preserves ordinary raw output.
-        az_noise_rms_v: Added AZ sample RMS at the RA output [V]. Independent
-            ASSUMED source, not inferred from the paper's 4.3 dB measurement.
-        post_az_offset_v: Constant post-AZ RA-output residual [V].
-        odd_hold_retention: Held even-sample amplitude retained in odd [0, 1];
-            available only for chopping_assisted.
-        odd_transfer_ratio: Odd/even RA-output error transfer ratio [unitless];
-            available only for chopping_assisted.
+        mode: off 保留普通 raw 输出；baseline 无新增 AZ 噪声、只做配对平均；
+            conventional_az 每次 raw 独立采 AZ 噪声并做配对平均；
+            chopping_assisted 对完整 ADC 输入交替极性，偶数刷新、奇数保持
+            同一份 AZ 误差，再对重构码偶减奇。均不从模拟输入真值估计误差。
+        az_noise_rms_v: 新增 AZ 采样误差的 RA 输出 RMS [V]；独立假设源，
+            不是外部输入等效噪声，也不是从论文 4.3 dB 测量拟合的系数。
+        post_az_offset_v: AZ 后的常量残余 [RA 输出 V]，不是失调消除电路模型。
+        odd_hold_retention: 奇次保持偶次误差的比例 rho，范围 [0,1]；仅 CAAZ。
+        odd_transfer_ratio: 奇/偶误差传递比 r，无量纲；仅 CAAZ，校验仅要求有限。
 
     Side effects:
-        None. Validation is explicit and occurs before a simulation.
+        参数不可变；显式 validate 在生成数据前拒绝非法或无效非默认控制。
     """
 
     mode: str = "off"
@@ -55,13 +55,17 @@ class ChoppingAZParameters:
     odd_transfer_ratio: float = 1.0
 
     def validate(self) -> None:
-        """Reject undefined modes and nonfinite controls before generating data.
+        """在生成样本前拒绝未知模式、非有限值和不生效的非默认参数。
 
         Returns:
-            None; raises ConfigError on an undefined or inactive nondefault input.
+            None；成功不代表物理参数已由器件测量确认。
+
+        Raises:
+            ConfigError: 模式未知，RMS 为负，保持比例越界，或关闭/不适用模式
+                下仍请求新增 AZ 噪声、保持/传递控制或残余误差。
 
         Side effects:
-            None; no random stream is consumed.
+            不修改参数、不消费任何随机流。
         """
         if self.mode not in ("off", "baseline", "conventional_az", "chopping_assisted"):
             raise ConfigError("unknown sampled-AZ research mode")
@@ -87,28 +91,28 @@ class ChoppingAZParameters:
 
 @dataclass(frozen=True)
 class ChoppingAZResult:
-    """Separate the N-raw capture from its N/2 pair readout and error flags.
+    """同时保留 N 个原始结果和独立的 raw/pair 输出视图。
 
     Attributes:
-        raw: Unfiltered raw physical record, including RA/ADC2 overflow flags.
-        raw_words: Frozen bit-weight reconstruction before pair arithmetic.
-        output_code: Offset-binary integer output; raw length in off mode.
-        output_v: Output code bin centers [input-referred V].
-        prequantized_output_v: Exact average/difference of raw bin centers [V].
-        output_time_s: Raw aperture time or pair aperture midpoint [s].
-        source_sample_ids: One or two raw IDs for every retained output.
-        invalid: OR of raw analog overflow and digital clipping within an output.
-        raw_sample_rate_hz: Raw conversion frequency [Hz].
-        output_sample_rate_hz: Raw rate when off; half raw rate for paired modes.
-        chop_sign: Actual aperture sign (+1/-1) for every raw conversion.
-        az_refresh: True where the explicit sampled-AZ source is refreshed.
-        az_sample_error_v: Held/refreshed AZ error after odd transfer [RA-output V].
-        injected_ra_error_v: Total explicit error entering RA clipping [V].
-        mode: Effective explicit research mode.
+        raw: N 次完整 ADC 的 SimResult，保留 RA/ADC2 模拟溢出标志。
+        raw_words: 每次 raw 冻结位权重构后的 CodeStream，配对算术之前。
+        output_code: offset-binary 整数码；off 长 N，其余长 M=N/2。
+        output_v: 对应输出码的 bin 中心 [外部输入等效 V]。
+        prequantized_output_v: raw bin 中心的精确平均/半差 [输入等效 V]，
+            用于分离最终配对再量化误差，不是未量化模拟真值。
+        output_time_s: off 为 raw 孔径时刻，pair 为两次孔径中点 [s]。
+        source_sample_ids: off 为 (N,1)，pair 为 (M,2) 的实际 raw 样本 ID。
+        invalid: 输出内任一 raw 模拟溢出/数字裁剪的 OR，保留全部输出位置。
+        raw_sample_rate_hz: 原始转换速率 [Hz]。
+        output_sample_rate_hz: off 为 raw 速率，其余为 raw/2 [Hz]。
+        chop_sign: (N,) 每次 raw 的实际输入极性 +1/-1。
+        az_refresh: (N,) 显式 AZ 源是否刷新。
+        az_sample_error_v: (N,) 更新/保持并应用奇次传递后的误差 [RA 输出 V]。
+        injected_ra_error_v: (N,) 进入 RA 钳位前的总显式误差 [RA 输出 V]。
+        mode: 实际研究模式。
 
     Side effects:
-        Array diagnostics are read-only. The owned raw record retains its
-        existing SimResult semantics; no raw samples are discarded.
+        输出诊断数组只读；raw 保留 SimResult 原有语义，不丢弃失败样本。
     """
 
     raw: SimResult
@@ -131,26 +135,29 @@ class ChoppingAZResult:
 def pair_readout(
     words: CodeStream, *, difference: bool
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-    """Combine exact offset-binary bin centers using integer pair arithmetic.
+    """用整数码的精确 bin 中心执行配对，再量化为同位宽输出。
 
     Args:
-        words: Even-length CodeStream, integer words in [0, 2**B), B in [1, 30],
-            finite positive v_fs [V], and matching Boolean clipping flags.
-        difference: True for even-minus-odd; False for ordinary pair averaging.
+        words: 偶数长度 (N,) CodeStream；B=output_bits 在 [1,30]，码为
+            [0,2**B) 的 offset-binary 整数。v_fs 是有限正输入峰值 [V]，
+            三类 raw 标志须为同形布尔数组。
+        difference: True 为偶减奇再除二；False 为普通配对平均。
 
     Returns:
-        Read-only (offset-binary code, decoded bin-center V, exact prequantized
-        pair V, invalid). Averaging uses floor((ke+ko+1)/2); difference uses
-        floor((ke-ko+2**B)/2). Invalid is the OR of all raw clipping flags.
-        Unsigned public words are widened before subtraction to prevent wrap.
+        四个只读 (N/2,) 数组：(offset-binary code, bin 中心输入等效 V,
+        精确配对电压 V, invalid)。设偶/奇码 ke/ko、M=2**B：平均输出为
+        floor((ke+ko+1)/2)，差分输出为 floor((ke-ko+M)/2)。常数项来自
+        midrise bin 中心及 offset-binary 零点，不是随意增加的舍入偏置。
+        无符号码先扩为 int64 再减，避免无符号回绕；invalid 为 pair 内
+        所有 raw 模拟溢出及数字裁剪标志的 OR，不过滤异常样本。
 
-    Side effects:
-        None. Does not infer IDs, epochs, or AZ ownership; the fresh-record
-        runner validates sample ownership before invoking this arithmetic.
+    Raises:
+        ValueError: 长度、位宽、码制/范围、满幅或标志形状/类型非法。
 
-    Source:
-        C32.1 Fig. 6 pair difference; midrise bin-center requantization is this
-        project's integer readout choice. No invalid sample is filtered out.
+    Notes:
+        本函数只做码算术，不推断样本 ID、epoch 或 AZ 存储归属；fresh
+        runner 在调用前检查连续偶数起始 ID。来源为 C32.1 Fig.6 的偶减奇
+        机制，midrise 再量化是本工程合同。
     """
     code = np.asarray(words.code)
     if code.ndim != 1 or len(code) < 2 or len(code) % 2:
@@ -182,7 +189,11 @@ def pair_readout(
 
 
 def _fresh_pair_ids(raw: SimResult, n_samples: int) -> np.ndarray:
-    """Validate one even-first 32-bit-ID epoch; do not silently regroup gaps."""
+    """检查 fresh 记录属于连续偶数起始的 32 位 raw ID 序列。
+
+    按模 2**32 验证逐次加一，允许数值回绕；不把缺样、错序或奇数起始
+    自动重排成新 pair。此检查不提供跨调用的 epoch/存储代状态。
+    """
     ids = np.asarray(raw.sample_id)
     if (
         ids.shape != (n_samples,)
@@ -200,10 +211,10 @@ def _fresh_pair_ids(raw: SimResult, n_samples: int) -> np.ndarray:
 
 
 class _SampleIndexedChop:
-    """Aperture-only waveform: t1 and t2 of each raw sample share its sign.
+    """仅在各 raw 样本孔径处施加极性，两次孔径 t1/t2 使用同一符号。
 
-    This deliberately uses sample ownership, not floor/ceil of arbitrary time.
-    It is not a continuous chopper-switch waveform and cannot enter dynamics.
+    依靠样本所有权索引，不按任意时间的 floor/ceil 猜测相位；因此不能
+    用作连续时间开关波形或传入动态斩波电路求解器。
     """
 
     def __init__(self, source, signs):
@@ -253,41 +264,40 @@ def run_caaz_pipeline(
     az_rng: np.random.Generator | None = None,
     **pipeline_kwargs,
 ) -> ChoppingAZResult:
-    """Run the full raw ADC, inject pre-clip error, then pair reconstructed codes.
+    """先运行完整 raw ADC 和逐码重构，再做有归属的成对读出。
 
     Args:
-        cfg: Existing ADC configuration; fs counts raw conversions [Hz].
-        input_fn: Voltage callable evaluated at owned raw aperture times [s].
-        n_samples: Positive raw conversion count; paired modes require even N.
-        az: Explicit mode and ASSUMED RA-output-equivalent error controls;
-            None selects default off parameters.
-        post_az_error_v: Optional finite raw-length RA-output error stream [V].
-            A defined residual perturbation, not a device-level 1/f model.
-        az_rng: Separate sampled-AZ random generator. Off/baseline do not
-            consume it; conventional_az and chopping_assisted draw N innovations.
-        **pipeline_kwargs: Existing run_pipeline chip/state/rng/scheduler/pool
-            inputs. State may carry independently trained frozen bit weights.
+        cfg: 现有 ADC 配置；fs 是 raw 转换率 [Hz]，不是 pair 输出率。
+        input_fn: 外部输入电压函数，按归属明确的 raw 孔径时间 [s] 求值。
+        n_samples: 正整数 raw 数 N；非 off 模式要求偶数。
+        az: 显式模式及假设的 RA 输出误差参数；None 等价默认 off。
+        post_az_error_v: 可选 (N,) 有限的 AZ 后误差 [RA 输出 V]；
+            是调用方定义的扰动，不自动成为器件 1/f 或失调消除模型。
+        az_rng: 独立的 AZ 随机流；off/baseline 不消费，另两模式均抽 N 个
+            创新样本以便同流比较，CAAZ 只使用偶数创新，奇数创新未被采入。
+        **pipeline_kwargs: run_pipeline 的 chip/state/rng/scheduler/pool 参数；
+            state 可包含独立训练并冻结的位权，不能在留出数据上重拟合。
 
     Returns:
-        ChoppingAZResult preserving every raw word/flag and a separate pair
-        output. Fresh paired records validate continuous even-first IDs; CAAZ
-        applies + to even and - to odd at both SADC/RDAC apertures. Nonoff modes
-        emit N/2 codes, pair midpoints, and fs/2 output rate. The two-tap signal
-        response has gain cos(pi*fin/fs) and aliasing above output Nyquist.
+        ChoppingAZResult，保留每个 raw 码和标志。CAAZ 的每个 raw 同时在
+        SADC/RDAC 孔径按样本 ID 取 +/− 极性，误差在 RA 钳位前注入。
+        非 off 输出 N/2 个码、pair 中点时间及 fs/2 速率。两点读出的信号
+        幅频响应为 abs(cos(pi*fin/fs))；高于 pair Nyquist 的信号会混叠。
+        基线也做同样两点平均，需分开评价平均降噪和相关 AZ 误差相消。
 
     Side effects:
-        Consumes supplied RNGs only for their active physical sources. Existing
-        pool electrical state is reset by run_pipeline. No Config field, ADC2
-        window, noise budget or ordinary default is modified. Off delegates
-        unchanged; paired modes reject unimplemented dynamic-chopper, previous
-        phenomenological AZ/flicker, and incompatible phase-noise combinations.
-        Independent aperture sampling noise remains supported; this is not a
-        continuous chopper waveform. Streaming across separate calls is absent.
+        使用启用噪声源的 RNG；run_pipeline 重置 pool 电气状态而保留制造
+        电容。不更改 Config、ADC2 窗口、旧噪声预算或普通默认输出。
+        off 直接委托普通主链。此 fresh runner 不连续继承跨调用的配对状态。
 
-    Source:
-        C32.1 Figs. 5-6 disclose full-input chop and even-AZ/odd-hold paired
-        difference. Nonoverlap raw40/pair20 is an ENGINEERING_CHOICE; amplitudes,
-        retention and transfer ratio are ASSUMED, not a 4.3 dB fitted scalar.
+    Raises:
+        ConfigError: 非法参数/长度/显式误差流，重复 RA 误差入口，或非 off
+            记录的 ID 归属不合法。非 off 还拒绝未实现的动态斩波、旧 AZ、
+            flicker、KTC 及若干切片/驱动动态组合；独立孔径采样白噪声可保留。
+
+    Notes:
+        [C32.1 Figs.5-6] 支持输入斩波、偶更新/奇保持及偶减奇。raw40/pair20
+        是项目选择，噪声幅度、rho/r 为假设；这些条件不是原芯片同条件复现。
     """
     az = ChoppingAZParameters() if az is None else az
     az.validate()
@@ -314,8 +324,8 @@ def run_caaz_pipeline(
             raise ConfigError("sampled-AZ research modes require an even raw sample count")
         if az.mode in ("conventional_az", "chopping_assisted"):
             generator = np.random.default_rng(cfg.seed + 120001) if az_rng is None else az_rng
-            # Same independent innovations for matched conventional/CAAZ tests.
-            # CAAZ only samples the even innovations; odd ones are unobserved.
+            # 共享同一创新序列可比较相同物理假设；CAAZ 只采偶次，奇次重用保持值。
+            # 仍抽 N 个数，保持 conventional/CAAZ 的随机流消耗一致。
             innovation = generator.normal(0, az.az_noise_rms_v, n_samples)
             if az.mode == "conventional_az":
                 refresh[:] = True
@@ -331,6 +341,7 @@ def run_caaz_pipeline(
             _SampleIndexedChop(input_fn, signs) if az.mode == "chopping_assisted" else input_fn
         )
         raw = run_pipeline(cfg, waveform, n_samples, ra_output_error_v=injected, **pipeline_kwargs)
+    # 每次 raw 先独立完成位权重构/最终码量化，再配对；保留逐 raw 的异常标志。
     words = raw.to_codes()
     invalid_raw = words.analog_overflow | words.clipped_low | words.clipped_high
     ids = np.arange(n_samples) if raw.sample_id is None else raw.sample_id

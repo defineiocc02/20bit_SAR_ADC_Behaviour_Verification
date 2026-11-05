@@ -1,39 +1,15 @@
-"""sadc.py -- 第一级粗量化器 SADC（小、快的独立量化器）。
+"""独立SADC的静态阈值行为模型。
 
-============================================================================
-物理模型与文献出处
-============================================================================
-论文 [00]："The quantizer is fully separated from the residue generating
-DAC (RDAC)"；"the quantizers are built out of one slice DAC. The
-matched-quantizer sDAC with the RDAC allows >11b matching"（PPT p.9 写
-">12b AC matching" —— 取更严的 12b 作门限，见 config.validate）。
+在SADC采样输入节点[V]对已声明阈值数组作searchsorted，得到0..n_code-1
+粗码；标准工厂n_code=2**b1，显式阈值则为len(thresholds)-1。这是flash式行为替代，不含逐位SAR时序。7bit对照、9bit候选与dither
+已知端口是不同概念；实际构造统一经build_first_stage_quantizer。
 
-架构读数见 ADR 0003：历史 7b 配置只作候选/回归对照；9b 决策与 dither
-范围是独立概念。`Config.paper_literal()` 保留 512 个实际决策区间，不能把
-dither 码宽加到决策信息位数上。未披露的电容数量和后端参数仍为假设。
+采样热噪声/响应误差由sampler或生产输入网络提供，噪声和物理负载使用c_sadc；
+sadc_cap_ratio是保留且不活跃的参数。粗码误差只有在后级有足够残差余量时才能
+被重构吸收；越过SADC输入范围时粗码钳位，不能保证RA/ADC2仍然合法。
 
-* flash 式行为模型：阈值数组 + searchsorted 向量化转换，无逐位 SAR 时序。
-* **SADC 的误差不会直接叠加到输出**（[09]1.3 的机制）：粗码误差把残差
-  推出名义 bin，只要 vra 仍在 ADC2 窗口内（= (ADC2 余量)/G = 4.6875 mV
-  ≈ 0.1·Δ1），输出完全不受影响 —— 定量验收见 experiments.stage19 验收②。
-* 量化器自身的采样 kT/C 噪声与建立误差**不在本模块**：
-  噪声在 sampler.py（x_S 通路），建立在 pipeline.SlicePool.acquire_quantizer
-  （独立量化器 sDAC，cfg.sadc_cap_ratio × 活跃电容）。
-
-单位契约：thresholds / 输入 x / 输出均为 [V] 与无量纲码（int64）。
-
-参数来源分级：
-    b1                           [假设-架构读数]（PPT 未给位数；由两条披露
-                                 联立取值，见 docs/adr/0003-stage-1-resolution.md）
-    stage1_reading               [披露]（论文原句，见 provenance.PARAM_GRADES）
-    sadc_offset                  [假设]（默认 0；stage19 验收②扫描其窗口）
-    sadc_rdac_gain_mismatch=1e-4 [假设]（对应 13.3b matching，满足 >12b）
-
-契约与不变量：
-    * 阈值数组每颗虚拟芯片生成一次（sadc_mismatch_enable 时由 rng 播种
-      cfg.seed+977），之后只读 —— 三条底线之"物理失配固定"的组成部分。
-    * 显式 thresholds 是名义输入；所有拓扑统一施加失调、增益和阈值失配。
-      Split 的增益中心取 DAC 名义端点中点。runner 不得再次施加非理想性。
+阈值及输入单位为SADC节点V；粗码无量纲。阈值失调/增益/非线性每芯片构造一次，
+不是原芯片量化器电路的晶体管或动态验证。
 """
 
 from __future__ import annotations
@@ -71,7 +47,7 @@ class SADC:
     """粗量化器：N+1 个阈值 -> N 个码仓的 flash 式转换。
 
     Attributes:
-        thresholds: (n_code+1,) 严格单调的实际阈值 [V]，构造后只读。
+        thresholds: (n_code+1,)严格单调实际阈值[SADC节点V]，convert不改写。
         n_code:     码仓数 = 2^b1（显式阈值模式 = len(thresholds)-1）。
     """
 
@@ -136,7 +112,7 @@ class SADC:
         Args:
             x: 输入电压 [V]（SADC 采样口径，含量化器通路误差时由调用方加）。
         Returns:
-            (len(x),) int64 码，范围 [0, n_code-1]，越界钳位到端点码仓。
+            与x形状相同的int64粗码，正常runner为(N,)；越界钳位到0或n_code-1。
         Side effects: 无（阈值只读）。
         """
         v = np.asarray(x, dtype=float)
@@ -172,27 +148,16 @@ def units_per_first_stage_step(cfg: Config, dac: SplitDacLike | None = None) -> 
 
 
 def build_first_stage_quantizer(cfg: Config, dac: SplitDacLike | None = None) -> SADC:
-    """构造第一级量化器的**唯一入口**。
-
-    pipeline 与 sim_split 必须都调用本函数。历史教训（外部审计 B16）：
-    两条主循环各自推导阈值步长，b1=6 时 ``n_sub*step0`` 与 ``cfg.delta1``
-    数值巧合相等因而长期掩盖了分歧；一旦按论文把第一级读到 9b，
-    两者相差 8 倍，退化等价测试立刻失败。
-
-    口径：
-        * 提供 ``dac``（分段拓扑）时，阈值对齐 **DAC 自己的名义栅格**：
-          ``thr[c] = v_lo + c * (units_per_d1 * step0)``。这样
-          ``k_eq = coarse * units_per_d1`` 恰好落在阈值上，残差被限制在
-          ``[0, units_per_d1*step0)`` 之内（无噪声/失配/饱和时）。
-        * 不提供 ``dac``（等权拓扑）时，阈值就是理想栅格
-          ``-v_fs + c * cfg.delta1``。
+    """构造与当前名义RDAC栅格对齐的独立SADC。
 
     Args:
-        cfg: 全局配置。
-        dac: 可选的分段 DAC 实例。
+        cfg: 决策位数及SADC非理想配置。
+        dac: 可选split名义接口；不读取真实电容来生成数字判决基准。
 
     Returns:
-        配置好名义与实际阈值的 :class:`SADC`，全部非理想性已施加一次。
+        SADC。split阈值thr[c]=v_lo+c*(units_per_decision*ΔDAC)，
+        无饱和/失配时k=coarse*units_per_decision对齐该阈值；unary使用Δ1。
+        输入dither或SADC非理想可把残差推出名义bin，仍需单独检查RA/ADC2余量。
     """
     if dac is None:
         return SADC(cfg)

@@ -1,44 +1,24 @@
-"""ra.py -- 残差放大器（RA）：电荷一致增益、输出噪声、饱和。
+"""共享残差放大器：残差电压增益、孔径输出噪声和独立摆幅检查。
 
-============================================================================
-物理模型与文献出处
-============================================================================
-论文 [00]：RA 是共享的（PPT p.11 "Shared residue amplifier, 40% of ADC
-power consumption"），GMR + OTA 架构、带 auto-zero（PPT p.34-35：消
-offset/漂移、噪声代价 -1.6 dB、ADC2 动态采样带宽 +1.3 dB —— 这两个 dB
-电路未复现；下述噪声倍率仅作现象预算，见适用域）。行为模型取电荷守恒口径：
+输入 residue 是 RDAC 顶板残差 [V]，不是外部输入或 ADC2 码；输出 vra 是
+RA 输出/ADC2 输入节点电压 [V]。电荷一致增益 G[n]=C_signal[n]/C_feedback_true
+由相同活动物理电容决定。采样掩码使存储信号变为 alpha*x 时，外部输入
+信号传递为 G*alpha，不能把它与残差放大增益 G 混为一项。
 
-    G[n]   = C_active[n] / C_F_true      （v3 审计修正：逐样本，由同一组
-                                            物理电容决定，失配由此走增益通路）
-    v_R[n] = G[n]·r[n] + n_RA,out        （输出端噪声是电路属性，不随 G[n] 变）
+白噪声 noise_out 是 RA 输出端 RMS [V]；折到已存残差输入需除 G，折到
+被 alpha 衰减的外部输入还需除 alpha。默认由所选 DR 锚点在 cap_scale=1
+拟合一次并锁定，是噪声预算校准，不是器件噪声预测；电容扫描不得逐点用
+剩余预算重新拟合。fixed 增益只作为隔离物理耦合的对照。
 
-* n_RA,out 的大小在 cap_scale=1 时由 target_dr_db 反推标定一次并**锁定**
-  （config.noise_budget 的两条原则），不随电容缩放漂移——缩电容扫描的
-  关键口径，防止"总预算 - kT/C 逐点反推"把 RA 噪声算成 0。
-* **先饱和再送 ADC2**：ra_v_clip 检查在 ADC2 之前。不能先把大信号在
-  数学上被 ADC2 余量吸收、掩盖真实放大器已饱和的事实。KTC 支路里的
-  两条放大通路各自独立检查饱和（ktc.py）。
-* ra_gain_model="fixed"：理想固定增益 G = g0·(1+gain_error)，仅作对照，
-  用于隔离"电荷一致"与"固定增益"两种口径的差异（v3 审计实验）。
+ra_autozero 是旧的现象预算：白噪声乘 10**(cost_db/20)，并停用本类 1/f
+注入；没有实际 AZ 存储电容、保持噪声或静态失调源的电路消除。它与
+chopping_az.py 的逐 raw 更新/保持研究模型不同，后者拒绝叠加此预算。
+adc2_dyn_bw_ratio 同样只是输出噪声倍率，不是开关噪声传递函数。
 
-单位契约：residue / 输出均为 [V]；noise_out 为输出端 RMS [V]
-（config.ra_out_noise_rms 语义 = 输出端，折输入时除以 G）。
-
-参数来源分级：
-    g0 = 32               [披露]（PPT 图标注）
-    ra_v_clip             [假设]（由profile指定；不是器件摆幅签核）
-    noise_out             [拟合]（由 target_dr_db=94.6 反推，逐字审计：
-                          论文正文写 94.2，取 PPT 94.6 因与 NSD 8.8nV 自洽）
-
-适用域声明（勿夸大）：
-    * auto-zero：v6.1 起结构化建模 —— ra_autozero=True 时白噪声按折叠因子
-      10^(1.6/20) 放大（PPT 披露代价）、1/f 整体移除（auto-zero 的收益面）；
-      RA自身静态offset未作为独立物理源注入；不能据此声称它已被器件消除。
-      全局有效offset可由权重回归估计，仅估gain的旧校准不等于offset校准；
-    * 本类提供静态增益/孔径噪声；生产 split 通路的有限带宽、压摆与摆幅
-      由 conversion.ConversionEngine 联合求解。信号响应不等于开关噪声传递；
-    * 不建模 RA 复用/功耗循环（PPT ~50% idle time）——对输出行为无影响，
-      只影响功耗，而功耗不在行为模型预测范围内。
+[00]/[00_1] 披露共享 RA 和名义增益 32；摆幅限值为配置假设。讲稿的 AZ
+噪声代价及动态采样收益未唯一披露器件/整机参照，不能由倍率声称复原。
+有限建立、压摆与参考耦合由 ConversionEngine 的信号路径处理；本类噪声
+在孔径处叠加，不实现周期平稳噪声、晶体管 AZ、功耗循环或功耗预测。
 """
 
 from __future__ import annotations
@@ -58,18 +38,29 @@ def flicker_series(
     t_obs: float = 1.0,
     include_drift: bool = True,
 ) -> np.ndarray:
-    """Generate a finite-band 1/f component at the actual ADC sample rate.
+    """在实际 ADC 时钟上生成带限 1/f 电压分量，不重复加入白底。
 
-    S(f)=2*sigma_white²/fs * f_corner/f for 1/t_obs <= f <= f_corner.
-    Resolved bins use FFT shaping. Unresolved power below fs/n uses a
-    stationary Gaussian log-frequency state instead of a record-length-scaled
-    linear trend. White floor is supplied elsewhere. With include_drift=False,
-    only the resolved component is generated. t_obs specifies an assumed low
-    cutoff, not the duration of this returned record or a measured drift law.
+    Args:
+        n: 正整数样本数，返回记录时长为 n/fs [s]。
+        fs: 实际 ADC 采样率 [Hz]，有限且正。
+        f_corner: 1/f 转角 [Hz]，满足 0<=f_corner<fs/2。
+        sigma_white: 用于定义白底 S0=2*sigma_white**2/fs 的电压 RMS [V]；
+            本函数仅生成 S(f)=S0*f_corner/f 的 1/f 分量，白底由调用方另加。
+        rng: 1/f 实现的随机流。
+        t_obs: 假设的最低频率截止 f_low=1/t_obs [Hz]，有限且正；
+            不是本次记录时长，也不是已测得的漂移规律。
+        include_drift: 是否加入低于 fs/n、有限记录未分辨的平稳慢状态。
 
-    For cross-record state/long-time queries use BandLimitedFlicker explicitly;
-    separate calls here draw separate realizations. This does not make a short
-    record sufficient to resolve a 40 Hz corner.
+    Returns:
+        (n,) 电压 [V]，单位/参考节点沿用 sigma_white。已分辨频率用 FFT
+        整形，未分辨频率用对数频率高斯状态。短记录不会因此分辨 40 Hz 转角。
+
+    Side effects:
+        消费 rng；每次调用生成独立实现。跨记录连续性或长时间查询应显式
+        重用 BandLimitedFlicker 状态，而不是反复调用本包装函数。
+
+    Raises:
+        ValueError: 非法长度、时钟、转角、幅度或低频截止参数。
     """
     if (
         type(n) is not int
@@ -88,9 +79,7 @@ def flicker_series(
     W = np.fft.rfft(w)
     f = np.fft.rfftfreq(n, d=1.0 / fs)
     f[0] = f[1] if n > 1 else 1.0
-    # 只生成 1/f 段（f<=fc），转角以上置零：白底由系统热噪声源承担（口径见
-    # docstring）。历史教训：若把转角以上置 1（完整角过程），系统注入会在
-    # 全带多出一份白底（σ_f = 系统总噪声）-> SNDR −3 dB（stage23 实测教训）。
+    # 转角以上置零：此处只补 1/f 分量；若置为 1，会重复加入系统已有白底。
     shape = np.where(f <= f_corner, np.sqrt(f_corner / np.maximum(f, 1e-12)), 0.0)
     shape[f < 1 / t_obs] = 0.0
     shape[0] = 0.0
@@ -115,44 +104,42 @@ def flicker_series(
 
 
 class ResidueAmplifier:
-    """残差放大器：增益（电荷一致或固定）、输出高斯噪声、独立饱和检查。
+    """把已存残差放大到 ADC2 输入节点，叠加噪声并检查 RA 摆幅。
 
     Attributes:
-        noise_out: 输出端噪声 RMS [V]；ra_enable_noise=False 时为 0。
+        noise_out: 输出端白噪声 RMS [V]，已含启用的旧 AZ/动态带宽倍率；
+            ra_enable_noise=False 时为零，不随逐样本 G 改变。
+        flicker_white: 1/f 过程的输入等效白底 RMS 锚点 [V]；仅在旧 AZ
+            预算关闭时注入，经逐样本 G 转为 RA 输出误差。
     """
 
     def __init__(self, cfg: Config):
-        """构造残差放大器：噪声、auto-zero 与 1/f 分支。
+        """固化输出噪声预算及输入等效 1/f 锚点，不生成运行时噪声。
 
         Args:
-            cfg: 模型配置（Config）。决定 noise_out（[拟合]，由
-                 target_dr_db 反推）、auto-zero 倍率（[披露] -1.6 dB）、
-                 ADC2 动态带宽倍率（[推导] +1.3 dB）与闪烁白底；
-                 全部系数在此固化。g0=32为参考锚点；摆幅由当前profile指定。
-        Side effects: 计算并固化 self.noise_out 与 self.flicker_white。
+            cfg: 模型配置；resolve_ra_noise 给出 AZ/动态带宽关闭的输出噪声
+                锚点，再依次应用 AZ 代价和 adc2_dyn_bw_ratio，不二次反推预算。
+                ra_v_clip 是当前配置的 RA 输出节点摆幅 [V]。
+
+        Side effects:
+            绑定 cfg，计算 noise_out 与 flicker_white；不消费 RNG。
+
+        Notes:
+            旧 AZ 仅停用 1/f 注入并放大白噪声，不意味着仿真已消除独立器件
+            失调。动态带宽倍率作用于孔径输出噪声，不能替代完整噪声传递分析。
         """
         self.cfg = cfg
         self.noise_out = resolve_ra_noise(cfg) if cfg.ra_enable_noise else 0.0
-        # 锚点基线口径（回答第五份复核 §7 的"锚点在前还是在后"）：
-        # resolve_ra_noise 反推的锚点 = **AZ 关、动态带宽关**的对照基线；
-        # 下面两个系数按固定次序叠加在其上（先 ×AZ 代价、再 ×动态带宽），
-        # 不做二次反推 —— 即本模型声称的 target DR 是"无 AZ/无动态带宽"意义
-        # 下的目标，两个机制的净收益由 stage22 的预算推导口径另行入账。
-        # RA auto-zero（PPT p.34-35，−1.6 dB）：消 offset/低频噪声（含 1/f），
-        # 代价 = 存储电容 kT/C + 噪声折叠 -> 白噪声 ×10^(cost/20)。
-        # 口径注记：PPT 的 −1.6 dB 参照系（RA 自身还是整机）未披露；
-        # 折到本模型整机预算（RA 占噪声功率 ~74%）后整机 ΔSNDR ≈ −1.2 dB，
-        # stage22 做"预算推导 vs 实测"一致性检验，不硬凑披露值。
+        # 固定基线先应用 AZ 白噪声代价；它不是整机 SNDR 的直接 dB 增减。
+        # 本倍率没有实际 AZ 采样/保持状态，参照范围不明时不得当作器件复现。
         if cfg.ra_autozero and self.noise_out > 0:
             self.noise_out *= 10.0 ** (cfg.ra_autozero_cost_db / 20.0)
-        # ADC2 动态采样带宽（PPT +1.3 dB，宽建立/窄噪声）：适用域声明 ——
-        # 本模型中 ADC2 输入节点 = RA 输出、无独立 ADC2 输入噪声源，
-        # 故"ADC2 以窄带宽收取噪声"只能作用于本类生成的输出噪声（唯一噪声）。
+        # ADC2 输入节点等于 RA 输出；这里仅缩放输出等效噪声，
+        # 不声称由信号建立带宽推出开关噪声等效带宽。
         if cfg.adc2_dyn_bw_ratio is not None and self.noise_out > 0:
             self.noise_out *= float(cfg.adc2_dyn_bw_ratio)
-        # 1/f 闪烁噪声（折输入）白底幅度 = ratio × kT/C 白底；auto-zero 开启时
-        # 整体移除（auto-zero 消的就是 offset/漂移/低频噪声；相关双采样把 1/f
-        # 转移到 fs 附近，行为级取"带内消除"口径）。
+        # 输入等效 1/f 白底锚点；旧 AZ 开启时在 evaluate 跳过该源，
+        # 不模拟斩波搬频、采样折叠或连续低频噪声消除电路。
         self.flicker_white = (
             cfg.flicker_white_ratio * float(np.sqrt(cfg.chi * 1.380649e-23 * 300.0 / cfg.c_total0))
             if cfg.flicker_corner_hz > 0
@@ -160,14 +147,16 @@ class ResidueAmplifier:
         )
 
     def gain_vector(self, c_active: np.ndarray, c_feedback_true: float) -> np.ndarray:
-        """电荷一致模型的逐样本增益 G[n] = C_active[n]/C_F_true。
+        """返回残差电压增益 G=C_signal/C_feedback_true。
 
         Args:
-            c_active: 逐样本实际参与的采样电容 [F]（噪声绑活跃口径，
-                      见 config.sigma_sampling_c 的注释——备用 slice 不降噪声）。
-            c_feedback_true: 该芯片的实际反馈电容 [F]（chip 只生成一次）。
+            c_active: (N,) 活动组等效 C_signal [F]；split 中不是所有物理电容
+                的直接和，也不是含 18 片的总池电容，见 split_coefficients。
+            c_feedback_true: 本虚拟芯片固定的实际反馈电容 [F]。
+
         Returns:
-            G[n] [无量纲]，形状同 c_active。fixed 模式退化为常数 g_actual。
+            与 c_active 同形的无量纲增益。charge 模式使用物理比值，fixed
+            模式返回 cfg.g_actual。采样信号系数 alpha 不在此函数内相乘。
         """
         if self.cfg.ra_gain_model == "fixed":
             return np.full(np.shape(c_active), self.cfg.g_actual)
@@ -181,31 +170,35 @@ class ResidueAmplifier:
         *,
         error_v: np.ndarray | None = None,
     ) -> tuple[np.ndarray, np.ndarray]:
-        """放大 + 加噪 + 饱和。
+        """对同一原始记录执行残差放大、输出误差叠加和 RA 钳位。
 
         Args:
-            residue: 残差电压 r[n] = (x_R + e_input) - v_D,true [V]。
-            rng:     噪声生成器（与主循环共用，保证可复现）。
-            g:       逐样本增益 [无量纲]；charge 模式**必传**
-                     （gain_vector 的结果），缺省仅适用于 fixed 模式。
-            error_v: 显式 RA 输出等效误差流 [V]，形状与 residue 相同、全有限；
-                     在已有噪声之后、原 ra_v_clip 钳位及 ADC2 量化之前注入。
-                     None 保留原数值和 RNG 消费顺序。来源为调用方定义的扰动，
-                     本接口不把它解释为特定器件噪声或由指标反推的系数。
+            residue: (N,) RDAC 顶板已存残差 r=stored_input-v_D_true [V]。
+            rng: 运行时噪声随机流；不是制造电容随机流。
+            g: 标量或 (N,) 残差电压增益，无量纲。生产 charge 路径应显式传入
+                gain_vector 的物理结果；None 实际回落 cfg.g_actual，函数不会
+                因 charge 模式缺参而拒绝，也不会自动从物理池重算。
+            error_v: 可选 (N,) 有限 RA 输出等效误差 [V]，在已有噪声之后、
+                RA 钳位与 ADC2 量化之前注入。来源由调用方定义，不自动解释为
+                器件噪声；None 不改变原 RNG 消费顺序。
+
         Returns:
-            (vra, sat)
-            vra: RA 输出电压 [V]，已按 ra_v_clip 钳位。
-            sat: 逐样本布尔，|vra| ≥ ra_v_clip（饱和统计口径见 metrics）。
+            (vra, sat)，均为 (N,)；vra 为钳位后的 RA 输出电压 [V]；sat 为
+            钳位前 abs(v)>=ra_v_clip 的布尔标志，含噪声和显式误差造成的饱和。
+            ADC2 窗口溢出由后级另判，不能用它覆盖 RA 已经饱和的事实。
+
         Side effects:
-            消费已有 rng 中的白噪声/闪烁噪声样本；显式 error_v 不消费 RNG，
-            不修改输入数组和饱和范围。噪声状态在 rng 里，不在本类。
+            先抽输出白噪声，再按启用条件抽输入等效 1/f 并乘 G；状态在 rng
+            中，不存连续的跨记录 1/f 状态。error_v 不消费 RNG，不修改输入。
+
+        Raises:
+            ValueError: 显式 error_v 形状不匹配或含非有限值。
         """
         if g is None:
             g = self.cfg.g_actual
         g = np.asarray(g, dtype=float)
         v = g * residue
-        # Draw white noise first so flicker on/off comparisons retain the same
-        # white realization. Each record owns a fresh electrical/noise sequence.
+        # 先抽白噪声，使仅切换 1/f 开关时可共享白噪声实现；记录间不保留电气状态。
         if self.noise_out > 0:
             v = v + rng.normal(0.0, self.noise_out, residue.shape[0])
         if self.flicker_white > 0 and not self.cfg.ra_autozero:

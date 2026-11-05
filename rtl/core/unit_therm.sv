@@ -1,9 +1,11 @@
 // 模块：unit_therm；逻辑位置/计数到物理温度计mask与采样rail。
-// 职责：main_on[p]=(main_logical[p]<main_count)，sub同理；rail[i]=(i-D<bank_dither)。
+// 职责：main_on[a][p]=(main_logical[p]<main_count[a])，sub同理；rail[i]=(i-D<bank_dither)。
 // 端口/单位：地址数组下标为物理unit ID，值为逻辑顺序；bank_dither为8位signed整数。
 // 时序：纯组合，无时钟/复位；调用方在load时冻结来自同一样本的地址、计数和dither。
 // 适用域：main_count=0..N_MAIN、sub_count<N_SUB、bank_dither=-D..D；超范围计数会自然饱和mask。
 // 边界：输出只是数字选择，不代表模拟电压幅值、无毛刺驱动或非交叠已满足。
+// a是活动slot、p/k是物理unit；slot对应哪颗slice由上层冻结的slice_id决定。
+// 同一列rail供所有活动slice使用，补偿仍须使用各slice实际有效权重，不能只扣名义dither。
 // 来源：数字物理mask合同、weight_calibration特征定义与参数头。
 `include "rtl_params.vh"
 
@@ -31,7 +33,9 @@ module unit_therm (
         sub_on[a][k] = (4'(sub_logical[k]) < 4'(sub_count[a]));
       end
     end
-    // i-D < d 等价于 i < D+d；先把 d 明确转成 signed，保留负 dither 的轨选择。
+    // 1/0表示参考正/负轨，不能把0当作零伏。D=2、d=0时rail=0011，
+    // “dither关闭”须由上层sampling门控解释，不能用rail是否全0来判断。
+    // i-D < d等价于i < D+d；明确signed后才能保留负扰动的轨选择。
     for (i = 0; i < 2 * DITHER_UNITS_RANGE; i++) begin
       dither_rail[i] = (i - int'(DITHER_UNITS_RANGE)) < int'($signed(bank_dither));
     end

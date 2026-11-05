@@ -1,8 +1,11 @@
-"""Physical split-pipeline execution with explicit sample and capacitor ownership.
+"""带显式电容与样本归属的split生产信号链。
 
-The vectorized electrical limit and stateful acquisition path share charge
-equations. Clock scheduling, physical arrays and nominal digital reconstruction
-remain separate. Continuous-network/RA-reference dynamics build on this layer.
+每笔先持有所选slice的采样电荷，再生成SADC粗码、RDAC实际开关及残差，
+经共享RA、ADC2后作数字重构。首笔显式priming；下笔转换组必须等于前笔采集组，
+同一tick的采集组与转换组不相交。generic和rtl16使用不同的调度合同。
+
+内部输入/残差为输入等效V，RA与ADC2节点为RA输出V。物理C/G/alpha仅用于
+plant和评分；冻结数字重构只读数字观测。动态网络/参考/RA由已启用的求解分支处理。
 """
 
 from __future__ import annotations
@@ -46,34 +49,29 @@ def execute_split(
     runner: str = "run_pipeline",
     ra_output_error_v: np.ndarray | None = None,
 ) -> SimResult:
-    """Execute one independently primed physical split-pipeline record.
+    """执行一段独立priming的物理split记录。
 
     Args:
-        cfg: Configuration. A split entry resolves the legacy default topology
-            label to split; all physical quantities use the resolved config.
-        input_fn: Input voltage callable, with times in seconds.
-        n_samples: Positive record length.
-        chip: Optional aggregate realization to distribute across slices.
-        state: Frozen digital coefficients; physical truth is never copied here.
-        rng: Sampling/noise generator; fabrication and scheduling are independent.
-        scheduler: Explicit compatible scheduler, or one selected by config.
-        pool: Persistent fabricated pool; electrical state is reset for this record.
-        derivative_fn: Aperture-slope provider, separately testable.
-        runner: Public entry-point name for metadata.
-        ra_output_error_v: Optional finite N-vector [RA-output V]; caller-defined
-            error inserted after existing noise and before RA clip/ADC2. This
-            interface rejects dynamic reference/conversion state rather than
-            bypassing its causal trajectory. None preserves the ordinary path.
+        cfg: 配置；本入口将拓扑标签解析为split，保留profile的其他合同。
+        input_fn: t[s]到输入电压[V]的波形。
+        n_samples: priming后保留的N笔raw转换。
+        chip: 可选aggregate split实现；不传则pool分别生成每个物理slice。
+        state: 数字系数状态；可含独立训练后冻结的有效C/Cf权重。
+        rng: 采样/RA噪声RNG；制造、调度、dither使用独立流。
+        scheduler: generic允许与dem_mode一致的调度器；rtl16由profile独占。
+        pool: 固定物理芯片，电容不重抽；本次运行重置其电气历史。
+        derivative_fn: 孔径斜率提供器，用于输入节点的一阶时偏误差。
+        runner: 结果中的入口标签。
+        ra_output_error_v: 可选(N,)有限RA输出等效误差[V]；在已有噪声后、
+            原RA钳位和ADC2量化前加入；动态参考/转换求解下明确拒绝此样本域接口。
 
     Returns:
-        Result with actual slice, held-sample and stored-charge traces.
-
-    Raises:
-        ConfigError: Invalid length, topology, or explicit error stream.
+        SimResult，含(N,n_active)实际slice归属、raw码、节点电压、完整溢出标志。
+        generic的sample ID从0开始；rtl16包含allocator两次启动推进，首ID为2。
 
     Side effects:
-        Resets pool electrical state and consumes active RNG sources. An explicit
-        error stream adds no random draws and never changes clipping limits.
+        重置pool电气状态并消费活跃RNG；不改制造电容、ADC2范围或调用方系数。
+        需要时应用已冻结权重；不在此入口估计未知输入或在线学习权重。
     """
     cfg.check_legal()
     cfg = replace(cfg, dac_arch="split")

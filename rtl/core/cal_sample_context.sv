@@ -4,6 +4,8 @@
 // 端口/单位：ID与状态为整数；main/sub/rail为物理选择位；injection为有符号Q32。
 // 时钟/复位：clk上升沿、同步低有效rst_n；disable丢弃两份在途packet并清valid。
 // 周期：默认phase9保存当前residue，下一周期quiet_sample转交给共享fine SAR。
+// fine_valid是这一代context的有效电平，保持到下一次quiet，并非单周期完成脉冲。
+// 此处还没有ADC2原码；下一周期共享fine SAR完成后，上层才把码和这份旧context一起重构。
 // 同沿规则：capture和quiet若同时有效，fine读取旧residue，后执行的residue_valid清零优先，无旁路。
 // 异常：current_bad随residue冻结；analog_bad在fine转交时采样，并与旧residue_bad合并。
 // 来源：ADR0018；packet只携带数字决定，不携带模拟residue电压或学习系数。
@@ -37,7 +39,8 @@ module cal_sample_context (
     output logic fine_sampling, fine_analog_bad,
     output logic signed [63:0] fine_injection
 );
-  // Packed packet layout is local; named ports preserve independent debug.
+  // slot顺序与main/sub mask一起冻结。物理slice ID选权重，sid只解释开关置换，
+  // sample ID负责时域配对；缺样时不能拿当前bank或当前sid补写旧样本元数据。
   localparam int CW = 32 + 9 + 9 + 8 + 34 + int'(N_ACTIVE) * (5 + int'(N_UNIT_MAIN) + int'(N_UNIT_SUB)) +
       2 * int'(DITHER_UNITS_RANGE) + 1 + 64;
   logic [CW - 1:0] residue;
@@ -73,11 +76,9 @@ module cal_sample_context (
             current_slices, current_main, current_sub,
             current_rails, current_sampling, current_injection};
       end
-      // Both if blocks use pre-edge values because assignments are nonblocking.
-      // If both strobes were asserted, fine receives the OLD residue and the
-      // later residue_valid assignment clears it. The production phase schedule
-      // keeps these strobes apart; no same-edge capture bypass is implemented.
-      // analog_bad is sampled at transfer, while current_bad was frozen earlier.
+      // 两个if都读沿前旧值。若外部误让capture/quiet同沿，fine仍取旧residue，
+      // 最后residue_valid清零覆盖本沿capture的资格，不提供新样本直通旁路。
+      // current_bad随RDAC决定先存；analog_bad在旧残差被fine采样时再取，二者时点不同。
       if (quiet_sample) begin
         fine_valid <= residue_valid;
         {fine_id, fine_coarse, fine_sid, fine_dither, fine_chop_neg, fine_az_pair_id,

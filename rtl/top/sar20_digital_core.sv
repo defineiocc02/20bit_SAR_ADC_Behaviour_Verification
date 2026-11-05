@@ -12,6 +12,10 @@
 // 实现边界：片外求系数、片上应用；不包含在线学习器、模拟宏、CDC或ASIC/板级时序签核。
 // P_CAAZ_ENABLE默认关闭；开启仅支持结构模式，主输出为raw/2的pair，额外保留92位raw观测。
 // 原748位cal_obs不变，34位CAAZ sideband另接；odd采样只保持CBIAS，不取消legacy RA reset。
+// 索引：bank为双coarse逻辑状态，slot为当前8路位置，slice ID为18组物理电容索引，ID为时域样本。
+// 运行配置：DEM bit同时控制slice洗牌/单元DEM；dither仅有sampling/quantizer互斥位，
+// 整数幅度由头文件D=2固定，既无浮点幅度寄存器，也无独立dR双端口范围增强。
+// 校准边界：W装载的是有效C/Cf，不是物理电容值；本核应用冻结静态系数，不估计逐slice时偏/带宽。
 // 来源：RTL_ARITHMETIC_CONTRACT.md、ADR0014/0017/0018；CAAZ为PKU C32-1来源约束下工程实现。
 `include "rtl_params.vh"
 
@@ -221,6 +225,7 @@ module sar20_digital_core #(
   end
 
   // ---- 0x1018：保持三拍等待窗口，在 ctrl_seq=1 的时钟沿原子写入四位 ----
+  // 控制位必须与系数/ADC2量程同epoch提交；ACTIVE拒写，不能在一对CAAZ样本中途换模式。
   // validate 冲突暂停序列；clear 取消尚未提交的整笔控制写。
   logic [1:0] ctrl_seq;
   logic [3:0] ctrl_bits;
@@ -567,8 +572,8 @@ module sar20_digital_core #(
   end
 
 
-  // Production structure: registered analog controls, dual coarse SAR,
-  // shared flash seed, fine SAR and previous-residue physical context.
+  // 结构主路径：本笔coarse与前笔fine并行，所有重构输入来自冻结的旧residue context。
+  // 端口只是模拟宏的数字合同；TP采样关闭、chopper非交叠、CBIAS独立保持不能由标签推定成立。
   sar_structural_ctrl #(
       .P_CAAZ_ENABLE(P_CAAZ_ENABLE),
       .P_REF_ON(P_REF_ON),
@@ -646,9 +651,8 @@ module sar20_digital_core #(
   assign dither_sw = P_STRUCTURAL ? structural_dither_sw : legacy_dither_sw;
   assign sw_valid = P_STRUCTURAL ? structural_sw_valid : legacy_sw_valid;
 
-  // The packet is sampled on the same edge as recon_core.start. The source
-  // fields are already frozen in the previous-residue context. No backpressure
-  // or off-chip transport is implied by this opt-in debug interface.
+  // packet在recon_core实际接受沿有效，保存已决物理选择命令mask；不是开关节点电压的测量。
+  // 748bit观测与34bit CAAZ标签必须同时采集并按ID对齐；没有ready/FIFO或片外传输保证。
   assign cal_obs_valid = P_CAL_OBSERVE && P_STRUCTURAL && rst_n &&
       !cfg_clear_valid && structural_launch;
   assign cal_obs_data = P_CAL_OBSERVE && P_STRUCTURAL ? {
@@ -713,8 +717,8 @@ module sar20_digital_core #(
   assign clip_low = P_CAAZ_ENABLE ? 1'b0 : rc_clip_low;
   assign clip_high = P_CAAZ_ENABLE ? 1'b0 : rc_clip_high;
 
-  // The reconstruction is single-in-flight and completes before the next
-  // 16-phase launch. Carry the matching analog flag through that transaction.
+  // 重构单笔在途，P_RECON_STAGES约束保证下一次16tick启动前完成；在接受沿同步保存
+  // analog_bad/chop/AZ代，结果完成时再附回。不能借用此时已属于下一笔的实时bank标签。
   logic pending_analog_bad;
   logic pending_chop_neg;
   logic [31:0] pending_az_pair_id;
@@ -739,8 +743,8 @@ module sar20_digital_core #(
       pending_az_valid, raw_result_flags, raw_result_analog_bad
   } : '0;
 
-  // Complete calibrated words are paired. CAAZ off is a zero-latency bypass;
-  // CAAZ on emits one pair for two raw records, with the odd sample's ID.
+  // 先完成实际权重/rail/已知注入校正，再对整码做even-odd。关闭时零拍旁路，
+  // 开启时每两个raw输出一对并保留首末ID；数字同代不证明H_AZ/K_signal或实际AZ状态相等。
   caaz_pair_processor #(.P_CAAZ_ENABLE(P_CAAZ_ENABLE)) u_caaz_pair (
       .clk(clk),
       .rst_n(rst_n),

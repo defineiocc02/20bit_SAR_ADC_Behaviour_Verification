@@ -1,18 +1,13 @@
-"""mapper.py -- 分段编码、DEM、dither 码修改。
+"""数字命令与dither单位换算；不读取制造电容或估计器的隐藏真值。
 
-DEM 接口：
+Mapper用于coarse code到RDAC单位信号码的兼容映射；split阵列的实际mask由
+dem.split_switch_command生成。dem_state_sequence是按bank分别推进的512状态
+确定性遍历，unit_rank_arrays是64等权unary几何助手。512状态覆盖不证明当前
+63+8 split单元等使用；物理slice选择还由独立allocator决定。
 
-    map_code(coarse_code, selected_slices, dem_state) -> (switch_commands, next_dem_state)
-
-**最重要的验收条件**：
-
-    DAC_nominal(M(c, state)) == V_target(c)     对任意 state 成立
-
-本实现里，DEM 只做**等权单位的位置置换**（横向 3b：slice 轮转；纵向 3b：slice 内
-segment / sub-unit 轮转），因此"选中的单位个数 == 逻辑码"恒成立，
-名义值严格守恒是**结构性保证**，而不是靠调参调出来的。
-
-反面例子：直接打乱 1C/2C/4C 的位控制再自称 DEM —— 那样名义值会变，不是 DEM。
+dither_transfer_code只返回RDAC单位的改码量；采样注入和最终数字扣除在
+sampler/pipeline/reconstruction配对处理。quantizer/range的d_R为0，不能把所有
+模式都写成最终减d_Q。具体双端口、range与granularity按各自单位合同解释。
 """
 
 from __future__ import annotations
@@ -23,26 +18,26 @@ import numpy as np
 
 from .config import Config
 
-# 3 个 DEM 维度各 8 个状态（3b）：slice 轮转 x 横向 segmentation x 纵向 segmentation
+# 512状态：unary助手按3×3b解码；split助手按行/列/子阵列解码。
 N_DEM_STATES = 8 * 8 * 8
 _LCG_A = 2_654_435_761  # 奇数，与 512 互质 -> n*a mod 512 遍历全部状态
 
 
 def dem_state_sequence(n_samples: int, cfg: Config, bank: np.ndarray | None = None) -> np.ndarray:
-    """返回每个样本的 DEM 状态索引（int64，值域 [0, 512)）。DEM 关闭时恒为 0。
-
-    **状态必须按 bank 内的序号推进，不能按全局样本序号。**
-    全局推进时 bank A 只落在偶数 n 上，而 gcd(2A, 512) = 2，
-    于是每个 bank 只遍历 256/512 个状态 —— 另一半 LUT 永远用不到。
-    按 bank 内序号推进后，两个 bank 各自完整遍历全部 512 个状态。
+    """生成每笔样本的9位DEM状态，范围0..511；关闭时全0。
 
     Args:
-        n_samples: 样本数 N。
-        cfg:       dem_enable=False 时直接返回全 0（DEM 关 = 固定顺序）。
-        bank:      (N,) 逐样本 bank 标签；None = 无 bank 概念（全局推进，
-                   仅用于无需交织的实验）。
+        n_samples: raw样本数N。
+        cfg: 读取dem_enable。
+        bank: (N,) 相位/组标签；None表示按全局序号推进，不含固定物理ID含义。
+
     Returns:
-        (N,) int64 状态索引。Side effects: 无（LCG 是确定性映射）。
+        (N,) int64。每个bank以自己的序号乘互质步长再mod512，足够长时各自覆盖
+        全部状态。若错误使用全局偶数序号，则某bank只能走一半状态。
+        状态覆盖与物理单元等使用是不同判据，尤其63单元缺格与bridge门控存在相关性。
+
+    Side effects:
+        无RNG或持久状态；每次调用从各bank的序号0开始。
     """
     if not cfg.dem_enable:
         return np.zeros(n_samples, dtype=np.int64)
@@ -60,18 +55,22 @@ def dem_state_sequence(n_samples: int, cfg: Config, bank: np.ndarray | None = No
 
 
 def unit_rank_arrays(cfg: Config):
-    """返回 (slice_rank, unit_idx)，形状均为 (N_DEM_STATES, n_units_sig)。
+    """生成64等权unary兼容几何的逻辑slot与单元顺序表。
 
-    * slice_rank：8 个激活 slice 的轮转（横向 / slice 选择维度）
-    * unit_idx  ：slice 内 64 个单位的顺序（3b 横向 segment x 3b 纵向 sub-unit）
+    Returns:
+        (slice_rank, unit_idx)，均为(512, n_units_sig) int64；slice_rank是活动组内
+        逻辑slot，unit_idx是该slice内的单元编号。相邻单位先分配给不同slot。
 
-    单位在整片激活阵列中**交错**排列：码值 +1 先给下一个 slice 加一个单位，
-    这样任意码值 >= 8 时所有 slice 都参与，DEM 平均效果最好。
+    Raises:
+        ValueError: n_units_sig超过声明的活动物理单位数。
+
+    Notes:
+        该助手不是63+8 split译码器，也不负责18-slice物理调度或验证统计白化。
     """
     n_u = cfg.n_units_sig
     n_act = cfg.n_active
     n_up = cfg.n_unit_per_slice
-    # headroom 情况下只使用中间连续的一段作为信号量程
+    # 信号单位数量不能超过所声明的活动阵列容量。
     if n_u > n_act * n_up:
         raise ValueError("n_units_sig 超过物理单位数")
 
@@ -91,28 +90,23 @@ def unit_rank_arrays(cfg: Config):
 
 @dataclass
 class SwitchCommand:
-    """数字侧发给物理 RDAC 的指令。"""
+    """兼容RDAC命令；k是信号码，dither_code单列，不能在上下游各加一次。"""
 
     k: np.ndarray  # (N,) 需要导通的**单位个数**（名义值由此唯一确定）
-    bank: np.ndarray  # (N,) 使用哪一组 slice
+    bank: np.ndarray  # (N,) 相位/组标签；实际物理slice由allocator给出
     sid: np.ndarray  # (N,) DEM 状态
-    dither_code: np.ndarray  # (N,) 码域 dither（v1 输入注入模式下为 0）
+    dither_code: np.ndarray  # (N,) RDAC单位改码量，与信号码k独立
 
 
 class Mapper:
-    """unary 编码器：逻辑粗码 -> 开关指令（不含任何物理信息）。
+    """coarse码仓号到名义RDAC单位信号码的编码器。
 
-    单位契约：coarse_code [码仓号]；k / k0 / dither_code [单位当量]。
-    Side effects: 无。
+    只进行数字映射：k=coarse_code*units_per_lsb1+k0。bank/sid透传，不选择物理slice，
+    也不学习实际权重。
     """
 
     def __init__(self, cfg: Config):
-        """保存配置；码表在需要时按 cfg 生成。
-
-        Args:
-            cfg: Config；取 n_units_sig / units_per_lsb1 / n_units_headroom
-                等（[推导]）。本类只做数字映射，不含任何物理信息。
-        """
+        """保存名义Config；不抽取制造失配或读取物理plant。"""
         self.cfg = cfg
 
     def encode(
@@ -122,26 +116,29 @@ class Mapper:
         sid: np.ndarray,
         dither_code: np.ndarray | None = None,
     ) -> SwitchCommand:
-        """粗码 -> SwitchCommand（k 为信号码，dither 单列）。
+        """将粗量化码转为独立信号码与dither改码字段。
 
         Args:
-            coarse_code: (N,) SADC 粗码 [码仓号]。
-            bank: (N,) bank 标签（透传，不参与编码）。
-            sid: (N,) DEM 状态（透传，不参与编码）。
-            dither_code: (N,) [单位当量]；None = 全 0。
+            coarse_code: (N,) SADC整数码仓号，范围[0, 2**b1)。
+            bank: (N,) 相位/组标签；透传，不参与单位换算。
+            sid: (N,) DEM状态；透传，由后级据此生成具体mask。
+            dither_code: (N,) RDAC单位改码量；None表示0。
+
         Returns:
-            SwitchCommand。k = coarse·units_per_lsb1 + k0。
-        历史教训（勿回退）：SwitchCommand.k 是**信号码**；dither_code 单独
-        存放，由 rdac 在两个求值里统一加上。（曾在 encode 里先加一次、
-        rdac 再加一次，导致 dither 计入两遍、SNDR 崩到 50 dB。）
+            SwitchCommand。k不含dither；后级只加一次dither_code。
+            这里的单位数守恒不等于split阵列每个物理unit等使用。
+
+        Raises:
+            ValueError: 标量、向量长度不匹配、非有限/越界/非整数coarse code。
+
+        Side effects:
+            无；数组按一维接口使用。
         """
         coarse_code = np.asarray(coarse_code)
         bank = np.asarray(bank)
         sid = np.asarray(sid)
         if coarse_code.ndim == 0 or bank.ndim == 0 or sid.ndim == 0:
-            # 标量输入会让下游的 len()/广播以难懂形式爆掉（旧行为：
-            # `TypeError: len() of unsized object`），这里显式给出口径
-            # （独立审查 2026-09-25 第二轮）。
+            # 标量没有逐raw长度，先在数字接口边界拒绝。
             raise ValueError(
                 "coarse_code/bank/sid 必须是 1-D 数组；标量输入请用 np.atleast_1d 包装"
             )
@@ -157,11 +154,7 @@ class Mapper:
             or coarse_code.max() >= n_code
         ):
             raise ValueError(f"粗码越界 [0, {n_code})：[{coarse_code.min()}, {coarse_code.max()}]")
-        # 独立审查 2026-09-25：上面的域校验只拦了 [0, n_code) 范围，放行了域内
-        # 分数粗码（如 2.5）。SADC 只输出整数码，分数粗码只能来自畸形/对抗输入，
-        # 会经 `k = coarse*units_per_lsb1 + k0` 产生非整数单位数 k，静默污染下游。
-        # 因此在此追加一条**独立**的整数性守卫，且不改动上面的"粗码越界"分支顺序
-        # 与消息，以守住既有测试的消息匹配。
+        # 域内分数粗码也非法：它会产生不可实现的分数信号码。
         if len(coarse_code) and bool(
             np.any(
                 np.asarray(coarse_code, dtype=float)
@@ -184,21 +177,18 @@ class Mapper:
     def nominal_conservation_check(
         self, coarse_code: np.ndarray, bank: np.ndarray, sid: np.ndarray
     ) -> dict:
-        """同一逻辑码、不同 DEM 状态下，选中的单位个数必须恒定。
+        """检查同一coarse code映射出的名义信号单位数不随状态改变。
 
         Args:
-        coarse_code: 逻辑粗码数组 [码仓号]。
-        bank: 逐样本 bank 标签数组（透传）。
-        sid: 逐样本 DEM 状态数组 [int]。
+            coarse_code: (N,) SADC整数码仓号。
+            bank: (N,) 透传相位标签。
+            sid: (N,) DEM状态。
 
         Returns:
-        字典：ok [bool]（所有码的单位个数是否跨 DEM 状态恒定）；
-        k_per_code [dict: int 码 -> int 单位个数]，任一状态不一致则为 None。
-        Side effects: 无（纯函数，只读 cfg 与输入）。
+            ok与逐coarse码的k_per_code；发现同码产生多个单位数时该项为None。
 
         Notes:
-        数字侧守恒是**结构性保证**：DEM 只做等权单位位置置换，选中单位
-        个数恒等于逻辑码，故名义 DAC 值对任意 DEM 状态不变（勿回退）。
+            仅检查Mapper的信号码单位合同，不计算split mask频次、物理电荷或最终性能。
         """
         cmd = self.encode(coarse_code, bank, sid)
         ok = True
@@ -214,25 +204,31 @@ class Mapper:
 # ---------------- dither ----------------
 @dataclass
 class DitherState:
-    """模拟注入 / 码修改 / 数字扣除必须成对存在。"""
+    """已知注入与数字扣除的诊断字段；实际RDAC改码由dither_transfer_code给出。
+
+    analog_injection/digital_correction为输入等效电压[V]；重构器显式减后者，
+    字段本身不预先取负。code_modification在本构造器中是兼容占位0，不代替真实改码。
+    """
 
     analog_injection: np.ndarray  # 加在模拟输入上的已知量
-    code_modification: np.ndarray  # 码域修改（v1 为 0）
+    code_modification: np.ndarray  # 兼容诊断占位0；实际RDAC改码由转移函数给出
     digital_correction: np.ndarray  # 最终扣除量
 
 
 def make_dither_state(cfg: Config, analog: np.ndarray) -> DitherState:
-    """按工作模式构造 dither 状态（模拟注入量、码域量与扣除量）。
+    """构造dither诊断状态，最终模式相关扣除仍由runner设置。
 
     Args:
-        cfg: Config；取 dither_mode（off / analog / sampling）。
-        analog: 模拟注入量数组 [V]（dither 已知量）。
+        cfg: 读取dither_mode。
+        analog: (N,) 已知的输入等效注入量[V]。
 
     Returns:
-        DitherState：analog_injection / code_modification / digital_correction
-        三个数组 [V]。off 模式三者全 0；analog 模式注入量 == 扣除量
-        （理想可减基准，码域为 0）。三者必须成对存在、符号相反相消。
-    Side effects: 无（纯函数）。
+        off三字段全0；非off以相同正号保存注入和初始扣除量。
+        pipeline对sampling覆盖成名义采样mask电荷，对quantizer覆盖成d_R；
+        结构range的d_R=0，不能沿用初始d_Q作为最终扣除。
+
+    Side effects:
+        无；不产生模拟注入，也不修改物理电容。
     """
     if cfg.dither_mode == "off":
         return DitherState(np.zeros_like(analog), np.zeros_like(analog), np.zeros_like(analog))
@@ -250,40 +246,27 @@ def dither_transfer_code(
     step_coarse: float,
     dither_code_sampling: np.ndarray | None = None,
 ) -> np.ndarray:
-    """Convert a dither quantity into an RDAC **unit-step** code offset.
-
-    Single source of truth for the quantizer-dither bookkeeping. Both main
-    loops (``sim_split`` and ``pipeline``) must call this rather than each
-    interpreting the interface; a divergence between them produced a 42.7 uV
-    error in v6.1 that took an external audit to find.
-
-    History (audit finding F3)
-    --------------------------
-    v6.1 computed ``d_code = -round(d / gran)`` and added it directly to
-    ``coarse * units_per_lsb1``, which is expressed in **RDAC unit steps**.
-    With ``gran = step_coarse`` the result was in **coarse-step** units, so the
-    sum mixed two unit systems and was wrong by the factor
-    ``step_coarse / step_rdac`` (8 in the default configuration). Correcting
-    only this conversion moved the stage-21 coarse-transfer branch from
-    32.7% to 16.0% ADC2 overflow and from 16308 uV to 5699 uV RMS error, and
-    flipped that check from PASS to FAIL.
+    """将已知dither换算成可与信号码相加的RDAC单位改码量。
 
     Args:
-        cfg: Configuration; uses ``dither_mode`` and ``dither_quant_transfer``.
-        dither_volts: ``(N,)`` float, the dither quantity in volts.
-        step_rdac: RDAC unit step [V] (the unit system of the returned code).
-        step_coarse: First-stage quantiser step [V] (``delta1``).
-        dither_code_sampling: For ``dither_mode == "sampling"``, the mask code
-            already produced by the sampler, in RDAC unit steps.
+        cfg: 模式及转移合同；range/dual_port/granularity含义不同。
+        dither_volts: (N,) 输入等效d_Q或已知扰动[V]。
+        step_rdac: ΔDAC[V/RDAC单位]；返回值始终使用该单位。
+        step_coarse: Δ1[V/粗码仓]，仅granularity的coarse网格分支使用。
+        dither_code_sampling: sampling已由采样mask生成的RDAC单位码。
 
     Returns:
-        ``(N,)`` float, dither offset in **RDAC unit steps**, ready to be added
-        to ``coarse * cfg.units_per_lsb1``.
+        (N,) 浮点改码量。sampling透传mask码；quantizer/range为
+        -round(d_Q/ΔDAC)，其保存通路d_R=0；dual_port为
+        round((d_R-d_Q)/ΔDAC)，随后数字重构另减d_R。
+        granularity先在所选电压网格取整，再换算到RDAC单位，避免混合Δ1和ΔDAC。
+        off/analog不在这里改变RDAC码。该换算不证明论文完整2b范围增强。
 
     Raises:
-        ValueError: If a step is non-positive (which would make the conversion
-            factor undefined) or if ``sampling`` mode is requested without a
-            mask code.
+        ValueError: ΔDAC<=0、sampling缺少mask码，或选用的granularity网格<=0。
+
+    Side effects:
+        无；调用方负责同一raw的注入、改码、实际mask与扣除项对齐。
     """
     if step_rdac <= 0.0:
         raise ValueError(f"step_rdac must be > 0, got {step_rdac!r}")
@@ -304,31 +287,14 @@ def dither_transfer_code(
         return np.round((cfg.dither_rdac_ratio - 1.0) * d / step_rdac)
 
     if cfg.dither_transfer_model == "range":
-        # "range" model (paper-literal). The disclosure is: "the dither range
-        # is enhanced by 2b when the result is transferred from the quantizer
-        # to the RDAC".
-        #
-        # Modelling note (corrected): the 2^b is a *headroom* statement, NOT an
-        # amplitude gain. Physically the dither is injected ahead of the
-        # quantiser and then *cancelled* by the RDAC, so the code offset is the
-        # exact unit conversion -round(d / step_rdac). What the disclosure says
-        # is that the RDAC can represent a dither range 2^b times wider than one
-        # quantiser step, i.e.
-        #     log2(units_per_d1) == cfg.dither_enhancement_bits,
-        # with units_per_d1 = DAC levels / 2**b1. An earlier revision of this
-        # branch multiplied the dither amplitude by 2**enh, which made the
-        # cancellation wrong by that factor and pushed the residue out of the
-        # ADC2 window; that was a modelling error, not the paper's mechanism.
-        # The capability itself is *reported* (see experiments.stage21) rather
-        # than claimed to be experimentally closed -- the audit explicitly warns
-        # against using a granularity experiment to prove a range statement.
+        # range只有量化器端d_Q，保存通路d_R=0；用相同RDAC单位消去决策扰动。
+        # 不乘2**enhancement_bits，也不以此换算宣称完整范围增强已经验证。
         return -np.round(d / step_rdac)
 
-    # "granularity" model (v6.1 legacy): choose the grid at which the transfer
-    # is quantised ...
+    # granularity先在RDAC或粗码电压网格取整，再换算为RDAC单位。
     gran = step_rdac if cfg.dither_quant_transfer == "rdac" else step_coarse
     if gran <= 0.0:
         raise ValueError(f"granularity must be > 0, got {gran!r}")
     code_in_gran_units = -np.round(d / gran)
-    # ... and convert that count into RDAC unit steps. This factor is the fix.
+    # 取整结果乘电压网格/ΔDAC，才能与RDAC信号码使用同一单位。
     return code_in_gran_units * (gran / step_rdac)

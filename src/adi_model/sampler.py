@@ -1,26 +1,12 @@
-"""sampler.py -- SADC / RDAC 两条采样路径，以及它们各自的噪声。
+"""生成SADC/RDAC孔径事件、dither端口量和采样噪声。
 
-    x_S[n] = x[n] + n_S[n]        -> 供小 SADC 判断
-    x_R[n] = x[n] + n_R[n]        -> 大 RDAC 保存的样本
+x1/x2是dither前输入节点[V]；x_sadc是SADC输入，x_rdac是RDAC保存电荷的
+输入等效V。两条采样热噪声n_S/n_R独立；开启的驱动噪声在t1/t2使用同一实现。
+量化dither分d_Q与d_R：dual_port取d_R=ratio*d_Q，range/granularity的d_R=0；
+采样mask模式另生成alpha*x+d。后续物理pool会按实际选中电容重算采样注入。
 
-**不默认两者含有同一份采样热噪声**：开关热噪声各自独立；
-驱动器噪声若开启，则作为 t1/t2 上的同一实现加在共享输入上。
-
-单位契约：全部时间量 [s]，电压量 [V]；dither_code [RDAC 单位当量]；
-c_active [F]。噪声全部为 RMS 高斯（事件级实现，非谱密度）。
-
-参数来源分级：
-    sigma_sampling（kT/C）   [披露-推导]（20.5 pF -> 20.1 µV，χ=2 差分口径）
-    sigma_sadc_sampling      [假设]（c_sadc=1 pF，PPT 未给量化器电容）
-    driver_noise_rms         [假设]（默认 0；论文 SNR<100kHz 含驱动 ~0.3dB）
-    dither_amplitude/units   [假设]（量程取值，机制见 [10]）
-
-契约与不变量：
-    * 同一 n_R 实现贯穿该样本全部后续处理（三条底线③的"事件"语义在这里）；
-    * dither 三要素（注入/码修改/数字扣除）的配对责任在 SampleBatch 字段，
-      缺一不可（DitherState docstring）；
-    * dither_changes_in_window=True 为显式 NotImplemented——开放问题不许
-      静默走错口径。
+时间单位s；coarse决策不在此模块，dither_bank_code是采样mask码，dither_code
+的模式含义见字段。这里是样本域事件模型，不是连续开关注入或噪声谱电路求解器。
 """
 
 from __future__ import annotations
@@ -53,7 +39,7 @@ class SampleBatch:
         dither_code: 码域配对量 [RDAC 单位当量]（sampling 模式用）。
         x1_clean: 驱动器噪声加入**之前**的 x1 [V]；None=未保留
             （driver_noise_rms=0 时与 x1 等同）。度量"相对干净输入的误差"
-            必须用此项，否则 1 mV 驱动器噪声会伪装成 1 µV 内部误差（A07.6）。
+            必须用此项，否则 1 mV 驱动器噪声会伪装成 1 µV 内部误差。
         x2_clean: 同 x1_clean，对应 x2 [V]；None=未保留。
     """
 
@@ -69,7 +55,7 @@ class SampleBatch:
     n_S: np.ndarray
     dither: np.ndarray  # 模拟注入量（数字端已知，用于成对扣除）
     dither_code: np.ndarray  # 码域配对量（单位 = RDAC 单位；sampling 模式用）
-    # 驱动器噪声**加入之前**的输入值（外部审计 A07.6）。
+    # 驱动器噪声加入之前的输入，用于整链评分，不与含噪x1混用。
     # `x1`/`x2` 是"驱动器看到的节点口径"；它们含有 nd，所以
     # `out - x1` 会把 nd 消掉，测不出整链误差。要度量"相对干净输入的误差"
     # 必须用这两个字段 —— 否则 1 mV 的驱动器噪声会伪装成 1 µV 的内部误差。
@@ -90,38 +76,27 @@ def capture(
     c_active: np.ndarray | None = None,
     dither_codes: np.ndarray | None = None,
 ) -> SampleBatch:
-    """按采样事件生成噪声；同一个 n_R 实现贯穿该样本的全部后续处理。
-
-    **kT/C 的电容口径（v3 审计修正）**：
-    采样噪声必须绑定**本次样本实际使用的 slice 集合**：
-
-        C_active[n] = sum_{j in S[n]} sum_k C_{j,k}
-
-    没有参与本次采样的备用 slice 不能替这个样本降低 kT/C。
-    旧版用整池 chip.C_total_true（18 slice = 46.1 pF），导致：
-      - 噪声被低估 20.10 -> 13.39 uV（约 3.5 dB）；
-      - 增加**未使用**的备用 slice，噪声竟然继续下降（16 slice: 14.26 uV
-        -> 32 slice: 10.08 uV）—— 物理上不成立。
-    c_active 传入时逐样本使用；缺省退回名义活跃电容（算法开发用）。
+    """在两个归属明确的孔径时刻生成一份可重放的采样记录。
 
     Args:
-        cfg: 仿真配置（Config）；相关字段来源分级见 config.PARAM_GRADES
-            （kT/C 电容口径见 sigma_sampling；sigma_sadc_sampling 为 [假设]）。
-        input_fn: 可调用 ``t -> x``（t [s]，返回 [V]）。
-        n_samples: 样本数 [无量纲]。
-        rng: 随机源（采样热噪声 + dither 抽取）。
-        dither_rng: 可选独立随机源；给定时 dither 与其余噪声解耦抽取。
-        chip: 虚拟芯片（用于 dither 掩码失配与兼容路径的 c_active 取值）。
-        c_active: 可选 ``(N,)`` float64 逐样本活跃电容 [F]
-            （kT/C 绑定真实采样集合；缺省退回名义活跃电容）。
-        dither_codes: 可选的已知整数扰动序列 [RDAC 单位]；用于结构 RTL
-            精确对照，普通行为仿真仍使用独立随机源。
+        cfg: 配置；单位和dither profile合同见Config。
+        input_fn: t[s]到dither前输入[V]的波形。
+        n_samples: raw记录长度N。
+        rng: 采样与驱动噪声的随机流。
+        dither_rng: 可选独立dither流；给定时不消费采样噪声流。
+        chip: 可选aggregate实现，兼容路径用其电容；不作为数字估计器输入。
+        c_active: 可选(N,)噪声等效电容[F]。split由C_signal²/Σ(A+beta²B)
+            给出，不等于整个18-slice池的物理电容总和。
+        dither_codes: 可选(N,)整数码，用于指定实际序列；rtl16传固定D=2 LFSR。
+            quantizer码单位为名义RDAC细栅格；sampling码为bank mask单位。
 
     Returns:
-        SampleBatch（字段单位见 SampleBatch 的 docstring）。
+        SampleBatch：所有N笔事件均保留。quantizer的d_Q来自幅度旋钮或显式码，
+        可再取整到RDAC栅格；d_R由独立端口比决定，不能一律写RDAC不含dither。
+        sampling先用名义mask，生产pool随后同步更新x_rdac、dither和实际alpha。
 
     Side effects:
-        消耗 rng（及 dither_rng，若给定）的随机抽取；不改传入的 cfg/chip。
+        消费rng/dither_rng；不修改cfg/chip。dither跨KTC提取窗口变化未定义时拒绝。
     """
     n = np.arange(n_samples)
     t1 = n / cfg.fs
@@ -133,7 +108,7 @@ def capture(
     dx = x2 - x1
 
     # 驱动器噪声加入**之前**的干净值 —— 只在有驱动器噪声时才需要保留副本
-    # （A07.6：没有它，"相对干净输入的误差"无法与 "ADC 内部误差" 区分）。
+    # 。
     if cfg.driver_noise_rms > 0:
         x1_clean = x1.copy()
         x2_clean = x2.copy()
@@ -168,14 +143,9 @@ def capture(
         amp = cfg.dither_amplitude_lsb1 * cfg.delta1
         dither = drng.uniform(-amp, amp, n_samples)
     elif cfg.dither_mode == "quantizer":
-        # 量化器侧 dither（论文："dither range is enhanced by 2b when
-        # transferred from the quantizer to the RDAC"，stage21）：
-        # d_Q 加在 **SADC 决策通路**，RDAC 保存通路不含 dither。
-        # 粗码在 x+d_Q 上决策 -> 数字侧把 d_Q 转移给 RDAC 码（d_u 在
-        # sim_split/pipeline 里按 cfg.dither_quant_transfer 的粒度取整），
-        # 余项 d_Q − round(d_Q) 落进残差、由 ADC2 在其窗口内吸收。
-        # dither_code 语义（本模式）= d_Q/Δ1 [Δ1 当量]（量化器粒度的转移值，
-        # 仅供诊断；真正写进开关码的取整在主循环做，因为粒度依赖拓扑 step0）。
+        # 生成SADC端d_Q。显式rtl16整数序列覆盖amplitude旋钮；
+        # generic按幅度抽样，再可选取整到ΔDAC，故小于半栅格时可全为0。
+        # RDAC端d_R稍后由dither_rdac_ratio决定，不可一律称RDAC未含dither。
         drng = dither_rng if dither_rng is not None else rng
         amp = cfg.dither_amplitude_lsb1 * cfg.delta1
         dither = (
@@ -206,17 +176,9 @@ def capture(
             if n_dith > 0:
                 eps_d = float(chip.eps.reshape(-1)[-n_dith:].mean())
         dither = dither_code * cfg.rdac_step * (1.0 + eps_d)
-    # α：采样态 dither 带来的**恒定**信号衰减（analog 模式为 1）。
-    #
-    # 两条采样通路的分工（[10] 2.6 整数 dither）：
-    #   SADC 侧  : 只看 α·x（不含 dither）→ 粗码 c1 由信号决定
-    #   RDAC 侧  : 保存 α·x + d，DAC 码 = c1 + d  → 两项在残差里相消
-    # 若把 dither 也加进 SADC，粗码就已经被扰动，DAC 再加一次 d 会导致
-    # dither 被计入两次（实测残差里残留 −d·step，SNDR 崩到 50 dB）。
-    #
-    # 另外 α 必须**同时**作用于两条通路：若粗码基于 x 而残差保存 αx，
-    # 二者之差 (1−α)x 会直接吃掉残差余量（α=0.969 时约 90 mV ≈ Δ1），
-    # 这正是专利 [09] 1.5 强调"两条采样通路响应必须匹配"的原因。
+    # sampling的两条信号通路先用同一名义alpha；mask注入仅进保存电荷，
+    # 不再叠加到SADC。物理pool随后按相同mask更新实际alpha和注入。
+    # analog共同输入已经包含d，不能在SADC或RDAC再注入一次。
     if cfg.dither_mode == "analog":
         # 输入注入：dither 是真实加到输入端的电压，两条采样通路**都会**看到它
         # —— 已经含在 u1 里，sadc_dither 必须为 0（重入即 x_sadc = x+2d，
@@ -225,8 +187,8 @@ def capture(
         rdac_dither: float | np.ndarray = 0.0
         sadc_dither: float | np.ndarray = 0.0
     elif cfg.dither_mode == "quantizer":
-        # 量化器侧 dither：只进 SADC 决策通路，RDAC 保存通路保持干净
-        # （残差 = x − vD(x+d_Q 取整)，余项由 ADC2 窗口吸收，见 stage21）。
+        # quantizer：SADC看x+d_Q；RDAC保存x+d_R，dual_port的d_R=ratio*d_Q
+        # range/granularity的ratio=0；两端口的码修改与数字扣除由下游按同笔上下文配对。
         u1 = x1
         rdac_dither = cfg.dither_rdac_ratio * dither
         sadc_dither = dither
@@ -362,29 +324,17 @@ def sine_input(amp: float, fin: float, phase: float = 0.0) -> AnalyticInput:
 
 
 def spectral_derivative(x: np.ndarray, dt: float) -> np.ndarray:
-    """Uniform-grid derivative via the FFT (exact for band-limited records).
+    """周期、均匀孔径序列的频域导数。
 
-    Why not ``np.gradient``
-    -----------------------
-    A central difference has amplitude response
-    ``sin(2*pi*f/fs) / (2*pi*f/fs)``. At f = 0.95*(fs/2) it is about **0.0524**
-    -- the derivative is underestimated by ~25.6 dB, so any effect that is
-    proportional to ``dx/dt`` (interleaving timing skew is exactly that) is
-    silently suppressed near Nyquist. An external audit measured this on v6.1
-    (finding A07.3) and warned that low-frequency skew results must not be
-    extrapolated.
-
-    The spectral derivative is exact for resolved periodic tones strictly
-    below Nyquist. A real Nyquist-bin component does not determine its continuous
-    derivative; this routine returns its real spectral derivative (zero). It is the fallback when
-    the input function cannot supply an analytic derivative.
+    乘j*omega对已解析且严格低于Nyquist的周期分量求导；实Nyquist采样不能唯一
+    确定连续导数，本函数给出其实频域导数0。普通中心差分会按sin(w)/w压低高频斜率。
 
     Args:
-        x:  ``(N,)`` samples on a uniform grid.
-        dt: Sample spacing [s].
+        x: (N,)周期样本，单位可为输入V。
+        dt: 均匀孔径间隔[s]。
 
     Returns:
-        ``(N,)`` derivative estimate, same units as ``x``/``dt``.
+        (N,)导数，单位为输入单位/s。不把非周期短记录变成准确的连续波形导数。
     """
     x = np.asarray(x, dtype=float)
     n = x.size

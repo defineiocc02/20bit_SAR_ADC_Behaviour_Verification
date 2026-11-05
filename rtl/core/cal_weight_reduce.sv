@@ -6,6 +6,9 @@
 // 异常：无效ID/重复ID或采样dither范围越界置invalid_slice，上层将其作为gain_err完成事件。
 // 缓存：生产P_USE_ROW_TOTALS=1使用配置时精确行和；调用方保证row_total与实际w_rom一致。
 // 采样dither：只在sampling模式从G扣对应单元，并按每列实际rail加入有符号补偿。
+// W是有效C/Cf（含静态桥接/反馈比例）的量化值，不是法拉，也不能分别辨识每个物理电容。
+// sampling时T=sum(W)、G=T-M、rails=T-2*sum(W_on)+sum(sign_rail*W_dither)；否则用G=T且无rail附加项。
+// 数字信号比例alpha=G/T按所装有效权重计算；后级除以G已含该比例修正，不能再扣一次名义比例。
 // 适用域：维度/精度由initial守卫检查；树为组合DAG，split_var仅划分仿真依赖。
 // 来源：RTL_ARITHMETIC_CONTRACT.md与ADR0014/0018；不读取模拟真值或运行学习。
 `include "rtl_params.vh"
@@ -71,11 +74,8 @@ module cal_weight_reduce #(
         invalid_slice |= (slice_id[a] == slice_id[b]);
   end
 
-  // Move the narrow switch mask to its physical row, rather than selecting
-  // 48-bit coefficient buses through eight independent 18:1 crossbars.
-  // Every coefficient is statically wired to its own physical unit. This trades
-  // more zero-gated adder leaves for substantially narrower selection wiring;
-  // mapped area/timing still require a target-library synthesis comparison.
+  // 先按物理slice铺开窄mask，再对固定连接的权重求和，避免每个slot单独选择宽权重总线。
+  // 重复ID虽按OR合并且只计一次权重，仍标invalid_slice，不能当成合法的8路样本继续归一化。
   logic [P_N_SLICES - 1:0] active;
   logic [P_N_SLICES - 1:0][N_U - 1:0] physical_on;
   always_comb begin
@@ -91,11 +91,9 @@ module cal_weight_reduce #(
     end
   end
 
-  // Only the physical-row active mask changes per sample. Coefficients remain
-  // fixed during conversions, so the loader can cache each row's exact sum.
-  // Duplicate IDs still activate a physical row once. No pipeline stage is added.
-  // The caller guarantees row_total[s] == sum_u w_rom[s][u]; this module does
-  // not independently recompute/check the cached sum in the production path.
+  // 缓存的是每个物理row的精确和，不是全局固定增益；切换slice组仍须重新选择并求和。
+  // 配置在转换期间冻结。调用方须保证row_total[s]==sum_u(w_rom[s][u])，
+  // 本路径不重新校验缓存；weight_store的替换写必须同步维护系数和行和。
   for (genvar t = 1; t < 2 * COL_LEAVES; t++) begin : g_row_tree
     if (!P_USE_ROW_TOTALS) begin : g_unused
       assign row_tree[t] = '0;
@@ -109,13 +107,9 @@ module cal_weight_reduce #(
     end
   end
 
-  // The acquisition dither rail for unit J is shared across every active slice.
-  // C[J] = sum_s W[s,J]; M = sum_J C[J]. Factor the sign AFTER each column:
-  // gain = sampling ? total-M : total; Wr = sampling ? sum_J sign[J]*C[J] : 0.
-  // All coefficients enter as unsigned bit patterns. M is a subset of total,
-  // and the width guard above bounds both exactly, including invalid-ID inputs.
-  // Production 18x4 dither cells need 4 conditional negations instead of 72.
-  // No registers, narrowed operands, configuration state, or latency are added.
+  // 各活动slice共享同一列的采样rail，但其W可以不同：先按物理列求C[J]=sum_s(W[s,J])，
+  // 再施加rail符号。M为这些列的总和；默认sub-bank集合是物理unit67..70。
+  // 全部权重先零扩展，再转signed处理负rail，避免正权重最高位被误解释为符号。
   for (genvar j = 0; j < P_DIT_N; j++) begin : g_col
     localparam int U = DIT_BEG + j;
     for (genvar t = 1; t < 2 * COL_LEAVES; t++) begin : g_sum

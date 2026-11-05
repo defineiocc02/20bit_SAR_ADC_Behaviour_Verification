@@ -1,8 +1,8 @@
-"""Sampling charge and bank/RDAC unit conversion for the split topology.
+"""split采样mask的真实电荷与数字码单位换算。
 
-The physical path uses fabricated capacitor values. Command conversion and
-nominal digital subtraction use only design values. Both runners share this
-module; neither runner imports physical helpers from the other runner.
+aggregate实现用实际C/beta生成RDAC保存节点的输入等效注入[V]；数字扣除只用
+名义栅格。生产物理pool还会按实际selected slice同步重算信号与注入，不能把
+aggregate归一化直接当作18片共享同一物理电容。
 """
 
 from __future__ import annotations
@@ -17,25 +17,22 @@ from .sampler import SampleBatch
 def sampling_dither_injection(
     cfg: Config, chip: SplitChip, sample: SampleBatch, step0: float, c_sig: float
 ):
-    """由同一采样掩码计算真实信号/dither 电荷并规范化码单位。
-
-    必须在 RDAC 命令和动态计算之前调用。sampler 的 split 原始码表示
-    bank 掩码增量；本函数将其保存为 dither_bank_code，并将 dither_code
-    转换为名义 RDAC 单位。数字换算只使用名义参数，物理信号和注入使用
-    真实电容。重复调用幂等，不会重复衰减或再次换算码单位。
+    """在RDAC命令生成前同步换算采样mask的电荷与码单位。
 
     Args:
-        cfg: 仿真配置（Config）；相关字段来源分级见 config.PARAM_GRADES。
-        chip: 虚拟芯片（提供 C_main/C_sub 与 beta_true，用于掩码电容）。
-        sample: SampleBatch（**会被改写**：x_rdac 与 dither 同步重标定）。
-        step0: 本拓扑名义 RDAC 单位步长 [V]。
-        c_sig: 信号电荷系数 [F] = chip.A + beta_true·chip.B（注入量归一化）。
+        cfg: split配置；2D个固定末尾bank单元作为注入mask。
+        chip: aggregate物理电容/beta实现，仅用于plant注入。
+        sample: 可变SampleBatch，长度N；首次保存原bank码，之后复用该码换算。
+        step0: 名义RDAC细栅格步长[输入等效V]。
+        c_sig: aggregate总信号电荷归一化C=A+beta*B[F]，尚未减去mask。
 
     Returns:
-        ``(N,)`` float64：重标定后的注入电压 [V]。
+        (N,)重算的RDAC保存节点注入[输入等效V]。
 
     Side effects:
-        同步改写 x_rdac、dither、dither_code、dither_bank_code、signal_alpha。
+        同步改x_rdac、dither、dither_code、dither_bank_code、signal_alpha。
+        未被其他模块改写期间重复调用幂等；只用名义bank_step/step0转换数字码，
+        main-bank码需乘n_sub，sub-bank码不变。真实mask失配不会被名义扣除自动消除。
     """
     d_old = np.asarray(sample.dither, dtype=float).copy()
     d_code = np.asarray(

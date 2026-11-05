@@ -1,10 +1,11 @@
 // 模块：dem_state_gen；A/B bank独立推进的确定性DEM状态。
-// 职责：sid_b(n)=(n*A) mod2^W，以W位加性递推实现；默认A mod512=433、W=9。
+// 职责：每bank按自身接受序号n生成sid(n)=(n*A) mod2^W；默认A mod512=433、W=9。
 // 端口/单位：sid/init为无符号状态，en_a/en_b分别消耗对应bank当前状态，可同时有效。
 // 时钟/复位：clk上升沿、同步低有效rst_n；优先级reset>load>dem_en下的独立enable>保持。
 // 对齐：消费者在enable沿使用旧sid，该沿随后推进；load同沿不推进。
 // 关闭：dem_en=0时对外输出0、内部状态保持，load仍可装初值，重新使能不会自动重播种。
 // 适用域：W=1..32、A_RED为奇数；奇数步长保证全W位状态周期，不等同随机熵源。
+// sid是单元地址置换状态，不是物理slice ID或sample ID；完整状态周期也不保证单元使用均匀。
 // 来源：mapper.dem_state_sequence与参数导出器；状态顺序、位宽和bank归属均属数字接口合同。
 `include "rtl_params.vh"
 
@@ -37,7 +38,8 @@ module dem_state_gen #(
   logic [W - 1:0] state_a, state_b;
 
   // 时序边界：reset > load > dem_en 下独立的 en_a/en_b > 保持。
-  // 不把两路 enable 合成全局样本计数，避免每 bank 只访问半数 DEM 状态。
+  // 两个bank分别消费旧状态。若改成全局样本计数再按奇偶分bank，每个bank只能
+  // 看到隔一个取一个的状态子集；独立加法才能各自覆盖全部2^W状态。
   always_ff @(posedge clk) begin
     if (!rst_n) begin
       state_a <= {W{1'b0}};

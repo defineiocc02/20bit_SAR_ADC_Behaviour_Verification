@@ -1,9 +1,19 @@
 #!/usr/bin/env python3
-"""Run raw structural-DUT observation -> external fit -> loaded holdout.
+"""重新仿真并训练：结构数字DUT与独立静态失配plant的留出验证。
 
-The simulated analog plant has fixed mismatch per chip. Only external known
-input values and the DUT's digital observation packet reach the fitter. This is
-functional behavioral/RTL evidence, not an extracted or silicon measurement.
+位置：Config.rtl_structural 的DEM+sampling dither合同，观察→片外已知参考
+拟合→冻结/量化装载→独立留出。cfg中的mismatch_enable=False用于名义数字
+合同和Python事件对照；实际plant失配由SV夹具按chip seed独立产生，并未关闭。
+训练器只接收数字观察与单独已知输入，不能读取plant真实电容/有效位权。
+
+输入：训练/留出笔数、芯片seed，以及可选输入等效RMS噪声[µV]。每颗芯片
+的物理失配固定，训练/留出激励不同；名义/拟合输出使用同一留出raw记录。
+输出：新目录中的CSV/十六进制观察、冻结系数、Q格式寄存器和summary.json。
+
+成功要求ID/开关合同对齐、训练可辨识、模拟异常与数字flags清楚、RTL字与
+独立整数模型逐码一致；无噪夹具要求留出误差标准差低于原值一半，含噪要求
+有改善。mean/std/RMS均从最终20位码中心减已知输入[V]计算，不能互相代替。
+这不是只重画图，也不验证动态建立、真实外部参考、ADC2非线性或目标工艺。
 """
 
 from __future__ import annotations
@@ -137,7 +147,22 @@ def _run_capture(
 def run(
     output: Path, train_samples: int, held_samples: int, chip_seeds: list[int], noise_rms_uv: float
 ) -> dict:
-    """Compile once and evaluate independent fitted holdouts for each chip seed."""
+    """编译一次，再对每颗固定失配芯片训练并检查独立留出。
+
+    Args:
+        output: 尚不存在的新输出目录；不覆盖旧证据。
+        train_samples: 每颗芯片的训练笔数，不是FFT长度。
+        held_samples: 每颗芯片的独立留出笔数。
+        chip_seeds: 夹具物理失配种子；同一seed用于其训练和两种留出重构。
+        noise_rms_uv: plant中的输入等效RMS扰动[µV]，不是RA输出端电压。
+
+    Returns:
+        结果摘要：秩、条件数、均值/标准差/RMS、独立整数对拍和输入摘要。
+
+    Side effects:
+        运行Verilator/C++，向output保存raw、拟合、冻结和失败诊断；异常可见。
+        无观察/参考/retirement数量或ID一致性时直接拒绝，不过滤后伪报改善。
+    """
     if (
         not 1279 < train_samples <= 20000
         or not 16 <= held_samples <= 20000

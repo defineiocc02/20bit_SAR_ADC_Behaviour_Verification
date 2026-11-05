@@ -10,6 +10,9 @@
 // 上下文：冻结实际物理ID/mask/rails及coarse/sid/dither，供下一周期fine与可选观测packet使用。
 // 可选CAAZ：input chop属于acquiring，AZcapture属于current RA，fine tag属于旧residue。
 // legacy ra_az每cycle保持；新增even-only capture只更新CBIAS，实际模拟开关/保持须独立验收。
+// DEM联动：同一个dem_en同时驱动slice洗牌、bank内单元状态与bridge资格，没有独立停洗牌位。
+// 模拟边界：quiet后chop已准备下一笔，物理acquiring组须到下一advance才换；
+// 前笔电荷必须由宏内关闭锁存/inhibit保持，裸TP与组使能相与可能在这一tick重开采样。
 // 来源：ADR0018及项目16tick预算；CAAZ见PKU_VLSI2025_C32_1_PAPER PDF2 Fig5/6。
 `include "rtl_params.vh"
 module sar_structural_ctrl #(
@@ -108,8 +111,8 @@ module sar_structural_ctrl #(
       .acquisition_primed(acquisition_primed)
   );
 
-  // Legacy RA reset/preparation remains unchanged every cycle. Only this
-  // independent capture pin controls CBIAS AZ refresh; odd cycles hold it.
+  // 旧ra_az继续每周期准备放大器/储能节点；若旧宏仍把它接到CBIAS采集开关，
+  // odd会重新抽取AZ噪声。新capture/hold引脚必须在真实宏中独立映射，不能仅改数字标签。
   caaz_cycle_ctrl #(.P_CAAZ_ENABLE(P_CAAZ_ENABLE)) u_caaz_cycle (
       .clk(clk),
       .rst_n(rst_n),
@@ -215,6 +218,8 @@ module sar_structural_ctrl #(
   wire random_valid;
   logic signed [7:0] acquiring_dither, current_dither;
   logic signed [63:0] current_injection;
+  // D来自头文件整数range（当前2）；没有运行时幅度寄存器，也没有额外的dR范围增强。
+  // analog dither如需使用，由外部模拟宏实际注入并提供同笔ADC输入域Q32 injection_q。
   dither_gen #(.SEED(P_DITHER_SEED)) u_random (
       .clk(clk),
       .rst_n(rst_n && enable),
@@ -237,9 +242,9 @@ module sar_structural_ctrl #(
   wire [7:0][7:0] sub_on;
   wire [3:0] rails;
   wire rdac_over;
-  // Sampling dither is injected into the held charge and added to the RDAC
-  // command in matching units. Quantizer dither is instead removed from the
-  // decision. The two control modes are mutually exclusive at configuration.
+  // sampling在采集轨引入扰动，RDAC随后加同单位量；quantizer由宏在比较器处施加dQ，
+  // 这里从RDAC命令减去同一dQ。采样扰动选sub时每单位为一个子单位，选main需乘N_UNIT_SUB。
+  // 这两种配置互斥。补偿符号定义在斩波后的ADC码域；不能盲目随input chop再翻一次符号。
   wire signed [15:0] sampling_dither = DITHER_SPLIT_IS_SUB
       ? 16'(current_dither) : (16'(current_dither) * 16'(N_UNIT_SUB));
   wire signed [15:0] rdac_dither_adjust = quantizer_en ? -16'(current_dither)
@@ -265,8 +270,8 @@ module sar_structural_ctrl #(
       .dither_rail(rails)
   );
 
-  // A SAR update pulse describes the pre-edge resolved code. The driver samples
-  // that accepted code on the next edge; it never follows the pending trial bit.
+  // resolved_valid与已决码在SAR沿后更新，driver到下一沿才读到它们；因此默认载荷为
+  // Flash前缀+6个已决码共7次。重复的已决码仍是一次真实负载事件，不可去重成trial轨迹。
   wire load_rdac = enable && conv_valid && coarse_update[bank] && phase >= 2 && phase <= 8;
   rdac_drv u_rdac (
       .clk(clk),
@@ -357,6 +362,8 @@ module sar_structural_ctrl #(
       fine_cancel <= phase == 13 || phase == 14;
       sw_valid <= load_rdac;
       if (quiet_sample) begin
+        // 同沿先读旧acquiring数据归给本笔current，再由下方advance在下一tick
+        // 安装下一采集组/扰动；不能将实时bank或随机数直接接到旧residue重构。
         bank <= !bank;
         current_dither <= acquiring_dither;
         current_injection <= injection_q;
@@ -365,8 +372,8 @@ module sar_structural_ctrl #(
       end
       if (advance) begin
         coarse_acquire_enable <= bank ? 2'b01 : 2'b10;
-        // DEM and PRNG submodules advance on this same edge. NBA semantics
-        // intentionally freeze their OLD sid/random output for this period.
+        // DEM与PRNG同沿也推进，但这里冻结旧输出；sid按当前coarse bank消费，
+        // 新random码归下一采集组。sample ID/物理slice ID/DEM sid是三种不同索引。
         sid <= bank ? sid_b : sid_a;
         acquiring_dither <= ((sampling_en || quantizer_en) && random_valid) ? random_dither : 8'sd0;
         if (!flash_valid) error_code <= ERR_SADC_NOT_READY;

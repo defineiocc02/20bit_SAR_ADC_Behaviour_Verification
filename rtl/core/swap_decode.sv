@@ -3,9 +3,12 @@
 // 端口/单位：coarse为9位码；dither_code为16位signed RDAC单位当量；输出为非负单元计数。
 // 时序：无时钟、复位或握手；所有输入须属于同一个冻结样本。
 // 桥接：dem_en&&bridge_en时按sid_low进行4正4负零和交换，端点幅度0，内部码幅度1。
+// 生产调用方已将bridge_en与sid[8]相与；本叶没有完整sid，不能在这里重复猜测激活条件。
+// 名义main=8、sub=1时八slot总量为8*k；带失配的有效权重不相等时，实际电荷不必零和。
 // 异常：rdac_over使用裁剪前k，合法mask使用裁剪后码；名义总和守恒不证明失配下的物理等价。
 // 适用域：当前8活动slice、63main/8sub、512级；几何来自参数头，顶层另作一致性检查。
 // 来源：mapper.encode、dem.split_switch_command、RTL算术合同；不生成地址或温度计mask。
+// 这是ADR0021统一的工程开关合同，不是原芯片binary/unary桥接电路的完整真值表。
 `include "rtl_params.vh"
 
 module swap_decode (
@@ -29,7 +32,8 @@ module swap_decode (
   localparam signed [17:0] LMAX = 18'(int'(DAC_LEVELS) - 1);
   localparam signed [17:0] ZERO = 18'sd0;
 
-  // ---- 1) 命令拼装（k 未裁剪；溢出口径取它，与 SimResult.rdac_over 一致） ----
+  // coarse是量化器判决码，k_cmd才是RDAC子单位命令；dither_code已由上层按
+  // sampling加、quantizer减完成单位换算。RDAC合法不等于RA摆幅或ADC2窗口合法。
   logic signed [17:0] k_cmd;
   assign k_cmd = $signed({9'b0, coarse}) * UL1 + KLO + 18'($signed(dither_code));
 
@@ -56,7 +60,8 @@ module swap_decode (
       logic               sign_pos, sign_neg;
       logic signed [10:0] delta, slice_code;
 
-      // 取模操作数先扩为32位，保证N_ACT=8不被3位截断成零。
+      // a是8个活动slot的编号，稍后才由rdac_drv映射到物理slice ID；
+      // rank只旋转4正4负的slot分组。操作数先扩32位，避免常量8被3位截成0。
       assign rank     = 3'((32'(a) - 32'(sid_low)) % 32'(N_ACT));
       assign sign_pos = (32'(rank) < 32'(HALF));
       assign sign_neg = !sign_pos && (32'(rank) < 32'(N_ACT));

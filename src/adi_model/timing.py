@@ -1,4 +1,10 @@
-"""Causal slice scheduling shared by vectorized and event-driven runners."""
+"""采样电容的因果归属和结构RTL时序代理，共供行为runner使用。
+
+build_slice_plan负责generic固定A/B或从空闲池中随机选组；
+build_rtl_slice_plan负责结构18/8 allocator的LFSR游标、扫描顺序与启动预充。
+两者都要求当周期conv/acq不交叉、acq[n]交给conv[n+1]，但随机分布不相同。
+这里输出物理slice ID与状态，不估计时偏/带宽，不等同完整模拟采样电路。
+"""
 
 from __future__ import annotations
 
@@ -11,11 +17,12 @@ from .config import Config
 
 @dataclass
 class SlicePlan:
-    """Cycle assignments with explicit acquisition ownership and startup state.
+    """逐周期采集/转换归属；数组第二维是逻辑slot，元素是物理slice ID。
 
-    ``conv[n]`` holds the acquisition from ``acq[n-1]``. Cycle zero is invalid
-    until the consuming runner performs an explicit priming acquisition.
-    Group order denotes wiring order, not a new physical sample.
+    conv/acq: (N, n_active)，当周期转换/采集组；集合逐行不相交。
+    conv_source_cycle: (N,)，对应采集周期索引，可为启动预充周期-1。
+    generic计划的首周期valid=False，runner须预充后消费；RTL计划已丢弃无效
+    启动advance，返回的valid全True。组内顺序是接线/slot顺序，不是另一笔采样。
     """
 
     conv: np.ndarray
@@ -26,18 +33,34 @@ class SlicePlan:
     meta: dict = field(default_factory=dict)
 
     def __len__(self) -> int:
-        """Return the number of conversion cycles."""
+        """返回转换周期数N。"""
         return int(self.conv.shape[0])
 
 
 def _lfsr8(state: int) -> int:
+    """将已验证的非零uint32 Galois状态推进8步；不生成模拟噪声电压。"""
     for _ in range(8):
         state = (state >> 1) ^ (0x80200003 if state & 1 else 0)
     return state
 
 
 def rtl_dither_codes(n_samples: int, seed: int) -> np.ndarray:
-    """Return the structural D=2 LFSR dither sequence after acquisition priming."""
+    """返回结构D=2采样合同的离散dither序列，单位为RDAC单位码。
+
+    Args:
+        n_samples: 非负整数raw样本数N。
+        seed: 非零uint32状态。
+
+    Returns:
+        (N,) int64，值域-2..2；高字节经8档映射，端点与内部档并非五档等概率。
+        该接口不读取dither_amplitude_lsb1，不代表任意幅度的扫描已生效。
+
+    Raises:
+        ValueError: 样本数或种子不满足上述范围。
+
+    Side effects:
+        仅使用函数局部LFSR状态；不推进外部RNG。
+    """
     if type(n_samples) is not int or n_samples < 0:
         raise ValueError("RTL dither needs a nonnegative integer sample count")
     if type(seed) is not int or not 0 < seed <= 0xFFFF_FFFF:
@@ -52,10 +75,26 @@ def rtl_dither_codes(n_samples: int, seed: int) -> np.ndarray:
 
 
 def build_rtl_slice_plan(n_samples: int, *, shuffle: bool, seed: int) -> SlicePlan:
-    """Reproduce the structural allocator's priming, ordering and LFSR cursor.
+    """重现结构18/8 allocator的预充、接线顺序与LFSR游标。
 
-    This fixed 18/8 profile is an engineering implementation, not a claim that
-    the paper discloses its PRNG. The first advance is discarded as invalid.
+    每周期从cursor开始环扫18个物理ID，跳过当前8个conv，取前8个空闲ID作acq。
+    shuffle=True只改变游标；它不是在全部8-of-18组合中均匀抽样。高字节>=252时
+    保留游标，LFSR仍推进。shuffle=False在启动后使用固定游标0。
+
+    Args:
+        n_samples: 非负整数，有效raw周期数N。
+        shuffle: 是否启用LFSR游标；由结构profile的dem_enable控制。
+        seed: 非零uint32；仅决定数字选择序列。
+
+    Returns:
+        SlicePlan；已跳过无效启动advance。首个输出组来自预充，实际外部sample ID
+        由runner在此基础上从2开始分配。18/8及PRNG均为工程实现合同。
+
+    Raises:
+        ValueError: N、布尔开关或种子非法。
+
+    Side effects:
+        无外部状态；不能据此宣称单元等使用或时序失配已校正。
     """
     if type(n_samples) is not int or n_samples < 0:
         raise ValueError("RTL schedule needs a nonnegative integer sample count")
@@ -102,20 +141,24 @@ def build_slice_plan(
     *,
     spare_period: int | None = None,
 ) -> SlicePlan:
-    """Schedule acquisitions from free slices and consume exactly those slices.
+    """从当前空闲slice中选择下一采集组，并保持跨周期样本归属。
 
     Args:
-        cfg: Pool dimensions; no fabricated capacitor values are read.
-        n_samples: Nonnegative number of cycles.
-        rng: Dedicated scheduling random stream.
-        strategy: ``pingpong`` or ``shuffle_causal``.
-        spare_period: Optional deterministic spare substitution interval.
+        cfg: 物理池维度；不得读取制造失配以挑选电容。
+        n_samples: 非负周期数N。
+        rng: 专用调度随机源，与采样/噪声随机源分开。
+        strategy: pingpong使用固定A/B；shuffle_causal对当前空闲ID做置换并取前n_active。
+        spare_period: pingpong可选的备用slice顶替周期；None表示不顶替。
 
     Returns:
-        Per-cycle plan. Every transition has full sample ownership.
+        SlicePlan。conv[n+1]消费acq[n]；组内排序只固定存储顺序，不能把该slot统计
+        当成固定物理slice统计。与RTL的游标扫描策略不同。
 
     Raises:
-        ValueError: Invalid dimensions, strategy or spare interval.
+        ValueError: 池不足两组、N/策略/顶替周期非法。
+
+    Side effects:
+        随机策略推进传入rng；固定无顶替路径不消耗它。时偏/失调由物理pool另行施加。
     """
     n_active = cfg.n_active
     if n_samples < 0 or cfg.n_slices < 2 * n_active or n_active < 1:

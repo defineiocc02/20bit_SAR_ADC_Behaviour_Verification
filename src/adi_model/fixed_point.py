@@ -1,9 +1,12 @@
-"""Integer split-ADC reconstruction with explicit coefficient and accumulator widths.
+"""split ADC的冻结系数装载与整数重构。
 
-Voltages use signed normalized-Vfs Q32; effective C/Cf weights use signed Q30.
-A 96-bit signed accumulator is checked before division (Python integers emulate
-wide hardware without wrap). The output is 20-bit offset binary, mid-rise bins
-on [-Vfs,+Vfs). Float output is only a decoded diagnostic, never an input.
+输入为数字观测、名义电压栅格和冻结有效C/Cf系数，不读模拟输出或未知输入。
+默认电压寄存器是归一化V/Vfs的signed Q32，权重为signed Q30；检查96bit
+有符号累加后作整数除法。最终20bit offset-binary采用[-Vfs,+Vfs)半开midrise箱，
+floor确定输出码，voltage属性只解码箱中心[输入V]作诊断。
+
+系数量化使用ties-to-even；模拟越界与最终数字裁剪分别保留。没有KTC浮点观测器
+的整数接口，也不把20bit码宽当作实测20bit线性度。
 """
 
 from __future__ import annotations
@@ -156,11 +159,17 @@ class FixedPointReconstructor:
         return cls.from_weights(spec, model.weights, model.offset_v, format=format)
 
     def reconstruct(self, data: DigitalObservation) -> CodeStream:
-        """Merge raw backend codes and realizable switch masks into final integer words.
+        """由raw ADC2码和可实现开关mask产生最终整数码。
 
-        Out-of-range analog flags are retained; final input-range saturation is
-        separate. Arithmetic overflow raises instead of silently wrapping. The
-        experimental floating KTC observer has no accepted integer interface.
+        Args:
+            data: DigitalObservation；单位码必须为整数，geometry/nominal ADC2
+                标度必须与寄存器spec完全匹配。只用控制/码，不读模拟out或未知输入。
+
+        Returns:
+            CodeStream，含(N,)offset-binary码、输入等效箱中心的解码接口和独立
+            模拟/数字裁剪标志。归约使用Q30权重，Q32电压与权重乘加后按同笔
+            signal-mask权重和归一化，再floor到输出箱；超出累加器范围直接拒绝。
+            不丢弃模拟越界点，不隐式绕回，KTC没有接受的整数观测接口。
         """
         data.validate()
         if data.spec != self.spec:

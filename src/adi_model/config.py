@@ -1,16 +1,13 @@
-"""Configuration, units and legal operating domains for the SAR models.
+"""SAR行为模型的配置、节点单位与合法运行域。
 
-The 40 MS/s rate, 6 Vpp input, 18/8 slice counts and G=32 are disclosed anchors.
-`paper_consistent()` retains the historical seven-decision-bit hypothesis for
-comparison; its name does not establish a unique reading of the paper.
-`paper_literal()` implements nine decisions with independent dither port range
-and a complete-count split topology. Its 63+8 counts and ideal dual-port coupling
-are explicit assumptions. Dither amplitude enhancement never creates extra
-information about the unknown input.
+Config()保留7bit先级/unary对照；paper_literal()是9bit判决、63+8 split
+及理想dual-port注入候选；rtl_structural()保持同一9bit几何，另约束16相位、
+range转移、D=2序列和由dem_enable联动的实际分配器。工厂不会复原未公开电路。
 
-ADC2 range/precision are derived under a stated 10% redundancy assumption, not
-transcribed circuit details. Capacitance, gain, sampling load and noise-equivalent
-capacitance remain distinct. Fitted noise/mismatch targets are not predictions.
+fs单位Hz；输入峰值v_fs单位输入节点V；ADC2/ra_v_clip单位RA输出节点V；
+电容单位F，失配为相对量。Δ1、RDAC细栅格ΔDAC、目标LSB分别定义，不可混用。
+合法性检查拒绝无定义分支/几何；validate只给名义预算，不能替代逐样本余量实验。
+来源分级在provenance；噪声和工艺假设不等于硅预测。
 """
 
 from __future__ import annotations
@@ -26,34 +23,16 @@ TEMP_K = 300.0  # K
 
 
 class ConfigError(ValueError):
-    """A configuration that cannot model anything physical.
+    """配置不满足已实现分支、几何或数值域时的入口异常。
 
-    Raised by :meth:`Config.check_legal` and therefore by every simulation
-    entry point. Distinct from a `validate()` record being ``False``: a FAIL
-    record says "this (legal) design has little margin here", which is worth
-    studying; a ``ConfigError`` says "these numbers are not a model of
-    anything" — an unrecognised enum value silently falling through to a
-    default branch, or a size that makes the algebra undefined.
+    与validate返回的余量不足不同：合法配置仍可用于研究有限余量，
+    无定义枚举或不兼容profile应在运行前拒绝。
     """
 
 
-# --------------------------------------------------------------------------
-# 枚举型字段的**已实现**取值表。
-#
-# 用途：仿真入口在开始计算前查这张表。此前一个拼错的取值（如
-# ra_gain_model="Fixd"）会静默退化到默认分支，仿真照跑、结果照出，只是跑的
-# 不是你以为的那条路径 —— 外部复核 2026-09-11 把这称为"字段名贴标签"。
-# 契约：配置在某条链路里要么按声明生效，要么被显式拒绝，不能静默忽略。
-#
-# 维护：新增取值时同步这里，否则入口会拒绝这个新取值（宁可拒绝也不要静默）。
-# 本表是"入口拒绝非法取值"的唯一来源；`tests/audit/test_review_contracts.py`
-# 逐字段核对未声明取值确实被拒绝
-# （TestR4ConfigTakesEffectAtTheRunner::test_an_illegal_enum_is_refused_for_every_declared_field）。
-#
-# 本表声明合法取值。stage1_reading记录架构读数并由legality约束b1；
-# dem_mode由scheduler.make_scheduler选择固定A/B或因果slice洗牌。
-# 字段合法不代表在所有runner生效；unary不支持的动态请求由run_sim明确拒绝。
-# --------------------------------------------------------------------------
+# 枚举只约束已声明分支，不保证每字段在每runner活跃。
+# generic调度由dem_mode选择；rtl16由profile约束dem_mode与dem_enable联动。
+# 新增分支须同步此表；入口合法性、运行时有效配置和波形余量是不同检查。
 LEGAL_VALUES: dict[str, tuple[str, ...]] = {
     "stage1_reading": ("paper_consistent", "paper_literal", "legacy_codeword"),
     "dither_transfer_model": ("range", "granularity", "dual_port"),
@@ -70,20 +49,8 @@ LEGAL_VALUES: dict[str, tuple[str, ...]] = {
 }
 
 
-# --------------------------------------------------------------------------
-# stage1_reading 标签 -> b1 的对应关系。从三种读法的**定义**直接导出，不是
-# 第二份需要手工同步的事实表：
-#
-#   paper_consistent  historical seven-decision-bit hypothesis (default)
-#   paper_literal     nine unknown-input decisions; separate 4x dither port
-#   legacy_codeword   historical six-decision-bit model, retained as a baseline
-#
-# 标签只是元数据，真正改变机制的是 b1（以及工厂方法一并设定的后端字段）。
-# 两者不一致时，用户会以为自己切换了架构、实际没有 —— 与拼错的枚举值同类，
-# 只是更隐蔽，因此在仿真入口拒绝（外部复核 2026-09-11 第三轮）。
-#   注：`Config(b1=10)` 这类"只想动 b1"的配置仍可构造、可 validate()（它测的
-#   是 DAC 电平数判据），只是不能送进仿真入口 —— legality 与 validate 分离。
-# --------------------------------------------------------------------------
+# 架构标签与实际决策位数必须匹配；已知dither不增加未知输入信息。
+# 7bit/6bit是保留对照，9bit工厂另声明几何与端口假设。
 READING_B1: dict[str, int] = {
     "paper_consistent": 7,
     "paper_literal": 9,
@@ -93,29 +60,25 @@ READING_B1: dict[str, int] = {
 
 @dataclass
 class Config:
-    """全部模型参数的唯一来源；每个字段都在 PARAM_GRADES 中登记来源分级。"""
+    """模型配置；顶层字段的来源分级见provenance，嵌套控制见对应参数类。
+
+    裸构造器不自动随b1重推后端；需要成组切换架构时使用工厂方法。
+    字段被接受不代表在所有runner活跃，实际应用与保留项由effective_config说明。
+    """
 
     # ---------------- 系统与目标 ----------------
-    fs: float = 40e6  # 采样率
+    fs: float = 40e6  # raw采样率[Hz]
     n_bits_target: int = 20  # 定义目标LSB；最终整数码宽由FixedPointFormat另行指定
     v_fs: float = 3.0  # 差分满幅峰值（V），输入范围 = ±v_fs
-    target_dr_db: float = 94.6  # 发表值；用于反推 RA 噪声预算（ra_out_noise_rms=None 时）
+    target_dr_db: float = 94.6  # 目标预算[dB]；ra_out_noise_rms=None时用于反推RA预算
 
     # ---------------- 第一级 SADC ----------------
     b1: int = 7  # 第一级 SADC 判决位数（含义见 stage1_reading）
-    # Explicit architecture hypotheses. The paper's nine quantization bits
-    # concern unknown input; the separate two-bit dither range statement does
-    # not add decision information. The nine-bit factory uses an assumed 4x
-    # dual port, while the seven-bit default preserves historical comparisons.
-    # Neither hypothesis supplies undisclosed ADC2 or switching circuit detail.
+    # 架构读数标签；工厂同步设置b1/几何/后端，标签本身不是电路证据。
     stage1_reading: str = "paper_consistent"
-    # dither 从量化器转移到 RDAC 的机制。论文 [00]：dither range "is enhanced
-    # by 2b when the result is transferred from the quantizer to the RDAC"。
-    #   "range"      : 历史 RDAC 栅格转移假设（默认）
-    #                  d_code = −round(d/ΔD)；"2^b 增强"是**余量能力**
-    #                  （units_per_d1 = 2^b），只是栅格比，
-    #                  不由粒度实验冒充证明。
-    #   "granularity": v6.1 读法 —— 转移时按更细粒度重新取整（保留对照）。
+    # range: d_R=0，按ΔDAC转移-rint(d_Q/ΔDAC)；granularity保留可选取整粒度。
+    # dual_port: d_R=2**enh*d_Q，RDAC命令加(d_R-d_Q)/ΔDAC，重构扣d_R。
+    # 两者是不同端口假设，不由dither码宽增加未知输入判决位数。
     dither_transfer_model: str = "range"
     dither_enhancement_bits: int = 2  # [披露] 论文："enhanced by 2b"
     c_sadc: float = 1.0e-12  # SADC 采样电容（小、快）
@@ -134,12 +97,8 @@ class Config:
     # ---------------- 级间增益 / 残差放大器 ----------------
     g0: float = 32.0  # 名义级间增益
     gain_error: float = 0.0  # fixed 模式下 G_actual = g0*(1+gain_error)
-    # RA 增益模型（v3 审计修正：反馈电容必须真正进入传输关系，二选一，不许混写）：
-    #   "charge" : 电荷一致模型 G[n] = C_active[n] / C_F_true。
-    #              C_active 是**本次样本实际选中的 slice 集合**的总电容（逐样本），
-    #              C_F 是这颗芯片的实际反馈电容。全局/slice 级失配由此进入
-    #              增益通路（整体偏差 = 增益误差，DEM 轮转选中集合变化 = 增益波动）。
-    #   "fixed"  : 理想固定增益 G = g0*(1+gain_error)，与电容无关（仅作对照）。
+    # charge: G[n]=C_signal[selected]/Cf，选中电容集合进入增益。
+    # fixed: G=g0*(1+gain_error)，仅用于隔离电容耦合的对照。
     ra_gain_model: str = "charge"
     ra_out_noise_rms: float | None = None  # None -> 自动标定到 target_dr_db（在 s=1 冻结一次）
     ra_v_clip: float = 1.98  # RA 输出摆幅（先检查自身饱和，再送 ADC2）
@@ -148,28 +107,24 @@ class Config:
     ra_enable_noise: bool = True
 
     # ---------------- RDAC ----------------
-    n_slices: int = 18  # slice 池（8 采集 + 8 保持 + 2 spare）
+    n_slices: int = 18  # 电容slice池：8转换/8采集/2备用，并非18颗独立ADC
     n_active: int = 8  # 每次参与残差输出的 slice 数
-    n_unit_per_slice: int = 64  # 每 slice 物理单位数（3b 横向 x 3b 纵向 = 8x8）
-    n_units_headroom: int = 0  # 额外 dither 量程（v1 默认 0，dither 走输入注入）
+    n_unit_per_slice: int = 64  # unary每slice单位数/预算锚点；split数组按n_main+n_sub构造
+    n_units_headroom: int = 0  # unary名义信号范围外保留的单位码数
     c_total0: float = 20.5e-12  # cap_scale=1 时 RDAC 总采样电容（PPT: 20.5 pF）
     cap_scale: float = 1.0  # 面积缩放 s
     chi: float = 2.0  # kT/C 系数：1 = 单端；2 = 差分两侧独立
     mismatch_enable: bool = True
-    # cap_scale=1 时的单位电容失配 sigma。
-    # 1e-4 是**行为学标定值**：令 s=1、DEM 开时的 SNDR ≈ 93.4 dB，对齐论文 SNDR=93.5 dB。
-    # 它不是 PDK 值 —— 由 mismatch_from_pdk() 估算的物理值约 1e-3，差 ~10 倍，
-    # 这个缺口正是"必须做单位权重校准"的证据（见报告）。
+    # 行为预算锚点的相对σ，不是PDK数据；实际unit尺度由面积律函数换算。
     mismatch_sigma0: float = 1e-4
     # 失配的空间分解：字段为方差份额，归一化后求和为1；标准差权重取平方根。
     #   global : 全阵列共模（C_fb 失配 + 整体工艺偏差）。DEM 完全无效。
     #   slice  : slice 级共模（版图梯度 / 刻蚀负载）。DEM 跨 slice 有效。
     #   unit   : unit级独立随机（Pelgrom A/sqrt(WL)）；DEM可改变误差谱，不保证总误差降低。
-    # (0,0,1) 退化为 v1 的纯独立假设——那是物理上的乐观下界，不能当设计依据。
+    # (0,0,1)仅作为独立unit随机失配对照，不代表布局或工艺分布。
     mismatch_split: tuple = (0.15, 0.35, 0.50)  # (global, slice, unit) 的**方差**占比
-    # 显式线性版图梯度，单位 = **相对失配 / 单位坐标**（绝对量，不被 sigma 缩放），
-    # (gx, gy)，坐标归一化到 [-0.5, 0.5]。例如 gy=1e-3 -> 全 y 跨度上失配变化 1e-3。
-    # v3 审计修正：此前梯度在 sigma 缩放之前加入，实际跨度被悄悄乘了 sigma。
+    # aggregate版图的相对线性梯度(gx,gy)，坐标跨度归一到1，不乘随机σ。
+    # 默认物理pool没有布局坐标，非零梯度须显式提供aggregate chip。
     mismatch_gradient: tuple = (0.0, 0.0)
     # 反馈电容名义值 = 活跃采样电容 / 名义增益 = 20.5 pF / 32 ≈ 0.6406 pF。
     # **电荷一致模型**：G = C_active[n]/C_F。注意这里 C_active 是每次采样
@@ -183,7 +138,7 @@ class Config:
     # 位预算（paper_consistent 读数，b1=7）：后端需分辨 G0*Delta1 到 LSB20 以下。
     #   Delta1 = 2*3/2**7 = 46.875 mV；G0*Delta1 = 32*46.875m = 1.5 V；
     #   取 14 bit -> Delta2 = 1.8/16384 = 109.9 uV -> 折输入 3.43 uV
-    #   = 0.6 LSB20（后端量化可忽略）。
+    #   = 0.6 LSB20步长；其RMS为步长/sqrt(12)，是否可忽略取决于总噪声。
     # 这些值由 Config.paper_consistent() 从 Delta1 推导，勿手改：
     #   adc2_v_min = −0.10·G0·Δ1   adc2_v_max = +1.10·G0·Δ1
     #   adc2_n_bits = ceil(log2((v_max−v_min)/(LSB20·G0)))
@@ -194,21 +149,20 @@ class Config:
     # ---------------- 数字功能开关 ----------------
     dem_enable: bool = False
     dem_bridge_enable: bool = False  # 可实现的跨 slice 零和码交换；分段拓扑假设
-    # off       : 关闭
-    # analog    : 输入注入（v1）→ 直接从 ±V_FS 扣量程，代价是可用范围变小
-    # sampling  : 采样态电荷注入（专利 [10] Fig.6 / Fig.19）→ **不占输入量程**
-    #             固定 2D 个单位不接输入而接 ±V_FS：其中 D+d_u 个接 +V_FS、
-    #             D−d_u 个接 −V_FS。信号衰减 α = 1−2D/N 恒定，注入量 = d_u·step。
-    #             代价从"量程"换成"恒定增益 α"，可在数字端精确补偿（但会按 1/α 放大后端噪声）。
-    dither_mode: str = "off"  # off | analog | sampling
-    dither_amplitude_lsb1: float = 2.0  # 幅度，单位 Delta1（analog 模式）
-    dither_units_range: float = 2.0  # D：dither 幅度，单位 = RDAC 单位当量（sampling 模式）
+    # analog将已知d加到共同输入，直接消耗孔径电压余量。
+    # sampling把固定2D个物理单位从信号切到参考轨，形成alpha*x+d；
+    # quantizer区分SADC端d_Q与可选RDAC端d_R。真实失配仍须逐节点检查。
+    dither_mode: str = "off"  # off | analog | quantizer | sampling
+    dither_amplitude_lsb1: float = (
+        2.0  # analog及generic quantizer的d_Q幅度[Δ1]；rtl16由固定D2序列覆盖
+    )
+    dither_units_range: float = 2.0  # sampling的bank码幅度D；rtl16合同固定D=2
     # 采样 dither 掩码落在哪个阵列（split 拓扑）：sub（默认，桥接衰减后权重小）
     # 或 main。α 必须由**同一份掩码**推导：被移出输入连接的 2D 个单位，
-    # 其信号电荷贡献按所在阵列的权重扣除（v5.1 第三轮审计 §四）。
+    # 其信号电荷贡献按所在阵列的权重扣除。
     dither_split_bank: str = "sub"  # sub | main（仅 dac_arch="split" 时生效）
-    # 离散掩码口径（v5.1 三轮审计 §四：连续插值只是数学基准，物理开关只能
-    # 实现整数单位选择）。True 时 dither_code 取整数 d_u ∈ [−D, D]：
+    # 连续插值仅作数学对照；物理开关只能
+    # 实现整数单位选择。True 时 dither_code 取整数 d_u ∈ [−D, D]：
     # 掩码固定为 bank 阵列**末尾** 2D 个单位，其中 D+d_u 个接 +V_FS、
     # D−d_u 个接 −V_FS；注入量由**实际掩码电容**逐 d_u 精确生成（stage18）。
     dither_discrete: bool = False
@@ -223,23 +177,20 @@ class Config:
     ktc_kappa: float | None = None  # None -> g0/gain_n，即 beta = 1
     ktc_beta_error: float = 0.0  # beta 失配：beta = (1+ktc_beta_error) * kappa*G_N/G_R
     ktc_noise_n: float = 0.0  # 噪声观测通路自身输出噪声 sigma（V）
-    # 观测通路一阶带宽（v3 审计修正：Δt 不能只靠缩短数学间隔，要看电路能不能建立）。
+    # 观测通路一阶带宽。
     # 从提取开始建立的一阶模型，窗口末端采样时的残余建立误差：
     #     eps = exp(-2*pi*f_bw*dt)
     # 实际观测增益 = G_N*(1-eps) —— 数字端仍按名义 kappa 扣除，差额就是 beta 误差。
     # None = 理想（eps=0，只用于算法验证）。validate() 会报告给定 eps 预算所需带宽。
     ktc_observe_bw_hz: float | None = None
-    # t2 - t1，单位 Ts。**这是 KTC 方案最关键的一个参数**：
-    # 校正项 kappa*v_N = G_R*(n_R - dx)，其中 dx 比 n_R 大约三个数量级，
-    # 所以真正被放大进 ADC2 的是 G_R*|dx| —— 与 G_N/kappa 怎么分无关。
-    # 由此得到硬带宽上限：2*pi*f*A*G_R*dt < ADC2 余量。
-    # dt = Ts/256 时该上限约 5.6 MHz，正好覆盖 PPT 标注的 "DC - 5MHz" 信号带。
+    # 提取窗口dt=ktc_dt_fraction*Ts。观测节点幅度为G_N*(n_R-dx)，
+    # 数字扣除不直接占ADC2模拟窗口；缩短dt同时提高观测建立带宽压力。
     ktc_dt_fraction: float = 1.0 / 256.0
-    calibration: str = "none"  # none | gain | gain_beta
+    calibration: str = "none"  # none | gain | gain_beta | weights
     dem_mode: str = "rotate"  # rotate=固定A/B分组；permute=因果slice洗牌；单位DEM另由dem_enable控制
 
     # ================================================================
-    # v6 架构口径字段：显式记录"读法"以避免审计中出现的口径混淆。
+    # 工艺压力假设；与架构读数、公开指标分开记录。
     # ================================================================
     # stage1_reading / dither_transfer_model / dither_enhancement_bits
     # 已定义在第一级 SADC 段（上文），此处不再重复。
@@ -248,9 +199,9 @@ class Config:
     pdk_sigma_est_ppm: float = 1117.0
 
     # ================================================================
-    # v5 结构建模：DAC 拓扑（等权 unary 是分段结构的特例）
+    # DAC拓扑与桥接寄生
     # ================================================================
-    # "unary" : v1-v4 的纯等权阵列（保留为对照/回归基准）
+    # "unary": 纯等权阵列对照。
     # "split" : 主阵列 n_main 个单位 + 子阵列 n_sub 个单位，经桥接电容 C_C 耦合
     #           总电平数 = n_main * n_sub，总单位数 = n_main + n_sub
     dac_arch: str = "unary"
@@ -269,7 +220,7 @@ class Config:
     dac_bridge_mismatch_sigma: float = 1e-4
 
     # ================================================================
-    # v5 动态误差（[00_1] PPT p.32 点名的三项）
+    # 输入、参考和数字耦合的动态误差控制
     # ================================================================
     # --- (a) 输入建立：采样开关导通电阻 + 源阻抗，一阶 RC ---
     # 硬设计约束：20.5 pF @ 40MS/s 要建立到 0.1%，需 R_total ≈ 60 Ω
@@ -290,7 +241,7 @@ class Config:
     dyn_c_decouple: float = 4.7e-6  # 参考去耦电容 [F]（片外典型量级）
     dyn_tau_ref: float = 20e-9  # 参考缓冲恢复时间常数 [s]
     dyn_t_conv_frac: float = 0.40  # 转换相时长 / Ts
-    dyn_ref_dynamic_ratio: float = 1.0  # 动态（码跳变）分量 / 静态（码值）分量
+    dyn_ref_dynamic_ratio: float = 1.0  # 旧aggregate参考代理；物理参考由实际有符号电荷驱动
 
     # --- (c) 数字串扰：数字走线到顶极板的耦合 ---
     dyn_crosstalk: bool = False
@@ -299,7 +250,7 @@ class Config:
     dyn_v_digital: float = 1.0  # 数字节点摆幅 [V]
     # 单调切换下每次转换的单位翻转数 A(k) = 2*min(k, N-k)（三角波，中码最大）
 
-    # --- (d) slice 池（pipeline.py，v6 整体信号流）---
+    # --- (d) 物理slice属性，制造后跨样本保持 ---
     # slice 间时间常数相对失配：tau_i = tau0*(1+delta_i)，delta_i ~ N(0, spread)。
     # 物理来源：18 个物理 slice 的开关 R_on / 走线寄生各自不同。
     # 后果：采集组 8 个 slice 的 eps_i 不同 -> 逐样本建立误差随 bank 交替出现
@@ -316,39 +267,24 @@ class Config:
     # PPT p.21-22 校验锚点：10ps 失配仿真 -> f_S/2−fIN 杂散高出量化底 13dB
     # （绝对值依赖其仿真用的 fin/幅度，模型验收用标度律 + 杂散位置 + 洗牌抑制）。
     slice_timing_skew_s: float = 0.0
-    # 逐 slice 输入参考 offset 失配（交织误差四件套之 offset，逐字审计补齐）。
+    # 逐slice输入参考offset，制造后跨样本保持。
     # V_os,i ~ N(0, sigma)，每颗芯片一次、跨样本持久；采集组保持值
     # x_hold = x + mean(V_os[acq]) -> 样本级误差 = mean(V_os[acq])（常数型）。
     # 固定 A/B 两组 -> (−1)^n 调制的**常数** -> 杂散在 f_S/2（不随 f_IN 平移），
     # 与 skew/带宽/增益杂散（f_S/2±f_IN，信号相关）构成判别性指纹。
     slice_offset_sigma_v: float = 0.0
-    # 独立量化器 sDAC 的电容占 RDAC 活跃电容的比例（小电容 -> 建立快 -> kT/C
-    # 噪声大，由 sigma_sadc_sampling 单独刻画；这里只影响其建立误差）。
-    sadc_cap_ratio: float = 0.05
+    # c_sadc定义独立SADC的采样电容[F]；此旧比例仅保留序列化/API兼容。
+    sadc_cap_ratio: float = 0.05  # 保留且不活跃；SADC噪声/物理采样负载使用c_sadc
 
     # ================================================================
-    # v6.1 逐字审计缺口闭合（论文 [00] / PPT [00_1] 逐字对照的剩余项）
+    # 可选噪声预算与参考装载模型
     # ================================================================
-    # --- (1) 量化器侧 dither 与"量程 2b 增强"（论文："the dither range is
-    #     enhanced by 2b when the result is transferred from the quantizer
-    #     to the RDAC"）---
-    # 机制：dither d_Q 加在**量化器输入**（x_sadc），粗码在 x+d_Q 上决策；
-    # 数字侧把 d_Q 转移给 RDAC 码（d_u = −round(d_Q/gran)/gran·gran [单位]），
-    # 残差回到名义 bin。**转移粒度 gran** 决定残差里的 dither 余项
-    # d_Q − round(d_Q) 的大小：
-    #   "quantizer"：按 Δ1 取整 -> 余项 ±Δ1/2，×G0 = ±1.5 V >> ADC2 窗口 -> 溢出；
-    #   "rdac"     ：按 step0 = Δ1/8 取整 -> 余项 ±step0/2，×G0 = ±0.19 V，
-    #                落在窗口内由 ADC2 吸收 —— 这就是"转移到 RDAC 增强了
-    #                log2(units_per_lsb1)=3b"的可操作口径（论文写 2b，
-    #                模型测上界 3b，不强行拟合，见 stage21 判据文本）。
+    # 仅granularity转移模型使用此取整粒度；range与dual_port按各自公式。
+    # Δ1是SADC名义决策步，ΔDAC是RDAC细栅格，不能混加两种码单位。
     dither_quant_transfer: str = "rdac"  # quantizer | rdac
 
-    # --- (2) RA auto-zero（PPT p.34-35 两个 dB 数的结构化）---
-    # auto-zero 消 RA 的 offset 与低频噪声（含 1/f），代价是存储电容 kT/C +
-    # 噪声折叠 -> PPT 披露 SNDR 代价 1.6 dB。行为建模 = RA 输出噪声 × 折叠
-    # 因子 10^(cost/20)。注意口径：PPT 的 −1.6 dB 以 RA 自身/整机为参照
-    # 由其预算结构决定；折到本模型整机预算（RA 占噪声功率 ~74%）后整机
-    # ΔSNDR ≈ −1.2 dB —— stage22 做"预测 vs 实测"一致性检验，不硬凑 dB 数。
+    # 旧现象预算：白噪声乘10**(cost/20)，闪烁源被跳过。
+    # 不含CBIAS采样/保持状态，不等于chopping_az的成对误差机理。
     ra_autozero: bool = False
     ra_autozero_cost_db: float = 1.6  # [披露]（PPT p.34-35）
     # ADC2 动态采样带宽（PPT +1.3 dB）：信号以宽带宽建立、噪声在采样瞬间以
@@ -372,7 +308,7 @@ class Config:
     # -> 动态分量的残余压降按指数权重下降。终态码相同 -> 静态分量不变
     # （DC 负载贯穿整个转换相），只改动态分量 —— 口径声明见 dynamics.py。
     rdac_bitwise_loading: bool = False
-    rdac_bitwise_bits: int = 6  # [假设] 逐位装载位数 = SADC 位数
+    rdac_bitwise_bits: int = 6  # 旧aggregate参考代理；物理事件序列用实际b1
 
     # ---------------- 其它非理想与随机 ----------------
     enable_sampling_noise: bool = True
@@ -402,16 +338,10 @@ class Config:
 
     @property
     def stage1_levels(self) -> int:
-        """第一级对**未知输入**实际拥有的判决电平数。
-
-        这是审计 F1 的核心量。``paper_literal`` 读数下等于 ``2**b1``；
-        ``legacy_codeword`` 读数下 dither 是已知量，不增加对输入的判决信息，
-        因此判决电平数仍为 ``2**b1``（b1=6 时 = 64），而**码字**宽度是 9 bit。
-        两者相差 8 倍，直接决定残差摆幅、RA 输出范围和后端位预算。
+        """第一级对未知输入拥有的名义判决区间数。
 
         Returns:
-            第一级对未知输入实际拥有的判决电平数（个，无量纲）。
-            [派生] 口径见上：与 codeword 读数下的 9 bit 码字宽度不同，勿混用。
+            2**b1个判决区间。已知dither码不增加未知输入的信息位数。
         """
         return int(2**self.b1)
 
@@ -436,24 +366,16 @@ class Config:
 
     @classmethod
     def legacy_v61(cls) -> Config:
-        """返回与 v6.1 完全等价的配置，用于复现已发表旧结果。
-
-        v6.1 把论文的 "9b in the first stage" 读成 6b 粗判决 + 3b dither 拼成
-        9b 码字，并据此设定后端 15 bit / [-0.3, 3.3] V。外部审计指出该读法下
-        判决电平只有 64 个。此处保留它**只为可复现性**；新工作请用
-        :meth:`paper_consistent`。
+        """生成保留的6bit判决/旧码字读数对照配置。
 
         Returns:
-            一个 ``stage1_reading="legacy_codeword"`` 的 Config
-            （b1=6，判决电平 64，dither 增强 3b）。
+            b1=6、15bit后端和旧granularity转移模型；仅用于既有实验对照，
+            不把6bit判决加已知dither称为9bit未知输入量化。
         """
         return cls(
             b1=6,
             stage1_reading="legacy_codeword",
-            # v6.1 读法下 units_per_lsb1 = 512/2^6 = 8 = 2³，所以**披露的**
-            # 增强位数在这里被读成 3b（大于论文的 2b —— 这正是审计点名之处）。
-            # 显式写出而不是靠默认值，否则 validate() 的
-            # "dither 增强位数 == log2(DAC 电平数 / 2**b1)" 会 FAIL。
+            # 此旧对照的栅格比为512/64=8，因此保留3bit增强参数。
             dither_enhancement_bits=3,
             dither_transfer_model="granularity",
             adc2_n_bits=15,
@@ -634,20 +556,14 @@ class Config:
         return self.c_total0 / (self.n_active * self.n_unit_per_slice)
 
     def c_active_nominal(self, cap_scale: float | None = None) -> float:
-        """名义活跃采样电容 = 本次实际参与的 n_active 个 slice 的总电容。
-
-        注意这**不等于** c_total0 * n_slices/n_active —— c_total0 本身就是
-        按 8 个活跃 slice 的 512 个单位定义的（PPT 的 20.5 pF 指活跃采样电容）。
-        整个 18-slice 资源池的电容是 c_total0 * n_slices / n_active = 46.1 pF，
-        其中未参与采样的部分不能贡献 kT/C（v3 审计修正）。
+        """等权预算中一次转换实际活跃组的名义采样电容。
 
         Args:
-            cap_scale: 面积缩放 s（无量纲，默认 None 表示用 self.cap_scale）；
-                [假设] 探索旋钮。
+            cap_scale: 面积倍率；None使用当前cap_scale。
 
         Returns:
-            名义活跃采样电容（F）。= (n_active·n_unit_per_slice − headroom)·
-            c_unit0·s；[派生] 自 c_total0（[披露]）。
+            活跃单位数乘单位电容[F]；不含未参与本次采样的备用slice。
+            split信号/负载/噪声等效电容由物理pool分别计算。
         """
         s = self.cap_scale if cap_scale is None else cap_scale
         return (
@@ -657,21 +573,22 @@ class Config:
 
     @property
     def g_actual(self) -> float:
-        """含增益误差的实际级间增益 G = g0·(1 + gain_error)。
+        """固定增益模型及预算使用的标量G=g0*(1+gain_error)。
 
         Returns:
-            实际级间增益 G（无量纲），= g0·(1 + gain_error)。[派生]
+            无量纲参考增益。charge生产路径的逐样本真实G由选中物理电容/Cf给出，
+            不能用此属性代替该数组。
         """
         return self.g0 * (1.0 + self.gain_error)
 
-    # ---------------- v5：分段 DAC 派生量 ----------------
+    # ---------------- 分段 DAC 派生量 ----------------
     @property
     def dac_n_units(self) -> int:
-        """DAC 物理单位总数（unary：n_active×n_unit_per_slice；split：n_main+n_sub）。
+        """返回当前拓扑用于权重几何的单位数。
 
         Returns:
-            DAC 物理单位总数（个）。unary = n_active·n_unit_per_slice；
-            split = n_main + n_sub。[派生]
+            unary为一组n_active*n_unit_per_slice；split为每物理slice的
+            n_main+n_sub。split权重矩阵形状为(n_slices,dac_n_units)。
         """
         if self.dac_arch == "unary":
             return self.n_active * self.n_unit_per_slice
@@ -679,11 +596,11 @@ class Config:
 
     @property
     def dac_levels(self) -> int:
-        """分段结构的总电平数 = n_main * n_sub。unary 退化为其单位数。
+        """当前拓扑可寻址的名义RDAC码数。
 
         Returns:
-            DAC 可寻址电平总数（个）。split = n_main·n_sub；
-            unary 退化为 n_active·n_unit_per_slice。[派生]
+            split为(n_main+int(dac_complete_range))*n_sub；
+            unary为n_active*n_unit_per_slice。合法码为0..dac_levels-1。
         """
         if self.dac_arch == "unary":
             return self.n_active * self.n_unit_per_slice
@@ -701,17 +618,14 @@ class Config:
         return _m.log2(self.dac_levels)
 
     def dac_unit_cap(self, cap_scale: float | None = None) -> float:
-        """分段 DAC 的单位电容（总面积固定为采样电容）。
-
-        面积预算按 n_main + n_sub + 1 个单位分摊（桥接电容也占面积），
-        这样不同拓扑的**总电容面积**可比。
+        """按活跃组总电容预算分配split名义单位电容。
 
         Args:
-            cap_scale: 电容缩放因子（无量纲，> 0）。None 表示取 cfg.cap_scale。[派生]
+            cap_scale: 面积倍率；None使用当前cap_scale。
 
         Returns:
-            分段 DAC 单位电容（F）。总电容面积固定为 c_total0·s，
-            按 n_main + n_sub（+ 1 个桥接电容）分摊。[派生]
+            活跃组等效单位电容[F]。分母包含main、sub和桥接电容的等效单位数，
+            并非一律加1。物理pool进一步除以n_active得到每slice的单位电容。
         """
         s = self.cap_scale if cap_scale is None else cap_scale
         if self.dac_arch == "unary":
@@ -726,11 +640,11 @@ class Config:
         return self.c_total0 * s / n_alloc
 
     def dac_step_main(self) -> float:
-        """主阵列一个单位的名义步长（V）。
+        """主阵列一个单位的名义输入等效电压步长。
 
         Returns:
-            主阵列单位名义步长（V），= 2·V_FS / n_main；
-            unary 拓扑退化为 rdac_step。[派生]
+            split为dac_n_sub*nominal_rdac_step[V]；unary为rdac_step。
+            complete-range几何已包含在nominal_rdac_step的归一化中。
         """
         if self.dac_arch == "unary":
             return self.rdac_step
@@ -762,25 +676,14 @@ class Config:
 
     @property
     def dither_alpha(self) -> float:
-        """信号传递系数 α = 采样开关掩码移除的信号电荷占比的补。
+        """名义采样mask移走的信号电荷占比之补α。
 
-        v5.1 第三轮审计 §四：α 不能再用一个统一的"单位数比"公式代表所有
-        拓扑 —— split 的子阵列单位对 C_sig 的贡献是 β·c_u（桥接衰减后），
-        主阵列单位是 c_u，两者权重不同。
-
-        * unary：2D 个等权单位移出输入 → α = (N−2D)/N（旧公式，不变）。
-        * split：2D 个单位按 dither_split_bank 从主/子阵列移出，
-          α = 1 − 2D·w_bank/C_sig_nom，w_bank = c_u（主）或 β·c_u（子）。
-          例：(64,8)、D=2、掩码在子阵列 → α = 64.5/65 = 0.992308，
-          而旧的 512 等权公式给 508/512 = 0.992188 —— 数值接近但来源错误，
-          换拓扑/换 D 后偏差会放大。
-
-        当前物理pool还由同一掩码计算输入负载和信号系数；噪声等效电容
-        保留掩码电容的采样噪声贡献，见slice_pool.split_coefficients。
+        unary为1-2D/N；split为1-2D*w_bank/C_signal_nom，main权重为Cu，
+        sub权重为beta*Cu。固定物理末2D个单位不接信号，不能用统一单位数比替代。
 
         Returns:
-            信号传递系数 α（无量纲，0 < α ≤ 1）。[派生]
-            口径与勿回退教训见上：换拓扑时不得退回 512 等权公式。
+            无量纲名义α；非sampling返回1。物理pool按选中slice重新计算实际α，
+            数字端只能用名义值或独立估得的有效权重，不读取该物理真值。
         """
         if self.dither_mode != "sampling":
             return 1.0
@@ -814,17 +717,14 @@ class Config:
 
     @staticmethod
     def sigma_sampling_c(c_active: float) -> float:
-        """按**本次实际参与采样的电容**计算 kT/C（v3 审计修正）。
-
-        没有参与本次采样的备用 slice 不能替这个样本降低 kT/C，
-        所以噪声必须绑定逐样本的 C_active[n]，不能用整池总电容。
+        """按本次活跃噪声等效电容给出差分热噪声参考。
 
         Args:
-            c_active: 本次实际参与采样的电容（F）。[派生]
+            c_active: 当前样本噪声等效电容[F]；备用slice不贡献该电容。
 
         Returns:
-            差分χ=2口径的kT/C噪声rms（Vrms），=sqrt(2kT/c_active)。
-            生产capture按cfg.chi另行计算；本静态辅助函数固定χ=2。
+            sqrt(2*kT/c_active)[输入节点Vrms]，非正输入返回0。
+            本辅助函数固定χ=2；生产capture使用cfg.chi。
         """
         return math.sqrt(2.0 * K_B * TEMP_K / c_active) if c_active > 0 else 0.0
 
@@ -850,29 +750,19 @@ class Config:
         return 0.0 if not self.mismatch_enable else self.mismatch_sigma0 / math.sqrt(s)
 
     def sigma_mismatch_unit(self, c_unit: float) -> float:
-        """Pelgrom 面积律：sigma ∝ 1/sqrt(单位电容)，以 c_unit0(cap_scale) 为锚点。
-
-        **这是拓扑比较的关键**：等权 unary（c_u = 40 fF）与分段
-        （c_u = 285 fF）在**同样总电容面积**下，单位电容大 7 倍
-        -> 失配 sigma 小 sqrt(7) ≈ 2.7 倍。这是分段结构的根本收益，
-        必须让它在模型里真实生效，而不是被固定 sigma0 掩盖。
+        """单位电容面积律假设σ=σ0*sqrt(Cunit_ref/Cunit)。
 
         Args:
-            c_unit: 单位电容（F）。[假设]
+            c_unit: 调用方给定的单位电容[F]；物理pool使用每slice单位，
+                aggregate chip使用其等效单位，二者不是同一个统计构造。
 
         Returns:
-            单位电容失配 sigma（无量纲相对误差），按 Pelgrom 面积律
-            sigma ∝ 1/sqrt(c_unit)，以 c_unit0(cap_scale) 为锚点。[假设]
+            无量纲相对σ；关闭失配返回0。参考c_unit0不随cap_scale同步缩放，
+            因而缩小电容不会把面积律因子约掉。本函数不是工艺实测或良率预测。
         """
         if not self.mismatch_enable:
             return 0.0
-        # 锚点必须是**标称单位电容**，不能乘 cap_scale。
-        # v5 审计修正：原式 ref = c_unit0*cap_scale，而 c_unit 也含同一个
-        # cap_scale 因子，两者相除把面积因子约掉了 —— 实测 unit_cap 从
-        # 280.82 fF 变到 17.55 fF（16 倍）时 sigma 恒定 37.76 ppm，
-        # 等价于宣称"把电容缩到 1/16 还能免费保住失配"，物理上不可能。
-        # 修正后 sigma ∝ 1/sqrt(c_unit) ∝ 1/sqrt(cap_scale)，
-        # 与 kT/C 的 1/sqrt(cap_scale) 同向 —— 缩电容要同时付两笔代价。
+        # ref固定在未缩放的名义单位电容，避免分子分母同步缩放后约掉面积律。
         ref = self.c_unit0
         return self.mismatch_sigma0 / math.sqrt(max(c_unit / ref, 1e-9))
 
@@ -932,16 +822,13 @@ class Config:
         return 1.0 - self.ktc_settle_residual()
 
     def ktc_eta_x(self) -> float:
-        """Δx 的建立系数：输入变化在窗口内逐渐积累（线性斜坡），
+        """线性斜坡Δx在一阶观测窗口内的建立系数。
 
-            eta_x = 1 - (tau_a/T_w) * (1 - exp(-T_w/tau_a))
-
-        v4 审计修正：**eta_n != eta_x**。旧版把同一个 (1-eps) 同时乘 n_R 和 dx，
-        隐含"输入变化也是窗口开始就出现的阶跃"——物理上不成立。
-        低带宽极限（T_w << tau_a）下 eta_x = eta_n / 2；高带宽极限二者都 -> 1。
+        eta_x=1-(tau/Tw)*(1-exp(-Tw/tau))，不同于窗口开始已存在的阶跃噪声eta_n。
+        低带宽极限eta_x约为eta_n/2；理想时间常数/零窗口按现有约定返回1。
 
         Returns:
-            Δx 的建立系数 η_x（无量纲）。[派生] 与 η_n 不等，勿合并回退。
+            无量纲斜坡建立系数；仅用于KTC研究扩展。
         """
         t_w = self.ktc_dt()
         tau = self.ktc_tau_a()
@@ -962,14 +849,11 @@ class Config:
         return self.g0 / self.ktc_gain_n
 
     def beta_eff(self) -> float:
-        """名义 beta = (1+beta_error) * kappa * G_N / G_R。
-
-        v3 注意：charge 模式下 G_R 逐样本 = C_active[n]/C_F，此处返回的是
-        以名义 G_R = g0 计算的参考值；逐样本真实 beta 由 ktc.observe 按 g_vec 计算。
+        """KTC预算的名义beta=(1+beta_error)*kappa*G_N/g0。
 
         Returns:
-            名义 beta（无量纲），= (1 + beta_error)·κ·G_N / G_R。[派生]
-            逐样本真实 beta 由 ktc.observe 按 g_vec 计算，此处为参考值。
+            无量纲参考值；KTC关闭返回0。电荷模型的逐样本G及观测响应由实际
+            观测路径处理，此标量不证明增益/噪声相消已经在电路实现。
         """
         if not self.ktc_enable:
             return 0.0
@@ -977,18 +861,13 @@ class Config:
 
     # ================= 合法性检查（在仿真入口调用）=================
     def legality_violations(self) -> list[str]:
-        """Reasons this configuration cannot be simulated at all.
+        """列出不能进入已实现仿真分支的配置原因。
 
-        Scope is deliberately narrow and explicit — this is **not** a stricter
-        :meth:`validate`. ``validate`` reports adequacy (how much margin a legal
-        design has), and several of its records can be ``False`` for a design
-        that is still worth studying. Legality is the other thing entirely: an
-        unrecognised enum value means a branch will silently never be taken, and
-        an impossible size means the algebra below is undefined. Those must be
-        refused at the entry, not reported.
+        检查枚举、数值域、拓扑与profile时序的一致性；不把有限余量不足当成非法。
+        validate另行给名义预算，采样输入是否越过各节点窗口仍需运行时标志。
 
         Returns:
-            list[str]: 每条是一句可读的违规说明；空列表表示合法。
+            违规消息列表；空列表表示通过此配置合同，不表示满足性能目标。
         """
         bad: list[str] = []
         if not isinstance(self.input_network, InputNetworkParameters):
@@ -1066,9 +945,7 @@ class Config:
                     f"此前会静默退化为默认分支"
                 )
 
-        # 标签与参数必须一致。`stage1_reading` 只是一个名字，改变机制的是 b1：
-        # 名字说一种读法、b1 却是另一种，等于用户以为自己切换了架构而实际没有
-        # （外部复核 2026-09-11 第三轮）。对应关系只在 READING_B1 里维护。
+        # stage1_reading与b1的一致性由READING_B1单点维护。
         expected_b1 = READING_B1.get(self.stage1_reading)
         if expected_b1 is not None and self.b1 != expected_b1:
             bad.append(
@@ -1078,7 +955,7 @@ class Config:
                 f"或显式把 b1 设成与该标签相符的值"
             )
 
-        # 独立审查 2026-09-25：域守卫同时拒绝非有限值
+        # 拒绝非有限值，避免其进入后续电荷或数值计算。
         if not math.isfinite(self.fs) or self.fs <= 0.0:
             bad.append(f"fs={self.fs!r} 必须为正有限值（采样率 [Hz]）")
         if not math.isfinite(self.g0) or self.g0 <= 0:
@@ -1116,7 +993,7 @@ class Config:
             bad.append(f"c_total0={self.c_total0!r} 必须为有限正值（RDAC 总采样电容 [F]）")
         if not math.isfinite(self.c_feedback0) or self.c_feedback0 <= 0:
             bad.append(f"c_feedback0={self.c_feedback0!r} 必须为有限正值（RA 反馈电容 [F]）")
-        # 独立审查 2026-09-25：域守卫同时拒绝非有限值
+        # 拒绝非有限值，避免其进入后续电荷或数值计算。
         if not math.isfinite(self.v_fs) or self.v_fs <= 0.0:
             bad.append(f"v_fs={self.v_fs!r} 必须为正有限值（满幅峰值 [V]）")
         if self.n_bits_target < 1:
@@ -1186,15 +1063,15 @@ class Config:
 
     # ================= 边界检查 =================
     def validate(self, verbose: bool = True) -> dict:
-        """先检查两个判据，再检查其它一致性条件。
+        """报告名义栅格、噪声及摆幅预算，不进行波形仿真。
 
         Args:
-            verbose: 是否打印检查表（bool，默认 True）；仅控制输出，不影响返回。
+            verbose: 是否打印预算表；不改变计算值。
 
         Returns:
-            检查字典（dict[str, tuple[float, float|None, bool, str]]）。每项 =
-            (实测值, 阈值|None, 是否通过, 单位)；覆盖第一级读数自洽、后端分辨
-            能力、残差溢出、噪声预算、KTC 带宽上限等判据；[派生]。
+            每项为(值,门限或None,通过标志,单位)。None门限仅记录。
+            这些条件不扫描输入幅度或逐样本dither，不能代替SADC/RA/ADC2余量统计，
+            也不能由此推出目标工艺、动态建立或完整噪声性能通过。
         """
         lsb = self.lsb_target
         d1 = self.delta1
@@ -1204,15 +1081,7 @@ class Config:
         # (实测值, 阈值|None, 是否通过, 单位)：阈值为 None 表示"只记录不判定"。
         checks: dict[str, tuple[float, float | None, bool, str]] = {}
 
-        # 判据 0（外部审计 F1 / B16）：第一级分辨率的**读数**必须与 DAC 拓扑
-        # 自洽。`stage1_reading="paper_literal"` 要求 b1 位判决电平全部可由
-        # DAC 的物理电平表达，即 2**b1 <= DAC 可用电平数。
-        #   等权拓扑：可用电平 = n_units_sig（= n_active*n_unit_per_slice
-        #              − headroom）；
-        #   分段拓扑：可用电平 = dac_n_main * dac_n_sub。
-        # 不自洽时（如把 b1=9 套在 (64,8) 分段阵列上）模型不会报错，
-        # 而是静默把 residue 推出 ADC2 窗口、输出跳到伏级 —— 这正是审计
-        # 要求"先修正骨架"的量化理由。此判据把这种组合变成显式 FAIL。
+        # 名义RDAC码数须覆盖2**b1个决策，且与每个判决的RDAC步数整除。
         dac_levels = self.dac_levels if self.dac_arch == "split" else self.n_units_sig
         levels_needed = 2**self.b1
         checks["第一级读数与 DAC 拓扑自洽（2**b1 <= DAC 电平数）"] = (
@@ -1230,15 +1099,7 @@ class Config:
                 "级",
             )
 
-        # 判据 0b：`dither_enhancement_bits` 是**披露值**（论文："enhanced by 2b"），
-        # 不是可以随读数任意漂移的自由参数。它必须等于
-        #     log2(units_per_lsb1) = log2(DAC 电平数 / 2**b1)
-        # 也就是「一个粗判决步含多少个 RDAC 单位步」。
-        # 这条等式把 ADR 0003 的收敛解写成了机器可校验的约束：
-        #   paper_consistent (b1=7, 512 电平) -> 增强 2b ✓
-        #   paper_literal: 9b + explicit independent dual-port amplitude ratio 4.
-        #   legacy_codeword  (b1=6, 512 电平) -> 增强 3b ✓（v6.1 读法，> 披露值）
-        # 若有人只改 b1 而不重推读数，这里立刻 FAIL，不会静默放行。
+        # 历史栅格假设比较增强位数与log2(DAC码数/决策数)；dual_port另核对独立端口电压比。
         enh_expected = math.log2(dac_levels / levels_needed) if levels_needed else float("nan")
         checks["dither 增强位数 == log2(DAC 电平数 / 2**b1)"] = (
             float(self.dither_enhancement_bits),
@@ -1324,28 +1185,8 @@ class Config:
                 "V（余项峰值 ×G0）",
             )
 
-        # KTC：**观测通路**的摆幅上限（口径修正见下方注释）。
-        #
-        # 旧口径（v7.0.0 起）是 f_max = ADC2 余量 / (2π·v_fs·G0·Δt)，即把
-        # 校正项 κ·v_N 当成 **ADC2 模拟量程**的消费者。这个前提与 ADR 0006
-        # 冲突：校正现在在**数字域**扣除（ADC2.quantize_with_correction 返回
-        # quantize(vra) − κ·v_N），over 只反映 vra 本身是否越界，κ·v_N 无论
-        # 多大都不占 ADC2 量程。旧口径在默认参数下算出 2.5465 MHz 并判 FAIL
-        # —— 外部复核（2026-09-11 第三轮）复算确认那是**节点取错**造成的
-        # 假失败，而不是电路限制。判据必须绑定它实际约束的节点。
-        #
-        # 真实约束在观测通路上：观测节点的可用摆幅 ra_v_clip，观测量经 G_N
-        # 放大后为 G_N·2π f A Δt，令其不超过 clip 即得下面的上限。它与紧随
-        # 其后的「Nyquist 摆幅 < clip」是同一不等式的两个实例（一个解 f，
-        # 一个代入 f = fs/2）；门限来源不同（5 MHz 取自披露的信号带，
-        # fs/2 取自采样率），所以两条都保留，而不是留一条"更宽"的。
-        #
-        # 边界（第五份复核 §11）：本判据**只管摆幅，不管建立**。"不越摆幅"
-        # 与"在 Δt = Ts/256 ≈ 97.66 ps 的提取窗口内及时建立"是两回事——
-        # 若按单极点阶跃建立到 0.1%，需要 f_BW ≥ ln(1000)/(2π·Δt) ≈ 11.26 GHz
-        # （条件性设计压力估算，不是实际电路的既定需求）。也就是说 f_max
-        # PASS 不等于 KTC 取消扩展可落地；提取窗口的建立/噪声/量化折衷仍是
-        # 开放的设计问题，见 docs/model_scope.md 的 KTC 行。
+        # KTC校正在数字域扣除，不直接占ADC2模拟窗口。
+        # 实际观测节点受|G_N*dx|与ra_v_clip约束；摆幅通过不代表建立带宽或噪声满足。
         if self.ktc_enable:
             f_bw = (self.ra_v_clip / self.ktc_gain_n) / (2 * math.pi * self.v_fs * self.ktc_dt())
             checks["KTC 观测通路摆幅上限 f_max (满幅)"] = (f_bw, 5e6, f_bw >= 5e6, "Hz")
@@ -1356,8 +1197,7 @@ class Config:
                 self.ktc_gain_n * dx_ny < self.ra_v_clip,
                 "V",
             )
-            # v3 审计修正：缩短 Δt 是把问题转移给观测通路的建立，不是免费午餐。
-            # 报告"要在这个窗口内建立到 eps，观测通路至少需要多大一阶带宽"。
+            # 给出此提取窗口的一阶建立带宽预算，不作为器件实测规格。
             for eps_budget in (0.10, 0.01):
                 need = -math.log(eps_budget) / (2 * math.pi * self.ktc_dt())
                 checks[f"KTC 观测带宽需求 (eps={eps_budget:.0%})"] = (
@@ -1389,15 +1229,9 @@ class Config:
                 "F",
             )
 
-        # ---- v5：分段 DAC 结构自洽性 ----
+        # ---- 分段 DAC 结构自洽性 ----
         if self.dac_arch == "split":
-            # RDAC 电平数必须同时覆盖 (a) 2**b1 个粗判决电平 与 (b) 论文披露的
-            # dither 量程增强 2**dither_enhancement_bits 个单位步。
-            #   需求 = 2**b1 * 2**enh
-            # 这条判据曾把 "+3b" 写死，源自 v6.1 的 b1=6 读法；换到
-            # paper_consistent（b1=7、enh=2）后它会给出 2^10=1024 > 512 的
-            # **假 FAIL** —— 把与读数无关的常数当作物理需求，正是本次审计
-            # 要求清除的一类缺陷。现在增强位数从配置取，随读数自动跟随。
+            # 非dual_port栅格假设按2**b1*2**enh检查；独立dual_port不增加未知输入判决数。
             need = 2**self.b1 * (
                 1
                 if self.dither_transfer_model == "dual_port"
@@ -1435,13 +1269,7 @@ class Config:
                 "units（分段只需 n_main+n_sub）",
             )
 
-        # 判据：RA 增益口径必须是**已实现**的取值之一。此前 "fixed" 在
-        # sim_split / pipeline 里被硬编码的电容比静默忽略（固定增益对照实验
-        # 因此从未真正生效），而任何拼写错误也会悄悄退化成 "charge"。
-        # 契约：配置在某条链路里要么按声明生效，要么被显式拒绝，不能静默忽略
-        # （外部复核 2026-09-11）。
-        # 取值集合来自 LEGAL_VALUES（单一来源）；check_legal() 用同一张表在
-        # 仿真入口直接把非法配置拒绝掉，本记录是给报告读者看的第二道。
+        # 报告中的增益枚举与入口check_legal共用LEGAL_VALUES，避免配置/报告分支不同。
         _gain_models = LEGAL_VALUES["ra_gain_model"]
         checks[f"RA 增益口径 ra_gain_model ∈ {{{', '.join(_gain_models)}}}"] = (
             1.0 if self.ra_gain_model in _gain_models else 0.0,
@@ -1499,21 +1327,16 @@ class Config:
 
 
 def noise_budget(cfg: Config) -> dict:
-    """把噪声预算拆开：kT/C、RA、ADC2 量化、KTC 观测通路。
+    """分配名义输入等效噪声预算，不生成随机样本。
 
-    两条原则（v3 审计修正）：
-    1. **预算与功能开关解耦**：这是"设计目标预算"，不是"实际电路噪声模型"。
-       enable_sampling_noise 只决定仿真里是否加噪声，不得改变反推出的 RA 预算。
-    2. **RA 噪声在 cap_scale=1 标定一次之后就锁定**：它是放大器电路的属性，
-       不应随采样电容缩放而变。若按"总预算 - kT/C"逐点反推，缩到某个 s 之后
-       kT/C 会超过总预算，把 RA 噪声算成 0 —— 那是错的，会把缩电容的代价人为抹掉。
+    预算与功能开关解耦；RA在cap_scale=1的预算锚点推算，随后不因采样电容
+    缩小而被重新扣到0。实际RA/采样随机过程分别由对应生产模块生成。
 
     Args:
-        cfg: 配置对象（Config）。
+        cfg: Config，包含目标DR、标称电容、ADC2栅格和可选RA输出RMS[V]。
 
     Returns:
-        dict: 各噪声源的 rms（Vrms）与合计（Vrms），键覆盖 kT/C、RA、
-        ADC2 量化、KTC 观测通路。[派生] 预算与功能开关解耦，见上两条原则。
+        各源的输入等效RMS[V]字典；不是实际测得的总噪声或器件噪声传递。
     """
     sn = cfg.sigma_sampling()
     sn_ref = cfg.sigma_sampling(cap_scale=1.0)
@@ -1537,25 +1360,17 @@ def noise_budget(cfg: Config) -> dict:
 def mismatch_from_process_assumption(
     cfg: Config, a_sigma_pct_um: float = 0.5, density_ff_per_um2: float = 2.0
 ) -> float:
-    """**根据工艺假设**估算单位电容失配 sigma（不是 PDK 测量值）。
+    """根据显式工艺假设估算单位电容相对σ。
 
-        A_u   = C_unit / density                 [um^2]
-        sigma = (a_sigma_pct_um / 100) / sqrt(A_u)
-
-    参数来源分级（v3 审计修正，禁止混用）：
-      [披露] 论文/PPT 明确给出的   -> 约束结构与公开指标
-      [拟合] 为重现基准而设置的    -> 只证明模型能重现某类现象
-      [假设] 本函数这类工艺估算    -> 在拿到真实 PDK 数据前不得用于尺寸/功耗结论
-    mismatch_sigma0=1e-4 属于 [拟合]；本函数返回值属于 [假设]。
+    A_unit=C_unit/density，σ=(A_sigma/100)/sqrt(A_unit)。
 
     Args:
-        cfg: 配置对象（Config）。
-        a_sigma_pct_um: Pelgrom 匹配系数（%·um）。[假设] 典型 MIM 电容 1%·um 量级。
-        density_ff_per_um2: 单位面积电容（fF/um²）。[假设] 用于把电容换算成面积。
+        cfg: Config；取未缩放单位电容和面积倍率。
+        a_sigma_pct_um: 假设的Pelgrom系数[%·um]。
+        density_ff_per_um2: 假设的电容密度[fF/um²]。
 
     Returns:
-        单位电容失配 sigma（无量纲相对误差）。[假设] 在拿到真实 PDK 数据前
-        不得用于尺寸、功耗与良率结论。
+        无量纲相对σ。未输入工艺测量数据，不能据此签核面积、功耗或良率。
     """
     c_u_fF = cfg.c_unit0 * 1e15 * cfg.cap_scale
     a_u = c_u_fF / density_ff_per_um2

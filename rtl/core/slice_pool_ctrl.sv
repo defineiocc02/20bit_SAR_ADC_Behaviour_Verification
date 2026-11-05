@@ -6,6 +6,9 @@
 // 同沿规则：转换读取旧采集组，next_ids使用旧cursor；PRNG更新只影响下一次扫描起点。
 // 调度：shuffle时8步LFSR更新游标，byte252..255保留旧游标；关闭shuffle后游标固定0。
 // 边界：循环扫描保持8/8/2及组内唯一/组间互斥，不是所有8-of-18子集的均匀随机抽样。
+// 这里的slice是采样/RDAC电容组，A/B bank是粗SAR逻辑轮换，不能理解成18颗完整ADC。
+// shuffle=0仍执行补集采集，连续两笔转换组必不相交；关闭随机游标不等于锁定同一组。
+// 生产结构顶层把shuffle接到同一个DEM配置位；本叶不提供独立的单元DEM配置。
 // acquisition_primed暴露真实数字分配历史，不是模拟建立完成或采样精度证明。
 // 来源：项目因果slice池合同；随机策略为工程选择，不声明复刻未披露硅实现。
 module slice_pool_ctrl #(parameter logic [31:0] P_SEED = 32'h6d2b79f5) (
@@ -33,8 +36,8 @@ module slice_pool_ctrl #(parameter logic [31:0] P_SEED = 32'h6d2b79f5) (
   logic [17:0] next_mask;
   integer count, candidate;
 
-  // Fixed-length scan, deterministic at a given cursor/acquiring_mask. Each
-  // candidate is visited once, and the current acquiring set is excluded.
+  // 选组发生在转换前一周期的采集阶段。排除旧acquiring后尚余10组，
+  // 按游标顺序取前8组；因此既有因果约束，也有扫描偏置，不是任取8组的均匀抽签。
   always_comb begin
     next_ids = '0;
     next_mask = '0;
@@ -52,7 +55,8 @@ module slice_pool_ctrl #(parameter logic [31:0] P_SEED = 32'h6d2b79f5) (
   end
 
   always_ff @(posedge clk) begin
-    // Synchronous reset/disable restart the acquisition history and PRNG.
+    // reset/disable优先于advance。sample_id也计入首笔无效priming分配，
+    // 所以上层首个有效ID为2；它不是“成功输出个数”，缺比较器valid也不回退ID。
     if (!rst_n || !enable) begin
       for (int a = 0; a < 8; a++) begin
         acquiring_ids[a] <= 5'(a);
@@ -73,9 +77,9 @@ module slice_pool_ctrl #(parameter logic [31:0] P_SEED = 32'h6d2b79f5) (
       sample_id <= sample_id + 1'b1;
       acquiring_ids <= next_ids;
       acquiring_mask <= next_mask;
-      // next_ids uses the OLD cursor; this PRNG update changes the origin for
-      // the next allocation, not the set being installed on the present edge.
-      // Rejection of byte values 252..255 retains the previous cursor.
+      // 本沿先用旧cursor/旧acquiring完成选组，再更新下一次游标；首次关闭shuffle
+      // 的这一沿仍用旧cursor，随后才固定0。252..255拒绝区保留游标，不丢分配事务。
+      // quiet采样与本advance在上层相隔一tick；本模块不实现模拟采样关闭/保持。
       if (shuffle) begin
         random_state <= random_next;
         if (random_state[31:24] < 8'd252) cursor <= 5'(random_state[31:24] % 8'd18);

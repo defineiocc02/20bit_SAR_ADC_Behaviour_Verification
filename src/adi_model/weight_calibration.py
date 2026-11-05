@@ -1,15 +1,12 @@
-"""Identifiable split-unit charge calibration from noisy digital observations.
+"""从已知外部输入与数字观测辨识、冻结split有效权重。
 
-The static charge equation is fine = sum(w*(a*x_known + b - Vdac)) + offset,
-where w is each physical unit's effective C/Cf (beta*C/Cf for sub units), a is
-its nominal signal connection and b its known sampling/injection voltage.
-Training sees a separately supplied reference input and digital masks/codes.
-It never sees fabricated capacitance, residue error, actual gain or noise truth.
+静态RA输出节点满足fine=Σw*(a*x_known+b-Vdac)+offset；w是每物理unit的
+有效C/Cf，sub权重包含beta，a是已知采样连接mask。w不是直接读出的电容值。
+估计器只见独立known_input和DigitalObservation；物理C、实际G、误差truth不得输入。
 
-Weights are estimated once with a rank-revealing SVD and frozen. Validation
-uses only independent digital observations and solves the same charge equation
-for unknown input. The model covers static charge gain; finite settling, slew,
-reference droop and the experimental KTC observer are not calibrated away.
+训练用秩揭示SVD识别全部权重和一个有效后端offset，再冻结用于未知输入重构。
+有限建立、时偏/带宽、参考动态、漂移及ADC2非线性不由这组静态线性参数消除；
+ADC2以已知线性栅格量化，外部参考系统误差也不在拟合标准误内。
 """
 
 from __future__ import annotations
@@ -61,7 +58,17 @@ class CalibrationSpec(SplitSwitchGeometry):
 
 @dataclass(frozen=True)
 class DigitalObservation:
-    """Read-only digital data and nominal units; no analog reference input."""
+    """数字运行时记录与名义几何；不包含未知输入或物理电容。
+
+        slice_ids是(N,n_active)物理slice ID，不是slot；rdac_code为RDAC细栅格命令，
+        adc2_code为原始ADC2整数码，dem_state/bank_dither为同笔控制上下文。
+        common_injection_v是已知控制按名义尺度换算的输入节点注入[V]，不是模拟测量真值。
+    连续analog/dual_port在本模型假定注入电压已知，硬件还需建立该电压基准/观测合同。
+
+        main/sub/dither物理mask和sample_ids可由结构观测口提供；from_result兼容路径
+        用数字命令重生成mask。overflow含行为plant的RA/ADC2/RDAC标志；硬件集成必须另有
+        可读的状态/样本归属合同，不能把这个Python容器本身当作已经完成的采集接口。
+    """
 
     spec: CalibrationSpec
     slice_ids: np.ndarray
@@ -81,10 +88,15 @@ class DigitalObservation:
 
     @classmethod
     def from_result(cls, result) -> DigitalObservation:
-        """Extract whitelisted digital records and acquisition-validity flags.
+        """从行为结果白名单提取数字特征与有效性标志。
 
-        Physical flags reject clipped training records; their magnitudes do not
-        become estimator features. Observer-corrected fine voltage is not used.
+        Args:
+            result: SimResult；需实际slice ID、RDAC命令、DEM/dither上下文和ADC2 raw码。
+
+        Returns:
+            只读DigitalObservation。RA/ADC2/RDAC溢出仅用于拒绝训练，不作为幅度特征。
+            不读取out、residue、真实G/C或干净输入；KTC校正后fine不替代raw ADC2码。
+            动态/时偏/offset配置会标非静态域；参考输入由调用方单独提供。
         """
         cfg = result.cfg
         if result.adc2_code is None or result.conv_slice_ids is None:
@@ -127,12 +139,7 @@ class DigitalObservation:
         spec = self.spec
         if self.slice_ids.shape != (n, spec.n_active) or n == 0:
             raise ValueError("digital slice allocation has the wrong shape")
-        # 独立审查 2026-09-26（v8.2.2）：spec 的电压标度与 dither 档位范围此前没有任何闸门，
-        # 而 `CalibrationSpec.from_config` 才走 cfg.check_legal()——手工构造的 spec 完全绕过。
-        # 这些标量却不是旁观者：design 矩阵由 v_fs 派生，解码后的 fine_v 由 adc2_v_min/v_max
-        # 派生。非有限值一旦漏进来，轻则让 svd 报出 LAPACK 层的 LinAlgError（甚至 “slice 0
-        # has a NaN entry”），重则在 design 的零元与非有限 theta 之间算出 0*inf——一次非法
-        # 浮点运算，是否被上报取决于 BLAS 后端。在入口一次性拦下，比在下游各处补丁更可靠。
+        # 在矩阵乘法前检查SVD因子有限性，防止0*inf先污染残差，或NaN比较被误当作秩不足。
         if not all(
             math.isfinite(v)
             for v in (spec.v_fs, spec.adc2_v_min, spec.adc2_v_max, spec.dither_units_range)
@@ -242,11 +249,11 @@ class CalibrationUnidentifiableError(ValueError):
 
 @dataclass(frozen=True)
 class FrozenCalibration:
-    """Frozen effective C/Cf weights and an independently estimated backend offset.
+    """冻结的有效C/Cf权重与一个后端有效offset[RA输出V]。
 
-    Standard errors are marginal linear-model estimates conditional on the
-    supplied reference inputs. They do not include unknown reference-source
-    systematic error, temporal drift or unmodeled analog dynamics.
+    weights形状(n_slices,n_main+n_sub)；standard_error对应全部weight和offset。
+    标准误仅为已知参考/静态线性模型条件下的边际估计，不含参考幅值/时间系统误差、
+    漂移或未建动态。正值、可辨识性及量纲验证后数组只读；不暗示硬件在线学习器已实现。
     """
 
     weights: np.ndarray
@@ -281,7 +288,16 @@ class FrozenCalibration:
         object.__setattr__(self, "standard_error", _readonly(se))
 
     def reconstruct(self, data: DigitalObservation) -> np.ndarray:
-        """Reconstruct independent unknown inputs using frozen digital coefficients [V]."""
+        """以冻结权重从独立未知输入数字记录解静态电荷方程。
+
+        Args:
+            data: 与训练geometry/Vfs匹配的数字观测；mask/注入可随工作模式变化。
+
+        Returns:
+            (N,)输入等效重构[V]：分子为fine-offset-Σw*(b-Vdac)，
+            分母为Σw*a。分母必须正；不同sampling mask可改变有效信号归一化。
+            不读取未知输入或plant真值，也不重新训练系数。
+        """
         data.validate()
         if data.spec.shape != self.weights.shape or data.spec.v_fs != self.v_fs:
             raise ValueError(
@@ -334,11 +350,16 @@ class FrozenCalibration:
 def fit_unit_weights(
     data: DigitalObservation, known_input_v, *, rank_rtol: float = 1e-10
 ) -> FrozenCalibration:
-    """Fit effective unit charge weights with a separately supplied calibration input.
+    """用受控静态观测和独立已知输入拟合有效unit权重及offset。
 
-    Noise settings are not modified. SVD must identify every unit and the offset;
-    otherwise an actionable rank error is raised, without hiding null directions
-    under nominal priors. Reference-source errors remain part of the fit budget.
+    Args:
+        data: 数字观测白名单；不得包含物理C/G、干净输入或误差truth。
+        known_input_v: (N,)外部参考输入[V]，与raw样本一一对应，独立于data提供。
+        rank_rtol: 相对奇异值判秩门限；不以名义先验填补不可观方向。
+
+    Returns:
+        FrozenCalibration。须N>参数数且设计矩阵满秩，有效权重有限且正，offset允许有符号且有限；
+        clipped或非静态训练明确拒绝。输入噪声设置不在此函数改写，参考误差不被自动估计。
     """
     data.validate()
     if not data.static_charge_domain:
@@ -368,13 +389,7 @@ def fit_unit_weights(
             block[np.arange(stop - start), ids[:, active], :] = terms[:, active]
     design[:, -1] = 1
     u, s, vh = svd(design, full_matrices=False, check_finite=False, lapack_driver="gesdd")
-    # 独立审查 2026-09-26（v8.2.2）：SVD 因子必须有限，且必须在任何矩阵乘法之前拦下。
-    # 下面的 theta = vh.T @ ((u.T @ fine_v) / s) 以及 residual = fine_v - design @ theta
-    # 会让 design 的零元与 theta 的非有限元相乘，即 0 * inf —— 一次非法浮点运算。是否被
-    # 上报取决于 BLAS 后端：x86-64 OpenBLAS 置位 invalid 标志，numpy 于是抛
-    # RuntimeWarning（本仓 filterwarnings 把 RuntimeWarning 升为硬错误），而 Apple
-    # Accelerate 不置位，缺陷因此在本地潜伏、只在 CI 暴露。放在 rank 比较之前还有第二个
-    # 理由：s 含 nan 时 "nan > x" 恒为假，rank 会被静默低估并报出误导性的可辨识性错误。
+    # 在矩阵乘法前检查SVD因子有限性，防止0*inf先污染残差，或NaN比较被误当作秩不足。
     if not (np.all(np.isfinite(u)) and np.all(np.isfinite(s)) and np.all(np.isfinite(vh))):
         raise ValueError(
             "singular value decomposition returned non-finite factors; "
@@ -390,7 +405,7 @@ def fit_unit_weights(
     variance = float(np.dot(residual, residual) / (n - p))
     se = np.sqrt(variance * np.sum((vh.T / s) ** 2, axis=1))
     weights = theta[:-1].reshape(data.spec.shape)
-    # 独立审查 2026-09-25：权重须为有限正值
+    # 拒绝非有限值，避免其进入后续电荷或数值计算。
     if np.any(~np.isfinite(weights)) or np.any(weights <= 0):
         raise ValueError(
             "estimated physical weights are nonpositive or non-finite; improve excitation/noise or check model validity"

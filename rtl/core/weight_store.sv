@@ -6,6 +6,8 @@
 // 读回：selected_weight为同写地址的组合值，越界返回0；load_complete表示本epoch全部物理项写过。
 // 适用域：1..32slice、1..128unit；静态容量界<2^59，可移除全局容量反馈但不改变合法写集合。
 // 实现边界：当前并行读系数映射为寄存器；改成RAM须重新建立带宽、延迟与调度合同。
+// 外部给定有效C/Cf（名义值或拟合后冻结值）；默认unit0..62为main、63..70为sub，不是物理C真值。
+// load_complete只证明本epoch每项都被合法写过，不证明训练满秩、拟合精度或动态误差已校准。
 // 来源：RTL_ARITHMETIC_CONTRACT.md §5、P2_INTERFACE.md §9；不运行参数学习。
 `include "rtl_params.vh"
 
@@ -16,8 +18,8 @@ module weight_store #(
     input logic clk,
     input logic rst_n,
     input logic cfg_ready, // 1 = 已生效 -> **禁止写**
-    input logic clear_load, // new configuration epoch; invalidate written bitmap
-    output logic load_complete, // every physical weight written in this epoch
+    input logic clear_load, // 新epoch只撤销完整位图，旧系数和行和留待逐项覆盖
+    output logic load_complete, // 本epoch每个物理项均曾接受合法写入
     input logic wr_en, // 一拍脉冲
     input logic [4:0] wr_slice,
     input logic [6:0] wr_unit,
@@ -25,7 +27,7 @@ module weight_store #(
     output logic err_write, // 1 = 本次写被拒
     output logic [P_N_SLICES - 1:0][P_N_UNITS - 1:0][W_BITS - 1:0] w_q,
     output wire [P_N_SLICES - 1:0][63:0] row_total,
-    output wire [W_BITS - 1:0] selected_weight // same address as write; invalid address reads zero
+    output wire [W_BITS - 1:0] selected_weight // 同写地址组合读回；越界读0且不能写入
 );
 
   initial begin
@@ -46,10 +48,9 @@ module weight_store #(
   localparam logic STATIC_SUM_SAFE =
       (64'(P_N_SLICES) * 64'(P_N_UNITS) * (64'(W_MAX) - 64'd1)) < SUM_MAX;
 
-  // Each accepted coefficient is < 2^47. Therefore a row of U coefficients
-  // is < U*2^47 <= 2^(47+ceil(log2(U))); ROW_BITS is exact for all U=1..128.
-  // A replacement subtracts the retained old word, even after clear_load:
-  // the bitmap describes this epoch, not the numeric contents of the store.
+  // 每项<2^47，U项行和<2^(47+ceil(log2(U)))，故ROW_BITS足够且不丢精度。
+  // written描述“本epoch已写过”，不描述存储内容是否为0；clear后替换仍须减旧值，
+  // 否则第二次装载会把保留的数值重复累加，破坏重构分母与系数一致性。
   localparam int ROW_BITS = 47 + $clog2(P_N_UNITS);
   logic [P_N_SLICES - 1:0][ROW_BITS - 1:0] row_q;
 
@@ -67,9 +68,8 @@ module weight_store #(
   logic [W_BITS - 1:0] cur_w;
   wire [P_N_SLICES - 1:0][W_BITS - 1:0] old_by_slice;
 
-  // Accepted replacement writes update exact global/row sums incrementally.
-  // Production STATIC_SUM_SAFE lets synthesis remove the unused global sum.
-  // clear_load invalidates completeness only; numeric weights/sums survive.
+  // reset清数据，clear_load优先于任何写；accept已排除clear及ACTIVE配置写入。
+  // err_write是当前请求被拒的组合电平，不是完成脉冲，调用方应在wr_en有效沿消费。
 
   // ---- 守卫 ----
   assign idx_ok = (int'(wr_slice) < P_N_SLICES) && (int'(wr_unit) < P_N_UNITS);
@@ -92,9 +92,7 @@ module weight_store #(
 
   for (genvar s = 0; s < P_N_SLICES; s++) begin : g_row_output
     assign row_total[s] = {{(64 - ROW_BITS){1'b0}}, row_q[s]};
-    // Keep each row replacement local to its physical slice. A global
-    // row_q[s_idx]/w_q[s_idx][u_idx] mux made the selected-slice state traverse
-    // the configuration readback tree before reaching every row register.
+    // 每row只更新自己的旧值减法；全局地址只负责选中该row，避免把宽行和绕经读回树。
     assign old_by_slice[s] = w_q[s][u_idx];
     wire [W_BITS - 1:0] old_in_row = old_by_slice[s];
     wire [ROW_BITS - 1:0] next_row =

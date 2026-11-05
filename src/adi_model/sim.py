@@ -182,6 +182,24 @@ class SimResult:
             pending calibration and overrides inactive at this entry point.
         """
         inactive = {}
+        dither_sequence = None
+        if self.cfg.conversion.rdac_event_timing == "rtl16" and self.cfg.dither_mode == "quantizer":
+            inactive["dither_amplitude_lsb1"] = (
+                "rtl16 quantizer uses the fixed D=2 LFSR RDAC-unit sequence; "
+                "this requested amplitude does not drive it"
+            )
+            observed = np.asarray(self.sample.dither)
+            step_v = self.cfg.nominal_rdac_step
+            dither_sequence = {
+                "source": "rtl16_fixed_D2_lfsr",
+                "code_unit": "nominal RDAC fine-grid step",
+                "code_abs_bound": 2,
+                "voltage_node": "SADC input injection d_Q",
+                "nominal_voltage_abs_bound_v": 2 * step_v,
+                "nominal_voltage_abs_bound_lsb1": 2 * step_v / self.cfg.delta1,
+                "observed_voltage_min_v": float(observed.min()) if observed.size else None,
+                "observed_voltage_max_v": float(observed.max()) if observed.size else None,
+            }
         default = Config()
         if self.cfg.dac_arch == "split" and self.cfg.c_feedback0 != default.c_feedback0:
             inactive["c_feedback0"] = "unary-only; use split_feedback_cap_f"
@@ -212,6 +230,7 @@ class SimResult:
             "calibration_applied": list(self.calibration_applied),
             "calibration_pending": self.cfg.calibration != "none" and not self.calibration_applied,
             "inactive_overrides": inactive,
+            "dither_sequence": dither_sequence,
             "rdac_code_min": 0,
             "rdac_code_max": self.cfg.dac_levels - 1
             if self.cfg.dac_arch == "split"

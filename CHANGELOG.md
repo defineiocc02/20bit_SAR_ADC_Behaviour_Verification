@@ -6,6 +6,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] — 2026-11-05
 
+- Report the structural quantizer's fixed D=2 LFSR sequence in effective configuration, explicitly marking the requested floating amplitude inactive. Requested configuration is retained; dither samples, ADC2 raw words and final 20-bit words are unchanged across eight before/after captures. This metadata repair is separate from the documentation/comment cleanup.
 - Independently reviewed 18 source documents / 596 pages, 49 Python production modules and 41 RTL production modules; retain page/file coverage and explicit source ambiguities in `docs/reviews/`.
 - Fixed module CLI option forwarding, complete reference-recovery timing, configuration/register input validation, RMS versus standard-deviation measurements, matched integer calibration comparisons and complete production DEM averaging.
 - Corrected charge units and use an explicit 1 pV equivalent-output numerical consistency check; retain the old misnamed charge key with a deprecation/unit declaration.

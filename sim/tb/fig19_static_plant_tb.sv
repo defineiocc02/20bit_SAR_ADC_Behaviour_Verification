@@ -267,7 +267,7 @@ module fig19_static_plant_tb #(
     for (int s = 0;s<18;s++)begin
       // 窗口回读为实际行号，不是写入的占位数据。
       @(negedge clk);
-      cfg_addr = 16'(16'h2000+s*256);
+      cfg_addr = 16'(32'h2000+s*256);
       cfg_wdata = 0;
       cfg_wr = 1;
       @(negedge clk);
@@ -276,7 +276,7 @@ module fig19_static_plant_tb #(
       require_ok(cfg_rdata==64'(s),"coefficient window readback mismatch");
       for (int u = 0;u<71;u++)write_cfg(16'(u*8), 64'(loaded_weights[s][u]));
     end
-    for (int i = 0;i<3;i++)write_cfg(16'(16'h1000+i*8), 64'(loaded_scalars[i]));
+    for (int i = 0;i<3;i++)write_cfg(16'(32'h1000+i*8), 64'(loaded_scalars[i]));
     @(negedge clk);
     cfg_validate = 1;
     @(negedge clk);

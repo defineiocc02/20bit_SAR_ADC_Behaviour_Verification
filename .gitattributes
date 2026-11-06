@@ -130,3 +130,7 @@ docs/evidence/20261007/dr_rtl_analysis/** -text -whitespace -diff
 # Generated SVG path data contains serializer whitespace; preserve exact bytes
 # while retaining text diffs and all other whitespace checks.
 docs/readme/fig/source_bound_*.svg -text whitespace=-blank-at-eol
+
+# RTL simulator evidence retains tool-emitted bytes for receipt hash verification.
+task1/evidence/rtl/*.log -text whitespace=-blank-at-eol
+task1/evidence/bridge_rtl/*.log -text whitespace=-blank-at-eol

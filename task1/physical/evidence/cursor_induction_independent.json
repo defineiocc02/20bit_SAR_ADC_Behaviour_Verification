@@ -1,0 +1,41 @@
+{
+  "schema": "task1_cursor_induction_independent_v1",
+  "candidate_source": "task1/rtl/slice_scheduler.sv",
+  "candidate_sha256": "2fc7e3839ee11c96273933a872cb3e404fbbfd37cf6cb6c82f7b146595ffe25e",
+  "tool_version": "Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)",
+  "tool_frontend": "YoWASP Yosys",
+  "property": "scan_cursor == unsigned(lfsr_state_o[31:24]) % 18",
+  "scope": "Two-state, defined inputs, synchronous sampled edges. Base for arbitrary initial state followed by reset; step for arbitrary state satisfying the cursor property. This receipt proves the cursor invariant only.",
+  "status": "PASS",
+  "queries": {
+    "positive": {
+      "exit_code": 0,
+      "successful_sat_queries": 2,
+      "counterexample": false
+    },
+    "negative": {
+      "exit_code": 1,
+      "successful_sat_queries": 1,
+      "counterexample": true
+    }
+  },
+  "commands": [
+    "yosys -l audit.log -s check.ys",
+    "yosys -l negative.log -s check_negative.ys"
+  ],
+  "archive": {
+    "path": "cursor_induction_independent.zip",
+    "bytes": 27212,
+    "sha256": "7bafb03650af65c475ef65aa4cbc9e7e720a8abc1a87de278468de048f5cf035"
+  },
+  "member_sha256": {
+    "README.md": "de91f162b293be45a229ab65bc586e1ca96af2507fa9f947aa58238c423402f3",
+    "candidate.sv": "2fc7e3839ee11c96273933a872cb3e404fbbfd37cf6cb6c82f7b146595ffe25e",
+    "gate.sv": "81cf3182b943f9f4f15e5ce31818e4b70f6ba7cf34dbe129615f4d5e57600910",
+    "gate_stale_cursor_mutant.sv": "e30d5b3439034ca5406161b1ffbb2fc9413065d8898b7dd3c5a5cc9888c38b9f",
+    "check.ys": "b00839c15d0dc6cbec3898c711c023668da13759ed009c114793a840a9ccd950",
+    "check_negative.ys": "7428564cc75394e4d0652da199e175401a493fc26c601d954e1b9cad1778e676",
+    "audit.log": "699eac7429f2ca5ee755233cdc2a76eb2af4c199946379dae39e9360c674437c",
+    "negative.log": "9ca08265bb23d7010fd1b98d1f37417e8a14f2703c00a172b5af177c744f0e98"
+  }
+}

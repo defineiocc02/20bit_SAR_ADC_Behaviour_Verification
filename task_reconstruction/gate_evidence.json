@@ -57,7 +57,34 @@
     "status": "BLOCKED"
   },
   "G4": {
-    "scope": "physical timing and equivalence of the combined top have a separate receipt",
-    "status": "NOT_RUN"
+    "combined_top_manifest": {
+      "path": "../task2/physical/evidence/sar20_digital_lms_top_manifest_42278312924.json",
+      "sha256": "482cb6ae74a1577fa5f2f3104975c065d20c84dc07288fc3aac753bbee770459"
+    },
+    "extracted_single_corner_sta": {
+      "clock_period_ns": 6.25,
+      "corner": "TT 25 C, 1.80 V with extracted SPEF",
+      "hold_violations": 0,
+      "hold_worst_slack_ns": 0.0430949,
+      "setup_violations": 0,
+      "setup_worst_slack_ns": 0.0805565,
+      "status": "PASS"
+    },
+    "multi_corner_sta": "NOT_RUN",
+    "original_public_pv": {
+      "drc": {
+        "exit_code": 124,
+        "status": "FAIL"
+      },
+      "lvs": {
+        "exit_code": 124,
+        "status": "BLOCKED"
+      }
+    },
+    "physical_claim": "PARTIAL_SIGNOFF",
+    "routed_gds": "PASS",
+    "scope": "routed combined digital top and extracted single-corner timing; complete G4 remains open",
+    "status": "BLOCKED",
+    "target_180nm_bcd": "NOT_RUN"
   }
 }

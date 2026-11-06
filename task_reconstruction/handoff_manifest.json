@@ -1,4 +1,16 @@
 {
+  "combined_physical": {
+    "archive_sha256": "78abc174991fb474f371671a1ef666f30f7687d4262941078415a8ba83608950",
+    "claim": "PARTIAL_SIGNOFF",
+    "gds_sha256": "4aa02f35dae17c528f72bce9a06a7c8aee466c9a163d210ae54a9265a8ed02c3",
+    "manifest": {
+      "path": "../task2/physical/evidence/sar20_digital_lms_top_manifest_42278312924.json",
+      "sha256": "482cb6ae74a1577fa5f2f3104975c065d20c84dc07288fc3aac753bbee770459"
+    },
+    "rtl_commit": "43b2fc5b72d69182d4d29260125b70057f822621",
+    "top": "sar20_digital_lms_top",
+    "workflow_run": "42278312924"
+  },
   "combined_sdc": "task1/physical/sky130_constraint.sdc",
   "combined_top": "sar20_digital_lms_top",
   "counts": {
@@ -24,9 +36,10 @@
   "rtl_parent_baseline": "b592ba825fa2c156f58fab5b2f528d90e49cacff",
   "schema": "sar20-lms-recon-handoff-v1",
   "source_sha256": {
+    "README.md": "b69fb16c09ecab66d970911ab31103ff4de77095038f36bcaf78ca1038432a09",
     "SPEC.md": "16d1e41fc844c16f5acc2cf705e11b349e001e29739c5a512f35d14df7ce6856",
     "fixed.py": "08cf2096bdbde88e29eb89b4e09df73c943d3a16e1ddfa0d24b30eea9c41921d",
-    "gate_evidence.json": "49e43ff4304656f9dcb187c947175ebfef640fe6ea348841949f507989107b83",
+    "gate_evidence.json": "8bbcdf6bdeb27fe2a9e1af93aed6ba73086937ca9a4eec2d309e890f0c136618",
     "microarchitecture.md": "519eb16a6256220e0bed26b96bff88d630cf2c14ecb9095f9684aa82700bbc5f",
     "requirements_trace.csv": "7250cfcbbb57f533104990a6e82c28e30cfc60dee944daa8b9e1e1a6c46cb933",
     "rtl/sar20_lms_recon.sv": "7005ccbc8bec2ddedd2fd1d050d19ddb7df8208a7288192258d7bbc103478b83",

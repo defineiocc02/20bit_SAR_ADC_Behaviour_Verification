@@ -11,7 +11,9 @@
 | 3% | 关 | 15 | 4,076 | 5 |
 | 3% | 开 | 19 | 4,060 | 17 |
 
-额外测试覆盖全部 4,096 个 ADC2 中点、半开量程、负权重、同笔 ID、重复切片、错误配置、反压、清空和复位。正常 E0 入核后 E22 出结果。独立核接受间隔 13 拍的定向序列以及间隔 16 拍的连续归档样本。16 拍系统速率以宏时序与布线后 6.25 ns STA 为前提。 [实际观察收据](evidence/result.json) · [物理交付](../task2/physical/README.md)
+额外测试覆盖全部 4,096 个 ADC2 中点、半开量程、负权重、同笔 ID、重复切片、错误配置、反压、清空和复位。正常 E0 入核后 E22 出结果。独立核接受间隔 13 拍的定向序列以及间隔 16 拍的连续归档样本。16 拍系统速率还依赖模拟宏按合同提交 ADC2 原码。 [实际观察收据](evidence/result.json)
+
+包含本核的 `sar20_digital_lms_top` 已生成 SKY130HD GDS。采用同源 RTL 和 6.25 ns 约束，在 TT、25 °C、1.80 V 提取后复核中，setup 裕量为 +0.0805565 ns，hold 裕量为 +0.0430949 ns，违例端点为 0。G4 仍为 `BLOCKED`，多角 STA 和目标工艺验收待完成。原运行的独立公开 DRC／LVS 均超时，复验结果单独归档。 [运行清单](../task2/physical/evidence/sar20_digital_lms_top_manifest_42278312924.json) · [物理交付](../task2/physical/README.md)
 
 在仓库根目录使用 Python 3.12、NumPy 与 Verilator 重跑。命令同时导出两套可加载的 26 位顺序配置数据。
 

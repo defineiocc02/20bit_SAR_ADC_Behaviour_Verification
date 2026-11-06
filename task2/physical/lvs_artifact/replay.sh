@@ -10,7 +10,10 @@ image=openroad/orfs@sha256:a6140cf4dc568e10238356f67b9fd73b9074955eeda6f2ee126bc
 revision=5eebdc0d06879cf674e86e3fb8efa2803e6e44dc
 deck_timeout="${LVS_DECK_TIMEOUT_SECONDS:-600}"
 case "$deck_timeout" in 600|1800) ;; *) echo 'Unsupported per-deck budget' >&2; exit 2 ;; esac
+deck_mode="${LVS_DECK_MODE:-both}"
+case "$deck_mode" in both|legacy|upstream) ;; *) echo 'Unknown deck selection' >&2; exit 2 ;; esac
 printf '%s\n' "$deck_timeout" > "$out/deck_timeout_seconds.txt"
+printf '%s\n' "$deck_mode" > "$out/deck_mode.txt"
 
 frozen="$(python3 - "$input" "$out" <<'PY'
 import hashlib
@@ -76,6 +79,7 @@ docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
   --user "$(id -u):$(id -g)" --entrypoint /bin/bash \
   -e HOME=/tmp -e QT_QPA_PLATFORM=offscreen -e LVS_TOP \
   -e "LVS_DECK_TIMEOUT_SECONDS=$deck_timeout" \
+  -e "LVS_DECK_MODE=$deck_mode" \
   -v "$repo:/work/repo:ro" -v "$frozen:/work/input:ro" -v "$out:/work/out" \
   -w /OpenROAD-flow-scripts/flow "$image" -ec '
     set -o pipefail
@@ -90,7 +94,12 @@ docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
       > /work/out/export_cdl.log 2>&1
     cat /work/out/top.cdl /work/out/compatible.cdl > /work/out/reference.cdl
     sha256sum /work/out/reference.cdl > /work/out/reference.sha256
-    for mode in legacy upstream; do
+    if [ "$LVS_DECK_MODE" = both ]; then
+      modes=(legacy upstream)
+    else
+      modes=("$LVS_DECK_MODE")
+    fi
+    for mode in "${modes[@]}"; do
       dir="/work/out/$mode"
       mkdir "$dir"
       layout="$dir/$LVS_TOP.gds"
@@ -131,7 +140,8 @@ gds_sha = source['sha256'][source['top'] + '.gds']
 if (out / 'gds_after.sha256').read_text().split()[0] != gds_sha:
     raise ValueError('GDS changed during replay')
 variants = {}
-for mode in ('legacy', 'upstream'):
+selection = (out / 'deck_mode.txt').read_text().strip()
+for mode in (('legacy', 'upstream') if selection == 'both' else (selection,)):
     folder = out / mode
     if (folder / 'gds_checked.sha256').read_text().split()[0] != gds_sha:
         raise ValueError(f'GDS for {mode} changed')
@@ -162,6 +172,7 @@ for mode in ('legacy', 'upstream'):
         'database_complete': code == 0 and db_sha is not None,
     }
 summary = {'source': source, 'upstream_revision': sys.argv[2], 'variants': variants,
+           'deck_selection': selection,
            'per_deck_timeout_seconds': int((out / 'deck_timeout_seconds.txt').read_text()),
            'reference_cdl_sha256': (out / 'reference.sha256').read_text().split()[0]}
 (out / 'replay_summary.json').write_text(json.dumps(summary, indent=2) + '\n')

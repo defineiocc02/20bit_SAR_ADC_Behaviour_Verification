@@ -29,6 +29,12 @@ on:
         required: true
         type: choice
         options: [sar20_digital_lms_top, sar20_digital_top, dither8_top]
+      deck_mode:
+        description: 'Public deck(s) to compare against the same frozen source'
+        required: false
+        type: choice
+        options: [both, upstream, legacy]
+        default: both
 
 permissions:
   actions: read
@@ -46,6 +52,7 @@ jobs:
       LVS_EXPECTED_COMMIT: ${{ inputs.rtl_commit }}
       LVS_EXPECTED_GDS: ${{ inputs.gds_sha256 }}
       LVS_TOP: ${{ inputs.top }}
+      LVS_DECK_MODE: ${{ inputs.deck_mode || 'both' }}
       LVS_DECK_TIMEOUT_SECONDS: ${{ inputs.top == 'sar20_digital_lms_top' && '1800' || '600' }}
     steps:
       - uses: actions/checkout@v4
@@ -60,11 +67,11 @@ jobs:
           name: ${{ inputs.artifact_name }}
           github-token: ${{ github.token }}
           path: ${{ env.INPUT_DIR }}
-      - name: Compare both public rule decks on the frozen artifact
+      - name: Compare selected public rule decks on the frozen artifact
         if: github.event_name == 'workflow_dispatch'
         timeout-minutes: ${{ inputs.top == 'sar20_digital_lms_top' && 68 || 26 }}
         run: bash task2/physical/lvs_artifact/replay.sh "$INPUT_DIR" "$OUTPUT_DIR"
-      - name: Upload both comparisons and LVS databases
+      - name: Upload requested comparisons and LVS databases
         if: always() && github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:

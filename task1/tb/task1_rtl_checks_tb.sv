@@ -2,6 +2,7 @@
 //
 // 模块一组件逐事件自检。向量由独立 Python 规格生成，比较完整输出和资格。
 // 调度记录在上升沿后检查，DEM 记录在组合逻辑稳定后检查。
+// 先把文件记录读入任务局部变量，再以显式赋值驱动 DUT 端口。
 
 module task1_rtl_checks_tb;
     typedef struct packed {
@@ -176,12 +177,14 @@ module task1_rtl_checks_tb;
     int dem_invalid;
 
     task automatic check_scheduler(input string path);
+        scheduler_vector_t record;
         int file_id;
         int scanned;
         file_id = $fopen(path, "r");
         if (file_id == 0) $fatal(1, "cannot open scheduler vectors: %s", path);
-        scanned = $fscanf(file_id, "%h", scheduler_vector);
+        scanned = $fscanf(file_id, "%h", record);
         while (scanned == 1) begin
+            scheduler_vector = record;
             #1;
             clk = 1'b1;
             #1;
@@ -199,19 +202,21 @@ module task1_rtl_checks_tb;
             scheduler_stalls += int'(scheduler_actual.stall);
             scheduler_seed_errors += int'(scheduler_actual.seed_error);
             clk = 1'b0;
-            scanned = $fscanf(file_id, "%h", scheduler_vector);
+            scanned = $fscanf(file_id, "%h", record);
         end
         if (!$feof(file_id)) $fatal(1, "malformed scheduler vector file");
         $fclose(file_id);
     endtask
 
     task automatic check_dem(input string path);
+        dem_vector_t record;
         int file_id;
         int scanned;
         file_id = $fopen(path, "r");
         if (file_id == 0) $fatal(1, "cannot open DEM vectors: %s", path);
-        scanned = $fscanf(file_id, "%h", dem_vector);
+        scanned = $fscanf(file_id, "%h", record);
         while (scanned == 1) begin
+            dem_vector = record;
             #1;
             if (dem_actual !== dem_vector.expected) begin
                 $fatal(1, "DEM code=%0d enable=%b h=%0d v=%0d expected=%h got=%h",
@@ -221,19 +226,21 @@ module task1_rtl_checks_tb;
             if (!dem_actual.valid) dem_invalid++;
             else if (dem_vector.enable) dem_active++;
             else dem_bypass++;
-            scanned = $fscanf(file_id, "%h", dem_vector);
+            scanned = $fscanf(file_id, "%h", record);
         end
         if (!$feof(file_id)) $fatal(1, "malformed DEM vector file");
         $fclose(file_id);
     endtask
 
     task automatic check_top(input string path);
+        top_vector_t record;
         int file_id;
         int scanned;
         file_id = $fopen(path, "r");
         if (file_id == 0) $fatal(1, "cannot open top vectors: %s", path);
-        scanned = $fscanf(file_id, "%h", top_vector);
+        scanned = $fscanf(file_id, "%h", record);
         while (scanned == 1) begin
+            top_vector = record;
             #1;
             if (!top_vector.rst_n || top_vector.clear || !top_vector.enable) begin
                 if (top_actual.masks !== '0 || top_actual.code_error) begin
@@ -256,7 +263,7 @@ module task1_rtl_checks_tb;
             top_bypass_prefixes += int'(top_actual.masks.valid && !top_actual.conv_dem_enable);
             top_code_errors += int'(top_actual.code_error);
             clk = 1'b0;
-            scanned = $fscanf(file_id, "%h", top_vector);
+            scanned = $fscanf(file_id, "%h", record);
         end
         if (!$feof(file_id)) $fatal(1, "malformed top vector file");
         $fclose(file_id);

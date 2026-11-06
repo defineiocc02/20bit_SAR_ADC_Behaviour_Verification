@@ -10,6 +10,8 @@
 
 含片上 LMS 的完整顶层，首次详细布线在 40 分钟运行上限时中止，最终 GDS／STA 未产生。消除 ADC2 常数除法后的新版已经通过功能对拍，映射后、未插缓冲且未提取布线的时序诊断为 setup −7.268336 ns、hold +0.034222 ns；最差是 557 个使能端点的高扇出路径。新版全局布线的估计 setup 为 −0.006 ns，但 40 分钟作业仍在详细布线中止，不能用该值冒充最终布线时序或 GDS。相同工艺与约束下的长时作业继续执行。[旧版超时记录](evidence/sar20_digital_lms_top_timeout_42262919977.json) · [新版超时记录](evidence/sar20_digital_lms_top_timeout_42270270956.json) · [映射时序诊断](evidence/sar20_digital_lms_top_mapped_manifest_42270594409.json) · [完整顶层运行](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42270381481)
 
+旧版的 68 分钟后端作业曾完成首轮详细布线并报告 0 个路由标记，之后因 68 个天线违规进入修复和再次布线，在运行上限中止；该中间结果不是最终 DRC 或新版 RTL 的结论。[旧版长时诊断](evidence/sar20_digital_lms_top_timeout_42267364320.json)
+
 在 Linux amd64 Docker 环境中，从干净的目标提交运行。输出目录需要为空。
 
 ```sh

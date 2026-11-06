@@ -8,7 +8,7 @@
 
 外接重构的整体控制顶层在同一条件下 setup 裕量为 +0.208478 ns、hold 裕量为 +0.0521769 ns，公开 DRC 为 0；同一 GDS 经独立复核，旧规则 LVS **FAIL**、上游修订规则 **PASS**。该顶层的 20 位重构码由外部提供，不包含片上 LMS 重构核。[GDS、网表和时序](evidence/sar20_digital_top_sky130hd_run_42265153017.zip) · [两版规则的 LVS 复核](evidence/sar20_digital_top_lvs_replay_manifest_42272620602.json)
 
-含片上 LMS 的完整顶层，首次详细布线在 40 分钟运行上限时中止，最终 GDS／STA 未产生。消除 ADC2 常数除法后的新版已经通过功能对拍，映射后、未插缓冲且未提取布线的时序诊断为 setup −7.268336 ns、hold +0.034222 ns；最差是 557 个使能端点的高扇出路径，不能用该值冒充最终布线时序。新版布线及 GDS 正在单独运行。[超时记录](evidence/sar20_digital_lms_top_timeout_42262919977.json) · [映射时序诊断](evidence/sar20_digital_lms_top_mapped_manifest_42270594409.json)
+含片上 LMS 的完整顶层，首次详细布线在 40 分钟运行上限时中止，最终 GDS／STA 未产生。消除 ADC2 常数除法后的新版已经通过功能对拍，映射后、未插缓冲且未提取布线的时序诊断为 setup −7.268336 ns、hold +0.034222 ns；最差是 557 个使能端点的高扇出路径，不能用该值冒充最终布线时序。新版布线及 GDS 已按相同工艺和约束另行启动 75 分钟作业。[超时记录](evidence/sar20_digital_lms_top_timeout_42262919977.json) · [映射时序诊断](evidence/sar20_digital_lms_top_mapped_manifest_42270594409.json) · [完整顶层运行](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42270381481)
 
 在 Linux amd64 Docker 环境中，从干净的目标提交运行。输出目录需要为空。
 

@@ -1,0 +1,15 @@
+version: 1
+clock: clk_i
+checks:
+  - req: REQ-RECON-01
+    test: archived_2pct_3pct_frozen_coefficients
+    oracle: independent_arbitrary_precision_integer_and_archived_float_output
+  - req: REQ-RECON-02
+    test: all_adc2_codes_at_pipeline_edge_e3_and_numeric_endpoints
+    oracle: rational_rounding_and_floor_division
+  - req: REQ-RECON-03
+    test: configuration_reset_malformed_and_backpressure
+    oracle: self_checking_handshake_and_output_scoreboard
+  - req: REQ-RECON-04
+    test: continuous_sixteen_tick_admission_and_latency
+    oracle: cycle_count_on_successful_handshakes

@@ -1,0 +1,38 @@
+{
+  "counts": {
+    "bypass": 256,
+    "controls": 1625,
+    "cycles": 2896,
+    "faults": 10,
+    "id_boundary_checks": 4,
+    "pairs": 675
+  },
+  "fault_code_coverage": {
+    "1": 1,
+    "2": 1,
+    "3": 3,
+    "4": 2,
+    "5": 1,
+    "6": 2
+  },
+  "log_sha256": {
+    "compile.log": "28579d24b442e67e7c2afd2c5b9657557ca4254422a2ae400be5a2b9b1249da5",
+    "lint.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "run.log": "25e52ccf02e5c4e5f75484713184b2acac66ccf5e0e5dbb9b76c13235068792b",
+    "verilator.log": "00e9dc8bbbebf459746ad7b9a67aaa330d8c631238bb6fe1d48ed7b62a2e4dc4"
+  },
+  "mismatches": 0,
+  "schema_version": 1,
+  "scope": "CAAZ20_SINGLE_CLOCK_DIGITAL_PROTOCOL_AND_INTEGER_ARITHMETIC",
+  "simulator": "Verilator 5.020 2024-01-01 rev (Debian 5.020-1)",
+  "source_sha256": {
+    "task3/model/caaz20.py": "3da6abedb7eeb6674fa49d8c3661e698b3420e9125fd96c3301888f3af16c3da",
+    "task3/rtl/caaz20_pair.sv": "5ddbd9f20d4534ad597f22edca9f58604c4d04877eb5efb6ba6dabb142115fdc",
+    "task3/tb/caaz20_pair_tb.sv": "b7cf9e5d1b8aa53d92610fa65cbeb8dd9ab1dbd8c15f850330b6bea0321c69a5",
+    "task3/tools/run_caaz_checks.py": "7ad698750aaa99f4ae1257237085a89fb7c67534b2783804cd85db6839b391e1",
+    "tools/run_open_rtl.py": "b5af7fcd9917dd8d3305117e0f2601b59f759b1e783f3aa2cd5b54e213975ef2"
+  },
+  "status": "PASS",
+  "stimulus_seed": 13246496,
+  "vector_sha256": "02071971c1dfb5d913b463fb862641f177f92310fb9d06e3d40db1d997b75baa"
+}

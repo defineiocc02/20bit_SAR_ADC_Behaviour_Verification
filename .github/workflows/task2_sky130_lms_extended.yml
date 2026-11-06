@@ -1,0 +1,88 @@
+name: 20b10mtask LMS SKY130HD extended physical
+
+on:
+  push:
+    branches: [20b10mtask]
+    paths:
+      - '.github/workflows/task2_sky130_lms_extended.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: task2-sky130-lms-extended-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  lms_sky130:
+    if: github.ref_name == '20b10mtask'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    env:
+      RUN_DIR: /tmp/task2-sky130-lms-extended-${{ github.run_id }}-${{ github.run_attempt }}
+      TASK2_PHYSICAL_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-sar20_digital_lms_top-extended
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Record the extended runner envelope
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          receipt = Path(os.environ['RUN_DIR'] + '-runner.json')
+          receipt.write_text(json.dumps({
+              'run_id': os.environ['TASK2_PHYSICAL_RUN_ID'],
+              'rtl_commit': os.environ['GITHUB_SHA'],
+              'job_timeout_minutes': 150,
+              'implementation_step_timeout_minutes': 140,
+              'reason': 'Allow antenna repair and the subsequent detailed route to finish after the first clean routing pass.',
+              'scope': 'Override the standard CI envelope only. The physical script, clock, I/O, PVT, floorplan policy and four P&R threads are unchanged.',
+          }, indent=2) + '\n')
+          PY
+      - name: Route the LMS top under the same physical plan
+        timeout-minutes: 140
+        run: bash task2/physical/sky130_run.sh "$RUN_DIR" sar20_digital_lms_top
+      - name: Upload the frozen run and runner envelope
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: task2-sky130hd-lms-extended-${{ github.run_id }}
+          path: |
+            ${{ env.RUN_DIR }}/delivery
+            ${{ env.RUN_DIR }}-runner.json
+          if-no-files-found: error
+      - name: Preserve available GDS and diagnostics after a failed or timed-out step
+        if: ${{ always() && (failure() || cancelled()) }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: task2-sky130hd-lms-extended-diagnostics-${{ github.run_id }}
+          path: |
+            ${{ env.RUN_DIR }}-runner.json
+            ${{ env.RUN_DIR }}/delivery
+            ${{ env.RUN_DIR }}/flow.log
+            ${{ env.RUN_DIR }}/flow/logs
+            ${{ env.RUN_DIR }}/flow/reports
+            ${{ env.RUN_DIR }}/flow/results/sky130hd/task_integration_sar20_lms/base/5_1_grt.*
+            ${{ env.RUN_DIR }}/flow/results/sky130hd/task_integration_sar20_lms/base/5_2_route.odb
+            ${{ env.RUN_DIR }}/flow/results/sky130hd/task_integration_sar20_lms/base/5_route.odb
+            ${{ env.RUN_DIR }}/flow/results/sky130hd/task_integration_sar20_lms/base/6_final.*
+          if-no-files-found: warn
+      - name: Report the independent TT timing gate
+        if: success()
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest = Path(os.environ['RUN_DIR']) / 'delivery/release_manifest.json'
+          timing = json.loads(manifest.read_text())['timing']
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              for mode, result in timing.items():
+                  summary.write(f"- {mode}: {result['status']}, slack {result['worst_slack_ns']:.4f} ns\n")
+          raise SystemExit(any(result['status'] != 'PASS' for result in timing.values()))
+          PY

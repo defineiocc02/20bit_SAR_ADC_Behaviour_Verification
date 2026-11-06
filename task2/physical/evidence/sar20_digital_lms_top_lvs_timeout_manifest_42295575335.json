@@ -1,0 +1,44 @@
+{
+  "workflow": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42295575335/job/128159821290",
+  "archive": {
+    "path": "sar20_digital_lms_top_lvs_timeout_42295575335.zip",
+    "bytes": 6145,
+    "sha256": "c40615834ef1870c09ecbf99d5d9223b7427e063628b22f03a34e4fb5ff1a700"
+  },
+  "frozen_source": {
+    "top": "sar20_digital_lms_top",
+    "source_run": "42278312924-1-sar20_digital_lms_top-extended",
+    "rtl_commit": "43b2fc5b72d69182d4d29260125b70057f822621",
+    "sha256": {
+      "sar20_digital_lms_top.gds": "4aa02f35dae17c528f72bce9a06a7c8aee466c9a163d210ae54a9265a8ed02c3",
+      "sar20_digital_lms_top.odb": "98bd4b7e29f4c22f300eaa2aefd06349a21d6340a0ea10c8b66cba0ba6045cfe",
+      "sar20_digital_lms_top.sdc": "79d858942b4ed2d214d69c41bd9d57c81853fd995fe78a55fa8beb9b0f064159",
+      "sar20_digital_lms_top.v": "cfe56bb5d8cbcd32f9e3de77d16e766a79cb426631ca679d57cb8633a408dd7d",
+      "sar20_digital_lms_top.spef": "b2a69cd9959fa0aba9680a0410f5e215372f676d7202cd4c472c38966ea7da18"
+    },
+    "method": "Both decks use the same CDL exported from the frozen routed ODB."
+  },
+  "reference_cdl_sha256": "6055e6205b033473def4b2fec79f74b2b115f79b510f387d54522ca5790abc62",
+  "legacy": {
+    "status": "BLOCKED",
+    "exit_code": 124,
+    "last_stage": "simplify"
+  },
+  "upstream": {
+    "status": "BLOCKED",
+    "exit_code": null,
+    "last_stage": "netlist extraction, workflow canceled"
+  },
+  "files": {
+    "frozen_inputs.json": "f548e7ffbb0a0456be13899fc0fc4d6549e1190e58b8d5e8afeee18c05e3b16e",
+    "lvs_cdl_compat.json": "6f2b4d5779a792bf3f835d34248ea5768aa00578a7de6c7166dc984dbab5225a",
+    "reference.sha256": "f2ae47cd25173cb78026e59ca04b5c69c22b5e3f0b9d67cf3a1209aacc553c04",
+    "export_cdl.log": "ee1baa4ec5096a73985d1c4970562d3f684739f936a5c3f8a74d34a10c9a77d9",
+    "tools.txt": "20242c99360893c7f6600cad23e387d193f3ed5f6abbff906bb468b73903f14c",
+    "legacy/lvs.log": "9af31016c8f8801766c31c99973ecb0aba755e8b5a4483bd93bb9c4433d0a534",
+    "legacy/exit.txt": "ca2ebdf97d7469496b1f4b78958f9dc8447efdcb623953fee7b6996b762f6fff",
+    "legacy/deck.sha256": "a769839f2920de6eef5d084049d9435704b2352f5a236364ecf5309b4e1a6560",
+    "upstream/lvs.log": "8082931dd0686fb6e8519675dc6ff8dc7e470bea2597533e25e75eb32109032b",
+    "upstream/deck.sha256": "fcd854e8ce0d491994e327e0e3796490ee126d7b9bf6f009f8a3b161195b8018"
+  }
+}

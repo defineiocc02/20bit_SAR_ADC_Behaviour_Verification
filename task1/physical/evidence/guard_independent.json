@@ -1,0 +1,59 @@
+{
+  "schema": "task1_selector_guard_independent_v1",
+  "status": "PASS",
+  "sources_sha256": {
+    "task1/rtl/slice_scheduler.sv": "52f69b9b84cdc46990e6e95b82c6172996349d32064643dd50f292aecd860b80",
+    "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835"
+  },
+  "guard_baseline_commit": "7425f2468233bfc6f02658c33aec7d7054fe3c20",
+  "guard_baseline_sha256": "7887b9dbc435f96b39e964954a8c9d89e9c2560243f203b9ef96334f6616f471",
+  "tool_version": "Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)",
+  "scope": "Actual selector cache and effective one-hot selection induction under defined synchronous inputs. Structural guard induction from the actual per-slot equations. The independent monolithic guard miter timed out at 48 seconds. Full selector port comparison lives in selector_guard_equivalence.zip.",
+  "runs": {
+    "selector_proof": {
+      "exit_code": 0,
+      "successful_sat_queries": 2,
+      "counterexample": false
+    },
+    "guard_step_proof": {
+      "exit_code": 0,
+      "successful_sat_queries": 1,
+      "counterexample": false
+    },
+    "selector_mutant_proof": {
+      "exit_code": 1,
+      "successful_sat_queries": 0,
+      "counterexample": true
+    },
+    "guard_mutant_proof": {
+      "exit_code": 1,
+      "successful_sat_queries": 0,
+      "counterexample": true
+    }
+  },
+  "archive": {
+    "path": "guard_independent.zip",
+    "bytes": 42447,
+    "sha256": "8612a1c2353074db02fe0eb32705a1c9c041cbd58957e1415bb4d6dd1d03eb27"
+  },
+  "member_sha256": {
+    "README.md": "53be3223e194bfd956e3ddce6599b5a18d29b2849043a9c322878e7406004208",
+    "guard_gate.sv": "0de4f9063d1c41014de56274da69ed838004c57ad8395aecd52dffc168bbb898",
+    "guard_gold.sv": "b51bf03fe41ec18194855ba5937316a608a87447e3919d999b34c997857afdff",
+    "guard_mutant_proof.log": "5a4c4e105a409b31e412bf3e34cdad5a89f234a9847d23077dfbccda087d99b2",
+    "guard_mutant_proof.ys": "f4b0d09cc6b80946afd17969c5b55d96dab2ad206f6531411286642b24319522",
+    "guard_step.sv": "1ab01635eb37d1fbee1105b14b3d4512fa214b29b8dc09f8dff8b3cea30dd1b9",
+    "guard_step_proof.log": "b14cd5d35025a91f8ac96cb5f00ca125ae37c261be4d317a1b786c9ab28c1e85",
+    "guard_step_proof.ys": "8e2160eaca3c60fc8a897a0947aa7d92b8fb89464258b96a95b60278ca242d75",
+    "guard_threshold_mutant.sv": "b4ad116c38e67bb58a43373e15028265e90d0d82ca1b795d8de3086bc4bf5670",
+    "selector_actual.sv": "71475da0048b757ca834030546ab63d990c54c63a7a302495d1cb526a9db9d05",
+    "selector_mutant_proof.log": "14df0f36afa9a4650880d9542c3d07b8ebb310971bc88ecf6fbdfddc663f3759",
+    "selector_mutant_proof.ys": "94c63bb9f5ceb285c910ce9ae232160f821f7e6bdc5e990a79b2280b313dc711",
+    "selector_proof.log": "f2cd1bf2829845dd4ff3d429243439357c9e61451f96cb45c3fedf77be2c2555",
+    "selector_proof.ys": "6a8dfff710dbe934681c02d2cf6b01b554bad93bf4c4b0c0ebd5d5e0e5f198f7",
+    "selector_shift_mutant.sv": "7582ad8a5d97ed230285c2e809f034b7373cf26205267ae2fa316f5ee5656a5e",
+    "unmodified_guard_base.sv": "7887b9dbc435f96b39e964954a8c9d89e9c2560243f203b9ef96334f6616f471",
+    "unmodified_guard_candidate.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
+    "unmodified_selector.sv": "52f69b9b84cdc46990e6e95b82c6172996349d32064643dd50f292aecd860b80"
+  }
+}

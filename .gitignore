@@ -1,107 +1,35 @@
-# --- Python ---
+# Python 环境与缓存
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-build/
-dist/
-*.egg-info/
-.eggs/
-pip-wheel-metadata/
-
-# --- Environments ---
-.venv/
+.venv*/
 venv/
 env/
-.python-version
-
-# --- Tooling caches ---
 .pytest_cache/
-.mypy_cache/
 .ruff_cache/
-.coverage
-.coverage.*
+.mypy_cache/
+.coverage*
 htmlcov/
 coverage.xml
-.hypothesis/
 
-# --- Project outputs (regenerable; never commit) ---
-# 临时/私有输出目录一律忽略：每个用户自己跑 `adi-run-all --results-dir <dir>`
-# 生成，结果不应进版本库（体积大且强依赖随机种子与依赖版本）。
+# 本地复跑产物
+build/
+dist/
 results/
 outputs/
+*.egg-info/
+
+# 仅跟踪交付图和清单中选定的参考原件。
 *.png
-
-# ---------------------------------------------------------------------------
-# 例外：tools/results/ 是**公开发布的参考输出**，不是临时产物。
-# 它被 CI 的 "Determinism" job 当作字节级可复现基准，也是 README 中
-# 全部数字与 7 张图的来源。若忽略它，读者 clone 后无法对照论文结论，
-# 也无法发现"输出 schema 漂移"这一已知技术债（见 CHANGELOG）。
-# 反向规则必须写在 `results/` 与 `*.png` 之后才生效。
-# ---------------------------------------------------------------------------
-!tools/results/
-!tools/results/**
-# --- 文档配图始终跟踪 ---
-!docs/**/*.png
-
-# ---------------------------------------------------------------------------
-# 内部审查报告目录：**禁止入库**（结构性兜底）。
-#
-# `docs/robustness_review_2026/` 存放 2026-09-25 独立审查报告及其配图，其中
-# `fig/paper_*.png` 与 `fig/patent*_fig.png` 是 ISSCC 2024 9.8 论文页面与专利
-# 首页的**截图**。它们不在末尾维护者选定的原件清单中，继续保持忽略；
-# 不能因 docs 的自绘 PNG 例外而自动纳入这些审查截图。
-#
-# 注意上面那条 `!docs/**/*.png` 会把 docs 下的 PNG 全部取消忽略，因此必须在本行
-# **之后**再收回来：实测（2026-09-25）若不加此规则，发版 SOP 里的 `git add -A`
-# 会把 6 张论文/专利截图一并提交（已用 `git add -A --dry-run` 复现）。
-# ---------------------------------------------------------------------------
-docs/robustness_review_2026/
-# 同形的文件级通配：git 靠“父目录被排除即剪枝”生效，而构建后端（hatchling）
-# 只对文件路径做 GitIgnoreSpec 匹配，目录型模式在那里恒为 False。两条并列，
-# 使 git check-ignore 与 python -m build 的判定一致（见 pyproject 同处注释）。
-docs/robustness_review_2026/**
-
-# ---------------------------------------------------------------------------
-# 参考原件默认不进版本库；文件末尾仅允许用户明确选定的六份原件。
-#
-# `NOTICE` 列出的论文 [00]、ISSCC 讲稿 [00_1] 与专利 [09]-[14] 是**第三方
-# 版权材料**。未列入末尾显式清单的原件继续忽略；选定文件的原版权与
-# 内嵌声明保留，不能因进入本仓库而视为按本工程 BSD 许可重新授权。
-#
-# 未列入清单的原文即使解压到工作区，也仍由默认 PDF 规则排除。
-# 确有需要跟踪的自有文档（例如作者本人的预印本），
-# 用 `git add -f <file>` 显式覆盖。
-# ---------------------------------------------------------------------------
-refs/
-references/
-literature/
+!task1/evidence/**/*.png
+!task2/figures/*.png
+!task2/evidence/**/*.png
+!task3/evidence/**/*.png
 *.pdf
-# This report and its figures are authored in this repository's audit; keep
-# the third-party reference PDFs under refs/ and the broad *.pdf guard above.
-!docs/reports/rtl_patent_audit_20260930/**/*.pdf
-docs/reports/rtl_patent_audit_20260930/.build/
-*.ppt
-*.pptx
-*.key
-*.doc
-*.docx
-*.epub
-
-# --- Editors / OS ---
-.idea/
-.vscode/
-*.swp
-.DS_Store
-Thumbs.db
-
-# --- Docs build ---
-site/
-
-# Explicit user-selected local reference originals (2026-11-05).
-# Do not broaden this to every PDF or every file in references/.
-!references/
+!task1/evidence/inl_dnl/full20/*.pdf
+!task1/evidence/adc2_dither/full20/*.pdf
+!task2/figures/*.pdf
+!task2/evidence/**/*.pdf
+!task3/evidence/**/*.pdf
 references/*
 !references/README.md
 !references/source_manifest.json
@@ -109,5 +37,15 @@ references/*
 !references/ISSCC2024_SLIDES.pdf
 !references/PKU_VLSI2025_C32_1_PAPER.pdf
 !references/PKU_VLSI2025_C32_1_SLIDES.pdf
-!references/CICC2026_13_6_PAPER.pdf
-!references/CICC2026_13_6_SLIDES.pdf
+*.ppt
+*.pptx
+*.key
+*.doc
+*.docx
+
+# 编辑器与系统文件
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db

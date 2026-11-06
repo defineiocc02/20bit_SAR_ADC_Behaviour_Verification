@@ -1,0 +1,54 @@
+{
+  "ac_rms_increase_uv": 29983.644694017436,
+  "correct": {
+    "absolute_peak_uv": 35.945223583411234,
+    "ac_rms_uv": 11.80777829714148,
+    "identical_to_compiled_rtl_fixture": true,
+    "mean_uv": 2.9243528838283472,
+    "raw_rejected_samples": 0,
+    "vectors_sha256": "810f166a75ffec5d4e5cba5b19c6bdf6b481ad104347c55fce9950dd393c397f"
+  },
+  "front_end_offset": {
+    "changed_coarse_samples": 12,
+    "domain": "CAAZ \u6362\u76f8\u540e\u3001SADC \u7c97\u91cf\u5316\u524d\u7684\u4eba\u5de5\u5dee\u5206\u7535\u538b\u504f\u79fb",
+    "max_abs_coarse_code_change": 1,
+    "offset_v": 8e-05
+  },
+  "input_sha256": {
+    "task2/evidence/eight_native/sigma_3pct/data.npz": "5a7a0b8aaac88c97a04702ee4d8748716fa24042a188e99c59f8ccd9f0d5451d",
+    "task2/evidence/eight_native/sigma_3pct/summary.json": "a9a75c29f866333eb3478bdd2ddfe6297835922a27396cc9783a028d33e0cc69",
+    "task3/evidence/integrated/joint_dither_caaz_data.npz": "1324dfb3dcf66dff8fa4f7a769db77dcef747f5f11c8147efb50dfe7c58c2d8f",
+    "task3/evidence/integrated/summary.json": "c11af574fe9f46f41ae555045d7e300d78af26ce8fa568c625be53de9e87a4b8"
+  },
+  "negative_control": "\u6545\u610f\u66ff\u6362\u5947\u7b14\u7684\u53bb\u6270\u91c7\u6837\u5b50\u63a9\u7801\uff0c\u5f53\u524d RTL \u540c\u7b14\u7ed1\u5b9a\u4e0d\u53d1\u751f\u6b64\u66ff\u6362\u3002",
+  "odd_uses_previous_even_sample_sub": {
+    "absolute_peak_uv": 70887.38746940227,
+    "ac_rms_uv": 29995.452472314577,
+    "mean_uv": -572.4374204878682,
+    "raw_rejected_samples": 0,
+    "vectors_sha256": "1cc2ae4afbe9c8ac0dbb29a0775c2a7052b607e942a362cbe208b9c41e549bef"
+  },
+  "paired_outputs": 2048,
+  "pairs_with_changed_output_code": 2014,
+  "pairs_with_different_dither_words": 2014,
+  "pairs_with_overlapping_slice_groups": 0,
+  "raw_adc2_rejected_samples": 0,
+  "raw_samples": 4096,
+  "rtl_fixture": {
+    "canonical_sha256": "4d3fefe271c3dafbb164aa660713c97b81aab7a909c24ebf066a2ee8bb16f9fb",
+    "config_sha256": "c9ce027d6603b2b8010503b141ba7808dd21febc4b19147ebeed5d16cb70a40c",
+    "field": "paired_3pct_fixture",
+    "receipt": "task_integration/evidence/on_chip/result.json"
+  },
+  "scope": "DIGITAL_REPLAY_WITH_INTENTIONALLY_MISBOUND_ODD_SAMPLE_MASK",
+  "source_sha256": {
+    "task1/experiments/adctoolbox_calibration.py": "34c3618ae492ebba5e900f698dcbbe1691e0eebb3586579355d9e7cb6424fd8c",
+    "task1/experiments/residue_control_study.py": "c0db84cdabf4a546892f7945b9b7d7c60fa47cbbefa95b52dc3a335e39183418",
+    "task2/eight/model.py": "baae62fd999f7c96cc0563c705aff1bb7be39a0ae6efeb91a3278a1845ec3793",
+    "task3/tools/audit_pair_binding.py": "81a7fadbb55a46a34e4e2802c70d8560b069856c4aaeaf780643560e517e2306",
+    "task3/tools/run_joint_effect.py": "58fb4ae8e8f34d8fc1c69ab37f6a2458748b01e4d09071f07499f8934e26d1cc",
+    "task_integration/tools/run_lms_checks.py": "ebec16c89dfc39c804d7d437d9e48821b73721876cc5321fcd4f04fcaaa7713d",
+    "task_reconstruction/fixed.py": "08cf2096bdbde88e29eb89b4e09df73c943d3a16e1ddfa0d24b30eea9c41921d"
+  },
+  "status": "PASS"
+}

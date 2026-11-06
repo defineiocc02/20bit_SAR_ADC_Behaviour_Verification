@@ -1,0 +1,68 @@
+{
+  "workflow": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42268623388/job/128067047148",
+  "archive": {
+    "path": "dither8_top_lvs_replay_42268623388.zip",
+    "bytes": 602397,
+    "sha256": "702e2fbdd264a7f8d14b7e4db5d435bf52ad7ee5e6ab4740f00be98ab93da1be"
+  },
+  "frozen_source": {
+    "source": {
+      "source_run": "42265153017-1-dither8_top",
+      "rtl_commit": "62e3e3a4f4208efe2252837020640077f337350b",
+      "sha256": {
+        "dither8_top.gds": "6b82f762bde5ac9fda90137904ef0c95a78daab6f7acbc497e0bed6942128e74",
+        "dither8_top.odb": "622f34913dd46236014ab6cd6ad19e1b45b454ec8b6c94676f7de3f25454380f",
+        "dither8_top.sdc": "c96fc2bd666eba51d15bc4c0e80754a920fc0797ba9aeca4becf8493e704d4f1",
+        "dither8_top.v": "3cb7b1582f74be5350bfd3843931fb0c4e068212f669a6684749924fbf02b89f",
+        "dither8_top.spef": "7602d59e326e0624753b4fec65d429694645e1b42410732a5ddfaeae50e1ac68"
+      },
+      "method": "One CDL export from the immutable routed ODB for both public decks."
+    },
+    "upstream_revision": "5eebdc0d06879cf674e86e3fb8efa2803e6e44dc",
+    "reference_cdl_sha256": "d2a100a2382c2096f373aa05c0868fb2bc330829a5c54c09c4721eeaf261f190",
+    "variants": {
+      "legacy": {
+        "status": "FAIL",
+        "exit_code": 0,
+        "deck_sha256": "1afade11dd24ea4e64d1ffba54fc17a8f110286712ab942928d2f5e021bb3caf",
+        "log_sha256": "79070bdcd3ec5b1b706d52c33ef064e51c71a56d75f476afe9df14da95e98a86",
+        "database": null
+      },
+      "upstream": {
+        "status": "PARTIAL",
+        "exit_code": 0,
+        "deck_sha256": "d2d231d7cd00a8261d6653c5f3757badefb1dc0aba29441d8406272e75cd8b90",
+        "log_sha256": "6081ca25138105d890f30000a875ca3660dab1c8834aedf1451e7ea92879bda5",
+        "database": null
+      }
+    }
+  },
+  "review": {
+    "legacy": {
+      "compare": "FAIL",
+      "database": "PARTIAL"
+    },
+    "upstream": {
+      "compare": "PASS",
+      "database": "PARTIAL"
+    },
+    "database_detail": "Both decks compared successfully enough to issue explicit verdicts. KLayout resolved the relative report next to the read-only GDS input and failed to write with errno=30.",
+    "same_binary_checks": {
+      "gds_def_named_ports": 638,
+      "gds_def_missing_extra_port_names": [
+        0,
+        0
+      ],
+      "gds_verilog_instance_type_counts_matched": 178
+    },
+    "observed_extraction": {
+      "reference_top_pin_records": 638,
+      "legacy_top_pin_records": 182,
+      "upstream_top_pin_records": 8346,
+      "reference_conb_1_references": 40,
+      "legacy_conb_1_references": 0,
+      "upstream_conb_1_references": 40
+    },
+    "interpretation": "Counts describe each exporter representation. The official deck preserves tie-cell references and normalizes device and pin correspondence. A single failing terminal is not established without the cross-reference database."
+  }
+}

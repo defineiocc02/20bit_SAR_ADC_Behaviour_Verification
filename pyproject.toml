@@ -1,202 +1,27 @@
-[build-system]
-requires = ["hatchling>=1.24"]
-build-backend = "hatchling.build"
-
-# ----------------------------------------------------------------- 项目元数据
-[project]
-name = "sar-adc-behaviour-verification"
-version = "9.0.0"
-description = "SAR ADC behavioral model with visible engineering defaults and digital calibration."
-readme = "README.md"
-requires-python = ">=3.10"
-license = { file = "LICENSE" }
-authors = [{ name = "Reed Zhao" }]
-keywords = ["adc", "sar", "behavioral-model", "mixed-signal", "isscc2024"]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
-    "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)",
-    "Typing :: Typed",
-]
-dependencies = [
-    "numpy>=1.24",
-    "scipy>=1.10",
-    "matplotlib>=3.7",
-]
-
-[project.optional-dependencies]
-dev = [
-    "build>=1.2",
-    "hatchling>=1.24",
-    "pytest>=7.4",
-    "pytest-cov>=4.1",
-    "pytest-xdist>=3.3",
-    "ruff==0.6.9",
-    "mypy>=1.8",
-    "pre-commit>=3.5",
-    "hypothesis>=6.100",
-    "numpy>=1.24",
-    # tomllib is stdlib from 3.11; tests need the backport on 3.10
-    "tomli>=2.0; python_version < '3.11'",
-]
-docs = ["mkdocs>=1.5", "mkdocs-material>=9.4"]
-
-[project.urls]
-Homepage = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
-Documentation = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/main/docs/"
-Issues = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/issues"
-Changelog = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/main/CHANGELOG.md"
-
-[project.scripts]
-adi-validate-config = "adi_model.cli:main_validate_config"
-adi-simulate = "adi_model.cli:main_simulate"
-
-[tool.hatch.build.targets.wheel]
-packages = ["src/adi_model"]
-
-# ---------------------------------------------------------------------------
-# sdist 的版权闸门（**结构性**，不依赖 .gitignore 生效）。
-#
-# 教训（2026-09-25 发版实测）：发行通道**不由 .gitignore 管辖**。hatchling 对
-# .gitignore 的模拟与 git 语义不一致——git 规定"父目录被排除时无法再反包含
-# 其中的文件"，而 hatchling 按模式顺序判定，于是 `.gitignore` 里靠后的
-# `!docs/**/*.png`（跟踪文档配图）会盖过目录级排除
-# `docs/robustness_review_2026/`，把内部审查报告里 `fig/paper_p*.png`（ISSCC
-# 2024 9.8 论文页面截图）与 `fig/patent1*_fig.png`（专利首页截图）打进 sdist
-# ——与当时 NOTICE 的不分发声明直接矛盾。
-# 当前仅Git资料目录保存明确选定原件；它们仍不进入wheel/sdist且不转BSD许可。
-# 已在构建层复现：`python -m build` 后 sdist 内确实含这 6 个文件。
-#
-# 因此在构建层显式排除，与 .gitignore 形成两道独立闸门。
-# ---------------------------------------------------------------------------
-[tool.hatch.build.targets.sdist]
-exclude = [
-  # 必须是“文件级通配”（/**），不能只写目录名。实测（2026-09-25）：
-  # hatchling 的 path_is_excluded 对**文件路径**调用 GitIgnoreSpec.match_file，
-  # 而 gitignore 的“目录型模式”（dir 或 dir/）在文件路径上匹配为 False
-  # —— git 之所以能排除内容靠的是遍历时剪枝目录，不是匹配文件。因此
-  # 只写 docs/robustness_review_2026 时**一条文件都挡不住**（已用
-  # SdistBuilder 配置实测：paper_p1.png excluded=False），加 /** 后为 True。
-  "docs/robustness_review_2026/**",
-  "docs/robustness_review_2026",
-  "**/*.pdf",
-  "**/*.ppt",
-  "**/*.pptx",
-  "**/*.doc",
-  "**/*.docx",
-  "**/*.key",
-  "**/*.epub",
-]
-
-# ================================================================ pytest
 [tool.pytest.ini_options]
 minversion = "7.4"
-# `src` is listed so that `--doctest-modules` below can reach the library: the
-# `Examples:` blocks in the docstrings are executable documentation, and a
-# docstring example that CI never runs is a promise with nothing behind it.
-testpaths = ["tests", "src"]
-addopts = [
-    "-ra",
-    "--strict-markers",
-    "--strict-config",
-    "--durations=15",
-    "--doctest-modules",
-]
-markers = [
-    "slow: explicitly selected long-running or external-tool verification",
-    "source_contract: disclosed requirements and explicit-input boundaries",
-    "audit: adversarial regression derived from the v6.1 external audit",
-    "golden: explicitly scoped frozen numerical fixtures, not silicon reproduction",
-    "integration: multi-module end-to-end",
-]
-filterwarnings = [
-    "error::RuntimeWarning",
-    "ignore::DeprecationWarning",
-]
+testpaths = ["task1/tests"]
+pythonpath = [".", "src"]
+addopts = ["-ra", "--strict-markers", "--strict-config", "--durations=15"]
+filterwarnings = ["error::RuntimeWarning", "ignore::DeprecationWarning"]
 
-# ================================================================ coverage
-[tool.coverage.run]
-source = ["src/adi_model"]
-branch = true
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "raise NotImplementedError",
-    "if TYPE_CHECKING:",
-    "@overload",
-]
-fail_under = 35
-
-# ================================================================ ruff
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-src = ["src", "tests", "tools"]
-# Exclude generated environments/build trees. Active source is checked.
-extend-exclude = [
-    "__pycache__",
-    ".venv",
-    "build",
-    "dist"
-]
+src = ["src", "tools"]
 
 [tool.ruff.lint]
-select = [
-    "E", "W",     # pycodestyle
-    "F",          # pyflakes
-    "I",          # isort
-    "N",          # pep8-naming
-    "UP",         # pyupgrade
-    "B",          # flake8-bugbear
-    "C4",         # comprehensions
-    "SIM",        # simplify
-    "RUF",        # ruff specifics
-    "D",          # pydocstyle
-]
+select = ["E", "W", "F", "I", "N", "UP", "B", "C4", "SIM", "RUF", "D"]
+# 中文注释保留全角标点，变量名可沿用电路公式的物理符号。
 ignore = [
-    "D203",       # incompatible with D211
-    "D213",       # incompatible with D212
-    "D413",       # blank line after last section
-    "E501",       # line length handled by formatter
-    "N803", "N806",  # allow physics-style capitalised locals (C_f, G_R, ...)
-    "SIM108",     # explicit if/else is clearer for physics branches
-
-    # ---- rules that misfire on a deliberately Chinese-documented codebase ----
-    # These are not "we don't like the rule"; they are rules whose notion of
-    # punctuation is ASCII-only, so they flag correct Chinese prose. Enabling
-    # them would force either ASCII punctuation into Chinese text or a mass of
-    # `# noqa` comments, and their autofixes actively corrupt the text: D400 /
-    # D415 append a stray ASCII '.' after a full-width '。', giving '。.'.
-    "RUF001",     # ambiguous unicode character in a string ('，' '：' …)
-    "RUF002",     # ...in a docstring
-    "RUF003",     # ...in a comment
-    "D400",       # first line should end with a period — '。' is not accepted
-    "D415",       # ...same, as an explicit end-punctuation check
-    "N816",       # mixedCase in global scope: same physics notation as N803/N806
-    "N802",       # function names `A` / `B` / `B_nominal` are the split-DAC
-                  # capacitance symbols used verbatim in the source equations
-                  # (C_sig = A + beta*B); lower-casing them would break the
-                  # correspondence with the published algebra.
-    "N815",       # `n_R` / `n_S`: sampling noise on the RDAC / SADC path
+    "D203", "D213", "D413", "E501", "SIM108",
+    "RUF001", "RUF002", "RUF003", "D400", "D415",
+    "N802", "N803", "N806", "N815", "N816",
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# Tests are read as executable specifications: the docstring *shape* rules buy
-# nothing there, and D205 in particular fires 47 times purely because test
-# docstrings wrap a sentence onto a second line.
-"tests/*" = ["D100", "D101", "D102", "D103", "D104", "D105", "D107", "D205", "D417"]
 "tools/*" = ["D100", "D103"]
-# sim/ref/ 是**自检型的参考实现**（跑一遍就打印 PASS/FAIL 与覆盖数），与 tools/ 同类：
-# 它的价值在"能不能被独立复算"，不在 pydocstyle 的 docstring 形状。
-# 只免除形状规则，D101/D102 等仍然生效。
-"sim/ref/*" = ["D100", "D103", "D417"]
+
 [tool.ruff.lint.pydocstyle]
 convention = "google"
 
@@ -205,24 +30,3 @@ known-first-party = ["adi_model"]
 
 [tool.ruff.format]
 quote-style = "double"
-
-# ================================================================ mypy
-[tool.mypy]
-# 类型检查的**语法目标**固定为 3.12，而不是 `requires-python` 的下界 3.10。
-# 原因：numpy>=2 的 .pyi stub 使用 PEP 695 `type` 语句，mypy 在
-# python_version<3.12 下解析这些 stub 会报
-#   "Type statement is only supported in Python 3.12 and greater"
-# 并中止全部检查（本次就是因此让 type job 长期全红且无人察觉）。
-# 取舍：mypy 因此不再拦截"用了 3.11/3.12 才有的语法"这类问题；
-# 该职责交给 CI 的 test 矩阵（3.10/3.11/3.12/3.13 真实导入+运行）承担，
-# 比静态目标版本更可靠。运行时对 3.10+ 的支持不变。
-python_version = "3.12"
-packages = ["adi_model"]
-mypy_path = "src"
-warn_unused_configs = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-no_implicit_optional = true
-check_untyped_defs = true
-ignore_missing_imports = true
-exclude = ["^tests/", "^tools/"]

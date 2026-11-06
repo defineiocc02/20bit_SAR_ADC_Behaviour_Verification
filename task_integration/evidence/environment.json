@@ -1,0 +1,197 @@
+{
+  "cpu_count": 6,
+  "cpu_model": "Apple A18 Pro",
+  "execution": {
+    "clang_version": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+    "local_functional": "PASS",
+    "sky130hd_local": "BLOCKED: OpenROAD and PDK unavailable locally",
+    "sky130hd_remote_adapter": "versioned public OpenROAD Flow Scripts in CI, execution tracked separately",
+    "verilator": "5.30 via explicit executable; simulation version from run.log"
+  },
+  "license_verified": false,
+  "machine": "arm64",
+  "notes": [
+    "PATH presence only: not evidence of a working license, a supported PDK, or a runnable analysis.",
+    "A tool found here may be a name collision (for example a desktop media player called totem); verify the binary identity in preflight."
+  ],
+  "os": "macOS-27.2-arm64-arm-64bit",
+  "pdk_verified": false,
+  "platform_family": "Darwin",
+  "probe_version": "1.1",
+  "python": {
+    "executable": "/Library/Developer/CommandLineTools/usr/bin/python3",
+    "implementation": "CPython",
+    "version": "3.9.6"
+  },
+  "ram_bytes": 8589934592,
+  "ram_source": "sysctl:hw.memsize",
+  "schema": "eda-environment-v1",
+  "timestamp_utc": "2026-11-06T17:23:23Z",
+  "tools": {
+    "cadence": {
+      "genus": {
+        "available": false,
+        "path": null
+      },
+      "innovus": {
+        "available": false,
+        "path": null
+      },
+      "jaspergold": {
+        "available": false,
+        "path": null
+      },
+      "liberate": {
+        "available": false,
+        "path": null
+      },
+      "quantus": {
+        "available": false,
+        "path": null
+      },
+      "spectre": {
+        "available": false,
+        "path": null
+      },
+      "tempus": {
+        "available": false,
+        "path": null
+      },
+      "virtuoso": {
+        "available": false,
+        "path": null
+      },
+      "xrun": {
+        "available": false,
+        "path": null
+      }
+    },
+    "modeling": {
+      "matlab": {
+        "available": false,
+        "path": null
+      },
+      "octave": {
+        "available": false,
+        "path": null
+      },
+      "python3": {
+        "available": true,
+        "path": "/usr/bin/python3"
+      }
+    },
+    "opensource": {
+      "cmake": {
+        "available": false,
+        "path": null
+      },
+      "iverilog": {
+        "available": false,
+        "path": null
+      },
+      "klayout": {
+        "available": false,
+        "path": null
+      },
+      "magic": {
+        "available": false,
+        "path": null
+      },
+      "openroad": {
+        "available": false,
+        "path": null
+      },
+      "sta": {
+        "available": false,
+        "path": null
+      },
+      "verilator": {
+        "available": false,
+        "path": null
+      },
+      "yosys": {
+        "available": false,
+        "path": null
+      }
+    },
+    "scheduler": {
+      "bsub": {
+        "available": false,
+        "path": null
+      },
+      "qsub": {
+        "available": false,
+        "path": null
+      },
+      "sbatch": {
+        "available": false,
+        "path": null
+      }
+    },
+    "siemens": {
+      "calibre": {
+        "available": false,
+        "path": null
+      }
+    },
+    "synopsys": {
+      "dc_shell": {
+        "available": false,
+        "path": null
+      },
+      "dft_shell": {
+        "available": false,
+        "path": null
+      },
+      "fc_shell": {
+        "available": false,
+        "path": null
+      },
+      "fm_shell": {
+        "available": false,
+        "path": null
+      },
+      "lc_shell": {
+        "available": false,
+        "path": null
+      },
+      "pprtl": {
+        "available": false,
+        "path": null
+      },
+      "pt_shell": {
+        "available": false,
+        "path": null
+      },
+      "rtl_shell": {
+        "available": false,
+        "path": null
+      },
+      "spyglass": {
+        "available": false,
+        "path": null
+      },
+      "starrc_shell": {
+        "available": false,
+        "path": null
+      },
+      "tmax": {
+        "available": false,
+        "path": null
+      },
+      "vcf": {
+        "available": false,
+        "path": null
+      },
+      "vcs": {
+        "available": false,
+        "path": null
+      },
+      "verdi": {
+        "available": false,
+        "path": null
+      }
+    }
+  },
+  "warnings": []
+}

@@ -1,0 +1,58 @@
+{
+  "counts": {
+    "dem_active": 122880,
+    "dem_bypass": 131072,
+    "dem_invalid": 8192,
+    "scheduler_accepts": 4227,
+    "scheduler_conversions": 4223,
+    "scheduler_cycles": 4617,
+    "scheduler_seed_errors": 2,
+    "scheduler_stalls": 137,
+    "scheduler_steady_slots": 4096,
+    "top_accepts": 4099,
+    "top_active_prefixes": 2051,
+    "top_bypass_prefixes": 2048,
+    "top_code_errors": 2,
+    "top_conversions": 4097,
+    "top_cycles": 4116,
+    "top_seed_errors": 3,
+    "top_stalls": 1,
+    "top_steady_slots": 4096
+  },
+  "log_sha256": {
+    "compile.log": "ce8285fd6af85741aa73edc2c51aa26164a4e04baf1d697a2c6085a8433024f3",
+    "fig11_dem.lint.log": "ead2734f2e916c48defb9fc966444aa39f5ca7f9295cc189ae71d9a2f0d4f1da",
+    "module1_top.lint.log": "41b2da62c2b9f9f88b06551987dd49a49c223bd78eb3fc499f5527b70f071489",
+    "run.log": "805f1fa640356c73076cf88794916175962093b85051569f9f6e53f077625275",
+    "task1_slice_scheduler.lint.log": "aa3bea8fb9af65d3689c8cbaa15fc9dfeccd5b11dd16f698ff25032493d780aa",
+    "verilator.log": "97abb08fa2bb8ae7024f4f8f90646198a3acb305b6cbd8ca205d57075cb8f0bb"
+  },
+  "mismatches": 0,
+  "public_log_redaction": {
+    "file": "verilator.log",
+    "original_sha256": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1",
+    "published_sha256": "97abb08fa2bb8ae7024f4f8f90646198a3acb305b6cbd8ca205d57075cb8f0bb",
+    "reason": "移除本机用户目录；工具版本和验证计数未修改"
+  },
+  "scheduler_fixture_seed": 659918,
+  "schema_version": 1,
+  "scope": "TASK1_DIGITAL_MODULE1",
+  "simulator": "Verilator 5.30",
+  "source_sha256": {
+    "task1/model/fig11_dem.py": "a3d7f040062ff7adf4c4b50fb90e59ee81491988973e5670e6e12e6e9789f39d",
+    "task1/model/module1.py": "c881976f3ed7c75f915d27b59fb69a2a58fa662ec4de6d51da09e4396573c3c2",
+    "task1/model/scheduler.py": "e6b2d50fa6bdaa607842bea0e86dc02e3fc531c7b832ea6a59858e48a7652f9f",
+    "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
+    "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
+    "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
+    "task1/tb/task1_rtl_checks_tb.sv": "0c59c523d6dcf40ffe4e110e791fcf51088a13d3b53488a7691b4d3b021a58ec",
+    "task1/tools/run_rtl_checks.py": "eecec87f7fcd6f5a3aa8db7545b3b91896a74f0e216e41f6ea3f076d5ba5abd9",
+    "tools/run_open_rtl.py": "b5af7fcd9917dd8d3305117e0f2601b59f759b1e783f3aa2cd5b54e213975ef2"
+  },
+  "status": "PASS",
+  "vector_sha256": {
+    "dem.hex": "a5f577f3e9a4e486e3955c6992a328f48951c2cbb707d8ade973631a09a138e6",
+    "scheduler.hex": "0e454561df098e0a2190ee9364decde783b161654fc6c0acef88169fe1d3d23a",
+    "top.hex": "a2c9520bdb7fc4716cc666e96aae54dc500712034d83722f480068e68bccb8df"
+  }
+}

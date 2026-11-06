@@ -1,0 +1,9 @@
+schema_version: 1
+top: caaz20_pair
+requirements:
+  REQ-CAAZ-01: {verification: CAZ-R1, method: verilator_cycle_replay, coverage: [back_to_back, stalling, overlapping, parity, reset]}
+  REQ-CAAZ-02: {verification: CAZ-R2, method: verilator_cycle_replay, coverage: [integer_extrema, negative_odd_difference, bypass, nonoverlap]}
+  REQ-CAAZ-03: {verification: CAZ-R3, method: verilator_cycle_replay, coverage: [all_fault_codes, fault_priority, reset_cancellation, flush, disable, restart]}
+  REQ-CAAZ-04: {verification: CAZ-M1, method: pair_noise_model, coverage: [matched_bandwidth, shared_az, hold_leakage]}
+  REQ-CAAZ-05: {verification: CAZ-A1, method: mixed_signal_macro_and_system, status: BLOCKED}
+  REQ-CAAZ-06: {verification: CAZ-P1, method: integrated_sky130hd_flow}

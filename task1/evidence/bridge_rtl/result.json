@@ -1,0 +1,53 @@
+{
+  "counts": {
+    "leaf_cases": 65536,
+    "leaf_nonzero_corrections": 49152,
+    "top_accepts": 4100,
+    "top_bridge_prefixes": 2052,
+    "top_code_errors": 2,
+    "top_cycles": 4119,
+    "top_fig11_bypass_prefixes": 1024,
+    "top_fig11_dem_prefixes": 1025,
+    "top_nonzero_corrections": 1538,
+    "top_seed_errors": 2,
+    "top_stalls": 1,
+    "top_steady_slots": 4096
+  },
+  "log_sha256": {
+    "compile.log": "57ad021add21ce579f9aeff58246d8c95ecc76bae7781131c5bcc97cc0149971",
+    "module1_bridge_top.lint.log": "2dfb9c6fc171552f2522303addfc7547538ec7add4d5c694c5b1e35eae837d78",
+    "run.log": "a6297f21164055df46d641dd578a3eb279bb64511e1b03a1fe758376e5fe039d",
+    "verilator.log": "97abb08fa2bb8ae7024f4f8f90646198a3acb305b6cbd8ca205d57075cb8f0bb"
+  },
+  "mismatches": 0,
+  "public_log_redaction": {
+    "file": "verilator.log",
+    "original_sha256": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1",
+    "published_sha256": "97abb08fa2bb8ae7024f4f8f90646198a3acb305b6cbd8ca205d57075cb8f0bb",
+    "reason": "移除本机用户目录；工具版本和验证计数未修改"
+  },
+  "schema_version": 1,
+  "scope": "TASK1_DIGITAL_BRIDGE_CANDIDATE",
+  "simulator": "Verilator 5.30",
+  "source_sha256": {
+    "task1/model/fig11_dem.py": "a3d7f040062ff7adf4c4b50fb90e59ee81491988973e5670e6e12e6e9789f39d",
+    "task1/model/fig21_bridge.py": "b9157d53acf6e708c9378d85ed67a9cfe57d471de4eef52830611c431080b2de",
+    "task1/model/module1.py": "c881976f3ed7c75f915d27b59fb69a2a58fa662ec4de6d51da09e4396573c3c2",
+    "task1/model/module1_bridge.py": "046252d8f288dc3501c08d2b6fc9a7e9939ea272750d4ad410d170e45fb94fc5",
+    "task1/model/scheduler.py": "e6b2d50fa6bdaa607842bea0e86dc02e3fc531c7b832ea6a59858e48a7652f9f",
+    "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
+    "task1/rtl/fig21_bridge.sv": "15a5fe746f012aeb655f9fc19a0b582646f445ab0a1cae16992c6a22f8c7a305",
+    "task1/rtl/module1_bridge_top.sv": "8181f1d629fefd67fc51b52483725f3c4675a613c73fff9be554e2ce6dcaaba1",
+    "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
+    "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
+    "task1/tb/bridge_checks_tb.sv": "2f4817722f91582e07b92cb0aac771915c1e32a3f4320e00c7d9c9bf8a3a9012",
+    "task1/tools/run_bridge_checks.py": "3f1e69afd186e783eda6fbf090976933b959dbd7573d2a84ce4428eddcd23ed9",
+    "task1/tools/run_rtl_checks.py": "eecec87f7fcd6f5a3aa8db7545b3b91896a74f0e216e41f6ea3f076d5ba5abd9",
+    "tools/run_open_rtl.py": "b5af7fcd9917dd8d3305117e0f2601b59f759b1e783f3aa2cd5b54e213975ef2"
+  },
+  "status": "PASS",
+  "vector_sha256": {
+    "leaf.hex": "0e4722a308dc356cb59e0a4e9b456d54bad2e9193aa95ee11a94108af77e8c55",
+    "top.hex": "a5be507de2df6ddf81143c9469fea68647bac2d64e5d5a23f9deee3777acb38b"
+  }
+}

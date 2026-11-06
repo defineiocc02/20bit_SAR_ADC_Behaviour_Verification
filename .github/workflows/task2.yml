@@ -1,0 +1,111 @@
+name: Dither source and seven-slice checks
+
+on:
+  push:
+    branches: [20b10mtask]
+    paths:
+      - 'task2/**'
+      - 'task3/**'
+      - 'task_integration/**'
+      - 'task1/model/module1.py'
+      - 'task1/model/scheduler.py'
+      - 'task1/experiments/full20_linearity_plots.py'
+      - 'task1/evidence/adc2_dither/full20/**'
+      - 'task1/requirements*.txt'
+      - 'references/ISSCC2024_*.pdf'
+      - 'tools/run_open_rtl.py'
+      - '.github/workflows/task2.yml'
+  pull_request:
+    branches: [20b10mtask]
+    paths:
+      - 'task2/**'
+      - 'task3/**'
+      - 'task_integration/**'
+      - 'task1/model/module1.py'
+      - 'task1/model/scheduler.py'
+      - 'task1/experiments/full20_linearity_plots.py'
+      - 'task1/evidence/adc2_dither/full20/**'
+      - 'task1/requirements*.txt'
+      - 'references/ISSCC2024_*.pdf'
+      - 'tools/run_open_rtl.py'
+      - '.github/workflows/task2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dither:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PYTHONPATH: .:src
+      OPENBLAS_NUM_THREADS: '1'
+      MPLBACKEND: Agg
+      VERILATOR: verilator
+      CXX: clang++
+      OUT: /tmp/sar-task2-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            task1/requirements.txt
+            task1/requirements-calibration.txt
+      - name: Install simulator, Chinese font and pinned Python dependencies
+        run: |
+          sudo sed -i -e 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' \
+            -e 's|http://archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' \
+            -e 's|http://security.ubuntu.com/ubuntu|https://security.ubuntu.com/ubuntu|g' \
+            /etc/apt/sources.list.d/ubuntu.sources
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::https::Timeout=30 install -y \
+            --no-install-recommends verilator clang fonts-noto-cjk fontconfig yosys
+          python -m pip install -r task1/requirements-calibration.txt
+          python - <<'PY'
+          from pathlib import Path
+          from fontTools.ttLib import TTCollection
+          out = Path.home() / '.local/share/fonts'
+          out.mkdir(parents=True, exist_ok=True)
+          for weight in ('Regular', 'Bold'):
+              source = Path('/usr/share/fonts/opentype/noto') / f'NotoSansCJK-{weight}.ttc'
+              with TTCollection(source) as collection:
+                  font = next(f for f in collection.fonts if f['name'].getBestFamilyName() == 'Noto Sans CJK SC')
+                  font.save(out / f'NotoSansCJKsc-{weight}.otf')
+          PY
+          fc-cache -f
+          mkdir -p "$OUT"
+          { python --version; verilator --version; python -m pip freeze; } > "$OUT/tools.txt"
+      - name: Check digital generator and seven-slice model
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m pytest -q task2/tests task2/eight/tests --junitxml "$OUT/tests.xml"
+          python task2/tools/run_dither_word_checks.py --out "$OUT/rtl"
+          python task2/eight_rtl/tools/run_checks.py --out "$OUT/dither8"
+          python task2/eight_rtl/independent_review/run.py --out "$OUT/dither8-independent"
+          python task3/tools/run_caaz_checks.py --out "$OUT/caaz"
+          yosys -s task3/tb/formal.ys | tee "$OUT/caaz_formal.log"
+      - name: Reproduce seven-slice experiment and explanatory figures
+        run: |
+          python -m task2.experiments.fig19_seven_demo --output "$OUT/fig19"
+          python -m task2.tools.draw_dither --out "$OUT/figures"
+          python task3/tools/run_caaz_effect.py --out "$OUT/caaz_effect"
+          python task3/tools/run_joint_effect.py --out "$OUT/caaz_joint"
+          python task3/tools/run_joint_noise.py --out "$OUT/caaz_joint_noise"
+          python task3/tools/draw_cooperation.py --out "$OUT/caaz_cooperation"
+          python task3/tools/audit_pair_binding.py --out "$OUT/caaz_binding_audit"
+      - name: Clarify evidence scope
+        run: |
+          printf '%s\n' 'Digital dither and CAAZ checks plus behavioral figures completed.' >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' 'Real analog injection, ADC2, CAAZ macro and foundry signoff are not covered.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: task2-dither-evidence
+          path: ${{ env.OUT }}
+          retention-days: 14

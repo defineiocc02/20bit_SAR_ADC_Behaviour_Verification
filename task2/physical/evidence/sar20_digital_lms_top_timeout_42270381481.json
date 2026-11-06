@@ -1,0 +1,28 @@
+{
+  "workflow": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42270381481/job/128073098402",
+  "rtl_commit": "d83e8ae7ebb198a6e8226abc25931ca70dff8957",
+  "top": "sar20_digital_lms_top",
+  "clock_ns": 6.25,
+  "job_limit_minutes": 75,
+  "implementation_step_limit_minutes": 68,
+  "job_conclusion": "failure",
+  "reason": "implementation step timed out",
+  "last_completed_stage": "first detailed-route pass",
+  "first_detailed_route_marker_count": 0,
+  "subsequent_antenna_count": 88,
+  "second_route_first_iteration_marker_count": 3701,
+  "last_log": "second detailed route at first optimization iteration",
+  "final_gds_sta_pv": "NOT_RUN",
+  "diagnostic_actions_artifact_id": 13534928075,
+  "longer_same_inputs_run": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42278312924",
+  "complete_api_log_sha256": "3e2858554ee2cc1ce4c96825c947099c675c7945a9943c93d6578e6940b23443",
+  "preserved_stage_log": {
+    "path": "sar20_digital_lms_top_timeout_42270381481.log.gz",
+    "bytes": 10097,
+    "sha256": "b847b035e7a0a8686a8a9f8899cc5dd1f2bf6e7c0407c34d2c342dd80f9667c8",
+    "source_line_range_1based": [
+      4552,
+      5276
+    ]
+  }
+}

@@ -1,0 +1,6 @@
+# Run from the repository root. Time 1 has a synchronous reset.
+read_verilog -sv -formal task1/rtl/slice_scheduler.sv task1/rtl/fig11_dem.sv task1/rtl/module1_top.sv task1/rtl/fig21_bridge.sv task1/rtl/module1_bridge_top.sv task2/rtl/dither_word_gen.sv task2/eight_rtl/rtl/dither8_top.sv task2/eight_rtl/tb/dither8_contract.sv
+prep -top dither8_contract -flatten
+chformal -lower
+opt
+sat -seq 7 -set-at 1 rst_ni 0 -set-def-inputs -prove-asserts -timeout 45 -verify

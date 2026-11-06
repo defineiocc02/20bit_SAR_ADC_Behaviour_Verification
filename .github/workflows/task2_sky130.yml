@@ -1,0 +1,97 @@
+name: 20b10mtask digital SKY130HD physical
+
+on:
+  push:
+    branches: [20b10mtask]
+    paths:
+      - 'task1/rtl/**'
+      - 'task1/physical/sky130_constraint.sdc'
+      - 'task1/physical/post_route.tcl'
+      - 'task1/physical/package_proxy.py'
+      - 'task1/physical/sky130_package.py'
+      - 'task2/rtl/**'
+      - 'task2/eight_rtl/rtl/**'
+      - 'task2/physical/*.mk'
+      - 'task2/physical/*.sh'
+      - 'task2/physical/*.tcl'
+      - 'task2/physical/*.py'
+      - 'task2/physical/plan.json'
+      - 'task3/rtl/**'
+      - 'task_integration/rtl/**'
+      - 'task_reconstruction/rtl/**'
+      - '.github/workflows/task2_sky130.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: task2-sky130-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  sky130:
+    name: SKY130HD ${{ matrix.top }}
+    if: github.ref_name == '20b10mtask'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - top: dither8_top
+            source: task2/eight_rtl/rtl/dither8_top.sv
+          - top: sar20_digital_top
+            source: task_integration/rtl/sar20_digital_top.sv
+          - top: sar20_digital_lms_top
+            source: task_integration/rtl/sar20_digital_lms_top.sv
+    env:
+      RUN_DIR: /tmp/task2-sky130-${{ matrix.top }}-${{ github.run_id }}-${{ github.run_attempt }}
+      TASK2_PHYSICAL_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.top }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Locate the published top
+        id: top
+        run: |
+          if test -s '${{ matrix.source }}'; then
+            printf 'present=true\n' >> "$GITHUB_OUTPUT"
+          else
+            printf '%s\n' 'Top source has not landed in this commit.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Synthesize, route, and inspect the streamed GDS
+        if: steps.top.outputs.present == 'true'
+        run: bash task2/physical/sky130_run.sh "$RUN_DIR" '${{ matrix.top }}'
+      - name: Upload frozen run
+        if: steps.top.outputs.present == 'true' && success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: task2-sky130hd-${{ matrix.top }}-${{ github.run_id }}
+          path: ${{ env.RUN_DIR }}/delivery
+          if-no-files-found: error
+      - name: Upload diagnostics
+        if: steps.top.outputs.present == 'true' && failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: task2-sky130hd-diagnostics-${{ matrix.top }}-${{ github.run_id }}
+          path: |
+            ${{ env.RUN_DIR }}/delivery
+            ${{ env.RUN_DIR }}/flow.log
+            ${{ env.RUN_DIR }}/flow/logs
+            ${{ env.RUN_DIR }}/flow/reports
+      - name: Report the independent TT timing gate
+        if: steps.top.outputs.present == 'true' && success()
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          manifest = Path(os.environ['RUN_DIR']) / 'delivery/release_manifest.json'
+          timing = json.loads(manifest.read_text())['timing']
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              for mode, result in timing.items():
+                  summary.write(f"- {mode}: {result['status']}, slack {result['worst_slack_ns']:.4f} ns\n")
+          raise SystemExit(any(result['status'] != 'PASS' for result in timing.values()))
+          PY

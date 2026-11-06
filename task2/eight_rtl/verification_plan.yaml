@@ -1,0 +1,27 @@
+schema: dither8-verification-v1
+clock_domain: clk_i
+checks:
+  - id: V-D8-01
+    requirements: [REQ-D8-01]
+    oracle: integer bit weights and ordered slot threshold
+    coverage: 64 words, eight slot positions, level eight, low and total numerators
+  - id: V-D8-02
+    requirements: [REQ-D8-02, REQ-D8-03]
+    oracle: existing module one reference and independent dither transactions
+    coverage: accepted requests, back-to-back publication, several stalls and idle clocks, reset, disable, legal and illegal seed, stale and absent sample ID
+  - id: V-D8-03
+    requirements: [REQ-D8-04]
+    oracle: integer adjusted code followed by Fig.11 or Fig.21 reference
+    coverage: command zero and 511, all upper values, overflow, invalid masks, DEM and bridge modes
+  - id: V-D8-04
+    requirements: [REQ-D8-05]
+    oracle: routed timing and physical report parsers
+    coverage: TT clock setup and hold, route DRC, antenna, GDS and artifact hashes
+  - id: V-D8-05
+    requirements: [REQ-D8-01, REQ-D8-02, REQ-D8-03, REQ-D8-04]
+    oracle: top-level SAT assertions after synchronous reset
+    coverage: arbitrary inputs through seven steps, acquisition publication, two-entry sample binding, physical tap encoding, command overflow, invalid-mask isolation
+  - id: V-D8-06
+    requirements: [REQ-D8-03, REQ-D8-04]
+    oracle: baseline ID-selected data mux and addition on the identical RTL state
+    coverage: arbitrary inputs through seven steps, conversion word, and legal adjusted code

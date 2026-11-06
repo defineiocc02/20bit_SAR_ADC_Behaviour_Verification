@@ -1,0 +1,25 @@
+{
+  "workflow": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42297095870/job/128165072734",
+  "archive": {
+    "path": "sar20_digital_lms_top_drc_42297095870.zip",
+    "bytes": 8143,
+    "sha256": "5bfff33cdd2ddc636458d3aa3a3196497651d7722ed0f74abb598b5ba2926c36"
+  },
+  "drc": {
+    "source": {
+      "top": "sar20_digital_lms_top",
+      "source_run": "42278312924-1-sar20_digital_lms_top-extended",
+      "rtl_commit": "43b2fc5b72d69182d4d29260125b70057f822621",
+      "gds_sha256": "4aa02f35dae17c528f72bce9a06a7c8aee466c9a163d210ae54a9265a8ed02c3",
+      "deck_sha256": "029722ea1fc2cf8c48f09fc670c0b72efb295f799c4eb236b7e9767930ecf772",
+      "container": "openroad/orfs@sha256:a6140cf4dc568e10238356f67b9fd73b9074955eeda6f2ee126bc60f5d7fc3ac",
+      "timeout_seconds": 2100
+    },
+    "exit_code": 0,
+    "status": "PASS",
+    "marker_count": 0,
+    "log_sha256": "8d2f65a7c193cdb5f3fef5f5db23e3ac92666b1c86714cbaf0d9de00f602b449",
+    "report_sha256": "7431a2860d98be21bfb8b1d9905c4f7cf921d37f0d2848e1999eb95236dcf8c1"
+  },
+  "offline_check": "Original GDS, deck, report and log identity checked. Independent XML marker count = 0."
+}

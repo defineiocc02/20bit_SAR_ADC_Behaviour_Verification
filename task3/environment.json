@@ -1,0 +1,20 @@
+{
+  "architecture": "arm64",
+  "execution": {
+    "cxx": "Apple clang version 21.0.0 (clang-2100.1.1.101)",
+    "docker_on_path": false,
+    "eda_license_verified": false,
+    "pdk_verified": false,
+    "verilator": {
+      "receipt": "evidence/rtl/result.json",
+      "status": "PASS",
+      "version": "Verilator 5.30"
+    },
+    "yosys_on_path": false
+  },
+  "physical_adapter": "repository SKY130HD Linux amd64 runner; result tracked separately",
+  "platform": "Darwin",
+  "probe_timestamp_utc": "2026-11-06T17:17:17Z",
+  "python": "3.12.14",
+  "run_id": "caaz20-task3-v3"
+}

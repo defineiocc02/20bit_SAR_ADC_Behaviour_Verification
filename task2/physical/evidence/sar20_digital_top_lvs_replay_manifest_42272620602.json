@@ -1,0 +1,135 @@
+{
+  "workflow": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42272620602/job/128080798054",
+  "archive": {
+    "path": "sar20_digital_top_lvs_replay_42272620602.zip",
+    "bytes": 5435533,
+    "sha256": "b5470de11a749aac5ab76c97863e20f504b39ccaa18113e543f78e455fc6197f"
+  },
+  "frozen_source": {
+    "source": {
+      "top": "sar20_digital_top",
+      "source_run": "42265153017-1-sar20_digital_top",
+      "rtl_commit": "62e3e3a4f4208efe2252837020640077f337350b",
+      "archive_sha256": "7887789e20561257f7235a3ca6d04ce97c80b20e8cbd4e349185dcde6afcca45",
+      "release_manifest_sha256": "d647f3a3b70ad7f86ce794ef19eb6047a461be378e0e7bd76956881a9dceb427",
+      "stream": {
+        "tops": [
+          "sar20_digital_top"
+        ],
+        "cells": 148,
+        "geometry_records": 83873
+      },
+      "sha256": {
+        "sar20_digital_top.gds": "dcd84860c5825b20a5c9a96e1a141652064aecf596f83e7e6d86ab1ab7699314",
+        "sar20_digital_top.odb": "15e19e77d0e06c3591c0bf07febaf36acc4f664fae5d2af19eaaced97b266b8f",
+        "sar20_digital_top.sdc": "9035b6c66ac9b32fec5e2af0da209254154c67642c4a662efa0382e856851a1e",
+        "sar20_digital_top.v": "18cd9e1f2702c675e5d991878fbf1e995ed28354083220e552c54a5984c950e1",
+        "sar20_digital_top.spef": "65c259d9b0343d93edb4393eb99853d205c0d39158afd5f685245e1af9e64899"
+      }
+    },
+    "upstream_revision": "5eebdc0d06879cf674e86e3fb8efa2803e6e44dc",
+    "routed_design_cdl_sha256": "7c0135316cb09bec35dd3f164156624127da5b9f190fdb449a6372ef828bfd2e",
+    "reference_cdl_sha256": "fdfd0938f3983d5a632213c7e0d5ee0b813e0a3276b37ec6d38aeaec8f244879",
+    "tools": {
+      "file": "tools.txt",
+      "bytes": 37,
+      "sha256": "20242c99360893c7f6600cad23e387d193f3ed5f6abbff906bb468b73903f14c"
+    },
+    "variants": {
+      "legacy": {
+        "status": "FAIL",
+        "exit_code": 0,
+        "deck_sha256": "1afade11dd24ea4e64d1ffba54fc17a8f110286712ab942928d2f5e021bb3caf",
+        "complete_comparison_evidence": true,
+        "top_cross_reference": " X(sar20_digital_top SAR20_DIGITAL_TOP S B('Circuits sar20_digital_top and SAR20_DIGITAL_TOP could not be compared because the following subcircuits failed to compare:\\n  A: sky130_fd_sc_hd__a21oi_2\\n  B: SKY130_FD_SC_HD__A21OI_2,SKY130_FD_SC_HD__CONB_1,SKY130_FD_SC_HD__DIODE_2,SKY130_FD_SC_HD__TAPVPWRVGND_1')",
+        "artifacts": {
+          "log": {
+            "file": "lvs.log",
+            "bytes": 34050,
+            "sha256": "a650c6e574742a7a36edaf1671e01ee8facae92c20cb8bddadc41586b10b359d"
+          },
+          "database": {
+            "file": "lvs_report.lvsdb",
+            "bytes": 23992328,
+            "sha256": "cb0eac557f0bbdd8298b432235ae4a981d9c33fdcb0ddcc2a8fa18d7a79d1e80"
+          },
+          "extracted": {
+            "file": "extracted.cir",
+            "bytes": 1268563,
+            "sha256": "f2275fa3bb107fa1131a8bde9a12702c1da264e6e8c2213f6ad530b136b6003a"
+          }
+        }
+      },
+      "upstream": {
+        "status": "PASS",
+        "exit_code": 0,
+        "deck_sha256": "d2d231d7cd00a8261d6653c5f3757badefb1dc0aba29441d8406272e75cd8b90",
+        "complete_comparison_evidence": true,
+        "top_cross_reference": " X(sar20_digital_top SAR20_DIGITAL_TOP 1",
+        "artifacts": {
+          "log": {
+            "file": "lvs.log",
+            "bytes": 34065,
+            "sha256": "11060d27862c2a7738cf34bc4710b50a9cb078ce4e28d903edfac911cd80aa39"
+          },
+          "database": {
+            "file": "lvs_report.lvsdb",
+            "bytes": 24591464,
+            "sha256": "477f27d139135fe9a0c6be98be503de068067b9ad922f35dad67b60548687d4a"
+          },
+          "extracted": {
+            "file": "extracted.cir",
+            "bytes": 1753441,
+            "sha256": "4597696a86279bd843c001fea81528fe62493b2ec8c48d11067f5dc11f8a280c"
+          }
+        }
+      }
+    },
+    "scope": "Independent public SKY130HD LVS on the archived external reconstruction top."
+  },
+  "verified_database_evidence": {
+    "legacy": {
+      "verdict": "FAIL",
+      "top_cross_reference": " X(sar20_digital_top SAR20_DIGITAL_TOP S B('Circuits sar20_digital_top and SAR20_DIGITAL_TOP could not be compared because the following subcircuits failed to compare:\\n  A: sky130_fd_sc_hd__a21oi_2\\n  B: SKY130_FD_SC_HD__A21OI_2,SKY130_FD_SC_HD__CONB_1,SKY130_FD_SC_HD__DIODE_2,SKY130_FD_SC_HD__TAPVPWRVGND_1')",
+      "artifacts": {
+        "log": {
+          "file": "lvs.log",
+          "bytes": 34050,
+          "sha256": "a650c6e574742a7a36edaf1671e01ee8facae92c20cb8bddadc41586b10b359d"
+        },
+        "database": {
+          "file": "lvs_report.lvsdb",
+          "bytes": 23992328,
+          "sha256": "cb0eac557f0bbdd8298b432235ae4a981d9c33fdcb0ddcc2a8fa18d7a79d1e80"
+        },
+        "extracted": {
+          "file": "extracted.cir",
+          "bytes": 1268563,
+          "sha256": "f2275fa3bb107fa1131a8bde9a12702c1da264e6e8c2213f6ad530b136b6003a"
+        }
+      }
+    },
+    "upstream": {
+      "verdict": "PASS",
+      "top_cross_reference": " X(sar20_digital_top SAR20_DIGITAL_TOP 1",
+      "artifacts": {
+        "log": {
+          "file": "lvs.log",
+          "bytes": 34065,
+          "sha256": "11060d27862c2a7738cf34bc4710b50a9cb078ce4e28d903edfac911cd80aa39"
+        },
+        "database": {
+          "file": "lvs_report.lvsdb",
+          "bytes": 24591464,
+          "sha256": "477f27d139135fe9a0c6be98be503de068067b9ad922f35dad67b60548687d4a"
+        },
+        "extracted": {
+          "file": "extracted.cir",
+          "bytes": 1753441,
+          "sha256": "4597696a86279bd843c001fea81528fe62493b2ec8c48d11067f5dc11f8a280c"
+        }
+      }
+    }
+  },
+  "review": "The legacy public deck reports a comparison failure. The unmodified upstream revision matches this same frozen external reconstruction top, GDS and exported reference CDL."
+}

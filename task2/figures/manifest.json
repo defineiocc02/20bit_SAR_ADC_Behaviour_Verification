@@ -1,0 +1,89 @@
+{
+  "schema": "task2_dither_figures_v1",
+  "source_references": {
+    "references/ISSCC2024_SLIDES.pdf": {
+      "page": 17,
+      "sha256": "e7074c0f612c31bb76ad276fefaf6e6cf36479292248dc41085c4dadd1f8193a"
+    },
+    "references/ISSCC2024_PAPER.pdf": {
+      "printed_page": 182,
+      "doi": "10.1109/ISSCC49657.2024.10454329",
+      "sha256": "2277ec0a2b889ee954f0866f2668adc1bf95f2214fae386c9a1d70203435cd96"
+    }
+  },
+  "patent_reference": {
+    "url": "https://patents.google.com/patent/US10505561B2/en#description",
+    "figure": "Fig.19, sheet 20, PDF page 22; description PDF page 33",
+    "verified_local_original_sha256": "91ae95528592ba16a6a34c4d5336cd3abd18a35f811d22d73e2620dc83363c14"
+  },
+  "plot_source_sha256": "49cb47b78e30efe59086c6554c808d9049217aeb59318255b2028b47d8950757",
+  "data_source_sha256": {
+    "task1/evidence/adc2_dither/full20/manifest.json": "21e4f297db133cae2f73a2a5645a4a8a1265fcf00a8093883ccb7651ca50a9fe",
+    "task1/evidence/adc2_dither/full20/adc2_12bit_sigma_2pct_dither_code_widths.npz": "1bca0bd7702540b983d0e907c32c490e12a7ea31790374ddc9a2d67dfd3303c1",
+    "task1/evidence/adc2_dither/full20/adc2_12bit_sigma_3pct_dither_code_widths.npz": "b5e8395304a7b3bc597355990b8923a788d3e2793984a09a525c8b584869c1ff"
+  },
+  "nominal_width_mm": 146,
+  "font": {
+    "family": "Hiragino Sans GB",
+    "bold_weight": 600,
+    "file_sha256": "ca1e9bf621f13ddc4800bfb74d0124571dfc25a1678a28d6e7dbcf39fad2504a"
+  },
+  "numpy": "2.5.3",
+  "matplotlib": "3.11.2",
+  "prbs31_capture": {
+    "receipt": "task2/evidence/dither_rng/result.json",
+    "receipt_sha256": "7884547472f093939a1154b27de4f8884cc22ab008ce492d677b93ce9ad923f3",
+    "rtl_sha256": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad",
+    "vector_sha256": "8b9c016a0d2f6eba237c2610ae399e9123dda193b7c7575a008870571b60839c",
+    "seed": 1511459267,
+    "continuous_accepted_words": 131072,
+    "min_count": 1947,
+    "max_count": 2159
+  },
+  "adc2_effects_recomputed": [
+    {
+      "sigma_percent": 2.0,
+      "arms": {
+        "off": {
+          "dnl_min_lsb": -1.0,
+          "dnl_max_lsb": 4.119612740619973,
+          "endpoint_inl_peak_lsb": 3.4784509624755264,
+          "zero_width_interior_codes": 64431
+        },
+        "on": {
+          "dnl_min_lsb": -0.2500555491808376,
+          "dnl_max_lsb": 0.17994647307394906,
+          "endpoint_inl_peak_lsb": 0.5427366660169396,
+          "zero_width_interior_codes": 0
+        }
+      }
+    },
+    {
+      "sigma_percent": 3.0,
+      "arms": {
+        "off": {
+          "dnl_min_lsb": -1.0,
+          "dnl_max_lsb": 4.119429723490572,
+          "endpoint_inl_peak_lsb": 3.477718893957925,
+          "zero_width_interior_codes": 63388
+        },
+        "on": {
+          "dnl_min_lsb": -0.2804131625808235,
+          "dnl_max_lsb": 0.1799157208283777,
+          "endpoint_inl_peak_lsb": 0.6292852297217507,
+          "zero_width_interior_codes": 0
+        }
+      }
+    }
+  ],
+  "output_sha256": {
+    "dither_prbs31.png": "9eb7e5843362b78885727e703710e041c0e2f4a6d120a0cd055713516eca07c4",
+    "dither_prbs31.svg": "091ca8c7297321668361d980dce14aefad1054aea53da8d0d9b87942581703e4",
+    "dither_isscc_ppt.png": "1244f6850883dfe660537ae03a8787ef0e996b2ccac9cb11174fbc1ccc35d012",
+    "dither_isscc_ppt.svg": "b74666c0076b1f96051a8fb589e609beb19ad0baca8f7d210e9b49b355f5385f",
+    "dither_fig19.png": "279f317250987582479fda79e81874473fab30a344e830cd89017f96ad8d7bef",
+    "dither_fig19.svg": "fddfc22b7894f4d47ef6c41c31a23201d8c9799068b7673ecf1ec099fb4465e5",
+    "dither_ideal_adc2_effect.png": "3a276062425f7c9d581b325bea6ba1d0d09cd1a3bacbeb46686677fe6f2cfbd9",
+    "dither_ideal_adc2_effect.svg": "5c7626a8141353b2cdf9a0e83ec907618a902b75d5b7a2f00ad8bf19723a8ffa"
+  }
+}

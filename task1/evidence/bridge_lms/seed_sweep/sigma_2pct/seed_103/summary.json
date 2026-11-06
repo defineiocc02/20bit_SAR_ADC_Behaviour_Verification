@@ -1,0 +1,303 @@
+{
+  "schema": "task1_fig21_bridge_nlms_comparison_v1",
+  "status": "completed",
+  "model_scope": "单个虚拟制造样本、名义粗判决、理想两节点和理想 ADC2；时偏和热噪声关闭。",
+  "experiment": {
+    "fs_hz": 10000000,
+    "samples": 4096,
+    "tone_bin": 409,
+    "tone_peak_v": 3.3333333333333335,
+    "full_scale_peak_v": 5.0,
+    "unit_cap_f": 1e-15,
+    "mismatch_sigma_unit": 0.02,
+    "manufacturing_seed": 103,
+    "schedule_seed": 608135816,
+    "dem_seed": 2654435769
+  },
+  "calibration": {
+    "adc2_bits": 12,
+    "adc2_half_range_v": 0.1,
+    "residue_feature_bits": 16,
+    "gain_pairs": 32768,
+    "gain_reference_span_v": 0.06,
+    "gain_reference_midpoint_span_v": 0.02,
+    "gain_reference_seed": 3904,
+    "gain_schedule_seed": 1179262271,
+    "forced_gain_code": 256,
+    "training_samples": 8192,
+    "training_tone_bin": 613,
+    "training_tone_peak_v": 4.98,
+    "training_tone_phase_rad": 0.37,
+    "training_schedule_seed": 1933387210,
+    "training_dem_seed": 1450331317,
+    "evaluation_tone_phase_rad": 0.11,
+    "training_dem_off_period": 4,
+    "lms_passes": 6,
+    "lms_initial_step": 0.25,
+    "lms_norm_floor": 1e-09,
+    "covariance_floor": 1e-10
+  },
+  "adc2_window_basis": "candidate",
+  "adc2_step_v": 4.8828125e-05,
+  "minimum_physical_cap_f": {
+    "main": 9.65358127128881e-16,
+    "sub": 9.583482897058363e-16,
+    "bridge": 9.728395747517152e-16
+  },
+  "training_frequency_hz": 748291.015625,
+  "evaluation_frequency_hz": 998535.15625,
+  "phase_contract": "reserved_column=v, vertical_slot=h%8; phases freeze per sample",
+  "digital_nominal_correction": "adc2 decoded + nominal coarse threshold + Q32 * VFS_peak / 2**32",
+  "fig21_feature_contract": {
+    "original_physical_switch_columns": 396,
+    "always_off_subcolumns_per_slice": [
+      "B5",
+      "B6",
+      "dummy"
+    ],
+    "always_tied_main_columns_per_slice": [
+      "B4",
+      "S4"
+    ],
+    "combined_feature_columns": 324
+  },
+  "arms": {
+    "fixed_ab_lms_only": {
+      "bridge_enabled": false,
+      "selection": "fixed_ab",
+      "gain_reference_pairs": 32768,
+      "training_samples_per_pass": 8192,
+      "passes": 6,
+      "update_count_if_trained": 49152,
+      "nominal_two_node_q32_closure_max_error_v": {
+        "gain": 8.326672684688674e-16,
+        "training": 3.9968028886505635e-15,
+        "holdout": 3.1086244689504383e-15
+      },
+      "adc2_range_checks": {
+        "gain_low": {
+          "samples": 32768,
+          "min_v": -0.04806157180078716,
+          "max_v": -0.017765665997574148,
+          "below_range": 0,
+          "at_or_above_range": 0
+        },
+        "gain_high": {
+          "samples": 32768,
+          "min_v": 0.011928205795094314,
+          "max_v": 0.04226028847506256,
+          "below_range": 0,
+          "at_or_above_range": 0
+        },
+        "training": {
+          "samples": 8192,
+          "min_v": -0.01449443647890829,
+          "max_v": 0.04755944701061426,
+          "below_range": 0,
+          "at_or_above_range": 0
+        },
+        "holdout": {
+          "samples": 4096,
+          "min_v": -0.014361163885105766,
+          "max_v": 0.04673458346139217,
+          "below_range": 0,
+          "at_or_above_range": 0
+        }
+      },
+      "blocked_stages": [],
+      "continuous_pre_adc2_diagnostic": {
+        "sndr_db": 52.03393024575753,
+        "sfdr_db": 54.73664405644051,
+        "enob": 8.351151203614208,
+        "input_error_rms_v": 0.005990769211124723
+      },
+      "status": "completed",
+      "gain_design": {
+        "rows": 32768,
+        "columns": 2,
+        "rank": 2,
+        "condition_number": 1.0
+      },
+      "equivalent_weight_design": {
+        "rows": 8192,
+        "columns": 40,
+        "rank": 40,
+        "condition_number": 26.605344515366163,
+        "svd_discarded_columns": 0,
+        "retained_condition_number": 26.605344515366163,
+        "max_holdout_unobserved_l2": 0.0
+      },
+      "learning": [
+        {
+          "epoch": 0,
+          "step": 0.0,
+          "training_residual_rms_v": 0.004054397118160232
+        },
+        {
+          "epoch": 1,
+          "step": 0.25,
+          "training_residual_rms_v": 1.500987440964935e-05
+        },
+        {
+          "epoch": 2,
+          "step": 0.125,
+          "training_residual_rms_v": 1.4504159204489287e-05
+        },
+        {
+          "epoch": 3,
+          "step": 0.08333333333333333,
+          "training_residual_rms_v": 1.4359119660761576e-05
+        },
+        {
+          "epoch": 4,
+          "step": 0.0625,
+          "training_residual_rms_v": 1.4285687720591478e-05
+        },
+        {
+          "epoch": 5,
+          "step": 0.05,
+          "training_residual_rms_v": 1.4238676862239932e-05
+        },
+        {
+          "epoch": 6,
+          "step": 0.041666666666666664,
+          "training_residual_rms_v": 1.4205126075697317e-05
+        }
+      ],
+      "holdout": {
+        "sndr_db": 104.38819006937292,
+        "sfdr_db": 129.1880822302239,
+        "enob": 17.047872104546997,
+        "input_error_rms_v": 1.4277512035581394e-05
+      }
+    },
+    "fig21_bridge_lms": {
+      "bridge_enabled": true,
+      "selection": "dynamic",
+      "gain_reference_pairs": 32768,
+      "training_samples_per_pass": 8192,
+      "passes": 6,
+      "update_count_if_trained": 49152,
+      "nominal_two_node_q32_closure_max_error_v": {
+        "gain": 8.326672684688674e-16,
+        "training": 5.478385800561369e-10,
+        "holdout": 5.478383441337442e-10
+      },
+      "adc2_range_checks": {
+        "gain_low": {
+          "samples": 32768,
+          "min_v": -0.056340350745735866,
+          "max_v": -0.0018921879475631582,
+          "below_range": 0,
+          "at_or_above_range": 0
+        },
+        "gain_high": {
+          "samples": 32768,
+          "min_v": 0.003696434201147322,
+          "max_v": 0.05803502635446858,
+          "below_range": 0,
+          "at_or_above_range": 0
+        },
+        "training": {
+          "samples": 8192,
+          "min_v": -0.02784529190434827,
+          "max_v": 0.03392698014807705,
+          "below_range": 0,
+          "at_or_above_range": 0
+        },
+        "holdout": {
+          "samples": 4096,
+          "min_v": -0.026121513296684842,
+          "max_v": 0.03541477944307921,
+          "below_range": 0,
+          "at_or_above_range": 0
+        }
+      },
+      "blocked_stages": [],
+      "continuous_pre_adc2_diagnostic": {
+        "sndr_db": 52.26794734176575,
+        "sfdr_db": 74.46424140740893,
+        "enob": 8.390024475376372,
+        "input_error_rms_v": 0.005744786131559655
+      },
+      "status": "completed",
+      "gain_design": {
+        "rows": 32768,
+        "columns": 18,
+        "rank": 18,
+        "condition_number": 8.402864756769437
+      },
+      "equivalent_weight_design": {
+        "rows": 8192,
+        "columns": 324,
+        "rank": 324,
+        "condition_number": 88.24217697551306,
+        "svd_discarded_columns": 0,
+        "retained_condition_number": 88.24217697551306,
+        "max_holdout_unobserved_l2": 0.0
+      },
+      "learning": [
+        {
+          "epoch": 0,
+          "step": 0.0,
+          "training_residual_rms_v": 0.006860891553875156
+        },
+        {
+          "epoch": 1,
+          "step": 0.25,
+          "training_residual_rms_v": 2.0768278255577357e-05
+        },
+        {
+          "epoch": 2,
+          "step": 0.125,
+          "training_residual_rms_v": 1.434526723570178e-05
+        },
+        {
+          "epoch": 3,
+          "step": 0.08333333333333333,
+          "training_residual_rms_v": 1.4195384176977859e-05
+        },
+        {
+          "epoch": 4,
+          "step": 0.0625,
+          "training_residual_rms_v": 1.4143027867541106e-05
+        },
+        {
+          "epoch": 5,
+          "step": 0.05,
+          "training_residual_rms_v": 1.4116769537692702e-05
+        },
+        {
+          "epoch": 6,
+          "step": 0.041666666666666664,
+          "training_residual_rms_v": 1.4101636000540177e-05
+        }
+      ],
+      "holdout": {
+        "sndr_db": 104.03779060560035,
+        "sfdr_db": 129.47483412199347,
+        "enob": 16.989666213554877,
+        "input_error_rms_v": 1.4807714682971843e-05
+      }
+    }
+  },
+  "bridge_minus_fixed": {
+    "sndr_db": -0.35039946377257536,
+    "sfdr_db": 0.28675189176956906,
+    "joint_improvement_this_die": false
+  },
+  "analysis": {
+    "library": "ADCToolbox",
+    "version": "0.9.1"
+  },
+  "source_sha256": {
+    "task1/experiments/bridge_lms_comparison.py": "805e1a19915a4cf30d0752de552f97ce01263cdf06b3996fb22f1464c5a5b5a4",
+    "task1/experiments/adctoolbox_calibration.py": "34c3618ae492ebba5e900f698dcbbe1691e0eebb3586579355d9e7cb6424fd8c",
+    "task1/experiments/run_effects.py": "ec9635c6be81a1758785bc3ebb33714da427348b598dfcd3d3a6484692326c5c",
+    "task1/model/fig21_bridge.py": "b9157d53acf6e708c9378d85ed67a9cfe57d471de4eef52830611c431080b2de",
+    "task1/model/fig11_dem.py": "a3d7f040062ff7adf4c4b50fb90e59ee81491988973e5670e6e12e6e9789f39d",
+    "task1/model/module1.py": "c881976f3ed7c75f915d27b59fb69a2a58fa662ec4de6d51da09e4396573c3c2",
+    "task1/model/scheduler.py": "e6b2d50fa6bdaa607842bea0e86dc02e3fc531c7b832ea6a59858e48a7652f9f",
+    "src/adi_model/charge_ref.py": "74856592cdc665c4533744754b953cee55a6e8649368b8483b6ddbf619a0cebc"
+  }
+}

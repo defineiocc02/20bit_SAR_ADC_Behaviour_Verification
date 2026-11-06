@@ -1,0 +1,67 @@
+{
+  "archive_note": "Raw compile/version logs have local absolute paths; only path-neutral execution and lint logs are published.",
+  "bypass_2pct_fixture": {
+    "chopped": false,
+    "coefficient_words": 396,
+    "common_offset_v": 0,
+    "config_sha256": "8837098e7b59a6e8180e25dbe4f3f82f3ddd656a3def552cfec4f4e22f2bf231",
+    "input_data_sha256": "1234c0a640ac677bfa6f33a492532eec865ed21f4486502ea631c7b033ae25fd",
+    "samples": 4096,
+    "vectors_sha256": "d3039b757aadaf568b8be189e295bff597daff600e1690822074d4cd7ec77fb7"
+  },
+  "counts": {
+    "adc2_captures": 8192,
+    "bypass": 4096,
+    "checks": 110221,
+    "cycles": 132031,
+    "macro_faults": 2,
+    "mixed_dither_pairs": 2014,
+    "pairs": 2048,
+    "peak_inflight": 2,
+    "rejects": 4,
+    "signed_negative_pairs": 1024
+  },
+  "execution_log_sha256": {
+    "compile.log": "c6cfe8088f3dff56152835217f9e2028d155fb04e2d693adf10297ea04b7f902",
+    "lint.log": "5e9287e2b430868fb04e28ace8164e73951400d1835d098b1a086a4617a4ca99",
+    "run.log": "08e565d47c326976c6a2b5626053c4f907ef742c7987df800c48a85612b6e3b7",
+    "verilator.log": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1"
+  },
+  "log_sha256": {
+    "lint.log": "5e9287e2b430868fb04e28ace8164e73951400d1835d098b1a086a4617a4ca99",
+    "run.log": "08e565d47c326976c6a2b5626053c4f907ef742c7987df800c48a85612b6e3b7"
+  },
+  "paired_3pct_fixture": {
+    "chopped": true,
+    "coefficient_words": 396,
+    "common_offset_v": 8e-05,
+    "config_sha256": "c9ce027d6603b2b8010503b141ba7808dd21febc4b19147ebeed5d16cb70a40c",
+    "input_data_sha256": "5a7a0b8aaac88c97a04702ee4d8748716fa24042a188e99c59f8ccd9f0d5451d",
+    "samples": 4096,
+    "vectors_sha256": "810f166a75ffec5d4e5cba5b19c6bdf6b481ad104347c55fce9950dd393c397f"
+  },
+  "scope": "digital_top_on_chip_frozen_lms_inference_and_caaz",
+  "source_sha256": {
+    "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
+    "task1/rtl/fig21_bridge.sv": "15a5fe746f012aeb655f9fc19a0b582646f445ab0a1cae16992c6a22f8c7a305",
+    "task1/rtl/module1_bridge_top.sv": "8181f1d629fefd67fc51b52483725f3c4675a613c73fff9be554e2ce6dcaaba1",
+    "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
+    "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
+    "task2/eight/experiment.py": "114265af4820487592c768dda75880577a41265c3b9d3058f41184fccb27b66c",
+    "task2/eight/model.py": "baae62fd999f7c96cc0563c705aff1bb7be39a0ae6efeb91a3278a1845ec3793",
+    "task2/eight_rtl/rtl/dither8_top.sv": "ef9e36cb48eef4c59a4de1852538e7429739f5d36ad608cd7a8e0adb2fffe16c",
+    "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad",
+    "task3/rtl/caaz20_pair.sv": "5ddbd9f20d4534ad597f22edca9f58604c4d04877eb5efb6ba6dabb142115fdc",
+    "task_integration/LMS_PIPELINE.md": "0dd478cec65b22924de9f67b7d90412ec6fff39180972c87d43837902d30bc93",
+    "task_integration/SPEC.md": "10789107717e8f8ef96097b550acdadedbcc53ad79bb01d7a3b86d2ff6ee0d67",
+    "task_integration/rtl/sar20_digital_lms_top.sv": "04a25ad20f48ff87a84ec9818d4927e470cfd309ec308b0206b94dd8d0d17d72",
+    "task_integration/rtl/sar20_digital_top.sv": "5132cfe92f6836b4bc4300219e77424bc120e3cab11c191ad744185aaa5ac3bd",
+    "task_integration/tb/sar20_lms_integration_tb.sv": "ae7852231d564f29eb68ca7e3791f7b1695098446ac5b6cc7e2f2b91c1f4202a",
+    "task_integration/tools/run_checks.py": "a91b31c26da1363b613cc5070d9fdfe0de30608ffc011ec5dff9730a7851b5c6",
+    "task_integration/tools/run_lms_checks.py": "ebec16c89dfc39c804d7d437d9e48821b73721876cc5321fcd4f04fcaaa7713d",
+    "task_reconstruction/fixed.py": "08cf2096bdbde88e29eb89b4e09df73c943d3a16e1ddfa0d24b30eea9c41921d",
+    "task_reconstruction/rtl/sar20_lms_recon.sv": "7005ccbc8bec2ddedd2fd1d050d19ddb7df8208a7288192258d7bbc103478b83",
+    "tools/run_open_rtl.py": "b5af7fcd9917dd8d3305117e0f2601b59f759b1e783f3aa2cd5b54e213975ef2"
+  },
+  "status": "PASS"
+}

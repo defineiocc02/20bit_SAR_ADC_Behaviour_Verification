@@ -1,0 +1,96 @@
+{
+  "G0": {
+    "evidence": [
+      {
+        "path": "environment.json",
+        "sha256": "f36b81de42e8f183d0b72ebdc944b883f126c63fafb622c7b19b0ce1b3f2583b"
+      },
+      {
+        "path": "evidence/rtl/verilator.log",
+        "sha256": "e946cc11c1b58ad67ed8aba6de0918075f2fc20b233e0b0a023f16157e92dab3"
+      }
+    ],
+    "scope": "local digital verification tools",
+    "status": "PASS"
+  },
+  "G1": {
+    "evidence": [
+      {
+        "path": "SPEC.md",
+        "sha256": "d124b8a9b51477a3923bbc1f50025b84bdc375fc53d376070c8ac09f4bcc645f"
+      },
+      {
+        "path": "requirements_trace.csv",
+        "sha256": "d303eb314c37586a18c89047966f73ecea2a47e3d5ee6e3f6674c12eab0a975b"
+      }
+    ],
+    "scope": "digital behavioral contract",
+    "status": "PASS"
+  },
+  "G2": {
+    "evidence": [
+      {
+        "path": "microarchitecture.md",
+        "sha256": "dae8ee0722e5f43da79a7d43a2c99f2c3d7ff21110e4ddf9fb1a92b7f3bf0928"
+      },
+      {
+        "path": "verification_plan.yaml",
+        "sha256": "8cf2502e0a0d750e4d3a08905b88e18cb04b03f4061a2711ef38b931cf3f8ffe"
+      },
+      {
+        "path": "model/caaz20.py",
+        "sha256": "3da6abedb7eeb6674fa49d8c3661e698b3420e9125fd96c3301888f3af16c3da"
+      }
+    ],
+    "status": "PASS"
+  },
+  "G3": {
+    "evidence": [
+      {
+        "path": "evidence/formal/caaz_formal.log",
+        "sha256": "6ce96a2e47e0c6d232415b71be2a4e6370a91cc72a1a56d5fe3a43f388b96a38"
+      },
+      {
+        "path": "evidence/formal/receipt.json",
+        "sha256": "75562f7ce0164f8e21d0ca5bf052d07d034ab91504e7da4cc19d714f93217557"
+      },
+      {
+        "path": "evidence/formal/rtl_replay_result.json",
+        "sha256": "c93ed695dbaf7db2b33613f5f87cc12db966fb59c5a56781684d20c58d0b69ee"
+      },
+      {
+        "path": "evidence/rtl/result.json",
+        "sha256": "a3e97497a30edf735a4f586b5e02ecc8fff160389b4df5473bb48f4371bcf648"
+      },
+      {
+        "path": "tb/caaz20_properties.sv",
+        "sha256": "624928f93689f66bbb1a795ce820b2229bece8f0e0126e78bae6b00ac3ae9a5b"
+      },
+      {
+        "path": "tb/formal.ys",
+        "sha256": "0ae7e34a5b841c75b2da1a05dc79bd74c73b7d2d987d3db8eeb49765bbcb7df6"
+      }
+    ],
+    "formal_bounds": {
+      "pair_witness_step": 5,
+      "safety_steps": 9
+    },
+    "scope": "Verilator cycle replay and Yosys bounded safety at 9 steps plus a valid-pair witness at step 5",
+    "status": "PASS"
+  },
+  "G4": {
+    "evidence": [],
+    "scope": "integrated SKY130HD physical run tracked separately",
+    "status": "NOT_RUN"
+  },
+  "G5": {
+    "evidence": [],
+    "scope": "no separate module-three optimization candidate",
+    "status": "NOT_RUN"
+  },
+  "G6": {
+    "evidence": [],
+    "scope": "physical acceptance and analog bindings open",
+    "status": "BLOCKED"
+  }
+}

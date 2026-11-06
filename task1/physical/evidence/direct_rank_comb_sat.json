@@ -1,0 +1,32 @@
+{
+  "reference_commit": "84410a4898929fa5f57960cfd325696d39b02771",
+  "candidate_commit": "4b1a4a175ab9b78915b71264d873d79eba28d8fc",
+  "rtl_file": "task1/rtl/slice_scheduler.sv",
+  "reference_sha256": "52f69b9b84cdc46990e6e95b82c6172996349d32064643dd50f292aecd860b80",
+  "candidate_sha256": "b47086ad6b4398062fac10feafe1a2a786adf410385130e50bc77d3d0c65292a",
+  "tool": "Yosys 0.69 (git sha1 9f75ca1f9)",
+  "scope": {
+    "fixed_mode": 1,
+    "shuffled_start_positions": 18,
+    "available_mask_bits_arbitrary": 18,
+    "ordered_id_and_selected_mask": "equivalent",
+    "logic": "source-extracted combinational selectors"
+  },
+  "sat_proofs_passed": 19,
+  "sat_proofs_total": 19,
+  "replay": "yosys -Q -T -s comb_param.ys",
+  "members": {
+    "baseline.sv": "52f69b9b84cdc46990e6e95b82c6172996349d32064643dd50f292aecd860b80",
+    "comb_gate.sv": "0bf2508bfd9dde82a9b4a88a43c5ecded34b82df10e83372e4d69fb859548740",
+    "comb_gold.sv": "915b1d5b06ede2ea2fef7dba059584273e4d91b33a693ebc5cd0019e60089a43",
+    "comb_param.log": "574e8f338ca9afc15e8fd0288c19f65c86fe909440b3b4f70368278090c81a9c",
+    "comb_param.sv": "31505bada325a70e45f03f0dffe497b673e830dc9a6da8b666c1beb21f13149f",
+    "comb_param.ys": "aad84df44d05c9d1c94a69392e16d7ed935d3ff71b19fa80871d159a48162bdf",
+    "slice_scheduler_dual.sv": "b47086ad6b4398062fac10feafe1a2a786adf410385130e50bc77d3d0c65292a"
+  },
+  "archive": {
+    "path": "direct_rank_comb_sat.zip",
+    "bytes": 179454,
+    "sha256": "7e4a2a8199e8b9e607679f3bf95bfbefac539cfaea7312cc37fd172a7ac4d72d"
+  }
+}

@@ -1,0 +1,1290 @@
+{
+  "schema": "task1_adc2_ideal_dither_study_v1",
+  "definition": "Ideal quantizer at ADC2 input, exact input-referred dither subtraction before gain correction",
+  "adctoolbox": "0.9.1",
+  "dither_seed": 1145656392,
+  "repeat_counts": [
+    1,
+    4,
+    16
+  ],
+  "source_sha256": {
+    "task1/experiments/adc2_dither_study.py": "c0b16bacdeb7a00aab6398e092b5fceb45a7ebc9367488650838cac32e85d9ba",
+    "task1/experiments/inl_dnl.py": "7823b2be59f3c3a42297022ab57ee354f66d33a0a62d6d74eb4cacdc9f668c75",
+    "task1/experiments/bridge_lms_comparison.py": "805e1a19915a4cf30d0752de552f97ce01263cdf06b3996fb22f1464c5a5b5a4",
+    "task1/experiments/adctoolbox_calibration.py": "34c3618ae492ebba5e900f698dcbbe1691e0eebb3586579355d9e7cb6424fd8c",
+    "task1/experiments/run_effects.py": "ec9635c6be81a1758785bc3ebb33714da427348b598dfcd3d3a6484692326c5c"
+  },
+  "cases": [
+    {
+      "sigma_percent": 2.0,
+      "manufacturing_seed": 100,
+      "adc2_step_v": 4.8828125e-05,
+      "dither_words_v": [
+        -2.288818359375e-05,
+        -1.983642578125e-05,
+        -1.678466796875e-05,
+        -1.373291015625e-05,
+        -1.0681152343750001e-05,
+        -7.62939453125e-06,
+        -4.577636718750001e-06,
+        -1.52587890625e-06,
+        1.52587890625e-06,
+        4.577636718750001e-06,
+        7.62939453125e-06,
+        1.0681152343750001e-05,
+        1.373291015625e-05,
+        1.678466796875e-05,
+        1.983642578125e-05,
+        2.288818359375e-05
+      ],
+      "training_artifact_sha256": {
+        "summary.json": "f611ee9aafb8f0365467a31165f593242a35fef6dc6368f43f6feb1ee160f576",
+        "observations.npz": "caa3921723f3e46f80384a3e9368213de832c954daa5f995a317d85821dc3570"
+      },
+      "arms": {
+        "fixed_ab_lms_only": {
+          "tone": {
+            "off_repeat1": {
+              "adc2_quantization_rms_v": 1.4035032198007387e-05,
+              "before_export": {
+                "sndr_db": 104.36543877591401,
+                "sfdr_db": 127.61777764489173,
+                "enob": 17.04409281991927,
+                "input_error_rms_v": 1.4273129234077635e-05
+              },
+              "after_export": {
+                "sndr_db": 104.18435902715396,
+                "sfdr_db": 127.54656104266233,
+                "enob": 17.014013127434215,
+                "input_error_rms_v": 1.4574439270233604e-05
+              }
+            },
+            "on_repeat1": {
+              "adc2_quantization_rms_v": 1.4069719145780466e-05,
+              "before_export": {
+                "sndr_db": 104.3798640466578,
+                "sfdr_db": 127.80876051398232,
+                "enob": 17.046489044295317,
+                "input_error_rms_v": 1.4244455200839044e-05
+              },
+              "after_export": {
+                "sndr_db": 104.24453760377453,
+                "sfdr_db": 127.6224576759698,
+                "enob": 17.024009568733312,
+                "input_error_rms_v": 1.446712420888558e-05
+              }
+            },
+            "off_repeat4": {
+              "adc2_quantization_rms_v": 1.4035032198007387e-05,
+              "before_export": {
+                "sndr_db": 104.36543877591401,
+                "sfdr_db": 127.61777764489173,
+                "enob": 17.04409281991927,
+                "input_error_rms_v": 1.4273129234077635e-05
+              },
+              "after_export": {
+                "sndr_db": 104.18435902715396,
+                "sfdr_db": 127.54656104266233,
+                "enob": 17.014013127434215,
+                "input_error_rms_v": 1.4574439270233604e-05
+              }
+            },
+            "on_repeat4": {
+              "adc2_quantization_rms_v": 6.970969855349217e-06,
+              "before_export": {
+                "sndr_db": 110.18640070725229,
+                "sfdr_db": 130.38921411762263,
+                "enob": 18.011030017815994,
+                "input_error_rms_v": 7.3079088598144095e-06
+              },
+              "after_export": {
+                "sndr_db": 110.09599250888535,
+                "sfdr_db": 130.214468634822,
+                "enob": 17.99601204466534,
+                "input_error_rms_v": 7.382325443957414e-06
+              }
+            },
+            "off_repeat16": {
+              "adc2_quantization_rms_v": 1.4035032198007387e-05,
+              "before_export": {
+                "sndr_db": 104.36543877591401,
+                "sfdr_db": 127.61777764489173,
+                "enob": 17.04409281991927,
+                "input_error_rms_v": 1.4273129234077635e-05
+              },
+              "after_export": {
+                "sndr_db": 104.18435902715396,
+                "sfdr_db": 127.54656104266233,
+                "enob": 17.014013127434215,
+                "input_error_rms_v": 1.4574439270233604e-05
+              }
+            },
+            "on_repeat16": {
+              "adc2_quantization_rms_v": 3.648325244560579e-06,
+              "before_export": {
+                "sndr_db": 114.77456422700686,
+                "sfdr_db": 130.58465687050764,
+                "enob": 18.7731834264131,
+                "input_error_rms_v": 4.320865575088297e-06
+              },
+              "after_export": {
+                "sndr_db": 114.69251935383456,
+                "sfdr_db": 130.83938145321918,
+                "enob": 18.759554709939295,
+                "input_error_rms_v": 4.360466336005855e-06
+              }
+            },
+            "expected_single_shot_quantization_rms_v": 1.4095465556387349e-05
+          },
+          "density": {
+            "off": {
+              "state_count": 2,
+              "dither_word_count": 1,
+              "adc2_below_input_width_v": 0.0,
+              "adc2_above_input_width_v": 0.0,
+              "export_below_input_width_v": 0.0,
+              "export_above_input_width_v": 7.845905143800549e-06,
+              "20bit": {
+                "interior_codes": 1048574,
+                "zero_width_interior_codes": 678189,
+                "zero_width_interior_percent": 64.67726645901958,
+                "mean_interior_code_width_v": 9.536753871538733e-06,
+                "dnl_min_lsb": -1.0,
+                "dnl_max_lsb": 4.117840383432403,
+                "endpoint_inl_min_lsb": -2.843367687138621,
+                "endpoint_inl_max_lsb": 3.737224473717411,
+                "endpoint_inl_peak_lsb": 3.737224473717411,
+                "best_fit_inl_peak_lsb": 2.9785058748856916
+              },
+              "14bit": {
+                "interior_codes": 16382,
+                "zero_width_interior_codes": 0,
+                "zero_width_interior_percent": 0.0,
+                "mean_interior_code_width_v": 0.0006103498508632076,
+                "dnl_min_lsb": -0.06573413771480408,
+                "dnl_max_lsb": 0.04853199878554859,
+                "endpoint_inl_min_lsb": -0.07726991032414277,
+                "endpoint_inl_max_lsb": 0.04225923783945562,
+                "endpoint_inl_peak_lsb": 0.07726991032414277,
+                "best_fit_inl_peak_lsb": 0.044186505179975265
+              }
+            },
+            "on": {
+              "state_count": 2,
+              "dither_word_count": 16,
+              "adc2_below_input_width_v": 0.0,
+              "adc2_above_input_width_v": 0.0,
+              "export_below_input_width_v": 6.10094801132557e-06,
+              "export_above_input_width_v": 5.885761636406601e-06,
+              "20bit": {
+                "interior_codes": 1048574,
+                "zero_width_interior_codes": 0,
+                "zero_width_interior_percent": 0.0,
+                "mean_interior_code_width_v": 9.536738577224683e-06,
+                "dnl_min_lsb": -0.2503151477963398,
+                "dnl_max_lsb": 0.2794621477613133,
+                "endpoint_inl_min_lsb": -0.6407232554893226,
+                "endpoint_inl_max_lsb": 0.7176568485548317,
+                "endpoint_inl_peak_lsb": 0.7176568485548317,
+                "best_fit_inl_peak_lsb": 0.657015331643773
+              },
+              "14bit": {
+                "interior_codes": 16382,
+                "zero_width_interior_codes": 0,
+                "zero_width_interior_percent": 0.0,
+                "mean_interior_code_width_v": 0.0006103515270434195,
+                "dnl_min_lsb": -0.005760329041297529,
+                "dnl_max_lsb": 0.00457727714444367,
+                "endpoint_inl_min_lsb": -0.00905248013281279,
+                "endpoint_inl_max_lsb": 0.010045011480205313,
+                "endpoint_inl_peak_lsb": 0.010045011480205313,
+                "best_fit_inl_peak_lsb": 0.009745325020691543
+              }
+            }
+          },
+          "headroom": {
+            "gain_low": {
+              "one_lsb20_step": {
+                "half_window_v": 0.01953125,
+                "samples": 32768,
+                "residue_min_v": -0.03583805905292683,
+                "residue_max_v": -0.009609374772606805,
+                "overload_without_dither": 21619,
+                "at_least_one_dither_word_overloads": 21626,
+                "every_dither_word_overloads": 21610,
+                "sample_word_pairs_overloaded": 345900,
+                "sample_word_pairs": 524288
+              },
+              "50mV": {
+                "half_window_v": 0.05,
+                "samples": 32768,
+                "residue_min_v": -0.03583805905292683,
+                "residue_max_v": -0.009609374772606805,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 524288
+              },
+              "100mV": {
+                "half_window_v": 0.1,
+                "samples": 32768,
+                "residue_min_v": -0.03583805905292683,
+                "residue_max_v": -0.009609374772606805,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 524288
+              }
+            },
+            "gain_high": {
+              "one_lsb20_step": {
+                "half_window_v": 0.01953125,
+                "samples": 32768,
+                "residue_min_v": 0.024167843116933683,
+                "residue_max_v": 0.050435238124195564,
+                "overload_without_dither": 32768,
+                "at_least_one_dither_word_overloads": 32768,
+                "every_dither_word_overloads": 32768,
+                "sample_word_pairs_overloaded": 524288,
+                "sample_word_pairs": 524288
+              },
+              "50mV": {
+                "half_window_v": 0.05,
+                "samples": 32768,
+                "residue_min_v": 0.024167843116933683,
+                "residue_max_v": 0.050435238124195564,
+                "overload_without_dither": 347,
+                "at_least_one_dither_word_overloads": 361,
+                "every_dither_word_overloads": 338,
+                "sample_word_pairs_overloaded": 5566,
+                "sample_word_pairs": 524288
+              },
+              "100mV": {
+                "half_window_v": 0.1,
+                "samples": 32768,
+                "residue_min_v": 0.024167843116933683,
+                "residue_max_v": 0.050435238124195564,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 524288
+              }
+            },
+            "training": {
+              "one_lsb20_step": {
+                "half_window_v": 0.01953125,
+                "samples": 8192,
+                "residue_min_v": -0.0048190763196190615,
+                "residue_max_v": 0.046798207784002094,
+                "overload_without_dither": 1502,
+                "at_least_one_dither_word_overloads": 1503,
+                "every_dither_word_overloads": 1502,
+                "sample_word_pairs_overloaded": 24033,
+                "sample_word_pairs": 131072
+              },
+              "50mV": {
+                "half_window_v": 0.05,
+                "samples": 8192,
+                "residue_min_v": -0.0048190763196190615,
+                "residue_max_v": 0.046798207784002094,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 131072
+              },
+              "100mV": {
+                "half_window_v": 0.1,
+                "samples": 8192,
+                "residue_min_v": -0.0048190763196190615,
+                "residue_max_v": 0.046798207784002094,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 131072
+              }
+            },
+            "holdout": {
+              "one_lsb20_step": {
+                "half_window_v": 0.01953125,
+                "samples": 4096,
+                "residue_min_v": -0.0014284569021260297,
+                "residue_max_v": 0.046961669526965275,
+                "overload_without_dither": 997,
+                "at_least_one_dither_word_overloads": 997,
+                "every_dither_word_overloads": 995,
+                "sample_word_pairs_overloaded": 15944,
+                "sample_word_pairs": 65536
+              },
+              "50mV": {
+                "half_window_v": 0.05,
+                "samples": 4096,
+                "residue_min_v": -0.0014284569021260297,
+                "residue_max_v": 0.046961669526965275,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 65536
+              },
+              "100mV": {
+                "half_window_v": 0.1,
+                "samples": 4096,
+                "residue_min_v": -0.0014284569021260297,
+                "residue_max_v": 0.046961669526965275,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 65536
+              }
+            }
+          }
+        },
+        "fig21_bridge_lms": {
+          "tone": {
+            "off_repeat1": {
+              "adc2_quantization_rms_v": 1.3954727640987224e-05,
+              "before_export": {
+                "sndr_db": 103.97598764400092,
+                "sfdr_db": 126.60025005414818,
+                "enob": 16.979399940863942,
+                "input_error_rms_v": 1.4918628026054616e-05
+              },
+              "after_export": {
+                "sndr_db": 103.81569728211994,
+                "sfdr_db": 127.32303873513152,
+                "enob": 16.952773634903647,
+                "input_error_rms_v": 1.5196671799130914e-05
+              }
+            },
+            "on_repeat1": {
+              "adc2_quantization_rms_v": 1.4067358346979129e-05,
+              "before_export": {
+                "sndr_db": 103.90359435380188,
+                "sfdr_db": 126.68999215260408,
+                "enob": 16.967374477375728,
+                "input_error_rms_v": 1.5041505830838852e-05
+              },
+              "after_export": {
+                "sndr_db": 103.75280300985168,
+                "sfdr_db": 127.53057598860448,
+                "enob": 16.94232608137071,
+                "input_error_rms_v": 1.5305274149251623e-05
+              }
+            },
+            "off_repeat4": {
+              "adc2_quantization_rms_v": 1.3954727640987224e-05,
+              "before_export": {
+                "sndr_db": 103.97598764400092,
+                "sfdr_db": 126.60025005414818,
+                "enob": 16.979399940863942,
+                "input_error_rms_v": 1.4918628026054616e-05
+              },
+              "after_export": {
+                "sndr_db": 103.81569728211994,
+                "sfdr_db": 127.32303873513152,
+                "enob": 16.952773634903647,
+                "input_error_rms_v": 1.5196671799130914e-05
+              }
+            },
+            "on_repeat4": {
+              "adc2_quantization_rms_v": 7.0075435571793395e-06,
+              "before_export": {
+                "sndr_db": 108.68578156095275,
+                "sfdr_db": 132.41394242342403,
+                "enob": 17.761757734377532,
+                "input_error_rms_v": 8.675691512657141e-06
+              },
+              "after_export": {
+                "sndr_db": 108.54359356921631,
+                "sfdr_db": 132.33203881293838,
+                "enob": 17.73813846664723,
+                "input_error_rms_v": 8.818978265585925e-06
+              }
+            },
+            "off_repeat16": {
+              "adc2_quantization_rms_v": 1.3954727640987224e-05,
+              "before_export": {
+                "sndr_db": 103.97598764400092,
+                "sfdr_db": 126.60025005414818,
+                "enob": 16.979399940863942,
+                "input_error_rms_v": 1.4918628026054616e-05
+              },
+              "after_export": {
+                "sndr_db": 103.81569728211994,
+                "sfdr_db": 127.32303873513152,
+                "enob": 16.952773634903647,
+                "input_error_rms_v": 1.5196671799130914e-05
+              }
+            },
+            "on_repeat16": {
+              "adc2_quantization_rms_v": 3.680316631247262e-06,
+              "before_export": {
+                "sndr_db": 111.5546522828049,
+                "sfdr_db": 134.5061795298862,
+                "enob": 18.238314332691843,
+                "input_error_rms_v": 6.241459143519102e-06
+              },
+              "after_export": {
+                "sndr_db": 111.48927865906043,
+                "sfdr_db": 134.47342982762999,
+                "enob": 18.227454926754223,
+                "input_error_rms_v": 6.288591120624401e-06
+              }
+            },
+            "expected_single_shot_quantization_rms_v": 1.4095465556387349e-05
+          },
+          "density": {
+            "off": {
+              "state_count": 16,
+              "dither_word_count": 1,
+              "adc2_below_input_width_v": 0.0,
+              "adc2_above_input_width_v": 0.0,
+              "export_below_input_width_v": 0.0,
+              "export_above_input_width_v": 3.877427559780747e-06,
+              "20bit": {
+                "interior_codes": 1048574,
+                "zero_width_interior_codes": 64431,
+                "zero_width_interior_percent": 6.144630707990089,
+                "mean_interior_code_width_v": 9.536754099003224e-06,
+                "dnl_min_lsb": -1.0,
+                "dnl_max_lsb": 4.119612740619973,
+                "endpoint_inl_min_lsb": -1.76607032631305,
+                "endpoint_inl_max_lsb": 3.4784509624755264,
+                "endpoint_inl_peak_lsb": 3.4784509624755264,
+                "best_fit_inl_peak_lsb": 2.5134629651111733
+              },
+              "14bit": {
+                "interior_codes": 16382,
+                "zero_width_interior_codes": 0,
+                "zero_width_interior_percent": 0.0,
+                "mean_interior_code_width_v": 0.0006103512850081884,
+                "dnl_min_lsb": -0.040071074045489485,
+                "dnl_max_lsb": 0.03992300311739072,
+                "endpoint_inl_min_lsb": -0.023836873380336798,
+                "endpoint_inl_max_lsb": 0.030397567470856535,
+                "endpoint_inl_peak_lsb": 0.030397567470856535,
+                "best_fit_inl_peak_lsb": 0.025950717384302515
+              }
+            },
+            "on": {
+              "state_count": 16,
+              "dither_word_count": 16,
+              "adc2_below_input_width_v": 0.0,
+              "adc2_above_input_width_v": 0.0,
+              "export_below_input_width_v": 6.103060973675694e-06,
+              "export_above_input_width_v": 6.194462837474414e-06,
+              "20bit": {
+                "interior_codes": 1048574,
+                "zero_width_interior_codes": 0,
+                "zero_width_interior_percent": 0.0,
+                "mean_interior_code_width_v": 9.536739115428544e-06,
+                "dnl_min_lsb": -0.2500555491808376,
+                "dnl_max_lsb": 0.17994647307394906,
+                "endpoint_inl_min_lsb": -0.4833931216921842,
+                "endpoint_inl_max_lsb": 0.5427366660169396,
+                "endpoint_inl_peak_lsb": 0.5427366660169396,
+                "best_fit_inl_peak_lsb": 0.3701004078023956
+              },
+              "14bit": {
+                "interior_codes": 16382,
+                "zero_width_interior_codes": 0,
+                "zero_width_interior_percent": 0.0,
+                "mean_interior_code_width_v": 0.0006103515619567236,
+                "dnl_min_lsb": -0.004179959776542064,
+                "dnl_max_lsb": 0.00255055788495695,
+                "endpoint_inl_min_lsb": -0.005242562620995983,
+                "endpoint_inl_max_lsb": 0.005129295465722605,
+                "endpoint_inl_peak_lsb": 0.005242562620995983,
+                "best_fit_inl_peak_lsb": 0.005369700077055644
+              }
+            }
+          },
+          "headroom": {
+            "gain_low": {
+              "one_lsb20_step": {
+                "half_window_v": 0.01953125,
+                "samples": 32768,
+                "residue_min_v": -0.06163312584026671,
+                "residue_max_v": -0.000687908772208073,
+                "overload_without_dither": 28243,
+                "at_least_one_dither_word_overloads": 28251,
+                "every_dither_word_overloads": 28241,
+                "sample_word_pairs_overloaded": 451916,
+                "sample_word_pairs": 524288
+              },
+              "50mV": {
+                "half_window_v": 0.05,
+                "samples": 32768,
+                "residue_min_v": -0.06163312584026671,
+                "residue_max_v": -0.000687908772208073,
+                "overload_without_dither": 359,
+                "at_least_one_dither_word_overloads": 359,
+                "every_dither_word_overloads": 359,
+                "sample_word_pairs_overloaded": 5744,
+                "sample_word_pairs": 524288
+              },
+              "100mV": {
+                "half_window_v": 0.1,
+                "samples": 32768,
+                "residue_min_v": -0.06163312584026671,
+                "residue_max_v": -0.000687908772208073,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 524288
+              }
+            },
+            "gain_high": {
+              "one_lsb20_step": {
+                "half_window_v": 0.01953125,
+                "samples": 32768,
+                "residue_min_v": -0.0016808062808088917,
+                "residue_max_v": 0.059273896065589846,
+                "overload_without_dither": 28190,
+                "at_least_one_dither_word_overloads": 28195,
+                "every_dither_word_overloads": 28187,
+                "sample_word_pairs_overloaded": 451049,
+                "sample_word_pairs": 524288
+              },
+              "50mV": {
+                "half_window_v": 0.05,
+                "samples": 32768,
+                "residue_min_v": -0.0016808062808088917,
+                "residue_max_v": 0.059273896065589846,
+                "overload_without_dither": 324,
+                "at_least_one_dither_word_overloads": 326,
+                "every_dither_word_overloads": 322,
+                "sample_word_pairs_overloaded": 5187,
+                "sample_word_pairs": 524288
+              },
+              "100mV": {
+                "half_window_v": 0.1,
+                "samples": 32768,
+                "residue_min_v": -0.0016808062808088917,
+                "residue_max_v": 0.059273896065589846,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 524288
+              }
+            },
+            "training": {
+              "one_lsb20_step": {
+                "half_window_v": 0.01953125,
+                "samples": 8192,
+                "residue_min_v": -0.02582363769918373,
+                "residue_max_v": 0.03432789952832582,
+                "overload_without_dither": 335,
+                "at_least_one_dither_word_overloads": 337,
+                "every_dither_word_overloads": 335,
+                "sample_word_pairs_overloaded": 5365,
+                "sample_word_pairs": 131072
+              },
+              "50mV": {
+                "half_window_v": 0.05,
+                "samples": 8192,
+                "residue_min_v": -0.02582363769918373,
+                "residue_max_v": 0.03432789952832582,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 131072
+              },
+              "100mV": {
+                "half_window_v": 0.1,
+                "samples": 8192,
+                "residue_min_v": -0.02582363769918373,
+                "residue_max_v": 0.03432789952832582,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 131072
+              }
+            },
+            "holdout": {
+              "one_lsb20_step": {
+                "half_window_v": 0.01953125,
+                "samples": 4096,
+                "residue_min_v": -0.026575013838859747,
+                "residue_max_v": 0.03277988846094918,
+                "overload_without_dither": 206,
+                "at_least_one_dither_word_overloads": 206,
+                "every_dither_word_overloads": 206,
+                "sample_word_pairs_overloaded": 3296,
+                "sample_word_pairs": 65536
+              },
+              "50mV": {
+                "half_window_v": 0.05,
+                "samples": 4096,
+                "residue_min_v": -0.026575013838859747,
+                "residue_max_v": 0.03277988846094918,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 65536
+              },
+              "100mV": {
+                "half_window_v": 0.1,
+                "samples": 4096,
+                "residue_min_v": -0.026575013838859747,
+                "residue_max_v": 0.03277988846094918,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 65536
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "sigma_percent": 3.0,
+      "manufacturing_seed": 100,
+      "adc2_step_v": 4.8828125e-05,
+      "dither_words_v": [
+        -2.288818359375e-05,
+        -1.983642578125e-05,
+        -1.678466796875e-05,
+        -1.373291015625e-05,
+        -1.0681152343750001e-05,
+        -7.62939453125e-06,
+        -4.577636718750001e-06,
+        -1.52587890625e-06,
+        1.52587890625e-06,
+        4.577636718750001e-06,
+        7.62939453125e-06,
+        1.0681152343750001e-05,
+        1.373291015625e-05,
+        1.678466796875e-05,
+        1.983642578125e-05,
+        2.288818359375e-05
+      ],
+      "training_artifact_sha256": {
+        "summary.json": "be66f03ba7ceaa4b121643a18db031fd5bdf88f38b51a178a522745e815fecbb",
+        "observations.npz": "6828b5f366ac72b810bb152a3c5f6d4dd344e1f027a915514a91386e185d8f46"
+      },
+      "arms": {
+        "fixed_ab_lms_only": {
+          "tone": {
+            "off_repeat1": {
+              "adc2_quantization_rms_v": 1.4118930174106262e-05,
+              "before_export": {
+                "sndr_db": 104.34582503309673,
+                "sfdr_db": 127.64668011539979,
+                "enob": 17.04083472310577,
+                "input_error_rms_v": 1.4310754304351783e-05
+              },
+              "after_export": {
+                "sndr_db": 104.2108983107314,
+                "sfdr_db": 127.75586081874657,
+                "enob": 17.018421646300897,
+                "input_error_rms_v": 1.4535529531240343e-05
+              }
+            },
+            "on_repeat1": {
+              "adc2_quantization_rms_v": 1.4050759603735812e-05,
+              "before_export": {
+                "sndr_db": 104.39339276248415,
+                "sfdr_db": 128.16025920985376,
+                "enob": 17.04873633928308,
+                "input_error_rms_v": 1.4224633289560666e-05
+              },
+              "after_export": {
+                "sndr_db": 104.25350886257061,
+                "sfdr_db": 128.10721613452156,
+                "enob": 17.025499811058243,
+                "input_error_rms_v": 1.4455660139009777e-05
+              }
+            },
+            "off_repeat4": {
+              "adc2_quantization_rms_v": 1.4118930174106262e-05,
+              "before_export": {
+                "sndr_db": 104.34582503309673,
+                "sfdr_db": 127.64668011539979,
+                "enob": 17.04083472310577,
+                "input_error_rms_v": 1.4310754304351783e-05
+              },
+              "after_export": {
+                "sndr_db": 104.2108983107314,
+                "sfdr_db": 127.75586081874657,
+                "enob": 17.018421646300897,
+                "input_error_rms_v": 1.4535529531240343e-05
+              }
+            },
+            "on_repeat4": {
+              "adc2_quantization_rms_v": 6.9730502554073185e-06,
+              "before_export": {
+                "sndr_db": 110.22830975926958,
+                "sfdr_db": 130.413058293728,
+                "enob": 18.01799165436372,
+                "input_error_rms_v": 7.285448241846826e-06
+              },
+              "after_export": {
+                "sndr_db": 110.05093285975725,
+                "sfdr_db": 130.09239858791926,
+                "enob": 17.988527053115824,
+                "input_error_rms_v": 7.435943655285745e-06
+              }
+            },
+            "off_repeat16": {
+              "adc2_quantization_rms_v": 1.4118930174106262e-05,
+              "before_export": {
+                "sndr_db": 104.34582503309673,
+                "sfdr_db": 127.64668011539979,
+                "enob": 17.04083472310577,
+                "input_error_rms_v": 1.4310754304351783e-05
+              },
+              "after_export": {
+                "sndr_db": 104.2108983107314,
+                "sfdr_db": 127.75586081874657,
+                "enob": 17.018421646300897,
+                "input_error_rms_v": 1.4535529531240343e-05
+              }
+            },
+            "on_repeat16": {
+              "adc2_quantization_rms_v": 3.671004934608479e-06,
+              "before_export": {
+                "sndr_db": 114.99393024237119,
+                "sfdr_db": 132.7339868441156,
+                "enob": 18.809622963849037,
+                "input_error_rms_v": 4.2566563236070926e-06
+              },
+              "after_export": {
+                "sndr_db": 114.8701164171859,
+                "sfdr_db": 132.56984004821507,
+                "enob": 18.78905588325347,
+                "input_error_rms_v": 4.318535269735633e-06
+              }
+            },
+            "expected_single_shot_quantization_rms_v": 1.4095465556387349e-05
+          },
+          "density": {
+            "off": {
+              "state_count": 2,
+              "dither_word_count": 1,
+              "adc2_below_input_width_v": 0.0,
+              "adc2_above_input_width_v": 0.0,
+              "export_below_input_width_v": 0.0,
+              "export_above_input_width_v": 0.0,
+              "20bit": {
+                "interior_codes": 1048574,
+                "zero_width_interior_codes": 678629,
+                "zero_width_interior_percent": 64.71922820897714,
+                "mean_interior_code_width_v": 9.53674661661013e-06,
+                "dnl_min_lsb": -1.0,
+                "dnl_max_lsb": 4.577144683261617,
+                "endpoint_inl_min_lsb": -2.2615549934451398,
+                "endpoint_inl_max_lsb": 3.8228836502192705,
+                "endpoint_inl_peak_lsb": 3.8228836502192705,
+                "best_fit_inl_peak_lsb": 3.0266363106911127
+              },
+              "14bit": {
+                "interior_codes": 16382,
+                "zero_width_interior_codes": 0,
+                "zero_width_interior_percent": 0.0,
+                "mean_interior_code_width_v": 0.0006103507507707793,
+                "dnl_min_lsb": -0.04196357885713964,
+                "dnl_max_lsb": 0.055317885378810105,
+                "endpoint_inl_min_lsb": -0.07744886386800331,
+                "endpoint_inl_max_lsb": 0.021850250791850545,
+                "endpoint_inl_peak_lsb": 0.07744886386800331,
+                "best_fit_inl_peak_lsb": 0.045375483128490234
+              }
+            },
+            "on": {
+              "state_count": 2,
+              "dither_word_count": 16,
+              "adc2_below_input_width_v": 0.0,
+              "adc2_above_input_width_v": 0.0,
+              "export_below_input_width_v": 6.099665489687263e-06,
+              "export_above_input_width_v": 5.551572828786506e-06,
+              "20bit": {
+                "interior_codes": 1048574,
+                "zero_width_interior_codes": 0,
+                "zero_width_interior_percent": 0.0,
+                "mean_interior_code_width_v": 9.536740090694819e-06,
+                "dnl_min_lsb": -0.2735549327698338,
+                "dnl_max_lsb": 0.282725690280635,
+                "endpoint_inl_min_lsb": -0.7246534986842886,
+                "endpoint_inl_max_lsb": 0.6275539781498131,
+                "endpoint_inl_peak_lsb": 0.7246534986842886,
+                "best_fit_inl_peak_lsb": 0.6954891284823946
+              },
+              "14bit": {
+                "interior_codes": 16382,
+                "zero_width_interior_codes": 0,
+                "zero_width_interior_percent": 0.0,
+                "mean_interior_code_width_v": 0.0006103516811693604,
+                "dnl_min_lsb": -0.004992939989611922,
+                "dnl_max_lsb": 0.005338161241221551,
+                "endpoint_inl_min_lsb": -0.01223779404197789,
+                "endpoint_inl_max_lsb": 0.008902913213455821,
+                "endpoint_inl_peak_lsb": 0.01223779404197789,
+                "best_fit_inl_peak_lsb": 0.010449248396166774
+              }
+            }
+          },
+          "headroom": {
+            "gain_low": {
+              "one_lsb20_step": {
+                "half_window_v": 0.01953125,
+                "samples": 32768,
+                "residue_min_v": -0.03375751453654324,
+                "residue_max_v": -0.004413919551047112,
+                "overload_without_dither": 15601,
+                "at_least_one_dither_word_overloads": 15608,
+                "every_dither_word_overloads": 15592,
+                "sample_word_pairs_overloaded": 249604,
+                "sample_word_pairs": 524288
+              },
+              "50mV": {
+                "half_window_v": 0.05,
+                "samples": 32768,
+                "residue_min_v": -0.03375751453654324,
+                "residue_max_v": -0.004413919551047112,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 524288
+              },
+              "100mV": {
+                "half_window_v": 0.1,
+                "samples": 32768,
+                "residue_min_v": -0.03375751453654324,
+                "residue_max_v": -0.004413919551047112,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 524288
+              }
+            },
+            "gain_high": {
+              "one_lsb20_step": {
+                "half_window_v": 0.01953125,
+                "samples": 32768,
+                "residue_min_v": 0.026251338718247707,
+                "residue_max_v": 0.05565299979415617,
+                "overload_without_dither": 32768,
+                "at_least_one_dither_word_overloads": 32768,
+                "every_dither_word_overloads": 32768,
+                "sample_word_pairs_overloaded": 524288,
+                "sample_word_pairs": 524288
+              },
+              "50mV": {
+                "half_window_v": 0.05,
+                "samples": 32768,
+                "residue_min_v": 0.026251338718247707,
+                "residue_max_v": 0.05565299979415617,
+                "overload_without_dither": 4694,
+                "at_least_one_dither_word_overloads": 4710,
+                "every_dither_word_overloads": 4679,
+                "sample_word_pairs_overloaded": 75107,
+                "sample_word_pairs": 524288
+              },
+              "100mV": {
+                "half_window_v": 0.1,
+                "samples": 32768,
+                "residue_min_v": 0.026251338718247707,
+                "residue_max_v": 0.05565299979415617,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 524288
+              }
+            },
+            "training": {
+              "one_lsb20_step": {
+                "half_window_v": 0.01953125,
+                "samples": 8192,
+                "residue_min_v": -0.007312585779658287,
+                "residue_max_v": 0.05254372648196762,
+                "overload_without_dither": 2265,
+                "at_least_one_dither_word_overloads": 2266,
+                "every_dither_word_overloads": 2263,
+                "sample_word_pairs_overloaded": 36234,
+                "sample_word_pairs": 131072
+              },
+              "50mV": {
+                "half_window_v": 0.05,
+                "samples": 8192,
+                "residue_min_v": -0.007312585779658287,
+                "residue_max_v": 0.05254372648196762,
+                "overload_without_dither": 9,
+                "at_least_one_dither_word_overloads": 9,
+                "every_dither_word_overloads": 8,
+                "sample_word_pairs_overloaded": 143,
+                "sample_word_pairs": 131072
+              },
+              "100mV": {
+                "half_window_v": 0.1,
+                "samples": 8192,
+                "residue_min_v": -0.007312585779658287,
+                "residue_max_v": 0.05254372648196762,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 131072
+              }
+            },
+            "holdout": {
+              "one_lsb20_step": {
+                "half_window_v": 0.01953125,
+                "samples": 4096,
+                "residue_min_v": -0.002372701913163885,
+                "residue_max_v": 0.05258341117658838,
+                "overload_without_dither": 1523,
+                "at_least_one_dither_word_overloads": 1524,
+                "every_dither_word_overloads": 1523,
+                "sample_word_pairs_overloaded": 24376,
+                "sample_word_pairs": 65536
+              },
+              "50mV": {
+                "half_window_v": 0.05,
+                "samples": 4096,
+                "residue_min_v": -0.002372701913163885,
+                "residue_max_v": 0.05258341117658838,
+                "overload_without_dither": 8,
+                "at_least_one_dither_word_overloads": 8,
+                "every_dither_word_overloads": 8,
+                "sample_word_pairs_overloaded": 128,
+                "sample_word_pairs": 65536
+              },
+              "100mV": {
+                "half_window_v": 0.1,
+                "samples": 4096,
+                "residue_min_v": -0.002372701913163885,
+                "residue_max_v": 0.05258341117658838,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 65536
+              }
+            }
+          }
+        },
+        "fig21_bridge_lms": {
+          "tone": {
+            "off_repeat1": {
+              "adc2_quantization_rms_v": 1.4187434541607373e-05,
+              "before_export": {
+                "sndr_db": 103.58586653133952,
+                "sfdr_db": 128.47006144673074,
+                "enob": 16.9145957693255,
+                "input_error_rms_v": 1.5602172848917556e-05
+              },
+              "after_export": {
+                "sndr_db": 103.4420241758621,
+                "sfdr_db": 127.57689707081573,
+                "enob": 16.890701690342542,
+                "input_error_rms_v": 1.5863483741823566e-05
+              }
+            },
+            "on_repeat1": {
+              "adc2_quantization_rms_v": 1.4174918754994974e-05,
+              "before_export": {
+                "sndr_db": 103.58756617678878,
+                "sfdr_db": 128.22920914652633,
+                "enob": 16.91487810245661,
+                "input_error_rms_v": 1.5596611038847522e-05
+              },
+              "after_export": {
+                "sndr_db": 103.4231499636376,
+                "sfdr_db": 127.93295450375778,
+                "enob": 16.887566439142457,
+                "input_error_rms_v": 1.58946976057902e-05
+              }
+            },
+            "off_repeat4": {
+              "adc2_quantization_rms_v": 1.4187434541607373e-05,
+              "before_export": {
+                "sndr_db": 103.58586653133952,
+                "sfdr_db": 128.47006144673074,
+                "enob": 16.9145957693255,
+                "input_error_rms_v": 1.5602172848917556e-05
+              },
+              "after_export": {
+                "sndr_db": 103.4420241758621,
+                "sfdr_db": 127.57689707081573,
+                "enob": 16.890701690342542,
+                "input_error_rms_v": 1.5863483741823566e-05
+              }
+            },
+            "on_repeat4": {
+              "adc2_quantization_rms_v": 7.106889086813465e-06,
+              "before_export": {
+                "sndr_db": 107.75211557208354,
+                "sfdr_db": 132.37441344223387,
+                "enob": 17.606663716292946,
+                "input_error_rms_v": 9.657394871012354e-06
+              },
+              "after_export": {
+                "sndr_db": 107.64979913073775,
+                "sfdr_db": 132.5485558712497,
+                "enob": 17.589667629690656,
+                "input_error_rms_v": 9.772070893842745e-06
+              }
+            },
+            "off_repeat16": {
+              "adc2_quantization_rms_v": 1.4187434541607373e-05,
+              "before_export": {
+                "sndr_db": 103.58586653133952,
+                "sfdr_db": 128.47006144673074,
+                "enob": 16.9145957693255,
+                "input_error_rms_v": 1.5602172848917556e-05
+              },
+              "after_export": {
+                "sndr_db": 103.4420241758621,
+                "sfdr_db": 127.57689707081573,
+                "enob": 16.890701690342542,
+                "input_error_rms_v": 1.5863483741823566e-05
+              }
+            },
+            "on_repeat16": {
+              "adc2_quantization_rms_v": 3.6105582412034825e-06,
+              "before_export": {
+                "sndr_db": 109.83691610183988,
+                "sfdr_db": 134.49226566491402,
+                "enob": 17.952976096651142,
+                "input_error_rms_v": 7.605428466624731e-06
+              },
+              "after_export": {
+                "sndr_db": 109.80546013307492,
+                "sfdr_db": 134.29217387164107,
+                "enob": 17.947750852670254,
+                "input_error_rms_v": 7.631881225498902e-06
+              }
+            },
+            "expected_single_shot_quantization_rms_v": 1.4095465556387349e-05
+          },
+          "density": {
+            "off": {
+              "state_count": 16,
+              "dither_word_count": 1,
+              "adc2_below_input_width_v": 0.0,
+              "adc2_above_input_width_v": 0.0,
+              "export_below_input_width_v": 0.0,
+              "export_above_input_width_v": 4.972342742404029e-06,
+              "20bit": {
+                "interior_codes": 1048574,
+                "zero_width_interior_codes": 63388,
+                "zero_width_interior_percent": 6.045162287067961,
+                "mean_interior_code_width_v": 9.536751670589016e-06,
+                "dnl_min_lsb": -1.0,
+                "dnl_max_lsb": 4.119429723490572,
+                "endpoint_inl_min_lsb": -1.5542313708112898,
+                "endpoint_inl_max_lsb": 3.477718893957925,
+                "endpoint_inl_peak_lsb": 3.477718893957925,
+                "best_fit_inl_peak_lsb": 2.4704052902505858
+              },
+              "14bit": {
+                "interior_codes": 16382,
+                "zero_width_interior_codes": 0,
+                "zero_width_interior_percent": 0.0,
+                "mean_interior_code_width_v": 0.0006103517359558357,
+                "dnl_min_lsb": -0.04010634343834618,
+                "dnl_max_lsb": 0.0398847946084655,
+                "endpoint_inl_min_lsb": -0.028629043267028087,
+                "endpoint_inl_max_lsb": 0.026121092883184427,
+                "endpoint_inl_peak_lsb": 0.028629043267028087,
+                "best_fit_inl_peak_lsb": 0.02779065671435796
+              }
+            },
+            "on": {
+              "state_count": 16,
+              "dither_word_count": 16,
+              "adc2_below_input_width_v": 0.0,
+              "adc2_above_input_width_v": 0.0,
+              "export_below_input_width_v": 6.1028412459938355e-06,
+              "export_above_input_width_v": 5.052714700503501e-06,
+              "20bit": {
+                "interior_codes": 1048574,
+                "zero_width_interior_codes": 0,
+                "zero_width_interior_percent": 0.0,
+                "mean_interior_code_width_v": 9.536740695180713e-06,
+                "dnl_min_lsb": -0.2804131625808235,
+                "dnl_max_lsb": 0.1799157208283777,
+                "endpoint_inl_min_lsb": -0.4860388577708441,
+                "endpoint_inl_max_lsb": 0.6292852297217507,
+                "endpoint_inl_peak_lsb": 0.6292852297217507,
+                "best_fit_inl_peak_lsb": 0.47779833201615146
+              },
+              "14bit": {
+                "interior_codes": 16382,
+                "zero_width_interior_codes": 0,
+                "zero_width_interior_percent": 0.0,
+                "mean_interior_code_width_v": 0.0006103517806250041,
+                "dnl_min_lsb": -0.003947123963567445,
+                "dnl_max_lsb": 0.00674281039946889,
+                "endpoint_inl_min_lsb": -0.007293388616595453,
+                "endpoint_inl_max_lsb": 0.007694053711512772,
+                "endpoint_inl_peak_lsb": 0.007694053711512772,
+                "best_fit_inl_peak_lsb": 0.007193772505447902
+              }
+            }
+          },
+          "headroom": {
+            "gain_low": {
+              "one_lsb20_step": {
+                "half_window_v": 0.01953125,
+                "samples": 32768,
+                "residue_min_v": -0.07281476569394797,
+                "residue_max_v": 0.009956802408283725,
+                "overload_without_dither": 25889,
+                "at_least_one_dither_word_overloads": 25891,
+                "every_dither_word_overloads": 25884,
+                "sample_word_pairs_overloaded": 414215,
+                "sample_word_pairs": 524288
+              },
+              "50mV": {
+                "half_window_v": 0.05,
+                "samples": 32768,
+                "residue_min_v": -0.07281476569394797,
+                "residue_max_v": 0.009956802408283725,
+                "overload_without_dither": 1758,
+                "at_least_one_dither_word_overloads": 1764,
+                "every_dither_word_overloads": 1751,
+                "sample_word_pairs_overloaded": 28111,
+                "sample_word_pairs": 524288
+              },
+              "100mV": {
+                "half_window_v": 0.1,
+                "samples": 32768,
+                "residue_min_v": -0.07281476569394797,
+                "residue_max_v": 0.009956802408283725,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 524288
+              }
+            },
+            "gain_high": {
+              "one_lsb20_step": {
+                "half_window_v": 0.01953125,
+                "samples": 32768,
+                "residue_min_v": -0.012871353496208944,
+                "residue_max_v": 0.06984348972953779,
+                "overload_without_dither": 25751,
+                "at_least_one_dither_word_overloads": 25759,
+                "every_dither_word_overloads": 25745,
+                "sample_word_pairs_overloaded": 412033,
+                "sample_word_pairs": 524288
+              },
+              "50mV": {
+                "half_window_v": 0.05,
+                "samples": 32768,
+                "residue_min_v": -0.012871353496208944,
+                "residue_max_v": 0.06984348972953779,
+                "overload_without_dither": 1685,
+                "at_least_one_dither_word_overloads": 1690,
+                "every_dither_word_overloads": 1681,
+                "sample_word_pairs_overloaded": 26967,
+                "sample_word_pairs": 524288
+              },
+              "100mV": {
+                "half_window_v": 0.1,
+                "samples": 32768,
+                "residue_min_v": -0.012871353496208944,
+                "residue_max_v": 0.06984348972953779,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 524288
+              }
+            },
+            "training": {
+              "one_lsb20_step": {
+                "half_window_v": 0.01953125,
+                "samples": 8192,
+                "residue_min_v": -0.03364780775077449,
+                "residue_max_v": 0.04089181884175177,
+                "overload_without_dither": 628,
+                "at_least_one_dither_word_overloads": 628,
+                "every_dither_word_overloads": 628,
+                "sample_word_pairs_overloaded": 10048,
+                "sample_word_pairs": 131072
+              },
+              "50mV": {
+                "half_window_v": 0.05,
+                "samples": 8192,
+                "residue_min_v": -0.03364780775077449,
+                "residue_max_v": 0.04089181884175177,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 131072
+              },
+              "100mV": {
+                "half_window_v": 0.1,
+                "samples": 8192,
+                "residue_min_v": -0.03364780775077449,
+                "residue_max_v": 0.04089181884175177,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 131072
+              }
+            },
+            "holdout": {
+              "one_lsb20_step": {
+                "half_window_v": 0.01953125,
+                "samples": 4096,
+                "residue_min_v": -0.0332004147842673,
+                "residue_max_v": 0.04055540267199512,
+                "overload_without_dither": 439,
+                "at_least_one_dither_word_overloads": 439,
+                "every_dither_word_overloads": 439,
+                "sample_word_pairs_overloaded": 7024,
+                "sample_word_pairs": 65536
+              },
+              "50mV": {
+                "half_window_v": 0.05,
+                "samples": 4096,
+                "residue_min_v": -0.0332004147842673,
+                "residue_max_v": 0.04055540267199512,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 65536
+              },
+              "100mV": {
+                "half_window_v": 0.1,
+                "samples": 4096,
+                "residue_min_v": -0.0332004147842673,
+                "residue_max_v": 0.04055540267199512,
+                "overload_without_dither": 0,
+                "at_least_one_dither_word_overloads": 0,
+                "every_dither_word_overloads": 0,
+                "sample_word_pairs_overloaded": 0,
+                "sample_word_pairs": 65536
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "scope": "Same-state combinational equivalence for conversion word and legal arithmetic. The state updates are identical in baseline and candidate. Seven steps, including reset.",
+  "tool": "Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)",
+  "baseline_commit": "3af060e",
+  "baseline_sha256": "d06612de2a12ee8340b212fdaf0b3b565573098779d0e282522b0999962f3029",
+  "source_sha256": {
+    "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
+    "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
+    "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
+    "task1/rtl/fig21_bridge.sv": "15a5fe746f012aeb655f9fc19a0b582646f445ab0a1cae16992c6a22f8c7a305",
+    "task1/rtl/module1_bridge_top.sv": "8181f1d629fefd67fc51b52483725f3c4675a613c73fff9be554e2ce6dcaaba1",
+    "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad",
+    "task2/eight_rtl/rtl/dither8_top.sv": "ef9e36cb48eef4c59a4de1852538e7429739f5d36ad608cd7a8e0adb2fffe16c"
+  },
+  "instrumented_candidate_sha256": "60a8c0f2254275e77fc2f26a76de322569f9aedaf272045c1d388d346f486ef7",
+  "driver_sha256": "dc30b6813f130154595bc1f04925dc5a1c7a697998d4f3f190b722e397081962",
+  "proof_script_sha256": "0f6237c643f92d4b544338c95f4df993c7e606311b616fa4b2ebc60e13accca1",
+  "raw_log_sha256": "1448f89ed0b0a293336e1d510d85120c93657a9bfded952381f826d83b55ce6c",
+  "compressed_log_sha256": "f35cc316f026f21a7ac14af05b2cba357725f4615b58e53222945c4fbc2deb5c"
+}

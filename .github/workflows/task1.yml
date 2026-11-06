@@ -1,0 +1,77 @@
+name: Module 1 digital verification
+
+on:
+  push:
+    branches: [20b10mtask]
+  pull_request:
+    branches: [20b10mtask]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: task1-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  module1:
+    name: Python, RTL and behavioral effects
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      CXX: clang++
+      VERILATOR: verilator
+      PYTHONPATH: .:src
+      OPENBLAS_NUM_THREADS: "1"
+      MPLBACKEND: Agg
+      TASK1_CI_OUT: /tmp/sar-task1-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: |
+            task1/requirements.txt
+            task1/requirements-calibration.txt
+      - name: Install dependencies and record tool versions
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y verilator clang
+          python -m pip install -r task1/requirements-calibration.txt
+          mkdir -p "$TASK1_CI_OUT"
+          {
+            python --version
+            verilator --version
+            clang++ --version
+            python -m pip freeze
+          } > "$TASK1_CI_OUT/tools.txt"
+          cat "$TASK1_CI_OUT/tools.txt"
+      - name: Run Python module contracts
+        run: |
+          python -m pytest -q task1/tests --junitxml "$TASK1_CI_OUT/python.xml"
+      - name: Compile and check RTL with Verilator
+        run: |
+          python task1/tools/run_rtl_checks.py --out "$TASK1_CI_OUT/rtl"
+          python task1/tools/run_bridge_checks.py --out "$TASK1_CI_OUT/bridge"
+      - name: Reproduce behavioral plots and data
+        run: |
+          python -m task1.experiments.run_effects --out "$TASK1_CI_OUT/effects"
+      - name: Train and evaluate the 2% mismatch LMS comparison
+        timeout-minutes: 5
+        run: |
+          python -m task1.experiments.bridge_lms_comparison \
+            --sigma 0.02 --adc2-half-range-mv 100 --out "$TASK1_CI_OUT/bridge_lms"
+      - name: Record evidence scope
+        run: |
+          printf '%s\n' 'Module 1 Python contracts, Verilator comparisons, behavioral effects and the 2% LMS holdout completed.' >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' 'Target-library synthesis, physical implementation, GDS and STA are outside this job.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: module1-digital-evidence
+          path: ${{ env.TASK1_CI_OUT }}
+          retention-days: 14

@@ -1,0 +1,71 @@
+name: 20b10mtask LVS of a frozen physical artifact
+
+on:
+  push:
+    branches: [20b10mtask]
+    paths:
+      - '.github/workflows/task2_lvs_artifact.yml'
+      - 'task2/physical/lvs_artifact/**'
+  workflow_dispatch:
+    inputs:
+      physical_run_id:
+        description: 'Workflow run containing the frozen GDS, ODB and timing artifact'
+        required: true
+        type: string
+      artifact_name:
+        description: 'Exact artifact name in the physical run'
+        required: true
+        type: string
+      rtl_commit:
+        description: 'Expected physical source commit (40 hex digits)'
+        required: true
+        type: string
+      gds_sha256:
+        description: 'Expected GDS SHA-256 (64 hex digits)'
+        required: true
+        type: string
+      top:
+        description: 'Expected digital top'
+        required: true
+        type: choice
+        options: [sar20_digital_lms_top, sar20_digital_top, dither8_top]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  replay:
+    if: github.ref_name == '20b10mtask'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      INPUT_DIR: /tmp/task2-lvs-artifact-input-${{ github.run_id }}-${{ github.run_attempt }}
+      OUTPUT_DIR: /tmp/task2-lvs-artifact-result-${{ github.run_id }}-${{ github.run_attempt }}
+      LVS_SOURCE_RUN: ${{ inputs.physical_run_id }}
+      LVS_EXPECTED_COMMIT: ${{ inputs.rtl_commit }}
+      LVS_EXPECTED_GDS: ${{ inputs.gds_sha256 }}
+      LVS_TOP: ${{ inputs.top }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate the replay entry point
+        run: bash -n task2/physical/lvs_artifact/replay.sh
+      - uses: actions/download-artifact@v4
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          run-id: ${{ inputs.physical_run_id }}
+          name: ${{ inputs.artifact_name }}
+          github-token: ${{ github.token }}
+          path: ${{ env.INPUT_DIR }}
+      - name: Compare both public rule decks on the frozen artifact
+        if: github.event_name == 'workflow_dispatch'
+        run: bash task2/physical/lvs_artifact/replay.sh "$INPUT_DIR" "$OUTPUT_DIR"
+      - name: Upload both comparisons and LVS databases
+        if: always() && github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: task2-lvs-artifact-replay-${{ github.run_id }}
+          path: ${{ env.OUTPUT_DIR }}
+          if-no-files-found: warn

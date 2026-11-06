@@ -8,7 +8,6 @@ project=/work/repo/task2/physical
 platform_dir="$PWD/platforms/sky130hd"
 export TASK1_FINAL_DIR="/work/out/flow/results/sky130hd/$TASK2_NICKNAME/base"
 export TASK1_PROXY_LIBERTY="$platform_dir/lib/sky130_fd_sc_hd__tt_025C_1v80.lib"
-export TASK2_PG_CONNECT_TCL="$platform_dir/global_connect.tcl"
 build=(make "DESIGN_CONFIG=/work/repo/$TASK2_CONFIG" WORK_HOME=/work/out/flow LEC_CHECK=0)
 test -s "$TASK1_PROXY_LIBERTY"
 {

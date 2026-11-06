@@ -1,0 +1,82 @@
+{
+  "schema": "task2_native_eight_slice_independent_charge_v1",
+  "status": "PASS",
+  "scope": "名义闭合、实际底板电压的独立两节点解、前级及 ADC2 量程。",
+  "python": "3.12.14",
+  "numpy": "2.5.3",
+  "nominal": {
+    "words": 64,
+    "legal_coarse_code_word_pairs": 32608,
+    "phase_pairs": 128,
+    "total_combinations": 4173824,
+    "maximum_nominal_q32_difference_v": 5.478391074120736e-10,
+    "maximum_nominal_charge_difference_v": 3.552713678800501e-15,
+    "all_word_common_upper_limit_v_exclusive": 4.83685661764706,
+    "full_scale_uniform_word_frontend_rejected_fraction": 0.00861672794117645
+  },
+  "tone_settings": {
+    "adc2_half_range_v": 0.1,
+    "adc2_bits": 12,
+    "dither_seed_hex": "0x5A1709C3",
+    "input_and_scheduler": "Task1 archived holdout, 10 MS/s, bin 409, 4096 samples"
+  },
+  "tone": [
+    {
+      "unit_mismatch_sigma_percent": 2,
+      "manufacturing_seed": 100,
+      "dither_enabled": false,
+      "samples": 4096,
+      "reference_residue_min_v": -0.026575013838859747,
+      "reference_residue_max_v": 0.03277988846094918,
+      "maximum_nodal_vs_affine_residue_difference_v": 6.4922026088432006e-15,
+      "adc2_overloaded_samples": 0,
+      "adc2_code_mismatches": 0
+    },
+    {
+      "unit_mismatch_sigma_percent": 2,
+      "manufacturing_seed": 100,
+      "dither_enabled": true,
+      "samples": 4096,
+      "reference_residue_min_v": -0.034575073360867604,
+      "reference_residue_max_v": 0.03152588941272469,
+      "maximum_nodal_vs_affine_residue_difference_v": 6.654399253847032e-15,
+      "adc2_overloaded_samples": 0,
+      "adc2_code_mismatches": 0
+    },
+    {
+      "unit_mismatch_sigma_percent": 3,
+      "manufacturing_seed": 100,
+      "dither_enabled": false,
+      "samples": 4096,
+      "reference_residue_min_v": -0.0332004147842673,
+      "reference_residue_max_v": 0.04055540267199512,
+      "maximum_nodal_vs_affine_residue_difference_v": 5.538972058793945e-15,
+      "adc2_overloaded_samples": 0,
+      "adc2_code_mismatches": 0
+    },
+    {
+      "unit_mismatch_sigma_percent": 3,
+      "manufacturing_seed": 100,
+      "dither_enabled": true,
+      "samples": 4096,
+      "reference_residue_min_v": -0.04101017229345732,
+      "reference_residue_max_v": 0.040873171770159554,
+      "maximum_nodal_vs_affine_residue_difference_v": 5.2757277713144646e-15,
+      "adc2_overloaded_samples": 0,
+      "adc2_code_mismatches": 0
+    }
+  ],
+  "sha256": {
+    "task2/eight/tests/test_independent_charge.py": "5337bb05a8d046d43f94d14513583064d12150b9e7843fc5ca627ee96d46ff5b",
+    "src/adi_model/charge_ref.py": "74856592cdc665c4533744754b953cee55a6e8649368b8483b6ddbf619a0cebc",
+    "task1/experiments/residue_control_study.py": "c0db84cdabf4a546892f7945b9b7d7c60fa47cbbefa95b52dc3a335e39183418",
+    "task1/experiments/run_effects.py": "ec9635c6be81a1758785bc3ebb33714da427348b598dfcd3d3a6484692326c5c",
+    "task1/experiments/bridge_lms_comparison.py": "805e1a19915a4cf30d0752de552f97ce01263cdf06b3996fb22f1464c5a5b5a4",
+    "task1/model/fig11_dem.py": "a3d7f040062ff7adf4c4b50fb90e59ee81491988973e5670e6e12e6e9789f39d",
+    "task1/model/fig21_bridge.py": "b9157d53acf6e708c9378d85ed67a9cfe57d471de4eef52830611c431080b2de",
+    "task2/eight/model.py": "baae62fd999f7c96cc0563c705aff1bb7be39a0ae6efeb91a3278a1845ec3793",
+    "task2/model/dither_word_gen.py": "a9c86bffacd388bec80f0a1bd4ab93514ded4dabcc6ed65a87b1cd377e1258e3",
+    "task1/evidence/bridge_lms/sigma_2pct_adc2_100mv/observations.npz": "caa3921723f3e46f80384a3e9368213de832c954daa5f995a317d85821dc3570",
+    "task1/evidence/bridge_lms/sigma_3pct_adc2_100mv/observations.npz": "6828b5f366ac72b810bb152a3c5f6d4dd344e1f027a915514a91386e185d8f46"
+  }
+}

@@ -5,6 +5,8 @@ on:
     branches: [20b10mtask]
     paths:
       - 'task2/**'
+      - 'task3/**'
+      - 'task_integration/**'
       - 'task1/model/module1.py'
       - 'task1/model/scheduler.py'
       - 'task1/experiments/full20_linearity_plots.py'
@@ -17,6 +19,8 @@ on:
     branches: [20b10mtask]
     paths:
       - 'task2/**'
+      - 'task3/**'
+      - 'task_integration/**'
       - 'task1/model/module1.py'
       - 'task1/model/scheduler.py'
       - 'task1/experiments/full20_linearity_plots.py'
@@ -55,7 +59,7 @@ jobs:
       - name: Install simulator, Chinese font and pinned Python dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y verilator clang fonts-noto-cjk fontconfig
+          sudo apt-get install -y verilator clang fonts-noto-cjk fontconfig yosys
           python -m pip install -r task1/requirements-calibration.txt
           python - <<'PY'
           from pathlib import Path
@@ -73,17 +77,20 @@ jobs:
           { python --version; verilator --version; python -m pip freeze; } > "$OUT/tools.txt"
       - name: Check digital generator and seven-slice model
         run: |
-          python -m pytest -q task2/tests --junitxml "$OUT/tests.xml"
+          python -m pytest -q task2/tests task2/eight/tests --junitxml "$OUT/tests.xml"
           python task2/tools/run_dither_word_checks.py --out "$OUT/rtl"
           python task2/eight_rtl/tools/run_checks.py --out "$OUT/dither8"
+          python task3/tools/run_caaz_checks.py --out "$OUT/caaz"
+          yosys -s task3/tb/formal.ys | tee "$OUT/caaz_formal.log"
       - name: Reproduce seven-slice experiment and explanatory figures
         run: |
           python -m task2.experiments.fig19_seven_demo --output "$OUT/fig19"
           python -m task2.tools.draw_dither --out "$OUT/figures"
+          python task3/tools/run_caaz_effect.py --out "$OUT/caaz_effect"
       - name: Clarify evidence scope
         run: |
-          printf '%s\n' 'Digital word generator and seven-slice ideal Fig.19 model passed.' >> "$GITHUB_STEP_SUMMARY"
-          printf '%s\n' 'Eight-slice physical injection, real ADC2 and integrated GDS are not covered.' >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' 'Digital dither and CAAZ checks plus behavioral figures completed.' >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' 'Real analog injection, ADC2, CAAZ macro and foundry signoff are not covered.' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

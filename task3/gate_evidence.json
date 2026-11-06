@@ -1,0 +1,80 @@
+{
+  "G0": {
+    "evidence": [
+      {
+        "path": "environment.json",
+        "sha256": "f36b81de42e8f183d0b72ebdc944b883f126c63fafb622c7b19b0ce1b3f2583b"
+      },
+      {
+        "path": "evidence/rtl/verilator.log",
+        "sha256": "e946cc11c1b58ad67ed8aba6de0918075f2fc20b233e0b0a023f16157e92dab3"
+      }
+    ],
+    "scope": "local digital verification tools",
+    "status": "PASS"
+  },
+  "G1": {
+    "evidence": [
+      {
+        "path": "SPEC.md",
+        "sha256": "12f5707e5cfbf6c825005a5e089fafcd89b3959db4dcffe1270a1e31df57259b"
+      },
+      {
+        "path": "requirements_trace.csv",
+        "sha256": "75e8cf6ebdf891331b189537783ca0d9871ae2f0ddf9a48f25bd01377abb3f86"
+      }
+    ],
+    "scope": "digital behavioral contract",
+    "status": "PASS"
+  },
+  "G2": {
+    "evidence": [
+      {
+        "path": "microarchitecture.md",
+        "sha256": "dae8ee0722e5f43da79a7d43a2c99f2c3d7ff21110e4ddf9fb1a92b7f3bf0928"
+      },
+      {
+        "path": "verification_plan.yaml",
+        "sha256": "8cf2502e0a0d750e4d3a08905b88e18cb04b03f4061a2711ef38b931cf3f8ffe"
+      },
+      {
+        "path": "model/caaz20.py",
+        "sha256": "3da6abedb7eeb6674fa49d8c3661e698b3420e9125fd96c3301888f3af16c3da"
+      }
+    ],
+    "status": "PASS"
+  },
+  "G3": {
+    "evidence": [
+      {
+        "path": "evidence/rtl/result.json",
+        "sha256": "a3e97497a30edf735a4f586b5e02ecc8fff160389b4df5473bb48f4371bcf648"
+      },
+      {
+        "path": "tb/formal.ys",
+        "sha256": "0ae7e34a5b841c75b2da1a05dc79bd74c73b7d2d987d3db8eeb49765bbcb7df6"
+      },
+      {
+        "path": "tb/caaz20_properties.sv",
+        "sha256": "624928f93689f66bbb1a795ce820b2229bece8f0e0126e78bae6b00ac3ae9a5b"
+      }
+    ],
+    "scope": "lint/Verilator dynamic replay PASS, SAT pending remote Yosys",
+    "status": "BLOCKED"
+  },
+  "G4": {
+    "evidence": [],
+    "scope": "integrated SKY130HD physical run tracked separately",
+    "status": "NOT_RUN"
+  },
+  "G5": {
+    "evidence": [],
+    "scope": "no separate module-three optimization candidate",
+    "status": "NOT_RUN"
+  },
+  "G6": {
+    "evidence": [],
+    "scope": "physical acceptance and analog bindings open",
+    "status": "BLOCKED"
+  }
+}

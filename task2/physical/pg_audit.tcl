@@ -77,8 +77,9 @@ if {[dict size $pg_findings] && [info exists ::env(TASK2_PG_REPAIRED_DB)]} {
   }
   if {$missing_only} {
     puts "PG_RECONNECT_BEFORE $pg_findings"
-    # ORFS repair stages can insert standard cells after the initial binding.
-    source $::env(TASK2_PG_CONNECT_TCL)
+    # Reapply the SKY130HD PDN's supply aliases to newly inserted standard cells.
+    add_global_connection -net VDD -inst_pattern {.*} -pin_pattern {^(VDD|VDDPE|VDDCE|VPWR|VPB)$} -power
+    add_global_connection -net VSS -inst_pattern {.*} -pin_pattern {^(VSS|VSSE|VGND|VNB)$} -ground
     global_connect
     set pg_findings [pg_inventory $pg_block]
     set pg_repaired 1

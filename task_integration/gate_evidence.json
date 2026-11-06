@@ -1,0 +1,63 @@
+{
+  "G0": {
+    "evidence": [
+      {
+        "path": "evidence/environment.json",
+        "sha256": "9d42e78b959090550d152066f1885bd07ee0d0d93ff23b1ef0050b0b89240ab0"
+      }
+    ],
+    "scope": "local functional execution",
+    "status": "PASS"
+  },
+  "G1": {
+    "evidence": [
+      {
+        "path": "SPEC.md",
+        "sha256": "ae0afd0450b763a998ffd17c92f7165c1512b87afa13c6835515b9921c03c84a"
+      },
+      {
+        "path": "LMS_PIPELINE.md",
+        "sha256": "efe7bd0b9fa72c4beb22b6911413706e078060e1879bf0449e35743becfbbc4e"
+      }
+    ],
+    "scope": "frozen digital proxy specification",
+    "status": "PASS"
+  },
+  "G2": {
+    "evidence": [
+      {
+        "path": "microarchitecture.md",
+        "sha256": "e3bc4ae6c79177cb66530c476c4b686f2d8266d22eebada54acd53cc940e4fca"
+      },
+      {
+        "path": "verification_plan.yaml",
+        "sha256": "37cca39112f32bce8d990ded9f2dfe23f780ab783c4ebe987844aa19c089d0aa"
+      },
+      {
+        "path": "requirements_trace.csv",
+        "sha256": "d82c8bd381dae7a05537a8fd196ee76544562aecf45773a194462e14103490d1"
+      }
+    ],
+    "status": "PASS"
+  },
+  "G3": {
+    "evidence": [
+      {
+        "path": "evidence/external/result.json",
+        "sha256": "16cc24b1853cbd22d670e716daeac5e0e72f208b5f2d4d0e196ba7a5d5ce6cde"
+      },
+      {
+        "path": "evidence/on_chip/result.json",
+        "sha256": "c273c09ffae5a8f04f9b3e610791a3680612cd9db699a325d15d7570fc10fd22"
+      }
+    ],
+    "integration_formal": "NOT_RUN",
+    "lint_and_verilator": "PASS",
+    "scope": "digital integration. Verification is distinct from macro validation.",
+    "status": "BLOCKED"
+  },
+  "G4": {
+    "scope": "physical delivery delegated to versioned CI; raw STA follows actual run",
+    "status": "NOT_RUN"
+  }
+}

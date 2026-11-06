@@ -1,9 +1,34 @@
 # 模块三 · CAAZ
 
-**计划交付。** 冻结实际斩波极性、CBIAS 更新／保持及捕获确认。两笔有效且归属一致的连续样本进入一组非重叠配对，10 MS/s 原始样本对应 5 MS/s 配对输出。模拟建立和真实噪声效果需要独立验证。 [北大 VLSI 2025](../references/PKU_VLSI2025_C32_1_PAPER.pdf) · [作者讲稿](../references/PKU_VLSI2025_C32_1_SLIDES.pdf)
+CAAZ 对完整差分输入逐笔换相，偶数笔请求更新 CBIAS，奇数笔保持同一 AZ 代。ADC2、位权与同笔 dither 补偿完成后，数字端将偶数码减去奇数码并除以二。稳定工作时每两个 10 MS/s 原始结果提交一对，输出 5 MS/s。关闭 CAAZ 时逐笔旁路。
 
-- 交付 Python 样本域参考、可综合周期控制及数字解调，冻结有符号码值、配对次序和位宽舍入约定。用连续样本号、斩波标签和 AZ 代号识别同一对，覆盖缺样、非法捕获、错配和复位。
-- 对拍模块一和模块二的真实输出。交付斩波时序、正常与异常配对波形，以及同输出速率和相同分析带宽下的噪声与失调对照。固定失配结果同时报告 LMS 独立训练和留出验证。 [校准对照口径](../task1/EXPERIMENT_STANDARD.md)
-- 完成 SKY130HD 综合、布局布线、GDS、抽取后 STA 和复现命令。目标工艺、真实模拟宏和后仿按项目规格另行验收。 [交付规格](../task1/SPEC.md)
+![CAAZ 更新／保持意图、配对节拍与等带宽噪声对照](evidence/behavior/caaz_effect.png)
 
-原工程已存的控制与配对原型仅作接口参考。 [周期控制原型](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/bc9a16a596dd37d1172d29cbda23979c222bf63b/rtl/control/caaz_cycle_ctrl.sv) · [配对原型](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/bc9a16a596dd37d1172d29cbda23979c222bf63b/rtl/calibration/caaz_pair_processor.sv)
+上图下半部分比较同为 5 MS/s、0～2.5 MHz 带宽的三组样本域结果。模型设置每笔独立噪声为 10 µV RMS，AZ 存储噪声为 20 µV RMS，输出均重新量化到 20 位。
+
+| 处理方式 | 去直流误差（µV RMS） | 平均误差（µV） |
+| :--- | ---: | ---: |
+| 每笔自零，再两笔平均 | 16.16 | +42.41 |
+| 偶数自零、奇数理想保持并反相 | 7.76 | +2.39 |
+| 奇数保留 75% AZ 噪声，新增 5 µV 偏移 | 8.15 | −0.13 |
+
+在此模型中，共用 AZ 样本比独立 AZ 后两笔平均的误差小 6.37 dB。若两相 AZ 传递增益分别为 `a_e`、`a_o`，奇数保持比例为 `h`，共同噪声项 `w` 的残余为 `(a_e−a_o·h)w/2`。这里的设置用于复核抵消机制，实际增益和保持误差由模拟验证给出。[数据、指标与图件哈希](evidence/behavior/caaz_effect_summary.json) · [原始轨迹](evidence/behavior/caaz_effect_data.npz) · [矢量图](evidence/behavior/caaz_effect.pdf)
+
+| 源文位置 | 对应合同 | 当前边界 |
+| :--- | :--- | :--- |
+| Wang 等，VLSI 2025 Fig.5 | 在 ADC 输入换相，先做数据合并及位权校正，再作 `(1−z⁻¹)/2` | 本工程把运算限定在连续偶奇 pair，配对中点对应时间戳。两点平均幅频响应为 `abs(cos(πf/10 MHz))`，系统须另行定义抽二前带宽。 |
+| 同论文 Fig.6，讲稿第 33～34 页 | 偶数笔采集 AZ 噪声，奇数笔不更新 CBIAS，沿用同一代；同相误差在偶减奇中抵消 | `acq_az_capture`／`hold` 给出带 ID 的请求。宏需执行实际开关、隔离和保持，并随结果确认。其普通复位和放大准备由模拟时序负责。 |
+| 论文原型测量 | 论文将 4.3 dB 区分为 AZ 抵消的 1.3 dB 和普通平均的 3 dB | 本工程模型幅度和频率独立设定。10／5 MS/s 为项目规格。 |
+
+[论文 Fig.5／6](../references/PKU_VLSI2025_C32_1_PAPER.pdf#page=2) · [讲稿](../references/PKU_VLSI2025_C32_1_SLIDES.pdf#page=34) · [DOI](https://doi.org/10.23919/VLSITechnologyandCir65189.2025.11075015)
+
+`caaz20_pair` 已以独立队列模型和 Verilator 逐拍核对 2,896 个时钟沿、1,625 个采样控制、675 个配对、256 个旁路输出及 10 次故障。覆盖错相、坏码、未发布／丢失／重复 ID、AZ 代和确认、运行中切换模式、暂停、清空、符号边界与 4 个 ID 进位边界。偶奇可用不同的 dither 字，每一笔按自身字先去扰，结果再参与 CAAZ。错误停止输出，须同步清空上下游后启动新 epoch。[接口合同](SPEC.md) · [RTL](rtl/caaz20_pair.sv) · [逐拍收据](evidence/rtl/result.json)
+
+```sh
+python -m pip install -r task1/requirements-calibration.txt
+PYTHONPATH=.:src python task3/tools/run_caaz_checks.py --out /tmp/task3-rtl-run-001
+PYTHONPATH=.:src python task3/tools/run_caaz_effect.py --out /tmp/task3-effect-run-001
+yosys -s task3/tb/formal.ys  # Ubuntu 24.04 Yosys 0.33
+```
+
+整顶层的 RTL、GDS 和时序记录以[物理交付目录](../task2/physical/README.md)为准。真实 chopper、CBIAS、模拟宏跨域及联合后仿仍需要模拟组数据和约束。

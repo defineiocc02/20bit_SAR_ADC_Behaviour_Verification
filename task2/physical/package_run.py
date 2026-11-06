@@ -24,7 +24,9 @@ def freeze(args: argparse.Namespace) -> None:
     """Bind every RTL and physical configuration input to the executed commit."""
     source = args.repo.resolve()
     physical = "task2/physical"
-    configs = sorted({args.config, f"{physical}/sky130_config.mk"})
+    configs = {args.config, f"{physical}/sky130_config.mk"}
+    if args.top == "sar20_digital_lms_top":
+        configs.add(f"{physical}/sky130_integrated_config.mk")
     verilog = set()
     for config in configs:
         verilog.update(re.findall(r"\$\(REPO_DIR\)/([\w/.-]+\.sv)", (source / config).read_text()))
@@ -32,7 +34,7 @@ def freeze(args: argparse.Namespace) -> None:
         raise ValueError("No frozen RTL inputs")
     files = sorted(
         verilog
-        | set(configs)
+        | configs
         | {
             "task1/physical/sky130_constraint.sdc",
             "task1/physical/post_route.tcl",
@@ -57,6 +59,14 @@ def freeze(args: argparse.Namespace) -> None:
     delivery = args.output / "delivery"
     plan = json.loads((source / physical / "plan.json").read_text())
     plan.update(run_id=args.run_id, top=args.top, rtl_commit=args.sha, config=args.config)
+    if args.top == "sar20_digital_lms_top":
+        plan["floorplan"] = {
+            "synthesized_cell_utilization_percent": 33,
+            "aspect": 1,
+            "margin_um": 20,
+        }
+    else:
+        plan["floorplan"] = {"die_um": [0, 0, 450, 450], "core_um": [20, 20, 430, 430]}
     write_json(delivery / "plan.json", plan)
     write_json(delivery / "inputs.json", {name: describe_file(source / name) for name in files})
 
@@ -93,7 +103,7 @@ def read_pv(output: Path, result: Path, reports: Path, logs: Path) -> dict:
                     status="PASS" if exit_code == 0 and violations == 0 else "FAIL",
                     report=candidate.name,
                 )
-        elif re.search(r"netlists? (?:do not match|mismatch)|lvs.*failed", log, re.I):
+        elif re.search(r"netlists? (?:do not match|don't match|mismatch)|lvs.*failed", log, re.I):
             record.update(status="FAIL", report=verdict_path.name)
         elif exit_code == 0 and re.search(r"netlists? match|lvs.*(?:passed|successful)", log, re.I):
             record.update(status="PASS", report=verdict_path.name)

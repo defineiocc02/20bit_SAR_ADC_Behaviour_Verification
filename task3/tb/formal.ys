@@ -1,0 +1,7 @@
+# Ubuntu Noble Yosys 0.33, with a synchronous reset at time 1.
+read_verilog -sv -formal task3/rtl/caaz20_pair.sv task3/tb/caaz20_properties.sv
+prep -top caaz20_properties -flatten
+opt
+select -assert-any t:$assert
+sat -seq 9 -set-at 1 rst_ni 0 -set-def-inputs -prove-asserts -timeout 45 -verify
+sat -seq 5 -set-at 1 rst_ni 0 -set-at 5 out_pair 1 -set-def-inputs -prove out_valid 0 -prove-skip 4 -falsify -timeout 15

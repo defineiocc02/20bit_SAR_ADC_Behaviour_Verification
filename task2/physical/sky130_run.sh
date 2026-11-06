@@ -3,7 +3,7 @@
 set -euo pipefail
 
 if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
-  echo 'Usage: bash task2/physical/sky130_run.sh EMPTY_DIRECTORY [dither8_top|sar20_digital_top]' >&2
+  echo 'Usage: bash task2/physical/sky130_run.sh EMPTY_DIRECTORY [dither8_top|sar20_digital_top|sar20_digital_lms_top]' >&2
   exit 2
 fi
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -11,6 +11,7 @@ top="${2:-dither8_top}"
 case "$top" in
   dither8_top) config=task2/physical/sky130_config.mk; nickname=task2_dither8 ;;
   sar20_digital_top) config=task2/physical/sky130_integrated_config.mk; nickname=task_integration_sar20 ;;
+  sar20_digital_lms_top) config=task2/physical/sky130_lms_config.mk; nickname=task_integration_sar20_lms ;;
   *) echo "Unsupported SKY130HD top: $top" >&2; exit 2 ;;
 esac
 image=openroad/orfs@sha256:a6140cf4dc568e10238356f67b9fd73b9074955eeda6f2ee126bc60f5d7fc3ac

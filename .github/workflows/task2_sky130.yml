@@ -18,6 +18,7 @@ on:
       - 'task2/physical/plan.json'
       - 'task3/rtl/**'
       - 'task_integration/rtl/**'
+      - 'task_reconstruction/rtl/**'
       - '.github/workflows/task2_sky130.yml'
   workflow_dispatch:
 
@@ -42,6 +43,8 @@ jobs:
             source: task2/eight_rtl/rtl/dither8_top.sv
           - top: sar20_digital_top
             source: task_integration/rtl/sar20_digital_top.sv
+          - top: sar20_digital_lms_top
+            source: task_integration/rtl/sar20_digital_lms_top.sv
     env:
       RUN_DIR: /tmp/task2-sky130-${{ matrix.top }}-${{ github.run_id }}-${{ github.run_attempt }}
       TASK2_PHYSICAL_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.top }}

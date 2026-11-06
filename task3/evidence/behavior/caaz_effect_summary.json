@@ -1,0 +1,46 @@
+{
+  "artifact_sha256": {
+    "caaz_effect.pdf": "50f0808ff23b13fbe621c0a64dced840ce8752d07e39ce1c739390508d022482",
+    "caaz_effect.png": "78af8559ef487faa047b54b1042cc647f1cc6c29115a708b6a805ec0e41abf9b",
+    "caaz_effect.svg": "5f44370076cb1ce71f11bbc463868c4432e124576d6b6f4d8cdcafab92fbfbe5",
+    "caaz_effect_data.npz": "aedafff4275ceb3f2be9c1e13553da1694e9f47caff73b16d342c19be1ca0326"
+  },
+  "az_sigma_v": 2e-05,
+  "equal_bandwidth_hz": [
+    0,
+    2500000.0
+  ],
+  "fft_len": 2048,
+  "font_family": "Hiragino Sans GB",
+  "fresh_sigma_v": 1e-05,
+  "hold_ratio": 0.75,
+  "hold_shift_v": 5e-06,
+  "ideal_caaz_vs_conventional_ac_noise_reduction_db": 6.3691106614782065,
+  "metrics": {
+    "caaz_hold_error": {
+      "ac_rms_uv": 8.15138990162434,
+      "offset_uv": -0.12732925824940125
+    },
+    "caaz_ideal": {
+      "ac_rms_uv": 7.764456016410487,
+      "offset_uv": 2.3863685782986885
+    },
+    "conventional": {
+      "ac_rms_uv": 16.16465973627556,
+      "offset_uv": 42.4061727244395
+    }
+  },
+  "nominal_lsb20_v": 9.5367431640625e-06,
+  "offset_v": 4e-05,
+  "paired_rate_hz": 5000000,
+  "pairs_per_case": 65536,
+  "raw_rate_hz": 10000000,
+  "scope": "ILLUSTRATIVE_SAMPLE_DOMAIN_SHARED_AZ_NOISE",
+  "seed": 13281824,
+  "source_sha256": {
+    "task1/experiments/full20_linearity_plots.py": "680a9741203d94299fc632dedc7c43a2a66f025ec343e1863ac5121ad459b901",
+    "task3/tools/run_caaz_effect.py": "192b936bd3087d168592005f989fd5a72487c868dcd8198b41c2ccbeda4cac04"
+  },
+  "tone_hz": 2822.8759765625,
+  "tone_peak_v": 0.5
+}

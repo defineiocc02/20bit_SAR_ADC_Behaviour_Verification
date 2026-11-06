@@ -1,0 +1,55 @@
+name: 20b10mtask integrated digital verification
+
+on:
+  push:
+    branches: [20b10mtask]
+    paths:
+      - 'task_integration/**'
+      - 'task_reconstruction/**'
+      - 'task1/rtl/**'
+      - 'task1/requirements*.txt'
+      - 'task2/rtl/**'
+      - 'task2/eight*/**'
+      - 'task2/evidence/eight_native/**'
+      - 'task3/rtl/**'
+      - 'tools/run_open_rtl.py'
+      - '.github/workflows/task_integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: .:src
+      OPENBLAS_NUM_THREADS: '1'
+      VERILATOR: verilator
+      CXX: clang++
+      OUT: /tmp/sar20-integration-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: task1/requirements-calibration.txt
+      - name: Install simulator and Python dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y verilator clang
+          python -m pip install -r task1/requirements-calibration.txt
+      - name: Verify both top-level paths
+        run: |
+          python task_integration/tools/run_checks.py --out "$OUT/external"
+          python task_integration/tools/run_lms_checks.py --out "$OUT/on_chip"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sar20-digital-verification
+          path: ${{ env.OUT }}
+          retention-days: 14

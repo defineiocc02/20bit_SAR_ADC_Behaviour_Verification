@@ -1,0 +1,19 @@
+clock_domain: clk_i
+reset: synchronous_active_low
+requirements:
+  REQ-TOP-01:
+    test: integrated_steady_4096
+    checks: [cadence_16, disjoint_8_by_8, sample_id, dither_word, acquisition_alignment]
+  REQ-TOP-02:
+    test: integrated_protocol_errors
+    checks: [stall, invalid_seed, early_result, wrong_id, duplicate_command, command_overflow, late_result, clear]
+  REQ-TOP-03:
+    test: integrated_caaz_pair
+    checks: [disabled_bypass, independent_dither, per_sample_subtraction, signed_floor, az_error, bad_sample]
+  REQ-TOP-04:
+    test: sky130hd_integrated_physical
+    checks: [synthesis, detailed_route, extracted_sta, gds, drc_lvs_status]
+  REQ-TOP-05:
+    test: integrated_on_chip_lms_pipeline
+    checks: [two_inflight_tags, adc2_command_binding, frozen_weight_replay, bypass_2pct,
+             chopped_3pct, cadence_16, result_latency_23, malformed_id, config_freeze, macro_bad]

@@ -1,0 +1,72 @@
+{
+  "artifact_size_and_sha256_checks": 64,
+  "checked_workspace_commit": "080ccfed5efe402d89b2d135d531a7c8b52801d8",
+  "clock_period_ns": 6.25,
+  "corner": "TT 25 C, 1.80 V with extracted SPEF",
+  "gds_member": "sar20_digital_lms_top/sar20_digital_lms_top.gds",
+  "gds_sha256": "4aa02f35dae17c528f72bce9a06a7c8aee466c9a163d210ae54a9265a8ed02c3",
+  "gds_structure_count_verified": 199,
+  "gds_top_verified": "sar20_digital_lms_top",
+  "independent_public_verification": {
+    "drc": {
+      "exit_code": 124,
+      "reason": "Original public-deck command exceeded the 300 s budget. No completed comparison or rule-count conclusion.",
+      "status": "BLOCKED"
+    },
+    "lvs": {
+      "exit_code": 124,
+      "reason": "Original public-deck command exceeded the 300 s budget. No completed comparison or rule-count conclusion.",
+      "status": "BLOCKED"
+    }
+  },
+  "inputs_matching_frozen_commit_and_current_workspace": 27,
+  "overall_physical_gate": "BLOCKED",
+  "platform": "sky130hd",
+  "release_claim": "PARTIAL_SIGNOFF",
+  "release_manifest_sha256": "482cb6ae74a1577fa5f2f3104975c065d20c84dc07288fc3aac753bbee770459",
+  "repo_relative_release_manifest": "task2/physical/evidence/sar20_digital_lms_top_manifest_42278312924.json",
+  "repo_relative_zip": "task2/physical/evidence/sar20_digital_lms_top_sky130hd_run_42278312924.zip",
+  "requirement": "REQ-TOP-04",
+  "requirement_scope": "A reproducible SKY130HD routed GDS, extracted TT 6.25 ns STA, and a report of independent verification status.",
+  "requirement_status": "PASS",
+  "router": {
+    "antenna_nets": 0,
+    "antenna_pins": 0,
+    "router_drc": 0
+  },
+  "schema": "sar20-integrated-physical-proxy-receipt-v1",
+  "scope_limit": "Public SKY130HD TT digital proxy with proxy I/O budgets. Target 180 nm BCD, actual macro timing and product signoff remain pending.",
+  "source_commit": "43b2fc5b72d69182d4d29260125b70057f822621",
+  "subgates": {
+    "activity_based_power": "NOT_RUN",
+    "independent_public_drc": "BLOCKED_TIMEOUT",
+    "independent_public_lvs": "BLOCKED_TIMEOUT",
+    "integrated_formal": "NOT_RUN",
+    "multicorner_sta": "NOT_RUN",
+    "post_route_tt_setup_and_hold": "PASS",
+    "power_integrity": "NOT_RUN",
+    "routed_gds": "PASS",
+    "router_drc_and_antenna": "PASS",
+    "system_io_timing_validation": "NOT_RUN"
+  },
+  "timing": {
+    "hold": {
+      "status": "PASS",
+      "tns_ns": 0.0,
+      "violations": 0,
+      "wns_ns": 0.0,
+      "worst_slack_ns": 0.0430949
+    },
+    "setup": {
+      "status": "PASS",
+      "tns_ns": 0.0,
+      "violations": 0,
+      "wns_ns": 0.0,
+      "worst_slack_ns": 0.0805565
+    }
+  },
+  "top": "sar20_digital_lms_top",
+  "workflow": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42278312924/job/128100348386",
+  "workflow_run": "42278312924",
+  "zip_sha256": "78abc174991fb474f371671a1ef666f30f7687d4262941078415a8ba83608950"
+}

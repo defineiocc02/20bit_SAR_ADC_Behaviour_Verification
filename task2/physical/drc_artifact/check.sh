@@ -70,6 +70,9 @@ docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
     expected_sha=$(python3 -c "import json; print(json.load(open(\"/work/out/drc_input.json\"))[\"deck_sha256\"])" )
     printf "%s  %s\n" "$expected_sha" "$deck" | sha256sum -c
     gds=/work/input/sar20_digital_lms_top.gds
+    # ORFS normally supplies this variable through make; standalone replay does it here.
+    export KLAYOUT_CMD="$(command -v klayout)"
+    test -x "$KLAYOUT_CMD"
     klayout -v > /work/out/tools.txt
     if timeout -k 30 2100 ./scripts/klayout.sh -zz \
       -rd "in_gds=$gds" -rd report_file=/work/out/drc.lyrdb -r "$deck" \

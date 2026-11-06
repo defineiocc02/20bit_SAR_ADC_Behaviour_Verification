@@ -14,6 +14,10 @@
     {
       "path": "evidence/on_chip/result.json",
       "sha256": "6e3a5b0170e007d0753383ded01824ac1031c52b319b1bd4e4812317be26de68"
+    },
+    {
+      "path": "evidence/physical_tt_42278312924.json",
+      "sha256": "c3a7376f5595b6ed566530a4d7f6099377e4464cab8eeced41b1aa3875ccea75"
     }
   ],
   "limits": [
@@ -25,6 +29,19 @@
     "maximum_inflight": 2,
     "normal_adc2_to_lms_output_clocks": 23,
     "raw_interval_clocks": 16
+  },
+  "physical_proxy": {
+    "evidence": {
+      "path": "evidence/physical_tt_42278312924.json",
+      "sha256": "c3a7376f5595b6ed566530a4d7f6099377e4464cab8eeced41b1aa3875ccea75"
+    },
+    "overall_gate_status": "BLOCKED",
+    "release_claim": "PARTIAL_SIGNOFF",
+    "requirement": "REQ-TOP-04",
+    "requirement_status": "PASS",
+    "scope": "SKY130HD extracted TT, 25 C and 1.80 V with proxy I/O budgets",
+    "source_commit": "43b2fc5b72d69182d4d29260125b70057f822621",
+    "workflow_run": "42278312924"
   },
   "repo_relative_rtl_sha256": {
     "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
@@ -45,9 +62,9 @@
   "source_sha256": {
     "LMS_PIPELINE.md": "0dd478cec65b22924de9f67b7d90412ec6fff39180972c87d43837902d30bc93",
     "SPEC.md": "10789107717e8f8ef96097b550acdadedbcc53ad79bb01d7a3b86d2ff6ee0d67",
-    "gate_evidence.json": "67238403d473b476616d75af0ec5f906c4648889a79d6c9f27a05126935749ef",
+    "gate_evidence.json": "e8c4409e2a1fb7c1313a2b539edec2bc75de93ffe5940c4bf43f1d9a1b4f0658",
     "microarchitecture.md": "e3bc4ae6c79177cb66530c476c4b686f2d8266d22eebada54acd53cc940e4fca",
-    "requirements_trace.csv": "d82c8bd381dae7a05537a8fd196ee76544562aecf45773a194462e14103490d1",
+    "requirements_trace.csv": "1d16c9d8a0d61e82b5bf1b0c844ca1ca938d74744803fbcc9d9b274b6f08794c",
     "verification_plan.yaml": "fb697758c05252d9596738c92bbefb0f9f85e410c9246dab070f1e19ada86536"
   },
   "tops": [

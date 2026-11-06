@@ -1,8 +1,0 @@
-{
-  "weight_fraction_bits": 30,
-  "voltage_fraction_bits": 32,
-  "voltage_bits": 64,
-  "coefficient_bits": 48,
-  "accumulator_bits": 96,
-  "output_bits": 20
-}

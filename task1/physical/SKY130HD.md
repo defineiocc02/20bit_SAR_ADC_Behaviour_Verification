@@ -62,3 +62,16 @@ bash task1/physical/sky130_run.sh /tmp/task1-sky130hd module1_top
 | `module1_bridge_top` | −1.07394 | −37.6221 | 51 | +0.0944335 | 0 |
 
 两版 setup 仍有违例，hold 通过。该轮分别减少了 13 和 14 个 setup 违例端点，最差裕量却较上一轮变小。最差路径同样从 `scan_cursor_onehot[1]` 出发，进入物理前缀和采集 ID。两版详细路由 DRC 和天线违规均为 0，VDD／VSS 网格连通。独立 DRC 和 LVS 为 `NOT_RUN`。
+
+## 游标前缀缓存的布线复验
+
+`e691c1bb461ce110442900debd761832c795e3a5` 的两顶层继续使用相同工艺角与 6.25 ns SDC。 [两版 GDS／STA](evidence/module1_pair_sky130hd_run_42240955810.zip) · [哈希清单](evidence/sky130hd_pair_manifest_42240955810.json) · [Actions 运行](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42240955810)
+
+| 顶层 | Setup 最小裕量 (ns) | Setup WNS／TNS (ns) | Setup 违例 | Hold 最小裕量 (ns) | Hold WNS／TNS (ns) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `module1_top` | −0.0469957 | −0.0469957／−0.0469957 | 1 | +0.103554 | 0／0 |
+| `module1_bridge_top` | +0.0667231 | 0／0 | 0 | +0.0898763 | 0／0 |
+
+桥接版 setup 和 hold 均通过。基础版 setup 只剩 `conv_ids_o[22]→conv_valid_o` 一个违例，hold 通过。两版详细路由 DRC 和天线违规均为 0，VDD／VSS 网格连通。独立 DRC 和 LVS 为 `NOT_RUN`。
+
+下一轮只将 ORFS 的 `SETUP_SLACK_MARGIN` 从默认 0 ns 调为 0.15 ns，以便在物理修复时为布线后抽取预留余量。RTL、SDC、时钟、I/O、工艺角、die／core、密度与镜像沿用该轮。验收仍读取同一实际 6.25 ns SDC 下的抽取后报告。

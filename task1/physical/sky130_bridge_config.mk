@@ -15,3 +15,5 @@ export CORE_AREA = 20 20 430 430
 export PLACE_DENSITY = 0.42
 export TNS_END_PERCENT = 100
 export NUM_CORES = 4
+# Extra margin for physical setup repair. Signoff still uses the unchanged SDC.
+export SETUP_SLACK_MARGIN = 0.15

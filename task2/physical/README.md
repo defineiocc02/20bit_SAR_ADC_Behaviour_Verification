@@ -4,6 +4,8 @@
 
 后端使用固定镜像的 Linux amd64 OpenROAD/Yosys/KLayout。顶层沿用模块一的 6.25 ns 单时钟 SDC、I/O 延时、5 fF 负载，以及 SKY130HD TT、25 °C、1.80 V 工艺角。前两版布局初值为 450 × 450 µm，核心框为 (20, 20) 至 (430, 430) µm。片上重构版增加系数存储和流水算术，按综合单元面积 33% 的初始核心利用率定方形底图，留 20 µm 边距。P&R 每顶层使用 4 线程，CI 设 40 分钟上限。[SDC](../../task1/physical/sky130_constraint.sdc) · [运行计划](plan.json)
 
+已复跑的八片控制顶层，在上述 TT 角和时钟下 setup 裕量为 +0.154860 ns、hold 裕量为 +0.0631387 ns，公开 DRC 为 0。独立 LVS 实际日志报告网表不匹配，属于 **FAIL**，正在核对公开规则；原始运行记录中因未产生 LVSDB 被自动标作 BLOCKED，外层复核清单已纠正。[GDS、网表和原始报告](evidence/dither8_top_sky130hd_run_42265153017.zip) · [哈希与 LVS 复核](evidence/dither8_top_manifest_42265153017.json)
+
 在 Linux amd64 Docker 环境中，从干净的目标提交运行。输出目录需要为空。
 
 ```sh

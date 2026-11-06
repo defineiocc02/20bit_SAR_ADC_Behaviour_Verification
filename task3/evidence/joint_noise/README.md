@@ -29,6 +29,8 @@ AZ 样本由 PCG64 `0x0A2E2025` 生成，标准差 20 µV。独立噪声由另�
 
 图表验证的是上述固定失配池中的同笔处理和共享噪声机制。实际 CBIAS 保持、RA 增益及噪声谱、斩波建立与跨域时序仍由模拟宏和联合后仿验证。论文的 4.3 dB 含普通两笔平均和 AZ 项抵消；本对照的各组已经采用相同的两笔处理速率。
 
+四组带噪 ADC2 码已在完整数字 RTL 复演：16,384 笔重构码、8,192 对结果逐码一致，其中共享 AZ 的 4,096 对由 RTL CAAZ 直接发布；两组独立 AZ 基线由实际 RTL 旁路码在台架中配对。[整体 RTL 对拍与范围](../../../task_integration/evidence/joint_noise/README.md)
+
 [完整采样与重构轨迹](caaz_joint_noise_data.npz) · [指标、参数与 SHA-256](summary.json) · [PDF 图](caaz_joint_noise.pdf) · [3% 物理池与训练数据](../../../task2/evidence/eight_native/sigma_3pct/data.npz)
 
 摘要记录归档对拍的配置字和逐笔向量标识，带噪四组各自保留新向量的哈希。PDF 导出矢量字形，绘图脚本和 SVG 随图保存。

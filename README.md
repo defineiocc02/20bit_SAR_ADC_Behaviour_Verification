@@ -52,7 +52,7 @@
 
 ![同一失配池中 CAAZ 的 AZ 噪声开关对照](task3/evidence/joint_noise/caaz_joint_noise.png)
 
-这组**样本域模型**在 CDAC 残差之后、ADC2 量化之前加入人工设定的 AZ 与独立噪声。相同 5 MS/s 带宽下，独立 AZ 基线的总误差为 19.13 µV RMS，理想共享 AZ 后为 13.68 µV RMS，加入示例保持误差后为 13.75 µV RMS。实际 RA 噪声、保持泄漏和时序仍需模拟验证。[模型、工况与原始数据](task3/evidence/joint_noise/README.md)
+这组**样本域模型**在 CDAC 残差之后、ADC2 量化之前加入人工设定的 AZ 与独立噪声。相同 5 MS/s 带宽下，独立 AZ 基线的总误差为 19.13 µV RMS，理想共享 AZ 后为 13.68 µV RMS，加入示例保持误差后为 13.75 µV RMS。四组带噪 ADC2 数据已在整体数字 RTL 复演；实际 RA 噪声、保持泄漏和时序仍需模拟验证。[模型、工况与原始数据](task3/evidence/joint_noise/README.md) · [RTL 逐笔对拍](task_integration/evidence/joint_noise/README.md)
 
 ## 现在交付到哪里？
 

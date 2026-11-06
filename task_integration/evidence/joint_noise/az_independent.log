@@ -1,0 +1,5 @@
+SAR20_JOINT_NOISE_COMPLETE cycles=65979 checks=107341 adc2_captures=4096 reconstructed=4096 outputs=4096 peak_inflight=2
+- task_integration/tb/sar20_joint_noise_tb.sv:279: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.30
+- Verilator: $finish at 136us; walltime 0.087 s; speed 1.566 ms/s
+- Verilator: cpu 0.087 s on 1 threads; alloced 0 MB

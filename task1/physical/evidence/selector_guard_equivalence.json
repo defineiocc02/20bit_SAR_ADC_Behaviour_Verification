@@ -1,0 +1,117 @@
+{
+  "reference_commit": "7425f2468233bfc6f02658c33aec7d7054fe3c20",
+  "sources": {
+    "task1/rtl/slice_scheduler.sv": {
+      "baseline_sha256": "2fc7e3839ee11c96273933a872cb3e404fbbfd37cf6cb6c82f7b146595ffe25e",
+      "candidate_sha256": "52f69b9b84cdc46990e6e95b82c6172996349d32064643dd50f292aecd860b80"
+    },
+    "task1/rtl/module1_top.sv": {
+      "baseline_sha256": "7887b9dbc435f96b39e964954a8c9d89e9c2560243f203b9ef96334f6616f471",
+      "candidate_sha256": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835"
+    }
+  },
+  "tool": "Yosys 0.69 (git sha1 9f75ca1f9)",
+  "proof": {
+    "reachable_selector": {
+      "proven": 704,
+      "unproven": 0
+    },
+    "cursor_bound_and_onehot_cache": "PASS",
+    "rotate_unrotate_and_candidate_ids": "PASS",
+    "reset_then_two_arbitrary_edges": "PASS",
+    "guard_prefix_count_induction": "PASS",
+    "shift_mutation_detected": "PASS",
+    "guard_threshold_mutation_detected": "PASS"
+  },
+  "generic_bridge_top_gate_depth_noabc": {
+    "reference": 70,
+    "candidate": 35
+  },
+  "verilator": {
+    "version": "5.030",
+    "mismatches": 0,
+    "tops": {
+      "module1_top": {
+        "dem_active": 122880,
+        "dem_bypass": 131072,
+        "dem_invalid": 8192,
+        "scheduler_accepts": 4227,
+        "scheduler_conversions": 4223,
+        "scheduler_cycles": 4617,
+        "scheduler_seed_errors": 2,
+        "scheduler_stalls": 137,
+        "scheduler_steady_slots": 4096,
+        "top_accepts": 4099,
+        "top_active_prefixes": 2051,
+        "top_bypass_prefixes": 2048,
+        "top_code_errors": 2,
+        "top_conversions": 4097,
+        "top_cycles": 4116,
+        "top_seed_errors": 3,
+        "top_stalls": 1,
+        "top_steady_slots": 4096
+      },
+      "module1_bridge_top": {
+        "leaf_cases": 65536,
+        "leaf_nonzero_corrections": 49152,
+        "top_accepts": 4100,
+        "top_bridge_prefixes": 2052,
+        "top_code_errors": 2,
+        "top_cycles": 4119,
+        "top_fig11_bypass_prefixes": 1024,
+        "top_fig11_dem_prefixes": 1025,
+        "top_nonzero_corrections": 1538,
+        "top_seed_errors": 2,
+        "top_stalls": 1,
+        "top_steady_slots": 4096
+      }
+    }
+  },
+  "python_targeted_tests_passed": 13,
+  "members": {
+    "guard/gate.sv": "5d294607e23aaa86dec61ca1726f4dec86fd887292c4d4965cdf110776cc0125",
+    "guard/gold.sv": "9a183fcb994cf698cc7a5675fbeb92813473f9d3bcdf1c1d7867f7918e3bfcd1",
+    "guard/induction.log": "a17c5f09ee83cd4f77e8586fbdf531d2ae83a9b7b2441285e7ebd91b16bff53e",
+    "guard/induction.sv": "868d8ac137f783eb84d4aa64b32614ee79a962886cfff3dc356360ea406bdda7",
+    "guard/induction.ys": "a5f56696ea3ba4bb0735f10cc6968de2e360348c7505d6b95fd102684faf592f",
+    "guard/module1_top.sv": "7887b9dbc435f96b39e964954a8c9d89e9c2560243f203b9ef96334f6616f471",
+    "guard/module1_top_balanced.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
+    "guard/mutant_guard.log": "12a1208d39231247b38d1fa5d88fb3d801457d7f06e626a655354eb12b814151",
+    "guard/mutant_guard.sv": "bf13f2aa76d372b1f93e48892a40eb4fe3eaeb75da7585eefce6e61d5be388f9",
+    "guard/mutant_guard.ys": "4f2188d25415a9c6e905a1edd2a284e84c843756525693d399294c2ad46fe7f7",
+    "selector/baseline.sv": "2fc7e3839ee11c96273933a872cb3e404fbbfd37cf6cb6c82f7b146595ffe25e",
+    "selector/baseline_kept.sv": "7389bb55fac0fcce3b4e3aa55b73b064c12f9ffed0b99e2ac73e2b313b25c29e",
+    "selector/cache_invariant.log": "e554259e6997fe0597a32c267eaec87db9466cac69cbdd6d8103babc681871f9",
+    "selector/cache_invariant.sv": "d2f3a3439b9e84b9b65c408bff6d40842f3a2246b0ee50c74f469b45c8bd7007",
+    "selector/cache_invariant.ys": "343c3cd7d6fc8d2360246d20daff6b8d37740cf13dcc83edd669b28f3bb21df4",
+    "selector/crossbar_equivalence.log": "242f73b4f03deefc4311127e5c3e562572de720e2311b2370a1c7d38538d6d3a",
+    "selector/crossbar_equivalence.sv": "cdb1eee6d61208345c21b4995eb78c00728e5eeaecaa4e8577af829f128ac233",
+    "selector/crossbar_equivalence.ys": "a718d0b1103d701f8bb68961ca160d3cd729c59d83ce9521586500baab70bc34",
+    "selector/equiv_kept.log": "9faf16d8040ce17150ebb3aa6c46804173fefaaa2227e9afcc344a590ee42969",
+    "selector/equiv_kept.ys": "1364ed274786378f7f1dd5755ff7010dc7994aef2838423fe74f54c7ea4f4d4c",
+    "selector/levels.log": "725bcd20d2793b2087e64c10a10dfc9bcc436265bcceddf6712ea8e5f5fbeade",
+    "selector/mutant_shift.log": "80f5e60edac948a1a48c3880d9d6b5b643297b9a4c1b86a9aba5d0fee9649056",
+    "selector/mutant_shift.sv": "d3fa24f23af3dbfc42fc502d8ccb907a15903cc7e0eace33ca6f85bd668f3274",
+    "selector/mutant_shift.ys": "70f6e668dea8b8aaba9da78275119a27f3f62eedd066f6ce8875ffb45bce8e8c",
+    "selector/reset.log": "133a866142030f6e9a1fbc8b6d7c63b9b278e5f6ed001d77264f41e2efa5f41f",
+    "selector/reset.ys": "ff4fc9343e76289ca21d575729614305f8376b70412ce7461687390ca41530c5",
+    "selector/slice_scheduler.sv": "52f69b9b84cdc46990e6e95b82c6172996349d32064643dd50f292aecd860b80",
+    "verilator/module1_bridge_top/compile.log": "07ce1f6dddf2d4504e571da8f1f612fb13c496c99287c09958539f2f6e49ae7f",
+    "verilator/module1_bridge_top/module1_bridge_top.lint.log": "ff5e5933e28d1ac00fe90dd194aeace0c8ef956e3240a8005fae03dbcf6b70d0",
+    "verilator/module1_bridge_top/result.json": "cc9db317b47e01042c72af9406aef77c2d60b47151fc7ff5401b069df91ed5d7",
+    "verilator/module1_bridge_top/run.log": "beb4afac79dea61a1cabedb8dc586fd6487a06d7a8b1b045aaa6734152ffdf2c",
+    "verilator/module1_bridge_top/verilator.log": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1",
+    "verilator/module1_top/compile.log": "8272669aa895a517396953441af6591b3a24497987191a517f0929759712f066",
+    "verilator/module1_top/fig11_dem.lint.log": "b28e83fa0eb1c074af96bdecaaac566ba1d68cae5c9475ead2bb77e70832dfc2",
+    "verilator/module1_top/module1_top.lint.log": "43c938ac60d01965785ebe86032603e0a7a5c1cf97b38c024bbdc2ba0b9a3c68",
+    "verilator/module1_top/result.json": "1af2dde4d49441d2ab1466b423ff98af6075eb2a2ed8a1231ac3a7bb25f77340",
+    "verilator/module1_top/run.log": "0b0862bdb5bcd9010a6b6739a93f8861f522bc4fa392778a896566c1aa02ec59",
+    "verilator/module1_top/task1_slice_scheduler.lint.log": "579c19d82e829d7d9e15de521ac31109d5f6d5cf3938040c26c06b3b8f7b2b9b",
+    "verilator/module1_top/verilator.log": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1"
+  },
+  "archive": {
+    "path": "selector_guard_equivalence.zip",
+    "bytes": 146298,
+    "sha256": "92cccc0c6896fdcfaab075dbc38543eebd1b179ee65735c1b5faa091d1fc3fdc"
+  }
+}

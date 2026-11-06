@@ -2,7 +2,7 @@
 
 ## 本任务当前结果：固定失配下的 DEM＋LMS
 
-对 2%／3% 电容失配、每档五颗虚拟芯片，14 位聚合码密度的峰值 INL 和 DNL 均为 5/5 颗改善。比较使用独立训练的“无 DEM＋LMS”和“跨段 DEM＋LMS”。[结果与测法](task1/evidence/inl_dnl/README.md)；20 位逐笔单调性、真实模拟后级及 SKY130 时序仍需验证。
+对 2%／3% 电容失配、每档五颗虚拟芯片，14 位聚合码密度的峰值 INL 和 DNL 均为 5/5 颗改善。比较使用独立训练的“无 DEM＋LMS”和“跨段 DEM＋LMS”。[结果与测法](task1/evidence/inl_dnl/README.md)；20 位逐笔单调性及真实模拟后级仍需验证，SKY130 当前 setup 尚未收敛。
 
 ![固定失配下，只有 LMS 与跨段 DEM＋LMS 的统计线性度](task1/evidence/inl_dnl/linearity.png)
 

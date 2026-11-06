@@ -1,0 +1,278 @@
+{
+  "claim": "PUBLIC_SKY130HD_IMPLEMENTATION",
+  "platform": "SkyWater SKY130HD",
+  "top": "module1_bridge_top",
+  "liberty": "sky130_fd_sc_hd__tt_025C_1v80.lib",
+  "corner": {
+    "process": "TT",
+    "temperature_c": 25,
+    "voltage_v": 1.8
+  },
+  "clock_period_ns": 6.25,
+  "io_budget": {
+    "input_min_ns": 0.2,
+    "input_max_ns": 0.8,
+    "input_transition_ns": 0.1,
+    "output_min_ns": -0.2,
+    "output_max_ns": 0.8,
+    "output_load_ff": 5.0,
+    "setup_uncertainty_ns": 0.1,
+    "hold_uncertainty_ns": 0.05
+  },
+  "rtl_commit": "1d60f09d70f1112c7e03fe4581df2681cae94717",
+  "container_digest": "openroad/orfs@sha256:a6140cf4dc568e10238356f67b9fd73b9074955eeda6f2ee126bc60f5d7fc3ac",
+  "gds": {
+    "tops": [
+      "module1_bridge_top"
+    ],
+    "cells": 198,
+    "geometry_records": 88367
+  },
+  "timing": {
+    "setup": {
+      "worst_slack_ns": -8.00048,
+      "wns_ns": -8.00048,
+      "tns_ns": -1761.04,
+      "violations": 352,
+      "status": "FAIL"
+    },
+    "hold": {
+      "worst_slack_ns": 0.0949691,
+      "wns_ns": 0.0,
+      "tns_ns": 0.0,
+      "violations": 0,
+      "status": "PASS"
+    }
+  },
+  "physical_checks": {
+    "router_drc_errors": 0,
+    "router_antenna_violating_nets": 0,
+    "router_antenna_violating_pins": 0,
+    "final_power_grid_connectivity": {
+      "VDD": "PASS",
+      "VSS": "PASS"
+    },
+    "independent_drc": "NOT_RUN",
+    "independent_lvs": "NOT_RUN"
+  },
+  "inputs": {
+    "rtl/slice_scheduler.sv": {
+      "bytes": 4391,
+      "mtime_ns": 1793971704505079234,
+      "sha256": "ea0d6ddcacc478b1951c8c6770dcbc523aad66072fce12cee8be2546461a948e"
+    },
+    "rtl/fig11_dem.sv": {
+      "bytes": 2559,
+      "mtime_ns": 1793971704504417534,
+      "sha256": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462"
+    },
+    "rtl/module1_top.sv": {
+      "bytes": 7774,
+      "mtime_ns": 1793971704505079234,
+      "sha256": "7887b9dbc435f96b39e964954a8c9d89e9c2560243f203b9ef96334f6616f471"
+    },
+    "physical/sky130_constraint.sdc": {
+      "bytes": 715,
+      "mtime_ns": 1793971704504326630,
+      "sha256": "01657f0555d1147c566a7a3adbf6f3250fa46a5546fce6fa0576bfbdeee5e6a3"
+    },
+    "physical/sky130_run.sh": {
+      "bytes": 2643,
+      "mtime_ns": 1793971704504417534,
+      "sha256": "c78acd24a4689ec6829f7cb984bfa5a88c7a78bbe9aa7b05b37ff3917e350687"
+    },
+    "physical/sky130_package.py": {
+      "bytes": 6874,
+      "mtime_ns": 1793971704504326630,
+      "sha256": "533905810dd8538c6d39424799c94832b979e9d3fafebc458ec59d49f68fcaec"
+    },
+    "physical/sky130_license.txt": {
+      "bytes": 11358,
+      "mtime_ns": 1793971704504326630,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    "physical/post_route.tcl": {
+      "bytes": 815,
+      "mtime_ns": 1793971704504326630,
+      "sha256": "138accc3d11d80b4fad153f445deb05c7f18f3bb6e7d49b8bb5d9878667df007"
+    },
+    "physical/package_proxy.py": {
+      "bytes": 6513,
+      "mtime_ns": 1793971704504326630,
+      "sha256": "2e298e8daec4eb49e6d8add4e8a09259d3956df5e4297ddb0460f70566eb8ccf"
+    },
+    "physical/sky130_bridge_config.mk": {
+      "bytes": 732,
+      "mtime_ns": 1793971704504326630,
+      "sha256": "6b0f4eee2446072a38018ccc553778befa7bec4d391647536d7d6a4d96cb48fe"
+    },
+    "rtl/fig21_bridge.sv": {
+      "bytes": 2764,
+      "mtime_ns": 1793971704505079234,
+      "sha256": "15a5fe746f012aeb655f9fc19a0b582646f445ab0a1cae16992c6a22f8c7a305"
+    },
+    "rtl/module1_bridge_top.sv": {
+      "bytes": 5084,
+      "mtime_ns": 1793971704505079234,
+      "sha256": "8181f1d629fefd67fc51b52483725f3c4675a613c73fff9be554e2ce6dcaaba1"
+    }
+  },
+  "artifacts": {
+    "SKY130HD-LICENSE.txt": {
+      "bytes": 11358,
+      "mtime_ns": 1793972470356033441,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    "constraint.sdc": {
+      "bytes": 715,
+      "mtime_ns": 1793971704504326630,
+      "sha256": "01657f0555d1147c566a7a3adbf6f3250fa46a5546fce6fa0576bfbdeee5e6a3"
+    },
+    "container.txt": {
+      "bytes": 86,
+      "mtime_ns": 1793971759301503030,
+      "sha256": "5a6477f531a8866db7dfc0fe6180792f534eb6c2e5f5ac345404bf1587bf19be"
+    },
+    "flow.log": {
+      "bytes": 433324,
+      "mtime_ns": 1793972470339615268,
+      "sha256": "09431dfbfef81d288c8f8bafabe587032ff9903f8b74c4da14ee3a4403ceb86f"
+    },
+    "liberty.sha256": {
+      "bytes": 100,
+      "mtime_ns": 1793972470381615624,
+      "sha256": "3ac25f642467bdff424723cacfa8920d1dd49eb187a1acdf5964626b326ada17"
+    },
+    "metrics/1_synth.json": {
+      "bytes": 751,
+      "mtime_ns": 1793971864425760603,
+      "sha256": "345d814190c7cb5bbf134df3873e0a8e7f81a51c826afcdee5dde3b4d2bb2527"
+    },
+    "metrics/2_1_floorplan.json": {
+      "bytes": 2029,
+      "mtime_ns": 1793971891668092058,
+      "sha256": "e058e49a0f3637ea319582b3664e5cadb0ea90614e43fb07c877f7f8757adfd8"
+    },
+    "metrics/2_2_floorplan_macro.json": {
+      "bytes": 92,
+      "mtime_ns": 1793971892363101614,
+      "sha256": "457f4501d1c2410a68df754e723af496c401b9bf93c5a1544083a4514ac2db40"
+    },
+    "metrics/2_3_floorplan_tapcell.json": {
+      "bytes": 92,
+      "mtime_ns": 1793971893039110908,
+      "sha256": "457f4501d1c2410a68df754e723af496c401b9bf93c5a1544083a4514ac2db40"
+    },
+    "metrics/2_4_floorplan_pdn.json": {
+      "bytes": 130,
+      "mtime_ns": 1793971893876128578,
+      "sha256": "aa2cbdc4e39252df6c085acc299c1cfe0e8ee8c60fc6fcd115b2c9ef32307883"
+    },
+    "metrics/3_1_place_gp_skip_io.json": {
+      "bytes": 92,
+      "mtime_ns": 1793971895549188139,
+      "sha256": "457f4501d1c2410a68df754e723af496c401b9bf93c5a1544083a4514ac2db40"
+    },
+    "metrics/3_2_place_iop.json": {
+      "bytes": 154,
+      "mtime_ns": 1793971896315215410,
+      "sha256": "a3060f5b455c92a31219d9b2ce66ce8cdfb384766df33c24698436ef623705a5"
+    },
+    "metrics/3_3_place_gp.json": {
+      "bytes": 1563,
+      "mtime_ns": 1793971907584052807,
+      "sha256": "b81a27eefc28b5d962e9324b5b75be04a8cbfbeab79f61bf5f23a14dae1bcaef"
+    },
+    "metrics/3_4_place_resized.json": {
+      "bytes": 1927,
+      "mtime_ns": 1793971910558153539,
+      "sha256": "ce867049eef820febb44543566ac4e4b8b82f6679ec2e9e5270c0427796937f6"
+    },
+    "metrics/3_5_place_dp.json": {
+      "bytes": 2481,
+      "mtime_ns": 1793971914994355380,
+      "sha256": "d4f721390b14760f2d95a8608b0c6e776acdf88800bf5798f52f0603811dd6e6"
+    },
+    "metrics/4_1_cts.json": {
+      "bytes": 2529,
+      "mtime_ns": 1793971987615257375,
+      "sha256": "09baca0094a589c7ebdb3b0ec4d45d36d9b2d8d4911ec994b0a914660e769942"
+    },
+    "metrics/5_1_grt.json": {
+      "bytes": 537327,
+      "mtime_ns": 1793972146333169654,
+      "sha256": "f31aab2a5910a5cf8064e1926d4d9dd269fb605dc093b187e0132fdeb66e1d8d"
+    },
+    "metrics/5_2_route.json": {
+      "bytes": 1335,
+      "mtime_ns": 1793972457134503042,
+      "sha256": "4125d521cdb2974c71a2c648e4abd1dcc99f8ea15b62c54675d998e633955404"
+    },
+    "metrics/5_3_fillcell.json": {
+      "bytes": 118,
+      "mtime_ns": 1793972458054510902,
+      "sha256": "a3456fcc6e4094165cf946e287e77a86735b5668192d41bfb69d5d9fc3a5a072"
+    },
+    "metrics/6_1_fill.json": {
+      "bytes": 92,
+      "mtime_ns": 1793972459189520598,
+      "sha256": "457f4501d1c2410a68df754e723af496c401b9bf93c5a1544083a4514ac2db40"
+    },
+    "metrics/6_report.json": {
+      "bytes": 3703,
+      "mtime_ns": 1793972465822577011,
+      "sha256": "9170201922e26c7318170ef74d5c19330aed8a44efd8a94029a1ad474d442883"
+    },
+    "module1_bridge_top.def": {
+      "bytes": 10129074,
+      "mtime_ns": 1793972460332530363,
+      "sha256": "79ec83c9b61cc24a3a67ac3b2b495a183fe89c263c9f52ca733cf0baf9505784"
+    },
+    "module1_bridge_top.gds": {
+      "bytes": 11717960,
+      "mtime_ns": 1793972468430599100,
+      "sha256": "3fcd73c9fcd5adac7ce7941f9420063bab444c885f80ad465b6e8bee1d6ba552"
+    },
+    "module1_bridge_top.odb": {
+      "bytes": 20952315,
+      "mtime_ns": 1793972460252529680,
+      "sha256": "3bafc97cdeaa61ca6565022860c96feb639e486807a278a7ad27dfcab76bada4"
+    },
+    "module1_bridge_top.sdc": {
+      "bytes": 161973,
+      "mtime_ns": 1793972466062402290,
+      "sha256": "700ba66ce5406eebb236b6862e8f1048e62d3fa4675f759a4d0191eadc2b4d71"
+    },
+    "module1_bridge_top.spef": {
+      "bytes": 10095735,
+      "mtime_ns": 1793972461190537693,
+      "sha256": "31e1a4252b80077c2b4202db92f30152da69460800c308f35dd65657ab7a4c6c"
+    },
+    "module1_bridge_top.v": {
+      "bytes": 1076468,
+      "mtime_ns": 1793972460368530671,
+      "sha256": "e2fbca32c34917fff159e42f10ec01945ab503bc4646674145f600258ce4c290"
+    },
+    "post_route_sta.rpt": {
+      "bytes": 75829,
+      "mtime_ns": 1793972470339615268,
+      "sha256": "d1dfbae0913f8ab9e1961716788b287f27dbd86d4493f1eefdbcf8ada142154f"
+    },
+    "rtl_commit.txt": {
+      "bytes": 41,
+      "mtime_ns": 1793971759301503030,
+      "sha256": "cd16f5a3607928c39f9bb8b02dd93b22a5a6b8ceae9c1700b6f3fdb73e20c8d0"
+    },
+    "tools.txt": {
+      "bytes": 130,
+      "mtime_ns": 1793971759630507736,
+      "sha256": "09e4da713608aa71cb14712b07c026c29036b90aa9ce8e877720b10826b0cce8"
+    }
+  },
+  "scope": {
+    "rtl_to_gds": "completed",
+    "post_route_setup_and_hold": "single TT corner with extracted SPEF",
+    "logical_equivalence": "not asserted by this flow",
+    "foundry_release": "not evaluated"
+  }
+}

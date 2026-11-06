@@ -39,7 +39,7 @@ module task1_slice_scheduler (
   localparam logic [31:0] DefaultSeed = 32'h243f6a88;
   localparam logic [31:0] LfsrTaps = 32'h80200003;
 
-  logic [4:0] scan_start, scan_cursor;
+  logic [17:0] scan_cursor_onehot, scan_select;
   logic [31:0] advanced_lfsr;
   logic [17:0] available_mask;
   logic [39:0] next_ids;
@@ -47,7 +47,6 @@ module task1_slice_scheduler (
   logic enough_slices;
   logic [17:0] scan_available;
   logic [17:0] scan_selected;
-  logic [35:0] selected_shifted;
   logic [4:0] scan_rank [18];
   logic [17:0] candidate_bit [5];
 
@@ -71,26 +70,39 @@ module task1_slice_scheduler (
   endfunction
 
   assign advanced_lfsr = lfsr_advance(lfsr_state_o);
-  assign scan_start = shuffle_i ? scan_cursor : 5'd0;
+  assign scan_select = shuffle_i ? scan_cursor_onehot : 18'd1;
 
   // 资格计数与轮转起点无关，单独决定本拍能否接受请求。
   assign enough_slices = $countones(available_mask) >= 8;
-  assign scan_available = 18'({available_mask, available_mask} >> scan_start);
   for (genvar lane = 0; lane < 18; lane++) begin : gen_scan
     localparam logic [17:0] Earlier = 18'h3ffff >> (18 - lane);
-    logic [5:0] physical_sum;
-    logic [4:0] physical_id;
-    assign physical_sum = {1'b0, scan_start} + 6'(lane);
-    assign physical_id = (physical_sum >= 6'd18)
-                         ? 5'(physical_sum - 6'd18) : physical_sum[4:0];
+    logic [17:0] eligible_by_start;
+    for (genvar start = 0; start < 18; start++) begin : gen_eligibility
+      localparam int Physical = (lane + start) % 18;
+      assign eligible_by_start[start] = available_mask[Physical];
+    end
+    assign scan_available[lane] = |(eligible_by_start & scan_select);
     assign scan_rank[lane] = 5'($countones(scan_available & Earlier));
     assign scan_selected[lane] = scan_available[lane] && (scan_rank[lane] < 5'd8);
     for (genvar bit_idx = 0; bit_idx < 5; bit_idx++) begin : gen_id_bits
-      assign candidate_bit[bit_idx][lane] = physical_id[bit_idx];
+      logic [17:0] bit_by_start;
+      for (genvar start = 0; start < 18; start++) begin : gen_start
+        localparam logic [4:0] Physical = 5'((lane + start) % 18);
+        assign bit_by_start[start] = Physical[bit_idx];
+      end
+      assign candidate_bit[bit_idx][lane] = |(bit_by_start & scan_select);
     end
   end
-  assign selected_shifted = {18'b0, scan_selected} << scan_start;
-  assign next_mask = selected_shifted[35:18] | selected_shifted[17:0];
+
+  // 用同一个已缓存的一位有效游标把逻辑选择转回物理位图。
+  for (genvar physical = 0; physical < 18; physical++) begin : gen_mask
+    logic [17:0] selected_by_start;
+    for (genvar start = 0; start < 18; start++) begin : gen_start
+      localparam int Lane = (physical + 18 - start) % 18;
+      assign selected_by_start[start] = scan_selected[Lane];
+    end
+    assign next_mask[physical] = |(selected_by_start & scan_select);
+  end
 
   // 每个 slot 只由一个优先序对应的物理切片驱动。
   for (genvar slot = 0; slot < 8; slot++) begin : gen_slot
@@ -117,13 +129,13 @@ module task1_slice_scheduler (
       acq_sample_id_o <= '0;
       conv_sample_id_o <= '0;
       lfsr_state_o <= DefaultSeed;
-      scan_cursor <= 5'(DefaultSeed[31:24] % 8'd18);
+      scan_cursor_onehot <= 18'd1 << 5'(DefaultSeed[31:24] % 8'd18);
     end else if (seed_load_i) begin
       // 种子写入占用一个独立控制沿。冲突或零值均保留旧状态。
       if (advance_i || seed_i == 32'b0) seed_error_o <= 1'b1;
       else begin
         lfsr_state_o <= seed_i;
-        scan_cursor <= scan_remainder(seed_i[31:24]);
+        scan_cursor_onehot <= 18'd1 << scan_remainder(seed_i[31:24]);
       end
     end else if (advance_i) begin
       if (!enough_slices) begin
@@ -140,7 +152,7 @@ module task1_slice_scheduler (
         slot_accepted_o <= 1'b1;
         if (shuffle_i) begin
           lfsr_state_o <= advanced_lfsr;
-          scan_cursor <= scan_remainder(advanced_lfsr[31:24]);
+          scan_cursor_onehot <= 18'd1 << scan_remainder(advanced_lfsr[31:24]);
         end
       end
     end

@@ -81,18 +81,15 @@ module module1_top (
 
   // 发布前验证八个有序物理 ID 与位图一致。非法组不给前缀映射资格。
   function automatic logic legal_group(input logic [39:0] ids, input logic [17:0] mask);
+    logic [17:0] onehot [8];
     logic [17:0] seen;
-    logic [4:0] slice_id;
-    logic legal;
-    seen = '0;
-    legal = 1'b1;
+    // 越界 ID 移位后为零；重复 ID 在并集里只留下一个位置。
     for (int slot = 0; slot < 8; slot++) begin
-      slice_id = ids[5*slot+:5];
-      if (slice_id >= 5'd18) legal = 1'b0;
-      else if (seen[slice_id]) legal = 1'b0;
-      else seen[slice_id] = 1'b1;
+      onehot[slot] = 18'd1 << ids[5*slot+:5];
     end
-    legal_group = legal && (seen == mask);
+    seen = ((onehot[0] | onehot[1]) | (onehot[2] | onehot[3]))
+           | ((onehot[4] | onehot[5]) | (onehot[6] | onehot[7]));
+    legal_group = ($countones(seen) == 8) && (seen == mask);
   endfunction
 
   assign active = rst_ni && !clear_i && enable_i;

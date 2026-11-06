@@ -29,3 +29,14 @@ bash task1/physical/sky130_run.sh /tmp/task1-sky130hd module1_top
 | Hold | +0.0949691 | 0 | 0 | 0 | PASS |
 
 详细路由最终记录 0 条路由 DRC、0 个天线违规，VDD、VSS 网格连通。独立 DRC 和 LVS 为 `NOT_RUN`。桥接 GDS 为 11,717,960 字节，SHA-256 为 `3fcd73c9fcd5adac7ce7941f9420063bab444c885f80ad465b6e8bee1d6ba552`。30 个输出和 12 个输入均已核对。
+
+## 并行选择器的第一次布线复验
+
+`7425f2468233bfc6f02658c33aec7d7054fe3c20` 使用已证明等价的并行选择器。两个顶层各自重新完成实际布局布线、GDS 与 STA，仍按 6.25 ns、TT 25 °C／1.80 V 和相同 I/O 预算验收。 [两版 GDS／STA](evidence/module1_pair_sky130hd_run_42228369073.zip) · [哈希清单](evidence/sky130hd_selector_pair_manifest.json) · [Actions 运行](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42228369073)
+
+| 顶层 | Setup WNS (ns) | Setup TNS (ns) | Setup 违例端点 | Hold 最小裕量 (ns) | Hold TNS (ns) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `module1_top` | −2.46329 | −21.9159 | 59 | +0.160036 | 0 |
+| `module1_bridge_top` | −1.56883 | −6.58757 | 47 | +0.114057 | 0 |
+
+两版 hold 通过，setup 仍有违例。最差路径均转移到转换片 ID 的合法性判断，再到 `conv_valid_o`。详细路由 DRC 和天线违规均为 0，最终 VDD／VSS 网格连通。独立 DRC 和 LVS 为 `NOT_RUN`。

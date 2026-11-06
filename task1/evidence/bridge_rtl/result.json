@@ -14,9 +14,9 @@
     "top_steady_slots": 4096
   },
   "log_sha256": {
-    "compile.log": "4cc431c92dbcd05b52d1f9ed15a7593c3e45895086287a5e1af58369bf83d6af",
-    "module1_bridge_top.lint.log": "f266ac6d469484984ebcc7be34dc854d99863ce0f019287e19264197a64c28b8",
-    "run.log": "07b0e7fe2cfd4d87a3dc66e25d58cc3da6d0c61228c6ae095c88f685706b2426",
+    "compile.log": "07ce1f6dddf2d4504e571da8f1f612fb13c496c99287c09958539f2f6e49ae7f",
+    "module1_bridge_top.lint.log": "ff5e5933e28d1ac00fe90dd194aeace0c8ef956e3240a8005fae03dbcf6b70d0",
+    "run.log": "beb4afac79dea61a1cabedb8dc586fd6487a06d7a8b1b045aaa6734152ffdf2c",
     "verilator.log": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1"
   },
   "mismatches": 0,
@@ -32,8 +32,8 @@
     "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
     "task1/rtl/fig21_bridge.sv": "15a5fe746f012aeb655f9fc19a0b582646f445ab0a1cae16992c6a22f8c7a305",
     "task1/rtl/module1_bridge_top.sv": "8181f1d629fefd67fc51b52483725f3c4675a613c73fff9be554e2ce6dcaaba1",
-    "task1/rtl/module1_top.sv": "7887b9dbc435f96b39e964954a8c9d89e9c2560243f203b9ef96334f6616f471",
-    "task1/rtl/slice_scheduler.sv": "2fc7e3839ee11c96273933a872cb3e404fbbfd37cf6cb6c82f7b146595ffe25e",
+    "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
+    "task1/rtl/slice_scheduler.sv": "52f69b9b84cdc46990e6e95b82c6172996349d32064643dd50f292aecd860b80",
     "task1/tb/bridge_checks_tb.sv": "2f4817722f91582e07b92cb0aac771915c1e32a3f4320e00c7d9c9bf8a3a9012",
     "task1/tools/run_bridge_checks.py": "3f1e69afd186e783eda6fbf090976933b959dbd7573d2a84ce4428eddcd23ed9",
     "task1/tools/run_rtl_checks.py": "eecec87f7fcd6f5a3aa8db7545b3b91896a74f0e216e41f6ea3f076d5ba5abd9",

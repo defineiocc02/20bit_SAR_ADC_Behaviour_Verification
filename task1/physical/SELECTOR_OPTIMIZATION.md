@@ -14,3 +14,13 @@ yosys -Q -T -s proof_reset.ys
 ```
 
 独立复核还证明缓存游标在同步复位后成立且每一步保持，并使用错误旧状态的变异找到反例；穷举全部 4,718,592 个资格掩码／起点的选择顺序一致。独立全端口 miter 复跑超时，全端口结论仍以原归档 303／303 等价点为准。 [独立游标归纳证明](evidence/cursor_induction_independent.zip) · [清单](evidence/cursor_induction_independent.json)
+
+## 第二轮等价优化
+
+并行选择器的首次 SKY130HD 抽取后结果表明，两顶层的最差 setup 都转移到转换组 ID 合法性判断，后续路径仍经过采集组的轮转和排序。第二轮将合法性判断改为八路 one-hot 并集、计数与 mask 比较，并将扫描游标同沿缓存为 18 位 one-hot。前向轮转、物理 ID 输出和回转均使用固定连线和并行归约。 [实测时序](SKY130HD.md)
+
+Yosys 0.69 对调度器的可达域等价通过 704 个证明点。另分别验证游标范围与缓存不变量、轮转／回转／ID 组合等价、同步复位后任意两沿，以及合法性计数的逐槽归纳。错位轮转和错误计数两个变异均被捕获。两顶层再次与独立参考零差异逐拍对拍，各覆盖 4,096 个稳定槽，13 项定向 Python 测试通过。完整证明和 RTL 运行日志可解压复验。 [第二轮证明 ZIP](evidence/selector_guard_equivalence.zip) · [输入与日志 SHA-256](evidence/selector_guard_equivalence.json)
+
+同一 Yosys 通用门级流程的桥接整顶层拓扑最长路径由 70 降到 35 级。6.25 ns、TT 25 °C／1.80 V 与 I/O 预算保持，第二轮物理结论以同版抽取后 STA 为准。
+
+独立复核对实际候选的同步复位、onehot 缓存保持与守卫逐槽归纳分别运行 SAT，两项故意错误的变异产生反例。独立整块守卫 miter 在 48 秒限时内未完成；其结论以分解证明和 RTL 对拍为依据，不标记为整块 miter 通过。[独立复核脚本与日志](evidence/guard_independent.zip) · [身份清单](evidence/guard_independent.json)

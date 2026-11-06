@@ -17,7 +17,7 @@
     },
     {
       "path": "evidence/physical_tt_42278312924.json",
-      "sha256": "c3a7376f5595b6ed566530a4d7f6099377e4464cab8eeced41b1aa3875ccea75"
+      "sha256": "b9a837b3e92691a5612be8de1fe1ab547e77dafb7e8fd76e98c7a0908275c727"
     }
   ],
   "limits": [
@@ -33,7 +33,21 @@
   "physical_proxy": {
     "evidence": {
       "path": "evidence/physical_tt_42278312924.json",
-      "sha256": "c3a7376f5595b6ed566530a4d7f6099377e4464cab8eeced41b1aa3875ccea75"
+      "sha256": "b9a837b3e92691a5612be8de1fe1ab547e77dafb7e8fd76e98c7a0908275c727"
+    },
+    "independent_public_verification": {
+      "drc": {
+        "manifest_sha256": "42998cddc0dfddfd3b91dd025004ab774c6600d5160b088862fb86576c464ab9",
+        "repo_relative_manifest": "task2/physical/evidence/sar20_digital_lms_top_drc_manifest_42297095870.json",
+        "status": "PASS",
+        "workflow_run": "42297095870"
+      },
+      "lvs": {
+        "manifest_sha256": "da14358bf6decbe61d5404b1dd9f13d6bcd502b386f39c10c6445f3ef54ad8b7",
+        "repo_relative_manifest": "task2/physical/evidence/sar20_digital_lms_top_lvs_upstream_manifest_42296886745.json",
+        "status": "PASS",
+        "workflow_run": "42296886745"
+      }
     },
     "overall_gate_status": "BLOCKED",
     "release_claim": "PARTIAL_SIGNOFF",
@@ -62,7 +76,7 @@
   "source_sha256": {
     "LMS_PIPELINE.md": "0dd478cec65b22924de9f67b7d90412ec6fff39180972c87d43837902d30bc93",
     "SPEC.md": "10789107717e8f8ef96097b550acdadedbcc53ad79bb01d7a3b86d2ff6ee0d67",
-    "gate_evidence.json": "e8c4409e2a1fb7c1313a2b539edec2bc75de93ffe5940c4bf43f1d9a1b4f0658",
+    "gate_evidence.json": "eeaa8a1196f893c6bd068ea2a93e181c69bee0a0d2f1fc572a65c5b5232ddc92",
     "microarchitecture.md": "e3bc4ae6c79177cb66530c476c4b686f2d8266d22eebada54acd53cc940e4fca",
     "requirements_trace.csv": "1d16c9d8a0d61e82b5bf1b0c844ca1ca938d74744803fbcc9d9b274b6f08794c",
     "verification_plan.yaml": "fb697758c05252d9596738c92bbefb0f9f85e410c9246dab070f1e19ada86536"

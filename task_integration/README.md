@@ -9,7 +9,9 @@
 
 片上顶层已交付 SKY130HD 的 GDS、网表和提取后时序报告。6.25 ns 周期下，TT 25 °C、1.80 V 的 setup 裕量为 **+0.0805565 ns**，hold 裕量为 **+0.0430949 ns**，两者违例端点均为 0。路由器报告的 DRC 和天线违规均为 0。验收 `REQ-TOP-04` 覆盖本次 TT 数字代理交付及独立验证状态记录。[GDS 和原始报告](../task2/physical/evidence/sar20_digital_lms_top_sky130hd_run_42278312924.zip) · [发布清单](../task2/physical/evidence/sar20_digital_lms_top_manifest_42278312924.json)
 
-独立公开 DRC 和 LVS 的原始命令均在 300 秒超时，延长时限的独立复跑正在进行。多角 STA、系统 I/O 实际预算、活动功耗、电源完整性、整体形式验证及 180 nm BCD 签核仍待验收。实际模拟宏的电气绑定及 ADC2／RA 延迟也须单独验证。 [SKY130HD 物理记录](../task2/physical/README.md)
+在同一冻结 GDS 上独立复跑后，公开 DRC **通过，0 个标记**，官方上游修订规则的 LVS **通过，版图与参考网表匹配**，并保留完整比对数据库。原始作业的 300 秒超时记录单独保存。 [DRC 复跑归档](../task2/physical/evidence/sar20_digital_lms_top_drc_42297095870.zip) · [LVS 复跑归档](../task2/physical/evidence/sar20_digital_lms_top_lvs_upstream_42296886745.zip)
+
+多角 STA、系统 I/O 实际预算、活动功耗、电源完整性、整体形式验证及 180 nm BCD 签核仍待验收。实际模拟宏的电气绑定及 ADC2／RA 延迟也须单独验证。 [SKY130HD 物理记录](../task2/physical/README.md)
 
 ```bash
 python -m pip install -r task1/requirements-calibration.txt

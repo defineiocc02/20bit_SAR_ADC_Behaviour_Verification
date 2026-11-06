@@ -61,16 +61,16 @@
     "evidence": [
       {
         "path": "evidence/physical_tt_42278312924.json",
-        "sha256": "c3a7376f5595b6ed566530a4d7f6099377e4464cab8eeced41b1aa3875ccea75"
+        "sha256": "b9a837b3e92691a5612be8de1fe1ab547e77dafb7e8fd76e98c7a0908275c727"
       }
     ],
     "physical_release_claim": "PARTIAL_SIGNOFF",
-    "scope": "Exact-source routed SKY130HD GDS and 6.25 ns extracted TT proxy timing passed. Full physical and multi-corner closure remain pending.",
+    "scope": "Routed SKY130HD GDS, extracted TT 6.25 ns timing, and independent public DRC and revised-deck LVS passed on the same frozen GDS. Multi-corner STA, real system I/O budgets, activity-based power and power integrity remain open.",
     "status": "BLOCKED",
     "subgates": {
       "activity_based_power": "NOT_RUN",
-      "independent_public_drc": "BLOCKED_TIMEOUT",
-      "independent_public_lvs": "BLOCKED_TIMEOUT",
+      "independent_public_drc": "PASS",
+      "independent_public_lvs": "PASS",
       "integrated_formal": "NOT_RUN",
       "multicorner_sta": "NOT_RUN",
       "post_route_tt_setup_and_hold": "PASS",

@@ -9,14 +9,47 @@
   "gds_top_verified": "sar20_digital_lms_top",
   "independent_public_verification": {
     "drc": {
-      "exit_code": 124,
-      "reason": "Original public-deck command exceeded the 300 s budget. No completed comparison or rule-count conclusion.",
-      "status": "BLOCKED"
+      "deck_sha256": "029722ea1fc2cf8c48f09fc670c0b72efb295f799c4eb236b7e9767930ecf772",
+      "exit_code": 0,
+      "gds_sha256": "4aa02f35dae17c528f72bce9a06a7c8aee466c9a163d210ae54a9265a8ed02c3",
+      "log_sha256": "8d2f65a7c193cdb5f3fef5f5db23e3ac92666b1c86714cbaf0d9de00f602b449",
+      "manifest_sha256": "42998cddc0dfddfd3b91dd025004ab774c6600d5160b088862fb86576c464ab9",
+      "marker_count": 0,
+      "original_300s_attempt": {
+        "exit_code": 124,
+        "reason": "Original public-deck command exceeded the 300 s budget. No completed comparison or rule-count conclusion.",
+        "status": "BLOCKED"
+      },
+      "repo_relative_manifest": "task2/physical/evidence/sar20_digital_lms_top_drc_manifest_42297095870.json",
+      "repo_relative_zip": "task2/physical/evidence/sar20_digital_lms_top_drc_42297095870.zip",
+      "report_sha256": "7431a2860d98be21bfb8b1d9905c4f7cf921d37f0d2848e1999eb95236dcf8c1",
+      "status": "PASS",
+      "workflow": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42297095870/job/128165072734",
+      "workflow_run": "42297095870",
+      "zip_sha256": "5bfff33cdd2ddc636458d3aa3a3196497651d7722ed0f74abb598b5ba2926c36"
     },
     "lvs": {
-      "exit_code": 124,
-      "reason": "Original public-deck command exceeded the 300 s budget. No completed comparison or rule-count conclusion.",
-      "status": "BLOCKED"
+      "database_bytes": 189618674,
+      "database_sha256": "c3f967823bf0496b3ad2b9b2db8872d6fdc14cc4551349bca2f3a75454877456",
+      "deck_sha256": "d2d231d7cd00a8261d6653c5f3757badefb1dc0aba29441d8406272e75cd8b90",
+      "exit_code": 0,
+      "gds_sha256": "4aa02f35dae17c528f72bce9a06a7c8aee466c9a163d210ae54a9265a8ed02c3",
+      "log_sha256": "b004738f0dea3c5c1ebdd45d37d21edfdd46618d2336a11d53d5b6cbf4606816",
+      "manifest_sha256": "da14358bf6decbe61d5404b1dd9f13d6bcd502b386f39c10c6445f3ef54ad8b7",
+      "original_300s_attempt": {
+        "exit_code": 124,
+        "reason": "Original public-deck command exceeded the 300 s budget. No completed comparison or rule-count conclusion.",
+        "status": "BLOCKED"
+      },
+      "reference_cdl_sha256": "6055e6205b033473def4b2fec79f74b2b115f79b510f387d54522ca5790abc62",
+      "repo_relative_manifest": "task2/physical/evidence/sar20_digital_lms_top_lvs_upstream_manifest_42296886745.json",
+      "repo_relative_zip": "task2/physical/evidence/sar20_digital_lms_top_lvs_upstream_42296886745.zip",
+      "status": "PASS",
+      "top_cross_reference_verified": true,
+      "upstream_revision": "5eebdc0d06879cf674e86e3fb8efa2803e6e44dc",
+      "workflow": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42296886745/job/128164348906",
+      "workflow_run": "42296886745",
+      "zip_sha256": "fdb0554b3b763d8cf85c6c89aacfb218a0d9638765d233ef31cf9cd8c9f5500a"
     }
   },
   "inputs_matching_frozen_commit_and_current_workspace": 27,
@@ -39,8 +72,8 @@
   "source_commit": "43b2fc5b72d69182d4d29260125b70057f822621",
   "subgates": {
     "activity_based_power": "NOT_RUN",
-    "independent_public_drc": "BLOCKED_TIMEOUT",
-    "independent_public_lvs": "BLOCKED_TIMEOUT",
+    "independent_public_drc": "PASS",
+    "independent_public_lvs": "PASS",
     "integrated_formal": "NOT_RUN",
     "multicorner_sta": "NOT_RUN",
     "post_route_tt_setup_and_hold": "PASS",

@@ -39,12 +39,12 @@ module task1_slice_scheduler (
   localparam logic [31:0] DefaultSeed = 32'h243f6a88;
   localparam logic [31:0] LfsrTaps = 32'h80200003;
 
-  logic [17:0] scan_cursor_onehot;
   logic [31:0] advanced_lfsr;
   logic [17:0] available_mask;
   logic [39:0] next_ids;
   logic [17:0] next_mask;
   logic enough_slices;
+  // 与 LFSR 同沿缓存：物理位置 p 的位表示游标是否在 p 或更早。
   logic [17:0] start_at_or_before;
   logic [4:0] rank_fixed [18], rank_shuffled [18];
   logic [17:0] mask_fixed, mask_shuffled;
@@ -76,11 +76,9 @@ module task1_slice_scheduler (
   assign enough_slices = $countones(available_mask) >= 8;
   // 对每个物理位置直接形成环形前缀，避免轮转资格位或回转选择位图。
   for (genvar physical = 0; physical < 18; physical++) begin : gen_physical
-    localparam logic [17:0] Through = 18'h3ffff >> (17 - physical);
     localparam logic [17:0] Earlier = 18'h3ffff >> (18 - physical);
     localparam logic [4:0] PhysicalId = 5'(physical);
     logic [17:0] earlier;
-    assign start_at_or_before[physical] = |(scan_cursor_onehot & Through);
 
     for (genvar other = 0; other < 18; other++) begin : gen_earlier
       if (other < physical) begin : gen_before
@@ -132,13 +130,13 @@ module task1_slice_scheduler (
       acq_sample_id_o <= '0;
       conv_sample_id_o <= '0;
       lfsr_state_o <= DefaultSeed;
-      scan_cursor_onehot <= 18'd1 << 5'(DefaultSeed[31:24] % 8'd18);
+      start_at_or_before <= 18'h3ffff << 5'(DefaultSeed[31:24] % 8'd18);
     end else if (seed_load_i) begin
       // 种子写入占用一个独立控制沿。冲突或零值均保留旧状态。
       if (advance_i || seed_i == 32'b0) seed_error_o <= 1'b1;
       else begin
         lfsr_state_o <= seed_i;
-        scan_cursor_onehot <= 18'd1 << scan_remainder(seed_i[31:24]);
+        start_at_or_before <= 18'h3ffff << scan_remainder(seed_i[31:24]);
       end
     end else if (advance_i) begin
       if (!enough_slices) begin
@@ -155,7 +153,7 @@ module task1_slice_scheduler (
         slot_accepted_o <= 1'b1;
         if (shuffle_i) begin
           lfsr_state_o <= advanced_lfsr;
-          scan_cursor_onehot <= 18'd1 << scan_remainder(advanced_lfsr[31:24]);
+          start_at_or_before <= 18'h3ffff << scan_remainder(advanced_lfsr[31:24]);
         end
       end
     end

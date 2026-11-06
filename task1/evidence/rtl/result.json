@@ -20,11 +20,11 @@
     "top_steady_slots": 4096
   },
   "log_sha256": {
-    "compile.log": "472498552dfedaaab572e5d1b4844e59c46f737a8499b5b90a9c8285334670ad",
-    "fig11_dem.lint.log": "d9c0b00585b6c470470edefb8ce1326086d5d104f172c8bde341c76b6047a6a3",
-    "module1_top.lint.log": "ca808b1fb26b025ff42c433fa1ce1b8205d7c1e86a9e5f13c198430959ae5cd5",
-    "run.log": "d60e63ad61576a316b0cc1111054637a00e178239bd2552ad606da22c6519191",
-    "task1_slice_scheduler.lint.log": "471b5d68582e5b3ff7980cc3bb7b34b3bc49f3c96993ef0eabe6e64858736a34",
+    "compile.log": "ce8285fd6af85741aa73edc2c51aa26164a4e04baf1d697a2c6085a8433024f3",
+    "fig11_dem.lint.log": "ead2734f2e916c48defb9fc966444aa39f5ca7f9295cc189ae71d9a2f0d4f1da",
+    "module1_top.lint.log": "41b2da62c2b9f9f88b06551987dd49a49c223bd78eb3fc499f5527b70f071489",
+    "run.log": "805f1fa640356c73076cf88794916175962093b85051569f9f6e53f077625275",
+    "task1_slice_scheduler.lint.log": "aa3bea8fb9af65d3689c8cbaa15fc9dfeccd5b11dd16f698ff25032493d780aa",
     "verilator.log": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1"
   },
   "mismatches": 0,
@@ -38,7 +38,7 @@
     "task1/model/scheduler.py": "e6b2d50fa6bdaa607842bea0e86dc02e3fc531c7b832ea6a59858e48a7652f9f",
     "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
     "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
-    "task1/rtl/slice_scheduler.sv": "b47086ad6b4398062fac10feafe1a2a786adf410385130e50bc77d3d0c65292a",
+    "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
     "task1/tb/task1_rtl_checks_tb.sv": "0c59c523d6dcf40ffe4e110e791fcf51088a13d3b53488a7691b4d3b021a58ec",
     "task1/tools/run_rtl_checks.py": "eecec87f7fcd6f5a3aa8db7545b3b91896a74f0e216e41f6ea3f076d5ba5abd9",
     "tools/run_open_rtl.py": "b5af7fcd9917dd8d3305117e0f2601b59f759b1e783f3aa2cd5b54e213975ef2"

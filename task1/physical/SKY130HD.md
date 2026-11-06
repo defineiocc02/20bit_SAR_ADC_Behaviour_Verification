@@ -51,3 +51,14 @@ bash task1/physical/sky130_run.sh /tmp/task1-sky130hd module1_top
 | `module1_bridge_top` | −0.672571 | −28.8566 | 65 | +0.102683 | 0 |
 
 两版 setup 仍有违例，hold 通过。最差 setup 已转移到采集组 ID 选择，基础版从 `eligible_i[13]` 出发，桥接版从 `shuffle_i` 出发。详细路由 DRC 和天线违规均为 0，最终 VDD／VSS 网格连通。独立 DRC 和 LVS 为 `NOT_RUN`。
+
+## 直接物理序位的布线复验
+
+`4b1a4a175ab9b78915b71264d873d79eba28d8fc` 的两顶层完成布线并导出 GDS，继续使用相同 TT 25 °C／1.80 V、6.25 ns 与 I/O 预算。 [两版 GDS／STA](evidence/module1_pair_sky130hd_run_42238521125.zip) · [哈希清单](evidence/sky130hd_pair_manifest_42238521125.json) · [Actions 运行](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42238521125)
+
+| 顶层 | Setup WNS (ns) | Setup TNS (ns) | Setup 违例端点 | Hold 最小裕量 (ns) | Hold TNS (ns) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `module1_top` | −0.596435 | −18.0147 | 45 | +0.0974044 | 0 |
+| `module1_bridge_top` | −1.07394 | −37.6221 | 51 | +0.0944335 | 0 |
+
+两版 setup 仍有违例，hold 通过。该轮分别减少了 13 和 14 个 setup 违例端点，最差裕量却较上一轮变小。最差路径同样从 `scan_cursor_onehot[1]` 出发，进入物理前缀和采集 ID。两版详细路由 DRC 和天线违规均为 0，VDD／VSS 网格连通。独立 DRC 和 LVS 为 `NOT_RUN`。

@@ -295,7 +295,7 @@ module sar20_lms_integration_tb;
     $fclose(data_handle);
   endtask
 
-  task automatic bad_macro_result();
+  task automatic bad_macro_result(input bit late);
     clear_i = 1;
     step_clock();
     clear_i = 0;
@@ -305,20 +305,30 @@ module sar20_lms_integration_tb;
     step_clock();
     begin_slot();
     check(conv_ready_o && conv_sample_id_o == 0, "bad conversion fixture ID0");
+    if (late) begin
+      step_clock();
+      check(acq_valid_o && acq_sample_id_o == 1, "acquisition published before late failure");
+      repeat (4) step_clock();
+    end
     adc2_valid_i = 1;
     adc2_bad_i = 1;
     adc2_sample_id_i = 0;
+    advance_i = 1;
     #1;
-    check(adc2_ready_o, "same-ID macro failure can finish before coarse");
+    check(adc2_ready_o && !advance_ready_o, "same-ID macro failure can finish before coarse");
     step_clock();
     adc2_valid_i = 0;
+    check(!acq_valid_o && !advance_ready_o && !slot_accepted_o && !fault_o,
+          "bad ADC2 handoff suppresses new acquisition before the ordered fault returns");
     repeat (25) begin
       step_clock();
-      check(!out_valid_o, "bad result never publishes a code");
+      check(!out_valid_o && !advance_ready_o && !slot_accepted_o && !acq_valid_o,
+            "pending macro error freezes further admissions and never publishes a code");
     end
     check(fault_o && caaz_fault_code_o == 3'd4 && !alignment_fault_o &&
           !advance_ready_o && !fault_pulse_o && recon_inflight_o == 0, "ADC2 bad status propagated");
     macro_faults++;
+    advance_i = 0;
   endtask
 
   string bypass_coeff, bypass_data, pair_coeff, pair_data;
@@ -329,7 +339,8 @@ module sar20_lms_integration_tb;
       $fatal(1, "capture and coefficient paths are required");
     replay(bypass_coeff, bypass_data, 0);
     replay(pair_coeff, pair_data, 1);
-    bad_macro_result();
+    bad_macro_result(0);
+    bad_macro_result(1);
     $display("SAR20_LMS_INTEGRATION_COMPLETE cycles=%0d checks=%0d adc2_captures=%0d bypass=%0d pairs=%0d peak_inflight=%0d signed_negative_pairs=%0d mixed_dither_pairs=%0d rejects=%0d macro_faults=%0d",
              cycles, checks, adc2_captures, bypass, pairs, peak_inflight,
              signed_negative_pairs, mixed_dither_pairs, rejects, macro_faults);

@@ -13,11 +13,11 @@
     "evidence": [
       {
         "path": "SPEC.md",
-        "sha256": "ae0afd0450b763a998ffd17c92f7165c1512b87afa13c6835515b9921c03c84a"
+        "sha256": "29460e675e89e521f3cf292c5c39728ae73e40b282125d05ce98527891ec7995"
       },
       {
         "path": "LMS_PIPELINE.md",
-        "sha256": "efe7bd0b9fa72c4beb22b6911413706e078060e1879bf0449e35743becfbbc4e"
+        "sha256": "470f5eef6e5f2ba10411beba668f445d2f1d877b79acdfa08d0234b9ee4a50e6"
       }
     ],
     "scope": "frozen digital proxy specification",
@@ -31,7 +31,7 @@
       },
       {
         "path": "verification_plan.yaml",
-        "sha256": "37cca39112f32bce8d990ded9f2dfe23f780ab783c4ebe987844aa19c089d0aa"
+        "sha256": "fb697758c05252d9596738c92bbefb0f9f85e410c9246dab070f1e19ada86536"
       },
       {
         "path": "requirements_trace.csv",
@@ -44,11 +44,11 @@
     "evidence": [
       {
         "path": "evidence/external/result.json",
-        "sha256": "16cc24b1853cbd22d670e716daeac5e0e72f208b5f2d4d0e196ba7a5d5ce6cde"
+        "sha256": "1f34ca6d0041114c890f1009490a805ec60161c3903842847c75b96cd54baf14"
       },
       {
         "path": "evidence/on_chip/result.json",
-        "sha256": "c273c09ffae5a8f04f9b3e610791a3680612cd9db699a325d15d7570fc10fd22"
+        "sha256": "355612f624fe79405e5242a36c8eba1f2a8d0b6b3fe403b044ed7e39f2120b19"
       }
     ],
     "integration_formal": "NOT_RUN",

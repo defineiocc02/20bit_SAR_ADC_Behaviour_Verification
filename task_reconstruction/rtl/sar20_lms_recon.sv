@@ -86,7 +86,7 @@ module sar20_lms_recon (
     magnitude = 13'(numerator[13] ? -numerator : numerator);
     scaled = {2'b0, magnitude, 14'b0} + 29'd12;
     quantized = scaled / 29'd25;
-    return numerator[13] ? -$signed({3'b0, quantized}) : $signed({3'b0, quantized});
+    adc2_midpoint = numerator[13] ? -$signed({3'b0, quantized}) : $signed({3'b0, quantized});
   endfunction
 
   function automatic logic signed [24:0] signed_feature(
@@ -96,9 +96,9 @@ module sar20_lms_recon (
   );
     logic signed [24:0] extended;
     extended = 25'(weight);
-    if (positive) return extended;
-    if (negative) return -extended;
-    return 25'sd0;
+    if (positive) signed_feature = extended;
+    else if (negative) signed_feature = -extended;
+    else signed_feature = 25'sd0;
   endfunction
 
   assign active = rst_ni && !clear_i;

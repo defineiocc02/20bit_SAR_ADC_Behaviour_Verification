@@ -1,0 +1,38 @@
+{
+  "combined_sdc": "task1/physical/sky130_constraint.sdc",
+  "combined_top": "sar20_digital_lms_top",
+  "counts": {
+    "accepted": 16414,
+    "bad_retired": 7,
+    "cycles": 264452,
+    "midpoint": 4096,
+    "retired": 16412,
+    "stalls": 12,
+    "words": 1608
+  },
+  "data_sha256": {
+    "coefficients_2pct.json": "0af543253606c296e71b2f5cde94b90764ba312f4464dbb4530b34c33a45ac23",
+    "coefficients_3pct.json": "841ad23e6a26e3dc96223d6a8d622a3a5dc14bb9209c8645f6cee4088c4bb4c1",
+    "compile.log": "ab3690b5961566ea2dc9210bd4da1e215d565149839e5182550f9a54eae548a1",
+    "environment.json": "37929c893b80775d9e66676bd8126a0d599b4fe82363b5757f4064f546508c40",
+    "lint.log": "9e2d9b6e47bd7bb2ceb63f7a00eb5d51524e26bbabaf09effe6e5fa93eb287f1",
+    "result.json": "e22807d12b87fdf69c7b2b5698cc2ca6609851f76089811c531bea5e7f3fb5f9",
+    "run.log": "1f596e08b8c7ec0eadbea401343db4808b765c44af3f35b4e1ccc76239773a43",
+    "verilator.log": "878beb074b42d7036bda71fe428af3fba65b2592d151c5cfdb663297bf6dc718"
+  },
+  "rtl_parent_baseline": "b592ba825fa2c156f58fab5b2f528d90e49cacff",
+  "schema": "sar20-lms-recon-handoff-v1",
+  "source_sha256": {
+    "SPEC.md": "16d1e41fc844c16f5acc2cf705e11b349e001e29739c5a512f35d14df7ce6856",
+    "fixed.py": "08cf2096bdbde88e29eb89b4e09df73c943d3a16e1ddfa0d24b30eea9c41921d",
+    "gate_evidence.json": "12a6092a6fba800d9c67f84433b069efe43c23bc1a5ab297722edfb492fd2de3",
+    "microarchitecture.md": "6a458e1a4b15ee513d44cd707cc4dcf8f5f33e556a2e731b4bba784152ff7c21",
+    "requirements_trace.csv": "c6d4b9b1a5fc140ccd1f01460bc68fb25ff68ee33c389b2dab99af37bd95a968",
+    "rtl/sar20_lms_recon.sv": "09f9b5622880310410c2a7542f3d34994c263e781fb745e7b2fc65568c6a5170",
+    "tb/sar20_lms_recon_tb.sv": "533176da41c140b49f0b40aeff9dbedcdb04de628bc0fd3f1e9d68953a744902",
+    "tools/run_checks.py": "6b74e2166040fb3f5df1b3b606a2d57d5a4de328e4e4dba641ad7cbc2bed2dac",
+    "verification_plan.yaml": "7737d9fe0028b342b22e22e76452f23dd9b3876e065f2dc0b858baa62bf222a7"
+  },
+  "status": "DIGITAL_SIMULATION_VERIFIED",
+  "top": "sar20_lms_recon"
+}

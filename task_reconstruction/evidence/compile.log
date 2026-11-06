@@ -1,0 +1,11 @@
+/usr/bin/clang++ -Os  -I.  -MMD -I<build-dir>/runtime/include -I<build-dir>/runtime/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TIMING=1 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0     -std=c++20 -DVL_TIME_CONTEXT    -c -o verilated.o <build-dir>/runtime/include/verilated.cpp
+/usr/bin/clang++ -Os  -I.  -MMD -I<build-dir>/runtime/include -I<build-dir>/runtime/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TIMING=1 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0     -std=c++20 -DVL_TIME_CONTEXT    -c -o verilated_timing.o <build-dir>/runtime/include/verilated_timing.cpp
+/usr/bin/clang++ -Os  -I.  -MMD -I<build-dir>/runtime/include -I<build-dir>/runtime/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TIMING=1 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0     -std=c++20 -DVL_TIME_CONTEXT    -c -o verilated_threads.o <build-dir>/runtime/include/verilated_threads.cpp
+/usr/bin/python3 <build-dir>/runtime/bin/verilator_includer -DVL_INCLUDE_OPT=include Vsar20_lms_recon_tb.cpp Vsar20_lms_recon_tb___024root__DepSet_h87b4c3e3__0.cpp Vsar20_lms_recon_tb___024root__DepSet_h38bfdfe3__0.cpp Vsar20_lms_recon_tb__main.cpp Vsar20_lms_recon_tb__ConstPool_0.cpp Vsar20_lms_recon_tb___024root__Slow.cpp Vsar20_lms_recon_tb___024root__DepSet_h87b4c3e3__0__Slow.cpp Vsar20_lms_recon_tb___024root__DepSet_h38bfdfe3__0__Slow.cpp Vsar20_lms_recon_tb__Syms.cpp > Vsar20_lms_recon_tb__ALL.cpp
+/usr/bin/clang++ -Os  -I.  -MMD -I<build-dir>/runtime/include -I<build-dir>/runtime/include/vltstd -DVM_COVERAGE=0 -DVM_SC=0 -DVM_TIMING=1 -DVM_TRACE=0 -DVM_TRACE_FST=0 -DVM_TRACE_VCD=0     -std=c++20 -DVL_TIME_CONTEXT    -c -o Vsar20_lms_recon_tb__ALL.o Vsar20_lms_recon_tb__ALL.cpp
+echo "" > Vsar20_lms_recon_tb__ALL.verilator_deplist.tmp
+c++  -Wl,-U,__Z15vl_time_stamp64v,-U,__Z13sc_time_stampv   verilated.o verilated_timing.o verilated_threads.o Vsar20_lms_recon_tb__ALL.a       -o Vsar20_lms_recon_tb
+rm Vsar20_lms_recon_tb__ALL.verilator_deplist.tmp
+- V e r i l a t i o n   R e p o r t:  rev UNKNOWN.REV
+- Verilator: Built from 0.050 MB sources in 3 modules, into 0.254 MB in 9 C++ files needing 0.002 MB
+- Verilator: Walltime 3.289 s (elab=0.007, cvt=0.049, bld=3.027); cpu 0.262 s on 1 threads

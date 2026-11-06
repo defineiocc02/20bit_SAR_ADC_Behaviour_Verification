@@ -9,11 +9,11 @@
     },
     {
       "path": "evidence/external/result.json",
-      "sha256": "16cc24b1853cbd22d670e716daeac5e0e72f208b5f2d4d0e196ba7a5d5ce6cde"
+      "sha256": "1f34ca6d0041114c890f1009490a805ec60161c3903842847c75b96cd54baf14"
     },
     {
       "path": "evidence/on_chip/result.json",
-      "sha256": "c273c09ffae5a8f04f9b3e610791a3680612cd9db699a325d15d7570fc10fd22"
+      "sha256": "355612f624fe79405e5242a36c8eba1f2a8d0b6b3fe403b044ed7e39f2120b19"
     }
   ],
   "limits": [
@@ -36,19 +36,19 @@
     "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad",
     "task3/rtl/caaz20_pair.sv": "5ddbd9f20d4534ad597f22edca9f58604c4d04877eb5efb6ba6dabb142115fdc",
     "task_integration/rtl/sar20_digital_lms_top.sv": "04a25ad20f48ff87a84ec9818d4927e470cfd309ec308b0206b94dd8d0d17d72",
-    "task_integration/rtl/sar20_digital_top.sv": "be5c6d31d3ece9b524129b07465e2e28bfce6b413d41f9b6cc7b71265b218263",
-    "task_reconstruction/rtl/sar20_lms_recon.sv": "e52dd74dbe60caf6b977a09abf295fb52664e1a8f54a3fd9e69e8f24c6bd887d"
+    "task_integration/rtl/sar20_digital_top.sv": "5132cfe92f6836b4bc4300219e77424bc120e3cab11c191ad744185aaa5ac3bd",
+    "task_reconstruction/rtl/sar20_lms_recon.sv": "09f9b5622880310410c2a7542f3d34994c263e781fb745e7b2fc65568c6a5170"
   },
   "schema": "sar20-digital-handoff-v1",
   "sdc_relative_path": "task1/physical/sky130_constraint.sdc",
   "sdc_sha256": "01657f0555d1147c566a7a3adbf6f3250fa46a5546fce6fa0576bfbdeee5e6a3",
   "source_sha256": {
-    "LMS_PIPELINE.md": "efe7bd0b9fa72c4beb22b6911413706e078060e1879bf0449e35743becfbbc4e",
-    "SPEC.md": "ae0afd0450b763a998ffd17c92f7165c1512b87afa13c6835515b9921c03c84a",
-    "gate_evidence.json": "6921470c29146b9746387b12cff80db35d8b029e04fe12c14ceaba24d0d43227",
+    "LMS_PIPELINE.md": "470f5eef6e5f2ba10411beba668f445d2f1d877b79acdfa08d0234b9ee4a50e6",
+    "SPEC.md": "29460e675e89e521f3cf292c5c39728ae73e40b282125d05ce98527891ec7995",
+    "gate_evidence.json": "7d75f9981c1c12bf89a60f6dbbf75c9f1fd34971a84bc69aae75b1989af54135",
     "microarchitecture.md": "e3bc4ae6c79177cb66530c476c4b686f2d8266d22eebada54acd53cc940e4fca",
     "requirements_trace.csv": "d82c8bd381dae7a05537a8fd196ee76544562aecf45773a194462e14103490d1",
-    "verification_plan.yaml": "37cca39112f32bce8d990ded9f2dfe23f780ab783c4ebe987844aa19c089d0aa"
+    "verification_plan.yaml": "fb697758c05252d9596738c92bbefb0f9f85e410c9246dab070f1e19ada86536"
   },
   "tops": [
     "sar20_digital_lms_top",

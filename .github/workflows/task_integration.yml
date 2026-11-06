@@ -45,6 +45,7 @@ jobs:
           python -m pip install -r task1/requirements-calibration.txt
       - name: Verify both top-level paths
         run: |
+          python task_reconstruction/tools/run_checks.py --out "$OUT/reconstruction"
           python task_integration/tools/run_checks.py --out "$OUT/external"
           python task_integration/tools/run_lms_checks.py --out "$OUT/on_chip"
       - uses: actions/upload-artifact@v4

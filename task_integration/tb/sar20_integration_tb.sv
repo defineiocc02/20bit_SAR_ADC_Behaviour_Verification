@@ -364,8 +364,8 @@ module sar20_integration_tb;
     step_clock();
     code_valid_i = 0;
     if (bad) begin
-      check(code_error_o && !mask_valid_o && caaz_fault_code_o == 3'd4,
-            "explicit bad sample retires before command and faults");
+      check(code_error_o && !mask_valid_o && !acq_valid_o && caaz_fault_code_o == 3'd4,
+            "explicit bad sample suppresses same-edge command and acquisition");
     end else begin
       check(mask_valid_o && acq_valid_o && acq_az_hold_o, "subsequent AZ hold command");
       recon_valid_i = 1;

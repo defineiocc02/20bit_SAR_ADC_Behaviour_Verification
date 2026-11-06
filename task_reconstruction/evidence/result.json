@@ -1,0 +1,78 @@
+{
+  "archive_sha256": {
+    "sigma_2pct": "1234c0a640ac677bfa6f33a492532eec865ed21f4486502ea631c7b033ae25fd",
+    "sigma_3pct": "5a7a0b8aaac88c97a04702ee4d8748716fa24042a188e99c59f8ccd9f0d5451d"
+  },
+  "counts": {
+    "accepted": 16414,
+    "bad_retired": 7,
+    "cycles": 264452,
+    "midpoint": 4096,
+    "retired": 16412,
+    "stalls": 12,
+    "words": 1608
+  },
+  "float_comparison": {
+    "sigma_2pct_off": {
+      "code_delta_fixed_minus_float_lsb20_counts": {
+        "-1": 33,
+        "0": 4058,
+        "1": 5
+      },
+      "samples": 4096
+    },
+    "sigma_2pct_on": {
+      "code_delta_fixed_minus_float_lsb20_counts": {
+        "-1": 30,
+        "0": 4062,
+        "1": 4
+      },
+      "samples": 4096
+    },
+    "sigma_3pct_off": {
+      "code_delta_fixed_minus_float_lsb20_counts": {
+        "-1": 15,
+        "0": 4076,
+        "1": 5
+      },
+      "samples": 4096
+    },
+    "sigma_3pct_on": {
+      "code_delta_fixed_minus_float_lsb20_counts": {
+        "-1": 19,
+        "0": 4060,
+        "1": 17
+      },
+      "samples": 4096
+    }
+  },
+  "log_normalization": "local paths replaced; line-end whitespace trimmed",
+  "log_sha256": {
+    "compile.log": "ab3690b5961566ea2dc9210bd4da1e215d565149839e5182550f9a54eae548a1",
+    "lint.log": "9e2d9b6e47bd7bb2ceb63f7a00eb5d51524e26bbabaf09effe6e5fa93eb287f1",
+    "run.log": "1f596e08b8c7ec0eadbea401343db4808b765c44af3f35b4e1ccc76239773a43",
+    "verilator.log": "878beb074b42d7036bda71fe428af3fba65b2592d151c5cfdb663297bf6dc718"
+  },
+  "mismatches": 0,
+  "numpy": "2.5.3",
+  "python": "3.12.14",
+  "schema": "sar20-runtime-recon-verilator-v1",
+  "scope": "DIGITAL_BEHAVIOR_ONLY",
+  "source_sha256": {
+    "task_reconstruction/fixed.py": "08cf2096bdbde88e29eb89b4e09df73c943d3a16e1ddfa0d24b30eea9c41921d",
+    "task_reconstruction/rtl/sar20_lms_recon.sv": "09f9b5622880310410c2a7542f3d34994c263e781fb745e7b2fc65568c6a5170",
+    "task_reconstruction/tb/sar20_lms_recon_tb.sv": "533176da41c140b49f0b40aeff9dbedcdb04de628bc0fd3f1e9d68953a744902",
+    "task_reconstruction/tools/run_checks.py": "6b74e2166040fb3f5df1b3b606a2d57d5a4de328e4e4dba641ad7cbc2bed2dac",
+    "tools/run_open_rtl.py": "b5af7fcd9917dd8d3305117e0f2601b59f759b1e783f3aa2cd5b54e213975ef2"
+  },
+  "status": "PASS",
+  "vector_sha256": {
+    "midpoint.hex": "c08feed6f531e5493f58734abc8ce0d23f76223a7a8c69bef6126374e0d4a3db",
+    "observation.hex": "35e624e120327ce401e7777ff9057ec8ba6eb3d2e1b9eea695a51fa57a511d9d",
+    "vectors.hex": "b8128836b24f1d3664c2d8fbbed6ecddbdae39421a6cb7c0a49ccacd9f583098"
+  },
+  "verified_minimum_sample_spacing_cycles": 13,
+  "verified_normal_latency_cycles": 22,
+  "verified_sustained_sample_spacing_cycles": 16,
+  "verilator": "Verilator 5.30"
+}

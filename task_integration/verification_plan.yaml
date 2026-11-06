@@ -16,4 +16,5 @@ requirements:
   REQ-TOP-05:
     test: integrated_on_chip_lms_pipeline
     checks: [two_inflight_tags, adc2_command_binding, frozen_weight_replay, bypass_2pct,
-             chopped_3pct, cadence_16, result_latency_23, malformed_id, config_freeze, macro_bad]
+             chopped_3pct, cadence_16, result_latency_23, malformed_id, config_freeze,
+             simultaneous_bad_acquisition, late_bad_pending]

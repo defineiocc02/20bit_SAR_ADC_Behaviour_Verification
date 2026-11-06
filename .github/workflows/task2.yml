@@ -37,7 +37,7 @@ permissions:
 jobs:
   dither:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 35
     env:
       PYTHONPATH: .:src
       OPENBLAS_NUM_THREADS: '1'
@@ -76,10 +76,13 @@ jobs:
           mkdir -p "$OUT"
           { python --version; verilator --version; python -m pip freeze; } > "$OUT/tools.txt"
       - name: Check digital generator and seven-slice model
+        shell: bash
         run: |
+          set -o pipefail
           python -m pytest -q task2/tests task2/eight/tests --junitxml "$OUT/tests.xml"
           python task2/tools/run_dither_word_checks.py --out "$OUT/rtl"
           python task2/eight_rtl/tools/run_checks.py --out "$OUT/dither8"
+          python task2/eight_rtl/independent_review/run.py --out "$OUT/dither8-independent"
           python task3/tools/run_caaz_checks.py --out "$OUT/caaz"
           yosys -s task3/tb/formal.ys | tee "$OUT/caaz_formal.log"
       - name: Reproduce seven-slice experiment and explanatory figures

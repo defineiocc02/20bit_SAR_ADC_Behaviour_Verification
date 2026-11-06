@@ -1,0 +1,45 @@
+{
+  "counts": {
+    "acq_words": 10638,
+    "code_errors": 6136,
+    "cycles": 20000,
+    "seed_errors": 2216,
+    "stalls": 2443,
+    "valid_commands": 3885
+  },
+  "coverage": {
+    "clear": 98,
+    "disable": 107,
+    "fresh_in_conversion": 5812,
+    "overflow": 608,
+    "prev_in_conversion": 8476,
+    "reset": 17,
+    "valid_reseed": 1431,
+    "word_0": 5454,
+    "word_63": 64
+  },
+  "mismatches": 0,
+  "python": "3.12.14",
+  "schema": "dither8-independent-random-review-v1",
+  "scope": "DIGITAL_BEHAVIOR_ONLY",
+  "source_sha256": {
+    "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
+    "task1/rtl/fig21_bridge.sv": "15a5fe746f012aeb655f9fc19a0b582646f445ab0a1cae16992c6a22f8c7a305",
+    "task1/rtl/module1_bridge_top.sv": "8181f1d629fefd67fc51b52483725f3c4675a613c73fff9be554e2ce6dcaaba1",
+    "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
+    "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
+    "task1/tools/run_bridge_checks.py": "3f1e69afd186e783eda6fbf090976933b959dbd7573d2a84ce4428eddcd23ed9",
+    "task1/tools/run_rtl_checks.py": "eecec87f7fcd6f5a3aa8db7545b3b91896a74f0e216e41f6ea3f076d5ba5abd9",
+    "task2/eight_rtl/independent_review/run.py": "ea78081a035b996642e0a3aa0fa4d4a0e3b1887691a20f831e245ea049f29ff9",
+    "task2/eight_rtl/rtl/dither8_top.sv": "d06612de2a12ee8340b212fdaf0b3b565573098779d0e282522b0999962f3029",
+    "task2/eight_rtl/tb/dither8_checks_tb.sv": "94c243d73f9165a82ab92d5abded34be1c1eca8fe2ba66f9e4e45c031ff05443",
+    "task2/eight_rtl/tools/run_checks.py": "97eb49fdbbe98e12f600374933043d1fb7b4e78bdb772e3ca474182e58b1425e",
+    "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad",
+    "task2/tools/run_dither_word_checks.py": "a990954e2bc45a3c0f64d80501ec4de5f1043427cf78efb050a830f805c0db5b",
+    "tools/run_open_rtl.py": "b5af7fcd9917dd8d3305117e0f2601b59f759b1e783f3aa2cd5b54e213975ef2"
+  },
+  "status": "PASS",
+  "stimulus_seed": 8551,
+  "vectors_sha256": "39aba157b6f89f62dcb9a5846d441f9b4ff1287d554b9f5d8e45c0b173901f42",
+  "verilator": "Verilator 5.30"
+}

@@ -60,6 +60,7 @@ def freeze(args: argparse.Namespace) -> None:
     plan = json.loads((source / physical / "plan.json").read_text())
     plan.update(run_id=args.run_id, top=args.top, rtl_commit=args.sha, config=args.config)
     if args.top == "sar20_digital_lms_top":
+        plan["synth_memory_max_bits"] = 16384
         plan["floorplan"] = {
             "synthesized_cell_utilization_percent": 33,
             "aspect": 1,

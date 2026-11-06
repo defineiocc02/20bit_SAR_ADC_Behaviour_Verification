@@ -6,6 +6,9 @@ export DESIGN_NICKNAME = task_integration_sar20_lms
 export VERILOG_FILES += $(REPO_DIR)/task_reconstruction/rtl/sar20_lms_recon.sv \
                         $(REPO_DIR)/task_integration/rtl/sar20_digital_lms_top.sv
 
+# Admit the intended 18 × 504-bit coefficient bank for standard-cell mapping.
+export SYNTH_MEMORY_MAX_BITS = 16384
+
 # Size for coefficient storage and arithmetic after actual synthesis.
 export DIE_AREA =
 export CORE_AREA =

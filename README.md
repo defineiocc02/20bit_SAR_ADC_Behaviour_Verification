@@ -47,12 +47,12 @@
 | 项目 | 当前状态 | 入口 |
 | :--- | :--- | :--- |
 | 切片调度＋DEM | 18／8／8／2、有序 ID、释放资格和 Fig.21 跨段候选已有 Python／RTL 对拍；跨段名义补偿与模拟连接仍须系统验证 | [代码与接口](task1/BRIDGE_SPEC.md) · [数字验证](task1/evidence/bridge_rtl/README.md) |
-| 电容失配＋LMS | 2%／3% 固定失配有独立训练、留出、INL／DNL 和频谱对照；LMS 目前是**片外 Python** | [LMS 对照](task1/evidence/bridge_lms/README.md) · [INL／DNL](task1/evidence/inl_dnl/README.md) |
-| SKY130 数字后端 | 两个顶层均已导出 GDS；6.25 ns 下 TT 角 setup／hold 通过。基础版 setup 仅有约 1.4 ps 裕量；独立 DRC／LVS 尚未执行 | [GDS、时序和版本](task1/physical/README.md) |
+| 电容失配＋LMS | 训练在片外；可写权重的片上重构 RTL 已与定点参考对拍。2%／3% 留出数据和关闭 LMS 的对照均已归档 | [八片校准与对照](task2/evidence/eight_native/README.md) · [片上重构](task_reconstruction/README.md) |
+| SKY130 数字后端 | 模块一的两个顶层已有 GDS 和 TT 角 6.25 ns 布线后时序；含模块二、三和片上重构的整体顶层须另看对应实跑结果 | [模块一 GDS](task1/physical/README.md) · [整体物理流程](task2/physical/README.md) |
 | 分路 dither | 18 片中选择 8 片，六位字、逐片底板采样、同笔 ID 和命令码有 Python／RTL 对拍及有界形式验证；模拟辅助 DAC 和真实参考开关仍须验收 | [八片效果](task2/evidence/eight_native/README.md) · [RTL 合同](task2/eight_rtl/SPEC.md) |
 | CAAZ | 斩波相位、自归零控制和两笔数字配对已有 RTL 对拍；模拟宏、实际保持误差和联合后仿仍待验证 | [模块三说明](task3/README.md) |
 
-SKY130 是本阶段指定的数字工艺；它**不是**未来 180 nm BCD 的签核结果。当前目标输出码宽为 20 位，不等于已证明 20 位有效精度。权重训练与重构乘加的最终硬件归属待定。
+SKY130 是本阶段指定的数字工艺；它**不是**未来 180 nm BCD 的签核结果。当前目标输出码宽为 20 位，不等于已证明 20 位有效精度。实际 SADC、RDAC、RA、ADC2 和斩波／自归零开关由模拟宏提供。
 
 ## 运行和目录
 
@@ -72,6 +72,7 @@ PYTHONPATH=.:src python task1/tools/run_bridge_checks.py --out /tmp/task1-bridge
 | `task1/physical/`、`design/` | SKY130 GDS／STA、约束、需求与验证记录 |
 | `task2/` | dither 字发生器、八片 RTL、模型、效果图和物理流程 |
 | `task3/` | CAAZ 数字控制、配对、验证和模拟接口 |
+| `task_reconstruction/`、`task_integration/` | 可写权重的片上重构和三模块整体数字顶层 |
 | `src/adi_model/`、`tools/` | 本任务复现依赖的电荷／频谱参考和 RTL 工具辅助 |
 | `references/` | ISSCC 与北大论文、讲稿及专利索引 |
 

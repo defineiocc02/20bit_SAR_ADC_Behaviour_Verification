@@ -39,16 +39,17 @@ module task1_slice_scheduler (
   localparam logic [31:0] DefaultSeed = 32'h243f6a88;
   localparam logic [31:0] LfsrTaps = 32'h80200003;
 
-  logic [17:0] scan_cursor_onehot, scan_select;
+  logic [17:0] scan_cursor_onehot;
   logic [31:0] advanced_lfsr;
   logic [17:0] available_mask;
   logic [39:0] next_ids;
   logic [17:0] next_mask;
   logic enough_slices;
-  logic [17:0] scan_available;
-  logic [17:0] scan_selected;
-  logic [4:0] scan_rank [18];
-  logic [17:0] candidate_bit [5];
+  logic [17:0] start_at_or_before;
+  logic [4:0] rank_fixed [18], rank_shuffled [18];
+  logic [17:0] mask_fixed, mask_shuffled;
+  logic [39:0] ids_fixed, ids_shuffled;
+  logic [17:0] physical_id_bit [5];
 
   function automatic logic [31:0] lfsr_advance(input logic [31:0] state);
     logic [31:0] next_state;
@@ -70,50 +71,52 @@ module task1_slice_scheduler (
   endfunction
 
   assign advanced_lfsr = lfsr_advance(lfsr_state_o);
-  assign scan_select = shuffle_i ? scan_cursor_onehot : 18'd1;
 
   // 资格计数与轮转起点无关，单独决定本拍能否接受请求。
   assign enough_slices = $countones(available_mask) >= 8;
-  for (genvar lane = 0; lane < 18; lane++) begin : gen_scan
-    localparam logic [17:0] Earlier = 18'h3ffff >> (18 - lane);
-    logic [17:0] eligible_by_start;
-    for (genvar start = 0; start < 18; start++) begin : gen_eligibility
-      localparam int Physical = (lane + start) % 18;
-      assign eligible_by_start[start] = available_mask[Physical];
-    end
-    assign scan_available[lane] = |(eligible_by_start & scan_select);
-    assign scan_rank[lane] = 5'($countones(scan_available & Earlier));
-    assign scan_selected[lane] = scan_available[lane] && (scan_rank[lane] < 5'd8);
-    for (genvar bit_idx = 0; bit_idx < 5; bit_idx++) begin : gen_id_bits
-      logic [17:0] bit_by_start;
-      for (genvar start = 0; start < 18; start++) begin : gen_start
-        localparam logic [4:0] Physical = 5'((lane + start) % 18);
-        assign bit_by_start[start] = Physical[bit_idx];
+  // 对每个物理位置直接形成环形前缀，避免轮转资格位或回转选择位图。
+  for (genvar physical = 0; physical < 18; physical++) begin : gen_physical
+    localparam logic [17:0] Through = 18'h3ffff >> (17 - physical);
+    localparam logic [17:0] Earlier = 18'h3ffff >> (18 - physical);
+    localparam logic [4:0] PhysicalId = 5'(physical);
+    logic [17:0] earlier;
+    assign start_at_or_before[physical] = |(scan_cursor_onehot & Through);
+
+    for (genvar other = 0; other < 18; other++) begin : gen_earlier
+      if (other < physical) begin : gen_before
+        assign earlier[other] = start_at_or_before[other] || !start_at_or_before[physical];
+      end else if (other > physical) begin : gen_after
+        assign earlier[other] = start_at_or_before[other] && !start_at_or_before[physical];
+      end else begin : gen_self
+        assign earlier[other] = 1'b0;
       end
-      assign candidate_bit[bit_idx][lane] = |(bit_by_start & scan_select);
+    end
+
+    assign rank_fixed[physical] = 5'($countones(available_mask & Earlier));
+    assign rank_shuffled[physical] = 5'($countones(available_mask & earlier));
+    assign mask_fixed[physical] = available_mask[physical] && (rank_fixed[physical] < 5'd8);
+    assign mask_shuffled[physical] = available_mask[physical] && (rank_shuffled[physical] < 5'd8);
+    for (genvar bit_idx = 0; bit_idx < 5; bit_idx++) begin : gen_id_bits
+      assign physical_id_bit[bit_idx][physical] = PhysicalId[bit_idx];
     end
   end
 
-  // 用同一个已缓存的一位有效游标把逻辑选择转回物理位图。
-  for (genvar physical = 0; physical < 18; physical++) begin : gen_mask
-    logic [17:0] selected_by_start;
-    for (genvar start = 0; start < 18; start++) begin : gen_start
-      localparam int Lane = (physical + 18 - start) % 18;
-      assign selected_by_start[start] = scan_selected[Lane];
-    end
-    assign next_mask[physical] = |(selected_by_start & scan_select);
-  end
-
-  // 每个 slot 只由一个优先序对应的物理切片驱动。
-  for (genvar slot = 0; slot < 8; slot++) begin : gen_slot
-    logic [17:0] pick;
-    for (genvar lane = 0; lane < 18; lane++) begin : gen_lane
-      assign pick[lane] = scan_available[lane] && (scan_rank[lane] == 5'(slot));
+  // 每个 slot 只由环形序位相等的一个合格物理切片驱动。
+  for (genvar slot = 0; slot < 8; slot++) begin : gen_output_slot
+    logic [17:0] pick_fixed, pick_shuffled;
+    for (genvar physical = 0; physical < 18; physical++) begin : gen_pick
+      assign pick_fixed[physical] = available_mask[physical] && (rank_fixed[physical] == 5'(slot));
+      assign pick_shuffled[physical] = available_mask[physical] && (rank_shuffled[physical] == 5'(slot));
     end
     for (genvar bit_idx = 0; bit_idx < 5; bit_idx++) begin : gen_bit
-      assign next_ids[5*slot + bit_idx] = |(pick & candidate_bit[bit_idx]);
+      assign ids_fixed[5*slot + bit_idx] = |(pick_fixed & physical_id_bit[bit_idx]);
+      assign ids_shuffled[5*slot + bit_idx] = |(pick_shuffled & physical_id_bit[bit_idx]);
     end
   end
+
+  // 两种排序并行完成，最后才应用模式位，避免模式输入穿过前缀计数。
+  assign next_mask = shuffle_i ? mask_shuffled : mask_fixed;
+  assign next_ids = shuffle_i ? ids_shuffled : ids_fixed;
 
   always_ff @(posedge clk_i) begin
     slot_accepted_o <= 1'b0;

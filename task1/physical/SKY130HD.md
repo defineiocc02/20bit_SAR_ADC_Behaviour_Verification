@@ -40,3 +40,14 @@ bash task1/physical/sky130_run.sh /tmp/task1-sky130hd module1_top
 | `module1_bridge_top` | −1.56883 | −6.58757 | 47 | +0.114057 | 0 |
 
 两版 hold 通过，setup 仍有违例。最差路径均转移到转换片 ID 的合法性判断，再到 `conv_valid_o`。详细路由 DRC 和天线违规均为 0，最终 VDD／VSS 网格连通。独立 DRC 和 LVS 为 `NOT_RUN`。
+
+## 并行合法性与 one-hot 游标的布线复验
+
+`84410a4898929fa5f57960cfd325696d39b02771` 的两版布局和约束与前述验收口径一致，使用该轮最终 ODB、SDC、SPEF 重新分析 setup 和 hold。 [两版 GDS／STA](evidence/module1_pair_sky130hd_run_42232783534.zip) · [哈希清单](evidence/sky130hd_pair_manifest_42232783534.json) · [Actions 运行](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42232783534)
+
+| 顶层 | Setup WNS (ns) | Setup TNS (ns) | Setup 违例端点 | Hold 最小裕量 (ns) | Hold TNS (ns) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `module1_top` | −0.546307 | −25.0623 | 58 | +0.0839664 | 0 |
+| `module1_bridge_top` | −0.672571 | −28.8566 | 65 | +0.102683 | 0 |
+
+两版 setup 仍有违例，hold 通过。最差 setup 已转移到采集组 ID 选择，基础版从 `eligible_i[13]` 出发，桥接版从 `shuffle_i` 出发。详细路由 DRC 和天线违规均为 0，最终 VDD／VSS 网格连通。独立 DRC 和 LVS 为 `NOT_RUN`。

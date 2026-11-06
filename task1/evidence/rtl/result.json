@@ -25,9 +25,15 @@
     "module1_top.lint.log": "41b2da62c2b9f9f88b06551987dd49a49c223bd78eb3fc499f5527b70f071489",
     "run.log": "805f1fa640356c73076cf88794916175962093b85051569f9f6e53f077625275",
     "task1_slice_scheduler.lint.log": "aa3bea8fb9af65d3689c8cbaa15fc9dfeccd5b11dd16f698ff25032493d780aa",
-    "verilator.log": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1"
+    "verilator.log": "97abb08fa2bb8ae7024f4f8f90646198a3acb305b6cbd8ca205d57075cb8f0bb"
   },
   "mismatches": 0,
+  "public_log_redaction": {
+    "file": "verilator.log",
+    "original_sha256": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1",
+    "published_sha256": "97abb08fa2bb8ae7024f4f8f90646198a3acb305b6cbd8ca205d57075cb8f0bb",
+    "reason": "移除本机用户目录；工具版本和验证计数未修改"
+  },
   "scheduler_fixture_seed": 659918,
   "schema_version": 1,
   "scope": "TASK1_DIGITAL_MODULE1",

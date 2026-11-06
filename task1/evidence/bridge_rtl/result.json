@@ -17,9 +17,15 @@
     "compile.log": "57ad021add21ce579f9aeff58246d8c95ecc76bae7781131c5bcc97cc0149971",
     "module1_bridge_top.lint.log": "2dfb9c6fc171552f2522303addfc7547538ec7add4d5c694c5b1e35eae837d78",
     "run.log": "a6297f21164055df46d641dd578a3eb279bb64511e1b03a1fe758376e5fe039d",
-    "verilator.log": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1"
+    "verilator.log": "97abb08fa2bb8ae7024f4f8f90646198a3acb305b6cbd8ca205d57075cb8f0bb"
   },
   "mismatches": 0,
+  "public_log_redaction": {
+    "file": "verilator.log",
+    "original_sha256": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1",
+    "published_sha256": "97abb08fa2bb8ae7024f4f8f90646198a3acb305b6cbd8ca205d57075cb8f0bb",
+    "reason": "移除本机用户目录；工具版本和验证计数未修改"
+  },
   "schema_version": 1,
   "scope": "TASK1_DIGITAL_BRIDGE_CANDIDATE",
   "simulator": "Verilator 5.30",

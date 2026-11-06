@@ -6,7 +6,7 @@ REQ-M1-04,required,复位与双随机流,复位清空禁用取消在途。双种
 REQ-M1-05,required,Fig.11 主侧位图及旁路,全部512码匹配独立集合参考。遍历16×16相位组合。开启横相15拒绝,fig11_dem,V-DEM,RTL对拍开启122880及旁路131072及非法8192条向量,PASS,数字
 REQ-M1-06,required,名义选通电荷守恒,八片主与子节点选通电容分别守恒。独立两节点参考在指定相位匹配。B5跨节点反例成立,fig11_dem,V-DEM|V-CHARGE,向量整数检查及 test_fig11_dem.py,PASS,数字
 REQ-M1-07,required,交织和DEM模型效果可复现,固定实验输入和失配条件。提交效应对照图及原始数据。记录性能取舍,行为模型,V-EFFECTS,evidence/effects/summary.json 及源摘要,PASS,数字
-REQ-M1-08,required,SKY130HD GDS和提取后时序,6.25ns约束下交付可读GDS与setup hold报告。违例须如实列出,module1_top,V-PROXY,physical/SKY130HD.md 及原始GDS与STA,FAIL,数字
+REQ-M1-08,required,SKY130HD GDS和提取后时序,6.25ns约束下交付可读GDS与setup hold报告。违例须如实列出,module1_top,V-PROXY,SKY130HD TT同6.25ns SDC两top GDS与抽取后setup hold均通过；独立DRC LVS未运行,PASS,数字
 REQ-M1-09,required,模拟接口及目标库冻结,确认实际接轨及切片释放与I/O预算。确定180 nm BCD库与角。按冻结条件交付目标GDS和STA,系统接口,V-TARGET,未来180nm目标库和模拟接口签认,NOT_RUN,模拟与数字
 REQ-M1-10,required,Fig21跨段数字候选,同笔冻结保留列与位图。补偿恰好一次且无效不输出,module1_bridge_top,V-BRIDGE,evidence/bridge_rtl/result.json,PASS,数字
 REQ-M1-11,required,失配结合LMS与统计INL DNL,独立训练和留出。同池比较严格无DEM与跨段DEM,行为模型,V-LINEARITY,evidence/inl_dnl/README.md,PASS,数字

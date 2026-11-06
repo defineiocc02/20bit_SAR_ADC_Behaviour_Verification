@@ -22,11 +22,19 @@
 
 ## Dither 是什么效果？
 
+讲稿中的低路扰动同时作用于前级 SADC 和 RDAC；高路只进入 RDAC。两路的数字信息还参与 DEM 之前的码处理。原文短句、七片示例位分配和本项目生成方式见 [dither 原文与注入](task2/ORIGINAL_SOURCES.md)。
+
+![ISSCC 讲稿 dither 两路注入的中文说明](task2/figures/dither_isscc_ppt.png)
+
+专利七切片工程示例：六位伪随机字控制低路和高路，数字端按同一笔扰动去除。下图在七片等值、理想 12 位 ADC2、无失配条件下比较开关效果；评估窗口为 ±3.671875 V，DNL 均方根由 2.030 降至 0.429 LSB20。这不代表目标八片芯片已完成验证。[生成、原文和频谱结果](task2/README.md)
+
+![专利七切片示例的 dither 开关对比](task2/evidence/fig19_seven/fig19_seven_linearity.png)
+
 下图两边都开启 DEM 和同一套已冻结 LMS，**只比较理想细级减性 dither 关闭／开启**；采用 16 个 DEM 状态和 16 个扰动字。它是理解机制的数学实验，**不是已经实现专利 Fig.19 的物理 dither**，也不能消除 ADC2 过载。
 
 ![理想 dither 关闭和开启的 20 位 INL／DNL](task1/evidence/adc2_dither/full20/adc2_12bit_sigma_2pct_dither.png)
 
-[3% dither 对照](task1/evidence/adc2_dither/full20/adc2_12bit_sigma_3pct_dither.png) · [12 位第二级量程分析](task1/ADC2_DITHER.md) · [统计方式和原始数据](task1/evidence/adc2_dither/README.md)
+[3% dither 对照](task1/evidence/adc2_dither/full20/adc2_12bit_sigma_3pct_dither.png) · [专利七片示例与图集](task2/figures/README.md) · [12 位第二级量程分析](task1/ADC2_DITHER.md)
 
 ## 现在交付到哪里？
 
@@ -34,8 +42,8 @@
 | :--- | :--- | :--- |
 | 切片调度＋DEM | 18／8／8／2、有序 ID、释放资格和 Fig.21 跨段候选已有 Python／RTL 对拍；跨段名义补偿与模拟连接仍须系统验证 | [代码与接口](task1/BRIDGE_SPEC.md) · [数字验证](task1/evidence/bridge_rtl/README.md) |
 | 电容失配＋LMS | 2%／3% 固定失配有独立训练、留出、INL／DNL 和频谱对照；LMS 目前是**片外 Python** | [LMS 对照](task1/evidence/bridge_lms/README.md) · [INL／DNL](task1/evidence/inl_dnl/README.md) |
-| SKY130 数字后端 | 跨段顶层已导出 GDS；6.25 ns 下 TT 角 setup／hold 通过。非跨段顶层尚有 setup 违例，独立 DRC／LVS 尚未执行 | [GDS、时序和版本](task1/physical/SKY130HD.md) |
-| 分路 dither | 原文 Fig.19 物理注入及 RTL 闭环尚未交付 | [模块二计划](task2/README.md) |
+| SKY130 数字后端 | 两个顶层均已导出 GDS；6.25 ns 下 TT 角 setup／hold 通过。基础版 setup 仅有约 1.4 ps 裕量；独立 DRC／LVS 尚未执行 | [GDS、时序和版本](task1/physical/README.md) |
+| 分路 dither | 六位字发生器和专利七片工程示例已有独立验证；目标八片的物理注入和完整 RTL 闭环尚未交付 | [注入、原文与计划](task2/README.md) |
 | CAAZ | 数字控制与模拟宏联合尚未交付 | [模块三计划](task3/README.md) |
 
 SKY130 是本阶段指定的数字工艺；它**不是**未来 180 nm BCD 的签核结果。当前目标输出码宽为 20 位，不等于已证明 20 位有效精度。权重训练与重构乘加的最终硬件归属待定。

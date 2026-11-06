@@ -1,0 +1,91 @@
+name: Dither source and seven-slice checks
+
+on:
+  push:
+    branches: [20b10mtask]
+    paths:
+      - 'task2/**'
+      - 'task1/model/module1.py'
+      - 'task1/model/scheduler.py'
+      - 'task1/experiments/full20_linearity_plots.py'
+      - 'task1/evidence/adc2_dither/full20/**'
+      - 'task1/requirements*.txt'
+      - 'references/ISSCC2024_*.pdf'
+      - 'tools/run_open_rtl.py'
+      - '.github/workflows/task2.yml'
+  pull_request:
+    branches: [20b10mtask]
+    paths:
+      - 'task2/**'
+      - 'task1/model/module1.py'
+      - 'task1/model/scheduler.py'
+      - 'task1/experiments/full20_linearity_plots.py'
+      - 'task1/evidence/adc2_dither/full20/**'
+      - 'task1/requirements*.txt'
+      - 'references/ISSCC2024_*.pdf'
+      - 'tools/run_open_rtl.py'
+      - '.github/workflows/task2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dither:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: .:src
+      OPENBLAS_NUM_THREADS: '1'
+      MPLBACKEND: Agg
+      VERILATOR: verilator
+      CXX: clang++
+      OUT: /tmp/sar-task2-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: |
+            task1/requirements.txt
+            task1/requirements-calibration.txt
+      - name: Install simulator, Chinese font and pinned Python dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y verilator clang fonts-noto-cjk fontconfig
+          python -m pip install -r task1/requirements-calibration.txt
+          python - <<'PY'
+          from pathlib import Path
+          from fontTools.ttLib import TTCollection
+          out = Path.home() / '.local/share/fonts'
+          out.mkdir(parents=True, exist_ok=True)
+          for weight in ('Regular', 'Bold'):
+              source = Path('/usr/share/fonts/opentype/noto') / f'NotoSansCJK-{weight}.ttc'
+              with TTCollection(source) as collection:
+                  font = next(f for f in collection.fonts if f['name'].getBestFamilyName() == 'Noto Sans CJK SC')
+                  font.save(out / f'NotoSansCJKsc-{weight}.otf')
+          PY
+          fc-cache -f
+          mkdir -p "$OUT"
+          { python --version; verilator --version; python -m pip freeze; } > "$OUT/tools.txt"
+      - name: Check digital generator and seven-slice model
+        run: |
+          python -m pytest -q task2/tests --junitxml "$OUT/tests.xml"
+          python task2/tools/run_dither_word_checks.py --out "$OUT/rtl"
+      - name: Reproduce seven-slice experiment and explanatory figures
+        run: |
+          python -m task2.experiments.fig19_seven_demo --output "$OUT/fig19"
+          python -m task2.tools.draw_dither --out "$OUT/figures"
+      - name: Clarify evidence scope
+        run: |
+          printf '%s\n' 'Digital word generator and seven-slice ideal Fig.19 model passed.' >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' 'Eight-slice physical injection, real ADC2 and integrated GDS are not covered.' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: task2-dither-evidence
+          path: ${{ env.OUT }}
+          retention-days: 14

@@ -1,0 +1,307 @@
+{
+  "schema_version": 1,
+  "scope": "Fig. 19 equal-capacitance voltage-equivalent engineering model",
+  "patent": "US10505561B2 PDF pp. 22 (Fig. 19), 33 (columns 19\u201320)",
+  "assumptions": {
+    "differential_input_window_v": [
+      -5.0,
+      5.0
+    ],
+    "coarse_bits": 9,
+    "coarse_lsb_v": 0.01953125,
+    "adc2_bits": 12,
+    "adc2_input_referred_window_v": [
+      -0.1,
+      0.1
+    ],
+    "adc2_input_referred_lsb_v": 4.8828125e-05,
+    "output_bits": 20,
+    "lsb20_v": 9.5367431640625e-06,
+    "fractional_count_7_all_slices_advance": true,
+    "ideal_max_slice_setting_lsb": 8,
+    "capacitance_mismatch": false,
+    "thermal_noise": false,
+    "lms": false
+  },
+  "linearity": {
+    "uniform_input_window_v": [
+      -3.671875,
+      3.671875
+    ],
+    "assessed_signed_codes_inclusive": [
+      -385020,
+      385019
+    ],
+    "discarded_output_codes_per_window_edge": 4,
+    "zero_width_tolerance_v": 1e-15,
+    "on_equal_weight_words": 64,
+    "on_unique_total_dither_levels": 57,
+    "dnl": "width / LSB20 - 1",
+    "inl": "cumulative DNL at boundaries with endpoint line removed",
+    "off": {
+      "dnl_range_lsb20": [
+        -1.0,
+        4.120000000018626
+      ],
+      "dnl_rms_lsb20": 2.0297760773316442,
+      "inl_range_lsb20": [
+        -3.6798254636402166,
+        3.6399447301811403
+      ],
+      "zero_width_codes": 619642,
+      "mass_v": 7.34375,
+      "rejected_input_width_v_by_stage": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "on": {
+      "dnl_range_lsb20": [
+        -0.3600000000034924,
+        0.920000000006985
+      ],
+      "dnl_rms_lsb20": 0.4289531805753651,
+      "inl_range_lsb20": [
+        -0.7999750662303262,
+        0.7599580281578746
+      ],
+      "zero_width_codes": 0,
+      "mass_v": 7.34375,
+      "rejected_input_width_v_by_stage": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  },
+  "tone": {
+    "sample_rate_hz": 10000000,
+    "samples": 4096,
+    "tone_bin": 409,
+    "tone_frequency_hz": 998535.15625,
+    "amplitude_peak_v": 3.3333333333333335,
+    "prbs31_seed_hex": "0x5A1709C3",
+    "word_histogram": [
+      77,
+      69,
+      79,
+      86,
+      58,
+      52,
+      58,
+      52,
+      72,
+      92,
+      62,
+      84,
+      62,
+      56,
+      55,
+      58,
+      70,
+      51,
+      70,
+      63,
+      49,
+      62,
+      55,
+      60,
+      59,
+      65,
+      56,
+      76,
+      46,
+      62,
+      66,
+      54,
+      68,
+      64,
+      81,
+      52,
+      76,
+      82,
+      75,
+      69,
+      65,
+      63,
+      58,
+      71,
+      60,
+      72,
+      78,
+      76,
+      64,
+      47,
+      57,
+      50,
+      66,
+      58,
+      66,
+      57,
+      73,
+      81,
+      54,
+      61,
+      52,
+      54,
+      62,
+      48
+    ],
+    "spectrum_window": "rectangular",
+    "off": {
+      "accepted_samples": 4096,
+      "accepted_with_prefix_guard": 4096,
+      "sndr_dbc": 104.5653566489737,
+      "sfdr_dbc": 123.3007502828896,
+      "independent_fft_sndr_dbc": 104.56535665176618,
+      "independent_fft_sfdr_dbc": 123.30075028283721,
+      "largest_spur_bin": 287,
+      "largest_spur_hz": 700683.59375,
+      "largest_spur_dbfs": -126.82257261271533,
+      "input_referred_residue_range_v": [
+        0.0,
+        0.01953124999991827
+      ],
+      "adc2_quantization_error_rms_v": 1.3716230344091132e-05,
+      "output_error_rms_v": 1.3957822383664457e-05,
+      "unquantized_reconstruction_error_max_v": 6.938893903907228e-18,
+      "independent_residue_oracle_error_max_v": 3.469446951953614e-18
+    },
+    "on": {
+      "accepted_samples": 4096,
+      "accepted_with_prefix_guard": 4096,
+      "sndr_dbc": 104.35767789506384,
+      "sfdr_dbc": 128.46547400125445,
+      "independent_fft_sndr_dbc": 104.3576778977143,
+      "independent_fft_sfdr_dbc": 128.4654740012665,
+      "largest_spur_bin": 1619,
+      "largest_spur_hz": 3952636.71875,
+      "largest_spur_dbfs": -131.98729836838913,
+      "input_referred_residue_range_v": [
+        2.3692379384725778e-06,
+        0.019528880761871013
+      ],
+      "adc2_quantization_error_rms_v": 1.4038124992353609e-05,
+      "output_error_rms_v": 1.4278050027325232e-05,
+      "unquantized_reconstruction_error_max_v": 4.440892098500626e-16,
+      "independent_residue_oracle_error_max_v": 3.8077180297690916e-16
+    }
+  },
+  "headroom_examples": {
+    "word63_limit7": {
+      "required_settings_lsb": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ],
+      "setting_valid": false
+    },
+    "word32_low_rail": {
+      "input_v": -4.9951171875,
+      "sadc_valid": true,
+      "rdac_valid": false,
+      "final_command": -4
+    },
+    "word32_prefix_vs_final": {
+      "input_v": -4.833984375,
+      "final_command": 4,
+      "prefix_commands": [
+        -4,
+        -4,
+        -4,
+        4,
+        4,
+        4,
+        4
+      ],
+      "accepted_direct": true,
+      "accepted_prefix_guard": false
+    },
+    "plus_5_v_endpoint": {
+      "input_valid": false
+    },
+    "near_upper_output_code": {
+      "input_v": 4.999999523162842,
+      "adc2_half_range_v": 0.12,
+      "reconstructed_v": 5.000009765625,
+      "adc2_valid": true,
+      "output_valid": false
+    },
+    "adc2_5mv_half_window": {
+      "residue_v": 0.0146484375,
+      "adc2_valid": false
+    }
+  },
+  "full_scale_uniform_headroom": {
+    "off": {
+      "direct_final": {
+        "rejected_pre_adc2_v": 0.0,
+        "rejected_adc2_v": 0.0,
+        "rejected_output_v": 0.0,
+        "rejected_input_percent": 0.0
+      },
+      "legacy_prefix_guard": {
+        "rejected_pre_adc2_v": 0.0,
+        "rejected_adc2_v": 0.0,
+        "rejected_output_v": 0.0,
+        "rejected_input_percent": 0.0
+      }
+    },
+    "on_64_equal_weight_words": {
+      "direct_final": {
+        "rejected_pre_adc2_v": 0.08544921875,
+        "rejected_adc2_v": 0.0,
+        "rejected_output_v": 5.231584821352442e-06,
+        "rejected_input_percent": 0.8545445033482135
+      },
+      "legacy_prefix_guard": {
+        "rejected_pre_adc2_v": 0.9686279296875,
+        "rejected_adc2_v": 0.0,
+        "rejected_output_v": 5.231584821602242e-06,
+        "rejected_input_percent": 9.686331612723215
+      }
+    }
+  },
+  "python": "3.12.14",
+  "python_packages": {
+    "numpy": "2.5.3",
+    "matplotlib": "3.11.2",
+    "adctoolbox": "0.9.1"
+  },
+  "source_sha256": {
+    "task2/model/fig19_seven.py": "09d3058c5ead8a61cba00aa4a2a05e59392f025ad7ab32a0d67fdbb16b7b43ae",
+    "task2/model/dither_word_gen.py": "a9c86bffacd388bec80f0a1bd4ab93514ded4dabcc6ed65a87b1cd377e1258e3",
+    "task2/experiments/fig19_seven_demo.py": "2aa5f58834fd0dc20f4dba438c2521f8af44c381a78dee1c5febd237a675387b",
+    "task1/experiments/full20_linearity_plots.py": "680a9741203d94299fc632dedc7c43a2a66f025ec343e1863ac5121ad459b901"
+  },
+  "upper_ablation": {
+    "rdac_span_lsb9_lower_only": [
+      0.0,
+      3.0
+    ],
+    "rdac_span_lsb9_full_word": [
+      0.0,
+      8.0
+    ],
+    "common_tone_samples": 4096,
+    "different_adc2_codes": 0,
+    "different_20bit_codes": 0,
+    "different_static_code_widths": 0,
+    "residue_difference_max_v": 2.220446049250313e-16
+  },
+  "font": "Hiragino Sans GB",
+  "artifact_sha256": {
+    "fig19_seven_linearity.png": "46ed76c37c5d8451c7fea997fd13c98761a96a32481c5abe14b7ac9e9be13a64",
+    "fig19_seven_linearity.svg": "ca5185696e9042ba104a43630f337f6524fc691eada6a9c08cba4ea6af22e8c8",
+    "fig19_seven_linearity.pdf": "a09d9f271f676748e2a7eb1e905ffb983df14046d700d8069cb2be98fa9582ca",
+    "fig19_seven_spectrum_residue.png": "0ea40f6976e9ecf0456288ba12d4f721cc95eb3b926ac65b5c4a07eeb26e41a5",
+    "fig19_seven_spectrum_residue.svg": "aa6782f09a4d3b4c9dbac317174699ed6023b0c68572db0c937136df5cbf57a1",
+    "fig19_seven_spectrum_residue.pdf": "ea8b9f251217816b381618105d1feb6d731c60af950a157e08c1f1e483df365b",
+    "fig19_seven_data.npz": "787e0b32544c7d8a4540f41dde1f0b409cf46f3ddc46361ada9f3839d48236a7"
+  }
+}

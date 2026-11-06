@@ -25,7 +25,7 @@ Environment:
     SYSTEMC_INCLUDE    = 
     SYSTEMC_LIBDIR     = 
     VERILATOR_BIN      = 
-    VERILATOR_ROOT     = /Users/zhaoyi/Obsidan/项目库产物文件夹/sar_adc_contract_calibration_20261104/tools/verilator_5_30/verilator
+    VERILATOR_ROOT     = <本机工具路径已隐藏>
 
 Supported features (compiled-in or forced by environment):
     COROUTINES         = 

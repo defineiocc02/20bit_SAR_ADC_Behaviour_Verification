@@ -1,0 +1,5 @@
+TASK2_DITHER_WORD_COMPLETE cycles=131599 words=131400 seed_errors=49
+- dither_word_gen_tb.sv:86: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.30
+- Verilator: $finish at 263us; walltime 0.304 s; speed 865.108 us/s
+- Verilator: cpu 0.304 s on 1 threads; alloced 0 MB

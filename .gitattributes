@@ -24,3 +24,8 @@ task1/evidence/rtl/*.log -text whitespace=-blank-at-eol
 task1/evidence/bridge_rtl/*.log -text whitespace=-blank-at-eol
 task1/evidence/**/*.csv -text whitespace=cr-at-eol
 task1/evidence/**/*.svg -text whitespace=-blank-at-eol
+# 模块二的图与实验表保持绘图及采集时的字节，供摘要核验。
+task2/figures/*.svg -text whitespace=-blank-at-eol
+task2/evidence/**/*.svg -text whitespace=-blank-at-eol
+task2/evidence/**/*.csv -text whitespace=cr-at-eol
+task2/evidence/dither_rng/*.log -text whitespace=-blank-at-eol

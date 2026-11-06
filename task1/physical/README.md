@@ -5,8 +5,21 @@
 | 证据 | 取得方式 |
 | --- | --- |
 | 本机综合网表、面积和检查报告 | [综合收据](evidence/synthesis/synthesis.json)、[报告](evidence/synthesis/synthesis.rpt)、[网表和日志](evidence/synthesis/module1_mapped.zip) |
-| GDS、网表、DEF、ODB、SDC、SPEF、布线后 setup / hold | [GitHub Actions](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/workflows/task1_physical.yml) 中成功运行的 `task1-nangate45-physical-*` 制品 |
+| GDS、网表、DEF、ODB、SDC、SPEF、布线后 setup / hold | [交付包](evidence/module1_nangate45_run_42219672742.zip)、[输入与产物摘要](evidence/nangate45_manifest.json)、[GitHub Actions 运行](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42219672742) |
 | 物理工艺、工具版本和同一轮的文件身份 | 制品中的 `manifest.json`、`tools.txt`、`container.txt` |
+
+## 本轮物理结果
+
+源码提交为 `f14fe261f33ca26542d5362ce99b44ba8506d343`，顶层为 `module1_top`。同一 Nangate45 typical 运行完成映射、放置、CTS、布线、RC 提取和 GDS 导出。布线后 STA 读取该轮最终 ODB、SDC 和 SPEF。约束覆盖检查未报告问题。
+
+| 6.25 ns 代理时钟 | 最小裕量 (ns) | WNS (ns) | TNS (ns) | 违例 |
+| --- | ---: | ---: | ---: | ---: |
+| Setup | +0.6122 | 0 | 0 | 0 |
+| Hold | +0.0297 | 0 | 0 | 0 |
+
+详细路由最终记录 0 条路由 DRC 和 0 个天线违规。最终 VDD、VSS 网格均通过连通检查。独立 DRC／LVS 为 `NOT_RUN`，目标工艺多角 STA 与 IR／EM 仍待验收。
+
+GDS 为 7,614,478 字节，解析得到唯一顶层 `module1_top`，含 99 个结构和 56,850 条几何记录。交付包保留原始报告和流日志，30 个产物的大小与 SHA-256 已逐个核对。源提交、实际容器摘要和三份 RTL 的 SHA-256 见 [manifest](evidence/nangate45_manifest.json)。
 
 本机复跑综合须有 Yosys 和公开库。Liberty 可从 [OpenROAD-flow-scripts 的 Nangate45 平台](https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/a5ff7ef7dac4338e6e5fad7710b85fc6c8f3503c/flow/platforms/nangate45/lib/NangateOpenCellLibrary_typical.lib)取得。输出目录须为空。
 

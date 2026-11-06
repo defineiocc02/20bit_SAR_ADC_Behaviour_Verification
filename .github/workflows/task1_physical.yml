@@ -1,12 +1,6 @@
 name: 20b10mtask public proxy GDS
 
 on:
-  push:
-    branches: [20b10mtask]
-    paths:
-      - 'task1/rtl/**'
-      - 'task1/physical/**'
-      - '.github/workflows/task1_physical.yml'
   workflow_dispatch:
 
 permissions:

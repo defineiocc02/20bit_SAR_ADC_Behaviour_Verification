@@ -54,6 +54,7 @@ jobs:
       - name: Compile and check RTL with Verilator
         run: |
           python task1/tools/run_rtl_checks.py --out "$TASK1_CI_OUT/rtl"
+          python task1/tools/run_bridge_checks.py --out "$TASK1_CI_OUT/bridge"
       - name: Reproduce behavioral plots and data
         run: |
           python -m task1.experiments.run_effects --out "$TASK1_CI_OUT/effects"

@@ -44,7 +44,7 @@ def describe_file(path: Path) -> dict:
     }
 
 
-def verify_gds(path: Path) -> dict:
+def verify_gds(path: Path, expected_design: str = EXPECTED_DESIGN) -> dict:
     """Check stream records, top-cell identity, hierarchy and drawing content."""
     data = path.read_bytes()
     offset = 0
@@ -72,7 +72,7 @@ def verify_gds(path: Path) -> dict:
                 raise ValueError("Unexpected data after GDS ENDLIB")
             break
     tops = sorted(cells - referenced)
-    if not seen_end or tops != [EXPECTED_DESIGN] or not elements:
+    if not seen_end or tops != [expected_design] or not elements:
         raise ValueError(f"Unusable GDS: tops={tops}, elements={elements}, end={seen_end}")
     if referenced - cells:
         raise ValueError(f"Unresolved GDS cells: {sorted(referenced - cells)}")

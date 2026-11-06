@@ -10,12 +10,14 @@ from pathlib import Path
 
 from package_proxy import FINAL_FILES, describe_file, verify_gds
 
-FLOW_PATH = Path("sky130hd/task1_module1/base")
-INPUTS = (
+TOP_CONFIGS = {
+    "module1_top": ("task1_module1", "sky130_config.mk"),
+    "module1_bridge_top": ("task1_module1_bridge", "sky130_bridge_config.mk"),
+}
+BASE_INPUTS = (
     "rtl/slice_scheduler.sv",
     "rtl/fig11_dem.sv",
     "rtl/module1_top.sv",
-    "physical/sky130_config.mk",
     "physical/sky130_constraint.sdc",
     "physical/sky130_run.sh",
     "physical/sky130_package.py",
@@ -60,11 +62,16 @@ def read_timing(report: str, metrics: dict) -> dict:
     return summary
 
 
-def package(output: Path, source: Path) -> None:
+def package(output: Path, source: Path, top: str) -> None:
     """Collect actual artifacts even if the frozen clock constraint fails."""
+    nickname, config = TOP_CONFIGS[top]
+    input_files = (*BASE_INPUTS, f"physical/{config}")
+    if top == "module1_bridge_top":
+        input_files += ("rtl/fig21_bridge.sv", "rtl/module1_bridge_top.sv")
+    flow_path = Path("sky130hd") / nickname / "base"
     delivery = output / "delivery"
-    final = output / "flow/results" / FLOW_PATH
-    logs = output / "flow/logs" / FLOW_PATH
+    final = output / "flow/results" / flow_path
+    logs = output / "flow/logs" / flow_path
     sta_report = (delivery / "post_route_sta.rpt").read_text()
     finish_metrics = json.loads((logs / "6_report.json").read_text())
     route_metrics = json.loads((logs / "5_2_route.json").read_text())
@@ -78,7 +85,7 @@ def package(output: Path, source: Path) -> None:
 
     for old_name, new_name in FINAL_FILES.items():
         describe_file(final / old_name)
-        shutil.copy2(final / old_name, delivery / new_name)
+        shutil.copy2(final / old_name, delivery / new_name.replace("module1_top", top))
     shutil.copy2(source / "physical/sky130_constraint.sdc", delivery / "constraint.sdc")
     shutil.copy2(output / "flow.log", delivery / "flow.log")
     metrics_path = delivery / "metrics"
@@ -87,7 +94,7 @@ def package(output: Path, source: Path) -> None:
         if path.stat().st_size:
             shutil.copy2(path, metrics_path / path.name)
 
-    gds = verify_gds(delivery / "module1_top.gds")
+    gds = verify_gds(delivery / f"{top}.gds", expected_design=top)
     drc_errors = int(route_metrics["detailedroute__route__drc_errors"])
     power_grid = {
         net: "PASS" if f"All shapes on net {net} are connected." in sta_report else "UNVERIFIED"
@@ -96,6 +103,7 @@ def package(output: Path, source: Path) -> None:
     manifest = {
         "claim": "PUBLIC_SKY130HD_IMPLEMENTATION",
         "platform": "SkyWater SKY130HD",
+        "top": top,
         "liberty": "sky130_fd_sc_hd__tt_025C_1v80.lib",
         "corner": {"process": "TT", "temperature_c": 25, "voltage_v": 1.8},
         "clock_period_ns": 6.25,
@@ -125,7 +133,7 @@ def package(output: Path, source: Path) -> None:
             "independent_drc": "NOT_RUN",
             "independent_lvs": "NOT_RUN",
         },
-        "inputs": {name: describe_file(source / name) for name in INPUTS},
+        "inputs": {name: describe_file(source / name) for name in input_files},
         "artifacts": {
             path.relative_to(delivery).as_posix(): describe_file(path)
             for path in sorted(delivery.rglob("*"))
@@ -149,8 +157,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output", type=Path)
     parser.add_argument("task_source", type=Path)
+    parser.add_argument("--top", choices=tuple(TOP_CONFIGS), default="module1_top")
     args = parser.parse_args()
-    package(args.output, args.task_source)
+    package(args.output, args.task_source, args.top)
 
 
 if __name__ == "__main__":

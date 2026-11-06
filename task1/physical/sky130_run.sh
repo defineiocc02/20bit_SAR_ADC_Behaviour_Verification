@@ -2,12 +2,27 @@
 # Execute the pinned public SKY130HD flow in an isolated Linux container.
 set -euo pipefail
 
-if [ "$#" -ne 1 ]; then
-  echo "Usage: bash task1/physical/sky130_run.sh NEW_OUTPUT_DIRECTORY" >&2
+if [ "$#" -lt 1 ] || [ "$#" -gt 2 ]; then
+  echo "Usage: bash task1/physical/sky130_run.sh NEW_OUTPUT_DIRECTORY [TOP]" >&2
   exit 2
 fi
 task_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 repo_dir="$(dirname "$task_dir")"
+top="${2:-module1_top}"
+case "$top" in
+  module1_top)
+    flow_config=sky130_config.mk
+    flow_nickname=task1_module1
+    ;;
+  module1_bridge_top)
+    flow_config=sky130_bridge_config.mk
+    flow_nickname=task1_module1_bridge
+    ;;
+  *)
+    echo "Unsupported SKY130HD top: $top" >&2
+    exit 2
+    ;;
+esac
 image="${TASK1_ORFS_IMAGE:-openroad/orfs@sha256:a6140cf4dc568e10238356f67b9fd73b9074955eeda6f2ee126bc60f5d7fc3ac}"
 command -v docker >/dev/null
 mkdir -p "$1"
@@ -33,6 +48,7 @@ printf '%s\n' "$source_sha" > "$out/delivery/rtl_commit.txt"
 docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
   --user "$(id -u):$(id -g)" --entrypoint /bin/bash \
   -e HOME=/tmp -e QT_QPA_PLATFORM=offscreen \
+  -e "TASK1_FLOW_CONFIG=$flow_config" -e "TASK1_FLOW_NICKNAME=$flow_nickname" \
   -v "$task_dir:/work/task1:ro" -v "$out:/work/out" \
   -w /OpenROAD-flow-scripts/flow "$digest" -ec '
     set -o pipefail
@@ -43,10 +59,10 @@ docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
       openroad -version
       klayout -v
     } > /work/out/delivery/tools.txt
-    export TASK1_FINAL_DIR=/work/out/flow/results/sky130hd/task1_module1/base
+    export TASK1_FINAL_DIR=/work/out/flow/results/sky130hd/$TASK1_FLOW_NICKNAME/base
     export TASK1_PROXY_LIBERTY="$PWD/platforms/sky130hd/lib/sky130_fd_sc_hd__tt_025C_1v80.lib"
     test -s "$TASK1_PROXY_LIBERTY"
-    make DESIGN_CONFIG=/work/task1/physical/sky130_config.mk WORK_HOME=/work/out/flow LEC_CHECK=0 finish
+    make DESIGN_CONFIG="/work/task1/physical/$TASK1_FLOW_CONFIG" WORK_HOME=/work/out/flow LEC_CHECK=0 finish
     openroad -no_init -exit /work/task1/physical/post_route.tcl \
       | tee /work/out/delivery/post_route_sta.rpt
     cp /work/task1/physical/sky130_license.txt /work/out/delivery/SKY130HD-LICENSE.txt
@@ -54,4 +70,4 @@ docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
     sha256sum "$(basename "$TASK1_PROXY_LIBERTY")" > /work/out/delivery/liberty.sha256
   ' 2>&1 | tee "$out/flow.log"
 
-python3 "$task_dir/physical/sky130_package.py" "$out" "$task_dir"
+python3 "$task_dir/physical/sky130_package.py" "$out" "$task_dir" --top "$top"

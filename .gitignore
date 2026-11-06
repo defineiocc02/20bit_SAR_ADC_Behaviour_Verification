@@ -46,6 +46,9 @@ outputs/
 !task1/evidence/effects/*.png
 !task1/evidence/calibration/**/*.png
 !task1/evidence/dem_stress/*.png
+!task1/evidence/bridge/*.png
+!task1/evidence/bridge_lms/**/*.png
+!task1/evidence/inl_dnl/*.png
 # --- 文档配图始终跟踪 ---
 !docs/**/*.png
 

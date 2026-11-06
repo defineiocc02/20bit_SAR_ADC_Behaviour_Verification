@@ -18,36 +18,45 @@ permissions:
   contents: read
 
 concurrency:
-  group: task1-sky130-${{ github.ref }}
+  group: task1-sky130-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
   sky130:
+    name: SKY130HD ${{ matrix.top }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - top: module1_top
+            nickname: task1_module1
+          - top: module1_bridge_top
+            nickname: task1_module1_bridge
     if: github.ref_name == '20b10mtask'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     env:
-      RUN_DIR: /tmp/task1-sky130-${{ github.run_id }}-${{ github.run_attempt }}
+      RUN_DIR: /tmp/task1-sky130-${{ matrix.top }}-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - name: Route and stream out the SKY130HD design
-        run: bash task1/physical/sky130_run.sh "$RUN_DIR"
+        run: bash task1/physical/sky130_run.sh "$RUN_DIR" "${{ matrix.top }}"
       - name: Upload GDS, timing and run manifest
         uses: actions/upload-artifact@v4
         with:
-          name: task1-sky130hd-physical-${{ github.run_id }}
+          name: task1-sky130hd-physical-${{ matrix.top }}-${{ github.run_id }}
           path: ${{ env.RUN_DIR }}/delivery
           if-no-files-found: error
       - name: Upload physical diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: task1-sky130hd-diagnostics-${{ github.run_id }}
+          name: task1-sky130hd-diagnostics-${{ matrix.top }}-${{ github.run_id }}
           path: |
             ${{ env.RUN_DIR }}/flow.log
             ${{ env.RUN_DIR }}/flow/logs/
             ${{ env.RUN_DIR }}/flow/reports/
-            ${{ env.RUN_DIR }}/flow/results/sky130hd/task1_module1/base/6_final.*
+            ${{ env.RUN_DIR }}/flow/results/sky130hd/${{ matrix.nickname }}/base/6_final.*
             ${{ env.RUN_DIR }}/delivery/

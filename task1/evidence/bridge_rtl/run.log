@@ -1,0 +1,5 @@
+TASK1_BRIDGE_CHECKS_COMPLETE leaf_cases=65536 leaf_nonzero_corrections=49152 top_cycles=4119 top_accepts=4100 top_stalls=1 top_seed_errors=2 top_code_errors=2 top_bridge_prefixes=2052 top_fig11_dem_prefixes=1025 top_fig11_bypass_prefixes=1024 top_nonzero_corrections=1538
+- task1/tb/bridge_checks_tb.sv:232: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.30
+- Verilator: $finish at 74us; walltime 0.260 s; speed 284.952 us/s
+- Verilator: cpu 0.259 s on 1 threads; alloced 0 MB

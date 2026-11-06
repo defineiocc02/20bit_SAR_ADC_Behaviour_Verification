@@ -82,8 +82,31 @@
       }
     },
     "physical_claim": "PARTIAL_SIGNOFF",
+    "public_pv_replays": {
+      "drc": {
+        "manifest": {
+          "path": "../task2/physical/evidence/sar20_digital_lms_top_drc_manifest_42297095870.json",
+          "sha256": "42998cddc0dfddfd3b91dd025004ab774c6600d5160b088862fb86576c464ab9"
+        },
+        "marker_count": 0,
+        "status": "PASS",
+        "workflow_run": "42297095870"
+      },
+      "gds_sha256": "4aa02f35dae17c528f72bce9a06a7c8aee466c9a163d210ae54a9265a8ed02c3",
+      "lvs_upstream": {
+        "deck_revision": "5eebdc0d06879cf674e86e3fb8efa2803e6e44dc",
+        "deck_sha256": "d2d231d7cd00a8261d6653c5f3757badefb1dc0aba29441d8406272e75cd8b90",
+        "manifest": {
+          "path": "../task2/physical/evidence/sar20_digital_lms_top_lvs_upstream_manifest_42296886745.json",
+          "sha256": "da14358bf6decbe61d5404b1dd9f13d6bcd502b386f39c10c6445f3ef54ad8b7"
+        },
+        "status": "PASS",
+        "top_match": true,
+        "workflow_run": "42296886745"
+      }
+    },
     "routed_gds": "PASS",
-    "scope": "routed combined digital top and extracted single-corner timing; complete G4 remains open",
+    "scope": "routed combined digital top, extracted single-corner timing and public DRC/LVS replays; complete G4 remains open",
     "status": "BLOCKED",
     "target_180nm_bcd": "NOT_RUN"
   }

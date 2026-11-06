@@ -26,7 +26,13 @@
 
 ![ISSCC 讲稿 dither 两路注入的中文说明](task2/figures/dither_isscc_ppt.png)
 
-下图按实际选择的 8 片逐一计算子电容底板注入；每档为同一颗固定失配虚拟芯片，DEM 和 LMS 系数在开关两侧相同。理想 12 位 ADC2 的输入等效范围为 ±100 mV。
+**先看不使用 LMS：**下图两边都开启 Fig.21 DEM，仅改变 dither。2%／3% 固定失配下，开启 dither 后统计零宽码分别从 434,691／396,727 降至 0；峰值 INL 分别为 63.60 → 62.45／96.95 → 93.46 LSB20。静态码密度变平，但频谱 SNDR 仍只有约 52／48 dB。
+
+![不使用 LMS 时，八片 dither 开关的 20 位 INL／DNL](task2/evidence/eight_native/eight_native_no_lms_linearity.png)
+
+[不使用 LMS 的频谱图与数据](task2/evidence/eight_native/NO_LMS.md) · [DEM、LMS、dither 八种组合](task2/evidence/eight_native/eight_native_factorial.png)
+
+**再看加入 LMS：**下图按实际选择的 8 片逐一计算子电容底板注入；每档为同一颗固定失配虚拟芯片，DEM 和 LMS 系数在开关两侧相同。理想 12 位 ADC2 的输入等效范围为 ±100 mV。
 
 ![八片子阵列扰动的 20 位 INL／DNL](task2/evidence/eight_native/eight_native_linearity.png)
 

@@ -1,6 +1,7 @@
 """七片采样、分级越界和解析码密度的独立数值检查。"""
 
 from fractions import Fraction
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -21,6 +22,22 @@ def _word_reference(word: int) -> tuple[int, int, int]:
     upper = 4 * (word // 32) + word // 8 % 2
     lower_integer = 2 * (word // 16 % 2)
     return upper, lower_integer, word % 8
+
+
+def test_fractional_word_alone_reproduces_archived_ideal_experiment() -> None:
+    """核验理想七片实验中分数扰动对单笔输出和平均码宽的贡献。"""
+    data_path = Path(__file__).resolve().parents[1] / "evidence/fig19_seven/fig19_seven_data.npz"
+    with np.load(data_path) as data:
+        words = data["tone_dither_word_on"] & 0b111
+        fractional = convert(data["tone_input_v"], words)
+        np.testing.assert_array_equal(fractional.adc2_code, data["tone_on_adc2_code"])
+        np.testing.assert_array_equal(fractional.output_code, data["tone_on_code"])
+        density = code_density(
+            -3.671875, 3.671875, np.arange(64) & 0b111, require_prefix_valid=True
+        )
+        np.testing.assert_allclose(
+            density.width_v, data["linearity_on_width_v"], rtol=0, atol=1e-17
+        )
 
 
 def test_all_words_and_the_patent_example() -> None:

@@ -64,7 +64,8 @@ PYTHONPATH=.:src python task1/tools/run_bridge_checks.py --out /tmp/task1-bridge
 | `task1/rtl/`、`model/`、`tb/`、`tests/` | 模块一 RTL、Python 模型和验证 |
 | `task1/experiments/`、`evidence/` | 实验脚本、中文图片、原始数据和收据 |
 | `task1/physical/`、`design/` | SKY130 GDS／STA、约束、需求与验证记录 |
-| `task2/`、`task3/` | 后续 dither 与 CAAZ 的交付计划 |
+| `task2/` | dither 字发生器、七片模型、效果图及八片计划 |
+| `task3/` | CAAZ 的交付计划 |
 | `src/adi_model/`、`tools/` | 本任务复现依赖的电荷／频谱参考和 RTL 工具辅助 |
 | `references/` | ISSCC 与北大论文、讲稿及专利索引 |
 

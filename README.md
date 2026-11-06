@@ -42,6 +42,8 @@
 
 必须将 dither 开启时出现的子电容状态纳入训练：直接沿用只在关闭态训练的旧系数，2%／3% 的 SNDR 分别降至 78.16／74.65 dB。[八种开关、训练图与原始数据](task2/evidence/eight_native/README.md) · [专利七片示例](task2/evidence/fig19_seven/README.md)
 
+[dither 与 CAAZ 联合四组效果图](task3/evidence/integrated/README.md)使用同一 3% 失配池和 80 µV 人工偏移，验证逐笔重构后配对抵消；它不是模拟宏的实测噪声结果。
+
 ## 现在交付到哪里？
 
 | 项目 | 当前状态 | 入口 |

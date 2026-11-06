@@ -14,6 +14,12 @@ CAAZ 对完整差分输入逐笔换相，偶数笔请求更新 CBIAS，奇数笔
 
 在此模型中，共用 AZ 样本比独立 AZ 后两笔平均的误差小 6.37 dB。若两相 AZ 传递增益分别为 `a_e`、`a_o`，奇数保持比例为 `h`，共同噪声项 `w` 的残余为 `(a_e−a_o·h)w/2`。这里的设置用于复核抵消机制，实际增益和保持误差由模拟验证给出。[数据、指标与图件哈希](evidence/behavior/caaz_effect_summary.json) · [原始轨迹](evidence/behavior/caaz_effect_data.npz) · [矢量图](evidence/behavior/caaz_effect.pdf)
 
+## 与八片 dither 联合
+
+![同一 3% 失配池中 dither 与 CAAZ 的四组开关对照](evidence/integrated/joint_dither_caaz.png)
+
+该实验使用同一 3% 固定失配池、Fig.21 DEM、冻结 Q28 LMS 和相同 5 MS/s 输出带宽。dither 开启时，CAAZ 使平均误差从 +82.61 降到 +2.92 µV，SNDR 从 105.81 降到 105.57 dB。这里的 80 µV 偏移是**人为施加的输入等效差分偏移**，用于验证数字抵消，不代表真实模拟宏的噪声或失调测量。[四组条件、数据和复现](evidence/integrated/README.md)
+
 | 源文位置 | 对应合同 | 当前边界 |
 | :--- | :--- | :--- |
 | Wang 等，VLSI 2025 Fig.5 | 在 ADC 输入换相，先做数据合并及位权校正，再作 `(1−z⁻¹)/2` | 本工程把运算限定在连续偶奇 pair，配对中点对应时间戳。两点平均幅频响应为 `abs(cos(πf/10 MHz))`，系统须另行定义抽二前带宽。 |

@@ -1,0 +1,83 @@
+{
+  "adc2_window_half_v": 0.1,
+  "added_same_sign_offset_v": 8e-05,
+  "analysis_band_hz": [
+    0,
+    2500000.0
+  ],
+  "artifact_sha256": {
+    "joint_dither_caaz.pdf": "eed1f04888d43f722cbc756d2379c3f79084747229d01cf0a3ac1b84e38b4460",
+    "joint_dither_caaz.png": "3ab49707c7f90ee8d7662b940833eff5e09a76e68af2a3b9d90f542ef825391b",
+    "joint_dither_caaz.svg": "849bc02c5e43dc44f6aaf7329af3859538ceb008b3e4e83a367d04c02ecb12ea",
+    "joint_dither_caaz_data.npz": "1324dfb3dcf66dff8fa4f7a769db77dcef747f5f11c8147efb50dfe7c58c2d8f"
+  },
+  "fft_window": "rectangular coherent; DC excluded from SNDR and SFDR",
+  "fixed_capacitor_sigma": 0.03,
+  "font_family": "Hiragino Sans GB",
+  "groups": {
+    "dither_0_caaz_0": {
+      "ac_error_rms_uv": 11.434582184201663,
+      "adc2_residue_max_v": 0.04063531862517422,
+      "adc2_residue_min_v": -0.03312033973142725,
+      "identical_to_compiled_rtl_fixture": false,
+      "mean_error_uv": 82.39410817576713,
+      "rejected_samples": 0,
+      "sfdr_dbc": 126.73461272078492,
+      "sndr_db": 105.84842155030503,
+      "vectors_sha256": "60e36e21eee7edd4cfd3354ec44cfc18c070947b654eeb78e2f6e2f1f23d2f5e"
+    },
+    "dither_0_caaz_1": {
+      "ac_error_rms_uv": 11.545875486871934,
+      "adc2_residue_max_v": 0.043576241670535865,
+      "adc2_residue_min_v": -0.03312033973142725,
+      "identical_to_compiled_rtl_fixture": false,
+      "mean_error_uv": 2.4773180480129176,
+      "rejected_samples": 0,
+      "sfdr_dbc": 127.00232203513073,
+      "sndr_db": 105.78374609371629,
+      "vectors_sha256": "1c95d4647e370ef22d5900a8de378464b3ce7c46a75643891564061943ba0b2a"
+    },
+    "dither_1_caaz_0": {
+      "ac_error_rms_uv": 11.494946320142752,
+      "adc2_residue_max_v": 0.04095309559151161,
+      "adc2_residue_min_v": -0.040930128436030166,
+      "identical_to_compiled_rtl_fixture": false,
+      "mean_error_uv": 82.61296898080177,
+      "rejected_samples": 0,
+      "sfdr_dbc": 127.58127503446065,
+      "sndr_db": 105.81081593214898,
+      "vectors_sha256": "8f8209722bcc965cb857069bc19f73281f8811abfea1ea31882d5d99dcd2f03a"
+    },
+    "dither_1_caaz_1": {
+      "ac_error_rms_uv": 11.80777829714148,
+      "adc2_residue_max_v": 0.04228107324843933,
+      "adc2_residue_min_v": -0.040930128436030166,
+      "identical_to_compiled_rtl_fixture": true,
+      "mean_error_uv": 2.9243528838283472,
+      "rejected_samples": 0,
+      "sfdr_dbc": 127.60834346897747,
+      "sndr_db": 105.57375228076445,
+      "vectors_sha256": "810f166a75ffec5d4e5cba5b19c6bdf6b481ad104347c55fce9950dd393c397f"
+    }
+  },
+  "manufacturing_seed": 100,
+  "output_bits": 20,
+  "output_rate_hz": 5000000.0,
+  "pair_outputs": 2048,
+  "raw_rate_hz": 10000000,
+  "raw_samples": 4096,
+  "scope": "same_archived_3pct_pool_ideal_charge_and_q28_digital_reconstruction",
+  "source_sha256": {
+    "task1/experiments/full20_linearity_plots.py": "680a9741203d94299fc632dedc7c43a2a66f025ec343e1863ac5121ad459b901",
+    "task2/eight/experiment.py": "114265af4820487592c768dda75880577a41265c3b9d3058f41184fccb27b66c",
+    "task2/eight/model.py": "baae62fd999f7c96cc0563c705aff1bb7be39a0ae6efeb91a3278a1845ec3793",
+    "task2/evidence/eight_native/sigma_3pct/data.npz": "5a7a0b8aaac88c97a04702ee4d8748716fa24042a188e99c59f8ccd9f0d5451d",
+    "task2/evidence/eight_native/sigma_3pct/summary.json": "a9a75c29f866333eb3478bdd2ddfe6297835922a27396cc9783a028d33e0cc69",
+    "task3/tools/run_joint_effect.py": "6812c14ea97fa8ca4fb3538717e3f4384e05e4a04729f2ce696277d0c6beb033",
+    "task_integration/evidence/on_chip/result.json": "5a4704f2c651c3c969121aab6a8928af30d4f83bdcafe45c15611f13a0619e7c",
+    "task_integration/tools/run_lms_checks.py": "ebec16c89dfc39c804d7d437d9e48821b73721876cc5321fcd4f04fcaaa7713d",
+    "task_reconstruction/fixed.py": "08cf2096bdbde88e29eb89b4e09df73c943d3a16e1ddfa0d24b30eea9c41921d"
+  },
+  "tone_hz": 998535.15625,
+  "tone_peak_v": 3.3333333333333335
+}

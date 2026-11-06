@@ -1,5 +1,5 @@
 REQ_ID,verification_id,evidence,status
 REQ-RECON-01,archived_2pct_3pct_frozen_coefficients,evidence/result.json,PASS
-REQ-RECON-02,all_adc2_codes_and_numeric_endpoints,evidence/result.json,PASS
+REQ-RECON-02,all_adc2_codes_at_pipeline_edge_e3_and_numeric_endpoints,evidence/result.json,PASS
 REQ-RECON-03,configuration_reset_malformed_and_backpressure,evidence/result.json,PASS
 REQ-RECON-04,continuous_sixteen_tick_admission_and_latency,evidence/result.json,PASS

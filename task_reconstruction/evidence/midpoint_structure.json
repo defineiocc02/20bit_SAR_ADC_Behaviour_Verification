@@ -1,0 +1,48 @@
+{
+  "schema": "sar20-adc2-midpoint-structural-v1",
+  "scope": "RTL elaboration and constant folding. This check supplies no mapped or routed timing.",
+  "tool": "YoWASP Yosys 0.69 (git sha1 9f75ca1f9)",
+  "check": "hierarchy -check -top sar20_lms_recon; proc; opt -full; check -assert; select -assert-none t:$div t:$mod; stat",
+  "baseline": {
+    "commit": "f82a964",
+    "source_sha256": "09f9b5622880310410c2a7542f3d34994c263e781fb745e7b2fc65568c6a5170",
+    "expected_result": "nonempty selection",
+    "observed_result": "one runtime $div at legacy adc2_midpoint",
+    "exit_code": 1,
+    "log": {
+      "path": "evidence/midpoint_baseline_yosys.log.gz",
+      "raw_sha256": "84689314b47d928be2ca2f5a2a8d9b597fe517247dfce5f08f541fea4258d2d6",
+      "compressed_sha256": "668ad80722ad96b21811ddc17df62f7f8106a12a1046656af710a4310b2ee0a9"
+    }
+  },
+  "candidate": {
+    "source": "task_reconstruction/rtl/sar20_lms_recon.sv",
+    "source_sha256": "7005ccbc8bec2ddedd2fd1d050d19ddb7df8208a7288192258d7bbc103478b83",
+    "observed_result": "empty runtime $div and $mod selection; structural check reports 0 problems",
+    "status": "PASS",
+    "exit_code": 0,
+    "log": {
+      "path": "evidence/midpoint_candidate_yosys.log.gz",
+      "raw_sha256": "c53f6ed6d26c3cf33f193d658abfe51857d91f16e563b1c11497d4cee516b66f",
+      "compressed_sha256": "ec9010584c5969a899d6a61e50cfe96480c14793ceff8a3ba3d3002cd3dc9390"
+    }
+  },
+  "verification": {
+    "maximum_abs_midpoint_q28": 2683699,
+    "adc2_code_count": 4096,
+    "all_code_oracle": "rational signed midpoint, nearest integer; every code observed at E3",
+    "standalone_archived_transactions": 16384,
+    "integrated_adc2_captures": 8192,
+    "standalone_latency_cycles": 22,
+    "standalone_minimum_accept_interval_cycles": 13
+  },
+  "physical_baseline": {
+    "action_run_id": 42262919977,
+    "stage": "mapped pre-layout setup STA",
+    "clock_period_ns": 6.25,
+    "sdc_sha256": "01657f0555d1147c566a7a3adbf6f3250fa46a5546fce6fa0576bfbdeee5e6a3",
+    "worst_slack_ns": -21.442118,
+    "startpoint": "adc2_code_i[11]",
+    "endpoint": "u_recon.accum_num_q[12]"
+  }
+}

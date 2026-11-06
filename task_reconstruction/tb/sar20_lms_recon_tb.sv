@@ -32,6 +32,50 @@ module sar20_lms_recon_tb;
       .out_ready_i(v.out_ready), .out_sample_id_o(out_id), .out_code_o(code), .out_bad_o(out_bad)
   );
 
+  task automatic tick;
+    #1;
+    clk = 1'b1;
+    #1;
+    clk = 1'b0;
+  endtask
+
+  task automatic configure_midpoint_checks;
+    v = '0;
+    tick();
+    v.rst_n = 1'b1;
+    v.cfg_start = 1'b1;
+    #1;
+    if (!cfg_start_ready) $fatal(1, "cannot start midpoint coefficient load");
+    tick();
+    v.cfg_start = 1'b0;
+    v.cfg_valid = 1'b1;
+    for (int word = 0; word < 396; word++) begin
+      v.cfg_data = (word % 22 == 21) ? 26'd33554432 : 26'd0;
+      #1;
+      if (!cfg_ready) $fatal(1, "midpoint coefficient %0d was not accepted", word);
+      tick();
+    end
+    v.cfg_valid = 1'b0;
+    if (!configured || cfg_error) $fatal(1, "midpoint coefficient load failed");
+    for (int slot = 0; slot < 8; slot++) v.ids[5*slot+:5] = 5'(slot);
+  endtask
+
+  task automatic check_midpoint(input logic [11:0] adc2, input logic signed [31:0] expected);
+    v.adc2 = adc2;
+    v.id = {20'd0, adc2};
+    v.in_valid = 1'b1;
+    #1;
+    if (!in_ready) $fatal(1, "ADC2 midpoint code %0d was not accepted", adc2);
+    tick();  // E0
+    v.in_valid = 1'b0;
+    repeat (3) tick();  // E1…E3：累加器已初始化，首槽尚未加进来。
+    if (dut.accum_num_q !== expected)
+      $fatal(1, "ADC2 midpoint code %0d expected %0d got %0d", adc2, expected, dut.accum_num_q);
+    v.clear = 1'b1;
+    tick();
+    v.clear = 1'b0;
+  endtask
+
   task automatic check_vectors(input string vectors, input string midpoint, input string observation);
     logic [$bits(stimulus_t)-1:0] record;
     logic [58:0] unused_expected;
@@ -40,12 +84,14 @@ module sar20_lms_recon_tb;
 
     cycles = 0;
     midpoint_count = 0;
+    configure_midpoint_checks();
     stream = $fopen(midpoint, "r");
     if (stream == 0) $fatal(1, "cannot open %s", midpoint);
     read_status = $fscanf(stream, "%h\n", mid);
     while (read_status == 1) begin
-      if (dut.adc2_midpoint(mid[43:32]) !== $signed(mid[31:0]))
-        $fatal(1, "ADC2 midpoint mismatch at %0d", mid[43:32]);
+      if (midpoint_count >= 4096 || mid[43:32] != 12'(midpoint_count))
+        $fatal(1, "unexpected midpoint vector at row %0d", midpoint_count);
+      check_midpoint(mid[43:32], $signed(mid[31:0]));
       midpoint_count += 1;
       read_status = $fscanf(stream, "%h\n", mid);
     end

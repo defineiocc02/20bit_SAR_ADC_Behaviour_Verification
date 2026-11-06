@@ -45,20 +45,20 @@
     "evidence": [
       {
         "path": "evidence/external/result.json",
-        "sha256": "269e83e8adf117b14e042b79b63d853e52f62a5f205d2a85509420b4bc4cc5dc"
+        "sha256": "545d016a0081b17b21cbe7952c630875c30c54e7b0948c20d5d5d5c2064a6edd"
       },
       {
         "path": "evidence/on_chip/result.json",
-        "sha256": "f26673569ebf205b517bfcb1f6d608f9d9a125089b4b4fa6e0ca54ce89ace611"
+        "sha256": "5a4704f2c651c3c969121aab6a8928af30d4f83bdcafe45c15611f13a0619e7c"
       }
     ],
     "integration_formal": "NOT_RUN",
     "lint_and_verilator": "PASS",
-    "scope": "digital integration. Verification is distinct from macro validation.",
+    "scope": "Both top-level paths passed the committed digital protocol and exact-code checks. Integration-level formal proof is pending.",
     "status": "BLOCKED"
   },
   "G4": {
-    "scope": "physical delivery delegated to versioned CI; raw STA follows actual run",
+    "scope": "Physical timing and verification for the current on-chip midpoint pipeline require an exact-source run; external reconstruction proxy evidence is tracked in task2/physical.",
     "status": "NOT_RUN"
   }
 }

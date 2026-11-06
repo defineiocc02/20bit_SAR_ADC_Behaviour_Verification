@@ -9,11 +9,11 @@
     },
     {
       "path": "evidence/external/result.json",
-      "sha256": "269e83e8adf117b14e042b79b63d853e52f62a5f205d2a85509420b4bc4cc5dc"
+      "sha256": "545d016a0081b17b21cbe7952c630875c30c54e7b0948c20d5d5d5c2064a6edd"
     },
     {
       "path": "evidence/on_chip/result.json",
-      "sha256": "f26673569ebf205b517bfcb1f6d608f9d9a125089b4b4fa6e0ca54ce89ace611"
+      "sha256": "5a4704f2c651c3c969121aab6a8928af30d4f83bdcafe45c15611f13a0619e7c"
     }
   ],
   "limits": [
@@ -37,7 +37,7 @@
     "task3/rtl/caaz20_pair.sv": "5ddbd9f20d4534ad597f22edca9f58604c4d04877eb5efb6ba6dabb142115fdc",
     "task_integration/rtl/sar20_digital_lms_top.sv": "04a25ad20f48ff87a84ec9818d4927e470cfd309ec308b0206b94dd8d0d17d72",
     "task_integration/rtl/sar20_digital_top.sv": "5132cfe92f6836b4bc4300219e77424bc120e3cab11c191ad744185aaa5ac3bd",
-    "task_reconstruction/rtl/sar20_lms_recon.sv": "09f9b5622880310410c2a7542f3d34994c263e781fb745e7b2fc65568c6a5170"
+    "task_reconstruction/rtl/sar20_lms_recon.sv": "7005ccbc8bec2ddedd2fd1d050d19ddb7df8208a7288192258d7bbc103478b83"
   },
   "schema": "sar20-digital-handoff-v1",
   "sdc_relative_path": "task1/physical/sky130_constraint.sdc",
@@ -45,7 +45,7 @@
   "source_sha256": {
     "LMS_PIPELINE.md": "470f5eef6e5f2ba10411beba668f445d2f1d877b79acdfa08d0234b9ee4a50e6",
     "SPEC.md": "29460e675e89e521f3cf292c5c39728ae73e40b282125d05ce98527891ec7995",
-    "gate_evidence.json": "026c804f034556c6f7fedd69bc7c68f18255e74b90b5d7ab19160c2a892c858e",
+    "gate_evidence.json": "66621d53d2e00100d91767169bfab63b30fd6c36cb415fecdeec771661365fc4",
     "microarchitecture.md": "e3bc4ae6c79177cb66530c476c4b686f2d8266d22eebada54acd53cc940e4fca",
     "requirements_trace.csv": "d82c8bd381dae7a05537a8fd196ee76544562aecf45773a194462e14103490d1",
     "verification_plan.yaml": "fb697758c05252d9596738c92bbefb0f9f85e410c9246dab070f1e19ada86536"

@@ -23,15 +23,15 @@
     "evidence": [
       {
         "path": "microarchitecture.md",
-        "sha256": "6a458e1a4b15ee513d44cd707cc4dcf8f5f33e556a2e731b4bba784152ff7c21"
+        "sha256": "519eb16a6256220e0bed26b96bff88d630cf2c14ecb9095f9684aa82700bbc5f"
       },
       {
         "path": "verification_plan.yaml",
-        "sha256": "7737d9fe0028b342b22e22e76452f23dd9b3876e065f2dc0b858baa62bf222a7"
+        "sha256": "5d4a42aca24ecdc59293994d108c4b1aab04cf04245c9d2540b78324911e9463"
       },
       {
         "path": "requirements_trace.csv",
-        "sha256": "c6d4b9b1a5fc140ccd1f01460bc68fb25ff68ee33c389b2dab99af37bd95a968"
+        "sha256": "7250cfcbbb57f533104990a6e82c28e30cfc60dee944daa8b9e1e1a6c46cb933"
       }
     ],
     "status": "PASS"
@@ -40,19 +40,20 @@
     "evidence": [
       {
         "path": "evidence/result.json",
-        "sha256": "e22807d12b87fdf69c7b2b5698cc2ca6609851f76089811c531bea5e7f3fb5f9"
+        "sha256": "8c25710c976ba92ef9f732fea686f8554d822b2337c4b74f820a4ab2d5c54b2e"
       },
       {
         "path": "evidence/lint.log",
-        "sha256": "9e2d9b6e47bd7bb2ceb63f7a00eb5d51524e26bbabaf09effe6e5fa93eb287f1"
+        "sha256": "cbe6f28a02df71df3c0fb9d18416abf184af861d8448f9c5d6eb9326a7df57a0"
       },
       {
         "path": "evidence/run.log",
-        "sha256": "1f596e08b8c7ec0eadbea401343db4808b765c44af3f35b4e1ccc76239773a43"
+        "sha256": "34f79cccc5e9d51dd271d2f8f2a8f968f7ca4dbf902459f8e61645aaefd0935b"
       }
     ],
     "formal": "NOT_RUN",
     "lint_simulation_assertions": "PASS",
+    "midpoint_coverage": "all 4096 codes accepted and checked against the rational oracle at RTL E3",
     "status": "BLOCKED"
   },
   "G4": {

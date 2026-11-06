@@ -7,5 +7,5 @@ echo "" > Vsar20_lms_recon_tb__ALL.verilator_deplist.tmp
 c++  -Wl,-U,__Z15vl_time_stamp64v,-U,__Z13sc_time_stampv   verilated.o verilated_timing.o verilated_threads.o Vsar20_lms_recon_tb__ALL.a       -o Vsar20_lms_recon_tb
 rm Vsar20_lms_recon_tb__ALL.verilator_deplist.tmp
 - V e r i l a t i o n   R e p o r t:  rev UNKNOWN.REV
-- Verilator: Built from 0.050 MB sources in 3 modules, into 0.254 MB in 9 C++ files needing 0.002 MB
-- Verilator: Walltime 3.289 s (elab=0.007, cvt=0.049, bld=3.027); cpu 0.262 s on 1 threads
+- Verilator: Built from 0.055 MB sources in 3 modules, into 0.393 MB in 9 C++ files needing 0.002 MB
+- Verilator: Walltime 3.283 s (elab=0.008, cvt=0.073, bld=2.946); cpu 0.338 s on 1 threads

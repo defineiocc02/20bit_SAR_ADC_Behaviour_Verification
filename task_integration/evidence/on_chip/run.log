@@ -1,5 +1,5 @@
 SAR20_LMS_INTEGRATION_COMPLETE cycles=132031 checks=110221 adc2_captures=8192 bypass=4096 pairs=2048 peak_inflight=2 signed_negative_pairs=1024 mixed_dither_pairs=2014 rejects=4 macro_faults=2
 - task_integration/tb/sar20_lms_integration_tb.sv:347: Verilog $finish
 - S i m u l a t i o n   R e p o r t: Verilator 5.30
-- Verilator: $finish at 280us; walltime 0.222 s; speed 1.278 ms/s
-- Verilator: cpu 0.219 s on 1 threads; alloced 0 MB
+- Verilator: $finish at 280us; walltime 0.144 s; speed 1.964 ms/s
+- Verilator: cpu 0.143 s on 1 threads; alloced 0 MB

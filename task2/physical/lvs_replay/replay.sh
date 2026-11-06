@@ -73,21 +73,31 @@ docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
     for mode in legacy upstream; do
       dir="/work/out/$mode"
       mkdir "$dir"
+      # KLayout resolves a relative LVSDB name next to the layout input.
+      # Keep the frozen input read-only and give each deck an identical writable copy.
+      layout="$dir/dither8_top.gds"
+      cp /work/input/dither8_top.gds "$layout"
+      cmp /work/input/dither8_top.gds "$layout"
+      report=()
       if [ "$mode" = legacy ]; then
         deck="$platform/lvs/sky130hd.lylvs"
       else
         deck=/work/out/upstream.lylvs
+        report=(-rd "report_file=$dir/lvs_report.lvsdb")
       fi
       sha256sum "$deck" > "$dir/deck.sha256"
-      # Omitting report_file selects report_lvs() in both decks.
+      # The legacy deck needs the default branch to select report_lvs().
       if (cd "$dir" && timeout 300 klayout -b \
-        -rd in_gds=/work/input/dither8_top.gds \
+        -rd "in_gds=$layout" \
         -rd cdl_file=/work/out/reference.cdl -rd top_cell=dither8_top \
-        -rd target_netlist="$dir/extracted.cir" -r "$deck") > "$dir/lvs.log" 2>&1; then
+        -rd target_netlist="$dir/extracted.cir" "${report[@]}" -r "$deck") > "$dir/lvs.log" 2>&1; then
         printf "0\n" > "$dir/exit.txt"
       else
         printf "%s\n" "$?" > "$dir/exit.txt"
       fi
+      cmp /work/input/dither8_top.gds "$layout"
+      sha256sum "$layout" > "$dir/gds_checked.sha256"
+      rm "$layout"
     done
     sha256sum -c /work/out/reference.sha256
     sha256sum /work/input/dither8_top.gds > /work/out/gds_after.sha256

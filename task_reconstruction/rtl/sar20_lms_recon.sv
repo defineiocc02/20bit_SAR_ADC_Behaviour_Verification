@@ -43,6 +43,15 @@ module sar20_lms_recon (
   logic [17:0] seen_q;
   logic [2:0] issue_slot_q;
   logic issuing_q, mac_busy_q, accumulated_bad_q;
+  logic [11:0] midpoint_code_q;
+  logic midpoint_negative;
+  logic [10:0] midpoint_index;
+  logic signed [22:0] midpoint_qlo_q, midpoint_qmid_q, midpoint_qhi_q, midpoint_qpair_q;
+  logic [4:0] midpoint_rlo_q, midpoint_rmid_q, midpoint_rhi_q;
+  logic [6:0] midpoint_remainder;
+  logic signed [2:0] midpoint_increment, midpoint_correction_q;
+  logic [22:0] midpoint_addend, midpoint_sum_bits, midpoint_carry_bits;
+  logic signed [22:0] midpoint_value;
   logic [4:0] read_id;
   logic read_id_valid, read_bad;
   logic [4:0] read_conv_sub, read_sample_sub;
@@ -78,15 +87,24 @@ module sar20_lms_recon (
   logic [30:0] shifted_remainder, reduced_remainder;
   logic [1:0] digit;
 
-  function automatic logic signed [31:0] adc2_midpoint(input logic [11:0] code);
-    logic signed [13:0] numerator;
-    logic [12:0] magnitude;
-    logic [28:0] scaled, quantized;
-    numerator = $signed({1'b0, code, 1'b1}) - 14'sd4096;
-    magnitude = 13'(numerator[13] ? -numerator : numerator);
-    scaled = {2'b0, magnitude, 14'b0} + 29'd12;
-    quantized = scaled / 29'd25;
-    adc2_midpoint = numerator[13] ? -$signed({3'b0, quantized}) : $signed({3'b0, quantized});
+  // 每个档的商和余数在展开后是常数。三段按 4、4、3 位索引，
+  // 将 floor((32768 * index + 16396) / 25) 分解到首片累加前。
+  function automatic logic [27:0] midpoint_digit(
+      input logic [3:0] digit_index,
+      input logic negative,
+      input int scale,
+      input int offset
+  );
+    int term;
+    logic signed [22:0] quotient;
+    midpoint_digit = '0;
+    for (int i = 0; i < 16; i++) begin
+      term = i * scale + offset;
+      quotient = 23'(term / 25);
+      if (digit_index == 4'(i)) begin
+        midpoint_digit = {negative ? -quotient : quotient, 5'(term % 25)};
+      end
+    end
   endfunction
 
   function automatic logic signed [24:0] signed_feature(
@@ -109,6 +127,18 @@ module sar20_lms_recon (
       ? ((cfg_data_i >= MinGain) && (cfg_data_i <= MaxGain))
       : (cfg_data_i[25:24] == {2{cfg_data_i[23]}});
   assign in_ready_o = active && configured_o && !cfg_start_i && !mac_busy_q && !mac_valid_q;
+
+  assign midpoint_negative = !midpoint_code_q[11];
+  assign midpoint_index = midpoint_code_q[10:0] ^ {11{midpoint_negative}};
+  assign midpoint_remainder = {2'b0, midpoint_rlo_q} + {2'b0, midpoint_rmid_q}
+                             + {2'b0, midpoint_rhi_q};
+  assign midpoint_increment = midpoint_remainder >= 7'd50 ? 3'sd2
+                            : midpoint_remainder >= 7'd25 ? 3'sd1 : 3'sd0;
+  assign midpoint_addend = {{20{midpoint_correction_q[2]}}, midpoint_correction_q};
+  assign midpoint_sum_bits = midpoint_qpair_q ^ midpoint_qhi_q ^ midpoint_addend;
+  assign midpoint_carry_bits = ((midpoint_qpair_q & midpoint_qhi_q)
+                              | ((midpoint_qpair_q | midpoint_qhi_q) & midpoint_addend)) << 1;
+  assign midpoint_value = $signed(midpoint_sum_bits + midpoint_carry_bits);
 
   always_ff @(posedge clk_i) begin
     if (!rst_ni) begin
@@ -180,7 +210,7 @@ module sar20_lms_recon (
         main_q <= in_main_i;
         conv_sub_q <= in_conv_sub_i;
         sample_sub_q <= in_sample_sub_i;
-        accum_num_q <= adc2_midpoint(in_adc2_i);
+        midpoint_code_q <= in_adc2_i;
         accum_gain_q <= '0;
         accumulated_bad_q <= in_bad_i;
         seen_q <= '0;
@@ -190,6 +220,23 @@ module sar20_lms_recon (
       end
       read_valid_q <= issuing_q;
       if (issuing_q) begin
+        // E0 保存 ADC2 码，E1 查段，E2 汇总，E3 写初值，E4 开始首片累加。
+        case (issue_slot_q)
+          3'd0: begin
+            {midpoint_qlo_q, midpoint_rlo_q} <= midpoint_digit(
+                midpoint_index[3:0], midpoint_negative, 32768, 16396);
+            {midpoint_qmid_q, midpoint_rmid_q} <= midpoint_digit(
+                midpoint_index[7:4], midpoint_negative, 524288, 0);
+            {midpoint_qhi_q, midpoint_rhi_q} <= midpoint_digit(
+                {1'b0, midpoint_index[10:8]}, midpoint_negative, 8388608, 0);
+          end
+          3'd1: begin
+            midpoint_qpair_q <= midpoint_qlo_q + midpoint_qmid_q;
+            midpoint_correction_q <= midpoint_negative ? -midpoint_increment : midpoint_increment;
+          end
+          3'd2: accum_num_q <= 32'(midpoint_value);
+          default: ;
+        endcase
         read_last_q <= issue_slot_q == 3'd7;
         read_bad_q <= read_bad;
         positive_q <= read_positive;

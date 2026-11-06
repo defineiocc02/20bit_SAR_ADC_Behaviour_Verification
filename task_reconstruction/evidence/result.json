@@ -48,9 +48,9 @@
   },
   "log_normalization": "local paths replaced; line-end whitespace trimmed",
   "log_sha256": {
-    "compile.log": "ab3690b5961566ea2dc9210bd4da1e215d565149839e5182550f9a54eae548a1",
-    "lint.log": "9e2d9b6e47bd7bb2ceb63f7a00eb5d51524e26bbabaf09effe6e5fa93eb287f1",
-    "run.log": "1f596e08b8c7ec0eadbea401343db4808b765c44af3f35b4e1ccc76239773a43",
+    "compile.log": "1da9fb31895e069d32e106e890faf24fa495cc68cebd3058a96415a7573bebb6",
+    "lint.log": "cbe6f28a02df71df3c0fb9d18416abf184af861d8448f9c5d6eb9326a7df57a0",
+    "run.log": "34f79cccc5e9d51dd271d2f8f2a8f968f7ca4dbf902459f8e61645aaefd0935b",
     "verilator.log": "878beb074b42d7036bda71fe428af3fba65b2592d151c5cfdb663297bf6dc718"
   },
   "mismatches": 0,
@@ -60,8 +60,8 @@
   "scope": "DIGITAL_BEHAVIOR_ONLY",
   "source_sha256": {
     "task_reconstruction/fixed.py": "08cf2096bdbde88e29eb89b4e09df73c943d3a16e1ddfa0d24b30eea9c41921d",
-    "task_reconstruction/rtl/sar20_lms_recon.sv": "09f9b5622880310410c2a7542f3d34994c263e781fb745e7b2fc65568c6a5170",
-    "task_reconstruction/tb/sar20_lms_recon_tb.sv": "533176da41c140b49f0b40aeff9dbedcdb04de628bc0fd3f1e9d68953a744902",
+    "task_reconstruction/rtl/sar20_lms_recon.sv": "7005ccbc8bec2ddedd2fd1d050d19ddb7df8208a7288192258d7bbc103478b83",
+    "task_reconstruction/tb/sar20_lms_recon_tb.sv": "66bb43d43cc2561ee478b79cf411fc7910fa0a8b4800e1fbf45d6af9f5374fa7",
     "task_reconstruction/tools/run_checks.py": "6b74e2166040fb3f5df1b3b606a2d57d5a4de328e4e4dba641ad7cbc2bed2dac",
     "tools/run_open_rtl.py": "b5af7fcd9917dd8d3305117e0f2601b59f759b1e783f3aa2cd5b54e213975ef2"
   },

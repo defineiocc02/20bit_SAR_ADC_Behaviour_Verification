@@ -89,7 +89,12 @@ def read_pv(output: Path, result: Path, reports: Path, logs: Path) -> dict:
         for artifact in (candidate, log_path):
             if artifact.is_file() and artifact.stat().st_size:
                 shutil.copy2(artifact, output / artifact.name)
-        if not candidate.is_file() or "not supported on this platform" in log.lower():
+        if kind == "lvs" and re.search(
+            r"netlists? (?:do not match|don't match|mismatch)|lvs.*failed", log, re.I
+        ):
+            # The original deck emits a comparison verdict without producing an LVSDB.
+            record.update(status="FAIL", report=verdict_path.name)
+        elif not candidate.is_file() or "not supported on this platform" in log.lower():
             record["detail"] = "No public deck report or tool did not complete"
         elif kind == "drc":
             try:
@@ -105,8 +110,6 @@ def read_pv(output: Path, result: Path, reports: Path, logs: Path) -> dict:
                     status="PASS" if exit_code == 0 and violations == 0 else "FAIL",
                     report=candidate.name,
                 )
-        elif re.search(r"netlists? (?:do not match|don't match|mismatch)|lvs.*failed", log, re.I):
-            record.update(status="FAIL", report=verdict_path.name)
         elif exit_code == 0 and re.search(r"netlists? match|lvs.*(?:passed|successful)", log, re.I):
             record.update(status="PASS", report=verdict_path.name)
         else:

@@ -11,6 +11,6 @@ bash task2/physical/sky130_run.sh /tmp/task2-dither8-sky130hd dither8_top
 bash task2/physical/sky130_run.sh /tmp/task-integrated-sky130hd sar20_digital_top
 ```
 
-物理脚本先对照提交冻结 RTL、配置与 SDC，然后运行综合、预布线 STA、布局、CTS、路由、提取及 GDS。每个布局出口检查电源网实际图形、通孔和每个标准单元电源引脚，抽取前另查填充后的数据库。最终 setup／hold 从同一份 ODB、SDC 和 SPEF 重开复核。独立 DRC／LVS 采用镜像所带的公开 deck，脚本保留退出码与报告，按实际运行结果判定。交付包记录 GDS 顶层、同一 GDS 交给 PV 的摘要、输入文件和全部产物的 SHA-256。
+物理脚本先对照提交冻结 RTL、配置与 SDC，然后运行综合、预布线 STA、布局、CTS、路由、提取及 GDS。每个布局出口检查电源网实际图形、通孔和每个标准单元电源引脚。若优化插入的单元未绑定电源，沿用平台全局连接规则补接，核验后写回阶段数据库并记录前后哈希。抽取前检查填充后的数据库，最终 setup／hold 从同一份 ODB、SDC 和 SPEF 重开复核。独立 DRC／LVS 采用镜像所带的公开 deck，脚本保留退出码与报告，按实际运行结果判定。交付包记录 GDS 顶层、同一 GDS 交给 PV 的摘要、输入文件和全部产物的 SHA-256。
 
 每个运行以 `moscow.json`、`PROVENANCE.json` 和 `release_manifest.json` 记录当前证据范围。目标 180 nm BCD、独立多角、流片方规则、EM/IR 与模拟验证分别验收。

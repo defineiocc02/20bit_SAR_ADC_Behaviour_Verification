@@ -1,0 +1,29 @@
+{
+  "font_family": "Hiragino Sans GB",
+  "font_file": "Hiragino Sans GB.ttc",
+  "figure_width_mm": 146,
+  "dpi": 300,
+  "input_sha256": {
+    "sigma_2pct/data.npz": "1234c0a640ac677bfa6f33a492532eec865ed21f4486502ea631c7b033ae25fd",
+    "sigma_2pct/summary.json": "e5f20230c98aff926ac49a2b17b52638df515405887c801332c82cdcbe2983d1",
+    "sigma_3pct/data.npz": "5a7a0b8aaac88c97a04702ee4d8748716fa24042a188e99c59f8ccd9f0d5451d",
+    "sigma_3pct/summary.json": "a9a75c29f866333eb3478bdd2ddfe6297835922a27396cc9783a028d33e0cc69"
+  },
+  "script_sha256": {
+    "task2/eight/plots.py": "59c81be0fd9f00a9b136512cd71407b3c048e620f6f06230b62df601672bc1a7"
+  },
+  "artifact_sha256": {
+    "eight_native_linearity.png": "00567db09338a581446cca3a685b56d178eaed915766bf5c9aa153bac7632cdb",
+    "eight_native_linearity.svg": "6cd32f324805a8f43708102974dc82de428d51c48b10c4713d0bdbecea1226dd",
+    "eight_native_linearity.pdf": "43c800033ba721e7b678ce7851e598d83b83aaa1b05c44f32b8baf4a235b1f68",
+    "eight_native_spectra.png": "52b37a5817b8157be8159ea0704bbcee628268f5dabb4b550acb25c98f5f7685",
+    "eight_native_spectra.svg": "58cfe9456910be6db5cbbc686d6f7db3b4c557400210f9d49811044a6b800295",
+    "eight_native_spectra.pdf": "6ad6267a2b2971cad790c21d11bc5d7098e3ca54851b358a6687c2a1864e66a7",
+    "eight_native_factorial.png": "8a3eb519232f7a7dc80208d69a4276154242f3dfdacabc10c131b341ed238e80",
+    "eight_native_factorial.svg": "af5bee01efbea1280e02c2bc33249001b036dacf4c4d68710ba70426e9d6c33d",
+    "eight_native_factorial.pdf": "e65cddfa33e773d5c8f446ed307100aa746514d3ddeaa31f693cb9dfd05ef447",
+    "eight_native_lms.png": "bfa2214ba3cc4b3f4e91330df66ff2878029be2be6fc4f5d6baea434ef4dfe99",
+    "eight_native_lms.svg": "0c634820d89c4e2e2099de82c6c22eadc532d18f2511ff0da652a63a6ab817fc",
+    "eight_native_lms.pdf": "6262b859a9be5a40f0f9972937b92fa02c4dd839829abb88e3ab43bee9253051"
+  }
+}

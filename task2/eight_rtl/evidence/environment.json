@@ -148,5 +148,9 @@
     }
   },
   "warnings": [],
-  "scope": "Local simulation inventory. Technology and remote physical inventory recorded separately."
+  "scope": "Local simulation inventory. Technology and remote physical inventory recorded separately.",
+  "executed_tools": {
+    "verilator": "Verilator 5.30",
+    "yosys": "Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)"
+  }
 }

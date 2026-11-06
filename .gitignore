@@ -23,11 +23,13 @@ outputs/
 !task1/evidence/**/*.png
 !task2/figures/*.png
 !task2/evidence/**/*.png
+!task3/evidence/**/*.png
 *.pdf
 !task1/evidence/inl_dnl/full20/*.pdf
 !task1/evidence/adc2_dither/full20/*.pdf
 !task2/figures/*.pdf
 !task2/evidence/**/*.pdf
+!task3/evidence/**/*.pdf
 references/*
 !references/README.md
 !references/source_manifest.json

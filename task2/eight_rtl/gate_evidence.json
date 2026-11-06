@@ -5,7 +5,7 @@
     "evidence": [
       {
         "path": "evidence/environment.json",
-        "sha256": "f4ae74300a64197f5a09a3483708bfa2b796ef8104b4a16714a2c10e06150046"
+        "sha256": "81443c2572f22701e0b6d3f30f7ce4d165d91018429dfe4396841c43ec3a3a35"
       },
       {
         "path": "evidence/result.json",
@@ -32,7 +32,7 @@
       },
       {
         "path": "verification_plan.yaml",
-        "sha256": "393af4419c7d227504a32596cf02bff8e07ecbce021200b3cc3c8c2139627289"
+        "sha256": "caee7d8bf1af5c929c6e42f6296c196ef0036dbe227c79354cee385dc3268609"
       },
       {
         "path": "tools/run_checks.py",
@@ -41,15 +41,8 @@
     ]
   },
   "G3": {
-    "status": "BLOCKED",
-    "completed": {
-      "lint": "PASS",
-      "elaboration": "PASS",
-      "cycle_comparison": "PASS",
-      "simulation_assertions": "PASS"
-    },
-    "formal": "NOT_RUN",
-    "formal_reason": "no local formal engine probed",
+    "status": "PASS",
+    "scope": "lint, elaboration, cycle comparison, simulation assertions and bounded formal",
     "evidence": [
       {
         "path": "evidence/result.json",
@@ -62,6 +55,10 @@
       {
         "path": "evidence/run.log",
         "sha256": "c16f0b4e1a1e93c4be746b71d657b73f4b2c116a307f497546eff8ca64978943"
+      },
+      {
+        "path": "evidence/formal_result.json",
+        "sha256": "c71213f41714e25d26bfd81616ef87fe06a1aa2cd99e456b26d7453785818e18"
       }
     ]
   },

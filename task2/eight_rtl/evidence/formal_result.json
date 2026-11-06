@@ -1,0 +1,46 @@
+{
+  "schema": "dither8-rtl-formal-v1",
+  "status": "PASS",
+  "tool": "Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)",
+  "scope": "Bounded properties for the actual integrated RTL. Includes one synchronous reset step and six arbitrary subsequent steps.",
+  "script": [
+    {
+      "path": "tb/formal.ys",
+      "sha256": "9c81e1f92ecc2e146b0acdff13a9c3c1151621e1626a0b8230bc81fdf47611dc"
+    },
+    {
+      "path": "tb/dither8_contract.sv",
+      "sha256": "e8d3eedfe48551f29e6d837ba701e01a1d6902e035d5d3e7f93a5bbaac742fce"
+    }
+  ],
+  "rtl_sha256": {
+    "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
+    "task1/rtl/fig21_bridge.sv": "15a5fe746f012aeb655f9fc19a0b582646f445ab0a1cae16992c6a22f8c7a305",
+    "task1/rtl/module1_bridge_top.sv": "8181f1d629fefd67fc51b52483725f3c4675a613c73fff9be554e2ce6dcaaba1",
+    "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
+    "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
+    "task2/eight_rtl/rtl/dither8_top.sv": "d06612de2a12ee8340b212fdaf0b3b565573098779d0e282522b0999962f3029",
+    "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad"
+  },
+  "proof": {
+    "log": "evidence/formal_pass.log.gz",
+    "compressed_sha256": "682b8818346697df8340ec7841aee995b2b80b2bfc4cc1dcaedb7b5e99c5ffc8",
+    "raw_sha256": "e166addcdd1086d0c371a3c645aec4149ff0aa921215bfde60e5a69201e520cb",
+    "variables": 1244240,
+    "clauses": 3414337,
+    "proof_line": "SAT proof finished - no model found: SUCCESS!"
+  },
+  "negative_control": {
+    "mutation": "replace adjusted_code addition with subtraction in a detached copy",
+    "expected_exit_code": 1,
+    "observed_exit_code": 1,
+    "mutated_rtl_sha256": "347cb856c583f27fbe9d5ba7400f90f82aa25856c331b33f4c22f9f0efcd1d88",
+    "log": "evidence/formal_mutant.log.gz",
+    "compressed_sha256": "153953dbebaa7cefcebe46e5056994dc0788b2bfa9f24b19252f8db8489db69a",
+    "raw_sha256": "11c5ff2ddd445d4ceb63e6b155da6b53bee6e502d4fdefe2738d86b54ebf09cc",
+    "variables": 1244226,
+    "clauses": 3414295,
+    "proof_line": "SAT proof finished - model found: FAIL!"
+  },
+  "unbounded_induction": "NOT_RUN"
+}

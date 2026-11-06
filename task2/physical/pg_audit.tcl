@@ -67,6 +67,23 @@ if {[info exists ::env(TASK2_PG_DATABASE)]} {
 }
 set pg_block [ord::get_db_block]
 set pg_findings [pg_inventory $pg_block]
+set pg_repaired 0
+if {[dict size $pg_findings] && [info exists ::env(TASK2_PG_REPAIRED_DB)]} {
+  set missing_only 1
+  foreach finding [dict keys $pg_findings] {
+    if {$finding ne "PG-PIN-MISSING" && $finding ne "PG-INSTANCE-NO-PG"} {
+      set missing_only 0
+    }
+  }
+  if {$missing_only} {
+    puts "PG_RECONNECT_BEFORE $pg_findings"
+    # ORFS repair stages can insert standard cells after the initial binding.
+    source $::env(TASK2_PG_CONNECT_TCL)
+    global_connect
+    set pg_findings [pg_inventory $pg_block]
+    set pg_repaired 1
+  }
+}
 if {[dict size $pg_findings]} { error "PG inventory findings $pg_findings" }
 foreach pg_net {VDD VSS} {
   if {$::env(TASK2_PG_STAGE) eq "floorplan"} {
@@ -75,4 +92,5 @@ foreach pg_net {VDD VSS} {
     check_power_grid -net $pg_net
   }
 }
+if {$pg_repaired} { write_db $::env(TASK2_PG_REPAIRED_DB) }
 puts "TASK2_PG_INVENTORY_COMPLETE $::env(TASK2_PG_STAGE)"

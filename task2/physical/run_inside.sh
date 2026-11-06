@@ -8,6 +8,7 @@ project=/work/repo/task2/physical
 platform_dir="$PWD/platforms/sky130hd"
 export TASK1_FINAL_DIR="/work/out/flow/results/sky130hd/$TASK2_NICKNAME/base"
 export TASK1_PROXY_LIBERTY="$platform_dir/lib/sky130_fd_sc_hd__tt_025C_1v80.lib"
+export TASK2_PG_CONNECT_TCL="$platform_dir/global_connect.tcl"
 build=(make "DESIGN_CONFIG=/work/repo/$TASK2_CONFIG" WORK_HOME=/work/out/flow LEC_CHECK=0)
 test -s "$TASK1_PROXY_LIBERTY"
 {
@@ -19,15 +20,21 @@ test -s "$TASK1_PROXY_LIBERTY"
 python3 "$project/record_environment.py" "$platform_dir" "$delivery/environment.json"
 
 function pg_stage() {
-  local stage="$1" db="$2"
-  test -s "$TASK1_FINAL_DIR/$db"
-  sha256sum "$TASK1_FINAL_DIR/$db" > "$delivery/pg_${stage}_database.sha256"
-  TASK2_PG_STAGE="$stage" TASK2_PG_DATABASE="$TASK1_FINAL_DIR/$db" \
-    openroad -no_init -exit "$project/pg_audit.tcl" | tee "$delivery/pg_${stage}.log"
+  local stage="$1" db="$TASK1_FINAL_DIR/$2"
+  local repaired_db="${db%.odb}.pg.odb"
+  local pg_env=("TASK2_PG_STAGE=$stage" "TASK2_PG_DATABASE=$db")
+  test -s "$db"
+  sha256sum "$db" > "$delivery/pg_${stage}_original.sha256"
+  # The final database is already the extraction/stream-out source and is immutable.
+  if [ "$stage" != final ]; then pg_env+=("TASK2_PG_REPAIRED_DB=$repaired_db"); fi
+  env "${pg_env[@]}" openroad -no_init -exit "$project/pg_audit.tcl" \
+    | tee "$delivery/pg_${stage}.log"
   grep -Fq "TASK2_PG_INVENTORY_COMPLETE $stage" "$delivery/pg_${stage}.log"
   for net in VDD VSS; do
     grep -Fq "All shapes on net $net are connected." "$delivery/pg_${stage}.log"
   done
+  if [ -s "$repaired_db" ]; then mv "$repaired_db" "$db"; fi
+  sha256sum "$db" > "$delivery/pg_${stage}_database.sha256"
 }
 
 "${build[@]}" synth

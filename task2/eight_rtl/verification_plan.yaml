@@ -17,3 +17,7 @@ checks:
     requirements: [REQ-D8-05]
     oracle: routed timing and physical report parsers
     coverage: TT clock setup and hold, route DRC, antenna, GDS and artifact hashes
+  - id: V-D8-05
+    requirements: [REQ-D8-01, REQ-D8-02, REQ-D8-03, REQ-D8-04]
+    oracle: top-level SAT assertions after synchronous reset
+    coverage: arbitrary inputs through seven steps, acquisition publication, two-entry sample binding, physical tap encoding, command overflow, invalid-mask isolation

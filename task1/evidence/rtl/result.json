@@ -1,0 +1,52 @@
+{
+  "counts": {
+    "dem_active": 122880,
+    "dem_bypass": 131072,
+    "dem_invalid": 8192,
+    "scheduler_accepts": 4227,
+    "scheduler_conversions": 4223,
+    "scheduler_cycles": 4617,
+    "scheduler_seed_errors": 2,
+    "scheduler_stalls": 137,
+    "scheduler_steady_slots": 4096,
+    "top_accepts": 4099,
+    "top_active_prefixes": 2051,
+    "top_bypass_prefixes": 2048,
+    "top_code_errors": 2,
+    "top_conversions": 4097,
+    "top_cycles": 4116,
+    "top_seed_errors": 3,
+    "top_stalls": 1,
+    "top_steady_slots": 4096
+  },
+  "log_sha256": {
+    "compile.log": "5aabe09542e6de8a7e038ed2c1115d6c8612b607cb3df38580a4d17fba940364",
+    "fig11_dem.lint.log": "6346f8db7f141d2adcb98ddca38376d3a269759f5fbe107a4345973ed7e2040a",
+    "module1_top.lint.log": "65f809482795437c271e20261c75b3dd667173f78462aef493913c5b5cd15f0f",
+    "run.log": "ee46a75298ba042473a9d56e5d121d14df9791ef76a7ffee4a81d1ea52cfc204",
+    "task1_slice_scheduler.lint.log": "9b46cef5eec3e1f24657c69da2d189c9897e2a6095aae0bbf9221ca66feea35b",
+    "verilator.log": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1"
+  },
+  "mismatches": 0,
+  "scheduler_fixture_seed": 659918,
+  "schema_version": 1,
+  "scope": "TASK1_DIGITAL_MODULE1",
+  "simulator": "Verilator 5.30",
+  "source_sha256": {
+    "task1/model/fig11_dem.py": "a3d7f040062ff7adf4c4b50fb90e59ee81491988973e5670e6e12e6e9789f39d",
+    "task1/model/module1.py": "c881976f3ed7c75f915d27b59fb69a2a58fa662ec4de6d51da09e4396573c3c2",
+    "task1/model/scheduler.py": "e6b2d50fa6bdaa607842bea0e86dc02e3fc531c7b832ea6a59858e48a7652f9f",
+    "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
+    "task1/rtl/module1_top.sv": "7887b9dbc435f96b39e964954a8c9d89e9c2560243f203b9ef96334f6616f471",
+    "task1/rtl/slice_scheduler.sv": "ea0d6ddcacc478b1951c8c6770dcbc523aad66072fce12cee8be2546461a948e",
+    "task1/tb/task1_rtl_checks_tb.sv": "e42afc66e1f701d90de88a5a7e483c178ee5676bb67e90af0e631cd8a11f1b39",
+    "task1/tools/run_rtl_checks.py": "eecec87f7fcd6f5a3aa8db7545b3b91896a74f0e216e41f6ea3f076d5ba5abd9",
+    "tools/run_open_rtl.py": "b5af7fcd9917dd8d3305117e0f2601b59f759b1e783f3aa2cd5b54e213975ef2"
+  },
+  "status": "PASS",
+  "vector_sha256": {
+    "dem.hex": "a5f577f3e9a4e486e3955c6992a328f48951c2cbb707d8ade973631a09a138e6",
+    "scheduler.hex": "0e454561df098e0a2190ee9364decde783b161654fc6c0acef88169fe1d3d23a",
+    "top.hex": "a2c9520bdb7fc4716cc666e96aae54dc500712034d83722f480068e68bccb8df"
+  }
+}

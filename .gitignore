@@ -42,6 +42,9 @@ outputs/
 # ---------------------------------------------------------------------------
 !tools/results/
 !tools/results/**
+# 模块一公开交付的可重现效果图。
+!task1/evidence/effects/*.png
+!task1/evidence/calibration/**/*.png
 # --- 文档配图始终跟踪 ---
 !docs/**/*.png
 

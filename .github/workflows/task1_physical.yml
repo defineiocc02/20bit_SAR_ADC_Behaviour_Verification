@@ -1,0 +1,47 @@
+name: 20b10mtask public proxy GDS
+
+on:
+  push:
+    branches: [20b10mtask]
+    paths:
+      - 'task1/rtl/**'
+      - 'task1/physical/**'
+      - '.github/workflows/task1_physical.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: task1-proxy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  proxy:
+    if: github.ref_name == '20b10mtask'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      RUN_DIR: /tmp/task1-proxy-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Route and stream out the public proxy
+        run: bash task1/physical/run_proxy.sh "$RUN_DIR"
+      - name: Upload GDS, timing and run manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: task1-nangate45-physical-${{ github.run_id }}
+          path: ${{ env.RUN_DIR }}/delivery
+          if-no-files-found: error
+      - name: Upload physical diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: task1-nangate45-diagnostics-${{ github.run_id }}
+          path: |
+            ${{ env.RUN_DIR }}/flow.log
+            ${{ env.RUN_DIR }}/flow/logs/
+            ${{ env.RUN_DIR }}/flow/reports/
+            ${{ env.RUN_DIR }}/delivery/

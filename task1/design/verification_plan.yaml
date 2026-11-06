@@ -1,0 +1,67 @@
+version: 1
+scope: task1_module1
+requirements_table: requirements.csv
+requirements:
+  - id: REQ-M1-01
+    test_ids: [V-SCHED]
+  - id: REQ-M1-02
+    test_ids: [V-SCHED]
+  - id: REQ-M1-03
+    test_ids: [V-TOP]
+  - id: REQ-M1-04
+    test_ids: [V-TOP]
+  - id: REQ-M1-05
+    test_ids: [V-DEM]
+  - id: REQ-M1-06
+    test_ids: [V-DEM, V-CHARGE]
+  - id: REQ-M1-07
+    test_ids: [V-EFFECTS]
+  - id: REQ-M1-08
+    test_ids: [V-PROXY]
+  - id: REQ-M1-09
+    test_ids: [V-TARGET]
+tests:
+  V-SCHED:
+    method: 仿真及定向测试
+    entry: task1/tools/run_rtl_checks.py
+    unit_tests: task1/tests/test_scheduler.py
+    oracle: ScheduleOracle 独立集合与优先顺序参考
+    acceptance: 全字段逐拍相等，包含4096个已接受稳态槽及释放不足、重试、重放、复位。
+    evidence: result.json 及运行日志
+  V-TOP:
+    method: 仿真及定向测试
+    entry: task1/tools/run_rtl_checks.py
+    unit_tests: task1/tests/test_module1.py
+    oracle: TopOracle 独立事务参考
+    acceptance: 一拍发布、样本归属和掩码逐拍相等，含在途撤销、非法种子和错号。
+    evidence: result.json 及运行日志
+  V-DEM:
+    method: 穷举掩码与整数权重仿真
+    entry: task1/tools/run_rtl_checks.py
+    oracle: 独立集合构造及主子节点分别计权
+    acceptance: 262144 条向量逐条匹配，开启、旁路和非法结果均计数。
+    evidence: result.json 及运行日志
+  V-CHARGE:
+    method: pytest 两节点参考与反例
+    entry: task1/tests/test_fig11_dem.py
+    oracle: src/adi_model/charge_ref.py
+    acceptance: 全码及三组指定相位的名义反馈电荷一致。B5 跨节点电荷差非零。
+    evidence: Python 回归
+  V-EFFECTS:
+    method: 行为模型定向实验
+    entry: task1/experiments/run_effects.py
+    oracle: 同一物理片池及两节点求解
+    acceptance: 归档数据、图与源码摘要，报告 SFDR、SNDR 和 DEM 静态拟合残差及波动。
+    evidence: task1/evidence/effects/summary.json
+  V-PROXY:
+    method: 公开工艺代理综合、布局布线和提取后 STA
+    entry: task1/physical/run_proxy.sh
+    oracle: 固定公开工具、Liberty 和代理约束下的实际工具报告
+    acceptance: 核对源与工具摘要、GDS 可读性及 setup/hold、约束覆盖记录。
+    evidence: task1/physical/README.md
+  V-TARGET:
+    method: 模拟宏签认、目标库后端和后仿
+    entry: task1/SPEC.md
+    oracle: 模拟合同及指定目标工艺的工具报告
+    acceptance: 以冻结目标工艺、角和 I/O 时序预算完成 GDS、STA 和签核检查。
+    evidence: 待模拟接口及工艺资料确认

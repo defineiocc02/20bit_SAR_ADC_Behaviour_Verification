@@ -1,0 +1,5 @@
+TASK1_RTL_CHECKS_COMPLETE scheduler_cycles=4617 scheduler_accepts=4227 scheduler_conversions=4223 scheduler_stalls=137 scheduler_seed_errors=2 dem_active=122880 dem_bypass=131072 dem_invalid=8192 top_cycles=4116 top_accepts=4099 top_conversions=4097 top_stalls=1 top_seed_errors=3 top_active_prefixes=2051 top_bypass_prefixes=2048 top_code_errors=2
+- task1/tb/task1_rtl_checks_tb.sv:282: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.30
+- Verilator: $finish at 280us; walltime 0.841 s; speed 336.197 us/s
+- Verilator: cpu 0.832 s on 1 threads; alloced 0 MB

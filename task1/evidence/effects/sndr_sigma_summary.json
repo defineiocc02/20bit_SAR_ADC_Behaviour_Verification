@@ -1,0 +1,229 @@
+{
+  "schema": "task1_sndr_sigma_sweep_v1",
+  "model_scope": "理想两节点电荷参考和理想余量读出，单独量化电容失配。热噪声、真实 ADC2 与 CAAZ 留待后续联合验证。",
+  "configuration": {
+    "fs_hz": 10000000,
+    "samples": 4096,
+    "tone_bin": 409,
+    "tone_hz": 998535.15625,
+    "tone_peak_v": 3.3333333333333335,
+    "full_scale_peak_v": 5.0,
+    "unit_cap_f": 1e-15,
+    "schedule_seed": 608135816,
+    "dem_seed": 2654435769,
+    "sigma_pct": [
+      0.0,
+      0.003,
+      0.01,
+      0.03,
+      0.1
+    ],
+    "manufacturing_seeds": [
+      100,
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110,
+      111
+    ],
+    "sfdr_residual_fft_window": "blackmanharris"
+  },
+  "nominal_closure_max_v": {
+    "off": 3.1086244689504383e-15,
+    "on": 3.1086244689504383e-15
+  },
+  "nominal_db_metrics": "数值误差参考，CSV 中 dB 字段留空。",
+  "target_sndr_db": 100.0,
+  "target_max_residual_rms_uv": 23.57022603955159,
+  "series": [
+    {
+      "sigma_pct": 0.003,
+      "dem": "off",
+      "samples": 12,
+      "sndr_db": {
+        "min": 108.00554654870683,
+        "median": 110.78648803306027,
+        "max": 112.58714087529015
+      },
+      "sfdr_db": {
+        "min": 116.8128330233467,
+        "median": 123.54893390220678,
+        "max": 129.09975152139828
+      },
+      "residual_rms_uv": {
+        "min": 5.533586284199437,
+        "median": 6.8083421894254315,
+        "max": 9.37748549200279
+      },
+      "sndr_at_least_100_db": 12
+    },
+    {
+      "sigma_pct": 0.003,
+      "dem": "on",
+      "samples": 12,
+      "sndr_db": {
+        "min": 107.95508683977745,
+        "median": 108.74106978445809,
+        "max": 110.90805442527957
+      },
+      "sfdr_db": {
+        "min": 124.95792296033673,
+        "median": 129.5261419404729,
+        "max": 131.66501690391217
+      },
+      "residual_rms_uv": {
+        "min": 6.7136911400671,
+        "median": 8.616752733221627,
+        "max": 9.43213114435969
+      },
+      "sndr_at_least_100_db": 12
+    },
+    {
+      "sigma_pct": 0.01,
+      "dem": "off",
+      "samples": 12,
+      "sndr_db": {
+        "min": 97.54796854797644,
+        "median": 100.32891401767364,
+        "max": 102.12956558659857
+      },
+      "sfdr_db": {
+        "min": 106.35525730477701,
+        "median": 113.09136326593966,
+        "max": 118.64218980555802
+      },
+      "residual_rms_uv": {
+        "min": 18.445286695809592,
+        "median": 22.69448201802711,
+        "max": 31.258292905769373
+      },
+      "sndr_at_least_100_db": 8
+    },
+    {
+      "sigma_pct": 0.01,
+      "dem": "on",
+      "samples": 12,
+      "sndr_db": {
+        "min": 97.4975313992496,
+        "median": 98.28349952315894,
+        "max": 100.45049406077247
+      },
+      "sfdr_db": {
+        "min": 114.50038132395548,
+        "median": 119.06855828405102,
+        "max": 121.20744328827142
+      },
+      "residual_rms_uv": {
+        "min": 22.37897288311994,
+        "median": 28.722511611492685,
+        "max": 31.44043849768263
+      },
+      "sndr_at_least_100_db": 1
+    },
+    {
+      "sigma_pct": 0.03,
+      "dem": "off",
+      "samples": 12,
+      "sndr_db": {
+        "min": 88.00553461041773,
+        "median": 90.78649146538481,
+        "max": 92.58713939697898
+      },
+      "sfdr_db": {
+        "min": 96.81282988801529,
+        "median": 103.54895037087587,
+        "max": 109.09980239828278
+      },
+      "residual_rms_uv": {
+        "min": 55.33585222156282,
+        "median": 68.08351509243684,
+        "max": 93.77494670943994
+      },
+      "sndr_at_least_100_db": 0
+    },
+    {
+      "sigma_pct": 0.03,
+      "dem": "on",
+      "samples": 12,
+      "sndr_db": {
+        "min": 87.95516191903353,
+        "median": 88.74108769787006,
+        "max": 90.90811051098335
+      },
+      "sfdr_db": {
+        "min": 104.95805128402984,
+        "median": 109.5261081902584,
+        "max": 111.66502186969744
+      },
+      "residual_rms_uv": {
+        "min": 67.136939369331,
+        "median": 86.16755627193055,
+        "max": 94.32132706381972
+      },
+      "sndr_at_least_100_db": 0
+    },
+    {
+      "sigma_pct": 0.1,
+      "dem": "off",
+      "samples": 12,
+      "sndr_db": {
+        "min": 77.54792875332782,
+        "median": 80.32892544090859,
+        "max": 82.12956065004526
+      },
+      "sfdr_db": {
+        "min": 86.35524685197355,
+        "median": 93.09141817053279,
+        "max": 98.64235942578512
+      },
+      "residual_rms_uv": {
+        "min": 184.4527491357722,
+        "median": 226.94585615839907,
+        "max": 312.5839489693038
+      },
+      "sndr_at_least_100_db": 0
+    },
+    {
+      "sigma_pct": 0.1,
+      "dem": "on",
+      "samples": 12,
+      "sndr_db": {
+        "min": 77.49778165887669,
+        "median": 78.28355923019427,
+        "max": 80.45068099520637
+      },
+      "sfdr_db": {
+        "min": 94.50080906222126,
+        "median": 99.06844581801688,
+        "max": 101.20745971743116
+      },
+      "residual_rms_uv": {
+        "min": 223.79003999784814,
+        "median": 287.22543776731584,
+        "max": 314.40455858377527
+      },
+      "sndr_at_least_100_db": 0
+    }
+  ],
+  "environment": {
+    "python": "3.12.14",
+    "numpy": "2.5.3",
+    "matplotlib": "3.11.2",
+    "platform": "Darwin"
+  },
+  "source_sha256": {
+    "task1/experiments/run_sndr_sweep.py": "753d5cf73bbfff90759b71178dfb1fe6eba247da0b0d33bced92429ea1989468",
+    "task1/experiments/run_effects.py": "ec9635c6be81a1758785bc3ebb33714da427348b598dfcd3d3a6484692326c5c",
+    "task1/model/scheduler.py": "e6b2d50fa6bdaa607842bea0e86dc02e3fc531c7b832ea6a59858e48a7652f9f",
+    "task1/model/fig11_dem.py": "a3d7f040062ff7adf4c4b50fb90e59ee81491988973e5670e6e12e6e9789f39d",
+    "task1/model/module1.py": "c881976f3ed7c75f915d27b59fb69a2a58fa662ec4de6d51da09e4396573c3c2",
+    "src/adi_model/charge_ref.py": "74856592cdc665c4533744754b953cee55a6e8649368b8483b6ddbf619a0cebc",
+    "src/adi_model/metrics.py": "8877c362ac6ab765cb26f7dcd2a42263c9b0a0915d78134af9b322109edec5d9"
+  }
+}

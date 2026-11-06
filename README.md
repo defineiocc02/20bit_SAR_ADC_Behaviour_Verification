@@ -1,3 +1,5 @@
+> **`20b10mtask`：硕士同学数字任务交付树。** 本分支以 20 bit／10 MS/s 为项目目标，集中交付模块一切片调度与 DEM、后续 dither／CAAZ、测试和物理实现证据。[任务规格与分工](task1/SPEC.md) · [模块一交付及复现](task1/README.md) · [阶段检查点](task1/CHECKPOINT.md)。下方原有 README 描述的是继承的 40 MS/s 基线，不能当作本任务已完成的目标性能或物理签核。
+
 # 20位／40 MS/s SAR ADC：行为模型、静态校准与数字实现
 
 [English](README_EN.md) · [当前状态](docs/STATUS.md) · [数字状态表](docs/digital_status_matrix.md) · [原文对照](docs/current_digital_source_map.md) · [论文与讲稿](references/README.md)

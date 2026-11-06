@@ -18,7 +18,7 @@ jobs:
   lms_sky130:
     if: github.ref_name == '20b10mtask'
     runs-on: ubuntu-24.04
-    timeout-minutes: 75
+    timeout-minutes: 150
     env:
       RUN_DIR: /tmp/task2-sky130-lms-extended-${{ github.run_id }}-${{ github.run_attempt }}
       TASK2_PHYSICAL_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-sar20_digital_lms_top-extended
@@ -37,14 +37,14 @@ jobs:
           receipt.write_text(json.dumps({
               'run_id': os.environ['TASK2_PHYSICAL_RUN_ID'],
               'rtl_commit': os.environ['GITHUB_SHA'],
-              'job_timeout_minutes': 75,
-              'implementation_step_timeout_minutes': 68,
-              'reason': 'Allow the large coefficient bank and datapath to finish routing.',
+              'job_timeout_minutes': 150,
+              'implementation_step_timeout_minutes': 140,
+              'reason': 'Allow antenna repair and the subsequent detailed route to finish after the first clean routing pass.',
               'scope': 'Override the standard CI envelope only. The physical script, clock, I/O, PVT, floorplan policy and four P&R threads are unchanged.',
           }, indent=2) + '\n')
           PY
       - name: Route the LMS top under the same physical plan
-        timeout-minutes: 68
+        timeout-minutes: 140
         run: bash task2/physical/sky130_run.sh "$RUN_DIR" sar20_digital_lms_top
       - name: Upload the frozen run and runner envelope
         if: success()
@@ -66,6 +66,9 @@ jobs:
             ${{ env.RUN_DIR }}/flow.log
             ${{ env.RUN_DIR }}/flow/logs
             ${{ env.RUN_DIR }}/flow/reports
+            ${{ env.RUN_DIR }}/flow/results/sky130hd/task_integration_sar20_lms/base/5_1_grt.*
+            ${{ env.RUN_DIR }}/flow/results/sky130hd/task_integration_sar20_lms/base/5_2_route.odb
+            ${{ env.RUN_DIR }}/flow/results/sky130hd/task_integration_sar20_lms/base/5_route.odb
             ${{ env.RUN_DIR }}/flow/results/sky130hd/task_integration_sar20_lms/base/6_final.*
           if-no-files-found: warn
       - name: Report the independent TT timing gate

@@ -42,6 +42,9 @@ TONE_PEAK_V = 10 / 3
 SIGNED_ZERO = OUTPUT_CODES // 2
 LOWER_WORD_MASK = 0b010111
 ARMS = (("off", "关闭 dither", "#555555"), ("on", "开启 dither", "#0072B2"))
+# 沿用历史归档的英寸画布尺寸，使 PNG 与 SVG 可逐字节复现。
+LINEARITY_FIGURE_IN = (5.74, 6.25)
+SPECTRUM_FIGURE_IN = (5.74, 4.76)
 
 
 def _sha(path: Path) -> str:
@@ -268,7 +271,7 @@ def _plot_linearity(output: Path, summary: dict, arrays: dict) -> None:
     fig, axes = plt.subplots(
         4,
         2,
-        figsize=(146 / 25.4, 159 / 25.4),
+        figsize=LINEARITY_FIGURE_IN,
         gridspec_kw={"width_ratios": [2.65, 1.0]},
         sharex="col",
     )
@@ -331,7 +334,7 @@ def _plot_linearity(output: Path, summary: dict, arrays: dict) -> None:
 
 def _plot_spectrum_and_residue(output: Path, summary: dict, arrays: dict) -> None:
     fig, (spectrum, residue) = plt.subplots(
-        2, 1, figsize=(146 / 25.4, 121 / 25.4), gridspec_kw={"height_ratios": [1.65, 1]}
+        2, 1, figsize=SPECTRUM_FIGURE_IN, gridspec_kw={"height_ratios": [1.65, 1]}
     )
     fig.subplots_adjust(left=0.117, right=0.967, bottom=0.18, top=0.774, hspace=0.63)
     fig.text(0.117, 0.951, "dither 压低最大杂散，SNDR 略降", fontsize=10, weight=600)
@@ -491,7 +494,13 @@ def run(output: Path) -> dict:
     }
     np.savez_compressed(output / "fig19_seven_data.npz", **archived)
     summary["font"] = _chinese_style()
-    mpl.rcParams["svg.hashsalt"] = "task2-fig19-seven"
+    # 轮廓字形避免 macOS 的 Hiragino TTC 在 PDF 阅读器中漏字。
+    mpl.rcParams.update({"pdf.fonttype": 3, "svg.hashsalt": "task2-fig19-seven"})
+    summary["pdf_fonttype"] = 3
+    summary["figure_canvas_in"] = {
+        "linearity": LINEARITY_FIGURE_IN,
+        "spectrum_residue": SPECTRUM_FIGURE_IN,
+    }
     _plot_linearity(output, summary, arrays)
     _plot_spectrum_and_residue(output, summary, arrays)
     artifact_names = [

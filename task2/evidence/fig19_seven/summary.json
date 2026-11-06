@@ -276,7 +276,7 @@
   "source_sha256": {
     "task2/model/fig19_seven.py": "09d3058c5ead8a61cba00aa4a2a05e59392f025ad7ab32a0d67fdbb16b7b43ae",
     "task2/model/dither_word_gen.py": "a9c86bffacd388bec80f0a1bd4ab93514ded4dabcc6ed65a87b1cd377e1258e3",
-    "task2/experiments/fig19_seven_demo.py": "2aa5f58834fd0dc20f4dba438c2521f8af44c381a78dee1c5febd237a675387b",
+    "task2/experiments/fig19_seven_demo.py": "b09e4fdf9a89943dd661fd37af05b288e0f690498e675a730ae603bad482fc07",
     "task1/experiments/full20_linearity_plots.py": "680a9741203d94299fc632dedc7c43a2a66f025ec343e1863ac5121ad459b901"
   },
   "upper_ablation": {
@@ -295,13 +295,24 @@
     "residue_difference_max_v": 2.220446049250313e-16
   },
   "font": "Hiragino Sans GB",
+  "pdf_fonttype": 3,
+  "figure_canvas_in": {
+    "linearity": [
+      5.74,
+      6.25
+    ],
+    "spectrum_residue": [
+      5.74,
+      4.76
+    ]
+  },
   "artifact_sha256": {
     "fig19_seven_linearity.png": "46ed76c37c5d8451c7fea997fd13c98761a96a32481c5abe14b7ac9e9be13a64",
     "fig19_seven_linearity.svg": "ca5185696e9042ba104a43630f337f6524fc691eada6a9c08cba4ea6af22e8c8",
-    "fig19_seven_linearity.pdf": "a09d9f271f676748e2a7eb1e905ffb983df14046d700d8069cb2be98fa9582ca",
+    "fig19_seven_linearity.pdf": "9e2315e3f3aa8efe19b2c1ba3bb388f37e4ae7900acd55869785b1cf6f991cfa",
     "fig19_seven_spectrum_residue.png": "0ea40f6976e9ecf0456288ba12d4f721cc95eb3b926ac65b5c4a07eeb26e41a5",
     "fig19_seven_spectrum_residue.svg": "aa6782f09a4d3b4c9dbac317174699ed6023b0c68572db0c937136df5cbf57a1",
-    "fig19_seven_spectrum_residue.pdf": "ea8b9f251217816b381618105d1feb6d731c60af950a157e08c1f1e483df365b",
+    "fig19_seven_spectrum_residue.pdf": "13b5ceed781e167a07235f8449ca28385395d6f7b82d2eb9566b377206788471",
     "fig19_seven_data.npz": "787e0b32544c7d8a4540f41dde1f0b409cf46f3ddc46361ada9f3839d48236a7"
   }
 }

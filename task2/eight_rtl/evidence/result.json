@@ -16,9 +16,9 @@
     "steady_commands": 4096
   },
   "log_sha256": {
-    "compile.log": "a676ba9f661a368dd34b328c033129ffb85ee432bf23414f92b81beab03917eb",
-    "lint.log": "5fe9b607fd8565209f266d570cc703ffc713680d4ca4ab5528b544686fae2f8f",
-    "run.log": "c16f0b4e1a1e93c4be746b71d657b73f4b2c116a307f497546eff8ca64978943",
+    "compile.log": "de28665e7d934c2a15ca664953c9b11f3fca62263242904782cc53b906c3c367",
+    "lint.log": "15e3775b7bef9f887ca85c8a873cbecd6628c73f588bc30a498a45245271f6c4",
+    "run.log": "c9cefa3eb01c87b3c863581080a7ebeb34eeed108e25e573f7a1a23cf2b38f08",
     "verilator.log": "f9757a42767f2351aef3cae70ef2d74d747d2509beef1c961678591368f78f57"
   },
   "mismatches": 0,
@@ -33,7 +33,7 @@
     "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
     "task1/tools/run_bridge_checks.py": "3f1e69afd186e783eda6fbf090976933b959dbd7573d2a84ce4428eddcd23ed9",
     "task1/tools/run_rtl_checks.py": "eecec87f7fcd6f5a3aa8db7545b3b91896a74f0e216e41f6ea3f076d5ba5abd9",
-    "task2/eight_rtl/rtl/dither8_top.sv": "d06612de2a12ee8340b212fdaf0b3b565573098779d0e282522b0999962f3029",
+    "task2/eight_rtl/rtl/dither8_top.sv": "ef9e36cb48eef4c59a4de1852538e7429739f5d36ad608cd7a8e0adb2fffe16c",
     "task2/eight_rtl/tb/dither8_checks_tb.sv": "94c243d73f9165a82ab92d5abded34be1c1eca8fe2ba66f9e4e45c031ff05443",
     "task2/eight_rtl/tools/run_checks.py": "97eb49fdbbe98e12f600374933043d1fb7b4e78bdb772e3ca474182e58b1425e",
     "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad",

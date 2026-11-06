@@ -18,5 +18,5 @@ echo "" > Vdither8_checks_tb__ALL.verilator_deplist.tmp
 c++  -Wl,-U,__Z15vl_time_stamp64v,-U,__Z13sc_time_stampv   verilated.o verilated_timing.o verilated_threads.o Vdither8_checks_tb__ALL.a       -o Vdither8_checks_tb
 rm Vdither8_checks_tb__ALL.verilator_deplist.tmp
 - V e r i l a t i o n   R e p o r t:  rev UNKNOWN.REV
-- Verilator: Built from 0.226 MB sources in 9 modules, into 3.317 MB in 11 C++ files needing 0.002 MB
-- Verilator: Walltime 6.455 s (elab=0.070, cvt=0.588, bld=5.313); cpu 1.125 s on 1 threads
+- Verilator: Built from 0.226 MB sources in 9 modules, into 3.315 MB in 11 C++ files needing 0.002 MB
+- Verilator: Walltime 8.037 s (elab=0.076, cvt=0.697, bld=6.585); cpu 1.411 s on 1 threads

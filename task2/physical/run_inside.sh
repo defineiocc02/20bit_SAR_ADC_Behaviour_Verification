@@ -58,8 +58,13 @@ cp /work/repo/task1/physical/sky130_license.txt "$delivery/SKY130HD-LICENSE.txt"
 
 # PV is a separate measurement on the exact streamed GDS. Preserve failures.
 sha256sum "$TASK1_FINAL_DIR/6_final.gds" > "$delivery/pv_input.sha256"
+compat_cdl=/work/out/sky130hd_lvs_compatible.cdl
+python3 "$project/prepare_lvs_cdl.py" "$platform_dir/cdl/sky130hd.cdl" "$compat_cdl" \
+  "$delivery/lvs_cdl_compat.json"
 for check in drc lvs; do
-  if timeout 300 "${build[@]}" "$check" > "$delivery/${check}_command.log" 2>&1; then
+  pv_arguments=("$check")
+  if [ "$check" = lvs ]; then pv_arguments+=("CDL_FILE=$compat_cdl"); fi
+  if timeout 300 "${build[@]}" "${pv_arguments[@]}" > "$delivery/${check}_command.log" 2>&1; then
     printf '0\n' > "$delivery/${check}_exit.txt"
   else
     printf '%s\n' "$?" > "$delivery/${check}_exit.txt"

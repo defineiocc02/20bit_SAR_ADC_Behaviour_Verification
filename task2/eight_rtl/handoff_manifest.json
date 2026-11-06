@@ -1,7 +1,7 @@
 {
   "schema": "spec-to-rtl-handoff-v1",
-  "run_id": "dither8-v1-20261107-02",
-  "source_baseline": "b592ba8",
+  "run_id": "dither8-v1-context-mux-20261107",
+  "source_baseline": "3af060e",
   "design_top": "dither8_top",
   "status": "BLOCKED",
   "scope": "digital sample controls and final DAC command",
@@ -12,13 +12,14 @@
   },
   "source_sha256": {
     "SPEC.md": "baacd67dc063fc0f416a78a89ebbdb12e829a46db0a3d9ad4776260ce460d267",
-    "microarchitecture.md": "8f84c9ed79eaee53f5b5b0b8803c7c3a716225114fc917971beaca04209e7041",
-    "verification_plan.yaml": "caee7d8bf1af5c929c6e42f6296c196ef0036dbe227c79354cee385dc3268609",
+    "microarchitecture.md": "60efafcfeeb57fa9be13223e71187e3878b91a9bdb2c2976e4e348f81f3e737c",
+    "verification_plan.yaml": "a0bccb18789e5ab1384b0e510bd73bfa465cb1b5fa9f9c5d7b8c0607ecf897a3",
     "requirements_trace.csv": "113ee9e4cb37a2693828cfe12c83729938968e1d7a7b198a8bbffae9267345fb",
-    "gate_evidence.json": "a34d7cd0723b005dda9dc7f4c17460e7c0ccd6f30a5fe65caa9e5a1e5ac10d4b",
+    "gate_evidence.json": "b88c0920ff83c1888442e4347335f5fec53451210f868e2ebd0a848c80f490f2",
     "waivers.md": "64ca2209644194b7db7f845ee1f6c0cffb9e3607cb69c87118d3c32f7a67493e",
     "tb/formal.ys": "9c81e1f92ecc2e146b0acdff13a9c3c1151621e1626a0b8230bc81fdf47611dc",
-    "tb/dither8_contract.sv": "e8d3eedfe48551f29e6d837ba701e01a1d6902e035d5d3e7f93a5bbaac742fce"
+    "tb/dither8_contract.sv": "e8d3eedfe48551f29e6d837ba701e01a1d6902e035d5d3e7f93a5bbaac742fce",
+    "tools/run_context_equivalence.py": "6edb2ffaef6b810380ae679ec4b9123ae6ddf83f87853cf73639d58bb70e1d7d"
   },
   "repo_source_sha256": {
     "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
@@ -28,7 +29,7 @@
     "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
     "task1/tools/run_bridge_checks.py": "3f1e69afd186e783eda6fbf090976933b959dbd7573d2a84ce4428eddcd23ed9",
     "task1/tools/run_rtl_checks.py": "eecec87f7fcd6f5a3aa8db7545b3b91896a74f0e216e41f6ea3f076d5ba5abd9",
-    "task2/eight_rtl/rtl/dither8_top.sv": "d06612de2a12ee8340b212fdaf0b3b565573098779d0e282522b0999962f3029",
+    "task2/eight_rtl/rtl/dither8_top.sv": "ef9e36cb48eef4c59a4de1852538e7429739f5d36ad608cd7a8e0adb2fffe16c",
     "task2/eight_rtl/tb/dither8_checks_tb.sv": "94c243d73f9165a82ab92d5abded34be1c1eca8fe2ba66f9e4e45c031ff05443",
     "task2/eight_rtl/tools/run_checks.py": "97eb49fdbbe98e12f600374933043d1fb7b4e78bdb772e3ca474182e58b1425e",
     "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad",
@@ -44,7 +45,11 @@
   "simulation": [
     {
       "path": "evidence/result.json",
-      "sha256": "fd7541f0685bfbf67751831171de370c961ea1360e3e46a50a67039bf7541ea8"
+      "sha256": "fe53a4a209244629a3ae3e4e147d02b9bbe5587b08483f6724df18422e7d3a85"
+    },
+    {
+      "path": "independent_review/receipt.json",
+      "sha256": "ec759e87a93d33423f5f2459b6743f9737c843451d47d1dcb7447ce92c2d0146"
     }
   ],
   "physical_constraints": {
@@ -54,7 +59,11 @@
   "formal": [
     {
       "path": "evidence/formal_result.json",
-      "sha256": "c71213f41714e25d26bfd81616ef87fe06a1aa2cd99e456b26d7453785818e18"
+      "sha256": "6abfd718740a0e31e5c37236b92cf5e03479d74e83ffd95870d85dd9bd73b2f0"
+    },
+    {
+      "path": "evidence/context_equivalence.json",
+      "sha256": "3b4d9d9e4b820d7ade2224101b74b48b3343b7044b249db1084e91cbd95ec05a"
     }
   ]
 }

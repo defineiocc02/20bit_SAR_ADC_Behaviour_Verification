@@ -9,11 +9,11 @@
     },
     {
       "path": "evidence/external/result.json",
-      "sha256": "1f34ca6d0041114c890f1009490a805ec60161c3903842847c75b96cd54baf14"
+      "sha256": "269e83e8adf117b14e042b79b63d853e52f62a5f205d2a85509420b4bc4cc5dc"
     },
     {
       "path": "evidence/on_chip/result.json",
-      "sha256": "355612f624fe79405e5242a36c8eba1f2a8d0b6b3fe403b044ed7e39f2120b19"
+      "sha256": "f26673569ebf205b517bfcb1f6d608f9d9a125089b4b4fa6e0ca54ce89ace611"
     }
   ],
   "limits": [
@@ -32,7 +32,7 @@
     "task1/rtl/module1_bridge_top.sv": "8181f1d629fefd67fc51b52483725f3c4675a613c73fff9be554e2ce6dcaaba1",
     "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
     "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
-    "task2/eight_rtl/rtl/dither8_top.sv": "d06612de2a12ee8340b212fdaf0b3b565573098779d0e282522b0999962f3029",
+    "task2/eight_rtl/rtl/dither8_top.sv": "ef9e36cb48eef4c59a4de1852538e7429739f5d36ad608cd7a8e0adb2fffe16c",
     "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad",
     "task3/rtl/caaz20_pair.sv": "5ddbd9f20d4534ad597f22edca9f58604c4d04877eb5efb6ba6dabb142115fdc",
     "task_integration/rtl/sar20_digital_lms_top.sv": "04a25ad20f48ff87a84ec9818d4927e470cfd309ec308b0206b94dd8d0d17d72",
@@ -45,7 +45,7 @@
   "source_sha256": {
     "LMS_PIPELINE.md": "470f5eef6e5f2ba10411beba668f445d2f1d877b79acdfa08d0234b9ee4a50e6",
     "SPEC.md": "29460e675e89e521f3cf292c5c39728ae73e40b282125d05ce98527891ec7995",
-    "gate_evidence.json": "7d75f9981c1c12bf89a60f6dbbf75c9f1fd34971a84bc69aae75b1989af54135",
+    "gate_evidence.json": "026c804f034556c6f7fedd69bc7c68f18255e74b90b5d7ab19160c2a892c858e",
     "microarchitecture.md": "e3bc4ae6c79177cb66530c476c4b686f2d8266d22eebada54acd53cc940e4fca",
     "requirements_trace.csv": "d82c8bd381dae7a05537a8fd196ee76544562aecf45773a194462e14103490d1",
     "verification_plan.yaml": "fb697758c05252d9596738c92bbefb0f9f85e410c9246dab070f1e19ada86536"

@@ -47,6 +47,7 @@ def freeze(args: argparse.Namespace) -> None:
             f"{physical}/pg_audit.tcl",
             f"{physical}/pre_route.tcl",
             f"{physical}/record_environment.py",
+            f"{physical}/prepare_lvs_cdl.py",
             f"{physical}/plan.json",
         }
     )

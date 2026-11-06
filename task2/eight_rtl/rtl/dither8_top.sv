@@ -53,6 +53,7 @@ module dither8_top (
   logic [31:0] previous_sample_id_q;
   logic [5:0] previous_word_q;
   logic latest_match, previous_match;
+  logic [5:0] selected_word;
   logic [2:0] upper_code;
   logic [9:0] adjusted_code;
   logic command_eligible;
@@ -175,12 +176,15 @@ module dither8_top (
   assign latest_match = latest_word_valid_q && (acq_sample_id_o == conv_sample_id_o);
   assign previous_match = previous_word_valid_q && (previous_sample_id_q == conv_sample_id_o);
   assign conv_ready_o = active && conv_group_valid && (latest_match || previous_match);
-  assign conv_word_o = !conv_ready_o ? 6'd0 : (latest_match ? acq_word_o : previous_word_q);
+  // 发布沿将旧采集组晋升为转换组，对应扰动字此时在最新槽。
+  // 下一沿描述符移位后，该字位于上一槽，直到下一次晋升。
+  assign selected_word = slot_accepted_o ? acq_word_o : previous_word_q;
+  assign conv_word_o = conv_ready_o ? selected_word : 6'd0;
   assign conv_total_eighths_o = conv_word_o;
   assign conv_sample_sub_high_o = sample_sub_high(conv_word_o);
 
-  // 原生子阵列采样为正注入，粗判决加 U。保留进位用于拒绝越界。
-  assign upper_code = {conv_word_o[5], 1'b0, conv_word_o[3]};
+  // 加法和样本号校验并行。原生子阵列采用正注入，进位用于拒绝越界。
+  assign upper_code = {selected_word[5], 1'b0, selected_word[3]};
   assign adjusted_code = {1'b0, code_i} + {7'b0, upper_code};
   assign command_eligible = code_valid_i && conv_ready_o && !adjusted_code[9];
   assign command_code_o = mask_valid_o ? adjusted_code[8:0] : 9'd0;

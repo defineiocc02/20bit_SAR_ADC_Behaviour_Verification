@@ -19,28 +19,32 @@
     "task1/rtl/module1_bridge_top.sv": "8181f1d629fefd67fc51b52483725f3c4675a613c73fff9be554e2ce6dcaaba1",
     "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
     "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
-    "task2/eight_rtl/rtl/dither8_top.sv": "d06612de2a12ee8340b212fdaf0b3b565573098779d0e282522b0999962f3029",
+    "task2/eight_rtl/rtl/dither8_top.sv": "ef9e36cb48eef4c59a4de1852538e7429739f5d36ad608cd7a8e0adb2fffe16c",
     "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad"
   },
   "proof": {
     "log": "evidence/formal_pass.log.gz",
-    "compressed_sha256": "682b8818346697df8340ec7841aee995b2b80b2bfc4cc1dcaedb7b5e99c5ffc8",
-    "raw_sha256": "e166addcdd1086d0c371a3c645aec4149ff0aa921215bfde60e5a69201e520cb",
-    "variables": 1244240,
-    "clauses": 3414337,
+    "compressed_sha256": "5d4eec1cbddc161d14dab34aa0c7f5a126e720a48d6d2e7c439437838bfc1fb9",
+    "raw_sha256": "472ddb62c18460f7165d332367291eea057209e505f095872c6267bdc470516d",
+    "variables": 1243808,
+    "clauses": 3413041,
     "proof_line": "SAT proof finished - no model found: SUCCESS!"
   },
   "negative_control": {
     "mutation": "replace adjusted_code addition with subtraction in a detached copy",
     "expected_exit_code": 1,
     "observed_exit_code": 1,
-    "mutated_rtl_sha256": "347cb856c583f27fbe9d5ba7400f90f82aa25856c331b33f4c22f9f0efcd1d88",
+    "mutated_rtl_sha256": "7b6e6547f591ae5a14d60db197699bfe478554bb8d28a2b5721690d1e71a96e4",
     "log": "evidence/formal_mutant.log.gz",
-    "compressed_sha256": "153953dbebaa7cefcebe46e5056994dc0788b2bfa9f24b19252f8db8489db69a",
-    "raw_sha256": "11c5ff2ddd445d4ceb63e6b155da6b53bee6e502d4fdefe2738d86b54ebf09cc",
-    "variables": 1244226,
-    "clauses": 3414295,
+    "compressed_sha256": "70882cc487f6c21c66323cd762a85f6c880c853672667de3a24bc3580ade0342",
+    "raw_sha256": "6c28cbdfa1eb8fcd98735b490e906fdc42129fac388ddfc7f9b5c3b1c7beefa3",
+    "variables": 1243794,
+    "clauses": 3412999,
     "proof_line": "SAT proof finished - model found: FAIL!"
   },
-  "unbounded_induction": "NOT_RUN"
+  "unbounded_induction": "NOT_PROVEN",
+  "same_state_candidate_equivalence": {
+    "path": "evidence/context_equivalence.json",
+    "sha256": "3b4d9d9e4b820d7ade2224101b74b48b3343b7044b249db1084e91cbd95ec05a"
+  }
 }

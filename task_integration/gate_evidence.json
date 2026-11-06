@@ -41,14 +41,15 @@
     "status": "PASS"
   },
   "G3": {
+    "candidate_full_sequential_equivalence": "NOT_PROVEN",
     "evidence": [
       {
         "path": "evidence/external/result.json",
-        "sha256": "1f34ca6d0041114c890f1009490a805ec60161c3903842847c75b96cd54baf14"
+        "sha256": "269e83e8adf117b14e042b79b63d853e52f62a5f205d2a85509420b4bc4cc5dc"
       },
       {
         "path": "evidence/on_chip/result.json",
-        "sha256": "355612f624fe79405e5242a36c8eba1f2a8d0b6b3fe403b044ed7e39f2120b19"
+        "sha256": "f26673569ebf205b517bfcb1f6d608f9d9a125089b4b4fa6e0ca54ce89ace611"
       }
     ],
     "integration_formal": "NOT_RUN",

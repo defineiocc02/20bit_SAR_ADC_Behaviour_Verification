@@ -21,3 +21,7 @@ checks:
     requirements: [REQ-D8-01, REQ-D8-02, REQ-D8-03, REQ-D8-04]
     oracle: top-level SAT assertions after synchronous reset
     coverage: arbitrary inputs through seven steps, acquisition publication, two-entry sample binding, physical tap encoding, command overflow, invalid-mask isolation
+  - id: V-D8-06
+    requirements: [REQ-D8-03, REQ-D8-04]
+    oracle: baseline ID-selected data mux and addition on the identical RTL state
+    coverage: arbitrary inputs through seven steps, conversion word, and legal adjusted code

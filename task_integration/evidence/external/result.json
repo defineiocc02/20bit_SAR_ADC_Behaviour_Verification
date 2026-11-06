@@ -14,14 +14,14 @@
     "steady": 4096
   },
   "execution_log_sha256": {
-    "compile.log": "0efa167a462965c1fa5f6b0e073db6481559839f858ca8e0cfba0ddf6ad0f704",
-    "lint.log": "2aac22b374dffe1a3013cbf164ca96615c11cf7510087db9e7d57a027a12af1a",
-    "run.log": "37f379f847b1df7d76440416bb67ee6dc4b829fb4fe2624f9d9c8b18c8dee43a",
+    "compile.log": "456b9244ccf273d95ef7301c5d288a90653663441a32e4052c3a8afba5531870",
+    "lint.log": "ff46c4f64580f89e92f09af69a1163ed51bb53a77330b69d7b2de0dc4fb9decd",
+    "run.log": "962ea51209cbefc5f61af3aaa5faccb0dc7d382425427aa0f09171d46c63808f",
     "verilator.log": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1"
   },
   "log_sha256": {
-    "lint.log": "2aac22b374dffe1a3013cbf164ca96615c11cf7510087db9e7d57a027a12af1a",
-    "run.log": "37f379f847b1df7d76440416bb67ee6dc4b829fb4fe2624f9d9c8b18c8dee43a"
+    "lint.log": "ff46c4f64580f89e92f09af69a1163ed51bb53a77330b69d7b2de0dc4fb9decd",
+    "run.log": "962ea51209cbefc5f61af3aaa5faccb0dc7d382425427aa0f09171d46c63808f"
   },
   "scope": "digital_top_external_reconstruction_fixture",
   "source_sha256": {
@@ -31,7 +31,7 @@
     "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
     "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
     "task1/tools/run_rtl_checks.py": "eecec87f7fcd6f5a3aa8db7545b3b91896a74f0e216e41f6ea3f076d5ba5abd9",
-    "task2/eight_rtl/rtl/dither8_top.sv": "d06612de2a12ee8340b212fdaf0b3b565573098779d0e282522b0999962f3029",
+    "task2/eight_rtl/rtl/dither8_top.sv": "ef9e36cb48eef4c59a4de1852538e7429739f5d36ad608cd7a8e0adb2fffe16c",
     "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad",
     "task3/rtl/caaz20_pair.sv": "5ddbd9f20d4534ad597f22edca9f58604c4d04877eb5efb6ba6dabb142115fdc",
     "task_integration/SPEC.md": "29460e675e89e521f3cf292c5c39728ae73e40b282125d05ce98527891ec7995",

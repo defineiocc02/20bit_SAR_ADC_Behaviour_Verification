@@ -6,6 +6,8 @@
 
 已复跑的八片控制顶层，在上述 TT 角和时钟下 setup 裕量为 +0.154860 ns、hold 裕量为 +0.0631387 ns，公开 DRC 为 0。同一冻结 GDS 的独立 LVS：原版公开规则报告 **FAIL**，上游修订规则报告 **PASS**；两版原始日志及比对数据库均保留。原始运行因未产生 LVSDB 被自动标作 BLOCKED，外层复核清单已纠正。这是公开规则验证，不能替代目标工艺厂签核。[GDS、网表和原始报告](evidence/dither8_top_sky130hd_run_42265153017.zip) · [哈希与原始判定](evidence/dither8_top_manifest_42265153017.json) · [两版规则的 LVS 复核](evidence/dither8_top_lvs_replay_manifest_42270270897.json)
 
+含片上 LMS 的完整顶层，首次详细布线在 40 分钟运行上限时中止，最终 GDS／STA 未产生。消除 ADC2 常数除法后的新版已经通过功能对拍，映射后、未插缓冲且未提取布线的时序诊断为 setup −7.268336 ns、hold +0.034222 ns；最差是 557 个使能端点的高扇出路径，不能用该值冒充最终布线时序。新版布线及 GDS 正在单独运行。[超时记录](evidence/sar20_digital_lms_top_timeout_42262919977.json) · [映射时序诊断](evidence/sar20_digital_lms_top_mapped_manifest_42270594409.json)
+
 在 Linux amd64 Docker 环境中，从干净的目标提交运行。输出目录需要为空。
 
 ```sh

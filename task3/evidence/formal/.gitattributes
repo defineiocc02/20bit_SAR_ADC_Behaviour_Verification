@@ -1,0 +1,2 @@
+# Preserve the byte identity and banner spacing of the original solver log.
+*.log -text whitespace=-blank-at-eol

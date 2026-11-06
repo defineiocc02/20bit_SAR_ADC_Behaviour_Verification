@@ -1,0 +1,1414 @@
+
+ /----------------------------------------------------------------------------\
+ |                                                                            |
+ |  yosys -- Yosys Open SYnthesis Suite                                       |
+ |                                                                            |
+ |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |                                                                            |
+ |  Permission to use, copy, modify, and/or distribute this software for any  |
+ |  purpose with or without fee is hereby granted, provided that the above    |
+ |  copyright notice and this permission notice appear in all copies.         |
+ |                                                                            |
+ |  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES  |
+ |  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF          |
+ |  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR   |
+ |  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES    |
+ |  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN     |
+ |  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF   |
+ |  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.            |
+ |                                                                            |
+ \----------------------------------------------------------------------------/
+
+ Yosys 0.33 (git sha1 2584903a060)
+
+
+-- Executing script file `task3/tb/formal.ys' --
+
+1. Executing Verilog-2005 frontend: task3/rtl/caaz20_pair.sv
+Parsing formal SystemVerilog input from `task3/rtl/caaz20_pair.sv' to AST representation.
+Generating RTLIL representation for module `\caaz20_pair'.
+Successfully finished Verilog frontend.
+
+2. Executing Verilog-2005 frontend: task3/tb/caaz20_properties.sv
+Parsing formal SystemVerilog input from `task3/tb/caaz20_properties.sv' to AST representation.
+Generating RTLIL representation for module `\caaz20_properties'.
+Successfully finished Verilog frontend.
+
+3. Executing PREP pass.
+
+3.1. Executing HIERARCHY pass (managing design hierarchy).
+
+3.1.1. Analyzing design hierarchy..
+Top module:  \caaz20_properties
+Used module:     \caaz20_pair
+
+3.1.2. Analyzing design hierarchy..
+Top module:  \caaz20_properties
+Used module:     \caaz20_pair
+Removed 0 unused modules.
+Module caaz20_properties directly or indirectly contains formal properties -> setting "keep" attribute.
+
+3.2. Executing PROC pass (convert processes to netlists).
+
+3.2.1. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Cleaned up 0 empty switches.
+
+3.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
+Marked 3 switch rules as full_case in process $proc$task3/tb/caaz20_properties.sv:41$103 in module caaz20_properties.
+Marked 6 switch rules as full_case in process $proc$task3/rtl/caaz20_pair.sv:87$17 in module caaz20_pair.
+Marked 8 switch rules as full_case in process $proc$task3/rtl/caaz20_pair.sv:0$5 in module caaz20_pair.
+Removed a total of 0 dead cases.
+
+3.2.3. Executing PROC_PRUNE pass (remove redundant assignments in processes).
+Removed 3 redundant assignments.
+Promoted 42 assignments to connections.
+
+3.2.4. Executing PROC_INIT pass (extract init attributes).
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$278'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:79$102_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$276'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:77$101_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$274'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:76$100_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$272'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:75$99_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$270'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:74$98_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$268'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:73$97_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$266'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:72$96_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$264'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:70$95_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$262'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:69$94_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$260'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:68$93_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$258'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:65$92_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$256'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:64$91_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$254'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:63$90_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$252'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:62$89_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$250'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:61$88_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$248'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:60$87_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$246'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:57$86_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$244'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:55$85_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$242'.
+  Set init value: $formal$task3/tb/caaz20_properties.sv:53$84_EN = 1'0
+Found init rule in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$241'.
+  Set init value: \seen_past = 1'0
+
+3.2.5. Executing PROC_ARST pass (detect async resets in processes).
+
+3.2.6. Executing PROC_ROM pass (convert switches to ROMs).
+Converted 0 switches.
+<suppressed ~23 debug messages>
+
+3.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$278'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$276'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$274'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$272'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$270'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$268'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$266'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$264'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$262'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$260'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$258'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$256'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$254'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$252'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$250'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$248'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$246'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$244'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$242'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$241'.
+Creating decoders for process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+     1/41: $0$formal$task3/tb/caaz20_properties.sv:53$84_EN[0:0]$121
+     2/41: $0$formal$task3/tb/caaz20_properties.sv:53$84_CHECK[0:0]$120
+     3/41: $0$formal$task3/tb/caaz20_properties.sv:55$85_EN[0:0]$123
+     4/41: $0$formal$task3/tb/caaz20_properties.sv:55$85_CHECK[0:0]$122
+     5/41: $0$formal$task3/tb/caaz20_properties.sv:57$86_EN[0:0]$125
+     6/41: $0$formal$task3/tb/caaz20_properties.sv:57$86_CHECK[0:0]$124
+     7/41: $0$formal$task3/tb/caaz20_properties.sv:60$87_EN[0:0]$127
+     8/41: $0$formal$task3/tb/caaz20_properties.sv:60$87_CHECK[0:0]$126
+     9/41: $0$formal$task3/tb/caaz20_properties.sv:61$88_EN[0:0]$129
+    10/41: $0$formal$task3/tb/caaz20_properties.sv:61$88_CHECK[0:0]$128
+    11/41: $0$formal$task3/tb/caaz20_properties.sv:62$89_EN[0:0]$131
+    12/41: $0$formal$task3/tb/caaz20_properties.sv:62$89_CHECK[0:0]$130
+    13/41: $0$formal$task3/tb/caaz20_properties.sv:63$90_EN[0:0]$133
+    14/41: $0$formal$task3/tb/caaz20_properties.sv:63$90_CHECK[0:0]$132
+    15/41: $0$formal$task3/tb/caaz20_properties.sv:64$91_EN[0:0]$135
+    16/41: $0$formal$task3/tb/caaz20_properties.sv:64$91_CHECK[0:0]$134
+    17/41: $0$formal$task3/tb/caaz20_properties.sv:65$92_EN[0:0]$137
+    18/41: $0$formal$task3/tb/caaz20_properties.sv:65$92_CHECK[0:0]$136
+    19/41: $0$formal$task3/tb/caaz20_properties.sv:68$93_EN[0:0]$139
+    20/41: $0$formal$task3/tb/caaz20_properties.sv:68$93_CHECK[0:0]$138
+    21/41: $0$formal$task3/tb/caaz20_properties.sv:69$94_EN[0:0]$141
+    22/41: $0$formal$task3/tb/caaz20_properties.sv:69$94_CHECK[0:0]$140
+    23/41: $0$formal$task3/tb/caaz20_properties.sv:70$95_EN[0:0]$143
+    24/41: $0$formal$task3/tb/caaz20_properties.sv:70$95_CHECK[0:0]$142
+    25/41: $0$formal$task3/tb/caaz20_properties.sv:72$96_EN[0:0]$145
+    26/41: $0$formal$task3/tb/caaz20_properties.sv:72$96_CHECK[0:0]$144
+    27/41: $0$formal$task3/tb/caaz20_properties.sv:73$97_EN[0:0]$147
+    28/41: $0$formal$task3/tb/caaz20_properties.sv:73$97_CHECK[0:0]$146
+    29/41: $0$formal$task3/tb/caaz20_properties.sv:74$98_EN[0:0]$149
+    30/41: $0$formal$task3/tb/caaz20_properties.sv:74$98_CHECK[0:0]$148
+    31/41: $0$formal$task3/tb/caaz20_properties.sv:75$99_EN[0:0]$151
+    32/41: $0$formal$task3/tb/caaz20_properties.sv:75$99_CHECK[0:0]$150
+    33/41: $0$formal$task3/tb/caaz20_properties.sv:76$100_EN[0:0]$153
+    34/41: $0$formal$task3/tb/caaz20_properties.sv:76$100_CHECK[0:0]$152
+    35/41: $0$formal$task3/tb/caaz20_properties.sv:77$101_EN[0:0]$155
+    36/41: $0$formal$task3/tb/caaz20_properties.sv:77$101_CHECK[0:0]$154
+    37/41: $0$formal$task3/tb/caaz20_properties.sv:79$102_EN[0:0]$157
+    38/41: $0$formal$task3/tb/caaz20_properties.sv:79$102_CHECK[0:0]$156
+    39/41: $0\last_even_id[31:0]
+    40/41: $0\seen_even[0:0]
+    41/41: $0\last_even_code[19:0]
+Creating decoders for process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+     1/42: $4\next_id$func$task3/rtl/caaz20_pair.sv:131$2.$result[31:0]$54 [31:24]
+     2/42: $4\next_id$func$task3/rtl/caaz20_pair.sv:131$2.$result[31:0]$54 [15:8]
+     3/42: $4\next_id$func$task3/rtl/caaz20_pair.sv:131$2.$result[31:0]$54 [7:0]
+     4/42: $4\next_id$func$task3/rtl/caaz20_pair.sv:131$2.$result[31:0]$54 [23:16]
+     5/42: $4\next_id$func$task3/rtl/caaz20_pair.sv:131$2.id[31:0]$55
+     6/42: $4\next_id$func$task3/rtl/caaz20_pair.sv:122$1.$result[31:0]$40 [31:24]
+     7/42: $4\next_id$func$task3/rtl/caaz20_pair.sv:122$1.$result[31:0]$40 [15:8]
+     8/42: $4\next_id$func$task3/rtl/caaz20_pair.sv:122$1.$result[31:0]$40 [7:0]
+     9/42: $4\next_id$func$task3/rtl/caaz20_pair.sv:122$1.$result[31:0]$40 [23:16]
+    10/42: $4\next_id$func$task3/rtl/caaz20_pair.sv:122$1.id[31:0]$41
+    11/42: $3\next_id$func$task3/rtl/caaz20_pair.sv:131$2.id[31:0]$39
+    12/42: $3\next_id$func$task3/rtl/caaz20_pair.sv:131$2.$result[31:0]$38
+    13/42: $3\next_id$func$task3/rtl/caaz20_pair.sv:122$1.id[31:0]$37
+    14/42: $3\next_id$func$task3/rtl/caaz20_pair.sv:122$1.$result[31:0]$36
+    15/42: $2\next_id$func$task3/rtl/caaz20_pair.sv:131$2.id[31:0]$34
+    16/42: $2\next_id$func$task3/rtl/caaz20_pair.sv:131$2.$result[31:0]$33
+    17/42: $2\next_id$func$task3/rtl/caaz20_pair.sv:122$1.id[31:0]$32
+    18/42: $2\next_id$func$task3/rtl/caaz20_pair.sv:122$1.$result[31:0]$31
+    19/42: $0\fault_pulse_o[0:0]
+    20/42: $0\out_valid_o[0:0]
+    21/42: $0\acq_ctrl_valid_o[0:0]
+    22/42: $1\next_id$func$task3/rtl/caaz20_pair.sv:131$2.id[31:0]$29
+    23/42: $1\next_id$func$task3/rtl/caaz20_pair.sv:131$2.$result[31:0]$28
+    24/42: $1\next_id$func$task3/rtl/caaz20_pair.sv:122$1.id[31:0]$27
+    25/42: $1\next_id$func$task3/rtl/caaz20_pair.sv:122$1.$result[31:0]$26
+    26/42: $0\even_code_q[19:0]
+    27/42: $0\next_raw_id_q[31:0]
+    28/42: $0\next_acq_id_q[31:0]
+    29/42: $0\caaz_enabled_q[0:0]
+    30/42: $0\mode_locked_q[0:0]
+    31/42: $0\fault_code_o[2:0]
+    32/42: $0\fault_o[0:0]
+    33/42: $0\out_difference_o[20:0]
+    34/42: $0\out_pair_o[0:0]
+    35/42: $0\out_az_pair_id_o[30:0]
+    36/42: $0\out_first_sample_id_o[31:0]
+    37/42: $0\out_sample_id_o[31:0]
+    38/42: $0\acq_az_pair_id_o[30:0]
+    39/42: $0\acq_az_hold_o[0:0]
+    40/42: $0\acq_az_capture_o[0:0]
+    41/42: $0\acq_chop_neg_o[0:0]
+    42/42: $0\acq_ctrl_sample_id_o[31:0]
+Creating decoders for process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:0$5'.
+     1/8: $8\reject_reason[2:0]
+     2/8: $7\reject_reason[2:0]
+     3/8: $6\reject_reason[2:0]
+     4/8: $5\reject_reason[2:0]
+     5/8: $4\reject_reason[2:0]
+     6/8: $3\reject_reason[2:0]
+     7/8: $2\reject_reason[2:0]
+     8/8: $1\reject_reason[2:0]
+
+3.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
+No latch inferred for signal `\caaz20_pair.\reject_reason' from process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:0$5'.
+
+3.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
+Creating register for signal `\caaz20_properties.\last_even_code' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1045' with positive edge clock.
+Creating register for signal `\caaz20_properties.\seen_past' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1046' with positive edge clock.
+Creating register for signal `\caaz20_properties.\seen_even' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1047' with positive edge clock.
+Creating register for signal `\caaz20_properties.\last_even_id' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1048' with positive edge clock.
+Creating register for signal `\caaz20_properties.$past$task3/tb/caaz20_properties.sv:55$68$0' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1049' with positive edge clock.
+Creating register for signal `\caaz20_properties.$past$task3/tb/caaz20_properties.sv:57$69$0' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1050' with positive edge clock.
+Creating register for signal `\caaz20_properties.$past$task3/tb/caaz20_properties.sv:58$70$0' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1051' with positive edge clock.
+Creating register for signal `\caaz20_properties.$past$task3/tb/caaz20_properties.sv:62$71$0' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1052' with positive edge clock.
+Creating register for signal `\caaz20_properties.$past$task3/tb/caaz20_properties.sv:62$72$0' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1053' with positive edge clock.
+Creating register for signal `\caaz20_properties.$past$task3/tb/caaz20_properties.sv:63$73$0' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1054' with positive edge clock.
+Creating register for signal `\caaz20_properties.$past$task3/tb/caaz20_properties.sv:65$74$0' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1055' with positive edge clock.
+Creating register for signal `\caaz20_properties.$past$task3/tb/caaz20_properties.sv:66$75$0' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1056' with positive edge clock.
+Creating register for signal `\caaz20_properties.$past$task3/tb/caaz20_properties.sv:69$76$0' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1057' with positive edge clock.
+Creating register for signal `\caaz20_properties.$past$task3/tb/caaz20_properties.sv:69$77$0' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1058' with positive edge clock.
+Creating register for signal `\caaz20_properties.$past$task3/tb/caaz20_properties.sv:70$78$0' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1059' with positive edge clock.
+Creating register for signal `\caaz20_properties.$past$task3/tb/caaz20_properties.sv:71$79$0' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1060' with positive edge clock.
+Creating register for signal `\caaz20_properties.$past$task3/tb/caaz20_properties.sv:74$80$0' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1061' with positive edge clock.
+Creating register for signal `\caaz20_properties.$past$task3/tb/caaz20_properties.sv:74$81$0' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1062' with positive edge clock.
+Creating register for signal `\caaz20_properties.$past$task3/tb/caaz20_properties.sv:76$82$0' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1063' with positive edge clock.
+Creating register for signal `\caaz20_properties.$past$task3/tb/caaz20_properties.sv:80$83$0' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1064' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:53$84_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1065' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:53$84_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1066' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:55$85_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1067' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:55$85_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1068' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:57$86_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1069' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:57$86_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1070' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:60$87_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1071' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:60$87_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1072' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:61$88_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1073' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:61$88_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1074' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:62$89_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1075' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:62$89_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1076' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:63$90_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1077' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:63$90_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1078' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:64$91_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1079' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:64$91_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1080' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:65$92_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1081' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:65$92_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1082' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:68$93_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1083' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:68$93_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1084' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:69$94_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1085' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:69$94_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1086' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:70$95_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1087' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:70$95_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1088' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:72$96_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1089' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:72$96_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1090' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:73$97_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1091' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:73$97_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1092' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:74$98_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1093' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:74$98_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1094' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:75$99_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1095' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:75$99_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1096' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:76$100_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1097' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:76$100_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1098' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:77$101_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1099' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:77$101_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1100' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:79$102_CHECK' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1101' with positive edge clock.
+Creating register for signal `\caaz20_properties.$formal$task3/tb/caaz20_properties.sv:79$102_EN' using process `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+  created $dff cell `$procdff$1102' with positive edge clock.
+Creating register for signal `\caaz20_pair.\acq_ctrl_valid_o' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1103' with positive edge clock.
+Creating register for signal `\caaz20_pair.\acq_ctrl_sample_id_o' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1104' with positive edge clock.
+Creating register for signal `\caaz20_pair.\acq_chop_neg_o' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1105' with positive edge clock.
+Creating register for signal `\caaz20_pair.\acq_az_capture_o' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1106' with positive edge clock.
+Creating register for signal `\caaz20_pair.\acq_az_hold_o' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1107' with positive edge clock.
+Creating register for signal `\caaz20_pair.\acq_az_pair_id_o' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1108' with positive edge clock.
+Creating register for signal `\caaz20_pair.\out_valid_o' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1109' with positive edge clock.
+Creating register for signal `\caaz20_pair.\out_sample_id_o' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1110' with positive edge clock.
+Creating register for signal `\caaz20_pair.\out_first_sample_id_o' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1111' with positive edge clock.
+Creating register for signal `\caaz20_pair.\out_az_pair_id_o' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1112' with positive edge clock.
+Creating register for signal `\caaz20_pair.\out_pair_o' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1113' with positive edge clock.
+Creating register for signal `\caaz20_pair.\out_difference_o' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1114' with positive edge clock.
+Creating register for signal `\caaz20_pair.\fault_o' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1115' with positive edge clock.
+Creating register for signal `\caaz20_pair.\fault_pulse_o' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1116' with positive edge clock.
+Creating register for signal `\caaz20_pair.\fault_code_o' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1117' with positive edge clock.
+Creating register for signal `\caaz20_pair.\mode_locked_q' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1118' with positive edge clock.
+Creating register for signal `\caaz20_pair.\caaz_enabled_q' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1119' with positive edge clock.
+Creating register for signal `\caaz20_pair.\next_acq_id_q' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1120' with positive edge clock.
+Creating register for signal `\caaz20_pair.\next_raw_id_q' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1121' with positive edge clock.
+Creating register for signal `\caaz20_pair.\even_code_q' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1122' with positive edge clock.
+Creating register for signal `\caaz20_pair.\next_id$func$task3/rtl/caaz20_pair.sv:122$1.$result' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1123' with positive edge clock.
+Creating register for signal `\caaz20_pair.\next_id$func$task3/rtl/caaz20_pair.sv:122$1.id' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1124' with positive edge clock.
+Creating register for signal `\caaz20_pair.\next_id$func$task3/rtl/caaz20_pair.sv:131$2.$result' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1125' with positive edge clock.
+Creating register for signal `\caaz20_pair.\next_id$func$task3/rtl/caaz20_pair.sv:131$2.id' using process `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+  created $dff cell `$procdff$1126' with positive edge clock.
+
+3.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
+
+3.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$278'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$276'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$274'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$272'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$270'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$268'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$266'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$264'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$262'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$260'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$258'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$256'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$254'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$252'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$250'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$248'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$246'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$244'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$242'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:0$241'.
+Found and cleaned up 9 empty switches in `\caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+Removing empty process `caaz20_properties.$proc$task3/tb/caaz20_properties.sv:41$103'.
+Found and cleaned up 6 empty switches in `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+Removing empty process `caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:87$17'.
+Found and cleaned up 8 empty switches in `\caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:0$5'.
+Removing empty process `caaz20_pair.$proc$task3/rtl/caaz20_pair.sv:0$5'.
+Cleaned up 23 empty switches.
+
+3.2.12. Executing OPT_EXPR pass (perform const folding).
+Optimizing module caaz20_properties.
+<suppressed ~1 debug messages>
+Optimizing module caaz20_pair.
+<suppressed ~39 debug messages>
+
+3.3. Executing FLATTEN pass (flatten design).
+Deleting now unused module caaz20_pair.
+<suppressed ~1 debug messages>
+
+3.4. Executing OPT_EXPR pass (perform const folding).
+Optimizing module caaz20_properties.
+
+3.5. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \caaz20_properties..
+Removed 69 unused cells and 479 unused wires.
+<suppressed ~72 debug messages>
+
+3.6. Executing CHECK pass (checking for obvious problems).
+Checking module caaz20_properties...
+Found and reported 0 problems.
+
+3.7. Executing OPT pass (performing simple optimizations).
+
+3.7.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module caaz20_properties.
+
+3.7.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\caaz20_properties'.
+<suppressed ~39 debug messages>
+Removed a total of 13 cells.
+
+3.7.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \caaz20_properties..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+      Replacing known input bits on port B of cell $flatten\dut.$procmux$797: \dut.fault_o -> 1'1
+      Replacing known input bits on port A of cell $flatten\dut.$procmux$795: \dut.fault_o -> 1'0
+  Analyzing evaluation results.
+    dead port 1/2 on $mux $flatten\dut.$procmux$1005.
+    dead port 2/2 on $mux $flatten\dut.$procmux$1007.
+    dead port 1/2 on $mux $flatten\dut.$procmux$1010.
+    dead port 1/2 on $mux $flatten\dut.$procmux$1013.
+    dead port 2/2 on $mux $flatten\dut.$procmux$1019.
+    dead port 1/2 on $mux $flatten\dut.$procmux$1022.
+    dead port 1/2 on $mux $flatten\dut.$procmux$1025.
+    dead port 1/2 on $mux $flatten\dut.$procmux$1031.
+    dead port 1/2 on $mux $flatten\dut.$procmux$1034.
+    dead port 1/2 on $mux $flatten\dut.$procmux$1040.
+    dead port 1/2 on $mux $flatten\dut.$procmux$943.
+    dead port 2/2 on $mux $flatten\dut.$procmux$945.
+    dead port 1/2 on $mux $flatten\dut.$procmux$948.
+    dead port 1/2 on $mux $flatten\dut.$procmux$951.
+    dead port 2/2 on $mux $flatten\dut.$procmux$953.
+    dead port 1/2 on $mux $flatten\dut.$procmux$956.
+    dead port 1/2 on $mux $flatten\dut.$procmux$959.
+    dead port 2/2 on $mux $flatten\dut.$procmux$966.
+    dead port 1/2 on $mux $flatten\dut.$procmux$969.
+    dead port 1/2 on $mux $flatten\dut.$procmux$972.
+    dead port 2/2 on $mux $flatten\dut.$procmux$974.
+    dead port 1/2 on $mux $flatten\dut.$procmux$977.
+    dead port 1/2 on $mux $flatten\dut.$procmux$980.
+    dead port 1/2 on $mux $flatten\dut.$procmux$987.
+    dead port 1/2 on $mux $flatten\dut.$procmux$990.
+    dead port 2/2 on $mux $flatten\dut.$procmux$992.
+    dead port 1/2 on $mux $flatten\dut.$procmux$995.
+    dead port 1/2 on $mux $flatten\dut.$procmux$998.
+Removed 28 multiplexer ports.
+<suppressed ~64 debug messages>
+
+3.7.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \caaz20_properties.
+Performed a total of 0 changes.
+
+3.7.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\caaz20_properties'.
+<suppressed ~117 debug messages>
+Removed a total of 39 cells.
+
+3.7.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \caaz20_properties..
+Removed 0 unused cells and 80 unused wires.
+<suppressed ~1 debug messages>
+
+3.7.7. Executing OPT_EXPR pass (perform const folding).
+Optimizing module caaz20_properties.
+
+3.7.8. Rerunning OPT passes. (Maybe there is more to do..)
+
+3.7.9. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \caaz20_properties..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~54 debug messages>
+
+3.7.10. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \caaz20_properties.
+Performed a total of 0 changes.
+
+3.7.11. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\caaz20_properties'.
+Removed a total of 0 cells.
+
+3.7.12. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \caaz20_properties..
+
+3.7.13. Executing OPT_EXPR pass (perform const folding).
+Optimizing module caaz20_properties.
+
+3.7.14. Finished OPT passes. (There is nothing left to do.)
+
+3.8. Executing WREDUCE pass (reducing word size of cells).
+Removed top 31 bits (of 32) from port B of cell caaz20_properties.$ge$task3/tb/caaz20_properties.sv:60$180 ($ge).
+Removed top 29 bits (of 32) from port B of cell caaz20_properties.$le$task3/tb/caaz20_properties.sv:60$182 ($le).
+Removed top 31 bits (of 32) from port B of cell caaz20_properties.$add$task3/tb/caaz20_properties.sv:73$198 ($add).
+Removed top 2 bits (of 22) from port A of cell caaz20_properties.$sub$task3/tb/caaz20_properties.sv:76$207 ($sub).
+Removed top 2 bits (of 22) from port B of cell caaz20_properties.$sub$task3/tb/caaz20_properties.sv:76$207 ($sub).
+Removed top 1 bits (of 22) from port Y of cell caaz20_properties.$sub$task3/tb/caaz20_properties.sv:76$207 ($sub).
+Removed top 1 bits (of 22) from port A of cell caaz20_properties.$eq$task3/tb/caaz20_properties.sv:76$208 ($eq).
+Removed top 1 bits (of 22) from port B of cell caaz20_properties.$eq$task3/tb/caaz20_properties.sv:76$208 ($eq).
+Removed top 1 bits (of 22) from port A of cell caaz20_properties.$le$task3/tb/caaz20_properties.sv:77$209 ($le).
+Removed top 1 bits (of 22) from port B of cell caaz20_properties.$le$task3/tb/caaz20_properties.sv:77$209 ($le).
+Removed top 1 bits (of 22) from port A of cell caaz20_properties.$add$task3/tb/caaz20_properties.sv:78$210 ($add).
+Removed top 19 bits (of 22) from port B of cell caaz20_properties.$add$task3/tb/caaz20_properties.sv:78$210 ($add).
+Removed top 1 bits (of 22) from port A of cell caaz20_properties.$lt$task3/tb/caaz20_properties.sv:78$211 ($lt).
+Removed top 31 bits (of 32) from mux cell caaz20_properties.$flatten\dut.$ternary$task3/rtl/caaz20_pair.sv:138$65 ($mux).
+Removed top 7 bits (of 8) from port B of cell caaz20_properties.$flatten\dut.$add$task3/rtl/caaz20_pair.sv:58$62 ($add).
+Removed top 7 bits (of 8) from port B of cell caaz20_properties.$flatten\dut.$add$task3/rtl/caaz20_pair.sv:57$60 ($add).
+Removed top 7 bits (of 8) from port B of cell caaz20_properties.$flatten\dut.$add$task3/rtl/caaz20_pair.sv:56$58 ($add).
+Removed top 7 bits (of 8) from port B of cell caaz20_properties.$flatten\dut.$add$task3/rtl/caaz20_pair.sv:55$56 ($add).
+Removed top 7 bits (of 8) from port B of cell caaz20_properties.$flatten\dut.$add$task3/rtl/caaz20_pair.sv:58$48 ($add).
+Removed top 7 bits (of 8) from port B of cell caaz20_properties.$flatten\dut.$add$task3/rtl/caaz20_pair.sv:57$46 ($add).
+Removed top 7 bits (of 8) from port B of cell caaz20_properties.$flatten\dut.$add$task3/rtl/caaz20_pair.sv:56$44 ($add).
+Removed top 7 bits (of 8) from port B of cell caaz20_properties.$flatten\dut.$add$task3/rtl/caaz20_pair.sv:55$42 ($add).
+Removed top 1 bits (of 21) from port A of cell caaz20_properties.$flatten\dut.$sub$task3/rtl/caaz20_pair.sv:63$4 ($sub).
+Removed top 1 bits (of 21) from port B of cell caaz20_properties.$flatten\dut.$sub$task3/rtl/caaz20_pair.sv:63$4 ($sub).
+
+3.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \caaz20_properties..
+
+3.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+
+3.11. Executing OPT pass (performing simple optimizations).
+
+3.11.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module caaz20_properties.
+
+3.11.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\caaz20_properties'.
+Removed a total of 0 cells.
+
+3.11.3. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \caaz20_properties..
+
+3.11.4. Finished fast OPT passes.
+
+3.12. Printing statistics.
+
+=== caaz20_properties ===
+
+   Number of wires:                366
+   Number of wire bits:           2819
+   Number of public wires:          73
+   Number of public wire bits:     857
+   Number of memories:               0
+   Number of memory bits:            0
+   Number of processes:              0
+   Number of cells:                339
+     $add                           10
+     $assert                        19
+     $dff                           67
+     $eq                            16
+     $ge                             1
+     $le                             2
+     $logic_and                     26
+     $logic_not                     13
+     $logic_or                       4
+     $lt                             1
+     $mux                          166
+     $ne                             5
+     $reduce_and                     6
+     $reduce_bool                    1
+     $sub                            2
+
+3.13. Executing CHECK pass (checking for obvious problems).
+Checking module caaz20_properties...
+Found and reported 0 problems.
+
+4. Executing OPT pass (performing simple optimizations).
+
+4.1. Executing OPT_EXPR pass (perform const folding).
+Optimizing module caaz20_properties.
+
+4.2. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\caaz20_properties'.
+<suppressed ~12 debug messages>
+Removed a total of 4 cells.
+
+4.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \caaz20_properties..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~54 debug messages>
+
+4.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \caaz20_properties.
+Performed a total of 0 changes.
+
+4.5. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\caaz20_properties'.
+Removed a total of 0 cells.
+
+4.6. Executing OPT_DFF pass (perform DFF optimizations).
+Adding SRST signal on $procdff$1102 ($dff) from module caaz20_properties (D = $procmux$465_Y, Q = $formal$task3/tb/caaz20_properties.sv:79$102_EN, rval = 1'0).
+Adding SRST signal on $procdff$1090 ($dff) from module caaz20_properties (D = $procmux$381_Y, Q = $formal$task3/tb/caaz20_properties.sv:72$96_EN, rval = 1'0).
+Adding SRST signal on $procdff$1084 ($dff) from module caaz20_properties (D = $procmux$356_Y, Q = $formal$task3/tb/caaz20_properties.sv:68$93_EN, rval = 1'0).
+Adding SRST signal on $procdff$1074 ($dff) from module caaz20_properties (D = $procmux$316_Y, Q = $formal$task3/tb/caaz20_properties.sv:61$88_EN, rval = 1'0).
+Adding SRST signal on $procdff$1072 ($dff) from module caaz20_properties (D = $procmux$308_Y, Q = $formal$task3/tb/caaz20_properties.sv:60$87_EN, rval = 1'0).
+Adding SRST signal on $procdff$1070 ($dff) from module caaz20_properties (D = $procmux$294_Y, Q = $formal$task3/tb/caaz20_properties.sv:57$86_EN, rval = 1'0).
+Adding SRST signal on $procdff$1068 ($dff) from module caaz20_properties (D = $procmux$285_Y, Q = $formal$task3/tb/caaz20_properties.sv:55$85_EN, rval = 1'0).
+Adding SRST signal on $procdff$1048 ($dff) from module caaz20_properties (D = $procmux$478_Y, Q = \last_even_id, rval = 0).
+Adding EN signal on $auto$ff.cc:266:slice$1142 ($sdff) from module caaz20_properties (D = \raw_sample_id_i, Q = \last_even_id).
+Adding SRST signal on $procdff$1047 ($dff) from module caaz20_properties (D = $procmux$483_Y, Q = \seen_even, rval = 1'0).
+Adding EN signal on $auto$ff.cc:266:slice$1144 ($sdff) from module caaz20_properties (D = 1'1, Q = \seen_even).
+Adding SRST signal on $procdff$1045 ($dff) from module caaz20_properties (D = $procmux$488_Y, Q = \last_even_code, rval = 20'00000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$1146 ($sdff) from module caaz20_properties (D = \raw_code_i, Q = \last_even_code).
+Adding SRST signal on $flatten\dut.$procdff$1122 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$731_Y, Q = \dut.even_code_q, rval = 20'00000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$1148 ($sdff) from module caaz20_properties (D = \raw_code_i, Q = \dut.even_code_q).
+Adding SRST signal on $flatten\dut.$procdff$1121 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$743_Y, Q = \dut.next_raw_id_q, rval = 0).
+Adding EN signal on $auto$ff.cc:266:slice$1156 ($sdff) from module caaz20_properties (D = { $flatten\dut.$add$task3/rtl/caaz20_pair.sv:58$62_Y $flatten\dut.$add$task3/rtl/caaz20_pair.sv:57$60_Y $flatten\dut.$add$task3/rtl/caaz20_pair.sv:56$58_Y $flatten\dut.$add$task3/rtl/caaz20_pair.sv:55$56_Y }, Q = \dut.next_raw_id_q).
+Adding SRST signal on $flatten\dut.$procdff$1120 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$755_Y, Q = \dut.next_acq_id_q, rval = 0).
+Adding EN signal on $auto$ff.cc:266:slice$1164 ($sdff) from module caaz20_properties (D = { $flatten\dut.$add$task3/rtl/caaz20_pair.sv:58$48_Y $flatten\dut.$add$task3/rtl/caaz20_pair.sv:57$46_Y $flatten\dut.$add$task3/rtl/caaz20_pair.sv:56$44_Y $flatten\dut.$add$task3/rtl/caaz20_pair.sv:55$42_Y }, Q = \dut.next_acq_id_q).
+Adding SRST signal on $flatten\dut.$procdff$1119 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$767_Y, Q = \dut.caaz_enabled_q, rval = 1'0).
+Adding EN signal on $auto$ff.cc:266:slice$1172 ($sdff) from module caaz20_properties (D = \dut.active_mode, Q = \dut.caaz_enabled_q).
+Adding SRST signal on $flatten\dut.$procdff$1118 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$779_Y, Q = \dut.mode_locked_q, rval = 1'0).
+Adding EN signal on $auto$ff.cc:266:slice$1180 ($sdff) from module caaz20_properties (D = 1'1, Q = \dut.mode_locked_q).
+Adding SRST signal on $flatten\dut.$procdff$1117 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$788_Y, Q = \dut.fault_code_o, rval = 3'000).
+Adding EN signal on $auto$ff.cc:266:slice$1188 ($sdff) from module caaz20_properties (D = \dut.reject_reason, Q = \dut.fault_code_o).
+Adding SRST signal on $flatten\dut.$procdff$1116 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$675_Y, Q = \dut.fault_pulse_o, rval = 1'0).
+Adding SRST signal on $flatten\dut.$procdff$1115 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$797_Y, Q = \dut.fault_o, rval = 1'0).
+Adding SRST signal on $flatten\dut.$procdff$1114 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$812_Y, Q = \dut.out_difference_o, rval = 21'000000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$1198 ($sdff) from module caaz20_properties (D = $flatten\dut.$ternary$task3/rtl/caaz20_pair.sv:141$67_Y, Q = \dut.out_difference_o).
+Adding SRST signal on $flatten\dut.$procdff$1113 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$827_Y, Q = \dut.out_pair_o, rval = 1'0).
+Adding EN signal on $auto$ff.cc:266:slice$1208 ($sdff) from module caaz20_properties (D = \dut.active_mode, Q = \dut.out_pair_o).
+Adding SRST signal on $flatten\dut.$procdff$1112 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$842_Y, Q = \dut.out_az_pair_id_o, rval = 31'0000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$1218 ($sdff) from module caaz20_properties (D = $flatten\dut.$ternary$task3/rtl/caaz20_pair.sv:140$66_Y, Q = \dut.out_az_pair_id_o).
+Adding SRST signal on $flatten\dut.$procdff$1111 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$857_Y, Q = \dut.out_first_sample_id_o, rval = 0).
+Adding EN signal on $auto$ff.cc:266:slice$1228 ($sdff) from module caaz20_properties (D = { \raw_sample_id_i [31:1] $flatten\dut.$ternary$task3/rtl/caaz20_pair.sv:138$65_Y [0] }, Q = \dut.out_first_sample_id_o).
+Adding SRST signal on $flatten\dut.$procdff$1110 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$872_Y, Q = \dut.out_sample_id_o, rval = 0).
+Adding EN signal on $auto$ff.cc:266:slice$1238 ($sdff) from module caaz20_properties (D = \raw_sample_id_i, Q = \dut.out_sample_id_o).
+Adding SRST signal on $flatten\dut.$procdff$1109 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$685_Y, Q = \dut.out_valid_o, rval = 1'0).
+Adding SRST signal on $flatten\dut.$procdff$1108 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$884_Y, Q = \dut.acq_az_pair_id_o, rval = 31'0000000000000000000000000000000).
+Adding EN signal on $auto$ff.cc:266:slice$1253 ($sdff) from module caaz20_properties (D = $flatten\dut.$ternary$task3/rtl/caaz20_pair.sv:128$53_Y, Q = \dut.acq_az_pair_id_o).
+Adding SRST signal on $flatten\dut.$procdff$1107 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$896_Y, Q = \dut.acq_az_hold_o, rval = 1'0).
+Adding EN signal on $auto$ff.cc:266:slice$1261 ($sdff) from module caaz20_properties (D = $flatten\dut.$logic_and$task3/rtl/caaz20_pair.sv:125$49_Y, Q = \dut.acq_az_hold_o).
+Adding SRST signal on $flatten\dut.$procdff$1106 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$908_Y, Q = \dut.acq_az_capture_o, rval = 1'0).
+Adding EN signal on $auto$ff.cc:266:slice$1269 ($sdff) from module caaz20_properties (D = $flatten\dut.$logic_and$task3/rtl/caaz20_pair.sv:126$51_Y, Q = \dut.acq_az_capture_o).
+Adding SRST signal on $flatten\dut.$procdff$1105 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$920_Y, Q = \dut.acq_chop_neg_o, rval = 1'0).
+Adding EN signal on $auto$ff.cc:266:slice$1277 ($sdff) from module caaz20_properties (D = $flatten\dut.$logic_and$task3/rtl/caaz20_pair.sv:125$49_Y, Q = \dut.acq_chop_neg_o).
+Adding SRST signal on $flatten\dut.$procdff$1104 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$932_Y, Q = \dut.acq_ctrl_sample_id_o, rval = 0).
+Adding EN signal on $auto$ff.cc:266:slice$1285 ($sdff) from module caaz20_properties (D = \acq_sample_id_i, Q = \dut.acq_ctrl_sample_id_o).
+Adding SRST signal on $flatten\dut.$procdff$1103 ($dff) from module caaz20_properties (D = $flatten\dut.$procmux$699_Y, Q = \dut.acq_ctrl_valid_o, rval = 1'0).
+
+4.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \caaz20_properties..
+Removed 95 unused cells and 99 unused wires.
+<suppressed ~96 debug messages>
+
+4.8. Executing OPT_EXPR pass (perform const folding).
+Optimizing module caaz20_properties.
+
+4.9. Rerunning OPT passes. (Maybe there is more to do..)
+
+4.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \caaz20_properties..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~38 debug messages>
+
+4.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \caaz20_properties.
+Performed a total of 0 changes.
+
+4.12. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\caaz20_properties'.
+<suppressed ~138 debug messages>
+Removed a total of 46 cells.
+
+4.13. Executing OPT_DFF pass (perform DFF optimizations).
+
+4.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \caaz20_properties..
+Removed 0 unused cells and 45 unused wires.
+<suppressed ~1 debug messages>
+
+4.15. Executing OPT_EXPR pass (perform const folding).
+Optimizing module caaz20_properties.
+<suppressed ~1 debug messages>
+
+4.16. Rerunning OPT passes. (Maybe there is more to do..)
+
+4.17. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \caaz20_properties..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~38 debug messages>
+
+4.18. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \caaz20_properties.
+Performed a total of 0 changes.
+
+4.19. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\caaz20_properties'.
+Removed a total of 0 cells.
+
+4.20. Executing OPT_DFF pass (perform DFF optimizations).
+
+4.21. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \caaz20_properties..
+Removed 0 unused cells and 1 unused wires.
+<suppressed ~1 debug messages>
+
+4.22. Executing OPT_EXPR pass (perform const folding).
+Optimizing module caaz20_properties.
+
+4.23. Rerunning OPT passes. (Maybe there is more to do..)
+
+4.24. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+Running muxtree optimizer on module \caaz20_properties..
+  Creating internal representation of mux trees.
+  Evaluating internal representation of mux trees.
+  Analyzing evaluation results.
+Removed 0 multiplexer ports.
+<suppressed ~38 debug messages>
+
+4.25. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+  Optimizing cells in module \caaz20_properties.
+Performed a total of 0 changes.
+
+4.26. Executing OPT_MERGE pass (detect identical cells).
+Finding identical cells in module `\caaz20_properties'.
+Removed a total of 0 cells.
+
+4.27. Executing OPT_DFF pass (perform DFF optimizations).
+
+4.28. Executing OPT_CLEAN pass (remove unused cells and wires).
+Finding unused cells or wires in module \caaz20_properties..
+
+4.29. Executing OPT_EXPR pass (perform const folding).
+Optimizing module caaz20_properties.
+
+4.30. Finished OPT passes. (There is nothing left to do.)
+
+5. Executing SAT pass (solving SAT problems in the circuit).
+
+Setting up time step 1:
+Import set-constraint for this timestep: \rst_ni = 1'0
+Final constraint equation: \rst_ni = 1'0
+Import def constraint for this timestep: \clear_i
+Import def constraint for this timestep: \rst_ni
+Import def constraint for this timestep: \caaz_enable_i
+Import def constraint for this timestep: \enable_i
+Import def constraint for this timestep: \clk_i
+Import def constraint for this timestep: \raw_bad_i
+Import def constraint for this timestep: \raw_chop_neg_i
+Import def constraint for this timestep: \acq_valid_i
+Import def constraint for this timestep: \raw_valid_i
+Import def constraint for this timestep: \raw_az_ok_i
+Import def constraint for this timestep: \raw_code_i
+Import def constraint for this timestep: \raw_az_pair_id_i
+Import def constraint for this timestep: \acq_sample_id_i
+Import def constraint for this timestep: \raw_sample_id_i
+Imported 253 cells to SAT database.
+Import set-constraint from init attribute: $formal$task3/tb/caaz20_properties.sv:53$84_EN = 1'0
+Import set-constraint from init attribute: $formal$task3/tb/caaz20_properties.sv:55$85_EN = 1'0
+Import set-constraint from init attribute: $formal$task3/tb/caaz20_properties.sv:57$86_EN = 1'0
+Import set-constraint from init attribute: $formal$task3/tb/caaz20_properties.sv:60$87_EN = 1'0
+Import set-constraint from init attribute: $formal$task3/tb/caaz20_properties.sv:61$88_EN = 1'0
+Import set-constraint from init attribute: $formal$task3/tb/caaz20_properties.sv:68$93_EN = 1'0
+Import set-constraint from init attribute: $formal$task3/tb/caaz20_properties.sv:72$96_EN = 1'0
+Import set-constraint from init attribute: $formal$task3/tb/caaz20_properties.sv:79$102_EN = 1'0
+Import set-constraint from init attribute: \seen_past = 1'0
+Final init constraint equation: { \seen_past $formal$task3/tb/caaz20_properties.sv:79$102_EN $formal$task3/tb/caaz20_properties.sv:72$96_EN $formal$task3/tb/caaz20_properties.sv:68$93_EN $formal$task3/tb/caaz20_properties.sv:61$88_EN $formal$task3/tb/caaz20_properties.sv:60$87_EN $formal$task3/tb/caaz20_properties.sv:57$86_EN $formal$task3/tb/caaz20_properties.sv:55$85_EN $formal$task3/tb/caaz20_properties.sv:53$84_EN } = 9'000000000
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:53$84_CHECK when $formal$task3/tb/caaz20_properties.sv:53$84_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:55$85_CHECK when $formal$task3/tb/caaz20_properties.sv:55$85_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:57$86_CHECK when $formal$task3/tb/caaz20_properties.sv:57$86_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:60$87_CHECK when $formal$task3/tb/caaz20_properties.sv:60$87_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:61$88_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:62$89_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:63$90_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:64$91_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:65$92_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:68$93_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:69$94_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:70$95_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:72$96_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:73$97_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:74$98_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:75$99_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:76$100_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:77$101_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:79$102_CHECK when $formal$task3/tb/caaz20_properties.sv:79$102_EN.
+
+Setting up time step 2:
+Final constraint equation: { } = { }
+Import def constraint for this timestep: \clear_i
+Import def constraint for this timestep: \rst_ni
+Import def constraint for this timestep: \caaz_enable_i
+Import def constraint for this timestep: \enable_i
+Import def constraint for this timestep: \clk_i
+Import def constraint for this timestep: \raw_bad_i
+Import def constraint for this timestep: \raw_chop_neg_i
+Import def constraint for this timestep: \acq_valid_i
+Import def constraint for this timestep: \raw_valid_i
+Import def constraint for this timestep: \raw_az_ok_i
+Import def constraint for this timestep: \raw_code_i
+Import def constraint for this timestep: \raw_az_pair_id_i
+Import def constraint for this timestep: \acq_sample_id_i
+Import def constraint for this timestep: \raw_sample_id_i
+Imported 253 cells to SAT database.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:53$84_CHECK when $formal$task3/tb/caaz20_properties.sv:53$84_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:55$85_CHECK when $formal$task3/tb/caaz20_properties.sv:55$85_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:57$86_CHECK when $formal$task3/tb/caaz20_properties.sv:57$86_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:60$87_CHECK when $formal$task3/tb/caaz20_properties.sv:60$87_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:61$88_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:62$89_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:63$90_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:64$91_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:65$92_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:68$93_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:69$94_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:70$95_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:72$96_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:73$97_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:74$98_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:75$99_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:76$100_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:77$101_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:79$102_CHECK when $formal$task3/tb/caaz20_properties.sv:79$102_EN.
+
+Setting up time step 3:
+Final constraint equation: { } = { }
+Import def constraint for this timestep: \clear_i
+Import def constraint for this timestep: \rst_ni
+Import def constraint for this timestep: \caaz_enable_i
+Import def constraint for this timestep: \enable_i
+Import def constraint for this timestep: \clk_i
+Import def constraint for this timestep: \raw_bad_i
+Import def constraint for this timestep: \raw_chop_neg_i
+Import def constraint for this timestep: \acq_valid_i
+Import def constraint for this timestep: \raw_valid_i
+Import def constraint for this timestep: \raw_az_ok_i
+Import def constraint for this timestep: \raw_code_i
+Import def constraint for this timestep: \raw_az_pair_id_i
+Import def constraint for this timestep: \acq_sample_id_i
+Import def constraint for this timestep: \raw_sample_id_i
+Imported 253 cells to SAT database.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:53$84_CHECK when $formal$task3/tb/caaz20_properties.sv:53$84_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:55$85_CHECK when $formal$task3/tb/caaz20_properties.sv:55$85_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:57$86_CHECK when $formal$task3/tb/caaz20_properties.sv:57$86_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:60$87_CHECK when $formal$task3/tb/caaz20_properties.sv:60$87_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:61$88_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:62$89_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:63$90_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:64$91_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:65$92_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:68$93_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:69$94_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:70$95_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:72$96_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:73$97_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:74$98_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:75$99_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:76$100_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:77$101_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:79$102_CHECK when $formal$task3/tb/caaz20_properties.sv:79$102_EN.
+
+Setting up time step 4:
+Final constraint equation: { } = { }
+Import def constraint for this timestep: \clear_i
+Import def constraint for this timestep: \rst_ni
+Import def constraint for this timestep: \caaz_enable_i
+Import def constraint for this timestep: \enable_i
+Import def constraint for this timestep: \clk_i
+Import def constraint for this timestep: \raw_bad_i
+Import def constraint for this timestep: \raw_chop_neg_i
+Import def constraint for this timestep: \acq_valid_i
+Import def constraint for this timestep: \raw_valid_i
+Import def constraint for this timestep: \raw_az_ok_i
+Import def constraint for this timestep: \raw_code_i
+Import def constraint for this timestep: \raw_az_pair_id_i
+Import def constraint for this timestep: \acq_sample_id_i
+Import def constraint for this timestep: \raw_sample_id_i
+Imported 253 cells to SAT database.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:53$84_CHECK when $formal$task3/tb/caaz20_properties.sv:53$84_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:55$85_CHECK when $formal$task3/tb/caaz20_properties.sv:55$85_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:57$86_CHECK when $formal$task3/tb/caaz20_properties.sv:57$86_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:60$87_CHECK when $formal$task3/tb/caaz20_properties.sv:60$87_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:61$88_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:62$89_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:63$90_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:64$91_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:65$92_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:68$93_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:69$94_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:70$95_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:72$96_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:73$97_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:74$98_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:75$99_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:76$100_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:77$101_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:79$102_CHECK when $formal$task3/tb/caaz20_properties.sv:79$102_EN.
+
+Setting up time step 5:
+Final constraint equation: { } = { }
+Import def constraint for this timestep: \clear_i
+Import def constraint for this timestep: \rst_ni
+Import def constraint for this timestep: \caaz_enable_i
+Import def constraint for this timestep: \enable_i
+Import def constraint for this timestep: \clk_i
+Import def constraint for this timestep: \raw_bad_i
+Import def constraint for this timestep: \raw_chop_neg_i
+Import def constraint for this timestep: \acq_valid_i
+Import def constraint for this timestep: \raw_valid_i
+Import def constraint for this timestep: \raw_az_ok_i
+Import def constraint for this timestep: \raw_code_i
+Import def constraint for this timestep: \raw_az_pair_id_i
+Import def constraint for this timestep: \acq_sample_id_i
+Import def constraint for this timestep: \raw_sample_id_i
+Imported 253 cells to SAT database.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:53$84_CHECK when $formal$task3/tb/caaz20_properties.sv:53$84_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:55$85_CHECK when $formal$task3/tb/caaz20_properties.sv:55$85_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:57$86_CHECK when $formal$task3/tb/caaz20_properties.sv:57$86_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:60$87_CHECK when $formal$task3/tb/caaz20_properties.sv:60$87_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:61$88_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:62$89_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:63$90_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:64$91_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:65$92_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:68$93_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:69$94_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:70$95_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:72$96_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:73$97_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:74$98_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:75$99_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:76$100_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:77$101_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:79$102_CHECK when $formal$task3/tb/caaz20_properties.sv:79$102_EN.
+
+Setting up time step 6:
+Final constraint equation: { } = { }
+Import def constraint for this timestep: \clear_i
+Import def constraint for this timestep: \rst_ni
+Import def constraint for this timestep: \caaz_enable_i
+Import def constraint for this timestep: \enable_i
+Import def constraint for this timestep: \clk_i
+Import def constraint for this timestep: \raw_bad_i
+Import def constraint for this timestep: \raw_chop_neg_i
+Import def constraint for this timestep: \acq_valid_i
+Import def constraint for this timestep: \raw_valid_i
+Import def constraint for this timestep: \raw_az_ok_i
+Import def constraint for this timestep: \raw_code_i
+Import def constraint for this timestep: \raw_az_pair_id_i
+Import def constraint for this timestep: \acq_sample_id_i
+Import def constraint for this timestep: \raw_sample_id_i
+Imported 253 cells to SAT database.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:53$84_CHECK when $formal$task3/tb/caaz20_properties.sv:53$84_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:55$85_CHECK when $formal$task3/tb/caaz20_properties.sv:55$85_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:57$86_CHECK when $formal$task3/tb/caaz20_properties.sv:57$86_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:60$87_CHECK when $formal$task3/tb/caaz20_properties.sv:60$87_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:61$88_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:62$89_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:63$90_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:64$91_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:65$92_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:68$93_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:69$94_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:70$95_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:72$96_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:73$97_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:74$98_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:75$99_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:76$100_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:77$101_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:79$102_CHECK when $formal$task3/tb/caaz20_properties.sv:79$102_EN.
+
+Setting up time step 7:
+Final constraint equation: { } = { }
+Import def constraint for this timestep: \clear_i
+Import def constraint for this timestep: \rst_ni
+Import def constraint for this timestep: \caaz_enable_i
+Import def constraint for this timestep: \enable_i
+Import def constraint for this timestep: \clk_i
+Import def constraint for this timestep: \raw_bad_i
+Import def constraint for this timestep: \raw_chop_neg_i
+Import def constraint for this timestep: \acq_valid_i
+Import def constraint for this timestep: \raw_valid_i
+Import def constraint for this timestep: \raw_az_ok_i
+Import def constraint for this timestep: \raw_code_i
+Import def constraint for this timestep: \raw_az_pair_id_i
+Import def constraint for this timestep: \acq_sample_id_i
+Import def constraint for this timestep: \raw_sample_id_i
+Imported 253 cells to SAT database.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:53$84_CHECK when $formal$task3/tb/caaz20_properties.sv:53$84_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:55$85_CHECK when $formal$task3/tb/caaz20_properties.sv:55$85_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:57$86_CHECK when $formal$task3/tb/caaz20_properties.sv:57$86_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:60$87_CHECK when $formal$task3/tb/caaz20_properties.sv:60$87_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:61$88_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:62$89_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:63$90_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:64$91_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:65$92_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:68$93_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:69$94_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:70$95_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:72$96_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:73$97_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:74$98_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:75$99_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:76$100_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:77$101_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:79$102_CHECK when $formal$task3/tb/caaz20_properties.sv:79$102_EN.
+
+Setting up time step 8:
+Final constraint equation: { } = { }
+Import def constraint for this timestep: \clear_i
+Import def constraint for this timestep: \rst_ni
+Import def constraint for this timestep: \caaz_enable_i
+Import def constraint for this timestep: \enable_i
+Import def constraint for this timestep: \clk_i
+Import def constraint for this timestep: \raw_bad_i
+Import def constraint for this timestep: \raw_chop_neg_i
+Import def constraint for this timestep: \acq_valid_i
+Import def constraint for this timestep: \raw_valid_i
+Import def constraint for this timestep: \raw_az_ok_i
+Import def constraint for this timestep: \raw_code_i
+Import def constraint for this timestep: \raw_az_pair_id_i
+Import def constraint for this timestep: \acq_sample_id_i
+Import def constraint for this timestep: \raw_sample_id_i
+Imported 253 cells to SAT database.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:53$84_CHECK when $formal$task3/tb/caaz20_properties.sv:53$84_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:55$85_CHECK when $formal$task3/tb/caaz20_properties.sv:55$85_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:57$86_CHECK when $formal$task3/tb/caaz20_properties.sv:57$86_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:60$87_CHECK when $formal$task3/tb/caaz20_properties.sv:60$87_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:61$88_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:62$89_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:63$90_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:64$91_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:65$92_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:68$93_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:69$94_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:70$95_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:72$96_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:73$97_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:74$98_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:75$99_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:76$100_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:77$101_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:79$102_CHECK when $formal$task3/tb/caaz20_properties.sv:79$102_EN.
+
+Setting up time step 9:
+Final constraint equation: { } = { }
+Import def constraint for this timestep: \clear_i
+Import def constraint for this timestep: \rst_ni
+Import def constraint for this timestep: \caaz_enable_i
+Import def constraint for this timestep: \enable_i
+Import def constraint for this timestep: \clk_i
+Import def constraint for this timestep: \raw_bad_i
+Import def constraint for this timestep: \raw_chop_neg_i
+Import def constraint for this timestep: \acq_valid_i
+Import def constraint for this timestep: \raw_valid_i
+Import def constraint for this timestep: \raw_az_ok_i
+Import def constraint for this timestep: \raw_code_i
+Import def constraint for this timestep: \raw_az_pair_id_i
+Import def constraint for this timestep: \acq_sample_id_i
+Import def constraint for this timestep: \raw_sample_id_i
+Imported 253 cells to SAT database.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:53$84_CHECK when $formal$task3/tb/caaz20_properties.sv:53$84_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:55$85_CHECK when $formal$task3/tb/caaz20_properties.sv:55$85_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:57$86_CHECK when $formal$task3/tb/caaz20_properties.sv:57$86_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:60$87_CHECK when $formal$task3/tb/caaz20_properties.sv:60$87_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:61$88_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:62$89_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:63$90_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:64$91_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:65$92_CHECK when $formal$task3/tb/caaz20_properties.sv:61$88_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:68$93_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:69$94_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:70$95_CHECK when $formal$task3/tb/caaz20_properties.sv:68$93_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:72$96_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:73$97_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:74$98_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:75$99_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:76$100_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:77$101_CHECK when $formal$task3/tb/caaz20_properties.sv:72$96_EN.
+Import proof for assert: $formal$task3/tb/caaz20_properties.sv:79$102_CHECK when $formal$task3/tb/caaz20_properties.sv:79$102_EN.
+
+Solving problem with 237907 variables and 673199 clauses..
+SAT proof finished - no model found: SUCCESS!
+
+                  /$$$$$$      /$$$$$$$$     /$$$$$$$    
+                 /$$__  $$    | $$_____/    | $$__  $$   
+                | $$  \ $$    | $$          | $$  \ $$   
+                | $$  | $$    | $$$$$       | $$  | $$   
+                | $$  | $$    | $$__/       | $$  | $$   
+                | $$/$$ $$    | $$          | $$  | $$   
+                |  $$$$$$/ /$$| $$$$$$$$ /$$| $$$$$$$//$$
+                 \____ $$$|__/|________/|__/|_______/|__/
+                       \__/                              
+
+6. Executing SAT pass (solving SAT problems in the circuit).
+
+Setting up time step 1:
+Import set-constraint for this timestep: \rst_ni = 1'0
+Final constraint equation: \rst_ni = 1'0
+Import def constraint for this timestep: \clear_i
+Import def constraint for this timestep: \rst_ni
+Import def constraint for this timestep: \caaz_enable_i
+Import def constraint for this timestep: \enable_i
+Import def constraint for this timestep: \clk_i
+Import def constraint for this timestep: \raw_bad_i
+Import def constraint for this timestep: \raw_chop_neg_i
+Import def constraint for this timestep: \acq_valid_i
+Import def constraint for this timestep: \raw_valid_i
+Import def constraint for this timestep: \raw_az_ok_i
+Import def constraint for this timestep: \raw_code_i
+Import def constraint for this timestep: \raw_az_pair_id_i
+Import def constraint for this timestep: \acq_sample_id_i
+Import def constraint for this timestep: \raw_sample_id_i
+Imported 253 cells to SAT database.
+Import set-constraint from init attribute: $formal$task3/tb/caaz20_properties.sv:53$84_EN = 1'0
+Import set-constraint from init attribute: $formal$task3/tb/caaz20_properties.sv:55$85_EN = 1'0
+Import set-constraint from init attribute: $formal$task3/tb/caaz20_properties.sv:57$86_EN = 1'0
+Import set-constraint from init attribute: $formal$task3/tb/caaz20_properties.sv:60$87_EN = 1'0
+Import set-constraint from init attribute: $formal$task3/tb/caaz20_properties.sv:61$88_EN = 1'0
+Import set-constraint from init attribute: $formal$task3/tb/caaz20_properties.sv:68$93_EN = 1'0
+Import set-constraint from init attribute: $formal$task3/tb/caaz20_properties.sv:72$96_EN = 1'0
+Import set-constraint from init attribute: $formal$task3/tb/caaz20_properties.sv:79$102_EN = 1'0
+Import set-constraint from init attribute: \seen_past = 1'0
+Final init constraint equation: { \seen_past $formal$task3/tb/caaz20_properties.sv:79$102_EN $formal$task3/tb/caaz20_properties.sv:72$96_EN $formal$task3/tb/caaz20_properties.sv:68$93_EN $formal$task3/tb/caaz20_properties.sv:61$88_EN $formal$task3/tb/caaz20_properties.sv:60$87_EN $formal$task3/tb/caaz20_properties.sv:57$86_EN $formal$task3/tb/caaz20_properties.sv:55$85_EN $formal$task3/tb/caaz20_properties.sv:53$84_EN } = 9'000000000
+
+Setting up time step 2:
+Final constraint equation: { } = { }
+Import def constraint for this timestep: \clear_i
+Import def constraint for this timestep: \rst_ni
+Import def constraint for this timestep: \caaz_enable_i
+Import def constraint for this timestep: \enable_i
+Import def constraint for this timestep: \clk_i
+Import def constraint for this timestep: \raw_bad_i
+Import def constraint for this timestep: \raw_chop_neg_i
+Import def constraint for this timestep: \acq_valid_i
+Import def constraint for this timestep: \raw_valid_i
+Import def constraint for this timestep: \raw_az_ok_i
+Import def constraint for this timestep: \raw_code_i
+Import def constraint for this timestep: \raw_az_pair_id_i
+Import def constraint for this timestep: \acq_sample_id_i
+Import def constraint for this timestep: \raw_sample_id_i
+Imported 253 cells to SAT database.
+
+Setting up time step 3:
+Final constraint equation: { } = { }
+Import def constraint for this timestep: \clear_i
+Import def constraint for this timestep: \rst_ni
+Import def constraint for this timestep: \caaz_enable_i
+Import def constraint for this timestep: \enable_i
+Import def constraint for this timestep: \clk_i
+Import def constraint for this timestep: \raw_bad_i
+Import def constraint for this timestep: \raw_chop_neg_i
+Import def constraint for this timestep: \acq_valid_i
+Import def constraint for this timestep: \raw_valid_i
+Import def constraint for this timestep: \raw_az_ok_i
+Import def constraint for this timestep: \raw_code_i
+Import def constraint for this timestep: \raw_az_pair_id_i
+Import def constraint for this timestep: \acq_sample_id_i
+Import def constraint for this timestep: \raw_sample_id_i
+Imported 253 cells to SAT database.
+
+Setting up time step 4:
+Final constraint equation: { } = { }
+Import def constraint for this timestep: \clear_i
+Import def constraint for this timestep: \rst_ni
+Import def constraint for this timestep: \caaz_enable_i
+Import def constraint for this timestep: \enable_i
+Import def constraint for this timestep: \clk_i
+Import def constraint for this timestep: \raw_bad_i
+Import def constraint for this timestep: \raw_chop_neg_i
+Import def constraint for this timestep: \acq_valid_i
+Import def constraint for this timestep: \raw_valid_i
+Import def constraint for this timestep: \raw_az_ok_i
+Import def constraint for this timestep: \raw_code_i
+Import def constraint for this timestep: \raw_az_pair_id_i
+Import def constraint for this timestep: \acq_sample_id_i
+Import def constraint for this timestep: \raw_sample_id_i
+Imported 253 cells to SAT database.
+
+Setting up time step 5:
+Import set-constraint for this timestep: \out_pair = 1'1
+Final constraint equation: \out_pair = 1'1
+Import def constraint for this timestep: \clear_i
+Import def constraint for this timestep: \rst_ni
+Import def constraint for this timestep: \caaz_enable_i
+Import def constraint for this timestep: \enable_i
+Import def constraint for this timestep: \clk_i
+Import def constraint for this timestep: \raw_bad_i
+Import def constraint for this timestep: \raw_chop_neg_i
+Import def constraint for this timestep: \acq_valid_i
+Import def constraint for this timestep: \raw_valid_i
+Import def constraint for this timestep: \raw_az_ok_i
+Import def constraint for this timestep: \raw_code_i
+Import def constraint for this timestep: \raw_az_pair_id_i
+Import def constraint for this timestep: \acq_sample_id_i
+Import def constraint for this timestep: \raw_sample_id_i
+Imported 253 cells to SAT database.
+Import proof-constraint: \out_valid = 1'0
+Final proof equation: \out_valid = 1'0
+
+Solving problem with 126179 variables and 355925 clauses..
+SAT proof finished - model found: FAIL!
+
+   ______                   ___       ___       _ _            _ _ 
+  (_____ \                 / __)     / __)     (_) |          | | |
+   _____) )___ ___   ___ _| |__    _| |__ _____ _| | _____  __| | |
+  |  ____/ ___) _ \ / _ (_   __)  (_   __|____ | | || ___ |/ _  |_|
+  | |   | |  | |_| | |_| || |       | |  / ___ | | || ____( (_| |_ 
+  |_|   |_|   \___/ \___/ |_|       |_|  \_____|_|\_)_____)\____|_|
+
+
+  Time Signal Name                                                     Dec       Hex                                 Bin
+  ---- ------------------------------------------------------- ----------- --------- -----------------------------------
+  init $formal$task3/tb/caaz20_properties.sv:53$84_CHECK                 0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:53$84_EN                    0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:55$85_CHECK                 0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:55$85_EN                    0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:57$86_CHECK                 0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:57$86_EN                    0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:60$87_CHECK                 0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:60$87_EN                    0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:61$88_CHECK                 0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:61$88_EN                    0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:62$89_CHECK                 0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:63$90_CHECK                 0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:64$91_CHECK                 0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:65$92_CHECK                 0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:68$93_CHECK                 0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:68$93_EN                    0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:69$94_CHECK                 0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:70$95_CHECK                 0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:72$96_CHECK                 0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:72$96_EN                    0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:73$97_CHECK                 0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:74$98_CHECK                 0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:75$99_CHECK                 0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:76$100_CHECK                0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:77$101_CHECK                0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:79$102_CHECK                0         0                                   0
+  init $formal$task3/tb/caaz20_properties.sv:79$102_EN                   0         0                                   0
+  init $past$task3/tb/caaz20_properties.sv:55$68$0                       0         0                                   0
+  init $past$task3/tb/caaz20_properties.sv:57$69$0                       1         1                                   1
+  init $past$task3/tb/caaz20_properties.sv:58$70$0                       5         5                                 101
+  init $past$task3/tb/caaz20_properties.sv:62$71$0                       0         0                                   0
+  init $past$task3/tb/caaz20_properties.sv:62$72$0              1196752382  4754fdfe    01000111010101001111110111111110
+  init $past$task3/tb/caaz20_properties.sv:63$73$0                       1         1                                   1
+  init $past$task3/tb/caaz20_properties.sv:69$76$0                       0         0                                   0
+  init $past$task3/tb/caaz20_properties.sv:69$77$0                       0         0                                   0
+  init $past$task3/tb/caaz20_properties.sv:70$78$0               -64882289  fc21f98f    11111100001000011111100110001111
+  init $past$task3/tb/caaz20_properties.sv:74$80$0                       0         0                                   0
+  init $past$task3/tb/caaz20_properties.sv:74$81$0              1946157055  73ffffff     1110011111111111111111111111111
+  init $past$task3/tb/caaz20_properties.sv:76$82$0                 1048575     fffff                11111111111111111111
+  init \dut.acq_az_capture_o                                             1         1                                   1
+  init \dut.acq_az_hold_o                                                0         0                                   0
+  init \dut.acq_az_pair_id_o                                     599687167  23be7fff     0100011101111100111111111111111
+  init \dut.acq_ctrl_sample_id_o                               -1199374335  b8830001    10111000100000110000000000000001
+  init \dut.acq_ctrl_valid_o                                             1         1                                   1
+  init \dut.caaz_enabled_q                                               0         0                                   0
+  init \dut.even_code_q                                            1048574     ffffe                11111111111111111110
+  init \dut.fault_code_o                                                 2         2                                 010
+  init \dut.fault_o                                                      1         1                                   1
+  init \dut.fault_pulse_o                                                0         0                                   0
+  init \dut.mode_locked_q                                                0         0                                   0
+  init \dut.next_acq_id_q                                         83370747   4f822fb    00000100111110000010001011111011
+  init \dut.next_raw_id_q                                         16769005    ffdfed    00000000111111111101111111101101
+  init \dut.out_az_pair_id_o                                             0         0     0000000000000000000000000000000
+  init \dut.out_difference_o                                            --        --               00000000001111101111x
+  init \dut.out_first_sample_id_o                                -64882290  fc21f98e    11111100001000011111100110001110
+  init \dut.out_pair_o                                                   0         0                                   0
+  init \dut.out_sample_id_o                                       64882288   3de0670    00000011110111100000011001110000
+  init \dut.out_valid_o                                                  1         1                                   1
+  init \last_even_code                                                   0         0                00000000000000000000
+  init \last_even_id                                              64882289   3de0671    00000011110111100000011001110001
+  init \seen_even                                                        0         0                                   0
+  init \seen_past                                                        0         0                                   0
+  ---- ------------------------------------------------------- ----------- --------- -----------------------------------
+     1 \acq_sample_id_i                                          -67109025  fbffff5f    11111011111111111111111101011111
+     1 \acq_valid_i                                                      0         0                                   0
+     1 \caaz_enable_i                                                    1         1                                   1
+     1 \clear_i                                                          0         0                                   0
+     1 \clk_i                                                            0         0                                   0
+     1 \dut.out_pair_o                                                   0         0                                   0
+     1 \dut.out_valid_o                                                  1         1                                   1
+     1 \enable_i                                                         1         1                                   1
+     1 \raw_az_ok_i                                                      1         1                                   1
+     1 \raw_az_pair_id_i                                        2130722815  7f003fff     1111111000000000011111111111111
+     1 \raw_bad_i                                                        0         0                                   0
+     1 \raw_chop_neg_i                                                   0         0                                   0
+     1 \raw_sample_id_i                                         -436207617  e5ffffff    11100101111111111111111111111111
+     1 \raw_valid_i                                                      0         0                                   0
+     1 \rst_ni                                                           0         0                                   0
+  ---- ------------------------------------------------------- ----------- --------- -----------------------------------
+     2 \acq_sample_id_i                                                  0         0    00000000000000000000000000000000
+     2 \acq_valid_i                                                      1         1                                   1
+     2 \caaz_enable_i                                                    1         1                                   1
+     2 \clear_i                                                          0         0                                   0
+     2 \clk_i                                                            0         0                                   0
+     2 \dut.out_pair_o                                                   0         0                                   0
+     2 \dut.out_valid_o                                                  0         0                                   0
+     2 \enable_i                                                         1         1                                   1
+     2 \raw_az_ok_i                                                      1         1                                   1
+     2 \raw_az_pair_id_i                                        2147483647  7fffffff     1111111111111111111111111111111
+     2 \raw_bad_i                                                        0         0                                   0
+     2 \raw_chop_neg_i                                                   0         0                                   0
+     2 \raw_sample_id_i                                                 -1  ffffffff    11111111111111111111111111111111
+     2 \raw_valid_i                                                      0         0                                   0
+     2 \rst_ni                                                           1         1                                   1
+  ---- ------------------------------------------------------- ----------- --------- -----------------------------------
+     3 \acq_sample_id_i                                                  1         1    00000000000000000000000000000001
+     3 \acq_valid_i                                                      1         1                                   1
+     3 \caaz_enable_i                                                    1         1                                   1
+     3 \clear_i                                                          0         0                                   0
+     3 \clk_i                                                            0         0                                   0
+     3 \dut.out_pair_o                                                   0         0                                   0
+     3 \dut.out_valid_o                                                  0         0                                   0
+     3 \enable_i                                                         1         1                                   1
+     3 \raw_az_ok_i                                                      1         1                                   1
+     3 \raw_az_pair_id_i                                                 0         0     0000000000000000000000000000000
+     3 \raw_bad_i                                                        0         0                                   0
+     3 \raw_chop_neg_i                                                   0         0                                   0
+     3 \raw_sample_id_i                                                  0         0    00000000000000000000000000000000
+     3 \raw_valid_i                                                      1         1                                   1
+     3 \rst_ni                                                           1         1                                   1
+  ---- ------------------------------------------------------- ----------- --------- -----------------------------------
+     4 \acq_sample_id_i                                                  2         2    00000000000000000000000000000010
+     4 \acq_valid_i                                                      1         1                                   1
+     4 \caaz_enable_i                                                    1         1                                   1
+     4 \clear_i                                                          0         0                                   0
+     4 \clk_i                                                            0         0                                   0
+     4 \dut.out_pair_o                                                   0         0                                   0
+     4 \dut.out_valid_o                                                  0         0                                   0
+     4 \enable_i                                                         1         1                                   1
+     4 \raw_az_ok_i                                                      1         1                                   1
+     4 \raw_az_pair_id_i                                                 0         0     0000000000000000000000000000000
+     4 \raw_bad_i                                                        0         0                                   0
+     4 \raw_chop_neg_i                                                   1         1                                   1
+     4 \raw_sample_id_i                                                  1         1    00000000000000000000000000000001
+     4 \raw_valid_i                                                      1         1                                   1
+     4 \rst_ni                                                           1         1                                   1
+  ---- ------------------------------------------------------- ----------- --------- -----------------------------------
+     5 \acq_sample_id_i                                                  0         0    00000000000000000000000000000000
+     5 \acq_valid_i                                                      0         0                                   0
+     5 \caaz_enable_i                                                    1         1                                   1
+     5 \clear_i                                                          0         0                                   0
+     5 \clk_i                                                            0         0                                   0
+     5 \dut.out_pair_o                                                   1         1                                   1
+     5 \dut.out_valid_o                                                  1         1                                   1
+     5 \enable_i                                                         1         1                                   1
+     5 \raw_az_ok_i                                                      1         1                                   1
+     5 \raw_az_pair_id_i                                                 0         0     0000000000000000000000000000000
+     5 \raw_bad_i                                                        0         0                                   0
+     5 \raw_chop_neg_i                                                   0         0                                   0
+     5 \raw_sample_id_i                                                  0         0    00000000000000000000000000000000
+     5 \raw_valid_i                                                      0         0                                   0
+     5 \rst_ni                                                           1         1                                   1
+
+End of script. Logfile hash: b90c4acb28, CPU: user 1.94s system 0.11s, MEM: 185.86 MB peak
+Yosys 0.33 (git sha1 2584903a060)
+Time spent: 91% 2x sat (1 sec), 2% 11x opt_expr (0 sec), ...

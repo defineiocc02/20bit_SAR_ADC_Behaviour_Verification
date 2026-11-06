@@ -21,7 +21,7 @@
       },
       {
         "path": "requirements_trace.csv",
-        "sha256": "75e8cf6ebdf891331b189537783ca0d9871ae2f0ddf9a48f25bd01377abb3f86"
+        "sha256": "d303eb314c37586a18c89047966f73ecea2a47e3d5ee6e3f6674c12eab0a975b"
       }
     ],
     "scope": "digital behavioral contract",
@@ -47,20 +47,36 @@
   "G3": {
     "evidence": [
       {
+        "path": "evidence/formal/caaz_formal.log",
+        "sha256": "6ce96a2e47e0c6d232415b71be2a4e6370a91cc72a1a56d5fe3a43f388b96a38"
+      },
+      {
+        "path": "evidence/formal/receipt.json",
+        "sha256": "75562f7ce0164f8e21d0ca5bf052d07d034ab91504e7da4cc19d714f93217557"
+      },
+      {
+        "path": "evidence/formal/rtl_replay_result.json",
+        "sha256": "c93ed695dbaf7db2b33613f5f87cc12db966fb59c5a56781684d20c58d0b69ee"
+      },
+      {
         "path": "evidence/rtl/result.json",
         "sha256": "a3e97497a30edf735a4f586b5e02ecc8fff160389b4df5473bb48f4371bcf648"
       },
       {
-        "path": "tb/formal.ys",
-        "sha256": "0ae7e34a5b841c75b2da1a05dc79bd74c73b7d2d987d3db8eeb49765bbcb7df6"
-      },
-      {
         "path": "tb/caaz20_properties.sv",
         "sha256": "624928f93689f66bbb1a795ce820b2229bece8f0e0126e78bae6b00ac3ae9a5b"
+      },
+      {
+        "path": "tb/formal.ys",
+        "sha256": "0ae7e34a5b841c75b2da1a05dc79bd74c73b7d2d987d3db8eeb49765bbcb7df6"
       }
     ],
-    "scope": "lint/Verilator dynamic replay PASS, SAT pending remote Yosys",
-    "status": "BLOCKED"
+    "formal_bounds": {
+      "pair_witness_step": 5,
+      "safety_steps": 9
+    },
+    "scope": "Verilator cycle replay and Yosys bounded safety at 9 steps plus a valid-pair witness at step 5",
+    "status": "PASS"
   },
   "G4": {
     "evidence": [],

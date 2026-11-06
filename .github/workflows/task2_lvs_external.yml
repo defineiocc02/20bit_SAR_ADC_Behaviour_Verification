@@ -1,0 +1,38 @@
+name: 20b10mtask frozen external reconstruction LVS
+
+on:
+  push:
+    branches: [20b10mtask]
+    paths:
+      - '.github/workflows/task2_lvs_external.yml'
+      - 'task2/physical/lvs_external/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    if: github.ref_name == '20b10mtask'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      RUN_DIR: /tmp/task2-lvs-external-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Compare both public decks on the frozen external reconstruction top
+        timeout-minutes: 17
+        run: bash task2/physical/lvs_external/replay.sh "$RUN_DIR"
+      - name: Upload LVS comparison logs, databases and input identity
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: task2-sar20-digital-top-lvs-replay-${{ github.run_id }}
+          path: |
+            ${{ env.RUN_DIR }}/evidence
+            !${{ env.RUN_DIR }}/evidence/compatible.cdl
+            !${{ env.RUN_DIR }}/evidence/reference.cdl
+            !${{ env.RUN_DIR }}/evidence/upstream.lylvs
+          if-no-files-found: warn

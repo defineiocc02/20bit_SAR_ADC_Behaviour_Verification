@@ -7,11 +7,10 @@ import gzip
 import hashlib
 import json
 import os
-from pathlib import Path
 import shutil
 import subprocess
 import tempfile
-
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 TOP = Path("task2/eight_rtl/rtl/dither8_top.sv")
@@ -38,11 +37,11 @@ ASSERTIONS = """
 """
 
 
-def sha256(data: bytes) -> str:
+def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def main() -> None:
+def _main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", required=True, type=Path, help="new output directory")
     args = parser.parse_args()
@@ -50,9 +49,7 @@ def main() -> None:
     if yosys is None:
         parser.error("Yosys was not found. Set YOSYS to an installed executable.")
     args.out.mkdir(parents=True, exist_ok=False)
-    baseline = subprocess.check_output(
-        ["git", "show", f"{BASELINE}:{TOP}"], cwd=ROOT
-    )
+    baseline = subprocess.check_output(["git", "show", f"{BASELINE}:{TOP}"], cwd=ROOT)
     candidate = (ROOT / TOP).read_text()
     if not candidate.rstrip().endswith("endmodule"):
         raise ValueError("dither8_top.sv must end with endmodule")
@@ -86,13 +83,13 @@ sat -seq 7 -set-at 1 rst_ni 0 -set-def-inputs -prove-asserts -timeout 45 -verify
         "The state updates are identical in baseline and candidate. Seven steps, including reset.",
         "tool": subprocess.check_output([yosys, "-V"], text=True).strip(),
         "baseline_commit": BASELINE,
-        "baseline_sha256": sha256(baseline),
-        "source_sha256": {str(p): sha256((ROOT / p).read_bytes()) for p in (*DEPENDENCIES, TOP)},
-        "instrumented_candidate_sha256": sha256(wrapped.encode()),
-        "driver_sha256": sha256(Path(__file__).read_bytes()),
-        "proof_script_sha256": sha256(script.encode()),
-        "raw_log_sha256": sha256(run.stdout),
-        "compressed_log_sha256": sha256(log),
+        "baseline_sha256": _sha256(baseline),
+        "source_sha256": {str(p): _sha256((ROOT / p).read_bytes()) for p in (*DEPENDENCIES, TOP)},
+        "instrumented_candidate_sha256": _sha256(wrapped.encode()),
+        "driver_sha256": _sha256(Path(__file__).read_bytes()),
+        "proof_script_sha256": _sha256(script.encode()),
+        "raw_log_sha256": _sha256(run.stdout),
+        "compressed_log_sha256": _sha256(log),
     }
     (args.out / "context_equivalence.json").write_text(json.dumps(receipt, indent=2) + "\n")
     print(f"{receipt['status']} {args.out / 'context_equivalence.json'}")
@@ -100,4 +97,4 @@ sat -seq 7 -set-at 1 rst_ni 0 -set-def-inputs -prove-asserts -timeout 45 -verify
 
 
 if __name__ == "__main__":
-    main()
+    _main()

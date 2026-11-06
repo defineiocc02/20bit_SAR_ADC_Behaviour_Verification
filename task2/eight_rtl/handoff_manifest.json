@@ -15,11 +15,11 @@
     "microarchitecture.md": "60efafcfeeb57fa9be13223e71187e3878b91a9bdb2c2976e4e348f81f3e737c",
     "verification_plan.yaml": "a0bccb18789e5ab1384b0e510bd73bfa465cb1b5fa9f9c5d7b8c0607ecf897a3",
     "requirements_trace.csv": "113ee9e4cb37a2693828cfe12c83729938968e1d7a7b198a8bbffae9267345fb",
-    "gate_evidence.json": "b88c0920ff83c1888442e4347335f5fec53451210f868e2ebd0a848c80f490f2",
+    "gate_evidence.json": "b98f465032c8d19a81c06a95d9cd5d80bf38adaacc04089a7b4869346af4ebca",
     "waivers.md": "64ca2209644194b7db7f845ee1f6c0cffb9e3607cb69c87118d3c32f7a67493e",
     "tb/formal.ys": "9c81e1f92ecc2e146b0acdff13a9c3c1151621e1626a0b8230bc81fdf47611dc",
     "tb/dither8_contract.sv": "e8d3eedfe48551f29e6d837ba701e01a1d6902e035d5d3e7f93a5bbaac742fce",
-    "tools/run_context_equivalence.py": "6edb2ffaef6b810380ae679ec4b9123ae6ddf83f87853cf73639d58bb70e1d7d"
+    "tools/run_context_equivalence.py": "dc30b6813f130154595bc1f04925dc5a1c7a697998d4f3f190b722e397081962"
   },
   "repo_source_sha256": {
     "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
@@ -59,11 +59,11 @@
   "formal": [
     {
       "path": "evidence/formal_result.json",
-      "sha256": "6abfd718740a0e31e5c37236b92cf5e03479d74e83ffd95870d85dd9bd73b2f0"
+      "sha256": "741e2671c81160fe668bf212ae69cfd101555408d6baae4bf5f0973fcf1ebe10"
     },
     {
       "path": "evidence/context_equivalence.json",
-      "sha256": "3b4d9d9e4b820d7ade2224101b74b48b3343b7044b249db1084e91cbd95ec05a"
+      "sha256": "ad660142d9e2a83fdcb3068ef706cb1133e1103352f5843eeba4cdda7b0c0a07"
     }
   ]
 }

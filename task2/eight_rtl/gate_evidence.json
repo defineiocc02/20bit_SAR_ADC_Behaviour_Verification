@@ -58,7 +58,7 @@
       },
       {
         "path": "evidence/formal_result.json",
-        "sha256": "6abfd718740a0e31e5c37236b92cf5e03479d74e83ffd95870d85dd9bd73b2f0"
+        "sha256": "741e2671c81160fe668bf212ae69cfd101555408d6baae4bf5f0973fcf1ebe10"
       },
       {
         "path": "independent_review/receipt.json",
@@ -66,7 +66,7 @@
       },
       {
         "path": "evidence/context_equivalence.json",
-        "sha256": "3b4d9d9e4b820d7ade2224101b74b48b3343b7044b249db1084e91cbd95ec05a"
+        "sha256": "ad660142d9e2a83fdcb3068ef706cb1133e1103352f5843eeba4cdda7b0c0a07"
       }
     ]
   },

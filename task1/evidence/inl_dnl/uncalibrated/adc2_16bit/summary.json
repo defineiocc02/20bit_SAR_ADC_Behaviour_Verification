@@ -1,0 +1,230 @@
+{
+  "schema": "task1_nominal_no_dem_no_lms_static_code_density_v1",
+  "scope": "Fixed A/B, DEM and LMS disabled, nominal coarse decisions and digital codebook, realized CDAC mismatch in the two-node residue only, ideal ADC2, no noise or skew.",
+  "method": "Full input span, equal weight for the two fixed A/B states, affine input width integration for each ADC2 bin, 20-bit export, endpoint-code exclusion and mean interior width normalization.",
+  "training_samples": 0,
+  "digital_reconstruction": "nominal_coarse_threshold_v[coarse_code] + ideal_adc2_midpoint_v",
+  "adctoolbox_version": "0.9.1",
+  "source_sha256": {
+    "task1/experiments/uncalibrated_linearity.py": "5cc2989cfbca206b78f8bcbd4466a541491626faf433aabbaacf8b1f870df741",
+    "task1/experiments/adctoolbox_calibration.py": "34c3618ae492ebba5e900f698dcbbe1691e0eebb3586579355d9e7cb6424fd8c",
+    "task1/experiments/inl_dnl.py": "7823b2be59f3c3a42297022ab57ee354f66d33a0a62d6d74eb4cacdc9f668c75",
+    "task1/experiments/run_effects.py": "ec9635c6be81a1758785bc3ebb33714da427348b598dfcd3d3a6484692326c5c",
+    "task1/model/fig11_dem.py": "a3d7f040062ff7adf4c4b50fb90e59ee81491988973e5670e6e12e6e9789f39d",
+    "src/adi_model/charge_ref.py": "74856592cdc665c4533744754b953cee55a6e8649368b8483b6ddbf619a0cebc"
+  },
+  "experiments": [
+    {
+      "manufacturing_seed": 100,
+      "sigma": 0.02,
+      "input_full_scale_v": 10.0,
+      "sample_rate_hz": 10000000,
+      "adc2_bits": 16,
+      "adc2_half_range_v": 0.1,
+      "adc2_input_equivalent_step_v": 3.0517578125e-06,
+      "output_quantizer_bits": 20,
+      "output_ideal_lsb_v": 9.5367431640625e-06,
+      "nominal_coarse_intervals": 512,
+      "state_slice_ids": [
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        [
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      ],
+      "arms": {
+        "fixed_ab_no_dem_no_lms": {
+          "status": "completed",
+          "effective_states": 2,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "adc2_below_input_width_v": 0.0,
+          "adc2_above_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 0.0026428648631641252,
+          "encoder_low_clip_input_width_v": 0.0,
+          "encoder_high_clip_input_width_v": 0.0026428648631641252,
+          "mass_balance_error_v": 0.0,
+          "residue_min_v": -0.005000848144623829,
+          "residue_max_v": 0.0482449189750685,
+          "tone": {
+            "samples": 4096,
+            "sample_rate_hz": 10000000,
+            "frequency_hz": 998535.15625,
+            "amplitude_v_peak": 3.3333333333333335,
+            "phase_rad": 0.11,
+            "adc2_range": {
+              "samples": 4096,
+              "min_v": -0.0014284569021260297,
+              "max_v": 0.046961669526965275,
+              "below_range": 0,
+              "at_or_above_range": 0
+            },
+            "status": "completed",
+            "encoder_clipped_samples": 0,
+            "before_20bit_export": {
+              "sndr_db": 57.368630183417686,
+              "sfdr_db": 60.837334477888604,
+              "enob": 9.237313983956428,
+              "input_error_rms_v": 0.005979628011766973
+            },
+            "after_20bit_export": {
+              "sndr_db": 57.36874646263408,
+              "sfdr_db": 60.8376130044216,
+              "enob": 9.237333299440877,
+              "input_error_rms_v": 0.005979672094472793
+            }
+          },
+          "linearity": {
+            "20": {
+              "interior_codes": 1048574,
+              "zero_width_interior_codes": 313,
+              "zero_width_interior_percent": 0.02985006303799255,
+              "mean_interior_code_width_v": 9.53422346185658e-06,
+              "dnl_min_lsb": -1.0,
+              "dnl_max_lsb": 1.2396494192815712,
+              "endpoint_inl_min_lsb": -899.1564572181907,
+              "endpoint_inl_max_lsb": 250.91598559695998,
+              "endpoint_inl_peak_lsb": 899.1564572181907,
+              "best_fit_inl_peak_lsb": 573.5891651945049
+            }
+          },
+          "local_direct_ramp_crosscheck": {
+            "coarse_codes": [
+              0,
+              1,
+              255,
+              256,
+              511
+            ],
+            "states": 2,
+            "samples_per_coarse_interval_and_state": 32768,
+            "total_samples": 327680,
+            "maximum_affine_residue_error_v": 5.134781488891349e-16,
+            "maximum_per_code_width_error_v": 9.86132728507608e-07,
+            "maximum_width_error_over_local_ramp_step": 0.8789298451384684
+          }
+        }
+      }
+    },
+    {
+      "manufacturing_seed": 100,
+      "sigma": 0.03,
+      "input_full_scale_v": 10.0,
+      "sample_rate_hz": 10000000,
+      "adc2_bits": 16,
+      "adc2_half_range_v": 0.1,
+      "adc2_input_equivalent_step_v": 3.0517578125e-06,
+      "output_quantizer_bits": 20,
+      "output_ideal_lsb_v": 9.5367431640625e-06,
+      "nominal_coarse_intervals": 512,
+      "state_slice_ids": [
+        [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        [
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      ],
+      "arms": {
+        "fixed_ab_no_dem_no_lms": {
+          "status": "completed",
+          "effective_states": 2,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "adc2_below_input_width_v": 0.0,
+          "adc2_above_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 0.003969842429307856,
+          "encoder_low_clip_input_width_v": 0.0,
+          "encoder_high_clip_input_width_v": 0.003969842429307856,
+          "mass_balance_error_v": 0.0,
+          "residue_min_v": -0.0074943665441851584,
+          "residue_max_v": 0.05399097512322282,
+          "tone": {
+            "samples": 4096,
+            "sample_rate_hz": 10000000,
+            "frequency_hz": 998535.15625,
+            "amplitude_v_peak": 3.3333333333333335,
+            "phase_rad": 0.11,
+            "adc2_range": {
+              "samples": 4096,
+              "min_v": -0.002372701913163885,
+              "max_v": 0.05258341117658838,
+              "below_range": 0,
+              "at_or_above_range": 0
+            },
+            "status": "completed",
+            "encoder_clipped_samples": 0,
+            "before_20bit_export": {
+              "sndr_db": 53.84998718146263,
+              "sfdr_db": 57.319520095562275,
+              "enob": 8.652821790940637,
+              "input_error_rms_v": 0.00897201670659913
+            },
+            "after_20bit_export": {
+              "sndr_db": 53.84995579944777,
+              "sfdr_db": 57.31934379615849,
+              "enob": 8.652816577981358,
+              "input_error_rms_v": 0.008972044240374321
+            }
+          },
+          "linearity": {
+            "20": {
+              "interior_codes": 1048574,
+              "zero_width_interior_codes": 468,
+              "zero_width_interior_percent": 0.044632043136678956,
+              "mean_interior_code_width_v": 9.53295795868887e-06,
+              "dnl_min_lsb": -1.0,
+              "dnl_max_lsb": 1.2394758590595956,
+              "endpoint_inl_min_lsb": -1348.6772763030513,
+              "endpoint_inl_max_lsb": 376.2855104660061,
+              "endpoint_inl_peak_lsb": 1348.6772763030513,
+              "best_fit_inl_peak_lsb": 859.9422641599383
+            }
+          },
+          "local_direct_ramp_crosscheck": {
+            "coarse_codes": [
+              0,
+              1,
+              255,
+              256,
+              511
+            ],
+            "states": 2,
+            "samples_per_coarse_interval_and_state": 32768,
+            "total_samples": 327680,
+            "maximum_affine_residue_error_v": 5.134781488891349e-16,
+            "maximum_per_code_width_error_v": 9.855324763664372e-07,
+            "maximum_width_error_over_local_ramp_step": 0.878394846647665
+          }
+        }
+      }
+    }
+  ]
+}

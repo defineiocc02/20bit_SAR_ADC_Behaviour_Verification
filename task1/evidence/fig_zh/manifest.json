@@ -1,0 +1,34 @@
+{
+  "command": "PYTHONPATH=.:src python -m task1.experiments.chinese_effect_plots",
+  "python": "3.12.14",
+  "numpy": "2.5.3",
+  "matplotlib": "3.11.2",
+  "font": {
+    "file": "Hiragino Sans GB.ttc",
+    "sha256": "ca1e9bf621f13ddc4800bfb74d0124571dfc25a1678a28d6e7dbcf39fad2504a"
+  },
+  "input_sha256": {
+    "task1/experiments/chinese_effect_plots.py": "83b138880e548e666807f9f6016bf22b147aed97b007030a617cbfe56eca0b8e",
+    "src/adi_model/metrics.py": "8877c362ac6ab765cb26f7dcd2a42263c9b0a0915d78134af9b322109edec5d9",
+    "task1/evidence/effects/summary.json": "e63dd415c0923f388a8d81d942a4b918666bf833eeb8574d3ec391a4870e6087",
+    "task1/evidence/effects/traces.npz": "458c72a5899fea297178ddf029254e7cddf12f9ad287536ba4b0bf7f87bfb504",
+    "task1/evidence/effects/static_sweep.csv": "5e1f8113f1d8c065c56bc14f1ae6f6999752a7364a5832690a392da7d3836d7a",
+    "task1/evidence/effects/usage.csv": "d8e6f63692ee141b92eed102df3a6144ddf2cca31f81bfb753b62b73b3b5cd3b",
+    "task1/evidence/adc2_dither/summary.json": "cdb84c205c76b335a1cbc399d2325cbfd88f6772c5618de8fa770b869efe4e4e",
+    "task1/evidence/adc2_dither/traces_sigma_2pct.npz": "9be4a12b7395705ac636fdc84b76a4941a330a2e6dd71fbffd762c934dc86531",
+    "task1/evidence/adc2_dither/traces_sigma_3pct.npz": "cdcd719656f06468c11b3938c68c33ba92360cf1557c4afbdc8d0b5db162bb9a",
+    "task1/evidence/residue_control/summary.json": "1665b3e86a111a0d0e223f800e3799e1a610323f73ce70f8f9cb0b3fd75409d7",
+    "task1/evidence/residue_control/capture_0.npz": "5253b4540c2ccf973047986ba002e2297c9d439dc139abc0eeeaba8dc9f13246",
+    "task1/evidence/residue_control/capture_1.npz": "e732789c7430ab7b9aaba33adb07ee703f6014ea422ed1ea35fc9482c3d21e6e"
+  },
+  "output_sha256": {
+    "交织时偏.png": "82a0c37d604e687b7b522ebf9ab86ce2f3e5d8eab54d8ad117e33f191e68e992",
+    "交织时偏.svg": "8764a4b3b31a250d7063c25aec315b1fe9ef06f0f9abe11fad28dfe6400734f5",
+    "固定失配下的DEM.png": "21d4b3907e9e781b203e44bc4518d465bc2b5da73d73e30fcbe1825f9af9f968",
+    "固定失配下的DEM.svg": "620aeaa63aef11a83b064218e5fdc92ae81bf000d1adb593930f2a296c1f5f7c",
+    "理想减性扰动.png": "48ac5847a86ff2cd203a3d4cc6b2892b6ce41cabab96af366882bdd30286bba2",
+    "理想减性扰动.svg": "3a789aa58cd941cdd8ebdea4bae866c967758457d300638a4ecea36f837558f7",
+    "后级余量.png": "4c351b14e7bac804bca9962c0334d8fdd305411fd05daee68a473443d133574c",
+    "后级余量.svg": "94e1940181de3656dd05cbdc23d3c25a62567754e21e4ab9eae40aafca3f9b3c"
+  }
+}

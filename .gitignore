@@ -50,8 +50,9 @@ outputs/
 !task1/evidence/bridge_lms/**/*.png
 !task1/evidence/bridge_lms_16bit/**/*.png
 !task1/evidence/inl_dnl/**/*.png
-!task1/evidence/adc2_dither/*.png
+!task1/evidence/adc2_dither/**/*.png
 !task1/evidence/residue_control/*.png
+!task1/evidence/fig_zh/*.png
 # --- 文档配图始终跟踪 ---
 !docs/**/*.png
 
@@ -88,6 +89,9 @@ refs/
 references/
 literature/
 *.pdf
+# 自绘 20 位效果图 PDF 随任务交付，原论文和其他 PDF 仍按既有规则处理。
+!task1/evidence/inl_dnl/full20/*.pdf
+!task1/evidence/adc2_dither/full20/*.pdf
 # This report and its figures are authored in this repository's audit; keep
 # the third-party reference PDFs under refs/ and the broad *.pdf guard above.
 !docs/reports/rtl_patent_audit_20260930/**/*.pdf

@@ -136,3 +136,5 @@ task1/evidence/rtl/*.log -text whitespace=-blank-at-eol
 task1/evidence/bridge_rtl/*.log -text whitespace=-blank-at-eol
 # CSV 证据保留 Python csv.writer 的原始字节，保证重绘与摘要可逐字节核对。
 task1/evidence/**/*.csv -text whitespace=cr-at-eol
+# 自绘 SVG 保留绘图库生成字节，避免更改封存的图像摘要。
+task1/evidence/**/*.svg -text whitespace=-blank-at-eol

@@ -60,7 +60,7 @@
 | :--- | :--- | :--- |
 | 切片调度＋DEM | 18／8／8／2、有序 ID、释放资格和 Fig.21 跨段候选已有 Python／RTL 对拍；跨段名义补偿与模拟连接仍须系统验证 | [代码与接口](task1/BRIDGE_SPEC.md) · [数字验证](task1/evidence/bridge_rtl/README.md) |
 | 电容失配＋LMS | 训练在片外；可写权重的片上重构 RTL 已与定点参考对拍。2%／3% 留出数据和关闭 LMS 的对照均已归档 | [八片校准与对照](task2/evidence/eight_native/README.md) · [片上重构](task_reconstruction/README.md) |
-| SKY130 数字后端 | 模块一的两个顶层已有 GDS 和 TT 角 6.25 ns 布线后时序；含模块二、三和片上重构的整体顶层须另看对应实跑结果 | [模块一 GDS](task1/physical/README.md) · [整体物理流程](task2/physical/README.md) |
+| SKY130 数字后端 | 含片上 LMS 的整体数字顶层已有 GDS，6.25 ns、TT 角提取后 setup／hold 通过；独立 DRC／LVS 初次超时，正在单独复跑 | [整体 GDS 与状态](task2/physical/README.md) · [模块一 GDS](task1/physical/README.md) |
 | 分路 dither | 18 片中选择 8 片，六位字、逐片底板采样、同笔 ID 和命令码有 Python／RTL 对拍及有界形式验证；模拟辅助 DAC 和真实参考开关仍须验收 | [八片效果](task2/evidence/eight_native/README.md) · [RTL 合同](task2/eight_rtl/SPEC.md) |
 | CAAZ | 斩波相位、自归零控制和两笔数字配对已有 RTL 对拍；模拟宏、实际保持误差和联合后仿仍待验证 | [模块三说明](task3/README.md) |
 

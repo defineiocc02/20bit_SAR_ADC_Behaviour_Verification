@@ -38,7 +38,7 @@ jobs:
   replay:
     if: github.ref_name == '20b10mtask'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: ${{ inputs.top == 'sar20_digital_lms_top' && 75 || 30 }}
     env:
       INPUT_DIR: /tmp/task2-lvs-artifact-input-${{ github.run_id }}-${{ github.run_attempt }}
       OUTPUT_DIR: /tmp/task2-lvs-artifact-result-${{ github.run_id }}-${{ github.run_attempt }}
@@ -46,6 +46,7 @@ jobs:
       LVS_EXPECTED_COMMIT: ${{ inputs.rtl_commit }}
       LVS_EXPECTED_GDS: ${{ inputs.gds_sha256 }}
       LVS_TOP: ${{ inputs.top }}
+      LVS_DECK_TIMEOUT_SECONDS: ${{ inputs.top == 'sar20_digital_lms_top' && '1800' || '600' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,6 +62,7 @@ jobs:
           path: ${{ env.INPUT_DIR }}
       - name: Compare both public rule decks on the frozen artifact
         if: github.event_name == 'workflow_dispatch'
+        timeout-minutes: ${{ inputs.top == 'sar20_digital_lms_top' && 68 || 26 }}
         run: bash task2/physical/lvs_artifact/replay.sh "$INPUT_DIR" "$OUTPUT_DIR"
       - name: Upload both comparisons and LVS databases
         if: always() && github.event_name == 'workflow_dispatch'

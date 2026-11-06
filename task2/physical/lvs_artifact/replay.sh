@@ -8,6 +8,9 @@ mkdir "$2"
 out="$(cd "$2" && pwd)"
 image=openroad/orfs@sha256:a6140cf4dc568e10238356f67b9fd73b9074955eeda6f2ee126bc60f5d7fc3ac
 revision=5eebdc0d06879cf674e86e3fb8efa2803e6e44dc
+deck_timeout="${LVS_DECK_TIMEOUT_SECONDS:-600}"
+case "$deck_timeout" in 600|1800) ;; *) echo 'Unsupported per-deck budget' >&2; exit 2 ;; esac
+printf '%s\n' "$deck_timeout" > "$out/deck_timeout_seconds.txt"
 
 frozen="$(python3 - "$input" "$out" <<'PY'
 import hashlib
@@ -72,6 +75,7 @@ printf '%s\n' "$image" > "$out/container.txt"
 docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
   --user "$(id -u):$(id -g)" --entrypoint /bin/bash \
   -e HOME=/tmp -e QT_QPA_PLATFORM=offscreen -e LVS_TOP \
+  -e "LVS_DECK_TIMEOUT_SECONDS=$deck_timeout" \
   -v "$repo:/work/repo:ro" -v "$frozen:/work/input:ro" -v "$out:/work/out" \
   -w /OpenROAD-flow-scripts/flow "$image" -ec '
     set -o pipefail
@@ -100,7 +104,7 @@ docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
         report=(-rd "report_file=$dir/lvs_report.lvsdb")
       fi
       sha256sum "$deck" > "$dir/deck.sha256"
-      if (cd "$dir" && timeout 600 klayout -b -rd "in_gds=$layout" \
+      if (cd "$dir" && timeout -k 30 "$LVS_DECK_TIMEOUT_SECONDS" klayout -b -rd "in_gds=$layout" \
           -rd cdl_file=/work/out/reference.cdl -rd "top_cell=$LVS_TOP" \
           -rd target_netlist="$dir/extracted.cir" "${report[@]}" -r "$deck") > "$dir/lvs.log" 2>&1; then
         printf "0\n" > "$dir/exit.txt"
@@ -138,22 +142,27 @@ for mode in ('legacy', 'upstream'):
     if db.is_file():
         digest = hashlib.sha256()
         with db.open('rb') as stream:
-            if not stream.readline().startswith(b'#%lvsdb-klayout'):
+            header_valid = stream.readline().startswith(b'#%lvsdb-klayout')
+            if code == 0 and not header_valid:
                 raise ValueError(f'Invalid LVS database for {mode}')
             stream.seek(0)
             for block in iter(lambda: stream.read(1 << 20), b''):
                 digest.update(block)
         db_sha = digest.hexdigest()
     status = 'BLOCKED'
-    if re.search(r"Netlists (?:don't|do not) match", text, re.I):
+    if code in (124, 137):
+        status = 'BLOCKED'
+    elif re.search(r"Netlists (?:don't|do not) match", text, re.I):
         status = 'FAIL'
     elif code == 0 and re.search(r'Netlists match', text, re.I):
         status = 'PASS' if db_sha else 'PARTIAL'
     variants[mode] = {
         'status': status, 'exit_code': code, 'deck_sha256': (folder / 'deck.sha256').read_text().split()[0],
         'log_sha256': hashlib.sha256(raw).hexdigest(), 'database_sha256': db_sha,
+        'database_complete': code == 0 and db_sha is not None,
     }
 summary = {'source': source, 'upstream_revision': sys.argv[2], 'variants': variants,
+           'per_deck_timeout_seconds': int((out / 'deck_timeout_seconds.txt').read_text()),
            'reference_cdl_sha256': (out / 'reference.sha256').read_text().split()[0]}
 (out / 'replay_summary.json').write_text(json.dumps(summary, indent=2) + '\n')
 print(json.dumps(variants, indent=2))

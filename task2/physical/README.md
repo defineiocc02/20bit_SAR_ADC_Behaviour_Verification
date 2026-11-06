@@ -8,7 +8,9 @@
 
 外接重构的整体控制顶层在同一条件下 setup 裕量为 +0.208478 ns、hold 裕量为 +0.0521769 ns，公开 DRC 为 0；同一 GDS 经独立复核，旧规则 LVS **FAIL**、上游修订规则 **PASS**。该顶层的 20 位重构码由外部提供，不包含片上 LMS 重构核。[GDS、网表和时序](evidence/sar20_digital_top_sky130hd_run_42265153017.zip) · [两版规则的 LVS 复核](evidence/sar20_digital_top_lvs_replay_manifest_42272620602.json)
 
-含片上 LMS 的完整顶层，首次详细布线在 40 分钟运行上限时中止，最终 GDS／STA 未产生。消除 ADC2 常数除法后的新版已经通过功能对拍，映射后、未插缓冲且未提取布线的时序诊断为 setup −7.268336 ns、hold +0.034222 ns；最差是 557 个使能端点的高扇出路径。新版全局布线的估计 setup 为 −0.006 ns；68 分钟后端作业完成首轮零路由标记后，因 88 个天线违规进入第二轮布线并超时。这些均不是最终布线时序或 GDS。相同工艺与约束下的 150 分钟长时作业继续执行。[旧版超时记录](evidence/sar20_digital_lms_top_timeout_42262919977.json) · [新版超时记录](evidence/sar20_digital_lms_top_timeout_42270381481.json) · [映射时序诊断](evidence/sar20_digital_lms_top_mapped_manifest_42270594409.json) · [完整顶层运行](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42278312924)
+含片上 LMS 的完整顶层已生成 GDS：在 6.25 ns、TT 角下提取后 setup 裕量为 **+0.0805565 ns**、hold 裕量为 **+0.0430949 ns**，违例端点为 0；路由器报告的 DRC 与天线违规均为 0。原作业的独立公开 DRC／LVS 均达到 300 秒上限，状态为 **BLOCKED／超时**；两项正在对同一 GDS 单独补跑，不能把未完成检查的零标记当作通过。这是单角 SKY130HD 代理结果，不是 180 nm BCD 的工艺签核。[完整 GDS、网表和原始报告](evidence/sar20_digital_lms_top_sky130hd_run_42278312924.zip) · [输入、工件及状态清单](evidence/sar20_digital_lms_top_manifest_42278312924.json) · [GitHub 运行](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42278312924)
+
+本版消除 ADC2 常数除法后，映射阶段未插缓冲、未提取布线的 setup 诊断为 −7.268336 ns，原因为高扇出使能路径；最终布局缓冲后达到上面的正裕量。68 分钟作业曾完成首轮零路由标记后，因 88 个天线违规进入第二轮布线并超时，之后的长时运行完成了天线修复。[中间超时记录](evidence/sar20_digital_lms_top_timeout_42270381481.json) · [映射时序诊断](evidence/sar20_digital_lms_top_mapped_manifest_42270594409.json)
 
 旧版的 68 分钟后端作业曾完成首轮详细布线并报告 0 个路由标记，之后因 68 个天线违规进入修复和再次布线，在运行上限中止；该中间结果不是最终 DRC 或新版 RTL 的结论。[旧版长时诊断](evidence/sar20_digital_lms_top_timeout_42267364320.json)
 

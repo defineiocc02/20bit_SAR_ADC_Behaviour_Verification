@@ -1,0 +1,2 @@
+-r requirements.txt
+adctoolbox @ git+https://github.com/Arcadia-1/ADCToolbox.git@8d62fb1863e38ffe5c6cc3ac48fa9c24d9df1ae9#subdirectory=python

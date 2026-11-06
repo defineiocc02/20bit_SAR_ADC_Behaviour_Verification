@@ -1,5 +1,7 @@
 # 20b10mtask 模块一检查点
 
-- 交付分支从主线 `bc9a16a596dd37d1172d29cbda23979c222bf63b` 建立，不携带原工作树的未跟踪草稿。
-- 范围、接口、Fig.11 有限 DEM 和九个月任务见 [SPEC.md](SPEC.md)。
-- 模块一 RTL、独立参考和效果图已实施；本地 Verilator 对拍零差异，具体运行收据见 `evidence/rtl/`。Nangate45 综合代理已实际映射；真实路由 GDS／STA 以 `physical/` 的运行收据为准。电容失配四组 LMS 标准已确定，校准实验正在实施。
+- 本分支是同学数字任务交付树，从主线 `bc9a16a596dd37d1172d29cbda23979c222bf63b` 建立。任务、接口和九个月计划见 [SPEC.md](SPEC.md)。
+- 切片调度、同节点 DEM 和 Fig.21 跨段候选已有 Python、RTL、独立电荷参考与逐事件对拍。工程假设、名义补偿及未完成的模拟绑定见 [BRIDGE_SPEC.md](BRIDGE_SPEC.md)。
+- 电容失配统一按 [LMS 四组标准](EXPERIMENT_STANDARD.md) 评价。2%／3% 固定失配五颗配对的 14 位聚合统计 INL／DNL 均改善；20 位逐状态单调性仍需处理。见 [INL／DNL](evidence/inl_dnl/README.md)。
+- 12 位 ADC2 的量程、理想减性 dither 和邻码残差控制已有独立分析；实际专利物理 dither、ADC2／RA 宏及完整系统仍未接入。[结论与下一步](ADC2_DITHER.md)
+- SKY130HD 基线与桥接版均已有 GDS 和抽取后 STA，但 6.25 ns setup 未通过。调度等价优化及后续时序收敛以[物理证据](physical/SKY130HD.md)为准；详细路由 DRC 不等同独立 DRC／LVS。未来 180 nm BCD 结果不得由 SKY130 代理冒充。

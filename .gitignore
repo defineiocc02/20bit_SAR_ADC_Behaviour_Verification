@@ -48,7 +48,10 @@ outputs/
 !task1/evidence/dem_stress/*.png
 !task1/evidence/bridge/*.png
 !task1/evidence/bridge_lms/**/*.png
-!task1/evidence/inl_dnl/*.png
+!task1/evidence/bridge_lms_16bit/**/*.png
+!task1/evidence/inl_dnl/**/*.png
+!task1/evidence/adc2_dither/*.png
+!task1/evidence/residue_control/*.png
 # --- 文档配图始终跟踪 ---
 !docs/**/*.png
 

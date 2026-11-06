@@ -34,18 +34,20 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: task1/requirements.txt
+          cache-dependency-path: |
+            task1/requirements.txt
+            task1/requirements-calibration.txt
       - name: Install dependencies and record tool versions
         run: |
           sudo apt-get update
           sudo apt-get install -y verilator clang
-          python -m pip install -r task1/requirements.txt
+          python -m pip install -r task1/requirements-calibration.txt
           mkdir -p "$TASK1_CI_OUT"
           {
             python --version
             verilator --version
             clang++ --version
-            python -m pip list --format=freeze
+            python -m pip freeze
           } > "$TASK1_CI_OUT/tools.txt"
           cat "$TASK1_CI_OUT/tools.txt"
       - name: Run Python module contracts
@@ -58,9 +60,14 @@ jobs:
       - name: Reproduce behavioral plots and data
         run: |
           python -m task1.experiments.run_effects --out "$TASK1_CI_OUT/effects"
+      - name: Train and evaluate the 2% mismatch LMS comparison
+        timeout-minutes: 5
+        run: |
+          python -m task1.experiments.bridge_lms_comparison \
+            --sigma 0.02 --adc2-half-range-mv 100 --out "$TASK1_CI_OUT/bridge_lms"
       - name: Record evidence scope
         run: |
-          printf '%s\n' 'Module 1 Python contracts, Verilator comparisons and behavioral effect reproduction passed.' >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' 'Module 1 Python contracts, Verilator comparisons, behavioral effects and the 2% LMS holdout completed.' >> "$GITHUB_STEP_SUMMARY"
           printf '%s\n' 'Target-library synthesis, physical implementation, GDS and STA are outside this job.' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         if: always()

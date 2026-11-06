@@ -1,5 +1,13 @@
 > **`20b10mtask`：硕士同学数字任务交付树。** 本分支以 20 bit／10 MS/s 为项目目标，集中交付模块一切片调度与 DEM、后续 dither／CAAZ、测试和物理实现证据。[任务规格与分工](task1/SPEC.md) · [模块一交付及复现](task1/README.md) · [阶段检查点](task1/CHECKPOINT.md)。下方原有 README 描述的是继承的 40 MS/s 基线，不能当作本任务已完成的目标性能或物理签核。
 
+## 本任务当前结果：固定失配下的 DEM＋LMS
+
+对 2%／3% 电容失配、每档五颗虚拟芯片，14 位聚合码密度的峰值 INL 和 DNL 均为 5/5 颗改善。比较使用独立训练的“无 DEM＋LMS”和“跨段 DEM＋LMS”。[结果与测法](task1/evidence/inl_dnl/README.md)；20 位逐笔单调性、真实模拟后级及 SKY130 时序仍需验证。
+
+![固定失配下，只有 LMS 与跨段 DEM＋LMS 的统计线性度](task1/evidence/inl_dnl/linearity.png)
+
+> 以下为继承的 40 MS/s 基线说明。
+
 # 20位／40 MS/s SAR ADC：行为模型、静态校准与数字实现
 
 [English](README_EN.md) · [当前状态](docs/STATUS.md) · [数字状态表](docs/digital_status_matrix.md) · [原文对照](docs/current_digital_source_map.md) · [论文与讲稿](references/README.md)

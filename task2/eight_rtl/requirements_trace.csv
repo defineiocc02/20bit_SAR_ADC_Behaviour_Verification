@@ -1,0 +1,6 @@
+REQ_ID,verification_id,evidence,status
+REQ-D8-01,V-D8-01,evidence/result.json,PASS
+REQ-D8-02,V-D8-02,evidence/result.json,PASS
+REQ-D8-03,V-D8-02,evidence/result.json,PASS
+REQ-D8-04,V-D8-03,evidence/result.json,PASS
+REQ-D8-05,V-D8-04,evidence/physical_receipt.json,NOT_RUN

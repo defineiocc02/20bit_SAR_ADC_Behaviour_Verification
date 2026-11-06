@@ -29,3 +29,4 @@ task2/figures/*.svg -text whitespace=-blank-at-eol
 task2/evidence/**/*.svg -text whitespace=-blank-at-eol
 task2/evidence/**/*.csv -text whitespace=cr-at-eol
 task2/evidence/dither_rng/*.log -text whitespace=-blank-at-eol
+task2/eight_rtl/evidence/*.log -text whitespace=-blank-at-eol

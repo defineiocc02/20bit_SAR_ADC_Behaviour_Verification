@@ -1,0 +1,72 @@
+{
+  "G0": {
+    "status": "PASS",
+    "scope": "local simulation only",
+    "evidence": [
+      {
+        "path": "evidence/environment.json",
+        "sha256": "f4ae74300a64197f5a09a3483708bfa2b796ef8104b4a16714a2c10e06150046"
+      },
+      {
+        "path": "evidence/result.json",
+        "sha256": "fd7541f0685bfbf67751831171de370c961ea1360e3e46a50a67039bf7541ea8"
+      }
+    ]
+  },
+  "G1": {
+    "status": "PASS",
+    "scope": "v1.0 digital interface contract",
+    "evidence": [
+      {
+        "path": "SPEC.md",
+        "sha256": "baacd67dc063fc0f416a78a89ebbdb12e829a46db0a3d9ad4776260ce460d267"
+      }
+    ]
+  },
+  "G2": {
+    "status": "PASS",
+    "evidence": [
+      {
+        "path": "microarchitecture.md",
+        "sha256": "8f84c9ed79eaee53f5b5b0b8803c7c3a716225114fc917971beaca04209e7041"
+      },
+      {
+        "path": "verification_plan.yaml",
+        "sha256": "393af4419c7d227504a32596cf02bff8e07ecbce021200b3cc3c8c2139627289"
+      },
+      {
+        "path": "tools/run_checks.py",
+        "sha256": "97eb49fdbbe98e12f600374933043d1fb7b4e78bdb772e3ca474182e58b1425e"
+      }
+    ]
+  },
+  "G3": {
+    "status": "BLOCKED",
+    "completed": {
+      "lint": "PASS",
+      "elaboration": "PASS",
+      "cycle_comparison": "PASS",
+      "simulation_assertions": "PASS"
+    },
+    "formal": "NOT_RUN",
+    "formal_reason": "no local formal engine probed",
+    "evidence": [
+      {
+        "path": "evidence/result.json",
+        "sha256": "fd7541f0685bfbf67751831171de370c961ea1360e3e46a50a67039bf7541ea8"
+      },
+      {
+        "path": "evidence/lint.log",
+        "sha256": "5fe9b607fd8565209f266d570cc703ffc713680d4ca4ab5528b544686fae2f8f"
+      },
+      {
+        "path": "evidence/run.log",
+        "sha256": "c16f0b4e1a1e93c4be746b71d657b73f4b2c116a307f497546eff8ca64978943"
+      }
+    ]
+  },
+  "G4": {
+    "status": "NOT_RUN",
+    "scope": "physical evidence appended by implementation owner"
+  }
+}

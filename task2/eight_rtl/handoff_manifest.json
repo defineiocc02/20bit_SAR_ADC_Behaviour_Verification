@@ -1,0 +1,52 @@
+{
+  "schema": "spec-to-rtl-handoff-v1",
+  "run_id": "dither8-v1-20261107-02",
+  "source_baseline": "b592ba8",
+  "design_top": "dither8_top",
+  "status": "BLOCKED",
+  "scope": "digital sample controls and final DAC command",
+  "spec_freeze": {
+    "version": "1.0",
+    "sha256": "baacd67dc063fc0f416a78a89ebbdb12e829a46db0a3d9ad4776260ce460d267",
+    "approval": "engineering contract confirmed within user-authorized implementation"
+  },
+  "source_sha256": {
+    "SPEC.md": "baacd67dc063fc0f416a78a89ebbdb12e829a46db0a3d9ad4776260ce460d267",
+    "microarchitecture.md": "8f84c9ed79eaee53f5b5b0b8803c7c3a716225114fc917971beaca04209e7041",
+    "verification_plan.yaml": "393af4419c7d227504a32596cf02bff8e07ecbce021200b3cc3c8c2139627289",
+    "requirements_trace.csv": "113ee9e4cb37a2693828cfe12c83729938968e1d7a7b198a8bbffae9267345fb",
+    "gate_evidence.json": "ad9573e2fd6c0f6fee91a39e1f0f82f723f14387af78f8c3fafd510a9009dbd5",
+    "waivers.md": "0928ea95959c48dc31651fbd89a424d236825293162896c000a6a96cc82f6e54"
+  },
+  "repo_source_sha256": {
+    "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
+    "task1/rtl/fig21_bridge.sv": "15a5fe746f012aeb655f9fc19a0b582646f445ab0a1cae16992c6a22f8c7a305",
+    "task1/rtl/module1_bridge_top.sv": "8181f1d629fefd67fc51b52483725f3c4675a613c73fff9be554e2ce6dcaaba1",
+    "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
+    "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
+    "task1/tools/run_bridge_checks.py": "3f1e69afd186e783eda6fbf090976933b959dbd7573d2a84ce4428eddcd23ed9",
+    "task1/tools/run_rtl_checks.py": "eecec87f7fcd6f5a3aa8db7545b3b91896a74f0e216e41f6ea3f076d5ba5abd9",
+    "task2/eight_rtl/rtl/dither8_top.sv": "d06612de2a12ee8340b212fdaf0b3b565573098779d0e282522b0999962f3029",
+    "task2/eight_rtl/tb/dither8_checks_tb.sv": "94c243d73f9165a82ab92d5abded34be1c1eca8fe2ba66f9e4e45c031ff05443",
+    "task2/eight_rtl/tools/run_checks.py": "97eb49fdbbe98e12f600374933043d1fb7b4e78bdb772e3ca474182e58b1425e",
+    "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad",
+    "task2/tools/run_dither_word_checks.py": "a990954e2bc45a3c0f64d80501ec4de5f1043427cf78efb050a830f805c0db5b",
+    "tools/run_open_rtl.py": "b5af7fcd9917dd8d3305117e0f2601b59f759b1e783f3aa2cd5b54e213975ef2"
+  },
+  "tool_inventory": [
+    {
+      "path": "evidence/environment.json",
+      "sha256": "f4ae74300a64197f5a09a3483708bfa2b796ef8104b4a16714a2c10e06150046"
+    }
+  ],
+  "simulation": [
+    {
+      "path": "evidence/result.json",
+      "sha256": "fd7541f0685bfbf67751831171de370c961ea1360e3e46a50a67039bf7541ea8"
+    }
+  ],
+  "physical_constraints": {
+    "clock_period_ns": 6.25,
+    "intended_proxy": "SKY130HD TT 25 C 1.80 V"
+  }
+}

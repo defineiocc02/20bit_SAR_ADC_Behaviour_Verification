@@ -1,0 +1,47 @@
+{
+  "counts": {
+    "acq_words": 4224,
+    "code_errors": 113,
+    "cycles": 4681,
+    "seed_errors": 2,
+    "stalls": 64,
+    "valid_commands": 4240
+  },
+  "coverage": {
+    "all_64_directed_words": 64,
+    "legal_511": 64,
+    "legal_zero": 16,
+    "overflow_rejects": 48,
+    "stale_id_rejects": 64,
+    "steady_commands": 4096
+  },
+  "log_sha256": {
+    "compile.log": "a676ba9f661a368dd34b328c033129ffb85ee432bf23414f92b81beab03917eb",
+    "lint.log": "5fe9b607fd8565209f266d570cc703ffc713680d4ca4ab5528b544686fae2f8f",
+    "run.log": "c16f0b4e1a1e93c4be746b71d657b73f4b2c116a307f497546eff8ca64978943",
+    "verilator.log": "f9757a42767f2351aef3cae70ef2d74d747d2509beef1c961678591368f78f57"
+  },
+  "mismatches": 0,
+  "python": "3.12.14",
+  "schema": "dither8-rtl-comparison-v1",
+  "scope": "DIGITAL_BEHAVIOR_ONLY",
+  "source_sha256": {
+    "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
+    "task1/rtl/fig21_bridge.sv": "15a5fe746f012aeb655f9fc19a0b582646f445ab0a1cae16992c6a22f8c7a305",
+    "task1/rtl/module1_bridge_top.sv": "8181f1d629fefd67fc51b52483725f3c4675a613c73fff9be554e2ce6dcaaba1",
+    "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
+    "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
+    "task1/tools/run_bridge_checks.py": "3f1e69afd186e783eda6fbf090976933b959dbd7573d2a84ce4428eddcd23ed9",
+    "task1/tools/run_rtl_checks.py": "eecec87f7fcd6f5a3aa8db7545b3b91896a74f0e216e41f6ea3f076d5ba5abd9",
+    "task2/eight_rtl/rtl/dither8_top.sv": "d06612de2a12ee8340b212fdaf0b3b565573098779d0e282522b0999962f3029",
+    "task2/eight_rtl/tb/dither8_checks_tb.sv": "94c243d73f9165a82ab92d5abded34be1c1eca8fe2ba66f9e4e45c031ff05443",
+    "task2/eight_rtl/tools/run_checks.py": "97eb49fdbbe98e12f600374933043d1fb7b4e78bdb772e3ca474182e58b1425e",
+    "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad",
+    "task2/tools/run_dither_word_checks.py": "a990954e2bc45a3c0f64d80501ec4de5f1043427cf78efb050a830f805c0db5b",
+    "tools/run_open_rtl.py": "b5af7fcd9917dd8d3305117e0f2601b59f759b1e783f3aa2cd5b54e213975ef2"
+  },
+  "status": "PASS",
+  "stimulus_seed": 55319,
+  "vectors_sha256": "2ca632b0fadaff9a2d794e327e29038066b69443883e3b6a175c55d10d629394",
+  "verilator": "Verilator 5.30"
+}

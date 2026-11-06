@@ -75,6 +75,7 @@ jobs:
         run: |
           python -m pytest -q task2/tests --junitxml "$OUT/tests.xml"
           python task2/tools/run_dither_word_checks.py --out "$OUT/rtl"
+          python task2/eight_rtl/tools/run_checks.py --out "$OUT/dither8"
       - name: Reproduce seven-slice experiment and explanatory figures
         run: |
           python -m task2.experiments.fig19_seven_demo --output "$OUT/fig19"

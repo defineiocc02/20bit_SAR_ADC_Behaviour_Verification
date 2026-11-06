@@ -1,0 +1,133 @@
+{
+  "schema": "dither8-physical-receipt-v1",
+  "requirement": "REQ-D8-05",
+  "status": "PASS",
+  "scope": "dither8_top SKY130HD proxy GDS and single-corner results only",
+  "top": "dither8_top",
+  "rtl_commit": "62e3e3a4f4208efe2252837020640077f337350b",
+  "implementation_input_sha256": {
+    "task1/physical/sky130_constraint.sdc": "01657f0555d1147c566a7a3adbf6f3250fa46a5546fce6fa0576bfbdeee5e6a3",
+    "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
+    "task1/rtl/fig21_bridge.sv": "15a5fe746f012aeb655f9fc19a0b582646f445ab0a1cae16992c6a22f8c7a305",
+    "task1/rtl/module1_bridge_top.sv": "8181f1d629fefd67fc51b52483725f3c4675a613c73fff9be554e2ce6dcaaba1",
+    "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
+    "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
+    "task2/eight_rtl/rtl/dither8_top.sv": "ef9e36cb48eef4c59a4de1852538e7429739f5d36ad608cd7a8e0adb2fffe16c",
+    "task2/physical/sky130_config.mk": "24336702959bb3cba33ffc77d9f8f42050021bcc9bf8f4f135bdab0e0fa30647",
+    "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad"
+  },
+  "technology": {
+    "platform": "sky130hd",
+    "corner": "TT 25 C, 1.80 V with extracted SPEF",
+    "clock_period_ns": 6.25,
+    "liberty": {
+      "path_in_platform": "lib/sky130_fd_sc_hd__tt_025C_1v80.lib",
+      "sha256": "ec0e1067a35c8bf20b11e58d1e8ac53326067e4dac84a125cc1b917a3518d0d9"
+    }
+  },
+  "route": {
+    "workflow": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42265153017/job/128055024676",
+    "manifest": {
+      "path": "task2/physical/evidence/dither8_top_manifest_42265153017.json",
+      "sha256": "a17ec54c18dbbfa586e54a7c11f957834048492e66c602e292103518ecff5aa5"
+    },
+    "archive": {
+      "path": "task2/physical/evidence/dither8_top_sky130hd_run_42265153017.zip",
+      "sha256": "857e2ca8d734c15a140db8cb5e6a6d91a2f729538b837dc292db98df9d6b9a7c"
+    },
+    "member_sha256": {
+      "dither8_top/inputs.json": "e483c2d89427d30dcda80b5def3800d04210641435184c14aca757331ec83fc7",
+      "dither8_top/constraint.sdc": "01657f0555d1147c566a7a3adbf6f3250fa46a5546fce6fa0576bfbdeee5e6a3",
+      "dither8_top/dither8_top.sdc": "c96fc2bd666eba51d15bc4c0e80754a920fc0797ba9aeca4becf8493e704d4f1",
+      "dither8_top/dither8_top.gds": "6b82f762bde5ac9fda90137904ef0c95a78daab6f7acbc497e0bed6942128e74",
+      "dither8_top/dither8_top.odb": "622f34913dd46236014ab6cd6ad19e1b45b454ec8b6c94676f7de3f25454380f",
+      "dither8_top/dither8_top.v": "3cb7b1582f74be5350bfd3843931fb0c4e068212f669a6684749924fbf02b89f",
+      "dither8_top/dither8_top.spef": "7602d59e326e0624753b4fec65d429694645e1b42410732a5ddfaeae50e1ac68",
+      "dither8_top/synth_sta.rpt": "6b711678eda544ab17ff248147114bad2339e51f65ca06a07be03b1a1a437b76",
+      "dither8_top/post_route_sta.rpt": "bd1bddd2a07c65271be01f0e34d387810ac42d54111bbf492bdce58ab28320ac",
+      "dither8_top/metrics/6_report.json": "36800555e4aa5d68226d447ace908808843d61075ab4d66fb2dae2f82c779d97",
+      "dither8_top/6_drc.lyrdb": "7b4a68b306ca40fbac878403c949b17922e8c70a40e242d91b72aa990420deca",
+      "dither8_top/6_lvs.log": "3be060b8f66513bc72fa29eb6bdb0359b074c4b2fbf1b529ff6850957ae9bd23",
+      "dither8_top/environment.json": "42e48512673d30ad248a76f739516cceb35a41ad957a380675ffb1ea64e86e62"
+    },
+    "setup": {
+      "worst_slack_ns": 0.15486,
+      "wns_ns": 0.0,
+      "tns_ns": 0.0,
+      "violations": 0,
+      "status": "PASS"
+    },
+    "hold": {
+      "worst_slack_ns": 0.0631387,
+      "wns_ns": 0.0,
+      "tns_ns": 0.0,
+      "violations": 0,
+      "status": "PASS"
+    },
+    "mapped_setup": {
+      "worst_slack_ns": -0.676904,
+      "tns_ns": -15.253484,
+      "status": "FAIL"
+    },
+    "mapped_hold": {
+      "worst_slack_ns": 0.034222,
+      "tns_ns": 0.0,
+      "status": "PASS"
+    },
+    "constraint_check": "Post-route check_setup -verbose completed without diagnostics for the archived single-clock proxy SDC.",
+    "drc": {
+      "status": "PASS",
+      "exit_code": 0,
+      "report": "6_drc.lyrdb",
+      "violations": 0
+    },
+    "original_lvs_reviewed_status": "FAIL"
+  },
+  "lvs_replay": {
+    "workflow": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42270270897/job/128072710132",
+    "manifest": {
+      "path": "task2/physical/evidence/dither8_top_lvs_replay_manifest_42270270897.json",
+      "sha256": "1b39994261eb9ab57bde695faeb986e07a73958754e531f1b66cbbb3519ec599"
+    },
+    "archive": {
+      "path": "task2/physical/evidence/dither8_top_lvs_replay_42270270897.zip",
+      "sha256": "4ea3dbe02211b73353e6292955ed8c6a63e1bc23a4fb36296646f34e6bf3a487"
+    },
+    "gds_sha256": "6b82f762bde5ac9fda90137904ef0c95a78daab6f7acbc497e0bed6942128e74",
+    "reference_cdl_recorded_sha256": "d2a100a2382c2096f373aa05c0868fb2bc330829a5c54c09c4721eeaf261f190",
+    "reference_cdl_hash_log": "replay.log",
+    "top_cdl_member_sha256": "c70fe8f376079d57c4352909b77bb252d519ee4cfd875118edce427b2607da2c",
+    "upstream_revision": "5eebdc0d06879cf674e86e3fb8efa2803e6e44dc",
+    "variants": {
+      "legacy": {
+        "status": "FAIL",
+        "deck_sha256": "1afade11dd24ea4e64d1ffba54fc17a8f110286712ab942928d2f5e021bb3caf",
+        "log": {
+          "member": "legacy/lvs.log",
+          "sha256": "b4602455e2d9840c8535437b07a702c5a0902708f808bebf34916daece20e6e3"
+        },
+        "database": {
+          "member": "legacy/lvs_report.lvsdb",
+          "sha256": "9527ecfa2abdaca7eab10bf57c99967a0cf25b094fa45e8e197069e6d02c6ac9"
+        }
+      },
+      "upstream": {
+        "status": "PASS",
+        "deck_sha256": "d2d231d7cd00a8261d6653c5f3757badefb1dc0aba29441d8406272e75cd8b90",
+        "log": {
+          "member": "upstream/lvs.log",
+          "sha256": "67339202e34e572bf64510a6c49db122998a8d21864fb35bc3fdd8df7cc1f983"
+        },
+        "database": {
+          "member": "upstream/lvs_report.lvsdb",
+          "sha256": "3db8ad09abb700fc9c3a104ef82872643120f7e261777c2a779cd557f547c36c"
+        }
+      }
+    }
+  },
+  "scope_limits": [
+    "Mapped TT setup remains negative; the extracted post-route TT run meets setup and hold.",
+    "Other corners and operating modes, target-system analog I/O timing and activity-backed power lack validated evidence.",
+    "Full RTL-to-netlist equivalence, foundry signoff and EM/IR are outside this proxy receipt."
+  ]
+}

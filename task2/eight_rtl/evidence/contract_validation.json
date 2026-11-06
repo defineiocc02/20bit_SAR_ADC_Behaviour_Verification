@@ -1,7 +1,6 @@
 {
   "status": "FAIL",
   "errors": [
-    "requirement not PASS REQ-D8-05",
     "G4 not PASS"
   ]
 }

@@ -71,7 +71,26 @@
     ]
   },
   "G4": {
-    "status": "NOT_RUN",
-    "scope": "current RTL candidate requires matched SKY130HD routed STA"
+    "status": "BLOCKED",
+    "scope": "Matched dither8_top SKY130HD TT proxy. REQ-D8-05 is complete.",
+    "completed": {
+      "proxy_gds": "PASS",
+      "extracted_tt_setup_and_hold": "PASS",
+      "public_drc": "PASS",
+      "legacy_public_lvs": "FAIL",
+      "revised_public_lvs": "PASS",
+      "proxy_constraint_check": "check_setup -verbose completed with no diagnostics for the archived SDC"
+    },
+    "blockers": [
+      "At the 6.25 ns proxy constraint the mapped TT setup has -0.676904 ns worst slack and -15.253484 ns TNS. The routed TT case subsequently closed timing.",
+      "Slow and fast corner setup/hold and target-system analog I/O timing budget validation are not available.",
+      "Activity-backed power for the target operating scenarios is not available."
+    ],
+    "evidence": [
+      {
+        "path": "evidence/physical_receipt.json",
+        "sha256": "4b5bd3aee9675743e94ecbd1275f865923d0e650346e1ff0a93d47ab35ab6597"
+      }
+    ]
   }
 }

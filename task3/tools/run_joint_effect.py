@@ -108,6 +108,8 @@ def _spectrum(output, reference, peak, tone_bin):
 
 def _plot(out, frequency, arrays, report):
     font = _chinese_style()
+    # 直接导出字形轮廓，规避 macOS Hiragino TTC 子集嵌入时的 Type0 渲染问题。
+    plt.rcParams["pdf.fonttype"] = 3
     plt.rcParams["svg.hashsalt"] = "task3-joint-effect"
     fig = plt.figure(figsize=(146 / 25.4, 151 / 25.4))
     grid = fig.add_gridspec(3, 2, height_ratios=[1, 1, 0.8])
@@ -187,6 +189,9 @@ def run(out: Path) -> dict:
     experiment = ExperimentConfig(**meta["experiment"])
     cfg = CalibrationConfig(**meta["calibration"])
     coefficient = from_training(data_path)
+    config_stream = "".join(f"{word:07x}\n" for word in coefficient.words()).encode("ascii")
+    if hashlib.sha256(config_stream).hexdigest() != fixture["config_sha256"]:
+        raise ValueError("frozen Q28 words do not match the compiled RTL replay configuration")
     offset = fixture["common_offset_v"]
     mapper = MapperTable.build(bridge=True)
     with np.load(data_path) as data:
@@ -289,6 +294,8 @@ def run(out: Path) -> dict:
         "adc2_window_half_v": cfg.adc2_half_range_v,
         "groups": groups,
         "font_family": font,
+        "pdf_fonttype": 3,
+        "archived_fixture_identity": fixture,
         "source_sha256": {str(path.relative_to(ROOT)): digest(path) for path in INPUTS},
         "artifact_sha256": {path.name: digest(path) for path in sorted(out.iterdir())},
     }

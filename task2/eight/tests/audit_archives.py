@@ -220,18 +220,22 @@ def main() -> None:
     args = parser.parse_args()
     oracle = json.loads(ORACLE.read_text(encoding="utf-8"))
     oracle_count = _check_hashes(ROOT, oracle["sha256"])
-    manifest_path = EVIDENCE / "figures.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    figure_count = sum(
-        _check_hashes(base, manifest[key])
-        for key, base in (
-            ("input_sha256", EVIDENCE),
-            ("script_sha256", ROOT),
-            ("artifact_sha256", EVIDENCE),
+    manifests = (("figures.json", "script_sha256"), ("no_lms_figures.json", "source_sha256"))
+    figure_counts = {}
+    hash_paths = [Path(__file__), ORACLE]
+    for filename, script_key in manifests:
+        path = EVIDENCE / filename
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        figure_counts[filename] = sum(
+            _check_hashes(base, manifest[key])
+            for key, base in (
+                ("input_sha256", EVIDENCE),
+                (script_key, ROOT),
+                ("artifact_sha256", EVIDENCE),
+            )
         )
-    )
+        hash_paths.append(path)
     results = {}
-    hash_paths = [Path(__file__), ORACLE, manifest_path]
     for percent in (2, 3):
         case = EVIDENCE / f"sigma_{percent}pct"
         summary_path, data_path = case / "summary.json", case / "data.npz"
@@ -251,7 +255,8 @@ def main() -> None:
     report = {
         "schema": "task2_native_eight_slice_archive_audit_v1",
         "status": "PASS",
-        "figure_and_input_hashes": figure_count,
+        "figure_and_input_hashes": sum(figure_counts.values()),
+        "hash_entries_by_figure_manifest": figure_counts,
         "oracle_dependency_hashes": oracle_count,
         "results": results,
         "sha256": {path.relative_to(ROOT).as_posix(): _sha(path) for path in hash_paths},

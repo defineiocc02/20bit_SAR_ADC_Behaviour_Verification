@@ -5,8 +5,17 @@
     0,
     2500000.0
   ],
+  "archived_fixture_identity": {
+    "chopped": true,
+    "coefficient_words": 396,
+    "common_offset_v": 8e-05,
+    "config_sha256": "c9ce027d6603b2b8010503b141ba7808dd21febc4b19147ebeed5d16cb70a40c",
+    "input_data_sha256": "5a7a0b8aaac88c97a04702ee4d8748716fa24042a188e99c59f8ccd9f0d5451d",
+    "samples": 4096,
+    "vectors_sha256": "810f166a75ffec5d4e5cba5b19c6bdf6b481ad104347c55fce9950dd393c397f"
+  },
   "artifact_sha256": {
-    "joint_dither_caaz.pdf": "eed1f04888d43f722cbc756d2379c3f79084747229d01cf0a3ac1b84e38b4460",
+    "joint_dither_caaz.pdf": "22e9291cebdaed03ab932e0b47034807c8e8661a5fdbf46810ae4b8f15695be6",
     "joint_dither_caaz.png": "3ab49707c7f90ee8d7662b940833eff5e09a76e68af2a3b9d90f542ef825391b",
     "joint_dither_caaz.svg": "849bc02c5e43dc44f6aaf7329af3859538ceb008b3e4e83a367d04c02ecb12ea",
     "joint_dither_caaz_data.npz": "1324dfb3dcf66dff8fa4f7a769db77dcef747f5f11c8147efb50dfe7c58c2d8f"
@@ -64,6 +73,7 @@
   "output_bits": 20,
   "output_rate_hz": 5000000.0,
   "pair_outputs": 2048,
+  "pdf_fonttype": 3,
   "raw_rate_hz": 10000000,
   "raw_samples": 4096,
   "scope": "same_archived_3pct_pool_ideal_charge_and_q28_digital_reconstruction",
@@ -73,8 +83,8 @@
     "task2/eight/model.py": "baae62fd999f7c96cc0563c705aff1bb7be39a0ae6efeb91a3278a1845ec3793",
     "task2/evidence/eight_native/sigma_3pct/data.npz": "5a7a0b8aaac88c97a04702ee4d8748716fa24042a188e99c59f8ccd9f0d5451d",
     "task2/evidence/eight_native/sigma_3pct/summary.json": "a9a75c29f866333eb3478bdd2ddfe6297835922a27396cc9783a028d33e0cc69",
-    "task3/tools/run_joint_effect.py": "6812c14ea97fa8ca4fb3538717e3f4384e05e4a04729f2ce696277d0c6beb033",
-    "task_integration/evidence/on_chip/result.json": "5a4704f2c651c3c969121aab6a8928af30d4f83bdcafe45c15611f13a0619e7c",
+    "task3/tools/run_joint_effect.py": "58fb4ae8e8f34d8fc1c69ab37f6a2458748b01e4d09071f07499f8934e26d1cc",
+    "task_integration/evidence/on_chip/result.json": "6e3a5b0170e007d0753383ded01824ac1031c52b319b1bd4e4812317be26de68",
     "task_integration/tools/run_lms_checks.py": "ebec16c89dfc39c804d7d437d9e48821b73721876cc5321fcd4f04fcaaa7713d",
     "task_reconstruction/fixed.py": "08cf2096bdbde88e29eb89b4e09df73c943d3a16e1ddfa0d24b30eea9c41921d"
   },

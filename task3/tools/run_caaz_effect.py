@@ -90,6 +90,8 @@ def _density(error: np.ndarray) -> np.ndarray:
 
 def _plot(out: Path, arrays: dict[str, np.ndarray], metrics: dict) -> str:
     font = _chinese_style()
+    # 直接导出字形轮廓，规避 macOS Hiragino TTC 子集嵌入时的 Type0 渲染问题。
+    plt.rcParams["pdf.fonttype"] = 3
     fig, axes = plt.subplots(2, 1, figsize=(146 / 25.4, 132 / 25.4), height_ratios=[1, 1.5])
     fig.subplots_adjust(left=0.193, right=0.968, top=0.885, bottom=0.155, hspace=0.57)
     fig.text(0.5, 0.977, "CAAZ 控制节拍与配对噪声对照", ha="center", va="top", weight=600)
@@ -188,6 +190,7 @@ def run(out: Path) -> dict:
         "metrics": metrics,
         "ideal_caaz_vs_conventional_ac_noise_reduction_db": float(20 * np.log10(ratio)),
         "font_family": font,
+        "pdf_fonttype": 3,
         "source_sha256": {
             name: digest(ROOT / name)
             for name in (

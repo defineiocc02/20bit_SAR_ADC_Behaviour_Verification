@@ -8,6 +8,7 @@
     ]
   },
   "font_family": "Hiragino Sans GB",
+  "pdf_fonttype": 3,
   "figure_width_mm": 146,
   "dpi": 300,
   "input_sha256": {
@@ -17,8 +18,8 @@
     "sigma_3pct/summary.json": "a9a75c29f866333eb3478bdd2ddfe6297835922a27396cc9783a028d33e0cc69"
   },
   "source_sha256": {
-    "task2/eight/no_lms_plots.py": "23d22a3dbf4d24fbed09eb29192b865bc1aa791c8df3af5d0d41bf65037a90a8",
-    "task2/eight/plots.py": "59c81be0fd9f00a9b136512cd71407b3c048e620f6f06230b62df601672bc1a7",
+    "task2/eight/no_lms_plots.py": "9acb93a5d4ef8d687a70123c000a6971de55eccb2af53ad1ff5e895f6c8428cc",
+    "task2/eight/plots.py": "f672b992a79d173c5c300010a7f53a19853a28318a3f4b764c749a8850c9e804",
     "task2/eight/experiment.py": "114265af4820487592c768dda75880577a41265c3b9d3058f41184fccb27b66c",
     "task2/eight/model.py": "baae62fd999f7c96cc0563c705aff1bb7be39a0ae6efeb91a3278a1845ec3793",
     "task1/experiments/full20_linearity_plots.py": "680a9741203d94299fc632dedc7c43a2a66f025ec343e1863ac5121ad459b901",
@@ -27,9 +28,9 @@
   "artifact_sha256": {
     "eight_native_no_lms_linearity.png": "91992254f84ea4ad738003725b072890f899e28e291994cbfa01e7128e8bd2ba",
     "eight_native_no_lms_linearity.svg": "0e7f7dc86605b4625363e374f1e4a403089388af05777503049e183e287e301e",
-    "eight_native_no_lms_linearity.pdf": "e362a16b59c51956a8581f39b35a0ea1525abe9de802791235ddc3e39d487385",
+    "eight_native_no_lms_linearity.pdf": "fa826851dceb68fd64a26848c846c4dbda7bff56996242b5d5e2d94fcd3df78c",
     "eight_native_no_lms_spectra.png": "c44aa0d348e85dd52e96a6d61ad694d420e3dc6db39fa8f2545ec9f4c426c73e",
     "eight_native_no_lms_spectra.svg": "eeeda806ba3f4cc7040dc9456f54e6e64f9edcd7c8c75f61aa65535e948b94ad",
-    "eight_native_no_lms_spectra.pdf": "32ddaa0c4aca0020ae8f446d643b0d9cb57ecb3cadd3d931eb062902a892ca0e"
+    "eight_native_no_lms_spectra.pdf": "decdda1148a7773d8e0c4604bfd96934a912e2864bcb441f7268ebd4c288e372"
   }
 }

@@ -22,14 +22,14 @@
     "signed_negative_pairs": 1024
   },
   "execution_log_sha256": {
-    "compile.log": "7f85c49eb751f7bb982814da7f8c709b2de30a77278d63dc5a787d462a8f08c7",
-    "lint.log": "8d2127153c3d9f9e0b80208279f5c40253b81beda78fac04a5497c218207586c",
-    "run.log": "8d9a9b8d0043da998547806f42d88b2995efd6e348a5517e867288b8e203cd8f",
+    "compile.log": "c6cfe8088f3dff56152835217f9e2028d155fb04e2d693adf10297ea04b7f902",
+    "lint.log": "5e9287e2b430868fb04e28ace8164e73951400d1835d098b1a086a4617a4ca99",
+    "run.log": "08e565d47c326976c6a2b5626053c4f907ef742c7987df800c48a85612b6e3b7",
     "verilator.log": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1"
   },
   "log_sha256": {
-    "lint.log": "8d2127153c3d9f9e0b80208279f5c40253b81beda78fac04a5497c218207586c",
-    "run.log": "8d9a9b8d0043da998547806f42d88b2995efd6e348a5517e867288b8e203cd8f"
+    "lint.log": "5e9287e2b430868fb04e28ace8164e73951400d1835d098b1a086a4617a4ca99",
+    "run.log": "08e565d47c326976c6a2b5626053c4f907ef742c7987df800c48a85612b6e3b7"
   },
   "paired_3pct_fixture": {
     "chopped": true,
@@ -52,8 +52,8 @@
     "task2/eight_rtl/rtl/dither8_top.sv": "ef9e36cb48eef4c59a4de1852538e7429739f5d36ad608cd7a8e0adb2fffe16c",
     "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad",
     "task3/rtl/caaz20_pair.sv": "5ddbd9f20d4534ad597f22edca9f58604c4d04877eb5efb6ba6dabb142115fdc",
-    "task_integration/LMS_PIPELINE.md": "470f5eef6e5f2ba10411beba668f445d2f1d877b79acdfa08d0234b9ee4a50e6",
-    "task_integration/SPEC.md": "29460e675e89e521f3cf292c5c39728ae73e40b282125d05ce98527891ec7995",
+    "task_integration/LMS_PIPELINE.md": "0dd478cec65b22924de9f67b7d90412ec6fff39180972c87d43837902d30bc93",
+    "task_integration/SPEC.md": "10789107717e8f8ef96097b550acdadedbcc53ad79bb01d7a3b86d2ff6ee0d67",
     "task_integration/rtl/sar20_digital_lms_top.sv": "04a25ad20f48ff87a84ec9818d4927e470cfd309ec308b0206b94dd8d0d17d72",
     "task_integration/rtl/sar20_digital_top.sv": "5132cfe92f6836b4bc4300219e77424bc120e3cab11c191ad744185aaa5ac3bd",
     "task_integration/tb/sar20_lms_integration_tb.sv": "ae7852231d564f29eb68ca7e3791f7b1695098446ac5b6cc7e2f2b91c1f4202a",

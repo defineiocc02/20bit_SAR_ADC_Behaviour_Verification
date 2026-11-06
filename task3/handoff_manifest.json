@@ -22,11 +22,12 @@
   "scope": "MODULE3_CAAZ_DIGITAL",
   "source_paths_relative_to": "task3/",
   "source_sha256": {
-    "SPEC.md": "12f5707e5cfbf6c825005a5e089fafcd89b3959db4dcffe1270a1e31df57259b",
+    "SPEC.md": "d124b8a9b51477a3923bbc1f50025b84bdc375fc53d376070c8ac09f4bcc645f",
     "environment.json": "f36b81de42e8f183d0b72ebdc944b883f126c63fafb622c7b19b0ce1b3f2583b",
-    "evidence/behavior/caaz_effect_summary.json": "1ead3da77c47b25617676ab36d44445a80fe2ab507d810214a6ac7f064a283c7",
+    "evidence/behavior/caaz_effect_summary.json": "ebf41e320f6e727d71d199fb7ed0572f7fcd4308ae14e75379cd6f492fff0312",
+    "evidence/integrated/summary.json": "c11af574fe9f46f41ae555045d7e300d78af26ce8fa568c625be53de9e87a4b8",
     "evidence/rtl/result.json": "a3e97497a30edf735a4f586b5e02ecc8fff160389b4df5473bb48f4371bcf648",
-    "gate_evidence.json": "80c7aab96b728bc32e0f0b8e8b24a248663d7283a4273d867a6568ebd2b2f000",
+    "gate_evidence.json": "064bebba035d82f036b8ce1a0283c0353aa2a6ccf3657ffc8f502e6fff2ddf0d",
     "microarchitecture.md": "dae8ee0722e5f43da79a7d43a2c99f2c3d7ff21110e4ddf9fb1a92b7f3bf0928",
     "model/caaz20.py": "3da6abedb7eeb6674fa49d8c3661e698b3420e9125fd96c3301888f3af16c3da",
     "requirements_trace.csv": "75e8cf6ebdf891331b189537783ca0d9871ae2f0ddf9a48f25bd01377abb3f86",
@@ -35,7 +36,8 @@
     "tb/caaz20_properties.sv": "624928f93689f66bbb1a795ce820b2229bece8f0e0126e78bae6b00ac3ae9a5b",
     "tb/formal.ys": "0ae7e34a5b841c75b2da1a05dc79bd74c73b7d2d987d3db8eeb49765bbcb7df6",
     "tools/run_caaz_checks.py": "7ad698750aaa99f4ae1257237085a89fb7c67534b2783804cd85db6839b391e1",
-    "tools/run_caaz_effect.py": "192b936bd3087d168592005f989fd5a72487c868dcd8198b41c2ccbeda4cac04",
+    "tools/run_caaz_effect.py": "3a0b9df77d2f5c19b7ec043d4ae8d4dd0f6cf4cf8fe1db065f6bb77565a4c009",
+    "tools/run_joint_effect.py": "58fb4ae8e8f34d8fc1c69ab37f6a2458748b01e4d09071f07499f8934e26d1cc",
     "verification_plan.yaml": "8cf2502e0a0d750e4d3a08905b88e18cb04b03f4061a2711ef38b931cf3f8ffe"
   }
 }

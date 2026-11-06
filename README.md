@@ -44,6 +44,16 @@
 
 [dither 与 CAAZ 联合四组效果图](task3/evidence/integrated/README.md)使用同一 3% 失配池和 80 µV 人工偏移，验证逐笔重构后配对抵消；它不是模拟宏的实测噪声结果。
 
+## CAAZ 如何与 DEM、dither 协作？
+
+每笔先使用自己的 8 片物理编号、DEM 掩码和 dither 位图完成重构与去扰，再将相邻两笔交给 CAAZ。两笔共享的是 RA 的 AZ 代，不是电容失配或 dither 字；AZ 更新／保持意图必须随样本 ID 对齐到该笔的 RA 时窗。
+
+![DEM、dither 与 CAAZ 的同笔协作与交织时序](task3/evidence/cooperation/caaz_cooperation.png)
+
+![同一失配池中 CAAZ 的 AZ 噪声开关对照](task3/evidence/joint_noise/caaz_joint_noise.png)
+
+这组**样本域模型**在 CDAC 残差之后、ADC2 量化之前加入人工设定的 AZ 与独立噪声。相同 5 MS/s 带宽下，独立 AZ 基线的总误差为 19.13 µV RMS，理想共享 AZ 后为 13.68 µV RMS，加入示例保持误差后为 13.75 µV RMS。实际 RA 噪声、保持泄漏和时序仍需模拟验证。[模型、工况与原始数据](task3/evidence/joint_noise/README.md)
+
 ## 现在交付到哪里？
 
 | 项目 | 当前状态 | 入口 |

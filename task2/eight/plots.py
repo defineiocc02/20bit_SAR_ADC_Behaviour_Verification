@@ -269,6 +269,8 @@ def _learning(inputs):
 def run(data_dir: Path, output: Path) -> None:
     """从两档归档数据导出四张图和逐文件收据。"""
     font = _chinese_style()
+    # 轮廓字形避免 macOS 的 Hiragino TTC 在 PDF 阅读器中漏字。
+    plt.rcParams["pdf.fonttype"] = 3
     output.mkdir(parents=True, exist_ok=True)
     inputs, checks = [], {}
     for sigma in SIGMAS:
@@ -304,6 +306,7 @@ def run(data_dir: Path, output: Path) -> None:
     manifest = {
         "font_family": font,
         "font_file": Path(font_manager.findfont(font)).name,
+        "pdf_fonttype": 3,
         "figure_width_mm": 146,
         "dpi": 300,
         "input_sha256": checks,

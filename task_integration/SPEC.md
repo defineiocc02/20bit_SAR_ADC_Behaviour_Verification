@@ -15,7 +15,7 @@
 | `slot_accepted_o`, `stall_o` | 出各 1 | 调度成功和资格不足的一拍响应；模拟孔径以 `acq_valid_o` 为准。 |
 | `acq_valid_o`, `acq_sample_id_o`, `acq_slice_ids_o` | 出 1/32/40 | 同一笔有序八片采样描述符，一拍有效。 |
 | `acq_word_o`, `acq_lower_eighths_o`, `acq_sample_sub_high_o` | 出 6/5/40 | 扰动字、SADC 辅助 DAC 的低路分子、每片五位原生子阵列采样高参考掩码。 |
-| `acq_chop_neg_o`, `acq_az_capture_o`, `acq_az_hold_o`, `acq_az_pair_id_o` | 出 1/1/1/31 | 同笔斩波与 AZ 捕获／保持命令。CAAZ 关时四字段为零。 |
+| `acq_chop_neg_o`, `acq_az_capture_o`, `acq_az_hold_o`, `acq_az_pair_id_o` | 出 1/1/1/31 | 随采样 ID 发布的斩波及 AZ 捕获／保持意图；宏须将 AZ 意图按同 ID 对齐至该样本的 RA 转换窗，不能直接以发布沿切换 CBIAS。CAAZ 关时四字段为零。 |
 | `conv_ready_o`, `conv_sample_id_o`, `conv_slice_ids_o` | 出 1/32/40 | 当前未退休的转换组，外部在有效期间读取。 |
 | `conv_word_o`, `conv_total_eighths_o`, `conv_sample_sub_high_o` | 出 6/6/40 | 对应本笔采样快照。扰动分子的单位为原生一档的八分之一。 |
 | `code_valid_i`, `code_sample_id_i`, `code_i` | 入 1/32/9 | 最终 SADC 粗码，采一拍申请。 |

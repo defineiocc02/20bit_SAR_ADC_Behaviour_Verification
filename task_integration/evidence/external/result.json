@@ -14,14 +14,14 @@
     "steady": 4096
   },
   "execution_log_sha256": {
-    "compile.log": "eec5ce2629c58dd032af5cbc8b5726d0844a97b39e9af14530531a0ed4367ee9",
-    "lint.log": "9e2f078c72d173f66c70bda8868d373553c35951319893d05f06ed129bf11b14",
-    "run.log": "0e1bbf639d319bb70742b4aa91be38bc18aac0eb7910b003fb4792c0bad50070",
+    "compile.log": "84fe5d6a6ec26a63d1031d88dc1d78d418602500d4c75a4ce5276cdb6e44b0e3",
+    "lint.log": "e40636961c9dcad55d2fe16edf2589f9b4f600e4e151b7c430ed5287971f5816",
+    "run.log": "a2be1feddbbf1f94a49807b1e0b70e2bd5b3f1ac9b3bba7a5ee19fae476575e8",
     "verilator.log": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1"
   },
   "log_sha256": {
-    "lint.log": "9e2f078c72d173f66c70bda8868d373553c35951319893d05f06ed129bf11b14",
-    "run.log": "0e1bbf639d319bb70742b4aa91be38bc18aac0eb7910b003fb4792c0bad50070"
+    "lint.log": "e40636961c9dcad55d2fe16edf2589f9b4f600e4e151b7c430ed5287971f5816",
+    "run.log": "a2be1feddbbf1f94a49807b1e0b70e2bd5b3f1ac9b3bba7a5ee19fae476575e8"
   },
   "scope": "digital_top_external_reconstruction_fixture",
   "source_sha256": {
@@ -34,7 +34,7 @@
     "task2/eight_rtl/rtl/dither8_top.sv": "ef9e36cb48eef4c59a4de1852538e7429739f5d36ad608cd7a8e0adb2fffe16c",
     "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad",
     "task3/rtl/caaz20_pair.sv": "5ddbd9f20d4534ad597f22edca9f58604c4d04877eb5efb6ba6dabb142115fdc",
-    "task_integration/SPEC.md": "29460e675e89e521f3cf292c5c39728ae73e40b282125d05ce98527891ec7995",
+    "task_integration/SPEC.md": "10789107717e8f8ef96097b550acdadedbcc53ad79bb01d7a3b86d2ff6ee0d67",
     "task_integration/microarchitecture.md": "e3bc4ae6c79177cb66530c476c4b686f2d8266d22eebada54acd53cc940e4fca",
     "task_integration/rtl/sar20_digital_top.sv": "5132cfe92f6836b4bc4300219e77424bc120e3cab11c191ad744185aaa5ac3bd",
     "task_integration/tb/sar20_integration_tb.sv": "bdef4a76be2318200b438d0632c69efcf42c49fff8a2a0dddcf28b93c14fc913",

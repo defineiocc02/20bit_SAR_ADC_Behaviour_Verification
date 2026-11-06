@@ -17,7 +17,7 @@
     "evidence": [
       {
         "path": "SPEC.md",
-        "sha256": "12f5707e5cfbf6c825005a5e089fafcd89b3959db4dcffe1270a1e31df57259b"
+        "sha256": "d124b8a9b51477a3923bbc1f50025b84bdc375fc53d376070c8ac09f4bcc645f"
       },
       {
         "path": "requirements_trace.csv",

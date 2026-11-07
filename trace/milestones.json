@@ -241,6 +241,7 @@
     {
       "id": "M7",
       "name": "数值对标 A1-A5",
+      "commit": "8b33e45c1780c330b0260b6c3fb725fedc76367e",
       "base_commit": "58d63a9",
       "base_snapshot": "85bb9fb577ee29834ff7225254cbb281097b6d00",
       "behavior_change": false,

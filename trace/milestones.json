@@ -161,7 +161,7 @@
       "behavior_change": false,
       "commits": {
         "M4a_纯函数层": "dc913bc",
-        "M4b_参考接入": "TBD"
+        "M4b_参考接入": "24a43de3a362331401b48747f27cab66750c45dd"
       },
       "files": [
         "src/adi_model/reference.py",

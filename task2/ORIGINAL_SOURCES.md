@@ -26,3 +26,13 @@
 - 原文指出扰动可减轻码边界造成的系统性误差，并补充 DEM 的 DAC 线性化；讲稿／论文未给该芯片独立的 dither 开关收益数字。
 - [理想 ADC2 减性 dither 对照](../task1/evidence/adc2_dither/full20/README.md) 固定 DEM、LMS，仅改变理想细级扰动；它验证统计码密度机制，**不是** Fig.19 的实际采样电容注入。
 - 目标八片的真实物理路径、2%／3% 固定失配＋LMS、逐前缀及 ADC2 过载、同笔补偿、后仿和芯片性能尚须单独验证。dither 不能恢复已过载的样本。
+
+## 逐条台账在哪
+
+本页只讲 dither 一条线。**原文每一句 → 代码哪行 → 哪个测试**的完整对应在 [`trace/source_matrix.csv`](../trace/source_matrix.csv)：专利 8 条（`PAT-01`…`PAT-08`）、论文 14 条（`PAPER-01`…`PAPER-14`）、讲稿 21 条（`SLIDE-01`…`SLIDE-21`）。专利原文（OCR 转写 + FIG.19 裁图，PDF 不入库）在 [`references/patent/`](../references/patent/)。
+
+本页与台账的两处衔接，读的时候别错位：
+
+- 上面写「令 `F=4D3+2D2+D1`、`u=4D6+D4`」，台账里 `F` 记作 `count = word & 7`（`PAT-02`）、`u` 记作 `upper = 4*(word>>5) + ((word>>3)&1)`（`PAT-05`），两者 `PASS`。
+- 上面写「专利第 33 页正文规定 `k=c−u`」，台账 `PAT-05` 落的实现是 `command = coarse - dither.upper`。**注意 FIG.19 的 224 画的是 `u−c`**，与正文相反但物理等价（只差 RDAC 码加减约定），台账 `PAT-05` 的 `note` 与 [`references/patent/README.md`](../references/patent/README.md) 末节都记了这条张力，图的 ± 不作极性依据。
+

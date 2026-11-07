@@ -1,0 +1,1718 @@
+
+=== PDF PAGE 22 VISION OCR ===
+U.S. Patent
+Dec. 10, 2019
+Sheet 20 of 21
+US 10,505,561 B2
+, 300
+200
+ADC
+Ds, D3, Dz, D1
+. D;
+DITHER
+GENERATOR
+DE D4
+~ 224
+400
+SAMPLING DAC
+222
+VIN
+220
+FIGURE 19
+
+=== PDF PAGE 23 VISION OCR ===
+U.S. Patent
+Dec. 10, 2019
+Sheet 21 of 21
+US 10,505,561 B2
+*300
+200
+ADC 1
+VIN
+220
+SAMPLING
+DAC
+ADC 2
+240
+222
+230
+p 241
+DITHER
+GENERATOR
+400
+FIGURE 20
+
+=== PDF PAGE 24 VISION OCR ===
+US 10,505,561 B2
+METHOD OF APPLYING A DITHER, AND
+ANALOG TO DIGITAL CONVERTER
+OPERATING IN ACCORDANCE WITH THE
+adding a first dither value to the input signal to form a
+dithered input signal which is sampled by the at least first
+sampling digital to analog converter. However, the first
+dither value is not added to the input signal provided to the
+5 analog to digital converter of the stage. As an alternative, a
+PRIORITY DATA
+different dither, i.e., a second dither value can be applied to
+the signal provided to the analog to digital converter. The
+This application claims priority to U.S. application Ser.
+method further comprises using the analog to digital con-
+No. 15/916,009, titled "ANALOG TO DIGITAL CON-
+verter of the stage to form a digital code representing the
+VERTER STAGEiại which is hereby incorporated by refer- 10 input signal and removing at least part of the first dither. The
+ence in its entirety.
+removing of at least part of the first dither may be performed
+by: (a) modifying the digital code by a digital value repre-
+TECHNICAL FIELD OF THE DISCLOSURE
+sentative of or based on at least part of the first dither value
+to form a modified digital code, and providing the modified
+The present disclosure relates to improvements in analog 15 digital code to the at least one sampling digital to analog
+to digital converters.
+converter; and/or (b) passing at least part of the dither to a
+subsequent analog to digital converter stage that it receives
+BACKGROUND
+a residue from the sampling digital to analog converter, the
+dither being subtracted from a digital output result of the
+Analog to digital converters, ADCs, are used to convert 20 subsequent analog to digital converter stage.
+signals from the real world to the digital domain, the signals
+It is thus possible to apply a dither to the conversion result
+being obtained from, for example, cameras, microphones,
+without having to modify the input signal that is sampled or
+temperature sensors, pressure sensors, position transducers,
+converted by the analog to digital converter of the stage. The
+gas-flow sensors, electro-chemical cells (e.g., for blood
+analog to digital converter of the stage may include an ADC
+glucose monitoring), and many other forms of transducer.
+25 operated in accordance with a suitable conversion strategy.
+Those real world measurements are converted into digital
+such as (but not limited to) a successive approximation
+values that can be processed by computers, micro-proces-
+register (SAR) conversion scheme. Other technologies may.
+sors, and the like.
+for example, include Flash converters, ramp converters, and
+Parameters of ADCs include how fast they are, how finely
+sigma-delta converters.
+they can distinguish changes in the input signal (i.e., their
+The ADC of the stage may be a combination of ADC
+resolution), and how linear they are. Ideally, all single bit
+technologies, such as a Flash ADC to quickly resolve a few
+transitions in the output word of an ADC would equate to a
+of the most significant bits of the input signal, and to provide
+fixed size transition in the analog input signal presented to
+a partial result to a further converter technology that resolves
+the ADC. In reality, this is very hard to achieve.
+the rest of the conversion result output by the stage. Alter-
+Non-linearity in an analog to digital converter can be
+35 natively, the ADC of the stage could be formed of a single
+improved by dithering the ADC. In effect, a non-linearity is
+technology such as a Flash converter or a sigma-delta
+smeared out over several digital codes of the ADC by the
+application of the dither, thereby reducing the severity of the
+The sampling DAC may be formed as a combination of a
+non-linearity at any given ADC output code. The dither
+sampling circuit including a sampling capacitor and associ-
+value can then be subtracted such that the digital value of the
+40 ated switches for performing a sample and hold or track and
+ADC output signal (the conversion result) is not affected by
+hold function, and a cooperating DAC. The sampling circuit
+the dither, but the performance of the ADC is improved.
+and the DAC are coupled together such that a difference can
+As noted above, speed is one of the parameters of the
+be formed between an analog value sampled onto the
+ADC. To increase the conversion rate, the task of converting
+sampling circuit and a DAC output value corresponding to
+a signal may be shared between two or more series con- 45 the analog equivalent of a digital word supplied to the DAC.
+nected stages. Such an arrangement is known as a pipeline.
+The cooperating DAC, or a further DAC, may be used to
+A stage of a pipeline performs part of the analog to digital
+apply a dither signal to the sampled value.
+conversion. A stage may also form a residue, which repre-
+Advantageously, a switched capacitor DAC architecture
+sents a difference between the analog signal the stage
+is used form the sampling DAC. Such an arrangement
+received and the analog value equivalent to digital conver-
+50 allows the switched capacitor DAC to act as the sampling
+sion result of the stage. The residue is passed to a subsequent
+circuit. Additionally by modifying the connection state of
+stage of the pipeline. The subsequent stage performs an
+some of the DAC capacitors during a sampling phase, or
+analog to digital conversion of the residue.
+after sampling, the switched capacitor DAC can apply a
+dither to the sampled signal or to the residue.
+BRIEF DESCRIPTION OF SOME OF THE
+EMBODIMENTS OF THE DISCLOSURE
+The capacitance of the sampling circuit, or of the capaci-
+tors within the switched capacitor DAC, can be selected
+based on a desired noise performance.
+According to a first aspect of this disclosure, there is
+The sampling DAC may be formed from a plurality of
+provided a method of operating a residue forming stage of
+cooperating DACs. The DACs may be different, in terms or
+an analog to digital converter. Residue forming stages are
+60 relative sizes or implementing technologies
+often found in pipelined analog to digital converters. The
+Preferably, the sampling DAC may be formed of a plu-
+residue forming stage of this disclosure comprises an analog
+rality of slices, each slice being an individual DAC which is
+to digital converter and at least a first sampling digital to
+substantially the same as each other slice. In this context the
+analog converter (DAC). The analog to digital converter of
+slices have matched sampling performances. The DAC
+the residue forming stage has a least significant bit value,
+65 within the ADC may formed of one of the DAC slices
+representing the limit of resolution of the stage. The method
+It can be seen that a repeatable DAC element may be used
+comprises receiving an input signal to be converted and
+to form the sampling DAC and the ADC of the stage. By
+
+=== PDF PAGE 25 VISION OCR ===
+US 10,505,561 B2
+using a plurality of slices in the DAC and the ADC each of
+made to the following description, taken in conjunction with
+the ADC and the DAC can have matched sampling and
+the accompanying Figures, wherein like reference numerals
+timing characteristics. The individual slices in the DAC can
+represent like parts, in which:
+be operated in a co-operative manner to reduce the thermal
+FIG. 1 is a graph showing the relationship between the
+noise of the DAC.
+According to a second aspect of this disclosure there is
+analog value at the input of an analog to digital converter
+provided a stage of an ADC. The stage comprises an ADC,
+and the digital code output by the ADC for an ideal ADC;
+a DAC, and a dither generator for generating a first dither.
+FIG. 2 is a graph showing the relationship between the
+The ADC is arranged to receive an analog input signal. For
+analog value at the input of an analog to digital converter
+example, the ADC is arranged to sample the input signal in
+and the digital code output by the ADC for an ADC having
+a sampling phase and subsequently in a conversion phase to
+differential non-linearity (DNL) errors.
+form a digital conversion value representing the analog input
+signal. Substantially simultaneously with the sampling
+FIG. 3 is a schematic diagram of an ADC having dither
+applied thereto in order to reduce the effect of DNL errors;
+phase of the ADC, the DAC is arranged to sample a
+FIG. 4 is a schematic diagram of an ADC stage in
+combination of the analog input signal and the first dither.
+The DAC is further arranged to receive a digital conversion 15 accordance with the teachings of this disclosure;
+value from which the value of the first dither has been
+FIG. 5 is schematic diagram showing at a system level
+subtracted, or which has been modified in a known way
+how the dither is added and removed again in a second
+taking account of the value of the first dither, to form an
+embodiment of the present disclosure;
+analog residue representing a difference between the digital
+FIGS. 6A-F compare the operation of the sampling DAC
+conversion value and the analog input signal.
+20 without a dither being applied and with a dither being
+The stage of the ADC thus has a dither applied to the DAC
+portion thereof. This can avoid the need to apply a dither to
+FIG. 7 illustrates an embodiment of the present disclosure
+the ADC of the stage, or the dither magnitude can be reduced
+using a sliced architecture;
+or be less than a LSB (Least Significant Bit) size. This
+FIG. 8 is a representation of a unit cell that is used to form
+avoids a reduction in the dynamic range of the ADC as a 25 sliced DACs;
+result of applying the dither. In some embodiments a dither
+FIG. 9 is a schematic diagram of a further embodiment of
+can be applied to the ADC or a small dither can be left in or
+introduced to the residue so as to linearize the response of
+FIG. 10 is a schematic diagram of a further embodiment
+the residue amplifier or the response of a subsequent con-
+FIG. 11 is a circuit diagram showing details of an embodi-
+According to a third aspect of the present disclosure, there
+ment of the stage shown in FIG. 7 in greater detail;
+are provided first and second stages of an analog to digital
+FIG. 12 is a circuit diagram of a variation of the circuit
+converter, the first and second stages being physically or
+shown in FIG. 11;
+temporally in series such that an analog residue output from
+FIG. 13 is a circuit diagram of a further embodiment of
+the first stage is an input of the second stage. The first stage
+35 the present disclosure showing the use of respective buffer
+comprises a first stage analog to digital converter arranged
+amplifiers and a shared bandwidth limiting resistor;
+to receive an input signal. The first stage also comprises a
+FIG. 14 is a schematic diagram of a two stage pipelined
+sampling digital to analog converter arranged to receive and
+ADC in accordance with the teachings of this disclosure;
+sample the input signal. The second stage comprise a second
+FIG. 15 is a schematic diagram of a two stage pipelined
+stage analog to digital converter arranged to receive an
+40 time interleaved ADC in accordance with the teachings of
+output of the sampling digital to analog converter, either
+directly or after amplification. The first and second stages
+FIG. 16 is a timing diagram for the time interleaved ADC
+are further responsive to a dither generator, the dither
+shown in FIG. 15;
+generator causing a dither to be applied to the input signal,
+FIG. 17 is a plan view of a DAC layout floorplan on a
+either prior to, concurrent with, or after sampling of the input
+45 semiconductor die;
+signal by the sampling digital to analog converter and/or by
+FIG. 18 is a schematic diagram of a dual ended (differ-
+the first stage analog to digital converter, and the second
+ential) ADC in accordance with the teachings of the present
+stage includes a digital subtractor to subtract the dither value
+from an output of the second stage analog to digital con-
+FIG. 19 is a schematic diagram of an ADC stage consti-
+50 tuting an embodiment of the present disclosure illustrating a
+According to a further aspect of the present disclosure
+relationship between dither words; and
+there is provided a method of operating a pipelined ADC, the
+FIG. 20 is a schematic diagram of a further embodiment
+method comprising applying a dither to a residue formed by
+an Nth stage of the ADC, such that the dither modifies an
+input signal to an N+1th stage of the ADC. N is an integer 55
+DESCRIPTION OF SOME EMBODIMENTS OF
+number greater than zero.
+THE DISCLOSURE
+The dither may be greater or smaller than the least
+significant bit value of the Nth stage. The digital value of the
+Ideally, an analog to digital converter would be com-
+dither is passed to the N+1th stage of the ADC such that the
+pletely linear, such that the same difference in value between
+value of the dither can be removed from the output result of 60 one digital code and the next digital code always corre-
+the N+1th stage. There is also provided a pipelined ADC
+sponded to exactly the same size change in an input signal,
+arranged to work in accordance with the above method.
+Vin(t). Such an idealized example is shown in FIG. 1 where
+the analog input value, expressed in arbitrary units is indi-
+BRIEF DESCRIPTION OF THE DRAWINGS
+cated along the X axis of FIG. 1 and a corresponding digital
+65 output code is shown on the Y axis. In order to minimize
+To provide a more complete understanding of the present
+quantization error, the analog input value should be mapped
+disclosure and features and advantages thereof, reference is
+to the nearest digital code. As an example an input value
+
+=== PDF PAGE 26 VISION OCR ===
+US 10,505,561 B2
+Vin(t)-2.449 maps to output code 010 or 2, whereas an input
+first group. Following the sampling, the capacitors of the
+value of 2.501 maps to the output code 011 or 3.
+second group are set in accordance with a dither word
+However, in reality, imperfections in the ADC, for
+generated by a pseudo-random noise generator. This has an
+example due to lithography errors, aging, stress, or thermal
+advantage of automatically ensuring scaling between the
+gradients can cause the distance between digital boundaries
+added signal and the ADC output as the same DAC performs
+to vary, resulting in an error known as DNL error. FIG. 2
+both tasks. Care must be taken to ensure that the dynamic
+shows an exaggerated instance of DNL error where the
+range of the ADC in not exceeded as the sum of the input
+transition between codes 000 and 001 has moved from
+signal and the dither must remain within the dynamic range
+Vin(t)-0.5 to Vin(t)-0.75 and the transition from codes 001
+of the ADC if clipping is to be avoided.
+to 002 has moved from Vin(t)=1.5 to Vin(t)=1.25. As a 10
+The inventors realized that the advantages of introducing
+consequence code 001 no longer spans an input size of 1
+least significant bit, but instead has a range corresponding to
+dither could be obtained without having to perturb the signal
+0.5 LSB. It exhibits a DNL error of -0.5 LSB. Similarly
+input to the ADC. This avoids the introduction of additional
+code 100 has expanded such that transitions between it and
+components in the ADC. The dither can be applied to the
+adjacent codes occur at Vin(t)-3 and Vin(t)-4.5. This code 15 components used to form a residue of the ADC stage within
+extends over a range of 1.5 LSB has a DNL error of 0.5.
+a pipelined converter. Not only can this approach simplify
+For differential ADC converters, DNL errors at the very
+the design of the ADC, but it also allows the ADC section
+edges of the converter input range are relatively less trouble-
+to be selected for considerations such as speed and resolu-
+some than DNL errors in the middle of the range as signal
+tion, whereas the residue forming section can be selected
+values at the edges are less likely to be exercised than codes
+20 using a differing sets of considerations, such as noise per-
+near the middle of the dynamic range if clipping is avoided.
+That said, the probability of the input signal having a given
+FIG. 4 shows an ADC stage 100 constituting an embodi-
+value also affects the importance of a DNL error associated
+ment of the present disclosure. This example focuses on the
+with an output code. To see this, consider a sinusoidal input
+first stage of a pipelined ADC, although equally the stage
+signal. The rate of change of the signal is fast about its 25 need not be the first stage. An ADC part 200 is arranged to
+midpoint and slow about its peaks and troughs. It can
+receive an input signal and, in use, to form a digital
+intuitively be seem that DNL errors occurring for a first code
+representation of the input signal. In FIG. 4, the ADC 200 is
+value when the signal is only slowly changing are going to
+formed of a sampling DAC 210, a comparator 212, and a
+be output with a greater probability than an error occurring
+SAR logic 214 which uses the sampling DAC 210 to sample
+for a second code where the signal is quickly changing as
+the input signal and to convert it into a digital equivalent
+there is a reduced probability of the signal being sampled to
+using the a suitable SAR conversion scheme. The ADC part
+the second code. For single ended ADCs, DNL, errors at the
+beginning of the conversion range are more significant
+200, which can be regarded as a "stage ADC"
+because their size relative to the small input signal makes
+with a separate residue forming stage comprising a further
+them proportionately more significant.
+sampling DAC 220.
+These problems have been recognized by workers in this
+A dither generator (not shown, but may be a pseudo-
+random number generator 40 as described with respect to
+An answer to this problem is to introduce a dither. A dither
+FIG. 3) is provided in association with a sampling DAC 220.
+is an uncorrelated signal, usually pseudo-random noise
+The dither generated by the dither generator, which can be
+injected into the input of an ADC such that a given input 40 regarded as a first dither, could be applied in the analog
+value V1 of the wanted signal Vin(t) becomes spread over a
+domain as described with respect to FIG. 3 by using an
+plurality of codes. This reduces the effect of DNL and also
+explicit DAC 42 to form an analog value which is then
+smooths the integral non-linearity (INL) response of the
+applied to a summer 222 so as to modify the analog value
+VIN sampled onto the sampling DAC 220. However, a
+An exemplary circuit for introducing dither is shown in 45 preferred approach, as will be described in more detail with
+FIG. 3. An ADC 30 is preceded by a summer 32 which
+respect to FIGS. 6A-F, is to modify the status of some of the
+accepts the input signal to be digitized, Ain, at a first input
+elements, such as capacitors, within the sampling DAC in
+34 and a dither signal at a second input 36. The dither signal
+response to the digital representation of the dither value
+is formed in the digital domain by a pseudo-random number
+during sampling of input signal VIN. This causes the dither
+generator 40. A digital output of the pseudo-random number
+50 to be applied to the sampled value of VIN by the sampling
+generator is provided to a DAC 42 and a digital subtractor
+DAC 220 itself. For the purposes of explaining the operation
+"SUBTRACT" 44. The dither is converted to an analog
+of the present disclosure a summer 222 is indicated to
+signal by the DAC 42 and added to the input signal Ain by
+represent the application of the dither value to VIN, even if
+the summer 32. The ADC 30 then converts the input signal
+the dither is summed internally of the sampling DAC
+that it receives, said input signal comprising the sum of Ain 55
+In use, the ADC part 200 and the sampling DAC 220 can
+and the dither, and outputs a digital word. With appropriate
+be instructed to sample VIN at the same instant. Following
+scaling the value of the analog dither added to the input
+sampling, the ADC part 200 converts the sampled input
+signal can be subtracted in the digital domain by the sub.
+signal. When the ADC 200 has formed a digital represen-
+tractor 44, to yield the digital version of the input signal.
+tation of the input signal, this is provided to the sampling
+To avoid the problems of scaling between the DAC 42 and
+60 DAC 220. A summer 224, or other code modification circuit,
+the ADC 30, the DAC can be formed from part of a switched
+is used to take the digital output of the ADC 200 and supply
+capacitor array inside the ADC. For instance, a switched
+a modified version of it to the sampling DAC 220 as an input
+capacitor array can act as a sampling DAC inside an ADC
+word to be converted. In this example, the summer 224 is
+comprises N capacitors. The array of N capacitors is notion-
+used to subtract the dither value from the digital word
+ally split into a first group of N-K capacitors and a second
+65 provided by the ADC part 200. Although the digital output
+group of K capacitors. During sampling of the input signal,
+of the ADC part 200 is not dithered, the value of the residue
+the input Vin(t) is sampled onto the capacitors within the
+formed by the sampling DAC 220 is dithered, and as the
+
+=== PDF PAGE 27 VISION OCR ===
+US 10,505,561 B2
+residue is passed to a subsequent stage of the pipeline, this
+will now be discussed with respect to FIGS. 6a to 6f. Each
+introduces a dither in the final digital output of the pipelined
+Figure shows 6 capacitors with respective weights C, 2C,
+analog to digital converter.
+4C, 8C, 16C, and 32C within a switched capacitor sampling
+Setting the dither during the sampling instant and then
+DAC 320. The top plates of the array of capacitors are
+removing it by subtracting the dither value from the digital
+5 further connected to a terminating capacitor 330 by way of
+word provided to set the DAC 220 has the advantage of not
+a shared conductor 322. In this simplified arrangement, only
+burdening the residue amplifier 230 with having to accept an
+the three most significant capacitors 8C, 16C and 32C can be
+increased dynamic range. However, if the residue amplifier
+connected to sample the input signal VIN during a sampling
+has sufficient input range, then some or all of the dither may
+phase by connecting their lower plates (as shown) to VIN via
+be left in the output of the sampling DAC and passed to a 10 respective switches. In a sampling DAC not applying dither,
+subsequent stage.
+as shown in FIG. 6A, the capacitors C, 2C, and 4C are
+The scheme described above works well when the dither
+connected to VREF2 (e.g., ground) during the sampling
+is an "integer dither" that is to say the dither is nominally
+phase. In contrast when a dither is applied, as shown in FIG.
+formed in units of 1 LSB of the sampling DAC 210 within
+6B, the lower three capacitors are connected to either
+the ADC 200. In such a scheme however the dither is 15 VREF1 or VREF2 (e.g., ground or OV) in accordance with
+removed at the node formed at or before the input to the
+a dither code. In FIG. 6B, the dither code is "101" (or
+residue amplifier 230. The amplifier therefore only sees an
+"101000" for the entire array reading from least significant
+input value which is a function of the residue. However, if
+to most significant bit) resulting in the capacitors C and 4C
+a fractional dither is also used in conjunction with the integer
+being connected to VREF1 and the capacitor 2C being
+dither then the input to the residue amplifier also becomes
+20 connected to VREF2. Sampling switch 350, when closed,
+dithered, and this effectively linearizes the residue amplifier.
+connects a reterence voltage (e.g., VREF1 or VREF2) to the
+Such an arrangement is shown in FIG. 5. Here the first
+shared conductor 322. Sampling switch 350 is opened to
+stage, ADC1, of a pipelined ADC can be considered as
+hold the sampled input value as per FIG. 6A, or the
+having a first stage LSB. The dither signal can then be
+combination of the sampled input signal and the dither as per
+tormed as a digital word partitioned into two parts, a first 25 FIG. 6B
+dither part being an integer part and a second dither part
+Once the input has been sampled, the sampling DAC can
+being a fractional part. The integer part specifies the size of
+be set to a hold state, which is shown in FIG. 6C for the case
+the dither in terms of integer numbers of the LSB of the first
+without a dither, and FIG. 6D for the case with a dither. It
+stage to which the dither is being applied. The fractional part
+can be seen that the hold states are the same, with all the
+specifies part of the dither as a fraction of the LSB of the first 30 capacitors being connected to VREF2 (e.g., ground).
+stage. This fractional dither may be expressed as an integer
+Once the ADC part 200 has made its conversion, the
+number of LSB of the second ADC 240, and may also
+digital word representing the conversion result, here
+include a fractional portion corresponding to less than one
+"011101" is applied to the sampling DAC 220 so that it can
+LSB of the second ADC 240
+form a residue. In the case without dither, as shown in FIG.
+In the arrangement shown in FIG. 5, the integer part of the
+35 6E, the DAC 220 is set to "011101", i.e., the capacitors 2C,
+dither is handled as was previously described with respect to
+4C, 8C, and 32C are connected to VREF1, whereas the other
+FIG. 4. However the fractional part of the dither can be
+capacitors are connected to VREF2. In the case with dither.
+added to the signal sampled onto the sampling DAC 210
+as shown in FIG. 6F, the dither value of 101000 is added to
+This is illustrated by the provision of a summer 300 in the
+the converted value "011101" to form "110011" which is
+analog signal path to the ADC part 200. This approach could
+40 used to set the switch positions of the capacitors of the
+be used, in conjunction with a DAC to provide a modified
+sampling DAC. The length of the sampling DAC is not
+voltage, but in preference the fractional dither is applied by
+restricted to six capacitors (assuming one capacitor per bit),
+setting some additional dither capacitors provided as part of
+and this number was chosen as a simple example, sampling
+the sampling DAC 210 to provide a sub-LSB dither. Once
+DACs may have more or fewer "bits" of the designers will.
+the dither is added the ADC part 200 is used to perform its 45
+The inventors realized that the teachings herein could be
+analog to digital conversion, and it outputs a digital output.
+modified by use of a Slice or Sliced architecture, to keep the
+It should be noted that the digital output is not processed in
+dither accurately scaled with the digital output of the ADC
+this example to remove any of the fractional dither that was
+and avoid any reduction in dynamic range, while also
+added to the sampling DAC 210. Thus, the output by the
+exhibiting increased rate of throughput within the ADC.
+SAR logic 214 may be modified from its un-dithered value
+Such an arrangement is shown in FIG. 7. Here the ADC
+and the words provided to the DAC 220 may be different as
+part 200 has been fabricated using a DAC slice 210.1, and
+a result of the fractional dither being applied. Correction for
+the sampling DAC 220 is formed from a plurality of
+the integer portion of the dither is performed as was
+sampling DAC slices 210.2 to 210.n. Advantageously all the
+described with respect to FIG. 4. The fractional dither
+slices are the same. This means each has the same sampling
+becomes summed with the residue to create a dithered 55 response, in terms of input impedance, acquire time or time
+residue. This dithered residue is amplified by the residue
+constant and the same transition time to transition from
+amplifier 230 and passed to the second ADC 240. With
+sample to hold states. This means the signal in the slices
+proper scaling the fractional dither can be represented as a
+220.2 to 220.n of the residue forming DAC 220 are the same
+plurality of LSB of the second ADC 240, and hence the
+as the signal in the slice 201.1 of the ADC. At first sight this
+digital representation of the fractional dither can be sub-
+statement might seem so obvious that it seems superfluous,
+tracted from the digital output of the second ADC by a
+but in fact, it highlights an important and easily overlooked
+digital summer 302. This mitigates the effect of non-linearity
+condition that should be observed to achieve good perfor-
+within the residue amplifier or the second ADC 240. This
+mance from the sliced architecture of FIG. 7. This will be
+approach can be extended to apply a dither to more than 2
+discussed later.
+stages of a pipelined ADC.
+The dither generator 400 generates one or more random
+As noted above, the sampling DAC 220 can be used to
+digital words at a time which are supplied to one or more of
+apply the dither to the sampled value of the input signal. This
+the DAC slices 210.2 to 210.n within the residue DAC 220.
+
+=== PDF PAGE 28 VISION OCR ===
+US 10,505,561 B2
+The dither is preferably applied by setting some of least
+Typically, for a 16 bit converter the sample circuit
+significant capacitors within the sampling DAC slices to
+samples for at least 12 time constants; for 18 bit conversion
+provide a dither value before or during the sampling process
+the sampling circuit samples for at least 14 time constants,
+such that the analog value on the input signal sampled onto
+the respective sampling DAC arrays within the slices is s time constants.
+and for 20 bit conversion the sampling circuit samples for 15
+effectively modified by the value of the respective dither.
+However the dither could also be applied after sampling and
+The performance of the transistor switches in terms of the
+added to the digital word provided to each of the DAC slices
+on state resistance Rov is limited by the fabrication process.
+when forming the residue where the residue amplifier has
+It is possible to put transistors in parallel or make a wider
+transistor to reduce Row but this comes at a cost of
+sufficient dynamıc range to pass the sum of the residue and 10 increased charge injection from the gate of the transistor to
+the dither to a following stage.
+It is advantageous to have the residue DAC made from a
+the sampling capacitor, which can be viewed as a feature of
+plurality of identical elements. This is to ensure that the
+the gate to channel parasitic capacitance of the transistor.
+sampling performance and RC (Resistor-Capacitor) time
+Consequently making the transistor switches wider to reduce
+constant of each slice is well matched.
+The following table, Table 1, shows the evolution or 15 Kov compared to the value ofthe capacitor connected to the
+switch is not an automatic win as the charge injection
+voltage from O to an arbitrary value of '1' expressed as a
+problem worsens and degrades the accuracy of the analog to
+function of time constants Tc of a first RC combination as
+digital converter. However, as will be seen later embodi-
+exemplified by a first sample and hold circuit and the voltage
+ments of this disclosure allow the on resistance to be
+on a second sample and hold circuit where its time constant
+20 increased, and deliberately so, while still maintaining good
+Tc' differs from Tc by being 10% larger.
+speed and noise performance.
+Put another way, when the first sample and hold circuit
+Another way to make the time constant smaller is to make
+has been acquiring the input voltage for 10 of its time
+the sampling capacitor smaller. This, however, hits another
+constants, the second sample and hold has only seen 9 of its
+fundamental problem in the form of thermal (Johnson-
+own time constants.
+25 Nyquist) noise. It is known that the root mean square
+thermal noise NRMs on a capacitor can be expressed as:
+from final
+Tc value
+Fractional
+voltage
+0.367879441 0.632120559
+0.135335283 0.864664717
+0.049787068 0.950212932
+0.018315639 0.981684361
+0.006737947 0.993262053
+0.002478752 0.997521248
+0.000911882 0.999088118
+0.000335463 0.999664537
+0.00012341
+0.99987659
+10
+4.53999E-05 0.9999546
+11
+1.67017E-05 0.999983298
+12
+6.14421E-06 0.999993856
+13
+2.26033E-06 0.99999774
+14
+8.31529E-07 0.999999168
+15
+3.05902E-07 0.999999694
+16
+1.12535E-07 0.999999887
+17
+4.13994E-08 0.999999959
+18
+1.523E-08źŚł
+0.999999985
+19 5.6028E-09
+0.999999994
+20
+2.06115E-09 0.999999998
+from final
+Tc' value
+Fractional
+voltage
+0.9 0.40656966
+0.59343034
+1.8 0.165298888
+0.834701112
+2.7 0.067205513
+0.932794487
+3.6 0.027323722
+0.972676278
+4.5 0.011108997
+0.988891003
+5.4 0.004516581
+0.995483419
+6.3 0.001836305
+0.998163695
+7.2 0.000746586
+0.999253414
+8.1 0.000303539 0.999696461
+0.00012341
+0.99987659
+9.9 5.01747E-05 0.999949825
+10.8 2.03995E-05 0.9999796
+11.7 8.29382E-06 0.999991706
+12.6 3.37202E-06 0.999996628
+13.5 1.37096E-06 0.999998629
+14.4 5.5739E-07îę
+0.999999443
+15.3 2.26618E-07 0.999999773
+16.2 9.2136E-08 0.999999908
+17.1 3.74597E-08 0.999999963
+18
+1.523E-08
+0.999999985
+Equation 1
+30
+NRMS =
+KB is the Boltzmann's constant. T is Temperature in
+Kelvin. C is capacitance in Farads.
+This noise is not caused by the capacitor as such, but
+rather by the thermodynamic fluctuations of the amount of
+charge on the capacitor due to the switch resistance. Once
+the capacitor is disconnected from a conducting circuit this
+random fluctuation is captured by the capacitor.
+The root mean square (RMS) thermal noise, NRMS› on a
+capacitor at 300K is set out below for a range of capacitor
+45
+After 10 time constants the first RC circuit is only in error
+by 0.0045% while the second RC circuit is in error by 50
+0.012%. These numbers seem, at first sight, very small.
+However, these need to be considered in the context of the
+resolution of modern ADCs.
+When resolution is expressed as a percentage of full scale
+value, it can be seen that:
+Capacitance
+Noise Voltage
+1 nF
+100 pF
+10 pF
+1 pF
+100 fF
+10 F
+1 fF
+2 uV
+6.4 LV
+20 uV
+64 uV
+200 uV
+640 uV
+2 mV
+The minimum capacitor size that can be tolerated within
+a sampling circuit can be calculated as a function of input
+resolution. It is known to the person skilled in the art that for
+an ADC the signal to noise ratio can be represented as:
+Equation 2
+8 bits = 0.390625%
+10 bits = 0.097656%
+12 bits = 0.024414%
+14 bits = 0.006104%
+16 bits = 0.001526%
+18 bits = 0.000381%
+20 bits = 0.000095%
+60
+2V2
+SNR = 2010g NRMS
+Vinpp represents the peak-to-peak value of the input
+Thus waiting for 10 RC time constants is not sufficient to 65 signal.
+realize 14 bit resolution, since the sampled voltage would be
+more that 1 LSB in error.
+Since the maximum RMS signal value can be equated to
+Vref. There is also a quantization noise contribution. The
+
+=== PDF PAGE 29 VISION OCR ===
+US 10,505,561 B2
+12
+uncertainty in an ADC is +½ LSB. If this is error is assumed
+to be triangular across the analog input signal then the
+effective number of bits (ENOB), becomes
+sampling capacitors reduce the RC time constant and hence
+allow higher throughput, but at the expense of increased
+thermal noise.
+The inventors realized that an architectural change shown
+5 in FIG. 7 could be made to partially decouple the problems
+ENOB = SNR - 1.76
+of noise from speed, as improving noise performance sug-
+gests the use of more capacitance whereas improving speed
+performance suggests the use of smaller capacitance. The
+slices can be made with relatively small values of capaci-
+Suppose an ADC is to sample an input with a full scale
+range of 5V with 18 bit resolution. The LSB value is
+10 tance such that slice 210.1 can be used to perform an ADC
+5+21=19 uV. However by the time the quantization noise is
+conversion and arrive at an interim result relatively quickly
+but with a noise penalty. The interim result can be used by
+taken into account the sampling noise needs to be further
+one or more other slices 210.2 to 210.n to form a residue.
+reduced to around 11 uV RMS• This indicates an input capaci-
+The one or more other slices may have bigger values of C,
+tance of around 40 pF if the thermal sampling noise is to be 15 or work in parallel to synthesize a bigger value of C such that
+less than 1 LSB. If the full scale dynamic range is reduced,
+the residue has an improved thermal noise figure.
+then the LSB size is correspondingly reduced and the input
+Operating a plurality of sampling stages in parallel is not
+capacitance has to be increased to obtain the same noise
+as simple as merely connecting a load of stages together.
+pertormance expressed in terms of bits.
+That, as with many things in high speed analog to digital
+The speed of the sampling stage is not the only factor that 20 converters overlooks some of the fundamental physics that
+needs to be taken into consideration as the samples cannot
+makes this task so challenging.
+be taken back-to-back as the ADC needs some time to make
+The stages should be "matched" to set their RC time
+constant to within an acceptable value. The limit of what
+The process of trialing the bits by switching the capacitors
+between the reference voltages causes charge redistribution
+inside the DAC, the charge flowing through the transistor
+switches and hence subject to an RC time constant. Also, the
+switching of the capacitors to and from the reference voltage
+causes abrupt charge draws from the reference voltage,
+which interact with the inductance of the conductors/tracks
+between the reterence voltage and the capacitors, and with
+the capacitance of the capacitors themselves to introduce
+constitutes "acceptable" depends on a time budget for sam-
+25 pling the input signal and also for allowing charge redistri-
+bution and ringing to settle to around 1 LSB of the channel
+or slice. Previously, the discussion examined the problem of
+RC time constant mismatch in the context of a DC (Direct
+Current) signal. That was a useful introduction to the fol-
+30 lowing passages of this disclosure where RC time constant
+mismatch with AC (Alternating Current) signals is consid-
+Looking more specifically at the sampling problem, this is
+once again a function of the dynamic range of the converter
+Both the ringing and the capacitor to capacitor charge
+35 and its maximum bandwidth.
+redistribution limit the conversion rate. The ringing needs to
+Suppose the ADC is to sample a sinusoid, Vinput, having
+be given time to subside below an appropriate value, such as
+a dynamic range of 5V at 10 MHz. This has an amplitude of
+1 LSB (or the amount of error that redundancy within the
+2.5 V and an angular frequency of 2xx10x10° radians per
+ADC can reasonably be expected to correct), and the charge
+redistribution also needs to be asymptote to an appropriate 40
+value. Luckily it turns out that it is not required to wait 14
+to 16 time constants after setting the bits in a bit trial before
+strobing the comparator to look at the result of the bit trial.
+The maximum rate of change of voltage occurs around the
+zero crossing point and is 2.5x2xxx10x10°=157x10° volts
+In practice it is reasonable to wait for a much shorter time,
+say around 4 time constants in a converter having redun- 45
+So, 1 picosecond of sampling skew (a timing error) would
+dancy. It can be seen that this could add a further (18+3)
+equate to 157 uV of error. It was noted previously that for a
+4-84 time constants to the conversion time for an 18 bit
+dynamic range of 5V and 18 bit resolution then the LSB size
+converter having 3 redundant bits. On a simplistic estimate,
+was 19 uV. Therefore, this small timing skew of 1 ps
+with an Rov of 10 ohm and a capacitance of 40 pF, and
+introduces an error of 8.3 LSB. This timing skew interacts
+where the sampling capacitor was also involved in the bit 50 with any variations in RC time constant between stages or
+trials of a successive approximation converter, and the
+slices to increase mismatch errors in the voltage sampled
+settling time on average of 14 time constants is allowed for
+onto each slice.
+each sampling of the input signal, this would suggest a
+To address this the inventors have chosen an architecture
+conversion rate of around 1/(10x40x10-1½x(14+84))=25
+where for each slice integrated circuit lithographic precision
+55 is used to ensure that the capacitors and transistors in each
+Pipelining allows the bit trials to be split between different
+sampling arrangement scale together to maintain a matched
+stages of an ADC and while the conversion time between
+RC sampling time constant, and the sampling switches are
+taking a sample and outputting a result is not improved by
+substantially co-located to minimize timing skew.
+pipelining the throughput or conversion rate is nearly
+In an embodiment where the slices are formed from
+doubled in a two stage pipeline. The other benefit of
+60 switched capacitor arrays, each slice includes a sampling
+pipelining is the ability to provide amplification of the signal
+DAC, and the sampling stages are matched so as to have
+as it is passes to a subsequent stage of the pipeline, thus the
+capacitors and transistors at a given electrical position in one
+comparators of the subsequent stage can make faster deci-
+slice being substantially the same as the equivalent capaci-
+tors and transistors in others of the slices.
+There is still a desire to work at even higher sampling
+rates without incurring noise penalties. The problem is, as
+noted before, that none of the solutions are easy. Smaller
+In an embodiment of this disclosure, a unit cell compris-
+ing a unit size capacitor C in association with unit sized
+transistors for connecting one of the plates of the capacitor
+
+=== PDF PAGE 30 VISION OCR ===
+US 10,505,561 B2
+to VIN, VREF1 and VREF2 respectively is used repeatedly
+to form the slices. Each unit cell is nominally identical to
+each other unit cell in its electrical performance. The cells
+0.001 x 10x108 = 1.59×10-11 scconds
+can be grouped together, either permanently on or as part of
+a dynamic allocation of cells to groups. Two cells can be 5
+Thus, in this example a change of 10% in the RC time
+grouped together to form a capacitance of 2C, four cells can
+constant yields a minute phase change at 10 MHz of 1x10
+be grouped together to form a capacitance of 4C and so on.
+radians, but this phase change turns out to be equivalent to
+If desired, cells do not need to be grouped together to from
+16 picoseconds timing error which equates to a mismatch
+groups in a binary sequence of weights. Cells could be
+10 between the slices of 133 LSB for a 5 V peak-to-peak input
+grouped to form capacitors to provide redundancy. Cells can
+signal at 10 MHz.
+also be connected in series to form effective capacitances of
+The above calculation shows that mismatches in compo-
+C/2, C/3, C/4 and so on. It can be convenient to work
+nent values manifest themselves as large sampling time
+predominantly with cells of 2C as a way of reducing the
+errors as the frequency increases. However, this problem
+switch control and driver requirements, and only to have one
+15 seems to have been overlooked in the past.
+or a few cells of 1C being individually controllable.
+Having noted that variations in the RC value of a sam-
+Returning to the issue of matching the RC time constants,
+pling stage can introduce phase small phase shifts which can
+these have an effect on sampling AC signals. It was shown
+manifest themselves as many LSB of error, the inventors
+in Table 1 that changes in the time constant can give rise to
+have, in some embodiments of this disclosure, taken the step
+significant errors in the sampled value of a DC signal.
+20 of adding a series resistor into the RC sampling circuit. This
+However, often the ADC is to sample varying (AC) signals.
+is counter intuitive since adding a resistor clearly lowers the
+It is desirable for the slices to sample the same value, to
+bandwidth of the circuit and hence increases the sampling
+within acceptable limits, but this raises the question of how
+time for an input signal. Such as approach is diametrically
+important is the matching when looking at AC signals. The
+opposing the steps that would be taken to build a fast ADC.
+inventors appreciated that the issue of matching has been
+25 However, the effective "on" impedance of the transistor
+overlooked in the past. In one example, a first stage of a
+switches may change with temperature and input voltage by
+pipeline converter resolves the 6 MSB of the signal to be
+a few percent and although careful layout and bootstrapping
+digitized. The input signal VIN is sampled onto two sam-
+can go a long way to reducing variation, adding a series
+pling DACS. One sampling DAC, called 'Big DAC" has
+resistor (whose thermal performance is more stable than a
+three times the capacitance of the other sampling DAC,
+30 transistor) can improve the matching between slices. The
+called "Small DAC". The small DAC is used to perform the
+resistors may have values between ohms and several hun-
+dred ohms. In an embodiment resistors of around 1609 were
+SAR trials, so as to save power, but once it has finished then
+used. The transistors may have on resistances of only a few
+both DACs are connected to a common node such that their
+ohm, and transistor to transistor on resistance variation may
+residues are merged together in order to meet the 13 bit noise 35 only be fractions of an Ohm. This approach significantly
+requirement. However, the example does not consider or
+improves matching between the sampling DAC slices.
+have any teaching of scaling the transistor switches to match
+As a result, it is preferable to make the sampling section
+the sampling time constants of the DACs or of co-locating
+of each slice nominally identical to the sampling sections of
+the sampling switches to minimize timing skews.
+each of the other slices.
+The effect of the change in the RC time constant is most 40
+Returning to FIG. 7, some or all of the remaining DAC
+easily understood if treated as being a phase shift.
+slices 210.2 to 210.n are configured to sample the input VIN
+The phase shift can be modelled as that of an RC low pass
+simultaneously with slice 210.1 and to act together to form
+filter, where the phase shift o is given by:
+a residue DAC 220 to form an analog output voltage
+Vresidue representing the difference between VIN and Vdac.
+ф=-arctan(21лfRC)
+Equation 5 45 where Vdac is the voltage produced by the residue DAC 220
+Suppose a RC sampling circuit is designed to have a -3
+when driven with the "result" of the analog to digital
+conversion formed by the first DAC slice 210.1 when driven
+dB bandwidth of 10 MHz. Suppose also that C is chosen to
+by the SAR logic 214 to arrive at a P bit conversion, where
+be 40 pF in order to meet the noise performance figure
+P is the effective resolution in bits of the slice 210.1.
+required to achieve 18 bits of resolution. Using the following
+The first DAC slice 210.1 may be formed from a non-
+relationship:
+subdivided switched capacitor array, a segmented or sub-
+divided switched capacitor array or a sampling capacitor and
+associated DAC.
+In use, each of the slices 210.1 to 210.n is coupled to VIN
+55 and used to sample VIN. The sampling switches 350 (see
+FIG. 6A) of the slices are co-located to ensure that they
+Plugging in f is 10 MHz, and C is 40 pF, the value of R
+can be calculated. In this example, R is 40Q. Evaluating
+receive their 'hold" instruction at the same time and also to
+ensure that each switch 350 suffers the same process,
+voltage, and temperature (PVT) variation as each other
+60 switch. This helps ensure that each sampling DAC circuit
+ф=-arctan(2-л:10x10°×40x40x10-12)
+has the same electrical performance as each other sampling
+DAC, for example matched RC time constants, and the
+switches 350 transition between conducting and non-con-
+ducting at the same slew rate and at the same time, thereby
+At first sight, this phase shift looks negligible. However,
+if RC changes by +10% then 4=-0.11013rad. This is a
+difference of 0.001 rad, which equates to a time difference of:
+avoiding phase shifts between the DAC slices 210.1 to 210.n
+when operating concurrently to acquire (for example sample
+and hold) a shared input signal.
+
+=== PDF PAGE 31 VISION OCR ===
+US 10,505,561 B2
+After the input signal has been acquired, the first DAC
+DAC had the superior sampling time and settling speed
+slice 210.1 can be used to form a SAR conversion of the
+associated with being a 4 pF DAC slice. It should further be
+sampled signal. Such a conversion may include use of a
+noted that the residue at the output of the first DAC slice
+further sub-ADC, for example in the form of a Flash ADC
+210.1 can also be connected to the output of the residue
+to provide a near instantaneous conversion of the first two or
+5 DAC 220 such that it also contributes to the reduction of
+three bits of the P bit conversion performed by the DAC slice
+thermal noise of the bank of capacitors.
+210.1. Such SAR conversions can also include the inclusion
+As noted earlier, the sampling DACs can be formed from
+of additional bits to provide redundancy in the result and that
+repeated unit cells. One such unit cell 270 having a value 1C
+the conversion can also be pertormed with radix <2 tech-
+is shown in FIG. 8. The unit cell comprises a capacitor 272
+nology and that multiple bits can be determined in a single 10 having a value of 1C. One of its plates, the uppermost plate
+bit trail period, for example by using a three level quantizer
+in FIG. 8, is connected to the shared conductor 322 (FIG.
+in place of the comparator. As the bit trial progresses, the
+6A). The bottom plate of the capacitor is connected by a
+status of the most significant bits of the P bit output word
+three-way switch formed of transistors 274, 276 and 278 to
+become known before the status of the least significant bits
+allow the bottom plate to be isolated, connected to VIN,
+of the P bit output word. This allows the output from the 15 VREF1 (typically from a precision voltage reference) or
+SAR logic 214 to be provided to the slices 210.2 to 210.n in
+VREF2 (typically OV). Each of the transistors is controlled
+the residue DAC 220 in order to set the bits in those DAC
+by a switch controller 279, such as SAR logic 214 from FIG.
+slices on a bit by bit basis thereby allowing the voltage
+7. The transistor 274 connecting the capacitor to the input
+transitions caused by switching the capacitors in each slice
+node VIN may be in series with a resistor 280 so as to more
+into an appropriate configuration, and the ringing that this
+20 accurately define the "on" resistance presented by the unit
+may introduce, has time to die away before the output from
+cell when it is sampling the input signal at VIN. The
+the residue DAC 220 is gained up by the residue amplifier
+transistor 274 may (or may not) have its gate control signal
+modified by a bootstrap circuit 282 so as to hold a gate to
+In order to reduce the magnitude of voltage transitions,
+source voltage Vgs of the transistor 274 constant with
+the setting of the bits in the slices 210.2 to 210.n within the
+25 respect to VIN. The unit cell 270 may be placed in parallel
+residue DAC 220 can be staggered in time such that the
+with other unit cells to form properly scaled combinations of
+transitions do not happen in unison. Furthermore, the mag.
+switch and capacitor, as represented by unit cells 270a and
+nitude of the initial transitions, for example relating to the
+2706 being placed in parallel to form a 2C weight, and so on.
+most significant bit and the next most significant bit can be
+If, for example, only 5 binary weighted sampling capaci-
+reduced by initially setting half of the slices 210.2 to 210.n
+30 tors are required in the sampling part 73 of the sub-divided
+with their most significant bits set and the other half of the
+switched capacitor DAC then it follows that 25-1=31 unit
+slices with their most significant bit unset. Consequently, as
+cells 270 are required. The unit cells can be very well
+a result of the first bit trial statistically only half of the DAC
+matched within an integrated circuit. This means that the
+slices are likely to have to be transitioned. The same
+unit cells may be permanently assigned to groups of 1, 2, 4.
+technique can be used with the next most significant bit and 35 8, and 16 if desired, or alternatively the groupings may be
+so on. An alternative approach may be based on the fact that,
+dynamically formed on the fly by the switch controller at
+in use, the input signal may be oversampled compared to its
+each sampling event to randomize any mismatch errors. The
+Nyquist frequency limit and hence statistically the first few
+cells may be operated in a unary encoding style and the cells
+bits of the input word are unlikely to have changed between
+participating in such an encoding scheme of the output may
+one sample and an immediately following one.
+40 be selected dynamically (on the fly).
+It is also possible to allow one or more DACs within the
+FIG. 9 shows a variation of FIG. 7 where a sub-DAC 285.
+residue DAC to participate within several of the bit trials.
+such as a 3 bit Flash converter, is used to set the three most
+Put another way, if only DAC slice 210.1 is being used to
+significant bits of the SAR converter more quickly. Less than
+perform analog to digital conversions then that single DAC
+or more than 3 bits may be converted by the sub-DAC 285
+slice can only perform one bit trial at a time. However if 45
+The voltage residue formed by the sampling DAC 220
+three of the DAC slices, for example 210.2, 210.3 and 210.4
+may then be gained up by a residue amplifier 230 before
+of the residue DAC 220 are temporarily enabled to work
+being provided to a further analog to digital converter 240.
+with respective comparators (not shown) coupled to the
+It should also be noted, as shown in FIG. 10, that the residue
+SAR logic 214 then the arrangement shown in FIG. 7 can
+amplifier 230 need not necessarily be provided
+perform two bit trials simultaneously, thereby reducing the 50
+FIG. 11 schematically shows the circuit arrangement of
+time required for the ADC part 200 to convert P bits.
+. 7 in greater detail. In this example each of the slices
+The use of the slice arrangement allows each DAC slice
+210.1 to 210.n are identical, and each comprise a segmented
+210.1 to 210.n to have a smaller capacitance therein, which
+capacitor array forming a sampling DAC 402 together with
+reduces the RC time constant of each DAC slice, and
+a sub-DAC 404. The sampling DACs are identical. Further-
+consequently a conversion could be performed more
+55 more, in this configuration shown in FIG. 11 the sub-DACs
+quickly. Earlier on in this description, the thermal noise
+are also identical. However this need not be the case. The
+associated with a capacitor at 300 K was tabulated. This was
+sub-DACs could be formed with lower resolution if desired
+used to show that, in a worked example where a dynamic
+Suppose, for example, that the DAC slice 210.1 was an 8 bit
+range of 5 V was to be converted with 18 bit resolution, then
+prising 5 bits (N-5) in its main DAC and 3 bits
+the minimum capacitance of the DAC needed to be at least
+in its sub-DAC if eight DAC slices 210.2 to 210.9 are
+~40 pF. However, if all of the DAC slices where formed such
+provided in the residue DAC 220, each having a resolution
+that they each had an effective capacitance of 4 pF then
+of 5 bits, then these eight residue DACs effectively could be
+connecting the DAC slices 210.2 to 210.n to form a residue
+driven with different control words to provide a further 3 bits
+DAC places their capacitances in parallel. Thus, if 10 DAC
+of resolution, within the sub or main DAC the bring the
+slices 210.2 to 210.11 were provided in the residue DAC
+residue DAC back up to an 8 bit device. Thus the sub-DACs
+220, then connecting them in parallel would create an
+of the slices 210.2 to 210.n can be shortened or omitted if
+effective capacitance of 40 pF even though each residue
+Alternatively, if the slices are all the same as shown
+
+=== PDF PAGE 32 VISION OCR ===
+US 10,505,561 B2
+in FIG. 11, then the residue DAC can be driven to apply
+DAC slices 210.2 to 210.n can each be charged by way of
+sub-LSB dither to its output signal for supply to the next
+the buffer for the majority of the set up time thereby
+stage in the pipelined analog to digital converter. These
+reducing the current drawn from the external reference, and
+approaches can be adopted together.
+be connected to the external reference towards the end of the
+In the arrangement shown in FIG. 11, a data manipulation
+settling time such that they settle towards a correct voltage
+block 250 is provided between the SAR logic 214 and each
+unaffected by offsets within their respective buffers. Fur-
+of the slices 210.2 to 210.n in the residue DAC 220. The data
+thermore each of the switched capacitor arrays can have
+manipulation block allows the digital word to each of the
+their bandwidths limited by selected connection to a band-
+DAC slices 210.2 to 210.n to be individually set. Thus
+width limiting resistor 430 by way of respective switches
+deliberately selecting different words provides for enhanced 10
+440.1 to 440.n.
+resolution or the incorporation of dither.
+FIG. 12 is a generic representation of FIG. 11 where each
+For completeness, FIG. 14 schematically illustrates one
+slice 210.1 to 210.n is divided into a sampling DAC portion
+embodiment of the present disclosure where a mini ADC
+210.1a, 210.2a and so on up to 210.na and a sub-DAC
+450, formed from one of the slices, works in association with
+210.1b, 210.2b, 210.3b and so on. The sampling DACS 15 eight other slices which form the residue DAC to drive the
+210.2a to 210.na are identical to each other. The sampling
+residue amplifier 230. In this embodiment the residue ampli-
+DAC 210.1a may or may not be the same as the sampling
+fier is connected to a further ADC 240. The first ADC, in this
+DACs 210.2a to 210.na, but advantageously has very simi-
+example, provides 6 or more bits of resolution while the
+lar electrical properties, and this is best achieved by forming
+second ADC 152 provides the remaining number of bits, for
+it of the same unit cell construction as the other slices. The
+20 example 8 or more 9 bits of resolution to reach the desired
+sub-DACs need not be the same. The sub-DAC 210.1b may
+overall resolution of the ADC.
+be formed, for example, with more bits than the other
+In other examples, each slice may present a capacitance of
+sub-DACs. Indeed not all of the slices need be provided with
+3.2 pF, but the total digital to analog converter presented for
+a sub-DAC. Here the sub-DAC associated with sampling
+the purposes of thermal noise amounts to 25.6 pF with the
+DAC210.na has been omitted. The switch slice driver, the 25 DACs operating in parallel.
+SAR logic controller and the dither generator can be pro-
+It can be seen that the time to complete an SAR conver-
+vided in a single logic block 410.
+sion can be expected to be longer than the time required to
+The current flow between the capacitors along the bond
+set up the individual DAC slices within the residue DAC.
+wires can perturb the voltage reference. The arrangement
+Furthermore, the output from the residue DAC is only really
+described herein has the advantage of reducing the pertur-
+30 required after the SAR conversion from the first ADC is
+bation of the voltage reference during the bit trial sequence
+completed. This allows for the possibility of sharing a
+and also gives the potential for the DAC slices 210.2 to
+residue DAC between two or possibly more SAR slices. The
+210.n in the residue DAC to be provided with a buffered
+SAR slices can be operated in a ping-pong manner such that
+version of the reference voltages which may be provided by
+one of them is about half way through its conversion when
+way of a further buffer such that the reference voltage
+35 the other is sampling. Under such an arrangement the
+provided to the first slice 210.1 does not suffer perturbation
+residue DAC has to sample at the same time as each of the
+due to switching of the capacitors in the slices 210.2 to 210.n
+SAR slices but immediately after it has finished sampling it
+to set up the residue DAC. It can be seen that if the
+can already be preset with at least half of the output word.
+capacitance of the capacitor array is effectively reduced
+The use of this approach is further enhanced by the use of
+from 40 pF to 4 pF then the current drawn from the reference
+40 a sub-ADC, such as a Flash ADC in order to get the first few
+is correspondingly reduced. Thus the energy required for
+bits of the bit trial performed rapidly or to reduce the signal
+swing during trials.
+If, for example, the sampling DACs 210.1 to 210.n were
+FIG. 15 schematically illustrates an alternative embodi-
+all built the same, and the residue DAC has 8 slices summing
+ment of a pipelined architecture where two fast ADCs 460
+to 40 pF (for noise purposes) then each slice would have a 45 and 462 are provided within ADC1 200, and each of the fast
+capacitance of 5 pF. This 5 pF is split up between, say, 31
+ADCs is associated with eight DAC slices. The first ADC
+unit cells in a 5 bit example or 63 unit cells in a 6 bit example
+200 is operated in a time interleaved manner and hence
+of a sampling DAC array. This gives a unit capacitor size of
+exceptionally minor mismatches might still result in the
+161 fF in the 5 bit case or 79 fF in the 6 bit case. It can be
+generation of additional sampling tones. In order to mitigate
+seen that this approach allows the sliced ADC to achieve a
+50 this one or more slices can be shuffled amongst the slices of
+high bandwidth as the RC value of each unit cell is very
+each one of the residue DACs in order to reduce the risk of
+small even with a modest series resistance to swamp any
+transistor to transistor variation. Also as only one of the
+FIG. 16 schematically shows a timing diagram for the
+slices performs the bit trials the currents drawn from the
+arrangement in FIG. 15. As it can be seen each of the first
+current source are much reduced. This reduction of charge
+55 ADCs designated "A" and "B" in FIGS. 15 and 16 operates
+required to perform the bit trials also means that some
+out of phase with the other such that when ADC "A" 460 is
+resistance can be deliberately introduced into the charge
+pertorming its acquisition in a time period T4 between
+path to reduce ringing within the supply voltage to the
+successive "convert start" signals, the ADC "B" 462 under-
+capacitors of the DAC.
+takes its bit trials and then passes its result to the residue
+FIG. 13 shows an arrangement where at least some, and
+60 amplifier. In each period TA the residue amplifier extends
+preferably each, of the slices 210.2 to 210.n of the residue
+approximately half of its time (denoted RA_A or RA_B)
+DAC is connected to the external reference by way of a
+amplifying the residue from one of the residue DACs
+respective buffer 420.2 to 420.n which is selectively discon-
+associated with the respective slice ADCs "A" and "B", and
+nectable from the slice 210.2 to 210.n by a series switch
+the other half of its time undergoing auto-zeroing, AZ, in
+422.2 to 422.n and where the slice 201.2 to 210.n can also
+65 order to remove offset errors therefrom. The techniques and
+be directly connected to the external reference by way of a
+approaches use in auto-zeroing are well known to the person
+further switch 424.2 to 424.n. Consequently, the residue
+skilled in the art and need not be described here.
+
+=== PDF PAGE 33 VISION OCR ===
+US 10,505,561 B2
+Although the description has focused on the DAC slices
+This leaves some residual dither, Ds, D3, D2, and D1›
+being in the form of switched capacitor arrays which can act
+which manifests itself as an analog dither at the output of the
+as host to the sampling capacitor and the digital to analog
+sampling DAC 220 when it forms the analog residue signal.
+converter concurrently, the teachings of the present inven-
+In order to address this, the digital value Ds, D3, D2, and D.
+tion can also be applied to circuit arrangements where the
+is passed to a subsequent stage such that it can be subtracted
+sampling arrangement and the DAC are separated
+from the digital value formed by the subsequent stage.
+The number of stages in the pipeline can vary between
+In a further variation as shown in FIG. 20, no dither
+two and the resolution of the converter. Put another way,
+correction is applied to the digital word output from the first
+each stage in the pipeline could be arranged to convert only
+ADC part 200 in the first stage, i.e., summer/subtractor 224
+one bit. The teachings of this disclosure would still be
+10 is omitted, and all of the dither value is passed to a
+subsequent stage comprising a second ADC 240 which
+applicable to such a deeply pipelined arrangement as the
+converts the residue and dither output by the sampling DAC
+time constant of each stage would be reduced by the multiple
+220, and the digital value of the dither is removed from the
+slices of a given stage which will act in parallel to provide
+output of the second ADC 240 by a subtractor 241. In a
+the required noise performance. Thus the present disclosure
+15 variant, summer 222 maybe omitted such that the sampling
+is highly flexible and can be used in a vast number of
+DAC does not sample the dither, or equivalently the first
+configurations where DACs are required to interact with
+dither value is not supplied to the sampling DAC 220 to
+capacitor based sampling circuits.
+dither the analog input signal that it samples
+The interleaving ratio can be 2x or more.
+The outputs (as corrected for dither) of ADC1 and ADC2
+FIG. 17 schematically illustrates an embodiment of a 20 are concentrated so that the ADC1 provides a word repre-
+layout floorplan of the circuit shown in FIG. 15. The DAC
+senting the most significant bits of the conversion result and
+slices are arranged in parallel between the comparator,
+ADC2 outputs a word representing the least significant bits
+"comp", associated with the slice ADC (SADCa and
+of the conversion result. This is also the case for the earlier
+sADCb), and the residue amplifier (RA), associated with this
+examples disclosed herein.
+stage. One of the slices within each bank of switched 25
+The examples herein have been discussed in terms of a
+capacitor DACs has, in this example, been allocated the role
+plurality of physical stages physically arranged in a pipeline.
+of being the slice ADC (sADC).
+If speed is not so important, but resolution is valued, then a
+All of these circuits can be implemented within a differ-
+stage may be reused to work on a residue value formed by
+ential ADC arrangement 200 as shown in FIG. 18. Here
+the same physical stage in a preceding conversion step. Thus
+capacitor arrays associated with the positive and negative
+30 a stage is in a temporal rather than a physical pipeline.
+inputs have each provide a residue signal to a differential RA
+It is thus possible to provide an improved method of
+applying and removing dither within an ADC. It is also
+FIG. 19 builds on the teachings of FIG. 5, and the same
+possible to use slices, each of which may have its own dither
+reference numbers are used for like parts. Here the dither
+applied, to further linearize to output of the ADC and also to
+generator 400 generates a first dither value, which is repre- 35 allow a speed improvement to be obtained by the use of
+sented as bits DA to DI, where A represents an arbitrary
+smaller capacitors within each slice while not sacrificing
+number. The dither can represent an integer part and a
+noise pertormance.
+fractional part (referred to the LSB of the stage).
+The claims have been presented in single dependency
+For ease of discussion (but without limiting to the specific
+format, however it is to be understood that for the purposes
+example given here) suppose that A-6, such that the first
+40 of those jurisdictions that allow multiply dependent claim-
+dither word comprises bits D6, D$s, D4› D3, D2, and D,. Also
+ing, each claim can depend on any preceding claim of the
+suppose that D6› D5, and D4 represent an integer part and D3›
+same type, unless that is clearly technically infeasible.
+D2, and D, represent a fractional part. Seven slices are
+The present disclosure encompasses apparatuses which
+operating together to form the sampling DAC. The fractional
+can perform the various methods described herein. Such
+part represented by D3, D2, and D, can be set by the ratio in 45 apparatuses can include circuitry illustrated by the Figures
+which the slices are set to integer values. For example, if the
+and described herein. Parts of various apparatuses can
+integer portion of the dither word is 2 and the fractional part
+include electronic circuitry to perform the functions
+is "101" or / then two of the slices would be set to "2" and
+described herein. The circuitry can operate in analog
+five of the slices would be set to "3" when sampling the input
+domain, digital domain, or in a mixed-signal domain. In
+some cases, one or more parts of the apparatus can be
+Thus, all of D6 to D1, namely the first dither value is used
+provided by a processor specially configured for carrying
+to dither the value sampled on to the sampling DAC 220.
+out the functions described herein (e.g., control-related
+However, a selection of bits of the first dither value can be
+functions, timing-related functions). In some cases that
+used to form a second dither value. Bits not selected to form
+processor can be an on-chip processor with the ADC. The
+the second dither value can be used to form a third dither 55 processor may include one or more application specific
+components, or may include programmable logic gates
+In the worked example shown in FIG. 19, bits Ds, D3, D2,
+which are configured to carry out the functions describe
+and D, are used to form the second dither value which is
+herein. In some instances, the processor may be configured
+used to dither the ADC part 200 of the stage. Thus, the dither
+to carrying out the functions described herein by executing
+comprises a fractional part of ¼, 7,, , ¾, or 7 plus an 60 one or more instructions stored on one or more non-transi-
+integer part which is either 0 or 2.
+tory computer media.
+The third dither value comprises part of the first dither
+It is also imperative to note that all of the specifications,
+value, namely D4 which represents either 1 or zero and D
+dimensions, and relationships outlined herein (e.g., the num-
+which represents 4 or zero. Thus in this example a value of
+ber of processors, logic operations, etc.) have only been
+0, 1, 4, or 5 depending on the value of the first dither value
+offered for purposes of example and teaching only. Such
+is subtracted from the digital output of the ADC part 200
+information may be varied considerably without departing
+betore being used to set the sampling residue DAC 220.
+from the spirit of the present disclosure, or the scope of the
+
+=== PDF PAGE 34 VISION OCR ===
+US 10,505,561 B2
+appended claims (if any) or examples described herein. The
+can incorporate one or more other examples of the same type
+specifications apply only to one non-limiting example and,
+(referencing the other example(s) together or in the alterna-
+accordingly, they should be construed as such. In the fore-
+tive), unless that is clearly technically inteasible
+description, example embodiments have been
+Example 1 is a method of operating a residue forming
+described with reference to particular processor and/or com-
+5 stage of an analog to digital converter, the residue forming
+ponent arrangements. Various modifications and changes
+stage comprising an analog to digital converter and at least
+may be made to such embodiments without departing from
+a first sampling digital to analog converter, and the analog to
+the scope of the appended claims (if any) or examples
+digital converter of the residue forming stage has a least
+described herein. The description and drawings are, accord-
+significant bit value, the method comprising receiving an
+restrictive sense.
+ingly, to be regarded in an illustrative rather than in a 10 input signal and adding a first dither value to the input signal
+Note that with the numerous examples provided herein,
+to form a dithered input signal sampled by the first sampling
+digital to analog converter but the first dither value is not
+interaction may be described in terms of two, three, four, or
+more electrical components or parts. However, this has been
+added to the input signal provided to the analog to digital
+done for purposes of clarity and example only. It should be
+converter of the stage, using the analog to digital converter
+appreciated that the system can be consolidated in any 15 of the stage to form a digital code; modifying the digital
+suitable manner. Along similar design alternatives, any of
+code by a digital value related to at least part of the first
+the illustrated components, modules, blocks, and elements
+dither value to form a modified digital code, and providing
+of the Figures may be combined in various possible con-
+the modified digital code to the at least first sampling digital
+figurations, all of which are clearly within the broad scope
+to analog converter.
+of this Specification. In certain cases, it may be easier to
+In Example 2, the method of Example 1 can further
+describe one or more of the functionalities of a given set of
+include in which the first dither value is combined with the
+flows by only referencing a limited number of electrical
+sampled value within the first sampling digital to analog
+elements. It should be appreciated that the electrical circuits
+converter by setting elements of the first sampling digital to
+of the Figures and its teachings are readily scalable and can
+analog converter to a non-zero code state during acquisition
+accommodate a large number of components, as well as
+25 of the input signal onto the first sampling digital to analog
+more complicated/sophisticated arrangements and configu-
+rations. Accordingly, the examples provided should not limit
+the scope or inhibit the broad teachings of the electrical
+circuits as potentially applied to a myriad of other architec-
+In Example 3, the method of Example 1 can further
+include in which the first sampling digital to analog con-
+verter comprises a plurality of sampling digital to analog
+Note that in this Specification, references to various
+30 converter slices, and the first dither value is distributed to at
+features (e.g., elements, structures, modules, components,
+least one of the digital to analog converter slices
+steps, operations, characteristics, etc.) included in "one
+In Example 4, the method of Example 1 can further
+embodiment", "example embodiment", "an embodiment",
+include in which the first sampling digital to analog con-
+"another embodiment",
+"some embodiments",
+verter comprises a plurality of sampling digital to analog
+embodiments", "other embodiments", "alternative embodi-
+35 converter slices, and at least one further dither value is
+ment", and the like are intended to mean that any such
+combined with the input signal such that respective dithered
+features are included in one or more embodiments of the
+input signals are formed by at least two of the digital to
+present disclosure, but may or may not necessarily be
+analog converter slices.
+combined in the same embodiments. It is also important to
+In Example 5, the method of Example 1 can further
+note that the functions described herein illustrate only some
+40 include forming a second dither value different from the first
+of the possible functions that may be executed by, or within,
+dither value, where the second dither value is used to modify
+systems/circuits illustrated in the Figures. Some of these
+the input signal converted by the analog to digital converter.
+operations may be deleted or removed where appropriate, or
+In Example 6, the method of Example 5 can further
+these operations may be modified or changed considerably
+include where a second dither value is at least partly related
+without departing from the scope of the present disclosure. 45 to the first dither value.
+In addition, the timing of these operations may be altered
+In Example 7, the method of Example 6 can further
+considerably. The preceding operational flows have been
+include in which the second dither value comprises a frac-
+offered for purposes of example and discussion. Substantial
+tional dither value less than one least significant bit of the
+flexibility is provided by embodiments described herein in
+that any suitable arrangements, chronologies, configura-
+In Example 8, the method of Example 7 can further
+tions, and timing mechanisms may be provided without
+include in which the second dither value further comprises
+departing from the teachings of the present disclosure.
+an integer dither portion expressed as multiples of one least
+Numerous other changes, substitutions, variations, altera-
+significant bit of the stage.
+tions, and modifications may be ascertained to one skilled in
+In Example 9, the method of Example 5 can further
+the art and it is intended that the present disclosure encom-
+55 include in which the second dither value is not removed
+pass all such changes, substitutions, variations, alterations,
+from a digital code output by the analog to digital converter
+and modifications as falling within the scope of the
+of the stage, such that the second dither value becomes a
+appended claims (if any) or examples described herein. Note
+dither value added to the residue formed by the first sam-
+that all optional features of the apparatus described above
+pling digital to analog converter.
+may also be implemented with respect to the method or 60
+In Example 10, the method of Example 9 can further
+process described herein and specifics in the examples may
+include in which the stage is followed by a subsequent
+be used anywhere in one or more embodiments.
+analog to digital converter, and a digital output of the
+subsequent analog to digital converter is modified so as to
+remove a value related to the second dither value therefrom.
+In Example 11, the method of Example 1 can further
+The examples have been presented to refer to a single
+example, however it is to be understood that the examples
+include in which the stage is followed by a subsequent
+analog to digital converter which processes the residue, and
+
+=== PDF PAGE 35 VISION OCR ===
+US 10,505,561 B2
+a digital output of the subsequent analog to digital converter
+Example 20 is a digital to analog converter comprising
+is modified to remove a value related to at least part of the
+first and second stages arranged in a pipeline, wherein the
+first dither therefrom.
+first stage forms a residue and a dither value is added to the
+In Example 12, the method of Example 5 can further
+residue so as to introduce a dither into the second stage.
+include where the dither value comprises n bits and the
+What is claimed is:
+second dither value comprises m of the n bits and the digital
+1. A method of operating a residue forming stage of an
+value comprises the rest of the n bits.
+analog to digital converter, the residue forming stage com-
+Example 13 is a method of operating first and second
+prising an analog to digital converter and a first sampling
+stages of an analog to digital converter where the first stage
+digital to analog converter, and the analog to digital con-
+forms a residue which is digitized by the second stage, the 10 verter of the residue forming stage has a least significant bit
+first stage comprising a first stage analog to digital converter
+value, the method comprising:
+and at least a first sampling digital to analog converter, the
+method comprising receiving a dither value, applying the
+dither value to the first stage analog to digital converter,
+using the first stage analog to digital converter to form a 15
+digital code, applying the digital code either directly or in a
+modified form to the at least one sampling digital to analog
+converter such that the sampling digital to converter outputs
+an analog residue value, passing the analog residue value to
+the second stage, converting the analog residue value into a 20
+digital result, and correcting the digital result for the dither
+adding a first dither value to the input signal to form a
+dithered input signal sampled by the first sampling
+digital to analog converter but the first dither value is
+not added to the input signal provided to the analog to
+digital converter of the residue forming stage,
+using the analog to digital converter of the residue form-
+ing stage to form a digital code,
+modifying the digital code by a digital value related to at
+least part of the first dither value to form a modified
+digital code, and
+In Example 14, the method of Example 13 can further
+providing the modified digital code to the first sampling
+include in which the dither value is applied to an input signal
+digital to analog converter.
+sampled by the at least one sampling digital to analog 25
+2. The method of claim 1, wherein the first dither value is
+combined with a sampled value within the first sampling
+Example 15 is a stage of an ADC, comprising a stage
+digital to analog converter by setting elements of the first
+ADC, a DAC, and a dither generator for generating a first
+sampling digital to analog converter to a non-zero code state
+dither, wherein the stage ADC is arranged to receive an
+during acquisition of the input signal onto the first sampling
+analog input signal and to form a digital conversion value
+30 digital to analog converter.
+representing the analog input signal, and the DAC
+3. The method of claim 1, wherein the first sampling
+arranged to sample a combination of the analog input signal
+digital to analog converter comprises a plurality of sampling
+and the first dither, and the DAC is further arranged to
+digital to analog converter slices, and the first dither value is
+receive a digital conversion value from which the value of
+distributed to at least one of the sampling digital to analog
+the first dither has been subtracted and to form an analog
+converter slices.
+residue representing a difference between the digital con-
+4. The method of claim 1, wherein the first sampling
+version value and the analog input signal.
+digital to analog converter comprises a plurality of sampling
+In Example 16, the stage of Example 15 can further
+digital to analog converter slices, and at least one further
+include in which the first dither is not supplied in its entirety
+dither value is combined with the input signal such that
+to the stage ADC
+respective dithered input signals are formed by at least two
+In Example 17, the stage of Example 15 can further
+of the sampling digital to analog converter slices.
+include in which the DAC comprises at least one switched
+5. The method of claim 1 further comprising forming a
+capacitor sampling DAC slice, and the dither is applied to
+second dither value different from the first dither value.
+the at least one slice by modifying switch states within the
+wherein the second dither value is used to modify the input
+at least one switched capacitor sampling DAC slice in 45 signal converted by the analog to digital converter.
+accordance with the first dither value during a sampling
+6. The method of claim 5, wherein the second dither value
+phase so as to add the first dither to the sampled input signal.
+is at least partly related to the first dither value.
+Example 18 is a pipelined analog to digital converter
+7. The method of claim 6, wherein the second dither value
+comprising a stage of an ADC as claimed in claim 15, in
+comprises a fractional dither value less than one least
+combination with a succeeding stage, and the dither gen-
+50 significant bit of the residue forming stage.
+erator is further operable to form a second dither which
+8. The method of claim 7, wherein the second dither value
+comprises a fractional value of the least significant bit of the
+further comprises an integer dither portion expressed as
+stage of the ADC, the second dither used to modify with the
+multiples of one least significant bit of the residue forming
+input signal to be converted by the stage of the ADC, the
+succeeding stage being arranged to form a second stage
+digital conversion value representing the residue or an
+amplified version of the residue, and the second dither value
+being provided to a subtractor to remove the second dither
+value from the second stage digital conversion value.
+9. The method of claim 5, wherein the second dither value
+is not removed from a digital code output by the analog to
+digital converter of the residue forming stage, such that the
+second dither value becomes a dither value added to the
+residue formed by the first sampling digital to analog
+Example 19 is a method of operating a pipelined ADC, the
+method comprising applying a dither to a residue formed by
+10. The method of claim 9, wherein the residue forming
+an Nth stage of the ADC, such that the dither modifies an
+stage is followed by a subsequent analog to digital converter.
+input signal to an N+1th stage of the ADC, where N is an
+and a digital output of the subsequent analog to digital
+integer number greater than zero and a digital value of the
+converter is modified so as to remove a value related to the
+dither is passed to the N+1th stage of the ADC such that the
+65 second dither value therefrom.
+value of the dither can be removed from the output result of
+11. The method of claim 1, wherein the residue forming
+the N+1th stage.
+stage is followed by a subsequent analog to digital converter
+
+=== PDF PAGE 36 VISION OCR ===
+US 10,505,561 B2
+25
+which processes the residue, and a digital output of the
+subsequent analog to digital converter is modified to remove
+a value related to at least part of the first dither value
+therefrom.
+12. The method of claim 5, wherein the first dither value s
+comprises n bits and the second dither value comprises m of
+the n bits and the digital value comprises the rest of the n
+13. A method of operating first and second stages of an
+analog to digital converter where the first stage forms a 10
+residue which is digitized by the second stage, the first stage
+comprising a first stage analog to digital converter and at
+least one sampling digital to analog converter, the method
+receiving a dither value,
+applying the dither value to the first stage analog to digital 1S
+using the first stage analog to digital converter to form a
+applying the digital code either directly or in a modified
+form to the at least one sampling digital to analog
+converter such that the sampling digital to converter
+outputs an analog residue value, and
+passing the analog residue value to the second stage.
+14. The method of claim 13, further comprising:
+converting the analog residue value into a digital result, 25
+correcting the digital result for the dither value.
+15. The method of claim 13, wherein the dither value is
+applied to an input signal sampled by the at least one 30
+sampling digital to analog converter.
+16. An analog to digital converter (ADC), comprising:
+a digital to analog converter (DAC), and
+a dither generator for generating a first dither,
+26
+the second dither is used to modify with the analog
+input signal to be converted by the stage ADC.
+19. The ADC of claim 18, wherein:
+the succeeding stage is arranged to form a second stage
+digital conversion value representing the analog resi-
+due or an amplified version of the analog residue, and
+a value of the second dither is provided to a subtractor to
+remove the value of the second dither from the second
+stage digital conversion value.
+20. The ADC of claim 16, wherein:
+the DAC comprises at least one switched capacitor sam-
+pling DAC slice, and
+the value of the first dither is applied to the at least one
+switched capacitor DAC slice by modifying switch
+states within the at least one switched capacitor sam-
+pling DAC slice in accordance with the value of the
+first dither during a sampling phase so as to add the
+value of the first dither to a sampled input signal within
+the at least one switched capacitor sampling DAC slice.
+21. A method of operating a pipelined analog to digital
+converter (ADC), the method comprising:
+applying a dither to a residue formed by an Nth stage of
+the ADC by modifying a signal applied to a sampling
+digital to analog converter in the Nth stage in response
+to a digital value of the dither, during sampling of an
+input signal to the Nth stage, wherein:
+the dither is introduced to an input signal to an N-1th
+stage of the ADC, and
+N is an integer number greater than zero, and removing
+at least a portion of the dither in a stage subsequent
+to the Nth stage.
+22. The method of claim 21, wherein removing the at least
+a portion of the dither comprises removing the at least a
+portion of the dither in a digital output of the stage subse-
+quent to the Nth stage
+23. A pipelined analog to digital converter (ADC), com-
+the stage ADC is arranged to receive an analog input
+signal and to form a digital conversion value repre-
+senting the analog input signal,
+the DAC is arranged to sample a combination of the 40
+analog input signal and the first dither, and
+the DAC is further arranged to receive a digital con-
+version value from which a value of the first dither
+has been subtracted and to form an analog residue
+representing a difference between the digital conver- 45
+sion value and the analog input signal.
+17. The ADC of claim 16, wherein the first dither is not
+supplied in its entirety to the stage ADC.
+18. The ADC of claim 16, turther comprising:
+a succeeding stage,
+a first stage to torm a residue, wherein the first stage
+comprises a sampling digital to analog converter to
+sample an input signal of the first stage and add a dither
+value to the residue by modifying switch positions of
+capacitors in the sampling digital to analog converter in
+accordance with a digital representation of a dither
+a second stage arranged in a pipeline with the first stage
+to receive and perform analog to digital conversion of
+the residue, wherein the second stage comprises a
+subtractor to remove the dither value in the second
+24. The pipelined ADC of claim 23, wherein the subtrac-
+tor is a digital subtractor to remove a digital value of the
+the dither generator is further operable to form a second
+dither which comprises a fractional value of a least
+significant bit of the stage ADC, and

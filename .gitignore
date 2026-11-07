@@ -37,6 +37,13 @@ references/*
 !references/ISSCC2024_SLIDES.pdf
 !references/PKU_VLSI2025_C32_1_PAPER.pdf
 !references/PKU_VLSI2025_C32_1_SLIDES.pdf
+
+# 专利只收 OCR 转写与单张附图裁图，PDF 不入库（见 references/patent/README.md）。
+!references/patent/
+!references/patent/*.txt
+!references/patent/*.md
+!references/patent/*.json
+!references/patent/*.png
 *.ppt
 *.pptx
 *.key

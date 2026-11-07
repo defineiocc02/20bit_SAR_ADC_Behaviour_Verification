@@ -1,0 +1,63 @@
+{
+  "schema": "adi_behavior_model_milestones_v1",
+  "branch": "20b10mtask",
+  "purpose": "行为级模型复现期间的里程碑与回退锚点。RTL 在 M9 之前冻结，只读。",
+  "rollback_rules": {
+    "forbidden": [
+      "git checkout .",
+      "git checkout -- <dir>",
+      "git reset --hard",
+      "git stash",
+      "git stash pop"
+    ],
+    "l1_snapshot": "每个里程碑动手前跑 git stash create，把返回的 commit 对象 SHA 记在 base_snapshot。只含已跟踪文件的改动，不含未跟踪新文件。",
+    "l2_commit": "每个里程碑一个 commit，只 git add 本里程碑 files 列出的显式路径。回退用 git revert <commit>。",
+    "l3_file": "git restore --source=<base_commit> -- <逐路径>，路径取自 files 数组，禁止 .",
+    "l4_numeric": "切回 baseline_10m_5v 预设 + NoiseConfig(enabled=False)，不改代码即回到归档口径。",
+    "untracked_note": "M0 新建的文件是未跟踪的，git stash create 抓不到；回退方式是删除文件本身，不是 restore。"
+  },
+  "frozen": [
+    "task1/rtl/**",
+    "task1/tb/**",
+    "task2/rtl/**",
+    "task2/tb/**",
+    "task2/eight_rtl/rtl/**",
+    "task2/eight_rtl/tb/**",
+    "task3/rtl/**",
+    "task3/tb/**",
+    "task_integration/rtl/**",
+    "task_integration/tb/**",
+    "task_reconstruction/rtl/**",
+    "task_reconstruction/tb/**"
+  ],
+  "frozen_note": "以上目录下共 22 个 .sv/.svh/.v 文件。本轮任何 commit 的 diff 都不得触及它们，含 sar20_lms_recon 的 C9 迁移。",
+  "milestones": [
+    {
+      "id": "M0",
+      "name": "源文台账",
+      "base_commit": "5094b2e156a7660c85d3bf02bcd6d5a13786377e",
+      "base_snapshot": "6a28f987372a3c9ffbb435758519a7a5130ca9ba",
+      "behavior_change": false,
+      "commit": "PENDING",
+      "files": [
+        ".gitignore",
+        "references/README.md",
+        "references/patent/README.md",
+        "references/patent/manifest.json",
+        "references/patent/US10505561B2_OCR.txt",
+        "references/patent/US10505561B2_FIG19.png",
+        "task2/ORIGINAL_SOURCES.md",
+        "tools/check_source_matrix.py",
+        "trace/README.md",
+        "trace/source_matrix.csv",
+        "trace/milestones.json"
+      ],
+      "gates": {
+        "check_source_matrix": "PASS",
+        "pytest": "PASS",
+        "ruff": "PASS"
+      },
+      "note": "零行为变更。43 行台账（论文 14 + 讲稿 21 + 专利 8），PASS=17 / MISSING=12 / OUT_OF_SCOPE=8 / NOT_RUN=5 / PARTIAL=1。台账 PASS 只表示引用能对上，不表示实现正确。"
+    }
+  ]
+}

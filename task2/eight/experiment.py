@@ -527,16 +527,21 @@ def linearity(width_v, first, stop, step):
 
 
 # ------------------------------------------------------------------------
-def run(output, sigma, seed, noise=None, reference=None):
+def run(output, sigma, seed, noise=None, reference=None, experiment=None):
     """运行一个固定制造样本的两组 DEM、LMS 和 dither 交叉实验。
 
     ``noise`` 取 ``NoiseConfig`` 或 None，``reference`` 取 ``ReferenceConfig``
     或 None。None 都用默认配置，即所有非理想项关闭，结果与引入它们之前逐位相同；
     传入配置才能看到对 DR/SNR 与 INL 的影响。
+
+    ``experiment`` 给一个基础配置，默认用 ``ExperimentConfig()``。对标论文时
+    必须传进来：论文的差分输入范围是 ±3 V（6 Vpp）、采样率 40 MS/s，
+    而模型默认 ±5 V、10 MS/s，沿用默认值会让 DR 高 4.4 dB、噪声密度低 6 dB。
     """
     output.mkdir(parents=True, exist_ok=False)
+    base = ExperimentConfig() if experiment is None else experiment
     experiment = replace(
-        ExperimentConfig(),
+        base,
         mismatch_sigma_unit=sigma,
         manufacturing_seed=seed,
         noise=NoiseConfig() if noise is None else noise,

@@ -105,7 +105,7 @@
       "base_commit": "1acf2d2baf7dd0b002cd3c170914ce33cae6b05c",
       "base_snapshot": "978770bdc3c008da2d6884b148630825f512a80b",
       "behavior_change": false,
-      "commit": "PENDING",
+      "commit": "1780fd73325d7cb47e59433cd01c26922f9ec876",
       "files": [
         "src/adi_model/noise.py",
         "src/tests/test_noise.py",

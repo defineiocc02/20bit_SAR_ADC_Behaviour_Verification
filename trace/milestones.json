@@ -185,6 +185,29 @@
         "negative_controls": "PASS (swing 退化为常数被抓 2 条、漏乘增益被抓 1 条；exp 写成 1/(1+x) 被抓 3 条、ln 换 log10 被抓 2 条)"
       },
       "note": "计划里 M4 的两个判据数字没有出处，已废弃并替换。①「tau=1.17 ns 处残差 0.50 LSB20 ±10%」与「ln(error) 对 tau 斜率与 -0.65·T_RA 一致」：全库检索 1.17 与 0.65 只命中无关数值，且由论文两条锚点复算不出 1.17 ns。改用论文原文可复算的形式——RA 相位开始残差约 15b、20b 完全建立占 RA 相位约 65%，由此 tau = 0.65·T_RA/ln(2^5) = 0.18755·T_RA，在 0.65·T_RA 处误差恰为 1/32。②「ppm2 ∈ {0,1,10} ⇒ 10 ppm 给 10.5±1 LSB20」这条保留了，但**没有接进 _capture**：ra_transfer 的 ppm 是输出满幅口径（10 V），_capture 里的残差是输入域（±0.1 V），差一个 RA 增益；在 _capture 里乘 ppm 会让量级小 100 倍却看上去「接了」。故 ppm 项留到 M8 的输出域接入，M4b 只接参考建立。③ 端到端实测：tau 取 anchor 时 INL 峰值 0.5610 LSB20，基线（无参考）0.5233，差 0.038，而失配本身贡献 0.52——参考建立在论文参数下不是瓶颈。tau 放大到 5·T_RA 才到 0.6397。这与论文「dynamic reference buffer 让 65% 相位即达 20b」一致，不是接线没生效（接线由逐点等式测试保证）。④ 本模型没有显式时序，测试里的 T_RA=12.5 ns 取论文 40 MS/s 的半周期作量级，M5 引入真实时序后应改为从配置读。"
+    },
+    {
+      "id": "M5",
+      "name": "时偏 / 带宽 / 复片延迟",
+      "base_commit": "9141fbb",
+      "base_snapshot": "d9a4176efc186e0a38690710a9b47eda4653b6ba",
+      "behavior_change": false,
+      "files": [
+        "src/adi_model/timing.py",
+        "src/tests/test_timing.py",
+        "task1/experiments/run_effects.py",
+        "trace/milestones.json"
+      ],
+      "gates": {
+        "pytest": "PASS (127 passed)",
+        "ruff": "PASS",
+        "snapshot_baseline_check": "PASS (8 项逐字段相等；TimingConfig 默认值与原三值写法一致)",
+        "patent_timing_chain": "PASS (2.5 V/10 MHz ⇒ 157.08 V/µs；1 ps ⇒ 157.08 µV；除 18b 的 19.0735 µV 得 8.235 LSB，专利原文写 8.3)",
+        "pole_15x_nyquist": "PASS (15×f_Nyq 极点在一阶下 Nyquist 处衰减 0.997787 = −0.0193 dB)",
+        "legacy_delays": "PASS (TimingConfig().delays(18) 与 np.repeat((5p,−5p,0),(8,8,2)) 逐位相同)",
+        "effects_archive_identical": "PASS (重跑 run_effects 与 task1/evidence/effects 的 interleave.fixed_ab / interleave.dynamic / dem 三块逐字段完全一致)"
+      },
+      "note": "计划判据三改一留。①「fs/8、fs/18 杂散 ≤ −104 dBc」没有出处：讲稿 p22 明写交织杂散位置是 f_S/2 − f_IN（'Interleaving tone with randomisation centred at fS/2 - fIN'），模型的 mirror_bin = samples//2 - tone_bin 正是这个位置，归档里 dynamic 模式的 mirror 已是 −128.09 dBFS、fixed_ab 是 −93.59 dBFS。fs/8 与 fs/18 是调度频率而非时偏杂散位置，判据改按镜像频点记录。②「BW 扫 {1,3,15}×f_Nyq」里的 15× 有出处（讲稿 19-22 页反复写 'DAC BW set to 15 × f_Nyq'），但「15× 处 THD < −110 dBc、3× 处 > −70 dBc」这两个阈值全库找不到，未作为判据采信，只保留 15× 的极点衰减可复算这一点。③「_capture 里 dac_pole 作用在转换阶段底板电压」未做：dac_pole_attenuation 只给频域幅度，接进电荷域需要给每片电容一个复频响应，超出当前行为模型范围；而「BW=15× 时 DNL/INL 变化 <0.01 LSB」这条在结构上已天然成立——_static 用解析区间宽度算 DNL/INL，根本不经过 _capture，极点进不了静态路径。④ 0.6 ps 与 10 ps 不能互换：论文原文是 'The estimated residual RMS timing mismatch is ~0.6ps'（匹配时钟之后的残余值），讲稿 p21-22 的 'Timing mismatch simulation (10ps)' 是失配仿真条件，两者差 16 倍。TimingConfig 的默认 rms_jitter_s 取 0.6 ps，deterministic 的 skew_s 沿用 ExperimentConfig.skew_s=5 ps，两条路互不覆盖。⑤ 5 条判据里 4 条是纯函数、1 条是归档逐字段比对；后者是这次重构最强的证据——它证明改的是来源而不是行为。"
     }
   ]
 }

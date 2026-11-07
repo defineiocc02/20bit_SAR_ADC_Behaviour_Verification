@@ -1,3 +1,18 @@
+# =============================================================================
+# 文件名     : run_effects.py
+# 模块名     : run_effects
+# 版本       : v1.0
+# 功能       : 复现实验一的时偏和电容失配对照。
+#
+# 设计说明   :
+#   * 运行于仓库根目录，使用 PYTHONPATH=.:src python -m task1.experiments.run_effects
+#   * --out PATH。两组实验分别开启时偏或电容失配，输出为输入等效电压。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """复现实验一的时偏和电容失配对照。
 
 运行于仓库根目录，使用 PYTHONPATH=.:src python -m task1.experiments.run_effects
@@ -11,7 +26,7 @@ import csv
 import hashlib
 import json
 import platform
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from pathlib import Path
 
 import matplotlib
@@ -19,54 +34,31 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.colors import BoundaryNorm, ListedColormap
 from matplotlib.patches import Patch
-from task1.model.fig11_dem import map_fig11
-from task1.model.module1 import DEFAULT_DEM_SEED, Module1
-from task1.model.scheduler import GROUP_SIZE, SLICE_COUNT
 
-from adi_model.charge_ref import ref_ra_charge_nodal
+from adi_model.capacitors import (
+    GROUP_SLICES,
+    MAIN_WEIGHTS,
+    POOL_SLICES,
+    SUB_WEIGHTS,
+    Capacitors,
+    ExperimentConfig,
+    cap_pool,
+    feedback_charge,
+    unpack,
+    voltage_equivalent,
+)
 from adi_model.metrics import inl_from_mean_error, sine_fit_metrics, spectrum_dbfs
+from adi_model.timing import TimingConfig
+from task1.model.codebook import codebook, map_record
+from task1.model.module1 import Module1
 
-MAIN_WEIGHTS = (2,) * 15 + (1, 1)
-SUB_WEIGHTS = (8, 4, 2, 1, 1)
+# 仅供本文件的实验驱动使用；领域模型已上移到 adi_model.capacitors。
 ROOT = Path(__file__).resolve().parents[2]
 BLUE = "#0072B2"
 ORANGE = "#D55E00"
 GRAY = "#737B82"
 
-
-@dataclass(frozen=True)
-class ExperimentConfig:
-    """明确指定的一次时偏实验及一个制造失配样本。"""
-
-    fs_hz: int = 10_000_000
-    samples: int = 4096
-    tone_bin: int = 409
-    tone_peak_v: float = 10.0 / 3.0
-    full_scale_peak_v: float = 5.0
-    skew_s: float = 5e-12
-    unit_cap_f: float = 1e-15
-    mismatch_sigma_unit: float = 0.001
-    manufacturing_seed: int = 100
-    schedule_seed: int = 0x243F6A88
-    dem_seed: int = DEFAULT_DEM_SEED
-    static_repeats: int = 128
-
-    @property
-    def fin_hz(self) -> float:
-        """相干激励频率，单位 Hz。"""
-        return self.tone_bin * self.fs_hz / self.samples
-
-
-@dataclass(frozen=True)
-class Capacitors:
-    """按物理切片编号排列的主、子及桥电容，单位 F。"""
-
-    main: np.ndarray
-    sub: np.ndarray
-    bridge: np.ndarray
-
-
-def _schedule(
+def schedule_sequence(
     count: int, cfg: ExperimentConfig
 ) -> tuple[np.ndarray, np.ndarray, tuple[np.ndarray, np.ndarray]]:
     """使用集成参考，记录各笔有序组及采集时冻结的相位。"""
@@ -78,7 +70,7 @@ def _schedule(
     if not prime.slot_accepted or not prime.acq_valid or prime.conv_valid:
         raise RuntimeError("unexpected priming state in slice scheduler")
 
-    converting = np.empty((count, GROUP_SIZE), dtype=np.int8)
+    converting = np.empty((count, GROUP_SLICES), dtype=np.int8)
     acquiring = np.empty_like(converting)
     horizontal = np.empty(count, dtype=np.uint8)
     vertical = np.empty_like(horizontal)
@@ -91,7 +83,7 @@ def _schedule(
             or not state.conv_valid
             or state.conv_sample_id != sample_id
             or state.conv_ids != previous_acq
-            or len(set(state.conv_ids + state.acq_ids)) != 2 * GROUP_SIZE
+            or len(set(state.conv_ids + state.acq_ids)) != 2 * GROUP_SLICES
             or not output.conversion_dem.enabled
         ):
             raise RuntimeError(f"invalid slice ownership at sample {sample_id}")
@@ -103,106 +95,21 @@ def _schedule(
     return converting, acquiring, (horizontal, vertical)
 
 
-def _cap_pool(cfg: ExperimentConfig) -> tuple[Capacitors, Capacitors]:
-    """构造名义网络和同一制造样本，失配为每单元独立高斯偏差。"""
-    rng = np.random.Generator(np.random.PCG64(cfg.manufacturing_seed))
-    main = np.tile(MAIN_WEIGHTS, (SLICE_COUNT, 1)) * cfg.unit_cap_f
-    sub = np.tile(SUB_WEIGHTS, (SLICE_COUNT, 1)) * cfg.unit_cap_f
-    bridge = np.full(SLICE_COUNT, cfg.unit_cap_f)
 
-    def mismatch(cap: np.ndarray) -> np.ndarray:
-        # 单元面积与名义电容成正比，独立并联单位电容的绝对失配按面积平方根增长。
-        sigma_f = cfg.mismatch_sigma_unit * np.sqrt(cap * cfg.unit_cap_f)
-        return cap + rng.normal(0.0, sigma_f)
-
-    nominal = Capacitors(main, sub, bridge)
-    actual = Capacitors(mismatch(main), mismatch(sub), mismatch(bridge))
-    return nominal, actual
-
-
-def _map_record(
-    codes: np.ndarray,
-    phase: tuple[np.ndarray, np.ndarray],
-    *,
-    dem_enable: bool,
-) -> tuple[np.ndarray, np.ndarray]:
-    """通过交付映射器生成实际选通位图，位序为 slot 内 unit 编号。"""
-    main = np.empty((len(codes), GROUP_SIZE), dtype=np.uint32)
-    sub = np.empty((len(codes), GROUP_SIZE), dtype=np.uint8)
-    for sample_id, (code, h, v) in enumerate(zip(codes, *phase, strict=True)):
-        mask = map_fig11(int(code), dem_enable, int(h), int(v))
-        if not mask.valid:
-            raise RuntimeError(f"valid stimulus rejected at sample {sample_id}")
-        main[sample_id] = mask.main
-        sub[sample_id] = mask.sub
-    return main, sub
-
-
-def _unpack(mask: np.ndarray, unit_count: int) -> np.ndarray:
-    """将打包的高参考选通位转换为逐电容布尔数组。"""
-    bit = np.arange(unit_count, dtype=mask.dtype)
-    return ((mask[..., None] >> bit) & 1).astype(bool)
-
-
-def _feedback_charge(
-    pool: Capacitors,
-    vin: np.ndarray,
-    plan: np.ndarray,
-    masks: tuple[np.ndarray, np.ndarray],
-    cfg: ExperimentConfig,
-) -> np.ndarray:
-    """从实际物理电容和底板电压求每笔反馈电荷，单位 C。"""
-    low_v = -cfg.full_scale_peak_v
-    high_v = cfg.full_scale_peak_v
-    main_mask, sub_mask = masks
-    charge = np.zeros(len(vin))
-    for physical_id in range(SLICE_COUNT):
-        sample, slot = np.nonzero(plan == physical_id)
-        if not sample.size:
-            continue
-        main_cap = pool.main[physical_id]
-        sub_cap = pool.sub[physical_id]
-        main_select = _unpack(main_mask[sample, slot], len(main_cap))
-        sub_select = _unpack(sub_mask[sample, slot], len(sub_cap))
-        # 主底板采 VIN，子底板固定低参考。逐片的独立两节点方程接收真实位图。
-        charge[sample] += ref_ra_charge_nodal(
-            main_cap_f=main_cap,
-            sub_cap_f=sub_cap,
-            bridge_cap_f=pool.bridge[physical_id],
-            sub_parasitic_f=0.0,
-            feedback_cap_f=cfg.unit_cap_f,
-            sample_main_v=np.broadcast_to(vin[sample, None], main_select.shape),
-            sample_sub_v=np.full(len(sub_cap), low_v),
-            conversion_main_v=np.where(main_select, high_v, low_v),
-            conversion_sub_v=np.where(sub_select, high_v, low_v),
-        )
-    return charge
-
-
-def _voltage_equivalent(charge: np.ndarray, cfg: ExperimentConfig) -> np.ndarray:
-    """按八片名义主采样电容将反馈电荷折算为输入电压。"""
-    return charge / (GROUP_SIZE * sum(MAIN_WEIGHTS) * cfg.unit_cap_f)
-
-
-def _codebook(nominal: Capacitors, cfg: ExperimentConfig) -> np.ndarray:
-    """用独立电荷参考求 Fig.11 名义 DAC 阈值。"""
-    codes = np.arange(512, dtype=np.uint16)
-    zero_phase = np.zeros(len(codes), dtype=np.uint8)
-    plan = np.tile(np.arange(GROUP_SIZE, dtype=np.int8), (len(codes), 1))
-    vin = np.full(len(codes), -cfg.full_scale_peak_v)
-    mask = _map_record(codes, (zero_phase, zero_phase), dem_enable=False)
-    thresholds = vin - _voltage_equivalent(_feedback_charge(nominal, vin, plan, mask, cfg), cfg)
-    if not np.all(np.diff(thresholds) > 0) or thresholds[-1] >= cfg.full_scale_peak_v:
-        raise RuntimeError("invalid Fig.11 nominal thresholds")
-    return thresholds
-
-
+# =========================================================================
+# 4. 函数组：_observe_pair / _spectral_stats / _write_usage
+# =========================================================================
+# -------------------------------------------------------------------------
+# 在同一输入与物理池上运行两种 DEM 设置，保留掩码和完整记录。
+# 提取全谱最大杂散、信噪失真比和主要杂散频率。
+# 统计每个物理单元开启次数，分母为所在切片的转换次数。
+# ------------------------------------------------------------------------
 def _observe_pair(
     vin: np.ndarray,
     codes: np.ndarray,
     plan: np.ndarray,
     phase: tuple[np.ndarray, np.ndarray],
-    codebook: np.ndarray,
+    thresholds: np.ndarray,
     nominal: Capacitors,
     actual: Capacitors,
     cfg: ExperimentConfig,
@@ -210,27 +117,29 @@ def _observe_pair(
     """在同一输入与物理池上运行两种 DEM 设置，保留掩码和完整记录。"""
     result = {}
     for mode, enabled in (("off", False), ("on", True)):
-        masks = _map_record(codes, phase, dem_enable=enabled)
-        nominal_charge = _feedback_charge(nominal, vin, plan, masks, cfg)
-        nominal_error = codebook[codes] + _voltage_equivalent(nominal_charge, cfg) - vin
+        masks = map_record(codes, phase, dem_enable=enabled)
+        nominal_charge = feedback_charge(nominal, vin, plan, masks, cfg)
+        nominal_error = thresholds[codes] + voltage_equivalent(nominal_charge, cfg) - vin
         nominal_max_error = float(np.max(np.abs(nominal_error)))
         if nominal_max_error > 1e-12:
             raise RuntimeError(f"nominal reconstruction closure failed for DEM {mode}")
-        charge = _feedback_charge(actual, vin, plan, masks, cfg)
+        charge = feedback_charge(actual, vin, plan, masks, cfg)
         result[mode] = {
             "masks": masks,
-            "output_v": codebook[codes] + _voltage_equivalent(charge, cfg),
+            "output_v": thresholds[codes] + voltage_equivalent(charge, cfg),
             "nominal_max_error_v": nominal_max_error,
         }
     return result
 
 
+# ------------------------------------------------------------------------
 def _spectral_stats(output: np.ndarray, cfg: ExperimentConfig) -> dict[str, float]:
     """提取全谱最大杂散、信噪失真比和主要杂散频率。"""
     metrics = sine_fit_metrics(output, cfg.fs_hz, cfg.fin_hz)
     return {name: float(metrics[name]) for name in ("SNDR_dB", "SFDR_dB", "spur_Hz")}
 
 
+# ------------------------------------------------------------------------
 def _write_usage(
     path: Path,
     plan: np.ndarray,
@@ -238,7 +147,7 @@ def _write_usage(
 ) -> tuple[np.ndarray, dict[str, np.ndarray]]:
     """统计每个物理单元开启次数，分母为所在切片的转换次数。"""
     physical_ids = plan.ravel()
-    denominator = np.bincount(physical_ids, minlength=SLICE_COUNT)
+    denominator = np.bincount(physical_ids, minlength=POOL_SLICES)
     main_rates = {}
     with path.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.writer(handle)
@@ -249,10 +158,10 @@ def _write_usage(
             for array, mask, weights in zip(
                 ("main", "sub"), result["masks"], (MAIN_WEIGHTS, SUB_WEIGHTS), strict=True
             ):
-                bits = _unpack(mask.ravel(), len(weights))
-                count = np.zeros((SLICE_COUNT, len(weights)), dtype=int)
+                bits = unpack(mask.ravel(), len(weights))
+                count = np.zeros((POOL_SLICES, len(weights)), dtype=int)
                 np.add.at(count, physical_ids, bits)
-                for physical_id in range(SLICE_COUNT):
+                for physical_id in range(POOL_SLICES):
                     for unit, weight in enumerate(weights):
                         writer.writerow(
                             [
@@ -275,6 +184,14 @@ def _write_usage(
     return denominator, main_rates
 
 
+# =========================================================================
+# 5. 函数组：_plot_interleave / _plot_dem / run
+# =========================================================================
+# -------------------------------------------------------------------------
+# 绘制时偏频谱及动态调度的物理资源角色。
+# 绘制同池 DEM 对照、静态残差和主阵列物理单元使用率。
+# 运行两组定向实验并存储可重绘的结果。
+# ------------------------------------------------------------------------
 def _plot_interleave(
     path: Path,
     outputs: dict[str, np.ndarray],
@@ -321,7 +238,7 @@ def _plot_interleave(
     spectrum.grid(alpha=0.2)
 
     count = 32
-    roles = np.zeros((SLICE_COUNT, count), dtype=np.int8)
+    roles = np.zeros((POOL_SLICES, count), dtype=np.int8)
     for sample in range(count):
         roles[acquisition[sample], sample] = 1
         roles[plan[sample], sample] = 2
@@ -350,6 +267,7 @@ def _plot_interleave(
     plt.close(fig)
 
 
+# ------------------------------------------------------------------------
 def _plot_dem(
     path: Path,
     tone: dict,
@@ -421,18 +339,21 @@ def _plot_dem(
     plt.close(fig)
 
 
+# ------------------------------------------------------------------------
 def run(out: Path) -> dict:
     """运行两组定向实验并存储可重绘的结果。"""
     cfg = ExperimentConfig()
     plt.switch_backend("Agg")
     out.mkdir(parents=True, exist_ok=True)
-    nominal, actual = _cap_pool(cfg)
-    plan, acquisition, tone_phases = _schedule(cfg.samples, cfg)
+    nominal, actual = cap_pool(cfg)
+    plan, acquisition, tone_phases = schedule_sequence(cfg.samples, cfg)
     sample = np.arange(cfg.samples)
     t = sample / cfg.fs_hz
     vin = cfg.tone_peak_v * np.sin(2 * np.pi * cfg.fin_hz * t)
-    delays = np.repeat((cfg.skew_s, -cfg.skew_s, 0.0), (8, 8, 2))
-    fixed_ab = np.arange(GROUP_SIZE)[None, :] + (sample % 2 * GROUP_SIZE)[:, None]
+    # 时偏路径统一到 TimingConfig；deterministic 模式复现旧的三值对称写法
+    # （18 片按 8 正 / 8 负 / 2 零），所以 effects 的归档结果不受这次重构影响。
+    delays = TimingConfig(mode="deterministic", skew_s=cfg.skew_s).delays(POOL_SLICES)
+    fixed_ab = np.arange(GROUP_SLICES)[None, :] + (sample % 2 * GROUP_SLICES)[:, None]
 
     def skew_response(selection: np.ndarray) -> np.ndarray:
         phase = 2 * np.pi * cfg.fin_hz * (t[:, None] + delays[selection])
@@ -447,21 +368,21 @@ def run(out: Path) -> dict:
         stats["mirror_dBFS"] = float(dbfs[mirror_bin])
         interleave_stats[mode] = stats
 
-    codebook = _codebook(nominal, cfg)
-    codes = (np.searchsorted(codebook, vin, side="right") - 1).astype(np.uint16)
-    tone = _observe_pair(vin, codes, plan, tone_phases, codebook, nominal, actual, cfg)
+    thresholds = codebook(nominal, cfg)
+    codes = (np.searchsorted(thresholds, vin, side="right") - 1).astype(np.uint16)
+    tone = _observe_pair(vin, codes, plan, tone_phases, thresholds, nominal, actual, cfg)
     tone_stats = {mode: _spectral_stats(record["output_v"], cfg) for mode, record in tone.items()}
     denominator, rates = _write_usage(out / "usage.csv", plan, tone)
 
-    upper = np.r_[codebook[1:], cfg.full_scale_peak_v]
-    levels = 0.5 * (codebook + upper)
+    upper = np.r_[thresholds[1:], cfg.full_scale_peak_v]
+    levels = 0.5 * (thresholds + upper)
     static_vin = np.repeat(levels, cfg.static_repeats)
     static_codes = np.repeat(np.arange(512, dtype=np.uint16), cfg.static_repeats)
     static_plan = np.tile(plan[: cfg.static_repeats], (len(levels), 1))
     static_phases = tuple(phase[: cfg.static_repeats] for phase in tone_phases)
     repeated_phases = tuple(np.tile(phase, len(levels)) for phase in static_phases)
     static = _observe_pair(
-        static_vin, static_codes, static_plan, repeated_phases, codebook, nominal, actual, cfg
+        static_vin, static_codes, static_plan, repeated_phases, thresholds, nominal, actual, cfg
     )
     for mode, record in static.items():
         error = (record["output_v"] - static_vin).reshape(-1, cfg.static_repeats)
@@ -511,7 +432,7 @@ def run(out: Path) -> dict:
         physical_main_cap_f=actual.main,
         physical_sub_cap_f=actual.sub,
         physical_bridge_cap_f=actual.bridge,
-        nominal_threshold_v=codebook,
+        nominal_threshold_v=thresholds,
         tone_code=codes,
         tone_phase_h=tone_phases[0],
         tone_phase_v=tone_phases[1],
@@ -576,6 +497,12 @@ def run(out: Path) -> dict:
     return summary
 
 
+# =========================================================================
+# 6. 函数组：main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 运行实验并打印便于检查的数值摘要。
+# ------------------------------------------------------------------------
 def main() -> None:
     """运行实验并打印便于检查的数值摘要。"""
     parser = argparse.ArgumentParser(description=__doc__)

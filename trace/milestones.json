@@ -126,6 +126,7 @@
     {
       "id": "M3",
       "name": "前端噪声注入",
+      "commit": "058f345578d128d4f1f671acf0d46ab75b13cd62",
       "base_commit": "7133b6cf24a24a794bf85795bc5e3abba12fdc85",
       "base_snapshot": "e5bbc4fbfac7b39a7ea640633e60caeea56b117f",
       "behavior_change": false,

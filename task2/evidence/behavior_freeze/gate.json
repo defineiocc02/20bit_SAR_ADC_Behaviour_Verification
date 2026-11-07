@@ -1,6 +1,6 @@
 {
   "schema": "adi_behavior_model_gate_v1",
-  "frozen_at": "2026-11-07T13:57:58+00:00",
+  "frozen_at": "2026-11-07T14:27:09+00:00",
   "summary": {
     "pass": [
       "G2",
@@ -21,7 +21,7 @@
       "gate": "G1",
       "name": "结构完整",
       "status": "FAIL",
-      "detail": "台账 43 行；状态分布 {'PASS': 18, 'MISSING': 11, 'NOT_RUN': 5, 'OUT_OF_SCOPE': 8, 'PARTIAL': 1}",
+      "detail": "台账 43 行；脚本校验 exit 0（0=字段/枚举/路径全过）；MISSING=11；状态分布 {'PASS': 18, 'MISSING': 11, 'NOT_RUN': 5, 'OUT_OF_SCOPE': 8, 'PARTIAL': 1}",
       "missing": [
         {
           "source_id": "PAPER-05",
@@ -69,16 +69,16 @@
         }
       ],
       "tool_output": [
-        "  [SLIDE-13] task2/eight/experiment.py:450 ±40 行内找不到 impl_symbol 'def linearity('",
-        "  [SLIDE-16] task2/eight/experiment.py:166 ±40 行内找不到 impl_symbol 'def calibration_metrics('",
-        "  [SLIDE-18] task2/eight/experiment.py:166 ±40 行内找不到 impl_symbol 'def calibration_metrics('"
+        "",
+        "OK: 台账字段、枚举与可追溯性全部通过。",
+        "注意: 台账通过只说明「引用能对上」，不说明「实现正确」。"
       ]
     },
     {
       "gate": "G2",
       "name": "回归",
       "status": "PASS",
-      "detail": "146 passed in 15.77s"
+      "detail": "146 passed in 18.38s"
     },
     {
       "gate": "G3",

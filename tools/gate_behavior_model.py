@@ -86,7 +86,13 @@ def gate_structure() -> dict:
         "gate": "G1",
         "name": "结构完整",
         "status": "PASS" if passed else "FAIL",
-        "detail": f"台账 {counts['total']} 行；状态分布 {counts['counts']}",
+        # 把「脚本校验」与「MISSING 计数」分开写：前者过了、后者不为 0，
+        # 和前者就报错，是两种完全不同的失败，detail 里必须能分开读。
+        "detail": (
+            f"台账 {counts['total']} 行；脚本校验 exit {code}（0=字段/枚举/路径全过）；"
+            f"MISSING={counts['counts'].get('MISSING', 0)}；"
+            f"状态分布 {counts['counts']}"
+        ),
         "missing": counts["missing"],
         "tool_output": output.splitlines()[-3:],
     }

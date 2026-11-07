@@ -1,6 +1,6 @@
 {
   "schema": "adi_behavior_freeze_receipt_v1",
-  "frozen_at": "2026-11-07T13:57:58+00:00",
+  "frozen_at": "2026-11-07T14:27:09+00:00",
   "scope": "行为级模型复现（M0-M9）；RTL 全程只读，未触及 22 个 .sv/.svh/.v 文件",
   "gates": {
     "pass": [

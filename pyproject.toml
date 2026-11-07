@@ -1,6 +1,15 @@
 [tool.pytest.ini_options]
 minversion = "7.4"
-testpaths = ["task1/tests"]
+# 五个任务目录全收：只测 task1/task2 时，task3、集成与重构层的导入断裂
+# 不会在任何一次回归里暴露（它们是脚本形态，出问题要等人工跑才发现）。
+testpaths = [
+    "task1/tests",
+    "task2/tests",
+    "task2/eight/tests",
+    "task3/tests",
+    "task_integration/tests",
+    "task_reconstruction/tests",
+]
 pythonpath = [".", "src"]
 addopts = ["-ra", "--strict-markers", "--strict-config", "--durations=15"]
 filterwarnings = ["error::RuntimeWarning", "ignore::DeprecationWarning"]
@@ -26,7 +35,9 @@ ignore = [
 convention = "google"
 
 [tool.ruff.lint.isort]
-known-first-party = ["adi_model"]
+# 仓库自有的包都算第一方：库层是 adi_model，任务层是 task* 前缀的各目录。
+# 只登记 adi_model 会让 task* 被当成第三方，排到 adi_model 前面，分组反而失真。
+known-first-party = ["adi_model", "task1", "task2", "task3", "task_integration", "task_reconstruction"]
 
 [tool.ruff.format]
 quote-style = "double"

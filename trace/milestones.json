@@ -58,6 +58,34 @@
         "ruff": "PASS"
       },
       "note": "零行为变更。43 行台账（论文 14 + 讲稿 21 + 专利 8），PASS=17 / MISSING=12 / OUT_OF_SCOPE=8 / NOT_RUN=5 / PARTIAL=1。台账 PASS 只表示引用能对上，不表示实现正确。"
+    },
+    {
+      "id": "M1",
+      "name": "基线护栏 + 常量去重",
+      "base_commit": "bf2075fbcbd871af186ed60ce30c9a70f23924b1",
+      "base_snapshot": "15293add30a935a093dd7d5486966f19156fa91b",
+      "behavior_change": false,
+      "commit": "PENDING",
+      "commits": {
+        "M1a_指纹与护栏": "PENDING",
+        "M1b_常量去重": "PENDING"
+      },
+      "files": [
+        "pyproject.toml",
+        "tools/snapshot_baseline.py",
+        "task2/evidence/baseline_fingerprint/fingerprint.json",
+        "task2/eight/tests/test_baseline_frozen.py",
+        "task3/tests/test_task3_smoke.py",
+        "task_integration/tests/test_integration_smoke.py",
+        "task_reconstruction/tests/test_reconstruction_smoke.py"
+      ],
+      "gates": {
+        "pytest": "PASS (81 passed)",
+        "check_layering": "PASS (exit 0；60 条 R3 跨文件私有导入为既有告警)",
+        "snapshot_baseline_check": "PASS (8 项逐字段相等)",
+        "check_source_matrix": "PASS (81 个可收集节点)"
+      },
+      "note": "指纹只存 8 项指标，不存配置也不存源码哈希：M2 起要加 noise 字段，存配置会让指纹因「多一个默认关闭字段」误报。环境钉在 python 3.12.14 / numpy 2.5.3 / adctoolbox 0.9.1（与既有归档一致），见 fingerprint.json 的 environment。去重拆成独立 commit，否则噪声改动与去重混在一起时指纹失配无法归因。"
     }
   ]
 }

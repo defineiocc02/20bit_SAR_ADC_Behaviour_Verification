@@ -1,0 +1,22 @@
+{
+  "schema": "adi_behavior_baseline_fingerprint_v1",
+  "params": {
+    "sigma": 0.02,
+    "seed": 100
+  },
+  "environment": {
+    "python": "3.12.14",
+    "numpy": "2.5.3",
+    "adctoolbox": "0.9.1"
+  },
+  "metrics": {
+    "native_dither_step_v": 0.01838235294117647,
+    "output_lsb20_v": 9.5367431640625e-06,
+    "fig21_dem_sndr_lms_db": 103.72767395840506,
+    "fig21_dem_sfdr_lms_dbc": 128.0491942253445,
+    "no_dem_sndr_lms_db": 103.90529262393856,
+    "fig21_dem_inl_off_nominal_lsb20": 63.60171767311616,
+    "fig21_dem_inl_on_lms_lsb20": 0.523258143149525,
+    "fig21_dem_dnl_on_lms_lsb20": 0.619849667703291
+  }
+}

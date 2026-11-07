@@ -26,6 +26,7 @@ from pathlib import Path
 import numpy as np
 
 from adi_model.capacitors import ExperimentConfig, cap_pool
+from adi_model.codes import midpoint_v
 from adi_model.hashing import sha256_file
 from adi_model.noise import NoiseConfig, front_end_noise
 from adi_model.reference import ReferenceConfig, dynamic_reference
@@ -206,8 +207,7 @@ def _output(state, raw_code, cfg, peak, gain=None, weight=None):
     code = _output_codes(v, peak)
     if np.any((code < 0) | (code >= N_CODES)):
         raise ValueError("output rejected on independent tone; a clipped FFT is inadmissible")
-    midpoint_v = (code + 0.5) * (2 * peak / N_CODES) - peak
-    return code, midpoint_v
+    return code, midpoint_v(code, peak, bits=OUTPUT_BITS)
 
 
 # ------------------------------------------------------------------------

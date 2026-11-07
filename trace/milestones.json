@@ -209,6 +209,33 @@
         "effects_archive_identical": "PASS (重跑 run_effects 与 task1/evidence/effects 的 interleave.fixed_ab / interleave.dynamic / dem 三块逐字段完全一致)"
       },
       "note": "计划判据三改一留。①「fs/8、fs/18 杂散 ≤ −104 dBc」没有出处：讲稿 p22 明写交织杂散位置是 f_S/2 − f_IN（'Interleaving tone with randomisation centred at fS/2 - fIN'），模型的 mirror_bin = samples//2 - tone_bin 正是这个位置，归档里 dynamic 模式的 mirror 已是 −128.09 dBFS、fixed_ab 是 −93.59 dBFS。fs/8 与 fs/18 是调度频率而非时偏杂散位置，判据改按镜像频点记录。②「BW 扫 {1,3,15}×f_Nyq」里的 15× 有出处（讲稿 19-22 页反复写 'DAC BW set to 15 × f_Nyq'），但「15× 处 THD < −110 dBc、3× 处 > −70 dBc」这两个阈值全库找不到，未作为判据采信，只保留 15× 的极点衰减可复算这一点。③「_capture 里 dac_pole 作用在转换阶段底板电压」未做：dac_pole_attenuation 只给频域幅度，接进电荷域需要给每片电容一个复频响应，超出当前行为模型范围；而「BW=15× 时 DNL/INL 变化 <0.01 LSB」这条在结构上已天然成立——_static 用解析区间宽度算 DNL/INL，根本不经过 _capture，极点进不了静态路径。④ 0.6 ps 与 10 ps 不能互换：论文原文是 'The estimated residual RMS timing mismatch is ~0.6ps'（匹配时钟之后的残余值），讲稿 p21-22 的 'Timing mismatch simulation (10ps)' 是失配仿真条件，两者差 16 倍。TimingConfig 的默认 rms_jitter_s 取 0.6 ps，deterministic 的 skew_s 沿用 ExperimentConfig.skew_s=5 ps，两条路互不覆盖。⑤ 5 条判据里 4 条是纯函数、1 条是归档逐字段比对；后者是这次重构最强的证据——它证明改的是来源而不是行为。"
+    },
+    {
+      "id": "M6",
+      "name": "三处 20bit 码口径统一",
+      "base_commit": "9c4aede",
+      "base_snapshot": "b99e9f9a6dfd63688edc903395c1d87f3c3258eb",
+      "behavior_change": false,
+      "files": [
+        "src/adi_model/codes.py",
+        "src/tests/test_codes.py",
+        "task1/experiments/inl_dnl.py",
+        "task2/eight/experiment.py",
+        "task_reconstruction/fixed.py",
+        "trace/milestones.json"
+      ],
+      "gates": {
+        "pytest": "PASS (136 passed)",
+        "ruff": "PASS",
+        "snapshot_baseline_check": "PASS (8 项逐字段相等)",
+        "legacy_expression": "PASS (1e5 个随机点上 to_unsigned 与 inl_dnl 早先的内联式逐点相等)",
+        "round_trip": "PASS (全部 2^20 个码经 midpoint_v 往返无损)",
+        "boundaries": "PASS (−peak ⇒ 0 码；+peak−1e-9 ⇒ 最大码；strict 下 ±peak 越界抛错，默认返回越界码供调用方 clip)",
+        "bits_parameter": "PASS (4 位时 16 个码、中点 8、to_signed(8)==0)",
+        "shared_full_scale": "PASS (fixed.py 的 FULL_SCALE_CODE == codes.OUTPUT_CODES)",
+        "negative_controls": "PASS (floor→round 被抓 4 条；midpoint 去掉 +0.5 被抓 2 条)"
+      },
+      "note": "统一过程中踩到一个真实的可测性回归，值得记下来。初版 to_unsigned 直接读 adi_model.codes.OUTPUT_CODES（写死 20 位），结果 task1/tests/test_adc2_dither.py 的 _ideal_ramp 用 monkeypatch.setattr(inl_dnl, \"OUTPUT_BITS\", 4) 把位宽压到 4 位来做快速验证——patch 打在调用方模块的全局名上，对写死常量的库函数无效，于是 old 算出 16 个码、new 算出 2^20 个码，两条测试报 'ramp has no interior code mass'。修法不是改测试，而是把位宽做成显式参数 bits，由调用方把可 patch 的 OUTPUT_BITS 传进来。教训：把常量收敛到库层时，「读取时机」会变——原先在函数体里读模块全局，收敛后变成导入时取值，任何依赖 monkeypatch 的测试都会静默失效。另：边界用例原本想用 nextafter(PEAK, −inf)，但浮点上 (nextafter(5)+5.0) 直接进位成 10.0，差值被加法吃掉，验的就不是取整方向而是舍入噪声；改用 1e-9 内点。fixed.py 的坏样本置零语义原样保留（bad=True 或越界或异常都返回 (0, True)），只把最后的偏置换成 to_signed。"
     }
   ]
 }

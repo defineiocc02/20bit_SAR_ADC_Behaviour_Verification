@@ -34,7 +34,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from adi_model.capacitors import Capacitors, ExperimentConfig, cap_pool
-from adi_model.codes import OUTPUT_BITS
+from adi_model.codes import OUTPUT_BITS, to_unsigned
 from adi_model.hashing import sha256_file
 from task1.experiments.adctoolbox_calibration import (
     CalibrationConfig,
@@ -120,7 +120,12 @@ def _span_indices(start: np.ndarray, stop: np.ndarray) -> tuple[np.ndarray, np.n
 
 # ------------------------------------------------------------------------
 def _output_codes(output_v: np.ndarray, peak_v: float) -> np.ndarray:
-    return np.floor((output_v + peak_v) * ((1 << OUTPUT_BITS) / (2 * peak_v))).astype(np.int64)
+    """把输出电压换成无符号 20 位码，向下取整。
+
+    实现收在 ``adi_model.codes.to_unsigned``；这里保留函数名是因为本模块与
+    下游多处按这个名字引用。默认不抛越界，调用方自己 clip——旧行为如此。
+    """
+    return to_unsigned(output_v, peak_v, bits=OUTPUT_BITS)
 
 
 # =========================================================================

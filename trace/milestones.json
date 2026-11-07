@@ -294,6 +294,7 @@
     {
       "id": "M9",
       "name": "定版门禁 G1-G7",
+      "commit": "76bbb621e89f11deaf8ae4b619519d45a7241aaf",
       "base_commit": "6d8ae4a",
       "base_snapshot": "60710a5670ab838138ea91959d09ad30d3cc3b58",
       "behavior_change": false,

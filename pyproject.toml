@@ -3,6 +3,7 @@ minversion = "7.4"
 # 五个任务目录全收：只测 task1/task2 时，task3、集成与重构层的导入断裂
 # 不会在任何一次回归里暴露（它们是脚本形态，出问题要等人工跑才发现）。
 testpaths = [
+    "src/tests",
     "task1/tests",
     "task2/tests",
     "task2/eight/tests",

@@ -98,6 +98,30 @@
         "check_source_matrix": "PASS (81 个可收集节点)"
       },
       "note": "指纹只存 8 项指标，不存配置也不存源码哈希：M2 起要加 noise 字段，存配置会让指纹因「多一个默认关闭字段」误报。环境钉在 python 3.12.14 / numpy 2.5.3 / adctoolbox 0.9.1（与既有归档一致），见 fingerprint.json 的 environment。去重拆成独立 commit，否则噪声改动与去重混在一起时指纹失配无法归因。M1b 的回退请用 git restore --source=15293add -- <逐路径>（该快照含 M1b 之前的全部工作树状态），不要用 git revert：本仓库 HEAD 落后工作树很多，M1b 提交顺带落盘了前几轮未提交的注释与 C9 改动，revert 会把它们一起退回 HEAD。"
+    },
+    {
+      "id": "M2",
+      "name": "噪声内核",
+      "base_commit": "1acf2d2baf7dd0b002cd3c170914ce33cae6b05c",
+      "base_snapshot": "978770bdc3c008da2d6884b148630825f512a80b",
+      "behavior_change": false,
+      "commit": "PENDING",
+      "files": [
+        "src/adi_model/noise.py",
+        "src/tests/test_noise.py",
+        "pyproject.toml"
+      ],
+      "gates": {
+        "pytest": "PASS (96 passed)",
+        "ruff": "PASS",
+        "snapshot_baseline_check": "PASS (8 项相等；噪声未接入模型，本里程碑不该影响任何数值)",
+        "thermal_sigma": "PASS (20.5 pF/300 K ⇒ 单侧 14.214 µV，差分 20.10 µV)",
+        "sigma_recovery_white": "PASS (2^20 样本，1% 窗口)",
+        "sigma_recovery_flicker": "PASS (64 次集成平均，3% 窗口)",
+        "orthogonality": "PASS (加源不挪动已有源的抽样，跨 tag 相关 <0.01)",
+        "disabled_is_all_zero": "PASS"
+      },
+      "note": "计划里「N=2^20 时 σ 回收误差 <1%」对 1/f 不成立：1/f 的功率几乎全在最低几个频点，有效自由度只有 O(100)，单次实现的标准差本身就有 6.6% 涨落。故 1/f 改验三条：64 次集成平均回收 3% 窗口、sigma 线性标度（确定性）、谱斜率 −1（±0.15）。这是有意的口径修正，不是把标准放松到能过。白噪仍卡 1%。"
     }
   ]
 }

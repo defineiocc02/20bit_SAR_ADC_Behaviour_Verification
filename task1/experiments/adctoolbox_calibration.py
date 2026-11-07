@@ -1,3 +1,18 @@
+# =============================================================================
+# 文件名     : adctoolbox_calibration.py
+# 模块名     : adctoolbox_calibration
+# 版本       : v1.0
+# 功能       : 比较模块一的电容失配、DEM 与前台 NLMS 校准。
+#
+# 设计说明   :
+#   * 在仓库根目录使用 PYTHONPATH=.:src python -m task1.experiments.adctoolbox_calibration
+#   * --out PATH。校准数据为物理片 ID、实际开关位图、理想 ADC2 码及已知前台参考。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """比较模块一的电容失配、DEM 与前台 NLMS 校准。
 
 在仓库根目录使用 PYTHONPATH=.:src python -m task1.experiments.adctoolbox_calibration
@@ -18,27 +33,24 @@ from pathlib import Path
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-from task1.experiments.run_effects import (
-    BLUE,
-    GRAY,
+
+from adi_model.capacitors import (
     MAIN_WEIGHTS,
-    ORANGE,
-    ROOT,
     SUB_WEIGHTS,
     Capacitors,
     ExperimentConfig,
-    _cap_pool,
-    _codebook,
-    _feedback_charge,
-    _map_record,
-    _schedule,
-    _unpack,
-    _voltage_equivalent,
+    cap_pool,
+    feedback_charge,
+    unpack,
+    voltage_equivalent,
 )
-from task1.model.scheduler import GROUP_SIZE, SLICE_COUNT
+from adi_model.noise import FrontEndNoise
+from task1.experiments.run_effects import BLUE, GRAY, ORANGE, ROOT, schedule_sequence
+from task1.model.codebook import codebook, map_record
+from task1.model.scheduler import GROUP_SLICES, POOL_SLICES
 
 UNIT_COUNT = len(MAIN_WEIGHTS) + len(SUB_WEIGHTS) - 1
-SWITCH_COLUMNS = SLICE_COUNT * UNIT_COUNT
+SWITCH_COLUMNS = POOL_SLICES * UNIT_COUNT
 MODE_LABELS = {
     "no_dem_no_cal": "DEM off / uncalibrated",
     "dem_only": "DEM on / uncalibrated",
@@ -47,6 +59,14 @@ MODE_LABELS = {
 }
 
 
+# =========================================================================
+# 1. 函数组：CalibrationConfig / SwitchState / Observation
+# =========================================================================
+# -------------------------------------------------------------------------
+# 前台采集、理想 ADC2 和数字重编码的固定参数。
+# 按有序物理切片保存粗码和开关位图。
+# 校准器可以读取的原始数字观测。
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class CalibrationConfig:
     """前台采集、理想 ADC2 和数字重编码的固定参数。"""
@@ -74,6 +94,7 @@ class CalibrationConfig:
     covariance_floor: float = 1e-10
 
 
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class SwitchState:
     """按有序物理切片保存粗码和开关位图。"""
@@ -84,6 +105,7 @@ class SwitchState:
     sub: np.ndarray
 
 
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class Observation(SwitchState):
     """校准器可以读取的原始数字观测。"""
@@ -91,6 +113,14 @@ class Observation(SwitchState):
     adc2_code: np.ndarray
 
 
+# =========================================================================
+# 2. 函数组：Capture / FrozenCalibration / quantize
+# =========================================================================
+# -------------------------------------------------------------------------
+# 量化前的模拟观察，用于检查 ADC2 输入余量。
+# 片增益及物理开关权重修正都在独立留出前冻结。
+# 用理想均匀量化器编码，越界即停止实验。
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class Capture(SwitchState):
     """量化前的模拟观察，用于检查 ADC2 输入余量。"""
@@ -104,10 +134,11 @@ class Capture(SwitchState):
             self.codes,
             self.main,
             self.sub,
-            _quantize(self.residue_v, cfg.adc2_bits, cfg.adc2_half_range_v),
+            quantize(self.residue_v, cfg.adc2_bits, cfg.adc2_half_range_v),
         )
 
 
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class FrozenCalibration:
     """片增益及物理开关权重修正都在独立留出前冻结。"""
@@ -116,7 +147,8 @@ class FrozenCalibration:
     switch_correction_v: np.ndarray
 
 
-def _quantize(voltage: np.ndarray, bits: int, half_range_v: float) -> np.ndarray:
+# ------------------------------------------------------------------------
+def quantize(voltage: np.ndarray, bits: int, half_range_v: float) -> np.ndarray:
     """用理想均匀量化器编码，越界即停止实验。"""
     invalid = ~np.isfinite(voltage) | (voltage < -half_range_v) | (voltage >= half_range_v)
     if np.any(invalid):
@@ -127,22 +159,31 @@ def _quantize(voltage: np.ndarray, bits: int, half_range_v: float) -> np.ndarray
     )
 
 
-def _decode(code: np.ndarray, bits: int, half_range_v: float) -> np.ndarray:
+# =========================================================================
+# 3. 函数组：decode_switches / residue_voltage / _capture
+# =========================================================================
+# -------------------------------------------------------------------------
+# 解出码仓中点，单位 V。
+# ------------------------------------------------------------------------
+def decode_switches(code: np.ndarray, bits: int, half_range_v: float) -> np.ndarray:
     """解出码仓中点，单位 V。"""
     step_v = 2 * half_range_v / (1 << bits)
     return (np.asarray(code, dtype=float) + 0.5) * step_v - half_range_v
 
 
-def _residue_voltage(
+# ------------------------------------------------------------------------
+def residue_voltage(
     pool: Capacitors,
     vin: np.ndarray,
     plan: np.ndarray,
     masks: tuple[np.ndarray, np.ndarray],
     experiment: ExperimentConfig,
 ) -> np.ndarray:
-    return _voltage_equivalent(_feedback_charge(pool, vin, plan, masks, experiment), experiment)
+    """把本笔的积分参考电荷折算成输入电压（V），不含量化与阈值项。"""
+    return voltage_equivalent(feedback_charge(pool, vin, plan, masks, experiment), experiment)
 
 
+# ------------------------------------------------------------------------
 def _capture(
     pool: Capacitors,
     vin: np.ndarray,
@@ -152,25 +193,44 @@ def _capture(
     experiment: ExperimentConfig,
     *,
     dem_enable: bool,
+    noise: FrontEndNoise | None = None,
 ) -> Capture:
+    """把一笔输入跑完采样与粗判决，返回开关状态与残差。
+
+    ``noise`` 的三个分量与 task2/eight 的同名函数同序注入：采样噪声同时进
+    粗码判决与残差（采样电容上的电荷被后续所有操作继承），比较器噪声只进
+    判决输入不进残差（否则会被后级重构吸收），转换噪声只进残差。
+    ``noise`` 为 None 或全零时整条噪声路径不执行，结果与无噪声版本逐位相同。
+    """
     peak = experiment.full_scale_peak_v
     if np.any(~np.isfinite(vin) | (vin < -peak) | (vin >= peak)):
         raise ValueError("input exceeds the nominal Fig. 11 range")
-    codes = (np.searchsorted(threshold_v, vin, side="right") - 1).astype(np.uint16)
-    main, sub = _map_record(codes, phases, dem_enable=dem_enable)
-    return Capture(
-        plan, codes, main, sub, _residue_voltage(pool, vin, plan, (main, sub), experiment)
-    )
+    active = noise is not None and not noise.is_quiet
+    sampled_v = vin + noise.sampling_v if active else vin
+    decision_v = sampled_v + noise.comparator_v if active else sampled_v
+    codes = (np.searchsorted(threshold_v, decision_v, side="right") - 1).astype(np.uint16)
+    if active and np.any(codes >= len(threshold_v) - 1):
+        raise ValueError("comparator noise pushed a coarse code out of range")
+    main, sub = map_record(codes, phases, dem_enable=dem_enable)
+    residue = residue_voltage(pool, sampled_v, plan, (main, sub), experiment)
+    if active:
+        residue = residue + noise.offset_v + noise.conversion_v
+    return Capture(plan, codes, main, sub, residue)
 
 
+# =========================================================================
+# 4. 函数组：_physical_bits / _mix_training_modes / _nominal_reconstruction
+# =========================================================================
+# ------------------------------------------------------------------------
 def _physical_bits(obs: SwitchState) -> np.ndarray:
-    main = _unpack(obs.main, len(MAIN_WEIGHTS))
-    sub = _unpack(obs.sub, len(SUB_WEIGHTS))[..., :-1]
-    bits = np.zeros((len(obs.plan), SLICE_COUNT, UNIT_COUNT), dtype=np.uint8)
+    main = unpack(obs.main, len(MAIN_WEIGHTS))
+    sub = unpack(obs.sub, len(SUB_WEIGHTS))[..., :-1]
+    bits = np.zeros((len(obs.plan), POOL_SLICES, UNIT_COUNT), dtype=np.uint8)
     bits[np.arange(len(obs.plan))[:, None], obs.plan] = np.concatenate((main, sub), axis=-1)
     return bits.reshape(len(obs.plan), SWITCH_COLUMNS)
 
 
+# ------------------------------------------------------------------------
 def _mix_training_modes(on: Capture, off: Capture, choose_on: np.ndarray) -> Capture:
     return Capture(
         on.plan,
@@ -181,12 +241,17 @@ def _mix_training_modes(on: Capture, off: Capture, choose_on: np.ndarray) -> Cap
     )
 
 
+# ------------------------------------------------------------------------
 def _nominal_reconstruction(
     obs: Observation, threshold_v: np.ndarray, cfg: CalibrationConfig
 ) -> np.ndarray:
-    return threshold_v[obs.codes] + _decode(obs.adc2_code, cfg.adc2_bits, cfg.adc2_half_range_v)
+    return threshold_v[obs.codes] + decode_switches(obs.adc2_code, cfg.adc2_bits, cfg.adc2_half_range_v)
 
 
+# =========================================================================
+# 5. 函数组：_features / _condition_report / _fit_gain
+# =========================================================================
+# ------------------------------------------------------------------------
 def _features(
     obs: Observation,
     gain_per_slice: np.ndarray,
@@ -194,16 +259,17 @@ def _features(
     experiment: ExperimentConfig,
     cfg: CalibrationConfig,
 ) -> np.ndarray:
-    residue = _decode(obs.adc2_code, cfg.adc2_bits, cfg.adc2_half_range_v)
+    residue = decode_switches(obs.adc2_code, cfg.adc2_bits, cfg.adc2_half_range_v)
     # r=G·(Vin+VFS)-W。先用未校准电压估计 G-1 项，保留的交叉误差为二阶。
     nominal_output = threshold_v[obs.codes] + residue
     aggregate_gain = gain_per_slice[obs.plan].sum(axis=1)
     corrected = residue - (aggregate_gain - 1) * (nominal_output + experiment.full_scale_peak_v)
-    code = _quantize(corrected, cfg.residue_feature_bits, cfg.adc2_half_range_v)
-    fine_bits = _unpack(code, cfg.residue_feature_bits)[:, ::-1]
+    code = quantize(corrected, cfg.residue_feature_bits, cfg.adc2_half_range_v)
+    fine_bits = unpack(code, cfg.residue_feature_bits)[:, ::-1]
     return np.column_stack((_physical_bits(obs), fine_bits)).astype(np.uint8)
 
 
+# ------------------------------------------------------------------------
 def _condition_report(singular: np.ndarray, shape: tuple[int, int]) -> dict:
     threshold = singular[0] * max(shape) * np.finfo(float).eps
     rank = int(np.count_nonzero(singular > threshold))
@@ -215,6 +281,7 @@ def _condition_report(singular: np.ndarray, shape: tuple[int, int]) -> dict:
     }
 
 
+# ------------------------------------------------------------------------
 def _fit_gain(
     plan: np.ndarray,
     low_v: np.ndarray,
@@ -223,9 +290,13 @@ def _fit_gain(
     high_code: np.ndarray,
     cfg: CalibrationConfig,
 ) -> tuple[np.ndarray, dict]:
-    return _fit_gain_from_flags(_group_flags(plan), low_v, high_v, low_code, high_code, cfg)
+    return _fit_gain_from_flags(group_flags(plan), low_v, high_v, low_code, high_code, cfg)
 
 
+# =========================================================================
+# 6. 函数组：_fit_gain_from_flags / group_flags / _schedule_report
+# =========================================================================
+# ------------------------------------------------------------------------
 def _fit_gain_from_flags(
     flags: np.ndarray,
     low_v: np.ndarray,
@@ -234,8 +305,8 @@ def _fit_gain_from_flags(
     high_code: np.ndarray,
     cfg: CalibrationConfig,
 ) -> tuple[np.ndarray, dict]:
-    adc2_low_v = _decode(low_code, cfg.adc2_bits, cfg.adc2_half_range_v)
-    adc2_high_v = _decode(high_code, cfg.adc2_bits, cfg.adc2_half_range_v)
+    adc2_low_v = decode_switches(low_code, cfg.adc2_bits, cfg.adc2_half_range_v)
+    adc2_high_v = decode_switches(high_code, cfg.adc2_bits, cfg.adc2_half_range_v)
     slopes = (adc2_high_v - adc2_low_v) / (high_v - low_v)
     gain, _, _, singular = np.linalg.lstsq(flags, slopes, rcond=None)
     report = _condition_report(singular, flags.shape)
@@ -246,14 +317,17 @@ def _fit_gain_from_flags(
     return gain, report
 
 
-def _group_flags(plan: np.ndarray) -> np.ndarray:
-    flags = np.zeros((len(plan), SLICE_COUNT))
+# ------------------------------------------------------------------------
+def group_flags(plan: np.ndarray) -> np.ndarray:
+    """把逐样本的物理片号展开成 one-hot 分组矩阵，供最小二乘按片解增益。"""
+    flags = np.zeros((len(plan), POOL_SLICES))
     flags[np.arange(len(plan))[:, None], plan] = 1.0
     return flags
 
 
+# ------------------------------------------------------------------------
 def _schedule_report(plan: np.ndarray) -> dict:
-    flags = _group_flags(plan)
+    flags = group_flags(plan)
     return {
         "observed_slice_ids": np.flatnonzero(flags.sum(axis=0)).tolist(),
         "gain_observability_from_plan_alone": _condition_report(
@@ -262,30 +336,43 @@ def _schedule_report(plan: np.ndarray) -> dict:
     }
 
 
-def _fixed_ab_plan(samples: int) -> np.ndarray:
-    return np.arange(GROUP_SIZE)[None, :] + (np.arange(samples) % 2)[:, None] * GROUP_SIZE
+# =========================================================================
+# 7. 函数组：fixed_ab_plan / fixed_ab_flags / fixed_switch_bits
+# =========================================================================
+# ------------------------------------------------------------------------
+def fixed_ab_plan(samples: int) -> np.ndarray:
+    """生成固定 A/B 交替计划：偶数样本用 0–7 号片，奇数样本用 8–15 号片。"""
+    return np.arange(GROUP_SLICES)[None, :] + (np.arange(samples) % 2)[:, None] * GROUP_SLICES
 
 
-def _fixed_ab_flags(plan: np.ndarray) -> np.ndarray:
-    if not np.array_equal(plan, _fixed_ab_plan(len(plan))):
+# ------------------------------------------------------------------------
+def fixed_ab_flags(plan: np.ndarray) -> np.ndarray:
+    """固定 A/B 模式下按 8 片聚合的增益设计矩阵；计划不是交替形态时直接报错。"""
+    if not np.array_equal(plan, fixed_ab_plan(len(plan))):
         raise ValueError("aggregate calibration requires the fixed A/B plan")
-    group = plan[:, 0] // GROUP_SIZE
+    group = plan[:, 0] // GROUP_SLICES
     return group[:, None] == np.arange(2)
 
 
-def _fixed_switch_bits(obs: SwitchState) -> np.ndarray:
-    flags = _fixed_ab_flags(obs.plan)
+# ------------------------------------------------------------------------
+def fixed_switch_bits(obs: SwitchState) -> np.ndarray:
+    """把两拍位图摊平成同一组特征位；要求八片共用一张掩码且两个末位恒关。"""
+    flags = fixed_ab_flags(obs.plan)
     if np.any(obs.main != obs.main[:, :1]) or np.any(obs.sub != obs.sub[:, :1]):
         raise ValueError("aggregate calibration requires all eight slices to share the same mask")
     # 第 17 个主单元 S4 和第 5 个子单元在无 DEM 路径均固定关闭。
-    main = _unpack(obs.main[:, 0], len(MAIN_WEIGHTS))
-    sub = _unpack(obs.sub[:, 0], len(SUB_WEIGHTS))
+    main = unpack(obs.main[:, 0], len(MAIN_WEIGHTS))
+    sub = unpack(obs.sub[:, 0], len(SUB_WEIGHTS))
     if main[:, -1].any() or sub[:, -1].any():
         raise ValueError("aggregate calibration requires the DEM-off mask")
     active_bits = np.column_stack((main[:, :-1], sub[:, :-1]))
     return (flags[:, :, None] & active_bits[:, None, :]).reshape(len(flags), -1)
 
 
+# =========================================================================
+# 8. 函数组：_design_report / _nominal_weights / _fit_weights
+# =========================================================================
+# ------------------------------------------------------------------------
 def _design_report(bits: np.ndarray, frequency: float) -> dict:
     # 工具箱拟合直流项和一个待估相位分量；同时检查正弦和余弦两种基底。
     phase = 2 * np.pi * frequency * np.arange(len(bits))
@@ -301,16 +388,18 @@ def _design_report(bits: np.ndarray, frequency: float) -> dict:
     }
 
 
+# ------------------------------------------------------------------------
 def _nominal_weights(experiment: ExperimentConfig, cfg: CalibrationConfig) -> np.ndarray:
     beta = 1.0 / (1.0 + sum(SUB_WEIGHTS))
     per_slice = np.r_[MAIN_WEIGHTS, np.asarray(SUB_WEIGHTS[:-1]) * beta]
-    scale = 2 * experiment.full_scale_peak_v / (GROUP_SIZE * sum(MAIN_WEIGHTS))
-    switch_weights = np.tile(per_slice * scale, SLICE_COUNT)
+    scale = 2 * experiment.full_scale_peak_v / (GROUP_SLICES * sum(MAIN_WEIGHTS))
+    switch_weights = np.tile(per_slice * scale, POOL_SLICES)
     code_step = 2 * cfg.adc2_half_range_v / (1 << cfg.residue_feature_bits)
     residue_weights = code_step * np.exp2(np.arange(cfg.residue_feature_bits - 1, -1, -1))
     return np.r_[switch_weights, residue_weights]
 
 
+# ------------------------------------------------------------------------
 def _fit_weights(
     bits: np.ndarray, nominal: np.ndarray, cfg: CalibrationConfig, report: dict
 ) -> tuple[np.ndarray, float, dict]:
@@ -338,6 +427,12 @@ def _fit_weights(
     )
 
 
+# =========================================================================
+# 9. 函数组：_switch_design_report / _fit_nlms / _apply_nlms
+# =========================================================================
+# -------------------------------------------------------------------------
+# 逐笔更新有效权重，预条件矩阵只由训练位图确定。
+# ------------------------------------------------------------------------
 def _switch_design_report(bits: np.ndarray) -> dict:
     singular = np.linalg.svd(bits.astype(float), compute_uv=False)
     return {
@@ -346,6 +441,7 @@ def _switch_design_report(bits: np.ndarray) -> dict:
     }
 
 
+# ------------------------------------------------------------------------
 def _fit_nlms(
     switch_bits: np.ndarray, target_v: np.ndarray, cfg: CalibrationConfig
 ) -> tuple[np.ndarray, dict, list[dict]]:
@@ -379,6 +475,7 @@ def _fit_nlms(
     return preconditioner @ coefficient, report, learning
 
 
+# ------------------------------------------------------------------------
 def _apply_nlms(
     obs: Observation,
     frozen: FrozenCalibration,
@@ -393,6 +490,10 @@ def _apply_nlms(
     return (nominal_v + peak + correction_v) / gain - peak
 
 
+# =========================================================================
+# 10. 函数组：_four_modes / _spectrum / calibration_metrics
+# =========================================================================
+# ------------------------------------------------------------------------
 def _four_modes(
     off: Observation,
     on: Observation,
@@ -409,6 +510,7 @@ def _four_modes(
     }
 
 
+# ------------------------------------------------------------------------
 def _spectrum(output_v: np.ndarray, experiment: ExperimentConfig) -> dict:
     from adctoolbox.spectrum import compute_spectrum
 
@@ -421,7 +523,9 @@ def _spectrum(output_v: np.ndarray, experiment: ExperimentConfig) -> dict:
     )
 
 
-def _metrics(output_v: np.ndarray, reference_v: np.ndarray, experiment: ExperimentConfig) -> dict:
+# ------------------------------------------------------------------------
+def calibration_metrics(output_v: np.ndarray, reference_v: np.ndarray, experiment: ExperimentConfig) -> dict:
+    """取 adctoolbox 的 SNDR/SFDR/ENOB，并附输出相对参考的 RMS 误差。"""
     metrics = _spectrum(output_v, experiment)["metrics"]
     return {
         "sndr_db": float(metrics["sndr_dbc"]),
@@ -431,6 +535,10 @@ def _metrics(output_v: np.ndarray, reference_v: np.ndarray, experiment: Experime
     }
 
 
+# =========================================================================
+# 11. 函数组：_plot / range_report / _plot_headroom
+# =========================================================================
+# ------------------------------------------------------------------------
 def _plot(
     path: Path,
     outputs: dict[str, np.ndarray],
@@ -502,7 +610,9 @@ def _plot(
     plt.close(fig)
 
 
-def _range_report(residue_v: np.ndarray, half_range_v: float) -> dict:
+# ------------------------------------------------------------------------
+def range_report(residue_v: np.ndarray, half_range_v: float) -> dict:
+    """统计余量越出 ADC2 半量程的样本数与极值，供裕度图判断是否削顶。"""
     return {
         "samples": int(residue_v.size),
         "min_v": float(residue_v.min()),
@@ -512,6 +622,7 @@ def _range_report(residue_v: np.ndarray, half_range_v: float) -> dict:
     }
 
 
+# ------------------------------------------------------------------------
 def _plot_headroom(
     path: Path,
     headroom: dict,
@@ -579,6 +690,12 @@ def _plot_headroom(
     plt.close(fig)
 
 
+# =========================================================================
+# 12. 函数组：_plot_schedule_comparison / _strict_fixed_training / _plot_strict_comparison
+# =========================================================================
+# -------------------------------------------------------------------------
+# 只用固定 A/B、DEM 关闭的采集，拟合可辨识的组增益和组合权重。
+# ------------------------------------------------------------------------
 def _plot_schedule_comparison(
     path: Path, dynamic: dict, fixed: dict, experiment: ExperimentConfig, cfg: CalibrationConfig
 ) -> None:
@@ -608,6 +725,7 @@ def _plot_schedule_comparison(
     plt.close(fig)
 
 
+# ------------------------------------------------------------------------
 def _strict_fixed_training(
     pool: Capacitors,
     gain_references: tuple[np.ndarray, np.ndarray],
@@ -621,20 +739,20 @@ def _strict_fixed_training(
     cfg: CalibrationConfig,
 ) -> tuple[dict, dict]:
     """只用固定 A/B、DEM 关闭的采集，拟合可辨识的组增益和组合权重。"""
-    gain_plan = _fixed_ab_plan(cfg.gain_pairs)
+    gain_plan = fixed_ab_plan(cfg.gain_pairs)
     gain_low_v, gain_high_v = gain_references
-    low_residue_v = _residue_voltage(pool, gain_low_v, gain_plan, gain_masks, experiment)
-    high_residue_v = _residue_voltage(pool, gain_high_v, gain_plan, gain_masks, experiment)
-    fit_plan = _fixed_ab_plan(cfg.training_samples)
+    low_residue_v = residue_voltage(pool, gain_low_v, gain_plan, gain_masks, experiment)
+    high_residue_v = residue_voltage(pool, gain_high_v, gain_plan, gain_masks, experiment)
+    fit_plan = fixed_ab_plan(cfg.training_samples)
     fit_masks = fit_switches.main, fit_switches.sub
     fit_capture = Capture(
         fit_plan,
         fit_switches.codes,
         *fit_masks,
-        _residue_voltage(pool, fit_v, fit_plan, fit_masks, experiment),
+        residue_voltage(pool, fit_v, fit_plan, fit_masks, experiment),
     )
     headroom = {
-        name: _range_report(voltage, cfg.adc2_half_range_v)
+        name: range_report(voltage, cfg.adc2_half_range_v)
         for name, voltage in (
             ("gain_low", low_residue_v),
             ("gain_high", high_residue_v),
@@ -654,29 +772,29 @@ def _strict_fixed_training(
     if any(row["below_range"] or row["at_or_above_range"] for row in headroom.values()):
         return {**report, "status": "adc2_range_blocked", "holdout": None}, {}
 
-    low_code = _quantize(low_residue_v, cfg.adc2_bits, cfg.adc2_half_range_v)
-    high_code = _quantize(high_residue_v, cfg.adc2_bits, cfg.adc2_half_range_v)
+    low_code = quantize(low_residue_v, cfg.adc2_bits, cfg.adc2_half_range_v)
+    high_code = quantize(high_residue_v, cfg.adc2_bits, cfg.adc2_half_range_v)
     gain, gain_report = _fit_gain_from_flags(
-        _fixed_ab_flags(gain_plan), gain_low_v, gain_high_v, low_code, high_code, cfg
+        fixed_ab_flags(gain_plan), gain_low_v, gain_high_v, low_code, high_code, cfg
     )
     fit = fit_capture.quantized(cfg)
-    fit_gain = _fixed_ab_flags(fit.plan) @ gain
+    fit_gain = fixed_ab_flags(fit.plan) @ gain
     peak = experiment.full_scale_peak_v
     nominal_fit = _nominal_reconstruction(fit, threshold_v, cfg)
     target = fit_gain * (fit_v + peak) - (nominal_fit + peak)
-    weight, design, learning = _fit_nlms(_fixed_switch_bits(fit), target, cfg)
+    weight, design, learning = _fit_nlms(fixed_switch_bits(fit), target, cfg)
 
     hold = hold_capture.quantized(cfg)
     nominal_hold = _nominal_reconstruction(hold, threshold_v, cfg)
-    hold_gain = _fixed_ab_flags(hold.plan) @ gain
-    calibrated = (nominal_hold + peak + _fixed_switch_bits(hold) @ weight) / hold_gain - peak
+    hold_gain = fixed_ab_flags(hold.plan) @ gain
+    calibrated = (nominal_hold + peak + fixed_switch_bits(hold) @ weight) / hold_gain - peak
     return {
         **report,
         "status": "completed",
         "gain_design": gain_report,
         "aggregate_weight_design": design,
         "learning": learning,
-        "holdout": _metrics(calibrated, hold_v, experiment),
+        "holdout": calibration_metrics(calibrated, hold_v, experiment),
     }, {
         "strict_fixed_gain_plan": gain_plan,
         "strict_fixed_gain_low_residue_v": low_residue_v,
@@ -696,6 +814,7 @@ def _strict_fixed_training(
     }
 
 
+# ------------------------------------------------------------------------
 def _plot_strict_comparison(
     path: Path, fixed: dict, dynamic: dict, experiment: ExperimentConfig, cfg: CalibrationConfig
 ) -> None:
@@ -722,6 +841,13 @@ def _plot_strict_comparison(
     plt.close(fig)
 
 
+# =========================================================================
+# 13. 函数组：_write_summary / run / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 在相同虚拟制造样本上完成前台训练和留出评估，保存可复现结果。
+# 执行可复现实验并打印留出指标。
+# ------------------------------------------------------------------------
 def _write_summary(out: Path, summary: dict) -> dict:
     (out / "summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8"
@@ -729,6 +855,7 @@ def _write_summary(out: Path, summary: dict) -> dict:
     return summary
 
 
+# ------------------------------------------------------------------------
 def run(out: Path, mismatch_sigma_unit: float = 0.001, adc2_half_range_v: float = 0.05) -> dict:
     """在相同虚拟制造样本上完成前台训练和留出评估，保存可复现结果。"""
     if not np.isfinite(mismatch_sigma_unit) or mismatch_sigma_unit < 0:
@@ -740,12 +867,12 @@ def run(out: Path, mismatch_sigma_unit: float = 0.001, adc2_half_range_v: float 
     plt.switch_backend("Agg")
     out.mkdir(parents=True, exist_ok=True)
 
-    nominal, pool = _cap_pool(experiment)
+    nominal, pool = cap_pool(experiment)
     minimum_cap_f = {name: float(np.min(getattr(pool, name))) for name in ("main", "sub", "bridge")}
     if any(value <= 0 or not np.isfinite(value) for value in minimum_cap_f.values()):
         raise ValueError(f"manufacturing seed generates non-positive capacitance: {minimum_cap_f}")
-    threshold_v = _codebook(nominal, experiment)
-    gain_plan, _, gain_phases = _schedule(
+    threshold_v = codebook(nominal, experiment)
+    gain_plan, _, gain_phases = schedule_sequence(
         cfg.gain_pairs, replace(experiment, schedule_seed=cfg.gain_schedule_seed)
     )
     gain_rng = np.random.default_rng(cfg.gain_reference_seed)
@@ -753,11 +880,11 @@ def run(out: Path, mismatch_sigma_unit: float = 0.001, adc2_half_range_v: float 
     gain_low_v = midpoint_v - cfg.gain_reference_span_v / 2
     gain_high_v = midpoint_v + cfg.gain_reference_span_v / 2
     gain_codes = np.full(cfg.gain_pairs, cfg.forced_gain_code, dtype=np.uint16)
-    gain_masks = _map_record(gain_codes, gain_phases, dem_enable=False)
-    gain_low_residue_v = _residue_voltage(pool, gain_low_v, gain_plan, gain_masks, experiment)
-    gain_high_residue_v = _residue_voltage(pool, gain_high_v, gain_plan, gain_masks, experiment)
+    gain_masks = map_record(gain_codes, gain_phases, dem_enable=False)
+    gain_low_residue_v = residue_voltage(pool, gain_low_v, gain_plan, gain_masks, experiment)
+    gain_high_residue_v = residue_voltage(pool, gain_high_v, gain_plan, gain_masks, experiment)
 
-    fit_plan, _, fit_phases = _schedule(
+    fit_plan, _, fit_phases = schedule_sequence(
         cfg.training_samples,
         replace(
             experiment, schedule_seed=cfg.training_schedule_seed, dem_seed=cfg.training_dem_seed
@@ -772,7 +899,7 @@ def run(out: Path, mismatch_sigma_unit: float = 0.001, adc2_half_range_v: float 
     fit_off = _capture(pool, fit_v, fit_plan, fit_phases, threshold_v, experiment, dem_enable=False)
     choose_on = np.arange(cfg.training_samples) % cfg.training_dem_off_period != 0
     fit_capture = _mix_training_modes(fit_on, fit_off, choose_on)
-    hold_plan, _, hold_phases = _schedule(experiment.samples, experiment)
+    hold_plan, _, hold_phases = schedule_sequence(experiment.samples, experiment)
     hold_v = experiment.tone_peak_v * np.sin(
         2 * np.pi * experiment.fin_hz / experiment.fs_hz * np.arange(experiment.samples)
         + cfg.evaluation_tone_phase_rad
@@ -781,7 +908,7 @@ def run(out: Path, mismatch_sigma_unit: float = 0.001, adc2_half_range_v: float 
         _capture(pool, hold_v, hold_plan, hold_phases, threshold_v, experiment, dem_enable=enabled)
         for enabled in (False, True)
     )
-    fixed_plan = _fixed_ab_plan(experiment.samples)
+    fixed_plan = fixed_ab_plan(experiment.samples)
     fixed_capture_off, fixed_capture_on = (
         _capture(pool, hold_v, fixed_plan, hold_phases, threshold_v, experiment, dem_enable=enabled)
         for enabled in (False, True)
@@ -795,7 +922,7 @@ def run(out: Path, mismatch_sigma_unit: float = 0.001, adc2_half_range_v: float 
         "holdout_dem_on": hold_capture_on.residue_v,
     }
     headroom = {
-        name: _range_report(residue_v, cfg.adc2_half_range_v)
+        name: range_report(residue_v, cfg.adc2_half_range_v)
         for name, residue_v in captures.items()
     }
     fixed_captures = {
@@ -803,7 +930,7 @@ def run(out: Path, mismatch_sigma_unit: float = 0.001, adc2_half_range_v: float 
         "holdout_dem_on": fixed_capture_on.residue_v,
     }
     fixed_headroom = {
-        name: _range_report(residue_v, cfg.adc2_half_range_v)
+        name: range_report(residue_v, cfg.adc2_half_range_v)
         for name, residue_v in fixed_captures.items()
     }
     summary = {
@@ -862,7 +989,7 @@ def run(out: Path, mismatch_sigma_unit: float = 0.001, adc2_half_range_v: float 
             name: threshold_v[record.codes] + record.residue_v
             for name, record in (("DEM_off", hold_capture_off), ("DEM_on", hold_capture_on))
         }
-        stats = {mode: _metrics(output, hold_v, experiment) for mode, output in proxy.items()}
+        stats = {mode: calibration_metrics(output, hold_v, experiment) for mode, output in proxy.items()}
         _plot_headroom(out / "adc2_headroom.png", headroom, proxy, stats, experiment, cfg)
         np.savez_compressed(
             out / "residue_before_adc2.npz",
@@ -888,8 +1015,8 @@ def run(out: Path, mismatch_sigma_unit: float = 0.001, adc2_half_range_v: float 
             },
         )
 
-    gain_low_code = _quantize(gain_low_residue_v, cfg.adc2_bits, cfg.adc2_half_range_v)
-    gain_high_code = _quantize(gain_high_residue_v, cfg.adc2_bits, cfg.adc2_half_range_v)
+    gain_low_code = quantize(gain_low_residue_v, cfg.adc2_bits, cfg.adc2_half_range_v)
+    gain_high_code = quantize(gain_high_residue_v, cfg.adc2_bits, cfg.adc2_half_range_v)
     gain, gain_report = _fit_gain(
         gain_plan, gain_low_v, gain_high_v, gain_low_code, gain_high_code, cfg
     )
@@ -921,7 +1048,7 @@ def run(out: Path, mismatch_sigma_unit: float = 0.001, adc2_half_range_v: float 
     hold_off = hold_capture_off.quantized(cfg)
     hold_on = hold_capture_on.quantized(cfg)
     outputs = _four_modes(hold_off, hold_on, frozen, threshold_v, experiment, cfg)
-    stats = {mode: _metrics(output, hold_v, experiment) for mode, output in outputs.items()}
+    stats = {mode: calibration_metrics(output, hold_v, experiment) for mode, output in outputs.items()}
     _plot(out / "adctoolbox_calibration.png", outputs, stats, learning, experiment, cfg)
     schedule_comparison = summary["schedule_comparison"]
     schedule_comparison["dynamic"].update(status="completed", holdout=stats)
@@ -935,7 +1062,7 @@ def run(out: Path, mismatch_sigma_unit: float = 0.001, adc2_half_range_v: float 
         fixed_on = fixed_capture_on.quantized(cfg)
         fixed_outputs = _four_modes(fixed_off, fixed_on, frozen, threshold_v, experiment, cfg)
         fixed_stats = {
-            mode: _metrics(output, hold_v, experiment) for mode, output in fixed_outputs.items()
+            mode: calibration_metrics(output, hold_v, experiment) for mode, output in fixed_outputs.items()
         }
         fixed_report.update(status="completed", holdout=fixed_stats)
         _plot_schedule_comparison(out / "schedule_dem_lms.png", stats, fixed_stats, experiment, cfg)
@@ -991,7 +1118,7 @@ def run(out: Path, mismatch_sigma_unit: float = 0.001, adc2_half_range_v: float 
         toolbox_report["holdout"] = {}
         for name, obs in (("dem_off", hold_off), ("dem_on", hold_on)):
             output_v = _features(obs, gain, threshold_v, experiment, cfg) @ weights - dc_offset
-            toolbox_report["holdout"][name] = _metrics(output_v, hold_v, experiment)
+            toolbox_report["holdout"][name] = calibration_metrics(output_v, hold_v, experiment)
             toolbox_arrays[f"toolbox_{name}_v"] = output_v
         toolbox_arrays.update(toolbox_weights_v=weights, toolbox_offset_v=dc_offset)
     np.savez_compressed(
@@ -1044,6 +1171,7 @@ def run(out: Path, mismatch_sigma_unit: float = 0.001, adc2_half_range_v: float 
     )
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
     """执行可复现实验并打印留出指标。"""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -1067,3 +1195,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

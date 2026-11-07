@@ -43,6 +43,7 @@ TAG_COMPARATOR = 2
 TAG_ADC2 = 3
 TAG_RA_OFFSET = 4
 TAG_FLICKER = 5
+TAG_SAMPLING = 6
 
 _RELATIVE_SIGMA_TOLERANCE = 0.01
 
@@ -53,17 +54,21 @@ class NoiseConfig:
 
     Attributes:
         enabled: 总开关。False 时所有采样函数返回全零。
+        include_thermal: 是否计入 kT/C。单独关掉它才能隔离其它源做敏感度，
+            否则「只开比较器」这种实验根本做不出来——kT/C 会一直在场。
         temperature_k: 绝对温度，单位 K。
         sampling_cap_f: 单侧采样电容，单位 F。ISSCC2024 讲稿第 23 页给 20.5 pF。
         comparator_sigma_v: 比较器输入等效噪声标准差，单位 V。
         reference_sigma_v: 参考路径（RA + REF_IN + 预充残差）输入等效噪声标准差，单位 V。
         adc2_sigma_v: 二级量化与额外抖动的输入等效噪声标准差，单位 V。
-        ra_offset_v: 残差放大器常数失调，单位 V。常数项在 FFT 去直流后不进 DR/SNR。
+        ra_offset_v: 残差放大器常数失调，单位 V，**残差域**（ADC2 输入）。
+            常数项在 FFT 去直流后不进 DR/SNR，只吃 ADC2 余量，故不是噪声源。
         flicker_corner_hz: 1/f 拐点，单位 Hz。0 表示不加 1/f 分量。
         noise_seed: 派生种子。必须非零，否则 SeedSequence 退化。
     """
 
     enabled: bool = False
+    include_thermal: bool = True
     temperature_k: float = 300.0
     sampling_cap_f: float = 20.5e-12
     comparator_sigma_v: float = 0.0
@@ -92,7 +97,10 @@ class NoiseConfig:
         """单侧采样电容上的 kT/C 噪声标准差，单位 V。
 
         差分输入取两侧独立噪声之差，标准差要再乘 √2；本属性只给单侧。
+        ``include_thermal=False`` 时返回 0，用于隔离其它噪声源。
         """
+        if not self.include_thermal:
+            return 0.0
         return thermal_sigma(self.sampling_cap_f, self.temperature_k)
 
 
@@ -113,18 +121,30 @@ def thermal_sigma(cap_f: float, temperature_k: float) -> float:
     return float(np.sqrt(BOLTZMANN_J_PER_K * temperature_k / cap_f))
 
 
-def _generator(cfg: NoiseConfig, tag: int) -> np.random.Generator:
-    """按 (noise_seed, tag) 派生一条独立随机流。
+def _generator(cfg: NoiseConfig, tag: int, stream: int = 0) -> np.random.Generator:
+    """按 (noise_seed, tag, stream) 派生一条独立随机流。
 
-    不共用 Generator 是正交性的前提：SeedSequence 的派生只依赖 (seed, tag)，
-    与已经取过几个源无关，因此新增一个源不会挪动其它源的抽样位置。
+    不共用 Generator 是正交性的前提：SeedSequence 的派生只依赖
+    (seed, tag, stream)，与已经取过几个源无关，因此新增一个源不会挪动
+    其它源的抽样位置。
+
+    ``stream`` 用来区分同一份配置下的不同激励序列（训练段、评估段、
+    静态边缘）。同一 stream 重复调用必须拿到同一份噪声——off/on 与
+    shared/old_off 这几组对照就是把同一批样本重跑一遍，若每次调用都
+    重新抽噪声，对照差异里就混进了噪声本身的差异。``stream=0`` 时
+    entropy 仍写作两元，保证加这个参数对既有抽样逐位无影响。
     """
     if tag <= 0:
         raise ValueError("noise tag must be a positive integer")
-    return np.random.Generator(np.random.PCG64(np.random.SeedSequence([cfg.noise_seed, tag])))
+    if stream < 0:
+        raise ValueError("noise stream must not be negative")
+    entropy = [cfg.noise_seed, tag] if stream == 0 else [cfg.noise_seed, tag, stream]
+    return np.random.Generator(np.random.PCG64(np.random.SeedSequence(entropy)))
 
 
-def white(cfg: NoiseConfig, tag: int, sigma_v: float, count: int) -> np.ndarray:
+def white(
+    cfg: NoiseConfig, tag: int, sigma_v: float, count: int, stream: int = 0
+) -> np.ndarray:
     """给出 ``count`` 个零均值高斯样本。
 
     Args:
@@ -132,6 +152,7 @@ def white(cfg: NoiseConfig, tag: int, sigma_v: float, count: int) -> np.ndarray:
         tag: 流派生标签，取本模块的 TAG_* 常量。
         sigma_v: 标准差，单位 V。0 表示不加这个源。
         count: 样本数。
+        stream: 序列编号，见 ``_generator``。
 
     Returns:
         形状为 ``(count,)`` 的 float64 数组；关闭或 sigma 为 0 时全零。
@@ -142,11 +163,11 @@ def white(cfg: NoiseConfig, tag: int, sigma_v: float, count: int) -> np.ndarray:
         raise ValueError("sigma must not be negative")
     if not cfg.enabled or sigma_v == 0.0 or count == 0:
         return np.zeros(count, dtype=np.float64)
-    return _generator(cfg, tag).standard_normal(count) * sigma_v
+    return _generator(cfg, tag, stream).standard_normal(count) * sigma_v
 
 
 def flicker(
-    cfg: NoiseConfig, tag: int, sigma_v: float, count: int, fs_hz: float
+    cfg: NoiseConfig, tag: int, sigma_v: float, count: int, fs_hz: float, stream: int = 0
 ) -> np.ndarray:
     """给出功率谱按 1/f 整形、总标准差为 ``sigma_v`` 的样本。
 
@@ -172,6 +193,7 @@ def flicker(
         sigma_v: 目标总标准差，单位 V。
         count: 样本数，至少 4。
         fs_hz: 采样率，单位 Hz，用于确定频率栅格。
+        stream: 序列编号，见 ``_generator``。
 
     Returns:
         形状为 ``(count,)`` 的 float64 数组；关闭、sigma 为 0、
@@ -186,7 +208,7 @@ def flicker(
     if not cfg.enabled or sigma_v == 0.0 or count < 4:
         return np.zeros(count, dtype=np.float64)
 
-    raw = _generator(cfg, tag).standard_normal(count)
+    raw = _generator(cfg, tag, stream).standard_normal(count)
     spectrum = np.fft.rfft(raw)
     freqs = np.fft.rfftfreq(count, d=1.0 / fs_hz)
     weight = np.zeros_like(freqs)
@@ -217,3 +239,63 @@ def combine(*parts: np.ndarray) -> np.ndarray:
             raise ValueError("all components must share one shape")
         total += part
     return total
+
+
+@dataclass(frozen=True)
+class FrontEndNoise:
+    """一笔采样的四个噪声分量。
+
+    **口径**：``sampling_v`` / ``comparator_v`` / ``conversion_v`` 都是
+    **输入等效**电压（单位 V）；``offset_v`` 是**残差域**常数（单位 V）。
+
+    分开三个数组而不是给一个总噪声，是因为它们注在三个不同节点上：
+
+    * ``sampling_v`` 加在采样值上，粗码判决与残差都要看到它——采样网络
+      （kT/C + 参考路径）的噪声就是这样进两处的；
+    * ``comparator_v`` 只加到 SADC 的判决输入上，**不进残差**。若把它也加进
+      残差，就会被后级重构吸收掉，等于凭空消掉一个噪声源；
+    * ``conversion_v`` 只加到残差上，不参与判决。它是二级量化与额外抖动，
+      在判决时还不存在。
+    """
+
+    sampling_v: np.ndarray
+    comparator_v: np.ndarray
+    conversion_v: np.ndarray
+    offset_v: float
+
+    @property
+    def is_quiet(self) -> bool:
+        """四个分量是否全为零。全零时调用方可完全跳过噪声路径。"""
+        return (
+            not np.any(self.sampling_v)
+            and not np.any(self.comparator_v)
+            and not np.any(self.conversion_v)
+            and self.offset_v == 0.0
+        )
+
+
+def front_end_noise(cfg: NoiseConfig, count: int, stream: int = 0) -> FrontEndNoise:
+    """按节点顺序给出一笔采样的四个噪声分量。
+
+    kT/C 的差分口径：每侧电容各自有 ``sqrt(kT/C)`` 的噪声，差分取两侧之差，
+    标准差为 ``sqrt(2) * sqrt(kT/C)``。20.5 pF / 300 K 时差分为 20.10 µV。
+
+    Args:
+        cfg: 噪声配置。
+        count: 样本数。
+        stream: 序列编号。同一批样本重跑不同阵列配置时必须传同一个
+            stream，否则 off/on 对照会把噪声差异算成 dither 差异。
+
+    Returns:
+        四个分量；``cfg.enabled`` 为 False 时全部为零。
+    """
+    differential_thermal = float(np.sqrt(2.0)) * cfg.thermal_sigma_v
+    return FrontEndNoise(
+        sampling_v=combine(
+            white(cfg, TAG_SAMPLING, differential_thermal, count, stream),
+            white(cfg, TAG_REFERENCE, cfg.reference_sigma_v, count, stream),
+        ),
+        comparator_v=white(cfg, TAG_COMPARATOR, cfg.comparator_sigma_v, count, stream),
+        conversion_v=white(cfg, TAG_ADC2, cfg.adc2_sigma_v, count, stream),
+        offset_v=cfg.ra_offset_v if cfg.enabled else 0.0,
+    )

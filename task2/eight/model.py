@@ -120,14 +120,26 @@ def native_step_v(experiment: ExperimentConfig) -> float:
 
 
 def coarse_decision(
-    input_v: np.ndarray, dither: Dither, thresholds: np.ndarray, step_v: float
+    input_v: np.ndarray,
+    dither: Dither,
+    thresholds: np.ndarray,
+    step_v: float,
+    *,
+    decision_v: np.ndarray | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """独立 SADC 辅助 DAC 扣低路后判决，返回原码、最终命令和前级有效。"""
+    """独立 SADC 辅助 DAC 扣低路后判决，返回原码、最终命令和前级有效。
+
+    ``decision_v`` 只替换比较器看到的电压，量程有效性仍按 ``input_v`` 判定。
+    这个分离是必要的：比较器噪声加在 ``sadc_v`` 上会让粗码偶发跳档（这是
+    物理效应，要保留），但同一个噪声不该让样本被误判成「输入超量程」
+    （那是激励配置错误，要报出来）。两者混在一根线上就分不开了。
+    """
     # 极性按 US10505561B2：两采样偏移是负的（SADC 看到 x−L，RDAC 存 x−T），
     # 故原码是全精度比较减 L 之后的结果，RDAC 命令再把 upper 减掉：k = c − U。
     # U=4·D6+D4、L=8·D5+…，见同文件的 decode()。符号写反不会让闭合变差
     # （U 在名义重构里会抵消），但会把削顶方向搬到高轨，与专利和 RTL 都不一致。
-    sadc_v = input_v - dither.lower_eighth * (step_v / GROUP_SLICES)
+    sensed_v = input_v if decision_v is None else decision_v
+    sadc_v = sensed_v - dither.lower_eighth * (step_v / GROUP_SLICES)
     coarse = np.searchsorted(thresholds, sadc_v, side="right") - 1
     command = coarse - dither.upper
     peak = thresholds[-1]

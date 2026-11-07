@@ -122,6 +122,35 @@
         "disabled_is_all_zero": "PASS"
       },
       "note": "计划里「N=2^20 时 σ 回收误差 <1%」对 1/f 不成立：1/f 的功率几乎全在最低几个频点，有效自由度只有 O(100)，单次实现的标准差本身就有 6.6% 涨落。故 1/f 改验三条：64 次集成平均回收 3% 窗口、sigma 线性标度（确定性）、谱斜率 −1（±0.15）。这是有意的口径修正，不是把标准放松到能过。白噪仍卡 1%。"
+    },
+    {
+      "id": "M3",
+      "name": "前端噪声注入",
+      "base_commit": "7133b6cf24a24a794bf85795bc5e3abba12fdc85",
+      "base_snapshot": "e5bbc4fbfac7b39a7ea640633e60caeea56b117f",
+      "behavior_change": false,
+      "files": [
+        "src/adi_model/noise.py",
+        "src/adi_model/capacitors.py",
+        "task1/experiments/adctoolbox_calibration.py",
+        "task2/eight/model.py",
+        "task2/eight/experiment.py",
+        "task2/eight/tests/test_noise_injection.py",
+        "trace/source_matrix.csv",
+        "trace/milestones.json"
+      ],
+      "gates": {
+        "pytest": "PASS (104 passed)",
+        "ruff": "PASS",
+        "snapshot_baseline_check": "PASS (8 项逐字段相等；噪声默认全关，注入管线不该动任何既有数值)",
+        "check_source_matrix": "PASS (PASS=18 / MISSING=11，104 个可收集节点)",
+        "check_layering": "PASS (exit 0；R3=61，比 M1 多 1 条，来自测试导入 _capture，与既有 7 条同类先例一致)",
+        "thermal_equivalent": "PASS (20.5 pF/300 K ⇒ 差分 20.102 µV)",
+        "ktc_end_to_end": "PASS (只开 kT/C：SNDR 99.34 dB，与 tone 幅度 3.333 V 及 20.1 µV 合成的 99.39 dB 差 0.05 dB)",
+        "comparator_flip_rate": "PASS (20 µV 下跳档 1/4096 = 2.44e-4，越窗 0；200 µV 时 6.6e-3，2 mV 时 8.0e-2)",
+        "negative_controls": "PASS (3 个注入错误全部被抓：comparator 漏进残差、sampling 只进判决、stream 被忽略)"
+      },
+      "note": "两处偏离计划，均以实测为准。① 计划判据「只开比较器 20 µV ⇒ 独占 DR 100.5 dB ±0.3」不成立：实测 103.72 dB，与无噪声的 103.95 dB 只差 0.23 dB。原因是两步式 + dither 的冗余把粗码跳档吸收了——跳档 1 个 coarse code 只让残差偏 1 个 step_v（18.38 mV），远小于 ADC2 半量程 100 mV，后级重构时按新粗码重算，误差自洽抵消。比较器噪声在这套架构里不是 DR 的支配项，这正是架构冗余该有的表现，判据改按「跳档率 + DR 退化幅度」记录。② task3/tools/run_joint_noise.py 的五个常量不搬进 NoiseConfig：AZ 20 µV 与 fresh 10 µV 是图注标明的「人工残差激励」，不是被测器件的噪声源，且 AZ 的成对相关结构（独立/共享/保持误差三档）无法用单一 sigma 表达；硬搬会破坏 CAAZ 语义并让已归档 summary.json 的 az_sigma_v 等字段对不上。③ 接线后比较器噪声会经由粗码状态改变残差，这不是漏接：逐位比对上「未跳档样本一位不动」才是正确口径，测试就按这个写。④ ExperimentConfig 新增 noise 字段，asdict(experiment) 会多一个键，任何重跑都会让归档里的 experiment 字典与 artifact_sha256 与旧版不同；默认数值不变，但 M9 重签收据时必须显式处理这一项。⑤ 新测试文件是未跟踪的，base_snapshot 抓不到，回退时须删除文件本身。"
     }
   ]
 }

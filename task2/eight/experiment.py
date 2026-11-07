@@ -1,3 +1,17 @@
+# =============================================================================
+# 文件名     : experiment.py
+# 模块名     : experiment
+# 版本       : v1.0
+# 功能       : 八片原生子阵列扰动的固定失配、LMS 和 20 位性能对照。
+#
+# 设计说明   :
+#   * 承担 八片原生子阵列模型与对照实验 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """八片原生子阵列扰动的固定失配、LMS 和 20 位性能对照。"""
 
 from __future__ import annotations
@@ -10,14 +24,18 @@ from importlib.metadata import version
 from pathlib import Path
 
 import numpy as np
+
+from adi_model.capacitors import ExperimentConfig, cap_pool
+from adi_model.hashing import sha256_file
+from adi_model.noise import NoiseConfig, front_end_noise
 from task1.experiments.adctoolbox_calibration import (
     CalibrationConfig,
-    _decode,
     _fit_gain_from_flags,
-    _group_flags,
-    _quantize,
-    _range_report,
     _spectrum,
+    decode_switches,
+    group_flags,
+    quantize,
+    range_report,
 )
 from task1.experiments.bridge_lms_comparison import _fit_observable
 from task1.experiments.inl_dnl import (
@@ -25,12 +43,12 @@ from task1.experiments.inl_dnl import (
     OUTPUT_BITS,
     Intervals,
     _first_fine_code,
-    _mass,
     _output_codes,
-    _sha,
+    code_mass,
 )
 from task1.experiments.residue_control_study import MapperTable
-from task1.experiments.run_effects import ROOT, ExperimentConfig, _cap_pool, _codebook, _schedule
+from task1.experiments.run_effects import ROOT, schedule_sequence
+from task1.model.codebook import codebook
 from task2.eight.model import (
     COARSE_CODES,
     FEATURES_PER_SLICE,
@@ -57,21 +75,52 @@ GROUPS = ("no_dem", "fig21_dem")
 LMS_MODES = ("nominal", "lms")
 SWITCHES = ("off", "on")
 
+# 噪声序列编号。同一批样本被重跑多次（dither off/on、LMS shared/old_off），
+# 这些对照必须看到同一份噪声，否则差异里混进的是噪声而不是阵列配置；
+# 不同激励序列（评估/训练/静态边缘）之间必须错开，否则等于复用同一段噪声。
+STREAM_TONE = 1
+STREAM_TRAIN = 2
+STREAM_EDGE = 3
 
-def _capture(input_v, word, plan, phase, thresholds, step_v, table, physical, cfg):
+
+# =========================================================================
+# 1. 函数组：_capture / _calibrate_gain / _fit_weights
+# =========================================================================
+# ------------------------------------------------------------------------
+def _capture(input_v, word, plan, phase, thresholds, step_v, table, physical, cfg, noise=None):
+    """把一笔输入跑完前端，返回转换状态、粗码、残差与二级码。
+
+    ``noise`` 为 ``FrontEndNoise`` 或 None。三个分量注在三个不同节点上：
+
+    * ``sampling_v`` 加在输入上，粗码与残差看到同一份——kT/C 落在采样电容上
+      之后被后续所有操作继承，不存在「判决看到、残差看不到」的分叉；
+    * ``comparator_v`` 只加到 SADC 判决输入，**不进残差**，否则会被后级重构
+      吸收，等于这个源不存在；
+    * ``conversion_v`` 与 ``offset_v`` 只加到残差上，判决时它们还不存在。
+
+    ``noise`` 为 None 或全零时整条噪声路径都不执行，返回与无噪声版本逐位相同。
+    """
     dither = decode(word)
-    coarse, command, valid = coarse_decision(input_v, dither, thresholds, step_v)
+    active = noise is not None and not noise.is_quiet
+    sampled_v = input_v + noise.sampling_v if active else input_v
+    decision_v = sampled_v + noise.comparator_v if active else None
+    coarse, command, valid = coarse_decision(
+        sampled_v, dither, thresholds, step_v, decision_v=decision_v
+    )
     if not valid.all():
         raise ValueError(f"front-end rejected {np.count_nonzero(~valid)} sample(s)")
     state = conversion_state(command, plan, phase, dither, thresholds, step_v, table)
     g, b = physical.affine(plan, state.features)
-    residue = g * (input_v + thresholds[-1]) - b
-    code = _quantize(residue, cfg.adc2_bits, cfg.adc2_half_range_v)
+    residue = g * (sampled_v + thresholds[-1]) - b
+    if active:
+        residue = residue + noise.offset_v + noise.conversion_v
+    code = quantize(residue, cfg.adc2_bits, cfg.adc2_half_range_v)
     return state, coarse, residue, code
 
 
+# ------------------------------------------------------------------------
 def _calibrate_gain(physical, experiment, cfg, table, thresholds, step_v):
-    plan, _, phase = _schedule(
+    plan, _, phase = schedule_sequence(
         cfg.gain_pairs, replace(experiment, schedule_seed=cfg.gain_schedule_seed)
     )
     reference_rng = np.random.default_rng(cfg.gain_reference_seed)
@@ -91,10 +140,10 @@ def _calibrate_gain(physical, experiment, cfg, table, thresholds, step_v):
     g, b = physical.affine(plan, state.features)
     r_lo = g * (low_v + thresholds[-1]) - b
     r_hi = g * (high_v + thresholds[-1]) - b
-    lo_code = _quantize(r_lo, cfg.adc2_bits, cfg.adc2_half_range_v)
-    hi_code = _quantize(r_hi, cfg.adc2_bits, cfg.adc2_half_range_v)
+    lo_code = quantize(r_lo, cfg.adc2_bits, cfg.adc2_half_range_v)
+    hi_code = quantize(r_hi, cfg.adc2_bits, cfg.adc2_half_range_v)
     estimate, report = _fit_gain_from_flags(
-        _group_flags(plan), low_v, high_v, lo_code, hi_code, cfg
+        group_flags(plan), low_v, high_v, lo_code, hi_code, cfg
     )
     arrays = {
         "gain_plan": plan,
@@ -106,15 +155,16 @@ def _calibrate_gain(physical, experiment, cfg, table, thresholds, step_v):
         "gain_high_adc2_code": hi_code,
         "frozen_gain": estimate,
     }
-    report["low_residue_v"] = _range_report(r_lo, cfg.adc2_half_range_v)
-    report["high_residue_v"] = _range_report(r_hi, cfg.adc2_half_range_v)
+    report["low_residue_v"] = range_report(r_lo, cfg.adc2_half_range_v)
+    report["high_residue_v"] = range_report(r_hi, cfg.adc2_half_range_v)
     return estimate, report, arrays
 
 
+# ------------------------------------------------------------------------
 def _fit_weights(input_v, state, raw_code, gain, holdout, cfg, peak):
     physical_bits = fit_features(state.switches, state.features)
     known_target_v = gain[state.switches.plan].sum(axis=1) * (input_v + peak) - (
-        state.nominal_base_v + _decode(raw_code, cfg.adc2_bits, cfg.adc2_half_range_v)
+        state.nominal_base_v + decode_switches(raw_code, cfg.adc2_bits, cfg.adc2_half_range_v)
     )
     weights, rank, learning = _fit_observable(physical_bits, holdout, known_target_v, cfg)
     observed = np.any(physical_bits != 0, axis=0)
@@ -122,8 +172,12 @@ def _fit_weights(input_v, state, raw_code, gain, holdout, cfg, peak):
     return weights.reshape(-1, FEATURES_PER_SLICE), {"design": rank, "learning": learning}, observed
 
 
+# =========================================================================
+# 2. 函数组：_output / calibration_metrics / _tones
+# =========================================================================
+# ------------------------------------------------------------------------
 def _output(state, raw_code, cfg, peak, gain=None, weight=None):
-    base = state.nominal_base_v + _decode(raw_code, cfg.adc2_bits, cfg.adc2_half_range_v)
+    base = state.nominal_base_v + decode_switches(raw_code, cfg.adc2_bits, cfg.adc2_half_range_v)
     if gain is not None:
         plan = state.switches.plan
         base = (base + weighted_sum(plan, state.features, weight)) / gain[plan].sum(axis=1)
@@ -135,7 +189,9 @@ def _output(state, raw_code, cfg, peak, gain=None, weight=None):
     return code, midpoint_v
 
 
-def _metrics(input_v, output_v, experiment):
+# ------------------------------------------------------------------------
+def calibration_metrics(input_v, output_v, experiment):
+    """用 adctoolbox 频谱与自算 FFT 功率互校，返回 SNDR/SFDR/主杂散与输出误差。"""
     toolbox = _spectrum(output_v, experiment)
     power = np.abs(np.fft.rfft(output_v)) ** 2
     tone_bin = experiment.tone_bin
@@ -156,19 +212,20 @@ def _metrics(input_v, output_v, experiment):
     }, toolbox["plot_data"]["power_spectrum_db_plot"]
 
 
+# ------------------------------------------------------------------------
 def _tones(physical, table, experiment, cfg, thresholds, step_v, gain, arrays):
     peak = thresholds[-1]
     train_cfg = replace(
         experiment, schedule_seed=cfg.training_schedule_seed, dem_seed=cfg.training_dem_seed
     )
-    train_plan, _, train_phase = _schedule(cfg.training_samples, train_cfg)
+    train_plan, _, train_phase = schedule_sequence(cfg.training_samples, train_cfg)
     train_input = cfg.training_tone_peak_v * np.sin(
         2 * np.pi * cfg.training_tone_bin * np.arange(len(train_plan)) / len(train_plan)
         + cfg.training_tone_phase_rad
     )
     train_enable = np.random.default_rng(TRAIN_MASK_SEED).permutation(len(train_plan)) % 2 == 1
     train_word = words(train_enable, TRAIN_WORD_SEED)
-    plan, _, phase = _schedule(experiment.samples, experiment)
+    plan, _, phase = schedule_sequence(experiment.samples, experiment)
     tone_input = experiment.tone_peak_v * np.sin(
         2 * np.pi * experiment.tone_bin * np.arange(len(plan)) / len(plan)
         + cfg.evaluation_tone_phase_rad
@@ -186,14 +243,16 @@ def _tones(physical, table, experiment, cfg, thresholds, step_v, gain, arrays):
         train_vertical=train_phase[1],
         train_dither_enable=train_enable,
     )
+    tone_noise = front_end_noise(experiment.noise, len(tone_input), stream=STREAM_TONE)
     for label, word in zip(SWITCHES, (np.zeros_like(on_word), on_word), strict=True):
         captures[label] = _capture(
-            tone_input, word, plan, phase, thresholds, step_v, table, physical, cfg
+            tone_input, word, plan, phase, thresholds, step_v, table, physical, cfg, tone_noise
         )
     hold_features = {
         label: fit_features(row[0].switches, row[0].features) for label, row in captures.items()
     }
     fits, fit_reports = {}, {}
+    train_noise = front_end_noise(experiment.noise, len(train_input), stream=STREAM_TRAIN)
     for label, train_words, hold in (
         ("shared", train_word, np.concatenate(tuple(hold_features.values()))),
         ("old_off", np.zeros_like(train_word), hold_features["off"]),
@@ -208,6 +267,7 @@ def _tones(physical, table, experiment, cfg, thresholds, step_v, gain, arrays):
             table,
             physical,
             cfg,
+            train_noise,
         )
         weights, fit, observed = _fit_weights(train_input, train, raw, gain, hold, cfg, peak)
         fits[label] = weights
@@ -215,7 +275,7 @@ def _tones(physical, table, experiment, cfg, thresholds, step_v, gain, arrays):
             **fit,
             "training_observed_physical_columns": int(observed.sum()),
             "dither_enabled_training_samples": int(train_enable.sum()) if label == "shared" else 0,
-            "training_adc2": _range_report(residue, cfg.adc2_half_range_v),
+            "training_adc2": range_report(residue, cfg.adc2_half_range_v),
         }
         if label == "old_off":
             # 旧校准未辨识的采样位沿用零修正，单列诊断其独立留出。
@@ -240,12 +300,12 @@ def _tones(physical, table, experiment, cfg, thresholds, step_v, gain, arrays):
             fitted = cal != "nominal"
             weight = fits["shared" if cal == "lms" else "old_off"] if fitted else None
             code, output_v = _output(state, raw_code, cfg, peak, gain if fitted else None, weight)
-            results[cal], spectrum = _metrics(tone_input, output_v, experiment)
+            results[cal], spectrum = calibration_metrics(tone_input, output_v, experiment)
             arrays[f"{label}_{cal}_output_code"] = code.astype(np.uint32)
             arrays[f"{label}_{cal}_fft_dbfs"] = spectrum
         report[label] = {
             **results,
-            "adc2": _range_report(residue, cfg.adc2_half_range_v),
+            "adc2": range_report(residue, cfg.adc2_half_range_v),
             "changed_rdac_command": int(np.count_nonzero(state.switches.codes != coarse)),
             "maximum_slot_setting": int(state.dither.setting.max()),
             "slot_setting_eight_count": int(np.count_nonzero(state.dither.setting == 8)),
@@ -265,12 +325,16 @@ def _tones(physical, table, experiment, cfg, thresholds, step_v, gain, arrays):
     return report, fits["shared"], fit_reports
 
 
+# =========================================================================
+# 3. 函数组：_static_states / _span_outside / _static
+# =========================================================================
+# ------------------------------------------------------------------------
 def _static_states(experiment):
     plan, horizontal, vertical, word = [], [], [], []
     rng = np.random.default_rng(STATIC_WORD_SEED)
     for schedule_seed, dem_seed in BRIDGE_SEEDS:
         cfg = replace(experiment, schedule_seed=schedule_seed, dem_seed=dem_seed)
-        ids, _, (h, v) = _schedule(STATES_PER_SEED, cfg)
+        ids, _, (h, v) = schedule_sequence(STATES_PER_SEED, cfg)
         plan.append(ids)
         horizontal.append(h)
         vertical.append(v)
@@ -279,6 +343,7 @@ def _static_states(experiment):
     return tuple(np.concatenate(rows) for rows in (plan, horizontal, vertical, word))
 
 
+# ------------------------------------------------------------------------
 def _span_outside(lo, hi, slope, allowed_lo, allowed_hi):
     return (
         float(np.sum(np.maximum(0, np.minimum(hi, allowed_lo) - lo) / slope)),
@@ -286,6 +351,7 @@ def _span_outside(lo, hi, slope, allowed_lo, allowed_hi):
     )
 
 
+# ------------------------------------------------------------------------
 def _static(table, physical, experiment, cfg, thresholds, step_v, gain, weight, states, enabled):
     plan0, h0, v0, word_on = states
     word0 = word_on if enabled else np.zeros_like(word_on)
@@ -302,10 +368,12 @@ def _static(table, physical, experiment, cfg, thresholds, step_v, gain, weight, 
         coarse = np.repeat(np.arange(start, min(start + COARSE_BATCH, COARSE_CODES)), n)
         i = np.arange(len(coarse)) % n
         lower_shift = d0.lower_eighth[i] * (step_v / 8)
-        low = np.maximum(-peak, thresholds[coarse] - lower_shift)
-        high = np.minimum(peak, thresholds[coarse + 1] - lower_shift)
-        command = coarse + d0.upper[i]
-        legal = (command < COARSE_CODES) & (high > low)
+        # 负注入（C9）：SADC 判的是 x−L，所以粗码 c 的输入区间整段右移 +L；
+        # 命令再去掉高路 U，c≥U 才合法，c<U 的下溢样本在这一层就被挡掉。
+        low = np.maximum(-peak, thresholds[coarse] + lower_shift)
+        high = np.minimum(peak, thresholds[coarse + 1] + lower_shift)
+        command = coarse - d0.upper[i]
+        legal = (command >= 0) & (high > low)
         i, command, low, high = (value[legal] for value in (i, command, low, high))
         plan = plan0[i]
         state = conversion_state(
@@ -349,7 +417,7 @@ def _static(table, physical, experiment, cfg, thresholds, step_v, gain, weight, 
             if not np.any(use):
                 continue
             iv = Intervals(lo, hi, r_lo, r_hi, base[use], gain_fit[use])
-            mass = _mass(iv, cfg.adc2_bits, half, peak)
+            mass = code_mass(iv, cfg.adc2_bits, half, peak)
             if (
                 max(mass.adc2_below_v, mass.adc2_above_v, mass.output_below_v, mass.output_above_v)
                 > 1e-14
@@ -367,7 +435,16 @@ def _static(table, physical, experiment, cfg, thresholds, step_v, gain, weight, 
     edge_plan = np.repeat(plan0, 2, axis=0)
     edge_phase = np.repeat(h0, 2), np.repeat(v0, 2)
     edge_state, _, _, edge_raw = _capture(
-        edge, np.repeat(word0, 2), edge_plan, edge_phase, thresholds, step_v, table, physical, cfg
+        edge,
+        np.repeat(word0, 2),
+        edge_plan,
+        edge_phase,
+        thresholds,
+        step_v,
+        table,
+        physical,
+        cfg,
+        front_end_noise(experiment.noise, len(edge), stream=STREAM_EDGE),
     )
     report = {}
     for mode in LMS_MODES:
@@ -401,6 +478,14 @@ def _static(table, physical, experiment, cfg, thresholds, step_v, gain, weight, 
     return report, widths
 
 
+# =========================================================================
+# 4. 函数组：linearity / run / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 逐个输出码按名义 20 位 LSB 归一，INL 扣除端点直线。
+# 运行一个固定制造样本的两组 DEM、LMS 和 dither 交叉实验。
+# 运行指定 σ 的实验并写入独立目录。
+# ------------------------------------------------------------------------
 def linearity(width_v, first, stop, step):
     """逐个输出码按名义 20 位 LSB 归一，INL 扣除端点直线。"""
     dnl = width_v[first:stop] / step - 1
@@ -408,14 +493,24 @@ def linearity(width_v, first, stop, step):
     return dnl, cumulative - np.linspace(0.0, cumulative[-1], len(cumulative))
 
 
-def run(output, sigma, seed):
-    """运行一个固定制造样本的两组 DEM、LMS 和 dither 交叉实验。"""
+# ------------------------------------------------------------------------
+def run(output, sigma, seed, noise=None):
+    """运行一个固定制造样本的两组 DEM、LMS 和 dither 交叉实验。
+
+    ``noise`` 取 ``NoiseConfig`` 或 None。None 用默认配置，即所有噪声源关闭，
+    结果与 M3 之前的版本逐位相同；传入配置才能看到噪声对 DR/SNR 的影响。
+    """
     output.mkdir(parents=True, exist_ok=False)
-    experiment = replace(ExperimentConfig(), mismatch_sigma_unit=sigma, manufacturing_seed=seed)
+    experiment = replace(
+        ExperimentConfig(),
+        mismatch_sigma_unit=sigma,
+        manufacturing_seed=seed,
+        noise=NoiseConfig() if noise is None else noise,
+    )
     cfg = replace(CalibrationConfig(), adc2_half_range_v=0.100, training_tone_peak_v=4.75)
-    nominal, caps = _cap_pool(experiment)
+    nominal, caps = cap_pool(experiment)
     physical = ChargePool.from_caps(caps, experiment)
-    thresholds = np.r_[_codebook(nominal, experiment), experiment.full_scale_peak_v]
+    thresholds = np.r_[codebook(nominal, experiment), experiment.full_scale_peak_v]
     step_v = native_step_v(experiment)
     tables = {label: MapperTable.build(bridge=label == "fig21_dem") for label in GROUPS}
     gain, gain_report, arrays = _calibrate_gain(
@@ -487,9 +582,9 @@ def run(output, sigma, seed):
         "gain_calibration": gain_report,
         "groups": comparisons,
         "source_sha256": {
-            str((ROOT / name).relative_to(ROOT)): _sha(ROOT / name) for name in sources
+            str((ROOT / name).relative_to(ROOT)): sha256_file(ROOT / name) for name in sources
         },
-        "artifact_sha256": {data_path.name: _sha(data_path)},
+        "artifact_sha256": {data_path.name: sha256_file(data_path)},
         "python": platform.python_version(),
         "dependencies": {n: version(n) for n in ("numpy", "adctoolbox")},
     }
@@ -499,6 +594,7 @@ def run(output, sigma, seed):
     return summary
 
 
+# ------------------------------------------------------------------------
 def main():
     """运行指定 σ 的实验并写入独立目录。"""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -522,3 +618,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

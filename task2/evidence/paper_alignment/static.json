@@ -1,0 +1,242 @@
+[
+  {
+    "sigma": 0.0005,
+    "group": "no_dem",
+    "dither": "off",
+    "mode": "nominal",
+    "dnl_min_lsb20": -1.0,
+    "dnl_max_lsb20": 5.996939310791447,
+    "inl_peak_lsb20": 17.19026314868942,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.0005,
+    "group": "no_dem",
+    "dither": "off",
+    "mode": "lms",
+    "dnl_min_lsb20": -0.6800008699779668,
+    "dnl_max_lsb20": 0.9400014155563039,
+    "inl_peak_lsb20": 0.6956880838237919,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.0005,
+    "group": "no_dem",
+    "dither": "on",
+    "mode": "nominal",
+    "dnl_min_lsb20": -1.0,
+    "dnl_max_lsb20": 1.5599984881627842,
+    "inl_peak_lsb20": 16.026408548596002,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.0005,
+    "group": "no_dem",
+    "dither": "on",
+    "mode": "lms",
+    "dnl_min_lsb20": -0.7399989673482177,
+    "dnl_max_lsb20": 0.7399983252398701,
+    "inl_peak_lsb20": 0.6645950442898081,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.0005,
+    "group": "fig21_dem",
+    "dither": "off",
+    "mode": "nominal",
+    "dnl_min_lsb20": -1.0,
+    "dnl_max_lsb20": 4.119991384643411,
+    "inl_peak_lsb20": 4.488136816741676,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.0005,
+    "group": "fig21_dem",
+    "dither": "off",
+    "mode": "lms",
+    "dnl_min_lsb20": -0.5800028372577979,
+    "dnl_max_lsb20": 0.5599990943982163,
+    "inl_peak_lsb20": 0.5788540762503914,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.0005,
+    "group": "fig21_dem",
+    "dither": "on",
+    "mode": "nominal",
+    "dnl_min_lsb20": -1.0,
+    "dnl_max_lsb20": 1.559999703542847,
+    "inl_peak_lsb20": 3.7731155805534407,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.0005,
+    "group": "fig21_dem",
+    "dither": "on",
+    "mode": "lms",
+    "dnl_min_lsb20": -0.4800075049343867,
+    "dnl_max_lsb20": 0.639995456484528,
+    "inl_peak_lsb20": 0.4589125720885081,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.001,
+    "group": "no_dem",
+    "dither": "off",
+    "mode": "nominal",
+    "dnl_min_lsb20": -1.0,
+    "dnl_max_lsb20": 6.229986983491576,
+    "inl_peak_lsb20": 33.621443952769724,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.001,
+    "group": "no_dem",
+    "dither": "off",
+    "mode": "lms",
+    "dnl_min_lsb20": -0.6400020587754799,
+    "dnl_max_lsb20": 0.8399808359596914,
+    "inl_peak_lsb20": 0.6563023858494791,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.001,
+    "group": "no_dem",
+    "dither": "on",
+    "mode": "nominal",
+    "dnl_min_lsb20": -1.0,
+    "dnl_max_lsb20": 1.5599969799083722,
+    "inl_peak_lsb20": 31.188245699212363,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.001,
+    "group": "no_dem",
+    "dither": "on",
+    "mode": "lms",
+    "dnl_min_lsb20": -0.5000025528369123,
+    "dnl_max_lsb20": 0.6199999995337173,
+    "inl_peak_lsb20": 0.572276416284381,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.001,
+    "group": "fig21_dem",
+    "dither": "off",
+    "mode": "nominal",
+    "dnl_min_lsb20": -1.0,
+    "dnl_max_lsb20": 4.1199827761123355,
+    "inl_peak_lsb20": 5.923651597954857,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.001,
+    "group": "fig21_dem",
+    "dither": "off",
+    "mode": "lms",
+    "dnl_min_lsb20": -0.5200033957595057,
+    "dnl_max_lsb20": 0.5599895178971179,
+    "inl_peak_lsb20": 0.525146214948427,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.001,
+    "group": "fig21_dem",
+    "dither": "on",
+    "mode": "nominal",
+    "dnl_min_lsb20": -1.0,
+    "dnl_max_lsb20": 1.559999410799949,
+    "inl_peak_lsb20": 5.6748903012516285,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.001,
+    "group": "fig21_dem",
+    "dither": "on",
+    "mode": "lms",
+    "dnl_min_lsb20": -0.5000012358805631,
+    "dnl_max_lsb20": 0.6399984680783704,
+    "inl_peak_lsb20": 0.5917479228057129,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.002,
+    "group": "no_dem",
+    "dither": "off",
+    "mode": "nominal",
+    "dnl_min_lsb20": -1.0,
+    "dnl_max_lsb20": 6.265790563114374,
+    "inl_peak_lsb20": 66.47545149793206,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.002,
+    "group": "no_dem",
+    "dither": "off",
+    "mode": "lms",
+    "dnl_min_lsb20": -0.6200084761647806,
+    "dnl_max_lsb20": 0.8599670220366977,
+    "inl_peak_lsb20": 0.7105369479063581,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.002,
+    "group": "no_dem",
+    "dither": "on",
+    "mode": "nominal",
+    "dnl_min_lsb20": -1.0,
+    "dnl_max_lsb20": 1.559993974148214,
+    "inl_peak_lsb20": 61.4629513259118,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.002,
+    "group": "no_dem",
+    "dither": "on",
+    "mode": "lms",
+    "dnl_min_lsb20": -0.5199908423147156,
+    "dnl_max_lsb20": 0.6599842798860369,
+    "inl_peak_lsb20": 0.4948296654740179,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.002,
+    "group": "fig21_dem",
+    "dither": "off",
+    "mode": "nominal",
+    "dnl_min_lsb20": -1.0,
+    "dnl_max_lsb20": 4.119965579530123,
+    "inl_peak_lsb20": 9.057715441041807,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.002,
+    "group": "fig21_dem",
+    "dither": "off",
+    "mode": "lms",
+    "dnl_min_lsb20": -0.49999958462300076,
+    "dnl_max_lsb20": 0.6399772415303286,
+    "inl_peak_lsb20": 0.5089309811178876,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.002,
+    "group": "fig21_dem",
+    "dither": "on",
+    "mode": "nominal",
+    "dnl_min_lsb20": -1.0,
+    "dnl_max_lsb20": 1.55999883645709,
+    "inl_peak_lsb20": 9.494295944559969,
+    "evaluated_code_count": 754319
+  },
+  {
+    "sigma": 0.002,
+    "group": "fig21_dem",
+    "dither": "on",
+    "mode": "lms",
+    "dnl_min_lsb20": -0.5399939392052202,
+    "dnl_max_lsb20": 0.5800068633703821,
+    "inl_peak_lsb20": 0.5018145499625773,
+    "evaluated_code_count": 754319
+  }
+]

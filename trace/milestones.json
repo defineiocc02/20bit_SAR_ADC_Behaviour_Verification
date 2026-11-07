@@ -266,6 +266,29 @@
         "power_closure": "PASS (逐源功率和与合计 DR 闭合 <0.5%)"
       },
       "note": "先说三个口径差，它们决定了所有数字怎么比。① 满幅：论文原文 '±3V differential input range' / '6Vpp input range'，模型默认 full_scale_peak_v=5.0 即差分 10 Vpp，同一个物理 σ 在更大满幅下相对更小，DR 天然高 20log10(5/3)=4.44 dB。② 带宽：论文 20 MHz，模型 fs=10 MHz 故只有 5 MHz，噪声密度天然低 10log10(20/5)=6.02 dB（密度按 √BW 走，不是 20log10）。③ tone 打不满：论文的 2.95/3.0=0.983 在本模型里会让前级拒掉 52 个样本（dither 需要至少几个 step_v 的 headroom），故 A1/A2 用模型默认的 2/3 满幅 tone，再按 20log10(5/3.333)=3.522 dB 加回。三项折算都在 ALIGNMENT.md 的「口径折算」表里显式列出，不做静默处理。为什么不直接把模型满幅改成 3.0：动手试过，training_tone_peak_v=4.75 会让训练序列整段越界（4647 个样本被拒），而它连着 adc2_half_range_v、gain_reference_span_v 一串参数都要按 0.6 缩放，改动面远超 M7 的范围，且会让全部既有归档失效——所以选择折算而不是改模型。A3 的 FAIL 与 A5 的 PARTIAL 是同一个缺口：模型在 58.6 kHz 的 SNR 94.516 与 DR 94.485 只差 0.03 dB，而论文 SNR 93.7 比 DR 94.2 低 0.5 dB；差的那 0.5 dB 是谐波与杂散，模型没有 C-V 非线性就产生不出来。所以 A3 不是「噪声算少了」（A1/A4 都对上了）。A1 的闭合有自证成分：σ 本来就是按 94.2 反推的，它验的是「噪声进对节点、DR 算对口径」，不验「芯片真是 94.2」。逐源分配全部 S5_假设，只有合计受论文约束。σ 未做任何调整。"
+    },
+    {
+      "id": "M8",
+      "name": "静态对标 12 格",
+      "base_commit": "2fd9c5d",
+      "base_snapshot": "769450e2fbeb12a6caad88673572627011a2938b",
+      "behavior_change": false,
+      "files": [
+        "task2/eight/paper_alignment.py",
+        "task2/evidence/paper_alignment/STATIC.md",
+        "task2/evidence/paper_alignment/static.json",
+        "trace/milestones.json"
+      ],
+      "gates": {
+        "pytest": "PASS (146 passed)",
+        "ruff": "PASS",
+        "snapshot_baseline_check": "PASS (8 项逐字段相等)",
+        "dnl_window": "FAIL (σ=1e-3 时 |DNL| 最大 0.640 LSB20，窗口 ±0.35)",
+        "inl_window": "PASS (端点 INL 0.592 LSB20，窗口 ≤3.5)",
+        "sigma_reported": "PASS (σ=1e-3 相对失配，是模型既有取值，未为凑判据改动)",
+        "floor_diagnosis": "PASS (三档 σ 跨 4 倍，DNL 只从 0.640 动到 0.580，且 nominal 的 DNL 在三档下完全相同)"
+      },
+      "note": "结果一半达标一半不达标，但诊断信息比结论更有用。① DNL FAIL：σ=1e-3 时 |DNL| 0.640 LSB20（0.61 ppm），论文是 ±0.27 ppm，差 2.4 倍。② INL PASS 但是反向超标：0.592 LSB20 = 0.56 ppm，比论文 2.2 ppm 好 4 倍。DNL 差 2.4 倍而 INL 好 4 倍，方向相反，说明模型的误差结构不对：DNL 大、INL 小是**局部码宽抖动**的特征，不是系统性弯曲；论文的 2.2 ppm 主要来自 C-V 与电荷注入造成的整条曲线弯曲，这两个机制本模型都没有，所以 INL 反而更好。③ 地板诊断否定了计划预设的「失配地板不足」：三档 σ 从 5e-4 到 2e-3 跨 4 倍，`fig21_dem/on/lms` 的 DNL 只从 0.640 动到 0.580，INL 还不单调（0.459 → 0.592 → 0.502）。更硬的证据是 nominal 模式的 DNL 在三档 σ 下**完全相同**（−1.000/+1.560），而它的 INL 随 σ 单调增（3.773 → 5.675 → 9.494）——说明 nominal 的 DNL 完全由确定性结构决定，与随机失配无关。所以降 σ 解决不了 DNL，判据里「不许改 σ 凑数」这一条正好指向真实原因。④ 计划里「12 格」的口径我按 dither on 的 3σ × 2 组 × 2 重构给出，共 12 行；dither off 的另 12 行在 static.json 里没进主表。⑤ 与论文的差距来源已写进 STATIC.md：C-V 非线性与开关电荷注入是本模型的结构性缺口，与 M7 的 A3/A5 同源。"
     }
   ]
 }

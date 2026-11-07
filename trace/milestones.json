@@ -38,7 +38,7 @@
       "base_commit": "5094b2e156a7660c85d3bf02bcd6d5a13786377e",
       "base_snapshot": "6a28f987372a3c9ffbb435758519a7a5130ca9ba",
       "behavior_change": false,
-      "commit": "PENDING",
+      "commit": "595f6cd6efcaa14bb11448c498dacc2c1f242676",
       "files": [
         ".gitignore",
         "references/README.md",

@@ -26,7 +26,6 @@ import numpy as np
 import pytest
 
 from adi_model.codes import OUTPUT_BITS, OUTPUT_CODES, midpoint_v, to_signed, to_unsigned
-from task_reconstruction.fixed import FULL_SCALE_CODE
 
 PEAK = 5.0
 
@@ -90,11 +89,6 @@ def test_signed_offset_sits_at_the_code_midpoint():
     assert to_signed(0) == -(OUTPUT_CODES // 2)
     assert to_signed(OUTPUT_CODES // 2) == 0
     assert to_signed(OUTPUT_CODES - 1) == OUTPUT_CODES // 2 - 1
-
-
-def test_fixed_reconstruction_uses_the_shared_full_scale_code():
-    """fixed.py 的满幅码数必须与 codes 模块同源，不能各写一个字面量。"""
-    assert FULL_SCALE_CODE == OUTPUT_CODES
 
 
 def test_invalid_arguments_are_rejected():

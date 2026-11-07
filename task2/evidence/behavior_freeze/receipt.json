@@ -1,0 +1,48 @@
+{
+  "schema": "adi_behavior_freeze_receipt_v1",
+  "frozen_at": "2026-11-07T13:57:58+00:00",
+  "scope": "行为级模型复现（M0-M9）；RTL 全程只读，未触及 22 个 .sv/.svh/.v 文件",
+  "gates": {
+    "pass": [
+      "G2",
+      "G3",
+      "G4"
+    ],
+    "fail": [
+      "G1",
+      "G5",
+      "G6",
+      "G7"
+    ],
+    "not_run": [],
+    "verdict": "RED"
+  },
+  "stale_receipts": [
+    {
+      "path": "task1/evidence/effects/summary.json",
+      "reason": "run_effects.py 的 delays 改由 adi_model.timing.TimingConfig 提供",
+      "verified": "重跑 run_effects 与归档的 interleave.fixed_ab / interleave.dynamic / dem 三块逐字段完全一致（M5 gate: effects_archive_identical）",
+      "superseded_by": null
+    },
+    {
+      "path": "task1/evidence/adc2_dither/summary.json",
+      "reason": "inl_dnl._output_codes 改调 adi_model.codes.to_unsigned",
+      "verified": "pytest 146 passed，含 test_adc2_dither 的 4 条（M6）",
+      "superseded_by": null
+    },
+    {
+      "path": "task2/evidence/baseline_fingerprint/fingerprint.json",
+      "reason": "experiment.py 的 _capture 增加 noise / reference 参数与注入路径",
+      "verified": "snapshot_baseline --check 8 项逐字段相等（噪声与参考默认全关）",
+      "superseded_by": null
+    }
+  ],
+  "cannot_claim": [
+    "G5 的 A3 未过、G6 的 DNL 未过：本模型缺 C-V 非线性和开关电荷注入，低频段产生不出论文那 0.5 dB 的谐波/杂散，DNL 也停在结构性地板 0.64 LSB20",
+    "G1 的 MISSING=11：这些是尚未实现的指标项，不是遗漏的台账行",
+    "A1 的闭合有自证成分：噪声 σ 是按 94.2 dB 反推的，它验的是注入链路与口径，不是「芯片真是 94.2」",
+    "逐源噪声分配全部是 S5_假设，只有合计受论文约束",
+    "G7 的 3 条 MISSING 与 1 条 STALE_BYTES 都是既有状态（路径基准与一个未动过的文件），不是本轮引入；本轮只读旧收据，未改任何 source_sha256",
+    "本收据不构成 RTL 或物理 signoff：行为模型通过与否与 RTL 功能正确性无关"
+  ]
+}

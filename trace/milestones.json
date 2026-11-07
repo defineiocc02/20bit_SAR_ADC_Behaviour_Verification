@@ -290,6 +290,32 @@
         "floor_diagnosis": "PASS (三档 σ 跨 4 倍，DNL 只从 0.640 动到 0.580，且 nominal 的 DNL 在三档下完全相同)"
       },
       "note": "结果一半达标一半不达标，但诊断信息比结论更有用。① DNL FAIL：σ=1e-3 时 |DNL| 0.640 LSB20（0.61 ppm），论文是 ±0.27 ppm，差 2.4 倍。② INL PASS 但是反向超标：0.592 LSB20 = 0.56 ppm，比论文 2.2 ppm 好 4 倍。DNL 差 2.4 倍而 INL 好 4 倍，方向相反，说明模型的误差结构不对：DNL 大、INL 小是**局部码宽抖动**的特征，不是系统性弯曲；论文的 2.2 ppm 主要来自 C-V 与电荷注入造成的整条曲线弯曲，这两个机制本模型都没有，所以 INL 反而更好。③ 地板诊断否定了计划预设的「失配地板不足」：三档 σ 从 5e-4 到 2e-3 跨 4 倍，`fig21_dem/on/lms` 的 DNL 只从 0.640 动到 0.580，INL 还不单调（0.459 → 0.592 → 0.502）。更硬的证据是 nominal 模式的 DNL 在三档 σ 下**完全相同**（−1.000/+1.560），而它的 INL 随 σ 单调增（3.773 → 5.675 → 9.494）——说明 nominal 的 DNL 完全由确定性结构决定，与随机失配无关。所以降 σ 解决不了 DNL，判据里「不许改 σ 凑数」这一条正好指向真实原因。④ 计划里「12 格」的口径我按 dither on 的 3σ × 2 组 × 2 重构给出，共 12 行；dither off 的另 12 行在 static.json 里没进主表。⑤ 与论文的差距来源已写进 STATIC.md：C-V 非线性与开关电荷注入是本模型的结构性缺口，与 M7 的 A3/A5 同源。"
+    },
+    {
+      "id": "M9",
+      "name": "定版门禁 G1-G7",
+      "base_commit": "6d8ae4a",
+      "base_snapshot": "60710a5670ab838138ea91959d09ad30d3cc3b58",
+      "behavior_change": false,
+      "files": [
+        "tools/gate_behavior_model.py",
+        "task2/evidence/behavior_freeze/gate.json",
+        "task2/evidence/behavior_freeze/receipt.json",
+        "src/tests/test_codes.py",
+        "task_reconstruction/tests/test_reconstruction_smoke.py",
+        "trace/milestones.json"
+      ],
+      "gates": {
+        "G1_structure": "FAIL (MISSING=11；这 11 条是尚未实现的指标项，不是漏抄的台账行)",
+        "G2_regression": "PASS (147 passed)",
+        "G3_layering": "PASS (exit 0；R3 61 条为既有告警)",
+        "G4_baseline": "PASS (8 项逐字段相等)",
+        "G5_numeric": "FAIL (A1/A2/A4 PASS，A3 FAIL，A5 PARTIAL)",
+        "G6_static": "FAIL (DNL 0.640 超出 ±0.35，INL 0.592 在 ≤3.5 内)",
+        "G7_receipts": "FAIL (3 条 MISSING + 1 条 STALE_BYTES，均为既有状态，非本轮引入)",
+        "verdict": "RED (3 PASS / 4 FAIL)"
+    },
+    "note": "门禁脚本的价值在于允许红：它不修任何东西、不调任何参数，只把每门的实测证据固定下来，把没过的门连同缺口清单写进收据。RED 是真实结论，不是没跑完。四项红各有性质：① G1 的 MISSING=11 是八个未实现的非理想效应与若干未测指标，本来就要在后续里程碑落地，不是台账缺陷。② G5 的 A3 与 G6 的 DNL 同源——模型没有 C-V 非线性，低频段产生不出论文那 0.5 dB 的谐波/杂散，DNL 也停在结构性地板。③ G7 的 3 条 MISSING 是 handoff_manifest.json 用相对路径（rtl/、tb/、tools/ 相对 task_reconstruction/）记 artifacts 而校验器在仓库根解析，文件本身都在；1 条 STALE_BYTES different 是 task_reconstruction/tools/run_checks.py，本轮没动过它。本轮**未修改任何旧收据的 source_sha256**，三份受影响的归档改记在 receipt.json 的 stale_receipts 里并注明验证方式，重签留给下一轮独立任务。④ 顺手修了一个自己引入的 R1：src/tests/test_codes.py 导入 task_reconstruction.fixed 被 check_layering 判成库层反向依赖，把那条同源断言移到 task 层的测试里，R1 归零。⑤ gate.json 的 frozen_at 是运行时刻，所以这个文件本身不可复现；可复现的是各门的方法与判据，重跑会得到同样结论但不同时间戳。"
     }
   ]
 }

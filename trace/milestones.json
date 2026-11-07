@@ -213,6 +213,7 @@
     {
       "id": "M6",
       "name": "三处 20bit 码口径统一",
+      "commit": "a59a6e2e1fbe6e7cc5a748ea859e44f39c5e5136",
       "base_commit": "9c4aede",
       "base_snapshot": "b99e9f9a6dfd63688edc903395c1d87f3c3258eb",
       "behavior_change": false,

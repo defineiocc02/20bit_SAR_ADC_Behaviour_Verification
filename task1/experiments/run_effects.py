@@ -58,6 +58,7 @@ BLUE = "#0072B2"
 ORANGE = "#D55E00"
 GRAY = "#737B82"
 
+
 def schedule_sequence(
     count: int, cfg: ExperimentConfig
 ) -> tuple[np.ndarray, np.ndarray, tuple[np.ndarray, np.ndarray]]:
@@ -93,7 +94,6 @@ def schedule_sequence(
         vertical[sample_id] = output.conversion_dem.vertical_phase
         previous_acq = state.acq_ids
     return converting, acquiring, (horizontal, vertical)
-
 
 
 # =========================================================================

@@ -164,9 +164,7 @@ def _calibrate_gain(physical, experiment, cfg, table, thresholds, step_v):
     r_hi = g * (high_v + thresholds[-1]) - b
     lo_code = quantize(r_lo, cfg.adc2_bits, cfg.adc2_half_range_v)
     hi_code = quantize(r_hi, cfg.adc2_bits, cfg.adc2_half_range_v)
-    estimate, report = _fit_gain_from_flags(
-        group_flags(plan), low_v, high_v, lo_code, hi_code, cfg
-    )
+    estimate, report = _fit_gain_from_flags(group_flags(plan), low_v, high_v, lo_code, hi_code, cfg)
     arrays = {
         "gain_plan": plan,
         "gain_horizontal": phase[0],
@@ -658,4 +656,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

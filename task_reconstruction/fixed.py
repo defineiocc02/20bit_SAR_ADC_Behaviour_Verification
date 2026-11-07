@@ -154,4 +154,3 @@ def reconstruct(
     if not 0 <= n < g:
         return 0, True
     return to_signed((n * FULL_SCALE_CODE) // g), False
-

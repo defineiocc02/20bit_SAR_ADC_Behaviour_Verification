@@ -788,7 +788,9 @@ def main() -> None:
             "task1/experiments/adctoolbox_calibration.py": sha256_file(
                 ROOT / "task1/experiments/adctoolbox_calibration.py"
             ),
-            "task1/experiments/run_effects.py": sha256_file(ROOT / "task1/experiments/run_effects.py"),
+            "task1/experiments/run_effects.py": sha256_file(
+                ROOT / "task1/experiments/run_effects.py"
+            ),
             "task1/model/fig21_bridge.py": sha256_file(ROOT / "task1/model/fig21_bridge.py"),
         },
         "experiments": [meta for meta, _ in results],
@@ -808,4 +810,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -270,6 +270,7 @@
     {
       "id": "M8",
       "name": "静态对标 12 格",
+      "commit": "38d9727cead00a30c4977ff19489096278c9b111",
       "base_commit": "2fd9c5d",
       "base_snapshot": "769450e2fbeb12a6caad88673572627011a2938b",
       "behavior_change": false,

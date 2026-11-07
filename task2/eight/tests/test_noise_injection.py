@@ -1,7 +1,7 @@
 # =============================================================================
 # 文件名     : test_noise_injection.py
 # 模块名     : task2.eight.tests.test_noise_injection
-# 版本       : v1.0
+# 版本       : v1.1
 # 功能       : M3 判据——前端噪声按节点注入，且默认关闭时逐位不变。
 #
 # 设计说明   :
@@ -11,10 +11,12 @@
 #     无法靠看 SNDR 发现，必须逐位比对 residue 与 command。
 #   * 「逐位相同」用 assert_array_equal 而非 allclose：默认关闭时噪声路径
 #     必须完全不被执行，不是「差异足够小」。
+#   * 名义网络与 capture() 在 conftest.py，两个注入测试文件共用一份。
 # -----------------------------------------------------------------------------
 # 变更记录
 # -----------------------------------------------------------------------------
-# 初始版本，M3 判据。
+# v1.0 初始版本，M3 判据。
+# v1.1 名义网络抽到 conftest.py，供 M4b 的参考注入测试共用。
 # =============================================================================
 
 """M3 判据：前端噪声按节点注入，且默认关闭时逐位不变。"""
@@ -24,64 +26,13 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.capacitors import ExperimentConfig, cap_pool
 from adi_model.noise import NoiseConfig, front_end_noise, thermal_sigma
-from task1.experiments.adctoolbox_calibration import CalibrationConfig
-from task1.experiments.residue_control_study import MapperTable
-from task1.experiments.run_effects import schedule_sequence
-from task1.model.codebook import codebook
-from task2.eight.experiment import STREAM_TONE, STREAM_TRAIN, _capture
-from task2.eight.model import ChargePool, native_step_v, words
-
-SAMPLES = 4096
-WORD_SEED = 0x5A17C0DE
-
-
-@pytest.fixture(scope="module")
-def rig():
-    """构造一次完整的 _capture 调用所需的名义网络与开关计划。"""
-    experiment = ExperimentConfig(samples=SAMPLES)
-    nominal, caps = cap_pool(experiment)
-    physical = ChargePool.from_caps(caps, experiment)
-    thresholds = np.r_[codebook(nominal, experiment), experiment.full_scale_peak_v]
-    step_v = native_step_v(experiment)
-    plan, _, phase = schedule_sequence(SAMPLES, experiment)
-    word = words(np.ones(SAMPLES, dtype=bool), WORD_SEED)
-    tone = experiment.tone_peak_v * np.sin(
-        2 * np.pi * experiment.tone_bin * np.arange(SAMPLES) / SAMPLES
-    )
-    return {
-        "experiment": experiment,
-        "physical": physical,
-        "thresholds": thresholds,
-        "step_v": step_v,
-        "plan": plan,
-        "phase": phase,
-        "word": word,
-        "tone": tone,
-        "cfg": CalibrationConfig(adc2_half_range_v=0.100),
-        "table": MapperTable.build(bridge=True),
-    }
-
-
-def _capture_with(rig, noise):
-    return _capture(
-        rig["tone"],
-        rig["word"],
-        rig["plan"],
-        rig["phase"],
-        rig["thresholds"],
-        rig["step_v"],
-        rig["table"],
-        rig["physical"],
-        rig["cfg"],
-        noise,
-    )
+from task2.eight.experiment import STREAM_TONE, STREAM_TRAIN
+from task2.eight.tests.conftest import SAMPLES
 
 
 def test_differential_thermal_sigma_matches_the_20p5pf_budget():
     """单侧 14.214 µV、差分 20.102 µV，与论文 20.5 pF 口径一致。"""
-    # 20.5 pF / 300 K 单侧 14.214 µV，差分取两侧之差故乘 √2 得 20.102 µV。
     assert thermal_sigma(20.5e-12, 300.0) == pytest.approx(14.2143e-6, rel=1e-4)
     assert thermal_sigma(20.5e-12, 300.0) * np.sqrt(2.0) == pytest.approx(20.1021e-6, rel=1e-4)
 
@@ -98,10 +49,9 @@ def test_disabled_noise_is_quiet_and_consumes_no_random_numbers():
 
 def test_quiet_noise_reproduces_the_no_noise_capture_bit_for_bit(rig):
     """把全零分量传进去，结果必须与不传 noise 完全一致。"""
-    # 默认配置（enabled=False）给出的全零分量，必须让 _capture 走回原路径。
     quiet = front_end_noise(NoiseConfig(), SAMPLES)
-    base_state, base_coarse, base_residue, base_code = _capture_with(rig, None)
-    quiet_state, quiet_coarse, quiet_residue, quiet_code = _capture_with(rig, quiet)
+    base_state, base_coarse, base_residue, base_code = rig["capture"]()
+    quiet_state, quiet_coarse, quiet_residue, quiet_code = rig["capture"](noise=quiet)
     np.testing.assert_array_equal(quiet_residue, base_residue)
     np.testing.assert_array_equal(quiet_code, base_code)
     np.testing.assert_array_equal(quiet_coarse, base_coarse)
@@ -115,9 +65,9 @@ def test_sampling_noise_moves_both_the_decision_and_the_residue(rig):
     测试照样通过。等式口径能同时排除两种错：噪声没进残差（差为零）、
     噪声被二次缩放（差与 g·v 不成比例）。
     """
-    base_state, _, base_residue, _ = _capture_with(rig, None)
+    base_state, _, base_residue, _ = rig["capture"]()
     noise = front_end_noise(NoiseConfig(enabled=True), SAMPLES, stream=STREAM_TONE)
-    state, _, residue, _ = _capture_with(rig, noise)
+    state, _, residue, _ = rig["capture"](noise=noise)
     same = state.switches.codes == base_state.switches.codes
     gain, _ = rig["physical"].affine(rig["plan"], state.features)
     np.testing.assert_allclose(
@@ -141,14 +91,14 @@ def test_comparator_noise_only_reaches_the_residue_through_the_coarse_code(rig):
     注意跳档本身会改变 `g` 与 `b`，所以跳档样本的残差变化量不是整步长倍数，
     这里不对它做定量断言，只断言「没跳档的样本一位不动」。
     """
-    base_state, _, base_residue, base_code = _capture_with(rig, None)
+    base_state, _, base_residue, base_code = rig["capture"]()
     for sigma in (20e-6, 200e-6, 2e-3):
         noise = front_end_noise(
             NoiseConfig(enabled=True, include_thermal=False, comparator_sigma_v=sigma),
             SAMPLES,
             stream=STREAM_TONE,
         )
-        state, _, residue, code = _capture_with(rig, noise)
+        state, _, residue, code = rig["capture"](noise=noise)
         same = state.switches.codes == base_state.switches.codes
         np.testing.assert_array_equal(residue[same], base_residue[same])
         np.testing.assert_array_equal(code[same], base_code[same])
@@ -159,14 +109,13 @@ def test_comparator_noise_only_reaches_the_residue_through_the_coarse_code(rig):
 
 def test_conversion_noise_never_reaches_the_decision(rig):
     """ADC2 噪声在判决时还不存在，粗码与命令必须逐位不变。"""
-    # ADC2 噪声在判决时还不存在，所以 command 与粗码必须逐位不变。
-    base_state, base_coarse, base_residue, _ = _capture_with(rig, None)
+    base_state, base_coarse, base_residue, _ = rig["capture"]()
     noise = front_end_noise(
         NoiseConfig(enabled=True, include_thermal=False, adc2_sigma_v=3e-6),
         SAMPLES,
         stream=STREAM_TONE,
     )
-    state, coarse, residue, _ = _capture_with(rig, noise)
+    state, coarse, residue, _ = rig["capture"](noise=noise)
     np.testing.assert_array_equal(coarse, base_coarse)
     np.testing.assert_array_equal(state.switches.codes, base_state.switches.codes)
     assert not np.array_equal(residue, base_residue)
@@ -174,12 +123,11 @@ def test_conversion_noise_never_reaches_the_decision(rig):
 
 def test_offset_shifts_the_residue_by_a_constant(rig):
     """RA 失调是残差域常数，差分后恰好等于设定值。"""
-    # RA 失调是残差域常数：差分后应恰好等于设定值，不放大也不缩。
     noise = front_end_noise(
         NoiseConfig(enabled=True, include_thermal=False, ra_offset_v=80e-6), SAMPLES
     )
-    _, _, base_residue, _ = _capture_with(rig, None)
-    _, _, residue, _ = _capture_with(rig, noise)
+    _, _, base_residue, _ = rig["capture"]()
+    _, _, residue, _ = rig["capture"](noise=noise)
     np.testing.assert_allclose(residue - base_residue, 80e-6, rtol=0, atol=1e-15)
 
 

@@ -152,6 +152,39 @@
         "negative_controls": "PASS (3 个注入错误全部被抓：comparator 漏进残差、sampling 只进判决、stream 被忽略)"
       },
       "note": "两处偏离计划，均以实测为准。① 计划判据「只开比较器 20 µV ⇒ 独占 DR 100.5 dB ±0.3」不成立：实测 103.72 dB，与无噪声的 103.95 dB 只差 0.23 dB。原因是两步式 + dither 的冗余把粗码跳档吸收了——跳档 1 个 coarse code 只让残差偏 1 个 step_v（18.38 mV），远小于 ADC2 半量程 100 mV，后级重构时按新粗码重算，误差自洽抵消。比较器噪声在这套架构里不是 DR 的支配项，这正是架构冗余该有的表现，判据改按「跳档率 + DR 退化幅度」记录。② task3/tools/run_joint_noise.py 的五个常量不搬进 NoiseConfig：AZ 20 µV 与 fresh 10 µV 是图注标明的「人工残差激励」，不是被测器件的噪声源，且 AZ 的成对相关结构（独立/共享/保持误差三档）无法用单一 sigma 表达；硬搬会破坏 CAAZ 语义并让已归档 summary.json 的 az_sigma_v 等字段对不上。③ 接线后比较器噪声会经由粗码状态改变残差，这不是漏接：逐位比对上「未跳档样本一位不动」才是正确口径，测试就按这个写。④ ExperimentConfig 新增 noise 字段，asdict(experiment) 会多一个键，任何重跑都会让归档里的 experiment 字典与 artifact_sha256 与旧版不同；默认数值不变，但 M9 重签收据时必须显式处理这一项。⑤ 新测试文件是未跟踪的，base_snapshot 抓不到，回退时须删除文件本身。"
+    },
+    {
+      "id": "M4",
+      "name": "参考动态建立 + RA 非线性",
+      "base_commit": "7f92ca1",
+      "base_snapshot": "7f59ce2b70ec0ab5e21f393159a960255616ccf1",
+      "behavior_change": false,
+      "commits": {
+        "M4a_纯函数层": "dc913bc",
+        "M4b_参考接入": "TBD"
+      },
+      "files": [
+        "src/adi_model/reference.py",
+        "src/tests/test_reference.py",
+        "src/adi_model/capacitors.py",
+        "task2/eight/experiment.py",
+        "task2/eight/tests/conftest.py",
+        "task2/eight/tests/test_noise_injection.py",
+        "task2/eight/tests/test_reference_injection.py",
+        "trace/milestones.json"
+      ],
+      "gates": {
+        "pytest": "PASS (119 passed)",
+        "ruff": "PASS",
+        "snapshot_baseline_check": "PASS (8 项逐字段相等；reference 默认全关)",
+        "check_layering": "PASS (R3 仍 61 条，_capture 的私有导入移到 conftest 后没有净增)",
+        "paper_anchor": "PASS (tau = 0.65*T_RA/ln(32) = 0.18755*T_RA，在 0.65*T_RA 处误差恰为初始值的 1/32)",
+        "log_linearity": "PASS (ln(error) 对 T_RA/tau 斜率 -1，R^2 > 0.999999)",
+        "ppm_scale": "PASS (10 ppm 二阶在差分满幅 10 V 上 = 100 µV = 10.49 LSB20)",
+        "code_dependence": "PASS (参考误差按翻动电容单位数逐样本变化，相对离散度 > 0.05)",
+        "negative_controls": "PASS (swing 退化为常数被抓 2 条、漏乘增益被抓 1 条；exp 写成 1/(1+x) 被抓 3 条、ln 换 log10 被抓 2 条)"
+      },
+      "note": "计划里 M4 的两个判据数字没有出处，已废弃并替换。①「tau=1.17 ns 处残差 0.50 LSB20 ±10%」与「ln(error) 对 tau 斜率与 -0.65·T_RA 一致」：全库检索 1.17 与 0.65 只命中无关数值，且由论文两条锚点复算不出 1.17 ns。改用论文原文可复算的形式——RA 相位开始残差约 15b、20b 完全建立占 RA 相位约 65%，由此 tau = 0.65·T_RA/ln(2^5) = 0.18755·T_RA，在 0.65·T_RA 处误差恰为 1/32。②「ppm2 ∈ {0,1,10} ⇒ 10 ppm 给 10.5±1 LSB20」这条保留了，但**没有接进 _capture**：ra_transfer 的 ppm 是输出满幅口径（10 V），_capture 里的残差是输入域（±0.1 V），差一个 RA 增益；在 _capture 里乘 ppm 会让量级小 100 倍却看上去「接了」。故 ppm 项留到 M8 的输出域接入，M4b 只接参考建立。③ 端到端实测：tau 取 anchor 时 INL 峰值 0.5610 LSB20，基线（无参考）0.5233，差 0.038，而失配本身贡献 0.52——参考建立在论文参数下不是瓶颈。tau 放大到 5·T_RA 才到 0.6397。这与论文「dynamic reference buffer 让 65% 相位即达 20b」一致，不是接线没生效（接线由逐点等式测试保证）。④ 本模型没有显式时序，测试里的 T_RA=12.5 ns 取论文 40 MS/s 的半周期作量级，M5 引入真实时序后应改为从配置读。"
     }
   ]
 }

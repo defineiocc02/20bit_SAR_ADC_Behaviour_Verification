@@ -28,6 +28,7 @@ import numpy as np
 from adi_model.capacitors import ExperimentConfig, cap_pool
 from adi_model.hashing import sha256_file
 from adi_model.noise import NoiseConfig, front_end_noise
+from adi_model.reference import ReferenceConfig, dynamic_reference
 from task1.experiments.adctoolbox_calibration import (
     CalibrationConfig,
     _fit_gain_from_flags,
@@ -87,21 +88,33 @@ STREAM_EDGE = 3
 # 1. 函数组：_capture / _calibrate_gain / _fit_weights
 # =========================================================================
 # ------------------------------------------------------------------------
-def _capture(input_v, word, plan, phase, thresholds, step_v, table, physical, cfg, noise=None):
+def _capture(
+    input_v, word, plan, phase, thresholds, step_v, table, physical, cfg, noise=None, reference=None
+):
     """把一笔输入跑完前端，返回转换状态、粗码、残差与二级码。
 
     ``noise`` 为 ``FrontEndNoise`` 或 None。三个分量注在三个不同节点上：
 
     * ``sampling_v`` 加在输入上，粗码与残差看到同一份——kT/C 落在采样电容上
       之后被后续所有操作继承，不存在「判决看到、残差看不到」的分叉；
-    * ``comparator_v`` 只加到 SADC 判决输入，**不进残差**，否则会被后级重构
-      吸收，等于这个源不存在；
+    * ``comparator_v`` 只加到 SADC 判决输入，**不进残差式**，否则会被后级重构
+      吸收，等于这个源不存在（它仍会经由粗码跳档改变转换状态，那是物理效应）；
     * ``conversion_v`` 与 ``offset_v`` 只加到残差上，判决时它们还不存在。
 
-    ``noise`` 为 None 或全零时整条噪声路径都不执行，返回与无噪声版本逐位相同。
+    ``reference`` 为 ``ReferenceConfig`` 或 None：参考未建立完的剩余误差按
+    **本次转换翻动的电容单位数**折算成逐样本摆幅，再作为输入等效偏移加进残差。
+    码相关是重点——若把它当常数失调处理，FFT 去直流后会整个消失，就永远看不到
+    它造成的 INL。
+
+    ``ReferenceConfig.ppm2``/``ppm3`` 不在这里用：RA 非线性是**输出满幅**口径
+    （10 V），而这里的残差是**输入域**（±0.1 V），两者差一个 RA 增益。在本函数里
+    乘 ppm 会让量级小 100 倍却看上去「接了」，故留到 M8 的输出域接入。
+
+    两者都为 None 或未启用时，整条路径不执行，返回与改动前逐位相同。
     """
     dither = decode(word)
     active = noise is not None and not noise.is_quiet
+    ref = reference if reference is not None and reference.enabled else None
     sampled_v = input_v + noise.sampling_v if active else input_v
     decision_v = sampled_v + noise.comparator_v if active else None
     coarse, command, valid = coarse_decision(
@@ -114,6 +127,14 @@ def _capture(input_v, word, plan, phase, thresholds, step_v, table, physical, cf
     residue = g * (sampled_v + thresholds[-1]) - b
     if active:
         residue = residue + noise.offset_v + noise.conversion_v
+    if ref is not None:
+        # 一阶代理：翻动的电容单位越多，参考要驱动的电荷越多，剩余建立误差越大。
+        # 参考偏低意味着该抽走的电荷没抽够，等效于输入偏正，故取正号。
+        swing_v = np.abs(state.features).sum(axis=(1, 2)) * step_v
+        ref_error = dynamic_reference(
+            ref.precharge_frac, ref.tau_s, ref.t_precharge_s, ref.t_ra_s, swing_v
+        )
+        residue = residue + g * ref_error
     code = quantize(residue, cfg.adc2_bits, cfg.adc2_half_range_v)
     return state, coarse, residue, code
 
@@ -246,7 +267,17 @@ def _tones(physical, table, experiment, cfg, thresholds, step_v, gain, arrays):
     tone_noise = front_end_noise(experiment.noise, len(tone_input), stream=STREAM_TONE)
     for label, word in zip(SWITCHES, (np.zeros_like(on_word), on_word), strict=True):
         captures[label] = _capture(
-            tone_input, word, plan, phase, thresholds, step_v, table, physical, cfg, tone_noise
+            tone_input,
+            word,
+            plan,
+            phase,
+            thresholds,
+            step_v,
+            table,
+            physical,
+            cfg,
+            tone_noise,
+            experiment.reference,
         )
     hold_features = {
         label: fit_features(row[0].switches, row[0].features) for label, row in captures.items()
@@ -268,6 +299,7 @@ def _tones(physical, table, experiment, cfg, thresholds, step_v, gain, arrays):
             physical,
             cfg,
             train_noise,
+            experiment.reference,
         )
         weights, fit, observed = _fit_weights(train_input, train, raw, gain, hold, cfg, peak)
         fits[label] = weights
@@ -445,6 +477,7 @@ def _static(table, physical, experiment, cfg, thresholds, step_v, gain, weight, 
         physical,
         cfg,
         front_end_noise(experiment.noise, len(edge), stream=STREAM_EDGE),
+        experiment.reference,
     )
     report = {}
     for mode in LMS_MODES:
@@ -494,11 +527,12 @@ def linearity(width_v, first, stop, step):
 
 
 # ------------------------------------------------------------------------
-def run(output, sigma, seed, noise=None):
+def run(output, sigma, seed, noise=None, reference=None):
     """运行一个固定制造样本的两组 DEM、LMS 和 dither 交叉实验。
 
-    ``noise`` 取 ``NoiseConfig`` 或 None。None 用默认配置，即所有噪声源关闭，
-    结果与 M3 之前的版本逐位相同；传入配置才能看到噪声对 DR/SNR 的影响。
+    ``noise`` 取 ``NoiseConfig`` 或 None，``reference`` 取 ``ReferenceConfig``
+    或 None。None 都用默认配置，即所有非理想项关闭，结果与引入它们之前逐位相同；
+    传入配置才能看到对 DR/SNR 与 INL 的影响。
     """
     output.mkdir(parents=True, exist_ok=False)
     experiment = replace(
@@ -506,6 +540,7 @@ def run(output, sigma, seed, noise=None):
         mismatch_sigma_unit=sigma,
         manufacturing_seed=seed,
         noise=NoiseConfig() if noise is None else noise,
+        reference=ReferenceConfig() if reference is None else reference,
     )
     cfg = replace(CalibrationConfig(), adc2_half_range_v=0.100, training_tone_peak_v=4.75)
     nominal, caps = cap_pool(experiment)

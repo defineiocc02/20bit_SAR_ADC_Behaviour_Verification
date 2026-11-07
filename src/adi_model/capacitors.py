@@ -27,6 +27,7 @@ import numpy as np
 
 from adi_model.charge_ref import ref_ra_charge_nodal
 from adi_model.noise import NoiseConfig
+from adi_model.reference import ReferenceConfig
 
 # -----------------------------------------------------------------------------
 # 架构常量
@@ -74,17 +75,21 @@ class ExperimentConfig:
     static_repeats: int = 128
     # 噪声源。默认全关，所以引入这个字段不改变任何既有实验的数值。
     noise: NoiseConfig = field(default_factory=NoiseConfig)
+    # 参考动态建立与 RA 非线性。同样默认全关。
+    reference: ReferenceConfig = field(default_factory=ReferenceConfig)
 
     def __post_init__(self) -> None:
-        """把从 JSON 读回的 noise 字典还原成 NoiseConfig。
+        """把从 JSON 读回的嵌套字典还原成对应的配置对象。
 
-        归档里存的是 ``asdict(experiment)``，noise 那一项是嵌套字典；
+        归档里存的是 ``asdict(experiment)``，noise 与 reference 那两项是嵌套字典；
         调用方习惯用 ``ExperimentConfig(**meta["experiment"])`` 还原，
         若不在这里转回来，``cfg.noise.enabled`` 就会在字典上取属性而炸。
         这条转换只在「传入的是映射」时生效，正常构造不受影响。
         """
         if isinstance(self.noise, dict):
             object.__setattr__(self, "noise", NoiseConfig(**self.noise))
+        if isinstance(self.reference, dict):
+            object.__setattr__(self, "reference", ReferenceConfig(**self.reference))
 
     @property
     def fin_hz(self) -> float:

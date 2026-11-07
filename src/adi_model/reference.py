@@ -25,6 +25,8 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import numpy as np
 
 # 论文给的锚点：参考完全建立（20b）占 RA 相位的比例。
@@ -37,6 +39,77 @@ RESIDUAL_ACCURACY_BITS_AT_RA_START = 15
 
 # 由上面两条得到：15b 到 20b 是 2^5 倍，即误差要再压到 1/32。
 RESIDUAL_ACCURACY_RATIO = 1 << (20 - RESIDUAL_ACCURACY_BITS_AT_RA_START)
+
+# 预充结束时参考已建立的比例：RA 相位开始只剩 15b 的残差，即误差是全摆幅的
+# 2^-15。这两个数说的是同一件事，写法不同。
+PRECHARGE_FRACTION_FROM_PAPER = 1.0 - 2.0**-RESIDUAL_ACCURACY_BITS_AT_RA_START
+
+
+@dataclass(frozen=True)
+class ReferenceConfig:
+    """参考动态建立与 RA 传输非线性的配置。默认全关，关闭时结果逐位不变。
+
+    Attributes:
+        enabled: 总开关。False 时 ``_capture`` 完全不走参考路径。
+        t_ra_s: RA 相位时长，单位 s。
+        tau_s: 参考节点时间常数，单位 s。0 表示理想参考。
+        precharge_frac: 预充结束时已建立的比例，[0, 1]。
+            语义是「RA 相位开始时误差还剩全摆幅的 (1-precharge_frac)」，
+            论文口径下等于 ``PRECHARGE_FRACTION_FROM_PAPER``。
+        t_precharge_s: 预充时长，单位 s。0 表示不校验它与 precharge_frac 的自洽性。
+        ppm2: RA 二阶非线性系数，ppm（相对差分满幅）。
+        ppm3: RA 三阶非线性系数，ppm（相对差分满幅）。
+
+    这些都是 S5_假设，只有 ``from_paper_anchor`` 里的 τ 是由论文两句话反解的。
+    """
+
+    enabled: bool = False
+    t_ra_s: float = 0.0
+    tau_s: float = 0.0
+    precharge_frac: float = 0.0
+    t_precharge_s: float = 0.0
+    ppm2: float = 0.0
+    ppm3: float = 0.0
+
+    def __post_init__(self) -> None:
+        """拒绝物理上无意义的取值，避免把错误参数静默带进扫描。"""
+        if self.t_ra_s < 0:
+            raise ValueError("RA phase duration must not be negative")
+        if self.tau_s < 0:
+            raise ValueError("time constant must not be negative")
+        if not 0.0 <= self.precharge_frac <= 1.0:
+            raise ValueError("precharge fraction must lie in [0, 1]")
+        if self.t_precharge_s < 0:
+            raise ValueError("precharge duration must not be negative")
+        if not self.enabled:
+            return
+        if self.t_ra_s == 0.0 and self.tau_s > 0.0:
+            raise ValueError("a settling time constant without an RA phase does nothing")
+        if self.tau_s > 0.0 and self.precharge_frac == 0.0:
+            raise ValueError(
+                "precharge fraction 0 means the reference starts from the full swing; "
+                "that is a modelling choice, pass it explicitly rather than by default"
+            )
+
+    @classmethod
+    def from_paper_anchor(cls, t_ra_s: float, **overrides) -> ReferenceConfig:
+        """按论文两个锚点构造：残差起点 15b，20b 建立占 65% 的 RA 相位。
+
+        Args:
+            t_ra_s: RA 相位时长，单位 s。
+            **overrides: 覆盖其它字段，例如 ``ppm2=10.0``。
+
+        Returns:
+            已启用的配置，``tau_s`` 由 ``required_tau`` 反解。
+        """
+        fields = {
+            "enabled": True,
+            "t_ra_s": t_ra_s,
+            "tau_s": required_tau(t_ra_s, SETTLE_FRACTION_OF_RA_PHASE, RESIDUAL_ACCURACY_RATIO),
+            "precharge_frac": PRECHARGE_FRACTION_FROM_PAPER,
+        }
+        fields.update(overrides)
+        return cls(**fields)
 
 
 def settle_error(tau_s: float, t_s: float, swing_v: float) -> float:
@@ -101,19 +174,20 @@ def dynamic_reference(
         tau_s: 时间常数，单位 s。0 表示理想参考。
         t_precharge_s: 预充时长，单位 s。
         t_ra_s: RA 相位时长，单位 s。
-        swing_v: 总摆幅，单位 V。
+        swing_v: 总摆幅，单位 V。可以是标量或逐样本数组——参考要驱动的电荷量
+            随转换码变化，逐样本摆幅正是参考建立产生 INL 的机制。
 
     Returns:
-        剩余误差电压，单位 V。
+        剩余误差电压，单位 V。标量输入给标量，数组输入给同形状数组。
     """
     if not 0.0 <= precharge_frac <= 1.0:
         raise ValueError("precharge fraction must lie in [0, 1]")
     if tau_s < 0:
         raise ValueError("time constant must not be negative")
-    if swing_v < 0:
+    if np.any(np.asarray(swing_v) < 0):
         raise ValueError("swing must not be negative")
     if tau_s == 0.0:
-        return 0.0
+        return 0.0 if np.ndim(swing_v) == 0 else np.zeros_like(np.asarray(swing_v, float))
     if t_precharge_s > 0.0:
         implied = precharge_fraction(tau_s, t_precharge_s)
         if not np.isclose(implied, precharge_frac, rtol=1e-9, atol=1e-12):
@@ -123,7 +197,9 @@ def dynamic_reference(
             )
     if t_ra_s < 0:
         raise ValueError("RA phase duration must not be negative")
-    return float((1.0 - precharge_frac) * swing_v * np.exp(-t_ra_s / tau_s))
+    residual = (1.0 - precharge_frac) * np.asarray(swing_v, dtype=np.float64)
+    residual = residual * np.exp(-t_ra_s / tau_s)
+    return float(residual) if np.ndim(swing_v) == 0 else residual
 
 
 def required_tau(t_ra_s: float, settle_fraction: float, accuracy_ratio: float) -> float:

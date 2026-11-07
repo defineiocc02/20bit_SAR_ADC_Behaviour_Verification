@@ -308,7 +308,7 @@
       ],
       "gates": {
         "G1_structure": "FAIL (MISSING=11；这 11 条是尚未实现的指标项，不是漏抄的台账行)",
-        "G2_regression": "PASS (147 passed)",
+        "G2_regression": "PASS (146 passed)",
         "G3_layering": "PASS (exit 0；R3 61 条为既有告警)",
         "G4_baseline": "PASS (8 项逐字段相等)",
         "G5_numeric": "FAIL (A1/A2/A4 PASS，A3 FAIL，A5 PARTIAL)",

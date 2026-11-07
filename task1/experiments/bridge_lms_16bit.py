@@ -1,9 +1,22 @@
+# =============================================================================
+# 文件名     : bridge_lms_16bit.py
+# 模块名     : bridge_lms_16bit
+# 版本       : v1.0
+# 功能       : 只更换理想 ADC2 位数，重跑严格无 DEM 与 Fig.21 独立训练对照。
+#
+# 设计说明   :
+#   * 承担 行为级实验与图件生成 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """只更换理想 ADC2 位数，重跑严格无 DEM 与 Fig.21 独立训练对照。"""
 
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from dataclasses import asdict, replace
 from importlib.metadata import version
@@ -11,26 +24,24 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+from adi_model.capacitors import ExperimentConfig, cap_pool
+from adi_model.codes import OUTPUT_BITS
+from adi_model.hashing import sha256_file
 from task1.experiments.adctoolbox_calibration import CalibrationConfig, _spectrum, _write_summary
 from task1.experiments.bridge_lms_comparison import ARM_LABELS, _arm
-from task1.experiments.run_effects import (
-    BLUE,
-    GRAY,
-    ROOT,
-    ExperimentConfig,
-    _cap_pool,
-    _codebook,
-)
+from task1.experiments.run_effects import BLUE, GRAY, ROOT
+from task1.model.codebook import codebook
 
-OUTPUT_BITS = 20
 CANDIDATE_ADC2_BITS = 16
 REFERENCE_NAMES = ("gain_low", "gain_high", "training", "holdout")
 
 
-def _sha(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
+# =========================================================================
+# 1. 函数组：_check_same_analog_capture / _plot
+# =========================================================================
+# ------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 def _check_same_analog_capture(previous: np.lib.npyio.NpzFile, current: dict) -> int:
     # 物理轨迹必须完全相同。旧 ADC2 码和旧校准系数不进入新训练。
     analog_suffixes = (
@@ -52,6 +63,7 @@ def _check_same_analog_capture(previous: np.lib.npyio.NpzFile, current: dict) ->
     return checked
 
 
+# ------------------------------------------------------------------------
 def _plot(
     path: Path,
     old: dict,
@@ -107,6 +119,13 @@ def _plot(
     plt.close(fig)
 
 
+# =========================================================================
+# 2. 函数组：run / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 用 12 位回执验证模拟轨迹相同，再独立训练两条 16 位链路。
+# 运行候选后级位数敏感性实验。
+# ------------------------------------------------------------------------
 def run(reference_dir: Path, out: Path) -> dict:
     """用 12 位回执验证模拟轨迹相同，再独立训练两条 16 位链路。"""
     if reference_dir.resolve() == out.resolve():
@@ -122,16 +141,16 @@ def run(reference_dir: Path, out: Path) -> dict:
     ):
         raise ValueError("reference must be a completed Fig. 21 comparison at 12-bit ADC2 ±100 mV")
     for path, sha in old["source_sha256"].items():
-        if _sha(ROOT / path) != sha:
+        if sha256_file(ROOT / path) != sha:
             raise ValueError(f"reference source hash changed: {path}")
 
     experiment = ExperimentConfig(**old["experiment"])
     cfg = replace(CalibrationConfig(**old["calibration"]), adc2_bits=CANDIDATE_ADC2_BITS)
-    nominal, pool = _cap_pool(experiment)
+    nominal, pool = cap_pool(experiment)
     minimum = {name: float(np.min(getattr(pool, name))) for name in ("main", "sub", "bridge")}
     if minimum != old["minimum_physical_cap_f"]:
         raise ValueError("recreated physical mismatch pool does not match the 12-bit receipt")
-    threshold_v = _codebook(nominal, experiment)
+    threshold_v = codebook(nominal, experiment)
 
     arms = {}
     records = {}
@@ -185,8 +204,8 @@ def run(reference_dir: Path, out: Path) -> dict:
         "evaluation_frequency_hz": old["evaluation_frequency_hz"],
         "checked_equal_analog_arrays": compared_analog_arrays,
         "reference_artifact_sha256": {
-            "summary.json": _sha(reference_json),
-            "observations.npz": _sha(reference_npz),
+            "summary.json": sha256_file(reference_json),
+            "observations.npz": sha256_file(reference_npz),
         },
         "phase_contract": old["phase_contract"],
         "digital_nominal_correction": old["digital_nominal_correction"],
@@ -197,7 +216,7 @@ def run(reference_dir: Path, out: Path) -> dict:
         "analysis": {"library": "ADCToolbox", "version": version("adctoolbox")},
         "source_sha256": {
             **old["source_sha256"],
-            "task1/experiments/bridge_lms_16bit.py": _sha(Path(__file__)),
+            "task1/experiments/bridge_lms_16bit.py": sha256_file(Path(__file__)),
         },
     }
     out.mkdir(parents=True, exist_ok=True)
@@ -217,6 +236,7 @@ def run(reference_dir: Path, out: Path) -> dict:
     return _write_summary(out, summary)
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
     """运行候选后级位数敏感性实验。"""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -240,3 +260,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

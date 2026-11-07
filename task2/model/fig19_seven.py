@@ -1,3 +1,19 @@
+# =============================================================================
+# 文件名     : fig19_seven.py
+# 模块名     : fig19_seven
+# 版本       : v1.0
+# 功能       : US10505561B2 Fig. 19 七片电荷域工程等效模型。
+#
+# 设计说明   :
+#   * 六位拆字和七片相邻档分配来自专利。负等效端口、均匀粗码本、理想
+#   * ADC2 窗口、二十位输出网格和第 8 档是本实验的约定。逐前缀守卫按旧
+#   * 工程事件次序另算，直接设定最终码用于 Fig. 19 机制实验。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# =============================================================================
+
 """US10505561B2 Fig. 19 七片电荷域工程等效模型。
 
 六位拆字和七片相邻档分配来自专利。负等效端口、均匀粗码本、理想
@@ -12,18 +28,26 @@ from math import lcm
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 
+from adi_model.codes import COARSE_CODES, OUTPUT_CODES
+
 INPUT_MIN_V = -5.0
 INPUT_MAX_V = 5.0
 FULL_SCALE_V = INPUT_MAX_V - INPUT_MIN_V
-COARSE_CODES = 1 << 9
 ADC2_CODES = 1 << 12
-OUTPUT_CODES = 1 << 20
-SLICE_COUNT = 7
+FIG19_SLICES = 7
 COARSE_LSB_V = FULL_SCALE_V / COARSE_CODES
 OUTPUT_LSB_V = FULL_SCALE_V / OUTPUT_CODES
 OUTPUT_PER_COARSE = OUTPUT_CODES // COARSE_CODES
 
 
+# =========================================================================
+# 1. 函数组：ModelConfig / DitherTerms / Conversion
+# =========================================================================
+# -------------------------------------------------------------------------
+# 工程等效参数。
+# 拆字结果，末轴为七片，分子字段的单位为粗码 LSB 的七分之一。
+# 每笔原始观测与有效性，所有电压折算到 ADC 输入端。
+# -------------------------------------------------------------------------
 @dataclass(frozen=True)
 class ModelConfig:
     """工程等效参数。
@@ -64,12 +88,12 @@ class DitherTerms:
     @property
     def lower_v(self) -> NDArray:
         """给出 sADC 采样所用的低字，单位 V。"""
-        return self.lower_numerator * (COARSE_LSB_V / SLICE_COUNT)
+        return self.lower_numerator * (COARSE_LSB_V / FIG19_SLICES)
 
     @property
     def total_v(self) -> NDArray:
         """给出 RDAC 七片的等效总扰动，单位 V。"""
-        return self.total_numerator * (COARSE_LSB_V / SLICE_COUNT)
+        return self.total_numerator * (COARSE_LSB_V / FIG19_SLICES)
 
 
 @dataclass(frozen=True)
@@ -105,6 +129,13 @@ class Conversion:
     accepted_prefix_guard: NDArray
 
 
+# =========================================================================
+# 2. 函数组：CodeDensity / decode_words / _export_coefficients
+# =========================================================================
+# -------------------------------------------------------------------------
+# 输出各码的概率等效输入宽度与分阶段拒绝宽度，单位 V。
+# 拆解 D6 至 D1，D6 对应 bit 5。
+# -------------------------------------------------------------------------
 @dataclass(frozen=True)
 class CodeDensity:
     """输出各码的概率等效输入宽度与分阶段拒绝宽度，单位 V。"""
@@ -136,12 +167,12 @@ def decode_words(word: ArrayLike) -> DitherTerms:
     lower_integer = ((word >> 4) & 1) * 2
     fractional_count = word & 7
     base_setting = upper + lower_integer
-    slice_setting = base_setting[..., None] + (np.arange(SLICE_COUNT) < fractional_count[..., None])
-    lower_numerator = lower_integer * SLICE_COUNT + fractional_count
+    slice_setting = base_setting[..., None] + (np.arange(FIG19_SLICES) < fractional_count[..., None])
+    lower_numerator = lower_integer * FIG19_SLICES + fractional_count
     return DitherTerms(
         upper,
         lower_numerator,
-        upper * SLICE_COUNT + lower_numerator,
+        upper * FIG19_SLICES + lower_numerator,
         slice_setting,
     )
 
@@ -151,7 +182,7 @@ def _export_coefficients(half_range_v: float) -> tuple[int, int, int, int]:
     half_in_lsb20 = Fraction(str(half_range_v)) / Fraction(FULL_SCALE_V) * OUTPUT_CODES
     fine_step = 2 * half_in_lsb20 / ADC2_CODES
     fine_offset = -half_in_lsb20 + fine_step / 2
-    total_step = Fraction(OUTPUT_PER_COARSE, SLICE_COUNT)
+    total_step = Fraction(OUTPUT_PER_COARSE, FIG19_SLICES)
     denominator = lcm(fine_step.denominator, fine_offset.denominator, total_step.denominator)
     fine_num = int(fine_step * denominator)
     offset_num = int(fine_offset * denominator)
@@ -165,6 +196,10 @@ def _export_coefficients(half_range_v: float) -> tuple[int, int, int, int]:
 DEFAULT_CONFIG = ModelConfig()
 
 
+# =========================================================================
+# 3. 函数组：_output_codes / _inside / _prefix_commands
+# =========================================================================
+# -------------------------------------------------------------------------
 def _output_codes(
     command_code: NDArray, fine_code: NDArray, terms: DitherTerms, config: ModelConfig
 ) -> NDArray:
@@ -184,6 +219,13 @@ def _prefix_commands(coarse_code: NDArray, upper_lsb: NDArray) -> NDArray:
     return prefix - upper_lsb[..., None]
 
 
+# =========================================================================
+# 4. 函数组：convert / code_density
+# =========================================================================
+# -------------------------------------------------------------------------
+# 按七片等电容的电荷守恒计算一笔或一组转换。
+# 对给定输入区间和等权扰动字解析积分，输出全二十位逐码宽度。
+# -------------------------------------------------------------------------
 def convert(
     input_v: ArrayLike, word: ArrayLike, config: ModelConfig = DEFAULT_CONFIG
 ) -> Conversion:
@@ -334,3 +376,4 @@ def code_density(
     width /= words.size
     rejected /= words.size
     return CodeDensity(width, *rejected)
+

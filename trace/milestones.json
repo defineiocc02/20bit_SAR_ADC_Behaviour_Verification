@@ -65,9 +65,9 @@
       "base_commit": "bf2075fbcbd871af186ed60ce30c9a70f23924b1",
       "base_snapshot": "15293add30a935a093dd7d5486966f19156fa91b",
       "behavior_change": false,
-      "commit": "PENDING",
+      "commit": "6e18d9be232e98f475b91debccff3a162545f925",
       "commits": {
-        "M1a_指纹与护栏": "PENDING",
+        "M1a_指纹与护栏": "6e18d9be232e98f475b91debccff3a162545f925",
         "M1b_常量去重": "PENDING"
       },
       "files": [
@@ -79,13 +79,25 @@
         "task_integration/tests/test_integration_smoke.py",
         "task_reconstruction/tests/test_reconstruction_smoke.py"
       ],
+      "files_m1b": [
+        "src/adi_model/codes.py",
+        "src/adi_model/capacitors.py",
+        "task1/model/fig11_dem.py",
+        "task1/model/module1.py",
+        "task1/experiments/inl_dnl.py",
+        "task1/experiments/residue_control_study.py",
+        "task1/experiments/bridge_lms_16bit.py",
+        "task2/eight/model.py",
+        "task2/model/fig19_seven.py",
+        "task2/eight/tests/test_independent_charge.py"
+      ],
       "gates": {
         "pytest": "PASS (81 passed)",
         "check_layering": "PASS (exit 0；60 条 R3 跨文件私有导入为既有告警)",
-        "snapshot_baseline_check": "PASS (8 项逐字段相等)",
+        "snapshot_baseline_check": "PASS (8 项逐字段相等，去重前后不变，证明是纯改名)",
         "check_source_matrix": "PASS (81 个可收集节点)"
       },
-      "note": "指纹只存 8 项指标，不存配置也不存源码哈希：M2 起要加 noise 字段，存配置会让指纹因「多一个默认关闭字段」误报。环境钉在 python 3.12.14 / numpy 2.5.3 / adctoolbox 0.9.1（与既有归档一致），见 fingerprint.json 的 environment。去重拆成独立 commit，否则噪声改动与去重混在一起时指纹失配无法归因。"
+      "note": "指纹只存 8 项指标，不存配置也不存源码哈希：M2 起要加 noise 字段，存配置会让指纹因「多一个默认关闭字段」误报。环境钉在 python 3.12.14 / numpy 2.5.3 / adctoolbox 0.9.1（与既有归档一致），见 fingerprint.json 的 environment。去重拆成独立 commit，否则噪声改动与去重混在一起时指纹失配无法归因。M1b 的回退请用 git restore --source=15293add -- <逐路径>（该快照含 M1b 之前的全部工作树状态），不要用 git revert：本仓库 HEAD 落后工作树很多，M1b 提交顺带落盘了前几轮未提交的注释与 C9 改动，revert 会把它们一起退回 HEAD。"
     }
   ]
 }

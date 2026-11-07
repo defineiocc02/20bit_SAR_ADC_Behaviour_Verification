@@ -1,3 +1,17 @@
+# =============================================================================
+# 文件名     : residue_control_study.py
+# 模块名     : residue_control_study
+# 版本       : v1.0
+# 功能       : Evaluate pre-ADC2 RDAC recentering using frozen foreground calibration.
+#
+# 设计说明   :
+#   * 承担 行为级实验与图件生成 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """Evaluate pre-ADC2 RDAC recentering using frozen foreground calibration."""
 
 from __future__ import annotations
@@ -9,23 +23,27 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+from adi_model.capacitors import Capacitors, ExperimentConfig, cap_pool
+from adi_model.codes import COARSE_CODES
+from adi_model.hashing import sha256_file
 from task1.experiments.adctoolbox_calibration import (
     CalibrationConfig,
     SwitchState,
-    _decode,
-    _fixed_ab_flags,
-    _fixed_switch_bits,
-    _group_flags,
-    _metrics,
-    _quantize,
-    _range_report,
-    _residue_voltage,
+    calibration_metrics,
+    decode_switches,
+    fixed_ab_flags,
+    fixed_switch_bits,
+    group_flags,
+    quantize,
+    range_report,
+    residue_voltage,
 )
 from task1.experiments.bridge_lms_comparison import ARM_LABELS, Q32, _bridge_bits, _state
-from task1.experiments.inl_dnl import BRIDGE_SEEDS, OUTPUT_BITS, _sha, _source_check, _states
-from task1.experiments.run_effects import ROOT, Capacitors, ExperimentConfig, _cap_pool, _codebook
+from task1.experiments.inl_dnl import BRIDGE_SEEDS, OUTPUT_BITS, _source_check, _states
+from task1.experiments.run_effects import ROOT
+from task1.model.codebook import codebook
 
-COARSE_CODES = 512
 RADIUS = 3
 STATES_PER_SEED = 128
 COARSE_BATCH = 16
@@ -33,6 +51,13 @@ DIRECT = "direct_coarse_command"
 CENTERED = "frozen_weight_centered_command"
 
 
+# =========================================================================
+# 1. 函数组：MapperTable / FrozenArm / _spectral_evidence
+# =========================================================================
+# -------------------------------------------------------------------------
+# Canonical mapper outputs indexed by RDAC command and frozen phase.
+# Digital quantities admitted by the deployed command selector.
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class MapperTable:
     """Canonical mapper outputs indexed by RDAC command and frozen phase."""
@@ -69,6 +94,7 @@ class MapperTable:
         )
 
 
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class FrozenArm:
     """Digital quantities admitted by the deployed command selector."""
@@ -85,7 +111,7 @@ class FrozenArm:
 
     def predicted_gain(self, plan: np.ndarray) -> np.ndarray:
         """Combine the frozen gain coefficients for the selected physical groups."""
-        flags = _group_flags(plan) if self.table.bridge else _fixed_ab_flags(plan)
+        flags = group_flags(plan) if self.table.bridge else fixed_ab_flags(plan)
         result = flags @ self.gain
         if np.any(result <= 0):
             raise ValueError("frozen residual gain must be positive")
@@ -93,7 +119,7 @@ class FrozenArm:
 
     def predicted_base(self, state: SwitchState, correction_q32: np.ndarray) -> np.ndarray:
         """Compute the frozen digital intercept for the actual RDAC command."""
-        switch_bits = _bridge_bits(state) if self.table.bridge else _fixed_switch_bits(state)
+        switch_bits = _bridge_bits(state) if self.table.bridge else fixed_switch_bits(state)
         return (
             self.threshold_v[state.codes]
             + self.peak_v
@@ -128,6 +154,7 @@ class FrozenArm:
         return self.table.lookup(command, plan, phases)
 
 
+# ------------------------------------------------------------------------
 def _spectral_evidence(
     r: np.ndarray,
     reference_v: np.ndarray,
@@ -137,9 +164,9 @@ def _spectral_evidence(
     adc2_bits: int,
     half_window_v: float,
 ) -> dict:
-    report = _range_report(r, half_window_v)
+    report = range_report(r, half_window_v)
     clipped = np.clip(r, -half_window_v, np.nextafter(half_window_v, -np.inf))
-    adc2_v = _decode(_quantize(clipped, adc2_bits, half_window_v), adc2_bits, half_window_v)
+    adc2_v = decode_switches(quantize(clipped, adc2_bits, half_window_v), adc2_bits, half_window_v)
     peak = experiment.full_scale_peak_v
     decoded = (base_v + adc2_v) / gain - peak
     step_v = 2 * peak / (1 << OUTPUT_BITS)
@@ -149,8 +176,8 @@ def _spectral_evidence(
         "adc2_quantization_and_overload_input_error_rms_v": float(
             np.sqrt(np.mean(((adc2_v - r) / gain) ** 2))
         ),
-        "before_export": _metrics(decoded, reference_v, experiment),
-        "after_20bit_export": _metrics(exported, reference_v, experiment),
+        "before_export": calibration_metrics(decoded, reference_v, experiment),
+        "after_20bit_export": calibration_metrics(exported, reference_v, experiment),
         "export_saturated_samples": int(np.count_nonzero((code < 0) | (code >= 1 << OUTPUT_BITS))),
     }
     overloaded = bool(report["below_range"] or report["at_or_above_range"])
@@ -164,6 +191,10 @@ def _spectral_evidence(
     }
 
 
+# =========================================================================
+# 2. 函数组：_tone / _interval_statistics / _static
+# =========================================================================
+# ------------------------------------------------------------------------
 def _tone(
     data: np.lib.npyio.NpzFile,
     arm: str,
@@ -189,13 +220,13 @@ def _tone(
     traces = {"reference_v": reference_v, "input_coarse_code": coarse}
     report = {}
     for label, (state, correction) in zip((DIRECT, CENTERED), (direct, centered), strict=True):
-        r = _residue_voltage(pool, reference_v, plan, (state.main, state.sub), experiment)
+        r = residue_voltage(pool, reference_v, plan, (state.main, state.sub), experiment)
         base = frozen.predicted_base(state, correction)
         continuous = (base + r) / gain - frozen.peak_v
         if label == DIRECT:
             np.testing.assert_array_equal(r, data[prefix + "residue_v"])
             original = (
-                base + _decode(data[prefix + "adc2_code"], cfg.adc2_bits, cfg.adc2_half_range_v)
+                base + decode_switches(data[prefix + "adc2_code"], cfg.adc2_bits, cfg.adc2_half_range_v)
             ) / gain - frozen.peak_v
             np.testing.assert_allclose(original, data[prefix + "calibrated_v"], rtol=0, atol=5e-14)
         traces[label + "_rdac_command"] = state.codes
@@ -217,6 +248,7 @@ def _tone(
     return report, traces
 
 
+# ------------------------------------------------------------------------
 def _interval_statistics(
     extrema: np.ndarray, overloaded_width_v: np.ndarray, clipped_intervals: int, full_scale: float
 ) -> dict:
@@ -232,6 +264,7 @@ def _interval_statistics(
     }
 
 
+# ------------------------------------------------------------------------
 def _static(
     pool: Capacitors,
     experiment: ExperimentConfig,
@@ -266,8 +299,8 @@ def _static(
         gain = frozen.predicted_gain(plan)
         for label, (state, correction) in zip(modes, (direct, centered), strict=True):
             masks = state.main, state.sub
-            r_low = _residue_voltage(pool, low, plan, masks, experiment)
-            r_high = _residue_voltage(pool, high, plan, masks, experiment)
+            r_low = residue_voltage(pool, low, plan, masks, experiment)
+            r_high = residue_voltage(pool, high, plan, masks, experiment)
             width_v = high - low
             true_gain = (r_high - r_low) / width_v
             if np.any(true_gain <= 0):
@@ -329,6 +362,12 @@ def _static(
     return report, traces
 
 
+# =========================================================================
+# 3. 函数组：_plot / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# Read the archived training evidence and write the independent comparison.
+# ------------------------------------------------------------------------
 def _plot(out: Path, results: list[tuple[dict, dict]]) -> None:
     fig, axes = plt.subplots(len(results), len(ARM_LABELS), figsize=(11, 7), squeeze=False)
     for row, (result, traces) in enumerate(results):
@@ -353,6 +392,7 @@ def _plot(out: Path, results: list[tuple[dict, dict]]) -> None:
     plt.close(fig)
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
     """Read the archived training evidence and write the independent comparison."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -374,8 +414,8 @@ def main() -> None:
             raise ValueError("the experiment requires the archived 12-bit ±100 mV training")
         peak = experiment.full_scale_peak_v
         half = peak * 2.0 ** (cfg.adc2_bits - OUTPUT_BITS)
-        nominal, pool = _cap_pool(experiment)
-        thresholds = np.r_[_codebook(nominal, experiment), peak]
+        nominal, pool = cap_pool(experiment)
+        thresholds = np.r_[codebook(nominal, experiment), peak]
         result = {
             "unit_sigma": experiment.mismatch_sigma_unit,
             "manufacturing_seed": experiment.manufacturing_seed,
@@ -387,8 +427,8 @@ def main() -> None:
             "adc2_half_window_for_one_export_lsb_v": half,
             "frozen_training_half_window_v": cfg.adc2_half_range_v,
             "training_record_sha256": {
-                "summary.json": _sha(report_path),
-                "observations.npz": _sha(frozen_path),
+                "summary.json": sha256_file(report_path),
+                "observations.npz": sha256_file(frozen_path),
             },
             "arms": {},
         }
@@ -419,7 +459,7 @@ def main() -> None:
         "policy": "中心由输入粗码区间确定；在 c±3 之内用本笔 plan/phase 与冻结权重最小化预测中心余量。",
         "experiments": [item[0] for item in records],
         "source_sha256": {
-            name: _sha(ROOT / name)
+            name: sha256_file(ROOT / name)
             for name in (
                 Path(__file__).resolve().relative_to(ROOT).as_posix(),
                 "task1/experiments/inl_dnl.py",
@@ -441,3 +481,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

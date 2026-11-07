@@ -1,3 +1,19 @@
+# =============================================================================
+# 文件名     : inl_dnl.py
+# 模块名     : inl_dnl
+# 版本       : v1.0
+# 功能       : Measure the held-out, uniformly weighted code density of frozen NLMS paths.
+#
+# 设计说明   :
+#   * Within a nominal coarse-code interval the two-node residue is affine in the
+#   * input for any fixed slice/DEM state. Integrating each intersecting ADC2 bin
+#   * avoids confusing finite uniform-ramp counts with missing 20-bit output codes.
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """Measure the held-out, uniformly weighted code density of frozen NLMS paths.
 
 Within a nominal coarse-code interval the two-node residue is affine in the
@@ -9,7 +25,6 @@ from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import json
 from dataclasses import dataclass, replace
 from importlib.metadata import version
@@ -17,26 +32,24 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+from adi_model.capacitors import Capacitors, ExperimentConfig, cap_pool
+from adi_model.codes import OUTPUT_BITS
+from adi_model.hashing import sha256_file
 from task1.experiments.adctoolbox_calibration import (
     CalibrationConfig,
-    _decode,
-    _fixed_ab_flags,
-    _fixed_switch_bits,
-    _group_flags,
-    _residue_voltage,
+    decode_switches,
+    fixed_ab_flags,
+    fixed_switch_bits,
+    group_flags,
+    residue_voltage,
 )
 from task1.experiments.bridge_lms_comparison import ARM_LABELS, Q32, _bridge_bits, _plan, _state
-from task1.experiments.run_effects import (
-    BLUE,
-    GRAY,
-    ROOT,
-    Capacitors,
-    ExperimentConfig,
-    _cap_pool,
-    _codebook,
-)
+from task1.experiments.run_effects import BLUE, GRAY, ROOT
+from task1.model.codebook import codebook
 
-OUTPUT_BITS = 20
+# 位宽从 adi_model.codes 导入后在此重导出：下游 adc2_dither_study 与
+# task2/eight/experiment 历史上都从这里取 OUTPUT_BITS，改名成本高于收益。
 PLOT_BITS = 14
 BRIDGE_SEEDS = (
     (0x4C494E4C, 0x444E4C31),
@@ -47,6 +60,14 @@ BRIDGE_SEEDS = (
 CHUNK_COARSE = 12
 
 
+# =========================================================================
+# 1. 函数组：RampStates / Intervals / BinMass
+# =========================================================================
+# -------------------------------------------------------------------------
+# Plan and frozen horizontal/vertical phases independent of the ramp input.
+# A batch of affine residues and frozen digital reconstruction parameters.
+# Individual output-code contributions and residue/encoder range accounting.
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class RampStates:
     """Plan and frozen horizontal/vertical phases independent of the ramp input."""
@@ -56,6 +77,7 @@ class RampStates:
     vertical: np.ndarray
 
 
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class Intervals:
     """A batch of affine residues and frozen digital reconstruction parameters."""
@@ -73,6 +95,7 @@ class Intervals:
         return (self.residue_high_v - self.residue_low_v) / (self.high_v - self.low_v)
 
 
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class BinMass:
     """Individual output-code contributions and residue/encoder range accounting."""
@@ -85,20 +108,27 @@ class BinMass:
     output_above_v: float
 
 
-def _sha(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
+# =========================================================================
+# 2. 函数组：_span_indices / _output_codes
+# =========================================================================
+# ------------------------------------------------------------------------
 def _span_indices(start: np.ndarray, stop: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     count = np.maximum(stop - start, 0)
     row, offset = np.nonzero(np.arange(count.max(initial=0))[None, :] < count[:, None])
     return row, start[row] + offset
 
 
+# ------------------------------------------------------------------------
 def _output_codes(output_v: np.ndarray, peak_v: float) -> np.ndarray:
     return np.floor((output_v + peak_v) * ((1 << OUTPUT_BITS) / (2 * peak_v))).astype(np.int64)
 
 
+# =========================================================================
+# 3. 函数组：_first_fine_code / code_mass / inl_linearity
+# =========================================================================
+# -------------------------------------------------------------------------
+# Invert a reconstruction code boundary using the same floating-point tie rule.
+# ------------------------------------------------------------------------
 def _first_fine_code(
     export_code: np.ndarray,
     base_v: np.ndarray,
@@ -114,7 +144,7 @@ def _first_fine_code(
         (export_code * export_step * gain - base_v + half_range_v) / adc2_step - 0.5
     ).astype(int)
     for offset in (-1, 0):
-        recon = (base_v + _decode(fine + offset, adc2_bits, half_range_v)) / gain - peak_v
+        recon = (base_v + decode_switches(fine + offset, adc2_bits, half_range_v)) / gain - peak_v
         decoded = _output_codes(recon, peak_v)
         if offset == -1:
             fine -= decoded >= export_code
@@ -123,7 +153,8 @@ def _first_fine_code(
     return fine
 
 
-def _mass(
+# ------------------------------------------------------------------------
+def code_mass(
     intervals: Intervals,
     adc2_bits: int,
     half_range_v: float,
@@ -131,6 +162,7 @@ def _mass(
     *,
     aggregate: bool | None = None,
 ) -> BinMass:
+    """把每笔仿射余量区间摊到 ADC2 码仓，返回各仓落点数与两侧越界量。"""
     slope = intervals.slope
     r_low, r_high = intervals.residue_low_v, intervals.residue_high_v
     if np.any(slope <= 0) or np.any(intervals.digital_gain <= 0):
@@ -152,11 +184,11 @@ def _mass(
         # bins mapping to one export code as a single connected input interval.
         base, gain = intervals.digital_base_v, intervals.digital_gain
         first_out = _output_codes(
-            (base + _decode(start, adc2_bits, half_range_v)) / gain - peak_v, peak_v
+            (base + decode_switches(start, adc2_bits, half_range_v)) / gain - peak_v, peak_v
         )
         stop_out = (
             _output_codes(
-                (base + _decode(stop - 1, adc2_bits, half_range_v)) / gain - peak_v, peak_v
+                (base + decode_switches(stop - 1, adc2_bits, half_range_v)) / gain - peak_v, peak_v
             )
             + 1
         )
@@ -173,7 +205,7 @@ def _mass(
         row, first_fine = _span_indices(start, stop)
         stop_fine = first_fine + 1
         out_v = (
-            intervals.digital_base_v[row] + _decode(first_fine, adc2_bits, half_range_v)
+            intervals.digital_base_v[row] + decode_switches(first_fine, adc2_bits, half_range_v)
         ) / intervals.digital_gain[row] - peak_v
         raw_code = _output_codes(out_v, peak_v)
 
@@ -194,7 +226,9 @@ def _mass(
     )
 
 
-def _linearity(width: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
+# ------------------------------------------------------------------------
+def inl_linearity(width: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
+    """由码宽序列算 DNL 与 INL（首末码不入均值），并给出端点拟合残差等统计量。"""
     interior = width[1:-1]
     mean_width = float(interior.mean())
     if mean_width <= 0:
@@ -222,10 +256,15 @@ def _linearity(width: np.ndarray) -> tuple[np.ndarray, np.ndarray, dict]:
     )
 
 
+# =========================================================================
+# 4. 函数组：_fold / _build_intervals / _values
+# =========================================================================
+# ------------------------------------------------------------------------
 def _fold(width: np.ndarray, bits: int) -> np.ndarray:
     return width.reshape((1 << bits, -1)).sum(axis=1)
 
 
+# ------------------------------------------------------------------------
 def _build_intervals(
     pool: Capacitors,
     experiment: ExperimentConfig,
@@ -245,16 +284,16 @@ def _build_intervals(
     state, q32 = _state(codes, plan, phase, bridge=bridge)
     lower, upper = thresholds[codes], thresholds[codes + 1]
     masks = state.main, state.sub
-    r_low = _residue_voltage(pool, lower, plan, masks, experiment)
-    r_high = _residue_voltage(pool, upper, plan, masks, experiment)
+    r_low = residue_voltage(pool, lower, plan, masks, experiment)
+    r_high = residue_voltage(pool, upper, plan, masks, experiment)
     # Check a direct two-node evaluation at each coarse-bin center for one state.
     k = slice(None, None, n)
     midpoint = (lower[k] + upper[k]) * 0.5
-    r_mid = _residue_voltage(pool, midpoint, plan[k], (masks[0][k], masks[1][k]), experiment)
+    r_mid = residue_voltage(pool, midpoint, plan[k], (masks[0][k], masks[1][k]), experiment)
     if np.max(np.abs(r_mid - (r_low[k] + r_high[k]) * 0.5)) > 2e-13:
         raise ValueError("the independent two-node midpoint check rejected affine interpolation")
-    switch_bits = _bridge_bits(state) if bridge else _fixed_switch_bits(state)
-    gain_flags = _group_flags(state.plan) if bridge else _fixed_ab_flags(state.plan)
+    switch_bits = _bridge_bits(state) if bridge else fixed_switch_bits(state)
+    gain_flags = group_flags(state.plan) if bridge else fixed_ab_flags(state.plan)
     return Intervals(
         lower,
         upper,
@@ -265,14 +304,19 @@ def _build_intervals(
     )
 
 
+# ------------------------------------------------------------------------
 def _values(
     intervals: Intervals, adc2_code: np.ndarray, cfg: CalibrationConfig, peak: float
 ) -> np.ndarray:
     return (
-        intervals.digital_base_v + _decode(adc2_code, cfg.adc2_bits, cfg.adc2_half_range_v)
+        intervals.digital_base_v + decode_switches(adc2_code, cfg.adc2_bits, cfg.adc2_half_range_v)
     ) / intervals.digital_gain - peak
 
 
+# =========================================================================
+# 5. 函数组：_ramp_check / _measure / _states
+# =========================================================================
+# ------------------------------------------------------------------------
 def _ramp_check(
     intervals: Intervals, cfg: CalibrationConfig, peak: float, states: int, samples_per_state: int
 ) -> tuple[np.ndarray, np.ndarray]:
@@ -290,7 +334,7 @@ def _ramp_check(
         (residue + cfg.adc2_half_range_v) / (2 * cfg.adc2_half_range_v / (1 << cfg.adc2_bits))
     )
     output = (
-        intervals.digital_base_v[row] + _decode(adc2, cfg.adc2_bits, cfg.adc2_half_range_v)
+        intervals.digital_base_v[row] + decode_switches(adc2, cfg.adc2_bits, cfg.adc2_half_range_v)
     ) / intervals.digital_gain[row] - peak
     codes14 = np.clip(_output_codes(output, peak), 0, (1 << OUTPUT_BITS) - 1) >> (
         OUTPUT_BITS - PLOT_BITS
@@ -300,6 +344,7 @@ def _ramp_check(
     return codes14[order], np.bincount(codes14, minlength=1 << PLOT_BITS) * step / states
 
 
+# ------------------------------------------------------------------------
 def _measure(
     pool: Capacitors,
     experiment: ExperimentConfig,
@@ -334,7 +379,7 @@ def _measure(
         iv = _build_intervals(
             pool, experiment, thresholds, states, frozen_gain, frozen_weight, coarse, bridge=bridge
         )
-        m = _mass(iv, cfg.adc2_bits, adc2_span, peak)
+        m = code_mass(iv, cfg.adc2_bits, adc2_span, peak)
         widths += np.bincount(m.code, weights=m.width_v, minlength=widths.size) / n
         for key in limits:
             limits[key] += getattr(m, key) / n
@@ -400,7 +445,7 @@ def _measure(
         if sampled_codes.size != ramp_samples * n:
             raise ValueError("sampled ramp lost or duplicated input points")
         check = analyze_inl_from_ramp(sampled_codes, num_bits=PLOT_BITS, create_plot=False)
-        ramp_dnl, ramp_inl, _ = _linearity(ramp_widths)
+        ramp_dnl, ramp_inl, _ = inl_linearity(ramp_widths)
         np.testing.assert_allclose(check["dnl"], ramp_dnl, rtol=0, atol=2e-11)
         np.testing.assert_allclose(check["inl"], ramp_inl, rtol=0, atol=2e-11)
         report["uniform_ramp_crosscheck"] = {
@@ -417,6 +462,7 @@ def _measure(
     return widths, report, midpoint_error
 
 
+# ------------------------------------------------------------------------
 def _states(experiment: ExperimentConfig, count: int, *, bridge: bool) -> list[RampStates]:
     if not bridge:
         plan, phase = _plan(2, experiment, bridge=False)
@@ -430,14 +476,19 @@ def _states(experiment: ExperimentConfig, count: int, *, bridge: bool) -> list[R
     return sets
 
 
+# =========================================================================
+# 6. 函数组：_source_check / _run_pair / _plot
+# =========================================================================
+# ------------------------------------------------------------------------
 def _source_check(training: Path, training_report: dict) -> None:
     if training_report["status"] != "completed":
         raise ValueError(f"training did not complete: {training}")
     for name, digest in training_report["source_sha256"].items():
-        if _sha(ROOT / name) != digest:
+        if sha256_file(ROOT / name) != digest:
             raise ValueError(f"training source digest changed: {name}")
 
 
+# ------------------------------------------------------------------------
 def _run_pair(
     training: Path, out: Path, count: int, *, archive_trace: bool = True
 ) -> tuple[dict, dict[str, np.ndarray]]:
@@ -447,10 +498,10 @@ def _run_pair(
     _source_check(training, training_report)
     experiment = ExperimentConfig(**training_report["experiment"])
     cfg = CalibrationConfig(**training_report["calibration"])
-    nominal, pool = _cap_pool(experiment)
+    nominal, pool = cap_pool(experiment)
     if any(np.min(getattr(pool, key)) <= 0 for key in ("main", "sub", "bridge")):
         raise ValueError("the fixed physical mismatch pool contains nonpositive capacitance")
-    nominal_lower = _codebook(nominal, experiment)
+    nominal_lower = codebook(nominal, experiment)
     peak = experiment.full_scale_peak_v
     if not np.isclose(nominal_lower[0], -peak, rtol=0, atol=1e-13):
         raise ValueError("the nominal coarse codebook does not begin at negative full scale")
@@ -497,13 +548,13 @@ def _run_pair(
             if arm["status"] == "completed":
                 arm["linearity"] = {}
                 for bits in (PLOT_BITS, 16, 18, OUTPUT_BITS):
-                    dnl, inl, stats = _linearity(_fold(widths, bits))
+                    dnl, inl, stats = inl_linearity(_fold(widths, bits))
                     arm["linearity"][str(bits)] = stats
                     if bits == PLOT_BITS:
                         arrays[f"{name}_dnl_{bits}b"] = dnl
                         arrays[f"{name}_endpoint_inl_{bits}b"] = inl
                 arm["independent_groups_14b"] = [
-                    _linearity(_fold(w, PLOT_BITS))[2] for w, _, _ in results
+                    inl_linearity(_fold(w, PLOT_BITS))[2] for w, _, _ in results
                 ]
                 arrays[f"{name}_coarse_midpoint_error_v"] = np.concatenate(
                     [err for _, _, err in results], axis=1
@@ -537,7 +588,7 @@ def _run_pair(
         "training_summary": str(report_path.resolve().relative_to(ROOT))
         if report_path.resolve().is_relative_to(ROOT)
         else report_path.name,
-        "frozen_weight_artifact_sha256": _sha(frozen_path),
+        "frozen_weight_artifact_sha256": sha256_file(frozen_path),
         "independent_bridge_state_seeds": BRIDGE_SEEDS,
         "bridge_states_per_group": count,
         "arms": arms,
@@ -549,6 +600,7 @@ def _run_pair(
     return metadata, arrays
 
 
+# ------------------------------------------------------------------------
 def _plot(out: Path, experiments: list[tuple[dict, dict[str, np.ndarray]]]) -> None:
     fig, axs = plt.subplots(
         len(experiments), 2, figsize=(11, 7.2), squeeze=False, layout="constrained"
@@ -588,6 +640,10 @@ def _plot(out: Path, experiments: list[tuple[dict, dict[str, np.ndarray]]]) -> N
     plt.close(fig)
 
 
+# =========================================================================
+# 7. 函数组：_envelope / _plot_full_codes / _seed_row
+# =========================================================================
+# ------------------------------------------------------------------------
 def _envelope(values: np.ndarray, block: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     samples = np.pad(values, (0, (-len(values)) % block), constant_values=np.nan)
     chunks = samples.reshape(-1, block)
@@ -595,6 +651,7 @@ def _envelope(values: np.ndarray, block: int) -> tuple[np.ndarray, np.ndarray, n
     return center, np.nanmin(chunks, axis=1), np.nanmax(chunks, axis=1)
 
 
+# ------------------------------------------------------------------------
 def _plot_full_codes(out: Path, experiments: list[tuple[dict, dict[str, np.ndarray]]]) -> None:
     fig, axs = plt.subplots(
         len(experiments), 2, figsize=(11, 7.2), squeeze=False, layout="constrained"
@@ -608,7 +665,7 @@ def _plot_full_codes(out: Path, experiments: list[tuple[dict, dict[str, np.ndarr
         for name, color in zip(ARM_LABELS, (GRAY, BLUE), strict=True):
             if meta["arms"][name]["status"] != "completed":
                 continue
-            dnl, inl, _ = _linearity(traces[f"{name}_uniform_input_width_v_20b"])
+            dnl, inl, _ = inl_linearity(traces[f"{name}_uniform_input_width_v_20b"])
             for ax, values in zip(axs[row], (dnl, inl), strict=True):
                 x, low, high = _envelope(values, 512)
                 ax.fill_between(x, low, high, color=color, alpha=0.55, label=ARM_LABELS[name])
@@ -626,6 +683,7 @@ def _plot_full_codes(out: Path, experiments: list[tuple[dict, dict[str, np.ndarr
     plt.close(fig)
 
 
+# ------------------------------------------------------------------------
 def _seed_row(meta: dict) -> dict:
     row = {
         "unit_sigma_pct": 100 * meta["sigma"],
@@ -649,6 +707,12 @@ def _seed_row(meta: dict) -> dict:
     return row
 
 
+# =========================================================================
+# 8. 函数组：_seed_counts / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# Produce code-density metrics, plots and exact integrated histograms.
+# ------------------------------------------------------------------------
 def _seed_counts(rows: list[dict]) -> list[dict]:
     counts = []
     for sigma, bits in sorted({(x["unit_sigma_pct"], x["adc2_bits"]) for x in rows}):
@@ -674,6 +738,7 @@ def _seed_counts(rows: list[dict]) -> list[dict]:
     return counts
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
     """Produce code-density metrics, plots and exact integrated histograms."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -711,15 +776,15 @@ def main() -> None:
         "method": "exact affine interval integration over uniform Vin and equally weighted frozen states; endpoint bins excluded, interior mean width; 20-bit export quantized from calibrated voltage",
         "scope": "nominal coarse decisions, fixed physical CDAC pool, ideal residue and ideal ADC2, independent ramp and state seeds, frozen per-arm NLMS; no thermal noise, no timing skew",
         "source_sha256": {
-            str(Path(__file__).resolve().relative_to(ROOT)): _sha(Path(__file__)),
-            "task1/experiments/bridge_lms_comparison.py": _sha(
+            str(Path(__file__).resolve().relative_to(ROOT)): sha256_file(Path(__file__)),
+            "task1/experiments/bridge_lms_comparison.py": sha256_file(
                 ROOT / "task1/experiments/bridge_lms_comparison.py"
             ),
-            "task1/experiments/adctoolbox_calibration.py": _sha(
+            "task1/experiments/adctoolbox_calibration.py": sha256_file(
                 ROOT / "task1/experiments/adctoolbox_calibration.py"
             ),
-            "task1/experiments/run_effects.py": _sha(ROOT / "task1/experiments/run_effects.py"),
-            "task1/model/fig21_bridge.py": _sha(ROOT / "task1/model/fig21_bridge.py"),
+            "task1/experiments/run_effects.py": sha256_file(ROOT / "task1/experiments/run_effects.py"),
+            "task1/model/fig21_bridge.py": sha256_file(ROOT / "task1/model/fig21_bridge.py"),
         },
         "experiments": [meta for meta, _ in results],
     }
@@ -738,3 +803,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

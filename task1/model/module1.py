@@ -1,16 +1,41 @@
+# =============================================================================
+# 文件名     : module1.py
+# 模块名     : module1
+# 版本       : v1.0
+# 功能       : 模块一的逐沿参考，连接调度结果、同笔 DEM 配置和掩码。
+#
+# 设计说明   :
+#   * 承担 独立参考模型与逐沿 oracle 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# =============================================================================
+
 """模块一的逐沿参考，连接调度结果、同笔 DEM 配置和掩码。"""
 
 from dataclasses import dataclass, field, replace
 from operator import index
 
+from adi_model.capacitors import DEFAULT_DEM_SEED, GROUP_SLICES, POOL_SLICES
+
 from .fig11_dem import Fig11Masks, map_fig11
-from .scheduler import FULL_MASK, GROUP_SIZE, SLICE_COUNT, SchedulerOutput, SliceScheduler
+from .scheduler import FULL_MASK, SchedulerOutput, SliceScheduler
 
-DEFAULT_DEM_SEED = 0x9E3779B9
+# DEFAULT_DEM_SEED 从 adi_model.capacitors 导入后在此重导出：
+# 本模块与 ExperimentConfig 必须用同一个种子，各写一份字面量时改一处就会静默分叉。
 _UINT32_MASK = (1 << 32) - 1
-_EMPTY_MASKS = Fig11Masks((0,) * GROUP_SIZE, (0,) * GROUP_SIZE, False)
+_EMPTY_MASKS = Fig11Masks((0,) * GROUP_SLICES, (0,) * GROUP_SLICES, False)
 
 
+# =========================================================================
+# 1. 函数组：DemSnapshot / Module1Output / advance_dem_rng
+# =========================================================================
+# -------------------------------------------------------------------------
+# 一笔转换从采集阶段继承的 DEM 使能和两个轮转相位。
+# 上升沿后发布的组、随机状态及当前已决码的掩码。
+# 将一个非零的 32 位 xorshift 状态推进一步。
+# -------------------------------------------------------------------------
 @dataclass(frozen=True, slots=True)
 class DemSnapshot:
     """一笔转换从采集阶段继承的 DEM 使能和两个轮转相位。"""
@@ -39,6 +64,13 @@ def advance_dem_rng(state: int) -> int:
     return state ^ ((state << 5) & _UINT32_MASK)
 
 
+# =========================================================================
+# 2. 函数组：dem_snapshot / Module1
+# =========================================================================
+# -------------------------------------------------------------------------
+# 从本笔分配前的随机状态提取两个相位。
+# 同一时钟域内的模块一，调度请求晚一拍发布。
+# -------------------------------------------------------------------------
 def dem_snapshot(state: int, enabled: bool) -> DemSnapshot:
     """从本笔分配前的随机状态提取两个相位。"""
     return DemSnapshot(enabled, (state >> 24) % 15, (state >> 16) & 15)
@@ -116,7 +148,7 @@ class Module1:
             self._dem_rng_state = advance_dem_rng(self._dem_rng_state)
 
         ids = set(previous.conv_ids)
-        legal_group = len(ids) == GROUP_SIZE and all(0 <= item < SLICE_COUNT for item in ids)
+        legal_group = len(ids) == GROUP_SLICES and all(0 <= item < POOL_SLICES for item in ids)
         if legal_group:
             legal_group = sum(1 << item for item in ids) == previous.conv_mask
         schedule = replace(
@@ -142,3 +174,4 @@ class Module1:
             masks,
             code_valid and not masks.valid,
         )
+

@@ -68,7 +68,7 @@
       "commit": "6e18d9be232e98f475b91debccff3a162545f925",
       "commits": {
         "M1a_指纹与护栏": "6e18d9be232e98f475b91debccff3a162545f925",
-        "M1b_常量去重": "PENDING"
+        "M1b_常量去重": "7897d7a2cafe878a1f73647c2a6f4f27c45f75aa"
       },
       "files": [
         "pyproject.toml",

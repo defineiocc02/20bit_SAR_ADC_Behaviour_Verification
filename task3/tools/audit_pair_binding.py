@@ -37,9 +37,9 @@ from task2.eight.model import coarse_decision, decode  # noqa: E402
 from task_integration.tools.run_lms_checks import pack, slots  # noqa: E402
 from task_reconstruction.fixed import Coefficients, from_training, reconstruct  # noqa: E402
 
-CAPS = ROOT / "task2/evidence/eight_native/sigma_3pct"
-JOINT = ROOT / "task3/evidence/integrated"
-RTL_RECEIPT = ROOT / "task_integration/evidence/on_chip/result.json"
+CAPS = ROOT / "task2/evidence/eight_negative/sigma_3pct"
+JOINT = ROOT / "task3/evidence/negative/integrated"
+RTL_RECEIPT = ROOT / "task_integration/evidence/negative/on_chip/result.json"
 GROUP = "dither_1_caaz_1"
 
 
@@ -154,7 +154,9 @@ def audit() -> dict:
         clean_coarse, _, clean_valid = coarse_decision(chopped_input, dither, thresholds, step)
         coarse, command, valid = coarse_decision(chopped_input + offset_v, dither, thresholds, step)
         if not (valid.all() and clean_valid.all()):
-            raise ValueError("the positive fixture must remain inside the coarse input window")
+            raise ValueError(
+                "the correctly bound fixture must remain inside the coarse input window"
+            )
         np.testing.assert_array_equal(coarse, data[f"{GROUP}_raw_coarse"])
         np.testing.assert_array_equal(command, data[f"{GROUP}_command"])
 
@@ -169,7 +171,9 @@ def audit() -> dict:
             == fixture["vectors_sha256"]
             == joint_meta["groups"][GROUP]["vectors_sha256"]
         ):
-            raise ValueError("repacked positive transactions differ from the RTL replay fixture")
+            raise ValueError(
+                "repacked correctly bound transactions differ from the RTL replay fixture"
+            )
 
     wrong_sub = dither.sample_sub_high.copy()
     wrong_sub[1::2] = wrong_sub[::2]

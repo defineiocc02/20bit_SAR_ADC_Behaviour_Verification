@@ -123,7 +123,7 @@ jobs:
         # [隔离] 重绘使用作业专属目录，避免覆盖仓库冻结数据。
         run: |
           python -m task2.experiments.fig19_seven_demo --output "$OUT/fig19"
-          python -m task2.tools.draw_dither --out "$OUT/figures"
+          python -m task2.tools.draw_dither --prbs-receipt "$OUT/rtl/result.json" --out "$OUT/figures"
           python task3/tools/run_caaz_effect.py --out "$OUT/caaz_effect"
           python task3/tools/run_joint_effect.py --out "$OUT/caaz_joint"
           python task3/tools/run_joint_noise.py --out "$OUT/caaz_joint_noise"

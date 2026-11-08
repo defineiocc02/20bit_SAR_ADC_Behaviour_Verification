@@ -43,7 +43,8 @@ PATENT_URL = "https://patents.google.com/patent/US10505561B2/en#description"
 PAPER_DOI = "10.1109/ISSCC49657.2024.10454329"
 PATENT_SHA = "91ae95528592ba16a6a34c4d5336cd3abd18a35f811d22d73e2620dc83363c14"
 DATA_DIR = ROOT / "task1/evidence/adc2_dither/full20"
-PRBS_RECEIPT = ROOT / "task2/evidence/dither_rng/result.json"
+# 新版默认收据必须与当前 RTL 字节一致；CI 显式传本次运行收据，不能绕过身份检查。
+PRBS_RECEIPT = ROOT / "task2/evidence/negative_generator/result.json"
 PRBS_RTL = "task2/rtl/dither_word_gen.sv"
 
 
@@ -167,7 +168,8 @@ def _prbs_capture(path: Path) -> tuple[np.ndarray, dict]:
     ):
         raise ValueError("归档的连续字计数不完整")
     capture = {
-        "receipt": path.relative_to(ROOT).as_posix(),
+        "receipt": path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else path.name,
+        "external_receipt": not path.is_relative_to(ROOT),
         "receipt_sha256": sha256_file(path),
         "rtl_sha256": receipt["source_sha256"][PRBS_RTL],
         "vector_sha256": receipt["vector_sha256"],
@@ -447,12 +449,13 @@ def main() -> None:
     """生成中文图并记录输入、脚本和图件的散列。"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=ROOT / "task2/figures")
+    parser.add_argument("--prbs-receipt", type=Path, default=PRBS_RECEIPT)
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     font = _font()
     bold = font["bold_weight"]
     cases, sources = _density_cases()
-    word_counts, prbs_capture = _prbs_capture(PRBS_RECEIPT)
+    word_counts, prbs_capture = _prbs_capture(args.prbs_receipt.resolve())
     figures = {
         "dither_prbs31": _prbs_figure(bold, word_counts, prbs_capture["seed"]),
         "dither_isscc_ppt": _ppt_figure(bold),

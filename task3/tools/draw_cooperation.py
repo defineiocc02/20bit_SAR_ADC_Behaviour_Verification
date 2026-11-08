@@ -36,7 +36,7 @@ from task3.model.caaz20 import CaazOracle, Input  # noqa: E402
 
 WIDTH_MM, HEIGHT_MM = 146, 129
 EVEN, ODD = "#0072B2", "#D55E00"
-JOINT_FIXTURE = "task3/evidence/integrated/joint_dither_caaz_data.npz"
+JOINT_FIXTURE = "task3/evidence/negative/integrated/joint_dither_caaz_data.npz"
 SOURCES = (
     "references/PKU_VLSI2025_C32_1_PAPER.pdf",
     "references/PKU_VLSI2025_C32_1_SLIDES.pdf",

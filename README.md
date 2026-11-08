@@ -4,6 +4,10 @@
 
 [任务规格与分工](task1/SPEC.md) · [模块一](task1/README.md) · [统一 LMS 实验标准](task1/EXPERIMENT_STANDARD.md) · [原始论文与专利](references/README.md)
 
+除数字 RTL 外，本仓库还含一套**行为级模型复现**（`src/adi_model/` 与 `task2/eight/`），
+按 ISSCC 2024 论文的公开数字做定量对标。它与 RTL 交付是两条独立的证据线，状态见
+[「现在交付到哪里」](#现在交付到哪里)的最后一行；两者的结论不能互相替代。
+
 ## 20 位 INL／DNL：三组对照
 
 同一颗 **2% 固定电容失配**虚拟芯片、理想 12 位第二级、输入等效 ±100 mV；三组的 dither 均关闭。LMS 两条路径分别训练、冻结，再用独立输入评估。图中每个 20 位码分别计算，纵轴使用 **LSB20＝9.5367 μV**。
@@ -63,6 +67,7 @@
 | SKY130 数字后端 | 含片上 LMS 的整体数字顶层已有 GDS，6.25 ns、TT 角提取后 setup／hold、独立公开 DRC 和上游修订规则 LVS 通过 | [整体 GDS 与状态](task2/physical/README.md) · [模块一 GDS](task1/physical/README.md) |
 | 分路 dither | 18 片中选择 8 片，六位字、逐片底板采样、同笔 ID 和命令码有 Python／RTL 对拍及有界形式验证；模拟辅助 DAC 和真实参考开关仍须验收 | [八片效果](task2/evidence/eight_native/README.md) · [RTL 合同](task2/eight_rtl/SPEC.md) |
 | CAAZ | 斩波相位、自归零控制和两笔数字配对已有 RTL 对拍；模拟宏、实际保持误差和联合后仿仍待验证 | [模块三说明](task3/README.md) |
+| 行为级模型复现 | 噪声层已对上论文：DR 94.49 dB（折算后）、噪声密度 9.26 nV/√Hz。**未对上**：SNR 高 0.82 dB、DNL 峰值差 2.3 倍、THD 无 C-V 机制产生不出。门禁 G1–G7 为 3 绿 4 红 | [动态对标](task2/evidence/paper_alignment/ALIGNMENT.md) · [静态 12 格](task2/evidence/paper_alignment/STATIC.md) · [门禁与收据](task2/evidence/behavior_freeze/gate.json) |
 
 SKY130 是本阶段指定的数字工艺；它**不是**未来 180 nm BCD 的签核结果。当前目标输出码宽为 20 位，不等于已证明 20 位有效精度。实际 SADC、RDAC、RA、ADC2 和斩波／自归零开关由模拟宏提供。
 
@@ -93,12 +98,40 @@ python3 tools/digital_status.py     # 模块/TB/检查命令/证据新旧 → tr
 
 需要 Python 3.12、Verilator；校准和静态分析使用固定提交的 ADCToolbox。输出目录应是**尚不存在的仓库外目录**。
 
+**数值回归必须钉住依赖版本**：`numpy==2.5.3`、`adctoolbox==0.9.1`。版本漂移会让
+基线指纹假红——那不是模型变了，是 FFT 与量化器的最后一位变了。下面的 `uv` 命令
+就是为此写的；直接用系统 `python3` 会拿到别的版本。
+
 ```sh
+# 数字 RTL（需要 Verilator；本机若没有，命令会直接报缺工具）
 python -m pip install -r task1/requirements-calibration.txt
 PYTHONPATH=.:src python -m pytest -q task1/tests
 PYTHONPATH=.:src python task1/tools/run_rtl_checks.py --out /tmp/task1-rtl-run-001
 PYTHONPATH=.:src python task1/tools/run_bridge_checks.py --out /tmp/task1-bridge-run-001
+
+# 行为模型：全量回归与基线指纹
+uv run --python 3.12 --with pytest --with "numpy==2.5.3" \
+  --with "matplotlib" --with "adctoolbox==0.9.1" python -m pytest -q
+uv run --python 3.12 --with pytest --with "numpy==2.5.3" \
+  --with "matplotlib" --with "adctoolbox==0.9.1" python tools/snapshot_baseline.py --check
+
+# 行为模型：论文对标与门禁（会写 task2/evidence/paper_alignment 与 behavior_freeze）
+uv run --python 3.12 --with pytest --with "numpy==2.5.3" \
+  --with "matplotlib" --with "adctoolbox==0.9.1" python task2/eight/paper_alignment.py \
+  --out task2/evidence/paper_alignment
+uv run --python 3.12 --with pytest --with "numpy==2.5.3" \
+  --with "matplotlib" --with "adctoolbox==0.9.1" python tools/gate_behavior_model.py
+
+# 台账、分层与源码矩阵（纯 Python，不需要额外依赖）
+PYTHONPATH=src:. python3 tools/check_source_matrix.py
+PYTHONPATH=src:. python3 tools/check_layering.py
+python3 tools/build_req_matrix.py
+python3 tools/digital_status.py
 ```
+
+`tools/gate_behavior_model.py` 在 verdict 为 `RED` 时**退出码就是 1**，这是设计而不是
+脚本故障：门禁允许红，红了才说明它有判别力。当前 G1/G5/G6/G7 四门红，原因逐条记在
+`trace/milestones.json` 的 M9 条目里。
 
 | 路径 | 用途 |
 | :--- | :--- |
@@ -108,7 +141,9 @@ PYTHONPATH=.:src python task1/tools/run_bridge_checks.py --out /tmp/task1-bridge
 | `task2/` | dither 字发生器、八片 RTL、模型、效果图和物理流程 |
 | `task3/` | CAAZ 数字控制、配对、验证和模拟接口 |
 | `task_reconstruction/`、`task_integration/` | 可写权重的片上重构和三模块整体数字顶层 |
-| `src/adi_model/`、`tools/` | 本任务复现依赖的电荷／频谱参考和 RTL 工具辅助 |
+| `src/adi_model/` | **行为模型的库层**：电容与电荷域、`noise` 噪声源、`reference` 参考动态建立与 RA 非线性、`timing` 时偏与极点、`codes` 码域换算、`impairments` 非理想效应总开关 |
+| `tools/` | 门禁与台账工具：基线指纹、源文矩阵、分层检查、需求矩阵、数字状态盘点、行为模型门禁 |
+| `trace/` | 源文台账（`source_matrix.csv`）、里程碑与回退锚点（`milestones.json`）、需求矩阵（`req_matrix.csv`） |
 | `references/` | ISSCC 与北大论文、讲稿及专利索引 |
 
 校准对照统一执行[失配与 LMS 标准](task1/EXPERIMENT_STANDARD.md)：同一物理失配池、明确开关、训练／留出分离，并同时报告收益、噪声和越界。完整复现及条件见 [模块一说明](task1/README.md)。

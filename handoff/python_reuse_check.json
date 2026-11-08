@@ -1,0 +1,113 @@
+{
+  "scope": "technical DEM source comparison, not complete patent-circuit reproduction or signoff",
+  "patent": "US10511316B2 Fig.11/20/21",
+  "read_only_python_cases": 65536,
+  "checked": [
+    "reserved-column population=m",
+    "logical column15 uses both main-side1C cells",
+    "main selected charge=16H+2m",
+    "B5/B6 removed from sub mask in bridge branch",
+    "nominal delta*17=4B5+2B6",
+    "Fig11 DEM-enabled main1C bit16 can be active"
+  ],
+  "source_sha256": {
+    "task1/model/fig11_dem.py": "2cd2f553505f3e497e47587e070f7e503aa3b117fa2392720d5686b08d8d090a",
+    "task1/model/fig21_bridge.py": "f652ac24ce9b185b578c618557fc5871606b69abcb9fd32fa46d39b5c825acea",
+    "task2/eight/model.py": "8e6f7df5373d63116e9a2d2a9ef8dfc76c63076392a01bb21d713e805ac19066",
+    "src/adi_model/capacitors.py": "6bfe92640724b52fe82f203897db0f706a4d0390fc42cacbdb2de0b4025b575d",
+    "task1/model/module1.py": "af2303c24da3d910bda2fc97c28437bc3b570874f46f9a56d2fa3e3b4ee5984b",
+    "task1/model/module1_bridge.py": "3d94e3c83613775aa973ab09d4f6b6bdf74e343b2cdaf0bb248f10e9e97f8021",
+    "task1/experiments/bridge_lms_comparison.py": "1e842739d9cad0047ca563932731627b408e9441d56a2ba6e4953004260068c6",
+    "task2/eight/experiment.py": "b1d45fcd39533c2e3d08da48a364820d75c7c3204182981980f7768babdfe5e3"
+  },
+  "targeted_pytest": {
+    "passed": 20,
+    "command": "PYTHONPATH=.:src python -m pytest task1/tests/test_fig11_dem.py task1/tests/test_fig21_bridge.py task1/tests/test_module1_bridge.py -q"
+  },
+  "phase_bias": {
+    "status": "OBSERVED_LOGICAL_PHASE_DISTRIBUTION_NOT_A_BEHAVIORAL_FAILURE",
+    "mapping": "horizontal=(state>>24)%15; bridge_start=horizontal&7",
+    "uniform_source_byte_domain": {
+      "0": 35,
+      "1": 34,
+      "2": 34,
+      "3": 34,
+      "4": 34,
+      "5": 34,
+      "6": 34,
+      "7": 17
+    },
+    "direct_prng_steps": 100000,
+    "seed": 2654435769,
+    "direct_prng_start_counts": {
+      "0": 13501,
+      "1": 13391,
+      "2": 13214,
+      "3": 13337,
+      "4": 13381,
+      "5": 13353,
+      "6": 13432,
+      "7": 6391
+    },
+    "scope": "source PRNG and phase mapping; not full ADC/scheduler/RTL performance",
+    "interpretation": "Logical start distribution is nonuniform; this alone does not establish physical-unit bias, violate a patent requirement, or invalidate behavioral benefit. Judge with physical masks and performance."
+  },
+  "physical_usage_diagnostic": {
+    "samples": 100000,
+    "held_command": 4,
+    "m": 1,
+    "scope": "actual schedule + reserved-column selection, no ADC spectrum or calibration experiment",
+    "results": {
+      "current": {
+        "selected_physical_counts": [
+          5657,
+          5583,
+          5432,
+          5566,
+          5518,
+          5572,
+          5649,
+          5438,
+          5552,
+          5612,
+          5507,
+          5622,
+          5523,
+          5510,
+          5668,
+          5563,
+          5483,
+          5545
+        ],
+        "cell_relative_to_conditional_uniform_min": 0.8543140028288543,
+        "max": 1.1678420310296191,
+        "rms_minus_one": 0.05043860696277332
+      },
+      "independent_uniform_start_diagnostic": {
+        "selected_physical_counts": [
+          5597,
+          5451,
+          5436,
+          5470,
+          5467,
+          5695,
+          5728,
+          5527,
+          5546,
+          5561,
+          5607,
+          5601,
+          5444,
+          5600,
+          5578,
+          5643,
+          5465,
+          5584
+        ],
+        "cell_relative_to_conditional_uniform_min": 0.8394004282655246,
+        "max": 1.1575294934073561,
+        "rms_minus_one": 0.050340877837096086
+      }
+    }
+  }
+}

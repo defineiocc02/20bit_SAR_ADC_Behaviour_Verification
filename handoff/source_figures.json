@@ -1,0 +1,430 @@
+{
+  "scope": "user-requested original figure excerpts; no circuit redrawing",
+  "figures": {
+    "source_dem_fig21.png": {
+      "source_basename": "[11]_US10511316B2_Dynamic_Element_Matching.pdf",
+      "source_sha256": "b60174319848efbe086c87e3814468452fbf8b08d85ab20a2baf041bb4136846",
+      "pdf_page": 21,
+      "page_size_pt": [
+        2560.0,
+        3300.0
+      ],
+      "clip_fraction": [
+        0.0,
+        0.12,
+        1.0,
+        1.0
+      ],
+      "clip_pt": [
+        0.0,
+        396.0,
+        2560.0,
+        3300.0
+      ],
+      "render_scale": 1.0,
+      "rotation_deg": 0,
+      "ink_crop_pixels": [
+        435,
+        293,
+        2142,
+        2315
+      ],
+      "output_size_px": [
+        1707,
+        2022
+      ],
+      "output_sha256": "1e9c65908217b2565d9a37ff02f963e1ed7a4cdc8238d529dfc484ee2a7aaed1",
+      "description": "US10511316B2 Fig.21; Sheet 19 of 29",
+      "rights": "Original rights holders; excerpt for mechanism explanation; not covered by repository software license"
+    },
+    "source_dither_fig19.png": {
+      "source_basename": "[10]_US10505561B2_Dither_Method_and_ADC.pdf",
+      "source_sha256": "91ae95528592ba16a6a34c4d5336cd3abd18a35f811d22d73e2620dc83363c14",
+      "pdf_page": 22,
+      "page_size_pt": [
+        2560.0,
+        3300.0
+      ],
+      "clip_fraction": [
+        0.08,
+        0.18,
+        0.9,
+        0.64
+      ],
+      "clip_pt": [
+        204.8,
+        594.0,
+        2304.0,
+        2112.0
+      ],
+      "render_scale": 1.0,
+      "rotation_deg": 0,
+      "ink_crop_pixels": [
+        121,
+        150,
+        1997,
+        1417
+      ],
+      "output_size_px": [
+        1876,
+        1267
+      ],
+      "output_sha256": "6f36136168917c8fc923487785c1e6035c0f0701476ab1ec772a2b7a76f0c25b",
+      "description": "US10505561B2 Fig.19 diagram; Sheet 20 of 21; figure-label whitespace excluded",
+      "rights": "Original rights holders; excerpt for mechanism explanation; not covered by repository software license"
+    },
+    "source_dither_slide17.png": {
+      "source_basename": "ISSCC2024_SLIDES.pdf",
+      "source_sha256": "e7074c0f612c31bb76ad276fefaf6e6cf36479292248dc41085c4dadd1f8193a",
+      "pdf_page": 17,
+      "page_size_pt": [
+        960.0,
+        540.0
+      ],
+      "clip_fraction": [
+        0.57,
+        0.2,
+        0.995,
+        0.86
+      ],
+      "clip_pt": [
+        547.1999999999999,
+        108.0,
+        955.2,
+        464.4
+      ],
+      "render_scale": 5.0,
+      "rotation_deg": 0,
+      "ink_crop_pixels": [
+        17,
+        188,
+        1871,
+        1487
+      ],
+      "output_size_px": [
+        1854,
+        1299
+      ],
+      "output_sha256": "b9bf076a31098fe083d0f336c728c6e2abc0cd889c699a7b0798b187e61203b2",
+      "description": "ISSCC 2024 slide 17 right-hand injection diagram",
+      "rights": "Original rights holders; excerpt for mechanism explanation; not covered by repository software license"
+    },
+    "source_caaz_fig6.png": {
+      "source_basename": "PKU_VLSI2025_C32_1_PAPER.pdf",
+      "source_sha256": "eb958cfa40eed665abfffe2c7e9fc96aa031473da1e22c762d836410207ff550",
+      "pdf_page": 2,
+      "page_size_pt": [
+        595.2760009765625,
+        802.2050170898438
+      ],
+      "clip_fraction": [
+        0.503,
+        0.653,
+        0.94,
+        0.947
+      ],
+      "clip_pt": [
+        299.42382849121094,
+        523.8398761596679,
+        559.5594409179687,
+        759.688151184082
+      ],
+      "render_scale": 6.0,
+      "rotation_deg": 0,
+      "ink_crop_pixels": [
+        0,
+        0,
+        1552,
+        1416
+      ],
+      "output_size_px": [
+        1552,
+        1416
+      ],
+      "output_sha256": "90a172c4344cb8d79a930fbfd9434d7f5cdf5d116717172da7ca85602c4f38b4",
+      "description": "VLSI 2025 C32-1 Fig.6, printed page 2",
+      "rights": "Original rights holders; excerpt for mechanism explanation; not covered by repository software license"
+    },
+    "source_dem_fig11.png": {
+      "source_basename": "[11]_US10511316B2_Dynamic_Element_Matching.pdf",
+      "source_sha256": "b60174319848efbe086c87e3814468452fbf8b08d85ab20a2baf041bb4136846",
+      "pdf_page": 12,
+      "page_size_pt": [
+        2560.0,
+        3300.0
+      ],
+      "clip_fraction": [
+        0.0,
+        0.12,
+        1.0,
+        1.0
+      ],
+      "clip_pt": [
+        0.0,
+        396.0,
+        2560.0,
+        3300.0
+      ],
+      "render_scale": 1.0,
+      "rotation_deg": -90,
+      "ink_crop_pixels": [
+        501,
+        376,
+        1998,
+        2271
+      ],
+      "output_size_px": [
+        1895,
+        1497
+      ],
+      "output_sha256": "9587e42278d222803caa95985433721bbfc04d926072a1e6cfbf7c6dbad44585",
+      "description": "US10511316B2 Fig.11; PDF page 12; sliced capacitor network",
+      "rights": "Original rights holders; user-requested mechanism excerpt"
+    },
+    "source_dem_fig20.png": {
+      "source_basename": "[11]_US10511316B2_Dynamic_Element_Matching.pdf",
+      "source_sha256": "b60174319848efbe086c87e3814468452fbf8b08d85ab20a2baf041bb4136846",
+      "pdf_page": 20,
+      "page_size_pt": [
+        2560.0,
+        3300.0
+      ],
+      "clip_fraction": [
+        0.0,
+        0.12,
+        1.0,
+        1.0
+      ],
+      "clip_pt": [
+        0.0,
+        396.0,
+        2560.0,
+        3300.0
+      ],
+      "render_scale": 1.0,
+      "rotation_deg": -90,
+      "ink_crop_pixels": [
+        432,
+        176,
+        1987,
+        2509
+      ],
+      "output_size_px": [
+        2333,
+        1555
+      ],
+      "output_sha256": "c05feca37d8206742d949f841b3804894f0478fac174e1991e569e927f0db4e1",
+      "description": "US10511316B2 Fig.20; PDF page 20; multiplexer/shuffler circuit",
+      "rights": "Original rights holders; user-requested mechanism excerpt"
+    },
+    "source_dither_fig3.png": {
+      "source_basename": "[10]_US10505561B2_Dither_Method_and_ADC.pdf",
+      "source_sha256": "91ae95528592ba16a6a34c4d5336cd3abd18a35f811d22d73e2620dc83363c14",
+      "pdf_page": 5,
+      "page_size_pt": [
+        2560.0,
+        3300.0
+      ],
+      "clip_fraction": [
+        0.07,
+        0.13,
+        0.95,
+        0.68
+      ],
+      "clip_pt": [
+        179.20000000000002,
+        429.0,
+        2432.0,
+        2244.0
+      ],
+      "render_scale": 1.0,
+      "rotation_deg": 0,
+      "ink_crop_pixels": [
+        146,
+        252,
+        2021,
+        1815
+      ],
+      "output_size_px": [
+        1875,
+        1563
+      ],
+      "output_sha256": "4cadda5097062f14052824ec94fd31aad14d9161675bdd6276d03f9cc6ea9ee1",
+      "description": "US10505561B2 Fig.3; PDF page 5; basic subtractive dither",
+      "rights": "Original rights holders; user-requested mechanism excerpt"
+    },
+    "source_dither_fig5.png": {
+      "source_basename": "[10]_US10505561B2_Dither_Method_and_ADC.pdf",
+      "source_sha256": "91ae95528592ba16a6a34c4d5336cd3abd18a35f811d22d73e2620dc83363c14",
+      "pdf_page": 7,
+      "page_size_pt": [
+        2560.0,
+        3300.0
+      ],
+      "clip_fraction": [
+        0.07,
+        0.13,
+        0.95,
+        0.68
+      ],
+      "clip_pt": [
+        179.20000000000002,
+        429.0,
+        2432.0,
+        2244.0
+      ],
+      "render_scale": 1.0,
+      "rotation_deg": 0,
+      "ink_crop_pixels": [
+        145,
+        362,
+        2022,
+        1619
+      ],
+      "output_size_px": [
+        1877,
+        1257
+      ],
+      "output_sha256": "b0d00fc7759697cbf84c5165e95f92041da6d7ab8eedb8d62fb9ca7f921c712e",
+      "description": "US10505561B2 Fig.5; PDF page 7; split dither and output correction",
+      "rights": "Original rights holders; user-requested mechanism excerpt"
+    },
+    "source_isscc_architecture.png": {
+      "source_basename": "ISSCC2024_PAPER.pdf",
+      "source_sha256": "2277ec0a2b889ee954f0866f2668adc1bf95f2214fae386c9a1d70203435cd96",
+      "pdf_page": 2,
+      "page_size_pt": [
+        594.0,
+        774.0
+      ],
+      "clip_fraction": [
+        0.01,
+        0.036,
+        0.492,
+        0.347
+      ],
+      "clip_pt": [
+        5.94,
+        27.863999999999997,
+        292.248,
+        268.578
+      ],
+      "render_scale": 7.0,
+      "rotation_deg": 0,
+      "ink_crop_pixels": [
+        51,
+        0,
+        2005,
+        1686
+      ],
+      "output_size_px": [
+        1954,
+        1686
+      ],
+      "output_sha256": "2ca4e0cd525772a54588424ab030561485b9e850b6c63fb601f8b2ac99845807",
+      "description": "ISSCC 2024 Fig.9.8.1; PDF page 2, printed page 183",
+      "rights": "Original rights holders; user-requested mechanism excerpt"
+    },
+    "source_caaz_fig5.png": {
+      "source_basename": "PKU_VLSI2025_C32_1_PAPER.pdf",
+      "source_sha256": "eb958cfa40eed665abfffe2c7e9fc96aa031473da1e22c762d836410207ff550",
+      "pdf_page": 2,
+      "page_size_pt": [
+        595.2760009765625,
+        802.2050170898438
+      ],
+      "clip_fraction": [
+        0.061,
+        0.653,
+        0.501,
+        0.947
+      ],
+      "clip_pt": [
+        36.31183605957031,
+        523.8398761596679,
+        298.23327648925783,
+        759.688151184082
+      ],
+      "render_scale": 6.0,
+      "rotation_deg": 0,
+      "ink_crop_pixels": [
+        8,
+        0,
+        1573,
+        1416
+      ],
+      "output_size_px": [
+        1565,
+        1416
+      ],
+      "output_sha256": "f5083b7154fc3feed75a0d3dca9fe784dcee1d18cbc5b4bd53cf42f277fc30d0",
+      "description": "VLSI 2025 C32-1 Fig.5; PDF and printed page 2",
+      "rights": "Original rights holders; user-requested mechanism excerpt"
+    },
+    "source_caaz_slide35.png": {
+      "source_basename": "PKU_VLSI2025_C32_1_SLIDES.pdf",
+      "source_sha256": "5921d65cfae061ca6301a6104460c2eff3803245c1bc976acecac16adfa79759",
+      "pdf_page": 35,
+      "page_size_pt": [
+        960.0,
+        540.0
+      ],
+      "clip_fraction": [
+        0.06,
+        0.25,
+        0.94,
+        0.92
+      ],
+      "clip_pt": [
+        57.599999999999994,
+        135.0,
+        902.4,
+        496.8
+      ],
+      "render_scale": 5.0,
+      "rotation_deg": 0,
+      "ink_crop_pixels": [
+        107,
+        0,
+        4117,
+        1809
+      ],
+      "output_size_px": [
+        4010,
+        1809
+      ],
+      "output_sha256": "2e1f3f6f4fdb42aae97d9ac2bee825c133a66cd2e483b39f1903e311ab4a2c80",
+      "description": "VLSI 2025 PDF page 35, slide 34; shared AZ and difference",
+      "rights": "Original rights holders; user-requested mechanism excerpt"
+    }
+  },
+  "text_excerpts": [
+    {
+      "source": "US10511316B2",
+      "pdf_page": 42,
+      "printed_location": "column 21, closing paragraph of Fig.21 description",
+      "quote": "This shuffling scheme further reduces the impact of size errors between the cells and gives rise to further improvements in INL errors."
+    },
+    {
+      "source": "ISSCC2024_PAPER.pdf",
+      "pdf_page": 1,
+      "printed_location": "page 182, DEM/dither paragraph",
+      "quote": "Dither is used to complement the DEM linearization of the DAC."
+    },
+    {
+      "source": "US10505561B2",
+      "pdf_page": 26,
+      "printed_location": "column 5, Fig.3 description",
+      "quote": "The dither signal is formed in the digital domain by a pseudo-random number generator 40."
+    },
+    {
+      "source": "PKU_VLSI2025_C32_1_PAPER.pdf",
+      "pdf_page": 1,
+      "printed_location": "Architecture and Circuit Implementation, Fig.6 discussion",
+      "quotes": [
+        "AZ is only performed in the even cycle",
+        "two consecutive conversion results contain the same sampled noise"
+      ]
+    }
+  ]
+}

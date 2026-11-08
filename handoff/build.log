@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999998 (TeX Live 2026) (preloaded format=xelatex 2026.8.26)  9 NOV 2026 01:20
+This is XeTeX, Version 3.141592653-2.6-0.999998 (TeX Live 2026) (preloaded format=xelatex 2026.8.26)  9 NOV 2026 01:25
 entering extended mode
  %&-line parsing enabled.
 **NINE_MONTH_PLAN.tex
@@ -978,21 +978,27 @@ File: figures/source_caaz_slide35.png Graphic file (type bmp)
 
 ] [22
 
+] [23
+
+] [24
+
+] [25
+
 ] (${BUILD}/NINE_MONTH_PLAN.aux)
  ***********
 LaTeX2e <2026-06-01>
 L3 programming layer <2026/08/21>
  ***********
 Package rerunfilecheck Info: File `NINE_MONTH_PLAN.out' has not changed.
-(rerunfilecheck)             Checksum: FB811E4511B5D34FAA12DCE61437B106;3990.
+(rerunfilecheck)             Checksum: 60A186A5CF89CA83A06566018B1D218C;4526.
  ) 
 Here is how much of TeX's memory you used:
  19564 strings out of 469768
  437015 string characters out of 5467400
- 893260 words of memory out of 5000000
+ 893856 words of memory out of 5000000
  48253 multiletter control sequences out of 15000+600000
  636200 words of font info for 134 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
  93i,12n,96p,1209b,397s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on ${BUILD}/NINE_MONTH_PLAN.pdf (22 pages).
+Output written on ${BUILD}/NINE_MONTH_PLAN.pdf (25 pages).

@@ -561,7 +561,7 @@ y=\frac{z_e-z_o}{2}=\frac{x_e+x_o}{2}+\frac{a_e-h a_o}{2}w+\frac{u_e-u_o}{2}.
     月份 & 要交的图和文件 & 具体通过条件与已有工作 \\
     \midrule
     M1 & 一张18片角色与样本ID时序图；提交接口表、版本与证据索引 & 对照调度合同，8采集／8转换／2空闲，前次采集组有序晋升；stall时ID、掩码及随机状态保持。运行一项代表性回归并留命令和结果。沿用task1已有调度与图，不重写。 \\
-    M2 & 2\%及3\%各交DEM$\times$LMS四组20位INL／DNL和频谱；另交训练／留出图 & 四组共用同一物理失配池、输入和窗口；各DEM模式独立训练，冻结后独立留出。逐事件电荷与Python／RTL整数对拍零差异；新增多种子结果列出各种子，不能只挑最好值。先引用已有基线，仅缺覆盖再运行。 \\
+    M2 & 2\%及3\%各交DEM$\times$LMS四组20位INL／DNL和频谱；另交训练／留出图 & 四组共用同一物理失配池、输入和窗口；两种映射各自训练失配权重、共用前台增益参考，冻结后独立留出；两路切片计划相同。逐事件电荷与Python／RTL整数对拍零差异。四组完整曲线需检查并从已有数组补画，多种子再新增实验。 \\
     M3 & 六位字到lower／upper及八槽位的注入／去扰示意图，加一张样本ID与mask对齐时序图 & 64字、八槽、合法边界及c<U全部覆盖；补偿符号和同笔归属与独立模型一致；下溢不得回绕。已有独立电荷检查及20,000拍对拍可引用；变更影响行为时才重跑。 \\
     \bottomrule
   \end{tabularx}
@@ -587,7 +587,7 @@ y=\frac{z_e-z_o}{2}=\frac{x_e+x_o}{2}+\frac{a_e-h a_o}{2}w+\frac{u_e-u_o}{2}.
   \end{tabularx}
 \end{table}
 
-现有图的数据入口：\href{../task2/evidence/eight_negative/README.md}{线性度与频谱}、\href{../task3/evidence/negative/joint_noise/summary.json}{CAAZ联合噪声}。这些结果是行为模型，不代表实测或目标工艺签核。
+现有图的数据入口：\href{../task2/evidence/eight_negative/README.md}{线性度与频谱}、\href{../task3/evidence/negative/joint_noise/summary.json}{CAAZ联合噪声}。CAAZ联合归档仅3\%单颗，2\%与参数扫描尚需新增；这些结果是行为模型，不代表实测或目标工艺签核。
 
 
 \clearpage
@@ -608,6 +608,36 @@ y=\frac{z_e-z_o}{2}=\frac{x_e+x_o}{2}+\frac{a_e-h a_o}{2}w+\frac{u_e-u_o}{2}.
 \end{table}
 
 \textbf{统一验收：}每月包至少有图、原始数据、作图／运行命令、配置／种子、代码版本和结果表。算法正确性按以上确定性条件判定；性能改善是否达标以冻结的MC验收门槛为准，门槛未定时只报告数值与取舍，不写通过。真实180 nm BCD的模拟接口、约束和后端结果不能由SKY130结果替代。
+
+
+\clearpage
+\section{实操一：DEM为什么有效，现有图怎样用}
+
+\textbf{看原图和现有实现：}第9页的专利US10511316B2 Fig.11给出桥接电容网络；第10页Fig.20／21给出单元重排与跨片选择。第8页ISSCC架构图说明八片采样／转换的位置。图解释的是把不同物理电容分配到等效权重；同一电容误差不再始终对应同一输入码，可能减小固定非线性，也可能提高随机误差，必须同时看INL／DNL和频谱。
+
+\textbf{做法：}固定一颗18片失配池、输入、时钟、切片计划、ADC2窗口和dither状态，只改变主／子单元映射；无DEM、仅DEM、仅LMS、DEM＋LMS四组分别记账。代码为\href{../task2/eight/experiment.py}{实验入口}、\href{../task1/BRIDGE_SPEC.md}{映射合同}和\href{../task1/model/fig21_bridge.py}{映射器}。先看\href{../task2/evidence/eight_negative/README.md}{八组指标图与数据}，其中2\%／3\%各只有制造种子100；两种映射分别训练失配权重，但当前前台增益参考共用，不能称所有训练过程完全独立。
+
+\textbf{图与通过：}现有factorial图给四组指标，现有线性度及频谱图主要展开Fig.21；四组完整20位INL／DNL与频谱需从归档data.npz补画，先检查字段，不需为画图重新训练。静态图为256状态等权平均、共同窗$\pm$3.671875 V，1 LSB20为9.536743~μV；频谱采用归档中的留出输入与FFT设定。新图附相同种子、相同计划和原始数组哈希；电荷合同与整数对拍零差异为功能通过，性能差异照实报告。真正的多制造种子需新增仿真，不能将2\%和3\%视为两颗独立芯片。
+
+
+\clearpage
+\section{实操二：dither从原图到同笔补偿}
+
+\textbf{看原图和现有实现：}第12页专利US10505561B2 Fig.3给出伪随机扰动与数字去扰，第13页Fig.19给出lower／upper分路，第14页Fig.5与ISSCC讲稿第17页展示扰动经过前后级的路径。随机扰动让固定输入经历不同码边界，数字端再按同笔实际注入去除；目的在于平滑统计误差，不能恢复已经超窗的样本。
+
+\textbf{做法：}使用\href{../task2/eight/model.py}{八片模型}和\href{../task2/eight_rtl/README.md}{数字顶层}。同一制造池、映射、切片计划、输入和窗口，比较dither关／开；分别给无LMS及同模式冻结LMS的结果。两个映射各训练一套权重，每套用混合扰动训练并在该映射下共用于开／关；不得把旧版仅关扰动训练的诊断结果混作同一组。专利七片与本工程八片分配分开说明。
+
+\textbf{图与通过：}\href{../task2/evidence/eight_negative/eight_native_no_lms_linearity.png}{已有无LMS曲线}、\href{../task2/evidence/eight_negative/eight_native_linearity.png}{有LMS曲线}及对应频谱可引用。归档显示某些条件下零宽内码减少而峰值INL增大，这两个结果都要报。64个字、八槽、同笔去扰及非法命令按独立电荷和RTL合同检查；$\pm$5 V目标中任一被要求支持的样本越界则全幅验收FAIL，除非先正式修改需求。端点扫描需要新增，不能用共同窗图代替。
+
+
+\clearpage
+\section{实操三：CAAZ要比较什么，如何复用}
+
+\textbf{看原图和现有实现：}第15～17页分别对应北大VLSI 2025 Fig.5、Fig.6和讲稿原图。偶笔采集AZ状态，奇笔保持同一状态并反相输入；数字端先逐笔完成重构和dither去扰，再将有效偶奇结果做差及幅度归一。共享误差在匹配情况下相消，独立噪声仍在；现有非重叠配对选择使10 MS/s变为5 MS/s。
+
+\textbf{四组相同条件：}普通配对／独立AZ；斩波／独立AZ；斩波／共享AZ；斩波／共享AZ且加入保持误差。比较均用同一输入、失配池、DEM、扰动、系数、采样数与5 MS/s带宽；分析共享AZ增益时对比后两类中的独立与理想共享，避免把普通平均或斩波消失调的贡献混在一起。看\href{../task3/evidence/negative/joint_noise/caaz_joint_noise.png}{现有3\%图}、\href{../task3/evidence/negative/joint_noise/summary.json}{数值和种子}、\href{../task3/tools/run_joint_noise.py}{行为模型入口}、\href{../task3/README.md}{RTL与检查入口}。
+
+\textbf{图与通过：}现有图已包含四组；行为参数是示例设置，结果不是器件测量。保持扫描、2\%联合以及1/f／慢漂移尚未由该图覆盖；固定其余条件，新增参数／种子及原始数据后画RMS与频谱。原脚本的保持比例是固定常量，不能误以为现成命令支持扫描。错代、错相、丢笔等负例必须进入合同定义的错误路径，整数配对与参考逐笔相同；效果指标在未冻结门槛时只报告收益与代价。
 
 
 \clearpage

@@ -88,12 +88,12 @@
     },
     {
       "page": 18,
-      "characters": 660,
+      "characters": 669,
       "images": 0
     },
     {
       "page": 19,
-      "characters": 574,
+      "characters": 604,
       "images": 0
     },
     {
@@ -103,11 +103,26 @@
     },
     {
       "page": 21,
-      "characters": 753,
+      "characters": 672,
       "images": 0
     },
     {
       "page": 22,
+      "characters": 543,
+      "images": 0
+    },
+    {
+      "page": 23,
+      "characters": 572,
+      "images": 0
+    },
+    {
+      "page": 24,
+      "characters": 753,
+      "images": 0
+    },
+    {
+      "page": 25,
       "characters": 860,
       "images": 0
     }
@@ -286,11 +301,11 @@
   ],
   "overfull_hbox": 0,
   "source_sha256": {
-    "handoff/NINE_MONTH_PLAN.md": "916f60691a49cbb72e408b0b53ec44f406cfb2ff11967f53e9f3cd893ee28d95",
-    "handoff/NINE_MONTH_PLAN.tex": "1382f9bdaee3de0be5c5004f27fc618e64893b7d7699a8de62ce5f9018526031",
-    "handoff/NINE_MONTH_PLAN.pdf": "91a64bb33167dff3b51ac8950254178e1d69c90e89250c43b596071a30322d55",
+    "handoff/NINE_MONTH_PLAN.md": "5763b48b1251875afd32ed816ed123094713ce9e4b0bee60640eb3b1b2b0ec88",
+    "handoff/NINE_MONTH_PLAN.tex": "e7c4d838c94db93db1f1820fd910227c27d954da6848ae1ffa006bfcfd9ddadd",
+    "handoff/NINE_MONTH_PLAN.pdf": "a84cc0962bee9daae232adba4c30efb29ef904701cd5667e8afaf2abb0648ba3",
     "handoff/report_template.tex": "2f31803acf937ac73d66ec122e686b2b03cac0253e1fe710e810daed887d2761",
-    "handoff/build_report.py": "b62e6c7f99c1e21b5e617c99cd403b7772a06b75299875c9a46eb2b99f3816e5",
+    "handoff/build_report.py": "8452dab8736fc6ef0d58e9e210a05d0712c831b8162b3701897b6922da24e118",
     "handoff/source_figures.json": "c9e4c51199be2854a525ec1141a3a8aa041128edfb4de0beaceafd8c2269f126",
     "handoff/behavioral_audit.json": "7d9e8597f8c479afe235a20d9e102c2911a3b4da76b68e8c8a3713a63e55cab4",
     "handoff/coefficient_mode_diagnostic.json": "f5b0c92056c9c84a0bfef85472f19c0b0016fca940b8a3296e65a8cc5238e97e",

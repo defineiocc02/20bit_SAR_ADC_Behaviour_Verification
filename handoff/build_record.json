@@ -3,7 +3,7 @@
   "pages": [
     {
       "page": 1,
-      "characters": 1498,
+      "characters": 1601,
       "images": 0
     },
     {
@@ -13,7 +13,7 @@
     },
     {
       "page": 3,
-      "characters": 763,
+      "characters": 760,
       "images": 1
     },
     {
@@ -23,12 +23,12 @@
     },
     {
       "page": 5,
-      "characters": 684,
+      "characters": 681,
       "images": 1
     },
     {
       "page": 6,
-      "characters": 1142,
+      "characters": 1145,
       "images": 1
     },
     {
@@ -88,17 +88,17 @@
     },
     {
       "page": 18,
-      "characters": 635,
+      "characters": 471,
       "images": 0
     },
     {
       "page": 19,
-      "characters": 579,
+      "characters": 392,
       "images": 0
     },
     {
       "page": 20,
-      "characters": 612,
+      "characters": 459,
       "images": 0
     },
     {
@@ -301,15 +301,15 @@
   ],
   "overfull_hbox": 0,
   "source_sha256": {
-    "handoff/NINE_MONTH_PLAN.md": "00137438452680bf393b82d74e60e7f3de119c9a4aa5a34269e3243026a6f30b",
-    "handoff/NINE_MONTH_PLAN.tex": "3b21f8cc321a66dab6179ac618b5d84fc6453e6c7580dcf36d0a6bbd348230ad",
-    "handoff/NINE_MONTH_PLAN.pdf": "92e87daa8e0bc52b3c981aac8e1066039a7a14553f0903cec2b64d5acb54cc9d",
-    "handoff/report_template.tex": "2f31803acf937ac73d66ec122e686b2b03cac0253e1fe710e810daed887d2761",
-    "handoff/build_report.py": "0948806f96380e8d1332a8752a1fc4f69b0e293f72ba05133cbbbcc297d07ba8",
+    "handoff/NINE_MONTH_PLAN.md": "90c4a2d6e222417bda7dc7411cbbf98cd8d7d1e97de7746f7482bba798292283",
+    "handoff/NINE_MONTH_PLAN.tex": "7694db09d5a64704585540ad36b78fd536535f6b8d06b6b9d67dbea30faa0758",
+    "handoff/NINE_MONTH_PLAN.pdf": "031f316a0182873aab0f3a03f89e13c55ca9596d4d6c049c90eba4ff11581401",
+    "handoff/report_template.tex": "63038a251086288a11951f87853b099fbb75a1b883dc895411f2981e986f1b6a",
+    "handoff/build_report.py": "caab018021fc40ee92bab737d38639991042f8726db3de63f4048768b9915ff2",
     "handoff/source_figures.json": "c9e4c51199be2854a525ec1141a3a8aa041128edfb4de0beaceafd8c2269f126",
     "handoff/behavioral_audit.json": "7d9e8597f8c479afe235a20d9e102c2911a3b4da76b68e8c8a3713a63e55cab4",
     "handoff/coefficient_mode_diagnostic.json": "f5b0c92056c9c84a0bfef85472f19c0b0016fca940b8a3296e65a8cc5238e97e",
-    "handoff/figures/nine_month_plan.png": "46714ecbd6f96156272de758d1f5bf8ef02b1ae93a625cebf41954cf89706ef1",
+    "handoff/figures/nine_month_plan.png": "a6c4614448171692f7a502718c148408c37f7b9de732f31f568748bdcf840fe0",
     "task2/evidence/eight_negative/eight_native_linearity.png": "0f0132f4e18aa59f18df5143741759257461e2e4f6d223c228aece0eedef2e9c",
     "task2/evidence/eight_negative/eight_native_no_lms_linearity.png": "74d5fb476ef6e45adf299331fdf2918c48374419c9d86caf042091c57a086ac0",
     "task3/evidence/negative/joint_noise/caaz_joint_noise.png": "ffeb5fb4b9baf07a7bf8a7ab74fb2dd7f89750d7388af27875bed2f4d443bb2b",

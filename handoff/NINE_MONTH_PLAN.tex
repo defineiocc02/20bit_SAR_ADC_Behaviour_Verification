@@ -15,11 +15,11 @@
 \renewcommand{\arraystretch}{1.18}
 \linespread{1.12}
 \ctexset{section={format=\Large\bfseries\sffamily,beforeskip=5pt,afterskip=7pt},subsection={format=\normalsize\bfseries\sffamily,beforeskip=6pt,afterskip=3pt}}
-\hypersetup{unicode=true,colorlinks=true,linkcolor=black,urlcolor=blue,pdftitle={20位10MS/s数字模块九个月任务书}}
+\hypersetup{unicode=true,colorlinks=true,linkcolor=black,urlcolor=blue,pdftitle={20位10MS/s数字模块六个月任务书}}
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\small 20b10mtask｜硕士生数字任务书}
-\fancyhead[R]{\small SKY130HD｜九个月}
+\fancyhead[R]{\small SKY130HD｜六个月}
 \fancyfoot[C]{\small 第\thepage 页}
 \renewcommand{\headrulewidth}{0.3pt}
 \setlist{nosep,leftmargin=1.7em,topsep=3pt}
@@ -29,7 +29,7 @@
 \begin{document}
 \begin{center}
 {\LARGE\sffamily\bfseries 20位／10 MS/s SAR ADC数字模块}\par\vspace{3pt}
-{\large\sffamily 九个月任务书与数字验收要求}\par\vspace{3pt}
+{\large\sffamily 六个月任务书与数字验收要求}\par\vspace{3pt}
 {\small 2026年11月8日｜已有工程接手版｜定义任务，不新增签核结论}
 \end{center}
 % ----- begin md -----
@@ -44,6 +44,8 @@
 
 你接手的是已有工程。每个模块按``行为效果~$\to$~RTL逐笔验证~$\to$~本模块GDS与时序''纵向完成并交付，再进入下一模块；最后完成整体集成。先确认已有成果可复现，不重写已经对拍的模块。以下为计划要求，不表示已经完成。
 
+\href{STUDENT_RUNBOOK.md}{学生逐步实操手册}列出每个模块的代码、已有图、可复制命令和GDS入口。六个月进度较紧，以现有代码／工具可用为前提；若多角、等价或模拟绑定未完成，分别记录实际状态，不能用历史结果冒充通过。
+
 \begin{table}[H]
 \small
   \centering
@@ -51,15 +53,15 @@
     \toprule
     阶段 & 要求你完成的任务 & 必交内容 & 截止与通过条件 \\
     \midrule
-    模块一 & 切片调度＋DEM：补行为覆盖、复用RTL，完成独立数字宏 & 四组效果图、逐笔对拍、GDS与时序／物理报告 & M2：完成本模块行为、RTL与GDS交付 \\
-    模块二 & 八片dither：完成行为对照、RTL验证与数字宏 & 扰动效果及端点图、逐笔对拍、GDS与时序／物理报告 & M5：完成本模块行为、RTL与GDS交付；全幅另列状态 \\
-    模块三 & CAAZ：完成样本域效果、RTL验证与独立数字宏 & 同带宽噪声图、错绑对拍、GDS与时序／物理报告 & M7：完成本模块行为、RTL与GDS交付 \\
-    整体交付 & 冻结整体RTL，完成SKY130HD数字宏实现与验证 & GDS、网表、SDC、SPEF、综合／时序／物理报告及摘要清单 & M9：按第6节逐项验收；缺少项明确保留未完成 \\
+    模块一 & 切片调度＋DEM：补行为覆盖、复用RTL，完成独立数字宏 & 四组效果图、逐笔对拍、GDS与时序／物理报告 & M1：完成本模块行为、RTL与GDS交付 \\
+    模块二 & 八片dither：完成行为对照、RTL验证与数字宏 & 扰动效果及端点图、逐笔对拍、GDS与时序／物理报告 & M3：完成本模块行为、RTL与GDS交付；全幅另列状态 \\
+    模块三 & CAAZ：完成样本域效果、RTL验证与独立数字宏 & 同带宽噪声图、错绑对拍、GDS与时序／物理报告 & M4：完成本模块行为、RTL与GDS交付 \\
+    整体交付 & 冻结整体RTL，完成SKY130HD数字宏实现与验证 & GDS、网表、SDC、SPEF、综合／时序／物理报告及摘要清单 & M6：按第6节逐项验收；缺少项明确保留未完成 \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-\textbf{行为级验收边界：}理想开关、电荷守恒、固定失配、理想ADC2和样本域噪声可以验证本课题算法；不以完整器件开关或模拟瞬态为前提。数字接口和行为条件在M1--M2冻结，旧GDS结论另行验收。
+\textbf{行为级验收边界：}理想开关、电荷守恒、固定失配、理想ADC2和样本域噪声可以验证本课题算法；不以完整器件开关或模拟瞬态为前提。各模块在本模块开始时冻结接口，整体接口于M5冻结，旧GDS结论另行验收。
 
 \begin{table}[H]
 \small
@@ -81,15 +83,15 @@
 
 
 \clearpage
-\section{接手基础与九个月路线}
+\section{接手基础与六个月路线}
 
 \textbf{工作树快照：}分支20b10mtask，算法基线包含bef5654动态修复，既有物理包另绑定66b2e2e；本次基于aea7d1f接手说明继续核对。以下分别登记能复用的代码／证据及缺口，不要求学生重新实现已有模块。~\href{https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/tree/20b10mtask}{直接获取学生交付分支}，在仓库根目录执行说明中的命令。
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=146mm]{figures/nine_month_plan.png}
-  \caption{九个月任务与阶段验收路线}
-  \label{fig:九个月任务与阶段验收路线}
+  \caption{六个月任务与阶段验收路线}
+  \label{fig:六个月任务与阶段验收路线}
 \end{figure}
 
 首周只做``版本／环境检查＋已有数据回放抽查＋接口缺口登记''。已有图先原样引用并注明来源，需理解绘图口径时可重绘；无需重新训练、重新生成全量码密度或重做旧版图。接口、算法、条件或证据摘要改变后，才重跑受影响的完整验证。
@@ -117,7 +119,7 @@
 
 
 \clearpage
-\section{模块一~M1--M2：切片调度、DEM与LMS}
+\section{模块一~M1：切片调度、DEM与LMS}
 
 \textbf{复用：}task1中的调度、DEM候选、RTL和测试，以及现有片外LMS与定点重构工具。\textbf{新增：}冻结行为模型中的可交换单元和跨段补偿，补独立统计与覆盖验证。原文依据为ISSCC 2024 9.8 Fig.9.8.1／3及US10511316B2 Fig.11、20、21。~已有DEM＋LMS线性度改善可作为有效行为基线。后续重点为多种子、输入覆盖与整数／RTL维护；逻辑相位、物理使用及最终性能分开评价，不把单一计数当算法缺陷。
 
@@ -148,7 +150,7 @@
 
 
 \clearpage
-\section{模块二~M3--M5：八片dither及内部余量}
+\section{模块二~M2--M3：八片dither及内部余量}
 
 \textbf{复用：}六位字发生器、八片注入模型、$k=c-U$命令、conv\_sub+sample\_sub重构及独立测试。\textbf{新增：}完善已声明等效电荷模型的端点与时序，扩大输入／失配覆盖。依据为ISSCC论文1页、讲稿17--18页及US10505561B2 Fig.3／19；专利七片示例与本工程八片分配分开标注。
 
@@ -179,7 +181,7 @@
 
 
 \clearpage
-\section{模块三~M6--M7：CAAZ与三技术协作}
+\section{模块三~M4：CAAZ与三技术协作}
 
 \textbf{复用：}斩波相位、带ID的AZ请求／确认、两笔配对和现有联合噪声实验。\textbf{新增：}在样本域扫描保持／两相增益及相关噪声，验证异常和联合数字行为。依据为Wang等VLSI 2025 C32-1 Fig.5／6；不要求学生设计RA或CBIAS模拟宏。
 
@@ -210,9 +212,9 @@
 
 
 \clearpage
-\section{M8--M9：数字签核要求与最终交付}
+\section{M5--M6：数字签核要求与最终交付}
 
-\textbf{三个模块分别在M2／M5／M7交付GDS；本节要求同时适用于各模块和M9整体。}~每次先冻结同一个版本的spec、RTL、定点参考、约束及输入向量，再做实现。目标时钟为6.25 ns；所需模式、PVT／RC角、IO延迟、负载和不确定度在M2冻结。当前只有部分归档通过，本表是要求，不是通过声明。
+\textbf{三个模块分别在M1／M3／M4交付GDS；本节要求同时适用于各模块和M6整体。}~每次先冻结同一个版本的spec、RTL、定点参考、约束及输入向量，再做实现。目标时钟为6.25 ns；各模块开始前冻结所需模式、PVT／RC角、IO延迟、负载和不确定度。当前只有部分归档通过，本表是要求，不是通过声明。
 
 \begin{table}[H]
 \small
@@ -549,7 +551,7 @@ y=\frac{z_e-z_o}{2}=\frac{x_e+x_o}{2}+\frac{a_e-h a_o}{2}w+\frac{u_e-u_o}{2}.
 
 
 \clearpage
-\section{月度交付：M1--M3，先接手再补覆盖}
+\section{月度交付：M1--M2，DEM与dither}
 
 \textbf{先看现有证据：}\href{../task1/README.md}{模块一入口}、\href{../task2/eight_rtl/README.md}{八片扰动数字入口}、\href{../task3/README.md}{CAAZ入口}、\href{BEHAVIORAL_STATUS.md}{行为复核表}。现有图可标``归档基线''直接引用，不要求为交作业重新造图；新增实验必须另标``新增''，不能冒充原论文实测。
 
@@ -560,9 +562,8 @@ y=\frac{z_e-z_o}{2}=\frac{x_e+x_o}{2}+\frac{a_e-h a_o}{2}w+\frac{u_e-u_o}{2}.
     \toprule
     月份 & 要交的图和文件 & 具体通过条件与已有工作 \\
     \midrule
-    M1 & 一张18片角色与样本ID时序图；提交接口表、版本与证据索引 & 对照调度合同，8采集／8转换／2空闲，前次采集组有序晋升；stall时ID、掩码及随机状态保持。运行一项代表性回归并留命令和结果。沿用task1已有调度与图，不重写。 \\
-    M2 & 模块一GDS、时序／物理报告；2\%／3\%~DEM$\times$LMS四组图 & 四组共用失配池、输入和窗口，切片计划相同；两种映射各自训练失配权重、冻结后独立留出。电荷与Python／RTL对拍零差异；GDS及报告同版。已有数组先补画，多种子再新增。 \\
-    M3 & 六位字到lower／upper及八槽位的注入／去扰示意图，加一张样本ID与mask对齐时序图 & 64字、八槽、合法边界及c<U全部覆盖；补偿符号和同笔归属与独立模型一致；下溢不得回绕。已有独立电荷检查及20,000拍对拍可引用；变更影响行为时才重跑。 \\
+    M1 & 模块一：18片时序、2\%／3\%~DEM$\times$LMS图，模块GDS及报告 & 复用既有调度与归档数据；同池同输入、训练／留出分开；电荷关系及Python／RTL逐事件一致；GDS、时序／物理状态与源码身份匹配。 \\
+    M2 & 模块二：六位字到lower／upper、八槽注入和同笔时序；dither关／开图 & 64字、八槽和c<U覆盖；无LMS与冻结LMS分别比较2\%／3\%，固定池与切片计划。先用归档图，异常不回绕、不静默丢弃。 \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -571,7 +572,7 @@ y=\frac{z_e-z_o}{2}=\frac{x_e+x_o}{2}+\frac{a_e-h a_o}{2}w+\frac{u_e-u_o}{2}.
 
 
 \clearpage
-\section{月度交付：M4--M6，扰动与CAAZ}
+\section{月度交付：M3--M4，dither与CAAZ交付}
 
 \begin{table}[H]
 \small
@@ -580,9 +581,8 @@ y=\frac{z_e-z_o}{2}=\frac{x_e+x_o}{2}+\frac{a_e-h a_o}{2}w+\frac{u_e-u_o}{2}.
     \toprule
     月份 & 要交的图和文件 & 具体通过条件与已有工作 \\
     \midrule
-    M4 & 2\%／3\%分别交dither关／开的20位INL／DNL和频谱；无LMS、冻结LMS各一套 & 固定DEM、输入、失配池和窗口；报告峰值、零宽码、SNDR／SFDR及代价。每种模式各自训练后固定，同模式内dither开关共用系数；已有四组图先引用，不得把有限状态均值写成单次无缺码。 \\
-    M5 & 模块二GDS、时序／物理报告；$\pm$5 V拒绝与内部余量图 & 逐个区分命令下溢、内部越界、ADC2超窗和最终输出；全幅越界标FAIL，不能以限幅标通过。当前共同窗仅$\pm$3.671875 V；GDS及报告与RTL同版。 \\
-    M6 & 偶奇斩波／AZ捕获保持时序；普通配对、独立AZ、共享AZ及保持误差的频谱和RMS对照 & 比较均为5 MS/s、同输入和带宽；每笔先重构去扰后配对，共享AZ代与样本ID一致。复用已有样本域结果，不把普通平均收益全算作CAAZ；原文谱测量10$\times$平均单列。 \\
+    M3 & 模块二GDS、时序／物理报告；$\pm$5 V拒绝与内部余量图 & 命令下溢、内部越界、ADC2超窗及输出分别统计；全幅越界标FAIL。独立整数对拍一致，GDS及报告与RTL同版；旧物理包需重新核身份。 \\
+    M4 & 模块三：AZ时序、四组同带宽噪声图、保持扫描、独立GDS与报告 & 比较均为5 MS/s、同输入和带宽；每笔先去扰再配对。错相、错代和丢笔进入错误路径，整数对拍一致；新建独立顶层后端配置并提交同版物理证据。 \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -591,7 +591,7 @@ y=\frac{z_e-z_o}{2}=\frac{x_e+x_o}{2}+\frac{a_e-h a_o}{2}w+\frac{u_e-u_o}{2}.
 
 
 \clearpage
-\section{月度交付：M7--M9，联合验证与数字后端}
+\section{月度交付：M5--M6，联合验证与数字后端}
 
 \begin{table}[H]
 \small
@@ -600,14 +600,13 @@ y=\frac{z_e-z_o}{2}=\frac{x_e+x_o}{2}+\frac{a_e-h a_o}{2}w+\frac{u_e-u_o}{2}.
     \toprule
     月份 & 要交的图和文件 & 具体通过条件与已有工作 \\
     \midrule
-    M7 & 模块三GDS、时序／物理报告；保持扫描与错绑负例图 & 字、片号、位图与AZ代按ID对齐；错相、错代、丢笔等进入错误路径。整数参考与RTL逐笔一致；独立宏GDS和报告同版。复用已有配对模型。 \\
-    M8 & 整体联合效果及接口时序、面积和关键路径图 & 冻结同一RTL、约束与库版本；相关回归、RTL到网表等价通过；报告约束、WNS／TNS和未约束路径。旧模块GDS不能算整体顶层通过。 \\
-    M9 & 整体数字宏GDS版图全景、最差setup／hold路径图、DRC／LVS／电源结果摘要图 & 交同版GDS、网表、SDC、SPEF、完整报告及哈希；必需角setup／hold裕量$\geq$0、无未约束有效路径；DRC／LVS及适用电源检查按冻结规则验收。未运行、失败或缺条件各自标记，不以示意图代替报告。 \\
+    M5 & 整体联合效果、接口时序、面积和关键路径图 & 冻结同一RTL、约束与库版本；相关回归、RTL到网表等价通过；报告约束、WNS／TNS和未约束路径。旧模块GDS不能算整体通过。 \\
+    M6 & 整体GDS版图、setup／hold路径、DRC／LVS／电源摘要图 & 交同版GDS、网表、SDC、SPEF及报告；必需角裕量$\geq$0、无未约束有效路径；物理和电源检查按冻结规则验收。未运行、失败或缺条件分别标记。 \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-\textbf{统一验收：}M2／M5／M7分别交模块行为、RTL、GDS证据包；M9另交整体包。每月包至少有图、原始数据、命令、配置／种子、代码版本和结果表。算法正确性按以上确定性条件判定；性能门槛未冻结时只报告数值与取舍，不写通过。真实180 nm BCD的模拟接口、约束和后端结果不能由SKY130结果替代。
+\textbf{统一验收：}M1／M3／M4分别交模块行为、RTL、GDS证据包；M6另交整体包。每月包至少有图、原始数据、命令、配置／种子、代码版本和结果表。算法正确性按以上确定性条件判定；性能门槛未冻结时只报告数值与取舍，不写通过。真实180 nm BCD的模拟接口、约束和后端结果不能由SKY130结果替代。
 
 
 \clearpage

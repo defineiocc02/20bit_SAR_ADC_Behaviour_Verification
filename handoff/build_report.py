@@ -2,7 +2,7 @@
 # 文件名     : build_report.py
 # 模块名     : handoff.build_report
 # 版本       : v1.0
-# 功能       : 绘制九个月计划图，将阅读稿转成LaTeX并编译、记录版面证据。
+# 功能       : 绘制六个月计划图，将阅读稿转成LaTeX并编译、记录版面证据。
 # 设计说明   :
 #   [范围] 只读取既有实验图和任务书，不运行ADC仿真或任何EDA签核。
 #   [依赖] 重转Markdown需要md2latex.py；--pdf-only可直接编译已交付TeX。
@@ -69,22 +69,22 @@ def plan_figure():
     fig.subplots_adjust(left=0.23, right=0.985, top=0.86, bottom=0.22)
     tasks = ["调度／DEM", "八片dither", "CAAZ", "整体集成", "接口／验证"]
     # 各模块依次完成行为、RTL与物理交付；接口与回归贯穿全程。
-    spans = [(0.5, 2), (2.5, 3), (5.5, 2), (7.5, 2), (0.5, 9)]
+    spans = [(0.5, 1), (1.5, 2), (3.5, 1), (4.5, 2), (0.5, 6)]
     colors = ["#9a9a9a", "#0072B2", "#D55E00", "#009E73", "#666666"]
     for i, ((start, width), color) in enumerate(zip(spans, colors, strict=True)):
         ax.broken_barh([(start, width)], (4 - i - 0.25, 0.5), facecolors=color)
-    for edge in range(1, 10):
+    for edge in range(1, 7):
         ax.axvline(edge + 0.5, color="#dddddd", lw=0.4, zorder=0)
     # 里程碑标的是计划验收时点；原有数据和未完成项在正文分别列出。
-    for month, label in [(2, "DEM GDS"), (5, "dither GDS"), (7, "CAAZ GDS"), (9, "整体 GDS")]:
+    for month, label in [(1, "DEM GDS"), (3, "dither GDS"), (4, "CAAZ GDS"), (6, "整体 GDS")]:
         ax.plot(month, 4.65, marker="v", color="black", ms=4, clip_on=False)
         ax.text(month, 5.02, label, ha="center", va="bottom", fontsize=7)
-    ax.set(xlim=(0.5, 9.5), ylim=(-0.55, 4.7), yticks=range(5), yticklabels=tasks[::-1])
-    ax.set_xticks(range(1, 10), [f"M{i}" for i in range(1, 10)])
+    ax.set(xlim=(0.5, 6.5), ylim=(-0.55, 4.7), yticks=range(5), yticklabels=tasks[::-1])
+    ax.set_xticks(range(1, 7), [f"M{i}" for i in range(1, 7)])
     ax.tick_params(axis="both", length=0)
     for spine in ax.spines.values():
         spine.set_visible(False)
-    fig.text(0.23, 0.06, "Python／RTL回归、原文核对、版本与原始证据：M1–M9持续进行", fontsize=7)
+    fig.text(0.23, 0.06, "Python／RTL回归、原文核对、版本与原始证据：M1–M6持续进行", fontsize=7)
     output = []
     for ext in ("png", "pdf", "svg"):
         path = HERE / "figures" / f"nine_month_plan.{ext}"

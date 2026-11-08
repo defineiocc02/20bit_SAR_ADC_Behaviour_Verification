@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999998 (TeX Live 2026) (preloaded format=xelatex 2026.8.26)  9 NOV 2026 01:35
+This is XeTeX, Version 3.141592653-2.6-0.999998 (TeX Live 2026) (preloaded format=xelatex 2026.8.26)  9 NOV 2026 02:01
 entering extended mode
  %&-line parsing enabled.
 **NINE_MONTH_PLAN.tex
@@ -911,7 +911,7 @@ File: figures/signoff_flow.png Graphic file (type bmp)
 File: figures/coefficient_mode.png Graphic file (type bmp)
 <figures/coefficient_mode.png>
 
-Underfull \hbox (badness 10000) in paragraph at lines 277--278
+Underfull \hbox (badness 10000) in paragraph at lines 279--280
 []\TU/SongtiSC(0)/m/n/10.53937 直 接 代 码 起 点：| \TU/TimesNewRoman(0)/m/n/10.53937 task1 \TU/SongtiSC(0)/m/n/10.53937 的 \TU/TimesNewRoman(0)/m/n/10.53937 module1_bridge_top\TU/SongtiSC(0)/m/n/10.53937 、| \TU/TimesNewRoman(0)/m/n/10.53937 task2 \TU/SongtiSC(0)/m/n/10.53937 的 \TU/TimesNewRoman(0)/m/n/10.53937 dither8_top\TU/SongtiSC(0)/m/n/10.53937 、| \TU/TimesNewRoman(0)/m/n/10.53937 task3 \TU/SongtiSC(0)/m/n/10.53937 的 \TU/TimesNewRoman(0)/m/n/10.53937 caaz20_pair\TU/SongtiSC(0)/m/n/10.53937 ，|  以 及
  []
 
@@ -990,12 +990,12 @@ LaTeX2e <2026-06-01>
 L3 programming layer <2026/08/21>
  ***********
 Package rerunfilecheck Info: File `NINE_MONTH_PLAN.out' has not changed.
-(rerunfilecheck)             Checksum: 71BE2F0236F681900B568DF2EB0FC0EC;4622.
+(rerunfilecheck)             Checksum: 2FCF0892F3541BC9386720C4458E9DBD;4613.
  ) 
 Here is how much of TeX's memory you used:
  19564 strings out of 469768
  437015 string characters out of 5467400
- 892952 words of memory out of 5000000
+ 895943 words of memory out of 5000000
  48253 multiletter control sequences out of 15000+600000
  636200 words of font info for 134 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191

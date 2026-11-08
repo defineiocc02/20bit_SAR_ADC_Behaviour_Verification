@@ -1,0 +1,37 @@
+{
+  "scope": "Python behavioral repair only; no RTL or physical signoff",
+  "full_python_regression": {
+    "passed": 218,
+    "failed": 0,
+    "skipped": 0,
+    "dynamic_kernel_and_capture_cases": 33,
+    "command": "PYTHONPATH=.:src OPENBLAS_NUM_THREADS=1 MPLBACKEND=Agg python -m pytest",
+    "junit_sha256": "6ffb297e305913f957d19495d2d2532c88a63d295edb8f19cb384baf97db83ac"
+  },
+  "ruff": "PASS",
+  "comment_ratio_minimum": 0.2009,
+  "source_sha256": {
+    "src/adi_model/reference_mux.py": "9b06d7c60f0c4874f7475334980d482cdfc3aa197e4a6104ca97b5597a07d7f8",
+    "src/adi_model/transients.py": "570dd283daa30640aff91e6e114fdbb629eb485d57f940d7f932e91ebf0bab46",
+    "src/tests/test_transient_kernels.py": "9736abd92f02ce552fe56a87cd190e3d16da7045de9435ca5e1900ef6e5b1d37",
+    "task2/eight/dynamic.py": "9d58f215d4f1a2189d3166825611ba78b33e45b423e5e83e4b4d9760a5dc4d11",
+    "task2/eight/dynamic_experiment.py": "f4228ef70c7d61bb770d5cce38eaff95921fd1ea48304b862eded2353f5ce46a",
+    "task2/eight/experiment.py": "b1d45fcd39533c2e3d08da48a364820d75c7c3204182981980f7768babdfe5e3",
+    "task2/eight/tests/test_dynamic_capture.py": "23ebdbec9bd918ab92380616439006a874dc3dc953a45cb83a76054879925b84"
+  },
+  "artifact_hash_check": "PASS",
+  "source_hash_check": "PASS",
+  "relative_link_check": [
+    "README.md",
+    "task1/SPEC.md",
+    "task2/eight/DYNAMIC_MODEL.md",
+    "task2/evidence/dynamics_fixed/README.md"
+  ],
+  "sadc_parity_recheck": "Two independent initial states; all four nominal experiment results unchanged",
+  "frozen_static_regression": "PASS as test_baseline_fingerprint_is_unchanged",
+  "unknown_absolute_parameters": {
+    "crosstalk": "UNBOUND_NO_PREDICTION",
+    "reference": "UNBOUND_NO_PREDICTION"
+  },
+  "full_range_finite_hit_linearity": "NOT_RUN"
+}

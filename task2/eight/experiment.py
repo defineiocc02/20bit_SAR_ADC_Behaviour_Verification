@@ -90,7 +90,19 @@ STREAM_EDGE = 3
 # =========================================================================
 # ------------------------------------------------------------------------
 def _capture(
-    input_v, word, plan, phase, thresholds, step_v, table, physical, cfg, noise=None, reference=None
+    input_v,
+    word,
+    plan,
+    phase,
+    thresholds,
+    step_v,
+    table,
+    physical,
+    cfg,
+    noise=None,
+    reference=None,
+    *,
+    transients=None,
 ):
     """把一笔输入跑完前端，返回转换状态、粗码、残差与二级码。
 
@@ -111,8 +123,14 @@ def _capture(
     （10 V），而这里的残差是**输入域**（±0.1 V），两者差一个 RA 增益。在本函数里
     乘 ppm 会让量级小 100 倍却看上去「接了」，故留到 M8 的输出域接入。
 
-    两者都为 None 或未启用时，整条路径不执行，返回与改动前逐位相同。
+    transients可传DynamicCapture实例，使用同一开关／量化合同进行时序重放。
+    新参考路径与旧reference代理互斥，防止重复计算参考误差。动态路径不能使用静态区间积分。
+    这些参数均未启用时，原有快路径和返回数值逐位不变。
     """
+    if transients is not None and transients.config.enabled:
+        if reference is not None and reference.enabled:
+            raise ValueError("stateful reference and legacy reference proxy are mutually exclusive")
+        return transients.capture(input_v, word, plan, phase, thresholds, step_v, table, cfg, noise)
     dither = decode(word)
     active = noise is not None and not noise.is_quiet
     ref = reference if reference is not None and reference.enabled else None

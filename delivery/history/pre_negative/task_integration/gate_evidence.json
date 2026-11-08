@@ -1,0 +1,83 @@
+{
+  "G0": {
+    "evidence": [
+      {
+        "path": "evidence/environment.json",
+        "sha256": "9d42e78b959090550d152066f1885bd07ee0d0d93ff23b1ef0050b0b89240ab0"
+      }
+    ],
+    "scope": "local functional execution",
+    "status": "PASS"
+  },
+  "G1": {
+    "evidence": [
+      {
+        "path": "SPEC.md",
+        "sha256": "10789107717e8f8ef96097b550acdadedbcc53ad79bb01d7a3b86d2ff6ee0d67"
+      },
+      {
+        "path": "LMS_PIPELINE.md",
+        "sha256": "0dd478cec65b22924de9f67b7d90412ec6fff39180972c87d43837902d30bc93"
+      }
+    ],
+    "scope": "frozen digital proxy specification",
+    "status": "PASS"
+  },
+  "G2": {
+    "evidence": [
+      {
+        "path": "microarchitecture.md",
+        "sha256": "e3bc4ae6c79177cb66530c476c4b686f2d8266d22eebada54acd53cc940e4fca"
+      },
+      {
+        "path": "verification_plan.yaml",
+        "sha256": "fb697758c05252d9596738c92bbefb0f9f85e410c9246dab070f1e19ada86536"
+      },
+      {
+        "path": "requirements_trace.csv",
+        "sha256": "1d16c9d8a0d61e82b5bf1b0c844ca1ca938d74744803fbcc9d9b274b6f08794c"
+      }
+    ],
+    "status": "PASS"
+  },
+  "G3": {
+    "candidate_full_sequential_equivalence": "NOT_PROVEN",
+    "evidence": [
+      {
+        "path": "evidence/external/result.json",
+        "sha256": "4ec55432ed59ac4285a49fbc1ad9f32f387688c521a4449f04e2a0f8fae3882b"
+      },
+      {
+        "path": "evidence/on_chip/result.json",
+        "sha256": "6e3a5b0170e007d0753383ded01824ac1031c52b319b1bd4e4812317be26de68"
+      }
+    ],
+    "integration_formal": "NOT_RUN",
+    "lint_and_verilator": "PASS",
+    "scope": "Both top-level paths passed the committed digital protocol and exact-code checks. Integration-level formal proof is pending.",
+    "status": "BLOCKED"
+  },
+  "G4": {
+    "evidence": [
+      {
+        "path": "evidence/physical_tt_42278312924.json",
+        "sha256": "b9a837b3e92691a5612be8de1fe1ab547e77dafb7e8fd76e98c7a0908275c727"
+      }
+    ],
+    "physical_release_claim": "PARTIAL_SIGNOFF",
+    "scope": "Routed SKY130HD GDS, extracted TT 6.25 ns timing, and independent public DRC and revised-deck LVS passed on the same frozen GDS. Multi-corner STA, real system I/O budgets, activity-based power and power integrity remain open.",
+    "status": "BLOCKED",
+    "subgates": {
+      "activity_based_power": "NOT_RUN",
+      "independent_public_drc": "PASS",
+      "independent_public_lvs": "PASS",
+      "integrated_formal": "NOT_RUN",
+      "multicorner_sta": "NOT_RUN",
+      "post_route_tt_setup_and_hold": "PASS",
+      "power_integrity": "NOT_RUN",
+      "routed_gds": "PASS",
+      "router_drc_and_antenna": "PASS",
+      "system_io_timing_validation": "NOT_RUN"
+    }
+  }
+}

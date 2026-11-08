@@ -1,0 +1,88 @@
+{
+  "approval_basis": "User requested implementation and SKY130 digital proxy; engineering macro assumptions are versioned in the spec.",
+  "baseline_commit": "b592ba825fa2c156f58fab5b2f528d90e49cacff",
+  "clock_period_ns": 6.25,
+  "evidence": [
+    {
+      "path": "evidence/environment.json",
+      "sha256": "9d42e78b959090550d152066f1885bd07ee0d0d93ff23b1ef0050b0b89240ab0"
+    },
+    {
+      "path": "evidence/external/result.json",
+      "sha256": "4ec55432ed59ac4285a49fbc1ad9f32f387688c521a4449f04e2a0f8fae3882b"
+    },
+    {
+      "path": "evidence/on_chip/result.json",
+      "sha256": "6e3a5b0170e007d0753383ded01824ac1031c52b319b1bd4e4812317be26de68"
+    },
+    {
+      "path": "evidence/physical_tt_42278312924.json",
+      "sha256": "b9a837b3e92691a5612be8de1fe1ab547e77dafb7e8fd76e98c7a0908275c727"
+    }
+  ],
+  "limits": [
+    "external analog macros and their physical timing",
+    "target 180 nm BCD PVT and signoff",
+    "integration formal and independent physical signoff tracked separately"
+  ],
+  "phase_contract": {
+    "maximum_inflight": 2,
+    "normal_adc2_to_lms_output_clocks": 23,
+    "raw_interval_clocks": 16
+  },
+  "physical_proxy": {
+    "evidence": {
+      "path": "evidence/physical_tt_42278312924.json",
+      "sha256": "b9a837b3e92691a5612be8de1fe1ab547e77dafb7e8fd76e98c7a0908275c727"
+    },
+    "independent_public_verification": {
+      "drc": {
+        "manifest_sha256": "42998cddc0dfddfd3b91dd025004ab774c6600d5160b088862fb86576c464ab9",
+        "repo_relative_manifest": "task2/physical/evidence/sar20_digital_lms_top_drc_manifest_42297095870.json",
+        "status": "PASS",
+        "workflow_run": "42297095870"
+      },
+      "lvs": {
+        "manifest_sha256": "da14358bf6decbe61d5404b1dd9f13d6bcd502b386f39c10c6445f3ef54ad8b7",
+        "repo_relative_manifest": "task2/physical/evidence/sar20_digital_lms_top_lvs_upstream_manifest_42296886745.json",
+        "status": "PASS",
+        "workflow_run": "42296886745"
+      }
+    },
+    "overall_gate_status": "BLOCKED",
+    "release_claim": "PARTIAL_SIGNOFF",
+    "requirement": "REQ-TOP-04",
+    "requirement_status": "PASS",
+    "scope": "SKY130HD extracted TT, 25 C and 1.80 V with proxy I/O budgets",
+    "source_commit": "43b2fc5b72d69182d4d29260125b70057f822621",
+    "workflow_run": "42278312924"
+  },
+  "repo_relative_rtl_sha256": {
+    "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
+    "task1/rtl/fig21_bridge.sv": "15a5fe746f012aeb655f9fc19a0b582646f445ab0a1cae16992c6a22f8c7a305",
+    "task1/rtl/module1_bridge_top.sv": "8181f1d629fefd67fc51b52483725f3c4675a613c73fff9be554e2ce6dcaaba1",
+    "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
+    "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
+    "task2/eight_rtl/rtl/dither8_top.sv": "ef9e36cb48eef4c59a4de1852538e7429739f5d36ad608cd7a8e0adb2fffe16c",
+    "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad",
+    "task3/rtl/caaz20_pair.sv": "5ddbd9f20d4534ad597f22edca9f58604c4d04877eb5efb6ba6dabb142115fdc",
+    "task_integration/rtl/sar20_digital_lms_top.sv": "04a25ad20f48ff87a84ec9818d4927e470cfd309ec308b0206b94dd8d0d17d72",
+    "task_integration/rtl/sar20_digital_top.sv": "5132cfe92f6836b4bc4300219e77424bc120e3cab11c191ad744185aaa5ac3bd",
+    "task_reconstruction/rtl/sar20_lms_recon.sv": "7005ccbc8bec2ddedd2fd1d050d19ddb7df8208a7288192258d7bbc103478b83"
+  },
+  "schema": "sar20-digital-handoff-v1",
+  "sdc_relative_path": "task1/physical/sky130_constraint.sdc",
+  "sdc_sha256": "01657f0555d1147c566a7a3adbf6f3250fa46a5546fce6fa0576bfbdeee5e6a3",
+  "source_sha256": {
+    "LMS_PIPELINE.md": "0dd478cec65b22924de9f67b7d90412ec6fff39180972c87d43837902d30bc93",
+    "SPEC.md": "10789107717e8f8ef96097b550acdadedbcc53ad79bb01d7a3b86d2ff6ee0d67",
+    "gate_evidence.json": "eeaa8a1196f893c6bd068ea2a93e181c69bee0a0d2f1fc572a65c5b5232ddc92",
+    "microarchitecture.md": "e3bc4ae6c79177cb66530c476c4b686f2d8266d22eebada54acd53cc940e4fca",
+    "requirements_trace.csv": "1d16c9d8a0d61e82b5bf1b0c844ca1ca938d74744803fbcc9d9b274b6f08794c",
+    "verification_plan.yaml": "fb697758c05252d9596738c92bbefb0f9f85e410c9246dab070f1e19ada86536"
+  },
+  "tops": [
+    "sar20_digital_lms_top",
+    "sar20_digital_top"
+  ]
+}

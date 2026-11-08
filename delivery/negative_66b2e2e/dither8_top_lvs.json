@@ -1,0 +1,29 @@
+{
+  "source": {
+    "top": "dither8_top",
+    "source_run": "42459663508-1-dither8_top",
+    "rtl_commit": "66b2e2e1cbec666a43b12d0d7a93e199cb8a41fd",
+    "sha256": {
+      "dither8_top.gds": "0300defdb519b34b6beb04d13e5af4edfb54f6fd228d3511c89976ee3e146189",
+      "dither8_top.odb": "58cbdbb32f37ad746e133909dab470d100121e71cef28427bcf1748af7df4024",
+      "dither8_top.sdc": "c96fc2bd666eba51d15bc4c0e80754a920fc0797ba9aeca4becf8493e704d4f1",
+      "dither8_top.v": "dcae8d10bcb7b779c8e1ba24168363442171e63653f2036773bcb91cdce0dfa7",
+      "dither8_top.spef": "a8fa62ff81c9e7219cf24451d8eff943268a5826db89f90169fa3660e1c282c8"
+    },
+    "method": "Both decks use the same CDL exported from the frozen routed ODB."
+  },
+  "upstream_revision": "5eebdc0d06879cf674e86e3fb8efa2803e6e44dc",
+  "variants": {
+    "upstream": {
+      "status": "PASS",
+      "exit_code": 0,
+      "deck_sha256": "d2d231d7cd00a8261d6653c5f3757badefb1dc0aba29441d8406272e75cd8b90",
+      "log_sha256": "2addbe0b992ec83b76f7be7050cea913aa1def3c1213ecbeb5a615e7cf92a94e",
+      "database_sha256": "6e6380c49414df3986eab6fef0330606a8f21922d15d34e3cb8659ff50d2e138",
+      "database_complete": true
+    }
+  },
+  "deck_selection": "upstream",
+  "per_deck_timeout_seconds": 600,
+  "reference_cdl_sha256": "fd4b3679f14156268b04e9b9dc0190370d3871a9a204b5e7898584c46c0b76ab"
+}

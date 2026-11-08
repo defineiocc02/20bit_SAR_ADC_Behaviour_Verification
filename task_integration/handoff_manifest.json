@@ -1,88 +1,39 @@
 {
-  "approval_basis": "User requested implementation and SKY130 digital proxy; engineering macro assumptions are versioned in the spec.",
-  "baseline_commit": "b592ba825fa2c156f58fab5b2f528d90e49cacff",
-  "clock_period_ns": 6.25,
-  "evidence": [
-    {
-      "path": "evidence/environment.json",
-      "sha256": "9d42e78b959090550d152066f1885bd07ee0d0d93ff23b1ef0050b0b89240ab0"
-    },
-    {
-      "path": "evidence/external/result.json",
-      "sha256": "4ec55432ed59ac4285a49fbc1ad9f32f387688c521a4449f04e2a0f8fae3882b"
-    },
-    {
-      "path": "evidence/on_chip/result.json",
-      "sha256": "6e3a5b0170e007d0753383ded01824ac1031c52b319b1bd4e4812317be26de68"
-    },
-    {
-      "path": "evidence/physical_tt_42278312924.json",
-      "sha256": "b9a837b3e92691a5612be8de1fe1ab547e77dafb7e8fd76e98c7a0908275c727"
-    }
-  ],
-  "limits": [
-    "external analog macros and their physical timing",
-    "target 180 nm BCD PVT and signoff",
-    "integration formal and independent physical signoff tracked separately"
-  ],
-  "phase_contract": {
-    "maximum_inflight": 2,
-    "normal_adc2_to_lms_output_clocks": 23,
-    "raw_interval_clocks": 16
-  },
-  "physical_proxy": {
-    "evidence": {
-      "path": "evidence/physical_tt_42278312924.json",
-      "sha256": "b9a837b3e92691a5612be8de1fe1ab547e77dafb7e8fd76e98c7a0908275c727"
-    },
-    "independent_public_verification": {
-      "drc": {
-        "manifest_sha256": "42998cddc0dfddfd3b91dd025004ab774c6600d5160b088862fb86576c464ab9",
-        "repo_relative_manifest": "task2/physical/evidence/sar20_digital_lms_top_drc_manifest_42297095870.json",
-        "status": "PASS",
-        "workflow_run": "42297095870"
-      },
-      "lvs": {
-        "manifest_sha256": "da14358bf6decbe61d5404b1dd9f13d6bcd502b386f39c10c6445f3ef54ad8b7",
-        "repo_relative_manifest": "task2/physical/evidence/sar20_digital_lms_top_lvs_upstream_manifest_42296886745.json",
-        "status": "PASS",
-        "workflow_run": "42296886745"
-      }
-    },
-    "overall_gate_status": "BLOCKED",
-    "release_claim": "PARTIAL_SIGNOFF",
-    "requirement": "REQ-TOP-04",
-    "requirement_status": "PASS",
-    "scope": "SKY130HD extracted TT, 25 C and 1.80 V with proxy I/O budgets",
-    "source_commit": "43b2fc5b72d69182d4d29260125b70057f822621",
-    "workflow_run": "42278312924"
+  "schema": "negative-digital-handoff-v1",
+  "run_id": "negative-20261108",
+  "status": "BLOCKED",
+  "claim": "数字行为验证已交付，完整spec-to-rtl／后端签核未闭合",
+  "historical_records": "delivery/history/pre_negative/task_integration",
+  "rtl_input_commit": "66b2e2e1cbec666a43b12d0d7a93e199cb8a41fd",
+  "verification_commit": "2e42bc2e8533213d4fef75ae672b87a749766b9f",
+  "source_sha256": {
+    "SPEC.md": "72c20b94c54b5a6e18db6da5e84e3695f02cace989c996fab72b9d7110b01c9d",
+    "microarchitecture.md": "c49ae902c45f7e2ff4bda6d578b269fe5ebc319a29203ed97e0e8ac0591d4b05",
+    "verification_plan.yaml": "581c83a7bdd7ffd91dde951f38b847017342bbd8d55a7cef20930fefb09beab9",
+    "requirements_trace.csv": "8a24ca1731306b38fe6676edc6556c62bcb6cf63511668c52667abfee163bccd",
+    "gate_evidence.json": "97442c9deb67ca1caaac1ae488f65c2b70aa144fcc949b7bddb72a3d212e6432"
   },
   "repo_relative_rtl_sha256": {
-    "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
-    "task1/rtl/fig21_bridge.sv": "15a5fe746f012aeb655f9fc19a0b582646f445ab0a1cae16992c6a22f8c7a305",
-    "task1/rtl/module1_bridge_top.sv": "8181f1d629fefd67fc51b52483725f3c4675a613c73fff9be554e2ce6dcaaba1",
-    "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
-    "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
-    "task2/eight_rtl/rtl/dither8_top.sv": "ef9e36cb48eef4c59a4de1852538e7429739f5d36ad608cd7a8e0adb2fffe16c",
-    "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad",
-    "task3/rtl/caaz20_pair.sv": "5ddbd9f20d4534ad597f22edca9f58604c4d04877eb5efb6ba6dabb142115fdc",
-    "task_integration/rtl/sar20_digital_lms_top.sv": "04a25ad20f48ff87a84ec9818d4927e470cfd309ec308b0206b94dd8d0d17d72",
-    "task_integration/rtl/sar20_digital_top.sv": "5132cfe92f6836b4bc4300219e77424bc120e3cab11c191ad744185aaa5ac3bd",
-    "task_reconstruction/rtl/sar20_lms_recon.sv": "7005ccbc8bec2ddedd2fd1d050d19ddb7df8208a7288192258d7bbc103478b83"
+    "task1/rtl/fig11_dem.sv": "6374c562a712ee9eb9ed8ea9c3819891d84e3d91dfadd2e3856475cb253a70f0",
+    "task1/rtl/fig21_bridge.sv": "c86ad0e476e8561ace333a625877bbc8406709f4e35d8680098ab1b36369d209",
+    "task1/rtl/module1_bridge_top.sv": "6b05165d5bea6ff2509eb3217b5e3362e2d3380c36005e1af6182e068e8e1aa3",
+    "task1/rtl/module1_top.sv": "5f499cbfa09bfa9666b37a56c3360d667aaa670b7a307cfb98b40f0b177f2c93",
+    "task1/rtl/slice_scheduler.sv": "ed6dc0d648c3b603619da40b3bf49ee802fb7908c17eb75a99ac08659bb78888",
+    "task2/eight_rtl/rtl/dither8_top.sv": "42d9ad544d80258b0138b896d78003558df38a77e1ae11626cb9c1df079317ce",
+    "task2/rtl/dither_word_gen.sv": "ac4ce35846ea887f899e2cb489f6c2283e3568b9b8227e36edd7de9341ac6366",
+    "task3/rtl/caaz20_pair.sv": "aaa0f73d3c69f85e42beaf2799afc9c14051a77cec3839610a65bf6e301751c9",
+    "task_integration/rtl/sar20_digital_lms_top.sv": "88e9bd04681610a4607b1e136ca68f1344d2adaca6332370c2d3a286b95e7b90",
+    "task_integration/rtl/sar20_digital_top.sv": "6fc895d87f87710eb4c918efd85b63172e40da23bb4d4743f563aeb46bbf459c",
+    "task_reconstruction/rtl/sar20_lms_recon.sv": "2b563251f3691111596776008371ba30d7a39bf89f12055bd5068c7fb15e8e03"
   },
-  "schema": "sar20-digital-handoff-v1",
   "sdc_relative_path": "task1/physical/sky130_constraint.sdc",
-  "sdc_sha256": "01657f0555d1147c566a7a3adbf6f3250fa46a5546fce6fa0576bfbdeee5e6a3",
-  "source_sha256": {
-    "LMS_PIPELINE.md": "0dd478cec65b22924de9f67b7d90412ec6fff39180972c87d43837902d30bc93",
-    "SPEC.md": "10789107717e8f8ef96097b550acdadedbcc53ad79bb01d7a3b86d2ff6ee0d67",
-    "gate_evidence.json": "eeaa8a1196f893c6bd068ea2a93e181c69bee0a0d2f1fc572a65c5b5232ddc92",
-    "microarchitecture.md": "e3bc4ae6c79177cb66530c476c4b686f2d8266d22eebada54acd53cc940e4fca",
-    "requirements_trace.csv": "1d16c9d8a0d61e82b5bf1b0c844ca1ca938d74744803fbcc9d9b274b6f08794c",
-    "verification_plan.yaml": "fb697758c05252d9596738c92bbefb0f9f85e410c9246dab070f1e19ada86536"
-  },
-  "tops": [
-    "sar20_digital_lms_top",
-    "sar20_digital_top"
-  ]
+  "sdc_sha256": "779dcf974cc4ed202834aa0f618c3dded26d2915464b25e9cf248b0d76547528",
+  "open_items": [
+    "真实负注入参考轨、差分端与共享权重假设绑定",
+    "整体形式验证",
+    "当前版本GDS／STA／DRC／LVS",
+    "多角时序、活动功耗及EM／IR",
+    "目标180nm BCD复验"
+  ],
+  "physical_scope": "two control tops complete under TT/public rules; on-chip LMS physical pending; no full signoff"
 }

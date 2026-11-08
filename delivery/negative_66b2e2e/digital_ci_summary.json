@@ -1,0 +1,19 @@
+{
+  "run_id": 42460976565,
+  "source_commit": "2e42bc2e8533213d4fef75ae672b87a749766b9f",
+  "status": "PASS",
+  "scope": "digital checks, bounded formal and plot reproduction; not unbounded proof",
+  "artifact_sha256": "813692519507b197935b9e62e4f3f665b00ac29e44eedf20f1097c6435b7c1cd",
+  "bounded_depth": {
+    "dither": 7,
+    "same_state_context": 7,
+    "caaz_safety": 9,
+    "caaz_pair_witness": 5
+  },
+  "source_sha256": {
+    "task2/eight_rtl/rtl/dither8_top.sv": "42d9ad544d80258b0138b896d78003558df38a77e1ae11626cb9c1df079317ce",
+    "task2/eight_rtl/tb/dither8_contract.sv": "0acf496d39855048417b0f25ba0c799a306635d37bf28eb960198b308b184f33",
+    "task3/rtl/caaz20_pair.sv": "aaa0f73d3c69f85e42beaf2799afc9c14051a77cec3839610a65bf6e301751c9",
+    "task3/tb/caaz20_properties.sv": "6cbb9da2c61fb95811c212ca5e0ee3408b542dc6869eaac79a1b4cad173a1304"
+  }
+}

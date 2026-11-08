@@ -103,9 +103,9 @@ def _capture(
     * ``conversion_v`` 与 ``offset_v`` 只加到残差上，判决时它们还不存在。
 
     ``reference`` 为 ``ReferenceConfig`` 或 None：参考未建立完的剩余误差按
-    **本次转换翻动的电容单位数**折算成逐样本摆幅，再作为输入等效偏移加进残差。
-    码相关是重点——若把它当常数失调处理，FFT 去直流后会整个消失，就永远看不到
-    它造成的 INL。
+    **当前开关特征计数**折算成逐样本代理摆幅，再作为输入等效偏移加进残差。
+    该计数不是相邻码之间的物理电荷差，不包含真实电容加权、跨样本参考记忆
+    或 RA 内连续时间响应。因此只用于码相关敏感性实验，不等同讲稿第32页的完整建立模型。
 
     ``ReferenceConfig.ppm2``/``ppm3`` 不在这里用：RA 非线性是**输出满幅**口径
     （10 V），而这里的残差是**输入域**（±0.1 V），两者差一个 RA 增益。在本函数里
@@ -129,8 +129,8 @@ def _capture(
     if active:
         residue = residue + noise.offset_v + noise.conversion_v
     if ref is not None:
-        # 一阶代理：翻动的电容单位越多，参考要驱动的电荷越多，剩余建立误差越大。
-        # 参考偏低意味着该抽走的电荷没抽够，等效于输入偏正，故取正号。
+        # 一阶工程代理：当前特征计数乘名义档位作为摆幅，不是实际翻转电荷。
+        # 正号沿用本模型的输入等效残差约定，真实参考／RA注入符号需另行绑定。
         swing_v = np.abs(state.features).sum(axis=(1, 2)) * step_v
         ref_error = dynamic_reference(
             ref.precharge_frac, ref.tau_s, ref.t_precharge_s, ref.t_ra_s, swing_v

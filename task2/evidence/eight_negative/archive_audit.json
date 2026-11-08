@@ -76,11 +76,11 @@
   "sha256": {
     "task2/eight/tests/audit_archives.py": "a444e6f29b9cf0afb40103961443d5874c3df195af44916ce0e58279802d51fd",
     "task2/evidence/eight_negative/independent_oracle.json": "302b0d91702420c1d47b934e927eddecb84764d160be5f1da868cad8b1fc21d4",
-    "task2/evidence/eight_negative/figures.json": "5a6c0dfbae80eafacaaf2f4365d5faa58013e41f71b528d35f05f55ef3bb4b6f",
-    "task2/evidence/eight_negative/no_lms_figures.json": "fd66d940887f53c4e5e4483e0c4112627160ff9798dfb5a993a378fdfbf15362",
-    "task2/evidence/eight_negative/sigma_2pct/summary.json": "09c3f6c4f1213ecb588a070b6d267dc1fa3bea9e5850a75160c93852c13bf599",
+    "task2/evidence/eight_negative/figures.json": "035ba8592a7d800d7cfe12491cc8a231127434e53e6093c8baf7bcf9c0e9c7de",
+    "task2/evidence/eight_negative/no_lms_figures.json": "996f2167a2fd826a80eee7212292aa112bc93da5b9feb158a6eab640435e00b0",
+    "task2/evidence/eight_negative/sigma_2pct/summary.json": "f91a42c9bec0b3e3e1bc8da8d30b239252aab70b95b4625a26065842625310bc",
     "task2/evidence/eight_negative/sigma_2pct/data.npz": "8f368cb06857057067971c8de43da54df43632357f917afe8724b56ab2af2aff",
-    "task2/evidence/eight_negative/sigma_3pct/summary.json": "5f90e13506fb9ebe4780a89f1b31f73d42bed03cf3af1a84269bab106dbd1d1a",
+    "task2/evidence/eight_negative/sigma_3pct/summary.json": "68d97f9f67bb97c83a5edbd456b4212e75483af83dfa4fd533c7fc22d71d3778",
     "task2/evidence/eight_negative/sigma_3pct/data.npz": "884deab7ad896376c04e93b9b2ba596553ee7655fcbb607a202d755ff5aa3ebb"
   }
 }

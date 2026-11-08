@@ -1,83 +1,39 @@
 {
-  "schema": "spec-to-rtl-handoff-v1",
-  "run_id": "dither8-v1-context-mux-20261107",
-  "source_baseline": "3af060e",
-  "design_top": "dither8_top",
+  "schema": "negative-digital-handoff-v1",
+  "run_id": "negative-20261108",
   "status": "BLOCKED",
-  "scope": "digital sample controls and final DAC command",
-  "spec_freeze": {
-    "version": "1.0",
-    "sha256": "baacd67dc063fc0f416a78a89ebbdb12e829a46db0a3d9ad4776260ce460d267",
-    "approval": "engineering contract confirmed within user-authorized implementation"
-  },
+  "claim": "数字行为验证已交付，完整spec-to-rtl／后端签核未闭合",
+  "historical_records": "delivery/history/pre_negative/task2/eight_rtl",
+  "rtl_input_commit": "66b2e2e1cbec666a43b12d0d7a93e199cb8a41fd",
+  "verification_commit": "2e42bc2e8533213d4fef75ae672b87a749766b9f",
   "source_sha256": {
-    "SPEC.md": "baacd67dc063fc0f416a78a89ebbdb12e829a46db0a3d9ad4776260ce460d267",
-    "microarchitecture.md": "60efafcfeeb57fa9be13223e71187e3878b91a9bdb2c2976e4e348f81f3e737c",
-    "verification_plan.yaml": "a0bccb18789e5ab1384b0e510bd73bfa465cb1b5fa9f9c5d7b8c0607ecf897a3",
-    "requirements_trace.csv": "69d582e95f9f809b3e5892601dcd80948a7c1d6a7317941509d719680389bd63",
-    "gate_evidence.json": "2bdb81f0a1b1e561a9f79b03db112fc3c0eb37dfe8ca19ef2882c530d4153a9b",
-    "waivers.md": "6cf65804ade6416cbeab608db79141f8ae01cfe4cc512cea4474c3056347fb38",
-    "tb/formal.ys": "9c81e1f92ecc2e146b0acdff13a9c3c1151621e1626a0b8230bc81fdf47611dc",
-    "tb/dither8_contract.sv": "e8d3eedfe48551f29e6d837ba701e01a1d6902e035d5d3e7f93a5bbaac742fce",
-    "tools/run_context_equivalence.py": "dc30b6813f130154595bc1f04925dc5a1c7a697998d4f3f190b722e397081962"
+    "SPEC.md": "15f266ce06f9847b9be588ce355b154ba4e5efe904fe8f259b632042ebe0caa2",
+    "microarchitecture.md": "3809c2309b6858197be4db79f8017c599150f7456a1f4da19bfdc4888cfddf61",
+    "verification_plan.yaml": "61f0ab2f04d1e348f028c069fcbc0e22d5cdf602eaa23b27f4a0831277a39529",
+    "requirements_trace.csv": "bd9c0825eeabc4f597b52b6940b3b9c220e6e43f1809fe25576c88999bca0ab5",
+    "gate_evidence.json": "54e145e6b7b41b5347595673522d0562c30619f11982f2cc33acf60fdea3ded1"
   },
-  "repo_source_sha256": {
-    "task1/rtl/fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
-    "task1/rtl/fig21_bridge.sv": "15a5fe746f012aeb655f9fc19a0b582646f445ab0a1cae16992c6a22f8c7a305",
-    "task1/rtl/module1_bridge_top.sv": "8181f1d629fefd67fc51b52483725f3c4675a613c73fff9be554e2ce6dcaaba1",
-    "task1/rtl/module1_top.sv": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835",
-    "task1/rtl/slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
-    "task1/tools/run_bridge_checks.py": "3f1e69afd186e783eda6fbf090976933b959dbd7573d2a84ce4428eddcd23ed9",
-    "task1/tools/run_rtl_checks.py": "eecec87f7fcd6f5a3aa8db7545b3b91896a74f0e216e41f6ea3f076d5ba5abd9",
-    "task2/eight_rtl/rtl/dither8_top.sv": "ef9e36cb48eef4c59a4de1852538e7429739f5d36ad608cd7a8e0adb2fffe16c",
-    "task2/eight_rtl/tb/dither8_checks_tb.sv": "94c243d73f9165a82ab92d5abded34be1c1eca8fe2ba66f9e4e45c031ff05443",
-    "task2/eight_rtl/tools/run_checks.py": "97eb49fdbbe98e12f600374933043d1fb7b4e78bdb772e3ca474182e58b1425e",
-    "task2/rtl/dither_word_gen.sv": "32744669df487810afcbb551a8e15e2f65adbf285a97b55730d569f0335be1ad",
-    "task2/tools/run_dither_word_checks.py": "a990954e2bc45a3c0f64d80501ec4de5f1043427cf78efb050a830f805c0db5b",
-    "tools/run_open_rtl.py": "b5af7fcd9917dd8d3305117e0f2601b59f759b1e783f3aa2cd5b54e213975ef2"
+  "repo_relative_rtl_sha256": {
+    "task1/rtl/fig11_dem.sv": "6374c562a712ee9eb9ed8ea9c3819891d84e3d91dfadd2e3856475cb253a70f0",
+    "task1/rtl/fig21_bridge.sv": "c86ad0e476e8561ace333a625877bbc8406709f4e35d8680098ab1b36369d209",
+    "task1/rtl/module1_bridge_top.sv": "6b05165d5bea6ff2509eb3217b5e3362e2d3380c36005e1af6182e068e8e1aa3",
+    "task1/rtl/module1_top.sv": "5f499cbfa09bfa9666b37a56c3360d667aaa670b7a307cfb98b40f0b177f2c93",
+    "task1/rtl/slice_scheduler.sv": "ed6dc0d648c3b603619da40b3bf49ee802fb7908c17eb75a99ac08659bb78888",
+    "task2/eight_rtl/rtl/dither8_top.sv": "42d9ad544d80258b0138b896d78003558df38a77e1ae11626cb9c1df079317ce",
+    "task2/rtl/dither_word_gen.sv": "ac4ce35846ea887f899e2cb489f6c2283e3568b9b8227e36edd7de9341ac6366",
+    "task3/rtl/caaz20_pair.sv": "aaa0f73d3c69f85e42beaf2799afc9c14051a77cec3839610a65bf6e301751c9",
+    "task_integration/rtl/sar20_digital_lms_top.sv": "88e9bd04681610a4607b1e136ca68f1344d2adaca6332370c2d3a286b95e7b90",
+    "task_integration/rtl/sar20_digital_top.sv": "6fc895d87f87710eb4c918efd85b63172e40da23bb4d4743f563aeb46bbf459c",
+    "task_reconstruction/rtl/sar20_lms_recon.sv": "2b563251f3691111596776008371ba30d7a39bf89f12055bd5068c7fb15e8e03"
   },
-  "tool_inventory": [
-    {
-      "path": "evidence/environment.json",
-      "sha256": "81443c2572f22701e0b6d3f30f7ce4d165d91018429dfe4396841c43ec3a3a35"
-    }
+  "sdc_relative_path": "task1/physical/sky130_constraint.sdc",
+  "sdc_sha256": "779dcf974cc4ed202834aa0f618c3dded26d2915464b25e9cf248b0d76547528",
+  "open_items": [
+    "真实负注入参考轨、差分端与共享权重假设绑定",
+    "整体形式验证",
+    "当前版本GDS／STA／DRC／LVS",
+    "多角时序、活动功耗及EM／IR",
+    "目标180nm BCD复验"
   ],
-  "simulation": [
-    {
-      "path": "evidence/result.json",
-      "sha256": "fe53a4a209244629a3ae3e4e147d02b9bbe5587b08483f6724df18422e7d3a85"
-    },
-    {
-      "path": "independent_review/receipt.json",
-      "sha256": "ec759e87a93d33423f5f2459b6743f9737c843451d47d1dcb7447ce92c2d0146"
-    }
-  ],
-  "physical_constraints": {
-    "clock_period_ns": 6.25,
-    "intended_proxy": "SKY130HD TT 25 C 1.80 V",
-    "source_sdc": {
-      "path": "task1/physical/sky130_constraint.sdc",
-      "sha256": "01657f0555d1147c566a7a3adbf6f3250fa46a5546fce6fa0576bfbdeee5e6a3"
-    },
-    "liberty": {
-      "path_in_platform": "lib/sky130_fd_sc_hd__tt_025C_1v80.lib",
-      "sha256": "ec0e1067a35c8bf20b11e58d1e8ac53326067e4dac84a125cc1b917a3518d0d9"
-    }
-  },
-  "formal": [
-    {
-      "path": "evidence/formal_result.json",
-      "sha256": "741e2671c81160fe668bf212ae69cfd101555408d6baae4bf5f0973fcf1ebe10"
-    },
-    {
-      "path": "evidence/context_equivalence.json",
-      "sha256": "ad660142d9e2a83fdcb3068ef706cb1133e1103352f5843eeba4cdda7b0c0a07"
-    }
-  ],
-  "physical": [
-    {
-      "path": "evidence/physical_receipt.json",
-      "sha256": "4b5bd3aee9675743e94ecbd1275f865923d0e650346e1ff0a93d47ab35ab6597"
-    }
-  ]
+  "physical_scope": "two control tops complete under TT/public rules; on-chip LMS physical pending; no full signoff"
 }

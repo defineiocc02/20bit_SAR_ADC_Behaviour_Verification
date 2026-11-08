@@ -8,27 +8,55 @@
 新模型以显式受控电荷源实现负注入，假定注入与转换共享子权重；真实模拟底板轨尚未绑定。
 [本轮结果和复现](task2/evidence/eight_negative/README.md) · [数字验收记录](task_integration/evidence/negative/README.md)
 
-**同学接手：**固定并复现已验证版本，确认模拟接口后，按 DEM／LMS → dither → CAAZ 的顺序完成逐笔对拍与效果图，最后完成目标工艺数字后端验收。[九个月交付与验收](task1/SPEC.md#接手顺序与九个月交付)
+[当前负注入 GDS／时序](delivery/negative_66b2e2e/README.md) · **同学接手：**固定并复现已验证版本，确认模拟接口后，按 DEM／LMS → dither → CAAZ 的顺序完成逐笔对拍与效果图，最后完成目标工艺数字后端验收。[九个月交付与验收](task1/SPEC.md#接手顺序与九个月交付)
+
+本次运行口径如下，工程默认与原文披露分开：
+
+| 项目 | 当前采用值／边界 |
+| :--- | :--- |
+| 速率与码宽 | 原始 10 MS/s、20 位输出码；CAAZ 非重叠配对 5 MS/s。数字时钟目标 160 MHz，16 拍一笔。 |
+| 数字与模拟接口 | 前级外部提供 9 位粗码；ADC2 为理想 12 位、输入折算 ±100 mV；真实 RA 增益和内部电压轨尚须绑定。 |
+| 电容网络 | 每片主阵列 15×2C＋2×1C；子阵列 8C／4C／2C／C／C，桥接 C，末位固定低轨；这是声明的工程网络。 |
+| 电容绝对值 | `unit_cap_f=1e-15 F` 是当前静态归一计算的单位，不是建议采用 1 fF 实体电容；kT/C、面积及建立预算不能据此宣称达标。 |
+| 失配与非理想 | 配置默认 σ=0.1%；本页新对照使用同种子 100 的 2%／3% 固定制造池。噪声、参考动态默认关闭，额外噪声图另列参数。 |
+| 激励与线性度 | 频谱 4096 笔、bin 409、峰值 10/3 V；静态共同输入窗 ±3.671875 V，LSB20 按 10 V/2²⁰ 归一。 |
 
 除数字 RTL 外，本仓库还含一套**行为级模型复现**（`src/adi_model/` 与 `task2/eight/`），
 按 ISSCC 2024 论文的公开数字做定量对标。它与 RTL 交付是两条独立的证据线，状态见
 [「现在交付到哪里」](#现在交付到哪里)的最后一行；两者的结论不能互相替代。
 
-## 20 位 INL／DNL：三组对照
+## 20 位 INL／DNL：当前结果与范围
 
-同一颗 **2% 固定电容失配**虚拟芯片、理想 12 位第二级、输入等效 ±100 mV；三组的 dither 均关闭。LMS 两条路径分别训练、冻结，再用独立输入评估。图中每个 20 位码分别计算，纵轴使用 **LSB20＝9.5367 μV**。
+**下面是静态失配下的数字校准实验，不是 ISSCC 讲稿第32页的整机 INL／DNL 复现。**
+原图指出输入建立、数字串扰和参考建立限制了 INL，报告 INL +2.2／−1.8 LSB20、
+DNL ±0.27 LSB20、每码最少约250次命中。当前模型未完整包含这些条件。
 
-![20 位逐码 INL／DNL：无 DEM 无 LMS、只有 LMS、DEM 加 LMS](task1/evidence/inl_dnl/full20/adc2_12bit_sigma_2pct_three_arms_body_zoom.png)
+| 本工程固定失配 | DEM | LMS | dither | 峰值端点 INL | DNL 最小～最大 | 统计零宽内码 |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| 2% | 关 | 关 | 关 | 655.668 LSB20 | −1.000～+6.325 LSB20 | 478,486 |
+| 2% | 关 | 开 | 关 | 0.788 LSB20 | −0.740～+0.840 LSB20 | 0 |
+| 2% | 开 | 开 | 关 | 0.493 LSB20 | −0.580～+0.640 LSB20 | 0 |
+| 2% | 开 | 开 | 开 | 0.523 LSB20 | −0.500～+0.620 LSB20 | 0 |
+| 3% | 开 | 开 | 关 | 0.492 LSB20 | −0.540～+0.619 LSB20 | 0 |
+| 3% | 开 | 开 | 开 | 0.461 LSB20 | −0.620～+0.660 LSB20 | 0 |
 
-| 处理方式 | 峰值 INL（LSB20） | DNL 范围（LSB20） | 零宽内码 |
-| :--- | ---: | :--- | ---: |
-| DEM 关、LMS 关 | 901.930 | −1.000～+9.238 | 802,491 |
-| DEM 关、仅 LMS | 3.737 | −1.000～+4.118 | 678,189 |
-| 跨段 DEM 开＋独立 LMS | 3.479 | −1.000～+4.120 | 336 |
+![当前静态模型的20位INL／DNL及中码放大](task2/evidence/eight_negative/eight_native_linearity.png)
 
-图中的 DEM 纵轴已放大，超出范围的极值、点数和缺码均有标注。未校准基线的输出端高端裁剪对应 2.640 mV 输入宽度；它与 ADC2 超窗分别统计。[3% 对照图](task1/evidence/inl_dnl/full20/adc2_12bit_sigma_3pct_three_arms_body_zoom.png) · [全范围及端点放大](task1/evidence/inl_dnl/full20/README.md) · [原始数据与计算方法](task1/evidence/inl_dnl/README.md)
+每码先计算输入宽度，再按 **LSB20＝10 V/2²⁰＝9.5367 μV** 得到 DNL；INL 由码宽累积后
+扣除端点直线。共同输入窗为 ±3.671875 V、256个等权配对状态、754,319个内码。
+这是平均码密度，不是全幅±5 V每次转换无缺码证明；全幅验收门限仍须由模型MC和模拟预算冻结。
 
-固定 A/B 使用两组固定状态；动态 DEM 使用 4 组种子各 128 个状态快照作等权统计，**不是每笔都重新抽电容**。这些是理想两节点和理想 ADC2 的统计结果，不是实际芯片的逐笔 DNL。按这组模型，DEM 明显减少统计零宽码，但最小 DNL 仍为 −1 LSB20。[什么是 512 个状态、什么是无 DEM](task1/STATE_AND_BASELINES.md)
+| 第32页的限制因素 | 当前状态 | 上表是否包含 |
+| :--- | :--- | :---: |
+| 输入建立不足 | 时偏／抖动工具不能代替有限采集时间下的逐片建立；尚未接入这条主链 | 否 |
+| 数字串扰 | 未建立实际数字翻转到采样／参考节点的耦合模型 | 否 |
+| 参考建立不足 | 有当前特征计数驱动的一阶误差代理；没有真实加权电荷、跨样本记忆和RA连续响应 | 此组关闭 |
+| 每码命中统计 | 当前为解析区间积分与等权状态平均，未复现原图的有限命中统计环境 | 不同口径 |
+
+[原讲稿第32页](references/ISSCC2024_SLIDES.pdf#page=32) · [当前完整数据与复现](task2/evidence/eight_negative/README.md)
+
+早期更宽输入范围的[三臂图和原始数据](task1/evidence/inl_dnl/full20/README.md)继续保留，
+其状态集合、训练与评价窗口不同，不与本表直接混比；其中发现的全幅问题仍需处理。
 
 ## Dither 是什么效果？
 
@@ -41,8 +69,6 @@
 ![负注入模型：关闭 LMS 的 dither 开关对照](task2/evidence/eight_negative/eight_native_no_lms_linearity.png)
 
 **再看加入 LMS：**两档各使用混合开关训练后冻结的同一组系数。输出单位为 LSB20＝9.5367 μV，ADC2 为理想 12 位、输入折算 ±100 mV。
-
-![负注入模型：相同 DEM 和 LMS 下的逐码统计](task2/evidence/eight_negative/eight_native_linearity.png)
 
 ![负注入模型：同池同输入频谱](task2/evidence/eight_negative/eight_native_spectra.png)
 
@@ -59,7 +85,7 @@
 
 每笔先使用自己的 8 片物理编号、DEM 掩码和 dither 位图完成重构与去扰，再将相邻两笔交给 CAAZ。两笔共享的是 RA 的 AZ 代，不是电容失配或 dither 字；AZ 更新／保持意图必须随样本 ID 对齐到该笔的 RA 时窗。
 
-![DEM、dither 与 CAAZ 的同笔协作与交织时序](task3/evidence/cooperation/caaz_cooperation.png)
+![DEM、dither 与 CAAZ 的同笔协作与交织时序](task3/evidence/negative/cooperation/caaz_cooperation.png)
 
 ![负注入模型中 CAAZ 的同带宽对照](task3/evidence/negative/joint_noise/caaz_joint_noise.png)
 
@@ -71,10 +97,10 @@
 | :--- | :--- | :--- |
 | 切片调度＋DEM | 18／8／8／2、有序 ID、释放资格和 Fig.21 跨段候选已有 Python／RTL 对拍；跨段名义补偿与模拟连接仍须系统验证 | [代码与接口](task1/BRIDGE_SPEC.md) · [数字验证](task1/evidence/bridge_rtl/README.md) |
 | 电容失配＋LMS | 训练在片外；可写权重的片上重构 RTL 已与定点参考对拍。2%／3% 留出数据和关闭 LMS 的对照均已归档 | [八片校准与对照](task2/evidence/eight_negative/README.md) · [片上重构](task_reconstruction/README.md) |
-| SKY130 数字后端 | 旧正注入版已有 GDS、TT STA、DRC／LVS；本次负注入 RTL 必须重新跑后端，不能继承旧版通过状态 | [整体 GDS 与状态](task2/physical/README.md) · [模块一 GDS](task1/physical/README.md) |
+| SKY130 数字后端 | 负注入八片控制及外接重构顶层已交新GDS，TT建立／保持、公开DRC及独立上游LVS通过；含片上LMS大顶层仍在运行，不继承旧版通过 | [本版GDS与状态](delivery/negative_66b2e2e/README.md) · [模块一 GDS](task1/physical/README.md) |
 | 分路 dither | 18 片中选择 8 片，六位字、逐片底板采样、同笔 ID 和命令码有 Python／RTL 对拍及有界形式验证；模拟辅助 DAC 和真实参考开关仍须验收 | [八片效果](task2/evidence/eight_negative/README.md) · [RTL 合同](task2/eight_rtl/SPEC.md) |
 | CAAZ | 斩波相位、自归零控制和两笔数字配对已有 RTL 对拍；模拟宏、实际保持误差和联合后仿仍待验证 | [模块三说明](task3/README.md) |
-| 行为级模型复现 | 噪声层已对上论文：DR 94.49 dB（折算后）、噪声密度 9.26 nV/√Hz。**未对上**：SNR 高 0.82 dB、DNL 峰值差 2.3 倍、THD 无 C-V 机制产生不出。门禁 G1–G7 为 3 绿 4 红 | [动态对标](task2/evidence/paper_alignment/ALIGNMENT.md) · [静态 12 格](task2/evidence/paper_alignment/STATIC.md) · [门禁与收据](task2/evidence/behavior_freeze/gate.json) |
+| 归档行为级定量对照 | M7–M9归档中，噪声层对照论文：DR 94.49 dB（折算后）、噪声密度 9.26 nV/√Hz。**未对上**：SNR 高 0.82 dB、DNL 峰值差 2.3 倍、THD 无 C-V 机制产生不出。当时门禁 G1–G7 为3绿4红；本次未据此声称完整复现，第32页三项限制仍未闭合 | [动态对标](task2/evidence/paper_alignment/ALIGNMENT.md) · [静态 12 格](task2/evidence/paper_alignment/STATIC.md) · [门禁与收据](task2/evidence/behavior_freeze/gate.json) |
 
 SKY130 是本阶段指定的数字工艺；它**不是**未来 180 nm BCD 的签核结果。当前目标输出码宽为 20 位，不等于已证明 20 位有效精度。实际 SADC、RDAC、RA、ADC2 和斩波／自归零开关由模拟宏提供。
 

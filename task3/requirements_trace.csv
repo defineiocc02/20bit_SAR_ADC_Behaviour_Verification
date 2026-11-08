@@ -1,7 +1,7 @@
 REQ_ID,verification_id,evidence,status
-REQ-CAAZ-01,CAZ-R1,evidence/formal/receipt.json,PASS
-REQ-CAAZ-02,CAZ-R2,evidence/formal/receipt.json,PASS
-REQ-CAAZ-03,CAZ-R3,evidence/formal/receipt.json,PASS
-REQ-CAAZ-04,CAZ-M1,evidence/behavior/caaz_effect_summary.json,PASS
+REQ-CAAZ-01,CAZ-R1,evidence/negative/digital/result.json,PASS
+REQ-CAAZ-02,CAZ-R2,evidence/negative/digital/result.json,PASS
+REQ-CAAZ-03,CAZ-R3,evidence/negative/digital/result.json,PASS
+REQ-CAAZ-04,CAZ-M1,evidence/negative/joint_noise/summary.json,PASS
 REQ-CAAZ-05,CAZ-A1,SPEC.md,BLOCKED
-REQ-CAAZ-06,CAZ-P1,../task2/physical/README.md,NOT_RUN
+REQ-CAAZ-06,CAZ-P1,https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42459663395,PARTIAL

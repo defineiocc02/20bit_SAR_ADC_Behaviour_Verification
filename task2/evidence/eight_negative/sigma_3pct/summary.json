@@ -698,7 +698,7 @@
     }
   },
   "source_sha256": {
-    "task2/eight/experiment.py": "d49965c31c5e2412bb58f9420e6351ffe79c2b1aaeb8643a247e8064e95c8b8c",
+    "task2/eight/experiment.py": "8e2fecbca2c101b10e913b1fb009cbb1d074efb7a87cb00852035dc6642aaf66",
     "task2/eight/model.py": "8e6f7df5373d63116e9a2d2a9ef8dfc76c63076392a01bb21d713e805ac19066",
     "task2/model/dither_word_gen.py": "adbdbe0e526d271c18e00c7025e33822ad54ca6feb14ad17a4d5fbe557141f6d",
     "task1/experiments/adctoolbox_calibration.py": "9dc90922b4485392fcde42dcc11d001802f67cb9200471dc7233ae83a007dfed",

@@ -6,9 +6,9 @@
   "dpi": 300,
   "input_sha256": {
     "sigma_2pct/data.npz": "8f368cb06857057067971c8de43da54df43632357f917afe8724b56ab2af2aff",
-    "sigma_2pct/summary.json": "09c3f6c4f1213ecb588a070b6d267dc1fa3bea9e5850a75160c93852c13bf599",
+    "sigma_2pct/summary.json": "f91a42c9bec0b3e3e1bc8da8d30b239252aab70b95b4625a26065842625310bc",
     "sigma_3pct/data.npz": "884deab7ad896376c04e93b9b2ba596553ee7655fcbb607a202d755ff5aa3ebb",
-    "sigma_3pct/summary.json": "5f90e13506fb9ebe4780a89f1b31f73d42bed03cf3af1a84269bab106dbd1d1a"
+    "sigma_3pct/summary.json": "68d97f9f67bb97c83a5edbd456b4212e75483af83dfa4fd533c7fc22d71d3778"
   },
   "script_sha256": {
     "task2/eight/plots.py": "f1fedd5f0ca13bf8e97e47d89d74bdf58039b177a53fddcfdd6736dd23052ca6"

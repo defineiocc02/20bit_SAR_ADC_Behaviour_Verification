@@ -79,10 +79,10 @@
   "scope": "same_archived_3pct_pool_ideal_charge_and_q28_digital_reconstruction",
   "source_sha256": {
     "task1/experiments/full20_linearity_plots.py": "54021fb4a2fa465f4c3c30c503a34570d8efd5ce34850ae57a078d0987ba3d8c",
-    "task2/eight/experiment.py": "d49965c31c5e2412bb58f9420e6351ffe79c2b1aaeb8643a247e8064e95c8b8c",
+    "task2/eight/experiment.py": "8e2fecbca2c101b10e913b1fb009cbb1d074efb7a87cb00852035dc6642aaf66",
     "task2/eight/model.py": "8e6f7df5373d63116e9a2d2a9ef8dfc76c63076392a01bb21d713e805ac19066",
     "task2/evidence/eight_negative/sigma_3pct/data.npz": "884deab7ad896376c04e93b9b2ba596553ee7655fcbb607a202d755ff5aa3ebb",
-    "task2/evidence/eight_negative/sigma_3pct/summary.json": "5f90e13506fb9ebe4780a89f1b31f73d42bed03cf3af1a84269bab106dbd1d1a",
+    "task2/evidence/eight_negative/sigma_3pct/summary.json": "68d97f9f67bb97c83a5edbd456b4212e75483af83dfa4fd533c7fc22d71d3778",
     "task3/tools/run_joint_effect.py": "5c25f0f54c95b8cebad750095e5535796f4a298b27669a8424e8febd299f1092",
     "task_integration/evidence/negative/on_chip/result.json": "aeb8acf3fbb8c73760f39c12e4bcecdeddabba9f52209cee9ef1192c70e4a943",
     "task_integration/tools/run_lms_checks.py": "a2adcd883c9554a569d6ce13cbe99330ec7467356dc47c07f88dfef540a95a5c",

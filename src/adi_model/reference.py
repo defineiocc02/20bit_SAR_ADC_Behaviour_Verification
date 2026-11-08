@@ -11,7 +11,7 @@
 #     「若有这个量会怎样」，不对任何具体版图的 RC 或运放线性度做断言。
 #   * 唯一有出处的关系是论文 ISSCC2024 9.8 的两句话：RA 相位开始时残差只有
 #     约 15b 精度，参考完全建立（20b）需要 RA 相位的约 65%。这两句给出的是
-#     「误差压到初始值的 1/32 需要 0.65·T_RA」，由此可反解 τ，见 required_tau。
+#     精度与时间锚点；把它们换成同一指数误差的 1/32 衰减及 τ，是额外工程假设。
 #   * 预充相位与 RA 相位共用同一个 τ 的口径：粗预充缓冲器把参考充到某个比例，
 #     多路开关切到 REF_IN 之后只剩残差要建立。若两者 τ 不同，本模块的
 #     precharge_frac 就该由调用方按各自的 τ 先算好再传进来。
@@ -37,11 +37,12 @@ SETTLE_FRACTION_OF_RA_PHASE = 0.65
 # RA 相位开始时残差的精度（位）。原文 "the residue is only ~15b accurate"。
 RESIDUAL_ACCURACY_BITS_AT_RA_START = 15
 
-# 由上面两条得到：15b 到 20b 是 2^5 倍，即误差要再压到 1/32。
+# 若两种精度采用同一误差标度，15b 到 20b 可等效为误差衰减 32 倍；
+# 这不是对论文参考电流波形或真实多极点建立过程的识别。
 RESIDUAL_ACCURACY_RATIO = 1 << (20 - RESIDUAL_ACCURACY_BITS_AT_RA_START)
 
-# 预充结束时参考已建立的比例：RA 相位开始只剩 15b 的残差，即误差是全摆幅的
-# 2^-15。这两个数说的是同一件事，写法不同。
+# 工程等效：把15b残差精度换成相对全摆幅2^-15的预充误差；
+# 论文没有直接披露这个参考节点电压比例，不得作为真实电路初值引用。
 PRECHARGE_FRACTION_FROM_PAPER = 1.0 - 2.0**-RESIDUAL_ACCURACY_BITS_AT_RA_START
 
 
@@ -60,7 +61,8 @@ class ReferenceConfig:
         ppm2: RA 二阶非线性系数，ppm（相对差分满幅）。
         ppm3: RA 三阶非线性系数，ppm（相对差分满幅）。
 
-    这些都是 S5_假设，只有 ``from_paper_anchor`` 里的 τ 是由论文两句话反解的。
+    这些参数均需独立的模拟依据；``from_paper_anchor`` 的 τ 只在假定单极点指数建立、
+    且两项精度使用同一误差标度时由披露锚点换算，并非论文披露的器件时间常数。
     """
 
     enabled: bool = False
@@ -209,7 +211,7 @@ def required_tau(t_ra_s: float, settle_fraction: float, accuracy_ratio: float) -
     ``tau = f*T / ln(ratio)``。
 
     论文给的是 f=0.65、ratio=2^5（15b 起、20b 止），对应 ``tau = 0.1876*T``。
-    这是 M4 里唯一不靠假设的时间常数。
+    这是单极点假设下的派生示例，不是论文披露或电路测得的时间常数。
 
     Args:
         t_ra_s: RA 相位时长，单位 s。

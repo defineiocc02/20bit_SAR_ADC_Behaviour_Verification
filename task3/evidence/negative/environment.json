@@ -1,0 +1,19 @@
+{
+  "schema": "negative-digital-environment-v1",
+  "python": "3.12.14",
+  "machine": "arm64",
+  "cpu_count": 6,
+  "platform": "Darwin",
+  "verilator": "rev UNKNOWN.REV",
+  "local_functional_execution": "PASS",
+  "local_openroad": null,
+  "local_yosys": null,
+  "local_docker": null,
+  "physical_execution": {
+    "adapter": "GitHub Actions public ORFS/SKY130HD",
+    "source_commit": "66b2e2e1cbec666a43b12d0d7a93e199cb8a41fd",
+    "lms_workflow_run": 42459663395,
+    "status": "RUNNING"
+  },
+  "scope": "Executed Python/Verilator evidence only; no local proprietary PDK/license claim"
+}

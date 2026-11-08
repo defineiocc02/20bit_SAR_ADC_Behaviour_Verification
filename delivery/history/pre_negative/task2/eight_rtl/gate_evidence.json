@@ -1,0 +1,96 @@
+{
+  "G0": {
+    "status": "PASS",
+    "scope": "local simulation only",
+    "evidence": [
+      {
+        "path": "evidence/environment.json",
+        "sha256": "81443c2572f22701e0b6d3f30f7ce4d165d91018429dfe4396841c43ec3a3a35"
+      },
+      {
+        "path": "evidence/result.json",
+        "sha256": "fe53a4a209244629a3ae3e4e147d02b9bbe5587b08483f6724df18422e7d3a85"
+      }
+    ]
+  },
+  "G1": {
+    "status": "PASS",
+    "scope": "v1.0 digital interface contract",
+    "evidence": [
+      {
+        "path": "SPEC.md",
+        "sha256": "baacd67dc063fc0f416a78a89ebbdb12e829a46db0a3d9ad4776260ce460d267"
+      }
+    ]
+  },
+  "G2": {
+    "status": "PASS",
+    "evidence": [
+      {
+        "path": "microarchitecture.md",
+        "sha256": "60efafcfeeb57fa9be13223e71187e3878b91a9bdb2c2976e4e348f81f3e737c"
+      },
+      {
+        "path": "verification_plan.yaml",
+        "sha256": "a0bccb18789e5ab1384b0e510bd73bfa465cb1b5fa9f9c5d7b8c0607ecf897a3"
+      },
+      {
+        "path": "tools/run_checks.py",
+        "sha256": "97eb49fdbbe98e12f600374933043d1fb7b4e78bdb772e3ca474182e58b1425e"
+      }
+    ]
+  },
+  "G3": {
+    "status": "PASS",
+    "scope": "lint, elaboration, directed/random cycle comparison, bounded contract and same-state equivalence",
+    "evidence": [
+      {
+        "path": "evidence/result.json",
+        "sha256": "fe53a4a209244629a3ae3e4e147d02b9bbe5587b08483f6724df18422e7d3a85"
+      },
+      {
+        "path": "evidence/lint.log",
+        "sha256": "15e3775b7bef9f887ca85c8a873cbecd6628c73f588bc30a498a45245271f6c4"
+      },
+      {
+        "path": "evidence/run.log",
+        "sha256": "c9cefa3eb01c87b3c863581080a7ebeb34eeed108e25e573f7a1a23cf2b38f08"
+      },
+      {
+        "path": "evidence/formal_result.json",
+        "sha256": "741e2671c81160fe668bf212ae69cfd101555408d6baae4bf5f0973fcf1ebe10"
+      },
+      {
+        "path": "independent_review/receipt.json",
+        "sha256": "ec759e87a93d33423f5f2459b6743f9737c843451d47d1dcb7447ce92c2d0146"
+      },
+      {
+        "path": "evidence/context_equivalence.json",
+        "sha256": "ad660142d9e2a83fdcb3068ef706cb1133e1103352f5843eeba4cdda7b0c0a07"
+      }
+    ]
+  },
+  "G4": {
+    "status": "BLOCKED",
+    "scope": "Matched dither8_top SKY130HD TT proxy. REQ-D8-05 is complete.",
+    "completed": {
+      "proxy_gds": "PASS",
+      "extracted_tt_setup_and_hold": "PASS",
+      "public_drc": "PASS",
+      "legacy_public_lvs": "FAIL",
+      "revised_public_lvs": "PASS",
+      "proxy_constraint_check": "check_setup -verbose completed with no diagnostics for the archived SDC"
+    },
+    "blockers": [
+      "At the 6.25 ns proxy constraint the mapped TT setup has -0.676904 ns worst slack and -15.253484 ns TNS. The routed TT case subsequently closed timing.",
+      "Slow and fast corner setup/hold and target-system analog I/O timing budget validation are not available.",
+      "Activity-backed power for the target operating scenarios is not available."
+    ],
+    "evidence": [
+      {
+        "path": "evidence/physical_receipt.json",
+        "sha256": "4b5bd3aee9675743e94ecbd1275f865923d0e650346e1ff0a93d47ab35ab6597"
+      }
+    ]
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "schema": "negative-proxy-physical-v1",
+  "claim": "PARTIAL_SIGNOFF",
+  "tops": {
+    "dither8_top": {
+      "source_commit": "66b2e2e1cbec666a43b12d0d7a93e199cb8a41fd",
+      "timing": {
+        "setup": {
+          "worst_slack_ns": 0.16554,
+          "wns_ns": 0.0,
+          "tns_ns": 0.0,
+          "violations": 0,
+          "status": "PASS"
+        },
+        "hold": {
+          "worst_slack_ns": 0.102391,
+          "wns_ns": 0.0,
+          "tns_ns": 0.0,
+          "violations": 0,
+          "status": "PASS"
+        }
+      },
+      "gds_sha256": "0300defdb519b34b6beb04d13e5af4edfb54f6fd228d3511c89976ee3e146189",
+      "public_drc": {
+        "status": "PASS",
+        "exit_code": 0,
+        "report": "6_drc.lyrdb",
+        "violations": 0
+      },
+      "original_public_lvs": {
+        "status": "FAIL",
+        "exit_code": 0,
+        "report": "6_lvs.log"
+      },
+      "upstream_lvs": {
+        "status": "PASS",
+        "exit_code": 0,
+        "deck_sha256": "d2d231d7cd00a8261d6653c5f3757badefb1dc0aba29441d8406272e75cd8b90",
+        "log_sha256": "2addbe0b992ec83b76f7be7050cea913aa1def3c1213ecbeb5a615e7cf92a94e",
+        "database_sha256": "6e6380c49414df3986eab6fef0330606a8f21922d15d34e3cb8659ff50d2e138",
+        "database_complete": true
+      },
+      "upstream_revision": "5eebdc0d06879cf674e86e3fb8efa2803e6e44dc",
+      "manifest": "delivery/negative_66b2e2e/dither8_top_manifest.json",
+      "lvs_summary": "delivery/negative_66b2e2e/dither8_top_lvs.json"
+    },
+    "sar20_digital_top": {
+      "source_commit": "66b2e2e1cbec666a43b12d0d7a93e199cb8a41fd",
+      "timing": {
+        "setup": {
+          "worst_slack_ns": 0.267818,
+          "wns_ns": 0.0,
+          "tns_ns": 0.0,
+          "violations": 0,
+          "status": "PASS"
+        },
+        "hold": {
+          "worst_slack_ns": 0.0467775,
+          "wns_ns": 0.0,
+          "tns_ns": 0.0,
+          "violations": 0,
+          "status": "PASS"
+        }
+      },
+      "gds_sha256": "f37824a04e2700209df376d35fc855153c91582f46aea6c531e5b7e98dd2a5a1",
+      "public_drc": {
+        "status": "PASS",
+        "exit_code": 0,
+        "report": "6_drc.lyrdb",
+        "violations": 0
+      },
+      "original_public_lvs": {
+        "status": "FAIL",
+        "exit_code": 0,
+        "report": "6_lvs.log"
+      },
+      "upstream_lvs": {
+        "status": "PASS",
+        "exit_code": 0,
+        "deck_sha256": "d2d231d7cd00a8261d6653c5f3757badefb1dc0aba29441d8406272e75cd8b90",
+        "log_sha256": "f3e941473c26532657e8fddd8e462379d6597e9031ab0b8316af0f91d70b5395",
+        "database_sha256": "8e2de25a739e5f2b8a53b0a1f72ee20b1efbb5d9b2f5d6d18b65af921748d238",
+        "database_complete": true
+      },
+      "upstream_revision": "5eebdc0d06879cf674e86e3fb8efa2803e6e44dc",
+      "manifest": "delivery/negative_66b2e2e/sar20_digital_top_manifest.json",
+      "lvs_summary": "delivery/negative_66b2e2e/sar20_digital_top_lvs.json"
+    }
+  },
+  "lms_workflow": {
+    "run_id": 42459663395,
+    "status": "RUNNING"
+  }
+}

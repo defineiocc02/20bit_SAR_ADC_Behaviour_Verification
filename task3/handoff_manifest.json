@@ -1,52 +1,39 @@
 {
-  "base_commit": "b592ba825fa2c156f58fab5b2f528d90e49cacff",
-  "clock": {
-    "internal_domains": 1,
-    "period_ns": 6.25,
-    "port": "clk_i",
-    "reset": "synchronous active low"
-  },
-  "functional": {
-    "analog_macros": "BLOCKED",
-    "formal": "PASS",
-    "formal_scope": {
-      "kind": "bounded safety and pair reachability",
-      "pair_witness_step": 5,
-      "receipt": "evidence/formal/receipt.json",
-      "safety_steps": 9
-    },
-    "simulation": "PASS",
-    "waivers": []
-  },
-  "physical": {
-    "handoff": "task2/physical/README.md",
-    "status": "NOT_RUN"
-  },
-  "rtl_top": "caaz20_pair",
-  "run_id": "caaz20-task3-v3",
-  "schema_version": 1,
-  "scope": "MODULE3_CAAZ_DIGITAL",
-  "source_paths_relative_to": "task3/",
+  "schema": "negative-digital-handoff-v1",
+  "run_id": "negative-20261108",
+  "status": "BLOCKED",
+  "claim": "数字行为验证已交付，完整spec-to-rtl／后端签核未闭合",
+  "historical_records": "delivery/history/pre_negative/task3",
+  "rtl_input_commit": "66b2e2e1cbec666a43b12d0d7a93e199cb8a41fd",
+  "verification_commit": "2e42bc2e8533213d4fef75ae672b87a749766b9f",
   "source_sha256": {
     "SPEC.md": "d124b8a9b51477a3923bbc1f50025b84bdc375fc53d376070c8ac09f4bcc645f",
-    "environment.json": "f36b81de42e8f183d0b72ebdc944b883f126c63fafb622c7b19b0ce1b3f2583b",
-    "evidence/behavior/caaz_effect_summary.json": "ebf41e320f6e727d71d199fb7ed0572f7fcd4308ae14e75379cd6f492fff0312",
-    "evidence/formal/caaz_formal.log": "6ce96a2e47e0c6d232415b71be2a4e6370a91cc72a1a56d5fe3a43f388b96a38",
-    "evidence/formal/receipt.json": "75562f7ce0164f8e21d0ca5bf052d07d034ab91504e7da4cc19d714f93217557",
-    "evidence/formal/rtl_replay_result.json": "c93ed695dbaf7db2b33613f5f87cc12db966fb59c5a56781684d20c58d0b69ee",
-    "evidence/integrated/summary.json": "c11af574fe9f46f41ae555045d7e300d78af26ce8fa568c625be53de9e87a4b8",
-    "evidence/rtl/result.json": "a3e97497a30edf735a4f586b5e02ecc8fff160389b4df5473bb48f4371bcf648",
-    "gate_evidence.json": "0ac5a0b06f4d3d1273f4c67e160267b1d1ab454594b3f8ed49d9529309f87134",
     "microarchitecture.md": "dae8ee0722e5f43da79a7d43a2c99f2c3d7ff21110e4ddf9fb1a92b7f3bf0928",
-    "model/caaz20.py": "3da6abedb7eeb6674fa49d8c3661e698b3420e9125fd96c3301888f3af16c3da",
-    "requirements_trace.csv": "d303eb314c37586a18c89047966f73ecea2a47e3d5ee6e3f6674c12eab0a975b",
-    "rtl/caaz20_pair.sv": "5ddbd9f20d4534ad597f22edca9f58604c4d04877eb5efb6ba6dabb142115fdc",
-    "tb/caaz20_pair_tb.sv": "b7cf9e5d1b8aa53d92610fa65cbeb8dd9ab1dbd8c15f850330b6bea0321c69a5",
-    "tb/caaz20_properties.sv": "624928f93689f66bbb1a795ce820b2229bece8f0e0126e78bae6b00ac3ae9a5b",
-    "tb/formal.ys": "0ae7e34a5b841c75b2da1a05dc79bd74c73b7d2d987d3db8eeb49765bbcb7df6",
-    "tools/run_caaz_checks.py": "7ad698750aaa99f4ae1257237085a89fb7c67534b2783804cd85db6839b391e1",
-    "tools/run_caaz_effect.py": "3a0b9df77d2f5c19b7ec043d4ae8d4dd0f6cf4cf8fe1db065f6bb77565a4c009",
-    "tools/run_joint_effect.py": "58fb4ae8e8f34d8fc1c69ab37f6a2458748b01e4d09071f07499f8934e26d1cc",
-    "verification_plan.yaml": "8cf2502e0a0d750e4d3a08905b88e18cb04b03f4061a2711ef38b931cf3f8ffe"
-  }
+    "verification_plan.yaml": "927a90690e00c41ba9f82b9709002d1cac2a98479edabd371d9c453f9b318518",
+    "requirements_trace.csv": "6dfcaa2d21181232c39b733756627515b0f76b3bce1cf68f9ac169c79c254771",
+    "gate_evidence.json": "85a06a337c5607076bc407d24c0fca0e25f8b22663d6cb4837eb7cbfe3d1e5cd"
+  },
+  "repo_relative_rtl_sha256": {
+    "task1/rtl/fig11_dem.sv": "6374c562a712ee9eb9ed8ea9c3819891d84e3d91dfadd2e3856475cb253a70f0",
+    "task1/rtl/fig21_bridge.sv": "c86ad0e476e8561ace333a625877bbc8406709f4e35d8680098ab1b36369d209",
+    "task1/rtl/module1_bridge_top.sv": "6b05165d5bea6ff2509eb3217b5e3362e2d3380c36005e1af6182e068e8e1aa3",
+    "task1/rtl/module1_top.sv": "5f499cbfa09bfa9666b37a56c3360d667aaa670b7a307cfb98b40f0b177f2c93",
+    "task1/rtl/slice_scheduler.sv": "ed6dc0d648c3b603619da40b3bf49ee802fb7908c17eb75a99ac08659bb78888",
+    "task2/eight_rtl/rtl/dither8_top.sv": "42d9ad544d80258b0138b896d78003558df38a77e1ae11626cb9c1df079317ce",
+    "task2/rtl/dither_word_gen.sv": "ac4ce35846ea887f899e2cb489f6c2283e3568b9b8227e36edd7de9341ac6366",
+    "task3/rtl/caaz20_pair.sv": "aaa0f73d3c69f85e42beaf2799afc9c14051a77cec3839610a65bf6e301751c9",
+    "task_integration/rtl/sar20_digital_lms_top.sv": "88e9bd04681610a4607b1e136ca68f1344d2adaca6332370c2d3a286b95e7b90",
+    "task_integration/rtl/sar20_digital_top.sv": "6fc895d87f87710eb4c918efd85b63172e40da23bb4d4743f563aeb46bbf459c",
+    "task_reconstruction/rtl/sar20_lms_recon.sv": "2b563251f3691111596776008371ba30d7a39bf89f12055bd5068c7fb15e8e03"
+  },
+  "sdc_relative_path": "task1/physical/sky130_constraint.sdc",
+  "sdc_sha256": "779dcf974cc4ed202834aa0f618c3dded26d2915464b25e9cf248b0d76547528",
+  "open_items": [
+    "真实负注入参考轨、差分端与共享权重假设绑定",
+    "整体形式验证",
+    "当前版本GDS／STA／DRC／LVS",
+    "多角时序、活动功耗及EM／IR",
+    "目标180nm BCD复验"
+  ],
+  "physical_scope": "two control tops complete under TT/public rules; on-chip LMS physical pending; no full signoff"
 }

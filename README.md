@@ -66,6 +66,29 @@
 
 SKY130 是本阶段指定的数字工艺；它**不是**未来 180 nm BCD 的签核结果。当前目标输出码宽为 20 位，不等于已证明 20 位有效精度。实际 SADC、RDAC、RA、ADC2 和斩波／自归零开关由模拟宏提供。
 
+## 数字交付的可追溯性
+
+33 条验收项（`REQ-M1-*` 13、`REQ-D8-*` 5、`REQ-CAAZ-*` 6、`REQ-TOP-*` 5、`REQ-RECON-*` 4）
+分散在五个 task 的 `verification_plan.yaml` 里，此前没有一处能一次看全。现在两条命令：
+
+```sh
+python3 tools/build_req_matrix.py   # 汇总成 trace/req_matrix.csv，一条需求一行
+python3 tools/digital_status.py     # 模块/TB/检查命令/证据新旧 → trace/digital_status.json
+```
+
+`req_matrix.csv` 的「证据」一列固定写「待确认」：evidence 的 JSON 里没有 REQ 字段，
+自动建链会得到看似精确、实则瞎猜的结果，这一列留给人补。表里 `declared_status`
+为 `BLOCKED` 的项（当前 `REQ-CAAZ-05`）是计划表作者自己写下的「缺输入」，比任何外部推断都可信。
+
+当前数字侧：**11 个 RTL 模块、11 个 TB、5 组检查命令**。RTL 回归需要 Verilator，
+本机没有安装，命令列在 `digital_status.json` 的 `per_task.*.check_commands`，
+交给有工具的环境执行。
+
+已知的结构性缺口：**五份计划表用了四种 schema、两种方向**（task1/task3/task_integration
+是「需求→测试」，task2/task_reconstruction 是「测试→需求」），且 33 条里有 26 条
+没有声明验证方法等级（只有测试名或 oracle 描述），所以 `req_matrix.csv` 的 `method`
+列大量为空。这是计划表本身的债，不是解析器的问题。
+
 ## 运行和目录
 
 需要 Python 3.12、Verilator；校准和静态分析使用固定提交的 ADCToolbox。输出目录应是**尚不存在的仓库外目录**。

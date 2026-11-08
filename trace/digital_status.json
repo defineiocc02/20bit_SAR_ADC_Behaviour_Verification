@@ -1,0 +1,222 @@
+{
+  "schema": "adi_digital_status_v1",
+  "generated_at": "2026-11-08T03:17:40+00:00",
+  "summary": {
+    "modules": 11,
+    "testbenches": 11,
+    "tasks": 5,
+    "gaps": [
+      "本机无 verilator / iverilog / yosys，RTL 回归无法在此环境执行"
+    ]
+  },
+  "tools": {
+    "verilator": {
+      "found": false,
+      "path": "",
+      "version": ""
+    },
+    "iverilog": {
+      "found": false,
+      "path": "",
+      "version": ""
+    },
+    "yosys": {
+      "found": false,
+      "path": "",
+      "version": ""
+    }
+  },
+  "per_task": {
+    "task1": {
+      "modules": 5,
+      "testbenches": 2,
+      "check_commands": [
+        "PYTHONPATH=.:src python task1/tools/run_rtl_checks.py --out <dir>",
+        "PYTHONPATH=.:src python task1/tools/run_bridge_checks.py --out <dir>"
+      ],
+      "evidence": {
+        "exists": true,
+        "files": 208,
+        "oldest": "2026-11-06T12:28:47+00:00",
+        "newest": "2026-11-06T16:33:46+00:00"
+      }
+    },
+    "task2": {
+      "modules": 2,
+      "testbenches": 3,
+      "check_commands": [
+        "PYTHONPATH=.:src python task2/tools/run_dither_word_checks.py --out <dir>"
+      ],
+      "evidence": {
+        "exists": true,
+        "files": 47,
+        "oldest": "2026-11-06T16:27:46+00:00",
+        "newest": "2026-11-07T14:27:09+00:00"
+      }
+    },
+    "task3": {
+      "modules": 1,
+      "testbenches": 2,
+      "check_commands": [
+        "PYTHONPATH=.:src python task3/tools/run_caaz_checks.py --out <dir>"
+      ],
+      "evidence": {
+        "exists": true,
+        "files": 34,
+        "oldest": "2026-11-06T17:11:48+00:00",
+        "newest": "2026-11-07T11:32:28+00:00"
+      }
+    },
+    "task_integration": {
+      "modules": 2,
+      "testbenches": 3,
+      "check_commands": [
+        "PYTHONPATH=.:src python task_integration/tools/run_checks.py --out <dir>"
+      ],
+      "evidence": {
+        "exists": true,
+        "files": 16,
+        "oldest": "2026-11-06T17:23:23+00:00",
+        "newest": "2026-11-06T21:54:57+00:00"
+      }
+    },
+    "task_reconstruction": {
+      "modules": 1,
+      "testbenches": 1,
+      "check_commands": [
+        "PYTHONPATH=.:src python task_reconstruction/tools/run_checks.py --out <dir>"
+      ],
+      "evidence": {
+        "exists": true,
+        "files": 11,
+        "oldest": "2026-11-06T17:29:00+00:00",
+        "newest": "2026-11-06T18:22:20+00:00"
+      }
+    }
+  },
+  "modules": [
+    {
+      "module": "fig11_dem",
+      "rtl": "task1/rtl/fig11_dem.sv",
+      "lines": 78,
+      "referenced_by": 27
+    },
+    {
+      "module": "fig21_bridge",
+      "rtl": "task1/rtl/fig21_bridge.sv",
+      "lines": 94,
+      "referenced_by": 18
+    },
+    {
+      "module": "module1_bridge_top",
+      "rtl": "task1/rtl/module1_bridge_top.sv",
+      "lines": 176,
+      "referenced_by": 12
+    },
+    {
+      "module": "module1_top",
+      "rtl": "task1/rtl/module1_top.sv",
+      "lines": 258,
+      "referenced_by": 16
+    },
+    {
+      "module": "task1_slice_scheduler",
+      "rtl": "task1/rtl/slice_scheduler.sv",
+      "lines": 205,
+      "referenced_by": 2
+    },
+    {
+      "module": "dither_word_gen",
+      "rtl": "task2/rtl/dither_word_gen.sv",
+      "lines": 88,
+      "referenced_by": 14
+    },
+    {
+      "module": "caaz20_pair",
+      "rtl": "task3/rtl/caaz20_pair.sv",
+      "lines": 180,
+      "referenced_by": 12
+    },
+    {
+      "module": "sar20_digital_lms_top",
+      "rtl": "task_integration/rtl/sar20_digital_lms_top.sv",
+      "lines": 267,
+      "referenced_by": 14
+    },
+    {
+      "module": "sar20_digital_top",
+      "rtl": "task_integration/rtl/sar20_digital_top.sv",
+      "lines": 426,
+      "referenced_by": 6
+    },
+    {
+      "module": "sar20_lms_recon",
+      "rtl": "task_reconstruction/rtl/sar20_lms_recon.sv",
+      "lines": 434,
+      "referenced_by": 7
+    },
+    {
+      "module": "dither8_top",
+      "rtl": "task2/eight_rtl/rtl/dither8_top.sv",
+      "lines": 273,
+      "referenced_by": 15
+    }
+  ],
+  "testbenches": [
+    {
+      "testbench": "bridge_checks_tb.sv",
+      "path": "task1/tb/bridge_checks_tb.sv",
+      "lines": 303
+    },
+    {
+      "testbench": "task1_rtl_checks_tb.sv",
+      "path": "task1/tb/task1_rtl_checks_tb.sv",
+      "lines": 379
+    },
+    {
+      "testbench": "dither_word_gen_tb.sv",
+      "path": "task2/tb/dither_word_gen_tb.sv",
+      "lines": 110
+    },
+    {
+      "testbench": "caaz20_pair_tb.sv",
+      "path": "task3/tb/caaz20_pair_tb.sv",
+      "lines": 162
+    },
+    {
+      "testbench": "caaz20_properties.sv",
+      "path": "task3/tb/caaz20_properties.sv",
+      "lines": 115
+    },
+    {
+      "testbench": "sar20_integration_tb.sv",
+      "path": "task_integration/tb/sar20_integration_tb.sv",
+      "lines": 425
+    },
+    {
+      "testbench": "sar20_joint_noise_tb.sv",
+      "path": "task_integration/tb/sar20_joint_noise_tb.sv",
+      "lines": 307
+    },
+    {
+      "testbench": "sar20_lms_integration_tb.sv",
+      "path": "task_integration/tb/sar20_lms_integration_tb.sv",
+      "lines": 375
+    },
+    {
+      "testbench": "sar20_lms_recon_tb.sv",
+      "path": "task_reconstruction/tb/sar20_lms_recon_tb.sv",
+      "lines": 185
+    },
+    {
+      "testbench": "dither8_checks_tb.sv",
+      "path": "task2/eight_rtl/tb/dither8_checks_tb.sv",
+      "lines": 130
+    },
+    {
+      "testbench": "dither8_contract.sv",
+      "path": "task2/eight_rtl/tb/dither8_contract.sv",
+      "lines": 147
+    }
+  ]
+}

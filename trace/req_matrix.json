@@ -1,0 +1,21 @@
+{
+  "total": 33,
+  "by_task": {
+    "task1": 13,
+    "task2": 5,
+    "task3": 6,
+    "task_integration": 5,
+    "task_reconstruction": 4
+  },
+  "by_method": {
+    "未声明": 26,
+    "Fig19": 1,
+    "verilator_cycle_replay": 3,
+    "pair_noise_model": 1,
+    "mixed_signal_macro_and_system": 1,
+    "integrated_sky130hd_flow": 1
+  },
+  "blocked": [
+    "REQ-CAAZ-05"
+  ]
+}

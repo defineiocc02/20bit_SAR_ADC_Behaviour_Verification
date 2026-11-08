@@ -1,8 +1,29 @@
 # 20b10mtask｜20位、10 MS/s ADC数字任务交付树
 
-**最终目标：面向20位、10 MS/s SAR ADC，完成DEM、dither与CAAZ数字模块，用Python对照验证其线性度与噪声收益，并交付与模型逐笔一致的RTL、GDS以及通过验收的时序和物理检查报告。**
+**最终目标：参考ISSCC 2024 9.8及相关专利，结合北大VLSI 2025的斩波辅助自归零技术，为180 nm BCD、20位／10 MS/s SAR ADC开发数字线性化与噪声抑制模块；本阶段在SKY130（130 nm）上完成Python→RTL→GDS，交付技术效果图以及通过验收的时序和物理检查报告。**
 
-你负责切片调度，以及DEM（动态元件匹配）、dither（扰动注入与去扰）、CAAZ（斩波辅助自归零）的数字实现。
+**工艺与规格：**本阶段数字后端采用SkyWater SKY130HD标准单元库；未来整机目标是180 nm BCD、差分输入±5 V、原始10 MS/s。
+CAAZ两笔配对后输出5 MS/s。两种工艺分别实现与验收，SKY130的GDS／时序不能代替180 nm BCD结果。
+
+### 这些数字技术为什么要做，参考什么？
+
+| 技术 | 要解决的问题与作用 | 直接参考 |
+| :--- | :--- | :--- |
+| 交织与切片调度 | 将采集延长至整周期，放宽输入驱动建立要求；通过随机选片打散残余交织杂散。实际时偏和带宽差异仍需模拟设计控制 | Bodnar等，ISSCC 2024 9.8，论文Fig.9.8.1及正文、讲稿8页；切片结构另见US10516408B2 |
+| DEM（动态元件匹配） | 在保持名义转换关系的前提下改变电容使用组合，减轻固定失配导致的非线性与杂散；必须结合LMS开／关对照证明效果 | ISSCC论文Fig.9.8.3；[US10511316B2](https://patents.google.com/patent/US10511316B2/en)，Fig.11、20、21 |
+| Dither（扰动注入与去扰） | 注入已知伪随机扰动并在数字端去除，使固定输入跨越不同码边界，减轻DNL影响、补充DEM线性化；同时检查内部余量与噪声代价 | ISSCC论文1页、讲稿17–18页；[US10505561B2](https://patents.google.com/patent/US10505561B2/en)，Fig.3及19 |
+| CAAZ（斩波辅助自归零） | 输入换相、两笔共享同一AZ状态并在数字端配对，抑制RA失调及低频噪声，并抵消共享AZ采样噪声；保持误差和输出带宽必须单独验证 | Zongnan Wang等，VLSI 2025 C32-1，论文Fig.5／6及讲稿PDF35页 |
+| LMS权重训练与重构 | 片外估计固定电容权重，片上按已加载权重重构；作为评估DEM、dither的共同校准基线 | ISSCC正文披露“系数片外获得、片上位权修正”；具体LMS训练、定点格式和接口为本工程选择 |
+
+[ISSCC论文与讲稿](references/README.md)给出交织及线性化架构；[北大论文Fig.5／6](references/PKU_VLSI2025_C32_1_PAPER.pdf#page=2)给出CAAZ机制。
+ISSCC原型是40 nm、40 MS/s，北大原型是180 nm CMOS、6 MS/s；本项目的180 nm BCD、10 MS/s及二者联合是工程目标，尚需验证。
+
+其余专利用于接口核对：[US10516408B2](https://patents.google.com/patent/US10516408B2/en)对应切片转换级，
+[US10707889B1](https://patents.google.com/patent/US10707889B1/en)对应含采集前tracking的交织方法，
+[US10541702B1](https://patents.google.com/patent/US10541702B1/en)对应输入充电辅助路径，
+[US10826519B1](https://patents.google.com/patent/US10826519B1/en)对应低功耗参考。
+辅助输入充电与dither注入是不同机制；已有18／8调度也不能证明采集前tracking已经实现。
+
 已有Python、RTL和部分验证结果可以复用。你的工作是复现这些结果，补齐模拟接口与性能验证，
 再交付与模型一致的RTL、GDS和时序报告。
 

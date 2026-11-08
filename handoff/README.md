@@ -2,7 +2,7 @@
 
 先看[NINE_MONTH_PLAN.pdf](NINE_MONTH_PLAN.pdf)。前7页可以直接用于执行：第1页任务表与数字spec，第2页接手现状与计划，第3–5页为DEM／dither／CAAZ任务和效果验收，第6页数字签核，第7页接口与交付。
 
-后10页为原理与复现说明：第8–11页沿ISSCC架构及专利Fig.11／20／21讲电容、重排、电荷和LMS；第12–14页沿专利Fig.3／5／19及ISSCC讲稿讲dither；第15–17页沿北大Fig.5／6及讲稿讲斩波位置、噪声抵消、保持、频响和整数处理。
+第8–17节为原理与复现说明：第8–11页沿ISSCC架构及专利Fig.11／20／21讲电容、重排、电荷和LMS；第12–14页沿专利Fig.3／5／19及ISSCC讲稿讲dither；第15–17节沿北大Fig.5／6及讲稿讲斩波位置、噪声抵消、保持、频响和整数处理。后附逐月交付及DEM、dither、CAAZ逐笔合同。
 
 - [Markdown阅读稿](NINE_MONTH_PLAN.md)：任务书内容源；[LaTeX](NINE_MONTH_PLAN.tex)与[模板](report_template.tex)可编辑。
 - [计划图](figures/nine_month_plan.png)与[验收链](figures/signoff_flow.png)为安排示意，不代表任务已完成；其余图片逐字节引用原归档。

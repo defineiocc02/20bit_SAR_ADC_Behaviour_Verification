@@ -549,31 +549,65 @@ y=\frac{z_e-z_o}{2}=\frac{x_e+x_o}{2}+\frac{a_e-h a_o}{2}w+\frac{u_e-u_o}{2}.
 
 
 \clearpage
-\section{补充：九个月逐月任务与交付}
+\section{月度交付：M1--M3，先接手再补覆盖}
 
-上面的甘特图给出任务依赖；本表明确每个月检查什么。已有图片和代码作为基线引用；输入、接口或算法改变时，重新运行受影响的实验并记录版本。
+\textbf{先看现有证据：}\href{../task1/README.md}{模块一入口}、\href{../task2/eight_rtl/README.md}{八片扰动数字入口}、\href{../task3/README.md}{CAAZ入口}、\href{BEHAVIORAL_STATUS.md}{行为复核表}。现有图可标``归档基线''直接引用，不要求为交作业重新造图；新增实验必须另标``新增''，不能冒充原论文实测。
 
 \begin{table}[H]
 \small
   \centering
   \begin{tabularx}{\linewidth}{>{\hsize=0.65\hsize\linewidth=\hsize\raggedright\arraybackslash}X>{\hsize=1.25\hsize\linewidth=\hsize\raggedright\arraybackslash}X>{\hsize=1.1\hsize\linewidth=\hsize\raggedright\arraybackslash}X}
     \toprule
-    月份 & 具体任务 & 月末交付与检查 \\
+    月份 & 要交的图和文件 & 具体通过条件与已有工作 \\
     \midrule
-    M1 & 固定版本、阅读Fig.11／20／21，核对调度与掩码位序 & 接口表、已有结果索引及一次代表性回归；确认同笔ID与18／8／8／2 \\
-    M2 & 核对电荷守恒、模式与LMS系数组归属；补固定失配覆盖 & 同池DEM$\times$LMS四组INL／DNL、频谱及冻结／留出图；Python／RTL逐笔一致 \\
-    M3 & 按Fig.3／5／19核对六位扰动拆分和注入路径 & lower／upper注入与去扰图；64字及八槽位图自检结果 \\
-    M4 & 在2\%／3\%固定池运行dither开关对照 & 无LMS与冻结LMS两套INL／DNL及频谱；报告收益和代价 \\
-    M5 & 处理行为模型中的码边界和ADC2余量 & $\pm$5 V端点拒绝／越界图，列明满足范围及仍需解决的条件 \\
-    M6 & 按北大Fig.5／6核对斩波、AZ代与数字解调 & 偶奇时序图、同速同带宽的独立／共享AZ噪声对照 \\
-    M7 & 覆盖DEM、dither与CAAZ联合及异常 & 保持误差扫描、同笔元数据和错绑负例；明确解调、滤波与抽取 \\
-    M8 & 冻结接口和RTL，执行综合、等价及约束检查 & 版本清单、资源面积、关键路径和早期setup／hold报告 \\
-    M9 & 布局布线、提取后STA和物理检查，归档数字宏 & GDS、网表、SDC／SPEF、时序／DRC／LVS／电源检查报告及状态表 \\
+    M1 & 一张18片角色与样本ID时序图；提交接口表、版本与证据索引 & 对照调度合同，8采集／8转换／2空闲，前次采集组有序晋升；stall时ID、掩码及随机状态保持。运行一项代表性回归并留命令和结果。沿用task1已有调度与图，不重写。 \\
+    M2 & 2\%及3\%各交DEM$\times$LMS四组20位INL／DNL和频谱；另交训练／留出图 & 四组共用同一物理失配池、输入和窗口；各DEM模式独立训练，冻结后独立留出。逐事件电荷与Python／RTL整数对拍零差异；新增多种子结果列出各种子，不能只挑最好值。先引用已有基线，仅缺覆盖再运行。 \\
+    M3 & 六位字到lower／upper及八槽位的注入／去扰示意图，加一张样本ID与mask对齐时序图 & 64字、八槽、合法边界及c<U全部覆盖；补偿符号和同笔归属与独立模型一致；下溢不得回绕。已有独立电荷检查及20,000拍对拍可引用；变更影响行为时才重跑。 \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
-每月交图时保留原始数组、种子、输入、命中范围、LMS系数版本和运行命令。M8前持续运行相关RTL回归；M9的物理结果必须与最终冻结版本一致。
+所有比较图写清坐标单位、输入、速率、固定池与随机种子、模式和参考来源；代码或配置变化时注明版本，重新执行受影响的检查。
+
+
+\clearpage
+\section{月度交付：M4--M6，扰动与CAAZ}
+
+\begin{table}[H]
+\small
+  \centering
+  \begin{tabularx}{\linewidth}{>{\hsize=0.65\hsize\linewidth=\hsize\raggedright\arraybackslash}X>{\hsize=1.25\hsize\linewidth=\hsize\raggedright\arraybackslash}X>{\hsize=1.1\hsize\linewidth=\hsize\raggedright\arraybackslash}X}
+    \toprule
+    月份 & 要交的图和文件 & 具体通过条件与已有工作 \\
+    \midrule
+    M4 & 2\%／3\%分别交dither关／开的20位INL／DNL和频谱；无LMS、冻结LMS各一套 & 固定DEM、输入、失配池和窗口；报告峰值、零宽码、SNDR／SFDR及代价。每种模式各自训练后固定，同模式内dither开关共用系数；已有四组图先引用，不得把有限状态均值写成单次无缺码。 \\
+    M5 & $\pm$5 V扫描的前级拒绝率、内部节点／ADC2余量图；提交端点策略表 & 逐个区分命令下溢、内部越界、ADC2超窗和最终输出，统计分母及全字覆盖；若目标范围仍有越界，标FAIL并记录原因，不能以输出限幅标通过。当前共同窗仅$\pm$3.671875 V，端点问题未解决。 \\
+    M6 & 偶奇斩波／AZ捕获保持时序；普通配对、独立AZ、共享AZ及保持误差的频谱和RMS对照 & 比较均为5 MS/s、同输入和带宽；每笔先重构去扰后配对，共享AZ代与样本ID一致。复用已有样本域结果，不把普通平均收益全算作CAAZ；原文谱测量10$\times$平均单列。 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+现有图的数据入口：\href{../task2/evidence/eight_negative/README.md}{线性度与频谱}、\href{../task3/evidence/negative/joint_noise/summary.json}{CAAZ联合噪声}。这些结果是行为模型，不代表实测或目标工艺签核。
+
+
+\clearpage
+\section{月度交付：M7--M9，联合验证与数字后端}
+
+\begin{table}[H]
+\small
+  \centering
+  \begin{tabularx}{\linewidth}{>{\hsize=0.65\hsize\linewidth=\hsize\raggedright\arraybackslash}X>{\hsize=1.25\hsize\linewidth=\hsize\raggedright\arraybackslash}X>{\hsize=1.1\hsize\linewidth=\hsize\raggedright\arraybackslash}X}
+    \toprule
+    月份 & 要交的图和文件 & 具体通过条件与已有工作 \\
+    \midrule
+    M7 & 保持比例／两相增益扫描曲线；DEM$\times$dither$\times$CAAZ联合时序和同带宽频谱 & 扰动字、片号、位图与AZ代各自按ID对齐；错相、错代、丢笔、复位和stall负例不得输出正常结果。整数参考与RTL逐笔零差异；共享噪声残余与模型关系一致。已有配对和联合模型复用。 \\
+    M8 & 数字模块面积图、关键路径及setup／hold裕量图；提交冻结清单与综合网表 & 同一RTL、约束与库版本；lint问题逐项裁定，相关回归通过，RTL到网表等价通过；报告时钟、角、约束、WNS／TNS和未约束路径。旧控制顶层GDS只作参考，不能算整体顶层通过。 \\
+    M9 & 整体数字宏GDS版图全景、最差setup／hold路径图、DRC／LVS／电源结果摘要图 & 交同版GDS、网表、SDC、SPEF、完整报告及哈希；必需角setup／hold裕量$\geq$0、无未约束有效路径；DRC／LVS及适用电源检查按冻结规则验收。未运行、失败或缺条件各自标记，不以示意图代替报告。 \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\textbf{统一验收：}每月包至少有图、原始数据、作图／运行命令、配置／种子、代码版本和结果表。算法正确性按以上确定性条件判定；性能改善是否达标以冻结的MC验收门槛为准，门槛未定时只报告数值与取舍，不写通过。真实180 nm BCD的模拟接口、约束和后端结果不能由SKY130结果替代。
 
 
 \clearpage

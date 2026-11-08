@@ -168,7 +168,7 @@ def convert(converter, temporary):
     source = (HERE / "NINE_MONTH_PLAN.md").read_text()
     body = source.split("\n", 1)[1]
     body = re.sub(r"^(#{2,6}) ", lambda m: m[1][1:] + " ", body, flags=re.M)
-    assert len(re.findall(r"^# ", body, re.M)) == 20, "twenty task and technical sections"
+    assert len(re.findall(r"^# ", body, re.M)) == 22, "twenty-two task and technical sections"
     input_md = temporary / "body.md"
     input_md.write_text(body)
     target = HERE / "NINE_MONTH_PLAN.tex"
@@ -188,7 +188,7 @@ def convert(converter, temporary):
     )
     tex = target.read_text()
     parts = tex.split(r"\section{")
-    assert len(parts) == 21
+    assert len(parts) == 23
     tex = (
         parts[0]
         + r"\section{"

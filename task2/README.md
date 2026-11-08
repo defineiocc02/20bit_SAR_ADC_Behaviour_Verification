@@ -58,7 +58,7 @@
 
 - **已有：**`rtl/dither_word_gen.sv`、[八片联合 RTL](eight_rtl/rtl/dither8_top.sv)、[两节点行为模型](eight/model.py)、训练／频谱／静态图和独立电荷检查；[七片示例](model/fig19_seven.py)保留作原文机制对照。
 - **待模拟验收：**实际辅助 DAC、逐片子电容开关、参考极性与建立、ADC2／RA、电荷寄生和 PVT。八片位图与原生步长是基于现有 Fig.11 结构的工程推导，不能宣称已复现原芯片。
-- **后续物理交付：**模块二闭环完成后，在 SKY130HD 交 GDS、同约束 STA 和可复现报告；未来 180 nm BCD 模拟宏与后仿另行验收。
+- **物理交付：**包含模块二和片上重构的整体数字顶层已有 SKY130HD GDS、TT 角 STA 及公开 DRC／LVS 证据，见[物理记录](physical/README.md)；未来 180 nm BCD、多角和模拟宏后仿仍需单独验收。
 
 ```sh
 python -m pip install -r task1/requirements-calibration.txt

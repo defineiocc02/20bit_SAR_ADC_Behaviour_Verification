@@ -4,6 +4,8 @@
 
 [任务规格与分工](task1/SPEC.md) · [模块一](task1/README.md) · [统一 LMS 实验标准](task1/EXPERIMENT_STANDARD.md) · [原始论文与专利](references/README.md)
 
+**同学接手：**先固定并复现交付版本，确认模拟侧接口，再按 DEM／LMS → dither → CAAZ 的顺序核对图与 RTL，最后完成目标工艺的数字后端验收。[九个月交付与验收](task1/SPEC.md#接手顺序与九个月交付)
+
 ## 20 位 INL／DNL：三组对照
 
 同一颗 **2% 固定电容失配**虚拟芯片、理想 12 位第二级、输入等效 ±100 mV；三组的 dither 均关闭。LMS 两条路径分别训练、冻结，再用独立输入评估。图中每个 20 位码分别计算，纵轴使用 **LSB20＝9.5367 μV**。

@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : record_environment.py
+# 模块名     : record_environment
+# 版本       : v1.0
+# 功能       : Fingerprint the physical toolchain and public technology inputs in the runner.
+#
+# 设计说明   :
+#   * 承担 物理交付打包与审计 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# =============================================================================
+
 """Fingerprint the physical toolchain and public technology inputs in the runner."""
 
 import hashlib
@@ -11,6 +25,13 @@ import sys
 from pathlib import Path
 
 
+# =========================================================================
+# 1. 函数组：version / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# Resolve the executable and require a successful, bounded version query.
+# Probe and record the active tool and technology environment.
+# -------------------------------------------------------------------------
 def version(command: str, option: str) -> dict:
     """Resolve the executable and require a successful, bounded version query."""
     binary = shutil.which(command)

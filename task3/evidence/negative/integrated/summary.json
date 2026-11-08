@@ -1,0 +1,93 @@
+{
+  "adc2_window_half_v": 0.1,
+  "added_same_sign_offset_v": 8e-05,
+  "analysis_band_hz": [
+    0,
+    2500000.0
+  ],
+  "archived_fixture_identity": {
+    "chopped": true,
+    "coefficient_words": 396,
+    "common_offset_v": 8e-05,
+    "config_sha256": "7a01f00bb380e84b890bf5aeff07ce8e79410411a210f99e8c00117c469dcf56",
+    "input_data_sha256": "884deab7ad896376c04e93b9b2ba596553ee7655fcbb607a202d755ff5aa3ebb",
+    "samples": 4096,
+    "vectors_sha256": "cc7360a6b13be8c86a4c1c59258767727dceb62d3161f963f5a9bd8e7247bfde"
+  },
+  "artifact_sha256": {
+    "joint_dither_caaz.pdf": "dbcc1e84a3833f2ae84a8438b26f09f70d7dac42b5aedfa1d883a51fa81b1871",
+    "joint_dither_caaz.png": "496fcabcb2c650c41957174adcdefff6915cd33a54cbdb90e1cb4580ae2cad57",
+    "joint_dither_caaz.svg": "51b6b0dbb49f4c09f0a5015ef83a63f0634326a3747352f07ee8dcd37ffa8629",
+    "joint_dither_caaz_data.npz": "e7f29e0e9929948d2589bbe8203ad8af80d88a6187eedf2e0f60d7216afd738d"
+  },
+  "fft_window": "rectangular coherent; DC excluded from SNDR and SFDR",
+  "fixed_capacitor_sigma": 0.03,
+  "font_family": "Hiragino Sans GB",
+  "groups": {
+    "dither_0_caaz_0": {
+      "ac_error_rms_uv": 11.370274848248153,
+      "adc2_residue_max_v": 0.04063531862517422,
+      "adc2_residue_min_v": -0.03312033973142725,
+      "identical_to_compiled_rtl_fixture": false,
+      "mean_error_uv": 82.52914994908639,
+      "rejected_samples": 0,
+      "sfdr_dbc": 127.0320300724504,
+      "sndr_db": 105.897834575633,
+      "vectors_sha256": "fa44292bc9e0348194989a250cadb7a250e9652a8e805e547188759c13e917a1"
+    },
+    "dither_0_caaz_1": {
+      "ac_error_rms_uv": 11.618999947745502,
+      "adc2_residue_max_v": 0.043576241670535865,
+      "adc2_residue_min_v": -0.03312033973142725,
+      "identical_to_compiled_rtl_fixture": false,
+      "mean_error_uv": 2.5006011123783045,
+      "rejected_samples": 0,
+      "sfdr_dbc": 126.5463375348345,
+      "sndr_db": 105.71981190358221,
+      "vectors_sha256": "3b06b64868646293985a09c836381845e9f403c466b717deffad9c01c0897940"
+    },
+    "dither_1_caaz_0": {
+      "ac_error_rms_uv": 11.398651042880013,
+      "adc2_residue_max_v": 0.04472281837187975,
+      "adc2_residue_min_v": -0.03289638032041875,
+      "identical_to_compiled_rtl_fixture": false,
+      "mean_error_uv": 82.65487849665946,
+      "rejected_samples": 0,
+      "sfdr_dbc": 127.0078281877253,
+      "sndr_db": 105.90253804026437,
+      "vectors_sha256": "bc626b56d9ccd811bb2153d464a2d9d9b976420625c80003081f9b90354631fa"
+    },
+    "dither_1_caaz_1": {
+      "ac_error_rms_uv": 11.659746904696139,
+      "adc2_residue_max_v": 0.046377479999673454,
+      "adc2_residue_min_v": -0.03289638032041875,
+      "identical_to_compiled_rtl_fixture": true,
+      "mean_error_uv": 2.7753412718898707,
+      "rejected_samples": 0,
+      "sfdr_dbc": 127.03518534558201,
+      "sndr_db": 105.68219051965318,
+      "vectors_sha256": "cc7360a6b13be8c86a4c1c59258767727dceb62d3161f963f5a9bd8e7247bfde"
+    }
+  },
+  "manufacturing_seed": 100,
+  "output_bits": 20,
+  "output_rate_hz": 5000000.0,
+  "pair_outputs": 2048,
+  "pdf_fonttype": 3,
+  "raw_rate_hz": 10000000,
+  "raw_samples": 4096,
+  "scope": "same_archived_3pct_pool_ideal_charge_and_q28_digital_reconstruction",
+  "source_sha256": {
+    "task1/experiments/full20_linearity_plots.py": "54021fb4a2fa465f4c3c30c503a34570d8efd5ce34850ae57a078d0987ba3d8c",
+    "task2/eight/experiment.py": "d49965c31c5e2412bb58f9420e6351ffe79c2b1aaeb8643a247e8064e95c8b8c",
+    "task2/eight/model.py": "8e6f7df5373d63116e9a2d2a9ef8dfc76c63076392a01bb21d713e805ac19066",
+    "task2/evidence/eight_negative/sigma_3pct/data.npz": "884deab7ad896376c04e93b9b2ba596553ee7655fcbb607a202d755ff5aa3ebb",
+    "task2/evidence/eight_negative/sigma_3pct/summary.json": "5f90e13506fb9ebe4780a89f1b31f73d42bed03cf3af1a84269bab106dbd1d1a",
+    "task3/tools/run_joint_effect.py": "5c25f0f54c95b8cebad750095e5535796f4a298b27669a8424e8febd299f1092",
+    "task_integration/evidence/negative/on_chip/result.json": "aeb8acf3fbb8c73760f39c12e4bcecdeddabba9f52209cee9ef1192c70e4a943",
+    "task_integration/tools/run_lms_checks.py": "a2adcd883c9554a569d6ce13cbe99330ec7467356dc47c07f88dfef540a95a5c",
+    "task_reconstruction/fixed.py": "a4ca2c91ce4f70e0ff7209250796453c8f63e4c7df10c58e90742cba1f18c01c"
+  },
+  "tone_hz": 998535.15625,
+  "tone_peak_v": 3.3333333333333335
+}

@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : run_bridge_checks.py
+# 模块名     : run_bridge_checks
+# 版本       : v1.0
+# 功能       : 核对桥接叶全域和候选顶层的同笔 RTL 事务。
+#
+# 设计说明   :
+#   * 承担 向量生成与逐沿对拍入口 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """核对桥接叶全域和候选顶层的同笔 RTL 事务。"""
 
 from __future__ import annotations
@@ -17,6 +31,17 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
+from tools.run_open_rtl import (  # noqa: E402
+    alias_runtime,
+    checked_run,
+    command_for,
+    completion,
+    digest,
+    new_output,
+    verilator_compiler_args,
+    write_json,
+)
+
 from task1.model.fig21_bridge import map_fig21_bridge  # noqa: E402
 from task1.model.module1_bridge import Module1Bridge  # noqa: E402
 from task1.tools.run_rtl_checks import (  # noqa: E402
@@ -28,16 +53,6 @@ from task1.tools.run_rtl_checks import (  # noqa: E402
     _pack,
     _pack_slots,
     _top_word,
-)
-from tools.run_open_rtl import (  # noqa: E402
-    alias_runtime,
-    checked_run,
-    command_for,
-    completion,
-    digest,
-    new_output,
-    verilator_compiler_args,
-    write_json,
 )
 
 TOP = "task1_bridge_checks_tb"
@@ -63,6 +78,13 @@ SUPPORT_SOURCES = (
 )
 
 
+# =========================================================================
+# 1. 函数组：BridgeStimulus / BridgeObservation / _selected_weights
+# =========================================================================
+# -------------------------------------------------------------------------
+# 模块一输入，附随采集请求冻结的桥接模式。
+# 沿后上下文、前缀掩码及该前缀的补偿。
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class BridgeStimulus(TopStimulus):
     """模块一输入，附随采集请求冻结的桥接模式。"""
@@ -70,6 +92,7 @@ class BridgeStimulus(TopStimulus):
     bridge_enable: bool = False
 
 
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class BridgeObservation:
     """沿后上下文、前缀掩码及该前缀的补偿。"""
@@ -80,16 +103,24 @@ class BridgeObservation:
     correction_q32: int
 
 
+# ------------------------------------------------------------------------
 def _selected_weights(rows: tuple[int, ...], weights: tuple[int, ...]) -> int:
     return sum(weight for row in rows for bit, weight in enumerate(weights) if row & (1 << bit))
 
 
+# =========================================================================
+# 2. 函数组：_effective_level / _reference_bridge / BridgeOracle
+# =========================================================================
+# -------------------------------------------------------------------------
+# 使用旧事务 oracle 并把桥接位绑定到它报告的接受事件。
+# ------------------------------------------------------------------------
 def _effective_level(main_c: int, sub_c: int) -> Fraction:
     # 主节点为虚地，子节点的 16C 与 1C 桥接共同决定反馈。
     # 主阵列 8×32C 采 VIN，开关在 -Vfs 与 +Vfs 之间转换。
     return (main_c + Fraction(sub_c, 17)) * Fraction(2, 8 * 32)
 
 
+# ------------------------------------------------------------------------
 def _reference_bridge(
     code: int, reserved: int, first_slot: int
 ) -> tuple[tuple[int, ...], tuple[int, ...], int, Fraction]:
@@ -119,6 +150,7 @@ def _reference_bridge(
     return main, sub, correction, delta
 
 
+# ------------------------------------------------------------------------
 class BridgeOracle:
     """使用旧事务 oracle 并把桥接位绑定到它报告的接受事件。"""
 
@@ -144,6 +176,14 @@ class BridgeOracle:
         return BridgeObservation(base, self._acq, self._conv, correction)
 
 
+# =========================================================================
+# 3. 函数组：generate_leaf_vectors / generate_top_vectors / run
+# =========================================================================
+# -------------------------------------------------------------------------
+# 全量检查 512 码、16 保留列和 8 纵向起始片。
+# 覆盖桥接切换、同笔前缀、拒绝、原子种子及连续派发。
+# 运行 Verilator，记录工具、源码、向量和实际通过计数。
+# ------------------------------------------------------------------------
 def generate_leaf_vectors(path: Path) -> dict[str, int]:
     """全量检查 512 码、16 保留列和 8 纵向起始片。"""
     coverage = {"leaf_cases": 0, "leaf_nonzero_corrections": 0}
@@ -186,6 +226,7 @@ def generate_leaf_vectors(path: Path) -> dict[str, int]:
     return coverage
 
 
+# ------------------------------------------------------------------------
 def generate_top_vectors(path: Path) -> dict[str, int]:
     """覆盖桥接切换、同笔前缀、拒绝、原子种子及连续派发。"""
     oracle = BridgeOracle()
@@ -303,8 +344,21 @@ def generate_top_vectors(path: Path) -> dict[str, int]:
     return coverage
 
 
+# ------------------------------------------------------------------------
 def run(out: Path, command: list[str], timeout: int) -> dict:
-    """运行 Verilator，记录工具、源码、向量和实际通过计数。"""
+    """运行 Verilator，记录工具、源码、向量和实际通过计数。
+
+    Args:
+        out: 新建的仓库外输出目录。
+        command: 已配置工具的命令参数，不在本函数替换工具环境。
+        timeout: 执行上限，单位 s。
+    Returns:
+        实际完成计数与独立桥接参考检查结果。
+
+    叶模块与调度顶层分别编译，避免顶层连线错误被单模块测试遗漏。
+    名义主／子电荷按独立位权累加；固定补偿和制造失配是不同项目。
+    日志与源码均按 SHA-256 记录；更换源文件后旧 PASS 不自动适用。
+    """
     env = os.environ.copy()
     with tempfile.TemporaryDirectory(prefix="task1_bridge_") as temporary:
         work = Path(temporary)
@@ -401,8 +455,19 @@ def run(out: Path, command: list[str], timeout: int) -> dict:
         return result
 
 
+# =========================================================================
+# 4. 函数组：main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 从指定或 PATH 上的 Verilator 执行桥接候选验证。
+# ------------------------------------------------------------------------
 def main() -> int:
-    """从指定或 PATH 上的 Verilator 执行桥接候选验证。"""
+    """从指定或 PATH 上的 Verilator 执行桥接候选验证。
+
+    --out 必须是新证据目录，防止旧输出被当作本轮验证。
+    工具缺失或失败按真实退出状态报告，不自动换成数学模型通过。
+    只有实际生成完成计数才发布通过结果。
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", required=True, type=Path, help="仓库外尚不存在的输出目录")
     parser.add_argument("--verilator", type=Path, help="现有 Verilator 可执行文件")

@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : package_proxy.py
+# 模块名     : package_proxy
+# 版本       : v1.0
+# 功能       : Package one completed public proxy run and bind it to its inputs.
+#
+# 设计说明   :
+#   * 承担 物理流程辅助脚本 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# =============================================================================
+
 """Package one completed public proxy run and bind it to its inputs."""
 
 import argparse
@@ -32,6 +46,14 @@ INPUT_FILES = (
 )
 
 
+# =========================================================================
+# 1. 函数组：describe_file / verify_gds / package
+# =========================================================================
+# -------------------------------------------------------------------------
+# Return byte count, modification time and SHA-256 for one artifact.
+# Check stream records, top-cell identity, hierarchy and drawing content.
+# Validate a completed run and collect the final files for delivery.
+# -------------------------------------------------------------------------
 def describe_file(path: Path) -> dict:
     """Return byte count, modification time and SHA-256 for one artifact."""
     data = path.read_bytes()
@@ -147,6 +169,12 @@ def package(output: Path, source: Path) -> None:
     print(f"Verified GDS top {EXPECTED_DESIGN} with {gds['cells']} cells and timing report")
 
 
+# =========================================================================
+# 2. 函数组：main
+# =========================================================================
+# -------------------------------------------------------------------------
+# Parse paths for the post-flow packaging step.
+# -------------------------------------------------------------------------
 def main() -> None:
     """Parse paths for the post-flow packaging step."""
     parser = argparse.ArgumentParser(description=__doc__)

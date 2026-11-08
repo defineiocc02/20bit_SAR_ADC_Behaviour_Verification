@@ -1,3 +1,14 @@
+# =============================================================================
+# 文件名     : task2_sky130.yml
+# 模块名     : sar20_light_physical_ci
+# 版本       : v1.0
+# 功能       : 调度八片控制和外部重构顶层的公开工艺实现。
+# 设计说明   :
+#   [资源] 40 分钟作业只运行两个较小顶层，避免与 LMS 长时作业重复。
+#   [归属] 含 LMS 的整体顶层由 extended 工作流执行，最长 150 分钟。
+#   [边界] 各结果按同一提交、GDS 与约束摘要归档，不继承旧版通过。
+# 变更记录   : 分开轻量和长时物理作业，保持各自原时钟与 PVT。
+# =============================================================================
 name: 20b10mtask digital SKY130HD physical
 
 on:
@@ -43,8 +54,6 @@ jobs:
             source: task2/eight_rtl/rtl/dither8_top.sv
           - top: sar20_digital_top
             source: task_integration/rtl/sar20_digital_top.sv
-          - top: sar20_digital_lms_top
-            source: task_integration/rtl/sar20_digital_lms_top.sv
     env:
       RUN_DIR: /tmp/task2-sky130-${{ matrix.top }}-${{ github.run_id }}-${{ github.run_attempt }}
       TASK2_PHYSICAL_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.top }}
@@ -52,6 +61,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      # 只构建清单中的实际顶层，不扫描或猜测新的 top。
+      # 顶层缺失时该版本不能获得相应物理通过结论。
       - name: Locate the published top
         id: top
         run: |
@@ -60,9 +71,11 @@ jobs:
           else
             printf '%s\n' 'Top source has not landed in this commit.' >> "$GITHUB_STEP_SUMMARY"
           fi
+      # 工具、公开库和冻结输入由现有脚本核验，不在工作流中放宽约束。
       - name: Synthesize, route, and inspect the streamed GDS
         if: steps.top.outputs.present == 'true'
         run: bash task2/physical/sky130_run.sh "$RUN_DIR" '${{ matrix.top }}'
+      # 工件绑定该次运行，不把诊断工件当作签核发布包。
       - name: Upload frozen run
         if: steps.top.outputs.present == 'true' && success()
         uses: actions/upload-artifact@v4
@@ -95,3 +108,7 @@ jobs:
                   summary.write(f"- {mode}: {result['status']}, slack {result['worst_slack_ns']:.4f} ns\n")
           raise SystemExit(any(result['status'] != 'PASS' for result in timing.values()))
           PY
+
+# [验收] 工件上传成功不等于 STA、独立 DRC／LVS 或电源完整性已通过。
+# [版本] 每个顶层的结果仅对冻结的源码、库和约束适用。
+# [异常] 作业超时是未完成，不是性能失败或默认通过。

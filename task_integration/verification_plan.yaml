@@ -1,20 +1,41 @@
+# =============================================================================
+# 文件名     : verification_plan.yaml
+# 模块名     : sar20_top_verification
+# 版本       : v1.0
+# 功能       : 数字整体顶层验证映射
+#
+# 设计说明   :
+#   * 全顶层单时钟域、低有效同步复位；checks 是必须命中的观测点而非断言条数；多笔交错时 ID 生命周期最易漏验。
+#   * 本文件只描述约束/验证意图，不是验收结论；实际状态以运行日志与归档收据为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# =============================================================================
+
 clock_domain: clk_i
 reset: synchronous_active_low
+# 每项 test 指向一个回归场景，checks 是该场景必须命中的观测点，不是断言条数。
 requirements:
   REQ-TOP-01:
     test: integrated_steady_4096
+    # disjoint_8_by_8 验的是同一槽内采样组与转换组物理片号不重叠，重叠即说明调度池状态错。
     checks: [cadence_16, disjoint_8_by_8, sample_id, dither_word, acquisition_alignment]
   REQ-TOP-02:
     test: integrated_protocol_errors
+    # command_overflow 沿用旧正注入口径；C9 改为 k=c−U 后应核对是否需改成下溢拒绝，待核实。
     checks: [stall, invalid_seed, early_result, wrong_id, duplicate_command, command_overflow, late_result, clear]
   REQ-TOP-03:
     test: integrated_caaz_pair
+    # per_sample_subtraction 与 signed_floor 必须同时验：先逐笔去扰再对偶奇作差并向下取整除二。
     checks: [disabled_bypass, independent_dither, per_sample_subtraction, signed_floor, az_error, bad_sample]
   REQ-TOP-04:
     test: sky130hd_integrated_physical
+    # drc_lvs_status 是状态记录，不是通过声明；规则版本与顶层名不同会影响 LVS 可比性。
     checks: [synthesis, detailed_route, extracted_sta, gds, drc_lvs_status]
   REQ-TOP-05:
     test: integrated_on_chip_lms_pipeline
+    # two_inflight_tags 与 result_latency_23 共同约束重构流水：允许两笔未退休，但结果延迟必须可核。
     checks: [two_inflight_tags, adc2_command_binding, frozen_weight_replay, bypass_2pct,
              chopped_3pct, cadence_16, result_latency_23, malformed_id, config_freeze,
              simultaneous_bad_acquisition, late_bad_pending]

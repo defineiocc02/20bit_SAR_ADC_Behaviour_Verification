@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : run_checks.py
+# 模块名     : run_checks
+# 版本       : v1.0
+# 功能       : 用独立整数参考、归档八片数据和边界向量运行 Verilator。
+#
+# 设计说明   :
+#   * 承担 20b10mtask 数字交付 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """用独立整数参考、归档八片数据和边界向量运行 Verilator。"""
 
 from __future__ import annotations
@@ -19,14 +33,6 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from task_reconstruction.fixed import (  # noqa: E402
-    FULL_SCALE_CODE,
-    MIN_GAIN,
-    Coefficients,
-    decode_midpoint,
-    from_training,
-    reconstruct,
-)
 from tools.run_open_rtl import (  # noqa: E402
     alias_runtime,
     checked_run,
@@ -38,9 +44,18 @@ from tools.run_open_rtl import (  # noqa: E402
     write_json,
 )
 
+from task_reconstruction.fixed import (  # noqa: E402
+    FULL_SCALE_CODE,
+    MIN_GAIN,
+    Coefficients,
+    decode_midpoint,
+    from_training,
+    reconstruct,
+)
+
 RTL = "task_reconstruction/rtl/sar20_lms_recon.sv"
 TB = "task_reconstruction/tb/sar20_lms_recon_tb.sv"
-DATA = ROOT / "task2/evidence/eight_native"
+DATA = ROOT / "task2/evidence/eight_negative"
 ARCHIVE = tuple(DATA / f"sigma_{sigma}pct/data.npz" for sigma in (2, 3))
 FIELDS = ("cycles", "accepted", "retired", "bad_retired", "stalls", "words", "midpoint")
 EMPTY = (0,) * 8
@@ -51,6 +66,12 @@ OBSERVATION_BITS = 59
 POST_EDGE_BITS = 56
 
 
+# =========================================================================
+# 1. 函数组：_pack / _slots / Trace
+# =========================================================================
+# -------------------------------------------------------------------------
+# 保存手工规定的接口事件和独立整数结果到每沿向量。
+# ------------------------------------------------------------------------
 def _pack(fields: tuple[tuple[int, int], ...]) -> int:
     value = 0
     for field, width in fields:
@@ -60,10 +81,12 @@ def _pack(fields: tuple[tuple[int, int], ...]) -> int:
     return value
 
 
+# ------------------------------------------------------------------------
 def _slots(values: tuple[int, ...], width: int) -> int:
     return _pack(tuple((i, width) for i in reversed(values)))
 
 
+# ------------------------------------------------------------------------
 class Trace:
     """保存手工规定的接口事件和独立整数结果到每沿向量。"""
 
@@ -177,11 +200,32 @@ class Trace:
         return result
 
 
+# =========================================================================
+# 2. 函数组：_edge_cases / _write_vectors / _compare_observation
+# =========================================================================
+# -------------------------------------------------------------------------
+# 以逐沿真实输出核对期望轨迹、输入受理及反压行为。
+# ------------------------------------------------------------------------
 def _edge_cases(trace: Trace) -> None:
+    """Args:
+
+    Args:
+        trace: 正在构造的逐沿请求与期望账本。
+
+    手工边界包含 N=0、N=G、越界、最负权重及两次子权重使能。
+    同位 conv=sample=1 必须得到 2w；旧差集会错误归零，按位或会漏计一次。
+    负权重与正权重分别测试，避免只测正数而漏掉符号扩展。
+
+    配置坏字、零增益、装载中断和配置／输入同沿优先级均构造独立事件。
+    清空要取消在途结果，完整配置是否保留由冻结接口规则决定。
+    反压时后续请求不能覆盖已出现但未退休的结果。
+    请求间隔 12 与 13 拍分别检查，以验证 ready 的真实吞吐界限。
+    """
     max_w = (1 << 23) - 1
     weights = [[0] * 21 for _ in range(18)]
     weights[0][0], weights[0][1] = -655, -656
     weights[0][17] = -(1 << 23)
+    weights[0][18] = 1 << 22  # 正权重的双使能必须计两次，独立于负权重测试。
     weights[1][:16] = [max_w] * 16
     weights[1][16], weights[2][16] = -640, -639
     coef = Coefficients(tuple(tuple(x) for x in weights), (MIN_GAIN,) * 18)
@@ -209,13 +253,16 @@ def _edge_cases(trace: Trace) -> None:
     under = sample(0xFFFF_FFFF, main=(2, *EMPTY[1:]))
     maximum = sample(0, main=(0, 0x1FFFF, *EMPTY[2:]))
     over = sample(1, main=(0, 0x0FFFF, 0x10000, *EMPTY[3:]))
-    signed_sub = sample(2, samp=(1, *EMPTY[1:]))
+    signed_sub = sample(2, samp=(2, *EMPTY[1:]))
     checks = (
         (minimum, (-524288, False)),
         (under, (0, True)),
         (maximum, (524287, False)),
         (over, (0, True)),
-        (signed_sub, (-458747, False)),
+        (signed_sub, (-491515, False)),
+        (sample(8, conv=(2, *EMPTY[1:]), samp=(2, *EMPTY[1:])), (-458747, False)),
+        (sample(9, samp=(1, *EMPTY[1:])), (0, True)),
+        (sample(10, conv=(1, *EMPTY[1:]), samp=(1, *EMPTY[1:])), (0, True)),
         (sample(3, ids=(18, *ORDERED[1:])), (0, True)),
         (sample(4, ids=(1, *ORDERED[1:])), (0, True)),
         (sample(5, conv=(16, *EMPTY[1:])), (0, True)),
@@ -268,7 +315,18 @@ def _edge_cases(trace: Trace) -> None:
     trace.tick(rst=False)
 
 
+# ------------------------------------------------------------------------
 def _write_vectors(path: Path, archives: tuple[Path, ...], out: Path) -> tuple[dict, dict]:
+    """核对接口边界与证据归属。
+
+    失配两档各使用自己的冻结系数，不能跨制造池共用权重。
+    扰动关／开共用该档混合训练的系数，避免把重新训练收益误当作扰动收益。
+    整数 oracle 与 RTL 逐码一致是 bit-exact 判据。
+    整数与浮点最多一 LSB20 的偏差是另一个独立比较，不能混称。
+    定向坏样本仍按时序返回 bad，不允许静默消失。
+    输出反压时保持 ID 和数值，直到真实握手退休。
+    ADC2 全码中点检查独立于正弦留出频谱。
+    """
     reports = {}
     with path.open("wb") as stream:
         trace = Trace(stream)
@@ -326,8 +384,21 @@ def _write_vectors(path: Path, archives: tuple[Path, ...], out: Path) -> tuple[d
     return trace.counts, reports
 
 
+# ------------------------------------------------------------------------
 def _compare_observation(vectors: Path, observed: Path, midpoint_count: int) -> dict[str, int]:
-    """以逐沿真实输出核对期望轨迹、输入受理及反压行为。"""
+    """以逐沿真实输出核对期望轨迹、输入受理及反压行为。
+
+    Args:
+        vectors: 逐沿输入与独立整数期望文件。
+        observed: 实际仿真的沿前／沿后输出文件。
+        midpoint_count: 已核验的 ADC2 中点码数量。
+    Returns:
+        按实测轨迹统计的握手、退休、异常与反压计数。
+
+    两个文件必须等长，不允许 zip 静默截掉最后一段未完成的观测。
+    握手、配置有效、输出 ID、代码和 bad 同时核对，数值相同但 ID 错误也失败。
+    独立整数除法不复刻 RTL 的基四逐拍实现，降低同源错误通过的风险。
+    """
     counts = dict.fromkeys(FIELDS, 0)
     counts["midpoint"] = midpoint_count
     previous = 0
@@ -353,6 +424,13 @@ def _compare_observation(vectors: Path, observed: Path, midpoint_count: int) -> 
     return counts
 
 
+# =========================================================================
+# 3. 函数组：run / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 编译和执行真实工具，核对非零完成计数和输入字节。
+# 在仓库外新目录生成可以重放的证据。
+# ------------------------------------------------------------------------
 def run(out: Path, command: list[str], archives: tuple[Path, ...], timeout: int) -> dict:
     """编译和执行真实工具，核对非零完成计数和输入字节。"""
     env = os.environ.copy()
@@ -459,6 +537,7 @@ def run(out: Path, command: list[str], archives: tuple[Path, ...], timeout: int)
     return result
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
     """在仓库外新目录生成可以重放的证据。"""
     parser = argparse.ArgumentParser(description=__doc__)

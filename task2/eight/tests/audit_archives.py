@@ -1,33 +1,67 @@
-"""从八片实验证据独立重积分逐码宽、重算 FFT 和校验源数据哈希。"""
+# =============================================================================
+# 文件名     : audit_archives.py
+# 模块名     : audit_archives
+# 版本       : v1.0
+# 功能       : 从八片实验证据独立重积分逐码宽、重算 FFT 和校验源数据哈希。
+#
+# 设计说明   :
+#   * 承担 20b10mtask 数字交付 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
+"""独立复算负注入归档的电荷区间、逐码宽、FFT 与哈希。
+
+复算对象是 eight_negative，不改写 eight_native 历史归档；公式采用 k=c−U、
+输入阈值加 L、子特征 conv+sample、名义截距加 T。节点解另由独立电荷收据覆盖。
+"""
 
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 
 import numpy as np
+
+from adi_model.hashing import sha256_file
 from task2.eight.tests.test_independent_charge import ROOT, _reference_bridge, _reference_word
 
-EVIDENCE = ROOT / "task2/evidence/eight_native"
-ORACLE = ROOT / "task2/eight/evidence/independent_oracle/receipt.json"
+EVIDENCE = ROOT / "task2/evidence/eight_negative"
+ORACLE = ROOT / "task2/evidence/eight_negative/independent_oracle.json"
 
 
-def _sha(path: Path) -> str:
-    with path.open("rb") as handle:
-        return hashlib.file_digest(handle, "sha256").hexdigest()
-
-
+# =========================================================================
+# 1. 函数组：_check_hashes / _integrate
+# =========================================================================
+# -------------------------------------------------------------------------
+# 独立计算 Fig.21 加冻结 LMS 的每个 ADC2 码仓输入交叠。
+# ------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 def _check_hashes(root: Path, entries: dict[str, str]) -> int:
     for filename, expected in entries.items():
-        if _sha(root / filename) != expected:
+        if sha256_file(root / filename) != expected:
             raise ValueError(f"SHA-256 differs from the archive: {filename}")
     return len(entries)
 
 
+# ------------------------------------------------------------------------
 def _integrate(data, report: dict, *, enabled: bool) -> dict:
-    """独立计算 Fig.21 加冻结 LMS 的每个 ADC2 码仓输入交叠。"""
+    """独立计算 Fig.21 加冻结 LMS 的每个 ADC2 码仓输入交叠。
+
+    Args:
+        data: 固定制造池、冻结权重、状态集合及逐码宽的 NPZ。
+        report: 同源 summary.json，提供电压单位和窗口定义。
+        enabled: 是否采用该状态的六位扰动字。
+    Returns:
+        区间数、量化交叠数、码宽误差与量程拒绝宽度。
+
+    这里独立逐位生成桥接位图、组装物理权重并积分，不调用实验脚本的 code_mass。
+    独立性仅覆盖数学实现；共享子权重和理想负电荷源仍是共同工程假设。
+    输入区间单位为 V，码宽按状态数等权；不可用码占比代替输入电压拒绝宽度。
+    """
     experiment, calibration = report["experiment"], report["calibration"]
     peak = experiment["full_scale_peak_v"]
     fine_half = calibration["adc2_half_range_v"]
@@ -65,21 +99,21 @@ def _integrate(data, report: dict, *, enabled: bool) -> dict:
         coarse_block = np.arange(start, min(start + 8, len(threshold) - 1))
         coarse = np.repeat(coarse_block, n)
         state = np.tile(np.arange(n), len(coarse_block))
-        cmd = coarse + upper[state]
-        left = np.maximum(threshold[coarse] - lower[state], -peak)
-        right = np.minimum(threshold[coarse + 1] - lower[state], peak)
-        valid = (cmd < len(threshold) - 1) & (right > left)
+        cmd = coarse - upper[state]
+        left = np.maximum(threshold[coarse] + lower[state], -peak)
+        right = np.minimum(threshold[coarse + 1] + lower[state], peak)
+        valid = (cmd >= 0) & (cmd < len(threshold) - 1) & (right > left)
         state, cmd, left, right = (a[valid] for a in (state, cmd, left, right))
         accepted_input_width += float(np.sum(right - left) / n)
 
         main, sub = _reference_bridge(cmd, horizontal[state], reserved[state])
-        bottom = np.concatenate((main, sub[:, :, :4] - sample_sub[state, :, :4]), axis=2)
+        bottom = np.concatenate((main, sub[:, :, :4] + sample_sub[state, :, :4]), axis=2)
         ids = plan0[state]
         gain = actual_gain[ids].sum(axis=1)
         fitted_gain = gain_fit[ids].sum(axis=1)
         b_physical = np.sum(bottom * actual_weights[ids], axis=(1, 2))
         q32 = (((cmd // 4) % 4) * (1 << 26) + 8) // 17
-        b_nominal = threshold[cmd] + peak + q32 * (peak / (1 << 32)) - word[state] * (step / 8)
+        b_nominal = threshold[cmd] + peak + q32 * (peak / (1 << 32)) + word[state] * (step / 8)
         b_fitted = b_nominal + np.sum(bottom * weight_fit[ids], axis=(1, 2))
 
         # 每区间误差在两个输入端点取极值。再加上半个 ADC2 量化步和半个输出步。
@@ -150,6 +184,13 @@ def _integrate(data, report: dict, *, enabled: bool) -> dict:
     }
 
 
+# =========================================================================
+# 2. 函数组：_check_metrics / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 从所有已导出的整码重算频谱和从每个码宽重算线性度。
+# 验证两档交付件并保存独立收据。
+# ------------------------------------------------------------------------
 def _check_metrics(data, summary: dict) -> dict:
     """从所有已导出的整码重算频谱和从每个码宽重算线性度。"""
     cfg = summary["experiment"]
@@ -213,6 +254,7 @@ def _check_metrics(data, summary: dict) -> dict:
     return {"tone_sets": tone_sets, "code_width_sets": width_sets}
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
     """验证两档交付件并保存独立收据。"""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -259,7 +301,7 @@ def main() -> None:
         "hash_entries_by_figure_manifest": figure_counts,
         "oracle_dependency_hashes": oracle_count,
         "results": results,
-        "sha256": {path.relative_to(ROOT).as_posix(): _sha(path) for path in hash_paths},
+        "sha256": {path.relative_to(ROOT).as_posix(): sha256_file(path) for path in hash_paths},
     }
     with args.out.open("x", encoding="utf-8") as handle:
         json.dump(report, handle, ensure_ascii=False, indent=2)

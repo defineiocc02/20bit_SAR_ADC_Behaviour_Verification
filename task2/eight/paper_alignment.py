@@ -167,7 +167,7 @@ def measure(root: Path) -> dict:
 
 def _fmt(value, digits: int = 3) -> str:
     """把数值格式化成固定小数位；非数值原样转字符串。"""
-    return f"{value:.{digits}f}" if isinstance(value, (int, float)) else str(value)
+    return f"{value:.{digits}f}" if isinstance(value, int | float) else str(value)
 
 
 def write_alignment(path: Path, result: dict) -> None:

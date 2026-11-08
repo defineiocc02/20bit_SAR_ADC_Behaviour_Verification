@@ -1,3 +1,14 @@
+# =============================================================================
+# 文件名     : task2_sky130_lms_extended.yml
+# 模块名     : sar20_lms_sky130_ci
+# 版本       : v1.0
+# 功能       : 在公开 SKY130HD 上重新实现负注入片上重构顶层。
+# 设计说明   :
+#   [资源] 最长 150 分钟，执行阶段 140 分钟，保持原时钟和 PVT 约束。
+#   [证据] 运行绑定提交及冻结输入摘要；历史正注入 GDS 不作为本版结果。
+#   [边界] 不代表目标 180 nm BCD 或完整 EM／IR 签核。
+# 变更记录   : 重构 RTL 改变后触发长时实现，防止沿用旧 GDS。
+# =============================================================================
 name: 20b10mtask LMS SKY130HD extended physical
 
 on:
@@ -5,6 +16,13 @@ on:
     branches: [20b10mtask]
     paths:
       - '.github/workflows/task2_sky130_lms_extended.yml'
+      - 'task_reconstruction/rtl/**'
+      - 'task_integration/rtl/**'
+      - 'task1/rtl/**'
+      - 'task2/eight_rtl/rtl/**'
+      - 'task2/rtl/**'
+      - 'task2/physical/**'
+      - 'task1/physical/sky130_constraint.sdc'
   workflow_dispatch:
 
 permissions:
@@ -26,6 +44,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      # 运行标识与 Git SHA 一起记录，防止同名工件跨提交混用。
       - name: Record the extended runner envelope
         run: |
           python3 - <<'PY'
@@ -43,9 +62,11 @@ jobs:
               'scope': 'Override the standard CI envelope only. The physical script, clock, I/O, PVT, floorplan policy and four P&R threads are unchanged.',
           }, indent=2) + '\n')
           PY
+      # 使用原冻结脚本与时序约束，不靠放宽时钟使新版通过。
       - name: Route the LMS top under the same physical plan
         timeout-minutes: 140
         run: bash task2/physical/sky130_run.sh "$RUN_DIR" sar20_digital_lms_top
+      # 成功的工件仍需检查冻结清单、时序与独立物理验证。
       - name: Upload the frozen run and runner envelope
         if: success()
         uses: actions/upload-artifact@v4
@@ -55,6 +76,7 @@ jobs:
             ${{ env.RUN_DIR }}/delivery
             ${{ env.RUN_DIR }}-runner.json
           if-no-files-found: error
+      # 失败诊断保留实际日志；有 GDS 文件不表示本次已通过。
       - name: Preserve available GDS and diagnostics after a failed or timed-out step
         if: ${{ always() && (failure() || cancelled()) }}
         uses: actions/upload-artifact@v4
@@ -71,6 +93,8 @@ jobs:
             ${{ env.RUN_DIR }}/flow/results/sky130hd/task_integration_sar20_lms/base/5_route.odb
             ${{ env.RUN_DIR }}/flow/results/sky130hd/task_integration_sar20_lms/base/6_final.*
           if-no-files-found: warn
+      # setup 与 hold 都读取实际提取后报告，分别保留状态。
+      # 缺项或任一非 PASS 让作业失败，不继承历史版的裕量。
       - name: Report the independent TT timing gate
         if: success()
         run: |
@@ -86,3 +110,5 @@ jobs:
                   summary.write(f"- {mode}: {result['status']}, slack {result['worst_slack_ns']:.4f} ns\n")
           raise SystemExit(any(result['status'] != 'PASS' for result in timing.values()))
           PY
+
+# [退回] 若真实时序不满足目标，携带关键路径回到 RTL；不自动改 SDC。

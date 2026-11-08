@@ -1,3 +1,17 @@
+# =============================================================================
+# 文件名     : full20_dither_plots.py
+# 模块名     : full20_dither_plots
+# 版本       : v1.0
+# 功能       : Recompute and plot full 20-bit code widths for ideal ADC2 subtractive dither.
+#
+# 设计说明   :
+#   * 承担 行为级实验与图件生成 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """Recompute and plot full 20-bit code widths for ideal ADC2 subtractive dither."""
 
 from __future__ import annotations
@@ -13,6 +27,9 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import FuncFormatter
+
+from adi_model.capacitors import ExperimentConfig, cap_pool
+from adi_model.hashing import sha256_file
 from task1.experiments.adc2_dither_study import VIEW_CODES, _dither_words
 from task1.experiments.adctoolbox_calibration import CalibrationConfig
 from task1.experiments.full20_linearity_plots import (
@@ -24,22 +41,22 @@ from task1.experiments.full20_linearity_plots import (
     SIGNED_MIN,
     WIDTH_MM,
     _blocks,
-    _chinese_style,
     _save,
     _style,
+    chinese_style,
 )
 from task1.experiments.inl_dnl import (
     CHUNK_COARSE,
     OUTPUT_BITS,
     RampStates,
     _build_intervals,
-    _linearity,
-    _mass,
-    _sha,
     _source_check,
     _states,
+    code_mass,
+    inl_linearity,
 )
-from task1.experiments.run_effects import ROOT, ExperimentConfig, _cap_pool, _codebook
+from task1.experiments.run_effects import ROOT
+from task1.model.codebook import codebook
 
 DATA = ROOT / "task1/evidence/adc2_dither"
 TRAINING = ROOT / "task1/evidence/bridge_lms"
@@ -50,15 +67,36 @@ PANELS = (
 )
 
 
+# =========================================================================
+# 1. 函数组：_widths / _check / _plot
+# =========================================================================
+# ------------------------------------------------------------------------
 def _widths(
     data: np.lib.npyio.NpzFile,
     experiment: ExperimentConfig,
     cfg: CalibrationConfig,
     words: np.ndarray,
 ) -> tuple[dict[str, np.ndarray], dict[str, np.ndarray], int]:
-    nominal, pool = _cap_pool(experiment)
+    """调用合同。
+
+    对粗码区间分批积分，避免构造全部粗码、状态和 ADC2 码的笛卡尔积。
+    扰动加在 ADC2 输入折算残差上，数字基值减去相同偏移，形成加减性对照。
+    这条独立实验路径不等同于八片采样负电荷源。
+
+    Args:
+        data: 冻结增益和等效开关权重的归档，列顺序由归档约定。
+        experiment: 固定制造池、参考电压与片选参数。
+        cfg: ADC2 量程和位数。
+        words: 单位 V 的扰动偏移集合；比较时所有偏移等权。
+    Returns:
+        每个实验臂的全码宽数组、拒绝宽度统计和状态数量。
+
+    码宽单位为 V，不是命中次数。状态权重为状态数与扰动字数乘积的倒数。
+    状态数增加不会自动提高 ADC 的物理位数，也不代表更多独立制造样本。
+    """
+    nominal, pool = cap_pool(experiment)
     peak, half = experiment.full_scale_peak_v, cfg.adc2_half_range_v
-    threshold = np.r_[_codebook(nominal, experiment), peak]
+    threshold = np.r_[codebook(nominal, experiment), peak]
     np.testing.assert_array_equal(threshold[:-1], data["nominal_threshold_v"])
     groups = _states(experiment, 4, bridge=True)
     states = RampStates(
@@ -85,7 +123,7 @@ def _widths(
                     residue_high_v=interval.residue_high_v + offset,
                     digital_base_v=interval.digital_base_v - offset,
                 )
-                mass = _mass(shifted, cfg.adc2_bits, half, peak)
+                mass = code_mass(shifted, cfg.adc2_bits, half, peak)
                 if mass.code.size:
                     first, stop = int(mass.code.min()), int(mass.code.max()) + 1
                     widths[key][first:stop] += probability * np.bincount(
@@ -97,6 +135,7 @@ def _widths(
     return widths, limits, state_count
 
 
+# ------------------------------------------------------------------------
 def _check(
     widths: dict[str, np.ndarray],
     limits: dict[str, np.ndarray],
@@ -105,6 +144,30 @@ def _check(
     state_count: int,
     word_count: int,
 ) -> tuple[dict[str, tuple[np.ndarray, np.ndarray]], dict]:
+    """调用合同。
+
+    Args:
+        widths: 各臂全码输入宽度数组，单位 V。
+        limits: ADC2 和输出量程以外的宽度统计。
+        case: 选择的基线记录。
+        peak: 差分输入峰值，单位 V。
+        state_count: 等权调度／DEM 状态数量。
+        word_count: 等权扰动偏移数量。
+    Returns:
+        校验及逐码线性度摘要。
+
+    积分总量必须与输入窗及拒绝宽度一致，不能通过丢弃坏区间使图更平滑。
+
+    20 位 LSB 来自输入总宽除以 2^20，不来自绘图块大小。
+    码宽为零时 DNL=-1，这是统计窗口内的零宽，不是删码后的新量程。
+    INL 由逐码 DNL 累积并扣既定直线，不能先平滑再求峰值。
+    端点截断与内部超窗分别记录。
+    窗口外区域不能补零后纳入性能改善统计。
+    LMS 的训练条件由输入归档决定，不能在绘图中重新拟合。
+    扰动状态采用等权时要在图注明分母。
+    非等权真实随机序列需另做有限记录验证。
+    此处守恒检查不能代替完整 ADC 的动态非理想验证。
+    """
     curves = {}
     metrics = {}
     for key, values in widths.items():
@@ -129,7 +192,7 @@ def _check(
             rtol=0,
             atol=1e-11,
         )
-        dnl, inl, stats = _linearity(values)
+        dnl, inl, stats = inl_linearity(values)
         np.testing.assert_allclose(
             [stats[name] for name in reference["20bit"]],
             list(reference["20bit"].values()),
@@ -145,6 +208,7 @@ def _check(
     return curves, metrics
 
 
+# ------------------------------------------------------------------------
 def _plot(
     stem: Path,
     curves: dict[str, tuple[np.ndarray, np.ndarray]],
@@ -155,6 +219,19 @@ def _plot(
     *,
     zoom: bool,
 ) -> None:
+    """调用合同。
+
+    Args:
+        stem: 图片输出路径前缀，各格式共用同一个数据来源。
+        curves: 按 20 位码顺序排列的 DNL／INL。
+        stats: 对应曲线的极值、统计范围和边界记录。
+        sigma: 制造失配标准差，不是每笔瞬时噪声。
+        seed: 固定制造样本的种子。
+        lsb_v: 名义 20 位电压步长，单位 V。
+        zoom: 是否突出主体范围，图中仍需报告超界极值。
+
+    缩放纵轴只改变显示范围，超界极值和评价窗口必须继续在图中披露。
+    """
     fig, axes = plt.subplots(4, figsize=(WIDTH_MM / 25.4, HEIGHT_MM / 25.4))
     fig.subplots_adjust(left=0.14, right=0.95, top=0.865, bottom=0.18, hspace=0.88)
     fig.text(
@@ -263,6 +340,12 @@ def _plot(
     plt.close(fig)
 
 
+# =========================================================================
+# 2. 函数组：main
+# =========================================================================
+# -------------------------------------------------------------------------
+# Recompute and compare against the archived dither study before writing figures.
+# ------------------------------------------------------------------------
 def main() -> None:
     """Recompute and compare against the archived dither study before writing figures."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -271,17 +354,17 @@ def main() -> None:
     archived_report = DATA / "summary.json"
     report = json.loads(archived_report.read_text(encoding="utf-8"))
     for name, expected_sha in report["source_sha256"].items():
-        if _sha(ROOT / name) != expected_sha:
+        if sha256_file(ROOT / name) != expected_sha:
             raise ValueError(f"source differs from frozen dither study: {name}")
     plt.switch_backend("Agg")
-    font = _chinese_style()
+    font = chinese_style()
     args.out.mkdir(parents=True, exist_ok=True)
     cases = []
     for case in report["cases"]:
         sigma = case["sigma_percent"]
         training = TRAINING / f"sigma_{sigma:g}pct_adc2_100mv"
         for name, expected_sha in case["training_artifact_sha256"].items():
-            if _sha(training / name) != expected_sha:
+            if sha256_file(training / name) != expected_sha:
                 raise ValueError(f"training artifact differs from frozen dither study: {name}")
         meta = json.loads((training / "summary.json").read_text(encoding="utf-8"))
         _source_check(training, meta)
@@ -340,7 +423,7 @@ def main() -> None:
                 "dither_on_word_count": len(words),
                 "dither_words_v": words.tolist(),
                 "frozen_training_sha256": case["training_artifact_sha256"],
-                "archived_occupancy_artifact_sha256": _sha(archived_widths),
+                "archived_occupancy_artifact_sha256": sha256_file(archived_widths),
                 "arms": stats,
             }
         )
@@ -352,14 +435,15 @@ def main() -> None:
     manifest = {
         "schema": "task1_full20_ideal_adc2_dither_v1",
         "scope": "Ideal fine ADC2 subtractive dither with frozen Fig.21 + NLMS",
-        "archived_dither_summary_sha256": _sha(archived_report),
+        "archived_dither_summary_sha256": sha256_file(archived_report),
         "source_sha256": {
-            f"task1/experiments/{name}": _sha(Path(__file__).with_name(name)) for name in files
+            f"task1/experiments/{name}": sha256_file(Path(__file__).with_name(name))
+            for name in files
         },
         "figure_helper_source": "task1/experiments/full20_linearity_plots.py",
         "figure_helper_functions_sha256": {
             fn.__name__: hashlib.sha256(inspect.getsource(fn).encode("utf-8")).hexdigest()
-            for fn in (_blocks, _chinese_style, _save, _style)
+            for fn in (_blocks, chinese_style, _save, _style)
         },
         "visual_reference_sha256": REFERENCE_SHA256,
         "signed_code_range": [SIGNED_MIN, SIGNED_MAX],
@@ -371,7 +455,7 @@ def main() -> None:
         "figure_language": "zh-CN",
         "font_family": font,
         "cases": cases,
-        "output_sha256": {path.name: _sha(path) for path in sorted(args.out.glob("adc2_*"))},
+        "output_sha256": {path.name: sha256_file(path) for path in sorted(args.out.glob("adc2_*"))},
     }
     (args.out / "manifest.json").write_text(json.dumps(manifest, indent=2, allow_nan=False) + "\n")
 

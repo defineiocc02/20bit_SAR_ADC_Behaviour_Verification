@@ -2,7 +2,7 @@
 
 顶层 `sar20_digital_top` 串接 18 片调度、DEM、八片 RDAC 扰动控制和 CAAZ 配对。采用 160 MHz 核心时钟和每 16 个上升沿一笔的输入节拍。CAAZ 关时输出 10 MS/s，开时合法连续的正、反相非重叠配对输出 5 MS/s。两个速率都以外部宏遵守下述时序为前提。
 
-当前边界包括实际控制位、最终粗码映射和 20 位有符号结果的配对。SADC 辅助 DAC、参考开关、RA、ADC2、LMS 训练及按真实电荷重构的乘加由外部提供。数字宏输出逐笔采样/转换掩码、同笔扰动字和桥接补偿供外部重构使用；模拟斩波和自零的建立、噪声及电荷保持由模拟验证负责。八片扰动用原生子阵列低到高的正注入，CAAZ 必须收到在斩波坐标系下已去扰的重构结果。 [模块二](../task2/eight_rtl/SPEC.md) · [模块三](../task3/README.md)
+当前边界包括实际控制位、最终粗码映射和 20 位有符号结果的配对。SADC 辅助 DAC、参考开关、RA、ADC2、LMS 训练及按真实电荷重构的乘加由外部提供。数字宏输出逐笔采样/转换掩码、同笔扰动字和桥接补偿供外部重构使用；模拟斩波和自零的建立、噪声及电荷保持由模拟验证负责。八片扰动用原生子阵列低到高的负注入（`k=c−U`，C9），CAAZ 必须收到在斩波坐标系下已去扰的重构结果。 [模块二](../task2/eight_rtl/SPEC.md) · [模块三](../task3/README.md)
 
 所有端口同属 `clk_i` 域。总线按 slot 顺序排列，slot 0 位于最低位。`rst_ni` 是低有效同步复位；`clear_i` 和全局 `enable_i=0` 同样取消在途事务并复位样本号。外部宏须同时取消未完成的样本并清除有效信号，复位后 ID 从 0 重新分配。顶层仅按 32 位模序号确认所属样本。
 
@@ -24,6 +24,13 @@
 | `recon_bad_i`, `recon_chop_neg_i`, `recon_az_pair_id_i`, `recon_az_ok_i` | 入 1/1/31/1 | 模拟坏样本、实际施加极性、AZ 代及宏捕获／保持确认。坏样本可不经粗码直接退休。 |
 | `out_valid_o`, `out_code_o`, `out_sample_id_o`, `out_first_sample_id_o`, `out_az_pair_id_o`, `out_pair_o`, `out_difference_o` | 出 1/20s/32/32/31/1/21s | CAAZ 关时单笔，开时两笔的 `floor((even−odd)/2)`；21 位差码完整保留。 |
 | `recon_error_o`, `fault_o`, `fault_pulse_o`, `caaz_fault_code_o`, `alignment_fault_o` | 出 1/1/1/3/1 | 错配或早到拒绝重构并保留当前资格。CAAZ 或采样控制 ID 对齐故障锁存，直到清空。 |
+
+> ⚠️ **与冻结契约 C1 的实现冲突（2026-11-07 原件核对发现）**：上表 `code_i` 的「最终粗码、采一拍申请」是**当前 RTL 的真实行为**，不是笔误——
+> `sar20_digital_top.sv` 内的 `sar20_digital_control`（第 143 行，本顶层例化于 `sar20_digital_lms_top.sv:105`）用 `command_committed_q` 把一笔转换锁成只接受第一个合法码
+> （`:264` `code_request = code_valid_i && conv_ready_o && !command_committed_q && !retired_bad`；`:338` 首个 `d8_mask_valid` 后锁存；`:325` 后续 `code_valid_i` 直接报 `code_error_o`）。
+> 但冻结契约 C1 规定「**每位一次、9 拍递增一位、ID 整笔不变**」，且论文印刷 p182 要求 RDAC 作为 SADC follower「conversion results **loaded as they develop**」；
+> `task1/rtl/module1_top.sv:194` 的模块一确实支持「一个样本可提交多个已决前缀」。**C1 在集成顶层尚未落地**，逐前缀输入目前会被判错。
+> 修改前不得把本页口径当成 C1 已满足。详见 `20b10mtask_原件核对_20261107.md` §7.3。
 
 ## 每笔的周期预算
 

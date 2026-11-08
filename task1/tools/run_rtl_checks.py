@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : run_rtl_checks.py
+# 模块名     : run_rtl_checks
+# 版本       : v1.0
+# 功能       : 用独立规格向量核对模块一的 Python 模型与 Verilator 逐事件输出。
+#
+# 设计说明   :
+#   * 承担 向量生成与逐沿对拍入口 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """用独立规格向量核对模块一的 Python 模型与 Verilator 逐事件输出。"""
 
 from __future__ import annotations
@@ -17,9 +31,6 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
-from task1.model.fig11_dem import map_fig11  # noqa: E402
-from task1.model.module1 import Module1  # noqa: E402
-from task1.model.scheduler import SliceScheduler  # noqa: E402
 from tools.run_open_rtl import (  # noqa: E402
     alias_runtime,
     checked_run,
@@ -30,6 +41,10 @@ from tools.run_open_rtl import (  # noqa: E402
     verilator_compiler_args,
     write_json,
 )
+
+from task1.model.fig11_dem import map_fig11  # noqa: E402
+from task1.model.module1 import Module1  # noqa: E402
+from task1.model.scheduler import SliceScheduler  # noqa: E402
 
 TOP = "task1_rtl_checks_tb"
 MARKER = "TASK1_RTL_CHECKS_COMPLETE"
@@ -59,6 +74,13 @@ STRICT_LINT = (
 )
 
 
+# =========================================================================
+# 1. 函数组：SchedulerStimulus / SchedulerObservation / _mask
+# =========================================================================
+# -------------------------------------------------------------------------
+# 在时钟上升沿前建立的同步输入。
+# 在上升沿后核对的组、归属、资格及单拍事件。
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class SchedulerStimulus:
     """在时钟上升沿前建立的同步输入。"""
@@ -73,6 +95,7 @@ class SchedulerStimulus:
     seed: int = 0
 
 
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class SchedulerObservation:
     """在上升沿后核对的组、归属、资格及单拍事件。"""
@@ -91,21 +114,29 @@ class SchedulerObservation:
     lfsr_state: int
 
 
+# ------------------------------------------------------------------------
 def _mask(ids: tuple[int, ...] | list[int] | set[int]) -> int:
     return sum(1 << index for index in ids)
 
 
+# =========================================================================
+# 2. 函数组：_advance_lfsr / ScheduleOracle / _pack
+# =========================================================================
+# -------------------------------------------------------------------------
+# 按物理集合和环形顺序建立分组参考。未分配的组保留空集合。
+# ------------------------------------------------------------------------
 def _advance_lfsr(state: int) -> int:
     # 以 32 个独立位和反馈抽头表达规格，独立于生产模型的整数状态更新。
     bits = [(state >> position) & 1 for position in range(32)]
     for _ in range(8):
         feedback = bits[0]
-        bits = bits[1:] + [0]
+        bits = [*bits[1:], 0]
         for position in (0, 1, 21, 31):
             bits[position] ^= feedback
     return sum(bit << position for position, bit in enumerate(bits))
 
 
+# ------------------------------------------------------------------------
 class ScheduleOracle:
     """按物理集合和环形顺序建立分组参考。未分配的组保留空集合。"""
 
@@ -160,6 +191,7 @@ class ScheduleOracle:
         )
 
 
+# ------------------------------------------------------------------------
 def _pack(fields: tuple[tuple[int, int], ...]) -> int:
     packed = 0
     for value, width in fields:
@@ -169,10 +201,15 @@ def _pack(fields: tuple[tuple[int, int], ...]) -> int:
     return packed
 
 
+# =========================================================================
+# 3. 函数组：_pack_slots / _schedule_result_fields / _schedule_word
+# =========================================================================
+# ------------------------------------------------------------------------
 def _pack_slots(masks: tuple[int, ...], width: int) -> int:
     return sum(mask << (slot * width) for slot, mask in enumerate(masks))
 
 
+# ------------------------------------------------------------------------
 def _schedule_result_fields(expected: SchedulerObservation) -> tuple[tuple[int, int], ...]:
     return (
         (_pack_slots(expected.acq_ids, 5), 40),
@@ -190,6 +227,7 @@ def _schedule_result_fields(expected: SchedulerObservation) -> tuple[tuple[int, 
     )
 
 
+# ------------------------------------------------------------------------
 def _schedule_word(command: SchedulerStimulus, expected: SchedulerObservation) -> int:
     return _pack(
         (
@@ -206,8 +244,27 @@ def _schedule_word(command: SchedulerStimulus, expected: SchedulerObservation) -
     )
 
 
+# =========================================================================
+# 4. 函数组：generate_scheduler_vectors / _dem_oracle / generate_dem_vectors
+# =========================================================================
+# -------------------------------------------------------------------------
+# 覆盖启动、配置、拒绝、恢复及 4096 个可接受的稳态帧。
+# 穷举码、两相位和使能，分别检查掩码与名义转换电荷。
+# ------------------------------------------------------------------------
 def generate_scheduler_vectors(path: Path) -> dict[str, int]:
-    """覆盖启动、配置、拒绝、恢复及 4096 个可接受的稳态帧。"""
+    """覆盖启动、配置、拒绝、恢复及 4096 个可接受的稳态帧。
+
+    期望组从接受事件推进，不从 RTL 输出回填；stall 时组和随机状态均保持。
+    复位、清空和禁用会使在途事件失效，不能只清除最终输出有效位。
+
+    Args:
+        path: ASCII 向量文件输出位置；输入与期望按测试台结构顺序打包。
+    Returns:
+        各类时序事件与完成计数，供执行后比较。
+
+    首笔只建立采集组，后续接受事件才把上一采集组晋升为转换组。
+    资格掩码不足八片时不能通过重抽随机数改变同一请求的结果。
+    """
     oracle = ScheduleOracle()
     model = SliceScheduler()
     rng = random.Random(MODEL_SEED)
@@ -295,9 +352,23 @@ def generate_scheduler_vectors(path: Path) -> dict[str, int]:
     return coverage
 
 
+# ------------------------------------------------------------------------
 def _dem_oracle(
     code: int, enable: bool, horizontal: int, vertical: int
 ) -> tuple[tuple[int, ...], tuple[int, ...], bool]:
+    """Args:
+
+    Args:
+        code: 九位最终转换命令，合法范围 0～511。
+        enable: 是否启用单元重分配。
+        horizontal: 跨八槽的旋转相位。
+        vertical: 片内列选择相位。
+    Returns:
+        与有序槽对应的主、子阵列转换位图。
+
+    独立按位权和位置构造位图，不能把 RTL 的输出重新求和作为唯一判据。
+    这只核对本工程声明的映射，不恢复原芯片开关连接。
+    """
     if enable and horizontal == 15:
         return (0,) * 8, (0,) * 8, False
     coarse_count, tail = divmod(code, 32)
@@ -318,6 +389,7 @@ def _dem_oracle(
     return tuple(main), (sub_bits,) * 8, True
 
 
+# ------------------------------------------------------------------------
 def generate_dem_vectors(path: Path) -> dict[str, int]:
     """穷举码、两相位和使能，分别检查掩码与名义转换电荷。"""
     coverage = {"dem_active": 0, "dem_bypass": 0, "dem_invalid": 0}
@@ -372,6 +444,13 @@ def generate_dem_vectors(path: Path) -> dict[str, int]:
     return coverage
 
 
+# =========================================================================
+# 5. 函数组：TopStimulus / TopObservation / _next_dem_state
+# =========================================================================
+# -------------------------------------------------------------------------
+# 集成顶层的同步请求和沿后使用的组合前缀输入。
+# 集成顶层发布的同笔上下文及当前前缀掩码。
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class TopStimulus:
     """集成顶层的同步请求和沿后使用的组合前缀输入。"""
@@ -391,6 +470,7 @@ class TopStimulus:
     code_sample_id: int = 0
 
 
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class TopObservation:
     """集成顶层发布的同笔上下文及当前前缀掩码。"""
@@ -405,6 +485,7 @@ class TopObservation:
     code_error: bool
 
 
+# ------------------------------------------------------------------------
 def _next_dem_state(state: int) -> int:
     bits = [(state >> position) & 1 for position in range(32)]
     for shift in (13, -17, 5):
@@ -415,6 +496,13 @@ def _next_dem_state(state: int) -> int:
     return sum(bit << position for position, bit in enumerate(bits))
 
 
+# =========================================================================
+# 6. 函数组：TopOracle / _top_word / generate_top_vectors
+# =========================================================================
+# -------------------------------------------------------------------------
+# 把调度事务排入一拍发布槽，并按样本冻结独立 DEM 状态。
+# 核对同笔前缀资格、原子配置、取消与一拍发布，最后持续派发。
+# ------------------------------------------------------------------------
 class TopOracle:
     """把调度事务排入一拍发布槽，并按样本冻结独立 DEM 状态。"""
 
@@ -486,7 +574,23 @@ class TopOracle:
         )
 
 
+# ------------------------------------------------------------------------
 def _top_word(command: TopStimulus, expected: TopObservation) -> int:
+    """核对接口边界与证据归属。
+
+    向量同时打包驱动和期望，不能把被测模块的当前输出当成下一拍的期望。
+    样本 ID、两组有序片号和实际掩码按同一事件时间线解释。
+    当前采集与当前转换可以属于不同样本。
+    资格不足不发布新采集，随机状态保持。
+    重置与清空覆盖同沿请求，不能留下孤立的有效脉冲。
+    有序片号决定 slot 0 的最低位位置，反序会造成所有位宽正确却权重取错。
+    期望文件保留完整位宽，不按显示十六进制字符数猜测字段。
+    非法种子与非法转换是不同拒绝来源。
+    拒绝事务不能产生正常样本的计数增量。
+    计数是覆盖依据，单个正确输出不代表完整测试已结束。
+    连续请求用来核对无插泡的接口行为。
+    数字时序正确不表示模拟采集和建立时间已经满足。
+    """
     return _pack(
         (
             (command.rst_n, 1),
@@ -518,6 +622,7 @@ def _top_word(command: TopStimulus, expected: TopObservation) -> int:
     )
 
 
+# ------------------------------------------------------------------------
 def generate_top_vectors(path: Path) -> dict[str, int]:
     """核对同笔前缀资格、原子配置、取消与一拍发布，最后持续派发。"""
     oracle = TopOracle()
@@ -611,8 +716,27 @@ def generate_top_vectors(path: Path) -> dict[str, int]:
     return coverage
 
 
+# =========================================================================
+# 7. 函数组：run / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 在 ASCII 临时构建树编译并执行向量，将结果证据写入明确输出路径。
+# 解析 Verilator 路径与输出位置并运行自检。
+# ------------------------------------------------------------------------
 def run(out: Path, command: list[str], timeout: int) -> dict:
-    """在 ASCII 临时构建树编译并执行向量，将结果证据写入明确输出路径。"""
+    """在 ASCII 临时构建树编译并执行向量，将结果证据写入明确输出路径。
+
+    Args:
+        out: 仓库外且事先不存在的证据目录。
+        command: 已解析的仿真器命令，不含自动安装步骤。
+        timeout: 子过程等待上限，单位 s。
+    Returns:
+        实际完成计数及验证覆盖摘要。
+
+    编译、运行返回码、日志中的错误和完成标记分别检查。
+    任一检查失败都终止，不能仅凭进程退出或日志文件存在发布 PASS。
+    种子、复位、随机选片与掩码断言在同一设计包执行；结果只证明数字合同。
+    """
     env = os.environ.copy()
     with tempfile.TemporaryDirectory(prefix="task1_rtl_") as temporary:
         work = Path(temporary)
@@ -723,6 +847,7 @@ def run(out: Path, command: list[str], timeout: int) -> dict:
         return result
 
 
+# ------------------------------------------------------------------------
 def main() -> int:
     """解析 Verilator 路径与输出位置并运行自检。"""
     parser = argparse.ArgumentParser(description=__doc__)

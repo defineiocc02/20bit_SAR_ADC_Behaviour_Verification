@@ -1,9 +1,28 @@
+# =============================================================================
+# 文件名     : verification_plan.yaml
+# 模块名     : caaz20_verification
+# 版本       : v1.0
+# 功能       : CAAZ 配对模块验证映射
+#
+# 设计说明   :
+#   * 前三条是 RTL 逐拍回放，CAZ-M1 是行为噪声模型，CAZ-P1 是物理流程，三者强度不可互换；status 只在被阻塞时显式写出。
+#   * 本文件只描述约束/验证意图，不是验收结论；实际状态以运行日志与归档收据为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# =============================================================================
+
 schema_version: 1
 top: caaz20_pair
+# verification 是验证项 ID，method 决定证据等级，coverage 是必须观测的行为集合。
+# 前三条是 RTL 逐拍回放，CAZ-M1 是行为噪声模型，CAZ-P1 是物理流程，三者强度不可互换。
 requirements:
   REQ-CAAZ-01: {verification: CAZ-R1, method: verilator_cycle_replay, coverage: [back_to_back, stalling, overlapping, parity, reset]}
   REQ-CAAZ-02: {verification: CAZ-R2, method: verilator_cycle_replay, coverage: [integer_extrema, negative_odd_difference, bypass, nonoverlap]}
+  # negative_odd_difference 与 signed_floor 相关：差为负时除法必须是向下取整，不能用截断。
   REQ-CAAZ-03: {verification: CAZ-R3, method: verilator_cycle_replay, coverage: [all_fault_codes, fault_priority, reset_cancellation, flush, disable, restart]}
   REQ-CAAZ-04: {verification: CAZ-M1, method: pair_noise_model, coverage: [matched_bandwidth, shared_az, hold_leakage]}
+  # BLOCKED 的原因是需要模拟宏与系统级数据；缺这些输入时不得用行为模型结果代替。
   REQ-CAAZ-05: {verification: CAZ-A1, method: mixed_signal_macro_and_system, status: BLOCKED}
   REQ-CAAZ-06: {verification: CAZ-P1, method: integrated_sky130hd_flow}

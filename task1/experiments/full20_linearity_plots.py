@@ -1,10 +1,23 @@
+# =============================================================================
+# 文件名     : full20_linearity_plots.py
+# 模块名     : full20_linearity_plots
+# 版本       : v1.0
+# 功能       : Render signed 20-bit DNL and endpoint INL from the archived per-code mass.
+#
+# 设计说明   :
+#   * 承担 行为级实验与图件生成 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """Render signed 20-bit DNL and endpoint INL from the archived per-code mass."""
 
 from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import json
 from pathlib import Path
 
@@ -13,7 +26,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import font_manager
 from matplotlib.ticker import FuncFormatter
-from task1.experiments.inl_dnl import OUTPUT_BITS, _linearity
+
+from adi_model.hashing import sha256_file
+from task1.experiments.inl_dnl import OUTPUT_BITS, inl_linearity
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA = ROOT / "task1/evidence/inl_dnl"
@@ -36,10 +51,12 @@ THREE_ARMS = (
 )
 
 
-def _sha(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
+# =========================================================================
+# 1. 函数组：_style / chinese_style
+# =========================================================================
+# -------------------------------------------------------------------------
+# Set the reference geometry with a verified Simplified Chinese font.
+# ------------------------------------------------------------------------
 def _style() -> str:
     # Match the reference panel roles at their delivered physical dimensions.
     font = "Arial"
@@ -70,7 +87,8 @@ def _style() -> str:
     return font
 
 
-def _chinese_style() -> str:
+# ------------------------------------------------------------------------
+def chinese_style() -> str:
     """Set the reference geometry with a verified Simplified Chinese font."""
     _style()
     for family, regular_weight in (("Hiragino Sans GB", 300), ("Noto Sans CJK SC", 400)):
@@ -96,10 +114,26 @@ def _chinese_style() -> str:
     raise RuntimeError("Install Hiragino Sans GB or Noto Sans CJK SC for Chinese plot labels")
 
 
+# =========================================================================
+# 2. 函数组：_blocks / _axes / _save
+# =========================================================================
+# -------------------------------------------------------------------------
+# Keep both extrema of every contiguous block and their signed code locations.
+# ------------------------------------------------------------------------
 def _blocks(
     values: np.ndarray, *, missing: np.ndarray | None = None
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[tuple]]:
-    """Keep both extrema of every contiguous block and their signed code locations."""
+    """Keep both extrema of every contiguous block and their signed code locations.
+
+    Args:
+        values: 按输出码排列的逐码数值，不能先排序或重采样。
+        missing: 可选逐码零宽标记；与 values 按相同码序对齐。
+    Returns:
+        每个显示块的范围和极值，供全景图绘制。
+
+    显示块只压缩图形，不参与 DNL／INL 的重新计算。
+    零宽码与峰值必须在压缩前的完整数组上统计。
+    """
     first_code = SIGNED_MIN + 1
     start = np.arange(0, len(values), BLOCK)
     stop = np.r_[start[1:], len(values)]
@@ -128,7 +162,19 @@ def _blocks(
     return edges, low, high, rows
 
 
+# ------------------------------------------------------------------------
 def _axes(fig: plt.Figure, axes: np.ndarray, meta: dict, view: str) -> None:
+    """调用合同。
+
+    Args:
+        fig: 当前图形对象。
+        axes: 面板轴对象，按调用方规定的顺序组织。
+        meta: 实验条件、位宽和单位说明。
+        view: 选择全景或局部显示方式，不改变数据口径。
+
+    图例中的处理方式对应冻结实验臂，不能把 DEM 状态与 dither 状态混写。
+    横轴为整数输出码，纵轴为 LSB20；显示包络不是降低 ADC 输出位数。
+    """
     scale = HEIGHT_MM / (fig.get_figheight() * 25.4)
     fig.subplots_adjust(
         left=0.135, right=0.954, top=1 - 0.13 * scale, bottom=0.136 * scale, hspace=0.82
@@ -184,13 +230,30 @@ def _axes(fig: plt.Figure, axes: np.ndarray, meta: dict, view: str) -> None:
         ax.axhline(0, color="0.45", lw=0.5, zorder=1)
 
 
+# ------------------------------------------------------------------------
 def _save(fig: plt.Figure, stem: Path, *, zoom: bool) -> None:
+    """调用合同。
+
+    Args:
+        fig: 已完成数据及注释的图形。
+        stem: 文件名前缀，由调用方组织目录。
+        zoom: 是否生成带放大后缀的显示视图。
+
+    多个格式共用同一个 figure，避免 PNG 与矢量图分别计算而出现数值差异。
+    输出是可视化交付，不等于新增模拟、RTL 或工艺签核证据。
+    """
     fig.savefig(stem.with_suffix(".png"), dpi=300)
     fig.savefig(stem.with_suffix(".svg"), metadata={"Date": None})
     if not zoom:
         fig.savefig(stem.with_suffix(".pdf"), metadata={"CreationDate": None, "ModDate": None})
 
 
+# =========================================================================
+# 3. 函数组：_draw_envelope / _case / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# Export two fixed mismatch levels for each archived ADC2 resolution.
+# ------------------------------------------------------------------------
 def _draw_envelope(
     ax: plt.Axes, edges: np.ndarray, low: np.ndarray, high: np.ndarray, color: str
 ) -> None:
@@ -202,15 +265,40 @@ def _draw_envelope(
     ax.step(edges, high_steps, where="post", color=color, lw=0.37, zorder=3)
 
 
+# ------------------------------------------------------------------------
 def _case(
     path: Path, out: Path, meta: dict, *, uncalibrated: tuple[Path, dict] | None = None
 ) -> dict:
+    """调用合同。
+
+    Args:
+        path: 一组已有实验数据所在目录。
+        out: 图片输出目录；不在这里训练系数或运行新的失配仿真。
+        meta: 配套统计与单位，须与当前码宽数组同源。
+        uncalibrated: 可选未校准归档路径和元数据，用于第三个对照臂。
+
+    全景、主体放大和端点放大使用同一份数据。缩小显示纵轴时仍报告超界点数。
+    DNL 的单位是名义 20 位 LSB，不能随画图分块数更改。
+    INL 使用既定的端点扣直线口径，不能在重绘阶段改成最佳拟合来改善指标。
+    灰色区域表示未评价或超出共同输入窗，不可误读为理想零误差。
+
+    评价范围内每个输出码仍保留独立宽度。
+    极值包络不丢弃原始极值，但会压缩码间的视觉细节。
+    因此中码和端点局部图用于辨认离散结构。
+    同一幅图的不同实验臂不应使用未说明的独立标度。
+    放大后的坐标范围不改变报告的峰值与零宽数量。
+    重绘时不允许只保留更平滑的状态子集。
+    输入数据缺失或元数据不配套应终止，而不是补出近似曲线。
+    旧图对应旧代码时，只能作为历史结果引用。
+    图像渲染成功不能提升原数据的验证等级。
+    图片和摘要的结果单位必须一致。
+    """
     stem = f"adc2_{meta['adc2_bits']}bit_sigma_{100 * meta['sigma']:g}pct"
     if meta["output_quantizer_bits"] != OUTPUT_BITS:
         raise ValueError(f"{path} is not {OUTPUT_BITS}-bit output data")
     case = {
         "source": str(path.relative_to(ROOT)),
-        "source_sha256": _sha(path),
+        "source_sha256": sha256_file(path),
         "adc2_bits": meta["adc2_bits"],
         "adc2_half_range_v_input_referred": meta["adc2_half_range_v"],
         "fixed_mismatch_sigma": meta["sigma"],
@@ -255,7 +343,7 @@ def _case(
         case.update(
             comparison="independent uncalibrated baseline and both NLMS paths",
             uncalibrated_source=str(uncalibrated_path.relative_to(ROOT)),
-            uncalibrated_source_sha256=_sha(uncalibrated_path),
+            uncalibrated_source_sha256=sha256_file(uncalibrated_path),
         )
     case["dimensions_mm"] = [WIDTH_MM, height_mm]
     artifacts = [f"{stem}_envelope.csv"]
@@ -297,7 +385,7 @@ def _case(
             if widths.shape != (CODE_COUNT,) or not np.all(np.isfinite(widths) & (widths >= 0)):
                 raise ValueError(f"{stem}: invalid archived per-code mass for {name}")
             np.testing.assert_allclose(widths.sum(), meta["input_full_scale_v"], rtol=0, atol=1e-10)
-            dnl, inl, stats = _linearity(widths)
+            dnl, inl, stats = inl_linearity(widths)
             expected = arm["linearity"][str(OUTPUT_BITS)]
             np.testing.assert_allclose(
                 list(stats.values()), [expected[key] for key in stats], rtol=0, atol=1e-10
@@ -410,6 +498,7 @@ def _case(
     return case
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
     """Export two fixed mismatch levels for each archived ADC2 resolution."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -423,16 +512,16 @@ def main() -> None:
         help="Also render the independent uncalibrated comparison",
     )
     args = parser.parse_args()
-    if args.reference is not None and _sha(args.reference) != REFERENCE_SHA256:
+    if args.reference is not None and sha256_file(args.reference) != REFERENCE_SHA256:
         raise ValueError("unexpected visual reference SHA-256")
     args.out.mkdir(parents=True, exist_ok=True)
     plt.switch_backend("Agg")
-    font = _chinese_style()
+    font = chinese_style()
     cases = []
     source_reports = {}
     for source_dir in (DATA, DATA / "adc2_16bit"):
         source_report = source_dir / "summary.json"
-        source_reports[str(source_report.relative_to(ROOT))] = _sha(source_report)
+        source_reports[str(source_report.relative_to(ROOT))] = sha256_file(source_report)
         experiments = json.loads(source_report.read_text(encoding="utf-8"))["experiments"]
         for meta in experiments:
             source = source_dir / f"linearity_sigma_{100 * meta['sigma']:g}pct.npz"
@@ -440,7 +529,9 @@ def main() -> None:
         if args.include_uncalibrated:
             uncalibrated_dir = DATA / "uncalibrated" / source_dir.relative_to(DATA)
             uncalibrated_report = uncalibrated_dir / "summary.json"
-            source_reports[str(uncalibrated_report.relative_to(ROOT))] = _sha(uncalibrated_report)
+            source_reports[str(uncalibrated_report.relative_to(ROOT))] = sha256_file(
+                uncalibrated_report
+            )
             independent = json.loads(uncalibrated_report.read_text(encoding="utf-8"))["experiments"]
             for meta in experiments:
                 uncalibrated_meta = next(m for m in independent if m["sigma"] == meta["sigma"])
@@ -449,8 +540,8 @@ def main() -> None:
                 cases.append(_case(source, args.out, meta, uncalibrated=uncalibrated))
     manifest = {
         "schema": "task1_full20_linearity_figures_v1",
-        "plot_source_sha256": _sha(Path(__file__)),
-        "linearity_definition_source_sha256": _sha(Path(__file__).with_name("inl_dnl.py")),
+        "plot_source_sha256": sha256_file(Path(__file__)),
+        "linearity_definition_source_sha256": sha256_file(Path(__file__).with_name("inl_dnl.py")),
         "style_reference": {"source": "User-provided Fig. 17 image", "sha256": REFERENCE_SHA256},
         "source_reports_sha256": source_reports,
         "plot": {
@@ -464,7 +555,9 @@ def main() -> None:
         },
         "cases": cases,
         "output_sha256": {
-            filename: _sha(args.out / filename) for case in cases for filename in case["artifacts"]
+            filename: sha256_file(args.out / filename)
+            for case in cases
+            for filename in case["artifacts"]
         },
     }
     (args.out / "manifest.json").write_text(

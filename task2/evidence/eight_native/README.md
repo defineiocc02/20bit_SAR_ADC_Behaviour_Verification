@@ -25,6 +25,11 @@
 | US10505561B2 Fig.6A–F 的底板参考轨切换和码处理，Fig.19 的六位拆分及七片相邻档分配例 | 采用 Fig.6F 的正向切轨和递增码方向，SADC 加低路，最终码 `k=c+U`，重构减总扰动。Fig.19 正文在其示例中从粗码减去高字。这里工程扩展为八片和 `m/8`，取前 `m` 个有序 slot 升一档。 |
 | US10511316B2 Fig.11 子阵列几何及 Fig.20–21 跨段选择 | 用现有 `8C/4C/2C/C` 四个子电容作采样档位，dummy 保持低轨。转换阶段复用对应 Fig.11 或 Fig.21 位图，使用实际子电容和每片桥衰减求电荷。 |
 
+> ⚠️ **2026-11-07 原件核对 / C9 后作废说明**：上表第二行的 `k=c+U` 及「采用 Fig.6F 的正向切轨」**已不再是现行合同**。
+> US10505561B2 官方原文中，Fig.6F（col 7–8 / PDF p27，6 电容单片、该例未在 ADC 输出去除分数 dither）才是「added to the converted value」；
+> **Fig.19 worked example（col 19–20 / PDF p33，七片 sliced）** 规定「`0, 1, 4, or 5` … is **subtracted from the digital output of the ADC part 200 before being used to set the residue DAC 220**」。
+> 本项目 sliced 八片对应 Fig.19，现行极性为 **`k=c−U`**。本页所有 8 组对照、图表与数值均基于旧正注入假设，**归档留痕但不得作为 C9 验收证据**，须整体重生成。详见 `20b10mtask_原件核对_20261107.md`。
+
 [ISSCC 论文](https://doi.org/10.1109/ISSCC49657.2024.10454329) · [讲稿第 17 页](../../../references/ISSCC2024_SLIDES.pdf#page=17) · [扰动专利 Fig.6F](https://patentimages.storage.googleapis.com/18/f8/10/e645e07131c139/US10505561.pdf#page=10) · [扰动专利 Fig.19](https://patentimages.storage.googleapis.com/18/f8/10/e645e07131c139/US10505561.pdf#page=22) · [DEM 专利](https://patents.google.com/patent/US10511316B2/en#description)
 
 `U=4D6+D4`，`m=D3:D1`，`I=U+2D5`。八片均为 `I` 或 `I+1` 档，其中前 `m` 片升档。名义单位档位由 `β=1/17` 和 `32C` 主采样电容决定，`D=10/(32×17)=18.382353 mV`。SADC 的理想辅助 DAC 加 `L=(2D5+m/8)D`，然后按既有的非均匀名义 9 位码本判决。RDAC 的名义总注入为 `T=(I+m/8)D`，实际注入逐片按真实电容和桥衰减求和。名义低路分数步长约为 47.059 个 ADC2 LSB，非均匀码本、最终码变化与电容失配也改变 ADC2 量化相位。原文没有指定这里的八片档位表、辅助 DAC 细节或 LMS。

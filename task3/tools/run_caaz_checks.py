@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : run_caaz_checks.py
+# 模块名     : run_caaz_checks
+# 版本       : v1.0
+# 功能       : 按独立队列模型核对 CAAZ 的每拍控制、整数算术和故障处理。
+#
+# 设计说明   :
+#   * 承担 联合效应/噪声实验与图件 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """按独立队列模型核对 CAAZ 的每拍控制、整数算术和故障处理。"""
 
 from __future__ import annotations
@@ -19,7 +33,6 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
-from task3.model.caaz20 import CaazOracle, Input, Output  # noqa: E402
 from tools.run_open_rtl import (  # noqa: E402
     alias_runtime,
     checked_run,
@@ -31,6 +44,8 @@ from tools.run_open_rtl import (  # noqa: E402
     write_json,
 )
 
+from task3.model.caaz20 import CaazOracle, Input, Output  # noqa: E402
+
 RTL = "task3/rtl/caaz20_pair.sv"
 TB = "task3/tb/caaz20_pair_tb.sv"
 TOP = "caaz20_pair_tb"
@@ -41,10 +56,17 @@ IN_WIDTHS = (1, 1, 1, 1, 1, 32, 1, 32, 20, 1, 1, 31, 1)
 OUT_WIDTHS = (1, 32, 1, 1, 1, 31, 1, 20, 32, 32, 31, 1, 21, 1, 1, 3)
 
 
+# =========================================================================
+# 1. 函数组：_acq / _raw / _flow
+# =========================================================================
+# -------------------------------------------------------------------------
+# 流水、正负码极值及不同采样节拍。
+# ------------------------------------------------------------------------
 def _acq(sample_id: int, mode: bool = True) -> Input:
     return Input(caaz_enable=mode, acq_valid=True, acq_id=sample_id)
 
 
+# ------------------------------------------------------------------------
 def _raw(sample_id: int, code: int = 0, mode: bool = True) -> Input:
     return Input(
         caaz_enable=mode,
@@ -57,6 +79,7 @@ def _raw(sample_id: int, code: int = 0, mode: bool = True) -> Input:
     )
 
 
+# ------------------------------------------------------------------------
 def _flow(mode: bool, count: int, *, cadence: int, rng: random.Random) -> Iterator[Input]:
     """流水、正负码极值及不同采样节拍。"""
     yield Input(clear=True, caaz_enable=mode)
@@ -82,6 +105,10 @@ def _flow(mode: bool, count: int, *, cadence: int, rng: random.Random) -> Iterat
         cycle += 1
 
 
+# =========================================================================
+# 2. 函数组：_events / _packed / _vectors
+# =========================================================================
+# ------------------------------------------------------------------------
 def _events() -> Iterator[Input]:
     yield Input(rst_n=False, acq_valid=True, raw_valid=True, raw_bad=True)
     rng = random.Random(SEED)
@@ -129,6 +156,7 @@ def _events() -> Iterator[Input]:
         yield _raw(1, 0)
 
 
+# ------------------------------------------------------------------------
 def _packed(event: Input, expected: Output) -> str:
     values = astuple(event) + astuple(expected)
     widths = IN_WIDTHS + OUT_WIDTHS
@@ -138,6 +166,7 @@ def _packed(event: Input, expected: Output) -> str:
     return f"{result:0{(sum(widths) + 3) // 4}x}\n"
 
 
+# ------------------------------------------------------------------------
 def _vectors(path: Path) -> tuple[dict, dict]:
     oracle = CaazOracle()
     counts = dict.fromkeys(("cycles", "controls", "pairs", "bypass", "faults"), 0)
@@ -159,6 +188,14 @@ def _vectors(path: Path) -> tuple[dict, dict]:
     return counts, fault_coverage
 
 
+# =========================================================================
+# 3. 函数组：_public_logs / run / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 仅净化日志中的本机目录，保留工具返回内容。
+# 以严格 lint、断言与 Python 队列参考逐拍对拍。
+# 选择现有 Verilator 与仓库外新输出目录。
+# ------------------------------------------------------------------------
 def _public_logs(out: Path, work: Path, simulator: str) -> None:
     """仅净化日志中的本机目录，保留工具返回内容。"""
     replacements = [(str(work), "<run-dir>"), (str(ROOT), "<repo>")]
@@ -183,6 +220,7 @@ def _public_logs(out: Path, work: Path, simulator: str) -> None:
         write_json(receipt_path, receipt)
 
 
+# ------------------------------------------------------------------------
 def run(out: Path, simulator: list[str], timeout: int) -> dict:
     """以严格 lint、断言与 Python 队列参考逐拍对拍。"""
     env = os.environ.copy()
@@ -263,8 +301,13 @@ def run(out: Path, simulator: list[str], timeout: int) -> dict:
         return result
 
 
+# ------------------------------------------------------------------------
 def main() -> int:
-    """选择现有 Verilator 与仓库外新输出目录。"""
+    """选择现有 Verilator 与仓库外新输出目录。
+
+    样本域配对只证明整数解调和状态规则，不能证明 CBIAS 的捕获与保持电路。
+    输出计数和故障计数分别验收，故障刺激不能被空跑代替。
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--verilator", type=Path)

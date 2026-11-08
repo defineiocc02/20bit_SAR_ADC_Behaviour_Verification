@@ -1,85 +1,106 @@
-// 重放八片失配模型的开关和 ADC2 码，独立整数参考逐笔验收片上重构与 CAAZ。
+// =============================================================================
+// 文件名     : sar20_lms_integration_tb.sv
+// 模块名     : sar20_lms_integration_tb
+// 版本       : v1.0
+// 功能       : 片上 LMS 流水线的集成逐沿对拍测试台
+//
+// 设计说明   :
+//   * two_inflight_tags 与 result_latency_23 共同约束重构流水，stall 不计入成功握手周期。
+//   * 复杂常数（4294967296、544、1088）来自 Q32/Q28 缩放与桥补偿公式。
+//   * 单时钟域 clk_i；复位、清空、禁用优先于受理，异常路径不得静默接受。
+// -----------------------------------------------------------------------------
+// 变更记录
+// -----------------------------------------------------------------------------
+// 初始版本，暂无变更记录。
+// ===========================================================================
+
 `timescale 1ns/1ps
+// =========================================================================
+// 1. 模块接口与端口分组
+// =========================================================================
+// -------------------------------------------------------------------------
+// 端口按功能分组，slot 0 在最低位；总线位宽与定点格式见同目录 SPEC。
+// -------------------------------------------------------------------------
 module sar20_lms_integration_tb;
-  logic                clk_i;
-  logic                rst_ni;
-  logic                clear_i;
-  logic                enable_i;
-  logic                advance_i;
-  logic                advance_ready_o;
-  logic         [17:0] eligible_i;
+  logic                clk_i;  // 单域测试时钟，所有受理与结果检查以其上升沿为界。
+  logic                rst_ni;  // 同步低有效复位，必须取消在途样本；不能只清最终 valid。
+  logic                clear_i;  // 清空在途事务的测试刺激，优先于同沿采样受理。
+  logic                enable_i;  // 禁用与重新使能的生命周期刺激，禁止旧描述符复活。
+  logic                advance_i;  // 接受一次才推进采集／转换角色，拒绝和反压不得产生新样本。
+  logic                advance_ready_o;  // 接受一次才推进采集／转换角色，拒绝和反压不得产生新样本。
+  logic         [17:0] eligible_i;  // 模拟释放资格，不等同于数字池空闲；不足八片必须 stall。
   logic                shuffle_i;
-  logic                dem_enable_i;
-  logic                bridge_enable_i;
-  logic                dither_enable_i;
-  logic                caaz_enable_i;
-  logic                seed_load_i;
-  logic         [31:0] slice_seed_i;
-  logic         [31:0] dem_seed_i;
-  logic         [30:0] dither_seed_i;
-  logic                seed_error_o;
-  logic                slot_accepted_o;
-  logic                stall_o;
-  logic                acq_valid_o;
-  logic         [31:0] acq_sample_id_o;
-  logic         [39:0] acq_slice_ids_o;
-  logic          [5:0] acq_word_o;
-  logic          [4:0] acq_lower_eighths_o;
-  logic         [39:0] acq_sample_sub_high_o;
-  logic                acq_chop_neg_o;
-  logic                acq_az_capture_o;
-  logic                acq_az_hold_o;
-  logic         [30:0] acq_az_pair_id_o;
-  logic                conv_ready_o;
-  logic         [31:0] conv_sample_id_o;
-  logic         [39:0] conv_slice_ids_o;
-  logic          [5:0] conv_word_o;
-  logic          [5:0] conv_total_eighths_o;
-  logic         [39:0] conv_sample_sub_high_o;
-  logic                code_valid_i;
-  logic          [8:0] code_i;
-  logic         [31:0] code_sample_id_i;
-  logic                mask_valid_o;
-  logic                code_error_o;
-  logic          [8:0] command_code_o;
-  logic        [135:0] main_mask_o;
-  logic         [39:0] sub_mask_o;
-  logic         [31:0] bridge_correction_q32_o;
-  logic                out_valid_o;
-  logic signed  [19:0] out_code_o;
-  logic         [31:0] out_sample_id_o;
-  logic         [31:0] out_first_sample_id_o;
-  logic         [30:0] out_az_pair_id_o;
-  logic                out_pair_o;
-  logic signed  [20:0] out_difference_o;
-  logic                fault_o;
-  logic                fault_pulse_o;
-  logic          [2:0] caaz_fault_code_o;
-  logic                alignment_fault_o;
-  logic                cfg_start_i;
-  logic                cfg_start_ready_o;
-  logic                cfg_valid_i;
-  logic                cfg_ready_o;
-  logic         [25:0] cfg_data_i;
-  logic                configured_o;
-  logic                cfg_error_o;
-  logic                adc2_valid_i;
-  logic                adc2_ready_o;
-  logic         [31:0] adc2_sample_id_i;
-  logic         [11:0] adc2_code_i;
-  logic                adc2_bad_i;
-  logic                adc2_chop_neg_i;
-  logic         [30:0] adc2_az_pair_id_i;
-  logic                adc2_az_ok_i;
-  logic                adc2_error_o;
+  logic                dem_enable_i;  // 该笔是否重分配单元的刺激，必须随采集描述符冻结。
+  logic                bridge_enable_i;  // 选择本工程跨段候选映射，不能据此声称完整原芯片 DEM。
+  logic                dither_enable_i;  // 该笔扰动开关，关闭应输出零字并保持扰动随机状态。
+  logic                caaz_enable_i;  // 选择旁路或非重叠两笔配对，输出计数按模式分别检查。
+  logic                seed_load_i;  // 非零随机状态的重载接口，冲突请求不应推进样本或随机流。
+  logic         [31:0] slice_seed_i;  // 非零随机状态的重载接口，冲突请求不应推进样本或随机流。
+  logic         [31:0] dem_seed_i;  // 非零随机状态的重载接口，冲突请求不应推进样本或随机流。
+  logic         [30:0] dither_seed_i;  // 非零随机状态的重载接口，冲突请求不应推进样本或随机流。
+  logic                seed_error_o;  // 非零随机状态的重载接口，冲突请求不应推进样本或随机流。
+  logic                slot_accepted_o;  // 实际调度握手观测，期望账本只在受理后推进。
+  logic                stall_o;  // 候选不足的拒绝观测，不是已接收样本的错误返回。
+  logic                acq_valid_o;  // 事务有效位，须与同笔 ID、极性及 AZ 代一起核对。
+  logic         [31:0] acq_sample_id_o;  // 逐笔归属标识，跨 ADC2 和重构延迟后必须原样保持。
+  logic         [39:0] acq_slice_ids_o;  // 八个有序物理片号，slot 0 在最低位；无序集合不能替代。
+  logic          [5:0] acq_word_o;  // 与样本绑定的六位字，不从最近时钟的随机状态重新推导。
+  logic          [4:0] acq_lower_eighths_o;  // SADC 低路幅度分子，单位为名义注入档的八分之一。
+  logic         [39:0] acq_sample_sub_high_o;  // 逻辑负注入掩码；不等同于已经验证的物理底板接轨。
+  logic                acq_chop_neg_o;  // 实际返回的斩波极性，须与该样本冻结状态一致。
+  logic                acq_az_capture_o;  // 该笔 RA 时窗的捕获意图，模拟成功确认另行检查。
+  logic                acq_az_hold_o;  // 该笔 RA 时窗的保持意图，不以采集时钟位置猜测。
+  logic         [30:0] acq_az_pair_id_o;  // 共享 AZ 的代号，必须与两笔真实返回的元数据一致。
+  logic                conv_ready_o;  // 旧采集组晋升后的转换描述符有效，不是最终结果已退休。
+  logic         [31:0] conv_sample_id_o;  // 逐笔归属标识，跨 ADC2 和重构延迟后必须原样保持。
+  logic         [39:0] conv_slice_ids_o;  // 八个有序物理片号，slot 0 在最低位；无序集合不能替代。
+  logic          [5:0] conv_word_o;  // 与样本绑定的六位字，不从最近时钟的随机状态重新推导。
+  logic          [5:0] conv_total_eighths_o;  // RDAC 总幅度分子，单位为名义注入档的八分之一。
+  logic         [39:0] conv_sample_sub_high_o;  // 逻辑负注入掩码；不等同于已经验证的物理底板接轨。
+  logic                code_valid_i;  // 事务有效位，须与同笔 ID、极性及 AZ 代一起核对。
+  logic          [8:0] code_i;  // 外部 SADC 最终九位粗码，不是已扣 upper 的命令。
+  logic         [31:0] code_sample_id_i;  // 粗码所属样本，必须与当前转换组匹配。
+  logic                mask_valid_o;  // 最终命令及其全部掩码同时有效，不能单独采信其中一条。
+  logic                code_error_o;  // 粗码或归属被拒绝的观测，错误不能发布有效转换掩码。
+  logic          [8:0] command_code_o;  // 最终 RDAC 命令，负注入合同按 c-U 检查，不允许回绕。
+  logic        [135:0] main_mask_o;  // 同笔八槽主阵列转换位图，按实际物理片号解释。
+  logic         [39:0] sub_mask_o;  // 同笔子阵列转换位图，dummy 非零应拒绝。
+  logic         [31:0] bridge_correction_q32_o;  // 名义跨段差量，物理权重重构中不可重复叠加。
+  logic                out_valid_o;  // 真实结果有效事件；反压时数据与归属应同时保持。
+  logic signed  [19:0] out_code_o;  // 最终有符号码，只在对应有效事务中比较。
+  logic         [31:0] out_sample_id_o;  // 逐笔归属标识，跨 ADC2 和重构延迟后必须原样保持。
+  logic         [31:0] out_first_sample_id_o;  // 同步低有效复位，必须取消在途样本；不能只清最终 valid。
+  logic         [30:0] out_az_pair_id_o;  // 共享 AZ 的代号，必须与两笔真实返回的元数据一致。
+  logic                out_pair_o;  // 区分单笔旁路与两笔配对输出，计数不可混合。
+  logic signed  [20:0] out_difference_o;  // 解调前的完整有符号差值，负奇数的除二方向须另验。
+  logic                fault_o;  // 故障保持状态，与故障脉冲及正常输出分别核对。
+  logic                fault_pulse_o;  // 新异常的一拍事件，用于与持续故障状态分开计数。
+  logic          [2:0] caaz_fault_code_o;  // 异常分类观测，不能仅凭输出未出现推断错误原因。
+  logic                alignment_fault_o;  // 故障保持状态，与故障脉冲及正常输出分别核对。
+  logic                cfg_start_i;  // 新装载的握手边界，同沿输入的优先级要与合同一致。
+  logic                cfg_start_ready_o;  // 新装载的握手边界，同沿输入的优先级要与合同一致。
+  logic                cfg_valid_i;  // 配置字提交刺激，不能假定每沿都会被受理。
+  logic                cfg_ready_o;  // 配置字真正受理的条件，未握手数据不得计入 396 字。
+  logic         [25:0] cfg_data_i;  // 按物理片与列次序装载的 Q28 配置字，不能边算边换系数。
+  logic                configured_o;  // 完整配置成功后才允许重构；中断装载不能沿用半套系数。
+  logic                cfg_error_o;  // 坏配置字的拒绝状态，不应当作普通输入 bad。
+  logic                adc2_valid_i;  // 事务有效位，须与同笔 ID、极性及 AZ 代一起核对。
+  logic                adc2_ready_o;  // 同笔 ADC2 返回的受理条件，未握手不得释放转换上下文。
+  logic         [31:0] adc2_sample_id_i;  // 逐笔归属标识，跨 ADC2 和重构延迟后必须原样保持。
+  logic         [11:0] adc2_code_i;  // 外部 SADC 最终九位粗码，不是已扣 upper 的命令。
+  logic                adc2_bad_i;  // 外部 ADC2 过载／无效指示，不能靠数字限幅隐藏。
+  logic                adc2_chop_neg_i;  // 实际返回的斩波极性，须与该样本冻结状态一致。
+  logic         [30:0] adc2_az_pair_id_i;  // 共享 AZ 的代号，必须与两笔真实返回的元数据一致。
+  logic                adc2_az_ok_i;  // 模拟宏对捕获／保持有效性的确认，缺失不得当作成功。
+  logic                adc2_error_o;  // ADC2 返回拒绝观测，正常与拒绝事务分别计数。
   logic          [1:0] recon_inflight_o;
 
   localparam int Samples = 4096;
   typedef struct packed {
-    logic [5:0] word;
+    logic [5:0] word;  // 与样本绑定的六位字，不从最近时钟的随机状态重新推导。
     logic [39:0] ids;
     logic [8:0] coarse;
-    logic [8:0] command_code;
+    logic [8:0] command_code;  // 最终 RDAC 命令，负注入合同按 c-U 检查，不允许回绕。
     logic [135:0] main;
     logic [39:0] sub;
     logic [39:0] sampled;
@@ -98,6 +119,10 @@ module sar20_lms_integration_tb;
 
   sar20_digital_lms_top dut (.*);
 
+// =========================================================================
+// 2. 断言组与覆盖点
+// =========================================================================
+// 期望值来自独立参考；计数器只统计覆盖，不参与判错。
   task automatic check(input bit condition, input string message);
     checks++;
     if (!condition) $fatal(1, "cycle=%0d: %s", cycles, message);

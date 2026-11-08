@@ -1,9 +1,23 @@
+# =============================================================================
+# 文件名     : task2.yml
+# 模块名     : Dither source and seven-slice checks
+# 版本       : v1.0
+# 功能       : 复验扰动发生、七片模型及 CAAZ 数字行为。
+# 设计说明   :
+#   [环境] Ubuntu runner 的镜像列表可能指向速度不稳定的 Azure 镜像。
+#   [复现] 依赖安装后再执行数字对拍、形式检查和图表重绘。
+#   [证据] 输出保存在作业临时目录，并作为工作流工件上传。
+#   [边界] 此工作流不验证模拟开关、完整 ADC 或工艺签核。
+# 变更记录   : 修复 runner 镜像列表解析，限制下载等待。
+# =============================================================================
 name: Dither source and seven-slice checks
 
 on:
+  # 路径筛选包含绘图脚本读取的模块一数据与原文索引。
   push:
     branches: [20b10mtask]
     paths:
+      - 'src/**'
       - 'task2/**'
       - 'task3/**'
       - 'task_integration/**'
@@ -18,6 +32,7 @@ on:
   pull_request:
     branches: [20b10mtask]
     paths:
+      - 'src/**'
       - 'task2/**'
       - 'task3/**'
       - 'task_integration/**'
@@ -32,6 +47,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  # 检出只需读取内容；作业不需要写仓库权限。
   contents: read
 
 jobs:
@@ -39,6 +55,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
+      # 与命令行复现保持一致的模块搜索路径与线程数。
       PYTHONPATH: .:src
       OPENBLAS_NUM_THREADS: '1'
       MPLBACKEND: Agg
@@ -50,22 +67,29 @@ jobs:
         with:
           persist-credentials: false
       - uses: actions/setup-python@v5
+        # 缓存键绑定两份依赖清单，避免使用不相干的缓存。
         with:
-          python-version: '3.12'
+          python-version: '3.12.14'
           cache: pip
           cache-dependency-path: |
             task1/requirements.txt
             task1/requirements-calibration.txt
+            task1/requirements-ci.txt
       - name: Install simulator, Chinese font and pinned Python dependencies
         run: |
-          sudo sed -i -e 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' \
+          # [镜像] runner 使用 mirror+file 时，替换文件内 URL 并不会改变镜像列表入口。
+          # 固定 Ubuntu 官方镜像，使更新和安装采用同一 HTTPS 下载路径。
+          sudo sed -i -e 's|mirror+file:/etc/apt/apt-mirrors.txt|https://archive.ubuntu.com/ubuntu|g' \
+            -e 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' \
             -e 's|http://archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' \
             -e 's|http://security.ubuntu.com/ubuntu|https://security.ubuntu.com/ubuntu|g' \
             /etc/apt/sources.list.d/ubuntu.sources
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::https::Timeout=30 update
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::https::Timeout=30 install -y \
+          # [超时] 限制 HTTP 与 HTTPS 等待时间，重试耗尽后让安装错误直接可见。
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y \
             --no-install-recommends verilator clang fonts-noto-cjk fontconfig yosys
-          python -m pip install -r task1/requirements-calibration.txt
+          python -m pip install -r task1/requirements-ci.txt
+          # 将 TTC 中的简体中文字体抽出，供绘图工具发现。
           python - <<'PY'
           from pathlib import Path
           from fontTools.ttLib import TTCollection
@@ -81,6 +105,7 @@ jobs:
           mkdir -p "$OUT"
           { python --version; verilator --version; python -m pip freeze; } > "$OUT/tools.txt"
       - name: Check digital generator and seven-slice model
+        # [验收] pipefail 保留 Yosys 经 tee 输出时的失败退出码。
         shell: bash
         run: |
           set -o pipefail
@@ -88,9 +113,12 @@ jobs:
           python task2/tools/run_dither_word_checks.py --out "$OUT/rtl"
           python task2/eight_rtl/tools/run_checks.py --out "$OUT/dither8"
           python task2/eight_rtl/independent_review/run.py --out "$OUT/dither8-independent"
+          yosys -s task2/eight_rtl/tb/formal.ys | tee "$OUT/dither8-formal.log"
+          python task2/eight_rtl/tools/run_context_equivalence.py --out "$OUT/dither8-context"
           python task3/tools/run_caaz_checks.py --out "$OUT/caaz"
           yosys -s task3/tb/formal.ys | tee "$OUT/caaz_formal.log"
       - name: Reproduce seven-slice experiment and explanatory figures
+        # [隔离] 重绘使用作业专属目录，避免覆盖仓库冻结数据。
         run: |
           python -m task2.experiments.fig19_seven_demo --output "$OUT/fig19"
           python -m task2.tools.draw_dither --out "$OUT/figures"
@@ -104,6 +132,7 @@ jobs:
           printf '%s\n' 'Digital dither and CAAZ checks plus behavioral figures completed.' >> "$GITHUB_STEP_SUMMARY"
           printf '%s\n' 'Real analog injection, ADC2, CAAZ macro and foundry signoff are not covered.' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
+        # [排障] 尽可能上传执行日志；安装阶段失败时输出目录可能不存在。
         if: always()
         with:
           name: task2-dither-evidence

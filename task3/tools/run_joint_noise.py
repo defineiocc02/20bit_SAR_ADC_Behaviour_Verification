@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : run_joint_noise.py
+# 模块名     : run_joint_noise
+# 版本       : v1.0
+# 功能       : 在同一 3% 电容池中重放八片 dither、Fig.21 DEM 和 CAAZ 的 AZ 噪声。
+#
+# 设计说明   :
+#   * 承担 联合效应/噪声实验与图件 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """在同一 3% 电容池中重放八片 dither、Fig.21 DEM 和 CAAZ 的 AZ 噪声。"""
 
 from __future__ import annotations
@@ -15,10 +29,12 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
-from task1.experiments.adctoolbox_calibration import CalibrationConfig, _quantize  # noqa: E402
-from task1.experiments.full20_linearity_plots import _chinese_style  # noqa: E402
+from tools.run_open_rtl import digest, new_output, write_json  # noqa: E402
+
+from adi_model.capacitors import Capacitors, ExperimentConfig  # noqa: E402
+from task1.experiments.adctoolbox_calibration import CalibrationConfig, quantize  # noqa: E402
+from task1.experiments.full20_linearity_plots import chinese_style  # noqa: E402
 from task1.experiments.residue_control_study import MapperTable  # noqa: E402
-from task1.experiments.run_effects import Capacitors, ExperimentConfig  # noqa: E402
 from task2.eight.model import ChargePool, coarse_decision, conversion_state, decode  # noqa: E402
 from task3.tools.run_joint_effect import (  # noqa: E402
     EVIDENCE,
@@ -27,7 +43,6 @@ from task3.tools.run_joint_effect import (  # noqa: E402
     _spectrum,
 )
 from task_reconstruction.fixed import Q, from_training  # noqa: E402
-from tools.run_open_rtl import digest, new_output, write_json  # noqa: E402
 
 AZ_SEED = 0x0A2E2025
 FRESH_SEED = 0x0FCE2025
@@ -45,6 +60,12 @@ CASES = (
 )
 
 
+# =========================================================================
+# 1. 函数组：_psd / _noise / _analog_front_end
+# =========================================================================
+# -------------------------------------------------------------------------
+# 冻结同笔前级及 RDAC 控制，再计算干净残差。
+# ------------------------------------------------------------------------
 def _psd(error: np.ndarray, rate_hz: float) -> np.ndarray:
     blocks = error.reshape(-1, PSD_SEGMENT)
     blocks = blocks - blocks.mean(axis=1, keepdims=True)
@@ -54,10 +75,12 @@ def _psd(error: np.ndarray, rate_hz: float) -> np.ndarray:
     return psd
 
 
+# ------------------------------------------------------------------------
 def _noise(seed: int, sigma_v: float, samples: int) -> np.ndarray:
     return np.random.Generator(np.random.PCG64(seed)).normal(0.0, sigma_v, size=samples)
 
 
+# ------------------------------------------------------------------------
 def _analog_front_end(reference, phase, plan, dither, threshold, step, mapper, pool):
     """冻结同笔前级及 RDAC 控制，再计算干净残差。"""
     coarse, command, valid = coarse_decision(reference, dither, threshold, step)
@@ -77,14 +100,38 @@ def _analog_front_end(reference, phase, plan, dither, threshold, step, mapper, p
     return state, coarse, gain * (reference + peak) - intercept, counts
 
 
+# =========================================================================
+# 2. 函数组：_one_case / _plot / run
+# =========================================================================
+# -------------------------------------------------------------------------
+# 用已归档的物理池和标定数据执行四组匹配重放。
+# ------------------------------------------------------------------------
 def _one_case(az, fresh, caaz, reference, front_end, cfg, coefficient, word, meta):
+    """Args:
+
+    Args:
+        az: 逐笔 AZ 噪声，单位 V，相关性由上游明确构造。
+        fresh: 逐笔独立噪声，单位 V。
+        caaz: 是否共享并配对同一代 AZ 样本。
+        reference: 本笔输入参考，单位 V。
+        front_end: 已冻结的前端状态与干净残差。
+        cfg: 理想 ADC2 配置。
+        coefficient: 冻结 Q28 重构权重及增益。
+        word: 与前端状态逐笔对应的扰动字。
+        meta: 同源实验条件与电压标度。
+    Returns:
+        同带宽误差、频谱和逐笔向量；模型噪声不代表模拟宏实测。
+
+    独立 AZ 与共享 AZ 使用同一组输入和制造池，改变的是配对噪声相关性。
+    其余白噪声不应随共享 AZ 一起被人为设成完全相关。
+    """
     state, coarse, clean_residue, counts = front_end
     noisy_residue = clean_residue + (RA_OFFSET_V + az + fresh)
     lo, hi = -cfg.adc2_half_range_v, cfg.adc2_half_range_v
     adc2_rejected = int(np.count_nonzero((noisy_residue < lo) | (noisy_residue >= hi)))
     if adc2_rejected:
         raise ValueError(f"ADC2 input out of range for {adc2_rejected} samples")
-    adc2 = _quantize(noisy_residue, cfg.adc2_bits, cfg.adc2_half_range_v)
+    adc2 = quantize(noisy_residue, cfg.adc2_bits, cfg.adc2_half_range_v)
     raw, vector_sha = _reconstruct(coefficient, word, state, coarse, adc2)
     even, odd = raw.reshape(-1, 2).T
     exact_half_lsb = even - odd if caaz else even + odd + 1
@@ -140,8 +187,9 @@ def _one_case(az, fresh, caaz, reference, front_end, cfg, coefficient, word, met
     return report, trace
 
 
+# ------------------------------------------------------------------------
 def _plot(out: Path, traces, report, fs_pair: float, peak_v: float) -> str:
-    font = _chinese_style()
+    font = chinese_style()
     # macOS 的 Hiragino TTC 子集在部分 PDF 阅读器中无法按 Type0 装载。
     plt.rcParams["pdf.fonttype"] = 3
     plt.rcParams["svg.hashsalt"] = "task3-joint-noise"
@@ -244,6 +292,7 @@ def _plot(out: Path, traces, report, fs_pair: float, peak_v: float) -> str:
     return font
 
 
+# ------------------------------------------------------------------------
 def run(out: Path) -> dict:
     """用已归档的物理池和标定数据执行四组匹配重放。"""
     meta_path, data_path = EVIDENCE / "summary.json", EVIDENCE / "data.npz"
@@ -371,6 +420,12 @@ def run(out: Path) -> dict:
     return report
 
 
+# =========================================================================
+# 3. 函数组：main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 选择尚未创建的仓库外目录保存结果。
+# ------------------------------------------------------------------------
 def main() -> None:
     """选择尚未创建的仓库外目录保存结果。"""
     parser = argparse.ArgumentParser(description=__doc__)

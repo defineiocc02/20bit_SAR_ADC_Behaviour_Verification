@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : run_joint_noise_rtl.py
+# 模块名     : run_joint_noise_rtl
+# 版本       : v1.0
+# 功能       : 用四组带噪 ADC2 归档对拍整体数字顶层与外部对照。
+#
+# 设计说明   :
+#   * 承担 集成顶层向量与对拍入口 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """用四组带噪 ADC2 归档对拍整体数字顶层与外部对照。"""
 
 from __future__ import annotations
@@ -16,9 +30,6 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
-from task1.tools.run_rtl_checks import STRICT_LINT  # noqa: E402
-from task_integration.tools.run_lms_checks import LMS_RTL, TOP, pack, slots  # noqa: E402
-from task_reconstruction.fixed import from_training  # noqa: E402
 from tools.run_open_rtl import (  # noqa: E402
     alias_runtime,
     checked_run,
@@ -30,10 +41,14 @@ from tools.run_open_rtl import (  # noqa: E402
     write_json,
 )
 
-ARCHIVE = Path("task3/evidence/joint_noise")
+from task1.tools.run_rtl_checks import STRICT_LINT  # noqa: E402
+from task_integration.tools.run_lms_checks import LMS_RTL, TOP, pack, slots  # noqa: E402
+from task_reconstruction.fixed import from_training  # noqa: E402
+
+ARCHIVE = Path("task3/evidence/negative/joint_noise")
 DATA = ARCHIVE / "caaz_joint_noise_data.npz"
 META = ARCHIVE / "summary.json"
-TRAINING = Path("task2/evidence/eight_native/sigma_3pct/data.npz")
+TRAINING = Path("task2/evidence/eight_negative/sigma_3pct/data.npz")
 BENCH = "sar20_joint_noise_tb"
 SOURCES = (*LMS_RTL, f"task_integration/tb/{BENCH}.sv")
 MARKER = "SAR20_JOINT_NOISE_COMPLETE"
@@ -48,6 +63,16 @@ RAW_COUNT = 4096
 PAIR_COUNT = RAW_COUNT // 2
 
 
+# =========================================================================
+# 1. 函数组：write_fixture / read_trace / compare_observations
+# =========================================================================
+# -------------------------------------------------------------------------
+# 重建摘要中已冻结的向量，不重新生成模拟噪声。
+# 检查记录类型、字段宽度和完整性。
+# 用真正握手的 ADC2、重构码和对外输出逐笔核对独立归档。
+# ------------------------------------------------------------------------
+# write_fixture(archive, case, path) -> None：含显式异常拒绝、含迭代/循环、numpy 向量化、产出归档/图件；本模块 的口径以同目录 SPEC/README 为准，越界与失效路径须显式处理
+# ------------------------------------------------------------------------
 def write_fixture(archive: np.lib.npyio.NpzFile, case: str, path: Path) -> None:
     """重建摘要中已冻结的向量，不重新生成模拟噪声。"""
     fields = (
@@ -82,6 +107,9 @@ def write_fixture(archive: np.lib.npyio.NpzFile, case: str, path: Path) -> None:
             )
 
 
+# ------------------------------------------------------------------------
+# read_trace(path, case, rtl_pairs) -> dict[str, np.ndarray]：含显式异常拒绝、含迭代/循环、numpy 向量化；本模块 的口径以同目录 SPEC/README 为准，越界与失效路径须显式处理
+# ------------------------------------------------------------------------
 def read_trace(path: Path, case: str, rtl_pairs: bool) -> dict[str, np.ndarray]:
     """检查记录类型、字段宽度和完整性。"""
     widths = {"A": 3, "R": 4, "O": 7}
@@ -98,6 +126,9 @@ def read_trace(path: Path, case: str, rtl_pairs: bool) -> dict[str, np.ndarray]:
     return {tag: np.asarray(data, dtype=np.int64) for tag, data in rows.items()}
 
 
+# ------------------------------------------------------------------------
+# compare_observations(archive, case, mode, trace) -> dict[str, np.ndarray]：numpy 向量化、含断言；本模块 的口径以同目录 SPEC/README 为准，越界与失效路径须显式处理
+# ------------------------------------------------------------------------
 def compare_observations(
     archive: np.lib.npyio.NpzFile,
     case: str,
@@ -152,6 +183,15 @@ def compare_observations(
     }
 
 
+# =========================================================================
+# 2. 函数组：build_and_run / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 单次编译原顶层，为每组数据重新复位和加载同一套权重。
+# 运行带噪归档对拍，保存逐笔实测代码和证据哈希。
+# ------------------------------------------------------------------------
+# build_and_run(out, meta) -> tuple[dict, dict]：含显式异常拒绝、含迭代/循环、numpy 向量化、产出归档/图件、含断言；本模块 的口径以同目录 SPEC/README 为准，越界与失效路径须显式处理
+# ------------------------------------------------------------------------
 def build_and_run(out: Path, meta: dict) -> tuple[dict, dict]:
     """单次编译原顶层，为每组数据重新复位和加载同一套权重。"""
     command = command_for("verilator")
@@ -249,8 +289,19 @@ def build_and_run(out: Path, meta: dict) -> tuple[dict, dict]:
     return report, observed
 
 
+# ------------------------------------------------------------------------
+# main() -> None：含显式异常拒绝、含迭代/循环、numpy 向量化、产出归档/图件；本模块 的口径以同目录 SPEC/README 为准，越界与失效路径须显式处理
+# ------------------------------------------------------------------------
 def main() -> None:
-    """运行带噪归档对拍，保存逐笔实测代码和证据哈希。"""
+    """运行带噪归档对拍，保存逐笔实测代码和证据哈希。
+
+    读取负注入训练与噪声归档，核对二者内容摘要后才生成测试向量。
+    四组工况必须使用同一硬件配置，分别报告原码重构和配对输出是否逐码一致。
+    输出时记录配对由 RTL 生成还是由外部算法生成，二者不能合并为 RTL 证据。
+
+    命令行 --out 为仓库外新目录；目录已存在或输入身份不符时立即拒绝。
+    成功结果是给定样本的数字对拍，不是模拟噪声或 CAAZ 电路的后仿验收。
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()

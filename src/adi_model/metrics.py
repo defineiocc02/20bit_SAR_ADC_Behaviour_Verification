@@ -1,3 +1,20 @@
+# =============================================================================
+# 文件名     : metrics.py
+# 模块名     : metrics
+# 版本       : v1.0
+# 功能       : ADC 输出的频谱、误差统计和条件平均转移曲线。
+#
+# 设计说明   :
+#   * 输入通常为某一明确节点的实数电压记录 (N,)。调用方负责选择内部浮点重构或最终整数码解码后的电压；
+#   * 本模块不把两者混用，也不自动筛掉溢出样本。
+#   * 采样率 fs [Hz]、记录时长 N/fs [s]、FFT 间隔 df=fs/N [Hz/bin] 相互独立。
+#   * 口径：SNDR 含基波拟合后的全部残余；SNR 再扣除可分辨的指定谐波；SFDR搜索基波扣除后的最大非直流谱线；
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# =============================================================================
+
 """ADC 输出的频谱、误差统计和条件平均转移曲线。
 
 输入通常为某一明确节点的实数电压记录 (N,)。调用方负责选择内部浮点重构或最终整数码解码后的电压；
@@ -24,6 +41,12 @@ import numpy as np
 _MIN_FUND_BIN_FOR_HARMONICS = 16
 
 
+# =========================================================================
+# 1. 函数组：_record / _window / power_spectral_density
+# =========================================================================
+# -------------------------------------------------------------------------
+# 计算实数电压记录的单边功率谱密度，不返回幅度谱。
+# -------------------------------------------------------------------------
 def _record(x, fs):
     if np.iscomplexobj(x):
         raise ValueError("one-sided ADC spectrum requires real samples")
@@ -84,6 +107,13 @@ def power_spectral_density(x, fs: float, *, window="blackmanharris", remove_mean
     }
 
 
+# =========================================================================
+# 2. 函数组：integrate_noise_band / reference_precision_bits / _harmonic_design
+# =========================================================================
+# -------------------------------------------------------------------------
+# 按 bin 中心范围积分 PSD，得到指定频带的均方值和 RMS。
+# 将 RMS 电压误差换算为等效均匀量化位数。
+# -------------------------------------------------------------------------
 def integrate_noise_band(spectrum: dict, low_hz: float, high_hz: float) -> dict:
     """按 bin 中心范围积分 PSD，得到指定频带的均方值和 RMS。
 
@@ -156,6 +186,14 @@ def _harmonic_design(n: int, fs: float, fin: float, nharm: int):
 
 
 # ------------------------------------------------------------------ 频谱
+# =========================================================================
+# 3. 函数组：_lsq_amp / _bh4 / _estimate_fund_freq
+# =========================================================================
+# -------------------------------------------------------------------------
+# 对已知频率做联合时域最小二乘，返回各成分峰值幅度。
+# 生成四项 Blackman-Harris 窗，用于幅度谱和残余搜峰。
+# 先以窗 FFT 定位基波，再在相邻 bin 内细化 DTFT 峰值。
+# -------------------------------------------------------------------------
 def _lsq_amp(x: np.ndarray, freqs: list[float], fs: float) -> list[float]:
     """对已知频率做联合时域最小二乘，返回各成分峰值幅度。
 
@@ -244,6 +282,14 @@ def _estimate_fund_freq(xc: np.ndarray, fs: float) -> float:
     return 0.5 * (lo + hi)
 
 
+# =========================================================================
+# 4. 函数组：_fft_sfdr / _band_max / _fft_harmonics
+# =========================================================================
+# -------------------------------------------------------------------------
+# 先扣除直流和基波，再对残余加窗全谱搜峰。
+# 在谱线附近的有限 bin 范围取峰值。
+# 用 FFT 主瓣峰值提取指定谐波，并折叠、去除不可分辨项。
+# -------------------------------------------------------------------------
 def _fft_sfdr(
     x: np.ndarray, fs: float, guard_bins: int | None = None, fin: float | None = None
 ) -> tuple[float, float]:
@@ -296,7 +342,7 @@ def _fft_sfdr(
         # Nyquist 只有一个实分量；换成同 RMS 功率的正弦峰值后再比较。
         mag[-1] /= np.sqrt(2.0)
     mag[0] = 0.0
-    k_fund = int(round(f_fund * n / fs))
+    k_fund = round(f_fund * n / fs)
     k_fund = max(1, min(k_fund, mag.size - 1))
     lo = max(1, k_fund - guard_bins)
     hi = min(mag.size, k_fund + guard_bins + 1)
@@ -365,7 +411,7 @@ def _fft_harmonics(
         - a[3] * np.cos(6 * np.pi * k / (n - 1))
     )
     X = np.abs(np.fft.rfft((x - x.mean()) * w)) / (np.sum(w) / 2.0)
-    fund_bin = int(round(fin * n / fs))
+    fund_bin = round(fin * n / fs)
     fund_bin = max(1, min(fund_bin, X.size - 1))
     A1 = _band_max(X, fund_bin, guard_bins)
 
@@ -377,7 +423,7 @@ def _fft_harmonics(
         f_alias = f_alias % fs
         if f_alias > fs / 2:
             f_alias = fs - f_alias
-        b = int(round(f_alias * n / fs))
+        b = round(f_alias * n / fs)
         nyquist = n % 2 == 0 and abs(f_alias - fs / 2) < fs / n * 1e-7
         if b <= guard_bins or (b >= X.size - guard_bins and not nyquist):
             dropped.append((h, "DC/Nyquist"))
@@ -413,6 +459,14 @@ def _fft_harmonics(
     }
 
 
+# =========================================================================
+# 5. 函数组：sine_fit_metrics / spectrum_dbfs / static_test
+# =========================================================================
+# -------------------------------------------------------------------------
+# 对同一电压记录分别计算 SNDR、SNR、谐波失真和全谱 SFDR。
+# 返回按满幅正弦峰值归一化的单边幅度谱，供绘图使用。
+# 按逐次原始输出统计各电平的均值误差和条件标准差。
+# -------------------------------------------------------------------------
 def sine_fit_metrics(x: np.ndarray, fs: float, fin: float, nharm: int = 12) -> dict:
     """对同一电压记录分别计算 SNDR、SNR、谐波失真和全谱 SFDR。
 
@@ -472,7 +526,7 @@ def sine_fit_metrics(x: np.ndarray, fs: float, fin: float, nharm: int = 12) -> d
 
     # 有限记录不能分辨低频主瓣中的谐波时，明确置 NaN，避免把泄漏当失真。
     # 此标志不保证高于阈值后的所有非相干或混叠谐波均可准确提取。
-    fund_bin = int(round(fin * n / fs))
+    fund_bin = round(fin * n / fs)
     harmonics_reliable = fund_bin >= _MIN_FUND_BIN_FOR_HARMONICS
     if not harmonics_reliable:
         thd = float("nan")
@@ -579,6 +633,13 @@ def static_test(run_fn, levels: np.ndarray, repeats: int) -> dict:
     return {"levels": np.asarray(levels), "mu_e": mu, "sigma_e": sd}
 
 
+# =========================================================================
+# 6. 函数组：inl_from_mean_error / summarize
+# =========================================================================
+# -------------------------------------------------------------------------
+# 从平均误差曲线去除最佳拟合直线，返回 INL 类残差。
+# 汇总指定电压输出的频谱、误差和模拟支路饱和统计。
+# -------------------------------------------------------------------------
 def inl_from_mean_error(levels: np.ndarray, mu_e: np.ndarray, lsb: float) -> dict:
     """从平均误差曲线去除最佳拟合直线，返回 INL 类残差。
 

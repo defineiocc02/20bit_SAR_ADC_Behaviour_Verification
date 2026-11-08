@@ -222,27 +222,24 @@ def _check_tone(
                     sub_parasitic_f=0.0,
                     feedback_cap_f=experiment.unit_cap_f,
                     sample_main_v=np.broadcast_to(x[keep][row, None], (len(row), 17)),
-                    sample_sub_v=10 * sample[keep][row, slot] - 5,
+                    sample_sub_v=np.full((len(row), 5), -5.0),
                     conversion_main_v=10 * main[row, slot] - 5,
                     conversion_sub_v=10 * sub[row, slot] - 5,
+                    # [模型边界] 将注入直接加入子节点 KCL。电荷幅度由实际子电容
+                    # 与逻辑位图确定，是共享权重假设；不是低轨→高轨底板采样。
+                    extra_sub_charge_c=10
+                    * np.sum(pool.sub[physical_id] * sample[keep][row, slot], axis=-1),
                 )
             nodal_residue = charge / (8 * 32 * experiment.unit_cap_f)
             gain, base = affine.affine(slot_plan, conversion.features)
             residue = gain * (x[keep] + 5) - base
-            # 节点解按「采样与转换同相参考」给出 x−VD+T，模型按 C9 声明存 x−T，
-            # 两者应恰好相差 2T。这里 T 用本笔实际采样位图和逐片桥衰减独立加权，
-            # 不用 affine 的权重表，也不假设各片 β 相同。
-            cap_sub, cap_bridge = pool.sub[slot_plan], pool.bridge[slot_plan]
-            beta = cap_bridge / (cap_bridge + cap_sub.sum(axis=-1))
-            scale = 2 * experiment.full_scale_peak_v / (8 * 32 * experiment.unit_cap_f)
-            injection = scale * np.sum(
-                sample[keep][:, :, :4] * cap_sub[:, :, :4] * beta[:, :, None], axis=(1, 2)
-            )
-            np.testing.assert_allclose(residue, nodal_residue - 2 * injection, rtol=0, atol=8e-15)
+            # 独立解必须直接给出同一残差，禁止求解后另减 2T 修补极性。
+            # 这证明两个数学模型相符，不证明受控电荷源已有晶体管实现。
+            np.testing.assert_allclose(residue, nodal_residue, rtol=0, atol=8e-15)
             overload = np.count_nonzero((residue < -ADC2_HALF_V) | (residue >= ADC2_HALF_V))
             assert not overload
             fine_step = 2 * ADC2_HALF_V / ADC2_CODES
-            reference_code = np.floor((nodal_residue - 2 * injection + ADC2_HALF_V) / fine_step)
+            reference_code = np.floor((nodal_residue + ADC2_HALF_V) / fine_step)
             np.testing.assert_array_equal(
                 np.floor((residue + ADC2_HALF_V) / fine_step), reference_code
             )
@@ -266,12 +263,12 @@ def _check_tone(
                     "reference_residue_min_v": float(nodal_residue.min()),
                     "reference_residue_max_v": float(nodal_residue.max()),
                     "maximum_nodal_vs_affine_residue_difference_v": float(
-                        np.max(np.abs(residue - (nodal_residue - 2 * injection)))
+                        np.max(np.abs(residue - nodal_residue))
                     ),
                     "maximum_nodal_minus_affine_residue_v": float(
                         np.max(np.abs(residue - nodal_residue))
                     ),
-                    "maximum_actual_injection_v": float(np.max(injection, initial=0.0)),
+                    "injection_boundary": "explicit_subnode_charge_source_shared_sub_weights",
                     "adc2_overloaded_samples": int(overload),
                     "adc2_code_mismatches": 0,
                 }
@@ -291,7 +288,7 @@ def _run(*, full: bool) -> tuple[dict, list[Path]]:
     return {
         "schema": "task2_native_eight_slice_independent_charge_v1",
         "status": "PASS",
-        "scope": "名义闭合、实际底板电压的独立两节点解、前级及 ADC2 量程。",
+        "scope": "名义闭合、含显式辅助电荷源的独立两节点解（共享子权重假设）、前级及 ADC2 量程。",
         "python": python_version(),
         "numpy": np.__version__,
         "nominal": nominal,
@@ -347,4 +344,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

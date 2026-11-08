@@ -142,9 +142,7 @@ def _generator(cfg: NoiseConfig, tag: int, stream: int = 0) -> np.random.Generat
     return np.random.Generator(np.random.PCG64(np.random.SeedSequence(entropy)))
 
 
-def white(
-    cfg: NoiseConfig, tag: int, sigma_v: float, count: int, stream: int = 0
-) -> np.ndarray:
+def white(cfg: NoiseConfig, tag: int, sigma_v: float, count: int, stream: int = 0) -> np.ndarray:
     """给出 ``count`` 个零均值高斯样本。
 
     Args:

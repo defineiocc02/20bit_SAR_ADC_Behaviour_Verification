@@ -1,3 +1,17 @@
+# =============================================================================
+# 文件名     : test_fig19_seven.py
+# 模块名     : test_fig19_seven
+# 版本       : v1.0
+# 功能       : 七片采样、分级越界和解析码密度的独立数值检查。
+#
+# 设计说明   :
+#   * 承担 八片模型与归档审计 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# =============================================================================
+
 """七片采样、分级越界和解析码密度的独立数值检查。"""
 
 from fractions import Fraction
@@ -5,6 +19,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+
 from task2.model.fig19_seven import (
     COARSE_LSB_V,
     DEFAULT_CONFIG,
@@ -18,6 +33,13 @@ from task2.model.fig19_seven import (
 )
 
 
+# =========================================================================
+# 1. 函数组：_word_reference / test_fractional_word_alone_reproduces_archived_ideal_experiment / test_all_words_and_the_patent_example
+# =========================================================================
+# -------------------------------------------------------------------------
+# 核验理想七片实验中分数扰动对单笔输出和平均码宽的贡献。
+# 按独立逐位表达式核对全字空间，以及原文给出的 2 档与 3 档示例。
+# -------------------------------------------------------------------------
 def _word_reference(word: int) -> tuple[int, int, int]:
     upper = 4 * (word // 32) + word // 8 % 2
     lower_integer = 2 * (word // 16 % 2)
@@ -59,6 +81,14 @@ def test_all_words_and_the_patent_example() -> None:
     np.testing.assert_array_equal(terms.slice_setting_lsb[63], np.full(7, 8))
 
 
+# =========================================================================
+# 2. 函数组：test_non_six_bit_words_are_rejected / test_charge_path_against_exact_fraction_oracle / test_output_exactly_on_a_code_boundary_belongs_to_that_code
+# =========================================================================
+# -------------------------------------------------------------------------
+# 检查非法字会显式报错。
+# 全字空间的两处采样、重构和二十位量化用有理数独立计算。
+# ADC2 中点等于二十位阈值时遵循半开码区间。
+# -------------------------------------------------------------------------
 @pytest.mark.parametrize("invalid", [-1, 64, 1.0, [2, 0.3]])
 def test_non_six_bit_words_are_rejected(invalid) -> None:
     """检查非法字会显式报错。"""
@@ -106,6 +136,12 @@ def test_output_exactly_on_a_code_boundary_belongs_to_that_code() -> None:
     assert result.output_code == OUTPUT_CODES // 2 + 64
 
 
+# =========================================================================
+# -------------------------------------------------------------------------
+# 分别触发档位、SADC、RDAC、前缀、ADC2 和输出守卫。
+# 标称输入范围保留下端点，明确拒绝等于正满量程的电压。
+# 等权两字的逐码积分和均匀细步输入相符，误差限于采样网格。
+# -------------------------------------------------------------------------
 def test_sampling_setting_prefix_and_analog_headroom_fail_independently() -> None:
     """分别触发档位、SADC、RDAC、前缀、ADC2 和输出守卫。"""
     restricted = convert(0, 63, ModelConfig(max_slice_setting_lsb=7))
@@ -166,6 +202,12 @@ def test_analytic_code_width_matches_independent_sample_grid() -> None:
     assert density.width_v.sum() == pytest.approx(high - low, abs=1e-15)
 
 
+# =========================================================================
+# 4. 函数组：test_analytic_density_tracks_rejections_without_moving_the_input_mass
+# =========================================================================
+# -------------------------------------------------------------------------
+# 拒绝段的宽度另计，直接设置与前缀设置的判据分别对拍。
+# -------------------------------------------------------------------------
 def test_analytic_density_tracks_rejections_without_moving_the_input_mass() -> None:
     """拒绝段的宽度另计，直接设置与前缀设置的判据分别对拍。"""
     lo = INPUT_MIN_V + 8 * COARSE_LSB_V

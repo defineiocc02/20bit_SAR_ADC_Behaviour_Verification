@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : package_run.py
+# 模块名     : package_run
+# 版本       : v1.0
+# 功能       : Freeze the run inputs and package the measured SKY130HD evidence.
+#
+# 设计说明   :
+#   * 承担 物理交付打包与审计 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """Freeze the run inputs and package the measured SKY130HD evidence."""
 
 import argparse
@@ -15,13 +29,34 @@ from package_proxy import FINAL_FILES, describe_file, verify_gds
 from sky130_package import read_timing
 
 
+# =========================================================================
+# 1. 函数组：write_json / freeze / read_pv
+# =========================================================================
+# -------------------------------------------------------------------------
+# Write a stable and human-readable report.
+# Bind every RTL and physical configuration input to the executed commit.
+# Separate public-deck measurements from router checks and missing decks.
+# ------------------------------------------------------------------------
 def write_json(path: Path, payload: dict) -> None:
     """Write a stable and human-readable report."""
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
 
 
+# ------------------------------------------------------------------------
 def freeze(args: argparse.Namespace) -> None:
-    """Bind every RTL and physical configuration input to the executed commit."""
+    """Bind every RTL and physical configuration input to the executed commit.
+
+    Args:
+        args: 命令行给出的仓库、源提交、顶层、配置、输出与运行标识。
+
+    每份 RTL 和流程输入都与指定 Git 提交的实际字节比较，不仅记录提交名称。
+    有本地未提交改动时拒绝冻结，避免结果挂到不包含这些修改的提交上。
+    配置文件解析出显式 RTL 依赖；不能用目录扫描额外引入未登记模块。
+    无 RTL 输入时失败，不发布空设计包。
+
+    本步骤只证明运行输入被冻结，不代表综合、STA、DRC、LVS 已执行。
+    公开工艺结果也不能替代目标 BCD 工艺的库、约束与签核。
+    """
     source = args.repo.resolve()
     physical = "task2/physical"
     configs = {args.config, f"{physical}/sky130_config.mk"}
@@ -73,6 +108,7 @@ def freeze(args: argparse.Namespace) -> None:
     write_json(delivery / "inputs.json", {name: describe_file(source / name) for name in files})
 
 
+# ------------------------------------------------------------------------
 def read_pv(output: Path, result: Path, reports: Path, logs: Path) -> dict:
     """Separate public-deck measurements from router checks and missing decks."""
     status = {}
@@ -118,8 +154,31 @@ def read_pv(output: Path, result: Path, reports: Path, logs: Path) -> dict:
     return status
 
 
+# =========================================================================
+# 2. 函数组：moscow / package / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# Account for each canonical skill item in this academic proxy cohort.
+# Correlate GDS, timing and diagnostics with one immutable run.
+# Select the preflight or post-route packaging phase.
+# ------------------------------------------------------------------------
 def moscow(run_id: str, failed: bool, evidence: str, timing_pass: bool) -> dict:
-    """Account for each canonical skill item in this academic proxy cohort."""
+    """Account for each canonical skill item in this academic proxy cohort.
+
+    物理交付必须分别列实际测量、缺失检查及不适用项。
+    综合通过不代表布线后时序通过。
+    路由器内部 DRC 不代替独立版图规则检查。
+    公开规则的 LVS 也只对该规则与该份 GDS 有效。
+    setup 与 hold 分别保留，不用其中一项代替另一项。
+    缺少活动功耗、EM 或 IR 证据时，不能发布完整签核结论。
+    GDS、网表、SPEF 和约束的身份必须属于同一次冻结运行。
+    源码发生改变后必须重新评估受影响的门禁。
+    只改文档也会改变字节摘要，需区分行为变化与归档适用性。
+    历史通过项保留其版本，不补写成当前通过。
+    未运行项明确为 NOT_RUN，资源缺失明确为 BLOCKED。
+    该表只组织证据，不实际调用任何 EDA 引擎。
+    最终结论由已有日志支持，不能由这份表自我证明。
+    """
     must = (
         ("ENV", "PASS", "environment.json, tools.txt and completed public ORFS run"),
         (
@@ -205,6 +264,7 @@ def moscow(run_id: str, failed: bool, evidence: str, timing_pass: bool) -> dict:
     }
 
 
+# ------------------------------------------------------------------------
 def package(args: argparse.Namespace) -> None:
     """Correlate GDS, timing and diagnostics with one immutable run."""
     flow_path = Path("sky130hd") / args.nickname / "base"
@@ -317,6 +377,7 @@ def package(args: argparse.Namespace) -> None:
     print(f"{args.top} {args.run_id}: {'TT PASS' if timing_pass else 'TT FAIL'}, {pv}")
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
     """Select the preflight or post-route packaging phase."""
     parser = argparse.ArgumentParser(description=__doc__)

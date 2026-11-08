@@ -1,0 +1,5 @@
+TASK2_DITHER8_COMPLETE cycles=20000 acq_words=10638 valid_commands=4222 code_errors=5799 stalls=2443 seed_errors=2216
+- dither8_checks_tb.sv:126: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.30
+- Verilator: $finish at 40us; walltime 0.211 s; speed 191.964 us/s
+- Verilator: cpu 0.208 s on 1 threads; alloced 0 MB

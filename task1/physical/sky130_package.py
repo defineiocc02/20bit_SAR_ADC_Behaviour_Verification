@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : sky130_package.py
+# 模块名     : sky130_package
+# 版本       : v1.0
+# 功能       : Validate and package the public SKY130HD routed module one run.
+#
+# 设计说明   :
+#   * 承担 物理流程辅助脚本 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """Validate and package the public SKY130HD routed module one run."""
 
 import argparse
@@ -6,7 +20,13 @@ import json
 import math
 import re
 import shutil
+import sys
 from pathlib import Path
+
+# 本文件有两种入口：直接当脚本跑（cd task1/physical && python sky130_package.py），
+# 或被 task2/physical/package_run.py 当模块导入。同目录的 package_proxy 不属于任何包，
+# 两种入口的 sys.path[0] 不同，因此把自身目录显式加入搜索路径，避免换入口就 ImportError。
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from package_proxy import FINAL_FILES, describe_file, verify_gds
 
@@ -27,6 +47,14 @@ BASE_INPUTS = (
 )
 
 
+# =========================================================================
+# 1. 函数组：read_timing / package / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# Read both extracted timing senses and compare them with ORFS metrics.
+# Collect actual artifacts even if the frozen clock constraint fails.
+# Parse the artifact-packaging paths.
+# ------------------------------------------------------------------------
 def read_timing(report: str, metrics: dict) -> dict:
     """Read both extracted timing senses and compare them with ORFS metrics."""
     if "TASK1_POST_ROUTE_STA_COMPLETE" not in report or "Error:" in report:
@@ -62,6 +90,7 @@ def read_timing(report: str, metrics: dict) -> dict:
     return summary
 
 
+# ------------------------------------------------------------------------
 def package(output: Path, source: Path, top: str) -> None:
     """Collect actual artifacts even if the frozen clock constraint fails."""
     nickname, config = TOP_CONFIGS[top]
@@ -152,6 +181,7 @@ def package(output: Path, source: Path, top: str) -> None:
         print(f"{mode}: {result['status']}, worst slack {result['worst_slack_ns']:.4f} ns")
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
     """Parse the artifact-packaging paths."""
     parser = argparse.ArgumentParser(description=__doc__)

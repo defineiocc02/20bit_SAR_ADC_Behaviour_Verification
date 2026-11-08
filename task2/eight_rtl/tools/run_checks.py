@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : run_checks.py
+# 模块名     : run_checks
+# 版本       : v1.0
+# 功能       : 编译八片 RTL，用已验证的调度参考和独立扰动事务逐沿核对。
+#
+# 设计说明   :
+#   * 承担 20b10mtask 数字交付 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """编译八片 RTL，用已验证的调度参考和独立扰动事务逐沿核对。"""
 
 from __future__ import annotations
@@ -17,16 +31,6 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
-from task1.tools.run_bridge_checks import (  # noqa: E402
-    RTL_SOURCES as MODULE1_RTL,
-)
-from task1.tools.run_bridge_checks import (  # noqa: E402
-    BridgeOracle,
-    BridgeStimulus,
-    _reference_bridge,
-)
-from task1.tools.run_rtl_checks import STRICT_LINT, _dem_oracle, _pack, _pack_slots  # noqa: E402
-from task2.tools.run_dither_word_checks import _serial_word  # noqa: E402
 from tools.run_open_rtl import (  # noqa: E402
     alias_runtime,
     checked_run,
@@ -37,6 +41,17 @@ from tools.run_open_rtl import (  # noqa: E402
     verilator_compiler_args,
     write_json,
 )
+
+from task1.tools.run_bridge_checks import (  # noqa: E402
+    RTL_SOURCES as MODULE1_RTL,
+)
+from task1.tools.run_bridge_checks import (  # noqa: E402
+    BridgeOracle,
+    BridgeStimulus,
+    _reference_bridge,
+)
+from task1.tools.run_rtl_checks import STRICT_LINT, _dem_oracle, _pack, _pack_slots  # noqa: E402
+from task2.tools.run_dither_word_checks import _serial_word  # noqa: E402
 
 RTL = (*MODULE1_RTL, "task2/rtl/dither_word_gen.sv", "task2/eight_rtl/rtl/dither8_top.sv")
 TB = "task2/eight_rtl/tb/dither8_checks_tb.sv"
@@ -51,6 +66,14 @@ TEST_SEED = 0xD817
 DEFAULT_DITHER_SEED = 0x5A1709C3
 
 
+# =========================================================================
+# 1. 函数组：Stimulus / Descriptor / Oracle
+# =========================================================================
+# -------------------------------------------------------------------------
+# 一沿前的调度、种子写入和最终粗判决。
+# 独立期望的同笔物理片序与扰动字段。
+# 按发布时间排队并按样本号查询，避免复刻 RTL 的两项查找结构。
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class Stimulus(BridgeStimulus):
     """一沿前的调度、种子写入和最终粗判决。"""
@@ -80,6 +103,7 @@ class Stimulus(BridgeStimulus):
         )
 
 
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class Descriptor:
     """独立期望的同笔物理片序与扰动字段。"""
@@ -90,7 +114,7 @@ class Descriptor:
 
     @property
     def upper(self) -> int:
-        """计算送粗判决加法的高路整数值。"""
+        """计算从粗码中扣除的高路整数值 U（契约 C9 负注入）。"""
         return 4 * (self.word // 32) + self.word // 8 % 2
 
     @property
@@ -115,6 +139,7 @@ class Descriptor:
         return _pack_slots(masks, 5)
 
 
+# ------------------------------------------------------------------------
 class Oracle:
     """按发布时间排队并按样本号查询，避免复刻 RTL 的两项查找结构。"""
 
@@ -176,12 +201,12 @@ class Oracle:
         descriptor = self.history.get(schedule.conv_sample_id) if schedule.conv_valid else None
         ready = active and descriptor is not None
         conv = descriptor or Descriptor()
-        command = stimulus.code + conv.upper
+        command = stimulus.code - conv.upper
         mask_valid = (
             ready
             and stimulus.code_valid
             and stimulus.code_sample_id == schedule.conv_sample_id
-            and command < 512
+            and stimulus.code >= conv.upper
         )
         main, sub, correction = (0,) * 8, (0,) * 8, 0
         if mask_valid:
@@ -216,8 +241,26 @@ class Oracle:
         )
 
 
+# =========================================================================
+# 2. 函数组：write_vectors / run / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 保存定向及连续事务，返回必须观测到的完成计数。
+# 编译时仅使用列出的 RTL，记录独立覆盖和实际完成计数。
+# 在指定的仓库外新目录执行核对。
+# ------------------------------------------------------------------------
 def write_vectors(path: Path) -> tuple[dict[str, int], dict[str, int]]:
-    """保存定向及连续事务，返回必须观测到的完成计数。"""
+    """保存定向及连续事务，返回必须观测到的完成计数。
+
+    Args:
+        path: 测试向量输出文件，ASCII 十六进制；低位槽序与测试台一致。
+    Returns:
+        期望完成计数，以及 64 字、边界、拒绝、stall 和种子事件覆盖。
+
+    参考模型按发布时间维护事务账本，样本号相同才能取回扰动字。
+    粗码合法性按 c>=U 判定，再计算 k=c-U；不允许无符号回绕成为正常命令。
+    采样描述符与转换结果可在同一时刻属于不同样本，禁止共用当前字替代历史字。
+    """
     oracle = Oracle()
     rng = random.Random(TEST_SEED)
     seeds = {}
@@ -232,10 +275,10 @@ def write_vectors(path: Path) -> tuple[dict[str, int], dict[str, int]]:
     )
     coverage = dict.fromkeys(
         (
-            "overflow_rejects",
+            "underflow_rejects",
             "stale_id_rejects",
             "steady_commands",
-            "legal_511",
+            "legal_top",
             "legal_zero",
             "all_64_directed_words",
         ),
@@ -280,20 +323,35 @@ def write_vectors(path: Path) -> tuple[dict[str, int], dict[str, int]]:
                 )
             )
             put(Stimulus(advance=True, dither_enable=False))
-            boundary = put(Stimulus(code_valid=True, code=511 - upper))
-            overflow = put(Stimulus(code_valid=True, code=511))
+            # C9 负注入 k = c - U：合法低端是 c == U（命令 0），c == U-1 下溢被拒；
+            # c == 511 恒合法且给出 511-U，不再存在高端上溢。U 取 {0,1,4,5}。
+            low_edge = put(Stimulus(code_valid=True, code=upper))
+            underflow = put(Stimulus(code_valid=True, code=max(upper - 1, 0)))
+            top_edge = put(Stimulus(code_valid=True, code=511))
             put(Stimulus(advance=True, eligible=0, dither_enable=True))
-            stale = put(Stimulus(code_valid=True, code_sample_id=1))
-            held = put(Stimulus(code_valid=True))
-            if not (boundary[3] and boundary[6] == word and boundary[19] and boundary[15] == 511):
-                raise RuntimeError(f"missing directed word or legal endpoint: {word}")
-            if bool(overflow[20]) != bool(upper) or not stale[20] or not held[19]:
-                raise RuntimeError(f"missing overflow, stale-ID or held-word behavior: {word}")
+            # 错 ID 与后续合法码都用 c=511，保证拒绝原因只有 ID，不混入下溢。
+            stale = put(Stimulus(code_valid=True, code=511, code_sample_id=1))
+            held = put(Stimulus(code_valid=True, code=511))
+            if not (
+                low_edge[3]
+                and low_edge[6] == word
+                and low_edge[19]
+                and low_edge[15] == 0
+                and top_edge[15] == 511 - upper
+            ):
+                raise RuntimeError(f"missing directed word or legal low/top endpoint: {word}")
+            if (
+                bool(underflow[20]) != bool(upper)
+                or bool(top_edge[20])
+                or not stale[20]
+                or not held[19]
+            ):
+                raise RuntimeError(f"missing underflow, stale-ID or held-word behavior: {word}")
             coverage["all_64_directed_words"] += 1
-            coverage["legal_511"] += 1
-            coverage["overflow_rejects"] += overflow[20]
+            coverage["legal_top"] += 1
+            coverage["legal_zero"] += low_edge[15] == 0
+            coverage["underflow_rejects"] += underflow[20]
             coverage["stale_id_rejects"] += stale[20]
-            coverage["legal_zero"] += held[15] == 0
 
         put(Stimulus(enable=False, advance=True, code_valid=True))
         put(Stimulus(advance=True, dither_enable=True, bridge_enable=True))
@@ -307,7 +365,9 @@ def write_vectors(path: Path) -> tuple[dict[str, int], dict[str, int]]:
                     bridge_enable=bool(index & 1),
                     dither_enable=bool(index & 4),
                     code_valid=True,
-                    code=rng.randrange(507),
+                    # C9 负注入：U_max=5，c>=5 保证随机流恒不下溢、不插泡。
+                    # c<U 的下溢拒绝与 c==U 的合法低端已由定向边界用例覆盖。
+                    code=rng.randrange(5, 512),
                     code_sample_id=index,
                 )
             )
@@ -320,8 +380,20 @@ def write_vectors(path: Path) -> tuple[dict[str, int], dict[str, int]]:
     return counts, coverage
 
 
+# ------------------------------------------------------------------------
 def run(out: Path, command: list[str], timeout: int) -> dict:
-    """编译时仅使用列出的 RTL，记录独立覆盖和实际完成计数。"""
+    """编译时仅使用列出的 RTL，记录独立覆盖和实际完成计数。
+
+    Args:
+        out: 新建且位于版本库外的证据目录。
+        command: 已配置 Verilator 命令。
+        timeout: 子过程上限，单位 s。
+    Returns:
+        实际运行的完成计数和覆盖信息。
+
+    编译对象放在独立临时目录，不把上次二进制当成本次结果。
+    RTL 对拍通过不等于真实注入开关、RA 余量或目标工艺 STA 已通过。
+    """
     env = os.environ.copy()
     with tempfile.TemporaryDirectory(prefix="dither8_") as temporary:
         work = Path(temporary)
@@ -404,6 +476,7 @@ def run(out: Path, command: list[str], timeout: int) -> dict:
         return result
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
     """在指定的仓库外新目录执行核对。"""
     parser = argparse.ArgumentParser(description=__doc__)

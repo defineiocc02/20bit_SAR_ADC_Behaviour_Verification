@@ -1,3 +1,17 @@
+# =============================================================================
+# 文件名     : adc2_dither_study.py
+# 模块名     : adc2_dither_study
+# 版本       : v1.0
+# 功能       : Separate ADC2 quantization, residue headroom, and ideal subtractive dither.
+#
+# 设计说明   :
+#   * 承担 行为级实验与图件生成 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """Separate ADC2 quantization, residue headroom, and ideal subtractive dither."""
 
 from __future__ import annotations
@@ -10,15 +24,18 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+from adi_model.capacitors import ExperimentConfig, cap_pool
+from adi_model.hashing import sha256_file
 from task1.experiments.adctoolbox_calibration import (
     CalibrationConfig,
     SwitchState,
-    _decode,
-    _fixed_ab_flags,
-    _fixed_switch_bits,
-    _group_flags,
-    _metrics,
-    _quantize,
+    calibration_metrics,
+    decode_switches,
+    fixed_ab_flags,
+    fixed_switch_bits,
+    group_flags,
+    quantize,
 )
 from task1.experiments.bridge_lms_comparison import ARM_LABELS, Q32, _bridge_bits
 from task1.experiments.inl_dnl import (
@@ -27,14 +44,14 @@ from task1.experiments.inl_dnl import (
     RampStates,
     _build_intervals,
     _fold,
-    _linearity,
-    _mass,
     _output_codes,
-    _sha,
     _source_check,
     _states,
+    code_mass,
+    inl_linearity,
 )
-from task1.experiments.run_effects import ROOT, ExperimentConfig, _cap_pool, _codebook
+from task1.experiments.run_effects import ROOT
+from task1.model.codebook import codebook
 
 DITHER_SEED = 0x44495448
 DITHER_LEVELS = 16
@@ -43,12 +60,25 @@ CAPTURES = ("gain_low", "gain_high", "training", "holdout")
 VIEW_CODES = slice((1 << (OUTPUT_BITS - 1)) - 48, (1 << (OUTPUT_BITS - 1)) + 48)
 
 
+# =========================================================================
+# 1. 函数组：_dither_words / _headroom / _tone
+# =========================================================================
+# -------------------------------------------------------------------------
+# Use the midpoints of an equiprobable discrete, one-fine-LSB distribution.
+# ------------------------------------------------------------------------
 def _dither_words(step: float) -> np.ndarray:
     """Use the midpoints of an equiprobable discrete, one-fine-LSB distribution."""
     return ((np.arange(DITHER_LEVELS) + 0.5) / DITHER_LEVELS - 0.5) * step
 
 
+# ------------------------------------------------------------------------
 def _headroom(residue: np.ndarray, cfg: CalibrationConfig, peak: float) -> dict:
+    """核对接口边界与证据归属。
+
+    内部残差窗口与输出码窗口分别检查。
+    量化前超窗不得因输出恰好合法而被忽略。
+    本实验的二级输入扰动不能当作采样开关证据。
+    """
     result = {}
     one_lsb20_half = peak * 2.0 ** (cfg.adc2_bits - OUTPUT_BITS)
     for label, half in (("one_lsb20_step", one_lsb20_half), ("50mV", 0.05), ("100mV", 0.1)):
@@ -68,7 +98,22 @@ def _headroom(residue: np.ndarray, cfg: CalibrationConfig, peak: float) -> dict:
     return result
 
 
+# ------------------------------------------------------------------------
 def _tone(data, arm: str, experiment: ExperimentConfig, cfg: CalibrationConfig, words: np.ndarray):
+    """调用合同。
+
+    本实验将加减性扰动放在理想 ADC2 输入，不是采样子阵列的物理注入。
+    每个偏移先加在残差上，再从解码结果中扣除同一偏移；不能只改其中一处符号。
+
+    Args:
+        data: 已有训练与留出记录，不能在比较中替换成另一制造池。
+        arm: 需要重放的实验臂名称。
+        experiment: 输入幅度、样本率和相干频点等配置。
+        cfg: ADC2 位数、半量程和训练相关配置。
+        words: ADC2 输入折算扰动电压，单位 V。
+    Returns:
+        扰动关／开的整数输出指标与波形。
+    """
     prefix = f"{arm}_"
     state = SwitchState(
         data[prefix + "holdout_plan"],
@@ -80,8 +125,8 @@ def _tone(data, arm: str, experiment: ExperimentConfig, cfg: CalibrationConfig, 
     reference = data["reference_holdout_v"]
     peak, half = experiment.full_scale_peak_v, cfg.adc2_half_range_v
     bridge = arm == "fig21_bridge_lms"
-    flags = _group_flags(state.plan) if bridge else _fixed_ab_flags(state.plan)
-    masks = _bridge_bits(state) if bridge else _fixed_switch_bits(state)
+    flags = group_flags(state.plan) if bridge else fixed_ab_flags(state.plan)
+    masks = _bridge_bits(state) if bridge else fixed_switch_bits(state)
     gain = flags @ data[prefix + "frozen_gain"]
     base = (
         data["nominal_threshold_v"][state.codes]
@@ -89,9 +134,9 @@ def _tone(data, arm: str, experiment: ExperimentConfig, cfg: CalibrationConfig, 
         + data[prefix + "holdout_correction_q32"] * (peak / Q32)
         + masks @ data[prefix + "frozen_equivalent_switch_weight_v"]
     )
-    fine = _quantize(residue, cfg.adc2_bits, half)
+    fine = quantize(residue, cfg.adc2_bits, half)
     np.testing.assert_array_equal(fine, data[prefix + "holdout_adc2_code"])
-    off = (base + _decode(fine, cfg.adc2_bits, half)) / gain - peak
+    off = (base + decode_switches(fine, cfg.adc2_bits, half)) / gain - peak
     np.testing.assert_allclose(off, data[prefix + "holdout_calibrated_v"], rtol=0, atol=5e-14)
     adc2_step = 2 * half / (1 << cfg.adc2_bits)
     export_step = 2 * peak / (1 << OUTPUT_BITS)
@@ -104,14 +149,14 @@ def _tone(data, arm: str, experiment: ExperimentConfig, cfg: CalibrationConfig, 
     rng = np.random.default_rng(DITHER_SEED)
     word_idx = rng.integers(len(words), size=(max(REPEATS), len(residue)))
     dither = words[word_idx]
-    dithered_code = _quantize(residue[None, :] + dither, cfg.adc2_bits, half)
-    demod = _decode(dithered_code, cfg.adc2_bits, half) - dither
+    dithered_code = quantize(residue[None, :] + dither, cfg.adc2_bits, half)
+    demod = decode_switches(dithered_code, cfg.adc2_bits, half) - dither
     on = (base + demod) / gain - peak
     reports = {}
     traces = {"reference_v": reference, "residue_v": residue, "dither_word_index": word_idx}
     for count in REPEATS:
         for name, reconstructed, exported, adc2_error in (
-            ("off", off, export(off), _decode(fine, cfg.adc2_bits, half) - residue),
+            ("off", off, export(off), decode_switches(fine, cfg.adc2_bits, half) - residue),
             (
                 "on",
                 on[:count].mean(axis=0),
@@ -122,8 +167,8 @@ def _tone(data, arm: str, experiment: ExperimentConfig, cfg: CalibrationConfig, 
             key = f"{name}_repeat{count}"
             reports[key] = {
                 "adc2_quantization_rms_v": float(np.sqrt(np.mean(adc2_error**2))),
-                "before_export": _metrics(reconstructed, reference, experiment),
-                "after_export": _metrics(exported, reference, experiment),
+                "before_export": calibration_metrics(reconstructed, reference, experiment),
+                "after_export": calibration_metrics(exported, reference, experiment),
             }
             traces[f"{key}_pre_export_v"] = reconstructed
             traces[f"{key}_post_export_v"] = exported
@@ -131,12 +176,31 @@ def _tone(data, arm: str, experiment: ExperimentConfig, cfg: CalibrationConfig, 
     return reports, traces
 
 
+# =========================================================================
+# 2. 函数组：_density / _plot / run
+# =========================================================================
+# -------------------------------------------------------------------------
+# Use same archived physical samples, held-out stimulus, and frozen coefficients.
+# ------------------------------------------------------------------------
 def _density(
     data, arm: str, experiment: ExperimentConfig, cfg: CalibrationConfig, words: np.ndarray
 ):
-    nominal, pool = _cap_pool(experiment)
+    """调用合同。
+
+    Args:
+        data: 含冻结系数的原始记录。
+        arm: 对应的 DEM／桥接实验臂。
+        experiment: 固定制造失配与名义电压范围。
+        cfg: ADC2 位数和输入折算半量程。
+        words: ADC2 上的加减性扰动电压集合，单位 V。
+    Returns:
+        用输入区间交叠积分得到的码宽与边界统计；不是采样直方图的近似计数。
+
+    量程外的输入宽度必须单列，不能先限幅再把重分配的概率算进内码。
+    """
+    nominal, pool = cap_pool(experiment)
     peak, half = experiment.full_scale_peak_v, cfg.adc2_half_range_v
-    thresholds = np.r_[_codebook(nominal, experiment), peak]
+    thresholds = np.r_[codebook(nominal, experiment), peak]
     np.testing.assert_array_equal(thresholds[:-1], data["nominal_threshold_v"])
     bridge = arm == "fig21_bridge_lms"
     # Four independent ramp seeds, four frozen states per seed for the bridge.
@@ -166,7 +230,7 @@ def _density(
                     residue_high_v=interval.residue_high_v + offset,
                     digital_base_v=interval.digital_base_v - offset,
                 )
-                mass = _mass(shifted, cfg.adc2_bits, half, peak)
+                mass = code_mass(shifted, cfg.adc2_bits, half, peak)
                 if mass.code.size:
                     first, last = int(mass.code.min()), int(mass.code.max()) + 1
                     width[key][first:last] += (
@@ -182,9 +246,9 @@ def _density(
         np.testing.assert_allclose(histogram.sum() + low + high, 2 * peak, rtol=0, atol=5e-11)
         if low + high > 1e-15:
             raise ValueError("uniform ramp overloads ADC2; do not publish an incomplete DNL")
-        _, _, dnl20 = _linearity(histogram)
+        _, _, dnl20 = inl_linearity(histogram)
         width14 = _fold(histogram, PLOT_BITS)
-        _, _, dnl14 = _linearity(width14)
+        _, _, dnl14 = inl_linearity(width14)
         reports[key] = {
             "state_count": state_count,
             "dither_word_count": len(words) if key == "on" else 1,
@@ -201,6 +265,7 @@ def _density(
     return reports, traces
 
 
+# ------------------------------------------------------------------------
 def _plot(out: Path, results: list[dict], traces: list[dict]) -> None:
     fig, axes = plt.subplots(2, 2, figsize=(12, 7.8), layout="constrained")
     fig.suptitle("12-bit ADC2 | Ideal subtractive dither with frozen NLMS", fontsize=16)
@@ -314,6 +379,7 @@ def _plot(out: Path, results: list[dict], traces: list[dict]) -> None:
     plt.close(fig)
 
 
+# ------------------------------------------------------------------------
 def run(training: list[Path], out: Path) -> None:
     """Use same archived physical samples, held-out stimulus, and frozen coefficients."""
     plt.switch_backend("Agg")
@@ -334,7 +400,7 @@ def run(training: list[Path], out: Path) -> None:
             "adc2_step_v": step,
             "dither_words_v": words.tolist(),
             "training_artifact_sha256": {
-                name: _sha(path / name) for name in ("summary.json", "observations.npz")
+                name: sha256_file(path / name) for name in ("summary.json", "observations.npz")
             },
             "arms": {},
         }
@@ -380,13 +446,19 @@ def run(training: list[Path], out: Path) -> None:
         "adctoolbox": version("adctoolbox"),
         "dither_seed": DITHER_SEED,
         "repeat_counts": REPEATS,
-        "source_sha256": {name: _sha(ROOT / name) for name in dependencies},
+        "source_sha256": {name: sha256_file(ROOT / name) for name in dependencies},
         "cases": results,
     }
     (out / "summary.json").write_text(json.dumps(info, indent=2, allow_nan=False) + "\n")
     _plot(out, results, traces)
 
 
+# =========================================================================
+# 3. 函数组：main
+# =========================================================================
+# -------------------------------------------------------------------------
+# Run the dither diagnostic on one or more archived LMS pairs.
+# ------------------------------------------------------------------------
 def main() -> None:
     """Run the dither diagnostic on one or more archived LMS pairs."""
     parser = argparse.ArgumentParser(description=__doc__)

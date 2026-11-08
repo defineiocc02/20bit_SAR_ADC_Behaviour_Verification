@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : run_checks.py
+# 模块名     : run_checks
+# 版本       : v1.0
+# 功能       : Compile and run the digital integration test on an isolated output path.
+#
+# 设计说明   :
+#   * 承担 集成顶层向量与对拍入口 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """Compile and run the digital integration test on an isolated output path."""
 
 from __future__ import annotations
@@ -13,7 +27,6 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
-from task1.tools.run_rtl_checks import STRICT_LINT  # noqa: E402
 from tools.run_open_rtl import (  # noqa: E402
     alias_runtime,
     checked_run,
@@ -24,6 +37,8 @@ from tools.run_open_rtl import (  # noqa: E402
     verilator_compiler_args,
     write_json,
 )
+
+from task1.tools.run_rtl_checks import STRICT_LINT  # noqa: E402
 
 TOP = "sar20_digital_top"
 BENCH = "sar20_integration_tb"
@@ -54,6 +69,14 @@ FIELDS = (
 )
 
 
+# =========================================================================
+# 1. 函数组：main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 运行外接重构顶层回归并生成输入与日志哈希。
+# ------------------------------------------------------------------------
+# main() -> None：含显式异常拒绝、含断言；本模块 的口径以同目录 SPEC/README 为准，越界与失效路径须显式处理
+# ------------------------------------------------------------------------
 def main() -> None:
     """运行外接重构顶层回归并生成输入与日志哈希。"""
     parser = argparse.ArgumentParser(description=__doc__)

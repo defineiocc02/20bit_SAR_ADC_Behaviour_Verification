@@ -2,7 +2,7 @@
 # 文件名     : model.py
 # 模块名     : model
 # 版本       : v1.0
-# 功能       : 八片原生子阵列底板扰动的行为参考。
+# 功能       : 八片负注入数字合同的行为参考。
 #
 # 设计说明   :
 #   * 承担 八片原生子阵列模型与对照实验 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
@@ -12,18 +12,13 @@
 # 初始版本，暂无变更记录。
 # =============================================================================
 
-"""八片原生子阵列底板扰动的行为参考。
+"""八片负注入数字合同的行为参考。
 
-极性按 US10505561B2 与冻结合同 C9（负注入）：SADC 判 ``x−L``、RDAC 命令
-``k=c−U``（``c<U`` 下溢拒绝）、残差里存着 ``x−T``、数字侧把 ``T`` 加回一次。
-四处符号是一组，单独改任一处都不再闭合；见 ``coarse_decision``、
-``active_features`` 与 ``conversion_state`` 的行内说明。
-
-⚠️ 下游重构尚未迁移：``task_reconstruction/fixed.py`` 与
-``task_reconstruction/rtl/sar20_lms_recon.sv`` 仍按正注入写成
-``conv_sub − sample_sub``（三值特征）。负注入要求 ``conv_sub + sample_sub``
-（(1,1) 项计 2），两者相差 ``2T``，最大 0.296 V ≈ 3.1e4 LSB20。
-在本模块产出的掩码喂给该重构链之前，必须先同步迁移那边并用 Verilator 重跑。
+SADC 判 x−L，命令 k=c−U（下溢拒绝）；残差为 x−VD(k)−T，重构加回 T。
+逻辑注入位图对应理想受控电荷源，幅度假定与子阵列转换权重相同；这属于工程假设。
+低轨→高轨底板采样的两节点网络给出相反符号，不能把该网络直接称作负注入实现。
+独立节点参考在子节点 KCL 中显式加入辅助电荷，检验该假设下的数学一致性。
+原文的 upper 扣码关系与本工程电容连接、位图及单位电荷映射须分别核对。
 """
 
 from __future__ import annotations
@@ -50,13 +45,13 @@ SUB_DITHER_WEIGHTS = np.array(SUB_WEIGHTS[:-1], dtype=np.uint8)
 # 1. 函数组：Dither / decode / words
 # =========================================================================
 # -------------------------------------------------------------------------
-# 同笔八个有序 slot 的采样底板掩码与整数扰动标签。
-# 按六位字设定子阵列底板，字 0 对应全低轨。
+# 同笔八个有序槽的逻辑注入掩码与整数扰动标签。
+# 按六位字生成逻辑注入位图，字 0 对应零注入。
 # 生成与 RTL 一致的采样序列，关闭时保持 PRBS 状态。
 # -------------------------------------------------------------------------
 @dataclass(frozen=True)
 class Dither:
-    """同笔八个有序 slot 的采样底板掩码与整数扰动标签。"""
+    """同笔八个有序槽的逻辑注入掩码与整数扰动标签。"""
 
     word: np.ndarray
     upper: np.ndarray
@@ -67,7 +62,7 @@ class Dither:
 
 
 def decode(word: np.ndarray) -> Dither:
-    """按六位字设定子阵列底板，字 0 对应全低轨。"""
+    """按六位字生成逻辑注入位图，字 0 对应零注入。"""
     word = np.asarray(word)
     if word.dtype.kind not in "iu" or np.any((word < 0) | (word >= 64)):
         raise ValueError("each dither word must be an integer in [0, 63]")
@@ -134,10 +129,8 @@ def coarse_decision(
     物理效应，要保留），但同一个噪声不该让样本被误判成「输入超量程」
     （那是激励配置错误，要报出来）。两者混在一根线上就分不开了。
     """
-    # 极性按 US10505561B2：两采样偏移是负的（SADC 看到 x−L，RDAC 存 x−T），
-    # 故原码是全精度比较减 L 之后的结果，RDAC 命令再把 upper 减掉：k = c − U。
-    # U=4·D6+D4、L=8·D5+…，见同文件的 decode()。符号写反不会让闭合变差
-    # （U 在名义重构里会抵消），但会把削顶方向搬到高轨，与专利和 RTL 都不一致。
+    # [工程合同] SADC 的辅助注入为 -L，RDAC 命令扣除 U；由调用方提供模拟宏。
+    # 当前位图映射及步长不是专利给出的工艺参数；有效性独立检查，不能靠 clip 隐藏下溢。
     sensed_v = input_v if decision_v is None else decision_v
     sadc_v = sensed_v - dither.lower_eighth * (step_v / GROUP_SLICES)
     coarse = np.searchsorted(thresholds, sadc_v, side="right") - 1
@@ -157,10 +150,8 @@ def coarse_decision(
 
 def active_features(state: SwitchState, dither: Dither) -> np.ndarray:
     """给出每片主阵列转换位与子阵列「转换位＋采样位」的有符号特征。"""
-    # 采样位在这里是加不是减：专利的注入是负的，采样底板把该片预置到
-    # x−T（T=U·Δ+L），所以转换码 K 对应的数字估计是 VD(K)+T，
-    # 特征里就必须留出 +T 这一项。写成 sub−sampled 等于把注入当成正的
-    # （RDAC 存 x+T），命令也得跟着写成 c+U 才能闭合——那是 RTL 之外的另一套约定。
+    # [模型边界] 受控电荷源的残差贡献为 -T，重构的子特征因此为 conv+sample。
+    # 两位同时为一时取 2，不能并成 1 或抵消为零；模拟实现须满足相同符号和幅度合同。
     main = unpack(state.main, MAIN_BITS).astype(np.int8)
     sub = unpack(state.sub, SUB_BITS)[..., :-1].astype(np.int8)
     sampled = unpack(dither.sample_sub_high, SUB_BITS)[..., :-1].astype(np.int8)
@@ -243,7 +234,7 @@ def conversion_state(
     switches, correction = table.lookup(command, plan, phases)
     peak = thresholds[-1]
     # 使用旧 Fig.11 码本，显式加 Fig.21 转换回放差值一次，并把这笔注入量加回去一次。
-    # 专利口径是负注入：RDAC 存 x−T（T = U·Δ + L），所以残差里含着 +T，
+    # 当前工程合同是负注入：RDAC 存 x−T（T = U·Δ + L），所以残差里含着 −T，
     # 数字侧必须加回 T 才能还原输入；写成减 T 就成了把注入算两遍。
     nominal_base = (
         thresholds[command]
@@ -254,4 +245,3 @@ def conversion_state(
     return ConversionState(
         switches, dither, active_features(switches, dither), correction, nominal_base
     )
-

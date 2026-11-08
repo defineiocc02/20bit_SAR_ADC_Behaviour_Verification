@@ -1,43 +1,64 @@
-// 按独立队列模型生成的向量核对每拍的控制、码和故障。
+// =============================================================================
+// 文件名     : caaz20_pair_tb.sv
+// 模块名     : caaz20_pair_tb
+// 版本       : v1.0
+// 功能       : CAAZ 配对的逐沿对拍测试台
+//
+// 设计说明   :
+//   * 覆盖连续配对、stall、整数端点、负奇差、bypass 与非重叠约束。
+//   * 断言失败意味着 ID 生命周期或 AZ 代对齐被破坏，不是单纯数值偏差。
+//   * 单时钟域 clk_i；复位、清空、禁用优先于受理，异常路径不得静默接受。
+// -----------------------------------------------------------------------------
+// 变更记录
+// -----------------------------------------------------------------------------
+// 初始版本，暂无变更记录。
+// ===========================================================================
+
 `timescale 1ns/1ps
+// =========================================================================
+// 1. 模块接口与端口分组
+// =========================================================================
+// -------------------------------------------------------------------------
+// 端口按功能分组，slot 0 在最低位；总线位宽与定点格式见同目录 SPEC。
+// -------------------------------------------------------------------------
 module caaz20_pair_tb;
   typedef struct packed {
-    logic               acq_valid;
-    logic        [31:0] acq_id;
-    logic               chop_neg;
-    logic               az_capture;
-    logic               az_hold;
-    logic        [30:0] az_id;
-    logic               out_valid;
-    logic signed [19:0] out_code;
-    logic        [31:0] out_id;
-    logic        [31:0] out_first_id;
-    logic        [30:0] out_az_id;
-    logic               out_pair;
-    logic signed [20:0] out_difference;
-    logic               fault;
-    logic               fault_pulse;
-    logic         [2:0] fault_code;
+    logic               acq_valid;  // 事务有效位，须与同笔 ID、极性及 AZ 代一起核对。
+    logic        [31:0] acq_id;  // 采集描述符的样本号，首笔用于填充流水。
+    logic               chop_neg;  // 实际返回的斩波极性，须与该样本冻结状态一致。
+    logic               az_capture;  // 该笔 RA 时窗的捕获意图，模拟成功确认另行检查。
+    logic               az_hold;  // 该笔 RA 时窗的保持意图，不以采集时钟位置猜测。
+    logic        [30:0] az_id;  // 共享 AZ 代，数字相同不代表模拟侧确实完成保持。
+    logic               out_valid;  // 真实结果有效事件；反压时数据与归属应同时保持。
+    logic signed [19:0] out_code;  // 最终有符号码，只在对应有效事务中比较。
+    logic        [31:0] out_id;  // 已退休结果的样本号，与对应数字码同时核对。
+    logic        [31:0] out_first_id;  // 同步低有效复位，必须取消在途样本；不能只清最终 valid。
+    logic        [30:0] out_az_id;  // 共享 AZ 代，数字相同不代表模拟侧确实完成保持。
+    logic               out_pair;  // 区分单笔旁路与两笔配对输出，计数不可混合。
+    logic signed [20:0] out_difference;  // 解调前的完整有符号差值，负奇数的除二方向须另验。
+    logic               fault;  // 故障保持状态，与故障脉冲及正常输出分别核对。
+    logic               fault_pulse;  // 新异常的一拍事件，用于与持续故障状态分开计数。
+    logic         [2:0] fault_code;  // 异常分类观测，不能仅凭输出未出现推断错误原因。
   } result_t;
 
   typedef struct packed {
-    logic               rst_n;
-    logic               clear;
-    logic               enable;
-    logic               caaz_enable;
-    logic               acq_valid;
-    logic        [31:0] acq_id;
-    logic               raw_valid;
-    logic        [31:0] raw_id;
-    logic signed [19:0] raw_code;
-    logic               raw_bad;
-    logic               raw_chop_neg;
-    logic        [30:0] raw_az_id;
-    logic               raw_az_ok;
+    logic               rst_n;  // 同步低有效复位，必须取消在途样本；不能只清最终 valid。
+    logic               clear;  // 清空在途事务的测试刺激，优先于同沿采样受理。
+    logic               enable;  // 禁用与重新使能的生命周期刺激，禁止旧描述符复活。
+    logic               caaz_enable;  // 选择旁路或非重叠两笔配对，输出计数按模式分别检查。
+    logic               acq_valid;  // 事务有效位，须与同笔 ID、极性及 AZ 代一起核对。
+    logic        [31:0] acq_id;  // 采集描述符的样本号，首笔用于填充流水。
+    logic               raw_valid;  // 事务有效位，须与同笔 ID、极性及 AZ 代一起核对。
+    logic        [31:0] raw_id;  // 原始码所属样本，配对不能按到达数组位置猜测。
+    logic signed [19:0] raw_code;  // 逐笔去扰重构后的有符号码，配对前不能先混合两笔。
+    logic               raw_bad;  // 坏样本应进入异常路径，禁止用零码冒充正常测量值。
+    logic               raw_chop_neg;  // 实际返回的斩波极性，须与该样本冻结状态一致。
+    logic        [30:0] raw_az_id;  // 共享 AZ 代，数字相同不代表模拟侧确实完成保持。
+    logic               raw_az_ok;  // 模拟宏对捕获／保持有效性的确认，缺失不得当作成功。
     result_t            expected;
   } vector_t;
 
-  logic clk;
+  logic clk;  // 单域测试时钟，所有受理与结果检查以其上升沿为界。
   vector_t vector;
   result_t actual;
 

@@ -3,9 +3,11 @@
 ![18 片池中的八片交织、逐笔去扰和 CAAZ 配对](caaz_cooperation.png)
 
 1. 每次成功申请从 18 片池中选出 8 片采样，并把上一笔的采样组交给转换。稳态同时有 8 片采样、8 片转换、2 片空闲。片号、DEM 相位和六位 dither 字按样本 ID 保存。调度、DEM 和 dither 各有独立的随机状态及种子，独立状态是工程设计选择。CAAZ 由 ID 奇偶确定，无需随机字。[调度规格](../../../task1/SPEC.md) · [八片扰动规格](../../../task2/eight_rtl/SPEC.md)
-2. 采样时对整路差分输入换相，偶笔直通、奇笔交换。dither 在换相后的坐标注入，低路进 SADC 与 RDAC，高路进 RDAC。SADC 返回粗码 `c` 后，按本笔高路整数 `U` 得到 `k=c+U`，Fig.21 映射再生成该笔的主、子转换位图。相邻组在同一槽中分属采样与转换，物理片号不重叠。3% 联合回放的 2,048 对中，片号重叠的有 0 对，dither 字不同的有 2,014 对。[跨段 DEM](../../../task1/BRIDGE_SPEC.md) · [注入与码域](../../../task2/eight_rtl/SPEC.md) · [3% 回放数据](../integrated/joint_dither_caaz_data.npz)
+2. 采样时对整路差分输入换相，偶笔直通、奇笔交换。dither 在换相后的坐标注入，低路进 SADC 与 RDAC，高路进 RDAC。SADC 返回粗码 `c` 后，按本笔高路整数 `U` 得到 `k=c−U`（C9 负注入，`c<U` 下溢拒绝），Fig.21 映射再生成该笔的主、子转换位图。相邻组在同一槽中分属采样与转换，物理片号不重叠。3% 联合回放的 2,048 对中，片号重叠的有 0 对，dither 字不同的有 2,014 对。[跨段 DEM](../../../task1/BRIDGE_SPEC.md) · [注入与码域](../../../task2/eight_rtl/SPEC.md) · [3% 回放数据](../integrated/joint_dither_caaz_data.npz)
 3. 采样描述符中的 `acq_az_capture`／`hold` 是带 ID 的**提前意图**。模拟时序在该笔进入共用 RA 的对应时窗执行更新或保持。比如图中 ID 3 采样时发布“保持 g1”，同槽 RA 正在转换 ID 2 并更新 g1。下一槽 ID 3 进入 RA 时才执行保持。宏随 ADC2 返回 ID、实际极性、AZ 代和确认，数字顶层校验后再配对。[CAAZ 接口](../../SPEC.md) · [片上顶层](../../../task_integration/rtl/sar20_digital_lms_top.sv)
-4. 冻结的 LMS 系数按该笔的物理片号和位图合并 ADC2 原码。主阵列使用转换位图，子阵列使用 `转换位图 − 采样位图`，在斩波后的码域同时完成位权重构与 dither 去除，得到 `r[n]`。随后 CAAZ 验证相邻偶奇 ID、实际极性与相同 AZ 代，再提交 `floor((r_even − r_odd)/2)`。保持上一代 CBIAS 可以让两笔共用其误差，电容失配、随机选片与 dither 则按每笔自己的开关记录处理。[Q28 参考](../../../task_reconstruction/fixed.py) · [配对 RTL](../../rtl/caaz20_pair.sv)
+4. 冻结的 LMS 系数按该笔的物理片号和位图合并 ADC2 原码。主阵列使用转换位图，子阵列使用 `转换位图 + 采样位图`（C9 负注入：采样存 `x−T`，故重构要把 T 加回来一次），在斩波后的码域同时完成位权重构与 dither 去除，得到 `r[n]`。随后 CAAZ 验证相邻偶奇 ID、实际极性与相同 AZ 代，再提交 `floor((r_even − r_odd)/2)`。保持上一代 CBIAS 可以让两笔共用其误差，电容失配、随机选片与 dither 则按每笔自己的开关记录处理。[Q28 参考](../../../task_reconstruction/fixed.py) · [配对 RTL](../../rtl/caaz20_pair.sv)
+
+> ⚠️ 本目录的 `joint_dither_caaz_data.npz` 与 2,048 对回放数字生成于 C9 之前（`k=c+U`、`转换位图−采样位图`），**留档但不得作为 C9 验收证据**，须按负注入整体重生成。
 
 ## 共用 AZ 代抵消什么
 

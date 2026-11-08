@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : run_dither_word_checks.py
+# 模块名     : run_dither_word_checks
+# 版本       : v1.0
+# 功能       : 以独立串行位规格逐拍核对 Python 模型与 Verilator。
+#
+# 设计说明   :
+#   * 承担 图件绘制与数据来源核对 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """以独立串行位规格逐拍核对 Python 模型与 Verilator。"""
 
 from __future__ import annotations
@@ -20,12 +34,6 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
-from task1.model.module1 import DEFAULT_DEM_SEED, advance_dem_rng, dem_snapshot  # noqa: E402
-from task2.model.dither_word_gen import (  # noqa: E402
-    DEFAULT_DITHER_SEED,
-    DitherWordGenerator,
-    DitherWordOutput,
-)
 from tools.run_open_rtl import (  # noqa: E402
     alias_runtime,
     checked_run,
@@ -37,6 +45,13 @@ from tools.run_open_rtl import (  # noqa: E402
     write_json,
 )
 
+from task1.model.module1 import DEFAULT_DEM_SEED, advance_dem_rng, dem_snapshot  # noqa: E402
+from task2.model.dither_word_gen import (  # noqa: E402
+    DEFAULT_DITHER_SEED,
+    DitherWordGenerator,
+    DitherWordOutput,
+)
+
 TOP = "dither_word_gen_tb"
 MARKER = "TASK2_DITHER_WORD_COMPLETE"
 RTL = "task2/rtl/dither_word_gen.sv"
@@ -46,6 +61,14 @@ DEFAULT_WORD_COUNT = 131_072
 MAX_LAG = 32
 
 
+# =========================================================================
+# 1. 函数组：Stimulus / _serial_word / _reference
+# =========================================================================
+# -------------------------------------------------------------------------
+# 一个上升沿前的输入。
+# 按位队列从最早位开始取两个延迟位置，独立生成一个字。
+# 从事务规则与串行位队列计算本拍预期。
+# ------------------------------------------------------------------------
 @dataclass(frozen=True, slots=True)
 class Stimulus:
     """一个上升沿前的输入。"""
@@ -59,6 +82,7 @@ class Stimulus:
     sample_id: int = 0
 
 
+# ------------------------------------------------------------------------
 def _serial_word(state: int) -> tuple[int, int]:
     """按位队列从最早位开始取两个延迟位置，独立生成一个字。"""
     history = list(f"{state:031b}")
@@ -71,6 +95,7 @@ def _serial_word(state: int) -> tuple[int, int]:
     return int("".join(generated), 2), int("".join(history), 2)
 
 
+# ------------------------------------------------------------------------
 def _reference(command: Stimulus, prior: DitherWordOutput) -> DitherWordOutput:
     """从事务规则与串行位队列计算本拍预期。"""
     if not command.rst_n or command.clear:
@@ -92,6 +117,12 @@ def _reference(command: Stimulus, prior: DitherWordOutput) -> DitherWordOutput:
     return DitherWordOutput(word, True, command.sample_id, state)
 
 
+# =========================================================================
+# 2. 函数组：_commands / _packed / _vectors
+# =========================================================================
+# -------------------------------------------------------------------------
+# 定向、随机握手和连续样本；仅最后一段用于词频和相关性统计。
+# ------------------------------------------------------------------------
 def _commands(word_count: int) -> Iterator[tuple[Stimulus, bool]]:
     """定向、随机握手和连续样本；仅最后一段用于词频和相关性统计。"""
     accept = Stimulus(sample_accept=True, sample_id=41)
@@ -131,6 +162,7 @@ def _commands(word_count: int) -> Iterator[tuple[Stimulus, bool]]:
         yield Stimulus(sample_accept=True, sample_id=sample_id), True
 
 
+# ------------------------------------------------------------------------
 def _packed(command: Stimulus, expected: DitherWordOutput) -> str:
     # 与 testbench 的 packed struct 同序，左端为最高位。
     fields = (
@@ -153,6 +185,7 @@ def _packed(command: Stimulus, expected: DitherWordOutput) -> str:
     return f"{packed:035x}\n"
 
 
+# ------------------------------------------------------------------------
 def _vectors(path: Path, word_count: int) -> tuple[dict[str, int], list[int]]:
     model = DitherWordGenerator()
     expected = DitherWordOutput(0, False, 0, 0x5A1709C3)
@@ -173,6 +206,12 @@ def _vectors(path: Path, word_count: int) -> tuple[dict[str, int], list[int]]:
     return counts, words
 
 
+# =========================================================================
+# 3. 函数组：_lag_series / _statistics / run
+# =========================================================================
+# -------------------------------------------------------------------------
+# 生成向量、从零构建仿真，并封存计数和有限样本统计。
+# ------------------------------------------------------------------------
 def _lag_series(first: np.ndarray, second: np.ndarray) -> list[float]:
     coefficients = []
     for lag in range(-MAX_LAG, MAX_LAG + 1):
@@ -184,6 +223,7 @@ def _lag_series(first: np.ndarray, second: np.ndarray) -> list[float]:
     return coefficients
 
 
+# ------------------------------------------------------------------------
 def _statistics(words: list[int]) -> dict:
     dither = np.asarray(words, dtype=np.float64)
     phases = np.empty((2, len(words)), dtype=np.float64)
@@ -215,6 +255,7 @@ def _statistics(words: list[int]) -> dict:
     }
 
 
+# ------------------------------------------------------------------------
 def run(out: Path, command: list[str], timeout: int, word_count: int) -> dict:
     """生成向量、从零构建仿真，并封存计数和有限样本统计。"""
     env = os.environ.copy()
@@ -304,8 +345,18 @@ def run(out: Path, command: list[str], timeout: int, word_count: int) -> dict:
         return result
 
 
+# =========================================================================
+# 4. 函数组：main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 解析已安装 Verilator 和本次输出目录。
+# ------------------------------------------------------------------------
 def main() -> int:
-    """解析已安装 Verilator 和本次输出目录。"""
+    """解析已安装 Verilator 和本次输出目录。
+
+    输出目录必须新建；发生器使能关闭时是否保持状态与输出零字分开核对。
+    随机种子属于事务状态，不能在重试或 stall 后无条件推进。
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", required=True, type=Path, help="仓库外尚不存在的输出目录")
     parser.add_argument("--verilator", type=Path, help="现有 Verilator 可执行文件")

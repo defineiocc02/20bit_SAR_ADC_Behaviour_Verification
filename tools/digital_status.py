@@ -182,7 +182,12 @@ def build_report() -> dict:
 
 
 def main() -> int:
-    """生成状态 JSON 并打印一张概览表。"""
+    """生成状态 JSON 并打印一张概览表。
+
+    本工具盘点文件、引用和收据，不实际执行仿真或 EDA。
+    不能根据测试台文件存在或模块被引用就把状态提升为验证通过。
+    历史收据须与当前源码摘要核对后才可用于本版结论。
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, default=ROOT / "trace" / "digital_status.json")
     args = parser.parse_args()
@@ -194,8 +199,10 @@ def main() -> int:
     for task, info in report["per_task"].items():
         evidence = info["evidence"]
         count = evidence.get("files", 0)
-        print(f"{task:22s} {info['modules']:>4d} {info['testbenches']:>4d} "
-              f"{len(info['check_commands']):>6d}  {count}")
+        print(
+            f"{task:22s} {info['modules']:>4d} {info['testbenches']:>4d} "
+            f"{len(info['check_commands']):>6d}  {count}"
+        )
     print("外部工具:", {name: info["found"] for name, info in report["tools"].items()})
     for gap in report["summary"]["gaps"]:
         print("缺口:", gap)

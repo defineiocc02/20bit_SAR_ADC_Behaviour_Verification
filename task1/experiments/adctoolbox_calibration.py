@@ -149,7 +149,20 @@ class FrozenCalibration:
 
 # ------------------------------------------------------------------------
 def quantize(voltage: np.ndarray, bits: int, half_range_v: float) -> np.ndarray:
-    """用理想均匀量化器编码，越界即停止实验。"""
+    """用理想均匀量化器编码，越界即停止实验。
+
+    Args:
+        voltage: 残差输入折算电压，单位 V，允许批量数组。
+        bits: 理想 ADC2 的输出位数。
+        half_range_v: 半量程，单位 V，合法范围为 [-half,+half)。
+    Returns:
+        与输入同形的 offset-binary 整数码。
+    Raises:
+        ValueError: 输入非有限或超出半开窗口。
+
+    不能依赖末行 minimum 掩盖量程错误；越界检查先执行。
+    这个理想模型没有模拟比较器噪声、建立时间或过载恢复。
+    """
     invalid = ~np.isfinite(voltage) | (voltage < -half_range_v) | (voltage >= half_range_v)
     if np.any(invalid):
         raise ValueError(f"residue input out of range: {np.count_nonzero(invalid)} sample(s)")
@@ -245,7 +258,9 @@ def _mix_training_modes(on: Capture, off: Capture, choose_on: np.ndarray) -> Cap
 def _nominal_reconstruction(
     obs: Observation, threshold_v: np.ndarray, cfg: CalibrationConfig
 ) -> np.ndarray:
-    return threshold_v[obs.codes] + decode_switches(obs.adc2_code, cfg.adc2_bits, cfg.adc2_half_range_v)
+    return threshold_v[obs.codes] + decode_switches(
+        obs.adc2_code, cfg.adc2_bits, cfg.adc2_half_range_v
+    )
 
 
 # =========================================================================
@@ -319,7 +334,17 @@ def _fit_gain_from_flags(
 
 # ------------------------------------------------------------------------
 def group_flags(plan: np.ndarray) -> np.ndarray:
-    """把逐样本的物理片号展开成 one-hot 分组矩阵，供最小二乘按片解增益。"""
+    """把逐样本的物理片号展开成 one-hot 分组矩阵，供最小二乘按片解增益。
+
+    Args:
+        plan: (N,8) 有序物理片号，片号取自同一 18 片池。
+    Returns:
+        (N,18) 的组成员特征，用于组合每片增益。
+
+    组成员特征用于输入增益，不包含每个电容开关的位权信息。
+    不能用这份矩阵替代完整开关特征去训练所有物理单元失配。
+    同笔重复物理片号的合法性由调度合同和下游检查保证。
+    """
     flags = np.zeros((len(plan), POOL_SLICES))
     flags[np.arange(len(plan))[:, None], plan] = 1.0
     return flags
@@ -445,7 +470,26 @@ def _switch_design_report(bits: np.ndarray) -> dict:
 def _fit_nlms(
     switch_bits: np.ndarray, target_v: np.ndarray, cfg: CalibrationConfig
 ) -> tuple[np.ndarray, dict, list[dict]]:
-    """逐笔更新有效权重，预条件矩阵只由训练位图确定。"""
+    """逐笔更新有效权重，预条件矩阵只由训练位图确定。
+
+    Args:
+        switch_bits: 训练特征矩阵，每行一笔、每列一个待识别有效权重。
+        target_v: 同笔独立参考形成的训练目标，单位 V。
+        cfg: 协方差正则、归一化下限、初始步长和训练遍数。
+    Returns:
+        原特征坐标的冻结权重、矩阵秩报告及各遍训练残差。
+    Raises:
+        ValueError: 特征矩阵不能识别所有传入权重列。
+
+    预条件矩阵只由训练特征构造，不能使用留出输出寻找更优方向。
+    第 e 遍步长按 cfg.lms_initial_step/(e+1) 递减。
+    返回的学习误差只针对训练集，泛化必须另用独立留出。
+    制造电容值只用于生成模拟观测，不能直接作为训练目标权重。
+    前台参考的独立性由调用方提供，本函数不测量参考源的精度。
+    训练收敛不自动证明全幅量程和未激励状态正确。
+    系数装载与定点量化需要在后续整数重构链另行验证。
+    欠秩问题由调用方先构造可观测子空间，本函数不会静默丢弃列。
+    """
     features = switch_bits.astype(float)
     _, singular, right = np.linalg.svd(features, full_matrices=False)
     report = _condition_report(singular, features.shape)
@@ -524,7 +568,9 @@ def _spectrum(output_v: np.ndarray, experiment: ExperimentConfig) -> dict:
 
 
 # ------------------------------------------------------------------------
-def calibration_metrics(output_v: np.ndarray, reference_v: np.ndarray, experiment: ExperimentConfig) -> dict:
+def calibration_metrics(
+    output_v: np.ndarray, reference_v: np.ndarray, experiment: ExperimentConfig
+) -> dict:
     """取 adctoolbox 的 SNDR/SFDR/ENOB，并附输出相对参考的 RMS 误差。"""
     metrics = _spectrum(output_v, experiment)["metrics"]
     return {
@@ -612,7 +658,18 @@ def _plot(
 
 # ------------------------------------------------------------------------
 def range_report(residue_v: np.ndarray, half_range_v: float) -> dict:
-    """统计余量越出 ADC2 半量程的样本数与极值，供裕度图判断是否削顶。"""
+    """统计余量越出 ADC2 半量程的样本数与极值，供裕度图判断是否削顶。
+
+    Args:
+        residue_v: 被观察内部节点的残差数组，单位 V。
+        half_range_v: 该节点窗口的半宽，单位 V。
+    Returns:
+        残差极值和超窗数量等诊断信息。
+
+    统计对象必须标明节点；ADC2 输入超窗与最终数字码饱和不是同一事件。
+    范围报告不会修改、限幅或修复传入数据。
+    显示通过仅说明本次激励未越过该窗口，不保证其他输入和状态也安全。
+    """
     return {
         "samples": int(residue_v.size),
         "min_v": float(residue_v.min()),
@@ -922,8 +979,7 @@ def run(out: Path, mismatch_sigma_unit: float = 0.001, adc2_half_range_v: float 
         "holdout_dem_on": hold_capture_on.residue_v,
     }
     headroom = {
-        name: range_report(residue_v, cfg.adc2_half_range_v)
-        for name, residue_v in captures.items()
+        name: range_report(residue_v, cfg.adc2_half_range_v) for name, residue_v in captures.items()
     }
     fixed_captures = {
         "holdout_dem_off": fixed_capture_off.residue_v,
@@ -989,7 +1045,9 @@ def run(out: Path, mismatch_sigma_unit: float = 0.001, adc2_half_range_v: float 
             name: threshold_v[record.codes] + record.residue_v
             for name, record in (("DEM_off", hold_capture_off), ("DEM_on", hold_capture_on))
         }
-        stats = {mode: calibration_metrics(output, hold_v, experiment) for mode, output in proxy.items()}
+        stats = {
+            mode: calibration_metrics(output, hold_v, experiment) for mode, output in proxy.items()
+        }
         _plot_headroom(out / "adc2_headroom.png", headroom, proxy, stats, experiment, cfg)
         np.savez_compressed(
             out / "residue_before_adc2.npz",
@@ -1048,7 +1106,9 @@ def run(out: Path, mismatch_sigma_unit: float = 0.001, adc2_half_range_v: float 
     hold_off = hold_capture_off.quantized(cfg)
     hold_on = hold_capture_on.quantized(cfg)
     outputs = _four_modes(hold_off, hold_on, frozen, threshold_v, experiment, cfg)
-    stats = {mode: calibration_metrics(output, hold_v, experiment) for mode, output in outputs.items()}
+    stats = {
+        mode: calibration_metrics(output, hold_v, experiment) for mode, output in outputs.items()
+    }
     _plot(out / "adctoolbox_calibration.png", outputs, stats, learning, experiment, cfg)
     schedule_comparison = summary["schedule_comparison"]
     schedule_comparison["dynamic"].update(status="completed", holdout=stats)
@@ -1062,7 +1122,8 @@ def run(out: Path, mismatch_sigma_unit: float = 0.001, adc2_half_range_v: float 
         fixed_on = fixed_capture_on.quantized(cfg)
         fixed_outputs = _four_modes(fixed_off, fixed_on, frozen, threshold_v, experiment, cfg)
         fixed_stats = {
-            mode: calibration_metrics(output, hold_v, experiment) for mode, output in fixed_outputs.items()
+            mode: calibration_metrics(output, hold_v, experiment)
+            for mode, output in fixed_outputs.items()
         }
         fixed_report.update(status="completed", holdout=fixed_stats)
         _plot_schedule_comparison(out / "schedule_dem_lms.png", stats, fixed_stats, experiment, cfg)
@@ -1195,4 +1256,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

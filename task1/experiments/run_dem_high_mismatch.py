@@ -1,3 +1,17 @@
+# =============================================================================
+# 文件名     : run_dem_high_mismatch.py
+# 模块名     : run_dem_high_mismatch
+# 版本       : v1.0
+# 功能       : 用固定制造样本测量较大失配下 DEM 的逐码平均、波动及频谱。
+#
+# 设计说明   :
+#   * 承担 行为级实验与图件生成 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """用固定制造样本测量较大失配下 DEM 的逐码平均、波动及频谱。"""
 
 from __future__ import annotations
@@ -14,25 +28,42 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
+from adi_model.capacitors import (
+    GROUP_SLICES,
+    Capacitors,
+    ExperimentConfig,
+    cap_pool,
+    feedback_charge,
+    voltage_equivalent,
+)
 from adi_model.metrics import spectrum_dbfs
-
-from . import run_effects as effects
+from task1.experiments.run_effects import BLUE, ORANGE, ROOT, _spectral_stats, schedule_sequence
+from task1.model.codebook import codebook, map_record
 
 SIGMA_PCT = (2.0, 3.0)
 SEEDS = tuple(range(100, 106))
 AVERAGES = (1, 4, 16, 64, 128)
 PLANS = ("fixed_ab", "dynamic")
 MODES = ("off", "on")
-COLORS = {"off": effects.ORANGE, "on": effects.BLUE}
+COLORS = {"off": ORANGE, "on": BLUE}
 LINESTYLES = {"fixed_ab": "--", "dynamic": "-"}
 PLAN_LABELS = {"fixed_ab": "Fixed A/B", "dynamic": "Dynamic"}
 
 
+# =========================================================================
+# 1. 函数组：_label / Stimulus / _stimulus
+# =========================================================================
+# -------------------------------------------------------------------------
+# 为相同设置在三张图中使用一致的标签。
+# 逐笔输入、粗码、物理计划和对应的两种实际掩码。
+# 通过交付映射器为同一序列生成两种掩码。
+# ------------------------------------------------------------------------
 def _label(plan: str, mode: str) -> str:
     """为相同设置在三张图中使用一致的标签。"""
     return f"{PLAN_LABELS[plan]}, DEM {mode.upper()}"
 
 
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class Stimulus:
     """逐笔输入、粗码、物理计划和对应的两种实际掩码。"""
@@ -43,24 +74,46 @@ class Stimulus:
     masks: dict[str, tuple[np.ndarray, np.ndarray]]
 
 
+# ------------------------------------------------------------------------
 def _stimulus(vin: np.ndarray, code: np.ndarray, plan: np.ndarray, phases: tuple) -> Stimulus:
     """通过交付映射器为同一序列生成两种掩码。"""
-    masks = {mode: effects._map_record(code, phases, dem_enable=mode == "on") for mode in MODES}
+    masks = {mode: map_record(code, phases, dem_enable=mode == "on") for mode in MODES}
     return Stimulus(vin, code, plan, masks)
 
 
+# =========================================================================
+# 2. 函数组：_observe / _distribution / _measure
+# =========================================================================
+# -------------------------------------------------------------------------
+# 用独立两节点电荷求解和理想余量读出折算输入电压。
+# 描述预定制造样本的最小值、中位数和最大值。
+# 配对测试 2% 与 3% 失配池的静态误差及相干频谱。
+# ------------------------------------------------------------------------
 def _observe(
-    pool: effects.Capacitors,
+    pool: Capacitors,
     data: Stimulus,
-    codebook: np.ndarray,
-    cfg: effects.ExperimentConfig,
+    thresholds: np.ndarray,
+    cfg: ExperimentConfig,
     mode: str,
 ) -> np.ndarray:
-    """用独立两节点电荷求解和理想余量读出折算输入电压。"""
-    q = effects._feedback_charge(pool, data.vin, data.plan, data.masks[mode], cfg)
-    return codebook[data.code] + effects._voltage_equivalent(q, cfg)
+    """用独立两节点电荷求解和理想余量读出折算输入电压。
+
+    Args:
+        pool: 固定制造的电容池，单位 F。
+        data: 同一输入与控制计划的数据。
+        thresholds: 前级比较阈值，单位 V。
+        cfg: 参考范围及实验配置。
+        mode: 当前映射／调度策略。
+    Returns:
+        实际残差与重构相关观测。
+
+    固定失配随物理片号保存，DEM 只改变选用关系，不重新生成每笔电容误差。
+    """
+    q = feedback_charge(pool, data.vin, data.plan, data.masks[mode], cfg)
+    return thresholds[data.code] + voltage_equivalent(q, cfg)
 
 
+# ------------------------------------------------------------------------
 def _distribution(values: np.ndarray) -> dict[str, float]:
     """描述预定制造样本的最小值、中位数和最大值。"""
     return {
@@ -70,20 +123,28 @@ def _distribution(values: np.ndarray) -> dict[str, float]:
     }
 
 
-def _measure(cfg: effects.ExperimentConfig) -> dict:
-    """配对测试 2% 与 3% 失配池的静态误差及相干频谱。"""
-    nominal, _ = effects._cap_pool(cfg)
-    codebook = effects._codebook(nominal, cfg)
-    levels = 0.5 * (codebook + np.r_[codebook[1:], cfg.full_scale_peak_v])
-    dynamic_plan, _, phases = effects._schedule(cfg.samples, cfg)
+# ------------------------------------------------------------------------
+def _measure(cfg: ExperimentConfig) -> dict:
+    """配对测试 2% 与 3% 失配池的静态误差及相干频谱。
+
+    Args:
+        cfg: 制造失配、调度种子和输入条件。
+    Returns:
+        可复算的静态、均值和频谱记录。
+
+    不同处理臂必须共享同一虚拟芯片。单一制造种子的改善不能当作 MC 良率。
+    训练指标与留出指标需分别报告；未训练的均值误差也不能直接称为校准后 INL。
+    """
+    nominal, _ = cap_pool(cfg)
+    thresholds = codebook(nominal, cfg)
+    levels = 0.5 * (thresholds + np.r_[thresholds[1:], cfg.full_scale_peak_v])
+    dynamic_plan, _, phases = schedule_sequence(cfg.samples, cfg)
     sample = np.arange(cfg.samples)
-    fixed_ab_plan = (
-        np.arange(effects.GROUP_SIZE)[None, :] + (sample % 2 * effects.GROUP_SIZE)[:, None]
-    )
+    fixed_ab_plan = np.arange(GROUP_SLICES)[None, :] + (sample % 2 * GROUP_SLICES)[:, None]
     plans = {"fixed_ab": fixed_ab_plan, "dynamic": dynamic_plan}
     time_s = sample / cfg.fs_hz
     tone_v = cfg.tone_peak_v * np.sin(2 * np.pi * cfg.fin_hz * time_s)
-    tone_code = (np.searchsorted(codebook, tone_v, side="right") - 1).astype(np.uint16)
+    tone_code = (np.searchsorted(thresholds, tone_v, side="right") - 1).astype(np.uint16)
     tone = _stimulus(tone_v, tone_code, dynamic_plan, phases)
 
     repeats = max(AVERAGES)
@@ -102,7 +163,7 @@ def _measure(cfg: effects.ExperimentConfig) -> dict:
     }
     closure = {
         f"{name}_{mode}": float(
-            np.max(np.abs(_observe(nominal, data, codebook, cfg, mode) - data.vin))
+            np.max(np.abs(_observe(nominal, data, thresholds, cfg, mode) - data.vin))
         )
         for name, data in static_stimuli.items()
         for mode in MODES
@@ -124,14 +185,14 @@ def _measure(cfg: effects.ExperimentConfig) -> dict:
 
     for sigma_index, sigma in enumerate(SIGMA_PCT):
         for seed_index, seed in enumerate(SEEDS):
-            _, die = effects._cap_pool(
+            _, die = cap_pool(
                 replace(cfg, mismatch_sigma_unit=sigma / 100, manufacturing_seed=seed)
             )
             main_cap[sigma_index, seed_index] = die.main
             sub_cap[sigma_index, seed_index] = die.sub
             bridge_cap[sigma_index, seed_index] = die.bridge
             errors = {
-                (name, mode): (_observe(die, data, codebook, cfg, mode) - data.vin).reshape(
+                (name, mode): (_observe(die, data, thresholds, cfg, mode) - data.vin).reshape(
                     -1, repeats
                 )
                 for name, data in static_stimuli.items()
@@ -154,9 +215,9 @@ def _measure(cfg: effects.ExperimentConfig) -> dict:
                         average[(*index, n_index)] = np.sqrt(
                             np.mean((block_means - common_line[:, None]) ** 2)
                         )
-                    waveform = _observe(die, tone_stimuli[name], codebook, cfg, mode)
+                    waveform = _observe(die, tone_stimuli[name], thresholds, cfg, mode)
                     waveforms[index] = waveform
-                    metrics = effects._spectral_stats(waveform, cfg)
+                    metrics = _spectral_stats(waveform, cfg)
                     records.append(
                         {
                             "sigma_pct": sigma,
@@ -177,7 +238,7 @@ def _measure(cfg: effects.ExperimentConfig) -> dict:
         "records": records,
         "closure_v": closure,
         "levels": levels,
-        "codebook": codebook,
+        "codebook": thresholds,
         "residual": residual,
         "mean_error": mean_error,
         "variation": variation,
@@ -193,6 +254,14 @@ def _measure(cfg: effects.ExperimentConfig) -> dict:
     }
 
 
+# =========================================================================
+# 3. 函数组：_plot_static / _plot_average / _plot_spectra
+# =========================================================================
+# -------------------------------------------------------------------------
+# 显示每个物理样本的逐码残差和码内波动，中位数用实线。
+# 比较相同平均次数下去共同直线后的误差。
+# 显示预先指定种子的频谱及全部种子的指标分布。
+# ------------------------------------------------------------------------
 def _plot_static(path: Path, result: dict) -> None:
     """显示每个物理样本的逐码残差和码内波动，中位数用实线。"""
     fig, axes = plt.subplots(
@@ -242,6 +311,7 @@ def _plot_static(path: Path, result: dict) -> None:
     plt.close(fig)
 
 
+# ------------------------------------------------------------------------
 def _plot_average(path: Path, result: dict) -> None:
     """比较相同平均次数下去共同直线后的误差。"""
     fig, axes = plt.subplots(1, 2, figsize=(10.8, 4.4), sharey=True, layout="constrained")
@@ -280,7 +350,8 @@ def _plot_average(path: Path, result: dict) -> None:
     plt.close(fig)
 
 
-def _plot_spectra(path: Path, result: dict, cfg: effects.ExperimentConfig) -> None:
+# ------------------------------------------------------------------------
+def _plot_spectra(path: Path, result: dict, cfg: ExperimentConfig) -> None:
     """显示预先指定种子的频谱及全部种子的指标分布。"""
     fig, axes = plt.subplots(2, 2, figsize=(10.8, 7.1), layout="constrained")
     fig.suptitle("Single-conversion spectrum | ideal residue readout", fontweight="bold")
@@ -339,6 +410,14 @@ def _plot_spectra(path: Path, result: dict, cfg: effects.ExperimentConfig) -> No
     plt.close(fig)
 
 
+# =========================================================================
+# 4. 函数组：_write_tables / _write_waveforms / _summary
+# =========================================================================
+# -------------------------------------------------------------------------
+# 归档每颗指标、每码统计和所有平均次数。
+# 保存用于绘制和复算相干频谱的完整记录。
+# 汇总各设置在六颗预设虚拟样本上的结果。
+# ------------------------------------------------------------------------
 def _write_tables(out: Path, result: dict) -> None:
     """归档每颗指标、每码统计和所有平均次数。"""
     with (out / "dem_high_sigma_samples.csv").open("w", encoding="utf-8", newline="") as handle:
@@ -388,6 +467,7 @@ def _write_tables(out: Path, result: dict) -> None:
                             avg.writerow((sigma, seed, plan, mode, n, rms))
 
 
+# ------------------------------------------------------------------------
 def _write_waveforms(out: Path, result: dict) -> None:
     """保存用于绘制和复算相干频谱的完整记录。"""
     tone = result["tone"]
@@ -415,8 +495,15 @@ def _write_waveforms(out: Path, result: dict) -> None:
     )
 
 
-def _summary(result: dict, cfg: effects.ExperimentConfig) -> dict:
-    """汇总各设置在六颗预设虚拟样本上的结果。"""
+# ------------------------------------------------------------------------
+def _summary(result: dict, cfg: ExperimentConfig) -> dict:
+    """汇总各设置在六颗预设虚拟样本上的结果。
+
+    汇总沿用各实验臂实际结果，不在摘要阶段挑选最优种子。
+    2%／3% 指单位电容制造标准差，不代表每个转换的随机输入扰动。
+    模型指标不等于目标工艺或硅上保证。
+    失配流与其他随机激励的身份应保留在实验配置中。
+    """
     series = []
     metrics = (
         "sndr_db",
@@ -449,7 +536,7 @@ def _summary(result: dict, cfg: effects.ExperimentConfig) -> dict:
                     }
                 )
     sources = (
-        Path(__file__).resolve().relative_to(effects.ROOT).as_posix(),
+        Path(__file__).resolve().relative_to(ROOT).as_posix(),
         "task1/experiments/run_effects.py",
         "task1/model/module1.py",
         "task1/model/scheduler.py",
@@ -493,15 +580,21 @@ def _summary(result: dict, cfg: effects.ExperimentConfig) -> dict:
             "platform": platform.system(),
         },
         "source_sha256": {
-            source: hashlib.sha256((effects.ROOT / source).read_bytes()).hexdigest()
-            for source in sources
+            source: hashlib.sha256((ROOT / source).read_bytes()).hexdigest() for source in sources
         },
     }
 
 
+# =========================================================================
+# 5. 函数组：run / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 生成 2% 和 3% 固定失配对照的全部图和数据。
+# 从命令行运行并打印每组中位数。
+# ------------------------------------------------------------------------
 def run(out: Path) -> dict:
     """生成 2% 和 3% 固定失配对照的全部图和数据。"""
-    cfg = effects.ExperimentConfig()
+    cfg = ExperimentConfig()
     result = _measure(cfg)
     out.mkdir(parents=True, exist_ok=True)
     _write_tables(out, result)
@@ -517,6 +610,7 @@ def run(out: Path) -> dict:
     return summary
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
     """从命令行运行并打印每组中位数。"""
     parser = argparse.ArgumentParser(description=__doc__)

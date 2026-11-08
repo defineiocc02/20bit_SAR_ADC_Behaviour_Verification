@@ -1,0 +1,78 @@
+{
+  "archive_sha256": {
+    "sigma_2pct": "8f368cb06857057067971c8de43da54df43632357f917afe8724b56ab2af2aff",
+    "sigma_3pct": "884deab7ad896376c04e93b9b2ba596553ee7655fcbb607a202d755ff5aa3ebb"
+  },
+  "counts": {
+    "accepted": 16417,
+    "bad_retired": 9,
+    "cycles": 264527,
+    "midpoint": 4096,
+    "retired": 16415,
+    "stalls": 12,
+    "words": 1608
+  },
+  "float_comparison": {
+    "sigma_2pct_off": {
+      "code_delta_fixed_minus_float_lsb20_counts": {
+        "-1": 23,
+        "0": 4071,
+        "1": 2
+      },
+      "samples": 4096
+    },
+    "sigma_2pct_on": {
+      "code_delta_fixed_minus_float_lsb20_counts": {
+        "-1": 49,
+        "0": 4044,
+        "1": 3
+      },
+      "samples": 4096
+    },
+    "sigma_3pct_off": {
+      "code_delta_fixed_minus_float_lsb20_counts": {
+        "-1": 22,
+        "0": 4063,
+        "1": 11
+      },
+      "samples": 4096
+    },
+    "sigma_3pct_on": {
+      "code_delta_fixed_minus_float_lsb20_counts": {
+        "-1": 11,
+        "0": 4058,
+        "1": 27
+      },
+      "samples": 4096
+    }
+  },
+  "log_normalization": "local paths replaced; line-end whitespace trimmed",
+  "log_sha256": {
+    "compile.log": "f485c837834fd0c25c1335aac6b1c7acca7738b68bc0426da53ab4fbc2fcd6c9",
+    "lint.log": "1d777131e647f8d1b561f5f94ff6af0b442cc1cfe59952dcd2710a3a22af26bf",
+    "run.log": "c0648b245ce9717418b0538e3c9a83f26f630f3129246e887c8a26bbcf3ff681",
+    "verilator.log": "878beb074b42d7036bda71fe428af3fba65b2592d151c5cfdb663297bf6dc718"
+  },
+  "mismatches": 0,
+  "numpy": "2.5.3",
+  "python": "3.12.14",
+  "schema": "sar20-runtime-recon-verilator-v1",
+  "scope": "DIGITAL_BEHAVIOR_ONLY",
+  "source_sha256": {
+    "task_reconstruction/fixed.py": "a4ca2c91ce4f70e0ff7209250796453c8f63e4c7df10c58e90742cba1f18c01c",
+    "task_reconstruction/rtl/sar20_lms_recon.sv": "2b563251f3691111596776008371ba30d7a39bf89f12055bd5068c7fb15e8e03",
+    "task_reconstruction/tb/sar20_lms_recon_tb.sv": "09e387c50490777924bddd7d65d3be2c006cf51fab67bd29e283848ce4d4c754",
+    "task_reconstruction/tools/run_checks.py": "0a8d51217377f1a3d9c0ef944a4999a2d1cf22519318957963b9f8d815403df4",
+    "tools/run_open_rtl.py": "02cdb53d0a3384aba292a0ad893f850c3c1e8c705d4f9a94008d9dcde2c08ed4"
+  },
+  "status": "PASS",
+  "vector_sha256": {
+    "midpoint.hex": "c08feed6f531e5493f58734abc8ce0d23f76223a7a8c69bef6126374e0d4a3db",
+    "observation.hex": "209df83d2503501afa0e82fb2ae2a453911956aff15709ec1f0305b252fa08cc",
+    "vectors.hex": "668709d9d2dfbd64eff68e88ecaa33f030e541c700826c54048831c185b6f82b"
+  },
+  "verified_minimum_sample_spacing_cycles": 13,
+  "verified_normal_latency_cycles": 22,
+  "verified_sustained_sample_spacing_cycles": 16,
+  "verilator": "Verilator 5.30"
+}

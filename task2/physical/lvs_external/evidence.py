@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : evidence.py
+# 模块名     : evidence
+# 版本       : v1.0
+# 功能       : Verify the archived external reconstruction top and record both LVS verdicts.
+#
+# 设计说明   :
+#   * 承担 20b10mtask 数字交付 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# =============================================================================
+
 """Verify the archived external reconstruction top and record both LVS verdicts."""
 
 import argparse
@@ -21,6 +35,14 @@ DECK_SHAS = {
 UPSTREAM_REVISION = "5eebdc0d06879cf674e86e3fb8efa2803e6e44dc"
 
 
+# =========================================================================
+# 1. 函数组：write_json / freeze / describe
+# =========================================================================
+# -------------------------------------------------------------------------
+# Write a portable machine-readable receipt.
+# Extract only verified inputs from the committed physical delivery.
+# Describe an output file, including any empty or missing report.
+# -------------------------------------------------------------------------
 def write_json(path: Path, value: dict) -> None:
     """Write a portable machine-readable receipt."""
     path.write_text(json.dumps(value, indent=2) + "\n")
@@ -60,15 +82,18 @@ def freeze(repo: Path, run: Path) -> None:
     if checks[f"{TOP}.gds"] != GDS_SHA or manifest["stream"]["pv_input_sha256"] != GDS_SHA:
         raise ValueError("Released GDS does not match the archived physical verification input")
     stream = verify_gds(frozen / f"{TOP}.gds", expected_design=TOP)
-    write_json(run / "evidence/frozen_inputs.json", {
-        "top": TOP,
-        "source_run": SOURCE_RUN,
-        "rtl_commit": SOURCE_COMMIT,
-        "archive_sha256": ARCHIVE_SHA,
-        "release_manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
-        "stream": stream,
-        "sha256": checks,
-    })
+    write_json(
+        run / "evidence/frozen_inputs.json",
+        {
+            "top": TOP,
+            "source_run": SOURCE_RUN,
+            "rtl_commit": SOURCE_COMMIT,
+            "archive_sha256": ARCHIVE_SHA,
+            "release_manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+            "stream": stream,
+            "sha256": checks,
+        },
+    )
 
 
 def describe(path: Path) -> dict:
@@ -79,6 +104,14 @@ def describe(path: Path) -> dict:
     return {"file": path.name, "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest()}
 
 
+# =========================================================================
+# 2. 函数组：recorded_sha / inspect_variant / report
+# =========================================================================
+# -------------------------------------------------------------------------
+# Read a SHA-256 digest printed by sha256sum.
+# Read one real comparator log and its top cross-reference.
+# Preserve both actual verdicts and require a complete revised-deck match.
+# -------------------------------------------------------------------------
 def recorded_sha(path: Path) -> str:
     """Read a SHA-256 digest printed by sha256sum."""
     token = path.read_text().split()[0]
@@ -105,20 +138,25 @@ def inspect_variant(folder: Path, mode: str, reference_sha: str) -> dict:
     if database.is_file():
         prefix = f" X({TOP} {TOP.upper()} ".encode()
         with database.open("rb") as records:
-            top_record = next((line.decode().rstrip() for line in records if line.startswith(prefix)), None)
+            top_record = next(
+                (line.decode().rstrip() for line in records if line.startswith(prefix)), None
+            )
 
-    artifacts = {name: describe(path) for name, path in (
-        ("log", log),
-        ("database", database),
-        ("extracted", folder / "extracted.cir"),
-    )}
+    artifacts = {
+        name: describe(path)
+        for name, path in (
+            ("log", log),
+            ("database", database),
+            ("extracted", folder / "extracted.cir"),
+        )
+    }
     complete = bool(top_record and all(record["bytes"] for record in artifacts.values()))
     if re.search(r"Netlists (?:don't|do not) match", text, re.I):
         status = "FAIL"
     elif exit_code == 0 and re.search(r"\bNetlists match\b", text, re.I):
-        cross_reference_pass = bool(top_record and re.match(
-            rf"^ X\({TOP} {TOP.upper()} 1(?:\s|\)|$)", top_record
-        ))
+        cross_reference_pass = bool(
+            top_record and re.match(rf"^ X\({TOP} {TOP.upper()} 1(?:\s|\)|$)", top_record)
+        )
         status = "PASS" if complete and cross_reference_pass else "PARTIAL"
     else:
         status = "BLOCKED"
@@ -151,24 +189,35 @@ def report(out: Path) -> int:
         raise ValueError("Exported reference CDL does not contain the expected top")
 
     variants = {mode: inspect_variant(out / mode, mode, reference_sha) for mode in DECK_SHAS}
-    write_json(out / "replay_summary.json", {
-        "source": identity,
-        "upstream_revision": UPSTREAM_REVISION,
-        "routed_design_cdl_sha256": hashlib.sha256(design).hexdigest(),
-        "reference_cdl_sha256": reference_sha,
-        "tools": describe(out / "tools.txt"),
-        "variants": variants,
-        "scope": "Independent public SKY130HD LVS on the archived external reconstruction top.",
-    })
+    write_json(
+        out / "replay_summary.json",
+        {
+            "source": identity,
+            "upstream_revision": UPSTREAM_REVISION,
+            "routed_design_cdl_sha256": hashlib.sha256(design).hexdigest(),
+            "reference_cdl_sha256": reference_sha,
+            "tools": describe(out / "tools.txt"),
+            "variants": variants,
+            "scope": "Independent public SKY130HD LVS on the archived external reconstruction top.",
+        },
+    )
     for mode, result in variants.items():
         print(f"{mode}: {result['status']} (KLayout exit {result['exit_code']})")
-    return int(not (
-        variants["legacy"]["status"] == "FAIL"
-        and variants["legacy"]["complete_comparison_evidence"]
-        and variants["upstream"]["status"] == "PASS"
-    ))
+    return int(
+        not (
+            variants["legacy"]["status"] == "FAIL"
+            and variants["legacy"]["complete_comparison_evidence"]
+            and variants["upstream"]["status"] == "PASS"
+        )
+    )
 
 
+# =========================================================================
+# 3. 函数组：main
+# =========================================================================
+# -------------------------------------------------------------------------
+# Run input freezing or final verification.
+# -------------------------------------------------------------------------
 def main() -> int:
     """Run input freezing or final verification."""
     parser = argparse.ArgumentParser(description=__doc__)

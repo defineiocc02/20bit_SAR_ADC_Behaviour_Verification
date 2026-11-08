@@ -44,6 +44,22 @@ REFERENCE_NAMES = ("gain_low", "gain_high", "training", "holdout")
 # ------------------------------------------------------------------------
 def _check_same_analog_capture(previous: np.lib.npyio.NpzFile, current: dict) -> int:
     # 物理轨迹必须完全相同。旧 ADC2 码和旧校准系数不进入新训练。
+    """比较二级位数时必须保持输入和物理失配池相同。
+
+    比较二级位数时必须保持输入和物理失配池相同。
+    前级片选、DEM 状态和转换掩码属于模拟捕获身份，不能随量化位数重新抽取。
+    否则观察到的变化同时包含制造或调度差异，不能归因于 ADC2 位数。
+
+    Args:
+        previous: 作为捕获基线的原始归档。
+        current: 当前实验返回的观测字段。
+    Returns:
+        已检查的同源字段数量。
+
+    该检查只约束所列捕获字段，不证明电容或模拟宏模型完全准确。
+    新增影响残差的字段时须扩展比较清单，不能只保留旧计数。
+    二级提高位数后的数字改善也不能代替真实 ADC2 的噪声和非线性预算。
+    """
     analog_suffixes = (
         "_plan",
         "_coarse_code",
@@ -260,4 +276,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

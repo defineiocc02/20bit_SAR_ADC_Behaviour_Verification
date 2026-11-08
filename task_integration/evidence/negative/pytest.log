@@ -1,0 +1,20 @@
+........................................................................ [ 41%]
+........................................................................ [ 82%]
+..............................                                           [100%]
+============================= slowest 15 durations =============================
+15.11s call     task2/eight/tests/test_baseline_frozen.py::test_baseline_fingerprint_is_unchanged
+1.04s call     task1/tests/test_fig11_dem.py::test_every_code_and_phase_conserves_selected_capacitance
+0.40s call     task1/tests/test_fig21_bridge.py::test_bridge_compensates_two_node_charge_for_all_codes_and_phases
+0.35s setup    task2/eight/tests/test_reference_injection.py::test_disabled_reference_reproduces_the_no_reference_capture
+0.34s call     task2/eight/tests/test_independent_charge.py::test_independent_charge_oracle
+0.30s setup    task2/eight/tests/test_noise_injection.py::test_quiet_noise_reproduces_the_no_noise_capture_bit_for_bit
+0.14s call     task2/tests/test_fig19_seven.py::test_fractional_word_alone_reproduces_archived_ideal_experiment
+0.07s call     src/tests/test_noise.py::test_flicker_recovers_sigma_on_ensemble_average
+0.04s call     task1/tests/test_inl_dnl.py::test_ideal_quantizer_has_uniform_width_and_zero_inl_dnl
+0.03s call     task2/tests/test_fig19_seven.py::test_analytic_code_width_matches_independent_sample_grid
+0.03s call     src/tests/test_noise.py::test_flicker_spectrum_falls_as_one_over_f
+0.02s call     src/tests/test_noise.py::test_flicker_normalisation_is_within_gross_error_bound
+0.02s call     src/tests/test_codes.py::test_unsigned_matches_the_legacy_expression_on_random_points
+0.02s call     task2/eight/tests/test_reference_injection.py::test_smaller_time_constant_leaves_less_error
+0.02s call     src/tests/test_noise.py::test_white_is_uncorrelated_across_tags
+174 passed in 18.59s

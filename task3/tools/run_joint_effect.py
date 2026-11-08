@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : run_joint_effect.py
+# 模块名     : run_joint_effect
+# 版本       : v1.0
+# 功能       : 重放 3% 失配的八片 dither、片上 Q28 重构与 CAAZ 四组开关对照。
+#
+# 设计说明   :
+#   * 承担 联合效应/噪声实验与图件 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """重放 3% 失配的八片 dither、片上 Q28 重构与 CAAZ 四组开关对照。"""
 
 from __future__ import annotations
@@ -16,18 +30,19 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
+from tools.run_open_rtl import digest, new_output, write_json  # noqa: E402
+
+from adi_model.capacitors import Capacitors, ExperimentConfig  # noqa: E402
 from task1.experiments.adctoolbox_calibration import CalibrationConfig  # noqa: E402
-from task1.experiments.full20_linearity_plots import _chinese_style  # noqa: E402
+from task1.experiments.full20_linearity_plots import chinese_style  # noqa: E402
 from task1.experiments.residue_control_study import MapperTable  # noqa: E402
-from task1.experiments.run_effects import Capacitors, ExperimentConfig  # noqa: E402
 from task2.eight.experiment import _capture  # noqa: E402
 from task2.eight.model import ChargePool  # noqa: E402
 from task_integration.tools.run_lms_checks import pack, slots  # noqa: E402
 from task_reconstruction.fixed import from_training, reconstruct  # noqa: E402
-from tools.run_open_rtl import digest, new_output, write_json  # noqa: E402
 
-EVIDENCE = ROOT / "task2/evidence/eight_native/sigma_3pct"
-RTL_RECEIPT = ROOT / "task_integration/evidence/on_chip/result.json"
+EVIDENCE = ROOT / "task2/evidence/eight_negative/sigma_3pct"
+RTL_RECEIPT = ROOT / "task_integration/evidence/negative/on_chip/result.json"
 INPUTS = (
     EVIDENCE / "data.npz",
     EVIDENCE / "summary.json",
@@ -43,11 +58,30 @@ SWITCHES = (False, True)
 COLORS = ("#555555", "#0072B2")
 
 
+# =========================================================================
+# 1. 函数组：_label / _reconstruct / _spectrum
+# =========================================================================
+# ------------------------------------------------------------------------
 def _label(dither: bool, caaz: bool) -> str:
     return f"dither_{int(dither)}_caaz_{int(caaz)}"
 
 
+# ------------------------------------------------------------------------
 def _reconstruct(coefficient, word, state, coarse, adc2):
+    """Args:
+
+    Args:
+        coefficient: 从本次训练归档导出的冻结 Q28 系数。
+        word: 同笔扰动字，用于向量身份记录。
+        state: 实际片号、转换与逻辑注入掩码。
+        coarse: 前级原始九位码。
+        adc2: 同笔十二位二级原码。
+    Returns:
+        逐笔有符号重构码与重放向量摘要。
+
+    先在斩波采样坐标中完成去扰及增益重构，再执行两笔解调。
+    改变注入位于斩波前后的假设会改变奇数笔符号，不能沿用本函数的模型结论。
+    """
     plan = state.switches.plan
     reconstructed = np.empty(len(plan), dtype=np.int32)
     vectors = hashlib.sha256()
@@ -89,7 +123,15 @@ def _reconstruct(coefficient, word, state, coarse, adc2):
     return reconstructed, vectors.hexdigest()
 
 
+# ------------------------------------------------------------------------
 def _spectrum(output, reference, peak, tone_bin):
+    """核对接口边界与证据归属。
+
+    配对输出的有效采样率为原始结果的一半。
+    对照时保持相同输出带宽，不能将纯降采样收益全部归于 AZ 相关性。
+    SNDR 的直流处理与均值偏移分别报告。
+    人工偏移和理想保持只是系统模型条件。
+    """
     amplitude = abs(np.fft.rfft(output)) * (2 / len(output)) / peak
     amplitude[[0, -1]] *= 0.5
     dbfs = 20 * np.log10(np.maximum(amplitude, 1e-15))
@@ -106,8 +148,15 @@ def _spectrum(output, reference, peak, tone_bin):
     }
 
 
+# =========================================================================
+# 2. 函数组：_plot / run / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 对照共同输入与固定配置，校验对拍向量身份并归档。
+# 选择尚未创建的仓库外输出目录。
+# ------------------------------------------------------------------------
 def _plot(out, frequency, arrays, report):
-    font = _chinese_style()
+    font = chinese_style()
     # 直接导出字形轮廓，规避 macOS Hiragino TTC 子集嵌入时的 Type0 渲染问题。
     plt.rcParams["pdf.fonttype"] = 3
     plt.rcParams["svg.hashsalt"] = "task3-joint-effect"
@@ -177,6 +226,7 @@ def _plot(out, frequency, arrays, report):
     return font
 
 
+# ------------------------------------------------------------------------
 def run(out: Path) -> dict:
     """对照共同输入与固定配置，校验对拍向量身份并归档。"""
     meta = json.loads((EVIDENCE / "summary.json").read_text())
@@ -303,6 +353,7 @@ def run(out: Path) -> dict:
     return result
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
     """选择尚未创建的仓库外输出目录。"""
     parser = argparse.ArgumentParser(description=__doc__)

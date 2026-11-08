@@ -1,6 +1,23 @@
+# =============================================================================
+# 文件名     : verification_plan.yaml
+# 模块名     : task1_module1_verification
+# 版本       : v1.0
+# 功能       : 模块一的验证意图清单
+#
+# 设计说明   :
+#   * method 决定证据等级，oracle 必须是独立参考，evidence 指向归档位置；缺依赖应记 BLOCKED 而非推成 PASS。
+#   * 本文件只描述约束/验证意图，不是验收结论；实际状态以运行日志与归档收据为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# =============================================================================
+
 version: 1
 scope: task1_module1
 requirements_table: requirements.csv
+# requirements 是 需求 ID -> 测试 ID 的多对多映射，一条需求可由多个测试共同覆盖；
+# 反过来一个测试也可支撑多条需求，改测试名时必须同步改这里的引用，否则追踪链会断。
 requirements:
   - id: REQ-M1-01
     test_ids: [V-SCHED]
@@ -28,12 +45,16 @@ requirements:
     test_ids: [V-OUTPUT20]
   - id: REQ-M1-13
     test_ids: [V-DITHER]
+# tests 每项五个字段：method 是证据等级（仿真／行为实验／代理后端／目标签核），
+# entry 是可执行入口，oracle 是独立参考，acceptance 是判定条件，evidence 是归档位置。
+# 六类证据强度不同，不能把 Python 参考或代理后端结果升级成目标工艺签核。
 tests:
   V-SCHED:
     method: 仿真及定向测试
     entry: task1/tools/run_rtl_checks.py
     unit_tests: task1/tests/test_scheduler.py
     oracle: ScheduleOracle 独立集合与优先顺序参考
+    # 4096 个稳态槽用于覆盖连续接受不插泡；释放不足与重试才是边界路径，不能只跑稳态。
     acceptance: 全字段逐拍相等，包含4096个已接受稳态槽及释放不足、重试、重放、复位。
     evidence: result.json 及运行日志
   V-TOP:
@@ -41,18 +62,21 @@ tests:
     entry: task1/tools/run_rtl_checks.py
     unit_tests: task1/tests/test_module1.py
     oracle: TopOracle 独立事务参考
+    # 「在途撤销」验的是复位／清空／禁用同沿生效时事务被丢弃，不是复位后才取消。
     acceptance: 一拍发布、样本归属和掩码逐拍相等，含在途撤销、非法种子和错号。
     evidence: result.json 及运行日志
   V-DEM:
     method: 穷举掩码与整数权重仿真
     entry: task1/tools/run_rtl_checks.py
     oracle: 独立集合构造及主子节点分别计权
+    # 262144 是穷举组合数，不是随机采样点数；旁路档也要计数，否则只证明开启路径。
     acceptance: 262144 条向量逐条匹配，开启、旁路和非法结果均计数。
     evidence: result.json 及运行日志
   V-CHARGE:
     method: pytest 两节点参考与反例
     entry: task1/tests/test_fig11_dem.py
     oracle: src/adi_model/charge_ref.py
+    # B5 跨节点电荷差非零是 Fig.21 候选存在的前提；若为零，跨段补偿就没有可验对象。
     acceptance: 全码及三组指定相位的名义反馈电荷一致。B5 跨节点电荷差非零。
     evidence: Python 回归
   V-EFFECTS:
@@ -65,18 +89,21 @@ tests:
     method: 公开工艺代理综合、布局布线和提取后 STA
     entry: task1/physical/sky130_run.sh
     oracle: 固定公开工具、Liberty 和代理约束下的实际工具报告
+    # SKY130 是用户指定的数字代理工艺；这里的 setup/hold 满足不能外推到目标工艺与多角。
     acceptance: 核对源与工具摘要、GDS 可读性和时序覆盖，6.25 ns 下 setup/hold 必须满足。
     evidence: task1/physical/README.md
   V-TARGET:
     method: 模拟宏签认、目标库后端和后仿
     entry: task1/SPEC.md
     oracle: 模拟合同及指定目标工艺的工具报告
+    # evidence 仍写「待确认」即表示该条尚未执行；模拟接口与工艺资料到位前不能勾选完成。
     acceptance: 以冻结目标工艺、角和 I/O 时序预算完成 GDS、STA 和签核检查。
     evidence: 待模拟接口及工艺资料确认
   V-BRIDGE:
     method: 两节点穷举与 RTL 逐拍对拍
     entry: task1/tools/run_bridge_checks.py
     oracle: 独立电荷矩阵和集合映射
+    # 「补偿只消费一次」是防止名义补偿与真实位权重构重复计入扰动的关键判据。
     acceptance: 65536 叶向量及 4096 稳态槽零差异，补偿只消费一次。
     evidence: task1/evidence/bridge_rtl/result.json
   V-LINEARITY:
@@ -89,6 +116,7 @@ tests:
     method: 各物理状态粗码边界及 20 位码密度
     entry: task1/experiments/inl_dnl.py
     oracle: 冻结权重和实际细级码
+    # 状态混合后码宽变正只说明统计分布被填满，不代表单笔转换单调，也不等于 20 位有效精度。
     acceptance: 禁止将状态混合的正码宽当作逐笔单调证明。
     evidence: task1/evidence/inl_dnl/README.md
   V-DITHER:

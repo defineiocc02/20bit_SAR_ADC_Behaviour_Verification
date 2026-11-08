@@ -1,16 +1,39 @@
+# =============================================================================
+# 文件名     : test_adc2_dither.py
+# 模块名     : test_adc2_dither
+# 版本       : v1.0
+# 功能       : Verify the ideal ADC2 dither diagnostic with small, independent references.
+#
+# 设计说明   :
+#   * 承担 单元与独立电荷参考测试 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# =============================================================================
+
 """Verify the ideal ADC2 dither diagnostic with small, independent references."""
 
 from dataclasses import replace
 
 import numpy as np
 import pytest
+
+from adi_model.capacitors import ExperimentConfig
 from task1.experiments import adc2_dither_study as study
 from task1.experiments import inl_dnl
-from task1.experiments.adctoolbox_calibration import CalibrationConfig, _fixed_ab_plan
+from task1.experiments.adctoolbox_calibration import CalibrationConfig, fixed_ab_plan
 from task1.experiments.inl_dnl import Intervals
-from task1.experiments.run_effects import ExperimentConfig, _map_record
+from task1.model.codebook import map_record
 
 
+# =========================================================================
+# 1. 函数组：_ideal_ramp / test_dither_code_density_matches_direct_uniform_ramp / test_dither_exposes_overrange_without_publishing_dnl
+# =========================================================================
+# -------------------------------------------------------------------------
+# A fine step spanning four output codes fills only with equal-weight dither words.
+# An otherwise in-range analog ramp crosses both ADC2 rails for some dither words.
+# -------------------------------------------------------------------------
 def _ideal_ramp(monkeypatch: pytest.MonkeyPatch, gain: float) -> dict:
     # Keep production interval integration, dither probabilities, and code density.
     # Replace only the analog front end with two identical, analytically linear states.
@@ -18,7 +41,7 @@ def _ideal_ramp(monkeypatch: pytest.MonkeyPatch, gain: float) -> dict:
     monkeypatch.setattr(inl_dnl, "OUTPUT_BITS", 4)
     monkeypatch.setattr(study, "PLOT_BITS", 3)
     monkeypatch.setattr(study, "VIEW_CODES", slice(0, 16))
-    monkeypatch.setattr(study, "_codebook", lambda *_args: np.array([-1.0]))
+    monkeypatch.setattr(study, "codebook", lambda *_args: np.array([-1.0]))
     monkeypatch.setattr(
         study,
         "_build_intervals",
@@ -71,6 +94,13 @@ def test_dither_exposes_overrange_without_publishing_dnl(monkeypatch: pytest.Mon
         study._density(data, "fixed_ab_lms_only", experiment, cfg, study._dither_words(0.25))
 
 
+# =========================================================================
+# 2. 函数组：test_headroom_uses_half_open_bounds_and_keeps_overloads / test_dither_replay_subtracts_once_in_adc2_units
+# =========================================================================
+# -------------------------------------------------------------------------
+# At ±50 mV distinguish edge cases from overrange at every allowed word.
+# The same held samples and words preserve the subtraction sign and the frozen gain.
+# -------------------------------------------------------------------------
 def test_headroom_uses_half_open_bounds_and_keeps_overloads() -> None:
     """At ±50 mV distinguish edge cases from overrange at every allowed word."""
     cfg = replace(CalibrationConfig(), adc2_bits=12)
@@ -88,14 +118,14 @@ def test_headroom_uses_half_open_bounds_and_keeps_overloads() -> None:
 def test_dither_replay_subtracts_once_in_adc2_units(monkeypatch: pytest.MonkeyPatch) -> None:
     """The same held samples and words preserve the subtraction sign and the frozen gain."""
     # This test checks exact time-domain values. The spectrum analyzer needs a longer capture.
-    monkeypatch.setattr(study, "_metrics", lambda *_args: {})
+    monkeypatch.setattr(study, "calibration_metrics", lambda *_args: {})
     arm = "fixed_ab_lms_only"
     cfg = replace(CalibrationConfig(), adc2_bits=3, adc2_half_range_v=1)
     experiment = ExperimentConfig(full_scale_peak_v=1)
     residues = np.array([0.0375, -0.03, 0.125, -0.106, 0.007, 0.09, -0.14, -0.01])
     codes = np.full(len(residues), 256, dtype=np.uint16)
     phases = np.zeros(len(residues), dtype=np.uint8)
-    main, sub = _map_record(codes, (phases, phases), dem_enable=False)
+    main, sub = map_record(codes, (phases, phases), dem_enable=False)
     threshold = np.arange(512) / 256 - 1
     q32 = np.full(len(residues), 1 << 28)
     gain = np.tile([1.25, 0.75], len(residues) // 2)
@@ -104,7 +134,7 @@ def test_dither_replay_subtracts_once_in_adc2_units(monkeypatch: pytest.MonkeyPa
     data = {
         "nominal_threshold_v": threshold,
         "reference_holdout_v": baseline,
-        f"{arm}_holdout_plan": _fixed_ab_plan(len(residues)),
+        f"{arm}_holdout_plan": fixed_ab_plan(len(residues)),
         f"{arm}_holdout_coarse_code": codes,
         f"{arm}_holdout_main_mask": main,
         f"{arm}_holdout_sub_mask": sub,

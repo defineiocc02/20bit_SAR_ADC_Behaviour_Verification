@@ -1,4 +1,3 @@
-
 # =============================================================================
 # 文件名     : fig11_dem.py
 # 模块名     : fig11_dem
@@ -122,7 +121,9 @@ def map_fig11(
 
     therm_count = code >> 5  # 高 4 位 -> 15 个 2C 的温度计计数
     b4 = (code >> 4) & 1  # B4 决定两个 1C 单元的选通
-    sub_mask = sum(((code >> (3 - unit)) & 1) << unit for unit in range(4))  # B5~B8 翻成 4 位子阵列掩码
+    sub_mask = sum(
+        ((code >> (3 - unit)) & 1) << unit for unit in range(4)
+    )  # B5~B8 翻成 4 位子阵列掩码
     if not enabled:
         main_mask = ((1 << therm_count) - 1) | (b4 << 15)
         return Fig11Masks((main_mask,) * SLOT_COUNT, (sub_mask,) * SLOT_COUNT, True)
@@ -130,7 +131,9 @@ def map_fig11(
     main = []
     for slot in range(SLOT_COUNT):
         start = (horizontal_phase + slot) % 15  # 每片旋转 2C 起点，实现跨片 DEM
-        therm_mask = sum(1 << ((start + offset) % 15) for offset in range(therm_count))  # 温度计掩码按 15 取模环绕，不越界到 1C 区
+        therm_mask = sum(
+            1 << ((start + offset) % 15) for offset in range(therm_count)
+        )  # 温度计掩码按 15 取模环绕，不越界到 1C 区
         ones_mask = sum(
             1 << (15 + unit)
             for unit in range(2)

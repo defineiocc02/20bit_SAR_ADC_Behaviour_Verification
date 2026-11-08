@@ -167,7 +167,9 @@ def decode_words(word: ArrayLike) -> DitherTerms:
     lower_integer = ((word >> 4) & 1) * 2
     fractional_count = word & 7
     base_setting = upper + lower_integer
-    slice_setting = base_setting[..., None] + (np.arange(FIG19_SLICES) < fractional_count[..., None])
+    slice_setting = base_setting[..., None] + (
+        np.arange(FIG19_SLICES) < fractional_count[..., None]
+    )
     lower_numerator = lower_integer * FIG19_SLICES + fractional_count
     return DitherTerms(
         upper,
@@ -376,4 +378,3 @@ def code_density(
     width /= words.size
     rejected /= words.size
     return CodeDensity(width, *rejected)
-

@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : draw_cooperation.py
+# 模块名     : draw_cooperation
+# 版本       : v1.0
+# 功能       : Draw the sample binding between the eight-slice ADC and CAAZ.
+#
+# 设计说明   :
+#   * 承担 联合效应/噪声实验与图件 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """Draw the sample binding between the eight-slice ADC and CAAZ."""
 
 from __future__ import annotations
@@ -15,9 +29,10 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
-from task1.experiments.full20_linearity_plots import _chinese_style  # noqa: E402
-from task3.model.caaz20 import CaazOracle, Input  # noqa: E402
 from tools.run_open_rtl import digest, new_output, write_json  # noqa: E402
+
+from task1.experiments.full20_linearity_plots import chinese_style  # noqa: E402
+from task3.model.caaz20 import CaazOracle, Input  # noqa: E402
 
 WIDTH_MM, HEIGHT_MM = 146, 129
 EVEN, ODD = "#0072B2", "#D55E00"
@@ -45,6 +60,10 @@ SOURCES = (
 )
 
 
+# =========================================================================
+# 1. 函数组：_transactions / _text / _box
+# =========================================================================
+# ------------------------------------------------------------------------
 def _transactions():
     model = CaazOracle()
     controls = [model.step(Input(acq_valid=True, acq_id=n)) for n in range(7)]
@@ -69,6 +88,7 @@ def _transactions():
     return controls, pairs
 
 
+# ------------------------------------------------------------------------
 def _text(ax, x, y, label, *, center=False, bold=False, color="black", size=8):
     math_only = label.startswith("$") and label.endswith("$")
     font = "DejaVu Sans" if math_only else plt.rcParams["font.family"]
@@ -86,11 +106,16 @@ def _text(ax, x, y, label, *, center=False, bold=False, color="black", size=8):
     )
 
 
+# ------------------------------------------------------------------------
 def _box(ax, x, y, w, h, label):
     ax.add_patch(Rectangle((x, y), w, h, facecolor="white", edgecolor="black", lw=0.75))
     _text(ax, x + w / 2, y + h / 2, label, center=True)
 
 
+# =========================================================================
+# 2. 函数组：_arrow / _signal_flow / _sample_order
+# =========================================================================
+# ------------------------------------------------------------------------
 def _arrow(ax, start, end, *, control=False):
     ax.add_patch(
         FancyArrowPatch(
@@ -107,6 +132,7 @@ def _arrow(ax, start, end, *, control=False):
     )
 
 
+# ------------------------------------------------------------------------
 def _signal_flow(ax):
     _text(ax, 4, 119, "(a) 模拟换相、逐笔转换与数字配对", bold=True)
     _text(ax, 14, 111, "外部模拟宏", bold=True)
@@ -133,6 +159,7 @@ def _signal_flow(ax):
     _text(ax, 4, 58, "Q28 使用主转换位图与子位图差（转换减采样），按片去扰后交 CAAZ。")
 
 
+# ------------------------------------------------------------------------
 def _sample_order(ax, controls, pairs):
     _text(ax, 4, 50, "(b) 连续采样槽与共用 RA 的样本归属", bold=True)
     rows = (44, 39, 34, 29, 24, 19)
@@ -181,9 +208,16 @@ def _sample_order(ax, controls, pairs):
     _text(ax, 4, 2.7, "P、A～E 是组标签。AZ 意图随 ID 保存，宏在该笔转换时窗执行。", size=7.4)
 
 
+# =========================================================================
+# 3. 函数组：draw / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# Save the figure and source identities for independent review.
+# Render into a new external run directory.
+# ------------------------------------------------------------------------
 def draw(out: Path) -> dict:
     """Save the figure and source identities for independent review."""
-    font = _chinese_style()
+    font = chinese_style()
     # Outline OpenType/CFF glyphs so PDF readers need no compatible CJK font decoder.
     plt.rcParams["pdf.fonttype"] = 3
     plt.rcParams["svg.hashsalt"] = "task3-caaz-cooperation"
@@ -237,6 +271,7 @@ def draw(out: Path) -> dict:
     }
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
     """Render into a new external run directory."""
     parser = argparse.ArgumentParser(description=__doc__)

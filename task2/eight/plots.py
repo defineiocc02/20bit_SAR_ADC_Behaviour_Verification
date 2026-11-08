@@ -1,3 +1,17 @@
+# =============================================================================
+# 文件名     : plots.py
+# 模块名     : plots
+# 版本       : v1.0
+# 功能       : 将归档的八片逐码积分、正弦频谱和学习轨迹绘成中文图。
+#
+# 设计说明   :
+#   * 承担 八片受控电荷源模型与对照实验 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """将归档的八片逐码积分、正弦频谱和学习轨迹绘成中文图。"""
 
 from __future__ import annotations
@@ -10,8 +24,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import font_manager
 from matplotlib.ticker import FuncFormatter
-from task1.experiments.full20_linearity_plots import _chinese_style
-from task1.experiments.inl_dnl import _sha
+
+from adi_model.hashing import sha256_file
+from task1.experiments.full20_linearity_plots import chinese_style
 from task1.experiments.run_effects import ROOT
 from task2.eight.experiment import N_CODES, SWITCHES, linearity
 
@@ -23,13 +38,30 @@ SIGMAS = (2, 3)
 MM = 25.4
 
 
+# =========================================================================
+# 1. 函数组：_annotate / _band / inl_linearity
+# =========================================================================
+# ------------------------------------------------------------------------
 def _annotate(fig, title, subtitle, note):
     fig.text(0.11, 0.98, title, fontsize=11, fontweight=600, va="top")
     fig.text(0.11, 0.932, subtitle, fontsize=8, va="top")
     fig.text(0.11, 0.015, note, fontsize=7, va="bottom")
 
 
+# ------------------------------------------------------------------------
 def _band(ax, start, values, color, label):
+    """调用合同。
+
+    Args:
+        ax: 需要绘制全景的坐标轴。
+        start: 首个显示的有符号输出码。
+        values: 完整逐码 DNL 或 INL，单位 LSB20。
+        color: 实验臂颜色。
+        label: 图例对应的开关状态。
+
+    每 512 码绘制极值包络，只压缩显示；全码指标仍由原始数组计算。
+    这是统计平均码密度，不是一次转换的误差包络或重新定义的粗位宽 ADC。
+    """
     step = 512
     i = np.arange(0, len(values), step)
     low = np.minimum.reduceat(values, i)
@@ -49,12 +81,14 @@ def _band(ax, start, values, color, label):
         ax.stairs(trace, edge, linewidth=0.48, color=color, alpha=0.75)
 
 
-def _linearity(inputs):
+# ------------------------------------------------------------------------
+def inl_linearity(inputs):
+    """画八切片 20 位 INL/DNL 三联图：上两行为逐 512 码极值，底行为全码走势。"""
     fig, axes = plt.subplots(3, 2, figsize=(146 / MM, 155 / MM))
     fig.subplots_adjust(left=0.112, right=0.975, top=0.84, bottom=0.125, hspace=0.78, wspace=0.32)
     _annotate(
         fig,
-        "八切片原生 dither 开关 · 20 位 INL／DNL",
+        "八切片负注入 dither 开关 · 20 位 INL／DNL",
         "相同 Fig.21 DEM、冻结 LMS 和 256 个配对状态，12 位 ADC2 ±100 mV",
         "均匀输入窗 ±3.671875 V，统计 754,319 个内码。上两行每 512 码保留极值。\n"
         "浅灰为评价范围外。第三行显示中码逐码结果。LSB20 = 9.5367 μV。",
@@ -123,12 +157,16 @@ def _linearity(inputs):
     return fig
 
 
+# =========================================================================
+# 2. 函数组：_spectra / _factorial / _learning
+# =========================================================================
+# ------------------------------------------------------------------------
 def _spectra(inputs):
     fig, axes = plt.subplots(2, 2, figsize=(146 / MM, 111 / MM), sharex=True, sharey=True)
     fig.subplots_adjust(left=0.112, right=0.975, top=0.79, bottom=0.17, hspace=0.55, wspace=0.2)
     _annotate(
         fig,
-        "八切片原生 dither 开关 · 20 位输出频谱",
+        "八切片负注入 dither 开关 · 20 位输出频谱",
         "Fig.21 DEM 与同一冻结 LMS，10 MS/s，998.535 kHz，4096 点相干采样",
         "同一 ±3.333 V 正弦和矩形窗。圆点标记各面板最大杂散。两组均无超窗。",
     )
@@ -159,6 +197,7 @@ def _spectra(inputs):
     return fig
 
 
+# ------------------------------------------------------------------------
 def _factorial(inputs):
     fig, axes = plt.subplots(4, 2, figsize=(146 / MM, 169 / MM), sharex=True)
     fig.subplots_adjust(left=0.115, right=0.975, top=0.83, bottom=0.102, hspace=0.58, wspace=0.29)
@@ -214,6 +253,7 @@ def _factorial(inputs):
     return fig
 
 
+# ------------------------------------------------------------------------
 def _learning(inputs):
     fig, axes = plt.subplots(1, 2, figsize=(146 / MM, 90 / MM))
     fig.subplots_adjust(left=0.112, right=0.97, top=0.735, bottom=0.22, wspace=0.37)
@@ -266,9 +306,25 @@ def _learning(inputs):
     return fig
 
 
+# =========================================================================
+# 3. 函数组：run / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 从两档归档数据导出四张图和逐文件收据。
+# 读取 sigma_2pct 与 sigma_3pct，输出可打印图形。
+# ------------------------------------------------------------------------
 def run(data_dir: Path, output: Path) -> None:
-    """从两档归档数据导出四张图和逐文件收据。"""
-    font = _chinese_style()
+    """从两档归档数据导出四张图和逐文件收据。
+
+    Args:
+        data_dir: 同时含 sigma_2pct、sigma_3pct 摘要与 data.npz 的目录。
+        output: 图片与绘图收据的输出目录；不会修改原始实验数组。
+
+    每份 data.npz 先与其摘要中的 SHA-256 比较，失败就终止，避免误配数据和说明。
+    线性度、频谱、八种组合及学习曲线共用这些输入文件；图像只改变呈现。
+    PNG、SVG、PDF 的收据记录脚本和数据摘要，图片存在本身不证明实验已重跑。
+    """
+    font = chinese_style()
     # 轮廓字形避免 macOS 的 Hiragino TTC 在 PDF 阅读器中漏字。
     plt.rcParams["pdf.fonttype"] = 3
     output.mkdir(parents=True, exist_ok=True)
@@ -278,17 +334,20 @@ def run(data_dir: Path, output: Path) -> None:
         metadata = path / "summary.json"
         raw = path / "data.npz"
         summary = json.loads(metadata.read_text(encoding="utf-8"))
-        digest = _sha(raw)
+        digest = sha256_file(raw)
         if digest != summary["artifact_sha256"][raw.name]:
             raise ValueError(f"SHA-256 of {raw.name} differs from the experiment receipt")
         checks.update(
-            {f"{path.name}/{raw.name}": digest, f"{path.name}/{metadata.name}": _sha(metadata)}
+            {
+                f"{path.name}/{raw.name}": digest,
+                f"{path.name}/{metadata.name}": sha256_file(metadata),
+            }
         )
         inputs.append((summary, np.load(raw)))
     produced = {}
     try:
         for label, draw in (
-            ("linearity", _linearity),
+            ("linearity", inl_linearity),
             ("spectra", _spectra),
             ("factorial", _factorial),
             ("lms", _learning),
@@ -298,7 +357,7 @@ def run(data_dir: Path, output: Path) -> None:
                 path = output / f"eight_native_{label}.{ext}"
                 metadata = {"pdf": {"CreationDate": None, "ModDate": None}, "svg": {"Date": None}}
                 fig.savefig(path, dpi=300, metadata=metadata.get(ext))
-                produced[path.name] = _sha(path)
+                produced[path.name] = sha256_file(path)
             plt.close(fig)
     finally:
         for _, data in inputs:
@@ -310,7 +369,7 @@ def run(data_dir: Path, output: Path) -> None:
         "figure_width_mm": 146,
         "dpi": 300,
         "input_sha256": checks,
-        "script_sha256": {str(Path(__file__).relative_to(ROOT)): _sha(Path(__file__))},
+        "script_sha256": {str(Path(__file__).relative_to(ROOT)): sha256_file(Path(__file__))},
         "artifact_sha256": produced,
     }
     (output / "figures.json").write_text(
@@ -318,6 +377,7 @@ def run(data_dir: Path, output: Path) -> None:
     )
 
 
+# ------------------------------------------------------------------------
 def main():
     """读取 sigma_2pct 与 sigma_3pct，输出可打印图形。"""
     parser = argparse.ArgumentParser(description=__doc__)

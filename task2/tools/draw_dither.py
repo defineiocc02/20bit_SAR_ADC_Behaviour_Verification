@@ -1,15 +1,30 @@
+# =============================================================================
+# 文件名     : draw_dither.py
+# 模块名     : draw_dither
+# 版本       : v1.0
+# 功能       : 绘制 dither 数字发生、原文注入路径和归档线性度对照。
+#
+# 设计说明   :
+#   * 承担 图件绘制与数据来源核对 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """绘制 dither 数字发生、原文注入路径和归档线性度对照。"""
 
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import warnings
 from itertools import pairwise
 from pathlib import Path
 
 import matplotlib as mpl
+
+from adi_model.hashing import sha256_file
 
 mpl.use("Agg")
 
@@ -32,10 +47,11 @@ PRBS_RECEIPT = ROOT / "task2/evidence/dither_rng/result.json"
 PRBS_RTL = "task2/rtl/dither_word_gen.sv"
 
 
-def _sha(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
+# =========================================================================
+# 1. 函数组：_font / _figure
+# =========================================================================
+# ------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 def _font() -> dict:
     for family, regular, bold in (("Hiragino Sans GB", 300, 600), ("Noto Sans CJK SC", 400, 700)):
         try:
@@ -58,10 +74,11 @@ def _font() -> dict:
                     "mathtext.fontset": "dejavusans",
                 }
             )
-            return {"family": family, "bold_weight": bold, "file_sha256": _sha(font)}
+            return {"family": family, "bold_weight": bold, "file_sha256": sha256_file(font)}
     raise RuntimeError("请安装 Hiragino Sans GB 或 Noto Sans CJK SC 中文字体。")
 
 
+# ------------------------------------------------------------------------
 def _figure(height: float) -> tuple[plt.Figure, plt.Axes]:
     fig = plt.figure(figsize=(WIDTH / 25.4, height / 25.4), facecolor="white")
     ax = fig.add_axes((0, 0, 1, 1), xlim=(0, WIDTH), ylim=(height, 0))
@@ -69,6 +86,10 @@ def _figure(height: float) -> tuple[plt.Figure, plt.Axes]:
     return fig, ax
 
 
+# =========================================================================
+# 2. 函数组：_label / _box / _arrow
+# =========================================================================
+# ------------------------------------------------------------------------
 def _label(
     ax: plt.Axes,
     x: float,
@@ -92,11 +113,13 @@ def _label(
     )
 
 
+# ------------------------------------------------------------------------
 def _box(ax: plt.Axes, x: float, y: float, w: float, value: str, color: str = "black") -> None:
     ax.add_patch(Rectangle((x, y), w, 9, facecolor="white", edgecolor=color, linewidth=0.75))
     _label(ax, x + w / 2, y + 4.5, value, center=True, color=color)
 
 
+# ------------------------------------------------------------------------
 def _arrow(
     ax: plt.Axes, x: float, y: float, x_end: float, y_end: float, color: str = "black"
 ) -> None:
@@ -114,10 +137,15 @@ def _arrow(
     )
 
 
+# =========================================================================
+# 3. 函数组：_rule / _prbs_capture / _prbs_figure
+# =========================================================================
+# ------------------------------------------------------------------------
 def _rule(ax: plt.Axes, y: float) -> None:
     ax.hlines(y, 7, 139, colors=RULE, linewidth=0.45)
 
 
+# ------------------------------------------------------------------------
 def _prbs_capture(path: Path) -> tuple[np.ndarray, dict]:
     receipt = json.loads(path.read_text(encoding="utf-8"))
     if (
@@ -125,7 +153,7 @@ def _prbs_capture(path: Path) -> tuple[np.ndarray, dict]:
         or receipt["mismatches"] != 0
         or receipt["scope"] != "DITHER_WORD_GENERATOR_DIGITAL_ONLY"
         or receipt["delay_polynomial"] != "1+x^28+x^31"
-        or _sha(ROOT / PRBS_RTL) != receipt["source_sha256"][PRBS_RTL]
+        or sha256_file(ROOT / PRBS_RTL) != receipt["source_sha256"][PRBS_RTL]
     ):
         raise ValueError("字发生器对拍收据不对应当前 RTL")
     stats = receipt["statistics"]
@@ -140,7 +168,7 @@ def _prbs_capture(path: Path) -> tuple[np.ndarray, dict]:
         raise ValueError("归档的连续字计数不完整")
     capture = {
         "receipt": path.relative_to(ROOT).as_posix(),
-        "receipt_sha256": _sha(path),
+        "receipt_sha256": sha256_file(path),
         "rtl_sha256": receipt["source_sha256"][PRBS_RTL],
         "vector_sha256": receipt["vector_sha256"],
         "seed": receipt["dither_seed"],
@@ -151,6 +179,7 @@ def _prbs_capture(path: Path) -> tuple[np.ndarray, dict]:
     return counts, capture
 
 
+# ------------------------------------------------------------------------
 def _prbs_figure(bold: int, counts: np.ndarray, seed: int) -> plt.Figure:
     height = 138
     fig, ax = _figure(height)
@@ -203,7 +232,21 @@ def _prbs_figure(bold: int, counts: np.ndarray, seed: int) -> plt.Figure:
     return fig
 
 
+# =========================================================================
+# 4. 函数组：_ppt_figure / _patent_figure / _density_cases
+# =========================================================================
+# ------------------------------------------------------------------------
 def _ppt_figure(bold: int) -> plt.Figure:
+    """Args:
+
+    Args:
+        bold: 图中强调文字使用的已发现字体。
+    Returns:
+        原讲稿注入路径的说明图，不运行 ADC 或重新计算性能。
+
+    图上的求和符号只表示信号关系，不能独自确定差分端、电荷或参考轨的物理符号。
+    lower、upper 与原文实施例对应；八片模型的位图属于单独工程合同。
+    """
     fig, ax = _figure(101)
     _label(ax, 7, 8, "讲稿的两路扰动注入", size=12, weight=bold)
     _label(ax, 7, 16, "ISSCC 2024 讲稿第 17 页｜功能重绘", color=GRAY)
@@ -248,7 +291,18 @@ def _ppt_figure(bold: int) -> plt.Figure:
     return fig
 
 
+# ------------------------------------------------------------------------
 def _patent_figure(bold: int) -> plt.Figure:
+    """Args:
+
+    Args:
+        bold: 用于中文强调文字的字体。
+    Returns:
+        专利七片示例的六位拆分说明图。
+
+    原图几何和原文词句是来源证据；本图的中文解释不能扩展原文披露范围。
+    七片分母与八片分母在标题、公式和图注中必须分别标明。
+    """
     fig, ax = _figure(124)
     _label(ax, 7, 8, "专利七片示例的位分配与数字去除", size=12, weight=bold)
     _label(ax, 7, 16, "US10505561B2 Fig.19 及对应正文｜以该级 LSB 为单位", color=GRAY)
@@ -294,12 +348,13 @@ def _patent_figure(bold: int) -> plt.Figure:
     return fig
 
 
+# ------------------------------------------------------------------------
 def _density_cases() -> tuple[list[dict], dict[str, str]]:
     manifest = DATA_DIR / "manifest.json"
     report = json.loads(manifest.read_text(encoding="utf-8"))
     if report["output_bits"] != 20 or [case["sigma_percent"] for case in report["cases"]] != [2, 3]:
         raise ValueError("归档范围与图注的 20 位、2% 和 3% 固定失配不符")
-    sources = {manifest.relative_to(ROOT).as_posix(): _sha(manifest)}
+    sources = {manifest.relative_to(ROOT).as_posix(): sha256_file(manifest)}
     cases = []
     for case in report["cases"]:
         condition = (
@@ -313,7 +368,7 @@ def _density_cases() -> tuple[list[dict], dict[str, str]]:
             raise ValueError("归档的 DEM、ADC2 或等权统计条件与图注不符")
         sigma = case["sigma_percent"]
         source = DATA_DIR / f"adc2_12bit_sigma_{sigma:g}pct_dither_code_widths.npz"
-        digest = _sha(source)
+        digest = sha256_file(source)
         if digest != report["output_sha256"][source.name]:
             raise ValueError(f"归档码宽散列不符 {source.name}")
         sources[source.relative_to(ROOT).as_posix()] = digest
@@ -344,7 +399,23 @@ def _density_cases() -> tuple[list[dict], dict[str, str]]:
     return cases, sources
 
 
+# =========================================================================
+# 5. 函数组：_result_figure / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 生成中文图并记录输入、脚本和图件的散列。
+# ------------------------------------------------------------------------
 def _result_figure(bold: int, cases: list[dict]) -> plt.Figure:
+    """Args:
+
+    Args:
+        bold: 中文强调字体。
+        cases: 已有实验臂的结果，不在重绘阶段训练或选取更好的种子。
+    Returns:
+        相同条件下的扰动关／开对照图。
+
+    改善、退化及越界同时呈现；不能只展示一个更好的指标就声称机制全面有效。
+    """
     fig, ax = _figure(99)
     _label(ax, 7, 8, "理想细级 dither 的线性度对照", size=12, weight=bold)
     _label(ax, 7, 16, "同一虚拟芯片｜Fig.21 DEM 开｜冻结 NLMS｜理想 ADC2 12 位", color=GRAY)
@@ -371,6 +442,7 @@ def _result_figure(bold: int, cases: list[dict]) -> plt.Figure:
     return fig
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
     """生成中文图并记录输入、脚本和图件的散列。"""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -397,14 +469,14 @@ def main() -> None:
                     fig.savefig(output, dpi=300)
                 else:
                     fig.savefig(output, metadata={"Date": None})
-                outputs[output.name] = _sha(output)
+                outputs[output.name] = sha256_file(output)
             plt.close(fig)
     references = {
         "references/ISSCC2024_SLIDES.pdf": {"page": 17},
         "references/ISSCC2024_PAPER.pdf": {"printed_page": 182, "doi": PAPER_DOI},
     }
     for filename, reference in references.items():
-        reference["sha256"] = _sha(ROOT / filename)
+        reference["sha256"] = sha256_file(ROOT / filename)
     manifest = {
         "schema": "task2_dither_figures_v1",
         "source_references": references,
@@ -413,7 +485,7 @@ def main() -> None:
             "figure": "Fig.19, sheet 20, PDF page 22; description PDF page 33",
             "verified_local_original_sha256": PATENT_SHA,
         },
-        "plot_source_sha256": _sha(Path(__file__)),
+        "plot_source_sha256": sha256_file(Path(__file__)),
         "data_source_sha256": sources,
         "nominal_width_mm": WIDTH,
         "font": font,

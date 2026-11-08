@@ -1,3 +1,17 @@
+# =============================================================================
+# 文件名     : no_lms_plots.py
+# 模块名     : no_lms_plots
+# 版本       : v1.0
+# 功能       : 从八片归档重绘 DEM 开启、LMS 关闭的 dither 配对结果。
+#
+# 设计说明   :
+#   * 承担 八片受控电荷源模型与对照实验 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """从八片归档重绘 DEM 开启、LMS 关闭的 dither 配对结果。"""
 
 from __future__ import annotations
@@ -10,8 +24,9 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import FuncFormatter, MaxNLocator
-from task1.experiments.full20_linearity_plots import _chinese_style
-from task1.experiments.inl_dnl import _sha
+
+from adi_model.hashing import sha256_file
+from task1.experiments.full20_linearity_plots import chinese_style
 from task1.experiments.run_effects import ROOT
 from task2.eight.experiment import N_CODES, SWITCHES, linearity
 from task2.eight.plots import BRIDGE, MM, OFF, ON, SIGMAS, _annotate, _band
@@ -27,6 +42,10 @@ SOURCE_FILES = (
 )
 
 
+# =========================================================================
+# 1. 函数组：_shade_extent / _static / _spectra
+# =========================================================================
+# ------------------------------------------------------------------------
 def _shade_extent(ax, first, stop):
     signed_min, signed_max = -(N_CODES // 2), N_CODES // 2 - 1
     ax.axvspan(signed_min, first, color="#edf0f2", zorder=-1)
@@ -38,6 +57,7 @@ def _shade_extent(ax, first, stop):
     last_tick.set_horizontalalignment("right")
 
 
+# ------------------------------------------------------------------------
 def _static(inputs):
     fig, axes = plt.subplots(4, 2, figsize=(146 / MM, 172 / MM))
     fig.subplots_adjust(left=0.11, right=0.965, top=0.85, bottom=0.125, hspace=0.66, wspace=0.32)
@@ -97,6 +117,7 @@ def _static(inputs):
     return fig
 
 
+# ------------------------------------------------------------------------
 def _spectra(inputs):
     fig, axes = plt.subplots(2, 2, figsize=(146 / MM, 111 / MM), sharex=True, sharey=True)
     fig.subplots_adjust(left=0.112, right=0.965, top=0.79, bottom=0.17, hspace=0.55, wspace=0.2)
@@ -134,9 +155,16 @@ def _spectra(inputs):
     return fig
 
 
+# =========================================================================
+# 2. 函数组：run / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 核验原始收据，生成两张图及独立哈希清单。
+# 按已有归档重绘关闭 LMS 的图。
+# ------------------------------------------------------------------------
 def run(data_dir: Path, output: Path) -> None:
     """核验原始收据，生成两张图及独立哈希清单。"""
-    font = _chinese_style()
+    font = chinese_style()
     # 轮廓字形避免 macOS 的 Hiragino TTC 在 PDF 阅读器中漏字。
     plt.rcParams["pdf.fonttype"] = 3
     output.mkdir(parents=True, exist_ok=True)
@@ -146,11 +174,14 @@ def run(data_dir: Path, output: Path) -> None:
             path = data_dir / f"sigma_{sigma}pct"
             metadata, raw = path / "summary.json", path / "data.npz"
             summary = json.loads(metadata.read_text(encoding="utf-8"))
-            digest = _sha(raw)
+            digest = sha256_file(raw)
             if digest != summary["artifact_sha256"][raw.name]:
                 raise ValueError(f"SHA-256 mismatch: {raw}")
             checks.update(
-                {f"{path.name}/{raw.name}": digest, f"{path.name}/{metadata.name}": _sha(metadata)}
+                {
+                    f"{path.name}/{raw.name}": digest,
+                    f"{path.name}/{metadata.name}": sha256_file(metadata),
+                }
             )
             inputs.append((summary, stack.enter_context(np.load(raw))))
         for label, draw in (("linearity", _static), ("spectra", _spectra)):
@@ -163,7 +194,7 @@ def run(data_dir: Path, output: Path) -> None:
                         "svg": {"Date": None},
                     }
                     fig.savefig(path, dpi=300, metadata=metadata.get(ext))
-                    produced[path.name] = _sha(path)
+                    produced[path.name] = sha256_file(path)
             finally:
                 plt.close(fig)
     manifest = {
@@ -173,7 +204,7 @@ def run(data_dir: Path, output: Path) -> None:
         "figure_width_mm": 146,
         "dpi": 300,
         "input_sha256": checks,
-        "source_sha256": {name: _sha(ROOT / name) for name in SOURCE_FILES},
+        "source_sha256": {name: sha256_file(ROOT / name) for name in SOURCE_FILES},
         "artifact_sha256": produced,
     }
     (output / "no_lms_figures.json").write_text(
@@ -181,6 +212,7 @@ def run(data_dir: Path, output: Path) -> None:
     )
 
 
+# ------------------------------------------------------------------------
 def main():
     """按已有归档重绘关闭 LMS 的图。"""
     parser = argparse.ArgumentParser(description=__doc__)

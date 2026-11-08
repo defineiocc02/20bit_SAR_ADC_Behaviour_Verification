@@ -120,7 +120,12 @@ def sum_charge(
     sample: tuple[int, ...],
     adc2: int,
 ) -> tuple[int, int]:
-    """独立按稀疏物理片选择累加带符号特征，不复刻 RTL 流水或除法。"""
+    """按八个物理片号累加 Q28 电荷，返回分子与增益和。
+
+    main 为 17 位转换掩码，conv、sample 为四位有效子阵列掩码；dummy 必须为零。
+    负注入合同使用 conv+sample，同位均置一时必须计两次权重；权重本身可为负。
+    该合同对应受控电荷源模型，不能证明模拟底板接轨方式。
+    """
     if any(len(x) != GROUP_SLICES for x in (ids, main, conv, sample)):
         raise ValueError("eight ordered slots are required")
     if len(set(ids)) != GROUP_SLICES or any(not 0 <= s < POOL_SLICES for s in ids):
@@ -131,7 +136,7 @@ def sum_charge(
     for s, m, c, a in zip(ids, main, conv, sample, strict=True):
         n += sum(w for i, w in enumerate(coef.weights[s][:17]) if (m >> i) & 1)
         n += sum(w for i, w in enumerate(coef.weights[s][17:]) if (c >> i) & 1)
-        n -= sum(w for i, w in enumerate(coef.weights[s][17:]) if (a >> i) & 1)
+        n += sum(w for i, w in enumerate(coef.weights[s][17:]) if (a >> i) & 1)
     return n, sum(coef.gains[s] for s in ids)
 
 

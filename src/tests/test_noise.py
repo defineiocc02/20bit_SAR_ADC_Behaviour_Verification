@@ -123,9 +123,7 @@ def test_flicker_recovers_sigma_on_ensemble_average() -> None:
     cfg = NoiseConfig(enabled=True, flicker_corner_hz=40.0)
     sigma = 5e-6
     count = 1 << 16
-    variances = [
-        float(np.var(flicker(cfg, tag, sigma, count, 40e6))) for tag in range(1, 65)
-    ]
+    variances = [float(np.var(flicker(cfg, tag, sigma, count, 40e6))) for tag in range(1, 65)]
     recovered = float(np.sqrt(np.mean(variances)))
     assert recovered == pytest.approx(sigma, rel=0.03)
 

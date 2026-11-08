@@ -1,9 +1,22 @@
+# =============================================================================
+# 文件名     : fig19_seven_demo.py
+# 模块名     : fig19_seven_demo
+# 版本       : v1.0
+# 功能       : 重跑 Fig. 19 七片工程等效实验并生成静态与动态对照图。
+#
+# 设计说明   :
+#   * 承担 七片/八片对照实验 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """重跑 Fig. 19 七片工程等效实验并生成静态与动态对照图。"""
 
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from importlib.metadata import version
 from pathlib import Path
@@ -14,7 +27,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from adctoolbox.spectrum import compute_spectrum
 from matplotlib.ticker import MaxNLocator
-from task1.experiments.full20_linearity_plots import _chinese_style
+
+from adi_model.hashing import sha256_file
+from task1.experiments.full20_linearity_plots import chinese_style
 from task2.model.dither_word_gen import DEFAULT_DITHER_SEED, DitherWordGenerator
 from task2.model.fig19_seven import (
     ADC2_CODES,
@@ -47,19 +62,26 @@ LINEARITY_FIGURE_IN = (5.74, 6.25)
 SPECTRUM_FIGURE_IN = (5.74, 4.76)
 
 
-def _sha(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
+# =========================================================================
+# 1. 函数组：_rms / _span
+# =========================================================================
+# ------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 def _rms(value: np.ndarray) -> float:
     return float(np.sqrt(np.mean(np.square(value))))
 
 
+# ------------------------------------------------------------------------
 def _span(value: np.ndarray) -> list[float]:
     return [float(np.min(value)), float(np.max(value))]
 
 
-def _linearity(words: np.ndarray, code_span: np.ndarray) -> tuple[dict, dict]:
+# =========================================================================
+# 2. 函数组：inl_linearity / _tone / _check_upper_only_range
+# =========================================================================
+# ------------------------------------------------------------------------
+def inl_linearity(words: np.ndarray, code_span: np.ndarray) -> tuple[dict, dict]:
+    """由七片字序列算码密度与 DNL/INL，返回统计表与码密度两段结果。"""
     density = code_density(-STATIC_LIMIT_V, STATIC_LIMIT_V, words, require_prefix_valid=True)
     width = density.width_v[code_span]
     dnl = width / OUTPUT_LSB_V - 1
@@ -87,7 +109,19 @@ def _linearity(words: np.ndarray, code_span: np.ndarray) -> tuple[dict, dict]:
     return metrics, arrays
 
 
+# ------------------------------------------------------------------------
 def _tone(input_v: np.ndarray, words: np.ndarray) -> tuple[dict, dict]:
+    """Args:
+
+    Args:
+        input_v: 单次转换的输入序列，单位 V。
+        words: 与输入逐笔对应的扰动字。
+    Returns:
+        粗码、残差、ADC2 原码和输出码相关记录。
+
+    频谱只针对指定采样率、频点和输入幅度；不将码密度平均结果混入单次输出频谱。
+    数字去扰须使用该笔原字，不能用均值扰动替代。
+    """
     result = convert(input_v, words)
     if not np.all(result.accepted_prefix_guard):
         raise RuntimeError("tone samples must pass the direct and prefix range checks")
@@ -161,7 +195,22 @@ def _tone(input_v: np.ndarray, words: np.ndarray) -> tuple[dict, dict]:
     return metrics, arrays
 
 
+# ------------------------------------------------------------------------
 def _check_upper_only_range(arrays: dict, words: np.ndarray) -> dict:
+    """核对接口边界与证据归属。
+
+    该隔离比较用于辨认低路分数相位与高路命令变化的作用。
+    逐笔相同的整数输出只说明当前理想模型下结果相同。
+    它不能否定高路在非理想 RDAC 上的可能作用。
+    比较必须共用输入、样本号和原始字，不能重抽一条随机序列。
+    六位字与 low／upper 的分配按本实施例解释。
+    七片 full-scale 的拒绝边界不直接用于八片工程。
+    残差单位 V，数字码为整数，两类差不能混用同一阈值。
+    比较 ADC2 码与最终输出码可区分量化相位变化是否传递到输出。
+    即使输出码相同，内部余量仍须单独检查。
+    本函数不检验模拟 DAC 电容失配或噪声。
+    未测的机制不得从此比较中补出结论。
+    """
     lower_words = arrays["tone_dither_word_on"] & LOWER_WORD_MASK
     lower = convert(arrays["tone_input_v"], lower_words)
     if not np.all(lower.accepted_prefix_guard):
@@ -187,7 +236,22 @@ def _check_upper_only_range(arrays: dict, words: np.ndarray) -> dict:
     }
 
 
+# =========================================================================
+# 3. 函数组：_full_scale_headroom / _headroom / _save
+# =========================================================================
+# ------------------------------------------------------------------------
 def _full_scale_headroom(words: np.ndarray) -> dict:
+    """Args:
+
+    Args:
+        words: 本轮等权六位扰动字集合。
+    Returns:
+        整个声明输入范围内的前端及内部量程统计。
+
+    共同评价窗口内无拒绝不代表满幅安全，所以全幅统计单独计算。
+    前级粗码、RDAC 命令、残差和输出码的合法范围分别检查。
+    高路改变命令范围，分数低路改变码边界相位，两种作用需要分开说明。
+    """
     results = {}
     for key, require_prefix in (("direct_final", False), ("legacy_prefix_guard", True)):
         density = code_density(INPUT_MIN_V, INPUT_MAX_V, words, require_prefix_valid=require_prefix)
@@ -204,6 +268,7 @@ def _full_scale_headroom(words: np.ndarray) -> dict:
     return results
 
 
+# ------------------------------------------------------------------------
 def _headroom() -> dict:
     top_word = convert(0.0, 63, ModelConfig(max_slice_setting_lsb=7))
     bottom = convert(INPUT_MIN_V + 0.25 * COARSE_LSB_V, 32)
@@ -254,6 +319,7 @@ def _headroom() -> dict:
     }
 
 
+# ------------------------------------------------------------------------
 def _save(fig: plt.Figure, output: Path, name: str) -> None:
     fig.savefig(output / f"{name}.png", dpi=300)
     fig.savefig(output / f"{name}.svg", metadata={"Date": None})
@@ -261,12 +327,17 @@ def _save(fig: plt.Figure, output: Path, name: str) -> None:
     plt.close(fig)
 
 
+# =========================================================================
+# 4. 函数组：_grid / _plot_linearity / _plot_spectrum_and_residue
+# =========================================================================
+# ------------------------------------------------------------------------
 def _grid(ax: plt.Axes) -> None:
     ax.set_axisbelow(True)
     ax.grid(color="#D1D7DA", linestyle="--", alpha=0.9, linewidth=0.5)
     ax.tick_params(top=True, right=True, length=3)
 
 
+# ------------------------------------------------------------------------
 def _plot_linearity(output: Path, summary: dict, arrays: dict) -> None:
     fig, axes = plt.subplots(
         4,
@@ -332,6 +403,7 @@ def _plot_linearity(output: Path, summary: dict, arrays: dict) -> None:
     _save(fig, output, "fig19_seven_linearity")
 
 
+# ------------------------------------------------------------------------
 def _plot_spectrum_and_residue(output: Path, summary: dict, arrays: dict) -> None:
     fig, (spectrum, residue) = plt.subplots(
         2, 1, figsize=SPECTRUM_FIGURE_IN, gridspec_kw={"height_ratios": [1.65, 1]}
@@ -395,8 +467,25 @@ def _plot_spectrum_and_residue(output: Path, summary: dict, arrays: dict) -> Non
     _save(fig, output, "fig19_seven_spectrum_residue")
 
 
+# =========================================================================
+# 5. 函数组：run / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 写入逐码宽度、正弦观测、指标、复现信息和两张中文对照图。
+# 运行实验并输出 JSON 摘要。
+# ------------------------------------------------------------------------
 def run(output: Path) -> dict:
-    """写入逐码宽度、正弦观测、指标、复现信息和两张中文对照图。"""
+    """写入逐码宽度、正弦观测、指标、复现信息和两张中文对照图。
+
+    Args:
+        output: 本次实验输出目录，保存原始数组、摘要和图片。
+    Returns:
+        七片示例的线性度、频谱、量程及原始记录摘要。
+
+    七片模型与八片工程模型是两条独立路径，分数分母不能互换后沿用同一结果。
+    这里采用理想量化和等权扰动状态，不能说明含失配、噪声的整机已达到性能目标。
+    扰动字的高路与低路作用位置由所选实施例规定，不能跨实施例混合加减号。
+    """
     output.mkdir(parents=True, exist_ok=True)
     discard = int(np.ceil(DEFAULT_CONFIG.adc2_lsb_v / 2 / OUTPUT_LSB_V)) + 1
     start = round((-STATIC_LIMIT_V - INPUT_MIN_V) / OUTPUT_LSB_V) + discard
@@ -467,7 +556,7 @@ def run(output: Path) -> dict:
         "python_packages": {
             package: version(package) for package in ("numpy", "matplotlib", "adctoolbox")
         },
-        "source_sha256": {name: _sha(ROOT / name) for name in sources},
+        "source_sha256": {name: sha256_file(ROOT / name) for name in sources},
     }
     arrays = {
         "linearity_signed_code": code_span - SIGNED_ZERO,
@@ -479,7 +568,7 @@ def run(output: Path) -> dict:
         static_words = words if key == "on" else np.zeros(1, dtype=int)
         selected_tone_words = tone_words if key == "on" else np.zeros_like(tone_words)
         for name, (metrics, traces) in (
-            ("linearity", _linearity(static_words, code_span)),
+            ("linearity", inl_linearity(static_words, code_span)),
             ("tone", _tone(input_v, selected_tone_words)),
         ):
             summary[name][key] = metrics
@@ -493,7 +582,7 @@ def run(output: Path) -> dict:
         if key.startswith("tone_") or key.endswith("_width_v")
     }
     np.savez_compressed(output / "fig19_seven_data.npz", **archived)
-    summary["font"] = _chinese_style()
+    summary["font"] = chinese_style()
     # 轮廓字形避免 macOS 的 Hiragino TTC 在 PDF 阅读器中漏字。
     mpl.rcParams.update({"pdf.fonttype": 3, "svg.hashsalt": "task2-fig19-seven"})
     summary["pdf_fonttype"] = 3
@@ -509,11 +598,12 @@ def run(output: Path) -> dict:
         for ext in ("png", "svg", "pdf")
     ]
     artifact_names.append("fig19_seven_data.npz")
-    summary["artifact_sha256"] = {name: _sha(output / name) for name in artifact_names}
+    summary["artifact_sha256"] = {name: sha256_file(output / name) for name in artifact_names}
     (output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     return summary
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
     """运行实验并输出 JSON 摘要。"""
     parser = argparse.ArgumentParser(description=__doc__)

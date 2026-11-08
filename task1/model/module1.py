@@ -174,4 +174,3 @@ class Module1:
             masks,
             code_valid and not masks.valid,
         )
-

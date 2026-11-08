@@ -1,5 +1,7 @@
 # 八切片扰动及整体数字顶层的 SKY130HD 实现
 
+> 版本边界：本页既有 GDS／STA／形式收据属于其记录的历史提交；本次 `k=c−U` 重构迁移须独立重跑，不继承旧版通过状态。
+
 `dither8_top` 实现八切片扰动开关控制、调度、DEM 掩码和同笔去扰元数据。`sar20_digital_top` 接入模块三 CAAZ 配对与控制，外部提供已重构码。`sar20_digital_lms_top` 再接入用片外训练系数进行的片上固定点重构，ADC2 码和模拟确认从端口输入。ADC 前级、采样开关、残差放大器、ADC2 与片外 LMS 训练各由对应模型或电路验证。[八切片合同](../eight_rtl/SPEC.md) · [整体顶层源码](../../task_integration/rtl/sar20_digital_lms_top.sv)
 
 后端使用固定镜像的 Linux amd64 OpenROAD/Yosys/KLayout。顶层沿用模块一的 6.25 ns 单时钟 SDC、I/O 延时、5 fF 负载，以及 SKY130HD TT、25 °C、1.80 V 工艺角。前两版布局初值为 450 × 450 µm，核心框为 (20, 20) 至 (430, 430) µm。片上重构版增加系数存储和流水算术，按综合单元面积 33% 的初始核心利用率定方形底图，留 20 µm 边距。P&R 每顶层使用 4 线程；标准作业上限 40 分钟，片上 LMS 长时作业上限 150 分钟。[SDC](../../task1/physical/sky130_constraint.sdc) · [运行计划](plan.json)

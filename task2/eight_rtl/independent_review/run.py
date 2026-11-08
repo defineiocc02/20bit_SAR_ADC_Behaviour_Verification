@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : run.py
+# 模块名     : run
+# 版本       : v1.0
+# 功能       : 补充八片扰动事务的独立随机核对。
+#
+# 设计说明   :
+#   * 承担 20b10mtask 数字交付 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """补充八片扰动事务的独立随机核对。"""
 
 from __future__ import annotations
@@ -20,6 +34,14 @@ CYCLES = 20_000
 DEFAULT_STATE = 0x5A1709C3
 
 
+# =========================================================================
+# 1. 函数组：_generate_word / _sample_mask / _make_stimulus
+# =========================================================================
+# -------------------------------------------------------------------------
+# 按时序逐位推进 PRBS31，返回状态和由 D6 至 D1 排列的字。
+# 计算八片原生子电容的采样高参考掩码。
+# 混合动态使能、资格不足、种子冲突、近满幅粗码及错误 ID。
+# ------------------------------------------------------------------------
 def _generate_word(state: int) -> tuple[int, int]:
     """按时序逐位推进 PRBS31，返回状态和由 D6 至 D1 排列的字。"""
     word = 0
@@ -30,6 +52,7 @@ def _generate_word(state: int) -> tuple[int, int]:
     return state, word
 
 
+# ------------------------------------------------------------------------
 def _sample_mask(word: int) -> int:
     """计算八片原生子电容的采样高参考掩码。"""
     base, count = divmod(word, 8)
@@ -42,6 +65,7 @@ def _sample_mask(word: int) -> int:
     return mask
 
 
+# ------------------------------------------------------------------------
 def _make_stimulus(
     rng: random.Random,
     cycle: int,
@@ -83,6 +107,13 @@ def _make_stimulus(
     )
 
 
+# =========================================================================
+# 2. 函数组：write_vectors / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 按请求时间和完整 ID 账本核对预期向量，随后供真实 RTL 对拍。
+# 使用已配置的 Verilator 执行并写出小型可核验收据。
+# ------------------------------------------------------------------------
 def write_vectors(path: Path) -> tuple[dict[str, int], dict[str, int]]:
     """按请求时间和完整 ID 账本核对预期向量，随后供真实 RTL 对拍。"""
     rng = random.Random(SEED)
@@ -100,7 +131,7 @@ def write_vectors(path: Path) -> tuple[dict[str, int], dict[str, int]]:
             "fresh_in_conversion",
             "prev_in_conversion",
             "valid_reseed",
-            "overflow",
+            "underflow",
         ),
         0,
     )
@@ -169,13 +200,13 @@ def write_vectors(path: Path) -> tuple[dict[str, int], dict[str, int]]:
                 coverage["fresh_in_conversion"] += pulse and conv_group[0] == last_descriptor[0]
                 coverage["prev_in_conversion"] += conv_group[0] != last_descriptor[0]
             assert observed[12:15] == (word, word, _sample_mask(word))
-            command = s.code + 4 * (word >> 5) + ((word >> 3) & 1)
+            command = s.code - 4 * (word >> 5) - ((word >> 3) & 1)
             matching_code = ready and s.code_valid and observed[10] == s.code_sample_id
-            valid = matching_code and command < 512
+            valid = matching_code and 0 <= command < 512
             assert observed[15] == (command if valid else 0) and observed[19] == valid
             assert observed[20] == (active and s.code_valid and not valid)
             assert valid or observed[16:19] == (0, 0, 0)
-            coverage["overflow"] += matching_code and command >= 512
+            coverage["underflow"] += matching_code and command < 0
 
             if s.seed_load and active:
                 if s.advance or not all((s.slice_seed, s.dem_seed, s.dither_seed)):
@@ -200,6 +231,7 @@ def write_vectors(path: Path) -> tuple[dict[str, int], dict[str, int]]:
     return counts, coverage
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
     """使用已配置的 Verilator 执行并写出小型可核验收据。"""
     parser = argparse.ArgumentParser(description=__doc__)

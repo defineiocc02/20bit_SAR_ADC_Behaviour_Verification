@@ -1,0 +1,7 @@
+# 数值指纹对应的可复现 CI 环境；Python 解释器由工作流固定为 3.12.14。
+# ADCToolbox 保持 requirements-calibration 中的固定源提交。
+-r requirements-calibration.txt
+numpy==2.5.3
+scipy==1.18.1
+matplotlib==3.11.2
+pytest==9.1.1

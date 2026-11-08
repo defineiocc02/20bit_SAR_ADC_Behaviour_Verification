@@ -1,15 +1,30 @@
+# =============================================================================
+# 文件名     : chinese_effect_plots.py
+# 模块名     : chinese_effect_plots
+# 版本       : v1.0
+# 功能       : 从归档数据重绘中文效果图。只计算绘图用的频谱与统计。
+#
+# 设计说明   :
+#   * 承担 行为级实验与图件生成 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """从归档数据重绘中文效果图。只计算绘图用的频谱与统计。"""
 
 from __future__ import annotations
 
 import argparse
 import csv
-import hashlib
 import json
 import platform
 from pathlib import Path
 
 import matplotlib
+
+from adi_model.hashing import sha256_file
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -28,6 +43,10 @@ ORANGE = "#A85227"
 PALE = "#DCEBDD"
 
 
+# =========================================================================
+# 1. 函数组：_style / _save / _spectrum
+# =========================================================================
+# ------------------------------------------------------------------------
 def _style(font: Path | None) -> Path:
     if font is None:
         candidates = [
@@ -77,12 +96,14 @@ def _style(font: Path | None) -> Path:
     return font
 
 
+# ------------------------------------------------------------------------
 def _save(fig: plt.Figure, out: Path, name: str) -> None:
     fig.savefig(out / f"{name}.png", dpi=200, facecolor="white")
     fig.savefig(out / f"{name}.svg", facecolor="white", metadata={"Date": None})
     plt.close(fig)
 
 
+# ------------------------------------------------------------------------
 def _spectrum(ax: plt.Axes, samples: np.ndarray, cfg: dict, **line: object) -> np.ndarray:
     freq, dbfs = spectrum_dbfs(
         samples, cfg["fs_hz"], cfg["full_scale_peak_v"], window=cfg["fft_window"]
@@ -92,11 +113,27 @@ def _spectrum(ax: plt.Axes, samples: np.ndarray, cfg: dict, **line: object) -> n
     return dbfs
 
 
+# =========================================================================
+# 2. 函数组：_mode / _interleave / _usage
+# =========================================================================
+# ------------------------------------------------------------------------
 def _mode(label: str, metrics: dict) -> str:
     return f"{label}   SFDR {metrics['SFDR_dB']:.2f} dB   SNDR {metrics['SNDR_dB']:.2f} dB"
 
 
+# ------------------------------------------------------------------------
 def _interleave(out: Path, traces: np.lib.npyio.NpzFile, summary: dict) -> None:
+    """调用合同。
+
+    Args:
+        out: 图片输出目录。
+        traces: 三种调度策略的逐笔输出，采样率和输入条件须一致。
+        summary: 与 traces 对应的频谱与误差统计。
+
+    将杂散降低和噪声底变化分别展示。随机调度可能改善 SFDR 同时降低 SNDR，
+    不能只选一个指标宣布交织误差被消除。
+    采用 RTL 规则运行的 Python 轨迹仍是行为证据，不是芯片或门级结果。
+    """
     cfg = summary["configuration"]
     cases = summary["interleave"]
     fixed, dynamic = (cases[k]["mirror_dBFS"] for k in ("fixed_ab", "dynamic"))
@@ -161,7 +198,18 @@ def _interleave(out: Path, traces: np.lib.npyio.NpzFile, summary: dict) -> None:
     _save(fig, out, "交织时偏")
 
 
+# ------------------------------------------------------------------------
 def _usage(path: Path, cfg: dict) -> dict[str, np.ndarray]:
+    """核对接口边界与证据归属。
+
+    使用统计只统计实际受理并进入该记录的选择。
+    分母必须区分样本数、槽数和置位总数，不能共用一个百分比。
+    同一物理单元在两个不同样本被选中应分别计次。
+    使用次数均衡不等于误差零均值，也不单独证明 SFDR 提高。
+    图片应与性能实验分开说明其证据范围。
+    本函数只画已有使用数据，不替换随机种子。
+    缺少某类访问时应报告偏置，而不是删掉未使用单元。
+    """
     rows = len(cfg["usage_denominator_by_slice"])
     cols = len(cfg["main_cap_weights"])
     rates = {mode: np.full((rows, cols), np.nan) for mode in ("off", "on")}
@@ -176,6 +224,10 @@ def _usage(path: Path, cfg: dict) -> dict[str, np.ndarray]:
     return rates
 
 
+# =========================================================================
+# 3. 函数组：_dem / _dither / _headroom
+# =========================================================================
+# ------------------------------------------------------------------------
 def _dem(
     out: Path,
     traces: np.lib.npyio.NpzFile,
@@ -183,6 +235,18 @@ def _dem(
     static: np.ndarray,
     rates: dict[str, np.ndarray],
 ) -> None:
+    """调用合同。
+
+    Args:
+        out: 中文图交付目录。
+        traces: 固定制造池下的输出波形。
+        summary: 配套频谱结果。
+        static: 静态输入扫描及误差统计。
+        rates: 单元使用统计。
+
+    使用频率均衡只说明选择机制，没有直接证明精度收益。
+    性能图和使用统计须分别标明归一化分母，不能把两种统计混为同一结论。
+    """
     cfg, cases = summary["configuration"], summary["dem"]
     fig = plt.figure(figsize=(10.5, 9.5), layout="constrained")
     grid = fig.add_gridspec(3, 2, height_ratios=(1, 1, 1))
@@ -249,6 +313,7 @@ def _dem(
     _save(fig, out, "固定失配下的DEM")
 
 
+# ------------------------------------------------------------------------
 def _dither(out: Path, traces: tuple[np.lib.npyio.NpzFile, ...], summary: dict) -> None:
     case = summary["cases"][0]
     trace = traces[0]
@@ -315,7 +380,18 @@ def _dither(out: Path, traces: tuple[np.lib.npyio.NpzFile, ...], summary: dict) 
     _save(fig, out, "理想减性扰动")
 
 
+# ------------------------------------------------------------------------
 def _headroom(out: Path, summary: dict) -> None:
+    """调用合同。
+
+    Args:
+        out: 图片输出目录。
+        summary: 各内部节点及最终输出的量程统计。
+
+    最终数字输出未 clip 不代表 RA 或 ADC2 内部未越界。
+    图中应保留失败幅度和节点，便于区分输入拒绝、残差超窗与输出饱和。
+    重新画图不消除已发现的越界，也不改变模拟可用余量。
+    """
     fig, axes = plt.subplots(2, 2, figsize=(10.5, 7), sharex=True, layout="constrained")
     first = summary["experiments"][0]
     half = first["adc2_half_window_for_one_export_lsb_v"] * 1e3
@@ -353,10 +429,13 @@ def _headroom(out: Path, summary: dict) -> None:
     _save(fig, out, "后级余量")
 
 
-def _sha(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
+# =========================================================================
+# 4. 函数组：main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 重绘并写入来源和图件的 SHA-256 清单。
+# ------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 def main() -> None:
     """重绘并写入来源和图件的 SHA-256 清单。"""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -408,10 +487,12 @@ def main() -> None:
         "python": platform.python_version(),
         "numpy": np.__version__,
         "matplotlib": matplotlib.__version__,
-        "font": {"file": font.name, "sha256": _sha(font)},
-        "input_sha256": {source.relative_to(ROOT).as_posix(): _sha(source) for source in sources},
+        "font": {"file": font.name, "sha256": sha256_file(font)},
+        "input_sha256": {
+            source.relative_to(ROOT).as_posix(): sha256_file(source) for source in sources
+        },
         "output_sha256": {
-            f"{plot}.{suffix}": _sha(args.out / f"{plot}.{suffix}")
+            f"{plot}.{suffix}": sha256_file(args.out / f"{plot}.{suffix}")
             for plot in plots
             for suffix in ("png", "svg")
         },

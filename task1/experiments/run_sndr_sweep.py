@@ -1,3 +1,17 @@
+# =============================================================================
+# 文件名     : run_sndr_sweep.py
+# 模块名     : run_sndr_sweep
+# 版本       : v1.0
+# 功能       : 扫 Fig.11 单位电容失配，保留同制造样本的 DEM 开关对照。
+#
+# 设计说明   :
+#   * 承担 行为级实验与图件生成 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """扫 Fig.11 单位电容失配，保留同制造样本的 DEM 开关对照。"""
 
 from __future__ import annotations
@@ -14,15 +28,30 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
+from adi_model.capacitors import (
+    Capacitors,
+    ExperimentConfig,
+    cap_pool,
+    feedback_charge,
+    voltage_equivalent,
+)
 from adi_model.metrics import sine_fit_metrics
-
-from . import run_effects as effects
+from task1.experiments.run_effects import BLUE, GRAY, ORANGE, ROOT, schedule_sequence
+from task1.model.codebook import codebook, map_record
 
 SIGMA_PCT = (0.0, 0.003, 0.01, 0.03, 0.1)
 MANUFACTURING_SEEDS = tuple(range(100, 112))
 TARGET_SNDR_DB = 100.0
 
 
+# =========================================================================
+# 1. 函数组：DieMeasurement / _statistics / _measurements
+# =========================================================================
+# -------------------------------------------------------------------------
+# 固定激励和选片计划下，一个制造样本的单次 DEM 设置。
+# 用样本最小值、中位数和最大值表示有限种子的离散程度。
+# 同一输入、粗码、物理计划及位图贯穿每个失配扫点。
+# ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class DieMeasurement:
     """固定激励和选片计划下，一个制造样本的单次 DEM 设置。"""
@@ -37,6 +66,7 @@ class DieMeasurement:
     nominal_error_max_v: float | None = None
 
 
+# ------------------------------------------------------------------------
 def _statistics(values: list[float]) -> dict[str, float]:
     """用样本最小值、中位数和最大值表示有限种子的离散程度。"""
     return {
@@ -46,24 +76,25 @@ def _statistics(values: list[float]) -> dict[str, float]:
     }
 
 
+# ------------------------------------------------------------------------
 def _measurements(
-    cfg: effects.ExperimentConfig,
+    cfg: ExperimentConfig,
 ) -> tuple[list[DieMeasurement], dict[str, float]]:
     """同一输入、粗码、物理计划及位图贯穿每个失配扫点。"""
-    plan, _, phases = effects._schedule(cfg.samples, cfg)
+    plan, _, phases = schedule_sequence(cfg.samples, cfg)
     time_s = np.arange(cfg.samples) / cfg.fs_hz
     vin = cfg.tone_peak_v * np.sin(2 * np.pi * cfg.fin_hz * time_s)
-    nominal, _ = effects._cap_pool(cfg)
-    codebook = effects._codebook(nominal, cfg)
-    codes = (np.searchsorted(codebook, vin, side="right") - 1).astype(np.uint16)
+    nominal, _ = cap_pool(cfg)
+    thresholds = codebook(nominal, cfg)
+    codes = (np.searchsorted(thresholds, vin, side="right") - 1).astype(np.uint16)
     masks = {
-        "off": effects._map_record(codes, phases, dem_enable=False),
-        "on": effects._map_record(codes, phases, dem_enable=True),
+        "off": map_record(codes, phases, dem_enable=False),
+        "on": map_record(codes, phases, dem_enable=True),
     }
 
-    def observe(pool: effects.Capacitors, mode: str) -> np.ndarray:
-        charge = effects._feedback_charge(pool, vin, plan, masks[mode], cfg)
-        return codebook[codes] + effects._voltage_equivalent(charge, cfg)
+    def observe(pool: Capacitors, mode: str) -> np.ndarray:
+        charge = feedback_charge(pool, vin, plan, masks[mode], cfg)
+        return thresholds[codes] + voltage_equivalent(charge, cfg)
 
     closure = {mode: float(np.max(np.abs(observe(nominal, mode) - vin))) for mode in masks}
     if max(closure.values()) > 1e-12:
@@ -76,7 +107,7 @@ def _measurements(
 
     for sigma in SIGMA_PCT[1:]:
         for seed in MANUFACTURING_SEEDS:
-            _, die = effects._cap_pool(
+            _, die = cap_pool(
                 replace(cfg, mismatch_sigma_unit=sigma / 100, manufacturing_seed=seed)
             )
             for mode in masks:
@@ -95,6 +126,14 @@ def _measurements(
     return rows, closure
 
 
+# =========================================================================
+# 2. 函数组：_summarize / _plot / run
+# =========================================================================
+# -------------------------------------------------------------------------
+# 逐失配水平汇总实测 dB 值和达到观察线的种子个数。
+# 同时绘制 SNDR、SFDR 的种子分布和中位数趋势。
+# 写出每个样本的指标、统计摘要和可审阅图。
+# ------------------------------------------------------------------------
 def _summarize(rows: list[DieMeasurement]) -> list[dict]:
     """逐失配水平汇总实测 dB 值和达到观察线的种子个数。"""
     summary = []
@@ -118,6 +157,7 @@ def _summarize(rows: list[DieMeasurement]) -> list[dict]:
     return summary
 
 
+# ------------------------------------------------------------------------
 def _plot(path: Path, rows: list[DieMeasurement], summary: list[dict]) -> None:
     """同时绘制 SNDR、SFDR 的种子分布和中位数趋势。"""
     plt.switch_backend("Agg")
@@ -129,14 +169,14 @@ def _plot(path: Path, rows: list[DieMeasurement], summary: list[dict]) -> None:
         0.905,
         "10 MS/s, 4096 coherent points, 998.535 kHz, 12 seeds per level",
         ha="center",
-        color=effects.GRAY,
+        color=GRAY,
         fontsize=9,
     )
 
     for ax, field, ylabel in zip(
         axes, ("sndr_db", "sfdr_db"), ("SNDR (dB)", "SFDR (dB)"), strict=True
     ):
-        for mode, color, x_scale in (("off", effects.ORANGE, 0.96), ("on", effects.BLUE, 1.04)):
+        for mode, color, x_scale in (("off", ORANGE, 0.96), ("on", BLUE, 1.04)):
             points = [row for row in rows if row.dem == mode and row.sigma_pct > 0]
             series = [row for row in summary if row["dem"] == mode]
             ax.scatter(
@@ -161,24 +201,25 @@ def _plot(path: Path, rows: list[DieMeasurement], summary: list[dict]) -> None:
         ax.set_xlim(0.0025, 0.12)
         ax.grid(alpha=0.23)
         ax.legend(fontsize=8)
-    axes[0].axhline(TARGET_SNDR_DB, color=effects.GRAY, ls="--", lw=0.9)
-    axes[0].text(0.105, TARGET_SNDR_DB + 0.7, "100 dB", ha="right", color=effects.GRAY, fontsize=8)
+    axes[0].axhline(TARGET_SNDR_DB, color=GRAY, ls="--", lw=0.9)
+    axes[0].text(0.105, TARGET_SNDR_DB + 0.7, "100 dB", ha="right", color=GRAY, fontsize=8)
     fig.text(
         0.5,
         0.075,
         "Each dot is one seed; horizontal offsets separate the modes. The 0% case is a numerical closure check.\n"
         "Ideal residue readout isolates capacitor mismatch. Thermal noise, actual ADC2 and CAAZ are outside this sweep.",
         ha="center",
-        color=effects.GRAY,
+        color=GRAY,
         fontsize=8,
     )
     fig.savefig(path, dpi=170, facecolor="white")
     plt.close(fig)
 
 
+# ------------------------------------------------------------------------
 def run(out: Path) -> dict:
     """写出每个样本的指标、统计摘要和可审阅图。"""
-    cfg = effects.ExperimentConfig()
+    cfg = ExperimentConfig()
     rows, closure = _measurements(cfg)
     series = _summarize(rows)
     out.mkdir(parents=True, exist_ok=True)
@@ -188,7 +229,7 @@ def run(out: Path) -> dict:
         writer.writerows(asdict(row) for row in rows)
     _plot(out / "sndr_sigma_sweep.png", rows, series)
 
-    root = effects.ROOT
+    root = ROOT
     sources = (
         Path(__file__).resolve().relative_to(root).as_posix(),
         "task1/experiments/run_effects.py",
@@ -239,6 +280,12 @@ def run(out: Path) -> dict:
     return summary
 
 
+# =========================================================================
+# 3. 函数组：main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 运行扫点，并按失配和开关模式打印 SNDR 中位数及范围。
+# ------------------------------------------------------------------------
 def main() -> None:
     """运行扫点，并按失配和开关模式打印 SNDR 中位数及范围。"""
     parser = argparse.ArgumentParser(description=__doc__)

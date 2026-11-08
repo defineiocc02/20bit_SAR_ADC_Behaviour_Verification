@@ -55,7 +55,10 @@ METRICS: tuple[tuple[str, str], ...] = (
     ("fig21_dem_sndr_lms_db", "groups.fig21_dem.tone.on.lms.sndr_db"),
     ("fig21_dem_sfdr_lms_dbc", "groups.fig21_dem.tone.on.lms.sfdr_dbc"),
     ("no_dem_sndr_lms_db", "groups.no_dem.tone.on.lms.sndr_db"),
-    ("fig21_dem_inl_off_nominal_lsb20", "groups.fig21_dem.linearity.off.nominal.endpoint_inl_peak_lsb20"),
+    (
+        "fig21_dem_inl_off_nominal_lsb20",
+        "groups.fig21_dem.linearity.off.nominal.endpoint_inl_peak_lsb20",
+    ),
     ("fig21_dem_inl_on_lms_lsb20", "groups.fig21_dem.linearity.on.lms.endpoint_inl_peak_lsb20"),
     ("fig21_dem_dnl_on_lms_lsb20", "groups.fig21_dem.linearity.on.lms.dnl_max_lsb20"),
 )
@@ -112,12 +115,16 @@ def compare(expected: dict, actual: dict) -> list[str]:
             "先用指纹记录的环境重跑（见 PINNED_COMMAND），确认不是版本漂移"
         )
     if expected.get("params") != actual.get("params"):
-        problems.append(f"实验参数不同: 指纹 {expected.get('params')} / 当前 {actual.get('params')}")
+        problems.append(
+            f"实验参数不同: 指纹 {expected.get('params')} / 当前 {actual.get('params')}"
+        )
 
     exp_metrics = expected.get("metrics", {})
     act_metrics = actual.get("metrics", {})
     if set(exp_metrics) != set(act_metrics):
-        problems.append(f"指标集合不同: 缺 {set(exp_metrics) - set(act_metrics)}，多 {set(act_metrics) - set(exp_metrics)}")
+        problems.append(
+            f"指标集合不同: 缺 {set(exp_metrics) - set(act_metrics)}，多 {set(act_metrics) - set(exp_metrics)}"
+        )
     for name, _ in METRICS:
         if name not in exp_metrics or name not in act_metrics:
             continue
@@ -131,11 +138,13 @@ def main() -> int:
     """按 --check 决定是生成指纹还是校验指纹。"""
     parser = argparse.ArgumentParser(description="行为模型数值基线指纹")
     parser.add_argument(
-        "--check", action="store_true",
+        "--check",
+        action="store_true",
         help="重算并与已存指纹逐字段比较，不一致则非零退出",
     )
     parser.add_argument(
-        "--show", action="store_true",
+        "--show",
+        action="store_true",
         help="把测得的八项指标打到标准输出，便于人工比对",
     )
     args = parser.parse_args()

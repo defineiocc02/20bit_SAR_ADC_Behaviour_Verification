@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : run_caaz_effect.py
+# 模块名     : run_caaz_effect
+# 版本       : v1.0
+# 功能       : 复现同输出速率下的 CAAZ 共用 AZ 噪声示例及数字时序图。
+#
+# 设计说明   :
+#   * 承担 联合效应/噪声实验与图件 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# =============================================================================
+
 """复现同输出速率下的 CAAZ 共用 AZ 噪声示例及数字时序图。"""
 
 from __future__ import annotations
@@ -14,8 +28,9 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
-from task1.experiments.full20_linearity_plots import _chinese_style  # noqa: E402
 from tools.run_open_rtl import digest, new_output, write_json  # noqa: E402
+
+from task1.experiments.full20_linearity_plots import chinese_style  # noqa: E402
 
 RAW_RATE_HZ = 10_000_000
 PAIR_RATE_HZ = RAW_RATE_HZ // 2
@@ -38,7 +53,12 @@ CASES = (
 )
 
 
-def _quantize(values: np.ndarray) -> np.ndarray:
+# =========================================================================
+# 1. 函数组：quantize / _codes / _simulate
+# =========================================================================
+# -------------------------------------------------------------------------
+def quantize(values: np.ndarray) -> np.ndarray:
+    """按 LSB_V 向下取整到 20 位有符号码；越界直接报错，不静默饱和。"""
     codes = np.floor(values / LSB_V).astype(np.int64)
     if np.any((codes < -(1 << 19)) | (codes >= 1 << 19)):
         raise RuntimeError("CAAZ example input exceeded the 20-bit code range")
@@ -47,7 +67,7 @@ def _quantize(values: np.ndarray) -> np.ndarray:
 
 def _codes(first: np.ndarray, second: np.ndarray, *, chopped: bool) -> np.ndarray:
     # 码中心按 (signed_code + 0.5) LSB 定义，偶减奇时 0.5 消去。
-    a, b = _quantize(first), _quantize(second)
+    a, b = quantize(first), quantize(second)
     return (a - b) // 2 if chopped else (a + b + 1) // 2
 
 
@@ -80,6 +100,12 @@ def _simulate() -> dict[str, np.ndarray]:
     }
 
 
+# =========================================================================
+# 2. 函数组：_density / _plot / run
+# =========================================================================
+# -------------------------------------------------------------------------
+# 保存完整样本、频谱和可核验指标。
+# -------------------------------------------------------------------------
 def _density(error: np.ndarray) -> np.ndarray:
     blocks = error.reshape(-1, FFT_LEN)
     transformed = np.fft.rfft(blocks - blocks.mean(axis=1, keepdims=True), axis=1)
@@ -89,7 +115,7 @@ def _density(error: np.ndarray) -> np.ndarray:
 
 
 def _plot(out: Path, arrays: dict[str, np.ndarray], metrics: dict) -> str:
-    font = _chinese_style()
+    font = chinese_style()
     # 直接导出字形轮廓，规避 macOS Hiragino TTC 子集嵌入时的 Type0 渲染问题。
     plt.rcParams["pdf.fonttype"] = 3
     fig, axes = plt.subplots(2, 1, figsize=(146 / 25.4, 132 / 25.4), height_ratios=[1, 1.5])
@@ -204,6 +230,12 @@ def run(out: Path) -> dict:
     return summary
 
 
+# =========================================================================
+# 3. 函数组：main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 指定一个仓库外的新目录来复现。
+# -------------------------------------------------------------------------
 def main() -> None:
     """指定一个仓库外的新目录来复现。"""
     parser = argparse.ArgumentParser(description=__doc__)

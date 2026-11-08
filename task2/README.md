@@ -1,16 +1,16 @@
 # 模块二｜Dither 生成、注入与效果
 
-**当前进度：**已交付六位扰动字发生器、八片子阵列采样位图与模块一联合 RTL，以及包含 2%／3% 固定失配、DEM 和 LMS 的八种开关行为对照。采样位图到真实模拟参考开关、辅助 DAC、实际宏后仿仍需验收。
+当前统一为 `k=c−U`、`conv_sub+sample_sub`。新数据、效果图与逐笔 RTL 记录见
+[负注入交付](evidence/eight_negative/README.md)；旧 `eight_native` 的图和 GDS 只作历史记录。
+负注入以显式受控电荷源建模，并假定与转换共享子权重，真实参考开关尚未绑定。
 
-## 八片子阵列的结果
+![负注入模型的 20 位线性度](evidence/eight_negative/eight_native_linearity.png)
 
-![八片、固定电容失配下的 20 位线性度](evidence/eight_native/eight_native_linearity.png)
+![负注入模型的频谱](evidence/eight_negative/eight_native_spectra.png)
 
-![八片、固定电容失配下的输出频谱](evidence/eight_native/eight_native_spectra.png)
-
-两边使用相同的 Fig.21 DEM 和混合训练后冻结的 LMS，dither 关／开共用同一颗虚拟芯片与状态。2%／3% 失配时，DNL RMS 分别为 0.1310 → 0.1288 和 0.1294 → 0.1265 LSB20；SFDR 分别为 127.265 → 128.554 和 128.253 → 127.126 dBc。第二项是退化，不能笼统说开启扰动总能改善频谱。
-
-静态结果只覆盖 ±3.671875 V 共同输入窗、256 个配对状态；满幅输入在 dither 开启时正端有 0.8617% 的等效输入宽度被拒绝。ADC2 为理想 12 位，辅助 DAC 和模拟参考建立也为理想模型。[八种组合、LMS 收敛、原始数据及原文对应](evidence/eight_native/README.md) · [八片 RTL 合同](eight_rtl/SPEC.md)
+同池 DEM／LMS 条件下，dither 对不同指标有改善也有退化，完整数字见新结果页。
+共同静态输入窗为 ±3.671875 V；ADC2 理想 12 位、输入折算 ±100 mV。
+全幅前端平均拒绝宽度为 0.0723805 V，不能把共同窗的结果当作全幅无缺码证明。
 
 与 CAAZ 联合时，本工程将扰动注入定义在**输入斩波之后**的采样坐标中，每笔先按自己的开关位图去扰、重构，再解调配对。若模拟电路将扰动接在斩波之前，奇数笔的注入极性会改变，必须重新定义开关与数字补偿；实际接线须由模拟组确认。
 
@@ -58,7 +58,7 @@
 
 - **已有：**`rtl/dither_word_gen.sv`、[八片联合 RTL](eight_rtl/rtl/dither8_top.sv)、[两节点行为模型](eight/model.py)、训练／频谱／静态图和独立电荷检查；[七片示例](model/fig19_seven.py)保留作原文机制对照。
 - **待模拟验收：**实际辅助 DAC、逐片子电容开关、参考极性与建立、ADC2／RA、电荷寄生和 PVT。八片位图与原生步长是基于现有 Fig.11 结构的工程推导，不能宣称已复现原芯片。
-- **后续物理交付：**模块二闭环完成后，在 SKY130HD 交 GDS、同约束 STA 和可复现报告；未来 180 nm BCD 模拟宏与后仿另行验收。
+- **物理交付：**包含模块二和片上重构的整体数字顶层已有 SKY130HD GDS、TT 角 STA 及公开 DRC／LVS 证据，见[物理记录](physical/README.md)；未来 180 nm BCD、多角和模拟宏后仿仍需单独验收。
 
 ```sh
 python -m pip install -r task1/requirements-calibration.txt

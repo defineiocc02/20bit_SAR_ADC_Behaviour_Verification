@@ -60,7 +60,20 @@ CENTERED = "frozen_weight_centered_command"
 # ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class MapperTable:
-    """Canonical mapper outputs indexed by RDAC command and frozen phase."""
+    """Canonical mapper outputs indexed by RDAC command and frozen phase.
+
+    Attributes:
+        bridge: 是否采用 Fig.21 候选；假时只有一组固定相位。
+        main: 按命令和相位索引的主阵列转换掩码。
+        sub: 同索引的子阵列转换掩码，物理 bit 顺序保持不变。
+        correction_q32: 同笔名义映射差量，不是制造失配估计值。
+
+    查找表由工程 mapper 生成，不是从专利提取的真实开关网表。
+    物理片号 plan 在查表时另行传入，不能把表的槽号当作物理片号。
+    相位以 v*8+h 组合，数组中的 128 个状态对应声明的映射范围。
+    名义补偿与物理权重重构不可重复叠加。
+    表的存在只说明映射可查，不证明模拟宏能在目标时窗建立。
+    """
 
     bridge: bool
     main: np.ndarray
@@ -97,7 +110,20 @@ class MapperTable:
 # ------------------------------------------------------------------------
 @dataclass(frozen=True)
 class FrozenArm:
-    """Digital quantities admitted by the deployed command selector."""
+    """Digital quantities admitted by the deployed command selector.
+
+    Attributes:
+        table: 对应处理臂的转换映射表。
+        threshold_v: 前级阈值及正端点，单位 V。
+        gain: 训练完成后固定的输入增益系数。
+        switch_weight_v: 已冻结的有效开关权重，单位 V。
+
+    部署算法只能使用这些数字可得量，不能读取未知实际制造电容。
+    输入范围与 ADC2 范围分别来自各自合同，不能通过命令重选取消物理过载。
+    候选搜索是残差重居中研究，不等同于新增 ADC 量程保证。
+    训练与留出的切片计划必须保留，便于核对系数属于哪一颗虚拟芯片。
+    增益的聚合按物理组成员计算，而非按槽序直接相加同一行。
+    """
 
     table: MapperTable
     threshold_v: np.ndarray
@@ -164,6 +190,17 @@ def _spectral_evidence(
     adc2_bits: int,
     half_window_v: float,
 ) -> dict:
+    """频谱使用指定记录的实际采样率与输入频点，不从文件名推断。
+
+    频谱使用指定记录的实际采样率与输入频点，不从文件名推断。
+    码宽和有效位数分别报告，20 位整数输出不自动等于 20 位 ENOB。
+    评价窗口和拒绝样本必须与所画频谱共同披露。
+    局部优化后的一个指标不能掩盖另一项的退化。
+    原始量化误差、静态固定误差和随机噪声需按模型边界分别解释。
+    未加入的 C-V、参考记忆及比较器动态不能从此结果中补出性能。
+    训练误差不作为留出频谱的替代。
+    图形输出不提升原始数据的证据等级。
+    """
     report = range_report(r, half_window_v)
     clipped = np.clip(r, -half_window_v, np.nextafter(half_window_v, -np.inf))
     adc2_v = decode_switches(quantize(clipped, adc2_bits, half_window_v), adc2_bits, half_window_v)
@@ -226,7 +263,8 @@ def _tone(
         if label == DIRECT:
             np.testing.assert_array_equal(r, data[prefix + "residue_v"])
             original = (
-                base + decode_switches(data[prefix + "adc2_code"], cfg.adc2_bits, cfg.adc2_half_range_v)
+                base
+                + decode_switches(data[prefix + "adc2_code"], cfg.adc2_bits, cfg.adc2_half_range_v)
             ) / gain - frozen.peak_v
             np.testing.assert_allclose(original, data[prefix + "calibrated_v"], rtol=0, atol=5e-14)
         traces[label + "_rdac_command"] = state.codes
@@ -481,4 +519,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

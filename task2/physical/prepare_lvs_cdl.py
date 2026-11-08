@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : prepare_lvs_cdl.py
+# 模块名     : prepare_lvs_cdl
+# 版本       : v1.0
+# 功能       : Apply the official SKY130HD CDL syntax repair to the pinned ORFS input.
+#
+# 设计说明   :
+#   * 承担 物理交付打包与审计 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# =============================================================================
+
 """Apply the official SKY130HD CDL syntax repair to the pinned ORFS input."""
 
 import argparse
@@ -12,6 +26,12 @@ ORIGINAL_SHA = "ae02cdc40c81943bbc3f4a16a6760e01afd12764a94e7836b7e168edf40ae29c
 COMPATIBLE_SHA = "7fe13f045cdab9574e977a7c7cb02c3a4fb3f1db39cbd6ff11047fc8e0542107"
 
 
+# =========================================================================
+# 1. 函数组：main
+# =========================================================================
+# -------------------------------------------------------------------------
+# Validate both inputs against upstream hashes and record the translation.
+# -------------------------------------------------------------------------
 def main() -> None:
     """Validate both inputs against upstream hashes and record the translation."""
     parser = argparse.ArgumentParser(description=__doc__)

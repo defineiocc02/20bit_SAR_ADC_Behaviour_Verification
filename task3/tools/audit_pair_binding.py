@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : audit_pair_binding.py
+# 模块名     : audit_pair_binding
+# 版本       : v1.0
+# 功能       : 从冻结夹具复核 CAAZ 配对前的逐笔 dither 掩码绑定。
+#
+# 设计说明   :
+#   * 承担 联合效应/噪声实验与图件 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """从冻结夹具复核 CAAZ 配对前的逐笔 dither 掩码绑定。"""
 
 from __future__ import annotations
@@ -15,12 +29,13 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
-from task1.experiments.adctoolbox_calibration import SwitchState, _quantize  # noqa: E402
+from tools.run_open_rtl import digest, new_output, write_json  # noqa: E402
+
+from task1.experiments.adctoolbox_calibration import SwitchState, quantize  # noqa: E402
 from task1.experiments.residue_control_study import MapperTable  # noqa: E402
 from task2.eight.model import coarse_decision, decode  # noqa: E402
 from task_integration.tools.run_lms_checks import pack, slots  # noqa: E402
 from task_reconstruction.fixed import Coefficients, from_training, reconstruct  # noqa: E402
-from tools.run_open_rtl import digest, new_output, write_json  # noqa: E402
 
 CAPS = ROOT / "task2/evidence/eight_native/sigma_3pct"
 JOINT = ROOT / "task3/evidence/integrated"
@@ -28,6 +43,10 @@ RTL_RECEIPT = ROOT / "task_integration/evidence/on_chip/result.json"
 GROUP = "dither_1_caaz_1"
 
 
+# =========================================================================
+# 1. 函数组：_replay / _pair_codes / _pair_error
+# =========================================================================
+# ------------------------------------------------------------------------
 def _replay(
     coef: Coefficients,
     state: SwitchState,
@@ -69,10 +88,12 @@ def _replay(
     return codes, rejected, vectors.hexdigest()
 
 
+# ------------------------------------------------------------------------
 def _pair_codes(codes: np.ndarray) -> np.ndarray:
     return (codes[::2] - codes[1::2]) // 2
 
 
+# ------------------------------------------------------------------------
 def _pair_error(pair_codes: np.ndarray, reference: np.ndarray, lsb: float) -> dict:
     error_uv = ((pair_codes + 0.5) * lsb - reference) * 1e6
     return {
@@ -82,6 +103,13 @@ def _pair_error(pair_codes: np.ndarray, reference: np.ndarray, lsb: float) -> di
     }
 
 
+# =========================================================================
+# 2. 函数组：audit / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 核对正确向量逐字节身份，并故意给奇笔传入前一偶笔的采样子掩码。
+# 从冻结输入复算并保存机器收据。
+# ------------------------------------------------------------------------
 def audit() -> dict:
     """核对正确向量逐字节身份，并故意给奇笔传入前一偶笔的采样子掩码。"""
     cap_path = CAPS / "data.npz"
@@ -112,7 +140,7 @@ def audit() -> dict:
         residue = data[f"{GROUP}_adc2_residue_v"]
         adc2_cfg = cap_meta["calibration"]
         np.testing.assert_array_equal(
-            _quantize(residue, adc2_cfg["adc2_bits"], adc2_cfg["adc2_half_range_v"]), adc2
+            quantize(residue, adc2_cfg["adc2_bits"], adc2_cfg["adc2_half_range_v"]), adc2
         )
         chopped_input = data["raw_reference_v"].copy()
         chopped_input[1::2] *= -1
@@ -210,8 +238,13 @@ def audit() -> dict:
     }
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
-    """从冻结输入复算并保存机器收据。"""
+    """从冻结输入复算并保存机器收据。
+
+    负例用于证明检查器能识别错误绑定，不是证明被测设计存在该缺陷。
+    正例和负例都使用明确的样本号与 AZ 代，不按数组位置猜测配对。
+    """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()

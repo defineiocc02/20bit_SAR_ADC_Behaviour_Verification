@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : run_synth.py
+# 模块名     : run_synth
+# 版本       : v1.0
+# 功能       : Run a standalone Yosys standard-cell mapping and record its inputs.
+#
+# 设计说明   :
+#   * 承担 物理流程辅助脚本 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# =============================================================================
+
 """Run a standalone Yosys standard-cell mapping and record its inputs."""
 
 import argparse
@@ -14,6 +28,14 @@ DESIGN = "module1_top"
 SOURCES = ("slice_scheduler.sv", "fig11_dem.sv", "module1_top.sv")
 
 
+# =========================================================================
+# 1. 函数组：sha256 / run / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# Hash the bytes of a synthesis input or artifact.
+# Map the module with the requested Yosys and Liberty inputs.
+# Parse the local technology-mapping inputs.
+# -------------------------------------------------------------------------
 def sha256(path: Path) -> str:
     """Hash the bytes of a synthesis input or artifact."""
     return hashlib.sha256(path.read_bytes()).hexdigest()

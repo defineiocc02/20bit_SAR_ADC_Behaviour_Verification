@@ -182,6 +182,21 @@ def _calibrate_gain(physical, experiment, cfg, table, thresholds, step_v):
 
 # ------------------------------------------------------------------------
 def _fit_weights(input_v, state, raw_code, gain, holdout, cfg, peak):
+    """调用合同。
+
+    Args:
+        input_v: 训练独立参考，单位 V，不由待校准输出反推。
+        state: 与训练样本同笔的物理片号及 0／1／2 开关特征。
+        raw_code: 同笔 ADC2 原码。
+        gain: 已冻结的每片输入增益。
+        holdout: 只用于检查训练空间覆盖的留出特征。
+        cfg: 量化和 NLMS 配置。
+        peak: 名义差分峰值，单位 V。
+    Returns:
+        冻结失配权重、可观测性报告和训练轨迹。
+
+    扰动开启所激活的特征必须在训练空间内，否则不能把留出性能当作泛化验证。
+    """
     physical_bits = fit_features(state.switches, state.features)
     known_target_v = gain[state.switches.plan].sum(axis=1) * (input_v + peak) - (
         state.nominal_base_v + decode_switches(raw_code, cfg.adc2_bits, cfg.adc2_half_range_v)
@@ -383,6 +398,28 @@ def _span_outside(lo, hi, slope, allowed_lo, allowed_hi):
 
 # ------------------------------------------------------------------------
 def _static(table, physical, experiment, cfg, thresholds, step_v, gain, weight, states, enabled):
+    """调用合同。
+
+    每个粗码区间与理想 ADC2 量化区间求交，累积到最终 20 位输出码。
+    积分的概率分母是本次选定的配对状态数，不是输出码数量。
+    共同输入窗用于公平比较；满幅前端拒绝、ADC2 超窗和输出越界仍另行统计。
+
+    Args:
+        table: Fig.11 或 Fig.21 转换位图查找表。
+        physical: 固定制造池映射的实际电荷权重与输入增益。
+        experiment: 差分范围、制造失配和状态配置。
+        cfg: ADC2 位数、输入折算半量程及训练配置。
+        thresholds: 含端点的前级阈值数组，单位 V。
+        step_v: 名义单位扰动，单位 V。
+        gain: 冻结的每物理片增益。
+        weight: 冻结的每物理片失配差量权重，单位 V。
+        states: 有序片号、两路 DEM 相位及配对扰动字。
+        enabled: 是否使用每个状态已分配的扰动字；关闭不改变制造池。
+    Returns:
+        各重构模式的指标与完整逐码宽数组，码宽单位 V。
+    Raises:
+        ValueError: 共同窗存在拒绝、积分不守恒或输出端点保护不足。
+    """
     plan0, h0, v0, word_on = states
     word0 = word_on if enabled else np.zeros_like(word_on)
     d0 = decode(word0)
@@ -603,8 +640,15 @@ def run(output, sigma, seed, noise=None, reference=None, experiment=None):
         "src/adi_model/charge_ref.py",
     )
     summary = {
-        "schema": "eight_slice_native_dither_1",
-        "scope": "behavioral two-node RDAC with fixed physical mismatch and ideal SADC assist and ADC2",
+        "schema": "eight_slice_negative_dither_2",
+        "scope": "behavioral two-node RDAC with explicit auxiliary charge source, fixed mismatch, ideal SADC assist and ADC2",
+        "injection_contract": {
+            "command": "k=c-U",
+            "residue": "g*(x+peak)-VD-T",
+            "sub_feature": "conv+sample in {0,1,2}",
+            "auxiliary_charge_c": "Vspan*sum(actual_sub_cap_f*logical_injection_mask)",
+            "physical_binding": "NOT_IMPLEMENTED: controlled charge source is an engineering assumption",
+        },
         "experiment": asdict(experiment),
         "calibration": asdict(cfg),
         "native_dither_step_v": step_v,

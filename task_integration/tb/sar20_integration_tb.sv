@@ -1,36 +1,65 @@
-// 数字闭环夹具。外部重构按本笔 T8 逐笔去扰，ADC2、失配和 AZ 噪声不在此夹具内。
+// =============================================================================
+// 文件名     : sar20_integration_tb.sv
+// 模块名     : sar20_integration_tb
+// 版本       : v1.0
+// 功能       : 数字整体顶层的集成逐沿对拍测试台
+//
+// 设计说明   :
+//   * 稳态 4096 笔验 16 拍节拍与 8/8 片号不重叠；协议错误组覆盖 stall、错 ID、重复命令。
+//   * 期望值来自独立整数参考与同笔采样/转换位图，不能复用被测顶层输出。
+//   * 单时钟域 clk_i；复位、清空、禁用优先于受理，异常路径不得静默接受。
+// -----------------------------------------------------------------------------
+// 变更记录
+// -----------------------------------------------------------------------------
+// 初始版本，暂无变更记录。
+// ===========================================================================
+
 `timescale 1ns/1ps
+// =========================================================================
+// 1. 模块接口与端口分组
+// =========================================================================
+// -------------------------------------------------------------------------
+// 端口按功能分组，slot 0 在最低位；总线位宽与定点格式见同目录 SPEC。
+// -------------------------------------------------------------------------
 module sar20_integration_tb;
+  // [负例] 正常粗码先与该样本 upper 作减法，再送入转换映射。
+  // c<U 时拒绝整笔命令，不能把十位无符号回绕值截成九位继续转换。
+  // 错 ID、早到重构、重复粗码与模拟宏异常分别刺激，避免共用同一故障掩盖判据。
+  // 对外部重构返回的等待不设置伪造超时成功，真实延迟用计数与 ID 追踪。
+  // AZ 捕获／保持意图按该笔 RA 时窗检查，不能把下一笔采集状态贴到旧残差。
+  // 本台输入重构码来自外部夹具；片上 LMS 数值另由整体 LMS 测试台验证。
+  // 6.25 ns 是声明的数字时钟目标，本台仿真周期不替代工艺 STA。
+
   logic clk_i = 0;
-  logic rst_ni, clear_i, enable_i, advance_i, advance_ready_o;
-  logic [17:0] eligible_i;
-  logic shuffle_i, dem_enable_i, bridge_enable_i, dither_enable_i, caaz_enable_i;
-  logic seed_load_i, seed_error_o, slot_accepted_o, stall_o;
-  logic [31:0] slice_seed_i, dem_seed_i;
-  logic [30:0] dither_seed_i;
-  logic acq_valid_o, acq_chop_neg_o, acq_az_capture_o, acq_az_hold_o;
-  logic [31:0] acq_sample_id_o;
-  logic [39:0] acq_slice_ids_o, acq_sample_sub_high_o;
-  logic [5:0] acq_word_o;
-  logic [4:0] acq_lower_eighths_o;
-  logic [30:0] acq_az_pair_id_o;
-  logic conv_ready_o;
-  logic [31:0] conv_sample_id_o;
-  logic [39:0] conv_slice_ids_o, conv_sample_sub_high_o;
-  logic [5:0] conv_word_o, conv_total_eighths_o;
-  logic code_valid_i, mask_valid_o, code_error_o;
-  logic [8:0] code_i, command_code_o;
-  logic [31:0] code_sample_id_i, bridge_correction_q32_o;
-  logic [135:0] main_mask_o;
-  logic [39:0] sub_mask_o;
-  logic recon_valid_i, recon_ready_o, recon_bad_i, recon_chop_neg_i, recon_az_ok_i;
-  logic [31:0] recon_sample_id_i;
-  logic signed [19:0] recon_code_i, out_code_o;
-  logic [30:0] recon_az_pair_id_i, out_az_pair_id_o;
-  logic recon_error_o, out_valid_o, out_pair_o, fault_o, fault_pulse_o, alignment_fault_o;
-  logic [31:0] out_sample_id_o, out_first_sample_id_o;
-  logic signed [20:0] out_difference_o;
-  logic [2:0] caaz_fault_code_o;
+  logic rst_ni, clear_i, enable_i, advance_i, advance_ready_o;  // 接受一次才推进采集／转换角色，拒绝和反压不得产生新样本。
+  logic [17:0] eligible_i;  // 模拟释放资格，不等同于数字池空闲；不足八片必须 stall。
+  logic shuffle_i, dem_enable_i, bridge_enable_i, dither_enable_i, caaz_enable_i;  // 选择旁路或非重叠两笔配对，输出计数按模式分别检查。
+  logic seed_load_i, seed_error_o, slot_accepted_o, stall_o;  // 候选不足的拒绝观测，不是已接收样本的错误返回。
+  logic [31:0] slice_seed_i, dem_seed_i;  // 非零随机状态的重载接口，冲突请求不应推进样本或随机流。
+  logic [30:0] dither_seed_i;  // 非零随机状态的重载接口，冲突请求不应推进样本或随机流。
+  logic acq_valid_o, acq_chop_neg_o, acq_az_capture_o, acq_az_hold_o;  // 该笔 RA 时窗的保持意图，不以采集时钟位置猜测。
+  logic [31:0] acq_sample_id_o;  // 逐笔归属标识，跨 ADC2 和重构延迟后必须原样保持。
+  logic [39:0] acq_slice_ids_o, acq_sample_sub_high_o;  // 逻辑负注入掩码；不等同于已经验证的物理底板接轨。
+  logic [5:0] acq_word_o;  // 与样本绑定的六位字，不从最近时钟的随机状态重新推导。
+  logic [4:0] acq_lower_eighths_o;  // SADC 低路幅度分子，单位为名义注入档的八分之一。
+  logic [30:0] acq_az_pair_id_o;  // 共享 AZ 的代号，必须与两笔真实返回的元数据一致。
+  logic conv_ready_o;  // 旧采集组晋升后的转换描述符有效，不是最终结果已退休。
+  logic [31:0] conv_sample_id_o;  // 逐笔归属标识，跨 ADC2 和重构延迟后必须原样保持。
+  logic [39:0] conv_slice_ids_o, conv_sample_sub_high_o;  // 逻辑负注入掩码；不等同于已经验证的物理底板接轨。
+  logic [5:0] conv_word_o, conv_total_eighths_o;  // RDAC 总幅度分子，单位为名义注入档的八分之一。
+  logic code_valid_i, mask_valid_o, code_error_o;  // 粗码或归属被拒绝的观测，错误不能发布有效转换掩码。
+  logic [8:0] code_i, command_code_o;  // 最终 RDAC 命令，负注入合同按 c-U 检查，不允许回绕。
+  logic [31:0] code_sample_id_i, bridge_correction_q32_o;  // 名义跨段差量，物理权重重构中不可重复叠加。
+  logic [135:0] main_mask_o;  // 同笔八槽主阵列转换位图，按实际物理片号解释。
+  logic [39:0] sub_mask_o;  // 同笔子阵列转换位图，dummy 非零应拒绝。
+  logic recon_valid_i, recon_ready_o, recon_bad_i, recon_chop_neg_i, recon_az_ok_i;  // 模拟宏对捕获／保持有效性的确认，缺失不得当作成功。
+  logic [31:0] recon_sample_id_i;  // 逐笔归属标识，跨 ADC2 和重构延迟后必须原样保持。
+  logic signed [19:0] recon_code_i, out_code_o;  // 最终有符号码，只在对应有效事务中比较。
+  logic [30:0] recon_az_pair_id_i, out_az_pair_id_o;  // 共享 AZ 的代号，必须与两笔真实返回的元数据一致。
+  logic recon_error_o, out_valid_o, out_pair_o, fault_o, fault_pulse_o, alignment_fault_o;  // 故障保持状态，与故障脉冲及正常输出分别核对。
+  logic [31:0] out_sample_id_o, out_first_sample_id_o;  // 同步低有效复位，必须取消在途样本；不能只清最终 valid。
+  logic signed [20:0] out_difference_o;  // 解调前的完整有符号差值，负奇数的除二方向须另验。
+  logic [2:0] caaz_fault_code_o;  // 异常分类观测，不能仅凭输出未出现推断错误原因。
 
   int cycles, checks, steady, bypass, pairs, mismatched_dither_pairs, rejections;
   int late_returns, command_cases, headroom_failures, macro_faults;
@@ -46,6 +75,10 @@ module sar20_integration_tb;
     cycles++;
   endtask
 
+// =========================================================================
+// 2. 断言组与覆盖点
+// =========================================================================
+// 期望值来自独立参考；计数器只统计覆盖，不参与判错。
   task automatic check(input bit condition, input string message);
     checks++;
     if (!condition) $fatal(1, "cycle=%0d: %s", cycles, message);
@@ -55,7 +88,11 @@ module sar20_integration_tb;
     return 4 * int'(word[5]) + int'(word[3]);
   endfunction
 
-  function automatic int total(input logic [5:0] word);
+  // T8 = 8I + m 的展开式与六位字自身逐位相同（32/16/8/4/2/1 的位权即 8I+m），
+  // 因此本函数在数值上是恒等映射。保留它只为在 sample_mask 与重构里表达 I 与 m 的分解。
+  // 推论：任何「conv_total_eighths_o == total_eighths(word)」的断言等价于「== word」，
+  // 不能用来区分「透传」与「真正的位域重组」，不要把这类断言当作 T8 语义的独立证据。
+  function automatic int total_eighths(input logic [5:0] word);
     return 8 * (upper(word) + 2 * int'(word[4])) + int'(word[2:0]);
   endfunction
 
@@ -64,7 +101,7 @@ module sar20_integration_tb;
     int level;
     result = '0;
     for (int slot = 0; slot < 8; slot++) begin
-      level = total(word) / 8 + int'(slot < (total(word) % 8));
+      level = total_eighths(word) / 8 + int'(slot < (total_eighths(word) % 8));
       for (int bit_idx = 0; bit_idx < 4; bit_idx++) begin
         result[5*slot + bit_idx] = 1'((level / (8 >> bit_idx)) % 2);
       end
@@ -170,7 +207,7 @@ module sar20_integration_tb;
   endtask
 
   task automatic steady_stream(input bit chopped, input int count);
-    logic [5:0] word, prev_word, previous_even_word;
+    logic [5:0] word, prev_word, previous_even_word;  // 与样本绑定的六位字，不从最近时钟的随机状态重新推导。
     logic [39:0] prev_ids;
     bit prev_bridge;
     int raw_id, c, x, measured, corrected, even_code, diff_ref, launch_cycle;
@@ -193,7 +230,8 @@ module sar20_integration_tb;
       if (sample_idx > 0) begin
         check(conv_ready_o && conv_sample_id_o == 32'(raw_id) && conv_slice_ids_o == prev_ids,
               "previous eight slices and ID became conversion group");
-        check(conv_word_o == prev_word && int'(conv_total_eighths_o) == total(prev_word) &&
+        // 本项实际只验「同笔稳定 + 端口等于字」；T8 与字同值，故它不是独立观测量。
+        check(conv_word_o == prev_word && int'(conv_total_eighths_o) == total_eighths(prev_word) &&
               conv_sample_sub_high_o == sample_mask(prev_word), "same-ID conversion dither");
         code_valid_i = 1;
         code_sample_id_i = 32'(raw_id);
@@ -214,7 +252,7 @@ module sar20_integration_tb;
             acq_az_capture_o == (chopped && !1'(sample_idx)) &&
             acq_az_hold_o == (chopped && 1'(sample_idx)) &&
             acq_az_pair_id_o == (chopped ? 31'(sample_idx / 2) : 31'd0), "macro AZ control");
-      if (sample_idx > 0) check_command(c + upper(prev_word), prev_bridge);
+      if (sample_idx > 0) check_command(c - upper(prev_word), prev_bridge);
       repeat (11) begin
         step_clock();
         check(!out_valid_o && !acq_valid_o && !mask_valid_o, "valid pulses and idle gaps");
@@ -224,7 +262,7 @@ module sar20_integration_tb;
               "unfinished conversion is held through N+14");
         x = (raw_id * 883) % 800011 - 399991;
         // 已知独立注入在夹具中用 11 码/档，先逐笔去扰，再接入斩波坐标。
-        measured = ((chopped && 1'(raw_id)) ? -x : x) + 321 + 11 * total(prev_word);
+        measured = ((chopped && 1'(raw_id)) ? -x : x) + 321 + 11 * total_eighths(prev_word);
         corrected = measured - 11 * int'(conv_total_eighths_o);
         recon_valid_i = 1;
         recon_sample_id_i = 32'(raw_id);
@@ -305,16 +343,16 @@ module sar20_integration_tb;
     rejections += 2;
     recon_sample_id_i = 0;
     code_sample_id_i = 0;
-    code_i = 9'd511;
+    code_i = 9'd0;
     step_clock();
     check(recon_error_o && code_error_o && !mask_valid_o && conv_ready_o,
-          "early recon and coarse overflow rejected");
+          "early recon and coarse underflow rejected");
     rejections++;
     headroom_failures++;
     recon_valid_i = 0;
     code_i = 9'd123;
     step_clock();
-    check_command(123 + upper(conv_word_o), 1);
+    check_command(123 - upper(conv_word_o), 1);
     step_clock();
     check(code_error_o && !mask_valid_o, "second coarse command rejected");
     rejections++;

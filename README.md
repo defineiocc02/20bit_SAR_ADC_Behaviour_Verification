@@ -4,6 +4,12 @@
 
 [任务规格与分工](task1/SPEC.md) · [模块一](task1/README.md) · [统一 LMS 实验标准](task1/EXPERIMENT_STANDARD.md) · [原始论文与专利](references/README.md)
 
+**当前交付版本：**数字合同统一为 `k=c−U`、`conv_sub+sample_sub`，新结果与旧图／旧 GDS 分开。
+新模型以显式受控电荷源实现负注入，假定注入与转换共享子权重；真实模拟底板轨尚未绑定。
+[本轮结果和复现](task2/evidence/eight_negative/README.md) · [数字验收记录](task_integration/evidence/negative/README.md)
+
+**同学接手：**固定并复现已验证版本，确认模拟接口后，按 DEM／LMS → dither → CAAZ 的顺序完成逐笔对拍与效果图，最后完成目标工艺数字后端验收。[九个月交付与验收](task1/SPEC.md#接手顺序与九个月交付)
+
 除数字 RTL 外，本仓库还含一套**行为级模型复现**（`src/adi_model/` 与 `task2/eight/`），
 按 ISSCC 2024 论文的公开数字做定量对标。它与 RTL 交付是两条独立的证据线，状态见
 [「现在交付到哪里」](#现在交付到哪里)的最后一行；两者的结论不能互相替代。
@@ -30,23 +36,24 @@
 
 ![ISSCC 讲稿 dither 两路注入的中文说明](task2/figures/dither_isscc_ppt.png)
 
-**先看不使用 LMS：**下图两边都开启 Fig.21 DEM，仅改变 dither。2%／3% 固定失配下，开启 dither 后统计零宽码分别从 434,691／396,727 降至 0；峰值 INL 分别为 63.60 → 62.45／96.95 → 93.46 LSB20。静态码密度变平，但频谱 SNDR 仍只有约 52／48 dB。
+**先看不使用 LMS：**Fig.21 DEM 始终开启，只有 dither 改变。在同一颗 2%／3% 固定失配芯片中，统计零宽内码分别从 434,691／396,727 降至 0，但峰值 INL 从 63.602／96.952 增至 75.950／112.907 LSB20。dither 平滑码宽，不保证 INL 或 SNDR 同时改善。
 
-![不使用 LMS 时，八片 dither 开关的 20 位 INL／DNL](task2/evidence/eight_native/eight_native_no_lms_linearity.png)
+![负注入模型：关闭 LMS 的 dither 开关对照](task2/evidence/eight_negative/eight_native_no_lms_linearity.png)
 
-[不使用 LMS 的频谱图与数据](task2/evidence/eight_native/NO_LMS.md) · [DEM、LMS、dither 八种组合](task2/evidence/eight_native/eight_native_factorial.png)
+**再看加入 LMS：**两档各使用混合开关训练后冻结的同一组系数。输出单位为 LSB20＝9.5367 μV，ADC2 为理想 12 位、输入折算 ±100 mV。
 
-**再看加入 LMS：**下图按实际选择的 8 片逐一计算子电容底板注入；每档为同一颗固定失配虚拟芯片，DEM 和 LMS 系数在开关两侧相同。理想 12 位 ADC2 的输入等效范围为 ±100 mV。
+![负注入模型：相同 DEM 和 LMS 下的逐码统计](task2/evidence/eight_negative/eight_native_linearity.png)
 
-![八片子阵列扰动的 20 位 INL／DNL](task2/evidence/eight_native/eight_native_linearity.png)
+![负注入模型：同池同输入频谱](task2/evidence/eight_negative/eight_native_spectra.png)
 
-![八片子阵列扰动的 20 位输出频谱](task2/evidence/eight_native/eight_native_spectra.png)
+| 固定失配 | dither 关→开 SNDR | dither 关→开 SFDR | dither 关→开峰值 INL |
+| :--- | :--- | :--- | :--- |
+| 2% | 103.941→103.728 dB | 127.089→128.049 dBc | 0.493→0.523 LSB20 |
+| 3% | 103.573→103.521 dB | 128.268→128.215 dBc | 0.492→0.461 LSB20 |
 
-2% 失配下 DNL RMS 为 0.1310 → 0.1288 LSB20，SFDR 为 127.265 → 128.554 dBc；3% 下分别为 0.1294 → 0.1265 LSB20、128.253 → 127.126 dBc。箭头为 dither 关 → 开，收益和退化均如实保留。静态图在 ±3.671875 V 输入窗内以 256 个配对状态统计 754,319 个 20 位码，属于平均码密度，不是全幅单次转换结果。满幅均匀输入下，dither 使正端约 0.8617% 输入宽度被拒绝。
+评价范围是 ±3.671875 V 的共同输入窗，256 个等权配对状态、754,319 个内码，属于统计平均码密度。满幅均匀输入及等权字下，前端平均拒绝宽度为 0.0723805 V（全幅的 0.723805%）；全部字共同名义下限为 −4.855239 V，拒绝主要移到负端。**不是全幅单次转换无缺码或目标精度达标证明。**
 
-必须将 dither 开启时出现的子电容状态纳入训练：直接沿用只在关闭态训练的旧系数，2%／3% 的 SNDR 分别降至 78.16／74.65 dB。[八种开关、训练图与原始数据](task2/evidence/eight_native/README.md) · [专利七片示例](task2/evidence/fig19_seven/README.md)
-
-[dither 与 CAAZ 联合四组效果图](task3/evidence/integrated/README.md)使用同一 3% 失配池和 80 µV 人工偏移，验证逐笔重构后配对抵消；它不是模拟宏的实测噪声结果。
+[完整八种开关、训练、原始数据及复现](task2/evidence/eight_negative/README.md) · [旧正注入归档](task2/evidence/eight_native/README.md) · [专利七片示例](task2/evidence/fig19_seven/README.md)
 
 ## CAAZ 如何与 DEM、dither 协作？
 
@@ -54,18 +61,18 @@
 
 ![DEM、dither 与 CAAZ 的同笔协作与交织时序](task3/evidence/cooperation/caaz_cooperation.png)
 
-![同一失配池中 CAAZ 的 AZ 噪声开关对照](task3/evidence/joint_noise/caaz_joint_noise.png)
+![负注入模型中 CAAZ 的同带宽对照](task3/evidence/negative/joint_noise/caaz_joint_noise.png)
 
-这组**样本域模型**在 CDAC 残差之后、ADC2 量化之前加入人工设定的 AZ 与独立噪声。相同 5 MS/s 带宽下，独立 AZ 基线的总误差为 19.13 µV RMS，理想共享 AZ 后为 13.68 µV RMS，加入示例保持误差后为 13.75 µV RMS。四组带噪 ADC2 数据已在整体数字 RTL 复演；实际 RA 噪声、保持泄漏和时序仍需模拟验证。[模型、工况与原始数据](task3/evidence/joint_noise/README.md) · [RTL 逐笔对拍](task_integration/evidence/joint_noise/README.md)
+这组**样本域模型**在 CDAC 残差之后、ADC2 量化之前加入明确的 AZ 和独立噪声。在相同 5 MS/s 输出条件下，独立 AZ 总交流误差为 19.264 μV RMS，理想共享 AZ 后为 13.875 μV RMS，加入示例保持误差后为 14.041 μV RMS。四组共 16,384 个原始码、8,192 个配对结果均已在数字 RTL 逐码重放；前两组配对在外部计算，后两组由 RTL CAAZ 生成。真实 RA 噪声、保持泄漏与时序仍待模拟验证。[原始噪声数据](task3/evidence/negative/joint_noise/summary.json) · [RTL 新版验收](task_integration/evidence/negative/README.md)
 
 ## 现在交付到哪里？
 
 | 项目 | 当前状态 | 入口 |
 | :--- | :--- | :--- |
 | 切片调度＋DEM | 18／8／8／2、有序 ID、释放资格和 Fig.21 跨段候选已有 Python／RTL 对拍；跨段名义补偿与模拟连接仍须系统验证 | [代码与接口](task1/BRIDGE_SPEC.md) · [数字验证](task1/evidence/bridge_rtl/README.md) |
-| 电容失配＋LMS | 训练在片外；可写权重的片上重构 RTL 已与定点参考对拍。2%／3% 留出数据和关闭 LMS 的对照均已归档 | [八片校准与对照](task2/evidence/eight_native/README.md) · [片上重构](task_reconstruction/README.md) |
-| SKY130 数字后端 | 含片上 LMS 的整体数字顶层已有 GDS，6.25 ns、TT 角提取后 setup／hold、独立公开 DRC 和上游修订规则 LVS 通过 | [整体 GDS 与状态](task2/physical/README.md) · [模块一 GDS](task1/physical/README.md) |
-| 分路 dither | 18 片中选择 8 片，六位字、逐片底板采样、同笔 ID 和命令码有 Python／RTL 对拍及有界形式验证；模拟辅助 DAC 和真实参考开关仍须验收 | [八片效果](task2/evidence/eight_native/README.md) · [RTL 合同](task2/eight_rtl/SPEC.md) |
+| 电容失配＋LMS | 训练在片外；可写权重的片上重构 RTL 已与定点参考对拍。2%／3% 留出数据和关闭 LMS 的对照均已归档 | [八片校准与对照](task2/evidence/eight_negative/README.md) · [片上重构](task_reconstruction/README.md) |
+| SKY130 数字后端 | 旧正注入版已有 GDS、TT STA、DRC／LVS；本次负注入 RTL 必须重新跑后端，不能继承旧版通过状态 | [整体 GDS 与状态](task2/physical/README.md) · [模块一 GDS](task1/physical/README.md) |
+| 分路 dither | 18 片中选择 8 片，六位字、逐片底板采样、同笔 ID 和命令码有 Python／RTL 对拍及有界形式验证；模拟辅助 DAC 和真实参考开关仍须验收 | [八片效果](task2/evidence/eight_negative/README.md) · [RTL 合同](task2/eight_rtl/SPEC.md) |
 | CAAZ | 斩波相位、自归零控制和两笔数字配对已有 RTL 对拍；模拟宏、实际保持误差和联合后仿仍待验证 | [模块三说明](task3/README.md) |
 | 行为级模型复现 | 噪声层已对上论文：DR 94.49 dB（折算后）、噪声密度 9.26 nV/√Hz。**未对上**：SNR 高 0.82 dB、DNL 峰值差 2.3 倍、THD 无 C-V 机制产生不出。门禁 G1–G7 为 3 绿 4 红 | [动态对标](task2/evidence/paper_alignment/ALIGNMENT.md) · [静态 12 格](task2/evidence/paper_alignment/STATIC.md) · [门禁与收据](task2/evidence/behavior_freeze/gate.json) |
 

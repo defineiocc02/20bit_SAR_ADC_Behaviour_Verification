@@ -1,4 +1,18 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : run_lms_checks.py
+# 模块名     : run_lms_checks
+# 版本       : v1.0
+# 功能       : 核对片上重构整体顶层与真实失配模型导出的有符号定点结果。
+#
+# 设计说明   :
+#   * 承担 集成顶层向量与对拍入口 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """核对片上重构整体顶层与真实失配模型导出的有符号定点结果。"""
 
 from __future__ import annotations
@@ -16,14 +30,6 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 sys.dont_write_bytecode = True
 
-from task1.experiments.adctoolbox_calibration import CalibrationConfig  # noqa: E402
-from task1.experiments.residue_control_study import MapperTable  # noqa: E402
-from task1.experiments.run_effects import Capacitors, ExperimentConfig  # noqa: E402
-from task1.tools.run_rtl_checks import STRICT_LINT  # noqa: E402
-from task2.eight.experiment import _capture  # noqa: E402
-from task2.eight.model import ChargePool  # noqa: E402
-from task_integration.tools.run_checks import RTL  # noqa: E402
-from task_reconstruction.fixed import from_training, reconstruct  # noqa: E402
 from tools.run_open_rtl import (  # noqa: E402
     alias_runtime,
     checked_run,
@@ -35,6 +41,15 @@ from tools.run_open_rtl import (  # noqa: E402
     write_json,
 )
 
+from adi_model.capacitors import Capacitors, ExperimentConfig  # noqa: E402
+from task1.experiments.adctoolbox_calibration import CalibrationConfig  # noqa: E402
+from task1.experiments.residue_control_study import MapperTable  # noqa: E402
+from task1.tools.run_rtl_checks import STRICT_LINT  # noqa: E402
+from task2.eight.experiment import _capture  # noqa: E402
+from task2.eight.model import ChargePool  # noqa: E402
+from task_integration.tools.run_checks import RTL  # noqa: E402
+from task_reconstruction.fixed import from_training, reconstruct  # noqa: E402
+
 TOP = "sar20_digital_lms_top"
 BENCH = "sar20_lms_integration_tb"
 LMS_RTL = (
@@ -43,7 +58,7 @@ LMS_RTL = (
     f"task_integration/rtl/{TOP}.sv",
 )
 SOURCES = (*LMS_RTL, f"task_integration/tb/{BENCH}.sv")
-FIXTURES = tuple(Path(f"task2/evidence/eight_native/sigma_{pct}pct") for pct in (2, 3))
+FIXTURES = tuple(Path(f"task2/evidence/eight_negative/sigma_{pct}pct") for pct in (2, 3))
 FIELDS = (
     "cycles",
     "checks",
@@ -58,6 +73,16 @@ FIELDS = (
 )
 
 
+# =========================================================================
+# 1. 函数组：pack / slots / make_vectors
+# =========================================================================
+# -------------------------------------------------------------------------
+# 按 bench 结构体的最高位起依次打包。
+# 物理 slot 0 位于最低位。
+# 旁路重放存档；CAAZ 组用同一物理池模拟输入换相，附已知共模偏移。
+# ------------------------------------------------------------------------
+# pack(fields) -> str：含迭代/循环；本模块 的口径以同目录 SPEC/README 为准，越界与失效路径须显式处理
+# ------------------------------------------------------------------------
 def pack(fields: tuple[tuple[int, int], ...]) -> str:
     """按 bench 结构体的最高位起依次打包。"""
     value = width = 0
@@ -67,11 +92,17 @@ def pack(fields: tuple[tuple[int, int], ...]) -> str:
     return f"{value:0{(width + 3) // 4}x}\n"
 
 
+# ------------------------------------------------------------------------
+# slots(values, width) -> int：numpy 向量化；本模块 的口径以同目录 SPEC/README 为准，越界与失效路径须显式处理
+# ------------------------------------------------------------------------
 def slots(values: np.ndarray, width: int) -> int:
     """物理 slot 0 位于最低位。"""
     return sum(int(value) << (slot * width) for slot, value in enumerate(values))
 
 
+# ------------------------------------------------------------------------
+# make_vectors(folder, out) -> tuple[Path, Path, dict]：含显式异常拒绝、含迭代/循环、numpy 向量化、产出归档/图件；本模块 的口径以同目录 SPEC/README 为准，越界与失效路径须显式处理
+# ------------------------------------------------------------------------
 def make_vectors(folder: Path, out: Path, *, chopped: bool) -> tuple[Path, Path, dict]:
     """旁路重放存档；CAAZ 组用同一物理池模拟输入换相，附已知共模偏移。"""
     meta = json.loads((ROOT / folder / "summary.json").read_text())
@@ -166,6 +197,14 @@ def make_vectors(folder: Path, out: Path, *, chopped: bool) -> tuple[Path, Path,
     )
 
 
+# =========================================================================
+# 2. 函数组：main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 生成失配重放向量，验收同一个片上重构 RTL 设计包。
+# ------------------------------------------------------------------------
+# main() -> None：含显式异常拒绝、含断言；本模块 的口径以同目录 SPEC/README 为准，越界与失效路径须显式处理
+# ------------------------------------------------------------------------
 def main() -> None:
     """生成失配重放向量，验收同一个片上重构 RTL 设计包。"""
     parser = argparse.ArgumentParser(description=__doc__)

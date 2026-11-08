@@ -1,3 +1,17 @@
+# =============================================================================
+# 文件名     : bridge_lms_comparison.py
+# 模块名     : bridge_lms_comparison
+# 版本       : v1.0
+# 功能       : 在共同的物理失配样本上独立训练无 DEM 与 Fig.21 候选。
+#
+# 设计说明   :
+#   * 承担 行为级实验与图件生成 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# ===========================================================================
+
 """在共同的物理失配样本上独立训练无 DEM 与 Fig.21 候选。"""
 
 from __future__ import annotations
@@ -11,40 +25,37 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+from adi_model.capacitors import (
+    MAIN_WEIGHTS,
+    SUB_WEIGHTS,
+    Capacitors,
+    ExperimentConfig,
+    cap_pool,
+    unpack,
+)
 from task1.experiments.adctoolbox_calibration import (
     CalibrationConfig,
     SwitchState,
     _condition_report,
-    _decode,
     _fit_gain_from_flags,
     _fit_nlms,
-    _fixed_ab_flags,
-    _fixed_ab_plan,
-    _fixed_switch_bits,
-    _group_flags,
-    _metrics,
-    _quantize,
-    _range_report,
-    _residue_voltage,
     _spectrum,
     _write_summary,
+    calibration_metrics,
+    decode_switches,
+    fixed_ab_flags,
+    fixed_ab_plan,
+    fixed_switch_bits,
+    group_flags,
+    quantize,
+    range_report,
+    residue_voltage,
 )
-from task1.experiments.run_effects import (
-    BLUE,
-    GRAY,
-    MAIN_WEIGHTS,
-    ROOT,
-    SUB_WEIGHTS,
-    Capacitors,
-    ExperimentConfig,
-    _cap_pool,
-    _codebook,
-    _map_record,
-    _schedule,
-    _unpack,
-)
+from task1.experiments.run_effects import BLUE, GRAY, ROOT, schedule_sequence
+from task1.model.codebook import codebook, map_record
 from task1.model.fig21_bridge import map_fig21_bridge
-from task1.model.scheduler import SLICE_COUNT
+from task1.model.scheduler import POOL_SLICES
 
 ARM_LABELS = {
     "fixed_ab_lms_only": "Fixed A/B, no DEM + NLMS",
@@ -53,6 +64,10 @@ ARM_LABELS = {
 Q32 = 1 << 32
 
 
+# =========================================================================
+# 1. 函数组：_state / _plan / _bridge_bits
+# =========================================================================
+# ------------------------------------------------------------------------
 def _state(
     codes: np.ndarray,
     plan: np.ndarray,
@@ -60,8 +75,19 @@ def _state(
     *,
     bridge: bool,
 ) -> tuple[SwitchState, np.ndarray]:
+    """核对接口边界与证据归属。
+
+    粗码与 plan 的第一维按同笔排列，不能只保证长度相同。
+    phases 控制片内和跨片的映射；关闭桥接与开启桥接使用各自明确定义。
+    返回的名义差量属于已知映射变化，不是训练得到的制造失配。
+    差量的整数单位为 Q32，换算 V 时必须使用相同参考峰值。
+    转换位图、片号和名义差量需整包保存。
+    后级采用物理权重重构时，不应再次叠加已经包含在实际位图中的名义差量。
+    本函数不生成真实比较器判决或模拟采样孔径。
+    调用方必须另行保证粗码与该笔残差一致。
+    """
     if not bridge:
-        main, sub = _map_record(codes, phases, dem_enable=False)
+        main, sub = map_record(codes, phases, dem_enable=False)
         return SwitchState(plan, codes, main, sub), np.zeros(len(plan), dtype=np.int64)
 
     main = np.empty(plan.shape, dtype=np.uint32)
@@ -75,31 +101,74 @@ def _state(
     return SwitchState(plan, codes, main, sub), correction
 
 
+# ------------------------------------------------------------------------
 def _plan(
     samples: int, experiment: ExperimentConfig, *, bridge: bool
 ) -> tuple[np.ndarray, tuple[np.ndarray, np.ndarray]]:
+    """调用合同。
+
+    Args:
+        samples: 所需样本笔数，决定返回数组的第一维。
+        experiment: 调度种子等参数；本函数不重新抽制造失配。
+        bridge: 真时使用调度序列，假时使用固定 A/B 组。
+    Returns:
+        (N,8) 的有序物理片号及两路相位数组。
+    """
     if bridge:
-        plan, _, phases = _schedule(samples, experiment)
+        plan, _, phases = schedule_sequence(samples, experiment)
         return plan, phases
     zero = np.zeros(samples, dtype=np.uint8)
-    return _fixed_ab_plan(samples), (zero, zero)
+    return fixed_ab_plan(samples), (zero, zero)
 
 
+# ------------------------------------------------------------------------
 def _bridge_bits(state: SwitchState) -> np.ndarray:
-    main = _unpack(state.main, len(MAIN_WEIGHTS))
-    sub = _unpack(state.sub, len(SUB_WEIGHTS))
+    """调用合同。
+
+    两颗主侧 1C 必须同值，B5、B6 和 dummy 在该聚合特征中必须为零。
+    这些检查限制了本函数适用的 Fig.21 状态，不能拿任意 DEM 位图直接调用。
+
+    Args:
+        state: 含 (N,8) 有序物理片号和对应主／子转换位图的记录。
+    Returns:
+        按实际物理片号散布的二维训练矩阵；同列始终对应同一个物理权重。
+    Raises:
+        ValueError: 主侧配对条件或子阵列保留位条件不成立。
+    """
+    main = unpack(state.main, len(MAIN_WEIGHTS))
+    sub = unpack(state.sub, len(SUB_WEIGHTS))
     if np.any(main[..., 15] != main[..., 16]) or sub[..., (0, 1, 4)].any():
         raise ValueError("Fig. 21 aggregate features require paired 1C and inactive B5/B6/dummy")
     active = np.concatenate((main[..., :16], sub[..., 2:4]), axis=-1)
-    physical = np.zeros((len(state.plan), SLICE_COUNT, active.shape[-1]), dtype=np.uint8)
+    physical = np.zeros((len(state.plan), POOL_SLICES, active.shape[-1]), dtype=np.uint8)
     physical[np.arange(len(state.plan))[:, None], state.plan] = active
     return physical.reshape(len(state.plan), -1)
 
 
+# =========================================================================
+# 2. 函数组：_fit_observable / _arm / _plot
+# =========================================================================
+# ------------------------------------------------------------------------
 def _fit_observable(
     fit: np.ndarray, holdout: np.ndarray, target: np.ndarray, cfg: CalibrationConfig
 ) -> tuple[np.ndarray, dict, list[dict]]:
     # 只从训练位图识别列空间。若留出出现训练空间外分量，拒绝发布结果。
+    """调用合同。
+
+    训练子空间只由 fit 的 SVD 决定，不能用留出数据扩展训练空间。
+    秩亏时在保留子空间中训练 NLMS，再映回原权重列；这不等于识别了每颗电容。
+    留出向量的空间外 L2 分量超过代码阈值 1e-8 时拒绝发布。
+
+    Args:
+        fit: 训练特征矩阵，形状 (训练笔数, 特征列数)，数值无量纲。
+        holdout: 未参与训练的特征矩阵，列顺序必须与 fit 相同。
+        target: 训练目标向量，单位由调用方的电压差定义，必须与 fit 同笔。
+        cfg: NLMS 步长和迭代配置；独立参考的真实性由上游保证。
+    Returns:
+        原列空间权重、秩与条件数报告、学习轨迹。
+    Raises:
+        ValueError: 训练子空间为空，或留出激励超出训练可观测空间。
+    """
     _, singular, right = np.linalg.svd(fit.astype(float), full_matrices=False)
     design = _condition_report(singular, fit.shape)
     rank = design["rank"]
@@ -126,6 +195,7 @@ def _fit_observable(
     return weights, design, learning
 
 
+# ------------------------------------------------------------------------
 def _arm(
     pool: Capacitors,
     nominal: Capacitors,
@@ -136,6 +206,23 @@ def _arm(
     *,
     bridge: bool,
 ) -> tuple[dict, dict[str, np.ndarray]]:
+    """调用合同。
+
+    同一制造池用于增益训练、权重训练和留出，三组采样计划按各自种子生成。
+    实际电容仅用于生成残差，不作为 NLMS 的目标权重直接装入。
+    Fig.21 映射的名义差量单独记录，避免把已知桥差量再次当成失配拟合。
+
+    Args:
+        pool: 该虚拟芯片固定的实际电容，单位 F；评估过程中不重新抽失配。
+        nominal: 名义电容池，决定基准码本。
+        threshold_v: 前级阈值，单位 V，按粗码顺序排列。
+        references: 增益、训练和留出激励，单位 V。
+        experiment: 电压范围、物理片数、调度和制造种子的联合配置。
+        cfg: ADC2 输入折算量程和训练配置。
+        bridge: 是否使用跨段候选；改变此项会改变特征定义。
+    Returns:
+        该实验臂的指标，以及训练、开关与留出原始记录。
+    """
     peak = experiment.full_scale_peak_v
     fits = {
         "gain": replace(experiment, schedule_seed=cfg.gain_schedule_seed),
@@ -170,19 +257,19 @@ def _arm(
                 f"{name}_correction_q32": correction_q32,
             }
         )
-        nominal_r = _residue_voltage(nominal, reference, plan, masks, experiment)
+        nominal_r = residue_voltage(nominal, reference, plan, masks, experiment)
         closure = nominal_r + threshold_v[codes] + corrections[name] - reference
         nominal_error_v[name] = float(np.max(np.abs(closure)))
         if nominal_error_v[name] > 0.5 * peak / Q32 + 1e-12:
             raise ValueError(f"nominal two-node closure exceeds half of Q32 LSB in {name}")
         for key in ("gain_low", "gain_high") if name == "gain" else (name,):
-            raw[f"{key}_residue_v"] = _residue_voltage(
+            raw[f"{key}_residue_v"] = residue_voltage(
                 pool, references[key], plan, masks, experiment
             )
 
     capture_names = ("gain_low", "gain_high", "training", "holdout")
     headroom = {
-        name: _range_report(raw[f"{name}_residue_v"], cfg.adc2_half_range_v)
+        name: range_report(raw[f"{name}_residue_v"], cfg.adc2_half_range_v)
         for name in capture_names
     }
     blocked = [
@@ -202,7 +289,7 @@ def _arm(
         "nominal_two_node_q32_closure_max_error_v": nominal_error_v,
         "adc2_range_checks": headroom,
         "blocked_stages": blocked,
-        "continuous_pre_adc2_diagnostic": _metrics(
+        "continuous_pre_adc2_diagnostic": calibration_metrics(
             raw["holdout_unquantized_nominal_v"], references["holdout"], experiment
         ),
     }
@@ -210,11 +297,11 @@ def _arm(
         return {**report, "status": "adc2_range_blocked", "holdout": None}, raw
 
     for name in capture_names:
-        raw[f"{name}_adc2_code"] = _quantize(
+        raw[f"{name}_adc2_code"] = quantize(
             raw[f"{name}_residue_v"], cfg.adc2_bits, cfg.adc2_half_range_v
         )
-    gain_flags = _group_flags if bridge else _fixed_ab_flags
-    switch_bits = _bridge_bits if bridge else _fixed_switch_bits
+    gain_flags = group_flags if bridge else fixed_ab_flags
+    switch_bits = _bridge_bits if bridge else fixed_switch_bits
     gain, gain_report = _fit_gain_from_flags(
         gain_flags(states["gain"].plan),
         references["gain_low"],
@@ -229,7 +316,7 @@ def _arm(
         return (
             threshold_v[states[name].codes]
             + corrections[name]
-            + _decode(raw[f"{name}_adc2_code"], cfg.adc2_bits, cfg.adc2_half_range_v)
+            + decode_switches(raw[f"{name}_adc2_code"], cfg.adc2_bits, cfg.adc2_half_range_v)
         )
 
     fit_nominal = nominal_reconstruction("training")
@@ -253,10 +340,11 @@ def _arm(
         "gain_design": gain_report,
         "equivalent_weight_design": design,
         "learning": learning,
-        "holdout": _metrics(calibrated, references["holdout"], experiment),
+        "holdout": calibration_metrics(calibrated, references["holdout"], experiment),
     }, raw
 
 
+# ------------------------------------------------------------------------
 def _plot(
     out: Path, report: dict, records: dict, experiment: ExperimentConfig, cfg: CalibrationConfig
 ) -> None:
@@ -349,6 +437,13 @@ def _plot(
     plt.close(fig)
 
 
+# =========================================================================
+# 3. 函数组：run / main
+# =========================================================================
+# -------------------------------------------------------------------------
+# 复跑同一失配池、相同训练预算的两条独立链路。
+# 执行两条链路，并以非零退出码标记量程阻断。
+# ------------------------------------------------------------------------
 def run(
     out: Path,
     sigma: float,
@@ -364,12 +459,12 @@ def run(
         ExperimentConfig(), mismatch_sigma_unit=sigma, manufacturing_seed=manufacturing_seed
     )
     cfg = replace(CalibrationConfig(), adc2_half_range_v=half_range_v)
-    nominal, pool = _cap_pool(experiment)
+    nominal, pool = cap_pool(experiment)
     cap_minimum = {name: float(np.min(getattr(pool, name))) for name in ("main", "sub", "bridge")}
     if any(value <= 0 or not np.isfinite(value) for value in cap_minimum.values()):
         raise ValueError("invalid physical capacitance from the specified mismatch seed")
 
-    threshold_v = _codebook(nominal, experiment)
+    threshold_v = codebook(nominal, experiment)
     gain_rng = np.random.default_rng(cfg.gain_reference_seed)
     gain_mid = cfg.gain_reference_midpoint_span_v * gain_rng.uniform(-0.5, 0.5, cfg.gain_pairs)
     gain_halfspan = cfg.gain_reference_span_v / 2
@@ -423,11 +518,11 @@ def run(
         "phase_contract": "reserved_column=v, vertical_slot=h%8; phases freeze per sample",
         "digital_nominal_correction": "adc2 decoded + nominal coarse threshold + Q32 * VFS_peak / 2**32",
         "fig21_feature_contract": {
-            "original_physical_switch_columns": SLICE_COUNT
+            "original_physical_switch_columns": POOL_SLICES
             * (len(MAIN_WEIGHTS) + len(SUB_WEIGHTS)),
             "always_off_subcolumns_per_slice": ["B5", "B6", "dummy"],
             "always_tied_main_columns_per_slice": ["B4", "S4"],
-            "combined_feature_columns": SLICE_COUNT * 18,
+            "combined_feature_columns": POOL_SLICES * 18,
         },
         "arms": arms,
         "bridge_minus_fixed": comparison,
@@ -462,6 +557,7 @@ def run(
     return _write_summary(out, summary)
 
 
+# ------------------------------------------------------------------------
 def main() -> None:
     """执行两条链路，并以非零退出码标记量程阻断。"""
     parser = argparse.ArgumentParser(description=__doc__)

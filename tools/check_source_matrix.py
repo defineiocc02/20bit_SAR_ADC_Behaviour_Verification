@@ -40,15 +40,39 @@ ROOT = Path(__file__).resolve().parent.parent
 MATRIX = ROOT / "trace" / "source_matrix.csv"
 
 COLUMNS = [
-    "source_id", "source_doc", "page_pdf", "page_printed", "locator",
-    "quote_en", "quote_zh", "quantity", "value", "unit",
-    "model_symbol", "impl_path", "impl_symbol", "test_id",
-    "status", "evidence_level", "tolerance", "preset", "trace_ids", "note",
+    "source_id",
+    "source_doc",
+    "page_pdf",
+    "page_printed",
+    "locator",
+    "quote_en",
+    "quote_zh",
+    "quantity",
+    "value",
+    "unit",
+    "model_symbol",
+    "impl_path",
+    "impl_symbol",
+    "test_id",
+    "status",
+    "evidence_level",
+    "tolerance",
+    "preset",
+    "trace_ids",
+    "note",
 ]
 
 REQUIRED = (
-    "source_id", "source_doc", "page_pdf", "locator", "quote_en",
-    "quote_zh", "quantity", "status", "evidence_level", "preset",
+    "source_id",
+    "source_doc",
+    "page_pdf",
+    "locator",
+    "quote_en",
+    "quote_zh",
+    "quantity",
+    "status",
+    "evidence_level",
+    "preset",
 )
 
 SOURCE_DOCS = {"ISSCC2024_PAPER", "ISSCC2024_SLIDES", "US10505561B2"}
@@ -86,7 +110,10 @@ def collect_test_ids() -> set[str] | None:
     try:
         done = subprocess.run(
             [sys.executable, "-m", "pytest", "--collect-only", "-q", "-p", "no:cacheprovider"],
-            cwd=ROOT, capture_output=True, text=True, timeout=300,
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=300,
         )
     except (OSError, subprocess.SubprocessError) as exc:
         print(f"警告: pytest 收集不可用（{exc}），跳过 test_id 校验", file=sys.stderr)
@@ -125,7 +152,9 @@ def check_impl(row: dict[str, str], problems: Problems) -> None:
 
     lines = path.read_text(encoding="utf-8").splitlines()
     if not 1 <= line_no <= len(lines):
-        problems.add(row["source_id"], f"行号 {line_no} 超出 {match.group('path')} 的 1..{len(lines)}")
+        problems.add(
+            row["source_id"], f"行号 {line_no} 超出 {match.group('path')} 的 1..{len(lines)}"
+        )
         return
     low = max(0, line_no - 1 - WINDOW)
     high = min(len(lines), line_no + WINDOW)
@@ -137,9 +166,7 @@ def check_impl(row: dict[str, str], problems: Problems) -> None:
         )
 
 
-def check_row(
-    row: dict[str, str], problems: Problems, test_ids: set[str] | None
-) -> None:
+def check_row(row: dict[str, str], problems: Problems, test_ids: set[str] | None) -> None:
     """检查单行的必填、枚举、状态与可追溯性。"""
     sid = row["source_id"].strip() or "<空 source_id>"
 
@@ -181,14 +208,20 @@ def check_row(
 
 
 def main() -> int:
-    """读表、逐行校验、打印汇总，返回进程退出码。"""
+    """读表、逐行校验、打印汇总，返回进程退出码。
+
+    结构检查通过只说明定位字段有效，不说明原文支持实现或测试覆盖完整。
+    缺失、待运行和范围外条目必须继续保留其原状态。
+    """
     parser = argparse.ArgumentParser(description="校验 L1 源文台账")
     parser.add_argument(
-        "--strict", action="store_true",
+        "--strict",
+        action="store_true",
         help="额外要求 MISSING 为 0（定版门禁 G1 口径）",
     )
     parser.add_argument(
-        "--skip-collect", action="store_true",
+        "--skip-collect",
+        action="store_true",
         help="跳过 pytest 收集（改台账时省时间，正式跑不要加）",
     )
     args = parser.parse_args()

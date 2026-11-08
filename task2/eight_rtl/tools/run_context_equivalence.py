@@ -1,4 +1,18 @@
-"""Compare the old and new dither lookup on the same RTL state for seven steps."""
+# =============================================================================
+# 文件名     : run_context_equivalence.py
+# 模块名     : run_context_equivalence
+# 版本       : v1.0
+# 功能       : 在相同状态下比较两种扰动选词，并核对负注入减法，深度七拍。
+#
+# 设计说明   :
+#   * 承担 20b10mtask 数字交付 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# =============================================================================
+
+"""在相同状态下比较两种扰动选词，并核对负注入减法，深度七拍。"""
 
 from __future__ import annotations
 
@@ -24,12 +38,12 @@ DEPENDENCIES = (
     Path("task2/rtl/dither_word_gen.sv"),
 )
 ASSERTIONS = """
-  // Compare the old data mux and zero-gated addition on the same state.
+  // 同状态核对按 ID 选词与事件选词，以及当前负注入减法。
   logic [5:0] baseline_word;
   logic [9:0] baseline_code;
   assign baseline_word = !conv_ready_o ? 6'd0 : (latest_match ? acq_word_o : previous_word_q);
   assign baseline_code = {1'b0, code_i}
-                         + {7'b0, baseline_word[5], 1'b0, baseline_word[3]};
+                         - {7'b0, baseline_word[5], 1'b0, baseline_word[3]};
   always_comb begin
     assert (conv_word_o == baseline_word);
     if (conv_ready_o) assert (adjusted_code == baseline_code);
@@ -37,6 +51,10 @@ ASSERTIONS = """
 """
 
 
+# =========================================================================
+# 1. 函数组：_sha256 / _main
+# =========================================================================
+# -------------------------------------------------------------------------
 def _sha256(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
@@ -80,7 +98,7 @@ sat -seq 7 -set-at 1 rst_ni 0 -set-def-inputs -prove-asserts -timeout 45 -verify
     receipt = {
         "status": "PASS" if passed else "FAIL",
         "scope": "Same-state combinational equivalence for conversion word and legal arithmetic. "
-        "The state updates are identical in baseline and candidate. Seven steps, including reset.",
+        "This does not prove equivalence to historical positive injection. Seven steps including reset.",
         "tool": subprocess.check_output([yosys, "-V"], text=True).strip(),
         "baseline_commit": BASELINE,
         "baseline_sha256": _sha256(baseline),

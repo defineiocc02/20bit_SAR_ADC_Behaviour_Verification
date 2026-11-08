@@ -58,6 +58,8 @@ jobs:
       # 与命令行复现保持一致的模块搜索路径与线程数。
       PYTHONPATH: .:src
       OPENBLAS_NUM_THREADS: '1'
+      # 跨平台 FFT／SVD 的末位差不改变码值；仅标量回归允许 1e-9 绝对包络。
+      ADC_BASELINE_FLOAT_MODE: portable
       MPLBACKEND: Agg
       VERILATOR: verilator
       CXX: clang++

@@ -15,6 +15,8 @@
 #       3-4 动态校准后（fig21_dem 的 sndr/sfdr）
 #       5   DEM 差异（no_dem 的 sndr，与 3 配对看 DEM 是否还在起作用）
 #       6-8 静态（未校准 INL 地板、校准后 INL、校准后 DNL 峰值）
+#   * 默认 strict 精确比较。跨平台 CI 显式用 portable：只有频谱和线性度标量
+#     允许绝对 1e-9 包络；电压标度、版本、种子和整数对拍仍精确比较。
 #   * 指纹是**环境相关**的。归档 summary.json 记录的环境是
 #     python 3.12.14 / numpy 2.5.3 / adctoolbox 0.9.1，本脚本默认在该环境取值。
 #     换 numpy 大版本可能改变 FFT 末位，此时--check 会红，先确认是版本漂移
@@ -32,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import platform
 import shutil
 import sys
@@ -104,8 +107,20 @@ def measure() -> dict:
         shutil.rmtree(workdir, ignore_errors=True)
 
 
-def compare(expected: dict, actual: dict) -> list[str]:
-    """逐字段严格比较，返回人类可读的差异列表。"""
+def compare(expected: dict, actual: dict, *, portable: bool = False) -> list[str]:
+    """比较冻结标量；默认逐位严格，显式 portable 才允许浮点尾数包络。
+
+    Args:
+        expected: 冻结的环境、种子和八项标量，不在比较时更新。
+        actual: 本次运行的同结构标量。
+        portable: 对频谱允许绝对 1e-9 dB、线性度允许绝对 1e-9 LSB20。
+            单位步长、输出 LSB、软件版本及实验参数仍精确比较。
+    Returns:
+        所有失败项目；NaN、Inf 与超出包络的变化均不能通过。
+
+    包络是跨平台数值回归的工程选择，覆盖已观察的 Linux／macOS 尾数差，
+    不是 ADC 性能容限。该函数不参与任何输出码、RTL 或物理验收比较。
+    """
     problems: list[str] = []
     env_exp = expected.get("environment", {})
     env_act = actual.get("environment", {})
@@ -129,7 +144,10 @@ def compare(expected: dict, actual: dict) -> list[str]:
         if name not in exp_metrics or name not in act_metrics:
             continue
         want, got = exp_metrics[name], act_metrics[name]
-        if want != got:
+        tolerance = (
+            1e-9 if portable and name not in {"native_dither_step_v", "output_lsb20_v"} else 0.0
+        )
+        if not math.isfinite(want) or not math.isfinite(got) or abs(got - want) > tolerance:
             problems.append(f"{name}: 指纹 {want!r} -> 当前 {got!r}（差 {got - want:+.6e}）")
     return problems
 
@@ -147,7 +165,14 @@ def main() -> int:
         action="store_true",
         help="把测得的八项指标打到标准输出，便于人工比对",
     )
+    parser.add_argument(
+        "--portable",
+        action="store_true",
+        help="跨平台浮点标量比较；频谱／线性度绝对容限 1e-9，须配合 --check",
+    )
     args = parser.parse_args()
+    if args.portable and not args.check:
+        parser.error("--portable requires --check; frozen data are never rewritten in this mode")
 
     actual = measure()
     if args.show or not args.check:
@@ -168,13 +193,13 @@ def main() -> int:
         print(f"错误: 指纹不存在 {FINGERPRINT}，先不带 --check 跑一次", file=sys.stderr)
         return 2
     expected = json.loads(FINGERPRINT.read_text(encoding="utf-8"))
-    problems = compare(expected, actual)
+    problems = compare(expected, actual, portable=args.portable)
     if problems:
         print(f"基线指纹不一致（{len(problems)} 项）：", file=sys.stderr)
         for item in problems:
             print(f"  {item}", file=sys.stderr)
         return 1
-    print(f"基线指纹一致（{len(METRICS)} 项逐字段相等）。")
+    print(f"基线指纹通过（{len(METRICS)} 项；模式：{'portable' if args.portable else 'strict'}）。")
     return 0
 
 

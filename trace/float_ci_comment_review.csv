@@ -1,0 +1,6 @@
+file,before_code,before_comments,before_rate,after_code,after_comments,after_rate
+.github/workflows/task2.yml,114,27,0.2368,115,28,0.2435
+task2/eight/tests/test_baseline_comparison.py,0,0,0.0,44,18,0.4091
+task2/eight/tests/test_baseline_frozen.py,23,22,0.9565,26,22,0.8462
+task2/eight_rtl/tools/run_context_equivalence.py,35,73,2.0857,34,73,2.1471
+tools/snapshot_baseline.py,125,34,0.272,136,46,0.3382

@@ -7,8 +7,8 @@
 # 设计说明   :
 #   * 这是 M2-M6 全部改动的唯一数值护栏。噪声、时偏、码口径三类改动都会动到
 #     这八项里的某几项，没有这层护栏就只能靠人眼比归档，等于没护栏。
-#   * 严格相等，不用容差。理由：整条链是确定性种子驱动的，同一环境下重复跑
-#     必须逐位相同；给容差就相当于允许「悄悄动了模型但不许我报」。
+#   * 默认 strict 逐位相等。CI 显式选择 portable，仅对频谱／线性度标量
+#     允许绝对 1e-9 的浮点尾数包络；单位、版本、种子和整数对拍不放宽。
 #   * 指纹是环境相关的（python / numpy / adctoolbox 三者版本都记在
 #     fingerprint.json 里）。环境不同时本测试会红，报错信息会指出是版本漂移
 #     还是数值漂移——这两件事必须分开判断，否则会把换 numpy 当成改模型。
@@ -24,6 +24,7 @@
 from __future__ import annotations
 
 import json
+import os
 
 import pytest
 
@@ -47,7 +48,9 @@ def test_baseline_fingerprint_is_unchanged() -> None:
     except ImportError as exc:
         pytest.fail(f"缺少运行依赖（{exc}）。{FROZEN_HINT}")
 
-    problems = compare(expected, actual)
+    mode = os.environ.get("ADC_BASELINE_FLOAT_MODE", "strict")
+    assert mode in {"strict", "portable"}, f"unknown ADC_BASELINE_FLOAT_MODE: {mode}"
+    problems = compare(expected, actual, portable=mode == "portable")
     assert not problems, (
         f"基线指纹漂移 {len(problems)} 项（共 {len(METRICS)} 项）：\n"
         + "\n".join(f"  {item}" for item in problems)

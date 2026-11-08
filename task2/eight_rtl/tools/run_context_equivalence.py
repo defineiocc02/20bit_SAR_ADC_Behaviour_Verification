@@ -5,7 +5,8 @@
 # 功能       : 在相同状态下比较两种扰动选词，并核对负注入减法，深度七拍。
 #
 # 设计说明   :
-#   * 承担 20b10mtask 数字交付 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+#   * 参考表达式与当前 RTL 共享状态，只比较选词和减法，不证明历史版本的时序等价。
+#   * 参考表达式直接冻结在 ASSERTIONS，CI 浅克隆无需获取无关历史对象。
 # -----------------------------------------------------------------------------
 # 变更记录
 # -----------------------------------------------------------------------------
@@ -28,7 +29,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 TOP = Path("task2/eight_rtl/rtl/dither8_top.sv")
-BASELINE = "3af060e"
 DEPENDENCIES = (
     Path("task1/rtl/slice_scheduler.sv"),
     Path("task1/rtl/fig11_dem.sv"),
@@ -67,7 +67,6 @@ def _main() -> None:
     if yosys is None:
         parser.error("Yosys was not found. Set YOSYS to an installed executable.")
     args.out.mkdir(parents=True, exist_ok=False)
-    baseline = subprocess.check_output(["git", "show", f"{BASELINE}:{TOP}"], cwd=ROOT)
     candidate = (ROOT / TOP).read_text()
     if not candidate.rstrip().endswith("endmodule"):
         raise ValueError("dither8_top.sv must end with endmodule")
@@ -100,8 +99,8 @@ sat -seq 7 -set-at 1 rst_ni 0 -set-def-inputs -prove-asserts -timeout 45 -verify
         "scope": "Same-state combinational equivalence for conversion word and legal arithmetic. "
         "This does not prove equivalence to historical positive injection. Seven steps including reset.",
         "tool": subprocess.check_output([yosys, "-V"], text=True).strip(),
-        "baseline_commit": BASELINE,
-        "baseline_sha256": _sha256(baseline),
+        "reference_kind": "same_state_id_mux_and_negative_subtraction",
+        "reference_expression_sha256": _sha256(ASSERTIONS.encode()),
         "source_sha256": {str(p): _sha256((ROOT / p).read_bytes()) for p in (*DEPENDENCIES, TOP)},
         "instrumented_candidate_sha256": _sha256(wrapped.encode()),
         "driver_sha256": _sha256(Path(__file__).read_bytes()),

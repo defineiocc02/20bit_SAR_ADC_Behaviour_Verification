@@ -67,16 +67,16 @@ def plan_figure():
     )
     fig, ax = plt.subplots(figsize=(146 / 25.4, 73 / 25.4))
     fig.subplots_adjust(left=0.23, right=0.985, top=0.86, bottom=0.22)
-    tasks = ["接手与接口", "调度／DEM＋LMS", "八片dither", "CAAZ与联合", "整体冻结／GDS"]
-    # 同一月份允许接口和算法并行；不是把“接手”单独扩成一个课题。
-    spans = [(0.5, 2), (0.5, 2), (2.5, 3), (5.5, 2), (7.5, 2)]
+    tasks = ["调度／DEM", "八片dither", "CAAZ", "整体集成", "接口／验证"]
+    # 各模块依次完成行为、RTL与物理交付；接口与回归贯穿全程。
+    spans = [(0.5, 2), (2.5, 3), (5.5, 2), (7.5, 2), (0.5, 9)]
     colors = ["#9a9a9a", "#0072B2", "#D55E00", "#009E73", "#666666"]
     for i, ((start, width), color) in enumerate(zip(spans, colors, strict=True)):
         ax.broken_barh([(start, width)], (4 - i - 0.25, 0.5), facecolors=color)
     for edge in range(1, 10):
         ax.axvline(edge + 0.5, color="#dddddd", lw=0.4, zorder=0)
     # 里程碑标的是计划验收时点；原有数据和未完成项在正文分别列出。
-    for month, label in [(2, "映射／基线"), (5, "注入／余量"), (7, "联合／保持"), (9, "数字交付")]:
+    for month, label in [(2, "DEM GDS"), (5, "dither GDS"), (7, "CAAZ GDS"), (9, "整体 GDS")]:
         ax.plot(month, 4.65, marker="v", color="black", ms=4, clip_on=False)
         ax.text(month, 5.02, label, ha="center", va="bottom", fontsize=7)
     ax.set(xlim=(0.5, 9.5), ylim=(-0.55, 4.7), yticks=range(5), yticklabels=tasks[::-1])

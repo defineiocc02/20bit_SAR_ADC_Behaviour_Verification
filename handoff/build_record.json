@@ -3,37 +3,37 @@
   "pages": [
     {
       "page": 1,
-      "characters": 1522,
+      "characters": 1498,
       "images": 0
     },
     {
       "page": 2,
-      "characters": 1293,
+      "characters": 1338,
       "images": 1
     },
     {
       "page": 3,
-      "characters": 695,
+      "characters": 763,
       "images": 1
     },
     {
       "page": 4,
-      "characters": 657,
+      "characters": 733,
       "images": 1
     },
     {
       "page": 5,
-      "characters": 614,
+      "characters": 684,
       "images": 1
     },
     {
       "page": 6,
-      "characters": 1113,
+      "characters": 1142,
       "images": 1
     },
     {
       "page": 7,
-      "characters": 1718,
+      "characters": 1712,
       "images": 1
     },
     {
@@ -88,17 +88,17 @@
     },
     {
       "page": 18,
-      "characters": 669,
+      "characters": 635,
       "images": 0
     },
     {
       "page": 19,
-      "characters": 604,
+      "characters": 579,
       "images": 0
     },
     {
       "page": 20,
-      "characters": 680,
+      "characters": 612,
       "images": 0
     },
     {
@@ -173,9 +173,9 @@
       "dpi": 399.9620173269732,
       "bbox": [
         90.70899963378906,
-        412.02667236328125,
+        412.16363525390625,
         504.56829833984375,
-        499.875
+        500.011962890625
       ]
     },
     {
@@ -301,15 +301,15 @@
   ],
   "overfull_hbox": 0,
   "source_sha256": {
-    "handoff/NINE_MONTH_PLAN.md": "5763b48b1251875afd32ed816ed123094713ce9e4b0bee60640eb3b1b2b0ec88",
-    "handoff/NINE_MONTH_PLAN.tex": "e7c4d838c94db93db1f1820fd910227c27d954da6848ae1ffa006bfcfd9ddadd",
-    "handoff/NINE_MONTH_PLAN.pdf": "a84cc0962bee9daae232adba4c30efb29ef904701cd5667e8afaf2abb0648ba3",
+    "handoff/NINE_MONTH_PLAN.md": "00137438452680bf393b82d74e60e7f3de119c9a4aa5a34269e3243026a6f30b",
+    "handoff/NINE_MONTH_PLAN.tex": "3b21f8cc321a66dab6179ac618b5d84fc6453e6c7580dcf36d0a6bbd348230ad",
+    "handoff/NINE_MONTH_PLAN.pdf": "92e87daa8e0bc52b3c981aac8e1066039a7a14553f0903cec2b64d5acb54cc9d",
     "handoff/report_template.tex": "2f31803acf937ac73d66ec122e686b2b03cac0253e1fe710e810daed887d2761",
-    "handoff/build_report.py": "8452dab8736fc6ef0d58e9e210a05d0712c831b8162b3701897b6922da24e118",
+    "handoff/build_report.py": "0948806f96380e8d1332a8752a1fc4f69b0e293f72ba05133cbbbcc297d07ba8",
     "handoff/source_figures.json": "c9e4c51199be2854a525ec1141a3a8aa041128edfb4de0beaceafd8c2269f126",
     "handoff/behavioral_audit.json": "7d9e8597f8c479afe235a20d9e102c2911a3b4da76b68e8c8a3713a63e55cab4",
     "handoff/coefficient_mode_diagnostic.json": "f5b0c92056c9c84a0bfef85472f19c0b0016fca940b8a3296e65a8cc5238e97e",
-    "handoff/figures/nine_month_plan.png": "59cc805ef7f6801d8837598f9cab44f852b434c4d01e1ed0fcee9ab69ae306f7",
+    "handoff/figures/nine_month_plan.png": "46714ecbd6f96156272de758d1f5bf8ef02b1ae93a625cebf41954cf89706ef1",
     "task2/evidence/eight_negative/eight_native_linearity.png": "0f0132f4e18aa59f18df5143741759257461e2e4f6d223c228aece0eedef2e9c",
     "task2/evidence/eight_negative/eight_native_no_lms_linearity.png": "74d5fb476ef6e45adf299331fdf2918c48374419c9d86caf042091c57a086ac0",
     "task3/evidence/negative/joint_noise/caaz_joint_noise.png": "ffeb5fb4b9baf07a7bf8a7ab74fb2dd7f89750d7388af27875bed2f4d443bb2b",

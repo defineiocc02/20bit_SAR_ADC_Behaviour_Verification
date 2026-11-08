@@ -15,5 +15,15 @@
     "task2/eight_rtl/tb/dither8_contract.sv": "0acf496d39855048417b0f25ba0c799a306635d37bf28eb960198b308b184f33",
     "task3/rtl/caaz20_pair.sv": "aaa0f73d3c69f85e42beaf2799afc9c14051a77cec3839610a65bf6e301751c9",
     "task3/tb/caaz20_properties.sv": "6cbb9da2c61fb95811c212ca5e0ee3408b542dc6869eaac79a1b4cad173a1304"
+  },
+  "formal_log_archive": {
+    "archive": {
+      "path": "digital_ci_2e42bc2.zip",
+      "sha256": "813692519507b197935b9e62e4f3f665b00ac29e44eedf20f1097c6435b7c1cd"
+    },
+    "members": {
+      "dither8-formal.log": "81dcf031f03b100c1d49294191b11c413b70b891476e3835924a96a39bc808e3",
+      "caaz_formal.log": "3939e0560f42c2e6935460d4d715d178be9fb5de734b2cfe9ec0617be69369a1"
+    }
   }
 }

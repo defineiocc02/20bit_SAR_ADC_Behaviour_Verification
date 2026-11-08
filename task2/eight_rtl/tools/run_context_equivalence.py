@@ -67,6 +67,10 @@ def _main() -> None:
     if yosys is None:
         parser.error("Yosys was not found. Set YOSYS to an installed executable.")
     args.out.mkdir(parents=True, exist_ok=False)
+    # [工具兼容] 0.33 前端直接生成 $assert，新版才可能需要降低 $check。
+    # 只按工具自述的可用选项选择降低步骤，随后强制检查实际断言非空。
+    help_text = subprocess.check_output([yosys, "-Q", "-T", "-p", "help chformal"], text=True)
+    lowering = "chformal -lower\n" if "-lower" in help_text else ""
     candidate = (ROOT / TOP).read_text()
     if not candidate.rstrip().endswith("endmodule"):
         raise ValueError("dither8_top.sv must end with endmodule")
@@ -78,8 +82,8 @@ def _main() -> None:
         (work / TOP.name).write_text(wrapped)
         script = f"""read_verilog -sv -formal {' '.join(p.name for p in DEPENDENCIES)} {TOP.name}
 prep -top dither8_top -flatten
-chformal -lower
-opt
+{lowering}opt
+select -assert-any t:$assert
 sat -seq 7 -set-at 1 rst_ni 0 -set-def-inputs -prove-asserts -timeout 45 -verify
 """
         (work / "equiv.ys").write_text(script)
@@ -98,6 +102,7 @@ sat -seq 7 -set-at 1 rst_ni 0 -set-def-inputs -prove-asserts -timeout 45 -verify
         "status": "PASS" if passed else "FAIL",
         "scope": "Same-state combinational equivalence for conversion word and legal arithmetic. "
         "This does not prove equivalence to historical positive injection. Seven steps including reset.",
+        "assertion_lowering": "chformal -lower" if lowering else "frontend $assert",
         "tool": subprocess.check_output([yosys, "-V"], text=True).strip(),
         "reference_kind": "same_state_id_mux_and_negative_subtraction",
         "reference_expression_sha256": _sha256(ASSERTIONS.encode()),

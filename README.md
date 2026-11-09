@@ -6,6 +6,8 @@
 CAAZ两笔配对后输出5 MS/s。两种工艺分别实现与验收，SKY130的GDS／时序不能代替180 nm BCD结果。
 
 **接手用这份[六个月任务书（PDF）](handoff/NINE_MONTH_PLAN.pdf)：第一页直接列任务、截止与数字spec，第6节列数字签核要求。**
+
+**新增行为实验：**[五种子 DEM／LMS、dither 端点候选与 CAAZ 低频噪声](task2/evidence/behavioral_closure/README.md)。端点候选依赖预采样外部标志，目前尚未构成可直接使用的完整硬件方案；CAAZ 低频图为单独样本域实验，不等于联合 ADC 的低频性能。
 [可编辑阅读稿](handoff/NINE_MONTH_PLAN.md)包含同一内容。主线始终是DEM→dither→CAAZ→整体数字后端；
 行为级以电荷关系、固定失配与样本噪声验证这三项；动态敏感性可另行扩展，模拟电路设计及180 nm BCD移植分别负责。
 

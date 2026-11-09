@@ -179,6 +179,32 @@ def apply_external_guard(word: np.ndarray, guard: np.ndarray) -> np.ndarray:
     return np.where(guard, 0, word).astype(np.uint8)
 
 
+def encode_signed20_with_saturation(voltage: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """将输入等效电压编码为有符号 20 位，并显式报告饱和。
+
+    Args:
+        voltage: 输入等效电压数组，单位 V；必须为有限值。
+
+    Returns:
+        有符号 20 位码和同形饱和标志。+5 V 与更大值映到最大码并置标志。
+
+    Raises:
+        ValueError: 电压数组包含 NaN 或无穷值。
+
+    这是可选择的数字端点合同，不是对 ADC2 或采样节点过载的恢复。
+    饱和必须逐笔报告；不得仅输出码而丢弃标志。
+    未修改现有 RTL；实际接口接入需要单独冻结并对拍。
+    """
+    voltage = np.asarray(voltage, dtype=float)
+    if not np.all(np.isfinite(voltage)):
+        raise ValueError("voltage must be finite")
+    raw = np.floor((voltage + 5.0) * ((1 << 20) / 10.0))
+    # 直接按电压判断，避免最接近 +5 V 的浮点数在加 5 时舍入成 10。
+    saturated = (voltage < -5.0) | (voltage >= 5.0)
+    code = np.clip(raw, 0, (1 << 20) - 1).astype(np.int32) - (1 << 19)
+    return code, saturated
+
+
 def _endpoints(output: Path) -> dict:
     """枚举 64 字及端点网格，区分前级拒绝和后级超窗。
 
@@ -253,6 +279,48 @@ def _endpoints(output: Path) -> dict:
                     np.count_nonzero((estimate < -5) | (estimate >= 5))
                 )
     assert not np.any(after)
+    # 均匀网格最后一点离 +5 V 约 0.5 mV，无法覆盖量化噪声量级的端点。
+    # 对靠近正端的输入另做可复现的随机片组／相位抽查，并记录未限幅输出。
+    probe_count = 20000
+    rng = np.random.default_rng(20261110)
+    probe_plan = np.argsort(rng.random((probe_count, 18)), axis=1)[:, :8]
+    probe_phase = (rng.integers(0, 8, probe_count), rng.integers(0, 16, probe_count))
+    probe_word = rng.integers(0, 64, probe_count, dtype=np.uint8)
+    probe_x = np.array([4.9995, 4.9999, 4.99999, 4.999999, np.nextafter(5.0, -np.inf)])
+    positive_counts = {"2": [], "3": []}
+    probe_outputs = {}
+    for j, voltage in enumerate(probe_x):
+        values = np.full(probe_count, voltage)
+        dither = decode(probe_word)
+        _, command, valid = coarse_decision(values, dither, threshold, step)
+        assert np.all(valid)
+        state = conversion_state(command, probe_plan, probe_phase, dither, threshold, step, table)
+        for percent, pool in pools.items():
+            actual_gain, base = pool.affine(probe_plan, state.features)
+            residue = actual_gain * (values + 5) - base
+            assert np.all((residue >= -0.1) & (residue < 0.1))
+            fine = quantize(residue, 12, 0.1)
+            fitted_gain, fitted_weight = coefficients[percent]
+            estimate = (
+                state.nominal_base_v
+                + decode_switches(fine, 12, 0.1)
+                + weighted_sum(probe_plan, state.features, fitted_weight)
+            ) / fitted_gain[probe_plan].sum(axis=1) - 5
+            saturated_code, saturated_flag = encode_signed20_with_saturation(estimate)
+            np.testing.assert_array_equal(saturated_flag, (estimate < -5) | (estimate >= 5))
+            positive_counts[percent].append(int(np.count_nonzero(saturated_flag)))
+            probe_outputs[f"sigma_{percent}_point_{j}"] = estimate
+            probe_outputs[f"sigma_{percent}_point_{j}_saturated_code"] = saturated_code
+            probe_outputs[f"sigma_{percent}_point_{j}_saturation_flag"] = saturated_flag
+    np.savez_compressed(
+        output / "endpoint_positive_probe.npz",
+        input_v=probe_x,
+        plan=probe_plan,
+        horizontal=probe_phase[0],
+        vertical=probe_phase[1],
+        word=probe_word,
+        **probe_outputs,
+    )
     np.savez_compressed(
         output / "endpoint_grid.npz",
         input_v=x,
@@ -260,15 +328,30 @@ def _endpoints(output: Path) -> dict:
         rejected_after=after,
         guard_active=x < boundary,
     )
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.5), constrained_layout=True)
-    for ax, limits in zip(axes, ((-5, 5), (-5, -4.8)), strict=True):
+    fig, axes = plt.subplots(1, 3, figsize=(16, 4.5), constrained_layout=True)
+    for ax, limits in zip(axes[:2], ((-5, 5), (-5, -4.8)), strict=True):
         ax.plot(x, before / 64 * 100, label="保护关闭")
         ax.plot(x, after / 64 * 100, label="理想预采样保护")
         ax.axvline(boundary, color="black", ls="--", label=f"阈值 {boundary:.6f} V")
         ax.set(xlim=limits, xlabel="差分输入（V；+5 V 不含）", ylabel="64 字前级拒绝率（%）")
         ax.grid(alpha=0.3)
     axes[1].legend()
-    fig.suptitle("端点候选：负端关闭扰动，保护标志须在采样前由外部提供")
+    for percent in ("2", "3"):
+        axes[2].plot(
+            range(len(probe_x)),
+            np.array(positive_counts[percent]) / probe_count * 100,
+            marker="o",
+            label=f"{percent}% 失配",
+        )
+    axes[2].set_xticks(range(len(probe_x)), ["0.5", "0.1", "0.01", "0.001", "极限"])
+    axes[2].set(
+        xlabel="距离 +5 V（mV；极限为前一浮点数）",
+        ylabel="未限幅最终输出越界率（%）",
+        title="正端随机片组与相位抽查",
+    )
+    axes[2].grid(alpha=0.3)
+    axes[2].legend()
+    fig.suptitle("负端保护候选及正端风险：保护标志须在采样前由外部提供")
     fig.savefig(output / "dither_endpoint_guard.png", dpi=200)
     plt.close(fig)
     return {
@@ -284,6 +367,11 @@ def _endpoints(output: Path) -> dict:
         "guarded_input_points": int(np.count_nonzero(x < boundary)),
         "adc2_overrange_count": saturated,
         "calibrated_output_out_of_range_count": output_out_of_range,
+        "positive_probe_samples_per_point": probe_count,
+        "positive_probe_seed": 20261110,
+        "positive_probe_input_v": probe_x.tolist(),
+        "positive_probe_output_out_of_range_count": positive_counts,
+        "positive_probe_output_policy": "candidate signed 20-bit saturation with per-result flag; not integrated into RTL",
         "adc2_input_half_range_v": 0.1,
         "pool_seed": 100,
         "slot_ids": list(range(8)),

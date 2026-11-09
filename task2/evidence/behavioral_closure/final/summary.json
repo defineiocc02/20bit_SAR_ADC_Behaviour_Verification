@@ -1,6 +1,6 @@
 {
   "source_sha256": {
-    "task2/eight/behavioral_closure.py": "e2b1d268bfd9a785b9a8baa0f37d3d63106b3a0acf4ee4929fc8dc9b5ff47697"
+    "task2/eight/behavioral_closure.py": "4b6745be2dc61c7891b1589530d48f12aa3d85a8dcaddf37d8fe3b7b7af26265"
   },
   "numpy_version": "2.5.3",
   "multiseed": {
@@ -628,6 +628,32 @@
       "2": 0,
       "3": 0
     },
+    "positive_probe_samples_per_point": 20000,
+    "positive_probe_seed": 20261110,
+    "positive_probe_input_v": [
+      4.9995,
+      4.9999,
+      4.99999,
+      4.999999,
+      4.999999999999999
+    ],
+    "positive_probe_output_out_of_range_count": {
+      "2": [
+        0,
+        0,
+        5791,
+        9522,
+        9920
+      ],
+      "3": [
+        0,
+        0,
+        6083,
+        9764,
+        10134
+      ]
+    },
+    "positive_probe_output_policy": "candidate signed 20-bit saturation with per-result flag; not integrated into RTL",
     "adc2_input_half_range_v": 0.1,
     "pool_seed": 100,
     "slot_ids": [

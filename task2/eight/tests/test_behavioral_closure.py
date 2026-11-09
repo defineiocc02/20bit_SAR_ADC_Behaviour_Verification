@@ -16,7 +16,7 @@ import pytest
 
 from adi_model.capacitors import ExperimentConfig, cap_pool
 from task1.model.codebook import codebook
-from task2.eight.behavioral_closure import apply_external_guard
+from task2.eight.behavioral_closure import apply_external_guard, encode_signed20_with_saturation
 from task2.eight.model import coarse_decision, decode, native_step_v
 
 
@@ -53,3 +53,14 @@ def test_guarded_lower_endpoint_and_half_open_upper_endpoint():
     assert np.all(after)
     _, _, upper = coarse_decision(np.full(64, 5.0), protected, thresholds, step)
     assert not np.any(upper)
+
+
+def test_output_saturation_is_explicit_and_keeps_20bit_range():
+    """最终码饱和必须逐笔报告；它不改变或修复前级与 ADC2 的状态。"""
+    v = np.array([-5.001, -5.0, 0.0, np.nextafter(5.0, -np.inf), 5.0, 5.001])
+    codes, flags = encode_signed20_with_saturation(v)
+    np.testing.assert_array_equal(flags, [True, False, False, False, True, True])
+    assert codes[0] == codes[1] == -(1 << 19)
+    assert codes[-1] == codes[-2] == (1 << 19) - 1
+    with pytest.raises(ValueError):
+        encode_signed20_with_saturation(np.array([np.nan]))

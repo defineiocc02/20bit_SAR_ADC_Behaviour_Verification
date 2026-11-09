@@ -1,0 +1,36 @@
+# =============================================================================
+# 文件名     : verification_plan.yaml
+# 模块名     : lms_recon_verification
+# 版本       : v1.0
+# 功能       : 片上冻结 LMS 重构验证意图
+#
+# 设计说明   :
+#   * Q28 定点与类 SRT 除法要求数值端点与握手时序同时验；被测 RTL 自己的输出不能当期望值。
+#   * 本文件只描述约束/验证意图，不是验收结论；实际状态以运行日志与归档收据为准。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# =============================================================================
+
+version: 1
+clock: clk_i
+# 四项各自的 oracle 都是独立参考：任意精度整数／有理数取整／自检查握手／握手周期计数，
+# 不能把被测 RTL 自己的输出当作期望值，否则等价性检查失去意义。
+checks:
+  - req: REQ-RECON-01
+    test: archived_2pct_3pct_frozen_coefficients
+    # 冻结系数来自片外训练归档；重放时不重新训练，避免把训练波动混进重构误差。
+    oracle: independent_arbitrary_precision_integer_and_archived_float_output
+  - req: REQ-RECON-02
+    test: all_adc2_codes_at_pipeline_edge_e3_and_numeric_endpoints
+    # E3 是累加器已初始化但首槽尚未加入的那一拍，端点向量专门卡流水边界，不能只跑稳态。
+    oracle: rational_rounding_and_floor_division
+  - req: REQ-RECON-03
+    test: configuration_reset_malformed_and_backpressure
+    # 配置未完成即禁止调度；畸形配置字与 ready 反压必须分别验，二者失败表现不同。
+    oracle: self_checking_handshake_and_output_scoreboard
+  - req: REQ-RECON-04
+    test: continuous_sixteen_tick_admission_and_latency
+    # 16 拍一笔的输入节拍下连续受理，验的是不插泡；只在成功握手上计周期，stall 不计数。
+    oracle: cycle_count_on_successful_handshakes

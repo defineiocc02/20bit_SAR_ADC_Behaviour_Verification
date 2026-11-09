@@ -1,0 +1,329 @@
+{
+  "schema": "task1_bridge_effects_v1",
+  "model_scope": "理想两节点电荷和连续余量观察。只隔离跨段映射，完整 DEM/LMS 对照另见校准实验。",
+  "configuration": {
+    "fs_hz": 10000000,
+    "samples": 4096,
+    "tone_bin": 409,
+    "tone_peak_v": 3.3333333333333335,
+    "full_scale_peak_v": 5.0,
+    "unit_cap_f": 1e-15,
+    "schedule_seed": 608135816,
+    "dem_seed": 2654435769,
+    "tone_hz": 998535.15625,
+    "tone_phase_rad": 0.11,
+    "sampling_skew_s": 0.0,
+    "sigma_pct": [
+      2.0,
+      3.0
+    ],
+    "manufacturing_seeds": [
+      100,
+      101,
+      102,
+      103,
+      104,
+      105
+    ],
+    "mismatch_scopes": [
+      "bridge_only",
+      "main_sub_bridge"
+    ],
+    "baseline_mode": "Fig.11 主阵列片内轮转和跨片 B4，子阵列 B5–B8 保留",
+    "phase_binding": "保留列 R = 同笔冻结纵相位，纵向起点 = 同笔冻结横相位 mod 8",
+    "coarse_threshold": "Fig.11 名义旧阈值，两个模式共用",
+    "candidate_correction": "归一化 V/Vfs 的 Q32 偏移在重构加一次，实际 ADC2 余量不加偏移",
+    "headroom_windows": "[-50,+50) mV 和 [-100,+100) mV，逐样本检查"
+  },
+  "nominal_closure": {
+    "cases": 65536,
+    "exact_max_closure_error_v": 3.95516952522712e-16,
+    "q32_max_closure_error_v": 5.478370188050086e-10,
+    "q32_half_lsb_v": 5.820766091346741e-10
+  },
+  "cases": [
+    {
+      "mismatch_scope": "bridge_only",
+      "sigma_pct": 2.0,
+      "mode_statistics": {
+        "fig11_local": {
+          "sndr_db": {
+            "min": 67.26901509130747,
+            "median": 69.29008170938832,
+            "max": 69.88832461000115
+          },
+          "sfdr_db": {
+            "min": 79.6641057513499,
+            "median": 85.37734517931285,
+            "max": 87.70284175835968
+          },
+          "peak_abs_residue_mv": {
+            "min": 35.774084740527066,
+            "median": 37.644824714070005,
+            "max": 39.494384463311356
+          }
+        },
+        "fig21_bridge": {
+          "sndr_db": {
+            "min": 79.86658450891726,
+            "median": 82.32330980735247,
+            "max": 83.1543862348555
+          },
+          "sfdr_db": {
+            "min": 97.93026592974135,
+            "median": 99.69790566606811,
+            "max": 100.86074055336238
+          },
+          "peak_abs_residue_mv": {
+            "min": 22.50117363086,
+            "median": 22.98424718610672,
+            "max": 23.094962752158253
+          }
+        }
+      },
+      "candidate_minus_baseline_paired": {
+        "sndr_db": {
+          "min": 12.59756941760979,
+          "median": 13.118487808577349,
+          "max": 13.266061624854345
+        },
+        "sfdr_db": {
+          "min": 13.157898795002694,
+          "median": 13.844822069652231,
+          "max": 18.26616017839146
+        },
+        "peak_abs_residue_mv": {
+          "min": -16.41665694486626,
+          "median": -14.660577527963282,
+          "max": -13.19544764231529
+        }
+      },
+      "overrange_total_samples": {
+        "fig11_local": {
+          "50_mv": 0,
+          "100_mv": 0
+        },
+        "fig21_bridge": {
+          "50_mv": 0,
+          "100_mv": 0
+        }
+      }
+    },
+    {
+      "mismatch_scope": "bridge_only",
+      "sigma_pct": 3.0,
+      "mode_statistics": {
+        "fig11_local": {
+          "sndr_db": {
+            "min": 63.75729441389477,
+            "median": 65.77010323123977,
+            "max": 66.37051441746902
+          },
+          "sfdr_db": {
+            "min": 76.15633755800094,
+            "median": 81.8465608445891,
+            "max": 84.18129831614871
+          },
+          "peak_abs_residue_mv": {
+            "min": 35.57039156725361,
+            "median": 38.19574133826234,
+            "max": 41.225869322331654
+          }
+        },
+        "fig21_bridge": {
+          "sndr_db": {
+            "min": 76.3555678778138,
+            "median": 78.80327017748263,
+            "max": 79.63565984672702
+          },
+          "sfdr_db": {
+            "min": 94.42248007324375,
+            "median": 96.18260314057576,
+            "max": 97.34078694623076
+          },
+          "peak_abs_residue_mv": {
+            "min": 22.354367518590973,
+            "median": 23.09443051094521,
+            "max": 23.313464871235826
+          }
+        }
+      },
+      "candidate_minus_baseline_paired": {
+        "sndr_db": {
+          "min": 12.598273463919028,
+          "median": 13.118673938623992,
+          "max": 13.266492820407379
+        },
+        "sfdr_db": {
+          "min": 13.159488630082052,
+          "median": 13.848344285945515,
+          "max": 18.266142515242805
+        },
+        "peak_abs_residue_mv": {
+          "min": -17.912404451095828,
+          "median": -15.10131082731713,
+          "max": -13.181118363754099
+        }
+      },
+      "overrange_total_samples": {
+        "fig11_local": {
+          "50_mv": 0,
+          "100_mv": 0
+        },
+        "fig21_bridge": {
+          "50_mv": 0,
+          "100_mv": 0
+        }
+      }
+    },
+    {
+      "mismatch_scope": "main_sub_bridge",
+      "sigma_pct": 2.0,
+      "mode_statistics": {
+        "fig11_local": {
+          "sndr_db": {
+            "min": 51.92969745394615,
+            "median": 52.38525859530441,
+            "max": 53.39890528713582
+          },
+          "sfdr_db": {
+            "min": 71.9856669663206,
+            "median": 73.20545088500245,
+            "max": 74.56202223979717
+          },
+          "peak_abs_residue_mv": {
+            "min": 45.3900857850075,
+            "median": 48.3783732627691,
+            "max": 52.328637137344224
+          }
+        },
+        "fig21_bridge": {
+          "sndr_db": {
+            "min": 51.82661791976953,
+            "median": 52.63588173879722,
+            "max": 54.60128868079748
+          },
+          "sfdr_db": {
+            "min": 72.34297300595841,
+            "median": 73.48763245293529,
+            "max": 76.39346738884666
+          },
+          "peak_abs_residue_mv": {
+            "min": 29.498539946614358,
+            "median": 33.86343507907505,
+            "max": 35.80009239827133
+          }
+        }
+      },
+      "candidate_minus_baseline_paired": {
+        "sndr_db": {
+          "min": -1.130957945367129,
+          "median": 0.06806871868775843,
+          "max": 2.247512556075691
+        },
+        "sfdr_db": {
+          "min": -0.8429391747385324,
+          "median": 0.19153995205501673,
+          "max": 3.8018776278798327
+        },
+        "peak_abs_residue_mv": {
+          "min": -19.548748676395043,
+          "median": -15.818503746269855,
+          "max": -9.975306341928288
+        }
+      },
+      "overrange_total_samples": {
+        "fig11_local": {
+          "50_mv": 2,
+          "100_mv": 0
+        },
+        "fig21_bridge": {
+          "50_mv": 0,
+          "100_mv": 0
+        }
+      }
+    },
+    {
+      "mismatch_scope": "main_sub_bridge",
+      "sigma_pct": 3.0,
+      "mode_statistics": {
+        "fig11_local": {
+          "sndr_db": {
+            "min": 48.40641102558591,
+            "median": 48.864250720933384,
+            "max": 49.8772970233242
+          },
+          "sfdr_db": {
+            "min": 68.46397752668986,
+            "median": 69.68653321369845,
+            "max": 71.04127994933351
+          },
+          "peak_abs_residue_mv": {
+            "min": 50.26553682136316,
+            "median": 55.674669165722705,
+            "max": 60.4736002340442
+          }
+        },
+        "fig21_bridge": {
+          "sndr_db": {
+            "min": 48.30479373371656,
+            "median": 49.11381509954235,
+            "max": 51.07973108122367
+          },
+          "sfdr_db": {
+            "min": 68.82104390932636,
+            "median": 69.96553810185571,
+            "max": 72.87166178137737
+          },
+          "peak_abs_residue_mv": {
+            "min": 33.089355923863174,
+            "median": 40.824447043684245,
+            "max": 42.94972566511032
+          }
+        }
+      },
+      "candidate_minus_baseline_paired": {
+        "sndr_db": {
+          "min": -1.1314773662119677,
+          "median": 0.0691238472557032,
+          "max": 2.2482674671898053
+        },
+        "sfdr_db": {
+          "min": -0.8438301411774631,
+          "median": 0.18751789113570538,
+          "max": 3.802037817036947
+        },
+        "peak_abs_residue_mv": {
+          "min": -19.91819756204908,
+          "median": -17.853484519677362,
+          "max": -8.523415065429177
+        }
+      },
+      "overrange_total_samples": {
+        "fig11_local": {
+          "50_mv": 11,
+          "100_mv": 0
+        },
+        "fig21_bridge": {
+          "50_mv": 0,
+          "100_mv": 0
+        }
+      }
+    }
+  ],
+  "environment": {
+    "python": "3.12.14",
+    "numpy": "2.5.3",
+    "matplotlib": "3.11.2"
+  },
+  "source_sha256": {
+    "task1/experiments/bridge_effects.py": "e9a2ab795c50dee99a355321abe04ee8f726353251057d43f87ebc2ceb0db080",
+    "task1/experiments/run_effects.py": "ec9635c6be81a1758785bc3ebb33714da427348b598dfcd3d3a6484692326c5c",
+    "task1/model/fig11_dem.py": "a3d7f040062ff7adf4c4b50fb90e59ee81491988973e5670e6e12e6e9789f39d",
+    "task1/model/fig21_bridge.py": "b9157d53acf6e708c9378d85ed67a9cfe57d471de4eef52830611c431080b2de",
+    "task1/model/module1.py": "c881976f3ed7c75f915d27b59fb69a2a58fa662ec4de6d51da09e4396573c3c2",
+    "task1/model/scheduler.py": "e6b2d50fa6bdaa607842bea0e86dc02e3fc531c7b832ea6a59858e48a7652f9f",
+    "src/adi_model/charge_ref.py": "74856592cdc665c4533744754b953cee55a6e8649368b8483b6ddbf619a0cebc",
+    "src/adi_model/metrics.py": "8877c362ac6ab765cb26f7dcd2a42263c9b0a0915d78134af9b322109edec5d9"
+  }
+}

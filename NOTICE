@@ -1,73 +1,38 @@
-NOTICE — third-party references and modelling sources
-=====================================================
+NOTICE — 参考资料与权利声明
+===========================
 
-This model studies, but does not reproduce, a commercial integrated circuit.
-The following third-party documents were used as modelling references. Six
-user-selected local originals are retained under references/ and enumerated in
-references/source_manifest.json. Their original copyright and embedded notices
-remain intact; they are not relicensed under this repository's BSD-3-Clause
-software license. Other referenced originals are not included. Reference PDFs
-are excluded from Python wheel and source-distribution packages.
+本分支交付独立的学术行为模型与数字设计，工程代码适用 LICENSE 中的
+BSD 3-Clause 许可及免责声明。参考文献中的电路与测量值归其原论文。
+本工程的实现范围与验证条件见对应任务说明。
 
-Primary architecture target
----------------------------
-[00]   R. Bodnar et al., "A 9.3 nV/rtHz 20b 40MS/s 94.2dB DR Signal-Chain
-       Friendly Precision SAR Converter", IEEE ISSCC 2024, Session 9.8,
-       pp. 182-183. DOI: 10.1109/ISSCC49657.2024.10454329
-[00_1] ISSCC 2024 Session 9.8 presentation slides (author copy).
+references/ 仅收录维护者选定的四份 PDF 原件。其原版权与内嵌声明保持
+原样，BSD 软件许可不适用于这些文件。本仓库不授予第三方专利许可。
+文件页数、大小与 SHA-256 由 references/source_manifest.json 记录。
 
-Patents referenced for mechanism detail (embodiments ≠ shipped implementation)
------------------------------------------------------------------------------
-[09] US 10,516,408 B2 — Analog to digital converter stage
-[10] US 10,505,561 B2 — Method of applying a dither, and ADC
-[11] US 10,511,316 B2 — Linearizing transfer characteristic by DEM
-[12] US 10,707,889 B1 — Interleaving method for analog to digital converters
-[13] US 10,541,702 B1 — Auxiliary input for ADC input charge
-[14] US 10,826,519 B1 — Low power reference for an ADC
+架构与后续模块的来源
+--------------------
+[00] R. Bodnar 等，20 位 40 MS/s 精密 SAR ADC，IEEE ISSCC 2024，9.8。
+     DOI 10.1109/ISSCC49657.2024.10454329
+[00_1] ISSCC 2024 9.8 作者讲稿 PDF。
+[PKU_VLSI2025_C32_1_PAPER] Zongnan Wang、Haoyang Luo、Rongjia Bao、
+     Lu Jie、Xiyuan Tang，闭环动态放大器与流水线 SAR ADC，VLSI 2025，C32-1。
+     DOI 10.23919/VLSITechnologyandCir65189.2025.11075015
+[PKU_VLSI2025_C32_1_SLIDES] 对应的 C32-1 讲稿 PDF。
 
-Background / alternative architectures (NOT part of the target chip)
---------------------------------------------------------------------
-[01] Hurrell et al., 18b 12.5 MHz ADC, ISSCC 2010 (JSSC extended version)
-[02] ElShater et al., 16b 15 MS/s two-step SAR with dual-deadzone ring amp,
-     ISSCC 2019 (JSSC extended version)
-[03] Li et al., rail-to-rail 12 MS/s two-step SAR with predictive
-     level-shifting input buffer, ISSCC 2023 (JSSC extended version)
-[04] Bannon et al., 18b 5 MS/s 100.2 dB DR SAR ADC, VLSI Circuits 2014
-[05] Analog Devices LTC2387-18 datasheet
-[06] Steensgaard et al., 24b 2 MS/s SAR ADC, ISSCC 2022
-[07] Texas Instruments ADC3583 datasheet
-[08] Shen et al., 16-bit 16-MS/s SAR ADC in 55 nm CMOS, JSSC 2018
-[AD4080_REVB] Analog Devices AD4080 datasheet, Rev. B.
-[HUANG2024_THESIS] Huang, Advanced Clock Multiplier and SAR ADC Design
-                   Techniques for High-Resolution Signal Chain Systems, 2024.
+专利公开文本
+------------
+[09] US 10,516,408 B2，Analog to digital converter stage。
+     https://patents.google.com/patent/US10516408B2/en
+[10] US 10,505,561 B2，Method of applying a dither, and ADC。
+     https://patents.google.com/patent/US10505561B2/en
+[11] US 10,511,316 B2，Linearizing transfer characteristic by DEM。
+     https://patents.google.com/patent/US10511316B2/en
+[12] US 10,707,889 B1，Interleaving method for analog to digital converters。
+     https://patents.google.com/patent/US10707889B1/en
+[13] US 10,541,702 B1，Auxiliary input for ADC input charge。
+     https://patents.google.com/patent/US10541702B1/en
+[14] US 10,826,519 B1，Low power reference for an ADC。
+     https://patents.google.com/patent/US10826519B1/en
 
-Optional mechanism adopted from a separate ADC (NOT the ISSCC target chip)
--------------------------------------------------------------------------
-[PKU_VLSI2025_C32_1_PAPER] Zongnan Wang, Haoyang Luo, Rongjia Bao, Lu Jie
-and Xiyuan Tang, "An 88.8dB-SNDR 6-MS/s Pipelined SAR ADC with a Closed-Loop
-Dynamic Amplifier Featuring Highly-Linear Full-Scale Output Swing", 2025
-Symposium on VLSI Technology and Circuits, C32-1.
-DOI: 10.23919/VLSITechnologyandCir65189.2025.11075015
-[PKU_VLSI2025_C32_1_SLIDES] Corresponding 42-page C32-1 presentation slides.
-
-Chopping-assisted auto-zeroing is attributed to Wang et al. The optional
-sample-domain model and digital pairing protocol adapt that published mechanism
-to this project's architecture. They do not reproduce its transistor circuit,
-its measured performance, or an undisclosed raw/effective sampling-rate relation.
-
-其他参考架构（未实现）
-----------------------
-[CICC2026_13_6_PAPER] Congyu Jin et al., "A 3.6mW 5MS/s 100dB-SNDR 2-Step
-SAR ADC with Continuous-Time Second-Stage and Tracking Averaging", 2026 IEEE
-Custom Integrated Circuits Conference (CICC), 13-6.
-DOI: 10.1109/CICC65509.2026.11509489
-[CICC2026_13_6_SLIDES] 对应的62页13-6讲稿PDF原件。
-
-连续时间后级、LSB重复与SINC² tracking averaging仅作参考，本工程尚未实现。
-现有输出SINC、预跟踪或CAAZ数字配对不等同于上述机制。
-
-The KTC-noise cancellation branch formerly implemented in adi_model/ktc.py is
-retained as a historical af8 snapshot and has been removed from the current
-implementation. It remains an ORIGINAL RESEARCH EXTENSION by this repository's
-authors, labelled [RESEARCH_EXTENSION], and is NOT a feature disclosed in [00]
-or in patents [09]-[14]. Do not attribute it to Analog Devices.
+LICENSE 提及的原工程 provenance 文档可从整理前的提交查阅。
+https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/bc9a16a596dd37d1172d29cbda23979c222bf63b/docs/provenance.md

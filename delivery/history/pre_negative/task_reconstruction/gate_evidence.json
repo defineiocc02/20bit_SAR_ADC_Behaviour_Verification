@@ -1,0 +1,113 @@
+{
+  "G0": {
+    "evidence": [
+      {
+        "path": "evidence/environment.json",
+        "sha256": "37929c893b80775d9e66676bd8126a0d599b4fe82363b5757f4064f546508c40"
+      }
+    ],
+    "scope": "local functional execution",
+    "status": "PASS"
+  },
+  "G1": {
+    "evidence": [
+      {
+        "path": "SPEC.md",
+        "sha256": "16d1e41fc844c16f5acc2cf705e11b349e001e29739c5a512f35d14df7ce6856"
+      }
+    ],
+    "scope": "frozen digital reconstruction contract",
+    "status": "PASS"
+  },
+  "G2": {
+    "evidence": [
+      {
+        "path": "microarchitecture.md",
+        "sha256": "519eb16a6256220e0bed26b96bff88d630cf2c14ecb9095f9684aa82700bbc5f"
+      },
+      {
+        "path": "verification_plan.yaml",
+        "sha256": "5d4a42aca24ecdc59293994d108c4b1aab04cf04245c9d2540b78324911e9463"
+      },
+      {
+        "path": "requirements_trace.csv",
+        "sha256": "7250cfcbbb57f533104990a6e82c28e30cfc60dee944daa8b9e1e1a6c46cb933"
+      }
+    ],
+    "status": "PASS"
+  },
+  "G3": {
+    "evidence": [
+      {
+        "path": "evidence/result.json",
+        "sha256": "8c25710c976ba92ef9f732fea686f8554d822b2337c4b74f820a4ab2d5c54b2e"
+      },
+      {
+        "path": "evidence/lint.log",
+        "sha256": "cbe6f28a02df71df3c0fb9d18416abf184af861d8448f9c5d6eb9326a7df57a0"
+      },
+      {
+        "path": "evidence/run.log",
+        "sha256": "34f79cccc5e9d51dd271d2f8f2a8f968f7ca4dbf902459f8e61645aaefd0935b"
+      }
+    ],
+    "formal": "NOT_RUN",
+    "lint_simulation_assertions": "PASS",
+    "midpoint_coverage": "all 4096 codes accepted and checked against the rational oracle at RTL E3",
+    "status": "BLOCKED"
+  },
+  "G4": {
+    "combined_top_manifest": {
+      "path": "../task2/physical/evidence/sar20_digital_lms_top_manifest_42278312924.json",
+      "sha256": "482cb6ae74a1577fa5f2f3104975c065d20c84dc07288fc3aac753bbee770459"
+    },
+    "extracted_single_corner_sta": {
+      "clock_period_ns": 6.25,
+      "corner": "TT 25 C, 1.80 V with extracted SPEF",
+      "hold_violations": 0,
+      "hold_worst_slack_ns": 0.0430949,
+      "setup_violations": 0,
+      "setup_worst_slack_ns": 0.0805565,
+      "status": "PASS"
+    },
+    "multi_corner_sta": "NOT_RUN",
+    "original_public_pv": {
+      "drc": {
+        "exit_code": 124,
+        "status": "FAIL"
+      },
+      "lvs": {
+        "exit_code": 124,
+        "status": "BLOCKED"
+      }
+    },
+    "physical_claim": "PARTIAL_SIGNOFF",
+    "public_pv_replays": {
+      "drc": {
+        "manifest": {
+          "path": "../task2/physical/evidence/sar20_digital_lms_top_drc_manifest_42297095870.json",
+          "sha256": "42998cddc0dfddfd3b91dd025004ab774c6600d5160b088862fb86576c464ab9"
+        },
+        "marker_count": 0,
+        "status": "PASS",
+        "workflow_run": "42297095870"
+      },
+      "gds_sha256": "4aa02f35dae17c528f72bce9a06a7c8aee466c9a163d210ae54a9265a8ed02c3",
+      "lvs_upstream": {
+        "deck_revision": "5eebdc0d06879cf674e86e3fb8efa2803e6e44dc",
+        "deck_sha256": "d2d231d7cd00a8261d6653c5f3757badefb1dc0aba29441d8406272e75cd8b90",
+        "manifest": {
+          "path": "../task2/physical/evidence/sar20_digital_lms_top_lvs_upstream_manifest_42296886745.json",
+          "sha256": "da14358bf6decbe61d5404b1dd9f13d6bcd502b386f39c10c6445f3ef54ad8b7"
+        },
+        "status": "PASS",
+        "top_match": true,
+        "workflow_run": "42296886745"
+      }
+    },
+    "routed_gds": "PASS",
+    "scope": "routed combined digital top, extracted single-corner timing and public DRC/LVS replays; complete G4 remains open",
+    "status": "BLOCKED",
+    "target_180nm_bcd": "NOT_RUN"
+  }
+}

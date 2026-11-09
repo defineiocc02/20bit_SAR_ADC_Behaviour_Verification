@@ -1,137 +1,198 @@
-# 20位／40 MS/s SAR ADC：行为模型、静态校准与数字实现
+# 20b10mtask｜20位、10 MS/s ADC数字任务交付树
 
-[English](README_EN.md) · [当前状态](docs/STATUS.md) · [数字状态表](docs/digital_status_matrix.md) · [原文对照](docs/current_digital_source_map.md) · [论文与讲稿](references/README.md)
+**最终目标：参考ISSCC 2024 9.8及相关专利，结合北大VLSI 2025的斩波辅助自归零技术，为180 nm BCD、20位／10 MS/s SAR ADC开发数字线性化与噪声抑制模块；本阶段在SKY130（130 nm）上完成Python→RTL→GDS，交付技术效果图以及通过验收的时序和物理检查报告。**
 
-> 当前实现采用显式来源绑定和ABI2。下面分别给出可重跑的Python静态校准、实际RTL静态闭环和Fig.19逐事件反例；旧模型结果单独归档。
+**工艺与规格：**本阶段数字后端采用SkyWater SKY130HD标准单元库；未来整机目标是180 nm BCD、差分输入±5 V、原始10 MS/s。
+CAAZ两笔配对后输出5 MS/s。两种工艺分别实现与验收，SKY130的GDS／时序不能代替180 nm BCD结果。
 
-## 项目目的与范围
+**接手用这份[六个月任务书（PDF）](handoff/NINE_MONTH_PLAN.pdf)：第一页直接列任务、截止与数字spec，第6节列数字签核要求。**
 
-本工程研究两级SAR ADC中的电容失配、采样电荷、残差重构和数字校准。交付分为三部分：**ADC行为模型、静态失配校准流程、数字控制与重构RTL**。输出DSP和斩波协助自归零（CAAZ）是独立扩展；动态元件匹配（DEM）、dither与切片选择分别说明实现范围和验证条件。
+**新增行为实验：**[五种子 DEM／LMS、dither 端点候选与 CAAZ 低频噪声](task2/evidence/behavioral_closure/README.md)。端点候选依赖预采样外部标志，目前尚未构成可直接使用的完整硬件方案；CAAZ 低频图为单独样本域实验，不等于联合 ADC 的低频性能。
+[可编辑阅读稿](handoff/NINE_MONTH_PLAN.md)包含同一内容。主线始终是DEM→dither→CAAZ→整体数字后端；
+行为级以电荷关系、固定失配与样本噪声验证这三项；动态敏感性可另行扩展，模拟电路设计及180 nm BCD移植分别负责。
 
-**20位是最终输出码宽，40 MS/s是默认raw采样率参数。** 这些数值不代表20位ENOB或目标工艺已达到40 MS/s。原文架构锚点、工程推断、实现状态与证据等级分别登记，不能通过换模块名称或对齐一条公式宣称复原原芯片。
+### 这些数字技术为什么要做，参考什么？
 
-## 已经完成的工作与当前状态
-
-| 工作项 | 实际内容 | 当前结论 | 尚需完成 | 入口 |
-| :--- | :--- | :--- | :--- | :--- |
-| **ADC行为模型** | 显式物理切片、电容／桥接网络、独立SADC、共享RA与ADC2；默认层集中提供可覆盖的工程推断值 | 默认命令已实跑4096笔，保留名义20位码、各节点异常和假设清单；指定静态路径有独立留出 | 动态建立、真实开关／参考、噪声协方差和模拟宏 | [默认层](src/adi_model/defaults.py)、[信号链](src/adi_model/pipeline_engine.py) |
-| **静态失配校准流程** | 以数字观测和独立已知输入拟合有效C/Cf，检查秩，固定系数后作整数重构 | Python无dither及RTL Fig.19受限静态两套闭环均有真实留出；RTL系数在Python训练、回装DUT | 实际参考与读出、含噪动态、漂移、ADC2非线性 | [Python重跑](tools/run_static_calibration.py)、[RTL重跑](tools/run_fig19_rtl_calibration.py) |
-| **数字控制与重构RTL** | 20个清单模块实现9位SAR、18/8资源池、16相位、系数装载、上下文和重构；显式双source绑定 | 8文件包、两采集端口、calobs v2、实际RDAC事件与整数结果在指定有限窗内完成同池对拍 | 真正停采／排空／park、观察输送、模拟建立与目标工艺验证 | [RTL入口](rtl/README.md)、[ABI2合同](docs/rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md) |
-| 输出DSP扩展 | 15个模块实现并行校正、SINC、捕获、SPI／寄存器与GPIO；缺失来源参数显式拒绝 | handoff003核15源，14指定数字场景与5严格profile通过；已报告controller fault有实际锁停／恢复 | 整链滤波选择数值路由、逐输出元数据、未报告ID缺口、真实停采park后保记录软件复位、数据PHY／CNV、逆向两点系数学习 | [DSP说明](ad4080_dsp/README.md) |
-| CAAZ扩展 | 显式输入等效AZ记录、数字控制及完整重构后的配对 | 默认关闭；现行8包组件核到4个数字配对，独立配对单元有325字段核对 | CBIAS保持、H/K、模拟斩波与最终组合验证 | [状态表](docs/digital_status_matrix.md) |
-
-默认输出使用**名义系数**，没有进行训练。`adi-simulate`正常结束只说明所选推断模型实际生成了记录；训练改善、原文机制复现和目标精度分别需要自己的证据。
-
-## 主要实验结果
-
-### Python静态校准：独立留出RMS 85.83 → 2.076 µV
-
-同一固定失配工程模型，使用4096笔均匀随机参考覆盖[−3,+3) V训练，固定schema2系数；再用未参与训练的512笔留出，让名义／固定系数消费同一raw。中幅[−2.8,+2.8) V的同样4096笔只有rank1224/1279而被拒绝；全跨度训练达到1279/1279，条件数2883.7。
-
-![当前同源Python静态校准及中幅不可辨识反例](docs/readme/fig/source_bound_static_calibration.png)
-
-*图1｜最终源码的公共producer正例`fullspan_positive`和中幅反例`midrange_rank_negative`，绑定producer及36个实际加载源码哈希。seed42，单元／桥接失配各0.001，dither／单元DEM关闭，采样／RA随机噪声关闭；独立留出仅覆盖[−2.6,+2.7] V。RMS 85.829→2.07577 µV，标准差85.314→2.07544 µV；模拟异常／clip均0，512笔最终码与独立整数oracle一致。[逐点数据与来源](docs/readme/data/source_bound_static_calibration.json)、[重新训练命令](docs/REPRODUCING.md#3-静态校准重新训练固定与留出)。这证明指定Python工程静态条件下的校准效果，不证明RTL、动态／含噪工况、端点、全码INL/DNL或芯片性能。*
-
-### RTL静态闭环：同一留出RMS 97.04 → 1.993 µV
-
-实际DUT在同一固定非均匀ADC模型上产生4096笔word0全跨度训练观测，片外Python用独立参考拟合有效权重（rank1279/1279），将固定系数回装DUT。独立留出是峰值2 V的指定正弦，64个扰动字各出现8次；两种系数使用相同物理池、有序slice计划、开关记录与512笔raw。训练和留出参考不相交。
-
-![实际RTL静态闭环的512笔校准前后及放大残差](docs/readme/fig/source_bound_rtl_calibration.png)
-
-*图2｜实际DUT `full_typechecked_001`及四次同版生产Python重放；指定静态等效、随机转换噪声及单元DEM关闭。RMS 97.04090→1.99287 µV，标准差96.28313→1.99087 µV。正常留出515条程序、514笔物理采样、512笔目标退休；三条程序尾不退休。status／sticky／fault与结果flags均为0，512码与生产Python及独立整数oracle一致，3598个RDAC事件含两笔已采样尾记录。[逐点数据与收据身份](docs/readme/data/source_bound_rtl_calibration.json)、[重跑与独立重放](docs/REPRODUCING.md#5-显式导出与rtl组件执行)。该证据限静态工程模型与有限观察窗，不能推及真实停采、端点、动态或芯片精度。*
-
-图1与图2使用不同激励和资源计划，分别验证校准闭环。两图之间的误差差值不用于评价dither的增量收益。
-
-### Fig.19扰动：分开采集，逐事件检查
-
-同一六位字派生lower、total和upper：lower进入SADC采样，total进入RDAC保存，upper调整每个已决RDAC候选码。按实际mask和固定权重重构时，仅去除一次已知扰动。完整分组、Q32单位与端点见[ABI2合同](docs/rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md#2-两采集端口与同笔归属)。
-
-![Fig.19两采集端口与早事件反例，以及DEM应插入的位置](docs/readme/fig/source_bound_fig19_mechanism.png)
-
-*图3｜原创机制示意及实际DUT反例。−2.9 V／word32的SADC与RDAC采样分别为−2.9000 V、−2.946875 V；最终k=4合法，前三个候选为−4，非法mask不加载。DUT六个目标只退休四笔，拒绝ID3／6并报告预期控制故障。[原事件与验证身份](docs/readme/data/source_bound_fig19_evidence.json)。±2 V只指指定静态点与留出激励；事件检查针对整数码域，参考／模拟建立和原文3D DEM未获证明。本图不复制原文。*
-
-<details>
-<summary>展开af8／9bdf历史校准、交织、旧dither／DEM结果</summary>
-
-以下三张图保留原字节，属于**af8功能合同、9bdf文档版本保存的历史结果**。实际受测源码以相邻JSON的源SHA和原配置为准；9bdf本身不是这些实验的新运行身份。旧SID／零和bridge、`range`和固定4倍扰动方案已退出当前运行入口，图中的数值不转作本轮新模型的性能。
-
-![历史静态校准：误差标准差55.75降到2.08微伏](docs/readme/fig/current_calibration.png)
-
-*图4｜历史静态失配夹具：seed42、DEM＋sampling D=2，4096训练／512独立留出、关闭外加随机噪声，标准差55.75→2.08 µV。该结果限原开关／观察合同。[原数据与源SHA](docs/readme/data/structural_calibration_summary.json)；第二颗模型及含噪条件继续保留。当前公共producer的独立新运行见图1，两者不合并为同一性能记录。*
-
-![历史交织比较保留SFDR与SNDR的取舍](docs/readme/fig/current_interleave.png)
-
-*图5｜历史三策略Python比较：相同10 ps标称时偏池、40 MS/s、N=16384。按旧RTL规则运行的Python策略相对固定A/B，SFDR提高14.93 dB，SNDR下降11.05 dB；它不是SV输出频谱。[原配置、数组与指标](docs/readme/data/interleave_40m.json)。当前默认层没有据此获得逐切片时偏／带宽补偿能力。*
-
-![历史工程扰动模型在2.99伏附近的内部越界](docs/readme/fig/current_dither_headroom.png)
-
-*图6｜已退役工程扰动方案的历史余量诊断：2.99 V处SADC越界18次、RA饱和4次、ADC2越界15次，最终码clip仍为0。保留失败点与原端点约定；这些计数不是新Fig.19等效模型的当前缺陷或测试结果。[原数据](docs/readme/data/dither_headroom.json)。*
-
-历史DEM图统计的是旧映射的正轨使用次数与分母；名义守恒不证明均衡或精度收益。该映射已退役，[9bdf专题](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/randomization_caaz/README.md)仅作历史解释。当前指定静态闭环见图1／2；动态与交织补偿仍需单独验证。
-
-</details>
-
-## 系统怎样工作与默认值
-
-![工程推断的默认等效结构与待验证边界](docs/readme/fig/source_bound_default_architecture_v1.png)
-
-*图7｜原创默认等效架构图：独立SADC、18片资源池、63+8推断阵列、共享RA／Cf、ADC2和两种系数入口。蓝色是原文架构锚点，绿色是工程推断，橙色标出已核的受限静态路径及待验证的物理网络。完整物理网络仍未实现。本图不复制原文图像。*
-
-默认层采用每次8片转换、8片采集、2片空闲的因果计划；已制造的失配在同一模型对象中保持。基本译码以整数粗码决定主／子阵列计数，资源组随机选择与单元DEM分开。名义重构只读名义网络；拟合器只读数字观测和独立参考，不读取实际电容、真实增益或持有电压。
-
-| 参数或结构 | 当前集中默认值 | 来源与边界 |
+| 技术 | 要解决的问题与作用 | 直接参考 |
 | :--- | :--- | :--- |
-| 采样、输出与资源 | 40 MS/s；前级9位；输出20位；18片中每次8片转换 | 架构锚点；输出字宽与采样率设置不等于ENOB或工艺时序通过 |
-| 名义输入与增益 | 差分等效峰值±3 V；名义增益32 | 实际电荷增益由所选电容／反馈电容决定 |
-| SADC与基本译码 | 513个均匀边界、有效窗[−3,+3) V；默认k=c；主计数k//8、子计数k%8 | 均匀门限、canonical mask与整数计数为工程实现，不是原文3D DEM或完整binary-to-unary矩阵 |
-| 每片分段网络 | 主63、子8；β=1/8；Cu=40.0390625 fF、Cb≈45.7589286 fF | 以20.5 pF映射到名义Cnorm推导的工程网络，非公开版图单元清册 |
-| 活动电容与共享反馈 | Cnorm=20.5 pF；共享Cf=0.640625 pF；独立SADC电容2.5625 pF | 节点含义与Cs匹配是推断；反馈电容由活动转换组共享 |
-| 后级与摆幅 | ADC2 12位；窗口[−0.0375,+0.4125) V；RA限幅±0.5 V | RA输出节点的工程预算；`half_open`端点，异常保留 |
-| 失配与噪声 | 单元／桥接相对标准差各0.001，反馈默认0；300 K、χ=2；RA输出1 mV RMS | 制造压力与噪声假设；默认采样／RA噪声开启，不由目标DR反推 |
-| 定点与重构 | Q30权重／Q32归一化电压V/Vfs，48／64位接口、96位受检累加、20位码 | 工程算术选择；默认名义系数未经训练 |
-| 采样与开关 | 默认全部Signal，参考坐标±Vfs，主／子初始等效坐标0，寄生默认0 | 静态等效假设；不建立真实开关噪声协方差或参考动态 |
-| 默认关闭与零值 | dither、单元DEM、CAAZ、动态关闭；slice时偏／失调0，driver噪声关闭 | 开关由运行元数据记录；显式开启未支持项会拒绝，不暗中降级 |
+| 交织与切片调度 | 将采集延长至整周期，放宽输入驱动建立要求；通过随机选片打散残余交织杂散。实际时偏和带宽差异仍需模拟设计控制 | Bodnar等，ISSCC 2024 9.8，论文Fig.9.8.1及正文、讲稿8页；切片结构另见US10516408B2 |
+| DEM（动态元件匹配） | 在保持名义转换关系的前提下改变电容使用组合，减轻固定失配导致的非线性与杂散；必须结合LMS开／关对照证明效果 | ISSCC论文Fig.9.8.3；[US10511316B2](https://patents.google.com/patent/US10511316B2/en)，Fig.11、20、21 |
+| Dither（扰动注入与去扰） | 注入已知伪随机扰动并在数字端去除，使固定输入跨越不同码边界，减轻DNL影响、补充DEM线性化；同时检查内部余量与噪声代价 | ISSCC论文1页、讲稿17–18页；[US10505561B2](https://patents.google.com/patent/US10505561B2/en)，Fig.3及19 |
+| CAAZ（斩波辅助自归零） | 输入换相、两笔共享同一AZ状态并在数字端配对，抑制RA失调及低频噪声，并抵消共享AZ采样噪声；保持误差和输出带宽必须单独验证 | Zongnan Wang等，VLSI 2025 C32-1，论文Fig.5／6及讲稿PDF35页 |
+| LMS权重训练与重构 | 片外估计固定电容权重，片上按已加载权重重构；作为评估DEM、dither的共同校准基线 | ISSCC正文披露“系数片外获得、片上位权修正”；具体LMS训练、定点格式和接口为本工程选择 |
 
-`DefaultParameters`可以显式覆盖，运行元数据逐项记录推断来源。改变电容不会暗中重调另一电容来维持原增益。低层`Config`保留缺项检查，高层`default_model()`负责提供上述可运行默认；两者职责不同。
+[ISSCC论文与讲稿](references/README.md)给出交织及线性化架构；[北大论文Fig.5／6](references/PKU_VLSI2025_C32_1_PAPER.pdf#page=2)给出CAAZ机制。
+ISSCC原型是40 nm、40 MS/s，北大原型是180 nm CMOS、6 MS/s；本项目的180 nm BCD、10 MS/s及二者联合是工程目标，尚需验证。
 
-**dither与DEM的当前边界。** 默认不启用源dither或单元DEM。可选Fig.19路径接收显式六位字：upper为`U=4D6+D4`，lower与total满足`T=L+U·Δ`；本工程选择SADC采样`x−L`、RDAC保存`x−T`及命令`k=c−U`，均匀名义码表可写`VD(k)+r+T`；实际失配重构按逐unit的mask与冻结权重归约，不再扣一次U。负极性、低位4:2:1/7的Q32取整和18/8目标绑定是工程假设；目前仅作**经指定Python／RTL对拍的受限工程静态等效**。[逐项原文依据](docs/current_digital_source_map.md)单列其与完整物理网络的差距。原文3D DEM及完整binary-to-unary开关矩阵尚未实现。
+其余专利用于接口核对：[US10516408B2](https://patents.google.com/patent/US10516408B2/en)对应切片转换级，
+[US10707889B1](https://patents.google.com/patent/US10707889B1/en)对应含采集前tracking的交织方法，
+[US10541702B1](https://patents.google.com/patent/US10541702B1/en)对应输入充电辅助路径，
+[US10826519B1](https://patents.google.com/patent/US10826519B1/en)对应低功耗参考。
+辅助输入充电与dither注入是不同机制；已有18／8调度也不能证明采集前tracking已经实现。
 
-| 组合 | 当前证据与边界 |
+已有Python、RTL和部分验证结果可以复用。你的工作是复现这些结果，补齐模拟接口与性能验证，
+再交付与模型一致的RTL、GDS和时序报告。
+
+**先读本页，再按[任务书](task1/SPEC.md)执行。** 论文／专利位置及工程假设分别在各模块说明中给出；
+[原文索引](references/README.md)用于核对来源，不能把工程选值当作原文披露。
+
+## 1. 你要交付什么
+
+<a id="现在交付到哪里"></a>
+
+| 工作包 | 已交付到哪里，可直接复用 | 同学新增工作与未完成项 |
+| :--- | :--- | :--- |
+| 切片调度＋DEM | 18／8／8／2调度、受限DEM与跨段候选已有零差异对拍；名义关系已有独立检查 | 复用既有模型／RTL，补MC、输入范围和状态覆盖，按物理使用与性能评估统计；不重写调度器，不以晶体管开关模型作为行为验收前提 |
+| Dither | 六位发生器、八片注入与同笔ID已实现；独立20,000拍对拍零差异，记录源码一致；静态开关图可复用 | 在已声明电荷模型下处理±5 V端点，补参数／输入覆盖；已有两套校准对照可复用，模型合同改变后再重跑 |
+| CAAZ | 数字控制、逐笔去扰配对及共享AZ样本域噪声收益均已有行为证据 | 补保持／两相增益、慢漂移或1/f样本场景及数字接口验证；不重写配对器，不要求学生设计模拟宏 |
+| 重构与整体集成 | Q28重构已有16,384笔和4,096个ADC2中点检查；有整体归档对拍记录 | 两份记录的部分依赖摘要已变化，先核对RTL／参数／向量身份；未变可复用，变化时定向重放；数字接口和当前版本整体发布验收另行维护 |
+| 数字后端 | 历史控制及含重构顶层已有SKY130 GDS与TT记录，各自版本见[物理归档](task2/physical/README.md) | 当前各模块和整体逐一核对源码身份后交付；等价、多角STA和电源完整性不能由旧包推定 |
+
+以上为指定范围的已有证据，不代表整机完成。[数字记录与入口](task_integration/evidence/negative/README.md)和
+[后端工件范围](delivery/negative_66b2e2e/README.md)分别保存。
+本次身份核对发现：整体`on_chip`记录的`experiment.py`摘要、`joint_noise`记录的`summary.json`摘要与当前文件不同；
+保留原记录；本次当前静态入口重放与原数据一致。数字发布时核对RTL、参数、向量及约束，真正变化的部分再定向重放。
+本次按行为级要求复核：4,173,824组独立电荷检查、24组频谱、16组线性度指标、四组NLMS训练重放及CAAZ四组配对均通过。
+逻辑起点分布不均不直接判为功能缺陷；结合实际物理组后，专项使用统计与独立均匀起点诊断接近。
+[行为级成果审计表](handoff/BEHAVIORAL_STATUS.md)区分有效成果与真正需要补的覆盖，不以器件开关／模拟瞬态作为算法验收前提。
+
+学生负责数字接口、算法建模、RTL、验证和数字后端。模拟组负责采样前端、量化器、RA（残差放大器）、ADC2（后级量化器）、参考及斩波／自零电路，
+提供或确认连接、响应和时序。**LMS（最小均方）校准现有实现是片外训练、片上加载权重并重构；训练参考与更新方式须在接口冻结时确定。**
+
+| 项目条件 | 当前约定与边界 |
 | :--- | :--- |
-| Fig.19静态等效＋18/8因果slice计划＋固定非均匀电容池＋冻结校准 | 64字各8次的实际RTL留出通过同池、同有序ID／计划重放；Python独立整数结果一致。资源组随机选择与单元DEM分别核验 |
-| Fig.19＋原文3D单元DEM | 原文3D网络未实现；静态v1拒绝单元DEM组合，不从资源调度推出已组合 |
-| Fig.19＋CAAZ | 带真实共享AZ的组合尚未验证；v1拒绝额外非零RA扰动。零AZ或只有数字pair不证明CBIAS保持、H/K或噪声抵消 |
-| Fig.19＋动态／转换随机噪声 | 当前受限路径显式拒绝，必须显式关噪声；专用dither电容／开关的失配及噪声协方差未建模 |
+| 系统目标 | ISSCC交织架构为参考，9位前级，差分输入±5 V，20位输出码，原始10 MS/s；20位码宽不等于20位有效精度 |
+| 调度与时钟 | 18／8／8／2；若保持16拍一笔，数字时钟目标160 MHz，须经模拟时序和数字STA验证 |
+| ADC2与CAAZ | 行为基线为理想12位ADC2、输入折算±100 mV；实际RA电压映射另行对接。CAAZ每两笔输出一笔，为5 MS/s |
+| 电容网络 | Fig.11支持的名义结构为主阵列15×2C＋2×1C、子阵列8C／4C／2C／C／C、桥接C；实际采样／底板轨与交换规则仍须冻结，不能把名义结构等同完整开关复现 |
+| 实现平台 | 本阶段使用SKY130完成数字后端；180 nm BCD是后续目标工艺，必须以该工艺库另做实现和验收 |
 
-## 尚未完成的工作
+## 2. 第一周先完成这三件事
 
-| 类别 | 需要完成什么 | 可接受的完成证据 |
-| :--- | :--- | :--- |
-| 实际读出与校准扩域 | 建立独立参考、可读数字观察与明确配置代次；在含噪、漂移与ADC2非线性下训练／留出 | 同一真实参考与实际捕获，报告满秩、固定系数、整数结果和全部异常 |
-| 余量、随机化与交织 | 近负端早事件越界已定位并拒绝；还需来源支持的有效域／物理实现、源3D单元DEM、逐slice孔径／带宽观测与补偿 | 合法事件及端点覆盖；固定同一失配池、输入和带宽对照，报告SFDR、SNDR及使用统计 |
-| 停采与物理验证 | 定义停采、排空、park与独立模拟idle确认；补连续采集、真实参考阈值回路、RA／ADC2建立及PVT／MC | 无损或明确取消的样本记录、实际宏时序、目标库综合／STA、CDC/RDC与PEX |
-| 可选扩展 | CAAZ保持与H/K、完整组合噪声；DSP滤波选择、输出元数据和数据PHY | 对应输入、元数据、整链路由及宏／协议的独立证据 |
+1. **固定版本、检查环境并运行已有回归。** 记录提交号与依赖；`bef5654`的218项Python通过仅是该版记录。核对上述摘要变化及输入向量，抽查已有结果；向量／接口变化时再定向重放。
+2. **用已有数据抽查基线。** 原样引用有效归档图，需理解口径时重绘；注明开关、训练／留出、范围和来源。接手不要求重新训练、重新生成全量码密度或重做旧版图。
+3. **冻结模拟接口并列新增项。** 包括物理位图、孔径、注入极性、RA／ADC2窗口及AZ确认。接口或实现改变后，才重跑受影响的完整验证；任务见[接手清单](task1/SPEC.md#同学第一周怎么开始)。
 
-[13项待证记录的分组](docs/STATUS.md#按依赖排序的未闭合项)列出主链尚缺的真实采集、参考、温漂及观察输送证据。
+## 3. 每项技术交什么图，怎样验收
 
-## 怎样复现、从哪里读代码
+### 切片调度＋DEM：看清静态失配怎样被处理
 
-从默认名义运行、重新训练、实际RTL记录和只读重绘四个入口选择。安装与环境见[CONTRIBUTING](CONTRIBUTING.md)，完整输入与输出说明见[复现入口](docs/REPRODUCING.md)。
+交选片时序、单元使用统计，以及**DEM开／关×LMS开／关四组**20位INL／DNL与频谱。
+2%和3%固定失配分别测试；各组使用相同物理电容池、输入和可比的控制条件。
+LMS训练后冻结，用未参与训练的数据验证。
+现有DEM按Fig.21功能等效映射及已声明电荷网络验收；器件开关与实际电路由模拟组另行实现，不影响本组行为证据。
 
-```bash
-python -m pip install -e .
-python -m adi_model simulate --samples 256 --output ../sar-output/nominal-demo-001
+![静态失配下DEM、LMS及dither的20位线性度对照](task2/evidence/eight_negative/eight_native_linearity.png)
+
+**已有结果供你复现：**2%失配、dither关闭时，峰值端点INL从无DEM／无LMS的655.668 LSB20，
+降到仅LMS的0.788 LSB20，再到DEM＋LMS的0.493 LSB20。
+这是±3.671875 V共同窗内、256个等权配对状态的平均码密度，未证明全幅单次转换无缺码。
+图中LSB20=10 V/2²⁰=9.5367 μV，不能改用前级LSB。
+
+**验收：**切片与配置归属正确、名义电荷关系满足已冻结网络、Python／RTL逐事件一致；
+效果图同时报告收益和代价，不以“用了DEM”代替性能证据。
+[模块一与接口](task1/README.md) · [固定失配与LMS统一标准](task1/EXPERIMENT_STANDARD.md)
+
+### Dither：看清注入、去扰和端点余量
+
+交原文对应的注入／去扰示意，在**无LMS、冻结LMS**两种条件下分别比较dither关／开，
+并交全幅输入拒绝／内部超窗图。每笔必须使用自己的字、片号、采样位图和转换位图。
+
+![关闭LMS时的dither独立开关对照](task2/evidence/eight_negative/eight_native_no_lms_linearity.png)
+
+**已有结果供你复现：**DEM开启、LMS关闭时，2%／3%固定失配的统计零宽内码由434,691／396,727降为0，
+但峰值INL反而增大。它能平滑平均码密度，不能由此声称INL、SNDR同时改善。
+
+当前命令为`k=c−U`，重构子特征为`conv_sub+sample_sub`。
+行为模型用受控负电荷源及共享子权重表达注入，独立节点解已验证该合同；实际底板接轨是后续模拟实现事项。
+全部扰动字共同名义下限为−4.855239 V，目标±5 V的端点验收尚未完成。
+
+**验收：**原文机制、实际接轨、数字符号逐项对应；去扰后整数重构与RTL逐笔一致；
+拒绝和超窗必须保留，不以静默限幅得到通过结果。
+[原文与注入说明](task2/ORIGINAL_SOURCES.md) · [八片结果、数据与复现](task2/evidence/eight_negative/README.md)
+
+### CAAZ：看清共享AZ是否带来额外收益
+
+交AZ更新／保持与配对时序，在**相同5 MS/s输出及相同带宽**下比较普通两笔配对、共享AZ、
+加入保持误差三种情况；再交一次故意错绑ID的负例，证明错误会被识别。
+
+![相同输出带宽下CAAZ的噪声对照](task3/evidence/negative/joint_noise/caaz_joint_noise.png)
+
+**已有结果供你复现：**此样本域噪声例的总交流误差为19.264→13.875 μV RMS，
+加入示例保持误差后为14.041 μV RMS。参数是声明的模型设置，尚非真实RA／CBIAS测量。
+若隔离共享AZ的额外作用，应比较同样斩波的独立AZ 19.285与共享AZ 13.875 μV RMS，二者均为5 MS/s、同带宽。
+原论文报告4.3 dB总热噪声改善，拆分为普通平均3 dB与AZ噪声抵消额外1.3 dB；本项目数值由自身噪声配置决定。
+
+**验收：**每笔先重构去扰，再按极性、样本ID和AZ代配对；两笔可使用不同切片和扰动字。
+模拟确认、丢笔、错相及坏码都有确定处理；普通平均的收益与共享AZ的收益分开比较。
+逐笔数字解调、相关滤波与输出抽取分开定义；当前源码的非重叠10→5是工程选择，不能仅从原文公式的“除2”推出码率减半。讲稿测谱的“10× averaging”又属于测量设置，不是实时10:1抽取。
+[CAAZ任务与接口](task3/README.md) · [当前联合数据](task3/evidence/negative/joint_noise/summary.json)
+
+## 4. 行为级已经证明什么，还需补什么
+
+理想开关、电荷守恒、固定电容失配、理想ADC2与样本域AZ噪声足以验证本课题的数字机制。
+已有静态校准及CAAZ结果在声明条件下有效，不因未做晶体管开关或模拟瞬态而失效。
+
+| 已有有效结论 | 真正还需补的行为验证 |
+| :--- | :--- |
+| 固定池下DEM＋LMS改善平均INL／DNL，校准后SNDR约103.5～104 dB | 多制造种子与输入幅频／状态覆盖；2%／3%共用种子100，不能当作MC良率 |
+| dither平滑码密度，收益及代价均有无LMS／冻结LMS对照 | ±5 V目标端点策略及过载检查；共同名义下限−4.855239 V仍是明确范围差距 |
+| CAAZ在同5 MS/s带宽下减少共享AZ噪声，并有保持误差与错绑负例 | 进一步量化保持／两相增益敏感性，以及1/f／慢漂移的样本域收益 |
+| 逐20位码宽的区间积分可复算，指标单位与统计范围明确 | 若扩大到全幅或其他随机状态，扩展相应行为评价；不强制用每码250次采样替代精确积分 |
+
+输入建立、串扰及参考响应可以作后续系统敏感性分析，由模拟组提供条件；
+它们不是这三项数字技术是否有效的前置门槛。[已有可选动态研究](task2/evidence/dynamics_fixed/README.md)中的97／94 dB属于另加假设的条件结果，不覆盖本页静态基线的结论。
+
+## 5. 六个月按什么顺序交付
+
+| 时间 | 复用基础后新增什么 | 必交效果图 | 阶段通过条件 |
+| :--- | :--- | :--- | :--- |
+| M1 | 模块一：复用调度与DEM，完成行为／RTL后交付模块GDS | 选片时序／使用分布；DEM×LMS四组INL／DNL、频谱和训练冻结图 | 同池同输入、独立留出；Python／RTL一致，并交同版GDS与时序／物理报告 |
+| M2–M3 | 模块二：完善dither与端点，完成行为／RTL后交付模块GDS | 注入／去扰及时序；无LMS／冻结LMS的关／开图；±5 V拒绝／ADC2超窗图 | 同笔归属正确；同版GDS与报告齐备；端点越界单独标失败 |
+| M4 | 模块三：补CAAZ行为与数字接口，完成RTL后交付独立模块GDS | AZ时序；独立／共享／含保持误差的同带宽噪声图；保持扫描与错绑负例 | 每笔先去扰再配对，整数／RTL一致；交独立GDS及同版时序／物理报告 |
+| M5–M6 | 冻结当前整体版本并完成数字后端 | 版图全景、关键路径／setup与hold摘要；有有效活动时交功耗对照 | 完整证据包；各必需角裕量非负、WNS／TNS为0，约束完整；物理、等价与电源检查逐项记录 |
+
+每阶段交一个可复现的包：**运行说明＋配置／原始数据／冻结系数＋效果图＋测试记录**。
+模块一、二、三分别于M1、M3、M4交GDS及原始时序／物理报告；M6另交整体GDS及报告。记录提交号、工具版本与摘要；不能用旧版图的通过结果覆盖新RTL。
+逐项数字签核要求见[任务书第6节](handoff/NINE_MONTH_PLAN.md#m5m6数字签核要求与最终交付)：缺少等价、多角时序、PG／IR／EM或适用规则检查时，不得宣布完整数字签核。
+
+现有[SKY130交付包](delivery/negative_66b2e2e/README.md)来自冻结源码`66b2e2e`，是已有实现的参考记录，
+不是你此后代码的验收。其单角及公开规则结果不等于完整签核；含片上LMS大顶层未在该包交付。
+180 nm BCD需获得对应库及约束后重新实现，不能沿用SKY130结论。
+
+## 6. 从哪里开始运行、读代码
+
+使用Python 3.12环境，按依赖清单固定版本；RTL检查另需Verilator，形式检查需Yosys。
+输出使用尚不存在的仓库外目录，先复现再选择要归档的工件。
+
+```sh
+# 第一次获取学生任务分支；已有检出可跳过这两行。
+git clone --branch 20b10mtask --single-branch https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification.git
+cd 20bit_SAR_ADC_Behaviour_Verification
+
+# 在已激活的Python 3.12环境中，安装固定依赖并运行Python回归。
+python -m pip install -r task1/requirements-ci.txt
+PYTHONPATH=.:src OPENBLAS_NUM_THREADS=1 MPLBACKEND=Agg python -m pytest -q
+
+# 复现本页的条件输入图；这里不重新训练LMS。
+PYTHONPATH=.:src OPENBLAS_NUM_THREADS=1 MPLBACKEND=Agg \
+  python -m task2.eight.dynamic_experiment --out /tmp/sar-dynamics-run-001
+
+# 模块一的RTL逐拍检查，另需已安装Verilator。
+PYTHONPATH=.:src python task1/tools/run_rtl_checks.py --out /tmp/sar-task1-rtl-001
+PYTHONPATH=.:src python task1/tools/run_bridge_checks.py --out /tmp/sar-task1-bridge-001
 ```
 
-输出目录必须尚不存在。结果为`codes.npz`、`assumptions.json`及最后写入的`metadata.json`；`UNCALIBRATED_NOMINAL_20BIT`表示名义码，不是训练结果。`adi-validate-config --config FILE.json`只检查配置，不运行模型。
-
-| 想理解什么 | 入口 |
+| 先读哪里 | 用来完成什么 |
 | :--- | :--- |
-| 默认结构、假设和真实信号链 | [defaults.py](src/adi_model/defaults.py)、[pipeline_engine.py](src/adi_model/pipeline_engine.py) |
-| Fig.19、实际mask与资源选择 | [dither.py](src/adi_model/dither.py)、[dem.py](src/adi_model/dem.py)、[物理池](src/adi_model/slice_pool.py) |
-| 训练、固定和整数应用 | [weight_calibration.py](src/adi_model/weight_calibration.py)、[fixed_point.py](src/adi_model/fixed_point.py) |
-| 当前接口、模块状态与来源 | [现行ABI2合同](docs/rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)、[A表](docs/current_digital_source_map.md)、[B表](docs/digital_status_matrix.md) |
-| 历史重绘与旧可执行档案 | [复现说明](docs/REPRODUCING.md)、[历史档案说明](docs/history/EXECUTABLE_ARCHIVES.md) |
-| 新图、逐点数据与重绘脚本 | [可重绘资产索引](docs/readme/data/source_bound_assets_manifest.json)、[数据说明](docs/readme/data/README.md) |
+| [任务书](task1/SPEC.md) | 工作边界、接口、每阶段图片和验收条件 |
+| `task1/` | 调度／DEM的模型、RTL、验证与固定失配实验 |
+| `task2/` | dither的原文对应、八片模型／RTL、静态与动态效果实验 |
+| `task3/` | CAAZ相位、AZ确认、数字配对和噪声实验 |
+| `task_reconstruction/`、`task_integration/` | 权重装载与定点重构、三模块整体对拍 |
+| `src/adi_model/` | 电荷域、噪声、建立与参考等可复用模型核 |
+| `delivery/` | 绑定冻结源码的已有后端工件，使用前先核对版本和适用范围 |
 
-代码采用[BSD-3-Clause](LICENSE)。[22项来源](NOTICE)和[6份选定原件](references/README.md)继续保留原版权与内嵌声明；本工程独立于原器件作者／厂商，不授予专利许可。
+各阶段图的重跑／重绘和RTL命令放在对应模块说明，不必一次运行全部实验。
+原有[定量对标与未通过项](task2/evidence/paper_alignment/ALIGNMENT.md)作为归档背景阅读；
+当前结论应使用本页链接的同版本代码、数据和验证记录。

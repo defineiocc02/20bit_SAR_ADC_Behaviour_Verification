@@ -1,0 +1,39 @@
+name: 20b10mtask LMS mapped STA probe
+
+on:
+  push:
+    branches: [20b10mtask]
+    paths:
+      - '.github/workflows/task2_sky130_lms_synth_probe.yml'
+      - 'task2/physical/synth_probe/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mapped_sta:
+    if: github.ref_name == '20b10mtask'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      RUN_DIR: /tmp/task2-lms-synth-probe-${{ github.run_id }}-${{ github.run_attempt }}
+      TASK2_PHYSICAL_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}-sar20_digital_lms_top-mapped
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Synthesize and measure mapped-cell paths at 6.25 ns
+        timeout-minutes: 12
+        run: bash task2/physical/synth_probe/run.sh "$RUN_DIR"
+      - name: Upload early STA, mapped netlist, tool logs and inputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: task2-lms-mapped-sta-${{ github.run_id }}
+          path: |
+            ${{ env.RUN_DIR }}/delivery
+            ${{ env.RUN_DIR }}/flow.log
+            ${{ env.RUN_DIR }}/flow/logs
+            ${{ env.RUN_DIR }}/flow/reports
+          if-no-files-found: warn

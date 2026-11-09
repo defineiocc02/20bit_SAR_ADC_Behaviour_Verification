@@ -1,0 +1,57 @@
+{
+  "workflow": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42270270897/job/128072710132",
+  "archive": {
+    "path": "dither8_top_lvs_replay_42270270897.zip",
+    "bytes": 4578063,
+    "sha256": "4ea3dbe02211b73353e6292955ed8c6a63e1bc23a4fb36296646f34e6bf3a487"
+  },
+  "frozen_source": {
+    "source": {
+      "source_run": "42265153017-1-dither8_top",
+      "rtl_commit": "62e3e3a4f4208efe2252837020640077f337350b",
+      "sha256": {
+        "dither8_top.gds": "6b82f762bde5ac9fda90137904ef0c95a78daab6f7acbc497e0bed6942128e74",
+        "dither8_top.odb": "622f34913dd46236014ab6cd6ad19e1b45b454ec8b6c94676f7de3f25454380f",
+        "dither8_top.sdc": "c96fc2bd666eba51d15bc4c0e80754a920fc0797ba9aeca4becf8493e704d4f1",
+        "dither8_top.v": "3cb7b1582f74be5350bfd3843931fb0c4e068212f669a6684749924fbf02b89f",
+        "dither8_top.spef": "7602d59e326e0624753b4fec65d429694645e1b42410732a5ddfaeae50e1ac68"
+      },
+      "method": "One CDL export from the immutable routed ODB for both public decks."
+    },
+    "upstream_revision": "5eebdc0d06879cf674e86e3fb8efa2803e6e44dc",
+    "reference_cdl_sha256": "d2a100a2382c2096f373aa05c0868fb2bc330829a5c54c09c4721eeaf261f190",
+    "variants": {
+      "legacy": {
+        "status": "FAIL",
+        "exit_code": 0,
+        "deck_sha256": "1afade11dd24ea4e64d1ffba54fc17a8f110286712ab942928d2f5e021bb3caf",
+        "log_sha256": "b4602455e2d9840c8535437b07a702c5a0902708f808bebf34916daece20e6e3",
+        "database": "lvs_report.lvsdb"
+      },
+      "upstream": {
+        "status": "PASS",
+        "exit_code": 0,
+        "deck_sha256": "d2d231d7cd00a8261d6653c5f3757badefb1dc0aba29441d8406272e75cd8b90",
+        "log_sha256": "67339202e34e572bf64510a6c49db122998a8d21864fb35bc3fdd8df7cc1f983",
+        "database": "lvs_report.lvsdb"
+      }
+    }
+  },
+  "verified_database_evidence": {
+    "legacy": {
+      "verdict": "FAIL",
+      "log_sha256": "b4602455e2d9840c8535437b07a702c5a0902708f808bebf34916daece20e6e3",
+      "database_sha256": "9527ecfa2abdaca7eab10bf57c99967a0cf25b094fa45e8e197069e6d02c6ac9",
+      "database_bytes": 22971157,
+      "top_cross_reference": " X(dither8_top DITHER8_TOP S B('Circuits dither8_top and DITHER8_TOP could not be compared because the following subcircuits failed to compare:\\n  A: sky130_fd_sc_hd__a2111oi_2,sky130_fd_sc_hd__a211oi_4,sky130_fd_sc_hd__a21boi_2,sky130_fd_sc_hd__a21oi_2,sky130_fd_sc_hd__a31o_4\\n  B: SKY130_FD_SC_HD__A2111OI_2,SKY130_FD_SC_HD__A211OI_4,SKY130_FD_SC_HD__A21BOI_2,SKY130_FD_SC_HD__A21OI_2,SKY130_FD_SC_HD__A31O_4,SKY130_FD_SC_HD__CONB_1,SKY130_FD_SC_HD__DIODE_2,SKY130_FD_SC_HD__TAPVPWRVGND_1')"
+    },
+    "upstream": {
+      "verdict": "PASS",
+      "log_sha256": "67339202e34e572bf64510a6c49db122998a8d21864fb35bc3fdd8df7cc1f983",
+      "database_sha256": "3db8ad09abb700fc9c3a104ef82872643120f7e261777c2a779cd557f547c36c",
+      "database_bytes": 23348758,
+      "top_cross_reference": " X(dither8_top DITHER8_TOP 1"
+    }
+  },
+  "review": "The legacy deck cannot compare the top while named cell cross-references fail. The unmodified official revision matches the top on the same frozen GDS and reference CDL. Earlier logs without the database remain in run 42268623388."
+}

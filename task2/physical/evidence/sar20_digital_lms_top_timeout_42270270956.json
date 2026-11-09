@@ -1,0 +1,44 @@
+{
+  "workflow": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42270270956/job/128072710112",
+  "rtl_commit": "d83e8ae7ebb198a6e8226abc25931ca70dff8957",
+  "top": "sar20_digital_lms_top",
+  "clock_ns": 6.25,
+  "corner": "SKY130HD TT 25 C 1.80 V",
+  "job_conclusion": "cancelled",
+  "job_limit_minutes": 40,
+  "last_completed_stage": "global route",
+  "verified_pg_stages": [
+    "floorplan",
+    "placement",
+    "cts"
+  ],
+  "prelayout_synth": {
+    "cell_area_um2": 549472,
+    "setup_worst_slack_ns": -7.268336,
+    "setup_tns_ns": -4949.76123,
+    "hold_worst_slack_ns": 0.034222
+  },
+  "global_route": {
+    "estimated_clock_slack_ns": -0.006,
+    "cell_area_um2": 662240,
+    "utilization_percent": 40,
+    "scope": "global route estimation with no detailed-route extracted RC"
+  },
+  "detailed_route": {
+    "status": "NOT_RUN_TO_COMPLETION",
+    "last_log": "first optimization iteration, 60 percent",
+    "intermediate_marker_count": 19629
+  },
+  "final_gds_sta_pv": "NOT_RUN",
+  "extended_same_input_run": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42270381481",
+  "complete_api_log_sha256": "b8c8096d6d022265ba7646466bef3c2592154447591ed6f97ecbdaf0bf479594",
+  "preserved_stage_log": {
+    "path": "sar20_digital_lms_top_timeout_42270270956.log.gz",
+    "bytes": 62364,
+    "sha256": "3ee4f96ddff37b8a6660201b75245f5cb6e13099cadc07dce841934b1c35b9b4",
+    "source_line_range_1based": [
+      636,
+      4801
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "status": "PASS",
+  "scope": "Same-state combinational equivalence for conversion word and legal arithmetic. This does not prove equivalence to historical positive injection. Seven steps including reset.",
+  "assertion_lowering": "frontend $assert",
+  "tool": "Yosys 0.33 (git sha1 2584903a060)",
+  "reference_kind": "same_state_id_mux_and_negative_subtraction",
+  "reference_expression_sha256": "ca914763ef5bf313e69379c944196d713e579c74602bc85fdb66a978dba19ec2",
+  "source_sha256": {
+    "task1/rtl/slice_scheduler.sv": "ed6dc0d648c3b603619da40b3bf49ee802fb7908c17eb75a99ac08659bb78888",
+    "task1/rtl/fig11_dem.sv": "6374c562a712ee9eb9ed8ea9c3819891d84e3d91dfadd2e3856475cb253a70f0",
+    "task1/rtl/module1_top.sv": "5f499cbfa09bfa9666b37a56c3360d667aaa670b7a307cfb98b40f0b177f2c93",
+    "task1/rtl/fig21_bridge.sv": "c86ad0e476e8561ace333a625877bbc8406709f4e35d8680098ab1b36369d209",
+    "task1/rtl/module1_bridge_top.sv": "6b05165d5bea6ff2509eb3217b5e3362e2d3380c36005e1af6182e068e8e1aa3",
+    "task2/rtl/dither_word_gen.sv": "ac4ce35846ea887f899e2cb489f6c2283e3568b9b8227e36edd7de9341ac6366",
+    "task2/eight_rtl/rtl/dither8_top.sv": "42d9ad544d80258b0138b896d78003558df38a77e1ae11626cb9c1df079317ce"
+  },
+  "instrumented_candidate_sha256": "ac48441d48fbbea59a9b23a5cc181d4766fd36500e9d48e22f439460b87f2179",
+  "driver_sha256": "6a5fd78553e5c6b4f6a32e66fdd2bcad074012302c70bda77ed22db897e4124f",
+  "proof_script_sha256": "a1eb8c06af140a7dea9eaf0606a24a145c3129d3dbd84273a734a7649fc77e7c",
+  "raw_log_sha256": "3ddaf4509da3eccd785f9ca134826ab88d3b80bd9685b55c4f540b61309106ab",
+  "compressed_log_sha256": "5297519a93f54fd66d05b111a63c7d47fa7135d2cc9c3f7f8bad2eaf35f74944"
+}

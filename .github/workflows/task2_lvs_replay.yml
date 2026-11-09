@@ -1,0 +1,41 @@
+name: 20b10mtask frozen eight-slice LVS replay
+
+on:
+  push:
+    branches: [20b10mtask]
+    paths:
+      - '.github/workflows/task2_lvs_replay.yml'
+      - 'task2/physical/lvs_replay/**'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  replay:
+    if: github.ref_name == '20b10mtask'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      INPUT_DIR: /tmp/task2-lvs-input-${{ github.run_id }}-${{ github.run_attempt }}
+      OUTPUT_DIR: /tmp/task2-lvs-result-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          run-id: 42265153017
+          name: task2-sky130hd-dither8_top-42265153017
+          github-token: ${{ github.token }}
+          path: ${{ env.INPUT_DIR }}
+      - name: Replay both public decks on the same GDS and reference netlist
+        run: bash task2/physical/lvs_replay/replay.sh "$INPUT_DIR" "$OUTPUT_DIR"
+      - name: Archive comparison logs, LVS databases and input identity
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: task2-dither8-lvs-replay-${{ github.run_id }}
+          path: ${{ env.OUTPUT_DIR }}
+          if-no-files-found: warn

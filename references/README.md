@@ -1,19 +1,18 @@
-# 论文与讲稿原件
+# 原文资料
 
-本目录按维护者明确选定的本机文件保存三组资料，共 **6 个 PDF、158 页**。讲稿原件本身是 PDF，不是可编辑 PPTX。文件仅规范命名，正文、图像、版权页和内嵌声明均保持原样；逐文件页数、大小及 SHA-256 见 [source_manifest.json](source_manifest.json)。
+本分支收录维护者选定的 **4 份 PDF，共 92 页**。原件的正文、图片、版权页与内嵌声明保持原样。页数、字节数和 SHA-256 见 [文件清单](source_manifest.json)。
 
-| 资料 | 论文 | 讲稿／PPT 的 PDF 原件 | 技术定位 |
+| 资料 | 论文 | 讲稿 | 用途 |
 | :--- | :--- | :--- | :--- |
-| ISSCC 2024，9.8，Bodnar 等 | [3 页论文](ISSCC2024_PAPER.pdf) | [44 页讲稿](ISSCC2024_SLIDES.pdf) | 20 位／40 MS/s 架构、DEM、dither 和 slice 调度的主要对照 |
-| VLSI 2025，C32-1，Wang 等（北大／清华） | [3 页论文](PKU_VLSI2025_C32_1_PAPER.pdf) | [42 页讲稿](PKU_VLSI2025_C32_1_SLIDES.pdf) | 闭环动态放大器和斩波辅助自归零 CAAZ |
-| CICC 2026，13-6，Jin 等（电子科大） | [4 页论文](CICC2026_13_6_PAPER.pdf) | [62 页讲稿](CICC2026_13_6_SLIDES.pdf) | 连续时间第二级 SAR、LSB 重复与 tracking averaging |
+| Bodnar 等，ISSCC 2024，9.8 | [论文（3 页）](ISSCC2024_PAPER.pdf) | [讲稿（44 页）](ISSCC2024_SLIDES.pdf) | 两级 SAR 架构、交织调度、DEM 与 dither |
+| Wang 等，VLSI 2025，C32-1 | [论文（3 页）](PKU_VLSI2025_C32_1_PAPER.pdf) | [讲稿（42 页）](PKU_VLSI2025_C32_1_SLIDES.pdf) | 模块三的 CAAZ 控制与样本配对参考 |
 
-论文的正式入口分别为 [ISSCC 2024 DOI](https://doi.org/10.1109/ISSCC49657.2024.10454329)、[VLSI 2025 DOI](https://doi.org/10.23919/VLSITechnologyandCir65189.2025.11075015)、[CICC 2026 DOI](https://doi.org/10.1109/CICC65509.2026.11509489)。CICC 讲稿对应桌面的 `13-6_Jin.pdf`；文件名含 `CT2_User` 的已有副本实际上与这份 CICC 论文相同，不另计一份。`A_High-Linearity_High-Stability_Dynamic_Amplifier.pdf` 是另一篇 TCAS-II 论文，未混入本组。
+论文正式入口为 [ISSCC 2024](https://doi.org/10.1109/ISSCC49657.2024.10454329) 和 [VLSI 2025](https://doi.org/10.23919/VLSITechnologyandCir65189.2025.11075015)。六件专利及版权说明见 [NOTICE](../NOTICE)。
 
-三组资料不是同一套实现。当前工程包含 ISSCC／专利机制的项目候选及北大 CAAZ 样本域扩展；CICC 的连续时间后级、反馈电容与 SINC² tracking averaging 尚未由本工程复现。收录原件也不表示已经实现全部电路或完成全部组合验证。
+## 专利：只有 OCR 转写，没有 PDF
 
-逐模块的原文位置、工程选择与未实现项见 [当前数字原文对照表](../docs/current_digital_source_map.md)；交付归属、工作状态及证据等级见 [数字状态总表](../docs/digital_status_matrix.md)。其他原件不随仓库分发。
+[`patent/`](patent/) 收录的是 **US10505561B2（dither 方法）** 的 vision OCR 转写全文与 FIG.19 单张附图裁图。**PDF 依维护者要求不入库**，所以这里看到的不整齐、下标讹化、双栏交错都不是漏收，是转写本身的形态。
 
-原件的版权与内嵌使用声明归原作者／出版方所有，不适用本工程的 BSD 软件许可，不因存放于此而获得新的授权。Python wheel 和 sdist 不包含这些 PDF；从发行包阅读本页时，请访问 [GitHub 资料目录](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/tree/main/references)获取仓库中的对应文件。
+引它之前先读 [patent/README.md](patent/README.md) 的四条声明：OCR 性质、校对范围（只覆盖 `page_pdf=22..36`）、页码双坐标（FIG.19 的**图**在 p22、**文字描述**在 p33）、裁图边界（不含 226，不含 FIG.20）。台账在 [`trace/source_matrix.csv`](../trace/source_matrix.csv)。
 
-这里的 158 页是文件清点口径。首页原有的 20 份／641 页完整阅读审计保留其历史范围；CICC 资料的新身份核对不计为 62 页讲稿的完整技术复核。
+原件版权和内嵌声明归各权利人所有。仓库的 BSD 软件许可仅适用于本工程软件，不向这些 PDF 授予新权利。

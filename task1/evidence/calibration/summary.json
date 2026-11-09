@@ -1,0 +1,526 @@
+{
+  "schema": "task1_nlms_adctoolbox_calibration_v2",
+  "model_scope": "理想两节点电容失配与固定理想 ADC2，时偏和其余动态误差源关闭，训练至留出电容池和温度不变。",
+  "adc2_scope": "输入等效 ±50 mV、12 位均匀码仓的理想细级，16 位重编码仅用于工具箱接口适配。",
+  "adc2_window_basis": "behavioral_default",
+  "adc2_step_v": 2.44140625e-05,
+  "minimum_physical_cap_f": {
+    "main": 9.979466590582302e-16,
+    "sub": 9.983599606953396e-16,
+    "bridge": 9.9773395161497e-16
+  },
+  "adc2_range_checks": {
+    "gain_low": {
+      "samples": 32768,
+      "min_v": -0.0399810304992108,
+      "max_v": -0.01924149641911621,
+      "below_range": 0,
+      "at_or_above_range": 0
+    },
+    "gain_high": {
+      "samples": 32768,
+      "min_v": 0.02002532055770398,
+      "max_v": 0.04075680939729356,
+      "below_range": 0,
+      "at_or_above_range": 0
+    },
+    "train_dem_off": {
+      "samples": 2048,
+      "min_v": -0.00011177717913630935,
+      "max_v": 0.03718067984725952,
+      "below_range": 0,
+      "at_or_above_range": 0
+    },
+    "train_dem_on": {
+      "samples": 6144,
+      "min_v": -0.0004991872603538626,
+      "max_v": 0.03686493802253145,
+      "below_range": 0,
+      "at_or_above_range": 0
+    },
+    "holdout_dem_off": {
+      "samples": 4096,
+      "min_v": -0.00021284014904545643,
+      "max_v": 0.03700031325860292,
+      "below_range": 0,
+      "at_or_above_range": 0
+    },
+    "holdout_dem_on": {
+      "samples": 4096,
+      "min_v": -0.0005097342577043518,
+      "max_v": 0.036865902936596806,
+      "below_range": 0,
+      "at_or_above_range": 0
+    }
+  },
+  "schedule_comparison": {
+    "shared_training": "all eight modes use the same mixed-DEM dynamic training and frozen NLMS weights",
+    "shared_phases": true,
+    "dynamic": {
+      "observed_slice_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "gain_observability_from_plan_alone": {
+        "rows": 4096,
+        "columns": 18,
+        "rank": 18,
+        "condition_number": 8.185384690468627
+      },
+      "status": "completed",
+      "holdout": {
+        "no_dem_no_cal": {
+          "sndr_db": 81.10403943986915,
+          "sfdr_db": 91.37298937898484,
+          "enob": 13.180072996656007,
+          "input_error_rms_v": 0.0003377787904768942
+        },
+        "dem_only": {
+          "sndr_db": 78.03600307066912,
+          "sfdr_db": 102.0379389236089,
+          "enob": 12.670432403765636,
+          "input_error_rms_v": 0.0002983653859042061
+        },
+        "lms_only": {
+          "sndr_db": 110.11041224376231,
+          "sfdr_db": 131.80605363752753,
+          "enob": 17.998407349462177,
+          "input_error_rms_v": 7.364492385264077e-06
+        },
+        "dem_and_lms": {
+          "sndr_db": 110.17038832354986,
+          "sfdr_db": 134.95092518407222,
+          "enob": 18.008370153413598,
+          "input_error_rms_v": 7.3104386499058605e-06
+        }
+      }
+    },
+    "fixed_ab": {
+      "observed_slice_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "gain_observability_from_plan_alone": {
+        "rows": 4096,
+        "columns": 18,
+        "rank": 2,
+        "condition_number": null
+      },
+      "adc2_range_checks": {
+        "holdout_dem_off": {
+          "samples": 4096,
+          "min_v": -4.686328241277457e-05,
+          "max_v": 0.03725094032753135,
+          "below_range": 0,
+          "at_or_above_range": 0
+        },
+        "holdout_dem_on": {
+          "samples": 4096,
+          "min_v": -0.0005696391719713798,
+          "max_v": 0.03675205859721275,
+          "below_range": 0,
+          "at_or_above_range": 0
+        }
+      },
+      "status": "completed",
+      "holdout": {
+        "no_dem_no_cal": {
+          "sndr_db": 83.373659696222,
+          "sfdr_db": 86.85435658885623,
+          "enob": 13.55708632827608,
+          "input_error_rms_v": 0.0002990511861649659
+        },
+        "dem_only": {
+          "sndr_db": 76.50881493549578,
+          "sfdr_db": 97.9622182773514,
+          "enob": 12.416746667025876,
+          "input_error_rms_v": 0.0003548482077680428
+        },
+        "lms_only": {
+          "sndr_db": 110.33759083668346,
+          "sfdr_db": 129.707544746984,
+          "enob": 18.03614465725639,
+          "input_error_rms_v": 7.171298025390812e-06
+        },
+        "dem_and_lms": {
+          "sndr_db": 110.35613215824675,
+          "sfdr_db": 134.46075796444018,
+          "enob": 18.039224611004443,
+          "input_error_rms_v": 7.157710739677913e-06
+        }
+      }
+    }
+  },
+  "experiment": {
+    "fs_hz": 10000000,
+    "samples": 4096,
+    "tone_bin": 409,
+    "tone_peak_v": 3.3333333333333335,
+    "full_scale_peak_v": 5.0,
+    "unit_cap_f": 1e-15,
+    "mismatch_sigma_unit": 0.001,
+    "manufacturing_seed": 100,
+    "schedule_seed": 608135816,
+    "dem_seed": 2654435769
+  },
+  "calibration": {
+    "adc2_bits": 12,
+    "adc2_half_range_v": 0.05,
+    "residue_feature_bits": 16,
+    "gain_pairs": 32768,
+    "gain_reference_span_v": 0.06,
+    "gain_reference_midpoint_span_v": 0.02,
+    "gain_reference_seed": 3904,
+    "gain_schedule_seed": 1179262271,
+    "forced_gain_code": 256,
+    "training_samples": 8192,
+    "training_tone_bin": 613,
+    "training_tone_peak_v": 4.98,
+    "training_tone_phase_rad": 0.37,
+    "training_schedule_seed": 1933387210,
+    "training_dem_seed": 1450331317,
+    "evaluation_tone_phase_rad": 0.11,
+    "training_dem_off_period": 4,
+    "lms_passes": 6,
+    "lms_initial_step": 0.25,
+    "lms_norm_floor": 1e-09,
+    "covariance_floor": 1e-10
+  },
+  "training_frequency_hz": 748291.015625,
+  "evaluation_frequency_hz": 998535.15625,
+  "source_sha256": {
+    "task1/experiments/adctoolbox_calibration.py": "34c3618ae492ebba5e900f698dcbbe1691e0eebb3586579355d9e7cb6424fd8c",
+    "task1/experiments/run_effects.py": "ec9635c6be81a1758785bc3ebb33714da427348b598dfcd3d3a6484692326c5c",
+    "task1/model/scheduler.py": "e6b2d50fa6bdaa607842bea0e86dc02e3fc531c7b832ea6a59858e48a7652f9f",
+    "task1/model/fig11_dem.py": "a3d7f040062ff7adf4c4b50fb90e59ee81491988973e5670e6e12e6e9789f39d",
+    "task1/model/module1.py": "c881976f3ed7c75f915d27b59fb69a2a58fa662ec4de6d51da09e4396573c3c2",
+    "src/adi_model/charge_ref.py": "74856592cdc665c4533744754b953cee55a6e8649368b8483b6ddbf619a0cebc"
+  },
+  "versions": {
+    "adctoolbox": "0.9.1",
+    "python": "3.12.14",
+    "numpy": "2.5.3",
+    "matplotlib": "3.11.2"
+  },
+  "strict_training_comparison": {
+    "status": "completed",
+    "fixed_ab_lms_only": {
+      "training_dem_enabled": false,
+      "holdout_dem_enabled": false,
+      "adc2_range_checks": {
+        "gain_low": {
+          "samples": 32768,
+          "min_v": -0.03979109363405543,
+          "max_v": -0.01948073969357015,
+          "below_range": 0,
+          "at_or_above_range": 0
+        },
+        "gain_high": {
+          "samples": 32768,
+          "min_v": 0.02020920147443719,
+          "max_v": 0.04052149095127043,
+          "below_range": 0,
+          "at_or_above_range": 0
+        },
+        "train_dem_off": {
+          "samples": 8192,
+          "min_v": -0.00014589908643403707,
+          "max_v": 0.03718784916258688,
+          "below_range": 0,
+          "at_or_above_range": 0
+        },
+        "holdout_dem_off": {
+          "samples": 4096,
+          "min_v": -4.686328241277457e-05,
+          "max_v": 0.03725094032753135,
+          "below_range": 0,
+          "at_or_above_range": 0
+        }
+      },
+      "gain_reference_pairs": 32768,
+      "training_samples_per_pass": 8192,
+      "passes": 6,
+      "update_count": 49152,
+      "status": "completed",
+      "gain_design": {
+        "rows": 32768,
+        "columns": 2,
+        "rank": 2,
+        "condition_number": 1.0
+      },
+      "aggregate_weight_design": {
+        "rows": 8192,
+        "columns": 40,
+        "rank": 40,
+        "condition_number": 26.605344515366163
+      },
+      "learning": [
+        {
+          "epoch": 0,
+          "step": 0.0,
+          "training_residual_rms_v": 0.0001682293305970121
+        },
+        {
+          "epoch": 1,
+          "step": 0.25,
+          "training_residual_rms_v": 7.748636684552101e-06
+        },
+        {
+          "epoch": 2,
+          "step": 0.125,
+          "training_residual_rms_v": 7.348906134183967e-06
+        },
+        {
+          "epoch": 3,
+          "step": 0.08333333333333333,
+          "training_residual_rms_v": 7.2010904413988135e-06
+        },
+        {
+          "epoch": 4,
+          "step": 0.0625,
+          "training_residual_rms_v": 7.130752708573258e-06
+        },
+        {
+          "epoch": 5,
+          "step": 0.05,
+          "training_residual_rms_v": 7.092470962975193e-06
+        },
+        {
+          "epoch": 6,
+          "step": 0.041666666666666664,
+          "training_residual_rms_v": 7.0694031859598286e-06
+        }
+      ],
+      "holdout": {
+        "sndr_db": 110.37252422099768,
+        "sfdr_db": 134.07485589475667,
+        "enob": 18.041947545016225,
+        "input_error_rms_v": 7.145486282349402e-06
+      }
+    },
+    "dynamic_dem_and_lms": {
+      "status": "completed",
+      "training_dem_on_samples_per_pass": 6144,
+      "training_dem_off_samples_per_pass": 2048,
+      "holdout_dem_enabled": true,
+      "gain_reference_pairs": 32768,
+      "training_samples_per_pass": 8192,
+      "passes": 6,
+      "update_count": 49152,
+      "gain_design": {
+        "rows": 32768,
+        "columns": 18,
+        "rank": 18,
+        "condition_number": 8.402864756769437
+      },
+      "physical_weight_design": {
+        "rows": 8192,
+        "columns": 378,
+        "rank": 378,
+        "condition_number": 108.90204605846617
+      },
+      "learning": [
+        {
+          "epoch": 0,
+          "step": 0.0,
+          "training_residual_rms_v": 0.000364094485738807
+        },
+        {
+          "epoch": 1,
+          "step": 0.25,
+          "training_residual_rms_v": 7.805093061420563e-06
+        },
+        {
+          "epoch": 2,
+          "step": 0.125,
+          "training_residual_rms_v": 7.084287180966146e-06
+        },
+        {
+          "epoch": 3,
+          "step": 0.08333333333333333,
+          "training_residual_rms_v": 6.993361331019906e-06
+        },
+        {
+          "epoch": 4,
+          "step": 0.0625,
+          "training_residual_rms_v": 6.9588916382512214e-06
+        },
+        {
+          "epoch": 5,
+          "step": 0.05,
+          "training_residual_rms_v": 6.942130860634947e-06
+        },
+        {
+          "epoch": 6,
+          "step": 0.041666666666666664,
+          "training_residual_rms_v": 6.932808194670548e-06
+        }
+      ],
+      "holdout": {
+        "sndr_db": 110.17038832354986,
+        "sfdr_db": 134.95092518407222,
+        "enob": 18.008370153413598,
+        "input_error_rms_v": 7.3104386499058605e-06
+      }
+    }
+  },
+  "status": "completed",
+  "gain_design": {
+    "rows": 32768,
+    "columns": 18,
+    "rank": 18,
+    "condition_number": 8.402864756769437
+  },
+  "nlms_weight_design": {
+    "rows": 8192,
+    "columns": 378,
+    "rank": 378,
+    "condition_number": 108.90204605846617
+  },
+  "training_rank_counterexamples": {
+    "dem_on_only": {
+      "rows": 8192,
+      "columns": 378,
+      "rank": 377,
+      "condition_number": null,
+      "constant_feature_count": 0
+    },
+    "dem_off_only": {
+      "rows": 8192,
+      "columns": 378,
+      "rank": 360,
+      "condition_number": null,
+      "constant_feature_count": 18
+    }
+  },
+  "learning": [
+    {
+      "epoch": 0,
+      "step": 0.0,
+      "training_residual_rms_v": 0.000364094485738807
+    },
+    {
+      "epoch": 1,
+      "step": 0.25,
+      "training_residual_rms_v": 7.805093061420563e-06
+    },
+    {
+      "epoch": 2,
+      "step": 0.125,
+      "training_residual_rms_v": 7.084287180966146e-06
+    },
+    {
+      "epoch": 3,
+      "step": 0.08333333333333333,
+      "training_residual_rms_v": 6.993361331019906e-06
+    },
+    {
+      "epoch": 4,
+      "step": 0.0625,
+      "training_residual_rms_v": 6.9588916382512214e-06
+    },
+    {
+      "epoch": 5,
+      "step": 0.05,
+      "training_residual_rms_v": 6.942130860634947e-06
+    },
+    {
+      "epoch": 6,
+      "step": 0.041666666666666664,
+      "training_residual_rms_v": 6.932808194670548e-06
+    }
+  ],
+  "toolbox_sine_weight_reference": {
+    "basis_cases": [
+      {
+        "fitted_component": "cosine",
+        "rows": 8192,
+        "columns": 396,
+        "rank": 396,
+        "condition_number": 141.7779190082711
+      },
+      {
+        "fitted_component": "sine",
+        "rows": 8192,
+        "columns": 396,
+        "rank": 396,
+        "condition_number": 142.96951943058943
+      }
+    ],
+    "constant_feature_count": 0,
+    "toolbox_rank_patch_applied": false,
+    "scale_convention": "adc_reference_scale",
+    "scale_factor_v": 4.98,
+    "status": "trained",
+    "holdout": {
+      "dem_off": {
+        "sndr_db": 110.14856291540967,
+        "sfdr_db": 132.32562194193028,
+        "enob": 18.00474467033383,
+        "input_error_rms_v": 7.3358493771700275e-06
+      },
+      "dem_on": {
+        "sndr_db": 110.2218292807339,
+        "sfdr_db": 134.65830315823138,
+        "enob": 18.016915162912607,
+        "input_error_rms_v": 7.266792278246971e-06
+      }
+    }
+  },
+  "holdout": {
+    "no_dem_no_cal": {
+      "sndr_db": 81.10403943986915,
+      "sfdr_db": 91.37298937898484,
+      "enob": 13.180072996656007,
+      "input_error_rms_v": 0.0003377787904768942
+    },
+    "dem_only": {
+      "sndr_db": 78.03600307066912,
+      "sfdr_db": 102.0379389236089,
+      "enob": 12.670432403765636,
+      "input_error_rms_v": 0.0002983653859042061
+    },
+    "lms_only": {
+      "sndr_db": 110.11041224376231,
+      "sfdr_db": 131.80605363752753,
+      "enob": 17.998407349462177,
+      "input_error_rms_v": 7.364492385264077e-06
+    },
+    "dem_and_lms": {
+      "sndr_db": 110.17038832354986,
+      "sfdr_db": 134.95092518407222,
+      "enob": 18.008370153413598,
+      "input_error_rms_v": 7.3104386499058605e-06
+    }
+  }
+}

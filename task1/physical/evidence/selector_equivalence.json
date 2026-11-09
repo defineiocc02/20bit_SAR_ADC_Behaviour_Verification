@@ -1,0 +1,99 @@
+{
+  "reference_commit": "1d60f09d70f1112c7e03fe4581df2681cae94717",
+  "baseline_scheduler_sha256": "ea0d6ddcacc478b1951c8c6770dcbc523aad66072fce12cee8be2546461a948e",
+  "candidate_scheduler_sha256": "2fc7e3839ee11c96273933a872cb3e404fbbfd37cf6cb6c82f7b146595ffe25e",
+  "tool": "Yosys 0.69 (git sha1 9f75ca1f9)",
+  "proof": {
+    "serial_to_parallel": {
+      "proven": 298,
+      "unproven": 0
+    },
+    "parallel_to_cached_cursor": {
+      "proven": 898,
+      "unproven": 0
+    },
+    "cursor_reference_alias": "parallel_probe.sv names the same 5-bit mod-18 expression explicitly; no change to the combinational result.",
+    "reset_base": "SAT proved all visible outputs match after a synchronous reset, with other inputs unconstrained.",
+    "scope": "Synchronous digital behavior after reset. Includes seed-load, clear, disable, stall and consecutive requests.",
+    "direct_serial_to_final": {
+      "proven": 303,
+      "unproven": 0
+    },
+    "reset_two_requests": "SAT proved all visible ports match for two unconstrained clock edges following a synchronous reset."
+  },
+  "generic_gate_depth_noabc": {
+    "reference": 126,
+    "candidate": 33
+  },
+  "generic_gate_count_noabc": {
+    "reference": 8846,
+    "candidate": 3553
+  },
+  "verilator": {
+    "version": "5.030",
+    "base_counts": {
+      "dem_active": 122880,
+      "dem_bypass": 131072,
+      "dem_invalid": 8192,
+      "scheduler_accepts": 4227,
+      "scheduler_conversions": 4223,
+      "scheduler_cycles": 4617,
+      "scheduler_seed_errors": 2,
+      "scheduler_stalls": 137,
+      "scheduler_steady_slots": 4096,
+      "top_accepts": 4099,
+      "top_active_prefixes": 2051,
+      "top_bypass_prefixes": 2048,
+      "top_code_errors": 2,
+      "top_conversions": 4097,
+      "top_cycles": 4116,
+      "top_seed_errors": 3,
+      "top_stalls": 1,
+      "top_steady_slots": 4096
+    },
+    "bridge_counts": {
+      "leaf_cases": 65536,
+      "leaf_nonzero_corrections": 49152,
+      "top_accepts": 4100,
+      "top_bridge_prefixes": 2052,
+      "top_code_errors": 2,
+      "top_cycles": 4119,
+      "top_fig11_bypass_prefixes": 1024,
+      "top_fig11_dem_prefixes": 1025,
+      "top_nonzero_corrections": 1538,
+      "top_seed_errors": 2,
+      "top_stalls": 1,
+      "top_steady_slots": 4096
+    },
+    "mismatches": 0
+  },
+  "archive": {
+    "path": "selector_equivalence.zip",
+    "bytes": 212420,
+    "sha256": "6666f7fc07cd556aca1b0bda37caecb66e5b00759594723a708fd62780615edf"
+  },
+  "members": {
+    "baseline.sv": "ea0d6ddcacc478b1951c8c6770dcbc523aad66072fce12cee8be2546461a948e",
+    "baseline_levels.log": "72d1b9daf977090ec553e60d1f83a2a4124b071d5c5664f5bbdb61f8fcb40613",
+    "baseline_probe.sv": "ad59fc312c6d85a48b933cb301d4ccc5c04fb03be5cf9a6988af7c2b728f726c",
+    "bridge_result.json": "33ab1e131d57504028b6ce1293e9f538bb89de043e21f86cdccc5565e418b294",
+    "bridge_run.log": "07b0e7fe2cfd4d87a3dc66e25d58cc3da6d0c61228c6ae095c88f685706b2426",
+    "parallel.sv": "987f6c25faab2dbe5da294fa1faca7268da74c69dfce802124ffe74a5b627776",
+    "parallel_cursor.sv": "2fc7e3839ee11c96273933a872cb3e404fbbfd37cf6cb6c82f7b146595ffe25e",
+    "parallel_cursor_levels.log": "6fc8f7784e3fb9e782bc659e1b8cd49c8016e3a13ca41d8218c2d1dead0f287e",
+    "parallel_levels.log": "6b6831c4cc44a854ae52eb6c8a4fb53cc2290254776e23e5c87eb85c5c235f00",
+    "parallel_probe.sv": "df47460f95ef8c01bcccf6b02fe01dac0b3c47e63c9d10697ff9f4198e7d6bd7",
+    "proof.log": "ec477cd2fffa6bc1eeccdde5f0671cd386a6758c8d06ac09f2b401d88143e98c",
+    "proof.ys": "37c9a64fccba3dcfea0957122b0469a0e0dcacf542e3293948ccdabd75a063cf",
+    "proof_cursor.log": "9098db09febfa52f7328d14b4b5faeb9dd193b63754be76593c34c1728e6ef57",
+    "proof_cursor.ys": "20c25340aba21188efa61d9951bddef17ed940495bce8cae9cf8b70577c3792d",
+    "proof_cursor_small.log": "c50831b2cba9b96f61771d5dfef8e348b85ce0d197034ab394804b2f8abef7b4",
+    "proof_cursor_small.ys": "df2147df166855c61a84c560539a015b88e357d59d9ea1fe31d9483580ba2f43",
+    "proof_reset.log": "0c9a517cd505854cddb84f7ae7b89cf604ca2a2c78df079ec1dfd95e10233bf9",
+    "proof_reset.ys": "57b8418d14a1e1f6e0de876607fe3af0c836379062cb2620c632963a1c6f9b84",
+    "proof_reset_base.log": "070f7a517acdafcdbf3485987398b99a04ee76d3f9e91593f243852bb500ad13",
+    "proof_reset_base.ys": "5d58e8af9cfa5f0566409b54b54ee4cfa85dbd3ed6317e14db29c393c7e2a0aa",
+    "rtl_result.json": "f04b723cbc9624c3263a911ad30aa39a2c2307b485baa944df099e290024dff3",
+    "rtl_run.log": "4e752538bd6f628144d559f3ddc88fc4aab8f5ddfbf96704994ca145c496409f"
+  }
+}

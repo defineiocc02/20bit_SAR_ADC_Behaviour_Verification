@@ -1,0 +1,22 @@
+{
+  "claim": "PUBLIC_PROXY_SYNTHESIS",
+  "top": "module1_top",
+  "library": "Nangate45 typical",
+  "mapped_cell_area_um2": 7598.29,
+  "yosys": "Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)",
+  "liberty_sha256": "8d540a4d4cf6d09d27c87ad067857a9c0c2eeb023ab7a56e058cd3113db4e9b1",
+  "sources": {
+    "slice_scheduler.sv": "ea0d6ddcacc478b1951c8c6770dcbc523aad66072fce12cee8be2546461a948e",
+    "fig11_dem.sv": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462",
+    "module1_top.sv": "7887b9dbc435f96b39e964954a8c9d89e9c2560243f203b9ef96334f6616f471"
+  },
+  "artifacts": {
+    "abc.constr": "6710077f5f66e43fcb9993d501d605c2a9a99549566ad74fa987bc839a803c89",
+    "module1_top.v": "fa4682d6f55026cb9c244ad2b32fab3c542f4830f7da9e4a5caa751e6a9a83ca",
+    "synth.ys": "f965428737207e37681a100449bc8f7f51111355e61211ded9d566b5795c9079",
+    "synthesis.log": "832f472a922ef54cfdddfd5fdc3322363aed1fc452605701868051713f82b0ae",
+    "synthesis.rpt": "e3233cc99bf0744189f5ceebcd7a4d354e5d7d7dfcb998c5005f3ebc9daff7b7"
+  },
+  "scope": "Technology mapping only. Timing constraints are used by ABC as a mapping target.",
+  "library_origin": "https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/a5ff7ef7dac4338e6e5fad7710b85fc6c8f3503c/flow/platforms/nangate45/lib/NangateOpenCellLibrary_typical.lib"
+}

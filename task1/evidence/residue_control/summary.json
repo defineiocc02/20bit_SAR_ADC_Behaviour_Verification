@@ -1,0 +1,707 @@
+{
+  "schema": "task1_residue_control_v1",
+  "scope": "工程候选，理想行为两节点与 ADC2。未接 RTL，未验证模拟。",
+  "policy": "中心由输入粗码区间确定；在 c±3 之内用本笔 plan/phase 与冻结权重最小化预测中心余量。",
+  "experiments": [
+    {
+      "unit_sigma": 0.02,
+      "manufacturing_seed": 100,
+      "full_scale_peak_v": 5.0,
+      "fs_hz": 10000000,
+      "tone_hz": 998535.15625,
+      "adc2_bits": 12,
+      "coarse_codes": 512,
+      "adc2_half_window_for_one_export_lsb_v": 0.01953125,
+      "frozen_training_half_window_v": 0.1,
+      "training_record_sha256": {
+        "summary.json": "f611ee9aafb8f0365467a31165f593242a35fef6dc6368f43f6feb1ee160f576",
+        "observations.npz": "caa3921723f3e46f80384a3e9368213de832c954daa5f995a317d85821dc3570"
+      },
+      "arms": {
+        "fixed_ab_lms_only": {
+          "tone": {
+            "direct_coarse_command": {
+              "changed_commands": 0,
+              "residue_peak_abs_v": 0.046961669526965275,
+              "continuous_calibration_error_rms_v": 2.3835835218734296e-06,
+              "target_narrow_adc2": {
+                "samples": 4096,
+                "min_v": -0.0014284569021260297,
+                "max_v": 0.046961669526965275,
+                "below_range": 0,
+                "at_or_above_range": 997,
+                "half_window_v": 0.01953125,
+                "adc2_step_v": 9.5367431640625e-06,
+                "status": "adc2_overload",
+                "valid_capture": null,
+                "saturating_adc2_diagnostic": {
+                  "adc2_quantization_and_overload_input_error_rms_v": 0.003724693484089899,
+                  "before_export": {
+                    "sndr_db": 56.646192109035105,
+                    "sfdr_db": 71.53348371138912,
+                    "enob": 9.117307659308159,
+                    "input_error_rms_v": 0.003724613541276038
+                  },
+                  "after_20bit_export": {
+                    "sndr_db": 56.64623697815287,
+                    "sfdr_db": 71.53242933080976,
+                    "enob": 9.11731511264998,
+                    "input_error_rms_v": 0.003724605118129048
+                  },
+                  "export_saturated_samples": 0
+                }
+              },
+              "archive_window_adc2": {
+                "samples": 4096,
+                "min_v": -0.0014284569021260297,
+                "max_v": 0.046961669526965275,
+                "below_range": 0,
+                "at_or_above_range": 0,
+                "half_window_v": 0.1,
+                "adc2_step_v": 4.8828125e-05,
+                "status": "no_adc2_overload",
+                "valid_capture": {
+                  "adc2_quantization_and_overload_input_error_rms_v": 1.4029150159115015e-05,
+                  "before_export": {
+                    "sndr_db": 104.36543877591401,
+                    "sfdr_db": 127.61777764489173,
+                    "enob": 17.04409281991927,
+                    "input_error_rms_v": 1.4273129234077635e-05
+                  },
+                  "after_20bit_export": {
+                    "sndr_db": 104.18435902715396,
+                    "sfdr_db": 127.54656104266233,
+                    "enob": 17.014013127434215,
+                    "input_error_rms_v": 1.4574439270233604e-05
+                  },
+                  "export_saturated_samples": 0
+                },
+                "saturating_adc2_diagnostic": null
+              }
+            },
+            "frozen_weight_centered_command": {
+              "changed_commands": 3725,
+              "residue_peak_abs_v": 0.034113628279383336,
+              "continuous_calibration_error_rms_v": 2.4065542267053385e-06,
+              "target_narrow_adc2": {
+                "samples": 4096,
+                "min_v": -0.034113628279383336,
+                "max_v": 0.034040524316317634,
+                "below_range": 116,
+                "at_or_above_range": 9,
+                "half_window_v": 0.01953125,
+                "adc2_step_v": 9.5367431640625e-06,
+                "status": "adc2_overload",
+                "valid_capture": null,
+                "saturating_adc2_diagnostic": {
+                  "adc2_quantization_and_overload_input_error_rms_v": 0.0012465353994456085,
+                  "before_export": {
+                    "sndr_db": 65.59812127126875,
+                    "sfdr_db": 86.99026013042406,
+                    "enob": 10.604339081606106,
+                    "input_error_rms_v": 0.0012467247897079792
+                  },
+                  "after_20bit_export": {
+                    "sndr_db": 65.59858160691132,
+                    "sfdr_db": 86.99136746123577,
+                    "enob": 10.60441554932082,
+                    "input_error_rms_v": 0.0012466717793391067
+                  },
+                  "export_saturated_samples": 0
+                }
+              },
+              "archive_window_adc2": {
+                "samples": 4096,
+                "min_v": -0.034113628279383336,
+                "max_v": 0.034040524316317634,
+                "below_range": 0,
+                "at_or_above_range": 0,
+                "half_window_v": 0.1,
+                "adc2_step_v": 4.8828125e-05,
+                "status": "no_adc2_overload",
+                "valid_capture": {
+                  "adc2_quantization_and_overload_input_error_rms_v": 1.4174539065295196e-05,
+                  "before_export": {
+                    "sndr_db": 104.30291360407126,
+                    "sfdr_db": 127.18480576273282,
+                    "enob": 17.03370657874938,
+                    "input_error_rms_v": 1.4364159673078162e-05
+                  },
+                  "after_20bit_export": {
+                    "sndr_db": 104.11870092369776,
+                    "sfdr_db": 127.62717441859662,
+                    "enob": 17.003106465730525,
+                    "input_error_rms_v": 1.4673113253674352e-05
+                  },
+                  "export_saturated_samples": 0
+                },
+                "saturating_adc2_diagnostic": null
+              }
+            }
+          },
+          "static": {
+            "state_count": 2,
+            "coarse_codes": 512,
+            "coarse_state_intervals": 1024,
+            "changed_commands": 910,
+            "all_phase_seeds": null,
+            "symmetric_half_window_v": 0.01953125,
+            "nominal_max_input_coarse_bin_width_v": 0.03676470588235681,
+            "half_window_lower_bound_with_ideal_continuous_center_trim_v": 0.018396021108090695,
+            "max_frozen_prediction_error_at_interval_endpoints_v": 7.077043940003844e-06,
+            "additional_ideal_analog_trim_budget": {
+              "predicted_trim_min_v": -0.017958764559184326,
+              "predicted_trim_max_v": 0.021210216117713898,
+              "residue_peak_after_hypothetical_ideal_trim_v": 0.01840113589124657,
+              "remaining_ideal_half_window_margin_v": 0.0011301141087534314
+            },
+            "direct_coarse_command": {
+              "min_v": -0.005000848144623829,
+              "max_v": 0.0482449189750685,
+              "required_symmetric_half_window_v": 0.0482449189750685,
+              "required_window_with_optimized_center_v": 0.05324576711969233,
+              "overload_input_fraction": 0.232961025369824,
+              "coarse_state_intervals_with_overload": 796
+            },
+            "frozen_weight_centered_command": {
+              "min_v": -0.03635647818059834,
+              "max_v": 0.03959220062705122,
+              "required_symmetric_half_window_v": 0.03959220062705122,
+              "required_window_with_optimized_center_v": 0.07594867880764955,
+              "overload_input_fraction": 0.03948329694807987,
+              "coarse_state_intervals_with_overload": 64
+            }
+          }
+        },
+        "fig21_bridge_lms": {
+          "tone": {
+            "direct_coarse_command": {
+              "changed_commands": 0,
+              "residue_peak_abs_v": 0.03277988846094918,
+              "continuous_calibration_error_rms_v": 4.9915183579585135e-06,
+              "target_narrow_adc2": {
+                "samples": 4096,
+                "min_v": -0.026575013838859747,
+                "max_v": 0.03277988846094918,
+                "below_range": 29,
+                "at_or_above_range": 177,
+                "half_window_v": 0.01953125,
+                "adc2_step_v": 9.5367431640625e-06,
+                "status": "adc2_overload",
+                "valid_capture": null,
+                "saturating_adc2_diagnostic": {
+                  "adc2_quantization_and_overload_input_error_rms_v": 0.0010132462777131565,
+                  "before_export": {
+                    "sndr_db": 67.42589722391284,
+                    "sfdr_db": 91.22552827147045,
+                    "enob": 10.907956349487183,
+                    "input_error_rms_v": 0.0010132245113576308
+                  },
+                  "after_20bit_export": {
+                    "sndr_db": 67.42668300874281,
+                    "sfdr_db": 91.22061557777539,
+                    "enob": 10.908086878528707,
+                    "input_error_rms_v": 0.0010131414799276236
+                  },
+                  "export_saturated_samples": 0
+                }
+              },
+              "archive_window_adc2": {
+                "samples": 4096,
+                "min_v": -0.026575013838859747,
+                "max_v": 0.03277988846094918,
+                "below_range": 0,
+                "at_or_above_range": 0,
+                "half_window_v": 0.1,
+                "adc2_step_v": 4.8828125e-05,
+                "status": "no_adc2_overload",
+                "valid_capture": {
+                  "adc2_quantization_and_overload_input_error_rms_v": 1.3954178300149604e-05,
+                  "before_export": {
+                    "sndr_db": 103.97598764400092,
+                    "sfdr_db": 126.60025005414818,
+                    "enob": 16.979399940863942,
+                    "input_error_rms_v": 1.4918628026054616e-05
+                  },
+                  "after_20bit_export": {
+                    "sndr_db": 103.81569728211994,
+                    "sfdr_db": 127.32303873513152,
+                    "enob": 16.952773634903647,
+                    "input_error_rms_v": 1.5196671799130914e-05
+                  },
+                  "export_saturated_samples": 0
+                },
+                "saturating_adc2_diagnostic": null
+              }
+            },
+            "frozen_weight_centered_command": {
+              "changed_commands": 944,
+              "residue_peak_abs_v": 0.02995733118813084,
+              "continuous_calibration_error_rms_v": 5.017636168248528e-06,
+              "target_narrow_adc2": {
+                "samples": 4096,
+                "min_v": -0.02651097026346642,
+                "max_v": 0.02995733118813084,
+                "below_range": 21,
+                "at_or_above_range": 37,
+                "half_window_v": 0.01953125,
+                "adc2_step_v": 9.5367431640625e-06,
+                "status": "adc2_overload",
+                "valid_capture": null,
+                "saturating_adc2_diagnostic": {
+                  "adc2_quantization_and_overload_input_error_rms_v": 0.0005136591568538792,
+                  "before_export": {
+                    "sndr_db": 73.24414862508445,
+                    "sfdr_db": 96.95493061694089,
+                    "enob": 11.874443293203397,
+                    "input_error_rms_v": 0.0005135860940032431
+                  },
+                  "after_20bit_export": {
+                    "sndr_db": 73.24604550288326,
+                    "sfdr_db": 96.95592131180362,
+                    "enob": 11.874758389183267,
+                    "input_error_rms_v": 0.0005134751847467884
+                  },
+                  "export_saturated_samples": 0
+                }
+              },
+              "archive_window_adc2": {
+                "samples": 4096,
+                "min_v": -0.02651097026346642,
+                "max_v": 0.02995733118813084,
+                "below_range": 0,
+                "at_or_above_range": 0,
+                "half_window_v": 0.1,
+                "adc2_step_v": 4.8828125e-05,
+                "status": "no_adc2_overload",
+                "valid_capture": {
+                  "adc2_quantization_and_overload_input_error_rms_v": 1.3987345210703365e-05,
+                  "before_export": {
+                    "sndr_db": 103.97352953888097,
+                    "sfdr_db": 127.99351783650506,
+                    "enob": 16.978991617754314,
+                    "input_error_rms_v": 1.4927390399127401e-05
+                  },
+                  "after_20bit_export": {
+                    "sndr_db": 103.79857378696543,
+                    "sfdr_db": 127.43066540601961,
+                    "enob": 16.949929200492598,
+                    "input_error_rms_v": 1.5231198594955265e-05
+                  },
+                  "export_saturated_samples": 0
+                },
+                "saturating_adc2_diagnostic": null
+              }
+            }
+          },
+          "static": {
+            "state_count": 512,
+            "coarse_codes": 512,
+            "coarse_state_intervals": 262144,
+            "changed_commands": 60981,
+            "all_phase_seeds": [
+              [
+                1279872588,
+                1145982001
+              ],
+              [
+                1279872589,
+                1145982002
+              ],
+              [
+                1279872590,
+                1145982003
+              ],
+              [
+                1279872591,
+                1145982004
+              ]
+            ],
+            "symmetric_half_window_v": 0.01953125,
+            "nominal_max_input_coarse_bin_width_v": 0.03676470588235681,
+            "half_window_lower_bound_with_ideal_continuous_center_trim_v": 0.018426089820019212,
+            "max_frozen_prediction_error_at_interval_endpoints_v": 2.374387616368122e-05,
+            "additional_ideal_analog_trim_budget": {
+              "predicted_trim_min_v": -0.018898399187268655,
+              "predicted_trim_max_v": 0.018477513086077924,
+              "residue_peak_after_hypothetical_ideal_trim_v": 0.018437947084017706,
+              "remaining_ideal_half_window_margin_v": 0.0010933029159822943
+            },
+            "direct_coarse_command": {
+              "min_v": -0.03609970945310194,
+              "max_v": 0.043670734986908585,
+              "required_symmetric_half_window_v": 0.043670734986908585,
+              "required_window_with_optimized_center_v": 0.07977044444001052,
+              "overload_input_fraction": 0.05255909149354453,
+              "coarse_state_intervals_with_overload": 65785
+            },
+            "frozen_weight_centered_command": {
+              "min_v": -0.03729781279076321,
+              "max_v": 0.03686167293581889,
+              "required_symmetric_half_window_v": 0.03729781279076321,
+              "required_window_with_optimized_center_v": 0.0741594857265821,
+              "overload_input_fraction": 0.01516202851408644,
+              "coarse_state_intervals_with_overload": 20993
+            }
+          }
+        }
+      }
+    },
+    {
+      "unit_sigma": 0.03,
+      "manufacturing_seed": 100,
+      "full_scale_peak_v": 5.0,
+      "fs_hz": 10000000,
+      "tone_hz": 998535.15625,
+      "adc2_bits": 12,
+      "coarse_codes": 512,
+      "adc2_half_window_for_one_export_lsb_v": 0.01953125,
+      "frozen_training_half_window_v": 0.1,
+      "training_record_sha256": {
+        "summary.json": "be66f03ba7ceaa4b121643a18db031fd5bdf88f38b51a178a522745e815fecbb",
+        "observations.npz": "6828b5f366ac72b810bb152a3c5f6d4dd344e1f027a915514a91386e185d8f46"
+      },
+      "arms": {
+        "fixed_ab_lms_only": {
+          "tone": {
+            "direct_coarse_command": {
+              "changed_commands": 0,
+              "residue_peak_abs_v": 0.05258341117658838,
+              "continuous_calibration_error_rms_v": 2.16588681379628e-06,
+              "target_narrow_adc2": {
+                "samples": 4096,
+                "min_v": -0.002372701913163885,
+                "max_v": 0.05258341117658838,
+                "below_range": 0,
+                "at_or_above_range": 1523,
+                "half_window_v": 0.01953125,
+                "adc2_step_v": 9.5367431640625e-06,
+                "status": "adc2_overload",
+                "valid_capture": null,
+                "saturating_adc2_diagnostic": {
+                  "adc2_quantization_and_overload_input_error_rms_v": 0.005295389509177171,
+                  "before_export": {
+                    "sndr_db": 54.13468989433929,
+                    "sfdr_db": 64.72629446570376,
+                    "enob": 8.700114600388588,
+                    "input_error_rms_v": 0.005295146131509902
+                  },
+                  "after_20bit_export": {
+                    "sndr_db": 54.134903321713296,
+                    "sfdr_db": 64.72642152657906,
+                    "enob": 8.700150053440748,
+                    "input_error_rms_v": 0.00529506241870738
+                  },
+                  "export_saturated_samples": 0
+                }
+              },
+              "archive_window_adc2": {
+                "samples": 4096,
+                "min_v": -0.002372701913163885,
+                "max_v": 0.05258341117658838,
+                "below_range": 0,
+                "at_or_above_range": 0,
+                "half_window_v": 0.1,
+                "adc2_step_v": 4.8828125e-05,
+                "status": "no_adc2_overload",
+                "valid_capture": {
+                  "adc2_quantization_and_overload_input_error_rms_v": 1.4110060944025951e-05,
+                  "before_export": {
+                    "sndr_db": 104.34582503309673,
+                    "sfdr_db": 127.64668011539979,
+                    "enob": 17.04083472310577,
+                    "input_error_rms_v": 1.4310754304351783e-05
+                  },
+                  "after_20bit_export": {
+                    "sndr_db": 104.2108983107314,
+                    "sfdr_db": 127.75586081874657,
+                    "enob": 17.018421646300897,
+                    "input_error_rms_v": 1.4535529531240343e-05
+                  },
+                  "export_saturated_samples": 0
+                },
+                "saturating_adc2_diagnostic": null
+              }
+            },
+            "frozen_weight_centered_command": {
+              "changed_commands": 3725,
+              "residue_peak_abs_v": 0.03383827461774196,
+              "continuous_calibration_error_rms_v": 2.1817847838495465e-06,
+              "target_narrow_adc2": {
+                "samples": 4096,
+                "min_v": -0.03383827461774196,
+                "max_v": 0.0330475319600242,
+                "below_range": 87,
+                "at_or_above_range": 8,
+                "half_window_v": 0.01953125,
+                "adc2_step_v": 9.5367431640625e-06,
+                "status": "adc2_overload",
+                "valid_capture": null,
+                "saturating_adc2_diagnostic": {
+                  "adc2_quantization_and_overload_input_error_rms_v": 0.0009615614326308082,
+                  "before_export": {
+                    "sndr_db": 67.82608975334162,
+                    "sfdr_db": 90.02629420132068,
+                    "enob": 10.974433513844122,
+                    "input_error_rms_v": 0.0009617083816202326
+                  },
+                  "after_20bit_export": {
+                    "sndr_db": 67.82627499224539,
+                    "sfdr_db": 90.01885068060574,
+                    "enob": 10.974464284426144,
+                    "input_error_rms_v": 0.0009616903228112229
+                  },
+                  "export_saturated_samples": 0
+                }
+              },
+              "archive_window_adc2": {
+                "samples": 4096,
+                "min_v": -0.03383827461774196,
+                "max_v": 0.0330475319600242,
+                "below_range": 0,
+                "at_or_above_range": 0,
+                "half_window_v": 0.1,
+                "adc2_step_v": 4.8828125e-05,
+                "status": "no_adc2_overload",
+                "valid_capture": {
+                  "adc2_quantization_and_overload_input_error_rms_v": 1.4100754223382713e-05,
+                  "before_export": {
+                    "sndr_db": 104.38089207295258,
+                    "sfdr_db": 129.21590630250878,
+                    "enob": 17.04665981278282,
+                    "input_error_rms_v": 1.4266963442781279e-05
+                  },
+                  "after_20bit_export": {
+                    "sndr_db": 104.26381308012465,
+                    "sfdr_db": 128.998801203605,
+                    "enob": 17.027211475103762,
+                    "input_error_rms_v": 1.4458624467693106e-05
+                  },
+                  "export_saturated_samples": 0
+                },
+                "saturating_adc2_diagnostic": null
+              }
+            }
+          },
+          "static": {
+            "state_count": 2,
+            "coarse_codes": 512,
+            "coarse_state_intervals": 1024,
+            "changed_commands": 910,
+            "all_phase_seeds": null,
+            "symmetric_half_window_v": 0.01953125,
+            "nominal_max_input_coarse_bin_width_v": 0.03676470588235681,
+            "half_window_lower_bound_with_ideal_continuous_center_trim_v": 0.018402855191546944,
+            "max_frozen_prediction_error_at_interval_endpoints_v": 7.084513075569527e-06,
+            "additional_ideal_analog_trim_budget": {
+              "predicted_trim_min_v": -0.017751825974024027,
+              "predicted_trim_max_v": 0.02263157714737485,
+              "residue_peak_after_hypothetical_ideal_trim_v": 0.018408813020563297,
+              "remaining_ideal_half_window_margin_v": 0.0011224369794367028
+            },
+            "direct_coarse_command": {
+              "min_v": -0.0074943665441851584,
+              "max_v": 0.05399097512322282,
+              "required_symmetric_half_window_v": 0.05399097512322282,
+              "required_window_with_optimized_center_v": 0.061485341667407975,
+              "overload_input_fraction": 0.3435624247285989,
+              "coarse_state_intervals_with_overload": 829
+            },
+            "frozen_weight_centered_command": {
+              "min_v": -0.0361523643297211,
+              "max_v": 0.04101285367215076,
+              "required_symmetric_half_window_v": 0.04101285367215076,
+              "required_window_with_optimized_center_v": 0.07716521800187186,
+              "overload_input_fraction": 0.0316598538800739,
+              "coarse_state_intervals_with_overload": 64
+            }
+          }
+        },
+        "fig21_bridge_lms": {
+          "tone": {
+            "direct_coarse_command": {
+              "changed_commands": 0,
+              "residue_peak_abs_v": 0.04055540267199512,
+              "continuous_calibration_error_rms_v": 6.578318026574824e-06,
+              "target_narrow_adc2": {
+                "samples": 4096,
+                "min_v": -0.0332004147842673,
+                "max_v": 0.04055540267199512,
+                "below_range": 100,
+                "at_or_above_range": 339,
+                "half_window_v": 0.01953125,
+                "adc2_step_v": 9.5367431640625e-06,
+                "status": "adc2_overload",
+                "valid_capture": null,
+                "saturating_adc2_diagnostic": {
+                  "adc2_quantization_and_overload_input_error_rms_v": 0.0020594840052046834,
+                  "before_export": {
+                    "sndr_db": 61.28547119054304,
+                    "sfdr_db": 84.95954088367495,
+                    "enob": 9.88795202500715,
+                    "input_error_rms_v": 0.002059426340647425
+                  },
+                  "after_20bit_export": {
+                    "sndr_db": 61.28539753733116,
+                    "sfdr_db": 84.9612322678985,
+                    "enob": 9.887939790254347,
+                    "input_error_rms_v": 0.002059442307952716
+                  },
+                  "export_saturated_samples": 0
+                }
+              },
+              "archive_window_adc2": {
+                "samples": 4096,
+                "min_v": -0.0332004147842673,
+                "max_v": 0.04055540267199512,
+                "below_range": 0,
+                "at_or_above_range": 0,
+                "half_window_v": 0.1,
+                "adc2_step_v": 4.8828125e-05,
+                "status": "no_adc2_overload",
+                "valid_capture": {
+                  "adc2_quantization_and_overload_input_error_rms_v": 1.4186467668498433e-05,
+                  "before_export": {
+                    "sndr_db": 103.58586653133952,
+                    "sfdr_db": 128.47006144673074,
+                    "enob": 16.9145957693255,
+                    "input_error_rms_v": 1.5602172848917556e-05
+                  },
+                  "after_20bit_export": {
+                    "sndr_db": 103.4420241758621,
+                    "sfdr_db": 127.57689707081573,
+                    "enob": 16.890701690342542,
+                    "input_error_rms_v": 1.5863483741823566e-05
+                  },
+                  "export_saturated_samples": 0
+                },
+                "saturating_adc2_diagnostic": null
+              }
+            },
+            "frozen_weight_centered_command": {
+              "changed_commands": 1499,
+              "residue_peak_abs_v": 0.029745099782375484,
+              "continuous_calibration_error_rms_v": 6.563278201316182e-06,
+              "target_narrow_adc2": {
+                "samples": 4096,
+                "min_v": -0.02851838998810559,
+                "max_v": 0.029745099782375484,
+                "below_range": 23,
+                "at_or_above_range": 35,
+                "half_window_v": 0.01953125,
+                "adc2_step_v": 9.5367431640625e-06,
+                "status": "adc2_overload",
+                "valid_capture": null,
+                "saturating_adc2_diagnostic": {
+                  "adc2_quantization_and_overload_input_error_rms_v": 0.0005277456760807095,
+                  "before_export": {
+                    "sndr_db": 73.00423449165808,
+                    "sfdr_db": 96.71358014950746,
+                    "enob": 11.834590447119282,
+                    "input_error_rms_v": 0.0005277217148641838
+                  },
+                  "after_20bit_export": {
+                    "sndr_db": 73.0042603880406,
+                    "sfdr_db": 96.72486841657026,
+                    "enob": 11.834594748843955,
+                    "input_error_rms_v": 0.0005277195312932906
+                  },
+                  "export_saturated_samples": 0
+                }
+              },
+              "archive_window_adc2": {
+                "samples": 4096,
+                "min_v": -0.02851838998810559,
+                "max_v": 0.029745099782375484,
+                "below_range": 0,
+                "at_or_above_range": 0,
+                "half_window_v": 0.1,
+                "adc2_step_v": 4.8828125e-05,
+                "status": "no_adc2_overload",
+                "valid_capture": {
+                  "adc2_quantization_and_overload_input_error_rms_v": 1.4069131888267538e-05,
+                  "before_export": {
+                    "sndr_db": 103.6526915231979,
+                    "sfdr_db": 127.33589177055144,
+                    "enob": 16.925696266311945,
+                    "input_error_rms_v": 1.549344143879668e-05
+                  },
+                  "after_20bit_export": {
+                    "sndr_db": 103.51910962144247,
+                    "sfdr_db": 128.02737479171708,
+                    "enob": 16.90350658163496,
+                    "input_error_rms_v": 1.5736539144560407e-05
+                  },
+                  "export_saturated_samples": 0
+                },
+                "saturating_adc2_diagnostic": null
+              }
+            }
+          },
+          "static": {
+            "state_count": 512,
+            "coarse_codes": 512,
+            "coarse_state_intervals": 262144,
+            "changed_commands": 90750,
+            "all_phase_seeds": [
+              [
+                1279872588,
+                1145982001
+              ],
+              [
+                1279872589,
+                1145982002
+              ],
+              [
+                1279872590,
+                1145982003
+              ],
+              [
+                1279872591,
+                1145982004
+              ]
+            ],
+            "symmetric_half_window_v": 0.01953125,
+            "nominal_max_input_coarse_bin_width_v": 0.03676470588235681,
+            "half_window_lower_bound_with_ideal_continuous_center_trim_v": 0.01844795825943968,
+            "max_frozen_prediction_error_at_interval_endpoints_v": 3.185902516659577e-05,
+            "additional_ideal_analog_trim_budget": {
+              "predicted_trim_min_v": -0.019159004086918063,
+              "predicted_trim_max_v": 0.023205251891446288,
+              "residue_peak_after_hypothetical_ideal_trim_v": 0.01845881782304918,
+              "remaining_ideal_half_window_margin_v": 0.0010724321769508202
+            },
+            "direct_coarse_command": {
+              "min_v": -0.04725618182671188,
+              "max_v": 0.05402087388370984,
+              "required_symmetric_half_window_v": 0.05402087388370984,
+              "required_window_with_optimized_center_v": 0.10127705571042173,
+              "overload_input_fraction": 0.10560627326431257,
+              "coarse_state_intervals_with_overload": 93330
+            },
+            "frozen_weight_centered_command": {
+              "min_v": -0.03756436624496914,
+              "max_v": 0.041660768590687056,
+              "required_symmetric_half_window_v": 0.041660768590687056,
+              "required_window_with_optimized_center_v": 0.07922513483565619,
+              "overload_input_fraction": 0.016018847608952412,
+              "coarse_state_intervals_with_overload": 21591
+            }
+          }
+        }
+      }
+    }
+  ],
+  "source_sha256": {
+    "task1/experiments/residue_control_study.py": "c0db84cdabf4a546892f7945b9b7d7c60fa47cbbefa95b52dc3a335e39183418",
+    "task1/experiments/inl_dnl.py": "7823b2be59f3c3a42297022ab57ee354f66d33a0a62d6d74eb4cacdc9f668c75",
+    "task1/experiments/bridge_lms_comparison.py": "805e1a19915a4cf30d0752de552f97ce01263cdf06b3996fb22f1464c5a5b5a4",
+    "task1/experiments/adctoolbox_calibration.py": "34c3618ae492ebba5e900f698dcbbe1691e0eebb3586579355d9e7cb6424fd8c",
+    "task1/experiments/run_effects.py": "ec9635c6be81a1758785bc3ebb33714da427348b598dfcd3d3a6484692326c5c",
+    "task1/model/fig21_bridge.py": "b9157d53acf6e708c9378d85ed67a9cfe57d471de4eef52830611c431080b2de",
+    "task1/model/fig11_dem.py": "a3d7f040062ff7adf4c4b50fb90e59ee81491988973e5670e6e12e6e9789f39d",
+    "task1/model/module1.py": "c881976f3ed7c75f915d27b59fb69a2a58fa662ec4de6d51da09e4396573c3c2",
+    "task1/model/scheduler.py": "e6b2d50fa6bdaa607842bea0e86dc02e3fc531c7b832ea6a59858e48a7652f9f",
+    "src/adi_model/charge_ref.py": "74856592cdc665c4533744754b953cee55a6e8649368b8483b6ddbf619a0cebc"
+  }
+}

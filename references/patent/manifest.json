@@ -1,0 +1,71 @@
+{
+  "schema": "adi_patent_source_manifest_v1",
+  "patent": {
+    "number": "US10505561B2",
+    "title": "Method of applying a dither, and analog to digital converter operating in accordance with the method",
+    "assignee": "Analog Devices",
+    "grant_date": "2019-12-10",
+    "inventors": [
+      "Rares Bodnar"
+    ],
+    "note": "发明人名单仅记录 OCR 正文可核实的一位；完整名单需回原件核对，本文件不作断言。"
+  },
+  "included": [
+    {
+      "path": "US10505561B2_OCR.txt",
+      "bytes": 90318,
+      "sha256": "f019cb3b9f4b0d9d66e6242e64abeeb2079f0e460a7ce3536ada38e619595198",
+      "kind": "ocr_text",
+      "transcription": {
+        "method": "vision OCR",
+        "produced_at": "2026-11-04T16:31",
+        "produced_by": "本机既有 OCR 产物，非本轮生成",
+        "source_staging_path": "20bit_sar_audit_staging_20261104/sources/extracted/patent10_vision.txt",
+        "is_text_layer": false,
+        "page_marker_format": "=== PDF PAGE <n> VISION OCR ==="
+      },
+      "coverage": {
+        "page_pdf_from": 22,
+        "page_pdf_to": 36,
+        "pages_present": 15,
+        "note": "只覆盖 36 页扫描件的后半段；题录页、权利要求起始段与 FIG.1-FIG.18 的附图页不在覆盖范围内。"
+      }
+    },
+    {
+      "path": "US10505561B2_FIG19.png",
+      "bytes": 52637,
+      "sha256": "908fb045ecf87441762a3542f7dd7e569fb129d3c705474fb7c3fb136c393e61",
+      "kind": "figure_crop",
+      "figure": "FIG. 19",
+      "page_pdf": 22,
+      "page_printed": "Sheet 20 of 21",
+      "source_staging_path": "sar_adc_digital_spec_report_20261106/originals/patent_us10505561_fig19.png",
+      "contains_callouts": ["200", "220", "222", "224", "300", "400"],
+      "absent_callouts": ["226"],
+      "note": "裁图边界：上缘含 ADC 200 顶边与 DITHER GENERATOR 400 上缘，下缘含 SAMPLING DAC 220 标签与 FIGURE 19 图题，右侧含 220 输出引线，左侧含 VIN 节点。不含 FIG.20。"
+    }
+  ],
+  "excluded": [
+    {
+      "kind": "source_pdf",
+      "reason": "维护者决定 PDF 不入库；仓库只收录 OCR 转写与单张附图裁图。",
+      "consequence": "本仓库无法自证 OCR 无转写错误；凡引 OCR 处一律标 evidence_level=OCR。"
+    },
+    {
+      "kind": "full_figure_set",
+      "reason": "仅 FIG.19 与本模型相关；其余附图未裁。",
+      "consequence": "FIG.4 / FIG.6A-F / FIG.20 只能引用 OCR 正文，不能引用图形。"
+    }
+  ],
+  "page_coordinates": {
+    "definition": "page_pdf 指 OCR 源文件内的 1 基页序号（与 36 页扫描件一致）；page_printed 只在该页自带 Sheet 标注时可用。两者不可互换。OCR 未保留印刷栏号，故本文件不记栏号。",
+    "known_pairs": [
+      {"page_pdf": 22, "page_printed": "Sheet 20 of 21", "content": "FIGURE 19 附图"},
+      {"page_pdf": 23, "page_printed": "Sheet 21 of 21", "content": "FIGURE 20 附图"},
+      {"page_pdf": 26, "page_printed": null, "content": "dither 机制与 summer 222/224 的文字说明"},
+      {"page_pdf": 27, "page_printed": null, "content": "整数 dither 与分数 dither 的区分，FIG.5 描述"},
+      {"page_pdf": 33, "page_printed": null, "content": "FIG.19 拆字、第二/第三 dither 与残余模拟 dither 的文字描述"},
+      {"page_pdf": 34, "page_printed": null, "content": "Example 1 起段与权利要求"}
+    ]
+  }
+}

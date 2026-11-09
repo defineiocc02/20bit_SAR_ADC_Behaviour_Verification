@@ -1,0 +1,41 @@
+{
+  "counts": {
+    "bypass": 64,
+    "checks": 154045,
+    "command_cases": 4161,
+    "cycles": 66662,
+    "headroom_failures": 1,
+    "late_returns": 1,
+    "macro_faults": 2,
+    "mismatched_dither_pairs": 2019,
+    "pairs": 2048,
+    "rejections": 4,
+    "steady": 4096
+  },
+  "log_sha256": {
+    "compile.log": "5ba04f969304ab28f00e607e6b80cbd2884d989c6c58439fed5ac02cf5ecd4cf",
+    "lint.log": "8742242f0ff90c6f3d62e303dd176881a1c8f2226bded91f85f5e59bdeb1936c",
+    "run.log": "075899b2a4798eba19eb89ed5e2a148861c775a59f4b3f48230461fd9e678271",
+    "verilator.log": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1"
+  },
+  "scope": "digital_top_external_reconstruction_fixture",
+  "source_sha256": {
+    "task1/rtl/fig11_dem.sv": "6374c562a712ee9eb9ed8ea9c3819891d84e3d91dfadd2e3856475cb253a70f0",
+    "task1/rtl/fig21_bridge.sv": "c86ad0e476e8561ace333a625877bbc8406709f4e35d8680098ab1b36369d209",
+    "task1/rtl/module1_bridge_top.sv": "6b05165d5bea6ff2509eb3217b5e3362e2d3380c36005e1af6182e068e8e1aa3",
+    "task1/rtl/module1_top.sv": "5f499cbfa09bfa9666b37a56c3360d667aaa670b7a307cfb98b40f0b177f2c93",
+    "task1/rtl/slice_scheduler.sv": "ed6dc0d648c3b603619da40b3bf49ee802fb7908c17eb75a99ac08659bb78888",
+    "task1/tools/run_rtl_checks.py": "47d947063ed801c3253cc001ee4b0f96cc080087ab4b3a946b0d803ea80c1319",
+    "task2/eight_rtl/rtl/dither8_top.sv": "42d9ad544d80258b0138b896d78003558df38a77e1ae11626cb9c1df079317ce",
+    "task2/rtl/dither_word_gen.sv": "ac4ce35846ea887f899e2cb489f6c2283e3568b9b8227e36edd7de9341ac6366",
+    "task3/rtl/caaz20_pair.sv": "aaa0f73d3c69f85e42beaf2799afc9c14051a77cec3839610a65bf6e301751c9",
+    "task_integration/SPEC.md": "72c20b94c54b5a6e18db6da5e84e3695f02cace989c996fab72b9d7110b01c9d",
+    "task_integration/microarchitecture.md": "e3bc4ae6c79177cb66530c476c4b686f2d8266d22eebada54acd53cc940e4fca",
+    "task_integration/rtl/sar20_digital_top.sv": "6fc895d87f87710eb4c918efd85b63172e40da23bb4d4743f563aeb46bbf459c",
+    "task_integration/tb/sar20_integration_tb.sv": "628d12ad64734dfeeb8a27b4d26964e7f1798d3594ebe66dd673f6710e86163f",
+    "task_integration/tools/run_checks.py": "c0a9cee9bad07c9cca9ae21d87e4b4091ec9358087909f9e34cb0379426bfa05",
+    "task_integration/verification_plan.yaml": "581c83a7bdd7ffd91dde951f38b847017342bbd8d55a7cef20930fefb09beab9",
+    "tools/run_open_rtl.py": "02cdb53d0a3384aba292a0ad893f850c3c1e8c705d4f9a94008d9dcde2c08ed4"
+  },
+  "status": "PASS"
+}

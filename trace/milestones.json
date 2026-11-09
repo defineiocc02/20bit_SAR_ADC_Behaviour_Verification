@@ -1,0 +1,322 @@
+{
+  "schema": "adi_behavior_model_milestones_v1",
+  "branch": "20b10mtask",
+  "purpose": "行为级模型复现期间的里程碑与回退锚点。RTL 在 M9 之前冻结，只读。",
+  "rollback_rules": {
+    "forbidden": [
+      "git checkout .",
+      "git checkout -- <dir>",
+      "git reset --hard",
+      "git stash",
+      "git stash pop"
+    ],
+    "l1_snapshot": "每个里程碑动手前跑 git stash create，把返回的 commit 对象 SHA 记在 base_snapshot。只含已跟踪文件的改动，不含未跟踪新文件。",
+    "l2_commit": "每个里程碑一个 commit，只 git add 本里程碑 files 列出的显式路径。回退用 git revert <commit>。",
+    "l3_file": "git restore --source=<base_commit> -- <逐路径>，路径取自 files 数组，禁止 .",
+    "l4_numeric": "切回 baseline_10m_5v 预设 + NoiseConfig(enabled=False)，不改代码即回到归档口径。",
+    "untracked_note": "M0 新建的文件是未跟踪的，git stash create 抓不到；回退方式是删除文件本身，不是 restore。"
+  },
+  "frozen": [
+    "task1/rtl/**",
+    "task1/tb/**",
+    "task2/rtl/**",
+    "task2/tb/**",
+    "task2/eight_rtl/rtl/**",
+    "task2/eight_rtl/tb/**",
+    "task3/rtl/**",
+    "task3/tb/**",
+    "task_integration/rtl/**",
+    "task_integration/tb/**",
+    "task_reconstruction/rtl/**",
+    "task_reconstruction/tb/**"
+  ],
+  "frozen_note": "以上目录下共 22 个 .sv/.svh/.v 文件。本轮任何 commit 的 diff 都不得触及它们，含 sar20_lms_recon 的 C9 迁移。",
+  "milestones": [
+    {
+      "id": "M0",
+      "name": "源文台账",
+      "base_commit": "5094b2e156a7660c85d3bf02bcd6d5a13786377e",
+      "base_snapshot": "6a28f987372a3c9ffbb435758519a7a5130ca9ba",
+      "behavior_change": false,
+      "commit": "595f6cd6efcaa14bb11448c498dacc2c1f242676",
+      "files": [
+        ".gitignore",
+        "references/README.md",
+        "references/patent/README.md",
+        "references/patent/manifest.json",
+        "references/patent/US10505561B2_OCR.txt",
+        "references/patent/US10505561B2_FIG19.png",
+        "task2/ORIGINAL_SOURCES.md",
+        "tools/check_source_matrix.py",
+        "trace/README.md",
+        "trace/source_matrix.csv",
+        "trace/milestones.json"
+      ],
+      "gates": {
+        "check_source_matrix": "PASS",
+        "pytest": "PASS",
+        "ruff": "PASS"
+      },
+      "note": "零行为变更。43 行台账（论文 14 + 讲稿 21 + 专利 8），PASS=17 / MISSING=12 / OUT_OF_SCOPE=8 / NOT_RUN=5 / PARTIAL=1。台账 PASS 只表示引用能对上，不表示实现正确。"
+    },
+    {
+      "id": "M1",
+      "name": "基线护栏 + 常量去重",
+      "base_commit": "bf2075fbcbd871af186ed60ce30c9a70f23924b1",
+      "base_snapshot": "15293add30a935a093dd7d5486966f19156fa91b",
+      "behavior_change": false,
+      "commit": "6e18d9be232e98f475b91debccff3a162545f925",
+      "commits": {
+        "M1a_指纹与护栏": "6e18d9be232e98f475b91debccff3a162545f925",
+        "M1b_常量去重": "7897d7a2cafe878a1f73647c2a6f4f27c45f75aa"
+      },
+      "files": [
+        "pyproject.toml",
+        "tools/snapshot_baseline.py",
+        "task2/evidence/baseline_fingerprint/fingerprint.json",
+        "task2/eight/tests/test_baseline_frozen.py",
+        "task3/tests/test_task3_smoke.py",
+        "task_integration/tests/test_integration_smoke.py",
+        "task_reconstruction/tests/test_reconstruction_smoke.py"
+      ],
+      "files_m1b": [
+        "src/adi_model/codes.py",
+        "src/adi_model/capacitors.py",
+        "task1/model/fig11_dem.py",
+        "task1/model/module1.py",
+        "task1/experiments/inl_dnl.py",
+        "task1/experiments/residue_control_study.py",
+        "task1/experiments/bridge_lms_16bit.py",
+        "task2/eight/model.py",
+        "task2/model/fig19_seven.py",
+        "task2/eight/tests/test_independent_charge.py"
+      ],
+      "gates": {
+        "pytest": "PASS (81 passed)",
+        "check_layering": "PASS (exit 0；60 条 R3 跨文件私有导入为既有告警)",
+        "snapshot_baseline_check": "PASS (8 项逐字段相等，去重前后不变，证明是纯改名)",
+        "check_source_matrix": "PASS (81 个可收集节点)"
+      },
+      "note": "指纹只存 8 项指标，不存配置也不存源码哈希：M2 起要加 noise 字段，存配置会让指纹因「多一个默认关闭字段」误报。环境钉在 python 3.12.14 / numpy 2.5.3 / adctoolbox 0.9.1（与既有归档一致），见 fingerprint.json 的 environment。去重拆成独立 commit，否则噪声改动与去重混在一起时指纹失配无法归因。M1b 的回退请用 git restore --source=15293add -- <逐路径>（该快照含 M1b 之前的全部工作树状态），不要用 git revert：本仓库 HEAD 落后工作树很多，M1b 提交顺带落盘了前几轮未提交的注释与 C9 改动，revert 会把它们一起退回 HEAD。"
+    },
+    {
+      "id": "M2",
+      "name": "噪声内核",
+      "base_commit": "1acf2d2baf7dd0b002cd3c170914ce33cae6b05c",
+      "base_snapshot": "978770bdc3c008da2d6884b148630825f512a80b",
+      "behavior_change": false,
+      "commit": "1780fd73325d7cb47e59433cd01c26922f9ec876",
+      "files": [
+        "src/adi_model/noise.py",
+        "src/tests/test_noise.py",
+        "pyproject.toml"
+      ],
+      "gates": {
+        "pytest": "PASS (96 passed)",
+        "ruff": "PASS",
+        "snapshot_baseline_check": "PASS (8 项相等；噪声未接入模型，本里程碑不该影响任何数值)",
+        "thermal_sigma": "PASS (20.5 pF/300 K ⇒ 单侧 14.214 µV，差分 20.10 µV)",
+        "sigma_recovery_white": "PASS (2^20 样本，1% 窗口)",
+        "sigma_recovery_flicker": "PASS (64 次集成平均，3% 窗口)",
+        "orthogonality": "PASS (加源不挪动已有源的抽样，跨 tag 相关 <0.01)",
+        "disabled_is_all_zero": "PASS"
+      },
+      "note": "计划里「N=2^20 时 σ 回收误差 <1%」对 1/f 不成立：1/f 的功率几乎全在最低几个频点，有效自由度只有 O(100)，单次实现的标准差本身就有 6.6% 涨落。故 1/f 改验三条：64 次集成平均回收 3% 窗口、sigma 线性标度（确定性）、谱斜率 −1（±0.15）。这是有意的口径修正，不是把标准放松到能过。白噪仍卡 1%。"
+    },
+    {
+      "id": "M3",
+      "name": "前端噪声注入",
+      "commit": "058f345578d128d4f1f671acf0d46ab75b13cd62",
+      "base_commit": "7133b6cf24a24a794bf85795bc5e3abba12fdc85",
+      "base_snapshot": "e5bbc4fbfac7b39a7ea640633e60caeea56b117f",
+      "behavior_change": false,
+      "files": [
+        "src/adi_model/noise.py",
+        "src/adi_model/capacitors.py",
+        "task1/experiments/adctoolbox_calibration.py",
+        "task2/eight/model.py",
+        "task2/eight/experiment.py",
+        "task2/eight/tests/test_noise_injection.py",
+        "trace/source_matrix.csv",
+        "trace/milestones.json"
+      ],
+      "gates": {
+        "pytest": "PASS (104 passed)",
+        "ruff": "PASS",
+        "snapshot_baseline_check": "PASS (8 项逐字段相等；噪声默认全关，注入管线不该动任何既有数值)",
+        "check_source_matrix": "PASS (PASS=18 / MISSING=11，104 个可收集节点)",
+        "check_layering": "PASS (exit 0；R3=61，比 M1 多 1 条，来自测试导入 _capture，与既有 7 条同类先例一致)",
+        "thermal_equivalent": "PASS (20.5 pF/300 K ⇒ 差分 20.102 µV)",
+        "ktc_end_to_end": "PASS (只开 kT/C：SNDR 99.34 dB，与 tone 幅度 3.333 V 及 20.1 µV 合成的 99.39 dB 差 0.05 dB)",
+        "comparator_flip_rate": "PASS (20 µV 下跳档 1/4096 = 2.44e-4，越窗 0；200 µV 时 6.6e-3，2 mV 时 8.0e-2)",
+        "negative_controls": "PASS (3 个注入错误全部被抓：comparator 漏进残差、sampling 只进判决、stream 被忽略)"
+      },
+      "note": "两处偏离计划，均以实测为准。① 计划判据「只开比较器 20 µV ⇒ 独占 DR 100.5 dB ±0.3」不成立：实测 103.72 dB，与无噪声的 103.95 dB 只差 0.23 dB。原因是两步式 + dither 的冗余把粗码跳档吸收了——跳档 1 个 coarse code 只让残差偏 1 个 step_v（18.38 mV），远小于 ADC2 半量程 100 mV，后级重构时按新粗码重算，误差自洽抵消。比较器噪声在这套架构里不是 DR 的支配项，这正是架构冗余该有的表现，判据改按「跳档率 + DR 退化幅度」记录。② task3/tools/run_joint_noise.py 的五个常量不搬进 NoiseConfig：AZ 20 µV 与 fresh 10 µV 是图注标明的「人工残差激励」，不是被测器件的噪声源，且 AZ 的成对相关结构（独立/共享/保持误差三档）无法用单一 sigma 表达；硬搬会破坏 CAAZ 语义并让已归档 summary.json 的 az_sigma_v 等字段对不上。③ 接线后比较器噪声会经由粗码状态改变残差，这不是漏接：逐位比对上「未跳档样本一位不动」才是正确口径，测试就按这个写。④ ExperimentConfig 新增 noise 字段，asdict(experiment) 会多一个键，任何重跑都会让归档里的 experiment 字典与 artifact_sha256 与旧版不同；默认数值不变，但 M9 重签收据时必须显式处理这一项。⑤ 新测试文件是未跟踪的，base_snapshot 抓不到，回退时须删除文件本身。"
+    },
+    {
+      "id": "M4",
+      "name": "参考动态建立 + RA 非线性",
+      "base_commit": "7f92ca1",
+      "base_snapshot": "7f59ce2b70ec0ab5e21f393159a960255616ccf1",
+      "behavior_change": false,
+      "commits": {
+        "M4a_纯函数层": "dc913bc",
+        "M4b_参考接入": "24a43de3a362331401b48747f27cab66750c45dd"
+      },
+      "files": [
+        "src/adi_model/reference.py",
+        "src/tests/test_reference.py",
+        "src/adi_model/capacitors.py",
+        "task2/eight/experiment.py",
+        "task2/eight/tests/conftest.py",
+        "task2/eight/tests/test_noise_injection.py",
+        "task2/eight/tests/test_reference_injection.py",
+        "trace/milestones.json"
+      ],
+      "gates": {
+        "pytest": "PASS (119 passed)",
+        "ruff": "PASS",
+        "snapshot_baseline_check": "PASS (8 项逐字段相等；reference 默认全关)",
+        "check_layering": "PASS (R3 仍 61 条，_capture 的私有导入移到 conftest 后没有净增)",
+        "paper_anchor": "PASS (tau = 0.65*T_RA/ln(32) = 0.18755*T_RA，在 0.65*T_RA 处误差恰为初始值的 1/32)",
+        "log_linearity": "PASS (ln(error) 对 T_RA/tau 斜率 -1，R^2 > 0.999999)",
+        "ppm_scale": "PASS (10 ppm 二阶在差分满幅 10 V 上 = 100 µV = 10.49 LSB20)",
+        "code_dependence": "PASS (参考误差按翻动电容单位数逐样本变化，相对离散度 > 0.05)",
+        "negative_controls": "PASS (swing 退化为常数被抓 2 条、漏乘增益被抓 1 条；exp 写成 1/(1+x) 被抓 3 条、ln 换 log10 被抓 2 条)"
+      },
+      "note": "计划里 M4 的两个判据数字没有出处，已废弃并替换。①「tau=1.17 ns 处残差 0.50 LSB20 ±10%」与「ln(error) 对 tau 斜率与 -0.65·T_RA 一致」：全库检索 1.17 与 0.65 只命中无关数值，且由论文两条锚点复算不出 1.17 ns。改用论文原文可复算的形式——RA 相位开始残差约 15b、20b 完全建立占 RA 相位约 65%，由此 tau = 0.65·T_RA/ln(2^5) = 0.18755·T_RA，在 0.65·T_RA 处误差恰为 1/32。②「ppm2 ∈ {0,1,10} ⇒ 10 ppm 给 10.5±1 LSB20」这条保留了，但**没有接进 _capture**：ra_transfer 的 ppm 是输出满幅口径（10 V），_capture 里的残差是输入域（±0.1 V），差一个 RA 增益；在 _capture 里乘 ppm 会让量级小 100 倍却看上去「接了」。故 ppm 项留到 M8 的输出域接入，M4b 只接参考建立。③ 端到端实测：tau 取 anchor 时 INL 峰值 0.5610 LSB20，基线（无参考）0.5233，差 0.038，而失配本身贡献 0.52——参考建立在论文参数下不是瓶颈。tau 放大到 5·T_RA 才到 0.6397。这与论文「dynamic reference buffer 让 65% 相位即达 20b」一致，不是接线没生效（接线由逐点等式测试保证）。④ 本模型没有显式时序，测试里的 T_RA=12.5 ns 取论文 40 MS/s 的半周期作量级，M5 引入真实时序后应改为从配置读。"
+    },
+    {
+      "id": "M5",
+      "name": "时偏 / 带宽 / 复片延迟",
+      "commit": "ebe2a66c5020f33c5f8f1fe814d3b3f07484783f",
+      "base_commit": "9141fbb",
+      "base_snapshot": "d9a4176efc186e0a38690710a9b47eda4653b6ba",
+      "behavior_change": false,
+      "files": [
+        "src/adi_model/timing.py",
+        "src/tests/test_timing.py",
+        "task1/experiments/run_effects.py",
+        "trace/milestones.json"
+      ],
+      "gates": {
+        "pytest": "PASS (127 passed)",
+        "ruff": "PASS",
+        "snapshot_baseline_check": "PASS (8 项逐字段相等；TimingConfig 默认值与原三值写法一致)",
+        "patent_timing_chain": "PASS (2.5 V/10 MHz ⇒ 157.08 V/µs；1 ps ⇒ 157.08 µV；除 18b 的 19.0735 µV 得 8.235 LSB，专利原文写 8.3)",
+        "pole_15x_nyquist": "PASS (15×f_Nyq 极点在一阶下 Nyquist 处衰减 0.997787 = −0.0193 dB)",
+        "legacy_delays": "PASS (TimingConfig().delays(18) 与 np.repeat((5p,−5p,0),(8,8,2)) 逐位相同)",
+        "effects_archive_identical": "PASS (重跑 run_effects 与 task1/evidence/effects 的 interleave.fixed_ab / interleave.dynamic / dem 三块逐字段完全一致)"
+      },
+      "note": "计划判据三改一留。①「fs/8、fs/18 杂散 ≤ −104 dBc」没有出处：讲稿 p22 明写交织杂散位置是 f_S/2 − f_IN（'Interleaving tone with randomisation centred at fS/2 - fIN'），模型的 mirror_bin = samples//2 - tone_bin 正是这个位置，归档里 dynamic 模式的 mirror 已是 −128.09 dBFS、fixed_ab 是 −93.59 dBFS。fs/8 与 fs/18 是调度频率而非时偏杂散位置，判据改按镜像频点记录。②「BW 扫 {1,3,15}×f_Nyq」里的 15× 有出处（讲稿 19-22 页反复写 'DAC BW set to 15 × f_Nyq'），但「15× 处 THD < −110 dBc、3× 处 > −70 dBc」这两个阈值全库找不到，未作为判据采信，只保留 15× 的极点衰减可复算这一点。③「_capture 里 dac_pole 作用在转换阶段底板电压」未做：dac_pole_attenuation 只给频域幅度，接进电荷域需要给每片电容一个复频响应，超出当前行为模型范围；而「BW=15× 时 DNL/INL 变化 <0.01 LSB」这条在结构上已天然成立——_static 用解析区间宽度算 DNL/INL，根本不经过 _capture，极点进不了静态路径。④ 0.6 ps 与 10 ps 不能互换：论文原文是 'The estimated residual RMS timing mismatch is ~0.6ps'（匹配时钟之后的残余值），讲稿 p21-22 的 'Timing mismatch simulation (10ps)' 是失配仿真条件，两者差 16 倍。TimingConfig 的默认 rms_jitter_s 取 0.6 ps，deterministic 的 skew_s 沿用 ExperimentConfig.skew_s=5 ps，两条路互不覆盖。⑤ 5 条判据里 4 条是纯函数、1 条是归档逐字段比对；后者是这次重构最强的证据——它证明改的是来源而不是行为。"
+    },
+    {
+      "id": "M6",
+      "name": "三处 20bit 码口径统一",
+      "commit": "a59a6e2e1fbe6e7cc5a748ea859e44f39c5e5136",
+      "base_commit": "9c4aede",
+      "base_snapshot": "b99e9f9a6dfd63688edc903395c1d87f3c3258eb",
+      "behavior_change": false,
+      "files": [
+        "src/adi_model/codes.py",
+        "src/tests/test_codes.py",
+        "task1/experiments/inl_dnl.py",
+        "task2/eight/experiment.py",
+        "task_reconstruction/fixed.py",
+        "trace/milestones.json"
+      ],
+      "gates": {
+        "pytest": "PASS (136 passed)",
+        "ruff": "PASS",
+        "snapshot_baseline_check": "PASS (8 项逐字段相等)",
+        "legacy_expression": "PASS (1e5 个随机点上 to_unsigned 与 inl_dnl 早先的内联式逐点相等)",
+        "round_trip": "PASS (全部 2^20 个码经 midpoint_v 往返无损)",
+        "boundaries": "PASS (−peak ⇒ 0 码；+peak−1e-9 ⇒ 最大码；strict 下 ±peak 越界抛错，默认返回越界码供调用方 clip)",
+        "bits_parameter": "PASS (4 位时 16 个码、中点 8、to_signed(8)==0)",
+        "shared_full_scale": "PASS (fixed.py 的 FULL_SCALE_CODE == codes.OUTPUT_CODES)",
+        "negative_controls": "PASS (floor→round 被抓 4 条；midpoint 去掉 +0.5 被抓 2 条)"
+      },
+      "note": "统一过程中踩到一个真实的可测性回归，值得记下来。初版 to_unsigned 直接读 adi_model.codes.OUTPUT_CODES（写死 20 位），结果 task1/tests/test_adc2_dither.py 的 _ideal_ramp 用 monkeypatch.setattr(inl_dnl, \"OUTPUT_BITS\", 4) 把位宽压到 4 位来做快速验证——patch 打在调用方模块的全局名上，对写死常量的库函数无效，于是 old 算出 16 个码、new 算出 2^20 个码，两条测试报 'ramp has no interior code mass'。修法不是改测试，而是把位宽做成显式参数 bits，由调用方把可 patch 的 OUTPUT_BITS 传进来。教训：把常量收敛到库层时，「读取时机」会变——原先在函数体里读模块全局，收敛后变成导入时取值，任何依赖 monkeypatch 的测试都会静默失效。另：边界用例原本想用 nextafter(PEAK, −inf)，但浮点上 (nextafter(5)+5.0) 直接进位成 10.0，差值被加法吃掉，验的就不是取整方向而是舍入噪声；改用 1e-9 内点。fixed.py 的坏样本置零语义原样保留（bad=True 或越界或异常都返回 (0, True)），只把最后的偏置换成 to_signed。"
+    },
+    {
+      "id": "M7",
+      "name": "数值对标 A1-A5",
+      "commit": "8b33e45c1780c330b0260b6c3fb725fedc76367e",
+      "base_commit": "58d63a9",
+      "base_snapshot": "85bb9fb577ee29834ff7225254cbb281097b6d00",
+      "behavior_change": false,
+      "files": [
+        "task2/eight/noise_budget.py",
+        "task2/eight/paper_alignment.py",
+        "task2/eight/tests/test_noise_budget.py",
+        "task2/eight/experiment.py",
+        "task2/evidence/paper_alignment/ALIGNMENT.md",
+        "task2/evidence/paper_alignment/paper_alignment.json",
+        "trace/milestones.json"
+      ],
+      "gates": {
+        "pytest": "PASS (146 passed)",
+        "ruff": "PASS",
+        "snapshot_baseline_check": "PASS (8 项逐字段相等；run() 只是多接受一个 experiment 关键字)",
+        "A1_dynamic_range": "PASS (94.485 dB，窗口 93.7~94.7，σ=0 + 全噪声)",
+        "A2_dr_delta": "PASS (−0.055 dB，窗口 ≤0.7；σ=1e-3 的失配地板几乎不动 DR)",
+        "A3_snr_57k4": "FAIL (94.516 dB，窗口 93.2~94.2，超上沿 0.316)",
+        "A4_noise_density": "PASS (折算到 20 MHz 后 9.255 nV/√Hz，目标 9.3 ±1 dB)",
+        "A5_thd": "PARTIAL (以 SFDR 118.76 dBc 作 THD 上界代理，优于反拟合下限 −117)",
+        "power_closure": "PASS (逐源功率和与合计 DR 闭合 <0.5%)"
+      },
+      "note": "先说三个口径差，它们决定了所有数字怎么比。① 满幅：论文原文 '±3V differential input range' / '6Vpp input range'，模型默认 full_scale_peak_v=5.0 即差分 10 Vpp，同一个物理 σ 在更大满幅下相对更小，DR 天然高 20log10(5/3)=4.44 dB。② 带宽：论文 20 MHz，模型 fs=10 MHz 故只有 5 MHz，噪声密度天然低 10log10(20/5)=6.02 dB（密度按 √BW 走，不是 20log10）。③ tone 打不满：论文的 2.95/3.0=0.983 在本模型里会让前级拒掉 52 个样本（dither 需要至少几个 step_v 的 headroom），故 A1/A2 用模型默认的 2/3 满幅 tone，再按 20log10(5/3.333)=3.522 dB 加回。三项折算都在 ALIGNMENT.md 的「口径折算」表里显式列出，不做静默处理。为什么不直接把模型满幅改成 3.0：动手试过，training_tone_peak_v=4.75 会让训练序列整段越界（4647 个样本被拒），而它连着 adc2_half_range_v、gain_reference_span_v 一串参数都要按 0.6 缩放，改动面远超 M7 的范围，且会让全部既有归档失效——所以选择折算而不是改模型。A3 的 FAIL 与 A5 的 PARTIAL 是同一个缺口：模型在 58.6 kHz 的 SNR 94.516 与 DR 94.485 只差 0.03 dB，而论文 SNR 93.7 比 DR 94.2 低 0.5 dB；差的那 0.5 dB 是谐波与杂散，模型没有 C-V 非线性就产生不出来。所以 A3 不是「噪声算少了」（A1/A4 都对上了）。A1 的闭合有自证成分：σ 本来就是按 94.2 反推的，它验的是「噪声进对节点、DR 算对口径」，不验「芯片真是 94.2」。逐源分配全部 S5_假设，只有合计受论文约束。σ 未做任何调整。"
+    },
+    {
+      "id": "M8",
+      "name": "静态对标 12 格",
+      "commit": "38d9727cead00a30c4977ff19489096278c9b111",
+      "base_commit": "2fd9c5d",
+      "base_snapshot": "769450e2fbeb12a6caad88673572627011a2938b",
+      "behavior_change": false,
+      "files": [
+        "task2/eight/paper_alignment.py",
+        "task2/evidence/paper_alignment/STATIC.md",
+        "task2/evidence/paper_alignment/static.json",
+        "trace/milestones.json"
+      ],
+      "gates": {
+        "pytest": "PASS (146 passed)",
+        "ruff": "PASS",
+        "snapshot_baseline_check": "PASS (8 项逐字段相等)",
+        "dnl_window": "FAIL (σ=1e-3 时 |DNL| 最大 0.640 LSB20，窗口 ±0.35)",
+        "inl_window": "PASS (端点 INL 0.592 LSB20，窗口 ≤3.5)",
+        "sigma_reported": "PASS (σ=1e-3 相对失配，是模型既有取值，未为凑判据改动)",
+        "floor_diagnosis": "PASS (三档 σ 跨 4 倍，DNL 只从 0.640 动到 0.580，且 nominal 的 DNL 在三档下完全相同)"
+      },
+      "note": "结果一半达标一半不达标，但诊断信息比结论更有用。① DNL FAIL：σ=1e-3 时 |DNL| 0.640 LSB20（0.61 ppm），论文是 ±0.27 ppm，差 2.4 倍。② INL PASS 但是反向超标：0.592 LSB20 = 0.56 ppm，比论文 2.2 ppm 好 4 倍。DNL 差 2.4 倍而 INL 好 4 倍，方向相反，说明模型的误差结构不对：DNL 大、INL 小是**局部码宽抖动**的特征，不是系统性弯曲；论文的 2.2 ppm 主要来自 C-V 与电荷注入造成的整条曲线弯曲，这两个机制本模型都没有，所以 INL 反而更好。③ 地板诊断否定了计划预设的「失配地板不足」：三档 σ 从 5e-4 到 2e-3 跨 4 倍，`fig21_dem/on/lms` 的 DNL 只从 0.640 动到 0.580，INL 还不单调（0.459 → 0.592 → 0.502）。更硬的证据是 nominal 模式的 DNL 在三档 σ 下**完全相同**（−1.000/+1.560），而它的 INL 随 σ 单调增（3.773 → 5.675 → 9.494）——说明 nominal 的 DNL 完全由确定性结构决定，与随机失配无关。所以降 σ 解决不了 DNL，判据里「不许改 σ 凑数」这一条正好指向真实原因。④ 计划里「12 格」的口径我按 dither on 的 3σ × 2 组 × 2 重构给出，共 12 行；dither off 的另 12 行在 static.json 里没进主表。⑤ 与论文的差距来源已写进 STATIC.md：C-V 非线性与开关电荷注入是本模型的结构性缺口，与 M7 的 A3/A5 同源。"
+    },
+    {
+      "id": "M9",
+      "name": "定版门禁 G1-G7",
+      "commit": "76bbb621e89f11deaf8ae4b619519d45a7241aaf",
+      "base_commit": "6d8ae4a",
+      "base_snapshot": "60710a5670ab838138ea91959d09ad30d3cc3b58",
+      "behavior_change": false,
+      "files": [
+        "tools/gate_behavior_model.py",
+        "task2/evidence/behavior_freeze/gate.json",
+        "task2/evidence/behavior_freeze/receipt.json",
+        "src/tests/test_codes.py",
+        "task_reconstruction/tests/test_reconstruction_smoke.py",
+        "trace/milestones.json"
+      ],
+      "gates": {
+        "G1_structure": "FAIL (MISSING=11；这 11 条是尚未实现的指标项，不是漏抄的台账行)",
+        "G2_regression": "PASS (146 passed)",
+        "G3_layering": "PASS (exit 0；R3 61 条为既有告警)",
+        "G4_baseline": "PASS (8 项逐字段相等)",
+        "G5_numeric": "FAIL (A1/A2/A4 PASS，A3 FAIL，A5 PARTIAL)",
+        "G6_static": "FAIL (DNL 0.640 超出 ±0.35，INL 0.592 在 ≤3.5 内)",
+        "G7_receipts": "FAIL (3 条 MISSING + 1 条 STALE_BYTES，均为既有状态，非本轮引入)",
+        "verdict": "RED (3 PASS / 4 FAIL)"
+    },
+    "note": "门禁脚本的价值在于允许红：它不修任何东西、不调任何参数，只把每门的实测证据固定下来，把没过的门连同缺口清单写进收据。RED 是真实结论，不是没跑完。四项红各有性质：① G1 的 MISSING=11 是八个未实现的非理想效应与若干未测指标，本来就要在后续里程碑落地，不是台账缺陷。② G5 的 A3 与 G6 的 DNL 同源——模型没有 C-V 非线性，低频段产生不出论文那 0.5 dB 的谐波/杂散，DNL 也停在结构性地板。③ G7 的 3 条 MISSING 是 handoff_manifest.json 用相对路径（rtl/、tb/、tools/ 相对 task_reconstruction/）记 artifacts 而校验器在仓库根解析，文件本身都在；1 条 STALE_BYTES different 是 task_reconstruction/tools/run_checks.py，本轮没动过它。本轮**未修改任何旧收据的 source_sha256**，三份受影响的归档改记在 receipt.json 的 stale_receipts 里并注明验证方式，重签留给下一轮独立任务。④ 顺手修了一个自己引入的 R1：src/tests/test_codes.py 导入 task_reconstruction.fixed 被 check_layering 判成库层反向依赖，把那条同源断言移到 task 层的测试里，R1 归零。⑤ gate.json 的 frozen_at 是运行时刻，所以这个文件本身不可复现；可复现的是各门的方法与判据，重跑会得到同样结论但不同时间戳。"
+    }
+  ]
+}

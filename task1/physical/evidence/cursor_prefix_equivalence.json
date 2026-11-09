@@ -1,0 +1,93 @@
+{
+  "reference_commit": "4b1a4a175ab9b78915b71264d873d79eba28d8fc",
+  "rtl_file": "task1/rtl/slice_scheduler.sv",
+  "reference_sha256": "b47086ad6b4398062fac10feafe1a2a786adf410385130e50bc77d3d0c65292a",
+  "candidate_sha256": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
+  "tool": "Yosys 0.69 (git sha1 9f75ca1f9)",
+  "proof": {
+    "whole_scheduler_inductive_equivalence": {
+      "proven": 1332,
+      "unproven": 0
+    },
+    "reset_base_all_ports": "PASS",
+    "all_32_cursor_prefix_identity": "PASS",
+    "off_by_one_prefix_mutation_detected": "PASS"
+  },
+  "generic_bridge_top_depth_noabc": {
+    "reference": 35,
+    "candidate": 32
+  },
+  "verilator": {
+    "version": "5.030",
+    "mismatches": 0,
+    "tops": {
+      "module1_top": {
+        "dem_active": 122880,
+        "dem_bypass": 131072,
+        "dem_invalid": 8192,
+        "scheduler_accepts": 4227,
+        "scheduler_conversions": 4223,
+        "scheduler_cycles": 4617,
+        "scheduler_seed_errors": 2,
+        "scheduler_stalls": 137,
+        "scheduler_steady_slots": 4096,
+        "top_accepts": 4099,
+        "top_active_prefixes": 2051,
+        "top_bypass_prefixes": 2048,
+        "top_code_errors": 2,
+        "top_conversions": 4097,
+        "top_cycles": 4116,
+        "top_seed_errors": 3,
+        "top_stalls": 1,
+        "top_steady_slots": 4096
+      },
+      "module1_bridge_top": {
+        "leaf_cases": 65536,
+        "leaf_nonzero_corrections": 49152,
+        "top_accepts": 4100,
+        "top_bridge_prefixes": 2052,
+        "top_code_errors": 2,
+        "top_cycles": 4119,
+        "top_fig11_bypass_prefixes": 1024,
+        "top_fig11_dem_prefixes": 1025,
+        "top_nonzero_corrections": 1538,
+        "top_seed_errors": 2,
+        "top_stalls": 1,
+        "top_steady_slots": 4096
+      }
+    }
+  },
+  "python_targeted_tests_passed": 13,
+  "members": {
+    "baseline.sv": "b47086ad6b4398062fac10feafe1a2a786adf410385130e50bc77d3d0c65292a",
+    "equiv.log": "311f76fa55e8e7dfbd9cfa31daa9cf9b180e6aed0e0e9e6e22162ebd30892d2c",
+    "equiv.ys": "18b12561063494c7103d56dbebac7e79632bea14aa821c958b0e92f65880c14f",
+    "levels.log": "c73b5592fc07cc748d799125944fce98dfde48b1cddb2bb7465b9668973f1e9c",
+    "prefix_identity.log": "3a5a48bbef01487443b308bb0e0833d26ad62e26f99b4405187866fcb469d054",
+    "prefix_identity.sv": "bc85e8681d106844f002a6e8ac11f4dfb3dc43bc2c165f417717c0ae54df9b63",
+    "prefix_identity.ys": "05fb8b3e7ef966b8549b5e5e6fe3ffa4543709cc4092f0d9b3afa075a46c02fe",
+    "prefix_mutant.log": "b35772f537b342990366e91dd31b6d84f1bcdefa6cd9fa3fef59cb8caab76180",
+    "prefix_mutant.sv": "0a35fa7695ad735772ae98991f902e0d3ed39c75b97733ba51479fc3c5072873",
+    "prefix_mutant.ys": "275799152fdf5525b70f5622d2e53a1d2a9aaf915ff2289f810e1bb31d5b7436",
+    "reset.log": "8c65ccce5998f080978381a6f4ff5c1be3c26751d1b6dd50fb93fcc73d0a891d",
+    "reset.ys": "3a0349865e097e5a0ab3693cfd12149c31e2437337e73b3aa6512a4f70fd9d7f",
+    "slice_scheduler.sv": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235",
+    "verilator/module1_bridge_top/compile.log": "57ad021add21ce579f9aeff58246d8c95ecc76bae7781131c5bcc97cc0149971",
+    "verilator/module1_bridge_top/module1_bridge_top.lint.log": "2dfb9c6fc171552f2522303addfc7547538ec7add4d5c694c5b1e35eae837d78",
+    "verilator/module1_bridge_top/result.json": "1048f3f0a3509294bb545bd6b720cc4e52ded632ec9dedc0da6dbb13d9743789",
+    "verilator/module1_bridge_top/run.log": "a6297f21164055df46d641dd578a3eb279bb64511e1b03a1fe758376e5fe039d",
+    "verilator/module1_bridge_top/verilator.log": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1",
+    "verilator/module1_top/compile.log": "ce8285fd6af85741aa73edc2c51aa26164a4e04baf1d697a2c6085a8433024f3",
+    "verilator/module1_top/fig11_dem.lint.log": "ead2734f2e916c48defb9fc966444aa39f5ca7f9295cc189ae71d9a2f0d4f1da",
+    "verilator/module1_top/module1_top.lint.log": "41b2da62c2b9f9f88b06551987dd49a49c223bd78eb3fc499f5527b70f071489",
+    "verilator/module1_top/result.json": "3a50d2339f84c4bd8d36e468cb7748cb001b41f85029c63f9c2f500a49e24480",
+    "verilator/module1_top/run.log": "805f1fa640356c73076cf88794916175962093b85051569f9f6e53f077625275",
+    "verilator/module1_top/task1_slice_scheduler.lint.log": "aa3bea8fb9af65d3689c8cbaa15fc9dfeccd5b11dd16f698ff25032493d780aa",
+    "verilator/module1_top/verilator.log": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1"
+  },
+  "archive": {
+    "path": "cursor_prefix_equivalence.zip",
+    "bytes": 160025,
+    "sha256": "bece741852031157b086b9b6a940512a4720f820e34ff2e60d12e72581a754db"
+  }
+}

@@ -1,0 +1,209 @@
+{
+  "schema": "task1_nlms_adctoolbox_calibration_v2",
+  "model_scope": "理想两节点电容失配与固定理想 ADC2，时偏和其余动态误差源关闭，训练至留出电容池和温度不变。",
+  "adc2_scope": "输入等效 ±50 mV、12 位均匀码仓的理想细级，16 位重编码仅用于工具箱接口适配。",
+  "adc2_window_basis": "behavioral_default",
+  "adc2_step_v": 2.44140625e-05,
+  "minimum_physical_cap_f": {
+    "main": 9.589331811646023e-16,
+    "sub": 9.671992139067924e-16,
+    "bridge": 9.546790322993991e-16
+  },
+  "adc2_range_checks": {
+    "gain_low": {
+      "samples": 32768,
+      "min_v": -0.04312114265002199,
+      "max_v": -0.003935592790318508,
+      "below_range": 0,
+      "at_or_above_range": 0
+    },
+    "gain_high": {
+      "samples": 32768,
+      "min_v": 0.01690679887314543,
+      "max_v": 0.0560808730449614,
+      "below_range": 0,
+      "at_or_above_range": 770
+    },
+    "train_dem_off": {
+      "samples": 2048,
+      "min_v": -0.006454031711918658,
+      "max_v": 0.0485319533843832,
+      "below_range": 0,
+      "at_or_above_range": 0
+    },
+    "train_dem_on": {
+      "samples": 6144,
+      "min_v": -0.016215928608279678,
+      "max_v": 0.05097083579608331,
+      "below_range": 0,
+      "at_or_above_range": 1
+    },
+    "holdout_dem_off": {
+      "samples": 4096,
+      "min_v": -0.00550263651227682,
+      "max_v": 0.05036200274634926,
+      "below_range": 0,
+      "at_or_above_range": 1
+    },
+    "holdout_dem_on": {
+      "samples": 4096,
+      "min_v": -0.01536857689865837,
+      "max_v": 0.052328637137344224,
+      "below_range": 0,
+      "at_or_above_range": 1
+    }
+  },
+  "schedule_comparison": {
+    "shared_training": "all eight modes use the same mixed-DEM dynamic training and frozen NLMS weights",
+    "shared_phases": true,
+    "dynamic": {
+      "observed_slice_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17
+      ],
+      "gain_observability_from_plan_alone": {
+        "rows": 4096,
+        "columns": 18,
+        "rank": 18,
+        "condition_number": 8.185384690468627
+      },
+      "status": "adc2_range_blocked"
+    },
+    "fixed_ab": {
+      "observed_slice_ids": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "gain_observability_from_plan_alone": {
+        "rows": 4096,
+        "columns": 18,
+        "rank": 2,
+        "condition_number": null
+      },
+      "adc2_range_checks": {
+        "holdout_dem_off": {
+          "samples": 4096,
+          "min_v": -0.0014284569021260297,
+          "max_v": 0.046961669526965275,
+          "below_range": 0,
+          "at_or_above_range": 0
+        },
+        "holdout_dem_on": {
+          "samples": 4096,
+          "min_v": -0.016366888662605297,
+          "max_v": 0.05388996869771642,
+          "below_range": 0,
+          "at_or_above_range": 3
+        }
+      },
+      "status": "shared_training_unavailable"
+    }
+  },
+  "experiment": {
+    "fs_hz": 10000000,
+    "samples": 4096,
+    "tone_bin": 409,
+    "tone_peak_v": 3.3333333333333335,
+    "full_scale_peak_v": 5.0,
+    "unit_cap_f": 1e-15,
+    "mismatch_sigma_unit": 0.02,
+    "manufacturing_seed": 100,
+    "schedule_seed": 608135816,
+    "dem_seed": 2654435769
+  },
+  "calibration": {
+    "adc2_bits": 12,
+    "adc2_half_range_v": 0.05,
+    "residue_feature_bits": 16,
+    "gain_pairs": 32768,
+    "gain_reference_span_v": 0.06,
+    "gain_reference_midpoint_span_v": 0.02,
+    "gain_reference_seed": 3904,
+    "gain_schedule_seed": 1179262271,
+    "forced_gain_code": 256,
+    "training_samples": 8192,
+    "training_tone_bin": 613,
+    "training_tone_peak_v": 4.98,
+    "training_tone_phase_rad": 0.37,
+    "training_schedule_seed": 1933387210,
+    "training_dem_seed": 1450331317,
+    "evaluation_tone_phase_rad": 0.11,
+    "training_dem_off_period": 4,
+    "lms_passes": 6,
+    "lms_initial_step": 0.25,
+    "lms_norm_floor": 1e-09,
+    "covariance_floor": 1e-10
+  },
+  "training_frequency_hz": 748291.015625,
+  "evaluation_frequency_hz": 998535.15625,
+  "source_sha256": {
+    "task1/experiments/adctoolbox_calibration.py": "34c3618ae492ebba5e900f698dcbbe1691e0eebb3586579355d9e7cb6424fd8c",
+    "task1/experiments/run_effects.py": "ec9635c6be81a1758785bc3ebb33714da427348b598dfcd3d3a6484692326c5c",
+    "task1/model/scheduler.py": "e6b2d50fa6bdaa607842bea0e86dc02e3fc531c7b832ea6a59858e48a7652f9f",
+    "task1/model/fig11_dem.py": "a3d7f040062ff7adf4c4b50fb90e59ee81491988973e5670e6e12e6e9789f39d",
+    "task1/model/module1.py": "c881976f3ed7c75f915d27b59fb69a2a58fa662ec4de6d51da09e4396573c3c2",
+    "src/adi_model/charge_ref.py": "74856592cdc665c4533744754b953cee55a6e8649368b8483b6ddbf619a0cebc"
+  },
+  "versions": {
+    "adctoolbox": "0.9.1",
+    "python": "3.12.14",
+    "numpy": "2.5.3",
+    "matplotlib": "3.11.2"
+  },
+  "strict_training_comparison": {
+    "status": "dynamic_adc2_range_blocked"
+  },
+  "status": "adc2_range_blocked",
+  "blocked_stages": [
+    "gain_high",
+    "train_dem_on",
+    "holdout_dem_off",
+    "holdout_dem_on"
+  ],
+  "first_failed_stage": "gain_high",
+  "holdout": null,
+  "continuous_pre_adc2_diagnostic": {
+    "DEM_off": {
+      "sndr_db": 55.09084860499463,
+      "sfdr_db": 65.35746684971517,
+      "enob": 8.858944950995788,
+      "input_error_rms_v": 0.006760634654560868
+    },
+    "DEM_on": {
+      "sndr_db": 52.02133351639732,
+      "sfdr_db": 76.05592460990977,
+      "enob": 8.349058723654041,
+      "input_error_rms_v": 0.005965167940644307
+    }
+  }
+}

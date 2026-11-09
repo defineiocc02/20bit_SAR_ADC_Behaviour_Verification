@@ -1,0 +1,556 @@
+{
+  "run_id": 42240955810,
+  "archive": {
+    "path": "module1_pair_sky130hd_run_42240955810.zip",
+    "bytes": 14500556,
+    "sha256": "a3362d44d035c679d6d5e847d4a789f939e7fb393f78f1a70fa79b165644f5d8"
+  },
+  "designs": {
+    "module1_top": {
+      "claim": "PUBLIC_SKY130HD_IMPLEMENTATION",
+      "platform": "SkyWater SKY130HD",
+      "top": "module1_top",
+      "liberty": "sky130_fd_sc_hd__tt_025C_1v80.lib",
+      "corner": {
+        "process": "TT",
+        "temperature_c": 25,
+        "voltage_v": 1.8
+      },
+      "clock_period_ns": 6.25,
+      "io_budget": {
+        "input_min_ns": 0.2,
+        "input_max_ns": 0.8,
+        "input_transition_ns": 0.1,
+        "output_min_ns": -0.2,
+        "output_max_ns": 0.8,
+        "output_load_ff": 5.0,
+        "setup_uncertainty_ns": 0.1,
+        "hold_uncertainty_ns": 0.05
+      },
+      "rtl_commit": "e691c1bb461ce110442900debd761832c795e3a5",
+      "container_digest": "openroad/orfs@sha256:a6140cf4dc568e10238356f67b9fd73b9074955eeda6f2ee126bc60f5d7fc3ac",
+      "gds": {
+        "tops": [
+          "module1_top"
+        ],
+        "cells": 148,
+        "geometry_records": 56401
+      },
+      "timing": {
+        "setup": {
+          "worst_slack_ns": -0.0469957,
+          "wns_ns": -0.0469957,
+          "tns_ns": -0.0469957,
+          "violations": 1,
+          "status": "FAIL"
+        },
+        "hold": {
+          "worst_slack_ns": 0.103554,
+          "wns_ns": 0.0,
+          "tns_ns": 0.0,
+          "violations": 0,
+          "status": "PASS"
+        }
+      },
+      "physical_checks": {
+        "router_drc_errors": 0,
+        "router_antenna_violating_nets": 0,
+        "router_antenna_violating_pins": 0,
+        "final_power_grid_connectivity": {
+          "VDD": "PASS",
+          "VSS": "PASS"
+        },
+        "independent_drc": "NOT_RUN",
+        "independent_lvs": "NOT_RUN"
+      },
+      "inputs": {
+        "rtl/slice_scheduler.sv": {
+          "bytes": 7144,
+          "mtime_ns": 1793977996600076316,
+          "sha256": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235"
+        },
+        "rtl/fig11_dem.sv": {
+          "bytes": 2559,
+          "mtime_ns": 1793977996599038844,
+          "sha256": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462"
+        },
+        "rtl/module1_top.sv": {
+          "bytes": 7847,
+          "mtime_ns": 1793977996600076316,
+          "sha256": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835"
+        },
+        "physical/sky130_constraint.sdc": {
+          "bytes": 715,
+          "mtime_ns": 1793977996599038844,
+          "sha256": "01657f0555d1147c566a7a3adbf6f3250fa46a5546fce6fa0576bfbdeee5e6a3"
+        },
+        "physical/sky130_run.sh": {
+          "bytes": 2643,
+          "mtime_ns": 1793977996599038844,
+          "sha256": "c78acd24a4689ec6829f7cb984bfa5a88c7a78bbe9aa7b05b37ff3917e350687"
+        },
+        "physical/sky130_package.py": {
+          "bytes": 6874,
+          "mtime_ns": 1793977996599038844,
+          "sha256": "533905810dd8538c6d39424799c94832b979e9d3fafebc458ec59d49f68fcaec"
+        },
+        "physical/sky130_license.txt": {
+          "bytes": 11358,
+          "mtime_ns": 1793977996599038844,
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        "physical/post_route.tcl": {
+          "bytes": 815,
+          "mtime_ns": 1793977996599038844,
+          "sha256": "138accc3d11d80b4fad153f445deb05c7f18f3bb6e7d49b8bb5d9878667df007"
+        },
+        "physical/package_proxy.py": {
+          "bytes": 6513,
+          "mtime_ns": 1793977996599038844,
+          "sha256": "2e298e8daec4eb49e6d8add4e8a09259d3956df5e4297ddb0460f70566eb8ccf"
+        },
+        "physical/sky130_config.mk": {
+          "bytes": 602,
+          "mtime_ns": 1793977996599038844,
+          "sha256": "ff1328b352fc39cfa595d9fdcbd2f9cb20f62785f785399896472717370d80a4"
+        }
+      },
+      "artifacts": {
+        "SKY130HD-LICENSE.txt": {
+          "bytes": 11358,
+          "mtime_ns": 1793978528498878108,
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        "constraint.sdc": {
+          "bytes": 715,
+          "mtime_ns": 1793977996599038844,
+          "sha256": "01657f0555d1147c566a7a3adbf6f3250fa46a5546fce6fa0576bfbdeee5e6a3"
+        },
+        "container.txt": {
+          "bytes": 86,
+          "mtime_ns": 1793978048610470164,
+          "sha256": "5a6477f531a8866db7dfc0fe6180792f534eb6c2e5f5ac345404bf1587bf19be"
+        },
+        "flow.log": {
+          "bytes": 260461,
+          "mtime_ns": 1793978528482241711,
+          "sha256": "857ae48e0ef93617e2ea0b8214d0b2abd5af493a5233d9cdfb96b5d6c7b6e5f6"
+        },
+        "liberty.sha256": {
+          "bytes": 100,
+          "mtime_ns": 1793978528551242391,
+          "sha256": "3ac25f642467bdff424723cacfa8920d1dd49eb187a1acdf5964626b326ada17"
+        },
+        "metrics/1_synth.json": {
+          "bytes": 751,
+          "mtime_ns": 1793978062016603950,
+          "sha256": "632e254158f3ed931c14dd6a4469507535026bd638b1dbe0aacdc16fcc25c4d9"
+        },
+        "metrics/2_1_floorplan.json": {
+          "bytes": 2034,
+          "mtime_ns": 1793978064601628938,
+          "sha256": "2b1a43682ec1414a44b592918355dabf99e6eb9630fa7cd6187831e66df004e8"
+        },
+        "metrics/2_2_floorplan_macro.json": {
+          "bytes": 92,
+          "mtime_ns": 1793978065565638256,
+          "sha256": "457f4501d1c2410a68df754e723af496c401b9bf93c5a1544083a4514ac2db40"
+        },
+        "metrics/2_3_floorplan_tapcell.json": {
+          "bytes": 92,
+          "mtime_ns": 1793978066522647784,
+          "sha256": "457f4501d1c2410a68df754e723af496c401b9bf93c5a1544083a4514ac2db40"
+        },
+        "metrics/2_4_floorplan_pdn.json": {
+          "bytes": 130,
+          "mtime_ns": 1793978067646658990,
+          "sha256": "aa2cbdc4e39252df6c085acc299c1cfe0e8ee8c60fc6fcd115b2c9ef32307883"
+        },
+        "metrics/3_1_place_gp_skip_io.json": {
+          "bytes": 92,
+          "mtime_ns": 1793978070012682579,
+          "sha256": "457f4501d1c2410a68df754e723af496c401b9bf93c5a1544083a4514ac2db40"
+        },
+        "metrics/3_2_place_iop.json": {
+          "bytes": 154,
+          "mtime_ns": 1793978071053692958,
+          "sha256": "029827fecbb044ed70f928ed8879d897da0c965e6781e031c81c342dc73f7091"
+        },
+        "metrics/3_3_place_gp.json": {
+          "bytes": 1564,
+          "mtime_ns": 1793978084963831485,
+          "sha256": "619e50544dc316af9eb7642c7cc95cf1a02d03ee4d619c549aaf982955687f3f"
+        },
+        "metrics/3_4_place_resized.json": {
+          "bytes": 1928,
+          "mtime_ns": 1793978087719858657,
+          "sha256": "46459db3218ed47878f7974dbe67094e53af3bc61b066c170d2e9ef64b3479cb"
+        },
+        "metrics/3_5_place_dp.json": {
+          "bytes": 2481,
+          "mtime_ns": 1793978091428895216,
+          "sha256": "f4389993772d755606be1fa6594a22f7c2f930bc5d5a0dd13707943ac47cbdbd"
+        },
+        "metrics/4_1_cts.json": {
+          "bytes": 2530,
+          "mtime_ns": 1793978096211942349,
+          "sha256": "bb5b0f5f3eb10afd43d65056f98cddac0943aed9fcbb8f1e52b0fe42e3d7291a"
+        },
+        "metrics/5_1_grt.json": {
+          "bytes": 49768,
+          "mtime_ns": 1793978189781875051,
+          "sha256": "cd60ec1bb3b9625d2a44204e4245c446db528bc09b1c1587fe708d6ea83c31c4"
+        },
+        "metrics/5_2_route.json": {
+          "bytes": 3148,
+          "mtime_ns": 1793978512887087139,
+          "sha256": "63d84d95bbd0354a838757866358fa7221d957ae536e7d53e7e72b8909fce2ff"
+        },
+        "metrics/5_3_fillcell.json": {
+          "bytes": 118,
+          "mtime_ns": 1793978514138099603,
+          "sha256": "a3456fcc6e4094165cf946e287e77a86735b5668192d41bfb69d5d9fc3a5a072"
+        },
+        "metrics/6_1_fill.json": {
+          "bytes": 92,
+          "mtime_ns": 1793978515647114608,
+          "sha256": "457f4501d1c2410a68df754e723af496c401b9bf93c5a1544083a4514ac2db40"
+        },
+        "metrics/6_report.json": {
+          "bytes": 3711,
+          "mtime_ns": 1793978522898186647,
+          "sha256": "f5a3088d00db21e798bbcc034e9a34f611796c471844701fe2b41baa360090d5"
+        },
+        "module1_top.def": {
+          "bytes": 7278387,
+          "mtime_ns": 1793978517138129432,
+          "sha256": "bccd3d5b5c0a11f32517f323921270a9fde3cac79c3695cb0e1184951ca4c414"
+        },
+        "module1_top.gds": {
+          "bytes": 8127246,
+          "mtime_ns": 1793978526223219435,
+          "sha256": "50febd99943f5c587518032bc822422f0891249b28d1a13af87ac60575d7e991"
+        },
+        "module1_top.odb": {
+          "bytes": 16513046,
+          "mtime_ns": 1793978517054128597,
+          "sha256": "6681cc33c5f0149382cba609f5597fddb1f25dcf512819147cdd48a8a6a2761f"
+        },
+        "module1_top.sdc": {
+          "bytes": 152355,
+          "mtime_ns": 1793978523191235104,
+          "sha256": "ad94c53dbd5db90d0e1be437bd61e451165c51acdac41c2967323937b174c3d7"
+        },
+        "module1_top.spef": {
+          "bytes": 6107064,
+          "mtime_ns": 1793978518029138291,
+          "sha256": "bbe98bc1a8a9815b17c90e3299bf8cea70f2f5fa2d31339031ce4825b4f325b0"
+        },
+        "module1_top.v": {
+          "bytes": 673034,
+          "mtime_ns": 1793978517191129959,
+          "sha256": "a0ec55eb0adb318f89be78dd2314a8f12e65c450f74e4d59dd062e715a71f01e"
+        },
+        "post_route_sta.rpt": {
+          "bytes": 40566,
+          "mtime_ns": 1793978528482241711,
+          "sha256": "fdc14ab4f2e6d17c146073abaf1b120e07dba315b2bcd0e8a4147f735e071183"
+        },
+        "rtl_commit.txt": {
+          "bytes": 41,
+          "mtime_ns": 1793978048610470164,
+          "sha256": "905a4e9f031b3f57534718adf0722ae15029b0859060edb08f2a3239e36a2f8b"
+        },
+        "tools.txt": {
+          "bytes": 130,
+          "mtime_ns": 1793978048938473501,
+          "sha256": "09e4da713608aa71cb14712b07c026c29036b90aa9ce8e877720b10826b0cce8"
+        }
+      },
+      "scope": {
+        "rtl_to_gds": "completed",
+        "post_route_setup_and_hold": "single TT corner with extracted SPEF",
+        "logical_equivalence": "not asserted by this flow",
+        "foundry_release": "not evaluated"
+      }
+    },
+    "module1_bridge_top": {
+      "claim": "PUBLIC_SKY130HD_IMPLEMENTATION",
+      "platform": "SkyWater SKY130HD",
+      "top": "module1_bridge_top",
+      "liberty": "sky130_fd_sc_hd__tt_025C_1v80.lib",
+      "corner": {
+        "process": "TT",
+        "temperature_c": 25,
+        "voltage_v": 1.8
+      },
+      "clock_period_ns": 6.25,
+      "io_budget": {
+        "input_min_ns": 0.2,
+        "input_max_ns": 0.8,
+        "input_transition_ns": 0.1,
+        "output_min_ns": -0.2,
+        "output_max_ns": 0.8,
+        "output_load_ff": 5.0,
+        "setup_uncertainty_ns": 0.1,
+        "hold_uncertainty_ns": 0.05
+      },
+      "rtl_commit": "e691c1bb461ce110442900debd761832c795e3a5",
+      "container_digest": "openroad/orfs@sha256:a6140cf4dc568e10238356f67b9fd73b9074955eeda6f2ee126bc60f5d7fc3ac",
+      "gds": {
+        "tops": [
+          "module1_bridge_top"
+        ],
+        "cells": 153,
+        "geometry_records": 61554
+      },
+      "timing": {
+        "setup": {
+          "worst_slack_ns": 0.0667231,
+          "wns_ns": 0.0,
+          "tns_ns": 0.0,
+          "violations": 0,
+          "status": "PASS"
+        },
+        "hold": {
+          "worst_slack_ns": 0.0898763,
+          "wns_ns": 0.0,
+          "tns_ns": 0.0,
+          "violations": 0,
+          "status": "PASS"
+        }
+      },
+      "physical_checks": {
+        "router_drc_errors": 0,
+        "router_antenna_violating_nets": 0,
+        "router_antenna_violating_pins": 0,
+        "final_power_grid_connectivity": {
+          "VDD": "PASS",
+          "VSS": "PASS"
+        },
+        "independent_drc": "NOT_RUN",
+        "independent_lvs": "NOT_RUN"
+      },
+      "inputs": {
+        "rtl/slice_scheduler.sv": {
+          "bytes": 7144,
+          "mtime_ns": 1793977994840819786,
+          "sha256": "4147c1c9e11cafe2966525728e6151fd35ffdeee0182a6a0c28eae57b54bc235"
+        },
+        "rtl/fig11_dem.sv": {
+          "bytes": 2559,
+          "mtime_ns": 1793977994839966906,
+          "sha256": "1799d70244fc81ce5f80178c3106e6d9ed0ef7520ea691962ed7330a1eb72462"
+        },
+        "rtl/module1_top.sv": {
+          "bytes": 7847,
+          "mtime_ns": 1793977994840819786,
+          "sha256": "c0cbbc5619afda50cad4a1958b4df72d1234df856e3b040f2baf8ef153019835"
+        },
+        "physical/sky130_constraint.sdc": {
+          "bytes": 715,
+          "mtime_ns": 1793977994839767383,
+          "sha256": "01657f0555d1147c566a7a3adbf6f3250fa46a5546fce6fa0576bfbdeee5e6a3"
+        },
+        "physical/sky130_run.sh": {
+          "bytes": 2643,
+          "mtime_ns": 1793977994839966906,
+          "sha256": "c78acd24a4689ec6829f7cb984bfa5a88c7a78bbe9aa7b05b37ff3917e350687"
+        },
+        "physical/sky130_package.py": {
+          "bytes": 6874,
+          "mtime_ns": 1793977994839966906,
+          "sha256": "533905810dd8538c6d39424799c94832b979e9d3fafebc458ec59d49f68fcaec"
+        },
+        "physical/sky130_license.txt": {
+          "bytes": 11358,
+          "mtime_ns": 1793977994839966906,
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        "physical/post_route.tcl": {
+          "bytes": 815,
+          "mtime_ns": 1793977994839767383,
+          "sha256": "138accc3d11d80b4fad153f445deb05c7f18f3bb6e7d49b8bb5d9878667df007"
+        },
+        "physical/package_proxy.py": {
+          "bytes": 6513,
+          "mtime_ns": 1793977994839767383,
+          "sha256": "2e298e8daec4eb49e6d8add4e8a09259d3956df5e4297ddb0460f70566eb8ccf"
+        },
+        "physical/sky130_bridge_config.mk": {
+          "bytes": 732,
+          "mtime_ns": 1793977994839767383,
+          "sha256": "6b0f4eee2446072a38018ccc553778befa7bec4d391647536d7d6a4d96cb48fe"
+        },
+        "rtl/fig21_bridge.sv": {
+          "bytes": 2764,
+          "mtime_ns": 1793977994840819786,
+          "sha256": "15a5fe746f012aeb655f9fc19a0b582646f445ab0a1cae16992c6a22f8c7a305"
+        },
+        "rtl/module1_bridge_top.sv": {
+          "bytes": 5084,
+          "mtime_ns": 1793977994840819786,
+          "sha256": "8181f1d629fefd67fc51b52483725f3c4675a613c73fff9be554e2ce6dcaaba1"
+        }
+      },
+      "artifacts": {
+        "SKY130HD-LICENSE.txt": {
+          "bytes": 11358,
+          "mtime_ns": 1793978615009855788,
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+        },
+        "constraint.sdc": {
+          "bytes": 715,
+          "mtime_ns": 1793977994839767383,
+          "sha256": "01657f0555d1147c566a7a3adbf6f3250fa46a5546fce6fa0576bfbdeee5e6a3"
+        },
+        "container.txt": {
+          "bytes": 86,
+          "mtime_ns": 1793978049415435415,
+          "sha256": "5a6477f531a8866db7dfc0fe6180792f534eb6c2e5f5ac345404bf1587bf19be"
+        },
+        "flow.log": {
+          "bytes": 262511,
+          "mtime_ns": 1793978614992574336,
+          "sha256": "1e0e2119af9cd32f0252e81b96d281fdee9814cd4237f36b7dca590e79e0f8e4"
+        },
+        "liberty.sha256": {
+          "bytes": 100,
+          "mtime_ns": 1793978615060574847,
+          "sha256": "3ac25f642467bdff424723cacfa8920d1dd49eb187a1acdf5964626b326ada17"
+        },
+        "metrics/1_synth.json": {
+          "bytes": 751,
+          "mtime_ns": 1793978066801565850,
+          "sha256": "f64dac93d5014ffab8a73c82ac4f51f9b2f15318a38d84e0f53bf3170556541a"
+        },
+        "metrics/2_1_floorplan.json": {
+          "bytes": 1979,
+          "mtime_ns": 1793978069994579827,
+          "sha256": "f2be41f61bda21ea32bb73447308d0a829c2dfa6136b960e444565d7c55a94df"
+        },
+        "metrics/2_2_floorplan_macro.json": {
+          "bytes": 92,
+          "mtime_ns": 1793978070983587138,
+          "sha256": "457f4501d1c2410a68df754e723af496c401b9bf93c5a1544083a4514ac2db40"
+        },
+        "metrics/2_3_floorplan_tapcell.json": {
+          "bytes": 92,
+          "mtime_ns": 1793978071962594375,
+          "sha256": "457f4501d1c2410a68df754e723af496c401b9bf93c5a1544083a4514ac2db40"
+        },
+        "metrics/2_4_floorplan_pdn.json": {
+          "bytes": 130,
+          "mtime_ns": 1793978073114602892,
+          "sha256": "aa2cbdc4e39252df6c085acc299c1cfe0e8ee8c60fc6fcd115b2c9ef32307883"
+        },
+        "metrics/3_1_place_gp_skip_io.json": {
+          "bytes": 92,
+          "mtime_ns": 1793978077470631084,
+          "sha256": "457f4501d1c2410a68df754e723af496c401b9bf93c5a1544083a4514ac2db40"
+        },
+        "metrics/3_2_place_iop.json": {
+          "bytes": 154,
+          "mtime_ns": 1793978078517637314,
+          "sha256": "23469458dbbd425138ece0479a9878e845a0713da1fb5c5f79ff67f72ee5d3c4"
+        },
+        "metrics/3_3_place_gp.json": {
+          "bytes": 1566,
+          "mtime_ns": 1793978090024716252,
+          "sha256": "917f647ccd33bf7b28de592d4d31c35eb4ce399e54baeacc90d5cfe804ec3c5a"
+        },
+        "metrics/3_4_place_resized.json": {
+          "bytes": 1930,
+          "mtime_ns": 1793978093073735781,
+          "sha256": "b5a00bca0f5148a0ad5232ce07d3d601948d71ddb219fbb54645990825156820"
+        },
+        "metrics/3_5_place_dp.json": {
+          "bytes": 2483,
+          "mtime_ns": 1793978097211763118,
+          "sha256": "05586abd48aab3398e265c7da9f7d874e618515dfb891c0400de082abc2854c4"
+        },
+        "metrics/4_1_cts.json": {
+          "bytes": 2479,
+          "mtime_ns": 1793978102243797758,
+          "sha256": "d3ab5d84c21d377e5548494b4b22b52e88ea018db055f817d39de563ae35f501"
+        },
+        "metrics/5_1_grt.json": {
+          "bytes": 51979,
+          "mtime_ns": 1793978192263431779,
+          "sha256": "db5727e89374b4c4f72e0e9a1c4677b539b3b74c559a5fd6cfb0b19160b415b3"
+        },
+        "metrics/5_2_route.json": {
+          "bytes": 3198,
+          "mtime_ns": 1793978598054446628,
+          "sha256": "2f842047e8ee1a2a57205ff7fad0a2e570fc931e38967ac69ddf220e56514df0"
+        },
+        "metrics/5_3_fillcell.json": {
+          "bytes": 118,
+          "mtime_ns": 1793978599361456484,
+          "sha256": "a3456fcc6e4094165cf946e287e77a86735b5668192d41bfb69d5d9fc3a5a072"
+        },
+        "metrics/6_1_fill.json": {
+          "bytes": 92,
+          "mtime_ns": 1793978600922468256,
+          "sha256": "457f4501d1c2410a68df754e723af496c401b9bf93c5a1544083a4514ac2db40"
+        },
+        "metrics/6_report.json": {
+          "bytes": 3702,
+          "mtime_ns": 1793978609110530047,
+          "sha256": "d97189167347ce83d41e206744e95da484617854b7b298d8a831e31237870114"
+        },
+        "module1_bridge_top.def": {
+          "bytes": 7818972,
+          "mtime_ns": 1793978602486480052,
+          "sha256": "bc67317b679aab2c03554068c56c6a7bb51b9c2b782672e749ada3d46a18d8cd"
+        },
+        "module1_bridge_top.gds": {
+          "bytes": 8755034,
+          "mtime_ns": 1793978612540555904,
+          "sha256": "c416ef890c79ecf3d6960b4315868a255a5510cc2d39090d2fde4d623dfccbdc"
+        },
+        "module1_bridge_top.odb": {
+          "bytes": 17355518,
+          "mtime_ns": 1793978602384479283,
+          "sha256": "eb4de58af1456377337390d72de80af8cde276eb3d1585947bfcb1cdeac0da02"
+        },
+        "module1_bridge_top.sdc": {
+          "bytes": 161973,
+          "mtime_ns": 1793978609410406607,
+          "sha256": "700ba66ce5406eebb236b6862e8f1048e62d3fa4675f759a4d0191eadc2b4d71"
+        },
+        "module1_bridge_top.spef": {
+          "bytes": 6841464,
+          "mtime_ns": 1793978603509487767,
+          "sha256": "d7d7484daf41eebc2e8ef68e110eef673e37df0370a4bab36dda1332fc3faa14"
+        },
+        "module1_bridge_top.v": {
+          "bytes": 766349,
+          "mtime_ns": 1793978602542480474,
+          "sha256": "f228621d77f81c1f85eec2bc8eb7f92dbc7101fe5d2cdb9b20acedce1b75a7ca"
+        },
+        "post_route_sta.rpt": {
+          "bytes": 36076,
+          "mtime_ns": 1793978614992574336,
+          "sha256": "7ffc25716912657a2730d218b1ddd11af7e58dae9420f44c4cd732b1da98dddc"
+        },
+        "rtl_commit.txt": {
+          "bytes": 41,
+          "mtime_ns": 1793978049415435415,
+          "sha256": "905a4e9f031b3f57534718adf0722ae15029b0859060edb08f2a3239e36a2f8b"
+        },
+        "tools.txt": {
+          "bytes": 130,
+          "mtime_ns": 1793978049768437913,
+          "sha256": "09e4da713608aa71cb14712b07c026c29036b90aa9ce8e877720b10826b0cce8"
+        }
+      },
+      "scope": {
+        "rtl_to_gds": "completed",
+        "post_route_setup_and_hold": "single TT corner with extracted SPEF",
+        "logical_equivalence": "not asserted by this flow",
+        "foundry_release": "not evaluated"
+      }
+    }
+  }
+}

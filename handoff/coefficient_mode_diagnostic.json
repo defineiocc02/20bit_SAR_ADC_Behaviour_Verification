@@ -1,0 +1,18 @@
+{
+  "2pct_no_dem_using_fig21_dem_weights": {
+    "sndr_db": 64.8838729000777,
+    "scope": "intentionally cross-applying mode-specific coefficients; not existing baseline failure"
+  },
+  "2pct_fig21_dem_using_no_dem_weights": {
+    "sndr_db": 62.06614863211274,
+    "scope": "intentionally cross-applying mode-specific coefficients; not existing baseline failure"
+  },
+  "3pct_no_dem_using_fig21_dem_weights": {
+    "sndr_db": 61.365881625511996,
+    "scope": "intentionally cross-applying mode-specific coefficients; not existing baseline failure"
+  },
+  "3pct_fig21_dem_using_no_dem_weights": {
+    "sndr_db": 58.55359666422093,
+    "scope": "intentionally cross-applying mode-specific coefficients; not existing baseline failure"
+  }
+}

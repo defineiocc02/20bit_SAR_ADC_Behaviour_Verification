@@ -1,0 +1,156 @@
+{
+  "cpu_count": 6,
+  "cpu_model": "Apple A18 Pro",
+  "license_verified": false,
+  "machine": "arm64",
+  "notes": [
+    "PATH presence only: not evidence of a working license, a supported PDK, or a runnable analysis.",
+    "A tool found here may be a name collision (for example a desktop media player called totem); verify the binary identity in preflight."
+  ],
+  "os": "macOS-27.2-arm64-arm-64bit",
+  "pdk_verified": false,
+  "platform_family": "Darwin",
+  "probe_version": "1.1",
+  "python": {
+    "implementation": "CPython",
+    "version": "3.9.6"
+  },
+  "ram_bytes": 8589934592,
+  "ram_source": "sysctl:hw.memsize",
+  "schema": "eda-environment-v1",
+  "timestamp_utc": "2026-11-06T16:57:25Z",
+  "tools": {
+    "cadence": {
+      "genus": {
+        "available": false
+      },
+      "innovus": {
+        "available": false
+      },
+      "jaspergold": {
+        "available": false
+      },
+      "liberate": {
+        "available": false
+      },
+      "quantus": {
+        "available": false
+      },
+      "spectre": {
+        "available": false
+      },
+      "tempus": {
+        "available": false
+      },
+      "virtuoso": {
+        "available": false
+      },
+      "xrun": {
+        "available": false
+      }
+    },
+    "modeling": {
+      "matlab": {
+        "available": false
+      },
+      "octave": {
+        "available": false
+      },
+      "python3": {
+        "available": true
+      }
+    },
+    "opensource": {
+      "cmake": {
+        "available": false
+      },
+      "iverilog": {
+        "available": false
+      },
+      "klayout": {
+        "available": false
+      },
+      "magic": {
+        "available": false
+      },
+      "openroad": {
+        "available": false
+      },
+      "sta": {
+        "available": false
+      },
+      "verilator": {
+        "available": true
+      },
+      "yosys": {
+        "available": false
+      }
+    },
+    "scheduler": {
+      "bsub": {
+        "available": false
+      },
+      "qsub": {
+        "available": false
+      },
+      "sbatch": {
+        "available": false
+      }
+    },
+    "siemens": {
+      "calibre": {
+        "available": false
+      }
+    },
+    "synopsys": {
+      "dc_shell": {
+        "available": false
+      },
+      "dft_shell": {
+        "available": false
+      },
+      "fc_shell": {
+        "available": false
+      },
+      "fm_shell": {
+        "available": false
+      },
+      "lc_shell": {
+        "available": false
+      },
+      "pprtl": {
+        "available": false
+      },
+      "pt_shell": {
+        "available": false
+      },
+      "rtl_shell": {
+        "available": false
+      },
+      "spyglass": {
+        "available": false
+      },
+      "starrc_shell": {
+        "available": false
+      },
+      "tmax": {
+        "available": false
+      },
+      "vcf": {
+        "available": false
+      },
+      "vcs": {
+        "available": false
+      },
+      "verdi": {
+        "available": false
+      }
+    }
+  },
+  "warnings": [],
+  "scope": "Local simulation inventory. Technology and remote physical inventory recorded separately.",
+  "executed_tools": {
+    "verilator": "Verilator 5.30",
+    "yosys": "Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)"
+  }
+}

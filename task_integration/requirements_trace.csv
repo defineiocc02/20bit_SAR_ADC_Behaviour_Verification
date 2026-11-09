@@ -1,0 +1,6 @@
+REQ_ID,verification_id,evidence,status
+REQ-TOP-01,integrated_steady_4096,evidence/negative/external/result.json,PASS
+REQ-TOP-02,integrated_protocol_errors,evidence/negative/external/result.json,PASS
+REQ-TOP-03,integrated_caaz_pair,evidence/negative/external/result.json,PASS
+REQ-TOP-04,sky130hd_integrated_physical,https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42459663395,PARTIAL
+REQ-TOP-05,integrated_on_chip_lms_pipeline,evidence/negative/on_chip/result.json,PASS

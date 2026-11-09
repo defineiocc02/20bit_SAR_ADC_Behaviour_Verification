@@ -1,2 +1,0 @@
-REVIEW_CONFIG_COMPLETE outputs=624
-- sim/tb/review_config_tb.sv:82: Verilog $finish

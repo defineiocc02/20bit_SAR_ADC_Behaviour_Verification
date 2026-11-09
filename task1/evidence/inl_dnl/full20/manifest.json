@@ -1,0 +1,880 @@
+{
+  "schema": "task1_full20_linearity_figures_v1",
+  "plot_source_sha256": "680a9741203d94299fc632dedc7c43a2a66f025ec343e1863ac5121ad459b901",
+  "linearity_definition_source_sha256": "7823b2be59f3c3a42297022ab57ee354f66d33a0a62d6d74eb4cacdc9f668c75",
+  "style_reference": {
+    "source": "User-provided Fig. 17 image",
+    "sha256": "0a9aeecd7c274a00ab1a05d43ee50337bf63268b90a402d9d8b1e37b54ca705e"
+  },
+  "source_reports_sha256": {
+    "task1/evidence/inl_dnl/summary.json": "66d4c6c0163f29ca63d0122bc86a2113b3891e28895020f9a3abd3731146c213",
+    "task1/evidence/inl_dnl/uncalibrated/summary.json": "58ef176f4a29cfc94f864c68db2c50316cfce956b31f441f0077932fa91b0880",
+    "task1/evidence/inl_dnl/adc2_16bit/summary.json": "371192c402c95f3052cdff452c34658d73a872d4f2c93502f6f25651dfafe664",
+    "task1/evidence/inl_dnl/uncalibrated/adc2_16bit/summary.json": "3dc4b8c3b058299f583cfdf486c4c46ccdc657e13e14242de16922c4a8b48785"
+  },
+  "plot": {
+    "signed_axis_range": [
+      -524288,
+      524287
+    ],
+    "samples_per_block_maximum": 512,
+    "detail_signed_axis_ranges": {
+      "midscale": [
+        -64,
+        64
+      ],
+      "low_edge": [
+        -524288,
+        -523264
+      ]
+    },
+    "dem_body_zoom_lsb20_ranges": {
+      "DNL": [
+        -0.6,
+        0.6
+      ],
+      "INL": [
+        -0.15,
+        1.4
+      ]
+    },
+    "dimensions_mm": [
+      146,
+      185
+    ],
+    "font_family": "Hiragino Sans GB",
+    "normalization": "Per-arm mean of interior 20-bit code widths; cumulative DNL for endpoint INL"
+  },
+  "cases": [
+    {
+      "source": "task1/evidence/inl_dnl/linearity_sigma_2pct.npz",
+      "source_sha256": "074ded215da6da9f61db5c9e48dcfaeb26b7f5d82afb7bfb27f27dd37a130e96",
+      "adc2_bits": 12,
+      "adc2_half_range_v_input_referred": 0.1,
+      "fixed_mismatch_sigma": 0.02,
+      "manufacturing_seed": 100,
+      "nominal_lsb20_v": 9.5367431640625e-06,
+      "comparison": "independent NLMS paths",
+      "arms": {
+        "fixed_ab_lms_only": {
+          "effective_states": 2,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 7.845905143800549e-06,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": -239817,
+          "inl_signed_transition_at_abs_peak": -299574,
+          "zero_width_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 678189,
+          "zero_width_interior_percent": 64.67726645901958,
+          "mean_interior_code_width_v": 9.536753871538733e-06,
+          "dnl_min_lsb": -1.0,
+          "dnl_max_lsb": 4.117840383432403,
+          "endpoint_inl_min_lsb": -2.843367687138621,
+          "endpoint_inl_max_lsb": 3.737224473717411,
+          "endpoint_inl_peak_lsb": 3.737224473717411,
+          "best_fit_inl_peak_lsb": 2.9785058748856916
+        },
+        "fig21_bridge_lms": {
+          "effective_states": 512,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 6.746113848995133e-06,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": -524276,
+          "inl_signed_transition_at_abs_peak": -524270,
+          "zero_width_signed_code_range": [
+            -524287,
+            -523459
+          ],
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 336,
+          "zero_width_interior_percent": 0.03204351814941053,
+          "mean_interior_code_width_v": 9.536749550213684e-06,
+          "dnl_min_lsb": -1.0,
+          "dnl_max_lsb": 4.119718121806086,
+          "endpoint_inl_min_lsb": -1.4014093909753895,
+          "endpoint_inl_max_lsb": 3.478872487219979,
+          "endpoint_inl_peak_lsb": 3.478872487219979,
+          "best_fit_inl_peak_lsb": 2.515418662701679,
+          "dnl_body_zoom_off_axis": 876,
+          "inl_body_zoom_off_axis": 611
+        }
+      },
+      "dimensions_mm": [
+        146,
+        185
+      ],
+      "artifacts": [
+        "adc2_12bit_sigma_2pct_envelope.csv",
+        "adc2_12bit_sigma_2pct.png",
+        "adc2_12bit_sigma_2pct.svg",
+        "adc2_12bit_sigma_2pct.pdf",
+        "adc2_12bit_sigma_2pct_midscale.png",
+        "adc2_12bit_sigma_2pct_midscale.svg",
+        "adc2_12bit_sigma_2pct_midscale.pdf",
+        "adc2_12bit_sigma_2pct_low_edge.png",
+        "adc2_12bit_sigma_2pct_low_edge.svg",
+        "adc2_12bit_sigma_2pct_low_edge.pdf",
+        "adc2_12bit_sigma_2pct_body_zoom.png",
+        "adc2_12bit_sigma_2pct_body_zoom.svg",
+        "adc2_12bit_sigma_2pct_body_zoom.pdf"
+      ]
+    },
+    {
+      "source": "task1/evidence/inl_dnl/linearity_sigma_3pct.npz",
+      "source_sha256": "8c5f5434f39d9e67ed9f445a9a520a8d0fa0059dd94a65767a3f1f5e7f20cfc1",
+      "adc2_bits": 12,
+      "adc2_half_range_v_input_referred": 0.1,
+      "fixed_mismatch_sigma": 0.03,
+      "manufacturing_seed": 100,
+      "nominal_lsb20_v": 9.5367431640625e-06,
+      "comparison": "independent NLMS paths",
+      "arms": {
+        "fixed_ab_lms_only": {
+          "effective_states": 2,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 0.0,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": -345027,
+          "inl_signed_transition_at_abs_peak": -495685,
+          "zero_width_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 678629,
+          "zero_width_interior_percent": 64.71922820897714,
+          "mean_interior_code_width_v": 9.53674661661013e-06,
+          "dnl_min_lsb": -1.0,
+          "dnl_max_lsb": 4.577144683261617,
+          "endpoint_inl_min_lsb": -2.2615549934451398,
+          "endpoint_inl_max_lsb": 3.8228836502192705,
+          "endpoint_inl_peak_lsb": 3.8228836502192705,
+          "best_fit_inl_peak_lsb": 3.0266363106911127
+        },
+        "fig21_bridge_lms": {
+          "effective_states": 512,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 6.206439503043708e-06,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": -524276,
+          "inl_signed_transition_at_abs_peak": -524270,
+          "zero_width_signed_code_range": [
+            -524287,
+            -523756
+          ],
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 224,
+          "zero_width_interior_percent": 0.021362345432940355,
+          "mean_interior_code_width_v": 9.536749370137979e-06,
+          "dnl_min_lsb": -1.0,
+          "dnl_max_lsb": 4.119582640096043,
+          "endpoint_inl_min_lsb": -1.4020867995255988,
+          "endpoint_inl_max_lsb": 3.4783305603798107,
+          "endpoint_inl_peak_lsb": 3.4783305603798107,
+          "best_fit_inl_peak_lsb": 2.560804577194493,
+          "dnl_body_zoom_off_axis": 585,
+          "inl_body_zoom_off_axis": 405
+        }
+      },
+      "dimensions_mm": [
+        146,
+        185
+      ],
+      "artifacts": [
+        "adc2_12bit_sigma_3pct_envelope.csv",
+        "adc2_12bit_sigma_3pct.png",
+        "adc2_12bit_sigma_3pct.svg",
+        "adc2_12bit_sigma_3pct.pdf",
+        "adc2_12bit_sigma_3pct_midscale.png",
+        "adc2_12bit_sigma_3pct_midscale.svg",
+        "adc2_12bit_sigma_3pct_midscale.pdf",
+        "adc2_12bit_sigma_3pct_low_edge.png",
+        "adc2_12bit_sigma_3pct_low_edge.svg",
+        "adc2_12bit_sigma_3pct_low_edge.pdf",
+        "adc2_12bit_sigma_3pct_body_zoom.png",
+        "adc2_12bit_sigma_3pct_body_zoom.svg",
+        "adc2_12bit_sigma_3pct_body_zoom.pdf"
+      ]
+    },
+    {
+      "source": "task1/evidence/inl_dnl/linearity_sigma_2pct.npz",
+      "source_sha256": "074ded215da6da9f61db5c9e48dcfaeb26b7f5d82afb7bfb27f27dd37a130e96",
+      "adc2_bits": 12,
+      "adc2_half_range_v_input_referred": 0.1,
+      "fixed_mismatch_sigma": 0.02,
+      "manufacturing_seed": 100,
+      "nominal_lsb20_v": 9.5367431640625e-06,
+      "comparison": "independent uncalibrated baseline and both NLMS paths",
+      "arms": {
+        "fixed_ab_no_dem_no_lms": {
+          "effective_states": 2,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 0.002639814389158451,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": 393715,
+          "inl_signed_transition_at_abs_peak": 104952,
+          "zero_width_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 802491,
+          "zero_width_interior_percent": 76.53165155725776,
+          "mean_interior_code_width_v": 9.534243826006407e-06,
+          "dnl_min_lsb": -1.0,
+          "dnl_max_lsb": 9.238375477137259,
+          "endpoint_inl_min_lsb": -901.9301586364479,
+          "endpoint_inl_max_lsb": 253.78401901990497,
+          "endpoint_inl_peak_lsb": 901.9301586364479,
+          "best_fit_inl_peak_lsb": 575.9808388785858
+        },
+        "fixed_ab_lms_only": {
+          "effective_states": 2,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 7.845905143800549e-06,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": -239817,
+          "inl_signed_transition_at_abs_peak": -299574,
+          "zero_width_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 678189,
+          "zero_width_interior_percent": 64.67726645901958,
+          "mean_interior_code_width_v": 9.536753871538733e-06,
+          "dnl_min_lsb": -1.0,
+          "dnl_max_lsb": 4.117840383432403,
+          "endpoint_inl_min_lsb": -2.843367687138621,
+          "endpoint_inl_max_lsb": 3.737224473717411,
+          "endpoint_inl_peak_lsb": 3.737224473717411,
+          "best_fit_inl_peak_lsb": 2.9785058748856916
+        },
+        "fig21_bridge_lms": {
+          "effective_states": 512,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 6.746113848995133e-06,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": -524276,
+          "inl_signed_transition_at_abs_peak": -524270,
+          "zero_width_signed_code_range": [
+            -524287,
+            -523459
+          ],
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 336,
+          "zero_width_interior_percent": 0.03204351814941053,
+          "mean_interior_code_width_v": 9.536749550213684e-06,
+          "dnl_min_lsb": -1.0,
+          "dnl_max_lsb": 4.119718121806086,
+          "endpoint_inl_min_lsb": -1.4014093909753895,
+          "endpoint_inl_max_lsb": 3.478872487219979,
+          "endpoint_inl_peak_lsb": 3.478872487219979,
+          "best_fit_inl_peak_lsb": 2.515418662701679,
+          "dnl_body_zoom_off_axis": 876,
+          "inl_body_zoom_off_axis": 611
+        }
+      },
+      "uncalibrated_source": "task1/evidence/inl_dnl/uncalibrated/linearity_sigma_2pct.npz",
+      "uncalibrated_source_sha256": "aab19e96e1d3457e16723e77ded93376ab1b0e3f3979e39ec6fcdc674a13c937",
+      "dimensions_mm": [
+        146,
+        256
+      ],
+      "artifacts": [
+        "adc2_12bit_sigma_2pct_three_arms_envelope.csv",
+        "adc2_12bit_sigma_2pct_three_arms.png",
+        "adc2_12bit_sigma_2pct_three_arms.svg",
+        "adc2_12bit_sigma_2pct_three_arms.pdf",
+        "adc2_12bit_sigma_2pct_three_arms_body_zoom.png",
+        "adc2_12bit_sigma_2pct_three_arms_body_zoom.svg",
+        "adc2_12bit_sigma_2pct_three_arms_body_zoom.pdf"
+      ]
+    },
+    {
+      "source": "task1/evidence/inl_dnl/linearity_sigma_3pct.npz",
+      "source_sha256": "8c5f5434f39d9e67ed9f445a9a520a8d0fa0059dd94a65767a3f1f5e7f20cfc1",
+      "adc2_bits": 12,
+      "adc2_half_range_v_input_referred": 0.1,
+      "fixed_mismatch_sigma": 0.03,
+      "manufacturing_seed": 100,
+      "nominal_lsb20_v": 9.5367431640625e-06,
+      "comparison": "independent uncalibrated baseline and both NLMS paths",
+      "arms": {
+        "fixed_ab_no_dem_no_lms": {
+          "effective_states": 2,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 0.0039667925965630015,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": 393945,
+          "inl_signed_transition_at_abs_peak": 105464,
+          "zero_width_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 782075,
+          "zero_width_interior_percent": 74.58462635922692,
+          "mean_interior_code_width_v": 9.532978318557809e-06,
+          "dnl_min_lsb": -1.0,
+          "dnl_max_lsb": 9.237582062368844,
+          "endpoint_inl_min_lsb": -1351.4580980824544,
+          "endpoint_inl_max_lsb": 378.88806279818266,
+          "endpoint_inl_peak_lsb": 1351.4580980824544,
+          "best_fit_inl_peak_lsb": 862.3228632706516
+        },
+        "fixed_ab_lms_only": {
+          "effective_states": 2,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 0.0,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": -345027,
+          "inl_signed_transition_at_abs_peak": -495685,
+          "zero_width_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 678629,
+          "zero_width_interior_percent": 64.71922820897714,
+          "mean_interior_code_width_v": 9.53674661661013e-06,
+          "dnl_min_lsb": -1.0,
+          "dnl_max_lsb": 4.577144683261617,
+          "endpoint_inl_min_lsb": -2.2615549934451398,
+          "endpoint_inl_max_lsb": 3.8228836502192705,
+          "endpoint_inl_peak_lsb": 3.8228836502192705,
+          "best_fit_inl_peak_lsb": 3.0266363106911127
+        },
+        "fig21_bridge_lms": {
+          "effective_states": 512,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 6.206439503043708e-06,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": -524276,
+          "inl_signed_transition_at_abs_peak": -524270,
+          "zero_width_signed_code_range": [
+            -524287,
+            -523756
+          ],
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 224,
+          "zero_width_interior_percent": 0.021362345432940355,
+          "mean_interior_code_width_v": 9.536749370137979e-06,
+          "dnl_min_lsb": -1.0,
+          "dnl_max_lsb": 4.119582640096043,
+          "endpoint_inl_min_lsb": -1.4020867995255988,
+          "endpoint_inl_max_lsb": 3.4783305603798107,
+          "endpoint_inl_peak_lsb": 3.4783305603798107,
+          "best_fit_inl_peak_lsb": 2.560804577194493,
+          "dnl_body_zoom_off_axis": 585,
+          "inl_body_zoom_off_axis": 405
+        }
+      },
+      "uncalibrated_source": "task1/evidence/inl_dnl/uncalibrated/linearity_sigma_3pct.npz",
+      "uncalibrated_source_sha256": "f66d2178b6f616450ff5bf37895478b6b0f8142c902ac77ce8dd8e8695474c4e",
+      "dimensions_mm": [
+        146,
+        256
+      ],
+      "artifacts": [
+        "adc2_12bit_sigma_3pct_three_arms_envelope.csv",
+        "adc2_12bit_sigma_3pct_three_arms.png",
+        "adc2_12bit_sigma_3pct_three_arms.svg",
+        "adc2_12bit_sigma_3pct_three_arms.pdf",
+        "adc2_12bit_sigma_3pct_three_arms_body_zoom.png",
+        "adc2_12bit_sigma_3pct_three_arms_body_zoom.svg",
+        "adc2_12bit_sigma_3pct_three_arms_body_zoom.pdf"
+      ]
+    },
+    {
+      "source": "task1/evidence/inl_dnl/adc2_16bit/linearity_sigma_2pct.npz",
+      "source_sha256": "c335d4e3468fdec38ffc018abea62a14413e3653cd0ccdc0bc59eb5859bfe8ec",
+      "adc2_bits": 16,
+      "adc2_half_range_v_input_referred": 0.1,
+      "fixed_mismatch_sigma": 0.02,
+      "manufacturing_seed": 100,
+      "nominal_lsb20_v": 9.5367431640625e-06,
+      "comparison": "independent NLMS paths",
+      "arms": {
+        "fixed_ab_lms_only": {
+          "effective_states": 2,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 2.2217922084798437e-07,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": -132206,
+          "inl_signed_transition_at_abs_peak": 388124,
+          "zero_width_signed_code_range": null,
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 0,
+          "zero_width_interior_percent": 0.0,
+          "mean_interior_code_width_v": 9.536744309441885e-06,
+          "dnl_min_lsb": -0.222264197807429,
+          "dnl_max_lsb": 0.279461378720967,
+          "endpoint_inl_min_lsb": -0.24162998142180414,
+          "endpoint_inl_max_lsb": 0.1988956170330375,
+          "endpoint_inl_peak_lsb": 0.24162998142180414,
+          "best_fit_inl_peak_lsb": 0.18654549363762798
+        },
+        "fig21_bridge_lms": {
+          "effective_states": 512,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 3.738282381885549e-07,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": -524285,
+          "inl_signed_transition_at_abs_peak": -524283,
+          "zero_width_signed_code_range": null,
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 0,
+          "zero_width_interior_percent": 0.0,
+          "mean_interior_code_width_v": 9.536743543633536e-06,
+          "dnl_min_lsb": -0.040052247553607256,
+          "dnl_max_lsb": 0.14043670922309204,
+          "endpoint_inl_min_lsb": -0.08053989137854478,
+          "endpoint_inl_max_lsb": 0.15977359393727897,
+          "endpoint_inl_peak_lsb": 0.15977359393727897,
+          "best_fit_inl_peak_lsb": 0.12488687581541824
+        }
+      },
+      "dimensions_mm": [
+        146,
+        185
+      ],
+      "artifacts": [
+        "adc2_16bit_sigma_2pct_envelope.csv",
+        "adc2_16bit_sigma_2pct.png",
+        "adc2_16bit_sigma_2pct.svg",
+        "adc2_16bit_sigma_2pct.pdf"
+      ]
+    },
+    {
+      "source": "task1/evidence/inl_dnl/adc2_16bit/linearity_sigma_3pct.npz",
+      "source_sha256": "87db41c21f8aea4310f6dd1d04a053d98c080af52e4c7aec12df3fa73667da39",
+      "adc2_bits": 16,
+      "adc2_half_range_v_input_referred": 0.1,
+      "fixed_mismatch_sigma": 0.03,
+      "manufacturing_seed": 100,
+      "nominal_lsb20_v": 9.5367431640625e-06,
+      "comparison": "independent NLMS paths",
+      "arms": {
+        "fixed_ab_lms_only": {
+          "effective_states": 2,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 3.516393928299122e-07,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": -132857,
+          "inl_signed_transition_at_abs_peak": -388721,
+          "zero_width_signed_code_range": null,
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 0,
+          "zero_width_interior_percent": 0.0,
+          "mean_interior_code_width_v": 9.536743567324898e-06,
+          "dnl_min_lsb": -0.2198254610427659,
+          "dnl_max_lsb": 0.2791925140137945,
+          "endpoint_inl_min_lsb": -0.17434906651306026,
+          "endpoint_inl_max_lsb": 0.21093901583624208,
+          "endpoint_inl_peak_lsb": 0.21093901583624208,
+          "best_fit_inl_peak_lsb": 0.181265048077337
+        },
+        "fig21_bridge_lms": {
+          "effective_states": 512,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 3.235469158917708e-07,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": -524285,
+          "inl_signed_transition_at_abs_peak": -524283,
+          "zero_width_signed_code_range": null,
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 0,
+          "zero_width_interior_percent": 0.0,
+          "mean_interior_code_width_v": 9.536743536028476e-06,
+          "dnl_min_lsb": -0.04007766775028632,
+          "dnl_max_lsb": 0.14034339102364068,
+          "endpoint_inl_min_lsb": -0.08080256674422925,
+          "endpoint_inl_max_lsb": 0.15966343975166886,
+          "endpoint_inl_peak_lsb": 0.15966343975166886,
+          "best_fit_inl_peak_lsb": 0.12298960969926155
+        }
+      },
+      "dimensions_mm": [
+        146,
+        185
+      ],
+      "artifacts": [
+        "adc2_16bit_sigma_3pct_envelope.csv",
+        "adc2_16bit_sigma_3pct.png",
+        "adc2_16bit_sigma_3pct.svg",
+        "adc2_16bit_sigma_3pct.pdf"
+      ]
+    },
+    {
+      "source": "task1/evidence/inl_dnl/adc2_16bit/linearity_sigma_2pct.npz",
+      "source_sha256": "c335d4e3468fdec38ffc018abea62a14413e3653cd0ccdc0bc59eb5859bfe8ec",
+      "adc2_bits": 16,
+      "adc2_half_range_v_input_referred": 0.1,
+      "fixed_mismatch_sigma": 0.02,
+      "manufacturing_seed": 100,
+      "nominal_lsb20_v": 9.5367431640625e-06,
+      "comparison": "independent uncalibrated baseline and both NLMS paths",
+      "arms": {
+        "fixed_ab_no_dem_no_lms": {
+          "effective_states": 2,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 0.0026428648631641252,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": 393700,
+          "inl_signed_transition_at_abs_peak": 105004,
+          "zero_width_signed_code_range": [
+            -491501,
+            491758
+          ],
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 313,
+          "zero_width_interior_percent": 0.02985006303799255,
+          "mean_interior_code_width_v": 9.53422346185658e-06,
+          "dnl_min_lsb": -1.0,
+          "dnl_max_lsb": 1.2396494192815712,
+          "endpoint_inl_min_lsb": -899.1564572181907,
+          "endpoint_inl_max_lsb": 250.91598559695998,
+          "endpoint_inl_peak_lsb": 899.1564572181907,
+          "best_fit_inl_peak_lsb": 573.5891651945049
+        },
+        "fixed_ab_lms_only": {
+          "effective_states": 2,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 2.2217922084798437e-07,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": -132206,
+          "inl_signed_transition_at_abs_peak": 388124,
+          "zero_width_signed_code_range": null,
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 0,
+          "zero_width_interior_percent": 0.0,
+          "mean_interior_code_width_v": 9.536744309441885e-06,
+          "dnl_min_lsb": -0.222264197807429,
+          "dnl_max_lsb": 0.279461378720967,
+          "endpoint_inl_min_lsb": -0.24162998142180414,
+          "endpoint_inl_max_lsb": 0.1988956170330375,
+          "endpoint_inl_peak_lsb": 0.24162998142180414,
+          "best_fit_inl_peak_lsb": 0.18654549363762798
+        },
+        "fig21_bridge_lms": {
+          "effective_states": 512,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 3.738282381885549e-07,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": -524285,
+          "inl_signed_transition_at_abs_peak": -524283,
+          "zero_width_signed_code_range": null,
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 0,
+          "zero_width_interior_percent": 0.0,
+          "mean_interior_code_width_v": 9.536743543633536e-06,
+          "dnl_min_lsb": -0.040052247553607256,
+          "dnl_max_lsb": 0.14043670922309204,
+          "endpoint_inl_min_lsb": -0.08053989137854478,
+          "endpoint_inl_max_lsb": 0.15977359393727897,
+          "endpoint_inl_peak_lsb": 0.15977359393727897,
+          "best_fit_inl_peak_lsb": 0.12488687581541824
+        }
+      },
+      "uncalibrated_source": "task1/evidence/inl_dnl/uncalibrated/adc2_16bit/linearity_sigma_2pct.npz",
+      "uncalibrated_source_sha256": "5f33243346115bcd7d77d89aecf474200c5f60b5a622e57226e1d36d84e68420",
+      "dimensions_mm": [
+        146,
+        256
+      ],
+      "artifacts": [
+        "adc2_16bit_sigma_2pct_three_arms_envelope.csv",
+        "adc2_16bit_sigma_2pct_three_arms.png",
+        "adc2_16bit_sigma_2pct_three_arms.svg",
+        "adc2_16bit_sigma_2pct_three_arms.pdf"
+      ]
+    },
+    {
+      "source": "task1/evidence/inl_dnl/adc2_16bit/linearity_sigma_3pct.npz",
+      "source_sha256": "87db41c21f8aea4310f6dd1d04a053d98c080af52e4c7aec12df3fa73667da39",
+      "adc2_bits": 16,
+      "adc2_half_range_v_input_referred": 0.1,
+      "fixed_mismatch_sigma": 0.03,
+      "manufacturing_seed": 100,
+      "nominal_lsb20_v": 9.5367431640625e-06,
+      "comparison": "independent uncalibrated baseline and both NLMS paths",
+      "arms": {
+        "fixed_ab_no_dem_no_lms": {
+          "effective_states": 2,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 0.003969842429307856,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": 393932,
+          "inl_signed_transition_at_abs_peak": 105468,
+          "zero_width_signed_code_range": [
+            -491491,
+            491877
+          ],
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 468,
+          "zero_width_interior_percent": 0.044632043136678956,
+          "mean_interior_code_width_v": 9.53295795868887e-06,
+          "dnl_min_lsb": -1.0,
+          "dnl_max_lsb": 1.2394758590595956,
+          "endpoint_inl_min_lsb": -1348.6772763030513,
+          "endpoint_inl_max_lsb": 376.2855104660061,
+          "endpoint_inl_peak_lsb": 1348.6772763030513,
+          "best_fit_inl_peak_lsb": 859.9422641599383
+        },
+        "fixed_ab_lms_only": {
+          "effective_states": 2,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 3.516393928299122e-07,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": -132857,
+          "inl_signed_transition_at_abs_peak": -388721,
+          "zero_width_signed_code_range": null,
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 0,
+          "zero_width_interior_percent": 0.0,
+          "mean_interior_code_width_v": 9.536743567324898e-06,
+          "dnl_min_lsb": -0.2198254610427659,
+          "dnl_max_lsb": 0.2791925140137945,
+          "endpoint_inl_min_lsb": -0.17434906651306026,
+          "endpoint_inl_max_lsb": 0.21093901583624208,
+          "endpoint_inl_peak_lsb": 0.21093901583624208,
+          "best_fit_inl_peak_lsb": 0.181265048077337
+        },
+        "fig21_bridge_lms": {
+          "effective_states": 512,
+          "adc2_out_of_range_input_width_v": 0.0,
+          "encoder_clip_input_width_v": 3.235469158917708e-07,
+          "dnl_signed_code_range": [
+            -524287,
+            524286
+          ],
+          "inl_signed_transition_range": [
+            -524287,
+            524287
+          ],
+          "dnl_signed_code_at_max": -524285,
+          "inl_signed_transition_at_abs_peak": -524283,
+          "zero_width_signed_code_range": null,
+          "interior_codes": 1048574,
+          "zero_width_interior_codes": 0,
+          "zero_width_interior_percent": 0.0,
+          "mean_interior_code_width_v": 9.536743536028476e-06,
+          "dnl_min_lsb": -0.04007766775028632,
+          "dnl_max_lsb": 0.14034339102364068,
+          "endpoint_inl_min_lsb": -0.08080256674422925,
+          "endpoint_inl_max_lsb": 0.15966343975166886,
+          "endpoint_inl_peak_lsb": 0.15966343975166886,
+          "best_fit_inl_peak_lsb": 0.12298960969926155
+        }
+      },
+      "uncalibrated_source": "task1/evidence/inl_dnl/uncalibrated/adc2_16bit/linearity_sigma_3pct.npz",
+      "uncalibrated_source_sha256": "7891baa9729bbbc350ffeef3fb21d9191abf70c8ee67a11cb9ae14593e85fd18",
+      "dimensions_mm": [
+        146,
+        256
+      ],
+      "artifacts": [
+        "adc2_16bit_sigma_3pct_three_arms_envelope.csv",
+        "adc2_16bit_sigma_3pct_three_arms.png",
+        "adc2_16bit_sigma_3pct_three_arms.svg",
+        "adc2_16bit_sigma_3pct_three_arms.pdf"
+      ]
+    }
+  ],
+  "output_sha256": {
+    "adc2_12bit_sigma_2pct_envelope.csv": "99292f1fb788ec3888e3523ef9f5c37b19054a717da915ba6ed918d25d11bdce",
+    "adc2_12bit_sigma_2pct.png": "8d11006e4fff986bb9b787e2235da5fd1b3d41a6b73b1d4f51026c2dfd047cf4",
+    "adc2_12bit_sigma_2pct.svg": "e956b239d373c1f55075cdf0c782e86fc8d107aa0515fc940f37965cd493ce71",
+    "adc2_12bit_sigma_2pct.pdf": "a92944b36914d260776f3af3008cb3493da53ce792d251144a51e59d87cb8b3c",
+    "adc2_12bit_sigma_2pct_midscale.png": "6e379dc7e040b5f6cddf2d8fd97fecd397857bd156704631720b24b34c231118",
+    "adc2_12bit_sigma_2pct_midscale.svg": "34d8a20b1c140d7da3c6207c6e1ebfb6e426a09dfacf4fd81d90467f02aa98cd",
+    "adc2_12bit_sigma_2pct_midscale.pdf": "2abdf14dbc95ab7758697e2f5a329f1bdaeb3d611101431cf1640efb98580ba3",
+    "adc2_12bit_sigma_2pct_low_edge.png": "2f8fcc2fab238ba271f1d6d2c170637cd3fa38b42128673857e0d386373a3dd0",
+    "adc2_12bit_sigma_2pct_low_edge.svg": "e8c4b4fb1339ef944c5f2be6c858f72896b5b2c9b1b1c28c7ae426a7624004c0",
+    "adc2_12bit_sigma_2pct_low_edge.pdf": "8767ab80d5f91c0d153e7c5d2edc6fa5e0beebc742cb052adc0cb08bd1d2cb17",
+    "adc2_12bit_sigma_2pct_body_zoom.png": "5353638969a14a6dadcc70efce50a39cb18bf0ff3636fd6174a2c039bf25a87c",
+    "adc2_12bit_sigma_2pct_body_zoom.svg": "5f8b6438c2b3659f01d6d8a4817fa3034cae2f849acfb38a1c8073bcbd517c4f",
+    "adc2_12bit_sigma_2pct_body_zoom.pdf": "98779b265dba4900c11d0a007956d90d1c0ff5a8308406e09da1c7137843c0e6",
+    "adc2_12bit_sigma_3pct_envelope.csv": "da4b571c246728f489a4d250f43d5b291f354fcc4e0df6d68275de483ca39d67",
+    "adc2_12bit_sigma_3pct.png": "8c2325410262b7850ba3d30c4b185e5d86d680775699c8cc49c3f15992e65fa0",
+    "adc2_12bit_sigma_3pct.svg": "4d61502a23953caeaa4be15de42995fe1c5b8d214bceb17d67d214d66929b811",
+    "adc2_12bit_sigma_3pct.pdf": "d29cc9dee02f9eb7393952b5e07abecf3a4653af2725413bb4f092666c6612ca",
+    "adc2_12bit_sigma_3pct_midscale.png": "0bfcb64705e6c82d4a97c11e4882bef9524a4cacb3ab5de48c2f2a1b9faa312a",
+    "adc2_12bit_sigma_3pct_midscale.svg": "e43e2176713fc19fbe43aa235e2926fe5bf467cb9060ff8bf9203aa0501a1529",
+    "adc2_12bit_sigma_3pct_midscale.pdf": "73cf48df1c9b16633d470715d7c82c63f19ce17fa5240d4a70bb0ba6e2e71677",
+    "adc2_12bit_sigma_3pct_low_edge.png": "e893daa10a303dea9ba66e1c888b10893e658672b4df59a8f5fe0a3b066f938d",
+    "adc2_12bit_sigma_3pct_low_edge.svg": "c7db5295b6b4a4fb42d7624750a7a1b36f7d37c627038da7c5d67a501b48b3ec",
+    "adc2_12bit_sigma_3pct_low_edge.pdf": "9f6891de954691ed0d8bad4cc3a23a016af61f7ae7d434a6029daf76cdb824c0",
+    "adc2_12bit_sigma_3pct_body_zoom.png": "ea84fbd947c99d970955d9cbf1675f0dddd237edd45825b58699cc2980e4c0db",
+    "adc2_12bit_sigma_3pct_body_zoom.svg": "acbf6566c8efe2f56a0efd6e2bb371193fd988d3d368867bffff7e089a2a4929",
+    "adc2_12bit_sigma_3pct_body_zoom.pdf": "9f4f5f97610f1179e4e86fc02a96f97932ada679cc3f2e06603ebc0706dd8445",
+    "adc2_12bit_sigma_2pct_three_arms_envelope.csv": "60e46a67c45992141e030488b2dbcab5c5754a4a34e09b1ccb6791b9a3e2b511",
+    "adc2_12bit_sigma_2pct_three_arms.png": "ce214cf033b1f5a800c2478bfd5e3e41906969fe7978a9546ecc66b13c7526ec",
+    "adc2_12bit_sigma_2pct_three_arms.svg": "08a62d108dafbfda73086fa2828b48ac5583869073e00f46afb50084319990cd",
+    "adc2_12bit_sigma_2pct_three_arms.pdf": "af60b3b3c54fd58a95d9b951cc03c27310a77291a1c4ba4607b8aaf6bdf0f91c",
+    "adc2_12bit_sigma_2pct_three_arms_body_zoom.png": "ab46b5855c7582d3aac02064c8c2c92d4feffb5972f71547db7765ef18ca93b7",
+    "adc2_12bit_sigma_2pct_three_arms_body_zoom.svg": "e0e3ec33cb03f8b810fa4ca58535fb11fce3d38918181fe065d68b15959ca277",
+    "adc2_12bit_sigma_2pct_three_arms_body_zoom.pdf": "8cd1e352577292e537aedc0c3ee9a023907dabf2accfb2137ac8c25a3e1de453",
+    "adc2_12bit_sigma_3pct_three_arms_envelope.csv": "25422d5e0faceb409d5165a630a9be4babac180daef0b7931def4db8ca0e90ef",
+    "adc2_12bit_sigma_3pct_three_arms.png": "5f4721eb45de090122031eab6c61e3459b2821fa4469d9ff0a83594fce1831c4",
+    "adc2_12bit_sigma_3pct_three_arms.svg": "dc519510e30f482590bc7bfa85213dafe18e48bf698ee770f9d14f6b85c0f62e",
+    "adc2_12bit_sigma_3pct_three_arms.pdf": "5e668c13b219cb0abc1e28ae84dd6c0fb2e84b4f8a509f2755d4d9674b343452",
+    "adc2_12bit_sigma_3pct_three_arms_body_zoom.png": "3cdec60bc68db35d16671717aa83fbf5695e5628cc9ad147053ee755be3259d9",
+    "adc2_12bit_sigma_3pct_three_arms_body_zoom.svg": "d6dd229b148a8c496dff074d317281f70273d62daaa1d9382041e795016f6311",
+    "adc2_12bit_sigma_3pct_three_arms_body_zoom.pdf": "56f40e893c3b0324afdad948fd8b9df132c602866b8ad08fa7e98049fb3140dd",
+    "adc2_16bit_sigma_2pct_envelope.csv": "8a07d05306096d202d62f44461e3a39a50ce9197ddd81498cd57e2350b1a87ce",
+    "adc2_16bit_sigma_2pct.png": "a37087fc1a1dbc37937e0fe545abc38065a9b6e47f8606aaeb0bf1ecef505f99",
+    "adc2_16bit_sigma_2pct.svg": "0f2d881bbc010e8eaeb9abcb574b07f3c7b8bbac4d35cdd427ff44558d840bf3",
+    "adc2_16bit_sigma_2pct.pdf": "53b3c68e819db17f2ba3f8fd4f24853c64626856188dab19d3cc35eaeb728884",
+    "adc2_16bit_sigma_3pct_envelope.csv": "31eaeb39cea86c1c5f639f732a671a01ee99d69b7be818a20c6fbb37d1789cab",
+    "adc2_16bit_sigma_3pct.png": "beb67ef1bf0eacb1683028f73777da3b1ddecd0bad8bace7f0040827f3368f21",
+    "adc2_16bit_sigma_3pct.svg": "50ced73f925f152c074def24b3a7846407609c0de59bbe82a2688a78bf086721",
+    "adc2_16bit_sigma_3pct.pdf": "f34ae13643a821188224a5be4a9a98163ba4f79149c7ce4ae9b562a03d5807e1",
+    "adc2_16bit_sigma_2pct_three_arms_envelope.csv": "146f2ded7f491a427669086e22434bcee727453fff7971a614d54c4b5e924ebf",
+    "adc2_16bit_sigma_2pct_three_arms.png": "cf553b6ac763092e5a48f0e883d9b42e6aca6b030d7d34f3cb19af032cd50ec1",
+    "adc2_16bit_sigma_2pct_three_arms.svg": "9aae50fb1a60879d5824ed0461aecef94f1c71a7a1b84bfbd6e399d01eada769",
+    "adc2_16bit_sigma_2pct_three_arms.pdf": "bf1d97a6c2406365bb5d2e0685e8e239180c251a14ad222b108b6402cdaedb75",
+    "adc2_16bit_sigma_3pct_three_arms_envelope.csv": "fc0a0139795595faf5b4d3f4815ec284c94d444407aee3ae87d0a35dfa5fafed",
+    "adc2_16bit_sigma_3pct_three_arms.png": "71b78790f08b4542fa1c20898be51a61b0ab9d8fd7deac1c0ad00251427c3b3d",
+    "adc2_16bit_sigma_3pct_three_arms.svg": "3542b2493bd83cb0132275e994afe4ac5768ef900e719e0593edba5be06136a6",
+    "adc2_16bit_sigma_3pct_three_arms.pdf": "5da13f25f5d80ae6fc9303adf55440224c7fd64e817d8bc503a70a5132a5d1d0"
+  }
+}

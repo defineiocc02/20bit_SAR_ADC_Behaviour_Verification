@@ -1,0 +1,55 @@
+{
+  "workflow": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42270594409/job/128073807786",
+  "archive": {
+    "path": "sar20_digital_lms_top_mapped_probe_42270594409.zip",
+    "bytes": 812428,
+    "sha256": "472f7b794c6bfe72ea1d4da43c9c9484c56824d9ef6ec2f73031406954f62ed5"
+  },
+  "mapped_sta": {
+    "run_id": "42270594409-1-sar20_digital_lms_top-mapped",
+    "rtl_commit": "c34193a977e76ca920a8f681103730183f984da4",
+    "clock_ns": 6.25,
+    "scope": "Mapped cells with ideal clocks and no routed RC. Diagnostic, final routed STA NOT_RUN.",
+    "timing": {
+      "setup": {
+        "worst_slack_ns": -7.268336,
+        "tns_ns": -4949.76123,
+        "first_path": [
+          "clear_i (input port clocked by task1_clk)",
+          "u_recon.negative_q[17]$_DFFE_PP_"
+        ]
+      },
+      "hold": {
+        "worst_slack_ns": 0.034222,
+        "tns_ns": 0.0,
+        "first_path": [
+          "adc2_error_o$_SDFF_PN0_",
+          "adc2_error_o (output port clocked by task1_clk)"
+        ]
+      }
+    },
+    "artifact_sha256": {
+      "synth_sta.rpt": "1349d076fa186f6f21dd3b03fde9543122512f6b37018892b9d4bbc580129db7",
+      "mapped_netlist.v": "8884300c84a80812ff9cd84a045b7cac85edd8ef19b6d3e7a0312109f8f8e5b5",
+      "plan.json": "79f369f269bae8d729391c4afe861aae16dc50314880ef6d64cddd41d895b27a",
+      "inputs.json": "08336a8b4d172b97096868b2f1fd0736b3a7b84d3a4bcb33325d9c57d98fe6ca",
+      "environment.json": "6e094c153d3816fb20a76232366a822fe787a4485ed43afdd78e43d799d8eb21"
+    }
+  },
+  "validated_input_count": 27,
+  "matching_physical_run_source": "d83e8ae7ebb198a6e8226abc25931ca70dff8957",
+  "diagnosis": {
+    "mapped_standard_cell_area_um2": 549472,
+    "path_from": "clear_i",
+    "path_to": "u_recon.negative_q[17]/DE",
+    "dominant_arc": {
+      "cell": "sky130_fd_sc_hd__inv_1",
+      "instance": "_67272_",
+      "output": "Y",
+      "net": "_02887_",
+      "delay_ns": 10.71,
+      "DE_pin_loads": 557
+    },
+    "scope": "Unbuffered, ideal-clock, unrouted mapped STA. This is a measured diagnostic, not routed timing or physical verification."
+  }
+}

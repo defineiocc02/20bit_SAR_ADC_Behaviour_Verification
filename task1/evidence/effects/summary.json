@@ -1,0 +1,122 @@
+{
+  "schema": "task1_effects_v1",
+  "model_scope": "定向行为实验。时偏实验使用活动切片采样电压的均值。电容实验使用单个虚拟制造样本、理想两节点电荷求解和理想余量读出，指标以输入等效电压计。",
+  "configuration": {
+    "fs_hz": 10000000,
+    "samples": 4096,
+    "tone_bin": 409,
+    "tone_peak_v": 3.3333333333333335,
+    "full_scale_peak_v": 5.0,
+    "skew_s": 5e-12,
+    "unit_cap_f": 1e-15,
+    "mismatch_sigma_unit": 0.001,
+    "manufacturing_seed": 100,
+    "schedule_seed": 608135816,
+    "dem_seed": 2654435769,
+    "static_repeats": 128,
+    "tone_hz": 998535.15625,
+    "mirror_hz": 4001464.84375,
+    "fft_window": "boxcar",
+    "sfdr_residual_fft_window": "blackmanharris",
+    "main_cap_weights": [
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      1,
+      1
+    ],
+    "sub_cap_weights": [
+      8,
+      4,
+      2,
+      1,
+      1
+    ],
+    "bridge_cap_weight": 1,
+    "sub_parasitic_f": 0.0,
+    "nominal_bridge_beta": 0.058823529411764705,
+    "static_levels": 512,
+    "usage_denominator_by_slice": [
+      1836,
+      1829,
+      1823,
+      1818,
+      1825,
+      1832,
+      1795,
+      1809,
+      1836,
+      1837,
+      1815,
+      1809,
+      1825,
+      1833,
+      1813,
+      1797,
+      1810,
+      1826
+    ]
+  },
+  "interleave": {
+    "fixed_ab": {
+      "SNDR_dB": 90.06973535429435,
+      "SFDR_dB": 90.06973534363487,
+      "spur_Hz": 4001464.84375,
+      "mirror_dBFS": -93.5915605401729
+    },
+    "dynamic": {
+      "SNDR_dB": 96.87095856810143,
+      "SFDR_dB": 114.42133410220973,
+      "spur_Hz": 4257812.5,
+      "mirror_dBFS": -128.09127499076175
+    }
+  },
+  "dem": {
+    "off": {
+      "SNDR_dB": 81.05238431488564,
+      "SFDR_dB": 91.75784309358119,
+      "spur_Hz": 1997070.3125,
+      "static_fit_residual_peak_v": 0.00025042609425385764,
+      "static_fit_residual_rms_v": 0.00012508948406852487,
+      "static_median_sigma_v": 0.00016859416460825074,
+      "nominal_tone_max_error_v": 3.1086244689504383e-15,
+      "nominal_static_max_error_v": 3.552713678800501e-15
+    },
+    "on": {
+      "SNDR_dB": 78.08582759134441,
+      "SFDR_dB": 98.03335699701633,
+      "spur_Hz": 3830566.40625,
+      "static_fit_residual_peak_v": 7.515911006192645e-05,
+      "static_fit_residual_rms_v": 3.241219897473525e-05,
+      "static_median_sigma_v": 0.0002888741058978483,
+      "nominal_tone_max_error_v": 3.1086244689504383e-15,
+      "nominal_static_max_error_v": 3.552713678800501e-15
+    }
+  },
+  "environment": {
+    "python": "3.12.14",
+    "numpy": "2.5.3",
+    "matplotlib": "3.11.2",
+    "platform": "Darwin"
+  },
+  "source_sha256": {
+    "task1/experiments/run_effects.py": "ec9635c6be81a1758785bc3ebb33714da427348b598dfcd3d3a6484692326c5c",
+    "task1/model/scheduler.py": "e6b2d50fa6bdaa607842bea0e86dc02e3fc531c7b832ea6a59858e48a7652f9f",
+    "task1/model/fig11_dem.py": "a3d7f040062ff7adf4c4b50fb90e59ee81491988973e5670e6e12e6e9789f39d",
+    "task1/model/module1.py": "c881976f3ed7c75f915d27b59fb69a2a58fa662ec4de6d51da09e4396573c3c2",
+    "src/adi_model/charge_ref.py": "74856592cdc665c4533744754b953cee55a6e8649368b8483b6ddbf619a0cebc",
+    "src/adi_model/metrics.py": "8877c362ac6ab765cb26f7dcd2a42263c9b0a0915d78134af9b322109edec5d9"
+  }
+}

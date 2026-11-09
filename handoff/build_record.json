@@ -1,0 +1,330 @@
+{
+  "scope": "document build only; no new ADC/RTL/physical verification",
+  "pages": [
+    {
+      "page": 1,
+      "characters": 1601,
+      "images": 0
+    },
+    {
+      "page": 2,
+      "characters": 1338,
+      "images": 1
+    },
+    {
+      "page": 3,
+      "characters": 760,
+      "images": 1
+    },
+    {
+      "page": 4,
+      "characters": 733,
+      "images": 1
+    },
+    {
+      "page": 5,
+      "characters": 681,
+      "images": 1
+    },
+    {
+      "page": 6,
+      "characters": 1145,
+      "images": 1
+    },
+    {
+      "page": 7,
+      "characters": 1712,
+      "images": 1
+    },
+    {
+      "page": 8,
+      "characters": 647,
+      "images": 1
+    },
+    {
+      "page": 9,
+      "characters": 687,
+      "images": 1
+    },
+    {
+      "page": 10,
+      "characters": 537,
+      "images": 2
+    },
+    {
+      "page": 11,
+      "characters": 978,
+      "images": 0
+    },
+    {
+      "page": 12,
+      "characters": 587,
+      "images": 1
+    },
+    {
+      "page": 13,
+      "characters": 674,
+      "images": 1
+    },
+    {
+      "page": 14,
+      "characters": 656,
+      "images": 2
+    },
+    {
+      "page": 15,
+      "characters": 575,
+      "images": 1
+    },
+    {
+      "page": 16,
+      "characters": 721,
+      "images": 1
+    },
+    {
+      "page": 17,
+      "characters": 1228,
+      "images": 1
+    },
+    {
+      "page": 18,
+      "characters": 471,
+      "images": 0
+    },
+    {
+      "page": 19,
+      "characters": 392,
+      "images": 0
+    },
+    {
+      "page": 20,
+      "characters": 459,
+      "images": 0
+    },
+    {
+      "page": 21,
+      "characters": 672,
+      "images": 0
+    },
+    {
+      "page": 22,
+      "characters": 543,
+      "images": 0
+    },
+    {
+      "page": 23,
+      "characters": 572,
+      "images": 0
+    },
+    {
+      "page": 24,
+      "characters": 753,
+      "images": 0
+    },
+    {
+      "page": 25,
+      "characters": 860,
+      "images": 0
+    }
+  ],
+  "images": [
+    {
+      "page": 2,
+      "dpi": 399.9620173269732,
+      "bbox": [
+        90.70899963378906,
+        126.65036010742188,
+        504.56829833984375,
+        333.489990234375
+      ]
+    },
+    {
+      "page": 3,
+      "dpi": 350.31599023162653,
+      "bbox": [
+        120.47200012207031,
+        140.72235107421875,
+        474.80352783203125,
+        516.8399658203125
+      ]
+    },
+    {
+      "page": 4,
+      "dpi": 367.9789712152903,
+      "bbox": [
+        128.9759979248047,
+        127.04168701171875,
+        466.29962158203125,
+        524.4339599609375
+      ]
+    },
+    {
+      "page": 5,
+      "dpi": 350.31599023162653,
+      "bbox": [
+        120.47200012207031,
+        126.61068725585938,
+        474.80352783203125,
+        461.4169921875
+      ]
+    },
+    {
+      "page": 6,
+      "dpi": 399.9620173269732,
+      "bbox": [
+        90.70899963378906,
+        412.16363525390625,
+        504.56829833984375,
+        500.011962890625
+      ]
+    },
+    {
+      "page": 7,
+      "dpi": 399.9620173269732,
+      "bbox": [
+        90.70899963378906,
+        320.2684326171875,
+        504.56829833984375,
+        442.1400146484375
+      ]
+    },
+    {
+      "page": 8,
+      "dpi": 375.9960603340462,
+      "bbox": [
+        110.55099487304688,
+        80.26556396484375,
+        484.7251281738281,
+        403.1199951171875
+      ]
+    },
+    {
+      "page": 9,
+      "dpi": 343.80632857158946,
+      "bbox": [
+        99.21299743652344,
+        82.16488647460938,
+        496.0643310546875,
+        395.6669921875
+      ]
+    },
+    {
+      "page": 10,
+      "dpi": 502.1869203379707,
+      "bbox": [
+        130.3939971923828,
+        82.16114807128906,
+        464.88299560546875,
+        305.10601806640625
+      ]
+    },
+    {
+      "page": 10,
+      "dpi": 541.971190324042,
+      "bbox": [
+        184.2519989013672,
+        346.3785400390625,
+        411.0242004394531,
+        614.9979858398438
+      ]
+    },
+    {
+      "page": 12,
+      "dpi": 425.22219082168795,
+      "bbox": [
+        138.89801025390625,
+        80.24777221679688,
+        456.37908935546875,
+        344.8999938964844
+      ]
+    },
+    {
+      "page": 13,
+      "dpi": 360.9870057250106,
+      "bbox": [
+        110.55099487304688,
+        82.09585571289062,
+        484.7251281738281,
+        334.8030090332031
+      ]
+    },
+    {
+      "page": 14,
+      "dpi": 397.29739108427106,
+      "bbox": [
+        127.55899810791016,
+        80.266845703125,
+        467.71728515625,
+        308.06597900390625
+      ]
+    },
+    {
+      "page": 14,
+      "dpi": 470.914881043827,
+      "bbox": [
+        155.906005859375,
+        349.349853515625,
+        439.3712463378906,
+        547.958984375
+      ]
+    },
+    {
+      "page": 15,
+      "dpi": 318.0072649144406,
+      "bbox": [
+        120.47200012207031,
+        82.1025390625,
+        474.80352783203125,
+        402.6990051269531
+      ]
+    },
+    {
+      "page": 16,
+      "dpi": 328.5058875667494,
+      "bbox": [
+        127.55899810791016,
+        80.78839111328125,
+        467.71728515625,
+        391.1390075683594
+      ]
+    },
+    {
+      "page": 17,
+      "dpi": 697.6285019632463,
+      "bbox": [
+        90.70899963378906,
+        80.39491271972656,
+        504.5682373046875,
+        267.09600830078125
+      ]
+    }
+  ],
+  "overfull_hbox": 0,
+  "source_sha256": {
+    "handoff/NINE_MONTH_PLAN.md": "90c4a2d6e222417bda7dc7411cbbf98cd8d7d1e97de7746f7482bba798292283",
+    "handoff/NINE_MONTH_PLAN.tex": "7694db09d5a64704585540ad36b78fd536535f6b8d06b6b9d67dbea30faa0758",
+    "handoff/NINE_MONTH_PLAN.pdf": "031f316a0182873aab0f3a03f89e13c55ca9596d4d6c049c90eba4ff11581401",
+    "handoff/report_template.tex": "63038a251086288a11951f87853b099fbb75a1b883dc895411f2981e986f1b6a",
+    "handoff/build_report.py": "caab018021fc40ee92bab737d38639991042f8726db3de63f4048768b9915ff2",
+    "handoff/source_figures.json": "c9e4c51199be2854a525ec1141a3a8aa041128edfb4de0beaceafd8c2269f126",
+    "handoff/behavioral_audit.json": "7d9e8597f8c479afe235a20d9e102c2911a3b4da76b68e8c8a3713a63e55cab4",
+    "handoff/coefficient_mode_diagnostic.json": "f5b0c92056c9c84a0bfef85472f19c0b0016fca940b8a3296e65a8cc5238e97e",
+    "handoff/figures/nine_month_plan.png": "a6c4614448171692f7a502718c148408c37f7b9de732f31f568748bdcf840fe0",
+    "task2/evidence/eight_negative/eight_native_linearity.png": "0f0132f4e18aa59f18df5143741759257461e2e4f6d223c228aece0eedef2e9c",
+    "task2/evidence/eight_negative/eight_native_no_lms_linearity.png": "74d5fb476ef6e45adf299331fdf2918c48374419c9d86caf042091c57a086ac0",
+    "task3/evidence/negative/joint_noise/caaz_joint_noise.png": "ffeb5fb4b9baf07a7bf8a7ab74fb2dd7f89750d7388af27875bed2f4d443bb2b",
+    "handoff/figures/signoff_flow.png": "e0102d5373d42de400d0415949feb32ae2e5d68af5128fa7e9798cc1756a3165",
+    "handoff/figures/coefficient_mode.png": "3ec3d24c024fb039c4a7257ca5b6d7b2d915cc920b7958534bb5f0dff9aae977",
+    "handoff/figures/source_isscc_architecture.png": "2ca4e0cd525772a54588424ab030561485b9e850b6c63fb601f8b2ac99845807",
+    "handoff/figures/source_dem_fig11.png": "9587e42278d222803caa95985433721bbfc04d926072a1e6cfbf7c6dbad44585",
+    "handoff/figures/source_dem_fig20.png": "c05feca37d8206742d949f841b3804894f0478fac174e1991e569e927f0db4e1",
+    "handoff/figures/source_dem_fig21.png": "1e9c65908217b2565d9a37ff02f963e1ed7a4cdc8238d529dfc484ee2a7aaed1",
+    "handoff/figures/source_dither_fig3.png": "4cadda5097062f14052824ec94fd31aad14d9161675bdd6276d03f9cc6ea9ee1",
+    "handoff/figures/source_dither_fig19.png": "6f36136168917c8fc923487785c1e6035c0f0701476ab1ec772a2b7a76f0c25b",
+    "handoff/figures/source_dither_fig5.png": "b0d00fc7759697cbf84c5165e95f92041da6d7ab8eedb8d62fb9ca7f921c712e",
+    "handoff/figures/source_dither_slide17.png": "b9bf076a31098fe083d0f336c728c6e2abc0cd889c699a7b0798b187e61203b2",
+    "handoff/figures/source_caaz_fig5.png": "f5083b7154fc3feed75a0d3dca9fe784dcee1d18cbc5b4bd53cf42f277fc30d0",
+    "handoff/figures/source_caaz_fig6.png": "90a172c4344cb8d79a930fbfd9434d7f5cdf5d116717172da7ca85602c4f38b4",
+    "handoff/figures/source_caaz_slide35.png": "2e1f3f6f4fdb42aae97d9ac2bee825c133a66cd2e483b39f1903e311ab4a2c80"
+  }
+}

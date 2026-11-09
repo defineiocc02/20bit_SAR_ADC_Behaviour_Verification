@@ -1,0 +1,19 @@
+{
+  "adapter": "openroad-yosys",
+  "container": "openroad/orfs@sha256:a6140cf4dc568e10238356f67b9fd73b9074955eeda6f2ee126bc60f5d7fc3ac",
+  "top": "dither8_top",
+  "platform": "sky130hd",
+  "corner": "TT 25 C 1.80 V, platform default RC",
+  "liberty": "sky130_fd_sc_hd__tt_025C_1v80.lib",
+  "clock_period_ns": 6.25,
+  "sdc": "task1/physical/sky130_constraint.sdc",
+  "clock_domain": "clk_i, synchronous reset/control",
+  "constraints": "Reuse task1 clock and I/O budget; check all timed ports and both path senses.",
+  "ppa_objective": "Preserve functionality and meet frozen timing first; record area, cell count and estimated power.",
+  "execution": {
+    "cores": 4,
+    "timeout_minutes": 40,
+    "stages": ["synth", "floorplan", "place", "cts", "route", "finish", "drc", "lvs"],
+    "stop": "Stop on failed P&R or missing OpenDB supply geometry before extraction. Archive timing/PV failures as diagnosed results."
+  }
+}

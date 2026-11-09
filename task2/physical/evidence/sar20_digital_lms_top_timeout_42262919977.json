@@ -1,0 +1,39 @@
+{
+  "workflow": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42262919977/job/128047250406",
+  "rtl_commit": "f82a96486806579a553c086bac49b9ac348e5ddc",
+  "top": "sar20_digital_lms_top",
+  "clock_ns": 6.25,
+  "corner": "SKY130HD TT 25 C 1.80 V",
+  "job_conclusion": "cancelled",
+  "job_limit_minutes": 40,
+  "last_completed_stage": "global route",
+  "prelayout_synth": {
+    "cell_area_um2": 548935,
+    "setup_worst_slack_ns": -21.442118,
+    "setup_tns_ns": -6631.174316,
+    "hold_worst_slack_ns": 0.020735,
+    "setup_from": "adc2_code_i[11]",
+    "setup_to": "u_recon.accum_num_q[12]"
+  },
+  "global_route": {
+    "elapsed_s": 696.37,
+    "reported_setup_slack_ns": -17.365,
+    "cell_area_um2": 689078
+  },
+  "detailed_route": {
+    "status": "NOT_RUN_TO_COMPLETION",
+    "last_log": "first optimization iteration, 20 percent",
+    "intermediate_marker_count": 28022
+  },
+  "final_gds_sta_pv": "NOT_RUN",
+  "complete_api_log_sha256": "53ad30625bb070fd24cff92517dbad4fc14dc9d7cccf3419f03e5f002925a7f7",
+  "preserved_stage_log": {
+    "path": "sar20_digital_lms_top_timeout_42262919977.log.gz",
+    "bytes": 81564,
+    "sha256": "f1781ec3e547a6ef4e6c09aae9769518ca1d207c1717e88d842bb439c025edff",
+    "source_line_range_1based": [
+      635,
+      6069
+    ]
+  }
+}

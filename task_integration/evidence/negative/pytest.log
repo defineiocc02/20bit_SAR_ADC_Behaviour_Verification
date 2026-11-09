@@ -1,0 +1,20 @@
+........................................................................ [ 38%]
+........................................................................ [ 77%]
+.........................................                                [100%]
+============================= slowest 15 durations =============================
+10.89s call     task2/eight/tests/test_baseline_frozen.py::test_baseline_fingerprint_is_unchanged
+1.00s call     task1/tests/test_fig11_dem.py::test_every_code_and_phase_conserves_selected_capacitance
+0.45s setup    task2/eight/tests/test_noise_injection.py::test_quiet_noise_reproduces_the_no_noise_capture_bit_for_bit
+0.30s call     task1/tests/test_fig21_bridge.py::test_bridge_compensates_two_node_charge_for_all_codes_and_phases
+0.22s call     task2/eight/tests/test_independent_charge.py::test_independent_charge_oracle
+0.19s setup    task2/eight/tests/test_reference_injection.py::test_disabled_reference_reproduces_the_no_reference_capture
+0.08s call     task2/tests/test_fig19_seven.py::test_fractional_word_alone_reproduces_archived_ideal_experiment
+0.07s call     src/tests/test_noise.py::test_flicker_recovers_sigma_on_ensemble_average
+0.04s call     src/tests/test_noise.py::test_flicker_spectrum_falls_as_one_over_f
+0.04s call     task1/tests/test_inl_dnl.py::test_ideal_quantizer_has_uniform_width_and_zero_inl_dnl
+0.02s call     src/tests/test_noise.py::test_flicker_normalisation_is_within_gross_error_bound
+0.02s call     task2/tests/test_fig19_seven.py::test_analytic_code_width_matches_independent_sample_grid
+0.01s call     src/tests/test_noise.py::test_white_is_uncorrelated_across_tags
+0.01s call     src/tests/test_noise.py::test_combine_adds_variance_of_independent_parts
+0.01s call     task2/eight/tests/test_reference_injection.py::test_smaller_time_constant_leaves_less_error
+185 passed in 13.85s

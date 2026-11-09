@@ -1,0 +1,104 @@
+{
+  "preset": {
+    "model_full_scale_half_v": 5.0,
+    "paper_full_scale_half_v": 3.0,
+    "scale_db": -4.436974992327128,
+    "model_bandwidth_hz": 5000000.0,
+    "paper_bandwidth_hz": 20000000.0
+  },
+  "A1": {
+    "sigma": 0.0,
+    "tone_bin": 409,
+    "tone_hz": 998535.15625,
+    "sndr_db": 95.40039724803961,
+    "sfdr_dbc": 118.76063492741956,
+    "dr_model_db": 98.92222242915324,
+    "dr_paper_db": 94.48524743682611,
+    "window_db": [
+      93.7,
+      94.7
+    ],
+    "status": "PASS"
+  },
+  "A2": {
+    "dr_with_mismatch_db": 94.43030399314699,
+    "dr_without_mismatch_db": 94.48524743682611,
+    "delta_db": -0.05494344367912163,
+    "window_db": 0.7,
+    "status": "PASS"
+  },
+  "A3": {
+    "sigma": 0.0,
+    "tone_bin": 24,
+    "tone_hz": 58593.75,
+    "sndr_db": 95.43137890062144,
+    "sfdr_dbc": 118.47243067748317,
+    "dr_model_db": 98.95320408173507,
+    "dr_paper_db": 94.51622908940794,
+    "window_db": [
+      93.2,
+      94.2
+    ],
+    "status": "FAIL"
+  },
+  "A4": {
+    "total_sigma_v": 4.1388524979757377e-05,
+    "density_model_nv_per_sqrt_hz": 18.50951106863712,
+    "density_paper_nv_per_sqrt_hz": 9.25475553431856,
+    "target_nv_per_sqrt_hz": 9.3,
+    "window_db": 1.0,
+    "status": "PASS"
+  },
+  "A5": {
+    "sfdr_dbc": 118.76063492741956,
+    "proxy": "sfdr",
+    "window_dbc": [
+      -117.0,
+      -101.0
+    ],
+    "status": "PARTIAL",
+    "reason": "模型无 C-V 非线性，THD 需逐次谐波分解；SFDR 已优于反拟合下限，说明缺的是论文里的失真机制，不是模型更优秀"
+  },
+  "budget": [
+    {
+      "name": "sampling_ktc",
+      "sigma_v": 2.01e-05,
+      "power_v2": 4.0401000000000003e-10,
+      "share": 0.23584801022761107,
+      "exclusive_dr_db": 100.46820398934366,
+      "evidence": "S5_假设"
+    },
+    {
+      "name": "reference",
+      "sigma_v": 3e-05,
+      "power_v2": 9e-10,
+      "share": 0.5253909784531322,
+      "exclusive_dr_db": 96.98970004336019,
+      "evidence": "S5_假设"
+    },
+    {
+      "name": "comparator",
+      "sigma_v": 2e-05,
+      "power_v2": 4.0000000000000007e-10,
+      "share": 0.23350710153472545,
+      "exclusive_dr_db": 100.51152522447381,
+      "evidence": "S5_假设"
+    },
+    {
+      "name": "adc2",
+      "sigma_v": 3e-06,
+      "power_v2": 9.000000000000001e-12,
+      "share": 0.005253909784531323,
+      "exclusive_dr_db": 116.98970004336019,
+      "evidence": "S5_假设"
+    },
+    {
+      "name": "total",
+      "sigma_v": 4.1388524979757377e-05,
+      "power_v2": 1.71301e-09,
+      "share": 1.0,
+      "exclusive_dr_db": 94.19452615531291,
+      "evidence": "论文 DR 反推"
+    }
+  ]
+}

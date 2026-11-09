@@ -1,0 +1,8 @@
+file,before_code,before_comments,before_rate,after_code,after_comments,after_rate
+src/adi_model/reference_mux.py,new,new,new,127,55,0.4331
+src/adi_model/transients.py,new,new,new,159,75,0.4717
+src/tests/test_transient_kernels.py,new,new,new,62,18,0.2903
+task2/eight/dynamic.py,new,new,new,369,75,0.2033
+task2/eight/dynamic_experiment.py,new,new,new,423,85,0.2009
+task2/eight/experiment.py,545,113,0.2073,561,115,0.205
+task2/eight/tests/test_dynamic_capture.py,new,new,new,297,62,0.2088

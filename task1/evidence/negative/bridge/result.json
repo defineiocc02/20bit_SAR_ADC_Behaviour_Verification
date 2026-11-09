@@ -1,0 +1,47 @@
+{
+  "counts": {
+    "leaf_cases": 65536,
+    "leaf_nonzero_corrections": 49152,
+    "top_accepts": 4100,
+    "top_bridge_prefixes": 2052,
+    "top_code_errors": 2,
+    "top_cycles": 4119,
+    "top_fig11_bypass_prefixes": 1024,
+    "top_fig11_dem_prefixes": 1025,
+    "top_nonzero_corrections": 1538,
+    "top_seed_errors": 2,
+    "top_stalls": 1,
+    "top_steady_slots": 4096
+  },
+  "log_sha256": {
+    "compile.log": "1fa95b2ce9dc3b1b8afdffe8a84e8f99d44b1a354502fc5e2c1d0b0373ccb87e",
+    "module1_bridge_top.lint.log": "0ab735d6f698ce78222b8d97f6191595b5318493ea5c82da7858a7359d389105",
+    "run.log": "2e84133c44f559d8d6b44653d9e3f10698c53a3a17df941222c8139b534e392f",
+    "verilator.log": "9b325a76af729d379e4d1ebdcc76beff3623527720f534ddb07666a887b615c1"
+  },
+  "mismatches": 0,
+  "schema_version": 1,
+  "scope": "TASK1_DIGITAL_BRIDGE_CANDIDATE",
+  "simulator": "Verilator 5.30",
+  "source_sha256": {
+    "task1/model/fig11_dem.py": "2cd2f553505f3e497e47587e070f7e503aa3b117fa2392720d5686b08d8d090a",
+    "task1/model/fig21_bridge.py": "f652ac24ce9b185b578c618557fc5871606b69abcb9fd32fa46d39b5c825acea",
+    "task1/model/module1.py": "af2303c24da3d910bda2fc97c28437bc3b570874f46f9a56d2fa3e3b4ee5984b",
+    "task1/model/module1_bridge.py": "3d94e3c83613775aa973ab09d4f6b6bdf74e343b2cdaf0bb248f10e9e97f8021",
+    "task1/model/scheduler.py": "a89e4c97f06508b6e2b98dec9fbc62baadea355f3c9f645ffc2b7e0480238d71",
+    "task1/rtl/fig11_dem.sv": "6374c562a712ee9eb9ed8ea9c3819891d84e3d91dfadd2e3856475cb253a70f0",
+    "task1/rtl/fig21_bridge.sv": "c86ad0e476e8561ace333a625877bbc8406709f4e35d8680098ab1b36369d209",
+    "task1/rtl/module1_bridge_top.sv": "6b05165d5bea6ff2509eb3217b5e3362e2d3380c36005e1af6182e068e8e1aa3",
+    "task1/rtl/module1_top.sv": "5f499cbfa09bfa9666b37a56c3360d667aaa670b7a307cfb98b40f0b177f2c93",
+    "task1/rtl/slice_scheduler.sv": "ed6dc0d648c3b603619da40b3bf49ee802fb7908c17eb75a99ac08659bb78888",
+    "task1/tb/bridge_checks_tb.sv": "1844072c33222f16ec56ecc13a4350bba73acc58ae07987b6e097836956b6bd0",
+    "task1/tools/run_bridge_checks.py": "42baf4fc8a3070646ad8db32ef00573cf3dae46b2042f18048a5fc5a6e7f0fae",
+    "task1/tools/run_rtl_checks.py": "47d947063ed801c3253cc001ee4b0f96cc080087ab4b3a946b0d803ea80c1319",
+    "tools/run_open_rtl.py": "02cdb53d0a3384aba292a0ad893f850c3c1e8c705d4f9a94008d9dcde2c08ed4"
+  },
+  "status": "PASS",
+  "vector_sha256": {
+    "leaf.hex": "0e4722a308dc356cb59e0a4e9b456d54bad2e9193aa95ee11a94108af77e8c55",
+    "top.hex": "a5be507de2df6ddf81143c9469fea68647bac2d64e5d5a23f9deee3777acb38b"
+  }
+}

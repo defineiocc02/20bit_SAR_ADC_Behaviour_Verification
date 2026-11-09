@@ -1,0 +1,393 @@
+{
+  "schema": "source-aligned-dynamics-v2",
+  "scope": "conditional model validation, not measured chip prediction",
+  "readiness": {
+    "timing": "VALIDATED",
+    "input_nominal": "CONDITIONAL_FIXED_R_C_MODEL",
+    "digital_absolute_error": "UNBOUND_NO_PREDICTION",
+    "reference_absolute_error": "UNBOUND_NO_PREDICTION",
+    "full_range_250_hits": "NOT_RUN"
+  },
+  "results": {
+    "sigma_2pct": {
+      "ideal": {
+        "config": {
+          "acquisition": false,
+          "crosstalk": false,
+          "reference": false,
+          "period_s": 1e-07,
+          "dac_bandwidth_multiple": 15.0,
+          "driver_tau_s": 0.0,
+          "command_fraction": 0.375,
+          "ra_start_fraction": 0.5,
+          "quiet_guard_s": 0.0,
+          "input_initial_v": 0.0
+        },
+        "tone": {
+          "sndr_db": 103.86889818218991,
+          "sfdr_dbc": 128.748788835428,
+          "enob": 16.961610993719255,
+          "independent_fft_sndr_db": 103.86889818457593,
+          "invalid_samples": 0,
+          "warmup_samples": 256
+        },
+        "linearity": {
+          "scope": "finite-hit local code-density; not full-range chip INL/DNL",
+          "first_signed_code": -64,
+          "code_count": 128,
+          "planned_hits_per_input_code": 512,
+          "minimum_measured_hits": 466,
+          "mean_measured_hits": 511.953125,
+          "maximum_measured_hits": 586,
+          "zero_hit_codes": 0,
+          "rejected_samples": 0,
+          "attempted_samples": 131072,
+          "dnl_min_lsb20": -0.08984375,
+          "dnl_max_lsb20": 0.14453125,
+          "endpoint_inl_peak_lsb20": 0.214599609375,
+          "input_window_v": [
+            -0.001220703125,
+            0.001220703125
+          ]
+        },
+        "tau_multiplier": [
+          1.0050031165529991,
+          0.997462395074281,
+          1.004112600222359,
+          0.999451439347384,
+          0.9985543274438649,
+          0.9986784906906697,
+          1.0042992248980351,
+          0.9983867920106549,
+          1.0070628704224736,
+          0.9999618724332444,
+          1.0021167158517166,
+          1.0028346139010276,
+          0.9994999889513713,
+          0.9949823226160014,
+          0.9971795250982658,
+          0.9971490467073527,
+          0.9995809779096867,
+          0.9944577777082616
+        ]
+      },
+      "input": {
+        "config": {
+          "acquisition": true,
+          "crosstalk": false,
+          "reference": false,
+          "period_s": 1e-07,
+          "dac_bandwidth_multiple": 15.0,
+          "driver_tau_s": 0.0,
+          "command_fraction": 0.375,
+          "ra_start_fraction": 0.5,
+          "quiet_guard_s": 0.0,
+          "input_initial_v": 0.0
+        },
+        "tone": {
+          "sndr_db": 96.99531778652229,
+          "sfdr_dbc": 116.50566921683394,
+          "enob": 15.819820230319317,
+          "independent_fft_sndr_db": 96.99531778701767,
+          "invalid_samples": 0,
+          "warmup_samples": 256
+        },
+        "linearity": {
+          "scope": "finite-hit local code-density; not full-range chip INL/DNL",
+          "first_signed_code": -64,
+          "code_count": 128,
+          "planned_hits_per_input_code": 512,
+          "minimum_measured_hits": 466,
+          "mean_measured_hits": 511.953125,
+          "maximum_measured_hits": 586,
+          "zero_hit_codes": 0,
+          "rejected_samples": 0,
+          "attempted_samples": 131072,
+          "dnl_min_lsb20": -0.08984375,
+          "dnl_max_lsb20": 0.14453125,
+          "endpoint_inl_peak_lsb20": 0.214599609375,
+          "input_window_v": [
+            -0.001220703125,
+            0.001220703125
+          ]
+        },
+        "tau_multiplier": [
+          1.0050031165529991,
+          0.997462395074281,
+          1.004112600222359,
+          0.999451439347384,
+          0.9985543274438649,
+          0.9986784906906697,
+          1.0042992248980351,
+          0.9983867920106549,
+          1.0070628704224736,
+          0.9999618724332444,
+          1.0021167158517166,
+          1.0028346139010276,
+          0.9994999889513713,
+          0.9949823226160014,
+          0.9971795250982658,
+          0.9971490467073527,
+          0.9995809779096867,
+          0.9944577777082616
+        ]
+      }
+    },
+    "sigma_3pct": {
+      "ideal": {
+        "config": {
+          "acquisition": false,
+          "crosstalk": false,
+          "reference": false,
+          "period_s": 1e-07,
+          "dac_bandwidth_multiple": 15.0,
+          "driver_tau_s": 0.0,
+          "command_fraction": 0.375,
+          "ra_start_fraction": 0.5,
+          "quiet_guard_s": 0.0,
+          "input_initial_v": 0.0
+        },
+        "tone": {
+          "sndr_db": 103.35586090918883,
+          "sfdr_dbc": 126.65779109772038,
+          "enob": 16.87638885534698,
+          "independent_fft_sndr_db": 103.35586091130928,
+          "invalid_samples": 0,
+          "warmup_samples": 256
+        },
+        "linearity": {
+          "scope": "finite-hit local code-density; not full-range chip INL/DNL",
+          "first_signed_code": -64,
+          "code_count": 128,
+          "planned_hits_per_input_code": 512,
+          "minimum_measured_hits": 450,
+          "mean_measured_hits": 512.0703125,
+          "maximum_measured_hits": 561,
+          "zero_hit_codes": 0,
+          "rejected_samples": 0,
+          "attempted_samples": 131072,
+          "dnl_min_lsb20": -0.12109375,
+          "dnl_max_lsb20": 0.095703125,
+          "endpoint_inl_peak_lsb20": 0.169219970703125,
+          "input_window_v": [
+            -0.001220703125,
+            0.001220703125
+          ]
+        },
+        "tau_multiplier": [
+          1.0075046748294991,
+          0.9961935926114217,
+          1.0061689003335388,
+          0.9991771590210761,
+          0.9978314911657972,
+          0.9980177360360046,
+          1.0064488373470524,
+          0.9975801880159821,
+          1.0105943056337103,
+          0.9999428086498664,
+          1.003175073777575,
+          1.0042519208515415,
+          0.9992499834270571,
+          0.9924734839240018,
+          0.9957692876473987,
+          0.9957235700610289,
+          0.9993714668645299,
+          0.9916866665623921
+        ]
+      },
+      "input": {
+        "config": {
+          "acquisition": true,
+          "crosstalk": false,
+          "reference": false,
+          "period_s": 1e-07,
+          "dac_bandwidth_multiple": 15.0,
+          "driver_tau_s": 0.0,
+          "command_fraction": 0.375,
+          "ra_start_fraction": 0.5,
+          "quiet_guard_s": 0.0,
+          "input_initial_v": 0.0
+        },
+        "tone": {
+          "sndr_db": 94.01453175171056,
+          "sfdr_dbc": 113.78422220761345,
+          "enob": 15.324673048456905,
+          "independent_fft_sndr_db": 94.01453175196032,
+          "invalid_samples": 0,
+          "warmup_samples": 256
+        },
+        "linearity": {
+          "scope": "finite-hit local code-density; not full-range chip INL/DNL",
+          "first_signed_code": -64,
+          "code_count": 128,
+          "planned_hits_per_input_code": 512,
+          "minimum_measured_hits": 450,
+          "mean_measured_hits": 512.0703125,
+          "maximum_measured_hits": 561,
+          "zero_hit_codes": 0,
+          "rejected_samples": 0,
+          "attempted_samples": 131072,
+          "dnl_min_lsb20": -0.12109375,
+          "dnl_max_lsb20": 0.095703125,
+          "endpoint_inl_peak_lsb20": 0.169219970703125,
+          "input_window_v": [
+            -0.001220703125,
+            0.001220703125
+          ]
+        },
+        "tau_multiplier": [
+          1.0075046748294991,
+          0.9961935926114217,
+          1.0061689003335388,
+          0.9991771590210761,
+          0.9978314911657972,
+          0.9980177360360046,
+          1.0064488373470524,
+          0.9975801880159821,
+          1.0105943056337103,
+          0.9999428086498664,
+          1.003175073777575,
+          1.0042519208515415,
+          0.9992499834270571,
+          0.9924734839240018,
+          0.9957692876473987,
+          0.9957235700610289,
+          0.9993714668645299,
+          0.9916866665623921
+        ]
+      }
+    }
+  },
+  "experiments": {
+    "sigma_2pct": {
+      "fs_hz": 10000000,
+      "samples": 4096,
+      "tone_bin": 409,
+      "tone_peak_v": 3.3333333333333335,
+      "full_scale_peak_v": 5.0,
+      "skew_s": 5e-12,
+      "unit_cap_f": 1e-15,
+      "mismatch_sigma_unit": 0.02,
+      "manufacturing_seed": 100,
+      "schedule_seed": 608135816,
+      "dem_seed": 2654435769,
+      "static_repeats": 128,
+      "noise": {
+        "enabled": false,
+        "include_thermal": true,
+        "temperature_k": 300.0,
+        "sampling_cap_f": 2.05e-11,
+        "comparator_sigma_v": 0.0,
+        "reference_sigma_v": 0.0,
+        "adc2_sigma_v": 0.0,
+        "ra_offset_v": 0.0,
+        "flicker_corner_hz": 0.0,
+        "noise_seed": 1592592919
+      },
+      "reference": {
+        "enabled": false,
+        "t_ra_s": 0.0,
+        "tau_s": 0.0,
+        "precharge_frac": 0.0,
+        "t_precharge_s": 0.0,
+        "ppm2": 0.0,
+        "ppm3": 0.0
+      }
+    },
+    "sigma_3pct": {
+      "fs_hz": 10000000,
+      "samples": 4096,
+      "tone_bin": 409,
+      "tone_peak_v": 3.3333333333333335,
+      "full_scale_peak_v": 5.0,
+      "skew_s": 5e-12,
+      "unit_cap_f": 1e-15,
+      "mismatch_sigma_unit": 0.03,
+      "manufacturing_seed": 100,
+      "schedule_seed": 608135816,
+      "dem_seed": 2654435769,
+      "static_repeats": 128,
+      "noise": {
+        "enabled": false,
+        "include_thermal": true,
+        "temperature_k": 300.0,
+        "sampling_cap_f": 2.05e-11,
+        "comparator_sigma_v": 0.0,
+        "reference_sigma_v": 0.0,
+        "adc2_sigma_v": 0.0,
+        "ra_offset_v": 0.0,
+        "flicker_corner_hz": 0.0,
+        "noise_seed": 1592592919
+      },
+      "reference": {
+        "enabled": false,
+        "t_ra_s": 0.0,
+        "tau_s": 0.0,
+        "precharge_frac": 0.0,
+        "t_precharge_s": 0.0,
+        "ppm2": 0.0,
+        "ppm3": 0.0
+      }
+    }
+  },
+  "normalized_unit_network": {
+    "internal_cap_f": 1.0,
+    "coarse_tau_s": 1.0,
+    "fine_pin_cap_f": 3.0,
+    "fine_source_r_ohm": 0.2,
+    "mux_r_ohm": 0.1,
+    "ra_tau_s": 0.3,
+    "reference_span_v": 1.0,
+    "coarse_offset_v": [
+      0.0,
+      0.0
+    ],
+    "source": "dimensionless validation only; not ADC parameters",
+    "auxiliary_domain": "independent",
+    "ra_initialization": "zero_reset"
+  },
+  "artifact_sha256": {
+    "aligned_mechanisms.png": "af4bcfad5c9e9cd8697fc13f668236ef6ecd14f43dd9d1acf6d7b5a1c4b0d8dd",
+    "aligned_mechanisms.svg": "71b6b7253752ca3cb98b0349bd06ac63e934a6305759ef56aa036830e8445e5a",
+    "aligned_mechanisms.pdf": "c37655fc9956b09fc88d5df5fa3de70a38fd557346f8f9ff04381d5b916fb733",
+    "aligned_input_spectra.png": "a5f8886d2199c9e0f0d28ca78f7bf0a4a2e1a6a4293bbba918a63eeb3a499fcc",
+    "aligned_input_spectra.svg": "21a43f110bfae0c41f3c2ad5f3ea58ce0e2c35e0e8f988b7b20780c8c9c5b439",
+    "aligned_input_spectra.pdf": "5fa907f497c6b317a006892f9df062c90ad9dab8bb4143a7cb8060e619233db2",
+    "aligned_local_linearity.png": "592ccf0a7cc86fdf5776ecdff291defc15eac1d0de1039d04167be7fb6629f60",
+    "aligned_local_linearity.svg": "65300293660eb5c7740862da1d63ff0cb22bcd3bf76fa771ca363329acd037cc",
+    "aligned_local_linearity.pdf": "14ddbf5f6a2bb77a80aea7710de35074420684e7d23d82927bfa5b7431f8b96a",
+    "data.npz": "0b9c1555ea0163f10902356ccec5d75cbf358ef979a7f7ea429c8f4994722142"
+  },
+  "source_sha256": {
+    "src/adi_model/transients.py": "570dd283daa30640aff91e6e114fdbb629eb485d57f940d7f932e91ebf0bab46",
+    "src/adi_model/reference_mux.py": "9b06d7c60f0c4874f7475334980d482cdfc3aa197e4a6104ca97b5597a07d7f8",
+    "task2/eight/dynamic.py": "9d58f215d4f1a2189d3166825611ba78b33e45b423e5e83e4b4d9760a5dc4d11",
+    "task2/eight/dynamic_experiment.py": "f4228ef70c7d61bb770d5cce38eaff95921fd1ea48304b862eded2353f5ce46a",
+    "task2/eight/experiment.py": "b1d45fcd39533c2e3d08da48a364820d75c7c3204182981980f7768babdfe5e3",
+    "task_reconstruction/fixed.py": "a4ca2c91ce4f70e0ff7209250796453c8f63e4c7df10c58e90742cba1f18c01c",
+    "src/adi_model/capacitors.py": "6bfe92640724b52fe82f203897db0f706a4d0390fc42cacbdb2de0b4025b575d",
+    "task1/model/module1.py": "af2303c24da3d910bda2fc97c28437bc3b570874f46f9a56d2fa3e3b4ee5984b",
+    "task1/model/scheduler.py": "a89e4c97f06508b6e2b98dec9fbc62baadea355f3c9f645ffc2b7e0480238d71"
+  },
+  "frozen_training_sha256": {
+    "2": "8f368cb06857057067971c8de43da54df43632357f917afe8724b56ab2af2aff",
+    "3": "884deab7ad896376c04e93b9b2ba596553ee7655fcbb607a202d755ff5aa3ebb"
+  },
+  "environment": {
+    "python": "3.12.14",
+    "numpy": "2.5.3",
+    "scipy": "1.18.1",
+    "matplotlib": "3.11.2",
+    "adctoolbox": "0.9.1"
+  },
+  "stimulus": {
+    "fs_hz": 10000000,
+    "tone_bin": 409,
+    "samples": 4096,
+    "tone_peak_v": 3.3333333333333335,
+    "codes": 128,
+    "hits_per_input_code": 512,
+    "guard_codes": 64,
+    "block": 4096
+  }
+}

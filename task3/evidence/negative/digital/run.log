@@ -1,0 +1,5 @@
+CAAZ20_COMPLETE cycles=2896 controls=1625 pairs=675 bypass=256 faults=10 id_boundary_checks=4
+- caaz20_pair_tb.sv:158: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.30
+- Verilator: $finish at 6us; walltime 0.030 s; speed 197.000 us/s
+- Verilator: cpu 0.029 s on 1 threads; alloced 0 MB

@@ -1,0 +1,91 @@
+{
+  "acquisition_ids": [
+    2,
+    3,
+    4,
+    5,
+    6
+  ],
+  "artifact_sha256": {
+    "caaz_cooperation.pdf": "fa0c744e9287e62415235c336309c919c91e3ecbec55f47b7ed50c0e8966d117",
+    "caaz_cooperation.png": "1e91e22500445e8080e306aea24ec783948ffb905faf976e22fe2b165d1d15ec",
+    "caaz_cooperation.svg": "b57042cc512053310cb5403d73aec1f4b1e67939b85270dc91421c186c74064b"
+  },
+  "az_applied_generations": [
+    0,
+    1,
+    1,
+    2,
+    2
+  ],
+  "az_intent_generations": [
+    1,
+    1,
+    2,
+    2,
+    3
+  ],
+  "conversion_ids": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "description": "Logical cooperation and steady-state sample ownership",
+  "figure_mm": [
+    146,
+    129
+  ],
+  "font": "Hiragino Sans GB",
+  "input_sha256": {
+    "references/ISSCC2024_PAPER.pdf": "2277ec0a2b889ee954f0866f2668adc1bf95f2214fae386c9a1d70203435cd96",
+    "references/ISSCC2024_SLIDES.pdf": "e7074c0f612c31bb76ad276fefaf6e6cf36479292248dc41085c4dadd1f8193a",
+    "references/PKU_VLSI2025_C32_1_PAPER.pdf": "eb958cfa40eed665abfffe2c7e9fc96aa031473da1e22c762d836410207ff550",
+    "references/PKU_VLSI2025_C32_1_SLIDES.pdf": "5921d65cfae061ca6301a6104460c2eff3803245c1bc976acecac16adfa79759",
+    "task1/BRIDGE_SPEC.md": "23c78acfd3e5bdb5d1c75bf6359b61f55fd7019a5fd48fa4d6b9d0a41d2c2e8d",
+    "task1/SPEC.md": "cba213103787ac65f0c20e20ebaf93ae7f4424b062fb5c205fdeac5e69d77814",
+    "task1/experiments/full20_linearity_plots.py": "54021fb4a2fa465f4c3c30c503a34570d8efd5ce34850ae57a078d0987ba3d8c",
+    "task1/rtl/module1_bridge_top.sv": "6b05165d5bea6ff2509eb3217b5e3362e2d3380c36005e1af6182e068e8e1aa3",
+    "task1/rtl/slice_scheduler.sv": "ed6dc0d648c3b603619da40b3bf49ee802fb7908c17eb75a99ac08659bb78888",
+    "task2/eight_rtl/SPEC.md": "15f266ce06f9847b9be588ce355b154ba4e5efe904fe8f259b632042ebe0caa2",
+    "task2/eight_rtl/rtl/dither8_top.sv": "42d9ad544d80258b0138b896d78003558df38a77e1ae11626cb9c1df079317ce",
+    "task3/SPEC.md": "d124b8a9b51477a3923bbc1f50025b84bdc375fc53d376070c8ac09f4bcc645f",
+    "task3/evidence/negative/integrated/joint_dither_caaz_data.npz": "e7f29e0e9929948d2589bbe8203ad8af80d88a6187eedf2e0f60d7216afd738d",
+    "task3/model/caaz20.py": "4798624dbef4dec1a249949f9858ca253428cae5d8cc36dbb486f6a288121cca",
+    "task3/rtl/caaz20_pair.sv": "aaa0f73d3c69f85e42beaf2799afc9c14051a77cec3839610a65bf6e301751c9",
+    "task3/tools/draw_cooperation.py": "33f0cc8fab3c23c56725146c1aca72d72b60bb96acdcc1e345d3224d4784d45b",
+    "task_integration/LMS_PIPELINE.md": "e5ff6b345c33a72dadb87b0e7dfe8645503911cd25ac36f77818f3cee8f179aa",
+    "task_integration/rtl/sar20_digital_lms_top.sv": "88e9bd04681610a4607b1e136ca68f1344d2adaca6332370c2d3a286b95e7b90",
+    "task_reconstruction/fixed.py": "a4ca2c91ce4f70e0ff7209250796453c8f63e4c7df10c58e90742cba1f18c01c"
+  },
+  "joint_fixture_3pct": {
+    "pairs": 2048,
+    "pairs_with_common_slice_ids": 0,
+    "pairs_with_distinct_dither_words": 2014
+  },
+  "pdf_labels": "Vector glyph outlines (Type 3) for portable rendering of OpenType/CFF",
+  "references": {
+    "ISSCC2024_PAPER.pdf": "Fig. 9.8.1 and 9.8.3",
+    "ISSCC2024_SLIDES.pdf": "PDF pages 17\u201318",
+    "PKU_VLSI2025_C32_1_PAPER.pdf": "Fig. 5 and 6",
+    "PKU_VLSI2025_C32_1_SLIDES.pdf": "slides 32\u201334, PDF pages 33\u201335"
+  },
+  "sample_pairs": [
+    [
+      2,
+      3
+    ],
+    [
+      4,
+      5
+    ]
+  ],
+  "sample_times_ns": [
+    0,
+    100,
+    200,
+    300,
+    400
+  ]
+}

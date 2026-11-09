@@ -1,0 +1,15 @@
+{
+  "evidence": "result.json",
+  "license_verified": false,
+  "machine": "arm64",
+  "notes": [
+    "本地功能验证由独立 Verilator 执行结果证明。",
+    "本地 PATH 探测没有验证本核的 PDK、综合与 STA。"
+  ],
+  "pdk_verified": false,
+  "platform_family": "Darwin",
+  "probe_version": "1.1",
+  "schema": "eda-environment-v1",
+  "timestamp_utc": "2026-11-06T17:09:54Z",
+  "verified_simulator": "Verilator 5.30"
+}

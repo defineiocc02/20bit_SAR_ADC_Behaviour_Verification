@@ -1,0 +1,11 @@
+read_liberty -lib cells.lib
+read_verilog -sv slice_scheduler.sv fig11_dem.sv module1_top.sv
+hierarchy -check -top module1_top
+synth -top module1_top -flatten -noabc
+dfflibmap -liberty cells.lib
+abc -liberty cells.lib -constr abc.constr -D 6250
+clean
+hierarchy -check -top module1_top
+check -assert
+tee -o synthesis.rpt stat -liberty cells.lib
+write_verilog -noattr module1_top.v

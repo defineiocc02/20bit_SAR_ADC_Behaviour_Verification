@@ -1,0 +1,5 @@
+SAR20_INTEGRATION_COMPLETE cycles=66662 checks=154045 steady=4096 bypass=64 pairs=2048 mismatched_dither_pairs=2019 rejections=4 late_returns=1 command_cases=4161 headroom_failures=1 macro_faults=2
+- task_integration/tb/sar20_integration_tb.sv:392: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.30
+- Verilator: $finish at 142us; walltime 0.072 s; speed 1.997 ms/s
+- Verilator: cpu 0.071 s on 1 threads; alloced 0 MB

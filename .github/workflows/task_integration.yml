@@ -1,0 +1,74 @@
+# =============================================================================
+# 文件名     : task_integration.yml
+# 模块名     : sar20_integration_ci
+# 版本       : v1.0
+# 功能       : 验证负注入、冻结权重与 CAAZ 的整体数字接口。
+# 设计说明   :
+#   [归属] 训练与带噪夹具均引用负注入目录，不继承旧正注入数值。
+#   [边界] 数字对拍不代替模拟宏绑定、综合、STA 或 GDS 验收。
+#   [失败] 任一子命令失败即终止，always 工件用于排障，不能当作通过记录。
+# 变更记录   : 增加负注入证据路径与库层源码触发。
+# =============================================================================
+name: 20b10mtask integrated digital verification
+
+on:
+  push:
+    branches: [20b10mtask]
+    paths:
+      - 'task_integration/**'
+      - 'task_reconstruction/**'
+      - 'task1/rtl/**'
+      - 'task1/requirements*.txt'
+      - 'task2/rtl/**'
+      - 'task2/eight*/**'
+      - 'task2/evidence/eight_native/**'
+      - 'task2/evidence/eight_negative/**'
+      - 'task3/evidence/negative/**'
+      - 'src/**'
+      - 'task3/rtl/**'
+      - 'tools/run_open_rtl.py'
+      - '.github/workflows/task_integration.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONPATH: .:src
+      OPENBLAS_NUM_THREADS: '1'
+      VERILATOR: verilator
+      CXX: clang++
+      OUT: /tmp/sar20-integration-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12.14'
+          cache: pip
+          cache-dependency-path: |
+            task1/requirements-calibration.txt
+            task1/requirements-ci.txt
+      - name: Install simulator and Python dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y verilator clang
+          python -m pip install -r task1/requirements-ci.txt
+      # [验证] 四个入口分别核对整数算术、外部返回、片上重构和带噪配对。
+      - name: Verify both top-level paths
+        run: |
+          python task_reconstruction/tools/run_checks.py --out "$OUT/reconstruction"
+          python task_integration/tools/run_checks.py --out "$OUT/external"
+          python task_integration/tools/run_lms_checks.py --out "$OUT/on_chip"
+          python task_integration/tools/run_joint_noise_rtl.py --out "$OUT/joint_noise"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sar20-digital-verification
+          path: ${{ env.OUT }}
+          retention-days: 14

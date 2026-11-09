@@ -1,0 +1,49 @@
+{
+  "workflow": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/42296886745/job/128164348906",
+  "archive": {
+    "path": "sar20_digital_lms_top_lvs_upstream_42296886745.zip",
+    "bytes": 16270715,
+    "sha256": "fdb0554b3b763d8cf85c6c89aacfb218a0d9638765d233ef31cf9cd8c9f5500a"
+  },
+  "frozen_source": {
+    "source": {
+      "top": "sar20_digital_lms_top",
+      "source_run": "42278312924-1-sar20_digital_lms_top-extended",
+      "rtl_commit": "43b2fc5b72d69182d4d29260125b70057f822621",
+      "sha256": {
+        "sar20_digital_lms_top.gds": "4aa02f35dae17c528f72bce9a06a7c8aee466c9a163d210ae54a9265a8ed02c3",
+        "sar20_digital_lms_top.odb": "98bd4b7e29f4c22f300eaa2aefd06349a21d6340a0ea10c8b66cba0ba6045cfe",
+        "sar20_digital_lms_top.sdc": "79d858942b4ed2d214d69c41bd9d57c81853fd995fe78a55fa8beb9b0f064159",
+        "sar20_digital_lms_top.v": "cfe56bb5d8cbcd32f9e3de77d16e766a79cb426631ca679d57cb8633a408dd7d",
+        "sar20_digital_lms_top.spef": "b2a69cd9959fa0aba9680a0410f5e215372f676d7202cd4c472c38966ea7da18"
+      },
+      "method": "Both decks use the same CDL exported from the frozen routed ODB."
+    },
+    "upstream_revision": "5eebdc0d06879cf674e86e3fb8efa2803e6e44dc",
+    "variants": {
+      "upstream": {
+        "status": "PASS",
+        "exit_code": 0,
+        "deck_sha256": "d2d231d7cd00a8261d6653c5f3757badefb1dc0aba29441d8406272e75cd8b90",
+        "log_sha256": "b004738f0dea3c5c1ebdd45d37d21edfdd46618d2336a11d53d5b6cbf4606816",
+        "database_sha256": "c3f967823bf0496b3ad2b9b2db8872d6fdc14cc4551349bca2f3a75454877456",
+        "database_complete": true
+      }
+    },
+    "deck_selection": "upstream",
+    "per_deck_timeout_seconds": 1800,
+    "reference_cdl_sha256": "6055e6205b033473def4b2fec79f74b2b115f79b510f387d54522ca5790abc62"
+  },
+  "offline_verification": {
+    "source_inputs_match_physical_commit": 27,
+    "source_gds_odb_sdc_v_spef_sha_match": true,
+    "same_gds_as_drc_run_42297095870": true,
+    "same_reference_cdl_as_short_run_42295575335": true,
+    "reference_cdl_sha256": "6055e6205b033473def4b2fec79f74b2b115f79b510f387d54522ca5790abc62",
+    "top_cdl_export_sha256": "00e85a08587584ee5204e956f65a2b8a24869a8f6ff76d09b9dad31883c373d1",
+    "top_cross_reference": "X(sar20_digital_lms_top SAR20_DIGITAL_LMS_TOP 1",
+    "database_bytes": 189618674,
+    "database_sha256": "c3f967823bf0496b3ad2b9b2db8872d6fdc14cc4551349bca2f3a75454877456"
+  },
+  "scope": "PASS of the frozen LMS digital GDS under the pinned official public SKY130HD LVS deck. Original deck and timeout records remain independent evidence."
+}

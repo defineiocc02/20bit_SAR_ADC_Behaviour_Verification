@@ -19,7 +19,27 @@ from types import SimpleNamespace
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-pytestmark = [pytest.mark.slow, pytest.mark.integration]
+
+
+def _verilator_available() -> bool:
+    """本机是否有可执行的 VERILATOR。"""
+    candidate = os.environ.get("VERILATOR") or shutil.which("verilator")
+    return bool(candidate) and os.access(candidate, os.X_OK)
+
+
+# 整个文件都需要 VERILATOR：它编译并运行 Fig19 的真实组件。
+# 2026-11-13：本机没有仿真器时，这里原先会产生 **47 个 collection error**
+# （每个参数化用例都在 fixture 里失败），看起来像"47 个测试坏了"。
+# 改为模块级 skip —— 环境缺口应当表现为 skip，而不是一堆 error。
+pytestmark = [
+    pytest.mark.slow,
+    pytest.mark.integration,
+    pytest.mark.skipif(
+        not _verilator_available(),
+        reason="requires VERILATOR to compile the Fig19 component; "
+        "no simulator on this host (an environment gap, not a model defect)",
+    ),
+]
 
 
 def _environment():

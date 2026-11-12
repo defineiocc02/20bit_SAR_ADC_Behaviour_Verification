@@ -307,6 +307,84 @@ def _per_physical_slice_counts(main_on, sub_on, slice_ids, geometry):
     return per_slice_main, per_slice_sub
 
 
+def _audit_one_code(
+    code: int,
+    *,
+    conv: np.ndarray,
+    packed: np.ndarray,
+    pool,
+    binding,
+) -> dict:
+    """审计单个码下的单元使用分布，返回该码的报告条目。
+
+    从 `usage_uniformity`（80 行）抽出的逐码审计体（原占 47 行）。
+    本函数**只读掩码、只算统计**，不改任何状态。
+
+    Args:
+    code: 9 位码（0..511），会校验类型与范围。
+    conv: (N, A) 实际转换片 ID。
+    packed: (N,) 每笔冻结的 DEM 状态。
+    pool: 提供几何的池。
+    binding: 具名掩码绑定。
+
+    Returns:
+    dict：该码的 per-slice 覆盖、主/子单元计数、极差、卡方与 uniform 判定。
+
+    Raises:
+    ConfigError: code 不是显式 9 位整数。
+
+    判据说明（与抽取前逐字一致）：
+    * 63+8 几何下用**卡方/自由度**而非极差——极差在 63 个桶上天然有
+      ~4*sqrt(mean) 的涨落，把涨落当偏置会误报；chi2/dof ≈ 1 才是"无系统偏置"。
+    * 17/5 几何下没有 selected_main 的解析式，退回极差判据（<=1）。
+    """
+    if type(code) is not int or not 0 <= code <= 511:
+        raise ConfigError("usage audit codes must be explicit 9-bit integers")
+    repeated = np.full(conv.shape[0], code, dtype=np.int64)
+    command = binding(pool.geometry, repeated, packed, conv)
+    # Per **physical slice** x unit, scattered through the real slice ids.
+    # `command.main_on.sum(axis=0)` would only give per-slot statistics.
+    per_slice_main, per_slice_sub = _per_physical_slice_counts(
+        command.main_on, command.sub_on, conv, pool.geometry
+    )
+    main = per_slice_main.sum(axis=0)
+    sub = per_slice_sub.sum(axis=0)
+    selected_main = int(repeated[0] // 8) if pool.geometry.n_main == 63 else None
+    active_main = main[main > 0]
+    active_sub = sub[:-1][sub[:-1] > 0] if pool.geometry.n_sub == 8 else sub[sub > 0]
+    main_range = int(active_main.max() - active_main.min()) if active_main.size else 0
+    sub_range = int(active_sub.max() - active_sub.min()) if active_sub.size else 0
+    covered_main = int(np.count_nonzero(main))
+    expected = None
+    main_chi2 = None
+    if selected_main is not None and selected_main > 0:
+        expected = conv.shape[0] * conv.shape[1] * selected_main / pool.geometry.n_main
+        # 等频的正确统计口径是卡方，不是极差：极差在 63 个桶上天然有 ~4*sqrt(mean) 的涨落，
+        # 把涨落当偏置会误报。chi2/dof ≈ 1 才是"无系统偏置"。
+        dof = max(active_main.size - 1, 1)
+        main_chi2 = float(np.sum((active_main - expected) ** 2) / expected / dof)
+        # 判据只设上界：确定性轮转的 chi2 接近 0，是最均匀的情形，不是异常。
+        uniform = main_chi2 <= 2.0
+    else:
+        uniform = main_range <= 1
+    uniform = bool(uniform and (sub_range <= 1 or active_sub.size <= 1))
+    slice_coverage = np.count_nonzero(per_slice_main, axis=1)
+    return {
+        "per_slice_units_covered": slice_coverage.tolist(),
+        "per_slice_coverage_min": int(slice_coverage.min()),
+        "unused_physical_slices": np.flatnonzero(slice_coverage == 0).tolist(),
+        "per_slice_sub_units_covered": np.count_nonzero(per_slice_sub, axis=1).tolist(),
+        "main_unit_counts": main.tolist(),
+        "main_range": main_range,
+        "main_units_covered": covered_main,
+        "expected_count_per_main_unit": expected,
+        "main_chi2_per_dof": main_chi2,
+        "sub_unit_counts": sub.tolist(),
+        "sub_range": sub_range,
+        "uniform": uniform,
+    }
+
+
 def usage_uniformity(
     pool,
     binding,
@@ -338,52 +416,9 @@ def usage_uniformity(
     report = {"samples": int(conv.shape[0]), "codes": {}}
     overall = True
     for code in codes:
-        if type(code) is not int or not 0 <= code <= 511:
-            raise ConfigError("usage audit codes must be explicit 9-bit integers")
-        repeated = np.full(conv.shape[0], code, dtype=np.int64)
-        command = binding(pool.geometry, repeated, packed, conv)
-        # Per **physical slice** x unit, scattered through the real slice ids.
-        # `command.main_on.sum(axis=0)` would only give per-slot statistics.
-        per_slice_main, per_slice_sub = _per_physical_slice_counts(
-            command.main_on, command.sub_on, conv, pool.geometry
-        )
-        main = per_slice_main.sum(axis=0)
-        sub = per_slice_sub.sum(axis=0)
-        selected_main = int(repeated[0] // 8) if pool.geometry.n_main == 63 else None
-        active_main = main[main > 0]
-        active_sub = sub[:-1][sub[:-1] > 0] if pool.geometry.n_sub == 8 else sub[sub > 0]
-        main_range = int(active_main.max() - active_main.min()) if active_main.size else 0
-        sub_range = int(active_sub.max() - active_sub.min()) if active_sub.size else 0
-        covered_main = int(np.count_nonzero(main))
-        expected = None
-        main_chi2 = None
-        if selected_main is not None and selected_main > 0:
-            expected = conv.shape[0] * conv.shape[1] * selected_main / pool.geometry.n_main
-            # 等频的正确统计口径是卡方，不是极差：极差在 63 个桶上天然有 ~4*sqrt(mean) 的涨落，
-            # 把涨落当偏置会误报。chi2/dof ≈ 1 才是"无系统偏置"。
-            dof = max(active_main.size - 1, 1)
-            main_chi2 = float(np.sum((active_main - expected) ** 2) / expected / dof)
-            # 判据只设上界：确定性轮转的 chi2 接近 0，是最均匀的情形，不是异常。
-            uniform = main_chi2 <= 2.0
-        else:
-            uniform = main_range <= 1
-        uniform = bool(uniform and (sub_range <= 1 or active_sub.size <= 1))
-        slice_coverage = np.count_nonzero(per_slice_main, axis=1)
-        report["codes"][str(code)] = {
-            "per_slice_units_covered": slice_coverage.tolist(),
-            "per_slice_coverage_min": int(slice_coverage.min()),
-            "unused_physical_slices": np.flatnonzero(slice_coverage == 0).tolist(),
-            "per_slice_sub_units_covered": np.count_nonzero(per_slice_sub, axis=1).tolist(),
-            "main_unit_counts": main.tolist(),
-            "main_range": main_range,
-            "main_units_covered": covered_main,
-            "expected_count_per_main_unit": expected,
-            "main_chi2_per_dof": main_chi2,
-            "sub_unit_counts": sub.tolist(),
-            "sub_range": sub_range,
-            "uniform": uniform,
-        }
-        overall = overall and uniform
+        entry = _audit_one_code(code, conv=conv, packed=packed, pool=pool, binding=binding)
+        report["codes"][str(code)] = entry
+        overall = overall and entry["uniform"]
     report["uniform"] = bool(overall)
     report["_note"] = "counts are per (physical slice aggregated, physical unit); not INL"
     return report

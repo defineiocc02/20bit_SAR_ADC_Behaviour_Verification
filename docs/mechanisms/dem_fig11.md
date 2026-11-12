@@ -4,10 +4,11 @@
 >
 > **2026-11-12 原件核对更新**：专利 PDF 已取得（扫描图像，无文本层）。
 > **FIG.19、FIG.20 已逐图核对**，原图存于 `figures/`。核对结论：
-> FIG.19 有 15×2C + B4/S4/B5–B8 二进制 + UNARY ENCODER 306 + 两个 shuffler
-> **+ 跨片 crossbar 362**；FIG.20 的"保留列"是 **shuffler 预留 `0` 输入 +
-> MX1–MX4 把 `−1` 送到真实某列**。
-> 因此：**"相位 15 映射到相位 0"不是保留列机制**，本实现属工程替代。
+> FIG.19 有 15×2C + B4/S4/B5–B8 + UNARY ENCODER 306 + 两个 shuffler + 元件 362；
+> FIG.20 的保留输入经 MUX 与 350 的跨片数据配合。
+> **注（R1/R2 修正）**：362 在正文里是**信号门**，不是大型 crossbar；
+> 此前"MX1 送 −1 到负轨"的读法已撤回，见 `source_reconciliation.md`。
+> 仍成立的是：**"相位 15 映射到相位 0"不是保留列机制**。
 > 正文（编码表、权重）仍不可读，标"正文未核对"。
 
 ---
@@ -19,7 +20,7 @@
 | 专利 | US10511316B2《Method of linearizing the transfer characteristic by dynamic element matching》 | 引用 |
 | 图 | **Fig.11**：分路电容阵列（15×2C + 2×1C 主阵列、8/4/2/1/1 子阵列、桥接电容 C） | 待核对原件 |
 | 图 | **FIG.19**：两 shuffler + 跨片 crossbar 362（[原件](figures/US10511316B2_FIG19_two_stage_shuffler.jpg)） | **已核对（Sheet 17/29）** |
-| 图 | **FIG.20**：保留列 = 预留 `0` 输入 + MX1–MX4 送 `−1`（[原件](figures/US10511316B2_FIG20_reserved_column_mux.jpg)） | **已核对（Sheet 18/29）** |
+| 图 | **FIG.20**：保留输入 + MUX 选择（[原件](figures/US10511316B2_FIG20_reserved_column_mux.jpg)） | **已核对图；解释已按 `source_reconciliation.md` R1 撤回"送 −1 到负轨"的读法** |
 | 相关论文页 | ISSCC 2024 §9.8 p.3、slides 29–31（3 维 DEM：8/18 片选 + 3b 横向 + 3b 纵向，合计 6b 范围） | 已入库 |
 
 **本工程选择**：以 Fig.11 的 17/5 分路阵列为**专利几何**（`fig11_masks`），

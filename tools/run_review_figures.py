@@ -233,7 +233,10 @@ def figure_psd(model, out: Path, *, n: int) -> dict:
         spec = metrics.power_spectral_density(voltage, FS_HZ)
         freq = np.asarray(spec["frequency_hz"])
         psd = np.asarray(spec["density_v2_hz"])
-        ax.semilogx(freq[1:], 10 * np.log10(psd[1:] / (V_FS**2 / 2)), lw=0.7, label=label)
+        # 每条曲线各自归一化到自己的基波：三者的有效增益不同（校准后重构增益略有差异），
+        # 不归一化会把"增益差"误读成"噪声差"。归一化后纵轴是 dBc/Hz。
+        reference = float(np.max(psd[1:]))  # 排除 DC bin
+        ax.semilogx(freq[1:], 10 * np.log10(psd[1:] / reference), lw=0.7, label=label)
         fitted = metrics.sine_fit_metrics(voltage, FS_HZ, fin)
         rows[label] = {
             "sndr_db": float(fitted["SNDR_dB"]),
@@ -241,7 +244,7 @@ def figure_psd(model, out: Path, *, n: int) -> dict:
             "nsd_nv": float(fitted["NSD_V_rtHz"]) * 1e9,
         }
     ax.set_xlabel("frequency [Hz]")
-    ax.set_ylabel("PSD [dBFS/Hz]")
+    ax.set_ylabel("PSD [dBc/Hz], normalized to each fundamental")
     ax.set_title(f"F04  coherent sine {fin/1e6:.3f} MHz, N={n}, same pool and seed")
     ax.grid(alpha=0.3, which="both")
     ax.legend(fontsize=8)

@@ -61,71 +61,53 @@ def _same_book(left: NominalCodebook, right: NominalCodebook) -> bool:
     )
 
 
-def execute_pipeline(
-    cfg: Config,
-    input_fn,
-    n_samples: int,
+def _validate_request(
+    cfg,
+    pool,
+    mapper,
+    n_samples,
     *,
-    pool: PhysicalSlicePool,
-    mapper: Mapper,
-    sample_ids,
-    dem_states,
-    sampled_top_v,
-    sampled_subnode_v,
-    reference_high_v,
-    reference_low_v,
-    nominal_reference_high_v,
-    nominal_reference_low_v,
-    static_charge_domain: bool,
-    state: DigitalState | None = None,
-    rng=None,
-    ra_input_error_v=None,
-    rdac_noise_cap_f=None,
-    sampling_control=None,
-    initial_reference_error_v=None,
-    initial_ra_output_v=None,
-    initial_adc2_input_v=None,
-    dither_program: Fig19DitherProgram | None = None,
-    dither_port: DitherPort | None = None,
-) -> SimResult:
-    """执行一段显式priming的记录，不修改Config或制造电容。
+    dither_program,
+    dither_port,
+    static_charge_domain,
+) -> int:
+    """Reject an unusable request before any state is touched.
 
-    Args:
-        cfg: 冻结schema的显式运行合同，不执行profile/架构重写。
-        input_fn: 单孔径输入[V]，时间[s]；每记录时间原点为0。
-        n_samples: 正整数raw数，所有无效/饱和事务均保留。
-        pool: 显式chip、nominal_codebook与实际mask/acquisition/schedule binding。
-        mapper: 512粗码到RDAC整数码的明确表；参考动态另需明确逐事件表。
-        sample_ids: (N,)实际连续uint32身份，保留回绕，不从ID制造启动相位。
-        dem_states: (N,)实际整数状态；DEM关闭时必须保持同一状态。
-        sampled_top_v: 显式标量或(N,A)采样主节点V，列按本笔实际acquisition组顺序；
-            首笔外部预采集使用conv[0]顺序。
-        sampled_subnode_v: 同顺序的显式采样sub节点V，不默填零。
-        reference_high_v: 实际全局高参考驱动基准V，标量或(N,)，未连接轨可None；
-            动态轨误差另由Engine状态叠加，不将基准称为已包含droop的采集节点。
-        reference_low_v: 实际全局低参考驱动基准V，标量或(N,)，不从v_fs推导。
-        nominal_reference_high_v: 独立数字名义高轨V，标量或(N,)。
-        nominal_reference_low_v: 独立数字名义低轨V，只有名义轨进入学习term。
-        static_charge_domain: 请求静态学习资格；引擎还须检查物理/动态条件，
-            True不是绕过资格检查的声明。
-        state: 可选已有数字状态/冻结权重；None仅用来源名义g0作float诊断。
-        rng: 可选显式噪声Generator；活跃噪声无此对象时使用明确cfg.seed。
-        ra_input_error_v: 可选(N,)RA输入等效[V]，不注入数字学习项。
-        rdac_noise_cap_f: 采样噪声启用时必填(N,)显式噪声等效电容[F]。
-        sampling_control: 原样传给数字采集binding的明确控制数据，无物理truth。
-        initial_reference_error_v: 活跃动态参考所需显式初始两轨误差V。
-        initial_ra_output_v: 活跃动态RA所需显式初始输出V。
-        initial_adc2_input_v: 活跃动态ADC2所需显式初始输入V，不默填0。
-        dither_program: 同一raw的Fig19静态等效Q32控制。SADC采x-L、RDAC存x-T，
-            各resolved命令减U；数字公共项为-T，不再额外纠正U。
+    This is the whole validation prologue that used to sit inline at the top of
+    `execute_pipeline`. It is pure: it reads its arguments, computes nothing that
+    is consumed later except the normalised sample count, and either raises
+    `ConfigError` or returns.
 
-    Returns:
-        SimResult；未装载冻结权重时out只为名义标量诊断，整数输出另调用to_codes。
+    Keeping it separate matters for two reasons. First, the error messages are the
+    contract a caller actually sees, so they deserve to be readable on their own.
+    Second, `execute_pipeline` had 691 lines mostly because 98 of them were these
+    guards; moving them out is a pure structural change and is proven by the
+    behaviour fingerprint (`tools/behavior_fingerprint.py --check`).
 
-    Raises:
-        ConfigError: 缺绑定、控制冲突、未支持电路域或缺活跃物理参数。
+    Parameters
+    ----------
+    cfg
+        Explicit run contract. `cfg.check_legal` is applied to the pool geometry.
+    pool, mapper
+        Must be an explicitly bound `PhysicalSlicePool` and a 512-row `Mapper`.
+    n_samples
+        Requested raw count; normalised to `int` here.
+    dither_program, dither_port
+        Mutually exclusive dither topologies (code-shift v1 / charge-port v2).
+    static_charge_domain
+        Whether the caller requests static-training qualification. `True` does not
+        bypass the engine-side physical checks that follow.
 
-    Side effects: 重置并消费pool采集资格；消费启用噪声RNG，不学习系数。
+    Returns
+    -------
+    int
+        `n_samples` as a plain int.
+
+    Raises
+    ------
+    ConfigError
+        Any binding, topology or feature combination the engine does not support.
+        Every message states which binding is wrong; none is a silent fallback.
     """
     if not isinstance(pool, PhysicalSlicePool) or not isinstance(mapper, Mapper):
         raise ConfigError("run_pipeline requires an explicit PhysicalSlicePool and Mapper")
@@ -225,6 +207,86 @@ def execute_pipeline(
         or cfg.input_network.auxiliary_cap_f not in (None, 0)
     ):
         raise ConfigError("pretracking/AUX requires a complete active acquisition-state binding")
+    return int(n_samples)
+
+
+def execute_pipeline(
+    cfg: Config,
+    input_fn,
+    n_samples: int,
+    *,
+    pool: PhysicalSlicePool,
+    mapper: Mapper,
+    sample_ids,
+    dem_states,
+    sampled_top_v,
+    sampled_subnode_v,
+    reference_high_v,
+    reference_low_v,
+    nominal_reference_high_v,
+    nominal_reference_low_v,
+    static_charge_domain: bool,
+    state: DigitalState | None = None,
+    rng=None,
+    ra_input_error_v=None,
+    rdac_noise_cap_f=None,
+    sampling_control=None,
+    initial_reference_error_v=None,
+    initial_ra_output_v=None,
+    initial_adc2_input_v=None,
+    dither_program: Fig19DitherProgram | None = None,
+    dither_port: DitherPort | None = None,
+) -> SimResult:
+    """执行一段显式priming的记录，不修改Config或制造电容。
+
+    Args:
+        cfg: 冻结schema的显式运行合同，不执行profile/架构重写。
+        input_fn: 单孔径输入[V]，时间[s]；每记录时间原点为0。
+        n_samples: 正整数raw数，所有无效/饱和事务均保留。
+        pool: 显式chip、nominal_codebook与实际mask/acquisition/schedule binding。
+        mapper: 512粗码到RDAC整数码的明确表；参考动态另需明确逐事件表。
+        sample_ids: (N,)实际连续uint32身份，保留回绕，不从ID制造启动相位。
+        dem_states: (N,)实际整数状态；DEM关闭时必须保持同一状态。
+        sampled_top_v: 显式标量或(N,A)采样主节点V，列按本笔实际acquisition组顺序；
+            首笔外部预采集使用conv[0]顺序。
+        sampled_subnode_v: 同顺序的显式采样sub节点V，不默填零。
+        reference_high_v: 实际全局高参考驱动基准V，标量或(N,)，未连接轨可None；
+            动态轨误差另由Engine状态叠加，不将基准称为已包含droop的采集节点。
+        reference_low_v: 实际全局低参考驱动基准V，标量或(N,)，不从v_fs推导。
+        nominal_reference_high_v: 独立数字名义高轨V，标量或(N,)。
+        nominal_reference_low_v: 独立数字名义低轨V，只有名义轨进入学习term。
+        static_charge_domain: 请求静态学习资格；引擎还须检查物理/动态条件，
+            True不是绕过资格检查的声明。
+        state: 可选已有数字状态/冻结权重；None仅用来源名义g0作float诊断。
+        rng: 可选显式噪声Generator；活跃噪声无此对象时使用明确cfg.seed。
+        ra_input_error_v: 可选(N,)RA输入等效[V]，不注入数字学习项。
+        rdac_noise_cap_f: 采样噪声启用时必填(N,)显式噪声等效电容[F]。
+        sampling_control: 原样传给数字采集binding的明确控制数据，无物理truth。
+        initial_reference_error_v: 活跃动态参考所需显式初始两轨误差V。
+        initial_ra_output_v: 活跃动态RA所需显式初始输出V。
+        initial_adc2_input_v: 活跃动态ADC2所需显式初始输入V，不默填0。
+        dither_program: 同一raw的Fig19静态等效Q32控制。SADC采x-L、RDAC存x-T，
+            各resolved命令减U；数字公共项为-T，不再额外纠正U。
+
+    Returns:
+        SimResult；未装载冻结权重时out只为名义标量诊断，整数输出另调用to_codes。
+
+    Raises:
+        ConfigError: 缺绑定、控制冲突、未支持电路域或缺活跃物理参数。
+
+    Side effects: 重置并消费pool采集资格；消费启用噪声RNG，不学习系数。
+    """
+    # 全部绑定/拓扑校验在 _validate_request 内完成；这里只取回规范化后的笔数。
+    n_samples = _validate_request(
+        cfg,
+        pool,
+        mapper,
+        n_samples,
+        dither_program=dither_program,
+        dither_port=dither_port,
+        static_charge_domain=static_charge_domain,
+    )
+    dither_active = dither_program is not None or dither_port is not None
     plan = pool.plan(n_samples)
     acquisition_ids = np.vstack((plan.conv[0:1], plan.acq[:-1]))
     if dither_program is not None:

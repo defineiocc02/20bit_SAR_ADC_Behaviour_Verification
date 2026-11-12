@@ -29,13 +29,19 @@ class TopologySpec:
 
     topology_id: str
     profile_id: str
+    # 2026-11-13：默认值随主链统一到专利 [11] FIG.11/19/20 的 17/5 阵列。
+    # 原来写的是已被用户否决的 63+8 工程替代拓扑（63 主 / 8 子 / 40.04 fF / beta=1/8）。
+    # 现在：主阵列 15×2C + B4 1C + S4 1C、子阵列装配 4 列、桥接电容 = 单元电容。
+    # ⚠️ 这些只是 dataclass 的兜底值；各 Profile 都会显式传参覆盖，
+    #    唯一真源是 `DefaultParameters`（`test_adi_profile_matches_default_parameters`
+    #    会校验两者逐项一致）。
     n_slices_pool: int = 18
     n_slices_active: int = 8
-    n_main: int = 63
-    n_sub: int = 8
-    c_unit_f: float = 40.0390625e-15
-    c_bridge_f: float = 45.75892857142857e-15
-    c_feedback_f: float = 640.625e-15
+    n_main: int = 17
+    n_sub: int = 5
+    c_unit_f: float = 7.7798861840e-14
+    c_bridge_f: float = 7.7798861840e-14
+    c_feedback_f: float = 6.40625e-13
     codebook_id: str = "uniform512"
     mask_bit_order: str = "slice_major_lsb_first"
     slot_to_slice_rule: str = "ordered_active_slots"

@@ -28,19 +28,31 @@
 
 ## 2. 现在的状态（一句话）
 
-**文档层基本补齐，代码层只修了确定性缺陷；拓扑统一（最大的一件事）没做。**
+**主链已统一到专利 17/5；全量测试 0 失败（1758 + 119）；干净克隆可复现。**
 
 | 维度 | 状态 |
 |:---|:---|
-| 模块 README | 7 个包全有（control/topology/calibration/behavioral/simulation/metrics/contracts）+ verification |
-| 原件核对 | 4/6 专利已核对图（`[10]` `[11]` `[13]` `[14]`）；`[09]` 未核；`[12]` 有文本层但只摘了 2 段 |
-| 测试 | `tests/unit + verification` **1561 passed, 4 skipped**（skip 是 dump 陈旧，见 §5） |
-| 静态检查 | `tools/check_engineering.py` **6/6**；ruff 74 项既有债务；mypy 8 项既有债务 |
-| V1 RTL 对拍 | 7 模块 / 4931 向量 / 0 不一致（VCS） |
-| V3 顶层 | `ELABORATED_ONLY`（elaborate + 复位 idle） |
-| V4 闭环 | `NOT_RUN` |
+| 拓扑 | 主链 17/5（主阵列 15×2C + B4 + S4；子阵列装配 4 列）；63+8 已从主链移除 |
+| 单元测试 | `tests/unit + verification + audit + regression` **1758 passed, 4 skipped, 4 xfailed** |
+| 集成测试 | `tests/integration` **119 passed, 48 skipped, 0 failed**（48 个 skip 需 VERILATOR）|
+| 静态检查 | `tools/check_engineering.py` **7/7** |
+| 行为指纹 | 与基线**逐位一致**（C7 门禁校验元数据）|
+| 干净克隆 | `tools/verify_clean_clone.sh` **8/8 全过**（含矩阵重跑与入库数据逐项比对）|
+| V1 RTL 对拍 | 7 模块 / 4931 向量 / 0 不一致（VCS）——**历史结论**，本机无 VCS 无法复跑 |
+| V3 顶层 | `ELABORATED_ONLY` —— **本机无 VCS，NOT_RUN** |
 
----
+### 2.1 仍然存在的已知缺口（不隐瞒）
+
+| 项 | 状态 |
+|:---|:---|
+| `sim/fixtures/fig19_ideal_ports/` | **63+8 时代的遗留向量集**。整套按 63/8 构造，无生成器脚本、本机无 VCS 无法验证重建 ⇒ 保留为历史证据并加 README 警告，**不是当前 golden 向量** |
+| `rtl_observation.py` / `export_rtl_params.py` 的 dither 合同 | 要求几何 `(63, 8, 0, 511)`。这与上面那份 fixture **自洽**；要改必须连 fixture 一起重建 |
+| 4 个 skip | `unit_therm` dump 陈旧（96 行 vs meta 84），需仿真器重生成 |
+| 48 个 skip | `test_source_bound_replay` 等需 VERILATOR，本机无 |
+| `execute_pipeline` | 662 行；AST 分析显示两个最大块自由变量 42/53 ⇒ **不可机械抽取**，需重新设计数据流 |
+| dither 配置（A6/C2/C3）| INL 4000+ LSB20，**深度失配**，数字不稳定、**不应引用**（见 §5） |
+| 后仿 / PEX / 硅测 | **全部 NOT_RUN** |
+| `source_conformance` | 硬编码 `NOT_ASSESSED`：单跑不能自证与原件一致，这是设计如此 |
 
 ## 3. 已完成（都有提交与证据）
 

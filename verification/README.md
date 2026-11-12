@@ -104,3 +104,36 @@ python -m verification.run_verification --level closed_loop
 * 不允许为了通过而改 golden、放宽位宽或改参考口径。
 * 任何 `NOT_RUN` 不计入 PASS；`PARTIAL` 不写成"基本通过"。
 * 本目录只做数字域一致性，不评价模拟精度、不评价论文指标复现。
+
+---
+
+## 8. 当前证据（2026-11-12，`2d787d4`）
+
+### 8.1 已证明
+
+| 项 | 结果 |
+|:---|:---|
+| V1 模块位真 | 7 个模块、4931 条向量、0 处不一致（VCS W-2024.09-SP1） |
+| 验证器能拒绝错误 | **27 项**注入：7 个比较器 × {删末行, 空 dump} + 9 项字段级注入 + 4 项新字段 |
+| 仿真失败不报 PASS | `simv` 非零退出 / `$fatal` / `Error-[` → `RUN_ERROR` |
+| 逐片比较 | `unit_therm` 逐 slot 逐位，slot 5 翻位会被抓 |
+
+### 8.2 已撤回的假覆盖
+
+`unit_therm` 原来写 `main_count = 64/127` 并声称"越界饱和覆盖"。6 位端口装不下，
+写 `.mem` 时被截成 0/63。**这条覆盖是假的**，向量已从 96 条减到 84 条。
+
+### 8.3 未证明
+
+| 项 | 状态 | 原因 |
+|:---|:---|:---|
+| V2 事务级 | PARTIAL | 调度器逐拍、div/recon 延迟已对拍；**没有** `epoch+sample_id+event_index` 统一 trace |
+| V3 顶层 | ELABORATED_ONLY | 只到 elaborate + 复位 idle；配置写入与样本流未驱动 |
+| V4 闭环 | NOT_RUN | 缺逐事件命令流桥 |
+| 温度计展开 ≠ Fig.21 DEM | 需登记 | `unit_therm` 只证明数值展开，不代表专利 DEM 的物理映射 |
+| 3 个模块 dump 陈旧 | skip | `unit_therm` 向量已变（84），需 vm-meow 可达时重跑 |
+
+### 8.4 已知会失败的环境
+
+`vm-meow` 偶发 `banner exchange` 超时。此时 `run_verification` 返回 `NOT_RUN`，
+不会伪造 PASS；相关测试标 skip 并写明原因。

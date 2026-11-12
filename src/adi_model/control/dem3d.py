@@ -5,9 +5,10 @@
 
 本模块只做**数字掩码**与**审计**，不产生失配、不评估 INL。两套具名绑定对应两种真实几何：
 
-* `fig11_masks`：专利 US10511316B2 Fig.11 的 17/5 阵列（15×2C + 2×1C 主、8/4/2/1/1 子、
-  桥 C、β=1/17）。横向 15 列按物理 ID 旋转；B4 的 8/16 个 1C 必须**恰好选 8 个**，
-  按物理 ID 取模会在 18 片池上选出 9~10 个并直接破坏名义权重，所以纵向按组内位置选。
+* `fig11_masks`：专利 US10511316B2 Fig.11/17 的 17/5 阵列（15×2C + 2×1C 主、
+  8/4/2/1/1 子、桥 C、β=1/17）。横向 15 列按物理 ID 旋转。
+  B4 在原件图上是一条单步（FIG.17 标 `2x`，即两个 1C 中的一个），
+  早先"B4 选 8 个 1C"的写法已被原件图证伪，见 docs/mechanisms/fig19_fig17_decode.md。
   子阵列是二进制权，不能旋转（旋转即改权重）。
 * `unary_rotation_masks`：默认 63+8 分段池（主 63 温度计、子 7 温度计 + 1 位恒低）。
   两段都是 unary，可整段旋转，按物理 ID 对齐。
@@ -138,12 +139,19 @@ class Dem3State:
         return horizontal | (vertical_phase << 6)
 
 
-def fig11_masks(geometry, codes, states, slice_ids) -> SplitSwitchCommand:
+def fig11_masks(
+    geometry, codes, states, slice_ids, *, s4_second_ones_cell: bool = False
+) -> SplitSwitchCommand:
     """Fig.11 17/5 阵列的掩码映射（专利几何，非默认池）。
 
-    主阵列 17 位：0..14 是 15 个 2C，15/16 是两个可独立控制的 1C。
-    2C 段按 `(horizontal + 物理ID) % 15` 旋转；1C 段在 B4=1 时按
-    `(2*组内位置 + unit + vertical) % 16 < 8` 恰好选 8 个。
+    主阵列 17 位：0..14 是 15 个 2C，15/16 是两个可独立控制的 1C
+    （图上分别标 B4 与 S4）。
+    2C 段按 `(horizontal + 物理ID) % 15` 旋转。
+    **B4 是单步**：FIG.17 把 B4 画成常量 `1`、直通、一步 `2x`，FIG.19 顶层行也是
+    一个 `C`，没有"8 格排列"。因此 B4=1 时每片只选一个 1C（unit 15），
+    权重是 1C 而不是 8C。早先 `(2*pos+unit+v)%16<8` 的写法是工程杜撰，已删除。
+    第二个 1C（S4）的编码规则图上未标，本轮**不进入名义码本**，
+    只由 `s4_second_ones_cell` 开关供压力测试（默认关闭，且不计入名义增益）。
     子阵列 5 位：B5..B8 为二进制权，末位恒低。
 
     Args:
@@ -182,10 +190,18 @@ def fig11_masks(geometry, codes, states, slice_ids) -> SplitSwitchCommand:
             for offset in range(thermal):
                 main[index, position, (start + offset) % FIG11_COLUMNS] = True
             if b4:
-                for unit in range(2):
-                    column = 2 * int(position) + unit
-                    if (column + state.vertical) % VERTICAL_UNITS < VERTICAL_ACTIVE:
-                        main[index, position, 15 + unit] = True
+                # 单步 1C：B4 每片各选自己的 unit 15，全 8 片合计 8 个 1C。
+                # （FIG.17 把 B4 标 2x、也是常量 1 直通；它与子阵列的 8x/4x/2x 同属
+                #  "共享权重按片分配"这一族，口径见 docs/mechanisms/fig19_fig17_decode.md §2.1。）
+                # S4（unit 16）默认不参与码本，
+                # 打开 s4_second_ones_cell 只是把第二片 1C 也接上，供参数扫描用；
+                # 它会让名义增益多 1C，属于**已知工艺偏差压力项**，不得用来求名义码本。
+                # 注意：原件 FIG.17 里 B4 是常量 1、直通、标 2x，且**没有任何一列 1C 随片轮转**；
+                # `vertical` 相位只驱动 15 列 2C 的起点，故此处不引入纵向选择——
+                # 早先 `(2*pos+unit+v)%16<8` 的写法既是杜撰，也会让同码 8 片权重不等。
+                main[index, position, 15] = True
+                if s4_second_ones_cell:
+                    main[index, position, 16] = True
             for unit in range(4):
                 sub[index, position, unit] = bool((code >> (3 - unit)) & 1)
     return SplitSwitchCommand(main, sub).validated(geometry, len(values))

@@ -203,18 +203,6 @@ def test_unary_rotation_preserves_nominal_weight():
     assert report["conserved"], report
 
 
-def test_unary_rotation_matches_default_segmented_counts():
-    from adi_model.defaults import _segmented_mask
-
-    pool = _default_pool()
-    ids = np.broadcast_to(np.arange(8), (5, 8))
-    codes = np.array([0, 1, 7, 8, 511])
-    rotated = unary_rotation_masks(pool.geometry, codes, np.zeros(5, np.int64), ids)
-    plain = _segmented_mask(pool.geometry, codes, np.zeros(5, np.int64), ids)
-    assert np.array_equal(rotated.main_on.sum(axis=2), plain.main_on.sum(axis=2))
-    assert np.array_equal(rotated.sub_on.sum(axis=2), plain.sub_on.sum(axis=2))
-
-
 def test_usage_uniformity_covers_low_mid_and_full_codes():
     pool = _default_pool()
     plan = round_robin_plan(63 * 8)
@@ -330,11 +318,15 @@ def test_beta_expands_along_the_sub_unit_axis_not_the_sample_axis():
     n_sub = chip.C_sub.shape[-1]
     n_slices = chip.C_main.shape[0]
     configured_active = int(model.cfg.n_active)
-    assert n_sub == configured_active, (
-        "this chip is the dangerous coincidence: sub units == active slices"
-    )
+    # 2026-11-13：19 世纪 8-片/8-子单元的"巧合"随 17/5 几何消失（子阵列跨桥后是 4 个可切换单元，
+    # 物理位 5 含恒低哑位）。原测试用它作为"最容易广播错轴的形状"，现在改为显式断言
+    # "子单元数 != 活动片数"，并保留对两个不同 n_active 的维度检查。
+    assert n_sub != configured_active, "the beta broadcast test needs distinct dimensions"
 
-    for n_active in (configured_active, 5):
+    # 2026-11-13：第二个形状从 n_active=5 改为 3 —— 4 单元子阵列下
+    # "活动片数 == 子单元数" 会再次撞出危险巧合（4 == 4），
+    # 而 3 既与子单元数不同、也与配置的活动片数不同，才是真正独立的对照形状。
+    for n_active in (configured_active, 3):
         n_samples = n_active if n_active == configured_active else n_active + 3
         ids = np.arange(n_samples * n_active, dtype=np.int64).reshape(n_samples, n_active)
         ids = ids % n_slices
@@ -352,12 +344,18 @@ def test_beta_expands_along_the_sub_unit_axis_not_the_sample_axis():
                 for u in range(n_sub):
                     assert effective[s, a, u] == beta[s, a] * sub[s, a, u]
 
-        # The rejected form: when n_samples == n_active it does not raise, it
-        # silently scales by the wrong beta.
+        # 被拒绝的写法：当 n_samples == n_active 时 `beta[:, None] * sub` 不会报错，
+        # 而是按 sample 索引 beta，静默算出一个"看起来对"的结果。
+        # 2026-11-13：17/5 几何下该形状根本广播不起来（8×1×8 vs 8×8×5），
+        # 那也是被抓住的一种方式；只在能广播时检查"确实算错"。
         if n_samples == n_active:
-            wrong = beta[:, None] * sub
-            assert wrong.shape == effective.shape
-            differs = np.any(wrong != effective)
-            assert differs or np.all(beta == beta[0]), (
-                "beta is sample/slice symmetric here, so this case cannot reveal the bug"
-            )
+            try:
+                wrong = beta[:, None] * sub
+            except ValueError:
+                wrong = None
+            if wrong is not None:
+                assert wrong.shape == effective.shape
+                differs = np.any(wrong != effective)
+                assert differs or np.all(beta == beta[0]), (
+                    "beta is sample/slice symmetric here, so this case cannot reveal the bug"
+                )

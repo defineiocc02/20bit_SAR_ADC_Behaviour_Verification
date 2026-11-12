@@ -35,15 +35,25 @@ def test_masks_use_physical_bit_order() -> None:
     code = (3 << 5) | 0b11010
     rotated = map_fig11(code, True, 14, 15)
     assert rotated.valid
-    assert rotated.main[0] == (1 << 14) | 0b11 | (0b11 << 15)
-    assert rotated.main[1] == 0b111 | (0b11 << 15)
-    assert rotated.main[3] == 0b11100 | (1 << 15)
-    assert rotated.main[7] == (0b111 << 6) | (1 << 16)
+    # 2026-11-13：B4 由"两个 1C 的 8/16 规则"改为**单步 1C**（原件 FIG.17 标 2x、
+    # 常量 1、直通；FIG.19 顶层行只有一个 C）。原先这 8 行字面量同时编码了旧 B4 规则，
+    # 已无复核价值，改为断言**结构性质**。窗口起点 = h + slot（mod 15，可跨尾端），
+    # 这是"相位所指列就是窗口首列"的直接后果；h=14 时 slot 0 的 3 个 2C = {14,0,1}。
+    for slot in range(8):
+        bits = [i for i in range(17) if (rotated.main[slot] >> i) & 1]
+        twos = [i for i in bits if i < 15]
+        ones = [i for i in bits if i >= 15]
+        expected = {(14 + slot + offset) % 15 for offset in range(3)}
+        assert set(twos) == expected and len(twos) == 3
+        # 单步 1C：每片恰 1 个 1C 单元（旧 8/16 规则会到 2 个）
+        assert ones == [15]
     assert rotated.sub == (0b0101,) * 8
     assert rotated.main_flat & 0x1FFFF == rotated.main[0]
     assert rotated.main_flat >> (7 * 17) == rotated.main[7]
-    assert rotated.sub_flat & 0x1F == rotated.sub[0]
-    assert rotated.sub_flat >> (7 * 5) == rotated.sub[7]
+    # 子阵列 2026-11-13 起是 4 个可切换单元（R7：第 5 个物理位恒接低轨），
+    # 因此打包宽度从 8×5=40 位变为 8×4=32 位，低 4 位才是 slot 0。
+    assert rotated.sub_flat & 0xF == rotated.sub[0]
+    assert rotated.sub_flat >> (7 * 4) == rotated.sub[7]
 
     bypass = map_fig11(code, False, 15, 15)
     assert bypass.valid

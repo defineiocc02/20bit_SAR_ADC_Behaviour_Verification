@@ -37,11 +37,18 @@ from adi_model.behavioral.reference import ReferenceConfig
 POOL_SLICES = 18
 GROUP_SLICES = 8
 
-# 主阵列 15 个 2C + 2 个 1C（共 32C）；子阵列 8C/4C/2C/1C/1C，末个 1C 恒接低轨。
+# 主阵列 15 个 2C + 2 个 1C（共 32C）；跨桥后子阵列只有 8C/4C/2C/1C 四个。
 MAIN_WEIGHTS = (2,) * 15 + (1, 1)
-SUB_WEIGHTS = (8, 4, 2, 1, 1)
-# 可切换特征去掉恒接低轨的末位，故是 4 项而非 5 项——这是设计事实，不是笔误。
-SUB_FEATURES = SUB_WEIGHTS[:-1]
+# 2026-11-13 修正（R7 落地）：原为 5 项 (8,4,2,1,1)，末位 1C 其实是**桥接电容本身**
+# 被数成了子阵列单元。证据：US10511316B2 FIG.19 放大后跨桥只有 8C/4C/2C/C 四个电容
+# （docs/decisions/20261112_fig11_unification.md §5.1、docs/mechanisms/source_reconciliation.md R7）。
+# 自洽性：β=Cb/(Cb+ΣB)；要求 512 个 LSB 之和恰好等于主阵列 32C，则 ΣB 必须是 15C，
+# 而 8+4+2+1=15 ✓、8+4+2+1+1=16 ✗。实测 DNL：5 项为 +0.886 LSB（步长 2:1）、4 项恒 0。
+SUB_WEIGHTS = (8, 4, 2, 1)
+# 子阵列五个物理单元里，第 5 个是恒接低轨的哑单元（不参与码、不参与驱动）。
+# 保留这个命名是为了让"物理 5 个单元 / 可切换 4 个"分开可读，
+# 而不是像旧版那样把它混进权重表。模型侧不建模该哑单元（无电学效果）。
+SUB_FEATURES = SUB_WEIGHTS
 
 # 桥接电容 1C。与零寄生假设共同给出子阵列对主阵列的耦合系数 β=1/17。
 # 放在这里而非 fig11_dem，是因为 cap_pool 建桥接电容时就要用它；

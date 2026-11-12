@@ -18,7 +18,8 @@ import numpy as np
 
 from adi_model.calibration.weight_calibration import CalibrationSpec
 from adi_model.contracts.fixed_point import CodeStream, FixedPointFormat, FixedPointReconstructor
-from adi_model.control.dem import SamplingConnections, SplitSwitchCommand, SplitSwitchGeometry
+from adi_model.control.dem import SamplingConnections, SplitSwitchGeometry
+from adi_model.control.dem3d import fig11_masks
 from adi_model.control.dither import (
     FIG19_FRACTIONAL_WEIGHTS_Q,
     Fig19DitherProgram,
@@ -74,8 +75,8 @@ class DefaultParameters:
     失配 std 为相对标准差。底层电荷与译码器使用该名义规格，位宽仍只是整数算术约定。
     """
 
-    n_main: int = 63
-    n_sub: int = 8
+    n_main: int = 17
+    n_sub: int = 5
     unit_cap_f: float = 4.00390625e-14
     bridge_cap_f: float = 4.575892857142857e-14
     feedback_cap_f: float = 6.40625e-13
@@ -103,8 +104,17 @@ class DefaultParameters:
             value = getattr(self, name)
             if type(value) is not int or value < 1:
                 raise ConfigError(f"{name} must be a positive integer")
-        if (self.n_main + 1) * self.n_sub != 512:
-            raise ConfigError("the default segmented decoder needs (n_main+1)*n_sub=512")
+        # 2026-11-13：默认链已从 63+8 分段阵列切到专利 Fig.11 的 17/5 阵列。
+        # 守卫从"码数 = (n_main+1)*n_sub"改成"静态 17/5"：前者是 63+8 的专用码本律，
+        # 后者才能与 fig11_masks 的硬约束（n_main==17、n_sub==5）保持一致。
+        # 为什么不再允许任意几何：码→掩码的分解（B0..B3 → 15 个 2C、B4 → 1C、
+        # B5..B8 → 子阵列二进制）只在 17/5 上有原件依据（US10511316B2 FIG.11/17/19/20），
+        # 换成别的几何就必须重写解码，而不是只改两个整数。
+        if (self.n_main, self.n_sub) != (17, 5):
+            raise ConfigError(
+                "the default decoder implements the Fig.11 17/5 array only; "
+                "a different geometry needs its own explicit decoder"
+            )
         for name in ("unit_cap_f", "bridge_cap_f", "feedback_cap_f"):
             _positive(getattr(self, name), name)
         for name in (
@@ -126,19 +136,6 @@ class DefaultRun:
     raw: SimResult
     codes: CodeStream
     metadata: dict
-
-
-def _segmented_mask(geometry, codes, states, slice_ids) -> SplitSwitchCommand:
-    if np.any(states != 0):
-        raise ConfigError("the inferred basic decoder has no source-validated unit DEM states")
-    main_count, sub_count = codes // geometry.n_sub, codes % geometry.n_sub
-    main = np.arange(geometry.n_main)[None, None, :] < main_count[:, None, None]
-    sub = np.arange(geometry.n_sub)[None, None, :] < sub_count[:, None, None]
-    shape = (len(codes), geometry.n_active)
-    return SplitSwitchCommand(
-        np.broadcast_to(main, (*shape, geometry.n_main)).copy(),
-        np.broadcast_to(sub, (*shape, geometry.n_sub)).copy(),
-    )
 
 
 def _all_signal(geometry, sample_ids, slice_ids, control) -> SamplingConnections:
@@ -647,7 +644,7 @@ class DefaultModel:
             cfg,
             chip=self.chip,
             nominal_codebook=self.codebook,
-            mask_binding=_segmented_mask,
+            mask_binding=fig11_masks,
             acquisition_binding=_all_signal,
             schedule_binding=_schedule(schedule_seed),
         )

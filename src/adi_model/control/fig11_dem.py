@@ -45,7 +45,7 @@ from adi_model.topology.capacitors import GROUP_SLICES, MAIN_WEIGHTS, SUB_WEIGHT
 # 改动任何一个都必须同步重跑 262144 组 DEM 对拍。
 # -------------------------------------------------------------------------
 MAIN_CAP_UNITS = MAIN_WEIGHTS  # 15 个 2C + 2 个 1C，共 32C；两个 1C 假定可独立切换
-SUB_CAP_UNITS = SUB_WEIGHTS  # 8C/4C/2C/1C/1C；末个 1C 恒接低轨（工程改动，待核实）
+SUB_CAP_UNITS = SUB_WEIGHTS  # 跨桥后 8C/4C/2C/1C 四个（R7：第 5 个物理位是恒接低轨的哑单元）
 SLOT_COUNT = GROUP_SLICES  # 每笔采样的活动 slice 数，对应 18 片池中的 8 片
 _EMPTY_SLOTS = (0,) * SLOT_COUNT  # 非法相位时返回的全零掩码，valid=False
 
@@ -147,10 +147,10 @@ def map_fig11(
         therm_mask = sum(
             1 << ((start + offset) % 15) for offset in range(therm_count)
         )  # 温度计掩码按 15 取模环绕，不越界到 1C 区
-        ones_mask = sum(
-            1 << (15 + unit)
-            for unit in range(2)
-            if b4 and (2 * slot + unit - vertical_phase) % 16 < 8
-        )
+        # B4 单步（2026-11-13 修正）：原件 FIG.17 把 B4 画成常量 1、直通、标 `2x`，
+        # FIG.19 顶层行只有一个 C，FIG.20 的 4x/2x 是子阵列（每片各一份、8 片合计）。
+        # 旧实现 `(2*slot+unit-v)%16<8` 会在**同一片同时打开 unit15 与 unit16**（=8C/片，
+        # 与 `2x` 不符），还会让"打开哪些 1C"随 slot 漂移。现改为每片恒选 unit15。
+        ones_mask = (1 << 15) if b4 else 0
         main.append(therm_mask | ones_mask)  # 2C 段与 1C 段拼成本片 17 位主掩码
     return Fig11Masks(tuple(main), (sub_mask,) * SLOT_COUNT, True, reserved_hit)

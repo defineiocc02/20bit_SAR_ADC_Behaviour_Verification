@@ -40,10 +40,18 @@ from adi_model.topology.capacitors import (
     unpack,
 )
 
-MAIN_BITS = len(MAIN_WEIGHTS)
-SUB_BITS = len(SUB_WEIGHTS)
+# 阵列维数来自原件 FIG.11：17 个主单元（15×2C + 1C(B4) + 1C(S4)）、
+# 子阵列跨桥后只有 8C/4C/2C/1C 四个可切换单元（第 5 个物理位是恒接低轨的哑单元）。
+# 2026-11-13：原实现写作 len(SUB_WEIGHTS)-1、SUB_WEIGHTS[:-1]，
+# 在 SUB_WEIGHTS 由 5 项变 4 项（R7）后会把真实单元数少算一个——
+# 这正是"权重表与派生常量各改一半"的典型失效，故改成显式常量与断言。
+MAIN_BITS = 17
+SUB_BITS = 5
+SUB_DITHER_UNITS = 4
+assert len(MAIN_WEIGHTS) == MAIN_BITS, "主阵列单元数必须与 FIG.11 的 17 个单元一致"
+assert len(SUB_WEIGHTS) == SUB_DITHER_UNITS, "子阵列可切换单元数必须为 4（R7）"
 FEATURES_PER_SLICE = MAIN_BITS + SUB_BITS - 1
-SUB_DITHER_WEIGHTS = np.array(SUB_WEIGHTS[:-1], dtype=np.uint8)
+SUB_DITHER_WEIGHTS = np.array(SUB_WEIGHTS[:SUB_DITHER_UNITS], dtype=np.uint8)
 
 
 # =========================================================================

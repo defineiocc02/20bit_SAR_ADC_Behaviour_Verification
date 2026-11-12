@@ -15,9 +15,11 @@
 | P3 dither 电荷口 | ✅（模型） | `dither_port.py`；非法早期码 6368→0；Fig.11 残余 6.70 mV = 1170 LSB20 |
 | P3 dither 范围预算 | ✅ | 64 字下 SADC 下界 −2.9648 V（缺口 35.16 mV = 6144 LSB20） |
 | P3 TRACK/AUX 记账 | ⚠️ 部分 | `track_aux.py` 因果审计 0 违约；输入电荷降 6.36×；AUX 支路未接 |
-| P4 消融矩阵 | ⚠️ 部分 | 5 条实跑 + 3 条 NOT_RUN；`data/p4_ablation.{json,csv}` |
+| P4 消融矩阵 | ⚠️ 部分 | 6 条实跑 + 2 条 NOT_RUN；`data/p4_ablation.{json,csv}` |
+| P4 逐码校准 | ✅ | INL 25.4→11.0 LSB20（2.31×）、SFDR +10.5 dB，SNR/DR/NSD 不变 |
+| P4 逐单元权值 | ❌ 不可辨识 | 残差域 96 V−96 V→0.1 V，实测残差 80 mV/14 V、权重 −43 V；留作负结果 |
 | P4 热噪声对标 | ✅ | 模型 8.60 nV/√Hz vs 论文 9.3（0.92×） |
-| P4 线性度对标 | ❌ 未达标 | INL 14.9 LSB20（DEM 后）vs 论文 2.3；主因未做权值校准 |
+| P4 线性度对标 | ❌ 未达标 | INL 11.0 LSB20（校准后）vs 论文 2.3；剩余差距=片间组合误差+表项噪声 |
 | 40 nm/电压口径 | ✅ | `06_paper_anchor_40nm.md`：3.3 V 器件 / 1.1 V 数字 / 6 Vpp / 20.5 pF / 1.8 mA 逐条出处 |
 
 ## 0. P0–P2（本轮新增）

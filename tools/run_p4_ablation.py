@@ -27,6 +27,7 @@ from adi_model.defaults import DefaultModel, DefaultParameters, _schedule
 from adi_model.dem3d import Dem3State, round_robin_plan, unary_rotation_masks
 from adi_model.pipeline import run_pipeline
 from adi_model.slice_pool import PhysicalSlicePool
+from adi_model.mask_calibration import fit_code_correction
 
 FS_HZ = 40e6
 V_FS = 3.0
@@ -62,8 +63,32 @@ def _noise_cap_f(model, ids: np.ndarray) -> np.ndarray:
     return norm**2 / factor
 
 
-def _run(model, input_fn, n_samples: int, *, dem: bool, uniform_plan: bool):
-    """执行一次显式配置；DEM 打开时用旋转掩码，否则复用默认分段掩码。"""
+def _ramp_fn(values):
+    """把逐笔电平序列变成**逐笔恒定**的 input_fn（零阶保持）。
+
+    不能用线性插值：孔径时刻不保证落在样本格点上，插值会让"训练参考电平"与
+    实际采样值差最多一个斜坡步长，拟合残差被这个系统误差吃掉
+    （实测残差 833 uV，其中大部分不是器件误差）。零阶保持使第 i 笔的采样值
+    严格等于 values[i]，训练参考才是真正的已知输入。
+    """
+    table = np.asarray(values, dtype=float)
+    last = table.size - 1
+    # 用 rint 而不是 floor：孔径时刻是 i/fs，浮点乘回来可能是 6334.99999999，
+    # floor 会取到前一笔——对**乱序**电平表来说就是取到一个完全无关的电压
+    # （实测造成 5.5 V 级误差，且只在部分样本上出现）。
+    def fn(t):
+        index = np.rint(np.asarray(t, dtype=float) * FS_HZ).astype(np.int64)
+        return table[np.clip(index, 0, last)]
+
+    return fn
+
+
+def _run(model, input_fn, n_samples: int, *, dem: bool, uniform_plan: bool, calibration=None):
+    """执行一次显式配置；DEM 打开时用旋转掩码，否则复用默认分段掩码。
+
+    calibration 给定时用它替换名义解码（`FrozenCalibration.reconstruct`），
+    返回的电压是校准后的浮点重构，不是 20bit 整数码。
+    """
     from adi_model.defaults import _all_signal, _segmented_mask
 
     cfg = replace(model.cfg, dem_enable=dem)
@@ -102,10 +127,16 @@ def _run(model, input_fn, n_samples: int, *, dem: bool, uniform_plan: bool):
         rdac_noise_cap_f=noise_cap,
     )
     codes = model.nominal_decoder.reconstruct(raw.digital_observation)
-    return raw, np.asarray(codes.voltage, dtype=float)
+    voltage = np.asarray(codes.voltage, dtype=float)
+    if calibration is not None:
+        voltage = calibration.apply(np.asarray(raw.coarse, dtype=np.int64), voltage)
+        raw.out = voltage
+        raw.err = voltage - np.asarray(raw.x_ref, dtype=float)
+    return raw, voltage
 
 
-def _dynamic(model, *, dem: bool, uniform_plan: bool, n: int = 8192, fin: float = 1.0e6):
+def _dynamic(model, *, dem: bool, uniform_plan: bool, n: int = 8192, fin: float = 1.0e6,
+             calibration=None):
     """相干正弦与 -60 dBFS 小信号，给出 SNDR/SNR/SFDR/THD/DR/NSD。"""
     tone_bin = int(round(fin / (FS_HZ / n)))
     fin_coherent = tone_bin * FS_HZ / n
@@ -117,6 +148,7 @@ def _dynamic(model, *, dem: bool, uniform_plan: bool, n: int = 8192, fin: float 
         n,
         dem=dem,
         uniform_plan=uniform_plan,
+        calibration=calibration,
     )
     _, small = _run(
         model,
@@ -124,6 +156,7 @@ def _dynamic(model, *, dem: bool, uniform_plan: bool, n: int = 8192, fin: float 
         n,
         dem=dem,
         uniform_plan=uniform_plan,
+        calibration=calibration,
     )
     full_metrics = metrics.sine_fit_metrics(full, FS_HZ, fin_coherent)
     small_metrics = metrics.sine_fit_metrics(small, FS_HZ, fin_coherent)
@@ -146,9 +179,10 @@ def _dynamic(model, *, dem: bool, uniform_plan: bool, n: int = 8192, fin: float 
     }
 
 
-def _static(model, *, dem: bool, uniform_plan: bool, points: int = 1024, repeats: int = 8):
+def _static(model, *, dem: bool, uniform_plan: bool, points: int = 1024, repeats: int = 8,
+            calibration=None, offset_v: float = 0.0):
     """慢斜坡：采样式 INL（端点拟合）+ 256 LSB20 分箱 DNL。"""
-    levels = np.linspace(-0.995 * V_FS, 0.995 * V_FS, points)
+    levels = np.linspace(-0.985 * V_FS, 0.985 * V_FS, points) + offset_v
     step = levels[1] - levels[0]
     mu = np.zeros(points)
     sd = np.zeros(points)
@@ -160,6 +194,7 @@ def _static(model, *, dem: bool, uniform_plan: bool, points: int = 1024, repeats
                 count,
                 dem=dem,
                 uniform_plan=uniform_plan,
+                calibration=calibration,
             )[1]
 
         out = run_fn(level, repeats)
@@ -181,6 +216,35 @@ def _static(model, *, dem: bool, uniform_plan: bool, points: int = 1024, repeats
         "dnl_bin_lsb20_max": float(np.max(np.abs(dnl_lsb20))),
         "dnl_bin_span_lsb20": int(bins),
         "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
+    }
+
+
+def _train_calibration(model, *, points: int = 8200):
+    """用独立已知斜坡拟合逐码修正表；返回 (CodeCorrection, 训练诊断)。
+
+    这是论文里 "coefficients derived externally" 的那一步在输出域的实现：
+    激励是已知输入，拟合量是 512 个粗码各自的平均输出误差。
+
+    不做逐单元权重：残差域里 G*C*x 与 G*Q_DAC 各约 96 V、相减后只剩 0.1 V，
+    逐单元权值在这种抵消下不可辨识（见 mask_calibration 模块 docstring 与负结果）。
+    """
+    # 必须覆盖全部 512 个粗码：±0.99 FS 会漏掉 0/1/510/511 四个端点码，
+    # 而逐码表不允许对未访问码插值或补零。
+    grid = np.linspace(-0.9995 * V_FS, 0.9995 * V_FS, points)
+    # 打乱顺序避免"码"与"片选序列"共线；叠加已知小偏置打散 ADC2 量化锯齿。
+    generator = np.random.default_rng(20261113)
+    levels = generator.permutation(grid) + generator.uniform(-3e-4, 3e-4, points)
+    raw, estimated = _run(model, _ramp_fn(levels), points, dem=False, uniform_plan=False)
+    correction = fit_code_correction(
+        np.asarray(raw.coarse, dtype=np.int64), estimated, levels
+    )
+    return correction, {
+        "training_samples": correction.n_samples,
+        "covered_codes": correction.covered_codes,
+        "min_samples_per_code": correction.min_count,
+        "residual_rms_uv": correction.residual_rms_v * 1e6,
+        "training_levels": int(points),
+        "identifiable": "per-code output correction; per-element weights are NOT identifiable",
     }
 
 
@@ -234,12 +298,13 @@ def _configs() -> list[dict]:
         },
         {
             "id": "A5_calibration",
-            "label": "A2 + 冻结权值校准",
-            "status": "NOT_RUN",
-            "blocking_reason": (
-                "需要独立静态训练集与 mode_id 冻结/重载五步流程；本轮未构造训练/留出对，"
-                "不用名义权重冒充已校准"
-            ),
+            "label": "A2 + 冻结有效权重校准（外部已知斜坡拟合，同一条留出记录上前后对比）",
+            "mismatch_std": 1e-3,
+            "noise": True,
+            "dem": False,
+            "uniform_plan": False,
+            "calibration": True,
+            "status": "RUN",
         },
         {
             "id": "A6_dither_in_loop",
@@ -297,18 +362,42 @@ def main() -> int:
             continue
         started = time.time()
         model = _build_model(spec["mismatch_std"], spec["noise"])
+        calibration = None
+        held_out_offset = 0.0
+        if spec.get("calibration"):
+            calibration, training = _train_calibration(model)
+            row["training"] = training
+            step = 2 * 0.985 * V_FS / max(args.static_points - 1, 1)
+            held_out_offset = 0.37 * step
+            row["static_before"] = _static(
+                model,
+                dem=spec["dem"],
+                uniform_plan=spec["uniform_plan"],
+                points=args.static_points,
+                repeats=args.static_repeats,
+                offset_v=held_out_offset,
+            )
+            row["dynamic_before"] = _dynamic(
+                model,
+                dem=spec["dem"],
+                uniform_plan=spec["uniform_plan"],
+                n=args.dynamic_n,
+            )
         row["static"] = _static(
             model,
             dem=spec["dem"],
             uniform_plan=spec["uniform_plan"],
             points=args.static_points,
             repeats=args.static_repeats,
+            calibration=calibration,
+            offset_v=held_out_offset,
         )
         row["dynamic"] = _dynamic(
             model,
             dem=spec["dem"],
             uniform_plan=spec["uniform_plan"],
             n=args.dynamic_n,
+            calibration=calibration,
         )
         row["runtime_s"] = round(time.time() - started, 2)
         row["evidence_level"] = "L1 behavioral (float), no RTL/post-layout/silicon"

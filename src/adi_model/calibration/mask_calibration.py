@@ -446,10 +446,22 @@ class ElementWeightCalibration:
         delta = self.reference_high_v - self.reference_low_v
         term = self.reference_low_v + delta * masks
         w = self.weights
-        numerator = np.asarray(data.fine_v, dtype=float) - self.offset_v - np.sum(
-            w[None, :, :] * term, axis=(1, 2)
+
+        # 本笔活动片掩码 A[n, p]。未活动的物理片**完全不参与**方程：
+        # 它的 w 既不进分母，也不产生底板项。旧实现把未活动片按“接低轨”处理，
+        # 于是每笔都多算 p_inactive 份 w*V_low，重构值被系统性拉偏。
+        active = np.zeros((len(data.adc2_code), self.n_slices), dtype=float)
+        ids = np.asarray(data.slice_ids)
+        rows = np.arange(len(data.adc2_code))[:, None]
+        active[rows, ids] = 1.0
+
+        # 训练方程：fine = sum(A*w*(x - Vb)) + o
+        #   -> x = (fine - o + sum(A*w*Vb)) / sum(A*w)
+        weighted_term = active[:, :, None] * w[None, :, :] * term
+        numerator = (
+            np.asarray(data.fine_v, dtype=float) - self.offset_v + np.sum(weighted_term, axis=(1, 2))
         )
-        denominator = np.sum(w[None, :, :] * np.ones_like(term), axis=(1, 2))
+        denominator = np.sum(active[:, :, None] * w[None, :, :], axis=(1, 2))
         if np.any(denominator <= 0):
             raise ConfigError("calibrated signal gain is nonpositive")
         return numerator / denominator

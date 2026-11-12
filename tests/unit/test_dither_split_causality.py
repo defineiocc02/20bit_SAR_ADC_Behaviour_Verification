@@ -26,7 +26,6 @@ NOTE: this covers the Fig19 program path (v1). The independent charge-port path
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from verification.vectors.generate import PROFILE  # noqa: F401  (keeps package import warm)
 

@@ -16,7 +16,7 @@ Evidence that the collapse is behaviour-preserving:
 and after the change; both modules and both runs must agree.
 """
 
-from adi_model.metrics.metrics import *  # noqa: F401,F403
+from adi_model.metrics.metrics import *  # noqa: F403
 from adi_model.metrics.metrics import (  # noqa: F401
     _band_max,
     _bh4,

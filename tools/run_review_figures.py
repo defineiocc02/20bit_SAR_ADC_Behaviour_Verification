@@ -115,8 +115,7 @@ def figure_input_current(out: Path) -> dict:
         "full_scale_current_a": float(c_total_f * V_FS * FS_HZ),
         "aux_fraction_for_paper_point": float(1 - 350e-6 / (c_total_f * V_FS * FS_HZ)),
         "note": (
-            "the paper's x-axis is DC differential input; the 350 uA point is read from "
-            "Fig.9.8.5 without a stated input value, so the AUX fraction is an inference, not a result"
+            "本图所有配置用 offset=0 的公共电平网格，便于同图比较；矩阵（p4_ablation.json）对含校准的行（A5/C1/C3）使用留出偏移 held_out_offset，因此这四行的 INL 在图与表中不同（A5 13.2 vs 10.5、C1 26.6 vs 26.9、C3 19.7 vs 20.4）。两者是不同口径：图用于同网格机制比较，表用于留出集验收，不能互相替代。非校准行（A0/A2/A3/A4/A6/C2）图与表数值完全一致。"
         ),
     }
 
@@ -531,6 +530,14 @@ def figure_inl(model, out: Path, *, points: int, repeats: int, dynamic_n: int) -
         # 图上直接画在各自的实际可用区间里，不插值补齐。
         ("A6 +dither (charge port)", dict(mismatch=1e-3, noise=True, dem=False, plan=False,
                                           cal=False, dither=True)),
+        # 组合配置：与矩阵 C1/C2/C3 一一对应。校准与 DEM 同开时 INL 反而变差，
+        # 这条负面结果必须画在同一张图上，不能只留在表里。
+        ("C1 DEM+cal", dict(mismatch=1e-3, noise=True, dem=True, plan=False,
+                            cal=True, dither=False)),
+        ("C2 DEM+dither", dict(mismatch=1e-3, noise=True, dem=True, plan=False,
+                               cal=False, dither=True)),
+        ("C3 DEM+dither+cal", dict(mismatch=1e-3, noise=True, dem=True, plan=False,
+                                   cal=True, dither=True)),
     ]
     fig, (ax_inl, ax_dnl) = plt.subplots(2, 1, figsize=(9, 8), constrained_layout=True)
     rows = {}

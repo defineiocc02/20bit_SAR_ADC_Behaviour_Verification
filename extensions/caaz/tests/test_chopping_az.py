@@ -5,7 +5,7 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from adi_model.chopping_az import ChoppingAZParameters, pair_readout, run_caaz_pipeline
+from extensions.caaz.model.chopping_az import ChoppingAZParameters, pair_readout, run_caaz_pipeline
 from adi_model.fixed_point import CodeStream
 from adi_model.pipeline import run_pipeline
 from adi_model.sampler import dc_input, sine_input

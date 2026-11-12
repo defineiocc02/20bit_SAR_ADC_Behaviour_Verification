@@ -18,8 +18,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from ._arrays import readonly
-from .config import ConfigError
+from adi_model._arrays import readonly
+from adi_model.config import ConfigError
 
 if TYPE_CHECKING:
     from .config import Config
@@ -298,7 +298,7 @@ def run_caaz_pipeline(
     两点响应与码中心 floor 是明确计算规则。无噪控制、数字同代或运行成功，
     不证明实际 CBIAS 保持或噪声收益。
     """
-    from .pipeline import run_pipeline
+    from adi_model.pipeline import run_pipeline
 
     az = ChoppingAZParameters() if az is None else az
     state = _az_input_state(az, n_samples, az_input_samples_v, az_transfer_to_input)

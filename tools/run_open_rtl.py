@@ -64,7 +64,7 @@ BENCHES = {
         requires_math_format=True,
     ),
     "caaz_pair_vectors_tb": Bench(
-        ("rtl/calibration/caaz_pair_processor.sv", "sim/tb/caaz_pair_vectors_tb.sv"),
+        ("extensions/caaz/rtl/caaz_pair_processor.sv", "extensions/caaz/tb/caaz_pair_vectors_tb.sv"),
         "CAAZ_PAIR_VECTORS_COMPLETE",
         ("cycles", "outputs", "checks", "cases"),
         (("caaz_pair_processor", ("-GP_CAAZ_ENABLE=1'b1",)),),
@@ -220,8 +220,8 @@ BENCHES["sar20_dsp_integration_tb"] = Bench(
 BENCHES["sar20_system_top_tb"] = Bench(
     (
         "rtl/core/adc2_dec.sv",
-        "rtl/control/caaz_cycle_ctrl.sv",
-        "rtl/calibration/caaz_pair_processor.sv",
+        "extensions/caaz/rtl/caaz_cycle_ctrl.sv",
+        "extensions/caaz/rtl/caaz_pair_processor.sv",
         "rtl/core/analog_phase_ctrl.sv",
         "rtl/core/cal_output_stage.sv",
         "rtl/core/cal_residue_mac.sv",
@@ -288,8 +288,8 @@ BENCHES["spi_unbound_contract_tb"] = Bench(
 
 CORE_SOURCES = (
     "rtl/core/adc2_dec.sv",
-    "rtl/control/caaz_cycle_ctrl.sv",
-    "rtl/calibration/caaz_pair_processor.sv",
+    "extensions/caaz/rtl/caaz_cycle_ctrl.sv",
+    "extensions/caaz/rtl/caaz_pair_processor.sv",
     "rtl/core/analog_phase_ctrl.sv",
     "rtl/core/cal_output_stage.sv",
     "rtl/core/cal_residue_mac.sv",

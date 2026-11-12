@@ -4,8 +4,8 @@
     "scope": "RESTRICTED_STATIC_FIG19_PORTS_AND_ACTUAL_REJECTED_PREFIX",
     "source_reproduction": false,
     "repo_source_sha256": {
-      "rtl/calibration/caaz_pair_processor.sv": "04c68fb79974185d998d3bd49d8aabeef5cb2fb5f02050948c9fe2724c8181b8",
-      "rtl/control/caaz_cycle_ctrl.sv": "7829d53cbdfb90bcd7ea6c5d478bb0af1fda2966c4eb62954e21bf2100c592a0",
+      "extensions/caaz/rtl/caaz_pair_processor.sv": "04c68fb79974185d998d3bd49d8aabeef5cb2fb5f02050948c9fe2724c8181b8",
+      "extensions/caaz/rtl/caaz_cycle_ctrl.sv": "7829d53cbdfb90bcd7ea6c5d478bb0af1fda2966c4eb62954e21bf2100c592a0",
       "rtl/core/adc2_dec.sv": "53d82e15b2525e7a6dc7b5efa8f33752f82fab44bcaf79e626eeead8338c9cca",
       "rtl/core/analog_phase_ctrl.sv": "10b29de6e1e9a6c1625c76eb09d34ecf62f2a888e6712828a843194373a2c068",
       "rtl/core/cal_output_stage.sv": "4edf061ba492418e48a36403473afd1a65e788dd6cfd3fd6e4955acfc562a415",

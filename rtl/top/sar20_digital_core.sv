@@ -13,8 +13,7 @@
 `include "rtl_params.vh"
 module sar20_digital_core #(
     parameter int P_RECON_STAGES = int'(RECON_UNROLL),
-    parameter bit P_CAL_OBSERVE = 1'b0,
-    parameter bit P_CAAZ_ENABLE = 1'b0
+    parameter bit P_CAL_OBSERVE = 1'b0
 ) (
     input logic clk, rst_n,
     input wire source_control_valid,
@@ -56,17 +55,7 @@ module sar20_digital_core #(
     output wire [4:0] dout_flags,
     output wire cal_obs_valid,
     output wire [CAL_OBS_BITS-1:0] cal_obs_data,
-    output wire dout_analog_bad,
-    input wire caaz_az_capture_ok,
-    output wire caaz_input_chop_neg, caaz_az_capture_en, caaz_az_hold,
-    output wire [33:0] cal_obs_caaz_data,
-    output wire caaz_raw_valid,
-    output wire [91:0] caaz_raw_data,
-    output wire signed [20:0] caaz_pair_difference,
-    output wire caaz_pair_difference_valid,
-    output wire [31:0] caaz_pair_first_sample_id, caaz_pair_id,
-    output wire caaz_pair_fault,
-    output wire [3:0] caaz_pair_fault_code
+    output wire dout_analog_bad
 );
   `include "rtl_error_codes.vh"
   localparam int W_A = int'(ACC_BITS) - int'(V_FRAC) - 1;
@@ -152,10 +141,9 @@ module sar20_digital_core #(
   wire [N_ACTIVE-1:0][N_UNIT_MAIN-1:0] context_main;
   wire [N_ACTIVE-1:0][N_UNIT_SUB-1:0] context_sub;
   wire signed [V_BITS-1:0] context_common_q;
-  wire context_bad, context_chop_neg, context_az_valid;
-  wire [31:0] context_az_pair_id;
+  wire context_bad;
   wire [ADC2_BITS-1:0] fine_code;
-  sar_structural_ctrl #(.P_CAAZ_ENABLE(P_CAAZ_ENABLE)) u_structure (
+  sar_structural_ctrl u_structure (
       .clk(clk), .rst_n(epoch_rst_n), .enable(cfg_ready),
       .source_control_valid(source_control_valid), .source_control_word(source_control_word),
       .source_control_state(source_control_state), .source_control_ready(source_control_ready),
@@ -168,8 +156,6 @@ module sar20_digital_core #(
       .coarse_cmp_valid(coarse_cmp_valid), .coarse_cmp_ge(coarse_cmp_ge),
       .fine_cmp_valid(fine_cmp_valid), .fine_cmp_ge(fine_cmp_ge),
       .analog_bad(ra_sat || rdac_ovf || adc2_over), .recon_busy(rc_busy),
-      .caaz_az_capture_ok(caaz_az_capture_ok), .caaz_input_chop_neg(caaz_input_chop_neg),
-      .caaz_az_capture_en(caaz_az_capture_en), .caaz_az_hold(caaz_az_hold),
       .phase(analog_phase), .quiet_sample(quiet_sample), .tp_clock(tp_clock),
       .ra_az(ra_az), .ra_amplify(ra_amplify), .ref_precharge(ref_precharge),
       .ref_accurate(ref_accurate), .acquiring_mask(acquiring_mask), .converting_mask(converting_mask),
@@ -180,8 +166,7 @@ module sar20_digital_core #(
       .flash_sample(flash_sample), .slice_sel(slice_sel), .main_sw(main_sw), .sub_sw(sub_sw),
       .sw_valid(sw_valid), .recon_start(launch_recon), .context_id(context_id),
       .context_coarse(context_coarse), .context_state(context_state),
-      .context_control_word(context_word), .context_chop_neg(context_chop_neg),
-      .context_az_pair_id(context_az_pair_id), .context_az_valid(context_az_valid),
+      .context_control_word(context_word),
       .context_slices(context_slices), .context_main(context_main), .context_sub(context_sub),
       .context_analog_bad(context_bad), .context_known_common_q(context_common_q),
       .fine_code(fine_code), .error_code(controller_error)
@@ -191,8 +176,6 @@ module sar20_digital_core #(
       context_id, context_coarse, context_state, context_word, fine_code,
       context_common_q, context_slices, context_main, context_sub, context_bad
   } : '0;
-  assign cal_obs_caaz_data = P_CAL_OBSERVE ?
-      {context_chop_neg, context_az_pair_id, context_az_valid} : '0;
 
   wire [OUT_BITS-1:0] rc_dout;
   wire rc_valid, rc_clip_low, rc_clip_high, rc_acc_ovf, rc_gain_err, rc_adc2_ovf;
@@ -212,46 +195,29 @@ module sar20_digital_core #(
       .acc_ovf(rc_acc_ovf), .gain_err(rc_gain_err), .adc2_ovf(rc_adc2_ovf), .busy(rc_busy),
       .result_sample_id(raw_sample_id), .result_flags(raw_flags)
   );
-  logic pending_bad, pending_chop, pending_az_valid;
-  logic [31:0] pending_az_id;
+  logic pending_bad;
   always_ff @(posedge clk) begin
     if (!rst_n || cfg_clear_valid || !cfg_ready) begin
       pending_bad <= 1'b0;
-      pending_chop <= 1'b0;
-      pending_az_valid <= 1'b0;
-      pending_az_id <= '0;
     end else if (launch_recon) begin
       pending_bad <= context_bad;
-      pending_chop <= context_chop_neg;
-      pending_az_valid <= context_az_valid;
-      pending_az_id <= context_az_pair_id;
     end
   end
   wire raw_bad = rc_valid && pending_bad;
-  wire unused_pair_fault_pulse, unused_pair_pending;
-  assign caaz_raw_valid = P_CAAZ_ENABLE && rc_valid;
-  assign caaz_raw_data = P_CAAZ_ENABLE ?
-      {raw_sample_id, rc_dout, pending_chop, pending_az_id, pending_az_valid, raw_flags, raw_bad} : '0;
-  caaz_pair_processor #(.P_CAAZ_ENABLE(P_CAAZ_ENABLE)) u_caaz_pair (
-      .clk(clk), .rst_n(rst_n), .epoch_clear(cfg_clear_valid || !cfg_ready),
-      .in_valid(rc_valid), .in_code(rc_dout), .in_sample_id(raw_sample_id),
-      .in_chop_neg(pending_chop), .in_az_pair_id(pending_az_id), .in_az_valid(pending_az_valid),
-      .in_flags(raw_flags), .in_analog_bad(raw_bad), .out_valid(dout_valid), .out_code(dout),
-      .out_sample_id(dout_sample_id), .out_first_sample_id(caaz_pair_first_sample_id),
-      .out_az_pair_id(caaz_pair_id), .out_flags(dout_flags), .out_analog_bad(dout_analog_bad),
-      .pair_difference(caaz_pair_difference), .pair_difference_valid(caaz_pair_difference_valid),
-      .fault(caaz_pair_fault), .fault_pulse(unused_pair_fault_pulse),
-      .pair_pending(unused_pair_pending), .fault_code(caaz_pair_fault_code)
-  );
+  assign dout = rc_dout;
+  assign dout_valid = rc_valid;
+  assign dout_sample_id = raw_sample_id;
+  assign dout_flags = raw_flags;
+  assign dout_analog_bad = raw_bad;
   assign clip_low = rc_clip_low;
   assign clip_high = rc_clip_high;
   wire [31:0] merged_error = bus_error != ERR_NONE ? bus_error :
       calibration_error != ERR_NONE ? calibration_error :
-      weight_error ? ERR_W_SUM : caaz_pair_fault ? ERR_CAAZ_PAIR : controller_error;
+      weight_error ? ERR_W_SUM : controller_error;
   // 直接取控制诊断，避免配置总线错误优先级掩盖已丢失转换。
   // core仍可观察后续结果；系统消费者须据此保守锁停，不能把好flags视为故障已恢复。
   assign conversion_fault = rst_n && !cfg_clear_valid && cfg_ready &&
-      (controller_error != ERR_NONE || caaz_pair_fault);
+      (controller_error != ERR_NONE);
   wire unused_gain_sticky, unused_adc2_sticky, unused_clip_low, unused_clip_high;
   wire [31:0] unused_status_clear_value;
   status_regs u_status (

@@ -5,12 +5,10 @@
 // actual conversion masks/commonQ在每次已解析SAR更新的RDAC接受沿寄存，再随residue保存。
 // 采集连接在绑定中逐unit明确；未来未知SAR conversion mask不能在采集开始时捏造。
 // 相位是显式支持的16tick工程schedule；valid不足按截止取消，不声称模拟settle/STA。
-// clk上升沿同步低有效reset；disable取消所有资格。CAAZ实际极性/AZ代随同一包保存。
+// clk上升沿同步低有效reset；disable取消所有资格。普通RA AZ的逐笔状态由外部AZ模型持有。
 `timescale 1ns/1ps
 `include "rtl_params.vh"
-module sar_structural_ctrl #(
-    parameter bit P_CAAZ_ENABLE = 1'b0
-) (
+module sar_structural_ctrl (
     input wire clk, rst_n, enable,
     input wire source_control_valid,
     input wire [CONTROL_WORD_BITS-1:0] source_control_word,
@@ -26,8 +24,6 @@ module sar_structural_ctrl #(
     input wire [1:0] coarse_cmp_valid, coarse_cmp_ge,
     input wire fine_cmp_valid, fine_cmp_ge,
     input wire analog_bad, recon_busy,
-    input wire caaz_az_capture_ok,
-    output wire caaz_input_chop_neg, caaz_az_capture_en, caaz_az_hold,
     output wire [3:0] phase,
     output wire quiet_sample, tp_clock, ra_az, ra_amplify, ref_precharge, ref_accurate,
     output wire [17:0] acquiring_mask, converting_mask,
@@ -47,9 +43,6 @@ module sar_structural_ctrl #(
     output wire [8:0] context_coarse,
     output wire [STATE_BITS-1:0] context_state,
     output wire [CONTROL_WORD_BITS-1:0] context_control_word,
-    output wire context_chop_neg,
-    output wire [31:0] context_az_pair_id,
-    output wire context_az_valid,
     output wire [N_ACTIVE-1:0][4:0] context_slices,
     output wire [N_ACTIVE-1:0][N_UNIT_MAIN-1:0] context_main,
     output wire [N_ACTIVE-1:0][N_UNIT_SUB-1:0] context_sub,
@@ -102,16 +95,6 @@ module sar_structural_ctrl #(
   assign hold_low_enable = acquisition_control_valid ? ~acquiring_mask : '1;
   assign flash_sample = quiet_sample;
 
-  wire current_chop_neg, current_az_valid;
-  wire [31:0] current_az_pair_id;
-  caaz_cycle_ctrl #(.P_CAAZ_ENABLE(P_CAAZ_ENABLE)) u_caaz_cycle (
-      .clk(clk), .rst_n(rst_n), .enable(enable), .quiet_sample(quiet_sample),
-      .acquisition_primed(acquisition_primed), .phase(phase),
-      .az_capture_ok(caaz_az_capture_ok), .input_chop_neg(caaz_input_chop_neg),
-      .az_capture_en(caaz_az_capture_en), .az_hold(caaz_az_hold),
-      .current_chop_neg(current_chop_neg), .current_az_pair_id(current_az_pair_id),
-      .current_az_valid(current_az_valid)
-  );
   logic coarse_cancel, fine_cancel, bank;
   wire [2:0] flash_code;
   sadc_enc #(.P_B1(3)) u_flash (.cmp_raw(flash_therm), .sadc_code(flash_code));
@@ -181,14 +164,13 @@ module sar_structural_ctrl #(
                      accepted_mask_valid && !binding_bad),
       .current_id(current_id), .current_coarse(resolved[bank]),
       .current_state(current_state), .current_control_word(current_word),
-      .current_chop_neg(current_chop_neg), .current_az_pair_id(current_az_pair_id),
-      .current_az_valid(current_az_valid), .current_slices(conv_ids),
+      .current_chop_neg(1'b0), .current_az_pair_id(32'd0), .current_az_valid(1'b0),
+      .current_slices(conv_ids),
       .current_main(accepted_main), .current_sub(accepted_sub),
       .current_known_common_q(accepted_common_q), .analog_bad(analog_bad),
       .current_bad(binding_bad), .fine_valid(context_valid), .fine_id(context_id),
       .fine_coarse(context_coarse), .fine_state(context_state),
-      .fine_control_word(context_control_word), .fine_chop_neg(context_chop_neg),
-      .fine_az_pair_id(context_az_pair_id), .fine_az_valid(context_az_valid),
+      .fine_control_word(context_control_word),
       .fine_slices(context_slices), .fine_main(context_main), .fine_sub(context_sub),
       .fine_analog_bad(context_analog_bad), .fine_known_common_q(context_known_common_q)
   );

@@ -2919,11 +2919,8 @@
     {
       "id": "X02",
       "title": "CAAZ：默认关闭的明确输入误差与数字配对子范围",
-      "required": true,
-      "task_refs": [
-        "T11",
-        "T12"
-      ],
+      "required": false,
+      "task_refs": [],
       "sources": [
         {
           "id": "PKU_VLSI2025_C32_1_PAPER",
@@ -2941,24 +2938,15 @@
         "DERIVED",
         "ASSUMED"
       ],
-      "implementation_degree": "INTEGRATED_SCENARIO",
+      "implementation_degree": "MECHANISM_MODEL",
       "verification_nature": [
         "MATH_CONSISTENCY",
         "ENGINEERING_REGRESSION"
       ],
       "code": [
-        "src/adi_model/chopping_az.py",
-        "src/adi_model/ra.py",
-        "src/adi_model/pipeline_engine.py"
+        "extensions/caaz/model/chopping_az.py"
       ],
-      "tests": [
-        "tests/unit/test_chopping_az.py::test_input_chop_pair_ownership_rate_and_ideal_held_error_cancellation",
-        "tests/unit/test_chopping_az.py::test_hold_or_transfer_mismatch_leaves_the_predicted_pair_residual",
-        "tests/unit/test_chopping_az.py::test_az_input_is_applied_before_actual_ra_clip_and_backend_flags",
-        "tests/unit/test_chopping_az.py::test_active_chopping_does_not_fabricate_nominal_frozen_coefficients",
-        "tests/unit/test_chopping_az.py::test_off_preserves_raw_integer_stream_and_full_rate",
-        "tests/unit/test_chopping_az.py::test_unbuilt_dynamic_chopping_combinations_are_rejected"
-      ],
+      "tests": [],
       "test_scope": "所列真实测试入口只覆盖其明确的组件或工程合同；未在本账本更新中运行。",
       "experiments": [
         {
@@ -3055,7 +3043,8 @@
               "tests/unit/test_chopping_az.py::test_active_chopping_does_not_fabricate_nominal_frozen_coefficients"
             ],
             "scope": "实际已测的本条有限组件入口；不依赖库外路径或私有结果文件。"
-          }
+          },
+          "test_nodes": []
         }
       ],
       "observables": [
@@ -3070,14 +3059,12 @@
       "rtl_contract": {
         "status": "DIGITAL_IMPLEMENTED",
         "code": [
-          "rtl/control/caaz_cycle_ctrl.sv",
-          "rtl/calibration/caaz_pair_processor.sv",
-          "rtl/core/cal_sample_context.sv",
-          "rtl/top/sar20_digital_core.sv"
+          "extensions/caaz/rtl/caaz_cycle_ctrl.sv",
+          "extensions/caaz/rtl/caaz_pair_processor.sv"
         ],
         "tests": [
-          "sim/tb/caaz_pair_processor_tb.sv",
-          "sim/tb/caaz_pair_vectors_tb.sv"
+          "extensions/caaz/tb/caaz_pair_processor_tb.sv",
+          "extensions/caaz/tb/caaz_pair_vectors_tb.sv"
         ],
         "boundary": "提供数字极性/AZ代与完整码pair子范围；纯整数pair向量不证明模拟CAAZ、完整ADC闭环或与Fig19/DEM组合通过。"
       },

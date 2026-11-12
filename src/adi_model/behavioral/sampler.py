@@ -191,6 +191,11 @@ def capture(
         tau = float(finite_record(cfg.sampling_tau_mismatch, (), "sampling_tau_mismatch [s]"))
         if tau != 0:
             tau_error = -tau * input_derivative(input_fn, aperture)
+    # 原件 FIG.19（[10] 专利，Sheet 20/21）三条路径必须同时存在、各自独立：
+    #   300 加法器：D5,D3,D2,D1 加到 **ADC 200 输入** → x_SADC 平移 -L
+    #   222 加法器：全字 D_A..D_1 加到 **SAMPLING DAC 220** → 采样电荷含 -T
+    #   224 减法器：从 ADC 输出码减去 D6,D4  → RDAC 码 k = c - U
+    # 本函数只负责前两条（第三条在码域里做）。
     return SampleCapture(
         aperture,
         aperture - 1.0 / fs,

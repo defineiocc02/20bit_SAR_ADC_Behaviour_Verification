@@ -359,6 +359,8 @@ def execute_pipeline(
     )
     sadc = build_first_stage_quantizer(cfg)
     backend = ADC2(cfg)
+    # ADC2 窗口中点：RA 是零中心的线性放大器，必须把"残差 0"摆到窗口中点。
+    adc2_centre = 0.5 * (float(cfg.adc2_v_min) + float(cfg.adc2_v_max))
     ra = ResidueAmplifier(cfg)
     state = initialize_state(cfg) if state is None else state
     if not isinstance(state, DigitalState):
@@ -394,7 +396,24 @@ def execute_pipeline(
         raise ConfigError(
             "reference-connected acquisition requires a shared sampling/reference event binding; dynamic reference currently requires allSIGNAL acquisition"
         )
-    command = pool.select(mapped.codes, sid, slice_ids=plan.conv)
+    # ==== 224 减法器：RDAC 用码 k = c - U（原件 FIG.19 / [10] Sheet 20）====
+    # SADC 判决给出 c；U=D6,D4 是"提前量"，从 c 里减掉才是 RDAC 实际要选的码。
+    # 数字重构仍用 c（vd0 取 c 的名义电压），U 的一部分由 300/222 两条模拟路径抵消，
+    # 差值由重构式的 dither 扣回项补足。缺这一步时 dither 的 U 只改了模拟侧、
+    # 码侧不动，输出就会随 U 漂移（实测 64 字 p2p 达 74 mV）。
+    if dither_program is not None:
+        hold_upper = np.asarray(dither_program.upper_code, dtype=np.int64)
+    elif dither_port is not None:
+        hold_upper = np.asarray(dither_port.require_words().upper_code, dtype=np.int64)
+    else:
+        hold_upper = np.zeros(n_samples, dtype=np.int64)
+    rdac_codes = np.asarray(mapped.codes, dtype=np.int64) - hold_upper
+    if np.any((rdac_codes < 0) | (rdac_codes > 511)):
+        raise ConfigError(
+            "dither upper segment would push the RDAC code outside the 9-bit domain; "
+            "the patent keeps k=c-U legal by limiting U to early coarse codes"
+        )
+    command = pool.select(rdac_codes, sid, slice_ids=plan.conv)
     high_used = (
         np.any(sampled.main == REF_HIGH, axis=(1, 2))
         | np.any(sampled.sub == REF_HIGH, axis=(1, 2))
@@ -579,7 +598,11 @@ def execute_pipeline(
             output, saturated = ra.evaluate(
                 residue[index : index + 1], rng, gains[index : index + 1], input_error_v=error
             )
-            vra[index], adc2_input[index], ra_sat[index] = output[0], output[0], saturated[0]
+            # RA 是零中心的线性放大器；ADC2 窗口中心在 0.5 LSB9*G，因此
+            # ADC2 输入必须加中点（见上方 adc2_centre 定义）。vra 仍记 RA 原始输出。
+            vra[index] = output[0]
+            adc2_input[index] = output[0] + adc2_centre
+            ra_sat[index] = saturated[0]
         else:
             assert cfg.conversion is not None
             program = None
@@ -633,7 +656,11 @@ def execute_pipeline(
             q_residue[index] = residue[index] * c_normalize[index]
             vd_true[index] += reference_correction
             vra[index] = joint.result.ra_v[index]
-            adc2_input[index] = joint.result.adc2_v[index]
+            # ADC2 窗口是 [vmin, vmax] = [中心 ± 0.6 LSB9·G]，中心 = 0.5 LSB9·G
+            # （paper_literal: [-0.0375, 0.4125]，G32、LSB9=11.72mV）。
+            # RA 是纯线性放大器、零输出为 0，因此"残差 0"必须落在窗口中点：
+            # ADC2 输入 = G*residue + 中点。缺这一项时负残差全部溢出（实测 x=±1/±3 V 全 over）。
+            adc2_input[index] = joint.result.adc2_v[index] + adc2_centre
             ra_sat[index] = joint.result.ra_sat[index]
             if not cfg.dyn_ref_settling and not cfg.conversion.dynamic:
                 error = None if injected is None else injected[index : index + 1]
@@ -641,12 +668,17 @@ def execute_pipeline(
                     residue[index : index + 1], rng, gains[index : index + 1], input_error_v=error
                 )
                 vra[index] = point_output[0]
-                adc2_input[index] = point_output[0]
+                adc2_input[index] = point_output[0] + adc2_centre
                 ra_sat[index] |= point_sat[0]
         pool.release(converting, sample_id=int(ids[index]))
     adc2_code, adc2_over = backend.quantize_codes(adc2_input)
-    fine = backend.decode_codes(adc2_code)
-    vd0 = mapper.nominal_codebook.evaluate(mapped.codes)
+    # ADC2 码解码成节点电压后先减去中点，才回到"以 RA 零点为参考"的残差电压；
+    # 否则重构式 fine/G 会带一个恒定的中点偏置。
+    fine = backend.decode_codes(adc2_code) - adc2_centre
+    # 名义电压必须取**RDAC 实际使用的码 k = c - U**：残差是在 k 的电荷基线上建立的，
+    # 取 vd0(c) 会与残差不同源（实测 64 字 p2p 达 114 mV）。
+    # 这与原件 FIG.19 的 224 减法器一致：减法之后的码才是 DAC 的状态。
+    vd0 = mapper.nominal_codebook.evaluate(rdac_codes)
     if np.any(ra_sat) or np.any(adc2_over):
         reasons.append("RA/ADC2 clipping violates the linear training equation")
     actual_sampling = SamplingConnections(recorded_main, recorded_sub)
@@ -763,7 +795,7 @@ def execute_pipeline(
         plan_valid=plan.valid.copy(),
         coarse=coarse,
         sadc_over=sadc_over,
-        k=mapped.codes,
+        k=rdac_codes,  # 224 减法器之后的实际 RDAC 码 k = c - U
         sid=sid,
         main_masks=command.main_on,
         sub_masks=command.sub_on,

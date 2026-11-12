@@ -17,7 +17,7 @@ from typing import Any
 import numpy as np
 from scipy.linalg import svd
 
-from ._arrays import readonly as _readonly
+from adi_model._arrays import readonly as _readonly
 
 STATIC_OBSERVATION_DOMAIN = "static_charge_connections_v2"
 

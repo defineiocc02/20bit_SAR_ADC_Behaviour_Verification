@@ -41,9 +41,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ._arrays import readonly
-from .config import ConfigError
-from .weight_calibration import DigitalObservation
+from adi_model._arrays import readonly
+from adi_model.config import ConfigError
+from adi_model.weight_calibration import DigitalObservation
 
 
 def _mask_matrix(data: DigitalObservation) -> np.ndarray:

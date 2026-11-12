@@ -6,10 +6,10 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ._arrays import readonly
-from .config import ConfigError
-from .dac_arch import NominalCodebook
-from .dem import _integer_array
+from adi_model._arrays import readonly
+from adi_model.config import ConfigError
+from adi_model.dac_arch import NominalCodebook
+from adi_model.dem import _integer_array
 
 
 @dataclass(frozen=True)

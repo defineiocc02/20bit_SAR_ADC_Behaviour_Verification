@@ -5,9 +5,9 @@
 不能因为本文件存在就宣称主链已复现。
 """
 
-from .impairments import ImpairmentSet, all_of, only
-from .noise import FrontEndNoise, NoiseConfig, flicker, front_end_noise, thermal_sigma, white
-from .reference import (
+from adi_model.impairments import ImpairmentSet, all_of, only
+from adi_model.noise import FrontEndNoise, NoiseConfig, flicker, front_end_noise, thermal_sigma, white
+from adi_model.reference import (
     ReferenceConfig,
     dynamic_reference,
     precharge_fraction,
@@ -15,7 +15,7 @@ from .reference import (
     required_tau,
     settle_error,
 )
-from .timing_jitter import (
+from adi_model.timing_jitter import (
     TimingConfig,
     aperture_jitter,
     dac_pole_attenuation,
@@ -23,7 +23,7 @@ from .timing_jitter import (
     pole_from_bandwidth_multiple,
     sine_slope,
 )
-from .transients import CoupledNode, DynamicConfig, SineDrive, rail_recovery, ra_endpoint
+from adi_model.transients import CoupledNode, DynamicConfig, SineDrive, rail_recovery, ra_endpoint
 
 __all__ = [
     "CoupledNode",

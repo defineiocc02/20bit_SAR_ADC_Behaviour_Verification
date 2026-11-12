@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from .config import Config, ConfigError
+from adi_model.config import Config, ConfigError
 
 
 class ADC2:

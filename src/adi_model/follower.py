@@ -31,10 +31,10 @@ from typing import Callable
 
 import numpy as np
 
-from ._arrays import readonly
-from .config import ConfigError
-from .dem import _integer_array
-from .dither import complete_flash3_sar6_prefix_table
+from adi_model._arrays import readonly
+from adi_model.config import ConfigError
+from adi_model.dem import _integer_array
+from adi_model.dither import complete_flash3_sar6_prefix_table
 
 # 当前 core 的已决事件数：3b flash + 6b SAR = 7 次已决前缀消费（见 complete_flash3_sar6_prefix_table）。
 FOLLOWER_EVENTS = 7

@@ -13,10 +13,10 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ._arrays import readonly
-from .config import K_B, Config, ConfigError
-from .dem import _integer_array
-from .dither import Fig19DitherProgram
+from adi_model._arrays import readonly
+from adi_model.config import K_B, Config, ConfigError
+from adi_model.dem import _integer_array
+from adi_model.dither import Fig19DitherProgram
 
 
 def finite_record(value, shape: tuple[int, ...], name: str, *, scalar: bool = True) -> np.ndarray:

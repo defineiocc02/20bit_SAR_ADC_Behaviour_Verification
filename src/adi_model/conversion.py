@@ -17,10 +17,10 @@ from typing import TYPE_CHECKING, TypeGuard, cast
 
 import numpy as np
 
-from .reference_charge import ReferenceProgram
+from adi_model.reference_charge import ReferenceProgram
 
 if TYPE_CHECKING:
-    from .config import Config
+    from adi_model.config import Config
 
 
 def _finite(value: object) -> TypeGuard[float]:

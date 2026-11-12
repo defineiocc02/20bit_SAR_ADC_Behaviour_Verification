@@ -12,8 +12,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from .config import ConfigError
-from .dem import _integer_array
+from adi_model.config import ConfigError
+from adi_model.dem import _integer_array
 
 
 @dataclass(frozen=True)

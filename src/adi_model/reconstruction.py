@@ -12,10 +12,10 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .config import Config
+from adi_model.config import Config
 
 if TYPE_CHECKING:
-    from .weight_calibration import FrozenCalibration
+    from adi_model.weight_calibration import FrozenCalibration
 
 
 @dataclass

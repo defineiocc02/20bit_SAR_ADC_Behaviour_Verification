@@ -29,7 +29,7 @@ from adi_model.capacitors import (
     feedback_charge,
     voltage_equivalent,
 )
-from .fig11_dem import map_fig11
+from adi_model.control.fig11_dem import map_fig11
 
 
 def map_record(

@@ -4,30 +4,30 @@
 来源元数据、配置合法性、数值模型与 RTL 证据分别报告；配置输入检查成功不代表电路或芯片性能已经复现。
 """
 
-from .adc2 import (
+from adi_model.adc2 import (
     ADC2,
 )
-from .benchmarks import (
+from adi_model.benchmarks import (
     PAPER_BENCHMARK,
     SLIDES_BENCHMARK,
     PublishedBenchmark,
 )
-from .calib import (
+from adi_model.calib import (
     Observability,
     group_aggregate,
     observability,
     required_samples,
 )
-from .charge_ref import (
+from adi_model.charge_ref import (
     ref_ra_charge,
     ref_ra_charge_nodal,
 )
-from .behavioral.ra_az import (
+from adi_model.behavioral.ra_az import (
     OrdinaryAZConfig,
     OrdinaryAZResult,
     apply_ordinary_az,
 )
-from .contracts import (
+from adi_model.contracts import (
     ADI_40M,
     DEFAULT_PROFILE_ID,
     ENG_10M,
@@ -45,17 +45,17 @@ from .contracts import (
     assert_caaz_free,
     load_profile,
 )
-from .config import (
+from adi_model.config import (
     Config,
     ConfigError,
 )
-from .conversion import (
+from adi_model.conversion import (
     ConversionEngine,
     ConversionParameters,
     ConversionResult,
     response_interval,
 )
-from .dac_arch import (
+from adi_model.dac_arch import (
     DACCharge,
     NominalCodebook,
     SamplingCharge,
@@ -67,8 +67,8 @@ from .dac_arch import (
     split_capacitance_coefficients,
     topplate_voltage_from_effective_charge,
 )
-from .defaults import DefaultModel, DefaultParameters, DefaultRun, default_model, simulate
-from .dem import (
+from adi_model.defaults import DefaultModel, DefaultParameters, DefaultRun, default_model, simulate
+from adi_model.dem import (
     REF_HIGH,
     REF_LOW,
     SIGNAL,
@@ -77,30 +77,30 @@ from .dem import (
     SplitSwitchGeometry,
     split_switch_command,
 )
-from .dynamics import (
+from adi_model.dynamics import (
     crosstalk_error,
     switching_activity,
 )
-from .fixed_point import (
+from adi_model.fixed_point import (
     CodeStream,
     FixedPointFormat,
     FixedPointReconstructor,
     round_even_divide,
 )
-from .input_network import (
+from adi_model.input_network import (
     InputNetworkParameters,
     OffsetWaveform,
     PassiveTrackingNetwork,
     track_interval,
 )
-from .low_frequency_noise import (
+from adi_model.low_frequency_noise import (
     BandLimitedFlicker,
 )
-from .mapper import (
+from adi_model.mapper import (
     MappedCodes,
     Mapper,
 )
-from .metrics import (
+from adi_model.metrics import (
     inl_from_mean_error,
     integrate_noise_band,
     power_spectral_density,
@@ -110,16 +110,16 @@ from .metrics import (
     static_test,
     summarize,
 )
-from .pipeline import (
+from adi_model.pipeline import (
     run_pipeline,
 )
-from .pretracking import (
+from adi_model.pretracking import (
     DecisionRecord,
     InputAssistTrace,
     PretrackPrediction,
     QuantizedPretracker,
 )
-from .provenance import (
+from adi_model.provenance import (
     PARAM_GRADES,
     PARAM_UNITS,
     SOURCE_VALUES,
@@ -130,27 +130,27 @@ from .provenance import (
     audit_provenance,
     grade_of,
 )
-from .ra import (
+from adi_model.ra import (
     ResidueAmplifier,
 )
-from .reconstruction import (
+from adi_model.reconstruction import (
     DigitalState,
     initialize_state,
     reconstruct,
 )
-from .reference_charge import (
+from adi_model.reference_charge import (
     ReferenceProgram,
     physical_reference_program,
     sampled_bottom_voltages,
 )
-from .rtl_observation import (
+from adi_model.rtl_observation import (
     observations_from_rtl,
 )
-from .sadc import (
+from adi_model.sadc import (
     SADC,
     build_first_stage_quantizer,
 )
-from .sampler import (
+from adi_model.sampler import (
     AnalyticInput,
     SampleCapture,
     capture,
@@ -159,24 +159,24 @@ from .sampler import (
     sine_input,
     spectral_derivative,
 )
-from .scheduler import (
+from adi_model.scheduler import (
     Allocation,
     Scheduler,
     make_scheduler,
 )
-from .sim import (
+from adi_model.sim import (
     SimResult,
 )
-from .slice_pool import (
+from adi_model.slice_pool import (
     PhysicalSlicePool,
     check_causality,
 )
-from .timing import (
+from adi_model.timing import (
     ScheduleBinding,
     SlicePlan,
     build_slice_plan,
 )
-from .weight_calibration import (
+from adi_model.weight_calibration import (
     CalibrationSpec,
     CalibrationUnidentifiableError,
     DigitalObservation,

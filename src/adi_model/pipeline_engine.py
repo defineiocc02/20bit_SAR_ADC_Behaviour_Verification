@@ -11,20 +11,20 @@ from __future__ import annotations
 
 import numpy as np
 
-from .adc2 import ADC2
-from .config import Config, ConfigError
-from .dac_arch import NominalCodebook
-from .dem import REF_HIGH, REF_LOW, SIGNAL, SamplingConnections, SplitSwitchCommand, _integer_array
-from .dither import Fig19DitherProgram, complete_flash3_sar6_prefix_table
-from .mapper import MappedCodes, Mapper
-from .ra import ResidueAmplifier
-from .reconstruction import DigitalState, initialize_state, reconstruct
-from .sadc import build_first_stage_quantizer
-from .sampler import capture, finite_record
-from .sampling_charge import digital_connection_terms
-from .sim import SimResult
-from .slice_pool import PhysicalSlicePool
-from .weight_calibration import CalibrationSpec, DigitalObservation, apply_frozen_calibration
+from adi_model.adc2 import ADC2
+from adi_model.config import Config, ConfigError
+from adi_model.dac_arch import NominalCodebook
+from adi_model.dem import REF_HIGH, REF_LOW, SIGNAL, SamplingConnections, SplitSwitchCommand, _integer_array
+from adi_model.dither import Fig19DitherProgram, complete_flash3_sar6_prefix_table
+from adi_model.mapper import MappedCodes, Mapper
+from adi_model.ra import ResidueAmplifier
+from adi_model.reconstruction import DigitalState, initialize_state, reconstruct
+from adi_model.sadc import build_first_stage_quantizer
+from adi_model.sampler import capture, finite_record
+from adi_model.sampling_charge import digital_connection_terms
+from adi_model.sim import SimResult
+from adi_model.slice_pool import PhysicalSlicePool
+from adi_model.weight_calibration import CalibrationSpec, DigitalObservation, apply_frozen_calibration
 
 
 def _reference_record(value, n: int, name: str):
@@ -355,7 +355,7 @@ def execute_pipeline(
             raise ConfigError(
                 "reference recovery requires explicit per-coarse RDAC event-code records"
             )
-        from .conversion import ConversionEngine
+        from adi_model.conversion import ConversionEngine
 
         joint = ConversionEngine(
             cfg,
@@ -447,7 +447,7 @@ def execute_pipeline(
             assert cfg.conversion is not None
             program = None
             if cfg.dyn_ref_settling:
-                from .reference_charge import physical_reference_program
+                from adi_model.reference_charge import physical_reference_program
 
                 assert mapped.event_codes is not None and cfg.conversion is not None
                 event_codes = mapped.event_codes[index]

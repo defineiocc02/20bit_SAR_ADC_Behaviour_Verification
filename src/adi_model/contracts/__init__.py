@@ -1,8 +1,8 @@
 """公共合同包的导出。"""
 
-from .events import EventLog
-from .task_types import MapperTable, Q32, SwitchState
-from .profiles import (
+from adi_model.contracts.events import EventLog
+from adi_model.contracts.task_types import MapperTable, Q32, SwitchState
+from adi_model.contracts.profiles import (
     ADI_40M,
     DEFAULT_PROFILE_ID,
     ENG_10M,
@@ -12,7 +12,7 @@ from .profiles import (
     assert_caaz_free,
     load_profile,
 )
-from .specs import (
+from adi_model.contracts.specs import (
     AcquisitionCommand,
     DigitalObservation,
     EventRecord,

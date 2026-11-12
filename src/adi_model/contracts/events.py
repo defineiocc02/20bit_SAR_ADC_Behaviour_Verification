@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from .specs import EventRecord
+from adi_model.contracts.specs import EventRecord
 
 
 class EventLog:

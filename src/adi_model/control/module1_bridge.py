@@ -16,9 +16,9 @@
 
 from dataclasses import dataclass, field, replace
 
-from .fig21_bridge import map_fig21_bridge
-from .module1 import Module1, Module1Output
-from .scheduler import FULL_MASK
+from adi_model.control.fig21_bridge import map_fig21_bridge
+from adi_model.control.module1 import Module1, Module1Output
+from adi_model.control.scheduler import FULL_MASK
 
 
 # =========================================================================

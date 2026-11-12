@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
-    from .config import Config
+    from adi_model.config import Config
 
 
 def _finite_scalar(value, name: str, *, positive: bool) -> float:

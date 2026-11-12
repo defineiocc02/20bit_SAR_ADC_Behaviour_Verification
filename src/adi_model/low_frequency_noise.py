@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ._arrays import readonly as _readonly
+from adi_model._arrays import readonly as _readonly
 
 
 @dataclass(frozen=True)

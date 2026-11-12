@@ -17,7 +17,7 @@ from typing import cast
 
 import numpy as np
 
-from ._arrays import readonly
+from adi_model._arrays import readonly
 
 
 def _finite_scalar(value) -> bool:

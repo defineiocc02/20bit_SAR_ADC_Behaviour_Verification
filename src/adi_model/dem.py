@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .config import ConfigError
+from adi_model.config import ConfigError
 
 SIGNAL = 0
 REF_LOW = 1

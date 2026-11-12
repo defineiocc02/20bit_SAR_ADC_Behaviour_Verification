@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .specs import TopologySpec
+from adi_model.contracts.specs import TopologySpec
 
 
 @dataclass(frozen=True)

@@ -21,8 +21,8 @@ from typing import TYPE_CHECKING, Protocol, TypeGuard
 import numpy as np
 
 if TYPE_CHECKING:
-    from .conversion import ConversionParameters
-    from .input_network import InputNetworkParameters
+    from adi_model.conversion import ConversionParameters
+    from adi_model.input_network import InputNetworkParameters
 
 K_B = 1.380_649e-23  # 精确定义的玻尔兹曼常数[J/K]；温度不是常量默认值。
 
@@ -351,7 +351,7 @@ class Config:
         if self.sampling_tau_mismatch is not None and not _finite_real(self.sampling_tau_mismatch):
             bad.append("sampling_tau_mismatch must be finite [s]")
         if self.input_network is not None and self.dyn_input_settling is not True:
-            from .input_network import InputNetworkParameters
+            from adi_model.input_network import InputNetworkParameters
 
             # 未启用的电气数值可缺省；已提供的块对象仍须符合消费者的类型合同。
             if not isinstance(self.input_network, InputNetworkParameters):
@@ -368,7 +368,7 @@ class Config:
                     "missing input_network [explicit parameters] consumed by dynamic input acquisition"
                 )
             else:
-                from .input_network import InputNetworkParameters
+                from adi_model.input_network import InputNetworkParameters
 
                 if not isinstance(self.input_network, InputNetworkParameters):
                     bad.append("input_network must be InputNetworkParameters")
@@ -381,7 +381,7 @@ class Config:
             required_real("dyn_c_decouple", "F", "reference recovery")
             required_real("dyn_tau_ref", "s", "reference recovery")
         if self.conversion is not None:
-            from .conversion import ConversionParameters
+            from adi_model.conversion import ConversionParameters
 
             if not isinstance(self.conversion, ConversionParameters):
                 bad.append("conversion must be ConversionParameters")
@@ -490,11 +490,11 @@ class Config:
         """
         params = dict(values)
         if isinstance(params.get("input_network"), dict):
-            from .input_network import InputNetworkParameters
+            from adi_model.input_network import InputNetworkParameters
 
             params["input_network"] = InputNetworkParameters(**params["input_network"])
         if isinstance(params.get("conversion"), dict):
-            from .conversion import ConversionParameters
+            from adi_model.conversion import ConversionParameters
 
             params["conversion"] = ConversionParameters(**params["conversion"])
         if params.get("sadc_thresholds_v") is not None:

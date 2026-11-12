@@ -6,9 +6,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .config import ConfigError
-from .dem import _integer_array
-from .timing import ScheduleBinding, SlicePlan, build_slice_plan
+from adi_model.config import ConfigError
+from adi_model.dem import _integer_array
+from adi_model.timing import ScheduleBinding, SlicePlan, build_slice_plan
 
 
 @dataclass(frozen=True)

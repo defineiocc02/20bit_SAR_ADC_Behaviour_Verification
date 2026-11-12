@@ -25,7 +25,7 @@
 
 from dataclasses import dataclass
 
-from .fig11_dem import SLOT_COUNT, Fig11Masks, _unsigned_field
+from adi_model.control.fig11_dem import SLOT_COUNT, Fig11Masks, _unsigned_field
 
 
 # =========================================================================

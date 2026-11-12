@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .pipeline_engine import execute_pipeline
+from adi_model.pipeline_engine import execute_pipeline
 
 
 def run_pipeline(

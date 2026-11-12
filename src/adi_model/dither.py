@@ -14,9 +14,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ._arrays import readonly
-from .config import ConfigError, _finite_real
-from .dem import _integer_array
+from adi_model._arrays import readonly
+from adi_model.config import ConfigError, _finite_real
+from adi_model.dem import _integer_array
 
 FIG19_FRACTIONAL_WEIGHTS_Q = (9586981, 4793490, 2396745)
 

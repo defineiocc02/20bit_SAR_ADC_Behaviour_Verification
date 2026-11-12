@@ -12,8 +12,8 @@ from collections.abc import Callable
 
 import numpy as np
 
-from .config import ConfigError
-from .dac_arch import (
+from adi_model.config import ConfigError
+from adi_model.dac_arch import (
     DACCharge,
     NominalCodebook,
     SamplingCharge,
@@ -24,14 +24,14 @@ from .dac_arch import (
     split_capacitance_coefficients,
     topplate_voltage_from_effective_charge,
 )
-from .dem import (
+from adi_model.dem import (
     MaskBinding,
     SamplingConnections,
     SplitSwitchCommand,
     SplitSwitchGeometry,
     _integer_array,
 )
-from .timing import ScheduleBinding, SlicePlan, build_slice_plan
+from adi_model.timing import ScheduleBinding, SlicePlan, build_slice_plan
 
 AcquisitionBinding = Callable[
     [SplitSwitchGeometry, np.ndarray, np.ndarray, np.ndarray | None], SamplingConnections

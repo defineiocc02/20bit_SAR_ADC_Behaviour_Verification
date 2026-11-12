@@ -27,9 +27,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .config import ConfigError
-from .dem import SplitSwitchCommand, SplitSwitchGeometry, _integer_array
-from .timing import SlicePlan
+from adi_model.config import ConfigError
+from adi_model.dem import SplitSwitchCommand, SplitSwitchGeometry, _integer_array
+from adi_model.timing import SlicePlan
 
 FIG11_COLUMNS = 15
 VERTICAL_UNITS = 16

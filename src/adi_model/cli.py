@@ -20,11 +20,11 @@ from typing import Any, NoReturn, TypedDict
 
 import numpy as np
 
-from .config import Config, ConfigError
-from .defaults import DEFAULT_SEED, DefaultParameters, DefaultRun, default_model
-from .fixed_point import FixedPointFormat
-from .inventory_gate import _write_new_summary
-from .sampler import sine_input
+from adi_model.config import Config, ConfigError
+from adi_model.defaults import DEFAULT_SEED, DefaultParameters, DefaultRun, default_model
+from adi_model.fixed_point import FixedPointFormat
+from adi_model.inventory_gate import _write_new_summary
+from adi_model.sampler import sine_input
 
 __all__ = ["load_config", "main_validate_config", "main_simulate"]
 

@@ -28,8 +28,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .config import ConfigError
-from .dither import Fig19DitherProgram, Fig19StaticSpec, complete_flash3_sar6_prefix_table
+from adi_model.config import ConfigError
+from adi_model.dither import Fig19DitherProgram, Fig19StaticSpec, complete_flash3_sar6_prefix_table
 
 
 @dataclass(frozen=True)

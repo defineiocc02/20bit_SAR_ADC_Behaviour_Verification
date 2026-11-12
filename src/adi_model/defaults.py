@@ -16,23 +16,23 @@ from numbers import Real
 
 import numpy as np
 
-from .config import Config, ConfigError
-from .dac_arch import NominalCodebook, SplitChip
-from .dem import SamplingConnections, SplitSwitchCommand, SplitSwitchGeometry
-from .dither import (
+from adi_model.config import Config, ConfigError
+from adi_model.dac_arch import NominalCodebook, SplitChip
+from adi_model.dem import SamplingConnections, SplitSwitchCommand, SplitSwitchGeometry
+from adi_model.dither import (
     FIG19_FRACTIONAL_WEIGHTS_Q,
     Fig19DitherProgram,
     Fig19StaticSpec,
     complete_flash3_sar6_prefix_table,
 )
-from .fixed_point import CodeStream, FixedPointFormat, FixedPointReconstructor
-from .mapper import Mapper
-from .pipeline import run_pipeline
-from .serialization import result_document
-from .sim import SimResult
-from .slice_pool import PhysicalSlicePool
-from .timing import SlicePlan
-from .weight_calibration import CalibrationSpec
+from adi_model.fixed_point import CodeStream, FixedPointFormat, FixedPointReconstructor
+from adi_model.mapper import Mapper
+from adi_model.pipeline import run_pipeline
+from adi_model.serialization import result_document
+from adi_model.sim import SimResult
+from adi_model.slice_pool import PhysicalSlicePool
+from adi_model.timing import SlicePlan
+from adi_model.weight_calibration import CalibrationSpec
 
 DEFAULT_SEED = 20261105
 AMENDMENT_SHA256 = "d709a5f2ad657cd0990ea4bc8b7e2a5889a055be2a0793ad898190d26ae6a4da"
@@ -579,7 +579,7 @@ class DefaultModel:
         cfg = replace(self.cfg, seed=noise_seed)
         az_error_v = None
         if ordinary_az is not None:
-            from .behavioral.ra_az import apply_ordinary_az
+            from adi_model.behavioral.ra_az import apply_ordinary_az
             if not ordinary_az.enabled:
                 raise ConfigError("ordinary_az must be enabled to be applied")
             # 普通 AZ 逐笔刷新：保持时间从本笔自己的 AZ 时刻算起，近似为 0。

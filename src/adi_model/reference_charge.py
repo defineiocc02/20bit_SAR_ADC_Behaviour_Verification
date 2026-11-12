@@ -15,7 +15,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ._arrays import readonly
+from adi_model._arrays import readonly
 
 
 def _real_array(value, name: str) -> np.ndarray:

@@ -646,6 +646,14 @@ def execute_pipeline(
                     raise ConfigError(
                         "reference event binding does not end at the actual final conversion mask"
                     )
+                # 掩码按**端口宽度**给（子阵列 5 位），而器件只装配 4 列
+                # （FIG.11 第 5 个 C 是虚线占位，见 p1_gaps §11）。
+                # physical_reference_program 要求掩码与电容数组同形，
+                # 因此在这里把 sub_on 截到实际列数 —— 与 dac_arch 的处理一致。
+                _sub_on = np.asarray(events.sub_on)
+                _n_sub_cols = pool.chip.C_sub.shape[-1]
+                if _sub_on.shape[-1] != _n_sub_cols:
+                    _sub_on = _sub_on[..., :_n_sub_cols]
                 program = physical_reference_program(
                     slice_ids=converting,
                     main_caps_f=pool.chip.C_main[converting],
@@ -654,7 +662,7 @@ def execute_pipeline(
                     main_parasitic_f=pool.chip.require_main_parasitic()[converting],
                     sub_parasitic_f=pool.chip.c_p_sub[converting],
                     main_on=events.main_on,
-                    sub_on=events.sub_on,
+                    sub_on=_sub_on,
                     times_s=cfg.conversion.rdac_event_times_s,
                     sampled_main_bottom_v=packet.main_bottom_v[0, order],
                     sampled_sub_bottom_v=packet.sub_bottom_v[0, order],

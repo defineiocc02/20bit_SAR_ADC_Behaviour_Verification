@@ -63,7 +63,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 10.62,
+      "runtime_s": 13.54,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -105,7 +105,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 11.12,
+      "runtime_s": 12.6,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -147,7 +147,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 10.93,
+      "runtime_s": 11.42,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -189,7 +189,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 11.28,
+      "runtime_s": 11.88,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -231,7 +231,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 10.97,
+      "runtime_s": 11.8,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -313,7 +313,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 25.54,
+      "runtime_s": 26.52,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -356,7 +356,215 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 10.95,
+      "runtime_s": 13.04,
+      "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
+    },
+    {
+      "id": "C1_dem_cal",
+      "label": "A2 + 三维 DEM + 逐码校准",
+      "mismatch_std": 0.001,
+      "noise": true,
+      "dem": true,
+      "uniform_plan": false,
+      "calibration": true,
+      "status": "RUN",
+      "training": {
+        "training_samples": 8200,
+        "covered_codes": 512,
+        "min_samples_per_code": 14,
+        "residual_rms_uv": 80.13464056802383,
+        "training_levels": 8200,
+        "identifiable": "per-code output correction; per-element weights are NOT identifiable"
+      },
+      "static_before": {
+        "points": 256,
+        "repeats": 32,
+        "lsb20_v": 5.7220458984375e-06,
+        "inl_max_lsb20": 6.109785037824678,
+        "inl_max_ppm_fs": 5.826745069336584,
+        "offset_v": 6.461245682635207e-06,
+        "gain_err": -7.537963410504131e-06,
+        "sigma_e_mean_lsb20": 17.85140126645025,
+        "dnl_bin_lsb20_max": 9.413053921579072,
+        "dnl_bin_span_lsb20": 4050,
+        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
+        "input_span_v": 5.91,
+        "input_span_loss_v": 0.0,
+        "dither_active": false
+      },
+      "dynamic_before": {
+        "fin_hz": 1000976.5625,
+        "n_samples": 8192,
+        "sndr_db": 86.93341694050774,
+        "snr_db": 86.94503419842279,
+        "sfdr_db": 100.33517755093291,
+        "thd_db": -109.65427445189579,
+        "enob": 14.148408129652449,
+        "nsd_v_rthz_full": 2.130110029459402e-08,
+        "dr_db": 84.90126919031044,
+        "nsd_v_rthz_dr": 2.6979121224493796e-08,
+        "noise_rms_small_v": 0.00012065429806235099,
+        "coherent": true,
+        "harmonics_reliable": true
+      },
+      "static": {
+        "points": 256,
+        "repeats": 32,
+        "lsb20_v": 5.7220458984375e-06,
+        "inl_max_lsb20": 26.8895750914829,
+        "inl_max_ppm_fs": 25.643897143824482,
+        "offset_v": -1.3125052031424585e-05,
+        "gain_err": 6.10011482240114e-06,
+        "sigma_e_mean_lsb20": 17.854506426346564,
+        "dnl_bin_lsb20_max": 19.17191197628078,
+        "dnl_bin_span_lsb20": 4050,
+        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
+        "input_span_v": 5.91,
+        "input_span_loss_v": 0.0,
+        "dither_active": false
+      },
+      "dynamic": {
+        "fin_hz": 1000976.5625,
+        "n_samples": 8192,
+        "sndr_db": 86.24706375240496,
+        "snr_db": 86.75921000091373,
+        "sfdr_db": 100.02582248502438,
+        "thd_db": -95.83367168932435,
+        "enob": 14.034395972160292,
+        "nsd_v_rthz_full": 2.1761944383908156e-08,
+        "dr_db": 84.90078726256714,
+        "nsd_v_rthz_dr": 2.698061817509502e-08,
+        "noise_rms_small_v": 0.00012066099262895759,
+        "coherent": true,
+        "harmonics_reliable": true
+      },
+      "runtime_s": 31.02,
+      "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
+    },
+    {
+      "id": "C2_dem_dither",
+      "label": "A2 + 三维 DEM + dither（电荷口）",
+      "mismatch_std": 0.001,
+      "noise": true,
+      "dem": true,
+      "uniform_plan": false,
+      "dither": true,
+      "status": "RUN",
+      "static": {
+        "points": 256,
+        "repeats": 32,
+        "lsb20_v": 5.7220458984375e-06,
+        "inl_max_lsb20": 3.284961518581719,
+        "inl_max_ppm_fs": 3.132783430654258,
+        "offset_v": 6.760004907930584e-06,
+        "gain_err": -7.500567434321816e-06,
+        "sigma_e_mean_lsb20": 18.379179709126678,
+        "dnl_bin_lsb20_max": 2.588906862773001,
+        "dnl_bin_span_lsb20": 3921,
+        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
+        "input_span_v": 5.7225,
+        "input_span_loss_v": 0.1875,
+        "dither_active": true
+      },
+      "dynamic": {
+        "fin_hz": 1000976.5625,
+        "n_samples": 8192,
+        "sndr_db": 86.42753368103739,
+        "snr_db": 86.43222497399765,
+        "sfdr_db": 99.53203932269847,
+        "thd_db": -109.48525394576419,
+        "enob": 14.064374365620829,
+        "nsd_v_rthz_full": 2.189040497641962e-08,
+        "dr_db": 84.85368691785253,
+        "nsd_v_rthz_dr": 2.7127321418400747e-08,
+        "noise_rms_small_v": 0.00012131706947806018,
+        "coherent": true,
+        "harmonics_reliable": true
+      },
+      "runtime_s": 12.48,
+      "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
+    },
+    {
+      "id": "C3_all",
+      "label": "A2 + DEM + dither + 逐码校准（全组合）",
+      "mismatch_std": 0.001,
+      "noise": true,
+      "dem": true,
+      "uniform_plan": false,
+      "dither": true,
+      "calibration": true,
+      "status": "RUN",
+      "training": {
+        "training_samples": 8200,
+        "covered_codes": 512,
+        "min_samples_per_code": 14,
+        "residual_rms_uv": 80.13464056802383,
+        "training_levels": 8200,
+        "identifiable": "per-code output correction; per-element weights are NOT identifiable"
+      },
+      "static_before": {
+        "points": 256,
+        "repeats": 32,
+        "lsb20_v": 5.7220458984375e-06,
+        "inl_max_lsb20": 3.5700608490078025,
+        "inl_max_ppm_fs": 3.4046753397062326,
+        "offset_v": 6.702761276438799e-06,
+        "gain_err": -7.3560922981542485e-06,
+        "sigma_e_mean_lsb20": 18.416956358838235,
+        "dnl_bin_lsb20_max": 3.026406862773001,
+        "dnl_bin_span_lsb20": 3921,
+        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
+        "input_span_v": 5.7225,
+        "input_span_loss_v": 0.1875,
+        "dither_active": true
+      },
+      "dynamic_before": {
+        "fin_hz": 1000976.5625,
+        "n_samples": 8192,
+        "sndr_db": 86.42753368103739,
+        "snr_db": 86.43222497399765,
+        "sfdr_db": 99.53203932269847,
+        "thd_db": -109.48525394576419,
+        "enob": 14.064374365620829,
+        "nsd_v_rthz_full": 2.189040497641962e-08,
+        "dr_db": 84.85368691785253,
+        "nsd_v_rthz_dr": 2.7127321418400747e-08,
+        "noise_rms_small_v": 0.00012131706947806018,
+        "coherent": true,
+        "harmonics_reliable": true
+      },
+      "static": {
+        "points": 256,
+        "repeats": 32,
+        "lsb20_v": 5.7220458984375e-06,
+        "inl_max_lsb20": 20.356961829664886,
+        "inl_max_ppm_fs": 19.413911657013784,
+        "offset_v": -1.3200407335732489e-05,
+        "gain_err": 6.39208484045281e-06,
+        "sigma_e_mean_lsb20": 18.749031815433572,
+        "dnl_bin_lsb20_max": 4.680393835762516,
+        "dnl_bin_span_lsb20": 3921,
+        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
+        "input_span_v": 5.7225,
+        "input_span_loss_v": 0.1875,
+        "dither_active": true
+      },
+      "dynamic": {
+        "fin_hz": 1000976.5625,
+        "n_samples": 8192,
+        "sndr_db": 85.77407182789494,
+        "snr_db": 86.30205523999362,
+        "sfdr_db": 98.65802072036266,
+        "thd_db": -94.98116397521929,
+        "enob": 13.955825885032382,
+        "nsd_v_rthz_full": 2.2221191298148708e-08,
+        "dr_db": 84.61340743365145,
+        "nsd_v_rthz_dr": 2.7888225882277347e-08,
+        "noise_rms_small_v": 0.0001247199376892824,
+        "coherent": true,
+        "harmonics_reliable": true
+      },
+      "runtime_s": 30.33,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {

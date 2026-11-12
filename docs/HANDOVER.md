@@ -117,7 +117,7 @@
 | AUX 支路 | ✅ 判据已交付 | `control/aux_input.py`，`[13]` FIG.1/2 两源并联结构 + 三条不变式 |
 | `[09]` 转换级 | ✅ **已核对** | `docs/mechanisms/patent09_reconciliation.md`（正文第 20–32 页逐字 9 条）；radix<2 冗余判据见 `control/redundancy.py` |
 | 参考 buffer | ✅ 判据已交付 | `control/reference_buffer.py` + `docs/mechanisms/reference_fig5.md`，`[14]` FIG.5 三条语义（单位增益 / 尾电流封顶电荷 / 参考非静止） |
-| 362 信号门 | ⬜ 未做 | `[11]` FIG.19 Sheet 17/29 |
+| 362 信号门 | ✅ 判据已交付 | `control/shuffle_gate.py` + `docs/mechanisms/fig19_shuffle_gate.md`，`[11]` FIG.19 原生图逐元件核对（两级分配 / B8 直通 / 选通不改权重） |
 | 跨片分配 | ⬜ 未做（现为逐片旋转） | 同上 |
 
 **六份专利 [09]–[14] 均已完成至少一轮原件核对。**

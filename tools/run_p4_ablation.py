@@ -28,6 +28,8 @@ from adi_model.control.dem3d import Dem3State, round_robin_plan, unary_rotation_
 from adi_model.simulation.pipeline import run_pipeline
 from adi_model.simulation.slice_pool import PhysicalSlicePool
 from adi_model.calibration.mask_calibration import fit_code_correction
+from adi_model.control.dither import FIG19_FRACTIONAL_WEIGHTS_Q, Fig19StaticSpec
+from adi_model.control.dither_port import DitherPort
 
 FS_HZ = 40e6
 V_FS = 3.0
@@ -83,15 +85,45 @@ def _ramp_fn(values):
     return fn
 
 
-def _run(model, input_fn, n_samples: int, *, dem: bool, uniform_plan: bool, calibration=None):
+def _dither_port(model, cfg, words) -> DitherPort:
+    """按名义全 Signal 归一化电容构造独立电荷口（v2）。
+
+    `c_lsb_f = C_norm/512` 是工程绑定：它让输入等效步长与 `spec.coarse_step_v`
+    自洽；逐片失配由逐笔 C_norm 承担，不用标称值掩盖。
+    """
+    chip = model.chip
+    active = np.arange(chip.C_main.shape[0], dtype=np.int64)
+    main, sub = chip.C_main[active], chip.C_sub[active]
+    beta = chip.C_bridge[active] / (
+        chip.C_bridge[active] + sub.sum(axis=-1) + chip.c_p_sub[active]
+    )
+    c_norm = float(np.mean((main.sum(axis=-1) + beta * sub.sum(axis=-1)).sum(axis=-1)))
+    spec = Fig19StaticSpec(
+        v_fs=cfg.v_fs,
+        step_q=2**24,
+        voltage_fraction_bits=32,
+        fractional_lower_weights_q=FIG19_FRACTIONAL_WEIGHTS_Q,
+        equivalent_polarity="subtract",
+        provenance="P4 ablation: independent charge port at the sampling node (ASSUMED)",
+    )
+    return DitherPort.from_words(
+        words, spec=spec, c_lsb_f=c_norm / 512.0, reference_swing_v=2.0 * cfg.v_fs
+    )
+
+
+def _run(model, input_fn, n_samples: int, *, dem: bool, uniform_plan: bool, calibration=None,
+         dither_words=None):
     """执行一次显式配置；DEM 打开时用旋转掩码，否则复用默认分段掩码。
 
     calibration 给定时用它替换名义解码（`FrozenCalibration.reconstruct`），
     返回的电压是校准后的浮点重构，不是 20bit 整数码。
+
+    dither_words 给定时走 v2 独立电荷口：RDAC 码保持真实判决，dither 电容
+    在采样节点注入 T=L+U*Δ，数字侧扣回 -T。与 v1 的 k=c-U 不是同一条拓扑。
     """
     from adi_model.defaults import _all_signal, _segmented_mask
 
-    cfg = replace(model.cfg, dem_enable=dem)
+    cfg = replace(model.cfg, dem_enable=dem, dither_enable=dither_words is not None)
     ids_seed = model._child_seed(1, 0)
     schedule = (
         round_robin_plan(n_samples)
@@ -109,6 +141,7 @@ def _run(model, input_fn, n_samples: int, *, dem: bool, uniform_plan: bool, cali
     states = Dem3State.sequence(n_samples) if dem else np.zeros(n_samples, dtype=np.int64)
     plan = pool.plan(n_samples)
     noise_cap = _noise_cap_f(model, plan.conv) if cfg.enable_sampling_noise else None
+    dither_port = None if dither_words is None else _dither_port(model, cfg, dither_words)
     raw = run_pipeline(
         cfg,
         input_fn,
@@ -125,6 +158,7 @@ def _run(model, input_fn, n_samples: int, *, dem: bool, uniform_plan: bool, cali
         nominal_reference_low_v=-cfg.v_fs,
         static_charge_domain=True,
         rdac_noise_cap_f=noise_cap,
+        dither_port=dither_port,
     )
     codes = model.nominal_decoder.reconstruct(raw.digital_observation)
     voltage = np.asarray(codes.voltage, dtype=float)
@@ -136,12 +170,20 @@ def _run(model, input_fn, n_samples: int, *, dem: bool, uniform_plan: bool, cali
 
 
 def _dynamic(model, *, dem: bool, uniform_plan: bool, n: int = 8192, fin: float = 1.0e6,
-             calibration=None):
-    """相干正弦与 -60 dBFS 小信号，给出 SNDR/SNR/SFDR/THD/DR/NSD。"""
+             calibration=None, dither_seed: int | None = None, dither_headroom_v: float = 0.0):
+    """相干正弦与 -60 dBFS 小信号，给出 SNDR/SNR/SFDR/THD/DR/NSD。
+
+    满幅幅度扣除 dither 占用的范围，避免把 SADC 削顶误读成失真。
+    """
     tone_bin = int(round(fin / (FS_HZ / n)))
     fin_coherent = tone_bin * FS_HZ / n
     t = np.arange(n) / FS_HZ
-    amplitude = V_FS * 0.999
+    amplitude = (V_FS - dither_headroom_v) * 0.999
+    # dither 字用**独立** Generator，不改变噪声序列；同一组字同时用于
+    # 满幅与小信号，保证两条记录的 dither 条件一致。
+    words = None
+    if dither_seed is not None:
+        words = np.random.default_rng(int(dither_seed)).integers(0, 64, n, dtype=np.int64)
     _, full = _run(
         model,
         lambda _t: amplitude * np.sin(2 * np.pi * fin_coherent * _t),
@@ -149,6 +191,7 @@ def _dynamic(model, *, dem: bool, uniform_plan: bool, n: int = 8192, fin: float 
         dem=dem,
         uniform_plan=uniform_plan,
         calibration=calibration,
+        dither_words=words,
     )
     _, small = _run(
         model,
@@ -157,6 +200,7 @@ def _dynamic(model, *, dem: bool, uniform_plan: bool, n: int = 8192, fin: float 
         dem=dem,
         uniform_plan=uniform_plan,
         calibration=calibration,
+        dither_words=words,
     )
     full_metrics = metrics.sine_fit_metrics(full, FS_HZ, fin_coherent)
     small_metrics = metrics.sine_fit_metrics(small, FS_HZ, fin_coherent)
@@ -179,15 +223,47 @@ def _dynamic(model, *, dem: bool, uniform_plan: bool, n: int = 8192, fin: float 
     }
 
 
+def _dither_max_v(cfg) -> float:
+    """64 个字里最大的 |T| [V]：dither 占掉的输入范围。"""
+    words = np.arange(64, dtype=np.int64)
+    spec = Fig19StaticSpec(
+        v_fs=cfg.v_fs,
+        step_q=2**24,
+        voltage_fraction_bits=32,
+        fractional_lower_weights_q=FIG19_FRACTIONAL_WEIGHTS_Q,
+        equivalent_polarity="subtract",
+        provenance="range ledger for the P4 ablation",
+    )
+    from adi_model.control.dither import Fig19DitherProgram
+
+    return float(Fig19DitherProgram.from_words(words, spec=spec).total_v.max())
+
+
 def _static(model, *, dem: bool, uniform_plan: bool, points: int = 1024, repeats: int = 8,
-            calibration=None, offset_v: float = 0.0):
-    """慢斜坡：采样式 INL（端点拟合）+ 256 LSB20 分箱 DNL。"""
-    levels = np.linspace(-0.985 * V_FS, 0.985 * V_FS, points) + offset_v
+            calibration=None, offset_v: float = 0.0, dither_seed: int | None = None,
+            dither_headroom_v: float = 0.0):
+    """慢斜坡：采样式 INL（端点拟合）+ 256 LSB20 分箱 DNL。
+
+    dither_seed 给定时每个电平用**独立**字序列（专门的 Generator，
+    不碰噪声流），因此同一电平的 repeats 笔覆盖不同 dither 字。
+
+    dither_headroom_v 是 dither 占掉的输入范围 [V]：SADC 看 x−T，所以
+    可用输入必须收缩这么多，否则边界电平会削顶——这是技术的真实代价，
+    不是可以忽略的数值细节，因此显式从扫描范围里扣掉并记录。
+    """
+    span = 0.985 * V_FS - dither_headroom_v
+    levels = np.linspace(-span, span, points) + offset_v
     step = levels[1] - levels[0]
     mu = np.zeros(points)
     sd = np.zeros(points)
     for index, level in enumerate(levels):
-        def run_fn(_level, count):
+        words = None
+        if dither_seed is not None:
+            words = np.random.default_rng(
+                np.random.SeedSequence([int(dither_seed), int(index)])
+            ).integers(0, 64, repeats, dtype=np.int64)
+
+        def run_fn(_level, count, _words=words):
             return _run(
                 model,
                 lambda _t, value=float(_level): np.full_like(np.asarray(_t, dtype=float), value),
@@ -195,6 +271,7 @@ def _static(model, *, dem: bool, uniform_plan: bool, points: int = 1024, repeats
                 dem=dem,
                 uniform_plan=uniform_plan,
                 calibration=calibration,
+                dither_words=_words,
             )[1]
 
         out = run_fn(level, repeats)
@@ -216,6 +293,9 @@ def _static(model, *, dem: bool, uniform_plan: bool, points: int = 1024, repeats
         "dnl_bin_lsb20_max": float(np.max(np.abs(dnl_lsb20))),
         "dnl_bin_span_lsb20": int(bins),
         "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
+        "input_span_v": float(2 * span),
+        "input_span_loss_v": float(2 * dither_headroom_v),
+        "dither_active": dither_seed is not None,
     }
 
 
@@ -308,12 +388,13 @@ def _configs() -> list[dict]:
         },
         {
             "id": "A6_dither_in_loop",
-            "label": "A2 + 环内 dither（六位字）",
-            "status": "NOT_RUN",
-            "blocking_reason": (
-                "旧 Fig19 路径要求 uniform512 码本与 identity 解码，与 63+8 分段池冲突；"
-                "电荷口版本已在 dither_port 建立，但尚未接进主 pipeline 的逐笔循环"
-            ),
+            "label": "A2 + 独立电荷口 dither（六位字，采样节点注入，码不偏移）",
+            "mismatch_std": 1e-3,
+            "noise": True,
+            "dem": False,
+            "uniform_plan": False,
+            "dither": True,
+            "status": "RUN",
         },
         {
             "id": "A7_full_dynamic",
@@ -365,6 +446,9 @@ def main() -> int:
             continue
         started = time.time()
         model = _build_model(spec["mismatch_std"], spec["noise"])
+        # dither 字流与控制/噪声流分开：固定 20261113，只被 A6 消费。
+        dither_seed = 20261113 if spec.get("dither") else None
+        headroom_v = _dither_max_v(model.cfg) if dither_seed is not None else 0.0
         calibration = None
         held_out_offset = 0.0
         if spec.get("calibration"):
@@ -379,12 +463,16 @@ def main() -> int:
                 points=args.static_points,
                 repeats=args.static_repeats,
                 offset_v=held_out_offset,
+                dither_seed=dither_seed,
+                dither_headroom_v=headroom_v,
             )
             row["dynamic_before"] = _dynamic(
                 model,
                 dem=spec["dem"],
                 uniform_plan=spec["uniform_plan"],
                 n=args.dynamic_n,
+                dither_seed=dither_seed,
+                dither_headroom_v=headroom_v,
             )
         row["static"] = _static(
             model,
@@ -394,6 +482,8 @@ def main() -> int:
             repeats=args.static_repeats,
             calibration=calibration,
             offset_v=held_out_offset,
+            dither_seed=dither_seed,
+            dither_headroom_v=headroom_v,
         )
         row["dynamic"] = _dynamic(
             model,
@@ -401,6 +491,8 @@ def main() -> int:
             uniform_plan=spec["uniform_plan"],
             n=args.dynamic_n,
             calibration=calibration,
+            dither_seed=dither_seed,
+            dither_headroom_v=headroom_v,
         )
         row["runtime_s"] = round(time.time() - started, 2)
         row["evidence_level"] = "L1 behavioral (float), no RTL/post-layout/silicon"
@@ -421,7 +513,7 @@ def main() -> int:
         "configs": rows,
         "notes": [
             "所有模型数字来自浮点行为模型，未经过 RTL 或后仿",
-            "校准、环内 dither、全动态三条未运行，见 blocking_reason",
+            "A7 全动态未运行，见 blocking_reason；A6 只覆盖静态连接下的电荷口 dither",
             "论文值与模型值不混排：paper_anchor 是独立字典",
         ],
     }

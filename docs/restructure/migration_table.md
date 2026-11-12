@@ -81,12 +81,56 @@ simulation/decode.py         vd0 + fine/g + dither 加回 + 校准应用
 * **不把 CAAZ 拉回主链**：`extensions/caaz` 保持零依赖。
 * **不用"测试全绿"替代逐位对照**：搬家必须给 SHA 对照，不能只说 pytest 过了。
 
-## 7. 当前状态（本表落盘时）
+## 7. 当前状态
 
 | 项 | 状态 |
 |:---|:---|
 | 两张示范专题（dither / DEM） | ✅ 已按六段写（`docs/mechanisms/`） |
 | 迁移表 | ✅ 本文件 |
 | 行为指纹 | ✅ 已生成（3 组配置 + 掩码层，SHA256 已落盘） |
-| 实际搬家 | ❌ 未开始（第 0 步已完成，第 1 步待做） |
-| README 重排 | ⏳ 与第 1 步同批 |
+| 第 0 步 行为指纹 | ✅ 已完成并**逐位复现**（2026-11-12 重跑，12 项 SHA256 全等） |
+| 第 1 步 只搬家 | ✅ 已完成：43 个模块进 7 个子包，指纹仍逐位一致 |
+| 第 2 步 `metrics` 合并 | ⏳ 未做；目前保留 `metrics` 与 `metrics_lsb20` 两套口径 |
+| 第 3 步 `dither_port` 三方拆分 | ⏳ 未做（`DitherPort` 仍同时承载字解码与电荷台账） |
+| 第 4 步 `execute_pipeline` 四段拆分 | ❌ 未做（`pipeline_engine.py` 仍约 760 行） |
+| 第 5 步 `experiments/` 提矩阵 | ❌ 未做（A0–A7 仍在 `tools/run_p4_ablation.py`） |
+| README 重排 | ✅ 已在上一轮完成，本轮补 A6 结论 |
+
+## 8. 第 1 步实际执行记录（2026-11-12）
+
+### 8.1 做法
+
+分两次提交，把"改导入写法"与"改文件位置"解耦：
+
+1. `04a785f` **相对导入 → 绝对导入**（44 文件 / 166 条），不移动任何文件；
+2. `a6b034b` **搬文件**（43 个模块 / 7 个子包），只重写绝对模块路径。
+
+拆成两步的理由：如果同时改位置和导入层级，一次失败无法判断是"路径错了"
+还是"相对层级算错了"。分两步后，任一步失败都能单独回退。
+
+### 8.2 验收证据
+
+| 检查 | 结果 |
+|:---|:---|
+| 行为指纹（`tools/behavior_fingerprint.py`） | 12 项 SHA256 与迁移前**完全一致** |
+| 单元测试 | 1511 passed（迁移前 1511 passed） |
+| `python -m adi_model --help` | 正常 |
+| `tools/trace_one_sample.py` | 正常 |
+| `tools/run_p4_ablation.py` | A0–A5 的 INL/SNDR 与迁移前记录**逐项相同** |
+
+### 8.3 与表的偏离（必须说明）
+
+| 项 | 表里写的 | 实际做的 | 理由 |
+|:---|:---|:---|:---|
+| `fixed_point.py` | → `calibration/` | → `contracts/` | 它定义的是位宽/舍入/溢出这类**格式契约**，不是拟合策略；放 calibration 会让"谁定义数值格式"变得含糊 |
+| `scheduler.py`（包根） | → `control/` | → `simulation/` | `control/scheduler.py` 已存在（18 片逐沿调度）。包根那个是**采集计划接口**，与逐沿调度不是同一件事；放同一目录会出现两个同名模块 |
+| `metrics` | 合并两个口径 | 未合并，只加包级薄适配 | 合并口径需要先决定"同一函数用哪个 LSB"，属第 2 步，不能混进搬家提交 |
+
+### 8.4 搬家时发现的真实缺陷
+
+`metrics` 从模块变成包之后，`from adi_model import metrics` 会拿到空包，
+`metrics.inl_from_mean_error` 直接 `AttributeError`。这不是测试能自动抓到的
+（两个调用点都在 `tools/` 里，单测不覆盖）。处理方式是在
+`src/adi_model/metrics/__init__.py` 保留一层薄适配重新导出，并写清"公式仍只有
+`metrics.py` 一处"。任何后续再拆 `metrics` 内部文件时，必须同步这层适配。
+

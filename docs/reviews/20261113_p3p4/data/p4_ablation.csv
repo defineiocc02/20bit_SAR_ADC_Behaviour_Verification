@@ -5,5 +5,5 @@ A2_mismatch_noise,RUN,24.55,16.54,88.06,88.94,99.26,87.11,20.91
 A3_dem_rotation,RUN,6.19,9.01,86.93,86.95,100.34,84.90,26.98
 A4_dem_uniform_plan,RUN,6.78,7.94,87.99,88.01,101.16,86.60,22.19
 A5_calibration,RUN,10.52,18.39,88.92,88.93,109.73,87.11,20.91
-A6_dither_in_loop,NOT_RUN,,,,,,,
+A6_dither_in_loop,RUN,20.53,5.94,87.53,88.39,97.93,86.79,21.70
 A7_full_dynamic,NOT_RUN,,,,,,,

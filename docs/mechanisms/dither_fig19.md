@@ -39,20 +39,38 @@
 
 | 专利原图（待核对） | 当前模型对象 | 函数 | 关键变量 | 主链调用位置 |
 |:---|:---|:---|:---|:---|
-| `400` dither 发生器（六位字 → 两段） | `Fig19DitherProgram` | `dither.Fig19DitherProgram.from_words` | `words`、`lower_q`、`upper_code`、`total_q` | 尚未进主链（A6 NOT_RUN） |
-| 下段注入（模拟） | `DitherPort` | `dither_port.DitherPort.charge_c` | `lsb_equivalent`、`c_lsb_f`、`reference_swing_v` | 同上 |
-| `200` 量化器输入 | `sadc` 输入 | `pipeline_engine` 内 `x_sadc` | `sadc_input = x − lower_v` | `execute_pipeline` |
-| `220` 采样/余差 DAC | `SlicePool` + 掩码 | `slice_pool.select`、`dac_arch.charge_from_masks` | `command.main_on/sub_on` | `execute_pipeline` |
-| 上段码偏移 | RDAC 码 | `Fig19DitherProgram.upper_code` | `c − U` | 同一处（未启用） |
-| `222/224` 数字加减 | `digital_descramble` | `dither_port.digital_descramble` | `total_v` | 尚未接入解码 |
+| `400` dither 发生器（六位字 → 两段） | `Fig19DitherProgram` | `dither.Fig19DitherProgram.from_words` | `words`、`lower_q`、`upper_code`、`total_q` | `pipeline_engine.capture` 之前由调用方构造 |
+| 下段注入（模拟） | `DitherPort` | `dither_port.DitherPort.lower_v` | `lower_v`、`total_v` | `execute_pipeline` → `capture(dither_sample_v=...)` |
+| `200` 量化器输入 | `sadc` 输入 | `pipeline_engine` 内 `x_sadc` | `x_sadc = x − T`（v2） | `execute_pipeline` |
+| `220` 采样/余差 DAC | `SlicePool` + 掩码 | `slice_pool.select`、`dac_arch.charge_from_masks` | `command.main_on/sub_on`，码保持 `c` | `execute_pipeline` |
+| 上段（`U`） | 采样节点电荷的一部分 | `Fig19DitherProgram.upper_code` | `U = 4·D6 + D4` | 与 `L` 合并成 `T` 一起注入 |
+| `222/224` 数字加减 | 重构修正项 | `pipeline_engine` 的 `correction` | `−T` | `reconstruct(vd0, fine, g, −T, 1)` |
 | 物理 dither 电容/开关网络 | **未实现** | — | — | — |
 
+**两条拓扑，必须分清**（2026-11-12 起同时存在）：
+
+| 拓扑 | 入口 | RDAC 码 | 采样视图 | 能用在哪 | 状态 |
+|:---|:---|:---|:---|:---|:---|
+| v1 code-shift | `dither_program=` | `k = c − U` | SADC 看 `x−L`，RDAC 采 `x−T` | 仅均匀 512 码本、零噪声、无 DEM | 保留，逐位未变 |
+| v2 charge-port | `dither_port=` | **保持 `c`** | 两个视图同为 `x−T` | 分段码本 + 失配 + 噪声 + DEM | 已进主链（A6） |
+
+v2 不是"把 v1 的限制放开"，而是按物理重接：dither 电容接在**采样节点**，
+所以 SADC 与 RDAC 看到同一个平移后的样本；上段不再靠移动主阵列码来实现。
+
+> **一条被实测否掉的路**：最初把 upper 段实现成"码不动、只在 DAC 节点加
+> `−U·Δ` 的电荷"。实测该笔余差被顶到 48.4 mV，RA 直接削顶到 0.5 V 满摆幅
+> （`ra_sat=1`）。原因是 RA 的输入量程只有一个粗码（±5.9 mV），任何不进
+> 判决的 dither 都会溢出。所以"独立电容不占码域"这句话只对**码域记账**成立，
+> 对**模拟量程**不成立；这一点已写进代码注释，避免后人再走一遍。
+
 **必须说清的替代关系**：`DitherPort` 是**等效电荷口**，不是 Fig.19 的电容网络。
-它保留了"下段在采样节点注入"这一因果位置，但去掉了有限电容、注入开关与参考负担。
+它保留了"dither 在采样节点注入"这一因果位置，但去掉了有限电容、注入开关与参考负担。
 所以：
 
-* 能声称：注入位置与量级、两段拆分、数字加回的符号与量级；
-* 不能声称：dither 电容失配、开关电荷注入、对信号归一化的影响。
+* 能声称：注入位置与量级、两段拆分、数字加回的符号与量级、在分段码本+失配下
+  的 INL/DNL 定量变化；
+* 不能声称：dither 电容失配、开关电荷注入、dither 支路的参考建立、
+  以及"复现了 Fig.19 的物理网络"。
 
 ## ④ 一个真实样本（`tools/trace_one_sample.py`，样本 97）
 
@@ -84,14 +102,65 @@
 
 结论：**"越界计数变成 0"只能说明电荷口避开了码域约束，不能说明复现了 Fig.19 的物理网络。**
 
+## ⑤b A6 同条件开/关（真实运行，`tools/run_p4_ablation.py`）
+
+同一颗芯片（seed 20261105，σ_unit=σ_bridge=1e-3）、同一输入、同一电容网络、
+同一噪声相位；唯一变量是 dither 字数流（独立 Generator，不动噪声流）。
+
+静态：256 电平 × 32 次；动态：8192 点、1 MHz 相干。
+
+| 量 | A2（无 dither） | A6（dither） | 变化 | 读法 |
+|:---|:---:|:---:|:---:|:---|
+| INL（采样式，端点拟合） | 24.55 LSB20 | **20.53 LSB20** | **−16.4%** | 有改善，但远不到 DEM 的 6.2 |
+| DNL（斜坡步长粒度分箱） | 16.54 LSB20 | **5.94 LSB20** | **−64%** | 改善最大的一项 |
+| 逐电平 σ_e | 12.55 LSB20 | 13.17 LSB20 | +4.9% | 代价：随机分量变大 |
+| 可用输入跨度 | 5.910 V | 5.723 V | **−0.188 V（−3.2%）** | 代价：范围被 dither 吃掉 |
+| SNDR @1 MHz | 88.06 dB | 87.53 dB | −0.53 dB | 代价：噪声变差 |
+| SNR | 88.94 dB | 88.39 dB | −0.55 dB | 同上 |
+| SFDR | 99.26 dB | 97.93 dB | **−1.33 dB** | **变差**，没有改善 |
+| DR | 87.11 dB | 86.79 dB | −0.32 dB | 变差 |
+| NSD | 20.91 nV/√Hz | 21.70 nV/√Hz | +3.8% | 变差 |
+
+**为什么 INL 只降 16% 而 DNL 降 64%**：dither 把"某个固定码用不用"变成随机，
+所以对**码间台阶**（DNL）最有效；而 INL 是整条传输曲线的弯曲，32 次平均只能
+把每个电平的码使用打散到 3~9 个粗码，残余仍是系统性弯曲，靠平均压不下去。
+要压 INL 需要的是 DEM（换单元）或校准（改系数），不是 dither。
+
+**为什么 SFDR/SNR 变差**：这组 dither 是每笔独立随机字，等价于给输入加了一路
+宽带噪声（σ_e 从 12.6 涨到 13.2 LSB20）；FFT 里的最大杂散 bin 会被这层噪声抬起来。
+这不是实现错误，是"用噪声换线性"的直接代价。
+
+**范围代价的来源**：v2 的 SADC 看 `x−T`，`T_max = 70.3 mV`（64 个字的最坏值），
+所以输入必须从 ±2.955 V 收缩到 ±2.861 V，否则边界电平直接削顶（实测过：
+不收缩时 −2.955 V 处误差 7000+ LSB20）。这条代价在 `_static` 的
+`input_span_loss_v` 字段里逐次记录，不是事后补的说明。
+
 ## ⑥ 差距与下一步
 
 | 差距 | 是否影响结论 | 下一步 |
 |:---|:---:|:---|
 | 七片示例 vs 本工程八片活动组 | **影响映射**：分数权重 4:2:1/7 是七片几何的产物 | 在 `Fig19StaticSpec` 里显式记录"七片"前提，八片组需重新推导权重 |
 | 独立电荷口 ≠ Fig.19 物理网络 | 影响噪声/参考负担 | 建有限电容 + 注入开关，或明确永久限定为"等效端口" |
-| 未进主链（A6） | 影响一切性能结论 | 接 `execute_pipeline` 的逐笔循环 |
-| dither 电容失配未建模 | 影响 DNL 收益 | 给 dither 单元加 σ |
+| ~~未进主链（A6）~~ | 已解决 | v2 已接入 `execute_pipeline` 逐笔循环，A6 从 `NOT_RUN` 变 `RUN` |
+| dither 电容失配未建模 | 影响 DNL 收益的真实性 | 给 dither 单元加 σ，看重算后 DNL 还剩多少 |
+| dither 支路参考建立未建模 | 影响高速下的有效步长 | 需要与动态参考专题一起做（S4） |
+| 字的产生策略未建模 | 影响杂散形状 | 当前字由外部给定；片内 PRNG/调度未实现 |
 
-**验收口径**：本篇可以支撑"注入位置/两段拆分/数字加回"三条说法；
-**不能**支撑"dither 改善 DNL/SFDR"。
+**验收口径（2026-11-12 修订）**：
+
+* 可以支撑："dither 在分段码本 + 失配下把 DNL 降 2.8×、INL 降 16%，
+  代价是 3.2% 输入范围与 0.5 dB SNR"——这条有 A2/A6 同条件实测；
+* 仍然**不能**支撑："dither 改善 SFDR"（实测变差 1.3 dB）；
+* 仍然**不能**支撑："复现了 Fig.19 的物理电容网络"。
+
+## ⑦ 复现命令
+
+```bash
+# A2 / A6 同条件对照（写入 docs/reviews/20261113_p3p4/data）
+PYTHONPATH=src python3 tools/run_p4_ablation.py \
+  --static-points 256 --static-repeats 32 --dynamic-n 8192 \
+  --out docs/reviews/20261113_p3p4/data
+
+# 只看 dither 的四条不变量
+PYTHONPATH=src python3 -m pytest tests/unit/test_dither_charge_port.py -q
+```

@@ -6,7 +6,7 @@
 
 | 内容 | 位置 | 约定 |
 |---|---|---|
-| Python 行为模型 | `src/adi_model/` | 模块源码和类型标注 |
+| Python 行为模型 | `src/adi_model/` | 模块源码和类型标注；内部按职责分 7 个子包，见下节 |
 | SAR 数字 RTL | `rtl/` | 模块、顶层、参数及源码清单 |
 | 通用仿真 | `sim/tb/`、`sim/vectors/` | 自检 testbench 与需要版本化的小型固定向量 |
 | 独立数字子系统 | `ad4080_dsp/` | 自有 RTL、模型、测试、接口与子系统文档；项目接入层位于此目录 |
@@ -16,6 +16,35 @@
 | 专题机制与实验 | `docs/caaz/` 等专题目录 | 专题说明、原创图、轻量重画数据与脚本；大规模 raw 捕获留在仓库外，首页可引用专题图 |
 | 历史文档 | `docs/history/` | 标记版本与历史状态，不把旧结论当作当前实现 |
 | 选定的论文／讲稿原件 | `references/` | 仅维护者明确指定的六份 PDF，见目录清单；保留原版权，不进入 Python wheel／sdist |
+
+## `src/adi_model/` 的职责分层（2026-11-12 起）
+
+```
+src/adi_model/
+├── contracts/     数据结构、单位、定点格式与接口约定（不做计算策略）
+├── topology/      物理电容、码本与电荷方程（dac_arch / capacitors / mapper）
+├── control/       数字命令：DEM、dither 字解码与电荷口、follower、TRACK、timing
+├── behavioral/    模拟非理想：采样、参考、RA、ADC2、转换、输入网络、噪声
+├── calibration/   训练与重构：逐码/逐单元权值、定点解码
+├── simulation/    唯一事件推进与状态管理：pipeline、engine、slice pool、config
+├── metrics/       只读指标：静态、频谱、噪声（含 benchmarks）
+├── defaults.py    一颗芯片怎么装配（唯一默认入口）
+├── cli.py         命令行
+└── inventory_gate.py / provenance.py / rtl_observation.py  审计与溯源
+```
+
+边界规则（搬家时逐条核对）：
+
+* `metrics` 只读结果，不改仿真数据；
+* `control` 只发命令，不读真实制造失配当算法答案；
+* `calibration` 只用观测训练，不拿真实电容当标签；
+* `simulation` 是唯一的逐笔推进入口，其他模块不自己跑循环。
+
+`contracts/fixed_point.py` 放在 contracts 而不是 calibration：它定义的是
+**格式契约**（位宽、舍入、溢出），不是拟合策略。
+
+`metrics` 包对外保留一层薄适配：`from adi_model import metrics` 仍可取到
+原 `metrics.py` 的公开函数（迁移前它是模块，同名路径变成包后需要兼容）。
 
 新的大体积生成产物、仿真日志、临时编译文件应写入仓库外的单独输出目录；
 例如命令中使用 `${TMPDIR:-/tmp}/sar-adc-results`、`BUILD_DIR=...`。现有

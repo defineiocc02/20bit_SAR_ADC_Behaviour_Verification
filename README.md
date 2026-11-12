@@ -16,7 +16,7 @@
 |:---|:---|:---|:---|
 | RDAC follower | 已实现，**只走向已决码** | 与"一次加载"最终电荷相同；传统试探 SAR 的往返电荷是它的 **3.01×** | [follower](docs/reviews/20261113_p3p4/01_rdac_follower.md) |
 | 三维 DEM | 两维掩码 + 一维调度已实现；**保留列/跨片分配未实现** | INL **24.5 → 6.2 LSB20**（3.9×），失配斜率 0.27×；代价 NSD **+29%** | [DEM](docs/mechanisms/dem_fig11.md) |
-| 分路 dither | **等效电荷口**已实现；**物理电容网络未实现**，且未进主循环 | 码偏移 vs 电荷口：非法码 **6 368 → 0**；Fig.11 阵列残余 **6.70 mV** | [dither](docs/mechanisms/dither_fig19.md) |
+| 分路 dither | **独立电荷口已进主链**（v2）；**物理电容网络未实现** | INL **24.5 → 20.5**、DNL 分箱 **16.5 → 5.9 LSB20**；代价 SNDR **−0.53 dB**、范围 **−0.188 V** | [dither](docs/mechanisms/dither_fig19.md) |
 | TRACK 预置 | 电荷记账 + 时间因果已实现；AUX 未接 | 输入电荷 **3.20×** 降低（回看 2 笔，因果） | [TRACK](docs/reviews/20261113_p3p4/04_track_aux.md) |
 | 动态参考/RA/ADC2 | 能跑通，**出不了 INL/SNR** | 参考在 RA 入口 64.0 µV（15.5 bit），RA 内补 11.5 bit | [A7](docs/reviews/20261113_p3p4/10_dynamic_closure.md) |
 | 权值校准 | **逐码表**可用；逐单元权值未闭环 | 本芯片 13.2、串芯片 **32.5** LSB20（比不校准差 58%） | [校准](docs/reviews/20261113_p3p4/07_calibration.md) |
@@ -77,23 +77,32 @@
 | 量 | 关 | 开 | 条件 |
 |:---|:---:|:---:|:---|
 | INL（σ=0.1%） | 24.5 LSB20 | **6.2**（DEM） | 256 电平 × 32 次，63+8 池 |
+| INL / DNL 分箱 | 24.5 / 16.5 LSB20 | **20.5 / 5.9**（dither） | 同上；dither 另扣 0.188 V 输入范围 |
+| SNDR（dither 代价） | 88.06 dB | **87.53 dB** | 同上；SFDR 同时 99.3 → 97.9 dB |
 | SFDR | 99.3 dB | **109.7**（逐码校准） | 同上，1 MHz 相干 |
 | 热噪声 NSD | — | **8.60 nV/√Hz**（论文 9.3） | A2−A1 功率差 |
 | 参考电荷（同码） | 一次加载 61.3 pC | follower 61.3 / 试探 **184.3** | F06 |
 | 输入电荷 | 39.05 pC | **12.2 pC**（TRACK） | 1 MHz 正弦 |
 
+dither 这行的读法：**它对 DNL 最有效（2.8×），INL 只降 16%，SFDR 反而差 1.3 dB**。
+dither 把"用哪个码"随机化，抹平码间台阶；压不平整条传输曲线的弯曲——
+那是 DEM 和校准的活。
+
 图：`docs/reviews/20261113_p3p4/figures/`（F01–F13，每张带配置、seed、SHA、重绘命令）。
+本页所有数字与图都来自同一份源码（`figures.json` 的 `source_sha` 与矩阵 JSON 一致）。
 
 ## 6. 未完成（不掩盖）
 
 | 项 | 状态 | 影响 |
 |:---|:---|:---|
-| dither 环内闭环（A6） | 未接 | 所有 dither 的性能结论都不成立 |
+| ~~dither 环内闭环（A6）~~ | **已接**（v2 独立电荷口，2026-11-12） | 见 §5；仍不含物理 dither 电容网络 |
 | 逐单元权值闭环 | 未闭环（全节点残差 991 µV） | 卡在 6.2 LSB20，进不到 2.3 |
 | 动态路径数字输出 | `out=NaN` | A7 只能看波形，不能出 INL/SNR |
 | AUX 支路 | 未接 | 输入电流只能给上界 |
 | RTL 逐笔 scoreboard | 未做 | 无 RTL 级结论 |
-| 工程结构迁移 | 表已出（`docs/restructure/migration_table.md`），未搬 | 可读性仍是短板 |
+| ~~工程结构迁移~~ | **已完成**（43 模块进 7 子包，指纹逐位一致） | 见 `docs/restructure/migration_table.md` §8 |
+| `execute_pipeline` 拆分 | 未做（仍约 760 行） | 单文件仍偏长，是下一步可读性工作 |
+| `metrics` 两套口径合并 | 未做 | `metrics` 与 `metrics_lsb20` 仍并存 |
 
 ## 7. 运行与调试入口
 
@@ -102,15 +111,15 @@
 PYTHONPATH=src python -m adi_model simulate --samples 4096 --output /tmp/adi-demo
 
 # 2) 机制门禁（follower / DEM / dither / TRACK / 校准）
-PYTHONPATH=src python -m pytest tests/unit/test_{follower,dem3d,dither_port,track_aux,mask_calibration}.py -q
+PYTHONPATH=src python -m pytest tests/unit/test_{follower,dem3d,dither_port,dither_charge_port,track_aux,mask_calibration}.py -q
 
 # 3) 外部审查的修复回归（应 4/4 PASS）
 PYTHONPATH=src python3 tools/check_audit_findings.py
 
-# 4) 复算矩阵与图
+# 4) 复算矩阵与图（两处 repeats 必须一致，否则图与矩阵数字对不上）
 PYTHONPATH=src python3 tools/run_p4_ablation.py --dynamic-n 8192 --static-points 256 \
   --static-repeats 32 --out docs/reviews/20261113_p3p4/data
-PYTHONPATH=src python3 tools/run_review_figures.py --points 256 --repeats 16 \
+PYTHONPATH=src python3 tools/run_review_figures.py --points 256 --repeats 32 \
   --dynamic-n 8192 --out docs/reviews/20261113_p3p4/figures
 
 # 5) 一笔样本的完整链路

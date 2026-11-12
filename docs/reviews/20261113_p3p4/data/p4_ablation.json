@@ -43,7 +43,10 @@
         "sigma_e_mean_lsb20": 0.0,
         "dnl_bin_lsb20_max": 1.381803921579073,
         "dnl_bin_span_lsb20": 4050,
-        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL"
+        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
+        "input_span_v": 5.91,
+        "input_span_loss_v": 0.0,
+        "dither_active": false
       },
       "dynamic": {
         "fin_hz": 1000976.5625,
@@ -60,7 +63,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 11.37,
+      "runtime_s": 10.62,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -82,7 +85,10 @@
         "sigma_e_mean_lsb20": 10.746883783510462,
         "dnl_bin_lsb20_max": 16.506803921579074,
         "dnl_bin_span_lsb20": 4050,
-        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL"
+        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
+        "input_span_v": 5.91,
+        "input_span_loss_v": 0.0,
+        "dither_active": false
       },
       "dynamic": {
         "fin_hz": 1000976.5625,
@@ -99,7 +105,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 13.9,
+      "runtime_s": 11.12,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -121,7 +127,10 @@
         "sigma_e_mean_lsb20": 12.550564886543382,
         "dnl_bin_lsb20_max": 16.538053921579074,
         "dnl_bin_span_lsb20": 4050,
-        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL"
+        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
+        "input_span_v": 5.91,
+        "input_span_loss_v": 0.0,
+        "dither_active": false
       },
       "dynamic": {
         "fin_hz": 1000976.5625,
@@ -138,7 +147,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 16.23,
+      "runtime_s": 10.93,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -160,7 +169,10 @@
         "sigma_e_mean_lsb20": 17.850393452484678,
         "dnl_bin_lsb20_max": 9.006803921579072,
         "dnl_bin_span_lsb20": 4050,
-        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL"
+        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
+        "input_span_v": 5.91,
+        "input_span_loss_v": 0.0,
+        "dither_active": false
       },
       "dynamic": {
         "fin_hz": 1000976.5625,
@@ -177,7 +189,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 11.59,
+      "runtime_s": 11.28,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -199,7 +211,10 @@
         "sigma_e_mean_lsb20": 14.762356427509744,
         "dnl_bin_lsb20_max": 7.944303921579073,
         "dnl_bin_span_lsb20": 4050,
-        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL"
+        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
+        "input_span_v": 5.91,
+        "input_span_loss_v": 0.0,
+        "dither_active": false
       },
       "dynamic": {
         "fin_hz": 1000976.5625,
@@ -216,7 +231,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 10.51,
+      "runtime_s": 10.97,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -247,7 +262,10 @@
         "sigma_e_mean_lsb20": 12.615264848917725,
         "dnl_bin_lsb20_max": 17.819303921579074,
         "dnl_bin_span_lsb20": 4050,
-        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL"
+        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
+        "input_span_v": 5.91,
+        "input_span_loss_v": 0.0,
+        "dither_active": false
       },
       "dynamic_before": {
         "fin_hz": 1000976.5625,
@@ -275,7 +293,10 @@
         "sigma_e_mean_lsb20": 12.61894377313684,
         "dnl_bin_lsb20_max": 18.39066197628078,
         "dnl_bin_span_lsb20": 4050,
-        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL"
+        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
+        "input_span_v": 5.91,
+        "input_span_loss_v": 0.0,
+        "dither_active": false
       },
       "dynamic": {
         "fin_hz": 1000976.5625,
@@ -292,14 +313,51 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 28.42,
+      "runtime_s": 25.54,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
       "id": "A6_dither_in_loop",
-      "label": "A2 + 环内 dither（六位字）",
-      "status": "NOT_RUN",
-      "blocking_reason": "旧 Fig19 路径要求 uniform512 码本与 identity 解码，与 63+8 分段池冲突；电荷口版本已在 dither_port 建立，但尚未接进主 pipeline 的逐笔循环"
+      "label": "A2 + 独立电荷口 dither（六位字，采样节点注入，码不偏移）",
+      "mismatch_std": 0.001,
+      "noise": true,
+      "dem": false,
+      "uniform_plan": false,
+      "dither": true,
+      "status": "RUN",
+      "static": {
+        "points": 256,
+        "repeats": 32,
+        "lsb20_v": 5.7220458984375e-06,
+        "inl_max_lsb20": 20.526060282254996,
+        "inl_max_ppm_fs": 19.57517650819301,
+        "offset_v": 2.7372501790607667e-05,
+        "gain_err": -1.327957288102933e-05,
+        "sigma_e_mean_lsb20": 13.172887592291806,
+        "dnl_bin_lsb20_max": 5.942343137226999,
+        "dnl_bin_span_lsb20": 3921,
+        "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
+        "input_span_v": 5.7225,
+        "input_span_loss_v": 0.1875,
+        "dither_active": true
+      },
+      "dynamic": {
+        "fin_hz": 1000976.5625,
+        "n_samples": 8192,
+        "sndr_db": 87.53323379570288,
+        "snr_db": 88.39173129338994,
+        "sfdr_db": 97.92507791329699,
+        "thd_db": -94.87733889731376,
+        "enob": 14.248045481013769,
+        "nsd_v_rthz_full": 1.7469350760857302e-08,
+        "dr_db": 86.79439869198316,
+        "nsd_v_rthz_dr": 2.1695582977388142e-08,
+        "noise_rms_small_v": 9.702559669785434e-05,
+        "coherent": true,
+        "harmonics_reliable": true
+      },
+      "runtime_s": 10.95,
+      "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
       "id": "A7_full_dynamic",
@@ -310,7 +368,7 @@
   ],
   "notes": [
     "所有模型数字来自浮点行为模型，未经过 RTL 或后仿",
-    "校准、环内 dither、全动态三条未运行，见 blocking_reason",
+    "A7 全动态未运行，见 blocking_reason；A6 只覆盖静态连接下的电荷口 dither",
     "论文值与模型值不混排：paper_anchor 是独立字典"
   ]
 }

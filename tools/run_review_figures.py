@@ -49,6 +49,7 @@ from tools.run_p4_ablation import (  # noqa: E402
     FS_HZ,
     V_FS,
     _build_model,
+    _dither_max_v,
     _ramp_fn,
     _run,
     _static,
@@ -526,12 +527,18 @@ def figure_inl(model, out: Path, *, points: int, repeats: int, dynamic_n: int) -
         ("A3 +DEM", dict(mismatch=1e-3, noise=True, dem=True, plan=False, cal=False)),
         ("A4 +DEM+uniform plan", dict(mismatch=1e-3, noise=True, dem=True, plan=True, cal=False)),
         ("A5 +calibration", dict(mismatch=1e-3, noise=True, dem=False, plan=False, cal=True)),
+        # A6 走独立电荷口；它占掉 T_max 的输入范围，所以扫描区间与其他行不同，
+        # 图上直接画在各自的实际可用区间里，不插值补齐。
+        ("A6 +dither (charge port)", dict(mismatch=1e-3, noise=True, dem=False, plan=False,
+                                          cal=False, dither=True)),
     ]
     fig, (ax_inl, ax_dnl) = plt.subplots(2, 1, figsize=(9, 8), constrained_layout=True)
     rows = {}
     for label, cfg in configs:
         m = _build_model(cfg["mismatch"], cfg["noise"])
         calibration = _train_calibration(m)[0] if cfg["cal"] else None
+        dither_seed = 20261113 if cfg.get("dither") else None
+        headroom = _dither_max_v(m.cfg) if dither_seed is not None else 0.0
         metrics_row = _static(
             m,
             dem=cfg["dem"],
@@ -539,8 +546,10 @@ def figure_inl(model, out: Path, *, points: int, repeats: int, dynamic_n: int) -
             points=points,
             repeats=repeats,
             calibration=calibration,
+            dither_seed=dither_seed,
+            dither_headroom_v=headroom,
         )
-        levels = np.linspace(-0.985 * V_FS, 0.985 * V_FS, points)
+        levels = np.linspace(-0.985 * V_FS + headroom, 0.985 * V_FS - headroom, points)
         # 重新算一遍 INL 曲线用于画图（同一配置、同一 seed，可复现）
         mu = np.array(
             [
@@ -551,9 +560,16 @@ def figure_inl(model, out: Path, *, points: int, repeats: int, dynamic_n: int) -
                     dem=cfg["dem"],
                     uniform_plan=cfg["plan"],
                     calibration=calibration,
+                    dither_words=(
+                        None
+                        if dither_seed is None
+                        else np.random.default_rng(
+                            np.random.SeedSequence([int(dither_seed), int(index)])
+                        ).integers(0, 64, repeats, dtype=np.int64)
+                    ),
                 )[1].mean()
                 - lv
-                for lv in levels
+                for index, lv in enumerate(levels)
             ]
         )
         inl = metrics.inl_from_mean_error(levels, mu, LSB20)
@@ -578,7 +594,18 @@ def figure_inl(model, out: Path, *, points: int, repeats: int, dynamic_n: int) -
     ax_dnl.legend(fontsize=7)
     fig.savefig(out / "F03_inl_dnl.png", dpi=130)
     plt.close(fig)
-    return {"figure": "F03_inl_dnl.png", "points": points, "repeats": repeats, "configs": rows}
+    return {
+        "figure": "F03_inl_dnl.png",
+        "points": points,
+        "repeats": repeats,
+        "configs": rows,
+        "offset_v": 0.0,
+        "note": (
+            "A5 在本图用 offset=0 的公共电平网格，因此与本矩阵里带留出偏移的 "
+            "A5（10.5 LSB20）不同；两者分别是'同网格可比'与'留出集'口径，"
+            "不能互相替代，也不是同一次测量。"
+        ),
+    }
 
 
 # ---------------------------------------------------------------- F04

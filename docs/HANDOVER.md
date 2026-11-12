@@ -126,7 +126,7 @@
 
 | 项 | 状态 |
 |:---|:---|
-| V2 事务 trace（`epoch+sample_id+event_index`） | 未做 |
+| V2 事务 trace（`epoch+sample_id+event_index`） | ✅ 三段主键 + 唯一性 + 每笔连续 + 样本守恒；**逐事件**（E>1）待 joint 路径 |
 | V3 真实事务（配置写入 + 样本流） | 未做 |
 | V4 闭环 | 未做 |
 | **指标与图重生成** | ✅ **已完成**：13 张图 + `figures.json`（带 `source_sha` 溯源）；C4 门禁会在图过期时输出 STALE 警告。数字见 `docs/reviews/20261113_p3p4/figures/RESULTS_20261113.md` |

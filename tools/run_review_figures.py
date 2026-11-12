@@ -77,6 +77,43 @@ def _pool(model, plan):
     )
 
 
+# ---------------------------------------------------------------- F12
+def figure_fixed_point(model, out: Path, *, n: int) -> dict:
+    """浮点模拟输出 vs 20 位定点解码的差（**不是** RTL 对拍）。"""
+    tone_bin = max(1, int(round(n * 1.0e6 / FS_HZ)))
+    fin = tone_bin * FS_HZ / n
+    raw, voltage = _run(
+        model, lambda t: V_FS * 0.999 * np.sin(2 * np.pi * fin * t), n, dem=False, uniform_plan=False
+    )
+    codes = model.nominal_decoder.reconstruct(raw.digital_observation)
+    delta = (np.asarray(codes.voltage) - np.asarray(raw.out)) / LSB20
+    fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 4), constrained_layout=True)
+    ax0.plot(np.arange(n), delta, lw=0.6, color="#2b6cb0")
+    ax0.set_xlabel("sample index")
+    ax0.set_ylabel("fixed - float [LSB20]")
+    ax0.set_title("F12a  digital decode minus float reconstruction", fontsize=10)
+    ax0.grid(alpha=0.3)
+    ax1.hist(delta, bins=60, color="#2b6cb0")
+    ax1.set_xlabel("fixed - float [LSB20]")
+    ax1.set_ylabel("count")
+    ax1.set_title("F12b  bounded by half an LSB20 (20-bit rounding)", fontsize=10)
+    ax1.grid(alpha=0.3)
+    fig.suptitle(
+        f"F12  N={n}, fin={fin/1e6:.3f} MHz; float analog model vs 20-bit fixed decode "
+        "(NOT RTL co-simulation)"
+    )
+    fig.savefig(out / "F12_fixed_vs_float.png", dpi=130)
+    plt.close(fig)
+    return {
+        "figure": "F12_fixed_vs_float.png",
+        "n": n,
+        "fin_hz": fin,
+        "rms_lsb20": float(np.sqrt(np.mean(delta**2))),
+        "max_abs_lsb20": float(np.max(np.abs(delta))),
+        "note": "digital fixed-point path only; no RTL, no event-level scoreboard",
+    }
+
+
 # ---------------------------------------------------------------- F11
 def figure_calibration_generalization(out: Path, *, points: int, repeats: int,
                                       seeds=(20261105, 20261106, 20261107, 20261108, 20261109)) -> dict:
@@ -593,6 +630,7 @@ def main() -> int:
         figure_ownership(model, out),
         figure_interleaving(model, out, n=args.dynamic_n),
         figure_calibration_generalization(out, points=args.points, repeats=args.repeats),
+        figure_fixed_point(model, out, n=args.dynamic_n),
         figure_dem_usage(model, out),
         figure_inl(model, out, points=args.points, repeats=args.repeats, dynamic_n=args.dynamic_n),
         figure_psd(model, out, n=args.dynamic_n),

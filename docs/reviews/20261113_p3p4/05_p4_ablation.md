@@ -1,6 +1,7 @@
 # P4 消融矩阵与论文级性能对标
 
-> 口径：全部数字来自 **L1 浮点行为模型**（`adi_model`），不是 RTL、不是后仿、不是硅测。
+> 口径：模拟部分是 **L1 浮点行为模型**，数字输出是 **20 位定点解码**（`nominal_decoder`）；
+> 不是 RTL、不是后仿、不是硅测。定点 vs 浮点的差见 F12（max 0.40 LSB20）。
 > 论文值单列在 `paper_anchor`，不参与任何拟合，也不与模型值混排成一个"结果"。
 > 生成方式：`PYTHONPATH=src python3 tools/run_p4_ablation.py`；
 > 数据：`data/p4_ablation.json` / `data/p4_ablation.csv`。

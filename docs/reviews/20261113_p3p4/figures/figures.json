@@ -1,5 +1,5 @@
 {
-  "source_sha": "34809095e52a8acc6bf96585bbb28990ee7fde60",
+  "source_sha": "1f41c5857f58563f1bedc49d0653d5b3eec8ef3b",
   "seed": 20261105,
   "fs_hz": 40000000.0,
   "v_fs_v": 3.0,
@@ -124,6 +124,14 @@
         "calibrated": 1.6662604267023053,
         "cross_chip": 4.443021687450067
       }
+    },
+    {
+      "figure": "F12_fixed_vs_float.png",
+      "n": 8192,
+      "fin_hz": 1000976.5625,
+      "rms_lsb20": 0.2845552313443824,
+      "max_abs_lsb20": 0.4000000001396984,
+      "note": "digital fixed-point path only; no RTL, no event-level scoreboard"
     },
     {
       "figure": "F02_dem_usage.png",

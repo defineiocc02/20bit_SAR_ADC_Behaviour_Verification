@@ -23,7 +23,17 @@
 | 要判断可信度 | [`docs/acceptance/20261112-e14a0a0/report.md`](docs/acceptance/20261112-e14a0a0/report.md) |
 | 名词看不懂 | [`docs/guide/TERMS.md`](docs/guide/TERMS.md) |
 
-工程自检一条命令：`python3 tools/check_engineering.py`（6 项，失败非零退出）。
+工程自检一条命令：`python3 tools/check_engineering.py`（**7 项**，失败非零退出）。
+
+**从全新克隆验证可复现性**：
+
+```bash
+PYTHON=python3 bash tools/verify_clean_clone.sh              # 全部 7 项（含矩阵与图重跑）
+SKIP_HEAVY=1 PYTHON=python3 bash tools/verify_clean_clone.sh # 跳过重活，约 30 秒
+```
+
+它会 `git clone` 到一个临时目录，在那里跑测试、门禁、最小运行、审计脚本、
+行为指纹，并**重跑矩阵、确认与入库数据逐项一致**。用于排除"只在我本地能跑"。
 
 ---
 

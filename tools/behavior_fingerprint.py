@@ -9,7 +9,11 @@
 * 定点解码输出（`codes.voltage`）与浮点重构（`raw.out`）分开记录。
 
 运行：
+    # 写新基线（默认拒绝覆盖已有文件）
     PYTHONPATH=src python3 tools/behavior_fingerprint.py --out docs/restructure
+
+    # 对照基线：逐字段比较，首处差异定位，非零退出码表示失败
+    PYTHONPATH=src python3 tools/behavior_fingerprint.py --check docs/restructure/behavior_fingerprint.json
 """
 
 from __future__ import annotations
@@ -39,9 +43,47 @@ def _digest(array: np.ndarray) -> str:
     return hashlib.sha256(np.ascontiguousarray(array).tobytes()).hexdigest()
 
 
+def _compare(expected: dict, actual: dict) -> int:
+    """Print the first differing digest and return a process exit code.
+
+    The comparison walks every ``*_sha256`` field in the baseline. ``rms_v`` and
+    the sample counts are deliberately *not* criteria — they are sanity checks
+    that catch a crashed or truncated run, not behaviour.
+    """
+    failures = 0
+    for group, fields in expected["entries"].items():
+        if group not in actual["entries"]:
+            print(f"MISSING GROUP: {group}")
+            failures += 1
+            continue
+        for name, want in fields.items():
+            if not name.endswith("_sha256"):
+                continue
+            got = actual["entries"][group].get(name)
+            if got != want:
+                if failures == 0:
+                    print("First mismatch")
+                    print(f"  group        : {group}")
+                    print(f"  field        : {name}")
+                    print(f"  baseline     : {want}")
+                    print(f"  current      : {got}")
+                else:
+                    print(f"  also differs : {group}.{name}")
+                failures += 1
+    if failures:
+        print(f"\nBEHAVIOR DRIFT: {failures} field(s) differ from the baseline")
+        return 1
+    print("behavior fingerprint matches the baseline (all *_sha256 fields equal)")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", default="docs/restructure")
+    parser.add_argument("--check", default=None,
+                        help="compare against this baseline instead of writing")
+    parser.add_argument("--force", action="store_true",
+                        help="allow overwriting an existing baseline file")
     args = parser.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -90,13 +132,19 @@ def main() -> int:
         "entries": entry,
         "compare": "all *_sha256 fields must match; rms_v is a sanity check, not a criterion",
     }
-    (out / "behavior_fingerprint.json").write_text(
-        json.dumps(document, indent=2, ensure_ascii=False) + "\n"
-    )
+    target = out / "behavior_fingerprint.json"
+    if args.check is not None:
+        baseline = json.loads(Path(args.check).read_text(encoding="utf-8"))
+        return _compare(baseline, document)
+    if target.exists() and not args.force:
+        print(f"refusing to overwrite the existing baseline at {target}")
+        print("pass --force to replace it, or --check to compare against it")
+        return 2
+    target.write_text(json.dumps(document, indent=2, ensure_ascii=False) + "\n")
     print(json.dumps({k: v if k == "mask_layer" else {
         kk: (vv[:16] if isinstance(vv, str) else vv) for kk, vv in v.items()
     } for k, v in entry.items()}, indent=2))
-    print(f"\nwritten to {out/'behavior_fingerprint.json'}")
+    print(f"\nwritten to {target}")
     return 0
 
 

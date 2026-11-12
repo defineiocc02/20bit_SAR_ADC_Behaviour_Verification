@@ -98,6 +98,10 @@ class PhysicalSlicePool:
             None if nominal_codebook is None else nominal_codebook.code_max,
         )
         self.n_active = self.geometry.n_active
+        # 可切换子单元数：物理列数可能大于它（保留恒接低轨的哑单元位置）。
+        from adi_model.topology.capacitors import SUB_WEIGHTS
+
+        self._switched_sub_units = min(chip.n_sub, len(SUB_WEIGHTS))
         if chip.n_slices != cfg.n_slices:
             raise ConfigError("actual physical pool size conflicts with the source architecture")
         for field, actual in (("dac_n_main", chip.n_main), ("dac_n_sub", chip.n_sub)):
@@ -160,8 +164,14 @@ class PhysicalSlicePool:
         return self.dac.select(code, state, slice_ids=slice_ids)
 
     def split_coefficients(self, slice_ids) -> dict[str, np.ndarray | None]:
-        """只给实际两节点电荷系数；不提供猜测的C_load或C_noise替身。"""
-        return split_capacitance_coefficients(self.chip, slice_ids)
+        """只给实际两节点电荷系数；不提供猜测的C_load或C_noise替身。
+
+        子阵列的可切换单元数取 `min(物理列数, 权重表长度)`：物理列数由几何决定（5），
+        权重表只是**可切换**单元（4），末列哑单元不计入 β 分母（见 split_capacitance_coefficients）。
+        """
+        return split_capacitance_coefficients(
+            self.chip, slice_ids, switched_sub_units=self._switched_sub_units
+        )
 
     def signal_capacitance(self, slice_ids) -> np.ndarray:
         """返回全输入连接时的残差归一化系数C_signal[F]，不是任意采样mask系数。"""
@@ -171,7 +181,13 @@ class PhysicalSlicePool:
 
     def charge_from_masks(self, slice_ids, command: SplitSwitchCommand, **references) -> DACCharge:
         """无需controller即可检查给定真实整数mask的静态参考电荷。"""
-        return charge_from_masks(self.chip, slice_ids, command, **references)
+        return charge_from_masks(
+            self.chip,
+            slice_ids,
+            command,
+            switched_sub_units=self._switched_sub_units,
+            **references,
+        )
 
     def dac_voltage(self, slice_ids, code, state, *, nominal: bool = False, **references):
         """返回名义表或参考电荷的输入等效V；不代表保持顶板真实节点。"""

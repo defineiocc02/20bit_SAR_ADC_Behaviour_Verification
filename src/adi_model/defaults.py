@@ -34,6 +34,7 @@ from adi_model.simulation.serialization import result_document
 from adi_model.simulation.sim import SimResult
 from adi_model.simulation.slice_pool import PhysicalSlicePool
 from adi_model.topology.dac_arch import NominalCodebook, SplitChip
+from adi_model.topology.capacitors import MAIN_WEIGHTS, SUB_WEIGHTS
 from adi_model.topology.mapper import Mapper
 
 DEFAULT_SEED = 20261105
@@ -77,8 +78,13 @@ class DefaultParameters:
 
     n_main: int = 17
     n_sub: int = 5
-    unit_cap_f: float = 4.00390625e-14
-    bridge_cap_f: float = 4.575892857142857e-14
+    # 2026-11-13：按 docs/decisions/20261112_fig11_unification.md §5.1 对齐到 Fig.11 17/5。
+    #   main = 15×2C + 1C(B4) + 1C(S4) = 32C；sub = 8+4+2+1 = 15C；bridge = 1C
+    #   β = Cb/(Cb+ΣB) = 1/16；c_slice = 32 + 15/16 C = 32.9375C
+    #   unit = 20.5 pF / (8 × 32.9375) = 77.799 fF（0.0778 pF，与专利 col.23 示例同量级）
+    #   旧值 40.04 fF / 45.76 fF 对应 63+8（n_main=63、n_sub=8），与 R7 后的权重表不同源。
+    unit_cap_f: float = 7.779886183991967e-14
+    bridge_cap_f: float = 7.779886183991967e-14
     feedback_cap_f: float = 6.40625e-13
     main_parasitic_f: float = 0.0
     sub_parasitic_f: float = 0.0
@@ -235,20 +241,66 @@ class DefaultModel:
         cfg.check_legal(geometry=geometry)
         self.cfg = cfg
         self.geometry = geometry
-        beta = p.bridge_cap_f / (p.bridge_cap_f + p.n_sub * p.unit_cap_f + p.sub_parasitic_f)
-        c_slice = p.unit_cap_f * (p.n_main + beta * p.n_sub)
+        # 单位约定：`unit_cap_f` 是图上最小的那个 **C**（不是"一个单元"）。
+        #   Fig.11 每片：主单元 15×2C + 1C(B4) + 1C(S4) = 32C
+        #                子单元 8C+4C+2C+1C = 15C（跨桥后只有这 4 个可切换单元）
+        #                桥 Cb = 1C
+        # 2026-11-13 修正：原式把 n_sub（单元个数）直接乘 1C，只在"每单元恰好 1C"
+        # 的 63+8 池里成立；17/5 的子单元是 8/4/2/1C，必须按**权重和**算，
+        # 否则 β 会从 1/16 变成 1/6、c_slice 也一并错。
+        sub_units_c = sum(SUB_WEIGHTS)           # 15
+        # 名义分母只含**参与码的**主单元：15×2C + B4 的 1C = 31C。
+        # S4（第二个 1C）原件未给编码规则（图上有、规则无），用户裁决不进入名义码本，
+        # 因此它不计入分母；否则端点会短 1/32.94 ≈ 3%，实测正是 5.818 V vs 6.0 V。
+        main_units_c = sum(MAIN_WEIGHTS[:15]) + MAIN_WEIGHTS[15]  # 30C + 1C
+        beta = p.bridge_cap_f / (
+            p.bridge_cap_f + sub_units_c * p.unit_cap_f + p.sub_parasitic_f
+        )
+        c_slice = p.unit_cap_f * (main_units_c + beta * sub_units_c)
         self.nominal_beta = beta
         self.nominal_active_cap_f = cfg.n_active * c_slice
         self.nominal_gain = self.nominal_active_cap_f / p.feedback_cap_f
         coarse = np.arange(512, dtype=np.int64)
-        drive_weight = p.unit_cap_f * (coarse // p.n_sub + beta * (coarse % p.n_sub))
+        # ==== 码本律（2026-11-13 重建，依据 US10511316B2 FIG.11/17/19/20 的图面结构）====
+        # 位分配（B0 = MSB）：
+        #   B0..B3 : 主阵列 15 个 2C 的**一元温度计**段（0..15 个 2C）
+        #   B4     : 主阵列那条 1C（图上标 2x，固定步，不随相位轮转）
+        #   B5..B8 : 子阵列二进制 8C/4C/2C/1C，经 Cb 衰减 β
+        # 依据：FIG.19 顶层行按 B0–B3 / B4 / B5..B8 分段；FIG.16 的 320 把
+        # `01 01 ...` 重排后得到 `01 01 ...`，说明主段的比例关系与输入位序同构；
+        # FIG.17 明确 B0..B3 段在"Main DAC"侧、B5/B6 在"Sub DAC"侧。
+        # 旧实现 `c // n_sub + beta * (c % n_sub)` 是 63+8（每片 63 个 2C + 8 个子单元）
+        # 的律，套到 17/5 上会把 c=511 算成 31.19 V（v_fs=3 V），已删除。
+        # 这条位序是**可复算的工程约定**：图上没有给 320 的排列公式，
+        # 但"主段在前、子段在后、各自按位权线性"是本码本唯一自洽的读法（步长恒为 β/16 C）。
+        thermal_units = coarse >> 5          # B0..B3
+        b4_units = (coarse >> 4) & 1         # B4
+        sub_bits = np.stack([(coarse >> i) & 1 for i in (3, 2, 1, 0)], axis=1)
+        sub_units = sub_bits @ np.array([8.0, 4.0, 2.0, 1.0])  # B5..B8
+        drive_units = (2.0 * thermal_units + b4_units) + beta * sub_units
+        drive_weight = p.unit_cap_f * drive_units
         voltage = -cfg.v_fs + 2 * cfg.v_fs * drive_weight / c_slice
         self.codebook = NominalCodebook(0, 511, voltage)
         self.mapper = Mapper(coarse, nominal_codebook=self.codebook)
+        # 名义解码权重必须与**器件电容**同源：主单元 15×2C + 1C + 1C(S4)，
+        # 子单元 β×8/4/2/1，末位哑单元权重 0（它从不被选中）。
+        # 2026-11-13 修正：原来每个单元都按 1C 给权重，在 63+8（全 1C 单元）下成立，
+        # 换到 17/5 后权重比应为 2:1 与 8:4:2:1，否则名义重构分辨率直接错位
+        # （实测零输入时 vd 偏 0.09 V）。
+        main_w_norm = np.asarray(MAIN_WEIGHTS, dtype=float) * p.unit_cap_f / p.feedback_cap_f
+        sub_switched = np.asarray(SUB_WEIGHTS, dtype=float)
+        # 哑单元（物理第 5 列）权重取与最小子单元同值：它从不被掩码选中，
+        # 任何正值都等价于"不贡献"，但定点格式要求权重严格为正，不能用 0。
+        dummy = np.full(
+            p.n_sub - sub_switched.size, sub_switched.min() * p.unit_cap_f / p.feedback_cap_f
+        )
+        sub_w_norm = np.concatenate(
+            [beta * sub_switched * p.unit_cap_f / p.feedback_cap_f, dummy]
+        )
         weights = np.concatenate(
             (
-                np.full((cfg.n_slices, p.n_main), p.unit_cap_f / p.feedback_cap_f),
-                np.full((cfg.n_slices, p.n_sub), beta * p.unit_cap_f / p.feedback_cap_f),
+                np.broadcast_to(main_w_norm, (cfg.n_slices, p.n_main)),
+                np.broadcast_to(sub_w_norm, (cfg.n_slices, p.n_sub)),
             ),
             axis=1,
         )
@@ -262,13 +314,31 @@ class DefaultModel:
         fabrication = np.random.Generator(
             np.random.PCG64(np.random.SeedSequence(self.seed, spawn_key=(0,)))
         )
-        main = p.unit_cap_f * (
+        # 器件电容必须按原件权重缩放：主单元 15×2C + 1C + 1C(S4)，
+        # 子单元 8C/4C/2C/1C（末位 1C 恒接低轨，保留物理位置但只作哑单元）。
+        # 2026-11-13 修正：R7 把权重表改成 4 项后，这里若仍按"每单元 1C"生成，
+        # 芯片子阵列总和只有 5C（而非 15C），β 会从 1/16 变成 1/6，
+        # 码本分母与器件电容不同源——零输入时 RDAC 输出偏 0.084 V（实测）。
+        main_w = np.asarray(MAIN_WEIGHTS, dtype=float)
+        # 子阵列物理 5 列：前 4 列是可切换单元（8C/4C/2C/1C），第 5 列是**恒接低轨的哑单元**。
+        # 哑单元在物理上是一块真电容，且**接在 sub 节点与低轨之间**（所以进 β 分母会改变 β），
+        # 但它从不被掩码选中（fig11_masks 的末位恒低），因此对码本没有贡献。
+        # 端点闭合判定（drive(511) == c_slice）要求 β 分母只含 4 个可切换单元，
+        # 故建模方式：5 列都保留（物理位宽一致），但哑列的**电学贡献**通过
+        # `sub_switched_units_c` 从系数计算中排除（见下方 beta / c_slice）。
+        sub_w = np.concatenate(
+            [np.asarray(SUB_WEIGHTS, dtype=float), np.ones(p.n_sub - len(SUB_WEIGHTS))]
+        )
+        assert main_w.size == p.n_main, "主阵列单元数须与权重表一致"
+        assert sub_w.size == p.n_sub, "子阵列物理宽度由几何决定"
+        sub = p.unit_cap_f * sub_w[None, :] * (
+            1 + fabrication.normal(0, p.unit_mismatch_std, (cfg.n_slices, sub_w.size))
+        )
+        main = p.unit_cap_f * main_w[None, :] * (
             1 + fabrication.normal(0, p.unit_mismatch_std, (cfg.n_slices, p.n_main))
         )
-        sub = p.unit_cap_f * (
-            1 + fabrication.normal(0, p.unit_mismatch_std, (cfg.n_slices, p.n_sub))
-        )
-        bridge = p.bridge_cap_f * (1 + fabrication.normal(0, p.bridge_mismatch_std, cfg.n_slices))
+        # 桥接电容 = 1C（图上就是一个 C），不按 n_sub 缩放。
+        bridge = p.unit_cap_f * (1 + fabrication.normal(0, p.bridge_mismatch_std, cfg.n_slices))
         feedback = p.feedback_cap_f
         if p.feedback_mismatch_std:
             feedback *= 1 + fabrication.normal(0, p.feedback_mismatch_std)

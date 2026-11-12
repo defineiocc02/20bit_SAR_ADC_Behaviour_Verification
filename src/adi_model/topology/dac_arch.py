@@ -206,15 +206,28 @@ def _geometry_for(chip: SplitChip, slice_ids) -> tuple[SplitSwitchGeometry, np.n
     return geometry, geometry.validate_slice_ids(ids)
 
 
-def split_capacitance_coefficients(chip: SplitChip, slice_ids) -> dict[str, np.ndarray | None]:
+def split_capacitance_coefficients(
+    chip: SplitChip, slice_ids, *, switched_sub_units: int | None = None
+) -> dict[str, np.ndarray | None]:
     """明确两节点拓扑的线性系数；不把一个Ctotal同时用作信号/负载/噪声电容。
 
     对每个独立sub节点，D=Cb+B+Cp_sub，beta=Cb/D。C_signal=A+beta*B是全输入连接时的残差归一化系数。
     C_eff=A+Cp_main+Cb*(B+Cp_sub)/D是浮置主节点系数，主寄生未知则保持None。
+
+    Args:
+        switched_sub_units: 参与码的**可切换**子单元数；None 表示全部。
+            原件 FIG.11 的物理位宽是 5 列，其中末列是恒接低轨的哑单元——
+            它接在 sub 节点上（所以物理上存在），但从不被掩码选中，
+            若计入 B 会把 β 从 1/16 拉到 1/17 并破坏端点闭合，因此调用方需显式排除。
     """
     _, ids = _geometry_for(chip, slice_ids)
     a = chip.C_main[ids].sum(axis=-1)
-    b = chip.C_sub[ids].sum(axis=-1)
+    c_sub = chip.C_sub[ids]
+    if switched_sub_units is not None:
+        if not 0 < int(switched_sub_units) <= chip.n_sub:
+            raise ConfigError("switched_sub_units must be within the physical sub width")
+        c_sub = c_sub[..., : int(switched_sub_units)]
+    b = c_sub.sum(axis=-1)
     cb = chip.C_bridge[ids]
     cp_sub = chip.c_p_sub[ids]
     denominator = cb + b + cp_sub
@@ -251,6 +264,7 @@ def charge_from_masks(
     *,
     reference_high_v=None,
     reference_low_v=None,
+    switched_sub_units: int | None = None,
 ) -> DACCharge:
     """实际整数mask到Q_D=S_main+beta*S_sub，单位C。
 
@@ -268,7 +282,9 @@ def charge_from_masks(
     low = _active_reference(reference_low_v, shape, "reference_low_v", use_low)
     main_v = np.where(masks.main_on, high[..., None], low[..., None])
     sub_v = np.where(masks.sub_on, high[..., None], low[..., None])
-    coefficient = split_capacitance_coefficients(chip, ids)
+    coefficient = split_capacitance_coefficients(
+        chip, ids, switched_sub_units=switched_sub_units
+    )
     beta = coefficient["beta"]
     c_signal = coefficient["c_signal"]
     assert isinstance(beta, np.ndarray) and isinstance(c_signal, np.ndarray)

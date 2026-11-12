@@ -43,14 +43,29 @@ cd "$CLONE" || exit 1
 printf 'source: %s\nat commit: %s\n' "$SRC" "$(git rev-parse --short HEAD)"
 
 note "1. tests"
-# 不再排除任何测试文件：2026-11-13 实测 test_vivado_buffered_impl 与
-# test_clockless_inspection 共 138 个全部通过（早期曾有 /usr/bin/tclsh 的
-# 环境问题，现环境已正常）。排除清单过时会让这 138 个测试长期不被检查。
+# 覆盖**全部**测试目录，不再按目录/文件排除。
+# 历史教训（2026-11-13）：
+#   ① 曾排除 2 个文件（138 个测试），理由是早期 tclsh 环境问题；环境修好后
+#      清单没更新，这 138 个测试长期无人检查。
+#   ② 曾只跑 tests/unit + tests/verification，漏掉 tests/audit、tests/regression、
+#      tests/integration 共 17 个文件；首次运行时暴露出 9 failed。
+# 唯一保留的例外是 test_source_bound_replay.py：它需要 VERILATOR，
+# 本机没有，只能整体跳过——这是**环境限制**而非排除清单。
 if PYTHONPATH=src "$PYTHON" -m pytest -q -p no:cacheprovider \
-     tests/unit tests/verification >/dev/null 2>&1; then
-  ok "tests"
+     tests/unit tests/verification tests/audit tests/regression \
+     --ignore=tests/integration >/dev/null 2>&1; then
+  ok "tests (unit/verification/audit/regression)"
 else
-  bad "tests"
+  bad "tests (unit/verification/audit/regression)"
+fi
+
+# integration 单独跑：本机缺 VERILATOR，test_source_bound_replay 会整体报错。
+INTEGRATION_IGNORE="--ignore=tests/integration/test_source_bound_replay.py"
+if PYTHONPATH=src "$PYTHON" -m pytest -q -p no:cacheprovider \
+     tests/integration $INTEGRATION_IGNORE >/dev/null 2>&1; then
+  ok "tests (integration, minus VERILATOR-dependent)"
+else
+  bad "tests (integration)"
 fi
 
 note "2. check_engineering"

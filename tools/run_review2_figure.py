@@ -88,7 +88,10 @@ def _fit_variants() -> dict:
     sub_sum = chip.C_sub[ids].sum(axis=-1)
     beta = bridge / (bridge + sub_sum + chip.c_p_sub[ids])
     weights = np.concatenate(
-        [chip.C_main[ids] / cf, beta[:, None] * chip.C_sub[ids] / cf], axis=2
+        # beta 是 [sample, active_slice]，C_sub[ids] 是 [sample, active_slice, unit]；
+        # 必须沿最后的单元轴扩展。beta[:, None] 只在 sample 数恰好等于活动片数时
+        # 才不报错，且会按 sample 索引——这正是审查指出的错误广播。
+        [chip.C_main[ids] / cf, beta[:, :, None] * chip.C_sub[ids] / cf], axis=2
     )
     predicted = np.sum(
         weights * voltages.reshape(n, 18, 71)[np.arange(n)[:, None], ids], axis=(1, 2)

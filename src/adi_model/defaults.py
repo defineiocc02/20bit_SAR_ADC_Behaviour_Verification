@@ -97,7 +97,11 @@ class DefaultParameters:
     adc2_v_min: float = -0.037500000000000006
     adc2_v_max: float = 0.41250000000000003
     endpoint_policy: str = "half_open"
-    ra_clip_v: float = 0.5
+    # RA 输出摆幅 = ADC2 满窗宽度（0.45 V）。依据 ADR-0003 的 paper_literal 行：
+    #   adc2_v_min=-0.0375, adc2_v_max=0.4125, ra_v_clip=0.45
+    # 0.45 恰好等于窗口宽度 0.4125-(-0.0375)，即"RA 摆幅与 ADC2 满窗相配"。
+    # 此前写 0.5 比窗口还大 ⇒ RA 永远先撞窗口、clip 形同虚设（dither 时 ra_sat 42/64）。
+    ra_clip_v: float = 0.45
     temperature_k: float = 300.0
     chi: float = 2.0
     ra_noise_rms_v: float = 0.001

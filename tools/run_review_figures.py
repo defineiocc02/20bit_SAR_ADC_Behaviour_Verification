@@ -248,7 +248,14 @@ def figure_fixed_point(model, out: Path, *, n: int) -> dict:
     raw, voltage = _run(
         model, lambda t: V_FS * 0.999 * np.sin(2 * np.pi * fin * t), n, dem=False, uniform_plan=False
     )
-    codes = model.nominal_decoder.reconstruct(raw.digital_observation)
+    # 必须传物理增益：这张图的用途正是"定点 vs 浮点之差"，
+    # 若解码器不按 G_phys 换算 fine，差值里会混进 3.1% 的残差放大（约 32 LSB20），
+    # 把真正的定点误差淹没掉。与 DefaultModel.simulate 走同一条路径。
+    _state = getattr(raw, "state", None)
+    _gain = getattr(_state, "estimated_gain", None)
+    codes = model.nominal_decoder.reconstruct(
+        raw.digital_observation, physical_gain=None if _gain is None else float(_gain)
+    )
     delta = (np.asarray(codes.voltage) - np.asarray(raw.out)) / LSB20
     fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 4), constrained_layout=True)
     ax0.plot(np.arange(n), delta, lw=0.6, color="#2b6cb0")

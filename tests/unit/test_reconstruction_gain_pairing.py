@@ -123,3 +123,39 @@ def test_fixed_point_now_matches_the_float_path():
     assert abs(fixed_rms - float_rms) < 5.0, (
         f"fixed-path RMS {fixed_rms:.1f} should track float-path RMS {float_rms:.1f} LSB20"
     )
+
+
+def test_all_evaluation_tools_pass_the_physical_gain():
+    """所有"评价模拟精度"的工具都必须传 physical_gain。
+
+    历史教训：给解码器加了 physical_gain 之后，`DefaultModel.simulate` 传了，
+    但 `tools/run_p4_ablation.py` 自己调 `reconstruct(data)` **绕过了修复**，
+    导致矩阵里 A0 的 INL 一直显示 32.9 LSB20 而不是真实的 0.56。
+
+    这里用源码静态检查守住：凡是在 tools/ 下对数字观测做 `reconstruct(...)`
+    并用于**精度评价**的文件，调用处必须出现 `physical_gain`。
+
+    `export_rtl_vectors.py` 与 `run_fig19_rtl_calibration.py` 例外：
+    它们导出/对拍 RTL 向量，验证的是**定点解码器本身**，
+    两侧必须用同一种（不带 G_phys 换算的）口径，刻意不传。
+    """
+    from pathlib import Path
+
+    tools = Path(__file__).resolve().parents[2] / "tools"
+    # 评价类工具：必须传 physical_gain
+    must_pass = ["run_p4_ablation.py", "run_review_figures.py"]
+    # RTL 对拍类：刻意不传（验证解码器本身，两侧须同口径）
+    intentionally_not = ["export_rtl_vectors.py", "run_fig19_rtl_calibration.py"]
+
+    for name in must_pass:
+        text = (tools / name).read_text(encoding="utf-8")
+        assert "physical_gain" in text, (
+            f"{name} reconstructs digital observations for accuracy evaluation "
+            "but does not pass physical_gain; its numbers will be off by ~3.1%"
+        )
+    for name in intentionally_not:
+        text = (tools / name).read_text(encoding="utf-8")
+        assert "physical_gain" not in text, (
+            f"{name} is an RTL-vector/calibration tool; passing physical_gain here "
+            "would desynchronise the Python and RTL sides"
+        )

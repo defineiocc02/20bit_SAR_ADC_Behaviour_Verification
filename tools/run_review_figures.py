@@ -35,6 +35,8 @@ from adi_model.dem3d import (  # noqa: E402
     unary_rotation_masks,
 )
 from adi_model.dither import FIG19_FRACTIONAL_WEIGHTS_Q, Fig19DitherProgram, Fig19StaticSpec  # noqa: E402
+from adi_model.mapper import Mapper  # noqa: E402
+from adi_model.pipeline import run_pipeline  # noqa: E402
 from adi_model.follower import (  # noqa: E402
     ResolvedPrefixes,
     run_direct_final,
@@ -75,6 +77,127 @@ def _pool(model, plan):
         acquisition_binding=None,
         schedule_binding=plan,
     )
+
+
+# ---------------------------------------------------------------- F07
+def _dynamic_config():
+    """A7 全动态的显式参数集（全部标 ASSUMED，见 10_dynamic_closure.md）。"""
+    from dataclasses import replace
+
+    from adi_model.conversion import ConversionParameters
+
+    conversion = ConversionParameters(
+        quantizer_time_s=6e-9,
+        ra_duration_s=12e-9,
+        rdac_event_times_s=(0.3e-9, 0.9e-9, 1.5e-9, 2.1e-9, 2.7e-9, 3.3e-9, 3.9e-9),
+        reference_accurate_start_s=5.0e-9,
+        fine_reference_tau_s=1.5e-9,
+        ra_response_model="single_pole",
+        ra_bandwidth_hz=66e6,
+        ra_dc_gain="ideal",
+        ra_slew_v_s="unlimited",
+        adc2_response_model="wide_narrow",
+        adc2_wide_bandwidth_hz=300e6,
+        adc2_narrow_bandwidth_hz=150e6,
+        adc2_narrow_start_s=10e-9,
+    )
+    model = _build_model(1e-3, False)  # 动态路径拒绝与采样域白噪声组合
+    return model, replace(
+        model.cfg,
+        conversion=conversion,
+        dyn_ref_settling=True,
+        dyn_c_decouple=1e-9,
+        dyn_tau_ref=0.56e-9,
+    )
+
+
+def figure_dynamics(out: Path, *, n: int = 32) -> dict:
+    """F07：参考建立、RA 输出、ADC2 宽/窄带切换的相位波形。"""
+    from adi_model.dither import complete_flash3_sar6_prefix_table
+
+    from adi_model.defaults import _all_signal
+
+    model, cfg = _dynamic_config()
+    plan = round_robin_plan(n)
+    pool = PhysicalSlicePool(
+        cfg,
+        chip=model.chip,
+        nominal_codebook=model.codebook,
+        mask_binding=unary_rotation_masks,
+        acquisition_binding=_all_signal,
+        schedule_binding=plan,
+    )
+    mapper = Mapper(
+        np.arange(512, dtype=np.int64),
+        nominal_codebook=model.codebook,
+        event_codes_by_coarse=complete_flash3_sar6_prefix_table(),
+    )
+    raw = run_pipeline(
+        cfg,
+        lambda t: 2.0 * np.sin(2 * np.pi * 1e6 * t),
+        n,
+        pool=pool,
+        mapper=mapper,
+        sample_ids=np.arange(n, dtype=np.int64),
+        dem_states=np.zeros(n, dtype=np.int64),
+        sampled_top_v=0.0,
+        sampled_subnode_v=0.0,
+        reference_high_v=V_FS,
+        reference_low_v=-V_FS,
+        nominal_reference_high_v=V_FS,
+        nominal_reference_low_v=-V_FS,
+        static_charge_domain=True,
+        initial_reference_error_v=(0.0, 0.0),
+        initial_ra_output_v=0.0,
+        initial_adc2_input_v=0.0,
+    )
+    trace = raw.conversion_trace
+    times = np.asarray(trace.phase_times_s) * 1e9
+    names = [str(v) for v in np.asarray(trace.phase_names)]
+    reference = np.asarray(trace.phase_reference_v)  # (N, phases, 2 rails)
+    ra = np.asarray(trace.phase_ra_v)
+    adc2 = np.asarray(trace.phase_adc2_v)
+    fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 4.2), constrained_layout=True)
+    ax0.plot(times, np.abs(reference).mean(axis=0)[:, 0] * 1e6, marker="o", label="rail 0")
+    ax0.plot(times, np.abs(reference).mean(axis=0)[:, 1] * 1e6, marker="s", label="rail 1")
+    for x, name in zip(times, names, strict=True):
+        ax0.axvline(x, color="k", lw=0.5, alpha=0.3)
+        ax0.text(x, ax0.get_ylim()[1], name, rotation=90, fontsize=6, va="top")
+    ax0.set_xlabel("time from aperture [ns]")
+    ax0.set_ylabel("|reference error| [uV]")
+    ax0.set_title("F07a  reference re-settling after the mux switch", fontsize=10)
+    ax0.grid(alpha=0.3)
+    ax0.legend(fontsize=7)
+    ax1.plot(times, ra.mean(axis=0) * 1e3, marker="o", label="RA output")
+    ax1.plot(times, adc2.mean(axis=0) * 1e3, marker="s", label="ADC2 input")
+    ax1.set_xlabel("time from aperture [ns]")
+    ax1.set_ylabel("mean voltage [mV]")
+    ax1.set_title("F07b  RA / ADC2 phases, wide-to-narrow switch at 10 ns", fontsize=10)
+    ax1.grid(alpha=0.3)
+    ax1.legend(fontsize=8)
+    fig.suptitle(
+        f"F07  N={n}, explicit ASSUMED dynamics (tau_ref=0.56 ns back-solved from the paper's "
+        "65%/20b claim); self-consistency only, not validation"
+    )
+    fig.savefig(out / "F07_reference_ra_adc2.png", dpi=130)
+    plt.close(fig)
+
+    entry = int(names.index("ra_entry"))
+    aperture = int(names.index("adc2_aperture"))
+    e_entry = float(np.mean(np.abs(reference[:, entry, :])))
+    e_final = float(np.mean(np.abs(reference[:, aperture, :])))
+    bits_settled = float(np.log2(e_entry / e_final)) if e_final > 0 else float("nan")
+    return {
+        "figure": "F07_reference_ra_adc2.png",
+        "n": n,
+        "phase_times_ns": times.tolist(),
+        "phase_names": names,
+        "reference_error_ra_entry_uv": e_entry * 1e6,
+        "reference_error_aperture_uv": e_final * 1e6,
+        "extra_bits_settled_during_ra": bits_settled,
+        "ra_sat": int(np.count_nonzero(np.asarray(trace.ra_sat))),
+        "note": "tau_ref was back-solved from the 65%/20b statement, so the ratio is self-consistent by construction",
+    }
 
 
 # ---------------------------------------------------------------- F12
@@ -631,6 +754,7 @@ def main() -> int:
         figure_interleaving(model, out, n=args.dynamic_n),
         figure_calibration_generalization(out, points=args.points, repeats=args.repeats),
         figure_fixed_point(model, out, n=args.dynamic_n),
+        figure_dynamics(out, n=32),
         figure_dem_usage(model, out),
         figure_inl(model, out, points=args.points, repeats=args.repeats, dynamic_n=args.dynamic_n),
         figure_psd(model, out, n=args.dynamic_n),

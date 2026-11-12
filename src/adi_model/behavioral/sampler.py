@@ -185,7 +185,14 @@ def capture(
             or dither_program.spec.v_fs != cfg.v_fs
         ):
             raise ConfigError("Fig19 program length/Vfs must match the actual sampling record")
-        lower, total = dither_program.lower_v, dither_program.total_v
+        # (a) "modifying the digital code ... and providing the modified digital code to
+        # the sampling DAC"（US10505561B2 摘要页，2026-11-13 核对）：
+        # U 段是**通过改码**进入采样 DAC 的（见 pipeline 的 k = c - U），
+        # 不是再叠加一个独立模拟量。若这里同时注入 T = L + U，
+        # U 会被计入两次：采样电压减了 U，码又提前了 U，残差因此多出 U 的量
+        # （实测 word=32 时残差 +42.6 mV = U 的 4 个 LSB9）。
+        # 因此采样侧的模拟注入只保留 L（(b) 段留给后级数字扣除）。
+        lower, total = dither_program.lower_v, dither_program.lower_v
     tau_error = np.zeros(n_samples)
     if cfg.sampling_tau_mismatch is not None:
         tau = float(finite_record(cfg.sampling_tau_mismatch, (), "sampling_tau_mismatch [s]"))

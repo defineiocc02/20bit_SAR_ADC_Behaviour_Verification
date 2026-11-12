@@ -157,17 +157,35 @@ def _validate_request(
                 "Fig19 static v1 requires explicit zero-noise, no dynamics/response approximation "
                 "and no DEM combination; requested features are not silently disabled"
             )
+        # v1 的"等距码本/恒等译码"守卫。
+        # 2026-11-13：原式把码本钉成 -v_fs + k*LSB（v(511)=2.988），而 Fig.11 的实测码本
+        # 端点闭合到 ±v_fs（v(511)=+3.000），两者在最后一位差 1 LSB、在中间处处只差
+        # 恒定的斜率差。论文 [00] 明确 "±3V differential input range"，端点必须到 +3V，
+        # 因此判据从"等于等距参考"放宽为"步长均匀且端点闭合"，并保留原来的恒等译码与
+        # 前缀表要求（那两条才是 v1 真正依赖的东西）。
+        book = np.asarray(mapper.nominal_codebook.voltage_v, dtype=float)
+        book_steps = np.diff(book)
         expected_book = -cfg.v_fs + np.arange(512) * dither_program.spec.coarse_step_v
+        book_is_uniform = bool(
+            book.size == 512
+            and np.all(book_steps > 0)
+            and np.ptp(book_steps) <= 32 * np.finfo(float).eps * cfg.v_fs
+        )
+        book_matches_reference = np.allclose(
+            book,
+            expected_book,
+            rtol=0,
+            atol=32 * np.finfo(float).eps * cfg.v_fs,
+        )
+        book_endpoints_close = bool(
+            abs(book[0] + cfg.v_fs) <= 32 * np.finfo(float).eps * cfg.v_fs
+            and abs(book[-1] - cfg.v_fs) <= 32 * np.finfo(float).eps * cfg.v_fs
+        )
         if (
             mapper.nominal_codebook.code_min != 0
             or mapper.nominal_codebook.code_max != 511
             or not np.array_equal(mapper.rdac_code_by_coarse, np.arange(512))
-            or not np.allclose(
-                mapper.nominal_codebook.voltage_v,
-                expected_book,
-                rtol=0,
-                atol=32 * np.finfo(float).eps * cfg.v_fs,
-            )
+            or not (book_matches_reference or (book_is_uniform and book_endpoints_close))
             or mapper.event_codes_by_coarse is None
             or not np.array_equal(mapper.event_codes_by_coarse, complete_flash3_sar6_prefix_table())
         ):
@@ -693,13 +711,14 @@ def execute_pipeline(
         if nominal_low is None
         else nominal_low[:, None] * np.ones((1, cfg.n_active)),
     )
+    # 数字已知公共项只含 **L**：U 的作用已经通过 k = c - U 落在物理链里
+    # （vd0(k) + residue 恰等于 x），若这里再扣 T，U 会被扣两次。
+    # 依据 [10] 摘要页 (b)："the dither being subtracted from a digital output result
+    # of the subsequent analog to digital converter stage" —— 后级只承担剩余部分。
     if dither_program is not None:
-        # 同一显式数字program定义已知采样公共项；不读取实际电容/保持电压。
-        term = term - dither_program.total_v[:, None, None]
+        term = term - dither_program.lower_v[:, None, None]
     elif dither_port is not None:
-        # charge-port v2：取样节点同步平移 L，DAC 节点另注入 U；数字已知公共项
-        # 与 v1 相同，都是 -T = -(L + U*step)。
-        term = term - dither_port.require_words().total_v[:, None, None]
+        term = term - dither_port.require_words().lower_v[:, None, None]
     diagnostic_reasons = []
     if cfg.dyn_ref_settling or (
         cfg.conversion is not None
@@ -731,10 +750,18 @@ def execute_pipeline(
     diagnostic_available = not diagnostic_reasons
     if diagnostic_available:
         assert diagnostic_gain is not None
+        # 重构只补 **L**：
+        #   - U 段的作用已经由 k = c - U 在物理链里完成（vd0(k) + residue 恰等于 x，
+        #     实测两个 word 都是 0.400712），再补 T 就等于把 U 重复加一次；
+        #   - L 段按 [10] 摘要页 (b) "subtracted from a digital output result of the
+        #     subsequent ADC stage"，在后级数字输出里扣除。
+        # 因此 correction = -L，重建式为 out = vd0(k) + fine/G + L……等等：
+        # reconstruct() 的定义是 out = (vd - correction)/alpha，代入 correction=-L
+        # 得到 out = vd0(k) + fine/G + L，即把采样侧注入的 L 加回来。
         if dither_program is not None:
-            correction = -dither_program.total_v
+            correction = -dither_program.lower_v
         elif dither_port is not None:
-            correction = -dither_port.require_words().total_v
+            correction = -dither_port.require_words().lower_v
         else:
             correction = np.zeros(n_samples)
         out = reconstruct(vd0, fine, diagnostic_gain, correction, 1.0)

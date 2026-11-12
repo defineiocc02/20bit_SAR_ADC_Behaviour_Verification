@@ -22,7 +22,7 @@ from adi_model.control.dem3d import (
     fig11_masks,
     usage_uniformity,
 )
-from adi_model.control.dither import FIG19_FRACTIONAL_WEIGHTS_Q, Fig19StaticSpec
+from adi_model.control.dither import FIG19_FRACTIONAL_WEIGHTS_Q, FIG19_STEP_Q, Fig19StaticSpec
 from adi_model.control.dither_port import (
     attenuated_dither_bound,
     code_shift_residual,
@@ -197,7 +197,7 @@ def dither_evidence(model) -> dict:
     """范围预算 + 码偏移残余（默认池与 Fig.11 池各一份）。"""
     spec = Fig19StaticSpec(
         v_fs=V_FS,
-        step_q=2**24,
+        step_q=FIG19_STEP_Q,
         voltage_fraction_bits=32,
         fractional_lower_weights_q=FIG19_FRACTIONAL_WEIGHTS_Q,
         equivalent_polarity="subtract",

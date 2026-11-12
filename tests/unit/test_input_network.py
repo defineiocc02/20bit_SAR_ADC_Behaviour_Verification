@@ -6,9 +6,13 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from adi_model.simulation.config import Config
-from adi_model.behavioral.input_network import InputNetworkParameters, PassiveTrackingNetwork, track_interval
+from adi_model.behavioral.input_network import (
+    InputNetworkParameters,
+    PassiveTrackingNetwork,
+    track_interval,
+)
 from adi_model.behavioral.sampler import dc_input, sine_input
+from adi_model.simulation.config import Config
 
 
 def kcl_reference(caps, ron, rs, cf, previous, fn, t0, t1, rho=0, scale=3):

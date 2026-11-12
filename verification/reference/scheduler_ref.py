@@ -33,7 +33,8 @@ class SchedulerState:
     primed: int
     sample_id: int
 
-    def copy(self) -> "SchedulerState":
+    def copy(self) -> SchedulerState:
+        """Return a deep copy so a step cannot mutate the caller's state."""
         return SchedulerState(
             list(self.acquiring_ids), self.acquiring_mask,
             list(self.converting_ids), self.converting_mask,

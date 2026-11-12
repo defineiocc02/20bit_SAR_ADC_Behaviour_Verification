@@ -10,10 +10,8 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import subprocess
-from dataclasses import asdict
 import sys
 from pathlib import Path
 
@@ -26,25 +24,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
-
-from adi_model import metrics  # noqa: E402
-from adi_model.behavioral.ra_az import OrdinaryAZConfig, apply_ordinary_az  # noqa: E402
-from adi_model.control.dem3d import (  # noqa: E402
-    Dem3State,
-    round_robin_plan,
-    unary_rotation_masks,
-)
-from adi_model.control.dither import FIG19_FRACTIONAL_WEIGHTS_Q, Fig19DitherProgram, Fig19StaticSpec  # noqa: E402
-from adi_model.topology.mapper import Mapper  # noqa: E402
-from adi_model.simulation.pipeline import run_pipeline  # noqa: E402
-from adi_model.control.follower import (  # noqa: E402
-    ResolvedPrefixes,
-    run_direct_final,
-    run_follower,
-    run_trial_sar,
-)
-from adi_model.simulation.slice_pool import PhysicalSlicePool  # noqa: E402
-from adi_model.control.track_aux import build_track_plan, causality_audit, track_residual_charge  # noqa: E402
 from tools.run_p4_ablation import (  # noqa: E402
     FS_HZ,
     V_FS,
@@ -55,6 +34,28 @@ from tools.run_p4_ablation import (  # noqa: E402
     _static,
     _train_calibration,
 )
+
+from adi_model import metrics  # noqa: E402
+from adi_model.behavioral.ra_az import OrdinaryAZConfig, apply_ordinary_az  # noqa: E402
+from adi_model.control.dem3d import (  # noqa: E402
+    Dem3State,
+    round_robin_plan,
+    unary_rotation_masks,
+)
+from adi_model.control.dither import (  # noqa: E402
+    FIG19_FRACTIONAL_WEIGHTS_Q,
+    Fig19DitherProgram,
+    Fig19StaticSpec,
+)
+from adi_model.control.follower import (  # noqa: E402
+    ResolvedPrefixes,
+    run_direct_final,
+    run_follower,
+    run_trial_sar,
+)
+from adi_model.simulation.pipeline import run_pipeline  # noqa: E402
+from adi_model.simulation.slice_pool import PhysicalSlicePool  # noqa: E402
+from adi_model.topology.mapper import Mapper  # noqa: E402
 
 LSB20 = 2 * V_FS / 2**20
 SEED = 20261105
@@ -155,7 +156,6 @@ def _dynamic_config():
 def figure_dynamics(out: Path, *, n: int = 32) -> dict:
     """F07：参考建立、RA 输出、ADC2 宽/窄带切换的相位波形。"""
     from adi_model.control.dither import complete_flash3_sar6_prefix_table
-
     from adi_model.defaults import _all_signal
 
     model, cfg = _dynamic_config()

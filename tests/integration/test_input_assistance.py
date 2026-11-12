@@ -10,9 +10,9 @@ import numpy as np
 import pytest
 
 from adi_model.behavioral.input_network import InputNetworkParameters, PassiveTrackingNetwork
-from adi_model.simulation.pipeline import run_pipeline
 from adi_model.behavioral.pretracking import InputAssistTrace, QuantizedPretracker
 from adi_model.behavioral.sampler import dc_input
+from adi_model.simulation.pipeline import run_pipeline
 
 
 def test_future_or_same_group_decisions_never_become_a_valid_precharge():

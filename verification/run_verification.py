@@ -142,7 +142,7 @@ def run_module_level(only: list[str] | None, *, keep_stage: bool = True) -> dict
             result = vcs_runner.run_on_host(
                 stage_dir, top=job.top, plusargs=f"+N={count}", timeout=1800
             )
-        except Exception as error:  # noqa: BLE001 - report, never crash the campaign
+        except Exception as error:
             entry.update(status="NOT_RUN", detail=f"{type(error).__name__}: {error}")
             report["modules"].append(entry)
             continue
@@ -215,7 +215,6 @@ def render_matrix(report: dict) -> str:
         name = entry["module"]
         passed = entry.get("compared", 0)
         total = entry.get("vectors", 0)
-        ok = entry.get("bit_exact", False)
         lines.append(
             f"| `{name}` | yes | yes | yes | yes | yes | {total} | "
             f"{passed}/{total} | {entry['status']} |"
@@ -231,6 +230,7 @@ def render_matrix(report: dict) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run one verification level and write its JSON report."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--level", choices=("module", "rtl_top", "closed_loop", "contracts"),
                         default="module")

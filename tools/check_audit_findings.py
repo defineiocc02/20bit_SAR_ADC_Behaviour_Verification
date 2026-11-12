@@ -21,8 +21,8 @@ from adi_model.control.track_aux import build_track_plan, causality_audit
 def check_a01_low_code_coverage() -> dict:
     """码 8、固定物理片、一个相位周期后必须覆盖全部 63 列。"""
     from adi_model.simulation.config import Config
-    from adi_model.topology.dac_arch import NominalCodebook, SplitChip
     from adi_model.simulation.slice_pool import PhysicalSlicePool
+    from adi_model.topology.dac_arch import NominalCodebook, SplitChip
 
     cap = 4.00390625e-14
     chip = SplitChip(

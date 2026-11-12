@@ -18,8 +18,8 @@ import os
 import shlex
 import shutil
 import subprocess
-import time
 import sys
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 

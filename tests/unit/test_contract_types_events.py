@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.contracts import EventLog, EventRecord, MapperTable, Q32, SwitchState
+from adi_model.contracts import Q32, EventLog, EventRecord, MapperTable, SwitchState
 
 
 def test_switch_state_rejects_mismatched_rows():

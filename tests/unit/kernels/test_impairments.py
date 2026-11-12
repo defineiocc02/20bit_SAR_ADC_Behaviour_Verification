@@ -23,7 +23,6 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.topology.capacitors import ExperimentConfig
 from adi_model.behavioral.impairments import (
     IMPLEMENTED,
     PLANNED,
@@ -32,6 +31,7 @@ from adi_model.behavioral.impairments import (
     only,
 )
 from adi_model.behavioral.noise import NoiseConfig
+from adi_model.topology.capacitors import ExperimentConfig
 
 BUDGET = {"reference": 30e-6, "comparator": 20e-6, "adc2": 3e-6, "ra_offset": 80e-6}
 

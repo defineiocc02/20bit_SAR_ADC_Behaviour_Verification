@@ -147,9 +147,9 @@ def synthetic_linear_data():
 @pytest.fixture
 def toy_physical_case():
     """声明 2 主单元、2 子单元的电容夹具，用于 KCL 与事务检查，不作为芯片数据。"""
+    from adi_model.control.dem import SamplingConnections, SplitSwitchCommand
     from adi_model.simulation.config import Config
     from adi_model.topology.dac_arch import NominalCodebook, SplitChip
-    from adi_model.control.dem import SamplingConnections, SplitSwitchCommand
 
     capacitance = 1e-12
     chip = SplitChip(
@@ -183,12 +183,12 @@ def explicit_pipeline_factory():
     """
     from dataclasses import replace
 
-    from adi_model.simulation.config import Config
-    from adi_model.topology.dac_arch import NominalCodebook, SplitChip
     from adi_model.control.dem import SamplingConnections, SplitSwitchCommand
-    from adi_model.topology.mapper import Mapper
-    from adi_model.simulation.slice_pool import PhysicalSlicePool
     from adi_model.control.timing import SlicePlan
+    from adi_model.simulation.config import Config
+    from adi_model.simulation.slice_pool import PhysicalSlicePool
+    from adi_model.topology.dac_arch import NominalCodebook, SplitChip
+    from adi_model.topology.mapper import Mapper
 
     def binary_masks(geometry, codes, states, slice_ids):
         if np.any(states != 0):

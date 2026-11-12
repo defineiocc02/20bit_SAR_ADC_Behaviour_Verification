@@ -6,7 +6,14 @@
 """
 
 from adi_model.behavioral.impairments import ImpairmentSet, all_of, only
-from adi_model.behavioral.noise import FrontEndNoise, NoiseConfig, flicker, front_end_noise, thermal_sigma, white
+from adi_model.behavioral.noise import (
+    FrontEndNoise,
+    NoiseConfig,
+    flicker,
+    front_end_noise,
+    thermal_sigma,
+    white,
+)
 from adi_model.behavioral.reference import (
     ReferenceConfig,
     dynamic_reference,
@@ -23,7 +30,13 @@ from adi_model.behavioral.timing_jitter import (
     pole_from_bandwidth_multiple,
     sine_slope,
 )
-from adi_model.behavioral.transients import CoupledNode, DynamicConfig, SineDrive, rail_recovery, ra_endpoint
+from adi_model.behavioral.transients import (
+    CoupledNode,
+    DynamicConfig,
+    SineDrive,
+    ra_endpoint,
+    rail_recovery,
+)
 
 __all__ = [
     "CoupledNode",

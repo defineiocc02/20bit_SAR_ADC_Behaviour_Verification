@@ -5,10 +5,10 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from adi_model.simulation.config import ConfigError
-from adi_model.simulation.pipeline import run_pipeline
 from adi_model.behavioral.sadc import build_first_stage_quantizer
 from adi_model.behavioral.sampler import dc_input, sine_input
+from adi_model.simulation.config import ConfigError
+from adi_model.simulation.pipeline import run_pipeline
 
 
 def test_repeated_explicit_run_is_bitwise_reproducible(explicit_pipeline_factory):

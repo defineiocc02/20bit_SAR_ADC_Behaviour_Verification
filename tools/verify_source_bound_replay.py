@@ -25,16 +25,16 @@ else:
     from run_open_rtl import validate_inputs
     from run_static_calibration import independent_integer_codes, loaded_sources, require
 import adi_model
-from adi_model.simulation.config import Config
-from adi_model.topology.dac_arch import NominalCodebook, SplitChip
+from adi_model.contracts.fixed_point import FixedPointReconstructor
 from adi_model.control.dem import SamplingConnections, SplitSwitchCommand
 from adi_model.control.dither import Fig19DitherProgram, Fig19StaticSpec
-from adi_model.contracts.fixed_point import FixedPointReconstructor
-from adi_model.topology.mapper import Mapper
-from adi_model.simulation.pipeline import run_pipeline
-from adi_model.rtl_observation import extract_bitfields, observations_from_rtl
-from adi_model.simulation.slice_pool import PhysicalSlicePool
 from adi_model.control.timing import SlicePlan
+from adi_model.rtl_observation import extract_bitfields, observations_from_rtl
+from adi_model.simulation.config import Config
+from adi_model.simulation.pipeline import run_pipeline
+from adi_model.simulation.slice_pool import PhysicalSlicePool
+from adi_model.topology.dac_arch import NominalCodebook, SplitChip
+from adi_model.topology.mapper import Mapper
 
 CSV_HEADERS = {
     "controls.csv": [

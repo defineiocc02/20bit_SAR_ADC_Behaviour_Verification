@@ -9,10 +9,10 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from adi_model.simulation.config import Config, ConfigError
-from adi_model.metrics.metrics import sine_fit_metrics
-from adi_model.simulation.pipeline import run_pipeline
 from adi_model.behavioral.sampler import capture, sine_input
+from adi_model.metrics.metrics import sine_fit_metrics
+from adi_model.simulation.config import Config, ConfigError
+from adi_model.simulation.pipeline import run_pipeline
 
 
 def test_driver_noise_cannot_cancel_from_the_reported_error(explicit_pipeline_factory):

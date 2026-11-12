@@ -14,7 +14,12 @@ from dataclasses import asdict, dataclass
 import numpy as np
 
 from adi_model._arrays import readonly as _readonly
-from adi_model.calibration.weight_calibration import CalibrationSpec, DigitalObservation, FrozenCalibration, _terms
+from adi_model.calibration.weight_calibration import (
+    CalibrationSpec,
+    DigitalObservation,
+    FrozenCalibration,
+    _terms,
+)
 
 
 def round_even_divide(n: int, d: int) -> int:

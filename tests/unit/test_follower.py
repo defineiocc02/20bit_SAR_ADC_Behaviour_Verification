@@ -9,7 +9,6 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.simulation.config import ConfigError
 from adi_model.control.dither import complete_flash3_sar6_prefix_table
 from adi_model.control.follower import (
     FOLLOWER_EVENTS,
@@ -22,6 +21,7 @@ from adi_model.control.follower import (
     run_trial_sar,
     switching_cost,
 )
+from adi_model.simulation.config import ConfigError
 
 
 def _pool_and_ids(factory, n_samples: int):

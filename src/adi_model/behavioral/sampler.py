@@ -14,9 +14,9 @@ from dataclasses import dataclass
 import numpy as np
 
 from adi_model._arrays import readonly
-from adi_model.simulation.config import K_B, Config, ConfigError
 from adi_model.control.dem import _integer_array
 from adi_model.control.dither import Fig19DitherProgram
+from adi_model.simulation.config import K_B, Config, ConfigError
 
 
 def finite_record(value, shape: tuple[int, ...], name: str, *, scalar: bool = True) -> np.ndarray:

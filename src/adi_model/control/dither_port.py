@@ -28,8 +28,12 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from adi_model.control.dither import (
+    Fig19DitherProgram,
+    Fig19StaticSpec,
+    complete_flash3_sar6_prefix_table,
+)
 from adi_model.simulation.config import ConfigError
-from adi_model.control.dither import Fig19DitherProgram, Fig19StaticSpec, complete_flash3_sar6_prefix_table
 
 
 @dataclass(frozen=True)
@@ -45,7 +49,7 @@ class DitherPort:
     spec: Fig19StaticSpec
     c_lsb_f: float
     reference_swing_v: float
-    program: "Fig19DitherProgram | None" = None
+    program: Fig19DitherProgram | None = None
 
     def __post_init__(self):
         """校验规格与两个正实数量，不推断电容。"""
@@ -80,7 +84,7 @@ class DitherPort:
             reference_swing_v=reference_swing_v,
         )
 
-    def require_words(self) -> "Fig19DitherProgram":
+    def require_words(self) -> Fig19DitherProgram:
         """返回本次运行绑定的 program；缺少逐笔字则拒绝，不生成隐藏字。"""
         if self.program is None:
             raise ConfigError(
@@ -104,7 +108,7 @@ class DitherPort:
         return program.upper_code.astype(float)
 
     def upper_v(self, words) -> np.ndarray:
-        """upper 段折合到输入端的电压 [V]（= U x 粗码步长）。
+        """Upper 段折合到输入端的电压 [V]（= U x 粗码步长）。
 
         这是电荷口注入量的**权威口径**：注入电荷在每笔实际归一化电容上
         折算成输入等效电压，因此用逐笔 `C_norm` 而不是固定标称电容。
@@ -112,7 +116,7 @@ class DitherPort:
         return self.upper_lsb(words) * self.spec.coarse_step_v
 
     def upper_charge_c(self, words) -> np.ndarray:
-        """upper 段按标称 LSB 电容折算的注入电荷 [C]，仅用于电荷台账。
+        """Upper 段按标称 LSB 电容折算的注入电荷 [C]，仅用于电荷台账。
 
         台账用固定 `c_lsb_f`（标称），模型注入用逐笔 `C_norm`；两者差值
         就是"失配使实际电荷步长偏离标称"的部分，由 `charge_ledger` 报出。

@@ -7,9 +7,9 @@ from dataclasses import dataclass
 import numpy as np
 
 from adi_model._arrays import readonly
+from adi_model.control.dem import _integer_array
 from adi_model.simulation.config import ConfigError
 from adi_model.topology.dac_arch import NominalCodebook
-from adi_model.control.dem import _integer_array
 
 
 @dataclass(frozen=True)

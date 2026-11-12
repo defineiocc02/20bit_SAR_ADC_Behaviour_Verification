@@ -7,16 +7,16 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from adi_model.simulation.config import Config
-from adi_model.calibration.reconstruction import DigitalState
 from adi_model.behavioral.sampler import SampleCapture
+from adi_model.calibration.reconstruction import DigitalState
+from adi_model.simulation.config import Config
 
 if TYPE_CHECKING:
     from adi_model.behavioral.conversion import ConversionResult
-    from adi_model.control.dither import Fig19CommandTrace, Fig19DitherProgram
-    from adi_model.contracts.fixed_point import FixedPointFormat
-    from adi_model.simulation.slice_pool import PhysicalSlicePool
     from adi_model.calibration.weight_calibration import DigitalObservation, FrozenCalibration
+    from adi_model.contracts.fixed_point import FixedPointFormat
+    from adi_model.control.dither import Fig19CommandTrace, Fig19DitherProgram
+    from adi_model.simulation.slice_pool import PhysicalSlicePool
 
 
 @dataclass
@@ -93,8 +93,8 @@ class SimResult:
 
         Side effects: 不学习、不读取C/G/heldV、不以名义weights回填。
         """
-        from adi_model.contracts.fixed_point import FixedPointReconstructor
         from adi_model.calibration.weight_calibration import DigitalObservation
+        from adi_model.contracts.fixed_point import FixedPointReconstructor
 
         decoder = FixedPointReconstructor.from_result(self, format=format, calibration=calibration)
         return decoder.reconstruct(DigitalObservation.from_result(self))

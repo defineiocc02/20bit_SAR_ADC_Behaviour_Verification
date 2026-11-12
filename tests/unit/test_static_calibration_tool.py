@@ -9,8 +9,8 @@ import numpy as np
 import pytest
 from _rtl_test_support import invoke, load_tool
 
-from adi_model.defaults import DefaultParameters
 from adi_model.contracts.fixed_point import CodeStream
+from adi_model.defaults import DefaultParameters
 
 
 @pytest.fixture

@@ -12,6 +12,14 @@ from collections.abc import Callable
 
 import numpy as np
 
+from adi_model.control.dem import (
+    MaskBinding,
+    SamplingConnections,
+    SplitSwitchCommand,
+    SplitSwitchGeometry,
+    _integer_array,
+)
+from adi_model.control.timing import ScheduleBinding, SlicePlan, build_slice_plan
 from adi_model.simulation.config import ConfigError
 from adi_model.topology.dac_arch import (
     DACCharge,
@@ -24,14 +32,6 @@ from adi_model.topology.dac_arch import (
     split_capacitance_coefficients,
     topplate_voltage_from_effective_charge,
 )
-from adi_model.control.dem import (
-    MaskBinding,
-    SamplingConnections,
-    SplitSwitchCommand,
-    SplitSwitchGeometry,
-    _integer_array,
-)
-from adi_model.control.timing import ScheduleBinding, SlicePlan, build_slice_plan
 
 AcquisitionBinding = Callable[
     [SplitSwitchGeometry, np.ndarray, np.ndarray, np.ndarray | None], SamplingConnections

@@ -25,17 +25,17 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 OUT_ROOT = ROOT / "verification" / "vectors" / "generated"
 
-PROFILE = dict(
-    B1=9,
-    ADC2_BITS=12,
-    N_ACTIVE=8,
-    N_UNIT_MAIN=63,
-    N_UNIT_SUB=8,
-    N_SLICES=18,
-    W_BITS=48,
-    V_BITS=64,
-    OUT_BITS=20,
-)
+PROFILE = {
+    "B1": 9,
+    "ADC2_BITS": 12,
+    "N_ACTIVE": 8,
+    "N_UNIT_MAIN": 63,
+    "N_UNIT_SUB": 8,
+    "N_SLICES": 18,
+    "W_BITS": 48,
+    "V_BITS": 64,
+    "OUT_BITS": 20,
+}
 
 
 @dataclass
@@ -49,14 +49,17 @@ class VectorSet:
     width_bits: dict[str, int] = field(default_factory=dict)
 
     def add(self, **values: int) -> None:
+        """Append one vector; every field must be supplied for every vector."""
         for name, value in values.items():
             self.fields.setdefault(name, []).append(value)
 
     @property
     def count(self) -> int:
+        """Number of vectors in the set."""
         return len(next(iter(self.fields.values())))
 
     def write(self) -> Path:
+        """Write the $readmemh files and the meta record for this set."""
         target = OUT_ROOT / self.module
         target.mkdir(parents=True, exist_ok=True)
         for name, values in self.fields.items():
@@ -115,7 +118,7 @@ def gen_sadc(seed: int = 20261112) -> VectorSet:
 def gen_unit_therm(seed: int = 20261112) -> VectorSet:
     """Ranks are fixed permutations; counts sweep including out-of-range values."""
     rng = np.random.default_rng(seed)
-    n_main, n_sub, n_act = PROFILE["N_UNIT_MAIN"], PROFILE["N_UNIT_SUB"], PROFILE["N_ACTIVE"]
+    n_main, n_sub = PROFILE["N_UNIT_MAIN"], PROFILE["N_UNIT_SUB"]
     rank_bits_main, rank_bits_sub = 6, 3
     vs = VectorSet(
         "unit_therm",

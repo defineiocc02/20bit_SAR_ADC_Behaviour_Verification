@@ -5,9 +5,9 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
+from adi_model.behavioral.sampler import capture, dc_input
 from adi_model.simulation.config import Config
 from adi_model.simulation.pipeline import run_pipeline
-from adi_model.behavioral.sampler import capture, dc_input
 
 
 def test_retired_sadc_ratio_is_rejected_rather_than_reported_as_an_accepted_override():

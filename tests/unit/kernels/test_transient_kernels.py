@@ -15,7 +15,13 @@ import numpy as np
 import pytest
 from scipy.integrate import solve_ivp
 
-from adi_model.behavioral.transients import CoupledNode, DynamicConfig, RampDrive, SineDrive, ra_endpoint
+from adi_model.behavioral.transients import (
+    CoupledNode,
+    DynamicConfig,
+    RampDrive,
+    SineDrive,
+    ra_endpoint,
+)
 
 
 def test_q_over_c_and_signed_recovery():

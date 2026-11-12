@@ -13,4 +13,4 @@
 这只是路径兼容，不是第二套实现：公式仍只有 `metrics.py` 一处。
 """
 
-from adi_model.metrics.metrics import *  # noqa: F401,F403
+from adi_model.metrics.metrics import *  # noqa: F403

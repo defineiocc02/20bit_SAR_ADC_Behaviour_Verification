@@ -14,15 +14,15 @@ import numpy as np
 import pytest
 
 from adi_model.behavioral.adc2 import ADC2
-from adi_model.simulation.config import Config, ConfigError
-from adi_model.defaults import DefaultParameters, default_model, simulate
-from adi_model.control.dither import Fig19DitherProgram, Fig19StaticSpec
 from adi_model.behavioral.low_frequency_noise import BandLimitedFlicker
-from adi_model.metrics.metrics import inl_from_mean_error, sine_fit_metrics, static_test, summarize
-from adi_model.provenance import GradingError, SourceGrade, annotate_config
 from adi_model.behavioral.ra import ResidueAmplifier
 from adi_model.behavioral.sadc import build_first_stage_quantizer
 from adi_model.behavioral.sampler import dc_input, sine_input
+from adi_model.control.dither import Fig19DitherProgram, Fig19StaticSpec
+from adi_model.defaults import DefaultParameters, default_model, simulate
+from adi_model.metrics.metrics import inl_from_mean_error, sine_fit_metrics, static_test, summarize
+from adi_model.provenance import GradingError, SourceGrade, annotate_config
+from adi_model.simulation.config import Config, ConfigError
 from adi_model.simulation.serialization import result_document
 
 

@@ -3,7 +3,6 @@
 import numpy as np
 import pytest
 
-from adi_model.simulation.pipeline import run_pipeline
 from adi_model.behavioral.sampler import (
     AnalyticInput,
     dc_input,
@@ -11,6 +10,7 @@ from adi_model.behavioral.sampler import (
     sine_input,
     spectral_derivative,
 )
+from adi_model.simulation.pipeline import run_pipeline
 from adi_model.simulation.slice_pool import PhysicalSlicePool
 
 

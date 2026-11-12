@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from adi_model.control.fig11_dem import map_fig11
 from adi_model.topology.capacitors import (
     GROUP_SLICES,
     Capacitors,
@@ -29,7 +30,6 @@ from adi_model.topology.capacitors import (
     feedback_charge,
     voltage_equivalent,
 )
-from adi_model.control.fig11_dem import map_fig11
 
 
 def map_record(

@@ -26,9 +26,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from tools.run_p4_ablation import FS_HZ, V_FS, _build_model, _run
+
 from adi_model.control.dem3d import Dem3State, round_robin_plan, unary_rotation_masks
 from adi_model.simulation.slice_pool import PhysicalSlicePool
-from tools.run_p4_ablation import FS_HZ, V_FS, _build_model, _run
 
 N_SAMPLES = 512
 TONE_HZ = 1_000_000

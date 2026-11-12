@@ -17,21 +17,22 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import numpy as np  # noqa: E402
+import matplotlib.pyplot as plt
+import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from tests.unit.test_dem3d import _default_pool  # noqa: E402
+from tools.run_p4_ablation import V_FS, _build_model, _ramp_fn, _run  # noqa: E402
+
+from adi_model.calibration.mask_calibration import _mask_matrix  # noqa: E402
 from adi_model.control.dem3d import (  # noqa: E402
     Dem3State,
     round_robin_plan,
     unary_rotation_masks,
 )
-from adi_model.calibration.mask_calibration import _mask_matrix  # noqa: E402
-from tools.run_p4_ablation import V_FS, _build_model, _ramp_fn, _run  # noqa: E402
-from tests.unit.test_dem3d import _default_pool  # noqa: E402
 
 
 def _sub_counts(vertical: int) -> list[int]:

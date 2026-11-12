@@ -12,20 +12,31 @@ from __future__ import annotations
 import numpy as np
 
 from adi_model.behavioral.adc2 import ADC2
-from adi_model.simulation.config import Config, ConfigError
-from adi_model.topology.dac_arch import NominalCodebook
-from adi_model.control.dem import REF_HIGH, REF_LOW, SIGNAL, SamplingConnections, SplitSwitchCommand, _integer_array
-from adi_model.control.dither import Fig19DitherProgram, complete_flash3_sar6_prefix_table
-from adi_model.control.dither_port import DitherPort
-from adi_model.topology.mapper import MappedCodes, Mapper
 from adi_model.behavioral.ra import ResidueAmplifier
-from adi_model.calibration.reconstruction import DigitalState, initialize_state, reconstruct
 from adi_model.behavioral.sadc import build_first_stage_quantizer
 from adi_model.behavioral.sampler import capture, finite_record
 from adi_model.behavioral.sampling_charge import digital_connection_terms
+from adi_model.calibration.reconstruction import DigitalState, initialize_state, reconstruct
+from adi_model.calibration.weight_calibration import (
+    CalibrationSpec,
+    DigitalObservation,
+    apply_frozen_calibration,
+)
+from adi_model.control.dem import (
+    REF_HIGH,
+    REF_LOW,
+    SIGNAL,
+    SamplingConnections,
+    SplitSwitchCommand,
+    _integer_array,
+)
+from adi_model.control.dither import Fig19DitherProgram, complete_flash3_sar6_prefix_table
+from adi_model.control.dither_port import DitherPort
+from adi_model.simulation.config import Config, ConfigError
 from adi_model.simulation.sim import SimResult
 from adi_model.simulation.slice_pool import PhysicalSlicePool
-from adi_model.calibration.weight_calibration import CalibrationSpec, DigitalObservation, apply_frozen_calibration
+from adi_model.topology.dac_arch import NominalCodebook
+from adi_model.topology.mapper import MappedCodes, Mapper
 
 
 def _reference_record(value, n: int, name: str):
@@ -75,7 +86,7 @@ def execute_pipeline(
     initial_ra_output_v=None,
     initial_adc2_input_v=None,
     dither_program: Fig19DitherProgram | None = None,
-    dither_port: "DitherPort | None" = None,
+    dither_port: DitherPort | None = None,
 ) -> SimResult:
     """执行一段显式priming的记录，不修改Config或制造电容。
 

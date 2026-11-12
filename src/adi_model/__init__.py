@@ -7,10 +7,60 @@
 from adi_model.behavioral.adc2 import (
     ADC2,
 )
-from adi_model.metrics.benchmarks import (
-    PAPER_BENCHMARK,
-    SLIDES_BENCHMARK,
-    PublishedBenchmark,
+from adi_model.behavioral.charge_ref import (
+    ref_ra_charge,
+    ref_ra_charge_nodal,
+)
+from adi_model.behavioral.conversion import (
+    ConversionEngine,
+    ConversionParameters,
+    ConversionResult,
+    response_interval,
+)
+from adi_model.behavioral.dynamics import (
+    crosstalk_error,
+    switching_activity,
+)
+from adi_model.behavioral.input_network import (
+    InputNetworkParameters,
+    OffsetWaveform,
+    PassiveTrackingNetwork,
+    track_interval,
+)
+from adi_model.behavioral.low_frequency_noise import (
+    BandLimitedFlicker,
+)
+from adi_model.behavioral.pretracking import (
+    DecisionRecord,
+    InputAssistTrace,
+    PretrackPrediction,
+    QuantizedPretracker,
+)
+from adi_model.behavioral.ra import (
+    ResidueAmplifier,
+)
+from adi_model.behavioral.ra_az import (
+    OrdinaryAZConfig,
+    OrdinaryAZResult,
+    apply_ordinary_az,
+)
+from adi_model.behavioral.reference_charge import (
+    ReferenceProgram,
+    physical_reference_program,
+    sampled_bottom_voltages,
+)
+from adi_model.behavioral.sadc import (
+    SADC,
+    build_first_stage_quantizer,
+)
+from adi_model.behavioral.sampler import (
+    AnalyticInput,
+    SampleCapture,
+    capture,
+    dc_input,
+    input_derivative,
+    sine_input,
+    spectral_derivative,
 )
 from adi_model.calib import (
     Observability,
@@ -18,14 +68,18 @@ from adi_model.calib import (
     observability,
     required_samples,
 )
-from adi_model.behavioral.charge_ref import (
-    ref_ra_charge,
-    ref_ra_charge_nodal,
+from adi_model.calibration.reconstruction import (
+    DigitalState,
+    initialize_state,
+    reconstruct,
 )
-from adi_model.behavioral.ra_az import (
-    OrdinaryAZConfig,
-    OrdinaryAZResult,
-    apply_ordinary_az,
+from adi_model.calibration.weight_calibration import (
+    CalibrationSpec,
+    CalibrationUnidentifiableError,
+    DigitalObservation,
+    FrozenCalibration,
+    apply_frozen_calibration,
+    fit_unit_weights,
 )
 from adi_model.contracts import (
     ADI_40M,
@@ -45,29 +99,12 @@ from adi_model.contracts import (
     assert_caaz_free,
     load_profile,
 )
-from adi_model.simulation.config import (
-    Config,
-    ConfigError,
+from adi_model.contracts.fixed_point import (
+    CodeStream,
+    FixedPointFormat,
+    FixedPointReconstructor,
+    round_even_divide,
 )
-from adi_model.behavioral.conversion import (
-    ConversionEngine,
-    ConversionParameters,
-    ConversionResult,
-    response_interval,
-)
-from adi_model.topology.dac_arch import (
-    DACCharge,
-    NominalCodebook,
-    SamplingCharge,
-    SplitChip,
-    SplitDAC,
-    build_split_chip,
-    charge_from_masks,
-    charge_from_sampling_connections,
-    split_capacitance_coefficients,
-    topplate_voltage_from_effective_charge,
-)
-from adi_model.defaults import DefaultModel, DefaultParameters, DefaultRun, default_model, simulate
 from adi_model.control.dem import (
     REF_HIGH,
     REF_LOW,
@@ -77,28 +114,16 @@ from adi_model.control.dem import (
     SplitSwitchGeometry,
     split_switch_command,
 )
-from adi_model.behavioral.dynamics import (
-    crosstalk_error,
-    switching_activity,
+from adi_model.control.timing import (
+    ScheduleBinding,
+    SlicePlan,
+    build_slice_plan,
 )
-from adi_model.contracts.fixed_point import (
-    CodeStream,
-    FixedPointFormat,
-    FixedPointReconstructor,
-    round_even_divide,
-)
-from adi_model.behavioral.input_network import (
-    InputNetworkParameters,
-    OffsetWaveform,
-    PassiveTrackingNetwork,
-    track_interval,
-)
-from adi_model.behavioral.low_frequency_noise import (
-    BandLimitedFlicker,
-)
-from adi_model.topology.mapper import (
-    MappedCodes,
-    Mapper,
+from adi_model.defaults import DefaultModel, DefaultParameters, DefaultRun, default_model, simulate
+from adi_model.metrics.benchmarks import (
+    PAPER_BENCHMARK,
+    SLIDES_BENCHMARK,
+    PublishedBenchmark,
 )
 from adi_model.metrics.metrics import (
     inl_from_mean_error,
@@ -109,15 +134,6 @@ from adi_model.metrics.metrics import (
     spectrum_dbfs,
     static_test,
     summarize,
-)
-from adi_model.simulation.pipeline import (
-    run_pipeline,
-)
-from adi_model.behavioral.pretracking import (
-    DecisionRecord,
-    InputAssistTrace,
-    PretrackPrediction,
-    QuantizedPretracker,
 )
 from adi_model.provenance import (
     PARAM_GRADES,
@@ -130,34 +146,15 @@ from adi_model.provenance import (
     audit_provenance,
     grade_of,
 )
-from adi_model.behavioral.ra import (
-    ResidueAmplifier,
-)
-from adi_model.calibration.reconstruction import (
-    DigitalState,
-    initialize_state,
-    reconstruct,
-)
-from adi_model.behavioral.reference_charge import (
-    ReferenceProgram,
-    physical_reference_program,
-    sampled_bottom_voltages,
-)
 from adi_model.rtl_observation import (
     observations_from_rtl,
 )
-from adi_model.behavioral.sadc import (
-    SADC,
-    build_first_stage_quantizer,
+from adi_model.simulation.config import (
+    Config,
+    ConfigError,
 )
-from adi_model.behavioral.sampler import (
-    AnalyticInput,
-    SampleCapture,
-    capture,
-    dc_input,
-    input_derivative,
-    sine_input,
-    spectral_derivative,
+from adi_model.simulation.pipeline import (
+    run_pipeline,
 )
 from adi_model.simulation.scheduler import (
     Allocation,
@@ -171,18 +168,21 @@ from adi_model.simulation.slice_pool import (
     PhysicalSlicePool,
     check_causality,
 )
-from adi_model.control.timing import (
-    ScheduleBinding,
-    SlicePlan,
-    build_slice_plan,
+from adi_model.topology.dac_arch import (
+    DACCharge,
+    NominalCodebook,
+    SamplingCharge,
+    SplitChip,
+    SplitDAC,
+    build_split_chip,
+    charge_from_masks,
+    charge_from_sampling_connections,
+    split_capacitance_coefficients,
+    topplate_voltage_from_effective_charge,
 )
-from adi_model.calibration.weight_calibration import (
-    CalibrationSpec,
-    CalibrationUnidentifiableError,
-    DigitalObservation,
-    FrozenCalibration,
-    apply_frozen_calibration,
-    fit_unit_weights,
+from adi_model.topology.mapper import (
+    MappedCodes,
+    Mapper,
 )
 
 __all__ = [

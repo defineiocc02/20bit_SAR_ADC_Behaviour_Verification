@@ -6,8 +6,8 @@ from dataclasses import fields, replace
 import numpy as np
 import pytest
 
-from adi_model.simulation.config import Config, ConfigError
 from adi_model.behavioral.sadc import SADC, build_first_stage_quantizer
+from adi_model.simulation.config import Config, ConfigError
 
 
 def test_empty_config_is_inspectable_but_not_ready_for_execution():
@@ -95,8 +95,8 @@ def test_rtl_interface_does_not_fill_analog_inputs():
 
 
 def test_dither_request_requires_an_actual_runtime_program(explicit_pipeline_factory):
-    from adi_model.simulation.pipeline import run_pipeline
     from adi_model.behavioral.sampler import dc_input
+    from adi_model.simulation.pipeline import run_pipeline
 
     cfg, controls = explicit_pipeline_factory(n_samples=4)
     requested = replace(cfg, dither_enable=True)

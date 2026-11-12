@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-
-from adi_model.control.fig11_dem import map_fig11
-from adi_model.control.dem3d import Dem3State, fig11_masks
 from tests.unit.test_dem3d import _fig11_pool
+
+from adi_model.control.dem3d import Dem3State, fig11_masks
+from adi_model.control.fig11_dem import map_fig11
 
 
 def _new_masks(pool, code: int, horizontal: int, vertical: int) -> np.ndarray:

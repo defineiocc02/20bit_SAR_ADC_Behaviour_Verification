@@ -12,7 +12,6 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from adi_model.simulation.config import ConfigError
 from adi_model.control.dem import (
     REF_HIGH,
     REF_LOW,
@@ -24,6 +23,7 @@ from adi_model.control.dem import (
     _integer_array,
     split_switch_command,
 )
+from adi_model.simulation.config import ConfigError
 
 
 def _finite_array(value, name: str, *, ndim: int, positive: bool) -> np.ndarray:

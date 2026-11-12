@@ -15,7 +15,6 @@ from pathlib import Path
 
 import numpy as np
 
-from adi_model.defaults import DefaultModel, DefaultParameters
 from adi_model.control.dem3d import (
     Dem3State,
     nominal_conservation,
@@ -38,13 +37,14 @@ from adi_model.control.follower import (
     run_trial_sar,
     switching_cost,
 )
-from adi_model.simulation.slice_pool import PhysicalSlicePool
 from adi_model.control.track_aux import (
     build_track_plan,
     causality_audit,
     consecutive_sample_charge,
     track_residual_charge,
 )
+from adi_model.defaults import DefaultModel, DefaultParameters
+from adi_model.simulation.slice_pool import PhysicalSlicePool
 
 FS_HZ = 40e6
 V_FS = 3.0

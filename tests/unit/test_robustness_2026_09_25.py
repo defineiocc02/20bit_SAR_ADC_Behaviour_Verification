@@ -18,27 +18,34 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from adi_model.calib import observability, required_samples
 from adi_model.behavioral.charge_ref import ref_ra_charge, ref_ra_charge_nodal
-from adi_model.cli import main_simulate
-from adi_model.simulation.config import Config, ConfigError
 from adi_model.behavioral.conversion import response_interval
-from adi_model.topology.dac_arch import NominalCodebook, SplitDAC
-from adi_model.defaults import DefaultParameters, default_model
 from adi_model.behavioral.dynamics import crosstalk_error, switching_activity
-from adi_model.behavioral.input_network import InputNetworkParameters, PassiveTrackingNetwork, track_interval
-from adi_model.inventory_gate import GateResult, _check_sources, build_summary, verify
+from adi_model.behavioral.input_network import (
+    InputNetworkParameters,
+    PassiveTrackingNetwork,
+    track_interval,
+)
 from adi_model.behavioral.low_frequency_noise import BandLimitedFlicker
-from adi_model.topology.mapper import Mapper
-from adi_model.metrics.metrics import reference_precision_bits
 from adi_model.behavioral.pretracking import QuantizedPretracker
 from adi_model.behavioral.ra import ResidueAmplifier
 from adi_model.behavioral.reference_charge import physical_reference_program
 from adi_model.behavioral.sadc import build_first_stage_quantizer
 from adi_model.behavioral.sampler import dc_input, sine_input
+from adi_model.calib import observability, required_samples
+from adi_model.calibration.weight_calibration import (
+    CalibrationUnidentifiableError,
+    fit_unit_weights,
+)
+from adi_model.cli import main_simulate
+from adi_model.defaults import DefaultParameters, default_model
+from adi_model.inventory_gate import GateResult, _check_sources, build_summary, verify
+from adi_model.metrics.metrics import reference_precision_bits
+from adi_model.simulation.config import Config, ConfigError
 from adi_model.simulation.serialization import result_document, write_results
 from adi_model.simulation.slice_pool import PhysicalSlicePool
-from adi_model.calibration.weight_calibration import CalibrationUnidentifiableError, fit_unit_weights
+from adi_model.topology.dac_arch import NominalCodebook, SplitDAC
+from adi_model.topology.mapper import Mapper
 
 REPO = Path(__file__).resolve().parents[2]
 

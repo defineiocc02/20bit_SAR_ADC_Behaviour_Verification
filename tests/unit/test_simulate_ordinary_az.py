@@ -5,8 +5,8 @@ from __future__ import annotations
 import numpy as np
 
 from adi_model.behavioral.ra_az import OrdinaryAZConfig
-from adi_model.defaults import default_model
 from adi_model.behavioral.sampler import sine_input
+from adi_model.defaults import default_model
 
 
 def test_az_none_matches_baseline():

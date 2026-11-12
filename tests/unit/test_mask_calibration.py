@@ -5,7 +5,6 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.simulation.config import ConfigError
 from adi_model.calibration.mask_calibration import (
     CodeCorrection,
     _mask_matrix,
@@ -13,6 +12,7 @@ from adi_model.calibration.mask_calibration import (
     fit_mask_weights,
 )
 from adi_model.calibration.weight_calibration import CalibrationSpec, DigitalObservation
+from adi_model.simulation.config import ConfigError
 
 
 def _spec(n_active: int, n_main: int, n_sub: int, n_slices: int = 3) -> CalibrationSpec:

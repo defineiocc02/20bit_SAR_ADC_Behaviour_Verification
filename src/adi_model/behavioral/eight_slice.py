@@ -27,13 +27,18 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from adi_model.topology.capacitors import MAIN_WEIGHTS, SUB_WEIGHTS, Capacitors, ExperimentConfig, unpack
 from adi_model.codes import COARSE_CODES
-from adi_model.contracts.task_types import SwitchState
-from adi_model.contracts.task_types import Q32
-from adi_model.contracts.task_types import MapperTable
-from adi_model.topology.capacitors import GROUP_SLICES, POOL_SLICES
+from adi_model.contracts.task_types import Q32, MapperTable, SwitchState
 from adi_model.control.dither_word import DitherWordGenerator
+from adi_model.topology.capacitors import (
+    GROUP_SLICES,
+    MAIN_WEIGHTS,
+    POOL_SLICES,
+    SUB_WEIGHTS,
+    Capacitors,
+    ExperimentConfig,
+    unpack,
+)
 
 MAIN_BITS = len(MAIN_WEIGHTS)
 SUB_BITS = len(SUB_WEIGHTS)

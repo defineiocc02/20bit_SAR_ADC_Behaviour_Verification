@@ -1,7 +1,6 @@
 """公共合同包的导出。"""
 
 from adi_model.contracts.events import EventLog
-from adi_model.contracts.task_types import MapperTable, Q32, SwitchState
 from adi_model.contracts.profiles import (
     ADI_40M,
     DEFAULT_PROFILE_ID,
@@ -22,6 +21,7 @@ from adi_model.contracts.specs import (
     SwitchCommand,
     TopologySpec,
 )
+from adi_model.contracts.task_types import Q32, MapperTable, SwitchState
 
 __all__ = [
     "AcquisitionCommand",

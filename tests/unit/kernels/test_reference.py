@@ -23,7 +23,6 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.codes import OUTPUT_CODES
 from adi_model.behavioral.reference import (
     RESIDUAL_ACCURACY_RATIO,
     SETTLE_FRACTION_OF_RA_PHASE,
@@ -33,6 +32,7 @@ from adi_model.behavioral.reference import (
     required_tau,
     settle_error,
 )
+from adi_model.codes import OUTPUT_CODES
 
 # 差分满幅 10 V 对应 20 位输出的 1 LSB，单位 V。与 task2 的输出码口径一致。
 LSB20_V = 10.0 / OUTPUT_CODES

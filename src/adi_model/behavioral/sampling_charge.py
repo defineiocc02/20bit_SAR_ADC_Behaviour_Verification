@@ -9,7 +9,7 @@ from __future__ import annotations
 import numpy as np
 
 from adi_model._arrays import readonly
-from adi_model.simulation.config import ConfigError
+from adi_model.behavioral.sampler import finite_record
 from adi_model.control.dem import (
     REF_HIGH,
     REF_LOW,
@@ -18,7 +18,7 @@ from adi_model.control.dem import (
     SplitSwitchCommand,
     SplitSwitchGeometry,
 )
-from adi_model.behavioral.sampler import finite_record
+from adi_model.simulation.config import ConfigError
 
 
 def digital_connection_terms(

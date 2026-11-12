@@ -85,7 +85,6 @@ def test_port_and_program_are_mutually_exclusive():
     from adi_model.behavioral.sampler import capture
     from adi_model.control.dither import Fig19DitherProgram
     from adi_model.control.dither_port import DitherPort
-    from adi_model.simulation.config import Config
 
     words = np.zeros(4, dtype=np.int64)
     spec = _spec()

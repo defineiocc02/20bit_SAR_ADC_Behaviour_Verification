@@ -16,8 +16,8 @@ from numbers import Real
 
 import numpy as np
 
-from adi_model.simulation.config import Config, ConfigError
-from adi_model.topology.dac_arch import NominalCodebook, SplitChip
+from adi_model.calibration.weight_calibration import CalibrationSpec
+from adi_model.contracts.fixed_point import CodeStream, FixedPointFormat, FixedPointReconstructor
 from adi_model.control.dem import SamplingConnections, SplitSwitchCommand, SplitSwitchGeometry
 from adi_model.control.dither import (
     FIG19_FRACTIONAL_WEIGHTS_Q,
@@ -25,15 +25,15 @@ from adi_model.control.dither import (
     Fig19StaticSpec,
     complete_flash3_sar6_prefix_table,
 )
-from adi_model.contracts.fixed_point import CodeStream, FixedPointFormat, FixedPointReconstructor
-from adi_model.topology.mapper import Mapper
 from adi_model.control.dither_port import DitherPort
+from adi_model.control.timing import SlicePlan
+from adi_model.simulation.config import Config, ConfigError
 from adi_model.simulation.pipeline import run_pipeline
 from adi_model.simulation.serialization import result_document
 from adi_model.simulation.sim import SimResult
 from adi_model.simulation.slice_pool import PhysicalSlicePool
-from adi_model.control.timing import SlicePlan
-from adi_model.calibration.weight_calibration import CalibrationSpec
+from adi_model.topology.dac_arch import NominalCodebook, SplitChip
+from adi_model.topology.mapper import Mapper
 
 DEFAULT_SEED = 20261105
 AMENDMENT_SHA256 = "d709a5f2ad657cd0990ea4bc8b7e2a5889a055be2a0793ad898190d26ae6a4da"

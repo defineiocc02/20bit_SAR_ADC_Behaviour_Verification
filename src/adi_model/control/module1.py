@@ -17,10 +17,9 @@
 from dataclasses import dataclass, field, replace
 from operator import index
 
-from adi_model.topology.capacitors import DEFAULT_DEM_SEED, GROUP_SLICES, POOL_SLICES
-
 from adi_model.control.fig11_dem import Fig11Masks, map_fig11
 from adi_model.control.scheduler import FULL_MASK, SchedulerOutput, SliceScheduler
+from adi_model.topology.capacitors import DEFAULT_DEM_SEED, GROUP_SLICES, POOL_SLICES
 
 # DEFAULT_DEM_SEED 从 adi_model.topology.capacitors 导入后在此重导出：
 # 本模块与 ExperimentConfig 必须用同一个种子，各写一份字面量时改一处就会静默分叉。

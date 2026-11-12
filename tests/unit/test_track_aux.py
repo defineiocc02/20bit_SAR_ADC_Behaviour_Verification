@@ -10,7 +10,6 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.simulation.config import ConfigError
 from adi_model.control.dem3d import round_robin_plan
 from adi_model.control.track_aux import (
     build_track_plan,
@@ -20,6 +19,7 @@ from adi_model.control.track_aux import (
     peak_current_for_dc_step,
     track_residual_charge,
 )
+from adi_model.simulation.config import ConfigError
 
 FS = 40e6
 

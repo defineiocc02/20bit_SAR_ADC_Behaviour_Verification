@@ -25,7 +25,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 
-from adi_model.topology.capacitors import ExperimentConfig
 from adi_model.behavioral.noise import NoiseConfig
 from adi_model.behavioral.reference import (
     PRECHARGE_FRACTION_FROM_PAPER,
@@ -34,6 +33,7 @@ from adi_model.behavioral.reference import (
     ReferenceConfig,
     required_tau,
 )
+from adi_model.topology.capacitors import ExperimentConfig
 
 # 已经接到主路径、打开就真生效的项。
 IMPLEMENTED = (

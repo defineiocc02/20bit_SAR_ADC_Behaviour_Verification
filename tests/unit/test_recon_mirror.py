@@ -15,8 +15,8 @@ import numpy as np
 import pytest
 from _rtl_test_support import ROOT
 
-from adi_model.contracts.fixed_point import FixedPointFormat, FixedPointReconstructor
 from adi_model.calibration.weight_calibration import CalibrationSpec, DigitalObservation
+from adi_model.contracts.fixed_point import FixedPointFormat, FixedPointReconstructor
 
 
 @pytest.fixture

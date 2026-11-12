@@ -26,15 +26,15 @@ with the conversion results loaded as they develop." 本模块把这句话变成
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 import numpy as np
 
 from adi_model._arrays import readonly
-from adi_model.simulation.config import ConfigError
 from adi_model.control.dem import _integer_array
 from adi_model.control.dither import complete_flash3_sar6_prefix_table
+from adi_model.simulation.config import ConfigError
 
 # 当前 core 的已决事件数：3b flash + 6b SAR = 7 次已决前缀消费（见 complete_flash3_sar6_prefix_table）。
 FOLLOWER_EVENTS = 7

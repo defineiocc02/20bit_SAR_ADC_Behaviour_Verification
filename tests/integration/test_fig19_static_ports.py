@@ -189,7 +189,16 @@ def _integer_oracle(parameters, backend_codes, k_codes, lower_q, slice_ids, mode
         gain = int(weights_all[0].sum()) * active
         term_v = spec.v_fs * (1 - 2 * phased) - int(injection) / 2**32 * 3.0
         terms_q = np.rint(term_v / spec.v_fs * vscale).astype(np.int64)
-        known = int(np.sum(weights_all[0].astype(np.int64) * terms_q))
+        # ⚠️ 必须用 **Python 任意精度整数求和**，不能用 numpy 求和：
+        # 单个乘积约 2.6e8 × 4.3e9 ≈ 1.1e18，8 片 × 22 端口的和可达 ~1e20，
+        # **超过 int64 上限（9.2e18）会发生静默溢出**。
+        # 实测：V=−2.0 时 numpy 求和得 3.26e18（溢出后），正确值应为 9.55e19。
+        # 实现内部用的是 `sum(term_products)`（Python 整数），因此不会溢出。
+        weight_row = np.broadcast_to(weights_all[0], terms_q.shape)
+        known = sum(
+            int(weight) * int(term)
+            for weight, term in zip(weight_row.flat, terms_q.flat, strict=True)
+        )
         fine_q = min_q + _round_even_pair(
             (2 * int(backend) + 1) * (max_q - min_q), 2 ** (spec.adc2_n_bits + 1)
         )

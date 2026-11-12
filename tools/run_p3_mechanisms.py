@@ -16,20 +16,20 @@ from pathlib import Path
 import numpy as np
 
 from adi_model.defaults import DefaultModel, DefaultParameters
-from adi_model.dem3d import (
+from adi_model.control.dem3d import (
     Dem3State,
     nominal_conservation,
     round_robin_plan,
     unary_rotation_masks,
     usage_uniformity,
 )
-from adi_model.dither import FIG19_FRACTIONAL_WEIGHTS_Q, Fig19StaticSpec
-from adi_model.dither_port import (
+from adi_model.control.dither import FIG19_FRACTIONAL_WEIGHTS_Q, Fig19StaticSpec
+from adi_model.control.dither_port import (
     attenuated_dither_bound,
     code_shift_residual,
     range_ledger,
 )
-from adi_model.follower import (
+from adi_model.control.follower import (
     ResolvedPrefixes,
     audit_causality,
     compare_reference_cost,
@@ -38,8 +38,8 @@ from adi_model.follower import (
     run_trial_sar,
     switching_cost,
 )
-from adi_model.slice_pool import PhysicalSlicePool
-from adi_model.track_aux import (
+from adi_model.simulation.slice_pool import PhysicalSlicePool
+from adi_model.control.track_aux import (
     build_track_plan,
     causality_audit,
     consecutive_sample_charge,

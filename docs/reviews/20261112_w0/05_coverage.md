@@ -10,7 +10,7 @@
 
 1. 台账 43 行：**PASS 18 / MISSING 11 / OUT_OF_SCOPE 8 / NOT_RUN 5 / PARTIAL 1**。
 2. **只覆盖 US10505561B2（dither）一个专利的 8 行**；`US10516408B2`、`US10511316B2`、`US10707889B1`、`US10541702B1`、`US10826519B1` **未入机器台账**。main 的 `docs/engineering_vs_patents_papers.md` 有文字对照，但没有 claim_id/测试绑定。
-3. **台账滞后于代码**：PAPER-06（参考建立）、PAPER-07（DAC 带宽）、PAPER-08（随机时偏）仍标 MISSING，但 `src/adi_model/reference.py`、`timing.py` 已在 M4/M5 落地。W1 必须重审这 3 行。
+3. **台账滞后于代码**：PAPER-06（参考建立）、PAPER-07（DAC 带宽）、PAPER-08（随机时偏）仍标 MISSING，但 `src/adi_model/behavioral/reference.py`、`timing.py` 已在 M4/M5 落地。W1 必须重审这 3 行。
 4. **dither 专利 OCR 只覆盖 page_pdf=22..36**；不能据此说"专利没写某参数"，只能说"OCR 覆盖范围内未见"。
 5. **CAAZ 不属于 ADI 覆盖**：它来自 PKU VLSI 2025，是独立扩展；不能计入 ADI 复现完成度。
 6. 论文的**实测性能**（94.2 dB DR、9.3 nV/√Hz、50 mW、INL/DNL）当前只能是 `NOT_RUN` 或 `NOT_REPRODUCIBLE`（无硅），不能拿模型数冒充。

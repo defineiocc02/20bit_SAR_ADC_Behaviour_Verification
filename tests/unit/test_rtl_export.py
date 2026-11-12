@@ -18,7 +18,7 @@ from _rtl_test_support import (
     write_json,
 )
 
-from adi_model.fixed_point import round_even_divide
+from adi_model.contracts.fixed_point import round_even_divide
 
 
 @pytest.fixture

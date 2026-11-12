@@ -14,15 +14,15 @@ import sys
 import numpy as np
 
 from adi_model.behavioral.ra_az import OrdinaryAZConfig, apply_ordinary_az
-from adi_model.dem3d import Dem3State, unary_rotation_masks
-from adi_model.track_aux import build_track_plan, causality_audit
+from adi_model.control.dem3d import Dem3State, unary_rotation_masks
+from adi_model.control.track_aux import build_track_plan, causality_audit
 
 
 def check_a01_low_code_coverage() -> dict:
     """码 8、固定物理片、一个相位周期后必须覆盖全部 63 列。"""
-    from adi_model.config import Config
-    from adi_model.dac_arch import NominalCodebook, SplitChip
-    from adi_model.slice_pool import PhysicalSlicePool
+    from adi_model.simulation.config import Config
+    from adi_model.topology.dac_arch import NominalCodebook, SplitChip
+    from adi_model.simulation.slice_pool import PhysicalSlicePool
 
     cap = 4.00390625e-14
     chip = SplitChip(
@@ -57,8 +57,8 @@ def check_a02_lsb_units() -> dict:
     """1 LSB20 的电荷误差必须折算成 1.0 LSB。"""
     from types import SimpleNamespace
 
-    from adi_model.dem import SplitSwitchGeometry
-    from adi_model.dem3d import nominal_conservation
+    from adi_model.control.dem import SplitSwitchGeometry
+    from adi_model.control.dem3d import nominal_conservation
 
     c_norm_f, lsb20_v = 20.5e-12, 6.0 / 2**20
     charges = np.array([0.0, c_norm_f * lsb20_v])
@@ -90,7 +90,7 @@ def check_a02_lsb_units() -> dict:
 
 def check_a03_dc_is_not_cheating() -> dict:
     """恒定直流输入下，合法预置不得被判偷看。"""
-    from adi_model.dem3d import round_robin_plan
+    from adi_model.control.dem3d import round_robin_plan
 
     plan = round_robin_plan(16)
     values = np.ones(16)

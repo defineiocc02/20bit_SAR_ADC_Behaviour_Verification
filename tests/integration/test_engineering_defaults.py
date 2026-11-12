@@ -9,9 +9,9 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from adi_model.config import Config, ConfigError
+from adi_model.simulation.config import Config, ConfigError
 from adi_model.defaults import DefaultParameters, default_model, simulate
-from adi_model.sampler import dc_input, sine_input
+from adi_model.behavioral.sampler import dc_input, sine_input
 
 
 @pytest.mark.parametrize("count", [256, 1024])

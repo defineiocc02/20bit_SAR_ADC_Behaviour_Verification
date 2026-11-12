@@ -14,7 +14,7 @@
 import numpy as np
 import pytest
 
-from adi_model.charge_ref_task import ref_ra_charge, ref_ra_charge_nodal
+from adi_model.behavioral.charge_ref_task import ref_ra_charge, ref_ra_charge_nodal
 
 
 def network() -> dict:

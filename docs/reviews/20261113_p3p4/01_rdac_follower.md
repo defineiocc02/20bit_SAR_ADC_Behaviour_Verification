@@ -4,7 +4,7 @@
 > conversion results loaded as they develop."
 > 本文把这个句子变成**可被反例推翻**的检查，而不是一条注释。
 
-代码：`src/adi_model/follower.py`；测试：`tests/unit/test_follower.py`（12 项）；
+代码：`src/adi_model/control/follower.py`；测试：`tests/unit/test_follower.py`（12 项）；
 证据：`data/p3_mechanisms.json` → `follower`。
 
 ---

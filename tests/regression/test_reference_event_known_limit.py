@@ -7,7 +7,7 @@
 import numpy as np
 import pytest
 
-from adi_model.dither import (
+from adi_model.control.dither import (
     Fig19DitherProgram,
     Fig19DitherRangeError,
     Fig19StaticSpec,

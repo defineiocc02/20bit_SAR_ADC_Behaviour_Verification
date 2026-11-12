@@ -9,13 +9,13 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from adi_model.dac_arch import charge_from_sampling_connections
-from adi_model.dem import SamplingConnections, SplitSwitchGeometry
-from adi_model.pipeline import run_pipeline
-from adi_model.sadc import SADC
-from adi_model.sampler import dc_input
-from adi_model.sampling_charge import digital_connection_terms
-from adi_model.slice_pool import PhysicalSlicePool
+from adi_model.topology.dac_arch import charge_from_sampling_connections
+from adi_model.control.dem import SamplingConnections, SplitSwitchGeometry
+from adi_model.simulation.pipeline import run_pipeline
+from adi_model.behavioral.sadc import SADC
+from adi_model.behavioral.sampler import dc_input
+from adi_model.behavioral.sampling_charge import digital_connection_terms
+from adi_model.simulation.slice_pool import PhysicalSlicePool
 
 
 def test_explicit_threshold_offset_changes_decisions_and_preserves_in_range_reconstruction(

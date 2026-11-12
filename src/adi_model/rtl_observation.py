@@ -19,8 +19,8 @@ from typing import Any
 import numpy as np
 
 from adi_model._arrays import readonly as _readonly
-from adi_model.fixed_point import FixedPointFormat
-from adi_model.weight_calibration import CalibrationSpec, DigitalObservation
+from adi_model.contracts.fixed_point import FixedPointFormat
+from adi_model.calibration.weight_calibration import CalibrationSpec, DigitalObservation
 
 ConnectionBinding = Callable[
     [CalibrationSpec, Mapping[str, np.ndarray]], tuple[np.ndarray, np.ndarray]

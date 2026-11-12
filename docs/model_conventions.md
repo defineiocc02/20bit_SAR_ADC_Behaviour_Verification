@@ -3,7 +3,7 @@
 > **文档定位**：任务书 §3.1 要求的统一口径声明。所有模块、实验与报告引用
 > 同一套定义；任何公式先过本文的量纲口径再谈数值。与 `mechanism_inventory.json`
 > （机制清单）、`sources_manifest.json`（原文证据）配合使用。
-> 变量名以 `src/adi_model/config.py` 的真实字段为准，本文不发明平行命名。
+> 变量名以 `src/adi_model/simulation/config.py` 的真实字段为准，本文不发明平行命名。
 
 ---
 

@@ -29,22 +29,22 @@ import numpy as np  # noqa: E402
 
 from adi_model import metrics  # noqa: E402
 from adi_model.behavioral.ra_az import OrdinaryAZConfig, apply_ordinary_az  # noqa: E402
-from adi_model.dem3d import (  # noqa: E402
+from adi_model.control.dem3d import (  # noqa: E402
     Dem3State,
     round_robin_plan,
     unary_rotation_masks,
 )
-from adi_model.dither import FIG19_FRACTIONAL_WEIGHTS_Q, Fig19DitherProgram, Fig19StaticSpec  # noqa: E402
-from adi_model.mapper import Mapper  # noqa: E402
-from adi_model.pipeline import run_pipeline  # noqa: E402
-from adi_model.follower import (  # noqa: E402
+from adi_model.control.dither import FIG19_FRACTIONAL_WEIGHTS_Q, Fig19DitherProgram, Fig19StaticSpec  # noqa: E402
+from adi_model.topology.mapper import Mapper  # noqa: E402
+from adi_model.simulation.pipeline import run_pipeline  # noqa: E402
+from adi_model.control.follower import (  # noqa: E402
     ResolvedPrefixes,
     run_direct_final,
     run_follower,
     run_trial_sar,
 )
-from adi_model.slice_pool import PhysicalSlicePool  # noqa: E402
-from adi_model.track_aux import build_track_plan, causality_audit, track_residual_charge  # noqa: E402
+from adi_model.simulation.slice_pool import PhysicalSlicePool  # noqa: E402
+from adi_model.control.track_aux import build_track_plan, causality_audit, track_residual_charge  # noqa: E402
 from tools.run_p4_ablation import (  # noqa: E402
     FS_HZ,
     V_FS,
@@ -124,7 +124,7 @@ def _dynamic_config():
     """A7 全动态的显式参数集（全部标 ASSUMED，见 10_dynamic_closure.md）。"""
     from dataclasses import replace
 
-    from adi_model.conversion import ConversionParameters
+    from adi_model.behavioral.conversion import ConversionParameters
 
     conversion = ConversionParameters(
         quantizer_time_s=6e-9,
@@ -153,7 +153,7 @@ def _dynamic_config():
 
 def figure_dynamics(out: Path, *, n: int = 32) -> dict:
     """F07：参考建立、RA 输出、ADC2 宽/窄带切换的相位波形。"""
-    from adi_model.dither import complete_flash3_sar6_prefix_table
+    from adi_model.control.dither import complete_flash3_sar6_prefix_table
 
     from adi_model.defaults import _all_signal
 
@@ -644,7 +644,7 @@ def figure_dither_margin(out: Path) -> dict:
     upper = program.upper_code
     lower_bound = -V_FS + lower
     # 早期候选码越界（每个字、512 码、7 事件）
-    from adi_model.dither import complete_flash3_sar6_prefix_table
+    from adi_model.control.dither import complete_flash3_sar6_prefix_table
 
     table = complete_flash3_sar6_prefix_table()
     shifted = table[None, :, :] - upper[:, None, None]

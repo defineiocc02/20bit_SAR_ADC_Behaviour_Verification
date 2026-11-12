@@ -36,24 +36,24 @@
 | 模块／机制 | 原文依据 | 本工程实现 | 对齐状态 | 证据等级 | 备注 |
 | :--- | :--- | :--- | :---: | :---: | :--- |
 | 集中默认与覆盖 | 无直接原文依据；工程选择（本工程自定） | [defaults.py](../src/adi_model/defaults.py)：DefaultParameters／default_model／simulate | 工程选择 | 静态审计 | 名义网络、噪声、基本译码和随机资源计划均带推断表；默认名义系数未经训练。 |
-| 低层配置 | [00] PDF1及[00_1]架构锚点；其余为工程选择 | [config.py](../src/adi_model/config.py)：Config／rtl_structural | 工程选择 | 静态审计 | Config是不完整9位规格；rtl16标签不补齐ADC2、物理网络或source mapping。 |
-| CLI与结果容器 | 无原文依据；工程选择（本工程自定） | [cli.py](../src/adi_model/cli.py)、[sim.py](../src/adi_model/sim.py) | 工程选择 | 静态审计 | simulate实际运行名义码；validate-config只检查输入。输出码宽、异常和假设分开。 |
-| 真实执行与归属 | [00] PDF1–2 Fig.9.8.1；[09]独立量化器／并行DAC主题 | [pipeline.py](../src/adi_model/pipeline.py)、[pipeline_engine.py](../src/adi_model/pipeline_engine.py)：execute_pipeline | 机制对齐 | 静态审计 | 显式pool、mapper、sample IDs、状态、采集坐标与实际／名义轨；不是旧隐式构造器。 |
-| 前后级静态码表 | 无具体门限、后级窗口或端点算法披露；工程选择（本工程自定） | [sadc.py](../src/adi_model/sadc.py)：SADC／build_first_stage_quantizer；[adc2.py](../src/adi_model/adc2.py)：ADC2 | 工程选择 | 静态审计 | SADC显式513阈值；ADC2使用所选码仓、窗口和端点。夹码仍保留对应节点异常；不是连续时间ADC2或器件DNL／INL。 |
-| 整数码与实际mask | 无直接原文依据；工程选择（本工程自定） | [mapper.py](../src/adi_model/mapper.py)、[dem.py](../src/adi_model/dem.py) | 工程选择 | 静态审计 | 码表、0/1 mask、Signal／RefLo／RefHi采集连接及调用方binding；不自造源DEM。 |
-| 资源调度与事件 | [00] PDF1及[00_1] PDF29–31，仅支持资源架构 | [scheduler.py](../src/adi_model/scheduler.py)、[timing.py](../src/adi_model/timing.py) | 机制对齐 | 静态审计 | 使用明确采集／转换计划和事件表；实际选择策略与phase单位为工程接口，不估计时偏。 |
-| Fig.19字分组与改码 | [10](#ref-10) PDF22 Fig.19、PDF33；[00_1] PDF17/18 | [dither.py](../src/adi_model/dither.py)：Fig19DitherProgram／Fig19CommandTrace | 机制对齐 | 静态审计 | 只对齐同字的lower／upper分组、T=L+U·Δ与实际命令c−U；不能逐样本替换成固定dR=4dQ。 |
-| Fig.19采集端口的静态等效 | 同上原文作为比较；目标等效绑定是工程假设 | [sampler.py](../src/adi_model/sampler.py)、[sampling_charge.py](../src/adi_model/sampling_charge.py)、defaults.py | 工程选择 | 静态审计 | SADC采样x−L、RDAC保存x−T、已知公共项−T；负极性、Q32及7-slice例4:2:1/7映射到18/8均属受限工程静态等效。指定Python及RTL有限窗已对拍；完整物理网络另验。 |
-| 静态学习与固定系数 | [00] PDF1仅披露片外求系数、片上应用的分工 | [weight_calibration.py](../src/adi_model/weight_calibration.py)：DigitalObservation／fit_unit_weights／FrozenCalibration | 工程选择 | 静态审计 | 独立已知输入SVD、秩／条件数、schema2、留出方法均为工程选择。观察包含明确a与已知电压项，不读取电容真值。 |
+| 低层配置 | [00] PDF1及[00_1]架构锚点；其余为工程选择 | [config.py](../src/adi_model/simulation/config.py)：Config／rtl_structural | 工程选择 | 静态审计 | Config是不完整9位规格；rtl16标签不补齐ADC2、物理网络或source mapping。 |
+| CLI与结果容器 | 无原文依据；工程选择（本工程自定） | [cli.py](../src/adi_model/cli.py)、[sim.py](../src/adi_model/simulation/sim.py) | 工程选择 | 静态审计 | simulate实际运行名义码；validate-config只检查输入。输出码宽、异常和假设分开。 |
+| 真实执行与归属 | [00] PDF1–2 Fig.9.8.1；[09]独立量化器／并行DAC主题 | [pipeline.py](../src/adi_model/simulation/pipeline.py)、[pipeline_engine.py](../src/adi_model/simulation/pipeline_engine.py)：execute_pipeline | 机制对齐 | 静态审计 | 显式pool、mapper、sample IDs、状态、采集坐标与实际／名义轨；不是旧隐式构造器。 |
+| 前后级静态码表 | 无具体门限、后级窗口或端点算法披露；工程选择（本工程自定） | [sadc.py](../src/adi_model/behavioral/sadc.py)：SADC／build_first_stage_quantizer；[adc2.py](../src/adi_model/behavioral/adc2.py)：ADC2 | 工程选择 | 静态审计 | SADC显式513阈值；ADC2使用所选码仓、窗口和端点。夹码仍保留对应节点异常；不是连续时间ADC2或器件DNL／INL。 |
+| 整数码与实际mask | 无直接原文依据；工程选择（本工程自定） | [mapper.py](../src/adi_model/topology/mapper.py)、[dem.py](../src/adi_model/control/dem.py) | 工程选择 | 静态审计 | 码表、0/1 mask、Signal／RefLo／RefHi采集连接及调用方binding；不自造源DEM。 |
+| 资源调度与事件 | [00] PDF1及[00_1] PDF29–31，仅支持资源架构 | [scheduler.py](../src/adi_model/simulation/scheduler.py)、[timing.py](../src/adi_model/control/timing.py) | 机制对齐 | 静态审计 | 使用明确采集／转换计划和事件表；实际选择策略与phase单位为工程接口，不估计时偏。 |
+| Fig.19字分组与改码 | [10](#ref-10) PDF22 Fig.19、PDF33；[00_1] PDF17/18 | [dither.py](../src/adi_model/control/dither.py)：Fig19DitherProgram／Fig19CommandTrace | 机制对齐 | 静态审计 | 只对齐同字的lower／upper分组、T=L+U·Δ与实际命令c−U；不能逐样本替换成固定dR=4dQ。 |
+| Fig.19采集端口的静态等效 | 同上原文作为比较；目标等效绑定是工程假设 | [sampler.py](../src/adi_model/behavioral/sampler.py)、[sampling_charge.py](../src/adi_model/behavioral/sampling_charge.py)、defaults.py | 工程选择 | 静态审计 | SADC采样x−L、RDAC保存x−T、已知公共项−T；负极性、Q32及7-slice例4:2:1/7映射到18/8均属受限工程静态等效。指定Python及RTL有限窗已对拍；完整物理网络另验。 |
+| 静态学习与固定系数 | [00] PDF1仅披露片外求系数、片上应用的分工 | [weight_calibration.py](../src/adi_model/calibration/weight_calibration.py)：DigitalObservation／fit_unit_weights／FrozenCalibration | 工程选择 | 静态审计 | 独立已知输入SVD、秩／条件数、schema2、留出方法均为工程选择。观察包含明确a与已知电压项，不读取电容真值。 |
 | 数学可辨识性 | 无直接原文依据；工程选择（本工程自定） | [calib.py](../src/adi_model/calib.py)：observability／ridge_fit | 工程选择 | 静态审计 | 数学助手和样本预算；不等同原芯片训练控制器。 |
-| 整数重构 | 无直接原文依据；工程选择（本工程自定） | [fixed_point.py](../src/adi_model/fixed_point.py)、[reconstruction.py](../src/adi_model/reconstruction.py) | 工程选择 | 静态审计 | 显式format和名义／固定系数，完整规格与观察域绑定；Frozen模型schema2与独立register schema1分开，均须完整新规格。 |
+| 整数重构 | 无直接原文依据；工程选择（本工程自定） | [fixed_point.py](../src/adi_model/contracts/fixed_point.py)、[reconstruction.py](../src/adi_model/calibration/reconstruction.py) | 工程选择 | 静态审计 | 显式format和名义／固定系数，完整规格与观察域绑定；Frozen模型schema2与独立register schema1分开，均须完整新规格。 |
 | calobs v2解包 | 无原文依据；工程选择（本工程自定） | [rtl_observation.py](../src/adi_model/rtl_observation.py)：observations_from_rtl | 工程选择 | 静态审计 | schema、word／state及连接文档SHA绑定；只接受声明的fold子集，不从历史748位包猜连接。 |
 | 双source绑定与输入包 | 无原文接口依据；工程选择（本工程自定） | [导出器](../tools/export_rtl_params.py)、[控制绑定示例](../sim/fixtures/fig19_ideal_ports/source_control_binding.sv)、[采集绑定示例](../sim/fixtures/fig19_ideal_ports/source_acquisition_binding.sv) | 工程选择 | 静态审计 | 两模块与五份原始输入各自绑定字节；实际mask与两采集偏移由调用方明确提供。Fig.19夹具是受限等效，非器件源mapper。 |
-| 物理／数字边界 | [00]及[09]的架构仅作比较 | [slice_pool.py](../src/adi_model/slice_pool.py)、[dac_arch.py](../src/adi_model/dac_arch.py) | 工程选择 | 静态审计 | 实际C、G和保持电压用于模拟被测ADC；数字码表与训练观测独立。63+8是推断网络。 |
-| 独立电荷与动态核 | 无直接原文依据；工程选择（本工程自定） | [charge_ref.py](../src/adi_model/charge_ref.py)、[input_network.py](../src/adi_model/input_network.py)、[reference_charge.py](../src/adi_model/reference_charge.py)、[conversion.py](../src/adi_model/conversion.py) | 工程选择 | 静态审计 | 节点方程、源阻抗、参考电荷及有限信号响应只支持明确输入和假设；不等于原文参考回路、真实开关噪声或PEX。 |
+| 物理／数字边界 | [00]及[09]的架构仅作比较 | [slice_pool.py](../src/adi_model/simulation/slice_pool.py)、[dac_arch.py](../src/adi_model/topology/dac_arch.py) | 工程选择 | 静态审计 | 实际C、G和保持电压用于模拟被测ADC；数字码表与训练观测独立。63+8是推断网络。 |
+| 独立电荷与动态核 | 无直接原文依据；工程选择（本工程自定） | [charge_ref.py](../src/adi_model/behavioral/charge_ref.py)、[input_network.py](../src/adi_model/behavioral/input_network.py)、[reference_charge.py](../src/adi_model/behavioral/reference_charge.py)、[conversion.py](../src/adi_model/behavioral/conversion.py) | 工程选择 | 静态审计 | 节点方程、源阻抗、参考电荷及有限信号响应只支持明确输入和假设；不等于原文参考回路、真实开关噪声或PEX。 |
 | CAAZ样本域 | [PKU论文](#ref-pku-paper) PDF1/2 Fig.5/6；讲稿PDF34/35 | [chopping_az.py](../src/adi_model/chopping_az.py)：run_caaz_pipeline／pair_readout | 机制对齐 | 静态审计 | 显式输入等效AZ记录、偶更新／奇保持及完整码后配对；保持／H/K是外部输入或待验条件，不自动生成理想共享噪声。 |
-| 码历史预跟踪 | [12](#ref-12) PDF12权利要求主题 | [pretracking.py](../src/adi_model/pretracking.py)：QuantizedPretracker | 机制对齐 | 静态审计 | 数学策略只使用到时可见的转换结果；主链尚缺真实采集状态绑定，活跃pretrack／AUX请求拒绝。不是CICC后级平均或时偏学习。 |
-| 来源与维护工具 | 无原文依据；工程选择（本工程自定） | [provenance.py](../src/adi_model/provenance.py)、[inventory_gate.py](../src/adi_model/inventory_gate.py)、[serialization.py](../src/adi_model/serialization.py)、[metrics.py](../src/adi_model/metrics.py) | 工程选择 | 静态审计 | 参数等级、文件身份、记录结构和评分；静态守卫不证明机制复现或signoff。 |
+| 码历史预跟踪 | [12](#ref-12) PDF12权利要求主题 | [pretracking.py](../src/adi_model/behavioral/pretracking.py)：QuantizedPretracker | 机制对齐 | 静态审计 | 数学策略只使用到时可见的转换结果；主链尚缺真实采集状态绑定，活跃pretrack／AUX请求拒绝。不是CICC后级平均或时偏学习。 |
+| 来源与维护工具 | 无原文依据；工程选择（本工程自定） | [provenance.py](../src/adi_model/provenance.py)、[inventory_gate.py](../src/adi_model/inventory_gate.py)、[serialization.py](../src/adi_model/simulation/serialization.py)、[metrics.py](../src/adi_model/metrics/metrics.py) | 工程选择 | 静态审计 | 参数等级、文件身份、记录结构和评分；静态守卫不证明机制复现或signoff。 |
 
 ## 3. 15个DSP扩展模块
 

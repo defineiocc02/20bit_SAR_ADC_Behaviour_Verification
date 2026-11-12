@@ -23,7 +23,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.timing_jitter import (
+from adi_model.behavioral.timing_jitter import (
     DAC_BANDWIDTH_MULTIPLE_OF_NYQUIST,
     PATENT_CHAIN_BITS,
     PATENT_CHAIN_DR_V,

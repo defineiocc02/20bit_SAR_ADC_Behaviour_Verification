@@ -40,7 +40,7 @@ step = cfg.delta1
 调用它，不得自行推导：
 
 ```python
-# src/adi_model/sadc.py
+# src/adi_model/behavioral/sadc.py
 
 def units_per_first_stage_step(cfg, dac=None) -> int:
     """第一级一个判决步长 = 多少个 DAC 单位步。唯一换算关系。"""
@@ -87,8 +87,8 @@ pytest tests/integration/test_pipeline_equivalence.py -q
 
 PYTHONPATH=src python -c "
 from adi_model import Config
-from adi_model.sadc import units_per_first_stage_step, build_first_stage_quantizer
-from adi_model.dac_arch import build_split_chip, SplitDAC
+from adi_model.behavioral.sadc import units_per_first_stage_step, build_first_stage_quantizer
+from adi_model.topology.dac_arch import build_split_chip, SplitDAC
 for name, cfg in (('b1=7', Config()), ('b1=6 (legacy)', Config.legacy_v61())):
     c = Config(**{**cfg.__dict__, 'dac_arch': 'split'})   # 分段拓扑示例
     chip = build_split_chip(c); dac = SplitDAC(c, chip)

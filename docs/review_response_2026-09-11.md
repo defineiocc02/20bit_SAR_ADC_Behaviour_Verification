@@ -212,8 +212,8 @@ if f_corner <= f_min or f_min <= f_low:
 |:---|:---|:---|
 | `src/adi_model/provenance.py` | `RESOLVED_SENTINELS` + 解析值入 `note`；`fitted_in_use` 判据改为"是否激活"；新增 `resolved_sentinels` / `overridden` | 无（不在结果 JSON 里） |
 | `src/adi_model/sim_split.py` | 增益经 `ra.gain_vector`，不再硬编码电容比 | **默认零**；`fixed` 模式从此生效 |
-| `src/adi_model/pipeline.py` | 同上 | 同上 |
-| `src/adi_model/config.py` | `validate()` 新增 `ra_gain_model` 取值判据 | 仅向结果 JSON 增 1 条校验记录 |
+| `src/adi_model/simulation/pipeline.py` | 同上 | 同上 |
+| `src/adi_model/simulation/config.py` | `validate()` 新增 `ra_gain_model` 取值判据 | 仅向结果 JSON 增 1 条校验记录 |
 | `src/adi_model/acceptance.py` | **新增**：`hard_failures()` 判定规则 | 无 |
 | `tools/run_all.py` | 末尾据 `hard_failures(R)` 退出非零 | 无 |
 | `docs/adr/0005-physical-slice-pool.md` | 删除 §3.4 不实声明，§3.5 改为如实描述，新增未闭合项 | 无 |
@@ -273,7 +273,7 @@ PYTHONPATH=src python -m pytest tests/audit/test_review_contracts.py -q
 PYTHONPATH=src python -c "
 import numpy as np
 from adi_model import Config
-from adi_model.scheduler import Scheduler, ShuffledScheduler
+from adi_model.simulation.scheduler import Scheduler, ShuffledScheduler
 cfg = Config(); n = 8192
 for name, s in (('Scheduler', Scheduler(cfg)),
                 ('ShuffledScheduler', ShuffledScheduler(cfg, np.random.default_rng(20260911)))):

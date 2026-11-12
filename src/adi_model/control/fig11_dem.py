@@ -32,13 +32,13 @@ B5～B8 在子节点，使主、子节点各自的名义选通电容与 DEM 关�
 from dataclasses import dataclass
 from operator import index
 
-from adi_model.capacitors import GROUP_SLICES, MAIN_WEIGHTS, SUB_WEIGHTS
+from adi_model.topology.capacitors import GROUP_SLICES, MAIN_WEIGHTS, SUB_WEIGHTS
 
 # =========================================================================
 # 1. 电容几何与常量
 # =========================================================================
 # -------------------------------------------------------------------------
-# 以下三个常量原在此处各写一份字面量，与 adi_model.capacitors 的同名事实重复。
+# 以下三个常量原在此处各写一份字面量，与 adi_model.topology.capacitors 的同名事实重复。
 # 现在一律从这里向上游取，只保留 Fig.11 侧的命名（CAP_UNITS / SLOT_COUNT）
 # 以免打断 fig21_bridge 等调用方；数值不再有第二个定义点。
 # 桥接电容 C 也归上游的 BRIDGE_CAP_UNITS 管，本模块不再重复声明。

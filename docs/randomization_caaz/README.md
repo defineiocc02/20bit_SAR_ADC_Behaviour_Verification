@@ -25,7 +25,7 @@ DEM 和 dither 有助于减弱误差与输入的相关性，并可配合位权�
 
 DEM 的执行顺序是：先取得本笔实际 slice ID，再按该 bank 的状态推进 SID；主阵列行／列与子阵列生成物理顺序；由合法 RDAC unit code 决定主／子单元数量。可选 bridge 在 sid[8] 有效时给活动 slot 做名义零和 ±1 交换，端码不交换。重构读取实际 mask 和对应物理单元的冻结有效权重；不会因为打开 DEM 就自动得到这些权重。
 
-结构候选的名义守恒是对主／子权值加权后的总电荷，不是把不同权重物理电容的个数直接当作一个码。码176的示例满足4×175+4×177=8×176，但真实失配电荷不因此相等。源码入口是 [dem.py](../../src/adi_model/dem.py)、[slice_pool.py](../../src/adi_model/slice_pool.py)和[结构控制](../../rtl/core/sar_structural_ctrl.sv)。
+结构候选的名义守恒是对主／子权值加权后的总电荷，不是把不同权重物理电容的个数直接当作一个码。码176的示例满足4×175+4×177=8×176，但真实失配电荷不因此相等。源码入口是 [dem.py](../../src/adi_model/control/dem.py)、[slice_pool.py](../../src/adi_model/simulation/slice_pool.py)和[结构控制](../../rtl/core/sar_structural_ctrl.sv)。
 
 还要分别检查使用统计。本轮固定k=10、遍历512个SID时，某个逻辑slot的主单元56使用16次，其余62个主单元各8次；bridge关时子单元各128次，开启后为128/160/128/128/128/96/128/128。63单元嵌入8×8删除缺失格，以及bridge门控和子阵列轮转的相关性，会造成这种偏置。真实随机调度后的物理统计另以实际被选次数作分母，不能拿固定slot计数替代全芯片概率；它也不直接给出校准后的SNDR结论。
 
@@ -39,7 +39,7 @@ DEM 的执行顺序是：先取得本笔实际 slice ID，再按该 bank 的状�
 
 dither 在整个输入换向之后注入。结构sampling把每slice固定末4个子电容接到已知正负参考轨，名义信号系数α=127/128，RDAC命令加d；结构quantizer/range把dQ加入粗判决，RDAC命令减d，保存电荷中没有对应dR，最终不再扣一次dQ。逐raw数字重构按实际signal mask、rail和冻结C/Cf求和，去除该笔的已知注入再归一化；然后才允许进入CAAZ配对。
 
-源码入口是 [sampler.py](../../src/adi_model/sampler.py)、[数字电荷项](../../src/adi_model/weight_calibration.py)、[定点重构](../../src/adi_model/fixed_point.py)和[dither_gen](../../rtl/core/dither_gen.sv)。名义扣除不会自动消除真实电容失配，近满幅余量也需单独检查。[重绘与重新仿真入口](../REPRODUCING.md)区分这两类操作。
+源码入口是 [sampler.py](../../src/adi_model/behavioral/sampler.py)、[数字电荷项](../../src/adi_model/calibration/weight_calibration.py)、[定点重构](../../src/adi_model/contracts/fixed_point.py)和[dither_gen](../../rtl/core/dither_gen.sv)。名义扣除不会自动消除真实电容失配，近满幅余量也需单独检查。[重绘与重新仿真入口](../REPRODUCING.md)区分这两类操作。
 
 当前 `rtl16`／RTL 的同一个 `dem_enable` 控制单元置换和 slice shuffle；**现有结构接口不能独立保持单元 DEM、只关闭 slice shuffle**。通用 Python profile 才能通过 `dem_mode` 与 `dem_enable` 分别拆分这两个因素。关 DEM 之后仍有 A/B 两组轮流转换，不能据此认为 pair 两笔使用相同电容。
 

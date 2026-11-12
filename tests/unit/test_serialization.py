@@ -5,7 +5,7 @@ import json
 import numpy as np
 import pytest
 
-from adi_model.serialization import result_document, write_results
+from adi_model.simulation.serialization import result_document, write_results
 
 
 def test_recursive_nonfinite_annotations_and_boolean_verdicts(tmp_path):

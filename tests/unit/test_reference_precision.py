@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from adi_model.metrics import reference_precision_bits
+from adi_model.metrics.metrics import reference_precision_bits
 
 
 def test_reference_precision_bits_identity():

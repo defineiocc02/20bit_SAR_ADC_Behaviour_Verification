@@ -4,10 +4,10 @@
 
 
 - 状态：**已冻结（P0 交付物 1/2）**，2026-09-18
-- 上位依据：`docs/adr/0014-fixed-point-output-contract.md`（不可变）、`src/adi_model/fixed_point.py`（实现）
+- 上位依据：`docs/adr/0014-fixed-point-output-contract.md`（不可变）、`src/adi_model/contracts/fixed_point.py`（实现）
 - 既有判据：`tests/unit/test_fixed_point.py`（8 个用例，本契约不得与之冲突）
 - 适用对象：`rtl/` 子树下全部可综合模块；**只约束数字域整数算术**
-- 生成本文件的参数来自 `tools/export_rtl_params.py`，单一真相源是 `adi_model.config.Config`
+- 生成本文件的参数来自 `tools/export_rtl_params.py`，单一真相源是 `adi_model.simulation.config.Config`
 
 > **English abstract.** This contract freezes the integer arithmetic of the digital
 > core: Q30 effective `C/Cf` weights in 48-bit signed registers, Q32 normalized

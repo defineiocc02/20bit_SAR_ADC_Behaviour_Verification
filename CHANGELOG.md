@@ -1121,7 +1121,7 @@ defects detectable by CI instead of by peer review.
   `require()` assertion, an 88-entry `PARAM_GRADES` table, and
   `audit_provenance()` which reports ungraded fields, fitted-in-use and
   assumed-in-use. See `docs/adr/0007-provenance-as-a-runtime-value.md`.
-- **Physical 18-slice pool** (`src/adi_model/slice_pool.py`):
+- **Physical 18-slice pool** (`src/adi_model/simulation/slice_pool.py`):
   `PhysicalSlicePool` owns the unit capacitors, the held charge and the
   acquisition history; `check_causality()` verifies that a converting slice
   actually holds the sample. `dac_error(conv, k, sid)` binds the mismatch to the

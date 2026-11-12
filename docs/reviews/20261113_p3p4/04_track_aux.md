@@ -10,7 +10,7 @@
 > reduced by a factor of ~2.5× due to full-period input signal acquisition"。
 > 专利：US10797889（交织/预跟踪）、US10541702（auxiliary input for ADC input charge）。
 
-代码：`src/adi_model/track_aux.py`；测试：`tests/unit/test_track_aux.py`（7 项）；
+代码：`src/adi_model/control/track_aux.py`；测试：`tests/unit/test_track_aux.py`（7 项）；
 证据：`data/p3_mechanisms.json` → `track`。
 
 ---

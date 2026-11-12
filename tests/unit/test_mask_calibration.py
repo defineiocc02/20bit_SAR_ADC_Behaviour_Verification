@@ -5,14 +5,14 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.config import ConfigError
-from adi_model.mask_calibration import (
+from adi_model.simulation.config import ConfigError
+from adi_model.calibration.mask_calibration import (
     CodeCorrection,
     _mask_matrix,
     fit_code_correction,
     fit_mask_weights,
 )
-from adi_model.weight_calibration import CalibrationSpec, DigitalObservation
+from adi_model.calibration.weight_calibration import CalibrationSpec, DigitalObservation
 
 
 def _spec(n_active: int, n_main: int, n_sub: int, n_slices: int = 3) -> CalibrationSpec:

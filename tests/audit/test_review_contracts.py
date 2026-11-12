@@ -16,15 +16,15 @@ import numpy as np
 import pytest
 
 from adi_model.cli import main_validate_config
-from adi_model.config import Config, ConfigError
-from adi_model.dac_arch import SplitChip
+from adi_model.simulation.config import Config, ConfigError
+from adi_model.topology.dac_arch import SplitChip
 from adi_model.defaults import DefaultParameters, default_model
-from adi_model.dem import SplitSwitchCommand
-from adi_model.input_network import PassiveTrackingNetwork
+from adi_model.control.dem import SplitSwitchCommand
+from adi_model.behavioral.input_network import PassiveTrackingNetwork
 from adi_model.inventory_gate import build_summary, verify
 from adi_model.inventory_gate import main as inventory_main
-from adi_model.low_frequency_noise import BandLimitedFlicker
-from adi_model.pipeline import run_pipeline
+from adi_model.behavioral.low_frequency_noise import BandLimitedFlicker
+from adi_model.simulation.pipeline import run_pipeline
 from adi_model.provenance import (
     Graded,
     GradingError,
@@ -32,10 +32,10 @@ from adi_model.provenance import (
     annotate_config,
     audit_provenance,
 )
-from adi_model.sampler import dc_input
-from adi_model.scheduler import Scheduler
-from adi_model.slice_pool import PhysicalSlicePool
-from adi_model.timing import SlicePlan
+from adi_model.behavioral.sampler import dc_input
+from adi_model.simulation.scheduler import Scheduler
+from adi_model.simulation.slice_pool import PhysicalSlicePool
+from adi_model.control.timing import SlicePlan
 
 
 @pytest.fixture

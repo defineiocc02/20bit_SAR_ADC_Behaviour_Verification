@@ -46,7 +46,7 @@
 
 **意义。** 将可测数字观测和独立参考用于估计有效单元权重，再把冻结系数用于粗码、细码和已知注入量的重构。这对应论文“片外求系数、片内应用”的公开边界；它与下一块的系统级两点校正不同。
 
-**现在有什么。** [`fit_unit_weights`](../src/adi_model/weight_calibration.py) 使用数字观测及外部参考做满秩检查和拟合，`FrozenCalibration` 冻结系数；[`weight_store`](../rtl/core/weight_store.sv)、[`calib_regs`](../rtl/core/calib_regs.sv)、[`recon_core`](../rtl/core/recon_core.sv) 支持载入与定点重构。[ADR 0019](adr/0019-fitted-weight-rtl-closure.md) 的固定例由 Python 行为训练产生系数，RTL 对 **128 个独立留出样本**与定点参考逐码比较。留出数据独立于训练，物理失配池相同；这不是结构 DUT 自行产生训练观测的闭环。
+**现在有什么。** [`fit_unit_weights`](../src/adi_model/calibration/weight_calibration.py) 使用数字观测及外部参考做满秩检查和拟合，`FrozenCalibration` 冻结系数；[`weight_store`](../rtl/core/weight_store.sv)、[`calib_regs`](../rtl/core/calib_regs.sv)、[`recon_core`](../rtl/core/recon_core.sv) 支持载入与定点重构。[ADR 0019](adr/0019-fitted-weight-rtl-closure.md) 的固定例由 Python 行为训练产生系数，RTL 对 **128 个独立留出样本**与定点参考逐码比较。留出数据独立于训练，物理失配池相同；这不是结构 DUT 自行产生训练观测的闭环。
 
 **急需解决。** 在桥接和参考事件合同明确后，串起**真实结构 DUT 数字观测 → 片外拟合 → 系数加载/冻结 → 独立 DUT 留出验证**；覆盖 dither 去除、饱和/溢出、错误系数、噪声和动态条件。当前静态有效权重模型不等于 ADC2 本身的电容非线性校准，也不能校掉未建模的建立、参考或开关误差。
 

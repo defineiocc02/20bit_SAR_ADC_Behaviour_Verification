@@ -13,17 +13,17 @@ from fractions import Fraction
 import numpy as np
 import pytest
 
-from adi_model.adc2 import ADC2
-from adi_model.config import Config, ConfigError
+from adi_model.behavioral.adc2 import ADC2
+from adi_model.simulation.config import Config, ConfigError
 from adi_model.defaults import DefaultParameters, default_model, simulate
-from adi_model.dither import Fig19DitherProgram, Fig19StaticSpec
-from adi_model.low_frequency_noise import BandLimitedFlicker
-from adi_model.metrics import inl_from_mean_error, sine_fit_metrics, static_test, summarize
+from adi_model.control.dither import Fig19DitherProgram, Fig19StaticSpec
+from adi_model.behavioral.low_frequency_noise import BandLimitedFlicker
+from adi_model.metrics.metrics import inl_from_mean_error, sine_fit_metrics, static_test, summarize
 from adi_model.provenance import GradingError, SourceGrade, annotate_config
-from adi_model.ra import ResidueAmplifier
-from adi_model.sadc import build_first_stage_quantizer
-from adi_model.sampler import dc_input, sine_input
-from adi_model.serialization import result_document
+from adi_model.behavioral.ra import ResidueAmplifier
+from adi_model.behavioral.sadc import build_first_stage_quantizer
+from adi_model.behavioral.sampler import dc_input, sine_input
+from adi_model.simulation.serialization import result_document
 
 
 @pytest.fixture
@@ -334,7 +334,7 @@ class TestExtraLowFrequencyMetrics:
             assert result["harmonics_reliable"] is False
 
     def test_band_search_clamps_both_record_edges(self):
-        from adi_model.metrics import _band_max
+        from adi_model.metrics.metrics import _band_max
 
         spectrum = np.arange(32, dtype=float)
         for centre, expected in ((0, 4.0), (1, 5.0), (31, 31.0)):

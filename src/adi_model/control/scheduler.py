@@ -17,9 +17,9 @@
 from dataclasses import dataclass, replace
 from operator import index
 
-from adi_model.capacitors import GROUP_SLICES, POOL_SLICES
+from adi_model.topology.capacitors import GROUP_SLICES, POOL_SLICES
 
-# 片数在这里不再写字面量：18 与 8 的唯一真源在 adi_model.capacitors，
+# 片数在这里不再写字面量：18 与 8 的唯一真源在 adi_model.topology.capacitors，
 # 物理约束、验证计划与重构若各自维护一份，改架构时必然漏改。
 FULL_MASK = (1 << POOL_SLICES) - 1
 DEFAULT_SEED = 0x243F6A88

@@ -245,19 +245,31 @@ def test_caaz_review_records_exclude_private_paths_and_source_payloads():
 
 
 def test_current_runtime_source_set_has_current_imports_and_explicit_rtl_manifest():
-    """当前集合另检可定位/可导入/清单完整，不把静态集合检查写作已审读或已仿真。"""
-    current_python = {p.name: p for p in (ROOT / "src/adi_model").glob("*.py")}
+    """当前集合另检可定位/可导入/清单完整，不把静态集合检查写作已审读或已仿真。
+
+    2026-11-12 目录迁移后，模块不再全部平铺在 `src/adi_model/` 根下，
+    因此本测试改为**递归**枚举并按实际包路径导入；原意图（可定位、可导入、
+    清单完整）不变，覆盖范围从"包根"扩大到"整个包"。
+    """
+    package_root = ROOT / "src/adi_model"
+    current_python = {
+        p.relative_to(package_root).as_posix(): p for p in package_root.rglob("*.py")
+    }
+    by_stem = {p.stem: p for p in current_python.values()}
     assert {
-        "defaults.py",
-        "dither.py",
-        "pipeline_engine.py",
-        "weight_calibration.py",
-    } <= current_python.keys()
-    assert not {"ktc.py", "ref_track.py", "sim_split.py", "digital_core.py"} & current_python.keys()
-    for filename, path in current_python.items():
-        name = "adi_model" if filename == "__init__.py" else "adi_model." + path.stem
+        "defaults",
+        "dither",
+        "pipeline_engine",
+        "weight_calibration",
+    } <= by_stem.keys()
+    assert not {"ktc", "ref_track", "sim_split", "digital_core"} & by_stem.keys()
+    for relative, path in current_python.items():
+        parts = Path(relative).with_suffix("").parts
+        if parts[-1] == "__init__":
+            parts = parts[:-1]
+        name = ".".join(("adi_model", *parts)) or "adi_model"
         loaded = importlib.import_module(name)
-        assert Path(loaded.__file__).resolve() == path.resolve()
+        assert Path(loaded.__file__).resolve() == path.resolve(), relative
     manifest = (ROOT / "rtl/rtl_sources.f").read_text().splitlines()
     declared = [
         line.strip() for line in manifest if line.strip() and not line.lstrip().startswith("#")

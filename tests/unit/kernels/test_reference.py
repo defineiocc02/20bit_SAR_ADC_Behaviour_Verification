@@ -24,7 +24,7 @@ import numpy as np
 import pytest
 
 from adi_model.codes import OUTPUT_CODES
-from adi_model.reference import (
+from adi_model.behavioral.reference import (
     RESIDUAL_ACCURACY_RATIO,
     SETTLE_FRACTION_OF_RA_PHASE,
     dynamic_reference,

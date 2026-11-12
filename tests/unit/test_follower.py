@@ -9,9 +9,9 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.config import ConfigError
-from adi_model.dither import complete_flash3_sar6_prefix_table
-from adi_model.follower import (
+from adi_model.simulation.config import ConfigError
+from adi_model.control.dither import complete_flash3_sar6_prefix_table
+from adi_model.control.follower import (
     FOLLOWER_EVENTS,
     ResolvedPrefixes,
     audit_causality,

@@ -75,14 +75,14 @@
 | 实现组 | 当前状态与交付归属 | 最高证据等级 | 未完成项／有效范围 | 入口 |
 | :--- | :--- | :--- | :--- | :--- |
 | defaults／Config／CLI | 可运行推断默认；CLI实跑默认4096及显式参数／拒绝例，validate-config只检查 | smoke | CLI通过不等于系数训练；模型静态留出见数据账本，未覆盖动态源配置 | [默认层](../src/adi_model/defaults.py)、[CLI复现](REPRODUCING.md#1-实际运行默认模型) |
-| pipeline／pipeline_engine／sampler | 当前公共producer验证实际采集／参考、raw与数字观察的指定无dither静态路径 | bench 对拍 | 仅该工作点；动态／含噪／端点不因此通过 | [执行器](../src/adi_model/pipeline_engine.py) |
-| dither／Mapper | 64字静态等效＋18/8因果计划＋固定非均匀池／冻结校准已有同池对拍；早事件非法明确拒绝 | bench 对拍 | 源3D DEM未实现；v1拒绝单元DEM、动态、随机噪声和额外非零RA扰动；真实共享AZ、物理dither网络未验 | [dither](../src/adi_model/dither.py)、[实际事件](readme/data/source_bound_fig19_evidence.json) |
-| dem／scheduler／timing | 显式mask／采集连接／资源计划／数字事件 | 静态审计 | 源3D DEM和完整桥接矩阵未实现；不包含时偏学习 | [mask接口](../src/adi_model/dem.py)、[计划](../src/adi_model/timing.py) |
-| weight_calibration／calib | 当前公共producer实际独立参考、SVD满秩训练与schema2固定；中幅反例不足秩拒绝 | bench 对拍 | 仅实际训练器路径；其他数学助手、硬件读出与动态另验，Frozen旧schema1模型不兼容；register镜像独立schema1仍携带新规格 | [训练](../src/adi_model/weight_calibration.py) |
-| fixed_point／reconstruction／sim | 当前公共producer同raw名义／固定系数及512码独立整数一致 | bench 对拍 | 仅当前Python静态路径；RTL、其他分支／异常与动态另验 | [定点](../src/adi_model/fixed_point.py)、[容器](../src/adi_model/sim.py) |
+| pipeline／pipeline_engine／sampler | 当前公共producer验证实际采集／参考、raw与数字观察的指定无dither静态路径 | bench 对拍 | 仅该工作点；动态／含噪／端点不因此通过 | [执行器](../src/adi_model/simulation/pipeline_engine.py) |
+| dither／Mapper | 64字静态等效＋18/8因果计划＋固定非均匀池／冻结校准已有同池对拍；早事件非法明确拒绝 | bench 对拍 | 源3D DEM未实现；v1拒绝单元DEM、动态、随机噪声和额外非零RA扰动；真实共享AZ、物理dither网络未验 | [dither](../src/adi_model/control/dither.py)、[实际事件](readme/data/source_bound_fig19_evidence.json) |
+| dem／scheduler／timing | 显式mask／采集连接／资源计划／数字事件 | 静态审计 | 源3D DEM和完整桥接矩阵未实现；不包含时偏学习 | [mask接口](../src/adi_model/control/dem.py)、[计划](../src/adi_model/control/timing.py) |
+| weight_calibration／calib | 当前公共producer实际独立参考、SVD满秩训练与schema2固定；中幅反例不足秩拒绝 | bench 对拍 | 仅实际训练器路径；其他数学助手、硬件读出与动态另验，Frozen旧schema1模型不兼容；register镜像独立schema1仍携带新规格 | [训练](../src/adi_model/calibration/weight_calibration.py) |
+| fixed_point／reconstruction／sim | 当前公共producer同raw名义／固定系数及512码独立整数一致 | bench 对拍 | 仅当前Python静态路径；RTL、其他分支／异常与动态另验 | [定点](../src/adi_model/contracts/fixed_point.py)、[容器](../src/adi_model/simulation/sim.py) |
 | rtl_observation | 实际733位OBS字段／物理连接／有序ID与输入包SHA绑定，同池重放核对 | bench 对拍 | 仅明确fold子集；外部捕获、epoch、缺样、带宽与真实独立参考另验 | [适配器](../src/adi_model/rtl_observation.py)、[DUT与同池重放](readme/data/source_bound_rtl_calibration.json) |
-| chopping_az／pretracking | 扩展：显式AZ误差与数字配对、到时可见的码历史预置 | 静态审计 | 真实CBIAS／H/K与源跟踪电路；主链活跃pretrack／AUX拒绝，独立策略不等于CICC平均或时偏学习 | [CAAZ](../src/adi_model/chopping_az.py)、[预跟踪](../src/adi_model/pretracking.py) |
-| slice_pool／dac_arch／charge_ref／动态核 | 模拟被测ADC与独立数学参考，不是数字可见真值 | 静态审计 | 实际网络、动态、噪声和工作域独立验证 | [电荷参考](../src/adi_model/charge_ref.py)、[物理池](../src/adi_model/slice_pool.py) |
+| chopping_az／pretracking | 扩展：显式AZ误差与数字配对、到时可见的码历史预置 | 静态审计 | 真实CBIAS／H/K与源跟踪电路；主链活跃pretrack／AUX拒绝，独立策略不等于CICC平均或时偏学习 | [CAAZ](../src/adi_model/chopping_az.py)、[预跟踪](../src/adi_model/behavioral/pretracking.py) |
+| slice_pool／dac_arch／charge_ref／动态核 | 模拟被测ADC与独立数学参考，不是数字可见真值 | 静态审计 | 实际网络、动态、噪声和工作域独立验证 | [电荷参考](../src/adi_model/behavioral/charge_ref.py)、[物理池](../src/adi_model/simulation/slice_pool.py) |
 
 ## 三个跨层接口
 

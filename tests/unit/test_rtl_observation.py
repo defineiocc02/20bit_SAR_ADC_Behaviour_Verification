@@ -14,9 +14,9 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from adi_model.fixed_point import FixedPointFormat
+from adi_model.contracts.fixed_point import FixedPointFormat
 from adi_model.rtl_observation import extract_bitfields, observations_from_rtl
-from adi_model.weight_calibration import CalibrationSpec, fit_unit_weights
+from adi_model.calibration.weight_calibration import CalibrationSpec, fit_unit_weights
 
 
 def _raw_json(value):

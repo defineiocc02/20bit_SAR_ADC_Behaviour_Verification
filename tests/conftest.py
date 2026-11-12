@@ -27,7 +27,7 @@ def rng():
 @pytest.fixture
 def adc2_config_factory():
     """只绑定独立 ADC2 内核消费的五项输入。"""
-    from adi_model.config import Config
+    from adi_model.simulation.config import Config
 
     def make(*, bits, lo, hi, endpoint):
         return Config(
@@ -50,7 +50,7 @@ def synthetic_sadc_thresholds():
 @pytest.fixture
 def configuration_inputs(synthetic_sadc_thresholds):
     """仅构造输入校验示例，不运行映射或物理模型。"""
-    from adi_model.config import Config
+    from adi_model.simulation.config import Config
 
     return Config(
         dac_n_main=2,
@@ -69,7 +69,7 @@ def configuration_inputs(synthetic_sadc_thresholds):
 @pytest.fixture
 def explicit_format():
     """声明测试算术格式，不作为论文披露或硬件默认格式。"""
-    from adi_model.fixed_point import FixedPointFormat
+    from adi_model.contracts.fixed_point import FixedPointFormat
 
     return FixedPointFormat(
         weight_fraction_bits=30,
@@ -83,7 +83,7 @@ def explicit_format():
 @pytest.fixture
 def observation_factory():
     """要求调用方提供实际控制记录、信号系数、电压项、原始码和有效性。"""
-    from adi_model.weight_calibration import DigitalObservation
+    from adi_model.calibration.weight_calibration import DigitalObservation
 
     return DigitalObservation
 
@@ -91,7 +91,7 @@ def observation_factory():
 @pytest.fixture
 def identity_record_factory():
     """构造显式三项算术恒等式，不推断模拟绑定。"""
-    from adi_model.weight_calibration import CalibrationSpec, DigitalObservation
+    from adi_model.calibration.weight_calibration import CalibrationSpec, DigitalObservation
 
     def make(*, bits):
         count = 2**bits
@@ -115,7 +115,7 @@ def identity_record_factory():
 @pytest.fixture
 def synthetic_linear_data():
     """声明 128×7 线性回归数据，不作为缩小的物理 ADC。"""
-    from adi_model.weight_calibration import CalibrationSpec, DigitalObservation
+    from adi_model.calibration.weight_calibration import CalibrationSpec, DigitalObservation
 
     generator = np.random.default_rng(17)
     spec = CalibrationSpec(2, 1, 2, 1, 3.0, 24, -2.0, 2.0, "uniform_midrise", "half_open")
@@ -147,9 +147,9 @@ def synthetic_linear_data():
 @pytest.fixture
 def toy_physical_case():
     """声明 2 主单元、2 子单元的电容夹具，用于 KCL 与事务检查，不作为芯片数据。"""
-    from adi_model.config import Config
-    from adi_model.dac_arch import NominalCodebook, SplitChip
-    from adi_model.dem import SamplingConnections, SplitSwitchCommand
+    from adi_model.simulation.config import Config
+    from adi_model.topology.dac_arch import NominalCodebook, SplitChip
+    from adi_model.control.dem import SamplingConnections, SplitSwitchCommand
 
     capacitance = 1e-12
     chip = SplitChip(
@@ -183,12 +183,12 @@ def explicit_pipeline_factory():
     """
     from dataclasses import replace
 
-    from adi_model.config import Config
-    from adi_model.dac_arch import NominalCodebook, SplitChip
-    from adi_model.dem import SamplingConnections, SplitSwitchCommand
-    from adi_model.mapper import Mapper
-    from adi_model.slice_pool import PhysicalSlicePool
-    from adi_model.timing import SlicePlan
+    from adi_model.simulation.config import Config
+    from adi_model.topology.dac_arch import NominalCodebook, SplitChip
+    from adi_model.control.dem import SamplingConnections, SplitSwitchCommand
+    from adi_model.topology.mapper import Mapper
+    from adi_model.simulation.slice_pool import PhysicalSlicePool
+    from adi_model.control.timing import SlicePlan
 
     def binary_masks(geometry, codes, states, slice_ids):
         if np.any(states != 0):

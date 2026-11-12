@@ -4,7 +4,7 @@ from dataclasses import dataclass, fields, replace
 
 import pytest
 
-from adi_model.config import Config
+from adi_model.simulation.config import Config
 from adi_model.provenance import (
     PARAM_GRADES,
     PARAM_UNITS,

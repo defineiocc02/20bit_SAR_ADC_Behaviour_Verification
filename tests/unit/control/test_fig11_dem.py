@@ -17,7 +17,7 @@
 import numpy as np
 import pytest
 
-from adi_model.charge_ref_task import ref_ra_charge_nodal
+from adi_model.behavioral.charge_ref_task import ref_ra_charge_nodal
 from adi_model.control.fig11_dem import Fig11Masks, map_fig11
 
 

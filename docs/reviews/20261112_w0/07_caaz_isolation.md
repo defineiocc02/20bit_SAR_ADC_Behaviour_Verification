@@ -24,7 +24,7 @@
 | C-02 | `src/adi_model/__init__.py` `__all__` 的 `ChoppingAZParameters/ChoppingAZResult/pair_readout/run_caaz_pipeline` | 224–227 | 删除 |
 | C-03 | `src/adi_model/chopping_az.py` 的 `chopping_assisted`、`pair_readout`、`run_caaz_pipeline`、`_fresh_pair_ids`、`_SampleIndexedChop` | 32/94/148/168/232 | 移 `extensions/caaz/model/` |
 | C-04 | `src/adi_model/chopping_az.py` 的 `conventional_az` 分支 | 35–37 | **不保留原名**；改写成 `behavioral/ra_az.py` 的全速率 AZ |
-| C-05 | `src/adi_model/ra.py` 顶部说明 "CAAZ 的输入等效 AZ 状态由此进入…" | 5 | 改写为普通 AZ 说明；CAAZ 引用移扩展 |
+| C-05 | `src/adi_model/behavioral/ra.py` 顶部说明 "CAAZ 的输入等效 AZ 状态由此进入…" | 5 | 改写为普通 AZ 说明；CAAZ 引用移扩展 |
 | C-06 | `rtl/rtl_sources.f` 的 `rtl/control/caaz_cycle_ctrl.sv`、`rtl/calibration/caaz_pair_processor.sv` | 2–3 | 从主 filelist 删除；扩展单独 filelist |
 | C-07 | `rtl/core/sar_structural_ctrl.sv` `P_CAAZ_ENABLE`、`caaz_az_capture_ok`、`caaz_input_chop_neg`、`caaz_az_capture_en`、`caaz_az_hold`、`u_caaz_cycle` | 8/12/29–30/107–113 | 删除参数/端口/实例；保留通用 sample-ID 队列/epoch/backpressure |
 | C-08 | `rtl/core/sar_structural_ctrl.sv` `context_chop_neg/context_az_pair_id/context_az_valid` | 50–52/184–191 | 从 `fine_control_word` 打包中移除 |

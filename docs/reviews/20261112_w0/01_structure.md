@@ -27,10 +27,10 @@ python -m adi_model
       └─ cli.main_simulate / main_validate_config      (src/adi_model/cli.py)
           └─ defaults.default_model()                  (src/adi_model/defaults.py:705)
               └─ DefaultModel.simulate()               (src/adi_model/defaults.py:551)
-                  └─ pipeline_engine.execute_pipeline() (src/adi_model/pipeline_engine.py:52)
-                      ├─ sampler.capture()              (src/adi_model/sampler.py:68)
-                      ├─ conversion.ConversionEngine    (src/adi_model/conversion.py:379)
-                      └─ SimResult                      (src/adi_model/sim.py:23)
+                  └─ pipeline_engine.execute_pipeline() (src/adi_model/simulation/pipeline_engine.py:52)
+                      ├─ sampler.capture()              (src/adi_model/behavioral/sampler.py:68)
+                      ├─ conversion.ConversionEngine    (src/adi_model/behavioral/conversion.py:379)
+                      └─ SimResult                      (src/adi_model/simulation/sim.py:23)
 ```
 
 `SimResult` 同时保存：`coarse/k/sid/main_masks/sub_masks/sampling_*_connections/sampled_*_charge_c/residue_charge_c/vd_true/vra/adc2_input_voltage/adc2_code/fine/ra_sat/adc2_over/out/err/x_ref`，以及 `digital_observation`、`dither_program`、`dither_trace`、`conversion_trace`、`calibration_report`。这是 main 作为"唯一主引擎"的最大资产：**一笔样本的全部物理与数字字段都在同一个合同里**。
@@ -167,7 +167,7 @@ extensions/caaz  →  只依赖 contracts + 稳定公共 API；主包不反向�
 |:---|:---|:---|
 | `task2/eight/model.py:31-34` | `from task1.experiments.adctoolbox_calibration import SwitchState`；`bridge_lms_comparison.Q32`；`residue_control_study.MapperTable` | 主模型依赖实验目录；`MapperTable` 又依赖实验私有函数；无法作为库迁移 |
 | `task2/eight/model.py:35` | `from task1.model.scheduler import GROUP_SLICES, POOL_SLICES` | 应改为 `adi_model.contracts`/`capacitors` |
-| `task1/model/module1.py:20` | `from adi_model.capacitors import DEFAULT_DEM_SEED, GROUP_SLICES, POOL_SLICES` | 方向正确，但 `capacitors` 目前是 10MS/s 专用配置，不是通用合同 |
+| `task1/model/module1.py:20` | `from adi_model.topology.capacitors import DEFAULT_DEM_SEED, GROUP_SLICES, POOL_SLICES` | 方向正确，但 `capacitors` 目前是 10MS/s 专用配置，不是通用合同 |
 | `src/adi_model/__init__.py` | 18 行、无导出 | task 包不能当库导入 |
 | `task2/eight/model.py` `MapperTable` | 依赖 `task1/experiments/residue_control_study` 私有函数 | 下沉时必须先抽出 `MapperTable` 的纯数据/映射，不能整目录搬 |
 

@@ -9,8 +9,8 @@ import numpy as np
 import pytest
 from scipy.integrate import solve_ivp
 
-from adi_model.config import Config
-from adi_model.conversion import ConversionEngine, ConversionParameters, response_interval
+from adi_model.simulation.config import Config
+from adi_model.behavioral.conversion import ConversionEngine, ConversionParameters, response_interval
 
 
 @pytest.mark.parametrize("bandwidth", [50e6, 100e6, 200e6])

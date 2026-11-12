@@ -121,10 +121,10 @@ DEM 扫描结果不会被引用为论文三维机制的收益。
 | 文件 | 变更 | 数值影响 |
 |:---|:---|:---|
 | `src/adi_model/noise_phase.py` | `kappa_optimal` 增加可选 `sigma_eN`（默认 0 = 历史行为）；docstring 写明两个目标的区别 | 默认路径**零**影响（唯一生产调用点 `experiments.py:2797` 用默认参数） |
-| `src/adi_model/pipeline.py` | 头部适用域声明："8×/保守上界"改为星形网络精确表述（含三个自测数字与 R_s 主导时的失效条件） | 注释，无 |
-| `src/adi_model/dynamics.py` | 模块 docstring 同款"保守上界"表述同步修正 | 注释，无 |
-| `src/adi_model/ra.py` | 锚点基线口径注释：`resolve_ra_noise` 的锚点 = **AZ 关 + 动态带宽关**的基线，两系数先 AZ 后动态带宽依固定次序叠加，不做二次反推 | 注释，无 |
-| `src/adi_model/config.py` | `validate_ktc` 的 f_max 判据处补"摆幅 ≠ 建立"边界（11.26 GHz 条件性估算），指向 model_scope §4.13 | 注释，无 |
+| `src/adi_model/simulation/pipeline.py` | 头部适用域声明："8×/保守上界"改为星形网络精确表述（含三个自测数字与 R_s 主导时的失效条件） | 注释，无 |
+| `src/adi_model/behavioral/dynamics.py` | 模块 docstring 同款"保守上界"表述同步修正 | 注释，无 |
+| `src/adi_model/behavioral/ra.py` | 锚点基线口径注释：`resolve_ra_noise` 的锚点 = **AZ 关 + 动态带宽关**的基线，两系数先 AZ 后动态带宽依固定次序叠加，不做二次反推 | 注释，无 |
+| `src/adi_model/simulation/config.py` | `validate_ktc` 的 f_max 判据处补"摆幅 ≠ 建立"边界（11.26 GHz 条件性估算），指向 model_scope §4.13 | 注释，无 |
 | `tests/audit/test_review_contracts.py` | 新增 R16（DEM 排列空间，3 条 passing 钉子）、R17（星形 τ 算术）、R18（κ_opt 联合最优性，3 条）；头部索引表加 Round 4 段 | 测试 185 条 |
 | `docs/model_scope.md` | §4 新增 11/12/13（三维 DEM / tracking+辅助输入 / KTC 摆幅≠建立+κ_opt）；§6 新增 τ 拓扑限定行 | 文档 |
 

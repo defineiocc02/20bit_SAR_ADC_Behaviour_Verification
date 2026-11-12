@@ -12,8 +12,8 @@ import hashlib
 import shutil
 from pathlib import Path
 
-from adi_model.fixed_point import FixedPointReconstructor
-from adi_model.weight_calibration import FrozenCalibration
+from adi_model.contracts.fixed_point import FixedPointReconstructor
+from adi_model.calibration.weight_calibration import FrozenCalibration
 from export_rtl_params import _json_text, _object, load_contract
 
 

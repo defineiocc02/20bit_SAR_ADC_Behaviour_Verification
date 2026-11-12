@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 from scipy.special import sici
 
-from adi_model.config import Config
-from adi_model.low_frequency_noise import BandLimitedFlicker
-from adi_model.ra import ResidueAmplifier
+from adi_model.simulation.config import Config
+from adi_model.behavioral.low_frequency_noise import BandLimitedFlicker
+from adi_model.behavioral.ra import ResidueAmplifier
 
 
 def _state(seed):

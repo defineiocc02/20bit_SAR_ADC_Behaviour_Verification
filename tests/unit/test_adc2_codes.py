@@ -5,8 +5,8 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from adi_model.adc2 import ADC2
-from adi_model.config import Config, ConfigError
+from adi_model.behavioral.adc2 import ADC2
+from adi_model.simulation.config import Config, ConfigError
 
 
 @pytest.mark.parametrize("bits", [1, 2, 3, 4, 12, 20])

@@ -10,7 +10,7 @@ from adi_model.behavioral.eight_slice import (
     native_step_v,
     words,
 )
-from adi_model.capacitors import ExperimentConfig
+from adi_model.topology.capacitors import ExperimentConfig
 
 
 def test_dither_decode_zero_is_zero_injection():

@@ -24,10 +24,10 @@ import numpy as np
 
 from adi_model import metrics
 from adi_model.defaults import DefaultModel, DefaultParameters, _schedule
-from adi_model.dem3d import Dem3State, round_robin_plan, unary_rotation_masks
-from adi_model.pipeline import run_pipeline
-from adi_model.slice_pool import PhysicalSlicePool
-from adi_model.mask_calibration import fit_code_correction
+from adi_model.control.dem3d import Dem3State, round_robin_plan, unary_rotation_masks
+from adi_model.simulation.pipeline import run_pipeline
+from adi_model.simulation.slice_pool import PhysicalSlicePool
+from adi_model.calibration.mask_calibration import fit_code_correction
 
 FS_HZ = 40e6
 V_FS = 3.0

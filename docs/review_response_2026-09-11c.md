@@ -248,7 +248,7 @@ PYTHONPATH=src python -m pytest tests/audit/test_review_contracts.py::TestR15Gat
 PYTHONPATH=src python - <<'PY'
 import numpy as np
 from adi_model import Config, run_sim_split, sine_input
-from adi_model.pipeline import run_pipeline
+from adi_model.simulation.pipeline import run_pipeline
 base = dict(dac_arch="split", dyn_ref_settling=False, dyn_crosstalk=False,
             mismatch_enable=True, dyn_input_settling=True)
 x = sine_input(0.5 * 1.8, 97 * 40e6 / 2048)

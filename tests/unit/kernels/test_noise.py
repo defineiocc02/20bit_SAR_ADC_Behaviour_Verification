@@ -30,7 +30,7 @@ import itertools
 import numpy as np
 import pytest
 
-from adi_model.noise import (
+from adi_model.behavioral.noise import (
     TAG_COMPARATOR,
     TAG_FLICKER,
     TAG_REFERENCE,

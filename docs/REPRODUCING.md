@@ -41,7 +41,7 @@ PYTHONPATH=src pytest -q tests/unit/test_source_contract.py tests/unit/test_cli.
 
 ## 3. 静态校准：重新训练、固定与留出
 
-当前接口按独立已知输入与数字观察拟合有效C/Cf，先检查秩与条件数，再固定schema2系数、量化装载，在独立留出上比较名义／拟合系数消费的同一批raw。默认`simulate`产生的是名义输出；低层学习器是[fit_unit_weights](../src/adi_model/weight_calibration.py)，[FixedPointReconstructor](../src/adi_model/fixed_point.py)负责整数应用。
+当前接口按独立已知输入与数字观察拟合有效C/Cf，先检查秩与条件数，再固定schema2系数、量化装载，在独立留出上比较名义／拟合系数消费的同一批raw。默认`simulate`产生的是名义输出；低层学习器是[fit_unit_weights](../src/adi_model/calibration/weight_calibration.py)，[FixedPointReconstructor](../src/adi_model/contracts/fixed_point.py)负责整数应用。
 
 公共[run_static_calibration.py](../tools/run_static_calibration.py)实际运行全跨度正例`fullspan_positive`及拒绝反例`midrange_rank_negative`；[新数据](readme/data/source_bound_static_calibration.json)保留原summary、producer、36个实际加载源码及产物SHA。下面重新运行模型、拟合并固定系数，不是读取旧指标重绘：
 
@@ -66,7 +66,7 @@ OPENBLAS_NUM_THREADS=1 PYTHONPATH=src python tools/run_static_calibration.py \
 
 ## 4. Fig.19可选静态端口
 
-默认dither关闭。Python接口可向`simulate(..., dither_words=words)`显式提供N个0..63整数六位字；没有隐藏PRNG。位序、Q32低位权、负极性、采集端口和改码由[Fig.19实现](../src/adi_model/dither.py)及[原文对照](current_digital_source_map.md)限定。
+默认dither关闭。Python接口可向`simulate(..., dither_words=words)`显式提供N个0..63整数六位字；没有隐藏PRNG。位序、Q32低位权、负极性、采集端口和改码由[Fig.19实现](../src/adi_model/control/dither.py)及[原文对照](current_digital_source_map.md)限定。
 
 该路径只作受限工程静态等效，指定Python与RTL工作点见[实际事件](readme/data/source_bound_fig19_evidence.json)。以下API例显式关闭随机噪声，并选择均匀工程ADC模型：
 

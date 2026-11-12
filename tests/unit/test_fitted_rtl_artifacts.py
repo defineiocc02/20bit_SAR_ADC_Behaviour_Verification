@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from _rtl_test_support import copy_inputs, load_tool, read_json, sha, write_frozen, write_json
 
-from adi_model.fixed_point import FixedPointReconstructor
+from adi_model.contracts.fixed_point import FixedPointReconstructor
 
 
 @pytest.fixture
@@ -64,7 +64,7 @@ def test_fit_export_is_deterministic_and_binds_the_actual_frozen_bytes(exporter,
 
 
 def test_exporter_does_not_retrain_or_create_nominal_coefficients(exporter, inputs, monkeypatch):
-    import adi_model.weight_calibration as calibration
+    import adi_model.calibration.weight_calibration as calibration
 
     frozen_path = write_frozen(inputs)
 

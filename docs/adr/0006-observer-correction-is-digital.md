@@ -88,7 +88,7 @@ pytest tests/regression/test_observer_headroom.py -q
 
 ```python
 from adi_model import Config
-from adi_model.adc2 import ADC2
+from adi_model.behavioral.adc2 import ADC2
 import numpy as np
 a = ADC2(Config()); cfg = Config()
 v = np.full(4096, cfg.adc2_v_max * 0.99)

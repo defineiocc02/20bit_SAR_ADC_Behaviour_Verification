@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from adi_model.capacitors import (
+from adi_model.topology.capacitors import (
     GROUP_SLICES,
     Capacitors,
     ExperimentConfig,

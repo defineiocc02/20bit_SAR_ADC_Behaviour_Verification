@@ -684,7 +684,7 @@ Uniform-grid derivative via the FFT (exact for band-limited records).
 
     Args:
         cfg: 全局配置。
-        dac: 分段拓扑的 :class:`~adi_model.dac_arch.SplitDAC`；等权拓扑传
+        dac: 分段拓扑的 :class:`~adi_model.topology.dac_arch.SplitDAC`；等权拓扑传
              ``None``。
 
     Returns:

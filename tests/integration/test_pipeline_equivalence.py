@@ -5,10 +5,10 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from adi_model.config import ConfigError
-from adi_model.pipeline import run_pipeline
-from adi_model.sadc import build_first_stage_quantizer
-from adi_model.sampler import dc_input, sine_input
+from adi_model.simulation.config import ConfigError
+from adi_model.simulation.pipeline import run_pipeline
+from adi_model.behavioral.sadc import build_first_stage_quantizer
+from adi_model.behavioral.sampler import dc_input, sine_input
 
 
 def test_repeated_explicit_run_is_bitwise_reproducible(explicit_pipeline_factory):
@@ -62,7 +62,7 @@ def test_invalid_sample_identity_cannot_be_repaired(explicit_pipeline_factory, i
 def test_unsupported_dynamic_acquisition_does_not_degrade_to_point_settling(
     explicit_pipeline_factory,
 ):
-    from adi_model.input_network import InputNetworkParameters
+    from adi_model.behavioral.input_network import InputNetworkParameters
 
     cfg, controls = explicit_pipeline_factory(
         n_samples=4,

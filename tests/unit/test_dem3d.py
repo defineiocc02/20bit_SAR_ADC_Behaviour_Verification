@@ -9,10 +9,10 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.config import ConfigError
-from adi_model.dac_arch import NominalCodebook, SplitChip
-from adi_model.dem import SplitSwitchCommand
-from adi_model.dem3d import (
+from adi_model.simulation.config import ConfigError
+from adi_model.topology.dac_arch import NominalCodebook, SplitChip
+from adi_model.control.dem import SplitSwitchCommand
+from adi_model.control.dem3d import (
     Dem3State,
     fig11_masks,
     nominal_conservation,
@@ -20,7 +20,7 @@ from adi_model.dem3d import (
     unary_rotation_masks,
     usage_uniformity,
 )
-from adi_model.slice_pool import PhysicalSlicePool
+from adi_model.simulation.slice_pool import PhysicalSlicePool
 
 
 def _fig11_pool():
@@ -45,7 +45,7 @@ def _fig11_pool():
 
 
 def _default_pool():
-    from adi_model.config import Config
+    from adi_model.simulation.config import Config
 
     cfg = Config()
     cap = 4.00390625e-14
@@ -109,7 +109,7 @@ def test_conservation_reports_lsb_units_not_farads():
     """外部审查 A02：1 LSB20 的电荷误差必须折算成 1，而不是一个法拉数。"""
     from types import SimpleNamespace
 
-    from adi_model.dem import SplitSwitchGeometry
+    from adi_model.control.dem import SplitSwitchGeometry
 
     c_norm_f, lsb20_v = 20.5e-12, 6.0 / 2**20
     charges = np.array([0.0, c_norm_f * lsb20_v])

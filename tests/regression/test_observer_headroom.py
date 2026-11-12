@@ -9,9 +9,9 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from adi_model.adc2 import ADC2
+from adi_model.behavioral.adc2 import ADC2
 from adi_model.calib import group_aggregate, observability, required_samples
-from adi_model.fixed_point import FixedPointReconstructor
+from adi_model.contracts.fixed_point import FixedPointReconstructor
 
 
 def test_large_post_quantization_offset_does_not_rewrite_backend_or_analog_flags(

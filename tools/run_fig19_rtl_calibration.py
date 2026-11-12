@@ -22,12 +22,12 @@ sys.dont_write_bytecode = True
 
 import numpy as np  # noqa: E402
 
-from adi_model.config import Config  # noqa: E402
-from adi_model.dac_arch import SplitChip  # noqa: E402
+from adi_model.simulation.config import Config  # noqa: E402
+from adi_model.topology.dac_arch import SplitChip  # noqa: E402
 from adi_model.defaults import default_model  # noqa: E402
-from adi_model.fixed_point import FixedPointReconstructor  # noqa: E402
+from adi_model.contracts.fixed_point import FixedPointReconstructor  # noqa: E402
 from adi_model.rtl_observation import observations_from_rtl  # noqa: E402
-from adi_model.weight_calibration import fit_unit_weights  # noqa: E402
+from adi_model.calibration.weight_calibration import fit_unit_weights  # noqa: E402
 from export_fitted_rtl import build_fitted_registers  # noqa: E402
 from export_rtl_params import build  # noqa: E402
 from run_open_rtl import (  # noqa: E402

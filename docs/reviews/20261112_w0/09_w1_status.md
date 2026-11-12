@@ -71,7 +71,7 @@ vcs -full64 -sverilog -timescale=1ns/1ps \
 ## 4. 已知遗留
 
 1. `cal_sample_context` 仍保留 `chop_neg/az_pair_id/az_valid` 端口，主链全接 0；严格隔离可下一步删除端口并同步扩展。
-2. `src/adi_model/ra.py` 顶部仍有一句 CAAZ 注释；普通 AZ 已独立，应改写。
+2. `src/adi_model/behavioral/ra.py` 顶部仍有一句 CAAZ 注释；普通 AZ 已独立，应改写。
 3. `rtl/README.md` / `rtl_error_codes.vh` 仍有 CAAZ 词条；不影响编译，属文档清理。
 4. `test_review_trace` 仍因 shallow clone 失败；补完整历史后应通过。
 5. W1 未推送；分支只在本地。

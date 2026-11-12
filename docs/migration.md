@@ -8,15 +8,15 @@
 | 原路径（task 750a2e0） | 新路径（main） | 测试 |
 |:---|:---|:---|
 | `src/adi_model/codes.py` | `src/adi_model/codes.py` | `tests/unit/kernels/test_codes.py` |
-| `src/adi_model/capacitors.py` | `src/adi_model/capacitors.py` | 内核/控制测试共用 |
-| `src/adi_model/noise.py` | `src/adi_model/noise.py` | `test_noise.py` |
-| `src/adi_model/reference.py` | `src/adi_model/reference.py` | `test_reference.py` |
-| `src/adi_model/reference_mux.py` | `src/adi_model/reference_mux.py` | `test_reference.py` |
-| `src/adi_model/timing.py` | `src/adi_model/timing_jitter.py` | `test_timing.py` |
-| `src/adi_model/transients.py` | `src/adi_model/transients.py` | `test_transient_kernels.py` |
-| `src/adi_model/impairments.py` | `src/adi_model/impairments.py` | `test_impairments.py` |
+| `src/adi_model/topology/capacitors.py` | `src/adi_model/topology/capacitors.py` | 内核/控制测试共用 |
+| `src/adi_model/behavioral/noise.py` | `src/adi_model/behavioral/noise.py` | `test_noise.py` |
+| `src/adi_model/behavioral/reference.py` | `src/adi_model/behavioral/reference.py` | `test_reference.py` |
+| `src/adi_model/behavioral/reference_mux.py` | `src/adi_model/behavioral/reference_mux.py` | `test_reference.py` |
+| `src/adi_model/control/timing.py` | `src/adi_model/behavioral/timing_jitter.py` | `test_timing.py` |
+| `src/adi_model/behavioral/transients.py` | `src/adi_model/behavioral/transients.py` | `test_transient_kernels.py` |
+| `src/adi_model/behavioral/impairments.py` | `src/adi_model/behavioral/impairments.py` | `test_impairments.py` |
 | `src/adi_model/hashing.py` | `src/adi_model/hashing.py` | 由证据工具使用 |
-| `src/adi_model/metrics.py` | `src/adi_model/metrics_lsb20.py` | 内核测试 |
+| `src/adi_model/metrics/metrics.py` | `src/adi_model/metrics/metrics_lsb20.py` | 内核测试 |
 | `task1/model/scheduler.py` | `src/adi_model/control/scheduler.py` | `test_scheduler.py` |
 | `task1/model/module1.py` | `src/adi_model/control/module1.py` | `test_module1.py` |
 | `task1/model/module1_bridge.py` | `src/adi_model/control/module1_bridge.py` | `test_module1_bridge.py` |

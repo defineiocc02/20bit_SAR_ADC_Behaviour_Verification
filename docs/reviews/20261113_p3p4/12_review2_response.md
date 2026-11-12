@@ -104,8 +104,8 @@ PYTHONPATH=src python3 tools/run_p4_ablation.py \
 
 | 文件                                             | 改动                                                   |
 | :--------------------------------------------- | :--------------------------------------------------- |
-| `src/adi_model/dem3d.py`                       | 纵向周期改为 7（可配）；`usage_uniformity` 增加逐片覆盖               |
-| `src/adi_model/mask_calibration.py`            | 新增 `fit_element_weights`（残差域，审查形式），恒不切换列合并           |
+| `src/adi_model/control/dem3d.py`                       | 纵向周期改为 7（可配）；`usage_uniformity` 增加逐片覆盖               |
+| `src/adi_model/calibration/mask_calibration.py`            | 新增 `fit_element_weights`（残差域，审查形式），恒不切换列合并           |
 | `tests/unit/test_dem3d.py`                     | 新增子阵列等频回归；Fig.11 显式用 16 相位                           |
 | `tools/run_review2_figure.py`                  | 生成 `figures/F13_review2.png`（左：3:2 修复前后；右：四种拟合形式的残差） |
 | `docs/reviews/20261113_p3p4/07_calibration.md` | "不可辨识"改为"我实现错了"，并写明差在哪一步                             |

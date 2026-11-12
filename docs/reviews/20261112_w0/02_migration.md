@@ -61,15 +61,15 @@
 | T-15 | `task_integration/rtl/sar20_digital_top.sv` | **适配** | `rtl/top/sar20_digital_top.sv`（去 CAAZ） | 外部重构接口同样 | 端口表 |
 | T-16 | `task_reconstruction/rtl/sar20_lms_recon.sv` | **迁移** | `rtl/datapath/recon_core.sv`（与 main `recon_core.sv` diff） | Q28 位宽/舍入 | 16384 笔 ≤1 LSB20 |
 | T-17 | `src/adi_model/codes.py` | **迁移** | `contracts/codes.py` | 9b/20b 单一真源 | 旧字面量消失 |
-| T-18 | `src/adi_model/capacitors.py::ExperimentConfig` | **适配** | `profiles/engineering_10m_10vpp.py` | 10MHz/5V/1pF/0.1% 是 profile，不是全局 | profile_id 落盘 |
-| T-19 | `src/adi_model/noise.py` | **迁移/合并** | `behavioral/noise.py` | kT/C/白/1/f；与 main 噪声不重复 | 逐项开关 |
-| T-20 | `src/adi_model/reference.py` | **迁移/合并** | `behavioral/reference.py` | 建立/预充/RA 非线性；先修 `precharge_frac` | 参考事件 |
-| T-21 | `src/adi_model/reference_mux.py` | **迁移** | `behavioral/reference_mux.py` | 两轨切换/耦合 | 高低轨符号 |
-| T-22 | `src/adi_model/timing.py` | **合并** | `behavioral/timing.py` | 抖动/极点；main `timing.py` 是相位 | 敏感度 |
-| T-23 | `src/adi_model/transients.py` | **合并** | `behavioral/transients.py` | 连续激励/瞬态 | 整段/分块一致 |
-| T-24 | `src/adi_model/impairments.py` | **迁移** | `verification/impairments.py` | 故障注入给验证层 | 反例触发 |
-| T-25 | `src/adi_model/charge_ref.py` | **保留 main 版** | 不迁移 | main `charge_ref` 更强 | 旧 oracle 不变 |
-| T-26 | `src/adi_model/metrics.py` | **合并** | `src/adi_model/metrics.py` | 加 LSB20/零宽码 | 与 task 表一致 |
+| T-18 | `src/adi_model/topology/capacitors.py::ExperimentConfig` | **适配** | `profiles/engineering_10m_10vpp.py` | 10MHz/5V/1pF/0.1% 是 profile，不是全局 | profile_id 落盘 |
+| T-19 | `src/adi_model/behavioral/noise.py` | **迁移/合并** | `behavioral/noise.py` | kT/C/白/1/f；与 main 噪声不重复 | 逐项开关 |
+| T-20 | `src/adi_model/behavioral/reference.py` | **迁移/合并** | `behavioral/reference.py` | 建立/预充/RA 非线性；先修 `precharge_frac` | 参考事件 |
+| T-21 | `src/adi_model/behavioral/reference_mux.py` | **迁移** | `behavioral/reference_mux.py` | 两轨切换/耦合 | 高低轨符号 |
+| T-22 | `src/adi_model/control/timing.py` | **合并** | `behavioral/timing.py` | 抖动/极点；main `timing.py` 是相位 | 敏感度 |
+| T-23 | `src/adi_model/behavioral/transients.py` | **合并** | `behavioral/transients.py` | 连续激励/瞬态 | 整段/分块一致 |
+| T-24 | `src/adi_model/behavioral/impairments.py` | **迁移** | `verification/impairments.py` | 故障注入给验证层 | 反例触发 |
+| T-25 | `src/adi_model/behavioral/charge_ref.py` | **保留 main 版** | 不迁移 | main `charge_ref` 更强 | 旧 oracle 不变 |
+| T-26 | `src/adi_model/metrics/metrics.py` | **合并** | `src/adi_model/metrics/metrics.py` | 加 LSB20/零宽码 | 与 task 表一致 |
 | T-27 | `src/adi_model/hashing.py` | **迁移** | `contracts/hashing.py` | 证据 SHA | 清单 |
 | T-28 | `src/tests/*` | **迁移** | `tests/unit/` | 7 个内核测试 | 全绿 |
 | T-29 | `task1/tests/*`（10）、`task2/tests/*`、`task3/tests` | **迁移/隔离** | `tests/` 与 `extensions/caaz/tests/` | task3 隔离 | 主 pytest 不含 CAAZ |

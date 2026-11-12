@@ -9,18 +9,18 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.config import ConfigError
-from adi_model.dac_arch import NominalCodebook, SplitChip
-from adi_model.dither import FIG19_FRACTIONAL_WEIGHTS_Q, Fig19DitherProgram, Fig19StaticSpec
-from adi_model.dither_port import (
+from adi_model.simulation.config import ConfigError
+from adi_model.topology.dac_arch import NominalCodebook, SplitChip
+from adi_model.control.dither import FIG19_FRACTIONAL_WEIGHTS_Q, Fig19DitherProgram, Fig19StaticSpec
+from adi_model.control.dither_port import (
     DitherPort,
     attenuated_dither_bound,
     code_shift_residual,
     digital_descramble,
     range_ledger,
 )
-from adi_model.dem3d import fig11_masks, unary_rotation_masks
-from adi_model.slice_pool import PhysicalSlicePool
+from adi_model.control.dem3d import fig11_masks, unary_rotation_masks
+from adi_model.simulation.slice_pool import PhysicalSlicePool
 
 
 def _spec(v_fs: float = 3.0) -> Fig19StaticSpec:
@@ -35,7 +35,7 @@ def _spec(v_fs: float = 3.0) -> Fig19StaticSpec:
 
 
 def _uniform_pool():
-    from adi_model.config import Config
+    from adi_model.simulation.config import Config
 
     cap = 4.00390625e-14
     chip = SplitChip(

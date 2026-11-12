@@ -6,7 +6,7 @@
 > the quantizer to the RDAC."
 > 专利 US10505561B2 Fig.19 给出六位字拆成 lower/upper 的具体做法。
 
-代码：`src/adi_model/dither_port.py`；测试：`tests/unit/test_dither_port.py`（10 项）；
+代码：`src/adi_model/control/dither_port.py`；测试：`tests/unit/test_dither_port.py`（10 项）；
 证据：`data/p3_mechanisms.json` → `dither`。
 
 ---

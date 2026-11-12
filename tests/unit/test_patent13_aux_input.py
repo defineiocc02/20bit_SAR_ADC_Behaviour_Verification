@@ -3,9 +3,9 @@
 import numpy as np
 import pytest
 
-from adi_model.config import Config
-from adi_model.input_network import InputNetworkParameters, PassiveTrackingNetwork
-from adi_model.sampler import dc_input
+from adi_model.simulation.config import Config
+from adi_model.behavioral.input_network import InputNetworkParameters, PassiveTrackingNetwork
+from adi_model.behavioral.sampler import dc_input
 
 
 def test_auxiliary_source_removes_only_its_real_load_from_the_main_source():

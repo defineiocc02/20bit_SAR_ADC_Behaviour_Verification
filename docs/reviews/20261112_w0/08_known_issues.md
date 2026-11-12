@@ -9,7 +9,7 @@
 
 | 项 | 内容 |
 |:---|:---|
-| 证据 | `src/adi_model/reference.py:92`（task 树）：`"precharge fraction 0 means the reference starts from the full swing; that is a modelling choice, pass it explicitly rather than by default"` |
+| 证据 | `src/adi_model/behavioral/reference.py:92`（task 树）：`"precharge fraction 0 means the reference starts from the full swing; that is a modelling choice, pass it explicitly rather than by default"` |
 | 现象 | `tau_s > 0` 且 `precharge_frac == 0.0` 时，`__post_init__` 直接 `ValueError`；**无法区分"未指定"与"显式合法 0"** |
 | 影响 | 无预充对照无法运行；用户被迫编一个非零值，污染参考建立实验 |
 | 判定 | **真实接口缺陷**（不是物理错误） |
@@ -113,7 +113,7 @@
 
 | 项 | 内容 |
 |:---|:---|
-| 证据 | `trace/source_matrix.csv` 的 PAPER-06/07/08、SLIDE-05/09 仍 MISSING；但 `src/adi_model/reference.py`、`timing.py` 已在 M4/M5 |
+| 证据 | `trace/source_matrix.csv` 的 PAPER-06/07/08、SLIDE-05/09 仍 MISSING；但 `src/adi_model/behavioral/reference.py`、`timing.py` 已在 M4/M5 |
 | 现象 | 台账状态与代码不同步 |
 | 影响 | 覆盖矩阵会低报；W6 可能重复造轮子 |
 | 判定 | **台账维护缺陷** |

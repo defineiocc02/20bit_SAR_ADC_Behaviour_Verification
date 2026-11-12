@@ -10,18 +10,18 @@ from fractions import Fraction
 import numpy as np
 import pytest
 
-from adi_model.config import ConfigError
+from adi_model.simulation.config import ConfigError
 from adi_model.defaults import DefaultParameters, default_model
-from adi_model.dither import (
+from adi_model.control.dither import (
     Fig19DitherProgram,
     Fig19DitherRangeError,
     Fig19StaticSpec,
     complete_flash3_sar6_prefix_table,
 )
-from adi_model.mapper import Mapper
-from adi_model.pipeline import run_pipeline
-from adi_model.sampler import dc_input
-from adi_model.slice_pool import PhysicalSlicePool
+from adi_model.topology.mapper import Mapper
+from adi_model.simulation.pipeline import run_pipeline
+from adi_model.behavioral.sampler import dc_input
+from adi_model.simulation.slice_pool import PhysicalSlicePool
 
 STEP_Q = 2**24
 

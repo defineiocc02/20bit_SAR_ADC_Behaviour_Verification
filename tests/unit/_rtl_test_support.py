@@ -111,7 +111,7 @@ def fitted_math_bytes() -> bytes:
     """求解显式 256×55 静态线性回归，不运行物理 ADC。"""
     import numpy as np
 
-    from adi_model.weight_calibration import CalibrationSpec, DigitalObservation, fit_unit_weights
+    from adi_model.calibration.weight_calibration import CalibrationSpec, DigitalObservation, fit_unit_weights
 
     spec = CalibrationSpec(**read_json(FIXTURE / "registers.json")["spec"])
     generator = np.random.default_rng(407)

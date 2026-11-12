@@ -6,10 +6,10 @@ import numpy as np
 import pytest
 
 from extensions.caaz.model.chopping_az import ChoppingAZParameters, pair_readout, run_caaz_pipeline
-from adi_model.fixed_point import CodeStream
-from adi_model.pipeline import run_pipeline
-from adi_model.sampler import dc_input, sine_input
-from adi_model.weight_calibration import DigitalObservation, fit_unit_weights
+from adi_model.contracts.fixed_point import CodeStream
+from adi_model.simulation.pipeline import run_pipeline
+from adi_model.behavioral.sampler import dc_input, sine_input
+from adi_model.calibration.weight_calibration import DigitalObservation, fit_unit_weights
 
 
 @pytest.fixture(scope="module")

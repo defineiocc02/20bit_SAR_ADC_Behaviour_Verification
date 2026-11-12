@@ -8,7 +8,7 @@
 > two-dimensional, with 6b total range"。
 > 本文把这三个维度落成两套具名掩码绑定，并给两个**互不替代**的审计。
 
-代码：`src/adi_model/dem3d.py`；测试：`tests/unit/test_dem3d.py`（9 项）；
+代码：`src/adi_model/control/dem3d.py`；测试：`tests/unit/test_dem3d.py`（9 项）；
 证据：`data/p3_mechanisms.json` → `dem`。
 
 ---

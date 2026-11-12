@@ -139,7 +139,7 @@ pytest tests/audit/test_audit_findings.py::TestF2SliceCausality -q
 PYTHONPATH=src python -c "
 import numpy as np
 from adi_model import Config
-from adi_model.slice_pool import PhysicalSlicePool, check_causality
+from adi_model.simulation.slice_pool import PhysicalSlicePool, check_causality
 cfg = Config.paper_consistent()
 for s in ('shuffle_causal', 'pingpong'):
     p = PhysicalSlicePool(cfg, np.random.default_rng(20260910))

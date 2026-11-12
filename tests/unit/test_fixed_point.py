@@ -9,8 +9,8 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from adi_model.fixed_point import FixedPointFormat, FixedPointReconstructor, round_even_divide
-from adi_model.weight_calibration import DigitalObservation
+from adi_model.contracts.fixed_point import FixedPointFormat, FixedPointReconstructor, round_even_divide
+from adi_model.calibration.weight_calibration import DigitalObservation
 
 
 @pytest.mark.parametrize(

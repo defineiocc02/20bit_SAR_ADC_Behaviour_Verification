@@ -10,11 +10,11 @@
 
 | 类型 | 文件 | 作用 |
 |:---|:---|:---|
-| 模型 | `src/adi_model/follower.py` | RDAC follower 逐事件语义、因果审计、参考开关代价 |
-| 模型 | `src/adi_model/dem3d.py` | 三维 DEM 两套掩码绑定 + 守恒/均匀性审计 + 轮转计划 |
-| 模型 | `src/adi_model/dither_port.py` | dither 独立电荷口、码偏移残余、范围预算 |
-| 模型 | `src/adi_model/track_aux.py` | TRACK 预置与 AUX 的输入电荷记账、因果审计 |
-| 模型 | `src/adi_model/mask_calibration.py` | 逐码输出校准（可用）+ 逐单元权值拟合（负结果） |
+| 模型 | `src/adi_model/control/follower.py` | RDAC follower 逐事件语义、因果审计、参考开关代价 |
+| 模型 | `src/adi_model/control/dem3d.py` | 三维 DEM 两套掩码绑定 + 守恒/均匀性审计 + 轮转计划 |
+| 模型 | `src/adi_model/control/dither_port.py` | dither 独立电荷口、码偏移残余、范围预算 |
+| 模型 | `src/adi_model/control/track_aux.py` | TRACK 预置与 AUX 的输入电荷记账、因果审计 |
+| 模型 | `src/adi_model/calibration/mask_calibration.py` | 逐码输出校准（可用）+ 逐单元权值拟合（负结果） |
 | 测试 | `tests/unit/test_{follower,dem3d,dither_port,track_aux,mask_calibration}.py` | 46 项，全部通过 |
 | 工具 | `tools/run_p3_mechanisms.py` | 生成 `data/p3_mechanisms.json` |
 | 工具 | `tools/run_p4_ablation.py` | 生成 `data/p4_ablation.{json,csv}` |

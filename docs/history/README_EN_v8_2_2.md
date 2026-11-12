@@ -463,8 +463,8 @@ python -m pip install -e '.[dev]'
 ```python
 import numpy as np
 from adi_model import Config, sine_input
-from adi_model.pipeline import run_pipeline
-from adi_model.metrics import sine_fit_metrics
+from adi_model.simulation.pipeline import run_pipeline
+from adi_model.metrics.metrics import sine_fit_metrics
 
 cfg = Config.paper_literal(dither_mode="off")
 n = 16384

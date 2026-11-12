@@ -7,12 +7,12 @@ import numpy as np
 import pytest
 
 from adi_model import __main__ as module_cli
-from adi_model.config import Config
-from adi_model.conversion import ConversionParameters
-from adi_model.fixed_point import FixedPointReconstructor
-from adi_model.metrics import summarize
-from adi_model.pipeline import run_pipeline
-from adi_model.sampler import dc_input
+from adi_model.simulation.config import Config
+from adi_model.behavioral.conversion import ConversionParameters
+from adi_model.contracts.fixed_point import FixedPointReconstructor
+from adi_model.metrics.metrics import summarize
+from adi_model.simulation.pipeline import run_pipeline
+from adi_model.behavioral.sampler import dc_input
 
 
 @pytest.mark.parametrize("command", ["validate-config", "simulate"])

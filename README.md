@@ -118,7 +118,7 @@ PYTHONPATH=src python3 tools/trace_one_sample.py --out docs/mechanisms/data
 ```
 
 **读代码顺序**：`docs/mechanisms/dither_fig19.md` 或 `dem_fig11.md`（先看原图与映射）
-→ `src/adi_model/pipeline_engine.py`（唯一主链）→ `src/adi_model/defaults.py`（一颗芯片怎么装配）
+→ `src/adi_model/simulation/pipeline_engine.py`（唯一主链）→ `src/adi_model/defaults.py`（一颗芯片怎么装配）
 → `tools/run_p4_ablation.py`（矩阵怎么跑）。
 
 ## 8. 证据层级

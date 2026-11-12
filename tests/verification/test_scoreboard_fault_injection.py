@@ -27,6 +27,15 @@ VECTORS = Path(__file__).resolve().parents[2] / "verification" / "vectors" / "ge
 
 
 def _load(module: str, name: str) -> str:
+    """读取模块级真实 dump；不可用时 skip（**这是环境限制，不是过时排除**）。
+
+    两条 skip 理由都指向同一件事：需要**仿真器**重新生成 dump。
+    2026-11-13 核实：`unit_therm.out` 有 96 行而 `meta.json` 说 84，
+    说明向量集改过而 dump 未重生成；本机无 iverilog/verilator/vcs，无法重跑。
+
+    因此这 4 个 skip 是**真实缺口**（scoreboard 故障注入未在本机验证），
+    不是"配错了排除清单"。与 §9 移除的那 138 个测试性质不同。
+    """
     path = DUMPS / module / name
     if not path.is_file():
         pytest.skip(f"no real dump for {module}; run `run_verification --level module` first")

@@ -132,11 +132,15 @@ def test_port_and_program_are_mutually_exclusive():
 
 
 def _spec():
-    from adi_model.control.dither import FIG19_FRACTIONAL_WEIGHTS_Q, Fig19StaticSpec
+    from adi_model.control.dither import (
+        FIG19_FRACTIONAL_WEIGHTS_Q,
+        FIG19_STEP_Q,
+        Fig19StaticSpec,
+    )
 
     return Fig19StaticSpec(
         v_fs=3.0,
-        step_q=2**24,
+        step_q=FIG19_STEP_Q,
         voltage_fraction_bits=32,
         fractional_lower_weights_q=FIG19_FRACTIONAL_WEIGHTS_Q,
         equivalent_polarity="subtract",

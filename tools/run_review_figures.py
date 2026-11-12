@@ -44,6 +44,7 @@ from adi_model.control.dem3d import (  # noqa: E402
 )
 from adi_model.control.dither import (  # noqa: E402
     FIG19_FRACTIONAL_WEIGHTS_Q,
+    FIG19_STEP_Q,
     Fig19DitherProgram,
     Fig19StaticSpec,
 )
@@ -678,7 +679,7 @@ def figure_dither_margin(out: Path) -> dict:
     """逐字的输入域缺口与早期候选码越界计数（解析，不跑流水线）。"""
     spec = Fig19StaticSpec(
         v_fs=V_FS,
-        step_q=2**24,
+        step_q=FIG19_STEP_Q,
         voltage_fraction_bits=32,
         fractional_lower_weights_q=FIG19_FRACTIONAL_WEIGHTS_Q,
         equivalent_polarity="subtract",

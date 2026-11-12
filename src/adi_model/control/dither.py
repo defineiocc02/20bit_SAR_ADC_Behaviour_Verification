@@ -18,7 +18,13 @@ from adi_model._arrays import readonly
 from adi_model.control.dem import _integer_array
 from adi_model.simulation.config import ConfigError, _finite_real
 
-FIG19_FRACTIONAL_WEIGHTS_Q = (9586981, 4793490, 2396745)
+#: Fig19 粗码台阶的归一化 Q32 值 = round(2^32 · 2/(cn·16) / v_fs)，cn = 31.9375。
+#: 旧值 2**24 对应 63+8 的等距 512 级码本；17/5 的 cn·16 = 511 ⇒ 台阶大 512/511 倍。
+FIG19_STEP_Q = 16810048
+
+#: D3/D2/D1 三项低位权（源示例 4:2:1/7）按新 step_q 重新量化，三者之和 = FIG19_STEP_Q。
+#: 旧值 (9586981, 4793490, 2396745) 之和是 2**24。
+FIG19_FRACTIONAL_WEIGHTS_Q = (9605742, 4802871, 2401435)
 
 
 @dataclass(frozen=True)
@@ -27,10 +33,11 @@ class Fig19StaticSpec:
 
     Args:
         v_fs: 差分等效输入峰值 [V]，不是晶体管端口电压。
-        step_q: 一个粗码步长的归一化 Q32 整数；9bit/±Vfs 时为 2**24。
+        step_q: 一个粗码步长的归一化 Q32 整数；17/5 码本下为 FIG19_STEP_Q（16 810 048），
+            对应 2*v_fs/511 而非等距 2*v_fs/512。
         voltage_fraction_bits: 本 v1 共享接口明确为 32。
         fractional_lower_weights_q: Fig19七slice示例4:2:1除7，经ties-to-even量化的
-            D3/D2/D1三项Q32权；本v1只接受(9586981,4793490,2396745)，不扩任意比例。
+            D3/D2/D1三项Q32权；本v1只接受 FIG19_FRACTIONAL_WEIGHTS_Q，不扩任意比例。
         equivalent_polarity: 显式选择 subtract；不把原图加号直接当物理电荷符号。
         provenance: 调用方记录的比例/目标绑定依据；不升级为原芯片披露。
 
@@ -50,8 +57,17 @@ class Fig19StaticSpec:
             raise ConfigError("Fig19 v_fs must be finite positive differential-equivalent V")
         if type(self.voltage_fraction_bits) is not int or self.voltage_fraction_bits != 32:
             raise ConfigError("Fig19 static v1 explicitly supports normalized Q32")
-        if type(self.step_q) is not int or self.step_q != 2**24:
-            raise ConfigError("Fig19 9bit full-scale step must be 2**24 in normalized Q32")
+        # 2026-11-13 修正：step_q 必须等于**实际码本的粗码台阶**，不是等距 2^24。
+        # 17/5 阵列的码本分母是 cn = 31 + beta*15 = 31.9375，且 cn*16 = 511，
+        # 因此粗台阶 = 2*v_fs/(cn*16) = 2*v_fs/511（而不是 2*v_fs/512）。
+        # 折算到 3 V 归一化的 Q32：round(2^32 * 2/(cn*16) / 3) = 16 810 048。
+        # 原值 2^24 是 63+8 等距码本的台阶，会让 222 注入与 224 减法差 1/512，
+        # 表现为残差随 U 线性漂移 2.293e-05 V（见 ENGINEERING_METRICS §16）。
+        if type(self.step_q) is not int or self.step_q != FIG19_STEP_Q:
+            raise ConfigError(
+                f"Fig19 coarse step must be {FIG19_STEP_Q} in normalized Q32 "
+                "(= 2*v_fs/(cn*16) for the actual 17/5 codebook)"
+            )
         try:
             weights = tuple(self.fractional_lower_weights_q)
         except TypeError as error:

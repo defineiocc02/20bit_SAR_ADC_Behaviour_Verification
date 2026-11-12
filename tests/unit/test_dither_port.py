@@ -10,7 +10,12 @@ import numpy as np
 import pytest
 
 from adi_model.control.dem3d import fig11_masks
-from adi_model.control.dither import FIG19_FRACTIONAL_WEIGHTS_Q, Fig19DitherProgram, Fig19StaticSpec
+from adi_model.control.dither import (
+    FIG19_FRACTIONAL_WEIGHTS_Q,
+    FIG19_STEP_Q,
+    Fig19DitherProgram,
+    Fig19StaticSpec,
+)
 from adi_model.control.dither_port import (
     DitherPort,
     attenuated_dither_bound,
@@ -26,7 +31,7 @@ from adi_model.topology.dac_arch import NominalCodebook, SplitChip
 def _spec(v_fs: float = 3.0) -> Fig19StaticSpec:
     return Fig19StaticSpec(
         v_fs=v_fs,
-        step_q=2**24,
+        step_q=FIG19_STEP_Q,
         voltage_fraction_bits=32,
         fractional_lower_weights_q=FIG19_FRACTIONAL_WEIGHTS_Q,
         equivalent_polarity="subtract",
@@ -150,8 +155,10 @@ def test_range_ledger_reports_bounds_and_illegal_events():
     assert ledger["max_lower_dither_v"] == pytest.approx(3 * delta)
     assert ledger["sadc_lower_bound_v"] == pytest.approx(-3.0 + 3 * delta)
     assert ledger["sadc_upper_bound_v"] == pytest.approx(3.0)
-    # 1 个 9bit 粗码 = 2**20/512 = 2048 LSB20
-    assert ledger["lower_deficit_lsb20"] == pytest.approx(3 * 2048)
+    # 1 个粗码 = 2**20 / 512 在等距码本下是 2048 LSB20；
+    # 17/5 的码本分母 cn*16 = 511，故 1 个粗码 = 2**20/511 LSB20。
+    # 2026-11-13：原式写死 2048（等距 512 级），切到 17/5 后应为 2**20/511。
+    assert ledger["lower_deficit_lsb20"] == pytest.approx(3 * 2**20 / 511)
     assert ledger["illegal_early_events"] > 0
     assert not ledger["code_shift_legal"]
 

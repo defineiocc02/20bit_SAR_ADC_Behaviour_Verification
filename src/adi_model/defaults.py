@@ -21,6 +21,7 @@ from adi_model.contracts.fixed_point import CodeStream, FixedPointFormat, FixedP
 from adi_model.control.dem import SamplingConnections, SplitSwitchGeometry
 from adi_model.control.dem3d import fig11_masks
 from adi_model.control.dither import (
+    FIG19_STEP_Q,
     FIG19_FRACTIONAL_WEIGHTS_Q,
     Fig19DitherProgram,
     Fig19StaticSpec,
@@ -650,7 +651,7 @@ class DefaultModel:
             "fig19_optional_static_binding",
             {
                 "voltage_fraction_bits": 32,
-                "step_q": 2**24,
+                "step_q": FIG19_STEP_Q,
                 "fractional_lower_weights_q": list(FIG19_FRACTIONAL_WEIGHTS_Q),
                 "equivalent_polarity": "subtract",
             },
@@ -767,7 +768,7 @@ class DefaultModel:
                 raise ConfigError("dither_mode must be 'code_shift' or 'charge_port'")
             spec = Fig19StaticSpec(
                 v_fs=cfg.v_fs,
-                step_q=2**24,
+                step_q=FIG19_STEP_Q,
                 voltage_fraction_bits=32,
                 fractional_lower_weights_q=FIG19_FRACTIONAL_WEIGHTS_Q,
                 equivalent_polarity="subtract",

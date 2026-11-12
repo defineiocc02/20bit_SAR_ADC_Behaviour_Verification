@@ -29,6 +29,8 @@ import pytest
 
 from adi_model.behavioral.sampler import dc_input
 from adi_model.control.dither import (
+    FIG19_FRACTIONAL_WEIGHTS_Q,
+    FIG19_STEP_Q,
     Fig19DitherProgram,
     Fig19DitherRangeError,
     Fig19StaticSpec,
@@ -40,7 +42,7 @@ from adi_model.simulation.pipeline import run_pipeline
 from adi_model.simulation.slice_pool import PhysicalSlicePool
 from adi_model.topology.mapper import Mapper
 
-STEP_Q = 2**24
+STEP_Q = FIG19_STEP_Q
 
 
 def _word_values(words):
@@ -64,7 +66,7 @@ def _spec():
         3.0,
         STEP_Q,
         32,
-        (9586981, 4793490, 2396745),
+        FIG19_FRACTIONAL_WEIGHTS_Q,
         "subtract",
         "Declared static equivalent-port engineering fixture",
     )
@@ -319,8 +321,13 @@ def test_all_sixty_four_words_reach_both_real_analog_nodes_and_final_integer_cod
 def test_same_lower_different_upper_keeps_residue_but_changes_real_charge_and_masks(ideal_model):
     run = ideal_model.simulate(dc_input(0.31), 64, dither_words=np.arange(64))
     np.testing.assert_array_equal(run.raw.coarse[[0, 8, 32, 40]], run.raw.coarse[0])
+    # U 段必须在残差里完全抵消：222 注入 T、224 减 U，两者用**同一个粗码台阶**。
+    # 2026-11-13 修正后，实测残留漂移 ~4e-10 V（此前是 2.293e-05 V，因 dither 的
+    # step_q 用了等距 2^24 而非 17/5 的 16 810 048）。
+    # 残留来自 float64 在 8 片 × 22 端口上的累积舍入，远小于 1 LSB20 = 5.72e-06 V，
+    # 因此容差取 1e-9 V（比实际残留宽 2 倍，比 1 LSB20 严 5700 倍）。
     np.testing.assert_allclose(
-        run.raw.residue[[0, 8, 32, 40]], run.raw.residue[0], atol=2e-14, rtol=0
+        run.raw.residue[[0, 8, 32, 40]], run.raw.residue[0], atol=1e-9, rtol=0
     )
     assert np.unique(run.raw.k[[0, 8, 32, 40]]).size == 4
     assert np.unique(run.raw.sampled_effective_charge_c[[0, 8, 32, 40]]).size == 4
@@ -403,7 +410,14 @@ def test_wrong_bit_assignment_or_common_voltage_sign_cannot_be_a_valid_program()
     with pytest.raises(ConfigError):
         replace(actual, total_q=-actual.total_q)
     with pytest.raises(ConfigError, match="4:2:1"):
-        replace(_spec(), fractional_lower_weights_q=(2396745, 2396745, 11983726))
+        replace(
+            _spec(),
+            fractional_lower_weights_q=(
+                FIG19_FRACTIONAL_WEIGHTS_Q[2],
+                FIG19_FRACTIONAL_WEIGHTS_Q[2],
+                FIG19_STEP_Q - 2 * FIG19_FRACTIONAL_WEIGHTS_Q[2],
+            ),
+        )
 
 
 def test_source_dither_request_needs_words_and_cannot_silently_keep_default_noise():

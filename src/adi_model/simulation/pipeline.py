@@ -30,6 +30,7 @@ def run_pipeline(
     initial_ra_output_v=None,
     initial_adc2_input_v=None,
     dither_program=None,
+    dither_port=None,
 ):
     """执行实际pool、整数控制与独立数字观测的raw记录。
 
@@ -56,8 +57,10 @@ def run_pipeline(
         initial_reference_error_v: 动态参考所需显式初始两轨误差V。
         initial_ra_output_v: 动态RA所需显式初始输出V。
         initial_adc2_input_v: 动态ADC2所需显式初始输入V，不默填零。
-        dither_program: 可选Fig19静态等效lower/upper控制；与dither_enable一致，
-            真实进入SADC/RDAC采样及逐事件码处理，不是RA或最终码后加扰动。
+        dither_program: 可选Fig19静态等效lower/upper控制（v1 code-shift 拓扑）；
+            与dither_enable一致，真实进入SADC/RDAC采样及逐事件码处理。
+        dither_port: 可选独立电荷口（v2 charge-port 拓扑）：RDAC 码不偏移，
+            upper 段折算成残差节点注入；与 dither_program 互斥。
 
     Returns:
         SimResult；to_codes须显式format与冻结/显式校准系数。
@@ -92,4 +95,5 @@ def run_pipeline(
         initial_ra_output_v=initial_ra_output_v,
         initial_adc2_input_v=initial_adc2_input_v,
         dither_program=dither_program,
+        dither_port=dither_port,
     )

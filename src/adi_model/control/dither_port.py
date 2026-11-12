@@ -45,6 +45,7 @@ class DitherPort:
     spec: Fig19StaticSpec
     c_lsb_f: float
     reference_swing_v: float
+    program: "Fig19DitherProgram | None" = None
 
     def __post_init__(self):
         """校验规格与两个正实数量，不推断电容。"""
@@ -55,18 +56,68 @@ class DitherPort:
             if not np.isfinite(value) or value <= 0:
                 raise ConfigError(f"DitherPort.{name} must be finite positive")
             object.__setattr__(self, name, float(value))
+        if self.program is not None:
+            if not isinstance(self.program, Fig19DitherProgram):
+                raise ConfigError("DitherPort.program must be a Fig19DitherProgram")
+            if self.program.spec is not self.spec and self.program.spec != self.spec:
+                raise ConfigError("DitherPort.program spec conflicts with the port spec")
 
     @classmethod
     def from_program(cls, program: Fig19DitherProgram, *, c_lsb_f: float, reference_swing_v: float):
         """从已有 program 取规格，保证字解码只有一处定义。"""
         if not isinstance(program, Fig19DitherProgram):
             raise ConfigError("DitherPort.from_program needs a Fig19DitherProgram")
-        return cls(program.spec, c_lsb_f, reference_swing_v)
+        return cls(program.spec, c_lsb_f, reference_swing_v, program)
+
+    @classmethod
+    def from_words(
+        cls, words, *, spec: Fig19StaticSpec, c_lsb_f: float, reference_swing_v: float
+    ):
+        """由本 run 的六位字直接绑定电荷口；字解码仍只有 `from_words` 一处。"""
+        return cls.from_program(
+            Fig19DitherProgram.from_words(words, spec=spec),
+            c_lsb_f=c_lsb_f,
+            reference_swing_v=reference_swing_v,
+        )
+
+    def require_words(self) -> "Fig19DitherProgram":
+        """返回本次运行绑定的 program；缺少逐笔字则拒绝，不生成隐藏字。"""
+        if self.program is None:
+            raise ConfigError(
+                "DitherPort carries no per-raw words; bind them with "
+                "DitherPort.from_words(...) or from_program(...)"
+            )
+        return self.program
 
     def lsb_equivalent(self, words) -> np.ndarray:
         """六位字折合的粗码 LSB 数（可为分数：低位权是 4:2:1/7）。"""
         program = Fig19DitherProgram.from_words(words, spec=self.spec)
         return program.total_q.astype(float) / self.spec.step_q
+
+    def upper_lsb(self, words) -> np.ndarray:
+        """只取 upper 段 U 的粗码 LSB 数（整数 0..5）。
+
+        upper 段是**唯一**走 RDAC 节点独立电荷口的部分；lower 段 L 走
+        SADC 采样路径。两者混算会把"下段没实现"读成"上段有残余"。
+        """
+        program = Fig19DitherProgram.from_words(words, spec=self.spec)
+        return program.upper_code.astype(float)
+
+    def upper_v(self, words) -> np.ndarray:
+        """upper 段折合到输入端的电压 [V]（= U x 粗码步长）。
+
+        这是电荷口注入量的**权威口径**：注入电荷在每笔实际归一化电容上
+        折算成输入等效电压，因此用逐笔 `C_norm` 而不是固定标称电容。
+        """
+        return self.upper_lsb(words) * self.spec.coarse_step_v
+
+    def upper_charge_c(self, words) -> np.ndarray:
+        """upper 段按标称 LSB 电容折算的注入电荷 [C]，仅用于电荷台账。
+
+        台账用固定 `c_lsb_f`（标称），模型注入用逐笔 `C_norm`；两者差值
+        就是"失配使实际电荷步长偏离标称"的部分，由 `charge_ledger` 报出。
+        """
+        return self.upper_lsb(words) * self.c_lsb_f * self.reference_swing_v
 
     def charge_c(self, words) -> np.ndarray:
         """电荷口实际注入的电荷 [C]；与 RDAC 码无关。"""

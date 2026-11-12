@@ -74,6 +74,7 @@ def capture(
     rng: np.random.Generator | None = None,
     rdac_noise_cap_f=None,
     dither_program: Fig19DitherProgram | None = None,
+    dither_sample_v=None,
 ) -> SampleCapture:
     """在单孔径生成可复放输入与显式噪声，保留每笔raw。
 
@@ -87,6 +88,10 @@ def capture(
             定义所选残差输入域sigma=sqrt(chi*kB*T/Ceq)，不从物理拓扑补相位假设。
         dither_program: 可选同笔Fig19静态等效控制；lower/total从同一Q32字生成，
             必须与raw长度和Vfs一致，不用RA误差代替采样注入。
+        dither_sample_v: 可选(N,)注入**采样节点**的 dither 电压[V]。独立电荷口
+            拓扑里 lower 段由 dither 电容在采样节点注入，因此 SADC 与 RDAC
+            两个视图同时平移；upper 段由残差节点的独立电荷口注入（不在本函数内）。
+            与 dither_program 互斥。
 
     Returns:
         含真实SADC/RDAC两个采样输入视图的SampleCapture；采集起点严格aperture−Ts。
@@ -164,6 +169,15 @@ def capture(
     driven = clean + driver
     lower = np.zeros(n_samples)
     total = np.zeros(n_samples)
+    if dither_program is not None and dither_sample_v is not None:
+        raise ConfigError(
+            "dither_program (code-shift topology) and dither_sample_v (charge-port "
+            "topology) are mutually exclusive; pick one and state it"
+        )
+    if dither_sample_v is not None:
+        # 独立电荷口：lower 段注入在采样节点，两个视图一起平移。
+        lower = finite_record(dither_sample_v, (n_samples,), "dither sample [V]", scalar=False)
+        total = lower
     if dither_program is not None:
         if (
             not isinstance(dither_program, Fig19DitherProgram)

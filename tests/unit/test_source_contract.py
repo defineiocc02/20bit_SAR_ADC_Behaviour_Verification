@@ -101,7 +101,7 @@ def test_dither_request_requires_an_actual_runtime_program(explicit_pipeline_fac
     cfg, controls = explicit_pipeline_factory(n_samples=4)
     requested = replace(cfg, dither_enable=True)
     requested.check_legal(geometry=controls["pool"].geometry)
-    with pytest.raises(ConfigError, match="dither_program"):
+    with pytest.raises(ConfigError, match="program or charge port"):
         run_pipeline(requested, dc_input(0.2), 4, **controls)
 
 

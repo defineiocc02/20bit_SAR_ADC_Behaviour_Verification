@@ -27,6 +27,7 @@ from adi_model.control.dither import (
 )
 from adi_model.contracts.fixed_point import CodeStream, FixedPointFormat, FixedPointReconstructor
 from adi_model.topology.mapper import Mapper
+from adi_model.control.dither_port import DitherPort
 from adi_model.simulation.pipeline import run_pipeline
 from adi_model.simulation.serialization import result_document
 from adi_model.simulation.sim import SimResult
@@ -550,7 +551,7 @@ class DefaultModel:
 
     def simulate(
         self, input_fn, n_samples: int, *, run_id: int = 0, dither_words=None,
-        ordinary_az=None,
+        dither_mode: str = "code_shift", ordinary_az=None,
     ) -> DefaultRun:
         """以正常用户波形和N运行，并用独立名义定点系数输出20bit码。
 
@@ -560,6 +561,9 @@ class DefaultModel:
             run_id: 同一制造chip上的可重放计划/噪声编号。
             dither_words: 可选(N,)显式六位字，启用Fig19静态等效端口；不生成隐藏PRNG。
                 v1要求调用方明确关闭噪声/动态/DEM，建议先用±2.0V验证；不夹非法早prefix。
+            dither_mode: `code_shift`（v1：RDAC 码整体减 U，要求均匀码本）
+                或 `charge_port`（v2：码不动，upper 段折算成残差节点注入，
+                可与分段码本/失配/噪声/DEM 同用；仍不含物理 dither 电容网络）。
             ordinary_az: 可选 OrdinaryAZConfig；None 表示不施加。启用时每笔独立
                 计算 AZ 误差并送入 RA 输入，N 笔仍输出 N 笔，不做偶奇配对。
 
@@ -591,6 +595,7 @@ class DefaultModel:
             )
             az_error_v = az.residual_v
         program = None
+        dither_port = None
         mapper = self.mapper
         if dither_words is not None:
             if self._config_overrides.get("dither_enable") is False:
@@ -599,23 +604,43 @@ class DefaultModel:
                 )
             if self.parameters.format.voltage_fraction_bits != 32:
                 raise ConfigError("Fig19 static v1 shared digital interface requires explicit Q32")
-            program = Fig19DitherProgram.from_words(
-                dither_words,
-                spec=Fig19StaticSpec(
-                    v_fs=cfg.v_fs,
-                    step_q=2**24,
-                    voltage_fraction_bits=32,
-                    fractional_lower_weights_q=FIG19_FRACTIONAL_WEIGHTS_Q,
-                    equivalent_polarity="subtract",
-                    provenance=FIG19_BINDING_REASON,
-                ),
+            if dither_mode not in ("code_shift", "charge_port"):
+                raise ConfigError("dither_mode must be 'code_shift' or 'charge_port'")
+            spec = Fig19StaticSpec(
+                v_fs=cfg.v_fs,
+                step_q=2**24,
+                voltage_fraction_bits=32,
+                fractional_lower_weights_q=FIG19_FRACTIONAL_WEIGHTS_Q,
+                equivalent_polarity="subtract",
+                provenance=FIG19_BINDING_REASON,
             )
             cfg = replace(cfg, dither_enable=True)
-            mapper = Mapper(
-                np.arange(512, dtype=np.int64),
-                nominal_codebook=self.codebook,
-                event_codes_by_coarse=complete_flash3_sar6_prefix_table(),
-            )
+            if dither_mode == "code_shift":
+                program = Fig19DitherProgram.from_words(dither_words, spec=spec)
+                mapper = Mapper(
+                    np.arange(512, dtype=np.int64),
+                    nominal_codebook=self.codebook,
+                    event_codes_by_coarse=complete_flash3_sar6_prefix_table(),
+                )
+            else:
+                # 独立电荷口：保留实际分段码本与 Mapper，只把 dither 折算成电荷。
+                # c_lsb 取名义全 Signal 归一化电容的 1/512，使输入等效步长与
+                # spec.coarse_step_v 自洽；逐片失配由逐笔 C_norm 承担。
+                active = np.arange(self.chip.C_main.shape[0], dtype=np.int64)
+                main = self.chip.C_main[active]
+                sub = self.chip.C_sub[active]
+                beta = self.chip.C_bridge[active] / (
+                    self.chip.C_bridge[active] + sub.sum(axis=-1) + self.chip.c_p_sub[active]
+                )
+                nominal_c_norm = float(
+                    np.mean((main.sum(axis=-1) + beta * sub.sum(axis=-1)).sum(axis=-1))
+                )
+                dither_port = DitherPort.from_words(
+                    dither_words,
+                    spec=spec,
+                    c_lsb_f=nominal_c_norm / 512.0,
+                    reference_swing_v=2.0 * cfg.v_fs,
+                )
         elif cfg.dither_enable:
             raise ConfigError("dither_enable requires explicit per-raw six-bit dither_words")
         pool = PhysicalSlicePool(
@@ -655,6 +680,7 @@ class DefaultModel:
             rdac_noise_cap_f=noise_cap,
             ra_input_error_v=az_error_v,
             dither_program=program,
+            dither_port=dither_port,
         )
         assert raw.digital_observation is not None
         codes = self.nominal_decoder.reconstruct(raw.digital_observation)
@@ -763,6 +789,7 @@ def simulate(
     config_overrides: dict | None = None,
     run_id: int = 0,
     dither_words=None,
+    dither_mode: str = "code_shift",
     ordinary_az=None,
 ) -> DefaultRun:
     """只给波形与N即可得到20bit码及推断记录的正常用户入口。
@@ -775,6 +802,7 @@ def simulate(
         config_overrides: 明确Config字段覆盖，不恢复被删除算法。
         run_id: 同一制造根种子下独立且可重放的计划/噪声编号。
         dither_words: 可选显式六位字；只启用有明确假设、范围拒绝和真实采样注入的Fig19静态等效模型。
+        dither_mode: `code_shift`（v1，要求均匀码本）或 `charge_port`（v2，码不动）。
         ordinary_az: 可选普通逐笔 RA AZ 配置；None=不施加，N→N。
 
     Returns:
@@ -789,5 +817,6 @@ def simulate(
         n_samples,
         run_id=run_id,
         dither_words=dither_words,
+        dither_mode=dither_mode,
         ordinary_az=ordinary_az,
     )

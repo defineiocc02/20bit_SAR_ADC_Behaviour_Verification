@@ -16,6 +16,7 @@ from adi_model.simulation.config import Config, ConfigError
 from adi_model.topology.dac_arch import NominalCodebook
 from adi_model.control.dem import REF_HIGH, REF_LOW, SIGNAL, SamplingConnections, SplitSwitchCommand, _integer_array
 from adi_model.control.dither import Fig19DitherProgram, complete_flash3_sar6_prefix_table
+from adi_model.control.dither_port import DitherPort
 from adi_model.topology.mapper import MappedCodes, Mapper
 from adi_model.behavioral.ra import ResidueAmplifier
 from adi_model.calibration.reconstruction import DigitalState, initialize_state, reconstruct
@@ -74,6 +75,7 @@ def execute_pipeline(
     initial_ra_output_v=None,
     initial_adc2_input_v=None,
     dither_program: Fig19DitherProgram | None = None,
+    dither_port: "DitherPort | None" = None,
 ) -> SimResult:
     """执行一段显式priming的记录，不修改Config或制造电容。
 
@@ -117,10 +119,20 @@ def execute_pipeline(
     if not isinstance(pool, PhysicalSlicePool) or not isinstance(mapper, Mapper):
         raise ConfigError("run_pipeline requires an explicit PhysicalSlicePool and Mapper")
     cfg.check_legal(geometry=pool.geometry)
-    if bool(cfg.dither_enable) != (dither_program is not None):
-        raise ConfigError("dither_enable requires an explicit Fig19 dither_program, and vice versa")
+    if dither_program is not None and dither_port is not None:
+        raise ConfigError(
+            "dither_program (code-shift topology) and dither_port (independent "
+            "charge-port topology) are mutually exclusive; pick one and state it"
+        )
+    dither_active = dither_program is not None or dither_port is not None
+    if bool(cfg.dither_enable) != dither_active:
+        raise ConfigError(
+            "dither_enable requires an explicit Fig19 program or charge port, and vice versa"
+        )
     if dither_program is not None and not isinstance(dither_program, Fig19DitherProgram):
         raise ConfigError("dither_program must be Fig19DitherProgram")
+    if dither_port is not None and not isinstance(dither_port, DitherPort):
+        raise ConfigError("dither_port must be DitherPort")
     if isinstance(n_samples, bool) or not isinstance(n_samples, int | np.integer) or n_samples < 1:
         raise ConfigError("n_samples must be a positive integer")
     n_samples = int(n_samples)
@@ -170,6 +182,24 @@ def execute_pipeline(
                 "Fig19 v1 needs the explicit uniform512 codebook/identity decoder and complete "
                 "Flash3/SAR6 seven-event table; no prefix or codebook fallback"
             )
+    if dither_port is not None:
+        # 独立电荷口 v2：RDAC 码域完全不参与，因此**不要求**均匀码本；
+        # 但 must 有本 run 的逐笔字，且不得与参考/RA/ADC2 动态路径混用。
+        port_program = dither_port.require_words()
+        if port_program.words.shape != (n_samples,) or dither_port.spec.v_fs != cfg.v_fs:
+            raise ConfigError("dither port raw length/Vfs conflicts with the actual record")
+        if (
+            cfg.dyn_input_settling
+            or cfg.dyn_ref_settling
+            or cfg.dyn_crosstalk
+            or cfg.conversion is not None
+        ):
+            raise ConfigError(
+                "dither charge-port v2 is a static-connection model; dynamic reference/RA/ADC2 "
+                "response and continuous acquisition are outside it"
+            )
+        # 电荷口不偏移 RDAC 码，因此不需要逐事件前缀表；这里只要求
+        # 码本本身可求值（由 pool/mapper 一致性检查覆盖）。
     if cfg.dyn_input_settling:
         raise ConfigError(
             "continuous acquisition requires a complete SADC/RDAC phase and initial-node binding; "
@@ -212,11 +242,11 @@ def execute_pipeline(
         if ra_input_error_v is None
         else finite_record(ra_input_error_v, (n_samples,), "RA input error [V]", scalar=False)
     )
-    if dither_program is not None and (
+    if dither_active and (
         np.any(top != 0) or (injected is not None and np.any(injected != 0))
     ):
         raise ConfigError(
-            "Fig19 v1 requires explicit zero top reset and no additional RA disturbance"
+            "Fig19 dither requires explicit zero top reset and no additional RA disturbance"
         )
     feedback = pool.chip.require_feedback()
     pool.chip.require_main_parasitic()
@@ -231,6 +261,10 @@ def execute_pipeline(
         raise ConfigError("rng must be a Generator")
     if rng is None and random_active:
         rng = np.random.default_rng(cfg.seed)
+    # 两种 dither 拓扑在这里分叉：
+    #   v1  code-shift：SADC 看 x-L、RDAC 采 x-T、码 k=c-U；
+    #   v2  charge-port：SADC 只看 x-L，RDAC 仍采真实 x，upper 段改由
+    #       残差节点的独立电荷口注入（下面 q_residue 处），码保持 c。
     sample = capture(
         cfg,
         input_fn,
@@ -239,6 +273,7 @@ def execute_pipeline(
         rng=rng,
         rdac_noise_cap_f=rdac_noise_cap_f,
         dither_program=dither_program,
+        dither_sample_v=None if dither_port is None else dither_port.require_words().total_v,
     )
     sadc = build_first_stage_quantizer(cfg)
     backend = ADC2(cfg)
@@ -373,6 +408,11 @@ def execute_pipeline(
         )
     pool.reset_electrical_state()
     shape = (n_samples, cfg.n_active)
+    # 独立电荷口的 upper 段台账 [V]；模拟注入已通过采样节点 T 平移实现，
+    # 此处只用于报告"upper 段折合多大"，不重复注入。
+    upper_v = (
+        np.zeros(n_samples) if dither_port is None else dither_port.upper_v(dither_port.require_words().words)
+    )
     recorded_main = np.empty((n_samples, cfg.n_active, pool.geometry.n_main), dtype=np.int64)
     recorded_sub = np.empty((n_samples, cfg.n_active, pool.geometry.n_sub), dtype=np.int64)
     node_charge = np.empty((*shape, 2))
@@ -527,6 +567,10 @@ def execute_pipeline(
     if dither_program is not None:
         # 同一显式数字program定义已知采样公共项；不读取实际电容/保持电压。
         term = term - dither_program.total_v[:, None, None]
+    elif dither_port is not None:
+        # charge-port v2：取样节点同步平移 L，DAC 节点另注入 U；数字已知公共项
+        # 与 v1 相同，都是 -T = -(L + U*step)。
+        term = term - dither_port.require_words().total_v[:, None, None]
     diagnostic_reasons = []
     if cfg.dyn_ref_settling or (
         cfg.conversion is not None
@@ -558,7 +602,12 @@ def execute_pipeline(
     diagnostic_available = not diagnostic_reasons
     if diagnostic_available:
         assert diagnostic_gain is not None
-        correction = np.zeros(n_samples) if dither_program is None else -dither_program.total_v
+        if dither_program is not None:
+            correction = -dither_program.total_v
+        elif dither_port is not None:
+            correction = -dither_port.require_words().total_v
+        else:
+            correction = np.zeros(n_samples)
         out = reconstruct(vd0, fine, diagnostic_gain, correction, 1.0)
     else:
         out = np.full(n_samples, np.nan)
@@ -576,7 +625,25 @@ def execute_pipeline(
         static_charge_domain and not reasons,
     )
     dither_metadata = None
-    if dither_program is not None:
+    if dither_port is not None:
+        port_program = dither_port.require_words()
+        dither_metadata = {
+            **dither_port.spec.to_dict(),
+            "model": "FIG19_CHARGE_PORT_V2",
+            "topology": "RDAC code stays c; upper segment injected at the residue node",
+            "stored_rdac_input": "sample.rdac_input_v = input_v; no code-domain shift",
+            "sadc_input": "sample.x_sadc = input_v - L",
+            "digital_known_common_q": "-upper_v only; lower is a decision-point shift",
+            "upper_code_max": int(port_program.upper_code.max()),
+            "lower_v_max": float(port_program.lower_v.max()),
+            "upper_v_max": float(upper_v.max()),
+            "not_modeled": [
+                "physical dither capacitor/switch network and its own mismatch",
+                "dither DAC reference settling",
+                "in-loop dither scheduling (words are supplied per raw, not generated in-loop)",
+            ],
+        }
+    elif dither_program is not None:
         assert dither_trace is not None
         dither_metadata = {
             **dither_program.spec.to_dict(),
@@ -665,7 +732,9 @@ def execute_pipeline(
             "dither": dither_metadata,
         },
         digital_observation=observation,
-        dither_program=dither_program,
+        dither_program=dither_program
+        if dither_program is not None
+        else (None if dither_port is None else dither_port.require_words()),
         dither_trace=dither_trace,
         conversion_trace=None if joint is None else joint.result,
     )

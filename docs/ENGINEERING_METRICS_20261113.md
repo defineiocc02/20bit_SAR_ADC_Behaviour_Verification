@@ -322,3 +322,44 @@ n_main=17, n_sub=5, c_unit_f=7.7799e-14, adc2_bits=14
 | `eight_slice.py` 的 `[0, 63]` | 6 位 dither word 的取值范围，与几何无关 |
 | `defaults.py` 的注释 | 说明"旧值 40.04 fF 对应 63+8"，是历史说明 |
 | `contracts/specs.py` 的 `n_main: int = 63` | 该 dataclass 的默认值；`ADI_40M`/`ENG_10M` 都显式传参覆盖，不生效 |
+
+---
+
+## 9. 移除过时的测试排除清单（2026-11-13）
+
+### 9.1 发现
+
+从本会话开始，我一直用这条命令跑测试：
+
+```bash
+pytest tests/unit tests/verification \
+  --ignore=tests/unit/test_vivado_buffered_impl.py \
+  --ignore=tests/unit/test_clockless_inspection.py
+```
+
+排除理由是"早期 `/usr/bin/tclsh` 报 couldn't create error file for command: not owner"。
+
+**本轮实测：这两个文件全部通过（138 passed），全量 1623 passed / 0 failed。**
+PATH 里的 `/usr/bin/tclsh` 是真实 tclsh（不是当时临时做的 shim），
+说明当初的环境问题已不存在。
+
+### 9.2 后果
+
+排除清单让 **138 个测试长期不被检查**，而报告里说"1485 passed"时，
+实际可运行的是 1623 个。这是一个**统计口径问题**：
+数字看起来在增长，但被排除的部分没人知道是否还健康。
+
+### 9.3 处理
+
+`tools/verify_clean_clone.sh` 移除排除参数，改为跑全部测试。
+干净克隆验证通过（含全部 1623 个）。
+
+### 9.4 教训
+
+**排除清单会过期。** 排除一个测试通常是因为"当前环境跑不了"，
+但环境会变（工具装好了、路径修了），而排除参数不会被自动重检。
+
+做法：排除参数旁必须写清**排除理由与复查条件**；
+每次环境变化后应重新试跑被排除的测试。
+本轮之所以发现，是因为主动去跑了那两个文件——
+它们不在任何常规检查里。

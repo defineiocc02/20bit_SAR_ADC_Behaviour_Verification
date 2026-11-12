@@ -43,10 +43,11 @@ cd "$CLONE" || exit 1
 printf 'source: %s\nat commit: %s\n' "$SRC" "$(git rev-parse --short HEAD)"
 
 note "1. tests"
+# 不再排除任何测试文件：2026-11-13 实测 test_vivado_buffered_impl 与
+# test_clockless_inspection 共 138 个全部通过（早期曾有 /usr/bin/tclsh 的
+# 环境问题，现环境已正常）。排除清单过时会让这 138 个测试长期不被检查。
 if PYTHONPATH=src "$PYTHON" -m pytest -q -p no:cacheprovider \
-     tests/unit tests/verification \
-     --ignore=tests/unit/test_vivado_buffered_impl.py \
-     --ignore=tests/unit/test_clockless_inspection.py >/dev/null 2>&1; then
+     tests/unit tests/verification >/dev/null 2>&1; then
   ok "tests"
 else
   bad "tests"

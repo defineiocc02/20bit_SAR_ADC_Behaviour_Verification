@@ -145,12 +145,19 @@ def compare_unit_therm(out_text: str) -> tuple[int, int, Mismatch | None]:
         expected_sub = thermometer(sub_ranks, sub_count[index])
         actual_main = int(row[0], 16)
         actual_sub = int(row[1], 16)
-        for p, bit in enumerate(expected_main):
-            if ((actual_main >> p) & 1) != bit:
-                return index, len(rows), Mismatch(index, f"main_on[{p}]", bit, (actual_main >> p) & 1)
-        for p, bit in enumerate(expected_sub):
-            if ((actual_sub >> p) & 1) != bit:
-                return index, len(rows), Mismatch(index, f"sub_on[{p}]", bit, (actual_sub >> p) & 1)
+        # 掩码是 [active_slot, unit] 打包的，必须逐片比，不能只看 slot 0。
+        # 只比最低一片时，任何"其余片全错"的 RTL 都能通过。
+        for lane in range(8):
+            for p, bit in enumerate(expected_main):
+                got = (actual_main >> (lane * n_main + p)) & 1
+                if got != bit:
+                    return index, len(rows), Mismatch(
+                        index, f"main_on[slot={lane}][unit={p}]", bit, got)
+            for p, bit in enumerate(expected_sub):
+                got = (actual_sub >> (lane * n_sub + p)) & 1
+                if got != bit:
+                    return index, len(rows), Mismatch(
+                        index, f"sub_on[slot={lane}][unit={p}]", bit, got)
     return len(rows), len(rows), None
 
 
@@ -294,6 +301,7 @@ def compare_recon_core(out_text: str, expected_latency: int = 11) -> tuple[int, 
     offs = load_mem(base / "offset_q.mem", signed=True, bits=64)
     mins = load_mem(base / "adc2_min_q.mem", signed=True, bits=64)
     maxs = load_mem(base / "adc2_max_q.mem", signed=True, bits=64)
+    sample_ids = load_mem(base / "sample_id.mem", bits=32)
     rows = load_out(out_text)
     bad = _require_rows(rows, len(ids), "recon_core")
     if bad is not None:
@@ -330,10 +338,17 @@ def compare_recon_core(out_text: str, expected_latency: int = 11) -> tuple[int, 
                 index, "dout", result.word, actual_word,
                 f"gain={terms.gain_q30} rails={terms.rails_q30} total={terms.total_q30}",
             )
+        # gain<=0 是结构性错误，不是溢出；adc2 bin-centre 饱和要单独上报。
+        # 这两个 flag 之前完全没比，等于 RTL 可以永久拉高它们而仍判通过。
+        expected_gain_err = 1 if terms.gain_q30 <= 0 else 0
+        _, expected_adc2_ovf = adc2_bin_center(codes[index], mins[index], maxs[index], 12)
         for name, expected, column in (
             ("clip_low", int(result.clip_low), 1),
             ("clip_high", int(result.clip_high), 2),
             ("acc_ovf", int(result.acc_ovf), 3),
+            ("gain_err", expected_gain_err, 4),
+            ("adc2_ovf", int(expected_adc2_ovf), 5),
+            ("result_sample_id", int(sample_ids[index]), 6),
         ):
             actual = int(row[column])
             if expected != actual:

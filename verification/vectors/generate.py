@@ -66,9 +66,15 @@ class VectorSet:
             width = self.width_bits.get(name, 64)
             nibbles = (width + 3) // 4
             lines = []
-            for value in values:
-                masked = value & ((1 << width) - 1)
-                lines.append(f"{masked:0{nibbles}x}")
+            for index, value in enumerate(values):
+                # 不能静默截断：一个想表达"越界"的激励如果被掩到合法范围，
+                # 这条向量就不再覆盖它声称的边界，而报告里仍会写着"已覆盖"。
+                if value < 0 or value >= (1 << width):
+                    raise ValueError(
+                        f"{self.module}.{name}[{index}] = {value} does not fit "
+                        f"{width} bits; encode signed values explicitly"
+                    )
+                lines.append(f"{value:0{nibbles}x}")
             (target / f"{name}.mem").write_text("\n".join(lines) + "\n", encoding="ascii")
         meta = {
             "module": self.module,
@@ -137,14 +143,17 @@ def gen_unit_therm(seed: int = 20261112) -> VectorSet:
     main_perms = [np.arange(n_main), np.arange(n_main)[::-1], rng.permutation(n_main)]
     sub_perms = [np.arange(n_sub), rng.permutation(n_sub)]
 
+    # 端口位宽就是 6 位（MAIN_COUNT_BITS = clog2(63+1)），能表示的最大值是 63。
+    # 之前写 64/127 并声称"越界饱和覆盖"是**假覆盖**：写 .mem 时被截成 0/63。
+    # 高于数组的 count 从该端口物理上进不来，只能标为不可测。
     for perm_index, perm in enumerate(main_perms * 2):
-        for count in (0, 1, 31, 32, 62, 63, 64, 127):
+        for count in (0, 1, 31, 32, 62, 63):
             sub_perm = sub_perms[perm_index % len(sub_perms)]
             vs.add(
                 main_logical=pack_ranks(perm, rank_bits_main),
                 sub_logical=pack_ranks(sub_perm, rank_bits_sub),
                 main_count=count,
-                sub_count=int(rng.integers(0, 16)),
+                sub_count=int(rng.integers(0, 15)),
             )
             vs.corners.append(f"main_count_{count}")
     for _ in range(48):
@@ -153,8 +162,8 @@ def gen_unit_therm(seed: int = 20261112) -> VectorSet:
         vs.add(
             main_logical=pack_ranks(perm, rank_bits_main),
             sub_logical=pack_ranks(sub_perm, rank_bits_sub),
-            main_count=int(rng.integers(0, 65)),
-            sub_count=int(rng.integers(0, 17)),
+            main_count=int(rng.integers(0, 64)),
+            sub_count=int(rng.integers(0, 15)),
         )
         vs.corners.append("random")
     return vs

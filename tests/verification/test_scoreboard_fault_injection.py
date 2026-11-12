@@ -15,6 +15,7 @@ Covered injections (acceptance G4.2):
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -22,13 +23,20 @@ import pytest
 from verification.cosim import scoreboard as sb
 
 DUMPS = Path(__file__).resolve().parents[2] / "verification" / "reports" / "dumps"
+VECTORS = Path(__file__).resolve().parents[2] / "verification" / "vectors" / "generated"
 
 
 def _load(module: str, name: str) -> str:
     path = DUMPS / module / name
     if not path.is_file():
         pytest.skip(f"no real dump for {module}; run `run_verification --level module` first")
-    return path.read_text()
+    text = path.read_text()
+    meta = VECTORS / module / "meta.json"
+    if meta.is_file():
+        expected = int(json.loads(meta.read_text())["count"])
+        if len([line for line in text.splitlines() if line.strip()]) != expected:
+            pytest.skip(f"{module} dump is stale ({expected} vectors now); re-run that module")
+    return text
 
 
 def _rewrite_row(text: str, index: int, column: int, value: str) -> str:
@@ -191,3 +199,44 @@ def test_every_comparator_rejects_an_empty_dump(module, name, comparator):
     """An empty dump is not "nothing to compare" — it is a failure."""
     passed, total, mismatch = comparator("")
     assert mismatch is not None, f"{module} accepted an empty dump"
+
+
+def test_thermometer_fault_in_a_non_zero_slot_is_rejected():
+    """A fault in slot 5 must fail even though slot 0 is untouched.
+
+    The packed mask holds all eight active slices; comparing only the lowest
+    one would let a broken upper slot through.
+    """
+    text = _load("unit_therm", "unit_therm.out")
+    row = text.splitlines()[0].split()
+    mask = int(row[0], 16) ^ (1 << (5 * 63))  # flip unit 0 of slot 5
+    mutated = _rewrite_row(text, 0, 0, f"{mask:x}")
+    _, _, mismatch = sb.compare_unit_therm(mutated)
+    assert mismatch is not None
+    assert "slot=5" in mismatch.field, mismatch.field
+
+
+def test_gain_error_flag_is_rejected():
+    text = _load("recon_core", "recon_core.out")
+    mutated = _rewrite_row(text, 0, 4, "1")
+    _, _, mismatch = sb.compare_recon_core(mutated)
+    assert mismatch is not None
+    assert mismatch.field == "gain_err"
+
+
+def test_adc2_overflow_flag_is_rejected():
+    text = _load("recon_core", "recon_core.out")
+    mutated = _rewrite_row(text, 0, 5, "1")
+    _, _, mismatch = sb.compare_recon_core(mutated)
+    assert mismatch is not None
+    assert mismatch.field == "adc2_ovf"
+
+
+def test_result_sample_id_is_rejected():
+    """The committed sample id must be checked; a wrong id silently mis-binds."""
+    text = _load("recon_core", "recon_core.out")
+    row = text.splitlines()[0].split()
+    mutated = _rewrite_row(text, 0, 6, str(int(row[6]) + 1))
+    _, _, mismatch = sb.compare_recon_core(mutated)
+    assert mismatch is not None
+    assert mismatch.field == "result_sample_id"

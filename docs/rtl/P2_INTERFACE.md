@@ -1,3 +1,5 @@
+> **状态说明（2026-11-12）**：本文引用的 `8`、`8` 当前不在本仓库内，原文链接已改为纯文本；这些条目只代表历史计划。
+
 # P2/P3 模块接口与向量格式（冻结）
 
 > 当前实现修订：以 [ADR 0016](../adr/0016-rtl-configuration-and-dither.md) 和
@@ -678,7 +680,7 @@ module sar20_digital_core (
 | `p2_sat.hex` | 61 | `inj_q(16) adc2_code(3) w_scale(1) exp_word(5) exp_clip_low(1) exp_clip_high(1)` | 剪裁（**4 bit oracle 后端** + `w_scale`） |
 | `p2_masks.hex` | 520 | `slice_id[8](2 each) main_on[8](16 each) sub_on[8](2 each) adc2_code(3) inj_q(16) exp_word(5) exp_clip_low(1) exp_clip_high(1)` | `recon_core` 的**真实掩码**用例 |
 | `p2_ramp.hex` | 2054 | 同 `p2_masks` 末加 `rel_step(2 signed)` | 511 个进位 × 4 点（抽稀，见下） |
-| `p2_alloc.hex` | 71 | `n(2) acq[8](2) conv[8](2) bank(1) conv_valid(1)` | `slice_alloc` 的 pingpong 表 |
+| `p2_alloc.hex` | 71 | `n(2) acq`8`（当前仓库无此文件） conv`8`（当前仓库无此文件） bank(1) conv_valid(1)` | `slice_alloc` 的 pingpong 表 |
 | `p2_link_weights.hex` | 1284 | `slice(2) unit(2) w_q(12)` | 18×71 权重（所有 recon 用例共用这一份） |
 | `p2_link_stim.hex` | 520 | `bank(1) coarse(3) dither(2) inj_q(16) adc2_code(3)` | **L3 只给最外层激励** |
 | `p2_link_expected.hex` | 517 | `dout(5) clip_low(1) clip_high(1) analog_ovf(1)` | L3 期望 |

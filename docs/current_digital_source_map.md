@@ -9,8 +9,8 @@
 | 模块／机制 | 原文依据 | 本工程实现 | 对齐状态 | 证据等级 | 备注 |
 | :--- | :--- | :--- | :---: | :---: | :--- |
 | `adc2_dec` | 无直接原文依据；工程选择（本工程自定） | [adc2_dec.sv](../rtl/core/adc2_dec.sv)：`adc2_dec` | 工程选择 | 静态审计 | 名义ADC2码仓中心与Q格式、舍入、端点检查；12位与窗口是所选规格。 |
-| `caaz_cycle_ctrl` | [PKU论文](#ref-pku-paper) PDF2 Fig.5/6；讲稿PDF34/35 | [caaz_cycle_ctrl.sv](../rtl/control/caaz_cycle_ctrl.sv)：`caaz_cycle_ctrl` | 机制对齐 | 静态审计 | 仅输入极性、AZ代和偶更新／奇保持资格；精确相位为工程选择，不实现CBIAS保持。 |
-| `caaz_pair_processor` | PKU论文 PDF2 Fig.5/6；讲稿PDF35 | [caaz_pair_processor.sv](../rtl/calibration/caaz_pair_processor.sv)：`caaz_pair_processor` | 机制对齐 | 静态审计 | 完整重构码后配对和ID／极性／AZ代检查；没有H/K或实际存储噪声观测。 |
+| `caaz_cycle_ctrl` | [PKU论文](#ref-pku-paper) PDF2 Fig.5/6；讲稿PDF34/35 | [caaz_cycle_ctrl.sv](../extensions/caaz/rtl/caaz_cycle_ctrl.sv)：`caaz_cycle_ctrl` | 机制对齐 | 静态审计 | 仅输入极性、AZ代和偶更新／奇保持资格；精确相位为工程选择，不实现CBIAS保持。 |
+| `caaz_pair_processor` | PKU论文 PDF2 Fig.5/6；讲稿PDF35 | [caaz_pair_processor.sv](../extensions/caaz/rtl/caaz_pair_processor.sv)：`caaz_pair_processor` | 机制对齐 | 静态审计 | 完整重构码后配对和ID／极性／AZ代检查；没有H/K或实际存储噪声观测。 |
 | `analog_phase_ctrl` | 无直接原文依据；工程选择（本工程自定） | [analog_phase_ctrl.sv](../rtl/core/analog_phase_ctrl.sv)：`analog_phase_ctrl` | 工程选择 | 静态审计 | 16相位及注册使能、启动清零是工程时序；真实非交叠、比较器和参考建立由宏验收。 |
 | `cal_output_stage` | 无直接原文依据；工程选择（本工程自定） | [cal_output_stage.sv](../rtl/core/cal_output_stage.sv)：`cal_output_stage` | 工程选择 | 静态审计 | 提交或保持候选码，随同ID和flags退休；不重算训练或模拟正确性。 |
 | `cal_residue_mac` | 无直接原文依据；工程选择（本工程自定） | [cal_residue_mac.sv](../rtl/core/cal_residue_mac.sv)：`cal_residue_mac` | 工程选择 | 静态审计 | 重构乘加、受检位宽和溢出处理；不读取物理电容真值。 |
@@ -51,7 +51,7 @@
 | 双source绑定与输入包 | 无原文接口依据；工程选择（本工程自定） | [导出器](../tools/export_rtl_params.py)、[控制绑定示例](../sim/fixtures/fig19_ideal_ports/source_control_binding.sv)、[采集绑定示例](../sim/fixtures/fig19_ideal_ports/source_acquisition_binding.sv) | 工程选择 | 静态审计 | 两模块与五份原始输入各自绑定字节；实际mask与两采集偏移由调用方明确提供。Fig.19夹具是受限等效，非器件源mapper。 |
 | 物理／数字边界 | [00]及[09]的架构仅作比较 | [slice_pool.py](../src/adi_model/simulation/slice_pool.py)、[dac_arch.py](../src/adi_model/topology/dac_arch.py) | 工程选择 | 静态审计 | 实际C、G和保持电压用于模拟被测ADC；数字码表与训练观测独立。63+8是推断网络。 |
 | 独立电荷与动态核 | 无直接原文依据；工程选择（本工程自定） | [charge_ref.py](../src/adi_model/behavioral/charge_ref.py)、[input_network.py](../src/adi_model/behavioral/input_network.py)、[reference_charge.py](../src/adi_model/behavioral/reference_charge.py)、[conversion.py](../src/adi_model/behavioral/conversion.py) | 工程选择 | 静态审计 | 节点方程、源阻抗、参考电荷及有限信号响应只支持明确输入和假设；不等于原文参考回路、真实开关噪声或PEX。 |
-| CAAZ样本域 | [PKU论文](#ref-pku-paper) PDF1/2 Fig.5/6；讲稿PDF34/35 | [chopping_az.py](../src/adi_model/chopping_az.py)：run_caaz_pipeline／pair_readout | 机制对齐 | 静态审计 | 显式输入等效AZ记录、偶更新／奇保持及完整码后配对；保持／H/K是外部输入或待验条件，不自动生成理想共享噪声。 |
+| CAAZ样本域 | [PKU论文](#ref-pku-paper) PDF1/2 Fig.5/6；讲稿PDF34/35 | [chopping_az.py](../extensions/caaz/model/chopping_az.py)：run_caaz_pipeline／pair_readout | 机制对齐 | 静态审计 | 显式输入等效AZ记录、偶更新／奇保持及完整码后配对；保持／H/K是外部输入或待验条件，不自动生成理想共享噪声。 |
 | 码历史预跟踪 | [12](#ref-12) PDF12权利要求主题 | [pretracking.py](../src/adi_model/behavioral/pretracking.py)：QuantizedPretracker | 机制对齐 | 静态审计 | 数学策略只使用到时可见的转换结果；主链尚缺真实采集状态绑定，活跃pretrack／AUX请求拒绝。不是CICC后级平均或时偏学习。 |
 | 来源与维护工具 | 无原文依据；工程选择（本工程自定） | [provenance.py](../src/adi_model/provenance.py)、[inventory_gate.py](../src/adi_model/inventory_gate.py)、[serialization.py](../src/adi_model/simulation/serialization.py)、[metrics.py](../src/adi_model/metrics/metrics.py) | 工程选择 | 静态审计 | 参数等级、文件身份、记录结构和评分；静态守卫不证明机制复现或signoff。 |
 

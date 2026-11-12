@@ -28,8 +28,8 @@
 | 模块 | 交付物／扩展 | 当前状态 | 最高证据等级 | 有效范围与未完成项 | 证据入口 |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | [adc2_dec](../rtl/core/adc2_dec.sv) | 交付物：数字控制与重构RTL | 当前静态ADC2原码及码仓中心参与独立整数对拍 | bench 对拍 | 名义ADC2码仓中心与Q格式、舍入、端点检查；12位与窗口是所选规格。 | [DUT与同池重放](readme/data/source_bound_rtl_calibration.json)、[ABI2合同](rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md) |
-| [caaz_cycle_ctrl](../rtl/control/caaz_cycle_ctrl.sv) | 扩展：CAAZ数字控制／配对 | 8包启用组件的56个标签及4个配对结果经独立检查 | bench 对拍 | 仅输入极性、AZ代和偶更新／奇保持资格；精确相位为工程选择，不实现CBIAS保持。 | [源控制bench](../sim/tb/source_control_contract_tb.sv)、[归属checker](../tools/check_source_control_trace.py) |
-| [caaz_pair_processor](../rtl/calibration/caaz_pair_processor.sv) | 扩展：CAAZ数字控制／配对 | 8包组件4个实际配对；独立13周期数学夹具523 bench检查、325字段0失败 | bench 对拍 | 完整重构码后配对和ID／极性／AZ代检查；没有H/K或实际存储噪声观测。 | [配对bench](../sim/tb/caaz_pair_vectors_tb.sv)、[整数checker](../tools/check_pair_component_trace.py) |
+| [caaz_cycle_ctrl](../extensions/caaz/rtl/caaz_cycle_ctrl.sv) | 扩展：CAAZ数字控制／配对 | 8包启用组件的56个标签及4个配对结果经独立检查 | bench 对拍 | 仅输入极性、AZ代和偶更新／奇保持资格；精确相位为工程选择，不实现CBIAS保持。 | [源控制bench](../sim/tb/source_control_contract_tb.sv)、[归属checker](../tools/check_source_control_trace.py) |
+| [caaz_pair_processor](../extensions/caaz/rtl/caaz_pair_processor.sv) | 扩展：CAAZ数字控制／配对 | 8包组件4个实际配对；独立13周期数学夹具523 bench检查、325字段0失败 | bench 对拍 | 完整重构码后配对和ID／极性／AZ代检查；没有H/K或实际存储噪声观测。 | [配对bench](../extensions/caaz/tb/caaz_pair_vectors_tb.sv)、[整数checker](../tools/check_pair_component_trace.py) |
 | [analog_phase_ctrl](../rtl/core/analog_phase_ctrl.sv) | 交付物：数字控制与重构RTL | 指定有限窗的采集前沿、source握手及已决事件正常 | bench 对拍 | 16相位及注册使能、启动清零是工程时序；真实非交叠、比较器和参考建立由宏验收。 | [DUT与同池重放](readme/data/source_bound_rtl_calibration.json)、[ABI2合同](rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md) |
 | [cal_output_stage](../rtl/core/cal_output_stage.sv) | 交付物：数字控制与重构RTL | 实际OBS先于同ID OUT；目标码和flags对拍 | bench 对拍 | 提交或保持候选码，随同ID和flags退休；不重算训练或模拟正确性。 | [DUT与同池重放](readme/data/source_bound_rtl_calibration.json)、[ABI2合同](rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md) |
 | [cal_residue_mac](../rtl/core/cal_residue_mac.sv) | 交付物：数字控制与重构RTL | 当前静态归约乘加参与最终整数码对拍 | bench 对拍 | 重构乘加、受检位宽和溢出处理；不读取物理电容真值。 | [DUT与同池重放](readme/data/source_bound_rtl_calibration.json)、[ABI2合同](rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md) |
@@ -81,7 +81,7 @@
 | weight_calibration／calib | 当前公共producer实际独立参考、SVD满秩训练与schema2固定；中幅反例不足秩拒绝 | bench 对拍 | 仅实际训练器路径；其他数学助手、硬件读出与动态另验，Frozen旧schema1模型不兼容；register镜像独立schema1仍携带新规格 | [训练](../src/adi_model/calibration/weight_calibration.py) |
 | fixed_point／reconstruction／sim | 当前公共producer同raw名义／固定系数及512码独立整数一致 | bench 对拍 | 仅当前Python静态路径；RTL、其他分支／异常与动态另验 | [定点](../src/adi_model/contracts/fixed_point.py)、[容器](../src/adi_model/simulation/sim.py) |
 | rtl_observation | 实际733位OBS字段／物理连接／有序ID与输入包SHA绑定，同池重放核对 | bench 对拍 | 仅明确fold子集；外部捕获、epoch、缺样、带宽与真实独立参考另验 | [适配器](../src/adi_model/rtl_observation.py)、[DUT与同池重放](readme/data/source_bound_rtl_calibration.json) |
-| chopping_az／pretracking | 扩展：显式AZ误差与数字配对、到时可见的码历史预置 | 静态审计 | 真实CBIAS／H/K与源跟踪电路；主链活跃pretrack／AUX拒绝，独立策略不等于CICC平均或时偏学习 | [CAAZ](../src/adi_model/chopping_az.py)、[预跟踪](../src/adi_model/behavioral/pretracking.py) |
+| chopping_az／pretracking | 扩展：显式AZ误差与数字配对、到时可见的码历史预置 | 静态审计 | 真实CBIAS／H/K与源跟踪电路；主链活跃pretrack／AUX拒绝，独立策略不等于CICC平均或时偏学习 | [CAAZ](../extensions/caaz/model/chopping_az.py)、[预跟踪](../src/adi_model/behavioral/pretracking.py) |
 | slice_pool／dac_arch／charge_ref／动态核 | 模拟被测ADC与独立数学参考，不是数字可见真值 | 静态审计 | 实际网络、动态、噪声和工作域独立验证 | [电荷参考](../src/adi_model/behavioral/charge_ref.py)、[物理池](../src/adi_model/simulation/slice_pool.py) |
 
 ## 三个跨层接口

@@ -1,3 +1,5 @@
+> **状态说明（2026-11-12）**：本文引用的 `dither_gen` 当前不在本仓库内，原文链接已改为纯文本；这些条目只代表历史计划。
+
 # DEM、dither、slice 选择与 CAAZ 的组合条件
 
 > **af8／9bdf历史专题。** 本页原正文、数据、图和命令按原字节保留；其中“当前”“本轮”和通过数量仅描述原记录，不表示新主线实现。旧SID／bridge、sampling／range／固定4倍扰动及旧748位接口已退出当前运行，正文命令须在对应完整Git历史下解释。现行来源与未实现项见[A表](../current_digital_source_map.md)，实际状态与证据见[B表](../digital_status_matrix.md)，接口见[ABI2合同](../rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)。[原专题固定快照](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/randomization_caaz/README.md)保留旧链接语境；此横幅不改变旧结论或数值。
@@ -39,7 +41,7 @@ DEM 的执行顺序是：先取得本笔实际 slice ID，再按该 bank 的状�
 
 dither 在整个输入换向之后注入。结构sampling把每slice固定末4个子电容接到已知正负参考轨，名义信号系数α=127/128，RDAC命令加d；结构quantizer/range把dQ加入粗判决，RDAC命令减d，保存电荷中没有对应dR，最终不再扣一次dQ。逐raw数字重构按实际signal mask、rail和冻结C/Cf求和，去除该笔的已知注入再归一化；然后才允许进入CAAZ配对。
 
-源码入口是 [sampler.py](../../src/adi_model/behavioral/sampler.py)、[数字电荷项](../../src/adi_model/calibration/weight_calibration.py)、[定点重构](../../src/adi_model/contracts/fixed_point.py)和[dither_gen](../../rtl/core/dither_gen.sv)。名义扣除不会自动消除真实电容失配，近满幅余量也需单独检查。[重绘与重新仿真入口](../REPRODUCING.md)区分这两类操作。
+源码入口是 [sampler.py](../../src/adi_model/behavioral/sampler.py)、[数字电荷项](../../src/adi_model/calibration/weight_calibration.py)、[定点重构](../../src/adi_model/contracts/fixed_point.py)和`dither_gen`（当前仓库无此文件）。名义扣除不会自动消除真实电容失配，近满幅余量也需单独检查。[重绘与重新仿真入口](../REPRODUCING.md)区分这两类操作。
 
 当前 `rtl16`／RTL 的同一个 `dem_enable` 控制单元置换和 slice shuffle；**现有结构接口不能独立保持单元 DEM、只关闭 slice shuffle**。通用 Python profile 才能通过 `dem_mode` 与 `dem_enable` 分别拆分这两个因素。关 DEM 之后仍有 A/B 两组轮流转换，不能据此认为 pair 两笔使用相同电容。
 

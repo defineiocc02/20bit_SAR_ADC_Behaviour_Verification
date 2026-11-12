@@ -167,12 +167,17 @@ def active_features(state: SwitchState, dither: Dither) -> np.ndarray:
 # 3. 函数组：fit_features / weighted_sum / ChargePool
 # =========================================================================
 # -------------------------------------------------------------------------
-# 按物理片号散布同笔有序特征，供片外 LMS 使用。
+# 按物理片号散布同笔有序特征，供片外批量拟合使用。
+#
+# 注意：本仓库**没有实现 LMS**。这里的特征被 `ChargePool.gain_and_residual`
+# 用于一次性的加权求和；真正的系数拟合在 `calibration/weight_calibration.py`
+# （最小二乘/SVD）与 `calibration/mask_calibration.py`（逐码平均）里完成。
+# 旧注释写"供片外 LMS 使用"是错的，已按实际调用改正。
 # 用物理片号读取每片权重并累加。
 # 由固定制造电容生成的两节点闭式增益和底板权重。
 # -------------------------------------------------------------------------
 def fit_features(state: SwitchState, feature: np.ndarray) -> np.ndarray:
-    """按物理片号散布同笔有序特征，供片外 LMS 使用。"""
+    """按物理片号散布同笔有序特征，供片外批量拟合使用（非 LMS）。"""
     dense = np.zeros((len(state.plan), POOL_SLICES, FEATURES_PER_SLICE), dtype=np.int8)
     dense[np.arange(len(state.plan))[:, None], state.plan] = feature
     return dense.reshape(len(state.plan), -1)

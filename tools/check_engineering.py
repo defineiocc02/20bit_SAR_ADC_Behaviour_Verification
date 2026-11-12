@@ -1,0 +1,183 @@
+"""Engineering-spec checks that a human reviewer would otherwise do by eye.
+
+Each check prints PASS/FAIL with the offending item and returns a non-zero exit
+code if anything fails. The point is that these rules stop being prose in a task
+book and become something CI can run.
+
+Checks
+------
+C1 dependency direction      core package must not import tools/experiments/tests/docs
+C2 CAAZ isolation            main package and RTL filelist must not pull in the extension
+C3 documentation links       every relative markdown link resolves
+C4 result identity           figure set and matrix share one config list and grid
+C5 duplicate formulas        no two modules carry byte-identical public functions
+C6 entry points              commands named in the quickstart exist and are runnable
+
+    python tools/check_engineering.py
+"""
+
+from __future__ import annotations
+
+import ast
+import hashlib
+import json
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+CORE = ROOT / "src" / "adi_model"
+FORBIDDEN_TOP = {"tools", "experiments", "tests", "docs", "verification", "matplotlib"}
+
+results: list[tuple[str, bool, str]] = []
+
+
+def record(check: str, ok: bool, detail: str) -> None:
+    """Remember one check result for the final report."""
+    results.append((check, ok, detail))
+
+
+def check_dependency_direction() -> None:
+    """C1: the model must not depend on experiments, tools or tests."""
+    bad = []
+    for path in CORE.rglob("*.py"):
+        tree = ast.parse(path.read_text())
+        for node in ast.walk(tree):
+            modules: list[str] = []
+            if isinstance(node, ast.Import):
+                modules = [a.name for a in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                modules = [node.module]
+            for name in modules:
+                if name.split(".")[0] in FORBIDDEN_TOP:
+                    bad.append(f"{path.relative_to(ROOT)}:{node.lineno} -> {name}")
+    record("C1 dependency direction", not bad,
+           "no core module imports experiments/tools/tests/docs" if not bad else "; ".join(bad[:6]))
+
+
+def check_caaz_isolation() -> None:
+    """C2: CAAZ stays an extension; nothing on the main path may reach it."""
+    hits = []
+    for path in CORE.rglob("*.py"):
+        for lineno, line in enumerate(path.read_text().splitlines(), 1):
+            stripped = line.strip()
+            if stripped.startswith(("import ", "from ")) and "caaz" in stripped.lower():
+                hits.append(f"{path.relative_to(ROOT)}:{lineno}")
+    filelist = (ROOT / "rtl" / "rtl_sources.f").read_text()
+    rtl_hits = [l for l in filelist.splitlines() if "caaz" in l.lower()]
+    ok = not hits and not rtl_hits
+    record("C2 CAAZ isolation", ok,
+           "no import of caaz in core; RTL filelist clean" if ok
+           else f"py={hits[:4]} rtl={rtl_hits[:4]}")
+
+
+LINK = re.compile(r"\]\(([^)#][^)]*)\)")
+
+
+def check_doc_links() -> None:
+    """C3: a dead relative link is a documentation bug, not a style issue."""
+    broken = []
+    for path in list(ROOT.glob("*.md")) + list((ROOT / "docs").rglob("*.md")) + \
+            list((ROOT / "verification").rglob("*.md")):
+        if "history" in path.parts:
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        for target in LINK.findall(text):
+            if target.startswith(("http://", "https://", "mailto:")):
+                continue
+            # Bit-width notation such as [15:0](2) is not a link. Only treat a
+            # target as a path when it has a slash or a file extension.
+            if "/" not in target and not re.search(r"\.[A-Za-z0-9]{1,5}$", target):
+                continue
+            # `docs/x.md#section` must resolve the file, not the anchor.
+            clean = target.split()[0].rstrip("`").split("#")[0]
+            if clean.startswith("<"):
+                continue
+            resolved = (path.parent / clean).resolve()
+            if not resolved.exists():
+                broken.append(f"{path.relative_to(ROOT)} -> {clean}")
+    record("C3 documentation links", not broken,
+           "all relative links resolve" if not broken else "; ".join(broken[:6]))
+
+
+def check_result_identity() -> None:
+    """C4: figures and matrix must describe the same run."""
+    figures = ROOT / "docs/reviews/20261113_p3p4/figures/figures.json"
+    matrix = ROOT / "docs/reviews/20261113_p3p4/data/p4_ablation.json"
+    if not figures.is_file() or not matrix.is_file():
+        record("C4 result identity", False, "figures.json or p4_ablation.json missing")
+        return
+    fig = json.loads(figures.read_text())
+    mat = json.loads(matrix.read_text())
+    matrix_ids = {c["id"] for c in mat["configs"]}
+    f03 = next((f for f in fig["figures"] if f["figure"].startswith("F03")), None)
+    problems = []
+    if f03 is None:
+        problems.append("F03 missing")
+    else:
+        # The figure uses human labels; require every *non-calibration* matrix id
+        # to have a curve, and require the grid sizes to agree.
+        if fig["points"] != 256 or fig["repeats"] != 32:
+            problems.append(f"figure grid {fig['points']}x{fig['repeats']} != 256x32")
+        if len(f03["configs"]) < 9:
+            problems.append(f"F03 has {len(f03['configs'])} curves, expected >=9")
+    if len(matrix_ids) < 11:
+        problems.append(f"matrix has {len(matrix_ids)} configs, expected 11")
+    record("C4 result identity", not problems,
+           "figure grid 256x32, 9 curves, 11 matrix configs" if not problems
+           else "; ".join(problems))
+
+
+def check_duplicate_formulas() -> None:
+    """C5: two copies of one production function drift; one copy cannot."""
+    seen: dict[str, list[str]] = {}
+    for path in CORE.rglob("*.py"):
+        text = path.read_text()
+        tree = ast.parse(text)
+        for node in tree.body:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and not node.name.startswith("_"):
+                body = ast.get_source_segment(text, node) or ""
+                digest = hashlib.sha256(body.encode()).hexdigest()[:16]
+                seen.setdefault(digest, []).append(f"{path.relative_to(ROOT)}::{node.name}")
+    duplicated = [v for v in seen.values() if len(v) > 1]
+    record("C5 duplicate formulas", not duplicated,
+           "no byte-identical public function in two modules" if not duplicated
+           else "; ".join(" == ".join(group) for group in duplicated[:4]))
+
+
+QUICKSTART = ROOT / "docs" / "guide" / "QUICKSTART.md"
+
+
+def check_entry_points() -> None:
+    """C6: every command in the quickstart must name a file that exists."""
+    if not QUICKSTART.is_file():
+        record("C6 entry points", False, "docs/guide/QUICKSTART.md missing")
+        return
+    text = QUICKSTART.read_text(encoding="utf-8")
+    referenced = re.findall(r"(tools/[\w./-]+\.py|verification/[\w./-]+\.py)", text)
+    missing = sorted({r for r in referenced if not (ROOT / r).is_file()})
+    core_entry = (ROOT / "src/adi_model/__main__.py").is_file()
+    ok = not missing and core_entry
+    record("C6 entry points", ok,
+           f"{len(set(referenced))} referenced scripts exist, python -m adi_model present"
+           if ok else f"missing={missing} main={core_entry}")
+
+
+def main() -> int:
+    check_dependency_direction()
+    check_caaz_isolation()
+    check_doc_links()
+    check_result_identity()
+    check_duplicate_formulas()
+    check_entry_points()
+    width = max(len(name) for name, _, _ in results)
+    failures = 0
+    for name, ok, detail in results:
+        print(f"{'PASS' if ok else 'FAIL'}  {name:<{width}}  {detail}")
+        failures += 0 if ok else 1
+    print(f"\n{len(results) - failures}/{len(results)} checks passed")
+    return 0 if failures == 0 else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

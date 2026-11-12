@@ -166,10 +166,10 @@ PYTHONPATH=src python tools/export_caaz_vectors.py \
 
 | 入口 | 当前职责与边界 |
 |---|---|
-| [`chopping_az.py`](../../src/adi_model/chopping_az.py) | `ChoppingAZParameters()` 默认 `off`；显式选择 `baseline`、`conventional_az` 或 `chopping_assisted`。输入极性同时进入前级 SADC／RDAC，显式误差在 RA 原有钳位和 ADC2 前注入；完整位权重构后再整数配对。只支持从偶数相开始的独立样本域记录。 |
-| [`caaz_cycle_ctrl.sv`](../../rtl/control/caaz_cycle_ctrl.sv) | 根据真实 acquisition priming 保存输入极性及 AZ 存储代；独立输出 capture／hold，保留原有每周期 RA 准备及储能复位。现有 phase 1–8 为工程接口窗口，phase 8 接受模拟 `az_capture_ok`；其建立时间仍须模拟宏确认。 |
+| [`chopping_az.py`](../../extensions/caaz/model/chopping_az.py) | `ChoppingAZParameters()` 默认 `off`；显式选择 `baseline`、`conventional_az` 或 `chopping_assisted`。输入极性同时进入前级 SADC／RDAC，显式误差在 RA 原有钳位和 ADC2 前注入；完整位权重构后再整数配对。只支持从偶数相开始的独立样本域记录。 |
+| [`caaz_cycle_ctrl.sv`](../../extensions/caaz/rtl/caaz_cycle_ctrl.sv) | 根据真实 acquisition priming 保存输入极性及 AZ 存储代；独立输出 capture／hold，保留原有每周期 RA 准备及储能复位。现有 phase 1–8 为工程接口窗口，phase 8 接受模拟 `az_capture_ok`；其建立时间仍须模拟宏确认。 |
 | [`sar20_digital_core.sv`](../../rtl/top/sar20_digital_core.sv) 与 [`cal_sample_context.sv`](../../rtl/core/cal_sample_context.sv) | `P_CAAZ_ENABLE=0` 默认旁路；开启仅支持结构配置。极性／AZ 代随残差上下文和重构事务一起保存；原 748 位校准包保留，新增 34 位 CAAZ sideband 和 92 位 raw 观测包。 |
-| [`caaz_pair_processor.sv`](../../rtl/calibration/caaz_pair_processor.sv) | 完整 20 位 offset-binary 码先扩为 21 位有符号差 $d=c_e-c_o$，保留精确差，最终 20 位用 $\lfloor(2^{20}+d)/2\rfloor$。ID、实际极性、AZ 代不匹配或任一 raw 异常使配对停止，直到同步 clear／reset。 |
+| [`caaz_pair_processor.sv`](../../extensions/caaz/rtl/caaz_pair_processor.sv) | 完整 20 位 offset-binary 码先扩为 21 位有符号差 $d=c_e-c_o$，保留精确差，最终 20 位用 $\lfloor(2^{20}+d)/2\rfloor$。ID、实际极性、AZ 代不匹配或任一 raw 异常使配对停止，直到同步 clear／reset。 |
 
 34 位校准 sideband 为 `{chop_neg, az_pair_id[31:0], az_valid}`，与原 `cal_obs_valid` 同笔。92 位 raw 包为 `{sample_id[31:0], code[19:0], chop_neg, az_pair_id[31:0], az_valid, flags[4:0], analog_bad}`，由 `caaz_raw_valid` 限定。普通时钟空洞允许，样本 ID 的空洞不允许自动拼接。运行中系数被冻结；撤销配置／epoch clear 会丢弃未完成配对，重新预热。模拟状态本身的保持仍由外部电路保证，数字标签不能代替电气确认。
 

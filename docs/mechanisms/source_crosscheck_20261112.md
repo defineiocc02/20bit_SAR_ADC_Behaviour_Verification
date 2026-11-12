@@ -34,16 +34,20 @@
 | 维度 | 状态 | 依据 |
 |:---|:---|:---|
 | 来源一致性 | **PARTIAL** | 差分级 ±3 V、40 MS/s、18 片池来自 PAPER；**PPT 第 27 页 20.5 pF 标注本轮未核对**（PPT 为图像版） |
-| 实现完整性 | **PARTIAL** | 节点表分散在 `topology/dac_arch.py` 与 `simulation/config.py`，没有单一节点字典 |
+| 实现完整性 | **PARTIAL** | 20.5 pF **已映射**：`defaults.py` 推断表里 `active_capacitance_anchor_f = 2.05e-11`，等级 `DISCLOSED_ANCHOR_WITH_NODE_ASSUMPTION`（"映射到名义 Cnorm，不是提取的输入负载网络"）。节点表仍分散在 `topology/dac_arch.py` 与 `simulation/config.py`，没有单一节点字典 |
 | 独立正确性 | **PARTIAL** | β 广播轴有反例测试（`test_beta_expands_along_the_sub_unit_axis`）；**β 闭式 vs 独立节点矩阵求解未做** |
-| 效果有效性 | **NOT_RUN** | 20.5 pF 未映射到当前网络，不能声称"复现了论文的采样电容" |
+| 效果有效性 | **PARTIAL** | 20.5 pF 的映射有**显式等级**，可以引用"按该假设映射"，但不能声称"复现了论文的采样电容" |
 
 **已确认的**：`split_capacitance_coefficients` 里 β 是 `[sample, active]`，子电容是
 `[sample, active, unit]`，展开用 `beta[..., None]`；有测试覆盖"活动片数 == 子单元数 = 8"
 的巧合情形（该巧合在这颗芯片上真实存在）。
 
-**未确认的**：论文 20.5 pF 与本模型 `C_main/C_sub/C_bridge` 的对应关系；
-单侧/差分口径没有证据，保持待确认。
+**已确认的（更正）**：20.5 pF 并非"未映射"。`defaults.py` 的推断表里
+`active_capacitance_anchor_f = 2.05e-11`，等级 `DISCLOSED_ANCHOR_WITH_NODE_ASSUMPTION`，
+理由写明"映射到名义 Cnorm，不是提取的输入负载网络"。**可以按该假设引用，不能声称是提取值。**
+
+**仍未确认的**：单侧/差分口径；它与 `unit_cap_f = 20.5pF/[8*(63+8/8)]` 的推导链
+只在名义条件下自洽。
 
 ---
 
@@ -188,6 +192,21 @@ FIG.19（Sheet 20/21）实测连接关系：
 
 **这是本轮最重要的负面结论**：校准的特征定义必须从"码 → 标量"改成
 "活动 mask × 单元权值"，否则不能与 DEM 共存。
+
+**校准算法身份的澄清（2026-11-12）**：本仓库**没有实现 LMS**。
+
+| 有 | 无 |
+|:---|:---|
+| `calibration/weight_calibration.fit_unit_weights`：逐单元有效权值，最小二乘/SVD | 任何 LMS / NLMS / sign-LMS / RLS |
+| `calibration/mask_calibration.fit_code_correction`：512 项逐码表，已知斜坡平均 | 迭代自适应、步长、漂移跟踪 |
+
+与"片外取系数、片内用系数"这一**类**方案同源；但与 LMS 这个**估计器**不同：
+LMS 是流式随机梯度、与数据顺序有关、能跟踪漂移；批量最小二乘是一次性正规方程、
+与顺序无关、不跟踪。两者不可互换，后果已经在 C1/C3 上体现——
+逐码表与 DEM 同开时 INL 从 6.2 恶化到 26.9。
+
+`behavioral/eight_slice.py` 里"供片外 LMS 使用"的旧注释已改正：
+它描述的是一个不存在的消费者。
 
 ---
 

@@ -10,6 +10,21 @@
 
 ---
 
+## 0. 从哪读起
+
+| 你是谁 | 走这条 |
+|:---|:---|
+| 第一次来，只想跑一次 | [`docs/guide/QUICKSTART.md`](docs/guide/QUICKSTART.md) → 最小运行 → 单样本 trace |
+| 要改代码 | [`docs/design/ARCHITECTURE.md`](docs/design/ARCHITECTURE.md) → 数据流与状态归属 → 跑行为指纹 |
+| 要查错 | [`docs/debugging/DEBUGGING.md`](docs/debugging/DEBUGGING.md)（8 个案例，逐个给入口） |
+| 要核对专利 | [`docs/mechanisms/source_crosscheck_20261112.md`](docs/mechanisms/source_crosscheck_20261112.md)（含原件图） |
+| 要判断可信度 | [`docs/acceptance/20261112-e14a0a0/report.md`](docs/acceptance/20261112-e14a0a0/report.md) |
+| 名词看不懂 | [`docs/guide/TERMS.md`](docs/guide/TERMS.md) |
+
+工程自检一条命令：`python3 tools/check_engineering.py`（6 项，失败非零退出）。
+
+---
+
 ## 1. 当前结论（一句话版）
 
 | 机制 | 结论 | 关键数 | 专题 |
@@ -104,6 +119,33 @@
 
 > 校准那两行是**负面结果**，保留在首页而不是挪进历史区：它决定了下一步该做
 > 逐单元权值校准，而不是继续调逐码表。
+
+### 5.1 SNDR 为什么只有 88 dB（分解，不是猜）
+
+8192 点、1 MHz 相干、同一 seed，只改一个条件：
+
+| 条件 | SNDR | SNR | SFDR | 说明 |
+|:---|---:|---:|---:|:---|
+| σ=0，噪声关 | 120.9 | 120.9 | 142.1 | 管线与 ADC2 量化本身不是瓶颈 |
+| **σ=0，噪声开** | **95.0** | 95.0 | 119.5 | **纯热噪声（kT/C + RA）** |
+| **σ=0.1%，噪声关** | **89.1** | 90.2 | 99.3 | **纯器件失配** |
+| σ=0.1%，噪声关，确定性轮转 | 90.4 | 92.1 | 99.7 | 去掉"每笔随机换 8 片" |
+| σ=0.1%，噪声开（A2 基线） | 88.1 | 88.9 | 99.3 | 两者叠加 |
+
+读法：**SNDR 不是热噪声限制的。**
+
+* 热噪声单独只到 95.0 dB —— 和论文 93.7 dB 是同一量级（本模型还略好）；
+* **器件失配单独就到 89.1 dB，比热噪声低 6 dB，是真正的限制项**；
+* 18 选 8 的随机换片再吃掉 1.4 dB（89.1 → 90.4 的差就是它，确定性轮转让它消失）。
+
+所以 88 dB 是**这个配置的真实值**，不是算错；但它反映的是
+"σ=0.1% 失配 + 每笔随机换片 + **没有逐片失调/增益校准**"，
+不能当成"这颗 ADC 的 SNDR"。论文 93.7 dB 依赖片上的交织失调/增益校准，
+本模型没有实现那一层。
+
+数据：`docs/reviews/20261113_p3p4/data/sndr_decomposition.json`（可重跑）。
+
+
 
 图：`docs/reviews/20261113_p3p4/figures/`（F01–F13，每张带配置、seed、SHA、重绘命令）。
 本页所有数字与图都来自同一份源码（`figures.json` 的 `source_sha` 与矩阵 JSON 一致）。

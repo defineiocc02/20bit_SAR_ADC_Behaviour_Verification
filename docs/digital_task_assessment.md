@@ -1,3 +1,5 @@
+> **状态说明（2026-11-12 核对）**：本文是历史评估记录。其中 ``structural_adc_tb``、``slice_alloc``、``dem_state_gen``、``dem_addr_gen``、``dither_gen``、``cal_two_point`` 等文件**当前不在本仓库内**，相关条目只代表当时的计划或另一子项目，不能读作已实现。原链接已改为纯文本以免误导。
+
 # 数字任务划分：资料复核、当前成果和优先级
 
 > **后续更新：**本文保留 `ba874386` 的独立复核和当时优先级。结构对照的 bridge、参考事件、样本合同以及静态 plant 校准闭环现已更新，当前结果和限制以 [ADR 0021](adr/0021-structural-contract-calibration.md) 和 [首页](../README.md)为准；本文历史“急需解决”语句不代表当前状态。
@@ -26,7 +28,7 @@
 
 **意义。** 让量化器判决、残差 DAC 更新、另一组 slice 采样、共享 RA 和 ADC2 精确地属于同一次转换。论文中 quantizer 完成判决后，RDAC 使用已形成的结果更新；这样减少不必要的参考切换和输入扰动。
 
-**现在有什么。** [`sar20_digital_core`](../rtl/top/sar20_digital_core.sv)、[`sar_structural_ctrl`](../rtl/core/sar_structural_ctrl.sv) 与 [`sar_trial_ctrl`](../rtl/core/sar_trial_ctrl.sv) 已有结构相位、3 位 Flash 前缀与后续 SAR 判决、控制输出和样本 ID；[`structural_adc_tb`](../sim/tb/structural_adc_tb.sv) 检查结构路径，Python 模型有采样、残差和 ADC2 行为链。
+**现在有什么。** [`sar20_digital_core`](../rtl/top/sar20_digital_core.sv)、[`sar_structural_ctrl`](../rtl/core/sar_structural_ctrl.sv) 与 [`sar_trial_ctrl`](../rtl/core/sar_trial_ctrl.sv) 已有结构相位、3 位 Flash 前缀与后续 SAR 判决、控制输出和样本 ID；``structural_adc_tb``（当前仓库无此文件，历史评估引用） 检查结构路径，Python 模型有采样、残差和 ADC2 行为链。
 
 **急需解决。** Python 的参考负载模型按 trial/reject 构造事件，而结构 RTL 输出已决位事件；固定码 173 的已记录示例分别为 19 与 7 个状态，见[事件对照图和条件](paper_comparisons/README.md#4-建立过程与参考负载可用结果和待补接口)。它们不是同一事件定义，不能直接用前者推算后者的参考电流。应先明确每个事件的码、物理开关、rail、时间和样本归属，再以真实比较器 valid/完成时刻和模拟开关接口复核。
 
@@ -36,7 +38,7 @@
 
 **意义。** slice 选择和二维电容单元重排改变固定失配的使用方式，减轻某些与输入相关的集中杂散；dither 在指定位置引入已知扰动并在正确的数据路径中抵消，以配合线性化和激励。交织的失调、增益、时序和带宽差异还需要各自的观测或物理控制。把它们放在同一工作块便于统一调度和样本上下文，但它们不是同一种算法。
 
-**现在有什么。** Python 使用固定物理池和切片选择；RTL 有 [`slice_alloc`](../rtl/core/slice_alloc.sv)、[`dem_state_gen`](../rtl/core/dem_state_gen.sv)、[`dem_addr_gen`](../rtl/core/dem_addr_gen.sv) 与 [`dither_gen`](../rtl/core/dither_gen.sv)。已有偏置、时序敏感性和调度实验；[10 ps 对照](paper_comparisons/README.md#1-10-ps-时序失配误差出现在哪里)显示特定杂散可下降而总 RMS 可能上升。这个 10 ps 是实验假设，随机调度不是时序校正。
+**现在有什么。** Python 使用固定物理池和切片选择；RTL 有 ``slice_alloc``（当前仓库无此文件，历史评估引用）、``dem_state_gen``（当前仓库无此文件，历史评估引用）、``dem_addr_gen``（当前仓库无此文件，历史评估引用） 与 ``dither_gen``（当前仓库无此文件，历史评估引用）。已有偏置、时序敏感性和调度实验；[10 ps 对照](paper_comparisons/README.md#1-10-ps-时序失配误差出现在哪里)显示特定杂散可下降而总 RMS 可能上升。这个 10 ps 是实验假设，随机调度不是时序校正。
 
 **急需解决。** 本次重跑的 bridge 诊断在 **262144 组**项目参考码/状态组合中发现 **130560 组物理掩码不同**；测试比较的是当前 RTL 与项目中的全局 bridge 参考，不代表专利中只有一种正确开关方式。应先选定物理合同，以非等值单元逐状态比较，并把 slice ID、DEM 状态、开关掩码及 dither 与同一样本冻结。dither 的注入和数字移除分别由本块与重构块共同负责。
 
@@ -56,7 +58,7 @@
 
 **现在有什么。** [`sar20_system_top`](../ad4080_dsp/rtl/sar20_system_top.sv) 已连接 SAR 结构核和 DSP 入口；[`sys_error_corr`](../ad4080_dsp/rtl/sys_error_corr.sv)、滤波、FIFO、SPI 与事件/帧模块已有 RTL 和测试。输入侧有接受/拒收事件及 ID，模拟粘滞异常触发保守停流。
 
-**急需解决。** [`cal_two_point`](../ad4080_dsp/rtl/cal_two_point.sv) 在固定已知输入、可变实测码的常见测量方式下求的是正向关系；本次真实 RTL 反例中，目标码 300000、原码 303100，经直接应用后变为 306234。应按手册的“原码 → 目标码”方向求逆、量化并在独立留出数据验证。SINC5 补偿默认系数仍为占位；FIFO 输出与串行路径尚未接通，滤波/FIFO 输出也没有逐结果元数据。
+**急需解决。** ``cal_two_point``（当前仓库无此文件，历史评估引用） 在固定已知输入、可变实测码的常见测量方式下求的是正向关系；本次真实 RTL 反例中，目标码 300000、原码 303100，经直接应用后变为 306234。应按手册的“原码 → 目标码”方向求逆、量化并在独立留出数据验证。SINC5 补偿默认系数仍为占位；FIFO 输出与串行路径尚未接通，滤波/FIFO 输出也没有逐结果元数据。
 
 当前单 lane 数字发送器每帧需 20 次使能，而结构核以 16 时钟/样本供数；本次 12 样本诊断中有 3 个输入未出现在输出，且 `bit_en` 恒高时 DCO 不翻转。手册中的单 lane 400 MHz DDR 或双 lane 200 MHz DDR 是**外部数据接口时钟示例**，与工程内部 640 MHz 相位时钟不是同一个时钟。实现具体产品接口需要明确帧、时钟域、缓冲、CRC/数据格式及 DDR/差分 PHY，不应把现有 SDR 原型称为 40 MS/s 无损 LVDS。
 

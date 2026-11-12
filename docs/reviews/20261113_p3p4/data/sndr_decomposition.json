@@ -1,0 +1,62 @@
+{
+  "purpose": "拆解 SNDR 的限制来源：管线 / 热噪声 / 器件失配 / 随机换片",
+  "grid": "8192 点，1 MHz 相干（bin 205），同一 seed 20261105",
+  "conclusion": "SNDR 不是热噪声限制。纯热噪声 95.0 dB，纯失配 89.1 dB；失配比热噪声低 6 dB，是主因。随机 18 选 8 再比确定性轮转低 1.4 dB。论文 93.7 dB 需要逐片失调/增益校准，本模型未实现该校准。",
+  "rows": [
+    {
+      "case": "ideal_no_noise",
+      "label": "σ=0, 噪声关：只剩管线与 ADC2 量化",
+      "mismatch_std": 0.0,
+      "noise": false,
+      "uniform_plan": false,
+      "sndr_db": 120.89,
+      "snr_db": 120.91,
+      "sfdr_db": 142.1,
+      "nsd_nv_rthz": 0.43
+    },
+    {
+      "case": "thermal_only",
+      "label": "σ=0, 噪声开：纯 kT/C + RA 噪声",
+      "mismatch_std": 0.0,
+      "noise": true,
+      "uniform_plan": false,
+      "sndr_db": 95.03,
+      "snr_db": 95.04,
+      "sfdr_db": 119.47,
+      "nsd_nv_rthz": 8.39
+    },
+    {
+      "case": "mismatch_only",
+      "label": "σ=0.1%, 噪声关：纯器件失配",
+      "mismatch_std": 0.001,
+      "noise": false,
+      "uniform_plan": false,
+      "sndr_db": 89.05,
+      "snr_db": 90.16,
+      "sfdr_db": 99.32,
+      "nsd_nv_rthz": 19.06
+    },
+    {
+      "case": "mismatch_det_rotation",
+      "label": "σ=0.1%, 噪声关, 确定性轮转：去掉随机换片",
+      "mismatch_std": 0.001,
+      "noise": false,
+      "uniform_plan": true,
+      "sndr_db": 90.42,
+      "snr_db": 92.12,
+      "sfdr_db": 99.68,
+      "nsd_nv_rthz": 23.11
+    },
+    {
+      "case": "a2_baseline",
+      "label": "σ=0.1%, 噪声开：A2 基线",
+      "mismatch_std": 0.001,
+      "noise": true,
+      "uniform_plan": false,
+      "sndr_db": 88.06,
+      "snr_db": 88.94,
+      "sfdr_db": 99.26,
+      "nsd_nv_rthz": 20.91
+    }
+  ]
+}

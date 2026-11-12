@@ -718,3 +718,59 @@ step_q = 2**32 / 511 = 8 405 024.06…  →  round = 8 405 024
 2. 确认 `sum(weights) == step_q`；
 3. 重跑 `test_dither_port` / `test_dither_charge_port` / 本文件；
 4. 最后才更新 `defaults.py` 的 `step_q`。
+
+---
+
+## 17. 【已修复】dither 的 step_q 从等距 2^24 改为 17/5 码本台阶（2026-11-13）
+
+§16 记录的问题本轮已修复。
+
+### 17.1 修复内容
+
+| 常量 | 旧值 | 新值 | 依据 |
+|:---|:---:|:---:|:---|
+| `FIG19_STEP_Q` | 2**24 = 16 777 216 | **16 810 048** | `round(2^32 · 2/(cn·16) / v_fs)`，cn = 31.9375 |
+| `FIG19_FRACTIONAL_WEIGHTS_Q` | (9586981, 4793490, 2396745) | **(9605742, 4802871, 2401435)** | 4:2:1/7 按新 step_q 重新量化 |
+
+新三项之和 = 16 810 048 = 新 `step_q`（`dither.py` 里的校验会强制这一点）。
+
+### 17.2 效果
+
+| 指标 | 修复前 | 修复后 |
+|:---|:---:|:---:|
+| 残差随 U 漂移 | 2.293e-05 V | **8.7e-11 V**（改善 26 万倍）|
+| `test_fig19_static_ports` | 1 failed / 21 passed | **22 passed / 0 failed** |
+| 全量测试 | 1 failed | **0 failed**（1758 + 119）|
+| 行为指纹 | — | **逐位不变**（默认路径不启用 dither）|
+
+### 17.3 关于放宽容差
+
+`residue` 的 `atol` 从 `2e-14` 放宽到 `1e-9`。这不是"放宽到能过"：
+
+* 修复后实测残留 **4e-10 V**（float64 在 8 片 × 22 端口上的累积舍入）
+* 1 LSB20 = 5.72e-06 V ⇒ 残留比一个输出 LSB 小 **14 000 倍**
+* 原容差 `2e-14` 是按"零误差"定的，物理上不可达
+
+### 17.4 连带同步的位置
+
+`src/adi_model/defaults.py`、`tests/audit/test_audit_findings.py`、
+`tests/regression/test_reference_event_known_limit.py`、
+`tests/integration/test_fig19_static_ports.py`、
+`tests/unit/test_dither_port.py`、`tests/unit/test_dither_charge_port.py`、
+`tools/run_review_figures.py` —— 共 7 个文件的硬编码 `2**24` /
+旧权重元组 / `2048` LSB20 换算。
+
+### 17.5 教训
+
+这个缺陷的性质是**"显式合同写了错的值"**：
+
+```python
+if self.step_q != 2**24:
+    raise ConfigError("Fig19 9bit full-scale step must be 2^24")
+```
+
+"显式拒绝隐式默认"是好做法，但当拓扑从 63+8 换成 17/5 时，
+**合同里的具体数值没人跟着改**——而且因为它是"显式合同"，反而显得比默认值更权威。
+
+**合同要写"依据"而不只是"值"**：如果这条校验写成
+`step_q == 2^32·2/(cn·16)/v_fs`（从码本推导），它会自动跟随拓扑变化。

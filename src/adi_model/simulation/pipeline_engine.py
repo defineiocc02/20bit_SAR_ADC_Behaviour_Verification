@@ -228,6 +228,112 @@ def _validate_request(
     return int(n_samples)
 
 
+def _prepare_conversion(
+    *,
+    cfg,
+    pool,
+    n_samples: int,
+    dither_program,
+    dither_port,
+    dem_states,
+    sample_ids,
+    sampled_top_v,
+    sampled_subnode_v,
+    ra_input_error_v,
+    rng,
+):
+    """校验 DEM/ID/采样记录与 dither 拓扑，返回后续转换需要的派生量。
+
+    这是从 `execute_pipeline`（683 行）抽出的**纯校验 + 派生**段：
+    只读参数、只抛 `ConfigError`，**不写 pool/rng/state**（抽取前已逐行核对，
+    确认该段无任何副作用）。
+
+    Args:
+        cfg/pool/plan/n_samples: 运行上下文与已规划的片池。
+        dither_program/dither_port: 两种 dither 拓扑，至多一个非 None。
+        dem_states/sample_ids: 本批的实际 DEM 状态与采样序号。
+        sampled_top_v/sampled_subnode_v: 显式采样节点电压，不默填 0。
+        ra_input_error_v: 可选 RA 输入等效误差。
+        rng: 可选 Generator；`None` 且需要随机性时本函数会创建。
+
+    Returns:
+        (dither_active, acquisition_ids, sid, ids, top, subnode, injected,
+         feedback, coefficients, c_effective, random_active, rng)
+
+        `rng` 必须用返回的那个：函数内部可能在 `rng is None and random_active`
+        时新建，调用方的原局部变量会过期。
+
+    Raises:
+        ConfigError: 任一校验不通过；文案与抽取前逐字相同。
+
+    Side effects: 无（不碰 pool/state）。仅在需要时创建新的随机数 Generator。
+    """
+    dither_active = dither_program is not None or dither_port is not None
+    plan = pool.plan(n_samples)
+    acquisition_ids = np.vstack((plan.conv[0:1], plan.acq[:-1]))
+    if dither_program is not None:
+        used = np.unique(acquisition_ids)
+        if any(
+            getattr(pool, name) is not None and np.any(getattr(pool, name)[used] != 0)
+            for name in ("t_skew", "v_os")
+        ):
+            raise ConfigError("Fig19 static v1 has no active-slice offset/skew phase binding")
+    sid = _integer_array(dem_states, "actual DEM states", ndim=1)
+    if sid.shape != (n_samples,) or np.any(sid < 0):
+        raise ConfigError("DEM states must explicitly identify every raw with nonnegative integers")
+    if not cfg.dem_enable and np.any(sid != sid[0]):
+        raise ConfigError("DEM disabled requires a held actual state, not a varying sequence")
+    ids = _integer_array(sample_ids, "sample IDs", ndim=1)
+    if ids.shape != (n_samples,):
+        raise ConfigError("sample IDs must explicitly identify all raw records")
+    if len(ids) > 1 and np.any((np.diff(ids) & 0xFFFF_FFFF) != 1):
+        raise ConfigError(
+            "this waveform producer requires continuous raw IDs; do not hide missing periods"
+        )
+    top = finite_record(sampled_top_v, (n_samples, cfg.n_active), "sampled top node [V]")
+    subnode = finite_record(sampled_subnode_v, top.shape, "sampled sub node [V]")
+    injected = (
+        None
+        if ra_input_error_v is None
+        else finite_record(ra_input_error_v, (n_samples,), "RA input error [V]", scalar=False)
+    )
+    if dither_active and (
+        np.any(top != 0) or (injected is not None and np.any(injected != 0))
+    ):
+        raise ConfigError(
+            "Fig19 dither requires explicit zero top reset and no additional RA disturbance"
+        )
+    feedback = pool.chip.require_feedback()
+    pool.chip.require_main_parasitic()
+    coefficients = pool.split_coefficients(plan.conv)
+    c_effective = coefficients["c_eff"]
+    if not isinstance(c_effective, np.ndarray):
+        raise ConfigError("actual main parasitic capacitance is required for sampled-node charge")
+    random_active = (
+        cfg.ra_enable_noise or cfg.enable_sampling_noise or cfg.driver_noise_rms is not None
+    )
+    if rng is not None and not isinstance(rng, np.random.Generator):
+        raise ConfigError("rng must be a Generator")
+    if rng is None and random_active:
+        rng = np.random.default_rng(cfg.seed)
+    return (
+        plan,
+        dither_active,
+        acquisition_ids,
+        sid,
+        ids,
+        top,
+        subnode,
+        injected,
+        feedback,
+        coefficients,
+        c_effective,
+        random_active,
+        rng,
+    )
+
+
+
 def execute_pipeline(
     cfg: Config,
     input_fn,
@@ -304,54 +410,33 @@ def execute_pipeline(
         dither_port=dither_port,
         static_charge_domain=static_charge_domain,
     )
-    dither_active = dither_program is not None or dither_port is not None
-    plan = pool.plan(n_samples)
-    acquisition_ids = np.vstack((plan.conv[0:1], plan.acq[:-1]))
-    if dither_program is not None:
-        used = np.unique(acquisition_ids)
-        if any(
-            getattr(pool, name) is not None and np.any(getattr(pool, name)[used] != 0)
-            for name in ("t_skew", "v_os")
-        ):
-            raise ConfigError("Fig19 static v1 has no active-slice offset/skew phase binding")
-    sid = _integer_array(dem_states, "actual DEM states", ndim=1)
-    if sid.shape != (n_samples,) or np.any(sid < 0):
-        raise ConfigError("DEM states must explicitly identify every raw with nonnegative integers")
-    if not cfg.dem_enable and np.any(sid != sid[0]):
-        raise ConfigError("DEM disabled requires a held actual state, not a varying sequence")
-    ids = _integer_array(sample_ids, "sample IDs", ndim=1)
-    if ids.shape != (n_samples,):
-        raise ConfigError("sample IDs must explicitly identify all raw records")
-    if len(ids) > 1 and np.any((np.diff(ids) & 0xFFFF_FFFF) != 1):
-        raise ConfigError(
-            "this waveform producer requires continuous raw IDs; do not hide missing periods"
-        )
-    top = finite_record(sampled_top_v, (n_samples, cfg.n_active), "sampled top node [V]")
-    subnode = finite_record(sampled_subnode_v, top.shape, "sampled sub node [V]")
-    injected = (
-        None
-        if ra_input_error_v is None
-        else finite_record(ra_input_error_v, (n_samples,), "RA input error [V]", scalar=False)
+    (
+        plan,
+        dither_active,
+        acquisition_ids,
+        sid,
+        ids,
+        top,
+        subnode,
+        injected,
+        feedback,
+        coefficients,
+        c_effective,
+        random_active,
+        rng,
+    ) = _prepare_conversion(
+        cfg=cfg,
+        pool=pool,
+        n_samples=n_samples,
+        dither_program=dither_program,
+        dither_port=dither_port,
+        dem_states=dem_states,
+        sample_ids=sample_ids,
+        sampled_top_v=sampled_top_v,
+        sampled_subnode_v=sampled_subnode_v,
+        ra_input_error_v=ra_input_error_v,
+        rng=rng,
     )
-    if dither_active and (
-        np.any(top != 0) or (injected is not None and np.any(injected != 0))
-    ):
-        raise ConfigError(
-            "Fig19 dither requires explicit zero top reset and no additional RA disturbance"
-        )
-    feedback = pool.chip.require_feedback()
-    pool.chip.require_main_parasitic()
-    coefficients = pool.split_coefficients(plan.conv)
-    c_effective = coefficients["c_eff"]
-    if not isinstance(c_effective, np.ndarray):
-        raise ConfigError("actual main parasitic capacitance is required for sampled-node charge")
-    random_active = (
-        cfg.ra_enable_noise or cfg.enable_sampling_noise or cfg.driver_noise_rms is not None
-    )
-    if rng is not None and not isinstance(rng, np.random.Generator):
-        raise ConfigError("rng must be a Generator")
-    if rng is None and random_active:
-        rng = np.random.default_rng(cfg.seed)
     # 两种 dither 拓扑在这里分叉：
     #   v1  code-shift：SADC 看 x-L、RDAC 采 x-T、码 k=c-U；
     #   v2  charge-port：SADC 只看 x-L，RDAC 仍采真实 x，upper 段改由

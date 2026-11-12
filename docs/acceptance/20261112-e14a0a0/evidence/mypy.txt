@@ -1,0 +1,11 @@
+src/adi_model/contracts/events.py:27: error: Need type annotation for "out" (hint: "out: list[<type>] = ...")  [var-annotated]
+src/adi_model/behavioral/reference.py:88: error: Unsupported operand types for <= ("float" and "None")  [operator]
+src/adi_model/behavioral/reference.py:88: note: Right operand is of type "float | None"
+src/adi_model/behavioral/reference.py:88: error: Unsupported operand types for >= ("float" and "None")  [operator]
+src/adi_model/behavioral/reference.py:88: note: Left operand is of type "float | None"
+src/adi_model/behavioral/reference.py:116: error: Argument 1 to "ReferenceConfig" has incompatible type "**dict[str, float]"; expected "bool"  [arg-type]
+src/adi_model/behavioral/reference.py:194: error: Incompatible return value type (got "float | ndarray[tuple[Any, ...], dtype[Any]]", expected "float")  [return-value]
+src/adi_model/control/dem3d.py:408: error: Unsupported target for indexed assignment ("object")  [index]
+src/adi_model/__init__.py:84: error: Incompatible import of "DigitalObservation" (imported name has type "type[adi_model.contracts.specs.DigitalObservation]", local name has type "type[adi_model.calibration.weight_calibration.DigitalObservation]")  [assignment]
+src/adi_model/__init__.py:84: error: Incompatible import of "FrozenCalibration" (imported name has type "type[adi_model.contracts.specs.FrozenCalibration]", local name has type "type[adi_model.calibration.weight_calibration.FrozenCalibration]")  [assignment]
+Found 8 errors in 4 files (checked 75 source files)

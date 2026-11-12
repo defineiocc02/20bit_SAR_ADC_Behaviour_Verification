@@ -1,0 +1,11 @@
+entry point                 metrics           metrics_lsb20     match
+power_spectral_density      5a233fb33d752145  5a233fb33d752145  yes
+spectrum_dbfs               59d477b292cd030d  59d477b292cd030d  yes
+sine_fit_metrics            0355a03f42238700  0355a03f42238700  yes
+inl_from_mean_error         931a884001e7e7e4  931a884001e7e7e4  yes
+integrate_noise_band        f619da22c6d88408  f619da22c6d88408  yes
+reference_precision_bits    b223a77d6597c6b8  b223a77d6597c6b8  yes
+static_test                 9f1521451fc35eb5  9f1521451fc35eb5  yes
+
+no drift vs baseline
+exit=0

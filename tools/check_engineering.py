@@ -123,9 +123,37 @@ def check_result_identity() -> None:
             problems.append(f"F03 has {len(f03['configs'])} curves, expected >=9")
     if len(matrix_ids) < 11:
         problems.append(f"matrix has {len(matrix_ids)} configs, expected 11")
-    record("C4 result identity", not problems,
-           "figure grid 256x32, 9 curves, 11 matrix configs" if not problems
-           else "; ".join(problems))
+    # 结果身份：图必须能追到某个提交，且不能声称代表更新的代码。
+    # 2026-11-13：原来只检查网格尺寸，旧图（63+8 时代的 source_sha）照样通过，
+    # 于是一批过期图长期被当成"当前结果"。这里把它显式列出来。
+    stale = None
+    if "source_sha" not in fig or len(str(fig.get("source_sha", ""))) < 7:
+        problems.append("figures.json has no usable source_sha")
+    else:
+        import subprocess
+
+        try:
+            head = subprocess.run(
+                ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True
+            ).stdout.strip()
+        except Exception:  # noqa: BLE001 - 无 git 时不做身份判断
+            head = ""
+        if head and not head.startswith(str(fig["source_sha"])[:12]):
+            stale = str(fig["source_sha"])[:12]
+    checked = not problems
+    detail = (
+        "figure grid 256x32, 9 curves, 11 matrix configs"
+        if checked
+        else "; ".join(problems)
+    )
+    if checked and stale:
+        # 不判失败：这批图本来就要按新几何重生成（P2 未完成），
+        # 但必须让读者看见"这些图不是当前代码的产物"。
+        detail += (
+            f"; WARNING figures are STALE (source_sha {stale} != HEAD): "
+            "do not cite them as current-model results"
+        )
+    record("C4 result identity", checked, detail)
 
 
 def check_duplicate_formulas() -> None:

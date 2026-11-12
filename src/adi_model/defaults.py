@@ -296,6 +296,19 @@ class DefaultModel:
         drive_weight = p.unit_cap_f * drive_units
         voltage = -cfg.v_fs + 2 * cfg.v_fs * drive_weight / c_slice
         self.codebook = NominalCodebook(0, 511, voltage)
+        # ==== SADC 阈值必须与码本同源（2026-11-13 修正）====
+        # 原来阈值是 linspace(-v_fs, +v_fs, 513) 的等距表，而码本是 Fig.11 实测的
+        # （每步 31.9375/512 C 而不是满幅 1/512），两者在中间码相差近 2 个一级 LSB。
+        # 后果：粗码判决与 RDAC 电荷不同源 —— 理想配置也出现 5.7% 增益误差、
+        # −0.171 V 直流偏置、A0 的 INL 达 28.6 LSB20。
+        # 现在阈值直接取码本电压（512 个），末位补一个上边界，保证：
+        #   SADC 判码 k  ⇔  x ∈ [v(k), v(k+1))，与 RDAC 用同一张表。
+        thresholds = np.empty(513, dtype=float)
+        thresholds[:512] = voltage
+        thresholds[512] = 2.0 * voltage[-1] - voltage[-2]
+        if "sadc_thresholds_v" not in self._config_overrides:
+            cfg = replace(cfg, sadc_thresholds_v=tuple(thresholds))
+            self.cfg = cfg
         self.mapper = Mapper(coarse, nominal_codebook=self.codebook)
         # 名义解码权重必须与**器件电容**同源：主单元 15×2C + 1C + 1C(S4)，
         # 子单元 β×8/4/2/1，末位哑单元权重 0（它从不被选中）。

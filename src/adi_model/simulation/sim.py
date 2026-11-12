@@ -35,6 +35,13 @@ class SimResult:
     state: DigitalState
     sample: SampleCapture
     sample_id: np.ndarray
+    # --- 片池相关（三个字段容易混淆，这里写清语义）---
+    # conv_slice_ids     : 本笔**转换**用哪 8 片（= plan.conv）。
+    # acq_slice_ids      : 本笔**采样**用哪 8 片。两相交织下，本笔采的样本正是在
+    #                      本笔被转换的，因此它 == conv_slice_ids（这一点此前容易被
+    #                      误读成"采样与转换重叠是个 bug"，实际是交织的正确行为）。
+    # next_acq_slice_ids : **下一笔**采样用哪 8 片（= plan.acq），与 conv 不相交 ——
+    #                      两相交错的证据在这里，不在 acq_slice_ids。
     conv_slice_ids: np.ndarray
     acq_slice_ids: np.ndarray
     next_acq_slice_ids: np.ndarray

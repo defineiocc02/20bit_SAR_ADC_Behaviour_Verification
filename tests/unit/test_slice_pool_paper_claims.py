@@ -27,12 +27,22 @@ def _plan(n: int):
 
 
 def test_pool_is_eighteen_slices_eight_active():
-    """① 池 18 片、每笔选 8 片。"""
+    """① 池 18 片、每笔选 8 片。
+
+    两处**独立**表述都与这个配置吻合：
+      · 论文正文："8 slice DACs converting … 8 sDACs acquiring … pool of 18 …
+        Two spare sDACs"
+      · PPT 第 10 页逐字："Quantizer (1x) and RDAC (8x)"、
+        "Pool of 18x slice DACs for residue DAC"、"2x spare (randomisation) DACs"，
+        右侧图结构画出 `8x sDAC | 2x sDAC | 8x sDAC` ⇒ 8+2+8 = 18
+    """
     raw, plan = _plan(4)
     assert raw.cfg.n_slices == 18
     assert raw.cfg.n_active == 8
     assert np.asarray(plan.acq).shape == (4, 8)
     assert np.asarray(plan.conv).shape == (4, 8)
+    # 8 转换 + 8 采样 = 16 在用，18 - 16 = 2 片备用（两处原件一致）
+    assert raw.cfg.n_slices - 2 * raw.cfg.n_active == 2
 
 
 def test_sampling_and_conversion_slices_are_disjoint():

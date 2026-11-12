@@ -177,3 +177,41 @@ def reference_is_static(*, threshold_adjust_enabled: bool, trial_count: int) -> 
     if not isinstance(threshold_adjust_enabled, bool):
         raise ConfigError("threshold_adjust_enabled must be an explicit bool")
     return (not threshold_adjust_enabled) and int(trial_count) == 1
+
+
+# =============================================================================
+# 4. 共享 RA 的"共模误差"判据（PPT 第 11 页 "Matched offset and gain error"）
+# =============================================================================
+def shared_amplifier_error_is_common_mode(*, per_phase_error_v: np.ndarray) -> bool:
+    """判据：共享 RA/ADC2 时，各相的失调与增益误差必须是**共模**的。
+
+    依据：PPT 第 11 页逐字 ——
+        "Shared residue amplifier / 40% of ADC power consumption /
+         **Matched offset and gain error** / Shared ADC2"
+
+    RA 与 ADC2 被 RDAC1/RDAC2 两相**共享**，因此它带来的失调与增益误差
+    对两相是**同一个**误差。这与"每相各自独立的失配"在效果上完全不同：
+
+    * 共模误差：整体平移/缩放传递函数，**不产生交织杂散**；
+    * 独立误差：两相传递函数不同 ⇒ 会产生交织杂散与相关杂散。
+
+    Args:
+        per_phase_error_v: (P,) 各相的误差（失调或增益误差折到输入端，任意单位）。
+
+    Returns:
+        True 表示可以视为共模（各相最大差为 0）。
+
+    Raises:
+        ConfigError: 非一维、为空或含非有限值。
+
+    Side effects: 无。
+
+    注意：本判据检验的是**模型是否按"共享"建模**。若模型让每相各有独立 RA
+    失调，这里会返回 False —— 那是与原件结构不符，不是精度问题。
+    """
+    values = np.asarray(per_phase_error_v, dtype=float)
+    if values.ndim != 1 or values.size < 1:
+        raise ConfigError("per_phase_error_v must be a nonempty one-dimensional array")
+    if np.any(~np.isfinite(values)):
+        raise ConfigError("per-phase errors must be finite")
+    return bool(np.ptp(values) <= 32 * np.finfo(float).eps * max(1.0, float(np.abs(values).max())))

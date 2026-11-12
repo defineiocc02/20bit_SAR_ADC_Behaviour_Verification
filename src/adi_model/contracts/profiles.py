@@ -48,10 +48,15 @@ ADI_40M = Profile(
         profile_id="adi_isscc2024_40m_6vpp",
         n_slices_pool=18,
         n_slices_active=8,
-        n_main=63,
-        n_sub=8,
-        c_unit_f=40.0390625e-15,
-        c_bridge_f=45.75892857142857e-15,
+        # 2026-11-13 修正：本 profile 是**对外声明的规格**，必须与实现一致。
+        # 原来写着 63+8 / 40.04 fF / adc2=12，那是已被用户否决的工程替代拓扑。
+        # 当前实现是专利 [11] FIG.11/19/20 的 17/5：
+        #   主阵列 15×2C + B4 1C + S4 1C；子阵列装配 4 列（第 5 位是虚线占位，
+        #   见 docs/mechanisms/p1_gaps_20261113.md §11）；桥接电容 = 1C。
+        n_main=17,
+        n_sub=5,
+        c_unit_f=7.779886183991967e-14,
+        c_bridge_f=7.779886183991967e-14,
         c_feedback_f=640.625e-15,
         codebook_id="uniform512",
         source_ids=("PAPER-01", "PAPER-02", "PAPER-03"),
@@ -59,7 +64,8 @@ ADI_40M = Profile(
     fs_hz=40e6,
     v_fs_peak_v=3.0,
     v_span_v=6.0,
-    adc2_bits=12,
+    # ADC2 位数：ADR-0003 的 paper_literal 行给 14 bit（与窗口 [-0.0375,0.4125] 配套）。
+    adc2_bits=14,
     description="ISSCC 2024 9.8：40 MS/s、±3 V、20b、18/8/8/2、9b 前级",
     source_ids=("PAPER-01", "PAPER-02", "SLIDE-01"),
 )

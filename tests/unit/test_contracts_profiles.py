@@ -19,13 +19,39 @@ from adi_model.contracts import (
 
 
 def test_profiles_have_expected_operating_points():
+    """对外声明的规格。
+
+    2026-11-13：ADI_40M 原写 `n_main=63`（已被用户否决的 63+8 工程替代拓扑），
+    而实际实现是专利 17/5。profile 是对外规格声明，必须与实现一致，已更正。
+    """
     assert ADI_40M.fs_hz == 40e6
     assert ADI_40M.v_span_v == 6.0
-    assert ADI_40M.topology.n_main == 63
+    assert ADI_40M.topology.n_main == 17
+    assert ADI_40M.topology.n_sub == 5
     assert ENG_10M.fs_hz == 10e6
     assert ENG_10M.v_span_v == 10.0
     assert ENG_10M.topology.n_main == 17
     assert PATENT_FIG19.topology.n_slices_pool == 7
+
+
+def test_adi_profile_matches_default_parameters():
+    """`ADI_40M` 声明的拓扑必须与 `DefaultParameters` 逐项一致。
+
+    这条守卫防止"规格声明"与"实现默认值"再次脱节——本会话已多次遇到
+    两处定义漂移的问题（σ、ADC2 位数、ra_clip、S4 权重）。
+    """
+    from adi_model.defaults import DefaultParameters
+
+    params = DefaultParameters()
+    spec = ADI_40M.topology
+    assert spec.n_slices_pool == 18
+    assert spec.n_slices_active == 8
+    assert spec.n_main == params.n_main == 17
+    assert spec.n_sub == params.n_sub == 5
+    assert spec.c_unit_f == params.unit_cap_f
+    assert spec.c_bridge_f == params.bridge_cap_f
+    assert spec.c_feedback_f == params.feedback_cap_f
+    assert ADI_40M.adc2_bits == params.adc2_n_bits
 
 
 def test_all_main_profiles_are_caaz_free():

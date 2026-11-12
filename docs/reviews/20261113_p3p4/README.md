@@ -32,7 +32,7 @@
 | [07_calibration](07_calibration.md) | 逐单元权值在残差观测下**不可辨识**（残差 14 V、权重 −43 V）；可用的是逐码修正（2.31× INL、+10.5 dB SFDR，SNR/DR 不动） |
 | [08_mismatch_budget](08_mismatch_budget.md) | 失配 σ=0.1%（假设值）；INL = 24 376×σ ppm（线性）；论文 2.2 ppm ↔ σ_eff 0.009%；校准有 ~5 ppm 地板，σ≤1e-4 时反而变差 |
 | [09_audit_response](09_audit_response.md) | 外部审查 A01–A07 逐条处置：**撤回** TRACK 6.36×（非因果）、"350 µA ↔ 0.907 MHz"、"使用极差全 0"，以及"8 次重复的 INL"（测量噪声） |
-| [figures/](figures/README.md) | **11/12 张图**（F01–F08、F10–F12）+ 逐图来源（配置/seed/SHA/重绘命令）；F09 未产出 |
+| [figures/](figures/README.md) | **12/12 张图**（F01–F12）+ 逐图来源（配置/seed/SHA/重绘命令与"不能声称"） |
 | [10_dynamic_closure](10_dynamic_closure.md) | A7 全动态跑通：参数表全部 ASSUMED，`tau_ref` 由论文 65%/20b 反解；动态路径尚无数字重构（out=NaN） |
 | [06_paper_anchor_40nm](06_paper_anchor_40nm.md) | 40 nm / 3.3 V 器件 / 6 Vpp / 20.5 pF / 1.8 mA 的逐条出处；模型只有差分等效电压坐标，不能做器件耐压检查 |
 

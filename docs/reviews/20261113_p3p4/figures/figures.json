@@ -1,5 +1,5 @@
 {
-  "source_sha": "a0218c71cb0f5efd9b9bec5de7866e15028a8e88",
+  "source_sha": "5771c95efc7adedae2785ece93b939aec148f9d6",
   "seed": 20261105,
   "fs_hz": 40000000.0,
   "v_fs_v": 3.0,
@@ -153,6 +153,13 @@
       "extra_bits_settled_during_ra": 11.541560327111705,
       "ra_sat": 0,
       "note": "tau_ref was back-solved from the 65%/20b statement, so the ratio is self-consistent by construction"
+    },
+    {
+      "figure": "F09_input_current.png",
+      "c_total_f": 2.05e-11,
+      "full_scale_current_a": 0.00246,
+      "aux_fraction_for_paper_point": 0.8577235772357723,
+      "note": "the paper's x-axis is DC differential input; the 350 uA point is read from Fig.9.8.5 without a stated input value, so the AUX fraction is an inference, not a result"
     },
     {
       "figure": "F02_dem_usage.png",

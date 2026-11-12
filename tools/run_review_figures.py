@@ -79,6 +79,46 @@ def _pool(model, plan):
     )
 
 
+# ---------------------------------------------------------------- F09
+def figure_input_current(out: Path) -> dict:
+    """输入电流 vs **直流**差分输入（论文 Fig.9.8.5 的横轴），四种取电方式。"""
+    c_total_f = 20.5e-12
+    x = np.linspace(-V_FS, V_FS, 121)
+    full = c_total_f * np.abs(x) * FS_HZ
+    fig, ax = plt.subplots(figsize=(8.4, 4.4), constrained_layout=True)
+    ax.plot(x, full * 1e6, label="no TRACK: C_total x |Vin| x fs", color="#c53030")
+    ax.plot(
+        x,
+        full * 0.14 * 1e6,
+        label="AUX supplies 86% (fit to the 350 uA point)",
+        color="#2b6cb0",
+        ls="--",
+    )
+    ax.plot(x, full * 0.05 * 1e6, label="AUX supplies 95%", color="#38a169", ls=":")
+    ax.plot(x, np.zeros_like(x), label="perfect TRACK at DC (residual = 0)", color="k", lw=1.2)
+    ax.scatter([V_FS], [350.0], marker="*", s=140, color="#b7791f", zorder=5,
+               label="paper Fig.9.8.5: 350 uA (value only)")
+    ax.set_xlabel("DC differential input [V]")
+    ax.set_ylabel("input current [uA]")
+    ax.set_title(
+        "F09  input current vs DC input: 20.5 pF x 40 MS/s gives 2.46 mA at full scale"
+    )
+    ax.grid(alpha=0.3)
+    ax.legend(fontsize=7)
+    fig.savefig(out / "F09_input_current.png", dpi=130)
+    plt.close(fig)
+    return {
+        "figure": "F09_input_current.png",
+        "c_total_f": c_total_f,
+        "full_scale_current_a": float(c_total_f * V_FS * FS_HZ),
+        "aux_fraction_for_paper_point": float(1 - 350e-6 / (c_total_f * V_FS * FS_HZ)),
+        "note": (
+            "the paper's x-axis is DC differential input; the 350 uA point is read from "
+            "Fig.9.8.5 without a stated input value, so the AUX fraction is an inference, not a result"
+        ),
+    }
+
+
 # ---------------------------------------------------------------- F07
 def _dynamic_config():
     """A7 全动态的显式参数集（全部标 ASSUMED，见 10_dynamic_closure.md）。"""
@@ -755,6 +795,7 @@ def main() -> int:
         figure_calibration_generalization(out, points=args.points, repeats=args.repeats),
         figure_fixed_point(model, out, n=args.dynamic_n),
         figure_dynamics(out, n=32),
+        figure_input_current(out),
         figure_dem_usage(model, out),
         figure_inl(model, out, points=args.points, repeats=args.repeats, dynamic_n=args.dynamic_n),
         figure_psd(model, out, n=args.dynamic_n),

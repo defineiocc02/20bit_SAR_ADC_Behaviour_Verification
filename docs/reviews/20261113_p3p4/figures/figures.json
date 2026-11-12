@@ -1,5 +1,5 @@
 {
-  "source_sha": "e0538e4eab0866a91c2d7d514cb531defe91379a",
+  "source_sha": "9262ebd6d4878cea28e0b9a61dfa3546b2a0635c",
   "seed": 20261105,
   "fs_hz": 40000000.0,
   "v_fs_v": 3.0,
@@ -9,6 +9,21 @@
   "dynamic_n": 8192,
   "evidence_level": "L1 behavioral (float); no RTL/post-layout/silicon",
   "figures": [
+    {
+      "figure": "F01_ownership_events.png",
+      "samples": 8,
+      "codes": [
+        38,
+        100,
+        162
+      ],
+      "overlap_violations": 0,
+      "follower_final_pc": [
+        9.127589309025083,
+        24.02599606372709,
+        38.91980247379047
+      ]
+    },
     {
       "figure": "F02_dem_usage.png",
       "codes": [
@@ -3709,6 +3724,22 @@
           "mean_error_uv": 971.6088417917643,
           "nsd_nv": 24.031885110430242
         }
+      },
+      "hold_sweep": {
+        "hold_ns": [
+          0.0,
+          1.0,
+          5.0,
+          20.0,
+          100.0
+        ],
+        "residual_uv": [
+          0.0,
+          1.0000000000000004,
+          5.0,
+          20.0,
+          100.00000000000001
+        ]
       }
     }
   ],

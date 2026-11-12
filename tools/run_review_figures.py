@@ -28,7 +28,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 
 from adi_model import metrics  # noqa: E402
-from adi_model.behavioral.ra_az import OrdinaryAZConfig  # noqa: E402
+from adi_model.behavioral.ra_az import OrdinaryAZConfig, apply_ordinary_az  # noqa: E402
 from adi_model.dem3d import (  # noqa: E402
     Dem3State,
     round_robin_plan,
@@ -75,6 +75,75 @@ def _pool(model, plan):
         acquisition_binding=None,
         schedule_binding=plan,
     )
+
+
+# ---------------------------------------------------------------- F01
+def figure_ownership(model, out: Path) -> dict:
+    """连续样本的片所有权 + 单样本逐事件参考电荷（全部来自已记录数据）。"""
+    n = 8
+    plan = round_robin_plan(n)
+    # 用斜坡而不是正弦：三笔的码要拉开，才能看出"事件驱动码"的形状
+    ramp = np.linspace(-0.85 * V_FS, 0.85 * V_FS, n)
+    codes = np.asarray(
+        _run(model, _ramp_fn(ramp), n, dem=False, uniform_plan=False)[0].coarse, dtype=np.int64
+    )
+    pool = _pool(model, plan)
+    trace = run_follower(
+        pool,
+        ResolvedPrefixes.from_final(codes[:3]),
+        np.zeros(3, dtype=np.int64),
+        slice_ids=plan.conv[:3],
+        reference_high_v=V_FS,
+        reference_low_v=-V_FS,
+    )
+    fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(13, 4.6), constrained_layout=True)
+
+    # 面板 A：18 片 × 3 个周期，C=转换，A=采集（同一周期同一片不得兼有）
+    state = np.zeros((18, 3), dtype=int)
+    for index in range(3):
+        state[plan.conv[index], index] = 1
+        state[plan.acq[index], index] = 2
+        overlap = set(plan.conv[index].tolist()) & set(plan.acq[index].tolist())
+        if overlap:
+            raise AssertionError(f"sample {index} has slices both converting and acquiring: {overlap}")
+    ax0.imshow(state, aspect="auto", cmap=matplotlib.colors.ListedColormap(["#e2e8f0", "#2b6cb0", "#f6ad55"]))
+    ax0.set_yticks(np.arange(0, 18, 2))
+    ax0.set_xticks(range(3), [f"sample {i}" for i in range(3)])
+    ax0.set_ylabel("physical slice id")
+    ax0.set_title("F01a  slice ownership per period", fontsize=10)
+    handles = [
+        matplotlib.patches.Patch(color="#2b6cb0", label="convert (8 of 18)"),
+        matplotlib.patches.Patch(color="#f6ad55", label="acquire (disjoint 8)"),
+        matplotlib.patches.Patch(color="#e2e8f0", label="idle (2 spares / not used)"),
+    ]
+    ax0.legend(handles=handles, fontsize=7, loc="upper center", bbox_to_anchor=(0.5, -0.12), ncol=3)
+
+    # 面板 B：3 笔样本的已决事件与累计参考电荷
+    for index in range(3):
+        applied = np.asarray(trace.applied_codes)[index]
+        ax1.step(
+            np.arange(applied.size) + 1,
+            applied,
+            where="mid",
+            marker="o",
+            ms=4,
+            lw=1.2,
+            label=f"sample {index}: final code {int(codes[index])}",
+        )
+    ax1.set_xlabel("resolved event index (Flash3 + SAR6)")
+    ax1.set_ylabel("RDAC code applied at that event")
+    ax1.set_title("F01b  RDAC moves only to already-resolved codes", fontsize=10)
+    ax1.grid(alpha=0.3)
+    ax1.legend(fontsize=8)
+    fig.savefig(out / "F01_ownership_events.png", dpi=130)
+    plt.close(fig)
+    return {
+        "figure": "F01_ownership_events.png",
+        "samples": n,
+        "codes": codes[:3].tolist(),
+        "overlap_violations": 0,
+        "follower_final_pc": [float(v) for v in np.asarray(trace.cumulative_abs_charge_c)[:, -1] * 1e12],
+    }
 
 
 # ---------------------------------------------------------------- F02
@@ -378,12 +447,29 @@ def figure_az(model, out: Path, *, n: int) -> dict:
     ax0.grid(alpha=0.3, which="both")
     ax0.legend(fontsize=8)
     labels = list(rows)
-    ax1.bar(labels, [rows[k]["mean_error_uv"] for k in labels], color=["#718096", "#2b6cb0"])
-    ax1.set_ylabel("mean output error [uV]")
-    ax1.set_title("F08b  residual offset appears at the output")
+    # 保持时间扫描（无噪声，只看 droop 的线性响应）
+    # 1 kV/s 是示例斜率：1 V/s 在 100 ns 内只有 0.1 uV，看不出来；数值写进图注
+    droop_cfg = OrdinaryAZConfig(enabled=True, droop_v_per_s=1e3)
+    holds = np.array([0.0, 1e-9, 5e-9, 20e-9, 100e-9])
+    ids = np.arange(64, dtype=np.int64)
+    sweep = [
+        float(np.mean(apply_ordinary_az(np.zeros(64), ids, droop_cfg, hold_time_s=np.full(64, h))
+                      .residual_v))
+        for h in holds
+    ]
+    ax1.plot(holds * 1e9, np.array(sweep) * 1e6, marker="o", color="#2b6cb0")
+    ax1.set_xlabel("hold time since AZ refresh [ns]")
+    ax1.set_ylabel("residual droop [uV]")
+    ax1.set_title("F08b  1 kV/s droop vs hold time (linear by construction)", fontsize=10)
+    ax1.grid(alpha=0.3)
     fig.savefig(out / "F08_az.png", dpi=130)
     plt.close(fig)
-    return {"figure": "F08_az.png", "n": n, "results": rows}
+    return {
+        "figure": "F08_az.png",
+        "n": n,
+        "results": rows,
+        "hold_sweep": {"hold_ns": (holds * 1e9).tolist(), "residual_uv": (np.array(sweep) * 1e6).tolist()},
+    }
 
 
 def main() -> int:
@@ -399,6 +485,7 @@ def main() -> int:
     model = _build_model(1e-3, True)
     sha = _sha()
     produced = [
+        figure_ownership(model, out),
         figure_dem_usage(model, out),
         figure_inl(model, out, points=args.points, repeats=args.repeats, dynamic_n=args.dynamic_n),
         figure_psd(model, out, n=args.dynamic_n),

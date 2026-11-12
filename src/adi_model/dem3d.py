@@ -95,7 +95,7 @@ class Dem3State:
         n_samples: int,
         *,
         columns: int = 63,
-        vertical: int = VERTICAL_UNITS,
+        vertical: int = 7,
         plan_period: int = 9,
     ):
         """确定性的相位序列：每个"计划周期"额外前移一个与列数互质的步长。
@@ -109,6 +109,10 @@ class Dem3State:
         沿子序列（i = r + 9k）变成 `h = r + k*(9+step)`；只要 `gcd(9+step, columns)=1`
         就能铺满全部列。默认 step=7 → 16，与 63 和 15 都互质。
         纵向用 `(11*index) % vertical`，沿子序列为 3k，与 16 互质。
+
+        纵向**周期必须等于被旋转的子阵列单元数**（默认池 7）。若用 16 再 `%7`，
+        16=2x7+2 会让前两个余数多出现一次，子单元使用比变成 3:2
+        （外部审查 2 的实测：756/756/504x5）。Fig.11 的 8/16 选择仍需 16，调用方显式传。
 
         序列完全确定，不需要保存随机状态；实际覆盖与卡方由 `usage_uniformity` 实测上报。
         """
@@ -345,7 +349,8 @@ def usage_uniformity(
             raise ConfigError("usage audit codes must be explicit 9-bit integers")
         repeated = np.full(conv.shape[0], code, dtype=np.int64)
         command = binding(pool.geometry, repeated, packed, conv)
-        main = command.main_on.sum(axis=(0, 1))
+        per_slice_main = command.main_on.sum(axis=0)  # (slices, units)
+        main = per_slice_main.sum(axis=0)
         sub = command.sub_on.sum(axis=(0, 1))
         selected_main = int(repeated[0] // 8) if pool.geometry.n_main == 63 else None
         active_main = main[main > 0]
@@ -366,7 +371,10 @@ def usage_uniformity(
         else:
             uniform = main_range <= 1
         uniform = bool(uniform and (sub_range <= 1 or active_sub.size <= 1))
+        slice_coverage = np.count_nonzero(per_slice_main, axis=1)
         report["codes"][str(code)] = {
+            "per_slice_units_covered": slice_coverage.tolist(),
+            "per_slice_coverage_min": int(slice_coverage.min()),
             "main_unit_counts": main.tolist(),
             "main_range": main_range,
             "main_units_covered": covered_main,

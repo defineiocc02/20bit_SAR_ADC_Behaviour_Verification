@@ -276,9 +276,11 @@ def apply_mask_calibration(result, calibration: MaskWeightCalibration) -> dict:
 
 __all__ = [
     "CodeCorrection",
+    "ElementWeightCalibration",
     "MaskWeightCalibration",
     "apply_mask_calibration",
     "fit_code_correction",
+    "fit_element_weights",
     "fit_mask_weights",
 ]
 
@@ -383,4 +385,169 @@ def fit_code_correction(codes, estimated_v, known_input_v, *, n_codes: int = 512
         min_count=int(counts.min()),
         residual_rms_v=float(np.sqrt(np.mean(residual**2))),
         n_samples=int(index.size),
+    )
+
+
+@dataclass(frozen=True)
+class ElementWeightCalibration:
+    """逐单元有效权重（C/Cf），**残差域参数化**，不是 `a*x + sum(b*m)`。
+
+    外部审查给出的正确形式（`review_c817e91/reproduce_identifiability.py`）：
+
+        F[n,p,j] = x[n] - V_bottom[n,p,j] = x[n] - V_low - (V_high-V_low)*m[n,p,j]
+        fine_v[n] = sum_{p,j} w[p,j] * F[n,p,j] + offset
+
+    每一列都是一个 (片, 单元) 的**电容电压**，`w = C/Cf` 同时作用在 `x` 与开关项上，
+    因此不存在"自由增益 a 与 sum(b) 共线"的退化——这正是早期
+    `fit_mask_weights` 解出负权重的原因（那版把同一份物理拆成两族参数）。
+
+    重建：`x_hat = (fine_v - offset - sum w*term) / sum w`，`term = V_low + ΔV*m` 取负号后相加。
+    """
+
+    weights: np.ndarray  # (n_slices, n_main+n_sub)，单位 C/Cf
+    offset_v: float
+    residual_rms_v: float
+    n_samples: int
+    rank: int
+    condition: float
+    reference_high_v: float
+    reference_low_v: float
+    n_main: int
+    n_sub: int
+
+    def __post_init__(self):
+        """冻结权重并要求全部为正（有效电容比不能为负）。"""
+        weights = np.asarray(self.weights, dtype=float)
+        if weights.ndim != 2 or weights.shape[1] != self.n_main + self.n_sub:
+            raise ConfigError("element weights must be (n_slices, n_main+n_sub)")
+        if np.any(~np.isfinite(weights)) or np.any(weights <= 0):
+            raise ConfigError("effective element weights must be finite and positive")
+        if not np.isfinite(self.offset_v) or not np.isfinite(self.residual_rms_v):
+            raise ConfigError("element calibration offset and residual must be finite")
+        object.__setattr__(self, "weights", readonly(weights, np.float64))
+
+    @property
+    def n_slices(self) -> int:
+        """物理片数。"""
+        return int(self.weights.shape[0])
+
+    def reconstruct(self, data: DigitalObservation, known_input_v) -> np.ndarray:
+        """按 `x_hat = (fine - off - sum w*(V_low+ΔV*m)) / sum w` 反解输入。
+
+        Args:
+            data: 与训练同布局的观测。
+            known_input_v: 不参与重建，仅为接口对称保留；传 None 亦可。
+
+        Returns:
+            (N,) 输入估计 [V]。
+        """
+        del known_input_v
+        masks = _mask_matrix(data).reshape(len(data.adc2_code), self.n_slices, -1)
+        delta = self.reference_high_v - self.reference_low_v
+        term = self.reference_low_v + delta * masks
+        w = self.weights
+        numerator = np.asarray(data.fine_v, dtype=float) - self.offset_v - np.sum(
+            w[None, :, :] * term, axis=(1, 2)
+        )
+        denominator = np.sum(w[None, :, :] * np.ones_like(term), axis=(1, 2))
+        if np.any(denominator <= 0):
+            raise ConfigError("calibrated signal gain is nonpositive")
+        return numerator / denominator
+
+    def to_dict(self) -> dict:
+        """导出系数与诊断。"""
+        return {
+            "schema": "element_weights_v1",
+            "weights_c_per_cf": self.weights.tolist(),
+            "offset_v": self.offset_v,
+            "residual_rms_v": self.residual_rms_v,
+            "n_samples": self.n_samples,
+            "rank": self.rank,
+            "condition": self.condition,
+            "reference_high_v": self.reference_high_v,
+            "reference_low_v": self.reference_low_v,
+            "n_main": self.n_main,
+            "n_sub": self.n_sub,
+        }
+
+
+def fit_element_weights(
+    data: DigitalObservation,
+    known_input_v,
+    *,
+    reference_high_v: float,
+    reference_low_v: float,
+    rank_rtol: float = 1e-10,
+) -> ElementWeightCalibration:
+    """残差域逐单元权值拟合（审查给出的可辨识形式）。
+
+    Args:
+        data: 静态电荷域观测；不得有溢出。
+        known_input_v: (N,) 已知输入 [V]（训练激励必须是已知量）。
+        reference_high_v/reference_low_v: 实际轨电压 [V]。
+        rank_rtol: 秩判定阈值。
+
+    Returns:
+        ElementWeightCalibration。
+
+    Raises:
+        ConfigError: 含溢出、维度不符或秩不足。
+    """
+    data.validate()
+    if not data.static_charge_domain:
+        raise ConfigError("element-weight training requires a controlled static charge domain")
+    if np.any(data.overflow):
+        raise ConfigError(
+            f"training contains {int(np.count_nonzero(data.overflow))} clipped conversions"
+        )
+    x = np.asarray(known_input_v, dtype=float)
+    masks = _mask_matrix(data)
+    n, k = masks.shape
+    if x.shape != (n,):
+        raise ConfigError("known input must supply one value per sample")
+    if np.any(~np.isfinite(x)):
+        raise ConfigError("known input must be finite")
+    delta = float(reference_high_v) - float(reference_low_v)
+    if not np.isfinite(delta) or delta <= 0:
+        raise ConfigError("reference rails must be finite with V_high > V_low")
+    # 电容两端电压：F = x - (V_low + ΔV*m)
+    voltages = x[:, None] - (float(reference_low_v) + delta * masks)
+    # 从不切换的单元（本拓扑里是每片子阵列的第 8 位）彼此 F 完全相同，逐片不可分辨；
+    # 合并成一列拟合一个公共权重，再摊回每个单元。丢列会让重建的分母少算这部分电容。
+    fixed = np.ptp(masks, axis=0) == 0
+    if np.any(fixed):
+        merged = voltages[:, fixed].sum(axis=1, keepdims=True)
+        design = np.column_stack([voltages[:, ~fixed], merged, np.ones(n)])
+    else:
+        design = np.column_stack([voltages, np.ones(n)])
+    n_columns = design.shape[1] - 1
+    if np.any(~np.isfinite(design)):
+        raise ConfigError("design matrix contains non-finite entries")
+    if n <= k + 1:
+        raise ConfigError(
+            f"{n} samples cannot identify {k + 1} coefficients with residual degrees of freedom"
+        )
+    theta, _, rank, singular = np.linalg.lstsq(design, np.asarray(data.fine_v, dtype=float), rcond=None)
+    if int(rank) < n_columns + 1:
+        raise ConfigError(
+            f"rank {int(rank)}/{n_columns + 1}: masks and input do not identify every weight"
+        )
+    residual = np.asarray(data.fine_v, dtype=float) - design @ theta
+    n_slices = int(data.slice_ids.max()) + 1
+    flat = np.empty(k, dtype=float)
+    flat[~fixed] = theta[: n_columns - 1] if np.any(fixed) else theta[:n_columns]
+    if np.any(fixed):
+        flat[fixed] = theta[n_columns - 1]
+    weights = flat.reshape(n_slices, data.main_masks.shape[2] + data.sub_masks.shape[2])
+    return ElementWeightCalibration(
+        weights=weights,
+        offset_v=float(theta[-1]),
+        residual_rms_v=float(np.sqrt(np.mean(residual**2))),
+        n_samples=n,
+        rank=int(rank),
+        condition=float(singular[0] / singular[-1]),
+        reference_high_v=float(reference_high_v),
+        reference_low_v=float(reference_low_v),
+        n_main=data.main_masks.shape[2],
+        n_sub=data.sub_masks.shape[2],
     )

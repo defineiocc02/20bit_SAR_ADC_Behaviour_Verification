@@ -60,7 +60,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 14.99,
+      "runtime_s": 11.37,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -99,7 +99,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 16.03,
+      "runtime_s": 13.9,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -138,7 +138,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 15.39,
+      "runtime_s": 16.23,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -153,31 +153,31 @@
         "points": 256,
         "repeats": 32,
         "lsb20_v": 5.7220458984375e-06,
-        "inl_max_lsb20": 6.241813996738266,
-        "inl_max_ppm_fs": 5.952657696474329,
-        "offset_v": 6.632879376387153e-06,
-        "gain_err": -8.072423074141345e-06,
-        "sigma_e_mean_lsb20": 17.782287125051965,
-        "dnl_bin_lsb20_max": 8.881803921579072,
+        "inl_max_lsb20": 6.1915172840143855,
+        "inl_max_ppm_fs": 5.9046910133499,
+        "offset_v": 6.3262414186950056e-06,
+        "gain_err": -8.065505618647772e-06,
+        "sigma_e_mean_lsb20": 17.850393452484678,
+        "dnl_bin_lsb20_max": 9.006803921579072,
         "dnl_bin_span_lsb20": 4050,
         "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL"
       },
       "dynamic": {
         "fin_hz": 1000976.5625,
         "n_samples": 8192,
-        "sndr_db": 86.93555216096426,
-        "snr_db": 86.94781251022853,
-        "sfdr_db": 100.34444146816199,
-        "thd_db": -109.47721073120834,
-        "enob": 14.148762817435925,
-        "nsd_v_rthz_full": 2.1294287254578288e-08,
+        "sndr_db": 86.93341694050774,
+        "snr_db": 86.94503419842279,
+        "sfdr_db": 100.33517755093291,
+        "thd_db": -109.65427445189579,
+        "enob": 14.148408129652449,
+        "nsd_v_rthz_full": 2.130110029459402e-08,
         "dr_db": 84.90126919031044,
         "nsd_v_rthz_dr": 2.6979121224493796e-08,
         "noise_rms_small_v": 0.00012065429806235099,
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 16.71,
+      "runtime_s": 11.59,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -192,11 +192,11 @@
         "points": 256,
         "repeats": 32,
         "lsb20_v": 5.7220458984375e-06,
-        "inl_max_lsb20": 6.71317963742617,
-        "inl_max_ppm_fs": 6.4021870016347595,
-        "offset_v": 3.9527658372874586e-06,
-        "gain_err": -7.893846766965989e-06,
-        "sigma_e_mean_lsb20": 14.750432084038593,
+        "inl_max_lsb20": 6.781459472539325,
+        "inl_max_ppm_fs": 6.46730372671063,
+        "offset_v": 3.7376303225512864e-06,
+        "gain_err": -7.887881254888964e-06,
+        "sigma_e_mean_lsb20": 14.762356427509744,
         "dnl_bin_lsb20_max": 7.944303921579073,
         "dnl_bin_span_lsb20": 4050,
         "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL"
@@ -204,19 +204,19 @@
       "dynamic": {
         "fin_hz": 1000976.5625,
         "n_samples": 8192,
-        "sndr_db": 87.99517363010374,
-        "snr_db": 88.013939126908,
-        "sfdr_db": 101.1472681265107,
-        "thd_db": -107.84223854084243,
-        "enob": 14.324779672774707,
-        "nsd_v_rthz_full": 1.8834614587516437e-08,
+        "sndr_db": 87.9915580184514,
+        "snr_db": 88.0102146393974,
+        "sfdr_db": 101.15596065736446,
+        "thd_db": -107.85036402640274,
+        "enob": 14.32417907283246,
+        "nsd_v_rthz_full": 1.8842692785662922e-08,
         "dr_db": 86.59952044442835,
         "nsd_v_rthz_dr": 2.2187850799375454e-08,
         "noise_rms_small_v": 9.922708532405314e-05,
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 14.44,
+      "runtime_s": 10.51,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -292,7 +292,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 28.7,
+      "runtime_s": 28.42,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {

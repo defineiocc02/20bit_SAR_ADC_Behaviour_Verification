@@ -2,8 +2,8 @@ config,status,inl_lsb20,dnl_bin_lsb20,sndr_db,snr_db,sfdr_db,dr_db,nsd_nv
 A0_ideal,RUN,0.70,1.38,120.89,120.91,142.10,120.91,0.43
 A1_mismatch,RUN,24.49,16.51,89.05,90.16,99.32,87.92,19.06
 A2_mismatch_noise,RUN,24.55,16.54,88.06,88.94,99.26,87.11,20.91
-A3_dem_rotation,RUN,6.24,8.88,86.94,86.95,100.34,84.90,26.98
-A4_dem_uniform_plan,RUN,6.71,7.94,88.00,88.01,101.15,86.60,22.19
+A3_dem_rotation,RUN,6.19,9.01,86.93,86.95,100.34,84.90,26.98
+A4_dem_uniform_plan,RUN,6.78,7.94,87.99,88.01,101.16,86.60,22.19
 A5_calibration,RUN,10.52,18.39,88.92,88.93,109.73,87.11,20.91
 A6_dither_in_loop,NOT_RUN,,,,,,,
 A7_full_dynamic,NOT_RUN,,,,,,,

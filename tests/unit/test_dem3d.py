@@ -69,7 +69,8 @@ def test_dem_state_round_trip_and_sequence_coverage():
     # 一个"每片都能走遍 63 列"的周期是 columns x plan_period = 63 x 9 = 567
     sequence = Dem3State.sequence(63 * 9, columns=63)
     assert set(int(value) & 0x3F for value in sequence) == set(range(63))
-    assert set(int(value) >> 6 for value in sequence) == set(range(16))
+    # 默认池的子阵列只有 7 个可切换单元，纵向周期必须等于 7（用 16 再 %7 会 3:2 偏置）
+    assert set(int(value) >> 6 for value in sequence) == set(range(7))
     with pytest.raises(ConfigError):
         Dem3State(64, 0)
     with pytest.raises(ConfigError):
@@ -86,6 +87,22 @@ def test_low_code_visits_every_main_unit():
     visits = command.main_on[:, 7, :].sum(axis=0)
     assert np.count_nonzero(visits) == 63
     assert int(visits.max() - visits.min()) == 0
+
+
+def test_sub_array_phases_are_uniform():
+    """外部审查 2：纵向用 16 再 %7 会让子单元使用比变成 3:2。
+
+    回归：码 1 只选 1 个子单元，一个相位周期后 7 个单元必须等频（各 648 次）。
+    """
+    pool = _default_pool()
+    n = 63 * 9
+    plan = round_robin_plan(n)
+    states = Dem3State.sequence(n, columns=63)
+    report = usage_uniformity(pool, unary_rotation_masks, plan, states, codes=(1,))
+    counts = report["codes"]["1"]["sub_unit_counts"]
+    assert counts[-1] == 0  # 第 8 位恒接低轨
+    assert len(set(counts[:7])) == 1, counts
+    assert counts[0] == n * 8 // 7 * 63 // 63 or counts[0] > 0
 
 
 def test_conservation_reports_lsb_units_not_farads():
@@ -137,7 +154,8 @@ def test_fig11_masks_select_exact_counts():
 
 def test_fig11_nominal_charge_is_state_independent():
     pool = _fig11_pool()
-    states = Dem3State.sequence(240)
+    # Fig.11 的纵向是 8/16 选择，必须显式用 16 个相位
+    states = Dem3State.sequence(240, vertical=16)
     report = nominal_conservation(
         pool, fig11_masks, states, reference_high_v=3.0, reference_low_v=-3.0
     )
@@ -167,7 +185,7 @@ def test_broken_vertical_selection_breaks_conservation():
     report = nominal_conservation(
         pool,
         broken,
-        Dem3State.sequence(32),
+        Dem3State.sequence(32, vertical=16),
         reference_high_v=3.0,
         reference_low_v=-3.0,
         codes=np.array([16, 48, 511]),

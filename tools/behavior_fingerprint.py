@@ -88,7 +88,13 @@ def main() -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    model = _build_model(1e-3, True)
+    # 失配 σ 不写死：取 DefaultParameters 的唯一真源（由论文两指标反解，见
+    # docs/mechanisms/paper_metrics_calibration.md）。写死 1e-3 会在参数调整后
+    # 让指纹基线悄悄脱离实际模型。
+    from adi_model.defaults import DefaultParameters as _DefaultParameters
+
+    mismatch_std = _DefaultParameters().unit_mismatch_std
+    model = _build_model(mismatch_std, True)
     tone = lambda t: V_FS * 0.9 * np.sin(2 * np.pi * TONE_HZ * t)  # noqa: E731
     entry = {}
 
@@ -128,7 +134,14 @@ def main() -> int:
         "fs_hz": FS_HZ,
         "v_fs_v": V_FS,
         "seed": 20261105,
-        "model": "DefaultModel(mismatch=1e-3, noise on)",
+        # 描述必须从**实际参数**读，不能写死：写死会在参数调整后留下虚假记录
+        # （实测曾写成 "mismatch=1e-3" 而实际已是 1e-4）。
+        "model": (
+            "DefaultModel("
+            f"mismatch={model.parameters.unit_mismatch_std:.0e}, "
+            f"adc2_n_bits={model.cfg.adc2_n_bits}, "
+            "noise on)"
+        ),
         "entries": entry,
         "compare": "all *_sha256 fields must match; rms_v is a sanity check, not a criterion",
     }

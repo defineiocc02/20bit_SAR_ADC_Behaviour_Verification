@@ -197,6 +197,59 @@ def check_entry_points() -> None:
            if ok else f"missing={missing} main={core_entry}")
 
 
+def check_fingerprint_baseline() -> None:
+    """C7: 行为指纹基线的元数据必须与**源码里的默认参数**一致。
+
+    2026-11-13：本会话改了 σ(1e-3→1e-4)、ADC2 位数(12→14)、ra_clip(0.5→0.45)、
+    子阵列列数(5→4)，指纹漂移了 12 个字段——但**没人会注意到**，除非显式比对。
+    这条检查把"基线描述必须跟上代码"变成门禁的一部分。
+
+    实现上**不 import adi_model**：本检查跑在系统 python（3.9）下，而仓库要求 3.13。
+    改为用正则从 `src/adi_model/defaults.py` 读默认值，做文本比对——
+    这样 C7 在任何解释器下都能跑，不依赖运行时环境。
+    """
+    baseline = ROOT / "docs/restructure/behavior_fingerprint.json"
+    defaults = ROOT / "src/adi_model/defaults.py"
+    if not baseline.is_file():
+        record("C7 fingerprint baseline", False, "behavior_fingerprint.json missing")
+        return
+    if not defaults.is_file():
+        record("C7 fingerprint baseline", False, "src/adi_model/defaults.py missing")
+        return
+    try:
+        document = json.loads(baseline.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as failure:
+        record("C7 fingerprint baseline", False, f"baseline is not valid JSON: {failure}")
+        return
+    model_text = str(document.get("model", ""))
+    source = defaults.read_text(encoding="utf-8")
+
+    problems = []
+    sigma_match = re.search(r"unit_mismatch_std:\s*float\s*=\s*([0-9.eE+-]+)", source)
+    bits_match = re.search(r"adc2_n_bits:\s*int\s*=\s*(\d+)", source)
+    if sigma_match is None:
+        problems.append("cannot find unit_mismatch_std default in defaults.py")
+    else:
+        sigma = float(sigma_match.group(1))
+        if f"mismatch={sigma:.0e}" not in model_text:
+            problems.append(
+                f"baseline says {model_text!r} but defaults.py has mismatch={sigma:.0e}"
+            )
+    if bits_match is None:
+        problems.append("cannot find adc2_n_bits default in defaults.py")
+    else:
+        bits = int(bits_match.group(1))
+        if f"adc2_n_bits={bits}" not in model_text:
+            problems.append(
+                f"baseline says {model_text!r} but defaults.py has adc2_n_bits={bits}"
+            )
+    if problems:
+        record("C7 fingerprint baseline", False, "; ".join(problems))
+        return
+    record("C7 fingerprint baseline", True,
+           f"baseline metadata matches defaults.py ({model_text})")
+
+
 def main() -> int:
     check_dependency_direction()
     check_caaz_isolation()
@@ -204,6 +257,7 @@ def main() -> int:
     check_result_identity()
     check_duplicate_formulas()
     check_entry_points()
+    check_fingerprint_baseline()
     width = max(len(name) for name, _, _ in results)
     failures = 0
     for name, ok, detail in results:

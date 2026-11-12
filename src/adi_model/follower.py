@@ -33,7 +33,7 @@ import numpy as np
 
 from ._arrays import readonly
 from .config import ConfigError
-from .dem import SplitSwitchCommand, _integer_array
+from .dem import _integer_array
 from .dither import complete_flash3_sar6_prefix_table
 
 # 当前 core 的已决事件数：3b flash + 6b SAR = 7 次已决前缀消费（见 complete_flash3_sar6_prefix_table）。

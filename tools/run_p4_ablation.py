@@ -17,7 +17,7 @@ from __future__ import annotations
 import argparse
 import json
 import time
-from dataclasses import asdict, replace
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np

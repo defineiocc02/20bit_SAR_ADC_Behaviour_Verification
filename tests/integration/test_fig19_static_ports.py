@@ -10,18 +10,18 @@ from fractions import Fraction
 import numpy as np
 import pytest
 
-from adi_model.simulation.config import ConfigError
-from adi_model.defaults import DefaultParameters, default_model
+from adi_model.behavioral.sampler import dc_input
 from adi_model.control.dither import (
     Fig19DitherProgram,
     Fig19DitherRangeError,
     Fig19StaticSpec,
     complete_flash3_sar6_prefix_table,
 )
-from adi_model.topology.mapper import Mapper
+from adi_model.defaults import DefaultParameters, default_model
+from adi_model.simulation.config import ConfigError
 from adi_model.simulation.pipeline import run_pipeline
-from adi_model.behavioral.sampler import dc_input
 from adi_model.simulation.slice_pool import PhysicalSlicePool
+from adi_model.topology.mapper import Mapper
 
 STEP_Q = 2**24
 
@@ -259,7 +259,9 @@ def test_source_dither_request_needs_words_and_cannot_silently_keep_default_nois
 )
 def test_independent_oracle_rejects_faulted_real_model_wiring(ideal_model, monkeypatch, fault):
     """在内存中故意改变真实端口/数字项，再要求独立oracle检出；非修正错数据。"""
-    from adi_model import pipeline_engine
+    # 2026-11-12: pipeline_engine moved into adi_model.simulation; the old
+    # `from adi_model import pipeline_engine` silently stopped resolving.
+    from adi_model.simulation import pipeline_engine
 
     words = np.arange(64)
     if fault == "swap_d5_d4":

@@ -16,8 +16,8 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import numpy as np  # noqa: E402
+import matplotlib.pyplot as plt
+import numpy as np
 
 ROOT = Path(__file__).resolve().parents[2]
 REPORTS = ROOT / "verification" / "reports"
@@ -29,7 +29,7 @@ def _sha() -> str:
         return subprocess.run(
             ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True
         ).stdout.strip()
-    except Exception:  # noqa: BLE001
+    except Exception:
         return "unknown"
 
 
@@ -68,7 +68,7 @@ def figure_a_matrix(results: dict) -> dict:
             text = f"{entry.get('compared', 0)}/{entry.get('vectors', 0)}" if col == 2 else ""
             ax.text(col, row, text or ("ok" if grid[row, col] >= 0.99 else "—"),
                     ha="center", va="center", fontsize=8, color="black")
-    for offset, (label, _) in enumerate(deferred):
+    for offset, (_, _detail) in enumerate(deferred):
         ax.text(1.5, len(modules) + offset, "NOT_RUN", ha="center", va="center",
                 fontsize=8, color="#8b0000")
     ax.set_title(
@@ -94,8 +94,11 @@ def figure_c_fixed_point_error() -> dict:
     """
     from verification.cosim.scoreboard import VECTORS, load_mem
     from verification.reference.datapath_ref import (
-        WEIGHT_SCALE, VOLTAGE_SCALE, OUTPUT_COUNT,
-        adc2_bin_center, recon_terms,
+        OUTPUT_COUNT,
+        VOLTAGE_SCALE,
+        WEIGHT_SCALE,
+        adc2_bin_center,
+        recon_terms,
     )
     from verification.vectors.generate import gen_recon_core
 
@@ -128,7 +131,7 @@ def figure_c_fixed_point_error() -> dict:
                 )
                 weights.append(int(rom[sid][unit]))
                 on.append(sel)
-        terms = recon_terms(weights, on, [1 - 2 * o for o in on], gain_mode="all_signal")
+        terms = recon_terms(weights, on, [1 - 2 * o for o in on])
         fine, _ = adc2_bin_center(codes[index], mins[index], maxs[index], 12)
         # Integer path (what the RTL does).
         numerator = (fine - offs[index]) * WEIGHT_SCALE - terms.rails_q30 * VOLTAGE_SCALE \
@@ -204,6 +207,7 @@ def figure_d_dem_mask() -> dict:
 
 
 def main() -> int:
+    """Render every figure whose input data exists; report the rest as NOT_RUN."""
     FIG.mkdir(parents=True, exist_ok=True)
     results = _load("results_module.json") or {}
     produced = [figure_a_matrix(results), figure_c_fixed_point_error(), figure_d_dem_mask()]

@@ -86,43 +86,50 @@ def recon_terms(
     on: list[int],
     signal_sign: list[int],
     *,
-    gain_mode: str = "masked",
+    signal_connected: list[int] | None = None,
 ) -> ReconTerms:
-    """Accumulate rails/gain/total over the 8x71 active-unit grid.
+    """Accumulate rails/gain/total over the active-unit grid.
 
-    ``weights`` are Q30 unsigned, ``on`` are 0/1 selection bits and
-    ``signal_sign`` are the per-unit rail coefficients (+1/-1 for ordinary cells,
-    -2/0/+2 for the sampling-dither cell).
+    Contract §3.2, read verbatim:
 
-    ``gain_mode`` selects which contract text is being honoured:
+        rails = sum(W * s)      # s = 1 - 2*on for ordinary units
+        gain  = sum(W * a)      # a = 1 for ordinary units, 0 for sampling-dither units
+        total = sum(W)
 
-    * ``"masked"``   — RTL_ARITHMETIC_CONTRACT.md §3.2, ``gain = sum(W*a)``.
-    * ``"all_signal"`` — `recon_core`'s documented restriction: the core only
-      supports the AllSIGNAL subset, where every active unit is a signal unit and
-      therefore ``G = T``. Verified against the RTL on 2026-11-12; the two
-      definitions disagree by 5.4e11 Q30 on the first vector, so this is not a
-      cosmetic distinction.
+    The critical distinction is `a` vs `on`:
+
+    * ``on`` is the **conversion switch state** of this sample. It flips ``s``
+      between +1 and -1, i.e. it moves charge between the rails.
+    * ``a`` is the **signal-connection flag**. Ordinary units are always
+      connected (the contract says so explicitly: "普通单位的 a=1"), so ``a`` is 1
+      even when ``on`` is 0.
+
+    Using the switch mask as ``a`` would make ``gain`` look mask-dependent and
+    would wrongly suggest the RTL deviates from the contract. That misreading
+    was made once in this repository and is recorded in
+    `verification/reports/VERIFICATION_REPORT.md` §3.1 so it is not repeated.
+
+    ``signal_connected`` marks the sampling-dither units that carry ``a = 0``.
+    Everything not marked there is an ordinary unit with ``a = 1``.
     """
-    if gain_mode not in ("masked", "all_signal"):
-        raise ValueError("gain_mode must be 'masked' or 'all_signal'")
     if not (len(weights) == len(on) == len(signal_sign)):
         raise ValueError("weights/on/signal_sign must cover the same unit list")
+    if signal_connected is not None and len(signal_connected) != len(weights):
+        raise ValueError("signal_connected must cover the same unit list")
     rails = 0
     gain = 0
     total = 0
-    for weight, selected, sign in zip(weights, on, signal_sign, strict=True):
+    for index, (weight, _selected, sign) in enumerate(zip(weights, on, signal_sign, strict=True)):
         rails += weight * sign
-        if gain_mode == "masked":
-            gain += weight * selected
+        connected = 1 if signal_connected is None else int(signal_connected[index])
+        gain += weight * connected
         total += weight
-    if gain_mode == "all_signal":
-        gain = total
     return ReconTerms(rails, gain, total)
 
 
 @dataclass(frozen=True)
 class ReconResult:
-    """Output word plus the three independent status bits."""
+    """Output word plus the independent status bits."""
 
     word: int
     clip_low: bool

@@ -77,13 +77,33 @@ def test_sadc_code_counts_bits_and_tolerates_bubbles():
     assert sadc_code(0b1011) == 3
 
 
+def test_gain_uses_signal_connection_not_the_switch_mask():
+    """Contract §3.2: ordinary units have a=1 even when their switch is off.
+
+    This pins the exact misreading that was made once in this repo: using the
+    conversion mask as `a` makes gain look mask-dependent and wrongly suggests
+    the RTL contradicts the contract.
+    """
+    weights = [1 << 30] * 4
+    on = [1, 0, 1, 0]
+    sign = [1 - 2 * bit for bit in on]
+    terms = recon_terms(weights, on, sign)
+    assert terms.total_q30 == 4 << 30
+    assert terms.gain_q30 == 4 << 30, "gain must count every connected unit, not just the on ones"
+    assert terms.rails_q30 == 0
+
+    # With a sampling-dither unit the connection flag does matter.
+    terms_dither = recon_terms(weights, on, sign, signal_connected=[1, 1, 0, 0])
+    assert terms_dither.gain_q30 == 2 << 30
+
+
 def test_reconstruct_clips_low_and_reports_the_flag():
     """Below the negative rail the word saturates at 0 and the flag goes high.
 
     The threshold is set by gain, so the stimulus has to be far enough below
     -1.0 V/Vfs to leave no doubt: with gain = 4 units the clip point is -4 V/Vfs.
     """
-    terms = recon_terms([1 << 30] * 4, [1, 1, 0, 0], [1, 1, -1, -1], gain_mode="all_signal")
+    terms = recon_terms([1 << 30] * 4, [1, 1, 0, 0], [1, 1, -1, -1])
     result = reconstruct(fine_q=-(1 << 40), offset_q=0, injection_q=0, terms=terms)
     assert result.word == 0
     assert result.clip_low

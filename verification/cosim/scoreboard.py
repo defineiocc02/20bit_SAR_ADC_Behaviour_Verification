@@ -31,6 +31,7 @@ class Mismatch:
     detail: str = ""
 
     def render(self, module: str, seed: int) -> str:
+        """Format the failure block a reviewer can paste into a bug report."""
         return (
             f"First mismatch\n"
             f"  module        : {module}\n"
@@ -94,6 +95,7 @@ def _seed_of(module: str) -> int:
 
 
 def compare_sadc(out_text: str) -> tuple[int, int, Mismatch | None]:
+    """Compare the population count for every comparator pattern."""
     from verification.reference.datapath_ref import sadc_code
 
     raw = load_mem(VECTORS / "sadc_enc" / "cmp_raw.mem")
@@ -109,6 +111,7 @@ def compare_sadc(out_text: str) -> tuple[int, int, Mismatch | None]:
 
 
 def compare_unit_therm(out_text: str) -> tuple[int, int, Mismatch | None]:
+    """Compare the full main/sub mask for every rank/count vector."""
     from verification.reference.datapath_ref import thermometer
 
     base = VECTORS / "unit_therm"
@@ -140,6 +143,7 @@ def _signed_from_hex(token: str, bits: int) -> int:
 
 
 def compare_adc2(out_text: str) -> tuple[int, int, Mismatch | None]:
+    """Compare bin centre and saturation flag over all ADC2 codes."""
     from verification.reference.datapath_ref import adc2_bin_center
 
     base = VECTORS / "adc2_dec"
@@ -162,6 +166,7 @@ def compare_adc2(out_text: str) -> tuple[int, int, Mismatch | None]:
 
 
 def compare_div_floor(out_text: str, expected_cycles: int = 9) -> tuple[int, int, Mismatch | None]:
+    """Compare quotient, error flag and measured latency."""
     from verification.reference.fixed_point import floor_div
 
     base = VECTORS / "div_floor"
@@ -283,9 +288,9 @@ def compare_recon_core(out_text: str, expected_latency: int = 11) -> tuple[int, 
                 weights.append(int(rom[sid][unit]))
                 on.append(selected)
                 sign.append(1 - 2 * selected)
-        # recon_core only implements the AllSIGNAL subset (G = T); the generic
-        # contract's sum(W*a) is not what this core does. See datapath_ref.
-        terms = recon_terms(weights, on, sign, gain_mode="all_signal")
+        # Contract §3.2: ordinary units carry a = 1 regardless of the switch
+        # state, so gain = sum(W) here. `on` only moves rails.
+        terms = recon_terms(weights, on, sign)
         fine, _ = adc2_bin_center(codes[index], mins[index], maxs[index], 12)
         result = reconstruct(
             fine_q=fine, offset_q=offs[index], injection_q=injs[index], terms=terms

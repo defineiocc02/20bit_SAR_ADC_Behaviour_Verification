@@ -27,9 +27,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from adi_model.simulation.config import ConfigError
 from adi_model.control.dem import SplitSwitchCommand, SplitSwitchGeometry, _integer_array
 from adi_model.control.timing import SlicePlan
+from adi_model.simulation.config import ConfigError
 
 FIG11_COLUMNS = 15
 VERTICAL_UNITS = 16
@@ -314,6 +314,35 @@ def nominal_conservation(
     }
 
 
+def _per_physical_slice_counts(main_on, sub_on, slice_ids, geometry):
+    """Accumulate switch counts by **physical slice id**, not by slot.
+
+    `main_on` has shape ``[sample, active_slot, unit]``. Summing axis 0 gives
+    per-slot statistics; with a rotating pool a slot is not a slice, so that
+    number cannot answer "is every physical unit used evenly".
+
+    Returns ``(per_slice_main, per_slice_sub)`` with shapes
+    ``[n_slices, n_main]`` and ``[n_slices, n_sub]``. Slices that are never
+    selected stay as zero rows on purpose: a unit that should have been used and
+    was not must not be filtered out of the report.
+    """
+    main = np.asarray(main_on)
+    sub = np.asarray(sub_on)
+    ids = np.asarray(slice_ids)
+    if main.ndim != 3 or sub.ndim != 3 or ids.ndim != 2:
+        raise ConfigError("switch masks and slice ids must be rank-3 / rank-2")
+    if main.shape[:2] != ids.shape or sub.shape[:2] != ids.shape:
+        raise ConfigError("switch masks must agree with the slice id plan")
+    if main.shape[2] != geometry.n_main or sub.shape[2] != geometry.n_sub:
+        raise ConfigError("switch mask unit extent disagrees with the geometry")
+    per_slice_main = np.zeros((geometry.n_slices, geometry.n_main), dtype=np.int64)
+    per_slice_sub = np.zeros((geometry.n_slices, geometry.n_sub), dtype=np.int64)
+    for lane in range(ids.shape[1]):
+        np.add.at(per_slice_main, ids[:, lane], main[:, lane, :])
+        np.add.at(per_slice_sub, ids[:, lane], sub[:, lane, :])
+    return per_slice_main, per_slice_sub
+
+
 def usage_uniformity(
     pool,
     binding,
@@ -349,9 +378,13 @@ def usage_uniformity(
             raise ConfigError("usage audit codes must be explicit 9-bit integers")
         repeated = np.full(conv.shape[0], code, dtype=np.int64)
         command = binding(pool.geometry, repeated, packed, conv)
-        per_slice_main = command.main_on.sum(axis=0)  # (slices, units)
+        # Per **physical slice** x unit, scattered through the real slice ids.
+        # `command.main_on.sum(axis=0)` would only give per-slot statistics.
+        per_slice_main, per_slice_sub = _per_physical_slice_counts(
+            command.main_on, command.sub_on, conv, pool.geometry
+        )
         main = per_slice_main.sum(axis=0)
-        sub = command.sub_on.sum(axis=(0, 1))
+        sub = per_slice_sub.sum(axis=0)
         selected_main = int(repeated[0] // 8) if pool.geometry.n_main == 63 else None
         active_main = main[main > 0]
         active_sub = sub[:-1][sub[:-1] > 0] if pool.geometry.n_sub == 8 else sub[sub > 0]
@@ -375,6 +408,8 @@ def usage_uniformity(
         report["codes"][str(code)] = {
             "per_slice_units_covered": slice_coverage.tolist(),
             "per_slice_coverage_min": int(slice_coverage.min()),
+            "unused_physical_slices": np.flatnonzero(slice_coverage == 0).tolist(),
+            "per_slice_sub_units_covered": np.count_nonzero(per_slice_sub, axis=1).tolist(),
             "main_unit_counts": main.tolist(),
             "main_range": main_range,
             "main_units_covered": covered_main,

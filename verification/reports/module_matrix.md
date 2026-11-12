@@ -1,7 +1,7 @@
 # V1 module consistency matrix
 
 - host: `vm-meow`
-- started: 2026-11-12T21:51:23
+- started: 2026-11-12T22:06:13
 - overall: **PASS**
 
 | module | Python fixed-point ref | RTL | directed | random | corner | vectors | bit-exact | status |

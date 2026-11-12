@@ -79,11 +79,10 @@ python -m verification.run_verification --level closed_loop
 
 ## 5. 验证过程中发现的两件事
 
-**(1) 合同与实现的 `gain` 定义不同。** `RTL_ARITHMETIC_CONTRACT.md` §3.2 写 `gain = Σ(W·a)`，
-但 `recon_core` 的头注释写"本核仅支持 AllSIGNAL 子集，G=T"。实测：按 §3.2 算，
-第一个向量的字是 124308，RTL 给 309535；按 `G=T` 算正好 309535。
-参考模型因此加了 `gain_mode` 参数，**两种口径都保留**，并注明哪一种对应实现。
-这不是把参考改成"能过就行"——是合同正文与实现限制不一致，需要走 ADR 收敛。
+**(1) 【已撤回】曾把 `gain` 写成"合同与实现不一致"，是我读错合同。**
+合同 §3.2 明文"普通单位的 `a=1`"，`a` 是信号连接标志，不是转换开关 `on`；
+普通单位下 `gain = ΣW = total`，与 `recon_core` 的 `G=T` 完全一致。
+细节与撤回记录见 `reports/VERIFICATION_REPORT.md` §3.1。
 
 **(2) `.mem` 的位宽不能用十六进制位数推断。** 63 位字段写成 16 个 nibble，
 按文本宽度解析会把所有负数读成大正数，表现为"RTL 在 d≥1 时全错"。

@@ -31,23 +31,70 @@
 * 每个模块的激励都含**非法/边界输入**：d=0、count 越界、重复 slice id、id 越界、负被除数。
   这些不是"能跑就行"的正例，而是合同规定必须拒绝或饱和的场景。
 
-## 3. 验证抓到的两处问题
+## 3. 过程中的四次更正（含一次**撤回**）
 
-### 3.1 `gain` 口径：合同写 `Σ(W·a)`，实现是 `G=T`
+### 3.1 【已撤回】`gain` 口径"不一致"——是我读错了合同
 
-`RTL_ARITHMETIC_CONTRACT.md` §3.2 把增益定义为 `gain = Σ(W·a)`；
-`recon_core` 的头注释写"本核仅支持已独立证明的 AllSIGNAL 子集，G=T"。
+上一版这里写着：合同 §3.2 是 `gain = Σ(W·a)`，而 `recon_core` 是 `G=T`，
+同一向量算出 124308 vs 309535，属于"合同与实现不一致"。
 
-实测差异（向量 0）：按 §3.2 得字 **124308**，RTL 得 **309535**；按 `G=T` 得 **309535**。
+**这个结论是错的，现予撤回。** 合同 §3.2 紧接着写明：
 
-处理：参考模型加 `gain_mode={"masked","all_signal"}`，两种口径都保留，
-`recon_core` 用 `all_signal`。**这不是把参考改成能过**——是合同正文与实现限制不一致，
-需要走 ADR 收敛；在收敛前，任何"逐单元权值"结论都不能引用 §3.2 的 `Σ(W·a)`。
+> 普通单位的 `a=1`、`s ∈ {−1,+1}`；采样 dither 单位的 `a=0`、`s ∈ {−2,0,+2}`。
 
-### 3.2 `.mem` 位宽不能用十六进制位数推断
+`a` 是**信号连接标志**，`on` 是**转换开关状态**；普通单位恒有 `a=1`，
+开关只翻转 `s`。我把 DAC 的 `main_on/sub_on`（即 `on`）当成了 `a`，
+于是 `gain` 看起来随 mask 变，才误以为 RTL 偏离合同。
+
+按正确读法，普通单位下 `gain = Σ W = total`，合同的 `G=T` 与 RTL 完全一致。
+改正后 `recon_core` 仍是 **101/101 位真一致**，说明 RTL 一直是对的。
+
+已加回归测试 `test_gain_uses_signal_connection_not_the_switch_mask`，
+把这个区分钉住；`datapath_ref.recon_terms` 的 docstring 也写明
+`a` 与 `on` 不是一回事，并指向本条记录。
+
+> 这一段保留在正文而不是删掉：一个只有"通过"记录的验证报告没有信息量，
+> 而"参考写错了、被 RTL 抓出来"恰好证明两侧不是同源拷贝。
+
+### 3.2 【真缺陷，已修】DEM 逐片审计实际统计的是逻辑 slot
+
+`dem3d.usage_uniformity` 里原本是：
+
+```python
+per_slice_main = command.main_on.sum(axis=0)   # 形状 (active_slot, unit)
+```
+
+`main_on` 的形状是 `[sample, active_slot, unit]`，沿样本轴求和得到的是
+**每个逻辑 slot** 的统计。采样池是 18 选 8 轮转的，slot 不是物理片，
+这个数不能回答"每个物理单元是否被均衡使用"，却被命名为
+`per_slice_units_covered`。
+
+现改为按真实 `slice_ids` 散列到 `[n_slices, n_unit]`
+（新增 `_per_physical_slice_counts`），并补两个测试：
+
+* `test_physical_slice_audit_is_not_slot_aggregation`：构造"每片只用到 21/63、
+  但各片窗口不同"的反例。旧的 slot 聚合会报 63/63 全覆盖，新的逐片统计报 21/63。
+  **断言落在审计结果本身上**，不是靠一个不参与判定的诊断字段。
+* `test_slice_ids_reach_every_physical_row_once_per_rotation`：没被选中的物理片
+  必须保留为零行，不能被过滤掉；同时校验逐笔 visit 数守恒。
+
+### 3.3 【真回归，已修】迁移漏了 `from adi_model import <模块名>` 这一种写法
+
+把 `pipeline_engine` 搬进 `adi_model.simulation` 后，`tests/integration/test_fig19_static_ports.py`
+里的 `from adi_model import pipeline_engine` 直接 ImportError，导致
+**故障注入测试整组失效**（它本该证明"交换 dither 位能被独立 oracle 抓住"）。
+
+我的迁移脚本只重写了 `adi_model.pipeline_engine` 形式的绝对路径，没有覆盖
+`from adi_model import <name>`。全仓扫描后确认只有两处：这一处是坏的，
+另一处 `from adi_model import metrics` 由包的薄适配兜住了。
+
+修法是把测试改成 `from adi_model.simulation import pipeline_engine`，
+并在原处留注释说明为什么。**没有把该测试跳过或放宽。**
+
+### 3.4 【工具缺陷，已修】`.mem` 位宽不能用十六进制位数推断
 
 63 位字段写成 16 个 nibble。按文本宽度做符号扩展会把所有负数读成大正数，
-现象是"`div_floor` 在 d≥1 时全错、d=1 时给出 -1"。现在按 `meta.json` 的声明位宽扩展。
+现象是"`div_floor` 在 d≥1 时全错"。现在按 `meta.json` 的声明位宽扩展。
 
 ## 4. NOT_RUN 与缺件
 

@@ -9,8 +9,6 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.simulation.config import ConfigError
-from adi_model.topology.dac_arch import NominalCodebook, SplitChip
 from adi_model.control.dem import SplitSwitchCommand
 from adi_model.control.dem3d import (
     Dem3State,
@@ -20,7 +18,9 @@ from adi_model.control.dem3d import (
     unary_rotation_masks,
     usage_uniformity,
 )
+from adi_model.simulation.config import ConfigError
 from adi_model.simulation.slice_pool import PhysicalSlicePool
+from adi_model.topology.dac_arch import NominalCodebook, SplitChip
 
 
 def _fig11_pool():
@@ -242,3 +242,122 @@ def test_fig11_masks_reject_wrong_geometry():
     pool = _default_pool()
     with pytest.raises(ConfigError):
         fig11_masks(pool.geometry, np.array([0]), np.array([0]), np.zeros((1, 8), np.int64))
+
+
+def test_physical_slice_audit_is_not_slot_aggregation():
+    """Counterexample: per-slot aggregation claims full coverage that does not exist.
+
+    Each physical slice only ever uses 21 of its 63 main units, but different
+    slices use *different* 21. Rotating eight slices per sample means every
+    logical slot eventually sees all 18 slices, so summing over the sample axis
+    (the old `command.main_on.sum(axis=0)`) reports 63/63 used. Summing by
+    physical slice id reports the truth: 21/63 everywhere.
+
+    The assertion is on the audit result, not on a diagnostic field, so a
+    regression here fails the test the review asked for.
+    """
+    from adi_model.control.dem import SplitSwitchGeometry
+    from adi_model.control.dem3d import _per_physical_slice_counts
+
+    geometry = SplitSwitchGeometry(n_main=63, n_sub=8, n_slices=18, n_active=8)
+    n_samples = 36
+    ids = np.array([[(n + lane) % 18 for lane in range(8)] for n in range(n_samples)])
+    main_on = np.zeros((n_samples, 8, 63), dtype=np.int64)
+    sub_on = np.zeros((n_samples, 8, 8), dtype=np.int64)
+    window = 21
+    for n in range(n_samples):
+        for lane in range(8):
+            sid = ids[n, lane]
+            start = (sid * 7) % 63
+            for offset in range(window):
+                main_on[n, lane, (start + offset) % 63] = 1
+
+    per_slice_main, _ = _per_physical_slice_counts(main_on, sub_on, ids, geometry)
+    per_slice_coverage = np.count_nonzero(per_slice_main, axis=1)
+    assert per_slice_main.shape == (18, 63)
+    assert np.all(per_slice_coverage == window), per_slice_coverage
+
+    # The aggregation the review rejected would have reported full coverage.
+    per_slot = main_on.sum(axis=0)  # (active_slot, unit)
+    assert np.all(np.count_nonzero(per_slot, axis=1) == 63)
+
+
+def test_slice_ids_reach_every_physical_row_once_per_rotation():
+    """A slice that is never selected must stay a zero row, not disappear."""
+    from adi_model.control.dem import SplitSwitchGeometry
+    from adi_model.control.dem3d import _per_physical_slice_counts
+
+    geometry = SplitSwitchGeometry(n_main=63, n_sub=8, n_slices=18, n_active=8)
+    n_samples = 4
+    ids = np.array([[(n + lane) % 18 for lane in range(8)] for n in range(n_samples)])
+    main_on = np.ones((n_samples, 8, 63), dtype=np.int64)
+    sub_on = np.ones((n_samples, 8, 8), dtype=np.int64)
+    per_slice_main, per_slice_sub = _per_physical_slice_counts(main_on, sub_on, ids, geometry)
+    covered = np.count_nonzero(per_slice_main, axis=1)
+    assert per_slice_main.shape[0] == geometry.n_slices
+    # Only slices 0..10 appear in this short window; 11..17 must remain as zero
+    # rows rather than being dropped from the report.
+    assert np.all(covered[:11] > 0)
+    assert np.all(covered[11:] == 0)
+    assert np.all(per_slice_main[11:] == 0)
+    # Mass conservation: every lane visit is attributed exactly once.
+    assert int(per_slice_main.sum()) == int(main_on.sum())
+    assert int(per_slice_sub.sum()) == int(sub_on.sum())
+
+
+def test_beta_expands_along_the_sub_unit_axis_not_the_sample_axis():
+    """Pin the broadcast axis for the bridge attenuation.
+
+    `beta` is [sample, active_slice]. `C_sub[ids]` is [sample, active_slice,
+    sub_unit]. The only correct product is `beta[..., None] * sub`, which scales
+    every unit of a slice by that slice's beta.
+
+    Two coincidences can hide a wrong axis:
+
+    * samples == active slices, where `beta[:, None] * sub` still broadcasts but
+      indexes beta by sample instead of by slice;
+    * active slices == sub units, where a transposed scatter has compatible
+      extents.
+
+    Both are exercised here, and the ground truth is explicit indexing rather
+    than another broadcast expression.
+    """
+    from adi_model.defaults import default_model
+    from adi_model.topology.dac_arch import split_capacitance_coefficients
+
+    model = default_model()
+    chip = model.chip
+    n_sub = chip.C_sub.shape[-1]
+    n_slices = chip.C_main.shape[0]
+    configured_active = int(model.cfg.n_active)
+    assert n_sub == configured_active, (
+        "this chip is the dangerous coincidence: sub units == active slices"
+    )
+
+    for n_active in (configured_active, 5):
+        n_samples = n_active if n_active == configured_active else n_active + 3
+        ids = np.arange(n_samples * n_active, dtype=np.int64).reshape(n_samples, n_active)
+        ids = ids % n_slices
+        beta = split_capacitance_coefficients(chip, ids)["beta"]
+        sub = chip.C_sub[ids]
+        assert beta.shape == ids.shape
+        assert sub.shape == (*ids.shape, n_sub)
+
+        effective = beta[..., None] * sub
+        assert effective.shape == (n_samples, n_active, n_sub)
+
+        # Ground truth: explicit double loop, no broadcasting at all.
+        for s in range(n_samples):
+            for a in range(n_active):
+                for u in range(n_sub):
+                    assert effective[s, a, u] == beta[s, a] * sub[s, a, u]
+
+        # The rejected form: when n_samples == n_active it does not raise, it
+        # silently scales by the wrong beta.
+        if n_samples == n_active:
+            wrong = beta[:, None] * sub
+            assert wrong.shape == effective.shape
+            differs = np.any(wrong != effective)
+            assert differs or np.all(beta == beta[0]), (
+                "beta is sample/slice symmetric here, so this case cannot reveal the bug"
+            )

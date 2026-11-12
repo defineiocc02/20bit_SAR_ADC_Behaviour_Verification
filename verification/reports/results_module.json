@@ -5,7 +5,7 @@
     "detail": "/opt/synopsys/vcs/W-2024.09-SP1/bin/vcs\n\nError-[VCS_COM_UNE] Cannot find VCS compiler\n  VCS compiler not found. Environment variable VCS_HOME",
     "host": "vm-meow"
   },
-  "started": "2026-11-12T21:51:23",
+  "started": "2026-11-12T22:06:13",
   "modules": [
     {
       "module": "sadc_enc",
@@ -13,7 +13,7 @@
       "vectors": 127,
       "note": "population count; bubble codes are counted, not rejected",
       "status": "PASS",
-      "elapsed_s": 23.0,
+      "elapsed_s": 18.6,
       "dump": "verification/reports/dumps/sadc_enc",
       "compared": 127,
       "bit_exact": true
@@ -24,7 +24,7 @@
       "vectors": 96,
       "note": "rank<count expansion; out-of-range counts saturate",
       "status": "PASS",
-      "elapsed_s": 26.6,
+      "elapsed_s": 19.5,
       "dump": "verification/reports/dumps/unit_therm",
       "compared": 96,
       "bit_exact": true
@@ -35,7 +35,7 @@
       "vectors": 4195,
       "note": "ties-to-even bin centre over all 4096 codes",
       "status": "PASS",
-      "elapsed_s": 25.5,
+      "elapsed_s": 16.4,
       "dump": "verification/reports/dumps/adc2_dec",
       "compared": 4195,
       "bit_exact": true
@@ -46,7 +46,7 @@
       "vectors": 257,
       "note": "signed floor division: the Python `//` vs RTL `/` seam",
       "status": "PASS",
-      "elapsed_s": 17.5,
+      "elapsed_s": 19.9,
       "dump": "verification/reports/dumps/div_floor",
       "compared": 257,
       "bit_exact": true
@@ -57,7 +57,7 @@
       "vectors": 55,
       "note": "clear-then-scatter, duplicate id, out-of-range id",
       "status": "PASS",
-      "elapsed_s": 23.4,
+      "elapsed_s": 19.5,
       "dump": "verification/reports/dumps/rdac_drv",
       "compared": 55,
       "bit_exact": true
@@ -68,7 +68,7 @@
       "vectors": 100,
       "note": "cycle-accurate state incl. prime, cursor guard and sample_id",
       "status": "PASS",
-      "elapsed_s": 22.5,
+      "elapsed_s": 23.9,
       "dump": "verification/reports/dumps/slice_pool_ctrl",
       "compared": 100,
       "bit_exact": true
@@ -79,7 +79,7 @@
       "vectors": 101,
       "note": "full 20-bit reconstruction, latency and status bits",
       "status": "PASS",
-      "elapsed_s": 25.1,
+      "elapsed_s": 21.9,
       "dump": "verification/reports/dumps/recon_core",
       "compared": 101,
       "bit_exact": true

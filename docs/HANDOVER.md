@@ -116,7 +116,7 @@
 | 保留列（预留 `0` 输入 + MUX） | ✅ 判据已交付 | `control/reserved_column.py`，`[11]` FIG.20 图面计数（350 平衡、352 输出 = 8×32C） |
 | AUX 支路 | ✅ 判据已交付 | `control/aux_input.py`，`[13]` FIG.1/2 两源并联结构 + 三条不变式 |
 | `[09]` 转换级 | ✅ **已核对** | `docs/mechanisms/patent09_reconciliation.md`（正文第 20–32 页逐字 9 条）；radix<2 冗余判据见 `control/redundancy.py` |
-| 参考 buffer / `trial` 控制 | ⬜ 未做 | `[14]` FIG.5；仓库已有 `behavioral/reference.py`，缺"原图→参数"映射 |
+| 参考 buffer | ✅ 判据已交付 | `control/reference_buffer.py` + `docs/mechanisms/reference_fig5.md`，`[14]` FIG.5 三条语义（单位增益 / 尾电流封顶电荷 / 参考非静止） |
 | 362 信号门 | ⬜ 未做 | `[11]` FIG.19 Sheet 17/29 |
 | 跨片分配 | ⬜ 未做（现为逐片旋转） | 同上 |
 

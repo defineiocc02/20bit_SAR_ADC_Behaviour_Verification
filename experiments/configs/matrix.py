@@ -12,6 +12,12 @@ made it look like a tool detail and forced every consumer to import the tool.
 Nothing here computes a charge, a noise value or a metric. Each cell is only a
 selection of existing switches; the production formulas stay in `adi_model`.
 
+**dither 配置（A6/C2/C3）的数字不稳定、不应作为定量结论。**
+dither 的 U 段需要 5.5 LSB1 残差摆幅，而 0.45 V 窗口只覆盖 1.2 LSB1 ⇒ 深度饱和
+（实测 128 笔里 88 笔 adc2_over、85 笔 ra_sat，残差达理论值的 6 倍）。
+不同采样点数 / 不同 word 序列会给出差近 2 倍的 INL（实测 2207 vs 4125 LSB20）。
+这三条保留是为了记录"启用 dither 需要什么条件"，不是性能数据。
+
 Fields per cell:
 
     id / label          stable identity, used in every figure and table

@@ -203,9 +203,9 @@ PYTHONPATH=src python -m pytest tests/unit/test_{follower,dem3d,dither_port,dith
 PYTHONPATH=src python3 tools/check_audit_findings.py
 
 # 4) 复算矩阵与图（两处 repeats 必须一致，否则图与矩阵数字对不上）
-PYTHONPATH=src python3 tools/run_p4_ablation.py --dynamic-n 8192 --static-points 256 \
+PYTHONPATH=src:. python3 tools/run_p4_ablation.py --dynamic-n 8192 --static-points 256 \
   --static-repeats 32 --out docs/reviews/20261113_p3p4/data
-PYTHONPATH=src python3 tools/run_review_figures.py --points 256 --repeats 32 \
+PYTHONPATH=src:. python3 tools/run_review_figures.py --points 256 --repeats 32 \
   --dynamic-n 8192 --out docs/reviews/20261113_p3p4/figures
 
 # 5) 一笔样本的完整链路

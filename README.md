@@ -4,6 +4,16 @@
 
 > 当前实现采用显式来源绑定和ABI2。下面分别给出可重跑的Python静态校准、实际RTL静态闭环和Fig.19逐事件反例；旧模型结果单独归档。
 
+> **合并分支 `merge/adi-repro`（W8 候选，未推送）**
+> main 包为骨；CAAZ 已隔离到 `extensions/caaz/`；普通逐笔 AZ 在 `behavioral/ra_az.py`。
+> W1–W3 已落地（合同/profile、内核/控制迁移 119 项测试）；W4–W7 为合同/编译级，主链未闭合。
+> 详见 [W8 状态](docs/status_w8.md)、[架构](docs/architecture.md)、[迁移](docs/migration.md)。
+>
+> 三条命令：
+> `PYTHONPATH=src python -m adi_model simulate --samples 512 --output /tmp/adi-demo`
+> `PYTHONPATH=src pytest -q`
+> `PYTHONPATH=.:src pytest -q extensions/caaz/tests`
+
 ## 项目目的与范围
 
 本工程研究两级SAR ADC中的电容失配、采样电荷、残差重构和数字校准。交付分为三部分：**ADC行为模型、静态失配校准流程、数字控制与重构RTL**。输出DSP和斩波协助自归零（CAAZ）是独立扩展；动态元件匹配（DEM）、dither与切片选择分别说明实现范围和验证条件。

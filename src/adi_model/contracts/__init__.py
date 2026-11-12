@@ -1,5 +1,7 @@
 """公共合同包的导出。"""
 
+from .events import EventLog
+from .task_types import MapperTable, Q32, SwitchState
 from .profiles import (
     ADI_40M,
     DEFAULT_PROFILE_ID,
@@ -28,7 +30,11 @@ __all__ = [
     "DigitalObservation",
     "ENG_10M",
     "EventRecord",
+    "EventLog",
     "FrozenCalibration",
+    "MapperTable",
+    "Q32",
+    "SwitchState",
     "PATENT_FIG19",
     "PROFILES",
     "PlantTrace",

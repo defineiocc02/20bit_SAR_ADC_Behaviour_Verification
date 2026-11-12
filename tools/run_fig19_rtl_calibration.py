@@ -321,11 +321,19 @@ def verify_trace(
         for physical in range(18):
             if physical not in ids:
                 continue
-            for unit in range(71):
-                packed = int(residue["main_physical"] if unit < 63 else residue["sub_physical"], 16)
+            # 主/子位宽取芯片实际列数（63+8 → 17/5），不再写死。
+            n_main_bits, n_sub_bits = chip.n_main, chip.n_sub
+            for unit in range(n_main_bits + n_sub_bits):
+                packed = int(
+                    residue["main_physical"] if unit < n_main_bits else residue["sub_physical"], 16
+                )
                 bit = (
                     packed
-                    >> (physical * (63 if unit < 63 else 8) + (unit if unit < 63 else unit - 63))
+                    >> (
+                        physical
+                        * (n_main_bits if unit < n_main_bits else n_sub_bits)
+                        + (unit if unit < n_main_bits else unit - n_main_bits)
+                    )
                 ) & 1
                 f += float(plant_weights[physical, unit]) * (rdac_v + config.v_fs * (1 - 2 * bit))
         require(
@@ -576,8 +584,10 @@ def main() -> int:
             np.concatenate((chip.C_main, beta[:, None] * chip.C_sub), axis=1)
             / chip.require_feedback()
         )
+        # 几何来自芯片本身，不写字面量：63+8 时代是 (18, 71)，切到 17/5 后是 (18, 22)。
+        # 写死 71 会让工具在几何切换后静默失败（本轮就是这样被抓出来的）。
         require(
-            plant_weights.shape == (18, 71) and np.all(plant_weights > 0),
+            plant_weights.shape == (18, chip.n_main + chip.n_sub) and np.all(plant_weights > 0),
             "explicit plant geometry differs",
         )
         plant_path = out / "plant_effective_weights_only.txt"

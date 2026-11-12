@@ -54,13 +54,19 @@ def test_ideal_port_is_transparent_for_all_sixty_four_words():
     assert abs(out.mean() - 0.4) <= 1.0 * LSB20_V
 
 
-def test_port_does_not_shift_the_rdac_code():
-    """v2 与 v1 的分界：码保持 SADC 判决 c，不再做 k=c-U。"""
+def test_port_applies_the_224_subtractor_to_the_rdac_code():
+    """v2 的 RDAC 码 = SADC 判决 c 减去 U（原件 FIG.19 的 224 减法器）。
+
+    旧契约（"码保持 c，不做 k=c-U"）来自对 FIG.19 的早期读法。
+    2026-11-13 核对 [10] 专利 Sheet 20/21 后确认：224 减法器**确实**从 ADC 输出码
+    减去 D6,D4，因此 k = c - U 是原件结构，测试契约随之更新。
+    """
     model = _model(1e-3)
-    words = np.full(4, 32, dtype=np.int64)  # upper_code = 4
+    words = np.full(4, 32, dtype=np.int64)  # bit5=1 → upper_code = 4
     run = model.simulate(dc_input(0.4), 4, dither_words=words, dither_mode="charge_port")
-    assert np.array_equal(np.asarray(run.raw.k), np.asarray(run.raw.coarse))
-    assert run.raw.dither_program.upper_code.max() == 4
+    upper = np.asarray(run.raw.dither_program.upper_code, dtype=np.int64)
+    assert upper.max() == 4
+    assert np.array_equal(np.asarray(run.raw.k), np.asarray(run.raw.coarse) - upper)
 
 
 def test_port_spreads_code_usage_and_reduces_mean_static_error():

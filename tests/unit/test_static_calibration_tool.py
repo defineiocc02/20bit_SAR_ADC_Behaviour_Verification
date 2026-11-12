@@ -60,7 +60,11 @@ def test_parameter_json_rejects_ambiguity_without_rewriting_inputs(
         (["--holdout", "1"], "in-band"),
         (["--holdout-bin", "0"], "in-band"),
         (["--holdout", "64", "--holdout-bin", "32"], "in-band"),
-        (["--train", "1279"], "training count"),
+        # 2026-11-13：系数总数随几何从 63+8（512）变为 17/5（18×22=396），
+        # 阈值是 prod(shape)+1 = 397。原值 1279 在新几何下已超过阈值，
+        # 于是不再被参数校验拒绝、而是进入训练后报秩不足——这不是工具缺陷，
+        # 是测试常量随几何切换失效。这里改用"恰好不超过阈值"的值。
+        (["--train", "396"], "training count"),
         (["--training-peak-v", "3.1"], "voltages"),
         (["--training-peak-v", "nan"], "voltages"),
         (["--holdout-dc-v", "0.4", "--holdout-peak-v", "2.7"], "voltages"),

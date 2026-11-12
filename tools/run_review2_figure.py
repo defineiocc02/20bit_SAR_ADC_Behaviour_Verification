@@ -63,9 +63,12 @@ def _fit_variants() -> dict:
     fine = np.asarray(data.fine_v)
     voltages = levels[:, None] + V_FS - 2 * V_FS * masks
     fixed = np.ptp(masks, axis=0) == 0
+    # 每片的主/子单元数取芯片实际列数（63+8 → 17/5），不写字面量。
+    n_main_units, n_sub_units = model.chip.n_main, model.chip.n_sub
+    per_slice = n_main_units + n_sub_units
     main_only = np.zeros(masks.shape[1], bool)
     for slice_index in range(18):
-        main_only[slice_index * 71 : slice_index * 71 + 63] = True
+        main_only[slice_index * per_slice : slice_index * per_slice + n_main_units] = True
 
     variants = {}
     for label, design in (
@@ -94,7 +97,9 @@ def _fit_variants() -> dict:
         [chip.C_main[ids] / cf, beta[:, :, None] * chip.C_sub[ids] / cf], axis=2
     )
     predicted = np.sum(
-        weights * voltages.reshape(n, 18, 71)[np.arange(n)[:, None], ids], axis=(1, 2)
+        weights * voltages.reshape(n, 18, model.chip.n_main + model.chip.n_sub)[
+            np.arange(n)[:, None], ids
+        ], axis=(1, 2)
     )
     variants["true weights + linearised beta"] = {
         "residual_uv": float(np.sqrt(np.mean((fine - predicted) ** 2)) * 1e6),

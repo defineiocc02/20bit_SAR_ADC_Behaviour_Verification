@@ -146,12 +146,17 @@ NOT_RUN**——本轮选择后者，不猜参数、不拿波形冒充指标。
 
 | 项 | 状态 |
 |:---|:---|
-| 数字 RTL 编译/映射 | 有历史流程与结果（`synth/`、`docs/rtl/`），本轮**未重跑** |
-| RTL 逐笔 scoreboard | **未做** |
-| 行为↔RTL 逐事件对拍 | 只有部分组件级（`tools/run_open_rtl.py`、`sim/fixtures/`） |
+| 数字 RTL 编译/映射 | 有历史流程与结果（`synth/`、`docs/rtl/`），本轮**未重跑综合** |
+| **V1 模块级 Python–RTL 位真对拍** | **已跑通：7/7 模块、4931 条向量、0 处不一致**（VCS W-2024.09-SP1） |
+| RTL 逐笔 scoreboard（顶层） | **NOT_RUN**：缺 calobs v2 观测总线与同 profile binding |
+| 行为↔RTL 闭环 | **NOT_RUN**：缺逐事件命令流桥 |
 | 后仿 / PEX / 硅测 | **无** |
 
-本轮对 RTL **零改动、零重跑**。因此本报告的任何数字都**不能**升级为 RTL 级结论。
+本轮 RTL **源码零改动**，但新增了真正的对拍证据：`sadc_enc`、`unit_therm`、
+`adc2_dec`、`div_floor`、`rdac_drv`、`slice_pool_ctrl`、`recon_core` 七个模块
+在整数域与独立参考模型逐位一致，且覆盖了非法输入（d=0、count 越界、重复 slice id、
+负被除数）。这条证据的边界是**模块级**：它不能升级为"整链无丢样/重样"，
+也不能替代综合与后仿。详见 `verification/reports/VERIFICATION_REPORT.md`。
 
 ---
 
@@ -163,7 +168,7 @@ NOT_RUN**——本轮选择后者，不猜参数、不拿波形冒充指标。
 | 专利机制复现程度 | **2/6 有完整专题，1 项本轮首次进主链** | dither、DEM 六段齐全；其余 4 项只有素材 |
 | 行为模型联合运行程度 | **6/8 配置可跑（A0–A6），A7 明确 NOT_RUN** | 矩阵 JSON + blocking_reason |
 | INL/DNL/SFDR 验证程度 | **INL 可用 / DNL PARTIAL / FFT 可用** | F03/F04 + `dnl_bin_note` |
-| RTL 及物理实现验证 | **未推进** | 本轮零改动 |
+| RTL 及物理实现验证 | **模块级已推进 / 顶层未推进** | 7 模块 4931 向量位真通过；V3/V4 NOT_RUN |
 
 ---
 
@@ -178,6 +183,10 @@ NOT_RUN**——本轮选择后者，不猜参数、不拿波形冒充指标。
    并把"分箱 DNL"与"码密度 DNL"分成两个字段，不共用一个名字。
 5. **dither 物理化**：给 dither 单元加失配 σ，看 DNL 收益还剩多少；
    这决定"2.8×"是机制收益还是理想化假设的产物。
+6. **V3 顶层对拍**：先补 calobs v2 观测总线与同 profile binding，再跑
+   65536 笔连续性（`N_accepted = N_retired + N_cancelled + N_pending`）。
+7. **`gain` 口径走 ADR 收敛**：合同 §3.2 的 `Σ(W·a)` 与 `recon_core` 的 `G=T`
+   必须统一，否则逐单元权值结论会引用错公式。
 
 ---
 

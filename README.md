@@ -1,6 +1,6 @@
 # 20 位 / 40 MS/s 两步式 SAR ADC：按专利原图对照的行为级复现
 
-[English](README_EN.md) · [当前状态](docs/STATUS.md) · [机制专题](docs/mechanisms/README.md) · [专利技术对照](docs/mechanisms/README.md) · [原文对照表](docs/current_digital_source_map.md) · [论文与讲稿](references/README.md) · [验收报告](docs/ACCEPTANCE_20261112.md)
+[English](README_EN.md) · [当前状态](docs/STATUS.md) · [机制专题](docs/mechanisms/README.md) · [专利技术对照](docs/mechanisms/README.md) · [原文对照表](docs/current_digital_source_map.md) · [论文与讲稿](references/README.md) · [验收报告](docs/ACCEPTANCE_20261112.md) · [Python–RTL 一致性验证](verification/README.md)
 
 **这个仓库要回答一个问题**：ADI ISSCC 2024 §9.8（20 b、40 MS/s、40 nm、两步式 SAR）的每个机制，
 在我们自己的行为模型里**到底实现了没有、实现到什么程度、证据在哪**。

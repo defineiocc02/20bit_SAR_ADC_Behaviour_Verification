@@ -61,6 +61,38 @@ def _same_book(left: NominalCodebook, right: NominalCodebook) -> bool:
     )
 
 
+def _dither_topology(dither_program, dither_port) -> str:
+    """判定 dither 拓扑：`"none"` / `"code_shift"` / `"charge_port"`。
+
+    两种拓扑**互斥**（原件 FIG.19 的各段连接是确定的），因此这里统一判定一次，
+    避免在上游多处各写一遍 `x is not None or y is not None`——
+    本函数抽取前，`dither_active` 在两处重复计算（`_validate_request` 与
+    `_prepare_conversion`），任一处改动都可能让两处漂移。
+
+    Args:
+        dither_program: v1 码移位拓扑的显式 program，或 None。
+        dither_port: v2 独立电荷口拓扑，或 None。
+
+    Returns:
+        "none" / "code_shift" / "charge_port"。
+
+    Raises:
+        ConfigError: 两者同时给出（互斥）。
+
+    Side effects: 无。
+    """
+    if dither_program is not None and dither_port is not None:
+        raise ConfigError(
+            "dither_program (code-shift topology) and dither_port (independent "
+            "charge-port topology) are mutually exclusive; pick one and state it"
+        )
+    if dither_program is not None:
+        return "code_shift"
+    if dither_port is not None:
+        return "charge_port"
+    return "none"
+
+
 def _validate_request(
     cfg,
     pool,
@@ -112,12 +144,7 @@ def _validate_request(
     if not isinstance(pool, PhysicalSlicePool) or not isinstance(mapper, Mapper):
         raise ConfigError("run_pipeline requires an explicit PhysicalSlicePool and Mapper")
     cfg.check_legal(geometry=pool.geometry)
-    if dither_program is not None and dither_port is not None:
-        raise ConfigError(
-            "dither_program (code-shift topology) and dither_port (independent "
-            "charge-port topology) are mutually exclusive; pick one and state it"
-        )
-    dither_active = dither_program is not None or dither_port is not None
+    dither_active = _dither_topology(dither_program, dither_port) != "none"
     if bool(cfg.dither_enable) != dither_active:
         raise ConfigError(
             "dither_enable requires an explicit Fig19 program or charge port, and vice versa"
@@ -268,7 +295,7 @@ def _prepare_conversion(
 
     Side effects: 无（不碰 pool/state）。仅在需要时创建新的随机数 Generator。
     """
-    dither_active = dither_program is not None or dither_port is not None
+    dither_active = _dither_topology(dither_program, dither_port) != "none"
     plan = pool.plan(n_samples)
     acquisition_ids = np.vstack((plan.conv[0:1], plan.acq[:-1]))
     if dither_program is not None:

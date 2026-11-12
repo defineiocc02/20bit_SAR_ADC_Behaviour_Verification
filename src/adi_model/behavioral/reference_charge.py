@@ -212,7 +212,27 @@ def physical_reference_program(
         or high_m.shape != (len(times), *cm.shape)
         or high_s.shape != (len(times), *cs.shape)
     ):
-        raise ValueError("reference program needs actual Boolean masks and ordered event times [s]")
+        # 报错要指出**具体是哪一项**不满足。原先统一报
+        # "needs actual Boolean masks and ordered event times"，结果列数不匹配
+        # （掩码 5 位 vs 装配 4 列）也被报成"需要 bool 掩码"，误导了一整轮排查。
+        problems = []
+        if times.ndim != 1 or times.size == 0:
+            problems.append(f"times_s must be a nonempty 1-D record (got {times.shape})")
+        elif times[0] < 0 or np.any(np.diff(times) < 0):
+            problems.append("times_s must be nonnegative and ordered")
+        if high_m.dtype != np.dtype(bool):
+            problems.append(f"main_on must be bool (got {high_m.dtype})")
+        if high_s.dtype != np.dtype(bool):
+            problems.append(f"sub_on must be bool (got {high_s.dtype})")
+        if high_m.shape != (len(times), *cm.shape):
+            problems.append(
+                f"main_on shape {high_m.shape} != expected {(len(times), *cm.shape)}"
+            )
+        if high_s.shape != (len(times), *cs.shape):
+            problems.append(
+                f"sub_on shape {high_s.shape} != expected {(len(times), *cs.shape)}"
+            )
+        raise ValueError("reference program rejected: " + "; ".join(problems))
     sm = _real_array(sampled_main_bottom_v, "sampled_main_bottom_v [V]")
     ss = _real_array(sampled_sub_bottom_v, "sampled_sub_bottom_v [V]")
     top = _real_array(sampled_top_v, "sampled_top_v [V]")

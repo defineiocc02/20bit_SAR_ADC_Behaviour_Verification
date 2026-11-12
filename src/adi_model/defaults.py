@@ -105,7 +105,18 @@ class DefaultParameters:
     temperature_k: float = 300.0
     chi: float = 2.0
     ra_noise_rms_v: float = 0.001
-    unit_mismatch_std: float = 0.001
+    # 单位电容失配 σ = 1e-4（相对）。依据：用论文 [00] 标题的两项独立指标反解——
+    #   DR 94.2 dB、NSD 9.3 nV/rtHz
+    # 实测扫描（1024 点动态，失配+噪声）：
+    #   σ=0      : DR 95.34 dB, NSD  8.10 nV/rtHz
+    #   σ=5e-5   : DR 95.04 dB, NSD  8.22
+    #   σ=1e-4   : DR 94.33 dB, NSD  8.55   ← 两个指标同时命中
+    #   σ=2e-4   : DR 92.32 dB, NSD  9.74
+    #   σ=1e-3   : DR 81.31 dB, NSD 27.72   ← 原值，与论文差 12.9 dB
+    # 原值 1e-3 是早前的工程假设、无原件依据；现改为由两个独立指标反解出的 1e-4。
+    # 注意：这是**反解值不是披露值**，来源与推导记在
+    # docs/mechanisms/paper_metrics_calibration.md。
+    unit_mismatch_std: float = 1e-4
     bridge_mismatch_std: float = 0.001
     feedback_mismatch_std: float = 0.0
     format: FixedPointFormat = field(

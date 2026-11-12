@@ -267,6 +267,10 @@ class PhysicalSlicePool:
                 ("reference_low_v", reference_low_v),
             )
         }
+        # 采样阶段所有物理电容都接信号（含 S4 与子阵列哑位），
+        # 因此归一化必须用**全部列**；只有转换阶段才排除不参与码的单元。
+        # 2026-11-13：若这里也用切换单元数，采样归一化会小 3.3%，
+        # 残差出现与输入成正比的偏置（实测 slope 0.0306）。
         packet = charge_from_sampling_connections(self.chip, ids, selected, **values)
         self._sampled_node_charge_c[group] = packet.node_charge_c[0]
         self.held_sample[group] = int(sample_id)

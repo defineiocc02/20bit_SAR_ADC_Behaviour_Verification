@@ -346,7 +346,16 @@ def execute_pipeline(
         rng=rng,
         rdac_noise_cap_f=rdac_noise_cap_f,
         dither_program=dither_program,
-        dither_sample_v=None if dither_port is None else dither_port.require_words().total_v,
+        # 采样节点只平移 **lower 段**（含 0..1 的小数 + 0/2 的整步）。
+        # 2026-11-13：原实现传 total_v（= L + U），把 upper 段也算进采样节点，
+        # 于是 dither 摆幅达 8 LSB9，而 RA 输入端只允许 clip/G ≈ 1.38 LSB9，
+        # 残差被顶进限幅（ra_sat 大面积 True）。
+        # 论文口径（[00]）："dither range is enhanced by 2b when the result is transferred
+        # from the quantizer to the RDAC" —— 量化器侧只承担小幅度，RDAC 侧才放大；
+        # 因此 U 段只出现在 RDAC 节点与数字公共项，不再进采样节点。
+        dither_sample_v=(
+            None if dither_port is None else dither_port.require_words().lower_v
+        ),
     )
     sadc = build_first_stage_quantizer(cfg)
     backend = ADC2(cfg)
@@ -546,10 +555,25 @@ def execute_pipeline(
             reference_low_v=_reference_at(low, index),
         )
         vd_true[index] = drive.input_equivalent_v[0]
+        # ==== 两个口径必须换算后再相减（2026-11-13，本轮最后一个不一致点）====
+        # q_free（采样期自由电荷）按**全部物理电容**归一（C_samp：17 列 + 子阵列 5 列）；
+        # Q_D（转换期参考驱动电荷）只含**参与码的单元**（C_conv：16 列 + 子阵列 4 列）。
+        # 二者相差约 3%，直接把 (-q_free - Q_D)/C_conv 相减会得到一个
+        # 与输入成正比的伪残差（实测 slope 0.0306 → 零输入外全饱和）。
+        # 正确做法：把 q_free 折算到转换口径（乘 C_conv/C_samp）再相减，
+        # 等价于"残差 = x - v_d"，两个量在同一分母上。
+        c_convert = float(np.asarray(drive.signal_capacitance_f).reshape(-1)[0])
+        c_samp = float(c_normalize[index])
+        if c_samp <= 0 or c_convert <= 0:
+            raise ConfigError("sampling/conversion capacitances must be positive")
+        # 记录字段也用转换侧口径，外部可据此核对 Q_D / C_signal == vd_true。
+        c_input[index] = c_convert
         q_residue[index] = (
-            -q_free[index] - drive.charge_c[0] + c_normalize[index] * sample.rdac_noise_v[index]
+            -q_free[index] * (c_convert / c_samp)
+            - drive.charge_c[0]
+            + c_convert * sample.rdac_noise_v[index]
         )
-        residue[index] = q_residue[index] / c_normalize[index]
+        residue[index] = q_residue[index] / c_convert
         if joint is None:
             error = None if injected is None else injected[index : index + 1]
             output, saturated = ra.evaluate(

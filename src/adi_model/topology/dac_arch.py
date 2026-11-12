@@ -356,6 +356,8 @@ def charge_from_sampling_connections(
     sampled_subnode_v,
     reference_high_v=None,
     reference_low_v=None,
+    switched_sub_units: int | None = None,
+    switched_main_units: int | None = None,
 ) -> SamplingCharge:
     """由显式Signal/RefLo/RefHi连接及实际采样节点电压计算守恒自由电荷。
 
@@ -394,7 +396,14 @@ def charge_from_sampling_connections(
     q_main_node += cb * (top - subnode) + cp_main * top
     q_sub_node = (c_sub * (subnode[..., None] - sub_v)).sum(axis=-1)
     q_sub_node += cb * (subnode - top) + cp_sub * subnode
-    coefficient = split_capacitance_coefficients(chip, ids)
+    # 归一化电容必须与电荷路径同口径（同一组可切换单元），否则采样侧 C_norm
+    # 与转换侧 Q_D 的分母不同源，残差会带一个与输入成正比的偏置（实测 0.03 V）。
+    coefficient = split_capacitance_coefficients(
+        chip,
+        ids,
+        switched_sub_units=switched_sub_units,
+        switched_main_units=switched_main_units,
+    )
     beta = coefficient["beta"]
     normalization = coefficient["c_signal"]
     assert isinstance(beta, np.ndarray) and isinstance(normalization, np.ndarray)

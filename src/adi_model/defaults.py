@@ -263,6 +263,18 @@ class DefaultModel:
         self.nominal_beta = beta
         self.nominal_active_cap_f = cfg.n_active * c_slice
         self.nominal_gain = self.nominal_active_cap_f / p.feedback_cap_f
+        # 参数自洽性：二级 ADC 能否装下 dither 的提前量。这不是错误检查，
+        # 而是一条**可读结论**——不自洽时会在 inference 表里显式列出缺口，
+        # 避免读者从若干 dither 失败用例反推"到底是哪两个参数打不过"。
+        from adi_model.simulation.parameter_consistency import check_dither_fits_stage2
+
+        self.dither_stage2_consistency = check_dither_fits_stage2(
+            v_fs=cfg.v_fs,
+            gain=self.nominal_gain,
+            adc2_v_min=cfg.adc2_v_min,
+            adc2_v_max=cfg.adc2_v_max,
+            upper_code_max=5,
+        )
         coarse = np.arange(512, dtype=np.int64)
         # ==== 码本律（2026-11-13 最终版，依据 US10511316B2 FIG.11/17/19/20 + ISO 端点闭合）====
         # 位分配（9 位 = 主段 5 位 + 子阵列 4 位，B0 为 MSB）：
@@ -366,6 +378,18 @@ class DefaultModel:
         def row(name, value, grade, reason, unit=""):
             rows[name] = {"value": value, "grade": grade, "reason": reason, "unit": unit}
 
+        report = self.dither_stage2_consistency
+        row(
+            "stage2_capacity_vs_dither",
+            {
+                "adc2_coverage_lsb1": round(report.capacity.coverage_lsb1, 4),
+                "dither_need_lsb1": report.needed_lsb1,
+                "deficit_lsb1": round(report.deficit_lsb1, 4),
+                "sufficient": report.sufficient,
+            },
+            "DERIVED_FROM_CURRENT_PARAMETERS",
+            report.summary(),
+        )
         for name, value, default in (
             ("fs_hz", cfg.fs, 40e6),
             ("input_differential_peak_v", cfg.v_fs, 3.0),

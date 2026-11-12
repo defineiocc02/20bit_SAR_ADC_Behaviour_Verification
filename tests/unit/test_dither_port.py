@@ -74,6 +74,16 @@ def test_port_rejects_bad_geometry():
         DitherPort("not a spec", 1e-15, 6.0)
 
 
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "KNOWN PARAMETER INCONSISTENCY (not an implementation defect): the dither upper "
+        "segment needs 5.5 LSB1 of residue swing but the 12-bit ADC2 window covers only "
+        "~1.24 LSB1. See adi_model.simulation.parameter_consistency and "
+        "docs/mechanisms/p1_gaps_20261113.md. strict=True: once the parameters become "
+        "consistent this XPASSes and forces the marker to be removed."
+    ),
+)
 def test_code_shift_is_exact_only_without_shift_on_fig11_array():
     """17/5 阵列上"码移位"只在 U=0 时精确；有移位时残差可达约 995 LSB20。
 

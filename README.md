@@ -43,8 +43,8 @@ SKIP_HEAVY=1 PYTHON=python3 bash tools/verify_clean_clone.sh # 跳过重活，�
 
 | 指标 | 论文 [00] | 本模型 | 说明 |
 |:---|:---:|:---:|:---|
-| 动态范围 DR | 94.2 dB | **94.33 dB** | 失配+噪声（A2） |
-| 噪声谱密度 NSD | 9.3 nV/√Hz | **8.55 nV/√Hz** | 同上 |
+| 动态范围 DR | 94.2 dB | **94.33 dB** | 失配+噪声（A2）|
+| 噪声谱密度 NSD | 9.3 nV/√Hz | **8.55 nV/√Hz** | 同上；**全 Nyquist 白噪声等效密度**口径 |
 | 分辨率 / 采样率 | 20 b / 40 MS/s | 20 b / 40 MS/s | — |
 | 输入范围 | ±3 V | ±3 V | 论文正文 |
 | INL | 图 9.8.4「20b level」 | **3.2 LSB20** | 同上 |
@@ -135,6 +135,15 @@ SKIP_HEAVY=1 PYTHON=python3 bash tools/verify_clean_clone.sh # 跳过重活，�
 | C3 全组合 | 4058.8 | 39.44 | 39.79 |
 
 数据：`docs/reviews/20261113_p3p4/data/p4_ablation.json`（可重跑）。
+
+**NSD 有两个口径，别混用**：
+
+| 字段 | 值 | 定义 |
+|:---|:---:|:---|
+| `nsd_v_rthz_full` | **8.55 nV/√Hz** | 全 Nyquist 白噪声等效密度 `noise_rms/√(fs/2)`，与论文 9.3 对照用这个 |
+| `nsd_v_rthz_dr` | 9.11 nV/√Hz | 按 DR 归一化后的等效密度 |
+
+两者都是本模型算出来的，只是归一化带宽不同。校准 σ 时用的是前者的口径。
 
 ### 三条需要解释的结果
 

@@ -292,3 +292,45 @@ def test_topology_spec_defaults_are_not_the_rejected_legacy_geometry():
     assert field_defaults["c_unit_f"] == _pytest.approx(params.unit_cap_f, rel=1e-9)
     assert field_defaults["c_bridge_f"] == _pytest.approx(params.bridge_cap_f, rel=1e-9)
     assert field_defaults["c_feedback_f"] == _pytest.approx(params.feedback_cap_f, rel=1e-9)
+
+
+def test_headline_metrics_in_readme_match_the_archived_data():
+    """README 的"当前结论"表必须与归档数据逐项一致。
+
+    2026-11-13：我一度用错误的键名读 NSD，以为它是 0——说明"文档里的数字
+    是否等于数据文件里的数字"从来没被机械校验过。本测试把这个关系钉住。
+
+    口径约定（见 README §1）：
+      * DR 取 A2 的 `dr_db`
+      * NSD 取 A2 的 `nsd_v_rthz_full`（全 Nyquist 白噪声等效密度）
+    """
+    import json
+
+    data_path = ROOT / "docs/reviews/20261113_p3p4/data/p4_ablation.json"
+    assert data_path.is_file(), "archived ablation data missing"
+    configurations = {c["id"]: c for c in json.loads(data_path.read_text(encoding="utf-8"))["configs"]}
+    baseline = configurations["A2_mismatch_noise"]["dynamic"]
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    # README 里写的 DR 与 NSD
+    dr_text = f"{baseline['dr_db']:.2f}"
+    nsd_text = f"{baseline['nsd_v_rthz_full'] * 1e9:.2f}"
+    assert dr_text in readme, (
+        f"README does not state the archived DR ({dr_text} dB); "
+        "the headline table has drifted from the data file"
+    )
+    assert nsd_text in readme, (
+        f"README does not state the archived NSD ({nsd_text} nV/rtHz, full-Nyquist); "
+        "the headline table has drifted from the data file"
+    )
+
+
+def test_readme_states_which_nsd_definition_it_uses():
+    """README 必须说明 NSD 用的是哪个口径（有两个，值不同：8.55 vs 9.11）。
+
+    不写口径时，读者无法判断该拿 8.55 还是 9.11 与论文的 9.3 比较。
+    """
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "nsd_v_rthz_full" in readme and "nsd_v_rthz_dr" in readme, (
+        "README must name both NSD fields so the reader can tell which one is quoted"
+    )

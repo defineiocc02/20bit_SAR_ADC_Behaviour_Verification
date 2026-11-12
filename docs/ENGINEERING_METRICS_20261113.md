@@ -164,3 +164,59 @@ dither 拓扑派生。抽取前逐行核对确认该段**无副作用**。
 
 本轮到此为止：**保留已成功的 21 行抽取，不为追求进度而强行完成第二刀。**
 主函数 662 行仍偏长，但状态是**已验证、逐位不变**的。
+
+---
+
+## 6. 用 AST 替代手工定位（2026-11-13 新增工具）
+
+### 6.1 上一轮为什么失败
+
+拆分 `execute_pipeline` 时，我用 `str.index(文本)` 与手工数行，**连续失败两次**：
+
+| 手段 | 失败方式 |
+|:---|:---|
+| 文本锚点 `dither_active = ...` | 该文本在文件里出现**两次**，`str.index` 取到第一个 |
+| 手工行号 630–790 | 行号本身对，但函数实际延伸到 998 行，拼接后 `'return' outside function` |
+
+用 AST 一查就清楚了：
+
+```
+execute_pipeline: lines 337..998  (662 lines)
+顶层 For 有 3 个：(566, 569) (574, 583) (640, 790)
+```
+
+`next(n for n in ep.body if isinstance(n, ast.For))` 会取到 **566 行那个 4 行的循环**。
+
+### 6.2 新增 `tools/inspect_function.py`
+
+用 AST 给出：
+* 函数的确切 `lineno`/`end_lineno`；
+* 顶层大块（> `--min-lines`）及其**自由变量数**；
+* 判定：自由变量 ≤ 12 → `extractable`；更多 → `TOO COUPLED`。
+
+实测 `execute_pipeline`：
+
+| 块 | 行数 | 自由变量 | 判定 |
+|:---|:---:|:---:|:---|
+| Expr | 39 | 0 | extractable |
+| Assign（`_prepare_conversion` 调用）| 27 | 11 | extractable |
+| If | 34 | 9 | extractable |
+| **For（转换循环）** | **151** | **42** | **TOO COUPLED** |
+| If | 28 | 4 | extractable |
+| **Assign（结果装配）** | **85** | **53** | **TOO COUPLED** |
+
+**结论：那个 151 行的 For 不是好的抽取单位。** 抽出它要么传 42 个参数
+（可读性反而更差），要么重新设计数据流——那是另一项工作。
+
+判断"该不该拆"不该凭感觉，这个工具给出可复算的依据。
+
+### 6.3 本轮真正做的：消除重复
+
+AST 扫描发现 `dither_program is not None` 出现 5 次、`dither_port is not None` 4 次，
+其中 `dither_active` 的完整表达式在**两个函数里各写一遍**。
+
+新增 `_dither_topology()` 统一判定（含互斥校验），两处调用改为
+`_dither_topology(...) != "none"`。重复归零，指纹逐位不变。
+
+**这比"把 151 行搬到另一个函数"更有实际价值**：后者只是移动代码，
+前者消除了一处随时会漂移的双写。

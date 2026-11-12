@@ -65,11 +65,13 @@ def test_float_path_is_exact_with_zero_mismatch():
     assert abs(total) < 1e-6, f"float path should be exact at x=0, got {total:+.3e} V"
 
 
-def test_gain_pairing_is_currently_mismatched():
-    """记录当前不一致：定点分母与 RA 物理增益相差约 3.14%。
+def test_gain_ratio_is_known_and_compensated():
+    """记录**参数层面**的比值 1.0314，并确认解码器已按它换算。
 
-    这条断言**故意**写成"当前不一致"。一旦两者对齐，它会失败，提示更新文档与
-    `docs/mechanisms/p1_gaps_20261113.md` §16 的结论。
+    历史：定点分母 Σw 与 RA 物理增益 G_phys 相差 3.14%（S4 的 1C）。
+    2026-11-13 起 `FixedPointReconstructor.reconstruct(physical_gain=...)`
+    会把 fine 换算到 Σw 口径，因此**输出层面已修复**；
+    本条测试记录的是参数比值本身（它仍存在，只是被显式补偿）。
     """
     model = _model_zero_noise()
     result = model.simulate(lambda t: 0.0, 1).raw
@@ -80,6 +82,12 @@ def test_gain_pairing_is_currently_mismatched():
         "如果这个比值变了，说明增益配对被改动 —— 请先确认是有意修复，"
         f"再更新本测试与文档（当前 ratio={ratio:.6f}）"
     )
+    # 解码器必须接受 physical_gain 并把 fine 换算到 Σw 口径；
+    # 换算后定点输出应与浮点接近（下面另有一条更强的断言）。
+    import inspect
+
+    signature = inspect.signature(model.nominal_decoder.reconstruct)
+    assert "physical_gain" in signature.parameters
     # 折算到输出端的误差量级
     error_lsb20 = abs(ratio - 1.0) * abs(float(result.residue[0])) / LSB20_V
     assert error_lsb20 < 100, "residue 很小时折算误差也应很小（这条只是防呆）"
@@ -98,17 +106,20 @@ def test_zero_mismatch_removes_sample_to_sample_spread():
     assert np.ptp(codes) == 0.0, f"zero mismatch should give identical codes, got ptp={np.ptp(codes):.3e}"
 
 
-def test_fixed_point_error_persists_without_mismatch_and_without_noise():
-    """定点偏差在"零失配 + 零噪声"下仍然存在 ⇒ 它是结构性问题，不是统计误差。
+def test_fixed_point_now_matches_the_float_path():
+    """定点与浮点必须同源 —— 这是 2026-11-13 修复后的**新**不变量。
 
-    这条把"37 LSB20 地板"定性：它不随失配变化，因此不能归因于器件失配。
+    修复前：零失配零噪声下定点 RMS 约 37 LSB20，而浮点精确。
+    修复后（解码器按 physical_gain 换算 fine）：两者应几乎一致。
     """
     model = _model_zero_noise()
-    errors = []
+    fixed, floating = [], []
     for x in (-2.9, -1.0, 0.0, 1.0, 2.9):
-        value = float(np.mean(model.simulate(lambda t, x=x: x, 2).codes.voltage))
-        errors.append(value - x)
-    rms_lsb20 = float(np.sqrt(np.mean(np.square(errors)))) / LSB20_V
-    assert rms_lsb20 > 10.0, (
-        "若这条失败，说明定点偏差已被消除（好事）——请更新文档并调整本断言"
+        result = model.simulate(lambda t, x=x: x, 2)
+        fixed.append(float(np.mean(result.codes.voltage)) - x)
+        floating.append(float(np.mean(result.raw.out)) - x)
+    fixed_rms = float(np.sqrt(np.mean(np.square(fixed)))) / LSB20_V
+    float_rms = float(np.sqrt(np.mean(np.square(floating)))) / LSB20_V
+    assert abs(fixed_rms - float_rms) < 5.0, (
+        f"fixed-path RMS {fixed_rms:.1f} should track float-path RMS {float_rms:.1f} LSB20"
     )

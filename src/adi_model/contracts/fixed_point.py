@@ -176,12 +176,26 @@ class FixedPointReconstructor:
             )
         return cls.from_weights(spec, model.weights, model.offset_v, format=format)
 
-    def reconstruct(self, data: DigitalObservation) -> CodeStream:
+    def reconstruct(
+        self, data: DigitalObservation, *, physical_gain: float | None = None
+    ) -> CodeStream:
         """从显式绑定的数字 a 和电压项重构整数码。
 
         每个已知逐单元电压项先按声明的归一化电压寄存器格式量化，居中时取偶数。
         随后用 Python 整数完成乘加，并在 floor 除法和最终饱和之前检查声明的累加范围；
         不推断任何物理掩码。
+
+        Args:
+            data: 显式数字观测。
+            physical_gain: 可选，RA 的**物理增益** G_phys（= 残差放大倍数）。
+
+                定点式的分母是 `Σw·a`（码本口径，对应 31.9375C），而 `fine_v`
+                是 RA 用 G_phys（采样口径，对应 32.94C）产生的。两者相差
+                `G_phys/Σw ≈ 1.0314`，不换算会让残差项被放大约 3.1%
+                （实测误差地板 21 → 576 LSB20）。给出该值时本函数把 `fine`
+                换算到 `Σw` 口径后再参与重建；给 None 则保持原行为。
+
+        Side effects: 无；纯整数运算（换算用定点乘除，见下）。
         """
         data.validate()
         if data.spec != self.spec:
@@ -220,6 +234,14 @@ class FixedPointReconstructor:
                 gain = int(gains[j])
                 if gain <= 0:
                     raise ValueError("quantized signal gain must be positive")
+                if physical_gain is not None:
+                    # 把 fine 从 G_phys 口径换算到 Σw 口径：fine *= gain/(G_phys·wscale)。
+                    # 用整数乘除保持确定性：fine_q 是 Q(voltage_fraction_bits)，
+                    # gain 是 Q(weight_fraction_bits)，故乘 gain 再除 G_phys 的定点表示。
+                    scale_q = int(round(physical_gain * (1 << self.format.weight_fraction_bits)))
+                    if scale_q <= 0:
+                        raise ValueError("physical gain must be positive")
+                    fine_q = round_even_divide(fine_q * gain, scale_q)
                 term_products = [
                     int(weight) * int(term)
                     for weight, term in zip(weights[j].flat, terms_q[j].flat, strict=True)

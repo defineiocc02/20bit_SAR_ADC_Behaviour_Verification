@@ -406,6 +406,20 @@ class DefaultModel:
         sequence = np.random.SeedSequence(self.seed, spawn_key=(branch, run_id))
         return int(sequence.generate_state(1, dtype=np.uint64)[0])
 
+    @staticmethod
+    def state_estimated_gain(raw) -> float | None:
+        """读出本笔使用的物理增益（RA 的 G_phys）；不可用时返回 None。
+
+        定点重建需要它来把 fine 换算到权重和口径。缺失时返回 None（保持旧行为），
+        不猜一个默认值。
+        """
+        state = getattr(raw, "state", None)
+        value = getattr(state, "estimated_gain", None)
+        if value is None:
+            return None
+        gain = float(value)
+        return gain if gain > 0 else None
+
     def inference_table(self) -> dict:
         """返回当前有效值、默认依据与覆盖标记，不给制造真值分配披露等级。"""
         p, cfg = self.parameters, self.cfg
@@ -817,7 +831,12 @@ class DefaultModel:
             dither_port=dither_port,
         )
         assert raw.digital_observation is not None
-        codes = self.nominal_decoder.reconstruct(raw.digital_observation)
+        # 定点重建的分母是 Σw（码本口径 31.9375C），而 fine 由 RA 的物理增益
+        # G_phys（采样口径 32.94C）产生。把 G_phys 显式传入，让解码器把 fine
+        # 换算到 Σw 口径 —— 否则残差项被放大约 3.1%，误差地板 21 → 576 LSB20。
+        codes = self.nominal_decoder.reconstruct(
+            raw.digital_observation, physical_gain=self.state_estimated_gain(raw)
+        )
         metadata = {
             "profile": "INFERRED_STATIC_DEFAULT_V1",
             "amendment_sha256": AMENDMENT_SHA256,

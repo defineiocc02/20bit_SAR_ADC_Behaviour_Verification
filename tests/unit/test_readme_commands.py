@@ -377,3 +377,23 @@ def test_no_metric_row_claims_inl_match_with_a_check_mark():
         "README marks INL with a check mark, but the paper figure gives no numeric "
         "INL and its definition was not reproduced:\n  " + "\n  ".join(offenders)
     )
+
+
+def test_readme_states_no_mechanism_passes_all_four_dimensions():
+    """"没有任何一项四项全 PASS"这个结论必须留在 README。
+
+    2026-11-13：README 的机制表用 ✅ 表示「已实现 / 判据已交付」，
+    但 `docs/mechanisms/source_crosscheck_20261112.md` 的四维评级结论是
+    「没有任何一项四项全 PASS」——两者不冲突，但读者只看 ✅ 会高估完成度。
+
+    ✅ 与四维评级并存是诚实的，前提是**四维结论要显式写在旁边**。
+    """
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    crosscheck = (ROOT / "docs/mechanisms/source_crosscheck_20261112.md").read_text(encoding="utf-8")
+    assert "没有任何一项四项全 PASS" in crosscheck, (
+        "the four-dimension conclusion disappeared from the cross-check document"
+    )
+    assert "没有任何一项机制四项全 PASS" in readme, (
+        "README must state that no mechanism passes all four cross-check dimensions; "
+        "otherwise the check marks in the mechanism table overstate completion"
+    )

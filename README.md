@@ -67,6 +67,12 @@ SKIP_HEAVY=1 PYTHON=python3 bash tools/verify_clean_clone.sh # 跳过重活，�
 细节见 [验收对照报告](docs/ACCEPTANCE_20261113.md) 与
 [校准推导](docs/mechanisms/paper_metrics_calibration.md)。
 
+> ⚠️ **先看这一行**：按 [`source_crosscheck_20261112.md`](docs/mechanisms/source_crosscheck_20261112.md)
+> 的四维评级（来源一致性 / 实现完整性 / 独立正确性 / 效果有效性），
+> **没有任何一项机制四项全 PASS**。最好的是 T02（follower）与 T05（dither）的独立正确性；
+> 最弱的是 T09/T10 的组合有效性（校准×DEM），有实测反证。
+> 下表 ✅ 的含义仅为「该机制的**判据或实现**已交付」，**不等于该机制已被完整验证**。
+
 | 机制 | 状态 | 交付物 |
 |:---|:---|:---|
 | RDAC follower（分离量化器） | ✅ 已实现 | `behavioral/follower.py` |

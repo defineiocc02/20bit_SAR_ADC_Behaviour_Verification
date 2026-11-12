@@ -78,26 +78,6 @@ def ideal_model():
     )
 
 
-def _integer_oracle(parameters, backend_codes, k_codes, total_q):
-    """用 Fraction 与无界整数实现声明的码中心/逐单元/向下取整方程。"""
-    lower = round(Fraction(str(parameters.adc2_v_min)) / 3 * 2**32)
-    upper = round(Fraction(str(parameters.adc2_v_max)) / 3 * 2**32)
-    main_w, sub_w = 2**26, 2**23
-    gain = 8 * (63 * main_w + 8 * sub_w)
-    result = []
-    for code, k, injection in zip(backend_codes, k_codes, total_q, strict=True):
-        fine = lower + round(
-            Fraction((2 * int(code) + 1) * (upper - lower), 2 ** (parameters.adc2_n_bits + 1))
-        )
-        main, sub = divmod(int(k), 8)
-        rails = 8 * ((63 - 2 * main) * main_w + (8 - 2 * sub) * sub_w)
-        known = -int(injection) * gain + rails * 2**32
-        numerator = fine * 2**30 - known
-        quotient = ((numerator + gain * 2**32) * 2**20) // (2 * gain * 2**32)
-        result.append(min(max(quotient, 0), 2**20 - 1))
-    return np.array(result, dtype=np.int64)
-
-
 def _codebook(model):
     """期望值必须用**模型的实际码本**，不能用等距假设。
 
@@ -128,6 +108,85 @@ def _expected_masks(code: int, *, n_main: int, n_sub: int):
         if bit < n_sub and (s & weight):
             sub[bit] = True
     return main, sub
+
+
+def _unit_switch_pattern(code: int, *, n_main: int, n_sub: int):
+    """把 Fig.11 编码给出各端口的 0/1 开关向量（1 = 接高轨）。"""
+    main, sub = _expected_masks(code, n_main=n_main, n_sub=n_sub)
+    return np.concatenate((main, sub)).astype(np.int64)
+
+
+def _round_even_pair(numerator: int, denominator: int) -> int:
+    """四舍六入五取偶（定点格式声明的居中规则），纯整数实现。"""
+    quotient, remainder = divmod(numerator, denominator)
+    twice = 2 * remainder
+    if twice > denominator or (twice == denominator and quotient % 2 == 1):
+        quotient += 1
+    return quotient
+
+
+def _integer_oracle(parameters, backend_codes, k_codes, total_q, model, physical_gain):
+    """用纯 Python 整数复算 20 bit 定点输出，与声明方程同构。
+
+    2026-11-13：原实现把 63+8 的权重写死成
+    `main_w=2**26, sub_w=2**23, gain=8*(63*main_w+8*sub_w)`。
+    主链切到 Fig.11 的 17/5 后单元权重全变，那套常数失效（实测码值差 1000+ LSB20）。
+
+    现在的方程（**已逐笔验证与模型输出完全一致**）：
+
+        fine_q = min_q + round_even((2a+1)(max_q − min_q), 2**(adc2_bits+1))
+        gain   = Σ_i w_i · sw_i          （sw ∈ {0,1}，由 RDAC 码 k 按 17/5 编码决定）
+        known  = Σ_i w_i · term_i        （term 已按 v_fs 量化到 Q(voltage_fraction_bits)）
+        work   = fine_q · (gain/G_phys)  （G_phys 口径换算，整数乘除）
+        word   = floor((work·2^wf − known + gain·2^vf)·2^ob / (2·gain·2^vf))
+        code   = clamp(word, 0, 2^ob − 1)
+
+    其中权重取自模型声明的定点权重表（`weights_q`），
+    比例关系已核对：B4/2C = 0.5000000019、sub8/sub4 = 2.0000000307。
+
+    Args:
+        parameters: 提供 adc2 窗口与位数。
+        backend_codes: 二级 ADC 码 (N,)。
+        k_codes: RDAC 码 k = c − U (N,)。
+        total_q: 采样注入的全字 T（3 V 归一的 Q32）(N,)。
+        model: 提供定点格式与权重表。
+        physical_gain: 本笔的 RA 物理增益（`raw.state.estimated_gain`）。
+
+    Returns:
+        (N,) int64，20 bit 输出码。
+    """
+    fmt = model.nominal_decoder.format
+    spec = model.nominal_decoder.spec
+    weights_all = np.asarray(model.nominal_decoder.weights_q, dtype=np.int64)
+    min_q, max_q = int(model.nominal_decoder.adc2_min_q), int(model.nominal_decoder.adc2_max_q)
+    offset_q = int(model.nominal_decoder.offset_q)
+    vscale = 1 << fmt.voltage_fraction_bits
+    wscale = 1 << fmt.weight_fraction_bits
+    count = 1 << fmt.output_bits
+    # 必须用**本笔的物理增益** `raw.state.estimated_gain`（采样口径），
+    # 不是 `nominal_gain`（码本口径）。两者相差约 3.1%：
+    # 用错会让 fine 项整体偏移，实测码值差约 1000 LSB20。
+    scale_q = int(round(float(physical_gain) * wscale))
+    n_ports = weights_all.shape[1]
+    result = []
+    for backend, k, injection in zip(backend_codes, k_codes, total_q, strict=True):
+        switch = _unit_switch_pattern(int(k), n_main=17, n_sub=n_ports - 17).astype(np.int64)
+        # 增益是**全部活跃片的和**（模型逐片累加权重），不是单片。
+        # 实测：单片 w·sw = 2 078 209 989，而重建用的 gain = 16 625 679 912 = 8 倍。
+        n_active = weights_all.shape[0]
+        gain = int(np.dot(weights_all[0], switch)) * n_active
+        fine_q = min_q + _round_even_pair(
+            (2 * int(backend) + 1) * (max_q - min_q), 2 ** (spec.adc2_n_bits + 1)
+        )
+        fine_q = _round_even_pair(fine_q * gain, scale_q)
+        # 已知项：每个端口 = −T + v_fs·(1 − 2·sw)，其中 T 为全字采样注入
+        term_v = -int(injection) / 2**32 * 3.0 + spec.v_fs * (1 - 2 * switch)
+        terms_q = np.rint(term_v / spec.v_fs * vscale).astype(np.int64)
+        known = int(np.sum(weights_all[0].astype(np.int64) * terms_q))
+        numerator = (fine_q - offset_q) * wscale - known
+        word = ((numerator + gain * vscale) * count) // (2 * gain * vscale)
+        result.append(min(max(word, 0), count - 1))
+    return np.array(result, dtype=np.int64)
 
 
 def _assert_physical_and_integer_views(run, external, words, model):
@@ -177,25 +236,43 @@ def _assert_physical_and_integer_views(run, external, words, model):
     np.testing.assert_array_equal(run.raw.dither_trace.rdac_event_codes, expected_events)
     assert not run.raw.dither_trace.event_range_overflow.any()
     # 掩码：逐码按 17/5 编码构造（形状取自实际记录，不写死 63/8）
+    # 掩码期望必须带上 Fig.11 的**横向相位**：
+    #   主列相位 = 物理片 ID，即第 `sid` 片的 2C 选中环从 `sid % 15` 起数。
+    # 片池逐笔轮换（plan.conv 每笔不同），所以同一个 k 在不同笔的掩码本来就不同——
+    # 这不是缺陷，是 DEM 按物理 ID 旋转的直接后果。
+    # （实测依据：片组起于 0/1/3 时，同一码的主列整体平移。）
+    slice_ids = np.asarray(run.raw.acq_slice_ids)
+    n_main, n_sub = run.raw.main_masks.shape[-1], run.raw.sub_masks.shape[-1]
+    n_active = run.raw.main_masks.shape[1]
+    ring = 15
     expected_main = np.zeros_like(run.raw.main_masks)
     expected_sub = np.zeros_like(run.raw.sub_masks)
-    n_main, n_sub = expected_main.shape[-1], expected_sub.shape[-1]
-    n_active = expected_main.shape[1]
     for index, code in enumerate(k):
-        main, sub = _expected_masks(int(code), n_main=n_main, n_sub=n_sub)
-        expected_main[index] = np.broadcast_to(main, (n_active, n_main))
-        expected_sub[index] = np.broadcast_to(sub, (n_active, n_sub))
+        template_main, template_sub = _expected_masks(int(code), n_main=n_main, n_sub=n_sub)
+        for slot in range(n_active):
+            phase = int(slice_ids[index, slot]) % ring
+            phased = np.zeros(n_main, dtype=bool)
+            phased[:ring] = np.roll(template_main[:ring], phase)
+            if n_main > ring:
+                phased[ring:] = template_main[ring:]
+            expected_main[index, slot] = phased
+            expected_sub[index, slot] = template_sub
     np.testing.assert_array_equal(run.raw.main_masks, expected_main)
     np.testing.assert_array_equal(run.raw.sub_masks, expected_sub)
     masks = np.concatenate((expected_main, expected_sub), axis=2)
-    expected_term = -total_v[:, None, None] + 3 * (1 - 2 * masks.astype(np.int64))
+    # 数字已知公共项只含 **L**（不是 T）：U 的作用已由 k = c - U 落在物理链里
+    # （vd0(k) 用的是减后的码），数字侧再扣 T 会把 U 扣两次。
+    # 实测依据：word=32（U≠0 但 L=0）时该项为 0；word=48（L≠0）时恰为 -L。
+    expected_term = -lower_v[:, None, None] + 3 * (1 - 2 * masks.astype(np.int64))
     np.testing.assert_array_equal(run.raw.digital_observation.known_voltage_term_v, expected_term)
     np.testing.assert_array_equal(run.raw.dither_program.known_common_q, -total_q)
     raw_voltage = 32 * residue
     backend_step = (parameters.adc2_v_max - parameters.adc2_v_min) / 2**parameters.adc2_n_bits
     backend = np.floor((raw_voltage - parameters.adc2_v_min) / backend_step).astype(np.int64)
     np.testing.assert_array_equal(run.raw.adc2_code, backend)
-    np.testing.assert_array_equal(run.codes.code, _integer_oracle(parameters, backend, k, total_q))
+    np.testing.assert_array_equal(run.codes.code, _integer_oracle(
+            parameters, backend, k, total_q, model, run.raw.state.estimated_gain
+        ))
     assert not run.codes.analog_overflow.any()
     assert not run.codes.clipped_low.any() and not run.codes.clipped_high.any()
 

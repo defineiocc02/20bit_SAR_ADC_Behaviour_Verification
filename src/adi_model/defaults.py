@@ -89,7 +89,11 @@ class DefaultParameters:
     main_parasitic_f: float = 0.0
     sub_parasitic_f: float = 0.0
     sadc_cap_f: float = 2.5625e-12
-    adc2_n_bits: int = 12
+    # 14 bit，与窗口 [-0.0375, +0.4125] 配套：ADR-0003 的 `paper_literal` 行即
+    # "9 | 1 | 0b | 14 bit，[-0.0375, +0.4125] V"。此前误写成 12 bit 却沿用同一窗口，
+    # 结果二级量化 LSB 折到输入 = 0.60 LSB20，**单这一项就吃不满 20 bit 目标**（需 ≤0.5）。
+    # 14 bit 时该值 = 0.15 LSB20 ✓。
+    adc2_n_bits: int = 14
     adc2_v_min: float = -0.037500000000000006
     adc2_v_max: float = 0.41250000000000003
     endpoint_policy: str = "half_open"
@@ -274,6 +278,7 @@ class DefaultModel:
             adc2_v_min=cfg.adc2_v_min,
             adc2_v_max=cfg.adc2_v_max,
             upper_code_max=5,
+            adc2_n_bits=cfg.adc2_n_bits,
         )
         coarse = np.arange(512, dtype=np.int64)
         # ==== 码本律（2026-11-13 最终版，依据 US10511316B2 FIG.11/17/19/20 + ISO 端点闭合）====

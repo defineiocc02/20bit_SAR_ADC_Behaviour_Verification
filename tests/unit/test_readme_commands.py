@@ -59,6 +59,7 @@ _HISTORICAL_FILES = (
     "docs/reviews/20261113_p3p4/11_review_request_email.md",  # 发给外部审查者的邮件稿
     "docs/reviews/20261113_p3p4/README.md",             # 该轮评审的索引页
     "docs/reviews/PR9_RESPONSE_20261112.md",            # PR #9 响应记录
+    "docs/review_response_2026-09-11d.md",              # 第五份外部复核的裁定记录
 )
 
 
@@ -159,3 +160,73 @@ def test_audit_findings_really_exits_zero():
         + (result.stderr or "")[-1500:]
     )
     assert "4/4" in result.stdout, f"expected 4/4 resolved, got:\n{result.stdout[-800:]}"
+
+
+def test_document_images_resolve():
+    """文档里的图片引用必须都能解析（39 处，全部有效）。
+
+    与"数据文件路径"不同：图片是真实链接，必须存在；而
+    ``data/p4_ablation.json`` 这类是**相对命令执行目录**的路径，
+    不是相对文档的链接，不能按链接校验（否则大量误报）。
+
+    本会话曾三次遇到"文档承诺但实际不成立"，图片断链是最容易被忽略的一类：
+    读者点开看不到图，但没有任何检查会报错。
+    """
+    missing: list[str] = []
+    total = 0
+    files = [README, *sorted((ROOT / "docs").rglob("*.md"))]
+    for path in files:
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8")
+        for match in re.finditer(r"!\[[^\]]*\]\(([^)]+)\)", text):
+            target = match.group(1).split()[0].strip("\"'")
+            if target.startswith(("http://", "https://", "data:")):
+                continue
+            total += 1
+            resolved = (path.parent / target).resolve()
+            if not resolved.exists():
+                missing.append(f"{path.relative_to(ROOT)} -> {target}")
+    assert total > 0, "documents should reference at least one image"
+    assert not missing, "documents reference missing images:\n  " + "\n  ".join(missing)
+
+
+#: 迁移/评审类文档：其中出现的代码路径是**当时**的位置（如迁移前路径、已删模块），
+#: 不要求当前仓库里存在。这类文档表达的是历史事实，改写会破坏可追溯性。
+_PATH_HISTORY_FILES = (
+    "docs/migration.md",
+    "docs/rtl/P2_INTERFACE.md",
+)
+
+
+def test_current_documents_reference_existing_modules():
+    """现行文档里引用的 `src/adi_model/*.py` 必须真实存在。
+
+    92 处模块引用，其中 8 处指向已重构移除的模块（`chopping_az.py`、
+    `sim_split.py`、`acceptance.py`、`noise_phase.py`、`scheduler_edge.py`）。
+    逐一核对后确认这 8 处**全部落在历史/评审文档里**（迁移记录记的是迁移前路径、
+    评审响应记的是当时的模块名），不是缺陷。本测试把"现行文档不得引用不存在的模块"
+    固定下来，防止后续重构留下断链。
+    """
+    missing: list[str] = []
+    total = 0
+    for path in [README, *sorted((ROOT / "docs").rglob("*.md"))]:
+        if not path.is_file() or _is_historical(path):
+            continue
+        rel = str(path.relative_to(ROOT))
+        if rel in _PATH_HISTORY_FILES:
+            continue
+        text = path.read_text(encoding="utf-8")
+        for match in re.finditer(r"`((?:src/adi_model/|adi_model/)[\w/]+\.py)`", text):
+            target = match.group(1)
+            total += 1
+            resolved = ROOT / (target if target.startswith("src/") else "src/" + target)
+            if not resolved.exists():
+                missing.append(f"{rel} -> {target}")
+    assert total > 0, "documents should reference at least one module"
+    assert not missing, (
+        "current documents reference modules that no longer exist:\n  "
+        + "\n  ".join(missing)
+        + "\n(if these are historical references, add the file to _PATH_HISTORY_FILES "
+        "or _HISTORICAL_FILES with a reason)"
+    )

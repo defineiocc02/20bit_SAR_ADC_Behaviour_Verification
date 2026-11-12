@@ -92,7 +92,7 @@ python -m verification.run_verification --level closed_loop
 
 | 级别 | 状态 | 缺什么 |
 |:---|:---|:---|
-| V3 `rtl_top` | **NOT_RUN** | `sar20_digital_core` 需要 calobs v2 观测总线 + 同 profile 的 `source_control_binding` 实例，测试台还要按相位提供比较器判决 |
+| V3 `rtl_top` | **ELABORATED_ONLY** | 顶层能在 VCS 下 elaborate 并跑到 idle；功能级缺完整配置写入（71 权重 + 3 标量 + 18 窗口）与逐相位比较器判决 |
 | V4 `closed_loop` | **NOT_RUN** | 需要 Python plant 消费 RTL 实际开关命令并回送 ADC2 码的事务桥；V1 的 bench 还没导出逐事件命令流 |
 | 校准系数加载一致性 | **NOT_RUN** | 需要 RTL `calib_regs` / `weight_store` 的真实加载序列与版本错绑反例 |
 | 代码覆盖率 | **NOT_RUN** | 未接 `-cm` 覆盖率收集；功能覆盖由向量表给出，**不用代码覆盖替代** |

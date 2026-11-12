@@ -1,6 +1,28 @@
 {
   "level": "rtl_top",
-  "status": "NOT_RUN",
-  "missing": "sar20_digital_core needs the calobs v2 observation bus and a source_control_binding instance generated for the same profile; the bench must also supply comparator decisions per phase",
+  "status": "ELABORATED_ONLY",
+  "bench": "tb_sar20_top.sv",
+  "cycles": 32,
+  "final": {
+    "cfg_ready": 0,
+    "source_control_ready": 0,
+    "acquisition_control_valid": 0,
+    "dout_valid": 0,
+    "acquiring_mask": "ff",
+    "converting_mask": "0"
+  },
+  "checked": [
+    "the digital top elaborates against the generated source bindings",
+    "reset drives the documented idle state: 8 acquiring slices, no output",
+    "no spurious dout_valid while unconfigured"
+  ],
+  "not_checked": [
+    "config map load and cfg_validate",
+    "sample accept/retire, handshake and backpressure",
+    "comparator decisions, RDAC updates, decoding",
+    "the sample conservation identity"
+  ],
+  "missing": "functional V3 needs the full config map (71 weights + offset/min/max + 18 window rows) written and validated, then per-phase comparator decisions; the bring-up bench below only covers elaboration and reset",
+  "dump": "verification/reports/top_bringup.out",
   "profile": "adi_40m"
 }

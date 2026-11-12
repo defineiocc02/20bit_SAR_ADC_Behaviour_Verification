@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 from dataclasses import dataclass
@@ -80,9 +81,9 @@ DEFERRED_LEVELS = {
     "rtl_top": {
         "status": "NOT_RUN",
         "missing": (
-            "sar20_digital_core needs the calobs v2 observation bus and a "
-            "source_control_binding instance generated for the same profile; "
-            "the bench must also supply comparator decisions per phase"
+            "functional V3 needs the full config map (71 weights + offset/min/max "
+            "+ 18 window rows) written and validated, then per-phase comparator "
+            "decisions; the bring-up bench below only covers elaboration and reset"
         ),
     },
     "closed_loop": {
@@ -253,6 +254,8 @@ def main(argv: list[str] | None = None) -> int:
             "level": args.level, "status": "NOT_RUN", "simulator": args.simulator,
             "reason": f"simulator '{args.simulator}' is not implemented; only VCS is",
         }
+    elif args.level == "rtl_top":
+        document = run_top_bringup()
     elif args.level in DEFERRED_LEVELS:
         document = {"level": args.level, **DEFERRED_LEVELS[args.level]}
     elif args.level == "contracts":
@@ -294,5 +297,85 @@ def _check_contracts() -> dict:
     }
 
 
+def run_top_bringup() -> dict:
+    """Elaborate `sar20_digital_core` with the generated bindings and check reset.
+
+    This is deliberately reported as ``ELABORATED_ONLY``. It proves the top
+    builds and that reset produces the documented idle state; it does **not**
+    prove sample flow, handshake or decoding. Conflating the two is exactly the
+    substitution the task book forbids.
+    """
+    import shutil
+
+    from verification.cosim import vcs_runner
+
+    host = vcs_runner.check_host()
+    if not host["available"]:
+        return {"level": "rtl_top", "status": "NOT_RUN",
+                "reason": f"no simulator: {host['detail'][:200]}"}
+
+    package = ROOT / "verification" / "build" / "rtl_inputs_pkg"
+    if not package.is_dir():
+        return {
+            "level": "rtl_top", "status": "NOT_RUN",
+            "reason": (
+                "missing generated RTL inputs; run tools/export_rtl_params.py "
+                "--config sim/fixtures/source_control_component/config.json "
+                "--out verification/build/rtl_inputs_pkg first"
+            ),
+        }
+
+    stage = vcs_runner.BUILD / f"v3_top_{os.getpid()}"
+    if stage.exists():
+        shutil.rmtree(stage)
+    stage.mkdir(parents=True)
+    for pattern in ("rtl/**/*.sv", "rtl/**/*.vh"):
+        for path in ROOT.glob(pattern):
+            shutil.copy2(path, stage / path.name)
+    for name in ("rtl_params.vh", "source_control_binding.sv", "source_acquisition_binding.sv"):
+        shutil.copy2(package / name, stage / name)
+    shutil.copy2(ROOT / "verification" / "rtl" / "tb" / "tb_sar20_top.sv", stage / "tb_sar20_top.sv")
+
+    result = vcs_runner.run_on_host(stage, top="tb_sar20_top", plusargs="", timeout=1800)
+    if result.status != "PASS_RUN":
+        return {"level": "rtl_top", "status": "NOT_RUN", "log_tail": result.log[-2000:]}
+
+    lines = [line.split() for line in result.outputs["sar20_top.out"].splitlines() if line.strip()]
+    final = lines[-1]
+    cfg_ready, ctrl_ready, acq_valid, dout_valid = (int(final[1]), int(final[2]),
+                                                    int(final[3]), int(final[4]))
+    document = {
+        "level": "rtl_top",
+        "status": "ELABORATED_ONLY",
+        "bench": "tb_sar20_top.sv",
+        "cycles": len(lines),
+        "final": {
+            "cfg_ready": cfg_ready,
+            "source_control_ready": ctrl_ready,
+            "acquisition_control_valid": acq_valid,
+            "dout_valid": dout_valid,
+            "acquiring_mask": final[6],
+            "converting_mask": final[7],
+        },
+        "checked": [
+            "the digital top elaborates against the generated source bindings",
+            "reset drives the documented idle state: 8 acquiring slices, no output",
+            "no spurious dout_valid while unconfigured",
+        ],
+        "not_checked": [
+            "config map load and cfg_validate",
+            "sample accept/retire, handshake and backpressure",
+            "comparator decisions, RDAC updates, decoding",
+            "the sample conservation identity",
+        ],
+        "missing": DEFERRED_LEVELS["rtl_top"]["missing"],
+    }
+    (REPORTS / "top_bringup.out").write_text(result.outputs["sar20_top.out"], encoding="utf-8")
+    document["dump"] = "verification/reports/top_bringup.out"
+    return document
+
+
 if __name__ == "__main__":
     sys.exit(main())
+
+

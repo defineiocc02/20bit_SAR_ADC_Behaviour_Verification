@@ -100,7 +100,7 @@ per_slice_main = command.main_on.sum(axis=0)   # 形状 (active_slot, unit)
 
 | 级别 | 状态 | 具体缺什么 | 影响 |
 |:---|:---|:---|:---|
-| V3 `rtl_top` | **NOT_RUN** | `sar20_digital_core` 需要 calobs v2 观测总线 + 同 profile 的 `source_control_binding` / `source_acquisition_binding` 实例；测试台还要按 16 相位提供比较器判决与 ADC2 原始码 | 无法声称"整链无丢样/重样/乱序" |
+| V3 `rtl_top` | **ELABORATED_ONLY**（功能仍 NOT_RUN） | 顶层已用生成的 binding 在 VCS 下 elaborate 并跑到复位后 idle（`acquiring_mask=0xff`、无伪 `dout_valid`）。功能级缺：71 个权重 + offset/min/max + 18 行窗口的完整配置写入与 `cfg_validate`，以及逐相位比较器判决 | 不能声称"整链无丢样/重样/乱序" |
 | V4 `closed_loop` | **NOT_RUN** | 需要 Python plant 消费 RTL 实际开关命令并回送 ADC2 码的事务桥；V1 的 bench 只导出最终状态，没有逐事件命令流 | 无法声称模拟–数字闭环一致性 |
 | 校准系数加载 | **NOT_RUN** | 需要 `calib_regs`/`weight_store` 的真实加载序列与"错误版本注入"反例 | 无法声称校准版本不错绑 |
 | 代码覆盖率 | **NOT_RUN** | 未接 `-cm line+cond+fsm`；功能覆盖由向量表给出 | 不拿代码覆盖当功能覆盖 |

@@ -543,7 +543,16 @@ def execute_pipeline(
         hold_upper = np.asarray(dither_port.require_words().upper_code, dtype=np.int64)
     else:
         hold_upper = np.zeros(n_samples, dtype=np.int64)
-    rdac_codes = np.asarray(mapped.codes, dtype=np.int64) - hold_upper
+    # 2026-11-13 修正**双重减法**：v1 路径在第 517 行已经把 `mapped.codes` 换成
+    # `dither_trace.rdac_code`（= c - U，224 减法器之后的值）；若这里再减一次
+    # `hold_upper`，实际 RDAC 码会变成 `c - 2U`（实测 k == coarse - 2*upper）。
+    # 现在按拓扑区分：
+    #   v1（dither_program）：codes 已减过 U，不再减；
+    #   v2（dither_port）  ：codes 保持 c，减 U。
+    if dither_program is not None:
+        rdac_codes = np.asarray(mapped.codes, dtype=np.int64)
+    else:
+        rdac_codes = np.asarray(mapped.codes, dtype=np.int64) - hold_upper
     if np.any((rdac_codes < 0) | (rdac_codes > 511)):
         raise ConfigError(
             "dither upper segment would push the RDAC code outside the 9-bit domain; "

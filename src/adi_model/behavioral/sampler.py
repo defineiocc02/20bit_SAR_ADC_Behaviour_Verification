@@ -192,7 +192,14 @@ def capture(
         # U 会被计入两次：采样电压减了 U，码又提前了 U，残差因此多出 U 的量
         # （实测 word=32 时残差 +42.6 mV = U 的 4 个 LSB9）。
         # 因此采样侧的模拟注入只保留 L（(b) 段留给后级数字扣除）。
-        lower, total = dither_program.lower_v, dither_program.lower_v
+        # 222 加法器注入**全字 T = L + U**：它与 224 减法器（k = c - U）是配套的，
+        # U 在残差里自动抵消：
+        #   residue = (x - T) - vd0(c-U) = (x - L - U) - (vd0(c) - U*Δ) = x - L - vd0(c)
+        # 2026-11-13 曾把这里改成只注入 L，理由是要控制残差摆幅；但那会**破坏**
+        # 222/224 的配套关系，使 U 在残差中只出现一次而不抵消（实测 k=c-2U 之类的错位）。
+        # 残差摆幅问题应通过"限制 U 的取值范围"或"放宽 ADC2 窗口"解决，
+        # 而不是拆散这对由原件电路确定的配套关系。
+        lower, total = dither_program.lower_v, dither_program.total_v
     tau_error = np.zeros(n_samples)
     if cfg.sampling_tau_mismatch is not None:
         tau = float(finite_record(cfg.sampling_tau_mismatch, (), "sampling_tau_mismatch [s]"))

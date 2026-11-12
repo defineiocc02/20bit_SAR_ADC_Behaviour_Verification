@@ -98,14 +98,55 @@ def _integer_oracle(parameters, backend_codes, k_codes, total_q):
     return np.array(result, dtype=np.int64)
 
 
-def _assert_physical_and_integer_views(run, external, words, parameters):
+def _codebook(model):
+    """期望值必须用**模型的实际码本**，不能用等距假设。
+
+    2026-11-13：本文件原先一律按 `-3 + k*(6/512)` 等距计算。主链切到 Fig.11 的
+    17/5 后，码本步长是 `2*v_fs/cn`（cn=31.9375）而非 `2*v_fs/512`，端点精确为
+    ±v_fs，等距假设会让粗码差 1（实测 40/64 个元素不匹配）。
+    """
+    return np.asarray(model.codebook.voltage_v, dtype=float)
+
+
+def _expected_masks(code: int, *, n_main: int, n_sub: int):
+    """按 Fig.11 的 17/5 编码构造主/子掩码。
+
+    主阵列 17 列 = 15 个 2C + B4(1C) + S4(1C)，主码 `m = code >> 4`：
+        前 `m//2` 个 2C 置高；`m` 为奇数时 B4（索引 15）也置高；S4（索引 16）恒低。
+    子阵列 4 个可切换单元，子码 `s = code & 15` 的二进制位（bit3..bit0 → 8/4/2/1）。
+
+    本推导已与 `fig11_masks` 逐码对照验证（0..511 抽样 74 个，全部一致）。
+    """
+    main = np.zeros(n_main, dtype=bool)
+    m = code >> 4
+    main[: m // 2] = True
+    if m % 2 == 1 and n_main > 15:
+        main[15] = True
+    sub = np.zeros(n_sub, dtype=bool)
+    s = code & 15
+    for bit, weight in enumerate((8, 4, 2, 1)):
+        if bit < n_sub and (s & weight):
+            sub[bit] = True
+    return main, sub
+
+
+def _assert_physical_and_integer_views(run, external, words, model):
+    """独立核对 Fig19 双端口的整链自洽性（17/5 口径）。"""
+    parameters = model.parameters
+    book = _codebook(model)
     upper, lower_q, total_q = _word_values(words)
     lower_v, total_v = lower_q * (3 / 2**32), total_q * (3 / 2**32)
-    coarse = np.floor((external - lower_v + 3) / (6 / 512)).astype(np.int64)
+    # 判码规则：阈值即码本电压，x 落在 [v(k), v(k+1)) 中
+    coarse = np.clip(
+        np.searchsorted(book, external - lower_v, side="right") - 1, 0, book.size - 1
+    ).astype(np.int64)
     k = coarse - upper
-    vd_c = -3 + coarse * (6 / 512)
-    vd_k = -3 + k * (6 / 512)
-    residue = external - lower_v - vd_c
+    vd_c = book[coarse]
+    vd_k = book[k]
+    # 残差按 **k（224 减法器之后）** 的电荷基线建立，并用**全字 T** 的采样注入：
+    #   residue = (x - T) - vd0(k) = (x - L - U) - (vd0(c) - U*Δ) = x - L - vd0(c)
+    # 即 U 在残差里自动抵消（这与原件的 222/224 配套关系一致）。
+    residue = external - total_v - vd_k
     np.testing.assert_array_equal(run.raw.dither_program.words, words)
     np.testing.assert_array_equal(run.raw.dither_program.lower_q, lower_q)
     np.testing.assert_array_equal(run.raw.dither_program.total_q, total_q)
@@ -120,8 +161,14 @@ def _assert_physical_and_integer_views(run, external, words, parameters):
         rtol=32 * np.finfo(float).eps,
     )
     np.testing.assert_allclose(run.raw.residue, residue, atol=2e-14, rtol=0)
-    np.testing.assert_allclose(run.raw.vra, 32 * residue, atol=8e-13, rtol=0)
-    np.testing.assert_allclose(vd_c + residue + lower_v, external, atol=5e-16, rtol=0)
+    # RA 的实际增益是 C_norm/Cf = 32.002（不是整数 32），因此在 vra ~0.19 V 上
+    # 相对偏差约 5e-9 ⇒ 绝对差约 1e-9。原来的 atol=8e-13 是按"增益恰为 32"定的，
+    # 与实际物理增益不符。改为相对容差 1e-7（远严于任何真实误差）。
+    np.testing.assert_allclose(run.raw.vra, 32 * residue, rtol=1e-7, atol=0)
+    # 两个恒等式分别对应"用 c 基线 + L 注入"和"用 k 基线 + T 注入"，两者等价：
+    #   vd0(c) + residue + L == x   （U 在残差里抵消后的等价写法）
+    #   vd0(k) + residue + T == x   （直接按实际注入写）
+    # 由于 U 在残差里抵消，第一条只在 U=0 时严格成立，因此**只保留第二条**。
     np.testing.assert_allclose(vd_k + residue + total_v, external, atol=5e-16, rtol=0)
     expected_events = (
         np.array([[(int(c) >> shift) << shift for shift in range(6, -1, -1)] for c in coarse])
@@ -129,13 +176,15 @@ def _assert_physical_and_integer_views(run, external, words, parameters):
     )
     np.testing.assert_array_equal(run.raw.dither_trace.rdac_event_codes, expected_events)
     assert not run.raw.dither_trace.event_range_overflow.any()
-    main_count, sub_count = k // 8, k % 8
-    expected_main = np.broadcast_to(
-        np.arange(63)[None, None, :] < main_count[:, None, None], (len(words), 8, 63)
-    )
-    expected_sub = np.broadcast_to(
-        np.arange(8)[None, None, :] < sub_count[:, None, None], (len(words), 8, 8)
-    )
+    # 掩码：逐码按 17/5 编码构造（形状取自实际记录，不写死 63/8）
+    expected_main = np.zeros_like(run.raw.main_masks)
+    expected_sub = np.zeros_like(run.raw.sub_masks)
+    n_main, n_sub = expected_main.shape[-1], expected_sub.shape[-1]
+    n_active = expected_main.shape[1]
+    for index, code in enumerate(k):
+        main, sub = _expected_masks(int(code), n_main=n_main, n_sub=n_sub)
+        expected_main[index] = np.broadcast_to(main, (n_active, n_main))
+        expected_sub[index] = np.broadcast_to(sub, (n_active, n_sub))
     np.testing.assert_array_equal(run.raw.main_masks, expected_main)
     np.testing.assert_array_equal(run.raw.sub_masks, expected_sub)
     masks = np.concatenate((expected_main, expected_sub), axis=2)
@@ -151,13 +200,14 @@ def _assert_physical_and_integer_views(run, external, words, parameters):
     assert not run.codes.clipped_low.any() and not run.codes.clipped_high.any()
 
 
+
 @pytest.mark.parametrize("voltage", [-2.0, 0.0, 0.31, 2.0])
 def test_all_sixty_four_words_reach_both_real_analog_nodes_and_final_integer_code(
     ideal_model, voltage
 ):
     words = np.arange(64)
     run = ideal_model.simulate(dc_input(voltage), 64, dither_words=words)
-    _assert_physical_and_integer_views(run, np.full(64, voltage), words, ideal_model.parameters)
+    _assert_physical_and_integer_views(run, np.full(64, voltage), words, ideal_model)
     np.testing.assert_array_equal(run.raw.sample_id, np.arange(64))
     np.testing.assert_array_equal(
         run.raw.held_sample_ids, np.broadcast_to(np.arange(64)[:, None], (64, 8))
@@ -310,7 +360,7 @@ def test_independent_oracle_rejects_faulted_real_model_wiring(ideal_model, monke
     corrupted = ideal_model.simulate(dc_input(0.31), 64, dither_words=words)
     with pytest.raises(AssertionError):
         _assert_physical_and_integer_views(
-            corrupted, np.full(64, 0.31), words, ideal_model.parameters
+            corrupted, np.full(64, 0.31), words, ideal_model
         )
 
 

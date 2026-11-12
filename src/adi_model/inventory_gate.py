@@ -245,34 +245,31 @@ def _check_reference_assets(
     return ids, assets
 
 
-def _check_sources(
-    repo_root: Path,
-    manifest: dict[str, object],
+def _verify_source_entries(
+    entries: list[tuple[object, bool]],
+    *,
     result: GateResult,
-    reference_assets: dict[str, ReferenceAsset] | None = None,
+    reference_assets: dict[str, ReferenceAsset],
+    reference_by_sha: dict[str, ReferenceAsset],
+    resolve_dirs,
 ) -> set[str]:
-    """检查已登记来源文件，返回可用于静态引用的 ID。
+    """逐条校验来源条目（ID 合法性、重复、哈希、体积），返回登记的 ID 集合。
 
-    未登记哈希的背景条目保持 BLOCKED。返回的 ID 标识声明，包括本地文件被阻断的条目；
-    不认证原文内容或文献引用的含义。
+    从 `_check_sources` 抽出：原函数 104 行里这段 for 占 74 行。
+    本函数只读清单、只写 result；错误以 result.add(...) 累积，不抛异常。
+
+    Args:
+        entries: (条目, 是否背景来源) 的列表，由调用方拼好。
+        result: 累积检查结果的容器；本函数只往里 add。
+        reference_assets: 参考资产表（按 ID），用于判断来源与资产是否同 UID。
+        reference_by_sha: 参考资产的 SHA256 索引，用于交叉引用。
+        resolve_dirs: 解析来源目录的可调用对象。
+
+    Returns:
+        已登记来源的 ID 集合（含本地文件被阻断的条目）。
+
+    Side effects: 写 result；读取本地文件以计算哈希（仅当路径解析成功时）。
     """
-    reference_assets = {} if reference_assets is None else reference_assets
-    reference_by_sha = {asset.sha256: asset for asset in reference_assets.values()}
-    sources = manifest.get("sources", [])
-    if not isinstance(sources, list) or not sources:
-        result.add("sources.present", "FAIL", "sources_manifest 缺少 sources 数组")
-        return set()
-    entries = [(source, False) for source in sources]
-    background = manifest.get("background_sources", {})
-    if not isinstance(background, dict):
-        result.add("sources.background", "FAIL", "background_sources 必须是对象")
-    else:
-        items = background.get("items", [])
-        if not isinstance(items, list):
-            result.add("sources.background", "FAIL", "background_sources.items 必须是数组")
-        else:
-            entries.extend((source, True) for source in items)
-    resolve_dirs = _resolve_sources_dir(manifest, repo_root)
     ids: set[str] = set()
     for src, is_background in entries:
         if not isinstance(src, dict):
@@ -348,6 +345,46 @@ def _check_sources(
                 "FAIL",
                 f"{found} 哈希不一致：清单 {digest[:12]}… 实际 {actual[:12]}…",
             )
+    return ids
+
+
+
+def _check_sources(
+    repo_root: Path,
+    manifest: dict[str, object],
+    result: GateResult,
+    reference_assets: dict[str, ReferenceAsset] | None = None,
+) -> set[str]:
+    """检查已登记来源文件，返回可用于静态引用的 ID。
+
+    未登记哈希的背景条目保持 BLOCKED。返回的 ID 标识声明，包括本地文件被阻断的条目；
+    不认证原文内容或文献引用的含义。
+    """
+    reference_assets = {} if reference_assets is None else reference_assets
+    reference_by_sha = {asset.sha256: asset for asset in reference_assets.values()}
+    sources = manifest.get("sources", [])
+    if not isinstance(sources, list) or not sources:
+        result.add("sources.present", "FAIL", "sources_manifest 缺少 sources 数组")
+        return set()
+    entries = [(source, False) for source in sources]
+    background = manifest.get("background_sources", {})
+    if not isinstance(background, dict):
+        result.add("sources.background", "FAIL", "background_sources 必须是对象")
+    else:
+        items = background.get("items", [])
+        if not isinstance(items, list):
+            result.add("sources.background", "FAIL", "background_sources.items 必须是数组")
+        else:
+            entries.extend((source, True) for source in items)
+    resolve_dirs = _resolve_sources_dir(manifest, repo_root)
+    ids: set[str] = set()
+    return _verify_source_entries(
+        entries,
+        result=result,
+        reference_assets=reference_assets,
+        reference_by_sha=reference_by_sha,
+        resolve_dirs=resolve_dirs,
+    )
     return ids
 
 

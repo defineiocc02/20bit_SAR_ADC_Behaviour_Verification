@@ -549,7 +549,8 @@ class DefaultModel:
         return rows
 
     def simulate(
-        self, input_fn, n_samples: int, *, run_id: int = 0, dither_words=None
+        self, input_fn, n_samples: int, *, run_id: int = 0, dither_words=None,
+        ordinary_az=None,
     ) -> DefaultRun:
         """以正常用户波形和N运行，并用独立名义定点系数输出20bit码。
 
@@ -559,6 +560,8 @@ class DefaultModel:
             run_id: 同一制造chip上的可重放计划/噪声编号。
             dither_words: 可选(N,)显式六位字，启用Fig19静态等效端口；不生成隐藏PRNG。
                 v1要求调用方明确关闭噪声/动态/DEM，建议先用±2.0V验证；不夹非法早prefix。
+            ordinary_az: 可选 OrdinaryAZConfig；None 表示不施加。启用时每笔独立
+                计算 AZ 误差并送入 RA 输入，N 笔仍输出 N 笔，不做偶奇配对。
 
         Returns:
             DefaultRun，含CodeStream、raw与本次推断/启用/未建机制表。
@@ -574,6 +577,17 @@ class DefaultModel:
             raise ConfigError("n_samples must be a positive uint32-range count")
         schedule_seed, noise_seed = self._child_seed(1, run_id), self._child_seed(2, run_id)
         cfg = replace(self.cfg, seed=noise_seed)
+        az_error_v = None
+        if ordinary_az is not None:
+            from .behavioral.ra_az import apply_ordinary_az
+            if not ordinary_az.enabled:
+                raise ConfigError("ordinary_az must be enabled to be applied")
+            times_s = np.arange(n_samples, dtype=float) / cfg.fs
+            az = apply_ordinary_az(
+                np.zeros(n_samples), np.arange(n_samples, dtype=np.int64),
+                ordinary_az, sample_time_s=times_s,
+            )
+            az_error_v = az.error_v
         program = None
         mapper = self.mapper
         if dither_words is not None:
@@ -637,6 +651,7 @@ class DefaultModel:
             nominal_reference_low_v=-cfg.v_fs,
             static_charge_domain=True,
             rdac_noise_cap_f=noise_cap,
+            ra_input_error_v=az_error_v,
             dither_program=program,
         )
         assert raw.digital_observation is not None
@@ -670,6 +685,7 @@ class DefaultModel:
                 "unit_dem": False,
                 "source_dither": program is not None,
                 "feedback_mismatch": self.parameters.feedback_mismatch_std != 0,
+                "ordinary_az": ordinary_az is not None and ordinary_az.enabled,
             },
             "unmodeled": [
                 "complete source lower/upper capacitor/switch network",
@@ -683,6 +699,15 @@ class DefaultModel:
                 "PDK/layout/signoff",
             ],
             "inferences": self.inference_table(),
+            "ordinary_az": None if ordinary_az is None else {
+                "enabled": ordinary_az.enabled,
+                "offset_v": ordinary_az.offset_v,
+                "noise_v": ordinary_az.noise_v,
+                "droop_v_per_s": ordinary_az.droop_v_per_s,
+                "seed": ordinary_az.seed,
+                "samples": n_samples,
+                "pairing": "none; N->N full rate",
+            },
             "dither_program": None
             if program is None
             else {
@@ -736,6 +761,7 @@ def simulate(
     config_overrides: dict | None = None,
     run_id: int = 0,
     dither_words=None,
+    ordinary_az=None,
 ) -> DefaultRun:
     """只给波形与N即可得到20bit码及推断记录的正常用户入口。
 
@@ -747,6 +773,7 @@ def simulate(
         config_overrides: 明确Config字段覆盖，不恢复被删除算法。
         run_id: 同一制造根种子下独立且可重放的计划/噪声编号。
         dither_words: 可选显式六位字；只启用有明确假设、范围拒绝和真实采样注入的Fig19静态等效模型。
+        ordinary_az: 可选普通逐笔 RA AZ 配置；None=不施加，N→N。
 
     Returns:
         DefaultRun；codes.code是20bit offset-binary整数，保留全部flags。
@@ -760,4 +787,5 @@ def simulate(
         n_samples,
         run_id=run_id,
         dither_words=dither_words,
+        ordinary_az=ordinary_az,
     )

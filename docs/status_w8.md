@@ -4,16 +4,26 @@
 > 等级：L1 行为/合同、L2 数字 RTL 编译；无后仿/硅测。
 > 旧 `docs/status.md` 保留为 main 基线状态，本页只记本次合并分支。
 
+## 0. P0–P2（本轮新增）
+
+| 项 | 状态 | 证据 |
+|:---|:---:|:---|
+| P0 反向依赖 | ✅ | `rg "from task|import task" src/adi_model` 仅 1 条注释；`task2/eight/model.py` → `behavioral/eight_slice.py`，import 全为 `adi_model.*` |
+| P0 测试基线 | ✅ | `docs/verification/test_baseline.md`；1699 passed/3 failed/47 errors，全部归类 |
+| P1 普通 AZ 主链 | ✅（API） | `DefaultModel.simulate(..., ordinary_az=...)`；32 码 N→N；零误差逐位一致；offset=1mV 全码改变 |
+| P2 RTL 编译 | ✅ | VCS W-2024.09-SP1，0 error |
+| P2 RTL 仿真 | ⚠️ 部分 | `source_control_contract_tb`：observations=56 / outputs=54 / **checks=368**；组件夹具，不是 20b 全链 |
+
 ## 1. 工作包
 
 | 包 | 状态 | 实际内容 | 未完成 |
 |:---|:---:|:---|:---|
 | W0 调查 | ✅ | 分支/结构/依赖/源文/基线/迁移/合同/工作包 9 份文档 | — |
 | W1 合同 + CAAZ 隔离 | ✅ | contracts/profiles、普通 AZ、CAAZ 全量移 `extensions/`、主 RTL 去 CAAZ | `cal_sample_context` 还留 3 个通用 AZ 端口接 0 |
-| W2 核心下沉 | ⚠️ 部分 | `SwitchState/Q32/MapperTable` 类型入 `contracts/task_types.py` | `task2/eight/model.py` 反向 import 仍在 task 树（未迁入） |
+| W2 核心下沉 | ✅ | `SwitchState/Q32/MapperTable` 入 `contracts/task_types.py`；`task2/eight/model.py` 迁为 `behavioral/eight_slice.py`，主包无 `task*` import | 八片模型只做冒烟，未接主链 |
 | W3 静态机制迁移 | ✅（内核/控制） | 11 个内核 + 5 个控制模块 + dither 字迁入；119 项测试通过 | 八片负注入模型、整顶层对拍未迁 |
 | W4 事件/物理统一 | ⚠️ 部分 | `EventRecord/EventLog/SampleContext` 合同与排序测试 | 未接 `ConversionEngine`；参考/RA/ADC2 未强制单积分器 |
-| W5 无 CAAZ RTL 链 | ⚠️ 部分 | VCS 编译 `sar20_digital_core` **0 error**，`simv` 生成 | 未跑逐笔对拍；`cal_sample_context` 有 TFIPC 警告 |
+| W5 无 CAAZ RTL 链 | ⚠️ 部分 | VCS 编译 **0 error**；`source_control_contract_tb` 真跑 **368 checks / observations=56 / outputs=54** | 组件夹具（N_UNIT_MAIN=2/ADC2=6），非 20b 全链 scoreboard |
 | W6 ADI 机制补全 | ⚠️ 部分 | 噪声/参考/时偏/瞬态内核入 `mechanisms.py`，默认全关 | 未接主 `simulate`；参考动态/带宽/TRACK/AUX 未闭环 |
 | W7 范围/鲁棒性 | ⚠️ 部分 | CAAZ 隔离门禁、profile 身份、主回归、扩展回归 | 未做全幅/种子/状态覆盖；INL/DNL/DR 未对标 |
 | W8 文档/RC | ✅ | `docs/architecture.md`、`docs/migration.md`、本页、README 首屏 | 未推送/未合并 main |
@@ -22,7 +32,7 @@
 
 | 范围 | 结果 |
 |:---|:---|
-| 主 pytest | **1693 passed / 3 failed / 47 errors** |
+| 主 pytest | **1699 passed / 3 failed / 47 errors** |
 | 3 failed | Verilator 缺失、shallow clone 缺 `d1e1f87`、hatchling 未装 |
 | 47 errors | `actual_capture` 需 Verilator |
 | 内核测试 | **78 passed** |

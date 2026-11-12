@@ -5,7 +5,6 @@
 `timescale 1ns/1fs
 `include "rtl_params.vh"
 module source_control_contract_tb #(
-    parameter bit TEST_CAAZ_ENABLE = 1'b0,
     parameter realtime P_TICK_NS = 0.0
 );
   logic clk = 1'b0;
@@ -43,20 +42,12 @@ module source_control_contract_tb #(
   wire [4:0] flags;
   wire obs_valid;
   wire [CAL_OBS_BITS-1:0] obs_data;
-  wire [33:0] obs_caaz;
-  wire raw_valid;
-  wire [91:0] raw_data;
-  wire input_chop, unused_az_capture, unused_az_hold, pair_fault;
   wire unused_quiet, unused_tp, unused_az, unused_amp, unused_pre, unused_accurate;
   wire [17:0] unused_aux, unused_hold;
   wire [1:0] unused_coarse_compare, unused_coarse_acquire;
   wire unused_flash_acquire, unused_fine_acquire, unused_fine_compare, unused_flash_sample;
   wire unused_clip_low, unused_clip_high, unused_acc;
-  wire signed [20:0] unused_difference;
-  wire unused_difference_valid;
-  wire [31:0] unused_first_id, unused_pair_id;
-  wire [3:0] unused_pair_fault_code;
-  sar20_digital_core #(.P_CAL_OBSERVE(1'b1), .P_CAAZ_ENABLE(TEST_CAAZ_ENABLE)) dut (
+  sar20_digital_core #(.P_CAL_OBSERVE(1'b1)) dut (
       .clk(clk), .rst_n(rst_n), .source_control_valid(source_control_valid),
       .source_control_word(source_control_word), .source_control_state(source_control_state),
       .source_control_ready(source_control_ready), .acquisition_control_valid(acquisition_control_valid),
@@ -81,12 +72,7 @@ module source_control_contract_tb #(
       .acc_ovf(unused_acc), .status_word(status_word), .dout_sample_id(result_id),
       .conversion_fault(unused_conversion_fault),
       .dout_flags(flags), .cal_obs_valid(obs_valid), .cal_obs_data(obs_data),
-      .dout_analog_bad(dout_bad), .caaz_az_capture_ok(1'b1),
-      .caaz_input_chop_neg(input_chop), .caaz_az_capture_en(unused_az_capture), .caaz_az_hold(unused_az_hold),
-      .cal_obs_caaz_data(obs_caaz), .caaz_raw_valid(raw_valid), .caaz_raw_data(raw_data),
-      .caaz_pair_difference(unused_difference), .caaz_pair_difference_valid(unused_difference_valid),
-      .caaz_pair_first_sample_id(unused_first_id), .caaz_pair_id(unused_pair_id),
-      .caaz_pair_fault(pair_fault), .caaz_pair_fault_code(unused_pair_fault_code)
+      .dout_analog_bad(dout_bad)
   );
   logic [W_BITS-1:0] coefficient [N_SLICES][N_UNIT_TOTAL];
   logic signed [V_BITS-1:0] scalar [3];
@@ -164,13 +150,8 @@ module source_control_contract_tb #(
         $fdisplay(residues_file, "%0d,%0d,%h,%h,%h,%h,%0d", epoch, controls,
                   converting, selected, main_sw, sub_sw, sw_valid);
       if (obs_valid) begin
-        $fdisplay(events_file, "%0d,OBS,,,,,%h,%h,%h,%0d", epoch, obs_data, obs_caaz, status_word, analog_ovf);
+        $fdisplay(events_file, "%0d,OBS,,,,,%h,%h,%h,%0d", epoch, obs_data, 34'd0, status_word, analog_ovf);
         observations++;
-      end
-      if (raw_valid) begin
-        $fdisplay(events_file, "%0d,RAW,%0d,%0d,%0d,%0d,%h,,%h,%0d", epoch,
-                  raw_data[91:60], raw_data[59:40], raw_data[5:1], raw_data[0], raw_data, status_word, analog_ovf);
-        raw_words++;
       end
       if (dout_valid) begin
         $fdisplay(events_file, "%0d,OUT,%0d,%0d,%0d,%0d,,,%h,%0d", epoch,
@@ -180,9 +161,9 @@ module source_control_contract_tb #(
       if (ready_before) begin
         controls++;
         #0.001;
-        $fdisplay(controls_file, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%h,%h,%0d", epoch,
+        $fdisplay(controls_file, "%0d,%0d,%0d,%0d,%0d,%0d,%0d,%0d,%h,%h", epoch,
                   owner, valid_before, word_before, state_before, acquisition_control_valid,
-                  acquisition_control_word, acquisition_control_state, acquiring, converting, input_chop);
+                  acquisition_control_word, acquisition_control_state, acquiring, converting);
         require_ok(acquisition_control_valid == valid_before, "acquisition valid ownership mismatch");
         if (valid_before)
           require_ok(acquisition_control_word == word_before && acquisition_control_state == state_before,
@@ -226,7 +207,7 @@ module source_control_contract_tb #(
     residues_file = $fopen({trace_dir, "/residues.csv"}, "w");
     events_file = $fopen({trace_dir, "/events.csv"}, "w");
     require_ok(controls_file != 0 && residues_file != 0 && events_file != 0, "trace open failed");
-    $fdisplay(controls_file, "epoch,owner_sample_id,input_valid,input_word,input_state,actual_valid,actual_word,actual_state,acquiring_mask,converting_mask,input_chop");
+    $fdisplay(controls_file, "epoch,owner_sample_id,input_valid,input_word,input_state,actual_valid,actual_word,actual_state,acquiring_mask,converting_mask");
     $fdisplay(residues_file, "epoch,sample_id,converting_mask,selected_mask,main_physical,sub_physical,sw_valid");
     $fdisplay(events_file, "epoch,kind,sample_id,code,flags,analog_bad,packet_hex,caaz_hex,status_word,analog_sticky");
     repeat (3) @(negedge clk);
@@ -238,7 +219,7 @@ module source_control_contract_tb #(
       repeat (2) @(negedge clk);
       cfg_clear_valid = 1'b0;
       repeat (2) @(negedge clk);
-      require_ok(!cfg_ready && !dout_valid && !acquisition_control_valid && !pair_fault,
+      require_ok(!cfg_ready && !dout_valid && !acquisition_control_valid,
                  "clear did not cancel the configuration epoch");
       $fdisplay(events_file, "%0d,END,,,,,,,%h,%0d", epoch, status_word, analog_ovf);
       cfg_validate = 1'b1;
@@ -249,12 +230,10 @@ module source_control_contract_tb #(
                  "clear did not require complete coefficient reload");
     end
     require_ok(observations > 0 && output_words > 0, "empty integration comparison domain");
-    if (TEST_CAAZ_ENABLE)
-      require_ok(raw_words > 0, "empty CAAZ raw domain");
     $fclose(controls_file);
     $fclose(residues_file);
     $fclose(events_file);
-    $display("SOURCE_CONTROL_COMPONENT_COMPLETE observations=%0d raw_words=%0d outputs=%0d checks=%0d epochs=2 caaz=%0d scope=COMPONENT_SYNTHETIC_DIGITAL", observations, raw_words, output_words, checks, TEST_CAAZ_ENABLE);
+    $display("SOURCE_CONTROL_COMPONENT_COMPLETE observations=%0d outputs=%0d checks=%0d epochs=2 scope=COMPONENT_SYNTHETIC_DIGITAL", observations, output_words, checks);
     $display("SOURCE_CONTROL_ANALOG_MAPPING_TIMING_CAAZ_NOISE_NOT_VERIFIED");
     $finish;
   end

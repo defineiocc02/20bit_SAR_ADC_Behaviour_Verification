@@ -66,6 +66,7 @@ simulation/decode.py         vd0 + fine/g + dither 加回 + 校准应用
 
 | 步 | 动作 | 风险 | 回退 |
 |:---:|:---|:---|:---|
+| 0 | **行为指纹基线**（`tools/behavior_fingerprint.py` → `docs/restructure/behavior_fingerprint.json`） | 无 | 重新生成 |
 | 1 | `topology/`、`behavioral/`、`calibration/` 只搬家 | 低（import 改写） | `git revert` 单提交 |
 | 2 | `metrics` 合并 + 对照测试 | 中（口径） | 保留旧函数为薄包装 |
 | 3 | `dither_port` 三方拆分 | 中（可能改写调用） | 同上 |
@@ -86,5 +87,6 @@ simulation/decode.py         vd0 + fine/g + dither 加回 + 校准应用
 |:---|:---|
 | 两张示范专题（dither / DEM） | ✅ 已按六段写（`docs/mechanisms/`） |
 | 迁移表 | ✅ 本文件 |
-| 实际搬家 | ❌ 未开始（按第 5 节顺序，从第 1 步起） |
+| 行为指纹 | ✅ 已生成（3 组配置 + 掩码层，SHA256 已落盘） |
+| 实际搬家 | ❌ 未开始（第 0 步已完成，第 1 步待做） |
 | README 重排 | ⏳ 与第 1 步同批 |

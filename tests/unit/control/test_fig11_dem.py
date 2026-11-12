@@ -49,7 +49,12 @@ def test_masks_use_physical_bit_order() -> None:
     assert bypass.valid
     assert bypass.main == (0b111 | (1 << 15),) * 8
     assert bypass.sub == rotated.sub
-    assert map_fig11(code, True, 15, 15) == Fig11Masks((0,) * 8, (0,) * 8, False)
+    # 相位 15 现在指向第 16 个"保留列"（哑列，无开关位）：合法，但标记命中，
+    # 且其有源集合与相位 0 相同。旧契约（返回全零、valid=False）已废弃。
+    reserved = map_fig11(code, True, 15, 15)
+    assert reserved.valid and reserved.reserved_column_hit
+    assert reserved.main == map_fig11(code, True, 0, 15).main
+    assert reserved.sub == map_fig11(code, True, 0, 15).sub
 
 
 @pytest.mark.parametrize(

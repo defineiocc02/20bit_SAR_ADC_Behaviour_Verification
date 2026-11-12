@@ -64,6 +64,7 @@ class Fig11Masks:  # 每片一组 main/sub 掩码 + 本次映射是否有效
     main: tuple[int, ...]  # 每片 17 位主阵列选通位图
     sub: tuple[int, ...]  # 每片 5 位子阵列选通位图，bit4 dummy 恒低
     valid: bool  # False 表示该次请求被拒绝，调用方不得使用掩码
+    reserved_column_hit: bool = False  # 相位落在第 16 个"保留列"上（该列无开关位）
 
     @property
     def main_flat(self) -> int:
@@ -107,17 +108,29 @@ def map_fig11(
 ) -> Fig11Masks:
     """映射同一活动组的已决九位码，B0 为最高位。
 
-    DEM 打开时，slot s 的 2C 起点为 (horizontal_phase + s) % 15。
+    DEM 打开时，物理列是 **16 位环**：0..14 是 15 个可切换的 2C，
+    第 15 列是**保留列**（哑列，恒接低轨，没有开关位）。横向相位 0..15
+    指向这个环；相位 15 落在保留列上，窗口跳过它，因此有源集合与相位 0 相同，
+    只多一个 `reserved_column_hit` 标记。早期版本把相位 15 判为非法并返回全零掩码，
+    是因为当时没有建模保留列——这与 `dem3d.fig11_masks`（接受任意相位）不一致。
+
     B4 为 1 时从 vertical_phase 起循环选八个 1C。位置 2*s 与
-    2*s+1 分别对应主阵列的 unit 15 与 unit 16。横相位 15
-    在 DEM 打开时无效，返回全零掩码。DEM 关闭时忽略两个相位。
+    2*s+1 分别对应主阵列的 unit 15 与 unit 16。DEM 关闭时忽略两个相位。
+
+    **已知不一致（记录在案，不假装统一）**：
+    * 本函数按 **slot** 旋转（`(phase + slot) % 15`），`dem3d.fig11_masks` 按**物理 ID**；
+    * 本函数的纵向是 `(2*slot + unit - v) % 16`，`dem3d` 是 `(+v)`。
+    两者只在 slot==物理 ID 且 v==0 时逐位相同；漂移由
+    `tests/unit/test_fig11_vs_dem3d.py` 钉住。
     """
     code = _unsigned_field(code, 9, "code")  # 9 位无符号粗码，越界直接抛异常
     enabled = _unsigned_field(dem_enable, 1, "dem_enable")  # DEM 开关按 1 位字段规范化
     horizontal_phase = _unsigned_field(horizontal_phase, 4, "horizontal_phase")
     vertical_phase = _unsigned_field(vertical_phase, 4, "vertical_phase")
-    if enabled and horizontal_phase == 15:  # 横相位 15 无保留列，返回全零并置 valid=False
-        return Fig11Masks(_EMPTY_SLOTS, _EMPTY_SLOTS, False)
+    reserved_hit = bool(enabled and horizontal_phase == 15)
+    if reserved_hit:
+        # 相位 15 命中保留列：窗口从哑列之后开始，等价于相位 0 的有源集合。
+        horizontal_phase = 0
 
     therm_count = code >> 5  # 高 4 位 -> 15 个 2C 的温度计计数
     b4 = (code >> 4) & 1  # B4 决定两个 1C 单元的选通
@@ -126,7 +139,7 @@ def map_fig11(
     )  # B5~B8 翻成 4 位子阵列掩码
     if not enabled:
         main_mask = ((1 << therm_count) - 1) | (b4 << 15)
-        return Fig11Masks((main_mask,) * SLOT_COUNT, (sub_mask,) * SLOT_COUNT, True)
+        return Fig11Masks((main_mask,) * SLOT_COUNT, (sub_mask,) * SLOT_COUNT, True, False)
 
     main = []
     for slot in range(SLOT_COUNT):
@@ -140,4 +153,4 @@ def map_fig11(
             if b4 and (2 * slot + unit - vertical_phase) % 16 < 8
         )
         main.append(therm_mask | ones_mask)  # 2C 段与 1C 段拼成本片 17 位主掩码
-    return Fig11Masks(tuple(main), (sub_mask,) * SLOT_COUNT, True)
+    return Fig11Masks(tuple(main), (sub_mask,) * SLOT_COUNT, True, reserved_hit)

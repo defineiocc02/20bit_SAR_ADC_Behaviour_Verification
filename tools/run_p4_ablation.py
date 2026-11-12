@@ -299,7 +299,7 @@ def _static(model, *, dem: bool, uniform_plan: bool, points: int = 1024, repeats
     }
 
 
-def _train_calibration(model, *, points: int = 8200):
+def _train_calibration(model, *, points: int = 8200, dem: bool = False):
     """用独立已知斜坡拟合逐码修正表；返回 (CodeCorrection, 训练诊断)。
 
     这是论文里 "coefficients derived externally" 的那一步在输出域的实现：
@@ -314,11 +314,15 @@ def _train_calibration(model, *, points: int = 8200):
     # 打乱顺序避免"码"与"片选序列"共线；叠加已知小偏置打散 ADC2 量化锯齿。
     generator = np.random.default_rng(20261113)
     levels = generator.permutation(grid) + generator.uniform(-3e-4, 3e-4, points)
-    raw, estimated = _run(model, _ramp_fn(levels), points, dem=False, uniform_plan=False)
+    # 训练必须与**评估时的 DEM 模式一致**。旧实现固定 dem=False，
+    # 于是"DEM 开 + 用 DEM 关训练的 LUT"的恶化，被误读成
+    # "逐码 LUT 与 DEM 原理上不兼容"——那只是模式错配。
+    raw, estimated = _run(model, _ramp_fn(levels), points, dem=dem, uniform_plan=False)
     correction = fit_code_correction(
         np.asarray(raw.coarse, dtype=np.int64), estimated, levels
     )
     return correction, {
+        "dem_mode": bool(dem),
         "training_samples": correction.n_samples,
         "covered_codes": correction.covered_codes,
         "min_samples_per_code": correction.min_count,
@@ -471,3 +475,47 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+
+def _lut_mode_matrix(model, *, points: int = 8200, static_points: int = 128,
+                     static_repeats: int = 8) -> list[dict]:
+    """逐码 LUT 的 A/B/C/D 四组同模式对照。
+
+    A  DEM off 训练 -> DEM off 测试
+    B  DEM off 训练 -> DEM on  测试   （故意模式错配的负例）
+    C  DEM on  训练 -> DEM on  测试
+    D  DEM on  + 逐单元权值校准 -> DEM on 测试   （本轮未实现，标 NOT_RUN）
+
+    只有 C 与 A 的比较才能说明 LUT 在 DEM 下是否仍有作用；
+    B 只能说明"拿错模式的系数会坏"，不能用来否定 LUT。
+    """
+    rows: list[dict] = []
+    for tag, train_dem, test_dem in (("A", False, False), ("B", False, True), ("C", True, True)):
+        correction, diag = _train_calibration(model, points=points, dem=train_dem)
+        static = _static(
+            model, dem=test_dem, uniform_plan=False, points=static_points,
+            repeats=static_repeats, calibration=correction,
+        )
+        base = _static(
+            model, dem=test_dem, uniform_plan=False, points=static_points,
+            repeats=static_repeats,
+        )
+        rows.append({
+            "case": tag,
+            "train_dem": train_dem,
+            "test_dem": test_dem,
+            "mode_matched": train_dem == test_dem,
+            "inl_cal_lsb20": static["inl_max_lsb20"],
+            "inl_uncal_lsb20": base["inl_max_lsb20"],
+            "residual_rms_uv": diag["residual_rms_uv"],
+            "status": "RUN",
+        })
+    rows.append({
+        "case": "D",
+        "train_dem": True,
+        "test_dem": True,
+        "mode_matched": True,
+        "status": "NOT_RUN",
+        "reason": "element-weight calibration with an active-slice feature is not wired into this runner",
+    })
+    return rows

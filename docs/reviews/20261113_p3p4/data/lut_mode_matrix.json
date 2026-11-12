@@ -1,0 +1,44 @@
+{
+ "purpose": "逐码 LUT 的 A/B/C/D 同模式对照；C 只有与 A 比才能说明 DEM 下 LUT 是否仍有效",
+ "grid": "训练 20480 点（≈40 样本/码），静态 128 电平 × 8 次",
+ "rows": [
+  {
+   "case": "A",
+   "train_dem": false,
+   "test_dem": false,
+   "mode_matched": true,
+   "inl_cal_lsb20": 7.130325440609748,
+   "inl_uncal_lsb20": 24.08366785504867,
+   "residual_rms_uv": 81.91489104464,
+   "status": "RUN"
+  },
+  {
+   "case": "B",
+   "train_dem": false,
+   "test_dem": true,
+   "mode_matched": false,
+   "inl_cal_lsb20": 20.542318839636312,
+   "inl_uncal_lsb20": 13.550611366395955,
+   "residual_rms_uv": 81.91489104464,
+   "status": "RUN"
+  },
+  {
+   "case": "C",
+   "train_dem": true,
+   "test_dem": true,
+   "mode_matched": true,
+   "inl_cal_lsb20": 15.900243530750743,
+   "inl_uncal_lsb20": 13.550611366395955,
+   "residual_rms_uv": 105.20252958638552,
+   "status": "RUN"
+  },
+  {
+   "case": "D",
+   "train_dem": true,
+   "test_dem": true,
+   "mode_matched": true,
+   "status": "NOT_RUN",
+   "reason": "element-weight calibration with an active-slice feature is not wired into this runner"
+  }
+ ]
+}

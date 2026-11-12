@@ -369,11 +369,14 @@ class DefaultModel:
         # 端点闭合判定（drive(511) == c_slice）要求 β 分母只含 4 个可切换单元，
         # 故建模方式：5 列都保留（物理位宽一致），但哑列的**电学贡献**通过
         # `sub_switched_units_c` 从系数计算中排除（见下方 beta / c_slice）。
-        sub_w = np.concatenate(
-            [np.asarray(SUB_WEIGHTS, dtype=float), np.ones(p.n_sub - len(SUB_WEIGHTS))]
-        )
+        # 子阵列只装配 4 列（8C/4C/2C/1C = 15C）。FIG.11 的 5 个电容里，
+        # 第 5 个 C 画在**虚线框**内、与第 4 个并列 —— 虚线是"可选/未装配"的常规含义，
+        # 且它从未被任何码选中。若装配它，物理 β 会变成 1/17，与码本律唯一允许的
+        # β=1/16 冲突（见 docs/mechanisms/p1_gaps_20261113.md §12 的 511-码步推导）。
+        # 端口位宽仍是 geometry.n_sub=5（RTL 不变），器件只装 4 块。
+        sub_w = np.asarray(SUB_WEIGHTS, dtype=float)
         assert main_w.size == p.n_main, "主阵列单元数须与权重表一致"
-        assert sub_w.size == p.n_sub, "子阵列物理宽度由几何决定"
+        assert sub_w.size == p.n_sub - 1, "子阵列装配列数 = 物理位宽 - 1 个虚线占位"
         sub = p.unit_cap_f * sub_w[None, :] * (
             1 + fabrication.normal(0, p.unit_mismatch_std, (cfg.n_slices, sub_w.size))
         )

@@ -37,7 +37,11 @@ def _fig11_pool():
     )
     book = NominalCodebook(0, 511, -3 + 6 * np.arange(512) / 512)
     return PhysicalSlicePool(
-        object.__new__(type("Cfg", (), {"n_slices": 18, "n_active": 8})),
+        # 桩必须声明物理位宽：slice_pool 现在用 cfg.dac_n_sub 建几何
+        # （子阵列端口 5 位，器件可只装配 4 列），缺这个属性会 AttributeError。
+        object.__new__(
+            type("Cfg", (), {"n_slices": 18, "n_active": 8, "dac_n_main": 17, "dac_n_sub": 5})
+        ),
         chip=chip,
         nominal_codebook=book,
         mask_binding=fig11_masks,

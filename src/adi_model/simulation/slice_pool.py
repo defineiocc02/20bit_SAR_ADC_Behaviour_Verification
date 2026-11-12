@@ -89,9 +89,11 @@ class PhysicalSlicePool:
         self.acquisition_binding = acquisition_binding
         self.schedule_binding = schedule_binding
         self.n_slices = chip.n_slices
+        # 几何用**物理位宽**（端口 5 位），不是装配列数；未声明时退回装配列数。
+        _declared_sub = getattr(cfg, "dac_n_sub", None)
         self.geometry = SplitSwitchGeometry(
             chip.n_main,
-            chip.n_sub,
+            chip.n_sub if _declared_sub is None else int(_declared_sub),
             chip.n_slices,
             cfg.n_active,
             None if nominal_codebook is None else nominal_codebook.code_min,
@@ -108,7 +110,12 @@ class PhysicalSlicePool:
         self._switched_main_units = min(chip.n_main, FIG11_SWITCHED_MAIN_UNITS)
         if chip.n_slices != cfg.n_slices:
             raise ConfigError("actual physical pool size conflicts with the source architecture")
-        for field, actual in (("dac_n_main", chip.n_main), ("dac_n_sub", chip.n_sub)):
+        # 子阵列允许"物理位宽 > 装配列数"：FIG.11 第 5 个 C 是虚线占位（§11），
+        # 端口仍是 5 位、器件只装 4 块。反向（装配列数多于物理位宽）仍然拒绝。
+        _declared = getattr(cfg, "dac_n_sub", None)
+        if _declared is not None and chip.n_sub > int(_declared):
+            raise ConfigError("assembled sub columns exceed the declared physical width")
+        for field, actual in (("dac_n_main", chip.n_main),):
             configured = getattr(cfg, field, None)
             if configured is not None and (
                 isinstance(configured, bool | np.bool_)

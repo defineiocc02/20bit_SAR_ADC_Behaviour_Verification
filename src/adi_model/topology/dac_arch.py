@@ -198,6 +198,23 @@ def build_split_chip(
     )
 
 
+def _mask_geometry(chip: SplitChip, ids, command_or_connection=None) -> SplitSwitchGeometry:
+    """按**调用方给的位宽**校验掩码/连接，而不是芯片装配列数。
+
+    正常情况下两者相等；唯一例外是 FIG.11 子阵列的第 5 个 C（虚线占位）：
+    端口仍是 5 位、器件只装配 4 列。这时以调用方给的宽度为准，
+    随后电荷计算再把掩码截到实际列数。通用小规模夹具（2 列）也走这条路径。
+    """
+    n_sub = chip.n_sub
+    if command_or_connection is not None:
+        sub = getattr(command_or_connection, "sub_on", None)
+        if sub is None:
+            sub = getattr(command_or_connection, "sub", None)
+        if sub is not None:
+            n_sub = max(n_sub, int(np.asarray(sub).shape[-1]))
+    return SplitSwitchGeometry(chip.n_main, n_sub, chip.n_slices, ids.shape[1])
+
+
 def _geometry_for(chip: SplitChip, slice_ids) -> tuple[SplitSwitchGeometry, np.ndarray]:
     ids = _integer_array(slice_ids, "physical slice IDs", ndim=2)
     if ids.shape[1] < 1:
@@ -284,10 +301,17 @@ def charge_from_masks(
     参考电压相对调用者声明的节点坐标；不从输入满幅v_fs推导。只在实际使用某轨时要求该轨。
     input_equivalent_v=Q_D/C_signal，不能称为真实保持顶板电压。
     """
-    geometry, ids = _geometry_for(chip, slice_ids)
+    # 掩码按**端口宽度**校验（子阵列 5 位），器件可能只装配 4 列。
+    _unused, ids = _geometry_for(chip, slice_ids)
+    geometry = _mask_geometry(chip, ids, command)
     if not isinstance(command, SplitSwitchCommand):
         raise ConfigError("physical reference charge requires SplitSwitchCommand masks")
     masks = command.validated(geometry, len(ids))
+    if masks.sub_on.shape[-1] != chip.C_sub.shape[-1]:
+        masks = SplitSwitchCommand(
+            masks.main_on[..., : chip.C_main.shape[-1]],
+            masks.sub_on[..., : chip.C_sub.shape[-1]],
+        )
     shape = ids.shape
     use_high = bool(np.any(masks.main_on) or np.any(masks.sub_on))
     use_low = bool(np.any(~masks.main_on) or np.any(~masks.sub_on))
@@ -364,7 +388,9 @@ def charge_from_sampling_connections(
     所有V采用同一明确坐标；sampled_top_v/subnode_v均必填，不默认为零。
     本算子不推进RC、不产生噪声、不据dither字猜测连接，也不声称完整开关电路。
     """
-    geometry, ids = _geometry_for(chip, slice_ids)
+    # 连接掩码按**端口宽度**校验（子阵列 5 位），而器件可能只装配 4 列。
+    _unused_geometry, ids = _geometry_for(chip, slice_ids)
+    geometry = _mask_geometry(chip, ids, connections)
     if not isinstance(connections, SamplingConnections):
         raise ConfigError("sampled charge requires explicit SamplingConnections")
     connection = connections.validated(geometry, len(ids))
@@ -377,6 +403,14 @@ def charge_from_sampling_connections(
     low = _active_reference(reference_low_v, shape, "reference_low_v", low_used)
     top = _sample_values(sampled_top_v, shape, "sampled_top_v")
     subnode = _sample_values(sampled_subnode_v, shape, "sampled_subnode_v")
+    # 连接按**端口宽度**给（子阵列 5 位），器件只装配 4 列（第 5 位是虚线占位）。
+    # 必须在展开成电压之前截断，否则 sub_v 仍是 5 位、与 4 列电容无法相乘。
+    n_sub_cols = chip.C_sub.shape[-1]
+    if connection.sub.shape[-1] != n_sub_cols:
+        connection = SamplingConnections(
+            connection.main[..., : chip.C_main.shape[-1]],
+            connection.sub[..., :n_sub_cols],
+        )
     main_v = np.where(
         connection.main == SIGNAL,
         signal[..., None],

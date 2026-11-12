@@ -296,6 +296,9 @@ class Config:
             if actual is not None and not _integer(actual, 1):
                 bad.append(f"geometry.{attribute} must be a positive integer")
             if supplied is not None and actual is not None and supplied != actual:
+                # 子阵列例外：装配列数可少于物理位宽（虚线占位不装配）
+                if name == "dac_n_sub" and actual <= supplied:
+                    continue
                 bad.append(f"{name} conflicts with geometry.{attribute}")
         if geometry is not None:
             for name in ("n_slices", "n_active"):

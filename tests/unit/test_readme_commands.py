@@ -230,3 +230,36 @@ def test_current_documents_reference_existing_modules():
         + "\n(if these are historical references, add the file to _PATH_HISTORY_FILES "
         "or _HISTORICAL_FILES with a reason)"
     )
+
+
+#: 63+8 时代的遗留 fixture 目录：其 manifest 自述为 63+8，与当前 17/5 不匹配。
+_LEGACY_FIXTURES = ("sim/fixtures/fig19_ideal_ports",)
+
+
+def test_legacy_fixtures_declare_their_geometry_and_are_not_cited_as_current():
+    """遗留 fixture 必须（1）在 manifest 里自述几何，（2）有自己的 README 警告。
+
+    2026-11-13：`sim/fixtures/fig19_ideal_ports` 整套是按 63+8 构造的，
+    而主链已切到 17/5。它不能改一个字段就复用（权重、位宽、prefix table 全变），
+    本机又没有 VCS 无法重新验证 ⇒ 保留为历史证据，但必须有明确警告，
+    防止有人把它当成"当前模型的 golden 向量"。
+    """
+    for rel in _LEGACY_FIXTURES:
+        directory = ROOT / rel
+        manifest = directory / "fixture_manifest.json"
+        assert manifest.is_file(), f"{rel} has no fixture_manifest.json"
+        text = manifest.read_text(encoding="utf-8")
+        # manifest 必须自述几何（这里是 63+8），否则无从判断它属于哪个时代
+        assert "63+8" in text or "17/5" in text, (
+            f"{rel}/fixture_manifest.json does not state its geometry; "
+            "a fixture without a declared geometry cannot be checked against the model"
+        )
+        # 必须有 README 说明它是遗留/适用范围
+        readme = directory / "README.md"
+        assert readme.is_file(), (
+            f"{rel} lacks a README warning that it is a legacy (63+8) fixture"
+        )
+        warning = readme.read_text(encoding="utf-8")
+        assert "63+8" in warning and ("遗留" in warning or "legacy" in warning.lower()), (
+            f"{rel}/README.md must state it is a legacy 63+8 fixture"
+        )

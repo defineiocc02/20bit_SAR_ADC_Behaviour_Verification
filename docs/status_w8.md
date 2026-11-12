@@ -1,8 +1,24 @@
 # W8 状态（2026-11-12）
 
-> 分支 `merge/adi-repro`；基线 `main bc9a16a`；**未推送、未合并 main**。
+> 分支 `merge/adi-repro`；基线 `main bc9a16a`；**未合并 main**。P3/P4 完成后按用户指示
+> 推送分支供审阅（见 `docs/reviews/20261113_p3p4/`）。
 > 等级：L1 行为/合同、L2 数字 RTL 编译；无后仿/硅测。
 > 旧 `docs/status.md` 保留为 main 基线状态，本页只记本次合并分支。
+
+## 0.1 P3/P4（2026-11-13 新增）
+
+| 项 | 状态 | 证据 |
+|:---|:---:|:---|
+| P3 RDAC follower 因果 | ✅ | `follower.py`；前缀截断不变性 28 672 检查 / 0 违约；偷看实现被抓 24 576 次 |
+| P3 follower 参考代价 | ✅ | follower/直接加载 = 1.000（最终电荷逐位同）；传统试探 SAR = **2.99×** |
+| P3 DEM 三维模型 | ✅ | `dem3d.py` 两套绑定；名义守恒 5.6e-21 LSB20；三处使用极差 0 |
+| P3 dither 电荷口 | ✅（模型） | `dither_port.py`；非法早期码 6368→0；Fig.11 残余 6.70 mV = 1170 LSB20 |
+| P3 dither 范围预算 | ✅ | 64 字下 SADC 下界 −2.9648 V（缺口 35.16 mV = 6144 LSB20） |
+| P3 TRACK/AUX 记账 | ⚠️ 部分 | `track_aux.py` 因果审计 0 违约；输入电荷降 6.36×；AUX 支路未接 |
+| P4 消融矩阵 | ⚠️ 部分 | 5 条实跑 + 3 条 NOT_RUN；`data/p4_ablation.{json,csv}` |
+| P4 热噪声对标 | ✅ | 模型 8.60 nV/√Hz vs 论文 9.3（0.92×） |
+| P4 线性度对标 | ❌ 未达标 | INL 14.9 LSB20（DEM 后）vs 论文 2.3；主因未做权值校准 |
+| 40 nm/电压口径 | ✅ | `06_paper_anchor_40nm.md`：3.3 V 器件 / 1.1 V 数字 / 6 Vpp / 20.5 pF / 1.8 mA 逐条出处 |
 
 ## 0. P0–P2（本轮新增）
 

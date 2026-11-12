@@ -1,0 +1,140 @@
+{
+  "profile": "adi_isscc2024_40m_6vpp",
+  "fs_hz": 40000000.0,
+  "v_fs_v": 3.0,
+  "evidence_level": "L1 behavioral (float); no RTL/post-layout/silicon",
+  "follower": {
+    "samples": 4096,
+    "causality_audit": {
+      "checked": 28672,
+      "violations": 0,
+      "causal": true
+    },
+    "peeking_control": {
+      "violations": 24576,
+      "first": [
+        0,
+        0
+      ],
+      "caught": true
+    },
+    "switching_cost_follower": {
+      "events": 7,
+      "mean_flips_per_sample": 280.642578125,
+      "max_flips_per_sample": 560,
+      "mean_abs_charge_c": 6.155026701817162e-11,
+      "max_abs_charge_c": 1.2277280125451907e-10,
+      "mean_final_charge_c": 4.8314888467614986e-14,
+      "peak_cumulative_fraction": 1.0
+    },
+    "cost": {
+      "final_charge_mismatch_c": 0.0,
+      "statically_equivalent": true,
+      "follower_mean_abs_charge_c": 6.155026701817162e-11,
+      "direct_mean_abs_charge_c": 6.155026701817162e-11,
+      "trial_mean_abs_charge_c": 1.839776224523491e-10,
+      "follower_over_direct_charge_ratio": 1.0,
+      "trial_over_follower_charge_ratio": 2.989062945868829,
+      "follower_reference_current_a": 0.002462010680726865,
+      "direct_reference_current_a": 0.002462010680726865,
+      "trial_reference_current_a": 0.007359104898093964,
+      "mean_flips_follower": 280.642578125,
+      "mean_flips_direct": 280.642578125,
+      "mean_flips_trial": 839.357421875,
+      "events": {
+        "follower": 7,
+        "direct": 1,
+        "trial": 18
+      },
+      "paper_reference_current_a": 0.0018,
+      "follower_over_paper_current": 1.367783711514925,
+      "trial_over_paper_current": 4.088391610052202
+    },
+    "paper_reference_current_ma": 1.8,
+    "_note": "final charge identical across the three paths; only the event sequence differs"
+  },
+  "dem": {
+    "codes_checked": 64,
+    "states_checked": 240,
+    "max_spread_c": 3.2311742677852644e-26,
+    "max_spread_lsb20": 5.646886315028669e-21,
+    "conserved": true,
+    "mismatched_spread_lsb20": 1.1138352772487537e-09,
+    "usage": {
+      "samples": 360,
+      "slice_range": 0,
+      "main_unit_range": 0,
+      "sub_unit_range": 0,
+      "sub_last_element_always_low": true,
+      "uniform": true
+    },
+    "_note": "conservation is nominal-charge dispersion across DEM states; not INL"
+  },
+  "dither": {
+    "range_ledger": {
+      "words": 64,
+      "v_high_v": 3.0,
+      "v_low_v": -3.0,
+      "max_lower_dither_v": 0.03515625,
+      "max_total_dither_v": 0.09375,
+      "max_upper_code": 5,
+      "sadc_lower_bound_v": -2.96484375,
+      "sadc_upper_bound_v": 3.0,
+      "lower_deficit_v": 0.03515625,
+      "upper_deficit_v": 0.0,
+      "lower_deficit_lsb20": 6144.0,
+      "illegal_early_events": 6368,
+      "illegal_words": 48,
+      "code_shift_legal": false,
+      "_note": "deficits are relative to the SADC input domain, not to the digital output range"
+    },
+    "code_shift_residual_default_pool": {
+      "max_abs_residual_lsb20": 19.733296827594916,
+      "max_abs_residual_v": 0.00011291483017498921,
+      "worst_code": 371,
+      "illegal_shifted_codes": 0,
+      "code_shift_exact": false
+    },
+    "task_tree_bound_reconstruction": {
+      "v_fs_v": 5.0,
+      "fraction": 0.4921875,
+      "beta": 0.058823529411764705,
+      "deficit_v": 0.1447610294117647,
+      "lower_bound_v": -4.8552389705882355,
+      "matches_task_tree_number": true,
+      "_grade": "RECONSTRUCTED_FROM_NUMBER; fraction/beta are inputs, not disclosures"
+    },
+    "_note": "default pool is exactly binary in code; the Fig.11 pool is not (see tests)"
+  },
+  "track": {
+    "audit": {
+      "samples": 4096,
+      "valid_sources": 4095,
+      "future_sources": 0,
+      "invalid_with_index": 0,
+      "self_sources": 0,
+      "causal": true,
+      "cheating": false
+    },
+    "charge": {
+      "samples": 4096,
+      "samples_without_source": 1,
+      "mean_abs_charge_no_track_c": 3.904925093431219e-11,
+      "mean_abs_charge_with_track_c": 6.139437379011778e-12,
+      "charge_reduction": 6.360395672053857,
+      "max_residual_c": 9.611947515465614e-12
+    },
+    "total_sampling_cap_f": 2.0499558447552533e-11,
+    "paper_input_current_ua_pp": 350.0,
+    "frequency_for_paper_current_hz": 906545.0978578819,
+    "at_1mhz": {
+      "fin_hz": 1000000.0,
+      "delta_v_pp": 0.4707545743670697,
+      "charge_c_pp": 9.65026091169046e-12,
+      "current_a_pp": 0.0003860104364676184,
+      "charge_per_sample_mean_c": 6.143546904888149e-12,
+      "mean_current_a": 0.00024574187619552597
+    },
+    "_note": "consecutive-sample difference model; paper does not state its measurement frequency"
+  }
+}

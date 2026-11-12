@@ -24,7 +24,12 @@
 | A7 全动态 | — | NOT_RUN | | | | | | | |
 
 NOT_RUN 的阻塞原因写在 `p4_ablation.json` 的 `blocking_reason` 字段里，不用近似量顶替。
-A5 的细节单独见 [07_calibration.md](07_calibration.md)。
+A5 的细节见 [07_calibration.md](07_calibration.md)；σ→INL 的定量关系（含论文 2.2 ppm 反解）
+见 [08_mismatch_budget.md](08_mismatch_budget.md)。
+
+> 失配取值：逐单元 σ = **0.1%**、桥接 0.1%、反馈 0（工程假设，非 PDK）。
+> 该 σ 下无 DEM 的 INL 为 **24.3 ppm FS**，与手算 22 ppm 同量级；
+> 论文 2.2 ppm 反解对应 σ_eff ≈ **0.009%**，比本模型假设好 11 倍。
 
 ---
 

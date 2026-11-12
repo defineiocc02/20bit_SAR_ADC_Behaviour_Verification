@@ -1,0 +1,128 @@
+{
+  "profile": "adi_isscc2024_40m_6vpp",
+  "fs_hz": 40000000.0,
+  "v_fs_v": 3.0,
+  "lsb20_v": 5.7220458984375e-06,
+  "points": 256,
+  "repeats": 8,
+  "seed": 20261105,
+  "rows": [
+    {
+      "sigma_unit": 0.0,
+      "sigma_ppm": 0.0,
+      "plain": {
+        "inl_lsb20": 0.3281305880956357,
+        "inl_ppm_fs": 0.31292971429408617,
+        "dnl_bin_lsb20": 0.4931960784209271,
+        "sigma_e_lsb20": 6.2280524085396705
+      },
+      "dem": {
+        "inl_lsb20": 0.3281305880956357,
+        "inl_ppm_fs": 0.31292971429408617,
+        "dnl_bin_lsb20": 0.4931960784209271,
+        "sigma_e_lsb20": 6.2280524085396705
+      },
+      "calibrated": null
+    },
+    {
+      "sigma_unit": 0.0001,
+      "sigma_ppm": 100.0,
+      "plain": {
+        "inl_lsb20": 2.64326487043097,
+        "inl_ppm_fs": 2.52081381838891,
+        "dnl_bin_lsb20": 1.631803921579073,
+        "sigma_e_lsb20": 6.223913327282645
+      },
+      "dem": {
+        "inl_lsb20": 1.6581447413459252,
+        "inl_ppm_fs": 1.5813300527056935,
+        "dnl_bin_lsb20": 1.256803921579073,
+        "sigma_e_lsb20": 6.054960119747761
+      },
+      "calibrated": {
+        "inl_lsb20": 5.010999867426253,
+        "inl_ppm_fs": 4.778861873079541,
+        "dnl_bin_lsb20": 7.520988105791427,
+        "sigma_e_lsb20": 6.223616705872782
+      }
+    },
+    {
+      "sigma_unit": 0.0003,
+      "sigma_ppm": 300.0,
+      "plain": {
+        "inl_lsb20": 7.769761968236533,
+        "inl_ppm_fs": 7.409822433697255,
+        "dnl_bin_lsb20": 4.881803921579073,
+        "sigma_e_lsb20": 6.607189805034676
+      },
+      "dem": {
+        "inl_lsb20": 4.3838056030276595,
+        "inl_ppm_fs": 4.180722811725292,
+        "dnl_bin_lsb20": 2.8818039215790727,
+        "sigma_e_lsb20": 6.327704369636678
+      },
+      "calibrated": {
+        "inl_lsb20": 6.243859556496175,
+        "inl_ppm_fs": 5.954608494278121,
+        "dnl_bin_lsb20": 8.345988105793367,
+        "sigma_e_lsb20": 6.605422510279605
+      }
+    },
+    {
+      "sigma_unit": 0.001,
+      "sigma_ppm": 1000.0,
+      "plain": {
+        "inl_lsb20": 25.46474571380188,
+        "inl_ppm_fs": 24.285073961068992,
+        "dnl_bin_lsb20": 16.006803921579074,
+        "sigma_e_lsb20": 10.765042321441209
+      },
+      "dem": {
+        "inl_lsb20": 14.618289636487832,
+        "inl_ppm_fs": 13.941087376106102,
+        "dnl_bin_lsb20": 9.631803921579072,
+        "sigma_e_lsb20": 11.564684309005353
+      },
+      "calibrated": {
+        "inl_lsb20": 13.006015103936647,
+        "inl_ppm_fs": 12.403502563416145,
+        "dnl_bin_lsb20": 15.096043677496104,
+        "sigma_e_lsb20": 10.758804313090478
+      }
+    },
+    {
+      "sigma_unit": 0.003,
+      "sigma_ppm": 3000.0,
+      "plain": {
+        "inl_lsb20": 76.76441472415894,
+        "inl_ppm_fs": 73.20825073638815,
+        "dnl_bin_lsb20": 47.25680392157907,
+        "sigma_e_lsb20": 27.818635645978674
+      },
+      "dem": {
+        "inl_lsb20": 43.803879695711906,
+        "inl_ppm_fs": 41.774635024749664,
+        "dnl_bin_lsb20": 29.506803921579074,
+        "sigma_e_lsb20": 33.086606935825756
+      },
+      "calibrated": {
+        "inl_lsb20": 33.773798444658944,
+        "inl_ppm_fs": 32.20920414415259,
+        "dnl_bin_lsb20": 42.50045544219514,
+        "sigma_e_lsb20": 27.80126159667427
+      }
+    }
+  ],
+  "slopes": {
+    "plain_ppm_per_unit_sigma": 24376.14015925549,
+    "dem_ppm_per_unit_sigma": 13888.172910138366
+  },
+  "paper_inl_ppm": 2.2,
+  "implied_sigma_for_paper_inl": 9.025218864130431e-05,
+  "evidence_level": "L1 behavioral; endpoint-fit INL on a sampled ramp, not code-density INL",
+  "notes": [
+    "sigma 是逐 (slice, element) 的相对标准差，与 bridge sigma 取同一值，feedback sigma=0",
+    "INL 为 256 点斜坡端点拟合，点数少于 2**20，数值偏乐观",
+    "implied_sigma 是把论文 2.2 ppm 反解到本模型斜率上，不代表论文的器件失配"
+  ]
+}

@@ -334,3 +334,46 @@ def test_readme_states_which_nsd_definition_it_uses():
     assert "nsd_v_rthz_full" in readme and "nsd_v_rthz_dr" in readme, (
         "README must name both NSD fields so the reader can tell which one is quoted"
     )
+
+
+def test_inl_is_not_claimed_as_matching_the_paper():
+    """INL 不得被表述为"与论文吻合"。
+
+    2026-11-13：README 与验收报告曾用 ✅ 声称 INL 与论文 Fig.9.8.4 吻合，
+    但 `docs/mechanisms/source_crosscheck_20261112.md` 明确写着
+    「论文 Fig.9.8.4 的 20 位 INL/DNL 口径未被复现，不得并列比较」，
+    且论文该图只标「20b level」、**未给数值**。
+
+    两处说法直接冲突，且 ✅ 是夸大的那一侧。本测试把"不得比较"钉住。
+    """
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    acceptance = (ROOT / "docs/ACCEPTANCE_20261113.md").read_text(encoding="utf-8")
+    crosscheck = (ROOT / "docs/mechanisms/source_crosscheck_20261112.md").read_text(encoding="utf-8")
+
+    # 交叉核对文档必须保留"不得并列比较"的结论
+    assert "不得并列比较" in crosscheck, (
+        "the source cross-check no longer states that the paper's INL definition "
+        "is not reproduced; if that changed, this guard needs updating with evidence"
+    )
+    # 两份对外文档都必须转述这个限制
+    for name, text in (("README.md", readme), ("ACCEPTANCE_20261113.md", acceptance)):
+        assert "不可并列比较" in text or "不得并列比较" in text, (
+            f"{name} must state that INL/DNL cannot be compared against the paper "
+            "figure (the definitions differ)"
+        )
+
+
+def test_no_metric_row_claims_inl_match_with_a_check_mark():
+    """不允许出现"INL ... ✅"这种把不可比项标成吻合的表格行。"""
+    import re
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    offenders = [
+        line
+        for line in readme.splitlines()
+        if line.lstrip().startswith("| INL") and "✅" in line
+    ]
+    assert not offenders, (
+        "README marks INL with a check mark, but the paper figure gives no numeric "
+        "INL and its definition was not reproduced:\n  " + "\n  ".join(offenders)
+    )

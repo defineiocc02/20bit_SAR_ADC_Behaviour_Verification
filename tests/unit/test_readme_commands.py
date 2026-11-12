@@ -31,43 +31,100 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 README = ROOT / "README.md"
 
+#: 会 `import experiments.configs.matrix`、因此需要仓库根目录在 PYTHONPATH 里的工具。
+_EXPERIMENTS_TOOLS = ("run_p4_ablation.py", "run_review_figures.py")
+
+#: **历史文档**目录：其中的脚本引用属于当时快照，不要求当前仓库里存在。
+#: 这些目录下的文档本身也写了"仅描述原记录"之类的状态说明。
+_HISTORICAL_PREFIXES = (
+    "docs/history/",            # 历史快照
+    "docs/caaz/",               # af8/9bdf 历史专题，页首已声明"仅描述原记录"
+    "docs/randomization_caaz/", # 同上
+    "docs/evidence/",           # 带日期的证据快照
+    "docs/reports/",            # 一次性复核报告
+    "docs/reviews/20261112_w0/",# 某轮 W0 的过程记录
+    "docs/adr/0021-",           # 该 ADR 已声明"引用的驱动当前不在本仓库内"
+)
+
+#: 逐文件的历史/评审记录（其脚本引用是当时的，工具后来被重构掉）。
+_HISTORICAL_FILES = (
+    "docs/reproduction_results.md",                 # 页首已写"历史版本文档"
+    "docs/review_response_2026-09-11.md",           # 外部复核裁定记录
+    "docs/review_response_2026-09-11b.md",
+    "docs/review_response_2026-09-11c.md",
+    "docs/rtl/MUTATION_AUDIT_VS_VERIBUGBENCH.md",   # 变异审计记录
+    "docs/ACCEPTANCE_20261112.md",                  # 已加时效标注，数字过时
+    "docs/reviews/20261113_p3p4/09_audit_response.md",   # 审查处置记录
+    "docs/reviews/20261113_p3p4/12_review2_response.md", # 审查处置记录
+    "docs/reviews/20261113_p3p4/11_review_request_email.md",  # 发给外部审查者的邮件稿
+    "docs/reviews/20261113_p3p4/README.md",             # 该轮评审的索引页
+    "docs/reviews/PR9_RESPONSE_20261112.md",            # PR #9 响应记录
+)
+
+
+def _is_historical(path: Path) -> bool:
+    """判断文档是否属于历史快照（其脚本引用不要求存在）。"""
+    rel = str(path.relative_to(ROOT))
+    return rel.startswith(_HISTORICAL_PREFIXES) or rel in _HISTORICAL_FILES
+
 
 def _readme_text() -> str:
     return README.read_text(encoding="utf-8")
 
 
+def _documented_command_lines() -> list[tuple[Path, str]]:
+    """收集 README + docs/ 下所有 markdown 里的 PYTHONPATH 命令行。
+
+    2026-11-13：README 修好后发现 `docs/guide/QUICKSTART.md` 里有同样的问题
+    （run_p4_ablation / run_review_figures 缺 `.`）。守卫因此扩展到全部文档，
+    不再只盯 README。
+    """
+    files = [README, *sorted((ROOT / "docs").rglob("*.md"))]
+    rows: list[tuple[Path, str]] = []
+    for path in files:
+        if not path.is_file() or _is_historical(path):
+            continue
+        for line in path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if stripped.startswith("PYTHONPATH="):
+                rows.append((path, stripped))
+    return rows
+
+
 def test_referenced_scripts_exist():
-    """README 里出现的 `tools/xxx.py` 必须真实存在。"""
-    text = _readme_text()
-    referenced = sorted(set(re.findall(r"tools/[\w./-]+\.py", text)))
-    assert referenced, "README should reference at least one tool script"
-    missing = [name for name in referenced if not (ROOT / name).is_file()]
-    assert not missing, f"README references missing scripts: {missing}"
+    """README 与 docs/ 里出现的 `tools/xxx.py` 必须真实存在。"""
+    files = [README, *sorted((ROOT / "docs").rglob("*.md"))]
+    missing: list[str] = []
+    total = 0
+    for path in files:
+        if not path.is_file() or _is_historical(path):
+            continue
+        text = path.read_text(encoding="utf-8")
+        for name in sorted(set(re.findall(r"tools/[\w./-]+\.py", text))):
+            total += 1
+            if not (ROOT / name).is_file():
+                missing.append(f"{path.relative_to(ROOT)} -> {name}")
+    assert total > 0, "documents should reference at least one tool script"
+    assert not missing, "documents reference missing scripts:\n  " + "\n  ".join(missing)
 
 
 def test_experiments_commands_have_repo_root_on_the_path():
     """引用 `experiments` 的命令，其 PYTHONPATH 必须含仓库根目录。
 
     `experiments/` 是仓库根下的包，只在 `PYTHONPATH=src` 下 import 会失败。
+    **覆盖 README 与 docs/ 下所有 markdown**（QUICKSTART 曾漏掉）。
     """
-    text = _readme_text()
     offenders = []
-    for line in text.splitlines():
-        stripped = line.strip()
-        if not stripped.startswith("PYTHONPATH="):
-            continue
-        # 只检查会 import experiments 的工具
-        if not any(
-            tool in stripped for tool in ("run_p4_ablation.py", "run_review_figures.py")
-        ):
+    for path, stripped in _documented_command_lines():
+        if not any(tool in stripped for tool in _EXPERIMENTS_TOOLS):
             continue
         path_part = stripped.split()[0]  # 形如 PYTHONPATH=src:.
         entries = path_part.split("=", 1)[1].split(":")
         if "." not in entries:
-            offenders.append(stripped)
+            offenders.append(f"{path.relative_to(ROOT)}: {stripped}")
     assert not offenders, (
-        "these commands import `experiments` but PYTHONPATH lacks the repo root ('.'):\n  "
-        + "\n  ".join(offenders)
+        "these documented commands import `experiments` but PYTHONPATH "
+        "lacks the repo root ('.'):\n  " + "\n  ".join(offenders)
     )
 
 

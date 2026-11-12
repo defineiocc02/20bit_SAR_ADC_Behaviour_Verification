@@ -161,7 +161,7 @@ v2 不是"把 v1 的限制放开"，而是按物理重接：dither 电容接在*
 
 ```bash
 # A2 / A6 同条件对照（写入 docs/reviews/20261113_p3p4/data）
-PYTHONPATH=src python3 tools/run_p4_ablation.py \
+PYTHONPATH=src:. python3 tools/run_p4_ablation.py \
   --static-points 256 --static-repeats 32 --dynamic-n 8192 \
   --out docs/reviews/20261113_p3p4/data
 

@@ -5,7 +5,7 @@
 > 证据等级：**L1 浮点行为模型**；无 RTL、无后仿、无硅测。
 
 ```bash
-PYTHONPATH=src python3 tools/run_review_figures.py \
+PYTHONPATH=src:. python3 tools/run_review_figures.py \
   --points 256 --repeats 32 --dynamic-n 8192 \
   --out docs/reviews/20261113_p3p4/figures
 ```

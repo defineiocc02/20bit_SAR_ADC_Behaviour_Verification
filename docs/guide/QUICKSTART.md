@@ -66,7 +66,7 @@ PYTHONPATH=src python3 tools/trace_one_sample.py --out /tmp/trace
 ## 3. 复现一组对照实验（约 3 分钟）
 
 ```bash
-PYTHONPATH=src python3 tools/run_p4_ablation.py \
+PYTHONPATH=src:. python3 tools/run_p4_ablation.py \
   --static-points 256 --static-repeats 32 --dynamic-n 8192 \
   --out docs/reviews/20261113_p3p4/data
 ```
@@ -80,7 +80,7 @@ PYTHONPATH=src python3 tools/run_p4_ablation.py \
 重画图（必须与上一步同参数，否则图与表对不上）：
 
 ```bash
-PYTHONPATH=src python3 tools/run_review_figures.py \
+PYTHONPATH=src:. python3 tools/run_review_figures.py \
   --points 256 --repeats 32 --dynamic-n 8192 \
   --out docs/reviews/20261113_p3p4/figures
 ```

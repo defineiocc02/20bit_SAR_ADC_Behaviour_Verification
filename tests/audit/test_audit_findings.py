@@ -230,7 +230,12 @@ class TestF8EvidenceScope:
         decoder = quiet_nominal_model.nominal_decoder
         with pytest.raises(ValueError, match="unsupported fixed-point format"):
             replace(decoder.format, output_bits=16)
-        full_words = decoder.reconstruct(data)
+        # 必须与分析链同口径：2026-11-13 起 `reconstruct` 接受 `physical_gain`，
+        # 用于把 fine 从 G_phys 口径换算到权重和口径（否则差约 3.1%）。
+        # 本测试要比对的是"重构不改变输出契约"，因此要和 `simulate` 走同一条路径。
+        full_words = decoder.reconstruct(
+            data, physical_gain=quiet_nominal_model.state_estimated_gain(run.raw)
+        )
         assert full_words.output_bits == 20
         assert np.array_equal(full_words.code, run.codes.code)
         assert np.array_equal(full_words.analog_overflow, run.codes.analog_overflow)

@@ -531,11 +531,19 @@ class TestR16ExternalDemBinding:
         base_binding = before.pool.mask_binding
 
         def declared_rotation(geometry, codes, states, slice_ids):
+            """只在**相位环内**旋转，B4/S4 与子阵列不参与。
+
+            2026-11-13：17/5 下主阵列 17 列 = 15 个 2C 相位环 + B4(1C) + S4(1C)。
+            对整个 17 列做 np.roll 会把 B4/S4 卷进选中集，权重和随之改变
+            ⇒ 电荷不再守恒 ⇒ RA 被限幅到 ra_clip（实测 vra 出现 0.45）。
+            只有前 15 个 2C 列构成环，因此只卷这一段。
+            """
+            ring = 15  # 主阵列里构成相位环的 2C 列数
             base = base_binding(geometry, codes, np.zeros_like(states), slice_ids)
             main, sub = base.main_on.copy(), base.sub_on.copy()
             for index, state in enumerate(states):
-                main[index] = np.roll(main[index], int(state), axis=-1)
-                sub[index] = np.roll(sub[index], int(state), axis=-1)
+                shift = int(state)
+                main[index, :, :ring] = np.roll(main[index, :, :ring], shift, axis=-1)
             return SplitSwitchCommand(main, sub)
 
         states = np.arange(32, dtype=np.int64) % 2

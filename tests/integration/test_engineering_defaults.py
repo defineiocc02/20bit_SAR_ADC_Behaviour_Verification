@@ -37,11 +37,18 @@ def test_defaults_do_not_make_low_level_config_implicitly_ready():
     with pytest.raises(ConfigError, match="missing"):
         Config().check_legal()
     model = default_model()
-    assert model.cfg.adc2_n_bits == 12
+    # 2026-11-13：ADC2 位数依 ADR-0003 的 paper_literal 行改为 14（与窗口配套）。
+    # 12 bit 时二级量化 LSB 折到输入是 0.60 LSB20，单这一项就吃不满 20 bit。
+    assert model.cfg.adc2_n_bits == 14
     assert model.cfg.b1 == 9
     assert (model.cfg.n_slices, model.cfg.n_active) == (18, 8)
-    assert model.nominal_gain == pytest.approx(32.0)
-    assert model.nominal_active_cap_f == pytest.approx(20.5e-12)
+    # 2026-11-13：从 63+8 切到专利 17/5 后，这两个数都变了：
+    #   c_slice = 31.9375C（= 主段 31C + beta·15C，与码本分母 cn 同源）
+    #   nominal_active_cap_f = 8 × 31.9375C × 7.7799e-14 = 19.878 pF
+    #   nominal_gain = 19.878 pF / 0.640625 pF = 31.028
+    # 旧值 32.0 / 20.5 pF 是 63+8 时代的（20.5 pF = 8 × 32C × 40.04 fF 附近）。
+    assert model.nominal_gain == pytest.approx(31.02846314161869, rel=1e-9)
+    assert model.nominal_active_cap_f == pytest.approx(1.9877609e-11, rel=1e-6)
 
 
 def test_inference_table_separates_source_anchors_from_geometry_and_noise_assumptions():
@@ -52,8 +59,19 @@ def test_inference_table_separates_source_anchors_from_geometry_and_noise_assump
     assert rows["adc2_window_v"]["grade"] == "INFERRED_HEADROOM"
     assert rows["ra_noise_rms_v"]["grade"] == "ASSUMED_NOISE_BUDGET"
     assert rows["fixed_point"]["grade"] == "ENGINEERING_ARITHMETIC_CHOICE"
-    assert rows["sadc_thresholds"]["value"] == {"edge_count": 513, "first_v": -3.0, "last_v": 3.0}
-    assert rows["sadc_static_mismatch"]["value"] == 0.0
+    # 2026-11-13：SADC 阈值改为**直接取码本电压**（原来是等距表，与实测码本差近 2 LSB）。
+    # 前 512 个 = codebook.voltage_v，末位补一个上边界 2v(511)-v(510)，
+    # 因此 last_v 略大于 v_fs（3.0），这是"半开区间 [v(k), v(k+1))"的必要边界。
+    assert rows["sadc_thresholds"]["value"] == {
+        "edge_count": 513,
+        "first_v": -3.0,
+        "last_v": 3.0117416829745585,
+    }
+    # 该字段是"阈值相对等距表 ±v_fs/512 的最大偏差"。
+    # 2026-11-13 阈值改为取码本后，它不再为 0：码本步长是 cn/512 口径
+    # （31.9375C 分摊），末位边界 2v(511)-v(510) 比 v_fs 高出约 0.0117 V。
+    # 这不是"引入了失配"，而是"阈值不再是等距表"的直接体现。
+    assert rows["sadc_static_mismatch"]["value"] == pytest.approx(0.011741682974558465)
     assert all(isinstance(row["reason"], str) and row["reason"] for row in rows.values())
     result = model.simulate(dc_input(0.2), 8)
     assert result.metadata["enabled"]["unit_dem"] is False
@@ -93,8 +111,10 @@ def test_explicit_nominal_override_is_not_hidden_retuning_or_source_authority():
     model = default_model(parameters=replace(base, feedback_cap_f=2 * base.feedback_cap_f))
     assert model.parameters.unit_cap_f == base.unit_cap_f
     assert model.parameters.bridge_cap_f == base.bridge_cap_f
-    assert model.nominal_active_cap_f == pytest.approx(20.5e-12)
-    assert model.nominal_gain == pytest.approx(16.0)
+    # feedback 翻倍 ⇒ 增益减半。17/5 下名义增益是 31.028，故此处为 15.514。
+    # 旧值 20.5 pF / 16.0 是 63+8 时代（那时名义增益是 32.0）。
+    assert model.nominal_active_cap_f == pytest.approx(1.9877609e-11, rel=1e-6)
+    assert model.nominal_gain == pytest.approx(15.514231570809345, rel=1e-9)
     rows = model.inference_table()
     assert rows["feedback_cap_f"]["grade"] == "USER_OVERRIDE"
     assert rows["feedback_cap_f"]["default_grade"] == "DERIVED_WITH_ASSUMPTION"

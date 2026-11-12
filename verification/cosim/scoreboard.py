@@ -94,6 +94,20 @@ def _seed_of(module: str) -> int:
     return 0
 
 
+def _require_rows(rows: list[list[str]], expected: int, module: str,
+                  field: str = "count") -> Mismatch | None:
+    """Reject a dump whose row count does not match the vector count.
+
+    Without this a comparator that only zips rows can silently accept a dump
+    that lost its last line: zip stops at the shorter side and every comparison
+    passes. Deletion of a trailing row must fail, not shrink the comparison.
+    """
+    if len(rows) != expected:
+        return Mismatch(min(len(rows), expected), field, expected, len(rows),
+                        f"{module}: dump has {len(rows)} rows, vectors have {expected}")
+    return None
+
+
 def compare_sadc(out_text: str) -> tuple[int, int, Mismatch | None]:
     """Compare the population count for every comparator pattern."""
     from verification.reference.datapath_ref import sadc_code
@@ -121,6 +135,9 @@ def compare_unit_therm(out_text: str) -> tuple[int, int, Mismatch | None]:
     sub_count = load_mem(base / "sub_count.mem")
     n_main, n_sub = 63, 8
     rows = load_out(out_text)
+    bad = _require_rows(rows, len(main_count), "unit_therm")
+    if bad is not None:
+        return 0, len(main_count), bad
     for index, row in enumerate(rows):
         main_ranks = [(main_logical[index] >> (6 * p)) & 0x3F for p in range(n_main)]
         sub_ranks = [(sub_logical[index] >> (3 * p)) & 0x07 for p in range(n_sub)]
@@ -151,6 +168,9 @@ def compare_adc2(out_text: str) -> tuple[int, int, Mismatch | None]:
     mins = load_mem(base / "adc2_min_q.mem", signed=True, bits=64)
     maxs = load_mem(base / "adc2_max_q.mem", signed=True, bits=64)
     rows = load_out(out_text)
+    bad = _require_rows(rows, len(codes), "adc2_dec")
+    if bad is not None:
+        return 0, len(codes), bad
     for index, row in enumerate(rows):
         expected, expected_ovf = adc2_bin_center(codes[index], mins[index], maxs[index], 12)
         actual = _signed_from_hex(row[0], 64)
@@ -173,6 +193,9 @@ def compare_div_floor(out_text: str, expected_cycles: int = 9) -> tuple[int, int
     a_values = load_mem(base / "a.mem", signed=True, bits=field_bits("div_floor", "a"))
     d_values = load_mem(base / "d.mem", bits=field_bits("div_floor", "d"))
     rows = load_out(out_text)
+    bad = _require_rows(rows, len(a_values), "div_floor")
+    if bad is not None:
+        return 0, len(a_values), bad
     for index, row in enumerate(rows):
         a, d = a_values[index], d_values[index]
         if d == 0:
@@ -205,6 +228,9 @@ def compare_rdac_drv(out_text: str) -> tuple[int, int, Mismatch | None]:
     load = load_mem(base / "load.mem")
     rst_n = load_mem(base / "rst_n.mem")
     rows = load_out(out_text)
+    bad = _require_rows(rows, len(ids), "rdac_drv")
+    if bad is not None:
+        return 0, len(ids), bad
 
     n_slices, n_active, n_main, n_sub = 18, 8, 63, 8
     state_sel = 0
@@ -269,6 +295,9 @@ def compare_recon_core(out_text: str, expected_latency: int = 11) -> tuple[int, 
     mins = load_mem(base / "adc2_min_q.mem", signed=True, bits=64)
     maxs = load_mem(base / "adc2_max_q.mem", signed=True, bits=64)
     rows = load_out(out_text)
+    bad = _require_rows(rows, len(ids), "recon_core")
+    if bad is not None:
+        return 0, len(ids), bad
 
     n_main, n_sub = 63, 8
     for index, row in enumerate(rows):
@@ -329,6 +358,9 @@ def compare_slice_pool(out_text: str) -> tuple[int, int, Mismatch | None]:
     shuffle = load_mem(base / "shuffle.mem")
     rst_n = load_mem(base / "rst_n.mem")
     rows = load_out(out_text)
+    bad = _require_rows(rows, len(advance), "slice_pool_ctrl")
+    if bad is not None:
+        return 0, len(advance), bad
 
     state = reset_state(seed_value)
     # The bench holds the design in its reset value for the first edges while it

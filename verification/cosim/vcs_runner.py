@@ -152,6 +152,14 @@ def run_on_host(stage_dir: Path, *, top: str, plusargs: str = "", timeout: int =
     except subprocess.TimeoutExpired:
         return SimResult("RUN_ERROR", top, log + "\nrun timed out")
     log += "\n--- run ---\n" + (executed.stdout + executed.stderr).decode("utf-8", "replace")
+    # A non-zero exit, a fatal, or a missing $finish means the dump is partial.
+    # Returning PASS_RUN here would let a crashed simulation look like a pass.
+    run_text = executed.stdout.decode("utf-8", "replace") + executed.stderr.decode("utf-8", "replace")
+    if executed.returncode != 0:
+        return SimResult("RUN_ERROR", top, log[-8000:] + f"\n(simv exit={executed.returncode})")
+    for marker in ("$fatal", "FATAL", "Error-["):
+        if marker in run_text:
+            return SimResult("RUN_ERROR", top, log[-8000:] + f"\n(simulation reported {marker})")
 
     # Fetch every .out dump the testbench produced.
     outputs: dict[str, str] = {}

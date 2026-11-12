@@ -148,3 +148,46 @@ def test_output_word_off_by_one_is_rejected():
     _, _, mismatch = sb.compare_recon_core(mutated)
     assert mismatch is not None
     assert mismatch.field == "dout"
+
+
+@pytest.mark.parametrize(
+    "module,name,comparator",
+    [
+        ("sadc_enc", "sadc_enc.out", sb.compare_sadc),
+        ("unit_therm", "unit_therm.out", sb.compare_unit_therm),
+        ("adc2_dec", "adc2_dec.out", sb.compare_adc2),
+        ("div_floor", "div_floor.out", sb.compare_div_floor),
+        ("rdac_drv", "rdac_drv.out", sb.compare_rdac_drv),
+        ("slice_pool_ctrl", "slice_pool_ctrl.out", sb.compare_slice_pool),
+        ("recon_core", "recon_core.out", sb.compare_recon_core),
+    ],
+)
+def test_every_comparator_rejects_a_truncated_dump(module, name, comparator):
+    """Deleting the last row must fail for *every* comparator, not just one.
+
+    A comparator that only zips rows stops at the shorter side, so a truncated
+    dump would compare N-1 rows and report a pass.
+    """
+    text = _load(module, name)
+    truncated = "\n".join(text.splitlines()[:-1]) + "\n"
+    passed, total, mismatch = comparator(truncated)
+    assert mismatch is not None, f"{module} accepted a dump with one row missing"
+    assert mismatch.field == "count", (module, mismatch.field)
+
+
+@pytest.mark.parametrize(
+    "module,name,comparator",
+    [
+        ("sadc_enc", "sadc_enc.out", sb.compare_sadc),
+        ("unit_therm", "unit_therm.out", sb.compare_unit_therm),
+        ("adc2_dec", "adc2_dec.out", sb.compare_adc2),
+        ("div_floor", "div_floor.out", sb.compare_div_floor),
+        ("rdac_drv", "rdac_drv.out", sb.compare_rdac_drv),
+        ("slice_pool_ctrl", "slice_pool_ctrl.out", sb.compare_slice_pool),
+        ("recon_core", "recon_core.out", sb.compare_recon_core),
+    ],
+)
+def test_every_comparator_rejects_an_empty_dump(module, name, comparator):
+    """An empty dump is not "nothing to compare" — it is a failure."""
+    passed, total, mismatch = comparator("")
+    assert mismatch is not None, f"{module} accepted an empty dump"

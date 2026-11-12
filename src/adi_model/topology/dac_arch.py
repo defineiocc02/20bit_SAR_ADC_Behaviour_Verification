@@ -207,7 +207,11 @@ def _geometry_for(chip: SplitChip, slice_ids) -> tuple[SplitSwitchGeometry, np.n
 
 
 def split_capacitance_coefficients(
-    chip: SplitChip, slice_ids, *, switched_sub_units: int | None = None
+    chip: SplitChip,
+    slice_ids,
+    *,
+    switched_sub_units: int | None = None,
+    switched_main_units: int | None = None,
 ) -> dict[str, np.ndarray | None]:
     """明确两节点拓扑的线性系数；不把一个Ctotal同时用作信号/负载/噪声电容。
 
@@ -215,13 +219,21 @@ def split_capacitance_coefficients(
     C_eff=A+Cp_main+Cb*(B+Cp_sub)/D是浮置主节点系数，主寄生未知则保持None。
 
     Args:
+        switched_main_units: 参与码的**可切换**主单元数；None 表示全部。
+            原件 FIG.11/17 的主阵列有 17 列，其中 S4 那一个 1C 的编码规则图上未给，
+            用户裁决不进名义码本，因此不计入 c_slice（否则分母多 1C，端点差 3%）。
         switched_sub_units: 参与码的**可切换**子单元数；None 表示全部。
             原件 FIG.11 的物理位宽是 5 列，其中末列是恒接低轨的哑单元——
             它接在 sub 节点上（所以物理上存在），但从不被掩码选中，
             若计入 B 会把 β 从 1/16 拉到 1/17 并破坏端点闭合，因此调用方需显式排除。
     """
     _, ids = _geometry_for(chip, slice_ids)
-    a = chip.C_main[ids].sum(axis=-1)
+    c_main = chip.C_main[ids]
+    if switched_main_units is not None:
+        if not 0 < int(switched_main_units) <= chip.n_main:
+            raise ConfigError("switched_main_units must be within the physical main width")
+        c_main = c_main[..., : int(switched_main_units)]
+    a = c_main.sum(axis=-1)
     c_sub = chip.C_sub[ids]
     if switched_sub_units is not None:
         if not 0 < int(switched_sub_units) <= chip.n_sub:
@@ -265,6 +277,7 @@ def charge_from_masks(
     reference_high_v=None,
     reference_low_v=None,
     switched_sub_units: int | None = None,
+    switched_main_units: int | None = None,
 ) -> DACCharge:
     """实际整数mask到Q_D=S_main+beta*S_sub，单位C。
 
@@ -283,13 +296,30 @@ def charge_from_masks(
     main_v = np.where(masks.main_on, high[..., None], low[..., None])
     sub_v = np.where(masks.sub_on, high[..., None], low[..., None])
     coefficient = split_capacitance_coefficients(
-        chip, ids, switched_sub_units=switched_sub_units
+        chip,
+        ids,
+        switched_sub_units=switched_sub_units,
+        switched_main_units=switched_main_units,
     )
     beta = coefficient["beta"]
     c_signal = coefficient["c_signal"]
     assert isinstance(beta, np.ndarray) and isinstance(c_signal, np.ndarray)
-    q_main = (chip.C_main[ids] * main_v).sum(axis=-1)
-    q_sub = (chip.C_sub[ids] * sub_v).sum(axis=-1)
+    # 主阵列同样只算参与码的单元：S4（最后一个 1C）属**采样态**电容，
+    # 转换期不参与驱动；若按"未选接低轨"计入，会给所有码叠加一个恒定 -1C·Vref 项，
+    # 等效电压整体偏 0.094 V（实测码 256 从 +0.0059 变 -0.0883）。
+    c_main_charge = chip.C_main[ids]
+    if switched_main_units is not None:
+        c_main_charge = c_main_charge[..., : int(switched_main_units)]
+        main_v = main_v[..., : int(switched_main_units)]
+    q_main = (c_main_charge * main_v).sum(axis=-1)
+    # 子阵列只算**可切换**单元：物理第 5 列是恒接低轨的哑单元，两相都接低轨，
+    # 对差分无贡献；若把它按"未选接低轨"计进 q_sub，会引入一项恒定的
+    # beta*1C*(-Vref)，使等效电压整体偏 0.005 V 量级（实测 vd 从 -0.0854 变 -0.0904）。
+    c_sub_charge = chip.C_sub[ids]
+    if switched_sub_units is not None:
+        c_sub_charge = c_sub_charge[..., : int(switched_sub_units)]
+        sub_v = sub_v[..., : int(switched_sub_units)]
+    q_sub = (c_sub_charge * sub_v).sum(axis=-1)
     q_slice = q_main + beta * q_sub
     charge = q_slice.sum(axis=-1)
     c_eff = coefficient["c_eff"]

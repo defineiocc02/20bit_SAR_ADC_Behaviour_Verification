@@ -132,13 +132,16 @@ def map_fig11(
         # 相位 15 命中保留列：窗口从哑列之后开始，等价于相位 0 的有源集合。
         horizontal_phase = 0
 
-    therm_count = code >> 5  # 高 4 位 -> 15 个 2C 的温度计计数
-    b4 = (code >> 4) & 1  # B4 决定两个 1C 单元的选通
-    sub_mask = sum(
-        ((code >> (3 - unit)) & 1) << unit for unit in range(4)
-    )  # B5~B8 翻成 4 位子阵列掩码
+    # 主段 5 位主码 P=0..31 的分解（与 dem3d.fig11_masks、defaults 的码本律同一套）：
+    # 尽量用 15 个 2C，剩余 0/1/2 用两个 1C（B4、S4）补。必须在三处保持一致，
+    # 否则"码本律 / 掩码律 / 电荷律"又回到各写各的（本轮踩过的坑）。
+    main_code = code >> 4
+    therm_count = min(main_code // 2, 15)
+    ones_count = min(main_code - 2 * therm_count, 2)
+    # 子阵列掩码：B5..B8（低 4 位）的二进制，末位物理哑单元恒低。
+    sub_mask = sum(((code >> (3 - unit)) & 1) << unit for unit in range(4))
     if not enabled:
-        main_mask = ((1 << therm_count) - 1) | (b4 << 15)
+        main_mask = ((1 << therm_count) - 1) | (((1 << ones_count) - 1) << 15)
         return Fig11Masks((main_mask,) * SLOT_COUNT, (sub_mask,) * SLOT_COUNT, True, False)
 
     main = []
@@ -151,6 +154,12 @@ def map_fig11(
         # FIG.19 顶层行只有一个 C，FIG.20 的 4x/2x 是子阵列（每片各一份、8 片合计）。
         # 旧实现 `(2*slot+unit-v)%16<8` 会在**同一片同时打开 unit15 与 unit16**（=8C/片，
         # 与 `2x` 不符），还会让"打开哪些 1C"随 slot 漂移。现改为每片恒选 unit15。
-        ones_mask = (1 << 15) if b4 else 0
+        # B4 与 S4 同为 1C、同列于主阵列（原件 FIG.19/20 顶层行），且必须**同时**参与，
+        # 否则端点不闭合：码本分母(不含 S4)=31.9375C，而电荷路径分母(含 S4)=32.9375C，
+        # 差 1C 会让 511 码只到 +2.818 V（实测）。同时参与后两者一致，端点精确 ±v_fs。
+        # B4 与 S4 同为 1C、同属主阵列，且**同选**：二者合起来是一步 2C。
+        # 端点闭合判定：cn 含 S4（A=32）且 drive(511)=30+2+β15=32.9375=cn ✓。
+        # 若只选 B4 而 cn 仍含 S4，511 只到 +2.818 V；若 cn 不含 S4，则 drive 超 cn 回折。
+        ones_mask = ((1 << ones_count) - 1) << 15
         main.append(therm_mask | ones_mask)  # 2C 段与 1C 段拼成本片 17 位主掩码
     return Fig11Masks(tuple(main), (sub_mask,) * SLOT_COUNT, True, reserved_hit)

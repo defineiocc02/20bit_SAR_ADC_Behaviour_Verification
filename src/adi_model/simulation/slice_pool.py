@@ -102,6 +102,10 @@ class PhysicalSlicePool:
         from adi_model.topology.capacitors import SUB_WEIGHTS
 
         self._switched_sub_units = min(chip.n_sub, len(SUB_WEIGHTS))
+        # 主阵列同理：S4 那个 1C 的编码规则图上未给，不进名义分母。
+        from adi_model.topology.capacitors import FIG11_SWITCHED_MAIN_UNITS
+
+        self._switched_main_units = min(chip.n_main, FIG11_SWITCHED_MAIN_UNITS)
         if chip.n_slices != cfg.n_slices:
             raise ConfigError("actual physical pool size conflicts with the source architecture")
         for field, actual in (("dac_n_main", chip.n_main), ("dac_n_sub", chip.n_sub)):
@@ -170,7 +174,10 @@ class PhysicalSlicePool:
         权重表只是**可切换**单元（4），末列哑单元不计入 β 分母（见 split_capacitance_coefficients）。
         """
         return split_capacitance_coefficients(
-            self.chip, slice_ids, switched_sub_units=self._switched_sub_units
+            self.chip,
+            slice_ids,
+            switched_sub_units=self._switched_sub_units,
+            switched_main_units=self._switched_main_units,
         )
 
     def signal_capacitance(self, slice_ids) -> np.ndarray:
@@ -186,6 +193,7 @@ class PhysicalSlicePool:
             slice_ids,
             command,
             switched_sub_units=self._switched_sub_units,
+            switched_main_units=self._switched_main_units,
             **references,
         )
 

@@ -184,25 +184,19 @@ def fig11_masks(
     for index in range(len(values)):
         state = Dem3State.from_int(int(packed[index]))
         code = int(values[index])
-        thermal = code >> 5
-        b4 = (code >> 4) & 1
+        # 主段 5 位主码 P=0..31 的分解（与 defaults 的码本律同一套，必须同步改）：
+        #   尽量用 15 个 2C，剩余 0/1/2 用两个 1C（B4、S4）补。
+        # 这样 drive(P) 单调覆盖 0..31C，且与电荷路径"选中即接高轨"逐单元一致。
+        main_code = code >> 4
+        thermal = min(main_code // 2, FIG11_COLUMNS)
+        ones = min(main_code - 2 * thermal, 2)
         for position, physical in enumerate(ids[index]):
             start = (state.horizontal + int(physical)) % FIG11_COLUMNS
             for offset in range(thermal):
                 main[index, position, (start + offset) % FIG11_COLUMNS] = True
-            if b4:
-                # 单步 1C：B4 每片各选自己的 unit 15，全 8 片合计 8 个 1C。
-                # （FIG.17 把 B4 标 2x、也是常量 1 直通；它与子阵列的 8x/4x/2x 同属
-                #  "共享权重按片分配"这一族，口径见 docs/mechanisms/fig19_fig17_decode.md §2.1。）
-                # S4（unit 16）默认不参与码本，
-                # 打开 s4_second_ones_cell 只是把第二片 1C 也接上，供参数扫描用；
-                # 它会让名义增益多 1C，属于**已知工艺偏差压力项**，不得用来求名义码本。
-                # 注意：原件 FIG.17 里 B4 是常量 1、直通、标 2x，且**没有任何一列 1C 随片轮转**；
-                # `vertical` 相位只驱动 15 列 2C 的起点，故此处不引入纵向选择——
-                # 早先 `(2*pos+unit+v)%16<8` 的写法既是杜撰，也会让同码 8 片权重不等。
-                main[index, position, 15] = True
-                if s4_second_ones_cell:
-                    main[index, position, 16] = True
+            # B4 与 S4 是两个 1C（原件 FIG.19/20 顶部并列），按余数 0/1/2 逐个补上。
+            for unit in range(ones):
+                main[index, position, 15 + unit] = True
             for unit in range(4):
                 sub[index, position, unit] = bool((code >> (3 - unit)) & 1)
     return SplitSwitchCommand(main, sub).validated(geometry, len(values))

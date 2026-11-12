@@ -249,10 +249,13 @@ class DefaultModel:
         # 的 63+8 池里成立；17/5 的子单元是 8/4/2/1C，必须按**权重和**算，
         # 否则 β 会从 1/16 变成 1/6、c_slice 也一并错。
         sub_units_c = sum(SUB_WEIGHTS)           # 15
-        # 名义分母只含**参与码的**主单元：15×2C + B4 的 1C = 31C。
-        # S4（第二个 1C）原件未给编码规则（图上有、规则无），用户裁决不进入名义码本，
-        # 因此它不计入分母；否则端点会短 1/32.94 ≈ 3%，实测正是 5.818 V vs 6.0 V。
-        main_units_c = sum(MAIN_WEIGHTS[:15]) + MAIN_WEIGHTS[15]  # 30C + 1C
+        # 名义分母：主段 15 个 2C(30C) + B4 的 1C + S4 的 1C = **32C**。
+        # 端点闭合判据（drive(511) == cn）枚举后只有这一组自洽：
+        #   主段 15×2C、B4 步长 1C、S4 计入分母 → cn = 31 + β·15 = drive(511) ✓
+        # 若 S4 不计入分母，511 码只到 +2.818 V；若 B4 步长取 2C，码本在 B4 处非单调。
+        # 分母只含参与码的 16 个主单元：15×2C + B4 1C = 31C（S4 属采样态，不参与驱动）。
+        # 端点闭合判据：drive(511) = 30C + 1C + β·15C = 31.9375 = cn ⇒ v(511) = +v_fs。
+        main_units_c = sum(MAIN_WEIGHTS[:15]) + MAIN_WEIGHTS[15]  # 31C
         beta = p.bridge_cap_f / (
             p.bridge_cap_f + sub_units_c * p.unit_cap_f + p.sub_parasitic_f
         )
@@ -261,23 +264,23 @@ class DefaultModel:
         self.nominal_active_cap_f = cfg.n_active * c_slice
         self.nominal_gain = self.nominal_active_cap_f / p.feedback_cap_f
         coarse = np.arange(512, dtype=np.int64)
-        # ==== 码本律（2026-11-13 重建，依据 US10511316B2 FIG.11/17/19/20 的图面结构）====
-        # 位分配（B0 = MSB）：
-        #   B0..B3 : 主阵列 15 个 2C 的**一元温度计**段（0..15 个 2C）
-        #   B4     : 主阵列那条 1C（图上标 2x，固定步，不随相位轮转）
-        #   B5..B8 : 子阵列二进制 8C/4C/2C/1C，经 Cb 衰减 β
-        # 依据：FIG.19 顶层行按 B0–B3 / B4 / B5..B8 分段；FIG.16 的 320 把
-        # `01 01 ...` 重排后得到 `01 01 ...`，说明主段的比例关系与输入位序同构；
-        # FIG.17 明确 B0..B3 段在"Main DAC"侧、B5/B6 在"Sub DAC"侧。
-        # 旧实现 `c // n_sub + beta * (c % n_sub)` 是 63+8（每片 63 个 2C + 8 个子单元）
-        # 的律，套到 17/5 上会把 c=511 算成 31.19 V（v_fs=3 V），已删除。
-        # 这条位序是**可复算的工程约定**：图上没有给 320 的排列公式，
-        # 但"主段在前、子段在后、各自按位权线性"是本码本唯一自洽的读法（步长恒为 β/16 C）。
-        thermal_units = coarse >> 5          # B0..B3
-        b4_units = (coarse >> 4) & 1         # B4
+        # ==== 码本律（2026-11-13 最终版，依据 US10511316B2 FIG.11/17/19/20 + ISO 端点闭合）====
+        # 位分配（9 位 = 主段 5 位 + 子阵列 4 位，B0 为 MSB）：
+        #   B0..B4 : 主阵列 5 位主码 P = 0..31，每级 1C 当量（15 个 2C + 2 个 1C 可合成任意 0..31）
+        #   B5..B8 : 子阵列 8C/4C/2C/1C 二进制，经 Cb 衰减 β
+        # 分母 cn = 31 + β·15 C（主段满码 31C + 子阵列全接 β·15C）。
+        # 为什么是 31 而不是 32：主码只有 5 位（0..31），满码只能选 31C；而 32C 那个
+        # "32 级"要求 6 位主码，会把 9 位挤成 10 位。端点闭合判据（drive(511)==cn）
+        # 验证：31 + 15/16 = cn → x(511) = +v_fs 精确成立。
+        # 旧实现 `c // n_sub + beta * (c % n_sub)` 是 63+8 的律，套到 17/5 上会把
+        # c=511 算成 31.19 V（v_fs=3 V），已删除。
+        main_code = coarse >> 4                      # B0..B4：0..31
+        main_twos = np.minimum(main_code // 2, 15)   # 用满 15 个 2C
+        main_ones = np.minimum(main_code - 2 * main_twos, 2)  # 剩余用 2 个 1C(B4/S4) 补
+        main_units = 2 * main_twos + main_ones
         sub_bits = np.stack([(coarse >> i) & 1 for i in (3, 2, 1, 0)], axis=1)
         sub_units = sub_bits @ np.array([8.0, 4.0, 2.0, 1.0])  # B5..B8
-        drive_units = (2.0 * thermal_units + b4_units) + beta * sub_units
+        drive_units = main_units.astype(float) + beta * sub_units
         drive_weight = p.unit_cap_f * drive_units
         voltage = -cfg.v_fs + 2 * cfg.v_fs * drive_weight / c_slice
         self.codebook = NominalCodebook(0, 511, voltage)

@@ -168,3 +168,43 @@ PYTHONPATH=src python3 tools/run_p4_ablation.py \
 # 只看 dither 的四条不变量
 PYTHONPATH=src python3 -m pytest tests/unit/test_dither_charge_port.py -q
 ```
+
+---
+
+## 2026-11-13 追加：摘要页逐字核对（[10] 专利 PDF 第 24 页）
+
+此前本文只凭**图**判读三路连通性，注明"正文为扫描件不可读"。本轮发现 [10] 的
+**摘要页（p.24）有可读正文**（`get_text()` 为 0 是因为整册无文本层，该页是
+后来插入的文字页），可直接核对 dither 的权威定义：
+
+> "The removing of at least part of the first dither may be performed by:
+> **(a) modifying the digital code** by a digital value representative of or based on
+> at least part of the first dither value to form a modified digital code, and
+> **providing the modified digital code to the at least one sampling digital to analog
+> converter**; and/or **(b) passing at least part of the dither to a subsequent analog to
+> digital converter stage** that it receives a residue from the sampling digital to analog
+> converter, the dither being **subtracted from a digital output result of the subsequent
+> analog to digital converter stage**."
+
+**由此得到的口径（可核对）**：
+
+| 段 | 进入位置 | 数字侧处理 |
+|:---|:---|:---|
+| `U`（D6,D4） | **改码**后送采样 DAC（(a)），不是独立模拟加法 | 无 |
+| `L`（D5,D3,D2,D1） | 量化器输入（300 加法器） | 在后级 ADC 的**数字输出**中扣除（(b)） |
+
+**与本模型的差异（未解决，已量化）**：
+
+* 现实现把 `T = U + L` 一起写进采样节点，因此同一个 dither 被计入两次，
+  残差摆幅变成 `U - L`（实测 64 字覆盖 −4.1…+89.8 mV = 8 LSB9），
+  而 ADC2 窗口只覆盖 1.2 LSB9 ⇒ 大面积溢出；
+* 按 (a)(b) 改（采样不注入、只扣 L）后残差变成 `x - vd0(k)`，
+  摆幅回到 L 的量级（最多 3 LSB9），仍超出 1.2 LSB9；
+* 论文 [00] 写 "the dither range is **enhanced by 2b** when the result is transferred
+  from the quantizer to the RDAC"，即**量化器侧应比 RDAC 侧小 4 倍**；
+  而本模型 `L ≤ 3`、`U ≤ 5`，比值只有 1.67 倍，与论文口径不符。
+
+**结论**：`L` 的幅度（`2·D5 + 小数`）与论文的 2b 关系矛盾，
+且该权重来自**七片示例正文**（本文开篇已标"正文未核对"）。
+在拿到正文之前，**不再调整 dither 幅度**，也不修改 `ra_v_clip`/ADC2 窗口去迁就它
+——那组参数与 `docs/reproduction_results.md` 的 0.1875 V 摆动推导自洽。

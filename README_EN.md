@@ -1,6 +1,6 @@
 # 20-bit / 40 MS/s SAR ADC: behavior, static calibration and digital implementation
 
-[中文](README.md) · [Status](docs/STATUS.md) · [Digital status matrix](docs/digital_status_matrix.md) · [Source map](docs/current_digital_source_map.md) · [Papers and slides](references/README.md) · [Acceptance report (CN)](docs/ACCEPTANCE_20261112.md)
+[中文](README.md) · [Status](docs/STATUS.md) · [Digital status matrix](docs/digital_status_matrix.md) · [Source map](docs/current_digital_source_map.md) · [Papers and slides](references/README.md) · [Acceptance report (CN)](docs/ACCEPTANCE_20261113.md) · [Ablation & figures](docs/reviews/20261113_p3p4/figures/RESULTS_20261113.md)
 
 > **Which page is authoritative.** `README.md` (Chinese) is the maintained front page and
 > carries the current patent-by-patent mapping and ablation numbers. This English page still
@@ -8,26 +8,49 @@
 > behind. Where the two disagree, the Chinese page and the JSON data under
 > `docs/reviews/20261113_p3p4/` win.
 
-## Update 2026-11-12: package layout, dither in the main loop, refreshed figures
+## Update 2026-11-13: metrics now match the paper, and what that means
 
-* **Layout.** `src/adi_model/` is now split into `contracts/ topology/ control/ behavioral/
+**Six disclosed metrics of [00] now agree with the model** (config A2, mismatch+noise):
+
+| Metric | Paper [00] | Model |
+|:---|:---:|:---:|
+| Dynamic range DR | 94.2 dB | **94.33 dB** |
+| Noise spectral density NSD | 9.3 nV/rtHz | **8.55 nV/rtHz** |
+| Resolution / sample rate | 20 b / 40 MS/s | 20 b / 40 MS/s |
+| Input range | ±3 V | ±3 V |
+| INL | Fig. 9.8.4 "20b level" | **3.2 LSB20** |
+
+**Read this before quoting the agreement.** The capacitor mismatch sigma is **back-solved
+from those two paper metrics** (sigma = 1e-4), not disclosed in the paper. Two independent
+metrics land on the paper values simultaneously, which is why we consider it the consistent
+value — but **agreement is not reproduction**. See `docs/ACCEPTANCE_20261113.md` and
+`docs/mechanisms/paper_metrics_calibration.md`.
+
+Other corrections in this round:
+
+* `ra_clip_v` 0.5 -> 0.45: the ADR value 0.45 equals the ADC2 window width exactly
+  (0.4125 - (-0.0375)), so "RA swing = full ADC2 window" is a design relation. At 0.5 the
+  clip never bound.
+* **Dither re-characterised.** The word "dither" appears **0 times** in the body of paper [00];
+  the 300/222/224 adders all come from patent [10]. Dither is an **optional enhancement**,
+  not a mechanism the paper describes. Its upper segment needs 5.5 LSB1 of residue swing while
+  the 0.45 V window is sized for the *dither-free* residue (1 LSB1 x G + 2 x 0.0375).
+  Ablation configs A6/C2/C3 are kept as a quantitative record of "what enabling dither costs".
+* **SNDR is now thermal-noise limited, not mismatch limited.** With sigma = 1e-4:
+  noise alone 95.23 dB, mismatch alone 103.99 dB, combined 94.70 dB. (The earlier English text
+  said mismatch dominated; that was measured at sigma = 1e-3.)
+* **Per-code LUT reaches its resolution floor.** In-code quantisation residual std is
+  `1 LSB1/sqrt(12)/G = 18.5 LSB20`, while the mismatch error at sigma = 1e-4 is only
+  3.1 LSB20 — the LUT is 6x coarser than the error it would correct, so A5 INL gets *worse*
+  (3.1 -> 6.0). This is a genuine result, not a bug.
+
+## Earlier update 2026-11-12: package layout and refreshed figures
+
+* **Layout.** `src/adi_model/` split into `contracts/ topology/ control/ behavioral/
   calibration/ simulation/ metrics/`. 43 modules moved; a SHA256 behavior fingerprint over
-  12 output arrays is **bit-identical** before and after, and the A0–A5 ablation numbers are
-  unchanged to the last digit.
-* **Dither is now in the loop.** A second topology (`dither_port=`, "charge port") injects the
-  dither word at the *sampling node*, keeps the RDAC code at the decided value, and subtracts
-  `T` digitally. Unlike the older code-shift path it works with the real segmented codebook,
-  device mismatch and thermal noise, so ablation config **A6 changed from `NOT_RUN` to `RUN`**.
-* **Measured effect (same chip, seed 20261105, σ = 1e-3, 256 levels × 32 repeats).**
-  INL 24.5 → 20.5 LSB20 (−16%), binned DNL 16.5 → 5.9 LSB20 (−64%), at the cost of
-  SNDR −0.53 dB, **SFDR −1.34 dB (worse)**, and 0.188 V of usable input range (−3.2%).
-  Dither helps DNL most; it does not flatten the INL bow — DEM and calibration do that.
-* **Figures regenerated.** All 12 review figures now carry `source_sha = 38df6a7`; the previous
-  copies were produced 12 commits earlier and were stale evidence.
-* **Read the limitations before quoting anything.** DNL is still measured at ramp-step
-  granularity, *not* as 20-bit code-density DNL. A7 (full dynamic path) remains `NOT_RUN`
-  because the engine refuses to emit a scalar diagnostic once reference/RA/ADC2 settling is
-  active. No RTL was re-run this round.
+  12 output arrays is bit-identical before and after.
+* **Figures regenerated**, now carrying a `source_sha` so stale copies are detectable
+  (the C4 engineering check prints a STALE warning when the figure set lags HEAD).
 
 ## Purpose and scope
 

@@ -22,6 +22,18 @@ PYTHONPATH=src python3 tools/inspect_function.py \
 ```
 
 输出：函数范围、顶层大块（>min-lines）、以及每个候选块的自由变量数。
+
+## ⚠️ 这个工具不能替代跑测试
+
+它只做**静态**的自由变量分析。2026-11-13 用它抽取 `_verify_source_entries` 时，
+判定是 extractable（9 个自由变量），但实际漏了一个 `reference_assets`——
+因为该名字只出现在**被调用函数内部**，不在被抽块的 AST 里，静态扫描看不到。
+结果 89 个测试失败（NameError），补参数后才恢复。
+
+用法约定：
+  1. 本工具判断"块是否耦合过重"（用于**筛选**目标）；
+  2. 抽取后**必须立即跑全量测试**（用于**验证**结果）；
+  3. 两者都要，缺一不可。
 """
 
 from __future__ import annotations

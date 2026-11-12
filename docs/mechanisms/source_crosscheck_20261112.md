@@ -208,6 +208,21 @@ LMS 是流式随机梯度、与数据顺序有关、能跟踪漂移；批量最�
 `behavioral/eight_slice.py` 里"供片外 LMS 使用"的旧注释已改正：
 它描述的是一个不存在的消费者。
 
+**外部对照（2026-11-12，adctoolbox 0.9.3 实装核对）**：把 `adctoolbox` 装进环境后
+直接读它的源码，结论是——
+
+| 事实 | 证据 |
+|:---|:---|
+| 核心校准求解器是**最小二乘**，不是 LMS | `calibration/_lstsq_solver.py` 首行 `"""Core least-squares solver..."""`，实现是 `scipy.linalg.lstsq` |
+| 公共 API 是正弦加权拟合 | `calibrate_weight_sine` / `calibrate_weight_sine_lite` / `build_calibration_features` |
+| 全包只有 2 处出现 "lms" | `aout/decompose_harmonic_error.py:4` 把 least-squares 写成 "(LMS)"，属**文档误标**；`examples/11_calibration/pn_architectures.py:66` 是 PN-dither 示例里的 sign/zero **NLMS**，不在核心校准路径 |
+
+所以"片外取系数"这一类与 adctoolbox 一致，**估计器也一样是最小二乘**；
+本仓库的 `fit_unit_weights`（SVD 最小二乘）与它同属一类。
+差别在**特征与参数化**：adctoolbox 按 bit 权重建特征并解最小二乘，
+本仓库主线用逐码表、另有逐单元权值但未闭环。
+这条支持把校准改成"活动 mask × 单元权值"，而不是引入 LMS。
+
 ---
 
 ## T10 联合机制与论文指标对照

@@ -77,7 +77,7 @@ python -m pytest tests/verification -q
 | 图 | 状态 | 说明 |
 |:---|:---|:---|
 | A 模块一致性矩阵 | 已生成 `figures/A_module_matrix.png` | 每模块 Python 参考 / RTL 运行 / 位真 / corner |
-| C 定点误差分布 | 已生成 `figures/C_fixed_point_error.png` | 浮点求值 vs 定点求值的量化代价；RTL 与定点是 0 误差 |
+| C 定点误差分布 | 已生成 `figures/C_fixed_point_error.png` | 精确（浮点）结果 − 定点字，实测落在 **[0.005, 0.998] LSB20**：整数路径只做一次 floor，差值就是精确商的小数余项，天然 <1 LSB。**RTL 与 Python 定点是 0 差异**，这张图不是 RTL 误差 |
 | D DEM 物理 mask 覆盖 | 已生成 `figures/D_dem_mask.png` | 温度计展开的数值覆盖，**不是**物理 DEM 置换 |
 | B 单样本逐事件对拍 | NOT_RUN | 需要 VCD 逐周期解析 |
 | E 系统 INL/DNL/FFT | NOT_RUN | 依赖 V4 闭环 |

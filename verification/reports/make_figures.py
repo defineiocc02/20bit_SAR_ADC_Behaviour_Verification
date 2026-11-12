@@ -145,13 +145,14 @@ def figure_c_fixed_point_error() -> dict:
             exact += 1
 
     errors = np.asarray(errors_lsb)
-    fig, ax = plt.subplots(figsize=(6.4, 3.6), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(6.6, 3.8), constrained_layout=True)
     ax.hist(errors, bins=24, color="#4C78A8", edgecolor="white")
-    ax.set_xlabel("float reconstruction − fixed-point reconstruction  [LSB20]")
+    ax.set_xlabel("exact (float) result − fixed-point word  [LSB20]")
     ax.set_ylabel("vectors")
+    ax.set_xlim(-0.05, 1.05)
     ax.set_title(
-        f"Figure C  fixed-point quantisation cost  (source {_sha()[:8]}, "
-        f"{exact}/{len(errors)} within 0.5 LSB)", fontsize=9)
+        f"Figure C  the fixed path rounds down by the fractional remainder  "
+        f"(source {_sha()[:8]})", fontsize=9)
     ax.grid(alpha=0.3)
     fig.savefig(FIG / "C_fixed_point_error.png", dpi=140)
     plt.close(fig)
@@ -160,10 +161,15 @@ def figure_c_fixed_point_error() -> dict:
         "status": "PASS",
         "vectors": int(len(errors)),
         "max_abs_lsb20": float(np.max(np.abs(errors))),
+        "min_lsb20": float(np.min(errors)),
         "rms_lsb20": float(np.sqrt(np.mean(errors**2))),
-        "within_half_lsb": int(exact),
         "source_sha": _sha(),
-        "note": "RTL vs Python fixed is bit-exact; this panel is float vs fixed only",
+        "note": (
+            "Difference is the fractional part of the exact quotient: the integer "
+            "path applies one floor, so it is always in [0,1) LSB20 and never "
+            "exceeds 1 LSB. RTL vs Python fixed is bit-exact (0 difference); this "
+            "panel only shows float-vs-fixed, not an RTL error."
+        ),
     }
 
 

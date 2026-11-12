@@ -1,0 +1,23 @@
+{
+  "module": "unit_therm",
+  "seed": 20261112,
+  "count": 96,
+  "wildcard_mask": "main_count_0 main_count_1 main_count_31 main_count_32 main_count_62 main_count_63 main_count_64 main_count_127 main_count_0 main_count_1 main_count_31 main_count_32 main_count_62 main_count_63 main_count_64 main_count_127 main_count_0 main_count_1 main_count_31 main_count_32 main_count_62 main_count_63 main_count_64 main_count_127 main_count_0 main_count_1 main_count_31 main_count_32 main_count_62 main_count_63 main_count_64 main_count_127 main_count_0 main_count_1 main_count_31 main_count_32 main_count_62 main_count_63 main_count_64 main_count_127 main_count_0 main_count_1 main_count_31 main_count_32 main_count_62 main_count_63 main_count_64 main_count_127 random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random",
+  "field_width_bits": {
+    "main_logical": 378,
+    "sub_logical": 24,
+    "main_count": 6,
+    "sub_count": 4
+  },
+  "profile": {
+    "B1": 9,
+    "ADC2_BITS": 12,
+    "N_ACTIVE": 8,
+    "N_UNIT_MAIN": 63,
+    "N_UNIT_SUB": 8,
+    "N_SLICES": 18,
+    "W_BITS": 48,
+    "V_BITS": 64,
+    "OUT_BITS": 20
+  }
+}

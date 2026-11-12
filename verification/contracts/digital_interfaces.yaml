@@ -1,0 +1,165 @@
+# Digital interface contract — one authoritative port table for both sides.
+#
+# Extraction rule: every row was read out of the RTL file named in `source`,
+# not from memory or from a diagram. If a port is added to the RTL, this table
+# must be updated in the same commit or `run_verification.py --level contracts`
+# fails (see check_ports()).
+#
+# Widths below are the values produced by tools/export_rtl_params.py for the
+# adi_40m profile: B1=9, ADC2_BITS=12, N_ACTIVE=8, N_UNIT_MAIN=63,
+# N_UNIT_SUB=8, N_SLICES=18, W_BITS=48, V_BITS=64, OUT_BITS=20.
+schema: 1
+profile: adi_40m
+params:
+  B1: 9
+  ADC2_BITS: 12
+  N_ACTIVE: 8
+  N_UNIT_MAIN: 63
+  N_UNIT_SUB: 8
+  N_UNIT_TOTAL: 71
+  N_SLICES: 18
+  W_BITS: 48
+  W_FRAC: 30
+  V_BITS: 64
+  V_FRAC: 32
+  ACC_BITS: 96
+  OUT_BITS: 20
+  PHASES: 16
+  CONTROL_WORD_BITS: 6
+
+modules:
+
+  sadc_enc:
+    source: rtl/top/sadc_enc.sv
+    kind: combinational
+    ports:
+      - {name: cmp_raw,   dir: in,  width: "P_N_CMP", const: 511, signed: false, unit: "-", desc: "bit i = comparator i decided x > threshold[i]"}
+      - {name: sadc_code, dir: out, width: 9, signed: false, unit: code, desc: "popcount(cmp_raw), zero padded to B1 bits"}
+    invariants:
+      - "sadc_code == number of set bits in cmp_raw"
+      - "monotone in cmp_raw (every added bit can only increase the code)"
+      - "bubble in the thermometer is NOT rejected; it is counted as-is"
+
+  unit_therm:
+    source: rtl/core/unit_therm.sv
+    kind: combinational
+    ports:
+      - {name: main_logical, dir: in,  width: "N_ACTIVE*N_UNIT_MAIN", signed: false, unit: rank, desc: "physical rank of each main cell, fixed by the mapper"}
+      - {name: sub_logical,  dir: in,  width: "N_ACTIVE*N_UNIT_SUB",  signed: false, unit: rank}
+      - {name: main_count,   dir: in,  width: "N_ACTIVE*6",  signed: false, unit: count}
+      - {name: sub_count,    dir: in,  width: "N_ACTIVE*4",  signed: false, unit: count}
+      - {name: main_on,      dir: out, width: "N_ACTIVE*N_UNIT_MAIN", signed: false, unit: mask}
+      - {name: sub_on,       dir: out, width: "N_ACTIVE*N_UNIT_SUB",  signed: false, unit: mask}
+    invariants:
+      - "main_on[a][p] == (main_logical[a][p] < main_count[a])"
+      - "count beyond the array extent saturates: mask is all ones, never wraps"
+
+  adc2_dec:
+    source: rtl/core/adc2_dec.sv
+    kind: combinational
+    ports:
+      - {name: adc2_code,  dir: in,  width: 12, signed: false, unit: code}
+      - {name: adc2_min_q, dir: in,  width: 64, signed: true,  unit: "V/Vfs Q32"}
+      - {name: adc2_max_q, dir: in,  width: 64, signed: true,  unit: "V/Vfs Q32"}
+      - {name: fine_q,     dir: out, width: 64, signed: true,  unit: "V/Vfs Q32", desc: "bin centre, ties-to-even then saturate to V_BITS"}
+      - {name: ovf,        dir: out, width: 1,  signed: false, unit: flag, desc: "set when the saturated value differs from the exact one"}
+    invariants:
+      - "fine_q == min + round_half_even((2*code+1)*(max-min), 2**(bits+1))"
+      - "monotone non-decreasing in adc2_code"
+      - "code 0 and code 2**bits-1 stay inside [min, max]"
+
+  div_floor:
+    source: rtl/core/div_floor.sv
+    kind: sequential
+    clock: {edge: posedge, signal: clk}
+    reset: {signal: rst_n, polarity: active_low, style: synchronous}
+    ports:
+      - {name: start, dir: in,  width: 1, unit: pulse, desc: "accepted only when !busy"}
+      - {name: a,     dir: in,  width: "P_W_A", signed: true,  unit: integer}
+      - {name: d,     dir: in,  width: "P_W_D", signed: false, unit: integer, desc: "zero is legal and returns err"}
+      - {name: q,     dir: out, width: "P_W_A", signed: true,  unit: integer, desc: "floor(a/d)"}
+      - {name: err,   dir: out, width: 1, unit: flag, desc: "d == 0"}
+      - {name: busy,  dir: out, width: 1, unit: flag}
+      - {name: done,  dir: out, width: 1, unit: pulse}
+    timing:
+      latency_cycles: "ceil(P_W_A / P_STAGES)"
+      start_during_busy: ignored
+      held_after_done: "q/err hold until the next accepted start"
+
+  rdac_drv:
+    source: rtl/core/rdac_drv.sv
+    kind: sequential
+    clock: {edge: posedge, signal: clk}
+    reset: {signal: rst_n, polarity: active_low, style: synchronous}
+    priority: "reset > load > hold"
+    ports:
+      - {name: load,      dir: in,  width: 1, unit: pulse}
+      - {name: slice_id,  dir: in,  width: "N_ACTIVE*5", unit: id, desc: "physical slice id, normally 8-hot"}
+      - {name: main_on,   dir: in,  width: "N_ACTIVE*N_UNIT_MAIN", unit: mask}
+      - {name: sub_on,    dir: in,  width: "N_ACTIVE*N_UNIT_SUB",  unit: mask}
+      - {name: slice_sel, dir: out, width: "N_SLICES", unit: mask}
+      - {name: main_sw,   dir: out, width: "N_SLICES*N_UNIT_MAIN", unit: mask}
+      - {name: sub_sw,    dir: out, width: "N_SLICES*N_UNIT_SUB",  unit: mask}
+    invariants:
+      - "rows not named by slice_id are zero after load (structural, not caller-guaranteed)"
+      - "duplicate slice_id: the last lane in loop order wins"
+      - "slice_id >= N_SLICES is ignored, not wrapped"
+
+  slice_pool_ctrl:
+    source: rtl/core/slice_pool_ctrl.sv
+    kind: sequential
+    clock: {edge: posedge, signal: clk}
+    reset: {signal: rst_n, polarity: active_low, style: synchronous}
+    ports:
+      - {name: enable,             dir: in,  width: 1}
+      - {name: advance,            dir: in,  width: 1, unit: pulse}
+      - {name: shuffle,            dir: in,  width: 1}
+      - {name: acquiring_ids,      dir: out, width: "8*5", unit: id}
+      - {name: converting_ids,     dir: out, width: "8*5", unit: id}
+      - {name: acquiring_mask,     dir: out, width: 18, unit: mask}
+      - {name: converting_mask,    dir: out, width: 18, unit: mask}
+      - {name: conversion_valid,   dir: out, width: 1}
+      - {name: sample_id,          dir: out, width: 32, unit: id}
+      - {name: acquisition_primed, dir: out, width: 1}
+    invariants:
+      - "first advance only primes; conversion_valid stays 0"
+      - "every emitted group has exactly 8 distinct ids and leaves 2 idle"
+      - "consecutive converting groups are disjoint (complement selection)"
+      - "sample_id increments once per accepted advance after priming"
+
+  recon_core:
+    source: rtl/core/recon_core.sv
+    kind: sequential
+    clock: {edge: posedge, signal: clk}
+    reset: {signal: rst_n, polarity: active_low, style: synchronous}
+    ports:
+      - {name: cfg_ready, dir: in,  width: 1, desc: "0 cancels in-flight work and clears valid outputs"}
+      - {name: start,     dir: in,  width: 1, desc: "accepted when cfg_ready && !busy"}
+      - {name: sample_id, dir: in,  width: 32, unit: id}
+      - {name: clr_ovf,   dir: in,  width: 1}
+      - {name: slice_id,  dir: in,  width: "N_ACTIVE*5", unit: id}
+      - {name: main_on,   dir: in,  width: "N_ACTIVE*N_UNIT_MAIN", unit: mask}
+      - {name: sub_on,    dir: in,  width: "N_ACTIVE*N_UNIT_SUB",  unit: mask}
+      - {name: adc2_code, dir: in,  width: 12, unit: code}
+      - {name: inj_q,     dir: in,  width: 64, signed: true, unit: "V/Vfs Q32"}
+      - {name: w_rom,     dir: in,  width: "N_SLICES*(N_UNIT_MAIN+N_UNIT_SUB)*48", unit: "Q30 weight"}
+      - {name: row_total, dir: in,  width: "N_SLICES*64", unit: "Q30 sum"}
+      - {name: offset_q,  dir: in,  width: 64, signed: true, unit: "V/Vfs Q32"}
+      - {name: adc2_min_q,dir: in,  width: 64, signed: true, unit: "V/Vfs Q32"}
+      - {name: adc2_max_q,dir: in,  width: 64, signed: true, unit: "V/Vfs Q32"}
+      - {name: dout,       dir: out, width: 20, unit: code}
+      - {name: dout_valid, dir: out, width: 1}
+      - {name: busy,       dir: out, width: 1}
+      - {name: acc_ovf,    dir: out, width: 1}
+      - {name: gain_err,   dir: out, width: 1}
+    timing:
+      latency_cycles: "ceil(63 / P_STAGES) + 2  (11 for P_STAGES=7)"
+      busy_rejects_start: true
+
+encoding_notes:
+  sadc_code: "unsigned binary 0..511; 0 means every comparator said x <= thr"
+  dem_mask: "bit p of main_on corresponds to physical unit p of that slice, in ROM index order"
+  dither_word: "6 bits {D6..D1}; upper U = 4*D6 + D4; lower L = 2*D5*step + sum(D3,D2,D1)*frac_weight"
+  adc2_code: "unsigned 12-bit raw code from the backend quantiser"
+  output_word: "20-bit offset binary, midrise: code 0 <-> most negative input"
+  injection: "Q32 V/Vfs, input-referred known dither contribution"

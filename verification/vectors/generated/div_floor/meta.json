@@ -1,0 +1,21 @@
+{
+  "module": "div_floor",
+  "seed": 20261112,
+  "count": 257,
+  "wildcard_mask": "exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent exact_and_adjacent random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random zero_denominator zero_denominator_negative",
+  "field_width_bits": {
+    "a": 63,
+    "d": 60
+  },
+  "profile": {
+    "B1": 9,
+    "ADC2_BITS": 12,
+    "N_ACTIVE": 8,
+    "N_UNIT_MAIN": 63,
+    "N_UNIT_SUB": 8,
+    "N_SLICES": 18,
+    "W_BITS": 48,
+    "V_BITS": 64,
+    "OUT_BITS": 20
+  }
+}

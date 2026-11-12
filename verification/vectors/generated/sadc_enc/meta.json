@@ -1,0 +1,20 @@
+{
+  "module": "sadc_enc",
+  "seed": 20261112,
+  "count": 127,
+  "wildcard_mask": "all_low one_lsb one_bit1 all_high top_bit_only alternating_01 alternating_10 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.001 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.25 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.5 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.75 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999 random_density_0.999",
+  "field_width_bits": {
+    "cmp_raw": 511
+  },
+  "profile": {
+    "B1": 9,
+    "ADC2_BITS": 12,
+    "N_ACTIVE": 8,
+    "N_UNIT_MAIN": 63,
+    "N_UNIT_SUB": 8,
+    "N_SLICES": 18,
+    "W_BITS": 48,
+    "V_BITS": 64,
+    "OUT_BITS": 20
+  }
+}

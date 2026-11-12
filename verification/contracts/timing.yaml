@@ -1,0 +1,58 @@
+# Timing contract — clock/reset/accept/retire semantics and allowed latency.
+#
+# Every claim cites the RTL header comment it came from. The scoreboard uses
+# these numbers to decide "how late is too late", so they must not be loosened
+# just to make a run pass.
+schema: 1
+profile: adi_40m
+
+clock:
+  name: clk
+  edge: posedge
+  period_ns: 25.0          # 40 MS/s raw sample rate; digital core runs faster,
+  note: |
+    The 25 ns figure is the *sample* period. The verification testbench drives a
+    10 ns core clock; only cycle counts are contractual, not absolute time.
+
+reset:
+  signal: rst_n
+  polarity: active_low
+  style: synchronous
+  effect: |
+    Cancels in-flight work, clears valid outputs and sticky flags. A reset must
+    never retire a sample that was not already retired (see top-level V3 test).
+
+modules:
+
+  div_floor:
+    latency_cycles: ceil(P_W_A / P_STAGES)
+    accept_rule: "start accepted only when !busy"
+    done: "single-cycle pulse, latency_cycles after the accepting edge"
+    output_stability: "q/err hold until the next accepted start"
+
+  recon_core:
+    latency_cycles: ceil(63 / P_STAGES) + 2
+    accept_rule: "cfg_ready && start && !busy"
+    same_edge_rule: |
+      The committing edge may simultaneously accept the next start; non-blocking
+      assignment guarantees the commit uses the old sample_id/flags.
+    cancel_rule: "cfg_ready deasserted synchronously cancels in-flight work"
+
+  slice_pool_ctrl:
+    latency_cycles: 1
+    accept_rule: "advance when enable; the first advance after reset only primes"
+    same_edge_rule: |
+      conversion reads the OLD acquiring group; next_ids uses the OLD cursor; the
+      PRNG update only affects the following scan start.
+
+  rdac_drv:
+    latency_cycles: 1
+    accept_rule: "load is a one-cycle pulse"
+    same_edge_rule: "reset > load > hold; clear-then-scatter inside one always_ff"
+
+tolerances:
+  # Numeric fields are bit-exact. These are only for *ordering* checks, where a
+  # legal implementation may insert extra idle cycles.
+  order_slack_cycles: 0
+  retire_must_be_monotone_in_sample_id: true
+  no_duplicate_retire: true

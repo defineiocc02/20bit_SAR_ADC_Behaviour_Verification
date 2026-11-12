@@ -1,0 +1,6 @@
+{
+  "level": "rtl_top",
+  "status": "NOT_RUN",
+  "missing": "sar20_digital_core needs the calobs v2 observation bus and a source_control_binding instance generated for the same profile; the bench must also supply comparator decisions per phase",
+  "profile": "adi_40m"
+}

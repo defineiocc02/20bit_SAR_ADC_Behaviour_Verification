@@ -8,6 +8,14 @@
     PYTHONPATH=src python3 tools/run_review2_figure.py
 """
 
+# ⚠️ 本工具依赖 **63+8 旧几何**（columns=63、n=63*9、tests.unit.test_dem3d._default_pool），
+# 而主链已切换到专利的 17/5，且 `_default_pool` 已从测试模块移除。
+# 因此它当前**跑不起来**（ImportError），也不应在 17/5 下强行适配：
+# 它服务于 2026-09 那次针对 63+8 的审查，结论对当前几何不适用。
+# 保留文件以保持审查可追溯；新的 DEM 使用均匀性证据见
+# `docs/mechanisms/dem_fig11.md` 与 `tests/unit/test_dem3d.py`。
+
+
 from __future__ import annotations
 
 import json

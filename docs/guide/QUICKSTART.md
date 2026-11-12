@@ -26,6 +26,11 @@ Python 侧不需要安装包，用 `PYTHONPATH=src` 即可；装了也可以 `pi
 PYTHONPATH=src python3 -m adi_model simulate --samples 64 --output /tmp/adi-demo > /tmp/adi-demo.json
 ```
 
+**读 stdout 时先看 `source_conformance`**：它固定为 `NOT_ASSESSED`。
+这不是"没做"，而是**设计如此** —— 单次运行无法自证"与原件一致"，
+该判定只能由 `docs/ACCEPTANCE_20261113.md` 这类对照报告给出。
+同理 `result_role` 是 `UNCALIBRATED_NOMINAL_20BIT`：未校准的名义 20 位结果。
+
 **stdout 是一份完整的来源档案**（推断表、启用/未建机制、精度声明），不是结果摘要——
 所以上面把它重定向到文件。真正的结果在 `--output` 目录：
 

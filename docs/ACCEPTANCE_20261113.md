@@ -71,7 +71,18 @@ DEM 通过额外开关活动换取失配的噪声整形，代价是更多动态�
 它的 U 段需要 5.5 LSB1 残差摆幅，而 0.45 V 窗口是为**无 dither 的残差**设计的。
 两者不兼容，A6/C2/C3 保留为「启用 dither 需要什么条件」的定量记录。
 
-## 5. 明确没有做的事
+## 5. 与 `source_conformance = NOT_ASSESSED` 的关系
+
+`python -m adi_model simulate` 的 stdout 里 `source_conformance` **固定为
+`NOT_ASSESSED`**，`result_role` 固定为 `UNCALIBRATED_NOMINAL_20BIT`。
+
+这是有意设计：**单次运行不能自证与原件一致**。本文这份对照报告才是
+"模型 vs 论文"的判定来源，而它是用矩阵（10 个配置、512 点 × 8 重复）得出的，
+不是单跑一次能给出的。
+
+读者不应期待单跑输出里有"已复现论文"这类字样。
+
+## 6. 明确没有做的事
 
 | 项 | 状态 |
 |:---|:---|

@@ -19,37 +19,56 @@ from adi_model.control.track_aux import build_track_plan, causality_audit
 
 
 def check_a01_low_code_coverage() -> dict:
-    """码 8、固定物理片、一个相位周期后必须覆盖全部 63 列。"""
+    """码 8、固定物理片、一个相位周期后必须覆盖全部主列。
+
+    2026-11-13：几何从 63+8 切到专利的 17/5 后，本检查仍用 63+8 的旧参数
+    （C_sub 8 列、n=63*9、columns=63），fig11_masks 会直接拒绝 —— 脚本此前
+    抛异常失败，但被管道掩盖成 exit 0，长期未被发现。
+    现在按当前几何（主阵列 17 列 = 15×2C + B4 + S4；子阵列 5 位端口）重写。
+    """
+    from adi_model.control.dem3d import fig11_masks
     from adi_model.simulation.config import Config
     from adi_model.simulation.slice_pool import PhysicalSlicePool
     from adi_model.topology.dac_arch import NominalCodebook, SplitChip
 
-    cap = 4.00390625e-14
+    cap = 7.779886183991967e-14
+    # 主阵列 17 列：15 个 2C + B4 1C + S4 1C；子阵列**装配 4 列**（第 5 位是
+    # FIG.11 虚线占位，见 docs/mechanisms/p1_gaps_20261113.md §11）。
     chip = SplitChip(
-        C_main=np.full((18, 63), cap),
-        C_sub=np.full((18, 8), cap),
-        C_bridge=np.full(18, 8 * cap / 7),
+        C_main=np.array([[2.0] * 15 + [1.0, 1.0]], dtype=float)[0][None, :] * np.ones((18, 1))
+        * cap,
+        C_sub=np.full((18, 4), cap),
+        C_bridge=np.full(18, cap),
         c_p_sub=np.zeros(18),
         c_p_main=np.zeros(18),
         C_feedback_true=640.625e-15,
     )
+    # 必须显式声明**物理位宽** 17/5：器件只装配 4 列子阵列（第 5 位是虚线占位），
+    # 而端口宽度仍是 5。不声明时 pool 会用装配列数建几何（4），fig11_masks 会拒绝。
+    cfg = Config(dac_n_main=17, dac_n_sub=5)
     pool = PhysicalSlicePool(
-        Config(),
+        cfg,
         chip=chip,
         nominal_codebook=NominalCodebook(0, 511, -3 + 6 * np.arange(512) / 512),
         mask_binding=fig11_masks,
     )
-    n = 63 * 9
+    # 15 个 2C 列构成横向相位环，一个完整相位周期 = 15 笔
+    n_columns = 15
+    n = n_columns * 9
     ids = np.broadcast_to(np.arange(8), (n, 8))
-    states = Dem3State.sequence(n, columns=63)
-    command = fig11_masks(pool.geometry, np.full(n, 8, np.int64), states, ids)
-    visits = command.main_on[:, 7, :].sum(axis=0)
+    states = Dem3State.sequence(n, columns=n_columns)
+    # 用**code 32** 而不是原来的 code 8：在 17/5 编码下 code 8 只选子阵列
+    # （子掩码 [0]，主掩码为空），主列访问必然为 0，测不出"低码是否覆盖全部主列"。
+    # code 32 是**会用到全部 15 个 2C 主列的最低码**（主码 2 → 1 个 2C）。
+    command = fig11_masks(pool.geometry, np.full(n, 32, np.int64), states, ids)
+    # 只看 15 个 2C 主列（索引 0..14）；B4(15) 与 S4(16) 不参与横向旋转
+    visits = command.main_on[:, 7, :n_columns].sum(axis=0)
     covered = int(np.count_nonzero(visits))
     return {
         "finding": "A01 DEM phase coverage",
-        "old": "63 列里只访问 15 个（固定片、低码）",
-        "now": f"{covered}/63 main units, range={int(visits.max() - visits.min())}",
-        "pass": covered == 63 and int(visits.max() - visits.min()) == 0,
+        "old": f"低码固定片时只访问部分主列",
+        "now": f"{covered}/{n_columns} main 2C columns, range={int(visits.max() - visits.min())}",
+        "pass": covered == n_columns and int(visits.max() - visits.min()) == 0,
     }
 
 
@@ -64,7 +83,8 @@ def check_a02_lsb_units() -> dict:
     charges = np.array([0.0, c_norm_f * lsb20_v])
 
     class _Stub:
-        geometry = SplitSwitchGeometry(63, 8, 18, 8, 0, 511)
+        # 17/5 物理位宽（子阵列端口 5 位；器件可只装配 4 列）
+        geometry = SplitSwitchGeometry(17, 5, 18, 8, 0, 511)
 
         def split_coefficients(self, ids):
             return {"c_signal": np.full(len(ids), c_norm_f)}

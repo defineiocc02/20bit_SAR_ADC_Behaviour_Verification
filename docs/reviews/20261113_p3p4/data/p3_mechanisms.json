@@ -20,35 +20,35 @@
     },
     "switching_cost_follower": {
       "events": 7,
-      "mean_flips_per_sample": 280.642578125,
-      "max_flips_per_sample": 560,
-      "mean_abs_charge_c": 6.155026701817162e-11,
-      "max_abs_charge_c": 1.2277280125451907e-10,
-      "mean_final_charge_c": 4.8314888467614986e-14,
+      "mean_flips_per_sample": 81.4453125,
+      "max_flips_per_sample": 152,
+      "mean_abs_charge_c": 5.967929841001182e-11,
+      "max_abs_charge_c": 1.1905359430892876e-10,
+      "mean_final_charge_c": 4.5626047017324056e-14,
       "peak_cumulative_fraction": 1.0
     },
     "cost": {
       "final_charge_mismatch_c": 0.0,
       "statically_equivalent": true,
-      "follower_mean_abs_charge_c": 6.155026701817162e-11,
-      "direct_mean_abs_charge_c": 6.155026701817162e-11,
-      "trial_mean_abs_charge_c": 1.839776224523491e-10,
+      "follower_mean_abs_charge_c": 5.967929841001182e-11,
+      "direct_mean_abs_charge_c": 5.967929841001182e-11,
+      "trial_mean_abs_charge_c": 1.7885446431383039e-10,
       "follower_over_direct_charge_ratio": 1.0,
-      "trial_over_follower_charge_ratio": 2.989062945868829,
-      "follower_reference_current_a": 0.002462010680726865,
-      "direct_reference_current_a": 0.002462010680726865,
-      "trial_reference_current_a": 0.007359104898093964,
-      "mean_flips_follower": 280.642578125,
-      "mean_flips_direct": 280.642578125,
-      "mean_flips_trial": 839.357421875,
+      "trial_over_follower_charge_ratio": 2.996926389533857,
+      "follower_reference_current_a": 0.002387171936400473,
+      "direct_reference_current_a": 0.002387171936400473,
+      "trial_reference_current_a": 0.0071541785725532155,
+      "mean_flips_follower": 81.4453125,
+      "mean_flips_direct": 81.4453125,
+      "mean_flips_trial": 238.5546875,
       "events": {
         "follower": 7,
         "direct": 1,
         "trial": 18
       },
       "paper_reference_current_a": 0.0018,
-      "follower_over_paper_current": 1.367783711514925,
-      "trial_over_paper_current": 4.088391610052202
+      "follower_over_paper_current": 1.326206631333596,
+      "trial_over_paper_current": 3.974543651418453
     },
     "paper_reference_current_ma": 1.8,
     "_note": "final charge identical across the three paths; only the event sequence differs"
@@ -56,31 +56,31 @@
   "dem": {
     "codes_checked": 64,
     "states_checked": 240,
-    "max_spread_c": 3.2311742677852644e-26,
-    "max_spread_lsb20": 2.754578690257885e-10,
-    "max_spread_v": 1.5761825696513474e-15,
+    "max_spread_c": 0.0,
+    "max_spread_lsb20": 0.0,
+    "max_spread_v": 0.0,
     "conserved": true,
-    "mismatched_spread_lsb20": 70.67910854029977,
+    "mismatched_spread_lsb20": 94.57836311093064,
     "usage": {
       "samples": 567,
       "per_code": {
         "8": {
-          "main_units_covered": 63,
-          "main_chi2_per_dof": 0.0,
+          "main_units_covered": 0,
+          "main_chi2_per_dof": null,
           "uniform": true
         },
         "255": {
-          "main_units_covered": 63,
-          "main_chi2_per_dof": 0.0,
-          "uniform": true
+          "main_units_covered": 16,
+          "main_chi2_per_dof": null,
+          "uniform": false
         },
         "511": {
-          "main_units_covered": 63,
-          "main_chi2_per_dof": 0.0,
+          "main_units_covered": 16,
+          "main_chi2_per_dof": null,
           "uniform": true
         }
       },
-      "uniform": true
+      "uniform": false
     },
     "_note": "conservation is nominal-charge dispersion across DEM states; not INL"
   },
@@ -103,9 +103,9 @@
       "_note": "deficits are relative to the SADC input domain, not to the digital output range"
     },
     "code_shift_residual_default_pool": {
-      "max_abs_residual_lsb20": 19.733296827594916,
-      "max_abs_residual_v": 0.00011291483017498921,
-      "worst_code": 371,
+      "max_abs_residual_lsb20": 55.671932427991095,
+      "max_abs_residual_v": 0.0003185573526076761,
+      "worst_code": 258,
       "illegal_shifted_codes": 0,
       "code_shift_exact": false
     },
@@ -133,22 +133,22 @@
     "charge": {
       "samples": 4096,
       "samples_without_source": 2,
-      "mean_abs_charge_no_track_c": 3.90645394611927e-11,
-      "mean_abs_charge_with_track_c": 1.219345263813825e-11,
-      "charge_reduction": 3.203730774252406,
-      "max_residual_c": 1.946070255282005e-11
+      "mean_abs_charge_no_track_c": 3.785034591284641e-11,
+      "mean_abs_charge_with_track_c": 1.182294087730475e-11,
+      "charge_reduction": 3.2014323936528957,
+      "max_residual_c": 1.867279177839368e-11
     },
-    "total_sampling_cap_f": 2.0499558447552533e-11,
+    "total_sampling_cap_f": 1.9878742914081614e-11,
     "paper_input_current_ua_pp": 350.0,
     "at_1mhz": {
       "fin_hz": 1000000.0,
       "delta_v_peak": 0.4707545743670697,
       "delta_v_pp": 0.9415091487341394,
-      "charge_c_peak": 9.65026091169046e-12,
-      "charge_c_pp": 1.930052182338092e-11,
-      "current_a_peak": 0.0003860104364676184,
-      "current_a_pp": 0.0007720208729352368,
-      "mean_current_a": 0.00024574187619552597
+      "charge_c_peak": 9.358009159470893e-12,
+      "charge_c_pp": 1.8716018318941786e-11,
+      "current_a_peak": 0.0003743203663788357,
+      "current_a_pp": 0.0007486407327576714,
+      "mean_current_a": 0.00023829974643664408
     },
     "_note": "论文 Fig.9.8.5 的输入电流横轴是直流差分输入电压，不是正弦频率；本表只给电荷吞吐，不做频率反解（外部审查 A05）"
   }

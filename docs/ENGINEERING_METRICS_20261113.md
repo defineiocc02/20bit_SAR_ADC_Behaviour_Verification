@@ -68,3 +68,57 @@ for r in rows[:6]:
     print(r)
 "
 ```
+
+---
+
+## 4. 行为指纹基线（2026-11-13 更新）
+
+### 4.1 漂移与原因
+
+本会话改了四个参数，全部下游到指纹，共漂移 **12 个字段**：
+
+| 参数 | 基线时 | 现在 |
+|:---|:---:|:---:|
+| `unit_mismatch_std` | 1e-3 | **1e-4**（论文指标反解）|
+| `adc2_n_bits` | 12 | **14**（ADR-0003）|
+| `ra_v_clip` | 0.5 | **0.45**（= 窗口宽度）|
+| `C_sub` 装配列数 | 5 | **4**（第 5 位是虚线占位）|
+
+漂移字段：`codes_voltage` / `float_out` / `coarse` / `adc2_code` / `main_masks`
+（`static_dem_off` 与 `static_dem_on` 两组）。与改动完全对应，非意外。
+
+已重新生成并复查：`behavior fingerprint matches the baseline`。
+
+### 4.2 顺带修掉两处硬编码
+
+`tools/behavior_fingerprint.py` 里 σ 写死了两处：
+
+```python
+model = _build_model(1e-3, True)                       # ← 写死
+"model": "DefaultModel(mismatch=1e-3, noise on)",      # ← 写死
+```
+
+改成从 `DefaultParameters()` 读取。基线里现在写的是真实值：
+`DefaultModel(mismatch=1e-04, adc2_n_bits=14, noise on)`。
+
+这是本会话反复出现的同一类问题（"参数只有一个定义点"）。
+
+### 4.3 新增 C7 门禁
+
+`check_engineering.py` 从 6 项增至 **7 项**。C7 校验：
+**基线元数据必须与 `defaults.py` 里的默认值一致**。
+
+**反向检验已做**：把 σ 临时改成 5e-4，C7 立刻报
+
+```
+FAIL  C7 fingerprint baseline  baseline says '...mismatch=1e-04...' but defaults.py has mismatch=5e-04
+```
+
+实现上**不 import adi_model**（该检查跑在系统 python 3.9，仓库要求 3.13），
+改用正则从源码读默认值。这样 C7 在任何解释器下都能跑。
+
+### 4.4 为什么这条门禁重要
+
+指纹漂移**不会自己报错**：除非有人主动跑 `--check`，基线会一直显示为最新。
+本会话的 12 个字段漂移就是这样积累了两周没人发现的。
+现在 C7 让"基线描述必须跟上代码"进入常规门禁。

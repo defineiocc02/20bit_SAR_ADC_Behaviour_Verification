@@ -208,3 +208,54 @@ PYTHONPATH=src python3 -m pytest tests/unit/test_dither_charge_port.py -q
 且该权重来自**七片示例正文**（本文开篇已标"正文未核对"）。
 在拿到正文之前，**不再调整 dither 幅度**，也不修改 `ra_v_clip`/ADC2 窗口去迁就它
 ——那组参数与 `docs/reproduction_results.md` 的 0.1875 V 摆动推导自洽。
+
+---
+
+## 补充（2026-11-13）：修掉双重减法，并纠正一条被自己破坏的配套关系
+
+`tests/integration/test_fig19_static_ports.py`（17 个此前从未运行过的测试）
+暴露出两处与原件不符的实现。
+
+### 1. 真实缺陷：RDAC 码被减了两次 U
+
+```
+pipeline_engine 第 517 行：mapped = MappedCodes(dither_trace.rdac_code, ...)
+                          ↑ 这里已经是 c - U（224 减法器之后的值）
+pipeline_engine 第 546 行：rdac_codes = mapped.codes - hold_upper
+                          ↑ 又减一次
+```
+
+实测 `k == coarse - 2*upper` 逐位成立。已修正：v1 路径不再减第二次。
+
+### 2. 被自毁的配套关系：222 与 224 必须成对
+
+原件 FIG.19 的三条路径是**配套**的：
+
+```
+300 加法器：(D5,D3,D2,D1) → ADC 200   ⇒ x_sadc = x - L
+222 加法器：全字 D_A..D_1   → SAMPLING DAC 220 ⇒ 采样含 -T
+224 减法器：(D6,D4)         → ADC 输出码      ⇒ k = c - U
+```
+
+数学上 U 自动抵消：
+
+```
+residue = (x - T) - vd0(c - U)
+        = (x - L - U) - (vd0(c) - U·Δ)
+        = x - L - vd0(c)
+```
+
+**2026-11-13 早前我曾把 222 的注入从 T 改成 L**，理由是"把残差摆幅控制在
+ADC2 窗口内"。这个改动**破坏了配套关系**：只注入 L 时 U 不再抵消，
+残差里多出一个 U 项。
+
+已恢复注入 T。**残差摆幅问题应当通过限制 U 取值范围或放宽 ADC2 窗口解决，
+而不是拆散由原件电路确定的配套关系。**
+
+### 3. 教训
+
+我当初改 222 是为了让"dither 能装进 ADC2 窗口"——一个看起来合理的局部目标。
+但它牺牲了一条由原件电路拓扑确定的**结构性约束**，而且因为当时没有测试覆盖
+（那批集成测试从未运行），这个破坏没有被发现。
+
+**局部目标（让数字好看）不能凌驾于结构约束（原件怎么接的）。**

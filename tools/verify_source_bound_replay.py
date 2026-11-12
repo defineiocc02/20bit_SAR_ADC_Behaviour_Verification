@@ -331,6 +331,9 @@ def verify(args):
         acquisition_binding=all_signal,
         schedule_binding=plan,
     )
+    # ⚠️ 这里的 step_q（1<<24）与低位权是 **63+8 时代的合同值**，
+    # 与 `sim/fixtures/fig19_ideal_ports/` 的遗留 fixture 配套，**不随主链的
+    # FIG19_STEP_Q（16810048）改动**——见该 fixture 目录 README 的说明。
     specification = Fig19StaticSpec(
         cfg.v_fs,
         1 << 24,

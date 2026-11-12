@@ -474,3 +474,73 @@ def test_documents_that_describe_the_rejected_topology_carry_a_banner():
         "these documents describe the rejected 63+8 topology without a freshness banner "
         "or contrast with the current 17/5 array:\n  " + "\n  ".join(offenders)
     )
+
+
+#: 需要在冒烟测试里真正跑一遍的轻量工具（重活工具另测或不测）。
+_SMOKE_TOOLS = (
+    "tools/trace_one_sample.py",
+)
+
+
+def test_lightweight_tools_actually_run(tmp_path):
+    """轻量命令行工具必须能真的跑通。
+
+    2026-11-13：修 `FIG19_STEP_Q` 时漏了 `tools/trace_one_sample.py`，
+    它一直带着 `step_q=2**24`——而这条命令写在 README §7 里。
+    没有任何测试跑过它，所以"改完 step_q 全绿"掩盖了这个失败。
+
+    **教训**：常量改名/改值后，必须逐个跑一遍引用它的入口，而不是只跑测试。
+    """
+    import subprocess
+    import sys
+
+    for tool in _SMOKE_TOOLS:
+        path = ROOT / tool
+        assert path.is_file(), f"{tool} is listed for smoke testing but missing"
+        result = subprocess.run(
+            [sys.executable, tool, "--out", str(tmp_path / path.stem)],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            timeout=300,
+            env={**__import__("os").environ, "PYTHONPATH": "src"},
+        )
+        assert result.returncode == 0, (
+            f"{tool} exited {result.returncode}:\n"
+            + (result.stdout or "")[-1200:]
+            + (result.stderr or "")[-1200:]
+        )
+
+
+def test_legacy_fixture_tools_keep_the_63_8_contract_values():
+    """服务 63+8 遗留 fixture 的两个工具必须保留旧合同值。
+
+    2026-11-13：主链的 `FIG19_STEP_Q` 已改为 16 810 048（17/5 码本台阶），
+    但下面两个工具服务于 `sim/fixtures/fig19_ideal_ports/` 那份**按 63/8 构造**的
+    遗留 fixture，它们的合同值必须与 fixture 一致，**不能跟着主链改**：
+
+      * `tools/run_fig19_rtl_calibration.py`（dither_terms 的权重表）
+      * `tools/verify_source_bound_replay.py`（Fig19StaticSpec 的 step_q）
+
+    改它们会让"合同值"与"fixture 实际数据"不一致，产生假通过/假失败。
+    本测试把这一点钉住，并要求两个文件里都有说明性注释。
+    """
+    calibration = (ROOT / "tools/run_fig19_rtl_calibration.py").read_text(encoding="utf-8")
+    replay = (ROOT / "tools/verify_source_bound_replay.py").read_text(encoding="utf-8")
+
+    # 旧合同值仍在（9586981 是三项低位权的首项，1<<24 是旧 step_q）
+    assert "9586981" in calibration, (
+        "run_fig19_rtl_calibration.py lost the 63+8 contract weights; "
+        "it serves the legacy fixture and must stay consistent with it"
+    )
+    assert "1 << 24" in replay or "1<<24" in replay, (
+        "verify_source_bound_replay.py lost the 63+8 step_q; ditto"
+    )
+    # 两个文件都必须说明"这是遗留合同、不随主链改"
+    for name, text in (
+        ("run_fig19_rtl_calibration.py", calibration),
+        ("verify_source_bound_replay.py", replay),
+    ):
+        assert "63+8" in text and ("遗留" in text or "legacy" in text.lower()), (
+            f"{name} must document that its constants belong to the legacy 63+8 fixture"
+        )

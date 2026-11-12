@@ -51,7 +51,18 @@ def require(condition: bool, message: str) -> None:
 
 
 def dither_terms(word: int) -> tuple[int, int, int]:
-    """按独立源合同逐位求整数L/T/U，不调用SV译码或实际电容。"""
+    """按独立源合同逐位求整数 L/T/U，不调用 SV 译码或实际电容。
+
+    ⚠️ **本函数里的权重是 63+8 时代的显式合同值**（`step_q = 2**24`，
+    低位权 9586981/4793490/2396745），与 `sim/fixtures/fig19_ideal_ports/`
+    那份遗留 fixture 配套。主链已切到 17/5（`FIG19_STEP_Q = 16810048`），
+    但**这里不能跟着改**：
+      * 它服务于对该 fixture 的 RTL 重放，fixture 本身就是按 63/8 构造的；
+      * 改了会让"合同值"与"fixture 实际数据"不一致，反而产生假通过/假失败。
+
+    要用当前模型跑这条路径，必须先把 fixture 整套重建
+    （见 `sim/fixtures/fig19_ideal_ports/README.md` 的三步说明）。
+    """
     require(type(word) is int and 0 <= word < 64, "six-bit Fig19 word required")
     upper = 4 * ((word >> 5) & 1) + ((word >> 3) & 1)
     lower = 33554432 * ((word >> 4) & 1)

@@ -28,7 +28,12 @@ if str(ROOT) not in sys.path:
 from tools.run_p4_ablation import FS_HZ, LSB20, V_FS, _build_model, _run
 
 from adi_model.control.dem3d import Dem3State, fig11_masks, round_robin_plan
-from adi_model.control.dither import FIG19_FRACTIONAL_WEIGHTS_Q, Fig19DitherProgram, Fig19StaticSpec
+from adi_model.control.dither import (
+    FIG19_FRACTIONAL_WEIGHTS_Q,
+    FIG19_STEP_Q,
+    Fig19DitherProgram,
+    Fig19StaticSpec,
+)
 from adi_model.control.follower import ResolvedPrefixes, run_follower
 from adi_model.simulation.slice_pool import PhysicalSlicePool
 
@@ -67,7 +72,7 @@ def main() -> int:
     # dither：同一笔字 -> lower/upper -> 等效 LSB
     spec = Fig19StaticSpec(
         v_fs=V_FS,
-        step_q=2**24,
+        step_q=FIG19_STEP_Q,
         voltage_fraction_bits=32,
         fractional_lower_weights_q=FIG19_FRACTIONAL_WEIGHTS_Q,
         equivalent_polarity="subtract",

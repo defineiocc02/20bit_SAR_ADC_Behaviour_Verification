@@ -263,3 +263,32 @@ def test_legacy_fixtures_declare_their_geometry_and_are_not_cited_as_current():
         assert "63+8" in warning and ("遗留" in warning or "legacy" in warning.lower()), (
             f"{rel}/README.md must state it is a legacy 63+8 fixture"
         )
+
+
+def test_topology_spec_defaults_are_not_the_rejected_legacy_geometry():
+    """`TopologySpec` 的默认值不得是用户否决的 63+8 拓扑。
+
+    2026-11-13：`contracts/specs.py` 的 dataclass 默认值一直是
+    `n_main=63, n_sub=8, c_unit=40.04fF`（63+8 工程替代拓扑）。
+    虽然每个 Profile 都显式传参覆盖、实际不生效，但用户要求"彻底删除 63+8"，
+    默认值保留旧拓扑不符合要求，且容易被误当成当前拓扑读。
+
+    真实生效值由 `test_adi_profile_matches_default_parameters` 校验
+    （profile 与 `DefaultParameters` 逐项一致）。
+    """
+    from adi_model.contracts.specs import TopologySpec
+    from adi_model.defaults import DefaultParameters
+
+    params = DefaultParameters()
+    field_defaults = {name: field.default for name, field in TopologySpec.__dataclass_fields__.items()}
+    assert field_defaults["n_main"] == params.n_main, (
+        f"TopologySpec.n_main default is {field_defaults['n_main']}, "
+        f"but DefaultParameters.n_main is {params.n_main}"
+    )
+    assert field_defaults["n_sub"] == params.n_sub
+    # 电容值用相对容差（源码里写的是截断的十进制字面量，浮点上略有差异）
+    import pytest as _pytest
+
+    assert field_defaults["c_unit_f"] == _pytest.approx(params.unit_cap_f, rel=1e-9)
+    assert field_defaults["c_bridge_f"] == _pytest.approx(params.bridge_cap_f, rel=1e-9)
+    assert field_defaults["c_feedback_f"] == _pytest.approx(params.feedback_cap_f, rel=1e-9)

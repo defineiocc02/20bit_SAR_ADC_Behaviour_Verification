@@ -327,8 +327,11 @@ def _configs() -> list[dict]:
     ]
 
 
-def _build_model(mismatch_std: float, noise: bool) -> DefaultModel:
-    """按配置构造同一 seed 的制造实现；噪声开关走 Config 覆盖。"""
+def _build_model(mismatch_std: float, noise: bool, *, seed: int = 20261105) -> DefaultModel:
+    """按配置构造同一 seed 的制造实现；噪声开关走 Config 覆盖。
+
+    seed 决定制造池与噪声相位；同一 seed 下所有配置共用同一颗"芯片"。
+    """
     parameters = DefaultParameters(
         unit_mismatch_std=mismatch_std,
         bridge_mismatch_std=mismatch_std,
@@ -341,7 +344,7 @@ def _build_model(mismatch_std: float, noise: bool) -> DefaultModel:
             "ra_out_noise_rms": 0.0,
             "enable_sampling_noise": False,
         }
-    return DefaultModel(seed=20261105, parameters=parameters, config_overrides=overrides or None)
+    return DefaultModel(seed=seed, parameters=parameters, config_overrides=overrides or None)
 
 
 def main() -> int:

@@ -77,6 +77,111 @@ def _pool(model, plan):
     )
 
 
+# ---------------------------------------------------------------- F11
+def figure_calibration_generalization(out: Path, *, points: int, repeats: int,
+                                      seeds=(20261105, 20261106, 20261107, 20261108, 20261109)) -> dict:
+    """多制造种子的校准泛化：同芯片留出 vs 跨芯片套用。"""
+    rows = {"seed": [], "plain": [], "dem": [], "calibrated": [], "cross_chip": []}
+    chips = {}
+    for seed in seeds:
+        model = _build_model(1e-3, True, seed=seed)
+        chips[seed] = model
+    for index, seed in enumerate(seeds):
+        model = chips[seed]
+        calibration = _train_calibration(model)[0]
+        rows["seed"].append(seed)
+        rows["plain"].append(
+            _static(model, dem=False, uniform_plan=False, points=points, repeats=repeats)["inl_max_lsb20"]
+        )
+        rows["dem"].append(
+            _static(model, dem=True, uniform_plan=False, points=points, repeats=repeats)["inl_max_lsb20"]
+        )
+        rows["calibrated"].append(
+            _static(model, dem=False, uniform_plan=False, points=points, repeats=repeats,
+                    calibration=calibration)["inl_max_lsb20"]
+        )
+        other = chips[seeds[(index + 1) % len(seeds)]]
+        rows["cross_chip"].append(
+            _static(other, dem=False, uniform_plan=False, points=points, repeats=repeats,
+                    calibration=calibration)["inl_max_lsb20"]
+        )
+
+    fig, ax = plt.subplots(figsize=(9, 4.4), constrained_layout=True)
+    labels = ["plain", "DEM", "calibrated (own chip)", "calibration on another chip"]
+    keys = ["plain", "dem", "calibrated", "cross_chip"]
+    means = [float(np.mean(rows[k])) for k in keys]
+    spreads = [float(np.std(rows[k], ddof=1)) for k in keys]
+    colors = ["#718096", "#2b6cb0", "#38a169", "#c53030"]
+    ax.bar(labels, means, yerr=spreads, capsize=5, color=colors)
+    for position, (mean, spread) in enumerate(zip(means, spreads, strict=True)):
+        ax.text(position, mean + spread, f"{mean:.1f}", ha="center", va="bottom", fontsize=9)
+    ax.set_ylabel("max INL [LSB20]")
+    ax.set_title(
+        f"F11  {len(seeds)} manufacturing seeds, {points} levels x {repeats} repeats; "
+        "bars = mean, whiskers = 1 sigma"
+    )
+    ax.grid(alpha=0.3, axis="y")
+    fig.savefig(out / "F11_calibration_generalization.png", dpi=130)
+    plt.close(fig)
+    return {
+        "figure": "F11_calibration_generalization.png",
+        "seeds": list(seeds),
+        "points": points,
+        "repeats": repeats,
+        "per_seed": rows,
+        "means": dict(zip(keys, means, strict=True)),
+        "spreads": dict(zip(keys, spreads, strict=True)),
+    }
+
+
+# ---------------------------------------------------------------- F10
+def figure_interleaving(model, out: Path, *, n: int) -> dict:
+    """片选策略对 SFDR/SNDR 的影响：随机 8-of-10 vs 轮转 8-of-18。"""
+    freqs = (0.2e6, 1.0e6, 3.0e6)
+    plans = (("random 8-of-10", False, "#718096"), ("round-robin 8-of-18", True, "#2b6cb0"))
+    rows = {}
+    for label, _uniform, _color in plans:
+        rows[label] = {}
+    sfdr = {label: [] for label, _, _ in plans}
+    sndr = {label: [] for label, _, _ in plans}
+    for target in freqs:
+        tone_bin = max(1, int(round(n * target / FS_HZ)))
+        fin = tone_bin * FS_HZ / n
+        for label, uniform, _color in plans:
+            _, voltage = _run(
+                model,
+                lambda t, f=fin: V_FS * 0.999 * np.sin(2 * np.pi * f * t),
+                n,
+                dem=True,
+                uniform_plan=uniform,
+            )
+            fitted = metrics.sine_fit_metrics(voltage, FS_HZ, fin)
+            sfdr[label].append(float(fitted["SFDR_dB"]))
+            sndr[label].append(float(fitted["SNDR_dB"]))
+            rows[label][f"{fin/1e6:.2f} MHz"] = {
+                "sndr_db": float(fitted["SNDR_dB"]),
+                "sfdr_db": float(fitted["SFDR_dB"]),
+                "spur_hz": float(fitted["spur_Hz"]),
+            }
+    fig, (ax0, ax1) = plt.subplots(1, 2, figsize=(12, 4), constrained_layout=True)
+    x = np.arange(len(freqs))
+    width = 0.36
+    for offset, (label, _uniform, color) in enumerate(plans):
+        ax0.bar(x + (offset - 0.5) * width, sfdr[label], width, label=label, color=color)
+        ax1.bar(x + (offset - 0.5) * width, sndr[label], width, label=label, color=color)
+    for ax, values, name in ((ax0, sfdr, "SFDR"), (ax1, sndr, "SNDR")):
+        ax.set_xticks(x, [f"{f/1e6:.1f} MHz" for f in freqs])
+        ax.set_ylabel(f"{name} [dB]")
+        ax.set_ylim(min(min(v) for v in values.values()) - 3, max(max(v) for v in values.values()) + 3)
+        ax.grid(alpha=0.3, axis="y")
+        ax.legend(fontsize=8)
+        ax.set_title(f"F10{'a' if name == 'SFDR' else 'b'}  {name} vs slice-selection policy", fontsize=10)
+    fig.suptitle(f"F10  N={n}, same pool and seed, DEM on; only the slice-selection policy changes")
+    fig.savefig(out / "F10_interleaving.png", dpi=130)
+    plt.close(fig)
+    return {"figure": "F10_interleaving.png", "n": n, "results": rows}
+
+
 # ---------------------------------------------------------------- F01
 def figure_ownership(model, out: Path) -> dict:
     """连续样本的片所有权 + 单样本逐事件参考电荷（全部来自已记录数据）。"""
@@ -486,6 +591,8 @@ def main() -> int:
     sha = _sha()
     produced = [
         figure_ownership(model, out),
+        figure_interleaving(model, out, n=args.dynamic_n),
+        figure_calibration_generalization(out, points=args.points, repeats=args.repeats),
         figure_dem_usage(model, out),
         figure_inl(model, out, points=args.points, repeats=args.repeats, dynamic_n=args.dynamic_n),
         figure_psd(model, out, n=args.dynamic_n),

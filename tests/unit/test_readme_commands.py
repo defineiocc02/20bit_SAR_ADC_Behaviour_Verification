@@ -397,3 +397,30 @@ def test_readme_states_no_mechanism_passes_all_four_dimensions():
         "README must state that no mechanism passes all four cross-check dimensions; "
         "otherwise the check marks in the mechanism table overstate completion"
     )
+
+
+def test_status_page_is_marked_historical():
+    """README 不得把 `docs/STATUS.md` 当作"当前状态"链接。
+
+    2026-11-13：README 把 STATUS.md 标为「当前状态」，但该文写于 2026-11-06，
+    描述的是已被否决的 63+8 拓扑，且通篇不提 17/5——读者会把它当成现行状态。
+
+    已给该页加时效横幅、并把 README 的链接标签改为「历史状态」。
+    本测试防止回退。
+    """
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "[当前状态](docs/STATUS.md)" not in readme, (
+        "README still labels docs/STATUS.md as the current status page; "
+        "that page describes the superseded 63+8 topology"
+    )
+    status = (ROOT / "docs/STATUS.md").read_text(encoding="utf-8")
+    assert "时效说明" in status, (
+        "docs/STATUS.md must carry a freshness banner pointing to the current documents"
+    )
+
+
+def test_current_status_is_pointed_at_from_readme():
+    """README 必须链到真正反映当前状态的文档。"""
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    for target in ("docs/ACCEPTANCE_20261113.md", "docs/HANDOVER.md"):
+        assert target in readme, f"README should link the current status source: {target}"

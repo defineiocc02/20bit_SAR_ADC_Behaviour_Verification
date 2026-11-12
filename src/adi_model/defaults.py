@@ -694,21 +694,25 @@ class DefaultModel:
                 )
             else:
                 # 独立电荷口：保留实际分段码本与 Mapper，只把 dither 折算成电荷。
-                # c_lsb 取名义全 Signal 归一化电容的 1/512，使输入等效步长与
-                # spec.coarse_step_v 自洽；逐片失配由逐笔 C_norm 承担。
-                active = np.arange(self.chip.C_main.shape[0], dtype=np.int64)
-                main = self.chip.C_main[active]
-                sub = self.chip.C_sub[active]
-                beta = self.chip.C_bridge[active] / (
-                    self.chip.C_bridge[active] + sub.sum(axis=-1) + self.chip.c_p_sub[active]
+                # c_lsb 必须与**码本律同源**：码本 x(c) = -v_fs + 2·v_fs·drive/cn，
+                # 每码步长 = 2·v_fs·(1/16)/cn 对应驱动单位 β/16 = 1/256 C。
+                # 因此一个 LSB 的等效电容 = cn/512（cn = 31 + β·15 = 31.9375 C）。
+                # 2026-11-13 修正：原式取"全部 18 片并联和 /512"，比每片口径大 18×8 倍，
+                # dither 电荷被放大后把残差推出 RA 摆幅（实测均值误差曾达 2.8e6 LSB20）。
+                params = self.parameters
+                sub_switched = sum(SUB_WEIGHTS)
+                beta_nominal = params.bridge_cap_f / (
+                    params.bridge_cap_f
+                    + sub_switched * params.unit_cap_f
+                    + params.sub_parasitic_f
                 )
-                nominal_c_norm = float(
-                    np.mean((main.sum(axis=-1) + beta * sub.sum(axis=-1)).sum(axis=-1))
+                c_slice_nominal = params.unit_cap_f * (
+                    (sum(MAIN_WEIGHTS[:15]) + MAIN_WEIGHTS[15]) + beta_nominal * sub_switched
                 )
                 dither_port = DitherPort.from_words(
                     dither_words,
                     spec=spec,
-                    c_lsb_f=nominal_c_norm / 512.0,
+                    c_lsb_f=c_slice_nominal / 512.0,
                     reference_swing_v=2.0 * cfg.v_fs,
                 )
         elif cfg.dither_enable:

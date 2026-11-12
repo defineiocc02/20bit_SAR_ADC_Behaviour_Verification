@@ -42,7 +42,7 @@ def ablation_configs() -> list[dict]:
         },
         {
             "id": "A1_mismatch",
-            "label": "仅失配：sigma=1e-3，无噪声、无 DEM",
+            "label": "仅失配：sigma=论文反解值，无噪声、无 DEM",
             "mismatch_std": _MANUFACTURED_MISMATCH,
             "noise": False,
             "dem": False,

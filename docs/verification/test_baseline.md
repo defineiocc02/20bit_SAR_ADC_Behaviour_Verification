@@ -90,6 +90,7 @@ vcs ... sim/tb/source_control_contract_tb.sv sim/tb/wrap_source_control_tb.sv \
 ```
 
 结果：**`SOURCE_CONTROL_COMPONENT_COMPLETE observations=56 outputs=54 checks=368 epochs=2`**，仿真时间 6.725 µs，CPU 0.17 s。
+trace 已取回：`docs/verification/vcs_source_control_trace/{controls,events,residues}.csv`。
 
 边界：这是 **source_control_component 夹具**（N_UNIT_MAIN=2、N_UNIT_SUB=1、ADC2_BITS=6），不是 20b 全芯片；368 个 `require_ok` 是组件合同检查，不等于整链 scoreboard。`SOURCE_CONTROL_ANALOG_MAPPING_TIMING_CAAZ_NOISE_NOT_VERIFIED` 由 tb 自己打印。
 

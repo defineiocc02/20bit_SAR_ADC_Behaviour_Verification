@@ -1,0 +1,185 @@
+# 接手说明（Handover）
+
+更新时间：2026-11-12 23:27
+受测/交付版本：分支 `merge/adi-repro`，HEAD `d833b1c`（已推送）
+远端 `main`：`bc9a16a`，**未合并、未改写**
+
+---
+
+## 1. 这个项目在做什么
+
+用行为级模型（Python）复现 ADI ISSCC 2024 §9.8 那颗 20 位 40 MS/s SAR ADC，
+并配一套数字 RTL 与 Python–RTL 逐位对拍。原始资料是用户提供的：
+
+* 论文 `[00]_A_9.3nV_rtHz_20b_40MS_s_94.2dB_DR_...pdf`
+* 讲稿 `[00_1]ISSCC2024_ppt.pdf`（44 页）
+* 六份专利 `[09]`–`[14]`
+* 均位于 `/Users/zhaoyi/Downloads/ISSCC2024_9.8_参考文献全集/`
+* 目标产物是**行为级证据**，不是硅测、不是 signoff
+
+用户的硬性要求（多轮任务书反复强调）：
+
+1. 只有**核对过原件**的话才能写"专利披露/论文采用"；
+2. 工程假设必须显式标注，不能用替代拓扑冒充专利结构；
+3. **63+8 工程替代模型已被用户明确否决**，要求彻底删除、统一到专利 17/5；
+4. 不许用"写了免责声明""图已入库""测试数多"代替实现与验证。
+
+---
+
+## 2. 现在的状态（一句话）
+
+**文档层基本补齐，代码层只修了确定性缺陷；拓扑统一（最大的一件事）没做。**
+
+| 维度 | 状态 |
+|:---|:---|
+| 模块 README | 7 个包全有（control/topology/calibration/behavioral/simulation/metrics/contracts）+ verification |
+| 原件核对 | 4/6 专利已核对图（`[10]` `[11]` `[13]` `[14]`）；`[09]` 未核；`[12]` 有文本层但只摘了 2 段 |
+| 测试 | `tests/unit + verification` **1561 passed, 4 skipped**（skip 是 dump 陈旧，见 §5） |
+| 静态检查 | `tools/check_engineering.py` **6/6**；ruff 74 项既有债务；mypy 8 项既有债务 |
+| V1 RTL 对拍 | 7 模块 / 4931 向量 / 0 不一致（VCS） |
+| V3 顶层 | `ELABORATED_ONLY`（elaborate + 复位 idle） |
+| V4 闭环 | `NOT_RUN` |
+
+---
+
+## 3. 已完成（都有提交与证据）
+
+### 3.1 确定性缺陷（有反例）
+
+| 缺陷 | 证据 |
+|:---|:---|
+| `ElementWeightCalibration.reconstruct` 底板项符号反了、分母未限活动片 | 审查反例 `x=0.2`：旧 `−0.466667` → 新 `0.200000`；`tests/unit/test_element_reconstruct_equation.py` |
+| `run_review2_figure.py:91` `beta[:, None]` 广播轴错 | 合成 3×8×4 下旧形式直接 `ValueError`，新形式逐步相乘一致 |
+| 7 个比较器里 6 个不查记录数（删末行仍通过） | 14 项参数化测试：删末行/空 dump 逐个被拒 |
+| VCS runner 只要有非空 .out 就 `PASS_RUN` | 现查 `simv` 退出码 + `$fatal`/`FATAL`/`Error-[` |
+| `unit_therm` 只比 slot 0 | 现逐片逐位；注入"翻 slot 5"被抓 |
+| `recon_core` 漏比 `gain_err`/`adc2_ovf`/`result_sample_id` | 三个字段补齐，各一条注入测试 |
+| `main_count=64/127` 在 6 位端口装不下，是**假覆盖** | 写出时禁止静默截断，向量 96→84 |
+| `metrics_lsb20` 是 `metrics` 的独立副本（14/17 逐字节相同） | 收成薄转发，七入口 28 摘要零漂移 |
+| `charge_ref` 与 `charge_ref_task` 电荷公式重复 | 收成薄转发，固定网络前后摘要一致 |
+| 行为指纹工具只写不比对、静默覆盖 | 补 `--check`（漂移 exit 1）、拒绝覆盖（exit 2） |
+
+### 3.2 结论层面的修正（重要）
+
+| 旧结论 | 现状 |
+|:---|:---|
+| "合同 `Σ(W·a)` 与 RTL `G=T` 不一致" | **撤回**。`a` 是信号连接、`on` 是开关；合同明写"普通单位 a=1"，RTL 一直对 |
+| "逐码 LUT 与 DEM 原理不兼容" | **撤回**。那是拿错配模式（DEM 关训练→DEM 开测试）得出的。同模式四组：A 7.1/24.1、B 20.5/13.6、**C 15.9/13.6**、D NOT_RUN。C 仍略差，原因是状态间方差（训练残差 82→105 µV），不是模式错配 |
+| "逐单元权重不可辨识" | **部分撤回**。原实验夹带 1 mV 噪声 + beta 广播错；修正后残差 31.7 µV，与 ADC2 量化步长/√12 一致 |
+| "SNDR 88 dB 是热噪声限制" | **不是**。纯热噪声 95.0 dB，**纯失配 89.1 dB 才是主因**，随机换片再吃 1.4 dB |
+| "MX1 把 −1 送到负轨" | **撤回**。FIG.20 的 `0/1` 是选择控制 |
+| "362 是跨片 crossbar" | **改口径**。正文里是 **signal gate** |
+| "辅助输入为背栅寄生充电路径" | **降级**。FIG.1/FIG.2 上看不出背栅结构 |
+| "SUB_WEIGHTS 5 项" | **错**。跨桥后只有 8/4/2/1 四个；第 5 个是桥接电容本身。改成 4 项后 β=1/16、端点比值 **1.000000** |
+
+### 3.3 结构整理
+
+* `execute_pipeline` 691 → 604 行（98 行纯校验提成 `_validate_request`，指纹全等）
+* A/C 矩阵从 `tools/` 提到 `experiments/configs/matrix.py`
+* `tools/check_engineering.py`：依赖方向 / CAAZ 隔离 / 文档链接 / 图-表同源 / 重复公式 / 入口，6 项，抓出并修掉 8 条死链
+
+---
+
+## 4. 未完成（按优先级）
+
+### P0 拓扑统一（用户的头号要求，完全没动）
+
+```
+unary_rotation_masks 与 10 处引用仍在；主链跑的仍是 63+8
+```
+
+卡点已定位清楚（见 `docs/decisions/20261112_fig11_unification.md`）：
+
+1. `DefaultParameters` 有硬守卫 `(n_main+1)*n_sub == 512`，17×5 给 90，**必须同时换译码器**；
+2. 码本律 `drive = c//n_sub + β*(c%n_sub)` 是 63+8 专用，要换成图上的 `thermal/b4/sub` 三段；
+3. 掩码绑定 `_segmented_mask` → `fig11_masks`；
+4. 逐单元权重变成非均匀（2C/1C、8/4/2/1），传导到 `nominal_decoder`、`CalibrationSpec`、
+   `rtl_params.vh`（`N_UNIT_MAIN 63→17`、`N_UNIT_SUB 8→5`）、RTL ROM（18×71→18×22）、
+   recon 向量与 TB 位宽；
+5. 全部结果（11 配置矩阵、F01–F13）作废重跑。
+
+**执行顺序建议**：先改码本与掩码（有 `512 码单调 + 端点 = ±v_fs` 可验收），
+再改权重，再重导出 RTL，最后重跑结果。每步都跑一次
+`tools/behavior_fingerprint.py --check` 和 `check_engineering.py`。
+
+### P1 专利机制缺口
+
+| 机制 | 状态 | 原文依据 |
+|:---|:---|:---|
+| 保留列（预留 `0` 输入 + MUX 选择） | 未实现 | `[11]` FIG.20 Sheet 18/29 |
+| 362 信号门 | 未实现 | `[11]` FIG.19 Sheet 17/29 |
+| 跨片分配 | 未实现（现为逐片旋转） | 同上 |
+| AUX 支路 | 未实现 | `[13]` FIG.1/2 Sheet 1/9 |
+| 参考 buffer / `trial` 控制 | 未实现 | `[14]` FIG.5 Sheet 5/16 |
+| `[09]` 转换级 | **未核对** | — |
+
+### P2 验证与结果
+
+| 项 | 状态 |
+|:---|:---|
+| V2 事务 trace（`epoch+sample_id+event_index`） | 未做 |
+| V3 真实事务（配置写入 + 样本流） | 未做 |
+| V4 闭环 | 未做 |
+| 指标与图重生成 | 未做（旧结果仍在仓库，**不能当新模型证据**） |
+| CI 10 项（8 失败） | 未重跑 |
+
+---
+
+## 5. 接手必须先知道的坑
+
+1. **`vm-meow` 会掉线**：表现为 `Connection timed out during banner exchange`。
+   此时 `run_verification` 返回 `NOT_RUN`（正确行为），相关测试标 skip 并写明原因。
+   4 个 skip 就是 `unit_therm` dump 陈旧（向量 96→84），主机恢复后跑
+   `python3 -m verification.run_verification --level module --only unit_therm` 即可消掉。
+
+2. **专利 PDF 五份无文本层**：只有 `[12]` 有（45 868 字符）。
+   其余按页图读：`pypdf` 抽 `page.images` → 缩到 1400px → 看图。
+   `patents.google.com` 在本机 curl 502 / WebFetch 失败，**别浪费时间重试**。
+
+3. **不要相信"测试全绿"**：本项目历史上多次出现"测试通过但覆盖是假的"
+   （`main_count=64/127` 被截断、删末行不被发现、比较器只看 slot 0）。
+   新增任何比较器，先写"删末行/空 dump/翻位"三种注入。
+
+4. **`a` 与 `on` 是两个量**：`signal_mask` 是信号连接，`main/sub_masks` 是转换开关。
+   把它们混用会得出"gain 随 mask 变"这种错误结论——已经踩过一次。
+
+5. **图与表必须同 run_id**：`figures.json.source_sha` 与矩阵参数不一致时，
+   `check_engineering.py` 的 C4 会报。历史上出过"图停在 12 个提交前"的事故。
+
+6. **改完跑这三条**（顺序不能反）：
+
+```bash
+python3 tools/check_engineering.py
+PYTHONPATH=src python3 tools/behavior_fingerprint.py --check docs/restructure/behavior_fingerprint.json
+PYTHONPATH=src:. python3 -m pytest tests/unit tests/verification -q
+```
+
+---
+
+## 6. 接手第一步（建议命令）
+
+```bash
+cd /Users/zhaoyi/src/20bit_SAR_ADC_Behaviour_Verification
+git log --oneline -20                      # 看最近改了什么
+git status --short                          # 应为空
+python3 tools/check_engineering.py          # 6/6
+PYTHONPATH=src:. python3 -m pytest tests/unit tests/verification -q   # 1561 passed / 4 skipped
+```
+
+然后读这三份，按顺序：
+
+1. `docs/decisions/20261112_fig11_unification.md` —— 拓扑统一的清单与卡点
+2. `src/adi_model/control/README.md` —— DEM 与 dither 的原文对应、已撤回的说法
+3. `docs/mechanisms/source_reconciliation.md` —— 我判读错过的 7 条（R1–R7）
+
+---
+
+## 7. 需要用户拍板但还没定的
+
+* `[11]` col.23 明确写了 "31 unit cells in a 5 bit example or **63 unit cells in a 6 bit example**"，
+  即 63 单元是**原文披露**的结构。用户仍要求删除 63+8。
+  **接手人需要就这一点再确认一次**：是"删掉披露实施例"，还是"63 单元归到采样 DAC 层、
+  Fig.19 归到 DEM 层"（两者本不在同一层）。
+
+* 图上 `S4` 这个 1C 与 `B4` 并列，但它的编码规则（进主码 5 bit 的哪一位，还是 dither 上支路）
+  图上没标。当前实现按"两者共同构成主阵列两个 1C 步进"处理，属未确认。

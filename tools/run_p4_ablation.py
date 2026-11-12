@@ -160,7 +160,15 @@ def _run(model, input_fn, n_samples: int, *, dem: bool, uniform_plan: bool, cali
         rdac_noise_cap_f=noise_cap,
         dither_port=dither_port,
     )
-    codes = model.nominal_decoder.reconstruct(raw.digital_observation)
+    # 必须传入物理增益：定点分母 Σw 是码本口径（31.9375C），而 fine 由 RA 的
+    # G_phys（采样口径 32.94C）产生，不换算会让残差项被放大约 3.1%
+    # （实测 INL 从 0.5 恶化到 32.9 LSB20）。与 DefaultModel.simulate 保持同一条路径。
+    state = getattr(raw, "state", None)
+    physical_gain = getattr(state, "estimated_gain", None)
+    codes = model.nominal_decoder.reconstruct(
+        raw.digital_observation,
+        physical_gain=None if physical_gain is None else float(physical_gain),
+    )
     voltage = np.asarray(codes.voltage, dtype=float)
     if calibration is not None:
         voltage = calibration.apply(np.asarray(raw.coarse, dtype=np.int64), voltage)

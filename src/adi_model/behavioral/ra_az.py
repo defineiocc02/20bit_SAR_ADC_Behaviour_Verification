@@ -38,7 +38,7 @@ class OrdinaryAZResult:
     """一笔一样本的 AZ 结果；长度与输入一致。"""
 
     input_v: np.ndarray
-    error_v: np.ndarray
+    residual_v: np.ndarray
     sample_id: np.ndarray
     valid: np.ndarray
 
@@ -48,7 +48,7 @@ def apply_ordinary_az(
     sample_id,
     cfg: OrdinaryAZConfig,
     *,
-    sample_time_s=None,
+    hold_time_s=None,
 ) -> OrdinaryAZResult:
     """对每笔独立施加普通 AZ。
 
@@ -56,13 +56,18 @@ def apply_ordinary_az(
         input_v: 形状 ``(N,)`` 的 RA 输入等效电压 [V]。
         sample_id: 形状 ``(N,)`` 的 uint32 样本号；只用于对齐，不参与配对。
         cfg: 普通 AZ 参数。``enabled=False`` 时逐位返回输入。
-        sample_time_s: 可选 ``(N,)`` 采样时刻 [s]；droop 需要它。
+        hold_time_s: 可选 ``(N,)`` **自上次 AZ 刷新以来的保持时间** [s]。
+            droop 需要它；不是记录的绝对时间。普通 AZ 逐笔刷新，因此保持时间
+            是"本笔读取时刻 − 本笔 AZ 时刻"，不是 `n/fs`（外部审查 A04）。
 
     Returns:
-        ``OrdinaryAZResult``：``input_v`` 为 AZ 后电压，``error_v`` 为
-        被减掉的误差（失调 + 噪声 + droop），``valid`` 为逐笔有限性标志。
+        ``OrdinaryAZResult``：``input_v`` 为 AZ 后电压，``residual_v`` 为
+        **仍然残留、需要加到 RA 输入上**的误差（失调 + 噪声 + droop），
+        ``valid`` 为逐笔有限性标志。
 
     Notes:
+        符号约定只有一处：`residual_v` 是要**加**的残差，`input_v + residual_v`
+        就是被污染后的输入。调用方不要再取负号。
         本函数不做两点平均，也不改变样本数。若调用方需要 CAAZ 的 fs/2
         配对，必须显式使用扩展，不得把本函数的输出再配对一次。
     """
@@ -79,18 +84,27 @@ def apply_ordinary_az(
     if not cfg.enabled:
         return OrdinaryAZResult(x.copy(), np.zeros(n), ids, np.ones(n, dtype=bool))
 
-    rng = np.random.default_rng(cfg.seed)
-    error = np.full(n, cfg.offset_v, dtype=float)
+    residual = np.full(n, cfg.offset_v, dtype=float)
     if cfg.noise_v:
-        error += rng.normal(0.0, cfg.noise_v, n)
+        # 逐样本以 (seed, sample_id) 为键：分块运行与一次运行得到同一条噪声流。
+        noise = np.array(
+            [
+                np.random.default_rng([int(cfg.seed), int(sample)]).normal(0.0, cfg.noise_v)
+                for sample in ids
+            ],
+            dtype=float,
+        )
+        residual += noise
     if cfg.droop_v_per_s:
-        if sample_time_s is None:
-            raise ValueError("sample_time_s is required when droop is enabled [s]")
-        t = np.asarray(sample_time_s, dtype=float)
+        if hold_time_s is None:
+            raise ValueError("hold_time_s is required when droop is enabled [s]")
+        t = np.asarray(hold_time_s, dtype=float)
         if t.shape != x.shape:
-            raise ValueError("sample_time_s must have the same shape as input_v")
-        error += cfg.droop_v_per_s * t
+            raise ValueError("hold_time_s must have the same shape as input_v")
+        if np.any(t < 0):
+            raise ValueError("hold_time_s must be nonnegative [s]")
+        residual += cfg.droop_v_per_s * t
 
-    out = x - error
+    out = x + residual
     valid = np.isfinite(out)
-    return OrdinaryAZResult(out, error, ids, valid)
+    return OrdinaryAZResult(out, residual, ids, valid)

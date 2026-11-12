@@ -64,15 +64,60 @@ def _default_pool():
 
 
 def test_dem_state_round_trip_and_sequence_coverage():
-    state = Dem3State(3, 11)
+    state = Dem3State(41, 11)
     assert Dem3State.from_int(state.to_int()) == state
-    sequence = Dem3State.sequence(240)
-    pairs = {(int(value) & 0xF, int(value) >> 4) for value in sequence}
-    assert len(pairs) == 240  # 15 x 16 全部铺满
+    # 一个"每片都能走遍 63 列"的周期是 columns x plan_period = 63 x 9 = 567
+    sequence = Dem3State.sequence(63 * 9, columns=63)
+    assert set(int(value) & 0x3F for value in sequence) == set(range(63))
+    assert set(int(value) >> 6 for value in sequence) == set(range(16))
     with pytest.raises(ConfigError):
-        Dem3State(16, 0)
+        Dem3State(64, 0)
     with pytest.raises(ConfigError):
-        Dem3State.from_int(256)
+        Dem3State.from_int(1024)
+
+
+def test_low_code_visits_every_main_unit():
+    """外部审查 A01 的最小反例：码 8（1 个主单元）、固定物理片、一个相位周期。"""
+    pool = _default_pool()
+    ids = np.broadcast_to(np.arange(8), (63 * 9, 8))
+    states = Dem3State.sequence(63 * 9, columns=63)
+    command = unary_rotation_masks(pool.geometry, np.full(63 * 9, 8, np.int64), states, ids)
+    # 物理片 7 在组内第 7 位
+    visits = command.main_on[:, 7, :].sum(axis=0)
+    assert np.count_nonzero(visits) == 63
+    assert int(visits.max() - visits.min()) == 0
+
+
+def test_conservation_reports_lsb_units_not_farads():
+    """外部审查 A02：1 LSB20 的电荷误差必须折算成 1，而不是一个法拉数。"""
+    from types import SimpleNamespace
+
+    from adi_model.dem import SplitSwitchGeometry
+
+    c_norm_f, lsb20_v = 20.5e-12, 6.0 / 2**20
+    charges = np.array([0.0, c_norm_f * lsb20_v])
+
+    class _Stub:
+        def __init__(self):
+            self.geometry = SplitSwitchGeometry(63, 8, 18, 8, 0, 511)
+
+        def split_coefficients(self, ids):
+            return {"c_signal": np.full(len(ids), c_norm_f)}
+
+        def charge_from_masks(self, ids, command, **references):
+            return SimpleNamespace(charge_c=charges.copy())
+
+    report = nominal_conservation(
+        _Stub(),
+        unary_rotation_masks,
+        np.array([Dem3State(0, 0).to_int(), Dem3State(1, 0).to_int()]),
+        reference_high_v=3.0,
+        reference_low_v=-3.0,
+        codes=np.array([8]),
+    )
+    assert report["max_spread_lsb20"] == pytest.approx(1.0)
+    assert report["max_spread_v"] == pytest.approx(lsb20_v)
+    assert report["c_norm_f"] == pytest.approx(c_norm_f)
 
 
 def test_fig11_masks_select_exact_counts():
@@ -152,15 +197,17 @@ def test_unary_rotation_matches_default_segmented_counts():
     assert np.array_equal(rotated.sub_on.sum(axis=2), plain.sub_on.sum(axis=2))
 
 
-def test_usage_uniformity_holds_for_round_robin_plan():
+def test_usage_uniformity_covers_low_mid_and_full_codes():
     pool = _default_pool()
-    plan = round_robin_plan(360)
-    states = Dem3State.sequence(360)
-    report = usage_uniformity(pool, unary_rotation_masks, plan, states)
-    assert report["slice_range"] <= 1
-    assert report["uniform"], {
-        key: report[key] for key in ("slice_range", "main_unit_range", "sub_unit_range")
-    }
+    plan = round_robin_plan(63 * 8)
+    states = Dem3State.sequence(63 * 8, columns=63)
+    report = usage_uniformity(
+        pool, unary_rotation_masks, plan, states, codes=(8, 255, 511)
+    )
+    assert report["uniform"], report
+    for code, row in report["codes"].items():
+        assert row["main_units_covered"] == 63, code
+        assert row["uniform"], (code, row["main_range"])
 
 
 def test_round_robin_rejects_overlapping_or_oversized_windows():

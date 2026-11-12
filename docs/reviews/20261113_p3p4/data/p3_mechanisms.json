@@ -57,15 +57,29 @@
     "codes_checked": 64,
     "states_checked": 240,
     "max_spread_c": 3.2311742677852644e-26,
-    "max_spread_lsb20": 5.646886315028669e-21,
+    "max_spread_lsb20": 2.754578690257885e-10,
+    "max_spread_v": 1.5761825696513474e-15,
     "conserved": true,
-    "mismatched_spread_lsb20": 1.1138352772487537e-09,
+    "mismatched_spread_lsb20": 70.67910854029977,
     "usage": {
-      "samples": 360,
-      "slice_range": 0,
-      "main_unit_range": 0,
-      "sub_unit_range": 0,
-      "sub_last_element_always_low": true,
+      "samples": 567,
+      "per_code": {
+        "8": {
+          "main_units_covered": 63,
+          "main_chi2_per_dof": 0.0,
+          "uniform": true
+        },
+        "255": {
+          "main_units_covered": 63,
+          "main_chi2_per_dof": 0.0,
+          "uniform": true
+        },
+        "511": {
+          "main_units_covered": 63,
+          "main_chi2_per_dof": 0.0,
+          "uniform": true
+        }
+      },
       "uniform": true
     },
     "_note": "conservation is nominal-charge dispersion across DEM states; not INL"
@@ -109,32 +123,33 @@
   "track": {
     "audit": {
       "samples": 4096,
-      "valid_sources": 4095,
+      "valid_sources": 4094,
+      "blocked_by_lookback": 2,
       "future_sources": 0,
-      "invalid_with_index": 0,
       "self_sources": 0,
-      "causal": true,
-      "cheating": false
+      "late_sources": 0,
+      "causal": true
     },
     "charge": {
       "samples": 4096,
-      "samples_without_source": 1,
-      "mean_abs_charge_no_track_c": 3.904925093431219e-11,
-      "mean_abs_charge_with_track_c": 6.139437379011778e-12,
-      "charge_reduction": 6.360395672053857,
-      "max_residual_c": 9.611947515465614e-12
+      "samples_without_source": 2,
+      "mean_abs_charge_no_track_c": 3.90645394611927e-11,
+      "mean_abs_charge_with_track_c": 1.219345263813825e-11,
+      "charge_reduction": 3.203730774252406,
+      "max_residual_c": 1.946070255282005e-11
     },
     "total_sampling_cap_f": 2.0499558447552533e-11,
     "paper_input_current_ua_pp": 350.0,
-    "frequency_for_paper_current_hz": 906545.0978578819,
     "at_1mhz": {
       "fin_hz": 1000000.0,
-      "delta_v_pp": 0.4707545743670697,
-      "charge_c_pp": 9.65026091169046e-12,
-      "current_a_pp": 0.0003860104364676184,
-      "charge_per_sample_mean_c": 6.143546904888149e-12,
+      "delta_v_peak": 0.4707545743670697,
+      "delta_v_pp": 0.9415091487341394,
+      "charge_c_peak": 9.65026091169046e-12,
+      "charge_c_pp": 1.930052182338092e-11,
+      "current_a_peak": 0.0003860104364676184,
+      "current_a_pp": 0.0007720208729352368,
       "mean_current_a": 0.00024574187619552597
     },
-    "_note": "consecutive-sample difference model; paper does not state its measurement frequency"
+    "_note": "论文 Fig.9.8.5 的输入电流横轴是直流差分输入电压，不是正弦频率；本表只给电荷吞吐，不做频率反解（外部审查 A05）"
   }
 }

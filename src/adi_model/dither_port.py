@@ -117,8 +117,14 @@ def code_shift_residual(
         raise ConfigError("residual computation needs a positive signal capacitance")
     ids = np.broadcast_to(np.arange(pool.geometry.n_active, dtype=np.int64), (values.size, pool.geometry.n_active))
     shifted = values - program.upper_code
-    illegal = int(np.count_nonzero((shifted < 0) | (shifted > 511)))
-    safe = np.clip(shifted, 0, 511)
+    legal = (shifted >= 0) & (shifted <= 511)
+    illegal = int(np.count_nonzero(~legal))
+    if illegal == values.size:
+        raise ConfigError(
+            "every code-shifted candidate is outside the code domain; "
+            "no legal sample is left to measure a residual"
+        )
+    # 只对**合法**的 shifted 码求残差；非法样本单独计数，绝不夹紧后混进统计。
     states = np.zeros(values.size, dtype=np.int64)
 
     def q_of(code_vector):
@@ -130,24 +136,26 @@ def code_shift_residual(
             reference_low_v=float(reference_low_v),
         ).charge_c
 
-    q_shift = q_of(values) - q_of(safe)
+    q_shift = q_of(values) - q_of(np.where(legal, shifted, values))
     c_lsb = c_signal_f / 512
     port_charge = program.upper_code.astype(float) * c_lsb * (reference_high_v - reference_low_v)
     residual_c = q_shift - port_charge
     residual_v = residual_c / c_signal_f
+    residual_v = np.where(legal, residual_v, np.nan)
     lsb20 = abs(reference_high_v - reference_low_v) / 2**20
-    worst = int(np.argmax(np.abs(residual_v)))
+    worst = int(np.nanargmax(np.abs(residual_v)))
     return {
         "samples": int(values.size),
         "illegal_shifted_codes": illegal,
-        "max_abs_residual_c": float(np.max(np.abs(residual_c))),
-        "max_abs_residual_v": float(np.max(np.abs(residual_v))),
-        "max_abs_residual_lsb20": float(np.max(np.abs(residual_v)) / lsb20),
+        "legal_samples": int(np.count_nonzero(legal)),
+        "max_abs_residual_c": float(np.nanmax(np.abs(residual_c))),
+        "max_abs_residual_v": float(np.nanmax(np.abs(residual_v))),
+        "max_abs_residual_lsb20": float(np.nanmax(np.abs(residual_v)) / lsb20),
         "worst_index": worst,
         "worst_code": int(values[worst]),
         "worst_upper_code": int(program.upper_code[worst]),
         "lower_lsb": (program.lower_q.astype(float) / spec.step_q).tolist(),
-        "code_shift_exact": bool(np.max(np.abs(residual_v)) <= 1e-12),
+        "code_shift_exact": bool(np.nanmax(np.abs(residual_v)) <= 1e-12),
         "_note": "only the upper part U is code-representable; the lower part L is a sampling-path injection",
     }
 

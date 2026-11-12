@@ -1,18 +1,21 @@
 """三维 DEM 掩码与守恒/均匀性审计。
 
 论文（ISSCC 2024 §9.8 第 3 页；slides 29-31）的三个维度是：
-"Selection of the slices - 8/18"、"3b horizontal segmentation"、"3b vertical segmentation"，
-并明确"the overall DEM range becomes two-dimensional, with 6b total range"。
+"Selection of the slices - 8/18"、"3b horizontal segmentation"、"3b vertical segmentation"。
 
-本模块只做**数字掩码**与**审计**，不产生失配、不评估 INL。两套具名绑定对应两种真实几何，
-不能混用：
+本模块只做**数字掩码**与**审计**，不产生失配、不评估 INL。两套具名绑定对应两种真实几何：
 
 * `fig11_masks`：专利 US10511316B2 Fig.11 的 17/5 阵列（15×2C + 2×1C 主、8/4/2/1/1 子、
-  桥 C、β=1/17）。横向 15 列按**物理 ID** 旋转；B4 的 8/16 个 1C 必须**恰好选 8 个**，
-  按物理 ID 取模会在 18 片池上选出 9~10 个并直接破坏名义权重，所以纵向按**组内位置**选，
-  均匀性靠组旋转保证；子阵列是二进制权，不能旋转（旋转即改权重），这是模型边界。
+  桥 C、β=1/17）。横向 15 列按物理 ID 旋转；B4 的 8/16 个 1C 必须**恰好选 8 个**，
+  按物理 ID 取模会在 18 片池上选出 9~10 个并直接破坏名义权重，所以纵向按组内位置选。
+  子阵列是二进制权，不能旋转（旋转即改权重）。
 * `unary_rotation_masks`：默认 63+8 分段池（主 63 温度计、子 7 温度计 + 1 位恒低）。
-  两段都是 unary，可以整段旋转，按物理 ID 对齐。
+  两段都是 unary，可整段旋转，按物理 ID 对齐。
+
+**相位空间必须覆盖被旋转的列数**：早期版本把横向相位限定在 15 个值，而主阵列有 63 列，
+于是固定物理片在低码下只访问 15 个单元（外部审查 A01 的最小反例）。
+现在横向状态是 0..columns-1 的完整空间，`usage_uniformity` 也按
+`[physical_slice_id, physical_unit_id]` 分码统计，而不是只测满码。
 
 审计是两件不同的事，不能互相替代：`nominal_conservation` 查同名码在所有状态下的名义电荷是否
 相同；`usage_uniformity` 查每个物理单元是否被等频使用。前者过了后者仍可能不过。
@@ -28,11 +31,23 @@ from .config import ConfigError
 from .dem import SplitSwitchCommand, SplitSwitchGeometry, _integer_array
 from .timing import SlicePlan
 
-HORIZONTAL_COLUMNS = 15
+FIG11_COLUMNS = 15
 VERTICAL_UNITS = 16
 VERTICAL_ACTIVE = 8
 SLICE_POOL = 18
 SLICE_ACTIVE = 8
+HORIZONTAL_LIMIT = 64
+
+
+_MASK64 = np.uint64(0xFFFF_FFFF_FFFF_FFFF)
+
+
+def _mix64(value: np.ndarray) -> np.ndarray:
+    """splitmix64 的向量化版本：把相邻整数打散，用于解耦相位与计划周期。"""
+    x = (value + np.uint64(0x9E3779B97F4A7C15)) & _MASK64
+    x = ((x ^ (x >> np.uint64(30))) * np.uint64(0xBF58476D1CE4E5B9)) & _MASK64
+    x = ((x ^ (x >> np.uint64(27))) * np.uint64(0x94D049BB133111EB)) & _MASK64
+    return x ^ (x >> np.uint64(31))
 
 
 @dataclass(frozen=True)
@@ -40,8 +55,10 @@ class Dem3State:
     """一次转换冻结的三维 DEM 状态。
 
     Attributes:
-        horizontal: 横向起点；按物理 ID 叠加。
-        vertical: 纵向起点；按组内位置叠加。
+        horizontal: 横向起点，0..63；按物理 ID 叠加后对**实际列数**取模。
+            取值范围必须覆盖被旋转的列数（默认池 63 列、Fig.11 15 列），
+            否则低码会偏用前几列。
+        vertical: 纵向起点 0..15；按组内位置叠加。
         slice_step: 片选轮转计数；只用于生成计划，不参与掩码。
     """
 
@@ -52,7 +69,7 @@ class Dem3State:
     def __post_init__(self):
         """校验三个整数域的取值范围。"""
         for name, value, limit in (
-            ("horizontal", self.horizontal, 16),
+            ("horizontal", self.horizontal, HORIZONTAL_LIMIT),
             ("vertical", self.vertical, VERTICAL_UNITS),
         ):
             if type(value) is not int or not 0 <= value < limit:
@@ -61,28 +78,60 @@ class Dem3State:
             raise ConfigError("DEM slice_step must be a nonnegative integer")
 
     def to_int(self) -> int:
-        """打包成 pipeline 使用的单一整数状态（低 4b 横向、次 4b 纵向）。"""
-        return self.horizontal | (self.vertical << 4)
+        """打包成 pipeline 使用的单一整数状态（低 6b 横向、次 4b 纵向）。"""
+        return self.horizontal | (self.vertical << 6)
 
     @classmethod
     def from_int(cls, value: int) -> Dem3State:
         """从冻结整数恢复；slice_step 不参与掩码，恢复为 0。"""
         integer = int(_integer_array(value, "DEM3 state", ndim=0))
-        if integer < 0 or integer > 0xFF:
-            raise ConfigError("packed DEM3 state must fit in 8 bits")
-        return cls(integer & 0xF, (integer >> 4) & 0xF)
+        if integer < 0 or integer > 0x3FF:
+            raise ConfigError("packed DEM3 state must fit in 10 bits")
+        return cls(integer & 0x3F, (integer >> 6) & 0xF)
 
     @classmethod
-    def sequence(cls, n_samples: int) -> np.ndarray:
-        """按样本推进的默认状态序列：横向 +1（模 15）、纵向 +1（模 16）。
+    def sequence(
+        cls,
+        n_samples: int,
+        *,
+        columns: int = 63,
+        vertical: int = VERTICAL_UNITS,
+        plan_period: int = 9,
+    ):
+        """确定性的相位序列：每个"计划周期"额外前移一个与列数互质的步长。
 
-        两个相位互质推进，240 笔覆盖全部 (h,v) 组合。这是可复算的确定性铺满，
-        不是原芯片的随机序列；片选由计划单独负责。
+        为什么不能简单用 `index % columns`：18 选 8 且相邻窗互斥时，片选计划的周期是
+        `18/gcd(stride,18)=9`；固定物理片只在 `index ≡ r (mod 9)` 的样本上活动，
+        于是 `index % 63` 在这条子序列上只取 7 个值——低码下只用到 7 个单元。
+        外部审查 A01 报的 15/63 是同一类混叠（旧实现相位空间只有 15 个值）。
+
+        修正：`h = (index + step*(index // plan_period)) % columns`，
+        沿子序列（i = r + 9k）变成 `h = r + k*(9+step)`；只要 `gcd(9+step, columns)=1`
+        就能铺满全部列。默认 step=7 → 16，与 63 和 15 都互质。
+        纵向用 `(11*index) % vertical`，沿子序列为 3k，与 16 互质。
+
+        序列完全确定，不需要保存随机状态；实际覆盖与卡方由 `usage_uniformity` 实测上报。
         """
         if type(n_samples) is not int or n_samples < 1:
             raise ConfigError("DEM3 sequence needs a positive sample count")
+        if type(columns) is not int or not 1 <= columns <= HORIZONTAL_LIMIT:
+            raise ConfigError("DEM3 sequence columns must be in [1,64]")
+        if type(vertical) is not int or not 1 <= vertical <= VERTICAL_UNITS:
+            raise ConfigError("DEM3 sequence vertical must be in [1,16]")
+        if type(plan_period) is not int or plan_period < 1:
+            raise ConfigError("DEM3 sequence plan_period must be a positive integer")
+        import math
+
+        step = 7
+        if math.gcd(plan_period + step, columns) != 1:
+            raise ConfigError(
+                "phase step does not tile the column count for this plan period; "
+                "pick a step coprime with both (step+period, columns)"
+            )
         index = np.arange(n_samples, dtype=np.int64)
-        return (index % HORIZONTAL_COLUMNS) | ((index % VERTICAL_UNITS) << 4)
+        horizontal = (index + step * (index // plan_period)) % columns
+        vertical_phase = (11 * index) % vertical
+        return horizontal | (vertical_phase << 6)
 
 
 def fig11_masks(geometry, codes, states, slice_ids) -> SplitSwitchCommand:
@@ -125,9 +174,9 @@ def fig11_masks(geometry, codes, states, slice_ids) -> SplitSwitchCommand:
         thermal = code >> 5
         b4 = (code >> 4) & 1
         for position, physical in enumerate(ids[index]):
-            start = (state.horizontal + int(physical)) % HORIZONTAL_COLUMNS
+            start = (state.horizontal + int(physical)) % FIG11_COLUMNS
             for offset in range(thermal):
-                main[index, position, (start + offset) % HORIZONTAL_COLUMNS] = True
+                main[index, position, (start + offset) % FIG11_COLUMNS] = True
             if b4:
                 for unit in range(2):
                     column = 2 * int(position) + unit
@@ -196,8 +245,11 @@ def nominal_conservation(
 ) -> dict:
     """检查同一码在所有 DEM 状态下的名义参考电荷是否相同。
 
-    这直接检验"DEM 只重排、不改名义权重"。若 Fig.11 的 8/16 个 1C 按物理 ID 取模选，
-    这里会立刻出现按码分布的非零离散度——这正是本审计存在的理由。
+    离散度同时给出三个口径，避免单位混用：
+
+    * `max_spread_c`：电荷 [C]，原判据；
+    * `max_spread_v`：除以该状态的归一化电容 [V]，即输入等效；
+    * `max_spread_lsb20`：再除以 LSB20 [V]，得到真正的 LSB（不是法拉）。
 
     Args:
         pool: 名义（零失配）池。
@@ -207,7 +259,7 @@ def nominal_conservation(
         codes: 待遍历码；None 表示全部 512 个。
 
     Returns:
-        dict：最大离散度 [C]、最坏码、折合 LSB20、以及 `conserved`。
+        dict：三个口径的最大离散度、最坏码与 `conserved`。
     """
     packed = _integer_array(states, "conservation states", ndim=1)
     if packed.size == 0:
@@ -218,75 +270,116 @@ def nominal_conservation(
         else _integer_array(codes, "conservation codes", ndim=1)
     )
     ids = np.broadcast_to(np.arange(SLICE_ACTIVE, dtype=np.int64), (packed.size, SLICE_ACTIVE))
-    per_code = np.empty(values.size)
+    lsb20_v = abs(reference_high_v - reference_low_v) / 2**20
+    per_code_c = np.zeros(values.size)
+    per_code_v = np.zeros(values.size)
+    per_code_lsb = np.zeros(values.size)
     scale = 0.0
+    c_norm_f = None
     for index, code in enumerate(values):
         repeated = np.full(packed.size, int(code), dtype=np.int64)
         command = binding(pool.geometry, repeated, packed, ids)
         packet = pool.charge_from_masks(
             ids, command, reference_high_v=reference_high_v, reference_low_v=reference_low_v
         )
-        per_code[index] = float(packet.charge_c.max() - packet.charge_c.min())
+        spread_c = float(packet.charge_c.max() - packet.charge_c.min())
+        # 同一码的 8 片在采集/转换上是同一批 physical slice，归一化电容逐状态相同；
+        # 仍从实际池取，避免把"相同"当假设。
+        if c_norm_f is None:
+            coefficients = pool.split_coefficients(ids[0:1])
+            c_norm_f = float(np.asarray(coefficients["c_signal"])[0])
+        per_code_c[index] = spread_c
+        per_code_v[index] = spread_c / c_norm_f
+        per_code_lsb[index] = spread_c / c_norm_f / lsb20_v
         scale = max(scale, float(np.max(np.abs(packet.charge_c))))
-    worst = float(per_code.max())
-    # 不同单元求和顺序会带来末位舍入差；判据是"小于浮点求和误差"，不是"恰好 0"。
+    worst_c = float(per_code_c.max())
     tolerance = 512 * np.finfo(float).eps * max(scale, 1e-30)
+    worst_index = int(np.argmax(per_code_lsb))
     return {
         "codes_checked": int(values.size),
         "states_checked": int(packed.size),
-        "max_spread_c": worst,
-        "worst_code": int(values[int(np.argmax(per_code))]),
-        "conserved": bool(worst <= tolerance),
+        "c_norm_f": float(c_norm_f) if c_norm_f is not None else float("nan"),
+        "lsb20_v": float(lsb20_v),
+        "max_spread_c": worst_c,
+        "max_spread_v": float(per_code_v.max()),
+        "max_spread_lsb20": float(per_code_lsb.max()),
+        "worst_code": int(values[worst_index]),
+        "conserved": bool(worst_c <= tolerance),
         "tolerance_c": float(tolerance),
-        "max_spread_lsb20": float(
-            worst / (abs(reference_high_v - reference_low_v) / 2**20)
-        ),
         "_note": "spread is nominal-charge dispersion across DEM states, not INL",
     }
 
 
-def usage_uniformity(pool, binding, plan: SlicePlan, states) -> dict:
-    """统计每个物理片与每个单元的选通次数，检查是否等频。
+def usage_uniformity(
+    pool,
+    binding,
+    plan: SlicePlan,
+    states,
+    *,
+    codes=(8, 255, 511),
+) -> dict:
+    """按 `[物理片, 物理单元]` 统计选通次数，逐码判定均匀性。
 
-    固定用满码 511 遍历，使所有可旋转单元都参与统计；这只衡量使用分布，
-    不代表失配已被平均（见 docs 里的口径说明）。
+    只测满码会假通过：满码把所有单元都选中，任何相位都"均匀"。必须分别测
+    低码（1 个主单元）、中码、分段边界码；子阵列同理（k=code%8 决定选几个）。
 
     Args:
         pool: 提供几何的池。
         binding: 具名掩码绑定。
         plan: 实际转换计划。
         states: (N,) 每笔冻结状态。
+        codes: 需要检查的码；默认 8（1 个主单元）、255、511。
 
     Returns:
-        dict：片使用极差、主单元使用极差、子单元使用极差与 `uniform` 判定。
+        dict：每个码一份 `{main_unit_counts, main_range, covered, sub_*, uniform}`，
+        以及整体 `uniform` 判定。
     """
     conv = _integer_array(plan.conv, "plan conversion IDs", ndim=2)
     packed = _integer_array(states, "usage states", ndim=1)
     if conv.shape[0] != packed.shape[0]:
         raise ConfigError("usage audit needs one DEM state per conversion record")
-    codes = np.full(conv.shape[0], 511, dtype=np.int64)
-    command = binding(pool.geometry, codes, packed, conv)
-    slice_counts = np.bincount(conv.ravel(), minlength=pool.geometry.n_slices)
-    main_counts = command.main_on.sum(axis=(0, 1))[:HORIZONTAL_COLUMNS]
-    sub_counts = command.sub_on.sum(axis=(0, 1))
-    # 子阵列末位恒接低轨（见 capacitors.SUB_WEIGHTS），永远不选通，不参与均匀性判据。
-    switchable_sub = sub_counts[:-1]
-    result = {
-        "samples": int(conv.shape[0]),
-        "slice_counts": slice_counts.tolist(),
-        "slice_range": int(slice_counts.max() - slice_counts.min()),
-        "main_unit_counts": main_counts.tolist(),
-        "main_unit_range": int(main_counts.max() - main_counts.min()),
-        "sub_unit_counts": sub_counts.tolist(),
-        "sub_unit_range": int(switchable_sub.max() - switchable_sub.min()),
-        "sub_last_element_always_low": bool(sub_counts[-1] == 0),
-    }
-    result["uniform"] = bool(
-        result["slice_range"] <= 1
-        and result["main_unit_range"] <= 1
-        and result["sub_unit_range"] <= 1
-    )
-    return result
+    report = {"samples": int(conv.shape[0]), "codes": {}}
+    overall = True
+    for code in codes:
+        if type(code) is not int or not 0 <= code <= 511:
+            raise ConfigError("usage audit codes must be explicit 9-bit integers")
+        repeated = np.full(conv.shape[0], code, dtype=np.int64)
+        command = binding(pool.geometry, repeated, packed, conv)
+        main = command.main_on.sum(axis=(0, 1))
+        sub = command.sub_on.sum(axis=(0, 1))
+        selected_main = int(repeated[0] // 8) if pool.geometry.n_main == 63 else None
+        active_main = main[main > 0]
+        active_sub = sub[:-1][sub[:-1] > 0] if pool.geometry.n_sub == 8 else sub[sub > 0]
+        main_range = int(active_main.max() - active_main.min()) if active_main.size else 0
+        sub_range = int(active_sub.max() - active_sub.min()) if active_sub.size else 0
+        covered_main = int(np.count_nonzero(main))
+        expected = None
+        main_chi2 = None
+        if selected_main is not None and selected_main > 0:
+            expected = conv.shape[0] * conv.shape[1] * selected_main / pool.geometry.n_main
+            # 等频的正确统计口径是卡方，不是极差：极差在 63 个桶上天然有 ~4*sqrt(mean) 的涨落，
+            # 把涨落当偏置会误报。chi2/dof ≈ 1 才是"无系统偏置"。
+            dof = max(active_main.size - 1, 1)
+            main_chi2 = float(np.sum((active_main - expected) ** 2) / expected / dof)
+            # 判据只设上界：确定性轮转的 chi2 接近 0，是最均匀的情形，不是异常。
+            uniform = main_chi2 <= 2.0
+        else:
+            uniform = main_range <= 1
+        uniform = bool(uniform and (sub_range <= 1 or active_sub.size <= 1))
+        report["codes"][str(code)] = {
+            "main_unit_counts": main.tolist(),
+            "main_range": main_range,
+            "main_units_covered": covered_main,
+            "expected_count_per_main_unit": expected,
+            "main_chi2_per_dof": main_chi2,
+            "sub_unit_counts": sub.tolist(),
+            "sub_range": sub_range,
+            "uniform": uniform,
+        }
+        overall = overall and uniform
+    report["uniform"] = bool(overall)
+    report["_note"] = "counts are per (physical slice aggregated, physical unit); not INL"
+    return report
 
 
 def round_robin_plan(
@@ -351,7 +444,8 @@ def round_robin_plan(
 
 __all__ = [
     "Dem3State",
-    "HORIZONTAL_COLUMNS",
+    "FIG11_COLUMNS",
+    "HORIZONTAL_LIMIT",
     "SLICE_ACTIVE",
     "SLICE_POOL",
     "VERTICAL_ACTIVE",

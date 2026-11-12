@@ -582,12 +582,14 @@ class DefaultModel:
             from .behavioral.ra_az import apply_ordinary_az
             if not ordinary_az.enabled:
                 raise ConfigError("ordinary_az must be enabled to be applied")
-            times_s = np.arange(n_samples, dtype=float) / cfg.fs
+            # 普通 AZ 逐笔刷新：保持时间从本笔自己的 AZ 时刻算起，近似为 0。
+            # 早期版本传的是绝对记录时间 n/fs，会凭空制造一条随记录增长的 droop。
+            hold_s = np.zeros(n_samples, dtype=float)
             az = apply_ordinary_az(
                 np.zeros(n_samples), np.arange(n_samples, dtype=np.int64),
-                ordinary_az, sample_time_s=times_s,
+                ordinary_az, hold_time_s=hold_s,
             )
-            az_error_v = az.error_v
+            az_error_v = az.residual_v
         program = None
         mapper = self.mapper
         if dither_words is not None:

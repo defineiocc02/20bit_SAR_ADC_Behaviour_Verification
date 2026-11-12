@@ -77,13 +77,14 @@ ENG_10M = Profile(
         c_bridge_f=1e-15,
         c_feedback_f=0.0,
         codebook_id="task_uniform512",
+        normalization_only=True,
         source_ids=("TASK-10M-01",),
     ),
     fs_hz=10e6,
     v_fs_peak_v=5.0,
     v_span_v=10.0,
     adc2_bits=12,
-    description="工程 10 MS/s 变体：10 Vpp、17+5、1 pF 单位电容；不是原芯片配置",
+    description="工程 10 MS/s 归一化机制例：10 Vpp、17+5、1 fF 单位电容、Cf=0（不可构建物理 RA）",
     source_ids=("TASK-10M-01",),
 )
 
@@ -100,6 +101,7 @@ PATENT_FIG19 = Profile(
         c_bridge_f=0.0,
         c_feedback_f=0.0,
         codebook_id="fig19_seven",
+        normalization_only=True,
         source_ids=("PAT-D-03", "PAT-D-04", "PAT-D-05"),
     ),
     fs_hz=10e6,

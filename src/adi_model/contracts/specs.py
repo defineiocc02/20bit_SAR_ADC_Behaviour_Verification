@@ -39,6 +39,7 @@ class TopologySpec:
     mask_bit_order: str = "slice_major_lsb_first"
     slot_to_slice_rule: str = "ordered_active_slots"
     source_ids: tuple[str, ...] = ()
+    normalization_only: bool = False
 
     def __post_init__(self) -> None:
         _require(bool(self.topology_id), "topology_id must not be empty")
@@ -50,6 +51,26 @@ class TopologySpec:
         _require(self.c_unit_f > 0, "c_unit_f must be positive [F]")
         _require(self.c_bridge_f >= 0 and self.c_feedback_f >= 0,
                  "c_bridge_f/c_feedback_f must be non-negative [F]")
+        # Cf=0 只能作为归一化机制例存在；它不能喂给物理 RA 构建（增益无穷大）。
+        # 外部审查 A06：把这两种身份显式分开，而不是靠调用方记得。
+        if self.c_feedback_f <= 0:
+            _require(
+                self.normalization_only,
+                "c_feedback_f must be positive for a physical topology; "
+                "set normalization_only=True for a normalized mechanism fixture",
+            )
+        else:
+            _require(
+                not self.normalization_only,
+                "a normalization-only fixture must not declare a physical feedback capacitor",
+            )
+
+    def require_physical(self) -> None:
+        """物理消费者调用；归一化机制例在这里被拒。"""
+        if self.normalization_only or self.c_feedback_f <= 0:
+            raise ValueError(
+                "this topology is a normalization-only fixture and cannot build a physical RA"
+            )
 
 
 @dataclass(frozen=True)

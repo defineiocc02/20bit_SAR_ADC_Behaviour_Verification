@@ -1,4 +1,9 @@
-"""TRACK 预置与 AUX 输入电荷记账的单元测试。"""
+"""TRACK 预置与 AUX 输入电荷记账的单元测试。
+
+含外部审查 A03/A05 的两个回归点：
+* 恒定直流输入的合法预置不得被判"偷看"（判据是时间与前缀，不是数值相等）；
+* 正弦相邻样本差是峰值，峰峰值是它的两倍。
+"""
 
 from __future__ import annotations
 
@@ -12,43 +17,80 @@ from adi_model.track_aux import (
     causality_audit,
     consecutive_sample_charge,
     input_current_a,
-    solve_frequency_for_current,
+    peak_current_for_dc_step,
     track_residual_charge,
 )
 
+FS = 40e6
 
-def _plan_and_values(n: int = 64, fs: float = 40e6, fin: float = 1e6, amp: float = 3.0):
+
+def _plan_and_values(n: int = 64, fin: float = 1e6, amp: float = 3.0):
     plan = round_robin_plan(n)
-    t = np.arange(n) / fs
+    t = np.arange(n) / FS
     return plan, amp * np.sin(2 * np.pi * fin * t), np.arange(n, dtype=np.int64)
+
+
+def _build(plan, codes, values, *, lead=5e-9, lookback=2):
+    return build_track_plan(
+        plan, codes, values_v=values, fs_hz=FS, track_lead_s=lead, lookback=lookback
+    )
 
 
 def test_track_plan_sources_are_strictly_earlier():
     plan, values, codes = _plan_and_values()
-    track = build_track_plan(plan, codes, values_v=values, lookback=1)
+    track = _build(plan, codes, values)
     audit = causality_audit(track)
     assert audit["causal"]
-    assert audit["valid_sources"] == values.size - 1
-    assert not track.valid[0]
+    # 两相流水线下，来源至少要回看 2 笔：上一笔的判决要到本笔孔径时刻才完成
+    assert audit["valid_sources"] == values.size - 2
+    assert not track.valid[0] and not track.valid[1]
     assert np.isnan(track.predicted_v[0])
-    assert np.all(track.source_sample[1:] == np.arange(values.size - 1))
 
 
-def test_self_prediction_is_flagged():
+def test_lookback_one_is_not_causal_in_two_phase_pipeline():
+    """lookback=1 时来源判决与本笔孔径同一时刻完成，没有预置窗口，必须全部无效。"""
     plan, values, codes = _plan_and_values(16)
-    track = build_track_plan(plan, codes, values_v=values, lookback=1)
-    # 构造一个"偷看目标自身"的计划
-    cheating = type(track)(
-        track.target_slices,
-        np.arange(16, dtype=np.int64),
-        codes,
-        values,
-        np.ones(16, bool),
+    track = _build(plan, codes, values, lookback=1)
+    audit = causality_audit(track)
+    assert audit["valid_sources"] == 0
+    assert not audit["causal"]  # 来源晚于预置窗口
+    assert audit["late_sources"] == values.size - 1
+
+
+def test_dc_input_is_not_flagged_as_cheating():
+    """外部审查 A03：恒定 1 V 输入下预测必然等于目标，那不是偷看。"""
+    plan = round_robin_plan(8)
+    values = np.ones(8)
+    codes = np.zeros(8, dtype=np.int64)
+    track = _build(plan, codes, values, lookback=2)
+    audit = causality_audit(track)
+    assert audit["causal"], audit
+    assert audit["future_sources"] == 0
+    assert audit["late_sources"] == 0
+
+
+def test_two_sample_lookback_always_has_time():
+    """回看 2 笔时，来源判决总在预置窗口之前完成；lead 只影响窗口长度。"""
+    plan = round_robin_plan(8)
+    values, codes = np.zeros(8), np.zeros(8, dtype=np.int64)
+    track = build_track_plan(
+        plan, codes, values_v=values, fs_hz=FS, track_lead_s=0.9 / FS, lookback=2
     )
-    audit = causality_audit(cheating, target_values_v=values)
-    assert not audit["causal"]
-    assert audit["cheating"]
-    assert audit["self_sources"] > 0
+    assert np.all(track.valid[2:])
+    assert not track.valid[0] and not track.valid[1]
+    audit = causality_audit(track)
+    assert audit["causal"]
+    assert audit["late_sources"] == 0
+
+
+def test_track_rejects_bad_parameters():
+    plan, values, codes = _plan_and_values(8)
+    with pytest.raises(ConfigError):
+        _build(plan, codes[:-1], values)
+    with pytest.raises(ConfigError):
+        _build(plan, codes, values, lookback=0)
+    with pytest.raises(ConfigError):
+        _build(plan, codes, values, lead=2 / FS)
 
 
 def test_track_reduces_input_charge_for_slow_input():
@@ -56,38 +98,26 @@ def test_track_reduces_input_charge_for_slow_input():
 
     pool = _uniform_pool()
     plan, values, codes = _plan_and_values(64, fin=0.5e6)
-    track = build_track_plan(plan, codes, values_v=values, lookback=1)
+    track = _build(plan, codes, values)
     report = track_residual_charge(pool, track, values)
-    assert report["charge_reduction"] > 10
-    assert report["samples_without_source"] == 1
+    assert report["charge_reduction"] > 4
+    assert report["samples_without_source"] == 2
 
 
-def test_track_rejects_mismatched_shapes():
-    plan, values, codes = _plan_and_values(8)
-    with pytest.raises(ConfigError):
-        build_track_plan(plan, codes[:-1], values_v=values)
-    with pytest.raises(ConfigError):
-        build_track_plan(plan, codes, values_v=values, lookback=0)
-
-
-def test_consecutive_sample_charge_matches_direct_difference():
+def test_consecutive_charge_distinguishes_peak_and_pp():
     fs, fin, amp, cap = 40e6, 1e6, 3.0, 20.5e-12
     report = consecutive_sample_charge(cap, amp, fin, fs)
-    direct = 2 * amp * np.sin(np.pi * fin / fs)
-    assert report["delta_v_pp"] == pytest.approx(direct)
-    assert report["current_a_pp"] == pytest.approx(cap * direct * fs)
-    # 线性近似会高估，必须能被看出来
-    approx = cap * (2 * np.pi * fin / fs * amp) * fs
-    assert approx > report["current_a_pp"]
+    peak = 2 * amp * np.sin(np.pi * fin / fs)
+    assert report["delta_v_peak"] == pytest.approx(peak)
+    assert report["delta_v_pp"] == pytest.approx(2 * peak)
+    assert report["current_a_pp"] == pytest.approx(2 * report["current_a_peak"])
 
 
-def test_solve_frequency_reproduces_paper_input_current():
-    fs, cap = 40e6, 20.5e-12
-    frequency = solve_frequency_for_current(350e-6, cap, 3.0, fs)
-    report = consecutive_sample_charge(cap, 3.0, frequency, fs)
-    assert report["current_a_pp"] == pytest.approx(350e-6, rel=1e-9)
-    # 20.5 pF、±3 V、40 MS/s 下，350 uA_pp 对应约 0.91 MHz 的相邻样本差分
-    assert 0.7e6 < frequency < 1.2e6
+def test_dc_step_current_is_a_throughput_bound():
+    current = peak_current_for_dc_step(20.5e-12, 6.0, FS)
+    assert current == pytest.approx(20.5e-12 * 6.0 * FS)
+    with pytest.raises(ConfigError):
+        peak_current_for_dc_step(20.5e-12, 0.0, FS)
 
 
 def test_current_and_frequency_reject_bad_arguments():
@@ -95,5 +125,3 @@ def test_current_and_frequency_reject_bad_arguments():
         input_current_a(1e-12, 0.0)
     with pytest.raises(ConfigError):
         consecutive_sample_charge(1e-12, 3.0, 30e6, 40e6)
-    with pytest.raises(ConfigError):
-        solve_frequency_for_current(10.0, 20.5e-12, 3.0, 40e6)

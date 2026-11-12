@@ -60,7 +60,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 9.86,
+      "runtime_s": 8.59,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -99,7 +99,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 9.85,
+      "runtime_s": 10.08,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -138,7 +138,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 11.07,
+      "runtime_s": 8.53,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -153,11 +153,11 @@
         "points": 256,
         "repeats": 8,
         "lsb20_v": 5.7220458984375e-06,
-        "inl_max_lsb20": 14.664399435324555,
-        "inl_max_ppm_fs": 13.985061106991344,
-        "offset_v": -4.171673208477543e-05,
-        "gain_err": -1.9004634422562724e-06,
-        "sigma_e_mean_lsb20": 14.941686585194526,
+        "inl_max_lsb20": 14.51187928268665,
+        "inl_max_ppm_fs": 13.839606554686211,
+        "offset_v": -4.328973591330098e-05,
+        "gain_err": -1.8673192558227652e-06,
+        "sigma_e_mean_lsb20": 14.946627647068778,
         "dnl_bin_lsb20_max": 8.881803921579072,
         "dnl_bin_span_lsb20": 4050,
         "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL"
@@ -165,19 +165,19 @@
       "dynamic": {
         "fin_hz": 1000976.5625,
         "n_samples": 8192,
-        "sndr_db": 87.61940988233772,
-        "snr_db": 87.96802940848806,
-        "sfdr_db": 100.02505184227994,
-        "thd_db": -98.20809760167263,
-        "enob": 14.26236044557105,
-        "nsd_v_rthz_full": 1.8934525610588135e-08,
-        "dr_db": 85.43846670606055,
-        "nsd_v_rthz_dr": 2.5361090496451993e-08,
-        "noise_rms_small_v": 0.00011341824466718109,
+        "sndr_db": 86.93555216096426,
+        "snr_db": 86.94781251022853,
+        "sfdr_db": 100.34444146816199,
+        "thd_db": -109.47721073120834,
+        "enob": 14.148762817435925,
+        "nsd_v_rthz_full": 2.1294287254578288e-08,
+        "dr_db": 84.90126919031044,
+        "nsd_v_rthz_dr": 2.6979121224493796e-08,
+        "noise_rms_small_v": 0.00012065429806235099,
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 10.96,
+      "runtime_s": 10.09,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -192,31 +192,31 @@
         "points": 256,
         "repeats": 8,
         "lsb20_v": 5.7220458984375e-06,
-        "inl_max_lsb20": 14.618289636487832,
-        "inl_max_ppm_fs": 13.941087376106102,
-        "offset_v": -2.5634653866315342e-05,
-        "gain_err": -2.0556219413845713e-06,
-        "sigma_e_mean_lsb20": 11.564684309005353,
-        "dnl_bin_lsb20_max": 9.631803921579072,
+        "inl_max_lsb20": 14.31370155855238,
+        "inl_max_ppm_fs": 13.650609549095515,
+        "offset_v": -2.595596015455768e-05,
+        "gain_err": -2.0720560717873337e-06,
+        "sigma_e_mean_lsb20": 11.4897951987858,
+        "dnl_bin_lsb20_max": 9.756803921579072,
         "dnl_bin_span_lsb20": 4050,
         "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL"
       },
       "dynamic": {
         "fin_hz": 1000976.5625,
         "n_samples": 8192,
-        "sndr_db": 88.79431334806296,
-        "snr_db": 89.26777056620296,
-        "sfdr_db": 98.78721554065655,
-        "thd_db": -97.64573327214889,
-        "enob": 14.457527134229727,
-        "nsd_v_rthz_full": 1.63029997398901e-08,
-        "dr_db": 87.27423129676687,
-        "nsd_v_rthz_dr": 2.0529562494391167e-08,
-        "noise_rms_small_v": 9.181099457157759e-05,
+        "sndr_db": 87.99517363010374,
+        "snr_db": 88.013939126908,
+        "sfdr_db": 101.1472681265107,
+        "thd_db": -107.84223854084243,
+        "enob": 14.324779672774707,
+        "nsd_v_rthz_full": 1.8834614587516437e-08,
+        "dr_db": 86.59952044442835,
+        "nsd_v_rthz_dr": 2.2187850799375454e-08,
+        "noise_rms_small_v": 9.922708532405314e-05,
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 14.35,
+      "runtime_s": 9.14,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -292,7 +292,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 25.47,
+      "runtime_s": 22.8,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {

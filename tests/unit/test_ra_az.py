@@ -12,14 +12,16 @@ def test_disabled_is_identity_and_keeps_length():
     x = np.array([0.1, -0.2, 0.3, 0.0, 0.5])
     r = apply_ordinary_az(x, np.arange(5), OrdinaryAZConfig(enabled=False))
     np.testing.assert_array_equal(r.input_v, x)
-    np.testing.assert_array_equal(r.error_v, np.zeros(5))
+    np.testing.assert_array_equal(r.residual_v, np.zeros(5))
     assert r.input_v.size == 5
 
 
-def test_offset_is_subtracted_per_sample_and_odd_length_works():
+def test_offset_is_added_as_a_residual_and_odd_length_works():
+    """`residual_v` 是要**加**的残留误差；接口只有一个符号约定。"""
     x = np.arange(5, dtype=float) * 0.1
     r = apply_ordinary_az(x, np.arange(5), OrdinaryAZConfig(enabled=True, offset_v=0.01))
-    np.testing.assert_allclose(r.input_v, x - 0.01)
+    np.testing.assert_allclose(r.input_v, x + 0.01)
+    np.testing.assert_allclose(r.residual_v, np.full(5, 0.01))
     assert r.input_v.size == 5  # 没有偶奇配对，不降采样
 
 
@@ -45,9 +47,9 @@ def test_droop_is_proportional_to_time():
     r = apply_ordinary_az(
         np.zeros(4), np.arange(4),
         OrdinaryAZConfig(enabled=True, droop_v_per_s=1e-3),
-        sample_time_s=t,
+        hold_time_s=t,
     )
-    np.testing.assert_allclose(r.error_v, 1e-3 * t)
+    np.testing.assert_allclose(r.residual_v, 1e-3 * t)
 
 
 def test_nonfinite_input_is_rejected():

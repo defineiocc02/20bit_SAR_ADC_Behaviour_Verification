@@ -43,7 +43,6 @@ from adi_model.track_aux import (
     build_track_plan,
     causality_audit,
     consecutive_sample_charge,
-    solve_frequency_for_current,
     track_residual_charge,
 )
 
@@ -159,23 +158,35 @@ def dem_evidence(model, n: int = 360, codes: int = 64) -> dict:
         reference_low_v=-V_FS,
         codes=subset,
     )
-    plan = round_robin_plan(n)
+    # 均匀性必须跑满一个相位周期（columns x plan_period = 63x9）且逐码统计，
+    # 只测满码会假通过（外部审查 A01）。
+    n_usage = 63 * 9
+    plan = round_robin_plan(n_usage)
     usage = usage_uniformity(
-        mismatched_pool, unary_rotation_masks, plan, Dem3State.sequence(n)
+        mismatched_pool,
+        unary_rotation_masks,
+        plan,
+        Dem3State.sequence(n_usage, columns=63),
+        codes=(8, 255, 511),
     )
     return {
         "codes_checked": conservation["codes_checked"],
         "states_checked": conservation["states_checked"],
         "max_spread_c": conservation["max_spread_c"],
         "max_spread_lsb20": conservation["max_spread_lsb20"],
+        "max_spread_v": conservation["max_spread_v"],
         "conserved": conservation["conserved"],
         "mismatched_spread_lsb20": mismatched["max_spread_lsb20"],
         "usage": {
             "samples": usage["samples"],
-            "slice_range": usage["slice_range"],
-            "main_unit_range": usage["main_unit_range"],
-            "sub_unit_range": usage["sub_unit_range"],
-            "sub_last_element_always_low": usage["sub_last_element_always_low"],
+            "per_code": {
+                code: {
+                    "main_units_covered": row["main_units_covered"],
+                    "main_chi2_per_dof": row["main_chi2_per_dof"],
+                    "uniform": row["uniform"],
+                }
+                for code, row in usage["codes"].items()
+            },
             "uniform": usage["uniform"],
         },
         "_note": "conservation is nominal-charge dispersion across DEM states; not INL",
@@ -234,7 +245,8 @@ def track_evidence(model, n: int = 4096) -> dict:
     """TRACK 预置后的输入电荷与论文 350 uA_pp 的口径核对。"""
     run = model.simulate(lambda t: V_FS * 0.999 * np.sin(2 * np.pi * 1e6 * t), n)
     codes = np.asarray(run.raw.coarse, dtype=np.int64)
-    values = np.asarray(run.raw.sample.input_clean_v, dtype=float)
+    # 预测值必须由**数字码 + 名义码本**重建，不能读 plant 的 input_clean_v（外部审查 A03）。
+    values = np.asarray(model.codebook.evaluate(codes), dtype=float)
     plan = round_robin_plan(n)
     pool = PhysicalSlicePool(
         model.cfg,
@@ -244,8 +256,11 @@ def track_evidence(model, n: int = 4096) -> dict:
         acquisition_binding=None,
         schedule_binding=plan,
     )
-    track = build_track_plan(plan, codes, values_v=values, lookback=1)
-    audit = causality_audit(track, target_values_v=values)
+    # 两相流水线下，上一笔判决要到本笔孔径才完成，因此最小合法回看是 2 笔。
+    track = build_track_plan(
+        plan, codes, values_v=values, fs_hz=FS_HZ, track_lead_s=5e-9, lookback=2
+    )
+    audit = causality_audit(track)
     charge = track_residual_charge(pool, track, values)
     # signal_capacitance 已按行求和（8 片合计），不能再乘 n_active
     total_cap = float(pool.signal_capacitance(plan.conv[0:1])[0])
@@ -254,11 +269,11 @@ def track_evidence(model, n: int = 4096) -> dict:
         "charge": charge,
         "total_sampling_cap_f": total_cap,
         "paper_input_current_ua_pp": 350.0,
-        "frequency_for_paper_current_hz": solve_frequency_for_current(
-            350e-6, total_cap, V_FS, FS_HZ
-        ),
         "at_1mhz": consecutive_sample_charge(total_cap, V_FS, 1e6, FS_HZ),
-        "_note": "consecutive-sample difference model; paper does not state its measurement frequency",
+        "_note": (
+            "论文 Fig.9.8.5 的输入电流横轴是直流差分输入电压，不是正弦频率；"
+            "本表只给电荷吞吐，不做频率反解（外部审查 A05）"
+        ),
     }
 
 

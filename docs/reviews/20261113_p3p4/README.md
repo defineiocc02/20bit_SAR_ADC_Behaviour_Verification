@@ -27,10 +27,11 @@
 | [01_rdac_follower](01_rdac_follower.md) | follower 不省静态电荷，省的是传统 SAR 的 **2.99×** 试探电荷；因果门禁用前缀截断不变性，能抓住偷看最终码的实现 |
 | [02_dem3d](02_dem3d.md) | 三维 DEM 拆成两套具名掩码；名义守恒与使用均匀性是**两个**审计；横向必须按物理 ID 旋转 |
 | [03_dither](03_dither.md) | 非法早期码 6 368 → 0（改用独立电荷口）；Fig.11 码偏移残余 **6.70 mV = 1170 LSB20**；输入下界缺口 **35.16 mV = 6144 LSB20** |
-| [04_track_aux](04_track_aux.md) | TRACK 使输入电荷降 **6.36×**；350 μA_pp 反解到 **0.907 MHz**，论文未披露测量频率 |
+| [04_track_aux](04_track_aux.md) | TRACK（回看 2 笔，因果）使输入电荷降 **3.20×**；"350 µA 反解频率"已撤回——论文横轴是直流差分输入 |
 | [05_p4_ablation](05_p4_ablation.md) | 6 条实跑 + 2 条 NOT_RUN；热噪声 **8.60 nV/√Hz vs 论文 9.3**（0.92×）；校准后 INL 25.4→11.0 LSB20、SFDR +10.5 dB |
 | [07_calibration](07_calibration.md) | 逐单元权值在残差观测下**不可辨识**（残差 14 V、权重 −43 V）；可用的是逐码修正（2.31× INL、+10.5 dB SFDR，SNR/DR 不动） |
 | [08_mismatch_budget](08_mismatch_budget.md) | 失配 σ=0.1%（假设值）；INL = 24 376×σ ppm（线性）；论文 2.2 ppm ↔ σ_eff 0.009%；校准有 ~5 ppm 地板，σ≤1e-4 时反而变差 |
+| [09_audit_response](09_audit_response.md) | 外部审查 A01–A07 逐条处置：**撤回** TRACK 6.36×（非因果）、"350 µA ↔ 0.907 MHz"、"使用极差全 0" |
 | [06_paper_anchor_40nm](06_paper_anchor_40nm.md) | 40 nm / 3.3 V 器件 / 6 Vpp / 20.5 pF / 1.8 mA 的逐条出处；模型只有差分等效电压坐标，不能做器件耐压检查 |
 
 ## 3. 四条硬结论（与上一轮相比的变化）
@@ -49,7 +50,7 @@
 | 判定 | 结论 |
 |:---|:---|
 | 工程整合 | **PASS**（46 项新测试全绿，无反向依赖） |
-| 数字机制复现 | **PARTIAL**（五机制有模型+门禁；dither 未进主循环、AUX 未接、逐单元权值不可辨识） |
+| 数字机制复现 | **PARTIAL**（五机制有模型+门禁；dither 未进主循环、AUX 未接、逐单元权值不可辨识；A01/A03/A07 已按审查修正） |
 | 系统行为复现 | **PARTIAL**（仅 L1） |
 | 论文性能对标 | **PARTIAL**（噪声对上 0.92×；INL 校准后仍差 4.8×） |
 | RTL/物理验证 | **NOT CLAIMED**（本轮无新增 RTL 证据） |

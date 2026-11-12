@@ -38,7 +38,9 @@ bad = np.flatnonzero((np.diff(raw.sample_id) & 0xFFFF_FFFF) != 1)
 
 1. `raw.main_masks` / `raw.sub_masks` 是**实际**送进阵列的掩码；
 2. 与 `dem3d.unary_rotation_masks(geometry, codes, states, slice_ids)` 对拍；
-3. 若只有某些码不对，先看是不是**分段边界**（`n_main=63` 的 15×2C 边界）。
+3. 若只有某些码不对，先看是不是**编码边界**（17/5 下：主码 `m=k>>4` 在
+   `m` 为偶数/奇数切换时会带上 B4，见 `_unit_switch_pattern`）。
+   > 2026-11-13：原写 `n_main=63` 的 15×2C 边界，那是已废弃的 63+8 拓扑。
 
 注意 `command.main_on` 的形状是 `[sample, active_slot, unit]`——
 **沿 sample 求和得到的是 slot 统计，不是物理片统计**（本仓库曾因此出现"假覆盖"，

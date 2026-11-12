@@ -424,3 +424,53 @@ def test_current_status_is_pointed_at_from_readme():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     for target in ("docs/ACCEPTANCE_20261113.md", "docs/HANDOVER.md"):
         assert target in readme, f"README should link the current status source: {target}"
+
+
+def test_documents_that_describe_the_rejected_topology_carry_a_banner():
+    """描述 63+8 拓扑的文档必须带时效标注（或明确说明是历史/对比语境）。
+
+    2026-11-13：用脚本扫描全部 `docs/**.md`，找"提到 63+8 但不提 17/5、
+    也没有时效标注"的文件。找到并处理了：
+      * `docs/architecture.md`（profile 表写着 20.5 pF / 63+8）
+      * `docs/model_scope.md`（"The 63+8 complete-range realization"）
+      * 3 个 ADR / 闭环文档（加时效横幅）
+
+    此测试把这条规则钉住：新增文档若描述旧拓扑而不标注，会失败。
+    例外：明确处于历史/对比语境（同时提到 17/5、或写明"历史""rejected"等）的
+    文档不受限——它们表达的就是历史事实。
+    """
+    import re
+
+    # 只扫非历史目录下的文档
+    skip_prefixes = ("docs/history/", "docs/evidence/", "docs/reports/",
+                     "docs/randomization_caoz/", "docs/reviews/")
+    # 明确处于历史/对比语境、无需再加横幅的文档（逐条核对过）
+    exempt = {
+        # 通用「二进制 + unary 桥接」原理说明，63+8 只是举例用的权重表，不是拓扑描述
+        "docs/binary_unary_bridge.md",
+        # 记录"等间距 63+8 阵列下的实测对比结果"，是历史实验数据，值本身有意义
+        "docs/mechanisms/dither_fig19.md",
+        # 自身就是"原文口径 vs 本模型口径"的交叉核对文档，63+8 出现在口径推导链里
+        "docs/mechanisms/source_crosscheck_20261112.md",
+    }
+    offenders: list[str] = []
+    for path in sorted((ROOT / "docs").rglob("*.md")):
+        rel = str(path.relative_to(ROOT))
+        if rel.startswith(skip_prefixes) or rel in exempt:
+            continue
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        mentions_old = bool(re.search(r"63\+8|n_main=63", text))
+        if not mentions_old:
+            continue
+        # 明确处于历史/对比语境：提 17/5、或前 1500 字里有标注、或明确说废弃
+        head = text[:1500]
+        historic = (
+            "17/5" in text
+            or re.search(r"时效|历史|已过时|superseded|rejected|废弃|不再", head) is not None
+        )
+        if not historic:
+            offenders.append(rel)
+    assert not offenders, (
+        "these documents describe the rejected 63+8 topology without a freshness banner "
+        "or contrast with the current 17/5 array:\n  " + "\n  ".join(offenders)
+    )

@@ -39,7 +39,7 @@ extensions/caaz  →  只依赖 contracts + 主包稳定 API；主包不反向�
 
 | profile | 用途 | 关键点 |
 |:---|:---|:---|
-| `adi_isscc2024_40m_6vpp` | ADI 主复现 | 40 MS/s、±3 V、18/8、20.5 pF、63+8 |
+| `adi_isscc2024_40m_6vpp` | ADI 主复现 | 40 MS/s、±3 V、18/8 片池、**17/5 阵列**、19.88 pF（2026-11-13 起；原 20.5 pF / 63+8 已废弃）|
 | `engineering_10m_10vpp` | 工程变体 | 10 MS/s、±5 V、17+5、1 pF |
 | `patent_fig19_7slice` | dither 机制例 | 7 片、6-bit 字 |
 

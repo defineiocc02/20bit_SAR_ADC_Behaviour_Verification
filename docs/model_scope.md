@@ -33,7 +33,7 @@ for version history; its open-item statements are not current capabilities.
 
 | Domain | Limit that remains explicit |
 |---|---|
-| Architecture | Nine decisions are independent of known dither. The 63+8 complete-range realization and ideal 4x port are candidates, not a disclosed full netlist. Historical seven-bit default is retained as a hypothesis. |
+| Architecture | Nine decisions are independent of known dither. The **17/5** array (main 15×2C + B4 + S4, sub-array 4 columns) and ideal 4x port are the current realization; they are engineering candidates, not a disclosed full netlist. (63+8 was the earlier substitute topology and is rejected.) Historical seven-bit default is retained as a hypothesis. |
 | Electrical state | Each top-level record resets electrical state and retains fabrication. General chunk-continuous pipeline simulation is not provided. The separate slow-noise state supports arbitrary continuous-time queries. |
 | Reference | Loads are linearized at nominal rail voltages; peak droop reports the small-error domain. Not a full nonlinear reference-buffer circuit solve. |
 | Timing | The structural `rtl16` profile matches seven resolved RTL load events at phases 3–9; other profiles use scaled project timing. The trial/reject helper is historical. No transistor-level timing closure or metastability probability prediction. |

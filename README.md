@@ -193,7 +193,7 @@ U 段需要 5.5 LSB1 残差摆幅 ⇒ 窗口需 ≥2.06 V（而当前 0.45 V）�
 ## 7. 运行与调试入口
 
 ```bash
-# 1) 一次名义运行（默认 4096 笔）
+# 1) 一次名义运行（--output 必须是**新目录**，已存在会被拒绝）
 PYTHONPATH=src python -m adi_model simulate --samples 4096 --output /tmp/adi-demo
 
 # 2) 机制门禁（follower / DEM / dither / TRACK / 校准）

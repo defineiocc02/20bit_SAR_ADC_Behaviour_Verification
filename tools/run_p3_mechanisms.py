@@ -19,7 +19,7 @@ from adi_model.control.dem3d import (
     Dem3State,
     nominal_conservation,
     round_robin_plan,
-    unary_rotation_masks,
+    fig11_masks,
     usage_uniformity,
 )
 from adi_model.control.dither import FIG19_FRACTIONAL_WEIGHTS_Q, Fig19StaticSpec
@@ -80,7 +80,7 @@ def follower_evidence(model, n: int = 4096) -> dict:
         model.cfg,
         chip=model.chip,
         nominal_codebook=model.codebook,
-        mask_binding=unary_rotation_masks,
+        mask_binding=fig11_masks,
         acquisition_binding=lambda geometry, sample_ids, slice_ids, control: __import__(
             "adi_model.defaults", fromlist=["_all_signal"]
         )._all_signal(geometry, sample_ids, slice_ids, control),
@@ -139,20 +139,20 @@ def dem_evidence(model, n: int = 360, codes: int = 64) -> dict:
     失配离散度查"DEM 把固定失配摊成什么"（含失配池必然非零，这就是 DEM 代价）。
     """
     nominal = _model(mismatch=0.0)
-    nominal_pool = _pool_for(nominal, unary_rotation_masks, round_robin_plan(n))
+    nominal_pool = _pool_for(nominal, fig11_masks, round_robin_plan(n))
     subset = np.unique(np.linspace(0, 511, codes).astype(np.int64))
     conservation = nominal_conservation(
         nominal_pool,
-        unary_rotation_masks,
+        fig11_masks,
         Dem3State.sequence(240),
         reference_high_v=V_FS,
         reference_low_v=-V_FS,
         codes=subset,
     )
-    mismatched_pool = _pool_for(model, unary_rotation_masks, round_robin_plan(n))
+    mismatched_pool = _pool_for(model, fig11_masks, round_robin_plan(n))
     mismatched = nominal_conservation(
         mismatched_pool,
-        unary_rotation_masks,
+        fig11_masks,
         Dem3State.sequence(240),
         reference_high_v=V_FS,
         reference_low_v=-V_FS,
@@ -164,7 +164,7 @@ def dem_evidence(model, n: int = 360, codes: int = 64) -> dict:
     plan = round_robin_plan(n_usage)
     usage = usage_uniformity(
         mismatched_pool,
-        unary_rotation_masks,
+        fig11_masks,
         plan,
         Dem3State.sequence(n_usage, columns=63),
         codes=(8, 255, 511),
@@ -208,7 +208,7 @@ def dither_evidence(model) -> dict:
         model.cfg,
         chip=model.chip,
         nominal_codebook=model.codebook,
-        mask_binding=unary_rotation_masks,
+        mask_binding=fig11_masks,
         acquisition_binding=None,
         schedule_binding=round_robin_plan(8),
     )
@@ -252,7 +252,7 @@ def track_evidence(model, n: int = 4096) -> dict:
         model.cfg,
         chip=model.chip,
         nominal_codebook=model.codebook,
-        mask_binding=unary_rotation_masks,
+        mask_binding=fig11_masks,
         acquisition_binding=None,
         schedule_binding=plan,
     )

@@ -27,7 +27,7 @@ if str(ROOT) not in sys.path:
 
 from tools.run_p4_ablation import FS_HZ, LSB20, V_FS, _build_model, _run
 
-from adi_model.control.dem3d import Dem3State, round_robin_plan, unary_rotation_masks
+from adi_model.control.dem3d import Dem3State, fig11_masks, round_robin_plan
 from adi_model.control.dither import FIG19_FRACTIONAL_WEIGHTS_Q, Fig19DitherProgram, Fig19StaticSpec
 from adi_model.control.follower import ResolvedPrefixes, run_follower
 from adi_model.simulation.slice_pool import PhysicalSlicePool
@@ -50,7 +50,7 @@ def main() -> int:
         model.cfg,
         chip=model.chip,
         nominal_codebook=model.codebook,
-        mask_binding=unary_rotation_masks,
+        mask_binding=fig11_masks,
         acquisition_binding=None,
         schedule_binding=plan,
     )
@@ -93,7 +93,7 @@ def main() -> int:
 
     # 掩码：该笔实际与 DEM 状态
     ids = [int(v) for v in plan.conv[index]]
-    masks = unary_rotation_masks(
+    masks = fig11_masks(
         pool.geometry,
         np.array([coarse], dtype=np.int64),
         np.array([state], dtype=np.int64),

@@ -24,7 +24,7 @@ import numpy as np
 
 from adi_model import metrics
 from adi_model.calibration.mask_calibration import fit_code_correction
-from adi_model.control.dem3d import Dem3State, round_robin_plan, unary_rotation_masks
+from adi_model.control.dem3d import Dem3State, fig11_masks, round_robin_plan
 from adi_model.control.dither import FIG19_FRACTIONAL_WEIGHTS_Q, Fig19StaticSpec
 from adi_model.control.dither_port import DitherPort
 from adi_model.defaults import DefaultModel, DefaultParameters, _schedule
@@ -121,7 +121,7 @@ def _run(model, input_fn, n_samples: int, *, dem: bool, uniform_plan: bool, cali
     dither_words 给定时走 v2 独立电荷口：RDAC 码保持真实判决，dither 电容
     在采样节点注入 T=L+U*Δ，数字侧扣回 -T。与 v1 的 k=c-U 不是同一条拓扑。
     """
-    from adi_model.defaults import _all_signal, _segmented_mask
+    from adi_model.defaults import _all_signal
 
     cfg = replace(model.cfg, dem_enable=dem, dither_enable=dither_words is not None)
     ids_seed = model._child_seed(1, 0)
@@ -134,7 +134,7 @@ def _run(model, input_fn, n_samples: int, *, dem: bool, uniform_plan: bool, cali
         cfg,
         chip=model.chip,
         nominal_codebook=model.codebook,
-        mask_binding=unary_rotation_masks if dem else _segmented_mask,
+        mask_binding=fig11_masks,
         acquisition_binding=_all_signal,
         schedule_binding=schedule,
     )

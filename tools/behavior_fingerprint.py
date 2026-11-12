@@ -32,7 +32,7 @@ if str(ROOT) not in sys.path:
 
 from tools.run_p4_ablation import FS_HZ, V_FS, _build_model, _run
 
-from adi_model.control.dem3d import Dem3State, round_robin_plan, unary_rotation_masks
+from adi_model.control.dem3d import Dem3State, fig11_masks, round_robin_plan
 from adi_model.simulation.slice_pool import PhysicalSlicePool
 
 N_SAMPLES = 512
@@ -110,13 +110,13 @@ def main() -> int:
         model.cfg,
         chip=model.chip,
         nominal_codebook=model.codebook,
-        mask_binding=unary_rotation_masks,
+        mask_binding=fig11_masks,
         acquisition_binding=None,
         schedule_binding=plan,
     )
     codes = np.arange(64, dtype=np.int64) * 8
     states = Dem3State.sequence(64, columns=63)
-    command = unary_rotation_masks(pool.geometry, codes, states, plan.conv)
+    command = fig11_masks(pool.geometry, codes, states, plan.conv)
     entry["mask_layer"] = {
         "main_on_sha256": _digest(np.asarray(command.main_on, dtype=np.int8)),
         "sub_on_sha256": _digest(np.asarray(command.sub_on, dtype=np.int8)),

@@ -10,8 +10,9 @@
   B4 在原件图上是一条单步（FIG.17 标 `2x`，即两个 1C 中的一个），
   早先"B4 选 8 个 1C"的写法已被原件图证伪，见 docs/mechanisms/fig19_fig17_decode.md。
   子阵列是二进制权，不能旋转（旋转即改权重）。
-* `unary_rotation_masks`：默认 63+8 分段池（主 63 温度计、子 7 温度计 + 1 位恒低）。
-  两段都是 unary，可整段旋转，按物理 ID 对齐。
+* （已删除）`unary_rotation_masks`：63+8 分段池的掩码绑定。用户 2026-11-12 裁决
+  "63 归采样/DAC 层披露实施例、主链只跑 17/5"，本符号与 `defaults._segmented_mask`
+  一并删除，不留别名、不放 legacy 目录。
 
 **相位空间必须覆盖被旋转的列数**：早期版本把横向相位限定在 15 个值，而主阵列有 63 列，
 于是固定物理片在低码下只访问 15 个单元（外部审查 A01 的最小反例）。
@@ -204,53 +205,6 @@ def fig11_masks(
                     main[index, position, 16] = True
             for unit in range(4):
                 sub[index, position, unit] = bool((code >> (3 - unit)) & 1)
-    return SplitSwitchCommand(main, sub).validated(geometry, len(values))
-
-
-def unary_rotation_masks(geometry, codes, states, slice_ids) -> SplitSwitchCommand:
-    """默认 63+8 分段池的两段 unary 旋转（主 63、子 7，子末位恒低）。
-
-    与 `defaults._segmented_mask` 的码分解完全相同（main=code//8、sub=code%8），
-    只把温度计起点按物理 ID 旋转：主段 `(horizontal + pid) % 63`、子段 `(vertical + pid) % 7`。
-    两段都是 unary，旋转不改变选通数量，所以名义权重逐位不变。
-
-    Args:
-        geometry: 必须恰为 63 主 / 8 子（第 8 位恒低）。
-        codes/state/slice_ids: 同上。
-
-    Returns:
-        SplitSwitchCommand。
-
-    Raises:
-        ConfigError: 几何或码域不符。
-    """
-    if not isinstance(geometry, SplitSwitchGeometry):
-        raise ConfigError("unary_rotation_masks requires an explicit SplitSwitchGeometry")
-    if geometry.n_main != 63 or geometry.n_sub != 8:
-        raise ConfigError("unary rotation implements the default 63/8 segmented pool only")
-    values = _integer_array(codes, "rotation codes", ndim=1)
-    packed = _integer_array(states, "rotation states", ndim=1)
-    if values.shape != packed.shape:
-        raise ConfigError("rotation codes and states must belong to the same samples")
-    if np.any((values < 0) | (values > 511)):
-        raise ConfigError("rotation codes must be actual 9-bit codes")
-    ids = geometry.validate_slice_ids(slice_ids, n_samples=len(values))
-
-    main = np.zeros((len(values), ids.shape[1], 63), dtype=bool)
-    sub = np.zeros((len(values), ids.shape[1], 8), dtype=bool)
-    columns = np.arange(63)
-    sub_columns = np.arange(7)
-    for index in range(len(values)):
-        state = Dem3State.from_int(int(packed[index]))
-        code = int(values[index])
-        main_count = code // 8
-        sub_count = code % 8
-        for position, physical in enumerate(ids[index]):
-            start = (state.horizontal + int(physical)) % 63
-            main[index, position, (start + columns[:main_count]) % 63] = True
-            if sub_count:
-                sub_start = (state.vertical + int(physical)) % 7
-                sub[index, position, (sub_start + sub_columns[:sub_count]) % 7] = True
     return SplitSwitchCommand(main, sub).validated(geometry, len(values))
 
 
@@ -512,6 +466,5 @@ __all__ = [
     "fig11_masks",
     "nominal_conservation",
     "round_robin_plan",
-    "unary_rotation_masks",
     "usage_uniformity",
 ]

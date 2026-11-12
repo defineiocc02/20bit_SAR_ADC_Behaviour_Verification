@@ -14,7 +14,7 @@ import sys
 import numpy as np
 
 from adi_model.behavioral.ra_az import OrdinaryAZConfig, apply_ordinary_az
-from adi_model.control.dem3d import Dem3State, unary_rotation_masks
+from adi_model.control.dem3d import Dem3State, fig11_masks
 from adi_model.control.track_aux import build_track_plan, causality_audit
 
 
@@ -37,12 +37,12 @@ def check_a01_low_code_coverage() -> dict:
         Config(),
         chip=chip,
         nominal_codebook=NominalCodebook(0, 511, -3 + 6 * np.arange(512) / 512),
-        mask_binding=unary_rotation_masks,
+        mask_binding=fig11_masks,
     )
     n = 63 * 9
     ids = np.broadcast_to(np.arange(8), (n, 8))
     states = Dem3State.sequence(n, columns=63)
-    command = unary_rotation_masks(pool.geometry, np.full(n, 8, np.int64), states, ids)
+    command = fig11_masks(pool.geometry, np.full(n, 8, np.int64), states, ids)
     visits = command.main_on[:, 7, :].sum(axis=0)
     covered = int(np.count_nonzero(visits))
     return {
@@ -74,7 +74,7 @@ def check_a02_lsb_units() -> dict:
 
     report = nominal_conservation(
         _Stub(),
-        unary_rotation_masks,
+        fig11_masks,
         np.array([Dem3State(0, 0).to_int(), Dem3State(1, 0).to_int()]),
         reference_high_v=3.0,
         reference_low_v=-3.0,

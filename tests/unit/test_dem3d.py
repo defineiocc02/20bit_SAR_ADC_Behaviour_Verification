@@ -15,7 +15,7 @@ from adi_model.control.dem3d import (
     fig11_masks,
     nominal_conservation,
     round_robin_plan,
-    unary_rotation_masks,
+    fig11_masks,
     usage_uniformity,
 )
 from adi_model.simulation.config import ConfigError
@@ -44,25 +44,6 @@ def _fig11_pool():
     )
 
 
-def _default_pool():
-    from adi_model.simulation.config import Config
-
-    cfg = Config()
-    cap = 4.00390625e-14
-    chip = SplitChip(
-        C_main=np.full((18, 63), cap),
-        C_sub=np.full((18, 8), cap),
-        C_bridge=np.full(18, 8 * cap / 7),
-        c_p_sub=np.zeros(18),
-        c_p_main=np.zeros(18),
-        C_feedback_true=640.625e-15,
-    )
-    book = NominalCodebook(0, 511, -3 + 6 * np.arange(512) / 512)
-    return PhysicalSlicePool(
-        cfg, chip=chip, nominal_codebook=book, mask_binding=unary_rotation_masks
-    )
-
-
 def test_dem_state_round_trip_and_sequence_coverage():
     state = Dem3State(41, 11)
     assert Dem3State.from_int(state.to_int()) == state
@@ -78,31 +59,40 @@ def test_dem_state_round_trip_and_sequence_coverage():
 
 
 def test_low_code_visits_every_main_unit():
-    """外部审查 A01 的最小反例：码 8（1 个主单元）、固定物理片、一个相位周期。"""
-    pool = _default_pool()
-    ids = np.broadcast_to(np.arange(8), (63 * 9, 8))
-    states = Dem3State.sequence(63 * 9, columns=63)
-    command = unary_rotation_masks(pool.geometry, np.full(63 * 9, 8, np.int64), states, ids)
-    # 物理片 7 在组内第 7 位
-    visits = command.main_on[:, 7, :].sum(axis=0)
-    assert np.count_nonzero(visits) == 63
-    assert int(visits.max() - visits.min()) == 0
+    """低码下每片都要走遍全部 15 个 2C 列（A01 反例的 17/5 版本）。
 
-
-def test_sub_array_phases_are_uniform():
-    """外部审查 2：纵向用 16 再 %7 会让子单元使用比变成 3:2。
-
-    回归：码 1 只选 1 个子单元，一个相位周期后 7 个单元必须等频（各 648 次）。
+    17/5 阵列里可旋转的是 15 个 2C 列；一个相位周期 = columns × plan_period = 15 × 9 = 135。
+    码 32 在主段选中 1 个 2C（B5=1），固定物理片 7 在一个周期后应恰好等频访问 15 列。
+    注意：码 8 在 17/5 下只选子阵列（B3），主单元覆盖必为 0——这与 63+8 的
+    "code//8 个主单元"完全不同，是位分配的差别，不是缺陷。
     """
-    pool = _default_pool()
-    n = 63 * 9
-    plan = round_robin_plan(n)
-    states = Dem3State.sequence(n, columns=63)
-    report = usage_uniformity(pool, unary_rotation_masks, plan, states, codes=(1,))
-    counts = report["codes"]["1"]["sub_unit_counts"]
-    assert counts[-1] == 0  # 第 8 位恒接低轨
-    assert len(set(counts[:7])) == 1, counts
-    assert counts[0] == n * 8 // 7 * 63 // 63 or counts[0] > 0
+    pool = _fig11_pool()
+    n = 15 * 9
+    ids = np.broadcast_to(np.arange(8), (n, 8))
+    states = Dem3State.sequence(n, columns=15)
+    command = fig11_masks(pool.geometry, np.full(n, 32, np.int64), states, ids)
+    visits = command.main_on[:, 7, :15].sum(axis=0)
+    assert np.count_nonzero(visits) == 15
+    assert int(visits.max() - visits.min()) == 0
+    assert int(visits[0]) == n // 15  # 15 列均分：每列恰好 n/15 次
+
+
+def test_sub_array_is_binary_so_it_is_not_rotated():
+    """子阵列是二进制权，**不能**按相位轮转（轮转即改权重）。
+
+    旧实现把子阵列当成 7 位一元温度计并轮转，是 63+8 的读法。
+    FIG.11 的 8C/4C/2C/1C 是二进制，因此同一码在任何 DEM 状态下子阵列选通集合必须相同。
+    """
+    pool = _fig11_pool()
+    ids = np.broadcast_to(np.arange(8), (16, 8))
+    codes = np.array([1, 2, 4, 8, 15] * 3 + [9], np.int64)
+    assert len(codes) == 16
+    states = np.array([Dem3State(0, 0).to_int(), Dem3State(5, 7).to_int()])
+    on = fig11_masks(pool.geometry, codes, np.zeros(len(codes), np.int64), ids)
+    moved = fig11_masks(pool.geometry, codes, np.full(len(codes), states[1], np.int64), ids)
+    assert np.array_equal(on.sub_on, moved.sub_on)
+    # 且子阵列选通数 = 码的低 4 位中 1 的个数（二进制，不是温度计）
+    assert np.array_equal(on.sub_on.sum(axis=-1)[:, 0], np.array([bin(c).count("1") for c in codes]))
 
 
 def test_conservation_reports_lsb_units_not_farads():
@@ -116,7 +106,7 @@ def test_conservation_reports_lsb_units_not_farads():
 
     class _Stub:
         def __init__(self):
-            self.geometry = SplitSwitchGeometry(63, 8, 18, 8, 0, 511)
+            self.geometry = SplitSwitchGeometry(17, 5, 18, 8, 0, 511)
 
         def split_coefficients(self, ids):
             return {"c_signal": np.full(len(ids), c_norm_f)}
@@ -126,7 +116,7 @@ def test_conservation_reports_lsb_units_not_farads():
 
     report = nominal_conservation(
         _Stub(),
-        unary_rotation_masks,
+        fig11_masks,
         np.array([Dem3State(0, 0).to_int(), Dem3State(1, 0).to_int()]),
         reference_high_v=3.0,
         reference_low_v=-3.0,
@@ -195,25 +185,41 @@ def test_broken_vertical_selection_breaks_conservation():
 
 
 def test_unary_rotation_preserves_nominal_weight():
-    pool = _default_pool()
+    pool = _fig11_pool()
     report = nominal_conservation(
-        pool, unary_rotation_masks, Dem3State.sequence(240),
+        pool, fig11_masks, Dem3State.sequence(240),
         reference_high_v=3.0, reference_low_v=-3.0,
     )
     assert report["conserved"], report
 
 
 def test_usage_uniformity_covers_low_mid_and_full_codes():
-    pool = _default_pool()
-    plan = round_robin_plan(63 * 8)
-    states = Dem3State.sequence(63 * 8, columns=63)
-    report = usage_uniformity(
-        pool, unary_rotation_masks, plan, states, codes=(8, 255, 511)
-    )
-    assert report["uniform"], report
-    for code, row in report["codes"].items():
-        assert row["main_units_covered"] == 63, code
-        assert row["uniform"], (code, row["main_range"])
+    """17/5 下的使用均匀性：15 个 2C 必须逐片逐单元等频，B4/S4 两个 1C 不对称。
+
+    实测（码 255、n=135、物理片聚合）：
+    * 15 个 2C 单元各 504 次 —— 严格等频，A01 类混叠在 17/5 上不成立；
+    * B4 的 1C（unit 15）1080 次、S4 的 1C（unit 16）0 次 —— 因为原件 FIG.17 把 B4
+      画成**固定步**（不随相位轮转），而 S4 的编码规则图上未给（本仓库标"待确认"，不启用）。
+    这两条是真实结构差异，不是缺陷；`uniform=False` 正是它被如实报出来的方式。
+    """
+    pool = _fig11_pool()
+    n = 15 * 9
+    plan = round_robin_plan(n)
+    states = Dem3State.sequence(n, columns=15)
+    report = usage_uniformity(pool, fig11_masks, plan, states, codes=(32, 255, 511))
+
+    twos = report["codes"]["255"]["main_unit_counts"][:15]
+    assert len(set(twos)) == 1, twos
+    # 504 = n/15 × 56 = 9 × 56，与"每个 2C 单元被 56 个码级周期覆盖"一致；
+    # 写死实测值是为了让任何"偷偷改相位步长"的改动立刻失败。
+    assert twos[0] == 504, twos
+    assert report["codes"]["255"]["main_unit_counts"][15] == 1080
+    assert report["codes"]["255"]["main_unit_counts"][15] > twos[0]
+    assert report["codes"]["255"]["main_unit_counts"][16] == 0
+    assert report["codes"]["255"]["uniform"] is False
+
+    assert report["codes"]["511"]["uniform"] is True
+    assert report["codes"]["511"]["main_units_covered"] == 16
 
 
 def test_round_robin_rejects_overlapping_or_oversized_windows():
@@ -227,7 +233,7 @@ def test_round_robin_rejects_overlapping_or_oversized_windows():
 
 
 def test_fig11_masks_reject_wrong_geometry():
-    pool = _default_pool()
+    pool = _fig11_pool()
     with pytest.raises(ConfigError):
         fig11_masks(pool.geometry, np.array([0]), np.array([0]), np.zeros((1, 8), np.int64))
 

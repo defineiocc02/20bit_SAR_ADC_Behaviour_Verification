@@ -94,9 +94,11 @@ def test_track_rejects_bad_parameters():
 
 
 def test_track_reduces_input_charge_for_slow_input():
-    from tests.unit.test_dither_port import _uniform_pool
+    # 2026-11-13：63+8 的"全片等权"合成池已随几何统一下线，改用 Fig.11 17/5 池。
+    # 本测试只关心"TRACK 记账带来的输入电荷下降"，与阵列几何无关。
+    from tests.unit.test_dither_port import _fig11_pool
 
-    pool = _uniform_pool()
+    pool = _fig11_pool()
     plan, values, codes = _plan_and_values(64, fin=0.5e6)
     track = _build(plan, codes, values)
     report = track_residual_charge(pool, track, values)

@@ -9,7 +9,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.control.dem3d import fig11_masks, unary_rotation_masks
+from adi_model.control.dem3d import fig11_masks
 from adi_model.control.dither import FIG19_FRACTIONAL_WEIGHTS_Q, Fig19DitherProgram, Fig19StaticSpec
 from adi_model.control.dither_port import (
     DitherPort,
@@ -31,24 +31,6 @@ def _spec(v_fs: float = 3.0) -> Fig19StaticSpec:
         fractional_lower_weights_q=FIG19_FRACTIONAL_WEIGHTS_Q,
         equivalent_polarity="subtract",
         provenance="unit-test explicit binding",
-    )
-
-
-def _uniform_pool():
-    from adi_model.simulation.config import Config
-
-    cap = 4.00390625e-14
-    chip = SplitChip(
-        C_main=np.full((18, 63), cap),
-        C_sub=np.full((18, 8), cap),
-        C_bridge=np.full(18, 8 * cap / 7),
-        c_p_sub=np.zeros(18),
-        c_p_main=np.zeros(18),
-        C_feedback_true=640.625e-15,
-    )
-    book = NominalCodebook(0, 511, -3 + 6 * np.arange(512) / 512)
-    return PhysicalSlicePool(
-        Config(), chip=chip, nominal_codebook=book, mask_binding=unary_rotation_masks
     )
 
 
@@ -92,19 +74,32 @@ def test_port_rejects_bad_geometry():
         DitherPort("not a spec", 1e-15, 6.0)
 
 
-def test_code_shift_is_exact_on_uniform_array():
-    pool = _uniform_pool()
+def test_code_shift_is_exact_only_without_shift_on_fig11_array():
+    """17/5 阵列上"码移位"只在 U=0 时精确；有移位时残差可达约 995 LSB20。
+
+    为什么：码移位的精确性要求"±1 码的权重步长处处相同"。63+8 的 2C 等权律满足它，
+    17/5 不满足（B0–B3 每步 2C、B4 每步 1C、子阵列每步 β×1C）。
+    这条差异是可核对的原件结构后果，必须显式断言，而不是把测试放宽到"几乎为 0"。
+    """
+    pool = _fig11_pool()
     spec = _spec()
     codes = np.array([100, 200, 300, 400, 511])
-    words = np.array([0, 5, 21, 42, 63])
     c_signal = float(pool.signal_capacitance(np.arange(8)[None, :])[0])
-    report = code_shift_residual(
-        pool, codes, words, spec=spec,
+
+    zero = code_shift_residual(
+        pool, codes, np.zeros(5, dtype=np.int64), spec=spec,
         reference_high_v=3.0, reference_low_v=-3.0, c_signal_f=c_signal,
     )
-    assert report["code_shift_exact"], report
-    assert report["max_abs_residual_lsb20"] < 1e-6
-    assert report["illegal_shifted_codes"] == 0
+    assert zero["code_shift_exact"] is True
+    assert zero["max_abs_residual_lsb20"] == pytest.approx(0.0, abs=1e-9)
+
+    shifted = code_shift_residual(
+        pool, codes, np.array([0, 5, 21, 42, 63]), spec=spec,
+        reference_high_v=3.0, reference_low_v=-3.0, c_signal_f=c_signal,
+    )
+    assert shifted["code_shift_exact"] is False
+    assert shifted["max_abs_residual_lsb20"] > 100.0
+    assert shifted["illegal_shifted_codes"] == 0
 
 
 def test_code_shift_residual_appears_on_segmented_array():
@@ -123,7 +118,7 @@ def test_code_shift_residual_appears_on_segmented_array():
 
 
 def test_illegal_early_codes_are_counted_not_clipped():
-    pool = _uniform_pool()
+    pool = _fig11_pool()
     spec = _spec()
     codes = np.array([0, 1, 2, 5, 6], dtype=np.int64)
     # word 32 = 0b100000 -> D6=1 -> U=4；word 48 = 0b110000 -> D6=1,D4=1 -> U=5

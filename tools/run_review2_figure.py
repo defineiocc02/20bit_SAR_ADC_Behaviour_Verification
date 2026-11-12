@@ -1,7 +1,7 @@
 """第二轮审查处置图（F13）：子阵列相位偏置的修复前后 + 可辨识性实验对照。
 
 数据来源：
-* 左图：本仓库 `dem3d.unary_rotation_masks`，纵向周期 16（旧）vs 7（新），码 1；
+* 左图：本仓库 `dem3d.fig11_masks`，纵向周期 16（旧）vs 7（新），码 1；
 * 右图：`mask_calibration.fit_element_weights` 的四种设计矩阵形式在本仓库全节点 plant 上的残差。
 
 运行：
@@ -31,7 +31,7 @@ from adi_model.calibration.mask_calibration import _mask_matrix  # noqa: E402
 from adi_model.control.dem3d import (  # noqa: E402
     Dem3State,
     round_robin_plan,
-    unary_rotation_masks,
+    fig11_masks,
 )
 
 
@@ -41,7 +41,7 @@ def _sub_counts(vertical: int) -> list[int]:
     n = 9072 if vertical == 16 else 63 * 9
     plan = round_robin_plan(n)
     states = Dem3State.sequence(n, columns=63, vertical=vertical)
-    command = unary_rotation_masks(pool.geometry, np.full(n, 1, np.int64), states, plan.conv)
+    command = fig11_masks(pool.geometry, np.full(n, 1, np.int64), states, plan.conv)
     # 必须按**单个物理片**统计：聚合会把"某片只用 3 个单元"平均掉，
     # 正是审查指出的"聚合计数不能证明逐片覆盖"。
     counts = np.zeros(pool.geometry.n_sub, dtype=int)

@@ -40,7 +40,7 @@ from adi_model.behavioral.ra_az import OrdinaryAZConfig, apply_ordinary_az  # no
 from adi_model.control.dem3d import (  # noqa: E402
     Dem3State,
     round_robin_plan,
-    unary_rotation_masks,
+    fig11_masks,
 )
 from adi_model.control.dither import (  # noqa: E402
     FIG19_FRACTIONAL_WEIGHTS_Q,
@@ -75,7 +75,7 @@ def _pool(model, plan):
         model.cfg,
         chip=model.chip,
         nominal_codebook=model.codebook,
-        mask_binding=unary_rotation_masks,
+        mask_binding=fig11_masks,
         acquisition_binding=None,
         schedule_binding=plan,
     )
@@ -163,7 +163,7 @@ def figure_dynamics(out: Path, *, n: int = 32) -> dict:
         cfg,
         chip=model.chip,
         nominal_codebook=model.codebook,
-        mask_binding=unary_rotation_masks,
+        mask_binding=fig11_masks,
         acquisition_binding=_all_signal,
         schedule_binding=plan,
     )
@@ -471,7 +471,7 @@ def figure_dem_usage(model, out: Path) -> dict:
     data = {}
     for column, code in enumerate(codes):
         ax = fig.add_subplot(grid[0, column])
-        command = unary_rotation_masks(pool.geometry, np.full(n, code, np.int64), new_states, plan.conv)
+        command = fig11_masks(pool.geometry, np.full(n, code, np.int64), new_states, plan.conv)
         counts = np.zeros((18, 63), dtype=int)
         for pos in range(plan.conv.shape[1]):
             np.add.at(counts, plan.conv[:, pos], command.main_on[:, pos, :].astype(int))
@@ -494,7 +494,7 @@ def figure_dem_usage(model, out: Path) -> dict:
     ):
         covered = []
         for code in codes:
-            command = unary_rotation_masks(pool.geometry, np.full(n, code, np.int64), states, plan.conv)
+            command = fig11_masks(pool.geometry, np.full(n, code, np.int64), states, plan.conv)
             counts = np.zeros((18, 63), dtype=int)
             for pos in range(plan.conv.shape[1]):
                 np.add.at(counts, plan.conv[:, pos], command.main_on[:, pos, :].astype(int))

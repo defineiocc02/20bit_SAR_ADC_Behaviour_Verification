@@ -307,7 +307,23 @@ def _static(model, *, dem: bool, uniform_plan: bool, points: int = 1024, repeats
     }
 
 
-def _train_calibration(model, *, points: int = 8200, dem: bool = False):
+#: 逐码校准的默认训练点数。
+#:
+#: 2026-11-13 实测（σ=1e-4、噪声开、512 点静态）：
+#:   | 训练点 | 每码最少样本 | 校准后 INL |
+#:   |  8 200 |     13      |   6.23 ← 比不校准(3.21)还差
+#:   | 16 400 |     24      |   3.96 ← 仍差
+#:   | 32 800 |     48      |   2.91 ← 开始变好
+#:   | 60 000 |     89      |   2.33 ← 最好
+#: 原因是每码样本太少时 LUT 会拟合到该次噪声实例，测试时噪声换批就修正错了方向。
+#: 取 60000：留足余量，训练耗时约 18 s（可接受）。
+DEFAULT_TRAINING_POINTS = 60000
+
+#: 每码最少训练样本数的告警线。低于它时 LUT 可能拟合到噪声实例而非系统误差。
+MIN_SAMPLES_PER_CODE = 40
+
+
+def _train_calibration(model, *, points: int = DEFAULT_TRAINING_POINTS, dem: bool = False):
     """用独立已知斜坡拟合逐码修正表；返回 (CodeCorrection, 训练诊断)。
 
     这是论文里 "coefficients derived externally" 的那一步在输出域的实现：
@@ -344,6 +360,9 @@ def _train_calibration(model, *, points: int = 8200, dem: bool = False):
         "min_samples_per_code": correction.min_count,
         "residual_rms_uv": correction.residual_rms_v * 1e6,
         "training_levels": int(points),
+        # 训练是否足够：每码样本数太少时 LUT 会拟合噪声，校准反而变差。
+        # 实测阈值在每码 ~48 样本（INL 开始低于不校准），取 40 作为告警线。
+        "training_sufficient": bool(correction.min_count >= MIN_SAMPLES_PER_CODE),
         "identifiable": "per-code output correction; per-element weights are NOT identifiable",
     }
 

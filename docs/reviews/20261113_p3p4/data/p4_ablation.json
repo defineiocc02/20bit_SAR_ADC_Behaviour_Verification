@@ -63,12 +63,12 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 1.92,
+      "runtime_s": 1.93,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
       "id": "A1_mismatch",
-      "label": "仅失配：sigma=1e-3，无噪声、无 DEM",
+      "label": "仅失配：sigma=论文反解值，无噪声、无 DEM",
       "mismatch_std": 0.0001,
       "noise": false,
       "dem": false,
@@ -105,7 +105,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 2.05,
+      "runtime_s": 2.01,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -147,7 +147,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 2.15,
+      "runtime_s": 2.07,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -189,7 +189,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 2.09,
+      "runtime_s": 2.08,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -231,7 +231,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 1.94,
+      "runtime_s": 1.96,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -245,11 +245,12 @@
       "status": "RUN",
       "training": {
         "dem_mode": false,
-        "training_samples": 8200,
+        "training_samples": 60000,
         "covered_codes": 512,
-        "min_samples_per_code": 13,
-        "residual_rms_uv": 117.0091057134017,
-        "training_levels": 8200,
+        "min_samples_per_code": 89,
+        "residual_rms_uv": 107.17877545969068,
+        "training_levels": 60000,
+        "training_sufficient": true,
         "identifiable": "per-code output correction; per-element weights are NOT identifiable"
       },
       "static_before": {
@@ -287,12 +288,12 @@
         "points": 512,
         "repeats": 8,
         "lsb20_v": 5.7220458984375e-06,
-        "inl_max_lsb20": 5.994550264874765,
-        "inl_max_ppm_fs": 5.716848626017346,
-        "offset_v": -1.1011185563214727e-05,
-        "gain_err": -1.5844710105569058e-07,
-        "sigma_e_mean_lsb20": 6.778207672856294,
-        "dnl_bin_lsb20_max": 7.508840382914059,
+        "inl_max_lsb20": 2.292309682144153,
+        "inl_max_ppm_fs": 2.1861168691102533,
+        "offset_v": -1.0063494245908686e-05,
+        "gain_err": -3.710439319005492e-07,
+        "sigma_e_mean_lsb20": 6.777495060183529,
+        "dnl_bin_lsb20_max": 3.006502483971417,
         "dnl_bin_span_lsb20": 2021,
         "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
         "input_span_v": 5.91,
@@ -302,19 +303,19 @@
       "dynamic": {
         "fin_hz": 1015625.0,
         "n_samples": 1024,
-        "sndr_db": 94.7111623780237,
-        "snr_db": 94.83381342207666,
-        "sfdr_db": 109.80952964025659,
-        "thd_db": -103.47734469253247,
-        "enob": 15.440392421598622,
-        "nsd_v_rthz_full": 8.589452506755371e-09,
+        "sndr_db": 94.8369869676174,
+        "snr_db": 94.94181210440988,
+        "sfdr_db": 110.13530874194105,
+        "thd_db": -103.86723306636817,
+        "enob": 15.461293516215516,
+        "nsd_v_rthz_full": 8.48331461053602e-09,
         "dr_db": 94.33470308636353,
         "nsd_v_rthz_dr": 9.10659672415572e-09,
         "noise_rms_small_v": 4.072593863777818e-05,
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 6.75,
+      "runtime_s": 22.83,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -357,7 +358,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 2.23,
+      "runtime_s": 2.28,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -371,11 +372,12 @@
       "status": "RUN",
       "training": {
         "dem_mode": false,
-        "training_samples": 8200,
+        "training_samples": 60000,
         "covered_codes": 512,
-        "min_samples_per_code": 13,
-        "residual_rms_uv": 117.0091057134017,
-        "training_levels": 8200,
+        "min_samples_per_code": 89,
+        "residual_rms_uv": 107.17877545969068,
+        "training_levels": 60000,
+        "training_sufficient": true,
         "identifiable": "per-code output correction; per-element weights are NOT identifiable"
       },
       "static_before": {
@@ -413,12 +415,12 @@
         "points": 512,
         "repeats": 8,
         "lsb20_v": 5.7220458984375e-06,
-        "inl_max_lsb20": 6.605835839658578,
-        "inl_max_ppm_fs": 6.299815978678301,
-        "offset_v": -7.496192776940129e-06,
-        "gain_err": -1.506654508607963e-06,
-        "sigma_e_mean_lsb20": 7.226959065554067,
-        "dnl_bin_lsb20_max": 7.508840382914059,
+        "inl_max_lsb20": 3.628700071390815,
+        "inl_max_ppm_fs": 3.460598060026946,
+        "offset_v": -6.5485014596340935e-06,
+        "gain_err": -1.7192513394528196e-06,
+        "sigma_e_mean_lsb20": 7.226661719502954,
+        "dnl_bin_lsb20_max": 4.122667093140383,
         "dnl_bin_span_lsb20": 2021,
         "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
         "input_span_v": 5.91,
@@ -428,19 +430,19 @@
       "dynamic": {
         "fin_hz": 1015625.0,
         "n_samples": 1024,
-        "sndr_db": 94.11606574043951,
-        "snr_db": 94.36113967886794,
-        "sfdr_db": 109.91974041915299,
-        "thd_db": -102.94915951964185,
-        "enob": 15.341539159541448,
-        "nsd_v_rthz_full": 9.069822490636402e-09,
+        "sndr_db": 94.26833577822977,
+        "snr_db": 94.4701975370337,
+        "sfdr_db": 110.97163264975612,
+        "thd_db": -103.52349234646007,
+        "enob": 15.366833185752453,
+        "nsd_v_rthz_full": 8.956656512295688e-09,
         "dr_db": 93.78709081765565,
         "nsd_v_rthz_dr": 9.699217944442857e-09,
         "noise_rms_small_v": 4.337622130472002e-05,
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 6.9,
+      "runtime_s": 23.09,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -483,7 +485,7 @@
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 2.28,
+      "runtime_s": 2.3,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {
@@ -498,11 +500,12 @@
       "status": "RUN",
       "training": {
         "dem_mode": false,
-        "training_samples": 8200,
+        "training_samples": 60000,
         "covered_codes": 512,
-        "min_samples_per_code": 13,
-        "residual_rms_uv": 117.0091057134017,
-        "training_levels": 8200,
+        "min_samples_per_code": 89,
+        "residual_rms_uv": 107.17877545969068,
+        "training_levels": 60000,
+        "training_sufficient": true,
         "identifiable": "per-code output correction; per-element weights are NOT identifiable"
       },
       "static_before": {
@@ -540,12 +543,12 @@
         "points": 512,
         "repeats": 8,
         "lsb20_v": 5.7220458984375e-06,
-        "inl_max_lsb20": 4058.298587947154,
-        "inl_max_ppm_fs": 3870.295131632952,
-        "offset_v": -0.023882683939630465,
-        "gain_err": 5.622028979959523e-05,
-        "sigma_e_mean_lsb20": 3878.5320319486395,
-        "dnl_bin_lsb20_max": 6399.9099170952495,
+        "inl_max_lsb20": 4058.750640132323,
+        "inl_max_ppm_fs": 3870.726242191623,
+        "offset_v": -0.023881898140693227,
+        "gain_err": 5.6235439722451653e-05,
+        "sigma_e_mean_lsb20": 3878.517428869007,
+        "dnl_bin_lsb20_max": 6399.75858542944,
         "dnl_bin_span_lsb20": 1957,
         "dnl_bin_note": "differential metric at the ramp step granularity, not 20b code-density DNL",
         "input_span_v": 5.7225,
@@ -555,19 +558,19 @@
       "dynamic": {
         "fin_hz": 1015625.0,
         "n_samples": 1024,
-        "sndr_db": 39.44188833035551,
-        "snr_db": 39.54986283940756,
-        "sfdr_db": 53.696020284714464,
-        "thd_db": -50.44818990270629,
-        "enob": 6.259449888763375,
-        "nsd_v_rthz_full": 4.832773073211077e-06,
-        "dr_db": 39.792073351286376,
-        "nsd_v_rthz_dr": 4.8583364967164145e-06,
-        "noise_rms_small_v": 0.021727141328452174,
+        "sndr_db": 39.441833872185825,
+        "snr_db": 39.54978750876549,
+        "sfdr_db": 53.697732260073536,
+        "thd_db": -50.44759120568034,
+        "enob": 6.259440842555786,
+        "nsd_v_rthz_full": 4.832815327461968e-06,
+        "dr_db": 39.792106148139055,
+        "nsd_v_rthz_dr": 4.858318152269023e-06,
+        "noise_rms_small_v": 0.021727059289589422,
         "coherent": true,
         "harmonics_reliable": true
       },
-      "runtime_s": 6.99,
+      "runtime_s": 23.77,
       "evidence_level": "L1 behavioral (float), no RTL/post-layout/silicon"
     },
     {

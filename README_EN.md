@@ -1,8 +1,33 @@
 # 20-bit / 40 MS/s SAR ADC: behavior, static calibration and digital implementation
 
-[中文](README.md) · [Status](docs/STATUS.md) · [Digital status matrix](docs/digital_status_matrix.md) · [Source map](docs/current_digital_source_map.md) · [Papers and slides](references/README.md)
+[中文](README.md) · [Status](docs/STATUS.md) · [Digital status matrix](docs/digital_status_matrix.md) · [Source map](docs/current_digital_source_map.md) · [Papers and slides](references/README.md) · [Acceptance report (CN)](docs/ACCEPTANCE_20261112.md)
 
-> The current implementation uses explicit source binding and ABI2. The Python static calibration, actual RTL static loop and Fig.19 event counterexample have separate rerun evidence. Earlier model results are archived separately.
+> **Which page is authoritative.** `README.md` (Chinese) is the maintained front page and
+> carries the current patent-by-patent mapping and ablation numbers. This English page still
+> frames the project around the earlier *static-calibration* deliverables, so parts of it lag
+> behind. Where the two disagree, the Chinese page and the JSON data under
+> `docs/reviews/20261113_p3p4/` win.
+
+## Update 2026-11-12: package layout, dither in the main loop, refreshed figures
+
+* **Layout.** `src/adi_model/` is now split into `contracts/ topology/ control/ behavioral/
+  calibration/ simulation/ metrics/`. 43 modules moved; a SHA256 behavior fingerprint over
+  12 output arrays is **bit-identical** before and after, and the A0–A5 ablation numbers are
+  unchanged to the last digit.
+* **Dither is now in the loop.** A second topology (`dither_port=`, "charge port") injects the
+  dither word at the *sampling node*, keeps the RDAC code at the decided value, and subtracts
+  `T` digitally. Unlike the older code-shift path it works with the real segmented codebook,
+  device mismatch and thermal noise, so ablation config **A6 changed from `NOT_RUN` to `RUN`**.
+* **Measured effect (same chip, seed 20261105, σ = 1e-3, 256 levels × 32 repeats).**
+  INL 24.5 → 20.5 LSB20 (−16%), binned DNL 16.5 → 5.9 LSB20 (−64%), at the cost of
+  SNDR −0.53 dB, **SFDR −1.34 dB (worse)**, and 0.188 V of usable input range (−3.2%).
+  Dither helps DNL most; it does not flatten the INL bow — DEM and calibration do that.
+* **Figures regenerated.** All 12 review figures now carry `source_sha = 38df6a7`; the previous
+  copies were produced 12 commits earlier and were stale evidence.
+* **Read the limitations before quoting anything.** DNL is still measured at ramp-step
+  granularity, *not* as 20-bit code-density DNL. A7 (full dynamic path) remains `NOT_RUN`
+  because the engine refuses to emit a scalar diagnostic once reference/RA/ADC2 settling is
+  active. No RTL was re-run this round.
 
 ## Purpose and scope
 

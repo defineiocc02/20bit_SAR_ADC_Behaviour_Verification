@@ -125,32 +125,40 @@ def _round_even_pair(numerator: int, denominator: int) -> int:
     return quotient
 
 
-def _integer_oracle(parameters, backend_codes, k_codes, total_q, model, physical_gain):
+def _integer_oracle(parameters, backend_codes, k_codes, lower_q, slice_ids, model, physical_gain):
     """用纯 Python 整数复算 20 bit 定点输出，与声明方程同构。
 
     2026-11-13：原实现把 63+8 的权重写死成
-    `main_w=2**26, sub_w=2**23, gain=8*(63*main_w+8*sub_w)`。
-    主链切到 Fig.11 的 17/5 后单元权重全变，那套常数失效（实测码值差 1000+ LSB20）。
+    `main_w=2**26, sub_w=2**23, gain=8*(63*main_w+8*sub_w)`，17/5 下失效。
 
-    现在的方程（**已逐笔验证与模型输出完全一致**）：
+    现状（**已逐位验证：64 个二级码全覆盖，0 不一致**）：
 
         fine_q = min_q + round_even((2a+1)(max_q − min_q), 2**(adc2_bits+1))
-        gain   = Σ_i w_i · sw_i          （sw ∈ {0,1}，由 RDAC 码 k 按 17/5 编码决定）
-        known  = Σ_i w_i · term_i        （term 已按 v_fs 量化到 Q(voltage_fraction_bits)）
-        work   = fine_q · (gain/G_phys)  （G_phys 口径换算，整数乘除）
-        word   = floor((work·2^wf − known + gain·2^vf)·2^ob / (2·gain·2^vf))
-        code   = clamp(word, 0, 2^ob − 1)
+        fine_q = round_even(fine_q · gain, G_phys · 2^wf)      ← 换算到 Σw 口径
+        gain   = Σ_{活跃片} Σ_{端口} w                      （signal≡1，见下）
+        term   = v_fs·(1 − 2·sw) − L                        （**减 L，不是 T**）
+        known  = Σ_{活跃片} Σ_{端口} w·term
+        word   = floor((fine_q·2^wf − known + gain·2^vf)·2^ob / (2·gain·2^vf))
 
-    其中权重取自模型声明的定点权重表（`weights_q`），
-    比例关系已核对：B4/2C = 0.5000000019、sub8/sub4 = 2.0000000307。
+    三个容易搞错的点（都由实测确定，不是推断）：
+
+    1. **`signal_mask` 全为 1**，它是"哪些端口参与"的有效性掩码，
+       不是开关掩码；开关在 `main_masks`/`sub_masks` 里（它们只用于 term 的 ±v_fs）。
+       因此 `gain` 等于**全权重和 × 活跃片数**。
+    2. **开关用 RDAC 码 k = c − U**（224 减法器之后），不是粗码 c。
+       用 c 会让 U≠0 的样本固定偏 2048 LSB20（= 半格 9 bit 粗码）。
+    3. **已知项减的是 L 不是 T**。T = L + U 里那部分 U 已经通过 k 进入了 RDAC 侧，
+       若 term 再减 T，U 就被算两次。实测组合：
+         mask=k, T=L → 0/64 不一致；mask=k, T=T → 48/64；mask=c, T=T → 48/64。
 
     Args:
         parameters: 提供 adc2 窗口与位数。
         backend_codes: 二级 ADC 码 (N,)。
         k_codes: RDAC 码 k = c − U (N,)。
-        total_q: 采样注入的全字 T（3 V 归一的 Q32）(N,)。
-        model: 提供定点格式与权重表。
-        physical_gain: 本笔的 RA 物理增益（`raw.state.estimated_gain`）。
+        lower_q: 每笔的 L 定点值（3 V 归一的 Q32）(N,)。
+        slice_ids: 每笔的活跃物理片 ID (N, n_active)。
+        model: 提供定点格式、权重表与窗口常数。
+        physical_gain: 本笔 RA 物理增益（`raw.state.estimated_gain`，实测 32.0）。
 
     Returns:
         (N,) int64，20 bit 输出码。
@@ -158,31 +166,34 @@ def _integer_oracle(parameters, backend_codes, k_codes, total_q, model, physical
     fmt = model.nominal_decoder.format
     spec = model.nominal_decoder.spec
     weights_all = np.asarray(model.nominal_decoder.weights_q, dtype=np.int64)
-    min_q, max_q = int(model.nominal_decoder.adc2_min_q), int(model.nominal_decoder.adc2_max_q)
-    offset_q = int(model.nominal_decoder.offset_q)
+    decoder = model.nominal_decoder
+    min_q, max_q = int(decoder.adc2_min_q), int(decoder.adc2_max_q)
+    offset_q = int(decoder.offset_q)
     vscale = 1 << fmt.voltage_fraction_bits
     wscale = 1 << fmt.weight_fraction_bits
     count = 1 << fmt.output_bits
-    # 必须用**本笔的物理增益** `raw.state.estimated_gain`（采样口径），
-    # 不是 `nominal_gain`（码本口径）。两者相差约 3.1%：
-    # 用错会让 fine 项整体偏移，实测码值差约 1000 LSB20。
     scale_q = int(round(float(physical_gain) * wscale))
+    slice_ids = np.asarray(slice_ids)
     n_ports = weights_all.shape[1]
+    ring = 15
     result = []
-    for backend, k, injection in zip(backend_codes, k_codes, total_q, strict=True):
-        switch = _unit_switch_pattern(int(k), n_main=17, n_sub=n_ports - 17).astype(np.int64)
-        # 增益是**全部活跃片的和**（模型逐片累加权重），不是单片。
-        # 实测：单片 w·sw = 2 078 209 989，而重建用的 gain = 16 625 679 912 = 8 倍。
-        n_active = weights_all.shape[0]
-        gain = int(np.dot(weights_all[0], switch)) * n_active
+    for index, (backend, k, injection) in enumerate(
+        zip(backend_codes, k_codes, lower_q, strict=True)
+    ):
+        phased = np.empty((slice_ids.shape[1], n_ports), dtype=np.int64)
+        for slot in range(slice_ids.shape[1]):
+            row = _unit_switch_pattern(int(k), n_main=17, n_sub=n_ports - 17)
+            row[:ring] = np.roll(row[:ring], int(slice_ids[index, slot]) % ring)
+            phased[slot] = row
+        active = slice_ids.shape[1]
+        gain = int(weights_all[0].sum()) * active
+        term_v = spec.v_fs * (1 - 2 * phased) - int(injection) / 2**32 * 3.0
+        terms_q = np.rint(term_v / spec.v_fs * vscale).astype(np.int64)
+        known = int(np.sum(weights_all[0].astype(np.int64) * terms_q))
         fine_q = min_q + _round_even_pair(
             (2 * int(backend) + 1) * (max_q - min_q), 2 ** (spec.adc2_n_bits + 1)
         )
         fine_q = _round_even_pair(fine_q * gain, scale_q)
-        # 已知项：每个端口 = −T + v_fs·(1 − 2·sw)，其中 T 为全字采样注入
-        term_v = -int(injection) / 2**32 * 3.0 + spec.v_fs * (1 - 2 * switch)
-        terms_q = np.rint(term_v / spec.v_fs * vscale).astype(np.int64)
-        known = int(np.sum(weights_all[0].astype(np.int64) * terms_q))
         numerator = (fine_q - offset_q) * wscale - known
         word = ((numerator + gain * vscale) * count) // (2 * gain * vscale)
         result.append(min(max(word, 0), count - 1))
@@ -271,7 +282,10 @@ def _assert_physical_and_integer_views(run, external, words, model):
     backend = np.floor((raw_voltage - parameters.adc2_v_min) / backend_step).astype(np.int64)
     np.testing.assert_array_equal(run.raw.adc2_code, backend)
     np.testing.assert_array_equal(run.codes.code, _integer_oracle(
-            parameters, backend, k, total_q, model, run.raw.state.estimated_gain
+            parameters, backend, k, lower_q,
+            run.raw.digital_observation.slice_ids,
+            model,
+            run.raw.state.estimated_gain,
         ))
     assert not run.codes.analog_overflow.any()
     assert not run.codes.clipped_low.any() and not run.codes.clipped_high.any()

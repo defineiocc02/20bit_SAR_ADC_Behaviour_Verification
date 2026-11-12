@@ -363,3 +363,53 @@ PATH 里的 `/usr/bin/tclsh` 是真实 tclsh（不是当时临时做的 shim）�
 每次环境变化后应重新试跑被排除的测试。
 本轮之所以发现，是因为主动去跑了那两个文件——
 它们不在任何常规检查里。
+
+---
+
+## 10. 测试范围两次不完整的教训（2026-11-13）
+
+### 10.1 第一次：排除清单过期（§9）
+
+排除 2 个文件（138 个测试），理由是早期 tclsh 环境问题。环境修好后清单没更新。
+
+### 10.2 第二次：只跑部分目录
+
+本会话全程只跑 `tests/unit` + `tests/verification`，而仓库里还有：
+
+| 目录 | 文件数 | 本会话此前 |
+|:---|:---:|:---|
+| `tests/audit/` | 2 | **从未运行** |
+| `tests/regression/` | 5 | **从未运行** |
+| `tests/integration/` | 10 | **从未运行** |
+
+首次运行：**9 failed + 47 errors**。
+
+### 10.3 已修 8 项
+
+全部是本会话改动导致或暴露的过时断言：
+
+| 文件 | 问题 |
+|:---|:---|
+| `test_audit_findings.py` | `reconstruct()` 未传 `physical_gain`，与 simulate 路径不同口径 |
+| `test_review_contracts.py` | 旋转测试对整个 17 列 `np.roll`，把 B4/S4 卷进选中集 → 权重不守恒 → RA 限幅 |
+| `test_engineering_defaults.py` ×6 | adc2 位数 12→14、名义增益 32→31.028、电容 20.5→19.878 pF、阈值末位 3.0→3.0117 等 |
+
+### 10.4 剩余 6 项（已定位，未修）
+
+* `test_fig19_static_ports.py`（5）：8/64 元素不匹配
+* `test_mutation_twoneck.py`（1）
+* `test_source_bound_replay.py`（47 errors）：需 VERILATOR，本机无
+
+### 10.5 验证脚本已全覆盖
+
+`verify_clean_clone.sh` 现在跑四个目录 + integration（仅排除需 VERILATOR 的那个文件）。
+**当前 integration 那组会如实报 FAIL**——剩余 6 个问题尚未解决，脚本不掩盖。
+
+### 10.6 教训
+
+两次不完整都不是"故意隐瞒"，而是**默认范围从来没人检查过**：
+
+* 第一次是排除参数写着，但没人定期重试；
+* 第二次是我沿用了前几轮的命令，而没有去问"仓库里还有哪些测试目录"。
+
+**修复方式**：把"跑全部测试"写进脚本，而不是依赖记忆里的命令。

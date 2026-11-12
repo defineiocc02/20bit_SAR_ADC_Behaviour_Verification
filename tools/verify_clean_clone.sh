@@ -103,7 +103,14 @@ if [ -n "${SKIP_HEAVY:-}" ]; then
   echo
   echo "SKIP  heavy checks 6-7 (SKIP_HEAVY set)"
 else
-  note "6. ablation matrix"
+  note "5b. trace_one_sample (README §7 command)"
+if PYTHONPATH=src "$PYTHON" tools/trace_one_sample.py --out "$WORK/trace" >/dev/null 2>&1; then
+  ok "trace_one_sample"
+else
+  bad "trace_one_sample"
+fi
+
+note "6. ablation matrix"
   MAT="$WORK/mat"
   if PYTHONPATH=src:. "$PYTHON" tools/run_p4_ablation.py \
        --dynamic-n 1024 --static-points 512 --out "$MAT" >/dev/null 2>&1; then

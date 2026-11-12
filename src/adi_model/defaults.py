@@ -315,13 +315,28 @@ class DefaultModel:
         # 2026-11-13 修正：原来每个单元都按 1C 给权重，在 63+8（全 1C 单元）下成立，
         # 换到 17/5 后权重比应为 2:1 与 8:4:2:1，否则名义重构分辨率直接错位
         # （实测零输入时 vd 偏 0.09 V）。
-        main_w_norm = np.asarray(MAIN_WEIGHTS, dtype=float) * p.unit_cap_f / p.feedback_cap_f
+        # 主阵列 17 列里，S4（最后一列 1C）**从不被码选中**，与子阵列哑位同类：
+        # 它在 known_voltage_term 里恒为 -V_D，若给真实权重就会注入固定偏置。
+        # 2026-11-13：权重要求 Σ = 31 + β·15 = 31.9375 C（与码本分母 cn 同源），
+        # 而 MAIN_WEIGHTS 的和是 32C（含 S4）—— 直接相乘会让 Σ 偏大 1C，
+        # 使 vd0 从 -0.0059 偏到 -0.0968、增益误差 -2.88%。故把 S4 权重置为极小。
+        _tiny = 2.0 / 2**p.format.weight_fraction_bits
+        main_w_eff = np.asarray(MAIN_WEIGHTS, dtype=float).copy()
+        if main_w_eff.size >= 17:
+            main_w_eff[16] = 0.0  # S4：不参与码
+        main_w_norm = main_w_eff * p.unit_cap_f / p.feedback_cap_f
+        main_w_norm = np.where(main_w_norm > 0, main_w_norm, _tiny)
         sub_switched = np.asarray(SUB_WEIGHTS, dtype=float)
-        # 哑单元（物理第 5 列）权重取与最小子单元同值：它从不被掩码选中，
-        # 任何正值都等价于"不贡献"，但定点格式要求权重严格为正，不能用 0。
-        dummy = np.full(
-            p.n_sub - sub_switched.size, sub_switched.min() * p.unit_cap_f / p.feedback_cap_f
-        )
+        # 哑单元（物理第 5 列）权重必须是**极小正值**，不能用"与最小子单元同值"。
+        # 2026-11-13：早前用 sub_switched.min()（=1C 的 0.121）填占位，理由是
+        # "它从不被掩码选中，任何正值都等价"。这条推理**是错的**：
+        # 定点重建的 known_voltage_term 对**全部单元**都算 V_D（±v_fs），
+        # 权重 0.121 × (±3 V) 会注入 ±0.36 V 的虚假项，使 Σw·a·V_D/gain
+        # 从 −0.0059 变成 −0.1823 —— 正是定点输出 −0.1766 V 偏置的来源。
+        # 现在取 1e-9 量级：定点格式仍见"严格为正"，但电学贡献可忽略。
+        # 取 Q30 能表示的最小正值之上一点（1/2^30 ≈ 9.3e-10），
+        # 保证量化后仍 >=1 而电学贡献比最小真实权重小 8 个数量级。
+        dummy = np.full(p.n_sub - sub_switched.size, 2.0 / 2**p.format.weight_fraction_bits)
         sub_w_norm = np.concatenate(
             [beta * sub_switched * p.unit_cap_f / p.feedback_cap_f, dummy]
         )

@@ -377,8 +377,14 @@ def execute_pipeline(
     )
     sadc = build_first_stage_quantizer(cfg)
     backend = ADC2(cfg)
-    # ADC2 窗口中点：RA 是零中心的线性放大器，必须把"残差 0"摆到窗口中点。
-    adc2_centre = 0.5 * (float(cfg.adc2_v_min) + float(cfg.adc2_v_max))
+    # 2026-11-13 修正：**不要**加窗口中心偏置。
+    # 判码规则是 thr[k] = vd0(k)，因此 x ∈ [vd0(k), vd0(k+1)) ⇒ 残差 = x - vd0(k)
+    # 落在**单边** [0, 1 LSB9)，而不是双极 ±0.5 LSB9。
+    # 早前误以为残差是双极、于是把"残差 0"摆到窗口中点 0.1875，
+    # 结果 ADC2 输入变成 [0.1875, 0.5625]，超出上界 0.4125 —— 这就是
+    # 定点路径饱和、A0 出现 -5.79% 增益误差与 -0.172V 偏移的直接原因。
+    # 正确映射：adc2_input = G*residue，范围 [0, 0.375] ⊂ [-0.0375, 0.4125] ✓
+    adc2_centre = 0.0
     ra = ResidueAmplifier(cfg)
     state = initialize_state(cfg) if state is None else state
     if not isinstance(state, DigitalState):
@@ -617,9 +623,9 @@ def execute_pipeline(
                 residue[index : index + 1], rng, gains[index : index + 1], input_error_v=error
             )
             # RA 是零中心的线性放大器；ADC2 窗口中心在 0.5 LSB9*G，因此
-            # ADC2 输入必须加中点（见上方 adc2_centre 定义）。vra 仍记 RA 原始输出。
+            # 不加中点：残差是单边 [0,1] LSB9（见上方说明）。vra 仍记 RA 原始输出。
             vra[index] = output[0]
-            adc2_input[index] = output[0] + adc2_centre
+            adc2_input[index] = output[0]
             ra_sat[index] = saturated[0]
         else:
             assert cfg.conversion is not None
@@ -678,7 +684,7 @@ def execute_pipeline(
             # （paper_literal: [-0.0375, 0.4125]，G32、LSB9=11.72mV）。
             # RA 是纯线性放大器、零输出为 0，因此"残差 0"必须落在窗口中点：
             # ADC2 输入 = G*residue + 中点。缺这一项时负残差全部溢出（实测 x=±1/±3 V 全 over）。
-            adc2_input[index] = joint.result.adc2_v[index] + adc2_centre
+            adc2_input[index] = joint.result.adc2_v[index]
             ra_sat[index] = joint.result.ra_sat[index]
             if not cfg.dyn_ref_settling and not cfg.conversion.dynamic:
                 error = None if injected is None else injected[index : index + 1]
@@ -686,13 +692,13 @@ def execute_pipeline(
                     residue[index : index + 1], rng, gains[index : index + 1], input_error_v=error
                 )
                 vra[index] = point_output[0]
-                adc2_input[index] = point_output[0] + adc2_centre
+                adc2_input[index] = point_output[0]
                 ra_sat[index] |= point_sat[0]
         pool.release(converting, sample_id=int(ids[index]))
     adc2_code, adc2_over = backend.quantize_codes(adc2_input)
     # ADC2 码解码成节点电压后先减去中点，才回到"以 RA 零点为参考"的残差电压；
     # 否则重构式 fine/G 会带一个恒定的中点偏置。
-    fine = backend.decode_codes(adc2_code) - adc2_centre
+    fine = backend.decode_codes(adc2_code)
     # 名义电压必须取**RDAC 实际使用的码 k = c - U**：残差是在 k 的电荷基线上建立的，
     # 取 vd0(c) 会与残差不同源（实测 64 字 p2p 达 114 mV）。
     # 这与原件 FIG.19 的 224 减法器一致：减法之后的码才是 DAC 的状态。

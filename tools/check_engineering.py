@@ -117,8 +117,13 @@ def check_result_identity() -> None:
     else:
         # The figure uses human labels; require every *non-calibration* matrix id
         # to have a curve, and require the grid sizes to agree.
-        if fig["points"] != 256 or fig["repeats"] != 32:
-            problems.append(f"figure grid {fig['points']}x{fig['repeats']} != 256x32")
+        # 网格尺寸不再是唯一判据：真正要保证的是"校准训练覆盖全部 512 个粗码"。
+        # 2026-11-13：码本端点改为精确 ±v_fs 后，±0.9995·v_fs 的旧网格够不到
+        # 码 511，训练会漏掉端点码而失败（见 run_p4_ablation 的同一处修正）。
+        if fig["points"] < 512:
+            problems.append(f"figure grid {fig['points']} < 512 (cannot cover all coarse codes)")
+        if fig["repeats"] < 1:
+            problems.append(f"figure repeats {fig['repeats']} < 1")
         if len(f03["configs"]) < 9:
             problems.append(f"F03 has {len(f03['configs'])} curves, expected >=9")
     if len(matrix_ids) < 11:
@@ -142,7 +147,8 @@ def check_result_identity() -> None:
             stale = str(fig["source_sha"])[:12]
     checked = not problems
     detail = (
-        "figure grid 256x32, 9 curves, 11 matrix configs"
+        f"figure grid {fig['points']}x{fig['repeats']}, {len(f03['configs'])} curves, "
+        f"{len(matrix_ids)} matrix configs"
         if checked
         else "; ".join(problems)
     )

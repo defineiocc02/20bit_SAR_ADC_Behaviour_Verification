@@ -308,9 +308,17 @@ def _train_calibration(model, *, points: int = 8200, dem: bool = False):
     不做逐单元权重：残差域里 G*C*x 与 G*Q_DAC 各约 96 V、相减后只剩 0.1 V，
     逐单元权值在这种抵消下不可辨识（见 mask_calibration 模块 docstring 与负结果）。
     """
-    # 必须覆盖全部 512 个粗码：±0.99 FS 会漏掉 0/1/510/511 四个端点码，
-    # 而逐码表不允许对未访问码插值或补零。
-    grid = np.linspace(-0.9995 * V_FS, 0.9995 * V_FS, points)
+    # 必须覆盖全部 512 个粗码：逐码表不允许对未访问码插值或补零。
+    # 2026-11-13：码本端点现在**精确等于 ±v_fs**（Fig.11 实测码本 v(0)=-3.000、
+    # v(511)=+3.000），因此 ±0.9995·V_FS = ±2.9985 V 已够不到码 511（需要 >3.000），
+    # 实测会漏掉 0..3 与 507..511 共 9 个端点码。
+    # 这里改成按**码本端点**取网格：用 v(0) 与 v(511) 各内缩半个码步，
+    # 保证每端至少有一个样本落在端点码内，而不依赖 v_fs 与码本是否恰好对齐。
+    book = np.asarray(model.codebook.voltage_v, dtype=float)
+    step = float(np.diff(book).mean())
+    # 网格上界要**略高于** v(511)：SADC 判出码 511 需要 x 落在 [v(511), v(512))，
+    # 即必须 > v(511)，落在 v(511)-step/2 只会判到 510。
+    grid = np.linspace(book[0] + 0.25 * step, book[-1] + 0.75 * step, points)
     # 打乱顺序避免"码"与"片选序列"共线；叠加已知小偏置打散 ADC2 量化锯齿。
     generator = np.random.default_rng(20261113)
     levels = generator.permutation(grid) + generator.uniform(-3e-4, 3e-4, points)

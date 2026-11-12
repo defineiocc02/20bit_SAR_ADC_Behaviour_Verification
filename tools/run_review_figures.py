@@ -460,10 +460,13 @@ def _old_phase_states(n: int) -> np.ndarray:
 
 def figure_dem_usage(model, out: Path) -> dict:
     """按 (物理片, 单元) 的选通次数：修复前/后对照。"""
-    n = 63 * 9
+    # 列数与单元数取几何（63+8 → 63/9，17/5 → 15 个 2C 列、相位周期 9），不写字面量。
+    n_main_units = 17
+    columns = 15
+    n = columns * 9
     plan = round_robin_plan(n)
     pool = _pool(model, plan)
-    new_states = Dem3State.sequence(n, columns=63)
+    new_states = Dem3State.sequence(n, columns=columns)
     old_states = _old_phase_states(n)
     codes = (8, 255, 511)
     fig = plt.figure(figsize=(14, 7.2))
@@ -472,12 +475,14 @@ def figure_dem_usage(model, out: Path) -> dict:
     for column, code in enumerate(codes):
         ax = fig.add_subplot(grid[0, column])
         command = fig11_masks(pool.geometry, np.full(n, code, np.int64), new_states, plan.conv)
-        counts = np.zeros((18, 63), dtype=int)
+        counts = np.zeros((18, n_main_units), dtype=int)
         for pos in range(plan.conv.shape[1]):
             np.add.at(counts, plan.conv[:, pos], command.main_on[:, pos, :].astype(int))
         covered = int(np.count_nonzero(counts.sum(axis=0)))
         image = ax.imshow(counts, aspect="auto", cmap="viridis", vmin=0, interpolation="nearest")
-        ax.set_title(f"code {code}: {covered}/63 units, count {counts.min()}-{counts.max()}")
+        ax.set_title(
+            f"code {code}: {covered}/{n_main_units} units, count {counts.min()}-{counts.max()}"
+        )
         ax.set_xlabel("main unit index")
         ax.set_yticks(np.arange(0, 18, 2))
         if column == 0:
@@ -495,7 +500,7 @@ def figure_dem_usage(model, out: Path) -> dict:
         covered = []
         for code in codes:
             command = fig11_masks(pool.geometry, np.full(n, code, np.int64), states, plan.conv)
-            counts = np.zeros((18, 63), dtype=int)
+            counts = np.zeros((18, n_main_units), dtype=int)
             for pos in range(plan.conv.shape[1]):
                 np.add.at(counts, plan.conv[:, pos], command.main_on[:, pos, :].astype(int))
             covered.append(int(np.count_nonzero(counts.sum(axis=0))))
@@ -503,10 +508,10 @@ def figure_dem_usage(model, out: Path) -> dict:
         data.setdefault("coverage", {})[label] = covered
         for position, value in zip(x + (offset - 0.5) * width, covered, strict=True):
             ax_bar.text(position, value + 1, str(value), ha="center", fontsize=8)
-    ax_bar.axhline(63, color="k", ls="--", lw=0.8)
+    ax_bar.axhline(n_main_units, color="k", ls="--", lw=0.8)
     ax_bar.set_xticks(x, [f"code {code}" for code in codes])
-    ax_bar.set_ylabel("main units ever selected (of 63)")
-    ax_bar.set_ylim(0, 72)
+    ax_bar.set_ylabel(f"main units ever selected (of {n_main_units})")
+    ax_bar.set_ylim(0, n_main_units + 6)
     ax_bar.set_title("F02b  coverage per code: the full-code case hides the low-code defect (audit A01)")
     ax_bar.legend(fontsize=8, loc="lower right")
     ax_bar.grid(alpha=0.3, axis="y")

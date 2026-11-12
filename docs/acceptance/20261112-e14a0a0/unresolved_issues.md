@@ -4,9 +4,9 @@
 
 ## 高
 
-### U1 主引擎单函数 743 行
+### U1 主引擎单函数 691 行
 - **位置**：`src/adi_model/simulation/pipeline_engine.py::execute_pipeline`
-- **最小复现**：`python3 -c "import ast,pathlib; ..."` 或 `wc -l`；AST 统计得 743 行
+- **最小复现**：`python3 -c "import ast,pathlib; ..."` 或 `wc -l`；AST 统计得 691 行
 - **影响**：改动风险高；读者必须在同一函数内跨"装配/采集/逐事件/解码"四段来回跳
 - **下一步**：按四段拆分，用行为指纹逐位对照（`--check` 已具备）
 

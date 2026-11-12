@@ -14,7 +14,7 @@
 
 | 项目 | 状态 | 主要证据 | 阻塞问题 |
 |:---|:---|:---|:---|
-| **G1 工程结构与可读性** | **PARTIAL** | 结构审计 `evidence/structure_audit.txt`；`check_metrics_equivalence` 零漂移 | 主引擎 743 行未拆；44 个函数 >60 行 |
+| **G1 工程结构与可读性** | **PARTIAL** | 结构审计 `evidence/structure_audit.txt`；`check_metrics_equivalence` 零漂移 | 主引擎函数本体 691 行未拆；44 个函数 >60 行 |
 | **G2 确定性缺陷回归** | **PASS** | 4 项反例测试（`test_dem3d.py` / `test_fig19_static_ports.py` / `test_reference_models.py`） | 无 |
 | **G3 重构行为保持** | **PASS** | 指纹 12 项 SHA256 与基线一致；工具 `--check` 返回 0；篡改后返回 1；重复写返回 2 | 无 |
 | **G4-a Python–RTL V1** | **PASS** | 7 模块 / 4931 向量 / 0 不一致（VCS） | 无 |
@@ -52,7 +52,7 @@
 
 | 严重度 | 问题 | 位置 | 最小复现 | 影响 | 下一步 |
 |:---|:---|:---|:---|:---|:---|
-| **高** | 主引擎单函数 743 行、同屏 15+ 概念 | `simulation/pipeline_engine.py::execute_pipeline` | `wc -l` + AST 函数长度 | 可读性、改动风险 | 按"装配/采集/逐事件/解码"四段拆，指纹逐位对照 |
+| **高** | 主引擎单函数 691 行、同屏 15+ 概念 | `simulation/pipeline_engine.py::execute_pipeline` | `wc -l` + AST 函数长度 | 可读性、改动风险 | 按"装配/采集/逐事件/解码"四段拆，指纹逐位对照 |
 | **高** | V3 功能级未验证 | `rtl/top/sar20_digital_core.sv` | `run_verification --level rtl_top` 返回 `ELABORATED_ONLY` | 不能声称整链无丢样/重样 | 写完整 cfg map（71 权重+3 标量+18 窗口）+ `cfg_validate` |
 | **高** | 逐码校准与 DEM 原理性不兼容 | `calibration/mask_calibration.py`、矩阵 C1/C3 | `run_p4_ablation.py`，看 C1 INL 26.9 vs A3 6.2 | 校准不能与 DEM 同用 | 改为"活动 mask × 单元权值"特征 |
 | **中** | DNL 只是斜坡步长分箱 | `tools/run_p4_ablation.py::_static` | 读 `dnl_bin_note` 字段 | 不能称 20 位 DNL | 转换阈值搜索或码密度法 |
@@ -111,7 +111,7 @@
 | 指标 | `metrics.summarize`（`metrics/metrics.py:607`） | 记录 → SNDR/SFDR/NSD | 只读，不改仿真数据 |
 
 **结论**：单条链路可以在**一个包内**走通，不需要读历史脚本；但
-`execute_pipeline`（743 行）内部仍混着"装配 / 采集 / 逐事件 / 解码"四段，
+`execute_pipeline`（691 行）内部仍混着"装配 / 采集 / 逐事件 / 解码"四段，
 走查时必须在该函数内来回跳。**易理解性判 PARTIAL，不判通过。**
 
 ---

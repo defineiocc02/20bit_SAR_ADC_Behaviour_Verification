@@ -461,6 +461,12 @@ class DefaultModel:
             ("input_differential_peak_v", cfg.v_fs, 3.0),
             ("stage1_bits", cfg.b1, 9),
             ("output_bits", cfg.n_bits_target, 20),
+            # ⚠️ 本行记的是**设计目标 g0**（论文给出的名义增益 32），
+            # 不是实际算出的增益。实际 `DefaultModel.nominal_gain` 是
+            # Cnorm/Cf = 19.878 pF / 0.640625 pF = **31.028**——因为 17/5 的
+            # cn = 31.9375C 而非 32C。两者都"对"，但不是同一个量。
+            # 用 32 的地方（例如定点重建的物理增益）必须用实际值，见
+            # `docs/ENGINEERING_METRICS_20261113.md` §12.3。
             ("nominal_residue_gain", cfg.g0, 32.0),
             ("n_slices", cfg.n_slices, 18),
             ("n_active", cfg.n_active, 8),

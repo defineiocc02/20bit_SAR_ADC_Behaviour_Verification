@@ -62,6 +62,12 @@ SKIP_HEAVY=1 PYTHON=python3 bash tools/verify_clean_clone.sh # 跳过重活，�
 | 输入范围 | ±3 V | ±3 V | 论文正文 |
 | INL | 图 9.8.4 仅标「20b level」，**未给数值** | 3.2 LSB20 | **不可并列比较**，见下 |
 
+> ⚠️ **增益口径别混**：`inference_table` 里的 `nominal_residue_gain = 32`
+> 是**设计目标 `cfg.g0`**（论文给的 32）；而实际算出的
+> `DefaultModel.nominal_gain` = Cnorm/Cf = 19.878 pF / 0.640625 pF = **31.028**
+> （因为 17/5 的 cn = 31.9375C 而非 32C）。定点重建必须用**实际值 31.028**
+> 或 `state.estimated_gain`（32.0），用 32 当"实际增益"会让残差项偏约 3%。
+
 **但这个吻合有一个前提必须说清**：电容失配 σ 是**从论文这两个指标反解**出来的
 （σ=1e-4），不是论文披露值。两个独立指标同时命中，但**吻合 ≠ 复现**。
 细节见 [验收对照报告](docs/ACCEPTANCE_20261113.md) 与

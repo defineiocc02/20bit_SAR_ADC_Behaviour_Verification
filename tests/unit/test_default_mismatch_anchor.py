@@ -33,6 +33,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+ROOT = __import__("pathlib").Path(__file__).resolve().parents[2]
+
 from adi_model.defaults import DefaultModel, DefaultParameters, default_model
 
 
@@ -113,3 +115,36 @@ def test_ra_clip_is_never_reached_and_that_is_recorded():
         f"peak |vra| = {worst:.4f} V reached the clip threshold; the assumption "
         "that ra_clip is inert no longer holds"
     )
+
+
+def test_nominal_gain_and_design_target_g0_are_distinguished():
+    """`nominal_gain`（实际算出）与 `g0`（设计目标）必须被区分，且都写进文档。
+
+    2026-11-13：`inference_table` 里 `nominal_residue_gain` 的值是 **32.0**
+    （= `cfg.g0`，论文给的设计目标），而 `DefaultModel.nominal_gain` 是
+    **31.028**（= Cnorm/Cf = 19.878 pF / 0.640625 pF）。
+
+    两者都"对"，但不是同一个量。曾有一处代码把 `nominal_gain` 当成 32 用，
+    导致定点重建的残差项偏约 3%（见 ENGINEERING_METRICS §12.3）。
+
+    本测试把三个事实钉住：
+    1. `g0 == 32`（设计目标不变）
+    2. `nominal_gain ≈ 31.028`（实际值不变）
+    3. README 同时解释了这两个数，读者不会混用
+    """
+    from adi_model.defaults import DefaultModel, DefaultParameters, default_model
+
+    model = default_model()
+    assert model.cfg.g0 == pytest.approx(32.0)
+    assert model.nominal_gain == pytest.approx(31.02846314161869, rel=1e-9)
+    # 两者确实不同（否则本测试没有意义）
+    assert abs(model.nominal_gain - 32.0) > 0.5
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    readme_root = readme  # 便于阅读
+    assert "31.028" in readme_root, "README should state the actual nominal gain"
+    assert "g0" in readme_root or "设计目标" in readme_root, (
+        "README should explain that the 32 in inference_table is the design target g0, "
+        "not the computed gain"
+    )
+

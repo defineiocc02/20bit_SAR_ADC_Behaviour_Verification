@@ -740,3 +740,54 @@ def test_end_to_end_metric_tests_exist_and_run():
         "end-to-end metric tests are missing; without them a model regression "
         "would pass every test:\n  " + "\n  ".join(missing_files)
     )
+
+
+def test_readme_does_not_understate_the_A7_status():
+    """README 对 A7 的描述必须与归档数据里的 `status` 一致。
+
+    2026-11-13：README 原写「动态路径数字输出 | 部分 | A7 只能看波形」，
+    但归档数据里 A7 的 status 是 **NOT_RUN**，且带一条明确的 blocking_reason
+    （逐事件参考程序要求全部事件时刻与初始节点电压绑定，本轮未冻结该组参数，
+    不用默认值猜）。
+
+    "只能看波形"暗示它跑过、只是输出不完整；实际是**根本没跑**。
+    低估未完成度也是一种失真。
+    """
+    import json
+
+    data = json.loads(
+        (ROOT / "docs/reviews/20261113_p3p4/data/p4_ablation.json").read_text(encoding="utf-8")
+    )
+    a7 = next((c for c in data["configs"] if c["id"] == "A7_full_dynamic"), None)
+    assert a7 is not None, "A7_full_dynamic disappeared from the matrix data"
+    status = a7["status"]
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert status in readme, (
+        f"README should state A7's actual status ({status}); "
+        "describing it loosely understates what remains undone"
+    )
+    # 不允许出现"部分完成"这类含糊表述来描述 A7
+    for line in readme.splitlines():
+        if "A7" in line:
+            assert "只能看波形" not in line, (
+                "README still says A7 只能看波形; its real status is " + status
+            )
+
+
+def test_execute_pipeline_line_count_in_readme_is_accurate():
+    """README 引用的 `execute_pipeline` 行数必须与源码一致（±20 行）。"""
+    import re
+
+    source = (ROOT / "src/adi_model/simulation/pipeline_engine.py").read_text(encoding="utf-8")
+    match = re.search(r"^def execute_pipeline\(.*?\n(?=^def |\Z)", source, re.MULTILINE | re.DOTALL)
+    assert match, "execute_pipeline not found"
+    actual = match.group(0).count("\n")
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    claimed = [int(n) for n in re.findall(r"execute_pipeline[^\n]*?(\d{3})\s*行", readme)]
+    assert claimed, "README should state the line count of execute_pipeline"
+    for value in claimed:
+        assert abs(value - actual) <= 20, (
+            f"README claims {value} lines but execute_pipeline is {actual} lines"
+        )

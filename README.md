@@ -108,7 +108,7 @@ SKIP_HEAVY=1 PYTHON=python3 bash tools/verify_clean_clone.sh # 跳过重活，�
 | 分离量化器 + 切片 RDAC | US10516408B2 Fig.7/10/11/16–17 **已核** | `follower.py`、`pipeline_engine` | 等效 | 逐事件电荷已建；真实建立/边沿未建 |
 | 分路 dither | US10505561B2 **Fig.19 已核** | `dither.py`、`dither_port.py` | 等效 | 物理电容/开关网络；专利可选增强，见 §6 |
 | DEM 与跨段映射 | US10511316B2 **Fig.11/19/20 已核** | `dem3d.py` | 部分 | 保留列、362 门、跨片分配已有判据（§6.4），未接主链 |
-| 动态参考 | US10826519B1 **FIG.5 已核** | `conversion.py`、`pipeline_engine` | 部分 | 三条结构判据已交付；A7 出不了 INL/SNR |
+| 动态参考 | US10826519B1 **FIG.5 已核** | `conversion.py`、`pipeline_engine` | 部分 | 三条结构判据已交付；**A7 = NOT_RUN**（缺显式事件时刻/初值绑定，不猜默认值）|
 | TRACK / AUX | US10707889、US10541702B1 **FIG.1/2 已核** | `track_aux.py` | 部分 | AUX 判据已交付（`aux_input.py`），未接主链 |
 | 普通 AZ | 论文/PPT 时序图 | `behavioral/ra_az.py` | 已实现 | 漂移/保持扫描未做 |
 
@@ -218,10 +218,10 @@ U 段需要 5.5 LSB1 残差摆幅 ⇒ 窗口需 ≥2.06 V（而当前 0.45 V）�
 | 项 | 状态 | 影响 |
 |:---|:---|:---|
 | 逐单元权值闭环 | 未闭环 | 逐码 LUT 在样本充足时有效（§5.2、§7）；但每码一个值仍压不住同码不同状态 |
-| 动态路径数字输出 | 部分 | A7 只能看波形 |
+| 动态路径数字输出 | **A7 = NOT_RUN** | 逐事件参考程序要求全部事件时刻与初始节点电压绑定；本轮未冻结该组物理参数，**不用默认值猜**（见 `data/p4_ablation.json` 的 `blocking_reason`）|
 | 顶层对拍（V3/V4） | NOT_RUN | 本机无 VCS 环境 |
 | 后仿 / PEX / 硅测 | 无 | 证据层级止于 L1 |
-| `execute_pipeline` 拆分 | 未做（约 760 行） | 可读性 |
+| `execute_pipeline` 拆分 | 未做（**671 行**）| 可读性。AST 分析显示两个最大块自由变量 42/53 ⇒ **不可机械抽取**，需重新设计数据流 |
 
 ### 6.4 判据模块（已交付但**未接主链**）
 

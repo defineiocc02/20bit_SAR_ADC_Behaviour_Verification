@@ -709,3 +709,34 @@ def test_readme_points_at_the_current_acceptance_report():
     assert "20261112-e14a0a0/report.md" not in readme, (
         "README still points the credibility entry at the older 11-12 snapshot"
     )
+
+
+def test_end_to_end_metric_tests_exist_and_run():
+    """必须存在"跑真实模型 → 断言论文量级指标"的测试。
+
+    2026-11-13 发现：`test_readme_commands.py` 只校验"README 的数字 ==
+    归档 JSON 的数字"，而归档 JSON 是**冻结的数据文件**——
+    即使模型退化，那个测试仍然通过。
+
+    于是补了 `tests/verification/test_paper_metrics_end_to_end.py`（DR/NSD）
+    与 `tests/verification/test_static_inl_end_to_end.py`（INL）。
+    本守卫防止这两个文件被"清理"掉——它们是唯一能把模型和论文指标
+    绑在一起的东西。
+    """
+    required = {
+        "tests/verification/test_paper_metrics_end_to_end.py": ("DR", "NSD"),
+        "tests/verification/test_static_inl_end_to_end.py": ("INL",),
+    }
+    missing_files: list[str] = []
+    for rel, keywords in required.items():
+        path = ROOT / rel
+        if not path.is_file():
+            missing_files.append(rel)
+            continue
+        text = path.read_text(encoding="utf-8")
+        for keyword in keywords:
+            assert keyword in text, f"{rel} should assert {keyword}"
+    assert not missing_files, (
+        "end-to-end metric tests are missing; without them a model regression "
+        "would pass every test:\n  " + "\n  ".join(missing_files)
+    )

@@ -1,6 +1,6 @@
 # 20-bit / 40 MS/s SAR ADC: behavior, static calibration and digital implementation
 
-[中文](README.md) · [Status](docs/STATUS.md) · [Digital status matrix](docs/digital_status_matrix.md) · [Source map](docs/current_digital_source_map.md) · [Papers and slides](references/README.md) · [Acceptance report (CN)](docs/ACCEPTANCE_20261113.md) · [Ablation & figures](docs/reviews/20261113_p3p4/figures/RESULTS_20261113.md)
+[中文](README.md) · [Status](docs/archive/STATUS.md) · [Digital status matrix](docs/archive/digital_status_matrix.md) · [Source map](docs/archive/current_digital_source_map.md) · [Papers and slides](references/README.md) · [Acceptance report (CN)](docs/archive/ACCEPTANCE_20261113.md) · [Ablation & figures](docs/reviews/20261113_p3p4/figures/RESULTS_20261113.md)
 
 > **Which page is authoritative.** `README.md` (Chinese) is the maintained front page and
 > carries the current patent-by-patent mapping and ablation numbers. This English page still
@@ -23,7 +23,7 @@
 **Read this before quoting the agreement.** The capacitor mismatch sigma is **back-solved
 from those two paper metrics** (sigma = 1e-4), not disclosed in the paper. Two independent
 metrics land on the paper values simultaneously, which is why we consider it the consistent
-value — but **agreement is not reproduction**. See `docs/ACCEPTANCE_20261113.md` and
+value — but **agreement is not reproduction**. See `docs/archive/ACCEPTANCE_20261113.md` and
 `docs/mechanisms/paper_metrics_calibration.md`.
 
 Other corrections in this round:
@@ -66,7 +66,7 @@ This project studies capacitor mismatch, sampled charge, residue reconstruction 
 | **Static mismatch calibration flow** | Fits effective C/Cf from digital observations and an independent reference, checks rank and applies frozen coefficients with integer arithmetic | The no-dither Python case and restricted Fig.19 RTL static case both have actual holdouts. Python trains the RTL coefficients, which are then loaded into the DUT | Real reference/readout, dynamic/noisy or drifting cases and ADC2 nonlinearities | [Python rerun](tools/run_static_calibration.py), [RTL rerun](tools/run_fig19_rtl_calibration.py) |
 | **Digital control and reconstruction RTL** | 20 listed modules implement 9-bit SAR, the18/8 resource pool,16 phases, coefficient loading, context and reconstruction with two explicit source bindings | The eight-file bundle, two acquisition ports, calobs v2, RDAC events and integer results were compared in the specified same-pool finite capture | Real stop/drain/park, observation transport, macro settling and target-process verification | [RTL entry](rtl/README.md), [ABI2 contract](docs/rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md) |
 | Output DSP extension | 15 modules for parallel correction, SINC, capture, SPI/registers and GPIO; unavailable source parameters are rejected explicitly | Handoff003 binds15 sources,14 selected digital cases and5 strict profiles, including reported-controller-fault isolation/recovery | Whole-chain filter-selection numeric routing, output metadata, unreported ID gaps, retained-record reset after real stop/park, data PHY/CNV and inverse two-point learning | [DSP](ad4080_dsp/README.md) |
-| CAAZ extension | Explicit input-referred AZ records, digital control and pairing after complete reconstruction | Disabled by default; the current eight-file component checks four digital pairs, with325 separate field comparisons for the pairing unit | CBIAS retention, H/K, analog chopping and final combined verification | [Status matrix](docs/digital_status_matrix.md) |
+| CAAZ extension | Explicit input-referred AZ records, digital control and pairing after complete reconstruction | Disabled by default; the current eight-file component checks four digital pairs, with325 separate field comparisons for the pairing unit | CBIAS retention, H/K, analog chopping and final combined verification | [Status matrix](docs/archive/digital_status_matrix.md) |
 
 The default output uses **nominal coefficients without training**. Successful `adi-simulate` execution means the selected inferred model generated records. Calibration gain, source-mechanism reproduction and target precision require separate evidence.
 
@@ -78,7 +78,7 @@ A fixed mismatched engineering model is trained with 4096 uniform random known r
 
 ![Current-source Python static calibration and rejected midrange training](docs/readme/fig/source_bound_static_calibration.png)
 
-*Figure 1 | Actual final-source public-producer cases `fullspan_positive` and rejected `midrange_rank_negative`, bound to the producer and36 actually loaded source hashes. Seed42, unit/bridge mismatch0.001 each; dither/unit DEM and sampling/RA random noise off. Holdout covers only [−2.6,+2.7] V. RMS85.829→2.07577 µV, standard deviation85.314→2.07544 µV; zero analog-invalid/clipping records and512 integer words match the independent oracle. [Point data and provenance](docs/readme/data/source_bound_static_calibration.json), [rerun training](docs/REPRODUCING.md#3-静态校准重新训练固定与留出). This verifies the specified Python engineering-static case, not RTL, dynamic/noisy operation, endpoints, full-code INL/DNL or silicon performance. **Note: mismatch 0.001 is this experiment's explicit condition; the default chain uses 1e-4.** *
+*Figure 1 | Actual final-source public-producer cases `fullspan_positive` and rejected `midrange_rank_negative`, bound to the producer and36 actually loaded source hashes. Seed42, unit/bridge mismatch0.001 each; dither/unit DEM and sampling/RA random noise off. Holdout covers only [−2.6,+2.7] V. RMS85.829→2.07577 µV, standard deviation85.314→2.07544 µV; zero analog-invalid/clipping records and512 integer words match the independent oracle. [Point data and provenance](docs/readme/data/source_bound_static_calibration.json), [rerun training](docs/archive/REPRODUCING.md#3-静态校准重新训练固定与留出). This verifies the specified Python engineering-static case, not RTL, dynamic/noisy operation, endpoints, full-code INL/DNL or silicon performance. **Note: mismatch 0.001 is this experiment's explicit condition; the default chain uses 1e-4.** *
 
 ### RTL static loop: same-holdout RMS 97.04 → 1.993 µV
 
@@ -86,7 +86,7 @@ The DUT produced4096 word-zero observations across the full training span using 
 
 ![Actual RTL static calibration: all512 holdout points before and after, with residual zoom](docs/readme/fig/source_bound_rtl_calibration.png)
 
-*Figure 2 | Actual DUT `full_typechecked_001` and four same-pool production-Python replays on the same source bytes. This is a specified static equivalent with random conversion noise and unit DEM off. RMS97.04090→1.99287 µV and standard deviation96.28313→1.99087 µV. The normal holdout has515 programmed controls,514 physical samples and512 target retirements; three programmed tail records are unretired. Status, sticky, fault and result flags are zero. All512 words match production Python and the independent integer oracle; the3598 RDAC events include two sampled tail records. [Points and receipt identity](docs/readme/data/source_bound_rtl_calibration.json), [rerun and replay](docs/REPRODUCING.md#5-显式导出与rtl组件执行). The finite static capture does not establish real stop, endpoints, dynamics or silicon precision.*
+*Figure 2 | Actual DUT `full_typechecked_001` and four same-pool production-Python replays on the same source bytes. This is a specified static equivalent with random conversion noise and unit DEM off. RMS97.04090→1.99287 µV and standard deviation96.28313→1.99087 µV. The normal holdout has515 programmed controls,514 physical samples and512 target retirements; three programmed tail records are unretired. Status, sticky, fault and result flags are zero. All512 words match production Python and the independent integer oracle; the3598 RDAC events include two sampled tail records. [Points and receipt identity](docs/readme/data/source_bound_rtl_calibration.json), [rerun and replay](docs/archive/REPRODUCING.md#5-显式导出与rtl组件执行). The finite static capture does not establish real stop, endpoints, dynamics or silicon precision.*
 
 Figures1 and2 use different stimuli and resource plans. They verify their respective calibration loops; the difference between them does not measure the incremental benefit of dither.
 
@@ -142,7 +142,7 @@ Each conversion uses eight slices while eight acquire and two remain available. 
 
 `DefaultParameters` exposes overrides and each run records their provenance. Changing one capacitance does not silently retune another to restore the old gain. Low-level `Config` checks missing inputs; high-level `default_model()` supplies the runnable engineering defaults.
 
-**Dither and DEM scope.** Source dither and unit DEM are off by default. The optional Fig.19 path consumes explicit six-bit words: upper `U=4D6+D4`, lower/total `T=L+U·Delta`, engineering-equivalent SADC input `x−L`, RDAC sample `x−T` and command `k=c−U`. The uniform nominal-codebook identity is `VD(k)+r+T`; actual mismatch reconstruction reduces per-unit masks with frozen weights, without subtracting U again. Negative polarity, Q32 rounding of 4:2:1/7 and the 18/8 target binding are engineering assumptions. This is a **restricted engineering static equivalent compared at specified Python/RTL conditions**. The [source map](docs/current_digital_source_map.md) separates this from the complete physical network. Source 3D DEM and the complete binary-to-unary switching matrix are not implemented.
+**Dither and DEM scope.** Source dither and unit DEM are off by default. The optional Fig.19 path consumes explicit six-bit words: upper `U=4D6+D4`, lower/total `T=L+U·Delta`, engineering-equivalent SADC input `x−L`, RDAC sample `x−T` and command `k=c−U`. The uniform nominal-codebook identity is `VD(k)+r+T`; actual mismatch reconstruction reduces per-unit masks with frozen weights, without subtracting U again. Negative polarity, Q32 rounding of 4:2:1/7 and the 18/8 target binding are engineering assumptions. This is a **restricted engineering static equivalent compared at specified Python/RTL conditions**. The [source map](docs/archive/current_digital_source_map.md) separates this from the complete physical network. Source 3D DEM and the complete binary-to-unary switching matrix are not implemented.
 
 | Combination | Current evidence and boundary |
 | :--- | :--- |
@@ -160,11 +160,11 @@ Each conversion uses eight slices while eight acquire and two remain available. 
 | Stop and physical verification | Define stop, drain, park and independent analog idle; complete continuous acquisition, the real reference-threshold loop, RA/ADC2 settling and PVT/MC | Retained or explicitly cancelled records, macro timing, target synthesis/STA, CDC/RDC and PEX |
 | Optional extensions | CAAZ storage/H/K and combined noise, whole-chain DSP filter routing, output metadata and data PHY | Separate evidence for the applicable signal domain, chain, macro and protocol |
 
-The [13 pending evidence records](docs/STATUS.md#按依赖排序的未闭合项) detail the remaining acquisition, reference, drift and observation-transport work.
+The [13 pending evidence records](docs/archive/STATUS.md#按依赖排序的未闭合项) detail the remaining acquisition, reference, drift and observation-transport work.
 
 ## Reproduction and code entry points
 
-Choose a nominal run, fresh training, actual RTL capture, or frozen-data redraw. See [CONTRIBUTING](CONTRIBUTING.md) and [reproduction](docs/REPRODUCING.md).
+Choose a nominal run, fresh training, actual RTL capture, or frozen-data redraw. See [CONTRIBUTING](CONTRIBUTING.md) and [reproduction](docs/archive/REPRODUCING.md).
 
 ```bash
 python -m pip install -e .
@@ -178,8 +178,8 @@ The output directory must not exist. It receives `codes.npz`, `assumptions.json`
 | Defaults, assumptions and signal chain | [defaults.py](src/adi_model/defaults.py), [pipeline_engine.py](src/adi_model/simulation/pipeline_engine.py) |
 | Fig.19, actual masks and resource selection | [dither.py](src/adi_model/control/dither.py), [dem.py](src/adi_model/control/dem.py), [slice pool](src/adi_model/simulation/slice_pool.py) |
 | Training, freezing and integer application | [weight_calibration.py](src/adi_model/calibration/weight_calibration.py), [fixed_point.py](src/adi_model/contracts/fixed_point.py) |
-| Current interface, state and source evidence | [Current ABI2 contract](docs/rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md), [source map](docs/current_digital_source_map.md), [status matrix](docs/digital_status_matrix.md) |
-| Historical redraw and executable archives | [Reproduction](docs/REPRODUCING.md), [archive policy](docs/EXECUTABLE_ARCHIVES.md) |
+| Current interface, state and source evidence | [Current ABI2 contract](docs/rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md), [source map](docs/archive/current_digital_source_map.md), [status matrix](docs/archive/digital_status_matrix.md) |
+| Historical redraw and executable archives | [Reproduction](docs/archive/REPRODUCING.md), [archive policy](docs/archive/EXECUTABLE_ARCHIVES.md) |
 | New figures, point data and renderer | [Redraw asset index](docs/readme/data/source_bound_assets_manifest.json), [data guide](docs/readme/data/README.md) |
 
 Code is [BSD-3-Clause](LICENSE). The [22 source entries](NOTICE) and [six selected originals](references/README.md) retain their original copyrights and embedded notices. This is an independent project and grants no patent licence.

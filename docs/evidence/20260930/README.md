@@ -10,7 +10,7 @@
 
 历史提交 `39e9c27` 的本地全量回归以 [final_rtl/result.json](final_rtl/result.json) 和 [冻结源码清单](final_rtl/source_manifest.json) 为准：完整运行官方 runner 当时注册的 **21 个 testbench，21/21 PASS**，进程退出码为 0；同时完成三个严格生产 lint 入口。这里的“完整”指该注册集合全部执行，不表示穷举整个芯片的状态空间。编译日志和大尺寸原始数据保留在外部工件，本目录只收录可核对的精简证据。
 
-后继修复增加了权重最高恒零位的显式掩码，并将归约 miter 的输入驱动改为明确的事务边沿，同时加入独立 scalar oracle。原 `final_rtl` 原始日志保留：其 84 个冻结文件中，当前仅 `rtl/core/weight_store.sv` 与 `sim/tb/cal_weight_reduce_ppa_tb.sv` 已改变，不能再宣称该旧集合与当前工作树完全相同。新增证据见 [weight_msb](weight_msb/README.md) 与 [reducer_scheduler](reducer_scheduler/README.md)，其范围、负控、工具版本和精确计数分别记录。最新生产 RTL 的三参数复验见 [compact_profiles](compact_profiles/README.md)，不能将定向复验说成旧 21 项在新源码上已全部重跑。
+后继修复增加了权重最高恒零位的显式掩码，并将归约 miter 的输入驱动改为明确的事务边沿，同时加入独立 scalar oracle。原 `final_rtl` 原始日志保留：其 84 个冻结文件中，当前仅 `rtl/weight_store.sv` 与 `sim/tb/cal_weight_reduce_ppa_tb.sv` 已改变，不能再宣称该旧集合与当前工作树完全相同。新增证据见 [weight_msb](weight_msb/README.md) 与 [reducer_scheduler](reducer_scheduler/README.md)，其范围、负控、工具版本和精确计数分别记录。最新生产 RTL 的三参数复验见 [compact_profiles](compact_profiles/README.md)，不能将定向复验说成旧 21 项在新源码上已全部重跑。
 
 ## 早期发布与当时 CI 状态
 
@@ -47,10 +47,10 @@ Python [位级镜像](../../../sim/ref/recon_rtl_mirror.py) 的 [六组小几何
 
 | 文件 | 当前来源哈希前缀 |
 |---|---|
-| `rtl/core/cal_weight_reduce.sv` | `c5fc7f6ef58b8e74` |
-| `rtl/core/div_floor.sv` | `cc3b0bd9c5e6c849` |
-| `rtl/top/sadc_enc.sv` | `c366ddd1af00bfbf` |
-| `rtl/core/weight_store.sv` | `d4e8e6d6b36ce5f5` |
+| `rtl/cal_weight_reduce.sv` | `c5fc7f6ef58b8e74` |
+| `rtl/div_floor.sv` | `cc3b0bd9c5e6c849` |
+| `rtl/sadc_enc.sv` | `c366ddd1af00bfbf` |
+| `rtl/weight_store.sv` | `d4e8e6d6b36ce5f5` |
 | `sim/tb/cal_weight_reduce_ppa_tb.sv` | `4e7d97c5d3fb7339` |
 | `sim/ref/recon_rtl_mirror.py` | `0e48e8ae94307ec4` |
 | `tools/run_open_rtl.py` | `8f3cfa9dbc6fd39c` |

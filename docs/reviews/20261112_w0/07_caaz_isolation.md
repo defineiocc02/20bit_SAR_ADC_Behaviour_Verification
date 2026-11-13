@@ -26,15 +26,15 @@
 | C-04 | `src/adi_model/chopping_az.py` 的 `conventional_az` 分支 | 35–37 | **不保留原名**；改写成 `behavioral/ra_az.py` 的全速率 AZ |
 | C-05 | `src/adi_model/behavioral/ra.py` 顶部说明 "CAAZ 的输入等效 AZ 状态由此进入…" | 5 | 改写为普通 AZ 说明；CAAZ 引用移扩展 |
 | C-06 | `rtl/rtl_sources.f` 的 `rtl/control/caaz_cycle_ctrl.sv`、`rtl/calibration/caaz_pair_processor.sv` | 2–3 | 从主 filelist 删除；扩展单独 filelist |
-| C-07 | `rtl/core/sar_structural_ctrl.sv` `P_CAAZ_ENABLE`、`caaz_az_capture_ok`、`caaz_input_chop_neg`、`caaz_az_capture_en`、`caaz_az_hold`、`u_caaz_cycle` | 8/12/29–30/107–113 | 删除参数/端口/实例；保留通用 sample-ID 队列/epoch/backpressure |
-| C-08 | `rtl/core/sar_structural_ctrl.sv` `context_chop_neg/context_az_pair_id/context_az_valid` | 50–52/184–191 | 从 `fine_control_word` 打包中移除 |
-| C-09 | `rtl/top/sar20_digital_core.sv` `caaz_az_capture_ok`、`caaz_input_chop_neg`、`caaz_az_capture_en`、`caaz_az_hold`、`cal_obs_caaz_data`、`caaz_raw_valid/data`、`caaz_pair_difference/valid`、`caaz_pair_first_sample_id/id`、`caaz_pair_fault/code` | 60–69 | 删除端口；主 top 只输出逐笔结果 |
-| C-10 | `rtl/top/sar20_digital_core.sv` `context_chop_neg/context_az_pair_id/context_az_valid` 及打包 | 155–156/171–172/183–184/194–195 | 删除 |
+| C-07 | `rtl/sar_structural_ctrl.sv` `P_CAAZ_ENABLE`、`caaz_az_capture_ok`、`caaz_input_chop_neg`、`caaz_az_capture_en`、`caaz_az_hold`、`u_caaz_cycle` | 8/12/29–30/107–113 | 删除参数/端口/实例；保留通用 sample-ID 队列/epoch/backpressure |
+| C-08 | `rtl/sar_structural_ctrl.sv` `context_chop_neg/context_az_pair_id/context_az_valid` | 50–52/184–191 | 从 `fine_control_word` 打包中移除 |
+| C-09 | `rtl/sar20_digital_core.sv` `caaz_az_capture_ok`、`caaz_input_chop_neg`、`caaz_az_capture_en`、`caaz_az_hold`、`cal_obs_caaz_data`、`caaz_raw_valid/data`、`caaz_pair_difference/valid`、`caaz_pair_first_sample_id/id`、`caaz_pair_fault/code` | 60–69 | 删除端口；主 top 只输出逐笔结果 |
+| C-10 | `rtl/sar20_digital_core.sv` `context_chop_neg/context_az_pair_id/context_az_valid` 及打包 | 155–156/171–172/183–184/194–195 | 删除 |
 | C-11 | `tests/unit/test_chopping_az.py` | 全文件 | 移 `extensions/caaz/tests/`，主 pytest 不收 |
 | C-12 | `docs/caaz/`、`docs/randomization_caaz/`、`docs/history/legacy_vectors_af8/` | 目录 | 移 `extensions/caaz/docs/`，保留原 SHA/链接 |
 | C-13 | `sim/tb/caaz_pair_processor_tb.sv`、`caaz_pair_vectors_tb.sv` | 文件 | 移 `extensions/caaz/tb/` |
 | C-14 | `ad4080_dsp/rtl/sar20_system_top.sv`、`ad4080_dsp/docs/SAR20_INTERFACE.md` | CAAZ 端口/说明 | 标为外部消费者，不进 ADI 指标 |
-| C-15 | `mechanism_inventory.json`、`sources_manifest.json`、`docs/digital_status_matrix.md` 的 CAAZ 条目 | 条目 | 标 `OUT_OF_SCOPE/EXTENSION`，不计 ADI |
+| C-15 | `mechanism_inventory.json`、`sources_manifest.json`、`docs/archive/digital_status_matrix.md` 的 CAAZ 条目 | 条目 | 标 `OUT_OF_SCOPE/EXTENSION`，不计 ADI |
 
 ---
 
@@ -107,5 +107,5 @@ def apply_ordinary_az(ra_input_v, cfg, sample_ids):
 ## 6. 回退
 
 - 每个文件移动/删除独立 commit；`git revert <sha>` 可恢复。
-- 扩展目录保留原路径映射表（`docs/migration.md`），确保旧链接可跳转。
+- 扩展目录保留原路径映射表（`docs/archive/migration.md`），确保旧链接可跳转。
 - 不做 `git checkout .`/`reset --hard`；不覆盖原证据。

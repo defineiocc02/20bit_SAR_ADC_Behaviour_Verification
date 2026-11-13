@@ -53,7 +53,7 @@
 | 严重度 | 问题 | 位置 | 最小复现 | 影响 | 下一步 |
 |:---|:---|:---|:---|:---|:---|
 | **高** | 主引擎单函数 691 行、同屏 15+ 概念 | `simulation/pipeline_engine.py::execute_pipeline` | `wc -l` + AST 函数长度 | 可读性、改动风险 | 按"装配/采集/逐事件/解码"四段拆，指纹逐位对照 |
-| **高** | V3 功能级未验证 | `rtl/top/sar20_digital_core.sv` | `run_verification --level rtl_top` 返回 `ELABORATED_ONLY` | 不能声称整链无丢样/重样 | 写完整 cfg map（71 权重+3 标量+18 窗口）+ `cfg_validate` |
+| **高** | V3 功能级未验证 | `rtl/sar20_digital_core.sv` | `run_verification --level rtl_top` 返回 `ELABORATED_ONLY` | 不能声称整链无丢样/重样 | 写完整 cfg map（71 权重+3 标量+18 窗口）+ `cfg_validate` |
 | **高** | 逐码校准与 DEM 原理性不兼容 | `calibration/mask_calibration.py`、矩阵 C1/C3 | `run_p4_ablation.py`，看 C1 INL 26.9 vs A3 6.2 | 校准不能与 DEM 同用 | 改为"活动 mask × 单元权值"特征 |
 | **中** | DNL 只是斜坡步长分箱 | `tools/run_p4_ablation.py::_static` | 读 `dnl_bin_note` 字段 | 不能称 20 位 DNL | 转换阈值搜索或码密度法 |
 | **中** | V2 缺统一事务 trace | `verification/cosim/scoreboard.py` | 无 `epoch+event_index` 字段 | 事件排序/背压未验 | 扩 trace 字段与排序检查 |

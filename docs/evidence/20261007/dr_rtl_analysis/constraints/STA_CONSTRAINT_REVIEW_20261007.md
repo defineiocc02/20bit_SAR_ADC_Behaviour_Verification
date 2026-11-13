@@ -18,7 +18,7 @@
 
 本次依本机 `asic-rtl-timing` skill 核对工程源、约束脚本、原始报告和 Dr. RTL 策略库。本代理仅做本地只读检查，没有运行 Vivado、Design Compiler、OpenSTA 或形式工具。审查过程中另有远端只读重开历史 post-route DCP 并导出报告；`execution.json` 与 `scope.txt` 证明没有综合、布局、布线或约束编辑。没有安装工具，也没有修改仓库 RTL。
 
-源文件默认参数来自当前 `rtl/top/sar20_digital_core.sv`。该源码声明 P7 默认，P5 是显式参数配置。当前 P5 的 source-token 身份桥位于：
+源文件默认参数来自当前 `rtl/sar20_digital_core.sv`。该源码声明 P7 默认，P5 是显式参数配置。当前 P5 的 source-token 身份桥位于：
 
 `/Users/zhaoyi/Obsidan/项目库/outputs/sar_adc_dr_rtl_analysis_20261007/baseline/source_identity.json`
 
@@ -206,7 +206,7 @@ P5 并非已被当前默认 profile 采用；当前 P5 route 报告要求外部�
 
 ## 11. 主要源文件及证据位置
 
-- Current RTL/default: `rtl/top/sar20_digital_core.sv`, `rtl/core/recon_core.sv`, `rtl/core/sar_structural_ctrl.sv`, `rtl/core/cal_sample_context.sv`, `rtl/params/rtl_params.vh`。
+- Current RTL/default: `rtl/sar20_digital_core.sv`, `rtl/recon_core.sv`, `rtl/sar_structural_ctrl.sv`, `rtl/cal_sample_context.sv`, `rtl/params/rtl_params.vh`。
 - Synthesis/STA Tcl: `synth/run_vivado_ooc.tcl`, `synth/run_vivado_buffered_impl.tcl`, `synth/run_vivado_impl.tcl`, `synth/run_dc.tcl`。
 - Implementation plan & existing interface-budget checklist: `synth/IMPLEMENTATION_PLAN.md`, `synth/FPGA_SYNTHESIS_AND_STA.md`。
 - P5 reports: `docs/evidence/20260930/shared_old_trial_synth/`, `docs/evidence/20260930/shared_old_trial_route_25ns/`。

@@ -63,7 +63,7 @@
 
 - **基线包没有被纳入 CI。** 它是一份快照，不是受测代码。若将来要自动化
   "基线 vs 新版"的对照，需要额外写一个比对脚本 —— 目前"对照"是人工的、
-  写在测试 docstring 与 `docs/audit_response.md` 里的。
+  写在测试 docstring 与 `docs/archive/audit_response.md` 里的。
 - **`MANIFEST.txt` 的校验是手动的。** 本会话用脚本逐项核对过一次；
   没有常驻的 `make verify-baseline` 目标。
 

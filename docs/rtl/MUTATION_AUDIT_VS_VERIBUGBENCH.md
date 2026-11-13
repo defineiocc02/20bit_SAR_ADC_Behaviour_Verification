@@ -45,13 +45,13 @@
 
 | 名字 | 文件 | 原文 → 变异后 | 期望判据 |
 |:--|:--|:--|:--|
-| `ws_wok` | `rtl/core/weight_store.sv` | `assign w_ok = (wr_data != W_ZERO) && (wr_data < W_MAX);` → `assign w_ok = 1'b1;` | 变红（`T1 err_write=1`） |
-| `ws_cap` | `rtl/core/weight_store.sv` | `1'b1} << 60;` → `1'b1} << 50;` | 变红（容量守卫开始拒写） |
-| `ws_capoff` | `rtl/core/weight_store.sv` | `… && (sum_new < SUM_MAX);` → `…;`（删容量项） | **不变红（负对照）** |
-| `sr_nonsticky` | `rtl/core/status_regs.sv` | `acc_ovf_sticky <= acc_ovf_sticky \| ev_acc_ovf;` → `<= ev_acc_ovf;` | 变红（`T2` 粘滞自保持） |
-| `rd_noclear` | `rtl/core/rdac_drv.sv` | `slice_sel <= '0;` → `slice_sel <= slice_sel;` | 变红（`T3` 重复 slice_id） |
-| `cf_rdac10` | `rtl/core/ctrl_fsm.sv` | `rdac_load = adv && (ph == PW'(11));` → `PW'(10)` | 变红（`T4` 相位） |
-| `cb_le` | `rtl/core/calib_regs.sv` | `if ($signed(min_r) < $signed(max_r))` → `<=` | 变红（`T5` 空量程） |
+| `ws_wok` | `rtl/weight_store.sv` | `assign w_ok = (wr_data != W_ZERO) && (wr_data < W_MAX);` → `assign w_ok = 1'b1;` | 变红（`T1 err_write=1`） |
+| `ws_cap` | `rtl/weight_store.sv` | `1'b1} << 60;` → `1'b1} << 50;` | 变红（容量守卫开始拒写） |
+| `ws_capoff` | `rtl/weight_store.sv` | `… && (sum_new < SUM_MAX);` → `…;`（删容量项） | **不变红（负对照）** |
+| `sr_nonsticky` | `rtl/status_regs.sv` | `acc_ovf_sticky <= acc_ovf_sticky \| ev_acc_ovf;` → `<= ev_acc_ovf;` | 变红（`T2` 粘滞自保持） |
+| `rd_noclear` | `rtl/rdac_drv.sv` | `slice_sel <= '0;` → `slice_sel <= slice_sel;` | 变红（`T3` 重复 slice_id） |
+| `cf_rdac10` | `rtl/ctrl_fsm.sv` | `rdac_load = adv && (ph == PW'(11));` → `PW'(10)` | 变红（`T4` 相位） |
+| `cb_le` | `rtl/calib_regs.sv` | `if ($signed(min_r) < $signed(max_r))` → `<=` | 变红（`T5` 空量程） |
 
 > 顺带登记：`p3_top_tb.sv` 头部注释提到的另两份证据脚本（`run_3col_check.py`、`decide_divfloor.py`）**同样未入库**，属**同一类"已入库文档引用未入库脚本"**的悬空引用。根治办法是把这些脚本移进被跟踪的目录（如 `sim/tools/`）并同步改引用 —— **未做，另立任务**。
 

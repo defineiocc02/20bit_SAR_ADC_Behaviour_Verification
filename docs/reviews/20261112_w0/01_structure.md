@@ -146,7 +146,7 @@ RTL: task_integration/rtl/sar20_digital_lms_top.sv
 按来源：`ISSCC2024_SLIDES` 21、`ISSCC2024_PAPER` 14、`US10505561B2` 8。
 按 preset：`both` 18、`paper_isscc2024` 17、`na` 8。
 
-**关键缺口**：只覆盖 dither 专利；`US10516408B2`、`US10511316B2`、`US10707889B1`、`US10541702B1`、`US10826519B1` 未入机器台账。main 的 `docs/engineering_vs_patents_papers.md` 有文字对照，但没有 claim_id/测试绑定。
+**关键缺口**：只覆盖 dither 专利；`US10516408B2`、`US10511316B2`、`US10707889B1`、`US10541702B1`、`US10826519B1` 未入机器台账。main 的 `docs/archive/engineering_vs_patents_papers.md` 有文字对照，但没有 claim_id/测试绑定。
 
 `trace/req_matrix.csv` 33 行：32 行 `declared_status=声明为通过（未见显式阻塞）`、`evidence=待确认`；1 行 `BLOCKED`。这不是可签核证据。
 

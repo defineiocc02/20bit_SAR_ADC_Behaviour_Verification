@@ -11,7 +11,7 @@
 - **下一步**：按四段拆分，用行为指纹逐位对照（`--check` 已具备）
 
 ### U2 V3 功能级未验证
-- **位置**：`rtl/top/sar20_digital_core.sv`
+- **位置**：`rtl/sar20_digital_core.sv`
 - **最小复现**：`python3 -m verification.run_verification --level rtl_top` → `ELABORATED_ONLY`
 - **影响**：不能声称"整链无丢样/重样/乱序"，不能给出 `N_accepted = N_retired + N_cancelled + N_pending`
 - **下一步**：写完整配置映射（71 权重 + offset/min/max + 18 窗口）→ `cfg_validate` → 逐相位比较器判决

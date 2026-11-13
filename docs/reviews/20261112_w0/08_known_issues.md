@@ -100,7 +100,7 @@
 
 | 项 | 内容 |
 |:---|:---|
-| 证据 | `src/adi_model/__init__.py:25-29/224-227`；`rtl/rtl_sources.f:2-3`；`rtl/core/sar_structural_ctrl.sv:12/29-30/107`；`rtl/top/sar20_digital_core.sv:60-69`；`tests/unit/test_chopping_az.py`；task `task3/**`、`task_integration` 的 `caaz_*` 端口 |
+| 证据 | `src/adi_model/__init__.py:25-29/224-227`；`rtl/rtl_sources.f:2-3`；`rtl/sar_structural_ctrl.sv:12/29-30/107`；`rtl/sar20_digital_core.sv:60-69`；`tests/unit/test_chopping_az.py`；task `task3/**`、`task_integration` 的 `caaz_*` 端口 |
 | 现象 | CAAZ 已深入包导出、RTL filelist、结构控制、顶层端口、CI、docs |
 | 影响 | 只移 `task3` 不能隔离；主包/主 RTL 仍会 import/例化 |
 | 判定 | **必须按 07 清单逐项拆** |

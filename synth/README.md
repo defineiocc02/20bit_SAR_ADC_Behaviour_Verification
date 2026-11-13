@@ -120,7 +120,7 @@ C:/Users/Administrator/miniconda3/python.exe synth/run_synth.py \
 # 扫顶层 HDL 参数（不改源文件）
 C:/Users/Administrator/miniconda3/python.exe synth/run_synth.py \
     --name recon_p4_10ns --top recon_core --clk-period 10 \
-    --files rtl/core/recon_core.sv rtl/core/div_floor.sv rtl/core/adc2_dec.sv rtl/core/cal_weight_reduce.sv rtl/core/cal_residue_mac.sv rtl/core/cal_output_stage.sv \
+    --files rtl/recon_core.sv rtl/div_floor.sv rtl/adc2_dec.sv rtl/cal_weight_reduce.sv rtl/cal_residue_mac.sv rtl/cal_output_stage.sv \
     --incdirs rtl/params --params "P_STAGES=4"
 ```
 
@@ -224,7 +224,7 @@ cd ~/adc_rtl_synth/<name>
 
 ## 4. smoke case 与真实结果
 
-`synth/smoke/top_smoke.sv` 是**为综合专门写的薄 wrapper**：`rtl/core/` 下
+`synth/smoke/top_smoke.sv` 是**为综合专门写的薄 wrapper**：`rtl/` 下
 `dem_state_gen` / `dem_addr_gen` / `swap_decode` / `dither_gen` / `unit_therm`
 是并行子模块、没有顶层，所以这里只做端口绑定和常量驱动把它们全部例化，
 并把组合输出打一拍寄存器，好让 DC 报出真实的 reg→reg 路径：
@@ -324,7 +324,7 @@ coarse_in(port) -----------------------+
 
 `P_STAGES` 是 `div_floor` 里"一个时钟内级联几级恢复余数"的旋钮：
 `N_CYC = ceil(63 / P_STAGES)`，63 = `ACC_BITS - (V_FRAC+1) = P_W_A`。
-顶层 `rtl/top/sar20_digital_core.sv:475` 把它**写死成 7**。吞吐预算来自 `PHASES = 16`，
+顶层 `rtl/sar20_digital_core.sv:475` 把它**写死成 7**。吞吐预算来自 `PHASES = 16`，
 即要求 `N_CYC ≤ 16`（换算成 `P_STAGES ≥ 4`）。
 
 驱动：`synth/sweep_p_stages.sh`（VM 侧，串行、每点独立 `out_p<N>/`、写 `rc_p<N>.txt`
@@ -457,12 +457,12 @@ WNS 是从 `get_timing_paths -delay max -nworst 1` 的路径对象上读 `slack`
    要用"不同合法值给出不同结果"来证明链路通。
 
 8. **`initial` 块（以及里面的 `$fatal` 自检）在综合里被整块丢掉。**
-   `rtl/top/sar20_digital_core.sv:110-128` 有 17 条 `$fatal(1, "参数不一致")`
+   `rtl/sar20_digital_core.sv:110-128` 有 17 条 `$fatal(1, "参数不一致")`
    一致性断言，本意是"参数被人改了就当场炸"。综合时的真实行为是
    `elaborate.log` 的第 2 行：
 
    ```
-   Warning: ./src/rtl/top/sar20_digital_core.sv:111: The statements in initial blocks are ignored. (VER-281)
+   Warning: ./src/rtl/sar20_digital_core.sv:111: The statements in initial blocks are ignored. (VER-281)
    ```
 
    —— 只是**一句 Warning**，不报错、退出码 0、综合照常完成。
@@ -716,7 +716,7 @@ WNS 是从 `get_timing_paths -delay max -nworst 1` 的路径对象上读 `slack`
 
 ## 7.1 RTL 参数一致性检查：红/绿实证（`synth/tests/badparams/`）
 
-**要解决的问题**：`rtl/top/sar20_digital_core.sv:110-128` 有 17 条 `$fatal(1, ...)`
+**要解决的问题**：`rtl/sar20_digital_core.sv:110-128` 有 17 条 `$fatal(1, ...)`
 参数一致性自检，但综合时 DC 把 `initial` 块**整块丢掉**（`VER-281`，只是一句
 Warning）。于是"参数被人改了就当场炸"这条防线**只对仿真有效**，综合侧完全失效。
 详见 §6 坑 8。

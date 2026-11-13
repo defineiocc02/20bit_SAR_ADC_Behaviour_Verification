@@ -49,12 +49,12 @@ W0 基线/源文（L+V）
 |:---|:---|
 | 目标 | 建立 `contracts/` 骨架；主包/主 RTL/主 CI 脱离 CAAZ；保留普通 AZ 与通用 sample-ID 队列 |
 | 前置 | W0 通过 |
-| 允许改 | 新 `src/adi_model/contracts/**`、`profiles/**`、`extensions/caaz/**`、`rtl/rtl_sources.f`、`rtl/core/sar_structural_ctrl.sv`、`rtl/top/sar20_digital_core.sv`、`src/adi_model/__init__.py`、`tests/` |
+| 允许改 | 新 `src/adi_model/contracts/**`、`profiles/**`、`extensions/caaz/**`、`rtl/rtl_sources.f`、`rtl/sar_structural_ctrl.sv`、`rtl/sar20_digital_core.sv`、`src/adi_model/__init__.py`、`tests/` |
 | 禁止改 | 不改 `conversion.py` 的物理公式；不改 task 原始证据；不删历史 SHA |
 | 接口 | `TopologySpec/TimingSpec/EventRecord/SampleContext/SwitchCommand/FrozenCalibration` 首版 |
 | 步骤 | 1) 建 contracts 骨架；2) 拆 `chopping_az.py` 为 `ra_az.py` + `extensions/caaz/`；3) 删 `__init__` CAAZ 导出；4) RTL filelist/结构控制/数字顶层去 CAAZ；5) 主 CI 去 CAAZ；6) 扩展独立 filelist/top |
 | 验收 | 主包 `pip install .` + `adi-simulate --help`；主 pytest 无 CAAZ；主 RTL 编译（需 Verilator）；**N 笔进 N 笔出**，不降 fs/2；普通 AZ 每笔刷新且全速率 |
-| 文档 | `docs/architecture.md`、`docs/caaz_isolation.md`、`extensions/caaz/README.md` |
+| 文档 | `docs/archive/architecture.md`、`docs/caaz_isolation.md`、`extensions/caaz/README.md` |
 | 回退 | 每个 commit 独立；`git revert <sha>`；不动 `git checkout .` |
 
 **普通 AZ 的特别验收**

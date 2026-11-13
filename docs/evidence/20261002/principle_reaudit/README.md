@@ -26,9 +26,9 @@ python tools/reproduce_principle_reaudit.py --repo . --out /tmp/sar_reaudit_calc
 两组合 RTL bench 可用同版 Verilator 5.020 在仓库根目录分别重建（下面将输出留在临时目录，保留捕获证据）：
 
 ```sh
-verilator --binary --timing --timescale 1ns/1ps --top-module calibration_domain_tb -Irtl/params rtl/core/cal_residue_mac.sv docs/evidence/20261002/principle_reaudit/calibration_domain_tb.sv --Mdir /tmp/sar_domain_obj
+verilator --binary --timing --timescale 1ns/1ps --top-module calibration_domain_tb -Irtl/params rtl/cal_residue_mac.sv docs/evidence/20261002/principle_reaudit/calibration_domain_tb.sv --Mdir /tmp/sar_domain_obj
 /tmp/sar_domain_obj/Vcalibration_domain_tb
-verilator --binary --timing --timescale 1ns/1ps --top-module adc2_rounding_semantics_tb -Irtl/params rtl/core/adc2_dec.sv docs/evidence/20261002/principle_reaudit/adc2_rounding_semantics_tb.sv --Mdir /tmp/sar_adc2_obj
+verilator --binary --timing --timescale 1ns/1ps --top-module adc2_rounding_semantics_tb -Irtl/params rtl/adc2_dec.sv docs/evidence/20261002/principle_reaudit/adc2_rounding_semantics_tb.sv --Mdir /tmp/sar_adc2_obj
 /tmp/sar_adc2_obj/Vadc2_rounding_semantics_tb
 ```
 

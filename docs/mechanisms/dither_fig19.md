@@ -207,7 +207,7 @@ PYTHONPATH=src python3 -m pytest tests/unit/test_dither_charge_port.py -q
 **结论**：`L` 的幅度（`2·D5 + 小数`）与论文的 2b 关系矛盾，
 且该权重来自**七片示例正文**（本文开篇已标"正文未核对"）。
 在拿到正文之前，**不再调整 dither 幅度**，也不修改 `ra_v_clip`/ADC2 窗口去迁就它
-——那组参数与 `docs/reproduction_results.md` 的 0.1875 V 摆动推导自洽。
+——那组参数与 `docs/archive/reproduction_results.md` 的 0.1875 V 摆动推导自洽。
 
 ---
 

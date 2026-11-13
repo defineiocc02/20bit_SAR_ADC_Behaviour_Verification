@@ -30,10 +30,10 @@
 | M-18 | `metrics.py` | **适配** | 增加 LSB20 逐码 INL/DNL、零宽码、`sample_sub` 统计 | main 以 LSB1/ppm 为主 | 与 task 754k 码表一致 |
 | M-19 | `provenance.py`、`inventory_gate.py`、`serialization.py` | **保留** | 增加 claim_id/evidence 绑定 | 已有来源分级/闸门 | 缺证据拒绝 |
 | M-20 | `cli.py`、`__main__.py` | **保留** | 增加 `--profile`、`--topology-id`、`--claim`（薄封装） | 不能把公式塞进 CLI | 旧命令不变 |
-| M-21 | `rtl/core/*`（20 模块） | **保留** | 生产 RTL 唯一实现 | 已综合/形式 | 旧向量逐位 |
+| M-21 | `rtl/*`（20 模块） | **保留** | 生产 RTL 唯一实现 | 已综合/形式 | 旧向量逐位 |
 | M-22 | `rtl/rtl_sources.f` | **适配** | 移除 `caaz_cycle_ctrl.sv`/`caaz_pair_processor.sv`；新增无 CAAZ 主顶层 | 主 filelist 不得含扩展 | 编译/扫描无 CAAZ |
-| M-23 | `rtl/core/sar_structural_ctrl.sv` | **适配** | 删除 `P_CAAZ_ENABLE`、`caaz_*` 端口、`u_caaz_cycle`；保留通用 sample-ID 队列/epoch/反压 | 不能随 CAAZ 删通用队列 | 端口表/编译 |
-| M-24 | `rtl/top/sar20_digital_core.sv` | **适配** | 拆出 `caaz_*` 端口（60-69）与配对输出；生产 top 直接退休逐笔结果 | 主输出不能等偶奇配对 | N→N |
+| M-23 | `rtl/sar_structural_ctrl.sv` | **适配** | 删除 `P_CAAZ_ENABLE`、`caaz_*` 端口、`u_caaz_cycle`；保留通用 sample-ID 队列/epoch/反压 | 不能随 CAAZ 删通用队列 | 端口表/编译 |
+| M-24 | `rtl/sar20_digital_core.sv` | **适配** | 拆出 `caaz_*` 端口（60-69）与配对输出；生产 top 直接退休逐笔结果 | 主输出不能等偶奇配对 | N→N |
 | M-25 | `tests/unit/test_chopping_az.py` | **隔离** | 移到 `extensions/caaz/tests/` | 主 CI 不测扩展 | 主 pytest 无 CAAZ |
 | M-26 | `docs/caaz/`、`docs/randomization_caaz/`、`sim/tb/caaz_pair_*` | **隔离/归档** | 移到 `extensions/caaz/docs|tb/`，保留 SHA | 历史证据不丢 | 链接可追溯 |
 | M-27 | `ad4080_dsp/` | **隔离** | 作为外部消费者，不进 ADI 指标验收 | DSP 是扩展 | 主包不依赖 |
@@ -57,8 +57,8 @@
 | T-11 | `task2/eight/model.py:31-34` 的 `SwitchState/Q32/MapperTable` | **重建/下沉** | `contracts/switch_state.py`、`calibration/q32.py`、`contracts/mapper.py` | 禁止 model→experiments；`MapperTable` 依赖私有函数 | import 扫描 |
 | T-12 | `task2/rtl/dither_word_gen.sv`、`task2/eight_rtl/rtl/dither8_top.sv` | **迁移** | `rtl/control/dither_gen.sv`（diff）、`rtl/datapath/dither8_top.sv` | main 已有 `dither_gen.sv`，先比再合 | 逐位 |
 | T-13 | `task3/**`（`caaz20.py`、`caaz20_pair.sv`、tb/tests/evidence） | **隔离** | `extensions/caaz/task3/` | CAAZ 不进主工程 | 主包无 CAAZ |
-| T-14 | `task_integration/rtl/sar20_digital_lms_top.sv` | **适配** | `rtl/top/sar20_digital_lms_top.sv`（去 CAAZ 端口） | 保留 LMS 重构；删 `caaz_enable_i`、`acq_chop_neg_o`、`acq_az_*` | N→N，无配对 |
-| T-15 | `task_integration/rtl/sar20_digital_top.sv` | **适配** | `rtl/top/sar20_digital_top.sv`（去 CAAZ） | 外部重构接口同样 | 端口表 |
+| T-14 | `task_integration/rtl/sar20_digital_lms_top.sv` | **适配** | `rtl/sar20_digital_lms_top.sv`（去 CAAZ 端口） | 保留 LMS 重构；删 `caaz_enable_i`、`acq_chop_neg_o`、`acq_az_*` | N→N，无配对 |
+| T-15 | `task_integration/rtl/sar20_digital_top.sv` | **适配** | `rtl/sar20_digital_top.sv`（去 CAAZ） | 外部重构接口同样 | 端口表 |
 | T-16 | `task_reconstruction/rtl/sar20_lms_recon.sv` | **迁移** | `rtl/datapath/recon_core.sv`（与 main `recon_core.sv` diff） | Q28 位宽/舍入 | 16384 笔 ≤1 LSB20 |
 | T-17 | `src/adi_model/codes.py` | **迁移** | `contracts/codes.py` | 9b/20b 单一真源 | 旧字面量消失 |
 | T-18 | `src/adi_model/topology/capacitors.py::ExperimentConfig` | **适配** | `profiles/engineering_10m_10vpp.py` | 10MHz/5V/1pF/0.1% 是 profile，不是全局 | profile_id 落盘 |

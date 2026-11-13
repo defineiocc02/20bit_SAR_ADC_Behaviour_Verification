@@ -4,7 +4,7 @@
 
 当前完整数字核为[top/sar20_digital_core.sv](top/sar20_digital_core.sv)。[rtl_sources.f](rtl_sources.f)列20个模块：16个core、2个top、1个CAAZ control与1个CAAZ calibration；另依赖静态错误码头和导出包中的参数／两只source模块。`sadc_enc`是编码器，两个CAAZ模块为默认关闭的扩展。
 
-[工程指南](../docs/rtl/RTL_ENGINEERING_GUIDE.md)解释当前流程，[现行接口与算术合同](../docs/rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)已按实际代码经RTL／校准owner核对；[A表](../docs/current_digital_source_map.md)给原文对照，[B表](../docs/digital_status_matrix.md)给状态与证据等级。
+[工程指南](../docs/rtl/RTL_ENGINEERING_GUIDE.md)解释当前流程，[现行接口与算术合同](../docs/rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)已按实际代码经RTL／校准owner核对；[A表](../docs/archive/current_digital_source_map.md)给原文对照，[B表](../docs/archive/digital_status_matrix.md)给状态与证据等级。
 
 ## 完整核需要什么
 
@@ -29,9 +29,9 @@
 
 ## 执行与当前证据
 
-[完整核及组件复现](../docs/REPRODUCING.md#5-显式导出与rtl组件执行)给出实际8文件导出、训练和同池重放命令。控制组件使用显式`--inputs-dir`、权重、三个标量和32 frames；`--tops`与库外新`--out`必填。数值或配对组件另需明确的格式或向量，缺项／缺工具时失败。
+[完整核及组件复现](../docs/archive/REPRODUCING.md#5-显式导出与rtl组件执行)给出实际8文件导出、训练和同池重放命令。控制组件使用显式`--inputs-dir`、权重、三个标量和32 frames；`--tops`与库外新`--out`必填。数值或配对组件另需明确的格式或向量，缺项／缺工具时失败。
 
-默认关闭的CAAZ扩展另有[现行8包数字组件](../docs/REPRODUCING.md#caaz数字组件)及独立配对对拍，未证明真实AZ存储或H/K。
+默认关闭的CAAZ扩展另有[现行8包数字组件](../docs/archive/REPRODUCING.md#caaz数字组件)及独立配对对拍，未证明真实AZ存储或H/K。
 
 Fig.19受限静态等效已在指定Python／RTL有限窗对拍。source 3D DEM、完整dither电容／开关／噪声网络、实际比较器与参考时序尚未完成。16×40 MHz=640 MHz仅为预算。
 

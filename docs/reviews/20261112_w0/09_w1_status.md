@@ -15,8 +15,8 @@
 | 4 | CAAZ Python 扩展 | `extensions/caaz/model/chopping_az.py` | 32 项原测试通过；主包 `hasattr(adi_model,'ChoppingAZParameters')=False` |
 | 5 | CAAZ 测试/文档 | `extensions/caaz/tests/`、`README.md` | 扩展测试 32 passed；主 pytest 不再收集 |
 | 6 | CAAZ RTL 扩展 | `extensions/caaz/rtl/{caaz_cycle_ctrl,caaz_pair_processor}.sv`、`tb/` | 主 `rtl/rtl_sources.f` 无 CAAZ；`rtl/` 无 CAAZ 文件 |
-| 7 | 主结构控制器去 CAAZ | `rtl/core/sar_structural_ctrl.sv` | 删除 `P_CAAZ_ENABLE`、`caaz_*` 端口、`u_caaz_cycle`；VCS 编译通过 |
-| 8 | 主数字顶层去 CAAZ | `rtl/top/sar20_digital_core.sv` | 删除 CAAZ 端口/配对处理器；`dout` 直接来自逐笔重构；VCS 编译通过 |
+| 7 | 主结构控制器去 CAAZ | `rtl/sar_structural_ctrl.sv` | 删除 `P_CAAZ_ENABLE`、`caaz_*` 端口、`u_caaz_cycle`；VCS 编译通过 |
+| 8 | 主数字顶层去 CAAZ | `rtl/sar20_digital_core.sv` | 删除 CAAZ 端口/配对处理器；`dout` 直接来自逐笔重构；VCS 编译通过 |
 | 9 | 账本/工具路径 | `mechanism_inventory.json`、`tools/*.py`、`docs/readme/data/source_bound_fig19_evidence.json` | X02 标为 `required=false`/`MECHANISM_MODEL`，路径改 `extensions/caaz/...`；清单门禁 2 项通过 |
 | 10 | 主 RTL VCS 编译 | VCS W-2024.09-SP1（虚拟机 `vm-meow`） | **0 error**；1 条 TFIPC 警告（`cal_sample_context` 少接 3 个输出） |
 

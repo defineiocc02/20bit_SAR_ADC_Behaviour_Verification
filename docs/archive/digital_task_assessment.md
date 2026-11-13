@@ -28,7 +28,7 @@
 
 **意义。** 让量化器判决、残差 DAC 更新、另一组 slice 采样、共享 RA 和 ADC2 精确地属于同一次转换。论文中 quantizer 完成判决后，RDAC 使用已形成的结果更新；这样减少不必要的参考切换和输入扰动。
 
-**现在有什么。** [`sar20_digital_core`](../rtl/top/sar20_digital_core.sv)、[`sar_structural_ctrl`](../rtl/core/sar_structural_ctrl.sv) 与 [`sar_trial_ctrl`](../rtl/core/sar_trial_ctrl.sv) 已有结构相位、3 位 Flash 前缀与后续 SAR 判决、控制输出和样本 ID；``structural_adc_tb``（当前仓库无此文件，历史评估引用） 检查结构路径，Python 模型有采样、残差和 ADC2 行为链。
+**现在有什么。** [`sar20_digital_core`](../rtl/sar20_digital_core.sv)、[`sar_structural_ctrl`](../rtl/sar_structural_ctrl.sv) 与 [`sar_trial_ctrl`](../rtl/sar_trial_ctrl.sv) 已有结构相位、3 位 Flash 前缀与后续 SAR 判决、控制输出和样本 ID；``structural_adc_tb``（当前仓库无此文件，历史评估引用） 检查结构路径，Python 模型有采样、残差和 ADC2 行为链。
 
 **急需解决。** Python 的参考负载模型按 trial/reject 构造事件，而结构 RTL 输出已决位事件；固定码 173 的已记录示例分别为 19 与 7 个状态，见[事件对照图和条件](paper_comparisons/README.md#4-建立过程与参考负载可用结果和待补接口)。它们不是同一事件定义，不能直接用前者推算后者的参考电流。应先明确每个事件的码、物理开关、rail、时间和样本归属，再以真实比较器 valid/完成时刻和模拟开关接口复核。
 
@@ -48,7 +48,7 @@
 
 **意义。** 将可测数字观测和独立参考用于估计有效单元权重，再把冻结系数用于粗码、细码和已知注入量的重构。这对应论文“片外求系数、片内应用”的公开边界；它与下一块的系统级两点校正不同。
 
-**现在有什么。** [`fit_unit_weights`](../src/adi_model/calibration/weight_calibration.py) 使用数字观测及外部参考做满秩检查和拟合，`FrozenCalibration` 冻结系数；[`weight_store`](../rtl/core/weight_store.sv)、[`calib_regs`](../rtl/core/calib_regs.sv)、[`recon_core`](../rtl/core/recon_core.sv) 支持载入与定点重构。[ADR 0019](adr/0019-fitted-weight-rtl-closure.md) 的固定例由 Python 行为训练产生系数，RTL 对 **128 个独立留出样本**与定点参考逐码比较。留出数据独立于训练，物理失配池相同；这不是结构 DUT 自行产生训练观测的闭环。
+**现在有什么。** [`fit_unit_weights`](../src/adi_model/calibration/weight_calibration.py) 使用数字观测及外部参考做满秩检查和拟合，`FrozenCalibration` 冻结系数；[`weight_store`](../rtl/weight_store.sv)、[`calib_regs`](../rtl/calib_regs.sv)、[`recon_core`](../rtl/recon_core.sv) 支持载入与定点重构。[ADR 0019](adr/0019-fitted-weight-rtl-closure.md) 的固定例由 Python 行为训练产生系数，RTL 对 **128 个独立留出样本**与定点参考逐码比较。留出数据独立于训练，物理失配池相同；这不是结构 DUT 自行产生训练观测的闭环。
 
 **急需解决。** 在桥接和参考事件合同明确后，串起**真实结构 DUT 数字观测 → 片外拟合 → 系数加载/冻结 → 独立 DUT 留出验证**；覆盖 dither 去除、饱和/溢出、错误系数、噪声和动态条件。当前静态有效权重模型不等于 ADC2 本身的电容非线性校准，也不能校掉未建模的建立、参考或开关误差。
 

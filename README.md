@@ -1,99 +1,77 @@
-# 20 位 / 40 MS/s 两步式 SAR ADC：片上数字算法复现
+# ADI 20-bit SAR ADC · 片上数字模块
 
-[English](README_EN.md) · [执行计划](docs/DIGITAL_PLAN.md) · [验收表](docs/ACCEPTANCE_CHECKLIST.md) · [论文与专利原件索引](docs/spec/授予专利_可检索正文入口与关键事实索引.md) · [Python–RTL 验证](verification/README.md)
+> 复现 ADI ISSCC 2024 §9.8 的**片上数字**部分：调度、Follower、DEM、Dither、权重重构。
+> 模拟电路（RA / 参考 / 采样）不在本仓库范围内，只作为测试激励。
+>
+> **状态声明**：Python 数字链可运行并有实测记录；RTL 为静态可编译，**未做仿真、未做综合、未做时序收敛**。
+> 任何性能数字都还没到可与论文比较的阶段。
 
-> 五分钟读懂：**这个仓库只做一件事——复现 ADI ISSCC 2024 §9.8 的片上数字控制与数字重构算法。**
-> 模拟电路（RA、参考、TRACK/AUX）只作为测试激励，不属于主线。
-
----
-
-## 1. 在复现什么
-
-**目标**：D1–D6 六个数字模块，判据是「原文依据 → 算法 → Python 真跑 → RTL 真实现 → 逐事件对拍」。
-
-**边界**：不做晶体管级、不做 PEX、不建通用仿真平台。
-论文披露的只是架构与指标；未披露的随机序列、LFSR、流水延迟属**工程设计**，不声称与芯片逐位一致。
-
----
-
-## 2. 数字架构
+## 文件与架构
 
 ```
-                    Digital Top (D6)
-                          │
-   ┌──────────┬───────────┼───────────┬──────────────┐
-   │          │           │           │              │
-D1 Scheduler  D2 Follower  D3 DEM   D4 Dither   D5 Weight Recon
-18 片池        已决前缀     编码/     扰动字/      物理片 ID
-8 采 8 转 2 备  逐事件命令   shuffler  码修正/去扰   + mask + 系数
-   │          │           │           │              │
-   └──────────┴───────────┴───────────┴──────────────┘
-                          │
-                    20-bit 输出
+src/adi_model/digital_chain.py       数字主链（D1–D5 一体，可单独跑）
+├── D1 调度      dem3d.round_robin_plan        18 池 / 8 采 8 转 2 备
+├── D2 Follower  control/follower.py           已决前缀 → 逐事件命令
+├── D3 DEM       cross_slice_mux.fig21_*       Fig.19–21 保留列 + 纵向分配
+├── D4 Dither    digital_chain._dither_terms   U/L/T 分路
+└── D5 重构      digital_chain.reconstruct_int Q30 权重 / Q24 电压 / 96 位累加
+
+rtl/*.sv                              18 个模块，扁平同级
+files.f                               编译清单（verilator -f files.f）
 ```
 
----
+模块清单：`div_floor` `unit_therm` `adc2_dec` `sadc_enc` `slice_pool_ctrl` `sar_trial_ctrl`
+`sar_structural_ctrl` `rdac_drv` `recon_core` `weight_store` `cal_weight_reduce` `cal_residue_mac`
+`cal_sample_context` `cal_output_stage` `calib_regs` `status_regs` `analog_phase_ctrl` `sar20_digital_core`
 
-## 3. 六个模块完成到哪（只记有实测证据的）
+## 接口协议
 
-| 模块 | Python | RTL | 对拍 | 最大缺口 |
-|:---|:---|:---|:---|:---|
-| **D1** Scheduler | 有（`dem3d.round_robin_plan`） | 待核对 | **旧几何** | reset/stall 状态机行为未测（现有测试只证纯函数可重复） |
-| **D2** Follower | 有（`control/follower.py`，4 项模块级 PASS） | 待核对 | 无 | **未进主链**（已核实 `src/` 零 import） |
-| **D3** DEM | 部分（`fig11_masks` 进主链；Fig.21 纵向/列分配模块级 PASS） | 待核对 | **旧几何** | 横向 shuffler 未替换现有逐片旋转；512 码 × 全状态未覆盖 |
-| **D4** Dither | 有（v1 进主链，分路 3 项 PASS） | 待核对 | 无 | 64 字未全遍历；`/7`（七片示例）与八片等效性未证明 |
-| **D5** Recon | 有（方程已修，反例通过） | `recon_core.sv` | **旧几何**（101 向量为 63/8） | 系数加载/版本切换/reset 未验 |
-| **D6** Digital Top | 无 | `sar20_digital_core.sv` 仅 `ELABORATED_ONLY` | **NOT_RUN** | 整链事务与逐事件对拍全缺 |
+- 单时钟域 `clk`，`reset_n` 低有效异步复位。
+- 事务握手：`valid` 与 `ready` 同拍为 1 才传输；未接收时请求与参数保持稳定。
+- `stall` 期间**不越过**当前事务：本项及其后全部押后，恢复后按原序重试。
+- 计数守恒：`accepted = retired + cancelled + pending`，`pending == 0` 才算排空完成。
+- 响应最早在请求被接收的下一周期给出；不支持零延迟响应。
 
-**读法**：「有」= 有实现且模块级判据通过；**「对拍」列的「旧几何」表示该记录来自 63/8 拓扑，不能作为当前 17/5 规格的证据。**
+## 错误位
 
----
+| 位 | 含义 |
+|:--:|:---|
+| 0 | 忙时新命令 / 非法组合 |
+| 1 | 未使能或权重无效时请求转换 |
+| 2 | ADC2 码越界 |
+| 3 | dither 字越界（>63） |
+| 4 | `k` 越界 `[0,511]` |
+| 5 | 重构分母 `Σw·a == 0` |
+| 6 | 累加器超出 96 位约定 |
+| 7 | 输出饱和 |
 
-## 4. 怎么跑（三条命令都实际执行过）
+## 当前未接入 / 未验证
+
+- **RTL 未仿真**：无 testbench、无波形、无对拍记录；只做过静态编译与参数展开。
+- **RTL 基于旧 63/8 几何**：与 Python 的 17/5 不一致，不能作新规格证据。
+- **P4 主链的 DEM 开关是死的**：`dem_enable` 在 `defaults.py` 直接 `raise`。
+- **旧模拟主链的 DEM 对输出无影响**：掩码逐笔在变，INL 开/关完全相同（4.731）。
+- **专利未披露项**：LFSR、随机序列、流水级数均为工程选择，不声称与硅片一致。
+
+## 怎么跑
 
 ```bash
-# 一个数字样本（含 SADC 判决、RDAC 事件、ADC2 码、20 位输出）
-PYTHONPATH=src python3 tools/trace_one_sample.py
-
-# 单个模块测试
-PYTHONPATH=src:. python3 -m pytest tests/unit/test_follower.py -q            # D2
-PYTHONPATH=src:. python3 -m pytest tests/unit/test_scheduler_identity.py -q  # D1
-PYTHONPATH=src:. python3 -m pytest tests/unit/test_reserved_column.py -q     # D3
-
-# 全量
-PYTHONPATH=src:. python3 -m pytest tests -q
-
-# 工程自检（7 项；C4 目前报图陈旧）
-python3 tools/check_engineering.py
+PYTHONPATH=src python3 tools/trace_one_sample.py                     # 一笔样本
+PYTHONPATH=src python3 -m pytest tests/unit/test_follower.py -q      # D2
+PYTHONPATH=src python3 -m pytest tests/unit/test_reserved_column.py -q  # D3
+PYTHONPATH=src python3 -m pytest tests -q                            # 全量
+verilator --lint-only -f files.f --top-module sar20_digital_core     # RTL 静态检查（需 verilator）
 ```
 
-> Python–RTL 对拍入口见 `verification/README.md`；**当前无有效对拍**（向量仍是旧几何），随 RTL 重建后再补。
+## 文档
 
----
+| 文件 | 内容 |
+|:---|:---|
+| [`docs/DIGITAL_SPEC.md`](docs/DIGITAL_SPEC.md) | **唯一权威规格**：接口、数学、定点格式 |
+| [`docs/DIGITAL_PLAN.md`](docs/DIGITAL_PLAN.md) | D1–D6 执行顺序与进度 |
+| [`docs/ACCEPTANCE_CHECKLIST.md`](docs/ACCEPTANCE_CHECKLIST.md) | 验收项与实际通过情况 |
+| [`docs/MECHANISM_UNDERSTANDING.md`](docs/MECHANISM_UNDERSTANDING.md) | 各机制原理与原文依据 |
+| [`docs/HANDOVER.md`](docs/HANDOVER.md) | 接手说明 |
+| `docs/spec/` | 论文/专利原件索引与原图 |
 
-## 5. 源码在哪（按 D1–D6 直接跳）
-
-| 模块 | Python | 测试 | RTL |
-|:---|:---|:---|:---|
-| D1 | `src/adi_model/control/dem3d.py`（`round_robin_plan`） | `tests/unit/test_scheduler_identity.py` | `rtl/core/slice_pool_ctrl.sv` |
-| D2 | `src/adi_model/control/follower.py` | `tests/unit/test_follower.py` | 待核对（`sar_trial_ctrl.sv` / `sar_structural_ctrl.sv`） |
-| D3 | `src/adi_model/control/fig11_dem.py`、`dem3d.py`、`cross_slice_mux.py` | `tests/unit/test_reserved_column.py`、`test_dem3d.py` | `rtl/core/rdac_drv.sv`、`unit_therm.sv` |
-| D4 | `src/adi_model/control/dither.py`、`dither_port.py` | `tests/unit/test_dither_split_causality.py` | 待核对 |
-| D5 | `src/adi_model/calibration/reconstruction.py`、`contracts/fixed_point.py` | `tests/unit/test_reconstruction_gain_pairing.py` | `rtl/core/recon_core.sv` |
-| D6 | 无 | 无 | `rtl/top/sar20_digital_core.sv` |
-
-模块说明：`src/adi_model/control/README.md`（D1–D4）、`src/adi_model/calibration/README.md`（D5）、`verification/README.md`（对拍）。
-
-**候选、未接主链**：`reserved_column.py`、`shuffle_gate.py`、`cross_slice_mux.py`、`aux_input.py`、`reference_buffer.py`、`track_aux.py` —— 它们是判据模块，**不等于已复现**。
-
----
-
-## 6. 还差什么（只列真正卡住验收的）
-
-1. **D2 follower 未进主链** —— 21 KB 实现 + 14 项测试全在测试里跑，对实际转换无影响。
-2. **D3 横向 shuffler 未替换逐片旋转** —— Fig.21 的纵向与列分配已实现，主链仍用旋转。
-3. **RTL 全部基于旧 63/8 几何** —— 与当前 17/5 规格不一致，任何 RTL 结论都不能作为新规格证据。
-4. **D6 整链不存在** —— 无真实事务、无逐事件逐字段对拍。
-5. **性能数字不可引用** —— 图停在 `59d17e5`（C4 报 stale）。
-
-逐条判据与执行顺序见 [`docs/DIGITAL_PLAN.md`](docs/DIGITAL_PLAN.md)。
+历史报告全部在 `docs/archive/`，**不作为当前验收依据**。

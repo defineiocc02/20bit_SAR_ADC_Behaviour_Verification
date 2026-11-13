@@ -1,6 +1,6 @@
 # 现行接口与整数算术合同：ABI2
 
-> **ABI2接口复核。** RTL／校准owner已按实际源码核对字段、单位、fold与整数公式；本文据此整理8文件包、20模块清册和调用边界。合同说明支持域；指定运行的通过与未完成项另见[B表](../digital_status_matrix.md)，不据此宣称模拟、工艺或任意协议通过。
+> **ABI2接口复核。** RTL／校准owner已按实际源码核对字段、单位、fold与整数公式；本文据此整理8文件包、20模块清册和调用边界。合同说明支持域；指定运行的通过与未完成项另见[B表](../archive/digital_status_matrix.md)，不据此宣称模拟、工艺或任意协议通过。
 
 旧[ADR0021](../adr/0021-structural-contract-calibration.md)和[算术合同](RTL_ARITHMETIC_CONTRACT.md)只保留af8／9bdf历史。当前没有旧748位固定包、P_STRUCTURAL兼容路径或0x1018模式别名。
 
@@ -90,4 +90,4 @@ conversion_fault以有效核心配置下的controller_error或CAAZ pair fault产
 
 Python静态producer只执行其N个实际样本，case格式兼容不等于SV捕获。实际RTL有限窗另声明N+3程序行、trace中N+2物理采样、前N个目标中expected_good笔退休及3条未退休程序尾；正常例expected_good=N，命名prefix负例N=6只有4笔正常退休。不能伪造Python尾样本混算。有限观察结束、DSP pending0或fault锁停都不证明真实停采、排空、park或模拟idle；这些仍OPEN。
 
-两位owner对本页字段、整数规则的复核与最终联合运行分开。实际案例的正常／负例、完整状态、源／工具／输入／记录身份见[B表](../digital_status_matrix.md)及公共producer／same-plan verifier；源码owner的ABI冻结不等于全部实验或物理层级通过。
+两位owner对本页字段、整数规则的复核与最终联合运行分开。实际案例的正常／负例、完整状态、源／工具／输入／记录身份见[B表](../archive/digital_status_matrix.md)及公共producer／same-plan verifier；源码owner的ABI冻结不等于全部实验或物理层级通过。

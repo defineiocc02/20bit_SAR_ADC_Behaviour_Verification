@@ -93,7 +93,7 @@ def units_per_lsb1(self) -> int:
    见 `experiments.stage13_dynamics()["sub_weight_inl"]`。
 2. **这是如实入账，不是回归。** 论文 PPT p.31 的 "Binary-to-unary bridging"
    校正处理的正是这一子权失配；本模型**未实现**该校正，因此 base 行高于
-   论文的 2.2 LSB 是**应有**的结果（见 `docs/model_scope.md` §4）。
+   论文的 2.2 LSB 是**应有**的结果（见 `docs/archive/model_scope.md` §4）。
 3. **A01 的实质要求被满足**：改读数不再是改一个参数，`validate()` 会检查
    `2**b1 ≤ DAC 电平数`、`Δ2/G0 ≤ LSB20`、`残差峰值 < ADC2 上界`；三条任一
    不成立即 FAIL。`tests/audit/test_audit_findings.py` 对三种读数逐一断言。

@@ -8,26 +8,26 @@
 
 | 模块／机制 | 原文依据 | 本工程实现 | 对齐状态 | 证据等级 | 备注 |
 | :--- | :--- | :--- | :---: | :---: | :--- |
-| `adc2_dec` | 无直接原文依据；工程选择（本工程自定） | [adc2_dec.sv](../rtl/core/adc2_dec.sv)：`adc2_dec` | 工程选择 | 静态审计 | 名义ADC2码仓中心与Q格式、舍入、端点检查；12位与窗口是所选规格。 |
+| `adc2_dec` | 无直接原文依据；工程选择（本工程自定） | [adc2_dec.sv](../rtl/adc2_dec.sv)：`adc2_dec` | 工程选择 | 静态审计 | 名义ADC2码仓中心与Q格式、舍入、端点检查；12位与窗口是所选规格。 |
 | `caaz_cycle_ctrl` | [PKU论文](#ref-pku-paper) PDF2 Fig.5/6；讲稿PDF34/35 | [caaz_cycle_ctrl.sv](../extensions/caaz/rtl/caaz_cycle_ctrl.sv)：`caaz_cycle_ctrl` | 机制对齐 | 静态审计 | 仅输入极性、AZ代和偶更新／奇保持资格；精确相位为工程选择，不实现CBIAS保持。 |
 | `caaz_pair_processor` | PKU论文 PDF2 Fig.5/6；讲稿PDF35 | [caaz_pair_processor.sv](../extensions/caaz/rtl/caaz_pair_processor.sv)：`caaz_pair_processor` | 机制对齐 | 静态审计 | 完整重构码后配对和ID／极性／AZ代检查；没有H/K或实际存储噪声观测。 |
-| `analog_phase_ctrl` | 无直接原文依据；工程选择（本工程自定） | [analog_phase_ctrl.sv](../rtl/core/analog_phase_ctrl.sv)：`analog_phase_ctrl` | 工程选择 | 静态审计 | 16相位及注册使能、启动清零是工程时序；真实非交叠、比较器和参考建立由宏验收。 |
-| `cal_output_stage` | 无直接原文依据；工程选择（本工程自定） | [cal_output_stage.sv](../rtl/core/cal_output_stage.sv)：`cal_output_stage` | 工程选择 | 静态审计 | 提交或保持候选码，随同ID和flags退休；不重算训练或模拟正确性。 |
-| `cal_residue_mac` | 无直接原文依据；工程选择（本工程自定） | [cal_residue_mac.sv](../rtl/core/cal_residue_mac.sv)：`cal_residue_mac` | 工程选择 | 静态审计 | 重构乘加、受检位宽和溢出处理；不读取物理电容真值。 |
-| `cal_sample_context` | 无直接原文依据；工程选择（本工程自定） | [cal_sample_context.sv](../rtl/core/cal_sample_context.sv)：`cal_sample_context` | 工程选择 | 静态审计 | 冻结同笔slice、mask、控制word／state、已知项与前代fine归属；不同采集端口不得混笔。 |
-| `cal_weight_reduce` | 无直接原文依据；工程选择（本工程自定） | [cal_weight_reduce.sv](../rtl/core/cal_weight_reduce.sv)：`cal_weight_reduce` | 工程选择 | 静态审计 | 按实际物理mask归约有效权重；实现组合算术，不包含系数学习器。 |
-| `calib_regs` | 无直接原文依据；工程选择（本工程自定） | [calib_regs.sv](../rtl/core/calib_regs.sv)：`calib_regs` | 工程选择 | 静态审计 | 标量、完整性验证和epoch撤销；0x1018旧模式地址退役，不提供别名。 |
-| `div_floor` | 无直接原文依据；工程选择（本工程自定） | [div_floor.sv](../rtl/core/div_floor.sv)：`div_floor` | 工程选择 | 静态审计 | 有符号floor除法与异常合同；精确数值和延迟需独立整数／RTL检查。 |
-| `rdac_drv` | 无直接原文依据；工程选择（本工程自定） | [rdac_drv.sv](../rtl/core/rdac_drv.sv)：`rdac_drv` | 工程选择 | 静态审计 | 注册外部绑定给出的实际mask和slice归属；数字意图不代替模拟开关或电平转换。 |
-| `recon_core` | [00](#ref-00) PDF1仅披露外部求系数、片上校正 | [recon_core.sv](../rtl/core/recon_core.sv)：`recon_core` | 工程选择 | 静态审计 | 具体分子、Q30/Q32、96位检查、流水和错误退休为本工程选择。 |
-| `sar_structural_ctrl` | [00] PDF1、PDF2 Fig.9.8.1；[09](#ref-09) 并行残差DAC主题 | [sar_structural_ctrl.sv](../rtl/core/sar_structural_ctrl.sv)：`sar_structural_ctrl` | 机制对齐 | 静态审计 | 双coarse、共享Flash、已决RDAC事件和前代fine的结构关系；截止沿、12位fine与16tick为工程选择。 |
-| `sar_trial_ctrl` | 无直接原文依据；工程选择（本工程自定） | [sar_trial_ctrl.sv](../rtl/core/sar_trial_ctrl.sv)：`sar_trial_ctrl` | 工程选择 | 静态审计 | seeded逐位试探、已决码、valid／done／cancel协议；不推断真实比较器完成沿。 |
-| `slice_pool_ctrl` | [00] PDF1；[00_1](#ref-00-1) PDF29–31的8/18 | [slice_pool_ctrl.sv](../rtl/core/slice_pool_ctrl.sv)：`slice_pool_ctrl` | 机制对齐 | 静态审计 | 8采集／8转换／2空闲及因果归属；具体选择器和启动预热为工程规则，非时偏学习器。 |
-| `status_regs` | 无直接原文依据；工程选择（本工程自定） | [status_regs.sv](../rtl/core/status_regs.sv)：`status_regs` | 工程选择 | 静态审计 | 数字错误与粘滞状态读回；不是器件全部寄存器映射或事件队列。 |
-| `unit_therm` | 无直接原文依据；工程选择（本工程自定） | [unit_therm.sv](../rtl/core/unit_therm.sv)：`unit_therm` | 工程选择 | 静态审计 | 检查／传递实际unit mask；已移除旧缺格SID及桥接译码，不宣称源3D DEM。 |
-| `weight_store` | [00] PDF1：外部系数与片上DAC权重校正 | [weight_store.sv](../rtl/core/weight_store.sv)：`weight_store` | 机制对齐 | 静态审计 | 仅系数应用位置对齐；物理索引、格式、bitmap及行和缓存为工程实现。 |
-| `sadc_enc` | 无直接原文依据；工程选择（本工程自定） | [sadc_enc.sv](../rtl/top/sadc_enc.sv)：`sadc_enc` | 工程选择 | 静态审计 | Flash温度计编码与尺寸守卫；不验证门限、气泡物理成因或孔径。 |
-| `sar20_digital_core` | 无直接原文依据；工程选择（本工程自定） | [sar20_digital_core.sv](../rtl/top/sar20_digital_core.sv)：`sar20_digital_core` | 工程选择 | 静态审计 | 完整核依赖显式参数、外部source_control_binding和calobs v2；接口并非原文公开RTL。 |
+| `analog_phase_ctrl` | 无直接原文依据；工程选择（本工程自定） | [analog_phase_ctrl.sv](../rtl/analog_phase_ctrl.sv)：`analog_phase_ctrl` | 工程选择 | 静态审计 | 16相位及注册使能、启动清零是工程时序；真实非交叠、比较器和参考建立由宏验收。 |
+| `cal_output_stage` | 无直接原文依据；工程选择（本工程自定） | [cal_output_stage.sv](../rtl/cal_output_stage.sv)：`cal_output_stage` | 工程选择 | 静态审计 | 提交或保持候选码，随同ID和flags退休；不重算训练或模拟正确性。 |
+| `cal_residue_mac` | 无直接原文依据；工程选择（本工程自定） | [cal_residue_mac.sv](../rtl/cal_residue_mac.sv)：`cal_residue_mac` | 工程选择 | 静态审计 | 重构乘加、受检位宽和溢出处理；不读取物理电容真值。 |
+| `cal_sample_context` | 无直接原文依据；工程选择（本工程自定） | [cal_sample_context.sv](../rtl/cal_sample_context.sv)：`cal_sample_context` | 工程选择 | 静态审计 | 冻结同笔slice、mask、控制word／state、已知项与前代fine归属；不同采集端口不得混笔。 |
+| `cal_weight_reduce` | 无直接原文依据；工程选择（本工程自定） | [cal_weight_reduce.sv](../rtl/cal_weight_reduce.sv)：`cal_weight_reduce` | 工程选择 | 静态审计 | 按实际物理mask归约有效权重；实现组合算术，不包含系数学习器。 |
+| `calib_regs` | 无直接原文依据；工程选择（本工程自定） | [calib_regs.sv](../rtl/calib_regs.sv)：`calib_regs` | 工程选择 | 静态审计 | 标量、完整性验证和epoch撤销；0x1018旧模式地址退役，不提供别名。 |
+| `div_floor` | 无直接原文依据；工程选择（本工程自定） | [div_floor.sv](../rtl/div_floor.sv)：`div_floor` | 工程选择 | 静态审计 | 有符号floor除法与异常合同；精确数值和延迟需独立整数／RTL检查。 |
+| `rdac_drv` | 无直接原文依据；工程选择（本工程自定） | [rdac_drv.sv](../rtl/rdac_drv.sv)：`rdac_drv` | 工程选择 | 静态审计 | 注册外部绑定给出的实际mask和slice归属；数字意图不代替模拟开关或电平转换。 |
+| `recon_core` | [00](#ref-00) PDF1仅披露外部求系数、片上校正 | [recon_core.sv](../rtl/recon_core.sv)：`recon_core` | 工程选择 | 静态审计 | 具体分子、Q30/Q32、96位检查、流水和错误退休为本工程选择。 |
+| `sar_structural_ctrl` | [00] PDF1、PDF2 Fig.9.8.1；[09](#ref-09) 并行残差DAC主题 | [sar_structural_ctrl.sv](../rtl/sar_structural_ctrl.sv)：`sar_structural_ctrl` | 机制对齐 | 静态审计 | 双coarse、共享Flash、已决RDAC事件和前代fine的结构关系；截止沿、12位fine与16tick为工程选择。 |
+| `sar_trial_ctrl` | 无直接原文依据；工程选择（本工程自定） | [sar_trial_ctrl.sv](../rtl/sar_trial_ctrl.sv)：`sar_trial_ctrl` | 工程选择 | 静态审计 | seeded逐位试探、已决码、valid／done／cancel协议；不推断真实比较器完成沿。 |
+| `slice_pool_ctrl` | [00] PDF1；[00_1](#ref-00-1) PDF29–31的8/18 | [slice_pool_ctrl.sv](../rtl/slice_pool_ctrl.sv)：`slice_pool_ctrl` | 机制对齐 | 静态审计 | 8采集／8转换／2空闲及因果归属；具体选择器和启动预热为工程规则，非时偏学习器。 |
+| `status_regs` | 无直接原文依据；工程选择（本工程自定） | [status_regs.sv](../rtl/status_regs.sv)：`status_regs` | 工程选择 | 静态审计 | 数字错误与粘滞状态读回；不是器件全部寄存器映射或事件队列。 |
+| `unit_therm` | 无直接原文依据；工程选择（本工程自定） | [unit_therm.sv](../rtl/unit_therm.sv)：`unit_therm` | 工程选择 | 静态审计 | 检查／传递实际unit mask；已移除旧缺格SID及桥接译码，不宣称源3D DEM。 |
+| `weight_store` | [00] PDF1：外部系数与片上DAC权重校正 | [weight_store.sv](../rtl/weight_store.sv)：`weight_store` | 机制对齐 | 静态审计 | 仅系数应用位置对齐；物理索引、格式、bitmap及行和缓存为工程实现。 |
+| `sadc_enc` | 无直接原文依据；工程选择（本工程自定） | [sadc_enc.sv](../rtl/sadc_enc.sv)：`sadc_enc` | 工程选择 | 静态审计 | Flash温度计编码与尺寸守卫；不验证门限、气泡物理成因或孔径。 |
+| `sar20_digital_core` | 无直接原文依据；工程选择（本工程自定） | [sar20_digital_core.sv](../rtl/sar20_digital_core.sv)：`sar20_digital_core` | 工程选择 | 静态审计 | 完整核依赖显式参数、外部source_control_binding和calobs v2；接口并非原文公开RTL。 |
 
 完整核还需要调用方提供的`source_control_binding`、`source_acquisition_binding`及导出参数包；这两只外部模块不计入仓库`.f`的20个模块。该绑定必须有实际来源、SHA与声明的word／state／采集端口规则。数学夹具不获得原芯片矩阵的身份。
 

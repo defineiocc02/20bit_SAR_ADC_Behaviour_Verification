@@ -10,7 +10,7 @@
 
 - 状态：**已冻结**，2026-09-18
 - 上游：`docs/rtl/RTL_ARITHMETIC_CONTRACT.md`（算术，冻结）、`docs/rtl/P1_INTERFACE.md`（P1 已交付的 M1–M5）
-- 适用：`rtl/core/` 下 M6–M13、M16、M17 与 `rtl/top/` 下的 M8、顶层，以及 `sim/tb/p2_tb.sv`
+- 适用：`rtl/` 下 M6–M13、M16、M17 与 `rtl/` 下的 M8、顶层，以及 `sim/tb/p2_tb.sv`
 - 本文与 P1 文档**同一套全局约定**（§0.1），仅补充新增项
 
 ---
@@ -39,17 +39,17 @@ P5 若确认功耗吃紧，再作为独立优化项引入。
 
 | ID | 模块 | 文件 | 阶段 | 一句话职责 |
 |:---|:---|:---|:---:|:---|
-| — | `div_floor` | `rtl/core/div_floor.sv` | P2 | 有符号**floor** 除法（唯一除法器），恢复余数法 |
-| M9 | `adc2_dec` | `rtl/core/adc2_dec.sv` | P2 | 原始后端码 → Q32 bin center（唯一舍入点，ties-to-even） |
-| M11 | `recon_core` | `rtl/core/recon_core.sv` | P2 | **定点重构核**：权重×掩码求和 → 受检算术 → floor 除 → 20 bit 饱和输出 |
-| M7 | `slice_alloc` | `rtl/core/slice_alloc.sv` | P2 | 18-of-8 分配，A/B ping-pong，`conv[n] = acq[n-1]` |
-| M6 | `rdac_drv` | `rtl/core/rdac_drv.sv` | P2 | 8 个活动 slice 的 unary 开关码扇出到 18 个物理 slice |
-| M16 | `ctrl_fsm` | `rtl/core/ctrl_fsm.sv` | P2 | 相位节拍生成 + 流水控制脉冲 |
-| M17 | `status_regs` | `rtl/core/status_regs.sv` | P2 | 粘滞溢出/剪裁/错误码 |
-| M12 | `weight_store` | `rtl/core/weight_store.sv` | P3 | 18 × 71 Q30 权重存储（含写入窗口） |
-| M13 | `calib_regs` | `rtl/core/calib_regs.sv` | P3 | 系数寄存器 + 合法性校验 + `cfg_ready` |
-| M8 | `sadc_enc` | `rtl/top/sadc_enc.sv` | P2 | 比较器阵列温度计 → 二进制（**在核外**，见 `rtl/README.md` §3.1） |
-| — | `sar20_digital_core` | `rtl/top/sar20_digital_core.sv` | P2 | 顶层集成 |
+| — | `div_floor` | `rtl/div_floor.sv` | P2 | 有符号**floor** 除法（唯一除法器），恢复余数法 |
+| M9 | `adc2_dec` | `rtl/adc2_dec.sv` | P2 | 原始后端码 → Q32 bin center（唯一舍入点，ties-to-even） |
+| M11 | `recon_core` | `rtl/recon_core.sv` | P2 | **定点重构核**：权重×掩码求和 → 受检算术 → floor 除 → 20 bit 饱和输出 |
+| M7 | `slice_alloc` | `rtl/slice_alloc.sv` | P2 | 18-of-8 分配，A/B ping-pong，`conv[n] = acq[n-1]` |
+| M6 | `rdac_drv` | `rtl/rdac_drv.sv` | P2 | 8 个活动 slice 的 unary 开关码扇出到 18 个物理 slice |
+| M16 | `ctrl_fsm` | `rtl/ctrl_fsm.sv` | P2 | 相位节拍生成 + 流水控制脉冲 |
+| M17 | `status_regs` | `rtl/status_regs.sv` | P2 | 粘滞溢出/剪裁/错误码 |
+| M12 | `weight_store` | `rtl/weight_store.sv` | P3 | 18 × 71 Q30 权重存储（含写入窗口） |
+| M13 | `calib_regs` | `rtl/calib_regs.sv` | P3 | 系数寄存器 + 合法性校验 + `cfg_ready` |
+| M8 | `sadc_enc` | `rtl/sadc_enc.sv` | P2 | 比较器阵列温度计 → 二进制（**在核外**，见 `rtl/README.md` §3.1） |
+| — | `sar20_digital_core` | `rtl/sar20_digital_core.sv` | P2 | 顶层集成 |
 
 拓扑（顶层内部，全部同一时钟域）：
 
@@ -552,7 +552,7 @@ module calib_regs #(
 
 ---
 
-## 10. M8 `sadc_enc`（核外，`rtl/top/`）
+## 10. M8 `sadc_enc`（核外，`rtl/`）
 
 ```systemverilog
 module sadc_enc #(
@@ -619,7 +619,7 @@ module sar20_digital_core (
 > **端口表修正（2026-09-18）**：本节初版**漏列了 `inj_q`**。`recon_core` 的 `num` 里有
 > `− total·I` 这一项，`I` 必须从顶层进；而 §11 的 `cfg_addr` 映射里也没有它的位置
 > （它**逐样本**变，而 cfg 寄存器是配置期写一次的）。所以它是顶层输入端口，不是寄存器。
-> 这一处修正由实现阶段发现，已登记在 `rtl/top/sar20_digital_core.sv` 的模块头。
+> 这一处修正由实现阶段发现，已登记在 `rtl/sar20_digital_core.sv` 的模块头。
 >
 > **契约修正 2：顶层还需 `input logic adc2_over`（2026-09-18，L3 测试发现）**。
 > `analog_ovf = rdac_ovf | adc2_ovf | ra_sat` 里的 `adc2_ovf` 指模型的 `adc2_over`：

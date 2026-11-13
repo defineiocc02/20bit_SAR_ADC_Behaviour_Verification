@@ -76,4 +76,4 @@ python tools/run_open_rtl.py --out "$SAR_DSP_ROOT/run" --tops \
 | 数字结果 | 码、ID、flags、拒绝／恢复、独立参考及工作域；不能只报用例存在 |
 | 工艺层级 | 顶层、库／器件、SDC、角、阶段与原始STA；没有则明确未执行 |
 
-[旧仿真](verification_sim.md)、[BMC](formal.md)、[ECP5](synthesis_ecp5.md)和手算面积／延时继续按原版本引用。RTLCoder、Verible下载或pyslang旧故事不作为当前门禁成绩；自动后处理工具也不能据模板编造来源、作者、版本或当前能力。当前结果按[B表](../../docs/digital_status_matrix.md)的实际场景及证据范围引用。
+[旧仿真](verification_sim.md)、[BMC](formal.md)、[ECP5](synthesis_ecp5.md)和手算面积／延时继续按原版本引用。RTLCoder、Verible下载或pyslang旧故事不作为当前门禁成绩；自动后处理工具也不能据模板编造来源、作者、版本或当前能力。当前结果按[B表](../../docs/archive/digital_status_matrix.md)的实际场景及证据范围引用。

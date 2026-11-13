@@ -35,6 +35,7 @@ from tools.run_p4_ablation import (  # noqa: E402
     _train_calibration,
 )
 
+from adi_model.defaults import DefaultParameters
 from adi_model import metrics  # noqa: E402
 from adi_model.behavioral.ra_az import OrdinaryAZConfig, apply_ordinary_az  # noqa: E402
 from adi_model.control.dem3d import (  # noqa: E402
@@ -533,23 +534,29 @@ def figure_dem_usage(model, out: Path) -> dict:
 def figure_inl(model, out: Path, *, points: int, repeats: int, dynamic_n: int) -> dict:
     """真 INL（斜坡、逐电平平均）与分箱 DNL，四条配置。"""
     # 配置必须与 P4 矩阵逐字对齐：A3 用默认随机片选，A4 才加轮转。
+    #
+    # 失配不能在这里写死。本函数曾把 `mismatch=_mismatch` 硬编码进每一行，
+    # 而 P4 矩阵（experiments/configs/matrix.py）读的是默认参数 1e-4 ——
+    # 于是同一个 "A3" 标签在图上和表里对应两颗不同的芯片。
+    # 现在从同一个默认源取值，图与表才是同一条件。
+    _mismatch = DefaultParameters().unit_mismatch_std
     configs = [
         ("A0 ideal", dict(mismatch=0.0, noise=False, dem=False, plan=False, cal=False)),
-        ("A2 mismatch+noise", dict(mismatch=1e-3, noise=True, dem=False, plan=False, cal=False)),
-        ("A3 +DEM", dict(mismatch=1e-3, noise=True, dem=True, plan=False, cal=False)),
-        ("A4 +DEM+uniform plan", dict(mismatch=1e-3, noise=True, dem=True, plan=True, cal=False)),
-        ("A5 +calibration", dict(mismatch=1e-3, noise=True, dem=False, plan=False, cal=True)),
+        ("A2 mismatch+noise", dict(mismatch=_mismatch, noise=True, dem=False, plan=False, cal=False)),
+        ("A3 +DEM", dict(mismatch=_mismatch, noise=True, dem=True, plan=False, cal=False)),
+        ("A4 +DEM+uniform plan", dict(mismatch=_mismatch, noise=True, dem=True, plan=True, cal=False)),
+        ("A5 +calibration", dict(mismatch=_mismatch, noise=True, dem=False, plan=False, cal=True)),
         # A6 走独立电荷口；它占掉 T_max 的输入范围，所以扫描区间与其他行不同，
         # 图上直接画在各自的实际可用区间里，不插值补齐。
-        ("A6 +dither (charge port)", dict(mismatch=1e-3, noise=True, dem=False, plan=False,
+        ("A6 +dither (charge port)", dict(mismatch=_mismatch, noise=True, dem=False, plan=False,
                                           cal=False, dither=True)),
         # 组合配置：与矩阵 C1/C2/C3 一一对应。校准与 DEM 同开时 INL 反而变差，
         # 这条负面结果必须画在同一张图上，不能只留在表里。
-        ("C1 DEM+cal", dict(mismatch=1e-3, noise=True, dem=True, plan=False,
+        ("C1 DEM+cal", dict(mismatch=_mismatch, noise=True, dem=True, plan=False,
                             cal=True, dither=False)),
-        ("C2 DEM+dither", dict(mismatch=1e-3, noise=True, dem=True, plan=False,
+        ("C2 DEM+dither", dict(mismatch=_mismatch, noise=True, dem=True, plan=False,
                                cal=False, dither=True)),
-        ("C3 DEM+dither+cal", dict(mismatch=1e-3, noise=True, dem=True, plan=False,
+        ("C3 DEM+dither+cal", dict(mismatch=_mismatch, noise=True, dem=True, plan=False,
                                    cal=True, dither=True)),
     ]
     fig, (ax_inl, ax_dnl) = plt.subplots(2, 1, figsize=(9, 8), constrained_layout=True)

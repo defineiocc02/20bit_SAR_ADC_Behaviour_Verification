@@ -214,7 +214,7 @@ q=[q_M, q_S] 沿两条通路进入输出：
 `f_max = 134.45 MHz` 是**摆幅**判据（读在观测通路节点），0.1% 建立另需
 `f_BW ≥ ln(1000)/(2π·Δt) ≈ 11.26 GHz`（条件性估算）——**摆幅 ≠ 建立**。
 
-**代码落点**：`ktc.py`、`noise_phase.py`、`config.validate_ktc`。
+**代码落点**：`ktc.py`、`noise_phase.py`（注：`config.validate_ktc` 已不存在，相关校验现位于 `noise_phase.py`）。
 **钉子**：`TestR18KappaOptimalWithObserverNoise`、`TestR12…ObservedNode`。
 
 ---

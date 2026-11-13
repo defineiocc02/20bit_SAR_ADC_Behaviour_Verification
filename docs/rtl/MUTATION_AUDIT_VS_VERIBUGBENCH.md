@@ -41,7 +41,7 @@
 ## §2 我们的实例账本（14 条）
 
 - **P1 / P2 的真实缺陷 7 条**（P1 3 条 + P2 4 条）：原文与处置见 `docs/rtl/P2_INTERFACE.md` §15 缺陷账。此处只登记其**动作/构件/算子归属**。
-- **定向变异 7 条**：定义**逐字转载**如下。⚠️ 原脚本 `sim/artifacts/mutation_check.py` **未入库**（`sim/.gitignore` 忽略 `artifacts/`），只在本机工作树持有 —— 所以下表是给"干净克隆 / 线上读者"准备的；**否则本节这条引用是悬空的**（该缺陷由 Phase 1a 执行者发现）。
+- **定向变异 7 条**：定义**逐字转载**如下。⚠️ 原脚本 `sim/artifacts/mutation_check.py` **已不存在于仓库**（未入库）（`sim/.gitignore` 忽略 `artifacts/`），只在本机工作树持有 —— 所以下表是给"干净克隆 / 线上读者"准备的；**否则本节这条引用是悬空的**（该缺陷由 Phase 1a 执行者发现）。
 
 | 名字 | 文件 | 原文 → 变异后 | 期望判据 |
 |:--|:--|:--|:--|
@@ -129,7 +129,7 @@
    **补齐 Port（IOFlip：改端口方向或位宽）**。每条算子 = matcher + guard + transform，并写明**在本 SV 子集下的适用边界**。
 2. **TB 补 `+trace=<file>`**：逐样本落 CSV，`sample_idx` 为时间字段。
 3. **比较器** `tools/trace_compare.py`：实现论文判据（公共前缀 + 逐字段字符串 + X/Z 计入），输出 killed / unobserved / 分类计数。
-4. **Campaign** `tools/mutate_campaign.py`：枚举合法机会 → 每算子均匀抽样 → 逐个编译+跑 → 判 killed → 出 `MS`、每族覆盖率、**未检出清单**。
+4. **Campaign** `tools/mutate_campaign.py`（**已不存在于仓库**，仅作历史记录）：枚举合法机会 → 每算子均匀抽样 → 逐个编译+跑 → 判 killed → 出 `MS`、每族覆盖率、**未检出清单**。
 5. **注入器两端验证（先做，且不做完不许跑 campaign）**：① 已知必被检出的变异（如 #14 `cb_le` 的等价形式）**必须 killed**；② 已知等价/无观测的变异（#10 `ws_capoff` 一类）**必须 NOT killed**。**给不出这两端，campaign 的数字不可信。**
 6. **Phase 2**：数字 + §5 声明写进本文件 §7，并在 `docs/rtl/P2_INTERFACE.md` **追加**一节回链本文件。
 

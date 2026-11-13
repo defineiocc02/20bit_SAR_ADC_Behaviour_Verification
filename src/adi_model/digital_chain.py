@@ -151,13 +151,13 @@ def run_transaction(tx: Transaction) -> dict:
             y_q24, masks_full, a_all_full, tx.weights_q30, slice_ids.tolist(),
             t_low_q24=0, t_high_q24=int(round(V_FS * (1 << V_FRAC))),
         )
-        # 20 = 9 粗 + 11 细：k 贡献高 11 位（单调来源），细码 0..2047 来自 ADC2 残差
-        fine = int(recon["code20"]) & 0x7FF                    # 低 11 位即细码
-        # 去扰：采样侧注入的是 -L·Δ（已体现在 k 的粗码里），
-        # 数字端在**输入坐标**补回 L·Δ，只补一次。
-        # 一个粗 LSB = 2^11 个 20 位码；L 以粗 LSB 为单位，故补偿 lower*2048 码
-        code20 = (k << (CODE_BITS - 9)) + fine
-        code20 += _div_round(int(round(lower * (1 << (CODE_BITS - 9)))), 1)
+        # 完整重构结果就是输入估计，不截位、不拼粗码。
+        # 主链以实际 mask（由 k 生成）重构，故其坐标是 x − TΔ；补 TΔ 一次回到输入坐标。
+        T_q24 = int(round(total * COARSE_LSB_V * (1 << V_FRAC)))
+        x_est_q24 = int(recon["x_q24"]) + T_q24
+        # 只在最后做一次 20 位量化与饱和
+        signed = _div_round(x_est_q24 << (CODE_BITS - 1), int(round(V_FS * (1 << V_FRAC))))
+        code20 = signed + (1 << (CODE_BITS - 1))
         code20 = min(max(code20, 0), (1 << CODE_BITS) - 1)
         overflow = recon["overflow"]
     return {

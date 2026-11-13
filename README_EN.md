@@ -78,7 +78,7 @@ A fixed mismatched engineering model is trained with 4096 uniform random known r
 
 ![Current-source Python static calibration and rejected midrange training](docs/readme/fig/source_bound_static_calibration.png)
 
-*Figure 1 | Actual final-source public-producer cases `fullspan_positive` and rejected `midrange_rank_negative`, bound to the producer and36 actually loaded source hashes. Seed42, unit/bridge mismatch0.001 each; dither/unit DEM and sampling/RA random noise off. Holdout covers only [−2.6,+2.7] V. RMS85.829→2.07577 µV, standard deviation85.314→2.07544 µV; zero analog-invalid/clipping records and512 integer words match the independent oracle. [Point data and provenance](docs/readme/data/source_bound_static_calibration.json), [rerun training](docs/REPRODUCING.md#3-静态校准重新训练固定与留出). This verifies the specified Python engineering-static case, not RTL, dynamic/noisy operation, endpoints, full-code INL/DNL or silicon performance.*
+*Figure 1 | Actual final-source public-producer cases `fullspan_positive` and rejected `midrange_rank_negative`, bound to the producer and36 actually loaded source hashes. Seed42, unit/bridge mismatch0.001 each; dither/unit DEM and sampling/RA random noise off. Holdout covers only [−2.6,+2.7] V. RMS85.829→2.07577 µV, standard deviation85.314→2.07544 µV; zero analog-invalid/clipping records and512 integer words match the independent oracle. [Point data and provenance](docs/readme/data/source_bound_static_calibration.json), [rerun training](docs/REPRODUCING.md#3-静态校准重新训练固定与留出). This verifies the specified Python engineering-static case, not RTL, dynamic/noisy operation, endpoints, full-code INL/DNL or silicon performance. **Note: mismatch 0.001 is this experiment's explicit condition; the default chain uses 1e-4.** *
 
 ### RTL static loop: same-holdout RMS 97.04 → 1.993 µV
 
@@ -123,19 +123,19 @@ Historical DEM plots count positive-rail usage under the retired mapping with ex
 
 ![Inferred default equivalent architecture and verification boundaries](docs/readme/fig/source_bound_default_architecture_v1.png)
 
-*Figure 7 | Original default-equivalent architecture: independent SADC, 18-slice pool, inferred 63+8 array, shared RA/Cf, ADC2 and two coefficient entry points. Blue marks architecture anchors, green engineering inference and orange the verified restricted static path and the remaining physical network. The complete physical network remains unimplemented. No original paper image is copied.*
+*Figure 7 | Original default-equivalent architecture: independent SADC, 18-slice pool, **17/5 array** (the earlier 63+8 draft is superseded), shared RA/Cf, ADC2 and two coefficient entry points. Blue marks architecture anchors, green engineering inference and orange the verified restricted static path and the remaining physical network. The complete physical network remains unimplemented. No original paper image is copied.*
 
 Each conversion uses eight slices while eight acquire and two remain available. A model instance retains its fabricated mismatch. The basic integer decoder selects main/sub counts; resource randomization is separate from unit DEM. Nominal reconstruction reads nominal design values. The estimator receives digital observations and an independent reference, without reading actual capacitances, true gain or held voltages.
 
 | Parameter or structure | Central default | Provenance and boundary |
 | :--- | :--- | :--- |
 | Sampling, output and resources | 40 MS/s; 9-bit first stage; 20-bit output; eight converting slices from 18 | Architecture anchors, not ENOB or technology timing closure |
-| Nominal input and gain | ±3 V differential-equivalent peak; nominal gain 32 | Actual charge gain depends on selected capacitances and feedback capacitance |
-| SADC and basic decoder | 513 uniform boundaries, valid window[−3,+3) V; default k=c; main count k//8, sub count k%8 | Uniform thresholds, canonical masks and integer counting are engineering choices, not source3D DEM or the complete binary-to-unary matrix |
-| Per-slice network | 63 main + 8 sub; beta=1/8; Cu=40.0390625 fF, Cb≈45.7589286 fF | An engineering realization mapping 20.5 pF to nominal Cnorm, not a disclosed layout inventory |
-| Active and feedback capacitance | Cnorm=20.5 pF; shared Cf=0.640625 pF; independent SADC capacitance 2.5625 pF | Node interpretation and SADC matching are inferred; Cf is shared by the converting group |
-| Backend and swing | 12-bit ADC2; [−0.0375,+0.4125) V; RA clipping ±0.5 V | Engineering budgets at the RA output; half-open endpoints and retained flags |
-| Mismatch and noise | Unit/bridge relative standard deviation 0.001 each, feedback zero; 300 K, chi=2; RA output noise 1 mV RMS | Sensitivity/noise assumptions; sampling and RA noise enabled by default, without DR back-solving |
+| Nominal input and gain | ±3 V differential-equivalent peak; nominal gain **31.028** (= Cnorm 19.878 pF / Cf 0.640625 pF) | Actual charge gain depends on selected capacitances and feedback capacitance |
+| SADC and basic decoder | **513 codebook boundaries** (thresholds are the codebook voltages, not a uniform table); valid window [−3, 3) V; RDAC code k = c − U | Thresholds follow the 17/5 codebook (2·v_fs/cn steps, cn = 31.9375); mask construction is an engineering choice, not source 3D DEM |
+| Per-slice network | **17 main + 5 sub** (main: 15×2C + B4 1C + S4 1C; sub: 4 columns assembled); beta=1/16; Cu = Cb = **7.7799e-14 F** | Patent FIG.11/19/20 topology; Cnorm is 19.878 pF. (63+8 / 20.5 pF / beta=1/8 was the earlier substitute topology and is **rejected**) |
+| Active and feedback capacitance | Cnorm = **19.878 pF** (8 × 31.9375 Cu); shared Cf=0.640625 pF | Node interpretation and SADC matching are inferred; Cf is shared by the converting group |
+| Backend and swing | **14-bit** ADC2; [−0.0375,+0.4125) V; RA clipping ±0.45 V | Engineering budgets at the RA output; half-open endpoints and retained flags |
+| Mismatch and noise | Unit/bridge relative standard deviation **1e-4** each, feedback zero; 300 K, chi=2; RA output noise 1 mV RMS | **1e-4 is back-solved from the paper DR + NSD, not a disclosed value**; agreement is not reproduction |
 | Integer reconstruction | Q30 weights/Q32 normalized voltage V/Vfs; 48/64-bit interfaces, checked96-bit accumulation,20-bit output | Engineering arithmetic; nominal coefficients are untrained |
 | Sampling and connections | All-Signal by default; ±Vfs reference coordinates; zero top/sub initial equivalent coordinates and nominal parasitics | Static assumptions, without real switching-noise covariance or reference dynamics |
 | Disabled/zero defaults | Dither, unit DEM, CAAZ and dynamics off; zero slice skew/offset; driver noise off | Runtime metadata records actual options; unsupported requests are rejected without silent downgrade |

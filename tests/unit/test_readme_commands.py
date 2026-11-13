@@ -548,3 +548,48 @@ def test_legacy_fixture_tools_keep_the_63_8_contract_values():
         assert "63+8" in text and ("遗留" in text or "legacy" in text.lower()), (
             f"{name} must document that its constants belong to the legacy 63+8 fixture"
         )
+
+
+def test_english_readme_parameter_table_matches_the_model():
+    """`README_EN.md` 的架构参数表必须反映当前实现。
+
+    2026-11-13：英文 README 整张参数表停留在 63+8 时代——63 main + 8 sub、
+    Cu=40.04 fF、Cnorm=20.5 pF、gain=32、12-bit ADC2、σ=0.001，
+    每一项都与当前实现不符。中文 README 没有这张表，所以两边长期不一致而无人发现。
+    """
+    from adi_model.defaults import DefaultParameters, default_model
+
+    params = DefaultParameters()
+    model = default_model()
+    en = (ROOT / "README_EN.md").read_text(encoding="utf-8")
+
+    expectations = {
+        "main/sub counts": f"{params.n_main} main + {params.n_sub} sub",
+        "unit capacitance": "7.7799e-14",
+        "active capacitance": "19.878",
+        "ADC2 bits": f"{params.adc2_n_bits}-bit",
+        "mismatch sigma": "1e-4",
+    }
+    missing = [name for name, token in expectations.items() if token not in en]
+    assert not missing, (
+        "README_EN.md parameter table is stale for: "
+        + ", ".join(missing)
+        + " — update it to match DefaultParameters"
+    )
+
+
+def test_english_readme_does_not_present_63_8_as_current():
+    """英文 README 不得把 63+8 当作当前拓扑陈述。"""
+    en = (ROOT / "README_EN.md").read_text(encoding="utf-8")
+    # 允许作为"已废弃"提到，但不能作为当前值出现
+    for stale in ("63 main + 8 sub", "20.5 pF", "beta=1/8", "12-bit ADC2"):
+        if stale in en:
+            # 必须同一行内有 rejected / superseded / earlier 之类的限定
+            for line in en.splitlines():
+                if stale in line:
+                    assert any(
+                        word in line.lower()
+                        for word in ("rejected", "superseded", "earlier", "不再", "已废弃")
+                    ), (
+                        f"README_EN.md still states '{stale}' as current: {line.strip()[:120]}"
+                    )

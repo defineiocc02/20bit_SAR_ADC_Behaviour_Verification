@@ -39,7 +39,7 @@
 
 | 量 | 物理含义 | 代码锚点 | 失配归属 |
 |:---|:---|:---|:---|
-| `c_total0` | 制造总采样电容（RDAC 全部单位阵列，cap_scale=1 时 20.5 pF） | `config.c_total0` | 器件，随芯片抽取、跨样本保持 |
+| 总采样电容 `nominal_active_cap_f` | 8 个活跃片的总采样电容（= 8 × 31.9375 Cu = **19.878 pF**）。论文 [00] 的 20.5 pF 是**论文披露值**，与 17/5 拓扑算出的值不同（见 `engineering_vs_patents_papers.md`） | `DefaultModel.nominal_active_cap_f` | 器件，随芯片抽取、跨样本保持 |
 | 实际输入负载 `c_sig(alloc)` | 当前转换组实际持有的电容（随 slice 调度变化） | `pipeline` 经 `SlicePool`/`chip.C_true` | 器件（同上，不随样本重新抽签） |
 | 信号电荷系数 | 每单位接入信号支路的系数（差分/单端比在推导处显式写） | `chip.py` | — |
 | 噪声等效电容 `C_n,eq` | 观测通路折算噪声的等效电容 = `C_sig²/(A+β²B)` | `noise_phase.py` | 推导量，非器件 |

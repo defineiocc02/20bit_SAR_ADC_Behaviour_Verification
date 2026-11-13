@@ -593,3 +593,47 @@ def test_english_readme_does_not_present_63_8_as_current():
                     ), (
                         f"README_EN.md still states '{stale}' as current: {line.strip()[:120]}"
                     )
+
+
+def test_documented_code_anchors_exist_in_the_source_tree():
+    """文档里 `config.xxx` / `chip.xxx` 形式的代码锚点必须在源码中存在。
+
+    2026-11-13：`docs/model_conventions.md` 用
+    `| c_total0 | ... | config.c_total0 | ... |` 描述一个**已经不存在的属性**
+    ——`c_total0` 在整个 `src/` 里查不到，实际用的是
+    `DefaultModel.nominal_active_cap_f`。
+
+    这类失效锚点不会让任何测试失败（它只是文档里的一串字符），
+    但读代码的人会去找一个不存在的属性。
+    """
+    import re
+
+    docs = [
+        ROOT / "README.md",
+        ROOT / "docs/model_conventions.md",
+        ROOT / "docs/architecture.md",
+        ROOT / "docs/HANDOVER.md",
+        ROOT / "docs/ACCEPTANCE_20261113.md",
+    ]
+    source = "\n".join(
+        path.read_text(encoding="utf-8", errors="ignore")
+        for path in (ROOT / "src").rglob("*.py")
+    )
+    pattern = re.compile(
+        r"`(?:config|cfg|chip|model|DefaultModel|DefaultParameters|pool)\.([a-z_][a-z0-9_]*)`"
+    )
+    missing: list[str] = []
+    checked = 0
+    for path in docs:
+        if not path.is_file():
+            continue
+        for match in pattern.finditer(path.read_text(encoding="utf-8")):
+            attribute = match.group(1)
+            checked += 1
+            if attribute not in source:
+                missing.append(f"{path.relative_to(ROOT)} -> {attribute}")
+    assert checked > 0, "expected some documented code anchors to check"
+    assert not missing, (
+        "documents reference attributes that do not exist anywhere in src/:\n  "
+        + "\n  ".join(missing)
+    )

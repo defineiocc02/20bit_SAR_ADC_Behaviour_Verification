@@ -119,3 +119,37 @@ Path Group: (none)         <-- 没有时钟组
 
 **不能说**：时序收敛、满足 40 MS/s、满足任何时钟周期。
 因为**没有任何一条被约束路径的 slack**。
+
+---
+
+## 11. 补全 SDC 后的真实 STA（`recon_d5_pipe`，25 ns，SMIC180 slow）
+
+`digital_top` 是纯组合模块、无 `clk` 端口，时钟约束无法绑定（`Path Group: (none)`），
+因此真实的 setup/hold 只能在**带时钟的 `recon_d5_pipe`** 上做。
+
+### 约束（工程假设，非签核值）
+
+```tcl
+create_clock -name clk -period 25 [get_ports clk]
+set_clock_uncertainty -setup 0.3 [get_clocks clk]
+set_clock_uncertainty -hold  0.1 [get_clocks clk]
+set_input_delay  -max 2.0 -min 0.5 -clock clk   [数据输入，排除 clk]
+set_output_delay -max 2.0 -min 0.5 -clock clk   [all_outputs]
+```
+
+### 结果
+
+| 项 | 值 |
+|:---|:---|
+| **Setup** | arrival 22.66 / required 22.70 → **slack +0.04 ns（MET）** |
+| **Hold** | arrival 0.65 / required 0.07 → **slack +0.58 ns（MET）** |
+| 面积 | 1485 cells / **50175 µm²** |
+| Path Group | `clk`（约束正确绑定） |
+
+### 怎么读这个 +0.04 ns
+
+**MET，但余量只有 0.16%。** 这是布局布线前、单一 slow 角、无 OCV 的结果。
+布线寄生、OCV、多角检查都会吃掉这个余量，**不能据此认为 40 MS/s 已达成**。
+
+能说的：在该组约束与库下，综合后的网表满足 25 ns 建立时间要求，余量 0.04 ns。
+不能说的：布线后仍满足、留有余量、可以签核。

@@ -153,11 +153,14 @@ def check_result_identity() -> None:
         else "; ".join(problems)
     )
     if checked and stale:
-        # 不判失败：这批图本来就要按新几何重生成（P2 未完成），
-        # 但必须让读者看见"这些图不是当前代码的产物"。
+        # 2026-11-13：原设计是"只警告不失败"，理由是"这批图本来就要按新几何重生成"。
+        # 但 17/5 迁移**已经完成**，模型在 f9d6d10..HEAD 之间有 11 次提交、
+        # 其中 2 次改变了行为（双重减法、dither step_q）⇒ 旧图确实已不代表当前模型。
+        # 既然现在重生成是可行的，"警告"就不再合适——图要么是当前的，要么是错的。
+        checked = False
         detail += (
-            f"; WARNING figures are STALE (source_sha {stale} != HEAD): "
-            "do not cite them as current-model results"
+            f"; STALE figures: source_sha {stale} != HEAD — run "
+            "`tools/run_review_figures.py --points 512 --repeats 8` to regenerate"
         )
     record("C4 result identity", checked, detail)
 

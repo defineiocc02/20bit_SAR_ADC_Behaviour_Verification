@@ -241,10 +241,12 @@ PYTHONPATH=src python -m pytest tests/unit/test_{follower,dem3d,dither_port,dith
 # 3) 外部审查的修复回归（应 4/4 PASS）
 PYTHONPATH=src python3 tools/check_audit_findings.py
 
-# 4) 复算矩阵与图（两处 repeats 必须一致，否则图与矩阵数字对不上）
-PYTHONPATH=src:. python3 tools/run_p4_ablation.py --dynamic-n 8192 --static-points 256 \
-  --static-repeats 32 --out docs/reviews/20261113_p3p4/data
-PYTHONPATH=src:. python3 tools/run_review_figures.py --points 256 --repeats 32 \
+# 4) 复算矩阵与图
+#    ⚠️ **两处的 --static-points/--points 与 repeats 必须一致**，否则图与矩阵数字对不上；
+#    且 points 必须 ≥ 512，否则无法覆盖全部 512 个粗码（C4 门禁会失败）。
+PYTHONPATH=src:. python3 tools/run_p4_ablation.py --dynamic-n 8192 --static-points 512 \
+  --static-repeats 8 --out docs/reviews/20261113_p3p4/data
+PYTHONPATH=src:. python3 tools/run_review_figures.py --points 512 --repeats 8 \
   --dynamic-n 8192 --out docs/reviews/20261113_p3p4/figures
 
 # 5) 一笔样本的完整链路

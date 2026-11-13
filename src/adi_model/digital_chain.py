@@ -117,6 +117,15 @@ def run_transaction(tx: Transaction) -> dict:
     k = int(tx.final_code) - upper
     H, M, L = k >> 5, (k >> 2) & 7, k & 3
     reserved, h_phase, v_phase = dem_phases(tx.sample_id)
+    # 非法命令：k 必须在 0..511，否则拒绝出码（不静默夹紧）
+    if not (0 <= k <= 511):
+        return {
+            "sample_id": tx.sample_id, "slice_ids": slice_ids.tolist(), "k": k,
+            "valid": False, "error": "ERR_K_RANGE", "code20": None,
+            "dither_u": upper, "dither_l": round(lower, 6),
+            "dither_t": round(total, 6),
+        }
+
     h = _horizontal_columns(k, reserved, h_phase)
     y = vertical_bits(k, N_ACTIVE, v_phase)
 

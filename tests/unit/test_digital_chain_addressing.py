@@ -61,3 +61,13 @@ def test_output_is_monotonic_in_input_over_the_supported_range():
         f = forward_code(float(x), 0)
         codes.append(run_transaction(Transaction(3, f["c"], 0, f["adc2"], w))["code20"])
     assert all(b >= a for a, b in zip(codes, codes[1:])), codes
+
+
+def test_illegal_code_is_rejected_not_clamped():
+    """k 越界（c=0, word=32 -> U=4 -> k=-4）必须拒收，不能静默夹紧出码。"""
+    w = _weights()
+    r = run_transaction(Transaction(3, 0, 32, 1000, w))
+    assert r["k"] < 0
+    assert r["valid"] is False
+    assert r["error"] == "ERR_K_RANGE"
+    assert r["code20"] is None

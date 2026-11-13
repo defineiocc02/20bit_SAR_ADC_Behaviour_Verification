@@ -1,4 +1,4 @@
-// 编译文件清单：verilator -f files.f --top-module sar20_digital_core
+// 编译文件清单：verilator -f files.f --top-module digital_top
 rtl/core/adc2_dec.sv
 rtl/core/analog_phase_ctrl.sv
 rtl/core/cal_output_stage.sv
@@ -17,3 +17,8 @@ rtl/core/unit_therm.sv
 rtl/core/weight_store.sv
 rtl/top/sadc_enc.sv
 rtl/top/sar20_digital_core.sv
+rtl/dither_split.sv
+rtl/cdac_decode.sv
+rtl/dem_shuffle.sv
+rtl/recon_d5.sv
+rtl/digital_top.sv

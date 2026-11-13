@@ -813,9 +813,18 @@ def test_readme_does_not_understate_the_A7_status():
     status = a7["status"]
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    assert status in readme, (
-        f"README should state A7's actual status ({status}); "
-        "describing it loosely understates what remains undone"
+    # ⚠️ 必须检查**含 A7 的行**，不能只 `status in readme`。
+    # 2026-11-13 反向验证：把 §6.3 那行的 NOT_RUN 改成"部分完成"后守卫仍通过
+    # （§3 的技术对照表里另有 NOT_RUN）。"全文出现过"不等于"该处写对了"。
+    a7_lines = [line for line in readme.splitlines() if "A7" in line]
+    assert a7_lines, "README does not mention A7 at all"
+    # 每一处提到 A7 的地方都必须写明真实状态。
+    # 只要求"至少一处"是不够的：§3 表与 §6.3 表各有一处，
+    # 改坏其中一处仍会被另一处掩盖（2026-11-13 实测如此）。
+    wrong = [line for line in a7_lines if status not in line]
+    assert not wrong, (
+        f"these README lines mention A7 without stating its actual status ({status}):\n  "
+        + "\n  ".join(wrong)
     )
     # 不允许出现"部分完成"这类含糊表述来描述 A7
     for line in readme.splitlines():

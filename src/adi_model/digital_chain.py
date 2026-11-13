@@ -129,3 +129,45 @@ def run_transaction(tx: Transaction) -> dict:
         "weight_acc_q30": acc,
         "adc2_code": tx.adc2_code,
     }
+
+# ---------------------------------------------------------------- 定点重构
+V_FS = 3.0              # 单端满幅 [V]（工程声明）
+CODE_BITS = 20
+
+
+def forward_observation(
+    x_v: float, masks: list[list[int]], a: list[list[int]], weights: dict, t_v: float = 0.0
+) -> float:
+    """独立前向模型：y = Σ w·(a·x + t)。用于生成与重构器相容的测试观测。
+
+    w 为 C_eff/Cf（无量纲），a 为采样信号连接（0/1），t 为已知项电压 [V]。
+    """
+    acc = 0.0
+    for s, row in enumerate(masks):
+        for j, m in enumerate(row):
+            if not m:
+                continue
+            w = weights.get((s, j), 0.0)
+            acc += w * (a[s][j] * x_v + t_v)
+    return acc
+
+
+def reconstruct(
+    y_v: float, masks: list[list[int]], a: list[list[int]], weights: dict, t_v: float = 0.0
+) -> dict:
+    """x̂ = (y − Σ w·t) / (Σ w·a)。分母用 **a**，不是 m；不额外除 8。"""
+    num = y_v
+    den = 0.0
+    for s, row in enumerate(masks):
+        for j, m in enumerate(row):
+            if not m:
+                continue
+            w = weights.get((s, j), 0.0)
+            num -= w * t_v
+            den += w * a[s][j]
+    if den == 0.0:
+        raise ValueError("Σw·a == 0: no signal-carrying unit is selected")
+    x_hat = num / den
+    code = int(round((x_hat / V_FS + 1.0) * (1 << (CODE_BITS - 1))))
+    code = min(max(code, 0), (1 << CODE_BITS) - 1)
+    return {"x_hat_v": x_hat, "code20": code, "sum_wa": den}

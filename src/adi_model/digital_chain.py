@@ -56,6 +56,8 @@ def _dither_terms(word: int, denominator: int = None) -> tuple[int, int, float]:
 
 
 N_COLUMNS = 16          # 15 个有效 2C 逻辑列 + 1 个固定零（保留列）
+N_SUB_COLUMNS = 4       # 子阵列 8/4/2/1，由剩余低位 L 控制
+N_TOTAL = N_COLUMNS + N_SUB_COLUMNS
 
 
 def _horizontal_columns(k: int, reserved: int) -> list[int]:
@@ -106,8 +108,10 @@ def run_transaction(tx: Transaction) -> dict:
     h = _horizontal_columns(k, reserved)
     y = vertical_bits(k, N_ACTIVE)
 
+    sub_bits = [(L >> (3 - i)) & 1 for i in range(N_SUB_COLUMNS)]   # L 的 4 位进子阵列
     masks = [[y[s] if j == reserved else h[j] for j in range(N_COLUMNS)] for s in range(N_ACTIVE)]
     total_selected = sum(sum(row) for row in masks)
+    masks_full = [row + list(sub_bits) for row in masks]
 
     events = []
     for i in range(FOLLOWER_EVENTS):
@@ -123,11 +127,11 @@ def run_transaction(tx: Transaction) -> dict:
     code20 = None
     overflow = False
     if tx.weights_q30:
-        a_all = [[1] * N_COLUMNS for _ in range(N_ACTIVE)]
+        a_all_full = [[1] * N_TOTAL for _ in range(N_ACTIVE)]
         # ADC2 原码 -> Q24 观测（12 位码、0.45 V 窗口）
         y_q24 = (int(tx.adc2_code) * int(round(ADC2_LSB_V * (1 << V_FRAC))))
         recon = reconstruct_int(
-            y_q24, masks, a_all, tx.weights_q30, slice_ids.tolist(),
+            y_q24, masks_full, a_all_full, tx.weights_q30, slice_ids.tolist(),
             t_low_q24=0, t_high_q24=int(round(V_FS * (1 << V_FRAC))),
         )
         code20 = recon["code20"]
@@ -200,7 +204,8 @@ def reconstruct_int(
     x_q24 = _div_round(num << W_FRAC, den)
     # code = round((x/V_FS + 1) * 2^19)  =>  ((x_q24 << 19) / (V_FS * 2^24)) + 2^19
     lsb = int(round(V_FS * (1 << V_FRAC)))
-    code = _div_round(x_q24 << (CODE_BITS - 1), lsb) + (1 << (CODE_BITS - 1))
+    signed = _div_round(x_q24 << (CODE_BITS - 1), lsb)   # 先在有符号量上舍入
+    code = signed + (1 << (CODE_BITS - 1))               # 再加中点
     sat = not (0 <= code < (1 << CODE_BITS))
     return {"x_q24": x_q24, "code20": min(max(code, 0), (1 << CODE_BITS) - 1),
             "overflow": sat, "den_q30": den}
@@ -261,9 +266,10 @@ def reconstruct(
     if den == 0.0:
         raise ValueError("Σw·a == 0: no signal-carrying unit selected")
     x_hat = num / den
-    raw = (x_hat / V_FS + 1.0) * (1 << (CODE_BITS - 1))
-    # 与整数路径同规则：半数远离零（不用 Python round 的银行家舍入）
-    code = int(raw + 0.5) if raw >= 0 else -int(-raw + 0.5)
+    # 先在**有符号量**上舍入（半数远离零），再加 offset-binary 中点
+    signed = (x_hat / V_FS) * (1 << (CODE_BITS - 1))
+    signed = int(signed + 0.5) if signed >= 0 else -int(-signed + 0.5)
+    code = signed + (1 << (CODE_BITS - 1))
     return {"x_hat_v": x_hat, "code20": min(max(code, 0), (1 << CODE_BITS) - 1), "sum_wa": den}
 
 
@@ -278,6 +284,7 @@ def run_sequence(
     held: list[Transaction] = []
     sid = 0
     accepted = stalled = resets = 0
+    retired = 0
     for i, tx in enumerate(txs):
         if reset_at is not None and i == reset_at:
             sid = 0
@@ -285,24 +292,29 @@ def run_sequence(
             log.append({"at": i, "event": "reset", "sample_id_after": sid})
             continue
         if stall_window is not None and stall_window[0] <= i < stall_window[1]:
+            # 保序：stall 时**不越过**当前事务，把本项及其后全部押后
             stalled += 1
-            held.append(replace(tx, sample_id=sid))   # 保留，稍后重试
+            held.extend(replace(t, sample_id=sid + n) for n, t in enumerate(txs[i:]))
             log.append({"at": i, "event": "stall", "held": True, "sample_id_held": sid})
-            continue
+            break
         r = run_transaction(replace(tx, sample_id=sid))
         accepted += 1
+        retired_now = 1
+        retired += 1
         log.append({"at": i, "event": "accepted", "sample_id": r["sample_id"],
                     "code20": r["code20"], "slice_ids": r["slice_ids"]})
         sid += 1
-    # 排空：stall 期间保持的事务在恢复后逐笔重试
-    retired = 0
+    # 排空：被押后的事务按原顺序逐笔处理
     for tx in held:
-        r = run_transaction(replace(tx, sample_id=sid))
+        r = run_transaction(tx)
         retired += 1
-        log.append({"at": -1, "event": "retried", "sample_id": r["sample_id"], "code20": r["code20"]})
+        log.append({"at": -1, "event": "retried", "sample_id": r["sample_id"],
+                    "code20": r["code20"], "src": tx.sample_id})
         sid += 1
-    pending = len(held) - retired
-    return {"log": log, "accepted": accepted, "stalled": stalled, "resets": resets,
-            "retired": retired, "pending": pending,
-            "conserved": (accepted + retired + resets == len(txs)) and pending == 0,
+    accepted_total = accepted + len(held)
+    cancelled = resets
+    pending = accepted_total - retired - cancelled
+    return {"log": log, "accepted": accepted_total, "stalled": stalled, "resets": resets,
+            "retired": retired, "cancelled": cancelled, "pending": pending,
+            "conserved": accepted_total == retired + cancelled + pending and pending == 0,
             "next_sample_id": sid}

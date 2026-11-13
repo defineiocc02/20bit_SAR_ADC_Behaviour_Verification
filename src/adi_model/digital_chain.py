@@ -152,21 +152,28 @@ def run_transaction(tx: Transaction) -> dict:
                     weight_acc += int(tx.weights_q30.get((int(sid), j), 0))
     # P0：最终输出由**实际 mask + 片 ID + 冻结系数**决定；
     # 名义公式只作独立参考（x_formula / code20_formula）。
+    # SPEC：x̂ = r̂ + D(k)，D(k) 由 Σw·a 归一。
+    # 码权关系（已定）：k/512 = (N + L/4)/128，N = Σ(16 逻辑列上的 m)。
+    # 权重口径：名义单 2C 逻辑单元 w = 32/128 = 0.25，故 Σw·a = 32。
+    # 分母只取 16 个**采样**逻辑列（a=1）；子阵列只通过 L/4 计入分子，
+    # 不参与信号分母（专利：子阵列经耦合电容，不与主阵列同坐标）。
     x_weight = None
     if tx.weights_q30:
-        q_unit = (1 << 30) // 32                    # 1C 的 Q30 值
-        w_sum = 0
-        w_ideal = 0
+        w_sel = 0
+        w_all = 0
         for slot, sid in enumerate(slice_ids.tolist()):
-            for j in range(N_TOTAL):
+            for j in range(N_COLUMNS):          # 只算逻辑列
+                w = int(tx.weights_q30.get((int(sid), j), 0))
+                w_all += w
                 if masks_full[slot][j]:
-                    w_sum += int(tx.weights_q30.get((int(sid), j), 0))
-                    w_ideal += (2 * q_unit) if j < 15 else q_unit
-        # 以 k/512 为名义分数，按实际权重与理想权重之比做增益修正。
-        # 名义系数下 w_sum == w_ideal，frac 精确等于 k/512。
-        frac = (k / 512.0) * (w_sum / float(w_ideal)) if w_ideal else 0.0
-        x_weight = -3.0 + 6.0 * frac + \
-                   (int(tx.adc2_code) + 0.5) * (0.45 / 4096) / 32.0 + total * DELTA_V
+                    w_sel += w
+        if w_all:
+            N_eff = 128.0 * w_sel / float(w_all)      # 等效 2C 逻辑单元数
+            frac = (N_eff + (k & 3) / 4.0) / 128.0
+            dac_q24 = int(round((frac * 6.0 - 3.0) * (1 << V_FRAC)))
+            r_hat_q24 = _div_round(((2 * int(tx.adc2_code) + 1) * 144 + 2) * 838861
+                                   + (1 << 21), 1 << 22)
+            x_weight = (dac_q24 + r_hat_q24) / float(1 << V_FRAC) + total * DELTA_V
 
     x_formula = reconstruct_input_v(k, tx.adc2_code, total)
     code_formula = int(round((x_formula / V_FS + 1.0) * (1 << (CODE_BITS - 1))))
@@ -176,8 +183,8 @@ def run_transaction(tx: Transaction) -> dict:
         "x_formula_v": x_formula,
         "code20_formula": min(max(code_formula, 0), (1 << CODE_BITS) - 1),
         "weight_acc_q30": weight_acc,
-        "code20": (min(max(int(round((x_weight / V_FS + 1.0) * (1 << (CODE_BITS - 1)))), 0),
-                       (1 << CODE_BITS) - 1) if x_weight is not None
+        "code20": (code20_from_q24(int(round(x_weight * (1 << V_FRAC))))
+                   if x_weight is not None
                    else min(max(code_formula, 0), (1 << CODE_BITS) - 1)),
         "H": H, "M": M, "L": L,
         "mask_selected": total_selected,

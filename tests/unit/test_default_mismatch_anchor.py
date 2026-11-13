@@ -117,34 +117,63 @@ def test_ra_clip_is_never_reached_and_that_is_recorded():
     )
 
 
-def test_nominal_gain_and_design_target_g0_are_distinguished():
-    """`nominal_gain`（实际算出）与 `g0`（设计目标）必须被区分，且都写进文档。
+def test_nominal_gain_is_the_physical_gain_and_the_fixed_point_sum_is_separate():
+    """`nominal_gain`（物理增益）与"定点权重和增益"必须被区分，且都写进文档。
 
-    2026-11-13：`inference_table` 里 `nominal_residue_gain` 的值是 **32.0**
-    （= `cfg.g0`，论文给的设计目标），而 `DefaultModel.nominal_gain` 是
-    **31.028**（= Cnorm/Cf = 19.878 pF / 0.640625 pF）。
+    ## 2026-11-13 的第二轮修正（本轮）
 
-    两者都"对"，但不是同一个量。曾有一处代码把 `nominal_gain` 当成 32 用，
-    导致定点重建的残差项偏约 3%（见 ENGINEERING_METRICS §12.3）。
+    第一轮只把两个数并列记录：`inference_table` 的 `nominal_residue_gain = 32`（设计目标
+    `cfg.g0`）、`DefaultModel.nominal_gain = 31.028`（"实际算出的"）。但那条记录把一个
+    **口径错误**写成了"两者都对的差异"：
 
-    本测试把三个事实钉住：
-    1. `g0 == 32`（设计目标不变）
-    2. `nominal_gain ≈ 31.028`（实际值不变）
-    3. README 同时解释了这两个数，读者不会混用
+    * `nominal_gain` 的语义是 **Cnorm/Cf**，而 `Cnorm` 是残差/RA 的归一化电容
+      （`pipeline_engine`：`Cnorm` = 全 Signal 连接的归一化电容）。
+      采样期 17 个主单元**全部**接信号（含 S4），所以
+      Cnorm = 8 × (32 + 15/16) × Cu = **20.5 pF**，G = 20.5 pF/0.640625 pF = **32.0**。
+      31.028 用的是 8 × 31.9375 × Cu，那是**码本分母**（转换期只有 16 列参与驱动），
+      不是 Cnorm。把它当 nominal_gain 会让"名义值"与器件不同源。
+    * 31.028 并没有消失，它换了个名字：`G_fixed` = 定点重建的 Σw 口径，
+      比物理增益小 1.0314 倍（S4 不进码）。`reconstruct(physical_gain=...)` 负责换算，
+      由 `tests/unit/test_reconstruction_gain_pairing.py` 钉住。
+
+    本测试把修正后的三个事实钉住：
+    1. `g0 == 32`（设计目标）；
+    2. `nominal_gain == 32.0`（物理增益，= C_samp/Cf），与 `g0` 一致；
+    3. README 同时解释了两个口径（32.0 与 31.028），读者不会混用；
+    4. Σw 口径的 G_fixed 仍是 31.028（不能被"顺手改掉"，否则 RTL 侧口径漂移）。
     """
-    from adi_model.defaults import DefaultModel, DefaultParameters, default_model
+    import numpy as np
+
+    from adi_model.defaults import DefaultParameters, default_model
 
     model = default_model()
-    assert model.cfg.g0 == pytest.approx(32.0)
-    assert model.nominal_gain == pytest.approx(31.02846314161869, rel=1e-9)
-    # 两者确实不同（否则本测试没有意义）
-    assert abs(model.nominal_gain - 32.0) > 0.5
+    assert model.cfg.g0 == pytest.approx(32.0, abs=0)
+    assert model.nominal_gain == pytest.approx(32.0, rel=1e-6, abs=0)
+    # 名义 Cnorm 必须落在锚点上（20.5 pF），不是 19.8776 pF。
+    # ⚠️ `abs=0` 不可省：`approx` 默认 abs=1e-12 在 20.5 pF 上相当于 ±4.88%，
+    # 缺陷态的 19.8776 pF（差 3.13%）会照样通过（已实测）。
+    assert model.nominal_active_cap_f == pytest.approx(20.5e-12, rel=1e-4, abs=0)
+    # 定点 Σw 口径：8 × 31.9375 × Cu / Cf = 31.028，仍然是这个数
+    parameters = DefaultParameters()
+    g_fixed = (
+        model.cfg.n_active * 31.9375 * parameters.unit_cap_f / parameters.feedback_cap_f
+    )
+    assert g_fixed == pytest.approx(31.02846314161869, rel=1e-9)
+    # 两个口径的比值就是 S4 那 1C
+    assert model.nominal_gain / g_fixed == pytest.approx(1.0314, abs=5e-4)
+    # 解码器权重和必须等于 Σw 口径（同源），不能被 nominal_gain 影响
+    decoder = model.nominal_decoder
+    weights = np.asarray(decoder.weights_q, dtype=float) / 2 ** decoder.format.weight_fraction_bits
+    ids = np.arange(model.cfg.n_active, dtype=np.int64)
+    assert float(weights[ids].sum()) == pytest.approx(g_fixed, rel=1e-6)
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    readme_root = readme  # 便于阅读
-    assert "31.028" in readme_root, "README should state the actual nominal gain"
-    assert "g0" in readme_root or "设计目标" in readme_root, (
-        "README should explain that the 32 in inference_table is the design target g0, "
-        "not the computed gain"
+    assert "32.0" in readme, "README should state the nominal (physical) gain"
+    assert "31.028" in readme, (
+        "README must still explain the fixed-point Σw gain (31.028) separately; "
+        "the two are different quantities and mixing them costs ~32 LSB20"
+    )
+    assert "设计目标" in readme or "g0" in readme, (
+        "README should explain that 32 is both the design target g0 and the physical gain"
     )
 

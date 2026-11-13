@@ -62,11 +62,17 @@ SKIP_HEAVY=1 PYTHON=python3 bash tools/verify_clean_clone.sh # 跳过重活，�
 | 输入范围 | ±3 V | ±3 V | 论文正文 |
 | INL | 图 9.8.4 仅标「20b level」，**未给数值** | 3.2 LSB20 | **不可并列比较**，见下 |
 
-> ⚠️ **增益口径别混**：`inference_table` 里的 `nominal_residue_gain = 32`
-> 是**设计目标 `cfg.g0`**（论文给的 32）；而实际算出的
-> `DefaultModel.nominal_gain` = Cnorm/Cf = 19.878 pF / 0.640625 pF = **31.028**
-> （因为 17/5 的 cn = 31.9375C 而非 32C）。定点重建必须用**实际值 31.028**
-> 或 `state.estimated_gain`（32.0），用 32 当"实际增益"会让残差项偏约 3%。
+> ⚠️ **增益口径别混（两个量，不是一个）**：
+> * `DefaultModel.nominal_gain` = **C_samp/Cf** = 20.5 pF / 0.640625 pF = **32.0**
+>   （C_samp = 8 × (32 + 15/16) × Cu，采样期 17 列全接信号，含 S4）
+>   —— 这是 RA 的**物理增益**（`state.estimated_gain`、`g_vec`）的标称值，
+>   也等于 `inference_table` 里的设计目标 `cfg.g0 = 32`。
+> * 定点重建的分母是**权重和 Σw**，口径是码本分母 C_conv = 8 × (31 + 15/16) × Cu
+>   = 19.8776 pF ⇒ `G_fixed = 31.028`。S4 在转换期没有码位，所以这两个口径差 1C（3.13%）。
+>   `FixedPointReconstructor.reconstruct(physical_gain=...)` 负责把 fine 换算到 Σw 口径；
+>   不换算会让输出偏约 32 LSB20。
+> 判据见 `tests/unit/test_nominal_anchor.py`（锚点/增益/端点闭合）与
+> `tests/unit/test_reconstruction_gain_pairing.py`（两个增益的比值与补偿）。
 
 **但这个吻合有一个前提必须说清**：电容失配 σ 是**从论文这两个指标反解**出来的
 （σ=1e-4），不是论文披露值。两个独立指标同时命中，但**吻合 ≠ 复现**。

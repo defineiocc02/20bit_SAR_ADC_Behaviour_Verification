@@ -500,6 +500,14 @@ gain = 8 * (63 * main_w + 8 * sub_w)
 用后者会让 fine 项偏约 3.1%（码值差 ~1000 LSB20）。
 已用对 G 敏感的样本（L≠0）确认：只有 G=32.0 才能逐位还原。
 
+> **2026-11-13 后续修正（本条已被下一轮推翻一半）**：`nominal_gain` 当时取的是
+> **码本分母**（8 × 31.9375C = 19.8776 pF，因为 S4 没有码位），而它的语义是
+> `Cnorm/Cf`，其中 Cnorm 是**采样**归一化电容（8 × 32.9375C = 20.5 pF）。
+> 修正后 `nominal_gain = 32.0`，与 `estimated_gain` / `g0` 一致；
+> 31.028 改名为 `G_fixed`（定点 Σw 口径），由 `physical_gain` 换算。
+> 两个口径仍然存在（差 S4 的 1C），只是不再共用一个名字。
+> 判据：`tests/unit/test_nominal_anchor.py`、`tests/unit/test_reconstruction_gain_pairing.py`。
+
 ### 12.4 掩码相位 = 物理片 ID
 
 `fig11_masks` 的主列相位随**物理片 ID** 平移（`sid % 15`）。

@@ -70,8 +70,9 @@ def _seed(value, name: str) -> int:
 class DefaultParameters:
     """默认名义值与工程试验假设；覆盖一项不会暗中重推其他物理输入。
 
-    默认 Cu/Cb/Cf 基于 20.5 pF 节点解释、63+8 几何、beta=1/8 与 Gnom=32 推导。
-    替换其中一项即定义自己的名义网络，其余值保持明确、可见；不声称覆盖后的网络仍等于原芯片。
+    默认 Cu/Cb/Cf 基于 20.5 pF 节点解释、Fig.11 的 17/5 几何（32C 主 + 15C 子 + 1C 桥）、
+    beta=1/16 与 Gnom=32 推导。替换其中一项即定义自己的名义网络，其余值保持明确、可见；
+    不声称覆盖后的网络仍等于原芯片。
 
     电容为 F，temperature_k 为 K，ra_noise_rms_v 位于 RA 输出节点，单位为 Vrms；
     失配 std 为相对标准差。底层电荷与译码器使用该名义规格，位宽仍只是整数算术约定。
@@ -81,8 +82,12 @@ class DefaultParameters:
     n_sub: int = 5
     # 2026-11-13：按 docs/decisions/20261112_fig11_unification.md §5.1 对齐到 Fig.11 17/5。
     #   main = 15×2C + 1C(B4) + 1C(S4) = 32C；sub = 8+4+2+1 = 15C；bridge = 1C
-    #   β = Cb/(Cb+ΣB) = 1/16；c_slice = 32 + 15/16 C = 32.9375C
-    #   unit = 20.5 pF / (8 × 32.9375) = 77.799 fF（0.0778 pF，与专利 col.23 示例同量级）
+    #   β = Cb/(Cb+ΣB) = 1/16
+    #   采样口径 C_samp = 32 + 15/16 = 32.9375C/片 → 8 片 = 20.5 pF（论文锚点）
+    #   ⇒ unit = 20.5 pF / (8 × 32.9375) = 7.7798861480e-14 F（下面存 16 位十进制，
+    #     与锚点相差 4.6e-9，远小于锚点判据的 1e-4；不改它的原因见
+    #     `nominal_active_cap_f` 处的注释：动它会翻动 Q30 权重的最低 1 LSB）
+    #   码本口径 C_conv = 31 + 15/16 = 31.9375C/片（S4 不进码，见 DefaultModel.__init__）
     #   旧值 40.04 fF / 45.76 fF 对应 63+8（n_main=63、n_sub=8），与 R7 后的权重表不同源。
     unit_cap_f: float = 7.779886183991967e-14
     bridge_cap_f: float = 7.779886183991967e-14
@@ -269,19 +274,33 @@ class DefaultModel:
         # 的 63+8 池里成立；17/5 的子单元是 8/4/2/1C，必须按**权重和**算，
         # 否则 β 会从 1/16 变成 1/6、c_slice 也一并错。
         sub_units_c = sum(SUB_WEIGHTS)           # 15
-        # 名义分母：主段 15 个 2C(30C) + B4 的 1C + S4 的 1C = **32C**。
-        # 端点闭合判据（drive(511) == cn）枚举后只有这一组自洽：
-        #   主段 15×2C、B4 步长 1C、S4 计入分母 → cn = 31 + β·15 = drive(511) ✓
-        # 若 S4 不计入分母，511 码只到 +2.818 V；若 B4 步长取 2C，码本在 B4 处非单调。
-        # 分母只含参与码的 16 个主单元：15×2C + B4 1C = 31C（S4 属采样态，不参与驱动）。
-        # 端点闭合判据：drive(511) = 30C + 1C + β·15C = 31.9375 = cn ⇒ v(511) = +v_fs。
-        main_units_c = sum(MAIN_WEIGHTS[:15]) + MAIN_WEIGHTS[15]  # 31C
+        # ==== 两个**不同**的归一化电容，混用就差 1C（3.13%）====
+        # ① C_conv = 31 + β·15 = 31.9375C/片：转换期**参与码**的驱动跨度。
+        #    码本分母必须等于 drive(511)，否则端点不闭合：
+        #      drive(511) = 15×2C(30C) + B4 1C + β·15C = 31.9375C ✓
+        #    为什么不是 32C：S4 那个 1C 的编码规则图上未给（FIG.19 只把 B4 标成
+        #    一步 2x，九个码位里没有 S4），所以 5 位主码只能选到 31C；若把 S4 强行
+        #    塞进码（末级 2C 跳变）会在 495/496 码之间留 17 LSB 的空档，20 bit 目标直接废掉。
+        # ② C_samp = 32 + β·15 = 32.9375C/片：采样期**全部**物理电容都接信号（含 S4），
+        #    这才是输入看到的电容，也是 RA/残差传递的归一化
+        #    （pipeline_engine 的 Cnorm = normalization_capacitance_f）。
+        #    ⇒ 8 片合计 = 论文锚点 20.5 pF（unit = 20.5p/263.5）⇒ G_phys = 32.0。
+        # 2026-11-13 缺陷修复：原来 `nominal_active_cap_f` 用的是 ①（31.9375C），
+        # 于是名义 Cnorm 报成 19.8776 pF、nominal_gain 报成 31.028，而 plant 实际
+        # 用的是 ②（20.5 pF / 32.0）—— 名义值与器件同源的自洽性被破坏，
+        # 也迫使 `reconstruct(physical_gain=...)` 去补这 1C。现在两者分开命名。
+        main_units_switched_c = sum(MAIN_WEIGHTS[:15]) + MAIN_WEIGHTS[15]  # 31C：参与码
+        main_units_sampled_c = sum(MAIN_WEIGHTS)                           # 32C：含 S4 采样
         beta = p.bridge_cap_f / (
             p.bridge_cap_f + sub_units_c * p.unit_cap_f + p.sub_parasitic_f
         )
-        c_slice = p.unit_cap_f * (main_units_c + beta * sub_units_c)
+        c_slice = p.unit_cap_f * (main_units_switched_c + beta * sub_units_c)
+        c_slice_sampled = p.unit_cap_f * (main_units_sampled_c + beta * sub_units_c)
         self.nominal_beta = beta
-        self.nominal_active_cap_f = cfg.n_active * c_slice
+        # 码本/定点重建口径（Σw）：drive(511) == cn_conv，G_fixed = cn_conv/Cf。
+        self.nominal_conversion_cap_f = cfg.n_active * c_slice
+        # 输入/残差口径：论文 20.5 pF 锚点，RA 物理增益 G_phys = C_samp/Cf。
+        self.nominal_active_cap_f = cfg.n_active * c_slice_sampled
         self.nominal_gain = self.nominal_active_cap_f / p.feedback_cap_f
         # 参数自洽性：二级 ADC 能否装下 dither 的提前量。这不是错误检查，
         # 而是一条**可读结论**——不自洽时会在 inference 表里显式列出缺口，
@@ -309,7 +328,11 @@ class DefaultModel:
         # c=511 算成 31.19 V（v_fs=3 V），已删除。
         main_code = coarse >> 4                      # B0..B4：0..31
         main_twos = np.minimum(main_code // 2, 15)   # 用满 15 个 2C
-        main_ones = np.minimum(main_code - 2 * main_twos, 2)  # 剩余用 2 个 1C(B4/S4) 补
+        # 余数只可能是 0/1（main_code ≤ 31）⇒ **只有 B4 会被选，unit 16 的 S4 永不进码**。
+        # 这正是码本分母取 31C 而不是 32C 的原因；`min(..., 2)` 上界保留是为了让
+        # 掩码律（dem3d.fig11_masks / fig11_dem.map_fig11）与本式逐字对应。
+        # 端点闭合因此是 31 + β·15 = 31.9375 = drive(511)（见 tests/unit/test_nominal_anchor.py）。
+        main_ones = np.minimum(main_code - 2 * main_twos, 2)  # 0 或 1 → 只选 B4
         main_units = 2 * main_twos + main_ones
         sub_bits = np.stack([(coarse >> i) & 1 for i in (3, 2, 1, 0)], axis=1)
         sub_units = sub_bits @ np.array([8.0, 4.0, 2.0, 1.0])  # B5..B8
@@ -461,11 +484,12 @@ class DefaultModel:
             ("input_differential_peak_v", cfg.v_fs, 3.0),
             ("stage1_bits", cfg.b1, 9),
             ("output_bits", cfg.n_bits_target, 20),
-            # ⚠️ 本行记的是**设计目标 g0**（论文给出的名义增益 32），
-            # 不是实际算出的增益。实际 `DefaultModel.nominal_gain` 是
-            # Cnorm/Cf = 19.878 pF / 0.640625 pF = **31.028**——因为 17/5 的
-            # cn = 31.9375C 而非 32C。两者都"对"，但不是同一个量。
-            # 用 32 的地方（例如定点重建的物理增益）必须用实际值，见
+            # 本行记的是**设计目标 g0**（论文给出的名义增益 32）。
+            # 2026-11-13 缺陷修复后 `DefaultModel.nominal_gain`（= C_samp/Cf = 20.5 pF /
+            # 0.640625 pF）也等于 32.0，两者不再是"两个数"，而是同一个物理量的两种来源。
+            # 仍要区分的另一件事是**定点重建的 Σw 口径**：G_fixed = 31.9375C/Cf = 31.028，
+            # 它比 G_phys 小 1.0314 倍（S4 不进码），解码器用 physical_gain 换算，
+            # 见 `tests/unit/test_reconstruction_gain_pairing.py` 与
             # `docs/ENGINEERING_METRICS_20261113.md` §12.3。
             ("nominal_residue_gain", cfg.g0, 32.0),
             ("n_slices", cfg.n_slices, 18),
@@ -499,14 +523,14 @@ class DefaultModel:
             "unit_cap_f",
             p.unit_cap_f,
             "DERIVED_WITH_ASSUMPTION",
-            "default20.5pF/[8*(63+8/8)]; independent overrides remain explicit",
+            "default 20.5pF/[8*(32+15/16)]; independent overrides remain explicit",
             "F",
         )
         row(
             "bridge_cap_f",
             p.bridge_cap_f,
             "DERIVED_WITH_ASSUMPTION",
-            "default8*Cu/7 with zero subnode parasitic",
+            "default Cu (Cb=C on the figure) with zero subnode parasitic => beta=1/16",
             "F",
         )
         row(
@@ -520,20 +544,31 @@ class DefaultModel:
             "beta_nominal",
             self.nominal_beta,
             "DERIVED_FROM_NOMINAL_INPUTS",
-            "Cb/(Cb+Nsub*Cu+Cp_sub)",
+            "Cb/(Cb+sum(B)*Cu+Cp_sub); sum(B)=15C so beta=1/16",
         )
         row(
             "nominal_active_Cnorm_f",
             self.nominal_active_cap_f,
             "DERIVED_FROM_NOMINAL_INPUTS",
-            "8*(A+beta*B); not physical load or noise capacitance",
+            "8*(32C+beta*15C) = all columns sampling (incl. S4); equals the 20.5 pF anchor; "
+            "this is the RA/residue normalization, not a physical load or noise capacitance",
+            "F",
+        )
+        row(
+            "nominal_conversion_Cspan_f",
+            self.nominal_conversion_cap_f,
+            "DERIVED_FROM_NOMINAL_INPUTS",
+            "8*(31C+beta*15C) = only the 16 main columns the code drives (S4 excluded); "
+            "this is the codebook denominator, i.e. drive(511)==Cspan closes the endpoints "
+            "and the fixed-point weight sum equals it (G_fixed = Cspan/Cf = 31.028)",
             "F",
         )
         row(
             "nominal_capacitance_gain",
             self.nominal_gain,
             "DERIVED_FROM_NOMINAL_INPUTS",
-            "Cnorm_nom/Cf_nom",
+            "Cnorm_nom/Cf_nom with Cnorm_nom = all-column sampling capacitance; "
+            "equals the RA physical gain vector (g_vec), not the fixed-point sum G_fixed",
         )
         for name in ("main_parasitic_f", "sub_parasitic_f"):
             row(
@@ -790,21 +825,12 @@ class DefaultModel:
                 )
             else:
                 # 独立电荷口：保留实际分段码本与 Mapper，只把 dither 折算成电荷。
-                # c_lsb 必须与**码本律同源**：码本 x(c) = -v_fs + 2·v_fs·drive/cn，
-                # 每码步长 = 2·v_fs·(1/16)/cn 对应驱动单位 β/16 = 1/256 C。
-                # 因此一个 LSB 的等效电容 = cn/512（cn = 31 + β·15 = 31.9375 C）。
+                # c_lsb 必须与**码本律同源**：码本 x(c) = -v_fs + 2·v_fs·drive/cn_conv，
+                # 因此一个 LSB 的等效电容 = cn_conv/512（cn_conv = 31 + β·15 = 31.9375 C/片）。
                 # 2026-11-13 修正：原式取"全部 18 片并联和 /512"，比每片口径大 18×8 倍，
                 # dither 电荷被放大后把残差推出 RA 摆幅（实测均值误差曾达 2.8e6 LSB20）。
-                params = self.parameters
-                sub_switched = sum(SUB_WEIGHTS)
-                beta_nominal = params.bridge_cap_f / (
-                    params.bridge_cap_f
-                    + sub_switched * params.unit_cap_f
-                    + params.sub_parasitic_f
-                )
-                c_slice_nominal = params.unit_cap_f * (
-                    (sum(MAIN_WEIGHTS[:15]) + MAIN_WEIGHTS[15]) + beta_nominal * sub_switched
-                )
+                # 现在直接复用构造期算好的 per-slice 码本口径电容，避免第二处定义。
+                c_slice_nominal = self.nominal_conversion_cap_f / cfg.n_active
                 dither_port = DitherPort.from_words(
                     dither_words,
                     spec=spec,

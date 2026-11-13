@@ -616,7 +616,10 @@ def test_english_readme_parameter_table_matches_the_model():
     expectations = {
         "main/sub counts": f"{params.n_main} main + {params.n_sub} sub",
         "unit capacitance": "7.7799e-14",
-        "active capacitance": "19.878",
+        # 2026-11-13 第二轮修正：采样口径（含 S4）才是锚点 20.5 pF，码本口径仍是 19.8776 pF。
+        # 表里两个数都要有，否则读者会把定点 Σw 口径当成输入电容。
+        "sampling capacitance anchor": "20.500",
+        "code span capacitance": "19.8776",
         "ADC2 bits": f"{params.adc2_n_bits}-bit",
         "mismatch sigma": "1e-4",
     }

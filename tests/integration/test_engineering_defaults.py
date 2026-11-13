@@ -42,13 +42,21 @@ def test_defaults_do_not_make_low_level_config_implicitly_ready():
     assert model.cfg.adc2_n_bits == 14
     assert model.cfg.b1 == 9
     assert (model.cfg.n_slices, model.cfg.n_active) == (18, 8)
-    # 2026-11-13：从 63+8 切到专利 17/5 后，这两个数都变了：
-    #   c_slice = 31.9375C（= 主段 31C + beta·15C，与码本分母 cn 同源）
-    #   nominal_active_cap_f = 8 × 31.9375C × 7.7799e-14 = 19.878 pF
-    #   nominal_gain = 19.878 pF / 0.640625 pF = 31.028
-    # 旧值 32.0 / 20.5 pF 是 63+8 时代的（20.5 pF = 8 × 32C × 40.04 fF 附近）。
-    assert model.nominal_gain == pytest.approx(31.02846314161869, rel=1e-9)
-    assert model.nominal_active_cap_f == pytest.approx(1.9877609e-11, rel=1e-6)
+    # 2026-11-13 第二轮修正（1C 缺口）：17/5 阵列有两个**不同**的归一化电容，
+    # 混用就差 S4 那 1C（3.13%）：
+    #   采样口径 C_samp = 32 + β·15 = 32.9375C/片 → 8 片 = 20.5 pF（论文锚点）
+    #     ⇒ nominal_active_cap_f = 8 × 32.9375 × 7.7799e-14 = 20.500 pF
+    #     ⇒ nominal_gain = 20.500 pF / 0.640625 pF = 32.000（= g0 = RA 物理增益）
+    #   码本口径 C_conv = 31 + β·15 = 31.9375C/片（S4 无码位）
+    #     ⇒ nominal_conversion_cap_f = 19.8776 pF、G_fixed = 31.028
+    # 修正前的 nominal_gain 用的是码本口径（31.028）却叫 "Cnorm/Cf"，与 plant 的
+    # `normalization_capacitance_f`（采样口径）不同源——这正是 physical_gain 补丁的由来。
+    # ⚠️ 电容比较必须写 `abs=0`：`approx` 的默认 abs=1e-12 在 20.5 pF 上等于 ±4.88%，
+    # 足以让缺陷态的 19.8776 pF 通过（实测）。
+    assert model.nominal_gain == pytest.approx(32.0, rel=1e-6, abs=0)
+    assert model.nominal_active_cap_f == pytest.approx(20.5e-12, rel=1e-6, abs=0)
+    # 码本分母没变（端点闭合要求 drive(511) == 31.9375C）
+    assert model.nominal_conversion_cap_f == pytest.approx(1.9877609e-11, rel=1e-6, abs=0)
 
 
 def test_inference_table_separates_source_anchors_from_geometry_and_noise_assumptions():
@@ -111,10 +119,11 @@ def test_explicit_nominal_override_is_not_hidden_retuning_or_source_authority():
     model = default_model(parameters=replace(base, feedback_cap_f=2 * base.feedback_cap_f))
     assert model.parameters.unit_cap_f == base.unit_cap_f
     assert model.parameters.bridge_cap_f == base.bridge_cap_f
-    # feedback 翻倍 ⇒ 增益减半。17/5 下名义增益是 31.028，故此处为 15.514。
-    # 旧值 20.5 pF / 16.0 是 63+8 时代（那时名义增益是 32.0）。
-    assert model.nominal_active_cap_f == pytest.approx(1.9877609e-11, rel=1e-6)
-    assert model.nominal_gain == pytest.approx(15.514231570809345, rel=1e-9)
+    # feedback 翻倍 ⇒ 增益减半。17/5 下名义（物理）增益是 32.0，故此处为 16.0；
+    # 码本口径的 G_fixed 同理减半（31.028 → 15.514），但它不是本模型报出的量。
+    # `abs=0`：电容量的 approx 不能留默认 abs=1e-12（=20.5 pF 的 4.88%）。
+    assert model.nominal_active_cap_f == pytest.approx(20.5e-12, rel=1e-6, abs=0)
+    assert model.nominal_gain == pytest.approx(16.0, rel=1e-6, abs=0)
     rows = model.inference_table()
     assert rows["feedback_cap_f"]["grade"] == "USER_OVERRIDE"
     assert rows["feedback_cap_f"]["default_grade"] == "DERIVED_WITH_ASSUMPTION"

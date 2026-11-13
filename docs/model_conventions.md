@@ -39,7 +39,8 @@
 
 | 量 | 物理含义 | 代码锚点 | 失配归属 |
 |:---|:---|:---|:---|
-| 总采样电容 `nominal_active_cap_f` | 8 个活跃片的总采样电容（= 8 × 31.9375 Cu = **19.878 pF**）。论文 [00] 的 20.5 pF 是**论文披露值**，与 17/5 拓扑算出的值不同（见 `engineering_vs_patents_papers.md`） | `DefaultModel.nominal_active_cap_f` | 器件，随芯片抽取、跨样本保持 |
+| 总采样电容 `nominal_active_cap_f` | 8 个活跃片的总**采样**电容（= 8 × 32.9375 Cu = **20.5 pF**，采样期 17 个主单元全接信号，含 S4）⇒ 与论文 [00] 的 20.5 pF 锚点同值，RA 物理增益 = 20.5 pF/640.625 fF = **32.0** | `DefaultModel.nominal_active_cap_f` | 器件，随芯片抽取、跨样本保持 |
+| 码本分母 `nominal_conversion_cap_f` | 8 个活跃片的总**驱动跨度**电容（= 8 × 31.9375 Cu = **19.8776 pF**）。转换期只有 16 个主单元参与码（S4 无码位），码本必须满足 `drive(511) == 分母`，定点重建的 Σw 同此口径（G_fixed = 31.028）| `DefaultModel.nominal_conversion_cap_f` | 推导量（由权重表与 β 给出），不是器件随机量 |
 | 实际输入负载 `c_sig(alloc)` | 当前转换组实际持有的电容（随 slice 调度变化） | `pipeline` 经 `SlicePool`/`chip.C_true` | 器件（同上，不随样本重新抽签） |
 | 信号电荷系数 | 每单位接入信号支路的系数（差分/单端比在推导处显式写） | `chip.py` | — |
 | 噪声等效电容 `C_n,eq` | 观测通路折算噪声的等效电容 = `C_sig²/(A+β²B)` | `noise_phase.py` | 推导量，非器件 |

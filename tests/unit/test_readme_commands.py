@@ -312,16 +312,30 @@ def test_headline_metrics_in_readme_match_the_archived_data():
     baseline = configurations["A2_mismatch_noise"]["dynamic"]
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    # README 里写的 DR 与 NSD
     dr_text = f"{baseline['dr_db']:.2f}"
     nsd_text = f"{baseline['nsd_v_rthz_full'] * 1e9:.2f}"
-    assert dr_text in readme, (
-        f"README does not state the archived DR ({dr_text} dB); "
-        "the headline table has drifted from the data file"
+
+    # ⚠️ 必须检查**表格行内**，不能只 `in readme`。
+    # 2026-11-13 反向验证发现：把标题表格里第一处 94.33 改成 99.99，
+    # 守卫仍然通过——因为 §5 的配置表里还有另一处 94.33。
+    # "某个数字在文档里出现过"不能证明"标题结论是对的"。
+    headline_lines = [
+        line for line in readme.splitlines()
+        if line.lstrip().startswith("|") and ("动态范围" in line or "噪声谱密度" in line)
+    ]
+    assert headline_lines, "README §1 headline metric table not found"
+
+    dr_rows = [line for line in headline_lines if "动态范围" in line]
+    nsd_rows = [line for line in headline_lines if "噪声谱密度" in line]
+    assert dr_rows, "README §1 has no DR row"
+    assert nsd_rows, "README §1 has no NSD row"
+    assert any(dr_text in line for line in dr_rows), (
+        f"README §1 DR row does not state the archived DR ({dr_text} dB): "
+        + " / ".join(dr_rows)
     )
-    assert nsd_text in readme, (
-        f"README does not state the archived NSD ({nsd_text} nV/rtHz, full-Nyquist); "
-        "the headline table has drifted from the data file"
+    assert any(nsd_text in line for line in nsd_rows), (
+        f"README §1 NSD row does not state the archived NSD ({nsd_text} nV/rtHz): "
+        + " / ".join(nsd_rows)
     )
 
 

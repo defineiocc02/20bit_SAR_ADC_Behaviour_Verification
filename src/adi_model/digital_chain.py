@@ -174,7 +174,10 @@ def run_transaction(tx: Transaction) -> dict:
             dac_q24 = _div_round(-K_q54, G_q30)
             r_hat_q24 = _div_round(((2 * int(tx.adc2_code) + 1) * 144 + 2) * 838861
                                    + (1 << 21), 1 << 22)
-            x_weight = (dac_q24 + r_hat_q24) / float(1 << V_FRAC) + total * DELTA_V
+            # 全程整数：不经过 float，避免半值处舍入漂移
+            # TΔ 的 Q24 值：T × (3/256) × 2^24 = T × 196608
+            x_q24_w = dac_q24 + r_hat_q24 + int(round(total * 196608))
+            x_weight = x_q24_w / float(1 << V_FRAC)
         _dbg = (G_q30, K_q54, dac_q24 if G_q30 else None, r_hat_q24 if G_q30 else None)
     else:
         _dbg = None
@@ -187,7 +190,7 @@ def run_transaction(tx: Transaction) -> dict:
         "code20_formula": min(max(code_formula, 0), (1 << CODE_BITS) - 1),
         "weight_acc_q30": weight_acc,
         "dbg": _dbg,
-        "code20": (code20_from_q24(int(round(x_weight * (1 << V_FRAC))))
+        "code20": (code20_from_q24(x_q24_w)
                    if x_weight is not None
                    else min(max(code_formula, 0), (1 << CODE_BITS) - 1)),
         "H": H, "M": M, "L": L,
@@ -424,6 +427,10 @@ def reconstruct_input_q24(k: int, adc2_code: int, total_lsb: float) -> int:
 def code20_from_q24(x_q24: int) -> int:
     """code20 = round(x_q24/96) + 2^19，饱和到 [0, 2^20-1]。"""
     n = int(x_q24)
-    q = (n + 48) // 96 if n >= 0 else -((-n + 48) // 96)
+    # 与 RTL 完全一致：倒数乘 (|n|*44739243 + 2^31) >> 32，等价于四舍五入除 96
+    a = abs(n)
+    q = (a * 44739243 + (1 << 31)) >> 32
+    if n < 0:
+        q = -q
     c = q + (1 << 19)
     return min(max(c, 0), (1 << 20) - 1)

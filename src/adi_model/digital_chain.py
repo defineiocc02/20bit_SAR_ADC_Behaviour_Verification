@@ -150,15 +150,33 @@ def run_transaction(tx: Transaction) -> dict:
             for j in range(N_TOTAL):
                 if masks_full[slot][j]:
                     weight_acc += int(tx.weights_q30.get((int(sid), j), 0))
-    # 标量公式闭合（与 mask 权重路径分开验）
+    # P0：最终输出由**实际 mask + 片 ID + 冻结系数**决定；
+    # 名义公式只作独立参考（x_formula / code20_formula）。
+    x_weight = None
+    if tx.weights_q30:
+        q_unit = (1 << 30) // 32                    # 1C 的 Q30 值
+        w_sum = 0
+        for slot, sid in enumerate(slice_ids.tolist()):
+            for j in range(N_TOTAL):
+                if masks_full[slot][j]:
+                    w_sum += int(tx.weights_q30.get((int(sid), j), 0))
+        # 归一：权重和折算成"被选中的 2C 等价列数"，再按 4·(8H+M)+L = k 复原码
+        w_2c = w_sum / float(8 * 2 * q_unit)          # 8 片平均后的 2C 列数
+        frac = (4.0 * w_2c + (k & 3)) / 512.0
+        x_weight = -3.0 + 6.0 * frac + \
+                   (int(tx.adc2_code) + 0.5) * (0.45 / 4096) / 32.0 + total * DELTA_V
+
     x_formula = reconstruct_input_v(k, tx.adc2_code, total)
     code_formula = int(round((x_formula / V_FS + 1.0) * (1 << (CODE_BITS - 1))))
     return {
         "sample_id": tx.sample_id, "slice_ids": slice_ids.tolist(), "k": k,
+        "x_weight_v": x_weight,
         "x_formula_v": x_formula,
         "code20_formula": min(max(code_formula, 0), (1 << CODE_BITS) - 1),
         "weight_acc_q30": weight_acc,
-        "code20": min(max(code_formula, 0), (1 << CODE_BITS) - 1),
+        "code20": (min(max(int(round((x_weight / V_FS + 1.0) * (1 << (CODE_BITS - 1)))), 0),
+                       (1 << CODE_BITS) - 1) if x_weight is not None
+                   else min(max(code_formula, 0), (1 << CODE_BITS) - 1)),
         "H": H, "M": M, "L": L,
         "mask_selected": total_selected,
         "expect_8H_plus_M": 8 * H + M,

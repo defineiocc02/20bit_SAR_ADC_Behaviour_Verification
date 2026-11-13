@@ -142,24 +142,14 @@ def run_transaction(tx: Transaction) -> dict:
                 acc += int(tx.weights_q30.get((int(sid), "col2c", j), 0))
     code20 = None
     overflow = False
+    weight_acc = 0
     if tx.weights_q30:
         a_all_full = [[1] * N_TOTAL for _ in range(N_ACTIVE)]
-        # ADC2 原码 -> Q24 观测（12 位码、0.45 V 窗口）
-        # 后级观测只用 ADC2 原码（不再混入输入折算量）
-        y_q24 = int(tx.adc2_code) * int(round(ADC2_LSB_V * (1 << V_FRAC)))
-        recon = reconstruct_int(
-            y_q24, masks_full, a_all_full, tx.weights_q30, slice_ids.tolist(),
-            t_low_q24=0, t_high_q24=int(round(V_FS * (1 << V_FRAC))),
-        )
-        # 完整重构结果就是输入估计，不截位、不拼粗码。
-        # 主链以实际 mask（由 k 生成）重构，故其坐标是 x − TΔ；补 TΔ 一次回到输入坐标。
-        T_q24 = int(round(total * COARSE_LSB_V * (1 << V_FRAC)))
-        x_est_q24 = int(recon["x_q24"]) + T_q24
-        # 只在最后做一次 20 位量化与饱和
-        signed = _div_round(x_est_q24 << (CODE_BITS - 1), int(round(V_FS * (1 << V_FRAC))))
-        code20 = signed + (1 << (CODE_BITS - 1))
-        code20 = min(max(code20, 0), (1 << CODE_BITS) - 1)
-        overflow = recon["overflow"]
+        # mask 路径：只用于**寻址诊断**（改被用单元应改变累加、改未用片不应改变）
+        for slot, sid in enumerate(slice_ids.tolist()):
+            for j in range(N_TOTAL):
+                if masks_full[slot][j]:
+                    weight_acc += int(tx.weights_q30.get((int(sid), j), 0))
     # 标量公式闭合（与 mask 权重路径分开验）
     x_formula = reconstruct_input_v(k, tx.adc2_code, total)
     code_formula = int(round((x_formula / V_FS + 1.0) * (1 << (CODE_BITS - 1))))
@@ -167,7 +157,8 @@ def run_transaction(tx: Transaction) -> dict:
         "sample_id": tx.sample_id, "slice_ids": slice_ids.tolist(), "k": k,
         "x_formula_v": x_formula,
         "code20_formula": min(max(code_formula, 0), (1 << CODE_BITS) - 1),
-        "code20": code20,
+        "weight_acc_q30": weight_acc,
+        "code20": min(max(code_formula, 0), (1 << CODE_BITS) - 1),
         "H": H, "M": M, "L": L,
         "mask_selected": total_selected,
         "expect_8H_plus_M": 8 * H + M,

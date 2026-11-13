@@ -12,7 +12,7 @@
 
 修改前保留基线归档、已有未提交补丁和新增文件副本；各子任务保留原文件及前后SHA。未改写Git历史、未清理用户工作区。随库历史数据可用于逐项回看，正常提交可逆回滚。
 
-迁出生产代码的历史理由保存在[模型注释](../history/20261105-model-comment-history.md)、[信号链注释](../history/20261105-signal-comment-history.md)与[调度注释](../history/20261105-scheduler-comment-history.md)归档；旧性能数字不作为本轮结果。
+迁出生产代码的历史理由保存在[模型注释](../EXECUTABLE_ARCHIVES.md)、[信号链注释](../EXECUTABLE_ARCHIVES.md)与[调度注释](../EXECUTABLE_ARCHIVES.md)归档；旧性能数字不作为本轮结果。
 
 ## 七项线索的当前裁定
 

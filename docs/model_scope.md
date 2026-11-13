@@ -2,7 +2,7 @@
 
 The current maintenance review is [20261105-independent-maintenance.md](reviews/20261105-independent-maintenance.md).
 Earlier implementation milestones remain in [IMPLEMENTATION_CHECKPOINT.md](IMPLEMENTATION_CHECKPOINT.md).
-The former v7 scope statement is retained in [history/v7-model_scope.md](history/v7-model_scope.md)
+The former v7 scope statement is retained in [history/v7-model_scope.md](EXECUTABLE_ARCHIVES.md)
 for version history; its open-item statements are not current capabilities.
 
 > Current structural-DUT event, sample and calibration contracts supersede older checkpoint statements: see [ADR 0021](adr/0021-structural-contract-calibration.md). Other configurations retain their own explicitly scoped assumptions.

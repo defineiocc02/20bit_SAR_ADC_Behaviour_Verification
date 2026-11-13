@@ -38,7 +38,10 @@ from adi_model.control.follower import ResolvedPrefixes, run_follower
 from adi_model.simulation.slice_pool import PhysicalSlicePool
 
 SAMPLE_INDEX = 97
-DITHER_WORD = 21  # {D6,D5,D4,D3,D2,D1} = 0,1,0,1,0,1 -> U=0, L=2*step + (4+1)/7*step
+# {D6,D5,D4,D3,D2,D1} = 1,0,0,0,0,1 -> U = 4*D6 + D4 = 4, L = 2*D5 + (D3,D2,D1)/7 = 1/7
+# 旧值 21（0,1,0,1,0,1）的 upper 分量是 0 —— 那样"单样本走查"根本走不到 upper 支路，
+# 读者无法看到 dither 上支路在哪注入、怎样改 RDAC 码。这里改成两支路都非零。
+DITHER_WORD = 33
 
 
 def main() -> int:
@@ -85,6 +88,10 @@ def main() -> int:
     program = Fig19DitherProgram.from_words(np.array([DITHER_WORD]), spec=spec)
     lower_lsb = float(program.lower_q[0]) / spec.step_q
     upper_lsb = int(program.upper_code[0])
+    # 走查样本必须同时激活两条支路，否则示例退化成"只有 lower"的特例
+    assert upper_lsb > 0 and float(program.lower_v[0]) != 0.0, (
+        "trace sample must exercise BOTH dither branches"
+    )
     sadc_input = x - float(program.lower_v[0])
 
     # RDAC 逐事件

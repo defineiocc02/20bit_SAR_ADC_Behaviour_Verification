@@ -24,3 +24,4 @@ rtl/recon_d5.sv
 rtl/digital_top.sv
 rtl/slice_pool.sv
 rtl/follower.sv
+rtl/recon_d5_w.sv

@@ -121,12 +121,17 @@ def run_transaction(tx: Transaction) -> dict:
             if masks[slot][j]:
                 acc += int(tx.weights_q30.get((int(sid), "col2c", j), 0))
     code20 = None
+    overflow = False
     if tx.weights_q30:
-        wf = {(sid, j): tx.weights_q30[(sid, j)] / float(1 << 30) for (sid, j) in tx.weights_q30}
         a_all = [[1] * N_COLUMNS for _ in range(N_ACTIVE)]
-        recon = reconstruct(0.0, [[0] * N_COLUMNS for _ in range(N_ACTIVE)], a_all, wf,
-                            slice_ids.tolist())
+        # ADC2 原码 -> Q24 观测（12 位码、0.45 V 窗口）
+        y_q24 = (int(tx.adc2_code) * int(round(ADC2_LSB_V * (1 << V_FRAC))))
+        recon = reconstruct_int(
+            y_q24, masks, a_all, tx.weights_q30, slice_ids.tolist(),
+            t_low_q24=0, t_high_q24=int(round(V_FS * (1 << V_FRAC))),
+        )
         code20 = recon["code20"]
+        overflow = recon["overflow"]
     return {
         "sample_id": tx.sample_id, "slice_ids": slice_ids.tolist(), "k": k,
         "code20": code20,
@@ -147,6 +152,7 @@ def run_transaction(tx: Transaction) -> dict:
 
 # ---------------------------------------------------------------- 重构（数学参考）
 V_FS = 3.0
+ADC2_LSB_V = 0.45 / 4096      # ADC2 12 位、0.45 V 窗口 [工程]
 CODE_BITS = 20
 W_FRAC = 30        # 权重 Q30
 V_FRAC = 24        # 电压量 Q24
@@ -255,7 +261,9 @@ def reconstruct(
     if den == 0.0:
         raise ValueError("Σw·a == 0: no signal-carrying unit selected")
     x_hat = num / den
-    code = int(round((x_hat / V_FS + 1.0) * (1 << (CODE_BITS - 1))))
+    raw = (x_hat / V_FS + 1.0) * (1 << (CODE_BITS - 1))
+    # 与整数路径同规则：半数远离零（不用 Python round 的银行家舍入）
+    code = int(raw + 0.5) if raw >= 0 else -int(-raw + 0.5)
     return {"x_hat_v": x_hat, "code20": min(max(code, 0), (1 << CODE_BITS) - 1), "sum_wa": den}
 
 
@@ -267,6 +275,7 @@ def run_sequence(
     返回逐笔事件与计数守恒：accepted + stalled + resets == len(txs)。
     """
     log = []
+    held: list[Transaction] = []
     sid = 0
     accepted = stalled = resets = 0
     for i, tx in enumerate(txs):
@@ -277,12 +286,23 @@ def run_sequence(
             continue
         if stall_window is not None and stall_window[0] <= i < stall_window[1]:
             stalled += 1
-            log.append({"at": i, "event": "stall", "sample_id_held": sid})
+            held.append(replace(tx, sample_id=sid))   # 保留，稍后重试
+            log.append({"at": i, "event": "stall", "held": True, "sample_id_held": sid})
             continue
         r = run_transaction(replace(tx, sample_id=sid))
         accepted += 1
         log.append({"at": i, "event": "accepted", "sample_id": r["sample_id"],
                     "code20": r["code20"], "slice_ids": r["slice_ids"]})
         sid += 1
+    # 排空：stall 期间保持的事务在恢复后逐笔重试
+    retired = 0
+    for tx in held:
+        r = run_transaction(replace(tx, sample_id=sid))
+        retired += 1
+        log.append({"at": -1, "event": "retried", "sample_id": r["sample_id"], "code20": r["code20"]})
+        sid += 1
+    pending = len(held) - retired
     return {"log": log, "accepted": accepted, "stalled": stalled, "resets": resets,
-            "conserved": accepted + stalled + resets == len(txs), "next_sample_id": sid}
+            "retired": retired, "pending": pending,
+            "conserved": (accepted + retired + resets == len(txs)) and pending == 0,
+            "next_sample_id": sid}

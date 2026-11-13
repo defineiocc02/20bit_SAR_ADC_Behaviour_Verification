@@ -69,3 +69,35 @@ def test_reserved_slot_rejects_bad_arguments():
         reserved_slot_mask(16, -1)
     with pytest.raises(ConfigError):
         reserved_slot_mask(True, 0)
+
+
+def test_fig21_vertical_weight_invariant():
+    """`2·Σy = 8B4 + 4B5 + 2B6`，且保留列恰好一列。"""
+    from adi_model.control.cross_slice_mux import fig21_vertical_selection
+
+    for b4 in (False, True):
+        for b5 in (False, True):
+            for b6 in (False, True):
+                r = fig21_vertical_selection(b4, b5, b6)
+                expect = 4 * int(b4) + 2 * int(b5) + int(b6)
+                assert r["count"] == expect
+                assert int(np.count_nonzero(r["selected"])) == expect
+                assert r["weight_c"] == 2 * expect
+                # 保留列不得被数据占用
+                assert not r["selected"][r["reserved_column"]]
+
+
+def test_fig21_test_vector_1_1_0_gives_twelve_c():
+    """SPEC 的定向向量：B4=1,B5=1,B6=0 → 12C = 6 × 2C。"""
+    from adi_model.control.cross_slice_mux import fig21_vertical_selection
+
+    r = fig21_vertical_selection(True, True, False)
+    assert r["count"] == 6
+    assert r["weight_c"] == 12
+
+
+def test_fig21_rejects_more_than_seven_data_columns():
+    """全 1 时 count=7，仍合法；再加就无数据列可用。"""
+    from adi_model.control.cross_slice_mux import fig21_vertical_selection
+
+    assert fig21_vertical_selection(True, True, True)["count"] == 7

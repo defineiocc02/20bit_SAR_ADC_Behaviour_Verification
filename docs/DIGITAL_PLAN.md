@@ -84,9 +84,9 @@ Fig.14 仅作原理对照，**不作第二套默认实现，暂不要求独立 R
 |:---|:---|:---|
 | `Σu = N_H` 名义权重守恒 | PARTIAL | 512 码不变量测试 |
 | 置换无重复/丢失/非法选通 | PARTIAL | 同上 |
-| **保留列恰好一列、位置合法** | **NOT_RUN** | 仅 `reserved_column.py` 判据 |
-| **纵向不变式 `2Σy = 8B4+4B5+2B6`** | **NOT_RUN** | SPEC 算式，未实现 |
-| **案例 (1,1,0) → 12C** | **NOT_RUN** | 待实现 |
+| **保留列恰好一列、位置合法** | **PASS**（模块级） | `fig21_vertical_selection` 拒绝越界位置；测试断言保留列不被数据占用 |
+| **纵向不变式 `2Σy = 8B4+4B5+2B6`** | **PASS**（模块级） | `test_fig21_vertical_weight_invariant` 覆盖全部 8 种 B4/B5/B6 组合 |
+| **案例 (1,1,0) → 12C** | **PASS**（模块级） | `test_fig21_test_vector_1_1_0_gives_twelve_c` |
 | 512 码 × 合法状态全覆盖 | PARTIAL | 状态覆盖不全 |
 | 物理单元使用统计（按真实片） | PARTIAL | 已改按 `slice_ids` 散列 |
 

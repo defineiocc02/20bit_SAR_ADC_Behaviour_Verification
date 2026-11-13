@@ -212,3 +212,41 @@ def figure_gate_count() -> dict:
         # 图上只画了 4 个 MX 并加省略号 ⇒ 结构是"每单元一个"，4 只是画出来的样例
         "per_unit_mux": True,
     }
+
+
+# ---------------------------------------------------------------------------
+# Fig.19–21 纵向分配（US10511316B2）
+# ---------------------------------------------------------------------------
+def fig21_vertical_selection(
+    b4: bool, b5: bool, b6: bool, *, n_slices: int = 8, reserved_position: int = 0
+) -> dict:
+    """shuffler350 的纵向分配：`2·Σy = 8B4 + 4B5 + 2B6`。
+
+    【专利明确披露】US10511316B2 Fig.19–21：350 的输入是 B4/B5/B6 加一个**固定零**
+    的保留输入；输出是 8 个 slice 的纵向选择向量。保留列恰好一列，
+    由 controller353 定位置，该列取 350 的结果，其余列取 352 的共享横向码。
+
+    返回 dict：
+      * `selected`: 长度 n_slices 的布尔向量，`True` 表示该片选中一个 2C 列
+      * `count`: Σy
+      * `weight_c`: 纵向权重（C 单位）= 2·count
+      * `reserved_column`: 保留列下标
+
+    约束：`count = 4B4 + 2B5 + B6 <= n_slices - 1`（保留列不参与数据）。
+    """
+    if not (0 <= reserved_position < n_slices):
+        raise ConfigError("reserved_position must index one slice column")
+    count = 4 * int(bool(b4)) + 2 * int(bool(b5)) + int(bool(b6))
+    if count > n_slices - 1:
+        raise ConfigError(
+            f"vertical count {count} exceeds the {n_slices - 1} data columns available"
+        )
+    selected = np.zeros(n_slices, dtype=bool)
+    data_columns = [i for i in range(n_slices) if i != reserved_position]
+    selected[data_columns[:count]] = True
+    return {
+        "selected": selected,
+        "count": count,
+        "weight_c": 2 * count,
+        "reserved_column": reserved_position,
+    }

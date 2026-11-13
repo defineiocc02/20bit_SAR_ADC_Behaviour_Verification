@@ -29,6 +29,11 @@
 """参考缓冲器（FIG.5）的结构判据与电荷账目。
 
 单位：电压 V，电流 A，电荷 C，电容 F。
+
+    ⚠️ **本模块不参与主链仿真**：`src/` 内没有任何地方 import 它。
+    用途是把专利结构约束写成可核对、可测试的判据；是否接入主链属设计选择，
+    需人决定（原件未给出本芯片是否采用该机制）。当前唯一使用者是
+    `tests/unit/test_reference_buffer.py`。
 """
 
 from __future__ import annotations

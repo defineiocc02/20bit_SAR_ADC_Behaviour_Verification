@@ -29,6 +29,11 @@
 
 单位约定：所有权重都是**单位电容的倍数**（无量纲）；电压换算由调用方用
 `NominalCodebook` 完成，这里不引入 V/F。
+
+    ⚠️ **本模块不参与主链仿真**：`src/` 内没有任何地方 import 它。
+    用途是把专利结构约束写成可核对、可测试的判据；是否接入主链属设计选择，
+    需人决定（原件未给出本芯片是否采用该机制）。当前唯一使用者是
+    `tests/unit/test_redundancy.py`。
 """
 
 from __future__ import annotations

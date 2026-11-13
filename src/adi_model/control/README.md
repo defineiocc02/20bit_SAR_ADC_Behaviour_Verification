@@ -413,3 +413,48 @@ T = 4 + 1/7
 
 **【尚未核实】** `/7` 来自七片示例，与论文八片工作组等效性**未证明**；
 上段幅度与 ADC2 窗口的"冲突"**尚未成立**——需先换算到同一节点同一单位。
+
+---
+
+## 源码阅读顺序（2026-11-13 核实）
+
+按调用链读，不是按文件名读。每行给出「谁是正式实现 / 谁只是候选」。
+
+### D1 Scheduler（已接入）
+```
+defaults.DefaultModel → slice_pool.PhysicalSlicePool
+                      → dem3d.round_robin_plan(n_samples)   ← 18 池 8/8/2 的唯一实现
+```
+测试：`tests/unit/test_scheduler_identity.py`
+
+### D2 Follower（**未接入**）
+```
+control/follower.py   ← 21 KB，run_follower / run_direct_final / audit_causality
+```
+**核实结论**：`src/` 内无任何 import；`behavioral/conversion.py` 里的 "follower" 只是
+中文"无状态跟随"的说明文字，不是本模块。**当前是候选实现，不参与实际转换。**
+
+### D3 DEM（部分接入）
+```
+fig11_dem.map_fig11(code, dem, h_phase, v_phase) -> Fig11Masks   ← 单片映射（正式）
+        ↑
+dem3d.fig11_masks(geometry, codes, states, slice_ids)            ← 批量封装（主链绑定）
+        ↑
+defaults.py  mask_binding=fig11_masks                            ← 主链实际挂载点
+```
+`fig11_dem` 与 `dem3d` **不是两份重复实现**：前者是单笔映射 + 旋转约定，
+后者是批量 + 物理 ID 约定。两者对 B4/S4 的处理不同，**这是已知分歧，未合并**。
+`cross_slice_mux.py` 的 `fig21_vertical_selection` / `fig21_column_assignment`
+是 Fig.19–21 的新实现，**尚未替换上面的旋转**。
+
+### D4 Dither（两条路径都在用）
+```
+dither.Fig19DitherProgram        ← v1：整字 → U/L/T，code-shift（分路测试覆盖这条）
+dither_port.DitherPort           ← v2：独立电荷口
+```
+两者都被 `defaults.py` / `pipeline_engine.py` 引用，**不是新旧替换关系**，
+是两条不同拓扑；用哪条由 `dither_program` / `dither_port` 参数二选一。
+
+### 判据模块（未接主链，不等于已实现）
+`reserved_column.py`、`shuffle_gate.py`、`cross_slice_mux.py`、`aux_input.py`、
+`reference_buffer.py`、`track_aux.py`

@@ -122,12 +122,16 @@ def run_transaction(tx: Transaction) -> dict:
     for i in range(FOLLOWER_EVENTS):
         code_i = int(prefixes.codes[0][i])
         k_i = code_i - upper
+        h_i = _horizontal_columns(k_i, reserved, h_phase)     # 用本事件前缀
+        y_i = vertical_bits(k_i, N_ACTIVE, v_phase)
         ev_masks = [
-            [y[s] if j == reserved else h[j] for j in range(N_COLUMNS)]
+            [y_i[s] if j == reserved else h_i[j] for j in range(N_COLUMNS)]
             for s in range(N_ACTIVE)
         ]
         events.append({"event_index": i, "committed_code": code_i, "k_event": k_i,
+                       "low_bits": k_i & 3,
                        "rdac_mask_units": int(sum(sum(r) for r in ev_masks)),
+                       "ev_masks": ev_masks,
                        "slice_ids": slice_ids.tolist()})
 
     # 重构：Σ w·m / Σ w_full（w 为 C_eff/Cf 的 Q30），8 片一起求和，不额外除 8
@@ -141,16 +145,19 @@ def run_transaction(tx: Transaction) -> dict:
     if tx.weights_q30:
         a_all_full = [[1] * N_TOTAL for _ in range(N_ACTIVE)]
         # ADC2 原码 -> Q24 观测（12 位码、0.45 V 窗口）
-        # dither 的 lower/total 作为**一次**已知项进入重构（不再只是记录）
-        dither_q24 = int(round(lower * COARSE_LSB_V * (1 << V_FRAC)))
-        y_q24 = (int(tx.adc2_code) * int(round(ADC2_LSB_V * (1 << V_FRAC)))) + dither_q24
+        # 后级观测只用 ADC2 原码（不再混入输入折算量）
+        y_q24 = int(tx.adc2_code) * int(round(ADC2_LSB_V * (1 << V_FRAC)))
         recon = reconstruct_int(
             y_q24, masks_full, a_all_full, tx.weights_q30, slice_ids.tolist(),
             t_low_q24=0, t_high_q24=int(round(V_FS * (1 << V_FRAC))),
         )
         # 20 = 9 粗 + 11 细：k 贡献高 11 位（单调来源），细码 0..2047 来自 ADC2 残差
         fine = int(recon["code20"]) & 0x7FF                    # 低 11 位即细码
+        # 去扰：采样侧注入的是 -L·Δ（已体现在 k 的粗码里），
+        # 数字端在**输入坐标**补回 L·Δ，只补一次。
+        # 一个粗 LSB = 2^11 个 20 位码；L 以粗 LSB 为单位，故补偿 lower*2048 码
         code20 = (k << (CODE_BITS - 9)) + fine
+        code20 += _div_round(int(round(lower * (1 << (CODE_BITS - 9)))), 1)
         code20 = min(max(code20, 0), (1 << CODE_BITS) - 1)
         overflow = recon["overflow"]
     return {

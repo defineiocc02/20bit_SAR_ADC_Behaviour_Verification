@@ -60,7 +60,7 @@ N_SUB_COLUMNS = 4       # 子阵列 8/4/2/1，由剩余低位 L 控制
 N_TOTAL = N_COLUMNS + N_SUB_COLUMNS
 
 
-def _horizontal_columns(k: int, reserved: int) -> list[int]:
+def _horizontal_columns(k: int, reserved: int, h_phase: int = 0) -> list[int]:
     """横向数据 h：15 个有效列按 H 做温度计，保留列为**固定零**（不是从有效位里挖）。
 
     US10511316B2 Fig.20：shuffler352 的一个输入固定为 0，该零位随打乱移动形成保留列。
@@ -69,17 +69,19 @@ def _horizontal_columns(k: int, reserved: int) -> list[int]:
     H = (k >> 5) & 0xF
     cols = [0] * N_COLUMNS
     data = [c for c in range(N_COLUMNS) if c != reserved]
-    for c in data[:H]:
-        cols[c] = 1
+    n = len(data)
+    start = h_phase % n if n else 0                      # 横向置换：按相位轮转起点
+    for i in range(H):
+        cols[data[(start + i) % n]] = 1
     return cols
 
 
-def vertical_bits(k: int, n_active: int = 8) -> list[int]:
-    """纵向数据 y：恰好 M 个 1，M = (k>>2)&7。"""
+def vertical_bits(k: int, n_active: int = 8, v_phase: int = 0) -> list[int]:
+    """纵向数据 y：恰好 M 个 1，M = (k>>2)&7，按 v_phase 轮转选片。"""
     M = (k >> 2) & 7
     y = [0] * n_active
     for i in range(M):
-        y[i] = 1
+        y[(v_phase + i) % n_active] = 1      # 纵向置换：不是总选前 M 片
     return y
 
 
@@ -105,17 +107,27 @@ def run_transaction(tx: Transaction) -> dict:
     k = int(tx.final_code) - upper
     H, M, L = k >> 5, (k >> 2) & 7, k & 3
     reserved = tx.sample_id % N_COLUMNS
-    h = _horizontal_columns(k, reserved)
-    y = vertical_bits(k, N_ACTIVE)
+    h_phase = tx.sample_id % 15
+    v_phase = tx.sample_id % N_ACTIVE
+    h = _horizontal_columns(k, reserved, h_phase)
+    y = vertical_bits(k, N_ACTIVE, v_phase)
 
     sub_bits = [(L >> (3 - i)) & 1 for i in range(N_SUB_COLUMNS)]   # L 的 4 位进子阵列
     masks = [[y[s] if j == reserved else h[j] for j in range(N_COLUMNS)] for s in range(N_ACTIVE)]
     total_selected = sum(sum(row) for row in masks)
     masks_full = [row + list(sub_bits) for row in masks]
 
+    # Follower：每个已决事件生成该事件自己的 mask（不是只记前缀）
     events = []
     for i in range(FOLLOWER_EVENTS):
-        events.append({"event_index": i, "committed_code": int(prefixes.codes[0][i]),
+        code_i = int(prefixes.codes[0][i])
+        k_i = code_i - upper
+        ev_masks = [
+            [y[s] if j == reserved else h[j] for j in range(N_COLUMNS)]
+            for s in range(N_ACTIVE)
+        ]
+        events.append({"event_index": i, "committed_code": code_i, "k_event": k_i,
+                       "rdac_mask_units": int(sum(sum(r) for r in ev_masks)),
                        "slice_ids": slice_ids.tolist()})
 
     # 重构：Σ w·m / Σ w_full（w 为 C_eff/Cf 的 Q30），8 片一起求和，不额外除 8
@@ -129,7 +141,9 @@ def run_transaction(tx: Transaction) -> dict:
     if tx.weights_q30:
         a_all_full = [[1] * N_TOTAL for _ in range(N_ACTIVE)]
         # ADC2 原码 -> Q24 观测（12 位码、0.45 V 窗口）
-        y_q24 = (int(tx.adc2_code) * int(round(ADC2_LSB_V * (1 << V_FRAC))))
+        # dither 的 lower/total 作为**一次**已知项进入重构（不再只是记录）
+        dither_q24 = int(round(lower * COARSE_LSB_V * (1 << V_FRAC)))
+        y_q24 = (int(tx.adc2_code) * int(round(ADC2_LSB_V * (1 << V_FRAC)))) + dither_q24
         recon = reconstruct_int(
             y_q24, masks_full, a_all_full, tx.weights_q30, slice_ids.tolist(),
             t_low_q24=0, t_high_q24=int(round(V_FS * (1 << V_FRAC))),
@@ -149,7 +163,7 @@ def run_transaction(tx: Transaction) -> dict:
         "sum_y_is_M": sum(y) == M,
         "dither_u": upper, "dither_l": round(lower, 6), "dither_t": round(total, 6),
         "reserved_column": reserved,
-        "masks": masks, "n_active_slices_used": len(slice_ids),
+        "masks": masks, "events": events, "n_active_slices_used": len(slice_ids),
         "weight_acc_q30": acc,
         "adc2_code": tx.adc2_code,
     }
@@ -157,6 +171,7 @@ def run_transaction(tx: Transaction) -> dict:
 # ---------------------------------------------------------------- 重构（数学参考）
 V_FS = 3.0
 ADC2_LSB_V = 0.45 / 4096      # ADC2 12 位、0.45 V 窗口 [工程]
+COARSE_LSB_V = 6.0 / 512      # 粗 LSB = 11.71875 mV [工程]
 CODE_BITS = 20
 W_FRAC = 30        # 权重 Q30
 V_FRAC = 24        # 电压量 Q24

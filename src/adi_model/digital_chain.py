@@ -156,13 +156,15 @@ def run_transaction(tx: Transaction) -> dict:
     if tx.weights_q30:
         q_unit = (1 << 30) // 32                    # 1C 的 Q30 值
         w_sum = 0
+        w_ideal = 0
         for slot, sid in enumerate(slice_ids.tolist()):
             for j in range(N_TOTAL):
                 if masks_full[slot][j]:
                     w_sum += int(tx.weights_q30.get((int(sid), j), 0))
-        # 归一：权重和折算成"被选中的 2C 等价列数"，再按 4·(8H+M)+L = k 复原码
-        w_2c = w_sum / float(8 * 2 * q_unit)          # 8 片平均后的 2C 列数
-        frac = (4.0 * w_2c + (k & 3)) / 512.0
+                    w_ideal += (2 * q_unit) if j < 15 else q_unit
+        # 以 k/512 为名义分数，按实际权重与理想权重之比做增益修正。
+        # 名义系数下 w_sum == w_ideal，frac 精确等于 k/512。
+        frac = (k / 512.0) * (w_sum / float(w_ideal)) if w_ideal else 0.0
         x_weight = -3.0 + 6.0 * frac + \
                    (int(tx.adc2_code) + 0.5) * (0.45 / 4096) / 32.0 + total * DELTA_V
 

@@ -1,4 +1,12 @@
 > 历史版本文档：下文记录 v7 阶段的实现与审计。当前物理链路、定点输出、噪声与验收范围见 [model_scope.md](model_scope.md) 和 [实施账本](IMPLEMENTATION_CHECKPOINT.md)。
+>
+> ⚠️ **2026-11-13 补注：文中两处函数引用已随重构失效**
+> * `mapper.dither_transfer_code()` —— 该函数**已不存在**；换算逻辑现分散在
+>   `adi_model.topology.mapper.Mapper.encode` 与 `control/dither*` 里。
+> * `digital_core.verify_nominal_conservation()` —— 已改名为
+>   `adi_model.control.dem3d.nominal_conservation`。
+>
+> 保留原文不改写，因为其中的**判断依据与数值对比**仍可追溯。
 
 # 对独立审计报告的逐条回应
 

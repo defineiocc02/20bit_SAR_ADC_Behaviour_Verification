@@ -637,3 +637,38 @@ def test_documented_code_anchors_exist_in_the_source_tree():
         "documents reference attributes that do not exist anywhere in src/:\n  "
         + "\n  ".join(missing)
     )
+
+
+def test_documented_function_references_exist_or_are_flagged():
+    """文档里 `module.func()` 形式的引用，要么函数存在，要么被显式标注为已失效。
+
+    2026-11-13：`docs/audit_response.md` 引用了两个**已随重构消失**的函数
+    （`dither_transfer_code`、`verify_nominal_conservation`），
+    读者会去找不存在的代码。该文已有历史标注，但标注没点名这两处。
+    """
+    import re
+
+    docs = [
+        path for path in sorted((ROOT / "docs").rglob("*.md"))
+        if not any(seg in str(path) for seg in ("/history/", "/evidence/", "/reports/"))
+    ]
+    source = "\n".join(
+        path.read_text(encoding="utf-8", errors="ignore")
+        for path in (ROOT / "src").rglob("*.py")
+    )
+    pattern = re.compile(r"`([a-z_][a-z0-9_]*)\.([a-z_][a-z0-9_]*)\(\)`")
+    offenders: list[str] = []
+    for path in docs:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        # 文档若已显式说明"函数已不存在/已改名"，则整篇豁免
+        flagged = "已不存在" in text or "已改名" in text
+        if flagged:
+            continue
+        for match in pattern.finditer(text):
+            function = match.group(2)
+            if function not in source:
+                offenders.append(f"{path.relative_to(ROOT)} -> {function}()")
+    assert not offenders, (
+        "these documents reference functions that no longer exist and do not say so:\n  "
+        + "\n  ".join(offenders)
+    )

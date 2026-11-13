@@ -59,6 +59,10 @@ def main() -> int:
     args = parser.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
+    # 2026-11-13：这里用 exist_ok=True 是为了允许"输出到已有目录"，
+    # 但会**静默覆盖**同名结果文件。打印一行提示，避免误当成新结果。
+    if out.is_dir() and any(out.iterdir()) and not getattr(args, "force", False):
+        print(f"note: output directory {out} already has files; existing results will be overwritten")
 
     rows = []
     for sigma in SIGMAS:

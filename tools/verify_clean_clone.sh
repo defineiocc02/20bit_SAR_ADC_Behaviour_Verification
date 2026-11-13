@@ -103,7 +103,15 @@ if [ -n "${SKIP_HEAVY:-}" ]; then
   echo
   echo "SKIP  heavy checks 6-7 (SKIP_HEAVY set)"
 else
-  note "5b. trace_one_sample (README §7 command)"
+  note "5a. run_mismatch_sweep (slow; ~70 s fixed cost)"
+if PYTHONPATH=src "$PYTHON" tools/run_mismatch_sweep.py \
+     --out "$WORK/sweep" --points 64 --repeats 2 >/dev/null 2>&1; then
+  ok "run_mismatch_sweep"
+else
+  bad "run_mismatch_sweep"
+fi
+
+note "5b. trace_one_sample (README §7 command)"
 if PYTHONPATH=src "$PYTHON" tools/trace_one_sample.py --out "$WORK/trace" >/dev/null 2>&1; then
   ok "trace_one_sample"
 else

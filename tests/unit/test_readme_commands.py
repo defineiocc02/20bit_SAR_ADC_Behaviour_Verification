@@ -477,6 +477,10 @@ def test_documents_that_describe_the_rejected_topology_carry_a_banner():
 
 
 #: 需要在冒烟测试里真正跑一遍的轻量工具（重活工具另测或不测）。
+#: 2026-11-13：trace_one_sample 曾因漏改 step_q 而静默失效（无任何测试覆盖），
+#: 因此把"跑一遍"作为门槛。
+#: `run_mismatch_sweep` 不放在这里：即便 --points 64 它也有约 70 s 的固定开销，
+#: 会让单测慢到不可接受。改由 `tools/verify_clean_clone.sh` 在完整模式下覆盖。
 _SMOKE_TOOLS = (
     "tools/trace_one_sample.py",
 )

@@ -35,7 +35,7 @@ input_fn(t)
         ├─→ coarse[9b]  (0..511)
         │
         │  pool.select(code, dem_state, slice_ids)   simulation/slice_pool.py:158
-        ├─→ main_on[8][63], sub_on[8][8]      物理单元开关
+        ├─→ main_on[8][17], sub_on[8][5]      物理单元开关（FIG.19 17/5）
         │
         │  pool.charge_from_masks()           slice_pool.py:172
         ├─→ charge_c                          参考电荷

@@ -4,7 +4,7 @@
 
 | 功能 | 锚点 | 主要实现 |
 |:---|:---|:---|
-| DEM 与跨段编码 | [`#dem`](#dem) | `fig11_dem.map_fig11`、`dem3d.fig11_masks`、`dem3d.unary_rotation_masks` |
+| DEM 与跨段编码 | [`#dem`](#dem) | `fig11_dem.map_fig11`、`dem3d.fig11_masks`（`unary_rotation_masks` 已删除） |
 | 分路 dither 与数字去扰 | [`#dither`](#dither) | `dither.Fig19DitherProgram`、`dither_port.DitherPort` |
 | SADC/RDAC 分离与 follower | [`#follower`](#follower) | `follower.py` |
 | 调度与采集/转换交接 | [`#schedule`](#schedule) | `dem3d.round_robin_plan`、`simulation/slice_pool_ctrl`（RTL 侧） |
@@ -32,8 +32,9 @@
 把固定误差变成随样本变化的误差，再用平均压下去。
 
 **当前状态**：15×2C+2×1C 的掩码映射已实现并在 `fig11_masks` 里可调用；
-**保留位置与跨片分配未实现**；主链默认仍走 `unary_rotation_masks`（63+8），
-两者的统一是未完成项。
+**保留位置与跨片分配未实现**；主链已统一到 `fig11_masks`（17/5），旧的 63+8
+掩码路径已删除。子阵列的哑元端接**尚未进网络**，因此 β 仍按 1/16 计算，
+应为 1/17——这是当前最明确的已知物理偏差，见 §1.7。
 
 ### 1.2 原图逐块（FIG.19，Sheet 17/29）
 
@@ -97,7 +98,7 @@ unit_cap = 20.5 pF / [8×(32 + 15/16)] = 77.80 fF
 |:---|:---|:---|:---|:---|
 | 二元→一元 + 跨段 | `fig11_dem.map_fig11` | `Fig11Masks.main/sub`，`[slot, unit]` | 未实现 | 否 |
 | 掩码打包 | `dem3d.fig11_masks` | `SplitSwitchCommand` | `rdac_drv` | 否 |
-| 逐片旋转（现默认） | `dem3d.unary_rotation_masks` | 同上 | 同上 | **是** |
+| ~~逐片旋转~~ | ~~`dem3d.unary_rotation_masks`~~ | — | — | **已删除** |
 | 逐物理片使用统计 | `dem3d._per_physical_slice_counts` | `[n_slices, n_unit]` | 无 | 审计 |
 
 `fig11_masks` 强制 `geometry.n_main == 17 and n_sub == 5`，其它几何直接拒绝。
@@ -116,7 +117,7 @@ unit_cap = 20.5 pF / [8×(32 + 15/16)] = 77.80 fF
 
 | 原文 | 当前 | 影响 | 下一步 |
 |:---|:---|:---|:---|
-| 15×2C+2×1C 唯一阵列 | 主链仍跑 63+8 | 旧性能数据不能证明专利阵列 | 统一到 17/5，旧数据作废 |
+| 15×2C+2×1C 唯一阵列 | 已进主链（17/5） | 旧 63+8 性能数据不能作为证据 | 已作废，需按新拓扑重跑 |
 | 保留位置 + MUX | 未实现 | 相位别名被误当保留列 | 按 FIG.20 实现 |
 | 362 信号门 | 未实现 | 现为逐片旋转 | 实现门功能即可，不必 crossbar |
 | `SUB_WEIGHTS` 4 项 | 代码仍是 5 项 | β 偏 6%、端点差 0.33% | 改常量 + 重跑 |
@@ -243,7 +244,10 @@ PYTHONPATH=src python3 -m pytest tests/unit/test_dither_charge_port.py -q
 
 ## 5. 本包仍未关闭的问题
 
-1. 主链仍是 63+8，与专利 17/5 未统一（最高优先）。
+1. **子阵列哑元未进网络**：图面桥后是 8C/4C/2C/C/**C** 五个电容，
+   代码只把前四个当可切换位、也没把第五个计入 cnorm，导致 β=1/16（应为 1/17）、
+   cnorm 少 1/17 C。**改 β 会同时破掉重构的 x=0 精确性（实测偏 10.7 mV）**，
+   必须与码本分母、解码器一起改，不能单独改这一个常数。
 2. 保留位置、362 信号门未实现。
 3. `SUB_WEIGHTS` 5 项 → 4 项未改。
 4. dither v2 分路未验证。

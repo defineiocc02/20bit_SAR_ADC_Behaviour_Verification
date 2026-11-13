@@ -76,3 +76,83 @@ def test_criterion_module_documents_that_it_is_not_wired(module):
         f"{module}.py does not state that it is not wired into the main chain; "
         "readers will assume it runs in simulation"
     )
+
+
+#: 已知的"已实现但既无引用、也无单测"的模块（每条都要有 docstring 声明）。
+_UNUSED_MODULES = (
+    "src/adi_model/hashing.py",
+    "src/adi_model/behavioral/reference_mux.py",
+)
+
+
+@pytest.mark.parametrize("relative_path", _UNUSED_MODULES)
+def test_unused_modules_declare_their_status(relative_path):
+    """已知未使用的模块必须在 docstring 里说明"既未被引用、也无单测覆盖"。
+
+    2026-11-13：扫描发现 `hashing.py`（123 行）与 `behavioral/reference_mux.py`
+    （204 行）**既没有任何模块 import，也没有任何单测**——327 行"孤儿代码"。
+
+    它们不是垃圾：`architecture.md` 把 `reference_mux.py` 列在模块树里，
+    `hashing.py` 有完整的设计说明。但它们**确实没在跑**。
+    若不声明，读者看到模块树会以为这些机制在工作。
+
+    本测试要求它们**自己说清楚**自己的状态。
+    """
+    import ast
+
+    path = ROOT / relative_path
+    assert path.is_file(), f"{relative_path} missing"
+    docstring = ast.get_docstring(ast.parse(path.read_text(encoding="utf-8"))) or ""
+    assert "既未被" in docstring and "没有单测" in docstring, (
+        f"{relative_path} does not declare that it is neither imported nor tested; "
+        "readers will assume it is in use"
+    )
+
+
+def test_no_new_silently_unused_modules_appear():
+    """不得出现**新的**"零引用 + 零测试"模块而不加声明。
+
+    这是上一轮"代码存在且有测试 ≠ 代码在用"的推广：
+    本测试先把**已知**的两个孤儿模块列入白名单，
+    之后任何新增的孤儿模块都会让它失败。
+    """
+    import ast
+
+    root = ROOT / "src/adi_model"
+    stems = {p.stem: p for p in root.rglob("*.py") if p.stem not in ("__init__", "__main__")}
+
+    # 收集 src/ 内的 import 名
+    imported: set[str] = set()
+    for path in (ROOT / "src").rglob("*.py"):
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8", errors="ignore"))):
+            if isinstance(node, ast.ImportFrom):
+                imported.update(alias.name for alias in node.names)
+                if node.module:
+                    imported.add(node.module.split(".")[-1])
+            elif isinstance(node, ast.Import):
+                imported.update(alias.name.split(".")[-1] for alias in node.names)
+
+    # 收集 tests/ 里的出现
+    tests_text = "\n".join(
+        p.read_text(encoding="utf-8", errors="ignore")
+        for p in (ROOT / "tests").rglob("*.py")
+    )
+    init_text = (root / "__init__.py").read_text(encoding="utf-8")
+
+    orphans: list[str] = []
+    for stem, path in sorted(stems.items()):
+        if stem in imported or stem in tests_text or stem in init_text:
+            continue
+        relatives = str(path.relative_to(ROOT))
+        # 已知的孤儿（且已加声明）不算新增
+        declared = (
+            "既未被" in (ast.get_docstring(ast.parse(path.read_text(encoding="utf-8"))) or "")
+        )
+        if relatives in _UNUSED_MODULES and declared:
+            continue
+        orphans.append(relatives)
+
+    assert not orphans, (
+        "these modules are neither imported by src/ nor referenced by any test, "
+        "and they do not declare that status:\n  " + "\n  ".join(orphans)
+    )

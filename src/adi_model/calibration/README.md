@@ -149,3 +149,47 @@ PYTHONPATH=src python3 -m pytest tests/unit/test_element_reconstruct_equation.py
 PYTHONPATH=src python3 -m pytest tests/unit/test_fixed_point.py -q
 python3 -m verification.run_verification --level module --only recon_core
 ```
+
+---
+
+# 附：算法原理与计算实例
+
+## 可观测量与待估参数
+
+**可观测量**（只来自公开接口）：`fine_v`（ADC2 输出域）、`coarse`、`main/sub_masks`、
+`signal_mask`（信号连接 `a`）、`known_voltage_term_v`（参考/dither 的已知项）。
+
+**待估参数**：逐单元有效权重 `w[p,j]`（C/Cf）或逐码修正量。
+
+**可辨识条件**：观测矩阵列满秩；残差域里 `G·C·x` 与 `G·Q_DAC` 各约 96 V 相减后只剩 0.1 V，
+**逐单元权重在该参数化下不可辨识**——这是参数化问题，不是算法错误。
+
+## 训练与重构必须互为逆
+
+```
+F[n,p,j] = A[n,p] · (x[n] − Vbottom[n,p,j])
+fine[n]  = Σ w[p,j]·F[n,p,j] + o
+x̂[n]    = ( fine[n] − o + Σ A·w·Vbottom ) / Σ A·w
+```
+
+其中 `A[n,p]` 是本笔活动片掩码；`a`（信号连接）与 `on`（转换开关）不是一回事。
+
+## 计算实例（审查给出的最小反例）
+
+取 `x = 0.2 V`，`w = [0.1, 0.05]`，`Vbottom = [+1, −1]`：
+
+```
+F = x − Vbottom = [−0.8, +1.2]
+fine = 0.1·(−0.8) + 0.05·1.2 = −0.02
+正确反解 x̂ = (−0.02 + (0.1·1 + 0.05·(−1))) / 0.15 = 0.03/0.15 = 0.2  ✓
+```
+
+旧实现（符号反了 + 分母含未活动片）给出 **−0.466667**。
+现已修，并由 `tests/unit/test_element_reconstruct_equation.py` 钉死。
+
+## 冻结系数怎么进重构
+
+`FrozenCalibration` → `FixedPointReconstructor`：Q30 权重、Q32 电压、96 位受检累加、
+20 位 offset-binary；唯一运行时舍入是 ADC2 码仓中心的 ties-to-even，之后全 floor。
+
+**尚未实现**：逐 slice 的 offset/gain 校准（全局 LUT 不等于逐片校准）。

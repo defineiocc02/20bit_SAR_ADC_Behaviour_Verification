@@ -56,7 +56,7 @@ def test_true_coefficients_recover_input_under_consistent_observation():
     G, K = _gk(true)
     adc = int(round((X + K / G) * 32 / (0.45 / 4096)))
 
-    out = run_transaction(Transaction(3, 281, 0, adc, true))["x_weight_v"]
+    out = run_transaction(Transaction(3, K_CODE, 0, adc, true))["x_weight_v"]
     assert abs(out - X) < 5e-6, f"真系数误差 {abs(out - X) * 1e6:.1f} uV"
 
 
@@ -67,5 +67,5 @@ def test_nominal_coefficients_leave_a_measurable_mismatch_error():
     G, K = _gk(true)
     adc = int(round((X + K / G) * 32 / (0.45 / 4096)))
 
-    out = run_transaction(Transaction(3, 281, 0, adc, base))["x_weight_v"]
+    out = run_transaction(Transaction(3, K_CODE, 0, adc, base))["x_weight_v"]
     assert abs(out - X) > 1e-3, f"名义系数误差仅 {abs(out - X) * 1e6:.1f} uV，无判别力"

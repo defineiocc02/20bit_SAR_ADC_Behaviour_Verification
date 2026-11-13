@@ -2,17 +2,40 @@
 
 ## 状态（2026-11-13 22:45）
 
-**未出结论（进程卡死，已手杀）。不得记为 PASS。**
+**运行中（曾被我误判为卡死并杀掉一次，已更正）。不得记为 PASS。**
 
-最后观测： 全部对齐（38 个输入全匹配、0 个未匹配 compare point），
-但  之后进程 **CPU 时间 0.00s、占用 0.0%、日志 6 分钟不增长** ——
-不是在算，是卡住。已 ，日志尾部为 
+## 更正：不是卡死，是子进程在算
+
+我第一次监控的是 `fm_shell`（父进程），其 CPU TIME = 00:00:00、%CPU = 0.0，
+据此判断"卡住"并 `pkill`。**这个判断是错的。**
+
+重跑后观察整机进程：
 
 ```
-netlist.v        已生成（316 KB，DC W-2024.09-SP3 + SMIC180 slow.db）
-Formality        read_sverilog(RTL) -> read_db(slow.db) -> read_verilog(netlist)
-                 match 完成，verify 处于 Status: Verifying...（>5 分钟未收敛）
+COMMAND         TIME    %CPU
+fm_shell_exec   04:05   93.5%     <-- 真正干活的子进程
 ```
+
+Formality 把 SAT 计算放在 `fm_shell_exec` 子进程里，父进程只做调度，
+所以父进程 CPU 为 0 是**正常状态**，不是挂死。我错杀了它一次。
+
+教训：判断 EDA 进程是否在算，要看**进程树**（子进程 CPU），
+不能只看主进程。
+
+## 进度
+
+```
+read_sverilog(RTL)      OK
+read_db(slow.db)        OK
+read_verilog(netlist)   OK
+match                   38 输入全匹配、0 未匹配 compare point
+verify                  Status: Verifying...（已 4+ 分钟 CPU，仍在算）
+```
+
+## 为什么慢
+
+被测设计含 42/54 位乘法器与除法链，SAT 状态空间大。
+这是真实验证成本，不是工具故障。
 
 ## 踩过的坑（都记下来，省下次）
 

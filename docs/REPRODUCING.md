@@ -219,7 +219,7 @@ MPLBACKEND=Agg python docs/readme/make_overview_figures.py \
   --out ../sar-output/history-overview-001
 ```
 
-历史重绘输出为historical_architecture／calibration／interleave／dither_headroom的PNG／SVG和historical_figures_manifest.json。保留旧JSON、NPZ与图原字节，不把其中的commit、dirty状态或源SHA改成新版本。[数据说明](readme/data/README.md)固定各记录身份。旧训练、交织、DEM／dither仿真与CAAZ组合命令仅在[9bdf历史复现说明](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/REPRODUCING.md)和对应Git af8完整执行快照下解释；不能将退休代码混入当前运行。[可执行档案](history/EXECUTABLE_ARCHIVES.md)说明如何取得旧原路径。
+历史重绘输出为historical_architecture／calibration／interleave／dither_headroom的PNG／SVG和historical_figures_manifest.json。保留旧JSON、NPZ与图原字节，不把其中的commit、dirty状态或源SHA改成新版本。[数据说明](readme/data/README.md)固定各记录身份。旧训练、交织、DEM／dither仿真与CAAZ组合命令仅在[9bdf历史复现说明](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/REPRODUCING.md)和对应Git af8完整执行快照下解释；不能将退休代码混入当前运行。[可执行档案](EXECUTABLE_ARCHIVES.md)说明如何取得旧原路径。
 
 重绘需要Matplotlib、NumPy和脚本列出的中文字体；缺字体明确失败。绘图器前后核对当前Python正／负例的producer与36个loaded源码，以及`full_typechecked_001`、同版四正／两组负控的源／工具身份；[可重绘资产索引](readme/data/source_bound_assets_manifest.json)列出每件数据、图与脚本的字节数和SHA。源变化时应重跑并核对新收据，不能刷新旧摘要。重绘不会覆盖任何历史性能记录。
 

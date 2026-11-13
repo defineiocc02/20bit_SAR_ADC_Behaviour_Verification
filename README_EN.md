@@ -179,7 +179,7 @@ The output directory must not exist. It receives `codes.npz`, `assumptions.json`
 | Fig.19, actual masks and resource selection | [dither.py](src/adi_model/control/dither.py), [dem.py](src/adi_model/control/dem.py), [slice pool](src/adi_model/simulation/slice_pool.py) |
 | Training, freezing and integer application | [weight_calibration.py](src/adi_model/calibration/weight_calibration.py), [fixed_point.py](src/adi_model/contracts/fixed_point.py) |
 | Current interface, state and source evidence | [Current ABI2 contract](docs/rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md), [source map](docs/current_digital_source_map.md), [status matrix](docs/digital_status_matrix.md) |
-| Historical redraw and executable archives | [Reproduction](docs/REPRODUCING.md), [archive policy](docs/history/EXECUTABLE_ARCHIVES.md) |
+| Historical redraw and executable archives | [Reproduction](docs/REPRODUCING.md), [archive policy](docs/EXECUTABLE_ARCHIVES.md) |
 | New figures, point data and renderer | [Redraw asset index](docs/readme/data/source_bound_assets_manifest.json), [data guide](docs/readme/data/README.md) |
 
 Code is [BSD-3-Clause](LICENSE). The [22 source entries](NOTICE) and [six selected originals](references/README.md) retain their original copyrights and embedded notices. This is an independent project and grants no patent licence.

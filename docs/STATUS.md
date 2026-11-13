@@ -77,4 +77,4 @@ DSP的真实系统场景核到控制错误13／7／8触发独立conversion_fault
 
 af8功能合同、9bdf文档保留的图与JSON保持原字节；实际执行身份由各记录的源码SHA和输入确定。中间Python003、RTL001／002和旧checker不作当前通过结论。001／002尾部SOURCE13不会因逐结果flags为0而消失；先前012／013、005与其重放收据仍保留原身份。当前DUT使用连续合法程序与明确尾记录，仅在有限窗内核验。
 
-[历史数据](readme/data/README.md)、[旧可执行档案](history/EXECUTABLE_ARCHIVES.md)、[ADR0021](adr/0021-structural-contract-calibration.md)和[旧算术合同](rtl/RTL_ARITHMETIC_CONTRACT.md)保留原语境。旧FPGA、BMC、代理结果及旧CI不升级为当前源或工艺签核。
+[历史数据](readme/data/README.md)、[旧可执行档案](EXECUTABLE_ARCHIVES.md)、[ADR0021](adr/0021-structural-contract-calibration.md)和[旧算术合同](rtl/RTL_ARITHMETIC_CONTRACT.md)保留原语境。旧FPGA、BMC、代理结果及旧CI不升级为当前源或工艺签核。

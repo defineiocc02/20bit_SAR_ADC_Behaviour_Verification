@@ -160,8 +160,13 @@ def run_transaction(tx: Transaction) -> dict:
         code20 = signed + (1 << (CODE_BITS - 1))
         code20 = min(max(code20, 0), (1 << CODE_BITS) - 1)
         overflow = recon["overflow"]
+    # 标量公式闭合（与 mask 权重路径分开验）
+    x_formula = reconstruct_input_v(k, tx.adc2_code, total)
+    code_formula = int(round((x_formula / V_FS + 1.0) * (1 << (CODE_BITS - 1))))
     return {
         "sample_id": tx.sample_id, "slice_ids": slice_ids.tolist(), "k": k,
+        "x_formula_v": x_formula,
+        "code20_formula": min(max(code_formula, 0), (1 << CODE_BITS) - 1),
         "code20": code20,
         "H": H, "M": M, "L": L,
         "mask_selected": total_selected,
@@ -347,3 +352,35 @@ def run_sequence(
             "retired": retired, "cancelled": cancelled, "pending": pending,
             "conserved": accepted_total == retired + cancelled + pending and pending == 0,
             "next_sample_id": sid}
+
+
+# ---------------------------------------------------------------- D5 输入坐标重构
+DELTA_V = 6.0 / 512.0          # 粗 LSB
+ADC2_WINDOW_V = 0.45           # 工程测试窗口 [0, 0.45) V
+ADC2_CODES = 4096
+RESIDUE_GAIN = 32.0            # 余差增益（测试夹具声明值）
+
+
+def dac_nominal(k: int) -> float:
+    """名义等距 DAC：D(k) = -3 + kΔ。"""
+    return -3.0 + k * DELTA_V
+
+
+def reconstruct_input_v(k: int, adc2_code: int, total_lsb: float) -> float:
+    """x̂ = D(k) + r̂ + TΔ，箱中心解码后除回余差增益。
+
+    与 mask 权重路径分开：本函数验公式闭合，权重路径验寻址。
+    """
+    r_hat = (int(adc2_code) + 0.5) * (ADC2_WINDOW_V / ADC2_CODES) / RESIDUE_GAIN
+    return dac_nominal(k) + r_hat + total_lsb * DELTA_V
+
+
+def forward_code(x_v: float, word: int) -> dict:
+    """独立前向夹具：给定 x 与扰动字，产生相容的 c / k / ADC2 码。"""
+    upper, lower, total = _dither_terms(word)
+    x_q = x_v - lower * DELTA_V
+    c = int(min(max((x_q + 3.0) / DELTA_V, 0), 511))
+    k = c - upper
+    r = x_v - total * DELTA_V - dac_nominal(k)
+    adc2 = int(min(max(r * RESIDUE_GAIN / (ADC2_WINDOW_V / ADC2_CODES), 0), ADC2_CODES - 1))
+    return {"c": c, "k": k, "adc2": adc2, "upper": upper, "lower": lower, "total": total}

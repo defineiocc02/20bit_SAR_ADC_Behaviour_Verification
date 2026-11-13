@@ -149,16 +149,32 @@ def check_result_identity() -> None:
             # 图就是当前的。
             # 2026-11-13：原实现只比较 HEAD 是否等于 source_sha，
             # 导致"提交图 → HEAD 变了 → 立刻判 STALE"，形成逻辑死循环。
+            # 只改注释/文档不应让图变 stale。比较**去掉注释后的代码**，
+            # 不是"文件有没有被动过"。
+            # 2026-11-13：原实现用 `git diff --name-only`，给 defaults.py 加一行
+            # 注释就触发 STALE——那是误报。同时必须排除 diff 的文件头
+            # （`+++ b/...` / `--- a/...`），否则它们会被当成 2 行实质改动。
             try:
                 diff = subprocess.run(
-                    ["git", "diff", "--name-only", str(fig["source_sha"]), "HEAD", "--", "src/adi_model"],
+                    ["git", "diff", "-U0", "--ignore-all-space", str(fig["source_sha"]), "HEAD",
+                     "--", "src/adi_model"],
                     cwd=ROOT, capture_output=True, text=True, check=True,
-                ).stdout.strip()
+                ).stdout
+                substantive = [
+                    line for line in diff.splitlines()
+                    if line[:1] in ("+", "-")
+                    and not line.startswith(("+++", "---"))
+                    and line[1:].strip()
+                    and not line[1:].strip().startswith("#")
+                ]
             except Exception:  # noqa: BLE001
-                diff = "unknown"
-            if diff:
-                stale = f"{str(fig['source_sha'])[:12]}（src/adi_model 自那以后有改动）"
-            # diff 为空 ⇒ 模型未变，图仍代表当前模型，不算 stale
+                substantive = ["unknown"]
+            if substantive:
+                stale = (
+                    f"{str(fig['source_sha'])[:12]}"
+                    f"（src/adi_model 自那以后有 {len(substantive)} 行实质改动）"
+                )
+            # 无实质改动 ⇒ 模型未变，图仍代表当前模型，不算 stale
     checked = not problems
     detail = (
         f"figure grid {fig['points']}x{fig['repeats']}, {len(f03['configs'])} curves, "

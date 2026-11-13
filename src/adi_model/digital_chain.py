@@ -8,7 +8,7 @@ D1 调度 → D2 Follower → D3 DEM(Fig.19–21) → D4 Dither → D5 定点重
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 
@@ -153,6 +153,15 @@ V_FRAC = 24        # 电压量 Q24
 ACC_BITS = 96
 
 
+def _div_round(n: int, d: int) -> int:
+    """就近舍入（半数远离零），负数对称。RTL 需实现同一规则。"""
+    if d <= 0:
+        raise ValueError("divisor must be positive")
+    if n >= 0:
+        return (n + d // 2) // d
+    return -((-n + d // 2) // d)
+
+
 def reconstruct_int(
     y_q24: int,
     masks: list[list[int]],
@@ -182,10 +191,10 @@ def reconstruct_int(
             den += w * a[slot][j]
     if den == 0:
         raise ValueError("Σw·a == 0")
-    x_q24 = (num << W_FRAC) // den
+    x_q24 = _div_round(num << W_FRAC, den)
     # code = round((x/V_FS + 1) * 2^19)  =>  ((x_q24 << 19) / (V_FS * 2^24)) + 2^19
     lsb = int(round(V_FS * (1 << V_FRAC)))
-    code = (x_q24 << (CODE_BITS - 1)) // lsb + (1 << (CODE_BITS - 1))
+    code = _div_round(x_q24 << (CODE_BITS - 1), lsb) + (1 << (CODE_BITS - 1))
     sat = not (0 <= code < (1 << CODE_BITS))
     return {"x_q24": x_q24, "code20": min(max(code, 0), (1 << CODE_BITS) - 1),
             "overflow": sat, "den_q30": den}
@@ -248,3 +257,32 @@ def reconstruct(
     x_hat = num / den
     code = int(round((x_hat / V_FS + 1.0) * (1 << (CODE_BITS - 1))))
     return {"x_hat_v": x_hat, "code20": min(max(code, 0), (1 << CODE_BITS) - 1), "sum_wa": den}
+
+
+def run_sequence(
+    txs: list[Transaction], *, reset_at: int | None = None, stall_window: tuple[int, int] | None = None
+) -> dict:
+    """事务序列：正常接收 / stall（不消耗 sample_id）/ reset（清空在途、归零）/ 排空。
+
+    返回逐笔事件与计数守恒：accepted + stalled + resets == len(txs)。
+    """
+    log = []
+    sid = 0
+    accepted = stalled = resets = 0
+    for i, tx in enumerate(txs):
+        if reset_at is not None and i == reset_at:
+            sid = 0
+            resets += 1
+            log.append({"at": i, "event": "reset", "sample_id_after": sid})
+            continue
+        if stall_window is not None and stall_window[0] <= i < stall_window[1]:
+            stalled += 1
+            log.append({"at": i, "event": "stall", "sample_id_held": sid})
+            continue
+        r = run_transaction(replace(tx, sample_id=sid))
+        accepted += 1
+        log.append({"at": i, "event": "accepted", "sample_id": r["sample_id"],
+                    "code20": r["code20"], "slice_ids": r["slice_ids"]})
+        sid += 1
+    return {"log": log, "accepted": accepted, "stalled": stalled, "resets": resets,
+            "conserved": accepted + stalled + resets == len(txs), "next_sample_id": sid}

@@ -172,8 +172,9 @@ def run_transaction(tx: Transaction) -> dict:
                 K_q54 += w * (-2 * VR if masks_full[slot][j] else 0)
         if G_q30:
             dac_q24 = _div_round(-K_q54, G_q30)
-            r_hat_q24 = _div_round(((2 * int(tx.adc2_code) + 1) * 144 + 2) * 838861
-                                   + (1 << 21), 1 << 22)
+            # 仓库既有定义：r = round((2a+1)*144/5) = ((2a+1)*144+2)//5
+            # 不再额外加移位偏置（_div_round 内部会加 d//2，那是二次舍入）
+            r_hat_q24 = ((2 * int(tx.adc2_code) + 1) * 144 + 2) // 5
             # 全程整数：不经过 float，避免半值处舍入漂移
             # TΔ 的 Q24 值：T × (3/256) × 2^24 = T × 196608
             x_q24_w = dac_q24 + r_hat_q24 + int(round(total * 196608))

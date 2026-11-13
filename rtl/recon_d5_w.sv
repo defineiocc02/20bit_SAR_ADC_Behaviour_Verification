@@ -30,7 +30,8 @@ module recon_d5_w (
         num_q = (num_a + (den >>> 1)) / den;
         dac_q24 = (den != 0) ? ((num >= 0) ? num_q : -num_q) : 64'sd0;
 
-        rc = (($signed({1'b0, adc2_i}) * 2 + 1) * 144 + 2) * 64'sd838861 + 64'sd2097152;
+        // +2 已实现除 5 的就近舍入；不再额外加 2^21（会二次舍入）
+        rc = (($signed({1'b0, adc2_i}) * 2 + 1) * 144 + 2) * 64'sd838861;
         r_q24 = rc >>> 22;
         x_q24 = dac_q24 + r_q24 + $signed({56'b0, t_num}) * 64'sd24576;
     end

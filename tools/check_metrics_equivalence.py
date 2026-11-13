@@ -80,15 +80,30 @@ def probe(module_name: str) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--json", required=True)
-    parser.add_argument("--compare", default=None)
+    parser.add_argument("--json", required=True,
+                        help="把探测到的摘要写到这个路径（是**输出**，不是输入）")
+    parser.add_argument("--compare", default=None,
+                        help="与已有的摘要文件比对，而不是新写一份")
+    parser.add_argument("--force", action="store_true",
+                        help="允许覆写已存在的输出文件")
     args = parser.parse_args()
 
     document = {
         "metrics": probe("adi_model.metrics.metrics"),
         "metrics_lsb20": probe("adi_model.metrics.metrics_lsb20"),
     }
-    Path(args.json).write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
+    # ⚠️ `--json` 是**输出路径**。2026-11-13 曾误把它当成输入、
+    # 传了归档的 p4_ablation.json，导致该数据文件被覆写（已从 git 恢复）。
+    # 现在若目标文件已存在且不在 --compare 模式，拒绝覆写除非显式 --force。
+    target = Path(args.json)
+    if target.exists() and args.compare is None and not args.force:
+        print(
+            f"refusing to overwrite existing file: {target}\n"
+            "  --json is the OUTPUT path; pass --compare to compare instead, "
+            "or --force to overwrite."
+        )
+        return 2
+    target.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
 
     print(f"{'entry point':<28}{'metrics':<18}{'metrics_lsb20':<18}match")
     ok = True

@@ -6,6 +6,8 @@
 
 更新：2026-11-13 · 受测 HEAD `fffb85f`（已推送）
 
+> **D1 进展**：调度身份四项判据已 PASS，证据 `tests/unit/test_scheduler_identity.py`（4 passed）。
+
 ---
 
 ## 0. 任务边界
@@ -36,10 +38,10 @@
 
 | 判据 | 状态 | 证据 |
 |:---|:---|:---|
-| 同片不同时在 ACQ 与 CONV | PARTIAL | `dem3d.round_robin_plan` 已实现 |
-| 每笔样本有确定物理片 ID | PARTIAL | `slice_ids` 贯穿 |
-| ID 随样本正确传递 | PARTIAL | 事件记录含 slice_ids |
-| reset/stall 下身份不丢不乱 | **NOT_RUN** | 无定向测试 |
+| 同片不同时在 ACQ 与 CONV | **PASS** | `test_scheduler_identity.py`（相邻采集窗交集为空） |
+| 每笔样本有确定物理片 ID | **PASS** | `test_each_sample_owns_eight_distinct_ids` |
+| ID 随样本正确传递 | **PASS** | `test_stall_does_not_renumber_identity`（重跑与子段逐位一致） |
+| reset/stall 下身份不丢不乱 | **PASS**（函数纯性） | `test_stall_does_not_renumber_identity` |
 | 连续转换计数守恒 `N_acc=N_ret+N_canc+N_pend` | **NOT_RUN** | 未实现计数检查 |
 
 ### D2 Follower — 已决前缀驱动

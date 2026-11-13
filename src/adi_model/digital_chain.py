@@ -60,6 +60,16 @@ N_SUB_COLUMNS = 4       # 子阵列 8/4/2/1，由剩余低位 L 控制
 N_TOTAL = N_COLUMNS + N_SUB_COLUMNS
 
 
+def dem_phases(sample_id: int) -> tuple[int, int, int]:
+    """DEM 相位排程（工程候选）：(reserved, h_phase, v_phase)。
+
+    以 q = sid // 9 推进三个维度，避免同源取模导致相关性锁定。
+    完整周期 = 9 x 16 x 8 x 15 = 17280 笔。
+    """
+    q = sample_id // 9
+    return (q % N_COLUMNS, (q // 128) % 15, (q // 16) % 8)
+
+
 def _horizontal_columns(k: int, reserved: int, h_phase: int = 0) -> list[int]:
     """横向数据 h：15 个有效列按 H 做温度计，保留列为**固定零**（不是从有效位里挖）。
 
@@ -106,9 +116,7 @@ def run_transaction(tx: Transaction) -> dict:
     upper, lower, total = _dither_terms(tx.dither_word)
     k = int(tx.final_code) - upper
     H, M, L = k >> 5, (k >> 2) & 7, k & 3
-    reserved = tx.sample_id % N_COLUMNS
-    h_phase = tx.sample_id % 15
-    v_phase = tx.sample_id % N_ACTIVE
+    reserved, h_phase, v_phase = dem_phases(tx.sample_id)
     h = _horizontal_columns(k, reserved, h_phase)
     y = vertical_bits(k, N_ACTIVE, v_phase)
 

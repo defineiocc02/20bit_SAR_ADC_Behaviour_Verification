@@ -78,3 +78,44 @@ adc2_i[2] → u_recon/... → MXI2X1 → AOI21X1 → NOR2X1 → AOI21X1 → OAI2
 
 余量仅 +0.59 ns，属"刚好满足"。工艺角/布线后会吃掉大部分，
 真实签核需要留更多余量或再拆一级流水。
+
+
+---
+
+## 8. 重要更正：此前"满足 25 ns"的说法不成立
+
+取原始报告 `synth/results/timing_pipe_25ns.rpt` 核对，发现：
+
+```
+Startpoint: x_q24_reg[26]  (rising edge-triggered flip-flop clocked by clk)
+Endpoint:   overflow_o     (output port)
+Path Group: (none)         <-- 没有时钟组
+```
+
+报告里**根本没有 `data required time`，也没有 `slack` 行**。
+
+原因：终点是**输出端口**，而约束里没有 `set_output_delay`。
+未被约束的路径只有 `data arrival time`，DC 不会算 slack。
+
+**所以 24.41 ns 是"寄存器到输出端口的组合延迟"，不是建立时间余量。**
+拿它和 25 ns 相减得出"满足 40 MS/s"是我犯的错——那不是签核，是数字巧合。
+
+## 9. 要得到真实 slack 还缺什么
+
+| 缺项 | 作用 |
+|:---|:---|
+| `set_input_delay` | 约束输入端口相对时钟的到达时间 |
+| `set_output_delay` | 约束输出端口的捕获时间（否则路径无 required） |
+| `set_clock_uncertainty` | 抖动/偏斜余量 |
+| 输出寄存（可选） | 让终点是寄存器，路径自然进时钟组 |
+
+补上之后 `report_timing` 才会给出 `slack`，那时说"满足/不满足"才有意义。
+
+## 10. 当前能说的和不能说的
+
+**能说**：组合版从 `adc2` 到 `code_o` 的组合延迟 62.72 ns；流水窄位宽版从
+`x_q24_reg` 到 `code_o` 的组合延迟 24.41 ns；面积 38546 / 49972 µm²。
+这些是**真实的综合数据**，有原始报告。
+
+**不能说**：时序收敛、满足 40 MS/s、满足任何时钟周期。
+因为**没有任何一条被约束路径的 slack**。

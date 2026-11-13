@@ -20,7 +20,7 @@
 | 要改代码 | [`docs/design/ARCHITECTURE.md`](docs/design/ARCHITECTURE.md) → 数据流与状态归属 → 跑行为指纹 |
 | 要查错 | [`docs/debugging/DEBUGGING.md`](docs/debugging/DEBUGGING.md)（8 个案例，逐个给入口） |
 | 要核对专利 | [`docs/mechanisms/source_crosscheck_20261112.md`](docs/mechanisms/source_crosscheck_20261112.md)（含原件图） |
-| 要判断可信度 | [`docs/acceptance/20261112-e14a0a0/report.md`](docs/acceptance/20261112-e14a0a0/report.md) |
+| 要判断可信度 | [**验收对照报告（当前）**](docs/ACCEPTANCE_20261113.md)；更早的两份快照在 [`docs/acceptance/`](docs/acceptance/) |
 | 名词看不懂 | [`docs/guide/TERMS.md`](docs/guide/TERMS.md) |
 
 工程自检一条命令：`python3 tools/check_engineering.py`（**7 项**，失败非零退出）。
@@ -28,7 +28,7 @@
 **从全新克隆验证可复现性**：
 
 ```bash
-PYTHON=python3 bash tools/verify_clean_clone.sh              # 全部 7 项（含矩阵与图重跑）
+PYTHON=python3 bash tools/verify_clean_clone.sh              # 全部 10 项（含矩阵与图重跑）
 SKIP_HEAVY=1 PYTHON=python3 bash tools/verify_clean_clone.sh # 跳过重活，约 30 秒
 ```
 

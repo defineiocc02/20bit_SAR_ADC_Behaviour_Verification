@@ -672,3 +672,40 @@ def test_documented_function_references_exist_or_are_flagged():
         "these documents reference functions that no longer exist and do not say so:\n  "
         + "\n  ".join(offenders)
     )
+
+
+def test_readme_states_the_correct_number_of_clean_clone_checks():
+    """README 里写的"全部 N 项"必须等于验证脚本的真实检查数。
+
+    2026-11-13：README 写"全部 7 项"，但脚本已扩到 10 项
+    （新增 run_mismatch_sweep、trace_one_sample、以及 integration 拆成两项）。
+    数字过时不会让任何测试失败，但读者会以为覆盖范围比实际小。
+    """
+    import re
+
+    script = (ROOT / "tools/verify_clean_clone.sh").read_text(encoding="utf-8")
+    # 按"成功分支"计数：每一项检查恰好有一个 `ok "..."` 调用。
+    # （不能用 note 行统计——有的 note 带缩进、且 note "clone"/"result" 不是检查项。）
+    checks = len(re.findall(r'\bok "', script))
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    match = re.search(r"全部\s*\*{0,2}(\d+)\*{0,2}\s*项", readme)
+    assert match, "README should state how many clean-clone checks there are"
+    stated = int(match.group(1))
+    assert stated == checks, (
+        f"README says {stated} checks but verify_clean_clone.sh has {checks}"
+    )
+
+
+def test_readme_points_at_the_current_acceptance_report():
+    """README 的"判断可信度"入口必须指向当前验收报告，而不是旧快照。
+
+    2026-11-13：原链接指向 `docs/acceptance/20261112-e14a0a0/report.md`
+    （11-12 的快照），而当前是 `docs/ACCEPTANCE_20261113.md`。
+    """
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "docs/ACCEPTANCE_20261113.md" in readme, (
+        "README must link the current acceptance report"
+    )
+    assert "20261112-e14a0a0/report.md" not in readme, (
+        "README still points the credibility entry at the older 11-12 snapshot"
+    )

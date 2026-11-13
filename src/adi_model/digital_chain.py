@@ -159,22 +159,25 @@ def run_transaction(tx: Transaction) -> dict:
     # 不参与信号分母（专利：子阵列经耦合电容，不与主阵列同坐标）。
     x_weight = None
     if tx.weights_q30:
-        w_sel = 0
-        w_all = 0
+        VR = int(round(V_FS * (1 << V_FRAC)))
+        G_q30 = 0
+        K_q54 = 0
         for slot, sid in enumerate(slice_ids.tolist()):
-            for j in range(N_COLUMNS):          # 只算逻辑列
+            for j in range(N_COLUMNS):
                 w = int(tx.weights_q30.get((int(sid), j), 0))
-                w_all += w
-                if masks_full[slot][j]:
-                    w_sel += w
-        if w_all:
-            N_eff = 128.0 * w_sel / float(w_all)      # 等效 2C 逻辑单元数
-            frac = (N_eff + (k & 3) / 4.0) / 128.0
-            dac_q24 = int(round((frac * 6.0 - 3.0) * (1 << V_FRAC)))
+                G_q30 += w
+                K_q54 += w * (-VR if masks_full[slot][j] else VR)
+            for j in range(N_COLUMNS, N_TOTAL):
+                w = int(tx.weights_q30.get((int(sid), j), 0))
+                K_q54 += w * (-2 * VR if masks_full[slot][j] else 0)
+        if G_q30:
+            dac_q24 = _div_round(-K_q54, G_q30)
             r_hat_q24 = _div_round(((2 * int(tx.adc2_code) + 1) * 144 + 2) * 838861
                                    + (1 << 21), 1 << 22)
             x_weight = (dac_q24 + r_hat_q24) / float(1 << V_FRAC) + total * DELTA_V
-
+        _dbg = (G_q30, K_q54, dac_q24 if G_q30 else None, r_hat_q24 if G_q30 else None)
+    else:
+        _dbg = None
     x_formula = reconstruct_input_v(k, tx.adc2_code, total)
     code_formula = int(round((x_formula / V_FS + 1.0) * (1 << (CODE_BITS - 1))))
     return {
@@ -183,6 +186,7 @@ def run_transaction(tx: Transaction) -> dict:
         "x_formula_v": x_formula,
         "code20_formula": min(max(code_formula, 0), (1 << CODE_BITS) - 1),
         "weight_acc_q30": weight_acc,
+        "dbg": _dbg,
         "code20": (code20_from_q24(int(round(x_weight * (1 << V_FRAC))))
                    if x_weight is not None
                    else min(max(code_formula, 0), (1 << CODE_BITS) - 1)),

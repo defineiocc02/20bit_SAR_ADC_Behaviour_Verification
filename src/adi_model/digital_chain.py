@@ -40,11 +40,18 @@ SUB_UNITS = 5
 ADC2_FRACTION_BITS = 12
 
 
-def _dither_terms(word: int) -> tuple[int, int, float]:
-    """Fig.19：U = 4·D6 + D4，L = 2·D5 + (4D3+2D2+D1)/7（粗 LSB 单位）。"""
+DITHER_DENOMINATOR = 8     # 工程模式（八片）。专利七片示例用 7，单独标识。
+
+
+def _dither_terms(word: int, denominator: int = None) -> tuple[int, int, float]:
+    """Fig.19：U = 4·D6 + D4，L = 2·D5 + (4D3+2D2+D1)/D。
+
+    D = DITHER_DENOMINATOR(8) 为主模式 [工程]；D = 7 属专利七片示例 [原文]。
+    """
+    d = DITHER_DENOMINATOR if denominator is None else denominator
     bits = [(word >> (5 - i)) & 1 for i in range(6)]
     upper = 4 * bits[0] + bits[2]
-    lower = 2 * bits[1] + (4 * bits[3] + 2 * bits[4] + bits[5]) / 7.0
+    lower = 2 * bits[1] + (4 * bits[3] + 2 * bits[4] + bits[5]) / float(d)
     return upper, lower, upper + lower
 
 
@@ -141,6 +148,47 @@ def run_transaction(tx: Transaction) -> dict:
 # ---------------------------------------------------------------- 重构（数学参考）
 V_FS = 3.0
 CODE_BITS = 20
+W_FRAC = 30        # 权重 Q30
+V_FRAC = 24        # 电压量 Q24
+ACC_BITS = 96
+
+
+def reconstruct_int(
+    y_q24: int,
+    masks: list[list[int]],
+    a: list[list[int]],
+    w_q30: dict,
+    slice_ids: list[int],
+    *,
+    t_low_q24: int = 0,
+    t_high_q24: int = 0,
+    bias_q24: int = 0,
+) -> dict:
+    """整数定点反解：x̂_q24 = ((y − Σw·t) << 30) / (Σ w·a)。
+
+    w 为 Q30、y/t/b 为 Q24；乘积自然落在 Q54，右移 30 回到 Q24。
+    累加器 96 位。最终 20 位用就近舍入（.5 向上）并饱和。
+    """
+    num = int(y_q24) - int(bias_q24)
+    den = 0
+    for slot, sid in enumerate(slice_ids):
+        for j in range(len(masks[slot])):
+            key = (int(sid), j)
+            if key not in w_q30:
+                raise KeyError(f"missing weight for {key}")
+            w = int(w_q30[key])
+            t = t_high_q24 if masks[slot][j] else t_low_q24
+            num -= (w * t) >> W_FRAC
+            den += w * a[slot][j]
+    if den == 0:
+        raise ValueError("Σw·a == 0")
+    x_q24 = (num << W_FRAC) // den
+    # code = round((x/V_FS + 1) * 2^19)  =>  ((x_q24 << 19) / (V_FS * 2^24)) + 2^19
+    lsb = int(round(V_FS * (1 << V_FRAC)))
+    code = (x_q24 << (CODE_BITS - 1)) // lsb + (1 << (CODE_BITS - 1))
+    sat = not (0 <= code < (1 << CODE_BITS))
+    return {"x_q24": x_q24, "code20": min(max(code, 0), (1 << CODE_BITS) - 1),
+            "overflow": sat, "den_q30": den}
 
 
 def _known_term(m: int, t_low_v: float, t_high_v: float) -> float:

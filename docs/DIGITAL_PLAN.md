@@ -84,13 +84,15 @@ Fig.14 仅作原理对照，**不作第二套默认实现，暂不要求独立 R
 |:---|:---|:---|
 | `Σu = N_H` 名义权重守恒 | PARTIAL | 512 码不变量测试 |
 | 置换无重复/丢失/非法选通 | PARTIAL | 同上 |
+| **保留列取 350、其余列取 352、无双驱动** | **PASS**（模块级） | `test_fig21_exactly_one_column_comes_from_shuffler350`（16 个位置全验） |
 | **保留列恰好一列、位置合法** | **PASS**（模块级） | `fig21_vertical_selection` 拒绝越界位置；测试断言保留列不被数据占用 |
 | **纵向不变式 `2Σy = 8B4+4B5+2B6`** | **PASS**（模块级） | `test_fig21_vertical_weight_invariant` 覆盖全部 8 种 B4/B5/B6 组合 |
 | **案例 (1,1,0) → 12C** | **PASS**（模块级） | `test_fig21_test_vector_1_1_0_gives_twelve_c` |
 | 512 码 × 合法状态全覆盖 | PARTIAL | 状态覆盖不全 |
 | 物理单元使用统计（按真实片） | PARTIAL | 已改按 `slice_ids` 散列 |
 
-**下一步**：实现保留列 + 两级 shuffler，并用 SPEC 的定向向量验收。
+**下一步**：把 `fig21_vertical_selection` + `fig21_column_assignment` 接进 `dem3d.fig11_masks`，
+替换现有的逐片旋转；随后跑 512 码与全量回归（预期会改变 INL/DNL，需重跑图）。
 
 ## D4 Split Dither
 

@@ -250,3 +250,38 @@ def fig21_vertical_selection(
         "weight_c": 2 * count,
         "reserved_column": reserved_position,
     }
+
+
+def fig21_column_assignment(
+    *,
+    n_columns: int = 16,
+    reserved_position: int,
+    vertical_value: int,
+    horizontal_value: int,
+) -> dict:
+    """Fig.19–21 的列分配：保留列取 350 的纵向结果，其余列取 352 的共享横向码。
+
+    【专利明确披露】352 把一个**固定零**的占位位置一起做列置换，输出共享横向码
+    与被预留列的位置；controller353 定该位置；该列的 MUX 选 350 的输出。
+
+    本函数只做"谁取哪个值"的分配，不做随机置换本身（置换种子未披露，
+    按 SPEC 属工程设计）。返回每列的取值，便于逐列核对"无双驱动"。
+    """
+    if not (0 <= reserved_position < n_columns):
+        raise ConfigError("reserved_position must index one column")
+    if vertical_value == horizontal_value:
+        raise ConfigError(
+            "vertical and horizontal values are identical; a mixed assignment would be "
+            "indistinguishable from a single shared code and cannot be verified"
+        )
+    columns = np.full(n_columns, horizontal_value, dtype=np.int64)
+    columns[reserved_position] = vertical_value
+    owners = np.zeros(n_columns, dtype=np.int8)  # 0=352 shared, 1=350 vertical
+    owners[reserved_position] = 1
+    return {
+        "columns": columns,
+        "owners": owners,
+        "reserved_column": reserved_position,
+        "n_from_350": int(np.count_nonzero(owners)),
+        "n_from_352": int(n_columns - np.count_nonzero(owners)),
+    }

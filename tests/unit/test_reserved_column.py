@@ -101,3 +101,25 @@ def test_fig21_rejects_more_than_seven_data_columns():
     from adi_model.control.cross_slice_mux import fig21_vertical_selection
 
     assert fig21_vertical_selection(True, True, True)["count"] == 7
+
+
+def test_fig21_exactly_one_column_comes_from_shuffler350():
+    """保留列恰好一列；其余列保持 352 的共享码，且无双驱动。"""
+    from adi_model.control.cross_slice_mux import fig21_column_assignment
+
+    for pos in range(16):
+        r = fig21_column_assignment(
+            n_columns=16, reserved_position=pos, vertical_value=7, horizontal_value=3
+        )
+        assert r["n_from_350"] == 1, "保留列必须恰好一列"
+        assert r["n_from_352"] == 15
+        assert r["columns"][pos] == 7
+        assert np.all(np.delete(r["columns"], pos) == 3), "非保留列必须保持共享横向码"
+
+
+def test_fig21_rejects_ambiguous_assignment():
+    """纵横向量相同则无法区分，必须拒绝（否则测试恒真）。"""
+    from adi_model.control.cross_slice_mux import fig21_column_assignment
+
+    with pytest.raises(ConfigError):
+        fig21_column_assignment(reserved_position=0, vertical_value=5, horizontal_value=5)

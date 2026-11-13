@@ -355,28 +355,39 @@ def run_sequence(
 ) -> dict:
     """事务序列：正常接收 / stall（不消耗 sample_id）/ reset（清空在途、归零）/ 排空。
 
-    返回逐笔事件与计数守恒：accepted + stalled + resets == len(txs)。
+    恒等式：accepted == retired + cancelled + pending，排空后 pending == 0。
+    - accepted：进入流水线的事务数（含被 stall 押后的）
+    - retired：真正调用 run_transaction 并产出结果的事务数
+    - cancelled：reset 时被取消的在途事务数（即当时的 held 长度）
+
+    stall 不越队：被 stall 及之后的事务全部进 held，不跳过当前项去处理后续；
+    reset 仍按其时刻执行——先清空 held 并计入 cancelled，再把 sid 归零。
     """
     log = []
     held: list[Transaction] = []
     sid = 0
-    accepted = stalled = resets = 0
-    retired = 0
+    accepted = stalled = resets = retired = cancelled = 0
+    in_stall = False
     for i, tx in enumerate(txs):
         if reset_at is not None and i == reset_at:
+            # reset 只清在途：当时的 held 全部取消，sample_id 归零
+            n_cancel = len(held)
+            cancelled += n_cancel
+            held.clear()
             sid = 0
             resets += 1
-            log.append({"at": i, "event": "reset", "sample_id_after": sid})
-            continue
-        if stall_window is not None and stall_window[0] <= i < stall_window[1]:
-            # 保序：stall 时**不越过**当前事务，把本项及其后全部押后
+            log.append({"at": i, "event": "reset", "sample_id_after": sid,
+                        "cancelled": n_cancel})
+        if not in_stall and stall_window is not None and i == stall_window[0]:
+            # 保序：stall 时**不越过**当前事务，本项及其后全部押后
+            in_stall = True
             stalled += 1
-            held.extend(replace(t, sample_id=sid + n) for n, t in enumerate(txs[i:]))
             log.append({"at": i, "event": "stall", "held": True, "sample_id_held": sid})
-            break
-        r = run_transaction(replace(tx, sample_id=sid))
         accepted += 1
-        retired_now = 1
+        if in_stall:
+            held.append(replace(tx, sample_id=sid + len(held)))
+            continue
+        r = run_transaction(replace(tx, sample_id=sid))
         retired += 1
         log.append({"at": i, "event": "accepted", "sample_id": r["sample_id"],
                     "code20": r["code20"], "slice_ids": r["slice_ids"]})
@@ -388,12 +399,10 @@ def run_sequence(
         log.append({"at": -1, "event": "retried", "sample_id": r["sample_id"],
                     "code20": r["code20"], "src": tx.sample_id})
         sid += 1
-    accepted_total = accepted + len(held)
-    cancelled = resets
-    pending = accepted_total - retired - cancelled
-    return {"log": log, "accepted": accepted_total, "stalled": stalled, "resets": resets,
+    pending = accepted - retired - cancelled
+    return {"log": log, "accepted": accepted, "stalled": stalled, "resets": resets,
             "retired": retired, "cancelled": cancelled, "pending": pending,
-            "conserved": accepted_total == retired + cancelled + pending and pending == 0,
+            "conserved": accepted == retired + cancelled + pending and pending == 0,
             "next_sample_id": sid}
 
 

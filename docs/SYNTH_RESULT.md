@@ -153,3 +153,23 @@ set_output_delay -max 2.0 -min 0.5 -clock clk   [all_outputs]
 
 能说的：在该组约束与库下，综合后的网表满足 25 ns 建立时间要求，余量 0.04 ns。
 不能说的：布线后仍满足、留有余量、可以签核。
+
+
+---
+
+## 12. 更正：第 11 节的 +0.04 ns 只覆盖 reg→out
+
+复查 `setup_p_pipe_constrained.rpt`：报告里只有 `output external delay -2.00`，
+**没有 `input external delay`**，5 条最差路径的起点全是 `x_q24_reg`。
+
+也就是说：**输入端到寄存器这一段没有被 2.0 ns 的 input delay 约束过。**
+（当时 `set_input_delay -max` 单独写一行，但那台 dc_shell 对 `-max/-min` 的若干写法
+会报 CMD-012 后静默丢弃，见 `docs/TIMING_PIPE2.md`。）
+
+因此第 11 节的结论要收窄为：
+
+- 能说：`recon_d5_pipe` 的 **reg→out** 路径在 25 ns、2.0 ns 输出延迟、0.3 ns 不确定度下 slack +0.04 ns
+- 不能说：整块设计满足 25 ns——**输入路径未验证**
+
+正确复跑方式（已在 `pipe2` 上验证）：
+`-max` 一行，`-min` 单独一行并带 `-add_delay`。

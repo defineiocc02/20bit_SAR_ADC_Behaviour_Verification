@@ -66,6 +66,7 @@ files.f                               编译清单（verilator -f files.f）
 | 项 | 原因 |
 |:---|:---|
 | **40 MS/s 已达成** | setup 余量仅 **0.16%**，且只到综合后、单角、无 OCV；布线未做 |
+| 权重路径 RTL 可综合到达标 | `recon_d5_w` 的 64÷45 阵列除法在 SMIC180 slow 上 S1 需 **421 ns**（未优化 810 ns），差 25 ns 预算 16.5 倍；面积 377,290 µm²（名义版 7.5×）。见 `docs/TIMING_PIPE2.md` |
 | RTL 与网表等价 | Formality 跑 19 分钟未收敛，已停；未做门级仿真 |
 | DEM 等价于 ADI 原序列 | 覆盖问题已修，但现排程是工程候选（每 9 笔推进一维），非专利两级 shuffler |
 | RTL 顶层事务语义 | 计数守恒只在 Python 模型上验过；RTL 顶层仍停在 elaboration |

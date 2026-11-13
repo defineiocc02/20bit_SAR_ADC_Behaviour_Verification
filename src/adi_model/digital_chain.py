@@ -113,8 +113,16 @@ def run_transaction(tx: Transaction) -> dict:
         for j in range(N_COLUMNS):
             if masks[slot][j]:
                 acc += int(tx.weights_q30.get((int(sid), "col2c", j), 0))
+    code20 = None
+    if tx.weights_q30:
+        wf = {(sid, j): tx.weights_q30[(sid, j)] / float(1 << 30) for (sid, j) in tx.weights_q30}
+        a_all = [[1] * N_COLUMNS for _ in range(N_ACTIVE)]
+        recon = reconstruct(0.0, [[0] * N_COLUMNS for _ in range(N_ACTIVE)], a_all, wf,
+                            slice_ids.tolist())
+        code20 = recon["code20"]
     return {
         "sample_id": tx.sample_id, "slice_ids": slice_ids.tolist(), "k": k,
+        "code20": code20,
         "H": H, "M": M, "L": L,
         "mask_selected": total_selected,
         "expect_8H_plus_M": 8 * H + M,
@@ -130,44 +138,65 @@ def run_transaction(tx: Transaction) -> dict:
         "adc2_code": tx.adc2_code,
     }
 
-# ---------------------------------------------------------------- 定点重构
-V_FS = 3.0              # 单端满幅 [V]（工程声明）
+# ---------------------------------------------------------------- 重构（数学参考）
+V_FS = 3.0
 CODE_BITS = 20
 
 
-def forward_observation(
-    x_v: float, masks: list[list[int]], a: list[list[int]], weights: dict, t_v: float = 0.0
-) -> float:
-    """独立前向模型：y = Σ w·(a·x + t)。用于生成与重构器相容的测试观测。
+def _known_term(m: int, t_low_v: float, t_high_v: float) -> float:
+    """m 只选择参考连接：0 -> t_low，1 -> t_high。**不因 m=0 删除整项。**"""
+    return t_high_v if m else t_low_v
 
-    w 为 C_eff/Cf（无量纲），a 为采样信号连接（0/1），t 为已知项电压 [V]。
+
+def forward_observation(
+    x_v: float,
+    masks: list[list[int]],
+    a: list[list[int]],
+    weights: dict,
+    slice_ids: list[int],
+    *,
+    t_low_v: float = 0.0,
+    t_high_v: float = 0.0,
+) -> float:
+    """y = Σ_{所有单元} w·(a·x + t(m))。循环**不跳过 m=0**。
+
+    weights 以真实物理片 ID 为键：{(physical_slice_id, column): w}。
     """
-    acc = 0.0
-    for s, row in enumerate(masks):
-        for j, m in enumerate(row):
-            if not m:
-                continue
-            w = weights.get((s, j), 0.0)
-            acc += w * (a[s][j] * x_v + t_v)
-    return acc
+    y = 0.0
+    for slot, sid in enumerate(slice_ids):
+        for j in range(len(masks[slot])):
+            key = (int(sid), j)
+            if key not in weights:
+                raise KeyError(f"missing weight for {key}")
+            w = weights[key]
+            y += w * (a[slot][j] * x_v + _known_term(masks[slot][j], t_low_v, t_high_v))
+    return y
 
 
 def reconstruct(
-    y_v: float, masks: list[list[int]], a: list[list[int]], weights: dict, t_v: float = 0.0
+    y_v: float,
+    masks: list[list[int]],
+    a: list[list[int]],
+    weights: dict,
+    slice_ids: list[int],
+    *,
+    t_low_v: float = 0.0,
+    t_high_v: float = 0.0,
+    bias_v: float = 0.0,
 ) -> dict:
-    """x̂ = (y − Σ w·t) / (Σ w·a)。分母用 **a**，不是 m；不额外除 8。"""
-    num = y_v
+    """x̂ = (y − b − Σ w·t(m)) / (Σ w·a)，遍历所有单元。"""
+    num = y_v - bias_v
     den = 0.0
-    for s, row in enumerate(masks):
-        for j, m in enumerate(row):
-            if not m:
-                continue
-            w = weights.get((s, j), 0.0)
-            num -= w * t_v
-            den += w * a[s][j]
+    for slot, sid in enumerate(slice_ids):
+        for j in range(len(masks[slot])):
+            key = (int(sid), j)
+            if key not in weights:
+                raise KeyError(f"missing weight for {key}")
+            w = weights[key]
+            num -= w * _known_term(masks[slot][j], t_low_v, t_high_v)
+            den += w * a[slot][j]
     if den == 0.0:
-        raise ValueError("Σw·a == 0: no signal-carrying unit is selected")
+        raise ValueError("Σw·a == 0: no signal-carrying unit selected")
     x_hat = num / den
     code = int(round((x_hat / V_FS + 1.0) * (1 << (CODE_BITS - 1))))
-    code = min(max(code, 0), (1 << CODE_BITS) - 1)
-    return {"x_hat_v": x_hat, "code20": code, "sum_wa": den}
+    return {"x_hat_v": x_hat, "code20": min(max(code, 0), (1 << CODE_BITS) - 1), "sum_wa": den}

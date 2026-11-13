@@ -148,7 +148,10 @@ def run_transaction(tx: Transaction) -> dict:
             y_q24, masks_full, a_all_full, tx.weights_q30, slice_ids.tolist(),
             t_low_q24=0, t_high_q24=int(round(V_FS * (1 << V_FRAC))),
         )
-        code20 = recon["code20"]
+        # 20 = 9 粗 + 11 细：k 贡献高 11 位（单调来源），细码 0..2047 来自 ADC2 残差
+        fine = int(recon["code20"]) & 0x7FF                    # 低 11 位即细码
+        code20 = (k << (CODE_BITS - 9)) + fine
+        code20 = min(max(code20, 0), (1 << CODE_BITS) - 1)
         overflow = recon["overflow"]
     return {
         "sample_id": tx.sample_id, "slice_ids": slice_ids.tolist(), "k": k,
@@ -216,6 +219,10 @@ def reconstruct_int(
             den += w * a[slot][j]
     if den == 0:
         raise ValueError("Σw·a == 0")
+    # 96 位上界（显式）：|项| <= 2^31(w) * 2^25(t) = 2^56；最多 8*20=160 项
+    # => |Σ| <= 160 * 2^56 < 2^64 << 2^96。超出即视为实现错误。
+    if abs(num) >= (1 << 96) or abs(den) >= (1 << 96):
+        raise OverflowError("accumulator exceeds the 96-bit contract")
     x_q24 = _div_round(num << W_FRAC, den)
     # code = round((x/V_FS + 1) * 2^19)  =>  ((x_q24 << 19) / (V_FS * 2^24)) + 2^19
     lsb = int(round(V_FS * (1 << V_FRAC)))

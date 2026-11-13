@@ -1,0 +1,87 @@
+spec_version: "ADI_PAPER_FIRST_1.0"
+source_priority: [PAPER, SLIDES, PATENT_SELECTED, ENGINEERING_ASSUMPTION]
+repo: "defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
+branch: "merge/adi-repro"
+reviewed_head: "f52d22a534ce145e185a58db3529c14c79a42a1b"
+profiles:
+  paper_core:
+    scope: PAPER_ARCHITECTURE
+    resolution_bits: {value: 20, source: PAPER}
+    sample_rate_hz: {value: 40000000, source: PAPER}
+    input_diff_peak_v: {value: 3.0, source: PAPER}
+    input_diff_span_v: {value: 6.0, source: PAPER}
+    physical_slices: {value: 18, source: PAPER}
+    active_slices: {value: 8, source: PAPER}
+    spare_slices: {value: 2, source: PAPER}
+    acquisition_slices: {value: 8, source: PAPER}
+    conversion_slices: {value: 8, source: PAPER}
+    quantizer_banks: {value: 2, source: PAPER}
+    first_stage_bits: {value: 9, source: PAPER}
+    flash_bits: {value: 3, source: PAPER}
+    ra_nominal_gain: {value: 32.0, source: "PAPER_Fig9.8.1"}
+    stage2_shared: {value: true, source: PAPER}
+    adc2_bits:
+      value: null
+      source: NOT_DISCLOSED_IN_PAPER
+      engineering_candidates: [12, 14]
+    sar_trial_count:
+      value: null
+      source: NOT_EXPLICITLY_DISCLOSED
+      engineering_candidates: [6]
+    voltage_reference_high_v: {value: null, source: NOT_DISCLOSED}
+    voltage_reference_low_v: {value: null, source: NOT_DISCLOSED}
+    input_common_mode_v: {value: null, source: NOT_DISCLOSED}
+    physical_capacitance_target:
+      value_f: 2.05e-11
+      source: SLIDES_27
+      exact_semantic_basis: NOT_CONFIRMED_PER_BRANCH_OR_TOTAL
+    dem_mechanism: "8/18 slice-selection + within-array shuffle; see SLIDES_31"
+    dither_mechanism: "quantizer and RDAC ranges differ by 2b; PAPER"
+    calibration: "coefficients derived off-chip; weight correction on-chip"
+    dynamic_reference: "coarse during conversion, fine REF_IN in RA phase"
+    tracked_aux: OPTIONAL_STUDY
+    caaz: EXTENSION_ONLY
+  patent_fig11_candidate:
+    scope: EXPLICIT_PATENT_IMPLEMENTATION_CANDIDATE
+    source: US10511316B2_Fig11
+    main_caps_nominal_units: [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,1]
+    main_last_two_physical_roles: [B4, S4]
+    s4_physically_present: true
+    s4_controllable: true
+    sub_caps_nominal_units: [8,4,2,1,1]
+    sub_sampling_vin: false
+    fifth_sub_cap_physical: true
+    fifth_sub_cap_conversion_connection:
+      value: REF_LO
+      source: ENGINEERING_ASSUMPTION_TO_BE_CONFIRMED_FROM_DRAWING
+    bridge_cap_nominal_units: 1
+    cp_sub_nominal_units: 0
+    beta_nominal_if_fifth_sub_present_and_zero_cp: "1/17"
+    conversion_reference_voltages: ASSUMED_EXPLICIT_PARAMETERS
+    sample_topplate_initial: ASSUMED_EXPLICIT_PARAMETERS
+    permitted_dem_variants: [FIG14_15, FIG16_17, FIG19_20]
+    default_dem_variant: FIG19_20
+    forbid_silent_submask_truncation: true
+    forbid_tiny_positive_fake_cap_weights: true
+    forbid_endpoint_driven_physical_changes: true
+    forbid_rescaling_real_qfree_to_fit_codebook: true
+  dither_patent_fig19:
+    scope: PATENT_SEVEN_SLICE_EXAMPLE_NOT_PAPER_EIGHT_SLICE_IMPL
+    source: US10505561B2_Fig19
+    first_word_bits: 6
+    slices_fractional_example: 7
+    dither_to_first_quantizer: [D5, D3, D2, D1]
+    dither_to_first_digital_code_subtract: [D6, D4]
+    dither_to_sampling_rdac: [D6, D5, D4, D3, D2, D1]
+    dither_fraction_numerators: [4, 2, 1]
+    dither_fraction_denominator: 7
+    further_stage_residual_dither_correction_required: true
+    paper_eight_slice_equivalence: NOT_PROVEN
+verification_gates:
+  G1_physical_mapping: "Every physical device and digital control mapping explicit; no silent truncation"
+  G2_independent_nodal_charge: "Same 8 slices, P/N, sample states and masks; match Cf*VRA with nodal oracle"
+  G3_basic_adc: "Bit and sample trace; no ideal truth injection"
+  G4_mechanisms: "source figure -> actual mainline call -> counterexample -> ablation"
+  G5_performance: "Correct INL/DNL metrics and independent noise parameters"
+  G6_digital_RTL: "Only frozen interface/profile: bit-exact and event-consistent"
+  G7_engineering_clarity: "One mainline, authoritative module docs and reproducible results"

@@ -791,3 +791,36 @@ def test_execute_pipeline_line_count_in_readme_is_accurate():
         assert abs(value - actual) <= 20, (
             f"README claims {value} lines but execute_pipeline is {actual} lines"
         )
+
+
+def test_readme_module_paths_all_exist():
+    """README 里点名的 `src/adi_model/**.py` 必须真实存在。
+
+    2026-11-13：README 的技术对照表与机制表都指向
+    `behavioral/follower.py`，**该文件不存在**——follower 实现在
+    `control/follower.py`。读者按图索骥会找不到代码。
+
+    这与此前修过的"失效属性锚点""失效函数引用"是同一类问题的第三种形态：
+    **失效的文件路径**。
+    """
+    import re
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    referenced = sorted(set(re.findall(r"`(src/adi_model/[\w/]+\.py)`", readme)))
+    assert referenced, "README should name some source files with full paths"
+    missing = [rel for rel in referenced if not (ROOT / rel).is_file()]
+    assert not missing, "README references source files that do not exist:\n  " + "\n  ".join(missing)
+
+
+def test_readme_does_not_reference_legacy_module_layouts():
+    """README 不得再出现"把模块放错目录"的引用（如 `behavioral/follower.py`）。
+
+    历史上 follower 在 `behavioral/` 下，后移到 `control/`。
+    只写 `xxx.py` 或写错目录，都会让人找不到实现。
+    """
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    stale = ["behavioral/follower.py"]
+    offenders = [token for token in stale if token in readme]
+    assert not offenders, (
+        "README still references modules at their old location: " + ", ".join(offenders)
+    )

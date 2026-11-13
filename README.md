@@ -75,7 +75,7 @@ SKIP_HEAVY=1 PYTHON=python3 bash tools/verify_clean_clone.sh # 跳过重活，�
 
 | 机制 | 状态 | 交付物 |
 |:---|:---|:---|
-| RDAC follower（分离量化器） | ✅ 已实现 | `behavioral/follower.py` |
+| RDAC follower（分离量化器） | ✅ 已实现 | `control/follower.py` |
 | 三维 DEM | ✅ 已实现 | `control/dem3d.py` |
 | 保留列 / 362 门 / 跨片分配 | ✅ **判据已交付**（未接主链） | `control/{reserved_column,shuffle_gate,cross_slice_mux}.py` |
 | AUX 输入 | ✅ 判据已交付 | `control/aux_input.py` |
@@ -105,11 +105,11 @@ SKIP_HEAVY=1 PYTHON=python3 bash tools/verify_clean_clone.sh # 跳过重活，�
 
 | 技术 | 对照原图 | 当前实现 | 状态 | 缺什么 |
 |:---|:---|:---|:---:|:---|
-| 分离量化器 + 切片 RDAC | US10516408B2 Fig.7/10/11/16–17 **已核** | `follower.py`、`pipeline_engine` | 等效 | 逐事件电荷已建；真实建立/边沿未建 |
-| 分路 dither | US10505561B2 **Fig.19 已核** | `dither.py`、`dither_port.py` | 等效 | 物理电容/开关网络；专利可选增强，见 §6 |
-| DEM 与跨段映射 | US10511316B2 **Fig.11/19/20 已核** | `dem3d.py` | 部分 | 保留列、362 门、跨片分配已有判据（§6.4），未接主链 |
-| 动态参考 | US10826519B1 **FIG.5 已核** | `conversion.py`、`pipeline_engine` | 部分 | 三条结构判据已交付；**A7 = NOT_RUN**（缺显式事件时刻/初值绑定，不猜默认值）|
-| TRACK / AUX | US10707889、US10541702B1 **FIG.1/2 已核** | `track_aux.py` | 部分 | AUX 判据已交付（`aux_input.py`），未接主链 |
+| 分离量化器 + 切片 RDAC | US10516408B2 Fig.7/10/11/16–17 **已核** | `src/adi_model/control/follower.py`、`src/adi_model/simulation/pipeline_engine.py` | 等效 | 逐事件电荷已建；真实建立/边沿未建 |
+| 分路 dither | US10505561B2 **Fig.19 已核** | `src/adi_model/control/dither.py`、`src/adi_model/control/dither_port.py` | 等效 | 物理电容/开关网络；专利可选增强，见 §6 |
+| DEM 与跨段映射 | US10511316B2 **Fig.11/19/20 已核** | `src/adi_model/control/dem3d.py` | 部分 | 保留列、362 门、跨片分配已有判据（§6.4），未接主链 |
+| 动态参考 | US10826519B1 **FIG.5 已核** | `src/adi_model/behavioral/conversion.py`、`src/adi_model/simulation/pipeline_engine.py` | 部分 | 三条结构判据已交付；**A7 = NOT_RUN**（缺显式事件时刻/初值绑定，不猜默认值）|
+| TRACK / AUX | US10707889、US10541702B1 **FIG.1/2 已核** | `src/adi_model/control/track_aux.py` | 部分 | AUX 判据已交付（`src/adi_model/control/aux_input.py`），未接主链 |
 | 普通 AZ | 论文/PPT 时序图 | `behavioral/ra_az.py` | 已实现 | 漂移/保持扫描未做 |
 
 ## 4. 各项技术的原图与实现摘要

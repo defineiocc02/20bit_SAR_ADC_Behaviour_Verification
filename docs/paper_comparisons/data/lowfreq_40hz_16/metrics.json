@@ -1,0 +1,18 @@
+{
+  "physical_fs_hz": 40000000.0,
+  "sparse_probe_fs_hz": 20000.0,
+  "physical_sample_stride": 2000,
+  "duration_s": 64,
+  "n_sparse": 1280000,
+  "nperseg": 262144,
+  "window": "hann",
+  "realizations": 16,
+  "modes": 128,
+  "corner_input_hz": 40.0,
+  "low_cutoff_assumption_hz": 0.1,
+  "white_density_input_v_sqrt_hz": 8.8e-09,
+  "flicker_raw_bin_log_slope_2_to_30_db_dec": -12.522728757662822,
+  "flicker_logband_mean_power_slope_db_dec": -9.98188935809813,
+  "elapsed_s": 26.553994459012756,
+  "scope": "isolated stochastic noise state with explicitly ideal anti-alias white observation; NOT 1.28M contiguous conversions or full 40MS/s ADC simulation; corner and white floor are inputs from slide, not predictions"
+}

@@ -375,3 +375,24 @@ def forward_code(x_v: float, word: int) -> dict:
     r = x_v - total * DELTA_V - dac_nominal(k)
     adc2 = int(min(max(r * RESIDUE_GAIN / (ADC2_WINDOW_V / ADC2_CODES), 0), ADC2_CODES - 1))
     return {"c": c, "k": k, "adc2": adc2, "upper": upper, "lower": lower, "total": total}
+
+
+def reconstruct_input_q24(k: int, adc2_code: int, total_lsb: float) -> int:
+    """整数版 reconstruct_input_v：全程 Q24，作为 RTL 的 golden。
+
+    D_q24 = -3*2^24 + k*(3*2^24/256)
+    r_q24 = round((2a+1) * 28.8) = round((2a+1)*144/5)
+    T_q24 = round(T * 3*2^24/256)
+    """
+    d_q24 = -50331648 + 196608 * int(k)
+    r_q24 = ((2 * int(adc2_code) + 1) * 144 + 2) // 5
+    t_q24 = int(round(float(total_lsb) * 196608.0))
+    return d_q24 + r_q24 + t_q24
+
+
+def code20_from_q24(x_q24: int) -> int:
+    """code20 = round(x_q24/96) + 2^19，饱和到 [0, 2^20-1]。"""
+    n = int(x_q24)
+    q = (n + 48) // 96 if n >= 0 else -((-n + 48) // 96)
+    c = q + (1 << 19)
+    return min(max(c, 0), (1 << 20) - 1)

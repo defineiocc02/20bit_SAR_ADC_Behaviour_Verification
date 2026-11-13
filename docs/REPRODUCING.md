@@ -223,4 +223,4 @@ MPLBACKEND=Agg python docs/readme/make_overview_figures.py \
 
 重绘需要Matplotlib、NumPy和脚本列出的中文字体；缺字体明确失败。绘图器前后核对当前Python正／负例的producer与36个loaded源码，以及`full_typechecked_001`、同版四正／两组负控的源／工具身份；[可重绘资产索引](readme/data/source_bound_assets_manifest.json)列出每件数据、图与脚本的字节数和SHA。源变化时应重跑并核对新收据，不能刷新旧摘要。重绘不会覆盖任何历史性能记录。
 
-历史向量已从sim/vectors迁至[历史目录](history/legacy_vectors_af8/README.md)，原35文件／SHA与旧manifest内部路径保持；9份历史配置／系数／寄存器JSON仍留原路径。完整旧实验从Git af8恢复。另可用`python docs/caaz/make_figures.py --out NEW_EXTERNAL_DIR`只重绘三张历史CAAZ图；输出`historical_caaz_*`，不是新CAAZ／RTL结果。
+历史向量已从sim/vectors迁至[历史目录](EXECUTABLE_ARCHIVES.md)，原35文件／SHA与旧manifest内部路径保持；9份历史配置／系数／寄存器JSON仍留原路径。完整旧实验从Git af8恢复。另可用`python docs/caaz/make_figures.py --out NEW_EXTERNAL_DIR`只重绘三张历史CAAZ图；输出`historical_caaz_*`，不是新CAAZ／RTL结果。

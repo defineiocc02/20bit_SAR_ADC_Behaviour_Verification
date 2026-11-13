@@ -180,3 +180,27 @@ def test_switching_cost_reports_counts_not_timing(explicit_pipeline_factory):
     assert report["events"] == FOLLOWER_EVENTS
     assert report["mean_flips_per_sample"] >= 1.0
     assert report["peak_cumulative_fraction"] >= 1.0
+
+
+def _committed_only(values: np.ndarray) -> np.ndarray:
+    """正确实现：第 i 个事件只能用前 i 个已决位。"""
+    n_events = values.shape[1]
+    out = np.zeros_like(values)
+    for i in range(n_events):
+        out[:, i] = values[:, : i + 1].sum(axis=1)
+    return out
+
+
+def test_every_event_emits_one_command_and_ignores_future_bits():
+    """D2：逐事件命令存在，且只依赖已决前缀。
+
+    这条替代"用 import 计数判断是否实现"：它直接检查事件数与因果性。
+    """
+    n = 16
+    prefixes = ResolvedPrefixes.from_final(np.arange(n, dtype=np.int64))
+    good = audit_causality(prefixes, _committed_only)
+    assert good.checked == n * FOLLOWER_EVENTS, "每笔每条事件都应产生一条命令"
+    assert good.violations == 0, f"正确实现被判违规: {good.first}"
+
+    bad = audit_causality(prefixes, _peeking)
+    assert bad.violations > 0, "偷看最终码的实现必须被抓到（否则门禁恒真）"

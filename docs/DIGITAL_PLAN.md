@@ -69,8 +69,8 @@ Fig.14 仅作原理对照，**不作第二套默认实现，暂不要求独立 R
 | 只用已产生的判决 | PARTIAL | 前缀截断不变性（28672 检查） |
 | 未来判决不影响过去命令 | PARTIAL | 同上 |
 | 最终 mask 与粗码一致 | PARTIAL | 同码三路径净电荷闭合 |
-| **真实逐事件命令导出** | **NOT_RUN** | 无 event trace |
-| **是否进入主链** | **NOT_RUN** | import 计数为 0 只说明未见直接引用；须先核实真实调用路径，确认无调用后才可判 FAIL |
+| **真实逐事件命令导出** | **PASS**（模块级） | `FollowerTrace.applied_codes` 存在；`test_every_event_emits_one_command_and_ignores_future_bits` 验 `checked = n×7` 且偷看实现必被抓 |
+| **是否进入主链** | **FAIL** | 已核实调用路径：`follower.py` 存在且 21KB、有 12 项测试，但**全仓零 import**（`grep import.*follower` 在 src/ 无结果），`pipeline_engine`/`defaults` 中出现次数为 0 |
 
 **下一步**：确认 `follower` 是否被 `dem3d` 间接调用；若否，接入并出逐事件 trace。
 

@@ -100,6 +100,31 @@ def check_doc_links() -> None:
            "all relative links resolve" if not broken else "; ".join(broken[:6]))
 
 
+def _semantic_digest_of_python(text: str) -> str:
+    """忽略注释与 docstring 的 AST 摘要（只看语法树）。
+
+    ⚠️ **不能 import `adi_model.hashing`**：本工具跑在系统 python（3.9）下，
+    而 `adi_model` 需要 3.13（`typing.TypeGuard`）。因此这里用标准库 `ast`
+    实现等价逻辑，与 `adi_model.hashing._strip_python` 保持同一判据：
+    剥掉 Module/FunctionDef/ClassDef 的首个字符串表达式（docstring）后
+    比较 `ast.dump`。注释本来就不进 AST，天然被忽略。
+
+    若两处逻辑出现分歧，`tests/unit/test_hashing.py` 里的对照测试会失败。
+    """
+    tree = ast.parse(text)
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            body = getattr(node, "body", [])
+            if (
+                body
+                and isinstance(body[0], ast.Expr)
+                and isinstance(body[0].value, ast.Constant)
+                and isinstance(body[0].value.value, str)
+            ):
+                node.body = body[1:] or [ast.Pass()]
+    return hashlib.sha256(ast.dump(tree).encode()).hexdigest()
+
+
 def check_result_identity() -> None:
     """C4: figures and matrix must describe the same run."""
     figures = ROOT / "docs/reviews/20261113_p3p4/figures/figures.json"
@@ -149,30 +174,43 @@ def check_result_identity() -> None:
             # 图就是当前的。
             # 2026-11-13：原实现只比较 HEAD 是否等于 source_sha，
             # 导致"提交图 → HEAD 变了 → 立刻判 STALE"，形成逻辑死循环。
-            # 只改注释/文档不应让图变 stale。比较**去掉注释后的代码**，
-            # 不是"文件有没有被动过"。
-            # 2026-11-13：原实现用 `git diff --name-only`，给 defaults.py 加一行
-            # 注释就触发 STALE——那是误报。同时必须排除 diff 的文件头
-            # （`+++ b/...` / `--- a/...`），否则它们会被当成 2 行实质改动。
+            # 只改注释/docstring 不应让图变 stale。判据用 **AST 语义摘要**
+            # （`adi_model.hashing.semantic_digest_of_text`），而不是 diff 行过滤。
+            #
+            # 2026-11-13 的两轮教训：
+            #   ① 原用 `git diff --name-only` ⇒ 加一行注释就误报 STALE
+            #   ② 改用"过滤 diff 行" ⇒ 又把 `+++ b/...` 文件头当成 2 行实质改动
+            # AST 摘要一次解决两者：它按语法树比较，天然忽略注释与 docstring。
             try:
-                diff = subprocess.run(
-                    ["git", "diff", "-U0", "--ignore-all-space", str(fig["source_sha"]), "HEAD",
+                changed_files = subprocess.run(
+                    ["git", "diff", "--name-only", str(fig["source_sha"]), "HEAD",
                      "--", "src/adi_model"],
                     cwd=ROOT, capture_output=True, text=True, check=True,
-                ).stdout
-                substantive = [
-                    line for line in diff.splitlines()
-                    if line[:1] in ("+", "-")
-                    and not line.startswith(("+++", "---"))
-                    and line[1:].strip()
-                    and not line[1:].strip().startswith("#")
-                ]
+                ).stdout.split()
+                substantive = []
+                for rel in changed_files:
+                    current = ROOT / rel
+                    if not current.is_file() or current.suffix != ".py":
+                        substantive.append(rel)
+                        continue
+                    old_text = subprocess.run(
+                        ["git", "show", f"{fig['source_sha']}:{rel}"],
+                        cwd=ROOT, capture_output=True, text=True,
+                    ).stdout
+                    try:
+                        if _semantic_digest_of_python(old_text) != _semantic_digest_of_python(
+                            current.read_text(encoding="utf-8", errors="replace")
+                        ):
+                            substantive.append(rel)
+                    except SyntaxError:
+                        # 旧版语法不合法（或文件新增）⇒ 保守地算作实质改动
+                        substantive.append(rel)
             except Exception:  # noqa: BLE001
                 substantive = ["unknown"]
             if substantive:
                 stale = (
                     f"{str(fig['source_sha'])[:12]}"
-                    f"（src/adi_model 自那以后有 {len(substantive)} 行实质改动）"
+                    f"（src/adi_model 自那以后有 {len(substantive)} 个文件语义改动）"
                 )
             # 无实质改动 ⇒ 模型未变，图仍代表当前模型，不算 stale
     checked = not problems

@@ -17,10 +17,16 @@
 # =============================================================================
 
 """文件内容摘要工具。
-    ⚠️ **当前状态（2026-11-13 核实）：本模块既未被 `src/` 引用，也没有单测覆盖。**
-    它是一个**已实现但未接入**的模块——保留是因为其模型本身有依据与价值
-    （见下方设计说明），但**不要在 README/文档里把它算作"已在用"**。
-    若要接入或删除，需先决定并补相应证据。
+    **当前状态（2026-11-13 核实）：**
+    * `src/` 内**没有任何模块 import 它**（它不是主链的一部分）；
+    * 有单测覆盖：`tests/unit/test_hashing.py`；
+    * `tools/check_engineering.py` 的 C4 门禁需要"忽略注释与 docstring 的语义摘要"，
+      但该工具跑在系统 python 3.9 下、无法 import 本包，因此**内联了一份等价实现**
+      （`_semantic_digest_of_python`）。两份实现的判据一致性由
+      `test_gate_helper_agrees_with_the_library` 守着。
+
+    ⇒ 所以本模块**不是死代码**，但它也**不是主链依赖**。
+    如果将来主链要用文件/源码摘要，应当 import 这里而不是再写一遍。
 """
 
 from __future__ import annotations
@@ -110,6 +116,29 @@ def _strip_systemverilog(text: str) -> str:
     return "\n".join(line for line in lines if line)
 
 
+def semantic_digest_of_text(text: str, suffix: str) -> str:
+    """对**内存中的文本**返回语义摘要（忽略注释与文档字符串）。
+
+    与 `semantic_digest(path)` 的区别只是输入形态：本函数接受字符串，
+    便于比较"两个提交里的同一文件"——那时两边内容都在内存里
+    （旧版来自 `git show`，新版来自工作树），不落盘。
+
+    Args:
+        text: 源码文本。
+        suffix: 语言判据（`.py` / `.sv` / 其他）。
+
+    Returns:
+        十六进制摘要；只改注释或 docstring 时与改动前相同。
+    """
+    if suffix == ".py":
+        payload = _strip_python(text)
+    elif suffix in {".sv", ".v", ".svh", ".vh"}:
+        payload = _strip_systemverilog(text)
+    else:
+        payload = text
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
 def semantic_digest(path: Path) -> str:
     """返回「忽略注释与文档字符串」的语义摘要。
 
@@ -118,11 +147,4 @@ def semantic_digest(path: Path) -> str:
     字节摘要必然变化而语义摘要不变，这正是把「注释改造」与「功能改动」
     分开记账所需的区分度。
     """
-    text = path.read_text(errors="replace")
-    if path.suffix == ".py":
-        payload = _strip_python(text)
-    elif path.suffix in {".sv", ".v", ".svh", ".vh"}:
-        payload = _strip_systemverilog(text)
-    else:
-        payload = text
-    return hashlib.sha256(payload.encode()).hexdigest()
+    return semantic_digest_of_text(path.read_text(errors="replace"), path.suffix)

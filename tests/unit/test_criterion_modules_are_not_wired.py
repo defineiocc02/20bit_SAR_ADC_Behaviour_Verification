@@ -80,7 +80,8 @@ def test_criterion_module_documents_that_it_is_not_wired(module):
 
 #: 已知的"已实现但既无引用、也无单测"的模块（每条都要有 docstring 声明）。
 _UNUSED_MODULES = (
-    "src/adi_model/hashing.py",
+    # hashing.py 已移出本清单：它现在有单测，且其判据被 C4 门禁镜像使用。
+    # 它仍不是主链依赖，但那一点已在模块 docstring 里说明。
     "src/adi_model/behavioral/reference_mux.py",
 )
 

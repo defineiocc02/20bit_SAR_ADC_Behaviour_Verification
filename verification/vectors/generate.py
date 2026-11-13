@@ -25,17 +25,10 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[2]
 OUT_ROOT = ROOT / "verification" / "vectors" / "generated"
 
-PROFILE = {
-    "B1": 9,
-    "ADC2_BITS": 12,
-    "N_ACTIVE": 8,
-    "N_UNIT_MAIN": 63,
-    "N_UNIT_SUB": 8,
-    "N_SLICES": 18,
-    "W_BITS": 48,
-    "V_BITS": 64,
-    "OUT_BITS": 20,
-}
+# 参数来自**单一真源** `verification.contracts.profile`。
+# 2026-11-13 前这里有一份独立硬编码副本，与 rtl_params.vh / digital_interfaces.yaml
+# 各自演进，曾静默漂移（三处一起停在旧的 63+8 上）。现在只在此处别名引用。
+from verification.contracts.profile import RTL_PROFILE as PROFILE  # noqa: E402
 
 
 @dataclass

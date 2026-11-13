@@ -1,4 +1,4 @@
-// 编译文件清单：verilator -f files.f --top-module digital_top
+// 编译文件清单
 rtl/core/adc2_dec.sv
 rtl/core/analog_phase_ctrl.sv
 rtl/core/cal_output_stage.sv
@@ -22,3 +22,5 @@ rtl/cdac_decode.sv
 rtl/dem_shuffle.sv
 rtl/recon_d5.sv
 rtl/digital_top.sv
+rtl/slice_pool.sv
+rtl/follower.sv

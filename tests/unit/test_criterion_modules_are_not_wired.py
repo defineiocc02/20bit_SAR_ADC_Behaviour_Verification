@@ -78,35 +78,37 @@ def test_criterion_module_documents_that_it_is_not_wired(module):
     )
 
 
-#: 已知的"已实现但既无引用、也无单测"的模块（每条都要有 docstring 声明）。
-_UNUSED_MODULES = (
-    # hashing.py 已移出本清单：它现在有单测，且其判据被 C4 门禁镜像使用。
-    # 它仍不是主链依赖，但那一点已在模块 docstring 里说明。
+#: 原本"既无引用也无单测"的两个模块——2026-11-13 已各自补上单测，
+#: 因此不再是孤儿。它们仍不是主链依赖，但那一点写在各自模块的 docstring 里。
+_FORMERLY_ORPHAN = (
+    "src/adi_model/hashing.py",
     "src/adi_model/behavioral/reference_mux.py",
 )
 
 
-@pytest.mark.parametrize("relative_path", _UNUSED_MODULES)
-def test_unused_modules_declare_their_status(relative_path):
-    """已知未使用的模块必须在 docstring 里说明"既未被引用、也无单测覆盖"。
+@pytest.mark.parametrize("relative_path", _FORMERLY_ORPHAN)
+def test_formerly_orphan_modules_are_now_tested_and_declare_their_status(relative_path):
+    """这两个模块曾既无引用也无单测；现在必须有单测并在 docstring 里说明定位。
 
-    2026-11-13：扫描发现 `hashing.py`（123 行）与 `behavioral/reference_mux.py`
-    （204 行）**既没有任何模块 import，也没有任何单测**——327 行"孤儿代码"。
+    2026-11-13：扫描发现 `hashing.py`(123 行) 与 `reference_mux.py`(204 行)
+    完全没有被使用、也没有被测试。本轮给两者补了单测
+    （`test_hashing.py` 6 例、`test_reference_mux.py` 12 例），
+    并把"不是主链依赖"这一事实写进各自 docstring。
 
-    它们不是垃圾：`architecture.md` 把 `reference_mux.py` 列在模块树里，
-    `hashing.py` 有完整的设计说明。但它们**确实没在跑**。
-    若不声明，读者看到模块树会以为这些机制在工作。
-
-    本测试要求它们**自己说清楚**自己的状态。
+    本测试防止它们**退回到无人问津的状态**：docstring 必须仍然说明
+    "src/ 内没有模块 import 它"。
     """
     import ast
 
     path = ROOT / relative_path
     assert path.is_file(), f"{relative_path} missing"
+    stem = path.stem
+    assert (ROOT / "tests" / "unit" / f"test_{stem}.py").is_file(), (
+        f"{relative_path} lost its unit test file"
+    )
     docstring = ast.get_docstring(ast.parse(path.read_text(encoding="utf-8"))) or ""
-    assert "既未被" in docstring and "没有单测" in docstring, (
-        f"{relative_path} does not declare that it is neither imported nor tested; "
-        "readers will assume it is in use"
+    assert "没有模块 import 它" in docstring or "没有任何模块 import" in docstring, (
+        f"{relative_path} does not state that it is not a main-chain dependency"
     )
 
 
@@ -145,12 +147,6 @@ def test_no_new_silently_unused_modules_appear():
         if stem in imported or stem in tests_text or stem in init_text:
             continue
         relatives = str(path.relative_to(ROOT))
-        # 已知的孤儿（且已加声明）不算新增
-        declared = (
-            "既未被" in (ast.get_docstring(ast.parse(path.read_text(encoding="utf-8"))) or "")
-        )
-        if relatives in _UNUSED_MODULES and declared:
-            continue
         orphans.append(relatives)
 
     assert not orphans, (

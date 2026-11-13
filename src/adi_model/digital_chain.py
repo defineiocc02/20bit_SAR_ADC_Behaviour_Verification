@@ -48,23 +48,45 @@ def _dither_terms(word: int) -> tuple[int, int, float]:
     return upper, lower, upper + lower
 
 
+N_COLUMNS = 16          # 15 个有效 2C 逻辑列 + 1 个固定零（保留列）
+
+
+def _horizontal_columns(k: int, reserved: int) -> list[int]:
+    """横向数据 h：15 个有效列按 H 做温度计，保留列为**固定零**（不是从有效位里挖）。
+
+    US10511316B2 Fig.20：shuffler352 的一个输入固定为 0，该零位随打乱移动形成保留列。
+    因此 h[reserved] == 0 且 sum(h) == H 必须同时成立。
+    """
+    H = (k >> 5) & 0xF
+    cols = [0] * N_COLUMNS
+    data = [c for c in range(N_COLUMNS) if c != reserved]
+    for c in data[:H]:
+        cols[c] = 1
+    return cols
+
+
+def vertical_bits(k: int, n_active: int = 8) -> list[int]:
+    """纵向数据 y：恰好 M 个 1，M = (k>>2)&7。"""
+    M = (k >> 2) & 7
+    y = [0] * n_active
+    for i in range(M):
+        y[i] = 1
+    return y
+
+
 def _mask_bits(k: int) -> tuple[int, int]:
-    """粗码 -> 主阵列 17 位温度计 + 子阵列 4 位二进制（第 5 位哑元恒 0）。"""
+    """粗码 -> 主阵列 17 个物理开关位（15×2C + B4 + S4）+ 子阵列 4 位。"""
     main_code = (k >> 4) & 0x1F
     therm = min(main_code // 2, 15)
     ones = min(main_code - 2 * therm, 2)
-    main = ((1 << therm) - 1) | (((1 << ones) - 1) << 15)
-    sub = (k & 0xF) & 0b1111
-    return main, sub
+    return ((1 << therm) - 1) | (((1 << ones) - 1) << 15), (k & 0xF) & 0b1111
 
 
 def run_transaction(tx: Transaction) -> dict:
-    """执行一笔事务：调度 -> follower 事件 -> Fig.21 MUX -> 定点重构 -> 20 bit。
+    """调度 -> follower 事件 -> Fig.20–21 MUX -> 位权自检 -> 定点重构。
 
-    MUX 语义（US10511316B2 Fig.20–21）：
-        m[s][j] = y[s]  if j == reserved  else  h[j]
-    即**保留列取该片纵向数据，其余列取共享横向数据**；
-    y[s] == 0 只是该列数据为 0，**不表示该片退出转换**。
+    MUX：m[s][j] = y[s] if j == reserved else h[j]，且 h[reserved] == 0。
+    因此 Σ_{s,j} m = 8H + M，且 4·(8H+M) + L == k。
     """
     plan = round_robin_plan(tx.sample_id + 1, n_slices=N_SLICES, n_active=N_ACTIVE)
     slice_ids = np.asarray(plan.acq)[-1]
@@ -72,57 +94,38 @@ def run_transaction(tx: Transaction) -> dict:
 
     upper, lower, total = _dither_terms(tx.dither_word)
     k = int(tx.final_code) - upper
+    H, M, L = k >> 5, (k >> 2) & 7, k & 3
+    reserved = tx.sample_id % N_COLUMNS
+    h = _horizontal_columns(k, reserved)
+    y = vertical_bits(k, N_ACTIVE)
 
-    h_main, h_sub = _mask_bits(k)                 # 共享横向数据（位向量）
-    b4, b5, b6 = (k >> 4) & 1, (k >> 3) & 1, (k >> 2) & 1
-    y = fig21_vertical_selection(bool(b4), bool(b5), bool(b6))["selected"]  # 每片纵向数据
-
-    reserved = tx.sample_id % MAIN_UNITS          # controller353 定保留列位置
+    masks = [[y[s] if j == reserved else h[j] for j in range(N_COLUMNS)] for s in range(N_ACTIVE)]
+    total_selected = sum(sum(row) for row in masks)
 
     events = []
     for i in range(FOLLOWER_EVENTS):
-        code_i = int(prefixes.codes[0][i])
-        hm, hs = _mask_bits(code_i)
-        events.append({"event_index": i, "committed_code": code_i,
-                       "horizontal_main": hm, "horizontal_sub": hs,
+        events.append({"event_index": i, "committed_code": int(prefixes.codes[0][i]),
                        "slice_ids": slice_ids.tolist()})
 
-    # 每片最终 mask：普通列取 h，保留列取 y[s]；8 个活动片全部参与
-    masks = []
-    for slot in range(N_ACTIVE):
-        bit = (int(y[slot]) << reserved) if reserved < MAIN_UNITS else 0
-        m = (h_main & ~(1 << reserved)) | bit
-        masks.append(m)
-
+    # 重构：Σ w·m / Σ w_full（w 为 C_eff/Cf 的 Q30），8 片一起求和，不额外除 8
     acc = 0
-    # 保留列用 y[s] 顶掉横向 h[reserved]，丢失/多出的权重必须**恰好补一次**
-    h_bit = (h_main >> reserved) & 1
     for slot, sid in enumerate(slice_ids.tolist()):
-        diff = h_bit - int(y[slot])
-        if diff:
-            acc += diff * int(tx.weights_q30.get((int(sid), "main", reserved), 0))
-    for slot, sid in enumerate(slice_ids.tolist()):
-        for unit in range(MAIN_UNITS):
-            if (masks[slot] >> unit) & 1:
-                acc += int(tx.weights_q30.get((int(sid), "main", unit), 0))
-        for unit in range(4):
-            if (h_sub >> unit) & 1:
-                acc += int(tx.weights_q30.get((int(sid), "sub", unit), 0))
-
-    H, M, L = k >> 5, (k >> 2) & 7, k & 3
-    ident_ok = (32 * H + 4 * M + L) == k
-
-    coarse_q = (acc * (1 << 20)) // (Q30 * 32)
-    fine_q = (int(tx.adc2_code) << (20 - ADC2_FRACTION_BITS)) // 32
-    code20 = coarse_q + fine_q
-    sat = not (0 <= code20 < (1 << 20))
-
+        for j in range(N_COLUMNS):
+            if masks[slot][j]:
+                acc += int(tx.weights_q30.get((int(sid), "col2c", j), 0))
     return {
         "sample_id": tx.sample_id, "slice_ids": slice_ids.tolist(), "k": k,
-        "k_decomp": {"H": H, "M": M, "L": L}, "k_identity_ok": ident_ok,
+        "H": H, "M": M, "L": L,
+        "mask_selected": total_selected,
+        "expect_8H_plus_M": 8 * H + M,
+        "weight_identity_ok": total_selected == 8 * H + M,
+        "code_identity_ok": 4 * total_selected + L == k,
+        "h_reserved_is_zero": h[reserved] == 0,
+        "sum_h_is_H": sum(h) == H,
+        "sum_y_is_M": sum(y) == M,
         "dither_u": upper, "dither_l": round(lower, 6), "dither_t": round(total, 6),
-        "vertical_count": int(np.count_nonzero(y)), "reserved_column": reserved,
+        "reserved_column": reserved,
         "masks": masks, "n_active_slices_used": len(slice_ids),
-        "adc2_code": tx.adc2_code, "code20": int(min(max(code20, 0), (1 << 20) - 1)),
-        "valid": not sat, "overflow": bool(sat),
+        "weight_acc_q30": acc,
+        "adc2_code": tx.adc2_code,
     }

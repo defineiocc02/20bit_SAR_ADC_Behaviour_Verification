@@ -204,3 +204,27 @@ def test_every_event_emits_one_command_and_ignores_future_bits():
 
     bad = audit_causality(prefixes, _peeking)
     assert bad.violations > 0, "偷看最终码的实现必须被抓到（否则门禁恒真）"
+
+
+def test_follower_reaches_the_same_final_code_by_a_different_event_path(explicit_pipeline_factory):
+    """D2：follower 与"一次加载"必须**逐事件不同、最终相同**。
+
+    只证明最终电荷一致，无法区分"逐事件跟随"和"算完再一次性写"；
+    只证明逐事件不同，又可能是错的码。两条一起才构成机制证据。
+    """
+    pool, ids = _pool_and_ids(explicit_pipeline_factory, 6)
+    final = np.arange(6, dtype=np.int64) * 32
+    prefixes = ResolvedPrefixes.from_final(final)
+    states = np.zeros(6, np.int64)
+    follower = run_follower(
+        pool, prefixes, states, slice_ids=ids, reference_high_v=3.0, reference_low_v=-3.0
+    )
+    direct = run_direct_final(
+        pool, final, states, slice_ids=ids, reference_high_v=3.0, reference_low_v=-3.0
+    )
+    a = np.asarray(follower.applied_codes)
+    b = np.asarray(direct.applied_codes)
+    # 中间事件必须不同：否则 follower 只是"算完再写"的别名
+    assert not np.array_equal(a[:, :-1], b[:, :-1]), "follower 的中间事件与直接加载相同，机制未生效"
+    # 末事件必须相同：否则码是错的
+    assert np.array_equal(a[:, -1], b[:, -1]), "最后一拍应与最终码一致"

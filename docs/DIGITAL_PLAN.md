@@ -68,7 +68,8 @@ Fig.14 仅作原理对照，**不作第二套默认实现，暂不要求独立 R
 |:---|:---|:---|
 | 只用已产生的判决 | PARTIAL | 前缀截断不变性（28672 检查） |
 | 未来判决不影响过去命令 | PARTIAL | 同上 |
-| 最终 mask 与粗码一致 | PARTIAL | 同码三路径净电荷闭合 |
+| 最终 mask 与粗码一致 | **PASS**（模块级） | `final_charge_mismatch_c == 0`（既有）；新增末拍码逐位一致 |
+| **逐事件路径与"一次加载"确实不同** | **PASS**（模块级） | `test_follower_reaches_the_same_final_code_by_a_different_event_path`：中间事件必不同、末事件必相同 |
 | **真实逐事件命令导出** | **PASS**（模块级） | `FollowerTrace.applied_codes` 存在；`test_every_event_emits_one_command_and_ignores_future_bits` 验 `checked = n×7` 且偷看实现必被抓 |
 | **是否进入主链** | **FAIL** | 已核实调用路径：`follower.py` 存在且 21KB、有 12 项测试，但**全仓零 import**（`grep import.*follower` 在 src/ 无结果），`pipeline_engine`/`defaults` 中出现次数为 0 |
 

@@ -42,7 +42,7 @@
 | RA | 余差、反馈电荷、增益、饱和 | PARTIAL | 名义 gain=32 与 plant `g_vec` 关失配下逐位相等；**人工缩放 `C_sample/C_convert`=1.031311 未解释** |
 | ADC2 | 输入范围、码制、位宽、量化 | PARTIAL | 14 位、0.45 V 窗口；**窗口装不下 dither 上段（缺 4.26 LSB1）** |
 | 数字重构 | 不依赖隐藏真值、恢复输入并保留误差 | PARTIAL | 浮点/定点双路存在；`x=0` 在装 5 列时偏 10.7 mV（已记录） |
-| 连续转换 | 片资源、样本 ID、历史状态 | PARTIAL | 18 片调度有；跨笔状态未建模 |
+| 连续转换 | 片资源、样本 ID、历史状态 | PARTIAL | 18 片调度有；DEM 相位周期 **17280 笔、`k=4` 每片覆盖 16/16 列**（`cab82ff`）；跨笔模拟状态未建模 |
 
 ### 本轮已执行的两条基线（理想：零失配、零噪声）
 
@@ -78,7 +78,7 @@
 | 分离 SADC/RDAC | 论文 Fig.9.8.3 | 是 | 部分（前缀截断不变性） | 未做 | PARTIAL |
 | RDAC Follower | 论文/专利 | **否**（`follower.py` 未在主链 import 链确认） | 有单元测试 | 未做 | PARTIAL |
 | 模拟交织 18 片 | 论文 | 是 | 有 | 未做 | PARTIAL |
-| 三维 DEM / 跨段 | US10511316B2 FIG.19/20 | 是（`fig11_masks`） | 部分 | **是**（旋转式，非 shuffler） | PARTIAL |
+| 三维 DEM / 跨段 | US10511316B2 FIG.19/20 | 是（`fig11_masks`） | 部分（相位覆盖 `k=4` 16/16、周期 17280；非两级 shuffler） | **是**（旋转式，非 shuffler） | PARTIAL |
 | 分路 Dither | US10505561B2 FIG.19 | 是（v1） | 部分（upper 不动 SADC 已验） | **否**（参数不自洽） | PARTIAL |
 | 普通 AZ | 论文 | 是 | 有 | 未做 | PARTIAL |
 | 动态参考 / RA / ADC2 | 论文 Fig.9.8.3 | 部分 | 否 | 未做 | PARTIAL |
@@ -125,8 +125,8 @@
 |:---|:---|:---|
 | L1 Python 浮点 | 主链与技术正确 | PARTIAL |
 | L2 Python 定点 | 系数/位宽/舍入/饱和正确 | PARTIAL（有 `recon_core` 101 向量，但属旧几何） |
-| L3 RTL 模块 | 同合同逐位一致 | **NOT_RUN**（`results_module.json` = `NOT_RUN`；向量 `meta.json` 仍是 63/8） |
-| L4 RTL 顶层 | 配置加载、转换、reset、stall、排空 | **ELABORATED_ONLY** |
+| L3 RTL 模块 | 同合同逐位一致 | **PARTIAL**（`recon_d5_w` 400/400 @ 新相位，VCS `e665dff`；`results_module.json` 仍 `NOT_RUN`，向量 `meta.json` 仍是 63/8） |
+| L4 RTL 顶层 | 配置加载、转换、reset、stall、排空 | **ELABORATED_ONLY**（Python 模型四场景已守恒：`accepted == retired + cancelled + pending`, `pending == 0`，`89dde1a`；RTL 顶层未仿真） |
 | L5 RTL+plant 闭环 | RTL 命令驱动行为级 plant | **NOT_RUN** |
 
 ---
@@ -152,11 +152,11 @@
 | 专利机制验收 | **FAIL** |
 | 性能对标验收 | **FAIL** |
 | 工程易理解性 | **PARTIAL** |
-| 数字与 RTL | **NOT_RUN** |
+| 数字与 RTL | **PARTIAL**（模块级对拍有；RTL 顶层未仿真） |
 
-**当前实际完成**：输入→20 位码的粗/细链路在理想条件下单调、满量程、细分比例正确（2047/2048）；名义口径与 plant 同源（关失配逐位相等）；校准重构方程已修正并有反例；验证器能拒绝缺行/空 dump/非零退出/全片翻位。
+**当前实际完成**：输入→20 位码的粗/细链路在理想条件下单调、满量程、细分比例正确（2047/2048）；名义口径与 plant 同源（关失配逐位相等）；校准重构方程已修正并有反例；验证器能拒绝缺行/空 dump/非零退出/全片翻位。数字侧本轮再补三项：**DEM 相位解除锁定**（`k=4` 每片 16/16 列、周期 17280）、**非法码拒收**（`k∉[0,511]` → `ERR_K_RANGE`、不出码）、**事务计数守恒**（四场景 `accepted == retired + cancelled + pending`，`pending == 0`）；新相位下 RTL `recon_d5_w` 重跑 **400/400**。
 
-**当前不能声称**：任何性能指标命中论文；任何专利机制"已复现"；RTL 与行为模型一致；保留列/AUX/参考 buffer 已实现。
+**当前不能声称**：任何性能指标命中论文；任何专利机制"已复现"；RTL 与行为模型一致；保留列/AUX/参考 buffer 已实现；40 MS/s 达成（时序余量 0.16%、单角无 OCV）；网表等价（Formality 未收敛、无门级仿真）。
 
 **与论文最大差距**：机制层——DEM 是旋转不是两级 shuffler；dither 参数装不进第二级窗口；保留列/跨片/TRACK/AUX 全部未进主链。
 

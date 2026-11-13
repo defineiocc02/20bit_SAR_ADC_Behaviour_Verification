@@ -3,8 +3,8 @@
 > 复现 ADI ISSCC 2024 §9.8 的**片上数字**部分：调度、Follower、DEM、Dither、权重重构。
 > 模拟电路（RA / 参考 / 采样）不在本仓库范围内，只作为测试激励。
 >
-> **状态声明**：Python 数字链可运行并有实测记录；RTL 为静态可编译，**未做仿真、未做综合、未做时序收敛**。
-> 任何性能数字都还没到可与论文比较的阶段。
+> **状态声明**：Python 数字链可运行并有实测记录；RTL 已过模块级对拍（VCS 11619 组 0 失配）与综合后 STA，
+> 但**时序余量仅 0.16%、单角无 OCV、未布线**，顶层等价性与门级仿真均未做。任何性能数字都还没到可与论文比较的阶段。
 
 ## 文件与架构
 
@@ -45,16 +45,19 @@ files.f                               编译清单（verilator -f files.f）
 | 6 | 累加器超出 96 位约定 |
 | 7 | 输出饱和 |
 
-## 当前状态（2026-11-13，基线 8920e89）
+## 当前状态（2026-11-14，基线 89dde1a）
 
 ### 已验证（有原始日志/报告）
 
 | 层 | 内容 | 证据 |
 |:---|:---|:---|
 | Python 算法 | DEM 位权 8192 组 0 违反；dither 384 组收敛；权重寻址双向精确 | `tests/unit/` |
+| **DEM 相位排程** | `k=4` 时 8 片各覆盖 **16/16** 列（原 8/16），周期 **17280** 笔 | `digital_chain.dem_phases()`；实测脚本 |
+| **非法码拒收** | `k∉[0,511]` → `valid=False` / `ERR_K_RANGE` / `code20=None` | `tests/unit/test_digital_chain_addressing.py` |
+| **事务 stall/reset** | 四场景（正常/stall/reset/两者）`accepted == retired + cancelled + pending`、`pending == 0` | `tests/unit/test_run_sequence.py` |
 | **D5 权重校正** | 真系数恢复输入 **1.3 µV**；名义系数留 **3284 µV**（相容观测） | `tests/unit/test_weight_calibration_closes.py` |
 | **RTL 功能（VCS）** | 七组共 **11619 组向量、0 失配** | `docs/VCS_RESULT.md` |
-| **RTL 权重路径** | `recon_d5_w` **400/400**（VCS） | `docs/VCS_RESULT.md` |
+| **RTL 权重路径** | `recon_d5_w` **400/400**（新相位向量重跑，VCS W-2024.09） | `docs/VCS_RESULT.md`；`e665dff` |
 | 综合（SMIC180 slow） | 1485 cells / 50175 µm² | `synth/results/` |
 | **STA（带 SDC）** | setup **+0.04 ns (MET)** / hold **+0.58 ns (MET)** @ 25 ns | `synth/results/setup_pipe_constrained.rpt` |
 
@@ -64,16 +67,16 @@ files.f                               编译清单（verilator -f files.f）
 |:---|:---|
 | **40 MS/s 已达成** | setup 余量仅 **0.16%**，且只到综合后、单角、无 OCV；布线未做 |
 | RTL 与网表等价 | Formality 跑 19 分钟未收敛，已停；未做门级仿真 |
-| DEM 已完整打乱 | 相位与片选相关，720 笔后重复，部分物理单元选不到 |
-| 事务控制正确 | `reset` 计数曾出现 `pending=−1`，`k=−4` 非法码未被拒绝 |
+| DEM 等价于 ADI 原序列 | 覆盖问题已修，但现排程是工程候选（每 9 笔推进一维），非专利两级 shuffler |
+| RTL 顶层事务语义 | 计数守恒只在 Python 模型上验过；RTL 顶层仍停在 elaboration |
 | 硅上行为 | 模拟侧不在本仓库范围 |
 
 ### 已知缺陷（按优先级）
 
-1. **DEM 相位锁定** — 需按 `q=n//9; reserved=q%16; v_phase=(q//16)%8; h_phase=(q//128)%15` 重排
-2. **非法命令未拒** — `c=0, word=32` 得 `k=−4` 仍继续出码
-3. **事务 reset 语义** — 计数为负、stall 后的 reset 不执行
-4. **Formality 未收敛** — 需先对单模块试跑，确认耗时量级
+> 本轮已修三条：DEM 相位锁定、非法码拒收、事务 stall/reset。
+
+1. **时序余量只有 +0.04 ns（0.16%）** — 单角、无 OCV、未布线，不能据此声称 40 MS/s
+2. **Formality 未收敛** — 19 分钟停止；需先对单模块试跑，确认耗时量级，再做门级仿真
 
 ## 怎么跑
 

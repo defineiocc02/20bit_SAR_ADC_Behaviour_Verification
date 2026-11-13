@@ -144,7 +144,21 @@ def check_result_identity() -> None:
         except Exception:  # noqa: BLE001 - 无 git 时不做身份判断
             head = ""
         if head and not head.startswith(str(fig["source_sha"])[:12]):
-            stale = str(fig["source_sha"])[:12]
+            # ⚠️ 图不可能由"包含图自己的那个提交"生成（生成时该提交还不存在）。
+            # 因此只要 source_sha 是 HEAD 的**祖先**，且两者之间**没有改变模型**，
+            # 图就是当前的。
+            # 2026-11-13：原实现只比较 HEAD 是否等于 source_sha，
+            # 导致"提交图 → HEAD 变了 → 立刻判 STALE"，形成逻辑死循环。
+            try:
+                diff = subprocess.run(
+                    ["git", "diff", "--name-only", str(fig["source_sha"]), "HEAD", "--", "src/adi_model"],
+                    cwd=ROOT, capture_output=True, text=True, check=True,
+                ).stdout.strip()
+            except Exception:  # noqa: BLE001
+                diff = "unknown"
+            if diff:
+                stale = f"{str(fig['source_sha'])[:12]}（src/adi_model 自那以后有改动）"
+            # diff 为空 ⇒ 模型未变，图仍代表当前模型，不算 stale
     checked = not problems
     detail = (
         f"figure grid {fig['points']}x{fig['repeats']}, {len(f03['configs'])} curves, "

@@ -130,13 +130,30 @@ def test_experiments_commands_have_repo_root_on_the_path():
 
 
 def test_simulate_commands_warn_about_new_output_directory():
-    """`simulate --output` 要求新目录；README 必须提到这一点，否则读者会撞错。"""
-    text = _readme_text()
+    """`simulate --output` 要求新目录；**该提醒必须紧邻那条命令**。
+
+    2026-11-13 反向验证发现：这个守卫原来只检查"新目录"在全文任意位置出现。
+    把提醒从 `simulate` 命令旁移到无关段落后，守卫仍然通过——
+    读者照着命令敲还是会撞错。已改为检查提醒必须在命令的**相邻 3 行内**。
+    """
+    lines = _readme_text().splitlines()
+    text = "\n".join(lines)
     if "simulate" not in text or "--output" not in text:
         pytest.skip("README does not document a simulate command")
-    assert "新目录" in text or "new directory" in text, (
-        "README should note that --output must be a new directory "
-        "(the CLI rejects an existing one with SIMULATION_REJECTED)"
+
+    command_indices = [
+        i for i, line in enumerate(lines) if "adi_model simulate" in line or "-m adi_model simulate" in line
+    ]
+    assert command_indices, "README mentions simulate but no runnable command line"
+
+    def has_warning_near(index: int) -> bool:
+        window = "\n".join(lines[max(0, index - 3) : index + 4])
+        return "新目录" in window or "new directory" in window
+
+    assert any(has_warning_near(i) for i in command_indices), (
+        "README should note that --output must be a new directory, "
+        "**right next to the simulate command** (an unrelated mention does not help "
+        "the reader who copies the command)"
     )
 
 
@@ -369,12 +386,31 @@ def test_inl_is_not_claimed_as_matching_the_paper():
         "the source cross-check no longer states that the paper's INL definition "
         "is not reproduced; if that changed, this guard needs updating with evidence"
     )
-    # 两份对外文档都必须转述这个限制
+    # 两份对外文档都必须转述这个限制，且**必须写在该指标所在的行/条目上**。
+    # 2026-11-13 反向验证发现：原来只检查"文档里出现过这句话"，
+    # 把 README 的 INL 行改成"可以并列比较"后守卫仍通过——
+    # 因为 ACCEPTANCE 里还有同样一句，`in text` 对整篇文档成立。
     for name, text in (("README.md", readme), ("ACCEPTANCE_20261113.md", acceptance)):
-        assert "不可并列比较" in text or "不得并列比较" in text, (
-            f"{name} must state that INL/DNL cannot be compared against the paper "
-            "figure (the definitions differ)"
+        marker_lines = [
+            line for line in text.splitlines()
+            if "不可并列比较" in line or "不得并列比较" in line
+        ]
+        assert marker_lines, (
+            f"{name} must state that INL/DNL cannot be compared against the paper figure"
         )
+        # 更关键：**INL 相关的那一行**必须带这个限制，不能只在别处出现
+        inl_lines = [
+            line for line in text.splitlines()
+            if line.lstrip().startswith("|") and "INL" in line
+        ]
+        if inl_lines:
+            assert any(
+                "不可并列比较" in line or "不得并列比较" in line or "⚠️" in line
+                for line in inl_lines
+            ), (
+                f"{name} 的 INL 行没有转述「不可并列比较」的限制："
+                + " / ".join(inl_lines)
+            )
 
 
 def test_no_metric_row_claims_inl_match_with_a_check_mark():

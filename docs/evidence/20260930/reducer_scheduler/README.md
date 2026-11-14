@@ -32,7 +32,7 @@ sar_tb=sim/tb/cal_weight_reduce_ppa_tb.sv
 sar_build=$(mktemp -d "${TMPDIR:-/tmp}/sar_reducer.XXXXXX")
 verilator --binary --timing --assert --unroll-count 8192 -j 2 -Wno-fatal \
   -CFLAGS '-std=c++20' --top-module cal_weight_reduce_ppa_tb -Irtl/params \
-  --Mdir "$sar_build" "$sar_tb" rtl/core/cal_weight_reduce.sv
+  --Mdir "$sar_build" "$sar_tb" rtl/cal_weight_reduce.sv
 "$sar_build/Vcal_weight_reduce_ppa_tb"
 ```
 

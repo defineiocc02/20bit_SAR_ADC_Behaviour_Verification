@@ -8,4 +8,4 @@ These are post-synthesis OOC results at the recorded divider profile and clock c
 
 ## Same-constraint cached-P5 comparison
 
-`comparison_vs_cached.json` validates identical Vivado/tool/part/P5/25 ns/Tcl/XDC; only `rtl/core/weight_store.sv` changed. LUT grows from 106,205 to 121,772 (+15,567, +14.6575%) while post-synthesis WNS remains +10.640 ns and hold is still negative. This is a valid post-synthesis area regression, not a physical-route or ASIC result. The local-row candidate requires routed timing benefit before any PPA claim.
+`comparison_vs_cached.json` validates identical Vivado/tool/part/P5/25 ns/Tcl/XDC; only `rtl/weight_store.sv` changed. LUT grows from 106,205 to 121,772 (+15,567, +14.6575%) while post-synthesis WNS remains +10.640 ns and hold is still negative. This is a valid post-synthesis area regression, not a physical-route or ASIC result. The local-row candidate requires routed timing benefit before any PPA claim.

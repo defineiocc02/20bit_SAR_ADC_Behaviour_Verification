@@ -5,12 +5,12 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from adi_model.config import Config, ConfigError
-from adi_model.dither import complete_flash3_sar6_prefix_table
-from adi_model.mapper import Mapper
-from adi_model.pipeline import run_pipeline
-from adi_model.reference_charge import physical_reference_program
-from adi_model.sampler import dc_input
+from adi_model.behavioral.reference_charge import physical_reference_program
+from adi_model.behavioral.sampler import dc_input
+from adi_model.control.dither import complete_flash3_sar6_prefix_table
+from adi_model.simulation.config import Config, ConfigError
+from adi_model.simulation.pipeline import run_pipeline
+from adi_model.topology.mapper import Mapper
 
 
 def test_reference_program_keeps_all_resolved_events_and_uses_actual_connections(

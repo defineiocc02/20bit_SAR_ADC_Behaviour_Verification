@@ -2,7 +2,7 @@
 
 - 状态：**已冻结**，2026-09-18
 - 上游：`docs/rtl/RTL_ARITHMETIC_CONTRACT.md`（算术契约）、转换计划 §7 Phase P1
-- 适用：`rtl/core/` 下 M1–M5，以及 `sim/tb/p1_tb.sv` 与 `tools/export_rtl_vectors.py`
+- 适用：`rtl/` 下 M1–M5，以及 `sim/tb/p1_tb.sv` 与 `tools/export_rtl_vectors.py`
 
 ## 0. 全局约定
 
@@ -56,7 +56,7 @@ TB 可直接与 `{1'b0, main_on[a]}` 比较，省掉一次反向，也就省掉�
 
 ### 0.4 模块参数的纪律
 
-`rtl/core/*.sv` **不使用与 `rtl_params.vh` 同名的模块参数**。原因有两个，都是硬的：
+`rtl/*.sv` **不使用与 `rtl_params.vh` 同名的模块参数**。原因有两个，都是硬的：
 
 1. `parameter int N_ACTIVE = N_ACTIVE` 会**自引用**（头文件的同名常量被参数遮蔽）；
 2. 另起一套名字就等于在 RTL 里维护第二份参数表 —— 契约 §9 明令禁止。
@@ -260,7 +260,7 @@ code 全选 `+V_FS`、半选 `−V_FS` 的计数语义）。
 | M3 | 8192 组合 `main_count`/`sub_count`/`rdac_over` 全等（bit-exact） |
 | M5 | 稠密扫描 512 × 71 = 36 352 组掩码全等；另加结构断言 `popcount(on)==count` 与 count 单调包含 |
 | M4 | 支撑集精确 + 卡方通过 + 边界值出现（**统计**，非 bit-exact） |
-| 综合 | `rtl/core/*.sv` 无不可综合构造（P5 的 SpyGlass/综合检查之前先用 `vcs -sverilog` 编译通过） |
+| 综合 | `rtl/*.sv` 无不可综合构造（P5 的 SpyGlass/综合检查之前先用 `vcs -sverilog` 编译通过） |
 
 **变异验证**（必做，用来证明门禁不是摆设）：把 `A_RED` 改一位、把 `i*` 公式里的 `7` 改成 `6`、
 把 `popcount` 断言去掉，各自都应让 P1 变红。

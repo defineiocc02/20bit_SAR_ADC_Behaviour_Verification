@@ -11,15 +11,15 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from adi_model.fixed_point import FixedPointReconstructor
-from adi_model.reconstruction import DigitalState
-from adi_model.weight_calibration import (
+from adi_model.calibration.reconstruction import DigitalState
+from adi_model.calibration.weight_calibration import (
     CalibrationUnidentifiableError,
     DigitalObservation,
     FrozenCalibration,
     apply_frozen_calibration,
     fit_unit_weights,
 )
+from adi_model.contracts.fixed_point import FixedPointReconstructor
 
 
 @pytest.fixture

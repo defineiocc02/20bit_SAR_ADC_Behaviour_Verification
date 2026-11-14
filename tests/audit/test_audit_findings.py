@@ -13,17 +13,17 @@ from fractions import Fraction
 import numpy as np
 import pytest
 
-from adi_model.adc2 import ADC2
-from adi_model.config import Config, ConfigError
+from adi_model.behavioral.adc2 import ADC2
+from adi_model.behavioral.low_frequency_noise import BandLimitedFlicker
+from adi_model.behavioral.ra import ResidueAmplifier
+from adi_model.behavioral.sadc import build_first_stage_quantizer
+from adi_model.behavioral.sampler import dc_input, sine_input
+from adi_model.control.dither import FIG19_STEP_Q, Fig19DitherProgram, Fig19StaticSpec
 from adi_model.defaults import DefaultParameters, default_model, simulate
-from adi_model.dither import Fig19DitherProgram, Fig19StaticSpec
-from adi_model.low_frequency_noise import BandLimitedFlicker
-from adi_model.metrics import inl_from_mean_error, sine_fit_metrics, static_test, summarize
+from adi_model.metrics.metrics import inl_from_mean_error, sine_fit_metrics, static_test, summarize
 from adi_model.provenance import GradingError, SourceGrade, annotate_config
-from adi_model.ra import ResidueAmplifier
-from adi_model.sadc import build_first_stage_quantizer
-from adi_model.sampler import dc_input, sine_input
-from adi_model.serialization import result_document
+from adi_model.simulation.config import Config, ConfigError
+from adi_model.simulation.serialization import result_document
 
 
 @pytest.fixture
@@ -113,7 +113,7 @@ class TestF3DitherUnits:
     """F3：固定点单位、原coarse与实际mask视图不可混用；不恢复旧range/4x分支。"""
 
     def test_program_uses_one_q32_source_for_both_ports(self):
-        step_q = 2**24
+        step_q = FIG19_STEP_Q
         weights = tuple(round(Fraction(n * step_q, 7)) for n in (4, 2, 1))
         spec = Fig19StaticSpec(3.0, step_q, 32, weights, "subtract", "synthetic explicit binding")
         program = Fig19DitherProgram.from_words(np.array([0, 1, 8, 16, 32, 63]), spec=spec)
@@ -128,7 +128,7 @@ class TestF3DitherUnits:
         assert program.total_q[-1] == 8 * step_q
         assert not np.array_equal(program.total_q, 4 * program.lower_q)
         for bad_step in (0, -step_q):
-            with pytest.raises(ConfigError, match="full-scale step"):
+            with pytest.raises(ConfigError, match="coarse step"):
                 replace(spec, step_q=bad_step)
 
     @pytest.mark.parametrize(
@@ -230,7 +230,12 @@ class TestF8EvidenceScope:
         decoder = quiet_nominal_model.nominal_decoder
         with pytest.raises(ValueError, match="unsupported fixed-point format"):
             replace(decoder.format, output_bits=16)
-        full_words = decoder.reconstruct(data)
+        # 必须与分析链同口径：2026-11-13 起 `reconstruct` 接受 `physical_gain`，
+        # 用于把 fine 从 G_phys 口径换算到权重和口径（否则差约 3.1%）。
+        # 本测试要比对的是"重构不改变输出契约"，因此要和 `simulate` 走同一条路径。
+        full_words = decoder.reconstruct(
+            data, physical_gain=quiet_nominal_model.state_estimated_gain(run.raw)
+        )
         assert full_words.output_bits == 20
         assert np.array_equal(full_words.code, run.codes.code)
         assert np.array_equal(full_words.analog_overflow, run.codes.analog_overflow)
@@ -334,7 +339,7 @@ class TestExtraLowFrequencyMetrics:
             assert result["harmonics_reliable"] is False
 
     def test_band_search_clamps_both_record_edges(self):
-        from adi_model.metrics import _band_max
+        from adi_model.metrics.metrics import _band_max
 
         spectrum = np.arange(32, dtype=float)
         for centre, expected in ((0, 4.0), (1, 5.0), (31, 31.0)):

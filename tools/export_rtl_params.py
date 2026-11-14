@@ -16,10 +16,10 @@ import shutil
 from dataclasses import asdict
 from pathlib import Path
 
-from adi_model.config import Config
-from adi_model.dem import SplitSwitchGeometry
-from adi_model.fixed_point import FixedPointFormat
-from adi_model.weight_calibration import CalibrationSpec
+from adi_model.calibration.weight_calibration import CalibrationSpec
+from adi_model.contracts.fixed_point import FixedPointFormat
+from adi_model.control.dem import SplitSwitchGeometry
+from adi_model.simulation.config import Config
 
 
 def _json_text(value: object) -> str:

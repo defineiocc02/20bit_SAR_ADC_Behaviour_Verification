@@ -3,15 +3,15 @@
 import numpy as np
 import pytest
 
-from adi_model.pipeline import run_pipeline
-from adi_model.sampler import (
+from adi_model.behavioral.sampler import (
     AnalyticInput,
     dc_input,
     input_derivative,
     sine_input,
     spectral_derivative,
 )
-from adi_model.slice_pool import PhysicalSlicePool
+from adi_model.simulation.pipeline import run_pipeline
+from adi_model.simulation.slice_pool import PhysicalSlicePool
 
 
 @pytest.mark.parametrize("frequency", [1e3, 1e6, 19e6])

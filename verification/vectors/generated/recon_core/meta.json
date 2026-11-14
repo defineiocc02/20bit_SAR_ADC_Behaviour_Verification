@@ -1,0 +1,28 @@
+{
+  "module": "recon_core",
+  "seed": 20261112,
+  "count": 101,
+  "wildcard_mask": "random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random single_unit_min_code single_unit_max_code mid_code_zero_inj mid_code_max_inj mid_code_min_inj",
+  "field_width_bits": {
+    "slice_id": 40,
+    "main_on": 504,
+    "sub_on": 64,
+    "adc2_code": 12,
+    "inj_q": 64,
+    "offset_q": 64,
+    "adc2_min_q": 64,
+    "adc2_max_q": 64,
+    "sample_id": 32
+  },
+  "profile": {
+    "B1": 9,
+    "ADC2_BITS": 12,
+    "N_ACTIVE": 8,
+    "N_UNIT_MAIN": 63,
+    "N_UNIT_SUB": 8,
+    "N_SLICES": 18,
+    "W_BITS": 48,
+    "V_BITS": 64,
+    "OUT_BITS": 20
+  }
+}

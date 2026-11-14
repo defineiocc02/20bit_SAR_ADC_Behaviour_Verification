@@ -1,0 +1,1481 @@
+...................................................................F.... [ 43%]
+..............................EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE [ 86%]
+EEEEE..................                                                  [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of test_public_replay_preserves_the_actual_finite_window_and_explicit_tail _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[packet_ids_shifted_together] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[row_and_packet_ids_shifted_together] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[packet_coarse] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[packet_state] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[packet_word] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[packet_ordered_ids_and_masks] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[conversion_order_disagrees_with_sampling] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[packet_main_mask] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[missing_observation] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[duplicate_observation] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[out_before_matching_obs] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[all_outputs_before_observations] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[missing_prefix_event] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[sampled_word] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[sampled_acquiring_mask] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[rdac_sampled_node] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[residue_unselected_main] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[residue_unselected_sub] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[prefix_unselected_main] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[prefix_unselected_sub] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[residue_above_main] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[residue_above_sub] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[prefix_above_main] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[prefix_above_sub] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[actual_control_word] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[source_status] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[conversion_fault] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[epoch] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[postamble_changed_to_target] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[bundle_manifest_input_config_json] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[bundle_manifest_input_format_json] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[bundle_manifest_input_binding_json] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[bundle_manifest_input_source_sv] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[bundle_manifest_input_acquisition_sv] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[bundle_source_artifact_only] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[bundle_acquisition_artifact_only] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[bundle_missing_input_digest] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[bundle_extra_input_digest] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[bundle_unregistered_source_file] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[scalar_64bit_alias] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[scalar_overwide_zero] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[scalar_signed_zero] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[scalar_missing_row] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[scalar_extra_row] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+_ ERROR at setup of test_public_replay_rejects_corrupted_actual_capture[scalar_nonhex] _
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+__ ERROR at setup of test_public_replay_refuses_to_overwrite_previous_output ___
+
+tmp_path_factory = TempPathFactory(_given_basetemp=None, _trace=<pluggy._tracing.TagTracerSub object at 0x1088f8c30>, _basetemp=PosixPath...ar/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41'), _retention_count=3, _retention_policy='all')
+
+    @pytest.fixture(scope="module")
+    def actual_capture(tmp_path_factory):
+        parent = tmp_path_factory.mktemp("source_bound_actual")
+        output = parent / "capture"
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(ROOT / "tools/run_fig19_rtl_calibration.py"),
+                "--component-only",
+                "--out",
+                str(output),
+            ],
+            cwd=parent,
+            env=_environment(),
+            text=True,
+            capture_output=True,
+            timeout=360,
+        )
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...-41/source_bound_actual0/capture'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_source_bound_replay.py:80: AssertionError
+=================================== FAILURES ===================================
+____ test_actual_rtl_integer_math_detects_both_declared_arithmetic_mutants _____
+
+tmp_path = PosixPath('/private/var/folders/6z/l03fg1z55_55c9w3v5wqkhlc0000gn/T/pytest-of-root/pytest-41/test_actual_rtl_integer_math_d0')
+
+    @pytest.mark.slow
+    @pytest.mark.integration
+    def test_actual_rtl_integer_math_detects_both_declared_arithmetic_mutants(tmp_path):
+        """真实编译四个数字算术子模块；失败必须是指定失配，不接受编译失败代替。"""
+        fixture = {
+            "schema_version": 1,
+            "scope": "COMPONENT_SYNTHETIC_DIGITAL",
+            "description": "Explicit raw integer arithmetic fixture, not ADC physical parameters",
+            "voltage_bits": 64,
+            "voltage_fraction_bits": 32,
+            "weight_fraction_bits": 30,
+            "accumulator_bits": 96,
+            "output_bits": 20,
+            "adc2_bits": 12,
+            "sum_bits": 64,
+            "divisor_bits": 64,
+            "divider_stages": 7,
+            "random_cases": 32,
+            "seed": 971,
+        }
+        source = tmp_path / "math_format.json"
+        source.write_text(json.dumps(fixture) + "\n")
+        env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
+        out = tmp_path / "actual_math"
+        command = [
+            sys.executable,
+            str(REPO / "tools/audit_rtl_arithmetic.py"),
+            "--out",
+            str(out),
+            "--format-json",
+            str(source),
+            "--negative-controls",
+            "--timeout",
+            "180",
+        ]
+        result = subprocess.run(command, cwd=REPO, env=env, text=True, capture_output=True, timeout=240)
+>       assert result.returncode == 0, result.stdout + result.stderr
+E       AssertionError: FAIL: simulator not found; configure VERILATOR
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['/Users/zhaoyi/.workbuddy/binaries/python/versions/3.13.12/bin/python3', '/Users/zhaoyi/src/20b...ive-controls', '--timeout', '180'], returncode=1, stdout='', stderr='FAIL: simulator not found; configure VERILATOR\n').returncode
+
+tests/integration/test_mutation_twoneck.py:81: AssertionError
+============================= slowest 15 durations =============================
+0.53s call     tests/integration/test_engineering_defaults.py::test_waveform_and_count_produce_all_raw_and_integer_records[1024]
+0.27s setup    tests/integration/test_source_bound_replay.py::test_public_replay_preserves_the_actual_finite_window_and_explicit_tail
+0.14s call     tests/integration/test_engineering_defaults.py::test_waveform_and_count_produce_all_raw_and_integer_records[256]
+0.07s call     tests/integration/test_mutation_twoneck.py::test_actual_rtl_integer_math_detects_both_declared_arithmetic_mutants
+0.06s call     tests/integration/test_engineering_defaults.py::test_same_seed_and_run_id_replay_and_different_run_ids_do_not_refabricate_chip
+0.04s call     tests/integration/test_fig19_static_ports.py::test_independent_oracle_rejects_faulted_real_model_wiring[missing_rdac_port]
+0.04s call     tests/integration/test_fig19_static_ports.py::test_only_postprocessing_an_ordinary_run_cannot_satisfy_either_analog_port_contract
+0.04s call     tests/integration/test_fig19_static_ports.py::test_independent_oracle_rejects_faulted_real_model_wiring[reversed_digital_sign]
+0.04s call     tests/integration/test_fig19_static_ports.py::test_independent_oracle_rejects_faulted_real_model_wiring[one_q32_common_error]
+0.04s call     tests/integration/test_fig19_static_ports.py::test_all_sixty_four_words_reach_both_real_analog_nodes_and_final_integer_code[2.0]
+0.03s call     tests/integration/test_fig19_static_ports.py::test_all_sixty_four_words_reach_both_real_analog_nodes_and_final_integer_code[0.0]
+0.03s call     tests/integration/test_fig19_static_ports.py::test_independent_oracle_rejects_faulted_real_model_wiring[missing_sadc_port]
+0.03s call     tests/integration/test_engineering_defaults.py::test_declared_ideal_override_matches_independent_quantization_bound
+0.03s call     tests/integration/test_fig19_static_ports.py::test_independent_oracle_rejects_faulted_real_model_wiring[swap_d5_d4]
+0.03s call     tests/integration/test_fig19_static_ports.py::test_all_sixty_four_words_reach_both_real_analog_nodes_and_final_integer_code[0.31]
+=========================== short test summary info ============================
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_preserves_the_actual_finite_window_and_explicit_tail
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[packet_ids_shifted_together]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[row_and_packet_ids_shifted_together]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[packet_coarse]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[packet_state]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[packet_word]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[packet_ordered_ids_and_masks]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[conversion_order_disagrees_with_sampling]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[packet_main_mask]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[missing_observation]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[duplicate_observation]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[out_before_matching_obs]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[all_outputs_before_observations]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[missing_prefix_event]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[sampled_word]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[sampled_acquiring_mask]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[rdac_sampled_node]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[residue_unselected_main]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[residue_unselected_sub]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[prefix_unselected_main]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[prefix_unselected_sub]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[residue_above_main]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[residue_above_sub]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[prefix_above_main]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[prefix_above_sub]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[actual_control_word]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[source_status]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[conversion_fault]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[epoch]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[postamble_changed_to_target]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[bundle_manifest_input_config_json]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[bundle_manifest_input_format_json]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[bundle_manifest_input_binding_json]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[bundle_manifest_input_source_sv]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[bundle_manifest_input_acquisition_sv]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[bundle_source_artifact_only]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[bundle_acquisition_artifact_only]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[bundle_missing_input_digest]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[bundle_extra_input_digest]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[bundle_unregistered_source_file]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[scalar_64bit_alias]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[scalar_overwide_zero]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[scalar_signed_zero]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[scalar_missing_row]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[scalar_extra_row]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture[scalar_nonhex]
+ERROR tests/integration/test_source_bound_replay.py::test_public_replay_refuses_to_overwrite_previous_output
+FAILED tests/integration/test_mutation_twoneck.py::test_actual_rtl_integer_math_detects_both_declared_arithmetic_mutants
+1 failed, 119 passed, 47 errors in 2.50s

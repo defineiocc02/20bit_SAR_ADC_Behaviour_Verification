@@ -9,7 +9,10 @@ from dataclasses import FrozenInstanceError
 import numpy as np
 import pytest
 
-from adi_model.reference_charge import physical_reference_program, sampled_bottom_voltages
+from adi_model.behavioral.reference_charge import (
+    physical_reference_program,
+    sampled_bottom_voltages,
+)
 
 
 @pytest.fixture

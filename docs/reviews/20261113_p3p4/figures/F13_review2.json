@@ -1,0 +1,46 @@
+{
+  "figure": "F13_review2.png",
+  "sub_counts_old_vertical16": [
+    756,
+    756,
+    504,
+    504,
+    504,
+    504,
+    504,
+    0
+  ],
+  "sub_counts_new_vertical7": [
+    36,
+    36,
+    36,
+    36,
+    36,
+    36,
+    36,
+    0
+  ],
+  "fit_variants": {
+    "all columns + fixed merged": {
+      "residual_uv": 990.8907787221887,
+      "rank": 1262,
+      "columns": 1262
+    },
+    "drop fixed columns": {
+      "residual_uv": 90357.59459167166,
+      "rank": 1261,
+      "columns": 1261
+    },
+    "main array only": {
+      "residual_uv": 92292.56791080872,
+      "rank": 1135,
+      "columns": 1135
+    },
+    "true weights + linearised beta": {
+      "residual_uv": 1273.2053145925966,
+      "rank": null,
+      "columns": null
+    }
+  },
+  "note": "left: repo masks only; right: repo full-nodal plant, 4096 samples, seed 20261105"
+}

@@ -2,7 +2,7 @@
 
 These are actual local Verilator 5.49 RTL simulations of the frozen compact production top. They are not mocked results, a Vivado/netlist simulation, or timing closure. Each profile passed three modes, 438 calibrated output comparisons, 7,680 protocol observations, coverage of 18 physical slices, and 438 exact reconstruction latency checks. The observed accepted-start-to-output latencies were P5=15, P6=13 and P7=11 clock intervals.
 
-The frozen 26-file RTL aggregate SHA-256 is `fd885e882ad5447f87626dc034fb59a6853a86f01050957a93b8a6407ebbbc13`. Relative to the preceding `169f957dc7fe...` frozen RTL set, only `rtl/core/weight_store.sv` changed: a legal coefficient write explicitly clears the bit already proved zero by the accepted range. `rtl_compact_identity.json` contains every individual RTL digest and the aggregate algorithm. This is a content identity, not a Git commit.
+The frozen 26-file RTL aggregate SHA-256 is `fd885e882ad5447f87626dc034fb59a6853a86f01050957a93b8a6407ebbbc13`. Relative to the preceding `169f957dc7fe...` frozen RTL set, only `rtl/weight_store.sv` changed: a legal coefficient write explicitly clears the bit already proved zero by the accepted range. `rtl_compact_identity.json` contains every individual RTL digest and the aggregate algorithm. This is a content identity, not a Git commit.
 
 `p5/run.log`, `p6/run.log`, `p7/run.log`, `manifest.json`, `evidence_hashes.json`, and `rtl_compact_identity.json` are byte-identical copies of the external run artifacts. `archive_manifest.json` verifies those archive bytes. The copied original manifest includes the commands, tool identity, source digests, subprocess return codes, and successful before/after source verification.
 

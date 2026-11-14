@@ -35,7 +35,7 @@
 工程约束（已在本会话中执行过一次并校验）：
 
 - 任何针对基线的写入都是**事故**。本会话中曾误改
-  `adi_model_release_v6.1/src/adi_model/config.py`，随即回滚并逐文件校验
+  `adi_model_release_v6.1/src/adi_model/simulation/config.py`，随即回滚并逐文件校验
   37 项 SHA-256 全部匹配 —— 这条约束是**被执行过的**，不是纸面声明。
 - 基线包的存在方式是**参照物**，不是依赖。新仓库不 import 它，
   不复用它的结果文件作为"基线数值来源"（对比时可以读，但必须注明是读的）。
@@ -63,7 +63,7 @@
 
 - **基线包没有被纳入 CI。** 它是一份快照，不是受测代码。若将来要自动化
   "基线 vs 新版"的对照，需要额外写一个比对脚本 —— 目前"对照"是人工的、
-  写在测试 docstring 与 `docs/audit_response.md` 里的。
+  写在测试 docstring 与 `docs/archive/audit_response.md` 里的。
 - **`MANIFEST.txt` 的校验是手动的。** 本会话用脚本逐项核对过一次；
   没有常驻的 `make verify-baseline` 目标。
 

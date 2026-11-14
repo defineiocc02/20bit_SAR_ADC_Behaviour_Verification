@@ -1,0 +1,286 @@
+`timescale 1ns/1ps
+// 顶层事件口对拍：期望前缀由 TB 记分板按"已发送的位"独立累加，
+// 不读 RTL 内部、也不用最终码反推。
+module tb_follower_int;
+    logic clk = 0, rstn = 0;
+    logic valid_i = 0, stall_i = 0;
+    logic [8:0] c_i = 0;
+    logic [11:0] adc2_i = 0;
+    logic [5:0] dither_i = 0;
+    logic [3:0] reserved_i = 0, h_phase_i = 0;
+    logic [2:0] v_phase_i = 0;
+    logic [23:0] tag_i = 0;
+    logic in_ready, busy, ovf_o, err_o, valid_o;
+    logic [39:0] slice_ids;
+    logic [19:0] code_o;
+    logic [23:0] tag_o;
+    logic ev_start = 0, ev_valid = 0, ev_bit = 0;
+    logic ev_done, ev_err, ev_mv;
+    logic [159:0] ev_mask;
+    logic [39:0] ev_ids;
+    logic [3:0] ev_idx;
+    logic [8:0] ev_k;
+    logic [3:0] ev_idx_i;
+    logic       ev_perr;
+    logic       ev_rdy;
+    logic       ev_abort;
+    logic [23:0] ev_abort_tag;
+
+    logic cfg_we = 0, cfg_inv_we = 0;
+    logic [4:0] cfg_slice = 0, cfg_unit = 0;
+    logic [43:0] cfg_w = 0;
+    logic [63:0] cfg_inv = 0;
+    logic [3:0] cfg_grp = 0;
+
+    digital_top_w dut (
+        .clk(clk), .reset_n(rstn),
+        .valid_i(valid_i), .stall_i(stall_i),
+        .c_i(c_i), .adc2_i(adc2_i), .dither_i(dither_i),
+        .reserved_i(reserved_i), .h_phase_i(h_phase_i), .v_phase_i(v_phase_i),
+        .tag_i(tag_i), .in_ready_o(in_ready),
+        .cfg_we(cfg_we), .cfg_slice(cfg_slice), .cfg_unit(cfg_unit), .cfg_w(cfg_w),
+        .cfg_inv_we(cfg_inv_we), .cfg_inv(cfg_inv), .cfg_inv_grp(cfg_grp),
+        .ev_mode_i(1'b1), .ev_start_i(ev_start), .ev_valid_i(ev_valid), .ev_bit_i(ev_bit),
+        .sar_index_i(ev_idx_i), .sar_qid_i(1'b0),
+        .flash_valid_i(1'b0), .flash_code_i(3'd0),
+        .ev_done_o(ev_done), .ev_idx_o(ev_idx), .ev_k_o(ev_k), .ev_err_o(ev_err),
+        .ev_mask_valid_o(ev_mv), .ev_mask_o(ev_mask), .ev_ids_o(ev_ids),
+        .ev_proto_err_o(ev_perr), .ev_ready_o(ev_rdy), .ev_abort_o(ev_abort), .ev_abort_tag_o(ev_abort_tag),
+        .busy_o(busy), .slice_ids_o(slice_ids),
+        .code_o(code_o), .overflow_o(ovf_o), .err_o(err_o),
+        .valid_o(valid_o), .tag_o(tag_o));
+
+    always #5 clk = ~clk;
+
+    integer errors = 0, events = 0, wt;
+    // ---- 事务守恒记分板 ----
+    // ---- 事务守恒记分板（24 位 tag 在途集合，不是加减计数）----
+    integer n_acc = 0, n_comp = 0, n_canc = 0, n_abort = 0, n_rej = 0;
+    integer ev_tag_ctr = 1;
+    bit in_flight [bit [23:0]];      // 在途事务 tag 集合
+    int  acc_code [bit [23:0]];      // 该 tag 的输入码（诊断用）
+    int  acc_up   [bit [23:0]];      // 该 tag 的 Upper
+    int  acc_cyc  [bit [23:0]];      // 接受时刻
+    integer inv_ok = 1;
+    integer cyc_no = 0, drain_n;
+    logic   hit_ev;
+
+    function automatic int n_pend();
+        return in_flight.num();
+    endfunction
+
+    task automatic acc(input bit [23:0] t, input int cc, input int up);
+        if (in_flight.exists(t)) begin
+            errors = errors + 1;
+            $display("DUP_ACCEPT tag=%0d", t);
+        end
+        in_flight[t] = 1'b1; acc_code[t] = cc; acc_up[t] = up; acc_cyc[t] = cyc_no;
+        n_acc = n_acc + 1;
+    endtask
+
+    task automatic retire(input bit [23:0] t, input string how);
+        if (!in_flight.exists(t)) begin
+            errors = errors + 1;
+            $display("GHOST_%s tag=%0d（在途集合中不存在）", how, t);
+            return;
+        end
+        in_flight.delete(t);
+        case (how)
+            "COMP": n_comp  = n_comp  + 1;
+            "CANC": n_canc  = n_canc  + 1;
+            "ABRT": n_abort = n_abort + 1;
+        endcase
+    endtask
+
+    // 每拍：守恒不变量（以集合大小为准）
+    always @(posedge clk) begin
+        #1;                    // 与 issue_tx 的 @(posedge clk); #1 统一：NBA 之后再判
+        cyc_no = cyc_no + 1;
+        if (rstn && (n_acc !== n_comp + n_canc + n_abort + n_pend())) begin
+            if (inv_ok) $display("INVARIANT_BREAK cyc=%0d acc=%0d comp=%0d canc=%0d abort=%0d pend=%0d",
+                                 cyc_no, n_acc, n_comp, n_canc, n_abort, n_pend());
+            inv_ok = 0;
+        end
+        if (valid_o) retire(tag_o, "COMP");
+        if (ev_abort) retire(ev_abort_tag, "ABRT");
+    end
+
+    task automatic wait_tx(input [23:0] tg, output logic [19:0] cd, output logic hit);
+        begin
+            hit = 1'b0; cd = 20'd0;
+            for (int w = 0; w < 30; w++) begin
+                @(posedge clk); #1;
+                if (valid_o && tag_o == tg) begin cd = code_o; hit = 1'b1; w = 99; end
+            end
+        end
+    endtask
+
+    task automatic issue_tx(input [8:0] cc, input [11:0] a2, input [23:0] tg,
+                            output logic [19:0] cd);
+        begin
+            @(negedge clk); valid_i = 1; c_i = cc; adc2_i = a2; tag_i = tg;
+            if (in_ready) acc(tg, cc, 0); else n_rej = n_rej + 1;
+            @(negedge clk); valid_i = 0;
+            for (int w = 0; w < 30; w++) begin
+                @(posedge clk); #1;
+                if (valid_o && tag_o == tg) begin cd = code_o; w = 99; end
+            end
+        end
+    endtask
+
+    // 独立期望：按 Python _horizontal_columns / vertical_bits 的语义重建，
+    // 用"从起始位置起置 H 个 1"的方式，不复制 RTL 的取模表达式。
+    function automatic logic [159:0] exp_mask(input logic [8:0] k,
+                                              input logic [3:0] res,
+                                              input logic [3:0] hp,
+                                              input logic [2:0] vp);
+        int H, M, start, idx, col;
+        logic [15:0] h;
+        logic [7:0]  y;
+        begin
+            H = k[8:5]; M = k[4:2];
+            h = 16'd0; y = 8'd0;
+            start = hp % 15; idx = 0;
+            // 在 15 个非保留列上按起点轮转，置前 H 个
+            for (int t = 0; t < 15; t++) begin
+                idx = (start + t) % 15;          // 第 idx 个有效列（0..14）
+                // 映射回真实列号：跳过错开 reserved 的那一列
+                col = (idx >= res) ? idx + 1 : idx;
+                if (t < H) h[col] = 1'b1;
+            end
+            for (int s_ = 0; s_ < 8; s_++)
+                if (((s_ + 8 - vp) % 8) < M) y[s_] = 1'b1;
+            for (int s_ = 0; s_ < 8; s_++) begin
+                for (int j = 0; j < 16; j++)
+                    exp_mask[s_*20 + j] = (j == res) ? y[s_] : h[j];
+                exp_mask[s_*20 + 16] = 1'b0;
+                exp_mask[s_*20 + 17] = 1'b0;
+                exp_mask[s_*20 + 18] = k[1];
+                exp_mask[s_*20 + 19] = k[0];
+            end
+        end
+    endfunction
+    // 事件模式下不需要 valid_i：run_code 送完 9 位，DUT 自行提交。
+    task automatic run_code(input [8:0] c, input [2:0] up);
+        integer i, n;
+        logic [8:0] exp_p, exp_k;
+        begin
+            // 只把 D6/D4 摆成对应 U（bit5=D6, bit3=D4）
+            // U = 4*D6 + D4；bit5=D6、bit3=D4，其余位清零
+            c_i = c; dither_i = {up[2], 1'b0, up[0], 3'b0};
+            // 握手：negdege 采样 Ready 并驱动 Start，保持到下一个 posedge（DUT 采样沿），
+            // 在随后 negedge 读**寄存器** ev_active_q 判定是否被接受（不重算组合信号）
+            wt = 0;
+            @(negedge clk);
+            while (!ev_rdy && wt < 32) begin wt = wt + 1; @(negedge clk); end
+            if (!ev_rdy) begin
+                errors = errors + 1;
+                $display("READY_TIMEOUT c=%0d active=%b busy=%b stall=%b rst=%b",
+                         c, dut.ev_active_q, busy, stall_i, rstn);
+            end else begin
+                ev_start = 1;
+                @(negedge clk);                 // 越过一个 posedge
+                if (!dut.ev_active_q) begin
+                    errors = errors + 1;
+                    $display("START_NOT_ACCEPTED c=%0d rdy=%b fire=%b",
+                             c, ev_rdy, dut.ev_start_fire);
+                end else acc(tag_i, c, up);
+                ev_start = 0;
+            end
+            exp_p = 9'd0; n = 0;
+            for (i = 8; i >= 0; i = i - 1) begin
+                @(negedge clk); ev_valid = 1; ev_bit = c[i];
+                ev_idx_i = 4'(n);                  // n=0..8 对应原码 bit8..bit0
+                exp_p = exp_p | (c[i] ? (9'd1 << (4'd8 - n)) : 9'd0);
+                exp_k = (exp_p >= {6'b0, up}) ? (exp_p - {6'b0, up}) : 9'd0;
+                @(posedge clk); #1;
+                if (ev_idx !== n[3:0]) begin
+                    errors = errors + 1;
+                    if (errors <= 5) $display("IDX c=%0d n=%0d got %0d", c, n, ev_idx);
+                end else if (ev_k !== exp_k) begin
+                    errors = errors + 1;
+                    if (errors <= 5) $display("K c=%0d n=%0d got %0d want %0d", c, n, ev_k, exp_k);
+                end else if (ev_mv && (ev_mask !== exp_mask(ev_k, 4'd0, 4'd0, 3'd0))) begin
+                    errors = errors + 1;
+                    if (errors <= 5) $display("MASK c=%0d n=%0d 不符", c, n);
+                end
+                events = events + 1; n = n + 1;
+            end
+            @(negedge clk); ev_valid = 0;
+            @(posedge clk); #1;
+            if (!ev_done) begin errors = errors + 1; $display("DONE c=%0d 未置位", c); end
+        end
+    endtask
+
+    integer k, u;
+    initial begin
+        repeat (4) @(negedge clk); rstn = 1;
+        for (k = 0; k < 512; k = k + 1) begin
+            tag_i = ev_tag_ctr[23:0]; ev_tag_ctr = ev_tag_ctr + 1;
+            run_code(k[8:0], 3'd0);
+        end
+        // U = 4*D6 + D4，只可能是 {0,1,4,5}
+        for (u = 0; u < 4; u = u + 1)
+            for (k = 0; k < 512; k = k + 53) begin
+                tag_i = ev_tag_ctr[23:0]; ev_tag_ctr = ev_tag_ctr + 1;
+                run_code(k[8:0], {u[1], 1'b0, u[0]});
+            end
+        // ---- 两路等价：事件模式 vs 整码模式，同 c/adc2/dither 必须同 code20 ----
+        begin
+            logic [19:0] cd_ev, cd_c;
+            integer eq_err = 0, m;
+            for (m = 0; m < 64; m = m + 1) begin
+                logic [8:0] cc; logic [11:0] a2; logic [23:0] tg;
+                cc = (m * 7 + 3) % 512; a2 = (m * 331) % 4096; tg = m[22:0] * 2 + 24'd900;
+                // 事件模式：置好 adc2/tag，只送事件，**不拉 valid_i**
+                force dut.ev_mode_i = 1'b1;
+                @(negedge clk); adc2_i = a2; tag_i = tg;
+                run_code(cc, 3'd0);                      // 9 个事件，DUT 自行提交
+                wait_tx(tg, cd_ev, hit_ev);
+                if (!hit_ev) begin
+                    eq_err = eq_err + 1;
+                    if (eq_err <= 5) begin
+                        $display("NO_TX c=%0d a2=%0d tag=%0d", cc, a2, tg);
+                        $display("  ev_rdy=%b active=%b done=%b final=%b valid_a=%b valid_o=%b tag_o=%0d",
+                                 ev_rdy, dut.ev_active_q, dut.ev_done_o, dut.ev_final_valid_q,
+                                 dut.valid_a, valid_o, tag_o);
+                    end
+                end
+                // 整码模式：传统 valid_i 通路
+                force dut.ev_mode_i = 1'b0;
+                issue_tx(cc, a2, tg + 24'd1, cd_c);
+                release dut.ev_mode_i;
+                if (hit_ev && cd_ev !== cd_c) begin
+                    eq_err = eq_err + 1;
+                    if (eq_err <= 5) $display("EQ c=%0d a2=%0d ev=%0d c=%0d", cc, a2, cd_ev, cd_c);
+                end
+            end
+            $display("EQUIV: 64 组, %0d 不一致", eq_err);
+            errors = errors + eq_err;
+        end
+        // ---- 有界 drain：停止输入后推进时钟直到在途为空 ----
+        for (drain_n = 0; drain_n < 200 && n_pend() != 0; drain_n = drain_n + 1)
+            @(posedge clk);
+        if (n_pend() != 0) begin
+            errors = errors + 1;
+            $display("DRAIN_TIMEOUT 仍有 %0d 笔在途", n_pend());
+        end else begin
+            $display("DRAIN_OK 在 %0d 拍内排空", drain_n);
+        end
+        $display("CONSERVE: acc=%0d comp=%0d canc=%0d abort=%0d pend=%0d rej=%0d",
+                 n_acc, n_comp, n_canc, n_abort, n_pend(), n_rej);
+        if (n_pend() != 0) begin
+            $display("PENDING_LIST (%0d 笔):", n_pend());
+            foreach (in_flight[t])
+                $display("  tag=%0d code=%0d up=%0d 接受cyc=%0d",
+                         t, acc_code[t], acc_up[t], acc_cyc[t]);
+        end
+        if (n_acc !== n_comp + n_canc + n_abort + n_pend()) begin
+            errors = errors + 1;
+            $display("CONSERVE_FAIL");
+        end
+        $display("RESULT: %0d events, %0d errors", events, errors);
+        if (errors == 0) $display("PASS"); else $display("FAIL");
+        $finish;
+    end
+endmodule

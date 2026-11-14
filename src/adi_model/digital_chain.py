@@ -1,0 +1,567 @@
+"""片上数字主链（独立于模拟 plant）。
+
+输入一笔事务的规定字段，输出事件记录与 20 位码。**不读 plant 的增益、电荷或归一化**：
+重构只用「ADC2 原码 + 实际 mask + 物理片 ID + 冻结系数」。
+
+D1 调度 → D2 Follower → D3 DEM(Fig.19–21) → D4 Dither → D5 定点重构
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, replace
+
+import numpy as np
+
+from adi_model.control.cross_slice_mux import (
+    fig21_column_assignment,
+    fig21_vertical_selection,
+)
+from adi_model.control.dem3d import round_robin_plan
+from adi_model.control.follower import FOLLOWER_EVENTS, ResolvedPrefixes
+
+N_SLICES = 18
+N_ACTIVE = 8
+
+
+@dataclass(frozen=True)
+class Transaction:
+    """一笔数字事务的输入。系数由外部冻结提供，不从 plant 读取。"""
+
+    sample_id: int
+    final_code: int          # 已决 9 位粗码
+    dither_word: int         # 6 位
+    adc2_code: int           # ADC2 原始码（12 位无符号）
+    weights_q30: dict        # {(slice_id, "main"|"sub", unit): Q30 权重}
+
+
+Q30 = 1 << 30
+MAIN_UNITS = 17
+SUB_UNITS = 5
+ADC2_FRACTION_BITS = 12
+
+
+DITHER_DENOMINATOR = 8     # 工程模式（八片）。专利七片示例用 7，单独标识。
+
+
+def _dither_terms(word: int, denominator: int = None) -> tuple[int, int, float]:
+    """Fig.19：U = 4·D6 + D4，L = 2·D5 + (4D3+2D2+D1)/D。
+
+    D = DITHER_DENOMINATOR(8) 为主模式 [工程]；D = 7 属专利七片示例 [原文]。
+    """
+    d = DITHER_DENOMINATOR if denominator is None else denominator
+    bits = [(word >> (5 - i)) & 1 for i in range(6)]
+    upper = 4 * bits[0] + bits[2]
+    lower = 2 * bits[1] + (4 * bits[3] + 2 * bits[4] + bits[5]) / float(d)
+    return upper, lower, upper + lower
+
+
+N_COLUMNS = 16          # 15 个有效 2C 逻辑列 + 1 个固定零（保留列）
+N_SUB_COLUMNS = 4       # 子阵列 8/4/2/1，由剩余低位 L 控制
+N_TOTAL = N_COLUMNS + N_SUB_COLUMNS
+
+
+# ---- 三维随机化排程（v2）----------------------------------------------
+# 旧版 q%16 / (q//128)%15 / (q//16)%8 的问题：三个维度用同一 q 的不同切片，
+# 横向要到第 128 个样本才动一格，实测 1024 点内 h_phase 恒为 0，
+# 且三轴之间存在整除关系导致的锁定。
+#
+# v2 做法：每个维度用独立的满周期 LCG 推进，三个模数 16 / 15 / 8 互不整除，
+# 三者的联合周期为 lcm(16,15,8)=240 的整数倍，覆盖 16x15x8=1920 个相位的
+# 全部组合；同一 q 下三轴取值互不相关。
+_LCG_M = 1 << 31
+_LCG_A = [1103515245, 12347, 214013]     # 三轴乘子均与该轴模数互质
+_LCG_C = [12345, 9973, 2531011]
+
+
+def _lcg(seed: int, dim: int) -> int:
+    """第 dim 维的确定性伪随机序列（满周期，无浮点）。"""
+    return (_LCG_A[dim] * (seed % _LCG_M) + _LCG_C[dim]) % _LCG_M
+
+
+# ---- 三维随机化排程 v3：满周期置换表 -------------------------------
+# v2 的残留问题（P0-1 实测 FAIL）：
+#   1) q = sid//9 使连续 9 拍共用相位，自相关 0.87~0.96
+#   2) 三个独立 LCG 取模后 MI(reserved,v_phase)=1.278 bit，仍有统计依赖
+#   3) 联合覆盖仅 794/1920
+#
+# v3 做法：一个 0..1919 的满周期计数器经**固定置换表**映射。
+#   - 置换表是 1920 的排列 -> 1920 个组合各出现一次（覆盖 100%，先验成立）
+#   - 每个样本都推进一格（不再 //9），消除 9 拍锁定
+#   - 表由种子固定的 Fisher-Yates 生成，可复现、可导出给 RTL 做 ROM
+_PHASE_TOTAL = 16 * 15 * 8      # 1920
+_PHASE_SEED = 2026
+
+
+def _build_perm(total: int = _PHASE_TOTAL, seed: int = _PHASE_SEED) -> tuple[int, ...]:
+    """用固定种子生成 0..total-1 的排列（Fisher-Yates）。"""
+    tab = list(range(total))
+    x = seed & 0xFFFFFFFF
+    for i in range(total - 1, 0, -1):
+        x = (1103515245 * x + 12345) & 0x7FFFFFFF
+        j = x % (i + 1)
+        tab[i], tab[j] = tab[j], tab[i]
+    return tuple(tab)
+
+
+_PHASE_PERM = _build_perm()
+
+
+def dem_phases(sample_id: int) -> tuple[int, int, int]:
+    """DEM 三维相位：(reserved, h_phase, v_phase)。
+
+    v3：满周期置换表。每样本推进一格，1920 笔恰好遍历全部组合一次。
+    映射为混合进制：i -> (i//120, (i//8)%15, i%8)。
+    """
+    i = _PHASE_PERM[sample_id % _PHASE_TOTAL]
+    return (i // 120, (i // 8) % 15, i % 8)
+
+
+def _horizontal_columns(k: int, reserved: int, h_phase: int = 0) -> list[int]:
+    """横向数据 h：15 个有效列按 H 做温度计，保留列为**固定零**（不是从有效位里挖）。
+
+    US10511316B2 Fig.20：shuffler352 的一个输入固定为 0，该零位随打乱移动形成保留列。
+    因此 h[reserved] == 0 且 sum(h) == H 必须同时成立。
+    """
+    H = (k >> 5) & 0xF
+    cols = [0] * N_COLUMNS
+    data = [c for c in range(N_COLUMNS) if c != reserved]
+    n = len(data)
+    start = h_phase % n if n else 0                      # 横向置换：按相位轮转起点
+    for i in range(H):
+        cols[data[(start + i) % n]] = 1
+    return cols
+
+
+def vertical_bits(k: int, n_active: int = 8, v_phase: int = 0) -> list[int]:
+    """纵向数据 y：恰好 M 个 1，M = (k>>2)&7，按 v_phase 轮转选片。"""
+    M = (k >> 2) & 7
+    y = [0] * n_active
+    for i in range(M):
+        y[(v_phase + i) % n_active] = 1      # 纵向置换：不是总选前 M 片
+    return y
+
+
+def _mask_bits(k: int) -> tuple[int, int]:
+    """粗码 -> 主阵列 17 个物理开关位（15×2C + B4 + S4）+ 子阵列 4 位。"""
+    main_code = (k >> 4) & 0x1F
+    therm = min(main_code // 2, 15)
+    ones = min(main_code - 2 * therm, 2)
+    return ((1 << therm) - 1) | (((1 << ones) - 1) << 15), (k & 0xF) & 0b1111
+
+
+def run_transaction(tx: Transaction, *, slice_group=None, phases=None,
+                    slice_ids=None, inv_fn=None) -> dict:
+    """调度 -> follower 事件 -> Fig.20–21 MUX -> 位权自检 -> 定点重构。
+
+    MUX：m[s][j] = y[s] if j == reserved else h[j]，且 h[reserved] == 0。
+    因此 Σ_{s,j} m = 8H + M，且 4·(8H+M) + L == k。
+
+    测试钩子（默认 None 时行为完全不变）：
+      slice_group : legacy9 的片组号，用于解耦 A/B/C/D 对照
+      slice_ids   : 显式 8 片 ID（random18 的 RTL 等价调度器给出的序列）
+      inv_fn      : 用运行时倒数（如 recip_q60）替代精确除法，模拟硬件路径
+    """
+    # 测试钩子：允许显式指定片组 / DEM 相位，用于把两者解耦做 A/B/C/D 对照。
+    # 默认（None）行为与原来完全一致。
+    if slice_ids is None:
+        plan = round_robin_plan(
+            tx.sample_id + 1 if slice_group is None else slice_group + 1,
+            n_slices=N_SLICES, n_active=N_ACTIVE)
+        slice_ids = np.asarray(plan.acq)[-1]
+    else:
+        slice_ids = np.asarray(slice_ids, dtype=np.int64)
+    prefixes = ResolvedPrefixes.from_final(np.array([tx.final_code], dtype=np.int64))
+
+    upper, lower, total = _dither_terms(tx.dither_word)
+    k = int(tx.final_code) - upper
+    H, M, L = k >> 5, (k >> 2) & 7, k & 3
+    reserved, h_phase, v_phase = (dem_phases(tx.sample_id)
+                                  if phases is None else phases)
+    # 非法命令：k 必须在 0..511，否则拒绝出码（不静默夹紧）
+    if not (0 <= k <= 511):
+        return {
+            "sample_id": tx.sample_id, "slice_ids": slice_ids.tolist(), "k": k,
+            "valid": False, "error": "ERR_K_RANGE", "code20": None,
+            "dither_u": upper, "dither_l": round(lower, 6),
+            "dither_t": round(total, 6),
+        }
+
+    h = _horizontal_columns(k, reserved, h_phase)
+    y = vertical_bits(k, N_ACTIVE, v_phase)
+
+    sub_bits = [(L >> (3 - i)) & 1 for i in range(N_SUB_COLUMNS)]   # L 的 4 位进子阵列
+    masks = [[y[s] if j == reserved else h[j] for j in range(N_COLUMNS)] for s in range(N_ACTIVE)]
+    total_selected = sum(sum(row) for row in masks)
+    masks_full = [row + list(sub_bits) for row in masks]
+
+    # Follower：每个已决事件生成该事件自己的 mask（不是只记前缀）
+    events = []
+    for i in range(FOLLOWER_EVENTS):
+        code_i = int(prefixes.codes[0][i])
+        k_i = code_i - upper
+        h_i = _horizontal_columns(k_i, reserved, h_phase)     # 用本事件前缀
+        y_i = vertical_bits(k_i, N_ACTIVE, v_phase)
+        ev_masks = [
+            [y_i[s] if j == reserved else h_i[j] for j in range(N_COLUMNS)]
+            for s in range(N_ACTIVE)
+        ]
+        events.append({"event_index": i, "committed_code": code_i, "k_event": k_i,
+                       "low_bits": k_i & 3,
+                       "rdac_mask_units": int(sum(sum(r) for r in ev_masks)),
+                       "ev_masks": ev_masks,
+                       "slice_ids": slice_ids.tolist()})
+
+    # 重构：Σ w·m / Σ w_full（w 为 C_eff/Cf 的 Q30），8 片一起求和，不额外除 8
+    acc = 0
+    for slot, sid in enumerate(slice_ids.tolist()):
+        for j in range(N_COLUMNS):
+            if masks[slot][j]:
+                acc += int(tx.weights_q30.get((int(sid), "col2c", j), 0))
+    code20 = None
+    overflow = False
+    weight_acc = 0
+    if tx.weights_q30:
+        a_all_full = [[1] * N_TOTAL for _ in range(N_ACTIVE)]
+        # mask 路径：只用于**寻址诊断**（改被用单元应改变累加、改未用片不应改变）
+        for slot, sid in enumerate(slice_ids.tolist()):
+            for j in range(N_TOTAL):
+                if masks_full[slot][j]:
+                    weight_acc += int(tx.weights_q30.get((int(sid), j), 0))
+    # P0：最终输出由**实际 mask + 片 ID + 冻结系数**决定；
+    # 名义公式只作独立参考（x_formula / code20_formula）。
+    # SPEC：x̂ = r̂ + D(k)，D(k) 由 Σw·a 归一。
+    # 码权关系（已定）：k/512 = (N + L/4)/128，N = Σ(16 逻辑列上的 m)。
+    # 权重口径：名义单 2C 逻辑单元 w = 32/128 = 0.25，故 Σw·a = 32。
+    # 分母只取 16 个**采样**逻辑列（a=1）；子阵列只通过 L/4 计入分子，
+    # 不参与信号分母（专利：子阵列经耦合电容，不与主阵列同坐标）。
+    x_weight = None
+    if tx.weights_q30:
+        VR = int(round(V_FS * (1 << V_FRAC)))
+        G_q30 = 0
+        K_q54 = 0
+        Wm_q30 = 0          # 直接累加 Σw·m（主 + 子），不再从 K 反推
+        for slot, sid in enumerate(slice_ids.tolist()):
+            for j in range(N_COLUMNS):
+                w = int(tx.weights_q30.get((int(sid), j), 0))
+                G_q30 += w
+                if masks_full[slot][j]:
+                    Wm_q30 += w
+                K_q54 += w * (-VR if masks_full[slot][j] else VR)
+            for j in range(N_COLUMNS, N_TOTAL):
+                w = int(tx.weights_q30.get((int(sid), j), 0))
+                if masks_full[slot][j]:
+                    Wm_q30 += w
+                K_q54 += w * (-2 * VR if masks_full[slot][j] else 0)
+        if G_q30:
+            # 精确除法（浮点/软件参考）
+            dac_q24_exact = _div_round(-K_q54, G_q30)
+            # 硬件路径：inv_g = round(2^60/G)，用乘+移替代除法。
+            # -K_q54 = (6Wm - 3G)·VR，故 (6Wm-3G) = -K_q54 // VR（整除）
+            inv_g_q60 = (2 * (1 << 60) + G_q30) // (2 * G_q30)
+            if inv_fn is not None:
+                inv_g_q60 = int(inv_fn(G_q30))      # 硬件倒数单元（Q60）
+            # 冻结表达式（与 RTL 逐位相同）：floor((6Wm − 3G)·inv / 2^36)
+            dac_q24 = ((6 * Wm_q30 - 3 * G_q30) * inv_g_q60) >> 36
+            # K 只作独立一致性检查，不参与 D_eff 的计算
+            K_consistent = (K_q54 == int(round(VR)) * (G_q30 - 2 * Wm_q30))
+            # 仓库既有定义：r = round((2a+1)*144/5) = ((2a+1)*144+2)//5
+            # 不再额外加移位偏置（_div_round 内部会加 d//2，那是二次舍入）
+            r_hat_q24 = ((2 * int(tx.adc2_code) + 1) * 144 + 2) // 5
+            # 全程整数：不经过 float，避免半值处舍入漂移
+            # TΔ 的 Q24 值：T × (3/256) × 2^24 = T × 196608
+            x_q24_w = dac_q24 + r_hat_q24 + int(round(total * 196608))
+            x_weight = x_q24_w / float(1 << V_FRAC)
+        _dbg = (G_q30, K_q54, dac_q24 if G_q30 else None, r_hat_q24 if G_q30 else None)
+    else:
+        _dbg = None
+    x_formula = reconstruct_input_v(k, tx.adc2_code, total)
+    code_formula = int(round((x_formula / V_FS + 1.0) * (1 << (CODE_BITS - 1))))
+    return {
+        "sample_id": tx.sample_id, "slice_ids": slice_ids.tolist(), "k": k,
+        "x_weight_v": x_weight,
+        "wm_q30": Wm_q30 if (tx.weights_q30 and G_q30) else None,
+        "g_q30": G_q30 if (tx.weights_q30 and G_q30) else None,
+        "inv_g_q60": inv_g_q60 if (tx.weights_q30 and G_q30) else None,
+        "k_consistent": K_consistent if (tx.weights_q30 and G_q30) else None,
+        "dac_exact_q24": dac_q24_exact if tx.weights_q30 and G_q30 else None,
+        "dac_hw_q24": dac_q24 if tx.weights_q30 and G_q30 else None,
+        "x_formula_v": x_formula,
+        "code20_formula": min(max(code_formula, 0), (1 << CODE_BITS) - 1),
+        "weight_acc_q30": weight_acc,
+        "dbg": _dbg,
+        "code20": (code20_from_q24(x_q24_w)
+                   if x_weight is not None
+                   else min(max(code_formula, 0), (1 << CODE_BITS) - 1)),
+        "H": H, "M": M, "L": L,
+        "mask_selected": total_selected,
+        "expect_8H_plus_M": 8 * H + M,
+        "weight_identity_ok": total_selected == 8 * H + M,
+        "code_identity_ok": 4 * total_selected + L == k,
+        "h_reserved_is_zero": h[reserved] == 0,
+        "sum_h_is_H": sum(h) == H,
+        "sum_y_is_M": sum(y) == M,
+        "dither_u": upper, "dither_l": round(lower, 6), "dither_t": round(total, 6),
+        "reserved_column": reserved,
+        "masks": masks, "events": events, "n_active_slices_used": len(slice_ids),
+        "weight_acc_q30": acc,
+        "adc2_code": tx.adc2_code,
+    }
+
+# ---------------------------------------------------------------- 重构（数学参考）
+V_FS = 3.0
+ADC2_LSB_V = 0.45 / 4096      # ADC2 12 位、0.45 V 窗口 [工程]
+COARSE_LSB_V = 6.0 / 512      # 粗 LSB = 11.71875 mV [工程]
+CODE_BITS = 20
+W_FRAC = 30        # 权重 Q30
+V_FRAC = 24        # 电压量 Q24
+ACC_BITS = 96
+
+
+def _div_round(n: int, d: int) -> int:
+    """就近舍入（半数远离零），负数对称。RTL 需实现同一规则。"""
+    if d <= 0:
+        raise ValueError("divisor must be positive")
+    if n >= 0:
+        return (n + d // 2) // d
+    return -((-n + d // 2) // d)
+
+
+def reconstruct_int(
+    y_q24: int,
+    masks: list[list[int]],
+    a: list[list[int]],
+    w_q30: dict,
+    slice_ids: list[int],
+    *,
+    t_low_q24: int = 0,
+    t_high_q24: int = 0,
+    bias_q24: int = 0,
+) -> dict:
+    """整数定点反解：x̂_q24 = ((y − Σw·t) << 30) / (Σ w·a)。
+
+    w 为 Q30、y/t/b 为 Q24；乘积自然落在 Q54，右移 30 回到 Q24。
+    累加器 96 位。最终 20 位用就近舍入（.5 向上）并饱和。
+    """
+    num = int(y_q24) - int(bias_q24)
+    den = 0
+    for slot, sid in enumerate(slice_ids):
+        for j in range(len(masks[slot])):
+            key = (int(sid), j)
+            if key not in w_q30:
+                raise KeyError(f"missing weight for {key}")
+            w = int(w_q30[key])
+            t = t_high_q24 if masks[slot][j] else t_low_q24
+            num -= (w * t) >> W_FRAC
+            den += w * a[slot][j]
+    if den == 0:
+        raise ValueError("Σw·a == 0")
+    # 96 位上界（显式）：|项| <= 2^31(w) * 2^25(t) = 2^56；最多 8*20=160 项
+    # => |Σ| <= 160 * 2^56 < 2^64 << 2^96。超出即视为实现错误。
+    if abs(num) >= (1 << 96) or abs(den) >= (1 << 96):
+        raise OverflowError("accumulator exceeds the 96-bit contract")
+    x_q24 = _div_round(num << W_FRAC, den)
+    # code = round((x/V_FS + 1) * 2^19)  =>  ((x_q24 << 19) / (V_FS * 2^24)) + 2^19
+    lsb = int(round(V_FS * (1 << V_FRAC)))
+    signed = _div_round(x_q24 << (CODE_BITS - 1), lsb)   # 先在有符号量上舍入
+    code = signed + (1 << (CODE_BITS - 1))               # 再加中点
+    sat = not (0 <= code < (1 << CODE_BITS))
+    return {"x_q24": x_q24, "code20": min(max(code, 0), (1 << CODE_BITS) - 1),
+            "overflow": sat, "den_q30": den}
+
+
+def _known_term(m: int, t_low_v: float, t_high_v: float) -> float:
+    """m 只选择参考连接：0 -> t_low，1 -> t_high。**不因 m=0 删除整项。**"""
+    return t_high_v if m else t_low_v
+
+
+def forward_observation(
+    x_v: float,
+    masks: list[list[int]],
+    a: list[list[int]],
+    weights: dict,
+    slice_ids: list[int],
+    *,
+    t_low_v: float = 0.0,
+    t_high_v: float = 0.0,
+) -> float:
+    """y = Σ_{所有单元} w·(a·x + t(m))。循环**不跳过 m=0**。
+
+    weights 以真实物理片 ID 为键：{(physical_slice_id, column): w}。
+    """
+    y = 0.0
+    for slot, sid in enumerate(slice_ids):
+        for j in range(len(masks[slot])):
+            key = (int(sid), j)
+            if key not in weights:
+                raise KeyError(f"missing weight for {key}")
+            w = weights[key]
+            y += w * (a[slot][j] * x_v + _known_term(masks[slot][j], t_low_v, t_high_v))
+    return y
+
+
+def reconstruct(
+    y_v: float,
+    masks: list[list[int]],
+    a: list[list[int]],
+    weights: dict,
+    slice_ids: list[int],
+    *,
+    t_low_v: float = 0.0,
+    t_high_v: float = 0.0,
+    bias_v: float = 0.0,
+) -> dict:
+    """x̂ = (y − b − Σ w·t(m)) / (Σ w·a)，遍历所有单元。"""
+    num = y_v - bias_v
+    den = 0.0
+    for slot, sid in enumerate(slice_ids):
+        for j in range(len(masks[slot])):
+            key = (int(sid), j)
+            if key not in weights:
+                raise KeyError(f"missing weight for {key}")
+            w = weights[key]
+            num -= w * _known_term(masks[slot][j], t_low_v, t_high_v)
+            den += w * a[slot][j]
+    if den == 0.0:
+        raise ValueError("Σw·a == 0: no signal-carrying unit selected")
+    x_hat = num / den
+    # 先在**有符号量**上舍入（半数远离零），再加 offset-binary 中点
+    signed = (x_hat / V_FS) * (1 << (CODE_BITS - 1))
+    signed = int(signed + 0.5) if signed >= 0 else -int(-signed + 0.5)
+    code = signed + (1 << (CODE_BITS - 1))
+    return {"x_hat_v": x_hat, "code20": min(max(code, 0), (1 << CODE_BITS) - 1), "sum_wa": den}
+
+
+def run_sequence(
+    txs: list[Transaction], *, reset_at: int | None = None, stall_window: tuple[int, int] | None = None
+) -> dict:
+    """事务序列：正常接收 / stall（不消耗 sample_id）/ reset（清空在途、归零）/ 排空。
+
+    恒等式：accepted == retired + cancelled + pending，排空后 pending == 0。
+    - accepted：进入流水线的事务数（含被 stall 押后的）
+    - retired：真正调用 run_transaction 并产出结果的事务数
+    - cancelled：reset 时被取消的在途事务数（即当时的 held 长度）
+
+    stall 不越队：被 stall 及之后的事务全部进 held，不跳过当前项去处理后续；
+    reset 仍按其时刻执行——先清空 held 并计入 cancelled，再把 sid 归零。
+    """
+    log = []
+    held: list[Transaction] = []
+    sid = 0
+    accepted = stalled = resets = retired = cancelled = 0
+    in_stall = False
+    for i, tx in enumerate(txs):
+        if reset_at is not None and i == reset_at:
+            # reset 只清在途：当时的 held 全部取消，sample_id 归零
+            n_cancel = len(held)
+            cancelled += n_cancel
+            held.clear()
+            sid = 0
+            resets += 1
+            log.append({"at": i, "event": "reset", "sample_id_after": sid,
+                        "cancelled": n_cancel})
+        if not in_stall and stall_window is not None and i == stall_window[0]:
+            # 保序：stall 时**不越过**当前事务，本项及其后全部押后
+            in_stall = True
+            stalled += 1
+            log.append({"at": i, "event": "stall", "held": True, "sample_id_held": sid})
+        accepted += 1
+        if in_stall:
+            held.append(replace(tx, sample_id=sid + len(held)))
+            continue
+        r = run_transaction(replace(tx, sample_id=sid))
+        retired += 1
+        log.append({"at": i, "event": "accepted", "sample_id": r["sample_id"],
+                    "code20": r["code20"], "slice_ids": r["slice_ids"]})
+        sid += 1
+    # 排空：被押后的事务按原顺序逐笔处理
+    for tx in held:
+        r = run_transaction(tx)
+        retired += 1
+        log.append({"at": -1, "event": "retried", "sample_id": r["sample_id"],
+                    "code20": r["code20"], "src": tx.sample_id})
+        sid += 1
+    pending = accepted - retired - cancelled
+    return {"log": log, "accepted": accepted, "stalled": stalled, "resets": resets,
+            "retired": retired, "cancelled": cancelled, "pending": pending,
+            "conserved": accepted == retired + cancelled + pending and pending == 0,
+            "next_sample_id": sid}
+
+
+# ---------------------------------------------------------------- D5 输入坐标重构
+DELTA_V = 6.0 / 512.0          # 粗 LSB
+ADC2_WINDOW_V = 0.45           # 工程测试窗口 [0, 0.45) V
+ADC2_CODES = 4096
+RESIDUE_GAIN = 32.0            # 余差增益（测试夹具声明值）
+
+
+def dac_nominal(k: int) -> float:
+    """名义等距 DAC：D(k) = -3 + kΔ。"""
+    return -3.0 + k * DELTA_V
+
+
+def reconstruct_input_v(k: int, adc2_code: int, total_lsb: float) -> float:
+    """x̂ = D(k) + r̂ + TΔ，箱中心解码后除回余差增益。
+
+    与 mask 权重路径分开：本函数验公式闭合，权重路径验寻址。
+    """
+    r_hat = (int(adc2_code) + 0.5) * (ADC2_WINDOW_V / ADC2_CODES) / RESIDUE_GAIN
+    return dac_nominal(k) + r_hat + total_lsb * DELTA_V
+
+
+def forward_code(x_v: float, word: int) -> dict:
+    """独立前向夹具：给定 x 与扰动字，产生相容的 c / k / ADC2 码。"""
+    upper, lower, total = _dither_terms(word)
+    x_q = x_v - lower * DELTA_V
+    c = int(min(max((x_q + 3.0) / DELTA_V, 0), 511))
+    k = c - upper
+    r = x_v - total * DELTA_V - dac_nominal(k)
+    adc2 = int(min(max(r * RESIDUE_GAIN / (ADC2_WINDOW_V / ADC2_CODES), 0), ADC2_CODES - 1))
+    return {"c": c, "k": k, "adc2": adc2, "upper": upper, "lower": lower, "total": total}
+
+
+def reconstruct_input_q24(k: int, adc2_code: int, total_lsb: float) -> int:
+    """整数版 reconstruct_input_v：全程 Q24，作为 RTL 的 golden。
+
+    D_q24 = -3*2^24 + k*(3*2^24/256)
+    r_q24 = round((2a+1) * 28.8) = round((2a+1)*144/5)
+    T_q24 = round(T * 3*2^24/256)
+    """
+    d_q24 = -50331648 + 196608 * int(k)
+    r_q24 = ((2 * int(adc2_code) + 1) * 144 + 2) // 5
+    t_q24 = int(round(float(total_lsb) * 196608.0))
+    return d_q24 + r_q24 + t_q24
+
+
+def code20_from_q24(x_q24: int) -> int:
+    """code20 = round(x_q24/96) + 2^19，饱和到 [0, 2^20-1]。"""
+    n = int(x_q24)
+    # 与 RTL 完全一致：倒数乘 (|n|*44739243 + 2^31) >> 32，等价于四舍五入除 96
+    a = abs(n)
+    q = (a * 44739243 + (1 << 31)) >> 32
+    if n < 0:
+        q = -q
+    c = q + (1 << 19)
+    return min(max(c, 0), (1 << 20) - 1)
+
+# ---- 相位发生器（方案甲，与 rtl/dem_phase_gen.sv 逐位对应）----
+_PG_SEED = 0x12345678
+
+
+def _xs32(x: int) -> int:
+    x ^= (x << 13) & 0xFFFFFFFF
+    x ^= x >> 17
+    x ^= (x << 5) & 0xFFFFFFFF
+    return x & 0xFFFFFFFF
+
+
+def dem_phases_rtl(sample_id: int) -> tuple[int, int, int]:
+    """RTL 相位发生器的位精确镜像。
+
+    RTL 从 SEED 起每笔推进一次；第 0 笔对应**推进一次后**的值
+    （复位后 rng_q=SEED，首个 sample_adv 使它变成 xs32(SEED)）。
+    """
+    r = _PG_SEED
+    for _ in range(sample_id + 1):
+        r = _xs32(r)
+    i = r % 1920
+    return (i // 120, (i // 8) % 15, i % 8)

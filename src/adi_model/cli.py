@@ -20,11 +20,11 @@ from typing import Any, NoReturn, TypedDict
 
 import numpy as np
 
-from .config import Config, ConfigError
-from .defaults import DEFAULT_SEED, DefaultParameters, DefaultRun, default_model
-from .fixed_point import FixedPointFormat
-from .inventory_gate import _write_new_summary
-from .sampler import sine_input
+from adi_model.behavioral.sampler import sine_input
+from adi_model.contracts.fixed_point import FixedPointFormat
+from adi_model.defaults import DEFAULT_SEED, DefaultParameters, DefaultRun, default_model
+from adi_model.inventory_gate import _write_new_summary
+from adi_model.simulation.config import Config, ConfigError
 
 __all__ = ["load_config", "main_validate_config", "main_simulate"]
 
@@ -35,6 +35,20 @@ class _ConfigParser(argparse.ArgumentParser):
     error_status = "CONFIGURATION_REJECTED"
 
     def error(self, message: str) -> NoReturn:
+        """把失败原因作为结构化 JSON 写到 stderr 并退出（码 2）。
+
+        Args:
+            message: 面向使用者的原因说明（人类可读，不含密钥或路径明文）。
+
+        Returns:
+            不返回。
+
+        Raises:
+            SystemExit: 恒以 2 退出，便于脚本判定"输入被拒绝"。
+
+        Side effects: 写 stderr；**不产生任何输出目录或部分结果**
+            （"拒绝时不写文件"是 CLI 的合同，避免留下半成品）。
+        """
         diagnostic = {"status": self.error_status, "error": message, "model_run": False}
         self.exit(2, json.dumps(diagnostic, ensure_ascii=False, allow_nan=False) + "\n")
 

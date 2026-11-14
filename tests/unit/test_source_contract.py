@@ -6,8 +6,8 @@ from dataclasses import fields, replace
 import numpy as np
 import pytest
 
-from adi_model.config import Config, ConfigError
-from adi_model.sadc import SADC, build_first_stage_quantizer
+from adi_model.behavioral.sadc import SADC, build_first_stage_quantizer
+from adi_model.simulation.config import Config, ConfigError
 
 
 def test_empty_config_is_inspectable_but_not_ready_for_execution():
@@ -95,13 +95,13 @@ def test_rtl_interface_does_not_fill_analog_inputs():
 
 
 def test_dither_request_requires_an_actual_runtime_program(explicit_pipeline_factory):
-    from adi_model.pipeline import run_pipeline
-    from adi_model.sampler import dc_input
+    from adi_model.behavioral.sampler import dc_input
+    from adi_model.simulation.pipeline import run_pipeline
 
     cfg, controls = explicit_pipeline_factory(n_samples=4)
     requested = replace(cfg, dither_enable=True)
     requested.check_legal(geometry=controls["pool"].geometry)
-    with pytest.raises(ConfigError, match="dither_program"):
+    with pytest.raises(ConfigError, match="program or charge port"):
         run_pipeline(requested, dc_input(0.2), 4, **controls)
 
 
@@ -166,7 +166,7 @@ def test_invalid_sadc_thresholds_are_refused(thresholds):
 
 
 def test_active_input_network_requires_its_bus_capacitance_at_config_boundary(configuration_inputs):
-    from adi_model.input_network import InputNetworkParameters
+    from adi_model.behavioral.input_network import InputNetworkParameters
 
     cfg = replace(
         configuration_inputs,
@@ -185,7 +185,7 @@ def test_active_input_network_requires_its_bus_capacitance_at_config_boundary(co
 def test_selected_conversion_requires_actual_timing_and_models_at_config_boundary(
     configuration_inputs,
 ):
-    from adi_model.conversion import ConversionParameters
+    from adi_model.behavioral.conversion import ConversionParameters
 
     cfg = replace(configuration_inputs, conversion=ConversionParameters())
     with pytest.raises(ConfigError, match="quantizer_time_s|ra_duration_s|response_model"):
@@ -193,7 +193,7 @@ def test_selected_conversion_requires_actual_timing_and_models_at_config_boundar
 
 
 def test_active_reference_requires_its_explicit_events_and_switch_time(configuration_inputs):
-    from adi_model.conversion import ConversionParameters
+    from adi_model.behavioral.conversion import ConversionParameters
 
     timing = ConversionParameters(
         quantizer_time_s=3e-9,

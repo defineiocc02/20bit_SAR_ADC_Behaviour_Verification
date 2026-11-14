@@ -2,7 +2,7 @@
 
 [返回首页](../../README.md) · [English](../../README_EN.md) · [机器可读条件表](slide_matrix.json)
 
-> **历史基线提示：**本页图和矩阵记录 `6863fc3`，其中 bridge 掩码和参考事件差异是当时的发现。当前项目合同已统一，结构 RTL 的新观测及闭环见 [ADR 0021](../adr/0021-structural-contract-calibration.md) 和 [bridge 说明](../binary_unary_bridge.md)；本页图 6 仍展示当时的不一致，不能代表当前配置。
+> **历史基线提示：**本页图和矩阵记录 `6863fc3`，其中 bridge 掩码和参考事件差异是当时的发现。当前项目合同已统一，结构 RTL 的新观测及闭环见 [ADR 0021](../adr/0021-structural-contract-calibration.md) 和 [bridge 说明](../archive/binary_unary_bridge.md)；本页图 6 仍展示当时的不一致，不能代表当前配置。
 
 这里的图全部由仓库数据和脚本独立绘制；原论文及讲稿图片不随库分发。模型基线为 `6863fc3`，对照资料是 [ISSCC 2024 Session 9.8 论文](https://doi.org/10.1109/ISSCC49657.2024.10454329)及对应讲稿。40 MS/s 是共同条件，但讲稿没有公开每项实验的全部设置，以下是**条件部分匹配、可复现实验**，不是作者原实验的完全复刻，更不是芯片结果。
 

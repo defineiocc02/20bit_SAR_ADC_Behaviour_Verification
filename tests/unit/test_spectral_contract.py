@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from scipy.signal import periodogram
 
-from adi_model.metrics import (
+from adi_model.metrics.metrics import (
     _bh4,
     integrate_noise_band,
     power_spectral_density,
@@ -90,7 +90,7 @@ def test_invalid_records_fail_explicitly(x, fs):
 
 
 def test_paper_and_slides_are_separate_rounded_measurement_anchors():
-    from adi_model.benchmarks import PAPER_BENCHMARK, SLIDES_BENCHMARK
+    from adi_model.metrics.benchmarks import PAPER_BENCHMARK, SLIDES_BENCHMARK
 
     for profile, dr, nsd in ((PAPER_BENCHMARK, 94.2, 9.3e-9), (SLIDES_BENCHMARK, 94.6, 8.8e-9)):
         row = profile.to_dict()

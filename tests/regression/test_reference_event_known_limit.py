@@ -7,7 +7,9 @@
 import numpy as np
 import pytest
 
-from adi_model.dither import (
+from adi_model.control.dither import (
+    FIG19_FRACTIONAL_WEIGHTS_Q,
+    FIG19_STEP_Q,
     Fig19DitherProgram,
     Fig19DitherRangeError,
     Fig19StaticSpec,
@@ -18,9 +20,9 @@ from adi_model.dither import (
 def _spec():
     return Fig19StaticSpec(
         v_fs=3.0,
-        step_q=2**24,
+        step_q=FIG19_STEP_Q,
         voltage_fraction_bits=32,
-        fractional_lower_weights_q=(9586981, 4793490, 2396745),
+        fractional_lower_weights_q=FIG19_FRACTIONAL_WEIGHTS_Q,
         equivalent_polarity="subtract",
         provenance="Explicit bounded engineering fixture; no physical switch-network claim",
     )

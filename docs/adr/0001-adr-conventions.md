@@ -19,8 +19,8 @@
 | [0007](0007-provenance-as-a-runtime-value.md) | 参数来源分级升级为运行时机制 | 已采纳 | **A04** / A05 |
 | [0008](0008-exact-slope-for-skew.md) | 斜率用精确/谱导数，不用 `np.gradient` | 已采纳 | **A07.3** |
 
-逐条回应审计报告见 [`../audit_response.md`](../audit_response.md)；
-能证与不能证的边界见 [`../model_scope.md`](../model_scope.md)。
+逐条回应审计报告见 [`../audit_response.md`](../archive/audit_response.md)；
+能证与不能证的边界见 [`../model_scope.md`](../archive/model_scope.md)。
 
 ## 何时需要写一份 ADR
 

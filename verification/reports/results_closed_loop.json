@@ -1,0 +1,6 @@
+{
+  "level": "closed_loop",
+  "status": "NOT_RUN",
+  "missing": "closed loop needs the Python plant to consume RTL switch commands and return ADC2 codes through a file/transaction bridge; the V1 module benches do not yet expose the per-event command stream",
+  "profile": "adi_40m"
+}

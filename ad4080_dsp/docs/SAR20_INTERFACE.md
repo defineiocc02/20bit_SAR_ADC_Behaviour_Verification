@@ -1,6 +1,6 @@
 # SAR20与并行DSP接口
 
-> 本页记录真实SAR→DSP接口。handoff003固定15源及限定数字系统运行；[复现输入](tooling.md#复现指定的14个场景)和[逐模块状态](../../docs/digital_status_matrix.md)可查。完整SAR输入包与算术见[ABI2合同](../../docs/rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)。
+> 本页记录真实SAR→DSP接口。handoff003固定15源及限定数字系统运行；[复现输入](tooling.md#复现指定的14个场景)和[逐模块状态](../../docs/archive/digital_status_matrix.md)可查。完整SAR输入包与算术见[ABI2合同](../../docs/rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)。
 
 [sar20_system_top](../rtl/sar20_system_top.sv)连接SAR退休口和[sar20_ad4080_top](../rtl/sar20_ad4080_top.sv)。两个source模块负责SADC／RDAC采集偏移、实际mask与已知公共项；DSP不从输出码补造这些信息。
 

@@ -12,7 +12,7 @@
 
 三组资料不是同一套实现。当前工程包含 ISSCC／专利机制的项目候选及北大 CAAZ 样本域扩展；CICC 的连续时间后级、反馈电容与 SINC² tracking averaging 尚未由本工程复现。收录原件也不表示已经实现全部电路或完成全部组合验证。
 
-逐模块的原文位置、工程选择与未实现项见 [当前数字原文对照表](../docs/current_digital_source_map.md)；交付归属、工作状态及证据等级见 [数字状态总表](../docs/digital_status_matrix.md)。其他原件不随仓库分发。
+逐模块的原文位置、工程选择与未实现项见 [当前数字原文对照表](../docs/archive/current_digital_source_map.md)；交付归属、工作状态及证据等级见 [数字状态总表](../docs/archive/digital_status_matrix.md)。其他原件不随仓库分发。
 
 原件的版权与内嵌使用声明归原作者／出版方所有，不适用本工程的 BSD 软件许可，不因存放于此而获得新的授权。Python wheel 和 sdist 不包含这些 PDF；从发行包阅读本页时，请访问 [GitHub 资料目录](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/tree/main/references)获取仓库中的对应文件。
 

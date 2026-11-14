@@ -111,3 +111,18 @@ references/*
 !references/PKU_VLSI2025_C32_1_SLIDES.pdf
 !references/CICC2026_13_6_PAPER.pdf
 !references/CICC2026_13_6_SLIDES.pdf
+
+# Verification staging (compiled artefacts, never evidence)
+verification/build/
+verification/reports/waveforms/
+# ---- 仿真产物 ----
+simv
+simv_*
+obj_dir/
+csrc/
+csrc*/
+*.vcd
+*.fsdb
+vcs.log
+iv.log
+d3d4_mout.txt

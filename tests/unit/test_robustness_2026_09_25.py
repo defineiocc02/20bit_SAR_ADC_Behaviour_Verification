@@ -18,27 +18,34 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from adi_model.behavioral.charge_ref import ref_ra_charge, ref_ra_charge_nodal
+from adi_model.behavioral.conversion import response_interval
+from adi_model.behavioral.dynamics import crosstalk_error, switching_activity
+from adi_model.behavioral.input_network import (
+    InputNetworkParameters,
+    PassiveTrackingNetwork,
+    track_interval,
+)
+from adi_model.behavioral.low_frequency_noise import BandLimitedFlicker
+from adi_model.behavioral.pretracking import QuantizedPretracker
+from adi_model.behavioral.ra import ResidueAmplifier
+from adi_model.behavioral.reference_charge import physical_reference_program
+from adi_model.behavioral.sadc import build_first_stage_quantizer
+from adi_model.behavioral.sampler import dc_input, sine_input
 from adi_model.calib import observability, required_samples
-from adi_model.charge_ref import ref_ra_charge, ref_ra_charge_nodal
+from adi_model.calibration.weight_calibration import (
+    CalibrationUnidentifiableError,
+    fit_unit_weights,
+)
 from adi_model.cli import main_simulate
-from adi_model.config import Config, ConfigError
-from adi_model.conversion import response_interval
-from adi_model.dac_arch import NominalCodebook, SplitDAC
 from adi_model.defaults import DefaultParameters, default_model
-from adi_model.dynamics import crosstalk_error, switching_activity
-from adi_model.input_network import InputNetworkParameters, PassiveTrackingNetwork, track_interval
 from adi_model.inventory_gate import GateResult, _check_sources, build_summary, verify
-from adi_model.low_frequency_noise import BandLimitedFlicker
-from adi_model.mapper import Mapper
-from adi_model.metrics import reference_precision_bits
-from adi_model.pretracking import QuantizedPretracker
-from adi_model.ra import ResidueAmplifier
-from adi_model.reference_charge import physical_reference_program
-from adi_model.sadc import build_first_stage_quantizer
-from adi_model.sampler import dc_input, sine_input
-from adi_model.serialization import result_document, write_results
-from adi_model.slice_pool import PhysicalSlicePool
-from adi_model.weight_calibration import CalibrationUnidentifiableError, fit_unit_weights
+from adi_model.metrics.metrics import reference_precision_bits
+from adi_model.simulation.config import Config, ConfigError
+from adi_model.simulation.serialization import result_document, write_results
+from adi_model.simulation.slice_pool import PhysicalSlicePool
+from adi_model.topology.dac_arch import NominalCodebook, SplitDAC
+from adi_model.topology.mapper import Mapper
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -521,12 +528,15 @@ def test_sdist_excludes_third_party_originals_and_keeps_real_public_assets():
         "pyproject.toml",
         "references/README.md",
         "references/source_manifest.json",
-        "src/adi_model/defaults.py",
-        "src/adi_model/dither.py",
-        "src/adi_model/weight_calibration.py",
-        "src/adi_model/rtl_observation.py",
-        "src/adi_model/serialization.py",
-        "src/adi_model/cli.py",
+            "src/adi_model/defaults.py",
+            "src/adi_model/control/dither.py",
+            "src/adi_model/calibration/weight_calibration.py",
+            "src/adi_model/rtl_observation.py",
+            "src/adi_model/simulation/serialization.py",
+            "src/adi_model/cli.py",
+            "src/adi_model/topology/mapper.py",
+            "src/adi_model/behavioral/conversion.py",
+            "src/adi_model/metrics/metrics_lsb20.py",
         "docs/readme/make_source_bound_figures.py",
         "docs/readme/fig/source_bound_default_architecture_v1.png",
         "docs/readme/make_overview_figures.py",
@@ -770,7 +780,7 @@ def test_active_reference_recovery_matches_its_declared_exponential():
 
 def test_fit_unit_weights_rejects_nonfinite_or_nonpositive(synthetic_linear_data, monkeypatch):
     """因子非finite必须在乘法前拒绝；有限的非正权重由对应守卫拒绝。"""
-    import adi_model.weight_calibration as wc
+    import adi_model.calibration.weight_calibration as wc
 
     data, known = synthetic_linear_data.data, synthetic_linear_data.known
     assert np.all(fit_unit_weights(data, known).weights > 0)
@@ -907,7 +917,7 @@ def test_direct_auxiliary_request_accepts_explicit_finite_source():
 
 
 def test_atomic_result_write_failure_preserves_target_and_removes_temp(tmp_path, monkeypatch):
-    import adi_model.serialization as serialization
+    import adi_model.simulation.serialization as serialization
 
     target = tmp_path / "result.json"
     target.write_text("original")

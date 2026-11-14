@@ -436,7 +436,7 @@ including the new Verilator RTL simulation check.
 
 Independent charge/KCL/convolution, causal-state, noisy estimation, exhaustive
 20-bit arithmetic, coarse-transition, SciPy/Parseval and covariance tests are
-tracked in `docs/IMPLEMENTATION_CHECKPOINT.md`. Full-sweep, release-build and
+tracked in `docs/archive/IMPLEMENTATION_CHECKPOINT.md`. Full-sweep, release-build and
 exact-head CI evidence are recorded there separately from milestone results.
 
 ## [7.0.10] — 2026-09-12
@@ -491,14 +491,14 @@ The three patent mechanism models shipped in v7.0.8 ([12]
 not yet reflected in every document; several pages still read
 "not implemented". This release makes every statement consistent:
 
-- `docs/engineering_vs_patents_papers.md` — §1/§3.6/§4/§6 rows for
+- `docs/archive/engineering_vs_patents_papers.md` — §1/§3.6/§4/§6 rows for
   [12]/[13]/[14] moved from "❌ not implemented" to
   "⚠️ mechanism-level implemented, main-path integration pending";
   the pre-conditions note (R1/R2 first) kept verbatim.
-- `docs/model_scope.md` — §4 item 9 (A06) rewritten: mechanism level
+- `docs/archive/model_scope.md` — §4 item 9 (A06) rewritten: mechanism level
   answered by M13; main-path level still unsupported. §4 item 12
   rewritten: standalone models exist; pipeline integration pending.
-- `docs/STATUS.md` — D5 debt row re-scoped the same way.
+- `docs/archive/STATUS.md` — D5 debt row re-scoped the same way.
 - `docs/reproduction_report.{tex,pdf}` — N2 re-scoped ("main-path
   integration"), M-section extended to M1–M13 with three new entries,
   patent status table updated to the four-state wording, conclusion
@@ -577,7 +577,7 @@ R1/R2 physical-pool work (release discipline).
 
 Response to a **sixth external review** (fixed at `c0787dd`): adjudication of
 the release quality and the comparison document's wording.
-`docs/review_response_2026-09-11e.md` — all 10 findings adjudicated
+`docs/archive/review_response_2026-09-11e.md` — all 10 findings adjudicated
 (E1–E6 confirmed and fixed, E7–E9 confirmed as-is, E10 accepted as the
 next milestone's sole goal).
 
@@ -587,7 +587,7 @@ next milestone's sole goal).
   **`US 10,707,889 B1`** (verified three ways: the uploaded PDF's filename,
   the review's quotation of its front page, and an independent patent-db
   entry — ADI International, Bodnar/Hurrell/Ahmad, 2020-07-07). Fixed in
-  `NOTICE` and in both places of `docs/engineering_vs_patents_papers.md`.
+  `NOTICE` and in both places of `docs/archive/engineering_vs_patents_papers.md`.
 - **The comparison document's "✅ aligned" column mixed locally-true
   principles with main-path implementation status** (sixth review §2):
   the 18-slice row is now split into three (scheduler invariants ✅ /
@@ -603,7 +603,7 @@ next milestone's sole goal).
 
 ### Added
 
-- **`docs/reproduction_results.md`** — preliminary simulation evidence
+- **`docs/archive/reproduction_results.md`** — preliminary simulation evidence
   mapping disclosures to model outputs, every row carrying the
   `results.json` record key and the parameter grade: 11 quantitative rows
   (kT/C 20.10 µV derived from the disclosed 20.5 pF; 2b dither enhancement
@@ -627,7 +627,7 @@ metadata only. Reference outputs unchanged.
 
 ### Added
 
-- **`docs/key_technologies.md`** — the ten key technologies of this model,
+- **`docs/archive/key_technologies.md`** — the ten key technologies of this model,
   each with the concrete principle (with formulas), the code location, the
   counterexample that shows why it matters, and the pinning test: charge-
   consistent loop (T1), exact two-floating-node segmented-DAC solution and
@@ -648,13 +648,13 @@ Response to a **fifth external review** (fixed at the v7.0.4 commit
 `aab84c97`). This round changed character: not "is each criterion bound to
 the right node" but **what can this model actually guide, and what can it
 not**. Every checkable assertion was reproduced independently on the code;
-adjudication: `docs/review_response_2026-09-11d.md`. All 17 findings
+adjudication: `docs/archive/review_response_2026-09-11d.md`. All 17 findings
 adjudicated: 13 confirmed, 2 confirmed with qualification, 1 accepted as
 roadmap, 1 self-found inconsistency (below). No reference output change.
 
 ### Added
 
-- **`docs/engineering_vs_patents_papers.md`** — module-by-module engineering
+- **`docs/archive/engineering_vs_patents_papers.md`** — module-by-module engineering
   ↔ literature comparison: maps every code module back to its source in [00]
   and patents [09]–[14] with an explicit alignment status (aligned /
   mechanism-aligned-different-calibre / not implemented), the
@@ -697,7 +697,7 @@ roadmap, 1 self-found inconsistency (below). No reference output change.
   paired with exactly one sub rotation) — measured by enumeration and pinned
   as a *passing* test, `TestR16DemPermutationSpace`, so no DEM sweep in this
   repo can be quoted as the paper's three-dimensional mechanism
-  (`docs/model_scope.md` §4.11).
+  (`docs/archive/model_scope.md` §4.11).
 - **[12] tracking and [13] auxiliary input are absent from the source**
   (`grep aux|tracking src/` → 0 hits); the input-drive benefits of those
   patents cannot be derived from this model (`model_scope.md` §4.12).
@@ -757,7 +757,7 @@ asked instead **which physical node each acceptance criterion is bound to**. Tha
 is the more fundamental question: a criterion read at the wrong node cannot be
 rescued by tightening the gate around it — it makes the wrong answer *more*
 convincing. Per-finding adjudication, with the reproduction command for each:
-`docs/review_response_2026-09-11c.md`.
+`docs/archive/review_response_2026-09-11c.md`.
 
 **The reference output changes in exactly one record.** `tools/results/results.json`
 is byte-identical to v7.0.2 except for the `validate_ktc` KTC bandwidth entry,
@@ -853,7 +853,7 @@ gain, the hidden fit, the exit code) and accepted the qualification that the
 **default** ping-pong scheduler is causally correct — then found three further
 gaps. All three are confirmed on the code, and checking them turned up a live
 failing requirement that no gate had ever seen. Per-finding adjudication, with
-the reproduction command for each: `docs/review_response_2026-09-11b.md`.
+the reproduction command for each: `docs/archive/review_response_2026-09-11b.md`.
 
 Nothing in this section changes `tools/results/results.json`: the file is
 byte-identical to v7.0.1 (`65c047a9…4ecdec`), verified by a full re-run.
@@ -964,7 +964,7 @@ byte-identical to v7.0.1 (`65c047a9…4ecdec`), verified by a full re-run.
   reviewer's own charge, turned on this round's own comments. Fixed before
   release rather than after.
 - **The contract-test docstring indexed its findings against the wrong
-  document.** Round 2's table pointed at `docs/review_response_2026-09-11.md`
+  document.** Round 2's table pointed at `docs/archive/review_response_2026-09-11.md`
   (round 1's adjudication) and mislabelled §3.1. The two rounds are now listed
   separately with the correct section of each adjudication document, plus an
   explicit note that "§3.3 of the third review" inside an `xfail` reason means
@@ -978,7 +978,7 @@ rather than quietly fixed because that is the only way the count stays honest.
 ## [7.0.1] — 2026-09-11
 
 Response to a **second external review** (2026-09-11) of the published v7.0.0
-tree. Per-finding adjudication: `docs/review_response_2026-09-11.md`.
+tree. Per-finding adjudication: `docs/archive/review_response_2026-09-11.md`.
 
 The review's central charge was not "the code is wrong" but *"the fix landed in
 a helper and a test, not in the path that produces the result — so the tests
@@ -1038,7 +1038,7 @@ documentation**, listed first below.
 
 ### Added
 
-- **`docs/review_response_2026-09-11.md`** — 8 findings adjudicated one by one,
+- **`docs/archive/review_response_2026-09-11.md`** — 8 findings adjudicated one by one,
   each reproduced or refuted on the real code with the repository's own
   measurements (no number is taken on the reviewer's authority).
 
@@ -1060,7 +1060,7 @@ documentation**, listed first below.
 
 ### Changed
 
-- **`docs/model_scope.md`** — the KTC entry now states the boundary the review
+- **`docs/archive/model_scope.md`** — the KTC entry now states the boundary the review
   identified: `v_N` is subtracted digitally as a float array with no modelled
   quantiser, coding or latency, so the quoted gain is what an *ideal digital
   observation read-out* would give. The flicker entry's claim that the absent
@@ -1095,13 +1095,13 @@ documentation**, listed first below.
 ## [7.0.0] — 2026-09-10
 
 Major release. Triggered by an external audit of `adi_model_release_v6.1`
-(see `docs/audit_response.md`). Every item below is a **fix to a defect the
+(see `docs/archive/audit_response.md`). Every item below is a **fix to a defect the
 audit demonstrated numerically**, or a **governance change** that makes such
 defects detectable by CI instead of by peer review.
 
 > **Scope note.** This release does **not** claim to reproduce the target chip.
 > Audit finding A06 (shared residue amplifier on a time-varying reference) is
-> explicitly **not implemented** — see `docs/model_scope.md` §4. Anything that
+> explicitly **not implemented** — see `docs/archive/model_scope.md` §4. Anything that
 > would need it (why the published part reaches its accuracy, why an
 > integrating RA is unsuitable, the 50/69 mW figures) remains out of scope.
 
@@ -1121,7 +1121,7 @@ defects detectable by CI instead of by peer review.
   `require()` assertion, an 88-entry `PARAM_GRADES` table, and
   `audit_provenance()` which reports ungraded fields, fitted-in-use and
   assumed-in-use. See `docs/adr/0007-provenance-as-a-runtime-value.md`.
-- **Physical 18-slice pool** (`src/adi_model/slice_pool.py`):
+- **Physical 18-slice pool** (`src/adi_model/simulation/slice_pool.py`):
   `PhysicalSlicePool` owns the unit capacitors, the held charge and the
   acquisition history; `check_causality()` verifies that a converting slice
   actually holds the sample. `dac_error(conv, k, sid)` binds the mismatch to the
@@ -1153,7 +1153,7 @@ defects detectable by CI instead of by peer review.
   of each key in its heterogeneous result dict.
   **Verified numerically inert**: `tools/results/results.json` is
   byte-identical before and after (SHA256 `fb77298d…42bfd3c`, 93 751 B).
-- **`docs/STATUS.md`** — release-time snapshot: scale, the four gates,
+- **`docs/archive/STATUS.md`** — release-time snapshot: scale, the four gates,
   audit closure table, source-grading rules, docstring coverage, and an
   honest known-debt list (D1–D5).
 - **OSS scaffolding**: `CITATION.cff` (with the ISSCC 2024 DOI plus an
@@ -1291,7 +1291,7 @@ defects detectable by CI instead of by peer review.
   `README.md`; the English version moved to `README_EN.md`. The badge set
   (Python / ruff / mypy / tests) was mirrored onto the Chinese page so the
   default entry point is not thinner than the English one, and every
-  cross-reference was updated (`MANIFEST.in`, `CITATION.cff`, `docs/STATUS.md`).
+  cross-reference was updated (`MANIFEST.in`, `CITATION.cff`, `docs/archive/STATUS.md`).
   Internal anchors verified in both files (16 links each, 0 dangling).
 - **Sub-weight-induced INL is now derived, not hard-coded.** With the
   7b + 2b reading, `units_per_lsb1 (4) < n_sub (8)`, so the sub-array *is*
@@ -1303,7 +1303,7 @@ defects detectable by CI instead of by peer review.
   paper's PPT p.31 "Binary-to-unary bridging" calibrates; **this model does
   not implement that calibration**, so the base-row INL being above the
   published 2.2 LSB is *expected*, not a regression. It is booked as such in
-  `docs/model_scope.md`.
+  `docs/archive/model_scope.md`.
 - **Calibration observability rank is now a law, not a constant.** The old
   check asserted `rank(U) == 64 and top group size == 8` — derived from the
   v6.1 (b1=6) reading. Under the 7b reading the code sweep is `2**b1` and the

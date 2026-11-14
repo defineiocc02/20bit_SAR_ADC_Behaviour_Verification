@@ -1,0 +1,24 @@
+{
+  "module": "rdac_drv",
+  "seed": 20261112,
+  "count": 55,
+  "wildcard_mask": "all_active_all_on high_ids duplicate_last_wins id_out_of_range_ignored load_low_hold reset_beats_load recover_after_reset random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random random",
+  "field_width_bits": {
+    "slice_id": 40,
+    "main_on": 504,
+    "sub_on": 64,
+    "load": 1,
+    "rst_n": 1
+  },
+  "profile": {
+    "B1": 9,
+    "ADC2_BITS": 12,
+    "N_ACTIVE": 8,
+    "N_UNIT_MAIN": 63,
+    "N_UNIT_SUB": 8,
+    "N_SLICES": 18,
+    "W_BITS": 48,
+    "V_BITS": 64,
+    "OUT_BITS": 20
+  }
+}

@@ -42,8 +42,8 @@ python tools/run_open_rtl.py --tops result_fifo_tb --out ../sar-output/fifo-chec
 
 handoff003的15源SHA与当前模块一致，14个指定场景实际通过（FIFO含同bench的两个深度，不是14个独立顶层）；5个严格-Wall profile无warning／waiver。真实系统有185次完整20位比较、214次source握手、15448项检查，三个epoch恢复与三个restart阻断均有非空事件。原收据SHA256为`5daa8995a78ac9a34d51a09a4802099d3d6f6c37a0cc2f6575c7c84062a9b5f3`，复现所用输入与数学参数见[tooling](docs/tooling.md)。
 
-整链数值对拍覆盖unity／OFFSET0与bypass。SINC1／SINC5和补偿FIR有各自独立数值oracle，但filter_sel1/2/3经过完整DSP链的数值路由尚未对拍；kernel正确不能替代选择器与链路组合验证。GPIO／事件检测的证据限native top中实际输入回读、释放、阈值路由与ALERT，不声称所有选择功能或CDC通过。[逐模块证据](../docs/digital_status_matrix.md#15个dsp扩展模块)分开登记。
+整链数值对拍覆盖unity／OFFSET0与bypass。SINC1／SINC5和补偿FIR有各自独立数值oracle，但filter_sel1/2/3经过完整DSP链的数值路由尚未对拍；kernel正确不能替代选择器与链路组合验证。GPIO／事件检测的证据限native top中实际输入回读、释放、阈值路由与ALERT，不声称所有选择功能或CDC通过。[逐模块证据](../docs/archive/digital_status_matrix.md#15个dsp扩展模块)分开登记。
 
 `ad4080_dsp/sim/run_all.sh`只是同一显式组件runner的转发；不再代表默认7台或历史5/5集合。源、工具、参数、计数和断言范围以每次manifest为准。静态／文本工具用法见[tooling](docs/tooling.md)，注释与代码约定见[coding_standard](docs/coding_standard.md)。
 
-[历史仿真](docs/verification_sim.md)、[旧BMC](docs/formal.md)、[ECP5记录](docs/synthesis_ecp5.md)和[完成度百分比](docs/status_completion.md)保留旧身份，不作为当前源通过。当前全局状态以[B表](../docs/digital_status_matrix.md)及最终新收据为准。
+[历史仿真](docs/verification_sim.md)、[旧BMC](docs/formal.md)、[ECP5记录](docs/synthesis_ecp5.md)和[完成度百分比](docs/status_completion.md)保留旧身份，不作为当前源通过。当前全局状态以[B表](../docs/archive/digital_status_matrix.md)及最终新收据为准。

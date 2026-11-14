@@ -1,8 +1,8 @@
 # AD4080扩展：现行功能与来源追溯
 
-> 本表覆盖现行15模块。旧`cal_two_point`、LVDS、`settled`及固定增益常数以[9bdf原表](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/ad4080_dsp/docs/ad4080_traceability.md)解释。handoff003的14场景与5严格profile只支持[B表](../../docs/digital_status_matrix.md)所列数字范围。
+> 本表覆盖现行15模块。旧`cal_two_point`、LVDS、`settled`及固定增益常数以[9bdf原表](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/ad4080_dsp/docs/ad4080_traceability.md)解释。handoff003的14场景与5严格profile只支持[B表](../../docs/archive/digital_status_matrix.md)所列数字范围。
 
-页码均为已登记AD4080 Rev.B的PDF页码，身份见[A表](../../docs/current_digital_source_map.md#ref-ad4080)。手册说明的是外部器件功能，不公开本工程内部算法。没有唯一来源绑定的字段不得通过默认值假装已确证。
+页码均为已登记AD4080 Rev.B的PDF页码，身份见[A表](../../docs/archive/current_digital_source_map.md#ref-ad4080)。手册说明的是外部器件功能，不公开本工程内部算法。没有唯一来源绑定的字段不得通过默认值假装已确证。
 
 | 功能／模块 | 手册位置 | 当前实现与检查边界 | 状态 |
 | :--- | :--- | :--- | :--- |
@@ -28,6 +28,6 @@
 | 字节顺序、地址／ID、短指令位数及写相SDO | 使用显式参数与支持域；未绑定或不支持拒绝 | 不从旧代码或孤立图示推导器件唯一实现 |
 | 工程cfg_reject与processing_reject | 为本工程诊断，单独输出原因 | 不擅自占用／重定义厂商保留寄存器位 |
 
-代码定位以[15模块A表](../../docs/current_digital_source_map.md#3-15个dsp扩展模块)和[接口](SAR20_INTERFACE.md)为准；此处不保留会随整合漂移的旧行号。当前最高执行层级及未完成项由[B表](../../docs/digital_status_matrix.md)按最终源收据更新。
+代码定位以[15模块A表](../../docs/archive/current_digital_source_map.md#3-15个dsp扩展模块)和[接口](SAR20_INTERFACE.md)为准；此处不保留会随整合漂移的旧行号。当前最高执行层级及未完成项由[B表](../../docs/archive/digital_status_matrix.md)按最终源收据更新。
 
 明确controller／CAAZ fault由core conversion_fault经system sar_conversion_fault进入adapter；对已报告的13／7／8故障有真实fail-stop／restart阻断／epoch重载恢复。该设计不检测未报告的任意ID跳号，也不声明CAAZ＋DSP实际运行。源SHA、14场景及5profile的限定范围见[DSP说明](../README.md#怎样验证)。

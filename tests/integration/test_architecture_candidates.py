@@ -5,16 +5,16 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from adi_model.config import Config, ConfigError
-from adi_model.dac_arch import (
+from adi_model.behavioral.sadc import build_first_stage_quantizer
+from adi_model.control.dem import SplitSwitchCommand
+from adi_model.simulation.config import Config, ConfigError
+from adi_model.simulation.slice_pool import PhysicalSlicePool
+from adi_model.topology.dac_arch import (
     SplitChip,
     SplitDAC,
     charge_from_masks,
     topplate_voltage_from_effective_charge,
 )
-from adi_model.dem import SplitSwitchCommand
-from adi_model.sadc import build_first_stage_quantizer
-from adi_model.slice_pool import PhysicalSlicePool
 
 
 def test_nine_unknown_input_bits_do_not_come_from_dither_or_rdac_truth(

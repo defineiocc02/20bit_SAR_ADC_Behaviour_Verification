@@ -4,41 +4,171 @@
 来源元数据、配置合法性、数值模型与 RTL 证据分别报告；配置输入检查成功不代表电路或芯片性能已经复现。
 """
 
-from .adc2 import (
+from adi_model.behavioral.adc2 import (
     ADC2,
 )
-from .benchmarks import (
-    PAPER_BENCHMARK,
-    SLIDES_BENCHMARK,
-    PublishedBenchmark,
-)
-from .calib import (
-    Observability,
-    group_aggregate,
-    observability,
-    required_samples,
-)
-from .charge_ref import (
+from adi_model.behavioral.charge_ref import (
     ref_ra_charge,
     ref_ra_charge_nodal,
 )
-from .chopping_az import (
-    ChoppingAZParameters,
-    ChoppingAZResult,
-    pair_readout,
-    run_caaz_pipeline,
-)
-from .config import (
-    Config,
-    ConfigError,
-)
-from .conversion import (
+from adi_model.behavioral.conversion import (
     ConversionEngine,
     ConversionParameters,
     ConversionResult,
     response_interval,
 )
-from .dac_arch import (
+from adi_model.behavioral.dynamics import (
+    crosstalk_error,
+    switching_activity,
+)
+from adi_model.behavioral.input_network import (
+    InputNetworkParameters,
+    OffsetWaveform,
+    PassiveTrackingNetwork,
+    track_interval,
+)
+from adi_model.behavioral.low_frequency_noise import (
+    BandLimitedFlicker,
+)
+from adi_model.behavioral.pretracking import (
+    DecisionRecord,
+    InputAssistTrace,
+    PretrackPrediction,
+    QuantizedPretracker,
+)
+from adi_model.behavioral.ra import (
+    ResidueAmplifier,
+)
+from adi_model.behavioral.ra_az import (
+    OrdinaryAZConfig,
+    OrdinaryAZResult,
+    apply_ordinary_az,
+)
+from adi_model.behavioral.reference_charge import (
+    ReferenceProgram,
+    physical_reference_program,
+    sampled_bottom_voltages,
+)
+from adi_model.behavioral.sadc import (
+    SADC,
+    build_first_stage_quantizer,
+)
+from adi_model.behavioral.sampler import (
+    AnalyticInput,
+    SampleCapture,
+    capture,
+    dc_input,
+    input_derivative,
+    sine_input,
+    spectral_derivative,
+)
+from adi_model.calib import (
+    Observability,
+    group_aggregate,
+    observability,
+    required_samples,
+)
+from adi_model.calibration.reconstruction import (
+    DigitalState,
+    initialize_state,
+    reconstruct,
+)
+from adi_model.calibration.weight_calibration import (
+    CalibrationSpec,
+    CalibrationUnidentifiableError,
+    DigitalObservation,
+    FrozenCalibration,
+    apply_frozen_calibration,
+    fit_unit_weights,
+)
+from adi_model.contracts import (
+    ADI_40M,
+    DEFAULT_PROFILE_ID,
+    ENG_10M,
+    PATENT_FIG19,
+    PROFILES,
+    AcquisitionCommand,
+    DigitalObservation,
+    EventRecord,
+    FrozenCalibration,
+    PlantTrace,
+    Profile,
+    SampleContext,
+    SwitchCommand,
+    TopologySpec,
+    assert_caaz_free,
+    load_profile,
+)
+from adi_model.contracts.fixed_point import (
+    CodeStream,
+    FixedPointFormat,
+    FixedPointReconstructor,
+    round_even_divide,
+)
+from adi_model.control.dem import (
+    REF_HIGH,
+    REF_LOW,
+    SIGNAL,
+    SamplingConnections,
+    SplitSwitchCommand,
+    SplitSwitchGeometry,
+    split_switch_command,
+)
+from adi_model.control.timing import (
+    ScheduleBinding,
+    SlicePlan,
+    build_slice_plan,
+)
+from adi_model.defaults import DefaultModel, DefaultParameters, DefaultRun, default_model, simulate
+from adi_model.metrics.benchmarks import (
+    PAPER_BENCHMARK,
+    SLIDES_BENCHMARK,
+    PublishedBenchmark,
+)
+from adi_model.metrics.metrics import (
+    inl_from_mean_error,
+    integrate_noise_band,
+    power_spectral_density,
+    reference_precision_bits,
+    sine_fit_metrics,
+    spectrum_dbfs,
+    static_test,
+    summarize,
+)
+from adi_model.provenance import (
+    PARAM_GRADES,
+    PARAM_UNITS,
+    SOURCE_VALUES,
+    Graded,
+    GradingError,
+    SourceGrade,
+    annotate_config,
+    audit_provenance,
+    grade_of,
+)
+from adi_model.rtl_observation import (
+    observations_from_rtl,
+)
+from adi_model.simulation.config import (
+    Config,
+    ConfigError,
+)
+from adi_model.simulation.pipeline import (
+    run_pipeline,
+)
+from adi_model.simulation.scheduler import (
+    Allocation,
+    Scheduler,
+    make_scheduler,
+)
+from adi_model.simulation.sim import (
+    SimResult,
+)
+from adi_model.simulation.slice_pool import (
+    PhysicalSlicePool,
+    check_causality,
+)
+from adi_model.topology.dac_arch import (
     DACCharge,
     NominalCodebook,
     SamplingCharge,
@@ -50,122 +180,9 @@ from .dac_arch import (
     split_capacitance_coefficients,
     topplate_voltage_from_effective_charge,
 )
-from .defaults import DefaultModel, DefaultParameters, DefaultRun, default_model, simulate
-from .dem import (
-    REF_HIGH,
-    REF_LOW,
-    SIGNAL,
-    SamplingConnections,
-    SplitSwitchCommand,
-    SplitSwitchGeometry,
-    split_switch_command,
-)
-from .dynamics import (
-    crosstalk_error,
-    switching_activity,
-)
-from .fixed_point import (
-    CodeStream,
-    FixedPointFormat,
-    FixedPointReconstructor,
-    round_even_divide,
-)
-from .input_network import (
-    InputNetworkParameters,
-    OffsetWaveform,
-    PassiveTrackingNetwork,
-    track_interval,
-)
-from .low_frequency_noise import (
-    BandLimitedFlicker,
-)
-from .mapper import (
+from adi_model.topology.mapper import (
     MappedCodes,
     Mapper,
-)
-from .metrics import (
-    inl_from_mean_error,
-    integrate_noise_band,
-    power_spectral_density,
-    reference_precision_bits,
-    sine_fit_metrics,
-    spectrum_dbfs,
-    static_test,
-    summarize,
-)
-from .pipeline import (
-    run_pipeline,
-)
-from .pretracking import (
-    DecisionRecord,
-    InputAssistTrace,
-    PretrackPrediction,
-    QuantizedPretracker,
-)
-from .provenance import (
-    PARAM_GRADES,
-    PARAM_UNITS,
-    SOURCE_VALUES,
-    Graded,
-    GradingError,
-    SourceGrade,
-    annotate_config,
-    audit_provenance,
-    grade_of,
-)
-from .ra import (
-    ResidueAmplifier,
-)
-from .reconstruction import (
-    DigitalState,
-    initialize_state,
-    reconstruct,
-)
-from .reference_charge import (
-    ReferenceProgram,
-    physical_reference_program,
-    sampled_bottom_voltages,
-)
-from .rtl_observation import (
-    observations_from_rtl,
-)
-from .sadc import (
-    SADC,
-    build_first_stage_quantizer,
-)
-from .sampler import (
-    AnalyticInput,
-    SampleCapture,
-    capture,
-    dc_input,
-    input_derivative,
-    sine_input,
-    spectral_derivative,
-)
-from .scheduler import (
-    Allocation,
-    Scheduler,
-    make_scheduler,
-)
-from .sim import (
-    SimResult,
-)
-from .slice_pool import (
-    PhysicalSlicePool,
-    check_causality,
-)
-from .timing import (
-    ScheduleBinding,
-    SlicePlan,
-    build_slice_plan,
-)
-from .weight_calibration import (
-    CalibrationSpec,
-    CalibrationUnidentifiableError,
-    DigitalObservation,
-    FrozenCalibration,
-    apply_frozen_calibration,
-    fit_unit_weights,
 )
 
 __all__ = [
@@ -177,6 +194,25 @@ __all__ = [
     "power_spectral_density",
     "integrate_noise_band",
     "PARAM_UNITS",
+    "ADI_40M",
+    "DEFAULT_PROFILE_ID",
+    "ENG_10M",
+    "PATENT_FIG19",
+    "PROFILES",
+    "AcquisitionCommand",
+    "DigitalObservation",
+    "EventRecord",
+    "FrozenCalibration",
+    "PlantTrace",
+    "Profile",
+    "SampleContext",
+    "SwitchCommand",
+    "TopologySpec",
+    "assert_caaz_free",
+    "load_profile",
+    "OrdinaryAZConfig",
+    "OrdinaryAZResult",
+    "apply_ordinary_az",
     "ADC2",
     "Config",
     "ConfigError",
@@ -221,10 +257,6 @@ __all__ = [
     "audit_provenance",
     "ResidueAmplifier",
     "BandLimitedFlicker",
-    "ChoppingAZParameters",
-    "ChoppingAZResult",
-    "pair_readout",
-    "run_caaz_pipeline",
     "NominalCodebook",
     "SplitChip",
     "build_split_chip",

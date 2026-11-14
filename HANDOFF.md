@@ -1,6 +1,9 @@
 # HANDOFF — 阶段检查点与待办
 
-> 当前状态入口：[docs/STATUS.md](docs/STATUS.md)。本文件保留追加式历史交接，旧待办是否已经解除必须回到当前合同与实现核对。
+> 当前状态入口：[docs/HANDOVER.md](docs/HANDOVER.md) §2 与 [验收对照报告](docs/archive/ACCEPTANCE_20261113.md)。
+> （2026-11-13 更正：原指向 `docs/archive/STATUS.md`，但该文写于 2026-11-06、描述的是已被否决的
+> 63+8 拓扑，现已标记为历史。）
+> 本文件保留追加式历史交接，旧待办是否已经解除必须回到当前合同与实现核对。
 
 > **用途**（任务书 §11）：跨执行轮次的交接。新轮次先读本文件与
 > `mechanism_inventory.json`，**不得重新做状态总结后停止推进**。
@@ -19,7 +22,7 @@
 - **已完成**：
   - [x] 固定版本与原文证据：`sources_manifest.json`（8 份核心原文 SHA256 + 页数 + 定位规则，pypdf 页数实测）。
   - [x] 机制总清单：`mechanism_inventory.json`（M01–M16 + X01，三轴线 × 四类配置 × 实验状态；T01–T14 全覆盖映射；10 项待建 P01–P10 如实登记 NOT_RUN/BLOCKED）。
-  - [x] 统一物理口径：`docs/model_conventions.md`（电压/LSB/电容五量/时间频率/符号约定/量纲规则，变量名对齐 config.py）。
+  - [x] 统一物理口径：`docs/archive/model_conventions.md`（电压/LSB/电容五量/时间频率/符号约定/量纲规则，变量名对齐 config.py）。
   - [x] 清单↔代码库一致性门禁：`src/adi_model/inventory_gate.py` + `tests/unit/test_inventory_gate.py`（代码路径/测试 ID/来源哈希/枚举/覆盖五类校验，产出严格类型 summary）。
 - **执行记录**：
   - `python -m adi_model.inventory_gate --repo-root . --summary validation_summary.json` → 退出码 0（PASS/BLOCKED 明细见 summary；[00]–[14] 哈希比对 PASS，原文不随仓库分发）。
@@ -52,7 +55,7 @@ python -m adi_model.inventory_gate --repo-root . && pytest -m "not slow" -q
     BLOCKED 并交付可运行接口（不伪造）。
 11. 引用页码复核：sources_manifest 中 `citation_status: inherited` 的条目
     （[00]/[00_1]/[09]/[10]/[11]）逐页对原文核实后改 `page_checked`。
-12. 阶段 B：把 `docs/model_conventions.md` 的量纲规则升级为自动门禁
+12. 阶段 B：把 `docs/archive/model_conventions.md` 的量纲规则升级为自动门禁
     （单位缩放等价测试进 pytest）。
 
 ## 纪律（沿用发版流程）

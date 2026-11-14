@@ -1,0 +1,27 @@
+// 编译文件清单
+rtl/core/adc2_dec.sv
+rtl/core/analog_phase_ctrl.sv
+rtl/core/cal_output_stage.sv
+rtl/core/cal_residue_mac.sv
+rtl/core/cal_sample_context.sv
+rtl/core/cal_weight_reduce.sv
+rtl/core/calib_regs.sv
+rtl/core/div_floor.sv
+rtl/core/rdac_drv.sv
+rtl/core/recon_core.sv
+rtl/core/sar_structural_ctrl.sv
+rtl/core/sar_trial_ctrl.sv
+rtl/core/slice_pool_ctrl.sv
+rtl/core/status_regs.sv
+rtl/core/unit_therm.sv
+rtl/core/weight_store.sv
+rtl/top/sadc_enc.sv
+rtl/top/sar20_digital_core.sv
+rtl/dither_split.sv
+rtl/cdac_decode.sv
+rtl/dem_shuffle.sv
+rtl/recon_d5.sv
+rtl/digital_top.sv
+rtl/slice_pool.sv
+rtl/follower.sv
+rtl/recon_d5_w.sv

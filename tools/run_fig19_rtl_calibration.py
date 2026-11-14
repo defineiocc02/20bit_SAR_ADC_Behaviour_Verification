@@ -22,12 +22,12 @@ sys.dont_write_bytecode = True
 
 import numpy as np  # noqa: E402
 
-from adi_model.config import Config  # noqa: E402
-from adi_model.dac_arch import SplitChip  # noqa: E402
+from adi_model.calibration.weight_calibration import fit_unit_weights  # noqa: E402
+from adi_model.contracts.fixed_point import FixedPointReconstructor  # noqa: E402
 from adi_model.defaults import default_model  # noqa: E402
-from adi_model.fixed_point import FixedPointReconstructor  # noqa: E402
 from adi_model.rtl_observation import observations_from_rtl  # noqa: E402
-from adi_model.weight_calibration import fit_unit_weights  # noqa: E402
+from adi_model.simulation.config import Config  # noqa: E402
+from adi_model.topology.dac_arch import SplitChip  # noqa: E402
 from export_fitted_rtl import build_fitted_registers  # noqa: E402
 from export_rtl_params import build  # noqa: E402
 from run_open_rtl import (  # noqa: E402
@@ -51,7 +51,18 @@ def require(condition: bool, message: str) -> None:
 
 
 def dither_terms(word: int) -> tuple[int, int, int]:
-    """按独立源合同逐位求整数L/T/U，不调用SV译码或实际电容。"""
+    """按独立源合同逐位求整数 L/T/U，不调用 SV 译码或实际电容。
+
+    ⚠️ **本函数里的权重是 63+8 时代的显式合同值**（`step_q = 2**24`，
+    低位权 9586981/4793490/2396745），与 `sim/fixtures/fig19_ideal_ports/`
+    那份遗留 fixture 配套。主链已切到 17/5（`FIG19_STEP_Q = 16810048`），
+    但**这里不能跟着改**：
+      * 它服务于对该 fixture 的 RTL 重放，fixture 本身就是按 63/8 构造的；
+      * 改了会让"合同值"与"fixture 实际数据"不一致，反而产生假通过/假失败。
+
+    要用当前模型跑这条路径，必须先把 fixture 整套重建
+    （见 `sim/fixtures/fig19_ideal_ports/README.md` 的三步说明）。
+    """
     require(type(word) is int and 0 <= word < 64, "six-bit Fig19 word required")
     upper = 4 * ((word >> 5) & 1) + ((word >> 3) & 1)
     lower = 33554432 * ((word >> 4) & 1)
@@ -321,11 +332,19 @@ def verify_trace(
         for physical in range(18):
             if physical not in ids:
                 continue
-            for unit in range(71):
-                packed = int(residue["main_physical"] if unit < 63 else residue["sub_physical"], 16)
+            # 主/子位宽取芯片实际列数（63+8 → 17/5），不再写死。
+            n_main_bits, n_sub_bits = chip.n_main, chip.n_sub
+            for unit in range(n_main_bits + n_sub_bits):
+                packed = int(
+                    residue["main_physical"] if unit < n_main_bits else residue["sub_physical"], 16
+                )
                 bit = (
                     packed
-                    >> (physical * (63 if unit < 63 else 8) + (unit if unit < 63 else unit - 63))
+                    >> (
+                        physical
+                        * (n_main_bits if unit < n_main_bits else n_sub_bits)
+                        + (unit if unit < n_main_bits else unit - n_main_bits)
+                    )
                 ) & 1
                 f += float(plant_weights[physical, unit]) * (rdac_v + config.v_fs * (1 - 2 * bit))
         require(
@@ -576,8 +595,10 @@ def main() -> int:
             np.concatenate((chip.C_main, beta[:, None] * chip.C_sub), axis=1)
             / chip.require_feedback()
         )
+        # 几何来自芯片本身，不写字面量：63+8 时代是 (18, 71)，切到 17/5 后是 (18, 22)。
+        # 写死 71 会让工具在几何切换后静默失败（本轮就是这样被抓出来的）。
         require(
-            plant_weights.shape == (18, 71) and np.all(plant_weights > 0),
+            plant_weights.shape == (18, chip.n_main + chip.n_sub) and np.all(plant_weights > 0),
             "explicit plant geometry differs",
         )
         plant_path = out / "plant_effective_weights_only.txt"

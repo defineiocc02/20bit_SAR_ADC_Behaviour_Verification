@@ -1,3 +1,5 @@
+> **状态说明（2026-11-12）**：本文引用的 `8`、`8` 当前不在本仓库内，原文链接已改为纯文本；这些条目只代表历史计划。
+
 # P2/P3 模块接口与向量格式（冻结）
 
 > 当前实现修订：以 [ADR 0016](../adr/0016-rtl-configuration-and-dither.md) 和
@@ -8,7 +10,7 @@
 
 - 状态：**已冻结**，2026-09-18
 - 上游：`docs/rtl/RTL_ARITHMETIC_CONTRACT.md`（算术，冻结）、`docs/rtl/P1_INTERFACE.md`（P1 已交付的 M1–M5）
-- 适用：`rtl/core/` 下 M6–M13、M16、M17 与 `rtl/top/` 下的 M8、顶层，以及 `sim/tb/p2_tb.sv`
+- 适用：`rtl/` 下 M6–M13、M16、M17 与 `rtl/` 下的 M8、顶层，以及 `sim/tb/p2_tb.sv`
 - 本文与 P1 文档**同一套全局约定**（§0.1），仅补充新增项
 
 ---
@@ -37,17 +39,17 @@ P5 若确认功耗吃紧，再作为独立优化项引入。
 
 | ID | 模块 | 文件 | 阶段 | 一句话职责 |
 |:---|:---|:---|:---:|:---|
-| — | `div_floor` | `rtl/core/div_floor.sv` | P2 | 有符号**floor** 除法（唯一除法器），恢复余数法 |
-| M9 | `adc2_dec` | `rtl/core/adc2_dec.sv` | P2 | 原始后端码 → Q32 bin center（唯一舍入点，ties-to-even） |
-| M11 | `recon_core` | `rtl/core/recon_core.sv` | P2 | **定点重构核**：权重×掩码求和 → 受检算术 → floor 除 → 20 bit 饱和输出 |
-| M7 | `slice_alloc` | `rtl/core/slice_alloc.sv` | P2 | 18-of-8 分配，A/B ping-pong，`conv[n] = acq[n-1]` |
-| M6 | `rdac_drv` | `rtl/core/rdac_drv.sv` | P2 | 8 个活动 slice 的 unary 开关码扇出到 18 个物理 slice |
-| M16 | `ctrl_fsm` | `rtl/core/ctrl_fsm.sv` | P2 | 相位节拍生成 + 流水控制脉冲 |
-| M17 | `status_regs` | `rtl/core/status_regs.sv` | P2 | 粘滞溢出/剪裁/错误码 |
-| M12 | `weight_store` | `rtl/core/weight_store.sv` | P3 | 18 × 71 Q30 权重存储（含写入窗口） |
-| M13 | `calib_regs` | `rtl/core/calib_regs.sv` | P3 | 系数寄存器 + 合法性校验 + `cfg_ready` |
-| M8 | `sadc_enc` | `rtl/top/sadc_enc.sv` | P2 | 比较器阵列温度计 → 二进制（**在核外**，见 `rtl/README.md` §3.1） |
-| — | `sar20_digital_core` | `rtl/top/sar20_digital_core.sv` | P2 | 顶层集成 |
+| — | `div_floor` | `rtl/div_floor.sv` | P2 | 有符号**floor** 除法（唯一除法器），恢复余数法 |
+| M9 | `adc2_dec` | `rtl/adc2_dec.sv` | P2 | 原始后端码 → Q32 bin center（唯一舍入点，ties-to-even） |
+| M11 | `recon_core` | `rtl/recon_core.sv` | P2 | **定点重构核**：权重×掩码求和 → 受检算术 → floor 除 → 20 bit 饱和输出 |
+| M7 | `slice_alloc` | `rtl/slice_alloc.sv` | P2 | 18-of-8 分配，A/B ping-pong，`conv[n] = acq[n-1]` |
+| M6 | `rdac_drv` | `rtl/rdac_drv.sv` | P2 | 8 个活动 slice 的 unary 开关码扇出到 18 个物理 slice |
+| M16 | `ctrl_fsm` | `rtl/ctrl_fsm.sv` | P2 | 相位节拍生成 + 流水控制脉冲 |
+| M17 | `status_regs` | `rtl/status_regs.sv` | P2 | 粘滞溢出/剪裁/错误码 |
+| M12 | `weight_store` | `rtl/weight_store.sv` | P3 | 18 × 71 Q30 权重存储（含写入窗口） |
+| M13 | `calib_regs` | `rtl/calib_regs.sv` | P3 | 系数寄存器 + 合法性校验 + `cfg_ready` |
+| M8 | `sadc_enc` | `rtl/sadc_enc.sv` | P2 | 比较器阵列温度计 → 二进制（**在核外**，见 `rtl/README.md` §3.1） |
+| — | `sar20_digital_core` | `rtl/sar20_digital_core.sv` | P2 | 顶层集成 |
 
 拓扑（顶层内部，全部同一时钟域）：
 
@@ -550,7 +552,7 @@ module calib_regs #(
 
 ---
 
-## 10. M8 `sadc_enc`（核外，`rtl/top/`）
+## 10. M8 `sadc_enc`（核外，`rtl/`）
 
 ```systemverilog
 module sadc_enc #(
@@ -617,7 +619,7 @@ module sar20_digital_core (
 > **端口表修正（2026-09-18）**：本节初版**漏列了 `inj_q`**。`recon_core` 的 `num` 里有
 > `− total·I` 这一项，`I` 必须从顶层进；而 §11 的 `cfg_addr` 映射里也没有它的位置
 > （它**逐样本**变，而 cfg 寄存器是配置期写一次的）。所以它是顶层输入端口，不是寄存器。
-> 这一处修正由实现阶段发现，已登记在 `rtl/top/sar20_digital_core.sv` 的模块头。
+> 这一处修正由实现阶段发现，已登记在 `rtl/sar20_digital_core.sv` 的模块头。
 >
 > **契约修正 2：顶层还需 `input logic adc2_over`（2026-09-18，L3 测试发现）**。
 > `analog_ovf = rdac_ovf | adc2_ovf | ra_sat` 里的 `adc2_ovf` 指模型的 `adc2_over`：
@@ -678,7 +680,7 @@ module sar20_digital_core (
 | `p2_sat.hex` | 61 | `inj_q(16) adc2_code(3) w_scale(1) exp_word(5) exp_clip_low(1) exp_clip_high(1)` | 剪裁（**4 bit oracle 后端** + `w_scale`） |
 | `p2_masks.hex` | 520 | `slice_id[8](2 each) main_on[8](16 each) sub_on[8](2 each) adc2_code(3) inj_q(16) exp_word(5) exp_clip_low(1) exp_clip_high(1)` | `recon_core` 的**真实掩码**用例 |
 | `p2_ramp.hex` | 2054 | 同 `p2_masks` 末加 `rel_step(2 signed)` | 511 个进位 × 4 点（抽稀，见下） |
-| `p2_alloc.hex` | 71 | `n(2) acq[8](2) conv[8](2) bank(1) conv_valid(1)` | `slice_alloc` 的 pingpong 表 |
+| `p2_alloc.hex` | 71 | `n(2) acq`8`（当前仓库无此文件） conv`8`（当前仓库无此文件） bank(1) conv_valid(1)` | `slice_alloc` 的 pingpong 表 |
 | `p2_link_weights.hex` | 1284 | `slice(2) unit(2) w_q(12)` | 18×71 权重（所有 recon 用例共用这一份） |
 | `p2_link_stim.hex` | 520 | `bank(1) coarse(3) dither(2) inj_q(16) adc2_code(3)` | **L3 只给最外层激励** |
 | `p2_link_expected.hex` | 517 | `dout(5) clip_low(1) clip_high(1) analog_ovf(1)` | L3 期望 |

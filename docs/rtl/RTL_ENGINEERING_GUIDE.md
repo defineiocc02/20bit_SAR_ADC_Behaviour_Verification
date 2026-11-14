@@ -1,10 +1,10 @@
 # RTL工程入口、样本归属与调试
 
-> ABI2的8文件包、两采集端口、calobs v2及整数规则已经按实际源码复核。指定DUT有限窗见[B表](../digital_status_matrix.md)；本页流程不代替宏时序或工艺证据。
+> ABI2的8文件包、两采集端口、calobs v2及整数规则已经按实际源码复核。指定DUT有限窗见[B表](../archive/digital_status_matrix.md)；本页流程不代替宏时序或工艺证据。
 
 ## 入口与模块分工
 
-[rtl_sources.f](../../rtl/rtl_sources.f)含20个模块：16 core、2 top、2个可选CAAZ叶模块。外部`source_control_binding`和`source_acquisition_binding`随输入包提供，不计为仓库新增的第21／22个模块。[现行接口与算术合同](CURRENT_INTERFACE_AND_ARITHMETIC.md)是正式冻结入口，[A表](../current_digital_source_map.md)和[B表](../digital_status_matrix.md)分别说明来源与证据。
+[rtl_sources.f](../../rtl/rtl_sources.f)含20个模块：16 core、2 top、2个可选CAAZ叶模块。外部`source_control_binding`和`source_acquisition_binding`随输入包提供，不计为仓库新增的第21／22个模块。[现行接口与算术合同](CURRENT_INTERFACE_AND_ARITHMETIC.md)是正式冻结入口，[A表](../archive/current_digital_source_map.md)和[B表](../archive/digital_status_matrix.md)分别说明来源与证据。
 
 | 实现 | 职责 | 首选观察 |
 | :--- | :--- | :--- |
@@ -67,6 +67,6 @@ calobs v2从高位到低位包含sample ID、coarse、state、control word、ADC
 
 观察在重构接受沿产生，reset／epoch clear优先取消。schema、规格、两只source源码和binding摘要均须一致；报文没有配置epoch、实际模拟状态、ready、FIFO或外部输送。捕获、独立参考对齐、缺样、带宽和配置切换仍是系统职责。
 
-[控制组件示例](../REPRODUCING.md#5-显式导出与rtl组件执行)先导出8文件包，再显式提供权重、标量和32 frames；[CAAZ数字组件](../REPRODUCING.md#caaz数字组件)还核配对与归属。组件必须实际编译／运行并保留工具版本、源SHA、参数、输入、marker和计数；完整核不套用旧P1/P2/P3、34bench默认集合或“已知失败即通过”。当前静态闭环、有限窗与拒绝反例见[B表](../digital_status_matrix.md)；公共重跑及同池重放见[复现](../REPRODUCING.md#5-显式导出与rtl组件执行)。
+[控制组件示例](../REPRODUCING.md#5-显式导出与rtl组件执行)先导出8文件包，再显式提供权重、标量和32 frames；[CAAZ数字组件](../REPRODUCING.md#caaz数字组件)还核配对与归属。组件必须实际编译／运行并保留工具版本、源SHA、参数、输入、marker和计数；完整核不套用旧P1/P2/P3、34bench默认集合或“已知失败即通过”。当前静态闭环、有限窗与拒绝反例见[B表](../archive/digital_status_matrix.md)；公共重跑及同池重放见[复现](../REPRODUCING.md#5-显式导出与rtl组件执行)。
 
 旧BMC、Vivado／XSim／OOC和代理记录只支持原版本及其限制。当前目标库综合／STA、形式等价、CDC/RDC、晶体管／PEX没有通过声明。

@@ -1,0 +1,13 @@
+{
+  "level": "module",
+  "host": {
+    "available": false,
+    "detail": "Connection timed out during banner exchange\r\nConnection to UNKNOWN port 65535 timed out",
+    "host": "vm-meow"
+  },
+  "started": "2026-11-12T23:11:10",
+  "modules": [],
+  "status": "NOT_RUN",
+  "reason": "no simulator on vm-meow: Connection timed out during banner exchange\r\nConnection to UNKNOWN port 65535 timed out",
+  "profile": "adi_40m"
+}

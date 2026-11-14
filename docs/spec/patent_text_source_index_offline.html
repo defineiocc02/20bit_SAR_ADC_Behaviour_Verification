@@ -1,0 +1,102 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ADI 六份授权专利：正文链接与离线关键事实索引</title><style>body{max-width:1100px;margin:32px auto;padding:0 22px;font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;color:#263238;background:white}h1{font-size:29px}h2{font-size:22px;margin-top:40px;border-bottom:1px solid #dde4e8;padding-bottom:7px}a{color:#1573ad}p,li{line-height:1.7}th,td{border:1px solid #cad6df;padding:10px;text-align:left}table{width:100%;border-collapse:collapse;font-size:14px}thead{background:#eaf2f7}code{background:#eaf2f7;border-radius:3px;padding:1px 4px}#search{width:98%;padding:12px;font:inherit;border:1px solid #98adbb;border-radius:6px}#status{font-size:13px;color:#64748b;margin:5px 0 18px}</style></head><body><label for="search">离线知识索引关键字筛选（正文完整原文请点击授权号链接）：</label><input id="search" placeholder="例如 S4 / D6 / shuffler 350 / 17 / AUX"><p id="status">可用Ctrl+F检索页面全文，也可输入关键词过滤章节</p><h1>ADI 六份授权专利：同授权号、同版本的<strong>可检索正文入口</strong>与离线关键事实索引</h1>
+<p><strong>用途</strong>：解决 Agent 本机扫描PDF没有文本层、Google Patents访问502的阻塞。以下每个英文原文链接都已按<strong>授权号US…B1/B2</strong>核对，不是公开申请A1替代。可以在网页使用浏览器 <code>Ctrl+F</code> 搜索 <code>S4</code>、<code>FIG. 19</code>、<code>sub-array 74</code>、<code>shuffler 350</code> 等词。</p>
+<p><strong>版权与准确性提示</strong>：本文件的中文/英文关键词说明是<strong>核查摘记与转述</strong>，不是整份授权专利正文的逐字镜像。若需要逐段核对，点击下列同版“Full searchable text”网页；可用镜像标为备用，不能未经核对把任意A1申请文本当成同一B版。对于本地仍访问不了的页面，本索引足以消除当前最关键的编码歧义，但无法代替对全部段落的逐字取证。</p>
+<table>
+<thead>
+<tr>
+  <th>授权号</th>
+  <th>准确名称</th>
+  <th>同版可搜索全文入口</th>
+  <th>核查状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>US10516408B2</td>
+  <td>Analog to digital converter stage</td>
+  <td>https://patents.google.com/patent/US10516408B2/en</td>
+  <td>已核对授予号及正文</td>
+</tr>
+<tr>
+  <td>US10511316B2</td>
+  <td>Method of linearizing the transfer characteristic by dynamic element matching</td>
+  <td>https://patents.google.com/patent/US10511316B2/en</td>
+  <td>已核对授予号及正文</td>
+</tr>
+<tr>
+  <td>US10505561B2</td>
+  <td>Method of applying a dither, and analog to digital converter operating in accordance with the method</td>
+  <td>https://patents.google.com/patent/US10505561B2/en</td>
+  <td>已核对授予号及正文</td>
+</tr>
+<tr>
+  <td>US10707889B1</td>
+  <td>Interleaving method for analog to digital converters</td>
+  <td>https://patents.google.com/patent/US10707889B1/en</td>
+  <td>已核对授予号及正文</td>
+</tr>
+<tr>
+  <td>US10541702B1</td>
+  <td>Auxiliary input for analog-to-digital converter input charge</td>
+  <td>https://patents.google.com/patent/US10541702B1/en</td>
+  <td>已核对授予号及正文</td>
+</tr>
+<tr>
+  <td>US10826519B1</td>
+  <td>Lower power reference for an analog to digital converter</td>
+  <td>https://patents.google.com/patent/US10826519B1/en</td>
+  <td>已核对授予号及正文</td>
+</tr>
+</tbody>
+</table>
+<p>已核实的备用原文地址（Justia，对应同一授权号）：</p>
+<ul>
+<li>DEM: https://patents.justia.com/patent/10511316</li>
+<li>Stage: https://patents.justia.com/patent/10516408</li>
+</ul>
+<p>其他专利的 Justia 备用链接在本次网络环境未成功验证，<strong>不提供猜测链接</strong>。</p>
+<h2>A. US10511316B2 — DEM 的关键、与现有源码直接冲突的证据</h2>
+<p><strong>全文检索词：</strong><code>FIG. 11</code>、<code>S4</code>、<code>not included in sampling</code>、<code>FIG. 14</code>、<code>FIG. 16</code>、<code>FIG. 17</code>、<code>FIG. 19</code>、<code>FIG. 20</code>、<code>shuffler 350</code>、<code>shuffler 352</code>、<code>signal gate 362</code>、<code>reserved column</code>。</p>
+<ol>
+<li>Fig.11的主子阵列描述中，主段采用 0–14 号 2C 单元（15个），再有 B4 单元1C和额外 S4 单元1C。<strong>S4是被第二组信息控制的物理单元，不是没有数字位就可以删掉的电容</strong>。</li>
+<li><strong>该专利实施例的sub-DAC 74不参与输入采样</strong>，因此不能在采样期直接给所有sub底板无条件填VIN；需看具体端点与初始电位。</li>
+<li>Fig.14/15给出把低权重位用各片 S4 的开关分布表示的例子。具体DS片号/分布属于该示例，不是所有Fig.16/20版本的固定接法。</li>
+<li>Fig.16/17是两级shuffle方案：先水平一元编码/打乱主阵列部分列，后纵向结合B4/B5/B6及B3两个2C列、B4和S4两列（不同重量需守恒）。不能把“轮转物理片号”冒充跨边界权重搬移。</li>
+<li>Fig.19/20是另一个排列顺序的实施例：350低位shuffle、352主位shuffle；352有用于保留列的常0输入。控制器353与MX开关把350的输出切换到该保留物理列。<code>362</code>是<strong>signal gate</strong>，可用布尔门/MUX，不是强制大型crossbar。</li>
+<li><code>reserved column</code>的真实功能不是把phase15映射phase0。保留列仍可承载来自其他shuffler的片间信息。</li>
+<li>不能把Fig.14、Fig.17、Fig.20所有控制逐句合并为同一个没有对应原图的编码器。</li>
+</ol>
+<p><strong>建议必须跑的代码反例</strong>：S4开关指令从0→1时，相同主物理电容的两节点KCL变化；<code>mask</code>和实际C数不一致时必须拒绝；低码下轮转须观察跨片/跨列，而非只看满码。</p>
+<h2>B. US10505561B2 — Dither Fig.19：位组和数值来源</h2>
+<p><strong>全文检索词：</strong><code>FIG. 19</code>、<code>A=6</code>、<code>Seven slices</code>、<code>D5</code>、<code>D6</code>、<code>fractional part</code>、<code>subtracted from the digital output</code>、<code>FIG. 20</code>。</p>
+<ol>
+<li>Fig.19举六位第一dither字的<strong>例子</strong>，A可以不等于6。示例七个slice共同采样；低三位 D3、D2、D1 通过设置七片相邻整数电平来产生分数值（例如5/7）。</li>
+<li>第一dither值（全字）参与采样residue DAC；第二值使用D5、D3、D2、D1进入第一量化侧；第三值使用D6和D4，数字上取0、1、4、5之一区间，<strong>从第一ADC输出减去</strong>以决定RDAC控制。</li>
+<li>剩余的第二值形成后级余差中的残留dither，随后在第二级转换结果中抵消；不能只改前级码后忽略后级数字减扰。</li>
+<li>Fig.20给出<strong>不同实施例</strong>，可省略第一ADC输出的224修正，改为后级一次性处理；这不是与Fig.19等价的器件位置图。</li>
+<li><strong>七片分数4:2:1/7</strong>来自该具名例子。论文八片活动RDAC的实际dither分路可按论文指出的两位range扩展进行行为研究，但<strong>不得无需证明把分母7写成八片实际DAC物理事实</strong>。</li>
+</ol>
+<p><strong>建议必须跑的代码反例</strong>：至少一个upper/lower都非零的6位dither字；按原图方向和工程坐标方向各自记账；关闭数字去扰时残留、开启后抵消，余差/参考范围可量化。</p>
+<h2>C. US10516408B2 — Slice Stage / Follower</h2>
+<p><strong>全文检索词：</strong><code>FIG. 7</code>、<code>FIG. 16</code>、<code>slice</code>、<code>sampling DAC stages may be set bit by bit</code>、<code>31 unit cells</code>、<code>63 unit cells</code>。</p>
+<ol>
+<li>一个slice执行SAR试探，其余相似slice采样相同VIN并组成低噪声残差DAC；残差DAC根据量化结果进行更新，<strong>自身不必重演试探与撤销开关</strong>。</li>
+<li>专利给过31或63单元的不同例子，它们是示范的候选DAC几何，不是ISSCC实测芯片必然选用的同一阵列。</li>
+<li>采样slice的RC、开关位置、器件几何及时间偏差很重要；共享ADC时需要明确是否在同一采样边沿更新。</li>
+</ol>
+<h2>D. US10707889B1 — TRACK预置</h2>
+<p><strong>关键词：</strong><code>TRACK</code>、<code>interleaving</code>、<code>conversion information</code>、<code>precharge</code>、<code>phase</code>。</p>
+<p><strong>建模取向</strong>：若使用已知先前量化信息对未来采集RDAC预置，必须证明信息在预置截止时间前已就绪；<code>lookback</code>不是专利给出的普遍固定数值。此专利是独立的工程可选机制，不能从专利存在推断ISSCC芯片已全部实现。</p>
+<h2>E. US10541702B1 — AUX输入</h2>
+<p><strong>关键词：</strong><code>auxiliary input</code>、<code>boost</code>、<code>parasitic</code>、<code>input charge</code>、<code>switch node</code>。</p>
+<p><strong>建模取向</strong>：辅助路径必须连接到明确的寄生电容或开关相关节点、产生实际电荷转移；不能只输出“输入电流下降x倍”的数字后处理。芯片是否使用该具体实例需单独由ISSCC资料验证。</p>
+<h2>F. US10826519B1 — 低功耗参考</h2>
+<p><strong>关键词：</strong><code>reference</code>、<code>precharge</code>、<code>internal</code>、<code>mux</code>、<code>comparator</code>。</p>
+<p><strong>建模取向</strong>：先读论文Fig.9.8.3和PPT第27张已经明确的“转换粗、RA精”结构。再选这份专利<strong>最匹配</strong>的实施例；不要把所有内部参考/比较器结构拼进论文芯片。需要模拟实际负载、参考结点保持与切换时刻，而非仅等效地替换为一个固定微伏误差。</p>
+<h2>G. 关键查证词与报告标签</h2>
+<ul>
+<li>论文图号：<code>Fig.9.8.1</code>系统、<code>Fig.9.8.2</code>采样时钟、<code>Fig.9.8.3</code>参考/DEM、<code>Fig.9.8.4</code>全码INL/DNL。</li>
+<li>全文条目按 <code>PAPER</code>、<code>SLIDES</code>、<code>PATENT_FIGxx</code>、<code>ENGINEERING_ASSUMPTION</code> 分类。</li>
+<li><strong>不要以Google Patents网页访问502为理由，把现有错误假设写成专利事实</strong>。离线工作至少可先按本索引纠正S4、sub sampling、Fig.19 dither位组和Fig.20保留列；完整专利叙述无法核实时将该特定未读段落单列为待核对，而不是扩展已有假设。</li>
+</ul>
+<script>const inp=document.getElementById('search');const all=document.querySelectorAll('h2');inp.addEventListener('input',()=>{const q=inp.value.trim().toLowerCase();all.forEach(h=>{let nodes=[h],p=h.nextElementSibling;while(p&&p.tagName!=='H2'){nodes.push(p);p=p.nextElementSibling}const yes=nodes.map(n=>n.textContent).join(' ').toLowerCase().includes(q);nodes.forEach(n=>n.style.display=yes?'':'none')});document.getElementById('status').textContent=q?'已筛选；清空输入以显示全部章节':'可用Ctrl+F检索页面全文，也可输入关键词过滤章节'});</script></body></html>

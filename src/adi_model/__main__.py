@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .cli import _ConfigParser, main_simulate, main_validate_config
+from adi_model.cli import _ConfigParser, main_simulate, main_validate_config
 
 
 def main(argv: list[str] | None = None) -> int:

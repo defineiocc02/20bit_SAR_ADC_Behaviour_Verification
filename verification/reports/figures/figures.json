@@ -1,0 +1,46 @@
+{
+  "source_sha": "1f55b5b05bda70dc2cda39060ad828cfd401c9ca",
+  "figures": [
+    {
+      "figure": "A_module_matrix.png",
+      "status": "PASS",
+      "modules": [
+        "sadc_enc",
+        "unit_therm",
+        "adc2_dec",
+        "div_floor",
+        "rdac_drv",
+        "slice_pool_ctrl",
+        "recon_core",
+        "rtl_top (V3)",
+        "closed_loop (V4)"
+      ],
+      "source_sha": "1f55b5b05bda70dc2cda39060ad828cfd401c9ca",
+      "data": "verification/reports/results_module.json"
+    },
+    {
+      "figure": "C_fixed_point_error.png",
+      "status": "PASS",
+      "vectors": 101,
+      "max_abs_lsb20": 0.9984653885476291,
+      "min_lsb20": 0.005363896139897406,
+      "rms_lsb20": 0.5636799948191217,
+      "source_sha": "1f55b5b05bda70dc2cda39060ad828cfd401c9ca",
+      "note": "Difference is the fractional part of the exact quotient: the integer path applies one floor, so it is always in [0,1) LSB20 and never exceeds 1 LSB. RTL vs Python fixed is bit-exact (0 difference); this panel only shows float-vs-fixed, not an RTL error."
+    },
+    {
+      "figure": "D_dem_mask.png",
+      "status": "PASS",
+      "vectors": 96,
+      "min_usage": 12.0,
+      "max_usage": 81.0,
+      "source_sha": "1f55b5b05bda70dc2cda39060ad828cfd401c9ca",
+      "note": "numerical coverage only; not a statement about the physical DEM permutation"
+    }
+  ],
+  "not_run": {
+    "B_event_trace": "needs per-cycle VCD parsing of a single sample",
+    "E_system_inl": "depends on the closed-loop level, which is NOT_RUN",
+    "F_coverage_gaps": "functional coverage table lives in module_matrix.md"
+  }
+}

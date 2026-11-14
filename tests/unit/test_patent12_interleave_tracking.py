@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from adi_model.pretracking import InputAssistTrace, QuantizedPretracker
+from adi_model.behavioral.pretracking import InputAssistTrace, QuantizedPretracker
 
 
 def _tracker(*, weights=None):

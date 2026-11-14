@@ -1,0 +1,33 @@
+{
+  "purpose": "bit-identical baseline for the directory migration; rerun before/after a MOVE",
+  "fs_hz": 40000000.0,
+  "v_fs_v": 3.0,
+  "seed": 20261105,
+  "model": "DefaultModel(mismatch=1e-04, adc2_n_bits=14, noise on)",
+  "entries": {
+    "static_dem_off": {
+      "codes_voltage_sha256": "4699878aa708007f19f89ea7ac2a6bc6cd87baf6de3786784c86b286f1a780b6",
+      "float_out_sha256": "605d92be63cc4210934270c719713440ddf90d6ffe47afbd1ab3dae90b8fd7e4",
+      "coarse_sha256": "5ccda84abd4b6f8e6eb436af21acacd27d7e6a57707b68a07a37cab74a6214c0",
+      "adc2_code_sha256": "74fb04bfb267afa84866999fd9fe048a76ff95eba588ba7b4e3170c8dbd4a5c0",
+      "main_masks_sha256": "351a32b491e6f145823c0ccc6c2bd0a32d1fb68e6336545ec89a436cfb8a9f4b",
+      "samples": 512,
+      "rms_v": 1.9109669810407888
+    },
+    "static_dem_on": {
+      "codes_voltage_sha256": "65e282a00e9a79088eaead65bc80a9e1f6f715c5e1b5716d5bf78512714d1e37",
+      "float_out_sha256": "43d4aa8d07205651683787012fb11131f4f6a58a43483e8d2e00daaff9e322c5",
+      "coarse_sha256": "5ccda84abd4b6f8e6eb436af21acacd27d7e6a57707b68a07a37cab74a6214c0",
+      "adc2_code_sha256": "8aa6f2f7dd6186400e53170b7020f793b874f0e777593060547d8691563f17ec",
+      "main_masks_sha256": "cb121466b59054aaea373e56322ce8df769dba047f2dfa5addac8633635ff9ba",
+      "samples": 512,
+      "rms_v": 1.9109642106309876
+    },
+    "mask_layer": {
+      "main_on_sha256": "a1925af0b7ae087a17aae25f3572dfbb51fe07597f33e61cf0db3ee0b4af4106",
+      "sub_on_sha256": "c8c37053610b67e5f72628a20e10af4a1f173e33d9f1ccd23a52d4381bd8ab9b",
+      "samples": 64
+    }
+  },
+  "compare": "all *_sha256 fields must match; rms_v is a sanity check, not a criterion"
+}

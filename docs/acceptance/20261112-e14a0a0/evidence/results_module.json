@@ -1,0 +1,90 @@
+{
+  "level": "module",
+  "host": {
+    "available": true,
+    "detail": "/opt/synopsys/vcs/W-2024.09-SP1/bin/vcs\n\nError-[VCS_COM_UNE] Cannot find VCS compiler\n  VCS compiler not found. Environment variable VCS_HOME",
+    "host": "vm-meow"
+  },
+  "started": "2026-11-12T22:06:13",
+  "modules": [
+    {
+      "module": "sadc_enc",
+      "top": "tb_sadc_enc",
+      "vectors": 127,
+      "note": "population count; bubble codes are counted, not rejected",
+      "status": "PASS",
+      "elapsed_s": 18.6,
+      "dump": "verification/reports/dumps/sadc_enc",
+      "compared": 127,
+      "bit_exact": true
+    },
+    {
+      "module": "unit_therm",
+      "top": "tb_unit_therm",
+      "vectors": 96,
+      "note": "rank<count expansion; out-of-range counts saturate",
+      "status": "PASS",
+      "elapsed_s": 19.5,
+      "dump": "verification/reports/dumps/unit_therm",
+      "compared": 96,
+      "bit_exact": true
+    },
+    {
+      "module": "adc2_dec",
+      "top": "tb_adc2_dec",
+      "vectors": 4195,
+      "note": "ties-to-even bin centre over all 4096 codes",
+      "status": "PASS",
+      "elapsed_s": 16.4,
+      "dump": "verification/reports/dumps/adc2_dec",
+      "compared": 4195,
+      "bit_exact": true
+    },
+    {
+      "module": "div_floor",
+      "top": "tb_div_floor",
+      "vectors": 257,
+      "note": "signed floor division: the Python `//` vs RTL `/` seam",
+      "status": "PASS",
+      "elapsed_s": 19.9,
+      "dump": "verification/reports/dumps/div_floor",
+      "compared": 257,
+      "bit_exact": true
+    },
+    {
+      "module": "rdac_drv",
+      "top": "tb_rdac_drv",
+      "vectors": 55,
+      "note": "clear-then-scatter, duplicate id, out-of-range id",
+      "status": "PASS",
+      "elapsed_s": 19.5,
+      "dump": "verification/reports/dumps/rdac_drv",
+      "compared": 55,
+      "bit_exact": true
+    },
+    {
+      "module": "slice_pool_ctrl",
+      "top": "tb_slice_pool_ctrl",
+      "vectors": 100,
+      "note": "cycle-accurate state incl. prime, cursor guard and sample_id",
+      "status": "PASS",
+      "elapsed_s": 23.9,
+      "dump": "verification/reports/dumps/slice_pool_ctrl",
+      "compared": 100,
+      "bit_exact": true
+    },
+    {
+      "module": "recon_core",
+      "top": "tb_recon_core",
+      "vectors": 101,
+      "note": "full 20-bit reconstruction, latency and status bits",
+      "status": "PASS",
+      "elapsed_s": 21.9,
+      "dump": "verification/reports/dumps/recon_core",
+      "compared": 101,
+      "bit_exact": true
+    }
+  ],
+  "status": "PASS",
+  "profile": "adi_40m"
+}

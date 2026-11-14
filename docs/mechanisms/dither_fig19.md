@@ -1,0 +1,261 @@
+# 分路 dither：US10505561 Fig.19 → 当前实现
+
+> 本篇按"原图 → 原理与事件 → 代码映射 → 真实样本 → 同条件开/关 → 差距"六段写。
+>
+> **2026-11-12 原件核对更新**：FIG.19 已逐元件核对（[原件](figures/US10505561B2_FIG19_dither_injection.jpg)，
+> Sheet 20/21）。**300 加法器只接 `D5,D3,D2,D1`；224 减法器只接 `D6,D4`；
+> 222 加法器接全字并送进 sampling DAC 220。**三处符号为 **+ / − / +**。
+> 本模型统一用 `subtract`，代码中标为 `ASSUMED_SUBTRACTIVE`——**经核对确认它是假设，不是披露**。
+> 权重 `4:2:1/7` 与"七片示例"来自说明书正文，正文为扫描件不可读，仍标"正文未核对"。
+
+---
+
+## ① 专利原图
+
+| 项 | 内容 | 状态 |
+|:---|:---|:---|
+| 专利 | US10505561B2《Method of applying a dither, and analog to digital converter operating in accordance with the method》 | 引用 |
+| 图 | **Fig.19**（七片示例的 dither 字分配）；说明书对应段落（仓库内记为 "PDF22 / description PDF33"） | 待核对原件 |
+| 相关论文页 | ISSCC 2024 §9.8 slides 17–18（"dither range enhanced by 2b"） | 已入库 |
+| 原图元件（审查转述） | `400` dither 发生器；`200` 量化器；`220` 采样/余差 DAC；`300/222/224` 注入与数字加减位置 | 待核对 |
+
+**本工程选择的是哪一个实施例**：Fig.19 的**七片示例 + 六位字拆分**，不是 Fig.4–5 的单路注入。
+选择理由：这是唯一同时给出"下段分数权重"和"上段码偏移"两种处理的图，与本模型
+`L`（模拟注入）+ `U`（码偏移）的两段结构对应。
+
+## ② 原理与事件过程（沿原图）
+
+一笔样本里 dither 动两次、数字补一次：
+
+1. **采样**：dither 字中的下段 `L` 在采样节点注入，量化器看到的是 `x − L`。
+   下段用分数权重（4:2:1 除以 7），所以它能落在粗码的**码间**，而不是整码。
+2. **量化**：SADC 对 `x − L` 判决，得到粗码 `c`。
+3. **RDAC 更新**：RDAC 跟随 `c` 的已决前缀逐事件加载，但上段 `U` 让它取 `c − U`。
+   上段只有 2 位（`4·D6 + D4`），所以最多提前 5 个粗码——这就是论文说的
+   "dither range enhanced by 2b"。
+4. **余差**：RA 放大的是 `x − L − V_DAC(c−U)`。
+5. **数字**：最终码要加回 `T = L + U·Δ`，否则 dither 会被当成信号。
+
+关键点：**下段进模拟、上段进码**。两者不是同一件事，所以 `L` 与 `U` 必须分开记账，
+不能像早期实现那样统一成一个"码减 U"。
+
+## ③ 当前实现映射
+
+| 专利原图（待核对） | 当前模型对象 | 函数 | 关键变量 | 主链调用位置 |
+|:---|:---|:---|:---|:---|
+| `400` dither 发生器（六位字 → 两段） | `Fig19DitherProgram` | `dither.Fig19DitherProgram.from_words` | `words`、`lower_q`、`upper_code`、`total_q` | `pipeline_engine.capture` 之前由调用方构造 |
+| 下段注入（模拟） | `DitherPort` | `dither_port.DitherPort.lower_v` | `lower_v`、`total_v` | `execute_pipeline` → `capture(dither_sample_v=...)` |
+| `200` 量化器输入 | `sadc` 输入 | `pipeline_engine` 内 `x_sadc` | `x_sadc = x − T`（v2） | `execute_pipeline` |
+| `220` 采样/余差 DAC | `SlicePool` + 掩码 | `slice_pool.select`、`dac_arch.charge_from_masks` | `command.main_on/sub_on`，码保持 `c` | `execute_pipeline` |
+| 上段（`U`） | 采样节点电荷的一部分 | `Fig19DitherProgram.upper_code` | `U = 4·D6 + D4` | 与 `L` 合并成 `T` 一起注入 |
+| `222/224` 数字加减 | 重构修正项 | `pipeline_engine` 的 `correction` | `−T` | `reconstruct(vd0, fine, g, −T, 1)` |
+| 物理 dither 电容/开关网络 | **未实现** | — | — | — |
+
+**两条拓扑，必须分清**（2026-11-12 起同时存在）：
+
+| 拓扑 | 入口 | RDAC 码 | 采样视图 | 能用在哪 | 状态 |
+|:---|:---|:---|:---|:---|:---|
+| v1 code-shift | `dither_program=` | `k = c − U` | SADC 看 `x−L`，RDAC 采 `x−T` | 仅均匀 512 码本、零噪声、无 DEM | 保留，逐位未变 |
+| v2 charge-port | `dither_port=` | **保持 `c`** | 两个视图同为 `x−T` | 分段码本 + 失配 + 噪声 + DEM | 已进主链（A6） |
+
+v2 不是"把 v1 的限制放开"，而是按物理重接：dither 电容接在**采样节点**，
+所以 SADC 与 RDAC 看到同一个平移后的样本；上段不再靠移动主阵列码来实现。
+
+> **一条被实测否掉的路**：最初把 upper 段实现成"码不动、只在 DAC 节点加
+> `−U·Δ` 的电荷"。实测该笔余差被顶到 48.4 mV，RA 直接削顶到 0.5 V 满摆幅
+> （`ra_sat=1`）。原因是 RA 的输入量程只有一个粗码（±5.9 mV），任何不进
+> 判决的 dither 都会溢出。所以"独立电容不占码域"这句话只对**码域记账**成立，
+> 对**模拟量程**不成立；这一点已写进代码注释，避免后人再走一遍。
+
+**必须说清的替代关系**：`DitherPort` 是**等效电荷口**，不是 Fig.19 的电容网络。
+它保留了"dither 在采样节点注入"这一因果位置，但去掉了有限电容、注入开关与参考负担。
+所以：
+
+* 能声称：注入位置与量级、两段拆分、数字加回的符号与量级、在分段码本+失配下
+  的 INL/DNL 定量变化；
+* 不能声称：dither 电容失配、开关电荷注入、dither 支路的参考建立、
+  以及"复现了 Fig.19 的物理网络"。
+
+## ④ 一个真实样本（`tools/trace_one_sample.py`，样本 97）
+
+| 列 | 无 dither（真实一次运行） | 有 dither（同一样本，按 513 点门限重算，模拟尾巴缺失） |
+|:---|:---|:---|
+| 输入 `x` | −1.485825 V | −1.485825 V |
+| 字 / `L` / `U` | — | word 21 → `D5=1,D3=1,D1=1`；`L = 2.714 LSB = 31.81 mV`；`U = 0` |
+| 量化器输入 | −1.485825 V | **−1.517634 V**（`x − L`） |
+| 粗码 | **129**（名义 −1.488281 V） | **126** |
+| RDAC 事件码 | 128,128,128,128,128,128,**129** | 64,96,112,120,124,126,126 |
+| 累计参考电荷 | 30.75 pC → **30.99 pC** | 15.4 pC → **31.4 pC**（同量级，路径不同） |
+| RA 输入余差 | +2.604 mV | 未计算（需要 A6 闭环） |
+| ADC2 码 | 1099 | 未计算 |
+| 重构误差 | **25.3 LSB20** | 未计算 |
+
+读法：`L` 让量化器输入下移 2.71 个粗码，粗码从 129 变 126；`U=0` 时 RDAC 仍跟 `c`。
+**这张表只能证明"下段确实动了量化器输入、上段确实动了码"，不能证明 dither 的性能收益**——
+后者需要环内闭环（A6）。
+
+## ⑤ 同条件开/关对比（已能给的）
+
+| 量 | 关 | 开 | 条件 |
+|:---|:---:|:---:|:---|
+| 早期候选码越界（码偏移实现） | 0 | **6 368 对** | 64 字 × 512 码 × 7 事件，9 位码域 |
+| 早期候选码越界（电荷口实现） | 0 | **0** | 同上 |
+| 码偏移残余（Fig.11 非等间距阵列） | 0 | **6.70 mV = 1 170 LSB20** | 最坏码 129 |
+| 码偏移残余（等间距 63+8 阵列） | 0 | **0.000 mV** | 严格线性 |
+| 输入域缺口 | 0 | **35.16 mV（6 144 LSB20）** | 64 字的最坏下界 |
+
+结论：**"越界计数变成 0"只能说明电荷口避开了码域约束，不能说明复现了 Fig.19 的物理网络。**
+
+## ⑤b A6 同条件开/关（真实运行，`tools/run_p4_ablation.py`）
+
+同一颗芯片（seed 20261105，σ_unit=σ_bridge=1e-3）、同一输入、同一电容网络、
+同一噪声相位；唯一变量是 dither 字数流（独立 Generator，不动噪声流）。
+
+静态：256 电平 × 32 次；动态：8192 点、1 MHz 相干。
+
+| 量 | A2（无 dither） | A6（dither） | 变化 | 读法 |
+|:---|:---:|:---:|:---:|:---|
+| INL（采样式，端点拟合） | 24.55 LSB20 | **20.53 LSB20** | **−16.4%** | 有改善，但远不到 DEM 的 6.2 |
+| DNL（斜坡步长粒度分箱） | 16.54 LSB20 | **5.94 LSB20** | **−64%** | 改善最大的一项 |
+| 逐电平 σ_e | 12.55 LSB20 | 13.17 LSB20 | +4.9% | 代价：随机分量变大 |
+| 可用输入跨度 | 5.910 V | 5.723 V | **−0.188 V（−3.2%）** | 代价：范围被 dither 吃掉 |
+| SNDR @1 MHz | 88.06 dB | 87.53 dB | −0.53 dB | 代价：噪声变差 |
+| SNR | 88.94 dB | 88.39 dB | −0.55 dB | 同上 |
+| SFDR | 99.26 dB | 97.93 dB | **−1.33 dB** | **变差**，没有改善 |
+| DR | 87.11 dB | 86.79 dB | −0.32 dB | 变差 |
+| NSD | 20.91 nV/√Hz | 21.70 nV/√Hz | +3.8% | 变差 |
+
+**为什么 INL 只降 16% 而 DNL 降 64%**：dither 把"某个固定码用不用"变成随机，
+所以对**码间台阶**（DNL）最有效；而 INL 是整条传输曲线的弯曲，32 次平均只能
+把每个电平的码使用打散到 3~9 个粗码，残余仍是系统性弯曲，靠平均压不下去。
+要压 INL 需要的是 DEM（换单元）或校准（改系数），不是 dither。
+
+**为什么 SFDR/SNR 变差**：这组 dither 是每笔独立随机字，等价于给输入加了一路
+宽带噪声（σ_e 从 12.6 涨到 13.2 LSB20）；FFT 里的最大杂散 bin 会被这层噪声抬起来。
+这不是实现错误，是"用噪声换线性"的直接代价。
+
+**范围代价的来源**：v2 的 SADC 看 `x−T`，`T_max = 70.3 mV`（64 个字的最坏值），
+所以输入必须从 ±2.955 V 收缩到 ±2.861 V，否则边界电平直接削顶（实测过：
+不收缩时 −2.955 V 处误差 7000+ LSB20）。这条代价在 `_static` 的
+`input_span_loss_v` 字段里逐次记录，不是事后补的说明。
+
+## ⑥ 差距与下一步
+
+| 差距 | 是否影响结论 | 下一步 |
+|:---|:---:|:---|
+| 七片示例 vs 本工程八片活动组 | **影响映射**：分数权重 4:2:1/7 是七片几何的产物 | 在 `Fig19StaticSpec` 里显式记录"七片"前提，八片组需重新推导权重 |
+| 独立电荷口 ≠ Fig.19 物理网络 | 影响噪声/参考负担 | 建有限电容 + 注入开关，或明确永久限定为"等效端口" |
+| ~~未进主链（A6）~~ | 已解决 | v2 已接入 `execute_pipeline` 逐笔循环，A6 从 `NOT_RUN` 变 `RUN` |
+| dither 电容失配未建模 | 影响 DNL 收益的真实性 | 给 dither 单元加 σ，看重算后 DNL 还剩多少 |
+| dither 支路参考建立未建模 | 影响高速下的有效步长 | 需要与动态参考专题一起做（S4） |
+| 字的产生策略未建模 | 影响杂散形状 | 当前字由外部给定；片内 PRNG/调度未实现 |
+
+**验收口径（2026-11-12 修订）**：
+
+* 可以支撑："dither 在分段码本 + 失配下把 DNL 降 2.8×、INL 降 16%，
+  代价是 3.2% 输入范围与 0.5 dB SNR"——这条有 A2/A6 同条件实测；
+* 仍然**不能**支撑："dither 改善 SFDR"（实测变差 1.3 dB）；
+* 仍然**不能**支撑："复现了 Fig.19 的物理电容网络"。
+
+## ⑦ 复现命令
+
+```bash
+# A2 / A6 同条件对照（写入 docs/reviews/20261113_p3p4/data）
+PYTHONPATH=src:. python3 tools/run_p4_ablation.py \
+  --static-points 256 --static-repeats 32 --dynamic-n 8192 \
+  --out docs/reviews/20261113_p3p4/data
+
+# 只看 dither 的四条不变量
+PYTHONPATH=src python3 -m pytest tests/unit/test_dither_charge_port.py -q
+```
+
+---
+
+## 2026-11-13 追加：摘要页逐字核对（[10] 专利 PDF 第 24 页）
+
+此前本文只凭**图**判读三路连通性，注明"正文为扫描件不可读"。本轮发现 [10] 的
+**摘要页（p.24）有可读正文**（`get_text()` 为 0 是因为整册无文本层，该页是
+后来插入的文字页），可直接核对 dither 的权威定义：
+
+> "The removing of at least part of the first dither may be performed by:
+> **(a) modifying the digital code** by a digital value representative of or based on
+> at least part of the first dither value to form a modified digital code, and
+> **providing the modified digital code to the at least one sampling digital to analog
+> converter**; and/or **(b) passing at least part of the dither to a subsequent analog to
+> digital converter stage** that it receives a residue from the sampling digital to analog
+> converter, the dither being **subtracted from a digital output result of the subsequent
+> analog to digital converter stage**."
+
+**由此得到的口径（可核对）**：
+
+| 段 | 进入位置 | 数字侧处理 |
+|:---|:---|:---|
+| `U`（D6,D4） | **改码**后送采样 DAC（(a)），不是独立模拟加法 | 无 |
+| `L`（D5,D3,D2,D1） | 量化器输入（300 加法器） | 在后级 ADC 的**数字输出**中扣除（(b)） |
+
+**与本模型的差异（未解决，已量化）**：
+
+* 现实现把 `T = U + L` 一起写进采样节点，因此同一个 dither 被计入两次，
+  残差摆幅变成 `U - L`（实测 64 字覆盖 −4.1…+89.8 mV = 8 LSB9），
+  而 ADC2 窗口只覆盖 1.2 LSB9 ⇒ 大面积溢出；
+* 按 (a)(b) 改（采样不注入、只扣 L）后残差变成 `x - vd0(k)`，
+  摆幅回到 L 的量级（最多 3 LSB9），仍超出 1.2 LSB9；
+* 论文 [00] 写 "the dither range is **enhanced by 2b** when the result is transferred
+  from the quantizer to the RDAC"，即**量化器侧应比 RDAC 侧小 4 倍**；
+  而本模型 `L ≤ 3`、`U ≤ 5`，比值只有 1.67 倍，与论文口径不符。
+
+**结论**：`L` 的幅度（`2·D5 + 小数`）与论文的 2b 关系矛盾，
+且该权重来自**七片示例正文**（本文开篇已标"正文未核对"）。
+在拿到正文之前，**不再调整 dither 幅度**，也不修改 `ra_v_clip`/ADC2 窗口去迁就它
+——那组参数与 `docs/archive/reproduction_results.md` 的 0.1875 V 摆动推导自洽。
+
+---
+
+## 补充（2026-11-13）：修掉双重减法，并纠正一条被自己破坏的配套关系
+
+`tests/integration/test_fig19_static_ports.py`（17 个此前从未运行过的测试）
+暴露出两处与原件不符的实现。
+
+### 1. 真实缺陷：RDAC 码被减了两次 U
+
+```
+pipeline_engine 第 517 行：mapped = MappedCodes(dither_trace.rdac_code, ...)
+                          ↑ 这里已经是 c - U（224 减法器之后的值）
+pipeline_engine 第 546 行：rdac_codes = mapped.codes - hold_upper
+                          ↑ 又减一次
+```
+
+实测 `k == coarse - 2*upper` 逐位成立。已修正：v1 路径不再减第二次。
+
+### 2. 被自毁的配套关系：222 与 224 必须成对
+
+原件 FIG.19 的三条路径是**配套**的：
+
+```
+300 加法器：(D5,D3,D2,D1) → ADC 200   ⇒ x_sadc = x - L
+222 加法器：全字 D_A..D_1   → SAMPLING DAC 220 ⇒ 采样含 -T
+224 减法器：(D6,D4)         → ADC 输出码      ⇒ k = c - U
+```
+
+数学上 U 自动抵消：
+
+```
+residue = (x - T) - vd0(c - U)
+        = (x - L - U) - (vd0(c) - U·Δ)
+        = x - L - vd0(c)
+```
+
+**2026-11-13 早前我曾把 222 的注入从 T 改成 L**，理由是"把残差摆幅控制在
+ADC2 窗口内"。这个改动**破坏了配套关系**：只注入 L 时 U 不再抵消，
+残差里多出一个 U 项。
+
+已恢复注入 T。**残差摆幅问题应当通过限制 U 取值范围或放宽 ADC2 窗口解决，
+而不是拆散由原件电路确定的配套关系。**
+
+### 3. 教训
+
+我当初改 222 是为了让"dither 能装进 ADC2 窗口"——一个看起来合理的局部目标。
+但它牺牲了一条由原件电路拓扑确定的**结构性约束**，而且因为当时没有测试覆盖
+（那批集成测试从未运行），这个破坏没有被发现。
+
+**局部目标（让数字好看）不能凌驾于结构约束（原件怎么接的）。**

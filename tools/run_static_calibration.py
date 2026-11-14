@@ -25,9 +25,13 @@ import numpy as np
 import scipy
 
 import adi_model
+from adi_model.calibration.weight_calibration import (
+    DigitalObservation,
+    FrozenCalibration,
+    fit_unit_weights,
+)
+from adi_model.contracts.fixed_point import CodeStream, FixedPointFormat, FixedPointReconstructor
 from adi_model.defaults import DefaultParameters, default_model
-from adi_model.fixed_point import CodeStream, FixedPointFormat, FixedPointReconstructor
-from adi_model.weight_calibration import DigitalObservation, FrozenCalibration, fit_unit_weights
 
 
 def require(condition: bool | np.bool_, message: str) -> None:

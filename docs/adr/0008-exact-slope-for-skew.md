@@ -84,7 +84,7 @@ pytest tests/regression/test_skew_derivative.py -q
 
 PYTHONPATH=src python -c "
 import numpy as np
-from adi_model.sampler import sine_input, input_derivative, spectral_derivative
+from adi_model.behavioral.sampler import sine_input, input_derivative, spectral_derivative
 fs, n = 40e6, 4096
 t = np.arange(n) / fs
 for fin in (5e6, 10e6, 19e6):

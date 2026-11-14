@@ -1,0 +1,24 @@
+{
+  "module": "slice_pool_ctrl",
+  "seed": 20261112,
+  "count": 100,
+  "wildcard_mask": "reset first_advance_primes shuffle_off_seq_0 shuffle_off_seq_1 shuffle_off_seq_2 shuffle_off_seq_3 shuffle_off_seq_4 shuffle_off_seq_5 shuffle_off_seq_6 shuffle_off_seq_7 shuffle_off_seq_8 shuffle_off_seq_9 shuffle_off_seq_10 shuffle_off_seq_11 shuffle_off_seq_12 shuffle_off_seq_13 shuffle_off_seq_14 shuffle_off_seq_15 shuffle_off_seq_16 shuffle_off_seq_17 shuffle_off_seq_18 shuffle_off_seq_19 shuffle_off_seq_20 shuffle_off_seq_21 shuffle_off_seq_22 shuffle_off_seq_23 shuffle_on_seq_0 shuffle_on_seq_1 shuffle_on_seq_2 shuffle_on_seq_3 shuffle_on_seq_4 shuffle_on_seq_5 shuffle_on_seq_6 shuffle_on_seq_7 shuffle_on_seq_8 shuffle_on_seq_9 shuffle_on_seq_10 shuffle_on_seq_11 shuffle_on_seq_12 shuffle_on_seq_13 shuffle_on_seq_14 shuffle_on_seq_15 shuffle_on_seq_16 shuffle_on_seq_17 shuffle_on_seq_18 shuffle_on_seq_19 shuffle_on_seq_20 shuffle_on_seq_21 shuffle_on_seq_22 shuffle_on_seq_23 random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall random_stall enable_low reset_in_middle",
+  "field_width_bits": {
+    "advance": 1,
+    "enable": 1,
+    "shuffle": 1,
+    "rst_n": 1,
+    "seed": 32
+  },
+  "profile": {
+    "B1": 9,
+    "ADC2_BITS": 12,
+    "N_ACTIVE": 8,
+    "N_UNIT_MAIN": 63,
+    "N_UNIT_SUB": 8,
+    "N_SLICES": 18,
+    "W_BITS": 48,
+    "V_BITS": 64,
+    "OUT_BITS": 20
+  }
+}

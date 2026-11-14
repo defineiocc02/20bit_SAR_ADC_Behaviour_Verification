@@ -39,7 +39,7 @@ cmp /tmp/before.json tools/results/results.json
 - [ ] `mypy`
 - [ ] `pytest -q`（当前基线：134 passed）
 - [ ] 若为新增物理机制：补了一条**对抗性**回归测试（能抓住"回退到旧口径"）
-- [ ] 若新增了"勿回退"教训：写进了 ADR 或 `docs/audit_response.md`
+- [ ] 若新增了"勿回退"教训：写进了 ADR 或 `docs/archive/audit_response.md`
 
 ## 5. 描述
 

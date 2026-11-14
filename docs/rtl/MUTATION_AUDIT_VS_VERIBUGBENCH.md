@@ -41,17 +41,17 @@
 ## §2 我们的实例账本（14 条）
 
 - **P1 / P2 的真实缺陷 7 条**（P1 3 条 + P2 4 条）：原文与处置见 `docs/rtl/P2_INTERFACE.md` §15 缺陷账。此处只登记其**动作/构件/算子归属**。
-- **定向变异 7 条**：定义**逐字转载**如下。⚠️ 原脚本 `sim/artifacts/mutation_check.py` **未入库**（`sim/.gitignore` 忽略 `artifacts/`），只在本机工作树持有 —— 所以下表是给"干净克隆 / 线上读者"准备的；**否则本节这条引用是悬空的**（该缺陷由 Phase 1a 执行者发现）。
+- **定向变异 7 条**：定义**逐字转载**如下。⚠️ 原脚本 `sim/artifacts/mutation_check.py` **已不存在于仓库**（未入库）（`sim/.gitignore` 忽略 `artifacts/`），只在本机工作树持有 —— 所以下表是给"干净克隆 / 线上读者"准备的；**否则本节这条引用是悬空的**（该缺陷由 Phase 1a 执行者发现）。
 
 | 名字 | 文件 | 原文 → 变异后 | 期望判据 |
 |:--|:--|:--|:--|
-| `ws_wok` | `rtl/core/weight_store.sv` | `assign w_ok = (wr_data != W_ZERO) && (wr_data < W_MAX);` → `assign w_ok = 1'b1;` | 变红（`T1 err_write=1`） |
-| `ws_cap` | `rtl/core/weight_store.sv` | `1'b1} << 60;` → `1'b1} << 50;` | 变红（容量守卫开始拒写） |
-| `ws_capoff` | `rtl/core/weight_store.sv` | `… && (sum_new < SUM_MAX);` → `…;`（删容量项） | **不变红（负对照）** |
-| `sr_nonsticky` | `rtl/core/status_regs.sv` | `acc_ovf_sticky <= acc_ovf_sticky \| ev_acc_ovf;` → `<= ev_acc_ovf;` | 变红（`T2` 粘滞自保持） |
-| `rd_noclear` | `rtl/core/rdac_drv.sv` | `slice_sel <= '0;` → `slice_sel <= slice_sel;` | 变红（`T3` 重复 slice_id） |
-| `cf_rdac10` | `rtl/core/ctrl_fsm.sv` | `rdac_load = adv && (ph == PW'(11));` → `PW'(10)` | 变红（`T4` 相位） |
-| `cb_le` | `rtl/core/calib_regs.sv` | `if ($signed(min_r) < $signed(max_r))` → `<=` | 变红（`T5` 空量程） |
+| `ws_wok` | `rtl/weight_store.sv` | `assign w_ok = (wr_data != W_ZERO) && (wr_data < W_MAX);` → `assign w_ok = 1'b1;` | 变红（`T1 err_write=1`） |
+| `ws_cap` | `rtl/weight_store.sv` | `1'b1} << 60;` → `1'b1} << 50;` | 变红（容量守卫开始拒写） |
+| `ws_capoff` | `rtl/weight_store.sv` | `… && (sum_new < SUM_MAX);` → `…;`（删容量项） | **不变红（负对照）** |
+| `sr_nonsticky` | `rtl/status_regs.sv` | `acc_ovf_sticky <= acc_ovf_sticky \| ev_acc_ovf;` → `<= ev_acc_ovf;` | 变红（`T2` 粘滞自保持） |
+| `rd_noclear` | `rtl/rdac_drv.sv` | `slice_sel <= '0;` → `slice_sel <= slice_sel;` | 变红（`T3` 重复 slice_id） |
+| `cf_rdac10` | `rtl/ctrl_fsm.sv` | `rdac_load = adv && (ph == PW'(11));` → `PW'(10)` | 变红（`T4` 相位） |
+| `cb_le` | `rtl/calib_regs.sv` | `if ($signed(min_r) < $signed(max_r))` → `<=` | 变红（`T5` 空量程） |
 
 > 顺带登记：`p3_top_tb.sv` 头部注释提到的另两份证据脚本（`run_3col_check.py`、`decide_divfloor.py`）**同样未入库**，属**同一类"已入库文档引用未入库脚本"**的悬空引用。根治办法是把这些脚本移进被跟踪的目录（如 `sim/tools/`）并同步改引用 —— **未做，另立任务**。
 
@@ -129,7 +129,7 @@
    **补齐 Port（IOFlip：改端口方向或位宽）**。每条算子 = matcher + guard + transform，并写明**在本 SV 子集下的适用边界**。
 2. **TB 补 `+trace=<file>`**：逐样本落 CSV，`sample_idx` 为时间字段。
 3. **比较器** `tools/trace_compare.py`：实现论文判据（公共前缀 + 逐字段字符串 + X/Z 计入），输出 killed / unobserved / 分类计数。
-4. **Campaign** `tools/mutate_campaign.py`：枚举合法机会 → 每算子均匀抽样 → 逐个编译+跑 → 判 killed → 出 `MS`、每族覆盖率、**未检出清单**。
+4. **Campaign** `tools/mutate_campaign.py`（**已不存在于仓库**，仅作历史记录）：枚举合法机会 → 每算子均匀抽样 → 逐个编译+跑 → 判 killed → 出 `MS`、每族覆盖率、**未检出清单**。
 5. **注入器两端验证（先做，且不做完不许跑 campaign）**：① 已知必被检出的变异（如 #14 `cb_le` 的等价形式）**必须 killed**；② 已知等价/无观测的变异（#10 `ws_capoff` 一类）**必须 NOT killed**。**给不出这两端，campaign 的数字不可信。**
 6. **Phase 2**：数字 + §5 声明写进本文件 §7，并在 `docs/rtl/P2_INTERFACE.md` **追加**一节回链本文件。
 

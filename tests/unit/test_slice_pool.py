@@ -5,11 +5,11 @@ from dataclasses import replace
 import numpy as np
 import pytest
 
-from adi_model.config import ConfigError
-from adi_model.dac_arch import charge_from_masks, charge_from_sampling_connections
-from adi_model.scheduler import Scheduler
-from adi_model.slice_pool import PhysicalSlicePool, check_causality
-from adi_model.timing import SlicePlan
+from adi_model.control.timing import SlicePlan
+from adi_model.simulation.config import ConfigError
+from adi_model.simulation.scheduler import Scheduler
+from adi_model.simulation.slice_pool import PhysicalSlicePool, check_causality
+from adi_model.topology.dac_arch import charge_from_masks, charge_from_sampling_connections
 
 
 def _plan():

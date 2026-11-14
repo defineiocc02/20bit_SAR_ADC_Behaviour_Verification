@@ -55,7 +55,7 @@ stage is `NOT_RUN` or `BLOCKED`, not `PASS`.
 
 ## Code and interface contracts
 
-Follow [Engineering standards](docs/ENGINEERING_STANDARDS.md) for Python and
+Follow [Engineering standards](docs/archive/ENGINEERING_STANDARDS.md) for Python and
 SystemVerilog naming, units, interfaces, reset/error behavior, comments and
 verification evidence. Existing public names, port ordering and register
 formats are compatibility contracts; a style change must not silently alter

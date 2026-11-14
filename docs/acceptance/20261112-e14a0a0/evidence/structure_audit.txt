@@ -1,0 +1,28 @@
+== 1. 核心包反向依赖 ==
+违规数: 4
+   ('src/adi_model/calibration/weight_calibration.py', 'scipy.linalg', 18)
+   ('src/adi_model/behavioral/reference_mux.py', 'scipy.linalg', 22)
+   ('src/adi_model/behavioral/conversion.py', 'scipy.linalg', 213)
+   ('src/adi_model/behavioral/conversion.py', 'scipy.integrate', 315)
+
+== 2. CAAZ 隔离 ==
+src 中引用 caaz 的文件: ['src/adi_model/behavioral/transients.py', 'src/adi_model/behavioral/ra_az.py', 'src/adi_model/behavioral/ra.py']
+rtl filelist 含 caaz: []
+
+== 3. 同名生产函数重复定义 ==
+同名公开函数组数: 38
+  add: ['src/adi_model/inventory_gate.py', 'src/adi_model/contracts/events.py']
+  advance: ['src/adi_model/behavioral/transients.py', 'src/adi_model/behavioral/input_network.py']
+  amp_neg: ['src/adi_model/metrics/metrics.py', 'src/adi_model/metrics/metrics_lsb20.py']
+  apply: ['src/adi_model/calibration/mask_calibration.py', 'src/adi_model/behavioral/impairments.py']
+  charge_from_masks: ['src/adi_model/topology/dac_arch.py', 'src/adi_model/topology/dac_arch.py', 'src/adi_model/simulation/slice_pool.py']
+  convert: ['src/adi_model/simulation/serialization.py', 'src/adi_model/behavioral/sadc.py']
+  evaluate: ['src/adi_model/topology/dac_arch.py', 'src/adi_model/behavioral/ra.py']
+  from_dict: ['src/adi_model/calibration/weight_calibration.py', 'src/adi_model/contracts/fixed_point.py', 'src/adi_model/simulation/config.py']
+  from_result: ['src/adi_model/calibration/weight_calibration.py', 'src/adi_model/contracts/fixed_point.py']
+  from_words: ['src/adi_model/control/dither.py', 'src/adi_model/control/dither_port.py']
+  inl_from_mean_error: ['src/adi_model/metrics/metrics.py', 'src/adi_model/metrics/metrics_lsb20.py']
+  integrate_noise_band: ['src/adi_model/metrics/metrics.py', 'src/adi_model/metrics/metrics_lsb20.py']
+  levels: ['src/adi_model/topology/dac_arch.py', 'src/adi_model/topology/dac_arch.py']
+  main: ['src/adi_model/__main__.py', 'src/adi_model/inventory_gate.py']
+  main_flat: ['src/adi_model/control/fig11_dem.py', 'src/adi_model/control/fig21_bridge.py']

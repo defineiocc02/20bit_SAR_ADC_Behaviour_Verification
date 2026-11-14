@@ -1,6 +1,6 @@
 # 后续综合、STA 与布线实施计划
 
-本计划把下一轮工作拆成有限、可审查的里程碑。它补充 [FPGA_SYNTHESIS_AND_STA.md](FPGA_SYNTHESIS_AND_STA.md) 的实际命令与来源校验，不另建 runner，也不声称本计划中的实验已经运行。使用真实顶层 [sar20_digital_core.sv](../rtl/top/sar20_digital_core.sv)；旧 `71e7d5a` 的已测数据作为冻结对照，当前排版源码使用自己的 raw SHA。
+本计划把下一轮工作拆成有限、可审查的里程碑。它补充 [FPGA_SYNTHESIS_AND_STA.md](FPGA_SYNTHESIS_AND_STA.md) 的实际命令与来源校验，不另建 runner，也不声称本计划中的实验已经运行。使用真实顶层 [sar20_digital_core.sv](../rtl/sar20_digital_core.sv)；旧 `71e7d5a` 的已测数据作为冻结对照，当前排版源码使用自己的 raw SHA。
 
 ## 1. 目标与不可省略的边界
 

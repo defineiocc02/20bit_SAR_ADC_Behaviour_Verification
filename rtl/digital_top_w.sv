@@ -61,9 +61,9 @@ module digital_top_w (
     input  logic        ev_valid_i,     // 该拍有一位已决码
     input  logic        ev_bit_i,       // 已决码位
     output logic        ev_done_o,      // 9 个事件收完
-    output logic [2:0]  ev_idx_o,
+    output logic [3:0]  ev_idx_o,       // 0..8
     output logic [8:0]  ev_k_o,         // 该事件产出的 RDAC 码
-    output logic        ev_mismatch_o,  // 事件码与该事件应有的前缀不符
+    output logic        ev_err_o,       // prefix < Upper（不回绕）
     output logic        err_o,          // 输入合同违例（k 越界 / G=0 / inv 越界）
     output logic        valid_o,
     output logic [23:0] tag_o
@@ -207,12 +207,10 @@ module digital_top_w (
         .clk(clk), .reset_n(reset_n), .start_i(ev_start_i),
         .bit_valid_i(ev_valid_i), .bit_i(ev_bit_i),
         .upper_i(dith_upper),
-        .ev_valid_o(), .ev_idx_o(ev_idx_o), .k_ev_o(ev_k_o), .done_o(ev_done_o));
+        .ev_valid_o(), .ev_idx_o(ev_idx_o), .k_ev_o(ev_k_o),
+        .done_o(ev_done_o), .err_o(ev_err_o));
 
-    // 逐事件比对：第 idx 个事件应有的码是 ((c>>i)<<i) - U，i = 8-idx
-    logic [8:0] ev_want;
-    assign ev_want = ((c_i >> (4'd8 - ev_idx_o)) << (4'd8 - ev_idx_o)) - {6'b0, dith_upper};
-    assign ev_mismatch_o = ev_valid_i && (ev_k_o !== ev_want);
+    // 生产路径不再用最终码 c_i 做事件比对；期望值由 TB 记分板独立计算
 
     // ---------------------------------------------------------------- E1 打拍
     always_ff @(posedge clk or negedge reset_n) begin

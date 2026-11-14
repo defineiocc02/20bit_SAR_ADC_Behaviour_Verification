@@ -55,7 +55,7 @@ module tb_digital_top_w;
         .cfg_we(cfg_we), .cfg_slice(cfg_slice), .cfg_unit(cfg_unit), .cfg_w(cfg_w),
         .cfg_inv_we(cfg_inv_we), .cfg_inv(cfg_inv), .cfg_inv_grp(cfg_grp),
         .ev_start_i(1'b0), .ev_valid_i(1'b0), .ev_bit_i(1'b0),
-        .ev_done_o(), .ev_idx_o(), .ev_k_o(), .ev_mismatch_o(),
+        .ev_done_o(), .ev_idx_o(), .ev_k_o(), .ev_err_o(),
         .busy_o(busy), .slice_ids_o(slice_ids),
         .code_o(code_o), .overflow_o(ovf_o), .err_o(err_o),
         .valid_o(valid_o), .tag_o(tag_o));

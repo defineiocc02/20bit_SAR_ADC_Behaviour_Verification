@@ -103,20 +103,25 @@ def _mask_bits(k: int) -> tuple[int, int]:
     return ((1 << therm) - 1) | (((1 << ones) - 1) << 15), (k & 0xF) & 0b1111
 
 
-def run_transaction(tx: Transaction) -> dict:
+def run_transaction(tx: Transaction, *, slice_group=None, phases=None) -> dict:
     """调度 -> follower 事件 -> Fig.20–21 MUX -> 位权自检 -> 定点重构。
 
     MUX：m[s][j] = y[s] if j == reserved else h[j]，且 h[reserved] == 0。
     因此 Σ_{s,j} m = 8H + M，且 4·(8H+M) + L == k。
     """
-    plan = round_robin_plan(tx.sample_id + 1, n_slices=N_SLICES, n_active=N_ACTIVE)
+    # 测试钩子：允许显式指定片组 / DEM 相位，用于把两者解耦做 A/B/C/D 对照。
+    # 默认（None）行为与原来完全一致。
+    plan = round_robin_plan(
+        tx.sample_id + 1 if slice_group is None else slice_group + 1,
+        n_slices=N_SLICES, n_active=N_ACTIVE)
     slice_ids = np.asarray(plan.acq)[-1]
     prefixes = ResolvedPrefixes.from_final(np.array([tx.final_code], dtype=np.int64))
 
     upper, lower, total = _dither_terms(tx.dither_word)
     k = int(tx.final_code) - upper
     H, M, L = k >> 5, (k >> 2) & 7, k & 3
-    reserved, h_phase, v_phase = dem_phases(tx.sample_id)
+    reserved, h_phase, v_phase = (dem_phases(tx.sample_id)
+                                  if phases is None else phases)
     # 非法命令：k 必须在 0..511，否则拒绝出码（不静默夹紧）
     if not (0 <= k <= 511):
         return {

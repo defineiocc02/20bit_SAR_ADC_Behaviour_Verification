@@ -188,7 +188,13 @@ def run_transaction(tx: Transaction) -> dict:
                 w = int(tx.weights_q30.get((int(sid), j), 0))
                 K_q54 += w * (-2 * VR if masks_full[slot][j] else 0)
         if G_q30:
-            dac_q24 = _div_round(-K_q54, G_q30)
+            # 精确除法（浮点/软件参考）
+            dac_q24_exact = _div_round(-K_q54, G_q30)
+            # 硬件路径：inv_g = round(2^60/G)，用乘+移替代除法。
+            # -K_q54 = (6Wm - 3G)·VR，故 (6Wm-3G) = -K_q54 // VR（整除）
+            inv_g_q60 = (2 * (1 << 60) + G_q30) // (2 * G_q30)
+            wm_q30 = G_q30 // 2 + (-K_q54) // (2 * int(round(VR)))
+            dac_q24 = 6 * ((wm_q30 * inv_g_q60) >> 36) - 3 * (1 << 24)
             # 仓库既有定义：r = round((2a+1)*144/5) = ((2a+1)*144+2)//5
             # 不再额外加移位偏置（_div_round 内部会加 d//2，那是二次舍入）
             r_hat_q24 = ((2 * int(tx.adc2_code) + 1) * 144 + 2) // 5
@@ -204,6 +210,8 @@ def run_transaction(tx: Transaction) -> dict:
     return {
         "sample_id": tx.sample_id, "slice_ids": slice_ids.tolist(), "k": k,
         "x_weight_v": x_weight,
+        "dac_exact_q24": dac_q24_exact if tx.weights_q30 and G_q30 else None,
+        "dac_hw_q24": dac_q24 if tx.weights_q30 and G_q30 else None,
         "x_formula_v": x_formula,
         "code20_formula": min(max(code_formula, 0), (1 << CODE_BITS) - 1),
         "weight_acc_q30": weight_acc,

@@ -12,14 +12,14 @@ module tb_recon_w2;
     logic [11:0] a2;
     logic [5:0]  dw;
     logic [19:0] code, code_w;
-    logic        ovf, ovf_w;
+    logic        ovf, ovf_w, err_in;
 
     integer      fd, r, n, err, n_ovf, n_diff_w, max_delta, delta;
     longint      wme, ge, inve, ae, de, ce;
 
     recon_d5_w2 dut (
         .clk(clk), .reset_n(rstn), .wm_q30(wm), .g_q30(g), .inv_g_q60(inv),
-        .adc2_i(a2), .dither_i(dw), .code_o(code), .overflow_o(ovf)
+        .adc2_i(a2), .dither_i(dw), .code_o(code), .overflow_o(ovf), .err_o(err_in)
     );
     recon_d5_w u_ref (
         .wm_q30(wm), .g_q30(g), .adc2_i(a2), .dither_i(dw),

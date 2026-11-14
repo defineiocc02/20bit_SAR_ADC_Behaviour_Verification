@@ -30,21 +30,26 @@ module recon_d5_w2 (
     input  logic [11:0] adc2_i,      // ADC2 原始码 0..4095
     input  logic [5:0]  dither_i,    // D6..D1
     output logic [19:0] code_o,
-    output logic        overflow_o
+    output logic        overflow_o,
+    output logic        err_o          // 输入合同违例：G=0 / I 超 28 位 / I=0
 );
     // ---------------------------------------------------------------- S1
     // num = 6·Wm − 3·G = 4·Wm + 2·Wm − 2·G − G（写成移位加法：常数乘法交给
     // DC 会各推一个乘法器，白占 0.9 ns 和面积）
     // 位宽 39：|6·Wm| ≤ 6·(G + Wsub) ≈ 2.3e11 < 2^38（G≈3.4e10，Wsub ≤ 2 位子阵列）
     logic signed [38:0] wm_s, g_s, num;
-    logic signed [26:0] inv_s;               // inv 只取低 27 位（G ≥ 2^34 时有效）
-    logic signed [65:0] prod;                // 39 × 27 = 66 位，真实值 < 2^63
-    logic signed [27:0] d_q24;
+    logic signed [27:0] inv_s;               // 28 位：I 最大 2^26，27 位有符号会溢出
+    logic signed [66:0] prod;                // 39 × 28 = 67 位
+    logic signed [30:0] d_q24;               // prod >>> 36 -> 31 位
     logic        [11:0] adc2_s1;
     logic        [5:0]  dither_s1;
 
     // 零扩展后取有符号：I 最大 2^26（G=2^34 时），27 位有符号会溢出成负
-    assign inv_s = $signed({1'b0, inv_g_q60[26:0]});
+    assign inv_s = $signed({1'b0, inv_g_q60[26:0]});   // 28 位，与声明一致
+
+    // 输入合同：不静默截断，越界一律报错
+    assign err_o = (g_q30 == 44'd0) || (inv_g_q60 == 64'd0) ||
+                   (inv_g_q60[63:27] != 37'd0);
     assign wm_s  = $signed(wm_q30);
     assign g_s   = $signed(g_q30);
 
@@ -64,9 +69,9 @@ module recon_d5_w2 (
     end
 
     // D_eff 本身随 adc2/dither 一起进 S2
-    logic signed [27:0] d_q24_r;
+    logic signed [30:0] d_q24_r;
     always_ff @(posedge clk or negedge reset_n) begin
-        if (!reset_n) d_q24_r <= 28'sd0;
+        if (!reset_n) d_q24_r <= 31'sd0;
         else          d_q24_r <= d_q24;
     end
 
@@ -77,7 +82,7 @@ module recon_d5_w2 (
     logic        [3:0]  upper;
     logic        [7:0]  t_num;
     logic signed [21:0] t_q24;
-    logic signed [27:0] x_next, x_q24;
+    logic signed [30:0] x_next, x_q24;   // d_q24_r(31) + r(19) + t(22) 留 31 位
 
     assign r_prod = (($signed({1'b0, adc2_s1}) * 2 + 1) * 144 + 2) * 42'sd838861;
     assign r_q24  = r_prod >>> 22;
@@ -88,16 +93,16 @@ module recon_d5_w2 (
                  + {7'b0, dither_s1[0]};
     assign t_q24 = $signed({3'b0, t_num}) * 22'sd24576;
 
-    assign x_next = d_q24_r + r_q24 + t_q24;
+    assign x_next = d_q24_r + $signed({{12{r_q24[18]}}, r_q24}) + $signed({{9{t_q24[21]}}, t_q24});
 
     always_ff @(posedge clk or negedge reset_n) begin
-        if (!reset_n) x_q24 <= 28'sd0;
+        if (!reset_n) x_q24 <= 31'sd0;
         else          x_q24 <= x_next;
     end
 
     // ---------------------------------------------------------------- S3
     // ÷96：倒数乘 44739243>>32，加 2^31 实现就近舍入（与 recon_d5_w 同式）
-    logic signed [27:0] xa, q;
+    logic signed [30:0] xa, q;
     logic signed [53:0] q_prod;
 
     always_comb begin

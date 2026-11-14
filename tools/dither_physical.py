@@ -22,6 +22,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.insert(0, os.path.dirname(__file__))
 import numpy as np
 from forward_model import quantize_adc2, ADC2_LSB
+from adi_model.behavioral.ra import ResidueAmplifier
+from adi_model.simulation.config import Config as SimConfig
 from adi_model.digital_chain import (run_transaction, Transaction, dem_phases,
     _horizontal_columns, vertical_bits, _dither_terms, N_COLUMNS)
 
@@ -63,7 +65,17 @@ def dac_v(w, m, ids):
     return -num / den
 
 
-def convert(x, w, ids, sid, word):
+def make_ra():
+    """复用 behavioral/ra.py 的 RA 模型，不另写放大器。"""
+    cfg = SimConfig(ra_v_clip=0.45)      # RA 输出限幅 = ADC2 满量程
+    return ResidueAmplifier(cfg)
+
+
+def convert(x, w, ids, sid, word, ra=None, rng=None):
+    if ra is None:
+        ra = make_ra()
+    if rng is None:
+        rng = np.random.default_rng(0)
     """一次完整转换：dither 注入比较器阈值 → SAR → 余差 → ADC2 → D5。"""
     u, l, t = _dither_terms(word)
     x_eff = x - (u + l) * DELTA          # 比较器阈值被整体平移
@@ -75,7 +87,10 @@ def convert(x, w, ids, sid, word):
     if not (0 <= k <= 511):
         return None
     resid = x_eff - dac_v(w, mask_of(sid, k), ids)
-    a2 = quantize_adc2(resid)
+    # RA 模型：输出 = G*(residue) 且限幅；折算回输入端再交给 ADC2
+    # 名义增益 32 倍；RA 输出限幅由 behavioral/ra.py 内部处理
+    ra_out, _sat = ra.evaluate(np.array([resid]), rng, 32.0)
+    a2 = quantize_adc2(float(ra_out[0]) / 32.0)
     if a2 is None:
         return None
     # 内部码 = final_code − U，所以 final 要传 k + u

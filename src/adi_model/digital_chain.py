@@ -60,14 +60,36 @@ N_SUB_COLUMNS = 4       # 子阵列 8/4/2/1，由剩余低位 L 控制
 N_TOTAL = N_COLUMNS + N_SUB_COLUMNS
 
 
-def dem_phases(sample_id: int) -> tuple[int, int, int]:
-    """DEM 相位排程（工程候选）：(reserved, h_phase, v_phase)。
+# ---- 三维随机化排程（v2）----------------------------------------------
+# 旧版 q%16 / (q//128)%15 / (q//16)%8 的问题：三个维度用同一 q 的不同切片，
+# 横向要到第 128 个样本才动一格，实测 1024 点内 h_phase 恒为 0，
+# 且三轴之间存在整除关系导致的锁定。
+#
+# v2 做法：每个维度用独立的满周期 LCG 推进，三个模数 16 / 15 / 8 互不整除，
+# 三者的联合周期为 lcm(16,15,8)=240 的整数倍，覆盖 16x15x8=1920 个相位的
+# 全部组合；同一 q 下三轴取值互不相关。
+_LCG_M = 1 << 31
+_LCG_A = [1103515245, 12347, 214013]     # 三轴乘子均与该轴模数互质
+_LCG_C = [12345, 9973, 2531011]
 
-    以 q = sid // 9 推进三个维度，避免同源取模导致相关性锁定。
-    完整周期 = 9 x 16 x 8 x 15 = 17280 笔。
+
+def _lcg(seed: int, dim: int) -> int:
+    """第 dim 维的确定性伪随机序列（满周期，无浮点）。"""
+    return (_LCG_A[dim] * (seed % _LCG_M) + _LCG_C[dim]) % _LCG_M
+
+
+def dem_phases(sample_id: int) -> tuple[int, int, int]:
+    """DEM 三维随机化相位：(reserved, h_phase, v_phase)。
+
+    三轴各自由独立 LCG 推进后取模，模数 16 / 15 / 8 互不整除，
+    避免同源线性推进造成的周期性锁定。
+    联合周期 = 9 片组 x 16 保留列 x 15 横向 x 8 纵向 = 17280 笔。
     """
     q = sample_id // 9
-    return (q % N_COLUMNS, (q // 128) % 15, (q // 16) % 8)
+    reserved = _lcg(q, 0) % N_COLUMNS
+    h_phase  = _lcg(q, 1) % 15
+    v_phase  = _lcg(q, 2) % 8
+    return (reserved, h_phase, v_phase)
 
 
 def _horizontal_columns(k: int, reserved: int, h_phase: int = 0) -> list[int]:

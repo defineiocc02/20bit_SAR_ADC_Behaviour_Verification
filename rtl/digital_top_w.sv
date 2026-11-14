@@ -80,6 +80,12 @@ module digital_top_w (
 
     // ================================================================ E0
     logic [2:0]  upper;
+
+    // 事件模式提交状态（供 E1 与 sample_cnt 使用，需先声明）
+    logic [159:0] ev_final_mask_q;
+    logic         ev_final_valid_q;
+    logic [3:0]   ev_grp_q;            // 该笔事务的片组号（冻结）
+    logic [11:0]  ev_adc2_commit_q;    // 提交时刻采样的 ADC2
     logic [4:0]  lower_q3;
     logic [5:0]  total_q3;
     logic [8:0]  k;
@@ -184,8 +190,8 @@ module digital_top_w (
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             sample_cnt <= 16'd0;
-        end else if (valid_i && in_ready_o) begin
-            sample_cnt <= sample_cnt + 16'd1;
+        end else if (ev_mode_i ? ev_final_valid_q : (valid_i && in_ready_o)) begin
+            sample_cnt <= sample_cnt + 16'd1;      // 每笔恰好推进一次
         end
     end
 
@@ -283,16 +289,18 @@ module digital_top_w (
     assign ev_ids_o        = ev_ids_q;            // 始终是冻结值，不用当拍 slice_ids_o
 
     // 最后一个有效事件 -> 锁存最终 mask，作为该笔事务提交给 E1 的输入
-    logic [159:0] ev_final_mask_q;
-    logic         ev_final_valid_q;
+
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             ev_final_mask_q <= 160'd0; ev_final_valid_q <= 1'b0;
+            ev_grp_q <= 4'd0; ev_adc2_commit_q <= 12'd0;
         end else if (ev_start_i) begin
             ev_final_valid_q <= 1'b0;
+            ev_grp_q <= grp_of(sample_cnt);        // 该笔事务的片组，入口冻结
         end else if (ev_valid_o && !ev_err_o && ev_idx_o == 4'd8) begin
-            ev_final_mask_q <= ev_mask_c;
+            ev_final_mask_q  <= ev_mask_c;
             ev_final_valid_q <= 1'b1;
+            ev_adc2_commit_q <= adc2_i;            // 与最后事件同拍的 ADC2
         end else begin
             ev_final_valid_q <= 1'b0;
         end
@@ -303,6 +311,19 @@ module digital_top_w (
         if (!reset_n) begin
             valid_a <= 1'b0;
             kbad_a  <= 1'b0;
+        end else if (ev_mode_i) begin
+            // ---- 事件模式：唯一提交源是"第 9 个有效事件"锁存的最终结果 ----
+            // 未完成的转换（少于 9 个有效事件）不会产生 valid_a。
+            valid_a <= ev_final_valid_q;
+            kbad_a  <= 1'b0;
+            for (int s = 0; s < N_ACTIVE; s++) begin
+                mask_a[s]  <= ev_final_mask_q[s*20 +: 20];
+                slice_a[s] <= ev_ids_q[s*5 +: 5];
+            end
+            grp_a    <= ev_grp_q;
+            adc2_a   <= ev_adc2_commit_q;     // 提交时刻的 ADC2，不是 start 时的旧值
+            dither_a <= ev_dith_q;
+            tag_a    <= ev_tag_q;
         end else begin
             valid_a <= valid_i && in_ready_o;
             kbad_a  <= k_bad;

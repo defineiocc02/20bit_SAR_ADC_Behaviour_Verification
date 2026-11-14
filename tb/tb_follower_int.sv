@@ -46,8 +46,19 @@ module tb_follower_int;
 
     integer errors = 0, events = 0;
 
-    // 发一笔事务并取回 code20（等 valid_o）
+    task automatic wait_tx(input [23:0] tg, output logic [19:0] cd, output logic hit);
+        begin
+            hit = 1'b0; cd = 20'd0;
+            for (int w = 0; w < 20; w++) begin
+                @(posedge clk); #1;
+                if (valid_o && tag_o == tg) begin cd = code_o; hit = 1'b1; w = 99; end
+            end
+        end
+    endtask
+
+    // 整码模式：拉 valid_i 发一笔
     logic [8:0] ev_mode_sel;
+    logic       hit_ev;
     task automatic issue_tx(input [8:0] cc, input [11:0] a2, input [23:0] tg,
                             output logic [19:0] cd);
         begin
@@ -92,6 +103,7 @@ module tb_follower_int;
             end
         end
     endfunction
+    // 事件模式下不需要 valid_i：run_code 送完 9 位，DUT 自行提交。
     task automatic run_code(input [8:0] c, input [2:0] up);
         integer i, n;
         logic [8:0] exp_p, exp_k;
@@ -138,16 +150,20 @@ module tb_follower_int;
             for (m = 0; m < 64; m = m + 1) begin
                 logic [8:0] cc; logic [11:0] a2; logic [23:0] tg;
                 cc = (m * 7 + 3) % 512; a2 = (m * 331) % 4096; tg = m[23:0] + 24'd900;
-                // 事件模式
-                ev_mode_sel = 1'b1;
+                // 事件模式：置好 adc2/tag，只送事件，**不拉 valid_i**
                 force dut.ev_mode_i = 1'b1;
-                run_code(cc, 3'd0);
-                issue_tx(cc, a2, tg, cd_ev);
-                // 整码模式
+                @(negedge clk); adc2_i = a2; tag_i = tg;
+                run_code(cc, 3'd0);                      // 9 个事件，DUT 自行提交
+                wait_tx(tg, cd_ev, hit_ev);
+                if (!hit_ev) begin
+                    eq_err = eq_err + 1;
+                    if (eq_err <= 5) $display("NO_TX c=%0d 事件模式未产生输出", cc);
+                end
+                // 整码模式：传统 valid_i 通路
                 force dut.ev_mode_i = 1'b0;
                 issue_tx(cc, a2, tg + 24'd1, cd_c);
                 release dut.ev_mode_i;
-                if (cd_ev !== cd_c) begin
+                if (hit_ev && cd_ev !== cd_c) begin
                     eq_err = eq_err + 1;
                     if (eq_err <= 5) $display("EQ c=%0d a2=%0d ev=%0d c=%0d", cc, a2, cd_ev, cd_c);
                 end

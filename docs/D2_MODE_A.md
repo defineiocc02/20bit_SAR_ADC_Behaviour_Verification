@@ -43,17 +43,49 @@ ev_final_valid_q <= 1'b1             // 一笔事务的提交脉冲
 
 E1 在 `ev_mode_i=1` 时以这对信号为提交源。
 
-### 4. E1–E4 与 recon_d5_w2 完全共享
+### 4. E1–E4 与 recon_d5_w2 完全共享（**已真正接入**）
+
+> 更正：上一版文档声称 E1 已接事件提交，但补丁实际**没有生效** ——
+> E1 里仍是 `valid_a <= valid_i && in_ready_o`。原因是替换目标文本漏了
+> 中间一行 `grp_a <= grp_of(sample_cnt);`，`replace` 找不到就静默跳过。
+> 已按行核对后重打。
+
+现在的 E1 是**三路分支**：
 
 ```systemverilog
-valid_a <= ev_mode_i ? ev_final_valid_q : (valid_i && in_ready_o);
-mask_a[s] <= ev_mode_i ? ev_final_mask_q[s*20 +: 20] : mask_c[s];
-slice_a[s] <= ev_mode_i ? ev_ids_q[s*5 +: 5] : slice_ids_o[s*5 +: 5];
-adc2_a <= ev_mode_i ? ev_adc2_q : adc2_i;
-...
+end else if (ev_mode_i) begin
+    valid_a <= ev_final_valid_q;                 // 唯一提交源
+    mask_a[s]  <= ev_final_mask_q[s*20 +: 20];   // 事件最终 mask
+    slice_a[s] <= ev_ids_q[s*5 +: 5];            // 冻结片 ID
+    grp_a      <= ev_grp_q;
+    adc2_a     <= ev_adc2_commit_q;              // 提交时刻的 ADC2
+    dither_a   <= ev_dith_q;
+    tag_a      <= ev_tag_q;
+end else begin
+    valid_a <= valid_i && in_ready_o;            // 整码通路，原样不动
+    ...
+end
 ```
 
-**没有第二套 Wm/G，也没有第二个 recon_d5_w2。** 两种模式在 E1 之后汇合。
+**没有第二套 Wm/G，也没有第二个 recon_d5_w2。**
+
+### 提交条件
+
+只有 `ev_valid_o && !ev_err_o && ev_idx_o == 8` 那一拍才置 `ev_final_valid_q`。
+**未完成的转换（少于 9 个有效事件）不产生输出事务**；
+中途 reset 会清掉 `ev_final_valid_q`。
+
+### ADC2 的到达时机
+
+`ev_adc2_commit_q` 在**最后一个有效事件那一拍**采样 `adc2_i`，
+不是 `ev_start_i` 时的旧值。契约：ADC2 码须与该笔事务的最后事件同拍呈现。
+
+### sample_cnt
+
+```systemverilog
+end else if (ev_mode_i ? ev_final_valid_q : (valid_i && in_ready_o))
+    sample_cnt <= sample_cnt + 1;    // 每笔恰好一次
+```
 
 ### 5. 验证结果
 
@@ -61,6 +93,7 @@ adc2_a <= ev_mode_i ? ev_adc2_q : adc2_i;
 |:---|:---|
 | 两路等价（同 c/adc2/dither，64 组） | **0 不一致** |
 | 事件级对拍（含逐事件 mask） | **5544 事件 0 错误** |
+| **事件模式自提交**（不拉 `valid_i`，只送 9 个事件） | **能产生输出且与整码模式一致** |
 | 8509 笔整码回归 | **PASS** |
 
 ## 40 MS/s 吞吐率：**当前实现达不到**

@@ -92,8 +92,11 @@ module digital_top_w (
     logic       ev_active_q;           // 事件转换进行中（供 busy/in_ready 使用）
     // 唯一的 start 接受信号：空闲、无配置冲突、无 stall、且处于事件模式
     // Follower / 字段冻结 / 片组冻结 / 提交状态清零 全部只看它
-    wire        ev_start_fire = ev_start_i && ev_mode_i && !ev_active_q
-                              && !busy_o && !stall_i && !cfg_we && !cfg_inv_we;
+    // 入口仲裁：同一拍只有一条入口能被接受。
+    // 规则（冻结）：整码入口 valid_i 优先；此时事件 start 被拒绝，反之亦然。
+    wire        ev_req = ev_start_i && ev_mode_i && !ev_active_q
+                       && !busy_o && !stall_i && !cfg_we && !cfg_inv_we;
+    wire        ev_start_fire = ev_req && !valid_i;      // valid_i 同拍 -> 事件被拒
     // 当拍生效的模式：整码事务在接收当拍按 ev_mode_i 决定，其余时刻沿用冻结值
     wire        mode_eff = (valid_i && in_ready_o) ? ev_mode_i : ev_mode_q;   // 事务级冻结的模式，E1 与 sample_cnt 只看它，允许 in-flight 改 ev_mode_i
 
@@ -207,7 +210,9 @@ module digital_top_w (
     assign busy_o = valid_a | valid_b | valid_s1 | valid_s2
                   | ev_active_q | ev_final_valid_q;
     // 入口只在 reset/stall/校准写时停；流水本身不反压
-    assign in_ready_o = reset_n & ~stall_i & ~cfg_we & ~cfg_inv_we & ~ev_active_q;
+    // 反向互锁：事件 start 被接受的同一拍，整码入口不得同时 ready
+    assign in_ready_o = reset_n & ~stall_i & ~cfg_we & ~cfg_inv_we
+                      & ~ev_active_q & ~ev_start_fire;
 
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
@@ -326,7 +331,7 @@ module digital_top_w (
     // "非法事件保持上次合法命令"由 ev_mask_valid_o 门控实现：
     // RDAC 侧只在 ev_mask_valid_o=1 时锁存，非法事件不会改变物理开关。
     assign ev_ready_o      = ev_mode_i && !ev_active_q && !busy_o
-                           && !stall_i && !cfg_we && !cfg_inv_we;
+                           && !stall_i && !cfg_we && !cfg_inv_we && !valid_i;
     assign ev_mask_o       = ev_mask_c;
     // 协议错误（位序/qid）与码越界都必须阻断有效命令
     assign ev_mask_valid_o = ev_valid_o && !ev_err_o && !ev_proto_err_o;

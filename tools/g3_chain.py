@@ -104,18 +104,21 @@ def dither_split(word):
 
 
 def pre_bits(word, v_phase):
-    """按 v2.1 §7.2：f 片预置 J+1，其余 J；展开成每片 4 个物理开关位。
-    预置在 8 个活动 slot 上从 v_phase 起轮转分配。"""
+    """v2.1 §7.2 精确规则：
+
+        pre_value[s] = J + int(((s - v_phase) % 8) < f)
+
+    再展开成每片 4 个物理开关位 [4,2,1,1bal]；值 8 用 [1,1,1,1]。
+    """
     U, Ld, T, f, _ = dither_split(word)
     J = U + 2 * ((word >> 4) & 1)
-    bits = [[0] * 4 for _ in range(NS)]
-    for k in range(NS):
-        slot = (k - v_phase) % NS
-        val = J + 1 if k < f else J
+    bits = []
+    for s in range(NS):
+        val = J + (1 if ((s - v_phase) % NS) < f else 0)
         if val >= 8:
-            bits[slot] = [1, 1, 1, 1]
+            bits.append([1, 1, 1, 1])
         else:
-            bits[slot] = [(val >> 2) & 1, (val >> 1) & 1, val & 1, 0]
+            bits.append([(val >> 2) & 1, (val >> 1) & 1, val & 1, 0])
     return bits, T, U, Ld
 
 
@@ -175,14 +178,18 @@ class Pool18:
         return new_acq
 
 
-def convert(tag, x, ctx, drop_events=False, zero_pre=False, qid=None):
+def convert(tag, x, ctx, drop_events=False, zero_pre=False, qid=None,
+            keep_scalar_wp=False):
     """一笔转换。ctx 含 h,v,dither,acq_seq,coin,qid。返回完整描述符。"""
     word = ctx['dither']
     q_used = ctx['qid'] if qid is None else qid      # 允许故障注入改 qid
     bits, T, U, Ld = pre_bits(word, ctx['v'])
     if zero_pre:
         bits = [[0] * 4 for _ in range(NS)]
-    Wp = Wp_from_bits(bits)
+    Wp_fwd = Wp_from_bits(bits)      # 独立前向模型消费实际开关位
+    Wp_recon = Wp_fwd                # 正常情况下两者一致
+    if keep_scalar_wp:               # 故障注入：位清零但标量仍用名义值
+        Wp_recon = T / CF_CU
     Wp_nom = T / CF_CU
     x_sadc = x + Ld * DELTA
     c_fin, ev = sadc_events(x_sadc)
@@ -200,17 +207,17 @@ def convert(tag, x, ctx, drop_events=False, zero_pre=False, qid=None):
     if last_post is None:
         return dict(tag=tag, illegal=True, k=None, c=c_fin)
     Wm = Wm_cf(last_post)
-    y = G_GAIN * x + 3 * G_GAIN - 6 * Wm + 6 * Wp
+    y = G_GAIN * x + 3 * G_GAIN - 6 * Wm + 6 * Wp_fwd
     code_a = int(math.floor((y - ADC2_YMIN) * ADC2_N / ADC2_SPAN))
     over = not (0 <= code_a < ADC2_N)
     cc = max(0, min(ADC2_N - 1, code_a))
     y_hat = ADC2_YMIN + (cc + 0.5) * ADC2_SPAN / ADC2_N
-    x_hat = (y_hat - 3 * G_GAIN + 6 * Wm - 6 * Wp) / G_GAIN
+    x_hat = (y_hat - 3 * G_GAIN + 6 * Wm - 6 * Wp_recon) / G_GAIN
     # 最终 20 位整数码（单独一项误差）
     code20 = int(round((x_hat + VFS) / (2 * VFS) * (1 << 20) - 0.5))
     code20 = max(0, min((1 << 20) - 1, code20))
     return dict(tag=tag, qid=q_used, qid_exp=ctx['qid'], c=c_fin, k=last_k, events=ev,
-                mask=last_post, pre=bits, Wm=Wm, Wp=Wp, Wp_nom=Wp_nom,
+                mask=last_post, pre=bits, Wm=Wm, Wp=Wp_recon, Wp_fwd=Wp_fwd, Wp_nom=Wp_nom,
                 y=y, adc2=cc, over=over, x_hat=x_hat, code20=code20,
                 illegal=False, guard=(last_k >= 512))
 
@@ -230,11 +237,15 @@ def run_batch(n=512, dither_span=64, fault=None):
         tag = 1000 + i
         r = convert(tag, x, ctx,
                     drop_events=(fault == 'no_events'),
-                    zero_pre=(fault == 'no_pre'),
-                    qid=(0 if fault == 'bad_qid' else None))
+                    zero_pre=(fault in ('no_pre', 'no_pre_scalar')),
+                    keep_scalar_wp=(fault == 'no_pre_scalar'),
+                    qid=(0 if fault in ('bad_qid', 'all_qid0') else None))
         st['n'] += 1
-        if fault == 'no_output':                 # 丢弃全部输出
+        if fault == 'no_output':
             st['lost'] += 1
+            continue
+        if fault == 'all_illegal':               # 全部标为非法
+            st['illegal'] += 1
             continue
         if r.get('illegal'):
             st['illegal'] += 1
@@ -255,7 +266,7 @@ def run_batch(n=512, dither_span=64, fault=None):
         want20 = int(round((x + VFS) / (2 * VFS) * (1 << 20) - 0.5))
         want20 = max(0, min((1 << 20) - 1, want20))
         st['e_code'] = max(st['e_code'], abs(r['code20'] - want20))
-        if abs(r['Wp'] - r['Wp_nom']) > 1e-12:
+        if abs(r['Wp_fwd'] - r['Wp_nom']) > 1e-12:
             st['wp_bad'] += 1
         if fault == 'no_events' and len(r['events']) >= 7:
             st['ev_bad'] += 1
@@ -282,3 +293,116 @@ def accept(st):
     if st['e_code'] > 1:
         reasons.append(f"最终码误差 {st['e_code']} LSB20")
     return (len(reasons) == 0), reasons
+
+
+# ------------------------------------------------------------------ G3 生命周期
+class Engine:
+    """双 qid 上下文 + 18 片池 + prepare/sample/convert/adc2/retire 全生命周期。"""
+
+    ST_PREP, ST_SAMP, ST_CONV, ST_ADC2, ST_DONE = range(5)
+
+    def __init__(self, seed=0xACE1):
+        self.pool = Pool18(seed)
+        self.qid_ctx = [None, None]        # 两个独立上下文
+        self.acq = list(range(8))
+        self.conv = list(range(8, 16))
+        self.stats = dict(prepared=0, sampled=0, converted=0, adc2=0,
+                          retired=0, cancelled=0, inflight=0, stalled=0,
+                          err=0, tags=[], qid_bad=0, drops=0)
+        self.descriptors = {}
+
+    def _free_qid(self):
+        for q in (0, 1):
+            if self.qid_ctx[q] is None:
+                return q
+        return None
+
+    def prepare(self, tag, x, ctx):
+        q = self._free_qid()
+        if q is None:
+            self.stats['stalled'] += 1      # 两个 qid 都忙 -> stall，不丢事务
+            return None
+        d = dict(tag=tag, qid=q, x=x, ctx=dict(ctx), state=self.ST_PREP,
+                 slices=list(self.acq), frozen=True)
+        self.qid_ctx[q] = d
+        self.descriptors[tag] = d
+        self.stats['prepared'] += 1
+        self.stats['inflight'] += 1
+        return d
+
+    def sample(self, d):
+        if d is None or d['state'] != self.ST_PREP:
+            return
+        d['state'] = self.ST_SAMP
+        self.stats['sampled'] += 1
+
+    def convert_one(self, d, fault=None):
+        if d is None:
+            return
+        r = convert(d['tag'], d['x'], d['ctx'],
+                    drop_events=(fault == 'no_events'),
+                    zero_pre=(fault in ('no_pre', 'no_pre_scalar')),
+                    keep_scalar_wp=(fault == 'no_pre_scalar'),
+                    qid=(0 if fault == 'all_qid0' else None))
+        d['state'] = self.ST_CONV
+        d['res'] = r
+        self.stats['converted'] += 1
+        # 片组推进：C_{n+1}=A_n
+        new_acq = self.pool.step(sum(1 << s for s in self.acq),
+                                 sum(1 << s for s in self.conv))
+        self.conv = list(self.acq)
+        self.acq = new_acq
+
+    def adc2_return(self, d):
+        if d is None or 'res' not in d:
+            return
+        d['state'] = self.ST_ADC2
+        self.stats['adc2'] += 1
+
+    def retire(self, d):
+        if d is None:
+            return
+        r = d['res']
+        if r.get('illegal') or r['over']:
+            d['state'] = 'ERR'
+            self.stats['err'] += 1
+        else:
+            d['state'] = self.ST_DONE
+            self.stats['retired'] += 1
+            self.stats['tags'].append(r['tag'])
+            if r['qid'] != r['qid_exp']:
+                self.stats['qid_bad'] += 1
+        self.stats['inflight'] -= 1
+        self.qid_ctx[d['qid']] = None
+
+    def cancel(self, d):
+        if d is None or d['state'] in (self.ST_DONE, 'ERR'):
+            return
+        d['state'] = 'CANCELLED'
+        self.stats['cancelled'] += 1
+        self.stats['inflight'] -= 1
+        if d['qid'] in (0, 1):
+            self.qid_ctx[d['qid']] = None
+
+    def reset(self):
+        for q in (0, 1):
+            if self.qid_ctx[q] is not None:
+                self.cancel(self.qid_ctx[q])
+
+
+def run_lifecycle(n=256, fault=None):
+    eng = Engine()
+    for i in range(n):
+        x = -VFS + 6.0 * (i % 1024) / 1024 + 0.29 * DELTA
+        ctx = dict(h=i % 8, v=(i // 8) % 8, dither=(i * 3) % 64,
+                   acq_seq=i & 15, coin=i & 1, qid=i & 1)
+        d = eng.prepare(1000 + i, x, ctx)
+        if d is None:
+            continue
+        eng.sample(d)
+        eng.convert_one(d, fault=fault)
+        eng.adc2_return(d)
+        eng.retire(d)
+        if i == n // 2:                 # 中途 reset 一次
+            eng.reset()
+    return eng.stats

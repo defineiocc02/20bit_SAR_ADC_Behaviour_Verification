@@ -2,6 +2,7 @@
 // 顶层：rtl/digital_top_w.sv   验证：tb/tb_digital_top_w.sv
 // 用法见 run_topw.sh；旧清单见 files.f（历史实现，勿混用证据）
 rtl/dither_split.sv
+rtl/follower_rt.sv
 rtl/dem_shuffle.sv
 rtl/recon_d5_w2.sv
 rtl/digital_top_w.sv

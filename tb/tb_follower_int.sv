@@ -23,6 +23,7 @@ module tb_follower_int;
     logic [3:0] ev_idx_i;
     logic       ev_perr;
     logic       ev_rdy;
+    logic       ev_abort;
 
     logic cfg_we = 0, cfg_inv_we = 0;
     logic [4:0] cfg_slice = 0, cfg_unit = 0;
@@ -43,7 +44,7 @@ module tb_follower_int;
         .flash_valid_i(1'b0), .flash_code_i(3'd0),
         .ev_done_o(ev_done), .ev_idx_o(ev_idx), .ev_k_o(ev_k), .ev_err_o(ev_err),
         .ev_mask_valid_o(ev_mv), .ev_mask_o(ev_mask), .ev_ids_o(ev_ids),
-        .ev_proto_err_o(ev_perr), .ev_ready_o(ev_rdy),
+        .ev_proto_err_o(ev_perr), .ev_ready_o(ev_rdy), .ev_abort_o(ev_abort),
         .busy_o(busy), .slice_ids_o(slice_ids),
         .code_o(code_o), .overflow_o(ovf_o), .err_o(err_o),
         .valid_o(valid_o), .tag_o(tag_o));
@@ -52,56 +53,73 @@ module tb_follower_int;
 
     integer errors = 0, events = 0, wt;
     // ---- 事务守恒记分板 ----
+    // ---- 事务守恒记分板（24 位 tag 在途集合，不是加减计数）----
     integer n_acc = 0, n_comp = 0, n_canc = 0, n_abort = 0, n_rej = 0;
-    integer ev_tag_ctr = 1;      // 事件事务唯一 tag
-    integer pend = 0;            // 已接受未结束
-    integer live_tag [0:63];     // 在途事务 tag（简单表）
-    integer tag_seen [0:4095];   // 已输出 tag，查重复
-    integer inv_ok = 1;          // 每拍不变量
+    integer ev_tag_ctr = 1;
+    bit in_flight [bit [23:0]];      // 在途事务 tag 集合
+    int  acc_code [bit [23:0]];      // 该 tag 的输入码（诊断用）
+    int  acc_up   [bit [23:0]];      // 该 tag 的 Upper
+    int  acc_cyc  [bit [23:0]];      // 接受时刻
+    integer inv_ok = 1;
+    integer cyc_no = 0;
+    logic   hit_ev;
 
-    task automatic acc(input integer t); n_acc = n_acc + 1; pend = pend + 1; endtask
-    task automatic comp(); n_comp = n_comp + 1; pend = pend - 1; endtask
-    task automatic canc(); n_canc = n_canc + 1; pend = pend - 1; endtask
-    task automatic abort_t(); n_abort = n_abort + 1; pend = pend - 1; endtask
+    function automatic int n_pend();
+        return in_flight.num();
+    endfunction
 
-    // 每拍检查 Accepted = Completed + Cancelled + Aborted + Pending
+    task automatic acc(input bit [23:0] t, input int cc, input int up);
+        if (in_flight.exists(t)) begin
+            errors = errors + 1;
+            $display("DUP_ACCEPT tag=%0d", t);
+        end
+        in_flight[t] = 1'b1; acc_code[t] = cc; acc_up[t] = up; acc_cyc[t] = cyc_no;
+        n_acc = n_acc + 1;
+    endtask
+
+    task automatic retire(input bit [23:0] t, input string how);
+        if (!in_flight.exists(t)) begin
+            errors = errors + 1;
+            $display("GHOST_%s tag=%0d（在途集合中不存在）", how, t);
+            return;
+        end
+        in_flight.delete(t);
+        case (how)
+            "COMP": n_comp  = n_comp  + 1;
+            "CANC": n_canc  = n_canc  + 1;
+            "ABRT": n_abort = n_abort + 1;
+        endcase
+    endtask
+
+    // 每拍：守恒不变量（以集合大小为准）
     always @(posedge clk) begin
-        if (rstn && (n_acc !== n_comp + n_canc + n_abort + pend)) begin
-            if (inv_ok) $display("INVARIANT_BREAK t=%0t acc=%0d comp=%0d canc=%0d abort=%0d pend=%0d",
-                                 $time, n_acc, n_comp, n_canc, n_abort, pend);
+        cyc_no = cyc_no + 1;
+        if (rstn && (n_acc !== n_comp + n_canc + n_abort + n_pend())) begin
+            if (inv_ok) $display("INVARIANT_BREAK cyc=%0d acc=%0d comp=%0d canc=%0d abort=%0d pend=%0d",
+                                 cyc_no, n_acc, n_comp, n_canc, n_abort, n_pend());
             inv_ok = 0;
         end
-        // valid_o 单拍监控：同一 tag 不得出现两次
-        if (valid_o) begin
-            if (tag_seen[tag_o[11:0]] != 0) begin
-                errors = errors + 1;
-                $display("DUP_OUTPUT tag=%0d", tag_o);
-            end
-            tag_seen[tag_o[11:0]] = 1;
-            comp();
-        end
+        if (valid_o) retire(tag_o, "COMP");
+        if (ev_abort) retire(dut.ev_tag_q, "ABRT");   // 用冻结的事务 tag
     end
 
     task automatic wait_tx(input [23:0] tg, output logic [19:0] cd, output logic hit);
         begin
             hit = 1'b0; cd = 20'd0;
-            for (int w = 0; w < 20; w++) begin
+            for (int w = 0; w < 30; w++) begin
                 @(posedge clk); #1;
                 if (valid_o && tag_o == tg) begin cd = code_o; hit = 1'b1; w = 99; end
             end
         end
     endtask
 
-    // 整码模式：拉 valid_i 发一笔
-    logic [8:0] ev_mode_sel;
-    logic       hit_ev;
     task automatic issue_tx(input [8:0] cc, input [11:0] a2, input [23:0] tg,
                             output logic [19:0] cd);
         begin
             @(negedge clk); valid_i = 1; c_i = cc; adc2_i = a2; tag_i = tg;
-            if (in_ready) acc(cc); else n_rej = n_rej + 1;
+            if (in_ready) acc(tg, cc, 0); else n_rej = n_rej + 1;
             @(negedge clk); valid_i = 0;
-            for (int w = 0; w < 12; w++) begin
+            for (int w = 0; w < 30; w++) begin
                 @(posedge clk); #1;
                 if (valid_o && tag_o == tg) begin cd = code_o; w = 99; end
             end
@@ -164,7 +182,7 @@ module tb_follower_int;
                     errors = errors + 1;
                     $display("START_NOT_ACCEPTED c=%0d rdy=%b fire=%b",
                              c, ev_rdy, dut.ev_start_fire);
-                end else acc(c);
+                end else acc(tag_i, c, up);
                 ev_start = 0;
             end
             exp_p = 9'd0; n = 0;
@@ -239,8 +257,14 @@ module tb_follower_int;
             errors = errors + eq_err;
         end
         $display("CONSERVE: acc=%0d comp=%0d canc=%0d abort=%0d pend=%0d rej=%0d",
-                 n_acc, n_comp, n_canc, n_abort, pend, n_rej);
-        if (n_acc !== n_comp + n_canc + n_abort + pend) begin
+                 n_acc, n_comp, n_canc, n_abort, n_pend(), n_rej);
+        if (n_pend() != 0) begin
+            $display("PENDING_LIST (%0d 笔):", n_pend());
+            foreach (in_flight[t])
+                $display("  tag=%0d code=%0d up=%0d 接受cyc=%0d",
+                         t, acc_code[t], acc_up[t], acc_cyc[t]);
+        end
+        if (n_acc !== n_comp + n_canc + n_abort + n_pend()) begin
             errors = errors + 1;
             $display("CONSERVE_FAIL");
         end

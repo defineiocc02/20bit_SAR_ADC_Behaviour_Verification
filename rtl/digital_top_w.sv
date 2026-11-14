@@ -71,6 +71,7 @@ module digital_top_w (
     output logic        ev_err_o,       // prefix < Upper（不回绕）
     output logic        ev_proto_err_o, // 位序/重复/缺位/qid 协议违例
     output logic        ev_ready_o,     // 明确握手：本拍 start 会被接收
+    output logic        ev_abort_o,     // 本笔事务异常终止（码越界/协议错），无输出
     output logic        ev_mask_valid_o,
     output logic [159:0] ev_mask_o,     // 8 片 × 20 单元，每事件一份
     output logic [39:0] ev_ids_o,       // 该笔事务的 8 个物理片 ID
@@ -338,6 +339,17 @@ module digital_top_w (
     // 协议错误（位序/qid）与码越界都必须阻断有效命令
     assign ev_mask_valid_o = ev_valid_o && !ev_err_o && !ev_proto_err_o;
     assign ev_ids_o        = ev_ids_q;            // 始终是冻结值，不用当拍 slice_ids_o
+
+    // 异常终止：第 9 个事件到了但码越界或协议错 -> 明确作废本笔，不留 pending
+    logic ev_abort_q;
+    always_ff @(posedge clk or negedge reset_n) begin
+        if (!reset_n)                    ev_abort_q <= 1'b0;
+        else if (ev_start_fire)          ev_abort_q <= 1'b0;
+        else if (ev_valid_o && (ev_err_o || ev_proto_err_o) && ev_idx_o == 4'd8)
+            ev_abort_q <= 1'b1;
+        else                             ev_abort_q <= 1'b0;
+    end
+    assign ev_abort_o = ev_abort_q;
 
     // 最后一个有效事件 -> 锁存最终 mask，作为该笔事务提交给 E1 的输入
 

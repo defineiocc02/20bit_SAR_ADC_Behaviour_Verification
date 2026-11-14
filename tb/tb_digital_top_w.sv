@@ -106,7 +106,14 @@ module tb_digital_top_w;
     always @(posedge clk) cyc <= cyc + 1;
 
     // ---------------------------------------------------------------- 工具
+    bit neg_mode = 1'b0;      // 负向用例：错误应被"抓到"，但不计入总数
+    int neg_hits = 0;
+
     task automatic fail(input string msg);
+        if (neg_mode) begin
+            neg_hits = neg_hits + 1;
+            return;
+        end
         errors = errors + 1;
         if (errors <= 25) $display("[%0t] ERROR: %s", $time, msg);
     endtask
@@ -252,6 +259,31 @@ module tb_digital_top_w;
         @(negedge clk);
         cfg_inv_we = 1'b0;
         $display("[%0t] loaded coefficient version %0d (9 group inverses)", $time, ver);
+    endtask
+
+    // 负向加载：mode=0 正常，1=交换 0/1 组倒数，2=跳过第 3 组不写
+    task automatic load_inv_custom(input int ver, input int mode);
+        longint iv0, iv1;
+        while (busy !== 1'b0) @(negedge clk);
+        if (mode == 2) begin
+            // 模拟"系数已更新"：写一次同一权重，令旧倒数全部失效
+            @(negedge clk); cfg_we = 1'b1;
+            cfg_slice = 5'd0; cfg_unit = 5'd0; cfg_w = W[ver][0][0][43:0];
+            @(negedge clk); cfg_we = 1'b0;
+        end
+        iv0 = INVM[ver][0];
+        iv1 = INVM[ver][1];
+        for (int g = 0; g < 9; g++) begin
+            if (mode == 2 && g == 3) continue;      // 故意漏载第 3 组
+            @(negedge clk);
+            cfg_inv_we = 1'b1;
+            cfg_grp    = g[3:0];
+            if (mode == 1 && g == 0)      cfg_inv = iv1;   // 交换
+            else if (mode == 1 && g == 1) cfg_inv = iv0;
+            else                          cfg_inv = INVM[ver][g];
+        end
+        @(negedge clk);
+        cfg_inv_we = 1'b0;
     endtask
 
     // ---------------------------------------------------------------- 入口监控 / 出口记分
@@ -538,6 +570,32 @@ module tb_digital_top_w;
         a0 = n_acc; r0 = n_ret; c0 = n_canc;
         run_burst(200, 0, 100, 0, 1);
         check_phase("recal", a0, r0, c0);
+
+        // 7) 负向：交换 0/1 两组的倒数 —— 记分板必须抓到
+        neg_mode = 1'b1; neg_hits = 0;
+        load_inv_custom(0, 1);
+        run_burst(300, 0, 100, 0, 0);
+        drain();
+        $display("NEG swap   : hits=%0d  %s", neg_hits, (neg_hits > 0) ? "OK(caught)" : "BAD(not caught)");
+        if (neg_hits == 0) begin neg_mode = 1'b0; fail("swap of group inverses NOT caught"); end
+        neg_mode = 1'b0;
+
+        // 8) 负向：漏载第 3 组倒数 —— 必须报 err，不能静默用旧值
+        neg_mode = 1'b1; neg_hits = 0;
+        load_inv_custom(0, 2);
+        run_burst(300, 0, 100, 0, 0);
+        drain();
+        $display("NEG missing: hits=%0d  %s", neg_hits, (neg_hits > 0) ? "OK(caught)" : "BAD(not caught)");
+        if (neg_hits == 0) begin neg_mode = 1'b0; fail("missing group inverse NOT caught"); end
+        neg_mode = 1'b0;
+
+        // 负向用例结束后恢复完整 9 组，确认可恢复
+        load_version(0);
+        neg_mode = 1'b0; neg_hits = 0;
+        run_burst(120, 0, 100, 0, 0);
+        drain();
+        $display("RECOVER    : hits=%0d (应为 0)", neg_hits);
+        if (neg_hits != 0) fail("recovery after negative cases failed");
 
         // ------------------------------------------------------------ 总结
         $display("---------------------------------------------------------------");

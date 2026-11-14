@@ -178,6 +178,8 @@ module digital_top_w (
     // 写口：busy 时整笔丢弃（外层在 idle 才写；若违反则这里不静默改表）
     always @(posedge clk) begin
         if (cfg_we && !busy_o && (cfg_slice < N_SLICE) && (cfg_unit < N_UNIT)) begin
+            // 系数更新 -> 旧倒数全部失效，未重载前转换必须报错
+            inv_loaded <= 9'd0;
             // 主列增量维护行和，重写同址也正确
             if (cfg_unit < N_COL)
                 g_tab[cfg_slice] <= g_tab[cfg_slice] - w_tab[cfg_slice][cfg_unit] + cfg_w;

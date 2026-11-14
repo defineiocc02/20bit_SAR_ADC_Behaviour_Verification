@@ -1,73 +1,67 @@
-"""random18 的动态 G 与倒数单元（Python 原型）。
+"""random18 的动态 G 与倒数单元（Python 模型，已修正两处定点错误）。
 
-背景：D5 原式 D_eff = 6·Wm/G − 3 用的是 9 组预计算倒数。
-动态选片后每笔的 8 片组合不同，G 随之变化（跨度 1.668%），
-9 组表失效（错用导致 0.83% FS 误差 ≈ 8700 LSB）。
+!!! 2026-11-14 修正说明 !!!
+--------------------------
+本文件 2026-11-14 16:49 之前的版本有两处错误，**此前"已验证 D_eff 误差
+0.119 µV"的结论不成立**，实测该版本的倒数本身就算错了：
 
-本模块给出：
-  1. compute_g()    按真实选中的 8 片累加 G（128 次加法）
-  2. reciprocal()   定长 Newton 迭代求 1/G，精度可配置
-  3. deff()         用动态 G 与倒数算 D_eff，与精确值比对
+1. ``FRAC = 40`` 太小。G ≈ 2^35，``2^40/G ≈ 32``，整数粒度 1/32 = 3.1%。
+   实测 ``reciprocal(34e9)`` 返回 1009，而精确值 32（相对误差 30.5 倍）；
+   原因是 x0 = 2^(frac-b+1) = 2^5 使 ``g·x0/2^40 < 1``，Newton 迭代把
+   归一化点推到了错误的分支上。
+   → 正确做法：倒数必须是 Q60（``2^60/G ≈ 2^25``，相对分辨率 2^-25）。
+
+2. ``deff()`` 的移位写成 ``>> (frac + 6)``，应为 ``>> (frac − 24)``。
+   相差 2^30 倍，所以"0.119 µV"实际是 1e-9 量级的伪值。
+
+修正后的实现见 ``adi_model/recip_q60.py``（归一化 + 64 项 LUT + 2 次 Newton，
+与 ``rtl/recip_q60.sv`` 逐位对应）。本文件保留原来的函数名，改为调用该实现，
+并提供 :func:`selftest` 给出真实误差。
+
+结论（V0 系数，全 C(18,8)=43,758 片组 × 64 个 num 档，见 tools/check_p0_4.py）：
+    倒数与 floor(2^60/G) 最大差 1 个最低位（相对 3.0e-8）；
+    D_eff 与精确值最大差 2 个 Q24 单位 = 0.021 LSB（判据 ≤ 0.5 LSB）。
 """
 
 from __future__ import annotations
 
+from .recip_q60 import (  # noqa: F401  (reciprocal_exact 保留旧名)
+    recip_exact_floor as reciprocal_exact,
+    recip_q60 as reciprocal,
+    deff_q24,
+    deff_exact_q24,
+)
+
+FRAC = 60            # 倒数定点位宽（必须是 60，理由见文件头）
 Q = 1 << 30          # 权重定点
-FRAC = 40            # 倒数的小数位宽
 
 
-def compute_g(w, ids, n_col=16) -> int:
+def compute_g(w, ids, n_col: int = 16) -> int:
     """G = Σ_{选中的 8 片} Σ_{16 主列} w[s][j]（Q30 整数）。"""
     return sum(w[(s, j)] for s in ids for j in range(n_col))
 
 
-def reciprocal(g: int, frac: int = FRAC, iters: int = 4) -> int:
-    """求 round(2^frac / g)，用 Newton 迭代，全程整数。
-
-    初值取 2^frac 的移位近似，4 次迭代即可把相对误差压到 < 2^-60。
-    """
-    if g <= 0:
-        raise ValueError("g must be positive")
-    # 初值：g 落在 [2^(b-1), 2^b)，取 x0 = 2^(frac-b+1)，相对误差 < 2
-    b = g.bit_length()
-    k = frac - b + 1
-    x = (1 << k) if k >= 0 else 1
-    if x <= 0:
-        x = 1
-    target = 1 << frac
-    for _ in range(iters):
-        # x <- x * (2 - g*x/2^frac)
-        x = (x * (2 * target - (g * x) // target)) // target
-        if x <= 0:
-            x = 1
-    return x
-
-
-def reciprocal_exact(g: int, frac: int = FRAC) -> int:
-    """精确的 round(2^frac / g)，用于校验 Newton 结果。"""
-    return (1 << frac) // g
-
-
 def deff(wm: int, g: int, inv: int, frac: int = FRAC) -> int:
-    """D_eff = 6·Wm/G − 3，返回 Q24。wm 为 Q30，inv 为 Q(frac)。"""
-    # 6*Wm/G = 6*Wm*inv / 2^frac ；再折成 Q24
-    num = 6 * wm * inv                       # Q30 * Q40 = Q70
-    val = num >> (frac + 6)                  # -> Q24
-    return val - (3 << 24)
+    """D_eff = (6·Wm − 3·G)·inv >> 36（Q24）。inv 必须是 Q60。"""
+    if frac != FRAC:
+        raise ValueError("只有 Q60 倒数与 recon_d5_w2 的 >>36 配套")
+    return deff_q24(6 * wm - 3 * g, inv)
 
 
-def check(w, ids, wm_by_code, n_codes=64) -> dict:
-    """验证：动态 G + Newton 倒数 与 精确 1/G 的 D_eff 差异。"""
-    g = compute_g(w, ids)
-    inv_newton = reciprocal(g)
-    inv_exact = reciprocal_exact(g)
-    err_inv = abs(inv_newton - inv_exact) / max(inv_exact, 1)
+def selftest() -> dict:
+    """典型量级下的真实误差（用于替换此前失效的 0.119 µV 结论）。"""
+    g = 34_000_000_000
+    inv_n = reciprocal(g)
+    inv_e = reciprocal_exact(g)
+    worst_q24 = 0
+    for i in range(64):
+        wm = int((0.5 + 0.5 * (i / 63 - 0.5)) * g)
+        worst_q24 = max(worst_q24, abs(deff(wm, g, inv_n) - deff_exact_q24(6 * wm - 3 * g, g)))
+    return dict(g=g, inv_newton=inv_n, inv_exact=inv_e,
+                rel_err=abs(inv_n - inv_e) / inv_e,
+                worst_deff_q24=worst_q24, worst_deff_lsb=worst_q24 / 96.0,
+                worst_deff_uv=worst_q24 / 96.0 * 6e6 / (1 << 20))
 
-    worst = 0
-    for k in range(n_codes):
-        wm = wm_by_code(k)
-        d_a = deff(wm, g, inv_newton)
-        d_b = deff(wm, g, inv_exact)
-        worst = max(worst, abs(d_a - d_b))
-    return dict(g=g, rel_err=err_inv, worst_deff_lsb_q24=worst,
-                worst_deff_uv=worst / (1 << 24) * 1e6)
+
+if __name__ == "__main__":
+    print(selftest())

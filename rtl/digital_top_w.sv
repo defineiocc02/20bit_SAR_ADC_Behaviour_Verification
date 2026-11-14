@@ -40,6 +40,18 @@ module digital_top_w (
     input  logic [23:0] tag_i,          // 事务唯一标签，随流水透传
     output logic        in_ready_o,
 
+    // ---- D1 调度模式（legacy9 / random18）----
+    // sched_mode_i = 0：legacy9，8 片连续轮转 + 9 组预计算倒数（原行为，逐位不变）
+    // sched_mode_i = 1：random18，sched18 动态选片 + 动态 G + recip_q60 运行时倒数
+    // 模式在事务接收沿采样（与片 ID 同沿），一笔事务内不得改。
+    // random18 目前只支持整码入口；ev_mode_i=1 时事件入口被拒绝（见 ev_req）。
+    input  logic        sched_mode_i,
+    input  logic        sched_seed_we_i, // PRNG 种子装载（仅 idle 时）
+    input  logic [31:0] sched_seed_i,
+    output logic [17:0] sched_acq_o,     // 本周期 ACQ 片（观测用）
+    output logic [17:0] sched_conv_o,    // 本周期 CONV 片
+    output logic [17:0] sched_idle_o,    // 本周期 IDLE 片
+
     // ---- 冻结系数加载口（仅 idle 有效）----
     input  logic        cfg_we,
     input  logic [4:0]  cfg_slice,      // 0..17
@@ -96,8 +108,12 @@ module digital_top_w (
     // Follower / 字段冻结 / 片组冻结 / 提交状态清零 全部只看它
     // 入口仲裁：同一拍只有一条入口能被接受。
     // 规则（冻结）：整码入口 valid_i 优先；此时事件 start 被拒绝，反之亦然。
+    // random18 目前只接整码入口：事件流的片组在 start 沿冻结，而 random18 的
+    // 倒数单元是按整码入口的时序对齐的，混用会错位。这里直接拒绝事件 start，
+    // 不静默跑出错码。
     wire        ev_req = reset_n && ev_start_i && ev_mode_i && !ev_active_q
-                       && !busy_o && !stall_i && !cfg_we && !cfg_inv_we;
+                       && !busy_o && !stall_i && !cfg_we && !cfg_inv_we
+                       && !sched_mode_i;
     wire        ev_start_fire = ev_req && !valid_i;      // valid_i 同拍 -> 事件被拒
     // 当拍生效的模式：整码事务在接收当拍按 ev_mode_i 决定，其余时刻沿用冻结值
     wire        mode_eff = (valid_i && in_ready_o) ? ev_mode_i : ev_mode_q;   // 事务级冻结的模式，E1 与 sample_cnt 只看它，允许 in-flight 改 ev_mode_i
@@ -130,12 +146,30 @@ module digital_top_w (
     // 用 sample_cnt 会在 65536 回绕（65536%9=7）后与组号错位。
     assign sid_base = (({28'd0, grp_cnt} + 32'd1) * 32'd8) % 32'd18;
 
+    // ---- D1 两种调度模式 ----
+    logic [39:0] ids_legacy, ids_r18;
     genvar gi;
     generate
         for (gi = 0; gi < N_ACTIVE; gi++) begin : g_sid
-            assign slice_ids_o[gi*5 +: 5] = (sid_base[4:0] + gi) % 5'd18;
+            assign ids_legacy[gi*5 +: 5] = (sid_base[4:0] + gi) % 5'd18;
         end
     endgenerate
+
+    // 事务提交信号：整码入口接收 或 事件流第 9 个事件提交（与 grp_cnt 同源）
+    logic txn_commit;
+    assign txn_commit = mode_eff ? ev_final_valid_q : (valid_i && in_ready_o);
+
+    sched18 u_sched (
+        .clk(clk), .reset_n(reset_n),
+        .seed_we(sched_seed_we_i && !busy_o), .seed_i(sched_seed_i),
+        .adv(txn_commit),
+        .acq_mask_o(sched_acq_o), .conv_mask_o(sched_conv_o),
+        .idle_mask_o(sched_idle_o), .ids_o(ids_r18), .rng_o());
+
+    // 模式在事务接收沿冻结；E0 的选择用当拍值，E2 的倒数来源用冻结值，
+    // 两者在提交沿取的是同一个 sched_mode_i，不会错配。
+    assign slice_ids_o = sched_mode_i ? ids_r18 : ids_legacy;
+
 
     logic [15:0] h;
     logic [7:0]  y;
@@ -162,6 +196,7 @@ module digital_top_w (
     logic [19:0] mask_a [0:N_ACTIVE-1];
     logic [4:0]  slice_a [0:N_ACTIVE-1];
     logic [3:0]  grp_a;
+    logic        mode_a;             // E1 冻结的调度模式
     logic [11:0] adc2_a;
     logic [5:0]  dither_a;
     logic [23:0] tag_a;
@@ -172,6 +207,9 @@ module digital_top_w (
     logic [43:0] wm_b, g_b;
     logic [43:0] wm_c, g_c;
     logic [3:0]  grp_b;
+    logic        mode_b;
+    logic        r18_err_b;          // 倒数单元合同违例（G=0）
+    logic [26:0] inv_r18_b;          // 动态倒数（random18）
     logic [63:0] inv_sel;
     logic        inv_missing;
     logic [11:0] adc2_b;
@@ -220,9 +258,16 @@ module digital_top_w (
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             grp_cnt <= 4'd0;
-        end else if (mode_eff ? ev_final_valid_q : (valid_i && in_ready_o)) begin
+        end else if (txn_commit) begin
             grp_cnt <= (grp_cnt == 4'd8) ? 4'd0 : grp_cnt + 4'd1;
         end
+    end
+
+    // 调度模式冻结：只在事务提交沿更新（E2 的倒数来源按它选）
+    logic sched_mode_q;
+    always_ff @(posedge clk or negedge reset_n) begin
+        if (!reset_n)          sched_mode_q <= 1'b0;
+        else if (txn_commit)   sched_mode_q <= sched_mode_i;
     end
 
     always_ff @(posedge clk or negedge reset_n) begin
@@ -236,7 +281,7 @@ module digital_top_w (
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             sample_cnt <= 16'd0;
-        end else if (mode_eff ? ev_final_valid_q : (valid_i && in_ready_o)) begin
+        end else if (txn_commit) begin
             sample_cnt <= sample_cnt + 16'd1;      // 每笔恰好推进一次
         end
     end
@@ -388,6 +433,7 @@ module digital_top_w (
                 slice_a[s] <= ev_ids_q[s*5 +: 5];
             end
             grp_a    <= ev_grp_q;
+            mode_a   <= sched_mode_q;          // 事件模式不走 random18（入口已拒绝）
             adc2_a   <= ev_adc2_commit_q;     // 提交时刻的 ADC2，不是 start 时的旧值
             dither_a <= ev_dith_q;
             tag_a    <= ev_tag_q;
@@ -399,11 +445,31 @@ module digital_top_w (
                 slice_a[s] <= slice_ids_o[s*5 +: 5];
             end
             grp_a    <= grp_cnt;              // 0..8 环计数
+            mode_a   <= sched_mode_i;         // 与 slice_ids_o 的选择同沿采样
             adc2_a   <= adc2_i;
             dither_a <= dither_i;
             tag_a    <= tag_i;
         end
     end
+
+    // ---------------------------------------------------------------- E0：动态 G 前推
+    // random18 的倒数必须在事务接收沿就开始算（2 拍流水），否则赶不上 E3。
+    // 这里的 G 与 E2 的 g_c 是同一个和（同一组 slice_ids、同一张 g_tab），
+    // TB 逐笔校验 g_e0 == g_b。
+    logic [43:0] g_e0;
+    always_comb begin
+        g_e0 = 44'd0;
+        for (int s = 0; s < N_ACTIVE; s++) g_e0 = g_e0 + g_tab[slice_ids_o[s*5 +: 5]];
+    end
+
+    logic        r18_vld;
+    logic [26:0] inv_r18;
+    logic        r18_err;
+    recip_q60 u_recip (
+        .clk(clk), .reset_n(reset_n),
+        .valid_i(valid_i && in_ready_o && sched_mode_i),
+        .g_q30(g_e0),
+        .valid_o(r18_vld), .inv_q60(inv_r18), .err_o(r18_err));
 
     // ---------------------------------------------------------------- E2 累加
     // Wm = Σ_s Σ_j mask[s][j]·w[sid_s][j]（主 + 子，Q30）
@@ -422,20 +488,28 @@ module digital_top_w (
         if (!reset_n) begin
             valid_b <= 1'b0;
             kbad_b  <= 1'b0;
+            mode_b  <= 1'b0;
+            r18_err_b <= 1'b0;
+            inv_r18_b <= 27'd0;
         end else begin
             valid_b <= valid_a;
             kbad_b  <= kbad_a;
             wm_b    <= wm_c;
             g_b     <= g_c;
             grp_b   <= grp_a;
+            mode_b  <= mode_a;
+            // 倒数单元的 valid 与 valid_b 同拍（E0 起算 2 拍），这里只取用它的 err
+            r18_err_b <= r18_vld & r18_err;
+            inv_r18_b <= inv_r18;
             adc2_b  <= adc2_a;
             dither_b<= dither_a;
             tag_b   <= tag_a;
         end
     end
 
-    assign inv_sel     = inv_tab[grp_b];
-    assign inv_missing = ~inv_loaded[grp_b];   // 未装载 -> 明确报错，不静默用旧值
+    // 倒数来源：legacy9 查 9 组表，random18 用运行时 unit
+    assign inv_sel     = mode_b ? {37'd0, inv_r18_b} : inv_tab[grp_b];
+    assign inv_missing = mode_b ? 1'b0 : ~inv_loaded[grp_b];  // random18 无表，不需要预载
 
     // ---------------------------------------------------------------- E3/E4：w2 重构
     recon_d5_w2 u_recon(
@@ -456,7 +530,7 @@ module digital_top_w (
             valid_s1 <= valid_b;
             valid_s2 <= valid_s1;
             // recon 的 err 与 wm_b/g_b/inv 同拍；k 越界随事务一起对齐
-            err_s1   <= recon_err | kbad_b | inv_missing;
+            err_s1   <= recon_err | kbad_b | inv_missing | r18_err_b;
             err_s2   <= err_s1;
             tag_s1   <= tag_b;
             tag_s2   <= tag_s1;

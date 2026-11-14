@@ -36,6 +36,9 @@ module tb_digital_top_w;
     logic [2:0]  v_phase_i = '0;
     logic [23:0] tag_i = '0;
     logic        in_ready, busy;
+    logic        sched_mode = 1'b0;      // 本 TB 只用 legacy9；random18 见 tb_digital_top_r18
+    logic [31:0] sched_seed = 32'hACE1_0001;
+    logic [17:0] sched_acq, sched_conv, sched_idle;
     logic [39:0] slice_ids;
     logic [19:0] code_o;
     logic        ovf_o, err_o, valid_o;
@@ -52,6 +55,8 @@ module tb_digital_top_w;
         .c_i(c_i), .adc2_i(adc2_i), .dither_i(dither_i),
         .reserved_i(reserved_i), .h_phase_i(h_phase_i), .v_phase_i(v_phase_i),
         .tag_i(tag_i), .in_ready_o(in_ready),
+        .sched_mode_i(sched_mode), .sched_seed_we_i(1'b0), .sched_seed_i(sched_seed),
+        .sched_acq_o(sched_acq), .sched_conv_o(sched_conv), .sched_idle_o(sched_idle),
         .cfg_we(cfg_we), .cfg_slice(cfg_slice), .cfg_unit(cfg_unit), .cfg_w(cfg_w),
         .cfg_inv_we(cfg_inv_we), .cfg_inv(cfg_inv), .cfg_inv_grp(cfg_grp),
         .ev_mode_i(1'b0), .ev_start_i(1'b0), .ev_valid_i(1'b0), .ev_bit_i(1'b0),
@@ -76,6 +81,14 @@ module tb_digital_top_w;
     longint G_inv [0:NGOLD-1];
     int     G_cd  [0:NGOLD-1];
     int     G_ov  [0:NGOLD-1];
+    int     G_res [0:NGOLD-1];
+    int     G_hp  [0:NGOLD-1];
+    int     G_vp  [0:NGOLD-1];
+
+    // DEM 相位表（v3 满周期置换，1920 行，由 tools/gen_vec_topw.py 导出）
+    int     PH_res [0:1919];
+    int     PH_hp  [0:1919];
+    int     PH_vp  [0:1919];
 
     // ---------------------------------------------------------------- 逐 tag 期望
     longint exp_wm   [0:TAGMAX-1];
@@ -150,10 +163,12 @@ module tb_digital_top_w;
         M     = (k >> 2) & 7;
         L     = k & 3;
 
-        qd  = sample_id / 9;
-        res = qd % 16;
-        hp  = (qd / 128) % 15;
-        vp  = (qd / 16) % 8;
+        qd  = sample_id / 9;          // 仅用于诊断打印，相位以端口为准
+        // 相位直接取当拍端口值：v3 是满周期置换表，TB 无法用公式复算，
+        // 若在这里自己按 old 公式推，会和当前生产模型不同步（已踩过）。
+        res = int'(reserved_i);
+        hp  = int'(h_phase_i);
+        vp  = int'(v_phase_i);
 
         for (i = 0; i < 16; i++) h[i] = 0;
         for (i = 0; i < 8; i++)  y[i] = 0;
@@ -205,6 +220,7 @@ module tb_digital_top_w;
     // ---------------------------------------------------------------- 读文件
     task automatic load_files();
         int fd, r, typ, ver, sid, u, iv, i;
+        int rsv, hpp, vpp, ph_idx;
         longint w, wm, g, inv, cd, ov;
         fd = $fopen("vec_topw_coef.txt", "r");
         if (fd == 0) begin
@@ -227,16 +243,34 @@ module tb_digital_top_w;
         end
         i = 0;
         while (!$feof(fd) && i < NGOLD) begin
-            r = $fscanf(fd, "%d %d %d %d %d %d %d %d\n",
-                        G_c[i], G_a2[i], G_d[i], wm, g, inv, cd, ov);
-            if (r == 8) begin
+            r = $fscanf(fd, "%d %d %d %d %d %d %d %d %d %d %d\n",
+                        G_c[i], G_a2[i], G_d[i], wm, g, inv, cd, ov,
+                        rsv, hpp, vpp);
+            if (r == 11) begin
                 G_wm[i] = wm; G_g[i] = g; G_inv[i] = inv;
                 G_cd[i] = cd; G_ov[i] = ov;
+                G_res[i] = rsv; G_hp[i] = hpp; G_vp[i] = vpp;
                 i = i + 1;
             end
         end
         $fclose(fd);
-        $display("loaded coef + %0d golden vectors", i);
+        $display("loaded coef + %0d golden vectors (with DEM phases)", i);
+
+        fd = $fopen("vec_phase_v3.txt", "r");
+        if (fd == 0) begin
+            $display("FATAL: cannot open vec_phase_v3.txt");
+            $finish;
+        end
+        i = 0;
+        while (!$feof(fd) && i < 1920) begin
+            r = $fscanf(fd, "%d %d %d %d\n", ph_idx, rsv, hpp, vpp);
+            if (r == 4) begin
+                PH_res[i] = rsv; PH_hp[i] = hpp; PH_vp[i] = vpp;
+                i = i + 1;
+            end
+        end
+        $fclose(fd);
+        $display("loaded %0d DEM phases", i);
     endtask
 
     // ---------------------------------------------------------------- 系数加载
@@ -424,17 +458,14 @@ module tb_digital_top_w;
     endtask
 
     // ---------------------------------------------------------------- DEM 相位
-    // 与 digital_chain.dem_phases 一致：q = sample_id/9
-    //   reserved = q%16, h_phase = (q/128)%15, v_phase = (q/16)%8
+    // 相位序列统一由 tb/vec_phase_v3.txt 提供（v3 满周期置换表，1920 笔一轮）。
+    // 金标段额外与 vec_topw_gold.txt 自带的相位列交叉校验，防止两张表错位。
     task automatic set_phases(input int sid);
-        int qd, rv, hp, vp;
-        qd = sid / 9;
-        rv = qd % 16;
-        hp = (qd / 128) % 15;
-        vp = (qd / 16) % 8;
-        reserved_i = rv[3:0];
-        h_phase_i  = hp[3:0];
-        v_phase_i  = vp[2:0];
+        int q_;
+        q_ = sid % 1920;
+        reserved_i = PH_res[q_][3:0];
+        h_phase_i  = PH_hp[q_][3:0];
+        v_phase_i  = PH_vp[q_][2:0];
     endtask
 
     // ---------------------------------------------------------------- 金标连发
@@ -448,6 +479,9 @@ module tb_digital_top_w;
             if (i > 0 && !accepted_last) fail("golden: transaction not accepted");
             valid_i  = 1'b1;
             set_phases(i);
+            if (int'(reserved_i) != G_res[i] || int'(h_phase_i) != G_hp[i] ||
+                int'(v_phase_i)  != G_vp[i])
+                fail($sformatf("golden %0d: 相位表与向量表不一致", i));
             c_i      = G_c[i][8:0];
             adc2_i   = G_a2[i][11:0];
             dither_i = G_d[i][5:0];

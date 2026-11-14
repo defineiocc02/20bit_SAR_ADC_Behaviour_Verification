@@ -149,18 +149,27 @@ def _mask_bits(k: int) -> tuple[int, int]:
     return ((1 << therm) - 1) | (((1 << ones) - 1) << 15), (k & 0xF) & 0b1111
 
 
-def run_transaction(tx: Transaction, *, slice_group=None, phases=None) -> dict:
+def run_transaction(tx: Transaction, *, slice_group=None, phases=None,
+                    slice_ids=None, inv_fn=None) -> dict:
     """调度 -> follower 事件 -> Fig.20–21 MUX -> 位权自检 -> 定点重构。
 
     MUX：m[s][j] = y[s] if j == reserved else h[j]，且 h[reserved] == 0。
     因此 Σ_{s,j} m = 8H + M，且 4·(8H+M) + L == k。
+
+    测试钩子（默认 None 时行为完全不变）：
+      slice_group : legacy9 的片组号，用于解耦 A/B/C/D 对照
+      slice_ids   : 显式 8 片 ID（random18 的 RTL 等价调度器给出的序列）
+      inv_fn      : 用运行时倒数（如 recip_q60）替代精确除法，模拟硬件路径
     """
     # 测试钩子：允许显式指定片组 / DEM 相位，用于把两者解耦做 A/B/C/D 对照。
     # 默认（None）行为与原来完全一致。
-    plan = round_robin_plan(
-        tx.sample_id + 1 if slice_group is None else slice_group + 1,
-        n_slices=N_SLICES, n_active=N_ACTIVE)
-    slice_ids = np.asarray(plan.acq)[-1]
+    if slice_ids is None:
+        plan = round_robin_plan(
+            tx.sample_id + 1 if slice_group is None else slice_group + 1,
+            n_slices=N_SLICES, n_active=N_ACTIVE)
+        slice_ids = np.asarray(plan.acq)[-1]
+    else:
+        slice_ids = np.asarray(slice_ids, dtype=np.int64)
     prefixes = ResolvedPrefixes.from_final(np.array([tx.final_code], dtype=np.int64))
 
     upper, lower, total = _dither_terms(tx.dither_word)
@@ -249,6 +258,8 @@ def run_transaction(tx: Transaction, *, slice_group=None, phases=None) -> dict:
             # 硬件路径：inv_g = round(2^60/G)，用乘+移替代除法。
             # -K_q54 = (6Wm - 3G)·VR，故 (6Wm-3G) = -K_q54 // VR（整除）
             inv_g_q60 = (2 * (1 << 60) + G_q30) // (2 * G_q30)
+            if inv_fn is not None:
+                inv_g_q60 = int(inv_fn(G_q30))      # 硬件倒数单元（Q60）
             # 冻结表达式（与 RTL 逐位相同）：floor((6Wm − 3G)·inv / 2^36)
             dac_q24 = ((6 * Wm_q30 - 3 * G_q30) * inv_g_q60) >> 36
             # K 只作独立一致性检查，不参与 D_eff 的计算
@@ -531,3 +542,26 @@ def code20_from_q24(x_q24: int) -> int:
         q = -q
     c = q + (1 << 19)
     return min(max(c, 0), (1 << 20) - 1)
+
+# ---- 相位发生器（方案甲，与 rtl/dem_phase_gen.sv 逐位对应）----
+_PG_SEED = 0x12345678
+
+
+def _xs32(x: int) -> int:
+    x ^= (x << 13) & 0xFFFFFFFF
+    x ^= x >> 17
+    x ^= (x << 5) & 0xFFFFFFFF
+    return x & 0xFFFFFFFF
+
+
+def dem_phases_rtl(sample_id: int) -> tuple[int, int, int]:
+    """RTL 相位发生器的位精确镜像。
+
+    RTL 从 SEED 起每笔推进一次；第 0 笔对应**推进一次后**的值
+    （复位后 rng_q=SEED，首个 sample_adv 使它变成 xs32(SEED)）。
+    """
+    r = _PG_SEED
+    for _ in range(sample_id + 1):
+        r = _xs32(r)
+    i = r % 1920
+    return (i // 120, (i // 8) % 15, i % 8)

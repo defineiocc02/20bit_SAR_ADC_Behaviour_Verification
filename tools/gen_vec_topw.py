@@ -24,7 +24,12 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from adi_model.digital_chain import N_SLICES, Transaction, run_transaction  # noqa: E402
+from adi_model.digital_chain import (  # noqa: E402
+    N_SLICES,
+    Transaction,
+    dem_phases,
+    run_transaction,
+)
 
 Q30 = 1 << 30
 UNIT = Q30 // 4                 # 0.25 in Q30，名义单 2C 单元
@@ -113,6 +118,14 @@ def main():
                 f.write(f"1 {ver} {g} 0 {inv[ver][g]}\n")
     print(f"wrote {coef_path}")
 
+    # ---- DEM 相位表（1920 行，v3 满周期置换）：TB 用同一序列驱动端口 ----
+    phase_path = os.path.join(tb, "vec_phase_v3.txt")
+    with open(phase_path, "w") as f:
+        for i in range(1920):
+            r_, h_, v_ = dem_phases(i)
+            f.write(f"{i} {r_} {h_} {v_}\n")
+    print(f"wrote {phase_path} (1920 phases)")
+
     # ---- 金标事务（V0，sample_id = 行号，连续无气泡） ----
     gold_path = os.path.join(tb, "vec_topw_gold.txt")
     max_num = 0
@@ -174,7 +187,12 @@ def main():
             max_num = max(max_num, abs(num))
             max_prod = max(max_prod, abs(num * iv))
             codes.append(code)
-            f.write(f"{c} {adc2} {dither} {wm} {g} {iv} {code} {ovf}\n")
+            # 相位列：v3 是满周期置换表，TB 无法用公式复算，必须随向量导出。
+            # 缺这三列时 TB 只能退回 v2 的老公式，与当前生产模型不同步
+            # （2026-11-14 修：此前正好踩到这个坑，第 4 笔起 Wm 就对不上）。
+            ph_r, ph_h, ph_v = dem_phases(i)
+            f.write(f"{c} {adc2} {dither} {wm} {g} {iv} {code} {ovf} "
+                    f"{ph_r} {ph_h} {ph_v}\n")
 
     print(f"wrote {gold_path} ({N_GOLD} tx)")
     print(f"bitwidth: |6Wm-3G| max = {max_num} ({max_num.bit_length()} bit), "

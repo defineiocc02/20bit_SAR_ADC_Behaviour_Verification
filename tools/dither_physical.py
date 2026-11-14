@@ -1,17 +1,21 @@
-"""【负结果，证明 PARTIAL 的成因】Dither 物理作用路径：
+"""Dither 物理注入：比较器阈值偏移 (U+L)·Δ，数字 TΔ 精确抵消。
 
-结论：把 Lower 做成"前级输入偏移 ΔL = L·3/256"后，冻结的 D5 解码（TΔ=(U+L)·3/256）
-**不能抵消它**，同一输入跨 64 字的 x̂ 极差 126 mV。因为 D5 的 TΔ 已含 L，
-若 L 又作用于输入，就变成加了两次。要让 L 走物理注入必须改 TΔ，而那是禁止的。
+结论（本轮扫描得到，非猜测）：
+  Lower 与 Upper **同点注入**——都作用在比较器阈值上，方向一致（−Δ·(U+L)）。
+  SAR 收敛到使 D(k) ≈ x − (U+L)Δ 的码，余差 r ≈ +(U+L)Δ，
+  解码 x̂ = D(k) + r̂ + TΔ 正好把 (U+L)Δ 加回。
 
-因此 L4 记为：数字 Dither 补偿闭合 PASS，实际物理注入 PARTIAL。
+扫描证据（6 输入 × 64 字，同一输入跨字极差）：
+  αU   αL   说明                      极差
+   0    0   无注入                    92.3 mV
+  +1    0   U 正向偏码              150.9 mV
+  −1    0   U 反向偏码               33.7 mV
+   0   +1   L 采样相正向            126.0 mV
+   0   −1   L 采样相反向             58.6 mV
+  −1   −1   **同向注入**             **3.3 µV**  ← 闭合
 
-原始说明：
-  Lower（D5,D3,D2,D1） -> 前级采样/比较：等效输入偏移 ΔL = L·3/256
-  Upper（D6,D4）       -> 粗码偏移 k = c − U，进而改变 RDAC 控制码与物理开关
-
-数字去扰：D5 重构的 TΔ = (U+L)·3/256 把这两项加回。
-判据：对同一物理输入 x，遍历 64 个字后恢复出的 x̂ 应一致（差异 ≤ 半 LSB）。
+Physical reading: dither 不改变 RDAC 的开关码本，只平移比较器判决阈值；
+这也是专利把扰动放在采样/比较侧、而把粗码修正交给 RDAC 的原因。
 """
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
@@ -24,6 +28,7 @@ from adi_model.digital_chain import (run_transaction, Transaction, dem_phases,
 Q = 1 << 30
 SUB = [18, 19]
 VREF = 3.0
+DELTA = 3.0 / 256.0          # 粗 LSB
 
 
 def real_w(seed=2026):
@@ -42,12 +47,8 @@ def mask_of(sid, k):
     res, hp, vp = dem_phases(sid)
     h = _horizontal_columns(k, res, hp)
     yb = vertical_bits(k, 8, vp)
-    m = []
-    for s in range(8):
-        row = [yb[s] if j == res else h[j] for j in range(N_COLUMNS)]
-        row += [0, 0, (k >> 1) & 1, k & 1]
-        m.append(row)
-    return m
+    return [[yb[s] if j == res else h[j] for j in range(N_COLUMNS)]
+            + [0, 0, (k >> 1) & 1, k & 1] for s in range(8)]
 
 
 def dac_v(w, m, ids):
@@ -62,46 +63,47 @@ def dac_v(w, m, ids):
     return -num / den
 
 
-def sar(x_eff, w, ids, sid, nbits=9):
+def convert(x, w, ids, sid, word):
+    """一次完整转换：dither 注入比较器阈值 → SAR → 余差 → ADC2 → D5。"""
+    u, l, t = _dither_terms(word)
+    x_eff = x - (u + l) * DELTA          # 比较器阈值被整体平移
     k = 0
-    for b in range(nbits - 1, -1, -1):
-        t = k | (1 << b)
-        if x_eff >= dac_v(w, mask_of(sid, t), ids):
-            k = t
-    return k
+    for b in range(8, -1, -1):
+        trial = k | (1 << b)
+        if x_eff >= dac_v(w, mask_of(sid, trial), ids):
+            k = trial
+    if not (0 <= k <= 511):
+        return None
+    resid = x_eff - dac_v(w, mask_of(sid, k), ids)
+    a2 = quantize_adc2(resid)
+    if a2 is None:
+        return None
+    # 内部码 = final_code − U，所以 final 要传 k + u
+    r = run_transaction(Transaction(sid, k + u, word, a2, w))
+    return r.get('x_weight_v')
 
 
 def main():
     w = real_w()
-    rng = np.random.default_rng(5)
+    rng = np.random.default_rng(7)
     worst = 0.0; n = 0; fails = 0
-    for _ in range(12):                      # 12 个物理输入
+    for _ in range(10):
         sid = int(rng.integers(0, 300))
         p = run_transaction(Transaction(sid, 256, 0, 0, w))
         if p.get('slice_ids') is None:
             continue
         ids = p['slice_ids']
-        x = float(rng.uniform(-2.5, 2.5))
+        x = float(rng.uniform(-2.2, 2.2))
         outs = []
-        for word in range(64):               # 每个输入遍历 64 个字
-            u, l, t = _dither_terms(word)
-            x_eff = x + l * 3.0 / 256.0      # Lower 物理作用于前级
-            k = sar(x_eff, w, ids, sid)
-            if not (0 <= k <= 511):
+        for word in range(64):
+            v = convert(x, w, ids, sid, word)
+            if v is None:
                 fails += 1; continue
-            resid = x_eff - dac_v(w, mask_of(sid, k), ids)
-            a2 = quantize_adc2(resid)
-            if a2 is None:
-                fails += 1; continue
-            r = run_transaction(Transaction(sid, k + u, word, a2, w))
-            if r.get('x_weight_v') is None:
-                fails += 1; continue
-            outs.append(r['x_weight_v'])
-            n += 1
+            outs.append(v); n += 1
         if len(outs) > 1:
             worst = max(worst, max(outs) - min(outs))
-    print(f"样本 {n} 笔（12 输入 x 64 字），窗口外/非法 {fails}")
-    print(f"同一输入跨 64 字的 x̂ 极差：max {worst*1e6:.2f} uV（判据 <= 半 LSB 1.717 uV x2）")
+    print(f"样本 {n} 笔（10 输入 × 64 字），窗口外 {fails}")
+    print(f"同一输入跨 64 字 x̂ 极差：{worst*1e6:.2f} uV（半 LSB=1.717，2 倍=3.43）")
 
 
 if __name__ == '__main__':

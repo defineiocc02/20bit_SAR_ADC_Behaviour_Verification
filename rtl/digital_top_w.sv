@@ -81,6 +81,12 @@ module digital_top_w (
     // ================================================================ E0
     logic [2:0]  upper;
 
+    logic ev_mode_q;
+    logic [3:0] grp_cnt;               // 0..8 循环，与 16 位 sample_cnt 解耦
+    logic       ev_active_q;           // 事件转换进行中（供 busy/in_ready 使用）
+    // 当拍生效的模式：整码事务在接收当拍按 ev_mode_i 决定，其余时刻沿用冻结值
+    wire        mode_eff = (valid_i && in_ready_o) ? ev_mode_i : ev_mode_q;   // 事务级冻结的模式，E1 与 sample_cnt 只看它，允许 in-flight 改 ev_mode_i
+
     // 事件模式提交状态（供 E1 与 sample_cnt 使用，需先声明）
     logic [159:0] ev_final_mask_q;
     logic         ev_final_valid_q;
@@ -183,14 +189,31 @@ module digital_top_w (
     end
 
     // 在途事务数：用于判定 idle（cfg 口只在 idle 时可写）
-    assign busy_o = valid_a | valid_b | valid_s1 | valid_s2;
+    // 事件进行中同样算忙：cfg 写与整码事务都不得插入，否则该笔的系数/片组会被改掉
+    assign busy_o = valid_a | valid_b | valid_s1 | valid_s2 | ev_active_q;
     // 入口只在 reset/stall/校准写时停；流水本身不反压
-    assign in_ready_o = reset_n & ~stall_i & ~cfg_we & ~cfg_inv_we;
+    assign in_ready_o = reset_n & ~stall_i & ~cfg_we & ~cfg_inv_we & ~ev_active_q;
+
+    always_ff @(posedge clk or negedge reset_n) begin
+        if (!reset_n) begin
+            grp_cnt <= 4'd0;
+        end else if (mode_eff ? ev_final_valid_q : (valid_i && in_ready_o)) begin
+            grp_cnt <= (grp_cnt == 4'd8) ? 4'd0 : grp_cnt + 4'd1;
+        end
+    end
+
+    always_ff @(posedge clk or negedge reset_n) begin
+        if (!reset_n) begin
+            ev_mode_q <= 1'b0;
+        end else if (ev_start_i || (valid_i && in_ready_o)) begin
+            ev_mode_q <= ev_mode_i;     // 只在事务边界更新，飞行中改 ev_mode_i 不影响本笔
+        end
+    end
 
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             sample_cnt <= 16'd0;
-        end else if (ev_mode_i ? ev_final_valid_q : (valid_i && in_ready_o)) begin
+        end else if (mode_eff ? ev_final_valid_q : (valid_i && in_ready_o)) begin
             sample_cnt <= sample_cnt + 16'd1;      // 每笔恰好推进一次
         end
     end
@@ -233,7 +256,6 @@ module digital_top_w (
     logic [11:0] ev_adc2_q;
     logic [5:0]  ev_dith_q;
     logic [23:0] ev_tag_q;
-    logic        ev_active_q;
 
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
@@ -296,7 +318,7 @@ module digital_top_w (
             ev_grp_q <= 4'd0; ev_adc2_commit_q <= 12'd0;
         end else if (ev_start_i) begin
             ev_final_valid_q <= 1'b0;
-            ev_grp_q <= grp_of(sample_cnt);        // 该笔事务的片组，入口冻结
+            ev_grp_q <= grp_cnt;                   // 0..8 环计数，不受 65536 回绕影响
         end else if (ev_valid_o && !ev_err_o && ev_idx_o == 4'd8) begin
             ev_final_mask_q  <= ev_mask_c;
             ev_final_valid_q <= 1'b1;
@@ -311,7 +333,7 @@ module digital_top_w (
         if (!reset_n) begin
             valid_a <= 1'b0;
             kbad_a  <= 1'b0;
-        end else if (ev_mode_i) begin
+        end else if (mode_eff) begin
             // ---- 事件模式：唯一提交源是"第 9 个有效事件"锁存的最终结果 ----
             // 未完成的转换（少于 9 个有效事件）不会产生 valid_a。
             valid_a <= ev_final_valid_q;
@@ -331,7 +353,7 @@ module digital_top_w (
                 mask_a[s]  <= mask_c[s];
                 slice_a[s] <= slice_ids_o[s*5 +: 5];
             end
-            grp_a    <= grp_of(sample_cnt);   // 与 slice_ids 用同一个 n
+            grp_a    <= grp_cnt;              // 0..8 环计数
             adc2_a   <= adc2_i;
             dither_a <= dither_i;
             tag_a    <= tag_i;

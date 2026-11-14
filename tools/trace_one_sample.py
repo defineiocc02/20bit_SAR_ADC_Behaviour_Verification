@@ -1,3 +1,9 @@
+"""【历史】单样本行为走查 —— 不是当前 D1–D6 金标入口。
+
+当前金标入口是 src/adi_model/digital_chain.run_transaction()。
+本脚本保留用于回溯早期模拟行为，输出不与现有 RTL 对拍向量可比。
+"""
+
 """一笔真实样本的完整链路追踪（供 docs/mechanisms 的两篇专题引用）。
 
 必须说清的事：

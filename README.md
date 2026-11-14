@@ -57,18 +57,18 @@ files.f                               编译清单（verilator -f files.f）
 | **事务 stall/reset** | 四场景（正常/stall/reset/两者）`accepted == retired + cancelled + pending`、`pending == 0` | `tests/unit/test_run_sequence.py` |
 | **D5 权重校正** | 真系数恢复输入 **1.3 µV**；名义系数留 **3284 µV**（相容观测） | `tests/unit/test_weight_calibration_closes.py` |
 | **RTL 功能（VCS）** | 七组共 **11619 组向量、0 失配** | `docs/VCS_RESULT.md` |
-| **RTL 权重路径** | `recon_d5_w` **400/400**（新相位向量重跑，VCS W-2024.09） | `docs/VCS_RESULT.md`；`e665dff` |
+| **RTL 权重路径** | `recon_d5_w2` **420/420** 与**生产主链** `run_transaction()['code20']` 逐位一致（VCS W-2024.09） | `tb/vec_recon_w2.txt`；`f0dbd03` |
+| 旧 400/400 作废 | 那是以生成器内 `w2_datapath()` 为参考（自证），换成生产主链后曾暴露 19/420 失配 | `docs/D5_PROD_VS_RTL.md` |
 | 综合（SMIC180 slow） | 1485 cells / 50175 µm² | `synth/results/` |
-| **权重路径时序** | `recon_d5_w2`（倒数乘替代除法）：S1 **24.46 ns slack +0.002 MET**，全设计 setup MET / hold +0.42，面积 **166,799 µm² / 4,940 cells**；`DW_div` 计数为 0 | `synth/results/w2/`、`docs/TIMING_W2.md` |
+| **权重路径时序** | `recon_d5_w2`：25 ns 约束下 slack **+0.002 ns**（报告显示 `0.00 MET`）、hold +0.42；**映射单元面积 166,799.00 µm² / 4,940 cells（非完整芯片面积）**；`DW_div` 计数为 0 | `synth/results/w2/`、`docs/TIMING_W2.md` |
 | STA（名义路径） | setup +0.04 ns / hold +0.58 ns @ 25 ns，**但仅 reg→out**，输入路径未验证 | `synth/results/setup_p_pipe_constrained.rpt` |
 
 ### 不能声称
 
 | 项 | 原因 |
 |:---|:---|
-| 权重路径"余量 7 ns" | +0.002 ns 是 compile 刚满足约束那版；用紧周期回推 S1 能力约 17.3 ns（含 2 ns 输入延时），但**这是结构回推，不是签核** |
 | 与精确除法逐位一致 | 倒数乘使 D_eff 最大差 2 个 Q24 单位（0.02 LSB20），400 组里 1 组输出差 1 LSB20；偏差随 G 增大（G=5.5e11 时 13 单位） |
-| **40 MS/s 已达成** | setup 余量仅 **0.16%**，且只到综合后、单角、无 OCV；布线未做 |
+| **40 MS/s 已达成** | 权重路径 25 ns 下 slack 仅 **+0.002 ns**；且只到综合后、单角、无 OCV；布线未做 |
 | RTL 与网表等价 | Formality 跑 19 分钟未收敛，已停；未做门级仿真 |
 | DEM 等价于 ADI 原序列 | 覆盖问题已修，但现排程是工程候选（每 9 笔推进一维），非专利两级 shuffler |
 | RTL 顶层事务语义 | 计数守恒只在 Python 模型上验过；RTL 顶层仍停在 elaboration |
@@ -78,7 +78,7 @@ files.f                               编译清单（verilator -f files.f）
 
 > 本轮已修三条：DEM 相位锁定、非法码拒收、事务 stall/reset。
 
-1. **时序余量只有 +0.04 ns（0.16%）** — 单角、无 OCV、未布线，不能据此声称 40 MS/s
+1. **时序余量近零**：名义路径 reg→out +0.04 ns、权重路径 +0.002 ns — 单角、无 OCV、未布线，且输入端时序未验，不能据此声称 40 MS/s
 2. **Formality 未收敛** — 19 分钟停止；需先对单模块试跑，确认耗时量级，再做门级仿真
 
 ## 怎么跑

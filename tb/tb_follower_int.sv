@@ -22,6 +22,7 @@ module tb_follower_int;
     logic [8:0] ev_k;
     logic [3:0] ev_idx_i;
     logic       ev_perr;
+    logic       ev_rdy;
 
     logic cfg_we = 0, cfg_inv_we = 0;
     logic [4:0] cfg_slice = 0, cfg_unit = 0;
@@ -42,7 +43,7 @@ module tb_follower_int;
         .flash_valid_i(1'b0), .flash_code_i(3'd0),
         .ev_done_o(ev_done), .ev_idx_o(ev_idx), .ev_k_o(ev_k), .ev_err_o(ev_err),
         .ev_mask_valid_o(ev_mv), .ev_mask_o(ev_mask), .ev_ids_o(ev_ids),
-        .ev_proto_err_o(ev_perr),
+        .ev_proto_err_o(ev_perr), .ev_ready_o(ev_rdy),
         .busy_o(busy), .slice_ids_o(slice_ids),
         .code_o(code_o), .overflow_o(ovf_o), .err_o(err_o),
         .valid_o(valid_o), .tag_o(tag_o));
@@ -115,8 +116,9 @@ module tb_follower_int;
         begin
             // 只把 D6/D4 摆成对应 U（bit5=D6, bit3=D4）
             // U = 4*D6 + D4；bit5=D6、bit3=D4，其余位清零
-            while (busy) @(negedge clk);   // start 受 busy 保护，须等空闲
-            @(negedge clk); c_i = c; dither_i = {up[2], 1'b0, up[0], 3'b0};
+            c_i = c; dither_i = {up[2], 1'b0, up[0], 3'b0};
+            while (!ev_rdy) @(negedge clk);   // 明确握手
+            @(negedge clk);                   // 再等一拍，避开 busy 在同沿拉高
             ev_start = 1; @(negedge clk); ev_start = 0;
             exp_p = 9'd0; n = 0;
             for (i = 8; i >= 0; i = i - 1) begin
@@ -164,7 +166,12 @@ module tb_follower_int;
                 wait_tx(tg, cd_ev, hit_ev);
                 if (!hit_ev) begin
                     eq_err = eq_err + 1;
-                    if (eq_err <= 5) $display("NO_TX c=%0d 事件模式未产生输出", cc);
+                    if (eq_err <= 5) begin
+                        $display("NO_TX c=%0d a2=%0d tag=%0d", cc, a2, tg);
+                        $display("  ev_rdy=%b active=%b done=%b final=%b valid_a=%b valid_o=%b tag_o=%0d",
+                                 ev_rdy, dut.ev_active_q, dut.ev_done_o, dut.ev_final_valid_q,
+                                 dut.valid_a, valid_o, tag_o);
+                    end
                 end
                 // 整码模式：传统 valid_i 通路
                 force dut.ev_mode_i = 1'b0;

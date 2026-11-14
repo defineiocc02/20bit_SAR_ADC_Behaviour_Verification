@@ -70,6 +70,7 @@ module digital_top_w (
     output logic [8:0]  ev_k_o,         // 该事件产出的 RDAC 码
     output logic        ev_err_o,       // prefix < Upper（不回绕）
     output logic        ev_proto_err_o, // 位序/重复/缺位/qid 协议违例
+    output logic        ev_ready_o,     // 明确握手：本拍 start 会被接收
     output logic        ev_mask_valid_o,
     output logic [159:0] ev_mask_o,     // 8 片 × 20 单元，每事件一份
     output logic [39:0] ev_ids_o,       // 该笔事务的 8 个物理片 ID
@@ -89,8 +90,10 @@ module digital_top_w (
     logic ev_mode_q;
     logic [3:0] grp_cnt;               // 0..8 循环，与 16 位 sample_cnt 解耦
     logic       ev_active_q;           // 事件转换进行中（供 busy/in_ready 使用）
-    // start 保护：忙、已有在途事件、或上层未 ready 时，非法 start 被丢弃
-    wire        ev_start_ok = ev_start_i && !ev_active_q && !busy_o;
+    // 唯一的 start 接受信号：空闲、无配置冲突、无 stall、且处于事件模式
+    // Follower / 字段冻结 / 片组冻结 / 提交状态清零 全部只看它
+    wire        ev_start_fire = ev_start_i && ev_mode_i && !ev_active_q
+                              && !busy_o && !stall_i && !cfg_we && !cfg_inv_we;
     // 当拍生效的模式：整码事务在接收当拍按 ev_mode_i 决定，其余时刻沿用冻结值
     wire        mode_eff = (valid_i && in_ready_o) ? ev_mode_i : ev_mode_q;   // 事务级冻结的模式，E1 与 sample_cnt 只看它，允许 in-flight 改 ev_mode_i
 
@@ -199,7 +202,10 @@ module digital_top_w (
 
     // 在途事务数：用于判定 idle（cfg 口只在 idle 时可写）
     // 事件进行中同样算忙：cfg 写与整码事务都不得插入，否则该笔的系数/片组会被改掉
-    assign busy_o = valid_a | valid_b | valid_s1 | valid_s2 | ev_active_q;
+    // ev_final_valid_q 也算在途：上一笔已收完 9 个事件、正等 E1 接收时，
+    // 若 busy 归零，新事务会被提前启动并覆盖待提交结果。
+    assign busy_o = valid_a | valid_b | valid_s1 | valid_s2
+                  | ev_active_q | ev_final_valid_q;
     // 入口只在 reset/stall/校准写时停；流水本身不反压
     assign in_ready_o = reset_n & ~stall_i & ~cfg_we & ~cfg_inv_we & ~ev_active_q;
 
@@ -214,7 +220,7 @@ module digital_top_w (
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             ev_mode_q <= 1'b0;
-        end else if (ev_start_ok || (valid_i && in_ready_o)) begin
+        end else if (ev_start_fire || (valid_i && in_ready_o)) begin
             ev_mode_q <= ev_mode_i;     // 只在事务边界更新，飞行中改 ev_mode_i 不影响本笔
         end
     end
@@ -249,7 +255,7 @@ module digital_top_w (
     logic [2:0]  dith_upper;      // U = 4*D6 + D4（与 _dither_terms 一致）
     assign dith_upper = (dither_i[5] ? 3'd4 : 3'd0) + (dither_i[3] ? 3'd1 : 3'd0);
     follower_rt u_fol (
-        .clk(clk), .reset_n(reset_n), .start_i(ev_start_i),
+        .clk(clk), .reset_n(reset_n), .start_i(ev_start_fire),
         .bit_valid_i(ev_valid_i), .bit_i(ev_bit_i),
         .sar_index_i(sar_index_i), .sar_qid_i(sar_qid_i),
         .flash_valid_i(flash_valid_i), .flash_code_i(flash_code_i),
@@ -274,7 +280,7 @@ module digital_top_w (
             ev_ids_q <= 40'd0; ev_res_q <= 4'd0; ev_hp_q <= 4'd0; ev_vp_q <= 3'd0;
             ev_adc2_q <= 12'd0; ev_dith_q <= 6'd0; ev_tag_q <= 24'd0;
             ev_active_q <= 1'b0;
-        end else if (ev_start_ok) begin
+        end else if (ev_start_fire) begin
             // E0 入口一次性冻结：片组、DEM 相位、ADC2、Dither、tag
             ev_ids_q    <= slice_ids_o;
             ev_res_q    <= reserved_i;
@@ -318,8 +324,11 @@ module digital_top_w (
     // 逐事件输出与 ev_k_o 同拍（组合），便于逐事件观测与比对。
     // "非法事件保持上次合法命令"由 ev_mask_valid_o 门控实现：
     // RDAC 侧只在 ev_mask_valid_o=1 时锁存，非法事件不会改变物理开关。
+    assign ev_ready_o      = ev_mode_i && !ev_active_q && !busy_o
+                           && !stall_i && !cfg_we && !cfg_inv_we;
     assign ev_mask_o       = ev_mask_c;
-    assign ev_mask_valid_o = ev_valid_o && !ev_err_o;
+    // 协议错误（位序/qid）与码越界都必须阻断有效命令
+    assign ev_mask_valid_o = ev_valid_o && !ev_err_o && !ev_proto_err_o;
     assign ev_ids_o        = ev_ids_q;            // 始终是冻结值，不用当拍 slice_ids_o
 
     // 最后一个有效事件 -> 锁存最终 mask，作为该笔事务提交给 E1 的输入
@@ -328,10 +337,10 @@ module digital_top_w (
         if (!reset_n) begin
             ev_final_mask_q <= 160'd0; ev_final_valid_q <= 1'b0;
             ev_grp_q <= 4'd0; ev_adc2_commit_q <= 12'd0;
-        end else if (ev_start_i) begin
+        end else if (ev_start_fire) begin
             ev_final_valid_q <= 1'b0;
             ev_grp_q <= grp_cnt;                   // 0..8 环计数，不受 65536 回绕影响
-        end else if (ev_valid_o && !ev_err_o && ev_idx_o == 4'd8) begin
+        end else if (ev_valid_o && !ev_err_o && !ev_proto_err_o && ev_idx_o == 4'd8) begin
             ev_final_mask_q  <= ev_mask_c;
             ev_final_valid_q <= 1'b1;
             ev_adc2_commit_q <= adc2_i;            // 与最后事件同拍的 ADC2

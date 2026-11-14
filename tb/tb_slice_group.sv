@@ -29,7 +29,7 @@ module tb_slice_group;
         .cfg_inv_we(cfg_inv_we), .cfg_inv(cfg_inv), .cfg_inv_grp(cfg_grp),
         .ev_mode_i(1'b0), .ev_start_i(1'b0), .ev_valid_i(1'b0), .ev_bit_i(1'b0),
         .sar_index_i(4'd0), .sar_qid_i(1'b0), .flash_valid_i(1'b0), .flash_code_i(3'd0),
-        .ev_done_o(), .ev_idx_o(), .ev_k_o(), .ev_err_o(), .ev_proto_err_o(),
+        .ev_done_o(), .ev_idx_o(), .ev_k_o(), .ev_err_o(), .ev_proto_err_o(), .ev_ready_o(),
         .ev_mask_valid_o(), .ev_mask_o(), .ev_ids_o(),
         .busy_o(busy), .slice_ids_o(slice_ids),
         .code_o(code_o), .overflow_o(ovf_o), .err_o(err_o),

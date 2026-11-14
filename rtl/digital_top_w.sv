@@ -64,6 +64,9 @@ module digital_top_w (
     output logic [3:0]  ev_idx_o,       // 0..8
     output logic [8:0]  ev_k_o,         // 该事件产出的 RDAC 码
     output logic        ev_err_o,       // prefix < Upper（不回绕）
+    output logic        ev_mask_valid_o,
+    output logic [159:0] ev_mask_o,     // 8 片 × 20 单元，每事件一份
+    output logic [39:0] ev_ids_o,       // 该笔事务的 8 个物理片 ID
     output logic        err_o,          // 输入合同违例（k 越界 / G=0 / inv 越界）
     output logic        valid_o,
     output logic [23:0] tag_o
@@ -201,16 +204,65 @@ module digital_top_w (
 
     // ---------------------------------------------------------------- D2 实时 Follower
     logic [62:0] fk_ev;
+    logic        ev_valid_o;   // follower 事件有效（内部用）
     logic [2:0]  dith_upper;      // U = 4*D6 + D4（与 _dither_terms 一致）
     assign dith_upper = (dither_i[5] ? 3'd4 : 3'd0) + (dither_i[3] ? 3'd1 : 3'd0);
     follower_rt u_fol (
         .clk(clk), .reset_n(reset_n), .start_i(ev_start_i),
         .bit_valid_i(ev_valid_i), .bit_i(ev_bit_i),
         .upper_i(dith_upper),
-        .ev_valid_o(), .ev_idx_o(ev_idx_o), .k_ev_o(ev_k_o),
+        .ev_valid_o(ev_valid_o), .ev_idx_o(ev_idx_o), .k_ev_o(ev_k_o),
         .done_o(ev_done_o), .err_o(ev_err_o));
 
     // 生产路径不再用最终码 c_i 做事件比对；期望值由 TB 记分板独立计算
+
+    // ---- 逐事件 DEM + 物理 mask ----
+    // 每笔事务在 ev_start_i 冻结（片组/保留列/横纵相位/Upper），事件期间不得再读当拍值。
+    logic [4:0]  ev_sid0_q;
+    logic [3:0]  ev_res_q, ev_hp_q;
+    logic [2:0]  ev_vp_q;
+    logic        ev_active_q;
+
+    always_ff @(posedge clk or negedge reset_n) begin
+        if (!reset_n) begin
+            ev_sid0_q <= 5'd0; ev_res_q <= 4'd0; ev_hp_q <= 4'd0;
+            ev_vp_q <= 3'd0; ev_active_q <= 1'b0;
+        end else if (ev_start_i) begin
+            ev_sid0_q   <= slice_ids_o[4:0];   // 该笔事务首片 ID
+            ev_res_q    <= reserved_i;
+            ev_hp_q     <= h_phase_i;
+            ev_vp_q     <= v_phase_i;
+            ev_active_q <= 1'b1;
+        end else if (ev_done_o) begin
+            ev_active_q <= 1'b0;
+        end
+    end
+
+    logic [15:0] ev_h;
+    logic [7:0]  ev_y;
+    dem_shuffle u_dem_ev (
+        .k_i(ev_k_o), .reserved_i(ev_res_q), .h_phase_i(ev_hp_q), .v_phase_i(ev_vp_q),
+        .h_o(ev_h), .y_o(ev_y));
+
+    logic [159:0] ev_mask_c;
+    always_comb begin
+        for (int s_ = 0; s_ < 8; s_++) begin
+            for (int j = 0; j < N_COL; j++)
+                ev_mask_c[s_*20 + j] = (j == int'(ev_res_q)) ? ev_y[s_] : ev_h[j];
+            ev_mask_c[s_*20 + 16] = 1'b0;
+            ev_mask_c[s_*20 + 17] = 1'b0;
+            ev_mask_c[s_*20 + 18] = ev_k_o[1];
+            ev_mask_c[s_*20 + 19] = ev_k_o[0];
+        end
+    end
+
+    // 越界策略：prefix < Upper 时不输出该事件命令，**保持上一次合法命令**，
+    // 同时由 ev_err_o 报告。不把钳到 0 的码当作有效命令。
+    // mask 与 ev_k_o 同拍组合输出，保证"事件码 ↔ 该码的物理 mask"一一对齐。
+    // 越界事件不输出命令（valid 拉低），也不钳码后当合法命令使用。
+    assign ev_mask_o       = ev_mask_c;
+    assign ev_mask_valid_o = ev_valid_o && !ev_err_o;
+    assign ev_ids_o        = slice_ids_o;
 
     // ---------------------------------------------------------------- E1 打拍
     always_ff @(posedge clk or negedge reset_n) begin

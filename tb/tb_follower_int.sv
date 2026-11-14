@@ -15,7 +15,9 @@ module tb_follower_int;
     logic [19:0] code_o;
     logic [23:0] tag_o;
     logic ev_start = 0, ev_valid = 0, ev_bit = 0;
-    logic ev_done, ev_err;
+    logic ev_done, ev_err, ev_mv;
+    logic [159:0] ev_mask;
+    logic [39:0] ev_ids;
     logic [3:0] ev_idx;
     logic [8:0] ev_k;
 
@@ -35,6 +37,7 @@ module tb_follower_int;
         .cfg_inv_we(cfg_inv_we), .cfg_inv(cfg_inv), .cfg_inv_grp(cfg_grp),
         .ev_start_i(ev_start), .ev_valid_i(ev_valid), .ev_bit_i(ev_bit),
         .ev_done_o(ev_done), .ev_idx_o(ev_idx), .ev_k_o(ev_k), .ev_err_o(ev_err),
+        .ev_mask_valid_o(ev_mv), .ev_mask_o(ev_mask), .ev_ids_o(ev_ids),
         .busy_o(busy), .slice_ids_o(slice_ids),
         .code_o(code_o), .overflow_o(ovf_o), .err_o(err_o),
         .valid_o(valid_o), .tag_o(tag_o));
@@ -42,6 +45,39 @@ module tb_follower_int;
     always #5 clk = ~clk;
 
     integer errors = 0, events = 0;
+
+    // 独立期望：按 Python _horizontal_columns / vertical_bits 的语义重建，
+    // 用"从起始位置起置 H 个 1"的方式，不复制 RTL 的取模表达式。
+    function automatic logic [159:0] exp_mask(input logic [8:0] k,
+                                              input logic [3:0] res,
+                                              input logic [3:0] hp,
+                                              input logic [2:0] vp);
+        int H, M, start, idx, col;
+        logic [15:0] h;
+        logic [7:0]  y;
+        begin
+            H = k[8:5]; M = k[4:2];
+            h = 16'd0; y = 8'd0;
+            start = hp % 15; idx = 0;
+            // 在 15 个非保留列上按起点轮转，置前 H 个
+            for (int t = 0; t < 15; t++) begin
+                idx = (start + t) % 15;          // 第 idx 个有效列（0..14）
+                // 映射回真实列号：跳过错开 reserved 的那一列
+                col = (idx >= res) ? idx + 1 : idx;
+                if (t < H) h[col] = 1'b1;
+            end
+            for (int s_ = 0; s_ < 8; s_++)
+                if (((s_ + 8 - vp) % 8) < M) y[s_] = 1'b1;
+            for (int s_ = 0; s_ < 8; s_++) begin
+                for (int j = 0; j < 16; j++)
+                    exp_mask[s_*20 + j] = (j == res) ? y[s_] : h[j];
+                exp_mask[s_*20 + 16] = 1'b0;
+                exp_mask[s_*20 + 17] = 1'b0;
+                exp_mask[s_*20 + 18] = k[1];
+                exp_mask[s_*20 + 19] = k[0];
+            end
+        end
+    endfunction
     task automatic run_code(input [8:0] c, input [2:0] up);
         integer i, n;
         logic [8:0] exp_p, exp_k;
@@ -62,6 +98,9 @@ module tb_follower_int;
                 end else if (ev_k !== exp_k) begin
                     errors = errors + 1;
                     if (errors <= 5) $display("K c=%0d n=%0d got %0d want %0d", c, n, ev_k, exp_k);
+                end else if (ev_mv && (ev_mask !== exp_mask(ev_k, 4'd0, 4'd0, 3'd0))) begin
+                    errors = errors + 1;
+                    if (errors <= 5) $display("MASK c=%0d n=%0d 不符", c, n);
                 end
                 events = events + 1; n = n + 1;
             end

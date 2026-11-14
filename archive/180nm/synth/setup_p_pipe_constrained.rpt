@@ -1,0 +1,332 @@
+ 
+****************************************
+Report : timing
+        -path full
+        -delay max
+        -max_paths 3
+Design : recon_d5_pipe
+Version: W-2024.09-SP3
+Date   : Fri Nov 13 23:48:06 2026
+****************************************
+
+Operating Conditions: slow   Library: slow
+Wire Load Model Mode: top
+
+  Startpoint: x_q24_reg\[1\]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: overflow_o (output port clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  x_q24_reg\[1\]/CK (DFFRHQX1)                            0.00       0.00 r
+  x_q24_reg\[1\]/Q (DFFRHQX1)                             0.39       0.39 r
+  sub_50/B\[1\] (recon_d5_pipe_DW01_sub_1)                0.00       0.39 r
+  sub_50/U1/Y (INVX1)                                     0.09       0.47 f
+  sub_50/U7/Y (AND2X2)                                    0.17       0.64 f
+  sub_50/U3/Y (AND2X1)                                    0.23       0.87 f
+  sub_50/U32/Y (XOR2X1)                                   0.25       1.12 r
+  sub_50/DIFF\[3\] (recon_d5_pipe_DW01_sub_1)             0.00       1.12 r
+  U340/Y (AOI22X1)                                        0.11       1.23 f
+  U339/Y (INVX1)                                          0.13       1.37 r
+  mult_51/A\[3\] (recon_d5_pipe_DW02_mult_4)              0.00       1.37 r
+  mult_51/U4/Y (BUFX8)                                    0.18       1.55 r
+  mult_51/S2_3_1/CO (ADDFHX1)                             0.45       2.00 r
+  mult_51/S2_4_1/CO (ADDFX2)                              0.55       2.56 r
+  mult_51/S2_5_1/CO (ADDFX2)                              0.55       3.11 r
+  mult_51/S2_6_1/CO (ADDFX2)                              0.55       3.66 r
+  mult_51/S2_7_1/CO (ADDFX2)                              0.55       4.22 r
+  mult_51/S2_8_1/CO (CMPR32X1)                            0.54       4.75 r
+  mult_51/S2_9_1/CO (ADDFX2)                              0.56       5.32 r
+  mult_51/S2_10_1/CO (CMPR32X1)                           0.54       5.85 r
+  mult_51/S2_11_1/CO (ADDFX2)                             0.56       6.42 r
+  mult_51/S2_12_1/CO (CMPR32X1)                           0.54       6.96 r
+  mult_51/S2_13_1/CO (ADDFX2)                             0.56       7.52 r
+  mult_51/S2_14_1/CO (CMPR32X1)                           0.54       8.06 r
+  mult_51/S2_15_1/CO (ADDFX2)                             0.56       8.62 r
+  mult_51/S2_16_1/CO (CMPR32X1)                           0.54       9.16 r
+  mult_51/S2_17_1/CO (ADDFX2)                             0.56       9.72 r
+  mult_51/S2_18_1/CO (CMPR32X1)                           0.54      10.26 r
+  mult_51/S2_19_1/CO (ADDFX2)                             0.56      10.82 r
+  mult_51/S2_20_1/CO (ADDFX2)                             0.55      11.37 r
+  mult_51/S2_21_1/CO (ADDFX2)                             0.55      11.92 r
+  mult_51/S2_22_1/CO (ADDFX2)                             0.55      12.48 r
+  mult_51/S2_23_1/CO (ADDFX2)                             0.55      13.03 r
+  mult_51/S2_24_1/CO (ADDFX2)                             0.55      13.58 r
+  mult_51/S2_25_1/CO (ADDFX2)                             0.56      14.14 r
+  mult_51/U71/Y (XOR2X1)                                  0.28      14.41 r
+  mult_51/U30/Y (XOR2X1)                                  0.28      14.70 r
+  mult_51/FS_1/A\[25\] (recon_d5_pipe_DW01_add_15)        0.00      14.70 r
+  mult_51/FS_1/U2/Y (NAND2X1)                             0.14      14.84 f
+  mult_51/FS_1/U5/Y (OAI21X1)                             0.22      15.06 r
+  mult_51/FS_1/U7/Y (AOI21X2)                             0.13      15.19 f
+  mult_51/FS_1/U4/Y (OAI21X2)                             0.19      15.38 r
+  mult_51/FS_1/U3/Y (AOI21X2)                             0.10      15.48 f
+  mult_51/FS_1/U8/Y (OAI21XL)                             0.18      15.66 r
+  mult_51/FS_1/U20/Y (XNOR2XL)                            0.45      16.11 f
+  mult_51/FS_1/SUM\[31\] (recon_d5_pipe_DW01_add_15)      0.00      16.11 f
+  mult_51/PRODUCT\[33\] (recon_d5_pipe_DW02_mult_4)       0.00      16.11 f
+  add_51/A\[33\] (recon_d5_pipe_DW01_add_14)              0.00      16.11 f
+  add_51/U34/Y (AND2X2)                                   0.19      16.30 f
+  add_51/U31/Y (AND2X2)                                   0.18      16.48 f
+  add_51/U32/Y (AND2X2)                                   0.18      16.66 f
+  add_51/U8/Y (AND2X2)                                    0.18      16.84 f
+  add_51/U7/Y (AND2X2)                                    0.18      17.01 f
+  add_51/U10/Y (AND2X2)                                   0.18      17.19 f
+  add_51/U11/Y (AND2X2)                                   0.18      17.37 f
+  add_51/U12/Y (AND2X2)                                   0.18      17.55 f
+  add_51/U13/Y (AND2X2)                                   0.18      17.73 f
+  add_51/U9/Y (AND2X2)                                    0.18      17.91 f
+  add_51/U14/Y (AND2X2)                                   0.18      18.09 f
+  add_51/U15/Y (AND2X2)                                   0.18      18.27 f
+  add_51/U16/Y (AND2X2)                                   0.18      18.45 f
+  add_51/U17/Y (AND2X2)                                   0.18      18.62 f
+  add_51/U18/Y (AND2X2)                                   0.18      18.80 f
+  add_51/U19/Y (AND2X2)                                   0.18      18.98 f
+  add_51/U38/Y (AND2X2)                                   0.18      19.16 f
+  add_51/U37/Y (AND2X2)                                   0.18      19.34 f
+  add_51/U42/Y (AND2X2)                                   0.18      19.52 f
+  add_51/U1/Y (NAND2XL)                                   0.13      19.64 r
+  add_51/U2/Y (XNOR2X1)                                   0.28      19.92 f
+  add_51/SUM\[53\] (recon_d5_pipe_DW01_add_14)            0.00      19.92 f
+  sub_52/B\[22\] (recon_d5_pipe_DW01_sub_0)               0.00      19.92 f
+  sub_52/U59/Y (INVX1)                                    0.15      20.08 r
+  sub_52/U61/Y (NAND2X1)                                  0.09      20.17 f
+  sub_52/U60/Y (XNOR2X1)                                  0.24      20.41 f
+  sub_52/DIFF\[22\] (recon_d5_pipe_DW01_sub_0)            0.00      20.41 f
+  U157/Y (OAI2BB1X1)                                      0.21      20.62 f
+  U142/Y (INVX1)                                          0.09      20.71 r
+  U154/Y (INVX1)                                          0.08      20.78 f
+  U165/Y (INVX1)                                          0.12      20.90 r
+  U156/Y (INVX1)                                          0.05      20.96 f
+  U230/Y (AND2X2)                                         0.15      21.10 f
+  U229/Y (AND2X2)                                         0.16      21.27 f
+  U228/Y (AND2X2)                                         0.17      21.44 f
+  U158/Y (XOR2XL)                                         0.33      21.77 f
+  U292/Y (OR4X1)                                          0.46      22.23 f
+  U291/Y (OR4X1)                                          0.43      22.66 f
+  overflow_o (out)                                        0.00      22.66 f
+  data arrival time                                                 22.66
+
+  clock clk (rise edge)                                  25.00      25.00
+  clock network delay (ideal)                             0.00      25.00
+  clock uncertainty                                      -0.30      24.70
+  output external delay                                  -2.00      22.70
+  data required time                                                22.70
+  --------------------------------------------------------------------------
+  data required time                                                22.70
+  data arrival time                                                -22.66
+  --------------------------------------------------------------------------
+  slack (MET)                                                        0.04
+
+
+  Startpoint: x_q24_reg\[1\]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: code_o\[1\]
+            (output port clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  x_q24_reg\[1\]/CK (DFFRHQX1)                            0.00       0.00 r
+  x_q24_reg\[1\]/Q (DFFRHQX1)                             0.39       0.39 r
+  sub_50/B\[1\] (recon_d5_pipe_DW01_sub_1)                0.00       0.39 r
+  sub_50/U1/Y (INVX1)                                     0.09       0.47 f
+  sub_50/U7/Y (AND2X2)                                    0.17       0.64 f
+  sub_50/U3/Y (AND2X1)                                    0.23       0.87 f
+  sub_50/U32/Y (XOR2X1)                                   0.25       1.12 r
+  sub_50/DIFF\[3\] (recon_d5_pipe_DW01_sub_1)             0.00       1.12 r
+  U340/Y (AOI22X1)                                        0.11       1.23 f
+  U339/Y (INVX1)                                          0.13       1.37 r
+  mult_51/A\[3\] (recon_d5_pipe_DW02_mult_4)              0.00       1.37 r
+  mult_51/U4/Y (BUFX8)                                    0.18       1.55 r
+  mult_51/S2_3_1/CO (ADDFHX1)                             0.45       2.00 r
+  mult_51/S2_4_1/CO (ADDFX2)                              0.55       2.56 r
+  mult_51/S2_5_1/CO (ADDFX2)                              0.55       3.11 r
+  mult_51/S2_6_1/CO (ADDFX2)                              0.55       3.66 r
+  mult_51/S2_7_1/CO (ADDFX2)                              0.55       4.22 r
+  mult_51/S2_8_1/CO (CMPR32X1)                            0.54       4.75 r
+  mult_51/S2_9_1/CO (ADDFX2)                              0.56       5.32 r
+  mult_51/S2_10_1/CO (CMPR32X1)                           0.54       5.85 r
+  mult_51/S2_11_1/CO (ADDFX2)                             0.56       6.42 r
+  mult_51/S2_12_1/CO (CMPR32X1)                           0.54       6.96 r
+  mult_51/S2_13_1/CO (ADDFX2)                             0.56       7.52 r
+  mult_51/S2_14_1/CO (CMPR32X1)                           0.54       8.06 r
+  mult_51/S2_15_1/CO (ADDFX2)                             0.56       8.62 r
+  mult_51/S2_16_1/CO (CMPR32X1)                           0.54       9.16 r
+  mult_51/S2_17_1/CO (ADDFX2)                             0.56       9.72 r
+  mult_51/S2_18_1/CO (CMPR32X1)                           0.54      10.26 r
+  mult_51/S2_19_1/CO (ADDFX2)                             0.56      10.82 r
+  mult_51/S2_20_1/CO (ADDFX2)                             0.55      11.37 r
+  mult_51/S2_21_1/CO (ADDFX2)                             0.55      11.92 r
+  mult_51/S2_22_1/CO (ADDFX2)                             0.55      12.48 r
+  mult_51/S2_23_1/CO (ADDFX2)                             0.55      13.03 r
+  mult_51/S2_24_1/CO (ADDFX2)                             0.55      13.58 r
+  mult_51/S2_25_1/CO (ADDFX2)                             0.56      14.14 r
+  mult_51/U71/Y (XOR2X1)                                  0.28      14.41 r
+  mult_51/U30/Y (XOR2X1)                                  0.28      14.70 r
+  mult_51/FS_1/A\[25\] (recon_d5_pipe_DW01_add_15)        0.00      14.70 r
+  mult_51/FS_1/U2/Y (NAND2X1)                             0.14      14.84 f
+  mult_51/FS_1/U5/Y (OAI21X1)                             0.22      15.06 r
+  mult_51/FS_1/U7/Y (AOI21X2)                             0.13      15.19 f
+  mult_51/FS_1/U4/Y (OAI21X2)                             0.19      15.38 r
+  mult_51/FS_1/U3/Y (AOI21X2)                             0.10      15.48 f
+  mult_51/FS_1/U8/Y (OAI21XL)                             0.18      15.66 r
+  mult_51/FS_1/U20/Y (XNOR2XL)                            0.45      16.11 f
+  mult_51/FS_1/SUM\[31\] (recon_d5_pipe_DW01_add_15)      0.00      16.11 f
+  mult_51/PRODUCT\[33\] (recon_d5_pipe_DW02_mult_4)       0.00      16.11 f
+  add_51/A\[33\] (recon_d5_pipe_DW01_add_14)              0.00      16.11 f
+  add_51/U34/Y (AND2X2)                                   0.19      16.30 f
+  add_51/U31/Y (AND2X2)                                   0.18      16.48 f
+  add_51/U32/Y (AND2X2)                                   0.18      16.66 f
+  add_51/U8/Y (AND2X2)                                    0.18      16.84 f
+  add_51/U7/Y (AND2X2)                                    0.18      17.01 f
+  add_51/U10/Y (AND2X2)                                   0.18      17.19 f
+  add_51/U11/Y (AND2X2)                                   0.18      17.37 f
+  add_51/U12/Y (AND2X2)                                   0.18      17.55 f
+  add_51/U13/Y (AND2X2)                                   0.18      17.73 f
+  add_51/U9/Y (AND2X2)                                    0.18      17.91 f
+  add_51/U14/Y (AND2X2)                                   0.18      18.09 f
+  add_51/U15/Y (AND2X2)                                   0.18      18.27 f
+  add_51/U16/Y (AND2X2)                                   0.18      18.45 f
+  add_51/U17/Y (AND2X2)                                   0.18      18.62 f
+  add_51/U18/Y (AND2X2)                                   0.18      18.80 f
+  add_51/U19/Y (AND2X2)                                   0.18      18.98 f
+  add_51/U38/Y (AND2X2)                                   0.18      19.16 f
+  add_51/U37/Y (AND2X2)                                   0.18      19.34 f
+  add_51/U43/Y (XOR2X1)                                   0.27      19.61 f
+  add_51/SUM\[51\] (recon_d5_pipe_DW01_add_14)            0.00      19.61 f
+  sub_52/B\[19\] (recon_d5_pipe_DW01_sub_0)               0.00      19.61 f
+  sub_52/U58/Y (INVX1)                                    0.11      19.72 r
+  sub_52/U54/Y (AND2X2)                                   0.18      19.89 r
+  sub_52/U35/Y (AND2X2)                                   0.16      20.05 r
+  sub_52/U2/Y (XOR2XL)                                    0.33      20.38 f
+  sub_52/DIFF\[21\] (recon_d5_pipe_DW01_sub_0)            0.00      20.38 f
+  U385/Y (OAI2BB1X1)                                      0.31      20.68 f
+  U164/Y (OAI31XL)                                        1.46      22.15 r
+  U372/Y (OAI2BB1X1)                                      0.01      22.15 f
+  code_o\[1\] (out)                                       0.00      22.15 f
+  data arrival time                                                 22.15
+
+  clock clk (rise edge)                                  25.00      25.00
+  clock network delay (ideal)                             0.00      25.00
+  clock uncertainty                                      -0.30      24.70
+  output external delay                                  -2.00      22.70
+  data required time                                                22.70
+  --------------------------------------------------------------------------
+  data required time                                                22.70
+  data arrival time                                                -22.15
+  --------------------------------------------------------------------------
+  slack (MET)                                                        0.55
+
+
+  Startpoint: x_q24_reg\[1\]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: code_o\[0\]
+            (output port clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  x_q24_reg\[1\]/CK (DFFRHQX1)                            0.00       0.00 r
+  x_q24_reg\[1\]/Q (DFFRHQX1)                             0.39       0.39 r
+  sub_50/B\[1\] (recon_d5_pipe_DW01_sub_1)                0.00       0.39 r
+  sub_50/U1/Y (INVX1)                                     0.09       0.47 f
+  sub_50/U7/Y (AND2X2)                                    0.17       0.64 f
+  sub_50/U3/Y (AND2X1)                                    0.23       0.87 f
+  sub_50/U32/Y (XOR2X1)                                   0.25       1.12 r
+  sub_50/DIFF\[3\] (recon_d5_pipe_DW01_sub_1)             0.00       1.12 r
+  U340/Y (AOI22X1)                                        0.11       1.23 f
+  U339/Y (INVX1)                                          0.13       1.37 r
+  mult_51/A\[3\] (recon_d5_pipe_DW02_mult_4)              0.00       1.37 r
+  mult_51/U4/Y (BUFX8)                                    0.18       1.55 r
+  mult_51/S2_3_1/CO (ADDFHX1)                             0.45       2.00 r
+  mult_51/S2_4_1/CO (ADDFX2)                              0.55       2.56 r
+  mult_51/S2_5_1/CO (ADDFX2)                              0.55       3.11 r
+  mult_51/S2_6_1/CO (ADDFX2)                              0.55       3.66 r
+  mult_51/S2_7_1/CO (ADDFX2)                              0.55       4.22 r
+  mult_51/S2_8_1/CO (CMPR32X1)                            0.54       4.75 r
+  mult_51/S2_9_1/CO (ADDFX2)                              0.56       5.32 r
+  mult_51/S2_10_1/CO (CMPR32X1)                           0.54       5.85 r
+  mult_51/S2_11_1/CO (ADDFX2)                             0.56       6.42 r
+  mult_51/S2_12_1/CO (CMPR32X1)                           0.54       6.96 r
+  mult_51/S2_13_1/CO (ADDFX2)                             0.56       7.52 r
+  mult_51/S2_14_1/CO (CMPR32X1)                           0.54       8.06 r
+  mult_51/S2_15_1/CO (ADDFX2)                             0.56       8.62 r
+  mult_51/S2_16_1/CO (CMPR32X1)                           0.54       9.16 r
+  mult_51/S2_17_1/CO (ADDFX2)                             0.56       9.72 r
+  mult_51/S2_18_1/CO (CMPR32X1)                           0.54      10.26 r
+  mult_51/S2_19_1/CO (ADDFX2)                             0.56      10.82 r
+  mult_51/S2_20_1/CO (ADDFX2)                             0.55      11.37 r
+  mult_51/S2_21_1/CO (ADDFX2)                             0.55      11.92 r
+  mult_51/S2_22_1/CO (ADDFX2)                             0.55      12.48 r
+  mult_51/S2_23_1/CO (ADDFX2)                             0.55      13.03 r
+  mult_51/S2_24_1/CO (ADDFX2)                             0.55      13.58 r
+  mult_51/S2_25_1/CO (ADDFX2)                             0.56      14.14 r
+  mult_51/U71/Y (XOR2X1)                                  0.28      14.41 r
+  mult_51/U30/Y (XOR2X1)                                  0.28      14.70 r
+  mult_51/FS_1/A\[25\] (recon_d5_pipe_DW01_add_15)        0.00      14.70 r
+  mult_51/FS_1/U2/Y (NAND2X1)                             0.14      14.84 f
+  mult_51/FS_1/U5/Y (OAI21X1)                             0.22      15.06 r
+  mult_51/FS_1/U7/Y (AOI21X2)                             0.13      15.19 f
+  mult_51/FS_1/U4/Y (OAI21X2)                             0.19      15.38 r
+  mult_51/FS_1/U3/Y (AOI21X2)                             0.10      15.48 f
+  mult_51/FS_1/U8/Y (OAI21XL)                             0.18      15.66 r
+  mult_51/FS_1/U20/Y (XNOR2XL)                            0.45      16.11 f
+  mult_51/FS_1/SUM\[31\] (recon_d5_pipe_DW01_add_15)      0.00      16.11 f
+  mult_51/PRODUCT\[33\] (recon_d5_pipe_DW02_mult_4)       0.00      16.11 f
+  add_51/A\[33\] (recon_d5_pipe_DW01_add_14)              0.00      16.11 f
+  add_51/U34/Y (AND2X2)                                   0.19      16.30 f
+  add_51/U31/Y (AND2X2)                                   0.18      16.48 f
+  add_51/U32/Y (AND2X2)                                   0.18      16.66 f
+  add_51/U8/Y (AND2X2)                                    0.18      16.84 f
+  add_51/U7/Y (AND2X2)                                    0.18      17.01 f
+  add_51/U10/Y (AND2X2)                                   0.18      17.19 f
+  add_51/U11/Y (AND2X2)                                   0.18      17.37 f
+  add_51/U12/Y (AND2X2)                                   0.18      17.55 f
+  add_51/U13/Y (AND2X2)                                   0.18      17.73 f
+  add_51/U9/Y (AND2X2)                                    0.18      17.91 f
+  add_51/U14/Y (AND2X2)                                   0.18      18.09 f
+  add_51/U15/Y (AND2X2)                                   0.18      18.27 f
+  add_51/U16/Y (AND2X2)                                   0.18      18.45 f
+  add_51/U17/Y (AND2X2)                                   0.18      18.62 f
+  add_51/U18/Y (AND2X2)                                   0.18      18.80 f
+  add_51/U19/Y (AND2X2)                                   0.18      18.98 f
+  add_51/U38/Y (AND2X2)                                   0.18      19.16 f
+  add_51/U37/Y (AND2X2)                                   0.18      19.34 f
+  add_51/U43/Y (XOR2X1)                                   0.27      19.61 f
+  add_51/SUM\[51\] (recon_d5_pipe_DW01_add_14)            0.00      19.61 f
+  sub_52/B\[19\] (recon_d5_pipe_DW01_sub_0)               0.00      19.61 f
+  sub_52/U58/Y (INVX1)                                    0.11      19.72 r
+  sub_52/U54/Y (AND2X2)                                   0.18      19.89 r
+  sub_52/U35/Y (AND2X2)                                   0.16      20.05 r
+  sub_52/U2/Y (XOR2XL)                                    0.33      20.38 f
+  sub_52/DIFF\[21\] (recon_d5_pipe_DW01_sub_0)            0.00      20.38 f
+  U385/Y (OAI2BB1X1)                                      0.31      20.68 f
+  U164/Y (OAI31XL)                                        1.46      22.15 r
+  U383/Y (OAI2BB1X1)                                      0.01      22.15 f
+  code_o\[0\] (out)                                       0.00      22.15 f
+  data arrival time                                                 22.15
+
+  clock clk (rise edge)                                  25.00      25.00
+  clock network delay (ideal)                             0.00      25.00
+  clock uncertainty                                      -0.30      24.70
+  output external delay                                  -2.00      22.70
+  data required time                                                22.70
+  --------------------------------------------------------------------------
+  data required time                                                22.70
+  data arrival time                                                -22.15
+  --------------------------------------------------------------------------
+  slack (MET)                                                        0.55
+
+
+1

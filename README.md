@@ -16,7 +16,7 @@
 ## 一条命令验证
 
 ```bash
-bash tools/verify_d3d4.sh
+make verify-d3d4          # 等价于 bash tools/verify_d3d4.sh
 ```
 
 预期输出：

@@ -29,6 +29,11 @@
 | 相位推进 | 仅在 acq_prepare_fire |
 | ADC2 | 13 bit，[-0.1875, +0.5625)，0.75 V 跨度 |
 
+## 当前状态
+
+D3/D4 的通过情况与证据见 `docs/ACCEPTANCE_STATUS.md`，
+复现命令 `make verify-d3d4`。
+
 ## 与旧实现的明确冲突（以合同为准）
 
 | 旧实现 | 合同要求 |

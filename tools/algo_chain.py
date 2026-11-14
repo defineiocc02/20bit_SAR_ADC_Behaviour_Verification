@@ -279,7 +279,7 @@ def eval_mm(w_dev, w_L, n=256, dem=True, dith=True):
         j0 = ((r2 >> 16) * 9) >> 16
         i2 = min(j0 + (1 if j0 >= i1 else 0), 9)
         drop = {avail[i1], avail[i2]}
-        A, C, I = list(C), [z for z in avail if z not in drop], \
+        A, C, I = [z for z in avail if z not in drop], list(A), \
                  [z for z in avail if z in drop]
         st['n'] += 1
         if r is None or r['over']:
@@ -346,7 +346,8 @@ def eval_sine(w_dev, w_L, n=1024, fin=127, amp=1.5, dem=True, dith=True):
         j0 = ((r2 >> 16) * 9) >> 16
         i2 = min(j0 + (1 if j0 >= i1 else 0), 9)
         drop = {avail[i1], avail[i2]}
-        A, C, I = list(A), [z for z in avail if z not in drop], [z for z in avail if z in drop]
+        # 合同 §4：C_{n+1}=A_n；A_{n+1}=new_acq ⊂ C_n∪I_n
+        A, C, I = [z for z in avail if z not in drop], list(A), [z for z in avail if z in drop]
     if len(es) < n // 2:
         return None
     e = [0.0] * n

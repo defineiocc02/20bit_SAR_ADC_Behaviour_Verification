@@ -43,7 +43,8 @@ module recon_d5_w2 (
     logic        [11:0] adc2_s1;
     logic        [5:0]  dither_s1;
 
-    assign inv_s = $signed(inv_g_q60[26:0]);
+    // 零扩展后取有符号：I 最大 2^26（G=2^34 时），27 位有符号会溢出成负
+    assign inv_s = $signed({1'b0, inv_g_q60[26:0]});
     assign wm_s  = $signed(wm_q30);
     assign g_s   = $signed(g_q30);
 

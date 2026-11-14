@@ -46,6 +46,10 @@ module tb_recon_w2;
                 n = n + 1;
                 if (ovf) n_ovf = n_ovf + 1;
                 if (code !== ce[19:0]) begin
+                    // PROBE: 打印 RTL 各级中间量
+                    $display("PROBE wm=%0d g=%0d inv=%0d a=%0d w=%0d | num=%0d d=%0d x=%0d q=%0d code=%0d exp=%0d",
+                             wm, g, inv, a2, dw,
+                             dut.num, dut.d_q24, dut.x_q24, dut.q, code, ce);
                     err = err + 1;
                     if (err <= 5)
                         $display("MISMATCH wm=%0d g=%0d inv=%0d adc=%0d dith=%0d got=%0d exp=%0d",

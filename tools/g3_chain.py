@@ -80,9 +80,13 @@ def bridge_swap(post, h, v, acq_seq, coin):
     return out, ch
 
 
-def charge_q8(post):
+def charge_q8(post, ids=None):
+    """按物理 slice ID 寻址累加。ids 为 None 时退化为槽位序（仅向后兼容）。"""
     q = 0
     for s in range(NS):
+        sid = ids[s] if ids else s
+        if not (0 <= sid < N_SLICE_POOL):
+            raise ValueError(f"非法 slice id {sid}")
         for j in range(16):
             q += post[s][j] * 32
         for t in range(4):
@@ -90,8 +94,8 @@ def charge_q8(post):
     return q
 
 
-def Wm_cf(post):
-    return charge_q8(post) / 8.0 / CF_CU
+def Wm_cf(post, ids=None):
+    return charge_q8(post, ids) / 8.0 / CF_CU
 
 
 # ------------------------------------------------------------------ dither/pre
@@ -152,12 +156,32 @@ def sadc_events(x_sadc):
     return c, ev
 
 
+def protocol_ok(ev, guard):
+    """事件完整性：普通 7 个（1 Flash + 6 SAR），guard 8 个；码单调不减且以最终码收尾。"""
+    need = 8 if guard else 7
+    if len(ev) != need:
+        return False, f"事件数 {len(ev)} != {need}"
+    for a, b in zip(ev, ev[1:]):
+        if b < a:
+            return False, "事件码回退"
+    return True, ""
+
+
 # ------------------------------------------------------------------ G3 链路
-class Pool18:
-    """18 片池：C_n+1 = A_n；A_n+1 ⊂ C_n ∪ I_n。"""
+class Scheduler18:
+    """18 片池三态：A(采样 8) / C(转换 8) / I(备用 2)。
+
+    合同 §4：C_{n+1} = A_n；A_{n+1} ⊂ C_n ∪ I_n（= 18 - A_n）；余 2 片为 I_{n+1}。
+    reserve() 预留本笔片组，commit() 原子推进；预留未清时再 reserve 返回 None。
+    """
 
     def __init__(self, seed=0xACE1):
         self.rng = seed & 0xFFFFFFFF
+        self.seed0 = seed & 0xFFFFFFFF
+        self.A = list(range(8))
+        self.C = list(range(8, 16))
+        self.I = [16, 17]
+        self.taken = None            # 已预留、未提交的片组
 
     def _xs(self):
         x = self.rng
@@ -167,19 +191,51 @@ class Pool18:
         self.rng = x & 0xFFFFFFFF
         return self.rng
 
-    def step(self, acq, conv):
-        avail = [s for s in range(N_SLICE_POOL) if not (conv >> s) & 1]
+    def check(self):
+        assert len(self.A) == 8 and len(self.C) == 8 and len(self.I) == 2, "8/8/2"
+        assert not (set(self.A) & set(self.C)), "A/C 重叠"
+        assert not (set(self.A) & set(self.I)), "A/I 重叠"
+        assert not (set(self.C) & set(self.I)), "C/I 重叠"
+        assert sorted(self.A + self.C + self.I) == list(range(18)), "未覆盖 18 片"
+
+    def reserve(self):
+        """预留本笔采样片组。已被占用则返回 None（stall）。"""
+        if self.taken is not None:
+            return None
+        self.taken = list(self.A)
+        return list(self.taken)
+
+    def commit(self):
+        """笔结束：C'=A，A' 从 C∪I 选 8，余 2 为 I'。"""
+        if self.taken is None:
+            return
+        self.check()
+        avail = list(self.C) + list(self.I)      # = 18 - A_n，恰好 10 片
         r1, r2 = self._xs(), self._xs()
-        i1 = ((r1 & 0xFFFF) * 10) >> 16      # 0..9
-        j0 = ((r2 >> 16) * 9) >> 16          # 0..8
+        i1 = ((r1 & 0xFFFF) * 10) >> 16
+        j0 = ((r2 >> 16) * 9) >> 16
         i2 = j0 + (1 if j0 >= i1 else 0)
-        drop = {avail[min(i1, 9)], avail[min(i2, 9)]}
-        new_acq = [s for s in avail if s not in drop]
-        return new_acq
+        i2 = min(i2, 9)
+        drop = {avail[i1], avail[i2]}
+        newA = [x for x in avail if x not in drop]
+        newI = [x for x in avail if x in drop]
+        self.C, self.A, self.I = list(self.A), newA, newI
+        self.taken = None
+        self.check()
+
+    def rollback(self):
+        self.taken = None
+
+    def reset(self):
+        self.rng = self.seed0
+        self.A = list(range(8))
+        self.C = list(range(8, 16))
+        self.I = [16, 17]
+        self.taken = None
 
 
 def convert(tag, x, ctx, drop_events=False, zero_pre=False, qid=None,
-            keep_scalar_wp=False):
+            keep_scalar_wp=False, ids=None):
     """一笔转换。ctx 含 h,v,dither,acq_seq,coin,qid。返回完整描述符。"""
     word = ctx['dither']
     q_used = ctx['qid'] if qid is None else qid      # 允许故障注入改 qid
@@ -206,7 +262,7 @@ def convert(tag, x, ctx, drop_events=False, zero_pre=False, qid=None,
         last_k, last_post = k_i, post_i
     if last_post is None:
         return dict(tag=tag, illegal=True, k=None, c=c_fin)
-    Wm = Wm_cf(last_post)
+    Wm = Wm_cf(last_post, ids)
     y = G_GAIN * x + 3 * G_GAIN - 6 * Wm + 6 * Wp_fwd
     code_a = int(math.floor((y - ADC2_YMIN) * ADC2_N / ADC2_SPAN))
     over = not (0 <= code_a < ADC2_N)
@@ -216,193 +272,81 @@ def convert(tag, x, ctx, drop_events=False, zero_pre=False, qid=None,
     # 最终 20 位整数码（单独一项误差）
     code20 = int(round((x_hat + VFS) / (2 * VFS) * (1 << 20) - 0.5))
     code20 = max(0, min((1 << 20) - 1, code20))
+    ev_ok, ev_why = protocol_ok(ev, last_k >= 512)
+    if drop_events:
+        ev_ok, ev_why = False, "事件被截断"
     return dict(tag=tag, qid=q_used, qid_exp=ctx['qid'], c=c_fin, k=last_k, events=ev,
+                ev_ok=ev_ok, ev_why=ev_why,
                 mask=last_post, pre=bits, Wm=Wm, Wp=Wp_recon, Wp_fwd=Wp_fwd, Wp_nom=Wp_nom,
                 y=y, adc2=cc, over=over, x_hat=x_hat, code20=code20,
                 illegal=False, guard=(last_k >= 512))
 
 
 # ------------------------------------------------------------------ 验收统计
-def run_batch(n=512, dither_span=64, fault=None):
-    st = dict(n=0, ok=0, illegal=0, over=0, lost=0, dup=0, inflight=0,
-              e_float=0.0, e_code=0.0, wp_bad=0, ev_bad=0, qid_bad=0, tags=[])
-    pool = Pool18()
-    acq = list(range(8))
-    conv = [8, 9, 10, 11, 12, 13, 14, 15]
+def run_batch(n=512, fault=None):
+    st = dict(n=0, ok=0, illegal=0, over=0, lost=0, dup=0, qid_bad=0,
+              wp_bad=0, ev_bad=0, e_float=0.0, e_code=0.0, tags=[])
+    sch = Scheduler18()
     seen = set()
     for i in range(n):
         x = -VFS + 6.0 * (i % 1024) / 1024 + 0.31 * DELTA
-        ctx = dict(h=i % 8, v=(i // 8) % 8, dither=(i * 5) % dither_span,
+        ctx = dict(h=i % 8, v=(i // 8) % 8, dither=(i * 5) % 64,
                    acq_seq=i & 15, coin=i & 1, qid=i & 1)
+        ids = sch.reserve()
+        if ids is None:
+            sch.commit()
+            ids = sch.reserve()
         tag = 1000 + i
-        r = convert(tag, x, ctx,
+        r = convert(tag, x, ctx, ids=ids,
                     drop_events=(fault == 'no_events'),
                     zero_pre=(fault in ('no_pre', 'no_pre_scalar')),
                     keep_scalar_wp=(fault == 'no_pre_scalar'),
                     qid=(0 if fault in ('bad_qid', 'all_qid0') else None))
+        if fault == 'flash_only':
+            r = convert(tag, x, ctx, ids=ids, drop_events=True)
+            r['events'] = r['events'][:1]
+            r['ev_ok'], r['ev_why'] = False, '只保留 Flash'
+        elif fault == 'first_last':
+            r = convert(tag, x, ctx, ids=ids)
+            r['events'] = [r['events'][0], r['events'][-1]]
+            r['ev_ok'], r['ev_why'] = False, '只保留首末'
+        sch.commit()
         st['n'] += 1
-        if fault == 'no_output':
-            st['lost'] += 1
-            continue
-        if fault == 'all_illegal':               # 全部标为非法
-            st['illegal'] += 1
-            continue
+        if fault == 'all_illegal':
+            st['illegal'] += 1; continue
         if r.get('illegal'):
-            st['illegal'] += 1
-            continue
+            st['illegal'] += 1; continue
         if r['over']:
-            st['over'] += 1
-            continue
+            st['over'] += 1; continue
+        if not r['ev_ok']:
+            st['ev_bad'] += 1
         if r['tag'] != tag:
             st['lost'] += 1
         if r['tag'] in seen:
             st['dup'] += 1
+        seen.add(r['tag'])
         if r['qid'] != r['qid_exp']:
             st['qid_bad'] += 1
-        seen.add(r['tag'])
+        if abs(r['Wp_fwd'] - r['Wp_nom']) > 1e-12:
+            st['wp_bad'] += 1
         st['ok'] += 1
         st['tags'].append(r['tag'])
         st['e_float'] = max(st['e_float'], abs(r['x_hat'] - x))
-        want20 = int(round((x + VFS) / (2 * VFS) * (1 << 20) - 0.5))
-        want20 = max(0, min((1 << 20) - 1, want20))
-        st['e_code'] = max(st['e_code'], abs(r['code20'] - want20))
-        if abs(r['Wp_fwd'] - r['Wp_nom']) > 1e-12:
-            st['wp_bad'] += 1
-        if fault == 'no_events' and len(r['events']) >= 7:
-            st['ev_bad'] += 1
-        # 池推进
-        acq = pool.step(sumacq := sum(1 << s for s in acq),
-                        sum(1 << s for s in conv))
-        conv = [s for s in range(18) if (sumacq >> s) & 1]
+        w20 = max(0, min((1 << 20) - 1,
+                         int(round((x + VFS) / (2 * VFS) * (1 << 20) - 0.5))))
+        st['e_code'] = max(st['e_code'], abs(r['code20'] - w20))
     return st
 
 
 def accept(st):
-    """验收门禁：任一不满足即 False。"""
     reasons = []
-    if st['illegal'] or st['over'] or st['lost'] or st['dup']:
-        reasons.append(f"illegal={st['illegal']} over={st['over']} lost={st['lost']} dup={st['dup']}")
-    if st['wp_bad']:
-        reasons.append(f"Wp 与名义不符 {st['wp_bad']}")
-    if st['qid_bad']:
-        reasons.append(f"qid 关联错误 {st['qid_bad']}")
+    for k in ('illegal', 'over', 'lost', 'dup', 'qid_bad', 'wp_bad', 'ev_bad'):
+        if st.get(k):
+            reasons.append(f"{k}={st[k]}")
     if st['ok'] == 0:
         reasons.append("无有效输出")
     if st['e_float'] > 0.5 * LSB20:
-        reasons.append(f"浮点误差 {st['e_float']/LSB20:.3f} LSB20")
+        reasons.append(f"浮点 {st['e_float']/LSB20:.3f} LSB20")
     if st['e_code'] > 1:
-        reasons.append(f"最终码误差 {st['e_code']} LSB20")
+        reasons.append(f"最终码 {st['e_code']} LSB20")
     return (len(reasons) == 0), reasons
-
-
-# ------------------------------------------------------------------ G3 生命周期
-class Engine:
-    """双 qid 上下文 + 18 片池 + prepare/sample/convert/adc2/retire 全生命周期。"""
-
-    ST_PREP, ST_SAMP, ST_CONV, ST_ADC2, ST_DONE = range(5)
-
-    def __init__(self, seed=0xACE1):
-        self.pool = Pool18(seed)
-        self.qid_ctx = [None, None]        # 两个独立上下文
-        self.acq = list(range(8))
-        self.conv = list(range(8, 16))
-        self.stats = dict(prepared=0, sampled=0, converted=0, adc2=0,
-                          retired=0, cancelled=0, inflight=0, stalled=0,
-                          err=0, tags=[], qid_bad=0, drops=0)
-        self.descriptors = {}
-
-    def _free_qid(self):
-        for q in (0, 1):
-            if self.qid_ctx[q] is None:
-                return q
-        return None
-
-    def prepare(self, tag, x, ctx):
-        q = self._free_qid()
-        if q is None:
-            self.stats['stalled'] += 1      # 两个 qid 都忙 -> stall，不丢事务
-            return None
-        d = dict(tag=tag, qid=q, x=x, ctx=dict(ctx), state=self.ST_PREP,
-                 slices=list(self.acq), frozen=True)
-        self.qid_ctx[q] = d
-        self.descriptors[tag] = d
-        self.stats['prepared'] += 1
-        self.stats['inflight'] += 1
-        return d
-
-    def sample(self, d):
-        if d is None or d['state'] != self.ST_PREP:
-            return
-        d['state'] = self.ST_SAMP
-        self.stats['sampled'] += 1
-
-    def convert_one(self, d, fault=None):
-        if d is None:
-            return
-        r = convert(d['tag'], d['x'], d['ctx'],
-                    drop_events=(fault == 'no_events'),
-                    zero_pre=(fault in ('no_pre', 'no_pre_scalar')),
-                    keep_scalar_wp=(fault == 'no_pre_scalar'),
-                    qid=(0 if fault == 'all_qid0' else None))
-        d['state'] = self.ST_CONV
-        d['res'] = r
-        self.stats['converted'] += 1
-        # 片组推进：C_{n+1}=A_n
-        new_acq = self.pool.step(sum(1 << s for s in self.acq),
-                                 sum(1 << s for s in self.conv))
-        self.conv = list(self.acq)
-        self.acq = new_acq
-
-    def adc2_return(self, d):
-        if d is None or 'res' not in d:
-            return
-        d['state'] = self.ST_ADC2
-        self.stats['adc2'] += 1
-
-    def retire(self, d):
-        if d is None:
-            return
-        r = d['res']
-        if r.get('illegal') or r['over']:
-            d['state'] = 'ERR'
-            self.stats['err'] += 1
-        else:
-            d['state'] = self.ST_DONE
-            self.stats['retired'] += 1
-            self.stats['tags'].append(r['tag'])
-            if r['qid'] != r['qid_exp']:
-                self.stats['qid_bad'] += 1
-        self.stats['inflight'] -= 1
-        self.qid_ctx[d['qid']] = None
-
-    def cancel(self, d):
-        if d is None or d['state'] in (self.ST_DONE, 'ERR'):
-            return
-        d['state'] = 'CANCELLED'
-        self.stats['cancelled'] += 1
-        self.stats['inflight'] -= 1
-        if d['qid'] in (0, 1):
-            self.qid_ctx[d['qid']] = None
-
-    def reset(self):
-        for q in (0, 1):
-            if self.qid_ctx[q] is not None:
-                self.cancel(self.qid_ctx[q])
-
-
-def run_lifecycle(n=256, fault=None):
-    eng = Engine()
-    for i in range(n):
-        x = -VFS + 6.0 * (i % 1024) / 1024 + 0.29 * DELTA
-        ctx = dict(h=i % 8, v=(i // 8) % 8, dither=(i * 3) % 64,
-                   acq_seq=i & 15, coin=i & 1, qid=i & 1)
-        d = eng.prepare(1000 + i, x, ctx)
-        if d is None:
-            continue
-        eng.sample(d)
-        eng.convert_one(d, fault=fault)
-        eng.adc2_return(d)
-        eng.retire(d)
-        if i == n // 2:                 # 中途 reset 一次
-            eng.reset()
-    return eng.stats

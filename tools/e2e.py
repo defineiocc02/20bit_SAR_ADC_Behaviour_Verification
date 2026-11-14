@@ -86,34 +86,60 @@ class RDElement:
         return self._cache[key]
 
 
-# ---------------------------------------------------------------- SADC + Follower
-def sadc_and_follower(vin, rdac, group, phases):
-    """比较器逐位判决；每个事件立刻用当前已决前缀驱动 RDAC。
+# ---------------------------------------------------------------- 独立 SADC
+class SADCModel:
+    """量化器：**自己的**匹配 sDAC + 比较器，物理上独立于 RDAC。
 
-    返回 (k, 事件轨迹)。**不使用最终码反推前缀。**
+    论文：量化器与 RDAC 分离，量化器 sDAC 与 RDAC 匹配 > 11 位。
+    因此本模型的 sDAC 权重自带小失配与失调，**不与 RDAC 共享电容实例**。
     """
-    k = 0
-    timeline = [(0, rdac.vout(group, phases, 0))]   # 事件 0：全零码
-    for b in range(FOLLOWER_EVENTS - 1, -1, -1):
-        trial = k | (1 << b)
-        d = rdac.vout(group, phases, trial)          # 比较器看到的是"候选码下的真实 RDAC 输出"
-        if vin >= d:
-            k = trial
-        timeline.append((k, rdac.vout(group, phases, k)))  # 该事件后 RDAC 实际落脚点
-    return k, timeline
+
+    def __init__(self, seed=42, mismatch=6e-4, offset=50e-6):
+        r = np.random.default_rng(seed)
+        base = np.array([(-VFS + 2 * VFS * k / 512) for k in range(512)])
+        # 每码一个独立的小失配（相对 2Δ 的千分之几量级）+ 固定失调
+        self.lut = base + r.normal(0, mismatch * 2 * VFS / 512, 512) + offset
+        self.offset = offset
+        self.trace = []
+
+    def compare(self, vin, code):
+        return vin >= self.lut[code]
+
+    def convert(self, vin, nbits=9):
+        """逐位判决，**只看自己的 sDAC**，不碰 RDAC。"""
+        k = 0
+        self.trace = [k]
+        for b in range(nbits - 1, -1, -1):
+            trial = k | (1 << b)
+            if self.compare(vin, trial):
+                k = trial
+            self.trace.append(k)
+        return k
+
+
+# ---------------------------------------------------------------- Follower
+def follower_drive(sadc_trace, rdac, group, phases):
+    """Follower：把 SADC 的已决码序列逐事件送给 RDAC，RDAC 只跟随，不参与比较。"""
+    timeline = []
+    for k in sadc_trace:
+        timeline.append((k, rdac.vout(group, phases, k)))
+    return timeline
 
 
 # ---------------------------------------------------------------- 主转换
 def convert(vin, rdac, coef, group, sample_id, word=0,
-            tier=2, ra=None, rng=None, wide=False):
+            tier=2, ra=None, rng=None, wide=False, sadc=None):
     """一次完整转换。tier 只影响 ADC2 与 RA 的理想程度。"""
     if rng is None:
         rng = np.random.default_rng(sample_id)
+    if sadc is None:
+        sadc = SADCModel()
     phases = dem_phases(sample_id)
     u, l, t = _dither_terms(word)
 
-    # 1) SADC + Follower：粗码由比较器逐位得出
-    k, timeline = sadc_and_follower(vin, rdac, group, phases)
+    # 1) SADC 独立判决（不碰 RDAC）；随后 Follower 逐事件驱动 RDAC
+    k = sadc.convert(vin)
+    timeline = follower_drive(sadc.trace, rdac, group, phases)
 
     # 2) RDAC 实际输出 → 余差（由真实电荷产生，不由 D5 反推）
     d_real = rdac.vout(group, phases, k)
@@ -130,13 +156,14 @@ def convert(vin, rdac, coef, group, sample_id, word=0,
     if wide:
         a2 = None                      # 宽窗口诊断：不量化，直接给余差
         r_obs = ra_out / RA_GAIN
+        clamp = False
     else:
         if ra_out < 0.0 or ra_out > ADC2_MAX:
             return dict(status="overflow", r=resid, ra=ra_out, k=k,
                         timeline=timeline, code=None)
-        a2 = int(np.floor(ra_out / ADC2_LSB))
-        if a2 >= 4096:
-            a2 = 4095
+        a2_raw = int(np.floor(ra_out / ADC2_LSB))
+        a2 = min(a2_raw, 4095)
+        clamp = a2_raw >= 4096          # 顶到窗口上沿：解码值被截断
         r_obs = (a2 + 0.5) * ADC2_LSB / RA_GAIN
 
     # 5) D5：只拿 k / adc2 / dither / 冻结系数
@@ -157,7 +184,7 @@ def convert(vin, rdac, coef, group, sample_id, word=0,
         x_hat = r['x_weight_v']
         code = r['code20']
     return dict(status="ok", r=resid, ra=ra_out, k=k, timeline=timeline,
-                code=code, x_hat=x_hat, d_real=d_real)
+                code=code, x_hat=x_hat, d_real=d_real, clamp=clamp, a2=a2)
 
 
 def run_block(vin_list, device, coef, tier=2, wide=False, ra=None, words=None):

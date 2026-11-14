@@ -59,14 +59,16 @@ files.f                               编译清单（verilator -f files.f）
 | **RTL 功能（VCS）** | 七组共 **11619 组向量、0 失配** | `docs/VCS_RESULT.md` |
 | **RTL 权重路径** | `recon_d5_w` **400/400**（新相位向量重跑，VCS W-2024.09） | `docs/VCS_RESULT.md`；`e665dff` |
 | 综合（SMIC180 slow） | 1485 cells / 50175 µm² | `synth/results/` |
-| **STA（带 SDC）** | setup **+0.04 ns (MET)** / hold **+0.58 ns (MET)** @ 25 ns | `synth/results/setup_pipe_constrained.rpt` |
+| **权重路径时序** | `recon_d5_w2`（倒数乘替代除法）：S1 **24.46 ns slack +0.002 MET**，全设计 setup MET / hold +0.42，面积 **166,799 µm² / 4,940 cells**；`DW_div` 计数为 0 | `synth/results/w2/`、`docs/TIMING_W2.md` |
+| STA（名义路径） | setup +0.04 ns / hold +0.58 ns @ 25 ns，**但仅 reg→out**，输入路径未验证 | `synth/results/setup_p_pipe_constrained.rpt` |
 
 ### 不能声称
 
 | 项 | 原因 |
 |:---|:---|
+| 权重路径"余量 7 ns" | +0.002 ns 是 compile 刚满足约束那版；用紧周期回推 S1 能力约 17.3 ns（含 2 ns 输入延时），但**这是结构回推，不是签核** |
+| 与精确除法逐位一致 | 倒数乘使 D_eff 最大差 2 个 Q24 单位（0.02 LSB20），400 组里 1 组输出差 1 LSB20；偏差随 G 增大（G=5.5e11 时 13 单位） |
 | **40 MS/s 已达成** | setup 余量仅 **0.16%**，且只到综合后、单角、无 OCV；布线未做 |
-| 权重路径 RTL 可综合到达标 | `recon_d5_w` 的 64÷45 阵列除法在 SMIC180 slow 上 S1 需 **421 ns**（未优化 810 ns），差 25 ns 预算 16.5 倍；面积 377,290 µm²（名义版 7.5×）。见 `docs/TIMING_PIPE2.md` |
 | RTL 与网表等价 | Formality 跑 19 分钟未收敛，已停；未做门级仿真 |
 | DEM 等价于 ADI 原序列 | 覆盖问题已修，但现排程是工程候选（每 9 笔推进一维），非专利两级 shuffler |
 | RTL 顶层事务语义 | 计数守恒只在 Python 模型上验过；RTL 顶层仍停在 elaboration |

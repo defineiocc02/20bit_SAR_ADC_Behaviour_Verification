@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import math
 import numpy as np
 
 V_FS = 3.0            # 单端满量程
@@ -39,12 +40,19 @@ def dac_from_connection(w, mask, ids, cols, sub_cols, vref=3.0):
 
 
 def quantize_adc2(residue_v):
-    """单边窗口：RA 输出 0..0.45 V 线性映射到 ADC2 0..4095。
+    """单边窗口 0..0.45 V → ADC2 0..4095，**floor 分箱**与 D5 箱中心解码配平。
 
-    合法输入折算余差 = 0 .. 14.06 mV。超出返回 None（非法/饱和），
-    由调用方报告，不静默夹紧后继续用于精度验收。
+    D5 的解码为 r̂ = (code + 0.5)·LSB，因此编码必须取 floor(ra/LSB)，
+    使 r̂ 落在该箱中心，理想量化误差 ≤ LSB/2 = 1.717 µV（输入折算）。
+
+    边界：
+      ra = 0      -> code 0
+      ra = 0.45   -> floor 得 4096，超出 12 位范围，**归入最后一个箱 4095**
+                     （该点误差为 -LSB/2，仍在该箱内）
+      ra < 0 或 > 0.45 -> 返回 None（非法/饱和），由调用方报告，不静默夹紧
     """
     ra = residue_v * RA_GAIN
     if ra < 0.0 or ra > 0.45:
         return None
-    return int(round(ra / ADC2_LSB))
+    code = int(math.floor(ra / ADC2_LSB))
+    return ADC2_FS - 1 if code >= ADC2_FS else code

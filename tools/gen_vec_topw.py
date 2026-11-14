@@ -41,6 +41,10 @@ _D2 = [1, 2, -3, 4, -2, -4, 3, -1, -1, 2, -2, 0, 1, 3, -4, 1]
 assert sum(_D0) == 0 and sum(_D1) == 0 and sum(_D2) == 0
 
 
+_grng = random.Random(20261114)
+GAIN = [[_grng.gauss(0.0, 0.01) for _ in range(18)] for _ in range(4)]
+
+
 def build_weights():
     """返回 W[ver][sid][unit]，W[3] 全零。"""
     tables = [[[0] * N_UNIT for _ in range(N_SLICES)] for _ in range(N_VER)]
@@ -53,12 +57,14 @@ def build_weights():
         pat = [base + d * step for d in templ]
         # 缩放后仍保证精确等行和（把余数补到 pattern 上再旋转）
         for sid in range(N_SLICES):
+            # 片增益偏差：使各片行和不同（不再强制行和相等）
+            gain = 1.0 + GAIN[ver][sid]
             rot = (sid * 5 + ver * 7) % N_COL
             for j in range(N_COL):
-                tables[ver][sid][j] = pat[(j + rot) % N_COL]
+                tables[ver][sid][j] = int(round(pat[(j + rot) % N_COL] * gain))
             # 子阵列 4 位：片间也不同，专测 Wm 的子阵列寻址（不进 G）
             for k in range(4):
-                tables[ver][sid][N_COL + k] = UNIT // 8 + ((sid * 3 + k * 7 + ver) % 5) * (UNIT // 128)
+                tables[ver][sid][N_COL + k] = int(round((UNIT // 8 + ((sid * 3 + k * 7 + ver) % 5) * (UNIT // 128)) * gain))
     return tables
 
 
@@ -73,23 +79,27 @@ def main():
 
     W = build_weights()
 
-    # ---- 自检 1：行和片间一致 / 版本内一致 ----
+    # ---- 自检 1：行和**必须**片间不同（非均匀实例） ----
     for ver in range(3):
-        sums = {row_sum(W[ver], s) for s in range(N_SLICES)}
-        assert len(sums) == 1, f"version {ver} row sums differ: {sorted(sums)}"
-        print(f"V{ver}: per-slice row sum = {sums.pop()}  G(8 slices) = {8 * row_sum(W[ver], 0)}")
+        sums = [row_sum(W[ver], s) for s in range(N_SLICES)]
+        assert len(set(sums)) > 1, f"version {ver} row sums identical — 非均匀实例未生效"
+        print(f"V{ver}: row sums {min(sums)}..{max(sums)} (spread {max(sums)-min(sums)})")
 
-    # ---- inv 与 G 对 9 个片组检查 ----
+    # ---- 每组倒数：按活动片组各自的真实 G ----
     inv = {}
     for ver in range(3):
-        G = 8 * row_sum(W[ver], 0)
-        inv[ver] = (2 * (1 << 60) + G) // (2 * G)
-        assert inv[ver] < (1 << 27), f"V{ver} inv overflows 27b: {inv[ver]}"
-        groups = {(8 * (n + 1)) % N_SLICES for n in range(9)}
-        vals = {sum(row_sum(W[ver], (g + s) % N_SLICES) for s in range(N_ACTIVE)) for g in groups}
-        assert vals == {G}, f"V{ver} G varies by group: {vals}"
-        print(f"V{ver}: inv_g_q60 = {inv[ver]}  (9 groups all G={G})")
-    inv[3] = 0
+        inv[ver] = []
+        Gs = []
+        for n in range(9):
+            ids = [(8 * (n + 1) + s) % N_SLICES for s in range(N_ACTIVE)]
+            G = sum(row_sum(W[ver], sid) for sid in ids)
+            Gs.append(G)
+            iv = (2 * (1 << 60) + G) // (2 * G)
+            assert iv < (1 << 27), f"V{ver} g{n} inv overflows 27b: {iv}"
+            inv[ver].append(iv)
+        assert len(set(Gs)) > 1, f"V{ver} 9 组 G 仍相同，非均匀实例未生效"
+        print(f"V{ver}: 9 组 G 极差 {max(Gs)-min(Gs)}，inv {min(inv[ver])}..{max(inv[ver])}")
+    inv[3] = [0] * 9
 
     # ---- 系数文件 ----
     coef_path = os.path.join(tb, "vec_topw_coef.txt")
@@ -99,7 +109,8 @@ def main():
             for sid in range(N_SLICES):
                 for u in range(N_UNIT):
                     f.write(f"0 {ver} {sid} {u} {W[ver][sid][u]}\n")
-            f.write(f"1 {ver} 0 0 {inv[ver]}\n")
+            for g in range(9):
+                f.write(f"1 {ver} {g} 0 {inv[ver][g]}\n")
     print(f"wrote {coef_path}")
 
     # ---- 金标事务（V0，sample_id = 行号，连续无气泡） ----
@@ -142,8 +153,8 @@ def main():
             assert res["weight_identity_ok"], (i, res["mask_selected"], res["expect_8H_plus_M"])
             assert res["code_identity_ok"], (i, res["k"])
             wm, g, iv = res["wm_q30"], res["g_q30"], res["inv_g_q60"]
-            assert g == 8 * row_sum(W[0], 0), (i, g)
-            assert iv == inv[0], (i, iv)
+            # G 随活动片组变化；此处校验 inv 与 G 自洽，不再要求 9 组 G 相同
+            assert iv == (2 * (1 << 60) + g) // (2 * g), (i, g, iv)
             # overflow 口径与 RTL 相同：q+2^19 超出 [0,2^20)
             dac_q24 = res["dbg"][2]
             r_hat = res["dbg"][3]

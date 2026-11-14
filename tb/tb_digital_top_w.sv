@@ -44,6 +44,7 @@ module tb_digital_top_w;
     logic [4:0]  cfg_slice = '0, cfg_unit = '0;
     logic [43:0] cfg_w = '0;
     logic [63:0] cfg_inv = '0;
+    logic [3:0]  cfg_grp = '0;
 
     digital_top_w dut (
         .clk(clk), .reset_n(rstn),
@@ -52,14 +53,14 @@ module tb_digital_top_w;
         .reserved_i(reserved_i), .h_phase_i(h_phase_i), .v_phase_i(v_phase_i),
         .tag_i(tag_i), .in_ready_o(in_ready),
         .cfg_we(cfg_we), .cfg_slice(cfg_slice), .cfg_unit(cfg_unit), .cfg_w(cfg_w),
-        .cfg_inv_we(cfg_inv_we), .cfg_inv(cfg_inv),
+        .cfg_inv_we(cfg_inv_we), .cfg_inv(cfg_inv), .cfg_inv_grp(cfg_grp),
         .busy_o(busy), .slice_ids_o(slice_ids),
         .code_o(code_o), .overflow_o(ovf_o), .err_o(err_o),
         .valid_o(valid_o), .tag_o(tag_o));
 
     // ---------------------------------------------------------------- 参考系数
     longint W    [0:NVER-1][0:NSL-1][0:NU-1];
-    longint INVM [0:NVER-1];
+    longint INVM [0:NVER-1][0:8];
 
     // ---------------------------------------------------------------- 金标向量
     int     G_c   [0:NGOLD-1];
@@ -166,7 +167,7 @@ module tb_digital_top_w;
             if (L[0]) wm = wm + W[ver][sid][19];
         end
 
-        iv   = INVM[ver];
+        iv   = INVM[ver][sample_id % 9];   // 组号 = 样本身份 % 9，与 RTL 一致
         num  = 6 * wm - 3 * g;
         dac  = (num * iv) >>> 36;                 // 与 RTL 一致：算术右移 floor
         rhat = ((2 * a2 + 1) * 144 + 2) / 5;
@@ -201,8 +202,8 @@ module tb_digital_top_w;
         while (!$feof(fd)) begin
             r = $fscanf(fd, "%d %d %d %d %d\n", typ, ver, sid, u, w);
             if (r == 5) begin
-                if (typ == 0) W[ver][sid][u] = w;
-                else          INVM[ver] = w;
+                if (typ == 0)      W[ver][sid][u] = w;
+                else if (typ == 1) INVM[ver][sid] = w;   // sid 复用为组号 0..8
             end
         end
         $fclose(fd);
@@ -242,11 +243,15 @@ module tb_digital_top_w;
         end
         @(negedge clk);
         cfg_we = 1'b0;
-        cfg_inv_we = 1'b1;
-        cfg_inv = INVM[ver];
+        for (int g = 0; g < 9; g++) begin
+            @(negedge clk);
+            cfg_inv_we = 1'b1;
+            cfg_grp    = g[3:0];
+            cfg_inv    = INVM[ver][g];
+        end
         @(negedge clk);
         cfg_inv_we = 1'b0;
-        $display("[%0t] loaded coefficient version %0d (inv=%0d)", $time, ver, INVM[ver]);
+        $display("[%0t] loaded coefficient version %0d (9 group inverses)", $time, ver);
     endtask
 
     // ---------------------------------------------------------------- 入口监控 / 出口记分
@@ -322,7 +327,9 @@ module tb_digital_top_w;
                 if (chk_b[bt])     fail("E2: duplicate check for tag");
                 if (longint'(dut.wm_b) != exp_wm[bt])  fail("E2: Wm crossed");
                 if (longint'(dut.g_b)  != exp_g[bt])   fail("E2: G crossed");
-                if (longint'(dut.inv_reg) != exp_inv[bt]) fail("E2: inv crossed");
+                // 9 组倒数：比对"该组实际选出"的那一项，同时校验组号未错位
+                if (longint'(dut.inv_sel) != exp_inv[bt]) fail("E2: inv crossed");
+                if (int'(dut.grp_b) > 8)                    fail("E2: group id out of range");
                 chk_b[bt] = 1'b1;
             end
 

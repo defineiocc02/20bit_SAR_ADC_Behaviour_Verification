@@ -46,6 +46,7 @@ module digital_top_w (
     input  logic [4:0]  cfg_unit,       // 0..19
     input  logic [43:0] cfg_w,          // Q30 权重
     input  logic        cfg_inv_we,
+    input  logic [3:0]  cfg_inv_grp,    // 0..8，该倒数对应的活动片组
     input  logic [63:0] cfg_inv,        // round(2^60 / G)，冻结
 
     // ---- 状态 ----
@@ -117,6 +118,7 @@ module digital_top_w (
     logic        valid_a;
     logic [19:0] mask_a [0:N_ACTIVE-1];
     logic [4:0]  slice_a [0:N_ACTIVE-1];
+    logic [3:0]  grp_a;
     logic [11:0] adc2_a;
     logic [5:0]  dither_a;
     logic [23:0] tag_a;
@@ -126,6 +128,9 @@ module digital_top_w (
     logic        valid_b;
     logic [43:0] wm_b, g_b;
     logic [43:0] wm_c, g_c;
+    logic [3:0]  grp_b;
+    logic [63:0] inv_sel;
+    logic        inv_missing;
     logic [11:0] adc2_b;
     logic [5:0]  dither_b;
     logic [23:0] tag_b;
@@ -140,7 +145,12 @@ module digital_top_w (
     // ---------------------------------------------------------------- 冻结系数表
     logic [43:0] w_tab [0:N_SLICE-1][0:N_UNIT-1];
     logic [43:0] g_tab [0:N_SLICE-1];
-    logic [63:0] inv_reg;
+    logic [63:0] inv_tab [0:8];     // 每组 27 位有效，存 64 位便于零扩展
+    logic [8:0]  inv_loaded;        // 该组倒数是否已装载
+    // 片组号：与 slice_ids 同一 n 推导，组 = (8(n+1))%18 的逆映射，等价于 n%9
+    function automatic logic [3:0] grp_of(input logic [15:0] n);
+        return 4'(n % 16'd9);
+    endfunction
 
     // 校准状态：靠 cfg 口建立，不随 reset_n 清零
     initial begin
@@ -148,7 +158,8 @@ module digital_top_w (
             g_tab[s] = 44'd0;
             for (int u = 0; u < N_UNIT; u++) w_tab[s][u] = 44'd0;
         end
-        inv_reg = 64'd0;
+        inv_loaded = 9'd0;
+        for (int g = 0; g < 9; g++) inv_tab[g] = 64'd0;
     end
 
     // 在途事务数：用于判定 idle（cfg 口只在 idle 时可写）
@@ -172,8 +183,10 @@ module digital_top_w (
                 g_tab[cfg_slice] <= g_tab[cfg_slice] - w_tab[cfg_slice][cfg_unit] + cfg_w;
             w_tab[cfg_slice][cfg_unit] <= cfg_w;
         end
-        if (cfg_inv_we && !busy_o)
-            inv_reg <= cfg_inv;
+        if (cfg_inv_we && !busy_o && (cfg_inv_grp < 4'd9)) begin
+            inv_tab[cfg_inv_grp]    <= cfg_inv;
+            inv_loaded[cfg_inv_grp] <= 1'b1;
+        end
     end
 
     // ---------------------------------------------------------------- E1 打拍
@@ -188,6 +201,7 @@ module digital_top_w (
                 mask_a[s]  <= mask_c[s];
                 slice_a[s] <= slice_ids_o[s*5 +: 5];
             end
+            grp_a    <= grp_of(sample_cnt);   // 与 slice_ids 用同一个 n
             adc2_a   <= adc2_i;
             dither_a <= dither_i;
             tag_a    <= tag_i;
@@ -216,16 +230,20 @@ module digital_top_w (
             kbad_b  <= kbad_a;
             wm_b    <= wm_c;
             g_b     <= g_c;
+            grp_b   <= grp_a;
             adc2_b  <= adc2_a;
             dither_b<= dither_a;
             tag_b   <= tag_a;
         end
     end
 
+    assign inv_sel     = inv_tab[grp_b];
+    assign inv_missing = ~inv_loaded[grp_b];   // 未装载 -> 明确报错，不静默用旧值
+
     // ---------------------------------------------------------------- E3/E4：w2 重构
     recon_d5_w2 u_recon(
         .clk(clk), .reset_n(reset_n),
-        .wm_q30(wm_b), .g_q30(g_b), .inv_g_q60(inv_reg),
+        .wm_q30(wm_b), .g_q30(g_b), .inv_g_q60(inv_sel),
         .adc2_i(adc2_b), .dither_i(dither_b),
         .code_o(code_o), .overflow_o(overflow_o), .err_o(recon_err));
 
@@ -241,7 +259,7 @@ module digital_top_w (
             valid_s1 <= valid_b;
             valid_s2 <= valid_s1;
             // recon 的 err 与 wm_b/g_b/inv 同拍；k 越界随事务一起对齐
-            err_s1   <= recon_err | kbad_b;
+            err_s1   <= recon_err | kbad_b | inv_missing;
             err_s2   <= err_s1;
             tag_s1   <= tag_b;
             tag_s2   <= tag_s1;

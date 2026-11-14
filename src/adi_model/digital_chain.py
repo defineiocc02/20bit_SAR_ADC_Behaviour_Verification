@@ -198,8 +198,8 @@ def run_transaction(tx: Transaction) -> dict:
             # 硬件路径：inv_g = round(2^60/G)，用乘+移替代除法。
             # -K_q54 = (6Wm - 3G)·VR，故 (6Wm-3G) = -K_q54 // VR（整除）
             inv_g_q60 = (2 * (1 << 60) + G_q30) // (2 * G_q30)
-            wm_q30 = G_q30 // 2 + (-K_q54) // (2 * int(round(VR)))
-            dac_q24 = 6 * ((wm_q30 * inv_g_q60) >> 36) - 3 * (1 << 24)
+            # 冻结表达式（与 RTL 逐位相同）：floor((6Wm − 3G)·inv / 2^36)
+            dac_q24 = ((6 * Wm_q30 - 3 * G_q30) * inv_g_q60) >> 36
             # 仓库既有定义：r = round((2a+1)*144/5) = ((2a+1)*144+2)//5
             # 不再额外加移位偏置（_div_round 内部会加 d//2，那是二次舍入）
             r_hat_q24 = ((2 * int(tx.adc2_code) + 1) * 144 + 2) // 5

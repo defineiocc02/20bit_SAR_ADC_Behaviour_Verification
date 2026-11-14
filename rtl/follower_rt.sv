@@ -25,6 +25,7 @@ module follower_rt (
     output logic        done_o,
     output logic        err_o,        // prefix < upper 时置位
     output logic [8:0]  prefix_o,     // 已累加的前缀（供顶层事件模式取用）
+    output logic        last_ev_o,    // 本次事件是第 9 个（与 ev_valid_o 同沿）
     output logic        proto_err_o   // 协议违例：位序错/重复/缺位/qid 错/与 Flash 不符
 );
 
@@ -35,7 +36,7 @@ module follower_rt (
     logic [3:0]  exp_idx;             // 期望的下一个位序（= 已收事件数）
     logic [3:0]  idx_q;       // 已收事件数（定位下一位）
     logic [3:0]  ev_idx_q;    // 本事件序号
-    logic        done_q, ev_valid_q, err_q, proto_err_q;
+    logic        done_q, ev_valid_q, err_q, proto_err_q, last_ev_q;
     logic [8:0]  k_q;
 
     // 按原位置累加：第 idx 个事件接的是原码第 (8-idx) 位
@@ -64,7 +65,7 @@ module follower_rt (
             ev_idx_q  <= 4'd0;
             upper_q   <= 3'd0;
             qid_q     <= 1'b0; qid_seen <= 1'b0; exp_idx <= 4'd0;
-            proto_err_q <= 1'b0;
+            proto_err_q <= 1'b0; last_ev_q <= 1'b0;
         end else if (start_i) begin
             prefix_q  <= 9'd0;
             idx_q     <= 4'd0;
@@ -77,11 +78,12 @@ module follower_rt (
             qid_q     <= sar_qid_i;      // 每笔事务冻结量化器身份
             qid_seen  <= 1'b0;
             exp_idx   <= 4'd0;
-            proto_err_q <= 1'b0;
+            proto_err_q <= 1'b0; last_ev_q <= 1'b0;
             // Flash 通道：若有效，最高 3 位直接预置，后续事件须与之相符
             prefix_q  <= flash_valid_i ? {flash_code_i, 6'b0} : 9'd0;          // 冻结：事件期间不再读 upper_i
         end else if (bit_valid_i && !done_q) begin
             proto_err_q <= idx_bad || qid_bad;
+            last_ev_q   <= (idx_q == 4'd8);      // 与 ev_valid_q 同沿寄存
             qid_seen    <= 1'b1;
             exp_idx     <= exp_idx + 4'd1;
             prefix_q  <= acc;
@@ -103,5 +105,6 @@ module follower_rt (
     assign err_o      = err_q;
     assign prefix_o   = prefix_q;
     assign proto_err_o = proto_err_q;
+    assign last_ev_o   = last_ev_q;
 
 endmodule

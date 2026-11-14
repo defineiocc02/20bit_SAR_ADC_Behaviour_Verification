@@ -252,6 +252,7 @@ module digital_top_w (
     // ---------------------------------------------------------------- D2 实时 Follower
     logic [62:0] fk_ev;
     logic        ev_valid_o;   // follower 事件有效（内部用）
+    logic        ev_last_o;    // 第 9 个事件标志（与 ev_valid_o 同沿）
     logic [2:0]  dith_upper;      // U = 4*D6 + D4（与 _dither_terms 一致）
     assign dith_upper = (dither_i[5] ? 3'd4 : 3'd0) + (dither_i[3] ? 3'd1 : 3'd0);
     follower_rt u_fol (
@@ -262,7 +263,7 @@ module digital_top_w (
         .upper_i(dith_upper),
         .ev_valid_o(ev_valid_o), .ev_idx_o(ev_idx_o), .k_ev_o(ev_k_o),
         .done_o(ev_done_o), .err_o(ev_err_o), .prefix_o(),
-        .proto_err_o(ev_proto_err_o));
+        .last_ev_o(ev_last_o), .proto_err_o(ev_proto_err_o));
 
     // 生产路径不再用最终码 c_i 做事件比对；期望值由 TB 记分板独立计算
 
@@ -340,7 +341,8 @@ module digital_top_w (
         end else if (ev_start_fire) begin
             ev_final_valid_q <= 1'b0;
             ev_grp_q <= grp_cnt;                   // 0..8 环计数，不受 65536 回绕影响
-        end else if (ev_valid_o && !ev_err_o && !ev_proto_err_o && ev_idx_o == 4'd8) begin
+        // 用 last_ev_o 而不是 ev_idx_o==8：后者在寄存在同沿比较会读到旧值
+        end else if (ev_valid_o && ev_last_o && !ev_err_o && !ev_proto_err_o) begin
             ev_final_mask_q  <= ev_mask_c;
             ev_final_valid_q <= 1'b1;
             ev_adc2_commit_q <= adc2_i;            // 与最后事件同拍的 ADC2

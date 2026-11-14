@@ -86,9 +86,11 @@ def dem_phases(sample_id: int) -> tuple[int, int, int]:
     联合周期 = 9 片组 x 16 保留列 x 15 横向 x 8 纵向 = 17280 笔。
     """
     q = sample_id // 9
-    reserved = _lcg(q, 0) % N_COLUMNS
-    h_phase  = _lcg(q, 1) % 15
-    v_phase  = _lcg(q, 2) % 8
+    # 三轴取不同位段，避免低位相关（初版 v_phase 与 reserved 曾有
+    # v=(r+2)%8 的确定性关联，因为两者都在取 LCG 的低 3 位）
+    reserved = (_lcg(q, 0) >>  0) % N_COLUMNS   # bit[3:0]
+    h_phase  = (_lcg(q, 1) >>  5) % 15          # bit[8:5]
+    v_phase  = (_lcg(q, 2) >> 11) % 8           # bit[13:11]
     return (reserved, h_phase, v_phase)
 
 

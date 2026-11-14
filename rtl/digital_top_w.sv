@@ -72,6 +72,7 @@ module digital_top_w (
     output logic        ev_proto_err_o, // 位序/重复/缺位/qid 协议违例
     output logic        ev_ready_o,     // 明确握手：本拍 start 会被接收
     output logic        ev_abort_o,     // 本笔事务异常终止（码越界/协议错），无输出
+    output logic [23:0] ev_abort_tag_o, // 被终止事务的 tag（外部可辨识）
     output logic        ev_mask_valid_o,
     output logic [159:0] ev_mask_o,     // 8 片 × 20 单元，每事件一份
     output logic [39:0] ev_ids_o,       // 该笔事务的 8 个物理片 ID
@@ -349,7 +350,8 @@ module digital_top_w (
             ev_abort_q <= 1'b1;
         else                             ev_abort_q <= 1'b0;
     end
-    assign ev_abort_o = ev_abort_q;
+    assign ev_abort_o     = ev_abort_q;
+    assign ev_abort_tag_o = ev_tag_q;    // 与 abort 脉冲同拍，用冻结 tag
 
     // 最后一个有效事件 -> 锁存最终 mask，作为该笔事务提交给 E1 的输入
 

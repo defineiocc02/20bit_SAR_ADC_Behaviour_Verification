@@ -24,6 +24,7 @@ module tb_follower_int;
     logic       ev_perr;
     logic       ev_rdy;
     logic       ev_abort;
+    logic [23:0] ev_abort_tag;
 
     logic cfg_we = 0, cfg_inv_we = 0;
     logic [4:0] cfg_slice = 0, cfg_unit = 0;
@@ -44,7 +45,7 @@ module tb_follower_int;
         .flash_valid_i(1'b0), .flash_code_i(3'd0),
         .ev_done_o(ev_done), .ev_idx_o(ev_idx), .ev_k_o(ev_k), .ev_err_o(ev_err),
         .ev_mask_valid_o(ev_mv), .ev_mask_o(ev_mask), .ev_ids_o(ev_ids),
-        .ev_proto_err_o(ev_perr), .ev_ready_o(ev_rdy), .ev_abort_o(ev_abort),
+        .ev_proto_err_o(ev_perr), .ev_ready_o(ev_rdy), .ev_abort_o(ev_abort), .ev_abort_tag_o(ev_abort_tag),
         .busy_o(busy), .slice_ids_o(slice_ids),
         .code_o(code_o), .overflow_o(ovf_o), .err_o(err_o),
         .valid_o(valid_o), .tag_o(tag_o));
@@ -61,7 +62,7 @@ module tb_follower_int;
     int  acc_up   [bit [23:0]];      // 该 tag 的 Upper
     int  acc_cyc  [bit [23:0]];      // 接受时刻
     integer inv_ok = 1;
-    integer cyc_no = 0;
+    integer cyc_no = 0, drain_n;
     logic   hit_ev;
 
     function automatic int n_pend();
@@ -93,6 +94,7 @@ module tb_follower_int;
 
     // 每拍：守恒不变量（以集合大小为准）
     always @(posedge clk) begin
+        #1;                    // 与 issue_tx 的 @(posedge clk); #1 统一：NBA 之后再判
         cyc_no = cyc_no + 1;
         if (rstn && (n_acc !== n_comp + n_canc + n_abort + n_pend())) begin
             if (inv_ok) $display("INVARIANT_BREAK cyc=%0d acc=%0d comp=%0d canc=%0d abort=%0d pend=%0d",
@@ -100,7 +102,7 @@ module tb_follower_int;
             inv_ok = 0;
         end
         if (valid_o) retire(tag_o, "COMP");
-        if (ev_abort) retire(dut.ev_tag_q, "ABRT");   // 用冻结的事务 tag
+        if (ev_abort) retire(ev_abort_tag, "ABRT");
     end
 
     task automatic wait_tx(input [23:0] tg, output logic [19:0] cd, output logic hit);
@@ -255,6 +257,15 @@ module tb_follower_int;
             end
             $display("EQUIV: 64 组, %0d 不一致", eq_err);
             errors = errors + eq_err;
+        end
+        // ---- 有界 drain：停止输入后推进时钟直到在途为空 ----
+        for (drain_n = 0; drain_n < 200 && n_pend() != 0; drain_n = drain_n + 1)
+            @(posedge clk);
+        if (n_pend() != 0) begin
+            errors = errors + 1;
+            $display("DRAIN_TIMEOUT 仍有 %0d 笔在途", n_pend());
+        end else begin
+            $display("DRAIN_OK 在 %0d 拍内排空", drain_n);
         end
         $display("CONSERVE: acc=%0d comp=%0d canc=%0d abort=%0d pend=%0d rej=%0d",
                  n_acc, n_comp, n_canc, n_abort, n_pend(), n_rej);

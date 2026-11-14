@@ -8,7 +8,7 @@ module tb_notx_trace;
     logic in_ready, busy, ovf_o, err_o, valid_o, perr, rdy, done;
     logic [39:0] slice_ids; logic [19:0] code_o; logic [23:0] tag_o;
     logic ev_start = 0, ev_valid = 0, ev_bit = 0;
-    logic [2:0] evi; logic [8:0] evk;
+    logic [3:0] evi; logic [8:0] evk;
     logic cfg_we = 0, cfg_inv_we = 0;
     logic [4:0] cfg_slice = 0, cfg_unit = 0; logic [43:0] cfg_w = 0;
     logic [63:0] cfg_inv = 0; logic [3:0] cfg_grp = 0;
@@ -31,9 +31,10 @@ module tb_notx_trace;
     always @(posedge clk) begin
         cyc = cyc + 1;
         if (cyc < 40)
-          $display("cyc %0d | start_i=%b fire=%b rdy=%b busy=%b active=%b done=%b final=%b valid_a=%b valid_o=%b tag_o=%0d",
-                   cyc, ev_start, dut.ev_start_fire, rdy, busy, dut.ev_active_q,
-                   done, dut.ev_final_valid_q, dut.valid_a, valid_o, tag_o);
+          $display("cyc %0d | fire=%b rdy=%b active=%b done=%b ev_vld=%b ev_idx=%0d last=%b err=%b perr=%b final=%b valid_a=%b valid_o=%b tag_o=%0d",
+                   cyc, dut.ev_start_fire, rdy, dut.ev_active_q, done,
+                   dut.ev_valid_o, dut.ev_idx_o, dut.ev_last_o, dut.ev_err_o,
+                   dut.ev_proto_err_o, dut.ev_final_valid_q, dut.valid_a, valid_o, tag_o);
     end
 
     initial begin

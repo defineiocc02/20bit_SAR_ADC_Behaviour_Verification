@@ -82,7 +82,8 @@ module follower_rt (
             // Flash 通道：若有效，最高 3 位直接预置，后续事件须与之相符
             prefix_q  <= flash_valid_i ? {flash_code_i, 6'b0} : 9'd0;          // 冻结：事件期间不再读 upper_i
         end else if (bit_valid_i && !done_q) begin
-            proto_err_q <= idx_bad || qid_bad;
+            // 事务级粘滞：一旦出错，本笔后续事件不得把它清回合法
+            proto_err_q <= proto_err_q || idx_bad || qid_bad;
             last_ev_q   <= (idx_q == 4'd8);      // 与 ev_valid_q 同沿寄存
             qid_seen    <= 1'b1;
             exp_idx     <= exp_idx + 4'd1;

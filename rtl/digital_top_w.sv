@@ -341,8 +341,9 @@ module digital_top_w (
         end else if (ev_start_fire) begin
             ev_final_valid_q <= 1'b0;
             ev_grp_q <= grp_cnt;                   // 0..8 环计数，不受 65536 回绕影响
-        // 用 last_ev_o 而不是 ev_idx_o==8：后者在寄存在同沿比较会读到旧值
-        end else if (ev_valid_o && ev_last_o && !ev_err_o && !ev_proto_err_o) begin
+        // 用已寄存的 ev_idx_o==8：这是正常流水行为（下一沿读到本笔最后一次事件），
+        // 此前判断"永远不成立"是被 trace TB 的 3 位索引截断误导。
+        end else if (ev_valid_o && ev_idx_o == 4'd8 && !ev_err_o && !ev_proto_err_o) begin
             ev_final_mask_q  <= ev_mask_c;
             ev_final_valid_q <= 1'b1;
             ev_adc2_commit_q <= adc2_i;            // 与最后事件同拍的 ADC2

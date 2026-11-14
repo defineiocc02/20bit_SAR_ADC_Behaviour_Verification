@@ -39,6 +39,12 @@ def dac_from_connection(w, mask, ids, cols, sub_cols, vref=3.0):
 
 
 def quantize_adc2(residue_v):
-    """把 RA 输出按 ADC2 真实 LSB 量化（含饱和）。"""
-    code = int(round((residue_v * RA_GAIN) / ADC2_LSB + ADC2_FS / 2))
-    return max(0, min(ADC2_FS - 1, code))
+    """单边窗口：RA 输出 0..0.45 V 线性映射到 ADC2 0..4095。
+
+    合法输入折算余差 = 0 .. 14.06 mV。超出返回 None（非法/饱和），
+    由调用方报告，不静默夹紧后继续用于精度验收。
+    """
+    ra = residue_v * RA_GAIN
+    if ra < 0.0 or ra > 0.45:
+        return None
+    return int(round(ra / ADC2_LSB))

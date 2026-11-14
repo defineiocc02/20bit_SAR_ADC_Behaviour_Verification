@@ -67,14 +67,16 @@ def main():
         if p.get('dac_hw_q24') is None:
             continue
         # 独立前向：从连接逐单元算，目标输入 = dac + TΔ + 余差
-        m, res = masks_for(sid, k + u)
-        ids = p['slice_ids']
+        m, res = masks_for(sid, k)   # mask 用内部码 k（final_code - U）
+        ids = p['slice_ids']          # 必须用生产链实际片组，不得按公式硬编码
         # 前向按电荷极性算出 RDAC 输出；数字侧 D_eff 取其相反数（D=-K/G）
         x_norm = -dac_from_connection(wt, m, ids, N_COLUMNS, SUB)
         x = x_norm + t * 3.0 / 256.0    # x_norm 已是伏特
         # 残差（相对 RDAC 输出）→ RA → ADC2
-        resid = (x - x_norm - t * 3.0 / 256.0)
-        a2 = quantize_adc2(resid) if abs(resid) < 1e-3 else None
+        # 取目标余差 0..14.06 mV 内的随机点（单边窗口）
+        resid = float(rng.uniform(0.001, 0.013))
+        x = x_norm + t * 3.0 / 256.0 + resid
+        a2 = quantize_adc2(resid)
         if a2 is None:
             continue
         for w, acc in ((nom, errA), (wt, errB)):

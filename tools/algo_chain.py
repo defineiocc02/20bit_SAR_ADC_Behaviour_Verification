@@ -38,6 +38,21 @@ def post_mask(k, h, v):
     return m
 
 
+def bridge_swap(m, h, v, acq_seq, coin):
+    """合同 §6.1 等名义电荷交换：slot=v, macro=(7+h)%8, half=(acq_seq>>3)&1。"""
+    res = (7 + h) % 8
+    slot = v % 8
+    j = 2 * res + ((acq_seq >> 3) & 1)
+    if not coin:
+        return m
+    a, b4 = m[slot][j], m[0][16]
+    o = [r[:] for r in m]
+    o[slot][j] = b4
+    for s_ in range(8):
+        o[s_][16] = a
+    return o
+
+
 def charge(m):                     # 单位 1/8 Cu
     return sum(m[s][j] * 32 for s in range(8) for j in range(16)) + \
            sum(m[s][16 + t] * SUB[t] for s in range(8) for t in range(4))
@@ -174,52 +189,103 @@ def make_w(sigma=0.0, seed=2026):
     return w
 
 
+def fwd_dac(w_dev, ids, m, bits):
+    """前向：从物理电容网络直接算 RDAC 输出与采样扰动量。不调用重构公式。"""
+    q_main = 0.0
+    q_sw = 0.0
+    q_pre = 0.0
+    for s_ in range(8):
+        sid = ids[s_]
+        for j in range(16):
+            q_main += w_dev[sid][j]              # 全部主单元都采样 Vin
+        for j in range(20):                      # 开关电荷含子阵列
+            if m[s_][j]:
+                q_sw += w_dev[sid][j]
+        for t in range(4):
+            if bits[s_][t]:
+                q_pre += w_dev[sid][16 + t]
+    return q_main, q_sw, q_pre
+
+
+def dig_recon(y, G, Wm, Wp):
+    """数字：只用加载系数与观测量反解。与前向不共享任何中间量。"""
+    return (y - 3 * G + 6 * Wm - 6 * Wp) / G
+
+
 def _G(w, ids):
-    return sum(w[sid][j] for sid in ids for j in range(16))
+    return sum(w[sid][j] for sid in ids for j in range(16)) / CF
 
 
 def _Wm(w, ids, m):
-    return sum(w[ids[s]][j] * m[s][j] for s in range(8) for j in range(20))
+    return sum(w[ids[s]][j] * m[s][j] for s in range(8) for j in range(20)) / CF
 
 
 def _Wp(w, ids, bits):
-    return sum(w[ids[s]][16 + t] * bits[s][t] for s in range(8) for t in range(4))
+    return sum(w[ids[s]][16 + t] * bits[s][t] for s in range(8) for t in range(4)) / CF
 
 
 def convert_mm(x, ctx, ids, w_dev, w_L):
-    """前向用器件真值 w_dev，重构用加载系数 w_L。两侧只共享 ids/mask/ADC2。"""
+    """前向用器件真值，重构用加载系数。两侧只共享 ids / mask / ADC2 码。
+
+    RA 增益 = 采样总电容 / 反馈电容 = 实际 G（不是固定 32）。
+    """
     bits, T, U, Ld = pre(ctx['dither'], ctx['v'])
     c, ev = sadc(x + Ld * DELTA)
     guard = (c >= 512)
     k = ev[-1] + U
     if not (0 <= k <= 520):
         return None
-    m = post_mask(k, ctx['h'], ctx['v'])
-    Gd, Wmd, Wpd = _G(w_dev, ids), _Wm(w_dev, ids, m), _Wp(w_dev, ids, bits)
-    D_dev = 3.0 * (2 * Wmd / Gd - 1)
-    y = 32.0 * (x + 6 * Wpd / Gd - D_dev)
+    m = bridge_swap(post_mask(k, ctx['h'], ctx['v']),
+                    ctx['h'], ctx['v'], ctx.get('acq_seq', 0), ctx.get('coin', 0))
+    # ---- 前向：物理网络
+    q_main, q_sw, q_pre = fwd_dac(w_dev, ids, m, bits)
+    G_dev = q_main / CF
+    D_dev = 3.0 * (2 * q_sw / q_main - 1)
+    xeff = x + 6.0 * q_pre / q_main
+    y = G_dev * (xeff - D_dev)                 # 增益就是实际 G
     code = int(math.floor((y - YMIN) * N2 / SPAN))
     if not (0 <= code < N2):
         return dict(over=True)
     yh = YMIN + (code + 0.5) * SPAN / N2
+    # ---- 数字：加载系数
     GL, WmL, WpL = _G(w_L, ids), _Wm(w_L, ids, m), _Wp(w_L, ids, bits)
-    D_hat = 3.0 * (2 * WmL / GL - 1)
-    xh = yh / 32.0 + D_hat - 6 * WpL / GL
+    xh = dig_recon(yh, GL, WmL, WpL)
     c20 = max(0, min((1 << 20) - 1, int(round((xh + VFS) / 6.0 * (1 << 20) - 0.5))))
-    return dict(over=False, k=k, xh=xh, c20=c20, ev_ok=(len(ev) == (11 if guard else 7)))
+    return dict(over=False, k=k, xh=xh, c20=c20, G=G_dev,
+                ev_ok=(len(ev) == (11 if guard else 7)))
 
 
-def eval_mm(w_dev, w_L, n=256, sigma_tag=''):
-    st = dict(n=0, ok=0, over=0, bad_ev=0, e_flt=0.0, sq=0.0, e_c20=0)
+def eval_mm(w_dev, w_L, n=256, dem=True, dith=True):
+    """真实 18 片池推进；DEM/Dither 可关。"""
+    st = dict(n=0, ok=0, over=0, bad_ev=0, e_flt=0.0, sq=0.0, e_c20=0, gdev=[])
+    rng = 0xACE1
+    A, C, I = list(range(8)), list(range(8, 16)), [16, 17]
     for i in range(n):
         x = -VFS + 6.0 * i / n
-        ids = list(range(8))
-        r = convert_mm(x, dict(h=i % 8, v=(i // 8) % 8, dither=(i * 7) % 64),
+        ids = list(A)
+        h = (i % 8) if dem else 0
+        v = ((i // 8) % 8) if dem else 0
+        word = ((i * 7) % 64) if dith else 0
+        r = convert_mm(x, dict(h=h, v=v, dither=word,
+                               acq_seq=i & 15, coin=i & 1),
                        ids, w_dev, w_L)
+        # 池推进：C'=A，A'⊂C∪I
+        avail = C + I
+        rng ^= (rng << 13) & 0xFFFFFFFF; rng ^= rng >> 17; rng ^= (rng << 5) & 0xFFFFFFFF
+        r1 = rng & 0xFFFFFFFF
+        rng ^= (rng << 13) & 0xFFFFFFFF; rng ^= rng >> 17; rng ^= (rng << 5) & 0xFFFFFFFF
+        r2 = rng & 0xFFFFFFFF
+        i1 = ((r1 & 0xFFFF) * 10) >> 16
+        j0 = ((r2 >> 16) * 9) >> 16
+        i2 = min(j0 + (1 if j0 >= i1 else 0), 9)
+        drop = {avail[i1], avail[i2]}
+        A, C, I = list(C), [z for z in avail if z not in drop], \
+                 [z for z in avail if z in drop]
         st['n'] += 1
         if r is None or r['over']:
             st['over'] += 1
             continue
+        st['gdev'].append(r['G'])
         st['ok'] += 1
         if not r['ev_ok']:
             st['bad_ev'] += 1
@@ -251,6 +317,66 @@ def g4_main():
           f"{b['e_flt']/c['e_flt']:.1f}x")
 
 
+
+
+# ================= G6：DEM / Dither 启停 × 校准前后 =================
+def eval_sine(w_dev, w_L, n=1024, fin=127, amp=1.5, dem=True, dith=True):
+    """正弦输入。注意：这里算的是**误差谱**，sig 是信号 bin 上的误差分量，
+    不是输出谱的 SFDR。列名按实际含义标注，不冒充 SFDR。"""
+    import cmath
+    xs, es = [], []
+    rng = 0xACE1
+    A, C, I = list(range(8)), list(range(8, 16)), [16, 17]
+    for i in range(n):
+        x = amp * math.sin(2 * math.pi * fin * i / n)
+        h = (i % 8) if dem else 0
+        v = ((i // 8) % 8) if dem else 0
+        word = ((i * 7) % 64) if dith else 0
+        r = convert_mm(x, dict(h=h, v=v, dither=word, acq_seq=i & 15, coin=i & 1),
+                       list(A), w_dev, w_L)
+        if r is None or r['over']:
+            continue
+        xs.append(x); es.append(r['xh'] - x)
+        avail = C + I
+        rng ^= (rng << 13) & 0xFFFFFFFF; rng ^= rng >> 17; rng ^= (rng << 5) & 0xFFFFFFFF
+        r1 = rng & 0xFFFFFFFF
+        rng ^= (rng << 13) & 0xFFFFFFFF; rng ^= rng >> 17; rng ^= (rng << 5) & 0xFFFFFFFF
+        r2 = rng & 0xFFFFFFFF
+        i1 = ((r1 & 0xFFFF) * 10) >> 16
+        j0 = ((r2 >> 16) * 9) >> 16
+        i2 = min(j0 + (1 if j0 >= i1 else 0), 9)
+        drop = {avail[i1], avail[i2]}
+        A, C, I = list(A), [z for z in avail if z not in drop], [z for z in avail if z in drop]
+    if len(es) < n // 2:
+        return None
+    e = [0.0] * n
+    for i, val in enumerate(es[:n]):
+        e[i] = val
+    F = [abs(sum(e[t] * cmath.exp(-2j * math.pi * k * t / n) for t in range(n))) / n
+         for k in range(n // 2)]
+    sig = F[fin]
+    spur = max(F[k] for k in range(1, n // 2) if abs(k - fin) > 2)
+    sfdr = 20 * math.log10(sig / spur) if spur > 0 else 99
+    rms = (sum(v * v for v in es) / len(es)) ** 0.5
+    return dict(sfdr=sfdr, spur=spur, rms=rms, n=len(es))
+
+
+def g6_main():
+    w_nom = make_w(0.0)
+    w_dev = make_w(0.01)
+    print(f"{'DEM':>3d} {'Dith':>4d} {'校准':>4s} {'误差谱峰比(dB)':>13s} {'最大杂散L':>9s} {'RMS L':>7s}")
+    for dem in (False, True):
+        for dith in (False, True):
+            for cal, wl in (("关", w_nom), ("开", w_dev)):
+                r = eval_sine(w_dev, wl, dem=dem, dith=dith)
+                if r is None:
+                    print(f"{int(dem):3d} {int(dith):4d} {cal:>4s}      样本不足")
+                    continue
+                print(f"{int(dem):3d} {int(dith):4d} {cal:>4s} {r['sfdr']:9.2f} "
+                      f"{r['spur']/LSB20:10.1f} {r['rms']/LSB20:9.1f}")
+
+
 if __name__ == '__main__':
     main()
     g4_main()
+    g6_main()

@@ -57,6 +57,7 @@ module digital_top_w (
     output logic [19:0] code_o,
     output logic        overflow_o,
     // ---- D2 实时 Follower 事件口（可选）----
+    input  logic        ev_mode_i,      // 1=粗码由事件流产生，0=由 c_i 产生
     input  logic        ev_start_i,     // 一次转换开始
     input  logic        ev_valid_i,     // 该拍有一位已决码
     input  logic        ev_bit_i,       // 已决码位
@@ -90,8 +91,10 @@ module digital_top_w (
         .lower_q3_o(lower_q3),
         .total_q3_o(total_q3));
 
-    assign k     = c_i - {6'b0, upper};
-    assign k_bad = (c_i < {6'b0, upper});       // k < 0，mask/片选无定义
+    // 粗码来源：ev_mode_i=1 时来自实时 Follower 的事件流（其内部已减 Upper），
+    // 否则沿用整码 c_i。这是"重构主数据路径切换到事件通路"的开关。
+    assign k     = ev_mode_i ? ev_k_o : (c_i - {6'b0, upper});
+    assign k_bad = ev_mode_i ? 1'b0 : (c_i < {6'b0, upper});
 
     // round-robin 片组：只在接收事务时前进
     logic [15:0] sample_cnt;
@@ -212,7 +215,7 @@ module digital_top_w (
         .bit_valid_i(ev_valid_i), .bit_i(ev_bit_i),
         .upper_i(dith_upper),
         .ev_valid_o(ev_valid_o), .ev_idx_o(ev_idx_o), .k_ev_o(ev_k_o),
-        .done_o(ev_done_o), .err_o(ev_err_o));
+        .done_o(ev_done_o), .err_o(ev_err_o), .prefix_o());
 
     // 生产路径不再用最终码 c_i 做事件比对；期望值由 TB 记分板独立计算
 

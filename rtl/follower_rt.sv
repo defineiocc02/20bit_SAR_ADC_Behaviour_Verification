@@ -19,7 +19,8 @@ module follower_rt (
     output logic [3:0]  ev_idx_o,     // 0..8
     output logic [8:0]  k_ev_o,
     output logic        done_o,
-    output logic        err_o         // prefix < upper 时置位
+    output logic        err_o,        // prefix < upper 时置位
+    output logic [8:0]  prefix_o      // 已累加的前缀（供顶层事件模式取用）
 );
 
     logic [8:0]  prefix_q;
@@ -77,5 +78,6 @@ module follower_rt (
     assign k_ev_o     = k_q;
     assign done_o     = done_q;
     assign err_o      = err_q;
+    assign prefix_o   = prefix_q;
 
 endmodule

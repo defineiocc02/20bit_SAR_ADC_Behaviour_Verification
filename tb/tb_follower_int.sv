@@ -35,7 +35,7 @@ module tb_follower_int;
         .tag_i(tag_i), .in_ready_o(in_ready),
         .cfg_we(cfg_we), .cfg_slice(cfg_slice), .cfg_unit(cfg_unit), .cfg_w(cfg_w),
         .cfg_inv_we(cfg_inv_we), .cfg_inv(cfg_inv), .cfg_inv_grp(cfg_grp),
-        .ev_start_i(ev_start), .ev_valid_i(ev_valid), .ev_bit_i(ev_bit),
+        .ev_mode_i(1'b1), .ev_start_i(ev_start), .ev_valid_i(ev_valid), .ev_bit_i(ev_bit),
         .ev_done_o(ev_done), .ev_idx_o(ev_idx), .ev_k_o(ev_k), .ev_err_o(ev_err),
         .ev_mask_valid_o(ev_mv), .ev_mask_o(ev_mask), .ev_ids_o(ev_ids),
         .busy_o(busy), .slice_ids_o(slice_ids),
@@ -45,6 +45,20 @@ module tb_follower_int;
     always #5 clk = ~clk;
 
     integer errors = 0, events = 0;
+
+    // 发一笔事务并取回 code20（等 valid_o）
+    logic [8:0] ev_mode_sel;
+    task automatic issue_tx(input [8:0] cc, input [11:0] a2, input [23:0] tg,
+                            output logic [19:0] cd);
+        begin
+            @(negedge clk); valid_i = 1; c_i = cc; adc2_i = a2; tag_i = tg;
+            @(negedge clk); valid_i = 0;
+            for (int w = 0; w < 12; w++) begin
+                @(posedge clk); #1;
+                if (valid_o && tag_o == tg) begin cd = code_o; w = 99; end
+            end
+        end
+    endtask
 
     // 独立期望：按 Python _horizontal_columns / vertical_bits 的语义重建，
     // 用"从起始位置起置 H 个 1"的方式，不复制 RTL 的取模表达式。
@@ -117,6 +131,30 @@ module tb_follower_int;
         // U = 4*D6 + D4，只可能是 {0,1,4,5}
         for (u = 0; u < 4; u = u + 1)
             for (k = 0; k < 512; k = k + 53) run_code(k[8:0], {u[1], 1'b0, u[0]});
+        // ---- 两路等价：事件模式 vs 整码模式，同 c/adc2/dither 必须同 code20 ----
+        begin
+            logic [19:0] cd_ev, cd_c;
+            integer eq_err = 0, m;
+            for (m = 0; m < 64; m = m + 1) begin
+                logic [8:0] cc; logic [11:0] a2; logic [23:0] tg;
+                cc = (m * 7 + 3) % 512; a2 = (m * 331) % 4096; tg = m[23:0] + 24'd900;
+                // 事件模式
+                ev_mode_sel = 1'b1;
+                force dut.ev_mode_i = 1'b1;
+                run_code(cc, 3'd0);
+                issue_tx(cc, a2, tg, cd_ev);
+                // 整码模式
+                force dut.ev_mode_i = 1'b0;
+                issue_tx(cc, a2, tg + 24'd1, cd_c);
+                release dut.ev_mode_i;
+                if (cd_ev !== cd_c) begin
+                    eq_err = eq_err + 1;
+                    if (eq_err <= 5) $display("EQ c=%0d a2=%0d ev=%0d c=%0d", cc, a2, cd_ev, cd_c);
+                end
+            end
+            $display("EQUIV: 64 组, %0d 不一致", eq_err);
+            errors = errors + eq_err;
+        end
         $display("RESULT: %0d events, %0d errors", events, errors);
         if (errors == 0) $display("PASS"); else $display("FAIL");
         $finish;

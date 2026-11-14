@@ -221,20 +221,28 @@ module digital_top_w (
 
     // ---- 逐事件 DEM + 物理 mask ----
     // 每笔事务在 ev_start_i 冻结（片组/保留列/横纵相位/Upper），事件期间不得再读当拍值。
-    logic [4:0]  ev_sid0_q;
+    logic [39:0] ev_ids_q;          // 冻结整笔事务的 40 位片 ID
     logic [3:0]  ev_res_q, ev_hp_q;
     logic [2:0]  ev_vp_q;
+    logic [11:0] ev_adc2_q;
+    logic [5:0]  ev_dith_q;
+    logic [23:0] ev_tag_q;
     logic        ev_active_q;
 
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
-            ev_sid0_q <= 5'd0; ev_res_q <= 4'd0; ev_hp_q <= 4'd0;
-            ev_vp_q <= 3'd0; ev_active_q <= 1'b0;
+            ev_ids_q <= 40'd0; ev_res_q <= 4'd0; ev_hp_q <= 4'd0; ev_vp_q <= 3'd0;
+            ev_adc2_q <= 12'd0; ev_dith_q <= 6'd0; ev_tag_q <= 24'd0;
+            ev_active_q <= 1'b0;
         end else if (ev_start_i) begin
-            ev_sid0_q   <= slice_ids_o[4:0];   // 该笔事务首片 ID
+            // E0 入口一次性冻结：片组、DEM 相位、ADC2、Dither、tag
+            ev_ids_q    <= slice_ids_o;
             ev_res_q    <= reserved_i;
             ev_hp_q     <= h_phase_i;
             ev_vp_q     <= v_phase_i;
+            ev_adc2_q   <= adc2_i;
+            ev_dith_q   <= dither_i;
+            ev_tag_q    <= tag_i;
             ev_active_q <= 1'b1;
         end else if (ev_done_o) begin
             ev_active_q <= 1'b0;
@@ -261,11 +269,34 @@ module digital_top_w (
 
     // 越界策略：prefix < Upper 时不输出该事件命令，**保持上一次合法命令**，
     // 同时由 ev_err_o 报告。不把钳到 0 的码当作有效命令。
-    // mask 与 ev_k_o 同拍组合输出，保证"事件码 ↔ 该码的物理 mask"一一对齐。
-    // 越界事件不输出命令（valid 拉低），也不钳码后当合法命令使用。
+    // 事件 mask：合法事件才输出；越界事件保持上一次合法命令（ev_mask_o 不动）。
+    logic [159:0] ev_mask_hold_q;
+    always_ff @(posedge clk or negedge reset_n) begin
+        if (!reset_n)                    ev_mask_hold_q <= 160'd0;
+        else if (ev_valid_o && !ev_err_o) ev_mask_hold_q <= ev_mask_c;  // 非法事件不改
+    end
+    // 逐事件输出与 ev_k_o 同拍（组合），便于逐事件观测与比对。
+    // "非法事件保持上次合法命令"由 ev_mask_valid_o 门控实现：
+    // RDAC 侧只在 ev_mask_valid_o=1 时锁存，非法事件不会改变物理开关。
     assign ev_mask_o       = ev_mask_c;
     assign ev_mask_valid_o = ev_valid_o && !ev_err_o;
-    assign ev_ids_o        = slice_ids_o;
+    assign ev_ids_o        = ev_ids_q;            // 始终是冻结值，不用当拍 slice_ids_o
+
+    // 最后一个有效事件 -> 锁存最终 mask，作为该笔事务提交给 E1 的输入
+    logic [159:0] ev_final_mask_q;
+    logic         ev_final_valid_q;
+    always_ff @(posedge clk or negedge reset_n) begin
+        if (!reset_n) begin
+            ev_final_mask_q <= 160'd0; ev_final_valid_q <= 1'b0;
+        end else if (ev_start_i) begin
+            ev_final_valid_q <= 1'b0;
+        end else if (ev_valid_o && !ev_err_o && ev_idx_o == 4'd8) begin
+            ev_final_mask_q <= ev_mask_c;
+            ev_final_valid_q <= 1'b1;
+        end else begin
+            ev_final_valid_q <= 1'b0;
+        end
+    end
 
     // ---------------------------------------------------------------- E1 打拍
     always_ff @(posedge clk or negedge reset_n) begin

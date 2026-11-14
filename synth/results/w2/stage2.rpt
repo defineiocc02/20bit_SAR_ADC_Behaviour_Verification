@@ -1,0 +1,99 @@
+ 
+****************************************
+Report : timing
+        -path full
+        -delay max
+        -max_paths 1
+Design : recon_d5_w2
+Version: W-2024.09-SP3
+Date   : Sat Nov 14 10:30:43 2026
+****************************************
+
+Operating Conditions: slow   Library: slow
+Wire Load Model Mode: top
+
+  Startpoint: adc2_s1_reg[1]
+              (rising edge-triggered flip-flop clocked by clk)
+  Endpoint: x_q24_reg[27]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  adc2_s1_reg[1]/CK (DFFRHQX1)                            0.00       0.00 r
+  adc2_s1_reg[1]/Q (DFFRHQX1)                             0.43       0.43 r
+  mult_81_3/A[6] (recon_d5_w2_DW02_mult_0)                0.00       0.43 r
+  mult_81_3/U119/Y (BUFX3)                                0.32       0.75 r
+  mult_81_3/U101/Y (INVX1)                                0.29       1.04 f
+  mult_81_3/U95/Y (NAND2X1)                               0.17       1.21 r
+  mult_81_3/S1_7_0/CO (ADDFX2)                            0.56       1.77 r
+  mult_81_3/S1_8_0/CO (ADDFX2)                            0.55       2.32 r
+  mult_81_3/S1_9_0/CO (ADDFX2)                            0.55       2.88 r
+  mult_81_3/S1_10_0/CO (ADDFX2)                           0.55       3.43 r
+  mult_81_3/S1_11_0/CO (ADDFX2)                           0.55       3.98 r
+  mult_81_3/S1_12_0/CO (ADDFX2)                           0.55       4.53 r
+  mult_81_3/S1_13_0/CO (ADDFX2)                           0.55       5.08 r
+  mult_81_3/S1_14_0/CO (ADDFX2)                           0.55       5.64 r
+  mult_81_3/S1_15_0/CO (ADDFX2)                           0.55       6.19 r
+  mult_81_3/S1_16_0/CO (ADDFX2)                           0.55       6.74 r
+  mult_81_3/S1_17_0/CO (ADDFX2)                           0.55       7.29 r
+  mult_81_3/S1_18_0/CO (ADDFX2)                           0.55       7.85 r
+  mult_81_3/S1_19_0/CO (ADDFX2)                           0.55       8.40 r
+  mult_81_3/S1_20_0/CO (ADDFX2)                           0.56       8.96 r
+  mult_81_3/U56/Y (AND2X2)                                0.17       9.13 r
+  mult_81_3/U55/Y (AND2X2)                                0.16       9.29 r
+  mult_81_3/U116/Y (XOR2X1)                               0.23       9.52 f
+  mult_81_3/FS_1/A[21] (recon_d5_w2_DW01_add_3)           0.00       9.52 f
+  mult_81_3/FS_1/SUM[21] (recon_d5_w2_DW01_add_3)         0.00       9.52 f
+  mult_81_3/PRODUCT[23] (recon_d5_w2_DW02_mult_0)         0.00       9.52 f
+  add_0_root_add_0_root_add_90_2/B[1] (recon_d5_w2_DW01_add_11_DW01_add_12)
+                                                          0.00       9.52 f
+  add_0_root_add_0_root_add_90_2/U1_1/CO (ADDFX2)         0.51      10.04 f
+  add_0_root_add_0_root_add_90_2/U1_2/CO (ADDFX2)         0.34      10.38 f
+  add_0_root_add_0_root_add_90_2/U1_3/CO (ADDFX2)         0.34      10.73 f
+  add_0_root_add_0_root_add_90_2/U1_4/CO (ADDFX2)         0.34      11.07 f
+  add_0_root_add_0_root_add_90_2/U1_5/CO (ADDFX2)         0.34      11.41 f
+  add_0_root_add_0_root_add_90_2/U1_6/CO (ADDFX2)         0.34      11.76 f
+  add_0_root_add_0_root_add_90_2/U1_7/CO (ADDFX2)         0.34      12.10 f
+  add_0_root_add_0_root_add_90_2/U1_8/CO (ADDFX2)         0.34      12.45 f
+  add_0_root_add_0_root_add_90_2/U1_9/CO (ADDFX2)         0.34      12.79 f
+  add_0_root_add_0_root_add_90_2/U1_10/CO (ADDFX2)        0.34      13.14 f
+  add_0_root_add_0_root_add_90_2/U1_11/CO (ADDFX2)        0.34      13.48 f
+  add_0_root_add_0_root_add_90_2/U1_12/CO (ADDFX2)        0.34      13.83 f
+  add_0_root_add_0_root_add_90_2/U1_13/CO (ADDFX2)        0.34      14.17 f
+  add_0_root_add_0_root_add_90_2/U1_14/CO (ADDFX2)        0.34      14.51 f
+  add_0_root_add_0_root_add_90_2/U1_15/CO (ADDFX2)        0.34      14.86 f
+  add_0_root_add_0_root_add_90_2/U1_16/CO (ADDFX2)        0.34      15.20 f
+  add_0_root_add_0_root_add_90_2/U1_17/CO (ADDFX2)        0.34      15.55 f
+  add_0_root_add_0_root_add_90_2/U1_18/CO (ADDFX2)        0.34      15.89 f
+  add_0_root_add_0_root_add_90_2/U1_19/CO (ADDFX2)        0.34      16.24 f
+  add_0_root_add_0_root_add_90_2/U1_20/CO (ADDFX2)        0.34      16.58 f
+  add_0_root_add_0_root_add_90_2/U1_21/CO (ADDFX2)        0.34      16.93 f
+  add_0_root_add_0_root_add_90_2/U1_22/CO (ADDFX2)        0.34      17.27 f
+  add_0_root_add_0_root_add_90_2/U1_23/CO (ADDFX2)        0.34      17.61 f
+  add_0_root_add_0_root_add_90_2/U1_24/CO (ADDFX2)        0.34      17.96 f
+  add_0_root_add_0_root_add_90_2/U1_25/CO (ADDFX2)        0.34      18.30 f
+  add_0_root_add_0_root_add_90_2/U1_26/CO (ADDFX2)        0.35      18.66 f
+  add_0_root_add_0_root_add_90_2/U1_27/Y (XOR3X2)         0.22      18.88 f
+  add_0_root_add_0_root_add_90_2/SUM[27] (recon_d5_w2_DW01_add_11_DW01_add_12)
+                                                          0.00      18.88 f
+  x_q24_reg[27]/D (DFFRHQX1)                              0.00      18.88 f
+  data arrival time                                                 18.88
+
+  clock clk (rise edge)                                  25.00      25.00
+  clock network delay (ideal)                             0.00      25.00
+  clock uncertainty                                      -0.30      24.70
+  x_q24_reg[27]/CK (DFFRHQX1)                             0.00      24.70 r
+  library setup time                                     -0.35      24.35
+  data required time                                                24.35
+  --------------------------------------------------------------------------
+  data required time                                                24.35
+  data arrival time                                                -18.88
+  --------------------------------------------------------------------------
+  slack (MET)                                                        5.46
+
+
+1

@@ -1,0 +1,31 @@
+ 
+****************************************
+Report : area
+Design : recon_d5_w2
+Version: W-2024.09-SP3
+Date   : Sat Nov 14 10:30:43 2026
+****************************************
+
+Information: Updating design information... (UID-85)
+Library(s) Used:
+
+    slow (File: /home/yian/PDK/smic180/standard_cells/synopsys/slow.db)
+
+Number of ports:                         1783
+Number of nets:                          7619
+Number of cells:                         4940
+Number of combinational cells:           4823
+Number of sequential cells:                74
+Number of macros/black boxes:               0
+Number of buf/inv:                        374
+Number of references:                      30
+
+Combinational area:             161629.778292
+Buf/Inv area:                     2993.760051
+Noncombinational area:            5169.225647
+Macro/Black Box area:                0.000000
+Net Interconnect area:      undefined  (No wire load specified)
+
+Total cell area:                166799.003939
+Total area:                 undefined
+1

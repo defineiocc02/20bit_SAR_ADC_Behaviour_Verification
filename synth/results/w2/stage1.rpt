@@ -1,0 +1,103 @@
+ 
+****************************************
+Report : timing
+        -path full
+        -delay max
+        -max_paths 1
+Design : recon_d5_w2
+Version: W-2024.09-SP3
+Date   : Sat Nov 14 10:30:43 2026
+****************************************
+
+Operating Conditions: slow   Library: slow
+Wire Load Model Mode: top
+
+  Startpoint: wm_q30[1] (input port clocked by clk)
+  Endpoint: d_q24_r_reg[27]
+            (rising edge-triggered flip-flop clocked by clk)
+  Path Group: clk
+  Path Type: max
+
+  Point                                                   Incr       Path
+  --------------------------------------------------------------------------
+  clock clk (rise edge)                                   0.00       0.00
+  clock network delay (ideal)                             0.00       0.00
+  input external delay                                    2.00       2.00 r
+  wm_q30[1] (in)                                          0.00       2.00 r
+  sub_1_root_sub_0_root_sub_50_2/A[2] (recon_d5_w2_DW01_sub_3)
+                                                          0.00       2.00 r
+  sub_1_root_sub_0_root_sub_50_2/U2/Y (XOR3X2)            0.46       2.46 f
+  sub_1_root_sub_0_root_sub_50_2/DIFF[2] (recon_d5_w2_DW01_sub_3)
+                                                          0.00       2.46 f
+  add_0_root_sub_0_root_sub_50_2/A[2] (recon_d5_w2_DW01_add_2)
+                                                          0.00       2.46 f
+  add_0_root_sub_0_root_sub_50_2/U1_2/S (ADDFHX4)         0.47       2.93 r
+  add_0_root_sub_0_root_sub_50_2/SUM[2] (recon_d5_w2_DW01_add_2)
+                                                          0.00       2.93 r
+  mult_52/A[2] (recon_d5_w2_DW02_mult_2)                  0.00       2.93 r
+  mult_52/U394/Y (INVX8)                                  0.09       3.01 f
+  mult_52/U403/Y (NOR2XL)                                 0.17       3.19 r
+  mult_52/S3_2_25/CO (ADDFHX1)                            0.47       3.66 r
+  mult_52/S3_3_25/CO (ADDFX2)                             0.55       4.21 r
+  mult_52/S3_4_25/CO (ADDFX2)                             0.55       4.77 r
+  mult_52/S3_5_25/CO (ADDFX2)                             0.55       5.32 r
+  mult_52/S3_6_25/CO (ADDFX2)                             0.55       5.87 r
+  mult_52/S3_7_25/CO (ADDFX2)                             0.55       6.42 r
+  mult_52/S3_8_25/CO (ADDFX2)                             0.55       6.97 r
+  mult_52/S3_9_25/CO (ADDFX2)                             0.55       7.53 r
+  mult_52/S3_10_25/CO (ADDFX2)                            0.55       8.08 r
+  mult_52/S3_11_25/CO (ADDFX2)                            0.55       8.63 r
+  mult_52/S3_12_25/CO (ADDFX2)                            0.55       9.18 r
+  mult_52/S3_13_25/CO (ADDFX2)                            0.55       9.74 r
+  mult_52/S3_14_25/CO (ADDFX2)                            0.55      10.29 r
+  mult_52/S3_15_25/CO (ADDFX2)                            0.55      10.84 r
+  mult_52/S3_16_25/CO (ADDFX2)                            0.55      11.39 r
+  mult_52/S3_17_25/CO (ADDFX2)                            0.55      11.95 r
+  mult_52/S3_18_25/CO (ADDFX2)                            0.55      12.50 r
+  mult_52/S3_19_25/CO (ADDFX2)                            0.55      13.05 r
+  mult_52/S3_20_25/CO (CMPR32X1)                          0.54      13.59 r
+  mult_52/S3_21_25/CO (ADDFX1)                            0.55      14.14 r
+  mult_52/S3_22_25/CO (CMPR32X1)                          0.55      14.69 r
+  mult_52/S3_23_25/CO (ADDFX2)                            0.56      15.25 r
+  mult_52/S3_24_25/CO (ADDFX1)                            0.54      15.79 r
+  mult_52/S3_25_25/CO (ADDFX1)                            0.55      16.34 r
+  mult_52/S3_26_25/CO (ADDFX1)                            0.55      16.88 r
+  mult_52/S3_27_25/CO (CMPR32X1)                          0.55      17.43 r
+  mult_52/S3_28_25/CO (CMPR32X1)                          0.55      17.98 r
+  mult_52/S3_29_25/CO (ADDFX1)                            0.55      18.53 r
+  mult_52/S3_30_25/CO (CMPR32X1)                          0.55      19.08 r
+  mult_52/S3_31_25/CO (CMPR32X1)                          0.55      19.63 r
+  mult_52/S3_32_25/CO (ADDFX2)                            0.56      20.19 r
+  mult_52/S3_33_25/CO (CMPR32X1)                          0.54      20.73 r
+  mult_52/S3_34_25/CO (CMPR32X1)                          0.55      21.28 r
+  mult_52/S3_35_25/CO (ADDFX2)                            0.56      21.84 r
+  mult_52/S3_36_25/CO (CMPR32X1)                          0.54      22.38 r
+  mult_52/S3_37_25/S (ADDFX2)                             0.59      22.97 f
+  mult_52/U157/Y (XOR2X1)                                 0.27      23.24 r
+  mult_52/U156/Y (XOR2X1)                                 0.29      23.53 r
+  mult_52/U542/Y (XOR2X1)                                 0.28      23.81 f
+  mult_52/FS_1/A[60] (recon_d5_w2_DW01_add_9_DW01_add_10)
+                                                          0.00      23.81 f
+  mult_52/FS_1/U109/Y (OR2X2)                             0.24      24.05 f
+  mult_52/FS_1/U57/Y (AOI21X2)                            0.15      24.20 r
+  mult_52/FS_1/U124/Y (XOR2X1)                            0.26      24.46 f
+  mult_52/FS_1/SUM[61] (recon_d5_w2_DW01_add_9_DW01_add_10)
+                                                          0.00      24.46 f
+  mult_52/PRODUCT[63] (recon_d5_w2_DW02_mult_2)           0.00      24.46 f
+  d_q24_r_reg[27]/D (DFFRHQXL)                            0.00      24.46 f
+  data arrival time                                                 24.46
+
+  clock clk (rise edge)                                  25.00      25.00
+  clock network delay (ideal)                             0.00      25.00
+  clock uncertainty                                      -0.30      24.70
+  d_q24_r_reg[27]/CK (DFFRHQXL)                           0.00      24.70 r
+  library setup time                                     -0.24      24.46
+  data required time                                                24.46
+  --------------------------------------------------------------------------
+  data required time                                                24.46
+  data arrival time                                                -24.46
+  --------------------------------------------------------------------------
+  slack (MET)                                                        0.00
+
+
+1

@@ -61,10 +61,15 @@ module digital_top_w (
     input  logic        ev_start_i,     // 一次转换开始
     input  logic        ev_valid_i,     // 该拍有一位已决码
     input  logic        ev_bit_i,       // 已决码位
+    input  logic [3:0]  sar_index_i,    // 该已决位在 9 位粗码中的位置 0..8
+    input  logic        sar_qid_i,      // 量化器身份 0=A 1=B（每笔冻结）
+    input  logic        flash_valid_i,  // 3-bit Flash 结果有效（start 时采样）
+    input  logic [2:0]  flash_code_i,   // Flash 最高 3 位
     output logic        ev_done_o,      // 9 个事件收完
     output logic [3:0]  ev_idx_o,       // 0..8
     output logic [8:0]  ev_k_o,         // 该事件产出的 RDAC 码
     output logic        ev_err_o,       // prefix < Upper（不回绕）
+    output logic        ev_proto_err_o, // 位序/重复/缺位/qid 协议违例
     output logic        ev_mask_valid_o,
     output logic [159:0] ev_mask_o,     // 8 片 × 20 单元，每事件一份
     output logic [39:0] ev_ids_o,       // 该笔事务的 8 个物理片 ID
@@ -242,9 +247,12 @@ module digital_top_w (
     follower_rt u_fol (
         .clk(clk), .reset_n(reset_n), .start_i(ev_start_i),
         .bit_valid_i(ev_valid_i), .bit_i(ev_bit_i),
+        .sar_index_i(sar_index_i), .sar_qid_i(sar_qid_i),
+        .flash_valid_i(flash_valid_i), .flash_code_i(flash_code_i),
         .upper_i(dith_upper),
         .ev_valid_o(ev_valid_o), .ev_idx_o(ev_idx_o), .k_ev_o(ev_k_o),
-        .done_o(ev_done_o), .err_o(ev_err_o), .prefix_o());
+        .done_o(ev_done_o), .err_o(ev_err_o), .prefix_o(),
+        .proto_err_o(ev_proto_err_o));
 
     // 生产路径不再用最终码 c_i 做事件比对；期望值由 TB 记分板独立计算
 

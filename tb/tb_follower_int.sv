@@ -20,6 +20,8 @@ module tb_follower_int;
     logic [39:0] ev_ids;
     logic [3:0] ev_idx;
     logic [8:0] ev_k;
+    logic [3:0] ev_idx_i;
+    logic       ev_perr;
 
     logic cfg_we = 0, cfg_inv_we = 0;
     logic [4:0] cfg_slice = 0, cfg_unit = 0;
@@ -36,8 +38,11 @@ module tb_follower_int;
         .cfg_we(cfg_we), .cfg_slice(cfg_slice), .cfg_unit(cfg_unit), .cfg_w(cfg_w),
         .cfg_inv_we(cfg_inv_we), .cfg_inv(cfg_inv), .cfg_inv_grp(cfg_grp),
         .ev_mode_i(1'b1), .ev_start_i(ev_start), .ev_valid_i(ev_valid), .ev_bit_i(ev_bit),
+        .sar_index_i(ev_idx_i), .sar_qid_i(1'b0),
+        .flash_valid_i(1'b0), .flash_code_i(3'd0),
         .ev_done_o(ev_done), .ev_idx_o(ev_idx), .ev_k_o(ev_k), .ev_err_o(ev_err),
         .ev_mask_valid_o(ev_mv), .ev_mask_o(ev_mask), .ev_ids_o(ev_ids),
+        .ev_proto_err_o(ev_perr),
         .busy_o(busy), .slice_ids_o(slice_ids),
         .code_o(code_o), .overflow_o(ovf_o), .err_o(err_o),
         .valid_o(valid_o), .tag_o(tag_o));
@@ -115,6 +120,7 @@ module tb_follower_int;
             exp_p = 9'd0; n = 0;
             for (i = 8; i >= 0; i = i - 1) begin
                 @(negedge clk); ev_valid = 1; ev_bit = c[i];
+                ev_idx_i = 4'(n);                  // n=0..8 对应原码 bit8..bit0
                 exp_p = exp_p | (c[i] ? (9'd1 << (4'd8 - n)) : 9'd0);
                 exp_k = (exp_p >= {6'b0, up}) ? (exp_p - {6'b0, up}) : 9'd0;
                 @(posedge clk); #1;

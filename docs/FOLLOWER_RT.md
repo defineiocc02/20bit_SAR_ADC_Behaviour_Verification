@@ -108,6 +108,7 @@ PASS
 ## 设计说明
 
 - 9 个事件 = 8 位温度计（主阵列）+ 1 位子阵列最低位
-- **这与论文的 3-bit Flash + 后续 SAR 不完全对应**，属工程拆分，已在
-  `docs/DIGITAL_ALGORITHM.md` 标注
-- 真正对齐论文需要 Flash 前置 3 位 + SAR 6 位的事件结构，**未做**
+- **这是本工程码结构决定的，不是论文时序。** 论文只有 "3b flash + 9b 前级"
+  与 "results loaded as they develop"，没有公开 6 次后续比较的事件时刻。
+- **不把 9 事件说成论文结构，也不把 7 事件（1 Flash + 6 SAR）当作已证实时序**
+- 详见 `docs/D2_INTERFACE_SPEC.md` 的证据索引表

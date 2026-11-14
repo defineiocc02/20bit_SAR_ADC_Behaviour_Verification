@@ -53,13 +53,16 @@ module tb_neg;
         end
     endtask
 
-    task automatic do_start(input [8:0] c, input [2:0] up, input [23:0] tg);
+    task automatic do_start(input [8:0] c, input [2:0] up, input [23:0] tg,
+                            output logic ok);
         begin
+            ok = 0;
             while (!rdy) @(negedge clk);
-            c_i = c; tag_i = tg;
+            c_i = c; tag_i = tg;                 // 下降沿驱动
             dither_i = {up[2],1'b0,up[0],3'b0};
             ev_start = 1;
-            @(negedge clk);
+            @(negedge clk);                      // 越过一个 posedge（DUT 采样沿）
+            ok = dut.ev_active_q;                // 读寄存器判定
             ev_start = 0;
         end
     endtask
@@ -74,6 +77,7 @@ module tb_neg;
     endtask
 
     integer rc, ra, rn;
+    logic sok;
     logic [8:0] c_code60 = 9'd60;
     logic [8:0] c_code70 = 9'd70;
 
@@ -81,13 +85,13 @@ module tb_neg;
         repeat (4) @(negedge clk); rstn = 1; @(negedge clk);
 
         // S1 正常完成
-        n_comp=0; n_abort=0; do_start(9'd100, 3'd0, 24'd1); send_events(9'd100, 3'd0, -1, 99, -1); drain();
+        n_comp=0; n_abort=0; do_start(9'd100, 3'd0, 24'd1, sok); if(!sok) $display("S1 START_REJECTED"); else send_events(9'd100, 3'd0, -1, 99, -1); drain();
         $display("S1 正常        comp=%0d abort=%0d %s", n_comp, n_abort,
                  (n_comp==1 && n_abort==0) ? "PASS" : "FAIL"); if (!(n_comp==1&&n_abort==0)) fails=fails+1;
 
         // S2 拒绝 Start：忙时再发 start
         n_comp=0; n_abort=0;
-        do_start(9'd50, 3'd0, 24'd2);
+        do_start(9'd50, 3'd0, 24'd2, sok);
         @(negedge clk); ev_start = 1; @(negedge clk);
         $display("S2 拒绝Start   rdy=%b active=%b %s", rdy, dut.ev_active_q,
                  (!dut.ev_start_fire && dut.ev_active_q) ? "PASS" : "FAIL");
@@ -96,7 +100,7 @@ module tb_neg;
 
         // S3 重复 Start：事件中途再发 start
         n_comp=0; n_abort=0;
-        do_start(9'd60, 3'd0, 24'd3);
+        do_start(9'd60, 3'd0, 24'd3, sok); if(!sok) $display("S3 START_REJECTED");
         for (rc = 0; rc < 3; rc = rc + 1) begin
             @(negedge clk); ev_valid=1; ev_bit=(c_code60 >> (8-rc)) & 1; ev_idx=rc[3:0];
         end
@@ -108,7 +112,7 @@ module tb_neg;
 
         // S4 Reset 中断：中途 reset
         n_comp=0; n_abort=0;
-        do_start(9'd70, 3'd0, 24'd4);
+        do_start(9'd70, 3'd0, 24'd4, sok); if(!sok) $display("S4 START_REJECTED");
         for (rc = 0; rc < 4; rc = rc + 1) begin
             @(negedge clk); ev_valid=1; ev_bit=(c_code70 >> (8-rc)) & 1; ev_idx=rc[3:0];
         end
@@ -120,15 +124,26 @@ module tb_neg;
 
         // S5 错误 SAR 索引
         n_comp=0; n_abort=0;
-        do_start(9'd80, 3'd0, 24'd5);
+        do_start(9'd80, 3'd0, 24'd5, sok); if(!sok) $display("S5 START_REJECTED");
         send_events(9'd80, 3'd0, 3, 99, -1); drain();
         $display("S5 错索引      comp=%0d abort=%0d %s", n_comp, n_abort,
                  (n_comp==0 && n_abort==1) ? "PASS" : "FAIL");
         if (!(n_comp==0 && n_abort==1)) fails=fails+1;
 
+        // ---- S5->S6 交界 trace ----
+        $display("--- S6 交界 trace ---");
+        for (rc = 0; rc < 6; rc = rc + 1) begin
+            @(negedge clk);
+            $display("  cyc%0d start=%b rdy=%b fire=%b active=%b qid_q=%b qid_seen=%b qid_i=%b qid_bad=%b perr=%b evv=%b idx=%0d done=%b abt=%b atag=%0d",
+                     rc, ev_start, rdy, dut.ev_start_fire, dut.ev_active_q,
+                     dut.u_fol.qid_q, dut.u_fol.qid_seen, ev_qid,
+                     (ev_qid != dut.u_fol.qid_q), dut.ev_proto_err_o, dut.ev_valid_o,
+                     dut.ev_idx_o, done, abort_o, abort_tag);
+        end
+
         // S6 错误 qid（中途换）
         n_comp=0; n_abort=0;
-        do_start(9'd90, 3'd0, 24'd6);
+        do_start(9'd90, 3'd0, 24'd6, sok); if(!sok) $display("S6 START_REJECTED");
         send_events(9'd90, 3'd0, -1, 4, -1); drain();
         $display("S6 错qid       comp=%0d abort=%0d %s", n_comp, n_abort,
                  (n_comp==0 && n_abort==1) ? "PASS" : "FAIL");
@@ -139,18 +154,20 @@ module tb_neg;
         while (!rdy) @(negedge clk);
         @(negedge clk); valid_i = 1; ev_start = 1; c_i = 9'd10; tag_i = 24'd7;
         @(negedge clk);
-        $display("S7 双入口      fire=%b acc_ok=%b %s", dut.ev_start_fire,
-                 dut.ev_mode_q, dut.ev_start_fire ? "FAIL(事件被接受)" : "PASS");
+        $display("S7 双入口      fire=%b in_ready=%b ev_mode=%b %s",
+                 dut.ev_start_fire, in_ready, dut.ev_mode_q,
+                 (!dut.ev_start_fire && !in_ready) ? "PASS(事件拒且整码亦不 ready)" :
+                 (dut.ev_start_fire ? "FAIL(事件被接受)" : "PASS"));
         if (dut.ev_start_fire) fails=fails+1;
         valid_i = 0; ev_start = 0; drain();
 
         // S8 系数写入冲突：事件进行中 cfg_we
         n_comp=0;
-        do_start(9'd30, 3'd0, 24'd8);
+        do_start(9'd30, 3'd0, 24'd8, sok); if(!sok) $display("S8 START_REJECTED");
         @(negedge clk); cfg_we = 1; cfg_slice = 5'd0; cfg_unit = 5'd0; cfg_w = 44'd1;
         @(negedge clk);
-        $display("S8 系数冲突    busy=%b cfg_accept=%b %s", busy, ~busy,
-                 busy ? "PASS(被挡)" : "FAIL");
+        $display("S8 系数冲突    busy=%b w_tab[0][0]=%0d %s", busy, dut.w_tab[0][0],
+                 (busy && dut.w_tab[0][0] !== 44'd1) ? "PASS(写入被挡)" : "FAIL");
         if (!busy) fails=fails+1;
         cfg_we = 0; send_events(9'd30, 3'd0, -1, 99, -1); drain();
 

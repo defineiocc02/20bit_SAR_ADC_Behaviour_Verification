@@ -364,7 +364,7 @@ def eval_sine(w_dev, w_L, n=1024, fin=127, amp=1.5, dem=True, dith=True):
 def g6_main():
     w_nom = make_w(0.0)
     w_dev = make_w(0.01)
-    print(f"{'DEM':>3d} {'Dith':>4d} {'校准':>4s} {'误差谱峰比(dB)':>13s} {'最大杂散L':>9s} {'RMS L':>7s}")
+    print(f"{'DEM':>3s} {'Dith':>4s} {'校准':>4s} {'误差谱峰比(dB)':>13s} {'最大杂散L':>9s} {'RMS L':>7s}")
     for dem in (False, True):
         for dith in (False, True):
             for cal, wl in (("关", w_nom), ("开", w_dev)):

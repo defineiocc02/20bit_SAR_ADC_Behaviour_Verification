@@ -78,20 +78,42 @@ def _lcg(seed: int, dim: int) -> int:
     return (_LCG_A[dim] * (seed % _LCG_M) + _LCG_C[dim]) % _LCG_M
 
 
-def dem_phases(sample_id: int) -> tuple[int, int, int]:
-    """DEM 三维随机化相位：(reserved, h_phase, v_phase)。
+# ---- 三维随机化排程 v3：满周期置换表 -------------------------------
+# v2 的残留问题（P0-1 实测 FAIL）：
+#   1) q = sid//9 使连续 9 拍共用相位，自相关 0.87~0.96
+#   2) 三个独立 LCG 取模后 MI(reserved,v_phase)=1.278 bit，仍有统计依赖
+#   3) 联合覆盖仅 794/1920
+#
+# v3 做法：一个 0..1919 的满周期计数器经**固定置换表**映射。
+#   - 置换表是 1920 的排列 -> 1920 个组合各出现一次（覆盖 100%，先验成立）
+#   - 每个样本都推进一格（不再 //9），消除 9 拍锁定
+#   - 表由种子固定的 Fisher-Yates 生成，可复现、可导出给 RTL 做 ROM
+_PHASE_TOTAL = 16 * 15 * 8      # 1920
+_PHASE_SEED = 2026
 
-    三轴各自由独立 LCG 推进后取模，模数 16 / 15 / 8 互不整除，
-    避免同源线性推进造成的周期性锁定。
-    联合周期 = 9 片组 x 16 保留列 x 15 横向 x 8 纵向 = 17280 笔。
+
+def _build_perm(total: int = _PHASE_TOTAL, seed: int = _PHASE_SEED) -> tuple[int, ...]:
+    """用固定种子生成 0..total-1 的排列（Fisher-Yates）。"""
+    tab = list(range(total))
+    x = seed & 0xFFFFFFFF
+    for i in range(total - 1, 0, -1):
+        x = (1103515245 * x + 12345) & 0x7FFFFFFF
+        j = x % (i + 1)
+        tab[i], tab[j] = tab[j], tab[i]
+    return tuple(tab)
+
+
+_PHASE_PERM = _build_perm()
+
+
+def dem_phases(sample_id: int) -> tuple[int, int, int]:
+    """DEM 三维相位：(reserved, h_phase, v_phase)。
+
+    v3：满周期置换表。每样本推进一格，1920 笔恰好遍历全部组合一次。
+    映射为混合进制：i -> (i//120, (i//8)%15, i%8)。
     """
-    q = sample_id // 9
-    # 三轴取不同位段，避免低位相关（初版 v_phase 与 reserved 曾有
-    # v=(r+2)%8 的确定性关联，因为两者都在取 LCG 的低 3 位）
-    reserved = (_lcg(q, 0) >>  0) % N_COLUMNS   # bit[3:0]
-    h_phase  = (_lcg(q, 1) >>  5) % 15          # bit[8:5]
-    v_phase  = (_lcg(q, 2) >> 11) % 8           # bit[13:11]
-    return (reserved, h_phase, v_phase)
+    i = _PHASE_PERM[sample_id % _PHASE_TOTAL]
+    return (i // 120, (i // 8) % 15, i % 8)
 
 
 def _horizontal_columns(k: int, reserved: int, h_phase: int = 0) -> list[int]:

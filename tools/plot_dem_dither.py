@@ -1,79 +1,95 @@
 #!/usr/bin/env python3
-"""D3 DEM / D4 Dither 性能对比图（数据来自 algo_chain 的 Python 模型）。"""
-import sys, os
+"""D3/D4 性能图，按 ADC 论文惯例：
+  图1 误差频谱（dB vs 归一化频率，多条曲线叠加）
+  图2 重构误差 vs 输入码（对应论文 INL 图，校准前后叠加）
+"""
+import sys, os, math
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.insert(0, os.path.dirname(__file__))
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from algo_chain import make_w, eval_mm, eval_sine, convert_mm, LSB20, VFS
+from algo_chain import make_w, eval_sine, convert_mm, LSB20, VFS
 
 plt.rcParams['font.sans-serif'] = ['PingFang SC', 'Heiti TC', 'Arial Unicode MS']
 plt.rcParams['axes.unicode_minus'] = False
-plt.rcParams['font.size'] = 9
+plt.rcParams.update({'font.size': 8, 'axes.linewidth': .8,
+                     'xtick.direction': 'in', 'ytick.direction': 'in'})
+
 w_nom, w_dev = make_w(0.0), make_w(0.01)
+N, FIN = 1024, 127
 
-fig, ax = plt.subplots(1, 3, figsize=(14, 4.2))
 
-# ---- A: 校准前后（G4 三场景）
-cases = [("名义器件\n名义系数", w_nom, w_nom),
-         ("失配器件\n名义系数", w_dev, w_nom),
-         ("失配器件\n正确系数", w_dev, w_dev)]
-mx, rm = [], []
-for _, wd, wl in cases:
-    s = eval_mm(wd, wl)
-    mx.append(s['e_flt'] / LSB20); rm.append(s['rms'] / LSB20)
-x = np.arange(3); bw = 0.36
-ax[0].bar(x - bw/2, mx, bw, label='max', color='#c0392b')
-ax[0].bar(x + bw/2, rm, bw, label='RMS', color='#2980b9')
-ax[0].set_yscale('log'); ax[0].set_xticks(x)
-ax[0].set_xticklabels([c[0] for c in cases], fontsize=8)
-ax[0].set_ylabel('误差 [LSB$_{20}$]')
-ax[0].set_title('A  校准前后（1% 电容失配，256 点）')
-ax[0].legend(fontsize=8); ax[0].grid(axis='y', alpha=.3)
-for i, v in enumerate(mx):
-    ax[0].text(i - bw/2, v*1.3, f'{v:.2f}', ha='center', fontsize=7)
+def spec(w_dev_, w_L, dem, dith):
+    """返回 (归一化频率轴, 误差 PSD dB re LSB20, 最大杂散 dB, RMS LSB)。"""
+    es = []
+    rng = 0xACE1; A, C, I = list(range(8)), list(range(8, 16)), [16, 17]
+    for i in range(N):
+        x = 1.5 * math.sin(2 * math.pi * FIN * i / N)
+        h = (i % 8) if dem else 0
+        v = ((i // 8) % 8) if dem else 0
+        word = ((i * 7) % 64) if dith else 0
+        r = convert_mm(x, dict(h=h, v=v, dither=word, acq_seq=i & 15, coin=i & 1),
+                       list(A), w_dev_, w_L)
+        if r is None or r['over']:
+            es.append(0.0)
+        else:
+            es.append(r['xh'] - x)
+        avail = C + I
+        for _ in range(2):
+            rng ^= (rng << 13) & 0xFFFFFFFF; rng ^= rng >> 17; rng ^= (rng << 5) & 0xFFFFFFFF
+            if _ == 0: r1 = rng
+            else: r2 = rng
+        i1 = ((r1 & 0xFFFF) * 10) >> 16
+        j0 = ((r2 >> 16) * 9) >> 16
+        i2 = min(j0 + (1 if j0 >= i1 else 0), 9)
+        drop = {avail[i1], avail[i2]}
+        A, C, I = [z for z in avail if z not in drop], list(A), [z for z in avail if z in drop]
+    e = np.array(es) * np.hanning(N)
+    E = np.abs(np.fft.rfft(e)) / (N / 4)
+    P = 20 * np.log10(np.maximum(E / LSB20, 1e-3))
+    f = np.arange(len(P)) / N
+    spur = P[3:].max() if len(P) > 3 else 0
+    rms = np.sqrt(np.mean(np.array(es) ** 2)) / LSB20
+    return f, P, spur, rms
 
-# ---- B: DEM / Dither 组合 × 校准
-combos = [(0, 0), (0, 1), (1, 0), (1, 1)]
-rms_off, rms_on = [], []
-for dem, dith in combos:
-    r = eval_sine(w_dev, w_nom, dem=bool(dem), dith=bool(dith))
-    rms_off.append(r['rms'] / LSB20)
-    r2 = eval_sine(w_dev, w_dev, dem=bool(dem), dith=bool(dith))
-    rms_on.append(r2['rms'] / LSB20)
-x = np.arange(4)
-ax[1].bar(x - bw/2, rms_off, bw, label='校准关', color='#e67e22')
-ax[1].bar(x + bw/2, rms_on, bw, label='校准开', color='#27ae60')
-ax[1].set_yscale('log'); ax[1].set_xticks(x)
-ax[1].set_xticklabels([f'DEM={d}\nDith={t}' for d, t in combos], fontsize=8)
-ax[1].set_ylabel('RMS 误差 [LSB$_{20}$]')
-ax[1].set_title('B  DEM / Dither × 校准（1024 点正弦）')
-ax[1].legend(fontsize=8); ax[1].grid(axis='y', alpha=.3);
 
-# ---- C: 误差 vs 输入码
-for tag, wl, c in (("未校准", w_nom, '#e67e22'), ("已校准", w_dev, '#27ae60')):
-    xs, es = [], []
+fig = plt.figure(figsize=(10, 3.6))
+ax1 = fig.add_subplot(1, 2, 1)
+ax2 = fig.add_subplot(1, 2, 2)
+
+# ---- 图1：误差频谱，DEM 开/关（校准关）
+for dem, c, lab in ((0, '#c0392b', 'DEM off'), (1, '#2980b9', 'DEM on')):
+    f, P, sp, rms = spec(w_dev, w_nom, dem, 1)
+    ax1.plot(f, P, lw=.65, color=c, label=f'{lab}  (峰值 {sp:.0f} dB, RMS {rms:.0f} L)')
+ax1.set_xlim(0, .5); ax1.set_ylim(0, 60)
+ax1.set_xlabel('归一化频率  $f/f_s$')
+ax1.set_ylabel('误差谱  [dB re 1 LSB$_{20}$]')
+ax1.set_title('(a) 误差频谱：DEM 开/关（1% 失配，校准关；DEM 后为宽带噪声，无离散杂散）', fontsize=7.5)
+ax1.legend(fontsize=6.5, loc='upper right', frameon=False)
+ax1.grid(alpha=.25, lw=.5)
+
+# ---- 图2：重构误差 vs 输入码，校准前后
+for wl, c, lab in ((w_nom, '#e67e22', '未校准'), (w_dev, '#27ae60', '已校准')):
+    codes, es = [], []
     for i in range(256):
         xx = -VFS + 6.0 * i / 256
-        r = convert_mm(xx, dict(h=i % 8, v=(i // 8) % 8, dither=(i*7) % 64,
-                                acq_seq=i & 15, coin=i & 1),
-                       list(range(8)), w_dev, wl)
+        r = convert_mm(xx, dict(h=i % 8, v=(i // 8) % 8, dither=(i * 7) % 64,
+                                acq_seq=i & 15, coin=i & 1), list(range(8)), w_dev, wl)
         if r is None or r['over']:
             continue
-        xs.append(xx); es.append((r['xh'] - xx) / LSB20)
-    ax[2].plot(xs, es, lw=.8, label=tag, color=c)
-ax[2].set_xlabel('输入 [V]'); ax[2].set_ylabel('误差 [LSB$_{20}$]')
-ax[2].set_title('C  误差随输入分布')
-ax[2].legend(fontsize=8); ax[2].grid(alpha=.3)
+        codes.append((xx + VFS) / 6.0 * 512)
+        es.append((r['xh'] - xx) / LSB20)
+    ax2.plot(codes, es, '.', ms=1.6, color=c, label=lab)
+ax2.set_xlabel('粗码  $k$')
+ax2.set_ylabel('重构误差  [LSB$_{20}$]')
+ax2.set_title('(b) 重构误差 vs 粗码：校准前后', fontsize=8.5)
+ax2.legend(fontsize=7, frameon=False)
+ax2.grid(alpha=.25, lw=.5)
 
-fig.suptitle('D3 DEM / D4 Split Dither —— 工程模型性能（Python，1% 失配 seed=2026，非硬件实测）',
-             fontsize=10)
-fig.tight_layout(rect=[0, 0, 1, 0.95])
+fig.tight_layout()
 out = 'docs/figures/dem_dither_perf.png'
 os.makedirs('docs/figures', exist_ok=True)
-fig.savefig(out, dpi=140)
+fig.savefig(out, dpi=170)
 print('saved', out)
-print('A max:', [f'{v:.2f}' for v in mx], 'rms:', [f'{v:.2f}' for v in rm])
-print('B rms off:', [f'{v:.1f}' for v in rms_off], 'on:', [f'{v:.2f}' for v in rms_on])

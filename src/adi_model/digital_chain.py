@@ -200,6 +200,8 @@ def run_transaction(tx: Transaction) -> dict:
             inv_g_q60 = (2 * (1 << 60) + G_q30) // (2 * G_q30)
             # 冻结表达式（与 RTL 逐位相同）：floor((6Wm − 3G)·inv / 2^36)
             dac_q24 = ((6 * Wm_q30 - 3 * G_q30) * inv_g_q60) >> 36
+            # K 只作独立一致性检查，不参与 D_eff 的计算
+            K_consistent = (K_q54 == int(round(VR)) * (G_q30 - 2 * Wm_q30))
             # 仓库既有定义：r = round((2a+1)*144/5) = ((2a+1)*144+2)//5
             # 不再额外加移位偏置（_div_round 内部会加 d//2，那是二次舍入）
             r_hat_q24 = ((2 * int(tx.adc2_code) + 1) * 144 + 2) // 5
@@ -218,6 +220,7 @@ def run_transaction(tx: Transaction) -> dict:
         "wm_q30": Wm_q30 if (tx.weights_q30 and G_q30) else None,
         "g_q30": G_q30 if (tx.weights_q30 and G_q30) else None,
         "inv_g_q60": inv_g_q60 if (tx.weights_q30 and G_q30) else None,
+        "k_consistent": K_consistent if (tx.weights_q30 and G_q30) else None,
         "dac_exact_q24": dac_q24_exact if tx.weights_q30 and G_q30 else None,
         "dac_hw_q24": dac_q24 if tx.weights_q30 and G_q30 else None,
         "x_formula_v": x_formula,

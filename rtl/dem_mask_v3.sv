@@ -18,13 +18,15 @@ module dem_mask_v3 (
     logic [2:0] res;
     logic [7:0] hw, yw;
     logic [3:0] j_sel;
+    logic       sw_a, sw_b4;
 
     assign guard = (k_i >= 10'd512);
     assign H = guard ? 3'd0 : k_i[8:6];
     assign V = guard ? 3'd0 : k_i[5:3];
     assign L = k_i[2:0];
     wire [3:0] r4 = k_i[3:0];      // guard 时 = k-512 (0..8)
-    assign res = (3'd7 + h_phase_i);          // (7+h) % 8，3 位自然回绕
+    assign res  = (3'd7 + h_phase_i);        // (7+h) % 8，3 位自然回绕
+    assign j_sel = {res, acq_seq_i[3]};      // 连续赋值，不进 always_comb，避免锁存
 
     // 横向：[thermometer7(H), 0] 按 h_phase 整体轮转
     genvar i;
@@ -54,15 +56,11 @@ module dem_mask_v3 (
         end
         // bridge 交换：slot=v_phase, macro=res, half=acq_seq[3]
         if (coin_i) begin
-            j_sel = {res, acq_seq_i[3]};
-            begin
-                logic a, b4;
-                a  = mask_o[v_phase_i][j_sel];
-                b4 = mask_o[0][16];
-                mask_o[v_phase_i][j_sel] = b4;
-                for (int s = 0; s < 8; s++)
-                    mask_o[s][16] = a;
-            end
+            sw_a  = mask_o[v_phase_i][j_sel];
+            sw_b4 = mask_o[0][16];
+            mask_o[v_phase_i][j_sel] = sw_b4;
+            for (int s = 0; s < 8; s++)
+                mask_o[s][16] = sw_a;
         end
     end
 endmodule

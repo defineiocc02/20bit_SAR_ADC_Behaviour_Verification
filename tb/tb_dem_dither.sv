@@ -14,11 +14,13 @@ module tb_dem_dither;
         for (int kk = 0; kk <= 520; kk++)
             for (int hp = 0; hp < 8; hp++)
                 for (int vp = 0; vp < 8; vp++)
-                    for (int co = 0; co < 2; co++) begin
-                        k = 10'(kk); h = 3'(hp); v = 3'(vp); coin = co[0]; acq = 4'd0;
+                    for (int co = 0; co < 2; co++)
+                    for (int hf = 0; hf < 2; hf++) begin
+                        k = 10'(kk); h = 3'(hp); v = 3'(vp); coin = co[0];
+                        acq = 4'(hf << 3);
                         #1;
                         $display("M %0d %0d %0d %0d %h %h %h %h %h %h %h %h",
-                                 kk, hp, vp, co,
+                                 kk, hp, vp, co*2+hf,
                                  mask[0],mask[1],mask[2],mask[3],
                                  mask[4],mask[5],mask[6],mask[7]);
                     end

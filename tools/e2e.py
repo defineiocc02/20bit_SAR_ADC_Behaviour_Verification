@@ -146,11 +146,13 @@ def convert(vin, rdac, coef, group, sample_id, word=0,
     resid = vin - d_real
 
     # 3) RA
+    ra_sat = False
     if tier == 1 or ra is None:
         ra_out = resid * RA_GAIN
     else:
-        arr, _sat = ra.evaluate(np.array([resid]), rng, RA_GAIN)
+        arr, sat = ra.evaluate(np.array([resid]), rng, RA_GAIN)
         ra_out = float(arr[0])
+        ra_sat = bool(sat[0]) if np.ndim(sat) else bool(sat)
 
     # 4) ADC2
     if wide:
@@ -158,12 +160,19 @@ def convert(vin, rdac, coef, group, sample_id, word=0,
         r_obs = ra_out / RA_GAIN
         clamp = False
     else:
+        if ra_sat:
+            return dict(status="ra_sat", r=resid, ra=ra_out, k=k,
+                        timeline=timeline, code=None)
         if ra_out < 0.0 or ra_out > ADC2_MAX:
-            return dict(status="overflow", r=resid, ra=ra_out, k=k,
+            return dict(status="adc2_overflow", r=resid, ra=ra_out, k=k,
                         timeline=timeline, code=None)
         a2_raw = int(np.floor(ra_out / ADC2_LSB))
-        a2 = min(a2_raw, 4095)
-        clamp = a2_raw >= 4096          # 顶到窗口上沿：解码值被截断
+        if a2_raw >= 4096:
+            # 顶到上沿：解码值被截断，**不算正常转换**
+            return dict(status="adc2_clip", r=resid, ra=ra_out, k=k,
+                        timeline=timeline, code=None, a2=a2_raw)
+        a2 = a2_raw
+        clamp = False
         r_obs = (a2 + 0.5) * ADC2_LSB / RA_GAIN
 
     # 5) D5：只拿 k / adc2 / dither / 冻结系数
@@ -184,7 +193,8 @@ def convert(vin, rdac, coef, group, sample_id, word=0,
         x_hat = r['x_weight_v']
         code = r['code20']
     return dict(status="ok", r=resid, ra=ra_out, k=k, timeline=timeline,
-                code=code, x_hat=x_hat, d_real=d_real, clamp=clamp, a2=a2)
+                code=code, x_hat=x_hat, d_real=d_real, clamp=clamp, a2=a2,
+                ra_sat=ra_sat)
 
 
 def run_block(vin_list, device, coef, tier=2, wide=False, ra=None, words=None):

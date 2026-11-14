@@ -89,6 +89,8 @@ module digital_top_w (
     logic ev_mode_q;
     logic [3:0] grp_cnt;               // 0..8 循环，与 16 位 sample_cnt 解耦
     logic       ev_active_q;           // 事件转换进行中（供 busy/in_ready 使用）
+    // start 保护：忙、已有在途事件、或上层未 ready 时，非法 start 被丢弃
+    wire        ev_start_ok = ev_start_i && !ev_active_q && !busy_o;
     // 当拍生效的模式：整码事务在接收当拍按 ev_mode_i 决定，其余时刻沿用冻结值
     wire        mode_eff = (valid_i && in_ready_o) ? ev_mode_i : ev_mode_q;   // 事务级冻结的模式，E1 与 sample_cnt 只看它，允许 in-flight 改 ev_mode_i
 
@@ -116,7 +118,9 @@ module digital_top_w (
     // round-robin 片组：只在接收事务时前进
     logic [15:0] sample_cnt;
     logic [31:0] sid_base;
-    assign sid_base = (({16'd0, sample_cnt} + 32'd1) * 32'd8) % 32'd18;
+    // 片 ID 必须与 9 组倒数索引同源：两者都由 grp_cnt（0..8 环计数）生成。
+    // 用 sample_cnt 会在 65536 回绕（65536%9=7）后与组号错位。
+    assign sid_base = (({28'd0, grp_cnt} + 32'd1) * 32'd8) % 32'd18;
 
     genvar gi;
     generate
@@ -210,7 +214,7 @@ module digital_top_w (
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             ev_mode_q <= 1'b0;
-        end else if (ev_start_i || (valid_i && in_ready_o)) begin
+        end else if (ev_start_ok || (valid_i && in_ready_o)) begin
             ev_mode_q <= ev_mode_i;     // 只在事务边界更新，飞行中改 ev_mode_i 不影响本笔
         end
     end
@@ -270,7 +274,7 @@ module digital_top_w (
             ev_ids_q <= 40'd0; ev_res_q <= 4'd0; ev_hp_q <= 4'd0; ev_vp_q <= 3'd0;
             ev_adc2_q <= 12'd0; ev_dith_q <= 6'd0; ev_tag_q <= 24'd0;
             ev_active_q <= 1'b0;
-        end else if (ev_start_i) begin
+        end else if (ev_start_ok) begin
             // E0 入口一次性冻结：片组、DEM 相位、ADC2、Dither、tag
             ev_ids_q    <= slice_ids_o;
             ev_res_q    <= reserved_i;

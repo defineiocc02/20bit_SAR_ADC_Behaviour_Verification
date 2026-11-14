@@ -115,6 +115,7 @@ module tb_follower_int;
         begin
             // 只把 D6/D4 摆成对应 U（bit5=D6, bit3=D4）
             // U = 4*D6 + D4；bit5=D6、bit3=D4，其余位清零
+            while (busy) @(negedge clk);   // start 受 busy 保护，须等空闲
             @(negedge clk); c_i = c; dither_i = {up[2], 1'b0, up[0], 3'b0};
             ev_start = 1; @(negedge clk); ev_start = 0;
             exp_p = 9'd0; n = 0;

@@ -90,8 +90,12 @@ if __name__ == '__main__':
     print("=== L3 ADC2 量化边界 ===")
     run_level("L3 余差 0~1LSB", wr, wr, [0], resid_lo=0.0, resid_hi=ADC2_LSB/32)
     run_level("L3 余差近满量程", wr, wr, [0], resid_lo=0.0135, resid_hi=0.01406)
-    print("=== L4 DEM / Dither 实际开关 ===")
+    print("=== L4 Dither 位权分组 ===")
+    # _dither_terms: upper = 4*D6 + D4 (bit5, bit3)
+    #                lower = 2*D5 + (4*D3+2*D2+D1)/8 (bit4, bit2, bit1, bit0)
+    UPPER_W = [0, 8, 32, 40]                    # 只动 upper 两位
+    LOWER_W = [0, 1, 2, 4, 16, 20, 23, 31]      # 只动 lower 四位
     run_level("L4 dither=0", wr, wr, [0])
-    run_level("L4 Lower 仅变 (D3..D0)", wr, wr, [1, 2, 4, 8, 15])
-    run_level("L4 Upper 仅变 (D6/D5)", wr, wr, [0, 32, 16, 48])
-    run_level("L4 全 64 字", wr, wr, list(range(64)))
+    run_level("L4 仅 Upper 变 (D6/D4)", wr, wr, UPPER_W)
+    run_level("L4 仅 Lower 变 (D5..D1)", wr, wr, LOWER_W)
+    run_level("L4 全 64 字", wr, wr, list(range(64)), n=64)

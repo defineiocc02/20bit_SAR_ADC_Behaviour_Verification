@@ -150,5 +150,107 @@ def main():
     print("PASS")
 
 
+
+
+# ================= G4：电容失配与桥误差（同一路径，不改结构/窗口/极性）=========
+def make_w(sigma=0.0, seed=2026):
+    """18×20 器件权重（Cu）。sigma=0 即名义。
+
+    桥误差按合同 §3.2 由实际 Cb 与子电容共同求出 beta_s，
+    不独立扰动每个子权重。
+    """
+    import random
+    rng = random.Random(seed)
+    w = [[0.0] * 20 for _ in range(18)]
+    for s in range(18):
+        gs = 1.0 + rng.gauss(0, sigma)                  # 片级增益失配
+        for j in range(16):
+            w[s][j] = 4.0 * gs * (1 + rng.gauss(0, sigma))
+        cb = (8.0 / 7.0) * (1 + rng.gauss(0, sigma))    # 桥电容
+        csub = [c * (1 + rng.gauss(0, sigma)) for c in SUB]
+        beta = cb / (cb + sum(csub))
+        for t in range(4):
+            w[s][16 + t] = csub[t] * beta
+    return w
+
+
+def _G(w, ids):
+    return sum(w[sid][j] for sid in ids for j in range(16))
+
+
+def _Wm(w, ids, m):
+    return sum(w[ids[s]][j] * m[s][j] for s in range(8) for j in range(20))
+
+
+def _Wp(w, ids, bits):
+    return sum(w[ids[s]][16 + t] * bits[s][t] for s in range(8) for t in range(4))
+
+
+def convert_mm(x, ctx, ids, w_dev, w_L):
+    """前向用器件真值 w_dev，重构用加载系数 w_L。两侧只共享 ids/mask/ADC2。"""
+    bits, T, U, Ld = pre(ctx['dither'], ctx['v'])
+    c, ev = sadc(x + Ld * DELTA)
+    guard = (c >= 512)
+    k = ev[-1] + U
+    if not (0 <= k <= 520):
+        return None
+    m = post_mask(k, ctx['h'], ctx['v'])
+    Gd, Wmd, Wpd = _G(w_dev, ids), _Wm(w_dev, ids, m), _Wp(w_dev, ids, bits)
+    D_dev = 3.0 * (2 * Wmd / Gd - 1)
+    y = 32.0 * (x + 6 * Wpd / Gd - D_dev)
+    code = int(math.floor((y - YMIN) * N2 / SPAN))
+    if not (0 <= code < N2):
+        return dict(over=True)
+    yh = YMIN + (code + 0.5) * SPAN / N2
+    GL, WmL, WpL = _G(w_L, ids), _Wm(w_L, ids, m), _Wp(w_L, ids, bits)
+    D_hat = 3.0 * (2 * WmL / GL - 1)
+    xh = yh / 32.0 + D_hat - 6 * WpL / GL
+    c20 = max(0, min((1 << 20) - 1, int(round((xh + VFS) / 6.0 * (1 << 20) - 0.5))))
+    return dict(over=False, k=k, xh=xh, c20=c20, ev_ok=(len(ev) == (11 if guard else 7)))
+
+
+def eval_mm(w_dev, w_L, n=256, sigma_tag=''):
+    st = dict(n=0, ok=0, over=0, bad_ev=0, e_flt=0.0, sq=0.0, e_c20=0)
+    for i in range(n):
+        x = -VFS + 6.0 * i / n
+        ids = list(range(8))
+        r = convert_mm(x, dict(h=i % 8, v=(i // 8) % 8, dither=(i * 7) % 64),
+                       ids, w_dev, w_L)
+        st['n'] += 1
+        if r is None or r['over']:
+            st['over'] += 1
+            continue
+        st['ok'] += 1
+        if not r['ev_ok']:
+            st['bad_ev'] += 1
+        e = abs(r['xh'] - x)
+        st['e_flt'] = max(st['e_flt'], e)
+        st['sq'] += e * e
+        w20 = max(0, min((1 << 20) - 1, int(round((x + VFS) / 6.0 * (1 << 20) - 0.5))))
+        st['e_c20'] = max(st['e_c20'], abs(r['c20'] - w20))
+    st['rms'] = (st['sq'] / max(st['ok'], 1)) ** 0.5
+    return st
+
+
+def g4_main():
+    w_nom = make_w(0.0)
+    w_dev = make_w(0.01)                     # 1% 失配
+    cases = [("名义器件 + 名义系数", w_nom, w_nom),
+             ("失配器件 + 名义系数", w_dev, w_nom),
+             ("失配器件 + 正确系数", w_dev, w_dev)]
+    print(f"{'场景':22s} {'ok':>4s} {'越窗':>4s} {'max':>9s} {'rms':>8s} {'码':>5s}")
+    for name, wd, wl in cases:
+        s = eval_mm(wd, wl)
+        print(f"{name:22s} {s['ok']:4d} {s['over']:4d} "
+              f"{s['e_flt']/LSB20:8.2f}L {s['rms']/LSB20:7.2f}L {s['e_c20']:5d}")
+    a = eval_mm(w_nom, w_nom); b = eval_mm(w_dev, w_nom); c = eval_mm(w_dev, w_dev)
+    assert a['e_flt'] <= 0.5 * LSB20, "名义退化"
+    assert b['e_flt'] > 10 * a['e_flt'], "失配未体现"
+    assert c['e_flt'] <= 0.5 * LSB20, "校正无效"
+    print("G4 PASS  未校正/校正后 = "
+          f"{b['e_flt']/c['e_flt']:.1f}x")
+
+
 if __name__ == '__main__':
     main()
+    g4_main()

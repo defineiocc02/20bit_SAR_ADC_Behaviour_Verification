@@ -15,66 +15,12 @@ def D(c):                          # SADC 与 RDAC 同码相等
     return -VFS + 6.0 * c / 512
 
 
-def post_mask(k, h, v):
-    """k<512: 64H+8V+L；512..520: 主阵列全选 + 子阵列。"""
-    m = [[0] * 20 for _ in range(8)]
-    if k >= 512:
-        r = k - 512
-        sub = [1, 1, 1, 1] if r >= 8 else [(r >> 2) & 1, (r >> 1) & 1, r & 1, 0]
-        for s in range(8):
-            m[s][:16] = [1] * 16
-            m[s][16:] = sub
-        return m
-    H, V, L = k // 64, (k % 64) // 8, k % 8
-    hw = [(1 if ((i - h) % 8) < H else 0) for i in range(8)]
-    yw = [(1 if ((i - v) % 8) < V else 0) for i in range(8)]
-    res = (7 + h) % 8
-    for s in range(8):
-        for u in range(8):
-            b = yw[s] if u == res else hw[u]
-            m[s][2 * u] = m[s][2 * u + 1] = b
-        for t in range(3):
-            m[s][16 + t] = (L >> (2 - t)) & 1
-    return m
-
-
-def bridge_swap(m, h, v, acq_seq, coin):
-    """合同 §6.1 等名义电荷交换：slot=v, macro=(7+h)%8, half=(acq_seq>>3)&1。"""
-    res = (7 + h) % 8
-    slot = v % 8
-    j = 2 * res + ((acq_seq >> 3) & 1)
-    if not coin:
-        return m
-    a, b4 = m[slot][j], m[0][16]
-    o = [r[:] for r in m]
-    o[slot][j] = b4
-    for s_ in range(8):
-        o[s_][16] = a
-    return o
+from adi_model.dem_dither import post_mask, bridge_swap, pre, dither_split  # noqa: E402
 
 
 def charge(m):                     # 单位 1/8 Cu
     return sum(m[s][j] * 32 for s in range(8) for j in range(16)) + \
            sum(m[s][16 + t] * SUB[t] for s in range(8) for t in range(4))
-
-
-def split(word):
-    d = [(word >> i) & 1 for i in range(6)]          # d0..d5
-    U = 4 * d[5] + d[3]
-    Ld = 2 * d[4] + (4 * d[2] + 2 * d[1] + d[0]) / 8.0
-    return U, Ld, U + Ld, 4 * d[2] + 2 * d[1] + d[0]
-
-
-def pre(word, v):
-    """pre_value[s] = J + ((s-v)%8 < f)，展开成 4 个开关位。"""
-    U, Ld, T, f = split(word)
-    J = U + 2 * ((word >> 4) & 1)
-    bits = []
-    for s in range(8):
-        val = J + (1 if ((s - v) % 8) < f else 0)
-        bits.append([1, 1, 1, 1] if val >= 8 else
-                    [(val >> 2) & 1, (val >> 1) & 1, val & 1, 0])
-    return bits, T, U, Ld
 
 
 def sadc(x):

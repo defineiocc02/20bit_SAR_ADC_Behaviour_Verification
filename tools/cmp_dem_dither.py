@@ -1,60 +1,89 @@
 #!/usr/bin/env python3
-"""D3 DEM / D4 Split Dither 的 Python-RTL 逐位比对。
+"""D3 DEM / D4 Split Dither 的 Python-RTL 逐位比对（严格版）。
 
-用法（需先跑 VCS 生成 mout.txt）：
-    # 1) RTL 产生向量
-    vcs -full64 -sverilog -timescale=1ns/1ps -o simv_m \
-        rtl/dem_mask_v3.sv rtl/dither_pre.sv tb/tb_dem_dither.sv
-    ./simv_m > mout.txt
-    # 2) 比对
-    PYTHONPATH=src:tools python3 tools/cmp_dem_dither.py mout.txt
+与旧版的区别：
+  * 要求精确读到 133376 条 DEM、512 条 Dither，缺一即 FAIL
+  * 检查组合唯一性（无重复、无缺失）
+  * P 行同时校验 U 与 f（旧版跳过）
+  * 空日志 / 截断日志 / 仿真失败一律 FAIL
+
+用法：PYTHONPATH=src:tools python3 tools/cmp_dem_dither.py <log>
 """
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 sys.path.insert(0, os.path.dirname(__file__))
-from algo_chain import post_mask, bridge_swap, pre
+from adi_model.dem_dither import post_mask, bridge_swap, pre
+
+N_DEM = 521 * 8 * 8 * 2 * 2      # 133376
+N_DIT = 64 * 8                   # 512
 
 
 def hb(h, n):
-    """按 j 索引展开（bit0 -> j=0）。"""
     v = int(h, 16)
     return [(v >> i) & 1 for i in range(n)]
 
 
 def hb4(h):
-    """4 位子阵列按 [b2,b1,b0,bal] 展开。"""
     v = int(h, 16)
     return [(v >> (3 - i)) & 1 for i in range(4)]
 
 
 def main(path):
-    eb = ep = nm = np_ = 0
-    for ln in open(path):
+    if not os.path.exists(path):
+        print(f"FAIL: 日志不存在 {path}")
+        return 2
+    dem_seen, dit_seen = set(), set()
+    eb = ep = 0
+    bad_lines = 0
+
+    for ln in open(path, errors='replace'):
         p = ln.split()
         if not p:
             continue
-        if p[0] == 'M':
-            k, h, v, sel = (int(p[i]) for i in range(1, 5))
-            co, half = sel >> 1, sel & 1
-            exp = bridge_swap(post_mask(k, h, v), h, v, half << 3, co)
-            got = [hb(x, 20) for x in p[5:13]]
-            nm += 1
-            if got != exp:
-                eb += 1
-                if eb <= 3:
-                    print(f"M k={k} h={h} v={v} coin={co} half={half}")
-        elif p[0] == 'P':
-            w, v = int(p[1]), int(p[2])
-            bits, T, U, Ld = pre(w, v)
-            got = [hb4(x) for x in p[5:13]]
-            np_ += 1
-            if got != bits:
-                ep += 1
-                if ep <= 3:
-                    print(f"P word={w} v={v}")
-    print(f"DEM   {nm} 组 失配 {eb}")
-    print(f"Dither {np_} 组 失配 {ep}")
-    ok = (eb == 0 and ep == 0)
+        try:
+            if p[0] == 'M':
+                if len(p) != 13:
+                    bad_lines += 1; continue
+                k, h, v, sel = (int(p[i]) for i in range(1, 5))
+                key = (k, h, v, sel)
+                if key in dem_seen:
+                    print(f"FAIL: DEM 重复 {key}"); return 2
+                dem_seen.add(key)
+                co, half = sel >> 1, sel & 1
+                exp = bridge_swap(post_mask(k, h, v), h, v, half << 3, co)
+                if [hb(x, 20) for x in p[5:13]] != exp:
+                    eb += 1
+                    if eb <= 3:
+                        print(f"M 失配 k={k} h={h} v={v} coin={co} half={half}")
+            elif p[0] == 'P':
+                if len(p) != 13:
+                    bad_lines += 1; continue
+                w, v, U, f = (int(p[i]) for i in range(1, 5))
+                key = (w, v)
+                if key in dit_seen:
+                    print(f"FAIL: Dither 重复 {key}"); return 2
+                dit_seen.add(key)
+                bits, T, Ur, Ld = pre(w, v)
+                if [hb4(x) for x in p[5:13]] != bits:
+                    ep += 1
+                    if ep <= 3: print(f"P mask 失配 word={w} v={v}")
+                if U != Ur or f != (4*((w>>2)&1) + 2*((w>>1)&1) + (w&1)):
+                    ep += 1
+                    if ep <= 6: print(f"P U/f 失配 word={w} U={U}/{Ur} f={f}")
+        except (ValueError, IndexError):
+            bad_lines += 1
+
+    print(f"DEM    {len(dem_seen)}/{N_DEM} 组  失配 {eb}")
+    print(f"Dither {len(dit_seen)}/{N_DIT} 组  失配 {ep}")
+    if bad_lines:
+        print(f"坏行 {bad_lines}")
+    ok = (len(dem_seen) == N_DEM and len(dit_seen) == N_DIT
+          and eb == 0 and ep == 0 and bad_lines == 0)
+    if not ok:
+        if len(dem_seen) != N_DEM:
+            print(f"FAIL: DEM 覆盖不足（{len(dem_seen)} != {N_DEM}）")
+        if len(dit_seen) != N_DIT:
+            print(f"FAIL: Dither 覆盖不足（{len(dit_seen)} != {N_DIT}）")
     print("RESULT:", "PASS" if ok else "FAIL")
     return 0 if ok else 1
 

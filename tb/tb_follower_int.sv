@@ -51,6 +51,36 @@ module tb_follower_int;
     always #5 clk = ~clk;
 
     integer errors = 0, events = 0, wt;
+    // ---- 事务守恒记分板 ----
+    integer n_acc = 0, n_comp = 0, n_canc = 0, n_abort = 0, n_rej = 0;
+    integer ev_tag_ctr = 1;      // 事件事务唯一 tag
+    integer pend = 0;            // 已接受未结束
+    integer live_tag [0:63];     // 在途事务 tag（简单表）
+    integer tag_seen [0:4095];   // 已输出 tag，查重复
+    integer inv_ok = 1;          // 每拍不变量
+
+    task automatic acc(input integer t); n_acc = n_acc + 1; pend = pend + 1; endtask
+    task automatic comp(); n_comp = n_comp + 1; pend = pend - 1; endtask
+    task automatic canc(); n_canc = n_canc + 1; pend = pend - 1; endtask
+    task automatic abort_t(); n_abort = n_abort + 1; pend = pend - 1; endtask
+
+    // 每拍检查 Accepted = Completed + Cancelled + Aborted + Pending
+    always @(posedge clk) begin
+        if (rstn && (n_acc !== n_comp + n_canc + n_abort + pend)) begin
+            if (inv_ok) $display("INVARIANT_BREAK t=%0t acc=%0d comp=%0d canc=%0d abort=%0d pend=%0d",
+                                 $time, n_acc, n_comp, n_canc, n_abort, pend);
+            inv_ok = 0;
+        end
+        // valid_o 单拍监控：同一 tag 不得出现两次
+        if (valid_o) begin
+            if (tag_seen[tag_o[11:0]] != 0) begin
+                errors = errors + 1;
+                $display("DUP_OUTPUT tag=%0d", tag_o);
+            end
+            tag_seen[tag_o[11:0]] = 1;
+            comp();
+        end
+    end
 
     task automatic wait_tx(input [23:0] tg, output logic [19:0] cd, output logic hit);
         begin
@@ -69,6 +99,7 @@ module tb_follower_int;
                             output logic [19:0] cd);
         begin
             @(negedge clk); valid_i = 1; c_i = cc; adc2_i = a2; tag_i = tg;
+            if (in_ready) acc(cc); else n_rej = n_rej + 1;
             @(negedge clk); valid_i = 0;
             for (int w = 0; w < 12; w++) begin
                 @(posedge clk); #1;
@@ -133,7 +164,7 @@ module tb_follower_int;
                     errors = errors + 1;
                     $display("START_NOT_ACCEPTED c=%0d rdy=%b fire=%b",
                              c, ev_rdy, dut.ev_start_fire);
-                end
+                end else acc(c);
                 ev_start = 0;
             end
             exp_p = 9'd0; n = 0;
@@ -164,17 +195,23 @@ module tb_follower_int;
     integer k, u;
     initial begin
         repeat (4) @(negedge clk); rstn = 1;
-        for (k = 0; k < 512; k = k + 1) run_code(k[8:0], 3'd0);
+        for (k = 0; k < 512; k = k + 1) begin
+            tag_i = ev_tag_ctr[23:0]; ev_tag_ctr = ev_tag_ctr + 1;
+            run_code(k[8:0], 3'd0);
+        end
         // U = 4*D6 + D4，只可能是 {0,1,4,5}
         for (u = 0; u < 4; u = u + 1)
-            for (k = 0; k < 512; k = k + 53) run_code(k[8:0], {u[1], 1'b0, u[0]});
+            for (k = 0; k < 512; k = k + 53) begin
+                tag_i = ev_tag_ctr[23:0]; ev_tag_ctr = ev_tag_ctr + 1;
+                run_code(k[8:0], {u[1], 1'b0, u[0]});
+            end
         // ---- 两路等价：事件模式 vs 整码模式，同 c/adc2/dither 必须同 code20 ----
         begin
             logic [19:0] cd_ev, cd_c;
             integer eq_err = 0, m;
             for (m = 0; m < 64; m = m + 1) begin
                 logic [8:0] cc; logic [11:0] a2; logic [23:0] tg;
-                cc = (m * 7 + 3) % 512; a2 = (m * 331) % 4096; tg = m[23:0] + 24'd900;
+                cc = (m * 7 + 3) % 512; a2 = (m * 331) % 4096; tg = m[22:0] * 2 + 24'd900;
                 // 事件模式：置好 adc2/tag，只送事件，**不拉 valid_i**
                 force dut.ev_mode_i = 1'b1;
                 @(negedge clk); adc2_i = a2; tag_i = tg;
@@ -200,6 +237,12 @@ module tb_follower_int;
             end
             $display("EQUIV: 64 组, %0d 不一致", eq_err);
             errors = errors + eq_err;
+        end
+        $display("CONSERVE: acc=%0d comp=%0d canc=%0d abort=%0d pend=%0d rej=%0d",
+                 n_acc, n_comp, n_canc, n_abort, pend, n_rej);
+        if (n_acc !== n_comp + n_canc + n_abort + pend) begin
+            errors = errors + 1;
+            $display("CONSERVE_FAIL");
         end
         $display("RESULT: %0d events, %0d errors", events, errors);
         if (errors == 0) $display("PASS"); else $display("FAIL");

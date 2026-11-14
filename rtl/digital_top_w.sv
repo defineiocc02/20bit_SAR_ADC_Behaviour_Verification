@@ -211,8 +211,9 @@ module digital_top_w (
                   | ev_active_q | ev_final_valid_q;
     // 入口只在 reset/stall/校准写时停；流水本身不反压
     // 反向互锁：事件 start 被接受的同一拍，整码入口不得同时 ready
+    // 模式合同：ev_mode_i=1 时整码入口一律不接受（否则 E1 走事件分支会丢事务）
     assign in_ready_o = reset_n & ~stall_i & ~cfg_we & ~cfg_inv_we
-                      & ~ev_active_q & ~ev_start_fire;
+                      & ~ev_active_q & ~ev_start_fire & ~ev_mode_i;
 
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin

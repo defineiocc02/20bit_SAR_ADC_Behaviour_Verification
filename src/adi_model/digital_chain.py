@@ -179,13 +179,18 @@ def run_transaction(tx: Transaction) -> dict:
         VR = int(round(V_FS * (1 << V_FRAC)))
         G_q30 = 0
         K_q54 = 0
+        Wm_q30 = 0          # 直接累加 Σw·m（主 + 子），不再从 K 反推
         for slot, sid in enumerate(slice_ids.tolist()):
             for j in range(N_COLUMNS):
                 w = int(tx.weights_q30.get((int(sid), j), 0))
                 G_q30 += w
+                if masks_full[slot][j]:
+                    Wm_q30 += w
                 K_q54 += w * (-VR if masks_full[slot][j] else VR)
             for j in range(N_COLUMNS, N_TOTAL):
                 w = int(tx.weights_q30.get((int(sid), j), 0))
+                if masks_full[slot][j]:
+                    Wm_q30 += w
                 K_q54 += w * (-2 * VR if masks_full[slot][j] else 0)
         if G_q30:
             # 精确除法（浮点/软件参考）
@@ -210,6 +215,9 @@ def run_transaction(tx: Transaction) -> dict:
     return {
         "sample_id": tx.sample_id, "slice_ids": slice_ids.tolist(), "k": k,
         "x_weight_v": x_weight,
+        "wm_q30": Wm_q30 if (tx.weights_q30 and G_q30) else None,
+        "g_q30": G_q30 if (tx.weights_q30 and G_q30) else None,
+        "inv_g_q60": inv_g_q60 if (tx.weights_q30 and G_q30) else None,
         "dac_exact_q24": dac_q24_exact if tx.weights_q30 and G_q30 else None,
         "dac_hw_q24": dac_q24 if tx.weights_q30 and G_q30 else None,
         "x_formula_v": x_formula,

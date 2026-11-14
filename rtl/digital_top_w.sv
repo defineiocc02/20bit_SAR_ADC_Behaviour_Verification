@@ -94,7 +94,7 @@ module digital_top_w (
     // Follower / 字段冻结 / 片组冻结 / 提交状态清零 全部只看它
     // 入口仲裁：同一拍只有一条入口能被接受。
     // 规则（冻结）：整码入口 valid_i 优先；此时事件 start 被拒绝，反之亦然。
-    wire        ev_req = ev_start_i && ev_mode_i && !ev_active_q
+    wire        ev_req = reset_n && ev_start_i && ev_mode_i && !ev_active_q
                        && !busy_o && !stall_i && !cfg_we && !cfg_inv_we;
     wire        ev_start_fire = ev_req && !valid_i;      // valid_i 同拍 -> 事件被拒
     // 当拍生效的模式：整码事务在接收当拍按 ev_mode_i 决定，其余时刻沿用冻结值
@@ -330,7 +330,8 @@ module digital_top_w (
     // 逐事件输出与 ev_k_o 同拍（组合），便于逐事件观测与比对。
     // "非法事件保持上次合法命令"由 ev_mask_valid_o 门控实现：
     // RDAC 侧只在 ev_mask_valid_o=1 时锁存，非法事件不会改变物理开关。
-    assign ev_ready_o      = ev_mode_i && !ev_active_q && !busy_o
+    // 与 ev_start_fire 逐项一致（只差 ev_start_i），并且都纳入 reset_n
+    assign ev_ready_o      = reset_n && ev_mode_i && !ev_active_q && !busy_o
                            && !stall_i && !cfg_we && !cfg_inv_we && !valid_i;
     assign ev_mask_o       = ev_mask_c;
     // 协议错误（位序/qid）与码越界都必须阻断有效命令

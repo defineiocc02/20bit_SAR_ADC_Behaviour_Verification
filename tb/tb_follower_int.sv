@@ -50,7 +50,7 @@ module tb_follower_int;
 
     always #5 clk = ~clk;
 
-    integer errors = 0, events = 0;
+    integer errors = 0, events = 0, wt;
 
     task automatic wait_tx(input [23:0] tg, output logic [19:0] cd, output logic hit);
         begin
@@ -117,9 +117,25 @@ module tb_follower_int;
             // 只把 D6/D4 摆成对应 U（bit5=D6, bit3=D4）
             // U = 4*D6 + D4；bit5=D6、bit3=D4，其余位清零
             c_i = c; dither_i = {up[2], 1'b0, up[0], 3'b0};
-            while (!ev_rdy) @(negedge clk);   // 明确握手
-            @(negedge clk);                   // 再等一拍，避开 busy 在同沿拉高
-            ev_start = 1; @(negedge clk); ev_start = 0;
+            // 握手：negdege 采样 Ready 并驱动 Start，保持到下一个 posedge（DUT 采样沿），
+            // 在随后 negedge 读**寄存器** ev_active_q 判定是否被接受（不重算组合信号）
+            wt = 0;
+            @(negedge clk);
+            while (!ev_rdy && wt < 32) begin wt = wt + 1; @(negedge clk); end
+            if (!ev_rdy) begin
+                errors = errors + 1;
+                $display("READY_TIMEOUT c=%0d active=%b busy=%b stall=%b rst=%b",
+                         c, dut.ev_active_q, busy, stall_i, rstn);
+            end else begin
+                ev_start = 1;
+                @(negedge clk);                 // 越过一个 posedge
+                if (!dut.ev_active_q) begin
+                    errors = errors + 1;
+                    $display("START_NOT_ACCEPTED c=%0d rdy=%b fire=%b",
+                             c, ev_rdy, dut.ev_start_fire);
+                end
+                ev_start = 0;
+            end
             exp_p = 9'd0; n = 0;
             for (i = 8; i >= 0; i = i - 1) begin
                 @(negedge clk); ev_valid = 1; ev_bit = c[i];

@@ -1,6 +1,6 @@
 # =============================================================================
 # 文件名     : sta_budget.tcl
-# 版本       : v2.0
+# 版本       : v3.0
 # 功能       : 按方案要求的三类时间预算分组报告 28HPC+ 综合网表时序。
 #
 # 设计说明   :
@@ -8,16 +8,23 @@
 #       ① 旧组释放 -> 下一组完成采集
 #       ② 每次已决结果 -> 物理 RDAC 开关生效
 #       ③ 末次生效 -> 经参考、RA、安静窗 -> ADC2 捕获
-#   * **v2.0 的关键修正**：网表里层次被 ungroup 展开，
-#     寄存器名不带层次前缀（`\acq_ids_q_reg[0]` 而不是
-#     `u_ctx/acq_ids_q_reg[0]`），所以 v1.0 用 `*acq_conv_ctx*` 过滤
-#     全部返回 N/A。改为按**功能信号名**分组。
-#   * slack 与阶段耗时的换算：到达时间 = 周期 - slack，
-#     所以 `25 - slack` 就是该阶段从发起到采样的最大允许延迟
-#     （已含 clock uncertainty 与 output delay）。
+#
+#   * v3.0 的关键做法：**用 -through 按中间组合节点切分**。
+#     v2.0 用 `-from/-to` 直接取，因 DC ungroup 后层次名丢失、
+#     且起终点共享寄存器族，全部返回 N/A。
+#     -through 的好处是：只要给定一个必经的中间节点（例如
+#     `conv_q_reg` 的输出），就能把跨多级寄存器的逻辑阶段切出来。
+#
+#   * 网表实测可用的寄存器族（ungroup 后不带层次前缀）：
+#       acq_*_q_reg / conv_*_q_reg / exp_evt_q_reg / final_post_q_reg
+#       i_q60_reg / inv_q60_reg / code_o_reg / quiet_cnt_q_reg ...
+#
+#   * 换算：到达时间 = 周期 - slack，
+#     所以 `25 - slack` 是该阶段从发起到采样的最大允许延迟。
 # 变更记录   :
-#   2026-11-16  v1.0 按层次名分组，网表 ungroup 后全部 N/A。
-#   2026-11-16  v2.0 改按功能信号名分组。
+#   2026-11-16  v1.0 按层次名分组（ungroup 后全 N/A）。
+#   2026-11-16  v2.0 改按功能信号名（①② 仍 N/A，起终点共享寄存器）。
+#   2026-11-16  v3.0 改 -through 切分。
 # =============================================================================
 
 set DESIGN adc_digital_ip_v21
@@ -39,55 +46,55 @@ set_output_delay 1.0 -clock clk [all_outputs]
 set_driving_cell -lib_cell BUF_X2 -pin Z [remove_from_collection [all_inputs] [get_ports clk]]
 set_load 0.05 [all_outputs]
 
-# 按功能信号名取集合（名字里的方括号要用 get_pins 的 -filter 匹配）
-proc pins_of {pat} {
-  return [get_pins -hier -filter "full_name =~ $pat"]
-}
-
-proc report_group {tag from_pat to_pat} {
-  set fp [pins_of $from_pat]
-  set tp [pins_of $to_pat]
-  set nf [sizeof_collection $fp]
-  set nt [sizeof_collection $tp]
-  if {$nf == 0 || $nt == 0} {
-    puts "$tag N/A  (from=$nf to=$nt)"
-    return
-  }
-  set paths [get_timing_paths -from $fp -to $tp -max_paths 1 -nworst 1 -delay_type max]
+proc rpt {tag args} {
+  set paths [eval get_timing_paths $args]
   if {[sizeof_collection $paths] == 0} {
-    puts "$tag NO_PATH  (from=$nf to=$nt)"
+    puts "$tag N/A"
     return
   }
   set p [index_collection $paths 0]
-  puts "$tag slack=[get_attribute $p slack] start=[get_attribute $p startpoint] end=[get_attribute $p endpoint]"
+  puts "$tag slack=[format %.2f [get_attribute $p slack]] start=[get_attribute $p startpoint] end=[get_attribute $p endpoint]"
+}
+
+# 取某寄存器族的输出引脚集合（供 -through）
+proc outpins {pat} {
+  return [get_pins -hier -filter "full_name =~ $pat"]
 }
 
 puts "===BUDGET_START==="
 puts "PERIOD $PERIOD"
 
-# ① 旧组释放 -> 下一组采集
-#    起点：CONV 侧状态（conv_q / quiet_cnt / conv_held）
-#    终点：ACQ 描述符锁存（acq_ids_q 等）
-report_group "B1_REL_TO_ACQ"  "conv_*_q_reg*\\\\\[0\\\\\]/CP"   "acq_*_q_reg*\\\\\[0\\\\\]/D"
+# ---- ① 旧组释放 -> 下一组采集 ----
+# 逻辑阶段：CONV 侧判断可释放（captured/held/quiet）-> 释放 -> ACQ 装入新描述符
+# 用 -through 穿过 conv 释放判定相关的组合节点：
+#   conv_q_reg 的输出 = 该笔仍占用 CONV
+#   acq_ids_q_reg 的输入 = 新一组片号被锁存
+set thru1 [outpins "*conv_*_q_reg*/Q"]
+set thru2 [outpins "*quiet_cnt_q_reg*/Q"]
+rpt "B1A_CONV_TO_QUIET"  -through $thru1 -to [get_pins -hier -filter "full_name =~ *quiet_cnt_q_reg*/D"] -max_paths 1 -nworst 1 -delay_type max
+rpt "B1B_QUIET_TO_ACQ"   -from  $thru2 -to [get_pins -hier -filter "full_name =~ *acq_ids_q_reg*/D"] -max_paths 1 -nworst 1 -delay_type max
+rpt "B1C_FULL"           -through $thru1 -to [get_pins -hier -filter "full_name =~ *acq_ids_q_reg*/D"] -max_paths 1 -nworst 1 -delay_type max
 
-# ② 已决结果 -> 物理 RDAC 开关
-#    起点：事件层状态（exp_evt_q / bit_cmd_q / prefix_q / guard_q）
-#    终点：RDAC 输出寄存器
-report_group "B2_EVT_TO_POST" "exp_evt_q_reg*\\\\\[*\\\\\]/CP"  "rdac_post_state*_reg*\\\\\[*\\\\\]/D"
-report_group "B2B_EVT_TO_PRE" "exp_evt_q_reg*\\\\\[*\\\\\]/CP"  "rdac_pre_state*_reg*\\\\\[*\\\\\]/D"
+# ---- ② 已决结果 -> 物理 RDAC 开关 ----
+# 逻辑阶段：事件层产生应用命令 -> RDAC 输出
+# rdac_post_state_o / rdac_pre_state_o 是**输出端口**（不是寄存器）
+set ev [outpins "*exp_evt_q_reg*/Q"]
+# 实测：寄存器 Q -> 输出端口 这种跨边界查询，用 -through 返回 0，
+# 直接用 -to [get_ports ...] 才能取到（B2A/B2B 早前 N/A 就是这个原因）。
+rpt "B2A_TO_POST" -to [get_ports rdac_post_state_o] -max_paths 1 -nworst 1 -delay_type max
+rpt "B2B_TO_PRE"  -to [get_ports rdac_pre_state_o]  -max_paths 1 -nworst 1 -delay_type max
+# 也用 -through 看经过事件层内部最长的一段
+rpt "B2C_EVT_INTERNAL" -through $ev -max_paths 1 -nworst 1 -delay_type max
 
-# ③ 末次生效 -> ADC2 捕获
-#    起点：owner/hold/quiet 状态
-#    终点：捕获与返回寄存器
-report_group "B3_ARM_TO_CAP"  "owner_valid_q_reg*/CP"           "hold_done_q_reg*/D"
-report_group "B3B_CAP_INT"    "*hold*_q_reg*/CP"                "*hold*_q_reg*/D"
-report_group "B3C_QUIET"      "quiet_cnt_q_reg*/CP"             "quiet_cnt_q_reg*/D"
+# ---- ③ 末次生效 -> ADC2 捕获 ----
+# 逻辑阶段：最后 post 锁存 -> arm -> capture -> hold -> 返回
+set fp [outpins "*final_post_q_reg*/Q"]
+rpt "B3A_TO_ARM" -to [get_ports adc2_capture_arm_o] -max_paths 1 -nworst 1 -delay_type max
+rpt "B3B_HOLD_INTERNAL"  -to [get_pins -hier -filter "full_name =~ *hold_done_q_reg*/D"] -max_paths 1 -nworst 1 -delay_type max
+rpt "B3C_QUIET_INTERNAL" -from $thru2 -max_paths 1 -nworst 1 -delay_type max
 
-# 全局最差内部路径（供参考）
-set allp [get_timing_paths -max_paths 1 -nworst 1 -delay_type max]
-if {[sizeof_collection $allp] > 0} {
-  set p [index_collection $allp 0]
-  puts "GLOBAL_WORST slack=[get_attribute $p slack] start=[get_attribute $p startpoint] end=[get_attribute $p endpoint]"
-}
+# ---- 全局最差 ----
+rpt "GLOBAL_WORST" -max_paths 1 -nworst 1 -delay_type max
+
 puts "===BUDGET_END==="
 exit

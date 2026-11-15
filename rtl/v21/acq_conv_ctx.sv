@@ -54,6 +54,9 @@ module acq_conv_ctx #(
     input  logic [2:0]  prepare_v_pre,
     input  logic        prepare_half,
     input  logic        prepare_coin,
+    input  logic [2:0]  prepare_flash,     // 本笔 Flash 码，随描述符冻结
+    input  logic        prepare_qid,       // 本笔 qid，随描述符冻结
+    input  logic        stop_i,            // 停收新样本：已采过的 ACQ 仍要能转 CONV
 
     // ---------------------------------------------------------------- 采样事件
     input  logic        sample_event,
@@ -87,6 +90,11 @@ module acq_conv_ctx #(
     output logic        conv_coin_o,
     output logic [5:0]  conv_word_o,
     output logic [31:0] acq_pre_slot_o,    // ACQ 冻结的 slot 级 pre（观测用）
+    output logic [31:0] acq_tag_o,         // ACQ 冻结的 tag（commit 沿给事件层用）
+    output logic [2:0]  acq_flash_o,       // ACQ 冻结的 Flash 码
+    output logic [2:0]  conv_flash_o,      // CONV 冻结的 Flash 码
+    output logic        acq_qid_o,         // ACQ 冻结的 qid
+    output logic        conv_qid_o,        // CONV 冻结的 qid
 
     output logic [39:0] acq_ids_o,
     output logic [39:0] conv_ids_o,
@@ -120,6 +128,8 @@ module acq_conv_ctx #(
     logic        acq_half_q, acq_coin_q;
     logic        acq_valid_q;
     logic        acq_sampled_q;
+    logic [2:0]  acq_flash_q;
+    logic        acq_qid_q;
 
     // ---------------------------------------------------------------- CONV
     logic [39:0] conv_ids_q;
@@ -128,6 +138,8 @@ module acq_conv_ctx #(
     logic [2:0]  conv_h_q, conv_v_dem_q, conv_U_q;
     logic        conv_half_q, conv_coin_q;
     logic        conv_valid_q;
+    logic [2:0]  conv_flash_q;
+    logic        conv_qid_q;
     logic        conv_captured_q, conv_held_q;
     logic [3:0]  quiet_cnt_q;
 
@@ -135,16 +147,22 @@ module acq_conv_ctx #(
     // 接受的规则：ACQ 槽空闲，或 ACQ 已采样（可以把它推进 CONV 腾出槽位）。
     // 这样只要 ACQ 已采过，下一笔 prepare 就能进来，不用等 CONV 释放。
     wire acq_slot_free  = ~acq_valid_q;
+    // 已采样的 ACQ 可以被提升：要么下一笔 prepare 把它顶进 CONV，
+    // 要么 stop 排空时单独提升（方案 §11.2 I1："停收后已采过的 B 必须能
+    // 独立转入 CONV 并完成 E2 捕获，无须再发一笔 prepare"）。
     wire acq_can_promote = acq_valid_q & acq_sampled_q;
     assign prepare_ready = rst_n & (acq_slot_free | acq_can_promote);
 
     wire do_prepare = prepare_valid & prepare_ready;
+    // 排空提升：stop 时若 ACQ 已采样且 CONV 槽可用，单独提升。
+    // 要求 CONV 空闲，否则会覆盖尚未释放的那一笔。
+    wire do_drain   = stop_i & acq_can_promote & ~conv_valid_q;
+    wire do_promote = (do_prepare & acq_can_promote) | do_drain;
 
-    // prepare_fire：真正建立新 ACQ
+    // prepare_fire：真正建立新 ACQ（排空不建立新 ACQ）
     assign prepare_fire_o = do_prepare;
 
     // commit_fire：把已采样的 ACQ 提升为 CONV（用于推进 sched18）
-    wire do_promote = do_prepare & acq_can_promote;
     assign commit_fire_o = do_promote;
 
     // 释放资格
@@ -159,13 +177,15 @@ module acq_conv_ctx #(
             acq_word_q <= 6'd0;
             acq_h_q <= 3'd0; acq_v_dem_q <= 3'd0; acq_v_pre_q <= 3'd0;
             acq_U_q <= 3'd0; acq_half_q <= 1'b0; acq_coin_q <= 1'b0;
-            acq_valid_q <= 1'b0; acq_sampled_q <= 1'b0;
+            acq_valid_q <= 1'b0; acq_sampled_q <= 1'b0; acq_flash_q <= 3'd0;
+            acq_qid_q <= 1'b0;
 
             conv_ids_q <= 40'd0; conv_tag_q <= 32'd0; conv_pre_q <= 32'd0;
             conv_word_q <= 6'd0;
             conv_h_q <= 3'd0; conv_v_dem_q <= 3'd0; conv_U_q <= 3'd0;
             conv_half_q <= 1'b0; conv_coin_q <= 1'b0;
             conv_valid_q <= 1'b0; conv_captured_q <= 1'b0; conv_held_q <= 1'b0;
+            conv_flash_q <= 3'd0; conv_qid_q <= 1'b0;
             quiet_cnt_q <= 4'd0;
         end else begin
             // ---- 1. 采样沿：ACQ 标记已采；CONV 记录捕获/hold ----
@@ -183,7 +203,29 @@ module acq_conv_ctx #(
             else if (quiet_cnt_q < QUIET_CYCLES[3:0])
                 quiet_cnt_q <= quiet_cnt_q + 4'd1;
 
-            // ---- 3. prepare：先提升旧 ACQ 到 CONV，再装新 ACQ ----
+            // ---- 3a. 排空提升（stop）：只提升，不建新 ACQ ----
+            if (do_drain) begin
+                conv_ids_q      <= acq_ids_q;
+                conv_tag_q      <= acq_tag_q;
+                conv_pre_q      <= acq_pre_q;
+                conv_word_q     <= acq_word_q;
+                conv_h_q        <= acq_h_q;
+                conv_v_dem_q    <= acq_v_dem_q;
+                conv_U_q        <= acq_U_q;
+                conv_half_q     <= acq_half_q;
+                conv_coin_q     <= acq_coin_q;
+                conv_valid_q    <= 1'b1;
+                conv_flash_q    <= acq_flash_q;
+                conv_qid_q      <= acq_qid_q;
+                conv_captured_q <= 1'b0;
+                conv_held_q     <= 1'b0;
+                quiet_cnt_q     <= 4'd0;
+                // ACQ 空出来
+                acq_valid_q     <= 1'b0;
+                acq_sampled_q   <= 1'b0;
+            end
+
+            // ---- 3b. prepare：先提升旧 ACQ 到 CONV，再装新 ACQ ----
             if (do_prepare) begin
                 if (acq_can_promote) begin
                     // 旧的（已采过的）ACQ 进 CONV
@@ -197,6 +239,8 @@ module acq_conv_ctx #(
                     conv_half_q     <= acq_half_q;
                     conv_coin_q     <= acq_coin_q;
                     conv_valid_q    <= 1'b1;
+                    conv_flash_q    <= acq_flash_q;
+                    conv_qid_q      <= acq_qid_q;
                     conv_captured_q <= 1'b0;
                     conv_held_q     <= 1'b0;
                     quiet_cnt_q     <= 4'd0;
@@ -217,10 +261,24 @@ module acq_conv_ctx #(
                 acq_U_q       <= prep_U;
                 acq_valid_q   <= 1'b1;
                 acq_sampled_q <= 1'b0;
+                acq_flash_q   <= prepare_flash;
+                acq_qid_q     <= prepare_qid;
             end
 
             // ---- 4. 释放 ----
-            if (release_fire_o) begin
+            //
+            // 同沿优先级：**promote 优先于 release**。
+            //
+            // 为什么必须显式处理：A 在 CONV 满足释放条件、B 在 ACQ 已采样，
+            // 此时来一笔 prepare C —— B 要被提升进 CONV，A 要释放，
+            // 两者落在同一个 always_ff 里。原来的写法把 release 放在后面，
+            // 它的 `conv_valid_q <= 1'b0` 会覆盖 promote 刚写的 `1'b1`，
+            // 结果是"B 被提升后立刻消失"，而且 conv_* 数据还停在 B 上、
+            // valid=0 —— 极难查的状态错乱。
+            //
+            // 正确语义：CONV 这个槽在同一沿被"释放+重用"，
+            // 它应当是 B 的上下文且 valid=1（A 的事件流到此结束）。
+            if (release_fire_o && !do_promote) begin
                 conv_valid_q    <= 1'b0;
                 conv_captured_q <= 1'b0;
                 conv_held_q     <= 1'b0;
@@ -244,6 +302,11 @@ module acq_conv_ctx #(
     assign acq_word_o    = acq_word_q;
     assign acq_U_o       = acq_U_q;
     assign acq_pre_slot_o = acq_pre_q;
+    assign acq_tag_o      = acq_tag_q;
+    assign acq_flash_o    = acq_flash_q;
+    assign conv_flash_o   = conv_flash_q;
+    assign acq_qid_o      = acq_qid_q;
+    assign conv_qid_o     = conv_qid_q;
 
     assign conv_h_o      = conv_h_q;
     assign conv_v_dem_o  = conv_v_dem_q;

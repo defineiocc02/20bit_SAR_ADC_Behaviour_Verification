@@ -202,11 +202,21 @@ module sar_evt_v21 (
             if (can_apply) begin
                 prefix_q <= prefix_accept;
                 exp_evt_q <= exp_evt_q + 4'd1;
+                // 注意顺序：下面这段对 exp_evt_q / prefix_q 的赋值在同一个
+                // always_ff 里位于上方赋值之后，因此对同一位**后写生效**（覆盖）。
                 if (guard_q && exp_evt_q == 4'd2 && !bit_i) begin
                     // 阈 512 被拒 -> 退出 guard，退回普通六位路径。
-                    // 方案 §8.1："512 试探不提交；仍 7 次，实际多一次比较"。
-                    // 此时 prefix 保持 Flash 的 448，序号继续 3..7 试 bit5..bit0。
-                    guard_q <= 1'b0;
+                    //
+                    // 方案 §8.1："512 试探**不提交**；仍 7 次，实际多一次比较"。
+                    // 关键：既然"不提交"，它就不占提交序号 ——
+                    // 所以 exp_evt_q 要**回退到 2**，让 bit5 用序号 2 重新开始。
+                    // 若只清 guard_q 而让序号继续走到 3，总提交会变成 8 次
+                    // （Flash + 阈拒 + bit5..bit0），与"仍 7 次"矛盾。
+                    //
+                    // 同时 prefix 保持 Flash 的 448（阈被拒不改变已决前缀）。
+                    guard_q   <= 1'b0;
+                    prefix_q  <= 10'd448;
+                    exp_evt_q <= 4'd2;
                 end
                 if (last_evt) begin
                     done_q   <= 1'b1;

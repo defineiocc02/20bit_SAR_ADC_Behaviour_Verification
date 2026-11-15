@@ -138,11 +138,23 @@ module recon_v21 (
     endfunction
 
     // ---------------------------------------------------------------- 级间寄存器
-    logic               v1_q, v2_q, v3_q;
-    logic [31:0]        tag1_q, tag2_q, tag3_q;
-    logic               err1_q, err2_q, err3_q;
+    //
+    // **v1_q/tag1_q/err1_q/z1_q 在 S1 段里与 v1a_q/d1a_q 一起声明**，
+    // 这里不能再声明一次。
+    //
+    // 踩过的坑：拆分 S1 时我在本段保留了旧声明，又在 S1 段新增了
+    // 同名声明 —— VCS 只给 warning 照常仿真通过（8213 项 PASS），
+    // 但 DC 直接报 `The register symbol 'v1_q' has already been defined`
+    // 并拒绝 link，整个 recon_v21 变成黑盒，网表里连 DW_div 都没有。
+    // 结果综合"通过"、面积 76221 µm² 好看，实际不含 recon 逻辑。
+    //
+    // => 教训：**仿真通过不等于可综合**。重复声明这类问题只有
+    //    DC 的 analyze 才会报，门级等价编译时也会暴露
+    //    （VCS 报 "Module definition of recon_v21 is not found"）。
+    logic               v2_q, v3_q;
+    logic [31:0]        tag2_q, tag3_q;
+    logic               err2_q, err3_q;
 
-    logic signed [63:0] z1_q;        // S1 输出：Z
     logic [63:0]        i2_q;        // S2 输出：I（在 S2 算，供 S3 用）
     logic signed [95:0] n2_q;        // S2 输出：N
     logic signed [95:0] x3_q;        // S3 输出：X

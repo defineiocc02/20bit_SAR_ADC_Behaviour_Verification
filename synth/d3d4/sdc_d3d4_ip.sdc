@@ -42,5 +42,17 @@ set_output_delay -min 0.5 -clock clk -add_delay [all_outputs]
 set_driving_cell -lib_cell BUFFD1BWP7T40P140 $_data_in
 set_load 0.05 [all_outputs]
 
+# 时钟不确定性：两个值都是**保守工程假设**，不是从时钟树推出来的。
+#
+# setup 0.3 ns：留给 PLL 抖动 + 时钟树偏斜 + OCV。对一个还没做 CTS 的
+#   块级综合，这个量级是常见做法。
+# hold 0.1 ns：注意这一项直接决定了自环 hold 的结论。实测（见
+#   docs/SYNTH_D3D4.md §4.2）：同一份网表，hold uncertainty 0.1 时
+#   最差 slack = +0.013 ns，改成 0 时 = +0.113 ns。也就是说这 0.1 ns
+#   占掉了全部余量的绝大部分，13 ps 不是"电路快到期"。
+#
+# 保持 0.1 是因为：在没做 CTS 之前，用偏保守的 uncertainty 更安全；
+# 若为了"好看"把它调小，得到的正 slack 没有物理依据。
+# 需要看去掉 uncertainty 后的数字，用 synth/d3d4/dc_hold_unc0.tcl 对照。
 set_clock_uncertainty -setup 0.3 [get_clocks clk]
 set_clock_uncertainty -hold  0.1 [get_clocks clk]

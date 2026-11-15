@@ -80,23 +80,78 @@ valid_i ─ dem_phase_gen ──────┘   （同沿更新）
 
 ---
 
-## 四、hold 余量为什么只有 13 ps
+## 四、hold 余量为什么只有 13 ps（必须分开看）
 
-三条原因，都不是电路缺陷：
+### 4.1 事实：20 条 hold 路径全部是寄存器自环
 
-1. **是寄存器自环**。最差 hold 路径是
-   `u_phase/rng_q_reg[i]/Q → MUX2ND（使能 mux）→ u_phase/rng_q_reg[i]/D`，
-   同一条寄存器自己回自己，物理长度几乎为零，翻不出余量。
-   全部 hold 路径集中在 `u_phase`：`rng_q`(12)、`res_q`(6)、`hp_q`(2)。
-2. **hold 预算接近 0**。SDC 里 `set_clock_uncertainty -hold 0.1`，
-   加库 hold 0.01 + Q 0.08 + mux 0.03，刚好卡在 0.013。
-3. **Wire Load Model = ZeroWireload**。连线延迟按 0 算。
-   真实版图里寄存器到 mux 的走线会有几十 ps，那时 hold 才需要真正的修法。
+```
+u_phase/rng_q_reg[i] -> u_phase/rng_q_reg[i]   (12 条)
+u_phase/res_q_reg[i] -> u_phase/res_q_reg[i]   (6 条)
+u_phase/hp_q_reg[i]  -> u_phase/hp_q_reg[i]    (2 条)
+```
 
-**因此：这个 13 ps 既不能证明"能签核"，也不能证明"不能签核"。**
-它只是"零线载 + 零偏斜"假设下的产物。要拿真 hold 必须进 P&R（有真实线载与时钟树）。
+**没有一条跨寄存器路径。** 结构来源很明确：`dem_phase_gen` 的写法是
 
----
+```systemverilog
+end else if (sample_adv) begin
+    rng_q <= nxt;
+```
+
+综合成 `rng_q/D = sample_adv ? nxt : rng_q`，即"不推进时保持自己"。
+这就是一个 Q→(mux)→D 的零距离自环。
+
+最差一条（`rng_q_reg[31]`）的实际路径：
+
+```
+Q                0.09 ns
+CKND0 (inv)      0.02
+AOI22 (mux 逻辑) 0.02
+data arrival     0.13 ns
+----
+clock uncertainty 0.10
+library hold      0.01
+data required     0.11 ns
+slack             0.02 ns
+```
+
+### 4.2 关键：这 13 ps 主要是 uncertainty 吃掉的
+
+把 `set_clock_uncertainty -hold 0.1` 去掉后重跑（脚本：`synth/d3d4/dc_hold_unc0.tcl`）：
+
+| 条件 | hold slack | setup slack |
+|:---|--:|--:|
+| 带 hold uncertainty = 0.1 ns | **+0.013 ns** | +17.29 ns |
+| hold uncertainty = 0 ns | **+0.113 ns** | +17.29 ns |
+
+两者差值 0.100 ns，**正好等于 uncertainty 本身**。这说明余量是被预算吃掉的，
+不是路径本身的问题。setup 完全不受影响（hold uncertainty 只作用于 min 分析）。
+
+也就是说：**0.1 ns 的 uncertainty 占掉了 0.113 ns 里的绝大部分。** 剩下的
+13 ps 不是电路"快到期了"，而是"预算被设定成几乎等于延迟"。
+
+### 4.3 自环余量小是不是问题？
+
+**是结构必然，不是缺陷，但也不能签核。**
+
+- 自环路径的延迟只有"一个触发器 Q + 一个 mux"，物理上就是 0.1 ns 量级。
+  任何带使能的寄存器都会出现这种路径，hold 余量天然接近 0。
+- 真正的风险不在自环，而在**跨寄存器路径**。本次设计里没有跨寄存器的
+  短路径违例 —— 因为 D3/D4 的所有组合逻辑（DEM 8×20、dither 8×4）
+  都在两个触发器之间，延迟远大于 hold 要求。
+- **但 ZeroWireload 让结论失效**：连线延迟按 0 算。真实版图里
+  Q→mux 的走线可能带来几十 ps 额外延迟，那时 13 ps 可能变成负数。
+
+### 4.4 因此不能声称什么
+
+| 说法 | 是否成立 |
+|:---|:---|
+| "hold 收敛了" | ❌ 不能声称。零线载假设下的小正数不构成收敛结论 |
+| "hold 会违例" | ❌ 也不能这么说。自环延迟极短，实际 P&R 往往靠时钟树偏斜自然满足 |
+| "hold 需要修" | ⚠️ 未知。要等 P&R 后有时钟树与真实线载才能判断 |
+
+**正确处理**：在 P&R 之前不签核 hold；若 P&R 后出现自环 hold 违例，
+标准修法是给该寄存器插延迟单元（`insert_buffer`）或降低 hold uncertainty
+（如果时钟树偏斜确实很小）。
 
 ## 五、门级等价
 

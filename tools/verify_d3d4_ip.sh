@@ -112,6 +112,15 @@ fi
 grep -E "覆盖|errors|RESULT" /tmp/d3d4_l2.txt | sed 's/^/      /'
 grep -q "RESULT: PASS" /tmp/d3d4_l2.txt || fail "L2 未通过"
 
+# ---------------------------------------------------------------- L2.5
+# sched18 的随机性统计。逐拍对拍只能证明"RTL == 模型"，
+# 不能证明"随机性够好"——退化序列下 |ACQ|=8 等不变量依然成立。
+# 这正是曾经 16 位乘法溢出（i1≡j0≡0）能长期潜伏的原因。
+echo "[2.5] sched18 随机性统计（20000 拍）"
+SCHED18=$(python3 tools/sched18_stats.py --cycles 20000 2>&1)
+echo "$SCHED18" | grep -E "违例|不平衡|χ²|IDLE|RESULT" | sed 's/^/      /'
+echo "$SCHED18" | grep -q "RESULT: PASS" || fail "sched18 随机性不达标"
+
 # ---------------------------------------------------------------- L3
 echo "[3/4] L3 门级等价（需已有综合网表，见 docs/SYNTH_D3D4.md）"
 NET="${D3D4_NETLIST:-}"
@@ -140,6 +149,7 @@ echo " 结果汇总"
 echo "------------------------------------------------------------------"
 echo "  L1 叶子级逐位对拍   PASS   (133376 + 512)"
 echo "  L2 IP 级逐位对拍    PASS   (512 笔，含相位发生器)"
+echo "  L2.5 sched18 随机性 PASS   (20000 拍，χ²/IDLE 覆盖/stats)"
 echo "  L3 门级等价         $L3_STATUS"
 echo "  L4 综合             见 docs/SYNTH_D3D4.md（需 DC + PDK）"
 echo "=================================================================="

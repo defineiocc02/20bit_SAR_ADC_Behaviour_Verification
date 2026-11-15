@@ -73,7 +73,9 @@ bash tools/verify_d3d4_ip.sh
 
 ## 阅读顺序
 
-0. **`docs/HANDOFF_D3D4.md`（接手者先读这个）** —— 本轮做了什么、
+0. **`docs/D3D4_IP_INTERFACE.md`（IP 对外合同）** —— 端口、时序、两种模式、
+   位序、合法性标志、不能声称的清单
+0.5 **`docs/HANDOFF_D3D4.md`（接手者先读这个）** —— 本轮做了什么、
    如何验证、我为什么认为功能与综合完成、以及**最可能被推翻的 5 个地方**
 1. 本文（交付什么、怎么跑）
 2. `docs/CONTRACT_CURRENT.md`（适用哪份合同、版本优先级）

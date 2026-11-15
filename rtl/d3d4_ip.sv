@@ -54,7 +54,27 @@ module d3d4_ip (
     // ---- 相位观测口（供 TB 与顶层核对，不参与数据通路）----
     output logic [3:0]   reserved_o,
     output logic [3:0]   h_phase_o,
-    output logic [2:0]   v_phase_o
+    output logic [2:0]   v_phase_o,
+
+    // ---- 两相位交织（论文 §9.8 第 3 条）----
+    // 论文原文："Two phase interleaving of the RDAC extends the acquisition
+    // time to the full clock period, reducing the required sampling bandwidth
+    // by a factor of 2-4 times."
+    //
+    // 含义：任一时刻 18 片分成三组——ACQ 8 片正在采集当前样本、
+    // CONV 8 片正在转换上一个样本、IDLE 2 片备用。采集与转换**同时**进行，
+    // 所以采集窗口能占满整个时钟周期，不必与转换分时。
+    //
+    // 本 IP 的分工：
+    //   * mask（RDAC 开关）只服务 CONV 组 —— 转换期才需要 RDAC
+    //   * pre（dither 采样预置）只服务 ACQ 组 —— 采样期才需要预置
+    // 因此 mask 与 pre 是**同一拍的两种输出**，但归属于不同物理片组。
+    // 下游必须按下面的 acq_ids/conv_ids 把 slot 映射到真实物理片。
+    output logic [17:0]  acq_mask_o,   // 本拍采集组（8 片）
+    output logic [17:0]  conv_mask_o,  // 本拍转换组（8 片，= 上拍采集组）
+    output logic [17:0]  idle_mask_o,  // 备用片（2 片，供 shuffling）
+    output logic [39:0]  acq_ids_o,    // 采集组 8 个物理片号（升序，5 bit/个）
+    output logic [39:0]  conv_ids_o    // 转换组 8 个物理片号（升序，5 bit/个）
 );
 
     // 本 IP 无内部反压：只要不在复位就绪。
@@ -93,6 +113,47 @@ module d3d4_ip (
     //
     // 定义 D3D4_PHASE_XORSHIFT 可切回旧的 xorshift 版做 A/B 对照。
     // 两版**端口语义完全一致**（含 nxt_* 观察口），因此切换不影响下游。
+    // ---------------------------------------------------------------- 两相位交织
+    // 片组调度器：18 片池选 8 片采集 + 8 片转换 + 2 片备用。
+    // 与相位发生器共用同一个 `adv`（= 事务被接受的拍摄），保证
+    // "片组推进"与"相位推进"严格同步 —— 否则 mask 会用错片组的相位。
+    logic [17:0] sched_acq, sched_conv, sched_idle;
+    logic [39:0] sched_ids;
+
+    sched18 u_sched (
+        .clk          (clk),
+        .reset_n      (reset_n),
+        .seed_we      (1'b0),          // 本 IP 用固定种子，不开放重载
+        .seed_i       (32'd0),
+        .adv          (adv),
+        .acq_mask_o   (sched_acq),
+        .conv_mask_o  (sched_conv),
+        .idle_mask_o  (sched_idle),
+        .ids_o        (sched_ids),
+        .rng_o        ()
+    );
+
+    // ids_o 是**采集组**的升序片号；转换组的片号要另算。
+    // 转换组 = 上一拍的采集组，所以它正好等于本拍 sched_conv。
+    // 这里不引入额外寄存器：sched_conv 已经由 sched18 内部锁存。
+    logic [39:0] conv_ids_w;
+    always_comb begin
+        int k;
+        k = 0;
+        for (int i = 0; i < 18; i++) begin
+            if (sched_conv[i]) begin
+                if (k < 8) conv_ids_w[k*5 +: 5] = 5'(i);
+                k = k + 1;
+            end
+        end
+    end
+
+    assign acq_mask_o  = sched_acq;
+    assign conv_mask_o = sched_conv;
+    assign idle_mask_o = sched_idle;
+    assign acq_ids_o   = sched_ids;
+    assign conv_ids_o  = conv_ids_w;
+
 `ifdef D3D4_PHASE_XORSHIFT
     dem_phase_gen u_phase (
         .clk        (clk),

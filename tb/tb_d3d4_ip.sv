@@ -27,13 +27,17 @@ module tb_d3d4_ip;
     logic [3:0]   f_o;
     logic [3:0]   res_o, hp_o;
     logic [2:0]   vp_o;
+    logic [17:0]  acq_m, conv_m, idle_m;
+    logic [39:0]  acq_ids, conv_ids;
 
     d3d4_ip dut (
         .clk(clk), .reset_n(rstn),
         .valid_i(valid_i), .k_i(k_i), .dither_i(dither_i),
         .sample_adv_i(sample_adv_i), .ready_o(ready_o),
         .mask_o(mask_o), .pre_o(pre_o), .upper_o(upper_o), .f_o(f_o),
-        .reserved_o(res_o), .h_phase_o(hp_o), .v_phase_o(vp_o));
+        .reserved_o(res_o), .h_phase_o(hp_o), .v_phase_o(vp_o),
+        .acq_mask_o(acq_m), .conv_mask_o(conv_m), .idle_mask_o(idle_m),
+        .acq_ids_o(acq_ids), .conv_ids_o(conv_ids));
 
     int errors = 0;
     int checked = 0;
@@ -50,6 +54,13 @@ module tb_d3d4_ip;
     int v_vp[0:511];
     int v_k[0:511];
     int v_dith[0:511];
+
+    function automatic int cnt18(input logic [17:0] v);
+        int c;
+        c = 0;
+        for (int i = 0; i < 18; i++) if (v[i]) c = c + 1;
+        return c;
+    endfunction
 
     task automatic fail(input string msg);
         errors = errors + 1;
@@ -116,11 +127,30 @@ module tb_d3d4_ip;
             end
             if (upper_o !== 3'(v_U[j]))   fail($sformatf("第 %0d 拍 U 不匹配", j));
             if (f_o !== 4'(v_f[j]))       fail($sformatf("第 %0d 拍 f 不匹配", j));
-            if (res_o !== 4'(v_res[j]))   fail($sformatf("第 %0d 拍 res 不匹配", j));
+            if (res_o !== 4'(v_res[j])) begin
+                fail($sformatf("第 %0d 拍 res 不匹配", j));
+                if (errors <= 3)
+                    $display("     got res=%0d hp=%0d vp=%0d | want res=%0d hp=%0d vp=%0d",
+                             res_o, hp_o, vp_o, v_res[j], v_hp[j], v_vp[j]);
+            end
             if (hp_o !== 4'(v_hp[j]))     fail($sformatf("第 %0d 拍 hp 不匹配", j));
             if (vp_o !== 3'(v_vp[j]))     fail($sformatf("第 %0d 拍 vp 不匹配", j));
 
-            // 三轴覆盖（注意 hp 取值 0..14，res 0..15）
+            // ---- 两相位交织不变量 ----
+            // 这三条是论文"两相位"的结构保证，任何一条不成立都说明
+            // 采集与转换没有真正分离。
+            if ((acq_m & conv_m) != 18'd0)
+                fail($sformatf("第 %0d 拍 ACQ/CONV 重叠", j));
+            if (cnt18(acq_m) != 8)
+                fail($sformatf("第 %0d 拍 |ACQ|=%0d != 8", j, cnt18(acq_m)));
+            if (cnt18(conv_m) != 8)
+                fail($sformatf("第 %0d 拍 |CONV|=%0d != 8", j, cnt18(conv_m)));
+            if (cnt18(idle_m) != 2)
+                fail($sformatf("第 %0d 拍 |IDLE|=%0d != 2", j, cnt18(idle_m)));
+            if ((acq_m | conv_m | idle_m) != 18'h3FFFF)
+                fail($sformatf("第 %0d 拍 三态并集不满 18 片", j));
+
+            // ---- 三轴覆盖（注意 hp 取值 0..14，res 0..15）
             begin
                 int idx;
                 idx = v_res[j] * 120 + v_hp[j] * 8 + v_vp[j];

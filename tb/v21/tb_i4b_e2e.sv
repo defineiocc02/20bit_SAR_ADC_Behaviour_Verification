@@ -248,8 +248,12 @@ module tb_i4b_e2e;
         #1;
         got_tag = adc2_rsp_tag;
         rsp_seen = adc2_rsp_valid;
-        // recon 在 rsp_valid 这一拍采样，**下一拍**出 out_valid。
-        // 所以在这里等一拍再抓，才不会错过。
+        // recon 是**四级流水**（S1 Y->Z / S2 N与I / S3 X / S4 Q->code），
+        // rsp_valid 在 posedge1 采入，out_valid 要到 posedge5 才为 1。
+        // 早前是三拍等待（单周期版只需 1 拍），改流水后必须同步改。
+        @(posedge clk); #1;
+        @(posedge clk); #1;
+        @(posedge clk); #1;
         @(posedge clk); #1;
         d5_valid_seen = out_valid;
         d5_code_seen  = out_code;

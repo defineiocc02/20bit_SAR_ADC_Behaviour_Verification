@@ -63,13 +63,6 @@ module sched18 (
     assign r2 = x2[31:16];
 
     // ---------------------------------------------------------------- 候选表
-    function automatic int popc18(input logic [17:0] v);
-        int c;
-        c = 0;
-        for (int i = 0; i < 18; i++) if (v[i]) c = c + 1;
-        return c;
-    endfunction
-
     logic [17:0] avail;
     assign avail = ~acq_q;          // 与 ~conv_q 等价： conv_q == acq_q 的上一版
 
@@ -84,20 +77,21 @@ module sched18 (
     //
     // 现在改成定长展开：第 n 个置位的位置，用一次归约表达
     //   第 n 个置位 = 满足 avail[i] 且 popcount(低位掩码) == n 的那个 i
-    logic [4:0] cand [0:9];
-    genvar gci;
-    generate
-        for (gci = 0; gci < 10; gci++) begin : g_cand
-            always_comb begin
-                cand[gci] = 5'd0;
-                for (int i = 0; i < 18; i++) begin
-                    if (avail[i] && (popc18(avail & ((18'd1 << i) - 18'd1)) == gci))
-                        cand[gci] = 5'(i);
-                end
-            end
-        end
-    endgenerate
-
+    // ---------------------------------------------------------------- 第 n 个置位
+    //
+    // 原实现：对每个 gci（0..9）再对每个 i（0..17）调一次 popc18，
+    // 即 10 x 18 = 180 次 popcount，每次 popcount 又是一棵 18 位加法树
+    // -> DC 报出约 500 个 DW01_add，单这一步就跑了 20 分钟以上。
+    //
+    // 第一版改成 nth_set() 函数：每个调用仍各自做一遍 18 级前缀扫描。
+    // cand(10) + ids(8) + ids_next(8) = 26 个实例 -> 26 x 18 = 468 级加法。
+    //
+    // 现在改为**三张共享前缀表**：avail / acq_q / acq_next 各算一次
+    // pc[i] = popcount(v[0..i])，然后第 n 个置位 = "pc[i]==n 且 v[i]" 的 i。
+    // 每张表 18 次加 1，共 54 级 —— 比 468 级少 88%。
+    //
+    // 功能完全等价（都是"第 n 个置位的位置"），由 tb_sched18 的 4096 拍
+    // 逐位对拍与 L2.5 的 20000 拍统计回归覆盖。
     // i1 ∈ 0..9，j0 ∈ 0..8，i2 跳过 i1
     //
     // 为什么必须显式加宽到 32 位（原写法是 `(r1 * 16'd10) >> 16`）：
@@ -113,6 +107,60 @@ module sched18 (
     assign i2 = j0 + (j0 >= i1 ? 4'd1 : 4'd0);
 
     logic [17:0] drop, acq_next;
+
+    logic [4:0] pc_avail  [0:17];
+    logic [4:0] pc_acq    [0:17];
+    logic [4:0] pc_next   [0:17];
+
+    // pc[i] = **第 i 位之前**已有几个置位（不含自身）。
+    // 这样"第 n 个置位"就是 "v[i] 且 pc[i]==n" 的那个 i。
+    // 早前写成"含自身"会整体错位一位，实测 20396 个失配。
+    always_comb begin
+        logic [4:0] c;
+        c = 5'd0;
+        for (int i = 0; i < 18; i++) begin
+            pc_avail[i] = c;
+            if (avail[i]) c = c + 5'd1;
+        end
+    end
+    always_comb begin
+        logic [4:0] c;
+        c = 5'd0;
+        for (int i = 0; i < 18; i++) begin
+            pc_acq[i] = c;
+            if (acq_q[i]) c = c + 5'd1;
+        end
+    end
+    always_comb begin
+        logic [4:0] c;
+        c = 5'd0;
+        for (int i = 0; i < 18; i++) begin
+            pc_next[i] = c;
+            if (acq_next[i]) c = c + 5'd1;
+        end
+    end
+
+    // 第 n 个置位：在对应的 pc 表里找第一个 "有效且 pc==n" 的位
+    function automatic logic [4:0] pick(input logic [17:0] v,
+                                        input logic [4:0] pc [0:17],
+                                        input int n);
+        logic [4:0] r;
+        begin
+            r = 5'd0;
+            for (int i = 0; i < 18; i++)
+                if (v[i] && (pc[i] == 5'(n))) r = 5'(i);
+            pick = r;
+        end
+    endfunction
+
+    logic [4:0] cand [0:9];
+    genvar gci;
+    generate
+        for (gci = 0; gci < 10; gci++) begin : g_cand
+            assign cand[gci] = pick(avail, pc_avail, gci);
+        end
+    endgenerate
+
     assign drop     = (18'd1 << cand[i1]) | (18'd1 << cand[i2]);
     assign acq_next = avail & ~drop;
 
@@ -138,24 +186,12 @@ module sched18 (
     assign idle_mask_o = ~(acq_q | conv_q);
     assign rng_o       = rng_q;
 
-    // 采集组 8 个片号（升序）。同 cand 的理由，改为定长展开避免推断寄存器。
+    // 采集组 8 个片号（升序）。与 cand 共用前缀表，不再各自重算。
     genvar gii;
     generate
         for (gii = 0; gii < 8; gii++) begin : g_ids
-            always_comb begin
-                ids_o[gii*5 +: 5] = 5'd0;
-                for (int i = 0; i < 18; i++) begin
-                    if (acq_q[i] && (popc18(acq_q & ((18'd1 << i) - 18'd1)) == gii))
-                        ids_o[gii*5 +: 5] = 5'(i);
-                end
-            end
-            always_comb begin
-                ids_next_o[gii*5 +: 5] = 5'd0;
-                for (int i = 0; i < 18; i++) begin
-                    if (acq_next[i] && (popc18(acq_next & ((18'd1 << i) - 18'd1)) == gii))
-                        ids_next_o[gii*5 +: 5] = 5'(i);
-                end
-            end
+            assign ids_o[gii*5 +: 5]      = pick(acq_q,    pc_acq,  gii);
+            assign ids_next_o[gii*5 +: 5] = pick(acq_next, pc_next, gii);
         end
     endgenerate
 

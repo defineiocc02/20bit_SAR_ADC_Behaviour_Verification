@@ -103,13 +103,14 @@ module tb_i4_recon;
         alpha_q30 = 32'(v_alpha[idx]);
         b_q24     = 32'(v_b[idx]);
         in_tag    = 32'(idx);
-        // recon 流水现在是 6 拍：
-        //   S1: Y->Z
+        // recon 流水现在是 7 拍：
+        //   S1a: Y-b（只做加减）
+        //   S1b: alpha 除法（旁路时只打拍）—— 为消除 setup 违例新增
         //   S2a/S2b/S2c: N 打三拍、与 recip_rnd_v21 的 3 拍 I 汇合
         //   S3: X = N*I>>36
         //   S4: Q->code
-        // 所以 out_valid 相对 in_valid 延迟 6 拍。
-        // （换用 recip_rnd_v21 前是 4 拍；I 由纯组合除法改成 3 拍倒数流水。）
+        // 所以 out_valid 相对 in_valid 延迟 7 拍。
+        @(posedge clk); #1;
         @(posedge clk); #1;
         @(posedge clk); #1;
         @(posedge clk); #1;
@@ -172,14 +173,10 @@ module tb_i4_recon;
         adc2_raw  = 13'd4096;
         Wm_q30 = 64'(v_Wm[0]); G_q30 = 64'(v_G[0]); Wp_q30 = 64'(v_Wp[0]);
         alpha_q30 = 32'd1073741824; b_q24 = 32'sd0; in_tag = 32'hE0E0;
-        // 六级流水：采入后要等 6 拍结果才出来
+        // 七级流水：采入后要等 7 拍结果才出来
         @(posedge clk); #1;
         in_valid = 1'b0;
-        @(posedge clk); #1;
-        @(posedge clk); #1;
-        @(posedge clk); #1;
-        @(posedge clk); #1;
-        @(posedge clk); #1;
+        repeat (6) @(posedge clk); #1;
         checks = checks + 1;
         if (out_err !== 1'b1) fail("epoch 不匹配未报 err");
         else $display("      epoch 不匹配 -> err  OK");

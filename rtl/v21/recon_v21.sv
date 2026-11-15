@@ -148,24 +148,56 @@ module recon_v21 (
     logic signed [95:0] x3_q;        // S3 输出：X
 
     // ---------------------------------------------------------------- S1：Y -> Z
+    //
+    // **S1 拆成 S1a / S1b 两级**，理由是时序违例：
+    //   原本 S1 一拍里同时做 "Y-b 的加法" 和 "alpha 除法"，
+    //   网表实测 b_q24_cfg -> z1_q 的路径 arrival 27.34 ns，
+    //   超 25 ns 周期 2.36 ns（docs/v21/TIMING_BUDGET_v2.md）。
+    //
+    //   把 alpha 除法单独放一级后，S1a 只有一次加/减，
+    //   S1b 只有一次除法（32 位操作，不是 64 位），两级都能满足。
+    //
+    // 代价：out_valid 相对 in_valid 的延迟由 6 拍变成 7 拍。
+    // tb_i4_recon / tb_i4b_e2e 的等待拍数已同步调整。
+    //
+    // 注意：alpha == 2^30 时走旁路，S1b 不做除法 —— 正常模式下
+    // 这一级只是把 S1a 的结果打一拍，不引入额外延迟风险。
+    logic        v1a_q, v1_q;
+    logic [31:0] tag1a_q, tag1_q;
+    logic        err1a_q, err1_q;
+    logic signed [63:0] d1a_q, z1_q;   // d1a = Y - b，z1 = 结果
+
+    // S1a：只算 Y - b
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            v1_q <= 1'b0; tag1_q <= 32'd0; err1_q <= 1'b0; z1_q <= 64'sd0;
+            v1a_q <= 1'b0; tag1a_q <= 32'd0; err1a_q <= 1'b0; d1a_q <= 64'sd0;
         end else begin
-            v1_q   <= in_valid;
-            tag1_q <= in_tag;
-            err1_q <= input_err;
+            v1a_q   <= in_valid;
+            tag1a_q <= in_tag;
+            err1a_q <= input_err;
             if (in_valid) begin
                 logic signed [31:0] y;
                 logic signed [63:0] yb;
                 y  = -32'sd3145728 + 32'sd768 + ($signed({19'd0, adc2_raw}) * 32'sd1536);
                 // 27 位有符号 -> 64 位：高位补符号位，不是补 0
                 yb = {{37{b_q24[26]}}, b_q24};
-                if (alpha_bypass)
-                    z1_q <= y - yb;
-                else
-                    z1_q <= rnd64((y - yb) * 64'sd1073741824, {32'd0, alpha_q30});
+                d1a_q <= y - yb;
             end
+        end
+    end
+
+    // S1b：alpha 除法（旁路时只打拍）
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            v1_q <= 1'b0; tag1_q <= 32'd0; err1_q <= 1'b0; z1_q <= 64'sd0;
+        end else begin
+            v1_q   <= v1a_q;
+            tag1_q <= tag1a_q;
+            err1_q <= err1a_q;
+            if (alpha_bypass)
+                z1_q <= d1a_q;
+            else
+                z1_q <= rnd64(d1a_q * 64'sd1073741824, {32'd0, alpha_q30});
         end
     end
 

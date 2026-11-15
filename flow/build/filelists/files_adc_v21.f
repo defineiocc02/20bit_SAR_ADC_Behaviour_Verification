@@ -18,4 +18,5 @@ rtl/v21/acq_conv_ctx.sv
 rtl/v21/sar_evt_v21.sv
 rtl/v21/adc2_capture.sv
 rtl/v21/adc2_node_macro.sv
+rtl/v21/recon_v21.sv
 rtl/v21/adc_digital_ip_v21.sv

@@ -35,8 +35,14 @@ module tb_recip_q60;
     endtask
 
     // 出口比对
+    //
+    // **只在逐位比对段启用**。合同违例段（G=0 / G<2^34 / G=2^34）是单独
+    // 构造的用例，exp_q 此时已被取空；若不屏蔽，会把"合法地没有待比值"
+    // 误报成 "valid_o 但没有待比值"（实测就是这样报了 3 个错）。
+    logic cmp_en = 1'b1;
+
     always @(posedge clk) begin
-        if (rstn && valid_o) begin
+        if (rstn && cmp_en && valid_o) begin
             longint e;
             if (exp_q.size() == 0) fail("valid_o 但没有待比值");
             else begin
@@ -54,10 +60,17 @@ module tb_recip_q60;
         longint g, iv;
         int n_vec;
         n_vec = 0;
-        fd = $fopen("vec_r18_recip.txt", "r");
-        if (fd == 0) begin
-            $display("FATAL: cannot open vec_r18_recip.txt");
-            $finish;
+        // 向量路径可用 +VEC=<path> 覆盖：统一入口在不同工作目录跑，
+        // 写死相对路径会让"本地通过、入口失败"（实测过一次）。
+        begin
+            reg [1023:0] vpath;
+            if (!$value$plusargs("VEC=%s", vpath)) vpath = "vec_r18_recip.txt";
+            fd = $fopen(vpath, "r");
+            if (fd == 0) begin
+                $display("FATAL: cannot open %0s", vpath);
+                $finish;
+            end
+            $display("INFO: vector file = %0s", vpath);
         end
 
         repeat (3) @(negedge clk);
@@ -79,17 +92,35 @@ module tb_recip_q60;
             end
         end
         $fclose(fd);
-        valid_i = 1'b0;
-        repeat (4) @(negedge clk);
+        // **最后一笔也要真正走完流水**：valid_i 在循环最后一次刚置 1，
+        // 而 recip_q60 是两级流水，valid_o 要再等 2 拍。
+        // 早前固定 `repeat (4) @(negedge clk)` 只等 4 个 negedge = 2 拍，
+        // 边界上会漏掉最后一笔（实测 n_cmp=43765 而应为 43766）。
+        // 改为"等到队列清空"并加超时保护，避免边界假设。
+        begin
+            int guard;
+            guard = 0;
+            @(negedge clk);
+            valid_i = 1'b0;
+            while (exp_q.size() != 0 && guard < 32) begin
+                @(negedge clk);
+                guard = guard + 1;
+            end
+        end
         if (exp_q.size() != 0) fail($sformatf("还有 %0d 笔未出结果", exp_q.size()));
 
         // ---- 2) 合同违例 ----
+        // 这一段不再用 exp_q 比对（见 cmp_en 的注释）
+        cmp_en = 1'b0;
         // G = 0：inv 必须为 0，且 err 必须报
         @(negedge clk);
         valid_i = 1'b1; g_i = 44'd0;
-        @(negedge clk);
-        valid_i = 1'b0;
+        // **valid_i 必须维持整拍**：recip_q60 是两级流水
+        // （valid_i -> v1 -> v2 = valid_o），
+        // 只保持半拍（到一个 negedge）不够，会被当成没输入。
+        @(posedge clk);
         @(posedge clk); #1;
+        valid_i = 1'b0;
         if (!valid_o)           fail("G=0 未产生 valid_o");
         if (!err_o)             fail("G=0 未报 err");
         if (inv_o !== 27'd0)    fail("G=0 的 inv 不是 0");
@@ -98,9 +129,9 @@ module tb_recip_q60;
         // G = 2^33（低于合同 2^34）：inv 装不进 27 bit，必须报 err
         @(negedge clk);
         valid_i = 1'b1; g_i = 44'd8589934592;
-        @(negedge clk);
-        valid_i = 1'b0;
+        @(posedge clk);
         @(posedge clk); #1;
+        valid_i = 1'b0;
         if (!valid_o)           fail("G=2^33 未产生 valid_o");
         if (!err_o)             fail("G=2^33（<2^34）未报 err，等于静默截断");
         repeat (2) @(negedge clk);
@@ -108,9 +139,9 @@ module tb_recip_q60;
         // G = 2^34（合同下边界）：err 必须为 0
         @(negedge clk);
         valid_i = 1'b1; g_i = 44'd17179869184;
-        @(negedge clk);
-        valid_i = 1'b0;
+        @(posedge clk);
         @(posedge clk); #1;
+        valid_i = 1'b0;
         if (!valid_o)           fail("G=2^34 未产生 valid_o");
         if (err_o)              fail("G=2^34（合同内）误报 err");
         repeat (2) @(negedge clk);

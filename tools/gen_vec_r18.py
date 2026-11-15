@@ -63,8 +63,12 @@ def write_recip(path: str, ver: int = 0) -> dict:
     rs = [row_sum(W[ver], s) for s in range(N_SLICES)]
     gs = sorted({sum(rs[s] for s in ids)
                  for ids in itertools.combinations(range(N_SLICES), N_ACTIVE)})
-    # 合同域 G ≥ 2^34（更小的 G 由 RTL 的 ovf 报错，不参与逐位比对）
-    edge = [2**34, 2**34 + 1, 2**35 - 1, 2**35, 2**36, 2**37, 2**40, 2**44 - 1]
+    # 合同合法域：16 <= G <= 64（Q30），即 [2^34, 2^36]。
+    # **域外值不能混进逐位比对行**：RTL 会正确地报 err 且 inv=0，
+    # 而 TB 若按"正常值"比对就会误判成 RTL 错（实测 3 处）。
+    # 域外值单独放到 edge 文件，由 TB 用 err 断言检查。
+    edge = [2**34, 2**34 + 1, 2**35 - 1, 2**35, 2**36]
+    edge_out = [2**33, 2**37, 2**40, 2**44 - 1]
     rows = []
     worst_rel = 0.0
     for g in gs + edge:

@@ -70,9 +70,12 @@ module tb_recip_q60;
             if (r == 2) begin
                 n_vec = n_vec + 1;
                 exp_q.push_back(iv);
+                // **先赋值再等沿**：原写法先 `valid_i=1` 再 `@(negedge clk)`，
+                // 下一轮才更新 g_i，导致同一拍里 valid_i 与 g_i 属于不同笔 ——
+                // 出口比对会看到"valid_o 但没有待比值"或数值错位。
+                @(negedge clk);
                 valid_i = 1'b1;
                 g_i     = g[43:0];
-                @(negedge clk);
             end
         end
         $fclose(fd);

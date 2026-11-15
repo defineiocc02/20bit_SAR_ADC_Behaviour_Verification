@@ -4,9 +4,12 @@ __pycache__/
 *$py.class
 *.so
 .Python
-# 只忽略仓库根的 build/（历史产物）。注意不能写裸 `build/`，
-# 那会匹配任意层级，连 flow/build/filelists/ 的编译清单一起忽略。
-/build/
+# build/ 是构建产物目录，任意层级都要忽略（flow/verification/build/ 下有
+# 70+ 个历史 stage 快照，绝不能入库）。
+build/
+# 但 flow/build/filelists/ 是**手写的编译清单**，属于源码，必须保留。
+!flow/build/
+!flow/build/filelists/
 dist/
 *.egg-info/
 .eggs/

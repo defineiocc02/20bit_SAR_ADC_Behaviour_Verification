@@ -32,7 +32,13 @@ create_clock -name clk -period 25.0 [get_ports clk]
 #   * remove_from_collection —— read_sdc 阶段未加载，unknown command
 #   * all_inputs -no_clocks  —— 当前版本不支持该选项
 # 显式列出的代价是加端口时要同步改两处，因此下面用变量集中定义。
-set _data_in [get_ports {valid_i k_i[*] dither_i[*] sample_adv_i}]
+# 除 clk 外的全部输入端口。加端口时**必须**同步这里，否则新端口无约束，
+# 综合器会把它当"无到达时间"处理，时序报告会漏掉相关路径。
+set _data_in [get_ports {
+    valid_i k_i[*] dither_i[*] sample_adv_i
+    ev_mode_i ev_start_i ev_bit_valid_i ev_bit_i ev_sar_index_i
+    ev_sar_qid_i ev_flash_code_i ev_upper_i
+}]
 set_input_delay  -max 2.0 -clock clk $_data_in
 set_input_delay  -min 0.5 -clock clk -add_delay $_data_in
 set_output_delay -max 2.0 -clock clk [all_outputs]

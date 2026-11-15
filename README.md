@@ -10,7 +10,10 @@
 | `src/adi_model/dem_dither.py` | 参考算法（唯一实现，纯函数） |
 | `rtl/dem_mask_v3.sv` | D3：粗码 → 8×20 物理 post-mask（打包端口） |
 | `rtl/dither_pre.sv` | D4：6 位扰动字 → 8 片 × 4 位采样预置开关（打包端口） |
-| `rtl/dem_phase_gen.sv` | D3 三维相位发生器（xorshift32，三轴满覆盖 1920） |
+| `rtl/dem_phase_rr.sv` | D3 三维相位发生器（**round-robin**，默认；对齐 PPT "Round robin shuffler"） |
+| `rtl/dem_phase_gen.sv` | 同上，xorshift 版（A/B 对照，`+define+D3D4_PHASE_XORSHIFT` 启用） |
+| `rtl/sched18.sv` | D1 18 片池调度（ACQ/CONV/IDLE 三态，支撑两相位交织） |
+| `rtl/follower_rt.sv` | RDAC follower（逐事件累加 k，边产生边载入） |
 | `rtl/d3d4_ip.sv` | **IP 顶层**：把上面三个接成单时钟域、单拍输出的通路 |
 | `rtl/sched18.sv` | D1 random18 片组调度（ACQ/CONV/IDLE 三态） |
 
@@ -63,10 +66,10 @@ bash tools/verify_d3d4_ip.sh
 
 | 项 | 值 |
 |:---|:---|
-| 面积 | 1040.86 µm²（1516 cells，251 FF） |
-| 真实组合延迟 | **7.91 ns（≈126 MHz）**，相对 40 MS/s 规格有约 3 倍余量 |
-| 25 ns 下 setup | +17.29 ns |
-| 25 ns 下 hold | +0.013 ns —— **不构成签核结论**，见 SYNTH_D3D4.md §4 |
+| 面积 | 1763.61 µm²（3048 cells，322 FF） |
+| 逻辑级数 / 关键路径 | **40 级 / 2.82 ns**（换 round-robin 前是 146 级 / 7.91 ns） |
+| 25 ns 下 setup | +19.88 ns |
+| 25 ns 下 hold | +0.0017 ns —— **不构成签核结论**，见 SYNTH_D3D4.md §4 |
 
 ## 阅读顺序
 
@@ -87,6 +90,9 @@ bash tools/verify_d3d4_ip.sh
 | hold | **不能签核**。零线载假设下的 +0.013 ns 不构成结论，见 `SYNTH_D3D4.md` §4 |
 | 功耗 | **不能签核**。`report_power` 无色切换率输入，只作量级参考 |
 | 接主链 | **未接**。`digital_top_w` 仍走 `dem_shuffle` + `dither_split`（4+3+2 / `c−U`），不含本 IP |
+| 两相位交织 | **已接入**。`d3d4_ip` 例化 `sched18`，输出 acq/conv/idle 掩码与片 ID |
+| RDAC follower | **已接入**。事件流模式下 k 由 `follower_rt` 逐事件累加（实测 1→3→…→511） |
+| bridging | 与 PPT Fig.31 的 2×2 形态**不同**，按合同 §6.1 的等电荷 E 实现；见 `docs/BRIDGE_VS_FIG31.md` |
 | 来源 | `3+3+3`、8 宏列×16 半单元、β=1/8、guard 512–520 均为 `[E]` 工程补全 |
 | 历史文档 | `docs/DIGITAL_SPEC.md` 等早于合同 v2.1，仅作追溯，不作现行规格 |
 | 笔数口径 | 仓库里 `8509` 笔那条走旧链，**不是本 IP 的证据** |

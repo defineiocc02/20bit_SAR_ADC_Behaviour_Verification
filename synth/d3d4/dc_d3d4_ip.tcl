@@ -24,8 +24,10 @@ set out  $::env(D3D4_OUT)
 
 set lib   "$pdk/tsmc28/digital_technology/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn28hpcplusbwp7t40p140_180a/tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs.db"
 set sdc   "$work/synth/d3d4/sdc_d3d4_ip.sdc"
-set rtl   [list "$work/rtl/dem_phase_gen.sv" "$work/rtl/dem_mask_v3.sv" \
-                "$work/rtl/dither_pre.sv" "$work/rtl/d3d4_ip.sv"]
+set rtl   [list "$work/rtl/dem_phase_rr.sv"  "$work/rtl/dem_phase_gen.sv" \
+                "$work/rtl/sched18.sv"      "$work/rtl/follower_rt.sv" \
+                "$work/rtl/dem_mask_v3.sv"  "$work/rtl/dither_pre.sv" \
+                "$work/rtl/d3d4_ip.sv"]
 
 need {[file isfile $lib]} "missing library: $lib"
 need {[file isfile $sdc]} "missing SDC: $sdc"

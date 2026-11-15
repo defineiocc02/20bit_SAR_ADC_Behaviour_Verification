@@ -17,7 +17,7 @@
 | L1 | D4 Split Dither pre-mask | **PASS** | 512 组（64 字 × 8 相位），mask 与 `U`/`f` 全比，0 失配 |
 | L2 | D3/D4 IP 顶层（含相位发生器） | **PASS** | 512 笔事务逐位一致；`d3d4_ip` 把 `dem_phase_gen` + `dem_mask_v3` + `dither_pre` 接成单拍通路 |
 | L3 | 门级等价 | **PASS** | 综合网表 + 标准单元模型，512 笔 0 失配 |
-| L4 | 块级综合（28nm SS） | **PASS** | 1516 cells / 1040.86 µm²；25 ns 下 setup +17.29 ns、hold +0.013 ns。详见 `docs/SYNTH_D3D4.md` |
+| L4 | 块级综合（28nm SS） | **PASS** | 3048 cells / 1763.61 µm²；25 ns 下 setup +19.88 ns、hold +0.0017 ns；逻辑级数 40、关键路径 2.82 ns。详见 `docs/SYNTH_D3D4.md` |
 | — | 形式等价（Formality） | **NOT_RUN** | 门级仿真已覆盖功能，不等价于形式证明 |
 | — | P&R / CTS / 布线 | **NOT_RUN** | 无 ICC2/Innovus 配置与完整 LEF |
 | — | 真实 hold 签核 | **不能声称** | ZeroWireload，无时钟树；13 ps 不是签核数字 |
@@ -30,7 +30,9 @@
 | 模块 | 状态 | 说明 |
 |:---|:---|:---|
 | `dem_phase_gen` | **已接入** | 原为悬空（0 处例化、不在任何 `files*.f`）。现由 `d3d4_ip` 例化，三轴对称 1920/1920 满覆盖 |
-| `sched18` | **PASS（修复后）** | 原 16 位乘法溢出导致随机性丢失（固定丢最小两片），修复后 4096 拍 0 错误、χ²=0.9、IDLE 对 153/153 |
+| `sched18` | **PASS（修复后）** | 原 16 位乘法溢出导致随机性丢失（固定丢最小两片），修复后 4096 拍 0 错误、χ²=0.9、IDLE 对 153/153。已接入 `d3d4_ip` 支撑两相位交织 |
+| `follower_rt` | **已接入** | 事件流模式下逐事件累加 k（实测 1→3→7→…→511，8/8 次严格增长），即论文第 7 条"边产生边载入" |
+| `dem_phase_rr` | **默认启用** | round-robin，对齐 PPT "Round robin shuffler"；χ²=0、三轴 MI=0、周期内零重复；面积比 xorshift 小 5.1 倍（见 `docs/PHASE_AB.md`） |
 
 ### 与旧实现的关系（不得混淆）
 

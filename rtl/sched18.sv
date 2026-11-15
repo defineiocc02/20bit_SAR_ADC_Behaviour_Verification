@@ -56,20 +56,40 @@ module sched18 (
     assign r2 = x2[31:16];
 
     // ---------------------------------------------------------------- 候选表
+    function automatic int popc18(input logic [17:0] v);
+        int c;
+        c = 0;
+        for (int i = 0; i < 18; i++) if (v[i]) c = c + 1;
+        return c;
+    endfunction
+
     logic [17:0] avail;
     assign avail = ~acq_q;          // 与 ~conv_q 等价： conv_q == acq_q 的上一版
 
+    // 候选表：把 avail 里置位的 10 个片号按升序压进 cand[0..9]。
+    //
+    // 为什么不用 `always_comb + int k + cand[k]=i`：
+    // 那种写法在**作为子模块内联到顶层**时会被综合器推断成 50 个未时钟
+    // 驱动的寄存器（实测 u_sched/cand_reg[0..49]），触发综合门禁
+    // "unclocked sequential cells present"。根因是"变量下标写入 +
+    // 过程内累加"，综合器无法证明全路径赋值完备，只能保守按锁存器处理。
+    // 单独 elaborate sched18 作顶层时不暴露，因为它被完整优化掉了。
+    //
+    // 现在改成定长展开：第 n 个置位的位置，用一次归约表达
+    //   第 n 个置位 = 满足 avail[i] 且 popcount(低位掩码) == n 的那个 i
     logic [4:0] cand [0:9];
-    always_comb begin
-        int k;
-        k = 0;
-        for (int i = 0; i < 18; i++) begin
-            if (avail[i]) begin
-                if (k < 10) cand[k] = 5'(i);
-                k = k + 1;
+    genvar gci;
+    generate
+        for (gci = 0; gci < 10; gci++) begin : g_cand
+            always_comb begin
+                cand[gci] = 5'd0;
+                for (int i = 0; i < 18; i++) begin
+                    if (avail[i] && (popc18(avail & ((18'd1 << i) - 18'd1)) == gci))
+                        cand[gci] = 5'(i);
+                end
             end
         end
-    end
+    endgenerate
 
     // i1 ∈ 0..9，j0 ∈ 0..8，i2 跳过 i1
     //
@@ -111,17 +131,18 @@ module sched18 (
     assign idle_mask_o = ~(acq_q | conv_q);
     assign rng_o       = rng_q;
 
-    always_comb begin
-        logic [4:0] ids [0:7];
-        int k;
-        k = 0;
-        for (int i = 0; i < 18; i++) begin
-            if (acq_q[i]) begin
-                if (k < 8) ids[k] = 5'(i);
-                k = k + 1;
+    // 采集组 8 个片号（升序）。同 cand 的理由，改为定长展开避免推断寄存器。
+    genvar gii;
+    generate
+        for (gii = 0; gii < 8; gii++) begin : g_ids
+            always_comb begin
+                ids_o[gii*5 +: 5] = 5'd0;
+                for (int i = 0; i < 18; i++) begin
+                    if (acq_q[i] && (popc18(acq_q & ((18'd1 << i) - 18'd1)) == gii))
+                        ids_o[gii*5 +: 5] = 5'(i);
+                end
             end
         end
-        for (int j = 0; j < 8; j++) ids_o[j*5 +: 5] = ids[j];
-    end
+    endgenerate
 
 endmodule

@@ -169,17 +169,41 @@ module d3d4_ip (
     // ids_o 是**采集组**的升序片号；转换组的片号要另算。
     // 转换组 = 上一拍的采集组，所以它正好等于本拍 sched_conv。
     // 这里不引入额外寄存器：sched_conv 已经由 sched18 内部锁存。
+    //
+    // 踩过的坑：最初写成 `always_comb` 里用 `int k` 累加再写 `conv_ids_w[k*5+:5]`。
+    // 综合器把 `conv_ids_w` 推断成了 **130 个未时钟驱动的寄存器**，
+    // 触发综合门禁 "unclocked sequential cells present" 直接失败。
+    // 根因是"变量下标写入 + 过程内累加变量"这种写法无法保证全路径赋值完备，
+    // 综合器只能保守地按锁存器处理。
+    //
+    // 改法：每个 slot 用一次归约表达式求"第 gi 个置位的位置"。
+    //   第 gi 个置位 = 满足 sched_conv[i] 且 popcount(低位掩码)==gi 的那个 i
+    // 全是位运算与归约，综合器直接展成门级。
+    // 之所以不用 `always_comb + int k`：那会被推断成锁存器/未时钟寄存器
+    // （实测 130 个，触发综合门禁 "unclocked sequential cells" 失败）。
+    function automatic int popc18(input logic [17:0] v);
+        int c;
+        c = 0;
+        for (int i = 0; i < 18; i++) if (v[i]) c = c + 1;
+        return c;
+    endfunction
+
     logic [39:0] conv_ids_w;
-    always_comb begin
-        int k;
-        k = 0;
-        for (int i = 0; i < 18; i++) begin
-            if (sched_conv[i]) begin
-                if (k < 8) conv_ids_w[k*5 +: 5] = 5'(i);
-                k = k + 1;
+    genvar gi;
+    generate
+        for (gi = 0; gi < 8; gi++) begin : g_conv_id
+            // 对每个候选位置 i，判断它是不是第 gi 个置位
+            logic [4:0] sel;
+            always_comb begin
+                sel = 5'd0;
+                for (int i = 0; i < 18; i++) begin
+                    if (sched_conv[i] && (popc18(sched_conv & ((18'd1 << i) - 18'd1)) == gi))
+                        sel = 5'(i);
+                end
             end
+            assign conv_ids_w[gi*5 +: 5] = sel;
         end
-    end
+    endgenerate
 
     assign acq_mask_o  = sched_acq;
     assign conv_mask_o = sched_conv;

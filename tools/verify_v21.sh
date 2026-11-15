@@ -80,8 +80,17 @@ for t in "${TESTS[@]}"; do
 done
 
 echo
+echo "=== 算术等价性证明（不依赖工具，纯数学+区间穷举）==="
+if python3 "$ROOT/tools/prove_rnd96.py" 2>&1 | grep -q "RESULT: PROVEN"; then
+  echo "  rnd96_const == RND(n,96)  PROVEN on |n| < 2^31"
+else
+  echo "  rnd96_const 等价性证明 FAILED"
+  fail=1
+fi
+
+echo
 if [ "$fail" -eq 0 ]; then
-  echo "全部通过：审计三反例 + I1/I2 + I3 + I4b 端到端"
+  echo "全部通过：审计三反例 + I1/I2 + I3 + I4b 端到端 + 算术等价性证明"
 else
   echo "存在失败项，见上"
 fi

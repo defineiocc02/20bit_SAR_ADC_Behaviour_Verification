@@ -194,7 +194,13 @@ module recon_v21 (
 
     recip_rnd_v21 u_recip_rnd (
         .clk(clk), .rst_n(rst_n),
-        .valid_i(v1_q), .g_q30(G_q30),
+        // **必须显式截断到 44 位**：recon 的 G_q30 端口是 64 位，
+        // 而 recip_rnd_v21 的 g_q30 是 44 位。直接接会报
+        // "Width mismatch on port 'g_q30'"（LINK-3），
+        // DC 随即把整个 recip_rnd_v21 当黑盒，网表里缺定义 ——
+        // 这会让人误以为综合收敛且面积只有 89693 µm²（实测就是这样）。
+        // G 的合同域上限 2^36，44 位足够。
+        .valid_i(v1_q), .g_q30(G_q30[43:0]),
         .valid_o(ri_valid), .i_q60(ri_i), .err_o(ri_err));
 
     // S2a：算 N，并启动 I 的倒数流水（valid_i = v1_q 已接在上面）

@@ -36,7 +36,7 @@ TESTS=(
   "tb/v21/tb_audit3.sv|sa3|PASS (10 checks)"
   "tb/v21/tb_i12_full.sv|s12|PASS (105 checks)"
   "tb/v21/tb_i3_full.sv|s3f|PASS (20 checks)"
-  "tb/v21/tb_i4b_e2e.sv|s4b|PASS (24 checks)"
+  "tb/v21/tb_i4b_e2e.sv|s4b|PASS (25 checks)"
 )
 
 fail=0

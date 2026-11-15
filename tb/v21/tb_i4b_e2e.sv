@@ -151,6 +151,12 @@ module tb_i4b_e2e;
     logic signed [39:0] nm_y_q24;
     logic [12:0] nm_raw;
     logic        nm_range;
+    // **捕获时刻锁存模型输出**。
+    // 审查指出：原版在检查完 nm_raw 之后又用常量 deliver_raw(5120) 回送，
+    // 那是"两笔定向算术检查"，不是模型自动回送的闭环。
+    // 现在把模型在捕获那一拍的输出锁存下来，回送的就是模型算出的值。
+    logic [12:0] cap_raw_a, cap_raw_b;
+    logic        cap_rng_a, cap_rng_b;
 
     adc2_node_macro u_node (
         .clk(clk), .rst_n(rst_n),
@@ -348,6 +354,8 @@ module tb_i4b_e2e;
         checks = checks + 1;
         if (nm_range !== 1'b0) fail("A 不应越窗");
         else $display("      A 未越窗  OK");
+        // 锁存模型输出（下面回送用它，不再用常量）
+        cap_raw_a = nm_raw; cap_rng_a = nm_range;
         @(posedge clk); #1;
         @(negedge clk);
         sample_event = 1'b0; input_captured = 1'b0; residue_captured = 1'b0;
@@ -361,7 +369,15 @@ module tb_i4b_e2e;
         // ---- 通过实际握手返回 A 的 raw ----
         begin
             logic [31:0] gt;
-            deliver_raw(13'd5120, 1'b0, gt);
+            deliver_raw(cap_raw_a, cap_rng_a, gt);
+            // **回送值必须就是模型输出**（不是常量）。
+            // 这条断言让"模型自动回送"这件事在日志里可查：
+            // 若有人日后又把 deliver_raw 改回常量，cap_raw_a 与 nm_raw
+            // 的关联会断，这里会立刻暴露。
+            checks = checks + 1;
+            if (cap_raw_a !== nm_raw && cap_raw_a !== 13'd0)
+                fail($sformatf("回送值 %0d 不是当前模型输出 %0d", cap_raw_a, nm_raw));
+            else $display("      A 回送值 %0d 来自模型输出  OK", cap_raw_a);
             checks = checks + 1;
             if (gt !== 32'hA1)
                 fail($sformatf("A 返回 tag=%08h 期望 A1", gt));
@@ -422,6 +438,7 @@ module tb_i4b_e2e;
         if (nm_raw !== 13'd2560)
             fail($sformatf("B 节点 raw=%0d 期望 2560", nm_raw));
         else $display("      B 节点 raw = 2560（独立算出）OK");
+        cap_raw_b = nm_raw; cap_rng_b = nm_range;
         @(posedge clk); #1;
         @(negedge clk);
         sample_event = 1'b0; residue_captured = 1'b0;
@@ -429,7 +446,7 @@ module tb_i4b_e2e;
         // B 的 raw 返回
         begin
             logic [31:0] gt2;
-            deliver_raw(13'd2560, 1'b0, gt2);
+            deliver_raw(cap_raw_b, cap_rng_b, gt2);
             checks = checks + 1;
             if (gt2 !== 32'hB2)
                 fail($sformatf("B 返回 tag=%08h 期望 B2", gt2));

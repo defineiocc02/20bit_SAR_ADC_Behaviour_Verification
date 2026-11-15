@@ -82,9 +82,28 @@ puts "STEP_TOP_OK"
 #   ② create_corner default             -> CSTR-015（已存在）
 #   ③ set_parasitic_parameters -early_tlu_plus_file -> CMD-010（选项非法）
 # 现在直接用名字对齐。
-read_parasitic_tech -tlup $TLU_MAX -name default
-read_parasitic_tech -tlup $TLU_MIN -name default_min
-puts "STEP_TLU_BIND_OK"
+# **未通过**：把名字改成 default 并不能让 FC 建立 corner 关联 ——
+# 实测该轮仍报 SCN-1001 共 5 次，且没有 STEP_COMPILE_OK。
+# 按审查要求：STEP_TLU_BIND_OK 必须由**验证结果**决定，不能是 read 之后的固定打印。
+# 这里保留 read（它本身是成功的），但明确标记绑定未完成并中止后续编译，
+# 避免产出"看似跑完实则零互连延迟"的时序报告。
+read_parasitic_tech -tlup $TLU_MAX -name maxTLU
+read_parasitic_tech -tlup $TLU_MIN -name minTLU
+puts "STEP_TLU_READ_OK"
+
+# 用 report_corners / report_parasitic_parameters 的实际输出判定是否绑定成功。
+# 未绑定则**主动中止**，不进入 compile_fusion。
+if {[catch {
+  set rpt [report_parasitic_parameters -verbose]
+  if {[string match -nocase "*no valid parasitics*" $rpt]} {
+    puts "STEP_TLU_BIND_FAIL: corner 未关联 TLU+"
+    exit 1
+  }
+} e]} {
+  puts "STEP_TLU_BIND_UNVERIFIED: [string map {\n { }} $e]"
+  puts "  -> 按审查要求，绑定未经验证不得继续，主动中止"
+  exit 1
+}
 
 # ---------------------------------------------------------------- 约束
 create_clock -name clk -period $PERIOD [get_ports clk]

@@ -65,10 +65,14 @@ module adc_digital_ip_v21 (
     input  logic [2:0]  ev_flash_code_i,
 
     // ---------------------------------------------------------------- 片组
+    // 生产态用内部 sched18；测试态可把 sched_ext_sel=1 用外部驱动（便于定向向量）
+    input  logic        sched_ext_sel,
     input  logic [17:0] sched_acq,
     input  logic [17:0] sched_conv,
     input  logic [17:0] sched_idle,
     input  logic [39:0] sched_ids,
+    input  logic        sched_seed_we,
+    input  logic [31:0] sched_seed,
 
     output logic [17:0] acq_sel_o,
     output logic [17:0] conv_sel_o,
@@ -79,6 +83,28 @@ module adc_digital_ip_v21 (
     output logic [17:0]  pre_wr_o,
     output logic [359:0] rdac_post_state_o,
     output logic [17:0]  post_wr_o,
+
+    // ---------------------------------------------------------------- I3：ADC2
+    input  logic         adc2_valid_i,
+    output logic         adc2_ready_o,
+    input  logic [12:0]  adc2_raw_i,
+    input  logic         adc2_range_err_i,
+    output logic         adc2_capture_arm_o,
+
+    // 定点格式 Q22（±3V 需 25 位，用 26 位有符号；分辨率 0.042 LSB20）
+    input  logic signed [25:0] x_q22_i,  // 本笔输入 x（Q22，V）
+    input  logic signed [25:0] b_q22_i,  // 偏置 b（Q22）
+    input  logic [39:0]  G_q30_i,        // 本笔 8 片主权重和（Q30）
+
+    output logic         adc2_rsp_valid_o,
+    output logic [31:0]  adc2_rsp_tag_o,
+    output logic         adc2_rsp_qid_o,
+    output logic [12:0]  adc2_rsp_raw_o,
+    output logic         adc2_rsp_range_o,
+    output logic         adc2_late_err_o,
+    output logic signed [39:0] adc2_y_q22_o,
+    output logic [12:0]  adc2_node_raw_o,
+    output logic         adc2_node_range_o,
 
     // ---------------------------------------------------------------- 观测
     output logic        apply_fire_o,
@@ -126,6 +152,24 @@ module adc_digital_ip_v21 (
         .U_o      (U_leaf),
         .f_o      (f_leaf));
 
+    // ---------------------------------------------------------------- D1 片组
+    logic [17:0] s18_acq, s18_conv, s18_idle;
+    logic [39:0] s18_ids;
+    logic [31:0] s18_rng;
+
+    sched18 u_sched (
+        .clk(clk), .reset_n(rst_n),
+        .seed_we(sched_seed_we), .seed_i(sched_seed),
+        .adv(commit_fire),          // 只在真正提交一笔时推进
+        .acq_mask_o(s18_acq), .conv_mask_o(s18_conv), .idle_mask_o(s18_idle),
+        .ids_o(s18_ids), .rng_o(s18_rng));
+
+    // 片组来源选择：生产走内部 sched18，定向测试可外部覆盖
+    wire [17:0] use_acq  = sched_ext_sel ? sched_acq  : s18_acq;
+    wire [17:0] use_conv = sched_ext_sel ? sched_conv : s18_conv;
+    wire [17:0] use_idle = sched_ext_sel ? sched_idle : s18_idle;
+    wire [39:0] use_ids  = sched_ext_sel ? sched_ids  : s18_ids;
+
     acq_conv_ctx u_ctx (
         .clk(clk), .rst_n(rst_n),
         .prepare_valid(prepare_valid), .prepare_ready(prepare_ready),
@@ -137,8 +181,8 @@ module adc_digital_ip_v21 (
         .stop_i(stop_i),
         .sample_event(sample_event), .input_captured(input_captured),
         .residue_captured(residue_captured), .hold_ack(hold_ack),
-        .sched_acq(sched_acq), .sched_conv(sched_conv), .sched_idle(sched_idle),
-        .sched_ids(sched_ids),
+        .sched_acq(use_acq), .sched_conv(use_conv), .sched_idle(use_idle),
+        .sched_ids(use_ids),
         .acq_sel_o(acq_sel_o), .conv_sel_o(conv_sel_o), .idle_sel_o(idle_sel_o),
         .acq_h_o(acq_h), .acq_v_dem_o(acq_v), .acq_v_pre_o(acq_v_pre),
         .acq_half_o(acq_half), .acq_coin_o(acq_coin),
@@ -160,7 +204,7 @@ module adc_digital_ip_v21 (
         .conv_pre_slot_o(conv_pre_slot));
 
     // ---------------------------------------------------------------- 事件协议
-    logic apply_fire_w;
+    logic apply_fire_w, last_evt_w;
     logic [9:0] k_w;
     logic k_bad_w, final_applied_w, err_w, done_w;
     logic [9:0] final_k_w;
@@ -208,6 +252,7 @@ module adc_digital_ip_v21 (
         .sar_qid_i(ev_qid_i), .sar_final_i(1'b0),
         .ev_valid_o(), .ev_event_index_o(), .ev_bit_index_o(),
         .k_o(k_w), .k_bad_o(k_bad_w), .apply_fire_o(apply_fire_w),
+        .last_evt_o(last_evt_w),
         .final_applied_o(final_applied_w), .final_k_o(final_k_w),
         .tag_o(tag_w), .qid_o(qid_w), .err_o(err_w), .done_o(done_w));
 
@@ -301,5 +346,126 @@ module adc_digital_ip_v21 (
 
     assign rdac_post_state_o = post_state_q;
     assign post_wr_o         = post_wr_q;
+
+    // ---------------------------------------------------------------- I3：ADC2
+    //
+    // 捕获归属：在本笔 CONV 被公共沿捕获余差时登记 owner。
+    // 方案 §4.3："E1 锁 B 的输入，同时捕获 A 的余差" —— 捕获发生在
+    // 下一笔的采样沿上，因此 capture_req 由 sample_event & residue_captured
+    // 驱动，而 owner 记录的是**当前 CONV**那一笔。
+    wire adc2_capture_req = sample_event & residue_captured & conv_valid;
+
+    logic        adc2_arm, adc2_ready_w, adc2_hold_done, adc2_late_err;
+    logic        adc2_owner_busy;
+    logic        rsp_valid, rsp_qid, rsp_range;
+    logic [31:0] rsp_tag;
+    logic [12:0] rsp_raw;
+
+    adc2_capture u_adc2 (
+        .clk(clk), .rst_n(rst_n),
+        .capture_req(adc2_capture_req),
+        .capture_tag(conv_tag),
+        .capture_qid(conv_qid),
+        .capture_phase_h(conv_h),
+        .capture_phase_v(conv_v),
+        .adc2_capture_arm_o(adc2_arm),
+        .adc2_hold_ack_i(hold_ack),
+        .adc2_valid_i(adc2_valid_i),
+        .adc2_ready_o(adc2_ready_w),
+        .adc2_raw_i(adc2_raw_i),
+        .adc2_range_err_i(adc2_range_err_i),
+        .rsp_valid_o(rsp_valid), .rsp_tag_o(rsp_tag), .rsp_qid_o(rsp_qid),
+        .rsp_raw_o(rsp_raw), .rsp_range_o(rsp_range),
+        .owner_busy_o(adc2_owner_busy), .hold_done_o(adc2_hold_done),
+        .late_err_o(adc2_late_err));
+
+    // 节点行为宏：用**实际应用的 post**（post_state_q）与**采样时保存的 pre**
+    // （conv_pre_q 经 conv_ids 路由后的 slot 级等价物）算余差。
+    //
+    // 注意：这里用 conv 的 slot 级 post（post_slot_w）而不是物理 360 位，
+    // 因为宏按 slot 组织权重表；物理路由的正确性已由 I1/I2 逐位对拍证明。
+    logic        node_calc_valid;
+    logic signed [39:0] node_y_q22;
+    logic [12:0] node_raw;
+    logic        node_range;
+
+    // ---------------------------------------------------------------- final post 锁存
+    //
+    // **关键**：节点宏必须用**最后一次实际应用**的 post，不能用当拍的
+    // post_slot_w。原因：post_slot_w 是 dem_mask_v3 对当前 k 的组合输出，
+    // 而 k 在最后一个事件之后还会随输入变化；捕获发生在下一笔的采样沿，
+    // 那时 k_w 早已不是本笔的 final_k。
+    //
+    // 实测症状：直接用 post_slot_w 时 A 的 y 算出 -190.9 V（Wm≈64.3，
+    // 约为名义 32.4 的两倍），raw=0。
+    //
+    // 方案 §8.2 明确要求："final apply 置 final_applied，并保存 D5 的 final_post；
+    // 禁止 D5 从后来相位重算"。
+    logic [159:0] final_post_q;
+    logic [2:0]   final_h_q, final_v_q;
+    logic         final_coin_q, final_half_q;
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            final_post_q <= 160'd0;
+            final_h_q    <= 3'd0;
+            final_v_q    <= 3'd0;
+            final_coin_q <= 1'b0;
+            final_half_q <= 1'b0;
+        end else if (apply_fire_w & last_evt_w) begin
+            // **必须用 apply_fire_w 而不是 final_applied_w**：
+            // final_applied_o 是 sar_evt_v21 里的寄存器输出，比 apply 晚整拍；
+            // 那一拍 k_w 已经不再是本笔的 final k，post_slot_w 也就不是
+            // 最后一次真实应用的 mask（实测锁到全 0）。
+            // 方案 §8.2："final apply 置 final_applied，并保存 D5 的 final_post"
+            // —— 保存动作要发生在**应用那一拍**。
+            final_post_q <= post_slot_w;
+            final_h_q    <= conv_h;
+            final_v_q    <= conv_v;
+            final_coin_q <= conv_coin;
+            final_half_q <= conv_half;
+        end
+    end
+
+    assign node_calc_valid = adc2_capture_req;
+
+    // 权重表：本版用名义权重，由参数化端口注入（I4 换成可配置寄存器组）
+    logic [39:0] w_main_tab [0:7][0:15];
+    logic [39:0] w_sub_tab  [0:7][0:3];
+
+    // **G_q30_w 必须显式声明**。最初漏了声明，Verilog 把它隐式推断成
+    // 1 位 wire，于是 `assign G_q30_w = G_q30_i` 只传了 bit0（=0），
+    // 节点宏拿到 G=0，term_gx 恒 0，y 变成纯偏置项（实测 y=-191.7 V）。
+    // 这类悬空网在 VCS 里只报 warning，很容易漏。
+    logic [39:0] G_q30_w;
+    assign G_q30_w = G_q30_i;
+
+    // conv_pre_slot 是 ACQ 冻结 pre 提升到 CONV 的那一份（slot 级），
+    // 供节点宏算 Wp —— 必须是**采样时保存的** pre，不是当前 ACQ 的。
+    // （acq_conv_ctx 的 conv_pre_o 输出，I1 已逐位验证它不被新 prepare 覆写）
+
+    adc2_node_macro u_node (
+        .clk(clk), .rst_n(rst_n),
+        .calc_valid(node_calc_valid),
+        .x_q22(x_q22_i),
+        .b_q22(b_q22_i),
+        .G_q30(G_q30_w),
+        .post_mask(final_post_q),
+        .pre_mask(conv_pre_slot),
+        .w_main(w_main_tab), .w_sub(w_sub_tab),
+        .y_valid(), .y_q22(node_y_q22),
+        .raw_code(node_raw), .range_err(node_range));
+
+    assign adc2_capture_arm_o = adc2_arm;
+    assign adc2_ready_o       = adc2_ready_w;
+    assign adc2_rsp_valid_o   = rsp_valid;
+    assign adc2_rsp_tag_o     = rsp_tag;
+    assign adc2_rsp_qid_o     = rsp_qid;
+    assign adc2_rsp_raw_o     = rsp_raw;
+    assign adc2_rsp_range_o   = rsp_range;
+    assign adc2_late_err_o    = adc2_late_err;
+    assign adc2_y_q22_o       = node_y_q22;
+    assign adc2_node_raw_o    = node_raw;
+    assign adc2_node_range_o  = node_range;
 
 endmodule

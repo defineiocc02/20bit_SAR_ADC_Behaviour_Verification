@@ -67,7 +67,8 @@ module sar_evt_v21 (
     output logic [31:0] tag_o,
     output logic        qid_o,
     output logic        err_o,         // 协议/范围错误（粘滞到本笔结束）
-    output logic        done_o         // 本笔最后一个提交已应用
+    output logic        done_o,        // 本笔最后一个提交已应用
+    output logic        last_evt_o     // **本拍应用的就是最后一个事件**（组合）
 );
 
     // ---------------------------------------------------------------- 状态
@@ -243,5 +244,9 @@ module sar_evt_v21 (
     assign qid_o            = qid_q;
     assign err_o            = err_q;
     assign done_o           = done_q;
+    // last_evt 是组合的"本拍是否最后一个提交"：上层在 apply 那一拍
+    // 用它锁存 final_post（若改用寄存器版 final_applied，会晚一拍、
+    // 锁到下一拍的 mask —— 实测锁到全 0）。
+    assign last_evt_o       = apply_fire_o & last_evt;
 
 endmodule

@@ -3,3 +3,4 @@
 tb/v21/tb_i1_two_sample.sv
 tb/v21/tb_i2_events.sv
 tb/v21/tb_i12_full.sv
+tb/v21/tb_i3_adc2.sv

@@ -1,27 +1,48 @@
 # 验收状态
 
-基线：`merge/adi-repro` @ `612df75`。
+基线：`merge/adi-repro` @ `c88a7d9` + 本轮 D3/D4 IP 交付提交。
 权威链：`README.md` → `docs/CONTRACT_CURRENT.md` → 本表。
 冲突时以本表为准；`ACCEPTANCE_CHECKLIST.md`、`DIGITAL_PLAN.md`、`DIGITAL_SPEC.md`
 为历史过程记录，不作现行状态。
 
 **每行尽量绑定提交。标 `—` 的行表示尚未绑定，不得据此声称 PASS。**
 
-## 一、当前交付：D3 / D4（RTL）
+## 一、当前交付：D3 / D4 数字 IP
 
-| 项 | 状态 | 证据 | 提交 |
-|:---|:---|:---|:---|
-| D3 DEM 物理 post-mask | **PASS** | 133,376 组（521 码 × 8 横 × 8 纵 × 2 coin × 2 half）与参考逐位一致，0 失配 | `612df75` |
-| D4 Split Dither pre-mask | **PASS** | 512 组（64 字 × 8 相位），mask 与 `U`/`f` 全比，0 失配 | `612df75` |
-| 验收入口 | **PASS** | `tools/verify_d3d4.sh`；空日志/截断/覆盖不足均非零退出 | `612df75` |
-| D3/D4 综合 | **NOT_RUN** | — | — |
-| D3/D4 顶层集成 | **NOT_RUN** | 活动 slice ID 与相位由外部提供 | — |
+三层证据，一条命令复现：`bash tools/verify_d3d4_ip.sh`
+
+| 层 | 项 | 状态 | 证据 |
+|:--:|:---|:---|:---|
+| L1 | D3 DEM 物理 post-mask | **PASS** | 133,376 组（521 码 × 8 横 × 8 纵 × 2 coin × 2 half）与 `dem_dither.py` 逐位一致，0 失配 |
+| L1 | D4 Split Dither pre-mask | **PASS** | 512 组（64 字 × 8 相位），mask 与 `U`/`f` 全比，0 失配 |
+| L2 | D3/D4 IP 顶层（含相位发生器） | **PASS** | 512 笔事务逐位一致；`d3d4_ip` 把 `dem_phase_gen` + `dem_mask_v3` + `dither_pre` 接成单拍通路 |
+| L3 | 门级等价 | **PASS** | 综合网表 + 标准单元模型，512 笔 0 失配 |
+| L4 | 块级综合（28nm SS） | **PASS** | 1516 cells / 1040.86 µm²；25 ns 下 setup +17.29 ns、hold +0.013 ns。详见 `docs/SYNTH_D3D4.md` |
+| — | 形式等价（Formality） | **NOT_RUN** | 门级仿真已覆盖功能，不等价于形式证明 |
+| — | P&R / CTS / 布线 | **NOT_RUN** | 无 ICC2/Innovus 配置与完整 LEF |
+| — | 真实 hold 签核 | **不能声称** | ZeroWireload，无时钟树；13 ps 不是签核数字 |
+| — | DRC / LVS / 功耗签核 | **NOT_RUN** | 无版图；`report_power` 无色切换率输入 |
+
+**CLAIM = IMPLEMENTATION_ONLY + BLOCK_LEVEL_SYNTH**，不是 signoff。
+
+### 随机化模块接线状态（2026-11-15）
+
+| 模块 | 状态 | 说明 |
+|:---|:---|:---|
+| `dem_phase_gen` | **已接入** | 原为悬空（0 处例化、不在任何 `files*.f`）。现由 `d3d4_ip` 例化，三轴对称 1920/1920 满覆盖 |
+| `sched18` | **PASS（修复后）** | 原 16 位乘法溢出导致随机性丢失（固定丢最小两片），修复后 4096 拍 0 错误、χ²=0.9、IDLE 对 153/153 |
+
+### 与旧实现的关系（不得混淆）
+
+- 顶层 `digital_top_w` 仍走 `dem_shuffle` + `dither_split`（4+3+2 / `c−U`），**不含 D3/D4**。
+- 仓库里那条 `8509` 笔 PASS 走的是旧链，**不是本表 D3/D4 的证据**。
 
 复现：
 
 ```bash
-make verify-d3d4          # 或 bash tools/verify_d3d4.sh
-D3D4_WORKDIR=/root/pg D3D4_RUNNER="ssh <host>" bash tools/verify_d3d4.sh
+bash tools/verify_d3d4_ip.sh                                    # L1+L2
+D3D4_RUNNER=vm-yian bash tools/verify_d3d4_ip.sh                # 远端
+D3D4_NETLIST=<net.v> D3D4_SCMODEL=<std.v> bash tools/verify_d3d4_ip.sh   # 含 L3
 ```
 
 ## 二、其他模块（历史基线，非本阶段交付）

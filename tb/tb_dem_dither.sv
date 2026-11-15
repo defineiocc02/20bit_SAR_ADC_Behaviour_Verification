@@ -1,14 +1,30 @@
 `timescale 1ns/1ps
 // DEM mask + Dither 预置 对拍（逐 k / 逐 word，与 Python 合同实现比）
+//
+// 端口约定（2026-11-15 起）：两个叶子模块的输出改为打包向量
+//   dem_mask_v3.mask_o : bit = 20*s + j   （s=片 0..7，j=单元 0..19）
+//   dither_pre.pre_o   : bit =  4*s + b   （s=片 0..7，b=开关位 0..3）
+// 本 TB 在内部拆回二维数组再按原格式打印，因此
+// tools/cmp_dem_dither.py 的比对口径**不需要改动**。
 module tb_dem_dither;
     logic [9:0] k; logic [2:0] h, v; logic coin; logic [3:0] acq;
-    logic [19:0] mask [0:7];
-    logic [5:0] word; logic [3:0] pre [0:7]; logic [2:0] U; logic [3:0] f;
+    logic [159:0] mask_flat; logic [31:0] pre_flat;
+    logic [19:0] mask [0:7]; logic [3:0] pre [0:7];
+    logic [5:0] word; logic [2:0] U; logic [3:0] f;
     integer errs = 0;
 
     dem_mask_v3 u_dem(.k_i(k), .h_phase_i(h), .v_phase_i(v), .coin_i(coin),
-                      .acq_seq_i(acq), .mask_o(mask));
-    dither_pre u_pd(.word_i(word), .v_phase_i(v), .pre_o(pre), .U_o(U), .f_o(f));
+                      .acq_seq_i(acq), .mask_o(mask_flat));
+    dither_pre u_pd(.word_i(word), .v_phase_i(v), .pre_o(pre_flat), .U_o(U), .f_o(f));
+
+    // 拆包：位序与 RTL 源码里的唯一展开处一致
+    genvar s;
+    generate
+        for (s = 0; s < 8; s++) begin : g_unpack
+            assign mask[s] = mask_flat[20*s +: 20];
+            assign pre[s]  = pre_flat[4*s +: 4];
+        end
+    endgenerate
 
     initial begin
         for (int kk = 0; kk <= 520; kk++)

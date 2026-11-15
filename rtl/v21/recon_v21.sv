@@ -69,37 +69,44 @@ module recon_v21 (
     output logic [31:0]  out_tag
 );
 
-    // ---------------------------------------------------------------- 输入检查
+    // ================================================================ 四级流水
+    //
+    // **为什么必须流水**（2026-11-16 定位，见 docs/v21/CHECKPOINT_I5_SYNTH_v3.md）：
+    // 原实现把所有运算塞在 code_o_reg.D 这一个锥里：
+    //   两个 64 位除法器 + 41 位乘加 + 32 位乘移位，串在同一个 25 ns 周期。
+    // DC 在这个锥上做时序驱动优化不收敛：
+    //   · 无 IO 约束：块级 3 分钟"完成"，但报的路径全是自环（假象）
+    //   · 加 IO 约束：块级 10 分钟卡在 code_o_reg[8]/D，顶层卡在 code_o_reg[9]/D
+    //
+    // 现在按方案 §9.3 的计算顺序切成四级，每级只做一件事：
+    //   S1: Y -> Z            （一次 64 位除法 rnd64，alpha 旁路）
+    //   S2: N                （41 位乘加，无除法）
+    //   S3: I = RND(2^60,G)  （第二次 64 位除法，独立一级）
+    //   S4: X -> Q -> code    （41x27 乘 + 32 位乘移位 + 钳位）
+    //
+    // **同笔关系**：valid / tag / epoch / err 与数据一起逐级寄存，
+    // 每级只接受上一级传来的那一笔，不会跨笔混用。
+    // **代价**：out_valid 相对 in_valid 延迟从 1 拍变成 4 拍。
+    // `tb_i4_recon` 已按新延迟更新；位精确定义不变。
+
+    // ---------------------------------------------------------------- 第 0 级：输入检查
     wire alpha_bypass = (alpha_q30 == 32'd1073741824);   // 2^30
     wire bad_g        = (G_q30 == 64'd0);
     // alpha 合法域：0.5 <= alpha <= 2（方案 §9.2），即 [2^29, 2^31]。
-    // 域外值会让 Z 过大、突破 |X| < 2^31，使 32 位 RND 溢出 ——
-    // 与其输出错误码值，不如报 err 并由上层决定。
+    // 域外值会让 Z 过大、突破 |X| < 2^31，使 32 位 RND 溢出。
     wire bad_alpha    = (alpha_q30 < 32'd536870912) || (alpha_q30 > 32'd2147483648);
     wire bad_epoch    = (in_epoch != cfg_epoch);
     wire input_err    = bad_g | bad_alpha | bad_epoch;
 
-    // ---------------------------------------------------------------- Y
-    // Y = -3145728 + 1536*raw + 768
-    // 1536*raw 最大 1536*8191 = 12,581,376 < 2^24，用 signed32 足够。
-    logic signed [31:0] Y_q24;
-    always_comb begin
-        Y_q24 = -32'sd3145728 + 32'sd768 + ($signed({19'd0, adc2_raw}) * 32'sd1536);
-    end
-
-    // ---------------------------------------------------------------- Z
-    // alpha == 2^30 时精确旁路；否则 RND((Y-b)*2^30, alpha)
-    logic signed [63:0] Z_q24;
-    logic signed [63:0] yb;
-
-    // RND(n,d)：符号对称最近舍入，恰半离零
+    // ---------------------------------------------------------------- 函数
+    // RND(n,d)：符号对称最近舍入，恰半离零（方案 §9.3）
     function automatic logic signed [63:0] rnd64(input logic signed [63:0] n,
                                                  input logic [63:0] d);
         logic        s;
         logic [63:0] a, q, r, two_r;
         begin
             s = n[63];
-            a = s ? (~n + 64'd1) : n;      // abs
+            a = s ? (~n + 64'd1) : n;
             q = a / d;
             r = a - q * d;
             two_r = r << 1;
@@ -108,78 +115,21 @@ module recon_v21 (
         end
     endfunction
 
-    always_comb begin
-        // 27 位有符号 -> 64 位：高位补符号位（b_q24[26]），不是补 0。
-        // 补 0 会把负偏置变成巨大正数（同类坑在 I3 的 y_wide 位选上踩过）。
-        yb = {{37{b_q24[26]}}, b_q24};
-        if (alpha_bypass)
-            Z_q24 = Y_q24 - yb;
-        else
-            Z_q24 = rnd64((Y_q24 - yb) * 64'sd1073741824, {32'd0, alpha_q30});
-    end
+    // ceil(2^34/3) = 0x1_5555_5556 = 5,726,623,062，最少需要 33 位。
+    // 这里写 35 位只是把常数写全；真正的保障是
+    // tools/check_rtl_rnd96.py 从本文件抽取后做逐点校验。
+    localparam logic [34:0] MAGIC_3_34 = 35'h1_5555_5556;
 
-    // ---------------------------------------------------------------- N
-    // N = Z*64 + 6*Wm - 3*G - 6*Wp
-    logic signed [95:0] N_wide;
-    always_comb begin
-        N_wide = ($signed(Z_q24) * 96'sd64)
-               + (96'sd6 * $signed({32'd0, Wm_q30}))
-               - (96'sd3 * $signed({32'd0, G_q30}))
-               - (96'sd6 * $signed({32'd0, Wp_q30}));
-    end
-
-    // ---------------------------------------------------------------- I / X / Q
-    logic [63:0] I_q60;
-    logic signed [95:0] NI;
-    logic signed [95:0] X_wide;
-    logic signed [95:0] Q_wide;
-    logic signed [31:0] q32, x32;
-    logic signed [95:0] unclipped;
-
-    // ---------------------------------------------------------------- 除常数 96（32 位）
-    //
-    // **位宽按实际数值范围收窄**（方案要求"按实际数值范围决定位宽"）。
-    //
-    // X = floor(N*I/2^36)，其中 |N| <= 688402628608 < 2^40、I <= 2^26，
-    // 所以 |X| < 2^30。穷举 raw{0,1,4096,8191} × alpha{2^-1,1,2} ×
-    // b{0,±2^20} × G{16,32,64}×2^30 × Wm{0,32,64}×2^30 × Wp{0,1,4}×2^30
-    // 全部组合后 |X| 最大 353,632,160 = 0x1513FFA0 < 2^29。
-    //
-    // 因此 Q = RND(X, 96) 只需要 32 位运算：
-    //   96 = 3 * 32，|X|/96 = (|X|/3) >> 5
-    //   |X|/3 = (|X| * ceil(2^34/3)) >> 34，对 |X| < 2^31 精确
-    // 这样把原来 96×97 -> 193 位的乘法与 96 位除法全部消掉，
-    // DC 不再生成 DW01_add_width191 / DW_div 阵列。
-    //
-    // 若将来合法域扩大（比如 alpha 或权重范围放宽），必须先重新推 |X| 上界，
-    // 确认仍 < 2^31，否则本函数会溢出。
-    // ceil(2^34/3) = 0x1_5555_5556 = 5,726,623,062，最少需要 **33 位**。
-    // 所以 [33:0]（34 位）本来就能完整容纳它，容器宽度不是问题。
-    //
-    // 实际出过的事故是**字面值漏了最高位的 1**：
-    //     34'h5555_5556   -> 0x5555_5556 = 1,431,655,766
-    // 这时 (a * 0x5555_5556) >> 34 ≈ a/11，再 >>5 ≈ a/352，
-    // 故障表现是码值整体缩小（实测 0x9FFC1 vs 0xFFF00，10769 个失配）。
-    //
-    // 这里的 35 位声明只是把常数写全，不影响正确性；
-    // 真正的保障是 tools/check_rtl_rnd96.py 直接从本文件抽取常数做校验。
-    localparam logic [34:0] MAGIC_3_34 = 35'h1_5555_5556;   // ceil(2^34/3)
-
-    function automatic logic signed [31:0] rnd96_const(
-            input logic signed [31:0] n);
+    function automatic logic signed [31:0] rnd96_const(input logic signed [31:0] n);
         logic        s;
         logic [31:0] a;
-        logic [66:0] prod;         // 32 + 35 = 67 位
-        logic [31:0] q96, r96, q;
-        logic [31:0] two_r;
+        logic [66:0] prod;
+        logic [31:0] q96, r96, q, two_r;
         begin
             s = n[31];
-            a = s ? (~n + 32'd1) : n;               // |n|
-
-            // |n|/3 = (|n| * ceil(2^34/3)) >> 34；再 >>5 得 /96
+            a = s ? (~n + 32'd1) : n;
             prod = {35'd0, a} * MAGIC_3_34;
             q96  = (prod >> 34) >> 5;
-
             r96   = a - q96 * 32'd96;
             two_r = r96 << 1;
             q     = q96 + ((two_r >= 32'd96) ? 32'd1 : 32'd0);
@@ -187,49 +137,76 @@ module recon_v21 (
         end
     endfunction
 
-    always_comb begin
-        // I = RND(2^60, G)
-        I_q60 = rnd64(64'sh1000000000000000, G_q30);
-        // X = floor((N*I)/2^36)
-        // 有符号 floor：算术右移即 floor；这里用 >>>（N*I 是 signed96）
-        NI = N_wide * $signed({32'd0, I_q60});
-        X_wide = NI >>> 36;
-        // Q = RND(X, 96)
-        //
-        // **除数是常数 96，不能用通用除法器**。
-        // 96 = 3 * 32，所以 |X|/96 = (|X|/3) >> 5，
-        // 而 |X|/3 可用"乘魔数再右移"精确实现：
-        //   |X|/3 = (|X| * ceil(2^98/3)) >> 98
-        // 该式对 0 <= |X| < 2^96 全域精确（已用 20013 个边界+随机点验证，
-        // 含 |N|max=688402628608 与 2^96-1）。
-        //
-        // 这样把"96 位除以 96 位"的通用除法器换成
-        // "96 位乘 97 位常数 + 两次移位"，DC 的 DW_div 阵列从 3 组降到 2 组，
-        // 且剩下的两组也都是固定除数。
-        // 只调用一次，显式符号扩展
-        // **X_wide[31:0] 是位选，无符号**（这个坑在前面 y_wide 上踩过）。
-        // X_wide 是 96 位有符号，直接取低 32 位会丢掉符号，
-        // 负数变成巨大正数。必须先做有符号截断再传。
-        x32 = $signed(X_wide[31:0]);
-        q32 = rnd96_const(x32);
-        Q_wide = {{64{q32[31]}}, q32};
-        // unclipped = Q + 524288
-        unclipped = Q_wide + 96'sd524288;
-    end
+    // ---------------------------------------------------------------- 级间寄存器
+    logic               v1_q, v2_q, v3_q;
+    logic [31:0]        tag1_q, tag2_q, tag3_q;
+    logic               err1_q, err2_q, err3_q;
 
-    logic [19:0] code_c;
-    logic        sat_c;
-    always_comb begin
-        if (unclipped < 0) begin
-            code_c = 20'd0;              sat_c = 1'b1;
-        end else if (unclipped > 96'sd1048575) begin
-            code_c = 20'hFFFFF;          sat_c = 1'b1;
+    logic signed [63:0] z1_q;        // S1 输出：Z
+    logic [63:0]        i2_q;        // S2 输出：I（在 S2 算，供 S3 用）
+    logic signed [95:0] n2_q;        // S2 输出：N
+    logic signed [95:0] x3_q;        // S3 输出：X
+
+    // ---------------------------------------------------------------- S1：Y -> Z
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            v1_q <= 1'b0; tag1_q <= 32'd0; err1_q <= 1'b0; z1_q <= 64'sd0;
         end else begin
-            code_c = unclipped[19:0];    sat_c = 1'b0;
+            v1_q   <= in_valid;
+            tag1_q <= in_tag;
+            err1_q <= input_err;
+            if (in_valid) begin
+                logic signed [31:0] y;
+                logic signed [63:0] yb;
+                y  = -32'sd3145728 + 32'sd768 + ($signed({19'd0, adc2_raw}) * 32'sd1536);
+                // 27 位有符号 -> 64 位：高位补符号位，不是补 0
+                yb = {{37{b_q24[26]}}, b_q24};
+                if (alpha_bypass)
+                    z1_q <= y - yb;
+                else
+                    z1_q <= rnd64((y - yb) * 64'sd1073741824, {32'd0, alpha_q30});
+            end
         end
     end
 
-    // ---------------------------------------------------------------- 输出寄存
+    // ---------------------------------------------------------------- S2：N 与 I
+    //
+    // I = RND(2^60, G) 与 N 互不依赖，放在同一级可以并行算，
+    // 但两者都是大逻辑；若这一级时序不够，把 I 挪到独立一级即可
+    // （i2_q 已经是独立寄存器，拆分不用改接口）。
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            v2_q <= 1'b0; tag2_q <= 32'd0; err2_q <= 1'b0;
+            n2_q <= 96'sd0; i2_q <= 64'd0;
+        end else begin
+            v2_q   <= v1_q;
+            tag2_q <= tag1_q;
+            err2_q <= err1_q;
+            if (v1_q) begin
+                n2_q <= ($signed(z1_q) * 96'sd64)
+                      + (96'sd6 * $signed({32'd0, Wm_q30}))
+                      - (96'sd3 * $signed({32'd0, G_q30}))
+                      - (96'sd6 * $signed({32'd0, Wp_q30}));
+                i2_q <= rnd64(64'sh1000000000000000, G_q30);
+            end
+        end
+    end
+
+    // ---------------------------------------------------------------- S3：X
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            v3_q <= 1'b0; tag3_q <= 32'd0; err3_q <= 1'b0; x3_q <= 96'sd0;
+        end else begin
+            v3_q   <= v2_q;
+            tag3_q <= tag2_q;
+            err3_q <= err2_q;
+            if (v2_q)
+                // X = floor(N*I / 2^36)；算术右移即 floor
+                x3_q <= (n2_q * $signed({32'd0, i2_q})) >>> 36;
+        end
+    end
+
+    // ---------------------------------------------------------------- S4：Q -> code
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             out_valid <= 1'b0;
@@ -238,17 +215,30 @@ module recon_v21 (
             out_err   <= 1'b0;
             out_tag   <= 32'd0;
         end else begin
-            out_valid <= in_valid;
-            if (in_valid) begin
-                out_err <= input_err;
-                out_tag <= in_tag;
-                if (input_err) begin
+            out_valid <= v3_q;
+            if (v3_q) begin
+                logic signed [31:0] x32, q32;
+                logic signed [95:0] qw, uncl;
+                out_err <= err3_q;
+                out_tag <= tag3_q;
+                if (err3_q) begin
                     // 合同违例：不出结果，但保留 tag 供追溯
                     code_o  <= 20'd0;
                     out_sat <= 1'b0;
                 end else begin
-                    code_o  <= code_c;
-                    out_sat <= sat_c;
+                    // X_wide[31:0] 是位选、无符号，必须先 $signed 截断。
+                    // |X| < 2^31 由 tools/prove_xwidth.py 证明（前提 A1-A5）。
+                    x32 = $signed(x3_q[31:0]);
+                    q32 = rnd96_const(x32);
+                    qw  = {{64{q32[31]}}, q32};
+                    uncl = qw + 96'sd524288;
+                    if (uncl < 0) begin
+                        code_o <= 20'd0;      out_sat <= 1'b1;
+                    end else if (uncl > 96'sd1048575) begin
+                        code_o <= 20'hFFFFF;  out_sat <= 1'b1;
+                    end else begin
+                        code_o <= uncl[19:0]; out_sat <= 1'b0;
+                    end
                 end
             end
         end

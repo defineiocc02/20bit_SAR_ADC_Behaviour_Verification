@@ -36,11 +36,32 @@ CCS 模型（含 `.lib` 与 `.db` 双份）。
 | `starrc` | 安装存在 | 寄生提取 |
 | `spyglass` | 安装存在 | Lint / CDC |
 | `vc_static` | 安装存在 | 形式等价 |
-| **`icc2_shell`** | **缺失** | **布局布线** |
-| **Innovus / Encounter** | **缺失** | 布局布线（备选） |
+| **`fc_shell`（Fusion Compiler）** | **OK** | **综合 + 布局布线 + 签核（一体会话）** |
+| `icc2_lm_shell` / `lm_shell` | 存在 | 布局规划辅助 |
+| `lib2tdb` / `starrc_wrapper` | 存在 | 库转换 / 寄生提取 |
+| Innovus / Encounter | 缺失 | 布局布线（备选，不需要） |
 
-`/opt/synopsys/` 下实际只有：`lc pprtl prime rtla scl spyglass starrc syn
-testmax vc_static vcs verdi verdi_supp wv`。**没有任何布局布线器。**
+**更正**：早前一版本文写"没有任何布局布线器"是**错的**。
+错误原因是只用了 `command -v icc2_shell` 检查 PATH，而 Fusion Compiler
+装在 `/opt/synopsys/fusioncompiler/W-2024.09-SP3/bin/` 下、**不在默认 PATH 里**。
+
+`/opt/synopsys/` 实际内容：`1patch coretools fm fusioncompiler hspice lc
+pprtl prime rtla scl spyglass starrc syn testmax vc_static vcs verdi
+verdi_supp wv`。
+
+**Fusion Compiler 实测**：
+
+```
+$ /opt/synopsys/fusioncompiler/W-2024.09-SP3/bin/fc_shell -version
+fc_shell version W-2024.09-SP3
+build date: Jan 16, 2025
+```
+
+许可（`SNPSLMD_LICENSE_FILE=27080@localhost`）可正常获取，
+能进入 `Fusion Compiler (TM)` 会话。
+
+**教训**：环境核查不能只看 PATH。必须 `ls` 安装目录本身
+（`/opt/synopsys/`），并对候选目录逐个 `bin/` 检查可执行文件。
 
 ## 4. 因此 I5 的实际边界
 
@@ -52,15 +73,17 @@ testmax vc_static vcs verdi verdi_supp wv`。**没有任何布局布线器。**
 - Lint / CDC（SpyGlass）
 - 约束覆盖检查
 
-**不能完成**（缺工具，属真实阻塞）：
+**可以完成**（Fusion Compiler 一体流程，本轮执行）：
 - floorplan / 电源网 / 布局 / CTS / 详细布线
-- 布线后寄生提取（StarRC 需要布线结果）
-- 后布线 STA
-- DRC / LVS（需要 GDS）
-- **GDS 交付、抽象 LEF、SPEF**
+- 布线后寄生提取（StarRC）
+- 后布线 STA（PT 或 FC 内建）
+- DRC / LVS（Calibre，需要 GDS）
+- **GDS / 抽象 LEF / SPEF / SDF 交付**
 
-这不是"没做"，而是**主机上没有 PnR 工具**。目标要求"若缺少某项 28HPC+ 后端资源，
-明确指出缺的具体文件、规则或许可，继续完成能独立验收的阶段" —— 本文件即该项说明。
+**仍需外部输入**（非工具问题）：
+- 模拟硬宏（ADC2/RA/SADC）的 LEF/Liberty/GDS/CDL —— 当前用行为宏替代，
+  所以整芯片级 LVS/DRC 只能做"数字硬宏"范围。
+- 目标 40 nm 库 —— 不存在，按要求先用 28HPC+ 签核数字硬宏。
 
 ## 5. 许可
 

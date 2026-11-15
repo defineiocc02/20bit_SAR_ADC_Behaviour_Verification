@@ -42,10 +42,11 @@ D3D4_WORKDIR=/root/pg D3D4_RUNNER="ssh <host>" bash tools/verify_d3d4.sh
 
 | 数字 | 口径 |
 |:---|:---|
-| **8509** | 旧版 `tb_digital_top_w.sv` 的 retired 计数（9 组倒数改造前） |
-| **7789** | 当前 `run_topw.sh` 实测 `RESULT: PASS (7789 transactions checked)` |
+| **8509** | **当前** `run_topw.sh` 实测计数（`RESULT: PASS (8509 transactions checked)`） |
+| 7789 | 更早一版 TB 的记录，已被 8509 取代 |
 
-两者不是同一个 TB 版本，不得互相替代。
+> 更正：本表上一版把两个数字的归属写反了（误写 8509=旧版、7789=当前），
+> 经复核，当前实测为 **8509**。
 
 ## 三、校正有效性
 

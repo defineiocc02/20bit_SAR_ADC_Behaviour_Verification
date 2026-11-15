@@ -3,22 +3,32 @@
 依据 ISSCC 2024 Session 9.8 公开机制、按明确工程假设实现的**可综合数字 IP**。
 不是 ADI 硅片的还原（公开资料不足），也不声称与该芯片逐位一致。
 
-## 当前交付：D3/D4 数字 IP
+## 核心文件：只有这 8 个
 
-| 文件 | 职责 |
+**下面这张表就是全部核心。** 其余 30 多个目录是辅助、子系统与仓库常规文件（见 [`PROJECT_MAP.md`](PROJECT_MAP.md)）。
+
+| # | 文件 | 一句话 |
+|:--:|:---|:---|
+| 1 | `rtl/d3d4_ip.sv` | **IP 顶层**——单时钟域，输入 k + dither，输出物理开关命令 |
+| 2 | `rtl/sched18.sv` | **D1** 18 片池调度（8 采集 / 8 转换 / 2 备用） |
+| 3 | `rtl/follower_rt.sv` | **D2** RDAC follower（逐事件累加 k，边产生边载入） |
+| 4 | `rtl/dem_mask_v3.sv` | **D3** DEM：粗码 → 8×20 物理 mask |
+| 5 | `rtl/dem_phase_rr.sv` | **D3** 相位发生器（round-robin） |
+| 6 | `rtl/dither_pre.sv` | **D4** Split Dither：6 位字 → 8 片 × 4 位预置 |
+| 7 | `src/adi_model/dem_dither.py` | DEM/Dither 的**唯一参考实现**（纯函数，零依赖） |
+| 8 | `tools/verify_d3d4_ip.sh` | **唯一验收入口**，四层一起跑 |
+
+辅助但重要：
+
+| 文件 | 作用 |
 |:---|:---|
-| `src/adi_model/dem_dither.py` | 参考算法（唯一实现，纯函数） |
-| `rtl/dem_mask_v3.sv` | D3：粗码 → 8×20 物理 post-mask（打包端口） |
-| `rtl/dither_pre.sv` | D4：6 位扰动字 → 8 片 × 4 位采样预置开关（打包端口） |
-| `rtl/dem_phase_rr.sv` | D3 三维相位发生器（**round-robin**，默认；对齐 PPT "Round robin shuffler"） |
-| `rtl/dem_phase_gen.sv` | 同上，xorshift 版（A/B 对照，`+define+D3D4_PHASE_XORSHIFT` 启用） |
-| `rtl/sched18.sv` | D1 18 片池调度（ACQ/CONV/IDLE 三态，支撑两相位交织） |
-| `rtl/follower_rt.sv` | RDAC follower（逐事件累加 k，边产生边载入） |
-| `rtl/d3d4_ip.sv` | **IP 顶层**：把上面三个接成单时钟域、单拍输出的通路 |
-| `rtl/sched18.sv` | D1 random18 片组调度（ACQ/CONV/IDLE 三态） |
+| `tb/tb_d3d4_ip.sv` | IP 级 512 笔对拍 |
+| `tb/tb_event_align.sv` | 逐事件对齐（k / 160 位 mask / 标志必须同事件） |
+| `tb/tb_dem_dither.sv` | 叶子级 133,376 + 512 组穷举 |
+| `rtl/digital_top_w.sv` | 旧链顶层（D1–D6 全链，4+3+2 / `c−U`），仅作兼容资产 |
 
 **关键点**：`dem_mask_v3` 与 `dither_pre` 原本是纯组合模块，相位由端口外部喂，
-所以"三维随机化"在叶子层并不存在。`d3d4_ip` 把 `dem_phase_gen` 接进来之后，
+所以"三维随机化"在叶子层并不存在。`d3d4_ip` 把 `dem_phase_rr` 接进来之后，
 随机化才第一次真正落在 RTL 里。
 
 ## 一条命令验证（三层）

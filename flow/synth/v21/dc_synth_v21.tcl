@@ -60,8 +60,25 @@ set_false_path -from [get_ports rst_n] -to [all_registers]
 set_false_path -from [all_registers] -to [get_ports rst_n]
 
 # ---- 综合 ----
-# 用 medium effort：实测 compile_ultra 在 recon 的 96 位乘除上会跑很久；
-# medium 能在合理时间内给出可用的 PPA 起点，作为后续优化的基线。
+# ---------------------------------------------------------------- 层次对照实验
+#
+# **假设（已做过一轮对照，结果：不成立）**：
+#   recon 单独综合约 3 分钟完成（22522 µm², slack +24.83），
+#   完整顶层跑 19 分钟以上仍停在同一端点。曾怀疑是跨层 ungroup 把
+#   除法器输入锥拉到整个数据通路导致优化空间爆炸。
+#
+# **实测对照（2026-11-16）**：
+#   默认设置        : 22 min 超时（rc=124），停在 u_recon/code_o_reg[*]
+#   set_ungroup false: 19 min 仍停在同一端点 u_recon/code_o_reg[9]/D
+#   => 关掉 ungroup **没有解决**，跨层优化不是主因。
+#
+# 所以本脚本默认用**默认 ungroup**（与块级结果口径一致），
+# 把"为什么顶层比块级慢这么多"留作待查项，而不是假装已定位。
+# 若要复跑保留层次的对照，把下面两行取消注释：
+# set_ungroup false
+# set_boundary_optimization false
+
+# 用 medium effort：compile_ultra 在本设计上耗时过长，暂不作常规入口。
 compile -map_effort medium
 puts "STEP_COMPILE_OK"
 

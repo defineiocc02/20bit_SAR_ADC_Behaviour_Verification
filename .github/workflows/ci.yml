@@ -84,7 +84,7 @@ jobs:
         # same-plant Python replay, damaged-trace rejection and output protection.
         # Learning/holdout and DUT early-prefix negatives are separate evidence.
         run: |
-          python -m pytest tests/integration/test_source_bound_replay.py -m slow -q \
+          python -m pytest flow/tests/integration/test_source_bound_replay.py -m slow -q \
             --basetemp "$SAR_CI_RUN_ROOT/source-replay-tmp" \
             -o cache_dir="$SAR_CI_RUN_ROOT/source-replay-cache" \
             --junitxml "$SAR_CI_RUN_ROOT/source-replay.xml"
@@ -182,7 +182,7 @@ jobs:
           cache: pip
       - run: python -m pip install -e .[dev]
       - name: Current unit and integration contracts
-        run: pytest -m "not slow" -q --cov --cov-report=xml
+        run: pytest flow/tests -m "not slow" -q --cov --cov-report=xml
       - name: Actual default and explicit-override CLI runs
         run: |
           mkdir -p "$SAR_CI_RUN_ROOT"

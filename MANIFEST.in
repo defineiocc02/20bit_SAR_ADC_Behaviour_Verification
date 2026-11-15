@@ -18,7 +18,7 @@ include CODE_OF_CONDUCT.md
 include CITATION.cff
 
 recursive-include docs *.md
-recursive-include tests *.py
+recursive-include flow/tests *.py
 recursive-include tools *.py
 
 # 历史参考输出；当前首页各图的数据与来源另见 docs/readme 和 docs/paper_comparisons。

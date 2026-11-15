@@ -100,7 +100,7 @@ minversion = "7.4"
 # `src` is listed so that `--doctest-modules` below can reach the library: the
 # `Examples:` blocks in the docstrings are executable documentation, and a
 # docstring example that CI never runs is a promise with nothing behind it.
-testpaths = ["tests", "src"]
+testpaths = ["flow/tests", "src"]
 addopts = [
     "-ra",
     "--strict-markers",
@@ -138,7 +138,7 @@ fail_under = 35
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-src = ["src", "tests", "tools"]
+src = ["src", "flow/tests", "tools"]
 # Exclude generated environments/build trees. Active source is checked.
 extend-exclude = [
     "__pycache__",
@@ -191,7 +191,7 @@ ignore = [
 # Tests are read as executable specifications: the docstring *shape* rules buy
 # nothing there, and D205 in particular fires 47 times purely because test
 # docstrings wrap a sentence onto a second line.
-"tests/*" = ["D100", "D101", "D102", "D103", "D104", "D105", "D107", "D205", "D417"]
+"flow/tests/*" = ["D100", "D101", "D102", "D103", "D104", "D105", "D107", "D205", "D417"]
 "tools/*" = ["D100", "D103"]
 # flow/sim/ref/ 是**自检型的参考实现**（跑一遍就打印 PASS/FAIL 与覆盖数），与 tools/ 同类：
 # 它的价值在"能不能被独立复算"，不在 pydocstyle 的 docstring 形状。
@@ -225,4 +225,4 @@ warn_unused_ignores = true
 no_implicit_optional = true
 check_untyped_defs = true
 ignore_missing_imports = true
-exclude = ["^tests/", "^tools/"]
+exclude = ["^flow/tests/", "^tools/"]

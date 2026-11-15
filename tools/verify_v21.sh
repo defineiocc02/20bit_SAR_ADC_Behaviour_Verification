@@ -43,11 +43,11 @@ fail=0
 run() { if [ -n "$RUNNER" ]; then ssh "$RUNNER" "$1"; else bash -c "$1"; fi; }
 
 echo "=== 准备 $WORK ==="
-run "rm -rf $WORK && mkdir -p $WORK/rtl/v21 $WORK/tb/v21" || { echo "FAIL: 建目录"; exit 1; }
+run "rm -rf $WORK && mkdir -p $WORK/rtl/v21 $WORK/tb/v21 $WORK/tools" || { echo "FAIL: 建目录"; exit 1; }
 # 逐个文件传：tar 在 macOS->Linux 上会带 xattr 头，且扁平化路径，
 # 实测导致叶子源文件没落到预期位置（编译报 "Source file cannot be opened"）。
 # 用 scp/cp 逐个复制最可靠。
-FILES="$SRC tb/v21/tb_acq_ctx_fixed.sv tb/v21/tb_audit3.sv tb/v21/tb_i12_full.sv tb/v21/tb_i3_full.sv tb/v21/tb_i4b_e2e.sv"
+FILES="$SRC tb/v21/tb_acq_ctx_fixed.sv tb/v21/tb_audit3.sv tb/v21/tb_i12_full.sv tb/v21/tb_i3_full.sv tb/v21/tb_i4b_e2e.sv tools/check_rtl_rnd96.py"
 for f in $FILES; do
   if [ -n "$RUNNER" ]; then
     scp -q "$ROOT/$f" "$RUNNER:$WORK/$f" || { echo "FAIL: 传 $f"; exit 1; }
@@ -80,17 +80,32 @@ for t in "${TESTS[@]}"; do
 done
 
 echo
-echo "=== 算术等价性证明（不依赖工具，纯数学+区间穷举）==="
+echo "=== 算术证据（三类分开，不互相替代）==="
+# [A] 数学恒等式（与 RTL 无关）
 if python3 "$ROOT/tools/prove_rnd96.py" 2>&1 | grep -q "RESULT: PROVEN"; then
-  echo "  rnd96_const == RND(n,96)  PROVEN on |n| < 2^31"
+  echo "  [A] 数学恒等式 RND(n,96)              PROVEN"
 else
-  echo "  rnd96_const 等价性证明 FAILED"
-  fail=1
+  echo "  [A] 数学恒等式 RND(n,96)              FAILED"; fail=1
 fi
+# [A] X 位宽全域证明
+if python3 "$ROOT/tools/prove_xwidth.py" 2>&1 | grep -q "RESULT: XWIDTH_PROVEN"; then
+  echo "  [A] X 的 32 位截断 |X|<2^31           PROVEN（前提 A1-A5）"
+else
+  echo "  [A] X 的 32 位截断                    FAILED"; fail=1
+fi
+# [B] 生产 RTL 检查（从源码抽取 + VCS）
+if run "$SETUP; cd $WORK && python3 tools/check_rtl_rnd96.py 2>&1" | grep -q "RESULT: RTL_CHECK_PASS"; then
+  echo "  [B] 生产 RTL 的 rnd96_const            PASS（从源码抽取）"
+else
+  echo "  [B] 生产 RTL 的 rnd96_const            FAILED"; fail=1
+fi
+# [C] 工具形式化：未完成，如实标注
+echo "  [C] VC Formal 属性证明                 未完成（不计入通过）"
 
 echo
 if [ "$fail" -eq 0 ]; then
-  echo "全部通过：审计三反例 + I1/I2 + I3 + I4b 端到端 + 算术等价性证明"
+  echo "全部通过：5 项 RTL 回归 + [A] 数学证明 + [B] 生产 RTL 检查"
+  echo "注意：[C] 工具形式化未完成，本入口不声称已形式化验证。"
 else
   echo "存在失败项，见上"
 fi

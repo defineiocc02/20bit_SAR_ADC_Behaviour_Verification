@@ -83,6 +83,17 @@ module d3d4_ip (
     logic [2:0] vp_n;
     logic [31:0] rng_n;
 
+    // 相位发生器选择（编译期宏）
+    // ---------------------------
+    // 默认用 round-robin（`dem_phase_rr`），依据：
+    //   1) ISSCC2024 §9.8 PPT 第 29–31 页原文是 `Round robin shuffler`；
+    //   2) 实测统计全面更优：χ²=0、三轴 MI=0.0000、一周期零重复；
+    //   3) 综合面积降 5.1 倍（392.78 -> 77.71 µm²）、延迟降 7.7 倍（4.38 -> 0.57 ns）。
+    // 详见 docs/PHASE_AB.md。
+    //
+    // 定义 D3D4_PHASE_XORSHIFT 可切回旧的 xorshift 版做 A/B 对照。
+    // 两版**端口语义完全一致**（含 nxt_* 观察口），因此切换不影响下游。
+`ifdef D3D4_PHASE_XORSHIFT
     dem_phase_gen u_phase (
         .clk        (clk),
         .reset_n    (reset_n),
@@ -96,6 +107,21 @@ module d3d4_ip (
         .nxt_v_phase_o  (vp_n),
         .nxt_rng_o      (rng_n)
     );
+`else
+    dem_phase_rr u_phase (
+        .clk        (clk),
+        .reset_n    (reset_n),
+        .sample_adv (adv),
+        .reserved_o (res_w),
+        .h_phase_o  (hp_w),
+        .v_phase_o  (vp_w),
+        .idx_o      (rng_w),   // 语义由"随机态"变为"相位索引 0..1919"，位宽一致
+        .nxt_reserved_o (res_n),
+        .nxt_h_phase_o  (hp_n),
+        .nxt_v_phase_o  (vp_n),
+        .nxt_idx_o      (rng_n)
+    );
+`endif
 
     // 本拍真正生效的相位：有握手就是"推进后"，无握手就是保持不变。
     logic [3:0] res_use, hp_use;
@@ -106,11 +132,22 @@ module d3d4_ip (
     assign vp_use  = adv ? vp_n  : vp_w;
     assign rng_use = adv ? rng_n : rng_w;
 
-    // coin：bridge 交换是否发生。取 rng 高位，避免与 v_phase(=idx[2:0]) 相关。
-    // 用 rng[31] 而不是 rng[0]：xorshift 的低位混合度弱于高位，且 idx 取自
-    // t3 的低位段，取高位可以保证 coin 与三轴相位来自不同的比特区。
+    // coin：bridge 交换是否发生（binary-to-unary bridging 的使能）。
+    //
+    // 这里踩过一个坑，必须记下来：
+    //   原来写 `coin = rng_use[31]`，因为 xorshift 版 rng 是 32 位随机态，
+    //   最高位混合良好。但切到 round-robin 后 `rng_use` 变成**相位索引**
+    //   （0..1919，实际只占 11 位），bit[31] 恒为 0 —— bridge 永远不会触发，
+    //   而且不会报任何错，只是"看起来对了但功能没发生"。
+    //
+    // 现在的做法：从索引的高位区派生，且保证与三轴取值不相关。
+    //   v_phase = idx % 8        -> 用 idx[2:0]
+    //   h_phase = (idx/8) % 15   -> 与 idx[3:6] 有关
+    //   因此 coin 取 idx[10:7]（索引最高可到 1919，即 bit10 有效）
+    //   的奇偶校验：与 v_phase 无重叠、与 h_phase 的模 15 也非同源。
+    // 对 xorshift 版同样成立（rng 高位同样可用），所以两版共用这一条。
     logic coin;
-    assign coin = rng_use[31];
+    assign coin = ^rng_use[10:7];
 
     // ---------------------------------------------------------------- 叶子模块
     logic [159:0] mask_c;     // dem_mask_v3 的组合输出（已打包）

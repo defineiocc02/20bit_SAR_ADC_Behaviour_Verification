@@ -10,10 +10,13 @@ mask 拆成两段 20 位（各 5 个 hex 字符）输出：SystemVerilog 的 $fs
 --------
 * mask / pre / U / f 直接调用 `src/adi_model/dem_dither.py` 的合同实现，
   与叶子级 `tools/cmp_dem_dither.py` 用的是同一份参考（不另写一套公式）。
-* 相位序列按 `rtl/dem_phase_gen.sv` 的算法重算（xorshift32 13/17/5，
-  SEED=0x1234_5678，%1920 混合进制分解），与 `tools/gen_vec_phase.py`
-  的 `phase_of()` 必须一致；本脚本会断言两者的前若干项相同。
-* coin 取 rng[31]（见 rtl/d3d4_ip.sv 的说明）。
+* 相位序列按 `rtl/dem_phase_rr.sv`（round-robin）重算：索引 0..1919 线性递增，
+  混合进制分解 (idx/120, (idx/8)%15, idx%8)。这是 d3d4_ip 的**默认**相位源，
+  依据见 docs/PHASE_AB.md（与 PPT 原文 "Round robin shuffler" 一致，
+  且统计/面积全面更优）。
+* coin 取 `^idx[10:7]`（见 rtl/d3d4_ip.sv 的说明）。注意这里**踩过坑**：
+  原实现取 rng[31]，切到 round-robin 后索引只占 11 位，bit31 恒 0，
+  bridge 永不触发且不报错。
 * acq_seq = (res[0] << 3) | hp[0]，对应 d3d4_ip 里的 half 选择。
 
 为什么要单独生成
@@ -39,7 +42,29 @@ _dd = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_dd)
 
 MASK32 = 0xFFFFFFFF
-PG_SEED = 0x1234_5678
+PG_SEED = 0x1234_5678      # 仅 xorshift 对照模式使用
+PHASE_TOTAL = 1920
+RES_SPAN = 120
+H_STEP = 8
+H_MOD = 15
+
+
+def phase_of_idx(idx: int) -> tuple[int, int, int]:
+    """相位索引 -> (reserved, h_phase, v_phase)。与 dem_phase_rr.sv 一致。"""
+    i = idx % PHASE_TOTAL
+    return (i // RES_SPAN, (i // H_STEP) % H_MOD, i % 8)
+
+
+def coin_of_idx(idx: int) -> int:
+    """coin = ^idx[10:7]。与 rtl/d3d4_ip.sv 的 `^rng_use[10:7]` 一致。
+
+    注意不能用 `int.bit_count()` —— 它是 Python 3.10+ 才有。
+    仓库 requires-python >=3.10，但本机 /usr/bin/python3 是 3.9，
+    而这些工具脚本应当能在任意 3.9+ 环境跑（与 cmp_dem_dither.py 同一原则）。
+    """
+    i = idx % PHASE_TOTAL
+    nib = (i >> 7) & 0xF
+    return (bin(nib).count('1')) & 1
 
 
 def xs32(x: int) -> int:
@@ -94,14 +119,14 @@ def main() -> int:
     args = ap.parse_args()
 
     lines = []
-    rng = PG_SEED
     for i in range(args.n):
+        # round-robin：第 i 拍用的索引 = i+1（复位态是 0，首个握手推进到 1）
+        idx = (i + 1) % PHASE_TOTAL
         # 关键：d3d4_ip 在握手沿**先推进相位、再寄存输出**，所以第 i 拍的
         # 输出对应"推进 i+1 次后"的相位。忘了这一步会让整条序列偏移一拍，
         # 症状是每一拍的 mask/pre 都对不上，但结构本身没错。
-        rng = xs32(rng)
-        res, hp, vp = phase_of(rng)
-        coin = (rng >> 31) & 1
+        res, hp, vp = phase_of_idx(idx)
+        coin = coin_of_idx(idx)
         k = i % 521                      # 覆盖 0..520（含 guard）
         dith = (i * 37) & 0x3F           # 64 个字都走到
         acq_seq = ((res & 1) << 3) | (hp & 1)

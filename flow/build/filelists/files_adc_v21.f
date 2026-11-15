@@ -1,6 +1,9 @@
-// ISSCC 2024 §9.8 数字 IP 完整顶层（方案 v1.4 §11.1）
-// 叶子直接引用原路径，v21 层放新的集成逻辑。
-// 生产综合清单只含数字逻辑；行为宏与向量留在 *_sim.f。
+// ISSCC 2024 §9.8 数字 IP 完整生产顶层（方案 v1.4 §11.1）
+//
+// **只含可综合数字逻辑**。按方案目标 I3 第 2 条，"节点宏和模拟真值 Vin
+// 放在仿真边界" —— 所以 adc2_node_macro.sv 不在本清单里，
+// 它属于仿真环境（见 *_sim.f）。这一改动让 compile_ultra 从超时变成
+// 7383 cells / 4508.69 µm² / slack +22.15 ns。
 
 // ---- D3/D4 叶子（复用，已验证）----
 rtl/dem_phase_rr.sv
@@ -17,6 +20,5 @@ rtl/follower_rt.sv
 rtl/v21/acq_conv_ctx.sv
 rtl/v21/sar_evt_v21.sv
 rtl/v21/adc2_capture.sv
-rtl/v21/adc2_node_macro.sv
 rtl/v21/recon_v21.sv
 rtl/v21/adc_digital_ip_v21.sv

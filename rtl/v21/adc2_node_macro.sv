@@ -42,17 +42,21 @@ module adc2_node_macro #(
 
     // ---------------------------------------------------------------- 本笔输入
     input  logic         calc_valid,     // 本拍计算一次
-    // **定点格式：Q22**（不是 Q24）。
+    // **定点格式：Q24，27 位有符号**（方案目标要求"带 24 位小数的有符号
+    // Vin 至少用 27 位"）。
     //
-    // 踩过的坑：最初用 Q24，`x_q24` 声明 24 位。但 Q24 表示 ±3V 需要
-    // 24（小数）+ 2（整数）+ 1（符号）= 27 位，24 位只能表示 ±1V。
-    // x=2.9985 V 的 Q24 值 50307072 有 26 位，被截断成 0x2FFA000 的低 24 位，
-    // 符号位变成 1 -> 宏算出 x=-3 V、y=-191.7 V、raw=0（实测）。
+    // 位宽推导：±3 V 需要 24 位小数 + 2 位整数 = 26 位，再加 1 位符号 = 27 位。
+    //   [26]    符号
+    //   [25:24] 整数部分（可表示到 ±3，实取 ±3.0）
+    //   [23:0]  24 位小数，分辨率 2^-24 = 5.96e-8 V = 0.0104 LSB20
     //
-    // 改 Q22：±3V 需 22+3 = 25 位，用 26 位有符号。
-    // 分辨率 2^-22 = 2.38e-7 V = 0.042 LSB20，远优于 ADC2 折算的 0.5 LSB20。
-    input  logic signed [25:0] x_q22,    // 输入 x（Q22，V；±3V 内）
-    input  logic signed [25:0] b_q22,    // 偏置 b（Q22）
+    // 踩过的坑（两次）：
+    //   ① 最初声明 24 位：只能表示 ±1 V，x=2.9985 的 Q24 值 50307072 有 26 位，
+    //      截断后符号位变 1 -> 宏算出 x=-3 V、y=-191.7 V、raw=0。
+    //   ② 中途退到 Q22（26 位）能跑通，但不符合"24 位小数"的口径，
+    //      且分辨率比要求差 4 倍。现在回到 Q24/27 位。
+    input  logic signed [26:0] x_q24,    // 输入 x（Q24，V；±3V 内）
+    input  logic signed [26:0] b_q24,    // 偏置 b（Q24）
 
     // 本笔 8 片的主行和 G（Q30，单位 Cu×1e9 归一化到 1.0 = 2^30）
     input  logic [39:0]  G_q30,          // 8 片主权重和
@@ -69,7 +73,7 @@ module adc2_node_macro #(
 
     // ---------------------------------------------------------------- 输出
     output logic         y_valid,
-    output logic signed [39:0] y_q22,    // 余差 y（Q22，V）
+    output logic signed [39:0] y_q24,    // 余差 y（Q24，V）
     output logic [12:0]  raw_code,
     output logic         range_err       // y 落在 [-0.1875,+0.5625) 之外
 );
@@ -135,30 +139,28 @@ module adc2_node_macro #(
     //   注意：这里不追求与模拟宏的绝对电压标定（那属 §12 待绑定），
     //   只保证"数字侧因果与位序正确、同一配置下可复现"。
     logic signed [95:0] term_gx;
-    logic signed [63:0] G_q22, Wm_q22, Wp_q22;
+    logic signed [63:0] G_q24, Wm_q24, Wp_q24;
     logic signed [95:0] y_wide;
 
     always_comb begin
-        G_q22  = $signed({24'd0, G_q30}) >>> 8;
-        Wm_q22 = Wm_q30 >>> 8;
-        Wp_q22 = Wp_q30 >>> 8;
+        G_q24  = $signed({24'd0, G_q30}) >>> 6;
+        Wm_q24 = Wm_q30 >>> 6;
+        Wp_q24 = Wp_q30 >>> 6;
 
-        // G*x：Q30 * Q22 -> 右移 30 得 Q22
-        term_gx = ($signed({24'd0, G_q30}) * $signed(x_q22)) >>> 30;
+        // G*x：Q30 * Q24 -> 右移 30 得 Q24
+        term_gx = ($signed({24'd0, G_q30}) * $signed(x_q24)) >>> 30;
 
         y_wide = term_gx
-               + (96'sd3 * G_q22)
-               - (96'sd6 * Wm_q22)
-               + (96'sd6 * Wp_q22)
-               + $signed(b_q22);
+               + (96'sd3 * G_q24)
+               - (96'sd6 * Wm_q24)
+               + (96'sd6 * Wp_q24)
+               + $signed(b_q24);
     end
 
     // ---------------------------------------------------------------- 编码
     // code = floor((y - ymin) * 8192 / 0.75), ymin = -0.1875
-    // 以 Q22 整数表达：ymin_q22 = -0.1875 * 2^22 = -786432
-    //   (y - ymin) 是 Q22；乘 8192/0.75 = 32768/3
-    //   用 (y-ymin)*32768/3 >> 22，并显式 floor（对负数算术右移即 floor）。
-    localparam logic signed [63:0] YMIN_Q22 = -64'sd786432;   // -0.1875 * 2^22
+    // 以 Q24 整数表达：ymin_q24 = -0.1875 * 2^24 = -3145728
+    localparam logic signed [63:0] YMIN_Q24 = -64'sd3145728;   // -0.1875 * 2^24
 
     logic signed [95:0] num;
     logic signed [95:0] code_calc;
@@ -171,18 +173,18 @@ module adc2_node_macro #(
         // 必须显式 $signed() 或直接用 y_wide。
         // 踩过的坑：写成 y_wide[63:0] - YMIN_Q22 时，负数 y 会被当成巨大正数，
         // 于是 in_range 永远为假、raw 恒 0、range_err 恒 1（实测）。
-        num = ($signed(y_wide) - YMIN_Q22) * 96'sd32768;
-        // / 3 再 >> 22
+        num = ($signed(y_wide) - YMIN_Q24) * 96'sd32768;
+        // / 3 再 >> 24
         code_calc  = num / 96'sd3;
         // floor 语义：算术右移对负数是向负无穷取整，符合 floor
-        code_floor = code_calc >>> 22;
+        code_floor = code_calc >>> 24;
         in_range   = (code_floor >= 96'sd0) && (code_floor <= 96'sd8191);
     end
 
     assign y_valid   = calc_valid;
     // 同 num 的坑：y_wide[39:0] 是位选，无符号。
     // 这里做**显式符号截断**：取低 40 位但保留符号语义。
-    assign y_q22     = $signed(y_wide[39:0]);
+    assign y_q24     = $signed(y_wide[39:0]);
     assign raw_code  = in_range ? code_floor[12:0] : 13'd0;
     assign range_err = calc_valid & ~in_range;
 

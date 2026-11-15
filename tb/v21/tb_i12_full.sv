@@ -45,9 +45,17 @@ module tb_i12_full;
     logic [3:0] ev_bit_index_i = 4'd0, ev_event_index_i = 4'd0;
     logic       ev_qid_i = 1'b0;
 
-    // 片组
+    // 片组：本 TB 用**外部驱动**做定向向量，所以必须把 sched_ext_sel 拉高。
+    //
+    // 踩过的坑：顶层后来加了 `sched_ext_sel`（生产态默认 0 = 用内部 sched18）。
+    // 本 TB 没接这个端口，它悬空成 0，于是内部 sched18 接管，
+    // 外部给的 sched_* 被忽略 -> B 的 CONV 片号全错、16 项失败（实测）。
+    // 新增端口后必须逐个 TB 核对，不能只看编译通过。
+    logic        sched_ext_sel = 1'b1;
     logic [17:0] sched_acq, sched_conv, sched_idle;
     logic [39:0] sched_ids;
+    logic        sched_seed_we = 1'b0;
+    logic [31:0] sched_seed = 32'h1234_5678;
 
     // 输出
     logic [17:0] acq_sel, conv_sel, idle_sel;
@@ -77,6 +85,8 @@ module tb_i12_full;
         .ev_qid_i(ev_qid_i),
         .sched_acq(sched_acq), .sched_conv(sched_conv), .sched_idle(sched_idle),
         .sched_ids(sched_ids),
+        .sched_ext_sel(sched_ext_sel),
+        .sched_seed_we(sched_seed_we), .sched_seed(sched_seed),
         .acq_sel_o(acq_sel), .conv_sel_o(conv_sel), .idle_sel_o(idle_sel),
         .rdac_pre_state_o(pre_state), .pre_wr_o(pre_wr),
         .rdac_post_state_o(post_state), .post_wr_o(post_wr),

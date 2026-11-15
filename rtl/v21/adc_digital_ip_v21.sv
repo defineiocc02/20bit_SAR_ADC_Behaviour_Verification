@@ -91,10 +91,25 @@ module adc_digital_ip_v21 (
     input  logic         adc2_range_err_i,
     output logic         adc2_capture_arm_o,
 
-    // 定点格式 Q22（±3V 需 25 位，用 26 位有符号；分辨率 0.042 LSB20）
-    input  logic signed [25:0] x_q22_i,  // 本笔输入 x（Q22，V）
-    input  logic signed [25:0] b_q22_i,  // 偏置 b（Q22）
-    input  logic [39:0]  G_q30_i,        // 本笔 8 片主权重和（Q30）
+    // ---------------------------------------------------------------- 节点模型快照出口
+    //
+    // **方案目标 I3 第 2 条**："将节点宏和模拟真值 Vin 放在仿真边界"。
+    // 所以 DUT 不再内部例化 adc2_node_macro；它只把"本笔的不可变快照"
+    // 送出去，由仿真侧的节点模型（代表模拟宏）自行算 y 与 raw，
+    // 再通过 adc2_valid/ready 把手握结果送回。
+    //
+    // 这样做有三个好处：
+    //   ① 语义正确 —— 节点模型是模拟宏的替身，不该进数字综合
+    //   ② 解决 compile_ultra 超时（96 位除法 + 8x19 权重表不再进网表）
+    //   ③ 快照化后 DUT 与模型之间是可对拍的明确接口
+    output logic [159:0] node_post_o,     // 本笔最后一次实际应用的 slot 级 post
+    output logic [31:0]  node_pre_o,      // 本笔采样时保存的 slot 级 pre
+    output logic [39:0]  node_ids_o,      // 本笔 8 个物理片号
+    output logic         node_qid_o,
+    output logic [31:0]  node_tag_o,
+    output logic         node_valid_o,    // 快照有效（本笔已 final apply）
+    output logic [2:0]   node_h_o,        // 本笔冻结的 DEM 相位（供追溯）
+    output logic [2:0]   node_v_o,
 
     output logic         adc2_rsp_valid_o,
     output logic [31:0]  adc2_rsp_tag_o,
@@ -102,9 +117,7 @@ module adc_digital_ip_v21 (
     output logic [12:0]  adc2_rsp_raw_o,
     output logic         adc2_rsp_range_o,
     output logic         adc2_late_err_o,
-    output logic signed [39:0] adc2_y_q22_o,
-    output logic [12:0]  adc2_node_raw_o,
-    output logic         adc2_node_range_o,
+    output logic         adc2_release_ok_o,   // hold 到即可释放（与 raw 解耦）
 
     // ---------------------------------------------------------------- 观测
     output logic        apply_fire_o,
@@ -353,9 +366,33 @@ module adc_digital_ip_v21 (
     // 方案 §4.3："E1 锁 B 的输入，同时捕获 A 的余差" —— 捕获发生在
     // 下一笔的采样沿上，因此 capture_req 由 sample_event & residue_captured
     // 驱动，而 owner 记录的是**当前 CONV**那一笔。
-    wire adc2_capture_req = sample_event & residue_captured & conv_valid;
+    // ---------------------------------------------------------------- 沿前授权
+    //
+    // 方案目标 I3 第 1 条："根据本笔最后一次实际开关应用、RA 和可用捕获资源
+    // 提前产生 arm。sample_event 和 residue_captured 仅用于登记已发生的捕获。"
+    //
+    // 所以 arm 的条件**不含** sample_event：
+    //   · conv_valid        本笔转换上下文存在
+    //   · final_applied_w   最后一次合法 apply 已经发生（不是"事件发完了"）
+    //   · ~adc2_arm_done    本笔的 arm 还没发过（一次捕获一次授权）
+    //                        否则会在整个 CONV 期间持续拉高，宏可能重复捕获。
+    logic adc2_arm_done_q;
+    wire  adc2_arm_req = conv_valid & final_applied_w & ~adc2_arm_done_q;
+
+    // 沿后登记：只在公共沿确实报了 residue_captured 时登记
+    wire  adc2_reg_req = sample_event & residue_captured;
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)                    adc2_arm_done_q <= 1'b0;
+        else if (adc2_arm_req)         adc2_arm_done_q <= 1'b1;
+        else if (!conv_valid)          adc2_arm_done_q <= 1'b0;   // 换笔时清
+    end
+
+    // 节点宏也在**沿后登记那一拍**求值（此时 final_post/pre 都已稳定）
+    wire adc2_capture_req = adc2_reg_req & conv_valid;
 
     logic        adc2_arm, adc2_ready_w, adc2_hold_done, adc2_late_err;
+    logic        adc2_release_ok;
     logic        adc2_owner_busy;
     logic        rsp_valid, rsp_qid, rsp_range;
     logic [31:0] rsp_tag;
@@ -363,7 +400,8 @@ module adc_digital_ip_v21 (
 
     adc2_capture u_adc2 (
         .clk(clk), .rst_n(rst_n),
-        .capture_req(adc2_capture_req),
+        .capture_arm_req(adc2_arm_req),
+        .capture_reg_req(adc2_capture_req),
         .capture_tag(conv_tag),
         .capture_qid(conv_qid),
         .capture_phase_h(conv_h),
@@ -377,7 +415,7 @@ module adc_digital_ip_v21 (
         .rsp_valid_o(rsp_valid), .rsp_tag_o(rsp_tag), .rsp_qid_o(rsp_qid),
         .rsp_raw_o(rsp_raw), .rsp_range_o(rsp_range),
         .owner_busy_o(adc2_owner_busy), .hold_done_o(adc2_hold_done),
-        .late_err_o(adc2_late_err));
+        .late_err_o(adc2_late_err), .release_ok_o(adc2_release_ok));
 
     // 节点行为宏：用**实际应用的 post**（post_state_q）与**采样时保存的 pre**
     // （conv_pre_q 经 conv_ids 路由后的 slot 级等价物）算余差。
@@ -385,7 +423,7 @@ module adc_digital_ip_v21 (
     // 注意：这里用 conv 的 slot 级 post（post_slot_w）而不是物理 360 位，
     // 因为宏按 slot 组织权重表；物理路由的正确性已由 I1/I2 逐位对拍证明。
     logic        node_calc_valid;
-    logic signed [39:0] node_y_q22;
+
     logic [12:0] node_raw;
     logic        node_range;
 
@@ -427,34 +465,15 @@ module adc_digital_ip_v21 (
         end
     end
 
-    assign node_calc_valid = adc2_capture_req;
-
-    // 权重表：本版用名义权重，由参数化端口注入（I4 换成可配置寄存器组）
-    logic [39:0] w_main_tab [0:7][0:15];
-    logic [39:0] w_sub_tab  [0:7][0:3];
-
-    // **G_q30_w 必须显式声明**。最初漏了声明，Verilog 把它隐式推断成
-    // 1 位 wire，于是 `assign G_q30_w = G_q30_i` 只传了 bit0（=0），
-    // 节点宏拿到 G=0，term_gx 恒 0，y 变成纯偏置项（实测 y=-191.7 V）。
-    // 这类悬空网在 VCS 里只报 warning，很容易漏。
-    logic [39:0] G_q30_w;
-    assign G_q30_w = G_q30_i;
-
-    // conv_pre_slot 是 ACQ 冻结 pre 提升到 CONV 的那一份（slot 级），
-    // 供节点宏算 Wp —— 必须是**采样时保存的** pre，不是当前 ACQ 的。
-    // （acq_conv_ctx 的 conv_pre_o 输出，I1 已逐位验证它不被新 prepare 覆写）
-
-    adc2_node_macro u_node (
-        .clk(clk), .rst_n(rst_n),
-        .calc_valid(node_calc_valid),
-        .x_q22(x_q22_i),
-        .b_q22(b_q22_i),
-        .G_q30(G_q30_w),
-        .post_mask(final_post_q),
-        .pre_mask(conv_pre_slot),
-        .w_main(w_main_tab), .w_sub(w_sub_tab),
-        .y_valid(), .y_q22(node_y_q22),
-        .raw_code(node_raw), .range_err(node_range));
+    // 节点模型所需的本笔快照（全部来自 final apply 那一刻锁存的值）
+    assign node_post_o  = final_post_q;
+    assign node_pre_o   = conv_pre_slot;
+    assign node_ids_o   = conv_ids;
+    assign node_qid_o   = conv_qid;
+    assign node_tag_o   = conv_tag;
+    assign node_valid_o = conv_valid & final_applied_w;
+    assign node_h_o     = final_h_q;
+    assign node_v_o     = final_v_q;
 
     assign adc2_capture_arm_o = adc2_arm;
     assign adc2_ready_o       = adc2_ready_w;
@@ -464,8 +483,6 @@ module adc_digital_ip_v21 (
     assign adc2_rsp_raw_o     = rsp_raw;
     assign adc2_rsp_range_o   = rsp_range;
     assign adc2_late_err_o    = adc2_late_err;
-    assign adc2_y_q22_o       = node_y_q22;
-    assign adc2_node_raw_o    = node_raw;
-    assign adc2_node_range_o  = node_range;
+    assign adc2_release_ok_o  = adc2_release_ok;
 
 endmodule

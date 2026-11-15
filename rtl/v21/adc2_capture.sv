@@ -34,9 +34,19 @@ module adc2_capture (
     input  logic        clk,
     input  logic        rst_n,
 
-    // ---------------------------------------------------------------- 捕获请求
-    // 来自上层：某笔 CONV 即将在公共沿被捕获余差
-    input  logic        capture_req,      // 本拍登记一次捕获（与 arm 同源）
+    // ---------------------------------------------------------------- 沿前授权 / 沿后登记
+    //
+    // **必须分开**（方案目标 I3 第 1 条）：
+    //   capture_arm_req  沿**前**给出，表示"本笔余差已具备捕获条件，
+    //                    下一个公共沿请捕获它"。它由本笔最后一次实际开关应用、
+    //                    RA 就绪和可用捕获资源共同决定 —— 是一个**前瞻**信号。
+    //   capture_reg_req  沿**后**给出，表示"公共沿已经发生，本拍登记这次
+    //                    捕获"。它只在 sample_event & residue_captured 为真时有效。
+    //
+    // 早期版本把两者合成一个 capture_req，arm 等于登记信号，等于"事后才授权"，
+    // 宏没有提前收到授权 —— 语义上不成立。
+    input  logic        capture_arm_req,   // 沿前授权
+    input  logic        capture_reg_req,   // 沿后登记（已发生的捕获）
     input  logic [31:0] capture_tag,
     input  logic        capture_qid,
     input  logic [2:0]  capture_phase_h,  // 本笔 DEM 相位（供追溯）
@@ -60,7 +70,11 @@ module adc2_capture (
     // ---------------------------------------------------------------- 状态
     output logic        owner_busy_o,     // 有一个已捕获待返回的 owner
     output logic        hold_done_o,      // 宏已回报 hold（供释放资格用）
-    output logic        late_err_o        // 迟到返回被丢弃（粘滞）
+    output logic        late_err_o,       // 迟到返回被丢弃（粘滞）
+    // 旧组释放资格：只看 hold 与安静窗，**不看 raw 是否已返回**。
+    // 方案目标 I3 第 1 条："旧组释放依据自己的 hold 和安静窗，
+    // raw 返回不能提前释放旧组。"
+    output logic        release_ok_o
 );
 
     // ---------------------------------------------------------------- owner 记录
@@ -71,13 +85,9 @@ module adc2_capture (
     logic        hold_done_q;
     logic        late_err_q;
 
-    // arm 在公共沿**之前**注册。这里用"有 owner 在等"作为 arm 的依据：
-    // 捕获登记发生在公共沿（capture_req），arm 必须早于它，
-    // 所以 arm 取"本拍有 capture_req 且尚未登记完成"之外的前瞻形式。
-    //
-    // 简化且可验证的做法：arm = 本拍 capture_req（上层保证它在沿前给出）。
-    // 该极性与时序绑定属 §12 待确认项，此处按方案"arm 在沿前注册"实现。
-    assign adc2_capture_arm_o = capture_req;
+    // arm 直接输出沿前授权，且只在 owner 槽可接收时才授权
+    // （没有空位就别让宏白跑一次捕获）。
+    assign adc2_capture_arm_o = capture_arm_req & (~owner_valid_q | adc2_valid_i);
 
     // ready：只有在 owner 槽空、或本拍正好消费掉旧 owner 时才为 1。
     // 方案 §4.2 初版限制"同一时刻最多一个已捕获但尚未返回 raw 的 owner"。
@@ -96,8 +106,17 @@ module adc2_capture (
             hold_done_q   <= 1'b0;
             late_err_q    <= 1'b0;
         end else begin
-            // ---- hold 回报：归属于当前 owner ----
-            if (adc2_hold_ack_i && owner_valid_q) hold_done_q <= 1'b1;
+            // ---- hold 回报：**与 owner 解耦** ----
+            //
+            // hold 是"模拟资源已放行"的信号，它描述的是**片组**可以释放，
+            // 与 raw 是否已经返回无关。早期版本写成 `&& owner_valid_q`，
+            // 且 raw 返回时把 hold_done_q 清 0 —— 结果是"raw 先回、hold 后到"
+            // 这个最常见顺序下 hold 永远记不上，旧组被永久卡住（实测）。
+            //
+            // 方案目标 I3 第 1 条："旧组释放依据自己的 hold 和安静窗，
+            // raw 返回不能提前释放旧组。" 反过来同样成立：
+            // raw 返回也不该抹掉 hold 记录。
+            if (adc2_hold_ack_i) hold_done_q <= 1'b1;
 
             // ---- 同沿优先级：先消费旧 owner，再登记新 owner ----
             // raw 消费用的是**本拍之前**的 owner_q（非阻塞赋值不影响本拍的读），
@@ -107,12 +126,14 @@ module adc2_capture (
                     late_err_q <= 1'b1;      // 无 owner 却收到 raw -> 迟到/越界
                 else begin
                     owner_valid_q <= 1'b0;   // 旧 owner 完成
-                    hold_done_q   <= 1'b0;
+                    // hold_done_q **不清** —— 它属于片组释放资格，
+                    // 由上层在换笔时复位（见 use_hint 里的 !conv_valid 分支）。
                 end
             end
 
             // ---- 捕获登记：覆盖 owner（若本拍刚消费掉旧 owner）----
-            if (capture_req) begin
+            // 用沿后的 capture_reg_req，不是沿前的授权。
+            if (capture_reg_req) begin
                 if (owner_valid_q && !take_raw) begin
                     // 旧 owner 既没返回又要登记新捕获 -> 违反"最多一个 owner"。
                     // 记错误但不丢旧 owner（旧数据不能让位给新数据）。
@@ -123,7 +144,8 @@ module adc2_capture (
                     owner_qid_q   <= capture_qid;
                     owner_h_q     <= capture_phase_h;
                     owner_v_q     <= capture_phase_v;
-                    hold_done_q   <= adc2_hold_ack_i;   // 同拍 hold 也采入
+                    // 新捕获开始时清掉上一笔的 hold 记录
+                    hold_done_q   <= adc2_hold_ack_i;
                 end
             end
         end
@@ -137,6 +159,9 @@ module adc2_capture (
     assign rsp_raw_o   = adc2_raw_i;
     assign rsp_range_o = adc2_range_err_i;
 
+    // release_ok 与 owner/raw 完全解耦：hold 到了就允许释放，
+    // 不必等 raw。反之 raw 提前回来也不会让 release 提前。
+    assign release_ok_o = hold_done_q;
     assign owner_busy_o = owner_valid_q;
     assign hold_done_o  = hold_done_q;
     assign late_err_o   = late_err_q;

@@ -67,7 +67,7 @@ def _replay(capture, trace, out, *, inputs=None):
         "plant-parameters": capture.root / "plant_replay_only.json",
         "stimulus": trace / "stimulus.txt",
         "config": inputs / "config.json",
-        "prefix-table": ROOT / "sim/fixtures/fig19_ideal_ports/rdac_prefix_table.json",
+        "prefix-table": ROOT / "flow/sim/fixtures/fig19_ideal_ports/rdac_prefix_table.json",
         "registers": trace / "registers.json",
         "out": out,
     }

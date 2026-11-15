@@ -126,12 +126,12 @@ def test_contract_params_match_the_frozen_rtl_header():
 
     root = Path(__file__).resolve().parents[2]
     params = {}
-    for line in (root / "verification/contracts/rtl_params.vh").read_text().splitlines():
+    for line in (root / "flow/verification/contracts/rtl_params.vh").read_text().splitlines():
         if "localparam int unsigned" in line and "=" in line:
             name = line.split("localparam int unsigned")[1].split("=")[0].strip()
             value = line.split("=")[1].strip().rstrip(";").replace("32'd", "")
             params[name] = int(value)
-    spec = yaml.safe_load((root / "verification/contracts/digital_interfaces.yaml").read_text())
+    spec = yaml.safe_load((root / "flow/verification/contracts/digital_interfaces.yaml").read_text())
     for key, value in spec["params"].items():
         assert params[key] == value, key
 

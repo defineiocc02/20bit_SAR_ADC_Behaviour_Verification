@@ -97,7 +97,7 @@ ruff/format/mypy通过。两个隔离负对照在成功编译后检出了“系�
 避免旧前端漏传播协程内逐元素赋值；P2诊断字符串使用`%s`。原生Linux5.020结果以当前PR CI为准。
 
 最终执行结果及源文件hash见同目录 `evidence/structural_calibration_20260920.json`。
-日志由 `tools/run_open_rtl.py` 生成到 `sim/artifacts/open_rtl/`，本地和CI使用相同入口。
+日志由 `tools/run_open_rtl.py` 生成到 `flow/sim/artifacts/open_rtl/`，本地和CI使用相同入口。
 
 ```bash
 python tools/run_open_rtl.py
@@ -127,9 +127,9 @@ PYTHONPATH=src pytest -m 'not slow' -q
 可运行的映射入口（需可用EDA主机与库配置）：
 
 ```bash
-python synth/run_synth.py --name structural_calibration --top sar20_digital_core \
+python flow/synth/run_synth.py --name structural_calibration --top sar20_digital_core \
   --files rtl/core rtl/top --incdirs rtl/params --clk-period 1.5625
-python synth/run_synth.py --name calibration_core --top recon_core \
+python flow/synth/run_synth.py --name calibration_core --top recon_core \
   --files rtl/core --incdirs rtl/params --clk-period 1.5625
 ```
 

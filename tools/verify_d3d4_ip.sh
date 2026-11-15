@@ -49,7 +49,7 @@ TBS="tb/tb_dem_dither.sv tb/tb_d3d4_ip.sv"
 VECS="tb/vec_phase_rtl.txt tb/vec_d3d4_ip.txt"
 # 编译清单也要带上：L1 走 files_d3d4.f，缺它 vcs 直接报
 # "Unable to open 'files_d3d4.f'"，而错误信息里不含"编译"二字，容易误判。
-FLISTS="build/filelists/files_d3d4.f build/filelists/files_d3d4_ip.f"
+FLISTS="flow/build/filelists/files_d3d4.f flow/build/filelists/files_d3d4_ip.f"
 
 # 金标必须先重新生成并跑到成功，否则后面的 PASS 可能是拿旧向量自证
 python3 tools/gen_vec_phase.py  >/dev/null || fail "生成 vec_phase_rtl.txt"
@@ -68,9 +68,12 @@ if [ -n "$RUNNER" ]; then
   scp -q $TBS  "$RUNNER:$WORK/tb/"   || fail "拷贝 tb"
   scp -q $VECS "$RUNNER:$WORK/tb/"   || fail "拷贝向量"
   # 清单要放到与 -f 一致的相对位置，否则远端解析不到。
-  # 本地清单在 build/filelists/，远端也建同样目录结构，这样两侧的 -f 路径可用同一个字符串。
-  run "mkdir -p $WORK/build/filelists" || fail "建远端清单目录"
-  scp -q $FLISTS "$RUNNER:$WORK/build/filelists/" || fail "拷贝编译清单"
+  # 本地清单在 flow/build/filelists/，远端也建同样目录结构，这样两侧的 -f 路径可用同一个字符串。
+  # 远端要复刻与本地一致的相对结构（flow/build/filelists/），
+  # 否则 -f 里的路径在远端解析不到。这里踩过一次：
+  # 目录建的是 $WORK/build/filelists，而 -f 写的是 flow/build/filelists。
+  run "mkdir -p $WORK/flow/build/filelists" || fail "建远端清单目录"
+  scp -q $FLISTS "$RUNNER:$WORK/flow/build/filelists/" || fail "拷贝编译清单"
   RUNCD="cd $WORK"
 else
   RUNCD="cd $PWD"
@@ -80,10 +83,10 @@ fi
 echo "[1/4] L1 叶子级逐位对拍（133376 + 512 组）"
 if [ "$SIM" = "vcs" ]; then
   run "$SETUP; $RUNCD && vcs -full64 -sverilog -timescale=1ns/1ps \
-       -f build/filelists/files_d3d4.f -o simv_l1 > l1_c.log 2>&1" || fail "L1 编译"
+       -f flow/build/filelists/files_d3d4.f -o simv_l1 > l1_c.log 2>&1" || fail "L1 编译"
   run "$RUNCD && ./simv_l1 > l1.txt 2>&1" || fail "L1 仿真"
 else
-  run "$RUNCD && iverilog -g2012 -o simv_l1 -f build/filelists/files_d3d4.f > l1_c.log 2>&1" || fail "L1 编译"
+  run "$RUNCD && iverilog -g2012 -o simv_l1 -f flow/build/filelists/files_d3d4.f > l1_c.log 2>&1" || fail "L1 编译"
   run "$RUNCD && vvp simv_l1 > l1.txt 2>&1" || fail "L1 仿真"
 fi
 if [ -n "$RUNNER" ]; then

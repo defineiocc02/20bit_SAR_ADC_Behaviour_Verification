@@ -21,7 +21,7 @@
 * 唯一的运行时舍入是 ADC2 码仓中心的 **ties-to-even**；
 * 之后全是 **floor**。RTL 的 `/` 向零截断，负商必须减 1 修正。
 
-这条是 Python 与 RTL 之间最容易出错的缝，`verification/reference/fixed_point.py`
+这条是 Python 与 RTL 之间最容易出错的缝，`flow/verification/reference/fixed_point.py`
 把两者分开实现并互相钉死。
 
 ## 3. 事件与样本身份

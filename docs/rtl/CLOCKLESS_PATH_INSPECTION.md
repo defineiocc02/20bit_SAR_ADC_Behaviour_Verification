@@ -19,7 +19,7 @@
 在完成实现、当前有效 DCP 仍打开时：
 
 ```tcl
-source synth/inspect_clockless_paths.tcl
+source flow/synth/inspect_clockless_paths.tcl
 clockless_audit::run C:/path/to/new_clockless_query
 ```
 

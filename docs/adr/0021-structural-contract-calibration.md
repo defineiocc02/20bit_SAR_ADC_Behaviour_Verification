@@ -54,7 +54,7 @@
 
 ```bash
 python tools/run_open_rtl.py --tops bridge_mask_audit_tb rdac_event_contract_tb structural_adc_tb structural_adc_observer_off_tb
-PYTHONPATH=src python tools/verify_rdac_events.py sim/artifacts/open_rtl/rdac_events.csv
+PYTHONPATH=src python tools/verify_rdac_events.py flow/sim/artifacts/open_rtl/rdac_events.csv
 OPENBLAS_NUM_THREADS=1 PYTHONPATH=src python tools/run_structural_calibration.py \
   --output "${TMPDIR:-/tmp}/sar-structural-calibration-new" \
   --train 4096 --holdout 512 --chip-seeds 42 91

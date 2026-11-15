@@ -43,7 +43,7 @@ DAC 单元失配让实际权重偏离名义值，输出出现随码变化的误�
 
 **`a` 与 `on` 必须分开**：`on` 翻底板、改 `s`；`a` 是信号连接资格。
 本项目曾把 `on` 当成 `a`，导致"gain 随 mask 变"的错误结论——见
-`verification/reports/VERIFICATION_REPORT.md` §3.1。
+`flow/verification/reports/VERIFICATION_REPORT.md` §3.1。
 
 ---
 
@@ -107,7 +107,7 @@ x̂[n]    = ( fine[n] − o + Σ A·w·Vbottom ) / Σ A·w
 RTL `recon_core` 与本参考 **101/101 位真**，含 `clip_low/clip_high/acc_ovf/
 gain_err/adc2_ovf/result_sample_id` 与 11 拍延迟。
 
-合同细节见 `verification/contracts/fixed_point.yaml`。
+合同细节见 `flow/verification/contracts/fixed_point.yaml`。
 
 ---
 

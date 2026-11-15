@@ -119,7 +119,7 @@ def test_shell_entry_is_a_local_thin_driver_and_propagates_result(tmp_path, rc):
     executable = fake_tool(tmp_path, returncode=rc)
     out = tmp_path / "results"
     cp = subprocess.run(
-        [tool("bash"), str(ROOT / "synth/run_synth.sh"), *arguments(data, out, str(executable))],
+        [tool("bash"), str(ROOT / "flow/synth/run_synth.sh"), *arguments(data, out, str(executable))],
         cwd=tmp_path,
         env={**os.environ, "PYTHON": sys.executable, "PYTHONDONTWRITEBYTECODE": "1"},
         capture_output=True,

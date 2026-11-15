@@ -340,7 +340,7 @@ A4 的硬件含义值得单独说明：**RTL 不实现分数掩码**。ADR 0014 
 | P0 | 契约与 `FixedPointReconstructor` 的算式一致（退化恒等式、round-even 8 样例） | `tests/unit/test_rtl_export.py` |
 | P0 | 寄存器镜像 → `from_dict` → 重构结果逐位相同 | 同上 |
 | P0 | 导出物可复现（重跑逐字节一致） | 同上 |
-| P2 | RTL `recon_core` 与 `FixedPointReconstructor` **逐样本 bit-exact** | `sim/tb/` |
+| P2 | RTL `recon_core` 与 `FixedPointReconstructor` **逐样本 bit-exact** | `flow/sim/tb/` |
 | P2 | 2²⁰ 全码理想后端 oracle：每码恰一次、单调、恰 1 LSB 解码宽度 | 同上 |
 | P2 | 511 个 9 bit 进位处 1/16-LSB 密集斜坡：无回退、无跳码 | 同上 |
 | P2 | 溢出路径：越界输入 → 粘滞标志置位且**不回绕** | 同上 |

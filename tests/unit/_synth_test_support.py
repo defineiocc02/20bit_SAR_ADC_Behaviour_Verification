@@ -13,7 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location(
-    "synth_support_test_driver", ROOT / "synth/run_synth.py"
+    "synth_support_test_driver", ROOT / "flow/synth/run_synth.py"
 )
 assert SPEC is not None and SPEC.loader is not None
 DRIVER = importlib.util.module_from_spec(SPEC)
@@ -100,7 +100,7 @@ def invoke(data: dict[str, Path], out: Path, executable: str, *extra: str):
     return subprocess.run(
         [
             sys.executable,
-            str(ROOT / "synth/run_synth.py"),
+            str(ROOT / "flow/synth/run_synth.py"),
             *arguments(data, out, executable, *extra),
         ],
         capture_output=True,

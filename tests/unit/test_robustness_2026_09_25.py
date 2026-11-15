@@ -158,7 +158,7 @@ def _load_exporter():
 def exporter_case(tmp_path):
     """复制明确的数字组件夹具；不创建未知物理绑定或改原文件。"""
     path = tmp_path / "explicit_component"
-    shutil.copytree(REPO / "sim/fixtures/source_control_component", path)
+    shutil.copytree(REPO / "flow/sim/fixtures/source_control_component", path)
     return _load_exporter(), path
 
 
@@ -541,11 +541,11 @@ def test_sdist_excludes_third_party_originals_and_keeps_real_public_assets():
         "docs/readme/fig/source_bound_default_architecture_v1.png",
         "docs/readme/make_overview_figures.py",
         "docs/caaz/make_figures.py",
-        "sim/fixtures/source_control_component/config.json",
-        "sim/fixtures/source_control_component/format.json",
-        "sim/fixtures/source_control_component/binding.json",
-        "sim/fixtures/source_control_component/source_control_binding.sv",
-        "sim/fixtures/source_control_component/source_acquisition_binding.sv",
+        "flow/sim/fixtures/source_control_component/config.json",
+        "flow/sim/fixtures/source_control_component/format.json",
+        "flow/sim/fixtures/source_control_component/binding.json",
+        "flow/sim/fixtures/source_control_component/source_control_binding.sv",
+        "flow/sim/fixtures/source_control_component/source_acquisition_binding.sv",
         "tools/export_rtl_params.py",
         "tools/run_open_rtl.py",
     ]

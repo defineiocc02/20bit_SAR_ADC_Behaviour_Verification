@@ -48,9 +48,9 @@ assign sadc_code=count_tree[1];
 
 持久测试文件：
 
-- `sim/tb/tree_mapping_dut.sv`：平坦端口 wrapper，避免 RTL/funcsim 接口差异。
-- `sim/tb/tree_mapping_tb.sv`：独立标量 oracle，禁止访问 DUT 树节点；同一 TB 驱动 RTL 与 `write_verilog -mode funcsim` 网表。
-- `synth/check_tree_mapping.tcl`：仅综合小型 wrapper，导出功能网表、DCP、资源表和逐输入端点扇出 CSV。它没有时序约束，不能用于频率结论。
+- `flow/sim/tb/tree_mapping_dut.sv`：平坦端口 wrapper，避免 RTL/funcsim 接口差异。
+- `flow/sim/tb/tree_mapping_tb.sv`：独立标量 oracle，禁止访问 DUT 树节点；同一 TB 驱动 RTL 与 `write_verilog -mode funcsim` 网表。
+- `flow/synth/check_tree_mapping.tcl`：仅综合小型 wrapper，导出功能网表、DCP、资源表和逐输入端点扇出 CSV。它没有时序约束，不能用于频率结论。
 
 默认共 12,904 项检查：
 
@@ -72,7 +72,7 @@ oracle 逐物理 slice 计算活动集合，逐单元计算 total、gain、rail 
 RTL 测试通过 `tools/run_open_rtl.py --tops tree_mapping_tb` 运行。映射检查示例（使用已配置厂商工具的终端，`NEW_OUT` 必须尚不存在）：
 
 ```text
-vivado -mode batch -source synth/check_tree_mapping.tcl -tclargs RTL_ROOT NEW_OUT
+vivado -mode batch -source flow/synth/check_tree_mapping.tcl -tclargs RTL_ROOT NEW_OUT
 ```
 
 随后在 `NEW_OUT` 中用 `xvlog --sv` 编译 `mapped.v`、原 TB 和安装目录的 `data/verilog/src/glbl.v`；用 `xelab tree_mapping_tb glbl -L unisims_ver -s tree_mapping` 创建 snapshot，再执行 `xsim tree_mapping -R`。Windows 不要把 shell stdout 重定向到工具自己打开的 `xvlog.log` 或 `xelab.log`；使用不同的 `.console.log` 文件名。

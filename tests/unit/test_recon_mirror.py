@@ -21,7 +21,7 @@ from adi_model.contracts.fixed_point import FixedPointFormat, FixedPointReconstr
 
 @pytest.fixture
 def mirror(monkeypatch):
-    path = ROOT / "sim/ref/recon_rtl_mirror.py"
+    path = ROOT / "flow/sim/ref/recon_rtl_mirror.py"
     spec = importlib.util.spec_from_file_location("explicit_recon_rtl_mirror", path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)

@@ -46,7 +46,7 @@
 | `caaz/` + `randomization_caaz/` | 20 | CAAZ 扩展材料 | `extensions/caaz` 相关 |
 | `spec/` | 12 | 规格草稿 | 追溯 |
 | `figures/` | 8 | `DIGITAL_ALGORITHM.md` 引用的原图（PDF 渲染） | 被引用 |
-| `verification/` | 5 | 验证基线说明 | 交叉引用 |
+| `flow/verification/` | 5 | 验证基线说明 | 交叉引用 |
 | `guide/` | 4 | QUICKSTART / TERMS / ARCHITECTURE / DEBUGGING | 上手用 |
 | `decisions/` | 1 | 单条决策记录 | 追溯 |
 

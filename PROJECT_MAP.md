@@ -35,9 +35,9 @@ D3D4_RUNNER=<ssh-host> bash tools/verify_d3d4_ip.sh
 
 ---
 
-## 二、根目录 40+ 项，分四类
+## 二、根目录项，分四类
 
-### A. 核心（7 个目录）
+### A. 核心（7 项）
 
 | 目录 | 文件数 | 装什么 |
 |:---|--:|:---|
@@ -45,18 +45,18 @@ D3D4_RUNNER=<ssh-host> bash tools/verify_d3d4_ip.sh
 | `tb/` | 47 | testbench + 金标向量。核心是 `tb_d3d4_ip` / `tb_event_align` / `tb_dem_dither` |
 | `tools/` | 74 | 验收脚本、金标生成器、统计工具 |
 | `src/` | 95 | Python 参考模型。核心是 `adi_model/dem_dither.py` |
-| `synth/` | 19 | 综合脚本与 SDC（`synth/d3d4/`） |
-| `build/` | 5 | 4 个编译清单（**先读 `build/filelists/README.md`**） |
+| `flow/synth/` | 19 | 综合脚本与 SDC（`flow/synth/d3d4/`） |
+| `flow/build/` | 5 | 4 个编译清单（**先读 `flow/build/filelists/README.md`**） |
 | `docs/` | 257 | 顶层 14 份当前文档 + `_history/` 98 份历史 |
 
-### B. 辅助（用到才看，4 个目录）
+### B. 辅助（统一在 `flow/` 下，用到才看）
 
 | 目录 | 文件数 | 什么时候用 |
 |:---|--:|:---|
 | `tests/` | 125 | CI 跑 pytest。改动 `src/` 后必跑 |
-| `sim/` | 46 | CI 用 `sim/fixtures/` 做 RTL 比对 |
-| `verification/` | 80 | 验证基线与向量生成 |
-| `scripts/` | 3 | `clean.py` 清理临时产物（默认 dry-run） |
+| `flow/sim/` | 46 | CI 用 `flow/sim/fixtures/` 做 RTL 比对 |
+| `flow/verification/` | 80 | 验证基线与向量生成 |
+| `flow/scripts/` | 3 | `clean.py` 清理临时产物（默认 dry-run） |
 
 ### C. 外围子系统（统一在 `subsys/` 下，与本任务无关）
 

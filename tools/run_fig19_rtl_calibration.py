@@ -54,14 +54,14 @@ def dither_terms(word: int) -> tuple[int, int, int]:
     """按独立源合同逐位求整数 L/T/U，不调用 SV 译码或实际电容。
 
     ⚠️ **本函数里的权重是 63+8 时代的显式合同值**（`step_q = 2**24`，
-    低位权 9586981/4793490/2396745），与 `sim/fixtures/fig19_ideal_ports/`
+    低位权 9586981/4793490/2396745），与 `flow/sim/fixtures/fig19_ideal_ports/`
     那份遗留 fixture 配套。主链已切到 17/5（`FIG19_STEP_Q = 16810048`），
     但**这里不能跟着改**：
       * 它服务于对该 fixture 的 RTL 重放，fixture 本身就是按 63/8 构造的；
       * 改了会让"合同值"与"fixture 实际数据"不一致，反而产生假通过/假失败。
 
     要用当前模型跑这条路径，必须先把 fixture 整套重建
-    （见 `sim/fixtures/fig19_ideal_ports/README.md` 的三步说明）。
+    （见 `flow/sim/fixtures/fig19_ideal_ports/README.md` 的三步说明）。
     """
     require(type(word) is int and 0 <= word < 64, "six-bit Fig19 word required")
     upper = 4 * ((word >> 5) & 1) + ((word >> 3) & 1)
@@ -487,7 +487,7 @@ def verify_trace(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument("--fixture-dir", type=Path, default=REPO / "sim/fixtures/fig19_ideal_ports")
+    parser.add_argument("--fixture-dir", type=Path, default=REPO / "flow/sim/fixtures/fig19_ideal_ports")
     parser.add_argument(
         "--plant-json",
         type=Path,
@@ -645,7 +645,7 @@ def main() -> int:
                 holdout_domain_v=[-2.0, 2.0],
                 learning_arguments_consumed=True,
             )
-        names = [*CORE_SOURCES, "rtl/params/rtl_error_codes.vh", "sim/tb/fig19_static_plant_tb.sv"]
+        names = [*CORE_SOURCES, "rtl/params/rtl_error_codes.vh", "flow/sim/tb/fig19_static_plant_tb.sv"]
         snapshot = out / "source_snapshot"
         for name in names:
             target = snapshot / name

@@ -102,8 +102,8 @@ tb/                        testbench 与金标
   vec_*.txt                  ← 金标向量
 
 tools/verify_d3d4_ip.sh    ← **唯一验收入口，四层一起跑**
-build/filelists/           ← 4 个编译清单（先看里面的 README）
-synth/d3d4/                ← 综合脚本与 SDC
+flow/build/filelists/           ← 4 个编译清单（先看里面的 README）
+flow/synth/d3d4/                ← 综合脚本与 SDC
 src/adi_model/dem_dither.py← DEM/Dither 唯一参考实现
 docs/                      ← 顶层 14 份当前文档，其余在 docs/_history/
 ```

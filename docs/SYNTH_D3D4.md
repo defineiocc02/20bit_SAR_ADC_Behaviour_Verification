@@ -23,7 +23,7 @@ valid_i ─ dem_phase_gen ──────┘   （同沿更新）
 没有 `clk`、没有 `reset`，相位与 coin 全从端口喂。后果有三：
 
 1. 不能作为 IP 单独交付；
-2. 过不了任何"单时钟域"的综合门禁（`synth/run_dc.tcl` 要求恰好一个时钟域）；
+2. 过不了任何"单时钟域"的综合门禁（`flow/synth/run_dc.tcl` 要求恰好一个时钟域）；
 3. **D3 的"三维随机化"在叶子层根本不存在** —— 相位是外部给的。
 
 接进 `dem_phase_gen` 之后，随机化才第一次真正落在 RTL 里。
@@ -126,7 +126,7 @@ slack             0.02 ns
 
 ### 4.2 关键：这 13 ps 主要是 uncertainty 吃掉的
 
-把 `set_clock_uncertainty -hold 0.1` 去掉后重跑（脚本：`synth/d3d4/dc_hold_unc0.tcl`）：
+把 `set_clock_uncertainty -hold 0.1` 去掉后重跑（脚本：`flow/synth/d3d4/dc_hold_unc0.tcl`）：
 
 | 条件 | hold slack | setup slack |
 |:---|--:|--:|
@@ -203,14 +203,14 @@ pre_o[4*s + b]     s=片 0..7，b=开关位 0..3
 # 1) 拷源码到执行机
 ssh vm-yian 'mkdir -p ~/d3d4/{rtl,synth/d3d4,gl}'
 scp rtl/dem_phase_gen.sv rtl/dem_mask_v3.sv rtl/dither_pre.sv rtl/d3d4_ip.sv vm-yian:~/d3d4/rtl/
-scp synth/d3d4/{dc_d3d4_ip.tcl,sdc_d3d4_ip.sdc} vm-yian:~/d3d4/synth/d3d4/
+scp flow/synth/d3d4/{dc_d3d4_ip.tcl,sdc_d3d4_ip.sdc} vm-yian:~/d3d4/synth/d3d4/
 
 # 2) 综合
 ssh vm-yian 'cd ~/d3d4 && \
   export D3D4_PDK=/home/yian/PDK D3D4_WORK=$PWD D3D4_OUT=$PWD/out/hier && \
   export SNPSLMD_LICENSE_FILE=27080@localhost \
          PATH=/opt/synopsys/syn/W-2024.09-SP3/bin:$PATH && \
-  dc_shell -f synth/d3d4/dc_d3d4_ip.tcl'
+  dc_shell -f flow/synth/d3d4/dc_d3d4_ip.tcl'
 
 # 3) 门级等价
 ssh vm-yian 'cd ~/d3d4 && \

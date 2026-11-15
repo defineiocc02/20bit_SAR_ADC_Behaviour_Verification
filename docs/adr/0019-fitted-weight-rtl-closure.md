@@ -16,8 +16,8 @@ manifest 绑定冻结训练文件和寄存器文件各自的 SHA-256。校正核
 ```sh
 PYTHONPATH=src python tools/export_fitted_rtl.py \
   --config paper_literal --dither-mode sampling --dem-enable --dem-mode permute \
-  --frozen sim/vectors/fitted18_frozen.json \
-  --out-registers sim/vectors/fitted18_registers.json \
+  --frozen flow/sim/vectors/fitted18_frozen.json \
+  --out-registers flow/sim/vectors/fitted18_registers.json \
   --out-manifest /tmp/fitted18_export_manifest.json
 python tools/run_open_rtl.py --tops calibration_fit_tb
 ```
@@ -27,7 +27,7 @@ python tools/run_open_rtl.py --tops calibration_fit_tb
 是实际可装载整数，不把这两种文件互称。随附 `fitted18_manifest.json`
 记录六个固定仿真产物的字节摘要。
 固定例可用 `OPENBLAS_NUM_THREADS=1 PYTHONPATH=src python
-tools/export_fitted_rtl_vectors.py --out sim/vectors` 重建；跨 BLAS 实现时浮点
+tools/export_fitted_rtl_vectors.py --out flow/sim/vectors` 重建；跨 BLAS 实现时浮点
 分解的末位可能不同，CI 因此验证已提交产物的哈希与功能，而不要求重新拟合后逐字节相同。
 
 ## 可复核的回归

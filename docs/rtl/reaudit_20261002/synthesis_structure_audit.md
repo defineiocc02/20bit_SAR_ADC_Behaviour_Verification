@@ -167,7 +167,7 @@ Reset/disable会清掉fine_valid/phase并取消重构；重新enable后首笔只
 
 ## 9. 资源与时序报告的正确解读
 
-历史综合采用`synth_design -flatten_hierarchy rebuilt`（`synth/run_vivado_ooc.tcl:42–43`），会跨源模块重排逻辑。`utilization_hier.rpt:39`把40,580LUT归到u_context；但对应source只有两份packet寄存器与捕获选择。时序路径也把归约LUT命名到u_context（internal_max:48–59）。所以：
+历史综合采用`synth_design -flatten_hierarchy rebuilt`（`flow/synth/run_vivado_ooc.tcl:42–43`），会跨源模块重排逻辑。`utilization_hier.rpt:39`把40,580LUT归到u_context；但对应source只有两份packet寄存器与捕获选择。时序路径也把归约LUT命名到u_context（internal_max:48–59）。所以：
 
 - 不能说“context模块本身需要40k LUT”。
 - 不能说“dem_addr_gen/unit_therm各1 LUT，相关译码几乎免费”。

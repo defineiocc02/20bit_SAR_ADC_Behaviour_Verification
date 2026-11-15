@@ -246,7 +246,7 @@ US10505561B2 Fig.19的六位示例取七slice的分数配置（**不是完整原
 - `src/adi_model/simulation/pipeline_engine.py`：`-q_free*(Cconvert/Csample)-QDAC`不是物理电荷KCL的自然式；另需修统一`residue_charge_c`定义。
 - `src/adi_model/control/fig11_dem.py` / `dem3d.py`：相位别名、S4命令、共享横向/片间纵向、Fig19/20跨列门控需按**同一选定实施例**对齐。
 - `src/adi_model/control/dither.py`：`4:2:1/7`是专利七片示例；当前8片不得直接称原芯片同物理实现。
-- `verification/contracts/rtl_params.vh`：63/8、ADC2=12与当前Python新候选不统一。物理G1/G2完成后处理。
+- `flow/verification/contracts/rtl_params.vh`：63/8、ADC2=12与当前Python新候选不统一。物理G1/G2完成后处理。
 
 ## 12. 知识边界声明
 

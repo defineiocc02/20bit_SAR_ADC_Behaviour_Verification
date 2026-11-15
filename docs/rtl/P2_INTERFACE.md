@@ -10,7 +10,7 @@
 
 - 状态：**已冻结**，2026-09-18
 - 上游：`docs/rtl/RTL_ARITHMETIC_CONTRACT.md`（算术，冻结）、`docs/rtl/P1_INTERFACE.md`（P1 已交付的 M1–M5）
-- 适用：`rtl/` 下 M6–M13、M16、M17 与 `rtl/` 下的 M8、顶层，以及 `sim/tb/p2_tb.sv`
+- 适用：`rtl/` 下 M6–M13、M16、M17 与 `rtl/` 下的 M8、顶层，以及 `flow/sim/tb/p2_tb.sv`
 - 本文与 P1 文档**同一套全局约定**（§0.1），仅补充新增项
 
 ---
@@ -791,7 +791,7 @@ word= floor((2c+1)*2^62 / 2^63) = floor((2c+1)/2) = c
 | L2 剪裁 | `clip_low/high` 与 `analog_ovf` **三者互不替代**（复现 `test_output_saturation_is_separate_from_analog_saturation`） |
 | L2 镜像 | `p2_regs.json` → `calib_regs`+`weight_store` → 与 Python 同样的输出（复现 `test_register_image_roundtrip_and_illegal_widths`） |
 | L3 链路 | 512 样本与 `to_codes().code` **逐样本 bit-exact** |
-| 综合 | `synth/` 下 DC 跑通，给出面积/时序基线；无 latch、无不可综合构造 |
+| 综合 | `flow/synth/` 下 DC 跑通，给出面积/时序基线；无 latch、无不可综合构造 |
 
 **必须准备的反例测试（防测试说谎）**：
 
@@ -849,7 +849,7 @@ word= floor((2c+1)*2^62 / 2^63) = floor((2c+1)/2) = c
 | **RTL-5** | `recon_core.sv` | 定向溢出用例下 `acc_ovf` 该置位却为 0；`gain_err` 同理 | `ovf_pend <= any_ovf` 与 `gerr_pend <= (gain_s == 0)` 写在 **`start` 那一拍**，但 `any_ovf` 依赖的是 **stage-A 寄存器**，而那一拍寄存器里装的还是**上一个样本**的值 —— 于是标志**晚一个样本**。oracle 与掩码用例**从不发生溢出**，两种写法给出同一个答案（0），所以只有定向溢出激励能区分 | T8b 定向溢出 |
 
 > **RTL-4 的一个方法论盲区（必须记住）**：我当时已经有一个"RTL 位宽镜像"脚本
-> （`sim/ref/recon_rtl_mirror.py`，4 组配置全 PASS），**它没抓到 RTL-4**。原因是镜像里
+> （`flow/sim/ref/recon_rtl_mirror.py`，4 组配置全 PASS），**它没抓到 RTL-4**。原因是镜像里
 > `div_floor` 直接写成了 Python 的 `a // d` —— **镜像的是"应该做什么"，不是"RTL 实际怎么做的"**。
 > 位级实现没被镜像，那一层的位序缺陷天然逃逸。补法是**把位级算法也镜像进来**，
 > 并且加一条"把镜像切到错误位序，断言它确实与 `a // d` 不符"的反例测试。
@@ -861,11 +861,11 @@ word= floor((2c+1)*2^62 / 2^63) = floor((2c+1)/2) = c
 | TL-1 | `simv` | 默认对 `$error`/`$fatal` 返回 **0** | CI 会把仿真失败当成功。必须加 `-exitstatus`（P1 已修） |
 | TL-2 | `dc_shell -f` | Tcl 报错时**仍返回 0** | 综合失败被当成功。已在 `run_synth.sh` 用顶层 catch 兜住 |
 | TL-3 | DC `elaborate` | `initial` 块被**整块忽略**（`VER-281`） | 顶层 17 条参数一致性 `$fatal` **在综合中一条都不执行**。必须另做 DC 侧检查 |
-| TL-4 | `synth/run_synth.py` 的 `--files` | 传目录原先被**静默跳过**（`expand_files` 里 `continue`） | "no source files" 直接退出，看起来像"没找到文件"，实际是参数被吞了。已改成目录递归展开 |
+| TL-4 | `flow/synth/run_synth.py` 的 `--files` | 传目录原先被**静默跳过**（`expand_files` 里 `continue`） | "no source files" 直接退出，看起来像"没找到文件"，实际是参数被吞了。已改成目录递归展开 |
 | TL-5 | `urg`（VCS W-2024.09-SP1） | 在 `covdb_get_license()` 里**崩溃**（栈含 `libucapi.so`），rc=1、不产报告；而 `lmstat -c 27080@localhost -f VC-COVERAGE` 显示 **99 授权 / 0 在用** | **覆盖率采集成功、报告不可得**。试过 3 种 license 变量组合 + `HOSTNAME` + `-licqueue` 全部无效；无 DVE（W-2024.09 不再自带）。降级方案：`cov.vdb` 是标准产物，换一台 `urg` 正常的机器出报告 |
 | TL-6 | `pgrep dc_shell` | 真正干活的进程名是 **`common_shell_exec`**（`comm` 截断到 15 字符，`dc_shell` 只是它的 `-shell` 参数），外层还被 `timeout` 包住（`argv[0]` = `timeout`） | 在作业 96% CPU 推进时 `pgrep dc_shell` **返回空** —— **假阴性**。若据此判定"它没在跑"并重启，会把正在推进的作业整段扔掉。改用 `pgrep -f 'run_dc.snapshot.tcl'` 或看 `phase.log` 时间戳 |
 | TL-7 | VCS 并发断言的**默认文案** | 没写 `else` 的 `assert property` 失败时，VCS 打印 `... A8_clip_exclusive: started at X failed at X` —— **既不含 `Error` 也不含任何可搜关键词** | `run_vcs.sh` 的正则兜底（按 `fatal`/`error` 匹配）**0 命中**；只有 `simv -exitstatus` 的**退出码 2** 暴露了它。教训：**断言一律自带 `$error` + 可搜索文案**；判断"有没有报"**先看退出码，别信文本** |
-| TL-9 | `synth/run_dc.tcl` 的 TNS 统计 | `set tns [dc_slack max 1000000]` → `get_timing_paths -nworst 1000000` 在 492k cell 的设计上 **13 分钟不返回** | **所有报告（area/timing/power/qor）都已写完，卡住的只有 `status.txt`** —— 把已到手的结果锁死在一个无关紧要的数字后面。小设计上跑 8 次都看不出来。已封顶 `nworst=2000` 并把 `TNS_NWORST=2000` 写进 `status.txt`（TNS 从此是**下界**，引用须连着上限） |
+| TL-9 | `flow/synth/run_dc.tcl` 的 TNS 统计 | `set tns [dc_slack max 1000000]` → `get_timing_paths -nworst 1000000` 在 492k cell 的设计上 **13 分钟不返回** | **所有报告（area/timing/power/qor）都已写完，卡住的只有 `status.txt`** —— 把已到手的结果锁死在一个无关紧要的数字后面。小设计上跑 8 次都看不出来。已封顶 `nworst=2000` 并把 `TNS_NWORST=2000` 写进 `status.txt`（TNS 从此是**下界**，引用须连着上限） |
 | TL-8 | `assert` 在**组合模块**里 | `assert(!bad)` 写在 `always_comb` 里，会在**中间态**求值（目标模块的多个输入同刻被改、组合链深度不同 → 看到"新 A + 旧 B"的混合态） | 实测：首次跑 `p2_tb` 时该断言命中 **7166 行**，而 TB 的数值比对全绿 —— **纯假阳性**。正解是**延迟即时断言** `assert #0`（Observed 区求值，所有 delta 稳定之后）|
 
 > **共同形状**：不是算错，而是**判据本身不存在或不被执行**。
@@ -897,8 +897,8 @@ word= floor((2c+1)*2^62 / 2^63) = floor((2c+1)/2) = c
 | 项 | 实测 |
 |:---|:---|
 | 平台 | VCS `W-2024.09-SP1_Full64` @ `yian@192.168.38.129` |
-| 模块级（`sim/tb/p2_tb.sv`） | **`checks = 1057289`，`errors = 0`，`simv` 退出码 0** |
-| 顶层链路（`sim/tb/p3_top_tb.sv`） | **4095/4095 逐样本 bit-exact**（`dout` **+ `clip_low/high` + `analog_ovf`**），`checks=16386 / errors=0`，`exit 0` |
+| 模块级（`flow/sim/tb/p2_tb.sv`） | **`checks = 1057289`，`errors = 0`，`simv` 退出码 0** |
+| 顶层链路（`flow/sim/tb/p3_top_tb.sv`） | **4095/4095 逐样本 bit-exact**（`dout` **+ `clip_low/high` + `analog_ovf`**），`checks=16386 / errors=0`，`exit 0` |
 
 分项账本（最终一次运行，全部为 0）：
 
@@ -993,7 +993,7 @@ word= floor((2c+1)*2^62 / 2^63) = floor((2c+1)/2) = c
   `op3` 理论上可达 `2^98 > 2^95`，**溢出是可达的**。而且即便把 `inj_q` 打大，
   **模型侧会 `raise OverflowError`、没有黄金值**，所以这一类**注定**只能由 `p2_tb` 的
   T8b（TB 自建越界激励、只断言行为不比对数值）覆盖 —— 这是分工的必然，不是测试偷懒。
-* **`slice_alloc` 与 `sadc_enc`**：不在 `p2_tb` 内，由 `sim/tb/p2_smoke_tb.sv` 覆盖
+* **`slice_alloc` 与 `sadc_enc`**：不在 `p2_tb` 内，由 `flow/sim/tb/p2_smoke_tb.sv` 覆盖
   （INV-4a..4d、popcount 511+9 组）。
 * **`p2_link_stim.hex` 的 coarse 覆盖只有 `[50, 462]`**（实测）。`coarse = 0` 附近的
   行为在向量里**没有对照值**，这是覆盖洞，已登记；要补需重生成向量。
@@ -1216,7 +1216,7 @@ word= floor((2c+1)*2^62 / 2^63) = floor((2c+1)/2) = c
 
 > **顶层 `sar20_digital_core` 的面积/时序数字：本环境不可得。**
 > "本环境" = 这台 22 GB 的 VM + `W-2024.09-SP3` + TT corner + 零线负载 + 本流程脚本
-> （`synth/run_dc.tcl` / `run_synth.sh`，md5 见下）。
+> （`flow/synth/run_dc.tcl` / `run_synth.sh`，md5 见下）。
 > **发散机理：未证实** —— 已排除 `--load`（伪负载）与 `-no_design_rule`（DRC 修复）两项，
 > 其余候选没有证据，故**不写机理**。
 > **能给的顶层结论只有 §5.1.1 的分层下界**，且必须保持"**实测相加的分层下界，不是顶层实测**"这个措辞。
@@ -1298,7 +1298,7 @@ B:      0:53:41 1060508.5 4235941.00 260356538368.0 18690186211.8
 
 ### 18.1 版本控制状态（2026-09-19 更新）
 
-截至 `df0a575`，`rtl/`、`sim/`、`docs/rtl/`、导出器、测试与 `synth/` 已受 Git 跟踪。
+截至 `df0a575`，`rtl/`、`flow/sim/`、`docs/rtl/`、导出器、测试与 `flow/synth/` 已受 Git 跟踪。
 早期“全部未跟踪”的观察是历史状态，不能继续作为当前风险。新修改需连同测试、
 参数/向量漂移门禁和对应源码 SHA 交付；本轮配置接口变更见
 [ADR 0016](../adr/0016-rtl-configuration-and-dither.md)。
@@ -1317,7 +1317,7 @@ B:      0:53:41 1060508.5 4235941.00 260356538368.0 18690186211.8
 
 ### 18.2 注释里的数值：复核后要"更正 + 留痕"，不要静默改
 
-本轮实例：`synth/smoke/top_smoke.sv` 的注释里写的 `DITHER_UNITS_RANGE = 0` 等四句**全部有误**
+本轮实例：`flow/synth/smoke/top_smoke.sv` 的注释里写的 `DITHER_UNITS_RANGE = 0` 等四句**全部有误**
 （实际 `4'd2`、`dither_rail` 是 `[3:0]`、无 undriven 警告、`unit_therm` 例化端口 1062 个）。
 复核者选择**保留更正记录（附时间线与逐条证据）而不是静默改掉** —— 这是对的：
 **"注释里的参数值没人复核"本身就是一个独立风险点**，静默改掉会让这条风险无痕消失。

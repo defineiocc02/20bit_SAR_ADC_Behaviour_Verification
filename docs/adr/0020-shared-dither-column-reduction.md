@@ -85,7 +85,7 @@ rails = total - 2*on + Wr
 
 ## 验证入口
 
-`sim/tb/cal_weight_reduce_ppa_tb.sv` 内嵌提交
+`flow/sim/tb/cal_weight_reduce_ppa_tb.sv` 内嵌提交
 `2de928066508e2cfd009df3e7c6b2936bec6837c` 的旧 reducer 作为 reference，
 比较 total、gain、rails、invalid_slice 全部输出：
 

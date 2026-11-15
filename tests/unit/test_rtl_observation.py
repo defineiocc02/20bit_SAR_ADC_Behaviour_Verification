@@ -45,7 +45,7 @@ def packet_case():
         "term_quantizer": "ties_even_per_unit",
     }
     # 使用实际component的两个源身份；宽字段记录仍仅为parser数学输入，非SV轨迹。
-    fixture = Path(__file__).resolve().parents[2] / "sim/fixtures/source_control_component"
+    fixture = Path(__file__).resolve().parents[2] / "flow/sim/fixtures/source_control_component"
     producer = json.loads((fixture / "binding.json").read_text())
     source_control = (fixture / "source_control_binding.sv").read_bytes()
     acquisition_source = (fixture / "source_acquisition_binding.sv").read_bytes()

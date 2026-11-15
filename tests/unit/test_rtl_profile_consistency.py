@@ -6,16 +6,16 @@
 
 | 位置 | 形态 |
 |:---|:---|
-| `verification/contracts/rtl_params.vh` | `localparam int unsigned` |
-| `verification/contracts/digital_interfaces.yaml` | `profile:` 段 |
-| `verification/vectors/generate.py::PROFILE` | Python dict |
+| `flow/verification/contracts/rtl_params.vh` | `localparam int unsigned` |
+| `flow/verification/contracts/digital_interfaces.yaml` | `profile:` 段 |
+| `flow/verification/vectors/generate.py::PROFILE` | Python dict |
 
 三者曾**一致地**停在旧几何 63+8 / 12-bit，而主链已迁到 17/5 / 14-bit。
 多副本 + 无校验 = 静默漂移，且没有任何测试会发现。
 
 ## 本文件做两件事
 
-1. **消除多副本**：`verification/contracts/profile.py::RTL_PROFILE` 是唯一真源，
+1. **消除多副本**：`flow/verification/contracts/profile.py::RTL_PROFILE` 是唯一真源，
    另两处必须与它逐键相同（这三个测试**必须通过**）；
 2. **把与主链的偏差变成显式失败**：`test_rtl_profile_matches_the_main_chain`
    在 B1 未修前是被 `xfail(strict=True)` 标记的——
@@ -48,7 +48,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 def test_rtl_params_vh_matches_the_single_source():
     """`rtl_params.vh` 的 localparam 必须与 `RTL_PROFILE` 逐键相同。"""
-    text = (ROOT / "verification/contracts/rtl_params.vh").read_text(encoding="utf-8")
+    text = (ROOT / "flow/verification/contracts/rtl_params.vh").read_text(encoding="utf-8")
     declared = {
         name: int(value)
         for name, value in re.findall(r"localparam int unsigned (\w+) = 32'd(\d+);", text)
@@ -69,7 +69,7 @@ def test_rtl_params_vh_matches_the_single_source():
 
 def test_digital_interfaces_yaml_matches_the_single_source():
     """`digital_interfaces.yaml` 的 `profile:` 段必须与 `RTL_PROFILE` 逐键相同。"""
-    text = (ROOT / "verification/contracts/digital_interfaces.yaml").read_text(encoding="utf-8")
+    text = (ROOT / "flow/verification/contracts/digital_interfaces.yaml").read_text(encoding="utf-8")
     # 结构是：`profile: adi_40m` 后接 `params:`，参数在 params 块内。
     block = re.search(r"^params:\s*\n((?:\s+\w+:\s*\d+\s*\n)+)", text, re.MULTILINE)
     assert block, "digital_interfaces.yaml 里找不到 params: 段"
@@ -99,7 +99,7 @@ def test_digital_interfaces_yaml_matches_the_single_source():
 
 def test_vector_generator_uses_the_single_source():
     """`generate.py` 不得再自己维护一份 PROFILE 副本。"""
-    text = (ROOT / "verification/vectors/generate.py").read_text(encoding="utf-8")
+    text = (ROOT / "flow/verification/vectors/generate.py").read_text(encoding="utf-8")
     assert "from verification.contracts.profile import" in text, (
         "generate.py 应当从单一真源导入 PROFILE，而不是硬编码一份副本"
     )

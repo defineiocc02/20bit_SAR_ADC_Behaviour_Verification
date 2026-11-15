@@ -111,7 +111,7 @@ word = floor(shifted / (G·2^33))
 
 - `docs/evidence/20261002/principle_reaudit/control_minimal_witness/result_manifest.json`：Verilator 5.020；1,926 个沿、57 次成功接受、1,920 个结构协议检查；context 到接受 age 15T，fine_code 到接受 age 1T。它是 finite controller wrapper，不含真实全顶层重构/门延迟/模拟 settling/SEC。
 - `docs/evidence/20261002/principle_reaudit/calibration_evidence_manifest.json`：两个定向 bench 的精确源副本及运行命令；ADC2 RTE 9例，MAC 工作域 6例；记录了基础镜像和放大 `2^20` 但仍满足权重写入界的边界镜像。它不是 full top load+conversion，也不是形式证明。
-- `sim/artifacts/open_rtl/*.run.log` 的 P2/P3/profile logs 存在并显示 PASS，但该 ignored logs目录未提供本轮完整 24 RTL SHA 与每次执行命令的联合锁定；本报告把它们视作历史辅助记录，而不作为本次新仿真门禁。
+- `flow/sim/artifacts/open_rtl/*.run.log` 的 P2/P3/profile logs 存在并显示 PASS，但该 ignored logs目录未提供本轮完整 24 RTL SHA 与每次执行命令的联合锁定；本报告把它们视作历史辅助记录，而不作为本次新仿真门禁。
 
 回到有 Verilator 5.x 与 C++20 的固定环境后，建议先重跑现有 `tools/run_open_rtl.py`：
 
@@ -119,4 +119,4 @@ word = floor(shifted / (G·2^33))
 python3 tools/run_open_rtl.py --tops sar_trial_tb review_config_tb review_recon_protocol_tb structural_protocol_tb p2_tb p3_top_tb
 ```
 
-保存 runner 输出目录 `sim/artifacts/open_rtl/` 全部日志，并把当前 `input_sha256.json` 一同绑定到运行记录。随后把模拟接口输入时刻、MAC合法工作域、cfg-clear取消、first valid/disable/re-enable 及 per-sample fault ID 加入可机器判定回归。功能验证通过以后，按 skill 要求另行用指定库、SDC、角和寄生条件做实际综合/STA；本分析不晋级任何 RTL 改写候选。
+保存 runner 输出目录 `flow/sim/artifacts/open_rtl/` 全部日志，并把当前 `input_sha256.json` 一同绑定到运行记录。随后把模拟接口输入时刻、MAC合法工作域、cfg-clear取消、first valid/disable/re-enable 及 per-sample fault ID 加入可机器判定回归。功能验证通过以后，按 skill 要求另行用指定库、SDC、角和寄生条件做实际综合/STA；本分析不晋级任何 RTL 改写候选。

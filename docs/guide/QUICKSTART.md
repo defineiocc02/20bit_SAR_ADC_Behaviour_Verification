@@ -3,7 +3,7 @@
 目标：20 分钟内跑出一次结果、看懂一笔样本、复现一组对照。
 
 所有命令在仓库根目录执行。本地没有仿真器，**Python 部分不需要 VCS**；
-只有 `verification/` 的 RTL 对拍需要远端主机（见 §5）。
+只有 `flow/verification/` 的 RTL 对拍需要远端主机（见 §5）。
 
 ---
 
@@ -119,7 +119,7 @@ python3 -m verification.run_verification --level module      # 7 个模块，约
 python3 -m verification.run_verification --level rtl_top     # 顶层 bring-up
 ```
 
-结果在 `verification/reports/results_<level>.json`。
+结果在 `flow/verification/reports/results_<level>.json`。
 连不上或没有 license 时返回 `NOT_RUN`，**不会伪造 PASS**。
 
 ---

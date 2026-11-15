@@ -2,7 +2,7 @@
 
 - 状态：**已冻结**，2026-09-18
 - 上游：`docs/rtl/RTL_ARITHMETIC_CONTRACT.md`（算术契约）、转换计划 §7 Phase P1
-- 适用：`rtl/` 下 M1–M5，以及 `sim/tb/p1_tb.sv` 与 `tools/export_rtl_vectors.py`
+- 适用：`rtl/` 下 M1–M5，以及 `flow/sim/tb/p1_tb.sv` 与 `tools/export_rtl_vectors.py`
 
 ## 0. 全局约定
 
@@ -41,7 +41,7 @@
 |:---|:---|
 | 参数包里同时导出 `DEM_ENABLE` / `DEM_BRIDGE_ENABLE`（**复位默认值**） | `rtl_params.vh` |
 | 向量生成器**拒绝**在 stock 配置（DEM off）下生成，报告里显式记录 `effective_overrides` | `tools/export_rtl_vectors.py` |
-| TB 显式驱动 `dem_en = 1`（P1 向量是 DEM 打开的那一档） | `sim/tb/p1_tb.sv` |
+| TB 显式驱动 `dem_en = 1`（P1 向量是 DEM 打开的那一档） | `flow/sim/tb/p1_tb.sv` |
 | 结构断言：两个 bank 各自必须看满 512 个不同 sid | TB T1 |
 
 **集成时 RTL 的寄存器必须把 `dem_en` 置 1**，否则会安静地退化成固定顺序。
@@ -238,12 +238,12 @@ code 全选 `+V_FS`、半选 `−V_FS` 的计数语义）。
 
 | 文件 | 行数 | 列 | 覆盖 |
 |:---|---:|:---|:---|
-| `sim/vectors/p1_m1_sid.hex` | N | `bank sid_a sid_b sid_exp` | 模型真实 bank 交替序列，N=1024 |
-| `sim/vectors/p1_m2_jinv.hex` | 512 | `sid main_logical[63] sub_logical[8]` | **穷举**：全部 512 sid × 全部 64+8 地址 |
-| `sim/vectors/p1_m3_counts.hex` | 8192 | `code bridge sid_low main_count[8] sub_count[8] rdac_over` | **穷举**：512 code × 2 bridge × 8 sid_low |
-| `sim/vectors/p1_m5_masks.hex` | 64 | `sid count main_on[8] sub_on[8]` | 直接逐位：8 sid × 8 count |
+| `flow/sim/vectors/p1_m1_sid.hex` | N | `bank sid_a sid_b sid_exp` | 模型真实 bank 交替序列，N=1024 |
+| `flow/sim/vectors/p1_m2_jinv.hex` | 512 | `sid main_logical[63] sub_logical[8]` | **穷举**：全部 512 sid × 全部 64+8 地址 |
+| `flow/sim/vectors/p1_m3_counts.hex` | 8192 | `code bridge sid_low main_count[8] sub_count[8] rdac_over` | **穷举**：512 code × 2 bridge × 8 sid_low |
+| `flow/sim/vectors/p1_m5_masks.hex` | 64 | `sid count main_on[8] sub_on[8]` | 直接逐位：8 sid × 8 count |
 | — | — | — | M5 的**稠密**扫描（512 sid × count 0..70）由 TB 用 `p1_m2_jinv.hex` 当黄金值现算，不另存文件 |
-| `sim/out/p1_m4_stats.json` | — | M4 统计量 | 由 TB dump，Python 侧复核 |
+| `flow/sim/out/p1_m4_stats.json` | — | M4 统计量 | 由 TB dump，Python 侧复核 |
 
 宽度约定：`main_logical` 每项 2 hex（6 bit 用低 6 位）；`sub_logical` 每项 2 hex；
 `main_count` 每项 2 hex；`sub_count` 每项 1 hex；`main_on[a]` 为 63 bit → **16 hex**（高 1 位补 0）；
@@ -300,8 +300,8 @@ code 全选 `+V_FS`、半选 `−V_FS` 的计数语义）。
 
 | # | 位置 | 问题 |
 |:---:|:---|:---|
-| TB-1 | `sim/tb/p1_tb.sv` 单调包含检查 | 写成 `mask & ~prev`（检查递减），正确方向是 `prev & ~mask`（递增）→ c=1 起恒报错 |
-| TB-2 | `sim/tb/p1_tb.sv` `open_data()` | 用 `line[39:0] == "BEGIN"` 判注释结束 —— `$fgets` 把首字符放在**寄存器 MSB**，该表达式取的是寄存器尾部，永远匹配不上。已改为位置无关的 `$sscanf("%s") + "#DATA"` |
+| TB-1 | `flow/sim/tb/p1_tb.sv` 单调包含检查 | 写成 `mask & ~prev`（检查递减），正确方向是 `prev & ~mask`（递增）→ c=1 起恒报错 |
+| TB-2 | `flow/sim/tb/p1_tb.sv` `open_data()` | 用 `line[39:0] == "BEGIN"` 判注释结束 —— `$fgets` 把首字符放在**寄存器 MSB**，该表达式取的是寄存器尾部，永远匹配不上。已改为位置无关的 `$sscanf("%s") + "#DATA"` |
 
 > **TB-2 的教训**：那个断言当时**正确地 `$fatal` 了**（没有静默继续），这正是"跑完但没比对不算通过"的设计在起作用。
 > **TB-1 的教训**：一条方向写反的断言会让正确实现全红 —— 与"放宽判据"同样有毒，只是方向相反。

@@ -66,7 +66,7 @@ See [docs/SYNTH_D3D4.md](docs/SYNTH_D3D4.md) for the full caveats.
 rtl/                 d3d4_ip.sv + D1–D4 leaf modules + legacy top
 tb/                  the three main testbenches + golden vectors
 tools/verify_d3d4_ip.sh   the single verification entry point
-build/filelists/     4 compile filelists (read the README first)
-synth/d3d4/          synthesis scripts and SDC
+flow/build/filelists/     4 compile filelists (read the README first)
+flow/synth/d3d4/          synthesis scripts and SDC
 docs/                14 current docs; the rest live in docs/_history/
 ```

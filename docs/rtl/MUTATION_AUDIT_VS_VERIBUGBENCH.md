@@ -41,7 +41,7 @@
 ## §2 我们的实例账本（14 条）
 
 - **P1 / P2 的真实缺陷 7 条**（P1 3 条 + P2 4 条）：原文与处置见 `docs/rtl/P2_INTERFACE.md` §15 缺陷账。此处只登记其**动作/构件/算子归属**。
-- **定向变异 7 条**：定义**逐字转载**如下。⚠️ 原脚本 `sim/artifacts/mutation_check.py` **已不存在于仓库**（未入库）（`sim/.gitignore` 忽略 `artifacts/`），只在本机工作树持有 —— 所以下表是给"干净克隆 / 线上读者"准备的；**否则本节这条引用是悬空的**（该缺陷由 Phase 1a 执行者发现）。
+- **定向变异 7 条**：定义**逐字转载**如下。⚠️ 原脚本 `flow/sim/artifacts/mutation_check.py` **已不存在于仓库**（未入库）（`flow/sim/.gitignore` 忽略 `artifacts/`），只在本机工作树持有 —— 所以下表是给"干净克隆 / 线上读者"准备的；**否则本节这条引用是悬空的**（该缺陷由 Phase 1a 执行者发现）。
 
 | 名字 | 文件 | 原文 → 变异后 | 期望判据 |
 |:--|:--|:--|:--|
@@ -53,14 +53,14 @@
 | `cf_rdac10` | `rtl/ctrl_fsm.sv` | `rdac_load = adv && (ph == PW'(11));` → `PW'(10)` | 变红（`T4` 相位） |
 | `cb_le` | `rtl/calib_regs.sv` | `if ($signed(min_r) < $signed(max_r))` → `<=` | 变红（`T5` 空量程） |
 
-> 顺带登记：`p3_top_tb.sv` 头部注释提到的另两份证据脚本（`run_3col_check.py`、`decide_divfloor.py`）**同样未入库**，属**同一类"已入库文档引用未入库脚本"**的悬空引用。根治办法是把这些脚本移进被跟踪的目录（如 `sim/tools/`）并同步改引用 —— **未做，另立任务**。
+> 顺带登记：`p3_top_tb.sv` 头部注释提到的另两份证据脚本（`run_3col_check.py`、`decide_divfloor.py`）**同样未入库**，属**同一类"已入库文档引用未入库脚本"**的悬空引用。根治办法是把这些脚本移进被跟踪的目录（如 `flow/sim/tools/`）并同步改引用 —— **未做，另立任务**。
 
 | # | 来源 | 文件 | 改动（前 → 后，摘要） | 动作 | 构件 | 论文算子 | 证据 |
 |--:|:--|:--|:--|:--|:--|:--|:--|
 | 1 | P1 缺陷 | `swap_decode.sv` | `i*` 行列两半写反 | update | 索引表达式 | PointerUpdate（近似） | §15 |
 | 2 | P1 缺陷 | `unit_therm.sv` | `3'(N_ACT)` 把 8 截成 0 | update | 位宽转换 | **库外/近似**（无 cast 族） | §15 |
 | 3 | P1 缺陷 | `dither_gen.sv` | `k_cmd` 有符号/无符号混用 | update | 表达式 | ExprUpdate（近似：改符号性） | §15 |
-| 4 | P2 缺陷 | `div_floor.sv` | `qbits[s]` → `qbits[P_STAGES-1-s]` | update | 位选/索引 | PointerUpdate | §15 + `sim/artifacts/decide_divfloor.py` |
+| 4 | P2 缺陷 | `div_floor.sv` | `qbits[s]` → `qbits[P_STAGES-1-s]` | update | 位选/索引 | PointerUpdate | §15 + `flow/sim/artifacts/decide_divfloor.py` |
 | 5 | P2 缺陷 | `recon_core.sv` | 溢出锁存位置 `start` 拍 → `stage_b` 拍 | **move** | 语句位置 | **NSubMove** | §15 |
 | 6 | P2 缺陷 | `recon_core.sv` | 溢出/结构性错误分支**漏**拉 `dout_valid` | **insert**（修复方向）→ 注入为 delete | 非阻塞赋值 | **NSubDelete** | §15 |
 | 7 | P2 缺陷 | `recon_core.sv` | `clip_lo_c/clip_hi_c` 有符号 → 无符号比较 | update | 表达式 | ExprUpdate | §15 |
@@ -99,7 +99,7 @@
 | 判据 | 我们现状 | 结论 |
 |:---|:---|:---|
 | ① 编译通过 | 全部实例都在 `run_rtl_sim.py` 里真编译过 | **满足** |
-| ② 完整执行 | `sim/tb/p3_top_tb.sv` 与 `p2_tb` 在**跑完之后**才 `$fatal(1)` 报 FAIL；断言用 `$error` | **满足**（不靠提前中止"变红"） |
+| ② 完整执行 | `flow/sim/tb/p3_top_tb.sv` 与 `p2_tb` 在**跑完之后**才 `$fatal(1)` 报 FAIL；断言用 `$error` | **满足**（不靠提前中止"变红"） |
 | ③ 输出字段级差异 | 我们的判据是 **`MISMATCH:` 计数** + **SVA 断言关键字命中**（见 `mutation_check.py` 的 `expect`） | **只到"计数级/断言级"，未到"字段级"** |
 | ④ 差异在公共前缀内 | 我们没有逐样本落盘的观测 trace，无法按论文方式对齐 | **无法判定** |
 | ⑤ X/Z 计为观测值 | 我们的比较器是否把 X/Z 计入，**未核** | **待核** |

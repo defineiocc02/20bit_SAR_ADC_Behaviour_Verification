@@ -14,14 +14,14 @@ The export Tcl rechecks the actual checkpoint top name, FPGA part, required publ
 
 ## Run on the Windows EDA host
 
-Deploy these files under their repository-relative paths in a new directory: `synth/run_vivado_full_mapped.py`, `synth/run_vivado_full_mapped.tcl`, `synth/audit_full_mapped.py`, and `sim/tb/structural_mapped_tb.sv`. The checkpoint and its synthesis manifest can be elsewhere on the same host. Use literal verified paths/hashes; the following PowerShell template leaves the input variables explicit:
+Deploy these files under their repository-relative paths in a new directory: `flow/synth/run_vivado_full_mapped.py`, `flow/synth/run_vivado_full_mapped.tcl`, `flow/synth/audit_full_mapped.py`, and `flow/sim/tb/structural_mapped_tb.sv`. The checkpoint and its synthesis manifest can be elsewhere on the same host. Use literal verified paths/hashes; the following PowerShell template leaves the input variables explicit:
 
 ```powershell
 $Vivado = 'D:\Academic\Vivado2018\Vivado\2018.3\bin\vivado.bat'
 $Dcp = 'C:\path\to\verified\out\post_synth.dcp'
 $SynthManifest = 'C:\path\to\matching\manifest.json'
 $DcpSha256 = '<previously verified 64-hex checkpoint digest>'
-python synth/run_vivado_full_mapped.py --dcp $Dcp --synthesis-manifest $SynthManifest --dcp-sha256 $DcpSha256 --stages 7 --vivado $Vivado --out full_mapped_p7 --timeout 3600 --execute
+python flow/synth/run_vivado_full_mapped.py --dcp $Dcp --synthesis-manifest $SynthManifest --dcp-sha256 $DcpSha256 --stages 7 --vivado $Vivado --out full_mapped_p7 --timeout 3600 --execute
 ```
 
 Omit `--execute` to prepare/capture inputs without starting tools. Prepared directories are not resumed or reused: select a new output directory for a subsequent execution. For P5 use its matching manifest/DCP/hash, `--stages 5`, and a distinct output directory. On Linux use the installation's absolute `bin/vivado` path; the other command-line options are identical. The helper itself does not submit SSH or start any additional remote task. The existing encoded PowerShell launch method can invoke this command when working through SSH.
@@ -35,7 +35,7 @@ The required completion marker contains 438 output comparisons, 3,900 configurat
 The standalone auditor can recheck the CSV and simulator log without running EDA:
 
 ```powershell
-python synth/audit_full_mapped.py --trace full_mapped_p7/trace.csv --log full_mapped_p7/xsim.log --stages 7 --out full_mapped_p7/independent_audit.json
+python flow/synth/audit_full_mapped.py --trace full_mapped_p7/trace.csv --log full_mapped_p7/xsim.log --stages 7 --out full_mapped_p7/independent_audit.json
 ```
 
 This auditor checks trace/log consistency and independently derives valid sample IDs. It does not create a second code oracle or establish DCP identity; the 256-bit TB formula is the arithmetic oracle, while the run manifest binds the DCP. It deliberately does not assert internal reconstruction-start latency. This fixture's result flags are all zero, so nonzero overflow/clipping propagation is not claimed as covered here.

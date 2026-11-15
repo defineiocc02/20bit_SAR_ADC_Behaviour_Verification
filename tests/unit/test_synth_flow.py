@@ -99,7 +99,7 @@ def probe(
         HARNESS,
         env={
             "SYNTH_INPUT_TCL": str(contract),
-            "FLOW": str(ROOT / "synth/run_dc.tcl"),
+            "FLOW": str(ROOT / "flow/synth/run_dc.tcl"),
             "SCENARIO": scenario,
             "COMPILE_RESULT": compile_result,
             "WNS": wns,

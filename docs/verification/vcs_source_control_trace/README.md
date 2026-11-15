@@ -4,10 +4,10 @@
 - 环境：虚拟机 `vm-meow`，VCS W-2024.09-SP1_Full64，`VCS_TARGET_ARCH=amd64`，`LM_LICENSE_FILE=27080@localhost`
 - 命令：
 ```bash
-vcs ... sim/tb/source_control_contract_tb.sv sim/tb/wrap_source_control_tb.sv \
+vcs ... flow/sim/tb/source_control_contract_tb.sv flow/sim/tb/wrap_source_control_tb.sv \
   -top wrap_source_control_tb -o tb_simv
-./tb_simv +weights=sim/fixtures/source_control_component/weights.hex \
-  +scalars=sim/fixtures/source_control_component/scalars.hex \
+./tb_simv +weights=flow/sim/fixtures/source_control_component/weights.hex \
+  +scalars=flow/sim/fixtures/source_control_component/scalars.hex \
   +trace_dir=/tmp/trace_out +frames=32
 ```
 - 结果：`SOURCE_CONTROL_COMPONENT_COMPLETE observations=56 outputs=54 checks=368 epochs=2`

@@ -95,7 +95,7 @@
 
 因为 G 为正，整数嵌套 floor 恒等式允许 `A1=floor(shifted/2^33)`，然后 `word=floor(A1/G)`，**对负 shifted 也成立**。不能用向零截断代替 floor；输出需要先与有符号 0 和 `2^20` 比较，最后饱和到 20 位。
 
-当前镜像 `sim/vectors/registers_paper_literal.json`：main W=`67108864=2^26`，sub W=`8388608=2^23`，8 个 active slice 的名义 G=`34359738368=32*2^30`。因此 `G/2^30=32` 已经承载论文 Fig.9.8.1 的 ×32。它不是要在数字结果之后再乘 32 的信号放大器。
+当前镜像 `flow/sim/vectors/registers_paper_literal.json`：main W=`67108864=2^26`，sub W=`8388608=2^23`，8 个 active slice 的名义 G=`34359738368=32*2^30`。因此 `G/2^30=32` 已经承载论文 Fig.9.8.1 的 ×32。它不是要在数字结果之后再乘 32 的信号放大器。
 
 ### 3.4 系数学习与在线重构必须分开评价
 

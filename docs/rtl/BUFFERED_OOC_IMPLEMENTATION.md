@@ -48,7 +48,7 @@
 在厂商环境中，用当前已验证的 DCP、全新输出目录以及当前器件确认存在的 BUFGCTRL site：
 
 ```text
-vivado -mode batch -source synth/run_vivado_buffered_impl.tcl -tclargs C:/validated/post_synth.dcp C:/new/buffered_impl 1.5625 BUFGCTRL_X0Y0
+vivado -mode batch -source flow/synth/run_vivado_buffered_impl.tcl -tclargs C:/validated/post_synth.dcp C:/new/buffered_impl 1.5625 BUFGCTRL_X0Y0
 ```
 
 该 site 只是调用示例，脚本会查询器件并拒绝不存在或被占用的 site。调用者应冻结 DCP 和脚本哈希，并保存厂商完整 stdout/stderr；Windows batch 应保留 Vivado 退出码，不将 3 误记为 0。无需上传或重新综合 RTL。

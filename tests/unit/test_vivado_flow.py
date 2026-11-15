@@ -33,7 +33,7 @@ def test_prepare_records_every_input_and_never_launches_a_tool(tmp_path):
     assert sorted(p.read_bytes() for p in (out / "input_snapshot").iterdir()) == sorted(
         p.read_bytes() for p in data.values() if p.is_file()
     )
-    assert record["script_sha256"] == digest(ROOT / "synth/run_dc.tcl")
+    assert record["script_sha256"] == digest(ROOT / "flow/synth/run_dc.tcl")
     assert record["contract_sha256"] == digest(out / "inputs.tcl")
     assert before == {k: digest(data[k]) for k in before}
 

@@ -291,7 +291,7 @@ def complete_flash3_sar6_prefix_table() -> np.ndarray:
 
     当前 RTL P_BITS=9/P_SEED_BITS=3，七次 resolved 事件对应 phase2..8 的消费，重复码保留。
     此表只描述该完整 valid 序列；不推模拟时间、不替代 comparator valid/deadline 检查。
-    与 sim/fixtures/fig19_ideal_ports/rdac_prefix_table.json 独立核对，不能用于其他 ADC 码制。
+    与 flow/sim/fixtures/fig19_ideal_ports/rdac_prefix_table.json 独立核对，不能用于其他 ADC 码制。
     """
     coarse = np.arange(512, dtype=np.int64)[:, None]
     clear = np.asarray([63, 31, 15, 7, 3, 1, 0], dtype=np.int64)

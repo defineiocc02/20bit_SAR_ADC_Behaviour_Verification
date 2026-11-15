@@ -31,7 +31,7 @@
 - **下一步**：转换阈值搜索或码密度法，输出独立字段而不是复用 `dnl_bin_*`
 
 ### U5 V2 缺统一事务 trace
-- **位置**：`verification/cosim/scoreboard.py`
+- **位置**：`flow/verification/cosim/scoreboard.py`
 - **复现**：当前按字段比较，无 `epoch + sample_id + event_index` 三元组
 - **影响**：事件排序、背压、错误归属未验证
 - **下一步**：扩 trace 字段，按事务身份关联而非行号

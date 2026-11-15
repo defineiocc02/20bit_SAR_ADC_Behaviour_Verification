@@ -58,7 +58,7 @@ class Bench:
 # 不登记已退役的 P1/P2/P3、D=2、兼容入口或旧反例集合。
 BENCHES = {
     "divider_borrow_tb": Bench(
-        ("rtl/core/div_floor.sv", "sim/tb/divider_borrow_tb.sv"),
+        ("rtl/core/div_floor.sv", "flow/sim/tb/divider_borrow_tb.sv"),
         "DIVIDER_BORROW_COMPLETE",
         ("exhaustive_checks",),
         requires_math_format=True,
@@ -310,7 +310,7 @@ CORE_SOURCES = (
 )
 for name, caaz in (("source_control_contract_tb", 0), ("source_control_caaz_tb", 1)):
     BENCHES[name] = Bench(
-        (*CORE_SOURCES, "sim/tb/source_control_contract_tb.sv"),
+        (*CORE_SOURCES, "flow/sim/tb/source_control_contract_tb.sv"),
         "SOURCE_CONTROL_COMPONENT_COMPLETE",
         ("observations", "outputs", "checks", "epochs"),
         (("sar20_digital_core", ("-GP_CAL_OBSERVE=1'b1", f"-GP_CAAZ_ENABLE=1'b{caaz}")),),
@@ -331,7 +331,7 @@ BENCHES["review_recon_protocol_tb"] = Bench(
         "rtl/core/div_floor.sv",
         "rtl/core/cal_output_stage.sv",
         "rtl/core/recon_core.sv",
-        "sim/tb/review_recon_protocol_tb.sv",
+        "flow/sim/tb/review_recon_protocol_tb.sv",
     ),
     "REVIEW_RECON_PROTOCOL_COMPLETE",
     ("outputs", "requests"),
@@ -339,14 +339,14 @@ BENCHES["review_recon_protocol_tb"] = Bench(
     parameters=(),
 )
 BENCHES["weight_row_cache_tb"] = Bench(
-    ("rtl/core/weight_store.sv", "sim/tb/weight_row_cache_tb.sv"),
+    ("rtl/core/weight_store.sv", "flow/sim/tb/weight_row_cache_tb.sv"),
     "WEIGHT_ROW_CACHE_COMPLETE",
     ("geometries", "steps"),
     requires_protocol_fixture=True,
     parameters=(("STRESS_MAXIMUM", 0),),
 )
 BENCHES["cal_weight_reduce_ppa_tb"] = Bench(
-    ("rtl/core/cal_weight_reduce.sv", "sim/tb/cal_weight_reduce_ppa_tb.sv"),
+    ("rtl/core/cal_weight_reduce.sv", "flow/sim/tb/cal_weight_reduce_ppa_tb.sv"),
     "CAL_WEIGHT_REDUCE_PPA_COMPLETE",
     ("geometries", "checks"),
     requires_protocol_fixture=True,
@@ -360,7 +360,7 @@ BENCHES["recon_ppa_latency_tb"] = Bench(
         "rtl/core/div_floor.sv",
         "rtl/core/cal_output_stage.sv",
         "rtl/core/recon_core.sv",
-        "sim/tb/recon_ppa_latency_tb.sv",
+        "flow/sim/tb/recon_ppa_latency_tb.sv",
     ),
     "RECON_PPA_LATENCY_COMPLETE",
     ("profiles", "samples_per_profile", "outputs"),
@@ -368,7 +368,7 @@ BENCHES["recon_ppa_latency_tb"] = Bench(
     parameters=(),
 )
 BENCHES["tree_mapping_tb"] = Bench(
-    ("rtl/core/cal_weight_reduce.sv", "sim/tb/tree_mapping_dut.sv", "sim/tb/tree_mapping_tb.sv"),
+    ("rtl/core/cal_weight_reduce.sv", "flow/sim/tb/tree_mapping_dut.sv", "flow/sim/tb/tree_mapping_tb.sv"),
     "TREE_MAPPING_COMPLETE",
     ("checks", "valid_cases", "invalid_cases"),
     requires_protocol_fixture=True,
@@ -382,7 +382,7 @@ BENCHES["calibration_physical_tb"] = Bench(
         "rtl/core/div_floor.sv",
         "rtl/core/cal_output_stage.sv",
         "rtl/core/recon_core.sv",
-        "sim/tb/calibration_physical_tb.sv",
+        "flow/sim/tb/calibration_physical_tb.sv",
     ),
     "CALIBRATION_PHYSICAL_COMPLETE",
     ("samples", "coefficient_rows", "invalid_cases"),
@@ -397,7 +397,7 @@ BENCHES["calibration_recovery_tb"] = Bench(
         "rtl/core/div_floor.sv",
         "rtl/core/cal_output_stage.sv",
         "rtl/core/recon_core.sv",
-        "sim/tb/calibration_recovery_tb.sv",
+        "flow/sim/tb/calibration_recovery_tb.sv",
     ),
     "CALIBRATION_RECOVERY_COMPLETE",
     ("samples",),
@@ -412,7 +412,7 @@ BENCHES["generic_identity_tb"] = Bench(
         "rtl/core/div_floor.sv",
         "rtl/core/cal_output_stage.sv",
         "rtl/core/recon_core.sv",
-        "sim/tb/generic_identity_tb.sv",
+        "flow/sim/tb/generic_identity_tb.sv",
     ),
     "GENERIC_IDENTITY_COMPLETE",
     ("cases", "checks", "full_12bit", "boundary_20bit"),

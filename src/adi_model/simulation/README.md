@@ -115,4 +115,4 @@ PYTHONPATH=src python3 -m pytest tests/unit -q -k pipeline
 
 `recon_core` 的 101 条向量与本引擎的定点通路位真一致；但**顶层 `sar20_digital_core`
 只到 elaborate + 复位 idle**（`ELABORATED_ONLY`），没有跑过真实事务。
-见 `verification/README.md`。
+见 `flow/verification/README.md`。

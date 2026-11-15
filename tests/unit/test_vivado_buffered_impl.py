@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from _synth_test_support import tool
 
-FLOW = Path(__file__).resolve().parents[2] / "synth/run_vivado_buffered_impl.tcl"
+FLOW = Path(__file__).resolve().parents[2] / "flow/synth/run_vivado_buffered_impl.tcl"
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures/vivado_2018_3_buffered"
 HARNESS = r"""
 set ::failure $::env(TEST_FAILURE)

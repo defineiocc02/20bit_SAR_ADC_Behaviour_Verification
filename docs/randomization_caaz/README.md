@@ -179,7 +179,7 @@ PYTHONPATH=src OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python tools/reproduce_r
   --out "${TMPDIR:-/tmp}/sar-randomization-caaz-new"
 python tools/run_open_rtl.py --tops caaz_randomization_probe_tb
 python tools/check_caaz_randomization_trace.py \
-  --trace-dir sim/artifacts/open_rtl --out "${TMPDIR:-/tmp}/sar-caaz-digital-check-new"
+  --trace-dir flow/sim/artifacts/open_rtl --out "${TMPDIR:-/tmp}/sar-caaz-digital-check-new"
 ```
 
 独立数字诊断摘要见[data/rtl_diagnostic.json](data/rtl_diagnostic.json)，实际TP交接三行见[data/tp_chop_mask_boundary.json](data/tp_chop_mask_boundary.json)。这些是digital-only边界证据，既不实现模拟宏，也不检查真实H/K。更完整复现和首页三结果在[复现入口](../archive/REPRODUCING.md)说明。

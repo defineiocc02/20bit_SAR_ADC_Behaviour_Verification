@@ -60,7 +60,7 @@ w[slice, sub_unit]  = β·SUB_WEIGHTS[j]·Cu/Cf
 
 这会传导到：`nominal_decoder` 的权重数组、`CalibrationSpec`、
 `rtl_params.vh` 的 `N_UNIT_MAIN/N_UNIT_SUB`（71→22）、RTL 权重 ROM（18×71→18×22）、
-`verification/` 的 recon_core 向量与 TB 位宽。
+`flow/verification/` 的 recon_core 向量与 TB 位宽。
 
 ---
 
@@ -86,7 +86,7 @@ w[slice, sub_unit]  = β·SUB_WEIGHTS[j]·Cu/Cf
 | `topology/mapper.py` | 码表仍显式，但生成规则换成 `group_drive` |
 | `calibration/*` | 权重数组按 2.1 的逐单元律重建 |
 | `rtl/*` + `rtl_params.vh` | `N_UNIT_MAIN 63→17`、`N_UNIT_SUB 8→5`、`N_UNIT_TOTAL 71→22` |
-| `verification/vectors/generate.py` | recon_core ROM 18×22，掩码位宽 17/5 |
+| `flow/verification/vectors/generate.py` | recon_core ROM 18×22，掩码位宽 17/5 |
 | `tools/*` 7 个脚本 | 掩码绑定换成 `fig11_masks` |
 
 ### 3.3 禁止的做法

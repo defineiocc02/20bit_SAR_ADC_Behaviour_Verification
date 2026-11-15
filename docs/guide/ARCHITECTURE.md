@@ -92,8 +92,8 @@ input_fn(t)
 | 角色 | 在哪 | 能不能当 oracle |
 |:---|:---|:---|
 | 浮点行为模型 | `src/adi_model/` | **不能**：浮点给不出位真值 |
-| 整数定点参考 | `verification/reference/` | 能，且不 import RTL |
-| 独立 scoreboard | `verification/cosim/scoreboard.py` | 只比较，不生成期望值 |
+| 整数定点参考 | `flow/verification/reference/` | 能，且不 import RTL |
+| 独立 scoreboard | `flow/verification/cosim/scoreboard.py` | 只比较，不生成期望值 |
 
 ---
 

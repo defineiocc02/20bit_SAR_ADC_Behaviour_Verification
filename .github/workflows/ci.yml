@@ -42,7 +42,7 @@ jobs:
       - name: Independent integer arithmetic with explicit format
         run: |
           python tools/audit_rtl_arithmetic.py \
-            --format-json sim/fixtures/math_only/format.json \
+            --format-json flow/sim/fixtures/math_only/format.json \
             --negative-controls --out "$SAR_CI_RUN_ROOT/arithmetic"
       - name: Selected DSP protocol and numerical kernels
         run: |
@@ -53,9 +53,9 @@ jobs:
       - name: Generate explicit synthetic source-control inputs
         run: |
           python tools/export_rtl_params.py \
-            --config sim/fixtures/source_control_component/config.json \
-            --format sim/fixtures/source_control_component/format.json \
-            --binding sim/fixtures/source_control_component/binding.json \
+            --config flow/sim/fixtures/source_control_component/config.json \
+            --format flow/sim/fixtures/source_control_component/format.json \
+            --binding flow/sim/fixtures/source_control_component/binding.json \
             --out "$SAR_CI_RUN_ROOT/rtl-inputs"
       - name: Source-control digital component and CAAZ tags
         # 2+1 units / 6-bit backend are declared numerical fixtures.
@@ -64,19 +64,19 @@ jobs:
           python tools/run_open_rtl.py --simulator verilator \
             --tops source_control_contract_tb source_control_caaz_tb \
             --inputs-dir "$SAR_CI_RUN_ROOT/rtl-inputs" \
-            --weights sim/fixtures/source_control_component/weights.hex \
-            --scalars sim/fixtures/source_control_component/scalars.hex \
+            --weights flow/sim/fixtures/source_control_component/weights.hex \
+            --scalars flow/sim/fixtures/source_control_component/scalars.hex \
             --frames 32 --out "$SAR_CI_RUN_ROOT/source-component"
       - name: Independently check captured masks and integer words
         run: |
           python tools/check_source_control_trace.py \
             --inputs-dir "$SAR_CI_RUN_ROOT/rtl-inputs" \
-            --registers sim/fixtures/source_control_component/registers.json \
+            --registers flow/sim/fixtures/source_control_component/registers.json \
             --trace-dir "$SAR_CI_RUN_ROOT/source-component/source_control_contract_tb" \
             --caaz 0 --out "$SAR_CI_RUN_ROOT/source-check-base"
           python tools/check_source_control_trace.py \
             --inputs-dir "$SAR_CI_RUN_ROOT/rtl-inputs" \
-            --registers sim/fixtures/source_control_component/registers.json \
+            --registers flow/sim/fixtures/source_control_component/registers.json \
             --trace-dir "$SAR_CI_RUN_ROOT/source-component/source_control_caaz_tb" \
             --caaz 1 --out "$SAR_CI_RUN_ROOT/source-check-caaz"
       - name: Fig19 static component and public replay (NO_TRAINING)

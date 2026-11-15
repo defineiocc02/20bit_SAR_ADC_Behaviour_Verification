@@ -99,8 +99,8 @@ python3 -m verification.run_verification --level module --only recon_core
 ```
 
 失败会打印：`module / vector index / field / python expect / rtl actual / 重放命令`。
-先确认 `verification/reports/dumps/<module>/` 里的 dump 是对应那次运行的，
-再拿 `vector index` 回 `verification/vectors/generated/<module>/` 取输入。
+先确认 `flow/verification/reports/dumps/<module>/` 里的 dump 是对应那次运行的，
+再拿 `vector index` 回 `flow/verification/vectors/generated/<module>/` 取输入。
 
 **别先怀疑 RTL**：本项目就出现过参考模型读错合同（`a` 当成 `on`）的先例。
 两侧都可能是错的，先看合同正文。

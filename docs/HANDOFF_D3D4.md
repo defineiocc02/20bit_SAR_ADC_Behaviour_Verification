@@ -84,8 +84,8 @@
 | `tools/gen_vec_phase.py` | 相位金标，内嵌与 RTL 实测值的断言 |
 | `tools/ref_d3d4_ip.py` | IP 级向量，复用 `dem_dither.py` 同一参考口径 |
 | `tools/sched18_stats.py` | 随机性质量统计（逐拍对拍证明不了这个） |
-| `synth/d3d4/dc_d3d4_ip.tcl` | 可执行综合脚本，含硬断言 |
-| `synth/d3d4/dc_hold_unc0.tcl` | hold uncertainty 对照实验 |
+| `flow/synth/d3d4/dc_d3d4_ip.tcl` | 可执行综合脚本，含硬断言 |
+| `flow/synth/d3d4/dc_hold_unc0.tcl` | hold uncertainty 对照实验 |
 | `docs/SYNTH_D3D4.md` | 综合与门级记录，含全部踩坑 |
 
 ---
@@ -195,13 +195,13 @@ mv rtl/sched18.sv.bak rtl/sched18.sv             # 恢复
 ```bash
 ssh vm-yian 'mkdir -p ~/d3d4/{rtl,synth/d3d4}'   # 或本地有 DC+PDK
 scp rtl/dem_phase_gen.sv rtl/dem_mask_v3.sv rtl/dither_pre.sv rtl/d3d4_ip.sv vm-yian:~/d3d4/rtl/
-scp synth/d3d4/{dc_d3d4_ip.tcl,sdc_d3d4_ip.sdc,dc_hold_unc0.tcl} vm-yian:~/d3d4/synth/d3d4/
+scp flow/synth/d3d4/{dc_d3d4_ip.tcl,sdc_d3d4_ip.sdc,dc_hold_unc0.tcl} vm-yian:~/d3d4/synth/d3d4/
 
 ssh vm-yian 'cd ~/d3d4 && \
   export D3D4_PDK=/home/yian/PDK D3D4_WORK=$PWD D3D4_OUT=$PWD/out/mine && \
   export SNPSLMD_LICENSE_FILE=27080@localhost \
          PATH=/opt/synopsys/syn/W-2024.09-SP3/bin:$PATH && \
-  dc_shell -f synth/d3d4/dc_d3d4_ip.tcl'
+  dc_shell -f flow/synth/d3d4/dc_d3d4_ip.tcl'
 ```
 
 期望（我实测值）：
@@ -231,7 +231,7 @@ TIMING_CLOSURE=MET
 ssh vm-yian 'cd ~/d3d4 && export D3D4_PDK=/home/yian/PDK D3D4_WORK=$PWD && \
   export SNPSLMD_LICENSE_FILE=27080@localhost \
          PATH=/opt/synopsys/syn/W-2024.09-SP3/bin:$PATH && \
-  dc_shell -f synth/d3d4/dc_hold_unc0.tcl'
+  dc_shell -f flow/synth/d3d4/dc_hold_unc0.tcl'
 ```
 
 期望：`HOLD_UNC0 worst_hold_slack=0.113101`
@@ -425,7 +425,7 @@ k=1023: slice0 = 全 1   <-- 静默
 
 | 项 | 处理 |
 |:---|:---|
-| `synth/d3d4/contract_d3d4_ip.tcl` | **删除**。这是给 `synth/run_dc.tcl` 的占位契约，但路径是假的（`/work/...`），且全仓无引用，属于会误导人的孤儿文件。实际用的是 `dc_d3d4_ip.tcl` |
+| `flow/synth/d3d4/contract_d3d4_ip.tcl` | **删除**。这是给 `flow/synth/run_dc.tcl` 的占位契约，但路径是假的（`/work/...`），且全仓无引用，属于会误导人的孤儿文件。实际用的是 `dc_d3d4_ip.tcl` |
 | 本地 `/tmp` 临时文件 | 已清 |
 | 远端 `~/pg_*`、`~/d3d4v` 等验证目录 | 已清 |
 | 远端 `~/d3d4/out/{gl,final25,final5,...}` | 已清，保留 `out/d3d4_ip` 与 `out/hier` 作为综合证据 |

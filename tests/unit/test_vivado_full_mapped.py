@@ -31,7 +31,7 @@ def test_every_external_input_is_required_instead_of_using_old_profiles(tmp_path
     index = argv.index(option)
     del argv[index : index + 2]
     cp = subprocess.run(
-        [sys.executable, str(ROOT / "synth/run_synth.py"), *argv],
+        [sys.executable, str(ROOT / "flow/synth/run_synth.py"), *argv],
         capture_output=True,
         text=True,
         timeout=10,
@@ -62,7 +62,7 @@ def test_retired_remote_and_device_shortcuts_are_not_silently_accepted(tmp_path,
 
 def test_generic_parameter_probe_uses_declared_source_and_parameter_hashes(tmp_path):
     data = inputs(tmp_path / "inputs")
-    source = ROOT / "synth/tests/param_probe.sv"
+    source = ROOT / "flow/synth/tests/param_probe.sv"
     data["filelist"].write_text(
         json.dumps({"sources": [str(source)], "include_dirs": [], "headers": [], "defines": []})
     )
@@ -79,7 +79,7 @@ def test_generic_parameter_probe_uses_declared_source_and_parameter_hashes(tmp_p
 
 def syntax(paths, *, tclsh=None):
     return subprocess.run(
-        [tool("bash"), str(ROOT / "synth/check_syntax.sh"), *map(str, paths)],
+        [tool("bash"), str(ROOT / "flow/synth/check_syntax.sh"), *map(str, paths)],
         env={**os.environ, "TCLSH": tclsh or tool("tclsh")},
         capture_output=True,
         text=True,

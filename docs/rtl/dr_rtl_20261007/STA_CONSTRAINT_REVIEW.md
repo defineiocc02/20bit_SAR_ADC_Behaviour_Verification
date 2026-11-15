@@ -30,7 +30,7 @@ P7 OOC 报告来自 `docs/evidence/20260930/vivado_complete_p7`。该归档显�
 
 ### 3.1 Vivado OOC screening
 
-`synth/run_vivado_ooc.tcl` 生成并读入 XDC：
+`flow/synth/run_vivado_ooc.tcl` 生成并读入 XDC：
 
 ```tcl
 create_clock -name core_clk -period $period [get_ports clk]
@@ -43,13 +43,13 @@ set_output_delay 0.0 -clock core_clk [all_outputs]
 
 ### 3.2 BUFG 路由检查入口
 
-`synth/run_vivado_buffered_impl.tcl` 从旧 OOC DCP 插入一个 `BUFG`，在 `xc7vx690tffg1761-2` 指定 `BUFGCTRL_X0Y0`，然后做 opt/place/phys-opt/route。约束保留单个 `core_clk`、0.05 ns user uncertainty，并设置 propagated clock。它特意保留零输入/输出延迟、未路由外部时钟，也没有加 false path 或 MCP。因此它可分析内部时钟网络和历史 OOC 边界下的路径，不能等同完整板级时序。
+`flow/synth/run_vivado_buffered_impl.tcl` 从旧 OOC DCP 插入一个 `BUFG`，在 `xc7vx690tffg1761-2` 指定 `BUFGCTRL_X0Y0`，然后做 opt/place/phys-opt/route。约束保留单个 `core_clk`、0.05 ns user uncertainty，并设置 propagated clock。它特意保留零输入/输出延迟、未路由外部时钟，也没有加 false path 或 MCP。因此它可分析内部时钟网络和历史 OOC 边界下的路径，不能等同完整板级时序。
 
 该流程分别输出 all-path 与真正 FF clock-pin→FF data-pin 的 max/min 路径；状态也分别记录 `TIMING_MET` 与 `REGREG_TIMING_MET`。这种拆分有效避免把内部寄存器通过误写成全接口通过。
 
 ### 3.3 Design Compiler 脚本默认约束
 
-`synth/run_dc.tcl` 以 `$CLK_PERIOD` 建时钟，输入输出 delay 分别由 `IN_DELAY/OUT_DELAY` 给定，默认均为 `0.0`；输入 drive 使用环境给的 drive cell，输出按 `$LOAD_PF` 加载；uncertainty 是周期的 2%，clock/input transition 是周期的 5%。这些默认适合流程冒烟/相对筛查，不是 ASIC 接口预算。历史 README 记有外部 TSMC 28 nm HPC+ TT RVT `.db` 和其它角，但当前 repo 没有该数据库或宏/物理库文件，且文档明确写这些旧 DC 结果未在当前轮复测。不能把文档参数当成当前已绑定的实际库角。
+`flow/synth/run_dc.tcl` 以 `$CLK_PERIOD` 建时钟，输入输出 delay 分别由 `IN_DELAY/OUT_DELAY` 给定，默认均为 `0.0`；输入 drive 使用环境给的 drive cell，输出按 `$LOAD_PF` 加载；uncertainty 是周期的 2%，clock/input transition 是周期的 5%。这些默认适合流程冒烟/相对筛查，不是 ASIC 接口预算。历史 README 记有外部 TSMC 28 nm HPC+ TT RVT `.db` 和其它角，但当前 repo 没有该数据库或宏/物理库文件，且文档明确写这些旧 DC 结果未在当前轮复测。不能把文档参数当成当前已绑定的实际库角。
 
 ### 3.4 目前缺少的真实约束输入
 
@@ -207,8 +207,8 @@ P5 并非已被当前默认 profile 采用；当前 P5 route 报告要求外部�
 ## 11. 主要源文件及证据位置
 
 - Current RTL/default: `rtl/sar20_digital_core.sv`, `rtl/recon_core.sv`, `rtl/sar_structural_ctrl.sv`, `rtl/cal_sample_context.sv`, `rtl/params/rtl_params.vh`。
-- Synthesis/STA Tcl: `synth/run_vivado_ooc.tcl`, `synth/run_vivado_buffered_impl.tcl`, `synth/run_vivado_impl.tcl`, `synth/run_dc.tcl`。
-- Implementation plan & existing interface-budget checklist: `synth/IMPLEMENTATION_PLAN.md`, `synth/FPGA_SYNTHESIS_AND_STA.md`。
+- Synthesis/STA Tcl: `flow/synth/run_vivado_ooc.tcl`, `flow/synth/run_vivado_buffered_impl.tcl`, `flow/synth/run_vivado_impl.tcl`, `flow/synth/run_dc.tcl`。
+- Implementation plan & existing interface-budget checklist: `flow/synth/IMPLEMENTATION_PLAN.md`, `flow/synth/FPGA_SYNTHESIS_AND_STA.md`。
 - P5 reports: `docs/evidence/20260930/shared_old_trial_synth/`, `docs/evidence/20260930/shared_old_trial_route_25ns/`。
 - P7 reports: `docs/evidence/20260930/vivado_complete_p7/{baseline,optimized}/`。
 - P5-to-current token bridge: `baseline/source_identity.json` in the parent output folder.

@@ -2,7 +2,7 @@
 
 A comparator that only ever says "pass" is indistinguishable from no comparator.
 Each test below takes a **real passing dump** produced by the VCS run under
-`verification/reports/dumps/`, injects one specific defect, and asserts the
+`flow/verification/reports/dumps/`, injects one specific defect, and asserts the
 scoreboard reports a mismatch naming the expected field.
 
 If a dump is absent the test skips with a message — it never fabricates one, and

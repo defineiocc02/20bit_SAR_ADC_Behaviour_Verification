@@ -259,7 +259,7 @@ def check_entry_points() -> None:
         record("C6 entry points", False, "docs/guide/QUICKSTART.md missing")
         return
     text = QUICKSTART.read_text(encoding="utf-8")
-    referenced = re.findall(r"(tools/[\w./-]+\.py|verification/[\w./-]+\.py)", text)
+    referenced = re.findall(r"(tools/[\w./-]+\.py|flow/verification/[\w./-]+\.py)", text)
     missing = sorted({r for r in referenced if not (ROOT / r).is_file()})
     core_entry = (ROOT / "src/adi_model/__main__.py").is_file()
     ok = not missing and core_entry

@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from _synth_test_support import digest, tool
 
-FLOW = Path(__file__).resolve().parents[2] / "synth/inspect_clockless_paths.tcl"
+FLOW = Path(__file__).resolve().parents[2] / "flow/synth/inspect_clockless_paths.tcl"
 
 HARNESS = r"""
 set ::scenario $::env(SCENARIO)

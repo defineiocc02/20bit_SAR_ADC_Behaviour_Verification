@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="430" viewBox="0 0 1080 430" font-family="-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
+<rect width="1080" height="430" fill="#fff"/>
+<text x="26" y="28" font-size="17" font-weight="600" fill="#111">相位发生器 A/B：伪随机 vs 确定性轮转</text>
+<text x="26" y="48" font-size="12" fill="#666">TSMC 28HPC+ SS，DC W-2024.09-SP3，5 ns 约束；PPT 原文写的是 "Round robin shuffler"</text>
+<text x="154" y="99" font-size="12" fill="#333" text-anchor="end">单元数</text>
+<rect x="170" y="84" width="520.0" height="20" fill="#ADB5BD" rx="3"/>
+<rect x="170" y="108" width="96.4" height="20" fill="#2F9E44" rx="3"/>
+<text x="698" y="99" font-size="11" fill="#495057">804 个</text>
+<text x="274" y="122" font-size="11" fill="#2B8A3E" font-weight="600">149 个</text>
+<text x="786" y="106" font-size="12" fill="#2B8A3E" font-weight="600">&#8595; 5.4×</text>
+<text x="154" y="151" font-size="12" fill="#333" text-anchor="end">总面积</text>
+<rect x="170" y="136" width="520.0" height="20" fill="#ADB5BD" rx="3"/>
+<rect x="170" y="160" width="102.9" height="20" fill="#2F9E44" rx="3"/>
+<text x="698" y="151" font-size="11" fill="#495057">392.78 µm²</text>
+<text x="281" y="174" font-size="11" fill="#2B8A3E" font-weight="600">77.71 µm²</text>
+<text x="786" y="158" font-size="12" fill="#2B8A3E" font-weight="600">&#8595; 5.1×</text>
+<text x="154" y="203" font-size="12" fill="#333" text-anchor="end">关键路径</text>
+<rect x="170" y="188" width="520.0" height="20" fill="#ADB5BD" rx="3"/>
+<rect x="170" y="212" width="67.7" height="20" fill="#2F9E44" rx="3"/>
+<text x="698" y="203" font-size="11" fill="#495057">4.38 ns</text>
+<text x="246" y="226" font-size="11" fill="#2B8A3E" font-weight="600">0.57 ns</text>
+<text x="786" y="210" font-size="12" fill="#2B8A3E" font-weight="600">&#8595; 7.7×</text>
+<text x="154" y="255" font-size="12" fill="#333" text-anchor="end">一周期内重复</text>
+<rect x="170" y="240" width="520.0" height="20" fill="#ADB5BD" rx="3"/>
+<rect x="170" y="264" width="2.0" height="20" fill="#2F9E44" rx="3"/>
+<text x="698" y="255" font-size="11" fill="#495057">710 个</text>
+<text x="180" y="278" font-size="11" fill="#2B8A3E" font-weight="600">0 个</text>
+<text x="786" y="262" font-size="12" fill="#2B8A3E" font-weight="600">&#8595; 100%</text>
+<text x="154" y="307" font-size="12" fill="#333" text-anchor="end">三轴互信息</text>
+<rect x="170" y="292" width="520.0" height="20" fill="#ADB5BD" rx="3"/>
+<rect x="170" y="316" width="2.0" height="20" fill="#2F9E44" rx="3"/>
+<text x="698" y="307" font-size="11" fill="#495057">0.0079 bit</text>
+<text x="180" y="330" font-size="11" fill="#2B8A3E" font-weight="600">0 bit</text>
+<text x="786" y="314" font-size="12" fill="#2B8A3E" font-weight="600">&#8595; 100%</text>
+<rect x="170" y="362" width="16" height="12" fill="#ADB5BD" rx="2"/>
+<text x="194" y="372" font-size="12" fill="#333">xorshift（伪随机）</text>
+<rect x="360" y="362" width="16" height="12" fill="#2F9E44" rx="2"/>
+<text x="384" y="372" font-size="12" fill="#333">round-robin（确定性轮转，已采用）</text>
+<text x="170" y="396" font-size="11" fill="#888">注：互信息 0 表示三轴统计独立；一周期内重复 0 表示 1920 拍遍历无重复</text>
+</svg>

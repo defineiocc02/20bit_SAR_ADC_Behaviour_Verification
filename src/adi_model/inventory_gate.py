@@ -23,8 +23,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import NoReturn
 
-SOURCES_FILE = "sources_manifest.json"
-INVENTORY_FILE = "mechanism_inventory.json"
+SOURCES_FILE = "manifest/sources_manifest.json"
+INVENTORY_FILE = "manifest/mechanism_inventory.json"
 REFERENCES_FILE = "references/source_manifest.json"
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 TEST_ID_RE = re.compile(r"^(?P<path>tests/[\w/]+\.py)::(?P<symbol>\w+)$")

@@ -29,7 +29,7 @@ def test_sources_are_locatable_or_explicitly_blocked():
 
 
 def test_explicit_required_task_coverage_has_no_gaps():
-    inventory = json.loads((REPO_ROOT / "mechanism_inventory.json").read_text())
+    inventory = json.loads((REPO_ROOT / "manifest/mechanism_inventory.json").read_text())
     required = inventory["coverage_obligations"]["required_task_ids"]
     assert required and len(set(required)) == len(required)
     result = verify(REPO_ROOT)

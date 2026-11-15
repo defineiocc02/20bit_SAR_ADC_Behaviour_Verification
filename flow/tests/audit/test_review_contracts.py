@@ -155,9 +155,9 @@ def reference_gate_case(tmp_path, monkeypatch):
 
     def write():
         for path, value in [
-            ("sources_manifest.json", sources),
+            ("manifest/sources_manifest.json", sources),
             ("references/source_manifest.json", references),
-            ("mechanism_inventory.json", inventory),
+            ("manifest/mechanism_inventory.json", inventory),
         ]:
             (root / path).write_text(json.dumps(value, ensure_ascii=False))
 
@@ -516,7 +516,7 @@ class TestR15GateRefusesTruthiness:
         "text", ["[]", '{"sources":[],"sources":[]}', '{"sources":[],"n":NaN}']
     )
     def test_malformed_json_cannot_pass(self, reference_gate_case, text):
-        path = reference_gate_case.root / "sources_manifest.json"
+        path = reference_gate_case.root / "manifest/sources_manifest.json"
         path.write_text(text)
         assert inventory_main(["--repo-root", str(reference_gate_case.root)]) == 1
 

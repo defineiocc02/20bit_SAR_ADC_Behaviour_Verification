@@ -114,21 +114,21 @@ def inventory_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
             "pages_as_file_inventory": 2,
         },
     )
-    _write_json(repo / "sources_manifest.json", manifest)
-    _write_json(repo / "mechanism_inventory.json", inventory)
+    _write_json(repo / "manifest/sources_manifest.json", manifest)
+    _write_json(repo / "manifest/mechanism_inventory.json", inventory)
     return repo
 
 
 def _inventory(repo: Path) -> dict:
-    return json.loads((repo / "mechanism_inventory.json").read_text(encoding="utf-8"))
+    return json.loads((repo / "manifest/mechanism_inventory.json").read_text(encoding="utf-8"))
 
 
 def _source_manifest(repo: Path) -> dict:
-    return json.loads((repo / "sources_manifest.json").read_text(encoding="utf-8"))
+    return json.loads((repo / "manifest/sources_manifest.json").read_text(encoding="utf-8"))
 
 
 def _assert_mechanism_failure(repo: Path, inventory: dict, check: str) -> None:
-    _write_json(repo / "mechanism_inventory.json", inventory)
+    _write_json(repo / "manifest/mechanism_inventory.json", inventory)
     result = verify(repo)
     assert not result.static_refs_pass
     assert any(record.level == "FAIL" and record.check == check for record in result.records)
@@ -139,7 +139,7 @@ def _assert_mechanism_failure(repo: Path, inventory: dict, check: str) -> None:
 def test_exact_top_level_class_or_function_is_a_static_anchor(inventory_repo: Path, symbol: str):
     inventory = _inventory(inventory_repo)
     inventory["mechanisms"][0]["tests"] = [f"tests/test_symbols.py::{symbol}"]
-    _write_json(inventory_repo / "mechanism_inventory.json", inventory)
+    _write_json(inventory_repo / "manifest/mechanism_inventory.json", inventory)
     result = verify(inventory_repo)
     assert result.static_refs_pass
     static = [record for record in result.records if record.check == "mechanisms.M01.static_refs"]
@@ -185,7 +185,7 @@ def test_project_extension_can_explicitly_have_no_literature_reference(inventory
     inventory = _inventory(inventory_repo)
     inventory["mechanisms"][0]["sources"] = []
     inventory["mechanisms"][0]["embodiment"] = "PROJECT_EXTENSION"
-    _write_json(inventory_repo / "mechanism_inventory.json", inventory)
+    _write_json(inventory_repo / "manifest/mechanism_inventory.json", inventory)
     assert verify(inventory_repo).static_refs_pass
 
 
@@ -248,7 +248,7 @@ def test_unparseable_test_module_is_a_visible_failure(inventory_repo: Path):
 def test_registered_background_source_id_can_be_referenced(inventory_repo: Path):
     inventory = _inventory(inventory_repo)
     inventory["mechanisms"][0]["sources"][0]["id"] = "B0"
-    _write_json(inventory_repo / "mechanism_inventory.json", inventory)
+    _write_json(inventory_repo / "manifest/mechanism_inventory.json", inventory)
     result = verify(inventory_repo)
     assert result.static_refs_pass
     assert any(
@@ -259,7 +259,7 @@ def test_registered_background_source_id_can_be_referenced(inventory_repo: Path)
 def test_legacy_unregistered_background_source_is_explicitly_blocked(inventory_repo: Path):
     manifest = _source_manifest(inventory_repo)
     manifest["background_sources"]["items"] = [{"id": "B0", "hash_registered": False}]
-    _write_json(inventory_repo / "sources_manifest.json", manifest)
+    _write_json(inventory_repo / "manifest/sources_manifest.json", manifest)
     result = verify(inventory_repo)
     assert result.static_refs_pass
     background = [record for record in result.records if record.check.startswith("sources.B0.")]
@@ -270,7 +270,7 @@ def test_legacy_unregistered_background_source_is_explicitly_blocked(inventory_r
 def test_background_source_hash_mismatch_fails(inventory_repo: Path):
     manifest = _source_manifest(inventory_repo)
     manifest["background_sources"]["items"][0]["sha256"] = "0" * 64
-    _write_json(inventory_repo / "sources_manifest.json", manifest)
+    _write_json(inventory_repo / "manifest/sources_manifest.json", manifest)
     result = verify(inventory_repo)
     assert not result.static_refs_pass
     assert any(
@@ -281,7 +281,7 @@ def test_background_source_hash_mismatch_fails(inventory_repo: Path):
 def test_missing_external_background_source_uses_verified_repository_identity(inventory_repo: Path):
     manifest = _source_manifest(inventory_repo)
     manifest["background_sources"]["items"][0]["file"] = "missing.pdf"
-    _write_json(inventory_repo / "sources_manifest.json", manifest)
+    _write_json(inventory_repo / "manifest/sources_manifest.json", manifest)
     result = verify(inventory_repo)
     assert result.static_refs_pass
     assert any(
@@ -293,7 +293,7 @@ def test_missing_external_background_source_uses_verified_repository_identity(in
 def test_background_and_primary_source_ids_must_be_unique(inventory_repo: Path):
     manifest = _source_manifest(inventory_repo)
     manifest["background_sources"]["items"][0]["id"] = "S0"
-    _write_json(inventory_repo / "sources_manifest.json", manifest)
+    _write_json(inventory_repo / "manifest/sources_manifest.json", manifest)
     result = verify(inventory_repo)
     assert not result.static_refs_pass
     assert any(
@@ -324,7 +324,7 @@ def test_optional_rtl_contract_uses_explicit_status_and_file_anchors(
     if status in ("NOT_IMPLEMENTED", "NOT_APPLICABLE"):
         contract["code"] = contract["tests"] = []
     inventory["mechanisms"][0]["rtl_contract"] = contract
-    _write_json(inventory_repo / "mechanism_inventory.json", inventory)
+    _write_json(inventory_repo / "manifest/mechanism_inventory.json", inventory)
     assert verify(inventory_repo).static_refs_pass
 
 
@@ -389,7 +389,7 @@ def test_static_reference_success_does_not_execute_or_approve_not_run_experiment
 def test_required_ids_are_explicit_unique_strings_not_old_global_defaults(inventory_repo, tasks):
     inventory = _inventory(inventory_repo)
     inventory["coverage_obligations"]["required_task_ids"] = tasks
-    _write_json(inventory_repo / "mechanism_inventory.json", inventory)
+    _write_json(inventory_repo / "manifest/mechanism_inventory.json", inventory)
     result = verify(inventory_repo)
     assert not result.static_refs_pass
     assert any(
@@ -400,14 +400,14 @@ def test_required_ids_are_explicit_unique_strings_not_old_global_defaults(invent
 def test_missing_coverage_schema_is_not_filled_with_retired_task_list(inventory_repo):
     inventory = _inventory(inventory_repo)
     inventory.pop("coverage_obligations")
-    _write_json(inventory_repo / "mechanism_inventory.json", inventory)
+    _write_json(inventory_repo / "manifest/mechanism_inventory.json", inventory)
     assert not verify(inventory_repo).static_refs_pass
 
 
 def test_missing_required_state_is_reported_separately_from_valid_static_refs(inventory_repo):
     inventory = _inventory(inventory_repo)
     inventory["mechanisms"][0]["experiments"] = []
-    _write_json(inventory_repo / "mechanism_inventory.json", inventory)
+    _write_json(inventory_repo / "manifest/mechanism_inventory.json", inventory)
     result = verify(inventory_repo)
     assert result.static_refs_pass
     assert not result.required_states_ready
@@ -483,7 +483,7 @@ def test_same_bytes_can_supply_a_distinct_alias_without_reassigning_the_source_u
     _write_json(inventory_repo / "references/source_manifest.json", data)
     manifest = _source_manifest(inventory_repo)
     manifest["sources"][0]["file"] = "absent_external.pdf"
-    _write_json(inventory_repo / "sources_manifest.json", manifest)
+    _write_json(inventory_repo / "manifest/sources_manifest.json", manifest)
     result = verify(inventory_repo)
     assert result.static_refs_pass
     assert {"S0", "REPOSITORY_ALIAS_S0"} <= result.registered_source_ids
@@ -498,7 +498,7 @@ def test_missing_external_and_repository_source_remain_visible(inventory_repo):
     _write_json(inventory_repo / "references/source_manifest.json", data)
     manifest = _source_manifest(inventory_repo)
     manifest["background_sources"]["items"][0]["file"] = "missing_everywhere.pdf"
-    _write_json(inventory_repo / "sources_manifest.json", manifest)
+    _write_json(inventory_repo / "manifest/sources_manifest.json", manifest)
     result = verify(inventory_repo)
     assert result.static_refs_pass
     assert any(r.check == "sources.B0.file" and r.level == "BLOCKED" for r in result.records)

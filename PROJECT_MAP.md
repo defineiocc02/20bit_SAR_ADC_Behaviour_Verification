@@ -76,15 +76,15 @@ D3D4_RUNNER=<ssh-host> bash tools/verify_d3d4_ip.sh
 `LICENSE` `NOTICE` `CITATION.cff` `SECURITY.md` `CODE_OF_CONDUCT.md`
 `CONTRIBUTING.md` `MANIFEST.in` `pyproject.toml` `Makefile` `CHANGELOG.md`
 `.gitignore` `.gitattributes` `.github/` `.pre-commit-config.yaml`
-`AGENTS.md` `HANDOFF.md` `mechanism_inventory.json` `sources_manifest.json`
-`validation_summary.json` `README.md` `README_EN.md`
+`PROJECT_MAP.md` `README.md` `CHANGELOG.md` `CITATION.cff`
+`manifest/`（机制与来源清单位于此处）`pyproject.toml` `Makefile` `MANIFEST.in`
 
 其中三个值得一提：
 
 | 文件 | 作用 |
 |:---|:---|
-| `AGENTS.md` | **模块归属与仓库规则**（谁能改什么） |
-| `HANDOFF.md` | 追加式交接日志 |
+| `docs/meta/AGENTS.md` | **模块归属与仓库规则**（谁能改什么） |
+| `docs/meta/HANDOFF.md` | 追加式交接日志 |
 | `CHANGELOG.md` | 版本记录 |
 
 ---

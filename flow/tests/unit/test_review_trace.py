@@ -20,7 +20,7 @@ def _load(name: str) -> dict:
 
 
 def _registered_sources() -> dict:
-    manifest = json.loads((ROOT / "sources_manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads((ROOT / "manifest/sources_manifest.json").read_text(encoding="utf-8"))
     rows = manifest["sources"] + manifest["background_sources"]["items"]
     assert len(rows) == len({row["id"] for row in rows})
     return {row["id"]: row for row in rows}
@@ -63,7 +63,7 @@ def test_source_review_covers_each_registered_page_once():
         pages = document["page_review"]
         assert [row["pdf_page"] for row in pages] == list(range(1, source["pages"] + 1))
         assert all(row["text_read"] and row["image_checked"] for row in pages)
-    manifest = json.loads((ROOT / "sources_manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads((ROOT / "manifest/sources_manifest.json").read_text(encoding="utf-8"))
     assert manifest["meta"]["corpus_documents"] == len(documents)
     assert manifest["meta"]["corpus_pages"] == sum(row["pages"] for row in documents)
 
@@ -97,7 +97,7 @@ def test_caaz_source_alias_is_explicit_and_not_a_third_document():
 
 def test_each_source_requirement_has_a_valid_applicability_and_mechanism_mapping():
     sources = set(_registered_sources())
-    inventory = json.loads((ROOT / "mechanism_inventory.json").read_text(encoding="utf-8"))
+    inventory = json.loads((ROOT / "manifest/mechanism_inventory.json").read_text(encoding="utf-8"))
     mechanisms = {row["id"] for row in inventory["mechanisms"]}
     baseline = _load("20261105-requirements-trace.json")
     extension = _load("20261105-caaz-source-requirements.json")
@@ -143,7 +143,7 @@ def test_each_source_requirement_has_a_valid_applicability_and_mechanism_mapping
 
 
 def test_caaz_remains_an_optional_source_derived_sample_domain_extension():
-    inventory = json.loads((ROOT / "mechanism_inventory.json").read_text(encoding="utf-8"))
+    inventory = json.loads((ROOT / "manifest/mechanism_inventory.json").read_text(encoding="utf-8"))
     caaz = next(row for row in inventory["mechanisms"] if row["id"] == "X02")
     assert "OPTIONAL_SOURCE_EXTENSION" in inventory["config_classes"]
     assert caaz["embodiment"] == "OPTIONAL_SOURCE_EXTENSION"
@@ -277,7 +277,7 @@ def test_current_runtime_source_set_has_current_imports_and_explicit_rtl_manifes
     current_rtl = {p.relative_to(ROOT).as_posix() for p in (ROOT / "rtl").rglob("*.sv")}
     assert len(declared) == len(set(declared))
     assert set(declared) == current_rtl
-    inventory = json.loads((ROOT / "mechanism_inventory.json").read_text())
+    inventory = json.loads((ROOT / "manifest/mechanism_inventory.json").read_text())
     current_production = current_rtl | {
         p.relative_to(ROOT).as_posix() for p in current_python.values()
     }

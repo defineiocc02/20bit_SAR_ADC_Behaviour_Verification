@@ -103,7 +103,7 @@ input_fn(t)
 * `recon_core` 只支持 AllSIGNAL 子集（`G = T`），不支持 dither 单元混入。
 * 共享 RA **没有跨笔状态**，每笔按理想初态开始。
 * 动态参考 / RA 建立 / ADC2 宽窄带可以跑波形，但**出不了 INL/SNR**（`out=NaN`，见 `pipeline_engine.py:594`）。
-* CAAZ 在 `extensions/caaz/`，主链不 import。
+* CAAZ 在 `subsys/extensions/caaz/`，主链不 import。
 
 ---
 

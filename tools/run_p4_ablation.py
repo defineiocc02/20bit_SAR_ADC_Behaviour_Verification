@@ -367,7 +367,7 @@ def _train_calibration(model, *, points: int = DEFAULT_TRAINING_POINTS, dem: boo
     }
 
 
-from experiments.configs.matrix import ablation_configs as _configs
+from subsys.experiments.configs.matrix import ablation_configs as _configs
 
 
 def _build_model(mismatch_std: float, noise: bool, *, seed: int = 20261105) -> DefaultModel:

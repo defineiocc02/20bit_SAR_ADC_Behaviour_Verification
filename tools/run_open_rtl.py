@@ -64,7 +64,7 @@ BENCHES = {
         requires_math_format=True,
     ),
     "caaz_pair_vectors_tb": Bench(
-        ("extensions/caaz/rtl/caaz_pair_processor.sv", "extensions/caaz/tb/caaz_pair_vectors_tb.sv"),
+        ("subsys/extensions/caaz/rtl/caaz_pair_processor.sv", "subsys/extensions/caaz/tb/caaz_pair_vectors_tb.sv"),
         "CAAZ_PAIR_VECTORS_COMPLETE",
         ("cycles", "outputs", "checks", "cases"),
         (("caaz_pair_processor", ("-GP_CAAZ_ENABLE=1'b1",)),),
@@ -74,28 +74,28 @@ BENCHES = {
 
 # DSP 测试使用各自的明确合同；零计数要求与 OPEN 声明分别处理。
 BENCHES["result_fifo_tb"] = Bench(
-    ("ad4080_dsp/rtl/result_fifo.sv", "ad4080_dsp/sim/tb/result_fifo_tb.sv"),
+    ("subsys/ad4080_dsp/rtl/result_fifo.sv", "subsys/ad4080_dsp/sim/tb/result_fifo_tb.sv"),
     "RESULT_FIFO_CONTRACT_COMPLETE",
     ("depth", "queue_reads", "snapshot_reads", "collisions", "writes", "checks"),
     (),
 )
 BENCHES["cnv_ctrl_contract_tb"] = Bench(
-    ("ad4080_dsp/rtl/cnv_ctrl.sv", "ad4080_dsp/sim/tb/cnv_ctrl_contract_tb.sv"),
+    ("subsys/ad4080_dsp/rtl/cnv_ctrl.sv", "subsys/ad4080_dsp/sim/tb/cnv_ctrl_contract_tb.sv"),
     "CNV_CTRL_CONTRACT_COMPLETE",
     ("input_edges", "busy_errors", "pulses", "checks"),
     (),
 )
 BENCHES["sys_error_corr_contract_tb"] = Bench(
-    ("ad4080_dsp/rtl/sys_error_corr.sv", "ad4080_dsp/sim/tb/sys_error_corr_contract_tb.sv"),
+    ("subsys/ad4080_dsp/rtl/sys_error_corr.sv", "subsys/ad4080_dsp/sim/tb/sys_error_corr_contract_tb.sv"),
     "SYS_ERROR_CORR_CONTRACT_COMPLETE",
     ("comparisons", "unbound_rejects", "cancels", "checks"),
     (),
 )
 BENCHES["sinc5_decim_tb"] = Bench(
     (
-        "ad4080_dsp/rtl/sinc1_decim.sv",
-        "ad4080_dsp/rtl/sinc5_decim.sv",
-        "ad4080_dsp/sim/tb/sinc5_decim_tb.sv",
+        "subsys/ad4080_dsp/rtl/sinc1_decim.sv",
+        "subsys/ad4080_dsp/rtl/sinc5_decim.sv",
+        "subsys/ad4080_dsp/sim/tb/sinc5_decim_tb.sv",
     ),
     "SINC_KERNEL_CONTRACT_COMPLETE",
     ("cases", "sinc1_outputs", "sinc5_outputs", "steady_compares", "checks"),
@@ -103,9 +103,9 @@ BENCHES["sinc5_decim_tb"] = Bench(
 )
 BENCHES["spi_slave_tb"] = Bench(
     (
-        "ad4080_dsp/rtl/spi_slave.sv",
-        "ad4080_dsp/rtl/ad4080_regs.sv",
-        "ad4080_dsp/sim/tb/spi_slave_tb.sv",
+        "subsys/ad4080_dsp/rtl/spi_slave.sv",
+        "subsys/ad4080_dsp/rtl/ad4080_regs.sv",
+        "subsys/ad4080_dsp/sim/tb/spi_slave_tb.sv",
     ),
     "SPI_ENTITY_CONTRACT_COMPLETE",
     (
@@ -123,9 +123,9 @@ BENCHES["spi_slave_tb"] = Bench(
 )
 BENCHES["fifo_capture_contract_tb"] = Bench(
     (
-        "ad4080_dsp/rtl/result_fifo.sv",
-        "ad4080_dsp/rtl/fifo_capture.sv",
-        "ad4080_dsp/sim/tb/fifo_capture_contract_tb.sv",
+        "subsys/ad4080_dsp/rtl/result_fifo.sv",
+        "subsys/ad4080_dsp/rtl/fifo_capture.sv",
+        "subsys/ad4080_dsp/sim/tb/fifo_capture_contract_tb.sv",
     ),
     "FIFO_CAPTURE_CONTRACT_COMPLETE",
     (
@@ -141,19 +141,19 @@ BENCHES["fifo_capture_contract_tb"] = Bench(
 )
 BENCHES["ad4080_top_tb"] = Bench(
     (
-        "ad4080_dsp/rtl/ad4080_top.sv",
-        "ad4080_dsp/rtl/spi_slave.sv",
-        "ad4080_dsp/rtl/ad4080_regs.sv",
-        "ad4080_dsp/rtl/ad4080_dsp_chain.sv",
-        "ad4080_dsp/rtl/sys_error_corr.sv",
-        "ad4080_dsp/rtl/sinc1_decim.sv",
-        "ad4080_dsp/rtl/sinc5_decim.sv",
-        "ad4080_dsp/rtl/sinc5_comp.sv",
-        "ad4080_dsp/rtl/event_detect.sv",
-        "ad4080_dsp/rtl/fifo_capture.sv",
-        "ad4080_dsp/rtl/result_fifo.sv",
-        "ad4080_dsp/rtl/gpio_ctrl.sv",
-        "ad4080_dsp/sim/tb/ad4080_top_tb.sv",
+        "subsys/ad4080_dsp/rtl/ad4080_top.sv",
+        "subsys/ad4080_dsp/rtl/spi_slave.sv",
+        "subsys/ad4080_dsp/rtl/ad4080_regs.sv",
+        "subsys/ad4080_dsp/rtl/ad4080_dsp_chain.sv",
+        "subsys/ad4080_dsp/rtl/sys_error_corr.sv",
+        "subsys/ad4080_dsp/rtl/sinc1_decim.sv",
+        "subsys/ad4080_dsp/rtl/sinc5_decim.sv",
+        "subsys/ad4080_dsp/rtl/sinc5_comp.sv",
+        "subsys/ad4080_dsp/rtl/event_detect.sv",
+        "subsys/ad4080_dsp/rtl/fifo_capture.sv",
+        "subsys/ad4080_dsp/rtl/result_fifo.sv",
+        "subsys/ad4080_dsp/rtl/gpio_ctrl.sv",
+        "subsys/ad4080_dsp/sim/tb/ad4080_top_tb.sv",
     ),
     "AD4080_TOP_CONTRACT_COMPLETE",
     (
@@ -168,9 +168,9 @@ BENCHES["ad4080_top_tb"] = Bench(
 )
 BENCHES["sinc5_comp_contract_tb"] = Bench(
     (
-        "ad4080_dsp/rtl/sinc5_decim.sv",
-        "ad4080_dsp/rtl/sinc5_comp.sv",
-        "ad4080_dsp/sim/tb/sinc5_comp_contract_tb.sv",
+        "subsys/ad4080_dsp/rtl/sinc5_decim.sv",
+        "subsys/ad4080_dsp/rtl/sinc5_comp.sv",
+        "subsys/ad4080_dsp/sim/tb/sinc5_comp_contract_tb.sv",
     ),
     "SINC5_COMP_CONTRACT_COMPLETE",
     (
@@ -186,20 +186,20 @@ BENCHES["sinc5_comp_contract_tb"] = Bench(
 )
 BENCHES["sar20_dsp_integration_tb"] = Bench(
     (
-        "ad4080_dsp/rtl/sar20_ad4080_top.sv",
-        "ad4080_dsp/rtl/ad4080_top.sv",
-        "ad4080_dsp/rtl/spi_slave.sv",
-        "ad4080_dsp/rtl/ad4080_regs.sv",
-        "ad4080_dsp/rtl/ad4080_dsp_chain.sv",
-        "ad4080_dsp/rtl/sys_error_corr.sv",
-        "ad4080_dsp/rtl/sinc1_decim.sv",
-        "ad4080_dsp/rtl/sinc5_decim.sv",
-        "ad4080_dsp/rtl/sinc5_comp.sv",
-        "ad4080_dsp/rtl/event_detect.sv",
-        "ad4080_dsp/rtl/fifo_capture.sv",
-        "ad4080_dsp/rtl/result_fifo.sv",
-        "ad4080_dsp/rtl/gpio_ctrl.sv",
-        "ad4080_dsp/sim/tb/sar20_dsp_integration_tb.sv",
+        "subsys/ad4080_dsp/rtl/sar20_ad4080_top.sv",
+        "subsys/ad4080_dsp/rtl/ad4080_top.sv",
+        "subsys/ad4080_dsp/rtl/spi_slave.sv",
+        "subsys/ad4080_dsp/rtl/ad4080_regs.sv",
+        "subsys/ad4080_dsp/rtl/ad4080_dsp_chain.sv",
+        "subsys/ad4080_dsp/rtl/sys_error_corr.sv",
+        "subsys/ad4080_dsp/rtl/sinc1_decim.sv",
+        "subsys/ad4080_dsp/rtl/sinc5_decim.sv",
+        "subsys/ad4080_dsp/rtl/sinc5_comp.sv",
+        "subsys/ad4080_dsp/rtl/event_detect.sv",
+        "subsys/ad4080_dsp/rtl/fifo_capture.sv",
+        "subsys/ad4080_dsp/rtl/result_fifo.sv",
+        "subsys/ad4080_dsp/rtl/gpio_ctrl.sv",
+        "subsys/ad4080_dsp/sim/tb/sar20_dsp_integration_tb.sv",
     ),
     "SAR20_DSP_INGRESS_CONTRACT_COMPLETE",
     (
@@ -220,8 +220,8 @@ BENCHES["sar20_dsp_integration_tb"] = Bench(
 BENCHES["sar20_system_top_tb"] = Bench(
     (
         "rtl/core/adc2_dec.sv",
-        "extensions/caaz/rtl/caaz_cycle_ctrl.sv",
-        "extensions/caaz/rtl/caaz_pair_processor.sv",
+        "subsys/extensions/caaz/rtl/caaz_cycle_ctrl.sv",
+        "subsys/extensions/caaz/rtl/caaz_pair_processor.sv",
         "rtl/core/analog_phase_ctrl.sv",
         "rtl/core/cal_output_stage.sv",
         "rtl/core/cal_residue_mac.sv",
@@ -239,21 +239,21 @@ BENCHES["sar20_system_top_tb"] = Bench(
         "rtl/core/weight_store.sv",
         "rtl/top/sadc_enc.sv",
         "rtl/top/sar20_digital_core.sv",
-        "ad4080_dsp/rtl/sar20_system_top.sv",
-        "ad4080_dsp/rtl/sar20_ad4080_top.sv",
-        "ad4080_dsp/rtl/ad4080_top.sv",
-        "ad4080_dsp/rtl/spi_slave.sv",
-        "ad4080_dsp/rtl/ad4080_regs.sv",
-        "ad4080_dsp/rtl/ad4080_dsp_chain.sv",
-        "ad4080_dsp/rtl/sys_error_corr.sv",
-        "ad4080_dsp/rtl/sinc1_decim.sv",
-        "ad4080_dsp/rtl/sinc5_decim.sv",
-        "ad4080_dsp/rtl/sinc5_comp.sv",
-        "ad4080_dsp/rtl/event_detect.sv",
-        "ad4080_dsp/rtl/fifo_capture.sv",
-        "ad4080_dsp/rtl/result_fifo.sv",
-        "ad4080_dsp/rtl/gpio_ctrl.sv",
-        "ad4080_dsp/sim/tb/sar20_system_top_tb.sv",
+        "subsys/ad4080_dsp/rtl/sar20_system_top.sv",
+        "subsys/ad4080_dsp/rtl/sar20_ad4080_top.sv",
+        "subsys/ad4080_dsp/rtl/ad4080_top.sv",
+        "subsys/ad4080_dsp/rtl/spi_slave.sv",
+        "subsys/ad4080_dsp/rtl/ad4080_regs.sv",
+        "subsys/ad4080_dsp/rtl/ad4080_dsp_chain.sv",
+        "subsys/ad4080_dsp/rtl/sys_error_corr.sv",
+        "subsys/ad4080_dsp/rtl/sinc1_decim.sv",
+        "subsys/ad4080_dsp/rtl/sinc5_decim.sv",
+        "subsys/ad4080_dsp/rtl/sinc5_comp.sv",
+        "subsys/ad4080_dsp/rtl/event_detect.sv",
+        "subsys/ad4080_dsp/rtl/fifo_capture.sv",
+        "subsys/ad4080_dsp/rtl/result_fifo.sv",
+        "subsys/ad4080_dsp/rtl/gpio_ctrl.sv",
+        "subsys/ad4080_dsp/sim/tb/sar20_system_top_tb.sv",
     ),
     "SAR20_SYSTEM_CONTRACT_COMPLETE",
     (
@@ -273,13 +273,13 @@ BENCHES["sar20_system_top_tb"] = Bench(
     zero_fields=("pending",),
 )
 BENCHES["ad4080_regs_rejection_tb"] = Bench(
-    ("ad4080_dsp/rtl/ad4080_regs.sv", "ad4080_dsp/sim/tb/ad4080_regs_rejection_tb.sv"),
+    ("subsys/ad4080_dsp/rtl/ad4080_regs.sv", "subsys/ad4080_dsp/sim/tb/ad4080_regs_rejection_tb.sv"),
     "AD4080_REG_REJECTION_COMPLETE",
     ("rejected_writes", "metadata_rejects", "preserved_compares", "checks"),
     (),
 )
 BENCHES["spi_unbound_contract_tb"] = Bench(
-    ("ad4080_dsp/rtl/spi_slave.sv", "ad4080_dsp/sim/tb/spi_unbound_contract_tb.sv"),
+    ("subsys/ad4080_dsp/rtl/spi_slave.sv", "subsys/ad4080_dsp/sim/tb/spi_unbound_contract_tb.sv"),
     "SPI_UNBOUND_CONTRACT_COMPLETE",
     ("frames", "rejects", "missing_bindings", "not_ready", "invalid_address", "readonly", "checks"),
     (),
@@ -288,8 +288,8 @@ BENCHES["spi_unbound_contract_tb"] = Bench(
 
 CORE_SOURCES = (
     "rtl/core/adc2_dec.sv",
-    "extensions/caaz/rtl/caaz_cycle_ctrl.sv",
-    "extensions/caaz/rtl/caaz_pair_processor.sv",
+    "subsys/extensions/caaz/rtl/caaz_cycle_ctrl.sv",
+    "subsys/extensions/caaz/rtl/caaz_pair_processor.sv",
     "rtl/core/analog_phase_ctrl.sv",
     "rtl/core/cal_output_stage.sv",
     "rtl/core/cal_residue_mac.sv",
@@ -423,9 +423,9 @@ BENCHES["generic_identity_tb"] = Bench(
 SPECIAL_TOPS = ("arithmetic_audit_tb", "engineering_fsm_tb")
 BENCHES["sinc_rate_oracle_tb"] = Bench(
     (
-        "ad4080_dsp/rtl/sinc1_decim.sv",
-        "ad4080_dsp/rtl/sinc5_decim.sv",
-        "ad4080_dsp/sim/tb/sinc_rate_oracle_tb.sv",
+        "subsys/ad4080_dsp/rtl/sinc1_decim.sv",
+        "subsys/ad4080_dsp/rtl/sinc5_decim.sv",
+        "subsys/ad4080_dsp/sim/tb/sinc_rate_oracle_tb.sv",
     ),
     "SINC_RATE_ORACLE_COMPLETE",
     ("cases", "outputs1", "outputs5", "positive", "negative", "checks"),

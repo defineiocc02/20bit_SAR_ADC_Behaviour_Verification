@@ -195,7 +195,7 @@ def test_reviewed_production_file_inventory_includes_baseline_and_extension():
         for name in historical
         if (name.startswith("src/adi_model/") and name.endswith(".py"))
         or (name.startswith("rtl/") and name.endswith(".sv"))
-        or (name.startswith("ad4080_dsp/rtl/") and name.endswith(".sv"))
+        or (name.startswith("subsys/ad4080_dsp/rtl/") and name.endswith(".sv"))
     }
     assert baseline_paths == expected_baseline
     expected_extension = baseline_paths | set(extension["added_files"])
@@ -282,12 +282,12 @@ def test_current_runtime_source_set_has_current_imports_and_explicit_rtl_manifes
         p.relative_to(ROOT).as_posix() for p in current_python.values()
     }
     current_production |= {
-        p.relative_to(ROOT).as_posix() for p in (ROOT / "ad4080_dsp/rtl").glob("*.sv")
+        p.relative_to(ROOT).as_posix() for p in (ROOT / "subsys/ad4080_dsp/rtl").glob("*.sv")
     }
     referenced = {
         name
         for row in inventory["mechanisms"]
         for name in row["code"]
-        if name.startswith(("src/adi_model/", "rtl/", "ad4080_dsp/rtl/"))
+        if name.startswith(("src/adi_model/", "rtl/", "subsys/ad4080_dsp/rtl/"))
     }
     assert referenced <= current_production

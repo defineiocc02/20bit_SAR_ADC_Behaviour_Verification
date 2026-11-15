@@ -108,9 +108,10 @@ src/adi_model/dem_dither.py← DEM/Dither 唯一参考实现
 docs/                      ← 顶层 14 份当前文档，其余在 docs/_history/
 ```
 
-**两层历史，不要混入主线**：
-- `docs/_history/` —— 已作废文档（4.7 MB）
-- `archive/180nm/` —— 180nm 历史实现（2 个 .sv）
+**历史与外围，不要混入主线**：
+- `docs/_history/` —— 已作废文档（98 份 / 4.7 MB）
+- `subsys/` —— 外围子系统（AD4080 DSP、CAAZ 扩展、180nm 存档），
+  它们有 CI 依赖所以不能删，但与本任务无关
 
 **两条链不要混用**：
 

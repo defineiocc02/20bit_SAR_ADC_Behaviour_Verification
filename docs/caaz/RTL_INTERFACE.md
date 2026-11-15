@@ -6,7 +6,7 @@
 
 直接例化`sar20_digital_core(P_STRUCTURAL=1,P_CAAZ_ENABLE=1)`启用。参数默认0；关闭时原code/valid/ID/flags/clip/analog_bad保持原位与原时序，pair处理器为零拍组合旁路。该参数不是0x1018的新增运行时位；不支持在pair中途软件切换。
 
-当前`ad4080_dsp/rtl/sar20_system_top.sv`只显式绑定默认关闭的可选端口，**未透传CAAZ参数或宏ack/control**。不能把core的启用能力写成DSP组合系统已可配置完整CAAZ。
+当前`subsys/ad4080_dsp/rtl/sar20_system_top.sv`只显式绑定默认关闭的可选端口，**未透传CAAZ参数或宏ack/control**。不能把core的启用能力写成DSP组合系统已可配置完整CAAZ。
 
 ## 模拟宏控制与样本归属
 

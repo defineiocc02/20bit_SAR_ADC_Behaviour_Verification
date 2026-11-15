@@ -58,14 +58,15 @@ D3D4_RUNNER=<ssh-host> bash tools/verify_d3d4_ip.sh
 | `verification/` | 80 | 验证基线与向量生成 |
 | `scripts/` | 3 | `clean.py` 清理临时产物（默认 dry-run） |
 
-### C. 外围子系统（与本任务无关，4 个目录）
+### C. 外围子系统（统一在 `subsys/` 下，与本任务无关）
 
 | 目录 | 文件数 | 是什么 | 为什么在仓库里 |
 |:---|--:|:---|:---|
-| `ad4080_dsp/` | 55 | AD4080 DSP 扩展（SINC/FIFO/SPI） | 被 CI 的 5 个 TB 引用 |
-| `extensions/` | 12 | CAAZ 扩展 | 被 `tools/run_open_rtl.py` 引用 |
-| `experiments/` | 3 | 实验配置 | 被 `tools/run_p4_ablation.py` import |
-| `archive/` | 4 | 180nm 历史实现 | 存档，无代码引用 |
+| `subsys/ad4080_dsp/` | 55 | AD4080 DSP 扩展（SINC/FIFO/SPI） | 被 CI 的 5 个 TB 引用 |
+| `subsys/extensions/` | 12 | CAAZ 扩展 | 被 `tools/run_open_rtl.py` 引用 |
+| `subsys/experiments/` | 3 | 实验配置 | 被 `tools/run_p4_ablation.py` import |
+| `subsys/archive/` | 4 | 180nm 历史实现 | 存档，无代码引用 |
+| `subsys/profiles/` | 1 | 目标参数说明 | 无引用 |
 
 > 这 4 个目录看着"多余"，但都有 CI 或代码依赖，删了会断构建。
 > 想彻底移出需要单独排期改 67 处硬编码路径。

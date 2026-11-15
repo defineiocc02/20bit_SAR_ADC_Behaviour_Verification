@@ -46,7 +46,7 @@ PYTHONPATH=src python3 -m pytest -q
 | 八片模型 | `pytest tests/unit/test_eight_slice.py` | **3 passed** |
 | 主链普通 AZ | `pytest tests/unit/test_simulate_ordinary_az.py` | **3 passed** |
 | CAAZ 隔离 | `pytest tests/unit/test_caaz_isolation.py` | **1 passed** |
-| CAAZ 扩展 | `PYTHONPATH=.:src pytest extensions/caaz/tests/test_chopping_az.py` | **32 passed** |
+| CAAZ 扩展 | `PYTHONPATH=.:src pytest subsys/extensions/caaz/tests/test_chopping_az.py` | **32 passed** |
 
 ## 4. 主链普通 AZ（P1 冒烟）
 

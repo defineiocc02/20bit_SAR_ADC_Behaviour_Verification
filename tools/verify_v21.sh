@@ -23,9 +23,10 @@ SETUP='export SNPSLMD_LICENSE_FILE=27080@localhost PATH=/opt/synopsys/vcs/W-2024
 # 生产 + 仿真源（节点宏只在仿真侧）
 # 源文件（仓库内相对路径）。叶子在 rtl/，v21 层在 rtl/v21/。
 SRC="rtl/sched18.sv rtl/dem_phase_rr.sv rtl/dem_phase_gen.sv rtl/dither_pre.sv \
-rtl/dem_mask_v3.sv rtl/follower_rt.sv \
+rtl/dem_mask_v3.sv rtl/follower_rt.sv rtl/recip_q60.sv \
 rtl/v21/acq_conv_ctx.sv rtl/v21/sar_evt_v21.sv rtl/v21/adc2_capture.sv \
-rtl/v21/wsum_v21.sv rtl/v21/recon_v21.sv rtl/v21/adc2_node_macro.sv \
+rtl/v21/wsum_v21.sv rtl/v21/recip_rnd_v21.sv rtl/v21/recon_v21.sv \
+rtl/v21/adc2_node_macro.sv \
 rtl/v21/adc_digital_ip_v21.sv"
 # 编译时在 $WORK 下的相对名（保持 rtl/ 前缀，与仓库一致）
 SRC_REL="$SRC"

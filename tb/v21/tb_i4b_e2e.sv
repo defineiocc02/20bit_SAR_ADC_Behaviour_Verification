@@ -248,9 +248,12 @@ module tb_i4b_e2e;
         #1;
         got_tag = adc2_rsp_tag;
         rsp_seen = adc2_rsp_valid;
-        // recon 是**四级流水**（S1 Y->Z / S2 N与I / S3 X / S4 Q->code），
-        // rsp_valid 在 posedge1 采入，out_valid 要到 posedge5 才为 1。
-        // 早前是三拍等待（单周期版只需 1 拍），改流水后必须同步改。
+        // recon 现在是**六级流水**：
+        //   S1 Y->Z / S2a-S2c N 与 3 拍倒数 I 汇合 / S3 X / S4 Q->code
+        // rsp_valid 在 posedge1 采入，out_valid 要到 posedge7 才为 1。
+        // （I 从纯组合除法改成 recip_rnd_v21 的 3 拍流水，总延迟 4->6 拍。）
+        @(posedge clk); #1;
+        @(posedge clk); #1;
         @(posedge clk); #1;
         @(posedge clk); #1;
         @(posedge clk); #1;

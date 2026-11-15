@@ -38,7 +38,9 @@ set RTL {
   /tmp/ip/rtl/v21/acq_conv_ctx.sv
   /tmp/ip/rtl/v21/sar_evt_v21.sv
   /tmp/ip/rtl/v21/adc2_capture.sv
+  /tmp/ip/rtl/recip_q60.sv
   /tmp/ip/rtl/v21/wsum_v21.sv
+  /tmp/ip/rtl/v21/recip_rnd_v21.sv
   /tmp/ip/rtl/v21/recon_v21.sv
   /tmp/ip/rtl/v21/adc_digital_ip_v21.sv
 }

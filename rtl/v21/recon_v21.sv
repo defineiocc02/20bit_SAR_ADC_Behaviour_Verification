@@ -171,24 +171,70 @@ module recon_v21 (
 
     // ---------------------------------------------------------------- S2：N 与 I
     //
-    // I = RND(2^60, G) 与 N 互不依赖，放在同一级可以并行算，
-    // 但两者都是大逻辑；若这一级时序不够，把 I 挪到独立一级即可
-    // （i2_q 已经是独立寄存器，拆分不用改接口）。
+    // I = RND(2^60, G) 现在由 **recip_rnd_v21** 实现（无除法器）。
+    //
+    // 为什么要拆成 S2a/S2b/S2c 三级：
+    //   原来 `rnd64(2^60, G)` 是纯组合，与 N 同级一拍就出。
+    //   换成 recip_rnd_v21 后，它自带 recip_q60 的两级 Newton 流水
+    //   加出口一拍，共 **3 拍**延迟。若仍与 N 同级，I 会比 N 晚两拍
+    //   到，S3 就会拿错笔。
+    //
+    //   所以把 N 连同 tag/err/valid 一起再打两拍，与 I 汇合后再进 S3。
+    //   N 与 I 都进 i2_q/n2_q 的最终一级，S3 接口不变。
+    //
+    //   代价：out_valid 相对 in_valid 的延迟由 4 拍变成 6 拍。
+    //   tb_i4_recon / tb_i4b_e2e 的等待拍数已同步调整。
+    logic        v2a_q, v2b_q, v2c_q;
+    logic [31:0] tag2a_q, tag2b_q;
+    logic        err2a_q, err2b_q;
+    logic signed [95:0] n2a_q, n2b_q;
+
+    logic        ri_valid, ri_err;
+    logic [26:0] ri_i;
+
+    recip_rnd_v21 u_recip_rnd (
+        .clk(clk), .rst_n(rst_n),
+        .valid_i(v1_q), .g_q30(G_q30),
+        .valid_o(ri_valid), .i_q60(ri_i), .err_o(ri_err));
+
+    // S2a：算 N，并启动 I 的倒数流水（valid_i = v1_q 已接在上面）
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            v2a_q <= 1'b0; tag2a_q <= 32'd0; err2a_q <= 1'b0; n2a_q <= 96'sd0;
+        end else begin
+            v2a_q   <= v1_q;
+            tag2a_q <= tag1_q;
+            err2a_q <= err1_q;
+            n2a_q   <= ($signed(z1_q) * 96'sd64)
+                     + (96'sd6 * $signed({32'd0, Wm_q30}))
+                     - (96'sd3 * $signed({32'd0, G_q30}))
+                     - (96'sd6 * $signed({32'd0, Wp_q30}));
+        end
+    end
+
+    // S2b
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            v2b_q <= 1'b0; tag2b_q <= 32'd0; err2b_q <= 1'b0; n2b_q <= 96'sd0;
+        end else begin
+            v2b_q   <= v2a_q;
+            tag2b_q <= tag2a_q;
+            err2b_q <= err2a_q;
+            n2b_q   <= n2a_q;
+        end
+    end
+
+    // S2c：N 与 I 汇合（I 恰在本拍有效）
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             v2_q <= 1'b0; tag2_q <= 32'd0; err2_q <= 1'b0;
             n2_q <= 96'sd0; i2_q <= 64'd0;
         end else begin
-            v2_q   <= v1_q;
-            tag2_q <= tag1_q;
-            err2_q <= err1_q;
-            if (v1_q) begin
-                n2_q <= ($signed(z1_q) * 96'sd64)
-                      + (96'sd6 * $signed({32'd0, Wm_q30}))
-                      - (96'sd3 * $signed({32'd0, G_q30}))
-                      - (96'sd6 * $signed({32'd0, Wp_q30}));
-                i2_q <= rnd64(64'sh1000000000000000, G_q30);
-            end
+            v2_q   <= v2b_q;
+            tag2_q <= tag2b_q;
+            err2_q <= err2b_q | ri_err;
+            n2_q   <= n2b_q;
+            i2_q   <= {37'd0, ri_i};
         end
     end
 

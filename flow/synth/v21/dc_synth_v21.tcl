@@ -25,7 +25,7 @@ set OUT    /tmp/dcwork
 file mkdir $OUT
 set_app_var search_path [list . /tmp/ip $OUT]
 set_app_var target_library [list $DB]
-set_app_var link_library   [list "* $DB"]
+set_app_var link_library   [list "*" $DB]
 
 # ---- 读入生产 RTL（不含节点宏）----
 set RTL {

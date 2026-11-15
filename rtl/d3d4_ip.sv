@@ -74,7 +74,40 @@ module d3d4_ip (
     output logic [17:0]  conv_mask_o,  // 本拍转换组（8 片，= 上拍采集组）
     output logic [17:0]  idle_mask_o,  // 备用片（2 片，供 shuffling）
     output logic [39:0]  acq_ids_o,    // 采集组 8 个物理片号（升序，5 bit/个）
-    output logic [39:0]  conv_ids_o    // 转换组 8 个物理片号（升序，5 bit/个）
+    output logic [39:0]  conv_ids_o,   // 转换组 8 个物理片号（升序，5 bit/个）
+
+    // ---- RDAC follower 事件流模式（论文 §9.8 第 7 条）----
+    //
+    // 论文原文："The RDAC works as a **follower** of the quantizer with the
+    // conversion results **loaded as they develop**."
+    //
+    // 含义：SAR 逐位判决，每决出一位就立刻把该位加载进 RDAC，
+    // 而不是等 9 位全部决完再一次性设置。论文列了六条好处，其中
+    //   · reference current 最小（1.8mA）：因为 DAC 始终直接处于正确状态
+    //   · reference switch 可以更小：失真降低
+    //   · binary-to-unary 译码时序不关键
+    // 都建立在"边产生边载入"上。
+    //
+    // 与整码模式的关系：
+    //   ev_mode_i = 0：整码模式，用 k_i 一次性给出 9 位粗码（原有行为，逐位不变）
+    //   ev_mode_i = 1：事件流模式，k 由 follower_rt 逐事件累加产生
+    // 两种模式**互斥**，模式在笔事务开始时锁定（ev_mode_i 只在 start 沿采样），
+    // 事务中途切换被视为协议违例。
+    input  logic        ev_mode_i,     // 1=由事件流产生 k
+    input  logic        ev_start_i,    // 事务开始（冻结 upper、清前缀）
+    input  logic        ev_bit_valid_i,// 本事件有效
+    input  logic        ev_bit_i,      // 本次判决的位值
+    input  logic [3:0]  ev_sar_index_i,// 该位在 9bit 粗码中的位置 0..8
+    input  logic        ev_sar_qid_i,  // 量化器身份 0=A 1=B
+    input  logic [2:0]  ev_flash_code_i,// 3bit Flash 结果
+    input  logic [2:0]  ev_upper_i,    // 本笔 dither 的 U（start 时采样）
+
+    // ---- follower 观测口 ----
+    output logic        ev_valid_o,    // 本拍有一个事件产出
+    output logic [8:0]  k_ev_o,        // 该事件对应的 RDAC 码（follower 累加值）
+    output logic        ev_done_o,     // 第 9 个事件已产出（事务完成）
+    output logic        ev_err_o,      // prefix < upper（不回绕）
+    output logic        ev_proto_err_o // 位序/重复/缺位/qid 协议违例
 );
 
     // 本 IP 无内部反压：只要不在复位就绪。
@@ -214,8 +247,55 @@ module d3d4_ip (
     logic [159:0] mask_c;     // dem_mask_v3 的组合输出（已打包）
     logic [31:0]  pre_c;      // dither_pre 的组合输出（已打包）
 
+    // ---------------------------------------------------------------- RDAC follower
+    // 逐事件累加 k。这一层是"边产生边载入"的数字侧实现：
+    // follower 在每决出一位时立即更新 k，而 k 又直接驱动 dem_mask_v3，
+    // 所以 RDAC 的开关命令是**随判决逐步推进**的，不是末尾一次性设置。
+    //
+    // 与整码模式共用同一个 mask 组合逻辑：两种模式的区别只是 `k_use`
+    // 来自 k_i（整码）还是 follower 的累加值（事件流）。
+    logic        ev_valid_w, ev_done_w, ev_err_w, ev_proto_err_w;
+    logic [8:0]  k_ev_w;
+    logic [8:0]  prefix_w;
+    logic [3:0]  ev_idx_w;
+    logic        last_ev_w;
+
+    follower_rt u_follower (
+        .clk            (clk),
+        .reset_n        (reset_n),
+        .start_i        (ev_start_i & reset_n),
+        .bit_valid_i    (ev_bit_valid_i),
+        .bit_i          (ev_bit_i),
+        .sar_index_i    (ev_sar_index_i),
+        .sar_qid_i      (ev_sar_qid_i),
+        .flash_valid_i  (1'b1),          // 由 ev_start_i 冻结 Flash 结果
+        .flash_code_i   (ev_flash_code_i),
+        .upper_i        (ev_upper_i),
+        .ev_valid_o     (ev_valid_w),
+        .ev_idx_o       (ev_idx_w),
+        .k_ev_o         (k_ev_w),
+        .done_o         (ev_done_w),
+        .err_o          (ev_err_w),
+        .prefix_o       (prefix_w),
+        .last_ev_o      (last_ev_w),
+        .proto_err_o    (ev_proto_err_w)
+    );
+
+    assign ev_valid_o     = ev_valid_w;
+    assign k_ev_o         = k_ev_w;
+    assign ev_done_o      = ev_done_w;
+    assign ev_err_o       = ev_err_w;
+    assign ev_proto_err_o = ev_proto_err_w;
+
+    // 模式选择：事件流模式下用 follower 的累加值，否则用整码输入。
+    // 注意 k_ev_w 是 9 位（0..511），而 k_i 是 10 位（0..1023，含 guard）。
+    // 事件流模式下 guard 不在 follower 的表达范围内 —— 这一点如实保留，
+    // 不静默扩展 follower 位宽（那会改变已通过 6246 事件回归的行为）。
+    logic [9:0] k_use;
+    assign k_use = ev_mode_i ? {1'b0, k_ev_w} : k_i;
+
     dem_mask_v3 u_dem (
-        .k_i        (k_i),
+        .k_i        (k_use),
         .h_phase_i  (hp_use[2:0]),
         .v_phase_i  (vp_use),
         .coin_i     (coin),

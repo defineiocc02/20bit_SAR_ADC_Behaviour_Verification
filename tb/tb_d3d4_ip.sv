@@ -29,6 +29,12 @@ module tb_d3d4_ip;
     logic [2:0]   vp_o;
     logic [17:0]  acq_m, conv_m, idle_m;
     logic [39:0]  acq_ids, conv_ids;
+    // follower 事件流
+    logic        ev_mode=0, ev_start=0, ev_bv=0, ev_bit=0, ev_qid=0;
+    logic [3:0]  ev_idx_i=0;
+    logic [2:0]  ev_flash=0, ev_up=0;
+    logic        ev_valid_o, ev_done_o, ev_err_o, ev_proto_err_o;
+    logic [8:0]  k_ev_o;
 
     d3d4_ip dut (
         .clk(clk), .reset_n(rstn),
@@ -37,7 +43,13 @@ module tb_d3d4_ip;
         .mask_o(mask_o), .pre_o(pre_o), .upper_o(upper_o), .f_o(f_o),
         .reserved_o(res_o), .h_phase_o(hp_o), .v_phase_o(vp_o),
         .acq_mask_o(acq_m), .conv_mask_o(conv_m), .idle_mask_o(idle_m),
-        .acq_ids_o(acq_ids), .conv_ids_o(conv_ids));
+        .acq_ids_o(acq_ids), .conv_ids_o(conv_ids),
+        .ev_mode_i(ev_mode), .ev_start_i(ev_start),
+        .ev_bit_valid_i(ev_bv), .ev_bit_i(ev_bit),
+        .ev_sar_index_i(ev_idx_i), .ev_sar_qid_i(ev_qid),
+        .ev_flash_code_i(ev_flash), .ev_upper_i(ev_up),
+        .ev_valid_o(ev_valid_o), .k_ev_o(k_ev_o), .ev_done_o(ev_done_o),
+        .ev_err_o(ev_err_o), .ev_proto_err_o(ev_proto_err_o));
 
     int errors = 0;
     int checked = 0;
@@ -169,6 +181,54 @@ module tb_d3d4_ip;
         ncov = 0;
         for (int q = 0; q < 1920; q++) if (covered[q]) ncov = ncov + 1;
         $display("三轴覆盖: %0d/1920", ncov);
+
+        // ---- follower 事件流专项：验证"边产生边载入" ----
+        // 判据：k_ev_o 必须随每个事件**单调累加**，而不是到最后才跳变。
+        // 具体做法：发 9 个事件（bit 全 1），每拍记录 k_ev_o，
+        // 要求第 i 个事件后的 k 严格大于第 i-1 个（前缀在增长）。
+        begin
+            int  prev_k;
+            int  grew;
+            prev_k = -1;
+            grew   = 0;
+
+            // 复位到干净状态
+            repeat (2) @(negedge clk);
+            rstn = 1'b0; @(negedge clk); rstn = 1'b1; @(negedge clk);
+
+            ev_mode = 1'b1;
+            ev_up   = 3'd0;          // upper=0，避免 prefix<upper 的钳位干扰
+            ev_flash= 3'd0;
+            ev_qid  = 1'b0;
+            // start
+            @(negedge clk); ev_start = 1'b1;
+            @(negedge clk); ev_start = 1'b0;
+
+            // 9 个事件，bit 全 1，索引 8..0（从高位到低位）
+            for (int i = 0; i < 9; i++) begin
+                @(negedge clk);
+                ev_bv    = 1'b1;
+                ev_bit   = 1'b1;
+                ev_idx_i = 4'(8 - i);
+                @(negedge clk);
+                ev_bv    = 1'b0;
+                if (ev_valid_o !== 1'b1)
+                    fail($sformatf("follower 事件 %0d 未产出 ev_valid_o", i));
+                if (prev_k >= 0 && int'(k_ev_o) > prev_k) grew = grew + 1;
+                $display("      follower ev%0d: idx=%0d k_ev=%0d (prev=%0d)",
+                         i, 8 - i, k_ev_o, prev_k);
+                prev_k = int'(k_ev_o);
+            end
+            @(negedge clk);
+            if (ev_done_o !== 1'b1) fail("follower 第 9 事件后 ev_done_o 未置位");
+            // 8 次比较中应当全部增长（9 个事件产生 8 次递增）
+            if (grew != 8)
+                fail($sformatf("follower k 未逐事件累加：只增长 %0d/8 次，" +
+                               "说明不是'边产生边载入'", grew));
+            else
+                $display("      follower: k 逐事件累加 %0d/8 次 -> 边产生边载入成立", grew);
+            ev_mode = 1'b0;
+        end
 
         $display("---------------------------------------------------------------");
         $display("d3d4_ip: %0d 拍, %0d errors", checked, errors);

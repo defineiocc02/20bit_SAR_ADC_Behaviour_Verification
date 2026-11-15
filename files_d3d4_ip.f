@@ -4,6 +4,7 @@
 rtl/dem_phase_rr.sv
 rtl/dem_phase_gen.sv
 rtl/sched18.sv
+rtl/follower_rt.sv
 rtl/dem_mask_v3.sv
 rtl/dither_pre.sv
 rtl/d3d4_ip.sv

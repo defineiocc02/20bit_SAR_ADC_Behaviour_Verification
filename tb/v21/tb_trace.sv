@@ -25,6 +25,7 @@ module tb_trace;
     logic [31:0] prepare_tag = 0;
     logic [5:0]  prepare_word = 0;
     logic [2:0]  prepare_h = 0, prepare_v = 0;
+    logic [2:0]  prepare_U = 0, prepare_flash = 0;
     logic        prepare_half = 0, prepare_coin = 0, prepare_qid = 0;
     logic        stop_i = 0;
     logic        sample_event = 0, input_captured = 0, residue_captured = 0;
@@ -33,6 +34,14 @@ module tb_trace;
     logic [3:0]  ev_bit_index = 0, ev_event_index = 0;
     logic        ev_qid = 0, ev_flash_valid = 0;
     logic [2:0]  ev_flash_code = 0;
+    // **必须接全 sched_* 输入**。早前只接了 sched_seed_*，
+    // 未接 sched_ext_sel / sched_acq / sched_conv / sched_idle / sched_ids，
+    // 它们悬空为 X，经 sched18 传出后 acq_sel_o 全程是 xxxxx
+    // （与门级轨迹 diff 时才暴露）。门级 TB 由脚本按网表端口生成，
+    // 天然接全，所以只有 RTL 侧出问题。
+    logic        sched_ext_sel = 0;
+    logic [17:0] sched_acq = 0, sched_conv = 0, sched_idle = 0;
+    logic [39:0] sched_ids = 0;
     logic        sched_seed_we = 0;
     logic [31:0] sched_seed = 0;
     logic        adc2_valid = 0;
@@ -70,6 +79,7 @@ module tb_trace;
         .prepare_tag(prepare_tag), .prepare_word(prepare_word),
         .prepare_h(prepare_h), .prepare_v(prepare_v),
         .prepare_half(prepare_half), .prepare_coin(prepare_coin),
+        .prepare_U(prepare_U), .prepare_flash(prepare_flash),
         .prepare_qid(prepare_qid), .stop_i(stop_i),
         .sample_event(sample_event), .input_captured(input_captured),
         .residue_captured(residue_captured), .hold_ack(hold_ack),
@@ -77,6 +87,9 @@ module tb_trace;
         .ev_bit_index_i(ev_bit_index), .ev_event_index_i(ev_event_index),
         .ev_qid_i(ev_qid), .ev_flash_valid_i(ev_flash_valid),
         .ev_flash_code_i(ev_flash_code),
+        .sched_ext_sel(sched_ext_sel),
+        .sched_acq(sched_acq), .sched_conv(sched_conv), .sched_idle(sched_idle),
+        .sched_ids(sched_ids),
         .sched_seed_we(sched_seed_we), .sched_seed(sched_seed),
         .acq_sel_o(acq_sel), .conv_sel_o(conv_sel), .idle_sel_o(idle_sel),
         .rdac_pre_state_o(pre_state), .pre_wr_o(pre_wr),
@@ -108,29 +121,28 @@ module tb_trace;
     // （踩过两次 MEAFFS）。每字段一行，字段增减不用重新数格式符。
     always @(negedge clk) if (rst_n) begin
         $fdisplay(fd, "T %0d", $time);
-        $fdisplay(fd, "ready %0b", ready);
+        $fdisplay(fd, "prepare_ready %0b", ready);
         $fdisplay(fd, "out_valid %0b", out_valid);
         $fdisplay(fd, "out_code %0h", out_code);
         $fdisplay(fd, "out_sat %0b", out_sat);
         $fdisplay(fd, "out_err %0b", out_err);
         $fdisplay(fd, "out_tag %0h", out_tag);
-        $fdisplay(fd, "acq_sel %0h", acq_sel);
-        $fdisplay(fd, "conv_sel %0h", conv_sel);
-        $fdisplay(fd, "idle_sel %0h", idle_sel);
-        $fdisplay(fd, "pre_wr %0h", pre_wr);
-        $fdisplay(fd, "post_wr %0h", post_wr);
-        $fdisplay(fd, "arm %0b", arm);
-        $fdisplay(fd, "rsp_valid %0b", rsp_valid);
-        $fdisplay(fd, "rsp_tag %0h", rsp_tag);
-        $fdisplay(fd, "rsp_raw %0h", rsp_raw);
-        $fdisplay(fd, "apply %0b", apply);
-        $fdisplay(fd, "k %0h", k);
-        $fdisplay(fd, "fin %0b", fin);
-        $fdisplay(fd, "final_k %0h", final_k);
-        $fdisplay(fd, "err %0b", err);
-        $fdisplay(fd, "done %0b", done);
-        $fdisplay(fd, "node_valid %0b", node_valid);
-        $fdisplay(fd, "node_ids %0h", node_ids);
+        $fdisplay(fd, "acq_sel_o %0h", acq_sel);
+        $fdisplay(fd, "conv_sel_o %0h", conv_sel);
+        $fdisplay(fd, "idle_sel_o %0h", idle_sel);
+        $fdisplay(fd, "pre_wr_o %0h", pre_wr);
+        $fdisplay(fd, "post_wr_o %0h", post_wr);
+        $fdisplay(fd, "adc2_capture_arm_o %0b", arm);
+        $fdisplay(fd, "adc2_rsp_valid_o %0b", rsp_valid);
+        $fdisplay(fd, "adc2_rsp_tag_o %0h", rsp_tag);
+        $fdisplay(fd, "apply_fire_o %0b", apply);
+        $fdisplay(fd, "k_o %0h", k);
+        $fdisplay(fd, "final_applied_o %0b", fin);
+        $fdisplay(fd, "final_k_o %0h", final_k);
+        $fdisplay(fd, "err_o %0b", err);
+        $fdisplay(fd, "done_o %0b", done);
+        $fdisplay(fd, "node_valid_o %0b", node_valid);
+        $fdisplay(fd, "node_ids_o %0h", node_ids);
         $fdisplay(fd, "---");
     end
 
@@ -150,9 +162,12 @@ module tb_trace;
         rst_n = 1;
         repeat (4) @(negedge clk);
 
+        // **激励必须与 tools/gen_gate_tb.py 生成的门级 TB 逐字一致**，
+        // 否则两侧轨迹无法 diff。
         @(negedge clk);
         prepare_valid = 1; prepare_tag = 32'hA1; prepare_word = 6'd63;
         prepare_h = 3'd0; prepare_v = 3'd3; prepare_qid = 1'b0;
+        prepare_U = 3'd5; prepare_flash = 3'd7;
         @(posedge clk); @(negedge clk);
         prepare_valid = 0;
         sample_event = 1; input_captured = 1;
@@ -166,15 +181,15 @@ module tb_trace;
             @(posedge clk); @(negedge clk);
         end
         ev_bit_valid = 0; ev_flash_valid = 0;
-        repeat (10) @(negedge clk);
+        repeat (12) @(negedge clk);
 
-        adc2_valid = 1; adc2_raw = 13'd5120; adc2_range_err = 0;
+        adc2_valid = 1; adc2_raw = 13'd5120;
         @(posedge clk); @(negedge clk);
         adc2_valid = 0;
         hold_ack = 1;
-        repeat (20) @(negedge clk);
+        repeat (24) @(negedge clk);
         hold_ack = 0;
-        repeat (10) @(negedge clk);
+        repeat (12) @(negedge clk);
 
         $fclose(fd);
         $display("trace written");

@@ -73,15 +73,34 @@ bash tools/verify_d3d4_ip.sh
 
 ## 目录结构
 
+**核心只有这些，其余都是辅助或历史。**
+
 ```
-rtl/                 RTL 源码（18 个 .sv，分新旧两链，见下）
-tb/                  testbench（25 个 .sv）与金标向量（20 个 .txt）
-build/filelists/     **4 个编译清单，先看这里的 README 再选**
-synth/d3d4/          本轮 IP 的综合脚本与 SDC
-tools/               验收脚本、金标生成器、统计工具
-docs/                **先看 docs/INDEX.md**（50 个 md 里只有十余份当前有效）
-src/adi_model/       参考算法（dem_dither.py 是 DEM/Dither 的唯一参考实现）
+rtl/                       RTL 源码
+  d3d4_ip.sv                 ← IP 顶层（本任务交付物）
+  sched18.sv                 ← D1 片池调度
+  follower_rt.sv             ← D2 逐事件 RDAC
+  dem_mask_v3.sv             ← D3 DEM
+  dem_phase_rr.sv            ← D3 相位（round-robin）
+  dither_pre.sv              ← D4 Dither
+  digital_top_w.sv           ← 旧链顶层（D1-D6，4+3+2 / c-U）
+
+tb/                        testbench 与金标
+  tb_d3d4_ip.sv              ← IP 级 512 笔
+  tb_event_align.sv          ← 逐事件对齐（k/mask 同事件）
+  tb_dem_dither.sv           ← 叶子级 133,376 + 512 组
+  vec_*.txt                  ← 金标向量
+
+tools/verify_d3d4_ip.sh    ← **唯一验收入口，四层一起跑**
+build/filelists/           ← 4 个编译清单（先看里面的 README）
+synth/d3d4/                ← 综合脚本与 SDC
+src/adi_model/dem_dither.py← DEM/Dither 唯一参考实现
+docs/                      ← 顶层 14 份当前文档，其余在 docs/_history/
 ```
+
+**两层历史，不要混入主线**：
+- `docs/_history/` —— 已作废文档（4.7 MB）
+- `archive/180nm/` —— 180nm 历史实现（2 个 .sv）
 
 **两条链不要混用**：
 
@@ -115,7 +134,7 @@ src/adi_model/       参考算法（dem_dither.py 是 DEM/Dither 的唯一参考
 | RDAC follower | **已接入**。事件流模式下 k 由 `follower_rt` 逐事件累加（实测 1→3→…→511） |
 | bridging | 与 PPT Fig.31 的 2×2 形态**不同**，按合同 §6.1 的等电荷 E 实现；见 `docs/BRIDGE_VS_FIG31.md` |
 | 来源 | `3+3+3`、8 宏列×16 半单元、β=1/8、guard 512–520 均为 `[E]` 工程补全 |
-| 历史文档 | `docs/DIGITAL_SPEC.md` 等早于合同 v2.1，仅作追溯，不作现行规格 |
+| 历史文档 | `docs/_history/DIGITAL_SPEC.md` 等早于合同 v2.1，仅作追溯，不作现行规格 |
 | 笔数口径 | 仓库里 `8509` 笔那条走旧链，**不是本 IP 的证据** |
 
 ## 状态表

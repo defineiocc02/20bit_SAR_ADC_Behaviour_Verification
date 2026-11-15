@@ -139,8 +139,8 @@ PYTHONPATH=src:. python3 -m pytest tests/unit tests/verification -q
 
 | 你想知道 | 去看 |
 |:---|:---|
-| 整体架构、数据流、状态归属 | [`docs/design/ARCHITECTURE.md`](../design/ARCHITECTURE.md) |
+| 整体架构、数据流、状态归属 | [`docs/guide/ARCHITECTURE.md`](../design/ARCHITECTURE.md) |
 | 术语与符号（SADC/RDAC/Cnorm/粗码…） | [`docs/guide/TERMS.md`](TERMS.md) |
-| 出错怎么查 | [`docs/debugging/DEBUGGING.md`](../debugging/DEBUGGING.md) |
+| 出错怎么查 | [`docs/guide/DEBUGGING.md`](../debugging/DEBUGGING.md) |
 | 某项技术到底实现了多少 | [`docs/mechanisms/source_crosscheck_20261112.md`](../mechanisms/source_crosscheck_20261112.md) |
 | 当前验收状态 | [`docs/acceptance/20261112-e14a0a0/report.md`](../acceptance/20261112-e14a0a0/report.md) |

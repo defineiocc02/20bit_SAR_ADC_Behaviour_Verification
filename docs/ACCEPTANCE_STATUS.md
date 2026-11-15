@@ -54,7 +54,7 @@ D3D4_NETLIST=<net.v> D3D4_SCMODEL=<std.v> bash tools/verify_d3d4_ip.sh   # 含 L
 |:--:|:---|:---|:---|:---|
 | D1 | 18 片调度 | PARTIAL | `slice_pool.sv` 64 组 0 失配；仅稳态，未做启动/排空 | — |
 | D2 | Follower 逐事件前缀 | PARTIAL | `follower.sv` 200 组 0 失配；入口仍由最终码反推前缀 | — |
-| D3 | 旧二维 DEM（4+3+2） | 已被取代 | 见 `docs/DIGITAL_SPEC.md` 历史横幅 | — |
+| D3 | 旧二维 DEM（4+3+2） | 已被取代 | 见 `docs/_history/DIGITAL_SPEC.md` 历史横幅 | — |
 | D4 | 旧 dither 分路（`k=c−U`） | 已被取代 | 同上 | — |
 | D5 | 权重重构（Python） | PASS | K 恒等式 420 组 0 违例 | — |
 | D5 | 权重重构（RTL） | PASS | `recon_d5_w2` 420/420 与生产主链逐位一致 | — |

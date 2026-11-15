@@ -126,7 +126,17 @@ module d3d4_ip (
     // 本 IP 无内部反压：只要不在复位就绪。
     // 之所以显式给出 ready_o，是为了让上层能用统一的 valid/ready 握手接入，
     // 而不是靠"调用方自己数拍"——后者在流水重叠时极易错位。
-    assign ready_o = reset_n;
+    // ready_o 必须反映**当前模式是否接受整码事务**，不能恒为 1。
+    //
+    // 踩过的坑：原来写 `assign ready_o = reset_n`，于是事件流模式下
+    // ready_o 仍为 1。若上游此时按整码握手（valid_i=1）发一笔，
+    // IP 会回"已接收"，但输出使能走的是 ev_bit_valid_i 分支，
+    // 这笔整码被静默丢弃 —— 属于**事务丢失**，且没有任何错误标志。
+    //
+    // 现在：事件流模式下对整码入口闭门（ready_o=0），
+    // 上游只能通过 ev_start_i / ev_bit_valid_i 那条路径进入。
+    // 两种模式因此互斥，不会互相吞事务。
+    assign ready_o = reset_n & ~ev_mode_i;
 
     logic        adv;
     assign adv = sample_adv_i & valid_i & reset_n;

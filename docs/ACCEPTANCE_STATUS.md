@@ -17,7 +17,7 @@
 | L1 | D4 Split Dither pre-mask | **PASS** | 512 组（64 字 × 8 相位），mask 与 `U`/`f` 全比，0 失配 |
 | L2 | D3/D4 IP 顶层（含相位发生器） | **PASS** | 512 笔事务逐位一致；`d3d4_ip` 把 `dem_phase_gen` + `dem_mask_v3` + `dither_pre` 接成单拍通路 |
 | L3 | 门级等价 | **PASS** | 综合网表 + 标准单元模型，512 笔 0 失配 |
-| L4 | 块级综合（28nm SS） | **PASS** | 3016 cells / 1769.59 µm²；25 ns 下 setup +19.88 ns、hold +0.00095 ns；逻辑级数 40、关键路径 2.82 ns。详见 `docs/SYNTH_D3D4.md` |
+| L4 | 块级综合（28nm SS） | **PASS** | 3017 cells / 1770.08 µm²；25 ns 下 setup +19.88 ns、hold +0.00095 ns；逻辑级数 40、关键路径 2.82 ns。详见 `docs/SYNTH_D3D4.md` |
 | L2 | k 范围合法性 | **PASS** | `k_range_err_o`：k=0..520 不报错、k=521..1023 全部报错（合同 §"必须报错，禁止回绕/夹紧"） |
 | — | 形式等价（Formality） | **NOT_RUN** | 门级仿真已覆盖功能，不等价于形式证明 |
 | — | P&R / CTS / 布线 | **NOT_RUN** | 无 ICC2/Innovus 配置与完整 LEF |

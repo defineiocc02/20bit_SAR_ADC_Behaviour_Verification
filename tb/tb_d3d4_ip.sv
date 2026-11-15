@@ -115,7 +115,8 @@ module tb_d3d4_ip;
         repeat (3) @(negedge clk);
         rstn = 1'b1;
         @(negedge clk);
-        if (ready_o !== 1'b1) fail("复位释放后 ready_o 应为 1");
+        // 整码模式（ev_mode_i=0）下 ready_o 必须为 1，否则上游发不进事务
+        if (ready_o !== 1'b1) fail("整码模式下 ready_o 应为 1");
 
         // ---- 逐拍握手并比对 ----
         for (int j = 0; j < N_VEC; j++) begin
@@ -237,6 +238,14 @@ module tb_d3d4_ip;
             rstn = 1'b0; @(negedge clk); rstn = 1'b1; @(negedge clk);
 
             ev_mode = 1'b1;
+            // 事件流模式下 ready_o 必须关闭整码入口，否则上游按整码发会丢事务。
+            // 注意：要等一下再查。ready_o 虽是组合输出，但在 negedge 刚改变
+            // ev_mode 的同一时刻读，门级网表里可能仍处于前一个稳定值
+            // （RTL 仿真因为零延迟而"碰巧"正确）。等到下一个 negedge
+            // 再检查，才是真实可用的时序点 —— 这是我第一版在门级失败的原因。
+            @(negedge clk);
+            if (ready_o !== 1'b0)
+                fail("事件流模式下 ready_o 未关闭整码入口（会静默丢事务）");
             ev_up   = 3'd0;          // upper=0，避免 prefix<upper 的钳位干扰
             ev_flash= 3'd0;
             ev_qid  = 1'b0;

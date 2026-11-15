@@ -126,6 +126,32 @@ SCHED18=$(python3 tools/sched18_stats.py --cycles 20000 2>&1)
 echo "$SCHED18" | grep -E "违例|不平衡|χ²|IDLE|RESULT" | sed 's/^/      /'
 echo "$SCHED18" | grep -q "RESULT: PASS" || fail "sched18 随机性不达标"
 
+# ---------------------------------------------------------------- L2.6
+# 逐事件对齐。smoke 级判据（k 增长 8 次 / mask 改变 8 次）抓不到
+# "mask 落后 k 一个事件"这类错位，必须逐事件比 k 与 160 位 mask。
+echo "[2.6] 逐事件对齐（k / mask / 有效标志同事件）"
+python3 tools/gen_event_align.py >/dev/null || fail "生成事件对齐金标"
+if [ -n "$RUNNER" ]; then
+  scp -q tb/tb_event_align.sv tb/vec_event_align.txt "$RUNNER:$WORK/tb/" || fail "拷贝事件对齐 TB"
+fi
+EAF="rtl/dem_phase_rr.sv rtl/dem_phase_gen.sv rtl/sched18.sv rtl/follower_rt.sv \
+     rtl/dem_mask_v3.sv rtl/dither_pre.sv rtl/d3d4_ip.sv tb/tb_event_align.sv"
+if [ "$SIM" = "vcs" ]; then
+  run "$SETUP; $RUNCD && vcs -full64 -sverilog -timescale=1ns/1ps $EAF \
+       -o simv_ea > ea_c.log 2>&1" || fail "事件对齐编译"
+  run "cd $WORK/tb && ../simv_ea > ../ea.txt 2>&1" || fail "事件对齐仿真"
+else
+  run "$RUNCD && iverilog -g2012 -o simv_ea $EAF > ea_c.log 2>&1" || fail "事件对齐编译"
+  run "cd tb && ../simv_ea > ../ea.txt 2>&1" || fail "事件对齐仿真"
+fi
+if [ -n "$RUNNER" ]; then
+  scp -q "$RUNNER:$WORK/ea.txt" /tmp/d3d4_ea.txt || fail "取回事件对齐日志"
+else
+  cp ea.txt /tmp/d3d4_ea.txt
+fi
+grep -E "RESULT|errors" /tmp/d3d4_ea.txt | sed 's/^/      /'
+grep -q "RESULT: PASS" /tmp/d3d4_ea.txt || fail "逐事件对齐未通过"
+
 # ---------------------------------------------------------------- L3
 echo "[3/4] L3 门级等价（需已有综合网表，见 docs/SYNTH_D3D4.md）"
 NET="${D3D4_NETLIST:-}"
@@ -155,6 +181,7 @@ echo "------------------------------------------------------------------"
 echo "  L1 叶子级逐位对拍   PASS   (133376 + 512)"
 echo "  L2 IP 级逐位对拍    PASS   (512 笔，含相位发生器)"
 echo "  L2.5 sched18 随机性 PASS   (20000 拍，χ²/IDLE 覆盖/stats)"
+echo "  L2.6 逐事件对齐     PASS   (k / 160-bit mask / 标志 同事件)"
 echo "  L3 门级等价         $L3_STATUS"
 echo "  L4 综合             见 docs/SYNTH_D3D4.md（需 DC + PDK）"
 echo "=================================================================="

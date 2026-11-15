@@ -34,7 +34,7 @@ module tb_d3d4_ip;
     logic [3:0]  ev_idx_i=0;
     logic [2:0]  ev_flash=0, ev_up=0;
     logic        ev_valid_o, ev_done_o, ev_err_o, ev_proto_err_o;
-    logic        k_range_err_o;
+    logic        k_range_err_o, out_valid_o, out_k_err_o;
     logic [8:0]  k_ev_o;
 
     d3d4_ip dut (
@@ -51,7 +51,8 @@ module tb_d3d4_ip;
         .ev_flash_code_i(ev_flash), .ev_upper_i(ev_up),
         .ev_valid_o(ev_valid_o), .k_ev_o(k_ev_o), .ev_done_o(ev_done_o),
         .ev_err_o(ev_err_o), .ev_proto_err_o(ev_proto_err_o),
-        .k_range_err_o(k_range_err_o));
+        .k_range_err_o(k_range_err_o),
+        .out_valid_o(out_valid_o), .out_k_err_o(out_k_err_o));
 
     int errors = 0;
     int checked = 0;
@@ -217,6 +218,48 @@ module tb_d3d4_ip;
 
             // 越界时 mask 不应被使用：这里只检查标志，mask 内容不作判据
             // （合同说"报错"而不是"输出一个特定 mask"，所以不对 mask 内容设判据）
+        end
+
+        // ---- 错误标志与 mask 的对齐（问题 4）----
+        // 判据：在 mask_o 有效的那一拍，out_k_err_o 必须描述**同一笔**输入。
+        // 场景 520 -> 521 -> 520 是最能暴露错位的：如果标志是组合直通，
+        // 下游在 mask(520) 有效时会读到下一笔(521)的 err=1。
+        begin
+            int bad;
+            bad = 0;
+            // 连续三笔：520(合法) -> 521(越界) -> 520(合法)
+            for (int t = 0; t < 3; t++) begin
+                int kk; int want_err;
+                kk = (t == 1) ? 521 : 520;
+                want_err = (t == 1) ? 1 : 0;
+                @(negedge clk);
+                valid_i = 1'b1; k_i = 10'(kk);
+                @(negedge clk);
+                valid_i = 1'b0;
+                // 此刻 mask_o 与 out_k_err_o 都应对应刚接受的这一笔
+                if (out_valid_o !== 1'b1) begin
+                    bad = bad + 1;
+                    $display("     t=%0d: out_valid_o=%b（应为 1）", t, out_valid_o);
+                end
+                if (out_k_err_o !== want_err[0]) begin
+                    bad = bad + 1;
+                    $display("     t=%0d k=%0d: out_k_err_o=%b（应为 %0d）",
+                             t, kk, out_k_err_o, want_err);
+                end
+            end
+            if (bad != 0) fail($sformatf("错误标志与 mask 不对齐：%0d 处", bad));
+            else $display("      out_k_err_o: 520/521/520 三笔标志与 mask 同拍对齐");
+
+            // 空泡：无新事务时 out_valid_o 必须为 0（mask_o 保持）
+            begin
+                logic [159:0] held;
+                held = mask_o;
+                repeat (3) @(negedge clk);
+                if (out_valid_o !== 1'b0)
+                    fail("空泡拍 out_valid_o 未落回 0（下游会重复消费旧值）");
+                if (mask_o !== held)
+                    fail("空泡拍 mask_o 未保持（模拟侧需要持续看到最后命令）");
+            end
         end
 
         // ---- follower 事件流专项：验证"边产生边载入" ----

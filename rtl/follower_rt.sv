@@ -26,7 +26,19 @@ module follower_rt (
     output logic        err_o,        // prefix < upper 时置位
     output logic [8:0]  prefix_o,     // 已累加的前缀（供顶层事件模式取用）
     output logic        last_ev_o,    // 本次事件是第 9 个（与 ev_valid_o 同沿）
-    output logic        proto_err_o   // 协议违例：位序错/重复/缺位/qid 错/与 Flash 不符
+    output logic        proto_err_o,  // 协议违例：位序错/重复/缺位/qid 错/与 Flash 不符
+
+    // 本事件 k 的**组合值**（与 bit_valid_i 同拍）。
+    //
+    // 为什么需要它：k_q 是在 bit_valid_i 那一沿寄存的，所以同一沿上
+    // 组合可见的 k_q 仍是**上一个事件**的值。下游若在同一沿锁存 k_q
+    // 生成的 mask，就会把上一个事件的 k 配到当前事件上（实测确实如此：
+    // EV0 时 k_ev=1 而 mask 仍是复位值；EV1 时 k_ev=3 而 mask 是 k=1 的）。
+    //
+    // 这个口给出"本拍事件对应的 k"，让下游可以在同一沿看到配套的
+    // (k, mask)，而不必额外插一拍 —— 边界延迟保持不变。
+    output logic [8:0]  k_ev_comb,    // 本事件 k（组合，与 bit_valid_i 同拍）
+    output logic        err_ev_comb   // 本事件 err（组合，与 bit_valid_i 同拍）
 );
 
     logic [8:0]  prefix_q;
@@ -107,5 +119,11 @@ module follower_rt (
     assign prefix_o   = prefix_q;
     assign proto_err_o = proto_err_q;
     assign last_ev_o   = last_ev_q;
+
+    // 与 k_q 更新公式完全一致，只是走组合：
+    //   k_q <= neg ? 9'd0 : diff_s[8:0]
+    // 这里把同一表达式提到端口上，避免"两处各写一遍"产生偏差。
+    assign k_ev_comb   = neg ? 9'd0 : diff_s[8:0];
+    assign err_ev_comb = neg;
 
 endmodule

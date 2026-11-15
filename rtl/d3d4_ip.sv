@@ -120,7 +120,24 @@ module d3d4_ip (
     // 而不是静默产生一个看起来合法、实则无意义的 mask。
     // 在补这个端口之前，k=521/600/1023 都会静默返回"全 1" mask，
     // 与合法的 k=520 完全无法区分 —— 这是可综合性上的真实缺陷，不是文档问题。
-    output logic        k_range_err_o  // 1 = k 超出合同表达范围，mask_o 不可用
+    // ---- 输出携带的对齐标志（必须与 mask_o 同拍消费）----
+    //
+    // 为什么不能直接用组合的 k_range_err_o：
+    //   mask_o 是**寄存输出**（在握手沿之后 1 拍才有效），
+    //   而 k_range_err_o 是**输入组合判断**（同一拍就变）。
+    //   连续握手 520 -> 521 -> 520 时，下游在 mask_o 有效的拍读到的
+    //   k_range_err_o 已经是**下一笔**的标志，会把非法结果当合法用。
+    //
+    // 现在改为在输出寄存的同一个 always_ff 里锁存这两个标志：
+    //   out_valid_o = 本拍 mask_o 确实对应一笔被接受的输入
+    //   out_k_err_o = 该笔输入的 k 是否越界
+    // 下游只需看 out_valid_o=1 且 out_k_err_o=0 才可使用 mask_o。
+    output logic        out_valid_o,   // mask_o 本拍有效（与 mask_o 同沿）
+    output logic        out_k_err_o,   // 该笔输入的 k 越界（与 mask_o 同沿）
+
+    // 兼容口：组合的即时越界判断，保留给"入口即可拒绝"的上游使用。
+    // 注意它不属于 mask_o 那一笔，**不得**与 mask_o 一起消费。
+    output logic        k_range_err_o
 );
 
     // 本 IP 无内部反压：只要不在复位就绪。
@@ -139,7 +156,16 @@ module d3d4_ip (
     assign ready_o = reset_n & ~ev_mode_i;
 
     logic        adv;
-    assign adv = sample_adv_i & valid_i & reset_n;
+    // adv 必须同时满足 ready_o，否则会出现"事务被拒但相位/片组仍推进"。
+    //
+    // 踩过的坑：原来只写 `sample_adv_i & valid_i & reset_n`，漏了 ready_o。
+    // 事件流模式下 ready_o 恒为 0（整码入口关闭），上游若误发 valid_i=1，
+    // adv 仍会拉高 —— 实测片组逐拍变化（03bd00 -> 0040fe -> 039701），
+    // 相位也跟着走。当事务实际被接受时，它拿到的已经是错位的片组与相位。
+    //
+    // 加 ready_o 后：只有"真正被接受的整码事务"才推进，
+    // 事件流模式下 valid_i 不再有任何副作用。
+    assign adv = sample_adv_i & valid_i & ready_o & reset_n;
 
     // ---------------------------------------------------------------- 相位
     // 相位发生器的输出是**寄存器输出**，它在 adv 的同一个 posedge 更新。
@@ -303,6 +329,8 @@ module d3d4_ip (
     // 来自 k_i（整码）还是 follower 的累加值（事件流）。
     logic        ev_valid_w, ev_done_w, ev_err_w, ev_proto_err_w;
     logic [8:0]  k_ev_w;
+    logic [8:0]  k_ev_comb_w;   // 本事件 k 的组合值，见 k_use 处的说明
+    logic        err_ev_comb_w;
     logic [8:0]  prefix_w;
     logic [3:0]  ev_idx_w;
     logic        last_ev_w;
@@ -325,7 +353,9 @@ module d3d4_ip (
         .err_o          (ev_err_w),
         .prefix_o       (prefix_w),
         .last_ev_o      (last_ev_w),
-        .proto_err_o    (ev_proto_err_w)
+        .proto_err_o    (ev_proto_err_w),
+        .k_ev_comb      (k_ev_comb_w),
+        .err_ev_comb    (err_ev_comb_w)
     );
 
     assign ev_valid_o     = ev_valid_w;
@@ -338,8 +368,14 @@ module d3d4_ip (
     // 注意 k_ev_w 是 9 位（0..511），而 k_i 是 10 位（0..1023，含 guard）。
     // 事件流模式下 guard 不在 follower 的表达范围内 —— 这一点如实保留，
     // 不静默扩展 follower 位宽（那会改变已通过 6246 事件回归的行为）。
+    // 事件模式下用**组合的**本事件 k（k_ev_comb_w），不是寄存的 k_ev_w。
+    //
+    // 原因：k_q 在 bit_valid_i 那一沿才更新，同一沿上可见的 k_ev_w 仍是
+    // 上一事件的 k。若这里用 k_ev_w，输出寄存器在同一沿锁存的 mask 就是
+    // 上一事件的 mask —— 实测确认存在这一拍错位（见 docs/EVENT_ALIGN.md）。
+    // 用组合值后，mask 与 k_ev_o 严格同拍，且不增加延迟。
     logic [9:0] k_use;
-    assign k_use = ev_mode_i ? {1'b0, k_ev_w} : k_i;
+    assign k_use = ev_mode_i ? {1'b0, k_ev_comb_w} : k_i;
 
     // k 范围检查：合同表达范围 0..520（0..511 普通 + 512..520 guard）。
     // 用"超界"而不是"回绕/夹紧"，因为合同明确禁止模 512 回绕或静默夹紧。
@@ -382,6 +418,8 @@ module d3d4_ip (
     // 不用 generate 展开，是为了让"全部输出同一沿更新"这件事在源码上一眼可见。
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
+            out_valid_o <= 1'b0;
+            out_k_err_o <= 1'b0;
             mask_o     <= '0;
             pre_o      <= '0;
             upper_o    <= '0;
@@ -390,6 +428,9 @@ module d3d4_ip (
             h_phase_o  <= '0;
             v_phase_o  <= '0;
         end else if (out_en) begin
+            // 对齐标志与 mask_o 同一沿锁存，保证三者属于同一笔输入
+            out_valid_o <= 1'b1;
+            out_k_err_o <= (k_use > 10'd520);
             mask_o     <= mask_c;
             pre_o      <= pre_c;
             // U 与 f 直接从 dither 字派生，口径与 dither_pre 内部一致：
@@ -402,6 +443,11 @@ module d3d4_ip (
             reserved_o <= res_use;
             h_phase_o  <= hp_use;
             v_phase_o  <= vp_use;
+        end else begin
+            // 无新事务时：mask_o 等**保持**（它是"最后应用的开关命令"，
+            // 模拟侧需要持续看到），但 out_valid_o 必须落回 0，
+            // 否则下游会把"还挂在总线上的旧值"当成新事务重复消费。
+            out_valid_o <= 1'b0;
         end
     end
 

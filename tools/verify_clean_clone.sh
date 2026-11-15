@@ -134,11 +134,18 @@ for key in fresh:
         continue
     assert abs(a - b) < 1e-9, f"{key}: {a} != {b}"
 PY
-    if "$PYTHON" "$WORK/cmp.py" "$MAT/p4_ablation.json" \
-         docs/reviews/20261113_p3p4/data/p4_ablation.json >/dev/null 2>&1; then
-      ok "fresh matrix matches stored data"
+    # 存证目录 docs/reviews/20261113_p3p4 已于 2026-11-15 移出仓库
+    # （是历史产物，且不被 CI 引用）。没有存证时无法比对，只能跳过，
+    # 但**必须显式写"跳过"**，不能静默当成功 —— 否则这项检查会变成空转。
+    if [ -f docs/reviews/20261113_p3p4/data/p4_ablation.json ]; then
+      if "$PYTHON" "$WORK/cmp.py" "$MAT/p4_ablation.json" \
+           docs/reviews/20261113_p3p4/data/p4_ablation.json >/dev/null 2>&1; then
+        ok "fresh matrix matches stored data"
+      else
+        bad "fresh matrix differs from stored data"
+      fi
     else
-      bad "fresh matrix differs from stored data"
+      note "   stored matrix absent (archive moved out of repo) -> compared skipped"
     fi
   else
     bad "run_p4_ablation"

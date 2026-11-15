@@ -51,6 +51,12 @@ module adc2_capture (
     input  logic        capture_qid,
     input  logic [2:0]  capture_phase_h,  // 本笔 DEM 相位（供追溯）
     input  logic [2:0]  capture_phase_v,
+    // 本笔的权重和快照。**必须随 owner 一起存**，因为 raw 返回时
+    // CONV 上下文可能已被下一笔替换（方案 §4.2："不能因为 qid 已重用就
+    // 覆盖旧 ADC2 的上下文"）。D5 重构要求"用同笔的 raw/pre/post/ids"。
+    input  logic [63:0] capture_G_q30,
+    input  logic [63:0] capture_Wp_q30,
+    input  logic [63:0] capture_Wm_q30,
 
     // ---------------------------------------------------------------- 宏接口
     output logic        adc2_capture_arm_o,
@@ -74,7 +80,13 @@ module adc2_capture (
     // 旧组释放资格：只看 hold 与安静窗，**不看 raw 是否已返回**。
     // 方案目标 I3 第 1 条："旧组释放依据自己的 hold 和安静窗，
     // raw 返回不能提前释放旧组。"
-    output logic        release_ok_o
+    output logic        release_ok_o,
+
+    // ---------------------------------------------------------------- 返回时携带
+    // 与 rsp 同拍有效的本笔权重和（供 D5 直接用，不必再查上下文）
+    output logic [63:0] rsp_G_q30_o,
+    output logic [63:0] rsp_Wp_q30_o,
+    output logic [63:0] rsp_Wm_q30_o
 );
 
     // ---------------------------------------------------------------- owner 记录
@@ -83,6 +95,7 @@ module adc2_capture (
     logic        owner_qid_q;
     logic [2:0]  owner_h_q, owner_v_q;
     logic        hold_done_q;
+    logic [63:0] owner_G_q, owner_Wp_q, owner_Wm_q;
     logic        late_err_q;
 
     // arm 直接输出沿前授权，且只在 owner 槽可接收时才授权
@@ -103,6 +116,9 @@ module adc2_capture (
             owner_qid_q   <= 1'b0;
             owner_h_q     <= 3'd0;
             owner_v_q     <= 3'd0;
+            owner_G_q     <= 64'd0;
+            owner_Wp_q    <= 64'd0;
+            owner_Wm_q    <= 64'd0;
             hold_done_q   <= 1'b0;
             late_err_q    <= 1'b0;
         end else begin
@@ -144,6 +160,9 @@ module adc2_capture (
                     owner_qid_q   <= capture_qid;
                     owner_h_q     <= capture_phase_h;
                     owner_v_q     <= capture_phase_v;
+                    owner_G_q     <= capture_G_q30;
+                    owner_Wp_q    <= capture_Wp_q30;
+                    owner_Wm_q    <= capture_Wm_q30;
                     // 新捕获开始时清掉上一笔的 hold 记录
                     hold_done_q   <= adc2_hold_ack_i;
                 end
@@ -157,7 +176,10 @@ module adc2_capture (
     assign rsp_tag_o   = owner_tag_q;
     assign rsp_qid_o   = owner_qid_q;
     assign rsp_raw_o   = adc2_raw_i;
-    assign rsp_range_o = adc2_range_err_i;
+    assign rsp_range_o  = adc2_range_err_i;
+    assign rsp_G_q30_o  = owner_G_q;
+    assign rsp_Wp_q30_o = owner_Wp_q;
+    assign rsp_Wm_q30_o = owner_Wm_q;
 
     // release_ok 与 owner/raw 完全解耦：hold 到了就允许释放，
     // 不必等 raw。反之 raw 提前回来也不会让 release 提前。

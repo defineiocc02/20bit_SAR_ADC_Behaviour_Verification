@@ -288,6 +288,9 @@ module tb_i3_full;
         else $display("      A k=519  OK");
 
         // ---- arm 必须已给出（早于公共沿）----
+        // arm 现在的门槛含 wsum_valid（权重和已就绪），而 wsum 有 2 拍延迟，
+        // 所以要多等几拍再检查。公共沿由测试台控制，时间充裕。
+        repeat (4) @(negedge clk);
         checks = checks + 1;
         if (adc2_capture_arm_o !== 1'b1)
             fail("A 的最后 apply 之后 arm 应为 1（沿前授权）");

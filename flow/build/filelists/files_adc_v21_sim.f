@@ -8,4 +8,5 @@ tb/v21/tb_i1_two_sample.sv
 tb/v21/tb_i2_events.sv
 tb/v21/tb_i12_full.sv
 tb/v21/tb_i3_full.sv
+tb/v21/tb_i4b_e2e.sv
 tb/v21/tb_i4_recon.sv

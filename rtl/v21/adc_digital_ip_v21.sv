@@ -119,6 +119,20 @@ module adc_digital_ip_v21 (
     output logic         adc2_late_err_o,
     output logic         adc2_release_ok_o,   // hold 到即可释放（与 raw 解耦）
 
+    // ---------------------------------------------------------------- D5 配置与输出
+    // 权重表（18×20 Q30）。方案 §9.4：权重来自显式装载。
+    input  logic [39:0]  w_main_tbl [0:17][0:15],
+    input  logic [39:0]  w_sub_tbl  [0:17][0:3],
+    input  logic [7:0]   cfg_epoch,
+    input  logic signed [26:0] b_q24_cfg,
+
+    // 20 位结果（每笔恰好退休一次）
+    output logic         out_valid,
+    output logic [19:0]  out_code,
+    output logic         out_sat,
+    output logic         out_err,
+    output logic [31:0]  out_tag,
+
     // ---------------------------------------------------------------- 观测
     output logic        apply_fire_o,
     output logic [9:0]  k_o,
@@ -362,6 +376,20 @@ module adc_digital_ip_v21 (
 
     // ---------------------------------------------------------------- I3：ADC2
     //
+    // wsum 的输出与有效标志要**前置声明**：arm 的门槛用 wsum_valid，
+    // 捕获登记用 wsum_G/Wp/Wm。声明若落在使用之后，Verilog 会隐式推断成
+    // 1 位 net —— 于是 G 永远只有 bit0（=0），D5 报 bad_g（踩过多次）。
+    logic        wsum_valid;
+    logic [63:0] wsum_G, wsum_Wp, wsum_Wm;
+
+    // final post 与本笔冻结相位的锁存寄存器。
+    // **必须在任何使用它们的 assign 之前声明**：Verilog 会把未声明的名字
+    // 隐式推断成 1 位 net，于是赋值报 "Illegal behavioral left hand side"，
+    // 或者静默只保留最低位（G_q30_w 上踩过同类坑）。
+    logic [159:0] final_post_q;
+    logic [2:0]   final_h_q, final_v_q;
+    logic         final_coin_q, final_half_q;
+
     // 捕获归属：在本笔 CONV 被公共沿捕获余差时登记 owner。
     // 方案 §4.3："E1 锁 B 的输入，同时捕获 A 的余差" —— 捕获发生在
     // 下一笔的采样沿上，因此 capture_req 由 sample_event & residue_captured
@@ -376,16 +404,29 @@ module adc_digital_ip_v21 (
     //   · final_applied_w   最后一次合法 apply 已经发生（不是"事件发完了"）
     //   · ~adc2_arm_done    本笔的 arm 还没发过（一次捕获一次授权）
     //                        否则会在整个 CONV 期间持续拉高，宏可能重复捕获。
-    logic adc2_arm_done_q;
-    wire  adc2_arm_req = conv_valid & final_applied_w & ~adc2_arm_done_q;
+    // arm 的语义是"**待捕获**"，不是一个单拍脉冲：
+    //   · 置位：本笔 final apply 之后（且本笔还没捕过）
+    //   · 清零：本笔的捕获**已经登记**（capture_reg_req），或换笔/复位
+    //
+    // 早期版本用"arm_req 一拍就把 done 置 1"，arm 只持续一拍，
+    // 测试与真实宏都可能错过（实测 arm 检查失败）。
+    // 让它在整个"可以捕获"的窗口内保持高电平，宏就有充足时间采到。
+    logic adc2_arm_seen_q;
+    // arm 的门槛里必须包含 wsum_valid：arm 表示"余差可以捕获了"，
+    // 而捕获时要把本笔的 G/Wp/Wm 快照进 owner。若 arm 早于 wsum 有效，
+    // 捕获就会把 0 存进 owner（实测 owner_G_q=0 -> D5 报 bad_g）。
+    //
+    // 时序链：T0 最后 apply -> T1 wsum 采数 -> T2 wsum 输出有效 -> arm
+    // 这是"应用已算完再授权"，符合方案目标"根据本笔最后一次实际开关应用提前产生 arm"。
+    wire  adc2_arm_req = conv_valid & final_applied_w & wsum_valid & ~adc2_arm_seen_q;
 
     // 沿后登记：只在公共沿确实报了 residue_captured 时登记
     wire  adc2_reg_req = sample_event & residue_captured;
 
     always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n)                    adc2_arm_done_q <= 1'b0;
-        else if (adc2_arm_req)         adc2_arm_done_q <= 1'b1;
-        else if (!conv_valid)          adc2_arm_done_q <= 1'b0;   // 换笔时清
+        if (!rst_n)                    adc2_arm_seen_q <= 1'b0;
+        else if (adc2_reg_req)         adc2_arm_seen_q <= 1'b1;   // 已捕获 -> 关门
+        else if (!conv_valid)          adc2_arm_seen_q <= 1'b0;   // 换笔时清
     end
 
     // 节点宏也在**沿后登记那一拍**求值（此时 final_post/pre 都已稳定）
@@ -393,6 +434,7 @@ module adc_digital_ip_v21 (
 
     logic        adc2_arm, adc2_ready_w, adc2_hold_done, adc2_late_err;
     logic        adc2_release_ok;
+    logic [63:0] rsp_G, rsp_Wp, rsp_Wm;
     logic        adc2_owner_busy;
     logic        rsp_valid, rsp_qid, rsp_range;
     logic [31:0] rsp_tag;
@@ -404,8 +446,11 @@ module adc_digital_ip_v21 (
         .capture_reg_req(adc2_capture_req),
         .capture_tag(conv_tag),
         .capture_qid(conv_qid),
-        .capture_phase_h(conv_h),
-        .capture_phase_v(conv_v),
+        .capture_phase_h(final_h_q),
+        .capture_phase_v(final_v_q),
+        .capture_G_q30(wsum_G),
+        .capture_Wp_q30(wsum_Wp),
+        .capture_Wm_q30(wsum_Wm),
         .adc2_capture_arm_o(adc2_arm),
         .adc2_hold_ack_i(hold_ack),
         .adc2_valid_i(adc2_valid_i),
@@ -415,7 +460,8 @@ module adc_digital_ip_v21 (
         .rsp_valid_o(rsp_valid), .rsp_tag_o(rsp_tag), .rsp_qid_o(rsp_qid),
         .rsp_raw_o(rsp_raw), .rsp_range_o(rsp_range),
         .owner_busy_o(adc2_owner_busy), .hold_done_o(adc2_hold_done),
-        .late_err_o(adc2_late_err), .release_ok_o(adc2_release_ok));
+        .late_err_o(adc2_late_err), .release_ok_o(adc2_release_ok),
+        .rsp_G_q30_o(rsp_G), .rsp_Wp_q30_o(rsp_Wp), .rsp_Wm_q30_o(rsp_Wm));
 
     // 节点行为宏：用**实际应用的 post**（post_state_q）与**采样时保存的 pre**
     // （conv_pre_q 经 conv_ids 路由后的 slot 级等价物）算余差。
@@ -439,9 +485,8 @@ module adc_digital_ip_v21 (
     //
     // 方案 §8.2 明确要求："final apply 置 final_applied，并保存 D5 的 final_post；
     // 禁止 D5 从后来相位重算"。
-    logic [159:0] final_post_q;
-    logic [2:0]   final_h_q, final_v_q;
-    logic         final_coin_q, final_half_q;
+    // final_post_q / final_h_q / final_v_q / final_coin_q / final_half_q
+    // 的声明必须在**使用之前**（见文件上方 I3 段）。
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -465,6 +510,39 @@ module adc_digital_ip_v21 (
         end
     end
 
+    // ---------------------------------------------------------------- 生产侧权重和
+    //
+    // 节点宏（仿真边界）内部也算 Wm/Wp，但那一路不能回喂数字侧 ——
+    // 否则等于用模拟侧结果做数字重构。生产侧必须自己算一份同口径的。
+    //
+    // **两个关键决定**（都是踩坑后改的）：
+    //   ① 输入用 final_post_q（锁存值），不用 post_slot_w（组合）。
+    //      post_slot_w 依赖 combinational 的 k_w，在采样沿附近会抖，
+    //      实测 G_q30 采到 0 而 sum_valid 却是 1。
+    //   ② calc_valid 用**电平**（conv 存在且 final apply 已发生），
+    //      不用单拍脉冲。电平触发下 wsum 持续用稳定输入重算，
+    //      输出在 2 拍后稳定并保持 —— 捕获那一刻必然读得到正确值。
+    // **wsum 的触发要晚一拍**。
+    //
+    // 踩过的坑：原来用 `apply_fire_w & last_evt_w` 当 calc_valid。
+    // 但 post_slot_w 依赖 k_w，而 k_w = prefix_accept + U 是**组合**的；
+    // 在 apply_fire 那个 posedge，wsum 的 always_comb 采到的仍是
+    // combinational 稳定前的值 —— 实测 sum_valid 置了 1 但 G_q30 是 0。
+    //
+    // 修法：把最后一个 apply 打一拍再触发 wsum。那一拍 k_w/post_slot_w
+    // 已经稳定（它们在整个 CONV 期间保持不变），G/Wm/Wp 都能正确算出。
+    wire         wsum_calc = conv_valid & final_applied_w;
+
+    wsum_v21 u_wsum (
+        .clk(clk), .rst_n(rst_n),
+        .calc_valid(wsum_calc),
+        .ids_i(conv_ids),
+        .pre_mask_i(conv_pre_slot),
+        .post_mask_i(final_post_q),
+        .w_main_tbl(w_main_tbl), .w_sub_tbl(w_sub_tbl),
+        .sum_valid(wsum_valid),
+        .G_q30(wsum_G), .Wp_q30(wsum_Wp), .Wm_q30(wsum_Wm));
+
     // 节点模型所需的本笔快照（全部来自 final apply 那一刻锁存的值）
     assign node_post_o  = final_post_q;
     assign node_pre_o   = conv_pre_slot;
@@ -483,6 +561,25 @@ module adc_digital_ip_v21 (
     assign adc2_rsp_raw_o     = rsp_raw;
     assign adc2_rsp_range_o   = rsp_range;
     assign adc2_late_err_o    = adc2_late_err;
+    // ---------------------------------------------------------------- D5 重构
+    //
+    // 方案 §11.2 I4："按 I3 带回的同笔 raw、实际 pre、最后应用 post、
+    // 物理片号与系数 epoch 求和、去扰、舍入与退休。"
+    //
+    // 权重和由 owner 快照带来（rsp_G/Wp/Wm），所以即使 CONV 已被下一笔
+    // 替换，本笔仍用**自己的**权重和重构 —— 这是"同笔"语义的关键。
+    recon_v21 u_recon (
+        .clk(clk), .rst_n(rst_n),
+        .in_valid(rsp_valid),
+        .adc2_raw(rsp_raw),
+        .Wm_q30(rsp_Wm), .G_q30(rsp_G), .Wp_q30(rsp_Wp),
+        .alpha_q30(32'd1073741824),   // alpha=1.0 旁路（首版）
+        .b_q24(b_q24_cfg),
+        .in_epoch(cfg_epoch), .in_tag(rsp_tag),
+        .cfg_epoch(cfg_epoch),
+        .out_valid(out_valid), .code_o(out_code),
+        .out_sat(out_sat), .out_err(out_err), .out_tag(out_tag));
+
     assign adc2_release_ok_o  = adc2_release_ok;
 
 endmodule

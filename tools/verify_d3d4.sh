@@ -57,7 +57,19 @@ else
 fi
 
 echo "日志行数: $(grep -cE '^(M|P) ' "$LOG" || echo 0)"
-PYTHONPATH=src python3 tools/cmp_dem_dither.py "$LOG"
+# 比对只依赖 dem_dither.py 的纯函数（脚本内按路径直载，不经过 adi_model/__init__），
+# 因此不要求 scipy，也不强制 Python>=3.10。这里只做最低可用性守卫：
+# 用 set -u 下 python3 缺失或被 alias 成空串时，避免把 "command not found"
+# 当成比对失败（rc=127 会被误读为失配）。
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "FAIL: 找不到 python3（比对需要 Python3.8+ 标准库）"
+  exit 1
+fi
+if ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 8) else 1)'; then
+  echo "FAIL: python3 版本过低（需要 >=3.8）"
+  exit 1
+fi
+python3 tools/cmp_dem_dither.py "$LOG"
 RC=$?
 echo "== 结束 SHA=$SHA SIM=$SIM rc=$RC =="
 exit $RC

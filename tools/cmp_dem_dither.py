@@ -7,12 +7,28 @@
   * P 行同时校验 U 与 f（旧版跳过）
   * 空日志 / 截断日志 / 仿真失败一律 FAIL
 
-用法：PYTHONPATH=src:tools python3 tools/cmp_dem_dither.py <log>
+用法：python3 tools/cmp_dem_dither.py <log>
+
+为什么按文件路径加载 dem_dither 而不用 `from adi_model.dem_dither import ...`
+--------------------------------------------------------------------------
+`src/adi_model/__init__.py` 会连带导入 calibration（依赖 scipy）与
+simulation.config（用到 `typing.TypeGuard`，需 Python>=3.10）。
+而 `dem_dither.py` 本身是零依赖纯函数。走包导入会把一个纯算术比对
+绑死在整个包的依赖树上，结果是：
+  * 没有 scipy 的环境直接 ImportError；
+  * 系统自带 python3.9（macOS CommandLineTools）在 TypeGuard 处炸掉。
+本脚本的职责只是"比对两个纯函数"，不该受这些约束，因此改为按路径直载。
 """
-import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+import sys, os, importlib.util
+
 sys.path.insert(0, os.path.dirname(__file__))
-from adi_model.dem_dither import post_mask, bridge_swap, pre
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_DD_PATH = os.path.join(_HERE, '..', 'src', 'adi_model', 'dem_dither.py')
+_spec = importlib.util.spec_from_file_location('_dem_dither_standalone', _DD_PATH)
+_dd = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_dd)
+post_mask, bridge_swap, pre = _dd.post_mask, _dd.bridge_swap, _dd.pre
 
 N_DEM = 521 * 8 * 8 * 2 * 2      # 133376
 N_DIT = 64 * 8                   # 512

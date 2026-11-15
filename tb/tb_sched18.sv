@@ -44,12 +44,23 @@ module tb_sched18;
     endfunction
 
     // 结构性不变量（与向量无关，独立检查）
+    // 注意：只在"运行期"成立。复位后的上电态 acq=0x000FF / conv=0 是
+    // sched18.sv 明示的启动瞬态（第一笔转换组尚未产生），此时
+    // |CONV|=0、|IDLE|=10，用运行期判据去查会必然误报。
+    // 因此上电检查单独写成 check_poweron()，只在 adv 之后才用本函数。
     task automatic check_invariants();
         if ((acq & conv) != 18'd0)                     fail("ACQ/CONV overlap");
         if (popcnt18(acq) != 8)                        fail("|ACQ| != 8");
         if (popcnt18(conv) != 8)                       fail("|CONV| != 8");
         if (popcnt18(idle) != 2)                       fail("|IDLE| != 2");
         if ((acq | conv | idle) != 18'h3FFFF)          fail("三态并集 != 18 片");
+    endtask
+
+    // 上电态判据：采集是 0..7、转换组为空、其余 10 片 IDLE
+    task automatic check_poweron();
+        if (acq !== 18'h000FF)                         fail("上电 ACQ 不是 0..7");
+        if (conv !== 18'h00000)                        fail("上电 CONV 不是空");
+        if (idle !== 18'h3FF00)                        fail("上电 IDLE 不是 8..17");
     endtask
 
     // ids_o 必须是 acq 掩码的升序展开，且不含重复
@@ -79,9 +90,8 @@ module tb_sched18;
         rstn = 1'b1;
         @(negedge clk);
 
-        // 上电态：0..7 采集，其余 IDLE，无转换组
-        check_invariants();
-        if (acq !== 18'h000FF) fail("上电 ACQ 不是 0..7");
+        // 上电态：0..7 采集，其余 IDLE，无转换组（启动瞬态，不适用运行期不变量）
+        check_poweron();
 
         while (!$feof(fd)) begin
             r = $fscanf(fd, "%d %d %d %d %d %d %d %d %d %d %d %d\n",

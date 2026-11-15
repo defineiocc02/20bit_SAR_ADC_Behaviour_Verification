@@ -4,7 +4,9 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
+# 只忽略仓库根的 build/（历史产物）。注意不能写裸 `build/`，
+# 那会匹配任意层级，连 flow/build/filelists/ 的编译清单一起忽略。
+/build/
 dist/
 *.egg-info/
 .eggs/

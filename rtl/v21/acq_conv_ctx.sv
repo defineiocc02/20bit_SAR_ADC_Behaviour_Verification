@@ -1,0 +1,324 @@
+// =============================================================================
+// 文件名     : acq_conv_ctx.sv
+// 模块名     : acq_conv_ctx
+// 版本       : v1.1
+// 功能       : ACQ / CONV 两笔独立上下文的冻结、物理片号路由与旧组释放资格。
+//              对应方案 v1.4 §4.2（不可变描述符）、§4.3（两笔驱动）与 §11.2 I1。
+// 设计说明   :
+//   * 为什么需要两套独立上下文：论文 p.182 "8 sDACs converting the signal, and
+//     8 sDACs acquiring the signal, dynamically selected from a pool of 18"。
+//     采集与转换必须同时持有各自片号、相位、qid、pre，否则 B 建立自己的预置时
+//     会覆写 A 仍在转换所需的上下文 —— 那是方案 I1 的核心验收点。
+//
+//   * 四态生命周期（v1.1 修正，v1.0 漏了 SAMPLED）：
+//       IDLE    --prepare_fire-->  ACQ      冻结片号/相位/word/pre
+//       ACQ     --sample_event & input_captured-->  SAMPLED   输入已采
+//       SAMPLED --下一次 prepare_fire-->  CONV      原组进转换，同时建新 ACQ
+//       CONV    --captured & hold & quiet-->  IDLE  释放回池
+//     v1.0 把"建立 ACQ"和"搬到 CONV"合成了一步，导致 A 在 ACQ 时无法接受 B 的
+//     prepare，两笔流水根本转不起来。缺的正是"已采样但尚未进 CONV"这个中间态。
+//
+//   * slot 与物理片：sched18 给出升序 slot 与 8 个物理片号（5 bit/个）。
+//     dem_mask_v3 / dither_pre 只认 slot（0..7），所以必须由本层按**冻结的**
+//     片号把 slot 级结果路由成物理 18 片接口。用本拍 sched_ids 会把 B 的
+//     pre 写到 A 的片号上。
+//
+//   * 释放资格：CONV 只有在
+//       ① 该笔的余差已捕获（residue_captured）
+//       ② 宏回报 hold 完成（hold_ack）
+//       ③ 沿后安静窗计满（QUIET_CYCLES）
+//     三者同时满足后才回 IDLE。期间这些片不得被重新分配。
+//
+//   * 宏桩：本阶段 capture / hold / quiet 由输入端口模拟，
+//     不接真实 ADC2 数值通路（I3 才接）。
+// 变更记录   :
+//   2026-11-15  v1.0 初版（四态缺失，两笔流水无法推进）。
+//   2026-11-15  v1.1 补 SAMPLED 中间态；prepare/commit 分离；片号路由用冻结值。
+// =============================================================================
+module acq_conv_ctx #(
+    // 沿后安静窗长度（拍）。方案未给具体拍数，取 2 拍作为 [E] 工程取值。
+    parameter int QUIET_CYCLES = 2
+) (
+    input  logic        clk,
+    input  logic        rst_n,
+
+    // ---------------------------------------------------------------- prepare
+    // prepare_valid & prepare_ready 同高的上升沿接受一笔新 ACQ。
+    // 被拒请求不推进 PRNG（由上层保证：只有 commit_fire 才推进 sched18）。
+    input  logic        prepare_valid,
+    output logic        prepare_ready,
+    input  logic [31:0] prepare_tag,
+    input  logic [5:0]  prepare_word,      // D1..D6
+    input  logic [2:0]  prepare_h,
+    input  logic [2:0]  prepare_v_dem,
+    input  logic [2:0]  prepare_v_pre,
+    input  logic        prepare_half,
+    input  logic        prepare_coin,
+
+    // ---------------------------------------------------------------- 采样事件
+    input  logic        sample_event,
+    input  logic        input_captured,
+    input  logic        residue_captured,
+    input  logic        hold_ack,
+
+    // ---------------------------------------------------------------- 片组
+    input  logic [17:0] sched_acq,
+    input  logic [17:0] sched_conv,
+    input  logic [17:0] sched_idle,
+    input  logic [39:0] sched_ids,
+
+    output logic [17:0] acq_sel_o,
+    output logic [17:0] conv_sel_o,
+    output logic [17:0] idle_sel_o,
+
+    // ---------------------------------------------------------------- 叶子驱动
+    output logic [2:0]  acq_h_o,
+    output logic [2:0]  acq_v_dem_o,
+    output logic [2:0]  acq_v_pre_o,
+    output logic        acq_half_o,
+    output logic        acq_coin_o,
+    output logic [5:0]  acq_word_o,
+    output logic [2:0]  acq_U_o,
+    input  logic [31:0] acq_pre_slot_i,    // slot 级 pre，由 dither_pre 驱动
+
+    output logic [2:0]  conv_h_o,
+    output logic [2:0]  conv_v_dem_o,
+    output logic        conv_half_o,
+    output logic        conv_coin_o,
+    output logic [5:0]  conv_word_o,
+    output logic [31:0] acq_pre_slot_o,    // ACQ 冻结的 slot 级 pre（观测用）
+
+    output logic [39:0] acq_ids_o,
+    output logic [39:0] conv_ids_o,
+    output logic        acq_valid_o,
+    output logic        acq_sampled_o,     // ACQ 已采、等进 CONV
+    output logic        conv_valid_o,
+
+    // ---------------------------------------------------------------- 物理写门
+    output logic [71:0]  rdac_pre_state_o,
+    output logic [17:0]  pre_wr_o,
+    output logic [359:0] rdac_post_state_o,
+    output logic [17:0]  post_wr_o,
+
+    // ---------------------------------------------------------------- 观测
+    output logic        prepare_fire_o,
+    output logic        commit_fire_o,     // 原 ACQ 进 CONV，可推进 sched18
+    output logic        release_fire_o,
+    output logic [31:0] conv_tag_o,
+    output logic [2:0]  conv_U_o,
+    output logic [31:0] conv_pre_slot_o
+);
+
+    // U 由同一 word 派生（U = 4*D6 + D4），不接受矛盾的外部 U。
+    wire [2:0] prep_U = {1'b0, prepare_word[5]} * 3'd4 + {2'b0, prepare_word[3]};
+
+    // ---------------------------------------------------------------- ACQ
+    logic [39:0] acq_ids_q;
+    logic [31:0] acq_tag_q, acq_pre_q;
+    logic [5:0]  acq_word_q;
+    logic [2:0]  acq_h_q, acq_v_dem_q, acq_v_pre_q, acq_U_q;
+    logic        acq_half_q, acq_coin_q;
+    logic        acq_valid_q;
+    logic        acq_sampled_q;
+
+    // ---------------------------------------------------------------- CONV
+    logic [39:0] conv_ids_q;
+    logic [31:0] conv_tag_q, conv_pre_q;
+    logic [5:0]  conv_word_q;
+    logic [2:0]  conv_h_q, conv_v_dem_q, conv_U_q;
+    logic        conv_half_q, conv_coin_q;
+    logic        conv_valid_q;
+    logic        conv_captured_q, conv_held_q;
+    logic [3:0]  quiet_cnt_q;
+
+    // ---------------------------------------------------------------- 仲裁
+    // 接受的规则：ACQ 槽空闲，或 ACQ 已采样（可以把它推进 CONV 腾出槽位）。
+    // 这样只要 ACQ 已采过，下一笔 prepare 就能进来，不用等 CONV 释放。
+    wire acq_slot_free  = ~acq_valid_q;
+    wire acq_can_promote = acq_valid_q & acq_sampled_q;
+    assign prepare_ready = rst_n & (acq_slot_free | acq_can_promote);
+
+    wire do_prepare = prepare_valid & prepare_ready;
+
+    // prepare_fire：真正建立新 ACQ
+    assign prepare_fire_o = do_prepare;
+
+    // commit_fire：把已采样的 ACQ 提升为 CONV（用于推进 sched18）
+    wire do_promote = do_prepare & acq_can_promote;
+    assign commit_fire_o = do_promote;
+
+    // 释放资格
+    wire conv_release_ok = conv_valid_q & conv_captured_q & conv_held_q
+                         & (quiet_cnt_q >= QUIET_CYCLES[3:0]);
+    assign release_fire_o = conv_release_ok;
+
+    // ---------------------------------------------------------------- 时序
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            acq_ids_q <= 40'd0; acq_tag_q <= 32'd0; acq_pre_q <= 32'd0;
+            acq_word_q <= 6'd0;
+            acq_h_q <= 3'd0; acq_v_dem_q <= 3'd0; acq_v_pre_q <= 3'd0;
+            acq_U_q <= 3'd0; acq_half_q <= 1'b0; acq_coin_q <= 1'b0;
+            acq_valid_q <= 1'b0; acq_sampled_q <= 1'b0;
+
+            conv_ids_q <= 40'd0; conv_tag_q <= 32'd0; conv_pre_q <= 32'd0;
+            conv_word_q <= 6'd0;
+            conv_h_q <= 3'd0; conv_v_dem_q <= 3'd0; conv_U_q <= 3'd0;
+            conv_half_q <= 1'b0; conv_coin_q <= 1'b0;
+            conv_valid_q <= 1'b0; conv_captured_q <= 1'b0; conv_held_q <= 1'b0;
+            quiet_cnt_q <= 4'd0;
+        end else begin
+            // ---- 1. 采样沿：ACQ 标记已采；CONV 记录捕获/hold ----
+            if (sample_event) begin
+                if (acq_valid_q && input_captured) acq_sampled_q <= 1'b1;
+                if (conv_valid_q && residue_captured) conv_captured_q <= 1'b1;
+                if (conv_valid_q && hold_ack)         conv_held_q     <= 1'b1;
+            end else if (conv_valid_q && hold_ack) begin
+                // hold 可能晚于捕获沿单独到达
+                conv_held_q <= 1'b1;
+            end
+
+            // ---- 2. 安静窗：捕获之后开始计 ----
+            if (!conv_valid_q || !conv_captured_q) quiet_cnt_q <= 4'd0;
+            else if (quiet_cnt_q < QUIET_CYCLES[3:0])
+                quiet_cnt_q <= quiet_cnt_q + 4'd1;
+
+            // ---- 3. prepare：先提升旧 ACQ 到 CONV，再装新 ACQ ----
+            if (do_prepare) begin
+                if (acq_can_promote) begin
+                    // 旧的（已采过的）ACQ 进 CONV
+                    conv_ids_q      <= acq_ids_q;
+                    conv_tag_q      <= acq_tag_q;
+                    conv_pre_q      <= acq_pre_q;
+                    conv_word_q     <= acq_word_q;
+                    conv_h_q        <= acq_h_q;
+                    conv_v_dem_q    <= acq_v_dem_q;
+                    conv_U_q        <= acq_U_q;
+                    conv_half_q     <= acq_half_q;
+                    conv_coin_q     <= acq_coin_q;
+                    conv_valid_q    <= 1'b1;
+                    conv_captured_q <= 1'b0;
+                    conv_held_q     <= 1'b0;
+                    quiet_cnt_q     <= 4'd0;
+                end
+                // 装新 ACQ（用本拍 sched_ids 作为它的冻结片号）
+                acq_ids_q     <= sched_ids;
+                acq_tag_q     <= prepare_tag;
+                // 冻结本笔的 slot 级 pre（由 dither_pre 按本拍 word/v_pre 给出）。
+                // 踩过的坑：v1.1 漏了这一句，acq_pre_q 永远是复位值 0，
+                // 于是 pre 路由全 0 —— 编译能过、综合能过，但功能是死的。
+                acq_pre_q     <= acq_pre_slot_i;
+                acq_word_q    <= prepare_word;
+                acq_h_q       <= prepare_h;
+                acq_v_dem_q   <= prepare_v_dem;
+                acq_v_pre_q   <= prepare_v_pre;
+                acq_half_q    <= prepare_half;
+                acq_coin_q    <= prepare_coin;
+                acq_U_q       <= prep_U;
+                acq_valid_q   <= 1'b1;
+                acq_sampled_q <= 1'b0;
+            end
+
+            // ---- 4. 释放 ----
+            if (release_fire_o) begin
+                conv_valid_q    <= 1'b0;
+                conv_captured_q <= 1'b0;
+                conv_held_q     <= 1'b0;
+                quiet_cnt_q     <= 4'd0;
+            end
+        end
+    end
+
+    // ---------------------------------------------------------------- 观测
+    assign acq_ids_o     = acq_ids_q;
+    assign conv_ids_o    = conv_ids_q;
+    assign acq_valid_o   = acq_valid_q;
+    assign acq_sampled_o = acq_sampled_q;
+    assign conv_valid_o  = conv_valid_q;
+
+    assign acq_h_o       = acq_h_q;
+    assign acq_v_dem_o   = acq_v_dem_q;
+    assign acq_v_pre_o   = acq_v_pre_q;
+    assign acq_half_o    = acq_half_q;
+    assign acq_coin_o    = acq_coin_q;
+    assign acq_word_o    = acq_word_q;
+    assign acq_U_o       = acq_U_q;
+    assign acq_pre_slot_o = acq_pre_q;
+
+    assign conv_h_o      = conv_h_q;
+    assign conv_v_dem_o  = conv_v_dem_q;
+    assign conv_half_o   = conv_half_q;
+    assign conv_coin_o   = conv_coin_q;
+    assign conv_word_o   = conv_word_q;
+    assign conv_U_o      = conv_U_q;
+    assign conv_tag_o    = conv_tag_q;
+    assign conv_pre_slot_o = conv_pre_q;
+
+    // ---------------------------------------------------------------- 片组
+    assign acq_sel_o  = sched_acq;
+    assign conv_sel_o = sched_conv;
+
+    // 仍在 CONV（未释放）的片不得被重新分配。
+    // 用 generate + 归约，避免 function 变量下标（综合器会 report unsupported）。
+    logic [17:0] conv_hold_mask;
+    genvar gh;
+    generate
+        for (gh = 0; gh < 18; gh++) begin : g_hold
+            logic hit;
+            always_comb begin
+                hit = 1'b0;
+                for (int i = 0; i < 8; i++)
+                    if (conv_ids_q[i*5 +: 5] == 5'(gh)) hit = 1'b1;
+            end
+            assign conv_hold_mask[gh] = hit;
+        end
+    endgenerate
+
+    assign idle_sel_o = sched_idle
+                      & ~((conv_valid_q & ~release_fire_o) ? conv_hold_mask : 18'd0);
+
+    // ---------------------------------------------------------------- 物理路由
+    // 按**冻结的** acq_ids 把 slot 级 pre 展开到物理 18 片。
+    logic [71:0] pre_state_c;
+    logic [17:0] pre_wr_c;
+    // 纯组合展开：每个物理片位的值 = 若该片号等于某个 slot 的冻结片号，
+    // 则取该 slot 的 nib。用 generate 生产 18×4 个独立 always_comb，
+    // 每个都显式赋初值，保证全路径赋值（不会被推断成锁存器）。
+    genvar gp, gb;
+    generate
+        for (gp = 0; gp < 18; gp++) begin : g_pre_p
+            for (gb = 0; gb < 4; gb++) begin : g_pre_b
+                logic v;
+                always_comb begin
+                    v = 1'b0;
+                    if (acq_valid_q) begin
+                        for (int s = 0; s < 8; s++)
+                            if (acq_ids_q[s*5 +: 5] == 5'(gp))
+                                v = acq_pre_slot_i[s*4 + gb];
+                    end
+                end
+                assign pre_state_c[gp*4 + gb] = v;
+            end
+        end
+    endgenerate
+
+    generate
+        for (gp = 0; gp < 18; gp++) begin : g_pre_wr
+            logic w;
+            always_comb begin
+                w = 1'b0;
+                if (acq_valid_q)
+                    for (int s = 0; s < 8; s++)
+                        if (acq_ids_q[s*5 +: 5] == 5'(gp)) w = 1'b1;
+            end
+            assign pre_wr_c[gp] = w;
+        end
+    endgenerate
+
+    assign rdac_pre_state_o  = pre_state_c;
+    assign pre_wr_o          = pre_wr_c;
+    // post 由 I2 在 apply_fire 时给出；I1 阶段恒 0 且写门关闭
+    assign rdac_post_state_o = 360'd0;
+    assign post_wr_o         = 18'd0;
+
+endmodule

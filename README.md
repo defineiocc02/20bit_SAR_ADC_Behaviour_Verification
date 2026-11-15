@@ -71,6 +71,25 @@ bash tools/verify_d3d4_ip.sh
 | 25 ns 下 setup | +19.88 ns |
 | 25 ns 下 hold | +0.0017 ns —— **不构成签核结论**，见 SYNTH_D3D4.md §4 |
 
+## 目录结构
+
+```
+rtl/                 RTL 源码（18 个 .sv，分新旧两链，见下）
+tb/                  testbench（25 个 .sv）与金标向量（20 个 .txt）
+build/filelists/     **4 个编译清单，先看这里的 README 再选**
+synth/d3d4/          本轮 IP 的综合脚本与 SDC
+tools/               验收脚本、金标生成器、统计工具
+docs/                **先看 docs/INDEX.md**（50 个 md 里只有十余份当前有效）
+src/adi_model/       参考算法（dem_dither.py 是 DEM/Dither 的唯一参考实现）
+```
+
+**两条链不要混用**：
+
+| 链 | 顶层 | 口径 | 有 20 位码？ |
+|:---|:---|:---|:---|
+| 新（本轮） | `rtl/d3d4_ip.sv` | 3+3+3 / `c+U` | 无（到开关命令层） |
+| 旧 | `rtl/digital_top_w.sv` | 4+3+2 / `c−U` | 有（D1–D6 全链） |
+
 ## 阅读顺序
 
 0. **`docs/D3D4_IP_INTERFACE.md`（IP 对外合同）** —— 端口、时序、两种模式、

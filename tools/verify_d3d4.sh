@@ -32,18 +32,22 @@ if [ -n "$RUNNER" ]; then
   scp -q rtl/dem_mask_v3.sv rtl/dither_pre.sv "$HOST:$WORKDIR/rtl/" \
       || { echo "FAIL: 拷贝 rtl"; exit 1; }
   scp -q tb/tb_dem_dither.sv "$HOST:$WORKDIR/tb/" || { echo "FAIL: 拷贝 tb"; exit 1; }
-  scp -q files_d3d4.f "$HOST:$WORKDIR/" || { echo "FAIL: 拷贝清单"; exit 1; }
+  scp -q build/filelists/files_d3d4.f "$HOST:$WORKDIR/" || { echo "FAIL: 拷贝清单"; exit 1; }
 fi
 
 case "$SIM" in
   vcs)
+    # 远端：清单已拷到 $WORKDIR 根，所以用文件名而不是本地那个带目录的路径。
+    # 本地：清单在 build/filelists/ 下，用完整相对路径。
+    if [ -n "$RUNNER" ]; then FL="files_d3d4.f"; else FL="build/filelists/files_d3d4.f"; fi
     run "$SETUP; cd $WORKDIR && vcs -full64 -sverilog -timescale=1ns/1ps \
-         -f files_d3d4.f -o simv_d3d4 > vcs.log 2>&1" \
+         -f $FL -o simv_d3d4 > vcs.log 2>&1" \
       || { echo "FAIL: 编译失败"; exit 1; }
     run "$SETUP; cd $WORKDIR && ./simv_d3d4 > d3d4_mout.txt 2>&1" \
       || { echo "FAIL: 仿真失败"; exit 1; } ;;
   iverilog)
-    run "$SETUP; cd $WORKDIR && iverilog -g2012 -o simv_d3d4 -f files_d3d4.f > iv.log 2>&1" \
+    if [ -n "$RUNNER" ]; then FL="files_d3d4.f"; else FL="build/filelists/files_d3d4.f"; fi
+    run "$SETUP; cd $WORKDIR && iverilog -g2012 -o simv_d3d4 -f $FL > iv.log 2>&1" \
       || { echo "FAIL: 编译失败"; exit 1; }
     run "cd $WORKDIR && vvp simv_d3d4 > d3d4_mout.txt 2>&1" \
       || { echo "FAIL: 仿真失败"; exit 1; } ;;

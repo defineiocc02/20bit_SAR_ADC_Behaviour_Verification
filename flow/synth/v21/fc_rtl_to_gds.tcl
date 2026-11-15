@@ -40,27 +40,6 @@ file mkdir $REF
 create_lib -ref_libs $LIB_SS $REF/lib
 puts "STEP_CREATE_LIB_OK"
 
-# ---------------------------------------------------------------- TLU+ 寄生
-# 必须在 compile 之前配好，否则 compile_fusion 报 SCN-1001 中止。
-#
-# 实测：FC 没有 `set_parasitic_tech`（那是 ICC2 的命令）；
-# `set_parasitic_parameters` 也不接受 `-early_tlu_plus_file` 之类的选项。
-# 正确的做法就是 `read_parasitic_tech` 注册 TLU+ 文件并命名，
-# FC 会按名字前缀（late/early/max/min）自动关联到对应 corner。
-read_parasitic_tech -tlup $TLU_MAX -name maxTLU
-read_parasitic_tech -tlup $TLU_MIN -name minTLU
-puts "STEP_TLU_OK"
-
-# **待绑定项**：TLU+ 注册成功（STEP_TLU_OK 已实测），但 compile_fusion 仍报
-#   "No valid parasitics for LATE/EARLY corner default"（SCN-1001）
-# 说明 FC 还没把这两个 tech 关联到 "default" corner。
-# 已实测确认：
-#   · `set_parasitic_tech` 不存在（那是 ICC2 命令）
-#   · `set_parasitic_parameters` 的 `-early_corner` / `-late_corner` 均非法
-#   · 它接受 `-corners`（报 "bad value specified for option -corners"）
-# 下一步：按 `set_parasitic_parameters -corners <name>` 的正确取值补齐，
-# 或用 `create_corner` 建一个名为 default 的 corner 再挂 parasitic tech。
-# 在此之前，综合结果可用（网表/面积/时序已产出），但不能声称后布线签核。
 
 # ---------------------------------------------------------------- 读入 RTL
 set RTL {
@@ -83,6 +62,29 @@ elaborate $DESIGN
 puts "STEP_ELAB_OK"
 set_top_module $DESIGN
 puts "STEP_TOP_OK"
+
+# ---------------------------------------------------------------- TLU+ 寄生
+#
+# **必须在 set_top_module 之后**：`read_parasitic_tech` 可以在任何时候调用，
+# 但 `create_corner` 要求当前 block 已定义（实测报 DES-001
+# "Current block is not defined"）。所以整段挂到 block 建立之后。
+#
+# FC 没有 ICC2 的 `set_parasitic_tech`；正确做法是：
+#   1. read_parasitic_tech 注册 TLU+（给每份一个名字）
+#   2. create_corner 建 corner，并把 parasitic tech 挂上去
+# **关键**：FC 默认建好的 corner 名就是 `default`，所以把主 TLU+ 直接
+# 注册成这个名字，FC 就会把它当作该 corner 的寄生技术 —— 不需要
+# create_corner（那会报 "Corner 'default' already exists"，CSTR-015），
+# 也不存在 `-early_tlu_plus_file` 这个选项（CMD-010）。
+#
+# 早前的失败链：
+#   ① read_parasitic_tech -name maxTLU  -> 注册成功但与 default 无关
+#   ② create_corner default             -> CSTR-015（已存在）
+#   ③ set_parasitic_parameters -early_tlu_plus_file -> CMD-010（选项非法）
+# 现在直接用名字对齐。
+read_parasitic_tech -tlup $TLU_MAX -name default
+read_parasitic_tech -tlup $TLU_MIN -name default_min
+puts "STEP_TLU_BIND_OK"
 
 # ---------------------------------------------------------------- 约束
 create_clock -name clk -period $PERIOD [get_ports clk]

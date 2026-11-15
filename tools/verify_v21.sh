@@ -32,6 +32,7 @@ SRC_REL="$SRC"
 
 # 测试项：<源文件> <二进制名> <期望字符串>
 TESTS=(
+  "tb/v21/tb_acq_ctx_fixed.sv|sax|PASS (两反例已修复)"
   "tb/v21/tb_audit3.sv|sa3|PASS (10 checks)"
   "tb/v21/tb_i12_full.sv|s12|PASS (105 checks)"
   "tb/v21/tb_i3_full.sv|s3f|PASS (20 checks)"
@@ -46,7 +47,7 @@ run "rm -rf $WORK && mkdir -p $WORK/rtl/v21 $WORK/tb/v21" || { echo "FAIL: 建�
 # 逐个文件传：tar 在 macOS->Linux 上会带 xattr 头，且扁平化路径，
 # 实测导致叶子源文件没落到预期位置（编译报 "Source file cannot be opened"）。
 # 用 scp/cp 逐个复制最可靠。
-FILES="$SRC tb/v21/tb_audit3.sv tb/v21/tb_i12_full.sv tb/v21/tb_i3_full.sv tb/v21/tb_i4b_e2e.sv"
+FILES="$SRC tb/v21/tb_acq_ctx_fixed.sv tb/v21/tb_audit3.sv tb/v21/tb_i12_full.sv tb/v21/tb_i3_full.sv tb/v21/tb_i4b_e2e.sv"
 for f in $FILES; do
   if [ -n "$RUNNER" ]; then
     scp -q "$ROOT/$f" "$RUNNER:$WORK/$f" || { echo "FAIL: 传 $f"; exit 1; }
@@ -60,7 +61,13 @@ echo "=== 回归 ==="
 for t in "${TESTS[@]}"; do
   f=${t%%|*}; rest=${t#*|}; bin=${rest%%|*}; want=${rest##*|}
   bf=$(basename "$f")
-  run "$SETUP; cd $WORK && vcs -full64 -sverilog -timescale=1ns/1ps $SRC_REL $f -o $bin > ${bin}_c.log 2>&1" \
+  # tb_acq_ctx_fixed 只实例化 acq_conv_ctx + dither_pre（对照审查的最小反例）
+  case "$bf" in
+    tb_acq_ctx_fixed.sv)
+      SRC_USE="rtl/dither_pre.sv rtl/v21/acq_conv_ctx.sv" ;;
+    *) SRC_USE="$SRC_REL" ;;
+  esac
+  run "$SETUP; cd $WORK && vcs -full64 -sverilog -timescale=1ns/1ps $SRC_USE $f -o $bin > ${bin}_c.log 2>&1" \
       || { echo "  $bin 编译 FAIL"; fail=1; continue; }
   out=$(run "$SETUP; cd $WORK && ./$bin 2>&1")
   if echo "$out" | grep -q "$want"; then

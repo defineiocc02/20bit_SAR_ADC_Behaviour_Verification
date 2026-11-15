@@ -161,7 +161,23 @@ module acq_conv_ctx #(
     // 已采样的 ACQ 可以被提升：要么下一笔 prepare 把它顶进 CONV，
     // 要么 stop 排空时单独提升（方案 §11.2 I1："停收后已采过的 B 必须能
     // 独立转入 CONV 并完成 E2 捕获，无须再发一笔 prepare"）。
-    wire acq_can_promote = acq_valid_q & acq_sampled_q;
+    // **promote 还要求 CONV 槽可用**。
+    //
+    // 反例（审查已 VCS 复现）：A 在 CONV、hold=0、release=0（未满足释放），
+    // B 已采。此时 C 的 prepare 仍被接受，把 B 提升进 CONV ——
+    // CONV 从 A1 被覆盖成 B2，A 的上下文丢失。
+    //
+    // 根因：`prepare_ready` 只看 ACQ 槽（`acq_can_promote`），
+    // 没检查 CONV 是否还占着；而 promote 的目标正是 CONV。
+    //
+    // 正确语义：可以把已采样的 ACQ 顶进 CONV，但前提是 CONV 已经释放
+    // （或本拍正在释放，即 `release_fire_o`，那样槽位在下一拍才空）。
+    wire conv_release_ok = conv_valid_q & conv_captured_q & conv_held_q
+                         & (quiet_cnt_q >= QUIET_CYCLES[3:0]);
+    assign release_fire_o = conv_release_ok;
+
+    wire conv_slot_free  = ~conv_valid_q | release_fire_o;
+    wire acq_can_promote = acq_valid_q & acq_sampled_q & conv_slot_free;
     assign prepare_ready = rst_n & (acq_slot_free | acq_can_promote);
 
     wire do_prepare = prepare_valid & prepare_ready;
@@ -178,9 +194,7 @@ module acq_conv_ctx #(
     assign sched_adv_o   = do_prepare;    // 任何被接受的 prepare 都推进
 
     // 释放资格
-    wire conv_release_ok = conv_valid_q & conv_captured_q & conv_held_q
-                         & (quiet_cnt_q >= QUIET_CYCLES[3:0]);
-    assign release_fire_o = conv_release_ok;
+
 
     // ---------------------------------------------------------------- 时序
     always_ff @(posedge clk or negedge rst_n) begin
@@ -381,6 +395,19 @@ module acq_conv_ctx #(
     wire [39:0] pre_route_ids = do_prepare ? sched_ids : acq_ids_q;
     wire        pre_route_en  = do_prepare | acq_valid_q;
 
+    // **pre 的数据必须来自冻结描述符**，不能直接取组合输入 `acq_pre_slot_i`。
+    //
+    // 反例（审查已 VCS 复现）：A 已受理后，`prepare_valid=0`（不再受理），
+    // 但上游把 word 从 0 改成 63 —— `acq_pre_slot_i` 是 dither_pre 对
+    // **当前 word** 的组合输出，于是物理 pre 从 0 变成 0xEF...
+    // 而 A 的冻结快照 `acq_pre_q` 仍是 0，两者不一致。
+    // 这就是"未被受理的输入改变了本笔物理预置"。
+    //
+    // 正确语义：
+    //   · prepare 被受理那一拍 -> 用当拍输入（这正是要被冻结的值）
+    //   · 其余时刻            -> 用已冻结的 acq_pre_q
+    wire [31:0] pre_route_data = do_prepare ? acq_pre_slot_i : acq_pre_q;
+
     logic [71:0] pre_state_c;
     logic [17:0] pre_wr_c;
     // 纯组合展开：每个物理片位的值 = 若该片号等于某个 slot 的冻结片号，
@@ -396,7 +423,7 @@ module acq_conv_ctx #(
                     if (pre_route_en) begin
                         for (int s = 0; s < 8; s++)
                             if (pre_route_ids[s*5 +: 5] == 5'(gp))
-                                v = acq_pre_slot_i[s*4 + gb];
+                                v = pre_route_data[s*4 + gb];
                     end
                 end
                 assign pre_state_c[gp*4 + gb] = v;

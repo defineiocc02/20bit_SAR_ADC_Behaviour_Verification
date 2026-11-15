@@ -4,6 +4,9 @@
 // 节点模型：模拟宏的替身，只在仿真侧
 rtl/v21/adc2_node_macro.sv
 
+// 三项审计反例的正式回归（对应 isscc9p8_audit_20261115）
+tb/v21/tb_audit3.sv
+
 tb/v21/tb_i1_two_sample.sv
 tb/v21/tb_i2_events.sv
 tb/v21/tb_i12_full.sv

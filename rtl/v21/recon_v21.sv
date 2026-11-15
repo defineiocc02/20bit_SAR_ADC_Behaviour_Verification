@@ -49,7 +49,12 @@ module recon_v21 (
     input  logic [63:0]  G_q30,          // 本笔 8 片主行和
     input  logic [63:0]  Wp_q30,         // 本笔采样 pre 的加权和
     input  logic [31:0]  alpha_q30,      // 增益校正（2^30 = 1.0 旁路）
-    input  logic signed [31:0] b_q24,    // 偏置
+    // 偏置：与节点宏同口径 **Q24 / 27 位有符号**。
+    // 早期写 32 位，而顶层传的是 27 位，综合报
+    // "Width mismatch on port 'b_q24'" 并卡在 WLM 优化阶段（实测）。
+    // 统一 27 位既符合 "24 位小数 + 2 位整数 + 1 位符号" 的推导，
+    // 也避免隐式截断/扩展带来的歧义。
+    input  logic signed [26:0] b_q24,    // 偏置（Q24，27 位）
     input  logic [7:0]   in_epoch,       // 本笔系数 epoch
     input  logic [31:0]  in_tag,
 
@@ -101,7 +106,9 @@ module recon_v21 (
     endfunction
 
     always_comb begin
-        yb = $signed({{32{b_q24[31]}}, b_q24});
+        // 27 位有符号 -> 64 位：高位补符号位（b_q24[26]），不是补 0。
+        // 补 0 会把负偏置变成巨大正数（同类坑在 I3 的 y_wide 位选上踩过）。
+        yb = {{37{b_q24[26]}}, b_q24};
         if (alpha_bypass)
             Z_q24 = Y_q24 - yb;
         else
@@ -125,6 +132,35 @@ module recon_v21 (
     logic signed [95:0] Q_wide;
     logic signed [95:0] unclipped;
 
+    // ---------------------------------------------------------------- 除常数 96（乘移位）
+    // ceil(2^98/3) = 0x1555555555555555555555556
+    localparam logic [96:0] MAGIC_3 = 97'h1555555555555555555555556;
+
+    function automatic logic signed [95:0] rnd96_const(
+            input logic signed [95:0] n);
+        logic         s;
+        logic [95:0]  a;
+        logic [192:0] prod;        // 96 + 97 = 193 位
+        logic [95:0]  q96, r96;
+        logic [95:0]  q;
+        logic [95:0]  two_r;
+        begin
+            s = n[95];
+            a = s ? (~n + 96'd1) : n;              // |n|
+
+            // a/96 = (a * MAGIC_3) >> 98 >> 5
+            // (a * MAGIC_3) 是 193 位；>>98 得 (a/3)，再 >>5 得 (a/96)。
+            // 合并为 >>103 一次完成，但为可读性分两步写。
+            prod = a * MAGIC_3;
+            q96  = (prod >> 98) >> 5;
+
+            r96  = a - q96 * 96'd96;               // 余数
+            two_r = r96 << 1;                      // 2*r
+            q    = q96 + ((two_r >= 96'd96) ? 96'd1 : 96'd0);
+            rnd96_const = s ? -q : q;
+        end
+    endfunction
+
     always_comb begin
         // I = RND(2^60, G)
         I_q60 = rnd64(64'sh1000000000000000, G_q30);
@@ -133,7 +169,18 @@ module recon_v21 (
         NI = N_wide * $signed({32'd0, I_q60});
         X_wide = NI >>> 36;
         // Q = RND(X, 96)
-        Q_wide = rnd64(X_wide, 96'sd96);
+        //
+        // **除数是常数 96，不能用通用除法器**。
+        // 96 = 3 * 32，所以 |X|/96 = (|X|/3) >> 5，
+        // 而 |X|/3 可用"乘魔数再右移"精确实现：
+        //   |X|/3 = (|X| * ceil(2^98/3)) >> 98
+        // 该式对 0 <= |X| < 2^96 全域精确（已用 20013 个边界+随机点验证，
+        // 含 |N|max=688402628608 与 2^96-1）。
+        //
+        // 这样把"96 位除以 96 位"的通用除法器换成
+        // "96 位乘 97 位常数 + 两次移位"，DC 的 DW_div 阵列从 3 组降到 2 组，
+        // 且剩下的两组也都是固定除数。
+        Q_wide = rnd96_const(X_wide);
         // unclipped = Q + 524288
         unclipped = Q_wide + 96'sd524288;
     end

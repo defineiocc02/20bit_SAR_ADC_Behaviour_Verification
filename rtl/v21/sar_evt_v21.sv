@@ -159,7 +159,19 @@ module sar_evt_v21 (
     wire can_apply = active_q & !err_q & !done_q & !abort_i & !start_i
                    & qid_ok & evt_ok & bit_ok & !k_over;
 
-    assign apply_fire_o = bit_valid_i & can_apply;
+    // ---------------------------------------------------------------- 拒绝 512 的那次不 apply
+    //
+    // 方案 §8.1："512 试探**不提交**；仍 7 次，实际多一次比较"。
+    //   · 多一次比较  -> 比较器确实工作了一次
+    //   · 不提交      -> **不写 RDAC**，apply_fire 必须为 0
+    //
+    // 审计反例（0977e14）：guard 路径先接受 Flash(448)，随后拒绝 512 阈，
+    // 旧实现让这次拒绝也 apply 了（applied=1、cmd=453），于是整笔写了 8 次
+    // 而不是 7 次 —— 虽然最终 k 仍然对（485），但物理开关多写一次，
+    // 在硅片上就是多一次无谓的 RDAC 转移。
+    wire guard_reject_th = guard_q & (exp_evt_q == 4'd2) & ~bit_i;
+
+    assign apply_fire_o = bit_valid_i & can_apply & ~guard_reject_th;
 
     // ---------------------------------------------------------------- 提交推进
     // 接受则保留候选（置位），拒绝则保留旧 prefix；两种都提交已决前缀。

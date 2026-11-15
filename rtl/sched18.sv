@@ -31,6 +31,13 @@ module sched18 (
     output logic [17:0] conv_mask_o,    // 本周期转换的 8 片（= 上周期 acq）
     output logic [17:0] idle_mask_o,    // 本周期空闲的 2 片
     output logic [39:0] ids_o,          // 本周期采集组，8×5 bit，按片号升序
+    // **下一周期**采集组的片号（adv 推进后的值）。
+    //
+    // 为什么需要：prepare 在 adv 那一拍被接受，而 acq_q 要到沿后才更新。
+    // 若描述符用 ids_o（沿前的 acq_q），冻结下来的就是**上一笔**的片号 ——
+    // 审计问题 1 的根因（acq_ids 与 conv_ids 拿到同一组 0x398A418820）。
+    // 描述符必须在 prepare 那一拍就拿到**本笔新分配**的片号，即 acq_next。
+    output logic [39:0] ids_next_o,
     output logic [31:0] rng_o
 );
 
@@ -140,6 +147,13 @@ module sched18 (
                 for (int i = 0; i < 18; i++) begin
                     if (acq_q[i] && (popc18(acq_q & ((18'd1 << i) - 18'd1)) == gii))
                         ids_o[gii*5 +: 5] = 5'(i);
+                end
+            end
+            always_comb begin
+                ids_next_o[gii*5 +: 5] = 5'd0;
+                for (int i = 0; i < 18; i++) begin
+                    if (acq_next[i] && (popc18(acq_next & ((18'd1 << i) - 18'd1)) == gii))
+                        ids_next_o[gii*5 +: 5] = 5'(i);
                 end
             end
         end

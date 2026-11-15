@@ -291,6 +291,9 @@ module tb_i3_full;
         // arm 现在的门槛含 wsum_valid（权重和已就绪），而 wsum 有 2 拍延迟，
         // 所以要多等几拍再检查。公共沿由测试台控制，时间充裕。
         repeat (4) @(negedge clk);
+        $display("      [arm] arm_o=%b arm_req=%b wsum_valid=%b final_appl=%b conv_valid=%b seen=%b",
+                 adc2_capture_arm_o, dut.adc2_arm_req, dut.wsum_valid,
+                 dut.final_applied_w, dut.conv_valid, dut.adc2_arm_seen_q);
         checks = checks + 1;
         if (adc2_capture_arm_o !== 1'b1)
             fail("A 的最后 apply 之后 arm 应为 1（沿前授权）");

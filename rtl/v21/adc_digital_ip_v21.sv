@@ -153,7 +153,7 @@ module adc_digital_ip_v21 (
     logic [31:0] acq_pre_slot;
     logic [39:0] acq_ids, conv_ids;
     logic        acq_valid, acq_sampled, conv_valid;
-    logic        prepare_fire, commit_fire, release_fire;
+    logic        prepare_fire, commit_fire, release_fire, sched_adv;
     logic [2:0]  conv_h, conv_v;
     logic        conv_half, conv_coin;
     logic [5:0]  conv_word;
@@ -187,7 +187,9 @@ module adc_digital_ip_v21 (
     sched18 u_sched (
         .clk(clk), .reset_n(rst_n),
         .seed_we(sched_seed_we), .seed_i(sched_seed),
-        .adv(commit_fire),          // 只在真正提交一笔时推进
+        // 用 sched_adv_o（= 任何被接受的 prepare），不是 commit_fire。
+        // 首笔时 commit_fire=0，sched18 不会推进（审计问题 1 的根因）。
+        .adv(sched_adv),
         .acq_mask_o(s18_acq), .conv_mask_o(s18_conv), .idle_mask_o(s18_idle),
         .ids_o(s18_ids), .rng_o(s18_rng));
 
@@ -226,6 +228,7 @@ module adc_digital_ip_v21 (
         .rdac_pre_state_o(rdac_pre_state_o), .pre_wr_o(pre_wr_o),
         .rdac_post_state_o(), .post_wr_o(),
         .prepare_fire_o(prepare_fire), .commit_fire_o(commit_fire),
+        .sched_adv_o(sched_adv),
         .release_fire_o(release_fire),
         .conv_tag_o(conv_tag), .conv_U_o(conv_U_w),
         .conv_pre_slot_o(conv_pre_slot));

@@ -445,9 +445,12 @@ module tb_i12_full;
             checks = checks + 1;
             // 阈被拒仍应"提交已决前缀 448"，所以 apply_fire=1、k 仍 453，
             // 但 prefix 不变、不产生"接受 512"的写入。
-            if (ev_applied !== 1'b1)
-                fail("阈被拒也应提交已决前缀（apply 应为 1）");
-            else $display("      阈被拒仍提交前缀  OK");
+            // 方案 §8.1："512 试探**不提交**" —— 所以这次**不能** apply，
+            // 物理写门必须关闭。旧断言写反了（要求 apply=1），
+            // 会在修好 RTL 后把正确行为判成错（实测）。
+            if (ev_applied !== 1'b0)
+                fail("阈被拒不应 apply（不得写 RDAC）");
+            else $display("      阈被拒不 apply（不写 RDAC）OK");
             checks = checks + 1;
             if (ev_k !== 10'd453)
                 fail($sformatf("阈被拒后 k=%0d 应仍为 453（448+5）", ev_k));
@@ -456,6 +459,10 @@ module tb_i12_full;
             if (dut.u_evt.prefix_q !== 10'd448)
                 fail($sformatf("阈被拒后 prefix=%0d 应仍为 448", dut.u_evt.prefix_q));
             else $display("      阈被拒 prefix 仍 448  OK");
+            // 写门必须为 0
+            checks = checks + 1;
+            if (post_wr !== 18'd0) fail("阈被拒时物理写门应为 0");
+            else $display("      阈被拒写门 = 0  OK");
             checks = checks + 1;
             if (dut.u_evt.guard_q !== 1'b0)
                 fail("阈被拒后应退出 guard");

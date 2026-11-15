@@ -16,9 +16,10 @@
 //       Wm = sum(final main/sub post-mask * physical weights)
 //       Wp = sum(sub-array sample pre-mask * physical weights)
 //
-//   * **j=19 不计入 Wm**：合同 §3.2 把 j=19 定义为"子阵列平衡/guard"，
-//     只为差分平衡存在、不贡献信号电荷。这条在 I3 阶段从
-//     "post 全 0x7FFFF 但 y=0.28125" 这对约束反解出来并验证过。
+//   * **j=19 计入 Wm（按实际 post 选通）**：j19 是真实电容（名义 1/128），
+//     只要 post 选中就进入 Wm。早前版本把它排除，理由是"平衡位不贡献信号"，
+//     那是错的 —— 定向向量 k=519(post 0x7FFFF, j19=0) -> raw=5120 与
+//     k=520(post 0xFFFFF, j19=1) -> raw=1024 同时成立，只有"计入"才解释得通。
 //     pre 的 4 位是 [2Cu,1Cu,1Cu,平衡]，末位同样不计入 Wp。
 //
 //   * 权重表：18 片 × 20 位，Q30。方案 §9.1 要求"18×20×44 = 15,840 bit，
@@ -83,7 +84,10 @@ module wsum_v21 (
                 for (int j = 0; j < 16; j++)
                     if (post[s*20 + j])
                         acc = acc + {24'd0, w_main_tbl[ids[s*5 +: 5]][j]};
-                for (int j = 0; j < 3; j++)          // j=16..18；j=19 平衡位不算
+                // 子阵列 4 位全算（含 j19 平衡位，名义 1/128）。
+                // 只要 post 选中就计入 Wm —— j19 是真实电容。
+                // 与节点宏（仿真边界）必须用同一张物理位表、同一口径。
+                for (int j = 0; j < 4; j++)
                     if (post[s*20 + 16 + j])
                         acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][j]};
             end

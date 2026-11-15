@@ -68,7 +68,8 @@ module acq_conv_ctx #(
     input  logic [17:0] sched_acq,
     input  logic [17:0] sched_conv,
     input  logic [17:0] sched_idle,
-    input  logic [39:0] sched_ids,
+    input  logic [39:0] sched_ids,       // 本拍（沿前）采集组片号
+    input  logic [39:0] sched_ids_next,  // adv 推进后的采集组片号
 
     output logic [17:0] acq_sel_o,
     output logic [17:0] conv_sel_o,
@@ -110,7 +111,17 @@ module acq_conv_ctx #(
 
     // ---------------------------------------------------------------- 观测
     output logic        prepare_fire_o,
-    output logic        commit_fire_o,     // 原 ACQ 进 CONV，可推进 sched18
+    output logic        commit_fire_o,     // 原 ACQ 进 CONV（仅用于事件层）
+    // **sched18 的推进信号**。
+    //
+    // 原来是 adv = commit_fire（= do_promote），只在 acq_can_promote 时成立。
+    // 但**首笔** A 的 prepare 时 ACQ 槽是空的（acq_slot_free=1），
+    // acq_can_promote=0，于是 adv=0 —— sched18 根本不推进。
+    // 结果 A/B 冻结成同一组片号（审计问题 1）。
+    //
+    // 正确语义：**每一笔被接受的 prepare 都占用一个新的采样周期**，
+    // 无论它是"填空槽"还是"顶替已采样的旧组"，都必须推进 sched18。
+    output logic        sched_adv_o,
     output logic        release_fire_o,
     output logic [31:0] conv_tag_o,
     output logic [2:0]  conv_U_o,
@@ -164,6 +175,7 @@ module acq_conv_ctx #(
 
     // commit_fire：把已采样的 ACQ 提升为 CONV（用于推进 sched18）
     assign commit_fire_o = do_promote;
+    assign sched_adv_o   = do_prepare;    // 任何被接受的 prepare 都推进
 
     // 释放资格
     wire conv_release_ok = conv_valid_q & conv_captured_q & conv_held_q
@@ -246,6 +258,17 @@ module acq_conv_ctx #(
                     quiet_cnt_q     <= 4'd0;
                 end
                 // 装新 ACQ（用本拍 sched_ids 作为它的冻结片号）
+                // 冻结**沿前**的采集组片号（= sched18 推进前的 acq_q）。
+                //
+                // 为什么不是 sched_ids_next：sched18 的语义是
+                //   adv 时 conv_q <= acq_q;  acq_q <= acq_next
+                // 也就是"本拍被采样的组"就是沿前的 acq_q。
+                // 用 next 会让本笔拿到**下一笔**的片组（实测 A 变成
+                // 0x8C1ED62D48 而不是 0x000FF）。
+                //
+                // 审计问题 1 的真因不在取沿前/沿后，而在
+                // **commit_fire 让 sched18 提前推进**：A 的 prepare 已经把
+                // acq_q 推到 B 组，于是 B 的 prepare 读到的是 A 推进后的值。
                 acq_ids_q     <= sched_ids;
                 acq_tag_q     <= prepare_tag;
                 // 冻结本笔的 slot 级 pre（由 dither_pre 按本拍 word/v_pre 给出）。
@@ -341,7 +364,23 @@ module acq_conv_ctx #(
                       & ~((conv_valid_q & ~release_fire_o) ? conv_hold_mask : 18'd0);
 
     // ---------------------------------------------------------------- 物理路由
-    // 按**冻结的** acq_ids 把 slot 级 pre 展开到物理 18 片。
+    //
+    // **pre 必须打到"本拍正在建立的那一笔"的片号**，不是 acq_ids_q。
+    //
+    // 踩过的坑（审计问题 1）：原来 pre 用 acq_ids_q + acq_valid_q。
+    // 但在 prepare 那一拍，acq_ids_q 还是**上一笔（A）**的片号
+    // （非阻塞赋值要到沿后才更新），于是：
+    //   acq_sel = 0x3BD00（B 的新片，sched18 已更新）
+    //   pre_wr  = 0x000FF（A 的旧片）   <- 打错地方
+    //   post_wr = 0x000FF（A 的片，正确）
+    //   两者交集 = 0x000FF，即同一组片同时被 pre 和 post 写。
+    //
+    // 正确语义：prepare 被接受的那一拍，新 ACQ 描述符的内容就是
+    // `sched_ids` / `prepare_*`（这些正是要被冻结进描述符的值），
+    // 所以 pre 应当按它们路由；其余时刻按已冻结的 acq_ids_q 路由。
+    wire [39:0] pre_route_ids = do_prepare ? sched_ids : acq_ids_q;
+    wire        pre_route_en  = do_prepare | acq_valid_q;
+
     logic [71:0] pre_state_c;
     logic [17:0] pre_wr_c;
     // 纯组合展开：每个物理片位的值 = 若该片号等于某个 slot 的冻结片号，
@@ -354,9 +393,9 @@ module acq_conv_ctx #(
                 logic v;
                 always_comb begin
                     v = 1'b0;
-                    if (acq_valid_q) begin
+                    if (pre_route_en) begin
                         for (int s = 0; s < 8; s++)
-                            if (acq_ids_q[s*5 +: 5] == 5'(gp))
+                            if (pre_route_ids[s*5 +: 5] == 5'(gp))
                                 v = acq_pre_slot_i[s*4 + gb];
                     end
                 end
@@ -370,9 +409,9 @@ module acq_conv_ctx #(
             logic w;
             always_comb begin
                 w = 1'b0;
-                if (acq_valid_q)
+                if (pre_route_en)
                     for (int s = 0; s < 8; s++)
-                        if (acq_ids_q[s*5 +: 5] == 5'(gp)) w = 1'b1;
+                        if (pre_route_ids[s*5 +: 5] == 5'(gp)) w = 1'b1;
             end
             assign pre_wr_c[gp] = w;
         end

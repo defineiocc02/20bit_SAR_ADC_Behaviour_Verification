@@ -34,7 +34,14 @@ module recip_q60 (
     input  logic        valid_i,
     input  logic [43:0] g_q30,          // G = Σ_{8 片} Σ_{16 主列} w
     output logic        valid_o,
-    output logic [26:0] inv_q60,        // floor(2^60/G)
+    output logic [26:0] inv_q60,        // floor(2^60/G)（最多差 1）
+    // **与 inv_q60 同笔的 G**。
+    // 为什么需要它：下游修正级必须用"产生这个 inv 的那个 G"去算余数。
+    // 从模块外部按固定拍数对齐极易出错（本轮就错了三次：
+    // 直接用当前 g / 用 2 级 g_d2 / 用 1 级 g_d1 都不对，因为探针观察
+    // 与真实相位受非阻塞赋值影响）。由内部把 G 与 inv 一起寄存，
+    // 下游直接用即可，不再依赖任何外部对齐假设。
+    output logic [43:0] g_q30_o,
     output logic        err_o           // G = 0（合同违例，不静默输出错值）
 );
 
@@ -153,11 +160,24 @@ module recip_q60 (
         else              inv_c = 27'(u2u << (6'd31 - b_r));
     end
 
+    // g 的两级延迟，与 v1/v2 完全同步
+    logic [43:0] g_s1, g_s2;
+
     logic v2, g0_d, ovf_d;
     always_ff @(posedge clk or negedge reset_n) begin
         if (!reset_n) begin
             v2 <= 1'b0; g0_d <= 1'b0; ovf_d <= 1'b0; inv_q60 <= 27'd0;
+            g_s1 <= 44'd0; g_s2 <= 44'd0;
         end else begin
+            g_s1    <= g_q30;
+            g_s2    <= g_s1;
+            // **g_q30_o 必须与 inv_q60 同一拍就绪**。
+            // inv_q60 在 v2 那一拍更新，而 v2 <= v1 <= valid_i，
+            // 即 inv 对应的是 2 拍前采入的 g_q30。
+            // g_s1 在 v1 那拍就是 g_q30(T-1)，到 v2 那拍已是 g_q30(T-2)…
+            // 实测用 g_s2 会多一拍（i=0/err=1 出现在第 4 笔），
+            // 正确取 **g_s1**（它在 v2 那一拍正好是 2 拍前的 g）。
+            g_q30_o <= g_s1;
             v2      <= v1;
             g0_d    <= g0_r;
             // 输入合同：G ≥ 2^34（b ≥ 35）才保证 inv < 2^27；

@@ -17,13 +17,18 @@ module tb_recip_q60;
     logic        valid_i = 1'b0;
     logic [43:0] g_i = 44'd0;
     logic        valid_o;
+    logic [43:0] g_aligned;
     logic [26:0] inv_o;
     logic        err_o;
 
     recip_q60 dut (
         .clk(clk), .reset_n(rstn),
         .valid_i(valid_i), .g_q30(g_i),
-        .valid_o(valid_o), .inv_q60(inv_o), .err_o(err_o));
+        .valid_o(valid_o), .inv_q60(inv_o),
+        // recip_q60 新增的"与 inv 同笔的 G"输出（供下游修正级对齐用）。
+        // 本 TB 不核对该口，接出来避免悬空告警。
+        .g_q30_o(g_aligned),
+        .err_o(err_o));
 
     longint exp_q [$];
     int errors = 0;

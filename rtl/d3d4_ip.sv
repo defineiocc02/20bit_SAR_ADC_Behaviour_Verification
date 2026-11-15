@@ -336,6 +336,21 @@ module d3d4_ip (
     );
 
     // ---------------------------------------------------------------- 输出寄存
+    //
+    // 输出使能必须同时覆盖两种模式，否则 follower 的"边产生边载入"
+    // 只体现在 k_ev_o 上，而不体现在 mask_o（RDAC 开关命令）上。
+    //
+    // 踩过的坑：最初只写 `valid_i && ready_o`。整码模式下正确，
+    // 但事件流模式下 valid_i 恒为 0 —— mask_o 永远不更新，
+    // follower 逐事件算出的 k 根本没有传导到 RDAC 开关。
+    // 表面看 TB 能过（因为 TB 只比 k_ev_o），实际功能是断的。
+    //
+    // 事件流模式下每个**有效事件**都对应一次 RDAC 更新（论文说的
+    // "loaded as they develop"），所以使能应当是 ev_bit_valid_i 有效时。
+    logic out_en;
+    assign out_en = ev_mode_i ? (ev_bit_valid_i & reset_n)
+                              : (valid_i & ready_o);
+
     // 三个结果寄存器在同一个 always_ff 里，保证严格同拍。
     // 不用 generate 展开，是为了让"全部输出同一沿更新"这件事在源码上一眼可见。
     always_ff @(posedge clk or negedge reset_n) begin
@@ -347,7 +362,7 @@ module d3d4_ip (
             reserved_o <= '0;
             h_phase_o  <= '0;
             v_phase_o  <= '0;
-        end else if (valid_i && ready_o) begin
+        end else if (out_en) begin
             mask_o     <= mask_c;
             pre_o      <= pre_c;
             // U 与 f 直接从 dither 字派生，口径与 dither_pre 内部一致：

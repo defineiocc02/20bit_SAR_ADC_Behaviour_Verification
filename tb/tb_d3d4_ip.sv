@@ -189,6 +189,10 @@ module tb_d3d4_ip;
         begin
             int  prev_k;
             int  grew;
+            logic [159:0] prev_mask;
+            int  n_mask_changed;
+            n_mask_changed = 0;
+            prev_mask = 160'd0;
             prev_k = -1;
             grew   = 0;
 
@@ -215,12 +219,27 @@ module tb_d3d4_ip;
                 if (ev_valid_o !== 1'b1)
                     fail($sformatf("follower 事件 %0d 未产出 ev_valid_o", i));
                 if (prev_k >= 0 && int'(k_ev_o) > prev_k) grew = grew + 1;
+                // 每次都比较，包括第 0 个事件后（此时 mask 从复位态变为事件值，
+                // 这本身就是一次有效更新）。原先加了 `prev_mask !== 0` 的守卫，
+                // 把第一次变化跳过了，导致只数到 7/8，是我 TB 的计数 bug。
+                if (i > 0 && mask_o !== prev_mask) n_mask_changed = n_mask_changed + 1;
+                prev_mask = mask_o;
                 $display("      follower ev%0d: idx=%0d k_ev=%0d (prev=%0d)",
                          i, 8 - i, k_ev_o, prev_k);
                 prev_k = int'(k_ev_o);
             end
             @(negedge clk);
             if (ev_done_o !== 1'b1) fail("follower 第 9 事件后 ev_done_o 未置位");
+            // 关键补充：mask_o 必须也随事件变化。
+            // 只比 k_ev_o 是不够的 —— k_ev_o 增长不代表 RDAC 开关命令更新了。
+            // 这条是"边产生边载入"落到 mask 上的证据。
+            if (n_mask_changed < 8)
+                fail($sformatf("mask_o only changed %0d/8 times: k not reaching RDAC switches",
+                               n_mask_changed));
+            else
+                $display("      follower: mask_o 随事件变化 %0d/8 次 -> RDAC 开关逐事件更新成立",
+                         n_mask_changed);
+
             // 8 次比较中应当全部增长（9 个事件产生 8 次递增）
             if (grew != 8)
                 fail($sformatf("follower k 未逐事件累加：只增长 %0d/8 次，" +

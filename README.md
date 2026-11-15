@@ -66,7 +66,7 @@ bash tools/verify_d3d4_ip.sh
 
 | 项 | 值 |
 |:---|:---|
-| 面积 | 1763.61 µm²（3048 cells，322 FF） |
+| 面积 | 1769.59 µm²（3016 cells，322 FF） |
 | 逻辑级数 / 关键路径 | **40 级 / 2.82 ns**（换 round-robin 前是 146 级 / 7.91 ns） |
 | 25 ns 下 setup | +19.88 ns |
 | 25 ns 下 hold | +0.0017 ns —— **不构成签核结论**，见 SYNTH_D3D4.md §4 |

@@ -34,6 +34,7 @@ module tb_d3d4_ip;
     logic [3:0]  ev_idx_i=0;
     logic [2:0]  ev_flash=0, ev_up=0;
     logic        ev_valid_o, ev_done_o, ev_err_o, ev_proto_err_o;
+    logic        k_range_err_o;
     logic [8:0]  k_ev_o;
 
     d3d4_ip dut (
@@ -49,7 +50,8 @@ module tb_d3d4_ip;
         .ev_sar_index_i(ev_idx_i), .ev_sar_qid_i(ev_qid),
         .ev_flash_code_i(ev_flash), .ev_upper_i(ev_up),
         .ev_valid_o(ev_valid_o), .k_ev_o(k_ev_o), .ev_done_o(ev_done_o),
-        .ev_err_o(ev_err_o), .ev_proto_err_o(ev_proto_err_o));
+        .ev_err_o(ev_err_o), .ev_proto_err_o(ev_proto_err_o),
+        .k_range_err_o(k_range_err_o));
 
     int errors = 0;
     int checked = 0;
@@ -181,6 +183,40 @@ module tb_d3d4_ip;
         ncov = 0;
         for (int q = 0; q < 1920; q++) if (covered[q]) ncov = ncov + 1;
         $display("三轴覆盖: %0d/1920", ncov);
+
+        // ---- k 范围负向测试 ----
+        // 合同要求"超过表达范围必须报错，不做模512回绕或静默夹紧"。
+        // 判据：0..520 全部不报错；521 起必须报错。
+        begin
+            int bad_cnt;
+            bad_cnt = 0;
+            for (int kk = 0; kk <= 520; kk++) begin
+                @(negedge clk);
+                valid_i = 1'b1; k_i = 10'(kk);
+                @(negedge clk);
+                valid_i = 1'b0;
+                if (k_range_err_o !== 1'b0) bad_cnt = bad_cnt + 1;
+            end
+            if (bad_cnt != 0)
+                fail($sformatf("k=0..520 中有 %0d 个被误报越界", bad_cnt));
+
+            // 越界必须报错
+            bad_cnt = 0;
+            for (int kk = 521; kk <= 1023; kk++) begin
+                @(negedge clk);
+                valid_i = 1'b1; k_i = 10'(kk);
+                @(negedge clk);
+                valid_i = 1'b0;
+                if (k_range_err_o !== 1'b1) bad_cnt = bad_cnt + 1;
+            end
+            if (bad_cnt != 0)
+                fail($sformatf("k=521..1023 中有 %0d 个未报越界（静默产生 mask）", bad_cnt));
+            else
+                $display("      k_range: 0..520 无报错, 521..1023 全报错 -> 符合合同");
+
+            // 越界时 mask 不应被使用：这里只检查标志，mask 内容不作判据
+            // （合同说"报错"而不是"输出一个特定 mask"，所以不对 mask 内容设判据）
+        end
 
         // ---- follower 事件流专项：验证"边产生边载入" ----
         // 判据：k_ev_o 必须随每个事件**单调累加**，而不是到最后才跳变。

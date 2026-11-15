@@ -107,7 +107,20 @@ module d3d4_ip (
     output logic [8:0]  k_ev_o,        // 该事件对应的 RDAC 码（follower 累加值）
     output logic        ev_done_o,     // 第 9 个事件已产出（事务完成）
     output logic        ev_err_o,      // prefix < upper（不回绕）
-    output logic        ev_proto_err_o // 位序/重复/缺位/qid 协议违例
+    output logic        ev_proto_err_o,// 位序/重复/缺位/qid 协议违例
+
+    // ---- 输出合法性标志（数字 IP 的对外合同）----
+    //
+    // 合同 docs/ISSCC2024_ONCHIP_CONTRACT_v2.md:130 原文：
+    //   "RDAC 普通范围 0..511；512..519 采用 8x8 宏单元全部选中加子阵列 0..7；
+    //    520 使用子阵列 4+2+1+1 全部选中。guard 码也有明确开关表。
+    //    **超过合同表达范围必须报错，不做模512回绕或静默夹紧。**"
+    //
+    // 这意味着 k 落在 0..520 之外时，IP 必须给出可观测的错误，
+    // 而不是静默产生一个看起来合法、实则无意义的 mask。
+    // 在补这个端口之前，k=521/600/1023 都会静默返回"全 1" mask，
+    // 与合法的 k=520 完全无法区分 —— 这是可综合性上的真实缺陷，不是文档问题。
+    output logic        k_range_err_o  // 1 = k 超出合同表达范围，mask_o 不可用
 );
 
     // 本 IP 无内部反压：只要不在复位就绪。
@@ -317,6 +330,10 @@ module d3d4_ip (
     // 不静默扩展 follower 位宽（那会改变已通过 6246 事件回归的行为）。
     logic [9:0] k_use;
     assign k_use = ev_mode_i ? {1'b0, k_ev_w} : k_i;
+
+    // k 范围检查：合同表达范围 0..520（0..511 普通 + 512..520 guard）。
+    // 用"超界"而不是"回绕/夹紧"，因为合同明确禁止模 512 回绕或静默夹紧。
+    assign k_range_err_o = (k_use > 10'd520);
 
     dem_mask_v3 u_dem (
         .k_i        (k_use),

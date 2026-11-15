@@ -34,7 +34,11 @@ def RND(n: int, d: int) -> int:
 def recon(raw: int, Wm: int, G: int, Wp: int,
           alpha: int = Q30, b: int = 0) -> tuple[int, int, int]:
     """返回 (code, sat, err)。"""
-    bad = (G == 0) or (alpha == 0)
+    # 方案 §9.2 的合法域：0.5 <= alpha <= 2，即 alpha_q30 in [2^29, 2^31]。
+    # alpha 越小，Z = RND((Y-b)*2^30, alpha) 越大，会突破 |X| < 2^31 的界，
+    # 使 32 位 RND 溢出。所以这里把域外值判为 err（与 G=0 同等处理），
+    # 而不是生成一个硬件无法表达的向量。
+    bad = (G == 0) or (alpha < (Q30 // 2)) or (alpha > (2 * Q30))
     if bad:
         return 0, 0, 1
 
@@ -85,6 +89,7 @@ def main() -> int:
         rows.append((f"edge{raw}", raw, Wm_B, G_nom, Wp_B, Q30, 0))
 
     # ---- alpha 与 b 的边界 ----
+    # 合法域边界 + 域外（1 应被拒）
     for alpha in (Q30, Q30 // 2, Q30 * 2, 1):
         rows.append((f"alpha{alpha}", 4096, Wm_A, G_nom, Wp_A, alpha, 0))
     for b in (0, 1, -1, 1 << 20, -(1 << 20)):

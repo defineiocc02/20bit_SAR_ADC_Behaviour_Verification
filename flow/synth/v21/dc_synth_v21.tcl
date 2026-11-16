@@ -44,6 +44,12 @@ set RTL {
   /tmp/ip/rtl/v21/recon_v21.sv
   /tmp/ip/rtl/v21/adc_digital_ip_v21.sv
 }
+# **必须生成 SVF**：DC 会做极性变换（用 DFCNQD1 反相输出触发器）、
+# 寄存器合并、常量传播等优化，Formality 需要 SVF 才能复现这些操作。
+# 没有 SVF 时静默失配：本轮实测 20 个 failing compare point，
+# 全部集中在用了 DFCNQD1 的寄存器上（quiet_cnt_q / conv_valid_q 等）。
+set_svf $OUT/${DESIGN}.svf
+
 foreach f $RTL { analyze -format sverilog $f }
 elaborate $DESIGN
 current_design $DESIGN
@@ -58,8 +64,19 @@ set_clock_transition 0.10 [get_clocks clk]
 set_driving_cell -lib_cell BUF_X2 -pin Z \
     [remove_from_collection [all_inputs] [get_ports clk]]
 set_load 0.05 [all_outputs]
-set_false_path -from [get_ports rst_n] -to [all_registers]
-set_false_path -from [all_registers] -to [get_ports rst_n]
+# **不要给异步复位加 false_path**。
+#
+# 踩过的坑：原来写的是
+#     set_false_path -from [get_ports rst_n] -to [all_registers]
+#     set_false_path -from [all_registers]  -to [get_ports rst_n]
+# 意图是"复位不走时钟"，但实际效果是 DC 认为复位路径不关心时序，
+# 于是对异步复位寄存器做了激进重构（复位网络重连、部分寄存器改同步复位），
+# 导致 Formality 报 20 个 failing compare point，全部集中在 u_ctx
+# （quiet_cnt_q / conv_valid_q / acq_tag_q 等）。
+#
+# 正确做法：异步复位的时序由库单元自身保证，不需要 false_path；
+# 若要豁免跨时钟检查，用 set_untimed_path 或只对复位网络设 ideal。
+# 这里直接删掉这两条，让复位网络保持原样。
 
 # ---- 综合 ----
 # ---------------------------------------------------------------- 层次对照实验

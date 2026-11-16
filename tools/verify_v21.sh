@@ -41,6 +41,7 @@ TESTS=(
   "tb/tb_recip_q60.sv|srecip|PASS (43766 inverses bit-exact"
   "tb/v21/tb_recip_rnd.sv|srnd|PASS (20817 RND(2^60,G) bit-exact)"
   "tb/v21/tb_analog_if.sv|saif|SUMMARY checks=54 failures=0"
+  "tb/v21/tb_cfg_lifecycle.sv|scl|PASS (40 checks)"
 )
 
 fail=0
@@ -51,7 +52,7 @@ run "rm -rf $WORK && mkdir -p $WORK/rtl/v21 $WORK/tb/v21 $WORK/tools" || { echo 
 # 逐个文件传：tar 在 macOS->Linux 上会带 xattr 头，且扁平化路径，
 # 实测导致叶子源文件没落到预期位置（编译报 "Source file cannot be opened"）。
 # 用 scp/cp 逐个复制最可靠。
-FILES="$SRC rtl/recip_q60.sv rtl/v21/recip_rnd_v21.sv tb/v21/tb_analog_if.sv \
+FILES="$SRC rtl/recip_q60.sv rtl/v21/recip_rnd_v21.sv tb/v21/tb_analog_if.sv tb/v21/tb_cfg_lifecycle.sv \
 tb/v21/tb_e2e_decl.svh tb/v21/tb_e2e_body.svh \
 tb/tb_recip_q60.sv tb/vec_r18_recip.txt \
 tb/v21/tb_recip_rnd.sv tb/v21/vec_recip_rnd.txt \
@@ -80,6 +81,8 @@ for t in "${TESTS[@]}"; do
       SRC_USE="rtl/recip_q60.sv rtl/v21/recip_rnd_v21.sv" ;;
     tb_analog_if.sv)
       SRC_USE="$SRC_REL" ;;
+    tb_cfg_lifecycle.sv)
+      SRC_USE="rtl/v21/wsum_v21.sv" ;;
     *) SRC_USE="$SRC_REL" ;;
   esac
   run "$SETUP; cd $WORK && vcs -full64 -sverilog -timescale=1ns/1ps $SRC_USE $f -o $bin > ${bin}_c.log 2>&1" \
@@ -125,7 +128,7 @@ echo "  [C] VC Formal 属性证明                 未完成（不计入通过�
 
 echo
 if [ "$fail" -eq 0 ]; then
-  echo "全部通过：8 项 RTL 回归 + [A] 数学证明 + [B] 生产 RTL 检查"
+  echo "全部通过：9 项 RTL 回归 + [A] 数学证明 + [B] 生产 RTL 检查"
   echo "注意：[C] 工具形式化未完成，本入口不声称已形式化验证。"
 else
   echo "存在失败项，见上"

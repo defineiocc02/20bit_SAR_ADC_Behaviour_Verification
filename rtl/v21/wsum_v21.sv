@@ -69,6 +69,12 @@ module wsum_v21 (
     input  logic [4:0]   cfg_sid,       // 0..17
     input  logic [4:0]   cfg_idx,       // 主 0..15 / 子 0..3
     input  logic [39:0]  cfg_data,
+    // 生命周期控制（见 docs/v21/CONFIG_CONTRACT.md §2–§3）
+    input  logic         cfg_commit,     // 原子生效请求
+    input  logic         cfg_reload,     // 重新配置请求（须已排空）
+    output logic         cfg_valid,      // 已生效且锁写
+    output logic         cfg_busy,       // 装载中
+    output logic         cfg_range_err,  // 子权重超范围被拒绝
 
     // ---------------------------------------------------------------- 结果
     output logic         sum_valid,
@@ -89,17 +95,79 @@ module wsum_v21 (
     logic [39:0] wt_main [0:17][0:15];
     logic [39:0] wt_sub  [0:17][0:3];
 
-    // 写口：一次写一个 40 位字。
-    // cfg_sid > 17 或 cfg_idx 越界时不写（避免越界访问被综合展开成 MUX）。
-    wire cfg_ok = cfg_we & (cfg_sid <= 5'd17)
-                & (cfg_sel ? (cfg_idx <= 5'd3) : (cfg_idx <= 5'd15));
+    // ---------------------------------------------------------------- 配置生命周期
+    //
+    // 三态：IDLE（无效）-> LOADING（装载中）-> ACTIVE（生效并锁写）。
+    // 重配：reload 把状态打回 IDLE 并清 written；commit 校验 written 全 1。
+    // 详见 docs/v21/CONFIG_CONTRACT.md。
+    //
+    // **数据阵列不复位**（14,400 bit 加复位会把规模拉回去），
+    // 但 written/locked/state 这些**控制状态必须有复位值** ——
+    // 否则上电后 written 是 X，完整性判定无意义。
+    logic [359:0] written_q;   // 每个字是否写过（位图，不是计数器）
+    logic         locked_q;
+    logic [1:0]   state_q;     // 0=IDLE 1=LOADING 2=ACTIVE
 
-    always_ff @(posedge clk) begin
-        if (cfg_ok) begin
-            if (cfg_sel) wt_sub[cfg_sid][cfg_idx[1:0]] <= cfg_data;
-            else         wt_main[cfg_sid][cfg_idx[3:0]] <= cfg_data;
+    localparam logic [1:0] ST_IDLE    = 2'd0,
+                          ST_LOADING = 2'd1,
+                          ST_ACTIVE  = 2'd2;
+
+    // 子权重工程上界（CONFIG_CONTRACT §6）
+    localparam logic [39:0] SUB_MAX = 40'd32 * 40'd4 * 40'd1073741824;
+
+    // 地址合法
+    wire addr_ok = (cfg_sid <= 5'd17)
+                 & (cfg_sel ? (cfg_idx <= 5'd3) : (cfg_idx <= 5'd15));
+    // 子权重范围检查：只在 sel=1 时对数据检查
+    wire data_ok = cfg_sel ? (cfg_data <= SUB_MAX) : 1'b1;
+
+    // **最后一字与 commit 同拍必须拒绝**（CONFIG_CONTRACT §4）。
+    // 判据：commit 有效且 written 当前不是全 1（即这一拍还在写最后一个字）。
+    wire written_all = &written_q;
+
+    // 写资格：未锁写 + 地址合法 + 数据合法
+    wire cfg_wr = cfg_we & ~locked_q & addr_ok & data_ok;
+
+    // 该地址的位图索引
+    wire [8:0] widx = cfg_sel ? (9'd288 + {4'd0, cfg_sid} * 9'd4  + {7'd0, cfg_idx[1:0]})
+                              : (           {4'd0, cfg_sid} * 9'd16 + {5'd0, cfg_idx[3:0]});
+
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            written_q <= 360'd0;
+            locked_q  <= 1'b0;
+            state_q   <= ST_IDLE;
+            cfg_range_err <= 1'b0;
+        end else if (cfg_reload) begin
+            // 重配入口：清 written、失效、回 IDLE
+            written_q     <= 360'd0;
+            locked_q      <= 1'b0;
+            state_q       <= ST_IDLE;
+            cfg_range_err <= 1'b0;
+        end else begin
+            // 非法数据：置错误标志，但**不置 written**
+            if (cfg_we & ~locked_q & addr_ok & ~data_ok)
+                cfg_range_err <= 1'b1;
+
+            // 正常写：只置位图，不增计数（重复写同一地址仍是这一位）
+            if (cfg_wr) begin
+                written_q[widx] <= 1'b1;
+                if (cfg_sel) wt_sub[cfg_sid][cfg_idx[1:0]] <= cfg_data;
+                else         wt_main[cfg_sid][cfg_idx[3:0]] <= cfg_data;
+            end
+
+            // commit：必须 written 已全 1（挡住"最后一字与 commit 同拍"）
+            if (cfg_commit & ~locked_q & written_all) begin
+                locked_q <= 1'b1;
+                state_q  <= ST_ACTIVE;
+            end else if (!locked_q) begin
+                state_q <= written_all ? ST_LOADING : (written_q == 360'd0 ? ST_IDLE : ST_LOADING);
+            end
         end
     end
+
+    assign cfg_valid = locked_q;
+    assign cfg_busy  = ~locked_q & (written_q != 360'd0);
 
     // ---------------------------------------------------------------- 求和函数
     //

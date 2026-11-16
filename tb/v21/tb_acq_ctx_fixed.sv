@@ -48,7 +48,10 @@ module tb_acq_ctx_fixed;
   logic [2:0] conv_U_o;
   logic [31:0] conv_pre_slot_o;
 
+  // ctx 的受理门禁需要 cfg_valid；本测试只验控制反例，直接给 1。
+  logic cfg_valid_1 = 1'b1;
   acq_conv_ctx dut (
+    .cfg_valid(cfg_valid_1),
     .clk(clk), .rst_n(reset_n),
     .prepare_valid(prepare_valid), .prepare_ready(prepare_ready),
     .prepare_tag(prepare_tag), .prepare_word(prepare_word),

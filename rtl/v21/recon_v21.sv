@@ -101,12 +101,29 @@ module recon_v21 (
     //   -> X = 96 -> Q = 1 -> code 0x80001（应 0x80002）
     //   实测错值逐位吻合这条推导。
     wire alpha_bypass = (alpha1a_q == 32'd1073741824);   // 2^30，用锁存值
-    wire bad_g        = (G_q30 == 64'd0);
+    // ---------------------------------------------------------------- 范围检查
+    //
+    // **必须检查完整 64 位 G，再允许截 44 位**。
+    // 反例（外部审计 R2，可独立复算）：G = 2^34 + 2^44 由 128 个
+    // (2^37+2^27) 主权重构造，均在 40 位容器内；截 44 位后别名成合法的 2^34，
+    // 倒数侧的范围检查无法代表原始 64 位 G 已通过。
+    //
+    // 工程 profile（CONFIG_CONTRACT §6，非论文披露值）：
+    //   Smax = 32*4*2^30;  Wp <= Smax;  Wm <= G + Smax
+    //   16*2^30 <= G <= 64*2^30
+    localparam logic [63:0] G_LO   = 64'd16  * 64'd1073741824;   // 16*2^30
+    localparam logic [63:0] G_HI   = 64'd64  * 64'd1073741824;   // 64*2^30
+    localparam logic [63:0] S_MAX  = 64'd32 * 64'd4 * 64'd1073741824;
+
+    wire bad_g        = (G_q30 < G_LO) || (G_q30 > G_HI);
+    wire bad_wp       = (Wp_q30 > S_MAX);
+    wire bad_wm       = (Wm_q30 > (G_q30 + S_MAX));
+
     // alpha 合法域：0.5 <= alpha <= 2（方案 §9.2），即 [2^29, 2^31]。
     // 域外值会让 Z 过大、突破 |X| < 2^31，使 32 位 RND 溢出。
     wire bad_alpha    = (alpha_q30 < 32'd536870912) || (alpha_q30 > 32'd2147483648);
     wire bad_epoch    = (in_epoch != cfg_epoch);
-    wire input_err    = bad_g | bad_alpha | bad_epoch;
+    wire input_err    = bad_g | bad_alpha | bad_epoch | bad_wp | bad_wm;
 
     // ---------------------------------------------------------------- 函数
     // RND(n,d)：符号对称最近舍入，恰半离零（方案 §9.3）
@@ -353,7 +370,7 @@ module recon_v21 (
         end else begin
             v3_q   <= v2_q;
             tag3_q <= tag2_q;
-            err3_q <= err2_q;
+            err3_q <= err2_q | (|x3_q[95:31]);   // X 溢出：|X|>=2^31 时 32 位截断失真
             if (v2_q)
                 // X = floor(N*I / 2^36)；算术右移即 floor
                 x3_q <= (n2_q * $signed({32'd0, i2_q})) >>> 36;
@@ -373,7 +390,7 @@ module recon_v21 (
             if (v3_q) begin
                 logic signed [31:0] x32, q32;
                 logic signed [95:0] qw, uncl;
-                out_err <= err3_q;
+                out_err <= err3_q;   // 已含 bad_x（S3 并入）
                 out_tag <= tag3_q;
                 if (err3_q) begin
                     // 合同违例：不出结果，但保留 tag 供追溯

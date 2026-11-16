@@ -74,9 +74,17 @@
         // 位序 [s][j][b] 字典序、MSB 先）。两者逐位等价，只是表达形态不同。
         // 门级的整段常量放在 tb_gate_auto.sv 里（生成器按网表端口顺序产出），
         // 这里用 `E2E_GATE 跳过；若有人把它删掉，diff 会立刻暴露为全表差异。
+        repeat (3) @(negedge clk);
+        rst_n = 1'b1;
+        @(negedge clk);
+
+        // ==================== 权重配置：装表 -> commit ====================
+        //
+        // **必须在复位释放之后灌表**（CONFIG_CONTRACT §8）。
+        // 若在 rst_n=0 期间写，written_q 每拍被复位清零，
+        // 完整性位图永远记不到 360/360，commit 必然失败、cfg_valid 恒 0、
+        // 内部受理被门禁挡住 —— 实测就是这样，全部交易发不出去。
 `ifndef E2E_GATE
-        // 通过配置口灌入 18 片 × 20 个字（16 主 + 4 子）= 360 个字。
-        // 每个字占一拍：cfg_we=1 的那拍把 cfg_data 写进 wsum 内部寄存器堆。
         for (int s = 0; s < 18; s++) begin
             for (int j = 0; j < 16; j++)
                 wt_write(1'b0, 5'(s), 5'(j), 40'd268435456);
@@ -85,10 +93,8 @@
             wt_write(1'b1, 5'(s), 5'd2, 40'd8388608);
             wt_write(1'b1, 5'(s), 5'd3, 40'd8388608);
         end
+        wt_commit();
 `endif
-
-        repeat (3) @(negedge clk);
-        rst_n = 1'b1;
         @(negedge clk);
         sched_seed_we = 1'b0;
         #1;
@@ -306,6 +312,11 @@
         @(negedge clk);
         #1;
         rst_n = 1'b0; @(negedge clk); #1; rst_n = 1'b1; @(negedge clk); #1;
+        // **复位后必须重装配置**：written_q 被复位清零，cfg_valid 失效，
+        // 不重装的话内部受理被门禁挡住（实测越窗用例发不出去）。
+`ifndef E2E_GATE
+        wt_install_nominal();
+`endif
         vin_q24 = -27'sd50331648;   // -3.0 V，必然越窗
         do_prepare(32'hD4, 6'd63, 3'd0, 3'd3, 1'b0, 1'b1, 1'b0, 3'd7);
         do_sample(1'b1, 1'b0, 1'b0);

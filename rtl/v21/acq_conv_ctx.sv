@@ -47,6 +47,7 @@ module acq_conv_ctx #(
     // 被拒请求不推进 PRNG（由上层保证：只有 commit_fire 才推进 sched18）。
     input  logic        prepare_valid,
     output logic        prepare_ready,
+    input  logic        cfg_valid,     // 权重配置已生效（来自 wsum_v21）
     input  logic [31:0] prepare_tag,
     input  logic [5:0]  prepare_word,      // D1..D6
     input  logic [2:0]  prepare_h,
@@ -178,7 +179,17 @@ module acq_conv_ctx #(
 
     wire conv_slot_free  = ~conv_valid_q | release_fire_o;
     wire acq_can_promote = acq_valid_q & acq_sampled_q & conv_slot_free;
-    assign prepare_ready = rst_n & (acq_slot_free | acq_can_promote);
+    // ---------------------------------------------------------------- 受理门禁
+    //
+    // **必须在内部真实受理点加门禁**，不能只在顶层输出的 prepare_ready 上挂。
+    // 否则会出现"外部看起来未受理、内部已建描述符并推进调度器"的错位。
+    //
+    // 三个条件同时成立才允许内部受理：
+    //   ① cfg_valid  —— 权重配置已完整装载并生效（CONFIG_CONTRACT §2）
+    //   ② ~stop_i    —— 停收期间不接新请求（只促进排空）
+    //   ③ 槽位可用
+    assign prepare_ready = rst_n & cfg_valid & ~stop_i
+                         & (acq_slot_free | acq_can_promote);
 
     wire do_prepare = prepare_valid & prepare_ready;
     // 排空提升：stop 时若 ACQ 已采样且 CONV 槽可用，单独提升。

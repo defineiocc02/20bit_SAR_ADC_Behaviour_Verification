@@ -23,6 +23,43 @@
 // =============================================================================
 module tb_analog_if;
     logic clk = 0;
+
+    // ---------------- 权重配置口（CONFIG_CONTRACT v1.0）----------------
+    logic        t_cfg_we = 1'b0, t_cfg_sel = 1'b0;
+    logic [4:0]  t_cfg_sid = 5'd0, t_cfg_idx = 5'd0;
+    logic [39:0] t_cfg_data = 40'd0;
+    logic        t_cfg_commit = 1'b0, t_cfg_reload = 1'b0;
+    wire         t_cfg_valid, t_cfg_busy, t_cfg_range_err;
+
+    task automatic t_wt_write(input logic sel, input logic [4:0] sid,
+                              input logic [4:0] idx, input logic [39:0] d);
+        begin
+            @(negedge clk);
+            t_cfg_we = 1'b1; t_cfg_sel = sel; t_cfg_sid = sid;
+            t_cfg_idx = idx; t_cfg_data = d;
+            @(posedge clk); @(negedge clk);
+            t_cfg_we = 1'b0;
+        end
+    endtask
+
+    task automatic t_wt_install();
+        begin
+            @(negedge clk); t_cfg_reload = 1'b1;
+            @(posedge clk); @(negedge clk); t_cfg_reload = 1'b0;
+            for (int s = 0; s < 18; s++) begin
+                for (int j = 0; j < 16; j++)
+                    t_wt_write(1'b0, 5'(s), 5'(j), 40'd268435456);
+                t_wt_write(1'b1, 5'(s), 5'd0, 40'd33554432);
+                t_wt_write(1'b1, 5'(s), 5'd1, 40'd16777216);
+                t_wt_write(1'b1, 5'(s), 5'd2, 40'd8388608);
+                t_wt_write(1'b1, 5'(s), 5'd3, 40'd8388608);
+            end
+            @(negedge clk); t_cfg_commit = 1'b1;
+            @(posedge clk); @(negedge clk); t_cfg_commit = 1'b0;
+            @(posedge clk); @(negedge clk);
+        end
+    endtask
+
     always #5 clk = ~clk;
 
     // =========================================================================
@@ -68,8 +105,11 @@ module tb_analog_if;
         // 权重表已改为 wsum 内部寄存器堆 + 窄配置口。
         // 本测试只验接口时序，不做权重扫描，所以配置口保持静默
         // （权重全 0，只影响 G/Wp/Wm 数值，不影响本测试检查的选通与 arm）。
-        .w_cfg_we(1'b0), .w_cfg_sel(1'b0), .w_cfg_sid(5'd0),
-        .w_cfg_idx(5'd0), .w_cfg_data(40'd0),
+        .w_cfg_we(t_cfg_we), .w_cfg_sel(t_cfg_sel),
+        .w_cfg_sid(t_cfg_sid), .w_cfg_idx(t_cfg_idx), .w_cfg_data(t_cfg_data),
+        .w_cfg_commit(t_cfg_commit), .w_cfg_reload(t_cfg_reload),
+        .w_cfg_valid(t_cfg_valid), .w_cfg_busy(t_cfg_busy),
+        .w_cfg_range_err(t_cfg_range_err),
         .cfg_epoch(8'd1), .b_q24_cfg(27'sd0),
         .apply_fire_o(apply_fire), .final_applied_o(final_applied),
         .final_k_o(final_k), .err_o(err), .tag_o(event_tag));
@@ -145,6 +185,7 @@ module tb_analog_if;
         @(negedge clk); rst_n = 0;
         repeat (2) @(negedge clk);
         rst_n = 1;
+        t_wt_install();   // 装表 + commit，否则 cfg_valid=0 门禁挡住交易
         prepare(32'hA1, 1'b0);
 
         // A 刚分配尚未采样，预置和真实采集使能必须指向同一批片。

@@ -27,7 +27,48 @@
 // =============================================================================
 module tb_i3_full;
 
+
     logic clk = 1'b0;
+
+    // ---------------- 权重配置口（CONFIG_CONTRACT v1.0）----------------
+    // 顶层受理门禁要求 cfg_valid=1，所以本 TB 在复位释放后必须装表并 commit。
+    logic        t_cfg_we = 1'b0, t_cfg_sel = 1'b0;
+    logic [4:0]  t_cfg_sid = 5'd0, t_cfg_idx = 5'd0;
+    logic [39:0] t_cfg_data = 40'd0;
+    logic        t_cfg_commit = 1'b0, t_cfg_reload = 1'b0;
+    wire         t_cfg_valid, t_cfg_busy, t_cfg_range_err;
+
+    task automatic t_wt_write(input logic sel, input logic [4:0] sid,
+                              input logic [4:0] idx, input logic [39:0] d);
+        begin
+            @(negedge clk);
+            t_cfg_we = 1'b1; t_cfg_sel = sel; t_cfg_sid = sid;
+            t_cfg_idx = idx; t_cfg_data = d;
+            @(posedge clk);
+            @(negedge clk);
+            t_cfg_we = 1'b0;
+        end
+    endtask
+
+    // 装 360 个字（18 片 x 20）并 commit
+    task automatic t_wt_install();
+        begin
+            @(negedge clk); t_cfg_reload = 1'b1;
+            @(posedge clk); @(negedge clk); t_cfg_reload = 1'b0;
+            for (int s = 0; s < 18; s++) begin
+                for (int j = 0; j < 16; j++)
+                    t_wt_write(1'b0, 5'(s), 5'(j), 40'd268435456);
+                t_wt_write(1'b1, 5'(s), 5'd0, 40'd33554432);
+                t_wt_write(1'b1, 5'(s), 5'd1, 40'd16777216);
+                t_wt_write(1'b1, 5'(s), 5'd2, 40'd8388608);
+                t_wt_write(1'b1, 5'(s), 5'd3, 40'd8388608);
+            end
+            @(negedge clk); t_cfg_commit = 1'b1;
+            @(posedge clk); @(negedge clk); t_cfg_commit = 1'b0;
+            @(posedge clk); @(negedge clk);
+        end
+    endtask
+
     always #5 clk = ~clk;
     logic rst_n = 1'b0;
 
@@ -87,6 +128,11 @@ module tb_i3_full;
     logic [12:0] adc2_rsp_raw;
 
     adc_digital_ip_v21 dut (
+        .w_cfg_we(t_cfg_we), .w_cfg_sel(t_cfg_sel),
+        .w_cfg_sid(t_cfg_sid), .w_cfg_idx(t_cfg_idx), .w_cfg_data(t_cfg_data),
+        .w_cfg_commit(t_cfg_commit), .w_cfg_reload(t_cfg_reload),
+        .w_cfg_valid(t_cfg_valid), .w_cfg_busy(t_cfg_busy),
+        .w_cfg_range_err(t_cfg_range_err),
         .clk(clk), .rst_n(rst_n),
         .prepare_valid(prepare_valid), .prepare_ready(prepare_ready),
         .prepare_tag(prepare_tag), .prepare_word(prepare_word),
@@ -244,6 +290,7 @@ module tb_i3_full;
 
         repeat (3) @(negedge clk);
         rst_n = 1'b1;
+        t_wt_install();   // 装表 + commit
         @(negedge clk);
         sched_seed_we = 1'b0;
 
@@ -414,6 +461,7 @@ module tb_i3_full;
         $display("---- 越窗必须报 range ----");
         @(negedge clk);
         rst_n = 1'b0; @(negedge clk); rst_n = 1'b1; @(negedge clk);
+        t_wt_install();   // 复位清 written_q，必须重装配置才恢复 cfg_valid
         vin_q24 = -27'sd50331648;   // -3.0 V，必然越窗
         do_prepare(32'hD4, 6'd63, 3'd0, 3'd3, 1'b0, 1'b1, 1'b0, 3'd7);
         do_sample(1'b1, 1'b0, 1'b0);

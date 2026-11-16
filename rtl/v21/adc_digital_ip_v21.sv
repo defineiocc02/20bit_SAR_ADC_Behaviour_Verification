@@ -135,6 +135,11 @@ module adc_digital_ip_v21 (
     input  logic [4:0]   w_cfg_sid,
     input  logic [4:0]   w_cfg_idx,
     input  logic [39:0]  w_cfg_data,
+    input  logic         w_cfg_commit,   // 原子生效
+    input  logic         w_cfg_reload,   // 重新配置（须先排空）
+    output logic         w_cfg_valid,    // 配置已生效
+    output logic         w_cfg_busy,
+    output logic         w_cfg_range_err,  // 子权重超范围被拒
     input  logic [7:0]   cfg_epoch,
     input  logic signed [26:0] b_q24_cfg,
 
@@ -214,6 +219,7 @@ module adc_digital_ip_v21 (
     acq_conv_ctx u_ctx (
         .clk(clk), .rst_n(rst_n),
         .prepare_valid(prepare_valid), .prepare_ready(prepare_ready),
+        .cfg_valid(w_cfg_valid),
         .prepare_tag(prepare_tag), .prepare_word(prepare_word),
         .prepare_h(prepare_h), .prepare_v_dem(prepare_v),
         .prepare_v_pre(prep_v_pre), .prepare_half(prepare_half),
@@ -463,6 +469,7 @@ module adc_digital_ip_v21 (
     logic        adc2_arm, adc2_ready_w, adc2_hold_done, adc2_late_err;
     logic        adc2_release_ok;
     logic [63:0] rsp_G, rsp_Wp, rsp_Wm;
+    logic [7:0]  rsp_epoch;   // 捕获那一代的 epoch（随事务走）
     logic        adc2_owner_busy;
     logic        rsp_valid, rsp_qid, rsp_range;
     logic [31:0] rsp_tag;
@@ -489,6 +496,7 @@ module adc_digital_ip_v21 (
         .rsp_raw_o(rsp_raw), .rsp_range_o(rsp_range),
         .owner_busy_o(adc2_owner_busy), .hold_done_o(adc2_hold_done),
         .late_err_o(adc2_late_err), .release_ok_o(adc2_release_ok),
+        .cfg_epoch(cfg_epoch), .rsp_epoch_o(rsp_epoch),
         .rsp_G_q30_o(rsp_G), .rsp_Wp_q30_o(rsp_Wp), .rsp_Wm_q30_o(rsp_Wm));
 
     // 节点行为宏：用**实际应用的 post**（post_state_q）与**采样时保存的 pre**
@@ -569,6 +577,9 @@ module adc_digital_ip_v21 (
         .post_mask_i(final_post_q),
         .cfg_we(w_cfg_we), .cfg_sel(w_cfg_sel),
         .cfg_sid(w_cfg_sid), .cfg_idx(w_cfg_idx), .cfg_data(w_cfg_data),
+        .cfg_commit(w_cfg_commit), .cfg_reload(w_cfg_reload),
+        .cfg_valid(w_cfg_valid), .cfg_busy(w_cfg_busy),
+        .cfg_range_err(w_cfg_range_err),
         .sum_valid(wsum_valid),
         .G_q30(wsum_G), .Wp_q30(wsum_Wp), .Wm_q30(wsum_Wm));
 
@@ -604,7 +615,9 @@ module adc_digital_ip_v21 (
         .Wm_q30(rsp_Wm), .G_q30(rsp_G), .Wp_q30(rsp_Wp),
         .alpha_q30(32'd1073741824),   // alpha=1.0 旁路（首版）
         .b_q24(b_q24_cfg),
-        .in_epoch(cfg_epoch), .in_tag(rsp_tag),
+        // **epoch 用捕获时锁存的值**，不是实时端口（审计 R1）。
+        // 这样"旧 raw 返回 + 新 capture 同沿"时，本笔拿到的是自己那一代。
+        .in_epoch(rsp_epoch), .in_tag(rsp_tag),
         .cfg_epoch(cfg_epoch),
         .out_valid(out_valid), .code_o(out_code),
         .out_sat(out_sat), .out_err(out_err), .out_tag(out_tag));

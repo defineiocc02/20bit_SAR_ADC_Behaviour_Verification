@@ -19,7 +19,48 @@
 // =============================================================================
 module tb_audit3;
 
+
     logic clk = 0;
+
+    // ---------------- 权重配置口（CONFIG_CONTRACT v1.0）----------------
+    // 顶层受理门禁要求 cfg_valid=1，所以本 TB 在复位释放后必须装表并 commit。
+    logic        t_cfg_we = 1'b0, t_cfg_sel = 1'b0;
+    logic [4:0]  t_cfg_sid = 5'd0, t_cfg_idx = 5'd0;
+    logic [39:0] t_cfg_data = 40'd0;
+    logic        t_cfg_commit = 1'b0, t_cfg_reload = 1'b0;
+    wire         t_cfg_valid, t_cfg_busy, t_cfg_range_err;
+
+    task automatic t_wt_write(input logic sel, input logic [4:0] sid,
+                              input logic [4:0] idx, input logic [39:0] d);
+        begin
+            @(negedge clk);
+            t_cfg_we = 1'b1; t_cfg_sel = sel; t_cfg_sid = sid;
+            t_cfg_idx = idx; t_cfg_data = d;
+            @(posedge clk);
+            @(negedge clk);
+            t_cfg_we = 1'b0;
+        end
+    endtask
+
+    // 装 360 个字（18 片 x 20）并 commit
+    task automatic t_wt_install();
+        begin
+            @(negedge clk); t_cfg_reload = 1'b1;
+            @(posedge clk); @(negedge clk); t_cfg_reload = 1'b0;
+            for (int s = 0; s < 18; s++) begin
+                for (int j = 0; j < 16; j++)
+                    t_wt_write(1'b0, 5'(s), 5'(j), 40'd268435456);
+                t_wt_write(1'b1, 5'(s), 5'd0, 40'd33554432);
+                t_wt_write(1'b1, 5'(s), 5'd1, 40'd16777216);
+                t_wt_write(1'b1, 5'(s), 5'd2, 40'd8388608);
+                t_wt_write(1'b1, 5'(s), 5'd3, 40'd8388608);
+            end
+            @(negedge clk); t_cfg_commit = 1'b1;
+            @(posedge clk); @(negedge clk); t_cfg_commit = 1'b0;
+            @(posedge clk); @(negedge clk);
+        end
+    endtask
+
     always #5 clk = ~clk;
 
     int errors = 0, checks = 0;
@@ -41,6 +82,11 @@ module tb_audit3;
     logic [17:0] acq_sel, conv_sel, pre_wr, post_wr;
 
     adc_digital_ip_v21 dut (
+        .w_cfg_we(t_cfg_we), .w_cfg_sel(t_cfg_sel),
+        .w_cfg_sid(t_cfg_sid), .w_cfg_idx(t_cfg_idx), .w_cfg_data(t_cfg_data),
+        .w_cfg_commit(t_cfg_commit), .w_cfg_reload(t_cfg_reload),
+        .w_cfg_valid(t_cfg_valid), .w_cfg_busy(t_cfg_busy),
+        .w_cfg_range_err(t_cfg_range_err),
         .clk(clk), .rst_n(rst_n),
         .prepare_valid(prepare), .prepare_ready(ready),
         .prepare_tag(tag), .prepare_word(word_in),
@@ -119,6 +165,7 @@ module tb_audit3;
         // ==================== ① 写门不重叠 ====================
         $display("---- ① 切片写门：pre_wr 与 post_wr 交集必须为零 ----");
         repeat (2) @(negedge clk); rst_n = 1;
+        t_wt_install();   // 装表 + commit，否则 cfg_valid=0 门禁挡住交易
         @(negedge clk);
         prepare = 1; tag = 32'hA1; word_in = 6'd63; upper = 3'd5; flash = 3'd7;
         @(posedge clk); @(negedge clk);

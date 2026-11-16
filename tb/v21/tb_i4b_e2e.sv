@@ -71,6 +71,9 @@ module tb_i4b_e2e;
 `else
         .w_cfg_we(w_cfg_we), .w_cfg_sel(w_cfg_sel),
         .w_cfg_sid(w_cfg_sid), .w_cfg_idx(w_cfg_idx), .w_cfg_data(w_cfg_data),
+        .w_cfg_commit(w_cfg_commit), .w_cfg_reload(w_cfg_reload),
+        .w_cfg_valid(w_cfg_valid), .w_cfg_busy(w_cfg_busy),
+        .w_cfg_range_err(w_cfg_range_err),
 `endif
         .cfg_epoch(cfg_epoch), .b_q24_cfg(b_q24_cfg),
         .out_valid(out_valid), .out_code(out_code), .out_sat(out_sat),

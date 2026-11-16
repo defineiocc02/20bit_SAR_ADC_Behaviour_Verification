@@ -93,6 +93,11 @@
     logic [4:0]  w_cfg_sid  = 5'd0;
     logic [4:0]  w_cfg_idx  = 5'd0;
     logic [39:0] w_cfg_data = 40'd0;
+    logic        w_cfg_commit = 1'b0;
+    logic        w_cfg_reload = 1'b0;
+    wire         w_cfg_valid;
+    wire         w_cfg_busy;
+    wire         w_cfg_range_err;
 `endif
 
     // ---------------- 权重配置写入任务 ----------------
@@ -101,6 +106,39 @@
     // 门级侧（`E2E_GATE）暂不支持——门级网表要等用新 RTL 重新综合后
     // 才会变成配置口形态。
 `ifndef E2E_GATE
+    // 整表重装：先 reload 清 written，再写 360 字，最后 commit。
+    // 中途复位（rst_n=0）会把 written_q 清零，之后必须调本任务恢复配置，
+    // 否则 cfg_valid=0、内部受理被门禁挡住（实测：越窗用例发不出去）。
+    task automatic wt_install_nominal();
+        begin
+            @(negedge clk); w_cfg_reload = 1'b1;
+            @(posedge clk); @(negedge clk); w_cfg_reload = 1'b0;
+            for (int s = 0; s < 18; s++) begin
+                for (int j = 0; j < 16; j++)
+                    wt_write(1'b0, 5'(s), 5'(j), 40'd268435456);
+                wt_write(1'b1, 5'(s), 5'd0, 40'd33554432);
+                wt_write(1'b1, 5'(s), 5'd1, 40'd16777216);
+                wt_write(1'b1, 5'(s), 5'd2, 40'd8388608);
+                wt_write(1'b1, 5'(s), 5'd3, 40'd8388608);
+            end
+            wt_commit();
+        end
+    endtask
+
+    // 原子生效：只在 written 已全 1 时生效（CONFIG_CONTRACT §3）
+    task automatic wt_commit();
+        begin
+            @(negedge clk);
+            w_cfg_commit = 1'b1;
+            @(posedge clk);
+            @(negedge clk);
+            w_cfg_commit = 1'b0;
+            // 等一个沿让 cfg_valid 稳定
+            @(posedge clk);
+            @(negedge clk);
+        end
+    endtask
+
     task automatic wt_write(input logic sel, input logic [4:0] sid,
                             input logic [4:0] idx, input logic [39:0] data);
         begin

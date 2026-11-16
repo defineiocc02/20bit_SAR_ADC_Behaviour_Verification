@@ -74,6 +74,14 @@ module adc2_capture (
     output logic        rsp_range_o,
 
     // ---------------------------------------------------------------- 状态
+    // ---------------------------------------------------------------- 配置代
+    //
+    // **epoch 必须随事务走**（外部审计 §3/R1）：
+    // 捕获时把当时的 cfg_epoch 锁进 owner，随 rsp 一起送出，
+    // 供 recon 用锁存值判定，而不是用实时端口 —— 否则
+    // "旧 raw 返回与新 capture 同沿"时会错配。
+    input  logic [7:0]   cfg_epoch,
+    output logic [7:0]   rsp_epoch_o,
     output logic        owner_busy_o,     // 有一个已捕获待返回的 owner
     output logic        hold_done_o,      // 宏已回报 hold（供释放资格用）
     output logic        late_err_o,       // 迟到返回被丢弃（粘滞）
@@ -96,10 +104,12 @@ module adc2_capture (
     logic [2:0]  owner_h_q, owner_v_q;
     logic        hold_done_q;
     logic [63:0] owner_G_q, owner_Wp_q, owner_Wm_q;
+    logic [7:0]  owner_epoch_q;   // 捕获那一代的 epoch（随 raw 送出）
     logic        late_err_q;
 
     // arm 直接输出沿前授权，且只在 owner 槽可接收时才授权
     // （没有空位就别让宏白跑一次捕获）。
+    assign rsp_epoch_o = owner_epoch_q;
     assign adc2_capture_arm_o = capture_arm_req & (~owner_valid_q | adc2_valid_i);
 
     // ready：只有在 owner 槽空、或本拍正好消费掉旧 owner 时才为 1。
@@ -119,6 +129,7 @@ module adc2_capture (
             owner_G_q     <= 64'd0;
             owner_Wp_q    <= 64'd0;
             owner_Wm_q    <= 64'd0;
+            owner_epoch_q <= 8'd0;
             hold_done_q   <= 1'b0;
             late_err_q    <= 1'b0;
         end else begin
@@ -163,6 +174,10 @@ module adc2_capture (
                     owner_G_q     <= capture_G_q30;
                     owner_Wp_q    <= capture_Wp_q30;
                     owner_Wm_q    <= capture_Wm_q30;
+                    // **epoch 随事务锁存**：用捕获那一拍的 cfg_epoch，
+                    // 不用实时端口。这样"旧 raw 返回 + 新 capture 同沿"时，
+                    // 返回的是旧 owner 那一代，不会错配。
+                    owner_epoch_q <= cfg_epoch;
                     // 新捕获开始时清掉上一笔的 hold 记录
                     hold_done_q   <= adc2_hold_ack_i;
                 end

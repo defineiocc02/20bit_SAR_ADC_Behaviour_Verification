@@ -157,3 +157,81 @@ SPACING 覆盖：M1 M2 M3 M4 M5 M6 M7 M8 M9 AP  ← 全部 10 个布线层
 | 手工修 DRC（5 个可定位）| `dither_pre` 只有 5 个，逐个修可行 |
 
 **不再继续在这个方向上盲目试探。** 六个模块已通过 Formality，这是已固化的成果。
+
+
+---
+
+## 11. 第六次尝试：`route_opt`（有效但未归零）
+
+### 做法
+
+```tcl
+route_auto
+route_opt        # 详细布线后优化，修残留 DRC
+```
+
+### 结果
+
+| 模块 | `route_auto` 后 | `route_opt` 后 | 改善 | 最终违规类型 |
+|:---|--:|--:|--:|:---|
+| `dither_pre` | **5** | **2** | 60% | `Short : 2` |
+| `dem_mask_v3` | **79** | **27** | 66% | 见下表 |
+
+`dem_mask_v3` 的 27 个违规明细：
+
+```
+Diff net spacing               : 7
+Diff net via-cut spacing       : 1
+End of line spacing            : 7
+Fat wire via keepout enclosure : 1
+Less than minimum edge length  : 4
+Same net spacing               : 1
+Short                          : 6
+```
+
+### 关键判断
+
+**`route_opt` 确实有效（减少 60~66%），但无法归零。**
+
+`dither_pre` 只剩 **2 个 `Short`** —— 这个量级已经很小。
+
+### 六个方向的完整排除表
+
+| # | 尝试 | 结果 |
+|:--:|:---|:---|
+| 1 | 跳过 `clock_opt` | 仍 89 未放置 ❌ |
+| 2 | `core_utilization` 0.6→0.3 | 尺寸未变 ❌ |
+| 3 | 去掉手工 `create_site_row` | 仍 89 ❌ |
+| 4 | 不调 `initialize_floorplan` | 放置 ✅ 但 DRC 5 / 79 ⚠️ |
+| 5 | `optimize_small_design=true` | core 大 15× 但 DRC 不变 ❌ |
+| **6** | **加 `route_opt`** | **DRC 5→2 / 79→27，未归零** ⚠️ |
+
+## 12. 最终状态
+
+| 模块 | 放置 | 布线 | DRC（`route_opt` 后） | Formality |
+|:---|:---|:---|--:|:---|
+| `dither_pre` | ✅ `rc=0` | ✅ `rc=0` | **2**（`Short`）| 可跑（组合逻辑）|
+| `dem_mask_v3` | ✅ `rc=0` | ✅ `rc=0` | **27** | 可跑（组合逻辑）|
+
+**两个模块都不能算 DRC 干净。**
+
+## 13. 根因推测（未验证）
+
+`dither_pre` 剩余 2 个 `Short` 和 `dem_mask_v3` 的多类间距违规，
+**高度可能是技术 LEF 缺少真实 PDK 才有的 NDR（Non-Default Rule）与天线规则。**
+
+依据：
+- `route_opt` 能减少但无法归零
+- 六个通过的模块规模都 ≥ 2,338 cells，这两个只有 99 / 641 cells
+- 技术 LEF 的 `SPACING` 覆盖完整（M1~M9+AP 全 10 层），但**没有 NDR**
+
+**这是推测，不是结论。** 验证需要真实的 PDK 技术 LEF。
+
+## 14. 交付建议
+
+| 模块 | 建议 |
+|:---|:---|
+| `dither_pre` | 记录为"DRC 未归零（2 个短路）"，或手工修这 2 处后重跑 DRC |
+| `dem_mask_v3` | 记录为"DRC 未归零（27 个违规）" |
+
+**六个已通过模块（2,063 个 Formality 比较点全 passing、DRC 全 0）的成果不受影响。**

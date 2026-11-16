@@ -1,127 +1,79 @@
-# 纯组合模块的后端流程差异
+# 纯组合模块的后端流程：四次归因与最终结果
 
-时间：2026-11-17　基线：`c8da14a`
+时间：2026-11-17　基线：`ddce5bf`
 
-## 1. 现象
+## 1. 最终结论（先说结果）
 
-`dither_pre`（D4 分裂 dither）**没有 `clk` 端口**（纯组合）。
-用与时序模块相同的流程跑，结果：
+**`dither_pre` / `dem_mask_v3` 的失败根因是：脚本里多调用了一次 `initialize_floorplan`。**
 
-```
-STEP_SYNTH_OK        ✅
-STEP_FLOORPLAN_OK    ✅
-STEP_PLACE rc=1      ❌  89 个单元未放置
-STEP_CTS rc=1        ❌  clock_opt 失败
-STEP_ROUTE rc=0      ⚠️  命令执行但意义有限
-CHK_UNPLACED 89      ❌
-```
-
-错误信息：
-
-```
-Error: place_opt bailed out due to unplaced cells. (OPT-062)
-Error: clock_opt failed during trial clock synthesis prior to useful skew schedule computation.
-Error: Cell ctmi_664 is not placed. (ZRT-064)
-```
-
-## 2. 根因
-
-**纯组合模块没有时钟域，`clock_opt` 无法执行。**
-
-`ctmi_*` = Clock Tree Macro Instance，是 CTS 插入的时钟树单元。
-没有时钟，这些单元无从放置，`place_opt` 的 `OPT-062` 与 `clock_opt` 的失败同源。
-
-**这不是设计缺陷，是流程需要按模块类型调整。**
-
-## 3. 正确的处理
-
-| 模块类型 | 约束 | `clock_opt` |
-|:---|:---|:---|
-| 时序模块（有 clk） | `create_clock` + IO delay | ✅ 执行 |
-| **纯组合（无 clk）** | **不建时钟、不设 IO delay** | **跳过** |
-
-脚本里改为：
-
-```tcl
-# 纯组合模块没有时钟，clock_opt 必然失败，跳过它
-puts "STEP_CTS SKIPPED (组合模块无时钟)"
-```
-
-**明确打印 SKIPPED，不伪装成成功。**
-
-## 4. 哪些模块是纯组合
-
-已核实（`grep -c "input\s+logic\s+clk"`）：
-
-| 模块 | 有 clk | 处理 |
-|:---|:---:|:---|
-| **`dither_pre`** | **0** | 跳过 CTS |
-| **`dem_mask_v3`** | **0** | 跳过 CTS |
-| `dem_phase_rr` | 1 | 正常 |
-| `follower_rt` | 1 | 正常 |
-| `sched18` / `adc2_capture` / `acq_conv_ctx` / `sar_evt_v21` | 1 | 正常（已通过）|
-
-## 5. 对 Formality 的影响
-
-**纯组合模块的 Formality 会更简单**（无 DFF 比较点），但仍能验证组合逻辑等价性。
-
-`CHK_UNPLACED` 仍需为 0 才算通过。
-
-## 5b. 第二层原因：core 尺寸对极小模块不够
-
-跳过 `clock_opt` 后重跑，`CHK_UNPLACED` 仍然是 **89**。
-进一步查明：**不是 CTS 的问题，是 core 一开始就太小。**
-
-### 证据
-
-`ZRT-763` 重叠告警（5 次）：
-
-```
-Warning: Cell ctmi_24 is placed overlapping with other cells
-         at {{0.047 1.989} {0.747 2.689}}. (ZRT-763)
-```
-
-单元尺寸 `0.70 × 0.70` µm = **5 个 site 宽**。
-
-### core 尺寸对比
-
-| 模块 | core 尺寸（DB 单位） | 建成 site row |
+| 配置 | `STEP_PLACE` | `CHK_UNPLACED` |
 |:---|:---|--:|
-| `sched18` | 334,600 × 329,000 | 51 |
-| `adc2_capture` | 320,600 × 315,000 | 48 |
-| **`dither_pre`** | **67,200 × 63,000** | **10** |
+| 有 `initialize_floorplan`（原脚本） | `rc=1` | **89 / 258** |
+| **不调用 `initialize_floorplan`** | **`rc=0`** | **0** |
 
-`dither_pre` 的 core 只有前两者的 **1/5**，行数也是 1/5（51/10 ≈ 5.1，334.6/67.2 ≈ 5.0）——
-**site row 生成逻辑本身没问题，是 core 被建小了。**
+**`compile_fusion` 内部已经建好 site row（实测 `CHK_BEFORE_FP_ROWS 9`），
+再调用一次 `initialize_floorplan` 会把它破坏掉。**
 
-### 为什么 core 小
+## 2. 四次归因，前三次都错
 
-`dither_pre` 只有 **99 cells / 46.65 µm²**。
-用 `-core_utilization 0.6` 生成 core，结果只有 67.2 × 63 µm。
+| 次数 | 归因 | 验证方式 | 结果 |
+|:--:|:---|:---|:---|
+| 1 | `clock_opt` 失败导致未放置 | 跳过 `clock_opt` | **仍 89** ❌ |
+| 2 | core 尺寸不够 | `core_utilization` 0.6→0.3 | **core 尺寸没变，仍 89** ❌ |
+| 3 | 手工 `create_site_row` 破坏 | 去掉手工建 row | **仍 89** ❌ |
+| **4** | **多调一次 `initialize_floorplan`** | **不调用** | **`rc=0`、0 未放置** ✅ |
 
-而 `place_opt` 要插入 89 个时钟树/缓冲单元（`ctmi_*`），
-每个 0.70 µm 宽，在这么小的 core 里**无处放置** → `OPT-062` + `CHK_UNPLACED 89`。
+**前三次都是"看起来合理"的猜测，每次都只改一个变量但数字没变 —— 数字没变就说明归因错。**
 
-### 处理
+第四次成功，是因为对照实验脚本 `test_auto.tcl` 里**恰好没有** `initialize_floorplan`，
+逐项 diff 后才看出来。
 
-把 `-core_utilization` 从 0.6 降到 **0.3**，给足空间：
+## 3. 当前的遗留问题：布线 DRC
 
-```tcl
-initialize_floorplan -core_utilization 0.3 -use_site_row
+去掉 floorplan 后放置成功，但**布线产生 DRC**：
+
+| 模块 | Routed Wires | DRC | 面积 |
+|:---|--:|--:|--:|
+| `dither_pre` | 576 | **5** | 33.22 µm² |
+| `dem_mask_v3` | 2,505 | **79** | 116.13 µm² |
+
+`dither_pre` 的违规明细：
+
+```
+Diff net spacing : 2
+End of line spacing : 3
+TOTAL VIOLATIONS = 5
 ```
 
-**注意**：这不是"降低要求"，而是小设计需要更高的空白比例来容纳优化插入的单元。
+**这是因为没有 floorplan 就没有 die/core 边界，布线密度不受控。**
 
-## 6. 待验证
+## 4. 所以正确的做法应该是
 
-改脚本后重跑 `dither_pre` 与 `dem_mask_v3`，确认：
-
-| 检查项 | 期望 |
+| 做法 | 结果 |
 |:---|:---|
-| `STEP_SYNTH_OK` | ✅ |
-| `STEP_FLOORPLAN_OK` | ✅ |
-| `STEP_PLACE rc` | 应为 0（不再有 ctmi 单元）|
-| `STEP_CTS` | `SKIPPED`（明确打印）|
-| `STEP_ROUTE rc=0` | ✅ |
-| **`CHK_UNPLACED`** | **0** |
-| Formality | 预期 `SUCCEEDED` |
+| ❌ 完全不调用 `initialize_floorplan` | 放置成功但 DRC 不为 0 |
+| ❌ 调用 `initialize_floorplan`（在 `compile_fusion` 之后） | 破坏 site row，放置失败 |
+
+**需要的是：让 `compile_fusion` 建的 site row 保留，同时补上 die/core 边界。**
+
+可能的方向：
+- 在 `compile_fusion` **之前**调 `initialize_floorplan`（先建边界，综合时保留）
+- 或用 `create_floorplan` / `set_boundary` 之类只设边界、不动 site row 的命令
+
+## 5. 对比：为什么时序模块没这个问题
+
+已通过的 4 个时序模块（`sched18` / `adc2_capture` / `acq_conv_ctx` / `sar_evt_v21`）
+**都成功调用了 `initialize_floorplan`**，且 `CHK_UNPLACED = 0`、`DRC = 0`。
+
+**差异原因还需查明**，但可能与模块的实例数量、core 尺寸需求有关。
+
+## 6. 状态
+
+| 模块 | 放置 | 布线 | DRC | Formality |
+|:---|:---|:---|:---|:---|
+| `dither_pre` | ✅ rc=0 | ✅ rc=0 | ❌ **5** | 未跑 |
+| `dem_mask_v3` | ✅ rc=0 | ✅ rc=0 | ❌ **79** | 未跑 |
+| `dem_phase_rr` | ✅ | ✅ | ✅ 0 | 未跑 |
+| `follower_rt` | ✅ | ✅ | ✅ 0 | 未跑 |
+
+**四个模块都还没有跑 Formality，不能算通过。**

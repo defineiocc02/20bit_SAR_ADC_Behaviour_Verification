@@ -1,116 +1,93 @@
 # 仓库地图
 
-**打开仓库先看这一页。** 根目录有 40+ 项，但真正需要你操心的只有 8 个文件。
+**先看 [`README.md`](README.md)。** 本文只解决"哪个文件是现行的、哪个是历史的"。
 
 ---
 
-## 一、我该看什么
+## 一、当前生产链（v21）
 
-### 如果你是来读代码的 → 看这 8 个
+D1–D6 全链。改动只应发生在这里。
 
-| # | 文件 | 一句话 |
-|:--:|:---|:---|
-| 1 | [`rtl/d3d4_ip.sv`](rtl/d3d4_ip.sv) | **IP 顶层**：输入 k + dither，输出物理开关命令 |
-| 2 | [`rtl/sched18.sv`](rtl/sched18.sv) | **D1** 18 片池调度 |
-| 3 | [`rtl/follower_rt.sv`](rtl/follower_rt.sv) | **D2** RDAC follower 逐事件载入 |
-| 4 | [`rtl/dem_mask_v3.sv`](rtl/dem_mask_v3.sv) | **D3** DEM 映射 |
-| 5 | [`rtl/dem_phase_rr.sv`](rtl/dem_phase_rr.sv) | **D3** 相位发生器 |
-| 6 | [`rtl/dither_pre.sv`](rtl/dither_pre.sv) | **D4** Split Dither |
-| 7 | [`src/adi_model/dem_dither.py`](src/adi_model/dem_dither.py) | 唯一参考实现 |
-| 8 | [`tools/verify_d3d4_ip.sh`](tools/verify_d3d4_ip.sh) | 唯一验收入口 |
-
-### 如果你是来验收的 → 一条命令
-
-```bash
-D3D4_RUNNER=<ssh-host> bash tools/verify_d3d4_ip.sh
-```
-
-四层都要打印 `RESULT: PASS`。L3 需要额外给综合网表（见 `docs/SYNTH_D3D4.md`）。
-
-### 如果你是来接手的 → 三份文档
-
-1. [`docs/D1_D6_STATUS_20261115.md`](docs/D1_D6_STATUS_20261115.md) —— D1–D6 状态、原文定位、剩余缺口
-2. [`docs/D3D4_IP_INTERFACE.md`](docs/D3D4_IP_INTERFACE.md) —— 端口/时序/位序/合法性标志
-3. [`docs/HANDOFF_D3D4.md`](docs/HANDOFF_D3D4.md) —— 哪里最可能错
-
----
-
-## 二、根目录项，分四类
-
-### A. 核心（7 项）
-
-| 目录 | 文件数 | 装什么 |
-|:---|--:|:---|
-| `rtl/` | 39 | RTL 源码。**只看前 6 个 .sv**，其余是旧链与历史模块 |
-| `tb/` | 47 | testbench + 金标向量。核心是 `tb_d3d4_ip` / `tb_event_align` / `tb_dem_dither` |
-| `tools/` | 74 | 验收脚本、金标生成器、统计工具 |
-| `src/` | 95 | Python 参考模型。核心是 `adi_model/dem_dither.py` |
-| `flow/synth/` | 19 | 综合脚本与 SDC（`flow/synth/d3d4/`） |
-| `flow/build/` | 5 | 4 个编译清单（**先读 `flow/build/filelists/README.md`**） |
-| `docs/` | 257 | 顶层 14 份当前文档 + `_history/` 98 份历史 |
-
-### B. 辅助（统一在 `flow/` 下，用到才看）
-
-| 目录 | 文件数 | 什么时候用 |
-|:---|--:|:---|
-| `tests/` | 125 | CI 跑 pytest。改动 `src/` 后必跑 |
-| `flow/sim/` | 46 | CI 用 `flow/sim/fixtures/` 做 RTL 比对 |
-| `flow/verification/` | 80 | 验证基线与向量生成 |
-| `flow/scripts/` | 3 | `clean.py` 清理临时产物（默认 dry-run） |
-
-### C. 外围子系统（统一在 `subsys/` 下，与本任务无关）
-
-| 目录 | 文件数 | 是什么 | 为什么在仓库里 |
-|:---|--:|:---|:---|
-| `subsys/ad4080_dsp/` | 55 | AD4080 DSP 扩展（SINC/FIFO/SPI） | 被 CI 的 5 个 TB 引用 |
-| `subsys/extensions/` | 12 | CAAZ 扩展 | 被 `tools/run_open_rtl.py` 引用 |
-| `subsys/experiments/` | 3 | 实验配置 | 被 `tools/run_p4_ablation.py` import |
-| `subsys/archive/` | 4 | 180nm 历史实现 | 存档，无代码引用 |
-| `subsys/profiles/` | 1 | 目标参数说明 | 无引用 |
-
-> 这 4 个目录看着"多余"，但都有 CI 或代码依赖，删了会断构建。
-> 想彻底移出需要单独排期改 67 处硬编码路径。
-
-### D. 仓库常规文件（不用看，20+ 项）
-
-`LICENSE` `NOTICE` `CITATION.cff` `SECURITY.md` `CODE_OF_CONDUCT.md`
-`CONTRIBUTING.md` `MANIFEST.in` `pyproject.toml` `Makefile` `CHANGELOG.md`
-`.gitignore` `.gitattributes` `.github/` `.pre-commit-config.yaml`
-`PROJECT_MAP.md` `README.md` `CHANGELOG.md` `CITATION.cff`
-`manifest/`（机制与来源清单位于此处）`pyproject.toml` `Makefile` `MANIFEST.in`
-
-其中三个值得一提：
-
-| 文件 | 作用 |
+| 层 | 文件 |
 |:---|:---|
-| `docs/meta/AGENTS.md` | **模块归属与仓库规则**（谁能改什么） |
-| `docs/meta/HANDOFF.md` | 追加式交接日志 |
-| `CHANGELOG.md` | 版本记录 |
+| **顶层** | `rtl/v21/adc_digital_ip_v21.sv` |
+| **D1** | `rtl/sched18.sv` |
+| **D2** | `rtl/v21/sar_evt_v21.sv` |
+| **D3** | `rtl/dem_mask_v3.sv`、`rtl/dem_phase_rr.sv`、`rtl/dem_phase_gen.sv` |
+| **D4** | `rtl/dither_pre.sv` |
+| **D5** | `rtl/v21/recon_v21.sv`、`rtl/v21/wsum_v21.sv` |
+| **D5 叶子** | `rtl/recip_q60.sv`、`rtl/v21/recip_rnd_v21.sv` |
+| **D6** | `rtl/v21/acq_conv_ctx.sv`、`rtl/v21/adc2_capture.sv` |
+| **仿真边界** | `rtl/v21/adc2_node_macro.sv`（非综合） |
+| 桥接 | `rtl/follower_rt.sv` |
 
----
+### 测试台（`tb/v21/`）
 
-## 三、两条链，不要混
+**在用**（被 `tools/verify_v21.sh` 或专项入口引用）：
 
-| | 新链（本任务） | 旧链 |
+| 文件 | 用途 | 入口 |
 |:---|:---|:---|
-| 顶层 | `rtl/d3d4_ip.sv` | `rtl/digital_top_w.sv` |
-| D3 | `dem_mask_v3`（**3+3+3**） | `dem_shuffle`（4+3+2） |
-| D4 | `dither_pre`（`c+U`） | `dither_split`（`c−U`） |
-| D5/D6 | **无** | 有（输出 20 位码） |
-| 验证 | `tools/verify_d3d4_ip.sh` | `bash run_topw.sh`（8509 笔） |
-| 端口 | 开关命令层 | 完整 20 位结果 |
+| `tb_acq_ctx_fixed.sv` | 两项控制反例 | `verify_v21.sh` |
+| `tb_audit3.sv` | 审计 3 项 | 同上 |
+| `tb_i12_full.sv` | I1/I2 集成 105 项 | 同上 |
+| `tb_i3_full.sv` | I3 两笔余差 20 项 | 同上 |
+| `tb_i4b_e2e.sv` | 端到端 25 项 | 同上 |
+| `tb_e2e_decl.svh` / `tb_e2e_body.svh` | 上者的共享声明与激励体 | 同上 |
+| `tb_recip_rnd.sv` | 修正倒数 20817 笔 | 同上 |
+| `tb_analog_if.sv` | 审查方 54 项反例 | 同上 |
+| `tb_recon_stream.sv` | **连续输入** 5 场景 | `check_recon_stream.sh` |
+| `tb_wsum_scan.sv` | 任意权重 364 笔 | `check_wsum_equiv.sh` |
+| `tb_idle_partition.sv` | IDLE 分区 18 片 | 手工 |
+| `tb_trace.sv` | 门级轨迹 | `check_gate_e2e.sh` |
 
-**最容易犯的错**：拿旧链的 8509 笔 PASS 当作新链的证据。不能。
+**历史/不再单独运行**：`tb_i1_two_sample.sv`、`tb_i2_events.sv`、`tb_i3_adc2.sv`、
+`tb_i4_recon.sv`、`tb_i12_integration.sv`、`tb_gate_equiv.sv`
+—— 其覆盖已被上表合并或被 `check_recon_stream.sh` 取代。**保留作追溯，不是入口。**
 
 ---
 
-## 四、想快速验证"这仓库还活着"
+## 二、验收入口
 
-```bash
-make help                        # 列出四个目标
-make verify-d3d4-ip              # 四层验收（需仿真器）
-python3 tools/bridge_charge_check.py   # bridge 等电荷 66,688 组
-python3 tools/sched18_stats.py        # D1 随机性 20000 拍
-```
+**只有一个总入口**：`tools/verify_v21.sh`（8 项回归 + [A]/[B] 证据）。
 
-不需要仿真器就能跑的是后两个（纯 Python）。
+专项入口：
+`check_recon_stream.sh`、`check_wsum_equiv.sh`、`check_gate_e2e.sh`、
+`check_formal.sh`、`check_rtl_mutation.sh`、`check_rtl_rnd96.py`。
+
+**历史入口**：`verify_d3d4_ip.sh`、`verify_d3d4.sh`、`run_topw.sh`、`topw_mutation.sh`、
+`verify_clean_clone.sh` —— 属旧链，见 §四。
+
+---
+
+## 三、文档
+
+| 目录 | 内容 |
+|:---|:---|
+| `docs/v21/` | **本轮全部报告**。首选 `FINAL_D1_D6.md` |
+| `docs/` | 合同（`CONTRACT_CURRENT.md`）、算法说明、旧 IP 接口 |
+| `docs/_history/` | 早于合同 v2.1，仅追溯 |
+
+`docs/v21/` 里已被取代的文档已在 `db238e8` 删除（13 个），
+现存 27 份均为现行或阶段性 checkpoint。
+
+---
+
+## 四、历史资产（不是交付主线）
+
+| 资产 | 是什么 | 为什么还在 |
+|:---|:---|:---|
+| `rtl/d3d4_ip.sv` | 早期 D3/D4 独立 IP | 叶子级穷举对拍（133,376+512）仍作 v21 的依据 |
+| `rtl/digital_top_w.sv` | 旧全链顶层（4+3+2 / `c−U`） | 兼容资产，**不含** v21 的 D5/D6 |
+| `tools/verify_d3d4_ip.sh` 等 | 旧链入口 | 同上 |
+
+**它的综合数字（1770.08 µm² / 2.82 ns）只对应 `d3d4_ip`，不代表 v21 全链。**
+
+---
+
+## 五、禁止事项
+
+1. **不要引用作废数字**：89,693 / 76,222 / 97,555 / 108,951 µm²、"门级 1464 拍差异 0"。
+   作废原因见 `docs/v21/FINAL_D1_D6.md` §4。
+2. **不要把 `d3d4_ip` 的数字当 v21 的**。
+3. **不要把 `[A]`/`[B]`/`[C]` 混为一谈**（数学证明 / 生产 RTL 检查 / 工具形式化）。
+4. **不要用无同版网表做门级或形式结论**——当前 `054cfed` 没有网表。

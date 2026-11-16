@@ -1,177 +1,176 @@
-# 20bit SAR ADC 数字 IP
+# 20bit SAR ADC 数字 IP（ISSCC 2024 9.8 复现）
 
 依据 ISSCC 2024 Session 9.8 公开机制、按明确工程假设实现的**可综合数字 IP**。
 不是 ADI 硅片的还原（公开资料不足），也不声称与该芯片逐位一致。
 
-## 核心文件：只有这 8 个
+规格：20 bit / 40 MS/s / ±3 V 差分　后端：TSMC 28HPC+（原型 40 nm ULP）
 
-**下面这张表就是全部核心。** 其余 30 多个目录是辅助、子系统与仓库常规文件（见 [`PROJECT_MAP.md`](PROJECT_MAP.md)）。
+---
 
-| # | 文件 | 一句话 |
-|:--:|:---|:---|
-| 1 | `rtl/d3d4_ip.sv` | **IP 顶层**——单时钟域，输入 k + dither，输出物理开关命令 |
-| 2 | `rtl/sched18.sv` | **D1** 18 片池调度（8 采集 / 8 转换 / 2 备用） |
-| 3 | `rtl/follower_rt.sv` | **D2** RDAC follower（逐事件累加 k，边产生边载入） |
-| 4 | `rtl/dem_mask_v3.sv` | **D3** DEM：粗码 → 8×20 物理 mask |
-| 5 | `rtl/dem_phase_rr.sv` | **D3** 相位发生器（round-robin） |
-| 6 | `rtl/dither_pre.sv` | **D4** Split Dither：6 位字 → 8 片 × 4 位预置 |
-| 7 | `src/adi_model/dem_dither.py` | DEM/Dither 的**唯一参考实现**（纯函数，零依赖） |
-| 8 | `tools/verify_d3d4_ip.sh` | **唯一验收入口**，四层一起跑 |
+## 1. 先看这里：当前状态一句话
 
-辅助但重要：
+**RTL 功能已经验证；后端（网表）卡在综合，尚未产出当前版本的网表。**
 
-| 文件 | 作用 |
+| 层 | 状态 |
 |:---|:---|
-| `tb/tb_d3d4_ip.sv` | IP 级 512 笔对拍 |
-| `tb/tb_event_align.sv` | 逐事件对齐（k / 160 位 mask / 标志必须同事件） |
-| `tb/tb_dem_dither.sv` | 叶子级 133,376 + 512 组穷举 |
-| `rtl/digital_top_w.sv` | 旧链顶层（D1–D6 全链，4+3+2 / `c−U`），仅作兼容资产 |
+| D1–D6 RTL 功能 | ✅ 8 项回归全绿，两笔端到端 A=`0xFFF00` / B=`0x80000` |
+| 本轮修掉的三个真实缺陷 | ✅ LUT `initial`、IDLE 8/8/1、recon 连续输入串样 |
+| **同版网表（综合）** | ❌ **未生成**——顶层停在 `Processing 'wsum_v21'` |
+| 门级等价 / 形式等价（当前版本） | ❌ 未做（依赖网表） |
+| 布局布线 / DRC / LVS / GDS | ❌ 未做 |
 
-**关键点**：`dem_mask_v3` 与 `dither_pre` 原本是纯组合模块，相位由端口外部喂，
-所以"三维随机化"在叶子层并不存在。`d3d4_ip` 把 `dem_phase_rr` 接进来之后，
-随机化才第一次真正落在 RTL 里。
+详细状态：[`docs/v21/FINAL_D1_D6.md`](docs/v21/FINAL_D1_D6.md)
+综合阻塞：[`docs/v21/SYNTH_STALL.md`](docs/v21/SYNTH_STALL.md)
+形式化：[`docs/v21/FORMAL_STATUS.md`](docs/v21/FORMAL_STATUS.md)
 
-## 效果：DEM 到底起什么作用
+> **历史数字已全部作废，不要再引用。** 曾报过的 89,693 / 76,222 / 97,555 /
+> 108,951 µm² 与"门级 1464 拍差异 0"都有明确的作废原因，
+> 见 `FINAL_D1_D6.md` §4。本条是硬约束。
 
-![DEM 失配抑制](docs/figures/dem_mechanism.png)
+---
 
-**左图**：固定相位时，18 片 ±0.3% 增益失配造成的误差随码 `k` 平滑变化——
-它与信号相关，在频谱上表现为**谐波杂散**。
+## 2. 生产链文件（v21）
 
-**右图**：相位轮转后，同一个码的误差在 64 个相位间被打散，σ≈25~34 LSB20——
-系统性误差变成**与信号无关的噪声**。
+**这才是当前在用的链。** 全部位于 `rtl/v21/` 与 `tb/v21/`。
 
-这就是 DEM 的本质：**不降低误差总量，只改变误差的形态**。
-注意右图三组的均值仍相差约 260 LSB20，那是失配本身的直流项，DEM 管不了。
+| 模块 | 文件 | 职责 |
+|:---|:---|:---|
+| **顶层** | `rtl/v21/adc_digital_ip_v21.sv` | 单时钟域，79 端口 |
+| **D1** | `rtl/sched18.sv` | 18 片池调度（8 采集 / 8 转换 / 2 备用） |
+| **D2** | `rtl/v21/sar_evt_v21.sv` | Flash/SAR 逐事件 follower |
+| **D3** | `rtl/dem_mask_v3.sv` + `rtl/dem_phase_rr.sv` + `rtl/dem_phase_gen.sv` | DEM 3+3+3 + 相位 |
+| **D4** | `rtl/dither_pre.sv` | 分裂 dither |
+| **D5** | `rtl/v21/recon_v21.sv` + `rtl/v21/wsum_v21.sv` | 20 位定点重构 |
+| **D5 叶子** | `rtl/recip_q60.sv` + `rtl/v21/recip_rnd_v21.sv` | Newton 倒数 + 余数修正 |
+| **D6** | `rtl/v21/acq_conv_ctx.sv` + `rtl/v21/adc2_capture.sv` | 事务/宏控制、ADC2 捕获 |
+| **仿真边界** | `rtl/v21/adc2_node_macro.sv` | 节点宏（非综合） |
+| 桥接 | `rtl/follower_rt.sv` | RDAC follower |
 
-## 实现选择：为什么用确定性轮转而不是伪随机
+---
 
-![相位发生器 A/B](docs/figures/phase_ab.png)
-
-ISSCC 2024 PPT 第 29–31 页原文写的是 **`Round robin shuffler`**。
-换成确定性轮转后，不但与原文一致，面积降 5.1×、关键路径降 7.7×，
-统计指标也更好（χ²=0、三轴互信息=0、1920 拍内零重复）。
-
-伪随机版保留在 `rtl/dem_phase_gen.sv`，加 `+define+D3D4_PHASE_XORSHIFT` 可切回，
-用作 A/B 对照。详见 [docs/PHASE_AB.md](docs/PHASE_AB.md)。
-
-## 一条命令验证（三层）
-
-```bash
-bash tools/verify_d3d4_ip.sh
-```
-
-预期输出：
-
-```
-[1/4] L1 叶子级逐位对拍（133376 + 512 组）
-      DEM    133376/133376 组  失配 0
-      Dither 512/512 组  失配 0
-      RESULT: PASS
-[2/4] L2 IP 级逐位对拍（含相位发生器，512 笔）
-      RESULT: PASS (512 tx bit-exact)
-[2.5] sched18 随机性统计（20000 拍）
-      RESULT: PASS
-[3/4] L3 门级等价
-      RESULT: PASS (512 tx bit-exact)
-```
-
-远端 VCS（本机无仿真器时）：
+## 3. 一条命令验证
 
 ```bash
-D3D4_RUNNER=vm-yian bash tools/verify_d3d4_ip.sh
+D3D4_RUNNER=vm-yian bash tools/verify_v21.sh
 ```
 
-含门级（需要先做过综合，网表路径自定）：
+8 项回归 + 算术证据，预期全部 PASS：
 
-```bash
-D3D4_RUNNER=vm-yian \
-D3D4_NETLIST=/path/to/d3d4_ip_net.v \
-D3D4_SCMODEL=/path/to/tcbn28hpcplusbwp7t40p140.v \
-bash tools/verify_d3d4_ip.sh
+```
+tb_acq_ctx_fixed   两反例已修复
+tb_audit3          10 checks
+tb_i12_full        105 checks
+tb_i3_full         20 checks
+tb_i4b_e2e         25 checks
+tb_recip_q60       43766 笔逐位
+tb_recip_rnd       20817 笔逐位
+tb_analog_if       54 checks（审查方原版反例）
+
+[A] 数学恒等式 RND(n,96)            PROVEN
+[A] X 的 32 位截断 |X|<2^31          PROVEN（前提 A1-A5）
+[B] 生产 RTL 的 rnd96_const          PASS（从源码抽取）
+[C] VC Formal 属性证明               未完成（不计入通过）
 ```
 
-脚本会因空日志、截断日志、覆盖不足、仿真失败、任一层未出现 `RESULT: PASS`
-而返回非零。L3 未提供网表时会显式打 `SKIPPED` 并提示"本次只证明 RTL 层正确"。
+### 专项入口
 
-## 综合
+| 命令 | 验什么 | 当前状态 |
+|:---|:---|:---|
+| `bash tools/check_recon_stream.sh` | 重构流水**连续输入**（相邻拍不同笔） | ✅ `RECON_STREAM_MATCH`，5 场景 0 错 |
+| `bash tools/check_wsum_equiv.sh` | `wsum` **任意权重** 364 笔 | ✅ 0 处不符 |
+| `bash tools/check_gate_e2e.sh` | 门级等价（两笔完整事务） | ⚠️ 依赖网表，当前无同版网表 |
+| `bash tools/check_formal.sh` | Formality 形式等价 | ⚠️ 同上；最近结果 FAILED 20 failing |
+| `bash tools/check_rtl_mutation.sh` | 证明检查有区分力 | ✅ |
 
-见 `docs/SYNTH_D3D4.md`。摘要（TSMC 28HPC+ SS）：
+所有脚本遵守同一约定：**空日志 / 截断 / 覆盖不足 / 任一检查未出现 PASS → 非零退出**。
 
-| 项 | 值 |
+---
+
+## 4. 三个类别必须分清
+
+| 类别 | 含义 | 本仓库例子 |
+|:---|:---|:---|
+| **[A] 数学证明** | 不等式推导 + 全区间机器验证 | `prove_rnd96.py`、`prove_xwidth.py`、`check_recip_correction.py` |
+| **[B] 生产 RTL 检查** | 从**生产源码**抽取逻辑，逐点对拍 | `check_rtl_rnd96.py`（74,618 点） |
+| **[C] 工具形式化** | Formality / VC Formal | **未完成** |
+
+**三者不互相替代。** `[A]` 过了不代表 `[B]` 过，`[B]` 过了不代表 `[C]` 过。
+
+---
+
+## 5. 目录结构
+
+```
+rtl/                 D1–D4 叶子（sched18 / dem_* / dither_pre / follower_rt）
+rtl/v21/             生产链：顶层 + D2/D5/D6
+tb/v21/              v21 测试台
+tools/               验收入口（verify_v21.sh 为总入口）
+flow/synth/v21/      DC 综合、STA、Formality 脚本
+formal/v21/          VC Formal 尝试（未完成）
+docs/v21/            本轮全部报告（见下）
+docs/                合同、算法说明、历史 checkpoint
+references/          ISSCC 9.8 公开资料
+src/adi_model/       Python 参考模型（DEM/Dither/重构）
+```
+
+### docs/v21 现行文档
+
+| 文件 | 内容 |
 |:---|:---|
-| 面积 | 1770.08 µm²（3017 cells，322 FF） |
-| 逻辑级数 / 关键路径 | **40 级 / 2.82 ns**（换 round-robin 前是 146 级 / 7.91 ns） |
-| 25 ns 下 setup | +19.88 ns |
-| 25 ns 下 hold | +0.0017 ns —— **不构成签核结论**，见 SYNTH_D3D4.md §4 |
+| `FINAL_D1_D6.md` | **D1–D6 状态表 + 作废数字清单**（首选） |
+| `SYNTH_STALL.md` | 综合停住的四组受控实验 |
+| `FORMAL_STATUS.md` | Formality 当前状态 |
+| `LUT_SYNTH_BUG.md` | `initial` 被综合丢弃的缺陷 |
+| `RECON_ALIGN_FIX.md` | 连续输入串样修复 |
+| `DRIVING_CELL_BUG.md` | 驱动单元静默失败 |
+| `GATE_EQUIV.md`、`TIMING_BUDGET_FINAL.md`、`PROOF_LEDGER.md`、`PPA_DIV_VS_RECIP.md` | 专项记录 |
+| `CHECKPOINT_I1…I4B.md`、`CHECKPOINT_AUDIT3.md` | 各阶段 checkpoint |
 
-## 目录结构
+---
 
-**核心只有这些，其余都是辅助或历史。**
+## 6. 阅读顺序
 
-```
-rtl/                       RTL 源码
-  d3d4_ip.sv                 ← IP 顶层（本任务交付物）
-  sched18.sv                 ← D1 片池调度
-  follower_rt.sv             ← D2 逐事件 RDAC
-  dem_mask_v3.sv             ← D3 DEM
-  dem_phase_rr.sv            ← D3 相位（round-robin）
-  dither_pre.sv              ← D4 Dither
-  digital_top_w.sv           ← 旧链顶层（D1-D6，4+3+2 / c-U）
+1. **本文**（状态 + 怎么跑）
+2. [`docs/v21/FINAL_D1_D6.md`](docs/v21/FINAL_D1_D6.md)（D1–D6 到哪一步了）
+3. [`docs/CONTRACT_CURRENT.md`](docs/CONTRACT_CURRENT.md)（适用哪份合同）
+4. [`docs/v21/SYNTH_STALL.md`](docs/v21/SYNTH_STALL.md)（后端卡在哪）
+5. [`docs/D3D4_IP_INTERFACE.md`](docs/D3D4_IP_INTERFACE.md)（旧 IP 的接口，仅历史参考）
 
-tb/                        testbench 与金标
-  tb_d3d4_ip.sv              ← IP 级 512 笔
-  tb_event_align.sv          ← 逐事件对齐（k/mask 同事件）
-  tb_dem_dither.sv           ← 叶子级 133,376 + 512 组
-  vec_*.txt                  ← 金标向量
+---
 
-tools/verify_d3d4_ip.sh    ← **唯一验收入口，四层一起跑**
-flow/build/filelists/           ← 4 个编译清单（先看里面的 README）
-flow/synth/d3d4/                ← 综合脚本与 SDC
-src/adi_model/dem_dither.py← DEM/Dither 唯一参考实现
-docs/                      ← 顶层 14 份当前文档，其余在 docs/_history/
-```
+## 7. 历史资产（不是当前生产链）
 
-**历史与外围，不要混入主线**：
-- `docs/_history/` —— 已作废文档（98 份 / 4.7 MB）
-- `subsys/` —— 外围子系统（AD4080 DSP、CAAZ 扩展、180nm 存档），
-  它们有 CI 依赖所以不能删，但与本任务无关
+`d3d4_ip` 是更早的 D3/D4 独立 IP（`rtl/d3d4_ip.sv` + `tools/verify_d3d4_ip.sh`），
+有自己的综合与门级等价记录。**它不含 D2/D5/D6，不是本项目的交付主线。**
 
-**两条链不要混用**：
+保留原因：DEM / dither 的叶子级穷举对拍（133,376 + 512 组）与
+`sched18` 统计仍在用，可作为 v21 的底层依据。
 
-| 链 | 顶层 | 口径 | 有 20 位码？ |
-|:---|:---|:---|:---|
-| 新（本轮） | `rtl/d3d4_ip.sv` | 3+3+3 / `c+U` | 无（到开关命令层） |
-| 旧 | `rtl/digital_top_w.sv` | 4+3+2 / `c−U` | 有（D1–D6 全链） |
+用它的入口是 `tools/verify_d3d4_ip.sh`；其综合数字（1770.08 µm² 等）
+**只对应 d3d4_ip 这个小 IP，不代表 v21 全链**。
 
-## 阅读顺序
+---
 
-0. **`docs/D3D4_IP_INTERFACE.md`（IP 对外合同）** —— 端口、时序、两种模式、
-   位序、合法性标志、不能声称的清单
-0.5 **`docs/HANDOFF_D3D4.md`（接手者先读这个）** —— 本轮做了什么、
-   如何验证、我为什么认为功能与综合完成、以及**最可能被推翻的 5 个地方**
-1. 本文（交付什么、怎么跑）
-2. `docs/CONTRACT_CURRENT.md`（适用哪份合同、版本优先级）
-3. `docs/DIGITAL_ALGORITHM.md`（DEM / Dither 原理与源码对应）
-4. `docs/ACCEPTANCE_STATUS.md`（哪个模块在哪个提交通过了什么）
-
-## 已知边界
+## 8. 已知边界
 
 | 项 | 说明 |
 |:---|:---|
-| 范围 | D3/D4 叶子 + `d3d4_ip` 顶层 + `sched18`（D1 调度器）。D2/D5/D6 不在本阶段 |
-| 综合 | **已做**块级综合 + 门级等价（`docs/SYNTH_D3D4.md`）。未做 P&R / CTS / DRC / LVS |
-| 形式等价 | **未做**。门级仿真覆盖功能，不等价于形式证明 |
-| hold | **不能签核**。零线载假设下的 +0.013 ns 不构成结论，见 `SYNTH_D3D4.md` §4 |
-| 功耗 | **不能签核**。`report_power` 无色切换率输入，只作量级参考 |
-| 接主链 | **未接**。`digital_top_w` 仍走 `dem_shuffle` + `dither_split`（4+3+2 / `c−U`），不含本 IP |
-| 两相位交织 | **已接入**。`d3d4_ip` 例化 `sched18`，输出 acq/conv/idle 掩码与片 ID |
-| RDAC follower | **已接入**。事件流模式下 k 由 `follower_rt` 逐事件累加（实测 1→3→…→511） |
-| bridging | 与 PPT Fig.31 的 2×2 形态**不同**，按合同 §6.1 的等电荷 E 实现；见 `docs/BRIDGE_VS_FIG31.md` |
+| 范围 | D1–D6 数字链。不含模拟、不含完整数字系统 |
+| 后端 | **TSMC 28HPC+ 综合未完成**（详见 SYNTH_STALL.md）。无 P&R / CTS / DRC / LVS |
+| 形式等价 | **未通过**（FAILED，20 failing，对应旧网表） |
+| hold / 功耗 | **不能签核** |
+| 40 MS/s 吞吐 | **未证明**——单路径 slack 不能证明整笔事务吞吐 |
+| 模拟域 | 参考建立 / RA / 安静窗不在数字 STA 范围 |
 | 来源 | `3+3+3`、8 宏列×16 半单元、β=1/8、guard 512–520 均为 `[E]` 工程补全 |
-| 历史文档 | `docs/_history/DIGITAL_SPEC.md` 等早于合同 v2.1，仅作追溯，不作现行规格 |
-| 笔数口径 | 仓库里 `8509` 笔那条走旧链，**不是本 IP 的证据** |
 
-## 状态表
+---
 
-见 `docs/ACCEPTANCE_STATUS.md`（每条绑定提交与证据路径）。
+## 9. 复现
+
+```bash
+git clone <repo> && cd 20bit_SAR_ADC_Behaviour_Verification
+D3D4_RUNNER=vm-yian bash tools/verify_v21.sh
+```
+
+环境说明见 [`docs/v21/I5_ENVIRONMENT.md`](docs/v21/I5_ENVIRONMENT.md)。
+远端工具与调用规范见 `reports/eda_environment/vm-yian-tools.md`。

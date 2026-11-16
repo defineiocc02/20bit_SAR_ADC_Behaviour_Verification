@@ -1,113 +1,83 @@
-# ISSCC 2024 9.8 数字复现：D1–D6 最终状态
+# ISSCC 2024 9.8 数字复现：D1–D6 状态表
 
-时间：2026-11-16　基线：`eebbc2d`
-目标：20 bit / 40 MS/s / ±3 V　后端：TSMC 28HPC+（原型 40 nm ULP）
+时间：2026-11-16　基线：`054cfed`
+工艺：TSMC 28HPC+（原型 40 nm ULP）　规格：20 bit / 40 MS/s / ±3 V
 
-## 1. D1–D6 实际复现范围
+> **本表只写当前版本 `054cfed` 上重新跑过的结果。**
+> 此前报过的综合数字（89,693 / 97,555 / 108,951 µm²）与门级结论
+> （"1464 拍差异 0"）都已作废，原因见 §4，不在本表引用。
 
-| 模块 | 内容 | RTL | 回归 | 综合 | 门级等价 | 状态 |
-|:---|:---|:---:|:---:|:---:|:---:|:---|
-| **D1** | 18 片 8/8/2 调度（`sched18`） | ✅ | 4096 拍逐位 + L2.5 20000 拍 | ✅ 2321 cells | ✅ | **已复现** |
-| **D2** | Flash/SAR 逐事件 follower（`sar_evt_v21`） | ✅ | I2 37 项 + I1I2 105 项 | ✅ | ✅ | **已复现** |
-| **D3** | DEM 3+3+3 + bridge | ✅ | L1 133376 对 + bridge 66688 组 | ✅ | ✅ | **已复现** |
-| **D4** | 分裂 dither | ✅ | L1 512 点 + L2 512 笔 | ✅ | ✅ | **已复现** |
-| **D5** | 定点重构（`recon_v21` + `wsum_v21`） | ✅ | I4 8213 项 + I4b 25 项 | ✅ | ✅ | **已复现** |
-| **D6** | 事务/宏控制（`acq_conv_ctx` + `adc2_capture`） | ✅ | 2 反例 + I3 20 项 + I4b 25 项 | ✅ | ✅ | **已复现** |
+## 1. D1–D6 功能状态
 
-**D1–D6 全部已复现，且都过了 RTL 回归 + 综合 + 门级等价三道验证。**
+| 模块 | 内容 | RTL | 回归 |
+|:---|:---|:---:|:---:|
+| **D1** | 18 片 8/8/2 调度（`sched18`） | ✅ | 4096 拍逐位 + L2.5 20000 拍 |
+| **D2** | Flash/SAR 逐事件 follower（`sar_evt_v21`） | ✅ | I2 37 项 + I1I2 105 项 |
+| **D3** | DEM 3+3+3 + bridge | ✅ | L1 133376 对 + bridge 66688 组 |
+| **D4** | 分裂 dither | ✅ | L1 512 点 + L2 512 笔 |
+| **D5** | 定点重构（`recon_v21` + `wsum_v21`） | ✅ | I4 8213 项 + 连续输入 5 场景 |
+| **D6** | 事务/宏控制（`acq_conv_ctx` + `adc2_capture`） | ✅ | 2 反例 + I3 20 项 + I4b 25 项 |
 
-## 2. 验证证据分层
+## 2. 在 `054cfed` 上重新跑过的验证
 
-| 层 | 内容 | 证据 |
+| 验证 | 结果 | 入口 |
 |:---|:---|:---|
-| **单元级** | sched18 / DEM / dither / bridge / recip | 逐位对拍 + 统计回归 |
-| **集成级** | I1/I2/I3/I4/I4b | 7 项回归全绿 |
-| **算术证明** | `RND(n,96)` 恒等式、`X` 位宽 | 数学不等式 + 50013 样本 |
-| **生产 RTL 检查** | `rnd96_const` 逐点一致 | 从源码抽取，74618 点失配 0 |
-| **变异测试** | 检查有区分力 | 常数/移位/舍入三类注入全部检出 |
-| **综合** | 28HPC+ 网表 | 97,554.69 µm²，slack +9.39 ns，违例 0 |
-| **门级等价** | RTL vs 网表 | 1464 拍差异 0 |
+| 8 项 RTL 回归 | **全绿** | `tools/verify_v21.sh` |
+| 连续输入 5 场景 | **`RECON_STREAM_MATCH`**，0 错 | `tools/check_recon_stream.sh` |
+| IDLE 分区 | **8/0/10、8/0/10、8/8/2**，并集 18、交集 0 | `tb/v21/tb_idle_partition.sv` |
+| 任意权重 wsum | **364 笔 × 3 字段 0 处不符** | `tools/check_wsum_equiv.sh` |
 
-## 3. 关键数字
+关键码值：A `raw=5120` → **0xFFF00**；B `raw=2560` → **0x80000**。
 
-### 功能
-| 项 | 值 |
+## 3. 本轮修复的三个真实缺陷
+
+| 缺陷 | 表现 | 提交 |
+|:---|:---|:---|
+| `recip_q60` LUT 用 `initial` 初始化 | DC 丢弃（`VER-281`）→ 网表 `i_q60` 恒为常数 2 | `878a348` |
+| IDLE 直接取 `sched_idle`（推进后位图） | 稳定 A/B 为 8/8/**1**，漏一片 | `6b2cc7b` |
+| recon 用实时总线取参数 | 连续 10 笔中 **8 笔码错**（A 期望 0x80000 实得 0x90000） | `fe7535f` |
+
+三项均在 `054cfed` 上复验通过。
+
+## 4. 后端状态：阻塞
+
+| 项 | 状态 |
 |:---|:---|
-| A 笔（guard 路径） | raw=5120 → **0xFFF00** |
-| B 笔（普通区） | raw=2560 → **0x80000** |
-| 流水深度 | recon 7 拍（S1a/S1b/S2a-c/S3/S4） |
-| 退休计数 | 8209 / 8213（每笔恰好一次） |
+| **同版网表（`054cfed`）** | ❌ **未生成**。顶层综合停在 `Processing 'wsum_v21'`，四组受控实验全部复现 |
+| 门级等价（当前版本） | ❌ 未做（依赖网表） |
+| Formality（当前版本） | ❌ 未做（依赖网表） |
+| `u_wsum` 20 个 failing | ❌ 未解决（对应旧网表 `485abbbd`，不是当前版本） |
+| 布局布线 / 后布线 STA / DRC / LVS / GDS | ❌ 未做 |
 
-### 面积
-| 对象 | 面积 |
-|:---|--:|
-| 原型数字区（照片图估版图区域） | 60,000 µm² |
-| 本工程（标准单元综合） | **97,554.69 µm²** |
-| 数值比 | 1.63× |
+### 作废的历史数字（不得再引用）
 
-**口径不同，不能解读为"差 1.63 倍"。**
+| 数字 | 作废原因 |
+|:---|:---|
+| 89,693 µm² | `g_q30` 位宽不匹配 → `recip_rnd_v21` 变黑盒 |
+| 76,222 µm² | `v1_q` 重复声明 → `recon_v21` 变黑盒 |
+| 97,555 µm² / +9.39 ns | LUT 被 DC 丢弃，网表功能错误 |
+| 108,951 µm² / +3.02 ns | 驱动单元修正后测，但 **RTL 是 `1fb9408`，不含本轮两项功能修复** |
+| "门级 1464 拍差异 0" | 基于错误网表；且 1464 是**日志行数**，仅 90 个观察沿、2 笔输出 |
 
-### 时序（28HPC+ SS 0.81V −40 °C，25 ns）
-| 预算 | 最紧 slack | 可用时间 |
-|:---|---:|---:|
-| ① 释放 → 采集 | 23.73 ns | 1.27 ns |
-| ② 已决 → RDAC（`pre` 侧） | **20.38 ns** | 4.62 ns |
-| ③ 末次 → ADC2 捕获 | 22.29 ns | 2.71 ns |
-| **全局最差**（Newton 迭代） | **+9.39 ns** | 15.61 ns |
+## 5. 现有可用产物
 
-**三类预算都不是瓶颈，recon 的倒数迭代才是。**
+| 产物 | 哈希 | 对应 RTL |
+|:---|:---|:---|
+| `/tmp/dcwork/adc_digital_ip_v21_syn.v` | `485abbbd` | `878a348`（含 LUT 修复，无驱动修正） |
+| `/tmp/dcwork4/adc_digital_ip_v21_syn.v` | `769cc61f` | `1fb9408`（含驱动修正，无本轮功能修复） |
 
-## 4. 复现命令（一条）
+**两者都不是 `054cfed` 的同版网表。**
+
+## 6. 复现命令
 
 ```bash
-cd <repo> && D3D4_RUNNER=vm-yian bash tools/verify_v21.sh
+# RTL 级（当前版本，全部可跑）
+D3D4_RUNNER=vm-yian bash tools/verify_v21.sh
+D3D4_RUNNER=vm-yian bash tools/check_recon_stream.sh
+D3D4_RUNNER=vm-yian D3D4_NETLIST=/tmp/dcwork4/adc_digital_ip_v21_syn.v \
+  bash tools/check_wsum_equiv.sh
+D3D4_RUNNER=vm-yian python3 tools/prove_xwidth.py
+D3D4_RUNNER=vm-yian python3 tools/check_recip_correction.py
 ```
 
-输出：7 项 RTL 回归 + [A] 数学证明 + [B] 生产 RTL 检查。
-
-配套：
-
-```bash
-D3D4_RUNNER=vm-yian bash tools/check_rtl_mutation.sh   # 证明检查有区分力
-D3D4_RUNNER=vm-yian bash tools/check_gate_equiv.sh     # 门级等价
-python3 tools/prove_xwidth.py                          # X 位宽全域
-python3 tools/check_recip_correction.py                # 倒数可修正性
-```
-
-## 5. 未完成（如实）
-
-| 项 | 阻塞原因 |
-|:---|:---|
-| **形式化等价**（Formality） | `fm_shell` 进入 `(setup)` 模式，命令集与 DC/PT 不同；多次尝试未跑通 |
-| **布局布线** | FC 的 TLU+ corner 绑定未解（`SCN-1001`）；`create_corner` / `create_scenario` 在无 block 时不可用 |
-| **后布线 STA / SPEF** | 依赖 P&R 结果 |
-| **DRC / LVS / GDS** | 依赖 P&R + 模拟宏 LEF |
-| **模拟域时序** | 参考建立、RA 建立、模拟安静窗不在数字 STA 范围 |
-| **hold 分析** | 只做了 setup（`-delay_type max`） |
-| **多 PVT 角** | 只做 SS 0.81V −40 °C |
-| **40 nm 重映射** | 无 40 nm 库 |
-
-## 6. 本次工作中学到的三条工程教训
-
-1. **"综合收敛"和面积必须用网表自证**。本轮两次报告了假数字
-   （89,693 与 76,222 µm²），都是因为子模块变成黑盒而 DC 仍报
-   `STEP_COMPILE_OK`。三次自检必须每次做（见 `TIMING_BUDGET_v4.md` §6）。
-2. **仿真通过 ≠ 可综合**。`v1_q` 重复声明时 VCS 只给 warning、
-   8213 项照常全过，但 DC 直接拒绝 link。
-3. **Formality 与 DC/PT 的命令体系不同**。`link_library`、
-   `set_top_designs`、`set_container` 都不存在，且 `fm_shell`
-   进的是 `(setup)` 模式。
-
-## 7. 与目标要求的对照
-
-| 目标要求 | 状态 |
-|:---|:---|
-| I3 两笔余差由独立节点模型产生、经实际握手返回、按样本归属 | ✅ 零差异（`tb_i3_full` 20 项） |
-| I4 逐位对拍 20 位输出，A=0xFFF00 / B=0x80000 | ✅ 8213 项 + 25 项 |
-| I5 综合、等价、布局布线、后布线验证 | 综合 ✅ / 门级等价 ✅ / **形式化等价 ❌ / P&R ❌** |
-| 25 ns 连续采样 | ✅ slack +9.39 ns |
-| 每已决事件 → 物理开关 | ✅ slack 20.38 ns（pre 侧） |
-| 末次生效 → ADC2 捕获 | ✅ 数字侧 slack 22.29 ns；模拟侧不可及 |
-| 40 nm 端口时序表 | ✅ `I5_PORTS.md`（语义可复用，slack 需重测） |
-| 同一套金标 | ✅ 全部入库 |
-| 各关键路径最坏延迟与剩余预算 | ✅ `TIMING_BUDGET_FINAL.md` |
+综合阻塞的详细记录见 `SYNTH_STALL.md`。

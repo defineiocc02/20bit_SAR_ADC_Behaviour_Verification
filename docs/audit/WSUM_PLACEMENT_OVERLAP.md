@@ -109,6 +109,29 @@ FC initial_place：34 个 wt_main_reg 单元宽度 3.08 µm（22× site）
 | **C** | 改算法：增量更新而非每笔查全表 | ✅ 根治，但需重构 D5 + 重跑全部回归 |
 | **D** | 接受：`wsum` 只做 DC 综合与功能验证 | ✅ 诚实交付 |
 
-## 8. 一句话
+## 8. 后续修正：`initial_place` 实际能完成
 
-**`wsum` 卡在布局不是"跑得慢"，而是"放不下" —— 34 个寄存器组的宽度是标准 site 的 22 倍，物理上无法无重叠排布。**
+**上文"放不下"的措辞需要修正。** 后续观察：
+
+```
+Ending compile_fusion / initial_place / Initial Placement   ✅ 完成
+Ending compile_fusion / initial_drc                          ✅ 完成
+Starting compile_fusion / initial_opto                       ⏳ 进行中
+```
+
+**`initial_place` 与 `initial_drc` 都完成了**，`ZRT-763` 的 52 次重叠告警
+没有阻止流程推进。
+
+所以准确表述是：
+
+| 说法 | 准确性 |
+|:---|:---|
+| "物理上放不下" | ❌ 过头了 —— 布局器完成了粗放置 |
+| **"能放，但产生 52 次无重叠告警"** | ✅ 准确 |
+| "耗时不可接受" | ✅ 准确（31 分钟仍在 compile_fusion）|
+
+## 9. 一句话（修正版）
+
+**`wsum` 的寄存器组几何（3.08 µm = 22× site）导致布局产生 52 次重叠告警，
+虽然流程能推进，但 `compile_fusion` 单独就超过 30 分钟，
+物理实现代价不可接受。根因是 14,400 个触发器 + 2,304 路 MUX 的结构选择。**

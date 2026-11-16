@@ -40,17 +40,26 @@ STEP_VERIFY_OK        verify 执行（但超时，见 §3）
   **全部集中在 DFCNQD1 寄存器上**（`quiet_cnt_q` / `conv_valid_q` /
   `conv_captured_q` / `conv_held_q`）—— 这是极性失配，不是功能差异。
 
-## 3. 当前状态：verify 超时
+## 3. 当前状态：verify 正在长时间计算
 
 | 阶段 | 结果 |
 |:---|:---|
 | 读库 / SVF / 读 RTL / set_top / match | **全部通过** |
-| `verify` | **超时**（850 s 未完成，进程被 kill） |
+| `verify` | **仍在计算**（已 >11 min CPU，`fm_shell_exec` 稳定 94% CPU） |
 
-**加载 SVF 之后，verify 的计算量显著增加** —— 这与"SVF 让 Formality
-复现更多优化、需要更多证明"是一致的。之前没有 SVF 时 verify 约 180 s
-就出 `Verification FAILED`（20 个 failing），但那是**极性失配导致的
-快速失败**，不是真实等价性结论。
+**这是真实计算，不是卡死**：`ps` 显示 `fm_shell_exec` 持续 94% CPU，
+日志停在 `Status: Verifying...`（Formality 在 verify 期间不输出中间进度）。
+
+**加载 SVF 之后计算量显著增加** —— 与"SVF 让 Formality 复现更多优化、
+需要更多证明"一致。对照：
+
+| 条件 | verify 耗时 | 结果 |
+|:---|:---|:---|
+| 无 SVF | ~180 s | `FAILED`，20 failing（全在 DFCNQD1 寄存器上）—— **极性失配的快速失败，不是真实结论** |
+| 有 SVF | >850 s（首轮超时）→ 本轮 >11 min 仍在跑 | 待定 |
+
+所以"无 SVF 的 20 failing"不能当作等价性结论，已被正确排除。
+本轮用 2300 s 预算重跑，等结果。
 
 ## 4. 待做
 

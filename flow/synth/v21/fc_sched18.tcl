@@ -45,6 +45,26 @@ puts "STEP_ELAB_OK"
 set_top_module $DESIGN
 puts "STEP_TOP_OK"
 
+# ---------------------------------------------------------------- UPF（单电源域）
+#
+# **为什么需要**：place_opt 报 OPT-043/OPT-045，日志里
+#   Number of used supplies = 0
+# 库本身有 PG 引脚（get_lib_pins */*/VDD -> 839 个，dir=in），
+# 但 PD 与 supply net 没有关联。命令式 UPF 全部 rc=1，
+# 所以用文件式 load_upf。
+if {[file exists /tmp/min_single_domain.upf]} {
+    set _r [catch {load_upf /tmp/min_single_domain.upf} _e]
+    puts "CHK_UPF rc=$_r [string range $_e 0 100]"
+    # **电压必须在这里设**：set_voltage 是 TCL 命令，需要 design 上下文；
+    # 写进 UPF 文件里会报 CMD-005 unknown command。
+    # 0.81 V 与 SS 角库名 ...ssg0p81vm40c 一致。
+    set _rv1 [catch {set_voltage 0.81 -object_list [get_supply_nets VDD]} _ev1]
+    set _rv2 [catch {set_voltage 0.00 -object_list [get_supply_nets VSS]} _ev2]
+    puts "CHK_VOLTAGE VDD_rc=$_rv1 VSS_rc=$_rv2"
+} else {
+    puts "CHK_UPF SKIP (file not found)"
+}
+
 # ---------------------------------------------------------------- TLU+
 #
 # **正确的绑定方式（已由 manpage 确认并实测）**：
@@ -90,64 +110,75 @@ puts "STEP_SYNTH_OK"
 initialize_floorplan -core_utilization 0.6
 puts "STEP_FLOORPLAN_OK"
 
-# **place_opt 报 OPT-045 的真正根因（已逐项排除确认）**：
+# **place_opt 报 OPT-045 的完整根因链（逐步实测确认）**
 #   Warning: Cannot find default buffer/inverter for VA DEFAULT_VA (OPT-043)
 #   Error:   Cannot find usable buffers or inverters. (OPT-045)
+#   Number of used supplies = 0
 #
-# 排查过程（每一步都有实测依据）：
-#   ① 库本身没问题：NDM 里 839 个 cell、15 个 BUFFD，
-#      BUFFD2 的 is_buffer=true、area=0.392、dont_use=false、非黑盒。
-#   ② `set_lib_cell_purpose` 返回 0（成功）但 `purpose` 属性仍为空 ——
-#      该命令定义的是"允许用途"，不直接改属性，所以不是根因。
-#   ③ 设计的 is_black_box=false，不是"block 不可修改"。
-#   ④ **真正的根因**：`get_voltage_areas` 返回 DEFAULT_VA，
-#      但它的 `power_domain` 和 `blocks` **都是空** —— VA 没绑定任何东西，
-#      place_opt 在该 VA 内找不到可插入的 buffer。
+# 已排除：
+#   ① 库缺 buffer      -- get_lib_cells */*BUFFD* -> 15 个，is_buffer=true
+#   ② 库缺 PG 引脚     -- get_lib_pins */*/VDD -> **839 个**，dir=in
+#   ③ 设计只读         -- is_black_box=false
+#   ④ 缺电压           -- set_voltage 已 rc=0（见 CHK_VOLTAGE）
 #
-# 正确做法（man set_voltage_area）：
-#   set_voltage_area -add_power_domains <pd> -add_cells <cells> <va>
-# **只绑 power domain，不要 -add_cells**：
-# 实测 `-add_cells` 报 NDMUI-155
-#   Cell 'A689' does not belong to a power_domain associated with this voltage_area
-# 因为 cell 本来就属于 DEFAULT_POWER_DOMAIN，再 -add_cells 反而要求它
-# "已属于该 VA 关联的 PD"，形成循环约束。绑 PD 之后 VA 自动覆盖该 PD 下所有 cell。
-set _pd [get_power_domains -quiet *]
-set _va [get_voltage_areas]
-if {[sizeof_collection $_pd] > 0} {
-    set_voltage_area -add_power_domains $_pd $_va
-    puts "STEP_VA_BIND_OK pd=[get_object_name $_pd]"
-} else {
-    puts "FATAL: 没有 power domain 可绑定"
-    exit 1
+# **真正的根因：DEFAULT_VA 的 power/ground 无法设置**
+#   实测 set_voltage_area -power/-ground DEFAULT_VA
+#     -> Error: The power_supply_net of the default voltage_area
+#               cannot be changed. (NDMUI-444)
+#   而 DEFAULT_VA 的 power/ground 恒为空 -> used supplies = 0 ->
+#   place_opt 找不到可插入 buffer 的电源上下文。
+#
+# **解法：不使用 DEFAULT_VA，自己建一个带 power/ground 的 VA**
+#   create_voltage_area 支持同时给 -power_domains / -power / -ground / -cells，
+#   这正是 DEFAULT_VA 缺少的能力。
+# **建新 VA 替代 DEFAULT_VA**（它的 power/ground 不可改，NDMUI-444）
+#
+# 顺序很关键（上一轮踩过）：**先建新 VA 成功，再删旧的**。
+# 上一轮先 remove 再 create，create 因 -region 格式错失败，
+# 结果一个 VA 都没有，OPT-045 从 2 次恶化到 5 次。
+set _pd   [get_power_domains -quiet *]
+set _vdd  [get_supply_nets -quiet VDD]
+set _vss  [get_supply_nets -quiet VSS]
+set _all  [get_cells -hierarchical -filter "is_hierarchical == false"]
+
+# -region 要的是 {{x1 y1} {x2 y2}} 这种"点对列表"，不是单个 bbox 对象。
+# 上一轮传 [list $core] 得到空串 -> NDMUI-100 Invalid coordinates ''。
+# **boundary 返回 4 个角点，不是 2 个**（实测）：
+#   {0 0} {0 39.6} {39.825 39.6} {39.825 0}
+# 所以 [lindex $bbox 0] 与 [lindex $bbox 1] 是同一侧的相邻点，
+# 两点构成 x 方向宽度为 0 的退化矩形 -> NDMUI-100 / DES-136。
+# 正确取法：下左角 = [lindex 0]，上右角 = [lindex 2]。
+# 另：core_area / core_bbox / core_boundary 属性在本版本均为空，不可用。
+set _bbox [get_attribute [current_design] boundary]
+set _ll   [lindex $_bbox 0]
+set _ur   [lindex $_bbox 2]
+set _x1   [lindex $_ll 0]
+set _y1   [lindex $_ll 1]
+set _x2   [lindex $_ur 0]
+set _y2   [lindex $_ur 1]
+puts "CHK_VA_REGION {{$_x1 $_y1} {$_x2 $_y2}}"
+if {$_x2 <= $_x1 || $_y2 <= $_y1} {
+    puts "FATAL: region 退化（{{$_x1 $_y1} {$_x2 $_y2}}），不建 VA"
 }
+set _r [catch {
+    create_voltage_area -name VA_TOP \
+        -power_domains $_pd -power $_vdd -ground $_vss \
+        -cells $_all -region [list [list $_x1 $_y1] [list $_x2 $_y2]]
+} _e]
+puts "CHK_VA_NEW rc=$_r [string range $_e 0 120]"
 
-# **本库是无 PG 引脚的普通标准单元库**（实测 BUFFD2 只有 I/Z 两个信号引脚，
-# 没有 VDD/VSS pin），因此 FC 的 voltage-area 感知在
-#   "VA 有 PD 但 VA_power/VA_ground 为空、used supplies=0"
-# 状态下找不到可插入的 buffer，报 OPT-043/OPT-045。
-#
-# 两条路：
-#   ① `set_voltage_area -power/-ground`  -> 报 NDMUI-444
-#      "The power_supply_net of the default voltage_area cannot be changed"
-#      （DEFAULT_VA 的电源网由 tech file 决定，不可改）
-#   ② 关闭 VA 感知，让 place_opt 按普通单域设计处理
-#      （本设计没有 UPF、没有多电源域，②正确）
-# 库的 PG 引脚是存在的（实测 get_lib_pins */*/VDD -> 839 个，dir=in），
-# 所以问题不是"库缺 PG"，而是 FC 没有把 cell 的 PG 引脚连到 supply net。
-# `mv.upf.enable_pg_pin_reconnection` 默认 false，正是控制这件事的开关。
-# **三个默认 false 的选项共同导致"used supplies=0"**
-# （实测 get_app_option_value 读出全为 false）：
-#   mv.upf.enable_pg_pin_reconnection  = false  不把 cell PG 脚接到 supply
-#   plan.pgroute.auto_connect_pg_net   = false  不自动连 PG 网
-#   plan.pgroute.snap_stdcell_rail     = false  不对齐标准单元 rail
-# 库本身有 PG 引脚（get_lib_pins */*/VDD -> 839 个，dir=in），
-# 所以需要的是打开这三项，而不是重建库。
-set_app_options -name mv.upf.enable_pg_pin_reconnection -value true
-set_app_options -name mv.upf.enable_missing_voltage_area   -value true
-set_app_options -name plan.pgroute.auto_connect_pg_net     -value true
-set_app_options -name plan.pgroute.snap_stdcell_rail       -value true
-puts "CHK_VA_OPT pg_pin_reconn=true auto_connect_pg=true snap_rail=true"
-
+set _va_new [get_voltage_areas -quiet VA_TOP]
+if {[sizeof_collection $_va_new] > 0} {
+    puts "CHK_VA_BIND pd=[get_object_name [get_attribute -quiet $_va_new power_domains]] power=[get_object_name [get_attribute -quiet $_va_new power]]"
+    # **不删 DEFAULT_VA**：实测删掉之后 place_opt 仍然引用
+    #   "VA DEFAULT_VA with Block Hierarchy ."
+    # 说明 DEFAULT_VA 是 FC 内部固定引用的对象，删不掉也不该删。
+    # 保留它，只保证 VA_TOP 存在并绑定 PD。
+    set _va_all [get_voltage_areas -quiet *]
+    puts "CHK_VA_LIST [get_object_name $_va_all]"
+} else {
+    puts "CHK_VA_FAIL 保留原 VA，不删除"
+}
 puts "STEP_LIBCELL_PURPOSE_OK"
 
 place_opt

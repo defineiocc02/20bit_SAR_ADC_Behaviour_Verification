@@ -64,13 +64,39 @@ module wsum_v21 (
     // 之前用 always_comb 写 G_c/Wp_c/Wm_c 再寄存，反复出现
     // "组合值探针正确、寄存器采到 0"的现象（两级寄存也没解决）。
     // function 是纯组合、无中间状态，在 always_ff 里直接调用最可靠。
+    // ---------------------------------------------------------------- 片号钳位
+    //
+    // **必须把 5 位片号钳到 [0,17]**，否则综合会折叠掉 17/18 的权重行。
+    //
+    // 实测证据（docs/v21/WSUM_TIE_BUG.md）：
+    //   网表里只有 w_main_tbl[17][*] 参与求和，[0..16] 全部被折掉。
+    //   全部权重置 1 时 G = 140737488355200 = 8*16*(2^40-1)，
+    //   正好等于"只有一行 16 列 × 8 slot"的和。
+    //   dc.log 里 G_q30_reg[52..59] 等被 OPT-1206 当常量删除，
+    //   网表里 TIEL 单元直接驱动 G_q30 高位。
+    //
+    // 原因：w_main_tbl 的维度是 [0:17]（18 项），但索引
+    // `ids[s*5 +: 5]` 是 **5 位，可表示 0..31**。DC 对越界索引
+    // (18..31) 的常量传播行为未定义，把所有 sid 折到了最后一个
+    // 合法下标 17。
+    //
+    // 合同上片号本就 <= 17（18 片三态池，sched18 保证），
+    // 所以钳位不改变合法域内的行为，只是把"未定义"变成"确定"。
+    function automatic logic [4:0] sid_of(input logic [39:0] ids, input int s);
+        logic [4:0] v;
+        begin
+            v = ids[s*5 +: 5];
+            sid_of = (v > 5'd17) ? 5'd17 : v;   // 越界钳到最后一个合法片
+        end
+    endfunction
+
     function automatic logic [63:0] f_G(input logic [39:0] ids);
         logic [63:0] acc;
         begin
             acc = 64'd0;
             for (int s = 0; s < 8; s++)
                 for (int j = 0; j < 16; j++)
-                    acc = acc + {24'd0, w_main_tbl[ids[s*5 +: 5]][j]};
+                    acc = acc + {24'd0, w_main_tbl[sid_of(ids, s)][j]};
             f_G = acc;
         end
     endfunction
@@ -83,7 +109,7 @@ module wsum_v21 (
             for (int s = 0; s < 8; s++) begin
                 for (int j = 0; j < 16; j++)
                     if (post[s*20 + j])
-                        acc = acc + {24'd0, w_main_tbl[ids[s*5 +: 5]][j]};
+                        acc = acc + {24'd0, w_main_tbl[sid_of(ids, s)][j]};
                 // 子阵列 4 位全算（含 j19 平衡位，名义 1/128）。
                 // 只要 post 选中就计入 Wm —— j19 是真实电容。
                 // 与节点宏（仿真边界）必须用同一张物理位表、同一口径。
@@ -94,10 +120,10 @@ module wsum_v21 (
                 // 这正是审计问题 ③（j19 漏算）的成因，节点宏已改为显式展开
                 // （adc2_node_macro.sv:116-119），wsum 这里必须同步，
                 // 否则同一个物理位在两处口径不一致。
-                if (post[s*20 + 16]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][0]};
-                if (post[s*20 + 17]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][1]};
-                if (post[s*20 + 18]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][2]};
-                if (post[s*20 + 19]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][3]};
+                if (post[s*20 + 16]) acc = acc + {24'd0, w_sub_tbl[sid_of(ids, s)][0]};
+                if (post[s*20 + 17]) acc = acc + {24'd0, w_sub_tbl[sid_of(ids, s)][1]};
+                if (post[s*20 + 18]) acc = acc + {24'd0, w_sub_tbl[sid_of(ids, s)][2]};
+                if (post[s*20 + 19]) acc = acc + {24'd0, w_sub_tbl[sid_of(ids, s)][3]};
             end
             f_Wm = acc;
         end
@@ -112,10 +138,10 @@ module wsum_v21 (
             // 位序是 pre[s*4 + (3-j)]：j=0 取 pre[3], j=3 取 pre[0]，
             // 与节点宏的位映射一致（节点宏那边也是 j 与 pre 位反序）。
             for (int s = 0; s < 8; s++) begin
-                if (pre[s*4 + 3]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][0]};
-                if (pre[s*4 + 2]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][1]};
-                if (pre[s*4 + 1]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][2]};
-                if (pre[s*4 + 0]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][3]};
+                if (pre[s*4 + 3]) acc = acc + {24'd0, w_sub_tbl[sid_of(ids, s)][0]};
+                if (pre[s*4 + 2]) acc = acc + {24'd0, w_sub_tbl[sid_of(ids, s)][1]};
+                if (pre[s*4 + 1]) acc = acc + {24'd0, w_sub_tbl[sid_of(ids, s)][2]};
+                if (pre[s*4 + 0]) acc = acc + {24'd0, w_sub_tbl[sid_of(ids, s)][3]};
             end
             f_Wp = acc;
         end

@@ -65,7 +65,12 @@ module tb_analog_if;
         .adc2_valid_i(adc2_valid), .adc2_ready_o(adc2_ready), .adc2_raw_i(13'd2560),
         .adc2_range_err_i(1'b0), .adc2_capture_arm_o(adc2_arm),
         .adc2_rsp_valid_o(rsp_valid), .adc2_rsp_tag_o(rsp_tag),
-        .w_main_tbl(w_main), .w_sub_tbl(w_sub), .cfg_epoch(8'd1), .b_q24_cfg(27'sd0),
+        // 权重表已改为 wsum 内部寄存器堆 + 窄配置口。
+        // 本测试只验接口时序，不做权重扫描，所以配置口保持静默
+        // （权重全 0，只影响 G/Wp/Wm 数值，不影响本测试检查的选通与 arm）。
+        .w_cfg_we(1'b0), .w_cfg_sel(1'b0), .w_cfg_sid(5'd0),
+        .w_cfg_idx(5'd0), .w_cfg_data(40'd0),
+        .cfg_epoch(8'd1), .b_q24_cfg(27'sd0),
         .apply_fire_o(apply_fire), .final_applied_o(final_applied),
         .final_k_o(final_k), .err_o(err), .tag_o(event_tag));
 

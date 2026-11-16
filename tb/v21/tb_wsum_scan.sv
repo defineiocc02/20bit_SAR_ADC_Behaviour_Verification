@@ -38,8 +38,38 @@ module tb_wsum_scan;
     logic [39:0]  ids_i = 40'd0;
     logic [31:0]  pre_mask_i = 32'd0;
     logic [159:0] post_mask_i = 160'd0;
+    // 权重表在本 TB 里**仍用本地数组**：它只用于参考模型算期望值。
+    // DUT 侧已改成内部寄存器堆，通过下面 5 根配置线灌入（见 wt_load）。
     logic [39:0]  w_main_tbl [0:17][0:15];
     logic [39:0]  w_sub_tbl  [0:17][0:3];
+    logic         cfg_we   = 1'b0;
+    logic         cfg_sel  = 1'b0;
+    logic [4:0]   cfg_sid  = 5'd0;
+    logic [4:0]   cfg_idx  = 5'd0;
+    logic [39:0]  cfg_data = 40'd0;
+
+    // 把本地权重数组整表灌进 DUT 的寄存器堆（360 个字，每字一拍）
+    task automatic wt_load();
+        begin
+            for (int s = 0; s < 18; s++) begin
+                for (int j = 0; j < 16; j++) begin
+                    @(negedge clk);
+                    cfg_we = 1'b1; cfg_sel = 1'b0;
+                    cfg_sid = 5'(s); cfg_idx = 5'(j);
+                    cfg_data = w_main_tbl[s][j];
+                    @(posedge clk);
+                end
+                for (int j = 0; j < 4; j++) begin
+                    @(negedge clk);
+                    cfg_we = 1'b1; cfg_sel = 1'b1;
+                    cfg_sid = 5'(s); cfg_idx = 5'(j);
+                    cfg_data = w_sub_tbl[s][j];
+                    @(posedge clk);
+                end
+            end
+            @(negedge clk); cfg_we = 1'b0;
+        end
+    endtask
 
     logic [63:0] G_q30, Wp_q30, Wm_q30;
     logic        sum_valid;
@@ -48,7 +78,8 @@ module tb_wsum_scan;
         .clk(clk), .rst_n(rst_n),
         .calc_valid(calc_valid),
         .ids_i(ids_i), .pre_mask_i(pre_mask_i), .post_mask_i(post_mask_i),
-        .w_main_tbl(w_main_tbl), .w_sub_tbl(w_sub_tbl),
+        .cfg_we(cfg_we), .cfg_sel(cfg_sel), .cfg_sid(cfg_sid),
+        .cfg_idx(cfg_idx), .cfg_data(cfg_data),
         .sum_valid(sum_valid),
         .G_q30(G_q30), .Wp_q30(Wp_q30), .Wm_q30(Wm_q30));
 
@@ -100,6 +131,9 @@ module tb_wsum_scan;
     task automatic run_one(input string tag);
         logic [63:0] eG, eWp, eWm;
         begin
+            // 权重可能在上一笔之后被改过，先整表同步到 DUT 寄存器堆。
+            // 360 字 x 364 笔 ≈ 131k 拍，仿真约几秒，可接受。
+            wt_load();
             txn_idx++;
             eG = ref_G(); eWp = ref_Wp(); eWm = ref_Wm();
             calc_valid = 1'b1;

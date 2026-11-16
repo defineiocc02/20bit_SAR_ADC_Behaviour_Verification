@@ -75,15 +75,46 @@
     logic [12:0] adc2_raw_i = 13'd0;
     logic        adc2_range_err_i = 1'b0;
 
-    // 权重表：RTL 侧是数组 [18][16] / [18][4]；门级侧是 11520/2880 位扁平向量。
-    // 两种声明互斥，用 `E2E_GATE 宏切换。body 只按 (s,j) 语义赋值，
-    // 具体"数组下标"与"扁平位段"的换算放在两侧各自的声明里。
+    // ---------------- 权重表配置口（v2.0）----------------
+    //
+    // **权重表已从 14,400 根端口线改成 wsum 内部寄存器堆**，TB 通过
+    // 窄配置口逐个 40 位字写入。原因见 rtl/v21/wsum_v21.sv 的端口注释：
+    // 端口数组会让 wsum 的查表展开成 2304 路 40 位 MUX，
+    // 单独综合 594 s / 112,371 cells，顶层 medium 四次全停。
+    //
+    // `E2E_GATE 门级侧保持旧的扁平向量声明：门级网表要等用新 RTL
+    // 重新综合后才会变成配置口形态，届时同步改这里。
 `ifdef E2E_GATE
     logic [11519:0] w_main_tbl;
     logic [2879:0]  w_sub_tbl;
 `else
-    logic [39:0] w_main_tbl [0:17][0:15];
-    logic [39:0] w_sub_tbl  [0:17][0:3];
+    logic        w_cfg_we   = 1'b0;
+    logic        w_cfg_sel  = 1'b0;
+    logic [4:0]  w_cfg_sid  = 5'd0;
+    logic [4:0]  w_cfg_idx  = 5'd0;
+    logic [39:0] w_cfg_data = 40'd0;
+`endif
+
+    // ---------------- 权重配置写入任务 ----------------
+    //
+    // 一个 40 位字占一拍：置 cfg_* 后在 negedge 稳定，posedge 写入。
+    // 门级侧（`E2E_GATE）暂不支持——门级网表要等用新 RTL 重新综合后
+    // 才会变成配置口形态。
+`ifndef E2E_GATE
+    task automatic wt_write(input logic sel, input logic [4:0] sid,
+                            input logic [4:0] idx, input logic [39:0] data);
+        begin
+            @(negedge clk);
+            w_cfg_we   = 1'b1;
+            w_cfg_sel  = sel;
+            w_cfg_sid  = sid;
+            w_cfg_idx  = idx;
+            w_cfg_data = data;
+            @(posedge clk);
+            @(negedge clk);
+            w_cfg_we   = 1'b0;
+        end
+    endtask
 `endif
 
     logic [7:0]  cfg_epoch = 8'd1;

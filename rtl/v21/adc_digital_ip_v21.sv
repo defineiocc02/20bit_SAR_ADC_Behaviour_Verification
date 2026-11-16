@@ -121,8 +121,20 @@ module adc_digital_ip_v21 (
 
     // ---------------------------------------------------------------- D5 配置与输出
     // 权重表（18×20 Q30）。方案 §9.4：权重来自显式装载。
-    input  logic [39:0]  w_main_tbl [0:17][0:15],
-    input  logic [39:0]  w_sub_tbl  [0:17][0:3],
+    // ---------------------------------------------------------------- 权重表配置口
+    //
+    // 原来是 14,400 根的端口数组（顶层端口数因此达到 15,775）。
+    // 权重是静态标定值，改成「窄配置口 + wsum 内部寄存器堆」，
+    // 端口从 14,400 降到 51。
+    //
+    // 写序列（上电后一次性灌 360 个字）：
+    //   for sid in 0..17: for j in 0..15: cfg_sel=0, cfg_sid=sid, cfg_idx=j, cfg_we=1
+    //   for sid in 0..17: for j in 0..3 : cfg_sel=1, cfg_sid=sid, cfg_idx=j, cfg_we=1
+    input  logic         w_cfg_we,
+    input  logic         w_cfg_sel,
+    input  logic [4:0]   w_cfg_sid,
+    input  logic [4:0]   w_cfg_idx,
+    input  logic [39:0]  w_cfg_data,
     input  logic [7:0]   cfg_epoch,
     input  logic signed [26:0] b_q24_cfg,
 
@@ -555,7 +567,8 @@ module adc_digital_ip_v21 (
         .ids_i(conv_ids),
         .pre_mask_i(conv_pre_slot),
         .post_mask_i(final_post_q),
-        .w_main_tbl(w_main_tbl), .w_sub_tbl(w_sub_tbl),
+        .cfg_we(w_cfg_we), .cfg_sel(w_cfg_sel),
+        .cfg_sid(w_cfg_sid), .cfg_idx(w_cfg_idx), .cfg_data(w_cfg_data),
         .sum_valid(wsum_valid),
         .G_q30(wsum_G), .Wp_q30(wsum_Wp), .Wm_q30(wsum_Wm));
 

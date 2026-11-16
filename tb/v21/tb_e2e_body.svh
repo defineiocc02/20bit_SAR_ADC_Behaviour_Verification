@@ -75,12 +75,15 @@
         // 门级的整段常量放在 tb_gate_auto.sv 里（生成器按网表端口顺序产出），
         // 这里用 `E2E_GATE 跳过；若有人把它删掉，diff 会立刻暴露为全表差异。
 `ifndef E2E_GATE
+        // 通过配置口灌入 18 片 × 20 个字（16 主 + 4 子）= 360 个字。
+        // 每个字占一拍：cfg_we=1 的那拍把 cfg_data 写进 wsum 内部寄存器堆。
         for (int s = 0; s < 18; s++) begin
-            for (int j = 0; j < 16; j++) w_main_tbl[s][j] = 40'd268435456;
-            w_sub_tbl[s][0] = 40'd33554432;
-            w_sub_tbl[s][1] = 40'd16777216;
-            w_sub_tbl[s][2] = 40'd8388608;
-            w_sub_tbl[s][3] = 40'd8388608;
+            for (int j = 0; j < 16; j++)
+                wt_write(1'b0, 5'(s), 5'(j), 40'd268435456);
+            wt_write(1'b1, 5'(s), 5'd0, 40'd33554432);
+            wt_write(1'b1, 5'(s), 5'd1, 40'd16777216);
+            wt_write(1'b1, 5'(s), 5'd2, 40'd8388608);
+            wt_write(1'b1, 5'(s), 5'd3, 40'd8388608);
         end
 `endif
 

@@ -40,6 +40,11 @@ D1–D6 全链。改动只应发生在这里。
 | `tb_idle_partition.sv` | IDLE 分区 18 片 | 手工 |
 | `tb_trace.sv` | 门级轨迹 | `check_gate_e2e.sh` |
 
+**门级工具（已不适用当前 RTL）**：`tb_trace.sv`、`tb_gate_equiv.sv`、
+`tools/gen_gate_tb.py`、`tools/gen_wsum_gate_tb.py`
+—— 仍按旧的 14,400 根扁平权重端口生成/连接，对当前 RTL 无法编译，
+已在文件头标注"接口变更警告"。待新网表出来后按配置口重写。
+
 **历史/不再单独运行**：`tb_i1_two_sample.sv`、`tb_i2_events.sv`、`tb_i3_adc2.sv`、
 `tb_i4_recon.sv`、`tb_i12_integration.sv`、`tb_gate_equiv.sv`
 —— 其覆盖已被上表合并或被 `check_recon_stream.sh` 取代。**保留作追溯，不是入口。**
@@ -90,4 +95,6 @@ D1–D6 全链。改动只应发生在这里。
    作废原因见 `docs/v21/FINAL_D1_D6.md` §4。
 2. **不要把 `d3d4_ip` 的数字当 v21 的**。
 3. **不要把 `[A]`/`[B]`/`[C]` 混为一谈**（数学证明 / 生产 RTL 检查 / 工具形式化）。
-4. **不要用无同版网表做门级或形式结论**——当前 `054cfed` 没有网表。
+4. **不要用无同版网表做门级或形式结论**。
+5. **权重表接口已变更**：14,400 根端口 → `wsum_v21` 内部寄存器堆 + 51 根配置口。
+   任何按旧端口数组写的 TB 或生成器都需要先适配。

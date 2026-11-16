@@ -40,7 +40,7 @@
 | **D2** | `rtl/v21/sar_evt_v21.sv` | Flash/SAR 逐事件 follower |
 | **D3** | `rtl/dem_mask_v3.sv` + `rtl/dem_phase_rr.sv` + `rtl/dem_phase_gen.sv` | DEM 3+3+3 + 相位 |
 | **D4** | `rtl/dither_pre.sv` | 分裂 dither |
-| **D5** | `rtl/v21/recon_v21.sv` + `rtl/v21/wsum_v21.sv` | 20 位定点重构 |
+| **D5** | `rtl/v21/recon_v21.sv` + `rtl/v21/wsum_v21.sv` | 20 位定点重构（权重经窄配置口写入内部寄存器堆）|
 | **D5 叶子** | `rtl/recip_q60.sv` + `rtl/v21/recip_rnd_v21.sv` | Newton 倒数 + 余数修正 |
 | **D6** | `rtl/v21/acq_conv_ctx.sv` + `rtl/v21/adc2_capture.sv` | 事务/宏控制、ADC2 捕获 |
 | **仿真边界** | `rtl/v21/adc2_node_macro.sv` | 节点宏（非综合） |
@@ -85,6 +85,28 @@ tb_analog_if       54 checks（审查方原版反例）
 所有脚本遵守同一约定：**空日志 / 截断 / 覆盖不足 / 任一检查未出现 PASS → 非零退出**。
 
 ---
+
+## 3.5 权重表接口（v2.0 结构变更）
+
+权重表**不再是端口数组**。原来是 18×16×40 + 18×4×40 = **14,400 根输入线**，
+使 `wsum_v21` 的查表展开成 2,304 路 × 40 位 MUX；
+`wsum` 单独综合 594 s / 112,371 cells（占顶层 68%），
+顶层 `medium` 四次全部停在 `Processing 'wsum_v21'`，顶层端口数 15,775 也失真。
+
+现在改为 `wsum_v21` **内部寄存器堆**（360 个 40 位字）+ 窄配置口：
+
+```systemverilog
+cfg_we, cfg_sel(0=主/1=子), cfg_sid[4:0](0..17), cfg_idx[4:0], cfg_data[39:0]
+```
+
+一拍写一个字，上电后灌 360 个字，运行期只读。
+**顶层端口从 15,775 降到约 1,426。**
+
+TB 侧用 `wt_write()` / `wt_load()` 灌权重（见 `tb/v21/tb_e2e_decl.svh`）。
+
+> 门级工具（`tb_trace`、`tb_gate_equiv`、`gen_gate_tb.py`、`gen_wsum_gate_tb.py`）
+> 仍按旧扁平端口，**对当前 RTL 不适用**，已在文件头标注。
+> 待用新 RTL 重新综合后按新接口更新。
 
 ## 4. 三个类别必须分清
 

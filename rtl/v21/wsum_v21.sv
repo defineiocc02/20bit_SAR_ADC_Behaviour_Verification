@@ -45,11 +45,30 @@ module wsum_v21 (
     input  logic [31:0]  pre_mask_i,     // 本笔 slot 级 32 位 pre
     input  logic [159:0] post_mask_i,    // 本笔 slot 级 160 位 post
 
-    // ---------------------------------------------------------------- 权重表
-    // 物理寻址：w_main_tbl[sid][j] / w_sub_tbl[sid][j]
-    // sid = 0..17 物理片号，j 见合同 §3.2
-    input  logic [39:0]  w_main_tbl [0:17][0:15],
-    input  logic [39:0]  w_sub_tbl  [0:17][0:3],
+    // ---------------------------------------------------------------- 权重表配置口
+    //
+    // **权重表是静态标定值，不是每笔交易的实时信号**，所以做成内部
+    // 寄存器堆 + 窄配置口，而不是 14,400 根端口线。
+    //
+    // 为什么不直接用端口数组（历史教训）：
+    //   原来 w_main_tbl[0:17][0:15] + w_sub_tbl[0:17][0:3] 是 14,400 根
+    //   40 位输入线，`f_G`/`f_Wm`/`f_Wp` 里 `tbl[ids[s*5+:5]][j]` 的查表
+    //   被展开成 8slot x 16col x 18row = 2304 路、每路 40 位的 MUX 树。
+    //   结果：wsum_v21 单独综合 594 s、112,371 cells（占顶层 68%），
+    //   顶层 compile -map_effort medium 四次全部停在 `Processing 'wsum_v21'`
+    //   （看门狗 3900 s 超时无网表），顶层端口数 15,775 也失真。
+    //   改用寄存器堆后端口从 14,400 降到 51。
+    //
+    // 写协议（配置阶段一次性灌入，运行期不再改）：
+    //   cfg_we=1 的那一拍，把 cfg_data 写进
+    //     cfg_sel=0 -> wt_main[cfg_sid][cfg_idx]   (cfg_idx = 0..15)
+    //     cfg_sel=1 -> wt_sub [cfg_sid][cfg_idx]   (cfg_idx = 0..3)
+    //   地址越界（cfg_sid>17 / cfg_idx 超范围）时不写入（安全忽略）。
+    input  logic         cfg_we,
+    input  logic         cfg_sel,       // 0 = 主阵列，1 = 子阵列
+    input  logic [4:0]   cfg_sid,       // 0..17
+    input  logic [4:0]   cfg_idx,       // 主 0..15 / 子 0..3
+    input  logic [39:0]  cfg_data,
 
     // ---------------------------------------------------------------- 结果
     output logic         sum_valid,
@@ -57,6 +76,30 @@ module wsum_v21 (
     output logic [63:0]  Wp_q30,
     output logic [63:0]  Wm_q30
 );
+
+
+    // ---------------------------------------------------------------- 权重寄存器堆
+    //
+    // 360 个 40 位字（18 片 x (16 主 + 4 子)）= 14,400 bit。
+    // 综合成触发器阵列；配置阶段写入，运行期只读。
+    //
+    // 为什么用「显式 write-enable、无复位」：
+    //   权重是标定值，不需要复位值；加复位会多出 14,400 个复位端口，
+    //   又把规模拉回去。上电后由配置序列负责灌满全部 360 个字。
+    logic [39:0] wt_main [0:17][0:15];
+    logic [39:0] wt_sub  [0:17][0:3];
+
+    // 写口：一次写一个 40 位字。
+    // cfg_sid > 17 或 cfg_idx 越界时不写（避免越界访问被综合展开成 MUX）。
+    wire cfg_ok = cfg_we & (cfg_sid <= 5'd17)
+                & (cfg_sel ? (cfg_idx <= 5'd3) : (cfg_idx <= 5'd15));
+
+    always_ff @(posedge clk) begin
+        if (cfg_ok) begin
+            if (cfg_sel) wt_sub[cfg_sid][cfg_idx[1:0]] <= cfg_data;
+            else         wt_main[cfg_sid][cfg_idx[3:0]] <= cfg_data;
+        end
+    end
 
     // ---------------------------------------------------------------- 求和函数
     //
@@ -84,7 +127,7 @@ module wsum_v21 (
             acc = 64'd0;
             for (int s = 0; s < 8; s++)
                 for (int j = 0; j < 16; j++)
-                    acc = acc + {24'd0, w_main_tbl[ids[s*5 +: 5]][j]};
+                    acc = acc + {24'd0, wt_main[ids[s*5 +: 5]][j]};
             f_G = acc;
         end
     endfunction
@@ -97,7 +140,7 @@ module wsum_v21 (
             for (int s = 0; s < 8; s++) begin
                 for (int j = 0; j < 16; j++)
                     if (post[s*20 + j])
-                        acc = acc + {24'd0, w_main_tbl[ids[s*5 +: 5]][j]};
+                        acc = acc + {24'd0, wt_main[ids[s*5 +: 5]][j]};
                 // 子阵列 4 位全算（含 j19 平衡位，名义 1/128）。
                 // 只要 post 选中就计入 Wm —— j19 是真实电容。
                 // 与节点宏（仿真边界）必须用同一张物理位表、同一口径。
@@ -108,10 +151,10 @@ module wsum_v21 (
                 // 这正是审计问题 ③（j19 漏算）的成因，节点宏已改为显式展开
                 // （adc2_node_macro.sv:116-119），wsum 这里必须同步，
                 // 否则同一个物理位在两处口径不一致。
-                if (post[s*20 + 16]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][0]};
-                if (post[s*20 + 17]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][1]};
-                if (post[s*20 + 18]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][2]};
-                if (post[s*20 + 19]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][3]};
+                if (post[s*20 + 16]) acc = acc + {24'd0, wt_sub[ids[s*5 +: 5]][0]};
+                if (post[s*20 + 17]) acc = acc + {24'd0, wt_sub[ids[s*5 +: 5]][1]};
+                if (post[s*20 + 18]) acc = acc + {24'd0, wt_sub[ids[s*5 +: 5]][2]};
+                if (post[s*20 + 19]) acc = acc + {24'd0, wt_sub[ids[s*5 +: 5]][3]};
             end
             f_Wm = acc;
         end
@@ -126,10 +169,10 @@ module wsum_v21 (
             // 位序是 pre[s*4 + (3-j)]：j=0 取 pre[3], j=3 取 pre[0]，
             // 与节点宏的位映射一致（节点宏那边也是 j 与 pre 位反序）。
             for (int s = 0; s < 8; s++) begin
-                if (pre[s*4 + 3]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][0]};
-                if (pre[s*4 + 2]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][1]};
-                if (pre[s*4 + 1]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][2]};
-                if (pre[s*4 + 0]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][3]};
+                if (pre[s*4 + 3]) acc = acc + {24'd0, wt_sub[ids[s*5 +: 5]][0]};
+                if (pre[s*4 + 2]) acc = acc + {24'd0, wt_sub[ids[s*5 +: 5]][1]};
+                if (pre[s*4 + 1]) acc = acc + {24'd0, wt_sub[ids[s*5 +: 5]][2]};
+                if (pre[s*4 + 0]) acc = acc + {24'd0, wt_sub[ids[s*5 +: 5]][3]};
             end
             f_Wp = acc;
         end

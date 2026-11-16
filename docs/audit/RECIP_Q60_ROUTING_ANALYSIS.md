@@ -86,6 +86,24 @@ Routed8/225 Partitions, Violations =7066
 
 **与 `wsum_v21` 同属"物理实现不可行"，但程度较轻（`wsum` 连综合都没跑完）。**
 
+## 7b. 最终终止时的状态（人工终止）
+
+继续观察到 **`Routed14/225`、`Violations = 8551`** 后人工终止：
+
+```
+Routed12/225 Partitions, Violations =8550
+Routed13/225 Partitions, Violations =8550
+Routed14/225 Partitions, Violations =8551
+```
+
+**约 25 分钟完成 14/225 = 6.2%。**
+
+换算：`225 / 14 × 25 ≈ 402 分钟 ≈ 6.7 小时`。
+
+**违规数从 2286 涨到 8551，全程单调上升，从未回落。**
+
+**产物：无网表（`ls /tmp/fc_recip_q60/*.v` 为空）。**
+
 ## 8. 未尝试的方向
 
 | 方向 | 说明 |

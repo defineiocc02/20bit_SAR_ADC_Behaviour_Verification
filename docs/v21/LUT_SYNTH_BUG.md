@@ -1,0 +1,118 @@
+# 关键缺陷：`initial` 初始化的 LUT 在综合中被丢弃
+
+时间：2026-11-16　基线：`45e54f1`
+影响：`recip_q60` 的 Newton 初值表 → `I = RND(2^60,G)` → 20 位输出
+
+## 1. 缺陷本身
+
+`rtl/recip_q60.sv` 用 `initial` 块初始化 64 项种子表：
+
+```systemverilog
+logic [30:0] lut [0:63];
+initial begin
+    lut[ 0] = 31'd1065418243;  lut[ 1] = 31'd1049152316;
+    ... // 共 64 项
+end
+assign u0 = lut[idx];
+```
+
+**DC 的语义里 `initial` 块被忽略**，日志原文：
+
+```
+Warning: /tmp/ip/rtl/recip_q60.sv:82: The statements in initial blocks are ignored. (VER-281)
+```
+
+## 2. 后果链
+
+```
+VER-281   initial 被忽略
+   ↓
+lut 全 X / 常值 -> u0 是常量
+   ↓
+u0_r_reg[30:0] 被 OPT-1206 删除（"is a constant and will be removed"）
+   ↓
+Newton 迭代退化：u1 = u0 + u0·e，u0=常量时 u1 也是常量
+   ↓
+inv_q60 不再是 G 的函数
+```
+
+网表里可直接看到退化结果：
+
+```verilog
+assign inv_q60[0] = \inv_q60[26] ;
+assign inv_q60[1] = \inv_q60[26] ;
+assign inv_q60[2] = \inv_q60[26] ;
+```
+
+多个 bit 接到同一根网，说明它们已经是同一个常数。
+
+DC 日志里 `OPT-1206` 去重后**只有三个寄存器**被当常量删除：
+
+```
+u0_r_reg          ← LUT 输出寄存器
+i2_q_reg          ← 依赖 inv 的 recon 中间量
+quiet_cnt_q_reg   ← 依赖…（见 §4）
+```
+
+## 3. 三条独立证据
+
+| 证据 | 内容 |
+|:---|:---|
+| **Formality** | 20 failing：`i_q60_reg` 19 个 bit + `Wm_q30_reg[39]`。**散布式失败**（27 bit 中 19 错 8 对），符合"退化成常数后部分 bit 恰好正确" |
+| **门级等价** | 58 处差异**全部在 `out_code`**：RTL 给 `0xFFF00`（A 笔正确），网表给 `0x80000`（错用了 B 的值） |
+| **网表结构** | `inv_q60[0..2]` 同接 `inv_q60[26]` + `VER-281` 警告 |
+
+三条互相印证，不是猜测。
+
+## 4. 为什么此前多轮验证没抓到
+
+| 验证 | 为什么漏 |
+|:---|:---|
+| `tb_recip_q60`（43766 笔） | RTL 级仿真，`initial` 在仿真里**是有效的**，所以全过 |
+| `tb_recip_rnd`（20817 笔） | 同上 |
+| 旧门级烟测（61 观察沿） | 观察沿太少、且 raw 由节点模型给固定值，recon 输出恰好落在那 8 个"对的 bit"覆盖的范围内 |
+| `tb_i4b_e2e`（25 项） | RTL 级，`initial` 有效 |
+| **Formality** | **抓到了**：20 failing |
+| **新门级 e2e（两笔完整事务）** | **抓到了**：58 处 `out_code` 差异 |
+
+**教训：仿真通过 ≠ 可综合。** `initial` 初始化 ROM 在仿真里完美工作，
+在综合里被直接丢弃，只有形式化等价或**足够长的**门级仿真才能发现。
+
+## 5. 修法
+
+把 `initial` 块改成可综合的 `case` 语句函数：
+
+```systemverilog
+function automatic logic [30:0] f_lut(input logic [5:0] i);
+    case (i)
+        6'd0 : f_lut = 31'd1065418243;
+        ...
+        6'd63: f_lut = 31'd538976288;
+        default: f_lut = 31'd0;
+    endcase
+endfunction
+assign u0 = f_lut(idx);
+```
+
+- 数值与原来逐字一致（脚本从原 `initial` 块提取，不是手抄）
+- 可综合、可形式等价（`case` 是纯组合逻辑，无初始化语义）
+- 功能不变：`tb_recip_q60` **43766 笔仍逐位一致**
+
+## 6. 修后待验证
+
+1. 重新综合后 `VER-281` 应为 **0**、`OPT-1206` 应显著减少、
+   `u0_r_reg` 应**存在**于网表
+2. 门级 e2e 应从 58 处差异降到 **0**，且 `out_code` 恢复 `0xFFF00` / `0x80000`
+3. Formality 从 20 failing 应降到 0（需重跑，约 15 min）
+
+## 7. 同类风险检查
+
+全仓库扫 `initial` 块，只有两处：
+
+| 文件 | 用途 | 风险 |
+|:---|:---|:---|
+| `rtl/recip_q60.sv:81` | LUT 种子表 | **已修** |
+| `rtl/digital_top_w.sv:237` | 旧顶层（非生产路径） | 需确认是否在用 |
+
+`wsum_v21.sv` **没有** `initial` 块，它的 `f_Wm`/`f_Wp` 是纯组合函数
+（另有二维数组循环漏迭代的风险，已在 `45e54f1` 改为显式展开）。

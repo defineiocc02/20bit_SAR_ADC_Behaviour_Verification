@@ -425,8 +425,29 @@ module acq_conv_ctx #(
         end
     endgenerate
 
-    assign idle_sel_o = sched_idle
-                      & ~((conv_valid_q & ~release_fire_o) ? conv_hold_mask : 18'd0);
+    // ---------------------------------------------------------------- IDLE 分区
+    //
+    // **IDLE 必须是 ACQ/CONV 实际角色分区的补集**，不能直接取 sched_idle。
+    //
+    // 反例（独立 VCS 实测，A 转换 / B 采集的稳定态）：
+    //     ACQ=3bd00(8) CONV=000ff(8) IDLE=00200(1)   -> 只有 17 片被覆盖
+    //   应为 IDLE=04200（10 片），18 片完整分区。
+    //
+    // 根因：`sched_idle` 是 sched18 在 accepted prepare 那一拍**推进后**的
+    // 位图，而 acq_sel_o / conv_sel_o 已改为从**冻结片号**展开
+    // （见上方"宏选通"一节）。两者错开一组，补集就不完整。
+    //
+    // 修法：IDLE = 全 18 片的补集（扣掉实际 ACQ 与 CONV 的并集）。
+    // 这样"三集合互斥且并集 = 全部 18 片"是**构造性成立**的，
+    // 不依赖调度器位图与冻结片号是否同步。
+    //
+    // 保持不变的部分：`conv_hold_mask` 的扣减逻辑（CONV 未释放时
+    // 该组既不算 IDLE 也不算可用），以及调度算法本身不动。
+    logic [17:0] idle_sel_c;
+    always_comb begin
+        idle_sel_c = ~(acq_sel_c | conv_sel_c) & 18'h3FFFF;   // 全 18 片掩码
+    end
+    assign idle_sel_o = idle_sel_c;
 
     // ---------------------------------------------------------------- 物理路由
     //

@@ -20,6 +20,28 @@
 | 12 | `recon_v21` | 26,128.47 | ❌ `compile_fusion` 未完成 | — | — |
 | 13 | `wsum_v21` | 102,201.55 | ❌ `compile_fusion` 未完成 | — | — |
 
+## 1b. 七个通过模块的实测数据（已从日志复现）
+
+| 模块 | FC 面积 µm² | DRC | Formality Passing | Failing |
+|:---|--:|--:|--:|--:|
+| `sched18` | 778.32 | **0** | 234 | **0** |
+| `adc2_capture` | 731.47 | **0** | 490 | **0** |
+| `acq_conv_ctx` | 1,320.94 | **0** | 1,037 | **0** |
+| `sar_evt_v21` | 240.00 | **0** | 133 | **0** |
+| `dem_phase_rr` | **85.26** | **0** | 97 | **0** |
+| `follower_rt` | **135.63** | **0** | 72 | **0** |
+| `dem_phase_gen` | 268.81 | **0** | 126 | **0** |
+| **合计** | **3,560.43** | **全 0** | **2,189** | **0** |
+
+**复现命令**（逐个从日志取 `Verification` / `Total cell area` / `Total number of DRCs`）：
+
+```bash
+ssh vm-yian 'for L in /tmp/fm_nocg.log /tmp/fm_cap.log /tmp/fm_acq.log \
+    /tmp/fm_sar.log /tmp/fm_dem_phase_rr.log /tmp/fm_follower_rt.log /tmp/fm_dpg.log; do
+  grep -m1 -E "Verification (SUCCEEDED|FAILED)" $L; grep -m1 "Passing compare" $L; done'
+# 预期：7 个 SUCCEEDED，passing 合计 2189
+```
+
 ## 2. 按 DC 面积排序的成败分界
 
 | 排名 | 模块 | DC 面积 µm² | 结果 |

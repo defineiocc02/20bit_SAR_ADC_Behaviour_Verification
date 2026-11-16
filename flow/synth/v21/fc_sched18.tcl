@@ -132,8 +132,21 @@ if {[sizeof_collection $_pd] > 0} {
 #      （DEFAULT_VA 的电源网由 tech file 决定，不可改）
 #   ② 关闭 VA 感知，让 place_opt 按普通单域设计处理
 #      （本设计没有 UPF、没有多电源域，②正确）
-set_app_options -name mv.upf.enable_missing_voltage_area -value true
-puts "CHK_VA_OPT enable_missing_voltage_area=true"
+# 库的 PG 引脚是存在的（实测 get_lib_pins */*/VDD -> 839 个，dir=in），
+# 所以问题不是"库缺 PG"，而是 FC 没有把 cell 的 PG 引脚连到 supply net。
+# `mv.upf.enable_pg_pin_reconnection` 默认 false，正是控制这件事的开关。
+# **三个默认 false 的选项共同导致"used supplies=0"**
+# （实测 get_app_option_value 读出全为 false）：
+#   mv.upf.enable_pg_pin_reconnection  = false  不把 cell PG 脚接到 supply
+#   plan.pgroute.auto_connect_pg_net   = false  不自动连 PG 网
+#   plan.pgroute.snap_stdcell_rail     = false  不对齐标准单元 rail
+# 库本身有 PG 引脚（get_lib_pins */*/VDD -> 839 个，dir=in），
+# 所以需要的是打开这三项，而不是重建库。
+set_app_options -name mv.upf.enable_pg_pin_reconnection -value true
+set_app_options -name mv.upf.enable_missing_voltage_area   -value true
+set_app_options -name plan.pgroute.auto_connect_pg_net     -value true
+set_app_options -name plan.pgroute.snap_stdcell_rail       -value true
+puts "CHK_VA_OPT pg_pin_reconn=true auto_connect_pg=true snap_rail=true"
 
 puts "STEP_LIBCELL_PURPOSE_OK"
 

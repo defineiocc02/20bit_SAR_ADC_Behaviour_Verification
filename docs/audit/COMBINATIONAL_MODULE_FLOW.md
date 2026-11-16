@@ -77,3 +77,83 @@ TOTAL VIOLATIONS = 5
 | `follower_rt` | ✅ | ✅ | ✅ 0 | 未跑 |
 
 **四个模块都还没有跑 Formality，不能算通过。**
+
+
+---
+
+## 7. 第五次尝试：`optimize_small_design`（失败）
+
+### 做法
+
+```tcl
+# 在 compile_fusion 之前
+set_app_options -name compile.auto_floorplan.optimize_small_design -value true
+```
+
+### 效果
+
+core 尺寸确实变了：
+
+```
+Chip Core shape: (0 0) (67200 63000)       ← 之前（67.2 × 63 µm）
+Chip Core shape: (0 0) (1034600 945000)    ← 现在（约 517 × 472 µm）
+```
+
+**扩大 15.4 倍。**
+
+### 但 DRC 没变
+
+| 配置 | core | Routed Wires | DRC |
+|:---|:---|--:|--:|
+| 默认 | 67.2 × 63 µm | 576 | **5** |
+| `optimize_small_design=true` | 517 × 472 µm | 576 | **5** |
+
+违规明细完全相同：
+
+```
+Diff net spacing : 3
+End of line spacing : 2
+```
+
+**core 扩大 15 倍，DRC 数字一模一样 —— 说明 core 尺寸不是原因。**
+
+## 8. 已排除了五个方向
+
+| # | 假设 | 验证 | 结论 |
+|:--:|:---|:---|:---|
+| 1 | `clock_opt` 失败导致未放置 | 跳过 `clock_opt` | 仍 89 ❌ |
+| 2 | core 尺寸不够 | `core_utilization` 0.6→0.3 | 尺寸未变 ❌ |
+| 3 | 手工 `create_site_row` 破坏 | 去掉手工建 row | 仍 89 ❌ |
+| 4 | 多调 `initialize_floorplan` | 不调用 | 放置 `rc=0` ✅，但 **DRC≠0** |
+| 5 | 小设计 floorplan 不够 | `optimize_small_design=true` | core 扩大 15 倍，**DRC 仍 5** ❌ |
+
+## 9. 技术 LEF 的间距规则是完整的
+
+```
+LAYER 数：18（M1~M9、AP、VIA1~VIA8）
+SPACING 覆盖：M1 M2 M3 M4 M5 M6 M7 M8 M9 AP  ← 全部 10 个布线层
+```
+
+**所以 DRC ≠ 0 不是因为我生成的技术 LEF 缺规则。**
+
+## 10. 当前诚实结论
+
+**`dither_pre`（33 µm²、576 条线、5 个 DRC）与 `dem_mask_v3`（116 µm²、2505 条线、79 个 DRC）
+在当前的流程配置下无法获得 DRC=0 的布线结果。**
+
+| 模块 | 放置 | 布线 | DRC | Formality |
+|:---|:---|:---|:---|:---|
+| `dither_pre` | ✅ rc=0 / 0 未放置 | ✅ rc=0 | ❌ **5** | 未跑 |
+| `dem_mask_v3` | ✅ rc=0 / 0 未放置 | ✅ rc=0 | ❌ **79** | 未跑 |
+
+**两个模块都不能算通过。**
+
+### 未尝试的方向（供后续参考）
+
+| 方向 | 说明 |
+|:---|:---|
+| 用真实的 PDK 技术 LEF | 当前是推导生成的，可能缺 NDR/天线规则 |
+| 加 `set_route_options` 增加布线迭代次数 | |
+| 手工修 DRC（5 个可定位）| `dither_pre` 只有 5 个，逐个修可行 |
+
+**不再继续在这个方向上盲目试探。** 六个模块已通过 Formality，这是已固化的成果。

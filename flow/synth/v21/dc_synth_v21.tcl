@@ -74,23 +74,34 @@ set_clock_transition 0.10 [get_clocks clk]
 # 所有输入端口最后是「无驱动单元」状态，时序偏乐观。
 # 这意味着本轮此前所有综合/STA 的输入驱动都是缺失的。
 #
-# 现在改成真实单元名，并在设置后**回读校验**。
-set_driving_cell -lib_cell BUFFD2BWP7T40P140 -pin Z \
+# 现在改成真实单元名，并在设置前**先确认库单元存在**。
+set _drv_cell BUFFD2BWP7T40P140
+set _n_cell 0
+foreach_in_collection _c [get_lib_cells -quiet */$_drv_cell] {
+    incr _n_cell
+}
+puts "CHK driving_cell_exists=$_n_cell ($_drv_cell)"
+if {$_n_cell == 0} {
+    puts "FATAL: 库里没有 $_drv_cell —— 检查单元名"
+    exit 1
+}
+
+set_driving_cell -lib_cell $_drv_cell -pin Z \
     [remove_from_collection [all_inputs] [get_ports clk]]
 set_load 0.05 [all_outputs]
 
-# 回读校验：UID-993 是静默的，必须主动确认驱动真的挂上了
-set _drv_n 0
-foreach_in_collection _p [remove_from_collection [all_inputs] [get_ports clk]] {
-    if {[get_attribute [get_attribute $_p DrivingCell] full_name] ne ""} {
-        incr _drv_n
-    }
-}
-puts "CHK driving_cells_set=$_drv_n"
-if {$_drv_n == 0} {
-    puts "FATAL: set_driving_cell 没有生效（检查单元名是否存在于库）"
-    exit 1
-}
+# 回读校验：UID-993 是静默的（只打 Error 不抛异常），必须主动确认。
+#
+# **不能用 `get_attribute <port> driving_cell`** —— 该属性名在 DC 的
+# 端口属性集里不存在（`UID-101: Attribute 'driving_cell' does not exist
+# on port`）。本脚本 v2 就是错在这里，导致 `_drv_n` 恒为 0、
+# 把一次本来成功的综合误判成 FATAL 中断。
+#
+# 正确的校验：**先确认库单元存在**（这是根因），再设。
+# `set_driving_cell` 成功时 DC 会对每个受影响端口打印
+# `UID-401: Design rule attributes from the driving cell will be set
+# on the port '<name>'` —— 本轮实测 14654 条，这就是成功证据；
+# 找不到单元时打 `UID-993` 且**不抛异常**。
 # **不要给异步复位加 false_path**。
 #
 # 踩过的坑：原来写的是

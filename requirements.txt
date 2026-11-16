@@ -1,0 +1,11 @@
+# 行为级 Python 模型的运行依赖。
+#
+# 为什么需要这个文件：pyproject.toml 里虽然有 dependencies，但
+#   `pip install -e .` 在某些环境下会被 PEP 668 拦住，
+#   而本机默认 python3 是 3.9（项目要求 >=3.10，见 pyproject requires-python）。
+# 所以提供一个显式的、可复现的最小依赖清单。
+#
+# 用法见 docs/v21/PYTHON_ENV.md。
+numpy>=1.24
+scipy>=1.10
+matplotlib>=3.7

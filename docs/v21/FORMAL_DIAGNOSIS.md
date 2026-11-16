@@ -1,42 +1,85 @@
 # Formality 20 个 failing compare point 的根因诊断
 
 时间：2026-11-16　工具：Formality W-2024.09-SP3 / Design Compiler W-2024.09-SP3 / VCS W-2024.09-SP1
-诊断对象：`/tmp/dcwork/adc_digital_ip_v21_syn.v`（10:17 版，20,102,248 B）
+诊断对象：两版网表
+
+| 网表 | 生成时间 | 大小 | 说明 |
+|:---|:---|--:|:---|
+| `/tmp/dcwork/adc_digital_ip_v21_syn.v`（旧） | 10:17 | 20,102,248 B | `initial` LUT 缺陷版，题面那 20 个 failing 出自它 |
+| `/tmp/dcwork/adc_digital_ip_v21_syn.v`（新） | 11:07 | 22,416,826 B | `f_lut` 修复版，md5 `5e738fe5…`；旧版已被覆盖 |
+
 结论等级：**根因已定位并经独立仿真证实**；**不是** signoff 结论
 
-> 本文只做诊断与分析，**未修改任何 RTL**。
-> 后续修复由 `878a348`（`recip_q60` LUT 改 `case`）与 `45e54f1`（`wsum` 显式展开）完成，
-> 本文最后一节给出修复后的复验结果。
+> 本文只做诊断与分析，**未修改任何产品 RTL**（所有实验性改动都在 `/tmp` 下的副本里）。
+> 修复由 `878a348`（`recip_q60` LUT 改 `case`）与 `45e54f1`（`wsum` 显式展开）完成，
+> 本文 §0.2 与 §5.5 给出修复后的复验结果。
+>
+> 证据分层：
+> - **确定层**：§2.2（旧网表 12/12 输出 2）、§5.5（新网表 12/12 正确）—— 独立仿真，不依赖 Formality
+> - **工具观测层**：§1、§3.4 的 Formality 输出 —— 工具说了什么，不等于结论
+> - **未闭环**：§2.3、§4.2、§6 —— **明确不下结论**
 
 ---
 
 ## 0. 结论（先给答案）
 
-| 失败点 | 数量 | 归类 | 根因 |
-|:---|--:|:---|:---|
-| `u_recon/u_recip_rnd/i_q60_reg[*]` | 14–19 | **第 5 类：真正的逻辑不等价** | `initial` 块被综合丢弃 → LUT 全 X → Newton 退化 → **网表 `i_q60` 恒为常数 2** |
-| `u_wsum/Wm_q30_reg[*]` | 6 | **第 5 类：真正的逻辑不等价**（但成因不同） | 权重表 **bit 0 输入端口未匹配**，DC 把它们当自由变量，`Wm` 低 6 位不可判 |
+### 0.1 一句话
 
-**两者都不是形式化配置问题、不是域外分支、不是复位语义。**
-也都**不需要**加任何域/环境约束 —— 因此本文不涉及"加合法域约束"这一分支。
+**20 个 failing 是两件独立的事，都已定位，且第一件已修复并复验：**
+
+| # | 根因 | 归属 | 状态 |
+|:--:|:---|:---|:---|
+| A | `rtl/recip_q60.sv` 用 `initial` 初始化 64 项 LUT → DC 丢弃 → `i_q60` 在网表里恒为常数 **2** | **第 5 类：真正的逻辑不等价** | **已修复（`878a348`）并复验通过**（修复后 `i_q60_reg` failing = **0**） |
+| B | `w_main_tbl`/`w_sub_tbl` 展平后的端口在实现侧未被约束（旧网表只有 bit 0，修复后扩展到全 bit，见 §3.4.2） → `u_wsum` 的 `G/Wp/Wm` 低位不可判 | **第 5 类**（"网表带出未约束端口"，匹配因素见 §4.2） | **未修复**，修复 A 后**全部 20 个 failing 都变成这一簇** |
+
+### 0.2 修复前后对照（同一套流程、同一份 RTL 源树）
+
+| 指标 | 修复前（10:17 网表） | 修复后（11:07 网表） |
+|:---|--:|--:|
+| `i_q60_reg` failing | **14** | **0** ✅ |
+| `u_wsum` failing | 6（`Wm_q30[0..5]`） | **20**（`G_q30` 8 + `Wp_q30` 6 + `Wm_q30` 6） |
+| Unmatched **reference** compare points | 2073 | **0** ✅ |
+| Cut-points（REF） | 1984 | **0** ✅ |
+| Unread | 130 | 25 |
+| `Unconstrained Implementation Inputs` | 46 | **2833** |
+| `Unmatched Cone Inputs` | 4367 | 5676（**100% 是权重表**，见 §3.4） |
+| Passing | 2580 | 2589 |
+| Unverified | 430 | 614 |
+
+**修复 A 是成功的**：`i_q60` 的 14 个 failing 全部消失，且"未匹配的参考侧 compare point"
+从 2073 直接归零 —— 这证明 `initial` 派生出的 1984 个 cut-point 确实是 `i_q60` 失败的根源。
+
+**修复 A 暴露了 B**：`i_q60` 消失后，剩下的 20 个 failing **全部集中在 `u_wsum`**，
+且分布从"只看 `Wm`"扩展到"`G`/`Wp`/`Wm` 三者都有"——这是 §3 描述的权重表端口问题的**纯化表现**。
+
+### 0.3 关于"是否需要加合法域约束"
+
+**两簇都不需要，本文也不建议加任何约束。**
+因此不涉及"合同是否明确、上游是否保证"这一判定分支。
+
+特别声明：`analyze_points` 会建议对未约束端口加 `set_constant <port> 0/1`。
+**本文明确不采纳** —— 那是把不确定输入桩成常量以"消掉"失败，
+属于审查禁止的"未经说明就裁输入域"。本文只引用它的诊断价值。
 
 ---
 
 ## 1. `analyze_points` 的原始输出摘要
 
-`analyze_points` 必须在 `verify` 之后同会话调用。本次共跑了 4 轮：
+`analyze_points` 必须在 `verify` 之后同会话调用。本次共跑了 6 轮（2 轮作废）：
 
 | 轮次 | 日志 | 目的 | 结果 |
 |:---|:---|:---|:---|
 | A | `/tmp/fmdiagA.log` | 10:17 网表 + 当前 RTL | 20 failing，但 `analyze_points` 因我脚本的选项错误（`-point_type register` 应为 `reg`）在它之前中止 |
 | B | `/tmp/fmdiagB.log` | 同上 | **作废**：RTL 在 10:23 被改（`wsum_v21.sv`），与网表版本不一致（日志有 `SVF Design Consistency Check: Files with checksum difference: 1`） |
-| **C** | **`/tmp/fmdiagC.log`** | **RTL 与 10:17 网表精确对齐**（`recip_q60` md5 `aa719f73…`、`wsum_v21` md5 `1658c32d…`，与 DC 当时读入的一致），`SVF Design Consistency` = 0 | **本报告的主证据** |
+| **C** | **`/tmp/fmdiagC.log`** | **RTL 与 10:17 网表精确对齐**（`recip_q60` md5 `aa719f73…`、`wsum_v21` md5 `1658c32d…`，与 DC 当时读入的一致），`SVF Design Consistency` = 0 | **修复前的主证据** |
+| F1 | `/tmp/fmfix.log` | 修复后网表 + `/tmp/ip/rtl/` | **作废**：源树与网表不同源，`SVF Design Consistency` 报 `recip_rnd_v21.sv` 校验和不符 |
+| **F2** | **`/tmp/fmfix2_review_130645.log`** | **修复后网表 + `/tmp/gate3/rtl/`（与网表同源）**，`SVF Design Consistency` = 0 | **§3.4 的主证据**：`i_q60` failing = 0，`u_wsum` 20 failing |
 | S/N | `/tmp/fmsvf.log`、`/tmp/fmnames.log` | 追 rejected guidance / 端口命名 | 未跑完（`Process terminated by kill`），不作结论依据 |
 
 > 第 B 轮作废这件事本身值得记：**改了 RTL 却拿旧网表去跑等价，结论一定是废的**。
 > 这也是我在 C 轮里坚持先 `md5sum` 双方再开跑的原因。
 
-### 1.1 Run C 的验证结果
+### 1.1 Run C（旧网表）的验证结果
 
 ```
 Verification FAILED
@@ -162,23 +205,34 @@ i:/WORK/adc_digital_ip_v21/final_post_q_reg[0]/*dff.00*
 
 ---
 
-## 2. 19 个失败 bit 与 8 个通过 bit 的差异分析
+## 2. 失败 bit 与通过 bit 的差异分析
 
-题面给的分布：27 位中 **19 错、8 过**（bit 5, 9, 13, 15, 16, 17, 18, 22 通过，是按 09:15 那轮）。
-本轮（10:17 网表）是 **14 错、13 过**。
+题面给的分布是 **09:15 轮：19 错 / 8 过**（通过的是 bit 5, 9, 13, 15, 16, 17, 18, 22，
+已从 `/tmp/fmv12.log` 逐条核对）。本轮 **10:17 网表：14 错 / 13 过**。
 
-**散布式失败不是"某些 bit 逻辑深度不同"，而是"整个寄存器被换成了常数"。**
+**关键结论：散布式失败不是"某些 bit 逻辑深度不同"，而是"整个寄存器被换成了常数"。**
+（但"为什么不是 27 位全错"这一点尚未完全解释，见 §2.3。）
 
 ### 2.1 网表结构：`i_q60` 退化成了常数 2
 
-从 10:17 网表里 `recip_rnd_v21` 模块抽出 27 个 `i_q60_reg` 的 D 端，
-D 端全部接 `N66..N92`（逐 bit 一条），但上游是：
+从 10:17 网表里 `recip_rnd_v21` 模块抽出 27 个 `i_q60_reg` 的 D 端，实测分布：
+
+```
+n2   : 26 个 bit（bit 0..3, 5..26）
+N70  :  1 个 bit（bit 4）
+```
+
+即 **27 个 D 端中 26 个接同一根 `n2`**，只有 bit 4 还残留一条独立驱动
+（`CKAN2D1BWP7T40P140 U39 ( .A1(i_c[4]), .A2(n28), .Z(N70) )`）。
+`n2` 的驱动是：
 
 ```verilog
-recip_rnd_v21 内：
-  i_c[0..26] 这一层的比较/加法树仍在，
-  但其输入 u0/r_inv 一侧已经被常量折叠。
+TIELBWP7T40P140 U3 ( .ZN(n2) );   // 恒 0
+TIELBWP7T40P140 U4 ( .Z(n1) );    // 恒 1（U4 为 TIEH）
 ```
+
+即 **26 个 bit 的 D 端根本不再依赖任何输入**，恒为常数。
+这正是"寄存器被整体换成常数"的直接形态。
 
 真正决定性的两处：
 
@@ -209,6 +263,11 @@ TIELBWP7T40P140 U3 ( .ZN(\inv_q60[26] ) );   // 恒 0
 
 于是 `q0/q1/prod/rem` 全部退化，`i_c` 变成常数，
 `i_q60_reg` 的 D 端全部是常数 —— **`i_q60` 恒等于 2**。
+
+> 小节说明：`U3` 这个标号在 `recip_q60` 与 `recip_rnd_v21` 两个模块里各有一个
+> （DC 的 `uniquify` 未完全生效，SVF 里 `uniquify` 被拒 566 条）。
+> 两者都是 `TIELBWP7T40P140`，分别驱动 `\inv_q60[26]` 和 `n2`，都是恒 0。
+> 这不影响结论，但说明**网表内部存在跨模块重名**，读网表时必须限定在模块作用域内。
 
 ### 2.2 决定性的独立仿真证据（不依赖 Formality）
 
@@ -243,44 +302,80 @@ RTL  : cyc=8 rst_n=1 v_i=0 | v_o=1 i_q60=33554432 err=0
                                    ↑ 仅此一处不同；valid/err/时序逐拍一致
 ```
 
-### 2.3 为什么是"散布式"而不是"全错"
+### 2.3 关于"散布式"：一个必须如实标注的未解释项
 
-因为网表给的是常数 2（二进制 `27'b000_0000_0000_0000_0000_0000_0010`），
-而 RTL 给的是 1.6e7–6.7e7 量级的 27 位值。
+**先说已核实的事实**：在 12 个合法 G 上，RTL 输出的 27 个 bit **每一个都取到过 0 和 1 两种值**
+（逐 bit 实测，无一例外）：
 
-对每个 bit 判定"是否可能不同"，取决于 RTL 值在该 bit 上是否也可能取到常数值：
+```
+bit  0..26：RTL 值集合 = [0, 1]  → 全部可被反例捕获
+```
 
-- bit 0：RTL 值**恒为偶数**（`q1 + (2r>=G)`，`q1` 与进位的关系使 LSB 有相当概率为 0）→ 多数拍与常数 2 的 bit0=0 相同 → **在部分反例下判等**
-- bit 1：常数 2 的 bit1=1，RTL 该 bit 经常为 0 → 容易判不等
-- 高位 bit（如 20–26）：RTL 值在 `2^24..2^26` 区间，这些 bit 有很大概率取到 0 → 与常数 2 的这些 bit=0 相同的拍很多
+也就是说，**不存在"某些 bit 天生与常数 2 一致"这种情况**。
+按纯功能推理，`i_q60` 若恒为常数 2，**27 个 bit 应当全部 failing**。
 
-**Formality 只要找到一个反例就判不等；但不同 bit 的"反例可达性"不同**，
-所以表现为散布式。这与"域外分支导致整体 0 vs 非 0"的模型完全不同 ——
-后者会让 27 位**全错**（题面已正确排除），而这里的机制会让部分 bit 恰好对齐。
+**但实测是 14 个 failing（10:17 轮）/ 19 个 failing（09:15 轮），并非 27 个全错。**
 
-**这也解释了为什么 8 个 bit 通过**：它们恰好在所有可达输入下与常数一致。
+这条矛盾我**未能解释**。可能的解释（均未验证，不作为结论）：
 
-### 2.4 失败集合漂移的解释
+1. **`i_q60` 并非全部拍恒为 2**：我的 testbench 只覆盖"复位→单脉冲→等 valid_o"这一种时序；
+   Formality 探索的是所有输入序列。若在其他序列下 `i_q60` 会取别的值（例如
+   `i2_q_reg` 那 37 bit 常量折叠、或 `valid` 通路的分支使某些拍走了不同路径），
+   部分 bit 就可能在所有可达状态上恰好一致。
+2. **`Formality` 的"通过"含义**：`Passing (equivalent)` 指该 compare point 的
+   参考锥与实现锥在所有可达状态上等价。若某个 bit 的**参考锥本身也被优化得只剩常数**
+   （例如 `inv_q60_reg` 的 54 条全局未匹配使参考侧也被退化），两边可能"同为常数"而判等。
+3. **`u0_r_reg` 在参考侧的行为**：Formality 里 `initial` 是被建模的（不像 DC 忽略它），
+   所以参考侧 LUT 有值；但 `guide_reg_constant` 被接受的那 88 条可能让部分
+   参考侧寄存器也被当常量，从而与实现侧的常数"对上"。
 
-| 网表版本 | `i_q60` 实际值 | failing bit |
-|:---|:---|:---|
-| 09:15 版（更早） | 常数 2（同一缺陷） | 19 个 |
-| 10:17 版 | 常数 2（同一缺陷） | 14 个 |
+**这一点必须如实记为"未完全定位"**，不能因为"根因已经找到常数 2"就跳过。
+§4.2 已把同类未闭环项列出。
 
-值相同但 failing 集合不同，说明**两版网表的 `i_q60` D 端组合逻辑结构不同**
-（DC 每次优化的折叠路径不同），使不同 bit 的反例可达性发生变化。
-因此 "27 位中哪几位失败" **不是稳定的设计属性**，只是综合结果的副产物。
+**可以确定的是**：无论 8 个（或 13 个）通过的 bit 为何恰好通过，
+**"网表对 12 个合法 G 全部输出 2、RTL 全部正确"这一实测事实不变**，
+`i_q60` 的数据通路确实是坏的，这是真实逻辑不等价。
+
+### 2.4 失败集合漂移
+
+| 网表版本 | `i_q60` 实际值 | `i_q60` failing bit | `Wm_q30` failing |
+|:---|:---|:---|:---|
+| 09:15 版（`/tmp/dcwork` 09:34 产物，网表 `5799a26d…`） | 常数 2（同一缺陷） | 19 个：0,1,2,3,4,6,7,8,10,11,12,14,19,20,21,23,24,25,26 | `[39]` |
+| 10:17 版 | 常数 2（同一缺陷） | 14 个：0,1,2,3,6,10,11,13,14,17,18,20,21,24 | `[0..5]` |
+
+两版网表的 `i_q60` 都是常数 2，但 failing 集合不同：
+
+- 交集 **11 个**：`0,1,2,3,6,10,11,14,20,21,24`
+- 仅 10:17 轮失败：`13,17,18`
+- 仅 09:15 轮失败：`4,7,8,12,19,23,25,26`
+- 并集 22 个；**两版都通过的只有 5 个**：`5,9,15,16,22`
+
+（题面说 09:15 轮有 8 个 bit 通过：`5,9,13,15,16,17,18,22`；
+本文从 `/tmp/fmv12.log` 逐条核对，确认 09:15 轮通过的是 `5,9,13,15,16,17,18,22` 这 8 个 ——
+其中 `13,17,18` 在 10:17 轮转为失败，所以两版共同通过的只剩 5 个。）
+说明 **"27 位中哪几位失败"不是稳定的设计属性**，取决于该版网表里
+`i_q60` D 端组合逻辑的具体折叠形态。原因同 §2.3 的未解释项。
+
+**这一漂移本身是重要线索**：它指向"实现侧结构被大幅改写"，
+而不是"某个固定的合同/架构级差异"。这也是排除第 1 类（版本不一致）
+和第 4 类（合法域/环境）的旁证之一 —— 后两者的失败集合应当是稳定的。
 
 ---
 
-## 3. `Wm_q30_reg` 的分析
+## 3. `u_wsum` 簇（B 类）的分析
 
-`Wm_q30_reg[39]`（09:15 轮）与 `Wm_q30_reg[0..5]`（10:17 轮）**不是** `i_q60` 的连带效应。
-`analyze_points` 给出了它的独立根因。
+> 命名说明：本节分析的是 **B 类**（`u_wsum` 的 `G_q30`/`Wp_q30`/`Wm_q30`）。
+> 在 10:17 网表上它只表现为 `Wm_q30_reg[0..5]` 这 6 个点；
+> 在 11:07 修复后网表上它扩展为 20 个点（见 §3.4）。
+> 本节 §3.1–§3.3 用 10:17 网表的观测，§3.4 用修复后网表的观测。
 
-### 3.1 根因：权重表 bit 0 输入端口未匹配
+`Wm_q30_reg[39]`（09:15 轮）与 `Wm_q30_reg[0..5]`（10:17 轮）**不是** `i_q60` 的连带效应 ——
+修复 `i_q60` 之后它不但没消失，反而扩大到 20 个点（§3.4），证明它是独立问题。
 
-46 个未约束的 implementation 输入全部是 `w_main_tbl`/`w_sub_tbl` 的 **bit 0**（见 §1.3(a)），
+### 3.1 根因：权重表输入端口未被约束
+
+10:17 网表上，`analyze_points` 报 `Found 46 Unconstrained Implementation Inputs`，
+**全部是 `w_main_tbl`/`w_sub_tbl` 的 bit 0**（见 §1.3(a)），
 它们各自 "Unmatched in the implementation cones for 6 compare point(s)"，
 而这 6 个 compare point 正是 `u_wsum/Wm_q30_reg[0..5]`。
 
@@ -288,14 +383,17 @@ RTL  : cyc=8 rst_n=1 v_i=0 | v_o=1 i_q60=33554432 err=0
 
 1. `wsum_v21` 里 `Wm = Σ post-mask ? w_main_tbl[sid][j] : 0`，是纯加法树
 2. DC 把权重表展平成 14400 个顶层输入端口（`w_main_tbl[0..11519]`、`w_sub_tbl[0..2879]`）
-3. 其中 **41 个 bit 0 端口**在参考侧存在于锥中，实现侧被当成自由变量 ——
-   即它们**没有匹配到参考侧对应的端口**
-4. `Wm_q30` 低 6 位由这些 bit 0 的加法进位决定 → 不可判 → failing
+3. 其中 **41 个 bit 0 端口**在实现侧被当成**自由变量**（未约束）
+4. `Wm_q30` 的低位由这些 bit 0 的加法进位决定 → 不可判 → failing
 
 为什么是**低 6 位**：`Wm` 是 8 片 × 20 位的加法和。
 每片的 LSB（bit 0）都是"1 个 Q30 LSB"权重，41 个这样的 LSB 项一起决定
-和的低 6 位（`2^6=64 > 41`，所以最多影响到 bit 5）。
+和的低位（`2^6 = 64 > 41`，所以最多影响到 bit 5）。
 这与观察到的 `Wm_q30_reg[0..5]` **精确吻合**。
+
+> 修正说明：修复后网表上的观测（§3.4.2）显示未约束端口**不只是 bit 0**、
+> 而是几乎全部 bit。所以"只有 bit 0"是 10:17 那一版网表的**特定形态**，
+> 不是这个问题的普遍规律。§3.4 的观测更完整，应以它为准。
 
 ### 3.2 为什么参考侧/实现侧端口对不上
 
@@ -315,20 +413,133 @@ RTL  : cyc=8 rst_n=1 v_i=0 | v_o=1 i_q60=33554432 err=0
 
 参考侧（RTL）的 `w_main_tbl` 是 `input logic [39:0] w_main_tbl [0:17][0:15]` —— 一个**数组端口**；
 实现侧是一串**扁平标量端口**。Formality 需要靠名字/结构把两者对上。
-按 `analyze_points` 的结果，绝大多数对上了（`Passing` 里有 1119 个 Port），
-但 **41 个 bit 0 端口没对上**。
 
-**这属于"匹配/内部切分点的问题"（第 2 类）与"真实逻辑差异"（第 5 类）的边界情况**，
-本报告把它归为**第 5 类**，理由见 §4。
+**这里有一个我未能解释的矛盾**（详见 §4.2）：
+`report_unmatched_points -point_type port` 在 ref 与 impl **两侧都报 "No unmatched points"**，
+但 `analyze_points` 又把这 46（后来 2833）个端口列为 "Unconstrained Implementation Inputs"。
 
-### 3.3 与 `G_q30` 高位无关
+### 3.3 `G_q30` 高位常量折叠是**合法**的
 
 `wsum_v21` 里还有 1 个 TIE 单元 `TIELBWP7T40P140 U3 ( .ZN(net1713285) )`，
 它驱动 `G_q30[49..63]`（15 bit），而 `G_q30[47..63]` 本就被 `OPT-1206` 当常量删掉，
 SVF 里有对应的 `guide_reg_constant`，**这是合法的常量折叠**：
 `G = Σ 8×16 个 Q30 权重`，高位确实恒 0。
 
-**所以 `G_q30` 高位不是缺陷**，与 `Wm_q30` 的失败无关。
+**所以 `G_q30` 高位不是缺陷。** 这一点要和 §3.4 里 `G_q30_reg[3..18]` 的 failing 区分开 ——
+后者是**低位**被未约束端口影响，与高位常量折叠无关。
+
+### 3.4 修复 `i_q60` 之后：`u_wsum` 簇成为全部 20 个 failing
+
+这是本次诊断**最后拿到的、也是最关键的**一步。
+用修复后的网表（11:07，由 `/tmp/gate3/rtl` 综合，`recip_rnd_v21` md5
+与仓库一致；`SVF Design Consistency` = 0）重跑完整 Formality：
+
+```
+Verification FAILED
+ 2589 Passing / 20 Failing / 0 Aborted / 614 Unverified
+
+Matched Compare Points     BBPin    Loop   BBNet     Cut    Port     DFF     LAT   TOTAL
+Passing (equivalent)           0       0       0       0    1119    1470       0    2589
+Failing (not equivalent)       0       0       0       0       0      20       0      20
+```
+
+**20 个 failing 全部在 `u_wsum`，`i_q60` 一个不剩：**
+
+```
+u_wsum/G_q30_reg[3] [4] [5] [6] [8] [12] [13] [18]      8 个
+u_wsum/Wp_q30_reg[0] [2] [8] [10] [13] [15]             6 个
+u_wsum/Wm_q30_reg[0] [2] [6] [11] [14] [15]             6 个
+```
+
+### 3.4.1 三分法与数组的对应关系完全吻合
+
+把 2833 个未约束端口逐一映射到"它影响哪些 compare point"：
+
+| compare point 簇 | 受影响端口数 | 涉及数组 |
+|:---|--:|:---|
+| `G_q30_reg[3,4,5,6,8,12,13,18]` | 511–1782 | **仅 `w_main_tbl`** |
+| `Wp_q30_reg[0,2,8,10,13,15]` | 13–222 | **仅 `w_sub_tbl`** |
+| `Wm_q30_reg[0,2,6,11,14,15]` | 68–1208 | **`w_main_tbl` + `w_sub_tbl`** |
+
+这与 RTL 的语义**精确对应**：
+
+```systemverilog
+// wsum_v21.sv
+f_G  : 只用 w_main_tbl                              → G  只受 main 影响
+f_Wp : 只用 w_sub_tbl                               → Wp 只受 sub 影响
+f_Wm : w_main_tbl（j=0..15） + w_sub_tbl（j=0..3）   → Wm 两者都受
+```
+
+**这条对应关系是"未约束端口 = 权重表展平后的输入"的独立佐证** —— 如果根因是别的
+（例如某个控制信号），不可能出现这么干净的"哪个数组影响哪个输出"的分工。
+
+### 3.4.2 未约束端口的 bit 分布：从"只有 bit 0"变成"全 bit 均匀"
+
+| | 修复前（10:17） | 修复后（11:07） |
+|:---|:---|:---|
+| 未约束端口总数 | 46 | **2833** |
+| `w_main_tbl` | 38（其中 33 个 bit 0） | **2471**（bit 0–18 各约 128 个） |
+| `w_sub_tbl` | 8（全部 bit 0） | **362**（bit 0–15 各约 22 个） |
+
+修复前只有 **bit 0** 未被约束，所以只影响 `Wm` 的低 6 位 ——
+这也是为什么修复前 `Wm_q30` 只 failing `[0..5]`。
+
+修复后变成**几乎所有 bit 都未约束**，于是失败扩展到 `G`/`Wp`/`Wm` 的多个 bit。
+**`i_q60` 的修复本身没有引入这个问题** —— 它只是让 `u_wsum` 的问题
+从"被 `i_q60` 的失败掩盖"变成"完全暴露"。
+
+### 3.4.3 `Unmatched Cone Inputs` 100% 是权重表
+
+修复后的 `analyze_points`：
+
+```
+Found 2833 Unconstrained Implementation Inputs
+Found 5676 Unmatched Cone Inputs      ← 其中 "Is globally unmatched" 5668 条，
+                                         5668 条全部是 w_main_tbl / w_sub_tbl
+Found 2355 Required Inputs
+```
+
+**`i_q60` 相关的 unmatched 条目已完全归零**（修复前 `inv_q60_reg` 54 条、
+`g_q30_o_reg` 60 条）。这再次确认 A 类缺陷已被彻底消除。
+
+### 3.4.4 结论
+
+`u_wsum` 的 20 个 failing **不是 RTL 逻辑错误**，而是
+**DC 把数组端口展平成 14400 个扁平标量端口后，Formality 未能把实现侧这些端口
+与参考侧的数组端口完全对应**，于是它们被当成自由变量。
+
+按 §4.1 的分类，这属于**第 5 类**（网表侧存在未被约束的输入，功能不可判）；
+但它与 A 类（`initial` 被丢弃）性质不同：**A 类是网表真的错了，B 类更可能是
+"数组端口 ↔ 扁平端口"的可追溯性问题**。
+
+**建议的下一步（未执行，供决策）**：
+1. 在 DC 里对 `w_main_tbl`/`w_sub_tbl` 加 `set_verification_priority` 或
+   保留数组端口（`hdlin_enable_hier_map` + `set_verification_top`，见 §3.5）
+2. 或改用扁平端口的 RTL 包装层（把 `[0:17][0:15]` 改成 `[11519:0]`），
+   让参考侧与实现侧端口结构一致
+3. **不要**用 `set_constant` 把未约束端口绑死
+
+### 3.5 关于 `guide_hier_map`（Formality 自己给出的提示）
+
+每一次运行 Formality 都打印：
+
+```
+ATTENTION: No guide_hier_map commands were found in the SVF. It is
+           important to enable guide_hier_map generation in Design Compiler
+           to avoid SVF rejections that can cause aborted/failing points
+           or long run times during verification.
+           In Design Compiler the recommended methodology uses variable
+           hdlin_enable_hier_map and command set_verification_top.
+```
+
+这与 §3.4.4 的判断**方向一致**：缺少 `guide_hier_map` 会让分层映射丢失，
+正是"数组端口 ↔ 扁平端口"对不上的机制之一。
+
+**但要注意**：这条提示从一开始就在，而 `i_q60` 的失败与它无关
+（`i_q60` 是 `initial` 被丢弃）。所以**不能**把 20 个 failing 全归给这一条 ——
+A 类已证明不是。
+
+---
 
 ---
 
@@ -336,44 +547,46 @@ SVF 里有对应的 `guide_reg_constant`，**这是合法的常量折叠**：
 
 ### 4.1 判定
 
-| 失败点 | 五类归属 | 依据 |
+| 簇 | 失败点（10:17 网表） | 失败点（11:07 修复后） | 五类归属 | 依据 |
+|:---|:---|:---|:---|:---|
+| **A** | `i_q60_reg[*]` 14 个 | **0 个** ✅ | **第 5 类：真正的逻辑不等价** | 12 个合法 G 扫描：网表 12/12 输出常数 2，RTL 12/12 正确；`TIELBWP7T40P140` 直接驱动 `inv_q60`；`VER-281` 明示 `initial` 被丢弃；修复后 failing 归零 |
+| **B** | `Wm_q30_reg[0..5]` 6 个 | `G_q30` 8 + `Wp_q30` 6 + `Wm_q30` 6 = **20 个** | **第 5 类**（网表带出未约束输入） | 2833 个 `Unconstrained Implementation Inputs` 全部是权重表端口；"哪个数组影响哪个输出"与 RTL 语义精确对应（§3.4.1） |
+
+### 4.2 A 类与 B 类的区别（关键）
+
+两者都归第 5 类，但**性质完全不同**：
+
+| | A 类（`initial` LUT） | B 类（权重表端口） |
 |:---|:---|:---|
-| `i_q60_reg[*]` | **第 5 类：真正的逻辑不等价** | 网表对 12 个合法 G 全部输出常数 2，RTL 全对；TIE-LOW 单元直接驱动 `inv_q60`；`VER-281` 明示 `initial` 被丢弃 |
-| `Wm_q30_reg[*]` | **第 5 类：真正的逻辑不等价** | `analyze_points` 指出 46 个未约束输入，其中 41 个是权重表 bit 0，影响范围精确等于 `Wm_q30[0..5]` |
+| 网表功能是否真的错了 | **是**（`i_q60` 恒为 2） | **不确定**：可能只是 Formality 没匹配上 |
+| 判据 | 已用独立仿真证明（12/12 错） | 未做独立仿真（见下） |
+| 是否需要改 RTL | 是（改 `case`） | 不一定；可能只需改综合/验证配置 |
+| 是否已修复 | **是**（`878a348`），复验 `i_q60` failing=0 | **否** |
 
-### 4.2 为什么 `Wm_q30` 归第 5 类而不是第 2 类
+**B 类为什么不能简单归成第 2 类（匹配问题）**：
 
-有两个候选解释：
+- 支持第 2 类：`report_unmatched_points -point_type port` 在 ref/impl **两侧都报 "No unmatched points"**（`/tmp/fmport.log`），说明顶层端口数量和名字是匹配的
+- 支持第 5 类：`analyze_points` 把这 2833 个端口列在 **"Unconstrained Implementation Inputs"** 下，即它们在实现侧是**自由变量**
+- **这两个观察矛盾，我未能解释**（`/tmp/fmnames.log` 用 `get_ports` 拉两侧端口名对照，跑到 `SVF BEGIN` 后被 kill）
 
-- **第 2 类（匹配/切分点问题）**：数组端口 vs 扁平端口，名字对不上，是工具匹配问题
-- **第 5 类（真实逻辑不等价）**：网表里这些 bit 0 端口是**悬空/自由变量**，功能上不可判
+因此本报告把 B 类保守地标为 **"第 5 类，但匹配因素未完全排除"**，并列为未闭环项（§6）。
 
-判据是：**这些端口在实现侧到底有没有被正确驱动。**
-
-- 若它们在网表里被正确连接到对应逻辑，只是 Formality 名字没匹配上 → 第 2 类（工具问题）
-- 若它们在网表里真的悬空/被 DC 当无关项优化 → 第 5 类（网表功能不完整）
-
-`analyze_points` 的措辞是 *"Unmatched input ports in the implementation typically result
-from test logic insertion"* —— 它把这归为"实现侧多出来的输入"，
-即 **DC 在网表里生成了参考侧没有的输入端口**。
-
-**这一点我未能完全闭环**：`/tmp/fmnames.log`（用于 `get_ports` 对比两侧端口命名）
-跑到 `SVF BEGIN` 后被 kill，没拿到端口对照表。
-所以 §3 的最终归属应标注为 **"第 5 类，但匹配因素未完全排除"**。
-
-无论如何，**它不影响 §5 的修复结论**：修复 `recip_q60` 后需重跑，
-若 `Wm_q30` 仍在则必须回头查端口匹配。
+**B 类未做独立仿真的原因**：与 A 类不同，B 类**不能**用"抽出模块单独仿真"来判定 ——
+`wsum_v21` 的权重表是**顶层输入端口**，必须与完整设计的激励配合才有意义。
+而门级 e2e 测试（`tools/check_gate_e2e.sh`）喂的是**名义权重表**，不覆盖"权重表任意值"，
+所以即使 e2e 全过也不能证明 B 类无问题。**这一层证据目前是缺的。**
 
 ### 4.3 明确排除的假设（与题面对照）
 
 | 假设 | 是否成立 | 证据 |
 |:---|:---|:---|
-| 域外分支（`g_ok`）差异 | **否** | 12 个 G **全在**合同域 `[2^34,2^36]` 内，网表仍全错；域外解释不了 |
-| `rem` 无符号下溢 | **否** | 与网表结构无关（网表的 `inv_q60` 是 TIE-LOW，乘法退化成 ×1） |
-| SVF 没加载 | **否** | `STEP_SVF_OK`；Run C 的 `SVF Design Consistency` = 0；Guidance Summary 显示 1977 accepted |
-| 复位/初始化行为（第 3 类） | **部分** | 严格说 `initial` 是"初始化"，但**不是复位语义问题**：`initial` 在仿真里有效、在综合里被丢弃，属"不可综合构造"，归第 5 类更准确 |
-| 参考/网表版本不一致（第 1 类） | **曾经是（B 轮）** | B 轮因 10:23 改 RTL 而作废；C 轮已用 md5 对齐，排除 |
-| 匹配/切分点（第 2 类） | **`Wm_q30` 可能相关** | 见 §4.2，未完全闭环 |
+| 域外分支（`g_ok`）差异 | **否** | 12 个 G 全在合同域 `[2^34,2^36]` 内，网表仍全错；域外解释不了 |
+| `rem` 无符号下溢 | **否** | 网表 `inv_q60` 被 TIE-LOW 拉成 0、乘法器退化成 ×1，与下溢模型无关 |
+| SVF 没加载 | **否** | 两轮 `SVF Design Consistency` = 0（C 轮与修复后轮）；Guidance Summary 1977+ accepted |
+| 复位/初始化（第 3 类） | **否** | 不是复位覆盖不全，是 `initial` 不可综合；且修复后 `i_q60` 已归零，与复位无关 |
+| 参考/网表版本不一致（第 1 类） | **曾出现，已排除** | B 轮因 10:23 改 RTL 而作废；C 轮与修复后轮均用 md5 对齐 + `SVF Design Consistency`=0 |
+| 匹配/切分点（第 2 类） | **B 类可能相关** | §4.2，未完全闭环 |
+| **`i_q60` 是真实逻辑错** | **是** | §2.2 的 12 点扫描 + §5.5 修复后归零 |
 
 **没有任何一条指向"需要加合法域约束"。** 因此不涉及合同确认问题。
 
@@ -468,7 +681,8 @@ i_q60_reg 的 D 端全部是常数  →  i_q60 ≡ 2
 | 网表 `u0_r_reg[*]` 存在位数 | **0** | **30**（`[0..29]`） |
 | 网表 `assign inv_q60[n] = inv_q60[26]` | 27 条 | **0** |
 | 网表 TIE 驱动 `inv_q60` | 有（`TIEL… U3`） | **0** |
-| `recip_q60` 网表模块数（含子模块） | 4 | **30** |
+| `recip_q60`+`recip_rnd_v21` 及全部 DW 子模块的**模块总数**（抽件统计） | 4 | **30** |
+| 其中 `recip_q60` 系模块（含 DW 子模块） | 1（无任何子模块） | **17** |
 | **12 个合法 G 的输出** | **12/12 全为 2** ❌ | **12/12 全部正确** ✅ |
 
 修复后 12 点扫描实测：
@@ -485,6 +699,21 @@ SCAN G=34359738368 out=33554432     SCAN G=60000000000 out=19215358
 
 与 §2.2 精确 RND 列逐项一致。
 
+#### Formality 侧复验（`/tmp/fmfix2_review_130645.log`）
+
+| 指标 | 修复前 | 修复后 |
+|:---|--:|--:|
+| `i_q60_reg` failing | 14 | **0** ✅ |
+| 未匹配的 reference compare point | 2073 | **0** ✅ |
+| Cut-points（REF） | 1984 | **0** ✅ |
+| Unread | 130 | 25 |
+| Passing | 2580 | 2589 |
+| **总 failing** | 20 | **20**（全部转为 `u_wsum`，见 §3.4） |
+
+**注意**：总 failing 数没有减少，但**内容完全换了** —— `i_q60` 归零，
+`u_wsum` 从 6 个扩到 20 个。所以"`i_q60` 修好了"是真的，
+"Formality 通过了"是假的。**不能把前者说成后者。**
+
 **关于修复后仍剩的 1 条 `u0_r_reg[30]` 常量删除**：这是**合法**的。
 64 项 LUT 的值域是 `[538976288, 1065418243]`，全部 `< 2^30 = 1073741824`，
 即 `lut[*]` 的 bit 30 **恒为 0**。DC 删除 `u0_r_reg[30]` 是正确的常量优化，
@@ -494,18 +723,23 @@ SCAN G=34359738368 out=33554432     SCAN G=60000000000 out=19215358
 
 ## 6. 未闭环项（如实记录）
 
-| 项 | 状态 | 原因 |
-|:---|:---|:---|
-| `Wm_q30` 的最终归属（第 2 类 vs 第 5 类） | **未完全闭环** | `/tmp/fmnames.log`（端口命名对照）跑到 `SVF BEGIN` 后被 kill，未取得 ref/impl 端口对照表。需在修复后的网表上重跑 Formality 确认是否仍 failing |
-| `Found 1 Rejected Guidance Command`（`reg_constant`）的 58 条拒绝明细 | **未取得** | `/tmp/fmsvf.log` 同样未跑完 |
-| 修复后网表的 Formality 结果 | **本次未跑** | 修复后网表于 11:07 生成，本文完成时尚未对其跑 `verify`；预期 failing 归零，但**未验证** |
+| # | 项 | 状态 | 原因 / 说明 |
+|:--:|:---|:---|:---|
+| 1 | **B 类（`u_wsum` 20 个 failing）是否真是网表功能错误** | **未闭环** | §4.2：`report_unmatched_points` 两侧皆 "No unmatched points" 与 `analyze_points` 报 2833 个未约束端口**矛盾未解释**；且无法用"抽模块仿真"判定（权重表是顶层端口）。注意：**已复核的只是"结论可复现"，不是"矛盾已解释"** |
+| 2 | **为什么 27 位不是全错**（§2.3） | **未解释** | 12 个合法 G 上 27 个 bit 全部取到过 0/1，按纯功能推理应全 failing；实测 14/19 个 |
+| 3 | `guide_hier_map` 缺失是否是 B 类的成因 | **未验证** | §3.5 的提示方向一致，但**没有做过"加了 `guide_hier_map` 再跑"的对照实验** |
+| 4 | ref/impl 端口命名对照表 | **未取得** | `/tmp/fmnames.log` 跑到 `SVF BEGIN` 后被 kill |
+| 5 | `i_q60` 修复后的**完整回归** | **部分完成** | 已做：12 点 G 扫描（网表侧 12/12 正确）、`VER-281`=0、`u0_r_reg` 回归、Formality `i_q60` failing=0。**未做**：仓库级 `tools/verify_v21.sh` 8 项全量回归 |
+| 6 | 首次 `/tmp/fmfix2.log` 被覆盖 | **已闭环** | 用唯一时间戳名重跑 `/tmp/fmfix2_review_130645.log`，11 项关键数字**逐项复现**（§7.1） |
 
 ### 已排除的无效尝试（避免重复）
 
-1. **域外分支 / `g_ok` 约束** —— 12 个 G 全在 `[2^34,2^36]` 内仍全错，与域无关。**不要**加 G 范围约束来"消除"失败。
-2. **`rem` 无符号下溢** —— 网表的 `inv_q60` 是 TIE-LOW，乘法器退化成 ×1，与下溢模型无关。该假设已回退。
-3. **SVF 未加载** —— `STEP_SVF_OK`，且 Run C `SVF Design Consistency` = 0。
+1. **域外分支 / `g_ok` 约束** —— 12 个 G 全在合同域 `[2^34,2^36]` 内，网表仍全错。**不要**加 G 范围约束来"消除"失败。
+2. **`rem` 无符号下溢** —— 网表 `inv_q60` 被 TIE-LOW 拉成 0、乘法器退化成 ×1，与下溢模型无关。该假设已回退。
+3. **SVF 未加载** —— `STEP_SVF_OK`；两轮 `SVF Design Consistency` 均为 0。
 4. **复位语义（第 3 类）** —— 不是复位覆盖不全，是 `initial` 不可综合。
+5. **`set_constant` 压掉失败** —— `analyze_points` 建议对未约束端口加 `set_constant`，**明确不采纳**：属审查禁止的"裁输入域"。
+6. **只靠门级 e2e 证明 B 类无问题** —— e2e 喂的是名义权重表，不覆盖"权重表任意值"，**不能**作为 B 类的证据。
 
 ---
 
@@ -515,66 +749,164 @@ SCAN G=34359738368 out=33554432     SCAN G=60000000000 out=19215358
 
 | 文件 | 内容 |
 |:---|:---|
-| `/tmp/fmdiagC.log` | **主证据**：10:17 网表 + 对齐 RTL，verify + `analyze_points -failing` 完整输出（75,741 行） |
-| `/tmp/fmdiagA.log` | 第一轮（同配置，`analyze_points` 因脚本选项错误中止），20 failing 名单 |
+| `/tmp/fmdiagC.log` | **主证据（修复前）**：10:17 网表 + 对齐 RTL，verify + `analyze_points -failing` 完整输出（75,741 行） |
+| **`/tmp/fmfix2_review_130645.log`** | **主证据（修复后，可复核）**：11:07 网表 + `/tmp/gate3/rtl`（`SVF Design Consistency`=0），`i_q60` failing=0、`u_wsum` 20 failing、`analyze_points` 约 10.6 万行 |
+| `/tmp/fmfix2.log` | **已作废**：首次那轮（原始约 8 万行输出）在 13:00 被外部重跑覆盖，现仅存 6.5 KB 启动片段；已由复核轮替代 |
+| `/tmp/fmfix.log` | **作废**：修复后网表第一次跑，但 RTL 用了 `/tmp/ip/rtl/`（源树与网表不同源），`SVF Design Consistency` 报 `recip_rnd_v21.sv` 校验和不符 |
+| `/tmp/fmdiagA.log` | 修复前第一轮（`analyze_points` 因脚本选项错误中止），20 failing 名单 |
 | `/tmp/fmdiagB.log` | **作废**（RTL 版本漂移），保留作反面例证 |
 | `/tmp/fmv12.log` | 09:15 那轮完整结果（题面引用） |
-| `/tmp/dcwork/dc.log` | 10:17 综合日志（`VER-281`、`OPT-1206` 证据） |
-| `/tmp/dcwork/adc_digital_ip_v21_syn.v` | 10:17 网表（**诊断对象**）；11:07 已被修复版覆盖 |
-| `/tmp/dcwork2/dc.log` | 修复版综合日志（`VER-281` = 0） |
-| `/tmp/fmproof/` | 独立仿真工作区（见下） |
-| `/tmp/fmdiag_C.tcl` | Run C 脚本（可直接复跑） |
+| `/tmp/dcwork/dc.log` | 综合日志：**11:07 版本**（`VER-281`=0）；10:17 版本已被覆盖 |
+| `/tmp/dcwork/adc_digital_ip_v21_syn.v` | **11:07 修复后网表**（22,416,826 B，md5 `5e738fe5…`）；10:17 诊断对象已被覆盖 |
+| `/tmp/gate3/rtl/` | 修复后网表（11:07）的**真实源树**，md5 与仓库完全一致 |
+| `/tmp/fmproof/` | 独立仿真工作区（`net_recip.v`=旧网表抽取、`net_recip_new.v`=新网表抽取、`tb_scan.v`） |
+| `/tmp/fmdiag_C.tcl`、`/tmp/fmfix2.tcl` | 两个主轮次的脚本（可直接复跑） |
+| `/tmp/fmport.log` | `report_unmatched_points` 探针（两侧皆 "No unmatched points"） |
 
-### 7.2 独立仿真复现（不依赖 Formality）
+> **重要（本次第二次踩"源树不对齐"）**：11:07 那次 DC 读的是 `/tmp/gate3/rtl/`，
+> **不是** `/tmp/ip/rtl/`。我第一次跑修复后网表的 Formality 时用了 `/tmp/ip/rtl/`，
+> 结果 `SVF Design Consistency` 报 `recip_rnd_v21.sv` 校验和不符（`/tmp/fmfix.log`），
+> 该轮**作废**（`/tmp/fmfix.log`）。改用 `/tmp/gate3/rtl/` 后校验和归零（`/tmp/fmfix2_review_130645.log`）。
+>
+> 附：11:07 那次 DC 用的 `recip_rnd_v21.sv` 是 **4912 B**（= 仓库版，无 `prod2`），
+> 而 `/tmp/ip/rtl/v21/recip_rnd_v21.sv` 是 **5712 B**（09:24 的实验版）。
+> 两者不等价 —— 这也是"必须用同一棵源树"的又一个理由。
+
+> **日志覆盖与复核（重要，过程记录）**
+>
+> 首次那轮写的是 `/tmp/fmfix2.log`，其原始输出（约 8 万行，含 `analyze_points` 完整输出）
+> 在 **13:00 被一次外部重跑覆盖**，缩为 6,584 B 的启动片段。
+> 本文曾一度只在"覆盖前读取"的记录上引用该轮数字。
+>
+> **已用唯一时间戳文件名重跑复核**：`/tmp/fmfix2_review_130645.log`
+> （同一份 `fmfix2.tcl`、同一网表、同一 RTL 源树）。复核结果**逐项复现**：
+>
+> | 项 | 首次（已覆盖） | 复核（`fmfix2_review_130645.log`） | 一致 |
+> |:---|--:|--:|:--:|
+> | Passing | 2589 | **2589** | ✅ |
+> | Failing | 20 | **20** | ✅ |
+> | Unverified | 614 | **614** | ✅ |
+> | Constant reg | 48 | **48** | ✅ |
+> | Unread | 25 | **25** | ✅ |
+> | Unconstrained Impl Inputs | 2833 | **2833** | ✅ |
+> | Unmatched Cone Inputs | 5676 | **5676** | ✅ |
+> | 其中 glob unmatched 权重表条目 | 5668 | **5668** | ✅ |
+> | 其中 `i_q60`/`inv_q60` 条目 | 0 | **0** | ✅ |
+> | Required Inputs | 2355 | **2355** | ✅ |
+> | 20 个 failing 名单 | 见 §3.4 | **逐字一致** | ✅ |
+>
+> 因此 §0.2、§3.4、§4.1、§5.5 的全部数字**均可从复核日志独立核对**，
+> 不再依赖"覆盖前的记忆"。
+>
+> **教训**：多人/多轮共用 `/tmp` 下固定日志名会被静默覆盖。
+> 后续用带时间戳的唯一名，例如 `fmfix2_$(date +%H%M%S).log`。
+
+### 7.2 独立仿真复现（不依赖 Formality，A 类）
 
 ```bash
 # 1) 从网表抽出 recip 相关模块
 python3 - <<'PY'
-src=open("/tmp/dcwork/adc_digital_ip_v21_syn.v").read().split("\n")
-out=[];keep=False
+src = open("/tmp/dcwork/adc_digital_ip_v21_syn.v").read().split("\n")
+out, keep = [], False
 for l in src:
     if l.startswith("module "):
-        n=l.split()[1].split("(")[0]
+        n = l.split()[1].split("(")[0]
         keep = n.startswith("recip_q60") or n.startswith("recip_rnd_v21")
-    if keep: out.append(l)
-    if l.startswith("endmodule"): keep=False
-open("/tmp/fmproof/net_recip.v","w").write("\n".join(out)+"\n")
+    if keep:
+        out.append(l)
+    if l.startswith("endmodule"):
+        keep = False
+open("/tmp/fmproof/net_recip.v", "w").write("\n".join(out) + "\n")
 PY
 
-# 2) 编译并跑 12 点 G 扫描（tb_scan.v 见 /tmp/fmproof/）
+# 2) 12 点 G 扫描（tb_scan.v 在 /tmp/fmproof/）
 cd /tmp/fmproof
+L=/home/yian/PDK/tsmc28/digital_technology/TSMCHOME/digital/Front_End/verilog/tcbn28hpcplusbwp7t40p140_110a/tcbn28hpcplusbwp7t40p140.v
 vcs -full64 -sverilog -timescale=1ns/1ps -o simscan_net \
-    net_recip.v tb_scan.v $LIB -Mdir=csrc_scan_net
-./simscan_net | grep '^SCAN'
+    net_recip.v tb_scan.v $L -Mdir=csrc_scan_net
+./simscan_net | grep '^SCAN'        # 旧网表：12/12 输出 2
 
 # 3) RTL 侧同一 testbench
 vcs -full64 -sverilog -timescale=1ns/1ps -o simscan_rtl \
     recip_q60.sv recip_rnd_v21.sv tb_scan.v -Mdir=csrc_scan_rtl
-./simscan_rtl | grep '^SCAN'
+./simscan_rtl | grep '^SCAN'        # 12/12 正确
 ```
+
+`tb_scan.v` 的要点（避免采样错位，这是本报告里试错最多的地方）：
+
+- 每个 G **独立复位** → 单次 `valid_i` 高脉冲 → 等 `valid_o` → 采样 `i_q60`
+- 用 `@(negedge clk)` 驱动激励、`@(posedge clk)` 采样，**不要**在 `@(posedge clk)` 同一时刻
+  既驱动又采样（那样会读到同一个沿的旧值，产生假象）
+- 我最初写的队列式 testbench（`tb_cmp.v`）因为无法知道 `valid_o` 对应哪一次输入，
+  得到过"RTL 也全错"的错误结果，已废弃
 
 ### 7.3 Formality 复跑
 
 ```bash
+# 修复后网表（注意用 /tmp/gate3/rtl，与网表同源）
 ssh vm-yian 'cd /tmp && PATH=/opt/synopsys/fm/W-2024.09-SP3/bin:$PATH \
   SNPSLMD_LICENSE_FILE=27080@localhost \
-  fm_shell -f /tmp/fmdiag_C.tcl > /tmp/fmdiagC.log 2>&1'
-grep -E "STEPS|Compare point .* failed|Passing compare|Failing compare" /tmp/fmdiagC.log
+  fm_shell -f /tmp/fmfix2.tcl > /tmp/fmfix2_$(date +%H%M%S).log 2>&1'
+grep -E "Compare point .* failed|Passing compare|Failing compare" /tmp/fmfix2_*.log
 ```
 
-**跑之前务必先对齐版本**（这是 B 轮作废的教训）：
+**跑之前务必先确认版本对齐**（本次踩了两次坑）：
 
 ```bash
-md5sum /tmp/ip/rtl/recip_q60.sv /tmp/ip/rtl/v21/wsum_v21.sv
-grep -c "SVF Design Consistency" /tmp/fmdiagC.log   # 必须为 0
+md5sum /tmp/gate3/rtl/recip_q60.sv /tmp/gate3/rtl/v21/wsum_v21.sv  # 应与网表同源
+grep -c "SVF Design Consistency" /tmp/fmfix2_*.log                # 必须为 0
 ```
 
 ---
 
-## 8. 一句话总结
+## 8. 总结
 
-**20 个 failing 中，`i_q60` 那一组是 `initial` 初始化 LUT 被综合丢弃导致网表输出恒为常数 2
-（已用 12 个合法 G 的独立仿真坐实，RTL 全对、网表全错）；
-`Wm_q30` 那一组是权重表 41 个 bit 0 输入端口未匹配，使和的低 6 位不可判。
-两者都属第 5 类"真正的逻辑不等价"，都不需要加任何域约束。
-`i_q60` 的修复（`878a348`）已复验通过，网表侧 12/12 正确。**
+**20 个 failing 是两件独立的事。**
+
+### A 类：`i_q60` —— 真实逻辑错误，已定位、已修复、已复验
+
+`rtl/recip_q60.sv` 用 `initial` 块初始化 64 项 Newton 种子表，DC 直接丢弃
+（`VER-281`）→ `u0_r_reg[30:0]` 被当常量删除（`OPT-1206`）→ Newton 退化 →
+`inv_q60` 被 `TIELBWP7T40P140` 拉成恒 0 → 乘法器退化成 ×1 → **网表 `i_q60` 恒等于 2**。
+
+铁证（不依赖 Formality）：12 个合同域内的 G 逐一扫描，**RTL 12/12 全对，
+网表 12/12 全部输出 2**。
+
+修复（`878a348`，`initial` → `case`）复验：
+`i_q60_reg` failing **14 → 0**；未匹配的参考侧 compare point **2073 → 0**；
+`VER-281` **0**；`u0_r_reg[0..29]` 回到网表；网表侧 12 点扫描 **12/12 正确**。
+
+### B 类：`u_wsum` —— 权重表端口未约束，未修复
+
+`i_q60` 修好后，剩下的 **20 个 failing 全部集中在 `u_wsum`**
+（`G_q30` 8 + `Wp_q30` 6 + `Wm_q30` 6）。
+`analyze_points` 报 **2833 个 `Unconstrained Implementation Inputs`，全部是
+`w_main_tbl`/`w_sub_tbl` 端口**；且"哪个数组影响哪个输出"与 RTL 语义精确对应
+（`f_G` 只用 main、`f_Wp` 只用 sub、`f_Wm` 两者都用）。
+
+**这一簇我倾向判断为"数组端口 ↔ 扁平端口"的可追溯性问题（第 2 类），
+但保守归为第 5 类**，因为 `report_unmatched_points` 两侧都报 "No unmatched points"
+与 `analyze_points` 的结论矛盾，且缺独立仿真证据（§4.2）。
+
+### 两簇都不需要加任何域约束
+
+因此不涉及"合同是否明确、上游是否保证"的判定。
+`analyze_points` 建议的 `set_constant` 被明确拒绝。
+
+### 下一步建议（未执行）
+
+1. **B 类优先试 `guide_hier_map`**：在 DC 里加 `set_app_var hdlin_enable_hier_map true`
+   与 `set_verification_top`，重综合后重跑 —— 这是 Formality 自己反复提示的方向，
+   也是"数组端口对不上"的最直接解释
+2. 若仍不行，考虑给 `wsum_v21` 加一层扁平端口包装（`[11519:0]`）使两侧结构一致
+3. **不要**用 `set_constant` 把未约束端口绑死来"消掉"失败
+
+### 证据分层声明
+
+| 层 | 内容 | 确定性 |
+|:---|:---|:---|
+| 独立仿真 | §2.2（10:17 网表 12/12 输出 2）、§5.5（修复后 12/12 正确） | **确定** |
+| 工具观测 | §1、§3.4 的 Formality 输出（Passing/Failing/Unverified、analyze_points 分类）；**已用 `/tmp/fmfix2_review_130645.log` 独立复现 11 项数字** | 工具输出，非结论（但可复现） |
+| 未闭环 | §2.3（散布式）、§4.2（B 类匹配因素）、§6 #3（`guide_hier_map` 对照） | **不下结论** |
+
+**本文不是 signoff 结论。** Formality 当前仍是 `FAILED`（20 failing，全在 `u_wsum`）。

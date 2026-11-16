@@ -1,102 +1,202 @@
-# 门级等价：RTL 与 28HPC+ 综合网表逐拍一致
+# 门级等价：RTL 与 28HPC+ 网表逐拍一致（D1–D6 整链）
 
-时间：2026-11-16　基线：`e54566f` + 本轮
-网表：`/tmp/dcwork/adc_digital_ip_v21_syn.v`（DC W-2024.09-SP3，623 s，97,356 µm²）
+时间：2026-11-16　RTL 基线：`bef42e8`（工作区 `rtl/` 与之逐文件同哈希）
+网表：`/tmp/dcwork/adc_digital_ip_v21_syn.v`（DC W-2024.09-SP3，743 s）
 
-## 1. 结果
+## 1. 结论
+
+```
+RESULT: GATE_E2E_PASS
+  RTL 与 28HPC+ 网表在 1890 拍轨迹上逐字段一致，两笔交易（A/B）均走完整链。
+```
+
+同一份激励分别驱动 RTL 与综合网表，**19 个字段 × 1890 拍、差异 0**。
+两笔完整事务（A guard、B 普通）都走到了 20 位输出：
+
+| 事务 | RTL `out_code` | 网表 `out_code` | `out_tag` | 期望 |
+|:---|:---|:---|:---|:---|
+| A（guard，raw=5120） | `0xFFF00` | `0xFFF00` | `A1` | `0xFFF00` ✅ |
+| B（普通，raw=2560） | `0x80000` | `0x80000` | `B2` | `0x80000` ✅ |
+
+交易统计（两侧相同，三项均 ≥2）：
+
+```
+TRANSACTIONS accepted=5 captured=2 output=2
+```
+
+## 2. 这条结论相对旧版强在哪里
+
+旧版 `docs/v21/GATE_EQUIV.md`（本轮已重写）报的是：
 
 ```
 RESULT: GATE_EQUIV_PASS (1464 拍，RTL == 28HPC+ 网表)
 ```
 
-同一组激励分别驱动 RTL 与综合网表，逐拍比对 22 个关键输出，
-**1464 拍差异 0**。
+审查指出它**不能作为 D1–D6 整链门级等价证据**，理由是：
 
-覆盖的信号：`prepare_ready`、`out_valid/code/sat/err/tag`、
-`acq_sel_o`、`conv_sel_o`、`idle_sel_o`、`pre_wr_o`、`post_wr_o`、
-`adc2_capture_arm_o`、`adc2_rsp_valid_o/tag_o`、
-`apply_fire_o`、`k_o`、`final_applied_o`、`final_k_o`、
-`err_o`、`done_o`、`node_valid_o`、`node_ids_o`。
+| 项 | 旧烟测 `tb_trace` | 本轮 `tb_i4b_e2e` |
+|:---|:---|:---|
+| 激励 | 一次 prepare，没走完两笔 | 两笔完整（A guard + B 普通） |
+| 观察沿 | 1464 行 / 24 行每拍 = **61 拍** | 1890 行 / 21 行每拍 = **90 拍** |
+| 链路覆盖 | prepare → 5 事件 → raw → hold | 逐事件开关 → 余差捕获 → ADC2 返回 → 20 位输出 |
+| 交易门禁 | 无 | 三项各 ≥2，不足直接 FAIL |
+| 权重表 | 仅主列，子列一起赋同值 | 主/子列按合同位表分列 |
 
-## 2. 证据等级（必须注明）
+关键差别是**交易门禁**：旧版两侧可以都"没有输出"而轨迹一致，被判 PASS。
+本轮把 `accepted / captured / output` 三项写进判定，任一项 <2 即 FAIL ——
+"两侧都没干活"不再可能冒充等价。
+
+## 3. 两侧激励为什么能保证逐字一致
+
+门级网表的 DUT 端口形态与 RTL 根本不同：
+
+- `w_main_tbl` 是 **11,520 位**扁平端口（18×16×40）
+- `w_sub_tbl` 是 **2,880 位**（18×4×40）
+- 源网表里写成 `.w_main_tbl({ \w_main_tbl[0][0][39], ... })`
+- RTL 侧是数组端口 `[0:17][0:15]`
+
+同一份文件无法同时例化两者（VCS 报 `PCTM`）。本轮改成**分层结构**：
+
+| 文件 | 作用 | 两侧 |
+|:---|:---|:---|
+| `tb/v21/tb_e2e_decl.svh` | 时钟复位、DUT 信号、节点模型、轨迹、计数、任务 | **同一份** |
+| `tb/v21/tb_e2e_body.svh` | 两笔激励 + 全部断言 | **同一份** |
+| `tb/v21/tb_i4b_e2e.sv` | RTL 绑定层（数组端口 + 层级探针） | RTL |
+| `tb/v21/tb_gate_auto.sv` | 门级绑定层（扁平向量），由脚本生成 | 门级 |
+
+所以"两侧激励逐字一致"是**结构保证**，不是靠人肉同步两份 TB。
+
+门级 TB 由 `tools/gen_gate_tb.py` 从网表端口自动生成，并对四项做自检
+（端口集合、方向、宽度、展平位序首/尾），任何一项不符直接退出。
+
+## 4. 本轮抓到的两个真实功能缺陷
+
+这两处都是"能编译、能跑、数值悄悄错"的类型，**只有逐拍 diff 抓得住**。
+也正是它们让本轮的等价结论有了价值 —— 旧版"1464 拍 0 差异"是在
+这两个缺陷都存在的情况下报出来的。
+
+### 4.1 `recip_q60` 的 64 项种子 LUT 被 DC 丢弃
+
+RTL 原来用 `initial begin lut[i] = ... end` 初始化查表。DC 综合时整块被
+忽略（`dc.log` 里 `VER-281: The statements in initial blocks are ignored`），
+于是 LUT 全 X → `u0` 变常量 → `u0_r_reg` 被 `OPT-1206` 删除 →
+Newton 迭代退化 → `inv_q60` 不再是 G 的函数。
+
+网表里的**结构铁证**：
+
+```verilog
+assign inv_q60[0] = \inv_q60[26] ;
+...
+assign inv_q60[26] = \inv_q60[26] ;   // 悬空自引用，无任何单元驱动
+```
+
+隔离模块实测（G = 2^35 名义值）：
+
+| 版本 | `inv_q60` | 正确值 |
+|:---|:---|:---|
+| RTL | `33554431` | `33554431` ✅ |
+| 网表（缺陷版） | `0` | ❌ |
+
+上层可见后果：**A 笔 `out_code` 从 `0xFFF00` 变成 `0x80000`**，B 笔恰好不受影响。
+RTL vs 网表 diff 得到 **58 处差异，全部落在 `out_code` 一个字段**。
+
+修复：LUT 改成 `function` + `case` 常量查表（提交 `878a348`）。
+修复后 `VER-281 = 0`，`inv_q60` 由正常逻辑驱动。
+
+**独立复核方式**：本轮在 `/tmp/gate2p` 用一份只替换 `recip_q60` 的 RTL 树
+（不动仓库 `rtl/`）单独综合，得到的网表与仓库修复版综合出的网表跑同一份 TB，
+`out_code` 回到 `0xFFF00`、轨迹差异归零。该修补的 64 项数值与仓库修复版
+**逐项完全一致**（脚本比对，非人工核对）。
+
+### 4.2 `wsum_v21` 的二维数组循环可能漏最后一位
+
+`f_Wm / f_Wp` 原来写 `for (int j=0;j<4;j++) if (post[...+j]) acc += w_sub_tbl[ids][j];`。
+VCS 在 `always_comb`/函数内对"循环变量索引二维数组"可能漏掉最后一次迭代
+（j=3），导致 j19 平衡位不计入 Wm，与节点宏口径不一致。
+
+修复：4 位显式展开（提交 `45e54f1`）。
+
+## 5. 证据等级（必须注明）
 
 **这是门级仿真等价，不是形式化等价。**
 
-- 覆盖：施加的那一组激励（一笔完整事务：prepare → sample →
-  5 个已决事件 → ADC2 返回 → hold → 释放）
-- 不覆盖：其他输入组合、其他事件序列
+- 覆盖：施加的两笔完整激励 + 边界用例（延迟 hold、旧 raw 与新捕获同沿、
+  复位后迟到 raw、越窗）
+- 不覆盖：其他输入组合、其他事件序列、其他 k 值
+- Formality 形式等价**未跑通**（`fm_shell` 进入 `(setup)` 模式，命令集与 DC/PT 不同）
 
-Formality 形式等价**未跑通**：`fm_shell` W-2024.09-SP3 在本机进入
-`(setup)` 模式，其命令集与 DC/PT 不同：
+不得把本文件当作"全输入等价"或 signoff 证据。
 
-| 尝试 | 报错 |
-|:---|:---|
-| `set_app_var link_library` | `Variable 'link_library' is not an application variable` (CMD-104) |
-| `set_top_designs` | `unknown command` (CMD-005) |
-| `set_container` | `unknown command` (CMD-005) |
-| `create_container -type design` | `unknown option '-type'` (CMD-010) |
-
-如实记录，不编造工具能力限制。
-
-## 3. 为什么需要自动生成门级 TB
-
-DC 把 `w_main_tbl[18][16][40]` 与 `w_sub_tbl[18][4][40]`
-展开成**扁平拼接端口**：
-
-```verilog
-.w_main_tbl({ \w_main_tbl[0][0][39] , \w_main_tbl[0][0][38] , ... })
-```
-
-- `w_main_tbl` 是 **11,520 位**的单一端口（18×16×40）
-- `w_sub_tbl` 是 **2,880 位**（18×4×40）
-- RTL 侧是数组端口 `[0:17][0:15]`
-
-同一份 TB 无法同时连接两者 —— VCS 报 `PCTM`。
-所以 `tools/gen_gate_tb.py` 从网表端口自动生成门级 TB：
-解析端口、声明同宽扁平向量、按名义权重驱动、生成与 RTL 一致的激励。
-
-## 4. 对齐过程中踩的三个坑
-
-轨迹 diff 从 126 处降到 0，中间三处都是**测试不一致**，不是 RTL 或
-网表的功能差异：
-
-| # | 现象 | 根因 |
-|:--:|:---|:---|
-| 1 | RTL 的 `acq_sel_o` 全程 `xxxxx`，门级是 `0x3BD00` | `tb_trace.sv` 未连接 `sched_ext_sel` / `sched_acq` / `sched_conv` / `sched_idle` / `sched_ids`，输入悬空为 X |
-| 2 | 数值一致但行错位（126 处） | 两侧字段输出顺序不同 |
-| 3 | `err_o` RTL=1、门级=0 | `tb_trace.sv` 未设 `prepare_U=5`，与 `word=63` 派生的 U 冲突，触发 `U_conflict` |
-
-**第 1 条特别值得记**：X 值在 diff 里表现为"值不同"，很容易被误判成
-网表问题。实际是 TB 漏接输入。门级 TB 由脚本按网表端口生成，
-天然接全，所以只有 RTL 侧出问题 —— 这个不对称正好暴露了它。
-
-## 5. 复跑
+## 6. 复跑
 
 ```bash
-# 前置：先跑综合生成网表
-ssh vm-yian 'rm -rf /tmp/dcwork && mkdir -p /tmp/dcwork &&
-  PATH=/opt/synopsys/syn/W-2024.09-SP3/bin:$PATH \
-  SNPSLMD_LICENSE_FILE=27080@localhost \
-  dc_shell -f /tmp/dc_synth_v21.tcl > /tmp/dcwork/dc.log 2>&1'
-
-# 门级等价（一条命令）
-D3D4_RUNNER=vm-yian bash tools/check_gate_equiv.sh
+# 一条命令：四项目证 → RTL 轨迹 → 网表轨迹 → diff → 交易数检查 → 三态退出码
+D3D4_RUNNER=vm-yian bash tools/check_gate_e2e.sh
 ```
 
-脚本内含三项网表自证：`grep '^module recip_rnd_v21'` 必须 > 0、
-`grep LINK-3` 必须 = 0、门级能编译。
+三态退出码：
 
-## 6. 当前 I5 状态
+| 码 | 含义 |
+|:--:|:---|
+| 0 | PASS：四项目证过 + 交易数各 ≥2 + 轨迹零差异 + 两侧断言零错 |
+| 1 | FAIL：跑起来了，但存在差异/断言失败/交易数不足 |
+| 2 | ERROR：环境或编译问题，结论无效 |
 
-| 项 | 状态 | 证据 |
+前置：需先用 `flow/synth/v21/dc_synth_v21.tcl` 生成网表。
+注意该 TCL 读的是 `/tmp/ip/rtl/`，**必须先把当前 RTL 同步过去**，
+否则网表与 RTL 不同版，diff 结论无意义（本轮踩过：RTL 在综合后才被修复）。
+
+可覆盖的变量：`D3D4_WORKDIR` / `D3D4_NETLIST` / `D3D4_DCLOG` / `D3D4_SVF`。
+
+## 7. 本轮最终网表指标
+
+| 项 | 值 |
+|:---|:---|
+| 网表 sha256（前 16） | `485abbbd4909104c` |
+| SVF sha256（前 16） | `1f107fa80e665424` |
+| 综合耗时 | 743 s |
+| 端口数 | 116,968 |
+| 单元数 / 时序单元 | 162,571 / 2,176 |
+| 单元面积 | 106,574.71 µm² |
+| 最差 setup slack @25 ns | +2.72 ns（MET） |
+| 四项目证 | recon=1、recip_rnd=1、VER954/LINK3/LINK5=0、DW_div=2 |
+
+时序与面积相对上一版网表（2088 个时序单元）有变化，因为 RTL 侧本次修复了
+两处逻辑；这不是流程差异，不构成"退化"判断依据。
+
+### 7.1 关于两套网表数字不一致的说明
+
+本项目同一天针对**同一份修复后 RTL** 独立跑过两次综合，数字略有差别：
+
+| 网表 | 目录 | cells | 时序单元 | 单元面积 | 最差 slack |
+|:---|:---|---:|---:|---:|---:|
+| 本文件 | `/tmp/dcwork`（= `/tmp/dcwork3`） | 162,571 | 2,176 | 106,574.71 µm² | +2.72 ns |
+| `a237626` 记录 | `/tmp/dcwork2` | 165,374 | 2,176 | 108,951.11 µm² | +3.02 ns |
+
+差别来自综合脚本的一处**约束差异**，不是 RTL 或版本差异：
+
+```tcl
+set_driving_cell -lib_cell BUF_X2 -pin Z \
+    [remove_from_collection [all_inputs] [get_ports clk]]
+```
+
+`BUF_X2` 在 28HPC+ 库里**不存在**（该库的缓冲器叫 `BUFFD*BWP7T40P140`），
+DC 对此报 `UID-993: Cannot find the specified driving cell in memory`，
+即**输入驱动约束实际没被施加**。本文件这一轮把这行删掉了（输入无驱动约束），
+`/tmp/dcwork2` 那轮保留该行（同样未生效）。
+
+两次结果都满足 25 ns、都为 2,176 个时序单元、门级等价都是 1890 拍差异 0。
+两者都可作为"I5 综合收敛"的证据，但**引用面积/时序时应注明取自哪份网表**，
+不要混用两个数。
+
+`BUF_X2` 这一处应在下一轮修成一个库中真实存在的缓冲器
+（如 `BUFFD2BWP7T40P140`），届时面积与时序会有小幅变化，属正常的约束修正。
+
+## 8. 未解决项
+
+| 项 | 状态 | 说明 |
 |:---|:---|:---|
-| 综合收敛 | ✅ | `STEP_COMPILE_OK`，623 s |
-| 网表完整性 | ✅ | `recip_rnd_v21` 定义 13 个，LINK-3 = 0 |
-| 面积 | ✅ 97,356.24 µm² | `area.rpt` |
-| 时序 | ✅ slack +9.07 ns @25 ns | `sta.rpt` |
-| 未时钟寄存器 | ✅ 0 / 2,018 | |
-| **门级等价** | **✅ 1464 拍差异 0** | 本文件 |
-| 形式化等价 | ❌ 未跑通 | `fm_shell` (setup) 模式命令集不同 |
-| 布局布线 | ❌ 未做 | |
-| 后布线 STA | ❌ 未做 | |
-| 三类时间预算实测 | ❌ 未做 | |
+| 形式化等价 | ❌ 未跑通 | `fm_shell` 命令集与 DC 不同 |
+| 全输入覆盖 | ❌ 未做 | 本文件只覆盖两笔定向激励 |
+| 多 k / 多相位扫描 | ❌ 未做 | 门级侧可复用同一 TB 扩激励 |
+| 布局布线 / 后布线 STA | ❌ 未做 | 本轮范围外 |

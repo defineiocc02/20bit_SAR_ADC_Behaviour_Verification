@@ -61,9 +61,36 @@ create_clock -name clk -period $PERIOD [get_ports clk]
 set_clock_uncertainty -setup 0.30 [get_clocks clk]
 set_clock_uncertainty -hold  0.15 [get_clocks clk]
 set_clock_transition 0.10 [get_clocks clk]
-set_driving_cell -lib_cell BUF_X2 -pin Z \
+# ---------------------------------------------------------------- 驱动与负载
+#
+# **不能用 `BUF_X2`：本库没有这个单元。**
+#
+# 实测：库里的缓冲器是 `BUFFD1BWP7T40P140` / `BUFFD2BWP7T40P140` 这类
+# 全名，`BUF_X1/X2/X4` 一个都不存在（`get_lib_cells */BUF_X2` 返回 0）。
+#
+# 更麻烦的是：`set_driving_cell -lib_cell BUF_X2` 失败时**只打一条
+# `Error: Cannot find the specified driving cell in memory. (UID-993)`，
+# 不抛 Tcl 异常** —— 所以 `catch` 抓不到、脚本照常往下跑，
+# 所有输入端口最后是「无驱动单元」状态，时序偏乐观。
+# 这意味着本轮此前所有综合/STA 的输入驱动都是缺失的。
+#
+# 现在改成真实单元名，并在设置后**回读校验**。
+set_driving_cell -lib_cell BUFFD2BWP7T40P140 -pin Z \
     [remove_from_collection [all_inputs] [get_ports clk]]
 set_load 0.05 [all_outputs]
+
+# 回读校验：UID-993 是静默的，必须主动确认驱动真的挂上了
+set _drv_n 0
+foreach_in_collection _p [remove_from_collection [all_inputs] [get_ports clk]] {
+    if {[get_attribute [get_attribute $_p DrivingCell] full_name] ne ""} {
+        incr _drv_n
+    }
+}
+puts "CHK driving_cells_set=$_drv_n"
+if {$_drv_n == 0} {
+    puts "FATAL: set_driving_cell 没有生效（检查单元名是否存在于库）"
+    exit 1
+}
 # **不要给异步复位加 false_path**。
 #
 # 踩过的坑：原来写的是

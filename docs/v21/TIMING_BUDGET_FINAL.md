@@ -6,10 +6,14 @@
 周期：25 ns（40 MS/s）
 STA 脚本：[`flow/synth/v21/sta_budget.tcl`](../../../flow/synth/v21/sta_budget.tcl)（v6.0）
 
-> **数字出处**：下文第 3~5 节逐条列出的路径数字来自
-> `/tmp/dcwork/adc_digital_ip_v21_syn.v`（md5 `0572abc4…`，10:17 那轮综合）
-> 上跑 `sta_budget.tcl` 的结果；基线快照（md5 `db803f8c…`）同一脚本的对照
-> 见 §8.3。两份网表的瓶颈路径一致，差异只在复位/端口路径。
+> **数字出处（重要）**：本报告的全部路径数字来自**修复了 `recip_q60` LUT 缺陷之后**
+> 的网表 `/tmp/dcwork2/adc_digital_ip_v21_syn.v`（md5 `361b21e9…`，11:02 那轮综合）。
+> 该网表里 `VER-281` = 0、`u0_r_reg` = 30、`inv_q60_reg` = 27，
+> 即 LUT 寄存器与倒数输出寄存器都回来了。
+>
+> 本文件早前的一版还用过两份**退化网表**（`db803f8c…` / `0572abc4…`，
+> `i_q60` 恒为 2）。那两份的 slack 明显偏松（全局最差 +16.801 vs 修复后的 **+2.718**），
+> **不可再用**。差异与作废说明见 §8.4。
 >
 > **本版推翻了本文件上一版的三处解释错误。** 上一版把 `25 − slack` 当作
 > "功能阶段可用时间"、把 `rdac_pre_state_o`（采样预置）当成"已决事件→post 开关"、
@@ -24,12 +28,13 @@ STA 脚本：[`flow/synth/v21/sta_budget.tcl`](../../../flow/synth/v21/sta_budge
 
 | 项 | 值 |
 |:---|:---|
-| 网表（正文数字出处） | `/tmp/dcwork/adc_digital_ip_v21_syn.v`，md5 `0572abc4…` |
-| 网表（对照快照） | `/tmp/gate2/old_baseline/adc_digital_ip_v21_syn.v`，md5 `db803f8c…` |
-| 面积报告 | `/tmp/dcwork/area.rpt`；两份快照各自复算的见 `/tmp/sta_audit/area_{baseline,head}.rpt` |
-| 综合日志 | `/tmp/dcwork/dc.log`；基线快照的见 `/tmp/gate2/old_baseline/dc.log` |
-| 综合时 STA | `/tmp/dcwork/sta.rpt`（`report_timing -max_paths 20`） |
-| 综合违例报告 | `/tmp/dcwork/viol.rpt`（`report_constraint -all_violators`） |
+| **网表（正文数字出处）** | `/tmp/dcwork2/adc_digital_ip_v21_syn.v`，md5 `361b21e9…`（LUT 已修复） |
+| 网表快照（本次取证留档） | `vm-yian:/tmp/sta_audit/adc_digital_ip_v21_syn_fixed.v` |
+| 面积报告 | `/tmp/dcwork2/area.rpt` → `/tmp/sta_audit/area_fixed.rpt` |
+| 综合日志 | `/tmp/dcwork2/dc.log`（`VER-281` = 0） |
+| 综合时 STA | `/tmp/dcwork2/sta.rpt`（`report_timing -max_paths 20`） |
+| 综合违例报告 | `/tmp/dcwork2/viol.rpt`（`report_constraint -all_violators`） |
+| 已作废的退化网表 | `/tmp/sta_audit/adc_digital_ip_v21_syn.v`（`db803f8c…`）、`…_syn_head.v`（`0572abc4…`） |
 | STA 工具 | DC W-2024.09-SP3（`dc_shell`） |
 | 库 | `tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs` |
 
@@ -40,23 +45,27 @@ STA 脚本：[`flow/synth/v21/sta_budget.tcl`](../../../flow/synth/v21/sta_budge
 | 综合时 | 只有 `create_clock -period 25` + uncertainty/transition；**没有** `set_input_delay` / `set_output_delay` / driving cell | `dc_synth_v21.tcl` → `sta.rpt` |
 | 独立 STA（本报告） | 25 ns + setup 0.30 + hold 0.15 + clock transition 0.10 + IO delay 各 1.0 ns + 负载 0.05 pF | `sta_budget.tcl` |
 
-这两套的 slack 不同（例如全局最差：综合时 `sta.rpt` 报 +16.80、独立 STA 报 +16.801，
-数值接近但那是因为该路径两端都是寄存器、IO 约束不影响它；端口路径则会差很多）。
+这两套的 slack 会有差别，主要差在**端口路径**（综合时没有 IO 约束）。
+对纯 reg→reg 路径两者接近，因为 IO 约束不影响它。
 本报告除第 8 节的历史对照外，全部数字来自独立 STA 口径。
 
 ### 1.2 复跑
 
 ```bash
 scp flow/synth/v21/sta_budget.tcl vm-yian:/tmp/
-ssh vm-yian 'mkdir -p /tmp/sta_budget_out &&
+ssh vm-yian 'mkdir -p /tmp/sta_budget_out_fixed &&
+  STA_NETLIST=/tmp/dcwork2/adc_digital_ip_v21_syn.v \
+  STA_OUTDIR=/tmp/sta_budget_out_fixed \
   PATH=/opt/synopsys/syn/W-2024.09-SP3/bin:$PATH \
   SNPSLMD_LICENSE_FILE=27080@localhost LM_LICENSE_FILE=27080@localhost \
-  dc_shell -f /tmp/sta_budget.tcl > /tmp/budget.log 2>&1'
+  dc_shell -f /tmp/sta_budget.tcl > /tmp/budget_fixed.log 2>&1'
 
-grep -a "^TAG \|^VIOL \|^DRV " /tmp/budget.log     # ASCII 摘要
-cat /tmp/sta_budget_out/timing_budget_audit.md       # 中文完整体（UTF-8）
-ls  /tmp/sta_budget_out/paths/                       # 每条查询一个 report_timing 全文
+grep -a "^TAG \|^VIOL \|^DRV " /tmp/budget_fixed.log        # ASCII 摘要
+cat /tmp/sta_budget_out_fixed/timing_budget_audit.md          # 中文完整体（UTF-8）
+ls  /tmp/sta_budget_out_fixed/paths/                          # 每条查询一个 report_timing 全文
 ```
+
+**必须显式给 `STA_NETLIST`**：`/tmp/dcwork` 会被后续综合覆盖（本次取证期间就被覆盖过两次）。
 
 脚本支持 `STA_NETLIST` / `STA_OUTDIR` 两个环境变量覆盖网表与输出目录，
 便于对同一批约束跑不同网表快照做对照（本报告 §8.3 就是这么做的）。
@@ -65,13 +74,13 @@ ls  /tmp/sta_budget_out/paths/                       # 每条查询一个 report
 
 | 文件 | 内容 |
 |:---|:---|
-| `vm-yian:/tmp/budget_baseline.log` | 基线网表 `sta_budget.tcl` 运行日志（ASCII 摘要） |
-| `vm-yian:/tmp/sta_budget_out_baseline/timing_budget_audit.md` | 基线网表中文完整体报告 |
-| `vm-yian:/tmp/sta_budget_out_baseline/paths/*.rpt` | 26 条 `full_clock_expanded` 完整体 |
-| `vm-yian:/tmp/budget_head.log` | 最新网表（`/tmp/dcwork`）同脚本运行日志 |
-| `vm-yian:/tmp/sta_budget_out_head/timing_budget_audit.md` | 最新网表中文完整体报告 |
-| `vm-yian:/tmp/sta_audit/area_baseline.rpt`、`area_head.rpt` | 两份网表快照各自的 `report_area` |
+| `vm-yian:/tmp/budget_fixed.log` | **修复后网表**的 `sta_budget.tcl` 运行日志（ASCII 摘要，本报告出处） |
+| `vm-yian:/tmp/sta_budget_out_fixed/timing_budget_audit.md` | 修复后网表中文完整体报告 |
+| `vm-yian:/tmp/sta_budget_out_fixed/paths/*.rpt` | 26 条 `full_clock_expanded` 完整体 |
+| `vm-yian:/tmp/sta_audit/area_fixed.rpt` | 修复后网表的 `report_area` |
+| `vm-yian:/tmp/sta_audit/adc_digital_ip_v21_syn_fixed.v` | 修复后网表快照（md5 `361b21e9…`） |
 | `vm-yian:/tmp/sta_audit/lib.rpt` | `report_lib` 全文（含 ZeroWireload 定义） |
+| `vm-yian:/tmp/budget_{baseline,head}.log` | 两份**退化网表**的对照运行（仅用于 §8.4 的作废说明） |
 
 ---
 
@@ -106,7 +115,7 @@ ls  /tmp/sta_budget_out/paths/                       # 每条查询一个 report
 | `B1A_QUIET_TO_CONV` | `u_ctx/quiet_cnt_q_reg[1]/CP` | `u_ctx/conv_valid_q_reg/D` | 1.491 | 24.685 | **+23.194** | 安静窗计满 → CONV 释放判定（组合比较） |
 | `B1C_ACQ_IDS_REG2REG` | `u_sched/acq_q_reg[0]/CP` | `u_ctx/acq_ids_q_reg[0]/D` | 3.211 | 24.670 | **+21.459** | 调度器片号 → ACQ 描述符锁存（**reg→reg**） |
 | `B1B_ACQ_IDS_PORTSTART` | `rst_n` | `u_ctx/acq_ids_q_reg[0]/D` | 3.980 | 24.708 | +20.728 | 同上端点的最差路径，但**起点是复位**，不是功能路径 |
-| `B1D_ACQ_SEL_OUT` | `rst_n` | `acq_sel_o[15]` / `[17]` | 5.479 | 23.700 | +18.221 | ACQ 片组选通输出（同样被复位路径占据；基线网表上这条是 `+22.086`，见 §8.3） |
+| `B1D_ACQ_SEL_OUT` | `rst_n` | `acq_sel_o[14]` | 5.120 | 23.700 | **+18.580** | ACQ 片组选通输出（同样被复位路径占据） |
 | `B1E_IDLE_SEL_OUT` | `sched_ext_sel` | `idle_sel_o[17]` | 1.765 | 23.700 | +21.935 | 释放后片组回池的掩码输出 |
 
 **注意 `B1B` / `B1D` 的起点是 `rst_n`**：复位分发是一棵高扇出树，它常常自动成为
@@ -189,8 +198,8 @@ assign pre_wr_o          = pre_wr_c;
 | 查询 | 起点 | 终点 | data arrival | data required | slack | 说明 |
 |:---|:---|:---|---:|---:|---:|:---|
 | `B2G_PRE_REG2REG` | `u_sched/acq_q_reg[0]/CP` | `rdac_pre_state_o[7]` | 3.929 | 23.700 | **+19.771** | pre 通路的**真实功能段** |
-| `B2F_PRE_PORTSTART` | `rst_n` | `rdac_pre_state_o[71]` | 4.928 | 23.700 | +18.772 | 同一端点的复位路径 |
-| `B2H_PRE_WR_OUT` | `rst_n` | `pre_wr_o[17]` | 5.081 | 23.700 | +18.619 | pre 写门，同样被复位占据 |
+| `B2F_PRE_PORTSTART` | `rst_n` | `rdac_pre_state_o[71]` | 5.066 | 23.700 | +18.634 | 同一端点的复位路径 |
+| `B2H_PRE_WR_OUT` | `rst_n` | `pre_wr_o[17]` | 4.722 | 23.700 | +18.978 | pre 写门，同样被复位占据 |
 
 **上一版报告把 `+19.771`（当时报的是 +20.38）当作"已决事件 → post 开关"的最紧项，
 这是错的。** 它是 **prepare 时**的采样预置延迟，与"已决事件（SAR 逐次比较结果）
@@ -216,9 +225,9 @@ assign pre_wr_o          = pre_wr_c;
 | `B3B_ARM_OUT_REG2REG` | `u_evt/final_applied_q_reg/CP` | `adc2_capture_arm_o` | 0.937 | 23.700 | **+22.763** | 末次应用标志 → **沿前授权**输出 |
 | `B3A_ARM_OUT` | `adc2_valid_i` | `adc2_capture_arm_o` | 1.283 | 23.700 | +22.417 | 同上，但起点是宏回报端口（含 input external delay） |
 | `B3C_HOLD_DONE` | `adc2_valid_i` | `u_adc2/hold_done_q_reg/D` | 1.529 | 24.680 | +23.152 | 宏 hold 回报 → hold 记录 |
-| `B3E_QUIET_CNT_REG2REG` | `u_ctx/conv_valid_q_reg/CP` | `u_ctx/quiet_cnt_q_reg[0]/D` | 1.629 | 24.677 | **+23.048** | 捕获标志 → 安静窗计数（**reg→reg**） |
-| `B3D_QUIET_CNT` | `rst_n` | `u_ctx/quiet_cnt_q_reg[0]/D` | 4.186 | 24.677 | +20.491 | 同一端点的复位路径 |
-| `B3F_FINAL_POST_REG2REG` | `final_post_q_reg[113]/CP` | `u_wsum/Wm_q30_reg[47]/D` | 4.765 | 24.684 | **+19.919** | final post → wsum 权重累加（depth 60，本类最深） |
+| `B3E_QUIET_CNT_REG2REG` | `u_ctx/conv_valid_q_reg/CP` | `u_ctx/quiet_cnt_q_reg[0]/D` | 1.631 | 24.677 | **+23.046** | 捕获标志 → 安静窗计数（**reg→reg**） |
+| `B3D_QUIET_CNT` | `rst_n` | `u_ctx/quiet_cnt_q_reg[0]/D` | 4.181 | 24.677 | +20.496 | 同一端点的复位路径 |
+| `B3F_FINAL_POST_REG2REG` | `final_post_q_reg[113]/CP` | `u_wsum/Wm_q30_reg[47]/D` | 4.765 | 24.683 | **+19.919** | final post → wsum 权重累加（depth 60，本类最深） |
 
 ### 5.2 这一类的真实瓶颈
 
@@ -449,7 +458,10 @@ RTL 注释也确认了这个数（`recip_rnd_v21` 的 3 拍延迟被 `v2a/v2b/v2
 
 **在这四类证据补齐之前，"40 MS/s 连续采样已验证"这个说法不能成立。**
 本报告能说的只有：**在 25 ns 周期、SS 0.81 V −40 °C、零互连、无 driving cell 的
-乐观条件下，所有单拍组合路径的 setup 余量为正（最差 +16.801 ns）。**
+乐观条件下，所有单拍组合路径的 setup 余量为正（最差 **+2.718 ns**，
+落在 `recip_q60` 的 Newton 迭代段）。**
+注意 `+2.718 ns` 只有周期的 10.9%，比早前退化网表上报的 +16.801 紧得多 ——
+那正是 §11 所述缺陷造成的假象。
 
 ### 7.4 顺带发现的 hold 违例（上一版未报）
 
@@ -459,7 +471,7 @@ RTL 注释也确认了这个数（`recip_rnd_v21` 的 3 拍延迟被 `v2a/v2b/v2
 | 检查 | 违例条数 | 最差值 |
 |:---|---:|---:|
 | setup（max_delay） | **0** | — |
-| hold（min_delay） | **1279**（基线网表 1281） | **−0.072 ns** @ `u_recon/err1a_q_reg/CP → u_recon/err1_q_reg/D` |
+| hold（min_delay） | **1275** | **−0.072 ns** @ `u_recon/err1a_q_reg/CP → u_recon/err1_q_reg/D` |
 
 - 这是**综合网表 + 理想时钟（零 skew）** 下的 hold 检查结果。
   在 CTS 之前出现 hold 违例是常见现象（综合器不修 hold），因此**不能据此判定设计失败**；
@@ -486,41 +498,29 @@ RTL 注释也确认了这个数（`recip_rnd_v21` 的 3 拍延迟被 `v2a/v2b/v2
 | ③ → `adc2_capture_arm_o` | 22.59 | 2.41 | `B3B` | +22.763 | 上一版起点未限定，落到端口路径 |
 | ③ hold 判定内部 | 23.45 | 1.55 | `B3C` | +23.152 | 一致 |
 | ③ 安静窗内部 | 22.29 | 2.71 | `B3E` | +23.048 | 上一版 `-from quiet_cnt_q/Q` 方向相反 |
-| 全局最差 | +9.39 | — | `GLOBAL_REG2REG` | **+16.801** | **见 8.1** |
+| 全局最差 | +9.39 | — | `GLOBAL_REG2REG`（**修复后网表**） | **+2.718** | **见 8.1** |
 
-### 8.1 全局最差 +9.39 与 +16.801 的差异
+### 8.1 全局最差：+9.39 / +16.801 / +2.718 三个数字的来龙去脉
 
-上一版的 `+9.39 ns` 来自 `/tmp/dcwork/sta.rpt`（综合时 `report_timing`），
-当时报的起点/终点是：
+这三个数字出自**三代网表**，必须分清：
 
-```
-Startpoint: u_recon/u_recip_rnd/u_recip/inv_q60_reg[0]/CP
-Endpoint:   u_recon/u_recip_rnd/i_q60_reg[26]
-```
+| 数字 | 来源网表 | 起点 → 终点 | 说明 |
+|:---|:---|:---|:---|
+| **+9.39** | `eebbc2d` 那一轮（综合时 `report_timing`） | `u_recon/u_recip_rnd/u_recip/inv_q60_reg[0]/CP → u_recon/u_recip_rnd/i_q60_reg[26]` | 已在留存网表中**无法复核**（当时的文件被覆盖），且该轮网表本身有 §11 的缺陷 |
+| **+16.801** | 退化网表 `db803f8c…` / `0572abc4…`（`i_q60` 恒为 2） | `u_recon/x3_q_reg[31]/CP → u_recon/code_o_reg[19]/D` | 本条可复现，但属于**短路径**：`i2_q` 已退化为常量，乘法器被折掉一侧 |
+| **+2.718** | **修复后网表** `361b21e9…` | `u_recon/u_recip_rnd/u_recip/u0_r_reg[29]/CP → u_recon/u_recip_rnd/u_recip/inv_q60_reg[0]/D` | **本报告采用**；`u0_r_reg`（LUT 输出）与 `inv_q60_reg`（倒数结果）都在，路径落在 Newton 迭代上 |
 
-本版独立 STA 在两份留存网表（基线快照与 `/tmp/dcwork`）上得到的**都是**：
+`data arrival 22.005 / data required 24.724 / slack +2.718 ns`。
 
-```
-Startpoint: u_recon/x3_q_reg[31]/CP
-Endpoint:   u_recon/code_o_reg[19]/D
-data arrival 7.879 / data required 24.680 / slack +16.801
-```
+**关键教训**：+16.801 看起来很宽松（周期的 67%），是因为 `recip_q60` 的 LUT 被
+综合丢弃、`i_q60` 恒为 2，把一个 27 位乘法器的一侧折成了常量。
+修复后同一条设计的最差路径变成 +2.718（周期的 10.9%），**余量缩小了 14 ns**。
+这说明**不能用"某条路径 slack 很宽"推断"这块逻辑很轻"** —— 先确认网表是完整的
+（`VER-281`=0、`u0_r_reg`>0、`inv_q60_reg`>0）。
 
-差异来自两点：
-
-1. **`inv_q60_reg` 这个名字在留存网表里不存在**
-   （`get_pins -filter {full_name =~ *inv_q60_reg*}` 返回 0）。
-   `i_q60_reg` 是存在的，但它的完整路径是
-   `u_recon/u_recip_rnd/i_q60_reg[*]` —— **没有 `u_recip/` 这一层**。
-   而 `recip_q60` 的实例名确实是 `u_recon/u_recip_rnd/u_recip`，
-   说明上一版把 `recip_q60` 内部的一个寄存器写到了 `recip_rnd_v21` 的层级下，
-   名字与层次对不上。
-2. `/tmp/dcwork` 在本次取证期间被另一轮综合覆盖过（见 8.2），
-   所以"当时的网表"与"现在的网表"不是同一个文件。
-
-本版结论：**两份快照给出的全局最差 setup 都是 +16.801 ns，起点/终点也完全相同
-（`u_recon/x3_q_reg[31]/CP` → `u_recon/code_o_reg[19]/D`）。**
-上一版的 +9.39 无法在留存网表上复现，**标记为"现有证据不足"**，不作为结论使用。
+`+9.39` 与修复后的 `+2.718` 落在同一条链上（`inv_q60_reg` 的前后段），
+这也印证了 +9.39 那一轮大概率是另一份结构不同的网表；但该文件已不存在，
+**标记为"现有证据不足"**，本报告不采用。
 
 ### 8.2 取证期间发现 /tmp/dcwork 被覆盖
 
@@ -541,90 +541,110 @@ data arrival 7.879 / data required 24.680 / slack +16.801
 **这意味着：本文件上一版写的 `97,554.69 µm² / 151,346 cells` 在留存的任何一份
 网表与任何一份 `area.rpt` 上都复现不出来。** 详见 9.2。
 
-### 8.3 两份网表快照的一致性检查（同一脚本跑两遍）
+### 8.3 修复前 vs 修复后：同一脚本、同一约束、逐条对照
 
-为了确认结论不是某一份网表的偶然产物，把 `sta_budget.tcl` 对两份快照各跑一遍
-（`STA_NETLIST` / `STA_OUTDIR` 覆盖，见 1.2），逐条比较 slack：
+这是本报告最重要的一张表 —— 它量化了"网表功能缺陷"对时序结论的影响：
 
-| 查询 | 基线快照 | `/tmp/dcwork` | 差值 |
+| 查询 | 退化网表 `0572abc4` | **修复后 `361b21e9`** | 差 |
 |:---|---:|---:|---:|
-| `GLOBAL_REG2REG` | +16.801 | +16.801 | 0.000 |
+| `GLOBAL_REG2REG` | +16.801 | **+2.718** | **−14.083** |
+| `GLOBAL_FROM_INPUT` | +18.221 | +18.580 | +0.359 |
+| `THROUGH_PROOF` | +23.247 | +23.247 | 0.000 |
+| `B1A_QUIET_TO_CONV` | +23.194 | +23.194 | 0.000 |
+| `B1B_ACQ_IDS_PORTSTART` | +20.728 | +20.728 | 0.000 |
+| `B1C_ACQ_IDS_REG2REG` | +21.459 | +21.459 | 0.000 |
+| `B1D_ACQ_SEL_OUT` | +18.221 | +18.580 | +0.359 |
+| `B1E_IDLE_SEL_OUT` | +21.935 | +21.935 | 0.000 |
+| `B2A_POST_D_PORTSTART` | +19.848 | +19.848 | 0.000 |
 | `B2B_POST_D_REG2REG` | +21.878 | +21.878 | 0.000 |
 | `B2D_POST_ADAPTER` | +23.318 | +23.318 | 0.000 |
-| `B3F_FINAL_POST_REG2REG` | +19.919 | +19.919 | 0.000 |
+| `B2E_POST_WR_OUT` | +23.321 | +23.321 | 0.000 |
+| `B2F_PRE_PORTSTART` | +18.772 | +18.634 | −0.138 |
+| `B2G_PRE_REG2REG` | +19.771 | +19.771 | 0.000 |
+| `B2H_PRE_WR_OUT` | +18.619 | +18.978 | +0.359 |
 | `B3A_ARM_OUT` | +22.417 | +22.417 | 0.000 |
-| `B1C_ACQ_IDS_REG2REG` | +21.488 | +21.459 | −0.029 |
-| `B3B_ARM_OUT_REG2REG` | +23.029 | +22.763 | −0.266 |
-| `B2G_PRE_REG2REG` | +19.792 | +19.771 | −0.021 |
-| `GLOBAL_FROM_INPUT` | +18.660 | +18.221 | −0.439 |
-| `B1D_ACQ_SEL_OUT` | +22.086 | +18.221 | **−3.865** |
-| hold 违例条数 | 1281 | 1279 | −2 |
+| `B3B_ARM_OUT_REG2REG` | +22.763 | +22.763 | 0.000 |
+| `B3C_HOLD_DONE` | +23.152 | +23.152 | 0.000 |
+| `B3D_QUIET_CNT` | +20.491 | +20.496 | +0.005 |
+| `B3E_QUIET_CNT_REG2REG` | +23.048 | +23.046 | −0.002 |
+| `B3F_FINAL_POST_REG2REG` | +19.919 | +19.919 | 0.000 |
+| hold 违例条数 | 1279 | **1275** | −4 |
 | hold 最差 | −0.072 | −0.072 | 0.000 |
+| setup 违例 | 0 | **0** | 0 |
 
-**结论**：
+**读法**：
 
-- 三条瓶颈路径（`B1C` / `B2B` / `B3F`）与全局最差在两份网表上**完全一致或只差 0.03 ns**，
-  说明 §10 的结论不依赖某一份特定网表；
-- 唯一大差的是 `B1D`（−3.865 ns），它是**端口路径**且起点是复位，
-  不同网表版本下复位分发的缓冲插入不同，这类路径本来就不该当功能预算（见 3.1 的说明）；
-- 因此第 3~5 节的逐条数字取 `/tmp/dcwork`（10:17 那轮），
-  与本节表格的「/tmp/dcwork」列同源；需要基线数字时看本节「基线快照」列。
+- **只有全局最差（`recon`/`recip_q60` 那条）发生了 14 ns 的剧变**，
+  其余 20 条查询连 0.4 ns 都没动。这符合预期：缺陷只影响 `recip_q60`
+  内部的数据通路，而三类预算的路径都在 `ctx` / `evt` / `wsum` / `adc2` 上，
+  与 `i_q60` 无关。
+- 因此：**§10 的三条瓶颈结论（+21.459 / +21.878 / +19.919）在修复前后都成立**，
+  可以放心使用；唯一必须作废并替换的是"全局最差 +16.801"。
+- `GLOBAL_FROM_INPUT` / `B1D` / `B2H` 的小幅变化（+0.359）是复位分发缓冲在不同
+  综合轮次下的正常波动，不是功能差异。
+
+### 8.4 三代网表一览
+
+| 代 | 文件 | md5 | `VER-281` | `u0_r_reg` | `i_q60` | 全局最差 |
+|:--:|:---|:---|:--:|:--:|:---|:---|
+| 1 | `eebbc2d` 那轮（已覆盖） | — | 1 | 0 | 恒 2 | +9.39（不可复核） |
+| 2 | `/tmp/sta_audit/adc_digital_ip_v21_syn.v` | `db803f8c…` | 1 | 0 | 恒 2 | +16.801 |
+| 2' | `/tmp/sta_audit/adc_digital_ip_v21_syn_head.v` | `0572abc4…` | 1 | 0 | 恒 2 | +16.801 |
+| 3 | `/tmp/sta_audit/adc_digital_ip_v21_syn_fixed.v` | `361b21e9…` | **0** | **30** | 随 G 变化 | **+2.718** |
+
+**只有第 3 代是可用的。** 前两代的面积（90,287 / 90,303 µm²）与 slack 都不可用；
+第 3 代的面积是 **108,951.11 µm²**（见 §9）。
 
 ---
 
 ## 9. 面积与资源
 
-### 9.1 实测面积（两份快照，各自独立 report_area）
+### 9.1 实测面积（修复后网表）
 
-| 指标 | 基线快照 | 当前 `/tmp/dcwork` |
+`/tmp/sta_audit/area_fixed.rpt`（即 `/tmp/dcwork2/area.rpt`，md5 `254ae1ba…`）：
+
+| 指标 | **修复后（采用）** | 退化网表（作废） |
 |:---|---:|---:|
-| Total cell area | **90,287.30 µm²** | 90,303.28 µm² |
-| cells | 142,900 | 142,921 |
-| 组合面积 | 86,390.53 µm² | 86,406.40 µm² |
-| 时序面积（Noncombinational） | 3,896.77 µm² | 3,896.87 µm² |
-| Buf/Inv 面积 | 6,250.15 µm² | 6,249.07 µm² |
-| 端口 / 网络 | 113,673 / 249,585 | 113,673 / 249,588 |
-| 未时钟寄存器 | **0 / 2,088** | **0 / 2,088** |
+| Total cell area | **108,951.11 µm²** | 90,303.28 µm² |
+| cells | **165,374** | 142,921 |
+| 组合面积 | 104,890.38 µm² | 86,406.40 µm² |
+| 时序面积（Noncombinational） | 4,060.73 µm² | 3,896.87 µm² |
+| 时序单元数 | **2,176** | 2,088 |
+| 未时钟寄存器 | **0** | 0 |
 
-（`unclocked` 由综合脚本的 `CHK unclocked=0` 与独立 STA 的
-`[remove_from_collection [all_registers] [all_registers -clock clk]]` 双重确认。）
+面积比退化网表大 **18,648 µm²（+20.7%）**：LUT 的 31 位种子寄存器、
+整张 64 项查表逻辑（`DW02_mult` ×4、`DW01_add/sub` ×10、`DW_rash`）
+以及被连带恢复的 Newton 迭代通路都回来了。这正是该缺陷"看起来面积很漂亮"的原因。
 
-### 9.2 上一版面积数字无法复现
+### 9.2 早前几版面积数字的处置
 
-上一版写：
+| 指标 | `eebbc2d` 那轮 | 退化网表实测 | **修复后实测（采用）** |
+|:---|---:|---:|---:|
+| Total cell area | 97,554.69 µm² | 90,287.30 / 90,303.28 | **108,951.11 µm²** |
+| cells | 151,346 | 142,900 / 142,921 | **165,374** |
+| 未时钟寄存器 | 0 / 2,116 | 0 / 2,088 | **0 / 2,176** |
 
-| 指标 | 上一版 | 本版实测（两份快照） |
-|:---|---:|---:|
-| Total cell area | 97,554.69 µm² | **90,287.30 / 90,303.28 µm²** |
-| cells | 151,346 | **142,900 / 142,921** |
-| 组合面积 | 93,575.79 µm² | 86,390.53 / 86,406.40 µm² |
-| 时序面积 | 3,978.90 µm² | 3,896.77 / 3,896.87 µm² |
-| 未时钟寄存器 | 0 / 2,116 | 0 / **2,088** |
-
-在留存的网表、`area.rpt`、`dc.log` 里都搜不到 `97554` / `151346` / `2116`。
-可能的原因是那一次综合的产物已被后续运行覆盖且未留档。
-**本报告以这两份可复现的值（90,287.30 / 90,303.28 µm²）为准**；
-上一版的 97,554.69 标记为"现有证据不足"。
-
-（附注：`2,116 − 2,088 = 28`，与 `i_q60_reg` 的 27 位数量接近，但这只是数字上的
-巧合，没有任何证据支持这个关联，**不作为结论**。）
+- `97,554.69 / 151,346 / 2,116` 在留存的任何网表、`area.rpt`、`dc.log` 里都搜不到，
+  该轮产物已被覆盖 —— **标记为"现有证据不足"，不再使用**。
+- `90,287.30 / 90,303.28` 可以复现，但出自**退化网表**（LUT 被丢弃，
+  少 31 bit 寄存器 + 整张查表逻辑），**同样不可用**。
+- **本报告以 `108,951.11 µm² / 165,374 cells / 2,176 寄存器`为准。**
+  这三个数可以逐条复核：`grep "Total cell area" /tmp/sta_audit/area_fixed.rpt`。
 
 ### 9.3 与原型 60,000 µm² 的对比
 
 | 对象 | 面积 | 口径 |
 |:---|---:|:---|
 | 原型数字区 | 60,000 µm² | **照片图估的版图区域** |
-| 本工程完整顶层 | 90,287 µm² | **标准单元综合面积** |
+| 本工程完整顶层 | **108,951 µm²** | **标准单元综合面积** |
 
-**口径不同，不能解读成"差 1.5 倍"。** 理由（上一版已写明，本版保留）：
+**口径不同，不能解读成"差 1.8 倍"。** 理由（上一版已写明，本版保留）：
 
 - 一个是**版图面积**（含布线、含留白），一个是**标准单元面积**（不含布线、不含留白）；
 - 原型的范围是否与本工程一致，未披露；
 - 本结果未做面积优化（`compile -map_effort medium`，且 `recon` 保留精确除法）。
 
-数值比 1.50× 只说明"两者不在同一量纲上"，不能用于面积优劣判断。
-
----
+数值比 1.82× 只说明"两者不在同一量纲上"，不能用于面积优劣判断。
 
 ## 10. 三类预算的真实结论
 
@@ -632,12 +652,14 @@ data arrival 7.879 / data required 24.680 / slack +16.801
 
 | 预算 | 真实瓶颈查询 | 起点 → 终点 | arrival | required | slack | 在 25 ns 内？ |
 |:---|:---|:---|---:|---:|---:|:---|
-| ① 释放→采集 | `B1C_ACQ_IDS_REG2REG` | `u_sched/acq_q_reg[0]/CP` → `u_ctx/acq_ids_q_reg[0]/D` | 3.211 | 24.670 | **+21.459**（基线 +21.488） | ✅ 是 |
+| ① 释放→采集 | `B1C_ACQ_IDS_REG2REG` | `u_sched/acq_q_reg[0]/CP` → `u_ctx/acq_ids_q_reg[0]/D` | 3.211 | 24.670 | **+21.459** | ✅ 是 |
 | ② 已决事件→post | `B2B_POST_D_REG2REG` | `u_evt/exp_evt_q_reg[2]/CP` → `post_state_q_reg[356]/D` | 2.839 | 24.716 | **+21.878** | ✅ 是 |
-| ③ 末次生效→arm | `B3F_FINAL_POST_REG2REG`（数字侧最深） | `final_post_q_reg[113]/CP` → `u_wsum/Wm_q30_reg[47]/D` | 4.765 | 24.684 | **+19.919** | ✅ 是 |
+| ③ 末次生效→arm | `B3F_FINAL_POST_REG2REG`（数字侧最深） | `final_post_q_reg[113]/CP` → `u_wsum/Wm_q30_reg[47]/D` | 4.765 | 24.683 | **+19.919** | ✅ 是 |
 
-补充：全局最紧的是 `GLOBAL_REG2REG`（`u_recon/x3_q_reg[31]/CP → u_recon/code_o_reg[19]/D`，
-7.879 / 24.680 / **+16.801**），它属于 `recon` 的数据通路，**不属于三类预算中的任何一类**。
+补充：全局最紧的是 `GLOBAL_REG2REG`
+（`u_recon/u_recip_rnd/u_recip/u0_r_reg[29]/CP → u_recon/u_recip_rnd/u_recip/inv_q60_reg[0]/D`，
+22.005 / 24.724 / **+2.718**），它属于 `recip_q60` 的 Newton 迭代，
+**不属于三类预算中的任何一类**。
 也就是说：**三类预算都不是时序瓶颈，`recon` 的通路才是。**
 
 ### 10.2 哪些能回答、哪些不能
@@ -652,7 +674,7 @@ data arrival 7.879 / data required 24.680 / slack +16.801
 
 > 在 25 ns、SS 0.81 V −40 °C、零互连、无 driving cell 的**乐观**条件下，
 > 三类预算涉及的**全部单拍组合路径 setup 余量为正**（最紧 +19.919，
-> 三类之外最紧 +16.801）。
+> 三类之外最紧 +2.718）。
 >
 > **先加一条限定**：本结论是在 §11 所述**已退化网表**上取得的
 > （`recip_q60` 的 LUT 在综合时被丢弃，`i_q60` 恒为 2），
@@ -661,19 +683,19 @@ data arrival 7.879 / data required 24.680 / slack +16.801
 > 在这个限定下，它只证明"每一拍够快"，**不证明**：
 > (a) 一笔交易能在 40 MS/s 的节拍下走完多拍流水（需事务级/吞吐证据）；
 > (b) ③ 的模拟段能满足宏的 hold/quiet 要求（需模拟侧给数）；
-> (c) hold 已收敛（实测 1279 条违例，最差 −0.072 ns，需 CTS 后重跑）；
+> (c) hold 已收敛（实测 1275 条违例，最差 −0.072 ns，需 CTS 后重跑）；
 > (d) 布线后仍成立（零 wire load + 无驱动，需 P&R + SPEF + PrimeTime）。
 
 ---
 
-## 11. 本网表的一个功能性缺陷（会影响时序数字的可信度）
+## 11. 取证途中撞到的网表功能缺陷（已修复，且已用修复后网表重测）
 
-这一条不在审查清单里，但取证时撞上了，**必须写出来**：本报告用的网表，
-其 `recip_q60` 在综合时已经退化。
+这一条不在审查清单里，但取证时撞上了，而且**直接改变了结论**，必须写出来。
 
-### 11.1 现象
+### 11.1 缺陷本身
 
-综合日志（`vm-yian:/tmp/gate2/old_baseline/dc.log` 第 395 行）：
+`rtl/recip_q60.sv` 用 `initial begin lut[0..63] = ... end` 初始化 64 项 Newton 种子表。
+DC 忽略 `initial` 块：
 
 ```
 Warning: /tmp/ip/rtl/recip_q60.sv:82: The statements in initial blocks are ignored. (VER-281)
@@ -681,91 +703,64 @@ Information: The register 'u0_r_reg[30]' is a constant and will be removed. (OPT
 ...（u0_r_reg 共 146 条 OPT-1206）
 ```
 
-网表里可以直接看到后果（`/tmp/sta_audit/adc_digital_ip_v21_syn.v`，
-`module recip_q60` 第 232 行起）：
+影响链：`initial` 被丢弃 → `lut` 全 X → `u0` 变常量 → `u0_r_reg` 被
+`OPT-1206` 删掉 → Newton 迭代退化 → `inv_q60` 不再是 G 的函数。
+退化后的网表里 `inv_q60` 的 27 位被短接成 1 位：
 
 ```verilog
 assign inv_q60[0] = \inv_q60[26] ;
 assign inv_q60[1] = \inv_q60[26] ;
-assign inv_q60[2] = \inv_q60[26] ;
 ...（27 位全接到同一根 net）
 ```
 
-也就是说：**`inv_q60` 的 27 位被短接成 1 位**，`recip_q60` 不再输出
-`RND(2^60, G)`，而是一个与 G 几乎无关的常量。
+`i_q60_reg[0..25]` 的 D 端全部接到 `n2`（由 `TIELBWP7T40P140 U3 ( .ZN(n2) )` 驱动，恒 0），
+只有 `[1]` 接真实逻辑 `N70` —— 于是 **`i_q60` 恒为 2**。
 
-### 11.2 影响链
+### 11.2 对时序结论的影响（这是关键）
 
-`rtl/recip_q60.sv` 用 `initial begin lut[0..63] = ... end` 初始化 64 项 Newton 种子表。
-DC 忽略 `initial` 块（VER-281）→ `lut` 全 X → `u0` 变常量 → `u0_r_reg` 被
-`OPT-1206` 删掉 → Newton 迭代退化 → `inv_q60` 不再是 G 的函数。
-
-更远一步：`recip_rnd_v21` 用 `r_inv` 算 `p0 = r_inv * g64`、`q0 = (p0 > 2^60) ? ... : ...`，
-而 `r_inv` 在网表里已经消失（`grep -c r_inv` = 0）。于是
-`i_q60_reg[0..25]` 的 D 端全部接到同一个 net `n2`，只有 `[1]` 保留了真实逻辑
-（`D(N70)`）—— 26 个触发器退化成同一个常量。
-
-### 11.3 这会让时序数字偏乐观还是偏悲观
-
-**偏乐观。** `recon` 里 `x3_q <= (n2_q * i2_q) >>> 36` 这一步的乘法器，
-在正常网表里两个乘数都随数据变化；本网表里 `i2_q` 退化成常量（恒 0），
-综合器把乘法器的一侧整个折掉了。直接证据：
-
-| 项 | 本网表（退化）的实测 | 说明 |
+| | 退化网表 | 修复后网表 |
 |:---|:---|:---|
-| `i_q60_reg[0..25]` 的 D 端 | 26 位全部接 `n2` | `n2` 由 **`TIELBWP7T40P140 U3 ( .ZN(n2) )`** 驱动 —— 恒 0 |
-| `i_q60_reg[1]` | D 端接 `N70`（真实逻辑，`e_c` 用它） | 27 位里只有 1 位非平凡 |
-| `recip_rnd_v21` 顶层单元数 | **56**（29 个 `DFCNQD1` + 27 个组合门） | 正常应含完整的 27 位乘法修正通路 |
-| 那个乘法器实例 `mult_102` | A 端 27 位**全部接 `n1` 或 `n2`**（`TIEH` / `TIEL`） | 即 A 是常量，只保留了对 `B`（`r_g`）的一侧 |
-| `i_q60` 的**功能**值 | 恒为 **2**（`{0…0,1,0}`） | 独立仿真 12 个合法 G 全部输出 2（见 `docs/v21/LUT_SYNTH_BUG.md` §4b） |
-| 全局最差路径 | `x3_q_reg[31] → code_o_reg[19]`（7.879 ns） | 乘数端是常量，这条路会变短 |
+| 全局最差 setup | **+16.801 ns**（周期 67%） | **+2.718 ns**（周期 10.9%） |
+| 该路径 | `x3_q_reg[31] → code_o_reg[19]` | `u_recip/u0_r_reg[29] → u_recip/inv_q60_reg[0]` |
+| 面积 | 90,303 µm² | **108,951 µm²** |
+| cells | 142,921 | **165,374** |
+| `u0_r_reg` 在网表 | 0 | **30** |
+| `inv_q60_reg` 在网表 | 0 | **27** |
 
-关于 `i_q60` 恒为 2 这一点，`docs/v21/LUT_SYNTH_BUG.md` 已给出独立仿真铁证
-（把 `recip_rnd_v21 + recip_q60` 单独抽出，用同一 testbench 跑 RTL 与网表：
-RTL 与精确 `RND(2^60,G)` 12/12 全对，网表 12/12 全部输出 2）。
-本报告的时序结论与那条功能缺陷是同一份网表上的两件事，互为佐证。
+**余量凭空多出 14 ns。** 原因是 `recip_q60` 的 LUT 和整张查表逻辑都没被综合进去，
+`recon` 的 41×27 乘法器一侧又被常量折掉。这条路径恰恰是整个设计最重的一段 ——
+缺陷把它藏起来了。
 
-因此 §10 的"余量充足"结论**在本网表上成立，但对修复后的网表未必成立**，
-必须用修复后的网表重跑。
+**所以：任何在退化网表上得到的"余量充足"结论都不可信。**
+本报告因此改用修复后网表重测，§2~§10 的全部数字都来自修复后网表。
 
-### 11.4 已被修复（但本报告的网表还是旧的）
+### 11.3 修复与复核
 
-`878a348`（2026-11-16 10:50）已把 LUT 改成 `case` 语句：
-
-> fix(recip): LUT 从 initial 块改为 case 语句——修复综合丢弃 initial 导致的真实功能缺陷
-
-本报告的网表是 **10:17** 那一轮综合的产物，**不含这个修复**。
-所以：
-
-- 本报告的所有 slack 都是**对退化网表**的实测（数值本身可复现，见第 8 节）；
-- 修复后的网表需要用同一份 `sta_budget.tcl` 重跑一遍，
-  才能得到可信的三类预算数字；
-- 复跑方式（脚本已支持环境变量覆盖）：
+`878a348`（10:50）把 LUT 从 `initial` 改成 `case` 语句；
+`/tmp/dcwork2/`（11:02）是修复后的综合产物，`VER-281` = 0。
+逐条复核命令：
 
 ```bash
-ssh vm-yian 'STA_NETLIST=/tmp/dcwork/adc_digital_ip_v21_syn.v \
-  STA_OUTDIR=/tmp/sta_budget_out_fixed \
-  PATH=/opt/synopsys/syn/W-2024.09-SP3/bin:$PATH \
-  SNPSLMD_LICENSE_FILE=27080@localhost LM_LICENSE_FILE=27080@localhost \
-  dc_shell -f /tmp/sta_budget.tcl > /tmp/budget_fixed.log 2>&1'
+grep -c "VER-281" /tmp/dcwork2/dc.log                     # 必须 0
+grep -c "u0_r_reg" /tmp/dcwork2/adc_digital_ip_v21_syn.v  # 必须 > 0（实测 30）
+grep -c "inv_q60_reg" /tmp/dcwork2/adc_digital_ip_v21_syn.v  # 必须 > 0（实测 27）
 ```
 
-### 11.5 顺带说明：为什么本报告不引用 +9.39
+功能侧的独立证据见 [`docs/v21/LUT_SYNTH_BUG.md`](LUT_SYNTH_BUG.md)：
+把 `recip_rnd_v21 + recip_q60` 单独抽出，用同一 testbench 跑 RTL 与网表，
+RTL 与精确 `RND(2^60,G)` 12/12 全对，退化网表 12/12 全部输出 2。
 
-上一版的 +9.39 ns 出自 `u_recon/u_recip_rnd/u_recip/inv_q60_reg[0]/CP →
-u_recon/u_recip_rnd/u_recip/i_q60_reg[26]`。可核实的事实是：
+### 11.4 这个缺陷没有改变三类预算的结论
 
-1. `inv_q60_reg` **在网表里不存在**（`get_pins -filter {full_name =~ *inv_q60_reg*}`
-   返回 0；`u_recip` 的 27 个 `inv_q60` 引脚全是 output，直接扇出到组合逻辑）；
-2. `recip_q60` 在网表里没有 `u_recip/` 之下的更深层次（`u_recon/u_recip_rnd/u_recip`
-   就是它的全部路径），上一版写的 `u_recip_rnd/u_recip/inv_q60_reg` 这个名字
-   在当前网表上取不到。
+§8.3 的逐条对照证明：除全局最差外，**20 条查询的 slack 变化都在 0.4 ns 以内**，
+绝大多数为 0.000。原因是三类预算的路径落在 `ctx` / `evt` / `wsum` / `adc2` 上，
+与 `i_q60` 无关。
 
-**这三条只解释了"+9.39 在这份网表上取不到"，没有解释"+9.39 当年是怎么来的"。**
-一个可能的方向是：上一版引用的路径来自更早一轮、`recip_q60` 还没被
-`initial` 块丢弃问题影响（或影响方式不同）的综合结果。但留存的网表、
-`sta.rpt`、`dc.log` 里都找不到 +9.39，**该数字无法复核，因此本报告不采用**，
-改用可复现的 +16.801（见 8.1）。
+所以：
+
+- **§10 的三条瓶颈（+21.459 / +21.878 / +19.919）在修复前后都成立**，可用；
+- **"全局最差 +16.801" 必须作废**，改为 **+2.718**；
+- **面积必须作废**，改为 **108,951.11 µm²**。
 
 ---
 
@@ -776,12 +771,13 @@ u_recon/u_recip_rnd/u_recip/i_q60_reg[26]`。可核实的事实是：
 | 模拟域参考/RA/安静窗建立 | 不在数字网表内 | 模拟侧 Spectre |
 | ADC2 宏内部时序 | 网表里 ADC2 是端口桩 | 宏的 .lib / 门级模型 |
 | 后布线 STA | 无 P&R 结果 | P&R + SPEF + PT |
-| hold 收敛 | 1279 条违例（理想时钟，最差 −0.072） | CTS + hold fix |
+| hold 收敛 | 1275 条违例（理想时钟，最差 −0.072） | CTS + hold fix |
 | 互连线延迟 | `ZeroWireload`，互连电容按 0 计 | 提取寄生后重跑 |
 | 输入驱动 | 库无 `BUF_X2`，端口无 driving cell | 补 `BUFFD2` 或按实际上游给 `set_input_transition` |
 | 40 MS/s 连续采样 | setup 为正只是必要条件 | 事务级延迟表 + 稳态吞吐分析 + 门级仿真实测 |
 | 多 PVT 角 | 只做 SS 0.81 V −40 °C（setup 主用角） | FF/典型角、电压扫描 |
 | 功耗 | 未报 | Power Compiler |
+| 修复后网表的功能等价 | 本报告只做 STA，不做功能验证 | 见 `docs/v21/LUT_SYNTH_BUG.md` 的门级 e2e（已 PASS） |
 
 ---
 
@@ -794,8 +790,8 @@ u_recon/u_recip_rnd/u_recip/i_q60_reg[26]`。可核实的事实是：
 | 3 | `-through` 能"跨多级寄存器切阶段" | 错。`-through reg/Q` 与 `-from reg/Q` 起点相同，路径不穿寄存器 | 6.3（两次运行实测） |
 | 4 | slack +9.39 / setup 全过 = 25 ns 连续采样 ✅ | 错。setup 为正只是必要条件；单笔 recon 延迟 7 拍 | 6.4 / 7 |
 | 5 | 驱动单元 `BUF_X2` 生效 | 错。库无 `BUF_X2`，UID-993，端口无驱动；已量化影响并改用 `BUFFD2` 核实 | 6.5 |
-| 6 | 面积 97,554.69 µm² / 151,346 cells | 复现不出。实测 90,287.30 / 90,303.28 µm²、142,900 / 142,921 cells | 9.2 |
-| 7 | "本报告只做 setup" | hold 实测 1279 条违例，最差 −0.072 ns，已列出 | 7.4 |
-| 8 | 未提网表的 `recip_q60` 已退化 | 综合丢弃 `initial` 的 LUT，`i_q60` 恒为 2；时序数字偏乐观 | 11 |
+| 6 | 面积 97,554.69 µm² / 151,346 cells | 复现不出。**修复后实测 108,951.11 µm² / 165,374 cells / 2,176 寄存器** | 9.2 |
+| 7 | "本报告只做 setup" | hold 实测 1275 条违例，最差 −0.072 ns，已列出 | 7.4 |
+| 8 | 未提网表的 `recip_q60` 曾退化 | 综合丢弃 `initial` 的 LUT，`i_q60` 恒为 2，使全局最差虚高到 +16.801；修复后为 **+2.718**、面积 **108,951 µm²** | 8.3 / 11 |
 | 9 | 未提 `ZeroWireload` 的含义 | 互连电容按 0 计，所有 slack 都是零互连乐观值 | 6.5 |
 | 10 | 路径起点未区分复位/功能 | `rst_n` 起点的"最差路径"不是功能瓶颈，已改为 reg→reg 与端口起点分列 | 3.1 / 4.1 |

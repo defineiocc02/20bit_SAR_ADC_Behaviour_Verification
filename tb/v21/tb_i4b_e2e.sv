@@ -2,116 +2,40 @@
 // =============================================================================
 // 文件名     : tb_i4b_e2e.sv
 // 模块名     : tb_i4b_e2e
-// 版本       : v2.0
-// 功能       : I4b 端到端 —— D1–D6 全链：两笔采样 → 逐事件开关 → ADC2
-//              节点模型返回 → 20 位定点重构，逐位对拍 A=0xFFF00、B=0x80000。
+// 版本       : v3.0
+// 功能       : I4b 端到端（RTL 侧绑定层）—— D1–D6 全链：两笔采样 → 逐事件
+//              开关 → ADC2 节点模型返回 → 20 位定点重构，逐位对拍
+//              A=0xFFF00、B=0x80000。
 // 设计说明   :
-//   * 架构（方案目标 I3 第 2 条）：
-//        DUT 只送出「本笔不可变快照」：node_post / node_pre / node_ids /
-//        qid / tag / 相位。**节点宏不在 DUT 内**，而在本测试台里模拟
-//        模拟宏 + Vin 真值：它用快照算 y 与 13 位 raw，再通过
-//        adc2_valid/adc2_ready 握手送回 DUT。
-//        5120 / 2560 只作为**计分板预期值**，由模型独立算出后比对。
+//   * **本文件现在只做绑定**：激励、断言、轨迹、计数全部在
+//       tb/v21/tb_e2e_decl.svh + tb/v21/tb_e2e_body.svh
+//     里，门级侧 tb/v21/tb_gate_auto.sv（由 tools/gen_gate_tb.py 生成）
+//     include **同一份**。这样"两侧激励逐字一致"是结构保证，
+//     不是靠人肉同步——旧版是两份 TB 各抄一遍，抄错就会得到
+//     "轨迹一致但两侧都没走完整链"的假结论。
 //
-//   * 覆盖（方案目标 I3 第 1–4 条）：
-//       ① arm 与登记分开：arm 在最后合法 apply 后给出，早于公共沿；
-//          登记只在 sample_event & residue_captured 时发生
-//       ② 节点模型经实际握手返回，owner 归属正确
-//       ③ 真实 sched18 生产路径：8/8/2 互斥、冻结片号
-//       ④ A(guard,5120) / B(普通,2560)
-//       ⑤ 越窗、延迟 hold、旧 raw 与新捕获同沿、复位后迟到 raw
-//       ⑥ 释放只看 hold，raw 返回不提前释放旧组
-//   * 波形：$dumpvars 到 tb_i4b_e2e.fsdb（或 vcd），可追 arm/捕获/hold/raw/tag/post。
-//   * 轨迹输出（+TRACE=<path>）：逐拍记录 19 个关键字段，供门级对比。
-//     两个采样点问题已修：
-//       ① 脉冲类（apply_fire / rsp_valid）是组合信号只高一拍，
-//          早前只在 negedge 记录，全程读到 0；
-//          改用 sticky 位在 posedge 累积、negedge 记录后清零。
-//       ② 结尾必须打印 TRANSACTIONS accepted/captured/output，
-//          三者各 >=2 才算有效交易，避免两侧都无输出却判通过。
+//   * 本文件保留的差异仅三处：
+//       ① DUT 端口名（RTL 用 prepare_ready / acq_sel … 与网表同名或近名）
+//       ② 权重表是**数组**（w_main_tbl[18][16] / w_sub_tbl[18][4]）
+//          —— 门级侧是 11520/2880 位扁平向量
+//       ③ 层级探针 probe_acq_sampled / probe_conv_tag 直接读 DUT 内部
+//          —— 门级侧 DC 可能改名，由共享层的 E2E_PROBE_GATE 宏切换
+//
+//   * 端口连接说明：共享层的输出声明为 wire（门级网表输出只能由网表驱动），
+//     RTL 的 output logic 端口连 wire 合法，两侧因此可以共用同一套声明。
+//
 // 变更记录   :
 //   2026-11-15  v1.0 只测 DUT 内宏的 raw 数值。
 //   2026-11-15  v2.0 宏移到仿真边界，补 arm/登记分离、真实握手、sched18 生产路径。
+//   2026-11-16  v3.0 拆成"公共激励/断言（.svh）+ 绑定层"，与门级 TB 共用激励。
 // =============================================================================
 module tb_i4b_e2e;
 
-    logic clk = 1'b0;
-    // ---- 轨迹记录（供门级对比）----
-    // 每拍把关键状态写一行。字段顺序固定，RTL 与网表用同一份 TB，
-    // 所以两侧轨迹可直接 diff。
-    int          tr_fd;
-    bit          tr_en = 1'b0;
-    // 统计：确有有效交易，避免"两侧都无输出却判通过"
-    int          n_prepare_acc = 0;   // 实际受理笔数
-    int          n_capture     = 0;   // 实际捕获笔数（rsp_valid）
-    int          n_out         = 0;   // 实际 20 位输出笔数
-    always #5 clk = ~clk;
-    logic rst_n = 1'b0;
+    // ---- 公共声明 + 公共激励体（与门级共用同一份文件）----
+    `include "tb/v21/tb_e2e_decl.svh"
 
-    // ---- DUT 接口 ----
-    logic        prepare_valid = 1'b0, prepare_ready;
-    logic [31:0] prepare_tag = 32'd0;
-    logic [5:0]  prepare_word = 6'd0;
-    logic [2:0]  prepare_h = 3'd0, prepare_v = 3'd0;
-    logic        prepare_half = 1'b0, prepare_coin = 1'b0;
-    logic [2:0]  prepare_U = 3'd0, prepare_flash = 3'd0;
-    logic        prepare_qid = 1'b0, stop_i = 1'b0;
-
-    logic sample_event = 1'b0, input_captured = 1'b0;
-    logic residue_captured = 1'b0, hold_ack = 1'b0;
-
-    logic       ev_bit_valid_i = 1'b0, ev_bit_i = 1'b0;
-    logic [3:0] ev_bit_index_i = 4'd0, ev_event_index_i = 4'd0;
-    logic       ev_qid_i = 1'b0;
-
-    // 真实 sched18 生产路径（sched_ext_sel = 0）
-    logic        sched_ext_sel = 1'b0;
-    logic [17:0] sched_acq = 18'd0, sched_conv = 18'd0, sched_idle = 18'd0;
-    logic [39:0] sched_ids = 40'd0;
-    logic        sched_seed_we = 1'b1;
-    logic [31:0] sched_seed = 32'h1234_5678;
-
-    // ADC2 握手（由本测试台的节点模型驱动）
-    logic        adc2_valid_i = 1'b0;
-    logic        adc2_ready_o;
-    logic [12:0] adc2_raw_i = 13'd0;
-    logic        adc2_range_err_i = 1'b0;
-    logic        adc2_capture_arm_o;
-
-    // DUT 输出
-    logic [17:0] acq_sel, conv_sel, idle_sel;
-    logic [71:0] pre_state;  logic [17:0] pre_wr;
-    logic [359:0] post_state; logic [17:0] post_wr;
-    logic apply_fire, k_bad, final_applied, err, done;
-    logic [9:0] k_out, final_k;
-    logic [31:0] tag_out;
-    logic qid_out;
-    logic [159:0] post_slot;
-
-    // 节点快照（DUT → 节点模型）
-    logic [159:0] node_post;
-    logic [31:0]  node_pre;
-    logic [39:0]  node_ids;
-    logic         node_qid;
-    logic [31:0]  node_tag;
-    logic         node_valid;
-    logic [2:0]   node_h, node_v;
-
-    // ADC2 返回
-    logic        adc2_rsp_valid, adc2_rsp_qid, adc2_rsp_range, adc2_late_err;
-    logic        adc2_release_ok;
-    logic [31:0] adc2_rsp_tag;
-    logic [12:0] adc2_rsp_raw;
-
-    // D5 配置与输出
-    logic [39:0] w_main_tbl [0:17][0:15];
-    logic [39:0] w_sub_tbl  [0:17][0:3];
-    logic [7:0]  cfg_epoch = 8'd1;
-    logic signed [26:0] b_q24_cfg = 27'sd0;
-    logic        out_valid, out_sat, out_err;
-    logic [19:0] out_code;
-    logic [31:0] out_tag;
-
+    // ---------------------------------------------------------------- DUT（RTL）
+    // 端口名与网表完全同名；只有权重表是数组形态。
     adc_digital_ip_v21 dut (
         .clk(clk), .rst_n(rst_n),
         .prepare_valid(prepare_valid), .prepare_ready(prepare_ready),
@@ -129,487 +53,35 @@ module tb_i4b_e2e;
         .sched_acq(sched_acq), .sched_conv(sched_conv), .sched_idle(sched_idle),
         .sched_ids(sched_ids),
         .sched_seed_we(sched_seed_we), .sched_seed(sched_seed),
-        .acq_sel_o(acq_sel), .conv_sel_o(conv_sel), .idle_sel_o(idle_sel),
-        .rdac_pre_state_o(pre_state), .pre_wr_o(pre_wr),
-        .rdac_post_state_o(post_state), .post_wr_o(post_wr),
+        .acq_sel_o(acq_sel_o), .conv_sel_o(conv_sel_o), .idle_sel_o(idle_sel_o),
+        .rdac_pre_state_o(rdac_pre_state_o), .pre_wr_o(pre_wr_o),
+        .rdac_post_state_o(rdac_post_state_o), .post_wr_o(post_wr_o),
         .adc2_valid_i(adc2_valid_i), .adc2_ready_o(adc2_ready_o),
         .adc2_raw_i(adc2_raw_i), .adc2_range_err_i(adc2_range_err_i),
         .adc2_capture_arm_o(adc2_capture_arm_o),
-        .adc2_rsp_valid_o(adc2_rsp_valid), .adc2_rsp_tag_o(adc2_rsp_tag),
-        .adc2_rsp_qid_o(adc2_rsp_qid), .adc2_rsp_raw_o(adc2_rsp_raw),
-        .adc2_rsp_range_o(adc2_rsp_range), .adc2_late_err_o(adc2_late_err),
-        .adc2_release_ok_o(adc2_release_ok),
-        .node_post_o(node_post), .node_pre_o(node_pre), .node_ids_o(node_ids),
-        .node_qid_o(node_qid), .node_tag_o(node_tag), .node_valid_o(node_valid),
-        .node_h_o(node_h), .node_v_o(node_v),
+        .adc2_rsp_valid_o(adc2_rsp_valid_o), .adc2_rsp_tag_o(adc2_rsp_tag_o),
+        .adc2_rsp_qid_o(adc2_rsp_qid_o), .adc2_rsp_raw_o(adc2_rsp_raw_o),
+        .adc2_rsp_range_o(adc2_rsp_range_o), .adc2_late_err_o(adc2_late_err_o),
+        .adc2_release_ok_o(adc2_release_ok_o),
+        .node_post_o(node_post_o), .node_pre_o(node_pre_o), .node_ids_o(node_ids_o),
+        .node_qid_o(node_qid_o), .node_tag_o(node_tag_o), .node_valid_o(node_valid_o),
+        .node_h_o(node_h_o), .node_v_o(node_v_o),
         .w_main_tbl(w_main_tbl), .w_sub_tbl(w_sub_tbl),
         .cfg_epoch(cfg_epoch), .b_q24_cfg(b_q24_cfg),
         .out_valid(out_valid), .out_code(out_code), .out_sat(out_sat),
         .out_err(out_err), .out_tag(out_tag),
-        .apply_fire_o(apply_fire), .k_o(k_out), .k_bad_o(k_bad),
-        .final_applied_o(final_applied), .final_k_o(final_k),
-        .err_o(err), .done_o(done), .tag_o(tag_out), .qid_o(qid_out),
-        .post_slot_o(post_slot));
+        .apply_fire_o(apply_fire_o), .k_o(k_o), .k_bad_o(k_bad_o),
+        .final_applied_o(final_applied_o), .final_k_o(final_k_o),
+        .err_o(err_o), .done_o(done_o), .tag_o(tag_o), .qid_o(qid_o),
+        .post_slot_o(post_slot_o));
 
-    // ---------------------------------------------------------------- 节点模型（仿真边界）
-    // 代表模拟宏 + Vin 真值。用 DUT 送出的快照算 y 与 raw。
-    // 权重与 Vin 由本测试台按 §11.3 注入。
-    logic signed [26:0] vin_q24 = 27'sd0;    // Vin，Q24/27 位
-    logic signed [26:0] b_q24   = 27'sd0;
-    logic [39:0]        G_q30   = 40'd34359738368;
+    // ---------------------------------------------------------------- 层级探针（RTL 直读）
+    // acq_sampled / conv_tag 是 RTL 顶层内部信号（非端口）。
+    // 门级网表不保证同名，故门级绑定层不用本分支。
+    wire probe_acq_sampled = dut.acq_sampled;
+    wire [31:0] probe_conv_tag = dut.conv_tag;
 
-    logic [39:0] w_main_tab [0:7][0:15];
-    logic [39:0] w_sub_tab  [0:7][0:3];
-
-    // 节点宏只在快照有效时求值
-    wire node_calc = node_valid;
-    logic        nm_y_valid;
-    logic signed [39:0] nm_y_q24;
-    logic [12:0] nm_raw;
-    logic        nm_range;
-    // **捕获时刻锁存模型输出**。
-    // 审查指出：原版在检查完 nm_raw 之后又用常量 deliver_raw(5120) 回送，
-    // 那是"两笔定向算术检查"，不是模型自动回送的闭环。
-    // 现在把模型在捕获那一拍的输出锁存下来，回送的就是模型算出的值。
-    logic [12:0] cap_raw_a, cap_raw_b;
-    logic        cap_rng_a, cap_rng_b;
-
-    adc2_node_macro u_node (
-        .clk(clk), .rst_n(rst_n),
-        .calc_valid(node_calc),
-        .x_q24(vin_q24),
-        .b_q24(b_q24),
-        .G_q30(G_q30),
-        .post_mask(node_post),
-        .pre_mask(node_pre),
-        .w_main(w_main_tab), .w_sub(w_sub_tab),
-        .y_valid(nm_y_valid), .y_q24(nm_y_q24),
-        .raw_code(nm_raw), .range_err(nm_range));
-
-    // ---------------------------------------------------------------- 计分板
-    int errors = 0, checks = 0;
-    // ---- 逐拍轨迹 ----
-    //
-    // **脉冲类信号必须在 posedge 采**：`apply_fire` / `rsp_valid` 是
-    // 组合脉冲，只在一拍内为高（apply 依赖 bit_valid_i，rsp_valid 依赖
-    // take_raw）。早前只在 negedge 记录，两者全程读到 0，
-    // 看起来"没有事件"其实是采样点错了（实测 rsp_valid/apply 唯一值只有 0）。
-    //
-    // 做法：脉冲类用 sticky 位累积（posedge 置位，negedge 记录后清零），
-    // 这样 negedge 那一行也能反映"这一拍里发生过脉冲"。
-    bit tr_apply_sticky = 1'b0;
-    bit tr_rsp_sticky   = 1'b0;
-    always @(posedge clk) if (tr_en) begin
-        if (apply_fire)       tr_apply_sticky <= 1'b1;
-        if (adc2_rsp_valid)   tr_rsp_sticky   <= 1'b1;
-    end
-
-    // 只在 tr_en 打开后记录（复位稳定之后），避免复位瞬态噪声。
-    always @(negedge clk) if (tr_en) begin
-        $fdisplay(tr_fd, "T %0d", $time);
-        $fdisplay(tr_fd, "prepare_ready %0b", prepare_ready);
-        $fdisplay(tr_fd, "acq_sel %0h", acq_sel);
-        $fdisplay(tr_fd, "conv_sel %0h", conv_sel);
-        $fdisplay(tr_fd, "pre_wr %0h", pre_wr);
-        $fdisplay(tr_fd, "post_wr %0h", post_wr);
-        $fdisplay(tr_fd, "arm %0b", adc2_capture_arm_o);
-        $fdisplay(tr_fd, "rsp_valid %0b", tr_rsp_sticky);
-        $fdisplay(tr_fd, "rsp_tag %0h", adc2_rsp_tag);
-        $fdisplay(tr_fd, "rsp_raw %0h", adc2_rsp_raw);
-        $fdisplay(tr_fd, "apply %0b", tr_apply_sticky);
-        $fdisplay(tr_fd, "k %0h", k_out);
-        $fdisplay(tr_fd, "final %0b", final_applied);
-        $fdisplay(tr_fd, "final_k %0h", final_k);
-        $fdisplay(tr_fd, "err %0b", err);
-        $fdisplay(tr_fd, "done %0b", done);
-        $fdisplay(tr_fd, "out_valid %0b", out_valid);
-        $fdisplay(tr_fd, "out_code %0h", out_code);
-        $fdisplay(tr_fd, "out_err %0b", out_err);
-        $fdisplay(tr_fd, "out_tag %0h", out_tag);
-        $fdisplay(tr_fd, "---");
-        tr_apply_sticky <= 1'b0;
-        tr_rsp_sticky   <= 1'b0;
-    end
-
-    // ---- 交易计数 ----
-    always @(posedge clk) if (tr_en && rst_n) begin
-        if (prepare_valid && prepare_ready)      n_prepare_acc <= n_prepare_acc + 1;
-        if (adc2_rsp_valid)                      n_capture     <= n_capture + 1;
-        if (out_valid)                           n_out         <= n_out + 1;
-    end
-
-    task automatic fail(input string msg);
-        errors = errors + 1;
-        if (errors <= 30) $display("[%0t] ERROR: %s", $time, msg);
-    endtask
-    task automatic okc(input string msg);
-        checks = checks + 1;
-        $display("[%0t] OK: %s", $time, msg);
-    endtask
-
-    function automatic int pc18(input logic [17:0] v);
-        int c; c = 0;
-        for (int i = 0; i < 18; i++) if (v[i]) c = c + 1;
-        return c;
-    endfunction
-
-    function automatic logic [39:0] pack_ids(input int a[0:7]);
-        logic [39:0] v; v = 40'd0;
-        for (int i = 0; i < 8; i++) v[i*5 +: 5] = 5'(a[i]);
-        return v;
-    endfunction
-
-    int A_IDS[0:7] = '{0,1,2,3,4,5,6,7};
-    int B_IDS[0:7] = '{9,10,11,12,13,14,15,17};
-
-    // ---- 驱动任务 ----
-    task automatic do_sample(input logic ic, input logic rc, input logic hk);
-        @(negedge clk);
-        sample_event = 1'b1; input_captured = ic;
-        residue_captured = rc; hold_ack = hk;
-        @(posedge clk); #1;
-        @(negedge clk);
-        sample_event = 1'b0; input_captured = 1'b0;
-        residue_captured = 1'b0; hold_ack = 1'b0;
-    endtask
-
-    task automatic do_prepare(input logic [31:0] tag, input logic [5:0] w,
-                              input logic [2:0] h, input logic [2:0] v,
-                              input logic half, input logic coin,
-                              input logic q, input logic [2:0] F);
-        @(negedge clk);
-        prepare_valid = 1'b1; prepare_tag = tag; prepare_word = w;
-        prepare_h = h; prepare_v = v; prepare_half = half; prepare_coin = coin;
-        prepare_U = {1'b0, w[5]} * 3'd4 + {2'b0, w[3]};
-        prepare_flash = F; prepare_qid = q;
-        @(posedge clk); #1;
-        @(negedge clk);
-        prepare_valid = 1'b0;
-    endtask
-
-    logic rsp_seen;
-    logic        d5_valid_seen;
-
-
-    logic [19:0] d5_code_seen;
-    logic [31:0] d5_tag_seen;
-    logic        d5_err_seen;
-    logic ev_applied;
-    logic [9:0] ev_k;
-    task automatic do_event(input logic [3:0] bi, input logic [3:0] ei,
-                            input logic bv, input logic q);
-        @(negedge clk);
-        ev_bit_valid_i = 1'b1; ev_bit_i = bv; ev_bit_index_i = bi;
-        ev_event_index_i = ei; ev_qid_i = q;
-        #1;
-        ev_applied = apply_fire; ev_k = k_out;
-        @(posedge clk); #1;
-        @(negedge clk);
-        ev_bit_valid_i = 1'b0;
-    endtask
-
-    // 模拟宏：把节点模型算出的 raw 通过握手送回
-    task automatic deliver_raw(input logic [12:0] raw, input logic rng,
-                               output logic [31:0] got_tag);
-        @(negedge clk);
-        adc2_valid_i = 1'b1; adc2_raw_i = raw; adc2_range_err_i = rng;
-        #1;
-        got_tag = adc2_rsp_tag;
-        rsp_seen = adc2_rsp_valid;
-        // recon 现在是**七级流水**：
-        //   S1a Y-b / S1b alpha 除法 / S2a-S2c N 与 3 拍倒数 I 汇合 /
-        //   S3 X / S4 Q->code
-        // rsp_valid 在 posedge1 采入，out_valid 要到 posedge7 才为 1。
-        // （I 从纯组合除法改成 recip_rnd_v21 的 3 拍流水，总延迟 4->6 拍。）
-        @(posedge clk); #1;
-        @(posedge clk); #1;
-        @(posedge clk); #1;
-        @(posedge clk); #1;
-        @(posedge clk); #1;
-        @(posedge clk); #1;
-        @(posedge clk); #1;
-        d5_valid_seen = out_valid;
-        d5_code_seen  = out_code;
-        d5_tag_seen   = out_tag;
-        d5_err_seen   = out_err;
-        @(posedge clk);
-        @(negedge clk);
-        adc2_valid_i = 1'b0; adc2_raw_i = 13'd0; adc2_range_err_i = 1'b0;
-    endtask
-
-    initial begin
-        // 轨迹文件：+TRACE=<path> 时启用。
-        // 门级对比就是靠它：同一份 TB 分别跑 RTL 与网表，diff 两侧轨迹。
-        begin
-            reg [1023:0] tp;
-            if ($value$plusargs("TRACE=%s", tp)) begin
-                tr_fd = $fopen(tp, "w");
-                if (tr_fd == 0) begin
-                    $display("FATAL: cannot open %0s", tp); $finish;
-                end
-                $display("INFO: trace -> %0s", tp);
-            end
-        end
-        if ($test$plusargs("dump")) begin
-            $dumpfile("tb_i4b_e2e.vcd");
-            $dumpvars(0, tb_i4b_e2e);
-        end
-
-        // 名义权重：节点模型侧（仿真边界）
-        for (int s = 0; s < 8; s++) begin
-            for (int j = 0; j < 16; j++) w_main_tab[s][j] = 40'd268435456;
-            w_sub_tab[s][0] = 40'd33554432;
-            w_sub_tab[s][1] = 40'd16777216;
-            w_sub_tab[s][2] = 40'd8388608;
-            w_sub_tab[s][3] = 40'd8388608;
-        end
-        // 生产侧 D5 权重表：18 片全部同值（名义）
-        for (int s = 0; s < 18; s++) begin
-            for (int j = 0; j < 16; j++) w_main_tbl[s][j] = 40'd268435456;
-            w_sub_tbl[s][0] = 40'd33554432;
-            w_sub_tbl[s][1] = 40'd16777216;
-            w_sub_tbl[s][2] = 40'd8388608;
-            w_sub_tbl[s][3] = 40'd8388608;
-        end
-
-        repeat (3) @(negedge clk);
-        rst_n = 1'b1;
-        @(negedge clk);
-        sched_seed_we = 1'b0;
-        tr_en = 1'b1;      // 复位稳定后才开始记录轨迹
-
-        // ==================== 真实 sched18 生产路径检查 ====================
-        // 复位后第一拍：ACQ=8、CONV=0、IDLE=10 —— 这是**正确**的初态
-        // （R03："首采样前无 CONV"）。稳态 8/8/2 要等第一笔 commit 之后。
-        $display("---- 真实 sched18：初态与稳态 ----");
-        repeat (2) @(negedge clk);
-        checks = checks + 1;
-        if (pc18(acq_sel) != 8 || pc18(conv_sel) != 0 || pc18(idle_sel) != 10)
-            fail($sformatf("复位初态应为 8/0/10：acq=%0d conv=%0d idle=%0d",
-                 pc18(acq_sel), pc18(conv_sel), pc18(idle_sel)));
-        else $display("      复位初态 8/0/10（首采样前无 CONV）OK");
-        checks = checks + 1;
-        if ((acq_sel & conv_sel) != 0 || (acq_sel & idle_sel) != 0 || (conv_sel & idle_sel) != 0)
-            fail("三集合有交叠");
-        else $display("      三集合无交叠  OK");
-
-        // ==================== A 笔（guard）====================
-        $display("---- A: guard F=7, word=63, v_pre=0, Vin=3-2048LSB20/8 ----");
-        vin_q24 = 27'sd50307072;   // 2.998535156 * 2^24（Q24，27 位）
-        do_prepare(32'hA1, 6'd63, 3'd0, 3'd3, 1'b0, 1'b1, 1'b0, 3'd7);
-        do_sample(1'b1, 1'b0, 1'b0);
-        checks = checks + 1;
-        if (dut.acq_sampled !== 1'b1) fail("A 应已 sampled");
-        else $display("      A sampled  OK");
-
-        // B 顶替 -> A 进 CONV
-        do_prepare(32'hB2, 6'd17, 3'd1, 3'd7, 1'b0, 1'b0, 1'b1, 3'd4);
-        checks = checks + 1;
-        if (dut.conv_tag !== 32'hA1) fail("CONV 应为 A1");
-        else $display("      CONV = A1  OK");
-
-        // A 的 5 事件
-        do_event(4'd0, 4'd1, 1'b0, 1'b0);
-        do_event(4'd9, 4'd2, 1'b1, 1'b0);
-        do_event(4'd2, 4'd3, 1'b0, 1'b0);
-        do_event(4'd1, 4'd4, 1'b1, 1'b0);
-        do_event(4'd0, 4'd5, 1'b0, 1'b0);
-        checks = checks + 1;
-        if (final_k !== 10'd519) fail($sformatf("A final_k=%0d 期望 519", final_k));
-        else $display("      A k=519  OK");
-        @(negedge clk);
-
-        // ---- arm 必须已给出（早于公共沿）----
-        // wsum 需要"最后 apply 的下一拍"才能算稳，arm 再等一拍给出，
-        // 所以这里先等 2 拍再检查。公共沿由测试台控制，可以更晚。
-        repeat (2) @(negedge clk);
-        checks = checks + 1;
-        if (adc2_capture_arm_o !== 1'b1)
-            fail("A 的最后 apply 之后 arm 应为 1（沿前授权）");
-        else $display("      A arm 已给出（早于公共沿）OK");
-        checks = checks + 1;
-        if (node_valid !== 1'b1) fail("A 快照应有效");
-        else $display("      A 节点快照有效  OK");
-
-        // ---- E1：采 B + 捕获 A 余差 ----
-        $display("---- E1: 采 B 并捕获 A 余差 ----");
-        @(negedge clk);
-        sample_event = 1'b1; input_captured = 1'b1; residue_captured = 1'b1;
-        hold_ack = 1'b0;    // hold 故意延迟
-        #1;
-        checks = checks + 1;
-        if (nm_raw !== 13'd5120)
-            fail($sformatf("节点模型 raw=%0d 期望 5120", nm_raw));
-        else $display("      节点模型 raw = 5120（独立算出）OK");
-        checks = checks + 1;
-        if (nm_range !== 1'b0) fail("A 不应越窗");
-        else $display("      A 未越窗  OK");
-        // 锁存模型输出（下面回送用它，不再用常量）
-        cap_raw_a = nm_raw; cap_rng_a = nm_range;
-        @(posedge clk); #1;
-        @(negedge clk);
-        sample_event = 1'b0; input_captured = 1'b0; residue_captured = 1'b0;
-
-        // ---- 释放必须等 hold，raw 返回不能提前释放 ----
-        checks = checks + 1;
-        if (adc2_release_ok !== 1'b0)
-            fail("hold 未到，release_ok 应为 0");
-        else $display("      hold 未到 -> 不释放  OK");
-
-        // ---- 通过实际握手返回 A 的 raw ----
-        begin
-            logic [31:0] gt;
-            deliver_raw(cap_raw_a, cap_rng_a, gt);
-            // **回送值必须就是模型输出**（不是常量）。
-            // 这条断言让"模型自动回送"这件事在日志里可查：
-            // 若有人日后又把 deliver_raw 改回常量，cap_raw_a 与 nm_raw
-            // 的关联会断，这里会立刻暴露。
-            checks = checks + 1;
-            if (cap_raw_a !== nm_raw && cap_raw_a !== 13'd0)
-                fail($sformatf("回送值 %0d 不是当前模型输出 %0d", cap_raw_a, nm_raw));
-            else $display("      A 回送值 %0d 来自模型输出  OK", cap_raw_a);
-            checks = checks + 1;
-            if (gt !== 32'hA1)
-                fail($sformatf("A 返回 tag=%08h 期望 A1", gt));
-            else $display("      A 返回 tag = A1（归属正确）OK");
-            // ---- D5：20 位重构 ----
-            // recon_v21 在 rsp_valid 那一拍采样、下一拍出 out_valid。
-            // deliver_raw 返回时已经是 rsp_valid 之后，所以这里要再等一拍。
-            checks = checks + 1;
-            if (d5_valid_seen !== 1'b1) fail("A 的 D5 无 out_valid");
-            else if (d5_code_seen !== 20'hFFF00)
-                fail($sformatf("A 的 20 位码=0x%05X 期望 0xFFF00", d5_code_seen));
-            else $display("      A 的 20 位码 = 0xFFF00（端到端）OK");
-            checks = checks + 1;
-            if (d5_tag_seen !== 32'hA1) fail($sformatf("A 的 D5 tag=%08h 期望 A1", d5_tag_seen));
-            else $display("      A 的 D5 tag = A1  OK");
-            checks = checks + 1;
-            if (d5_err_seen !== 1'b0) fail("A 的 D5 不应报 err");
-            else $display("      A 的 D5 err=0  OK");
-        end
-        checks = checks + 1;
-        if (adc2_release_ok !== 1'b0)
-            fail("raw 已返回但 hold 未到，仍不应释放");
-        else $display("      raw 返回不提前释放旧组  OK");
-
-        // ---- 补 hold -> 允许释放 ----
-        do_sample(1'b0, 1'b0, 1'b1);
-        checks = checks + 1;
-        if (adc2_release_ok !== 1'b1)
-            fail("hold 到后 release_ok 应为 1");
-        else $display("      hold 到 -> release_ok=1  OK");
-
-        // ==================== 旧 raw 与新捕获同沿 ====================
-        $display("---- 旧 raw 与新捕获同沿：先绑旧 owner，再登记新 ==");
-        // 此时 B 在 ACQ 且已 sampled；推进 B 进 CONV
-        do_prepare(32'hC3, 6'd63, 3'd0, 3'd0, 1'b0, 1'b1, 1'b0, 3'd7);
-        checks = checks + 1;
-        if (dut.conv_tag !== 32'hB2) fail("CONV 应为 B2");
-        else $display("      CONV = B2  OK");
-        // B 的 7 事件 -> k=258
-        vin_q24 = 27'sd0;   // B: Vin = 0
-        do_event(4'd0, 4'd1, 1'b0, 1'b1);
-        do_event(4'd5, 4'd2, 1'b0, 1'b1);
-        do_event(4'd4, 4'd3, 1'b0, 1'b1);
-        do_event(4'd3, 4'd4, 1'b0, 1'b1);
-        do_event(4'd2, 4'd5, 1'b0, 1'b1);
-        do_event(4'd1, 4'd6, 1'b1, 1'b1);
-        do_event(4'd0, 4'd7, 1'b0, 1'b1);
-        checks = checks + 1;
-        if (final_k !== 10'd258) fail($sformatf("B final_k=%0d 期望 258", final_k));
-        else $display("      B k=258  OK");
-
-        // E2：捕获 B（同时不给 input_captured，模拟停收）
-        @(negedge clk);
-        sample_event = 1'b1; input_captured = 1'b0; residue_captured = 1'b1;
-        hold_ack = 1'b0;
-        #1;
-        checks = checks + 1;
-        if (nm_raw !== 13'd2560)
-            fail($sformatf("B 节点 raw=%0d 期望 2560", nm_raw));
-        else $display("      B 节点 raw = 2560（独立算出）OK");
-        cap_raw_b = nm_raw; cap_rng_b = nm_range;
-        @(posedge clk); #1;
-        @(negedge clk);
-        sample_event = 1'b0; residue_captured = 1'b0;
-
-        // B 的 raw 返回
-        begin
-            logic [31:0] gt2;
-            deliver_raw(cap_raw_b, cap_rng_b, gt2);
-            checks = checks + 1;
-            if (gt2 !== 32'hB2)
-                fail($sformatf("B 返回 tag=%08h 期望 B2", gt2));
-            else $display("      B 返回 tag = B2  OK");
-            @(negedge clk);
-            checks = checks + 1;
-            if (d5_valid_seen !== 1'b1) fail("B 的 D5 无 out_valid");
-            else if (d5_code_seen !== 20'h80000)
-                fail($sformatf("B 的 20 位码=0x%05X 期望 0x80000", d5_code_seen));
-            else $display("      B 的 20 位码 = 0x80000（端到端）OK");
-        end
-
-        // ==================== 迟到 raw（复位后）====================
-        $display("---- 复位后迟到 raw 必须被丢弃 ----");
-        @(negedge clk);
-        rst_n = 1'b0;
-        @(negedge clk); rst_n = 1'b1;
-        @(negedge clk);
-        // 复位后没有 owner，注入 raw 应被丢弃并置 late_err
-        @(negedge clk);
-        adc2_valid_i = 1'b1; adc2_raw_i = 13'd777;
-        #1;
-        checks = checks + 1;
-        if (adc2_rsp_valid !== 1'b0)
-            fail("复位后无 owner，不应产生返回");
-        else $display("      复位后 raw 被丢弃  OK");
-        @(posedge clk); #1;
-        @(negedge clk);
-        adc2_valid_i = 1'b0; adc2_raw_i = 13'd0;
-        checks = checks + 1;
-        if (adc2_late_err !== 1'b1) fail("迟到应置 late_err");
-        else $display("      late_err 置位  OK");
-
-        // ==================== 越窗 ====================
-        $display("---- 越窗必须报 range ----");
-        @(negedge clk);
-        rst_n = 1'b0; @(negedge clk); rst_n = 1'b1; @(negedge clk);
-        vin_q24 = -27'sd50331648;   // -3.0 V，必然越窗
-        do_prepare(32'hD4, 6'd63, 3'd0, 3'd3, 1'b0, 1'b1, 1'b0, 3'd7);
-        do_sample(1'b1, 1'b0, 1'b0);
-        do_prepare(32'hE5, 6'd17, 3'd1, 3'd7, 1'b0, 1'b0, 1'b1, 3'd4);
-        do_event(4'd0, 4'd1, 1'b0, 1'b0);
-        do_event(4'd9, 4'd2, 1'b1, 1'b0);
-        do_event(4'd2, 4'd3, 1'b0, 1'b0);
-        do_event(4'd1, 4'd4, 1'b1, 1'b0);
-        do_event(4'd0, 4'd5, 1'b0, 1'b0);
-        @(negedge clk);
-        sample_event = 1'b1; residue_captured = 1'b1;
-        #1;
-        checks = checks + 1;
-        if (nm_range !== 1'b1)
-            fail($sformatf("Vin=-3V 应越窗（y=%0d）", nm_y_q24));
-        else $display("      越窗报 range  OK (raw=%0d)", nm_raw);
-        @(posedge clk); @(negedge clk);
-        sample_event = 1'b0; residue_captured = 1'b0;
-
-        tr_en = 1'b0;
-        $display("---------------------------------------------------------------");
-        // **交易统计必须非零**：早期版本两侧都无有效输出却判通过，
-        // 原因就是只比了"轨迹一致"，没确认轨迹里有真实交易。
-        $display("TRANSACTIONS accepted=%0d captured=%0d output=%0d",
-                 n_prepare_acc, n_capture, n_out);
-        $display("I4b e2e: %0d 检查, %0d errors", checks, errors);
-        if (n_prepare_acc < 2 || n_capture < 2 || n_out < 2) begin
-            $display("RESULT: FAIL (交易不足：accepted=%0d captured=%0d output=%0d，应各 >=2)",
-                     n_prepare_acc, n_capture, n_out);
-        end else if (errors == 0) begin
-            $display("RESULT: PASS (%0d checks)", checks);
-        end else begin
-            $display("RESULT: FAIL (%0d errors)", errors);
-        end
-        if (tr_fd != 0) $fclose(tr_fd);
-        $finish;
-    end
+    // ---------------------------------------------------------------- 公共激励与断言
+    `include "tb/v21/tb_e2e_body.svh"
 
 endmodule

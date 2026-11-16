@@ -87,9 +87,17 @@ module wsum_v21 (
                 // 子阵列 4 位全算（含 j19 平衡位，名义 1/128）。
                 // 只要 post 选中就计入 Wm —— j19 是真实电容。
                 // 与节点宏（仿真边界）必须用同一张物理位表、同一口径。
-                for (int j = 0; j < 4; j++)
-                    if (post[s*20 + 16 + j])
-                        acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][j]};
+                //
+                // **必须显式展开，不能用 `for (int j=0;j<4;j++) ... w_sub[i][j]`**。
+                // VCS 对"always_comb/函数内 + 二维数组 + 循环变量"会在某些
+                // 情况下漏掉最后一次迭代（j=3），导致 j19 不计入 Wm ——
+                // 这正是审计问题 ③（j19 漏算）的成因，节点宏已改为显式展开
+                // （adc2_node_macro.sv:116-119），wsum 这里必须同步，
+                // 否则同一个物理位在两处口径不一致。
+                if (post[s*20 + 16]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][0]};
+                if (post[s*20 + 17]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][1]};
+                if (post[s*20 + 18]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][2]};
+                if (post[s*20 + 19]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][3]};
             end
             f_Wm = acc;
         end
@@ -100,10 +108,15 @@ module wsum_v21 (
         logic [63:0] acc;
         begin
             acc = 64'd0;
-            for (int s = 0; s < 8; s++)
-                for (int j = 0; j < 4; j++)          // 4 位全算（含平衡位）
-                    if (pre[s*4 + (3-j)])
-                        acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][j]};
+            // 同 f_Wm：**显式展开 4 位，不用循环变量索引二维数组**。
+            // 位序是 pre[s*4 + (3-j)]：j=0 取 pre[3], j=3 取 pre[0]，
+            // 与节点宏的位映射一致（节点宏那边也是 j 与 pre 位反序）。
+            for (int s = 0; s < 8; s++) begin
+                if (pre[s*4 + 3]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][0]};
+                if (pre[s*4 + 2]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][1]};
+                if (pre[s*4 + 1]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][2]};
+                if (pre[s*4 + 0]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][3]};
+            end
             f_Wp = acc;
         end
     endfunction

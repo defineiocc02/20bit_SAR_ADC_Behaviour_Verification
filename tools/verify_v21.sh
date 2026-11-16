@@ -52,6 +52,7 @@ run "rm -rf $WORK && mkdir -p $WORK/rtl/v21 $WORK/tb/v21 $WORK/tools" || { echo 
 # 实测导致叶子源文件没落到预期位置（编译报 "Source file cannot be opened"）。
 # 用 scp/cp 逐个复制最可靠。
 FILES="$SRC rtl/recip_q60.sv rtl/v21/recip_rnd_v21.sv tb/v21/tb_analog_if.sv \
+tb/v21/tb_e2e_decl.svh tb/v21/tb_e2e_body.svh \
 tb/tb_recip_q60.sv tb/vec_r18_recip.txt \
 tb/v21/tb_recip_rnd.sv tb/v21/vec_recip_rnd.txt \
 tb/v21/tb_acq_ctx_fixed.sv tb/v21/tb_audit3.sv tb/v21/tb_i12_full.sv \

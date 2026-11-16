@@ -1,45 +1,96 @@
-# 审计与后端报告（权威版）
+# 审计与后端报告（权威索引）
 
-时间：2026-11-17　基线：`39a9bc9`
+时间：2026-11-17　基线：`cfc3d08`
 
-## 现行文档（5 份）
+## 一、目标要求与文档对应
 
-| 文件 | 内容 | 结论等级 |
+| 目标要求 | 对应文档 | 结论 |
 |:---|:---|:---|
-| **`AUDIT_ALGO_VS_SOURCE.md`** | 数字算法 vs 论文/专利披露逐项核对 | 12 项判定：符合 6、`[E]` 假设 5、待验证 2 |
-| **`SYNTH_PER_MODULE.md`** | 13 个模块的 DC 单模块综合 | 160,951 µm²，全部满足 25 ns |
-| **`FORMAL_SUCCEEDED.md`** | **`sched18` 的 Formality 通过** | **`SUCCEEDED` 234/0/0** |
-| **`WSUM_PHYSICAL_COST.md`** | `wsum_v21` 物理实现代价分析 | 三工具交叉验证：不可接受 |
-| `RECON_ALPHA_DIVIDER.md` | `recon` 的 alpha 除法器瓶颈 | 实验确认（`DW_div` 13→6、10min→99s）|
+| 审计数字算法是否满足论文专利披露 | **`AUDIT_ALGO_VS_SOURCE.md`** | 12 项判定：符合 6、`[E]` 假设 4、待裁定 2 |
+| 端口等关键设计是否满足论文片上要求 | **`PORT_AND_ONCHIP_AUDIT.md`** | 端口全部一致；ADC2 位宽待裁定 |
+| 拆分小模块一个一个做综合 | **`SYNTH_PER_MODULE.md`** | **13/13 完成**，合计 160,951 µm²，全满足 25 ns |
+| 结合 rtl-to-gds 完成后端 | **`ALL_13_MODULES_FINAL.md`** | **7 通过 / 2 DRC 未归零 / 4 物理不可行** |
 
-**外加 `artifacts/`**：`sched18` 的布线后网表与 SVF。
+## 二、现行文档（11 份）
 
-## 已被取代的文档（`_superseded/`）
+### 算法与端口审计
 
-**不得引用。** 这些记录了探索过程中的中间判断，其中多条已被后续证据推翻：
+| 文件 | 内容 |
+|:---|:---|
+| `AUDIT_ALGO_VS_SOURCE.md` | 13 项算法判定、ADC2 位数裁定、`[E]` 假设清单 |
+| `PORT_AND_ONCHIP_AUDIT.md` | 87 个顶层端口对照论文要求、13 模块端口实测 |
 
-| 文件 | 当时的判断 | 后来被什么推翻 |
+### 综合
+
+| 文件 | 内容 |
+|:---|:---|
+| `SYNTH_PER_MODULE.md` | 13 模块 DC 单模块综合（含耗时/面积/cells/slack）|
+| `RECON_ALPHA_DIVIDER.md` | `recon` 的 alpha 除法器瓶颈（`DW_div` 13→6、10min→99s）|
+
+### 后端：通过的模块
+
+| 文件 | 内容 |
+|:---|:---|
+| `FORMAL_SUCCEEDED.md` | `sched18` Formality `SUCCEEDED` 234/0/0 的完整记录 |
+
+### 后端：失败的模块
+
+| 文件 | 内容 |
+|:---|:---|
+| `COMBINATIONAL_MODULE_FLOW.md` | `dither_pre`/`dem_mask_v3` 六次归因（DRC 2 / 27）|
+| `WSUM_FINAL_VERDICT.md` | `wsum_v21` 38 分钟未完成综合 |
+| `RECIP_Q60_ROUTING_ANALYSIS.md` | `recip_q60` 布线 14/225、违规 2,286→8,551 |
+| `RECIP_RND_CRASH.md` | `recip_rnd_v21` `XFORM` fatal |
+
+### 总表
+
+| 文件 | 内容 |
+|:---|:---|
+| `ALL_13_MODULES_FINAL.md` | **13 模块完整结论 + 面积分界 + 失败模式对照** |
+
+### 产物
+
+`artifacts/`：
+
+| 文件 | 内容 |
+|:---|:---|
+| `sched18_final.v` / `sched18.svf` | 布线后网表 + 综合等价变换记录（190 KB / 25 KB）|
+| `DC_MODULE_SUMMARY.txt` | 13 模块 DC 综合汇总 |
+| `README.md` | 产物说明与验证方式 |
+
+## 三、一句话结论
+
+**13 个模块全部完成 DC 综合与后端实测：7 个达到 `IMPLEMENTATION_ONLY`（DRC=0 且 Formality `SUCCEEDED`，比较点合计 2,189、0 failing），2 个布线 DRC 未归零，4 个物理不可行。**
+
+**分界清晰：≤1,300 µm² 的 9 个模块全部完成布线；≥9,247 µm² 的 4 个模块全部失败。**
+
+**D5 重建链（60~96 位运算）四个模块占数字面积 95.8%，全部物理不可行。**
+
+## 四、三条硬性限定
+
+1. **技术 LEF 为推导生成**（`tsmc28_tech_derived.lef`）。
+   `PITCH`/`WIDTH`/`SPACING` 来自 PDK `.tf` 真实值；`DIRECTION` 按 M1 水平/M2 垂直交替补；
+   `AP` 层按典型值补。**`AFP-1022` 证实工具从库也推导出同样方向。**
+
+2. **无时钟门控**（`set_clock_gating_options -minimum_bitwidth 1000000`）。
+   带门控版本的 Formality 为 FAILED（20 点，根因 `clock_gate_acq_q_reg/*lat.00*`）。
+
+3. **无 LVS、无 GDS 验证、单角、无 IR/EM。**
+
+**不是 tapeout signoff。**
+
+## 五、已被取代的文档（`_superseded/`）
+
+**不得引用。** 记录了探索过程的中间判断：
+
+| 文件 | 当时的判断 | 后来被什么取代 |
 |:---|:---|:---|
-| `FC_LIBRARY_NO_PG.md` | “库 839 cell 全无 PG 引脚” | `get_lib_pins */*/VDD` 返回 **839 个** |
-| `PG_PIN_RETRACTION.md` | 撤回上一条 | 本身是正确记录，但已被 `FORMAL_SUCCEEDED.md` 取代 |
-| `LGL397_ROOT_CAUSE_FINAL.md` | “PDK 缺技术 LEF，无法继续” | 查明 `.tf` 提供层、`site_via.lef` 提供 site，流程可通 |
-| `FC_PLACE_OPT_BLOCKER.md` | “`place_opt` 连续 8 轮未突破，BLOCKED” | 后续通过补 `.tf`+tech LEF+site row 打通 |
-| `FC_TLU_BLOCKER.md` | “TLU+ 绑定未解决” | `set_parasitics_parameters -early_spec/-late_spec` 解决 |
-| `BACKEND_FINAL_STATUS.md` | “PARTIAL，卡在 site row” | 已完整跑通 |
-| `FC_FLOW_BREAKTHROUGH.md` | “综合与 floorplan 首次通过，布线为 0” | 后续布线 14,899 条 |
-| `FC_FLOW_STATUS_V2.md` | “CTS/布线首次返回 0，168 单元未放置” | `CHK_UNPLACED = 0` |
-| `FC_RTL_TO_GDS_DONE.md` | “完整跑通，42 个单元未放置” | 实为 7 个编号重复计数，最终 0 |
-| `UNPLACED_CELLS_ANALYSIS.md` | “7 个编号被重复报告” | 判断正确，但已被 `FORMAL_SUCCEEDED.md` 取代 |
-| `FORMAL_RESULT_ANALYSIS.md` | “FAILED，20 个 failing 由时钟门控导致” | 判断正确，禁用门控后 `SUCCEEDED` |
-| `FORMAL_CLOCK_GATE_STATUS.md` | “时钟门控问题现状” | 同上 |
+| `TWO_MODULES_PASSED.md` | 2 个通过 | `ALL_13_MODULES_FINAL.md` |
+| `THREE_MODULES_PASSED.md` | 3 个通过 | 同上 |
+| `FOUR_MODULES_PASSED.md` | 4 个通过 | 同上 |
+| `SIX_MODULES_PASSED.md` | 6 个通过 | 同上 |
+| `BACKEND_FINAL.md` | 7 个通过时的快照 | 同上 |
+| `WSUM_PHYSICAL_COST.md` | `wsum` 三工具交叉验证 | `WSUM_FINAL_VERDICT.md` |
+| `WSUM_PLACEMENT_OVERLAP.md` | `wsum` 寄存器重叠（措辞曾过头，已修正）| 同上 |
 
-## 后端结论（一句话）
-
-**`sched18` 完整走通 RTL-to-GDS 并通过 Formality 等价性验证（234/0/0）；
-其余 12 个模块只有 DC 综合数据；`wsum_v21` 因门级规模过大，物理实现代价不可接受。**
-
-## 三条硬性限定
-
-1. **技术 LEF 是推导生成的**（`flow/synth/v21/tsmc28_tech_derived.lef`），非 PDK 官方交付
-2. **`sched18` 的结果无时钟门控**（带门控版 Formality FAILED）
-3. **无 LVS、无 GDS 验证、单角、无 IR/EM** → 不是 tapeout signoff
+更早的 12 份（FC 流程探索期）见本目录更早的提交历史。

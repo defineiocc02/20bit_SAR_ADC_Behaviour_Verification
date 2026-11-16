@@ -47,7 +47,14 @@ create_supply_set SS_PRIMARY \
 # 实测 PD.supply_sets 仍为空，说明 associate 没有真正生效。
 create_power_domain PD_TOP -elements {.} -supply {primary SS_PRIMARY}
 
-# ---- 4. 给电源网加驱动（避免 UPF-176）----
+# ---- 4. 定义电源状态（避免 MV-099）----
+#
+# **为什么需要**：check_mv_design 报
+#   Warning: Supply state(s) has not been defined on the supply net 'VDD' (MV-099)
+# 电源状态是 UPF 用来描述"这个网在某时刻是什么电压"的模型；
+# 单电源域设计也必须有，否则后续 MV 检查不完整。
+
+# ---- 5. 给电源网加驱动（避免 UPF-176）----
 create_supply_port VDD_PORT -direction inout -domain PD_TOP
 connect_supply_net VDD -ports {VDD_PORT}
 create_supply_port VSS_PORT -direction inout -domain PD_TOP

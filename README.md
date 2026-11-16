@@ -19,13 +19,12 @@
 | 门级等价 / 形式等价（当前版本） | ❌ 未做（依赖网表） |
 | 布局布线 / DRC / LVS / GDS | ❌ 未做 |
 
-详细状态：[`docs/v21/FINAL_D1_D6.md`](docs/v21/FINAL_D1_D6.md)
-综合阻塞：[`docs/v21/SYNTH_STALL.md`](docs/v21/SYNTH_STALL.md)
-形式化：[`docs/v21/FORMAL_STATUS.md`](docs/v21/FORMAL_STATUS.md)
+**唯一权威状态表：[`docs/v21/STATUS.md`](docs/v21/STATUS.md)**
+（其它 `docs/v21/*.md` 是专项证据；`docs/v21/_history/` 是已作废版本，不得引用）
 
 > **历史数字已全部作废，不要再引用。** 曾报过的 89,693 / 76,222 / 97,555 /
 > 108,951 µm² 与"门级 1464 拍差异 0"都有明确的作废原因，
-> 见 `FINAL_D1_D6.md` §4。本条是硬约束。
+> 见 `STATUS.md` §5。本条是硬约束。
 
 ---
 
@@ -139,7 +138,7 @@ src/adi_model/       Python 参考模型（DEM/Dither/重构）
 
 | 文件 | 内容 |
 |:---|:---|
-| `FINAL_D1_D6.md` | **D1–D6 状态表 + 作废数字清单**（首选） |
+| **`STATUS.md`** | **唯一权威状态表**（能/不能复现什么、作废数字清单）|
 | `SYNTH_STALL.md` | 综合停住的四组受控实验 |
 | `FORMAL_STATUS.md` | Formality 当前状态 |
 | `LUT_SYNTH_BUG.md` | `initial` 被综合丢弃的缺陷 |
@@ -153,7 +152,7 @@ src/adi_model/       Python 参考模型（DEM/Dither/重构）
 ## 6. 阅读顺序
 
 1. **本文**（状态 + 怎么跑）
-2. [`docs/v21/FINAL_D1_D6.md`](docs/v21/FINAL_D1_D6.md)（D1–D6 到哪一步了）
+2. [`docs/v21/STATUS.md`](docs/v21/STATUS.md)（能复现什么、卡在哪）
 3. [`docs/CONTRACT_CURRENT.md`](docs/CONTRACT_CURRENT.md)（适用哪份合同）
 4. [`docs/v21/SYNTH_STALL.md`](docs/v21/SYNTH_STALL.md)（后端卡在哪）
 5. [`docs/D3D4_IP_INTERFACE.md`](docs/D3D4_IP_INTERFACE.md)（旧 IP 的接口，仅历史参考）

@@ -355,8 +355,59 @@ module acq_conv_ctx #(
     assign conv_pre_slot_o = conv_pre_q;
 
     // ---------------------------------------------------------------- 片组
-    assign acq_sel_o  = sched_acq;
-    assign conv_sel_o = sched_conv;
+    // ---------------------------------------------------------------- 宏选通
+    //
+    // **对外片组选通必须来自本笔冻结的片号，不是调度器的当前位图。**
+    //
+    // 反例（独立 VCS 已复现）：sched18 在 `accepted prepare` 那一拍就推进，
+    // 所以 `sched_acq` 出的是**推进后**的位图；而 pre/post 实际写的是
+    // 冻结在描述符里的片号。两者错开一组：
+    //     ROLE_A:  acq_sel=3bd00  pre_wr=000ff   -> 交集为 0
+    //     ROLE_AB: acq_sel=040fe  pre_wr=3bd00   -> 两个角色都领先一组
+    //
+    // 这些端口在合同里是"数字到模拟的实际片组选通"，不是调度预览，
+    // 所以必须与实际写入的片组一致。
+    //
+    // 做法：把 8 个冻结片号展开成 18 位掩码。
+    //   · ACQ 侧：prepare 被接受那一拍用**本拍新分配**的片号（sched_ids），
+    //     其余时刻用 acq_ids_q
+    //   · CONV 侧：用 conv_ids_q（该笔进 CONV 时冻结）
+    // 这与 pre 路由（pre_route_ids）使用同一套片号来源，保证一致。
+    //
+    // ACQ 掩码的三种来源：
+    //   ① prepare 那一拍   -> 本拍新分配的 sched_ids（要被冻结的值）
+    //   ② 已有 ACQ 描述符  -> acq_ids_q（冻结片号，与 pre 写入一致）
+    //   ③ 首笔尚未装载     -> **sched_acq（调度器初态）**
+    //
+    // ③ 是必需的：复位后 sched18 初态就是 8 片 ACQ（R03"首采样前无 CONV"），
+    // 而描述符还没装载（acq_ids_q 全 0）。若用 acq_ids_q 展开，
+    // "8 个片号都是 0" 会被解释成"只有片 0"，掩码变成 0x00001
+    // （实测回归报 acq=1，期望 8）。
+    wire        acq_desc_valid = acq_valid_q | do_prepare;
+    wire [39:0] acq_route_ids  = do_prepare ? sched_ids : acq_ids_q;
+
+
+    // **必须用 valid 屏蔽**：复位后 IDs 全 0，若直接展开，
+    // "8 个片号都是 0" 会被解释成"片 0 被选中"，掩码变成 0x00001。
+    // 反例实测：ROLE_A 时 conv=00001 而期望 0（A 尚未跨采样沿，
+    // CONV 组应完全为空）。
+    logic [17:0] acq_sel_c, conv_sel_c;
+    always_comb begin
+        acq_sel_c  = 18'd0;
+        conv_sel_c = 18'd0;
+        if (acq_desc_valid) begin
+            for (int s = 0; s < 8; s++)
+                acq_sel_c[acq_route_ids[s*5 +: 5]] = 1'b1;
+        end else begin
+            acq_sel_c = sched_acq;      // 首笔未装载：调度器初态
+        end
+        if (conv_valid_q) begin
+            for (int s = 0; s < 8; s++)
+                conv_sel_c[conv_ids_q[s*5 +: 5]] = 1'b1;
+        end
+    end
+    assign acq_sel_o  = acq_sel_c;
+    assign conv_sel_o = conv_sel_c;
 
     // 仍在 CONV（未释放）的片不得被重新分配。
     // 用 generate + 归约，避免 function 变量下标（综合器会 report unsupported）。

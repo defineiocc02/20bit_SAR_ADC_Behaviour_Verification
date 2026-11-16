@@ -427,9 +427,22 @@ module adc_digital_ip_v21 (
     wire  adc2_reg_req = sample_event & residue_captured;
 
     always_ff @(posedge clk or negedge rst_n) begin
+        // **必须按样本换代清，不能只看 conv_valid 是否出现空闲拍。**
+        //
+        // 反例（独立 VCS 已复现）：A 回送后同一沿 release A + promote B，
+        // `conv_valid` 由 1 保持为 1（没有空拍），于是 B 继承了 A 的
+        // "已捕获" 状态：
+        //     B: conv_valid=1 final=1 wsum_valid=1 owner_busy=0
+        //     seen=1  arm=0     <- B 永远拿不到 arm
+        // 对照组只要插一个空闲拍就正常（seen=0 arm=1）。
+        //
+        // 正确语义：arm_seen 属于**某一笔**，换笔就要清。
+        // 换笔的判据是 `commit_fire`（A 的 CONV 被新一笔顶替那一沿），
+        // 它覆盖"有空闲拍"和"同沿交接"两种情形。
         if (!rst_n)                    adc2_arm_seen_q <= 1'b0;
+        else if (commit_fire)          adc2_arm_seen_q <= 1'b0;   // 换笔先清
         else if (adc2_reg_req)         adc2_arm_seen_q <= 1'b1;   // 已捕获 -> 关门
-        else if (!conv_valid)          adc2_arm_seen_q <= 1'b0;   // 换笔时清
+        else if (!conv_valid)          adc2_arm_seen_q <= 1'b0;   // 保守兜底
     end
 
     // 节点宏也在**沿后登记那一拍**求值（此时 final_post/pre 都已稳定）

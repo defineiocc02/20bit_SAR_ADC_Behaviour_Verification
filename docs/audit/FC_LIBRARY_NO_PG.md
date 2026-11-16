@@ -131,6 +131,26 @@ PIN VDD DIRECTION INOUT ;
 
 **两者互补但不重叠**：`lm_shell` 能读 LEF 但没有建库命令，`fc_shell` 能建库但没有读 LEF 命令。
 
+### 实测：重建尝试（两条路都不通）
+
+| 尝试 | 命令 | 结果 |
+|:---|:---|:---|
+| ① fc_shell 用 tech LEF 建库 | `create_lib -technology tsmc28_7t_site_via.lef` | `LIB-007 Cannot load technology file`（要 NDM 技术库，不吃 LEF）|
+| ② fc_shell 用 NDM 作技术库 | `create_lib -use_technology_lib <ndm> -ref_libs <ndm>` | rc=0，但**库目录为空**（无 `save_lib`/`write_lib` 命令可落盘）|
+| ③ lm_shell 建库 + read_lef | `create_lib ...` 后 `read_lef -library` | `create_lib` 报 rc=1（`lm_shell` 里该命令不可用，doc/LM 有 manpage 但工具里 MISS）|
+| ④ FC 里 read_lef | `read_lef -library ...` | `fc_shell` 无 `read_lef` 命令 |
+
+### 命令矩阵（实测）
+
+| 命令 | fc_shell | lm_shell |
+|:---|:---:|:---:|
+| `create_lib` | ✅ | ❌ MISS |
+| `read_lef` | ❌ MISS | ✅ |
+| `write_lib` | ❌ | ❌ MISS |
+| `save_lib` | ❌ | ❌ MISS |
+
+**两个工具各有一半，无法组合出完整流程。**
+
 ### 下一步
 
 需要查 `create_lib` 的完整选项（`help create_lib` 只返回一行摘要，

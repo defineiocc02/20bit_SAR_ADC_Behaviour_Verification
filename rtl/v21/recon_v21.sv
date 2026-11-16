@@ -90,7 +90,17 @@ module recon_v21 (
     // `tb_i4_recon` 已按新延迟更新；位精确定义不变。
 
     // ---------------------------------------------------------------- 第 0 级：输入检查
-    wire alpha_bypass = (alpha_q30 == 32'd1073741824);   // 2^30
+    // 本笔 alpha 的锁存副本（在 S1a 受理沿写入，见下方 S1a 段）
+    logic [31:0] alpha1a_q;
+
+    // **旁路判断必须用锁存值，不能用实时端口**。
+    // 反例（scenario5 tag501，连续 3 笔，末笔 alpha=2^29）：
+    //   S1b 在 t7 算 z1_q 时，alpha_q30 总线已是下一笔的 2^30，
+    //   走旁路 -> Z = d1a = 3072（应 6144）
+    //   -> N = 3072*64 = 196608（应 393216）
+    //   -> X = 96 -> Q = 1 -> code 0x80001（应 0x80002）
+    //   实测错值逐位吻合这条推导。
+    wire alpha_bypass = (alpha1a_q == 32'd1073741824);   // 2^30，用锁存值
     wire bad_g        = (G_q30 == 64'd0);
     // alpha 合法域：0.5 <= alpha <= 2（方案 §9.2），即 [2^29, 2^31]。
     // 域外值会让 Z 过大、突破 |X| < 2^31，使 32 位 RND 溢出。
@@ -179,10 +189,48 @@ module recon_v21 (
     logic        err1a_q, err1_q;
     logic signed [63:0] d1a_q, z1_q;   // d1a = Y - b，z1 = 结果
 
+    // ---- 本笔参数快照（**逐级流水传递**）----
+    //
+    // **必须锁存，不能沿用实时端口**。
+    // 反例（独立 VCS，tag 201）：A/B/C 连续受理时，S1b 与 S2a 读到的
+    // 是**总线上当时的值**（B 的 G/Wm/Wp），不是 A 受理时的那一组：
+    //   第 6 沿受理 A: G=32*2^30, Wm=16*2^30, Wp=0, Y-b=0 -> 应 N=0, I=2^25
+    //   第 8 沿 S2a 读到 B 的: G=64*2^30, Wm=33*2^30 -> 实际 N=6*2^30
+    //   第 12 沿输出 0x90000（应 0x80000）
+    // 8/10 笔码错。原 tb_i4_recon 之所以通过，是因为它保持同一输入 7 拍，
+    // 让实时总线"看起来"就是本笔的值。
+    //
+    // 所以：alpha/G/Wm/Wp 在 S1a 随 valid 一起锁存，逐级传递。
+    //
+    // **必须是流水寄存器，每级各存一份，与 v/tag 完全同步前进**。
+    //
+    // 反例（独立 VCS，tag 201/202 连续受理）：
+    //   tick7: tag201 进 S1b（s1b_v=1），S1a 锁存 tag202 的总线值
+    //   tick8: tag202 进 S1b，同时 tag201 进 S2a
+    //   S2a(tag201) 若共用 S1a 那一份，读到的是 tag202 的 G
+    //   -> N 错成 6*2^30（应 0），码 0x90000（应 0x80000）
+    //
+    // 所以：S1a 锁存 -> s1a 版；S1b 转发 -> s1b 版；S2a 用 s1b 版。
+    logic [63:0] G1a_q, Wm1a_q, Wp1a_q;   // S1a 级（受理沿锁存）
+    //
+    // **recip 与 S2a 需要的版本不同，这是关键**：
+    //   recip: valid_i=v1_q，其 G 必须与 v1_q 的时序链一致 -> 用 a 版
+    //   S2a  : 在下一拍处理同一笔 -> 用 b 版（S1b 转发的）
+    //
+    // 实测（连续三笔 201/202/203，G 分别 32/16/64 ×2^30）：
+    //   S2a 若用 a 版，tag202 读到的是 tag203 的 Wm=33*2^30，
+    //   N = 6*33*2^30 - 3*64*2^30 = 6*2^30 = 6442450944，
+    //   与实测错值**逐位吻合**。
+    logic [63:0] G1b_q, Wm1b_q, Wp1b_q;   // S1b 级（转发，供 S2a 用）
+
+
+
     // S1a：只算 Y - b
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             v1a_q <= 1'b0; tag1a_q <= 32'd0; err1a_q <= 1'b0; d1a_q <= 64'sd0;
+            alpha1a_q <= 32'd1073741824;   // 复位取 2^30（旁路默认）
+            G1a_q <= 64'd0; Wm1a_q <= 64'd0; Wp1a_q <= 64'd0;
         end else begin
             v1a_q   <= in_valid;
             tag1a_q <= in_tag;
@@ -194,6 +242,11 @@ module recon_v21 (
                 // 27 位有符号 -> 64 位：高位补符号位，不是补 0
                 yb = {{37{b_q24[26]}}, b_q24};
                 d1a_q <= y - yb;
+                // 同沿锁存本笔参数（受理沿快照）
+                alpha1a_q <= alpha_q30;
+                G1a_q    <= G_q30;
+                Wm1a_q   <= Wm_q30;
+                Wp1a_q   <= Wp_q30;
             end
         end
     end
@@ -202,14 +255,19 @@ module recon_v21 (
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             v1_q <= 1'b0; tag1_q <= 32'd0; err1_q <= 1'b0; z1_q <= 64'sd0;
+            G1b_q <= 64'd0; Wm1b_q <= 64'd0; Wp1b_q <= 64'd0;
         end else begin
             v1_q   <= v1a_q;
             tag1_q <= tag1a_q;
             err1_q <= err1a_q;
+            // 参数随 valid/tag 同步前进（S2a 用这一版）
+            G1b_q  <= G1a_q;
+            Wm1b_q <= Wm1a_q;
+            Wp1b_q <= Wp1a_q;
             if (alpha_bypass)
                 z1_q <= d1a_q;
             else
-                z1_q <= rnd64(d1a_q * 64'sd1073741824, {32'd0, alpha_q30});
+                z1_q <= rnd64(d1a_q * 64'sd1073741824, {32'd0, alpha1a_q});
         end
     end
 
@@ -244,7 +302,7 @@ module recon_v21 (
         // DC 随即把整个 recip_rnd_v21 当黑盒，网表里缺定义 ——
         // 这会让人误以为综合收敛且面积只有 89693 µm²（实测就是这样）。
         // G 的合同域上限 2^36，44 位足够。
-        .valid_i(v1_q), .g_q30(G_q30[43:0]),
+        .valid_i(v1_q), .g_q30(G1a_q[43:0]),
         .valid_o(ri_valid), .i_q60(ri_i), .err_o(ri_err));
 
     // S2a：算 N，并启动 I 的倒数流水（valid_i = v1_q 已接在上面）
@@ -256,9 +314,9 @@ module recon_v21 (
             tag2a_q <= tag1_q;
             err2a_q <= err1_q;
             n2a_q   <= ($signed(z1_q) * 96'sd64)
-                     + (96'sd6 * $signed({32'd0, Wm_q30}))
-                     - (96'sd3 * $signed({32'd0, G_q30}))
-                     - (96'sd6 * $signed({32'd0, Wp_q30}));
+                     + (96'sd6 * $signed({32'd0, Wm1b_q}))
+                     - (96'sd3 * $signed({32'd0, G1b_q}))
+                     - (96'sd6 * $signed({32'd0, Wp1b_q}));
         end
     end
 

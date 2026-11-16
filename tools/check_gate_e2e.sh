@@ -22,13 +22,25 @@
 #     端口绑定（RTL 数组端口 / 网表 11520+2880 位扁平向量）。
 #     门级 TB 由 tools/gen_gate_tb.py 从网表端口生成，端口自检不过就直接退出。
 #
-#   * **已知缺陷（本脚本会照实暴露，不会掩盖）**：
-#     rtl/recip_q60.sv 的 64 项种子 LUT 只用 `initial begin` 初始化，
-#     DC 综合时忽略该块（dc.log 里 VER-281），于是网表里 recip_q60 的
-#     inv_q60[26:0] 全部被赋成悬空自引用网、无单元驱动，倒数恒为 0。
-#     实测后果：A 笔 out_code = 0x80000（RTL 为 0xFFF00），B 笔不受影响。
-#     该缺陷不是本脚本引入的，且修它必须改 rtl/（本轮授权范围外）。
-#     脚本会把这条作为 FAIL 的定位信息打印出来，便于复审时直接对应。
+#   * **本轮发现并已修复的两个网表级缺陷（保留记录，便于复审对应）**：
+#
+#     ① recip_q60 的 64 项种子 LUT 原来只用 `initial begin lut[...]=... end`
+#        初始化。DC 综合时整块被忽略（dc.log 的 VER-281），于是 lut 全 X →
+#        u0 成常量 → u0_r_reg 被 OPT-1206 删除 → Newton 退化 →
+#        网表里 `assign inv_q60[0..26] = \inv_q60[26]`（悬空自引用网，
+#        无任何单元驱动），倒数恒 0。
+#        实测后果：A 笔 out_code = 0x80000（RTL 为 0xFFF00），B 笔不受影响；
+#        RTL vs 网表 1890 拍轨迹出现 58 处差异，**全部**在 out_code。
+#        修复：LUT 改为 function/case 常量查表（提交 878a348）。
+#        本文脚本的 1b/6/7 段会把该现象量化出来，便于回归时快速识别复发。
+#
+#     ② wsum_v21 的 f_Wm/f_Wp 用 `for (j=0..3) w_sub_tbl[ids][j]` 这种
+#        "循环变量索引二维数组" 写法，VCS 在 always_comb/函数内可能漏最后
+#        一次迭代（j=3），导致 j19 平衡位不计入 Wm，与节点宏口径不一致。
+#        修复：4 位显式展开（提交 45e54f1）。
+#
+#   这两处都是"能编译、能跑、数值悄悄错"的类型，只有逐拍轨迹 diff +
+#   交易数门禁才抓得住 —— 这正是本脚本存在的理由。
 #
 # 用法:
 #   D3D4_RUNNER=vm-yian bash tools/check_gate_e2e.sh
@@ -200,18 +212,19 @@ echo "RESULT: GATE_E2E_FAIL"
 [ $gate_ok -eq 1 ] || echo "  - 门级侧断言未通过（见 $WORK/run_gate.log）"
 [ "${n_diff:-1}" = "0" ] || echo "  - 轨迹存在 ${n_diff} 处差异"
 
-# 定向取证：如果差异只在 out_code 且只在 A 笔，指向 recip_q60 的 LUT 缺陷
-if [ "${n_diff:-0}" != "0" ] && run "diff $WORK/tr_rtl.txt $WORK/tr_gate.txt | grep '^[<>]' | grep -qv '^[<>] out_code'"; then
-  echo "  - 差异不限于 out_code 字段，需要逐条定位"
+# 定向取证：差异是否只落在 out_code —— 这是 recip_q60 LUT 缺陷的**特征签名**。
+# 该缺陷已由 878a348 修复；若回归时又看到"只差 out_code"，优先查 LUT 是否
+# 被改回 initial 块（DC 会再次忽略它，VER-281 会重现）。
+only_code=1
+run "diff $WORK/tr_rtl.txt $WORK/tr_gate.txt | grep '^[<>]' | grep -qv '^[<>] out_code'" && only_code=0
+if [ "$only_code" = "1" ]; then
+  echo "  特征匹配：差异**只**在 out_code，符合 recip_q60 LUT 被综合丢弃的表现。"
+  echo "  复查命令："
+  echo "    grep -c 'VER-281' $DCLOG                    # >0 说明 initial 块又被忽略"
+  echo "    awk '/^module recip_q60 /,/^endmodule/' $NETLIST | grep 'assign inv_q60'"
+  echo "    # 若出现 inv_q60[0..26] 全等于同一根 \\inv_q60[26]，即为该缺陷复发"
 else
-  echo
-  echo "  定位提示：差异集中在 out_code，且最可能是 recip_q60 的 LUT 缺陷。"
-  echo "  rtl/recip_q60.sv 的 64 项种子表只用 initial begin 初始化，"
-  echo "  DC 综合时忽略该块（dc.log 里 VER-281），网表里 inv_q60 全是悬空网。"
-  echo "  复现命令（隔离模块直接对比）："
-  echo "    awk '/^module recip_q60 /,/^endmodule/' $NETLIST > /tmp/recip_only.v"
-  echo "    # RTL  : inv=33554431（G=2^35，正确）"
-  echo "    # 网表 : inv=0        （LUT 未初始化，倒数恒 0）"
+  echo "  差异不限于 out_code，需要逐条定位（不是已知的 LUT 缺陷签名）。"
 fi
 echo
 echo "日志：$WORK/run_rtl.log  $WORK/run_gate.log  $WORK/tr_rtl.txt  $WORK/tr_gate.txt"

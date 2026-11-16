@@ -86,9 +86,10 @@ module wsum_v21 (
         logic [4:0] v;
         begin
             v = ids[s*5 +: 5];
-            sid_of = (v > 5'd17) ? 5'd17 : v;   // 越界钳到最后一个合法片
+            sid_of = (v > 5'd17) ? 5'd17 : v;
         end
     endfunction
+    // **注意**：本函数当前未被使用（见调用处说明）。
 
     function automatic logic [63:0] f_G(input logic [39:0] ids);
         logic [63:0] acc;
@@ -96,7 +97,7 @@ module wsum_v21 (
             acc = 64'd0;
             for (int s = 0; s < 8; s++)
                 for (int j = 0; j < 16; j++)
-                    acc = acc + {24'd0, w_main_tbl[sid_of(ids, s)][j]};
+                    acc = acc + {24'd0, w_main_tbl[ids[s*5 +: 5]][j]};
             f_G = acc;
         end
     endfunction
@@ -109,7 +110,7 @@ module wsum_v21 (
             for (int s = 0; s < 8; s++) begin
                 for (int j = 0; j < 16; j++)
                     if (post[s*20 + j])
-                        acc = acc + {24'd0, w_main_tbl[sid_of(ids, s)][j]};
+                        acc = acc + {24'd0, w_main_tbl[ids[s*5 +: 5]][j]};
                 // 子阵列 4 位全算（含 j19 平衡位，名义 1/128）。
                 // 只要 post 选中就计入 Wm —— j19 是真实电容。
                 // 与节点宏（仿真边界）必须用同一张物理位表、同一口径。
@@ -120,10 +121,10 @@ module wsum_v21 (
                 // 这正是审计问题 ③（j19 漏算）的成因，节点宏已改为显式展开
                 // （adc2_node_macro.sv:116-119），wsum 这里必须同步，
                 // 否则同一个物理位在两处口径不一致。
-                if (post[s*20 + 16]) acc = acc + {24'd0, w_sub_tbl[sid_of(ids, s)][0]};
-                if (post[s*20 + 17]) acc = acc + {24'd0, w_sub_tbl[sid_of(ids, s)][1]};
-                if (post[s*20 + 18]) acc = acc + {24'd0, w_sub_tbl[sid_of(ids, s)][2]};
-                if (post[s*20 + 19]) acc = acc + {24'd0, w_sub_tbl[sid_of(ids, s)][3]};
+                if (post[s*20 + 16]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][0]};
+                if (post[s*20 + 17]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][1]};
+                if (post[s*20 + 18]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][2]};
+                if (post[s*20 + 19]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][3]};
             end
             f_Wm = acc;
         end
@@ -138,10 +139,10 @@ module wsum_v21 (
             // 位序是 pre[s*4 + (3-j)]：j=0 取 pre[3], j=3 取 pre[0]，
             // 与节点宏的位映射一致（节点宏那边也是 j 与 pre 位反序）。
             for (int s = 0; s < 8; s++) begin
-                if (pre[s*4 + 3]) acc = acc + {24'd0, w_sub_tbl[sid_of(ids, s)][0]};
-                if (pre[s*4 + 2]) acc = acc + {24'd0, w_sub_tbl[sid_of(ids, s)][1]};
-                if (pre[s*4 + 1]) acc = acc + {24'd0, w_sub_tbl[sid_of(ids, s)][2]};
-                if (pre[s*4 + 0]) acc = acc + {24'd0, w_sub_tbl[sid_of(ids, s)][3]};
+                if (pre[s*4 + 3]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][0]};
+                if (pre[s*4 + 2]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][1]};
+                if (pre[s*4 + 1]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][2]};
+                if (pre[s*4 + 0]) acc = acc + {24'd0, w_sub_tbl[ids[s*5 +: 5]][3]};
             end
             f_Wp = acc;
         end

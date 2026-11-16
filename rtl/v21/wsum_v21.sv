@@ -169,6 +169,30 @@ module wsum_v21 (
     assign cfg_valid = locked_q;
     assign cfg_busy  = ~locked_q & (written_q != 360'd0);
 
+    // ---------------------------------------------------------------- 本笔权重快照
+    //
+    // **为什么需要：三个求和函数读的是同一份 wt_main[ids[s]][j]。**
+    // 原来 f_G / f_Wm / f_Wp 各自做一遍 5 位索引查表，等于把
+    // 2304 路 x 40 位的 MUX 树复制三份（单独综合 515 s / 153735 cells /
+    // 105359 µm²，占 11 个模块合计面积的 65.3%）。
+    //
+    // 现在先把本笔 8x16 主权重与 8x4 子权重一次取到 cur_main/cur_sub，
+    // 三个函数都从这份读。DC 只需一份 MUX 树，后面的求和变成纯加法。
+    //
+    // 代价：多一级组合（8x16 + 8x4 = 160 个 40 位选择），但省掉 2 份完整 MUX。
+    // 不改任何求和公式，G/Wp/Wm 的数值语义完全不变。
+    logic [39:0] cur_main [0:7][0:15];
+    logic [39:0] cur_sub  [0:7][0:3];
+
+    always_comb begin
+        for (int s = 0; s < 8; s++) begin
+            for (int j = 0; j < 16; j++)
+                cur_main[s][j] = wt_main[ids_i[s*5 +: 5]][j];
+            for (int j = 0; j < 4; j++)
+                cur_sub[s][j] = wt_sub[ids_i[s*5 +: 5]][j];
+        end
+    end
+
     // ---------------------------------------------------------------- 求和函数
     //
     // 用 function 而不是 always_comb 里的临时变量：
@@ -189,13 +213,14 @@ module wsum_v21 (
     // 合同上片号由 sched18 的 pick() 产生，返回 5'(i) 且 i ∈ [0,17]，
     // 非法输入不在合同范围内。
 
+    // 注：参数 ids 保留只为接口不变，实际查表已在 cur_main/cur_sub 里做过
     function automatic logic [63:0] f_G(input logic [39:0] ids);
         logic [63:0] acc;
         begin
             acc = 64'd0;
             for (int s = 0; s < 8; s++)
                 for (int j = 0; j < 16; j++)
-                    acc = acc + {24'd0, wt_main[ids[s*5 +: 5]][j]};
+                    acc = acc + {24'd0, cur_main[s][j]};
             f_G = acc;
         end
     endfunction
@@ -208,7 +233,7 @@ module wsum_v21 (
             for (int s = 0; s < 8; s++) begin
                 for (int j = 0; j < 16; j++)
                     if (post[s*20 + j])
-                        acc = acc + {24'd0, wt_main[ids[s*5 +: 5]][j]};
+                        acc = acc + {24'd0, cur_main[s][j]};
                 // 子阵列 4 位全算（含 j19 平衡位，名义 1/128）。
                 // 只要 post 选中就计入 Wm —— j19 是真实电容。
                 // 与节点宏（仿真边界）必须用同一张物理位表、同一口径。
@@ -219,10 +244,10 @@ module wsum_v21 (
                 // 这正是审计问题 ③（j19 漏算）的成因，节点宏已改为显式展开
                 // （adc2_node_macro.sv:116-119），wsum 这里必须同步，
                 // 否则同一个物理位在两处口径不一致。
-                if (post[s*20 + 16]) acc = acc + {24'd0, wt_sub[ids[s*5 +: 5]][0]};
-                if (post[s*20 + 17]) acc = acc + {24'd0, wt_sub[ids[s*5 +: 5]][1]};
-                if (post[s*20 + 18]) acc = acc + {24'd0, wt_sub[ids[s*5 +: 5]][2]};
-                if (post[s*20 + 19]) acc = acc + {24'd0, wt_sub[ids[s*5 +: 5]][3]};
+                if (post[s*20 + 16]) acc = acc + {24'd0, cur_sub[s][0]};
+                if (post[s*20 + 17]) acc = acc + {24'd0, cur_sub[s][1]};
+                if (post[s*20 + 18]) acc = acc + {24'd0, cur_sub[s][2]};
+                if (post[s*20 + 19]) acc = acc + {24'd0, cur_sub[s][3]};
             end
             f_Wm = acc;
         end
@@ -237,10 +262,10 @@ module wsum_v21 (
             // 位序是 pre[s*4 + (3-j)]：j=0 取 pre[3], j=3 取 pre[0]，
             // 与节点宏的位映射一致（节点宏那边也是 j 与 pre 位反序）。
             for (int s = 0; s < 8; s++) begin
-                if (pre[s*4 + 3]) acc = acc + {24'd0, wt_sub[ids[s*5 +: 5]][0]};
-                if (pre[s*4 + 2]) acc = acc + {24'd0, wt_sub[ids[s*5 +: 5]][1]};
-                if (pre[s*4 + 1]) acc = acc + {24'd0, wt_sub[ids[s*5 +: 5]][2]};
-                if (pre[s*4 + 0]) acc = acc + {24'd0, wt_sub[ids[s*5 +: 5]][3]};
+                if (pre[s*4 + 3]) acc = acc + {24'd0, cur_sub[s][0]};
+                if (pre[s*4 + 2]) acc = acc + {24'd0, cur_sub[s][1]};
+                if (pre[s*4 + 1]) acc = acc + {24'd0, cur_sub[s][2]};
+                if (pre[s*4 + 0]) acc = acc + {24'd0, cur_sub[s][3]};
             end
             f_Wp = acc;
         end

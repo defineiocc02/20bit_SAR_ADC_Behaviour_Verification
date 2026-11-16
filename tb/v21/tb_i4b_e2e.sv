@@ -22,6 +22,13 @@
 //       ⑤ 越窗、延迟 hold、旧 raw 与新捕获同沿、复位后迟到 raw
 //       ⑥ 释放只看 hold，raw 返回不提前释放旧组
 //   * 波形：$dumpvars 到 tb_i4b_e2e.fsdb（或 vcd），可追 arm/捕获/hold/raw/tag/post。
+//   * 轨迹输出（+TRACE=<path>）：逐拍记录 19 个关键字段，供门级对比。
+//     两个采样点问题已修：
+//       ① 脉冲类（apply_fire / rsp_valid）是组合信号只高一拍，
+//          早前只在 negedge 记录，全程读到 0；
+//          改用 sticky 位在 posedge 累积、negedge 记录后清零。
+//       ② 结尾必须打印 TRANSACTIONS accepted/captured/output，
+//          三者各 >=2 才算有效交易，避免两侧都无输出却判通过。
 // 变更记录   :
 //   2026-11-15  v1.0 只测 DUT 内宏的 raw 数值。
 //   2026-11-15  v2.0 宏移到仿真边界，补 arm/登记分离、真实握手、sched18 生产路径。
@@ -29,6 +36,15 @@
 module tb_i4b_e2e;
 
     logic clk = 1'b0;
+    // ---- 轨迹记录（供门级对比）----
+    // 每拍把关键状态写一行。字段顺序固定，RTL 与网表用同一份 TB，
+    // 所以两侧轨迹可直接 diff。
+    int          tr_fd;
+    bit          tr_en = 1'b0;
+    // 统计：确有有效交易，避免"两侧都无输出却判通过"
+    int          n_prepare_acc = 0;   // 实际受理笔数
+    int          n_capture     = 0;   // 实际捕获笔数（rsp_valid）
+    int          n_out         = 0;   // 实际 20 位输出笔数
     always #5 clk = ~clk;
     logic rst_n = 1'b0;
 
@@ -172,6 +188,56 @@ module tb_i4b_e2e;
 
     // ---------------------------------------------------------------- 计分板
     int errors = 0, checks = 0;
+    // ---- 逐拍轨迹 ----
+    //
+    // **脉冲类信号必须在 posedge 采**：`apply_fire` / `rsp_valid` 是
+    // 组合脉冲，只在一拍内为高（apply 依赖 bit_valid_i，rsp_valid 依赖
+    // take_raw）。早前只在 negedge 记录，两者全程读到 0，
+    // 看起来"没有事件"其实是采样点错了（实测 rsp_valid/apply 唯一值只有 0）。
+    //
+    // 做法：脉冲类用 sticky 位累积（posedge 置位，negedge 记录后清零），
+    // 这样 negedge 那一行也能反映"这一拍里发生过脉冲"。
+    bit tr_apply_sticky = 1'b0;
+    bit tr_rsp_sticky   = 1'b0;
+    always @(posedge clk) if (tr_en) begin
+        if (apply_fire)       tr_apply_sticky <= 1'b1;
+        if (adc2_rsp_valid)   tr_rsp_sticky   <= 1'b1;
+    end
+
+    // 只在 tr_en 打开后记录（复位稳定之后），避免复位瞬态噪声。
+    always @(negedge clk) if (tr_en) begin
+        $fdisplay(tr_fd, "T %0d", $time);
+        $fdisplay(tr_fd, "prepare_ready %0b", prepare_ready);
+        $fdisplay(tr_fd, "acq_sel %0h", acq_sel);
+        $fdisplay(tr_fd, "conv_sel %0h", conv_sel);
+        $fdisplay(tr_fd, "pre_wr %0h", pre_wr);
+        $fdisplay(tr_fd, "post_wr %0h", post_wr);
+        $fdisplay(tr_fd, "arm %0b", adc2_capture_arm_o);
+        $fdisplay(tr_fd, "rsp_valid %0b", tr_rsp_sticky);
+        $fdisplay(tr_fd, "rsp_tag %0h", adc2_rsp_tag);
+        $fdisplay(tr_fd, "rsp_raw %0h", adc2_rsp_raw);
+        $fdisplay(tr_fd, "apply %0b", tr_apply_sticky);
+        $fdisplay(tr_fd, "k %0h", k_out);
+        $fdisplay(tr_fd, "final %0b", final_applied);
+        $fdisplay(tr_fd, "final_k %0h", final_k);
+        $fdisplay(tr_fd, "err %0b", err);
+        $fdisplay(tr_fd, "done %0b", done);
+        $fdisplay(tr_fd, "out_valid %0b", out_valid);
+        $fdisplay(tr_fd, "out_code %0h", out_code);
+        $fdisplay(tr_fd, "out_err %0b", out_err);
+        $fdisplay(tr_fd, "out_tag %0h", out_tag);
+        $fdisplay(tr_fd, "---");
+        tr_apply_sticky <= 1'b0;
+        tr_rsp_sticky   <= 1'b0;
+    end
+
+    // ---- 交易计数 ----
+    always @(posedge clk) if (tr_en && rst_n) begin
+        if (prepare_valid && prepare_ready)      n_prepare_acc <= n_prepare_acc + 1;
+        if (adc2_rsp_valid)                      n_capture     <= n_capture + 1;
+        if (out_valid)                           n_out         <= n_out + 1;
+    end
+
     task automatic fail(input string msg);
         errors = errors + 1;
         if (errors <= 30) $display("[%0t] ERROR: %s", $time, msg);
@@ -223,6 +289,8 @@ module tb_i4b_e2e;
 
     logic rsp_seen;
     logic        d5_valid_seen;
+
+
     logic [19:0] d5_code_seen;
     logic [31:0] d5_tag_seen;
     logic        d5_err_seen;
@@ -270,6 +338,18 @@ module tb_i4b_e2e;
     endtask
 
     initial begin
+        // 轨迹文件：+TRACE=<path> 时启用。
+        // 门级对比就是靠它：同一份 TB 分别跑 RTL 与网表，diff 两侧轨迹。
+        begin
+            reg [1023:0] tp;
+            if ($value$plusargs("TRACE=%s", tp)) begin
+                tr_fd = $fopen(tp, "w");
+                if (tr_fd == 0) begin
+                    $display("FATAL: cannot open %0s", tp); $finish;
+                end
+                $display("INFO: trace -> %0s", tp);
+            end
+        end
         if ($test$plusargs("dump")) begin
             $dumpfile("tb_i4b_e2e.vcd");
             $dumpvars(0, tb_i4b_e2e);
@@ -296,6 +376,7 @@ module tb_i4b_e2e;
         rst_n = 1'b1;
         @(negedge clk);
         sched_seed_we = 1'b0;
+        tr_en = 1'b1;      // 复位稳定后才开始记录轨迹
 
         // ==================== 真实 sched18 生产路径检查 ====================
         // 复位后第一拍：ACQ=8、CONV=0、IDLE=10 —— 这是**正确**的初态
@@ -512,10 +593,22 @@ module tb_i4b_e2e;
         @(posedge clk); @(negedge clk);
         sample_event = 1'b0; residue_captured = 1'b0;
 
+        tr_en = 1'b0;
         $display("---------------------------------------------------------------");
+        // **交易统计必须非零**：早期版本两侧都无有效输出却判通过，
+        // 原因就是只比了"轨迹一致"，没确认轨迹里有真实交易。
+        $display("TRANSACTIONS accepted=%0d captured=%0d output=%0d",
+                 n_prepare_acc, n_capture, n_out);
         $display("I4b e2e: %0d 检查, %0d errors", checks, errors);
-        if (errors == 0) $display("RESULT: PASS (%0d checks)", checks);
-        else             $display("RESULT: FAIL (%0d errors)", errors);
+        if (n_prepare_acc < 2 || n_capture < 2 || n_out < 2) begin
+            $display("RESULT: FAIL (交易不足：accepted=%0d captured=%0d output=%0d，应各 >=2)",
+                     n_prepare_acc, n_capture, n_out);
+        end else if (errors == 0) begin
+            $display("RESULT: PASS (%0d checks)", checks);
+        end else begin
+            $display("RESULT: FAIL (%0d errors)", errors);
+        end
+        if (tr_fd != 0) $fclose(tr_fd);
         $finish;
     end
 

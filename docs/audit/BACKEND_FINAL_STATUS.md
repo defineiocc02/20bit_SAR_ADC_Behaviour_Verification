@@ -84,6 +84,49 @@ place_opt 无处放 buffer → OPT-045
 | 最小 UPF | `flow/synth/v21/min_single_domain.upf` | v5.0，`check_mv_design` 通过 |
 | 本文档 | `docs/audit/BACKEND_FINAL_STATUS.md` | 状态与阻塞 |
 
+## 6b. 第 41-44 轮的补充实验（全部否定了"UPF 是根因"）
+
+| 实验 | 配置 | LGL-397 | OPT-045 | place_opt |
+|:---|:---|--:|--:|:---|
+| A | 有 UPF + `-site core7T` | 49 | 1 | rc=1 |
+| B | 有 UPF + `-use_site_row` | 49 | 3 | rc=1 |
+| C | **完全不加载 UPF** | **49** | 2 | rc=1 |
+
+**关键结论：不加载 UPF，`LGL-397` 仍然是 49 次。**
+所以 `LGL-397` 与 UPF、与 VA、与 power intent **完全无关**。
+
+### `place_opt` 的实际行为
+
+```
+Place-opt optimization Phase 5 Iter 1   ...   1543 cells
+Information: Running auto PG connection. (NDM-099)
+Warning: Incomplete place_opt / final_place (FLW-8004)
+```
+
+- 单元**确实被放置了**（1543 cells）
+- 但在 `final_place` 阶段被判为 **Incomplete**
+- `OPT-045` 只出现 2 次，且发生在早期
+
+### `-use_site_row` 无效
+
+manpage 说默认建 `siteArray`、加该选项建 `siteRow`，实测：
+- 加之前：49 次
+- 加之后：49 次（未变）
+
+**说明 site row 生成失败的原因不在这个选项，而在技术 LEF 本身。**
+
+### 已彻底排除的方向
+
+| 方向 | 排除依据 |
+|:---|:---|
+| UPF / power intent | 完全不加载 UPF，`LGL-397` 仍是 49 |
+| VA / power domain | 同上 |
+| `set_lib_cell_purpose` | 与 site row 无关 |
+| PG 引脚 / 库缺 PG | 839 个 VDD 引脚都在 |
+| `-use_site_row` | 加了无效 |
+
+**剩下的唯一嫌疑：`tsmc28_7t_site_via.lef` 不是这套单元库配套的完整技术 LEF。**
+
 ## 7. 结论
 
 **后端工作到 `place_opt` 为止，`PARTIAL`。**

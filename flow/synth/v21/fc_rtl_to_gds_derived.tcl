@@ -13,6 +13,16 @@ set_top_module sched18
 # 关键：读自带 DIRECTION 的 tech LEF（.tf 只给几何、不含方向）
 set _rt [catch {read_tech_lef /tmp/tsmc28_tech_gen.lef} _et]
 puts "CHK_TECH rc=$_rt"
+# **必须加载 UPF 并设电压**：否则日志出现
+#   Number of used supplies = 0
+# 导致 place_opt 插入的 buffer（A689 这类）没有电源上下文、
+# 报了 168 个 "is not placed"。
+# UPF 本身已由 check_mv_design 验证通过（UPF-072 committed）。
+set _ru [catch {load_upf /tmp/min_single_domain.upf} _eu]
+puts "CHK_UPF rc=$_ru"
+set _rv1 [catch {set_voltage 0.81 -object_list [get_supply_nets VDD]} _e1]
+set _rv2 [catch {set_voltage 0.00 -object_list [get_supply_nets VSS]} _e2]
+puts "CHK_VOLTAGE vdd=$_rv1 vss=$_rv2"
 puts "STEP_ELAB_OK"
 read_parasitic_tech -tlup $TLU/cln28hpc+_1p09m+ut-alrdl_4x2y2r_cworst.tluplus -name maxTLU
 read_parasitic_tech -tlup $TLU/cln28hpc+_1p09m+ut-alrdl_4x2y2r_cbest.tluplus -name minTLU
@@ -39,7 +49,7 @@ set _x1 [lindex $_ll 0]; set _y1 [lindex $_ll 1]
 set _x2 [lindex $_ur 0]; set _y2 [lindex $_ur 1]
 set _sw 0.140
 set _sh 0.700
-set _ncol [expr {int(($_x2-$_x1)/$_sw)}]
+set _ncol [expr {int(($_x2-$_x1)/$_sw) - 1}]
 set _nrow [expr {int(($_y2-$_y1)/$_sh)}]
 # **必须先清掉已有的 site row 再建**，否则报
 #   Error: Incompatible site rows overlap. (LGL-010)

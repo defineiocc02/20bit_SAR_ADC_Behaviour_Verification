@@ -81,10 +81,18 @@ def test_operator_set_and_declared_bounds():
         assert len(op.bounds) > 30, f"{op.name} 的边界声明太短，等于没写"
 
 
-def test_edge_delete_is_declared_unreachable(sites):
-    """`EdgeDelete` 在本子集机会为 0 —— 这是"不可达"，必须诚实地报 0 而不是伪造机会。"""
+def test_edge_delete_requires_multiple_edges_and_reports_current_inventory(sites):
+    """单沿输入不可删除；多沿输入可删一个沿且不能把历史计数当现行判据。"""
+    op = next(op for op in mrt.OPERATORS if op.name == "EdgeDelete")
+    assert op.find("fixture.sv", ["always_ff @(posedge clk) q <= d;"]) == []
+    candidates = op.find("fixture.sv", ["always_ff @(posedge clk or negedge reset_n) q <= d;"])
+    assert [(site.span, site.repl) for site in candidates] == [(" or negedge reset_n", "")]
+
+    # 历史源集仅含单沿。当前有异步复位模块，机会数按现行源集重算。
     inv = mrt.inventory(mrt.RTL_ROOT)
-    assert inv["operators"]["EdgeDelete"]["opportunities"] == 0
+    edge_delete_count = sum(site.op == "EdgeDelete" for site in sites)
+    assert edge_delete_count > 0
+    assert inv["operators"]["EdgeDelete"]["opportunities"] == edge_delete_count
     assert inv["operators"]["EdgeFlip"]["opportunities"] > 0
     assert inv["operators"]["EdgeInsert"]["opportunities"] > 0
 

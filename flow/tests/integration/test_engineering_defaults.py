@@ -37,9 +37,10 @@ def test_defaults_do_not_make_low_level_config_implicitly_ready():
     with pytest.raises(ConfigError, match="missing"):
         Config().check_legal()
     model = default_model()
-    # 2026-11-13：ADC2 位数依 ADR-0003 的 paper_literal 行改为 14（与窗口配套）。
-    # 12 bit 时二级量化 LSB 折到输入是 0.60 LSB20，单这一项就吃不满 20 bit。
-    assert model.cfg.adc2_n_bits == 14
+    # [合同] 默认入口应选中现行 ADC2 档位；低层 Config() 仍须显式配置。
+    # 同时钉住位宽和边界，防止 13 bit 搭配历史 14 bit 的窗口而悄悄改变换算增益。
+    assert model.cfg.adc2_n_bits == 13
+    assert (model.cfg.adc2_v_min, model.cfg.adc2_v_max) == (-0.1875, 0.5625)
     assert model.cfg.b1 == 9
     assert (model.cfg.n_slices, model.cfg.n_active) == (18, 8)
     # 2026-11-13 第二轮修正（1C 缺口）：17/5 阵列有两个**不同**的归一化电容，

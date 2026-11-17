@@ -413,11 +413,12 @@ def usage_uniformity(
     packed = _integer_array(states, "usage states", ndim=1)
     if conv.shape[0] != packed.shape[0]:
         raise ConfigError("usage audit needs one DEM state per conversion record")
-    report = {"samples": int(conv.shape[0]), "codes": {}}
+    code_reports: dict[str, dict] = {}
+    report: dict[str, object] = {"samples": int(conv.shape[0]), "codes": code_reports}
     overall = True
     for code in codes:
         entry = _audit_one_code(code, conv=conv, packed=packed, pool=pool, binding=binding)
-        report["codes"][str(code)] = entry
+        code_reports[str(code)] = entry
         overall = overall and entry["uniform"]
     report["uniform"] = bool(overall)
     report["_note"] = "counts are per (physical slice aggregated, physical unit); not INL"

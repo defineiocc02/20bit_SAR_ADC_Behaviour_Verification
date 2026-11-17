@@ -43,7 +43,7 @@ ADC2_FRACTION_BITS = 12
 DITHER_DENOMINATOR = 8     # 工程模式（八片）。专利七片示例用 7，单独标识。
 
 
-def _dither_terms(word: int, denominator: int = None) -> tuple[int, int, float]:
+def _dither_terms(word: int, denominator: int | None = None) -> tuple[int, float, float]:
     """Fig.19：U = 4·D6 + D4，L = 2·D5 + (4D3+2D2+D1)/D。
 
     D = DITHER_DENOMINATOR(8) 为主模式 [工程]；D = 7 属专利七片示例 [原文]。

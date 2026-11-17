@@ -1,4 +1,11 @@
-// 模块：sar_structural_ctrl；真实slice所有权、seeded9bit SAR与前代fine上下文。
+// =============================================================================
+// 文件名     : sar_structural_ctrl.sv
+// 模块名     : sar_structural_ctrl
+// 版本       : v1.0
+// 功能       : 将片组所有权、粗码前缀和残差样本交接绑定到同一工程时序。
+// 设计说明   : 采集与转换分别持有描述符，残差捕获沿只接收本笔最后一次合法开关。
+// 变更记录   : 明确悬空普通 AZ 流程不使用的 CAAZ 输出端口。
+// =============================================================================
 // source_control_binding由调用者显式提供；本模块不选择物理DEM/dither/bridge映射。
 // source_control_valid/ready在advance沿为新acquiring组冻结word/state；quiet沿读取旧acquiring元数据
 // 为current。无valid只创建invalid acquisition，不重用旧word为good。
@@ -9,6 +16,7 @@
 `timescale 1ns/1ps
 `include "rtl_params.vh"
 module sar_structural_ctrl (
+    // --- 共用时钟与外部绑定 ---
     input wire clk, rst_n, enable,
     input wire source_control_valid,
     input wire [CONTROL_WORD_BITS-1:0] source_control_word,
@@ -19,11 +27,13 @@ module sar_structural_ctrl (
     output wire [STATE_BITS-1:0] acquisition_control_state,
     output wire signed [V_BITS-1:0] acquisition_sadc_shift_q,
     output wire signed [V_BITS-1:0] acquisition_rdac_shift_q,
+    // --- 两路粗比较及一路细比较 ---
     input wire [6:0] flash_therm,
     input wire flash_valid,
     input wire [1:0] coarse_cmp_valid, coarse_cmp_ge,
     input wire fine_cmp_valid, fine_cmp_ge,
     input wire analog_bad, recon_busy,
+    // --- 用于外部宏的数字相位和开关控制 ---
     output wire [3:0] phase,
     output wire quiet_sample, tp_clock, ra_az, ra_amplify, ref_precharge, ref_accurate,
     output wire [17:0] acquiring_mask, converting_mask,
@@ -38,6 +48,7 @@ module sar_structural_ctrl (
     output wire [N_SLICES-1:0][N_UNIT_MAIN-1:0] main_sw,
     output wire [N_SLICES-1:0][N_UNIT_SUB-1:0] sub_sw,
     output logic sw_valid,
+    // --- 同笔残差重构的输入快照 ---
     output wire recon_start,
     output wire [31:0] context_id,
     output wire [8:0] context_coarse,
@@ -52,6 +63,9 @@ module sar_structural_ctrl (
     output logic [31:0] error_code
 );
   `include "rtl_error_codes.vh"
+  // 1. 相位与片组选取
+  // advance 接收新描述符，quiet_sample 晋升已经采过的组。
+  // 两个事件不能合成一个使能，否则晋升时会消耗正在接收的新字。
   wire advance, capture;
   analog_phase_ctrl #(.P_REF_ON(10), .P_CAPTURE(9)) u_phase (
       .clk(clk), .rst_n(rst_n), .enable(enable), .phase(phase),
@@ -70,6 +84,9 @@ module sar_structural_ctrl (
       .converting_mask(converting_mask), .conversion_valid(conv_valid),
       .sample_id(current_id), .acquisition_primed(acquisition_primed)
   );
+  // 2. 采集偏移与样本身份
+  // 源绑定对准已登记的采集组，后续转换仍读取本笔锁存的 RDAC 偏移。
+  // 外部可见的采集控制带独立合法位，偏移超范围时不可作为采样输入。
   logic [CONTROL_WORD_BITS-1:0] acquiring_word, current_word;
   logic [STATE_BITS-1:0] acquiring_state, current_state;
   logic acquiring_word_valid, current_word_valid;
@@ -95,6 +112,9 @@ module sar_structural_ctrl (
   assign hold_low_enable = acquisition_control_valid ? ~acquiring_mask : '1;
   assign flash_sample = quiet_sample;
 
+  // 3. 粗比较与残差细比较
+  // 粗比较银行随交接更新。细比较只在已有合法残差上下文时启动，
+  // 避免流水线初始化阶段使用未定义的上下文。
   logic coarse_cancel, fine_cancel, bank;
   wire [2:0] flash_code;
   sadc_enc #(.P_B1(3)) u_flash (.cmp_raw(flash_therm), .sadc_code(flash_code));
@@ -120,6 +140,9 @@ module sar_structural_ctrl (
       .resolved_code(fine_resolved), .busy(unused_fine_busy), .done(fine_done),
       .resolved_valid(unused_fine_update), .compare_enable(fine_compare_enable)
   );
+  // 4. 已决结果到实际开关
+  // 试探值和已决前缀具有不同资格。只对已决更新写 RDAC，
+  // 避免反复试探过程改变实际参考轨连接。
   wire [N_ACTIVE-1:0][N_UNIT_MAIN-1:0] bound_main;
   wire [N_ACTIVE-1:0][N_UNIT_SUB-1:0] bound_sub;
   wire signed [V_BITS-1:0] bound_common_q;
@@ -145,6 +168,8 @@ module sar_structural_ctrl (
       acquisition_shift_wide <= COMMON_MAX;
   wire query_update = enable && conv_valid && current_word_valid &&
       coarse_update[bank] && phase >= 2 && phase <= 8;
+  // 转换声明的 common 必须与采集时锁存的偏移相符。
+  // 不匹配时阻断写入并在下方锁记异常，不沿用上一笔合法掩码。
   wire accepted_update = query_update && bound_valid && common_in_range && bound_error == 0 &&
       bound_common_q == current_rdac_shift_q;
   logic [N_ACTIVE-1:0][N_UNIT_MAIN-1:0] accepted_main;
@@ -156,6 +181,9 @@ module sar_structural_ctrl (
       .slice_id(conv_ids), .main_on(bound_main), .sub_on(bound_sub),
       .slice_sel(slice_sel), .main_sw(main_sw), .sub_sw(sub_sw)
   );
+  // 5. 残差上下文与重构请求
+  // 保留的是已经接受的实际掩码，不在捕获后重新调用绑定。
+  // 普通 AZ 流程的 CAAZ 标签输入固定无效，输出明确悬空，不参与重构资格。
   logic coarse_ok, fine_ok, fine_done_seen;
   cal_sample_context u_context (
       .clk(clk), .rst_n(rst_n), .enable(enable), .residue_capture(capture),
@@ -171,11 +199,14 @@ module sar_structural_ctrl (
       .current_bad(binding_bad), .fine_valid(context_valid), .fine_id(context_id),
       .fine_coarse(context_coarse), .fine_state(context_state),
       .fine_control_word(context_control_word),
+      .fine_chop_neg(), .fine_az_pair_id(), .fine_az_valid(),
       .fine_slices(context_slices), .fine_main(context_main), .fine_sub(context_sub),
       .fine_analog_bad(context_analog_bad), .fine_known_common_q(context_known_common_q)
   );
   assign recon_start = enable && phase == 15 && context_valid && fine_ok && !recon_busy;
 
+  // 6. 跨相位状态、故障优先级与退出
+  // 禁用和复位撤销接收资格及宏控制，禁止停用前的描述符重新启动转换。
   always_ff @(posedge clk) begin
     if (!rst_n || !enable) begin
       coarse_cancel <= 1'b0;
@@ -208,6 +239,8 @@ module sar_structural_ctrl (
       coarse_cancel <= phase == 7 || phase == 8;
       fine_cancel <= phase == 13 || phase == 14;
       sw_valid <= accepted_update;
+      // 交接沿优先处理片组变化，并撤销旧掩码及细比较完成资格。
+      // 同沿细比较完成脉冲不能被误归入新上下文。
       if (quiet_sample) begin
         bank <= !bank;
         current_word <= acquiring_word;
@@ -226,6 +259,7 @@ module sar_structural_ctrl (
         // the fixed deadline instead of losing a pulse.
         fine_done_seen <= 1'b1;
       end
+      // 即使没有有效控制字，也更新采集组资格位，防止旧值跨组。
       if (advance) begin
         coarse_acquire_enable <= bank ? 2'b01 : 2'b10;
         acquiring_word_valid <= source_control_valid;
@@ -252,6 +286,8 @@ module sar_structural_ctrl (
               bound_error : ERR_SOURCE_BINDING;
         end
       end
+      // 粗、细比较分别在固定相位核对完成资格；超时本笔不得启动重构。
+      // 细比较的早完成事件用寄存位保留到截止相位。
       if (phase == 8) begin
         coarse_ok <= current_word_valid && coarse_done[bank];
         if (conv_valid && current_word_valid && !coarse_done[bank])

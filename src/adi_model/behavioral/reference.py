@@ -26,8 +26,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
 # 论文给的锚点：参考完全建立（20b）占 RA 相位的比例。
 # ISSCC2024 9.8 原文 "Complete (20b) settling of the reference, takes approx.
@@ -79,13 +81,15 @@ class ReferenceConfig:
             raise ValueError("RA phase duration must not be negative")
         if self.tau_s < 0:
             raise ValueError("time constant must not be negative")
-        if self.precharge_frac is None:
+        fraction = self.precharge_frac
+        if fraction is None:
             if self.enabled and self.tau_s > 0.0:
                 raise ValueError(
                     "precharge fraction must be explicit when reference settling is enabled"
                 )
-            object.__setattr__(self, "precharge_frac", 0.0)
-        if not 0.0 <= self.precharge_frac <= 1.0:
+            fraction = 0.0
+            object.__setattr__(self, "precharge_frac", fraction)
+        if not 0.0 <= fraction <= 1.0:
             raise ValueError("precharge fraction must lie in [0, 1]")
         if self.t_precharge_s < 0:
             raise ValueError("precharge duration must not be negative")
@@ -106,7 +110,7 @@ class ReferenceConfig:
         Returns:
             已启用的配置，``tau_s`` 由 ``required_tau`` 反解。
         """
-        fields = {
+        fields: dict[str, Any] = {
             "enabled": True,
             "t_ra_s": t_ra_s,
             "tau_s": required_tau(t_ra_s, SETTLE_FRACTION_OF_RA_PHASE, RESIDUAL_ACCURACY_RATIO),
@@ -162,8 +166,8 @@ def dynamic_reference(
     tau_s: float,
     t_precharge_s: float,
     t_ra_s: float,
-    swing_v: float,
-) -> float:
+    swing_v: ArrayLike,
+) -> float | NDArray[np.float64]:
     """给出 RA 相位结束时参考节点的剩余误差，单位 V。
 
     模型：预充相位结束时已建立 ``precharge_frac``，剩余 ``(1-precharge_frac)``

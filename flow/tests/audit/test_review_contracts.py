@@ -22,7 +22,7 @@ from adi_model.cli import main_validate_config
 from adi_model.control.dem import SplitSwitchCommand
 from adi_model.control.timing import SlicePlan
 from adi_model.defaults import DefaultParameters, default_model
-from adi_model.inventory_gate import build_summary, verify
+from adi_model.inventory_gate import INVENTORY_FILE, MANIFEST_DIR, SOURCES_FILE, build_summary, verify
 from adi_model.inventory_gate import main as inventory_main
 from adi_model.provenance import (
     Graded,
@@ -85,7 +85,7 @@ def reference_gate_case(tmp_path, monkeypatch):
     """
     monkeypatch.delenv("ADC_SOURCES_DIR", raising=False)
     root = tmp_path / "repo"
-    for directory in ("references", "src", "tests"):
+    for directory in (MANIFEST_DIR, "references", "src", "tests"):
         (root / directory).mkdir(parents=True, exist_ok=True)
     objects = [
         b"<< /Type /Catalog /Pages 2 0 R >>",
@@ -155,9 +155,9 @@ def reference_gate_case(tmp_path, monkeypatch):
 
     def write():
         for path, value in [
-            ("manifest/sources_manifest.json", sources),
+            (SOURCES_FILE, sources),
             ("references/source_manifest.json", references),
-            ("manifest/mechanism_inventory.json", inventory),
+            (INVENTORY_FILE, inventory),
         ]:
             (root / path).write_text(json.dumps(value, ensure_ascii=False))
 
@@ -516,7 +516,7 @@ class TestR15GateRefusesTruthiness:
         "text", ["[]", '{"sources":[],"sources":[]}', '{"sources":[],"n":NaN}']
     )
     def test_malformed_json_cannot_pass(self, reference_gate_case, text):
-        path = reference_gate_case.root / "manifest/sources_manifest.json"
+        path = reference_gate_case.root / SOURCES_FILE
         path.write_text(text)
         assert inventory_main(["--repo-root", str(reference_gate_case.root)]) == 1
 

@@ -314,6 +314,8 @@ class DefaultModel:
         # 避免读者从若干 dither 失败用例反推"到底是哪两个参数打不过"。
         from adi_model.simulation.parameter_consistency import check_dither_fits_stage2
 
+        # check_legal 已验证 ADC2 窗口的两个端点存在，以下只对静态类型缩窄。
+        assert cfg.adc2_v_min is not None and cfg.adc2_v_max is not None
         self.dither_stage2_consistency = check_dither_fits_stage2(
             v_fs=cfg.v_fs,
             gain=self.nominal_gain,

@@ -61,6 +61,11 @@ class Scheduler18Rtl:
         self.reset()
 
     def reset(self) -> None:
+        """恢复 RTL 上电分配、随机种子及周期记录；不推进采样周期。
+
+        重放同一调度流须恢复初始种子。转换组在首次推进前为空；
+        种子截断为 32 位后若为零，使用 RTL 的默认非零种子。
+        """
         # 上电：固定取 0..7 采集，其余 IDLE，无转换组（启动瞬态，非随机）
         self.rng = self.seed if self.seed else SEED_DEFAULT
         self.acq_mask = 0xFF
@@ -72,14 +77,17 @@ class Scheduler18Rtl:
     # ---------------------------------------------------------------- 观察
     @property
     def acq(self) -> list[int]:
+        """按升序返回当前采集片 ID（0..17）；读取不改变调度状态。"""
         return [s for s in range(N_SLICE) if self.acq_mask >> s & 1]
 
     @property
     def conv(self) -> list[int]:
+        """按升序返回当前转换片 ID（0..17）；首次推进前返回空列表。"""
         return [s for s in range(N_SLICE) if self.conv_mask >> s & 1]
 
     @property
     def idle(self) -> list[int]:
+        """按升序返回十八片内未分给采集和转换的 ID；复位时并非仅两片。"""
         m = ~(self.acq_mask | self.conv_mask) & 0x3FFFF
         return [s for s in range(N_SLICE) if m >> s & 1]
 

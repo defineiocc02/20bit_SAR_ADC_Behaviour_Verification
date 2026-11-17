@@ -51,6 +51,7 @@ assert all((1 << (Q - 1)) < v <= (1 << Q) for v in LUT), "LUT seed out of range"
 
 
 def num_bits(g: int) -> int:
+    """返回整数 g 的最小无符号幅值位宽；零返回 0，符号位不计。"""
     return g.bit_length()
 
 
@@ -82,6 +83,11 @@ def recip_exact_round(g: int) -> int:
 
 
 def recip_exact_floor(g: int) -> int:
+    """按整数除法返回 floor(2^60 / g)，供正增益码 g 的定点参考比较。
+
+    该参考不使用查表或迭代。零分母由 Python 的除零异常明确报告；
+    运行时 RTL 零增益返回值由调用处单独核验。
+    """
     return (1 << 60) // g
 
 

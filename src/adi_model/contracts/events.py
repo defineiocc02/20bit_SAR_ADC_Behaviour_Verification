@@ -48,7 +48,7 @@ class EventLog:
         Returns:
             不可变元组；空日志返回空元组。
         """
-        out = []
+        out: list[EventRecord] = []
         for sid in sorted(self._events):
             out.extend(self.for_sample(sid))
         return tuple(out)

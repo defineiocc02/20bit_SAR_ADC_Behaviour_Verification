@@ -537,9 +537,9 @@ def test_sdist_excludes_third_party_originals_and_keeps_real_public_assets():
             "src/adi_model/topology/mapper.py",
             "src/adi_model/behavioral/conversion.py",
             "src/adi_model/metrics/metrics_lsb20.py",
-        "docs/readme/make_source_bound_figures.py",
-        "docs/readme/fig/source_bound_default_architecture_v1.png",
-        "docs/readme/make_overview_figures.py",
+        "tools/run_review_figures.py",
+        "docs/figures/20261117/README.md",
+        "docs/figures/20261117/figures.json",
         "docs/caaz/make_figures.py",
         "flow/sim/fixtures/source_control_component/config.json",
         "flow/sim/fixtures/source_control_component/format.json",
@@ -549,6 +549,12 @@ def test_sdist_excludes_third_party_originals_and_keeps_real_public_assets():
         "tools/export_rtl_params.py",
         "tools/run_open_rtl.py",
     ]
+    # 当前 README 的图集使用逐图哈希清单。只检查现行交付路径；历史样本
+    # 的数值重算由独立的快照测试负责，不能用旧路径误判新发行包缺文件。
+    figure_dir = "docs/figures/20261117"
+    figures = json.loads((REPO / figure_dir / "figures.json").read_text(encoding="utf-8"))
+    assert figures["figure_files_sha256"]
+    kept.extend(f"{figure_dir}/{name}" for name in figures["figure_files_sha256"])
     for relative in kept:
         assert (REPO / relative).is_file(), relative
         assert not cfg.path_is_excluded(relative), relative

@@ -1,18 +1,46 @@
-"""检查公开图表的说明是否有保留样本数组支持。"""
+"""重算冻结 README 图表指标，不把历史波形当作当前默认模型的输出。"""
 
+import io
 import json
+import subprocess
 from pathlib import Path
 
 import numpy as np
 import pytest
 
 ROOT = Path(__file__).resolve().parents[3]
-DATA = ROOT / "docs/readme/data"
+# 清理工作树前的最后一版含有 JSON 和 NPZ；从同一提交读取避免混用口径。
+_FROZEN_README_COMMIT = "952eddc70685583c8591dfe11724be5f94d413a2"
 
 
-def test_calibration_plot_metrics_match_retained_samples():
-    metadata = json.loads((DATA / "calibration_40m.json").read_text())
-    with np.load(DATA / "calibration_40m.npz") as samples:
+@pytest.fixture(scope="module")
+def historical_readme_asset():
+    """返回读取旧图数据的函数；源码包或浅克隆缺历史时报告原因。"""
+    git = ["git", "-C", str(ROOT)]
+    try:
+        available = subprocess.run(
+            [*git, "cat-file", "-e", f"{_FROZEN_README_COMMIT}^{{commit}}"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    except FileNotFoundError:
+        pytest.skip("historical README samples require git")
+    if available.returncode:
+        pytest.skip(f"checkout does not contain README sample snapshot {_FROZEN_README_COMMIT}")
+
+    # 提交存在却缺文件是证据不完整，必须保留为失败。
+    def read(name: str) -> bytes:
+        return subprocess.check_output(
+            [*git, "show", f"{_FROZEN_README_COMMIT}:docs/readme/data/{name}"]
+        )
+
+    return read
+
+
+def test_calibration_plot_metrics_match_retained_samples(historical_readme_asset):
+    metadata = json.loads(historical_readme_asset("calibration_40m.json"))
+    with np.load(io.BytesIO(historical_readme_asset("calibration_40m.npz")), allow_pickle=False) as samples:
         for name, case in metadata["cases"].items():
             assert case["validation"]["fs_hz"] == 40e6
             assert case["overflow_count"] == 0
@@ -32,9 +60,9 @@ def test_calibration_plot_metrics_match_retained_samples():
                 assert float(sndr) == pytest.approx(stats["SNDR_dB"], abs=1e-6)
 
 
-def test_interleave_plot_spurs_and_rms_match_retained_samples():
-    metadata = json.loads((DATA / "interleave_40m.json").read_text())
-    with np.load(DATA / "interleave_40m.npz") as samples:
+def test_interleave_plot_spurs_and_rms_match_retained_samples(historical_readme_asset):
+    metadata = json.loads(historical_readme_asset("interleave_40m.json"))
+    with np.load(io.BytesIO(historical_readme_asset("interleave_40m.npz")), allow_pickle=False) as samples:
         for row in metadata["rows"]:
             assert row["fs_hz"] == 40e6
             assert row["analog_overflow_count"] == 0

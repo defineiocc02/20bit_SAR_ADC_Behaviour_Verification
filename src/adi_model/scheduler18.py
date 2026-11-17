@@ -45,6 +45,11 @@ class Scheduler18:
         self._check()
 
     def reset(self) -> None:
+        """清空片组和周期计数，下一次调度前必须重新调用 start。
+
+        保留当前随机流和已有违例供诊断；如需复播初始随机序列，
+        应用同一 seed 新建 Scheduler18。
+        """
         self.acq, self.conv, self.idle = [], [], []
         self.pending_conv = None
         self.frozen = False
@@ -91,6 +96,11 @@ class Scheduler18:
 
 
 def run(seed: int = 2026, n: int = 2000) -> dict:
+    """新建调度器并执行 n 个采样周期，返回每片的转换次数和违例。
+
+    seed 传给 NumPy 随机生成器，n 为非负周期数。次数按物理片
+    ID 索引，imbalance 是标准差除以均值；没有转换时记零。
+    """
     sch = Scheduler18(seed)
     sch.start()
     use = np.zeros(N_SLICE)

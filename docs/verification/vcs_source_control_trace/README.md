@@ -8,4 +8,4 @@
 | [events.csv](events.csv) | 观测、退休、标志及状态字 |
 | [residues.csv](residues.csv) | 余差对应的片组和实际开关掩码 |
 
-当前 [trace 检查器](../../../tools/check_source_control_trace.py) 要求 `controls.csv` 带有 `input_chop` 列，归档表使用更早的表头。复核旧运行请使用当时的输入和检查器。新跑请按 [组件夹具](../../../flow/sim/fixtures/source_control_component/) 和 [CI 步骤](../../../.github/workflows/ci.yml) 导出输入包、采集新 trace，再用对应的输入和检查器验收。更完整的工作流见 [验证目录](../../../flow/verification/README.md)。
+上述 CSV 属于该次历史运行。后续检查器的表头要求 `input_chop`，旧表应按当次源与格式解读。检查器的后续版本可用 `git show 674b0d8:tools/check_source_control_trace.py` 查看。保留的 [独立组件夹具](../../../flow/sim/fixtures/source_control_component/) 供输入包和算术检查使用。当前集成 ADC 的运行与证据见 [v21 验证入口](../../../flow/verification/README.md)。

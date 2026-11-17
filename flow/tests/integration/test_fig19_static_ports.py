@@ -1,24 +1,19 @@
-"""独立检验 Fig19 限定静态双端口、完整命令和最终整数输出。
+# =============================================================================
+# 文件名     : test_fig19_static_ports.py
+# 版本       : v1.0
+# 功能       : 回归现行 Python 静态扰动的双采样端口、掩码与定点输出。
+# 设计说明   :
+#   * 用 DefaultParameters 的 17 主端口、5 子端口和 13 位 ADC2，
+#     单元及桥接失配置零，并显式关闭采样噪声和 RA 噪声。
+#   * 采样双端口使用负等效注入。前缀超出 RDAC 码域时不得更新物理片组；
+#     终码饱和与模拟越界标志独立核对。
+# 变更记录   : 将静态回归说明对齐现行模型的默认几何、码本和 ADC2。
+# =============================================================================
+"""用独立计算核对现行 Python 的静态双端口等效扰动。
 
-负等效注入、七切片 4:2:1/7、均匀门限及全 SIGNAL 是显式工程假设。
-正例域为±2 V、无噪声／动态／DEM；不将其称为完整原芯片开关网络。
-
-⚠️ **KNOWN LEGACY（2026-11-13）：本文件的期望值构造仍基于 63+8 几何。**
-
-`_assert_physical_and_integer_views` 里用
-    `coarse = floor((x + 3) / (6/512))`、`k // 8`、`k % 8`、`np.arange(63)`、`np.arange(8)`
-反算期望粗码与掩码。主链切到 Fig.11 的 17/5 后：
-
-* 码本步长是 `2*v_fs/cn`（cn=31.9375）而非 `2*v_fs/512` ⇒ **粗码差 1**（实测 40/64 不匹配）
-* 主阵列是 17 列（15×2C + B4 + S4）、子阵列装配 4 列 ⇒ 掩码形状与编码规则全变
-
-因此本文件的 5 个用例**当前失败是预期内的**，它指向"测试未随拓扑更新"，
-而是"当前模型有 bug"。重写需要同时改期望构造与配套的 oracle 拒错测试，
-是独立任务（本轮试过一次，引入更多失败后已回退）。
-
-**在这 5 个用例被重写之前，不要用它们判断模型正确性。**
-当前模型的正确性由 `tests/unit + tests/verification + tests/audit + tests/regression`
-（1758 passed）与行为指纹保证。
+正例扫 ±2 V 范围内的输入及全部 64 个扰动字。期望粗码取现行码本阈值，
+掩码按实际片号独立推导，ADC2 用当前窗口和位数复算，最后比较 20 位输出。
+负例检查输入格式、非法早期前缀，以及扰动端口与数字符号接错时的检出能力。
 """
 
 from dataclasses import replace
@@ -81,11 +76,10 @@ def ideal_model():
 
 
 def _codebook(model):
-    """期望值必须用**模型的实际码本**，不能用等距假设。
+    """返回现行模型的码本电压，单位 V。
 
-    2026-11-13：本文件原先一律按 `-3 + k*(6/512)` 等距计算。主链切到 Fig.11 的
-    17/5 后，码本步长是 `2*v_fs/cn`（cn=31.9375）而非 `2*v_fs/512`，端点精确为
-    ±v_fs，等距假设会让粗码差 1（实测 40/64 个元素不匹配）。
+    粗码从实际阈值表求出。均匀步长外推会把部分输入判到相邻码，
+    并随之错判 RDAC 的实际开关和余差。
     """
     return np.asarray(model.codebook.voltage_v, dtype=float)
 
@@ -95,9 +89,8 @@ def _expected_masks(code: int, *, n_main: int, n_sub: int):
 
     主阵列 17 列 = 15 个 2C + B4(1C) + S4(1C)，主码 `m = code >> 4`：
         前 `m//2` 个 2C 置高；`m` 为奇数时 B4（索引 15）也置高；S4（索引 16）恒低。
-    子阵列 4 个可切换单元，子码 `s = code & 15` 的二进制位（bit3..bit0 → 8/4/2/1）。
-
-    本推导已与 `fig11_masks` 逐码对照验证（0..511 抽样 74 个，全部一致）。
+    子阵列 5 个端口中，4 个可切换单元由子码 `s = code & 15` 的位控制
+    （bit3..bit0 对应 8/4/2/1）；剩余端口不开关。
     """
     main = np.zeros(n_main, dtype=bool)
     m = code >> 4
@@ -130,10 +123,10 @@ def _round_even_pair(numerator: int, denominator: int) -> int:
 def _integer_oracle(parameters, backend_codes, k_codes, lower_q, slice_ids, model, physical_gain):
     """用纯 Python 整数复算 20 bit 定点输出，与声明方程同构。
 
-    2026-11-13：原实现把 63+8 的权重写死成
-    `main_w=2**26, sub_w=2**23, gain=8*(63*main_w+8*sub_w)`，17/5 下失效。
+    名义权重取自现行模型，ADC2 窗口和位数取自同一份规格。
+    覆盖对象是全部 64 个扰动字产生的样本，每笔使用该次采样的 ADC2 码。
 
-    现状（**已逐位验证：64 个二级码全覆盖，0 不一致**）：
+    计算顺序为：
 
         fine_q = min_q + round_even((2a+1)(max_q − min_q), 2**(adc2_bits+1))
         fine_q = round_even(fine_q · gain, G_phys · 2^wf)      ← 换算到 Σw 口径
@@ -142,16 +135,15 @@ def _integer_oracle(parameters, backend_codes, k_codes, lower_q, slice_ids, mode
         known  = Σ_{活跃片} Σ_{端口} w·term
         word   = floor((fine_q·2^wf − known + gain·2^vf)·2^ob / (2·gain·2^vf))
 
-    三个容易搞错的点（都由实测确定，不是推断）：
+    三个影响对照结果的约定：
 
     1. **`signal_mask` 全为 1**，它是"哪些端口参与"的有效性掩码，
        不是开关掩码；开关在 `main_masks`/`sub_masks` 里（它们只用于 term 的 ±v_fs）。
        因此 `gain` 等于**全权重和 × 活跃片数**。
     2. **开关用 RDAC 码 k = c − U**（224 减法器之后），不是粗码 c。
-       用 c 会让 U≠0 的样本固定偏 2048 LSB20（= 半格 9 bit 粗码）。
+       U 非零时，直接使用 c 会比较与实际转换不同的开关状态。
     3. **已知项减的是 L 不是 T**。T = L + U 里那部分 U 已经通过 k 进入了 RDAC 侧，
-       若 term 再减 T，U 就被算两次。实测组合：
-         mask=k, T=L → 0/64 不一致；mask=k, T=T → 48/64；mask=c, T=T → 48/64。
+       若 term 再减 T，便会对同一笔重复扣除 U 的作用。
 
     Args:
         parameters: 提供 adc2 窗口与位数。
@@ -224,9 +216,8 @@ def _assert_physical_and_integer_views(run, external, words, model):
     k = coarse - upper
     vd_c = book[coarse]
     vd_k = book[k]
-    # 残差按 **k（224 减法器之后）** 的电荷基线建立，并用**全字 T** 的采样注入：
-    #   residue = (x - T) - vd0(k) = (x - L - U) - (vd0(c) - U*Δ) = x - L - vd0(c)
-    # 即 U 在残差里自动抵消（这与原件的 222/224 配套关系一致）。
+    # RDAC 以总扰动 T 采样，并切换到减去 U 后的实际码 k。
+    # 从该码的实际码本电压计算余差，不把粗码与转换码视作同一开关状态。
     residue = external - total_v - vd_k
     np.testing.assert_array_equal(run.raw.dither_program.words, words)
     np.testing.assert_array_equal(run.raw.dither_program.lower_q, lower_q)
@@ -242,14 +233,11 @@ def _assert_physical_and_integer_views(run, external, words, model):
         rtol=32 * np.finfo(float).eps,
     )
     np.testing.assert_allclose(run.raw.residue, residue, atol=2e-14, rtol=0)
-    # RA 的实际增益是 C_norm/Cf = 32.002（不是整数 32），因此在 vra ~0.19 V 上
-    # 相对偏差约 5e-9 ⇒ 绝对差约 1e-9。原来的 atol=8e-13 是按"增益恰为 32"定的，
-    # 与实际物理增益不符。改为相对容差 1e-7（远严于任何真实误差）。
+    # 用名义 RA 增益复算的电压采用相对容差，容许电容比的数值舍入。
+    # 后续定点重构另取本次记录的物理增益，以匹配权重表的尺度。
     np.testing.assert_allclose(run.raw.vra, 32 * residue, rtol=1e-7, atol=0)
-    # 两个恒等式分别对应"用 c 基线 + L 注入"和"用 k 基线 + T 注入"，两者等价：
-    #   vd0(c) + residue + L == x   （U 在残差里抵消后的等价写法）
-    #   vd0(k) + residue + T == x   （直接按实际注入写）
-    # 由于 U 在残差里抵消，第一条只在 U=0 时严格成立，因此**只保留第二条**。
+    # 回代原输入应使用实际转换码 k 的电压和对应的总采样注入 T。
+    # 这个恒等式不依赖粗码与转换码之间的步进近似。
     np.testing.assert_allclose(vd_k + residue + total_v, external, atol=5e-16, rtol=0)
     expected_events = (
         np.array([[(int(c) >> shift) << shift for shift in range(6, -1, -1)] for c in coarse])
@@ -257,12 +245,9 @@ def _assert_physical_and_integer_views(run, external, words, model):
     )
     np.testing.assert_array_equal(run.raw.dither_trace.rdac_event_codes, expected_events)
     assert not run.raw.dither_trace.event_range_overflow.any()
-    # 掩码：逐码按 17/5 编码构造（形状取自实际记录，不写死 63/8）
-    # 掩码期望必须带上 Fig.11 的**横向相位**：
-    #   主列相位 = 物理片 ID，即第 `sid` 片的 2C 选中环从 `sid % 15` 起数。
-    # 片池逐笔轮换（plan.conv 每笔不同），所以同一个 k 在不同笔的掩码本来就不同——
-    # 这不是缺陷，是 DEM 按物理 ID 旋转的直接后果。
-    # （实测依据：片组起于 0/1/3 时，同一码的主列整体平移。）
+    # 掩码按实际端口维度构造。固定片内映射用物理片号决定 15 个 2C 主单元的起点。
+    # 不同笔的活跃片号可以不同，所以相同 k 仍需逐笔对照实际掩码。
+    # B4 和 S4 不随主单元环旋转，子阵列也按固定权重位解释。
     slice_ids = np.asarray(run.raw.acq_slice_ids)
     n_main, n_sub = run.raw.main_masks.shape[-1], run.raw.sub_masks.shape[-1]
     n_active = run.raw.main_masks.shape[1]
@@ -288,6 +273,8 @@ def _assert_physical_and_integer_views(run, external, words, model):
     expected_term = -lower_v[:, None, None] + 3 * (1 - 2 * masks.astype(np.int64))
     np.testing.assert_array_equal(run.raw.digital_observation.known_voltage_term_v, expected_term)
     np.testing.assert_array_equal(run.raw.dither_program.known_common_q, -total_q)
+    # ADC2 量化步长从同一份参数的窗口和后端位数计算。
+    # 先查 13 位原始码，再比较它进入定点重构后的 20 位输出。
     raw_voltage = 32 * residue
     backend_step = (parameters.adc2_v_max - parameters.adc2_v_min) / 2**parameters.adc2_n_bits
     backend = np.floor((raw_voltage - parameters.adc2_v_min) / backend_step).astype(np.int64)
@@ -321,11 +308,9 @@ def test_all_sixty_four_words_reach_both_real_analog_nodes_and_final_integer_cod
 def test_same_lower_different_upper_keeps_residue_but_changes_real_charge_and_masks(ideal_model):
     run = ideal_model.simulate(dc_input(0.31), 64, dither_words=np.arange(64))
     np.testing.assert_array_equal(run.raw.coarse[[0, 8, 32, 40]], run.raw.coarse[0])
-    # U 段必须在残差里完全抵消：222 注入 T、224 减 U，两者用**同一个粗码台阶**。
-    # 2026-11-13 修正后，实测残留漂移 ~4e-10 V（此前是 2.293e-05 V，因 dither 的
-    # step_q 用了等距 2^24 而非 17/5 的 16 810 048）。
-    # 残留来自 float64 在 8 片 × 22 端口上的累积舍入，远小于 1 LSB20 = 5.72e-06 V，
-    # 因此容差取 1e-9 V（比实际残留宽 2 倍，比 1 LSB20 严 5700 倍）。
+    # U 段同时进入总采样注入和 RDAC 转换命令，两路使用同一码本尺度。
+    # 只改变 U 的样本应呈现相同余差。允许 1 nV 的差用于有限精度，
+    # 同时独立判断物理电荷和实际开关确实随 U 改变。
     np.testing.assert_allclose(
         run.raw.residue[[0, 8, 32, 40]], run.raw.residue[0], atol=1e-9, rtol=0
     )
@@ -440,8 +425,8 @@ def test_source_dither_request_needs_words_and_cannot_silently_keep_default_nois
 )
 def test_independent_oracle_rejects_faulted_real_model_wiring(ideal_model, monkeypatch, fault):
     """在内存中故意改变真实端口/数字项，再要求独立oracle检出；非修正错数据。"""
-    # 2026-11-12: pipeline_engine moved into adi_model.simulation; the old
-    # `from adi_model import pipeline_engine` silently stopped resolving.
+    # 在实际流水线使用的模块中注入故障，再让独立 oracle 核查该次运行。
+    # monkeypatch 在用例退出时复原端口和数字项，避免污染后续正例。
     from adi_model.simulation import pipeline_engine
 
     words = np.arange(64)

@@ -1,1 +1,1 @@
-"""Independent Python-RTL consistency verification (contracts, references, cosim)."""
+"""独立定点参考及验证清单。"""

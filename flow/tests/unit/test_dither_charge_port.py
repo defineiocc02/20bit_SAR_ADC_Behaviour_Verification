@@ -1,19 +1,26 @@
-"""独立电荷口 dither（v2）的接入门禁。
+"""采样节点电荷扰动的组件测试。
 
-v1（`dither_program`）把 dither 实现成 RDAC 码整体减 U，因此只能在均匀 512 码本、
-零噪声、无 DEM 的条件下成立。v2 把 dither 电容接到**采样节点**：SADC 与 RDAC
-两个视图同时平移 T，RDAC 码保持真实判决 c，数字侧扣回 -T。
+该测试使用当前 ADC 默认参数。扰动电容同时平移前级采样和残差 DAC 所见电压。
+前级判决后的代码减去上段扰动字，数字重构扣回采样预置。
 
 本文件钉住四条性质：
 
 1. 理想器件（零失配、零噪声）下，64 个 dither 字重构同一输入，差异不超过 1 LSB20；
 2. 有失配时 dither 真的改变粗码使用（多码扩散），并把静态误差的**均值**压低；
-3. RDAC 码不因 dither 而偏移（不同于 v1 的 k=c-U）；
+3. RDAC 采用前级判决减去上段扰动字后的码 k = c - U；
 4. 与 `dither_program` 互斥，且缺少逐笔字时拒绝而不是生成隐藏字。
 
-证据等级：L1 行为级浮点模型，不是 RTL、后仿或硅测。
+证据范围：Python 行为模型的浮点结果。
 """
 
+# =============================================================================
+# 文件名     : test_dither_charge_port.py
+# 模块名     : 行为模型采样节点扰动
+# 功能       : 检查六位扰动字对残差、命令和重构输出的可见影响。
+# 设计说明   :
+#   * 固定直流可将跨字误差与频谱、输入边沿分离。
+#   * 测试保留真实饱和与失配反例，参数修复后 XFAIL 会迫使复查。
+# =============================================================================
 from __future__ import annotations
 
 import numpy as np
@@ -46,16 +53,14 @@ def _model(mismatch_std: float) -> DefaultModel:
 @pytest.mark.xfail(
     strict=True,
     reason=(
-        "KNOWN PARAMETER INCONSISTENCY (not an implementation defect): the dither upper "
-        "segment needs 5.5 LSB1 of residue swing but the 12-bit ADC2 window covers only "
-        "~1.24 LSB1. See adi_model.simulation.parameter_consistency and "
-        "docs/mechanisms/p1_gaps_20261113.md. strict=True: once the parameters become "
-        "consistent this XPASSes and forces the marker to be removed."
+        "当前 13 位模型的残差放大器在部分 6 位扰动字下饱和，"
+        "64 字透明性断言尚未通过。"
     ),
 )
 def test_ideal_port_is_transparent_for_all_sixty_four_words():
     """零失配下 64 个字必须重构同一电压：残差不能被 upper 顶出 RA 量程。"""
     model = _model(0.0)
+    # 穷举原码使各上段组合收到相同次数，避免从随机流遗漏最坏字。
     words = np.arange(64, dtype=np.int64)
     run = model.simulate(dc_input(0.4), 64, dither_words=words, dither_mode="charge_port")
     out = np.asarray(run.raw.out, dtype=float)
@@ -65,12 +70,7 @@ def test_ideal_port_is_transparent_for_all_sixty_four_words():
 
 
 def test_port_applies_the_224_subtractor_to_the_rdac_code():
-    """v2 的 RDAC 码 = SADC 判决 c 减去 U（原件 FIG.19 的 224 减法器）。
-
-    旧契约（"码保持 c，不做 k=c-U"）来自对 FIG.19 的早期读法。
-    2026-11-13 核对 [10] 专利 Sheet 20/21 后确认：224 减法器**确实**从 ADC 输出码
-    减去 D6,D4，因此 k = c - U 是原件结构，测试契约随之更新。
-    """
+    """RDAC 码取前级判决 c 减去上段扰动码 U，公式对应专利图 19 的减法器 224。"""
     model = _model(1e-3)
     words = np.full(4, 32, dtype=np.int64)  # bit5=1 → upper_code = 4
     run = model.simulate(dc_input(0.4), 4, dither_words=words, dither_mode="charge_port")
@@ -82,11 +82,8 @@ def test_port_applies_the_224_subtractor_to_the_rdac_code():
 @pytest.mark.xfail(
     strict=True,
     reason=(
-        "KNOWN PARAMETER INCONSISTENCY (not an implementation defect): the dither upper "
-        "segment needs 5.5 LSB1 of residue swing but the 12-bit ADC2 window covers only "
-        "~1.24 LSB1. See adi_model.simulation.parameter_consistency and "
-        "docs/mechanisms/p1_gaps_20261113.md. strict=True: once the parameters become "
-        "consistent this XPASSes and forces the marker to be removed."
+        "当前 13 位模型在本测试的失配和扰动设置下出现残差饱和，"
+        "64 字统计的平均静态误差未下降。"
     ),
 )
 def test_port_spreads_code_usage_and_reduces_mean_static_error():
@@ -96,6 +93,7 @@ def test_port_spreads_code_usage_and_reduces_mean_static_error():
     single = model.simulate(dc_input(level), 1)
     static_error = float(single.raw.out[0]) - level
 
+    # 穷举原码使各上段组合收到相同次数，避免从随机流遗漏最坏字。
     words = np.arange(64, dtype=np.int64)
     dithered = model.simulate(dc_input(level), 64, dither_words=words, dither_mode="charge_port")
     mean_error = float(np.asarray(dithered.raw.out, dtype=float).mean()) - level

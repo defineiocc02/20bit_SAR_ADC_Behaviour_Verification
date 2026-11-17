@@ -1,3 +1,10 @@
+# =============================================================================
+# 文件名     : run_p4_ablation.py
+# 版本       : v1.0
+# 功能       : 在 Fig.11 行为模型上对照失配、扰动和校准的效果。
+# 设计说明   : 各配置共享名义码本。DEM 开关只决定相位序列，
+#              片选和噪声流由运行编号另外控制。
+# =============================================================================
 """P4：adi_40m 行为级消融矩阵与论文锚点对照。
 
 口径先说清楚，避免把不同证据等级混在一起：
@@ -113,7 +120,7 @@ def _dither_port(model, cfg, words) -> DitherPort:
 
 def _run(model, input_fn, n_samples: int, *, dem: bool, uniform_plan: bool, calibration=None,
          dither_words=None, run_id: int = 0):
-    """执行一次显式配置；DEM 打开时用旋转掩码，否则复用默认分段掩码。
+    """在同一 Fig.11 掩码上比较 DEM 相位轮转和零相位。
 
     calibration 给定时用它替换名义解码（`FrozenCalibration.reconstruct`），
     返回的电压是校准后的浮点重构，不是 20bit 整数码。
@@ -146,6 +153,8 @@ def _run(model, input_fn, n_samples: int, *, dem: bool, uniform_plan: bool, cali
         acquisition_binding=_all_signal,
         schedule_binding=schedule,
     )
+    # 默认序列的横向周期与 fig11_masks 的 15 个 2C 位置一致。
+    # 关闭 DEM 时保留同一连接和电荷口，只固定横向相位。
     states = Dem3State.sequence(n_samples) if dem else np.zeros(n_samples, dtype=np.int64)
     plan = pool.plan(n_samples)
     noise_cap = _noise_cap_f(model, plan.conv) if cfg.enable_sampling_noise else None

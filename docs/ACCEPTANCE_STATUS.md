@@ -6,7 +6,7 @@
 
 ## D3/D4 独立 IP 验收记录
 
-三层证据，一条命令复现：`bash tools/verify_d3d4_ip.sh`
+本节的命令属于历史检出。脚本原件可用 `git show 2224d30:tools/verify_d3d4_ip.sh` 查阅。
 
 | 层 | 项 | 状态 | 证据 |
 |:--:|:---|:---|:---|
@@ -37,7 +37,7 @@
 - 顶层 `digital_top_w` 仍走 `dem_shuffle` + `dither_split`（4+3+2 / `c−U`），**不含 D3/D4**。
 - 仓库里那条 `8509` 笔 PASS 走的是旧链，**不是本表 D3/D4 的证据**。
 
-复现：
+旧检出中的复现命令。
 
 ```bash
 bash tools/verify_d3d4_ip.sh                                    # L1+L2

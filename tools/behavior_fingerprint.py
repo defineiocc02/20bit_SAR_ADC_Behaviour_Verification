@@ -1,3 +1,10 @@
+# =============================================================================
+# 文件名     : behavior_fingerprint.py
+# 版本       : v1.0
+# 功能       : 对名义输出与 Fig.11 掩码做逐字段的字节摘要比较。
+# 设计说明   : 同一模型参数与刺激下可定位最早变化的数字观测层。
+#              核对记录时读取既有文件，生成记录另走输出入口。
+# =============================================================================
 """行为指纹：重构前后的逐位对照基线。
 
 搬家（MOVE/ADAPT）必须证明"行为没变"。本脚本把几组关键配置的输出压成 SHA256，
@@ -5,7 +12,7 @@
 
 覆盖：
 * 静态名义链（默认模型，512 笔，dither 关闭）；
-* DEM 开关两种（`dem_enable` 切换掩码绑定与状态序列）；
+* DEM 开关两种（同一掩码绑定使用零相位或 Fig.11 相位序列）；
 * 定点解码输出（`codes.voltage`）与浮点重构（`raw.out`）分开记录。
 
 运行：
@@ -86,7 +93,6 @@ def main() -> int:
                         help="allow overwriting an existing baseline file")
     args = parser.parse_args()
     out = Path(args.out)
-    out.mkdir(parents=True, exist_ok=True)
 
     # 失配 σ 不写死：取 DefaultParameters 的唯一真源（由论文两指标反解，见
     # docs/mechanisms/paper_metrics_calibration.md）。写死 1e-3 会在参数调整后
@@ -121,7 +127,8 @@ def main() -> int:
         schedule_binding=plan,
     )
     codes = np.arange(64, dtype=np.int64) * 8
-    states = Dem3State.sequence(64, columns=63)
+    # 使用与管线 DEM 分支相同的 15 列序列，掩码变化才可定位到共同输入。
+    states = Dem3State.sequence(len(codes))
     command = fig11_masks(pool.geometry, codes, states, plan.conv)
     entry["mask_layer"] = {
         "main_on_sha256": _digest(np.asarray(command.main_on, dtype=np.int8)),
@@ -149,6 +156,7 @@ def main() -> int:
     if args.check is not None:
         baseline = json.loads(Path(args.check).read_text(encoding="utf-8"))
         return _compare(baseline, document)
+    out.mkdir(parents=True, exist_ok=True)
     if target.exists() and not args.force:
         print(f"refusing to overwrite the existing baseline at {target}")
         print("pass --force to replace it, or --check to compare against it")

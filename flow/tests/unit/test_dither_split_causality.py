@@ -1,26 +1,18 @@
-"""Dither must act on two different places, not one.
+# =============================================================================
+# 文件名     : test_dither_split_causality.py
+# 模块名     : test_dither_split_causality
+# 版本       : v1.0
+# 功能       : 验证 D6 和 D5 对 SADC 判决的不同作用点，并观察最终码消扰。
+# 设计说明   : 所有输入使用同一个默认 ADC 行为模型，制造失配与噪声关闭。
+#              直流保持固定，只改一个扰动位，确保中间粗码变化能归因到该位。
+#              最终码不变是单独的行为条件，不能以粗码测试代替。
+# 变更记录   : 移除旧向量导入，按现行模型记录 D6 复原条件。
+# =============================================================================
+"""回归扰动的粗码分流和最终码复原。
 
-Patent FIG.19 splits the word: D5/D3/D2/D1 reach the quantiser input, D6/D4
-reach the SAR/DAC code path. A model that subtracts the *whole* word from both
-the SADC and the RDAC has lost that split, and its "correct" final output only
-proves the digital de-dithering, not the internal connection.
-
-The probes below freeze everything that could mask the defect:
-zero mismatch, zero noise, DC input. Then only one bit of the dither word moves.
-
-Observed on the current code (D6 = bit 5 = upper, D5 = bit 4 = lower):
-
-    word= 0   coarse=290  out=594193
-    word=32   coarse=290  out=594193   <- upper only: SADC decision unchanged
-    word=16   coarse=288  out=594193   <- lower only: SADC decision moves
-    word=48   coarse=288  out=594193
-
-So on this path the split is real. The final output is identical in all four
-cases, which is the de-dithering working; the point of the test is that the
-*intermediate* decision differs between upper and lower.
-
-NOTE: this covers the Fig19 program path (v1). The independent charge-port path
-(v2) is a different connection and is NOT covered here.
+D6 上段作用于粗码补偿一侧，D5 下段作用于 SADC 输入一侧。
+本组测试固定相同直流输入，分别切换 D6、D5，读取 SADC 粗码和 20 位输出。
+当前 D6 开关使最终输出发生变化，严格预期失败用例跟踪该项条件。
 """
 
 from __future__ import annotations
@@ -28,9 +20,10 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from verification.vectors.generate import PROFILE  # noqa: F401  (keeps package import warm)
 
-
+# =============================================================================
+# 1. 固定激励、制造种子和噪声条件
+# =============================================================================
 def _model():
     import sys
     from pathlib import Path
@@ -53,6 +46,9 @@ def _run(word: int):
     return model.simulate(x, 4, dither_words=np.full(4, word, dtype=np.int64))
 
 
+# =============================================================================
+# 2. 逐位检查粗判决路径并跟踪输出复原条件
+# =============================================================================
 def test_upper_bit_does_not_move_the_sadc_decision():
     base = _run(0)
     upper = _run(1 << UPPER_BIT)
@@ -74,11 +70,8 @@ def test_lower_bit_does_move_the_sadc_decision():
 @pytest.mark.xfail(
     strict=True,
     reason=(
-        "KNOWN PARAMETER INCONSISTENCY (not an implementation defect): the dither upper "
-        "segment needs 5.5 LSB1 of residue swing but the 12-bit ADC2 window covers only "
-        "~1.24 LSB1. See adi_model.simulation.parameter_consistency and "
-        "docs/mechanisms/p1_gaps_20261113.md. strict=True: once the parameters become "
-        "consistent this XPASSes and forces the marker to be removed."
+        "当前行为模型在该直流激励下单独开启 D6 时最终码变化。"
+        "粗码分流在前两个用例检查，最终码复原条件通过时严格 XPASS。"
     ),
 )
 def test_final_output_is_restored_for_every_word():

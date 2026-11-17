@@ -1,30 +1,22 @@
-"""三维 DEM 掩码与守恒/均匀性审计。
+# =============================================================================
+# 文件名     : dem3d.py
+# 版本       : v1.0
+# 功能       : 生成 Fig.11 行为模型的 DEM 相位、开关掩码和物理片覆盖统计。
+# 设计说明   : 横向相位对实际的 15 个 2C 单元取模。物理片号参与同一轮转。
+#              纵向状态保留通用的打包宽度，当前掩码按二进制权驱动子阵列。
+# =============================================================================
+"""Fig.11 的 17/5 掩码及 DEM 轮转审计。
 
-论文（ISSCC 2024 §9.8 第 3 页；slides 29-31）的三个维度是：
-"Selection of the slices - 8/18"、"3b horizontal segmentation"、"3b vertical segmentation"。
+主阵列的 15 个 2C 单元按物理片号和横向相位轮换，两个 1C 位置保留固定含义。
+子阵列的有效支路按二进制权接轨，因此同一粗码的子掩码固定。
 
-本模块只做**数字掩码**与**审计**，不产生失配、不评估 INL。两套具名绑定对应两种真实几何：
-
-* `fig11_masks`：专利 US10511316B2 Fig.11/17 的 17/5 阵列（15×2C + 2×1C 主、
-  8/4/2/1/1 子、桥 C、β=1/17）。横向 15 列按物理 ID 旋转。
-  B4 在原件图上是一条单步（FIG.17 标 `2x`，即两个 1C 中的一个），
-  早先"B4 选 8 个 1C"的写法已被原件图证伪，见 docs/mechanisms/fig19_fig17_decode.md。
-  子阵列是二进制权，不能旋转（旋转即改权重）。
-* （已删除）`unary_rotation_masks`：63+8 分段池的掩码绑定。用户 2026-11-12 裁决
-  "63 归采样/DAC 层披露实施例、主链只跑 17/5"，本符号与 `defaults._segmented_mask`
-  一并删除，不留别名、不放 legacy 目录。
-
-**相位空间必须覆盖被旋转的列数**：早期版本把横向相位限定在 15 个值，而主阵列有 63 列，
-于是固定物理片在低码下只访问 15 个单元（外部审查 A01 的最小反例）。
-现在横向状态是 0..columns-1 的完整空间，`usage_uniformity` 也按
-`[physical_slice_id, physical_unit_id]` 分码统计，而不是只测满码。
-
-审计是两件不同的事，不能互相替代：`nominal_conservation` 查同名码在所有状态下的名义电荷是否
-相同；`usage_uniformity` 查每个物理单元是否被等频使用。前者过了后者仍可能不过。
+`nominal_conservation` 检查同一码在不同相位下的名义电荷。
+`usage_uniformity` 逐码、逐物理片统计每个单元的选通次数。
 """
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -38,6 +30,7 @@ VERTICAL_UNITS = 16
 VERTICAL_ACTIVE = 8
 SLICE_POOL = 18
 SLICE_ACTIVE = 8
+ROUND_ROBIN_PERIOD = SLICE_POOL // math.gcd(SLICE_POOL, SLICE_ACTIVE)
 HORIZONTAL_LIMIT = 64
 
 
@@ -57,10 +50,8 @@ class Dem3State:
     """一次转换冻结的三维 DEM 状态。
 
     Attributes:
-        horizontal: 横向起点，0..63；按物理 ID 叠加后对**实际列数**取模。
-            取值范围必须覆盖被旋转的列数（默认池 63 列、Fig.11 15 列），
-            否则低码会偏用前几列。
-        vertical: 纵向起点 0..15；按组内位置叠加。
+        horizontal: 6 位横向状态，按物理片号叠加后对实际列数取模。
+        vertical: 4 位纵向状态，供使用纵向相位的调用方读取。
         slice_step: 片选轮转计数；只用于生成计划，不参与掩码。
     """
 
@@ -96,27 +87,18 @@ class Dem3State:
         cls,
         n_samples: int,
         *,
-        columns: int = 63,
-        vertical: int = 7,
-        plan_period: int = 9,
+        columns: int = FIG11_COLUMNS,
+        vertical: int = VERTICAL_UNITS,
+        plan_period: int = ROUND_ROBIN_PERIOD,
     ):
-        """确定性的相位序列：每个"计划周期"额外前移一个与列数互质的步长。
+        """生成确定性相位，默认覆盖 Fig.11 的 15 个横向位置。
 
-        为什么不能简单用 `index % columns`：18 选 8 且相邻窗互斥时，片选计划的周期是
-        `18/gcd(stride,18)=9`；固定物理片只在 `index ≡ r (mod 9)` 的样本上活动，
-        于是 `index % 63` 在这条子序列上只取 7 个值——低码下只用到 7 个单元。
-        外部审查 A01 报的 15/63 是同一类混叠（旧实现相位空间只有 15 个值）。
+        18 选 8 的轮转每 9 笔重复。固定物理片在同一计划位置隔 9 笔才出现时，
+        简单的 `index % 15` 只会访问 5 个位置。每轮额外前移 7 位后，
+        这条子序列的步长为 16，和 15 互质，因此能访问全列。
 
-        修正：`h = (index + step*(index // plan_period)) % columns`，
-        沿子序列（i = r + 9k）变成 `h = r + k*(9+step)`；只要 `gcd(9+step, columns)=1`
-        就能铺满全部列。默认 step=7 → 16，与 63 和 15 都互质。
-        纵向用 `(11*index) % vertical`，沿子序列为 3k，与 16 互质。
-
-        纵向**周期必须等于被旋转的子阵列单元数**（默认池 7）。若用 16 再 `%7`，
-        16=2x7+2 会让前两个余数多出现一次，子单元使用比变成 3:2
-        （外部审查 2 的实测：756/756/504x5）。Fig.11 的 8/16 选择仍需 16，调用方显式传。
-
-        序列完全确定，不需要保存随机状态；实际覆盖与卡方由 `usage_uniformity` 实测上报。
+        打包状态的纵向周期默认是 16。Fig.11 掩码只读取横向字段，子阵列由粗码
+        直接控制。调用方可独立指定 `columns`、`vertical`、`plan_period`。
         """
         if type(n_samples) is not int or n_samples < 1:
             raise ConfigError("DEM3 sequence needs a positive sample count")
@@ -126,8 +108,6 @@ class Dem3State:
             raise ConfigError("DEM3 sequence vertical must be in [1,16]")
         if type(plan_period) is not int or plan_period < 1:
             raise ConfigError("DEM3 sequence plan_period must be a positive integer")
-        import math
-
         step = 7
         if math.gcd(plan_period + step, columns) != 1:
             raise ConfigError(
@@ -143,7 +123,7 @@ class Dem3State:
 def fig11_masks(
     geometry, codes, states, slice_ids, *, s4_second_ones_cell: bool = False
 ) -> SplitSwitchCommand:
-    """Fig.11 17/5 阵列的掩码映射（专利几何，非默认池）。
+    """Fig.11 17/5 阵列的掩码映射。
 
     主阵列 17 位：0..14 是 15 个 2C，15/16 是两个可独立控制的 1C
     （图上分别标 B4 与 S4）。
@@ -396,14 +376,14 @@ def usage_uniformity(
     """按 `[物理片, 物理单元]` 统计选通次数，逐码判定均匀性。
 
     只测满码会假通过：满码把所有单元都选中，任何相位都"均匀"。必须分别测
-    低码（1 个主单元）、中码、分段边界码；子阵列同理（k=code%8 决定选几个）。
+    低码、中码、分段边界码。Fig.11 的码 8 只选子支路，码 32 才选一个 2C 主单元。
 
     Args:
         pool: 提供几何的池。
         binding: 具名掩码绑定。
         plan: 实际转换计划。
         states: (N,) 每笔冻结状态。
-        codes: 需要检查的码；默认 8（1 个主单元）、255、511。
+        codes: 需要检查的码，默认 8、255、511。检查 Fig.11 的低码主阵列覆盖时显式加入 32。
 
     Returns:
         dict：每个码一份 `{main_unit_counts, main_range, covered, sub_*, uniform}`，
@@ -489,6 +469,7 @@ __all__ = [
     "Dem3State",
     "FIG11_COLUMNS",
     "HORIZONTAL_LIMIT",
+    "ROUND_ROBIN_PERIOD",
     "SLICE_ACTIVE",
     "SLICE_POOL",
     "VERTICAL_ACTIVE",

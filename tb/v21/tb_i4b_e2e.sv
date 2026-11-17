@@ -3,26 +3,15 @@
 // 文件名     : tb_i4b_e2e.sv
 // 模块名     : tb_i4b_e2e
 // 版本       : v3.0
-// 功能       : I4b 端到端（RTL 侧绑定层）—— D1–D6 全链：两笔采样 → 逐事件
+// 功能       : RTL 端到端测试顶层。两笔采样 → 逐事件
 //              开关 → ADC2 节点模型返回 → 20 位定点重构，逐位对拍
 //              A=0xFFF00、B=0x80000。
 // 设计说明   :
-//   * **本文件现在只做绑定**：激励、断言、轨迹、计数全部在
-//       tb/v21/tb_e2e_decl.svh + tb/v21/tb_e2e_body.svh
-//     里，门级侧 tb/v21/tb_gate_auto.sv（由 tools/gen_gate_tb.py 生成）
-//     include **同一份**。这样"两侧激励逐字一致"是结构保证，
-//     不是靠人肉同步——旧版是两份 TB 各抄一遍，抄错就会得到
-//     "轨迹一致但两侧都没走完整链"的假结论。
-//
-//   * 本文件保留的差异仅三处：
-//       ① DUT 端口名（RTL 用 prepare_ready / acq_sel … 与网表同名或近名）
-//       ② 权重表是**数组**（w_main_tbl[18][16] / w_sub_tbl[18][4]）
-//          —— 门级侧是 11520/2880 位扁平向量
-//       ③ 层级探针 probe_acq_sampled / probe_conv_tag 直接读 DUT 内部
-//          —— 门级侧 DC 可能改名，由共享层的 E2E_PROBE_GATE 宏切换
-//
-//   * 端口连接说明：共享层的输出声明为 wire（门级网表输出只能由网表驱动），
-//     RTL 的 output logic 端口连 wire 合法，两侧因此可以共用同一套声明。
+//   * 引入 tb_e2e_decl.svh 的信号、节点模型和辅助任务，再用
+//     tb_e2e_body.svh 发起交易、验证输出和统计交易次数。
+//   * 复位后通过 w_cfg_* 写入并提交权重，配置生效后才能受理采样请求。
+//   * ADC2 节点模型根据 DUT 输出的快照计算 13 位原始码，通过握手返回。
+//   * 采样沿的断言读取 DUT 内部的 acq_sampled，区分已采样和等待捕获。
 //
 // 变更记录   :
 //   2026-11-15  v1.0 只测 DUT 内宏的 raw 数值。
@@ -31,11 +20,10 @@
 // =============================================================================
 module tb_i4b_e2e;
 
-    // ---- 公共声明 + 公共激励体（与门级共用同一份文件）----
+    // ---- 测试信号与 ADC2 节点模型 ----
     `include "tb/v21/tb_e2e_decl.svh"
 
-    // ---------------------------------------------------------------- DUT（RTL）
-    // 端口名与网表完全同名；只有权重表是数组形态。
+    // ---------------------------------------------------------------- DUT 与权重配置
     adc_digital_ip_v21 dut (
         .clk(clk), .rst_n(rst_n),
         .prepare_valid(prepare_valid), .prepare_ready(prepare_ready),
@@ -66,15 +54,11 @@ module tb_i4b_e2e;
         .node_post_o(node_post_o), .node_pre_o(node_pre_o), .node_ids_o(node_ids_o),
         .node_qid_o(node_qid_o), .node_tag_o(node_tag_o), .node_valid_o(node_valid_o),
         .node_h_o(node_h_o), .node_v_o(node_v_o),
-`ifdef E2E_GATE
-        .w_main_tbl(w_main_tbl), .w_sub_tbl(w_sub_tbl),
-`else
         .w_cfg_we(w_cfg_we), .w_cfg_sel(w_cfg_sel),
         .w_cfg_sid(w_cfg_sid), .w_cfg_idx(w_cfg_idx), .w_cfg_data(w_cfg_data),
         .w_cfg_commit(w_cfg_commit), .w_cfg_reload(w_cfg_reload),
         .w_cfg_valid(w_cfg_valid), .w_cfg_busy(w_cfg_busy),
         .w_cfg_range_err(w_cfg_range_err),
-`endif
         .cfg_epoch(cfg_epoch), .b_q24_cfg(b_q24_cfg),
         .out_valid(out_valid), .out_code(out_code), .out_sat(out_sat),
         .out_err(out_err), .out_tag(out_tag),
@@ -85,7 +69,6 @@ module tb_i4b_e2e;
 
     // ---------------------------------------------------------------- 层级探针（RTL 直读）
     // acq_sampled / conv_tag 是 RTL 顶层内部信号（非端口）。
-    // 门级网表不保证同名，故门级绑定层不用本分支。
     wire probe_acq_sampled = dut.acq_sampled;
     wire [31:0] probe_conv_tag = dut.conv_tag;
 

@@ -103,8 +103,6 @@ from adi_model.calibration.weight_calibration import (
 from adi_model.contracts import (
     ADI_40M,
     DEFAULT_PROFILE_ID,
-    ENG_10M,
-    PATENT_FIG19,
     PROFILES,
     AcquisitionCommand,
     DigitalObservation,
@@ -226,8 +224,6 @@ __all__ = [
     # 默认 profile 不替用户补造未提供的物理开关网络。
     "ADI_40M",
     "DEFAULT_PROFILE_ID",
-    "ENG_10M",
-    "PATENT_FIG19",
     "PROFILES",
     "AcquisitionCommand",
     "DigitalObservation",

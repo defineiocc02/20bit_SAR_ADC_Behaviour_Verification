@@ -5,9 +5,9 @@
 | 路径 | 目录职责与典型文件 |
 | --- | --- |
 | [`src/adi_model/`](../../src/adi_model/) | Python 行为模型、几何、校准、整数解码和 CLI。`defaults.py` 实例化默认模型，公开 profile 位于 `contracts/profiles.py`。 |
-| [`rtl/`](../../rtl/README.md) 与 [`tb/`](../../tb/) | v21、独立核心和历史兼容顶层按入口分开。`tb/` 下的 `.mem`、`.txt` 可能是 TB 逐项读取的冻结向量。 |
+| [`rtl/`](../../rtl/README.md) 与 [`tb/`](../../tb/) | v21 为唯一集成顶层，其他可复用 RTL 用于组件检查。`tb/` 下的 `.mem`、`.txt` 可能是 TB 逐项读取的冻结向量。 |
 | [`flow/`](../../flow/)（包括 [`formal/`](../../flow/formal/)） | 仿真、验证、综合和属性脚本。`flow/build/filelists/` 中的 `.f` 由编译入口读取。`.sdc`、`.upf`、`.lef` 分别服务于约束、电源意图和物理工具。 |
-| [`tools/`](../../tools/) | Python 入口、对拍工具、向量和制图生成器。`tools/_legacy/` 保存已退役工具，[`tools/results/`](../../tools/results/README.md)保存旧结果和旧图。 |
+| [`tools/`](../../tools/) | Python 入口、对拍工具、向量和制图生成器。旧脚本可通过 Git 查看。[`tools/results/`](../../tools/results/README.md)保存旧结果和旧图。 |
 | [`subsys/`](../../subsys/) | DSP 子系统、CAAZ 扩展以及实验配置。`subsys/experiments/configs/matrix.py` 是消融和效果图的运行输入。 |
 | [`docs/`](../INDEX.md) 与 [`references/`](../../references/README.md) | 合同、设计依据、专题、存证、归档和维护者选定的原件。看的图在 [`docs/figures/20261117/`](../figures/20261117/README.md)，图与生成输入由清单绑定。 |
 | [`flow/verification/manifests/`](../../flow/verification/manifests/) | 版本化的机制与来源清单，供源码、验证与披露范围追踪。 |
@@ -18,9 +18,8 @@
 
 | 文件 | 为什么保留 |
 | --- | --- |
-| `flow/sim/fixtures/` 中的 `.sv/.hex/.json` | 明确绑定到仿真用例的源码、参数及权重输入。同名 binding 模块由各自的 `binding.json` 配套选择。 |
+| `flow/sim/fixtures/` 中的 `.sv/.hex/.json` | 明确绑定到仿真用例的源码、参数及权重输入。每个组件的输入和绑定范围由同次 `binding.json` 声明。 |
 | `flow/tests/fixtures/` 中的 `.rpt` | 测试门禁读取的归档诊断输入，和开发机生成的综合报告分开存放。 |
-| `flow/verification/reports/dumps/` 中的 `.out` | 既有候选验证的文本输出。部分故障注入用例将其中的 dump 作为输入。 |
 | [`docs/audit/artifacts/`](../audit/artifacts/README.md) 中的 `.svf/.v/.txt` | 冻结的单模块等价、网表和综合记录。 |
 | `docs/verification/vcs_source_control_trace/` 中的 `.csv` 与 `docs/reviews/20261105-*.json` | 带运行身份的证据。需要连同同目录说明、配置身份和边界一起阅读。 |
 | `docs/figures/` 的 `.png/.svg/.json` | 发布预览、可编辑矢量图和运行清单属于一套交付。造图命令应先写独立输出目录。 |
@@ -37,14 +36,14 @@
 | `docs/validation-environment.json` | 放入[当时的验证环境档案](../_history/archive/validation-environment.json)，随检查点阅读。 |
 | `docs/audit/TREE_AUDIT_PROMPT.md` | [审查任务原件](../_history/restructure/TREE_AUDIT_PROMPT.md)，报告仍从审计索引读取。 |
 | `subsys/profiles/` | 具名 profile 说明进入 [Python 合同](../../src/adi_model/contracts/README.md)，原来独立指针保留在历史区。 |
-| `tools/run_review2_figure.py` | [旧制图原件](../../tools/_legacy/run_review2_figure.py)依赖早期几何和测试环境。当前图使用 [run_review_figures.py](../../tools/run_review_figures.py)。 |
+| `tools/run_review2_figure.py` | 旧制图原件依赖早期几何和测试环境，可用 `git show 2224d30:tools/_legacy/run_review2_figure.py` 查阅。当前图使用 [run_review_figures.py](../../tools/run_review_figures.py)。 |
 
 ## 历史与生成目录
 
-- `docs/_history/`、`docs/audit/_superseded/` 是带版本范围的档案。`rtl/_legacy/` 和 `subsys/archive/` 仍包含被历史 testbench 或清单引用的 RTL，修改路径前要核对入口。
+- `docs/_history/`、`docs/audit/_superseded/` 是带版本范围的档案。旧 RTL 回归从 Git 中对应提交追溯，处理在库的组件输入前先核对实际调用入口。
 - 本机编译暂存、综合输出、Python 缓存和未发布的图进入 Git 忽略规则。用 `git ls-files --others --ignored --exclude-standard` 查本机残留。Git 跟踪的证据例外以相应 README 中的来源说明为准。
 - 工具和文档路径迁移时，同时更新入口、构建清单和自动化的调用。README 维护目录自身的用途和入口，状态数字由相应证据页维护。
 
 可用 `git ls-files` 查跟踪文件，用 `python3 tools/check_doc_counts.py` 直接清点当前文档范围。结构审查的基线与结论见 [2026-11-17 独立审查](../audit/TREE_AUDIT_REPORT.md)。
 
-现行文档相对路径由 `tools/check_engineering.py` 的 C3 核验。C4 的旧图／矩阵配对与 C7 的行为指纹各有独立基线，现行图册用自己的 SHA-256 清单。归档同名数据须保留原运行身份。
+`tools/check_engineering.py` 的 C3 核验文档相对路径，C4 按 `figures.json` 核验发布的 PNG/SVG SHA-256，C7 对齐工程合同、Python 默认值和 v21 RTL 的 ADC2 位宽、半开电压窗口与 Q24 码箱中心。归档数据按原运行身份解读。

@@ -12,6 +12,10 @@
       "baseline_commit": "af8aa37d43db40eb896e369305883ec89786547b",
       "note": "完整旧账本已库外备份；其旧PASS/数值及退役路径不作为当前有效状态。"
     },
+    "retired_rtl_evidence": {
+      "baseline_commit": "674b0d8d320a68b4a901c571f97e0384941366df",
+      "note": "本文件在该提交保存已退役的静态 RTL 捕获、独立回放和证据身份，对应 M04、M16、P06、P11。"
+    },
     "source_basis": "既有逐机制来源矩阵、本次原文页图核对及当前实际代码/测试声明；sources_manifest与references/source_manifest身份分别核验，不以PDF入库等同技术读完。",
     "no_claims": [
       "原芯片完整复现",
@@ -217,17 +221,17 @@
         "7/6位、7+2读法和由RDAC真值制造阈值的旧方案已退役。"
       ],
       "rtl_contract": {
-        "status": "DIGITAL_IMPLEMENTED",
+        "status": "CONTROL_ONLY",
         "code": [
-          "rtl/core/sar_structural_ctrl.sv",
-          "rtl/core/sar_trial_ctrl.sv",
-          "rtl/core/rdac_drv.sv"
+          "rtl/v21/sar_evt_v21.sv",
+          "rtl/dem_mask_v3.sv",
+          "rtl/v21/adc_digital_ip_v21.sv"
         ],
         "tests": [
-          "sim/tb/source_control_contract_tb.sv",
-          "sim/tb/sar_trial_tb.sv"
+          "tb/v21/tb_i2_events.sv",
+          "tb/v21/tb_i12_integration.sv"
         ],
-        "boundary": "有双9位SAR、Flash前缀和独立RDAC控制；物理码到mask由显式外部binding提供，不代表原芯片完整开关矩阵。"
+        "boundary": "v21 以模拟侧提供的 Flash 和 SAR 判决推进 RDAC 命令，按冻结相位生成开关掩码。9 位量化阈值独立于实际残差的检查由 Python 模型覆盖。"
       },
       "history": {
         "original_inventory_sha256": "fbed54c81c21ccbf1a606b06dd4327fcfbcd340d9563deac35403b075e983f8e",
@@ -380,14 +384,15 @@
       "rtl_contract": {
         "status": "CONTROL_ONLY",
         "code": [
-          "rtl/core/sar_structural_ctrl.sv",
-          "rtl/core/recon_core.sv"
+          "rtl/v21/adc2_capture.sv",
+          "rtl/v21/recon_v21.sv",
+          "rtl/v21/adc_digital_ip_v21.sv"
         ],
         "tests": [
-          "sim/tb/source_control_contract_tb.sv",
-          "sim/tb/calibration_physical_tb.sv"
+          "tb/v21/tb_i3_adc2.sv",
+          "tb/v21/tb_i4_recon.sv"
         ],
-        "boundary": "提供粗细码控制、重构与异常；没有以数字逻辑证明模拟残差始终落入后级窗口。"
+        "boundary": "v21 接收同一笔 13 位后级码及范围异常，并使用冻结权重重构。Python 用例检查假定窗口内的误差自愈，实际模拟窗口仍待实物校验。"
       },
       "history": {
         "original_inventory_sha256": "fbed54c81c21ccbf1a606b06dd4327fcfbcd340d9563deac35403b075e983f8e",
@@ -530,13 +535,13 @@
       "rtl_contract": {
         "status": "CONTROL_ONLY",
         "code": [
-          "rtl/core/analog_phase_ctrl.sv",
-          "rtl/core/sar_structural_ctrl.sv"
+          "rtl/v21/acq_conv_ctx.sv",
+          "rtl/v21/adc_digital_ip_v21.sv"
         ],
         "tests": [
-          "sim/tb/engineering_fsm_tb.sv"
+          "tb/v21/tb_analog_if.sv"
         ],
-        "boundary": "仅输出数字相位和比较使能；开关RC、时偏与版图匹配需模拟验收。"
+        "boundary": "v21 用采样事件与捕获确认交接样本。开关 RC、实际孔径时偏与布局匹配需要模拟证据。"
       },
       "history": {
         "original_inventory_sha256": "fbed54c81c21ccbf1a606b06dd4327fcfbcd340d9563deac35403b075e983f8e",
@@ -561,7 +566,7 @@
           "location": "PDF22 Fig.19、PDF33说明及PDF35-36权利要求主题：全字进RDAC、部分位进SADC、另部分位改码与后级去除。"
         }
       ],
-      "claim": "源分位字关系在有限静态理想端口模型中实现：lower进SADC与RDAC，upper只改变RDAC采样/改码；实际x-L、x-T、k=c-U及mask域term由同一显式6bit字关联。负极性、Q32、63+8和目标8/18端口等效为工程假设，不是原芯片完整电路。",
+      "claim": "现行 Python 静态端口模型用同一个六位字关联 lower 进入 SADC、全字扰动进入 RDAC采样及上位改码。x-L、x-T、k=c-U、负极性与 Q32 量化均按显式模型约定。",
       "embodiment": "PAPER_BASELINE",
       "evidence_source": [
         "DISCLOSED",
@@ -578,12 +583,9 @@
         "src/adi_model/control/dem.py",
         "src/adi_model/behavioral/sampling_charge.py",
         "src/adi_model/simulation/pipeline_engine.py",
-        "src/adi_model/rtl_observation.py",
         "src/adi_model/control/dither.py",
         "src/adi_model/behavioral/sampler.py",
-        "src/adi_model/defaults.py",
-        "tools/run_fig19_rtl_calibration.py",
-        "tools/verify_source_bound_replay.py"
+        "src/adi_model/defaults.py"
       ],
       "tests": [
         "tests/unit/test_source_contract.py::test_old_amplitude_request_cannot_be_silently_ignored",
@@ -591,249 +593,41 @@
         "tests/integration/test_fig19_static_ports.py::test_all_sixty_four_words_reach_both_real_analog_nodes_and_final_integer_code",
         "tests/integration/test_fig19_static_ports.py::test_same_lower_different_upper_keeps_residue_but_changes_real_charge_and_masks",
         "tests/integration/test_fig19_static_ports.py::test_illegal_early_prefix_never_updates_the_rdac_even_when_final_k_is_valid",
-        "tests/integration/test_fig19_static_ports.py::test_each_analog_node_flag_survives_even_if_final_code_does_not_clip",
-        "tests/integration/test_source_bound_replay.py::test_public_replay_preserves_the_actual_finite_window_and_explicit_tail"
+        "tests/integration/test_fig19_static_ports.py::test_each_analog_node_flag_survives_even_if_final_code_does_not_clip"
       ],
-      "test_scope": "Python静态用例覆盖64字、两实际模型端口、逐prefix越界与异常传播。真实DUT有限场景及独立Python回放的执行身份由本项收据登记。",
+      "test_scope": "现行 Python 静态用例覆盖 64 字、两模型端口、前缀越界与异常传播。",
       "experiments": [
         {
-          "key": "M04.actual_dut_limited_two_node_prefix_and_integer_window",
-          "status": "PASS",
-          "scope": "实际静态DUT留出在±2.0 V遍历64个源字各8次。核对SADC/RDAC两端口、采样及转换ID、逐已决prefix和512个输出整数。−2.9 V时word32/40的最终k合法，但各3个较早prefix非法，真实RDAC引脚保持且ID3/6不产生目标结果。",
-          "evidence": {
-            "kind": "CURRENT_ACTUAL_DUT_AND_INDEPENDENT_SOURCE_BOUND_REPLAY",
-            "public_producer": "tools/run_fig19_rtl_calibration.py",
-            "producer_sha256": "fe510f3217063b143212cc6005c85b58d7277f2e43e702ec0d3c30a7925e3ba1",
-            "input_fixture": "sim/fixtures/fig19_ideal_ports",
-            "input_fixture_sha256": {
-              "sim/fixtures/fig19_ideal_ports/scalars_nominal.hex": "eb75aa0c31a94e622f014e80efee95bfa7fef9338fccb10d6c73cbf4133b1b8c",
-              "sim/fixtures/fig19_ideal_ports/binding.json": "b5152d5cdffc3a02518bfb0cbb51a5fed6e8531a7463360da982ca973f2ba958",
-              "sim/fixtures/fig19_ideal_ports/config.json": "ffadf4fd349801167f1601f90abaea65dff904154437bb4f7062a98e10f1fba6",
-              "sim/fixtures/fig19_ideal_ports/rdac_prefix_table.json": "552c55b1113563d86ce67f861e514cc9b8d6aec033ab8d7dfcbae8c1e1759939",
-              "sim/fixtures/fig19_ideal_ports/weights_nominal.hex": "72749f36fbc8ecac81834293a171e534b9dcb62b4b3f2d582e95eb2ad35da29d",
-              "sim/fixtures/fig19_ideal_ports/source_control_binding.sv": "9f99890a93cf4e6860a6ead379bac9a4245210a2e5fd9bfbf00f3068c65ab403",
-              "sim/fixtures/fig19_ideal_ports/homogeneous_code_reference.json": "1431c063d9a48cfefe7cd37a4a43936088383db37ec153d7c0dd5e3f8dd6755f",
-              "sim/fixtures/fig19_ideal_ports/registers_nominal.json": "a371dbad26cd233bdf82bf9f86788779154c66b6c1561b421060204698303a0e",
-              "sim/fixtures/fig19_ideal_ports/format.json": "2c7b5765d533cdef32741bc8771fa67d585b04814c7d6c7b1ee69cb5a64cb3ca",
-              "sim/fixtures/fig19_ideal_ports/fixture_manifest.json": "dd5fe1141e8c32f02db6ef56949393084f94fe0fcbe67916d25bac96fe66e53a",
-              "sim/fixtures/fig19_ideal_ports/source_acquisition_binding.sv": "580bc96a9682efd685fbb130917644ce27896d8e6a976e4bd99d732fd065a0dd"
-            },
-            "execution_manifest_sha256": "13059b66c91a3fb67d45c2b4dbd8be6b9f4361db8799c8ff81fe779081de70dc",
-            "input_manifest_sha256": "905892c6f8a0bb1ccf522947809a3bd910e2fc4b74aede66b1cc1699885d01cd",
-            "input_raw_sha256": {
-              "acquisition_sv": "580bc96a9682efd685fbb130917644ce27896d8e6a976e4bd99d732fd065a0dd",
-              "binding_json": "b5152d5cdffc3a02518bfb0cbb51a5fed6e8531a7463360da982ca973f2ba958",
-              "config_json": "ffadf4fd349801167f1601f90abaea65dff904154437bb4f7062a98e10f1fba6",
-              "format_json": "2c7b5765d533cdef32741bc8771fa67d585b04814c7d6c7b1ee69cb5a64cb3ca",
-              "source_sv": "9f99890a93cf4e6860a6ead379bac9a4245210a2e5fd9bfbf00f3068c65ab403"
-            },
-            "source_sha256": {
-              "rtl/calibration/caaz_pair_processor.sv": "04c68fb79974185d998d3bd49d8aabeef5cb2fb5f02050948c9fe2724c8181b8",
-              "rtl/control/caaz_cycle_ctrl.sv": "7829d53cbdfb90bcd7ea6c5d478bb0af1fda2966c4eb62954e21bf2100c592a0",
-              "rtl/core/adc2_dec.sv": "53d82e15b2525e7a6dc7b5efa8f33752f82fab44bcaf79e626eeead8338c9cca",
-              "rtl/core/analog_phase_ctrl.sv": "10b29de6e1e9a6c1625c76eb09d34ecf62f2a888e6712828a843194373a2c068",
-              "rtl/core/cal_output_stage.sv": "4edf061ba492418e48a36403473afd1a65e788dd6cfd3fd6e4955acfc562a415",
-              "rtl/core/cal_residue_mac.sv": "e810c02bbaa181884849f37342c889f46eb55574b62843f15b8b413553bda694",
-              "rtl/core/cal_sample_context.sv": "b7f61a3e58d1def8879f7b03a56a2dd19360f36cf61304d32a31e505a7cf0d50",
-              "rtl/core/cal_weight_reduce.sv": "1f004a5455d2cde4601e46c847ca75518da3c474ba0be265c12219861f029647",
-              "rtl/core/calib_regs.sv": "561a8770f52af6f8d48444e844b69ceeca588b3b55345c1eb7a66ec91507294e",
-              "rtl/core/div_floor.sv": "4b399a517ef80686f180a8819c7f8ef62c3093b1db1ed3832422e52dcd68a9c5",
-              "rtl/core/rdac_drv.sv": "1432c440a9234f1888a89e2b7866a302ccf97bb179bfe4fcc7f9da8c72ba7c32",
-              "rtl/core/recon_core.sv": "9d142f4f0392416873f9f8858c36c05a59253eecb90dca7f9294a3e0b43c9f00",
-              "rtl/core/sar_structural_ctrl.sv": "e63ef7674f016e7baf2deea044e81160a2e11c5e3d1dc70ca4bf9f2a1a64485f",
-              "rtl/core/sar_trial_ctrl.sv": "c7569d1cef42e08419b88c372336ac846db6638b22cc13c1d846d708dea1ab96",
-              "rtl/core/slice_pool_ctrl.sv": "06f42c272256741a1622119201734c00135c0e100b475702385f0010cff533ab",
-              "rtl/core/status_regs.sv": "8d58070dbd2bca03a39d56b6cfce24006cfa966e9cf157d65faf8cb7c6ffa0d5",
-              "rtl/core/unit_therm.sv": "af4a252d47dd20369be04d5b6cef6860ed206e4b4f5f998d1253e9ecee595e8b",
-              "rtl/core/weight_store.sv": "9f3240b9e27e14cd852b7e451febc39c386d459b24f3a4dbaf3c27509b81998c",
-              "rtl/params/rtl_error_codes.vh": "48fad1bf62f272687e0618fad28a11f87a64d2166da164cde4141e6671a42aa5",
-              "rtl/top/sadc_enc.sv": "da718df08ea2a13393e24bad9e89c615030f09a1a19aca6e2892b96d10437794",
-              "rtl/top/sar20_digital_core.sv": "65bfddbd480dccd9f9db444800af785567e47e73eaf997b1efad96da253a22ca",
-              "sim/tb/fig19_static_plant_tb.sv": "0070f2e20046fb40b94eda46b609dcd3f70d1ee4beb7adaa66a5fb788f2ff193",
-              "src/adi_model/__init__.py": "97d112ae9c93fc1f593f5f8f0ab8ad0fc2b3bf6e0e7420c811c0cfcd91bb7bf1",
-              "src/adi_model/__main__.py": "fa5ec6a248cfda00aadc8d13741670a5d2fd3b7f7d09a10337bac97c9ab37ce4",
-              "src/adi_model/_arrays.py": "d1eeedeb7b6851a76650ef575d58ce456cf6d7ae22b91b5d79dc3517d1608df6",
-              "src/adi_model/behavioral/adc2.py": "5def18421646999612abc46613736603b160447e8c2d64bb0774f8d56545f3a3",
-              "src/adi_model/metrics/benchmarks.py": "63f492e7737c03fd5ae766b48a22cf89ef65cf45127136c23b125653b4533dff",
-              "src/adi_model/calib.py": "0107df9831af15680900e1b5f983e655da7e5fedb016ba3d30b5762676d2520d",
-              "src/adi_model/behavioral/charge_ref.py": "74856592cdc665c4533744754b953cee55a6e8649368b8483b6ddbf619a0cebc",
-              "src/adi_model/chopping_az.py": "78f2208d54708085fdfadbc98b45abdb26660b5ee98a0340ca695d1f68cd5819",
-              "src/adi_model/cli.py": "0e0daea02b79f3f6750164c6fdbde5c2aa8a4265c6ad193fe3f49331bd53b661",
-              "src/adi_model/simulation/config.py": "a3c784167864c08d8cfa8a2db2c1ff254f6330eb19878e7cb70fac5ab3dd8d7d",
-              "src/adi_model/behavioral/conversion.py": "55855a86663d0127a997585764d7d146af477858c33946ad9a1f54117c26f00a",
-              "src/adi_model/topology/dac_arch.py": "79ccd3dcc3b39070f49d33df73942be7336c8e50bbd5d18a5a14e04b3942b0f1",
-              "src/adi_model/defaults.py": "2580d3e49002291e76dbefa2e5c8cf2d0d3e77d0be9801e60e74ddbc4cd9de3f",
-              "src/adi_model/control/dem.py": "3f23e753e78d8d93b6b8fa24a9ed3bde204e7bd9352ff168eefff48611012668",
-              "src/adi_model/control/dither.py": "562367d484aaddfd85e76cb13e787508318a0e670ec7a5128fef4b9caf6495e0",
-              "src/adi_model/behavioral/dynamics.py": "3c2fd52ab6b79251cc81882f8be5b38ad0cdaae3396394d55ceddaae1f99a0b9",
-              "src/adi_model/contracts/fixed_point.py": "041be974e401e8394f3c7d66c1da57fec0d5516ff03c54b7d03dbe0ddd015482",
-              "src/adi_model/behavioral/input_network.py": "e361644263ccb582d4a8282395f1f77b5d0ff4e368c3c95749a7e5307f428be0",
-              "src/adi_model/inventory_gate.py": "610b9e2fe5bcdd059dcf8b4b284b8c410e3b590b895bddc15d2b107175fa4a63",
-              "src/adi_model/behavioral/low_frequency_noise.py": "2319b65974015795342e230adf664f52efe0e36518e31ea7cef4a133d9c89e83",
-              "src/adi_model/topology/mapper.py": "71dcf86a06034c06632e35d32fff7290ec74a47086094aeb054519d8869f5b07",
-              "src/adi_model/metrics/metrics.py": "8877c362ac6ab765cb26f7dcd2a42263c9b0a0915d78134af9b322109edec5d9",
-              "src/adi_model/simulation/pipeline.py": "58dec0a982bfbc5134461dac5e6c5f7e429d9bbc1afedd0a8043354ced981c3a",
-              "src/adi_model/simulation/pipeline_engine.py": "8bccd20f58bb3fdbe335d017b88cf1745a4b37da31dce66fdbdab21d7ab57acb",
-              "src/adi_model/behavioral/pretracking.py": "5da8b080e173d5e5c88b0017854d20c18869eb8c5d744ec67a0150bfaa6d8a8a",
-              "src/adi_model/provenance.py": "34cef99af3873b932bad5b5b287548edbcc9c53358ac6519840173567901d477",
-              "src/adi_model/behavioral/ra.py": "c8bc782cce4056536c6e987b90499a6c4da5768fc2bc7f13baf2aabab9ee1fb3",
-              "src/adi_model/calibration/reconstruction.py": "dff957b997863229bf4b5c8f6ebf6f543a9c834e7412e92d8faecf5e577ec936",
-              "src/adi_model/behavioral/reference_charge.py": "d95dce7a332173f410ed67244931860302cfb7363eaf6b56563033b2e6397781",
-              "src/adi_model/rtl_observation.py": "03782d44c6ce082299357382b9aa1b8f52592a26428ee0e26cb39db6a47c86b2",
-              "src/adi_model/behavioral/sadc.py": "fac93fd126c0232b39bb5a6cda8f3ce97b7a0369af14d294adea644a928c468c",
-              "src/adi_model/behavioral/sampler.py": "18b2dafbd8af583533a8461e39c4b200dedde4ba2a0109a54162f7fb0015278e",
-              "src/adi_model/behavioral/sampling_charge.py": "717589ecc9d96c327a5f6f48435e00fae59ca3e1ff1cd75b83960e42f22e72c8",
-              "src/adi_model/simulation/scheduler.py": "94e2fa781373013054217404fdad53439897b1b9792ea7db09fab1e923b1ada4",
-              "src/adi_model/simulation/serialization.py": "9689ba9d937180a2acf18f33476964474a101d75473a48f26fef150203b8cc52",
-              "src/adi_model/simulation/sim.py": "e7a9a764a57b0393e1272daabd6f154847f3f5b76c08e1954584d1a4780286c2",
-              "src/adi_model/simulation/slice_pool.py": "f4c9e03a00fdbcf065b9501f5552bdc71a91d2c06fc275aae521ca1c37149e2e",
-              "src/adi_model/control/timing.py": "1763938120d2ece799856fb30e8effd674dc943b5690b869b272c3369fd65c19",
-              "src/adi_model/calibration/weight_calibration.py": "ebd3118ee76e3f878d1c701d5c6a7e67cda734eb98bd0dc9b4953dedac1a039e",
-              "tools/export_fitted_rtl.py": "b214c88657d2c3b9778c48382ee6bbab5307c7690300eb6634d54ac1f5d775d7",
-              "tools/export_rtl_params.py": "5c686a02368c77e656029d6cb4f59f3160226cae4a176c5ab3ec6a6976d6abef",
-              "tools/run_fig19_rtl_calibration.py": "fe510f3217063b143212cc6005c85b58d7277f2e43e702ec0d3c30a7925e3ba1",
-              "tools/run_open_rtl.py": "b5af7fcd9917dd8d3305117e0f2601b59f759b1e783f3aa2cd5b54e213975ef2"
-            },
-            "parent_manifest_status": "PASS_DUT_LEARNING_PENDING_INDEPENDENT_SAME_CHIP_PYTHON_REPLAY",
-            "parent_python_same_chip_replay": "PENDING",
-            "qualified_cases": [
-              "training_word0",
-              "holdout_nominal",
-              "holdout_fitted",
-              "early_prefix_negative"
-            ],
-            "trace_sha256": {
-              "early_prefix_negative": {
-                "controls.csv": "83645ad109169f4b3d38dbde1f5e48a99c6aed8e9cc5fe532ed1b584572c574f",
-                "events.csv": "5e299c804032ab3ba9a0cc3d7b76a8ae7d3d80b781c33d85f14c71ffed66c2d7",
-                "rdac_events.csv": "b23c1870d10abc8d610dd7ec15c26102754fb65882dcc22d7e0cf4961496a930",
-                "residues.csv": "6552675b5a30302cbbecd222dc521175e5a19ad76768a6696d6b496eb38c7079",
-                "samples.csv": "ff1842cf36e322fc60369a8ed0c6002af73ce2710e2416ebec01e39bb45d832f"
-              },
-              "holdout_fitted": {
-                "controls.csv": "4137dff9d6193bd16e7045f23874b429c85645d7d78a22ec23fa6e4f28849757",
-                "events.csv": "5376c69dfc2baa7a24267ea9d205628c6ef68ebde13280a8932c2b2af4868f60",
-                "rdac_events.csv": "12afd212df4b0b89e515580f7d20e160c41fa0fb2dffc5116ba4a5db6a8cb518",
-                "residues.csv": "7969898fae8caec6ccb97695e465cefb4497a86870395fbc8d267ea339ab9019",
-                "samples.csv": "92e0d9676b951557ead8d4428a8d553d592161664b00454d389f13d4b2ee00f9"
-              },
-              "holdout_nominal": {
-                "controls.csv": "4137dff9d6193bd16e7045f23874b429c85645d7d78a22ec23fa6e4f28849757",
-                "events.csv": "dfa66ec2e1f73f55e38a79305881aefa6599a588db795dc69bf42cea10a21886",
-                "rdac_events.csv": "12afd212df4b0b89e515580f7d20e160c41fa0fb2dffc5116ba4a5db6a8cb518",
-                "residues.csv": "7969898fae8caec6ccb97695e465cefb4497a86870395fbc8d267ea339ab9019",
-                "samples.csv": "92e0d9676b951557ead8d4428a8d553d592161664b00454d389f13d4b2ee00f9"
-              },
-              "training_word0": {
-                "controls.csv": "036523d0fa79e766b3c186a868f830fe356a0871fcdb1ea0effd8328fd8518f0",
-                "events.csv": "697dc113ec07b1e325083016dc2c8efafecc9bec480dcadce208cd0afb5e96c6",
-                "rdac_events.csv": "9dfa87b2fad9ef920ffe2d9355c43c7e530c9ee9cf099d94de557eedafe93621",
-                "residues.csv": "6c3d071669605f74526e2b6fb8921585fb9647732fc45721bb462ff762346864",
-                "samples.csv": "f4c98c6b28d93d2852346baa03f3917d322a2f09bd28288e074f293d10f7d420"
-              }
-            },
-            "rtl_executed": true,
-            "physical_signoff": "NOT_RUN",
-            "replay_evidence_ref": "M16.current_source_bound_dut_learning_and_replay",
-            "local_audit_relative_path": "cleanup/implementation/rtl/resume_20261105_001/full_typechecked_001/manifest.json",
-            "preceding_run_manifest_sha256": "c288d8f6aafdd2ec2051bcda27eab5fbab4bc877f506ed667915e2293d5f93e3"
-          },
-          "reproduce": {
-            "working_directory": "repository_root",
-            "environment": {
-              "PYTHONPATH": "src",
-              "OPENBLAS_NUM_THREADS": "1",
-              "VERILATOR": "显式指向本机已有Verilator；不由本工具安装",
-              "VERILATOR_ROOT": "与该Verilator安装对应"
-            },
-            "command": [
-              "python",
-              "-B",
-              "tools/run_fig19_rtl_calibration.py",
-              "--out",
-              "<NEW_EXTERNAL_OUTPUT_DIRECTORY>",
-              "--fixture-dir",
-              "sim/fixtures/fig19_ideal_ports",
-              "--plant-seed",
-              "42",
-              "--train",
-              "4096",
-              "--holdout",
-              "512",
-              "--seed",
-              "42"
-            ],
-            "output_policy": "在仓库根执行。生成输出放在各自新库外目录，每条回放只读同一次执行的真实捕获和源输入包。",
-            "scope": "复现指定静态非均匀DUT场景及负端点控制，再独立回放三组真实输出。",
-            "replay_cases": [
-              "training_word0",
-              "holdout_nominal",
-              "holdout_fitted"
-            ],
-            "replay_command": [
-              "python",
-              "-B",
-              "tools/verify_source_bound_replay.py",
-              "--trace",
-              "<RUN>/<CASE>",
-              "--inputs",
-              "<RUN>/inputs",
-              "--plant",
-              "<RUN>/plant_metadata.json",
-              "--plant-parameters",
-              "<RUN>/plant_replay_only.json",
-              "--stimulus",
-              "<RUN>/<CASE>/stimulus.txt",
-              "--config",
-              "<RUN>/inputs/config.json",
-              "--prefix-table",
-              "sim/fixtures/fig19_ideal_ports/rdac_prefix_table.json",
-              "--registers",
-              "<RUN>/<CASE>/registers.json",
-              "--out",
-              "<NEW_EXTERNAL_REPLAY_DIRECTORY>"
-            ],
-            "public_guard_command": [
-              "python",
-              "-m",
-              "pytest",
-              "-q",
-              "tests/integration/test_source_bound_replay.py"
-            ],
-            "component_run": "另用新输出目录给首条命令添加 --component-only。对应回放只用 component_shared64，该组件路径不训练。"
-          },
-          "remaining_boundary": "限Fig19静态理想端口等效和指定离散域。原分布电容网络、一般满幅、完整3D DEM及CAAZ或动态的联合效果未验。"
+          "key": "M04.current_rtl_two_node_correlation",
+          "status": "NOT_RUN",
+          "scope": "v21 的模拟双节点 RTL 对拍待验；Python 双节点静态验证另见所列用例。"
         }
       ],
       "observables": [
-        "实际六位word、SADC -Lq/RDAC -Tq端口、真实采样电压及acquiring/converting物理ID。",
-        "完整七次已决prefix、k=c-U、真实物理mask、known_common_q与生产v2 raw/ID/最终整数。",
-        "正常目标事件的status/conversion_fault/analog_sticky为0；负控ID3/6、6次非法prefix及不更新引脚均可查。",
-        "有限窗口明确N+3合法source accept、N+2实际sample/residue、3条未退休postamble；不称全源drained或生产无损连续读出。"
+        "同一六位字对应的 SADC/RDAC 模型输入、实际采样片号和转换片号。",
+        "已决前缀、k=c-U、模型开关掩码、后级原码、异常标志和最终整数码。"
       ],
       "gaps": [
-        "仅FIG19静态零噪声/无DEM/无动态的理想共同电压端口等效；原7slice分摊电容网络、注入电容失配/噪声及真实开关尚未实现。",
-        "同一非均匀静态对象与有序实际采样计划的独立回放见M16/P06。父manifest的PENDING为生成时状态，原件保留。",
-        "完整满幅headroom、原芯片完整DEM/bridge及与CAAZ物理组合仍未闭合；本项合法验证域为正负2.0V。",
-        "旧固定4x/range/granularity/4预留单元和旧SID/零和代理不恢复；2bit范围陈述不当作逐样本幅比。"
+        "现行证据为静态理想端口的模型用例。实际注入电容网络、寄生和非理想开关仍需独立验证。",
+        "完整满幅、动态机制、源 3D DEM 和 CAAZ 的联合证据未覆盖。"
       ],
-      "rtl_contract": {
-        "status": "DIGITAL_IMPLEMENTED",
-        "code": [
-          "rtl/core/sar_structural_ctrl.sv",
-          "rtl/top/sar20_digital_core.sv",
-          "sim/fixtures/fig19_ideal_ports/source_acquisition_binding.sv",
-          "sim/fixtures/fig19_ideal_ports/source_control_binding.sv"
-        ],
-        "tests": [
-          "sim/tb/fig19_static_plant_tb.sv"
-        ],
-        "boundary": "限定6bit分路、实际采集Q32两端口、k=c-U逐prefix和跨周期word/ID/mask冻结；analog plant为明确理想静态等效，不证明真实注入电容/3DDEM/宏/工艺时序。"
-      },
       "history": {
         "original_inventory_sha256": "fbed54c81c21ccbf1a606b06dd4327fcfbcd340d9563deac35403b075e983f8e",
         "original_mechanism_id": "M04",
         "applicability": "原账本的旧配置、PASS和数值不作为当前功能清理树的运行证明；完整原件已库外备份。"
+      },
+      "rtl_contract": {
+        "status": "CONTROL_ONLY",
+        "code": [
+          "rtl/dither_pre.sv",
+          "rtl/v21/sar_evt_v21.sv",
+          "rtl/v21/adc_digital_ip_v21.sv"
+        ],
+        "tests": [
+          "tb/tb_dem_dither.sv",
+          "tb/v21/tb_i12_integration.sv"
+        ],
+        "boundary": "v21 用 6 位字设置采样预置并推导粗码偏移。模拟采样节点的实际电压响应和两节点相关性待验。"
       }
     },
     {
@@ -893,12 +687,13 @@
       "rtl_contract": {
         "status": "NOT_IMPLEMENTED",
         "code": [
-          "rtl/core/sar_structural_ctrl.sv"
+          "rtl/dem_mask_v3.sv",
+          "rtl/v21/adc_digital_ip_v21.sv"
         ],
         "tests": [
-          "sim/tb/source_control_contract_tb.sv"
+          "tb/v21/tb_i12_integration.sv"
         ],
-        "boundary": "提供调用方source binding端口与实际mask观察，未提供源3D DEM算法。合成2+1测试矩阵明确不是器件矩阵。"
+        "boundary": "v21 用事务入口提供的 H/V、半组和桥接条件计算开关掩码。相位生成器尚未接入该顶层，真实器件映射仍待校验。"
       },
       "history": {
         "original_inventory_sha256": "fbed54c81c21ccbf1a606b06dd4327fcfbcd340d9563deac35403b075e983f8e",
@@ -1421,14 +1216,16 @@
       "rtl_contract": {
         "status": "DIGITAL_IMPLEMENTED",
         "code": [
-          "rtl/core/slice_pool_ctrl.sv",
-          "rtl/core/cal_sample_context.sv"
+          "rtl/sched18.sv",
+          "rtl/v21/acq_conv_ctx.sv",
+          "rtl/v21/adc_digital_ip_v21.sv"
         ],
         "tests": [
-          "sim/tb/engineering_fsm_tb.sv",
-          "sim/tb/source_control_contract_tb.sv"
+          "tb/tb_sched18.sv",
+          "tb/v21/tb_i1_two_sample.sv",
+          "tb/v21/tb_idle_partition.sv"
         ],
-        "boundary": "实现资源所有权、预热及跨周期上下文；pool shuffle独立于DEM请求，不提供逐slice失配学习。"
+        "boundary": "v21 稳态调度 18 片，分为 8 片采样、8 片转换、2 片空闲。采样、转换和释放各自按确认条件推进，样本保留冻结的片号。"
       },
       "history": {
         "original_inventory_sha256": "fbed54c81c21ccbf1a606b06dd4327fcfbcd340d9563deac35403b075e983f8e",
@@ -1582,12 +1379,13 @@
       "rtl_contract": {
         "status": "CONTROL_ONLY",
         "code": [
-          "rtl/core/analog_phase_ctrl.sv"
+          "rtl/v21/acq_conv_ctx.sv",
+          "rtl/v21/adc_digital_ip_v21.sv"
         ],
         "tests": [
-          "sim/tb/engineering_fsm_tb.sv"
+          "tb/v21/tb_analog_if.sv"
         ],
-        "boundary": "数字相位只为宏边界提供使能；不证明电气建立、串扰、噪声或工艺时序。"
+        "boundary": "v21 接收输入与残差捕获确认，按保持与数字静默条件释放片组。输入、参考及残差放大器的电气建立和串扰待验。"
       },
       "history": {
         "original_inventory_sha256": "fbed54c81c21ccbf1a606b06dd4327fcfbcd340d9563deac35403b075e983f8e",
@@ -2039,14 +1837,10 @@
         "旧aux_input理想背栅/恒定VGS/中点供电代理已退役；不沿用其带宽比例收益。"
       ],
       "rtl_contract": {
-        "status": "CONTROL_ONLY",
-        "code": [
-          "rtl/core/sar_structural_ctrl.sv"
-        ],
-        "tests": [
-          "sim/tb/engineering_fsm_tb.sv"
-        ],
-        "boundary": "aux_charge_enable只标记数字资格，不实现VIN_AUX、FET背栅或自举电荷路径。"
+        "status": "NOT_IMPLEMENTED",
+        "code": [],
+        "tests": [],
+        "boundary": "v21 未实现独立 AUX 模拟输入或自举供电的控制接口。"
       },
       "history": {
         "original_inventory_sha256": "fbed54c81c21ccbf1a606b06dd4327fcfbcd340d9563deac35403b075e983f8e",
@@ -2105,14 +1899,10 @@
         "实际误差检测/比较器/积分器/负载补偿及目标电路噪声尚未实现。"
       ],
       "rtl_contract": {
-        "status": "CONTROL_ONLY",
-        "code": [
-          "rtl/core/analog_phase_ctrl.sv"
-        ],
-        "tests": [
-          "sim/tb/engineering_fsm_tb.sv"
-        ],
-        "boundary": "仅ref_precharge/ref_accurate数字窗口；没有专利参考缓冲/比较器闭环。"
+        "status": "NOT_IMPLEMENTED",
+        "code": [],
+        "tests": [],
+        "boundary": "v21 未实现参考缓冲或比较器闭环整定接口。"
       },
       "history": {
         "original_inventory_sha256": "fbed54c81c21ccbf1a606b06dd4327fcfbcd340d9563deac35403b075e983f8e",
@@ -2262,13 +2052,14 @@
       "rtl_contract": {
         "status": "CONTROL_ONLY",
         "code": [
-          "rtl/core/analog_phase_ctrl.sv",
-          "rtl/core/sar_structural_ctrl.sv"
+          "rtl/v21/adc2_capture.sv",
+          "rtl/v21/adc_digital_ip_v21.sv"
         ],
         "tests": [
-          "sim/tb/engineering_fsm_tb.sv"
+          "tb/v21/tb_i3_adc2.sv",
+          "tb/v21/tb_analog_if.sv"
         ],
-        "boundary": "仅RA复位/放大和fine采样控制；不实现模拟增益、AZ或噪声整形电路。"
+        "boundary": "v21 在最终开关与权重和就绪后授权残差捕获，保留同一笔的后级码和范围异常。增益、AZ 及噪声整形需模拟证据。"
       },
       "history": {
         "original_inventory_sha256": "fbed54c81c21ccbf1a606b06dd4327fcfbcd340d9563deac35403b075e983f8e",
@@ -2453,8 +2244,6 @@
         "src/adi_model/rtl_observation.py",
         "src/adi_model/behavioral/sampling_charge.py",
         "src/adi_model/simulation/sim.py",
-        "tools/run_fig19_rtl_calibration.py",
-        "tools/verify_source_bound_replay.py",
         "tools/export_fitted_rtl.py"
       ],
       "tests": [
@@ -2462,320 +2251,38 @@
         "tests/integration/test_weight_calibration.py::test_missing_excitation_is_rejected_instead_of_hidden_by_nominal_priors",
         "tests/integration/test_weight_calibration.py::test_fit_freezes_the_complete_observation_specification",
         "tests/unit/test_fixed_point.py::test_unknown_result_cannot_generate_nominal_coefficients",
-        "tests/unit/test_rtl_observation.py::test_binding_must_return_exactly_supported_a_and_per_unit_q_terms",
-        "tests/integration/test_source_bound_replay.py::test_public_replay_preserves_the_actual_finite_window_and_explicit_tail",
-        "tests/integration/test_source_bound_replay.py::test_public_replay_rejects_corrupted_actual_capture"
+        "tests/unit/test_rtl_observation.py::test_binding_must_return_exactly_supported_a_and_per_unit_q_terms"
       ],
-      "test_scope": "用独立参考与真实DUT观察拟合，冻结后重载同一DUT。三组真实结果由独立Python基于同一非均匀模型及实际有序计划重放，按ABI2源身份和整数合同逐项核对。",
+      "test_scope": "所列 Python 用例检查真值隔离、可辨识性、冻结系数和定点重构。v21 的配置生命周期、权重扫描和重构各有定向测试。",
       "experiments": [
         {
-          "key": "M16.current_source_bound_dut_learning_and_replay",
-          "status": "PASS",
-          "scope": "仅用4096笔word0实际数字观察与独立参考拟合1279个未知量。冻结schema2并重新装载同一DUT，对同一组512笔独立刺激比较名义与拟合输出。三组5120个目标码与独立静态回放及整数结果全相等，另外64笔组件场景未训练。最终回放拒绝50个独立注入的损坏样本。",
-          "evidence": {
-            "kind": "CURRENT_NONUNIFORM_DUT_CALIBRATION_AND_SOURCE_BOUND_REPLAY",
-            "dut_execution": {
-              "public_producer": "tools/run_fig19_rtl_calibration.py",
-              "producer_sha256": "fe510f3217063b143212cc6005c85b58d7277f2e43e702ec0d3c30a7925e3ba1",
-              "input_fixture": "sim/fixtures/fig19_ideal_ports",
-              "input_fixture_sha256": {
-                "sim/fixtures/fig19_ideal_ports/scalars_nominal.hex": "eb75aa0c31a94e622f014e80efee95bfa7fef9338fccb10d6c73cbf4133b1b8c",
-                "sim/fixtures/fig19_ideal_ports/binding.json": "b5152d5cdffc3a02518bfb0cbb51a5fed6e8531a7463360da982ca973f2ba958",
-                "sim/fixtures/fig19_ideal_ports/config.json": "ffadf4fd349801167f1601f90abaea65dff904154437bb4f7062a98e10f1fba6",
-                "sim/fixtures/fig19_ideal_ports/rdac_prefix_table.json": "552c55b1113563d86ce67f861e514cc9b8d6aec033ab8d7dfcbae8c1e1759939",
-                "sim/fixtures/fig19_ideal_ports/weights_nominal.hex": "72749f36fbc8ecac81834293a171e534b9dcb62b4b3f2d582e95eb2ad35da29d",
-                "sim/fixtures/fig19_ideal_ports/source_control_binding.sv": "9f99890a93cf4e6860a6ead379bac9a4245210a2e5fd9bfbf00f3068c65ab403",
-                "sim/fixtures/fig19_ideal_ports/homogeneous_code_reference.json": "1431c063d9a48cfefe7cd37a4a43936088383db37ec153d7c0dd5e3f8dd6755f",
-                "sim/fixtures/fig19_ideal_ports/registers_nominal.json": "a371dbad26cd233bdf82bf9f86788779154c66b6c1561b421060204698303a0e",
-                "sim/fixtures/fig19_ideal_ports/format.json": "2c7b5765d533cdef32741bc8771fa67d585b04814c7d6c7b1ee69cb5a64cb3ca",
-                "sim/fixtures/fig19_ideal_ports/fixture_manifest.json": "dd5fe1141e8c32f02db6ef56949393084f94fe0fcbe67916d25bac96fe66e53a",
-                "sim/fixtures/fig19_ideal_ports/source_acquisition_binding.sv": "580bc96a9682efd685fbb130917644ce27896d8e6a976e4bd99d732fd065a0dd"
-              },
-              "execution_manifest_sha256": "13059b66c91a3fb67d45c2b4dbd8be6b9f4361db8799c8ff81fe779081de70dc",
-              "input_manifest_sha256": "905892c6f8a0bb1ccf522947809a3bd910e2fc4b74aede66b1cc1699885d01cd",
-              "input_raw_sha256": {
-                "acquisition_sv": "580bc96a9682efd685fbb130917644ce27896d8e6a976e4bd99d732fd065a0dd",
-                "binding_json": "b5152d5cdffc3a02518bfb0cbb51a5fed6e8531a7463360da982ca973f2ba958",
-                "config_json": "ffadf4fd349801167f1601f90abaea65dff904154437bb4f7062a98e10f1fba6",
-                "format_json": "2c7b5765d533cdef32741bc8771fa67d585b04814c7d6c7b1ee69cb5a64cb3ca",
-                "source_sv": "9f99890a93cf4e6860a6ead379bac9a4245210a2e5fd9bfbf00f3068c65ab403"
-              },
-              "source_sha256": {
-                "rtl/calibration/caaz_pair_processor.sv": "04c68fb79974185d998d3bd49d8aabeef5cb2fb5f02050948c9fe2724c8181b8",
-                "rtl/control/caaz_cycle_ctrl.sv": "7829d53cbdfb90bcd7ea6c5d478bb0af1fda2966c4eb62954e21bf2100c592a0",
-                "rtl/core/adc2_dec.sv": "53d82e15b2525e7a6dc7b5efa8f33752f82fab44bcaf79e626eeead8338c9cca",
-                "rtl/core/analog_phase_ctrl.sv": "10b29de6e1e9a6c1625c76eb09d34ecf62f2a888e6712828a843194373a2c068",
-                "rtl/core/cal_output_stage.sv": "4edf061ba492418e48a36403473afd1a65e788dd6cfd3fd6e4955acfc562a415",
-                "rtl/core/cal_residue_mac.sv": "e810c02bbaa181884849f37342c889f46eb55574b62843f15b8b413553bda694",
-                "rtl/core/cal_sample_context.sv": "b7f61a3e58d1def8879f7b03a56a2dd19360f36cf61304d32a31e505a7cf0d50",
-                "rtl/core/cal_weight_reduce.sv": "1f004a5455d2cde4601e46c847ca75518da3c474ba0be265c12219861f029647",
-                "rtl/core/calib_regs.sv": "561a8770f52af6f8d48444e844b69ceeca588b3b55345c1eb7a66ec91507294e",
-                "rtl/core/div_floor.sv": "4b399a517ef80686f180a8819c7f8ef62c3093b1db1ed3832422e52dcd68a9c5",
-                "rtl/core/rdac_drv.sv": "1432c440a9234f1888a89e2b7866a302ccf97bb179bfe4fcc7f9da8c72ba7c32",
-                "rtl/core/recon_core.sv": "9d142f4f0392416873f9f8858c36c05a59253eecb90dca7f9294a3e0b43c9f00",
-                "rtl/core/sar_structural_ctrl.sv": "e63ef7674f016e7baf2deea044e81160a2e11c5e3d1dc70ca4bf9f2a1a64485f",
-                "rtl/core/sar_trial_ctrl.sv": "c7569d1cef42e08419b88c372336ac846db6638b22cc13c1d846d708dea1ab96",
-                "rtl/core/slice_pool_ctrl.sv": "06f42c272256741a1622119201734c00135c0e100b475702385f0010cff533ab",
-                "rtl/core/status_regs.sv": "8d58070dbd2bca03a39d56b6cfce24006cfa966e9cf157d65faf8cb7c6ffa0d5",
-                "rtl/core/unit_therm.sv": "af4a252d47dd20369be04d5b6cef6860ed206e4b4f5f998d1253e9ecee595e8b",
-                "rtl/core/weight_store.sv": "9f3240b9e27e14cd852b7e451febc39c386d459b24f3a4dbaf3c27509b81998c",
-                "rtl/params/rtl_error_codes.vh": "48fad1bf62f272687e0618fad28a11f87a64d2166da164cde4141e6671a42aa5",
-                "rtl/top/sadc_enc.sv": "da718df08ea2a13393e24bad9e89c615030f09a1a19aca6e2892b96d10437794",
-                "rtl/top/sar20_digital_core.sv": "65bfddbd480dccd9f9db444800af785567e47e73eaf997b1efad96da253a22ca",
-                "sim/tb/fig19_static_plant_tb.sv": "0070f2e20046fb40b94eda46b609dcd3f70d1ee4beb7adaa66a5fb788f2ff193",
-                "src/adi_model/__init__.py": "97d112ae9c93fc1f593f5f8f0ab8ad0fc2b3bf6e0e7420c811c0cfcd91bb7bf1",
-                "src/adi_model/__main__.py": "fa5ec6a248cfda00aadc8d13741670a5d2fd3b7f7d09a10337bac97c9ab37ce4",
-                "src/adi_model/_arrays.py": "d1eeedeb7b6851a76650ef575d58ce456cf6d7ae22b91b5d79dc3517d1608df6",
-                "src/adi_model/behavioral/adc2.py": "5def18421646999612abc46613736603b160447e8c2d64bb0774f8d56545f3a3",
-                "src/adi_model/metrics/benchmarks.py": "63f492e7737c03fd5ae766b48a22cf89ef65cf45127136c23b125653b4533dff",
-                "src/adi_model/calib.py": "0107df9831af15680900e1b5f983e655da7e5fedb016ba3d30b5762676d2520d",
-                "src/adi_model/behavioral/charge_ref.py": "74856592cdc665c4533744754b953cee55a6e8649368b8483b6ddbf619a0cebc",
-                "src/adi_model/chopping_az.py": "78f2208d54708085fdfadbc98b45abdb26660b5ee98a0340ca695d1f68cd5819",
-                "src/adi_model/cli.py": "0e0daea02b79f3f6750164c6fdbde5c2aa8a4265c6ad193fe3f49331bd53b661",
-                "src/adi_model/simulation/config.py": "a3c784167864c08d8cfa8a2db2c1ff254f6330eb19878e7cb70fac5ab3dd8d7d",
-                "src/adi_model/behavioral/conversion.py": "55855a86663d0127a997585764d7d146af477858c33946ad9a1f54117c26f00a",
-                "src/adi_model/topology/dac_arch.py": "79ccd3dcc3b39070f49d33df73942be7336c8e50bbd5d18a5a14e04b3942b0f1",
-                "src/adi_model/defaults.py": "2580d3e49002291e76dbefa2e5c8cf2d0d3e77d0be9801e60e74ddbc4cd9de3f",
-                "src/adi_model/control/dem.py": "3f23e753e78d8d93b6b8fa24a9ed3bde204e7bd9352ff168eefff48611012668",
-                "src/adi_model/control/dither.py": "562367d484aaddfd85e76cb13e787508318a0e670ec7a5128fef4b9caf6495e0",
-                "src/adi_model/behavioral/dynamics.py": "3c2fd52ab6b79251cc81882f8be5b38ad0cdaae3396394d55ceddaae1f99a0b9",
-                "src/adi_model/contracts/fixed_point.py": "041be974e401e8394f3c7d66c1da57fec0d5516ff03c54b7d03dbe0ddd015482",
-                "src/adi_model/behavioral/input_network.py": "e361644263ccb582d4a8282395f1f77b5d0ff4e368c3c95749a7e5307f428be0",
-                "src/adi_model/inventory_gate.py": "610b9e2fe5bcdd059dcf8b4b284b8c410e3b590b895bddc15d2b107175fa4a63",
-                "src/adi_model/behavioral/low_frequency_noise.py": "2319b65974015795342e230adf664f52efe0e36518e31ea7cef4a133d9c89e83",
-                "src/adi_model/topology/mapper.py": "71dcf86a06034c06632e35d32fff7290ec74a47086094aeb054519d8869f5b07",
-                "src/adi_model/metrics/metrics.py": "8877c362ac6ab765cb26f7dcd2a42263c9b0a0915d78134af9b322109edec5d9",
-                "src/adi_model/simulation/pipeline.py": "58dec0a982bfbc5134461dac5e6c5f7e429d9bbc1afedd0a8043354ced981c3a",
-                "src/adi_model/simulation/pipeline_engine.py": "8bccd20f58bb3fdbe335d017b88cf1745a4b37da31dce66fdbdab21d7ab57acb",
-                "src/adi_model/behavioral/pretracking.py": "5da8b080e173d5e5c88b0017854d20c18869eb8c5d744ec67a0150bfaa6d8a8a",
-                "src/adi_model/provenance.py": "34cef99af3873b932bad5b5b287548edbcc9c53358ac6519840173567901d477",
-                "src/adi_model/behavioral/ra.py": "c8bc782cce4056536c6e987b90499a6c4da5768fc2bc7f13baf2aabab9ee1fb3",
-                "src/adi_model/calibration/reconstruction.py": "dff957b997863229bf4b5c8f6ebf6f543a9c834e7412e92d8faecf5e577ec936",
-                "src/adi_model/behavioral/reference_charge.py": "d95dce7a332173f410ed67244931860302cfb7363eaf6b56563033b2e6397781",
-                "src/adi_model/rtl_observation.py": "03782d44c6ce082299357382b9aa1b8f52592a26428ee0e26cb39db6a47c86b2",
-                "src/adi_model/behavioral/sadc.py": "fac93fd126c0232b39bb5a6cda8f3ce97b7a0369af14d294adea644a928c468c",
-                "src/adi_model/behavioral/sampler.py": "18b2dafbd8af583533a8461e39c4b200dedde4ba2a0109a54162f7fb0015278e",
-                "src/adi_model/behavioral/sampling_charge.py": "717589ecc9d96c327a5f6f48435e00fae59ca3e1ff1cd75b83960e42f22e72c8",
-                "src/adi_model/simulation/scheduler.py": "94e2fa781373013054217404fdad53439897b1b9792ea7db09fab1e923b1ada4",
-                "src/adi_model/simulation/serialization.py": "9689ba9d937180a2acf18f33476964474a101d75473a48f26fef150203b8cc52",
-                "src/adi_model/simulation/sim.py": "e7a9a764a57b0393e1272daabd6f154847f3f5b76c08e1954584d1a4780286c2",
-                "src/adi_model/simulation/slice_pool.py": "f4c9e03a00fdbcf065b9501f5552bdc71a91d2c06fc275aae521ca1c37149e2e",
-                "src/adi_model/control/timing.py": "1763938120d2ece799856fb30e8effd674dc943b5690b869b272c3369fd65c19",
-                "src/adi_model/calibration/weight_calibration.py": "ebd3118ee76e3f878d1c701d5c6a7e67cda734eb98bd0dc9b4953dedac1a039e",
-                "tools/export_fitted_rtl.py": "b214c88657d2c3b9778c48382ee6bbab5307c7690300eb6634d54ac1f5d775d7",
-                "tools/export_rtl_params.py": "5c686a02368c77e656029d6cb4f59f3160226cae4a176c5ab3ec6a6976d6abef",
-                "tools/run_fig19_rtl_calibration.py": "fe510f3217063b143212cc6005c85b58d7277f2e43e702ec0d3c30a7925e3ba1",
-                "tools/run_open_rtl.py": "b5af7fcd9917dd8d3305117e0f2601b59f759b1e783f3aa2cd5b54e213975ef2"
-              },
-              "parent_manifest_status": "PASS_DUT_LEARNING_PENDING_INDEPENDENT_SAME_CHIP_PYTHON_REPLAY",
-              "parent_python_same_chip_replay": "PENDING",
-              "qualified_cases": [
-                "training_word0",
-                "holdout_nominal",
-                "holdout_fitted",
-                "early_prefix_negative"
-              ],
-              "trace_sha256": {
-                "early_prefix_negative": {
-                  "controls.csv": "83645ad109169f4b3d38dbde1f5e48a99c6aed8e9cc5fe532ed1b584572c574f",
-                  "events.csv": "5e299c804032ab3ba9a0cc3d7b76a8ae7d3d80b781c33d85f14c71ffed66c2d7",
-                  "rdac_events.csv": "b23c1870d10abc8d610dd7ec15c26102754fb65882dcc22d7e0cf4961496a930",
-                  "residues.csv": "6552675b5a30302cbbecd222dc521175e5a19ad76768a6696d6b496eb38c7079",
-                  "samples.csv": "ff1842cf36e322fc60369a8ed0c6002af73ce2710e2416ebec01e39bb45d832f"
-                },
-                "holdout_fitted": {
-                  "controls.csv": "4137dff9d6193bd16e7045f23874b429c85645d7d78a22ec23fa6e4f28849757",
-                  "events.csv": "5376c69dfc2baa7a24267ea9d205628c6ef68ebde13280a8932c2b2af4868f60",
-                  "rdac_events.csv": "12afd212df4b0b89e515580f7d20e160c41fa0fb2dffc5116ba4a5db6a8cb518",
-                  "residues.csv": "7969898fae8caec6ccb97695e465cefb4497a86870395fbc8d267ea339ab9019",
-                  "samples.csv": "92e0d9676b951557ead8d4428a8d553d592161664b00454d389f13d4b2ee00f9"
-                },
-                "holdout_nominal": {
-                  "controls.csv": "4137dff9d6193bd16e7045f23874b429c85645d7d78a22ec23fa6e4f28849757",
-                  "events.csv": "dfa66ec2e1f73f55e38a79305881aefa6599a588db795dc69bf42cea10a21886",
-                  "rdac_events.csv": "12afd212df4b0b89e515580f7d20e160c41fa0fb2dffc5116ba4a5db6a8cb518",
-                  "residues.csv": "7969898fae8caec6ccb97695e465cefb4497a86870395fbc8d267ea339ab9019",
-                  "samples.csv": "92e0d9676b951557ead8d4428a8d553d592161664b00454d389f13d4b2ee00f9"
-                },
-                "training_word0": {
-                  "controls.csv": "036523d0fa79e766b3c186a868f830fe356a0871fcdb1ea0effd8328fd8518f0",
-                  "events.csv": "697dc113ec07b1e325083016dc2c8efafecc9bec480dcadce208cd0afb5e96c6",
-                  "rdac_events.csv": "9dfa87b2fad9ef920ffe2d9355c43c7e530c9ee9cf099d94de557eedafe93621",
-                  "residues.csv": "6c3d071669605f74526e2b6fb8921585fb9647732fc45721bb462ff762346864",
-                  "samples.csv": "f4c98c6b28d93d2852346baa03f3917d322a2f09bd28288e074f293d10f7d420"
-                }
-              },
-              "rtl_executed": true,
-              "physical_signoff": "NOT_RUN",
-              "local_audit_relative_path": "cleanup/implementation/rtl/resume_20261105_001/full_typechecked_001/manifest.json"
-            },
-            "independent_replay": {
-              "public_verifier": "tools/verify_source_bound_replay.py",
-              "verifier_sha256": "5cfb5ef5e99a4b91caf4ec5a97fd18a80be2b7249c9734f1f2d9692a54c7f554",
-              "independent_receipt_sha256": "10aa9682d28643569a39990e2b8f882b40f7360c29eea6749a5dedb715e6591e",
-              "independent_receipt_relative_path": "cleanup/calibration_resume_20261105/typefix_replay_cohort_20261106_012849/TYPEFIX_REPLAY_POSITIVE_RECEIPT.json",
-              "component_execution_manifest_sha256": "089b080e79fe1ec58d7340fe6768270596123ec7d51d769a805b655791f4f07d",
-              "component_replay_summary_sha256": "18569f4c4c82e096faf6382dca3d214e89d305f2d211e63919380ec078fa8e63",
-              "negative_replay_summary_sha256": "5a9410752c754c702ec3809bdb456cc9c38df8c56f9759208b36b828ad9f872a",
-              "positive_replay_receipts": {
-                "training_word0": {
-                  "receipt_sha256": "e6660511bdfc6d4e7f6a968b1c7fec5327c63b81f4ee16fc9b5d605410ff9dfd",
-                  "local_receipt_path": "cleanup/calibration_resume_20261105/typefix_replay_cohort_20261106_012849/training_word0/receipt.json",
-                  "target_words_matched": 4096,
-                  "accepted": 4099,
-                  "physical_samples_replayed": 4098,
-                  "rdac_prefix_events_matched": 28686,
-                  "ra_max_error_v": 3.7719827261639693e-14
-                },
-                "holdout_nominal": {
-                  "receipt_sha256": "df6337436834effc7d355682d17c3ae795a7e8b77c34dc1beb61ffa463a27af2",
-                  "local_receipt_path": "cleanup/calibration_resume_20261105/typefix_replay_cohort_20261106_012849/holdout_nominal/receipt.json",
-                  "target_words_matched": 512,
-                  "accepted": 515,
-                  "physical_samples_replayed": 514,
-                  "rdac_prefix_events_matched": 3598,
-                  "ra_max_error_v": 2.0511370379949767e-14
-                },
-                "holdout_fitted": {
-                  "receipt_sha256": "fe3e8c481648a493e9cb74bc5cf41ea3d083e3be83ca0a1b4e55cdfea178c1e7",
-                  "local_receipt_path": "cleanup/calibration_resume_20261105/typefix_replay_cohort_20261106_012849/holdout_fitted/receipt.json",
-                  "target_words_matched": 512,
-                  "accepted": 515,
-                  "physical_samples_replayed": 514,
-                  "rdac_prefix_events_matched": 3598,
-                  "ra_max_error_v": 2.0511370379949767e-14
-                },
-                "component_shared64": {
-                  "receipt_sha256": "bfe527dd8b3a389fbd2af7ed300da03202f4e3339c87a1ab285f0cfe69a4fd33",
-                  "local_receipt_path": "cleanup/calibration_resume_20261105/typefix_replay_cohort_20261106_012849/component_shared64/receipt.json",
-                  "target_words_matched": 64,
-                  "accepted": 67,
-                  "physical_samples_replayed": 66,
-                  "rdac_prefix_events_matched": 462,
-                  "ra_max_error_v": 7.327471962526033e-15
-                }
-              },
-              "negative_replay_receipts": [
-                {
-                  "receipt_sha256": "63ff1af792cc17783daaacba93bb42817489544945c4d734c005292438499481",
-                  "local_receipt_path": "cleanup/calibration_resume_20261105/typefix_replay_cohort_20261106_012849/negative_trace_25/receipt.json",
-                  "checks": 25
-                },
-                {
-                  "receipt_sha256": "97fb44cb9dc63a04cbca41ab7c86b24d737fbbd523b26c8fd235e2a31afd3da0",
-                  "local_receipt_path": "cleanup/calibration_resume_20261105/typefix_replay_cohort_20261106_012849/negative_identity_scalar_file_25/receipt.json",
-                  "checks": 25
-                }
-              ]
-            }
-          },
-          "observed": {
-            "coefficient_source": "SVD_DUT_PACKETS_AND_KNOWN_REFERENCE_ONLY",
-            "condition": 6054.233091647768,
-            "fitted_rms_v": 1.9928733670834396e-06,
-            "fitted_std_v": 1.9908668090648366e-06,
-            "holdout_samples": 512,
-            "nominal_rms_v": 9.704089671359069e-05,
-            "nominal_std_v": 9.628313296212907e-05,
-            "parameters": 1279,
-            "rank": 1279,
-            "same_physical_observations": true,
-            "training_samples": 4096,
-            "target_integer_words_matched": 5120,
-            "component_words_matched": 64,
-            "corrupted_captures_rejected": 50
-          },
-          "reproduce": {
-            "working_directory": "repository_root",
-            "environment": {
-              "PYTHONPATH": "src",
-              "OPENBLAS_NUM_THREADS": "1",
-              "VERILATOR": "显式指向本机已有Verilator；不由本工具安装",
-              "VERILATOR_ROOT": "与该Verilator安装对应"
-            },
-            "command": [
-              "python",
-              "-B",
-              "tools/run_fig19_rtl_calibration.py",
-              "--out",
-              "<NEW_EXTERNAL_OUTPUT_DIRECTORY>",
-              "--fixture-dir",
-              "sim/fixtures/fig19_ideal_ports",
-              "--plant-seed",
-              "42",
-              "--train",
-              "4096",
-              "--holdout",
-              "512",
-              "--seed",
-              "42"
-            ],
-            "output_policy": "在仓库根执行。生成输出放在各自新库外目录，每条回放只读同一次执行的真实捕获和源输入包。",
-            "scope": "复现指定静态非均匀DUT场景及负端点控制，再独立回放三组真实输出。",
-            "replay_cases": [
-              "training_word0",
-              "holdout_nominal",
-              "holdout_fitted"
-            ],
-            "replay_command": [
-              "python",
-              "-B",
-              "tools/verify_source_bound_replay.py",
-              "--trace",
-              "<RUN>/<CASE>",
-              "--inputs",
-              "<RUN>/inputs",
-              "--plant",
-              "<RUN>/plant_metadata.json",
-              "--plant-parameters",
-              "<RUN>/plant_replay_only.json",
-              "--stimulus",
-              "<RUN>/<CASE>/stimulus.txt",
-              "--config",
-              "<RUN>/inputs/config.json",
-              "--prefix-table",
-              "sim/fixtures/fig19_ideal_ports/rdac_prefix_table.json",
-              "--registers",
-              "<RUN>/<CASE>/registers.json",
-              "--out",
-              "<NEW_EXTERNAL_REPLAY_DIRECTORY>"
-            ],
-            "public_guard_command": [
-              "python",
-              "-m",
-              "pytest",
-              "-q",
-              "tests/integration/test_source_bound_replay.py"
-            ],
-            "component_run": "另用新输出目录给首条命令添加 --component-only。对应回放只用 component_shared64，该组件路径不训练。"
-          },
-          "remaining_boundary": "单一非均匀静态工程模型及指定连续捕获窗口。尾部N+3接受、N+2实际采样，三个尾事务均未退休，其中两个只有模拟宏ADC2目标值。原芯片校准算法、真实读出、动态/PVT/电路及签核未验。"
+          "key": "M16.current_dut_learning_and_independent_replay",
+          "status": "NOT_RUN",
+          "scope": "v21 同一 DUT 的非均匀静态训练、冻结权重装载及独立回放待验。"
         }
       ],
       "observables": [
         "实际未知量/秩、完整冻结spec、原始观测、训练与留出分离、量化寄存器、当前calobs v2及逐结果ID/flags。"
       ],
       "gaps": [
-        "限定静态训练/装载/留出已验。旧748bit、旧SID与旧schema1记录保留在各自历史版本。",
-        "参数个数为n_slices*(n_main+n_sub)+1，默认18*(63+8)+1=1279；有效C/Cf不能唯一识别绝对法拉值。",
-        "无片内学习器、实物观察读出/FIFO/ready/epoch包；跨DSP逐结果元数据和动态/漂移/ADC2非线性校准仍缺。"
+        "当前工作树没有非均匀 DUT 静态训练、重新装载及完整独立回放的同一执行证据。",
+        "未知量由实际采集的物理片组和主／子单元维数决定；有效 C/Cf 不能唯一识别绝对电容。",
+        "实物观察读出包及其 FIFO、ready、配置代输送仍需验证。训练不在片内执行。"
       ],
       "rtl_contract": {
         "status": "DIGITAL_IMPLEMENTED",
         "code": [
-          "rtl/core/cal_sample_context.sv",
-          "rtl/core/weight_store.sv",
-          "rtl/core/calib_regs.sv",
-          "rtl/core/recon_core.sv",
-          "rtl/top/sar20_digital_core.sv"
+          "rtl/v21/adc_digital_ip_v21.sv",
+          "rtl/v21/adc2_capture.sv",
+          "rtl/v21/wsum_v21.sv",
+          "rtl/v21/recon_v21.sv"
         ],
         "tests": [
-          "sim/tb/source_control_contract_tb.sv",
-          "sim/tb/calibration_physical_tb.sv",
-          "sim/tb/calibration_recovery_tb.sv",
-          "sim/tb/fig19_static_plant_tb.sv"
+          "tb/v21/tb_cfg_lifecycle.sv",
+          "tb/v21/tb_wsum_scan.sv",
+          "tb/v21/tb_i4_recon.sv"
         ],
-        "boundary": "当前DUT实测v2捕获、冻结寄存器加载与定点结果。SVD在片外，有限连续采集的尾部事务尚在途，实物连续读出另验。"
+        "boundary": "v21 装载显式权重并按捕获时冻结的权重和重构。所列 RTL 用例覆盖配置和固定向量，闭环学习与冻结后的独立回放待验。"
       },
       "history": {
         "original_inventory_sha256": "fbed54c81c21ccbf1a606b06dd4327fcfbcd340d9563deac35403b075e983f8e",
@@ -3232,80 +2739,10 @@
       {
         "id": "P06",
         "task_ref": "T12",
-        "title": "当前v2数字观察/冻结系数/定点装载及独立留出",
-        "status": "PASS",
-        "note": "4096笔真实DUT数字观察训练达到1279/1279秩，冻结装载后独立512笔留出。独立5cf回放三组5120个目标整数相等，并拒绝50个损坏捕获。",
-        "local_component_evidence": "M16有限非均匀静态DUT与同一模型、同一有序采样计划的独立回放。",
-        "remaining_boundary": "单一非均匀静态工程模型及指定连续捕获窗口。尾部N+3接受、N+2实际采样，三个尾事务均未退休，其中两个只有模拟宏ADC2目标值。原芯片校准算法、真实读出、动态/PVT/电路及签核未验。",
-        "evidence": {
-          "experiment_ref": "M16.current_source_bound_dut_learning_and_replay",
-          "execution_manifest_sha256": "13059b66c91a3fb67d45c2b4dbd8be6b9f4361db8799c8ff81fe779081de70dc",
-          "independent_receipt_sha256": "10aa9682d28643569a39990e2b8f882b40f7360c29eea6749a5dedb715e6591e"
-        },
-        "reproduce": {
-          "working_directory": "repository_root",
-          "environment": {
-            "PYTHONPATH": "src",
-            "OPENBLAS_NUM_THREADS": "1",
-            "VERILATOR": "显式指向本机已有Verilator；不由本工具安装",
-            "VERILATOR_ROOT": "与该Verilator安装对应"
-          },
-          "command": [
-            "python",
-            "-B",
-            "tools/run_fig19_rtl_calibration.py",
-            "--out",
-            "<NEW_EXTERNAL_OUTPUT_DIRECTORY>",
-            "--fixture-dir",
-            "sim/fixtures/fig19_ideal_ports",
-            "--plant-seed",
-            "42",
-            "--train",
-            "4096",
-            "--holdout",
-            "512",
-            "--seed",
-            "42"
-          ],
-          "output_policy": "在仓库根执行。生成输出放在各自新库外目录，每条回放只读同一次执行的真实捕获和源输入包。",
-          "scope": "复现指定静态非均匀DUT场景及负端点控制，再独立回放三组真实输出。",
-          "replay_cases": [
-            "training_word0",
-            "holdout_nominal",
-            "holdout_fitted"
-          ],
-          "replay_command": [
-            "python",
-            "-B",
-            "tools/verify_source_bound_replay.py",
-            "--trace",
-            "<RUN>/<CASE>",
-            "--inputs",
-            "<RUN>/inputs",
-            "--plant",
-            "<RUN>/plant_metadata.json",
-            "--plant-parameters",
-            "<RUN>/plant_replay_only.json",
-            "--stimulus",
-            "<RUN>/<CASE>/stimulus.txt",
-            "--config",
-            "<RUN>/inputs/config.json",
-            "--prefix-table",
-            "sim/fixtures/fig19_ideal_ports/rdac_prefix_table.json",
-            "--registers",
-            "<RUN>/<CASE>/registers.json",
-            "--out",
-            "<NEW_EXTERNAL_REPLAY_DIRECTORY>"
-          ],
-          "public_guard_command": [
-            "python",
-            "-m",
-            "pytest",
-            "-q",
-            "tests/integration/test_source_bound_replay.py"
-          ],
-          "component_run": "另用新输出目录给首条命令添加 --component-only。对应回放只用 component_shared64，该组件路径不训练。"
-        }
+        "title": "数字观察、冻结系数装载和独立留出",
+        "status": "NOT_RUN",
+        "local_component_evidence": "M16 登记 Python 拟合与定点重构用例，以及 v21 配置生命周期与重构用例。",
+        "remaining_boundary": "待建立与当前工作树接口一致的实际 DUT 训练、装载和留出。"
       },
       {
         "id": "P07",
@@ -3346,80 +2783,10 @@
       {
         "id": "P11",
         "task_ref": "T07",
-        "title": "Fig19限定真实双节点注入和逐prefix Python/RTL对拍",
-        "status": "PASS",
-        "note": "当前DUT重跑覆盖64字各8次、两端口与逐prefix。非法早期prefix保持RDAC引脚，独立回放逐笔核对同一静态对象的实际计划和ABI2结果。",
-        "local_component_evidence": "M04有限双节点与端点拒绝，M16提供当前独立源绑定回放。",
-        "remaining_boundary": "限Fig19静态理想端口等效和指定离散域。原分布电容网络、一般满幅、完整3D DEM及CAAZ或动态的联合效果未验。",
-        "evidence": {
-          "experiment_ref": "M04.actual_dut_limited_two_node_prefix_and_integer_window",
-          "execution_manifest_sha256": "13059b66c91a3fb67d45c2b4dbd8be6b9f4361db8799c8ff81fe779081de70dc",
-          "independent_receipt_sha256": "10aa9682d28643569a39990e2b8f882b40f7360c29eea6749a5dedb715e6591e"
-        },
-        "reproduce": {
-          "working_directory": "repository_root",
-          "environment": {
-            "PYTHONPATH": "src",
-            "OPENBLAS_NUM_THREADS": "1",
-            "VERILATOR": "显式指向本机已有Verilator；不由本工具安装",
-            "VERILATOR_ROOT": "与该Verilator安装对应"
-          },
-          "command": [
-            "python",
-            "-B",
-            "tools/run_fig19_rtl_calibration.py",
-            "--out",
-            "<NEW_EXTERNAL_OUTPUT_DIRECTORY>",
-            "--fixture-dir",
-            "sim/fixtures/fig19_ideal_ports",
-            "--plant-seed",
-            "42",
-            "--train",
-            "4096",
-            "--holdout",
-            "512",
-            "--seed",
-            "42"
-          ],
-          "output_policy": "在仓库根执行。生成输出放在各自新库外目录，每条回放只读同一次执行的真实捕获和源输入包。",
-          "scope": "复现指定静态非均匀DUT场景及负端点控制，再独立回放三组真实输出。",
-          "replay_cases": [
-            "training_word0",
-            "holdout_nominal",
-            "holdout_fitted"
-          ],
-          "replay_command": [
-            "python",
-            "-B",
-            "tools/verify_source_bound_replay.py",
-            "--trace",
-            "<RUN>/<CASE>",
-            "--inputs",
-            "<RUN>/inputs",
-            "--plant",
-            "<RUN>/plant_metadata.json",
-            "--plant-parameters",
-            "<RUN>/plant_replay_only.json",
-            "--stimulus",
-            "<RUN>/<CASE>/stimulus.txt",
-            "--config",
-            "<RUN>/inputs/config.json",
-            "--prefix-table",
-            "sim/fixtures/fig19_ideal_ports/rdac_prefix_table.json",
-            "--registers",
-            "<RUN>/<CASE>/registers.json",
-            "--out",
-            "<NEW_EXTERNAL_REPLAY_DIRECTORY>"
-          ],
-          "public_guard_command": [
-            "python",
-            "-m",
-            "pytest",
-            "-q",
-            "tests/integration/test_source_bound_replay.py"
-          ],
-          "component_run": "另用新输出目录给首条命令添加 --component-only。对应回放只用 component_shared64，该组件路径不训练。"
-        }
+        "title": "双节点扰动与逐前缀 RTL 对拍",
+        "status": "NOT_RUN",
+        "local_component_evidence": "M04 登记 Python 静态双节点用例和 v21 数字预置及事件路径用例。",
+        "remaining_boundary": "待验证现行接口的实际 RTL 双节点及逐前缀结果。"
       },
       {
         "id": "P12",
@@ -3436,7 +2803,7 @@
         "title": "实际校准观测读出、缺样和epoch输送",
         "status": "NOT_RUN",
         "note": "v2报文没有FIFO/ready/epoch字段；调用方控制epoch不等于硬件可持续读出。",
-        "local_component_evidence": "本轮M16/P06的受控仿真捕获必须有ID连续/缺样/epoch保证。",
+        "local_component_evidence": "M16 现行数字组件覆盖记录字段和整数重构；物理证据的连续读出需要独立接口。",
         "remaining_boundary": "实物连续外部输送的FIFO/ready/epoch/带宽设计尚缺，受控Verilated捕获不等于生产读出。"
       }
     ]

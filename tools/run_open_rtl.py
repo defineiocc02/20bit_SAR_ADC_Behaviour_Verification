@@ -4,17 +4,17 @@
 # 模块名     : run_open_rtl
 # 版本       : v1.0
 # 功能       : 以显式依赖和输入快照启动选定数字组件并保存分层执行证据。
-# 设计说明   : 命令选择与仿真调用隔离；完整核输入按导出清单校验。
+# 设计说明   : 只选择声明的数字组件和所属夹具，每次单独保存源及仿真日志。
 #              编译成功只是前置条件，必须再验证实际仿真的完成行及计数。
 #              未接通的接口作为 OPEN 边界保留，组件通过不等同器件签核。
-#              源码、系数和运行日志均有独立身份；失败仍保留相应日志。
-# 变更记录   : 基础源控制测试移除已不存在的 CAAZ 核与 TB 参数。
+#              源码、向量和运行日志均有独立身份；失败仍保留相应日志。
+# 变更记录   : 移除独立 ADC 整链目标。保留 DSP、协议和算术组件。
 # =============================================================================
 """只运行显式选择的自检组件，不隐式复用输出、参数或通过记录。
 
 --out 必须是不存在且位于版本库外的目录。每个 --tops 项只编译已登记的依赖，
 不扫描整个工程，也不提供旧配置、参考向量或“已知失败即通过”的默认集合。
-需完整核输入的测试必须提供源导出器生成的 --inputs-dir；组件数学夹具不代表器件。
+需要数值夹具或配对向量的组件须明确提供输入。整链验收统一使用 v21 的验证入口。
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ sys.dont_write_bytecode = True
 # REPO 只用于从约定的版本库中取源，不用当前启动目录推定被测版本。
 # 错误识别同时要求实际返回码和工具日志。部分工具会在报错后仍返回零。
 # 正则锚定真实诊断及断言失败，防止把带有 error 字样的计数名称当成错误。
-# 数字组件范围不包含未选中的模块；完整源绑定也不确认模拟宏的物理实现。
+# 组件范围只包含所选的数字模块，不能从组件结果推断 ADC 整链或模拟宏表现。
 REPO = Path(__file__).resolve().parents[1]
 SCOPE_COMPONENT = "COMPONENT_SYNTHETIC_DIGITAL"
 ERROR_DIAGNOSTIC = re.compile(
@@ -54,8 +54,7 @@ ERROR_DIAGNOSTIC = re.compile(
 # 候选对象是不可变的，避免同一进程运行多个顶层时携带上一项的计数规则。
 # sources 指实际编译顺序，末尾是测试台；support_files 只按原路径保存供 include。
 # lint 描述设计顶层及配置参数，不能和测试台 elaboration 参数混为一谈。
-# requires_inputs 的几何、定点格式及绑定来自同一输入包，三者缺一不能猜默认值。
-# requires_math_format、requires_protocol_fixture 对应另一类显式夹具，不复用主核输入。
+# requires_math_format、requires_protocol_fixture 各自约束组件专用几何，不读取 ADC 主线参数。
 # marker、positive_fields 验证实际发生了事件，zero_fields 验证没有发生禁止事件。
 # open_markers 保留测试不承诺的接口，并要求记录确实出现在日志中。
 # module 指登记别名共享的实际模块；目录和报告仍以所选名字区分数值场景。
@@ -67,27 +66,22 @@ class Bench:
     marker: str
     positive_fields: tuple[str, ...]
     lint: tuple[tuple[str, tuple[str, ...]], ...] = ()
-    requires_inputs: bool = False
     requires_math_format: bool = False
     requires_protocol_fixture: bool = False
     pair_vectors: bool = False
     module: str | None = None
     parameters: tuple[tuple[str, int], ...] = ()
     support_files: tuple[str, ...] = ()
-    source_control_trace: bool = False
-    system_trace: bool = False
     zero_fields: tuple[str, ...] = ()
     open_markers: tuple[str, ...] = ()
 
 
-# 完整核测试只在接口和绑定固定后登记。
-# 不登记已退役的 P1/P2/P3、D=2、兼容入口或旧反例集合。
 # =============================================================================
-# 2. 独立组件与全核依赖登记
+# 2. 独立组件依赖登记
 # =============================================================================
 # 只把一个测试台列入一次运行的依赖。互相同名的模块在不同源码快照中隔离。
 # 整数除法使用纯数学格式，不附加芯片的示例码表或前端增益。
-# 配对向量的扩展测试有自己独立的实际输出记录，不能借主核入口推断 CAAZ 已接通。
+# 配对向量测试独立验证扩展模块；其结果不写成 v21 已接入该扩展。
 # 组件之间的计数是各自成果的必要条件，不能统一写成只检查一个 PASS 字样。
 BENCHES = {
     "divider_borrow_tb": Bench(
@@ -259,64 +253,6 @@ BENCHES["sar20_dsp_integration_tb"] = Bench(
     ),
     (),
 )
-# 系统用例连接 ADC 核和 DSP，必须保存独立的输入包和系数总线。
-# 只用系统输出正计数无法定位故障传递，因此还会核对采集和重启两套完成行。
-# 工程上仍须明确源绑定与物理参数，不能用该系统组件代表目标晶体管电路。
-BENCHES["sar20_system_top_tb"] = Bench(
-    (
-        "rtl/core/adc2_dec.sv",
-        "subsys/extensions/caaz/rtl/caaz_cycle_ctrl.sv",
-        "subsys/extensions/caaz/rtl/caaz_pair_processor.sv",
-        "rtl/core/analog_phase_ctrl.sv",
-        "rtl/core/cal_output_stage.sv",
-        "rtl/core/cal_residue_mac.sv",
-        "rtl/core/cal_sample_context.sv",
-        "rtl/core/cal_weight_reduce.sv",
-        "rtl/core/calib_regs.sv",
-        "rtl/core/div_floor.sv",
-        "rtl/core/rdac_drv.sv",
-        "rtl/core/recon_core.sv",
-        "rtl/core/sar_structural_ctrl.sv",
-        "rtl/core/sar_trial_ctrl.sv",
-        "rtl/core/slice_pool_ctrl.sv",
-        "rtl/core/status_regs.sv",
-        "rtl/core/unit_therm.sv",
-        "rtl/core/weight_store.sv",
-        "rtl/top/sadc_enc.sv",
-        "rtl/top/sar20_digital_core.sv",
-        "subsys/ad4080_dsp/rtl/sar20_system_top.sv",
-        "subsys/ad4080_dsp/rtl/sar20_ad4080_top.sv",
-        "subsys/ad4080_dsp/rtl/ad4080_top.sv",
-        "subsys/ad4080_dsp/rtl/spi_slave.sv",
-        "subsys/ad4080_dsp/rtl/ad4080_regs.sv",
-        "subsys/ad4080_dsp/rtl/ad4080_dsp_chain.sv",
-        "subsys/ad4080_dsp/rtl/sys_error_corr.sv",
-        "subsys/ad4080_dsp/rtl/sinc1_decim.sv",
-        "subsys/ad4080_dsp/rtl/sinc5_decim.sv",
-        "subsys/ad4080_dsp/rtl/sinc5_comp.sv",
-        "subsys/ad4080_dsp/rtl/event_detect.sv",
-        "subsys/ad4080_dsp/rtl/fifo_capture.sv",
-        "subsys/ad4080_dsp/rtl/result_fifo.sv",
-        "subsys/ad4080_dsp/rtl/gpio_ctrl.sv",
-        "subsys/ad4080_dsp/sim/tb/sar20_system_top_tb.sv",
-    ),
-    "SAR20_SYSTEM_CONTRACT_COMPLETE",
-    (
-        "accepted",
-        "comparisons",
-        "source_handshakes",
-        "busy_reset_rejects",
-        "interface_rejects",
-        "csr_compares",
-        "checks",
-    ),
-    (("sar20_system_top", ()),),
-    requires_inputs=True,
-    system_trace=True,
-    support_files=("rtl/params/rtl_error_codes.vh",),
-    open_markers=("SAR20_SYSTEM_IDLE_RESET_PRESERVATION_OPEN",),
-    zero_fields=("pending",),
-)
 BENCHES["ad4080_regs_rejection_tb"] = Bench(
     ("subsys/ad4080_dsp/rtl/ad4080_regs.sv", "subsys/ad4080_dsp/sim/tb/ad4080_regs_rejection_tb.sv"),
     "AD4080_REG_REJECTION_COMPLETE",
@@ -330,42 +266,6 @@ BENCHES["spi_unbound_contract_tb"] = Bench(
     (),
     zero_fields=("write_requests",),
 )
-
-# 基础核不再接入 CAAZ 扩展。共同源集合也供 Fig.19 的基础配置使用。
-# 此列表共同供基础源控制夹具和 Fig.19 静态夹具。几何差异由各自导出输入决定。
-# 观测 packet 的样本归属由 ADC2 上下文决定，不通过再次查询实时配置生成。
-# 源选择只包含已连接的主核；扩展的独立用例不作为主核的隐式编译依赖。
-CORE_SOURCES = (
-    "rtl/core/adc2_dec.sv",
-    "rtl/core/analog_phase_ctrl.sv",
-    "rtl/core/cal_output_stage.sv",
-    "rtl/core/cal_residue_mac.sv",
-    "rtl/core/cal_sample_context.sv",
-    "rtl/core/cal_weight_reduce.sv",
-    "rtl/core/calib_regs.sv",
-    "rtl/core/div_floor.sv",
-    "rtl/core/rdac_drv.sv",
-    "rtl/core/recon_core.sv",
-    "rtl/core/sar_structural_ctrl.sv",
-    "rtl/core/sar_trial_ctrl.sv",
-    "rtl/core/slice_pool_ctrl.sv",
-    "rtl/core/status_regs.sv",
-    "rtl/core/unit_therm.sv",
-    "rtl/core/weight_store.sv",
-    "rtl/top/sadc_enc.sv",
-    "rtl/top/sar20_digital_core.sv",
-)
-# 主线 TB 和 DUT 已移除 CAAZ 参数。独立的扩展配对测试保留其原登记。
-BENCHES["source_control_contract_tb"] = Bench(
-    (*CORE_SOURCES, "flow/sim/tb/source_control_contract_tb.sv"),
-    "SOURCE_CONTROL_COMPONENT_COMPLETE",
-    ("observations", "outputs", "checks", "epochs"),
-    (("sar20_digital_core", ("-GP_CAL_OBSERVE=1'b1",)),),
-    requires_inputs=True,
-    support_files=("rtl/params/rtl_error_codes.vh",),
-    source_control_trace=True,
-)
-
 
 # Generic mathematical/protocol cases consume an explicit numerical fixture.
 # 夹具专门约束数字协议和定点格式。显式周期值属于该夹具，不作为模块性能指标。
@@ -609,92 +509,7 @@ def completion(output: str, marker: str, fields: tuple[str, ...]) -> dict[str, i
 
 
 # =============================================================================
-# 4. 显式源包的交叉核验
-# =============================================================================
-# 源包闭合恰好八份文件。多余文件代表夹带未经登记的依赖，不能隐式接受。
-# 快照只核对复制的 binding 源，不去解引用外部的旧 sv_path，否则路径迁移会误挡版本。
-# 清单自描述的状态和版本必须已被本工具理解，旧格式不能被猜测解释。
-# artifact_sha256 约束整个导出包的输出文件，input_sha256 约束生成它的输入对应关系。
-# 两层各自核对，是为防止只改配置或只改导出的模块文件仍通过另一层校验。
-def validate_inputs(directory: Path) -> dict:
-    """核对显式输入包中复制的字节，不要求已移动的原 sv_path 仍可访问。"""
-    root = directory.expanduser().resolve()
-    wanted = {
-        "rtl_params.vh",
-        "source_control_binding.sv",
-        "source_acquisition_binding.sv",
-        "packet_schema.json",
-        "config.json",
-        "format.json",
-        "binding.json",
-        "rtl_input_manifest.json",
-    }
-    if (
-        not root.is_dir()
-        or {p.name for p in root.iterdir()} != wanted
-        or not all(p.is_file() for p in root.iterdir())
-    ):
-        raise ValueError("inputs-dir requires exactly the eight exported bundle files")
-    manifest = json.loads((root / "rtl_input_manifest.json").read_text())
-    if (
-        not isinstance(manifest, dict)
-        or manifest.get("schema_version") != 1
-        or manifest.get("status") != "EXPLICIT_RTL_INPUTS_GENERATED"
-    ):
-        raise ValueError("inputs-dir is not a recognized explicit-source bundle")
-    hashes = manifest.get("artifact_sha256")
-    if not isinstance(hashes, dict) or set(hashes) != wanted - {"rtl_input_manifest.json"}:
-        raise ValueError("source bundle artifact hash inventory is incomplete")
-    # 先核对清单的完整文件集再逐份计算 SHA。防止复制了少量文件时回退到工作区默认件。
-    # 配置、定点格式、连接绑定和两个接口源互相独立，都须绑定到导出文件的精确字节。
-    # 校验不原地修改输入，因此保持同一包可供运行、回放与负控比对。
-    for name, expected in hashes.items():
-        if not isinstance(expected, str) or digest(root / name) != expected:
-            raise ValueError(f"source bundle bytes changed: {name}")
-    inputs = manifest.get("input_sha256", {})
-    expected_inputs = {
-        "config_json": digest(root / "config.json"),
-        "format_json": digest(root / "format.json"),
-        "binding_json": digest(root / "binding.json"),
-        "source_sv": digest(root / "source_control_binding.sv"),
-        "acquisition_sv": digest(root / "source_acquisition_binding.sv"),
-    }
-    if inputs != expected_inputs:
-        raise ValueError("source bundle input hashes do not bind the copied bytes")
-    binding = json.loads((root / "binding.json").read_text())
-    if not isinstance(binding, dict):
-        raise ValueError("source binding must be a JSON object")
-    # source_control 描述已决码驱动的开关，acquisition_control 描述采集侧两节点偏移。
-    # 不同角色分别校验 module 名和 SHA。即使两个文件有同一目录，也不能交换其角色。
-    # packet_schema 的绑定摘要对整个 binding 对象生效，位序不靠 DUT 日志中默认解释。
-    control = binding.get("source_control", {})
-    if (
-        not isinstance(control, dict)
-        or control.get("kind") != "sv_module"
-        or control.get("sv_module_name") != "source_control_binding"
-        or control.get("sha256") != expected_inputs["source_sv"]
-    ):
-        raise ValueError("source-control binding does not identify the copied SV module")
-    acquisition = binding.get("acquisition_control", {})
-    if (
-        not isinstance(acquisition, dict)
-        or acquisition.get("kind") != "sv_module"
-        or acquisition.get("sv_module_name") != "source_acquisition_binding"
-        or acquisition.get("sha256") != expected_inputs["acquisition_sv"]
-    ):
-        raise ValueError("acquisition binding does not identify the copied SV module")
-    packet = json.loads((root / "packet_schema.json").read_text())
-    if (
-        not isinstance(packet, dict)
-        or packet.get("schema_version") != 2
-        or packet.get("source_binding_sha256") != inputs["binding_json"]
-    ):
-        raise ValueError("packet schema does not match the exported binding")
-    return {"directory": str(root), "input_sha256": inputs, "artifact_sha256": hashes}
-
-
-# =============================================================================
-# 5. 运行库与编译器
+# 4. 运行库与编译器
 # =============================================================================
 # 只在完整 Verilator 运行树能解析并确实含可执行文件时建立 ASCII 别名。
 # 常见系统包的可执行文件和头文件分离。不能仅根据头目录改 VERILATOR_ROOT。
@@ -746,7 +561,7 @@ def verilator_compiler_args() -> list[str]:
 
 
 # =============================================================================
-# 6. 单组件运行的隔离与快照
+# 5. 单组件运行的隔离与快照
 # =============================================================================
 # folder 保存持久证据，work 保存可回收的中间对象。二者均为本次运行独占。
 # 先确定登记名和实际模块名。前者用于证据目录，后者供工具选顶层和二进制名。
@@ -781,23 +596,7 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
             alias_runtime(work, env, version)
         include_dirs = []
         source_names = list(spec.sources)
-        # 完整核的参数由显式包赋予。复制前验证原包，复制后再验证工作副本。
-        # 必须包含采集和转换两类绑定；不能只有转换掩码合法就认定采集模型可用。
-        # 向量的数量不决定数组几何；完整核总从同一导出目录取参数头。
-        if spec.requires_inputs:
-            if args.inputs_dir is None:
-                raise ValueError(f"{top} requires --inputs-dir")
-            validated = validate_inputs(args.inputs_dir)
-            binding_snapshot = folder / "inputs_snapshot"
-            shutil.copytree(validated["directory"], binding_snapshot)
-            validate_inputs(binding_snapshot)
-            (work / "inputs").symlink_to(binding_snapshot, target_is_directory=True)
-            include_dirs.append(work / "inputs")
-            include_dirs.append(work / "repo/rtl/params")
-            source_names += ["source_control_binding.sv", "source_acquisition_binding.sv"]
-        # 数学和协议夹具分别生成参数头。它们与完整核输入互斥，不参考外部模拟 binding。
-        # 保留原夹具 JSON 和实际编译头，使结果能够在声明的位宽域中独立复算。
-        elif spec.requires_math_format:
+        if spec.requires_math_format:
             if args.math_format is None:
                 raise ValueError(f"{top} requires --math-format")
             from audit_rtl_arithmetic import load_format, write_math_header
@@ -821,68 +620,17 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
             include_dirs.append(fixture)
         sources = []
         for name in source_names:
-            path = (
-                work / "inputs" / name
-                if name in ("source_control_binding.sv", "source_acquisition_binding.sv")
-                else work / "repo" / name
-            )
+            path = work / "repo" / name
             if not path.is_file():
                 raise ValueError(f"selected dependency is absent: {name}")
             sources.append(str(path))
         plusargs = []
-        payload_hashes = {}
         parameters = dict(spec.parameters)
         # =============================================================================
-        # 7. 运行载荷与参数
+        # 5.1 运行载荷与参数
         # =============================================================================
-        # 系统用例的系数、控制表和两个比较目标都为显式实参，不能从默认模型填补。
-        # 归档实际运行副本和内容摘要。复制后的载荷路径作为加号参数传给测试台。
-        # 模拟器被限制在已验证的参数传递路径，避免不同工具的覆盖语义改变测试。
-        if spec.system_trace:
-            if (
-                args.simulator != "verilator"
-                or args.weights is None
-                or args.scalars is None
-                or args.controls is None
-                or args.coarse_target is None
-                or args.fine_target is None
-            ):
-                raise ValueError(
-                    "system component requires explicit weights/scalars/controls and coarse/fine targets"
-                )
-            for field in ("weights", "scalars", "controls"):
-                path = getattr(args, field)
-                if not path.is_file():
-                    raise ValueError(f"missing explicit system payload: {field}")
-                target = folder / f"{field}.hex"
-                shutil.copyfile(path, target)
-                payload_hashes[field] = digest(target)
-                plusargs.append(f"+{field.upper()}={target}")
-            plusargs += [f"+COARSE_TARGET={args.coarse_target}", f"+FINE_TARGET={args.fine_target}"]
-        # 基础源控制记录需要声明的权重、标量及非空帧区间；不单凭一个输出码称覆盖充分。
-        # 采样周期从导出的 binding 取出，保持编译时参数与绑定身份一致。
-        # trace_dir 始终指向本组件目录，其他运行不能覆盖这批 CSV。
-        if spec.source_control_trace:
-            if (
-                args.simulator != "verilator"
-                or args.weights is None
-                or args.scalars is None
-                or not 24 <= args.frames <= 1000
-            ):
-                raise ValueError(
-                    "source-control component requires Verilator, explicit weights/scalars and 24..1000 frames"
-                )
-            binding = json.loads((binding_snapshot / "binding.json").read_text())
-            parameters["P_TICK_NS"] = binding["timing"]["tick_period_ns"]
-            for field in ("weights", "scalars"):
-                path = getattr(args, field)
-                if not path.is_file():
-                    raise ValueError(f"missing explicit payload: {field}")
-                target = folder / f"{field}.hex"
-                shutil.copyfile(path, target)
-                payload_hashes[field] = digest(target)
-                plusargs.append(f"+{field}={target}")
-            plusargs += [f"+trace_dir={folder}", f"+frames={args.frames}"]
+        # 当前组件的数值边界来自独立夹具或配对向量。
+        # 整链入口独立装载 ADC 系数和片组参数。
         # 扩展配对向量必须给出实际周期数、不同用例数和有效输出数。
         # 测试台读取固定向量文件名，因此在临时目录建立软链，归档仍保留完整副本。
         # 预期数量由调用方带入，不能从被测日志反向填预期而让漏事件得到 PASS。
@@ -908,7 +656,7 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
                 f"+expected_valid_outputs={args.expected_valid_outputs}",
             ]
         # =============================================================================
-        # 8. 工具执行与输出二进制
+        # 5.2 工具执行与输出二进制
         # =============================================================================
         # 每个顶层的对象目录重新创建，禁止使用其他顶层或上次失败遗留的编译产物。
         # 生产 lint 排除当前 TB，独立检查设计顶层和必要配置；宽度及漏端口仍为错误。
@@ -1028,26 +776,10 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
         )
         counts = completion(output, spec.marker, spec.positive_fields)
         # =============================================================================
-        # 9. 完成计数、证据范围与退出门禁
+        # 5.3 完成计数、证据范围与退出门禁
         # =============================================================================
-        # 系统验收同时收集采集和故障恢复完成行；仅输出正确不能证明异常路径生效。
         # 禁止事件计数须显式给零。字面记录缺失与确实没有事件是两种情况。
         # OPEN 声明须出现且唯一，避免工具、测试台和报告对未覆盖范围各自采用默认解释。
-        if spec.system_trace:
-            counts.update(
-                completion(
-                    output,
-                    "SAR20_SYSTEM_ACQUISITION_COMPLETE",
-                    ("qualified_shift_cycles", "nonzero_rdac_cycles"),
-                )
-            )
-            counts.update(
-                completion(
-                    output,
-                    "SAR20_SYSTEM_FAULT_COMPLETE",
-                    ("fault_cases", "good_raw_rejected", "dsp_restart_blocks", "epoch_recoveries"),
-                )
-            )
         # 安全字段的零计数单独解析，因为 completion() 只接受
         # 严格为正的工作计数；缺失字段不能视为零。
         completion_rows = re.findall(rf"(?m)^{re.escape(spec.marker)}(?:\s+[^\r\n]*)?$", output)
@@ -1084,35 +816,27 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
             if digest(vectors) != digest(saved_vectors):
                 raise RuntimeError("pair vectors changed during execution; snapshot retained")
         # 运行前后同时核对源码和载荷，发现并发编辑时不把旧快照通过称为新内容已通过。
-        # 输入函数再次校验原目录，保持当前文件与清单之间的身份关系。
         # 各失败均沿本次目录保留证据，调用者必须选择新目录后再试。
         if any(digest(REPO / name) != expected for name, expected in source_hashes.items()):
             raise RuntimeError(
                 "selected source changed during execution; snapshot retained for review"
             )
-        if any(
-            digest(getattr(args, field)) != expected for field, expected in payload_hashes.items()
-        ):
-            raise RuntimeError("explicit coefficient payload changed during execution")
-        if spec.requires_inputs:
-            validate_inputs(args.inputs_dir)
         # 每项 result 只绑定所选顶层、快照和运行 SHA，不能代表整个工程默认验收。
         # 运行的输出和参数、输入摘要同时记录，便于第三方从同一夹具复算。
-        # 范围字段保留绑定与合成组件的区别，未接通边界也随记录一起发布。
+        # 结果范围为独立数字组件，报告同时列出本次声明的未接通边界。
         record = {
             "status": "PASS",
-            "scope": SCOPE_COMPONENT
-            if not spec.requires_inputs
-            else "EXPLICIT_SOURCE_BOUND_DIGITAL",
+            "scope": SCOPE_COMPONENT,
             "top": top,
             "module": module,
             "parameters": parameters,
-            "payload_sha256": payload_hashes,
+            # 保留结果结构中的空载荷字段，便于已有报告读取器识别组件结果。
+            "payload_sha256": {},
             "counts": counts,
             "sources_sha256": source_hashes,
             "marker": spec.marker,
             "open_boundaries": list(spec.open_markers),
-            "input_bundle": validated if spec.requires_inputs else None,
+            "input_bundle": None,
             "run_log_sha256": digest(folder / "run.log"),
         }
         write_json(folder / "result.json", record)
@@ -1120,12 +844,11 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
 
 
 # =============================================================================
-# 10. CLI 与汇总结果的生命周期
+# 6. CLI 与汇总结果的生命周期
 # =============================================================================
 # 显式顶层或登记的专用驱动是唯一入口。不会扫描其他可用仿真文件寻找替代项目。
 # 输入路径统一在工具启动前解析，使后续 cwd 切换不改变相对路径对应的文件。
 # 同名顶层禁止重复，避免结果目录覆盖。无效的超时参数不用来启多个僵死等待。
-# CLI 只接受相关的全核输入请求，无关输入不能静默忽略而产生误导性配置报告。
 def main(argv=None) -> int:
     """按显式选择运行；缺依赖、编译、执行或完成计数错误均以非零状态退出。"""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -1134,41 +857,24 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--simulator", choices=("verilator", "vcs", "iverilog"), default="verilator"
     )
-    parser.add_argument("--inputs-dir", type=Path)
     parser.add_argument("--math-format", type=Path)
     parser.add_argument("--protocol-fixture", type=Path)
     parser.add_argument("--vectors", type=Path)
-    parser.add_argument("--weights", type=Path)
-    parser.add_argument("--scalars", type=Path)
-    parser.add_argument("--controls", type=Path)
-    parser.add_argument("--coarse-target", type=int)
-    parser.add_argument("--fine-target", type=int)
-    parser.add_argument("--frames", type=int, default=0)
     parser.add_argument("--expected-cycles", type=int)
     parser.add_argument("--expected-cases", type=int)
     parser.add_argument("--expected-valid-outputs", type=int)
     parser.add_argument("--timeout", type=int, default=300)
     args = parser.parse_args(argv)
     for field in (
-        "inputs_dir",
         "math_format",
         "protocol_fixture",
         "vectors",
-        "weights",
-        "scalars",
-        "controls",
     ):
         path = getattr(args, field)
         if path is not None:
             setattr(args, field, path.expanduser().resolve())
     if len(args.tops) != len(set(args.tops)) or args.timeout <= 0:
         parser.error("tops must be unique and timeout must be positive")
-    # 显式绑定仅允许传给声明消费它的用例。这里报告无关输入，防止操作者以为参数已经使用。
-    # 即使该输入能通过哈希检查，也不能据此把没有绑定接口的数学组件升级为完整 ADC。
-    if args.inputs_dir is not None and not any(
-        top in BENCHES and BENCHES[top].requires_inputs for top in args.tops
-    ):
-        parser.error("selected components do not consume a whole-core source bundle")
     # 即使工具版本读取失败，也保留本轮唯一输出位置。只有该运行关闭后汇总最终状态。
     # 版本命令用短超时，不复用上次保存的版本，也不借默认工具选择填缺口。
     # RUNNING 状态不是验证结果；调用者只应从实际结束后的 manifest 解释通过。

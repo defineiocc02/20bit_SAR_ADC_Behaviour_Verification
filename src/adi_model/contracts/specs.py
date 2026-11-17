@@ -7,6 +7,14 @@
 证据层级：本文件是 L0 结构合同；它不证明任何模拟性能。
 """
 
+# =============================================================================
+# 文件名     : specs.py
+# 模块名     : adi_model.contracts.specs
+# 功能       : 在物理模型、事件和校准之间传递可核对的数据记录。
+# 设计说明   :
+#   * 记录不可变，避免后到的事件覆盖上一笔样本的快照。
+#   * 时钟、物理位序和系数身份由调用方显式提供，便于拒绝拓扑串用。
+# =============================================================================
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -29,12 +37,9 @@ class TopologySpec:
 
     topology_id: str
     profile_id: str
-    # 2026-11-13：默认值随主链统一到专利 [11] FIG.11/19/20 的 17/5 阵列。
-    # 原来写的是已被用户否决的 63+8 工程替代拓扑（63 主 / 8 子 / 40.04 fF / beta=1/8）。
-    # 现在：主阵列 15×2C + B4 1C + S4 1C、子阵列装配 4 列、桥接电容 = 单元电容。
-    # ⚠️ 这些只是 dataclass 的兜底值；各 Profile 都会显式传参覆盖，
-    #    唯一真源是 `DefaultParameters`（`test_adi_profile_matches_default_parameters`
-    #    会校验两者逐项一致）。
+    # 主阵列有 15 个 2C 列，B4 和 S4 各为 1C。子阵列有 4 个有效支路，
+    # 桥接电容采用单位电容。模型装配实际使用 DefaultParameters 的电容值。
+    # test_adi_profile_matches_default_parameters 核对现行配置的拓扑和模型装配。
     n_slices_pool: int = 18
     n_slices_active: int = 8
     n_main: int = 17
@@ -80,6 +85,8 @@ class TopologySpec:
             )
 
 
+# ---- 1. 样本与事件 ----------------------------------------------------------
+# 事件携带序列与身份，消费者据此重建同拍早晚关系。
 @dataclass(frozen=True)
 class EventRecord:
     """一笔样本上的一个时序事件。
@@ -138,6 +145,8 @@ class SampleContext:
         _require(0 <= self.dither_word < 64, "dither_word must be 6-bit")
 
 
+# ---- 2. 采集和开关命令 ------------------------------------------------------
+# 命令保留物理索引和结合当时接线使用的绑定标识。
 @dataclass(frozen=True)
 class AcquisitionCommand:
     """采样相命令；与转换 mask 分开。"""
@@ -179,6 +188,8 @@ class SwitchCommand:
         _require(bool(self.binding_id), "binding_id must not be empty")
 
 
+# ---- 3. 观测与冻结系数 ------------------------------------------------------
+# 将物理观测、出码时可见的记录和可重用系数各自保存，方便校验因果范围。
 @dataclass(frozen=True)
 class DigitalObservation:
     """训练/重构可见的数字观测；不含 plant 真值。"""

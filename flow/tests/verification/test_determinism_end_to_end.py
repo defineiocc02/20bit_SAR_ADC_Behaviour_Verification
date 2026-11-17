@@ -38,12 +38,15 @@ import hashlib
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import numpy as np
 import pytest
 
 from adi_model.defaults import DefaultModel, DefaultParameters
 
+# 测试位于 flow/tests/verification，子进程从仓库根加载同一份源码。
+REPO_ROOT = Path(__file__).resolve().parents[3]
 SEED = 20261105
 N_SAMPLES = 256
 TONE_HZ = 1.0e6
@@ -79,10 +82,10 @@ def test_hash_seed_does_not_change_the_output(hash_seed):
         f"r = m.simulate(lambda t: 0.5*np.sin(2*np.pi*{TONE_HZ}*np.atleast_1d(t)), {N_SAMPLES})\n"
         "print(hashlib.sha256(np.ascontiguousarray(r.codes.code).tobytes()).hexdigest()[:16])\n"
     )
-    env = dict(os.environ, PYTHONHASHSEED=hash_seed, PYTHONPATH="src")
+    env = dict(os.environ, PYTHONHASHSEED=hash_seed, PYTHONPATH=str(REPO_ROOT / "src"))
     result = subprocess.run(
         [sys.executable, "-c", script],
-        cwd=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+        cwd=REPO_ROOT,
         capture_output=True,
         text=True,
         timeout=300,

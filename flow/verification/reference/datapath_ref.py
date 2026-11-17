@@ -1,18 +1,17 @@
-"""Reference models for the digital datapath, written from the contracts.
+# =============================================================================
+# 文件名     : datapath_ref.py
+# 模块名     : verification.reference.datapath_ref
+# 版本       : v1.0
+# 功能       : 提供逐位计数、码仓中心和重构的整数参考。
+# 设计说明   : ADC2 位数和 Q32 区间由调用方提供。权重项以显式单元列表计算。
+#              参考从算术关系独立推导，用于定位取整、符号、饱和或误接信号项。
+#              将整数输出编码转成电压的函数供结果解释，位真比较使用整数。
+# 变更记录   : 清除已退役的定点验证路线引用。
+# =============================================================================
+"""数字数据通路的独立算术参考。
 
-Each function here answers "what must the hardware produce", not "what does the
-hardware produce". The distinction matters: if this file were a transliteration
-of the SV, a shared bug would pass both sides and the comparison would be
-worthless.
-
-Sources, per module:
-
-* ``sadc_code``     — RTL header + digital_interfaces.yaml invariants
-* ``thermometer``   — digital_interfaces.yaml invariant
-* ``adc2_bin_center`` — RTL_ARITHMETIC_CONTRACT.md §3.1
-* ``reconstruct``   — RTL_ARITHMETIC_CONTRACT.md §3.2-3.5
-
-All inputs and outputs are plain Python ints. No numpy, no float anywhere.
+比较器编码按位计数，温度计掩码按物理 rank 与请求数量比较。
+码仓中心及定点重构的取整、溢出约定见 RTL_ARITHMETIC_CONTRACT.md §3.1–3.5。
 """
 
 from __future__ import annotations
@@ -31,6 +30,9 @@ VOLTAGE_SCALE = 1 << 32  # Q32
 OUTPUT_COUNT = 1 << 20   # 20-bit
 
 
+# =============================================================================
+# 1. 判决编码和码仓中心
+# =============================================================================
 def sadc_code(cmp_raw: int, n_cmp: int = 511, bits: int = 9) -> int:
     """Balanced population count.
 
@@ -67,6 +69,9 @@ def adc2_bin_center(code: int, min_q: int, max_q: int, bits: int) -> tuple[int, 
     return saturate_signed(min_q + offset, 64)
 
 
+# =============================================================================
+# 2. 逐单元权重归约与重构
+# =============================================================================
 @dataclass(frozen=True)
 class ReconTerms:
     """The three weight sums of contract §3.2, kept separate on purpose.
@@ -104,10 +109,8 @@ def recon_terms(
       connected (the contract says so explicitly: "普通单位的 a=1"), so ``a`` is 1
       even when ``on`` is 0.
 
-    Using the switch mask as ``a`` would make ``gain`` look mask-dependent and
-    would wrongly suggest the RTL deviates from the contract. That misreading
-    was made once in this repository and is recorded in
-    `verification/reports/VERIFICATION_REPORT.md` §3.1 so it is not repeated.
+    The signal gain is constant across conversions that use the same connected
+    units. Their conversion switches may still change the signed rail term.
 
     ``signal_connected`` marks the sampling-dither units that carry ``a = 0``.
     Everything not marked there is an ordinary unit with ``a = 1``.
@@ -166,7 +169,7 @@ def reconstruct(
             (numerator + terms.gain_q30 * VOLTAGE_SCALE) * OUTPUT_COUNT, "shifted"
         )
     except Exception:
-        # Overflow keeps the legal word but must raise the sticky flag.
+        # 仍以无限精度计算钳位后的码字，独立标记中间值超出累加器范围。
         overflow = True
         numerator = (fine_q - offset_q) * WEIGHT_SCALE - terms.rails_q30 * VOLTAGE_SCALE \
             - terms.total_q30 * injection_q

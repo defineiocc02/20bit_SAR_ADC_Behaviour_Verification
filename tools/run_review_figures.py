@@ -2273,6 +2273,7 @@ def _write_manifest(out: Path, produced: list[dict], *, points: int, repeats: in
     source_paths = (
         "tools/run_review_figures.py", "tools/run_p4_ablation.py", "tb/vec_r18_sched.txt",
         "src/adi_model/defaults.py", "src/adi_model/contracts/profiles.py",
+        "src/adi_model/control/dem3d.py",
         "src/adi_model/simulation/pipeline_engine.py",
     )
     document = {

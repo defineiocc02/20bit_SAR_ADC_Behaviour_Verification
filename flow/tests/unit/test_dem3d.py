@@ -1,7 +1,12 @@
+# =============================================================================
+# 文件名     : test_dem3d.py
+# 版本       : v1.0
+# 功能       : 检查 Fig.11 掩码、轮转覆盖和名义电荷守恒。
+# 设计说明   : 合成电容池使用现行 17/5 端口几何。覆盖以物理片号统计。
+# =============================================================================
 """三维 DEM 掩码、名义守恒与使用均匀性的单元测试。
 
-两个池都是显式合成几何：Fig.11 的 17/5 阵列与默认 63+8 分段阵列。
-本组测试不评估 INL/DNL，只验证"重排不改名义权重"和"单元等频使用"。
+使用显式的 Fig.11 17/5 测试几何，逐码检查标称电荷和实际单元覆盖。
 """
 
 from __future__ import annotations
@@ -12,10 +17,11 @@ import pytest
 from adi_model.control.dem import SplitSwitchCommand
 from adi_model.control.dem3d import (
     Dem3State,
+    FIG11_COLUMNS,
+    ROUND_ROBIN_PERIOD,
     fig11_masks,
     nominal_conservation,
     round_robin_plan,
-    fig11_masks,
     usage_uniformity,
 )
 from adi_model.simulation.config import ConfigError
@@ -51,11 +57,15 @@ def _fig11_pool():
 def test_dem_state_round_trip_and_sequence_coverage():
     state = Dem3State(41, 11)
     assert Dem3State.from_int(state.to_int()) == state
-    # 一个"每片都能走遍 63 列"的周期是 columns x plan_period = 63 x 9 = 567
-    sequence = Dem3State.sequence(63 * 9, columns=63)
-    assert set(int(value) & 0x3F for value in sequence) == set(range(63))
-    # 默认池的子阵列只有 7 个可切换单元，纵向周期必须等于 7（用 16 再 %7 会 3:2 偏置）
-    assert set(int(value) >> 6 for value in sequence) == set(range(7))
+    # 在每个片选位置独立验证全部 15 列。总体访问集可能掩盖某片的局部混叠。
+    sequence = Dem3State.sequence(135)
+    for start in range(9):
+        assert set(sequence[start::9] & 0x3F) == set(range(15))
+    assert set(sequence >> 6) == set(range(16))
+    # 打包接口继续允许调用方声明另一组合法周期。
+    custom = Dem3State.sequence(35, columns=5, vertical=7, plan_period=4)
+    assert set(custom & 0x3F) == set(range(5))
+    assert set(custom >> 6) == set(range(7))
     with pytest.raises(ConfigError):
         Dem3State(64, 0)
     with pytest.raises(ConfigError):
@@ -63,17 +73,15 @@ def test_dem_state_round_trip_and_sequence_coverage():
 
 
 def test_low_code_visits_every_main_unit():
-    """低码下每片都要走遍全部 15 个 2C 列（A01 反例的 17/5 版本）。
+    """低码下每片都要走遍全部 15 个 2C 列。
 
-    17/5 阵列里可旋转的是 15 个 2C 列；一个相位周期 = columns × plan_period = 15 × 9 = 135。
-    码 32 在主段选中 1 个 2C（B5=1），固定物理片 7 在一个周期后应恰好等频访问 15 列。
-    注意：码 8 在 17/5 下只选子阵列（B3），主单元覆盖必为 0——这与 63+8 的
-    "code//8 个主单元"完全不同，是位分配的差别，不是缺陷。
+    17/5 阵列里可旋转的是 15 个 2C 列。15 个位置与 9 笔片选轮转共同构成 135 笔周期。
+    码 32 在主段选中 1 个 2C，固定物理片 7 在一个周期后应恰好等频访问 15 列。
     """
     pool = _fig11_pool()
-    n = 15 * 9
+    n = FIG11_COLUMNS * ROUND_ROBIN_PERIOD
     ids = np.broadcast_to(np.arange(8), (n, 8))
-    states = Dem3State.sequence(n, columns=15)
+    states = Dem3State.sequence(n)
     command = fig11_masks(pool.geometry, np.full(n, 32, np.int64), states, ids)
     visits = command.main_on[:, 7, :15].sum(axis=0)
     assert np.count_nonzero(visits) == 15
@@ -82,11 +90,7 @@ def test_low_code_visits_every_main_unit():
 
 
 def test_sub_array_is_binary_so_it_is_not_rotated():
-    """子阵列是二进制权，**不能**按相位轮转（轮转即改权重）。
-
-    旧实现把子阵列当成 7 位一元温度计并轮转，是 63+8 的读法。
-    FIG.11 的 8C/4C/2C/1C 是二进制，因此同一码在任何 DEM 状态下子阵列选通集合必须相同。
-    """
+    """Fig.11 的 8C/4C/2C/1C 支路对同一码保持同一组选通位。"""
     pool = _fig11_pool()
     ids = np.broadcast_to(np.arange(8), (16, 8))
     codes = np.array([1, 2, 4, 8, 15] * 3 + [9], np.int64)
@@ -148,8 +152,8 @@ def test_fig11_masks_select_exact_counts():
 
 def test_fig11_nominal_charge_is_state_independent():
     pool = _fig11_pool()
-    # Fig.11 的纵向是 8/16 选择，必须显式用 16 个相位
-    states = Dem3State.sequence(240, vertical=16)
+    # 遍历默认状态。当前掩码的纵向字段变化不会重新分配权重。
+    states = Dem3State.sequence(240)
     report = nominal_conservation(
         pool, fig11_masks, states, reference_high_v=3.0, reference_low_v=-3.0
     )
@@ -188,15 +192,6 @@ def test_broken_vertical_selection_breaks_conservation():
     assert report["max_spread_c"] > 0
 
 
-def test_unary_rotation_preserves_nominal_weight():
-    pool = _fig11_pool()
-    report = nominal_conservation(
-        pool, fig11_masks, Dem3State.sequence(240),
-        reference_high_v=3.0, reference_low_v=-3.0,
-    )
-    assert report["conserved"], report
-
-
 def test_usage_uniformity_covers_low_mid_and_full_codes():
     """17/5 下的使用均匀性：15 个 2C 必须逐片逐单元等频，B4/S4 两个 1C 不对称。
 
@@ -207,9 +202,9 @@ def test_usage_uniformity_covers_low_mid_and_full_codes():
     这两条是真实结构差异，不是缺陷；`uniform=False` 正是它被如实报出来的方式。
     """
     pool = _fig11_pool()
-    n = 15 * 9
+    n = FIG11_COLUMNS * ROUND_ROBIN_PERIOD
     plan = round_robin_plan(n)
-    states = Dem3State.sequence(n, columns=15)
+    states = Dem3State.sequence(n)
     report = usage_uniformity(pool, fig11_masks, plan, states, codes=(32, 255, 511))
 
     twos = report["codes"]["255"]["main_unit_counts"][:15]
@@ -243,41 +238,31 @@ def test_fig11_masks_reject_wrong_geometry():
 
 
 def test_physical_slice_audit_is_not_slot_aggregation():
-    """Counterexample: per-slot aggregation claims full coverage that does not exist.
-
-    Each physical slice only ever uses 21 of its 63 main units, but different
-    slices use *different* 21. Rotating eight slices per sample means every
-    logical slot eventually sees all 18 slices, so summing over the sample axis
-    (the old `command.main_on.sum(axis=0)`) reports 63/63 used. Summing by
-    physical slice id reports the truth: 21/63 everywhere.
-
-    The assertion is on the audit result, not on a diagnostic field, so a
-    regression here fails the test the review asked for.
-    """
+    """轮换后的每个槽可覆盖 17 个单元，每个物理片仍只访问自己的 5 个。"""
     from adi_model.control.dem import SplitSwitchGeometry
     from adi_model.control.dem3d import _per_physical_slice_counts
 
-    geometry = SplitSwitchGeometry(n_main=63, n_sub=8, n_slices=18, n_active=8)
+    geometry = SplitSwitchGeometry(n_main=17, n_sub=5, n_slices=18, n_active=8)
     n_samples = 36
     ids = np.array([[(n + lane) % 18 for lane in range(8)] for n in range(n_samples)])
-    main_on = np.zeros((n_samples, 8, 63), dtype=np.int64)
-    sub_on = np.zeros((n_samples, 8, 8), dtype=np.int64)
-    window = 21
+    main_on = np.zeros((n_samples, 8, geometry.n_main), dtype=np.int64)
+    sub_on = np.zeros((n_samples, 8, geometry.n_sub), dtype=np.int64)
+    window = 5
     for n in range(n_samples):
         for lane in range(8):
             sid = ids[n, lane]
-            start = (sid * 7) % 63
+            start = (sid * 7) % geometry.n_main
             for offset in range(window):
-                main_on[n, lane, (start + offset) % 63] = 1
+                main_on[n, lane, (start + offset) % geometry.n_main] = 1
 
     per_slice_main, _ = _per_physical_slice_counts(main_on, sub_on, ids, geometry)
     per_slice_coverage = np.count_nonzero(per_slice_main, axis=1)
-    assert per_slice_main.shape == (18, 63)
+    assert per_slice_main.shape == (18, geometry.n_main)
     assert np.all(per_slice_coverage == window), per_slice_coverage
 
-    # The aggregation the review rejected would have reported full coverage.
+    # 同一槽随片号轮转会见到全部单元，仅按槽累计会掩盖物理片的低覆盖。
     per_slot = main_on.sum(axis=0)  # (active_slot, unit)
-    assert np.all(np.count_nonzero(per_slot, axis=1) == 63)
+    assert np.all(np.count_nonzero(per_slot, axis=1) == geometry.n_main)
 
 
 def test_slice_ids_reach_every_physical_row_once_per_rotation():
@@ -285,11 +270,11 @@ def test_slice_ids_reach_every_physical_row_once_per_rotation():
     from adi_model.control.dem import SplitSwitchGeometry
     from adi_model.control.dem3d import _per_physical_slice_counts
 
-    geometry = SplitSwitchGeometry(n_main=63, n_sub=8, n_slices=18, n_active=8)
+    geometry = SplitSwitchGeometry(n_main=17, n_sub=5, n_slices=18, n_active=8)
     n_samples = 4
     ids = np.array([[(n + lane) % 18 for lane in range(8)] for n in range(n_samples)])
-    main_on = np.ones((n_samples, 8, 63), dtype=np.int64)
-    sub_on = np.ones((n_samples, 8, 8), dtype=np.int64)
+    main_on = np.ones((n_samples, 8, geometry.n_main), dtype=np.int64)
+    sub_on = np.ones((n_samples, 8, geometry.n_sub), dtype=np.int64)
     per_slice_main, per_slice_sub = _per_physical_slice_counts(main_on, sub_on, ids, geometry)
     covered = np.count_nonzero(per_slice_main, axis=1)
     assert per_slice_main.shape[0] == geometry.n_slices

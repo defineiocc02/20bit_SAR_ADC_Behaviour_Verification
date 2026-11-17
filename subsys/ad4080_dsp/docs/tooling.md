@@ -23,55 +23,30 @@ python subsys/ad4080_dsp/scripts/check_headers.py subsys/ad4080_dsp/rtl/sinc1_de
 
 ```bash
 python tools/run_open_rtl.py --tops result_fifo_tb --out ../sar-output/fifo-check-001
-# 完整核组件另需 --inputs-dir；数值／向量组件另需对应format或数据
+# 其他已登记测试台及其输入可查 runner --help。
 ```
 
 `--tops`与库外新`--out`必填；`--simulator`选择已配置的verilator／vcs／iverilog。`VERILATOR`、`VCS`、`IVERILOG`／`VVP`按实际runner支持选择命令。每个已登记组件只编译明确依赖，并检查完成marker、正计数／零错误项与必要OPEN说明。
 
 `subsys/ad4080_dsp/sim/run_all.sh`转发同一显式runner，不是默认全库套件；`run_top.sh`只选ad4080_top_tb，其余输入仍须提供。未登记、未绑定、编译失败或没有有效完成证据都不算通过；没有旧golden／二进制自动回退。
 
-## 复现指定的14个场景
+## 验证 DSP 数字输入
 
-实际system场景使用2+1单元、6位ADC2的[数学夹具](../../../flow/sim/fixtures/source_control_component/fixture_manifest.json)。权重、标量和coarse／fine目标属于夹具；两采集端口的合成偏移不作为真实Fig.19电荷网络。控制文件按状态0..6、word0..3的有序笛卡尔积生成，每行十六进制。
+`sar20_dsp_integration_tb` 直接给适配层输入 20 位码、样本 ID 和故障信号，用于检查码制、输入握手、故障锁停和恢复。可与 FIFO、寄存器和滤波检查同批运行，证据对应各自选定的组件。
 
-```bash
-SAR_DSP_ROOT="$(mktemp -d)"
-SAR_DSP_FIXTURE=flow/sim/fixtures/source_control_component
-PYTHONPATH=src python tools/export_rtl_params.py \
-  --config "$SAR_DSP_FIXTURE/config.json" --format "$SAR_DSP_FIXTURE/format.json" \
-  --binding "$SAR_DSP_FIXTURE/binding.json" --out "$SAR_DSP_ROOT/inputs"
+~~~bash
+DSP_RUN_DIR=$(mktemp -d)
+python tools/run_open_rtl.py --out "$DSP_RUN_DIR/components" --tops \
+  result_fifo_tb ad4080_top_tb sinc_rate_oracle_tb sar20_dsp_integration_tb
+~~~
 
-python - "$SAR_DSP_FIXTURE" "$SAR_DSP_ROOT/controls.hex" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-fixture, output = map(Path, sys.argv[1:])
-stream = json.loads((fixture / "fixture_manifest.json").read_text())["recommended_stream"]
-word_bits = json.loads((fixture / "binding.json").read_text())["control_word_bits"]
-with output.open("x", encoding="ascii") as handle:
-    for state in stream["legal_state_values"]:
-        for word in stream["control_word_values"]:
-            handle.write(f"{word | (state << word_bits):x}\n")
-PY
-
-python tools/run_open_rtl.py --out "$SAR_DSP_ROOT/run" --tops \
-  result_fifo_tb cnv_ctrl_contract_tb sys_error_corr_contract_tb sinc5_decim_tb \
-  spi_slave_tb fifo_capture_contract_tb fifo_capture_16k ad4080_top_tb \
-  sinc5_comp_contract_tb sar20_dsp_integration_tb ad4080_regs_rejection_tb \
-  spi_unbound_contract_tb sinc_rate_oracle_tb sar20_system_top_tb \
-  --inputs-dir "$SAR_DSP_ROOT/inputs" --weights "$SAR_DSP_FIXTURE/weights.hex" \
-  --scalars "$SAR_DSP_FIXTURE/scalars.hex" --controls "$SAR_DSP_ROOT/controls.hex" \
-  --coarse-target 173 --fine-target 32
-```
-
-14场景含FIFO同一bench的两个深度。普通runner的所选lint与handoff003的5个严格`-Wall` profile分开；不能用此命令宣称已执行全部严格profile。真实system比较以SAR输出整数码为参考，核码制、握手、故障锁停及恢复，不是模拟精度实验。
+handoff003 的原 14 场景与 5 个 lint profile 是当时的归档结果。整机试验的原命令和合成输入见 `git show 674b0d8:subsys/ad4080_dsp/docs/tooling.md`。
 
 ## 当前发布需要的记录
 
 | 记录 | 必须绑定的身份 |
 | :--- | :--- |
-| 源／输入 | 精确SHA、Config／format／binding、两只source模块和packet schema |
+| 源／输入 | 精确 SHA、数字输入及启用的配置参数 |
 | 工具与执行 | 实际命令、版本、编译／运行日志、完成marker及非空计数 |
 | 数字结果 | 码、ID、flags、拒绝／恢复、独立参考及工作域；不能只报用例存在 |
 | 工艺层级 | 顶层、库／器件、SDC、角、阶段与原始STA；没有则明确未执行 |

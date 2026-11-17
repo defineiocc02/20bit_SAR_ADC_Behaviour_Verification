@@ -61,13 +61,11 @@ suppress_message FMR_ELAB-147
 puts "STEP_SUPPRESS_OK"
 
 # ---- 参考端：逐个文件读（Formality 不接受一次多个文件）----
+# 参考端采用与综合相同的数字顶层和子模块，ADC2 节点模型由仿真环境使用。
 set RTL_FILES [list \
   $RTLDIR/rtl/sched18.sv \
-  $RTLDIR/rtl/dem_phase_rr.sv \
-  $RTLDIR/rtl/dem_phase_gen.sv \
   $RTLDIR/rtl/dither_pre.sv \
   $RTLDIR/rtl/dem_mask_v3.sv \
-  $RTLDIR/rtl/follower_rt.sv \
   $RTLDIR/rtl/recip_q60.sv \
   $RTLDIR/rtl/v21/acq_conv_ctx.sv \
   $RTLDIR/rtl/v21/sar_evt_v21.sv \

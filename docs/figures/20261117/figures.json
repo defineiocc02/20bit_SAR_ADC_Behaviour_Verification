@@ -1,11 +1,12 @@
 {
-  "git_base_sha": "391c55a0c4abf95d2062d21fab200078bcf42a7e",
+  "git_base_sha": "2224d30291d983e2f04408e3ae2f703d72f22264",
   "source_files_sha256": {
-    "tools/run_review_figures.py": "e52c2504471fc64af18eb2abcae0f69b69874f8e62fc9c54a2a300a73cac21b1",
-    "tools/run_p4_ablation.py": "384fae5c49f2081349815db05c24e78f0560b3ae18791fb25ffc1e56dc4e15cb",
+    "tools/run_review_figures.py": "6fe47ff438b758471e5277214fce2aa67a5119e37fce9c44a6baac0e2f3f0a5b",
+    "tools/run_p4_ablation.py": "1bf60f4b4e6c2fb0b014717ffbef57e7a3284185f95016a3590c153ad04652dd",
     "tb/vec_r18_sched.txt": "eae2533049f583280a28bb93b1c2058f3839768ba442478c1765e77c7ec876ce",
-    "src/adi_model/defaults.py": "f3d764bd311ec326d826e95419104dbd62260ca388f002c3b0411e5deecba453",
-    "src/adi_model/contracts/profiles.py": "7855b60d5d6e038c1cd2a3bdcf8b8a108bb083bc18251ea5f3c7cdc8b9c26544",
+    "src/adi_model/defaults.py": "ff7579deb536c872dfb68fee0cf7d16b8da65d5a50fee9bf93bb9b581efd54ca",
+    "src/adi_model/contracts/profiles.py": "99a5f14bf58625c35c8e1303cef4618c5fed0f2776fc50cd116c07e9560e5b5f",
+    "src/adi_model/control/dem3d.py": "f58c512028adb56aca793c38ce4023f03ebeafebcdda2399f3f3f5ae5c364a54",
     "src/adi_model/simulation/pipeline_engine.py": "777c0bb77e16415f6c9a9ab3bb81b0e4ad851998ad7e594dc27077591ae95128"
   },
   "runtime": {
@@ -1550,11 +1551,11 @@
         "C1_dem_cal": {
           "label": "C1  DEM + LUT",
           "status": "behavioral_diagnostic",
-          "fit_residual_peak_lsb20": 2.7815103344613497,
-          "inl_max_lsb20": 2.7815103344613497,
-          "inl_max_ppm_fs": 2.6526549667943473,
-          "local_step_error_peak_lsb20": 3.7699859765464985,
-          "sigma_e_lsb20": 7.2241563306106125,
+          "fit_residual_peak_lsb20": 2.153948090222968,
+          "inl_max_lsb20": 2.153948090222968,
+          "inl_max_ppm_fs": 2.0541649725179365,
+          "local_step_error_peak_lsb20": 2.6952242176533523,
+          "sigma_e_lsb20": 7.224499683811234,
           "input_min_v": -2.955,
           "input_max_v": 2.955,
           "input_step_v": 0.01156555772994139,
@@ -1579,7 +1580,7 @@
             "training_samples": 60000,
             "covered_codes": 512,
             "min_samples_per_code": 89,
-            "residual_rms_uv": 108.2326447176664,
+            "residual_rms_uv": 108.27247146755985,
             "training_levels": 60000,
             "training_sufficient": true,
             "identifiable": "per-code output correction; per-element weights are NOT identifiable",
@@ -1647,11 +1648,11 @@
         "C3_all": {
           "label": "C3  DEM+Dith+LUT",
           "status": "analog_overrange",
-          "fit_residual_peak_lsb20": 3878.0560299616313,
+          "fit_residual_peak_lsb20": 3878.2059191477724,
           "inl_max_lsb20": null,
           "inl_max_ppm_fs": null,
-          "local_step_error_peak_lsb20": 5751.590911445751,
-          "sigma_e_lsb20": 3599.0544835419387,
+          "local_step_error_peak_lsb20": 5751.880366691893,
+          "sigma_e_lsb20": 3599.0550022564676,
           "input_min_v": -2.8610665369033814,
           "input_max_v": 2.8610665369033814,
           "input_step_v": 0.011197912081813755,
@@ -1676,7 +1677,7 @@
             "training_samples": 60000,
             "covered_codes": 512,
             "min_samples_per_code": 89,
-            "residual_rms_uv": 108.2326447176664,
+            "residual_rms_uv": 108.27247146755985,
             "training_levels": 60000,
             "training_sufficient": true,
             "identifiable": "per-code output correction; per-element weights are NOT identifiable",
@@ -1724,14 +1725,14 @@
         },
         "A3": {
           "label": "DEM enabled",
-          "sndr_db": 94.12576270077933,
-          "spectral_sndr_db": 94.12576270114886,
-          "sfdr_db": 114.93249954990331,
-          "spur_hz": 4516601.5625,
-          "nsd_nv": 9.30475182936376,
+          "sndr_db": 94.14881958614131,
+          "spectral_sndr_db": 94.14881958671938,
+          "sfdr_db": 115.56500118312533,
+          "spur_hz": 5039062.5,
+          "nsd_nv": 9.281564701778134,
           "fit_noise_reliable": true,
-          "fundamental_power_v2": 4.491003576426274,
-          "residual_power_v2": 1.7368692677229714e-09,
+          "fundamental_power_v2": 4.491003572307825,
+          "residual_power_v2": 1.7276725849936902e-09,
           "flag_counts": {
             "sadc_over": 0,
             "ra_sat": 0,
@@ -2694,46 +2695,46 @@
         "random 8-of-10": {
           "0.200 MHz": {
             "fin_hz": 200195.3125,
-            "sndr_db": 81.37802140723278,
-            "sfdr_db": 97.7299492456948,
-            "spur_hz": 4584960.9375,
+            "sndr_db": 81.41139303479059,
+            "sfdr_db": 95.76555354577066,
+            "spur_hz": 5039062.5,
             "analog_overflow_count": 0
           },
           "1.001 MHz": {
             "fin_hz": 1000976.5625,
-            "sndr_db": 81.42263787685107,
-            "sfdr_db": 98.53707354240504,
-            "spur_hz": 4516601.5625,
+            "sndr_db": 81.31186523103725,
+            "sfdr_db": 96.61683716611114,
+            "spur_hz": 5039062.5,
             "analog_overflow_count": 0
           },
           "2.998 MHz": {
             "fin_hz": 2998046.875,
-            "sndr_db": 81.35759035182576,
-            "sfdr_db": 99.33521777551198,
-            "spur_hz": 4516601.5625,
+            "sndr_db": 81.3576887071331,
+            "sfdr_db": 96.42599967626646,
+            "spur_hz": 5039062.5,
             "analog_overflow_count": 0
           }
         },
         "round-robin 8-of-18": {
           "0.200 MHz": {
             "fin_hz": 200195.3125,
-            "sndr_db": 82.31551136805854,
-            "sfdr_db": 98.7237459565025,
-            "spur_hz": 4516601.5625,
+            "sndr_db": 82.1913517776663,
+            "sfdr_db": 95.99940736934315,
+            "spur_hz": 5039062.5,
             "analog_overflow_count": 0
           },
           "1.001 MHz": {
             "fin_hz": 1000976.5625,
-            "sndr_db": 82.31225652699501,
-            "sfdr_db": 98.52766094755941,
-            "spur_hz": 14814453.125,
+            "sndr_db": 82.27696732694503,
+            "sfdr_db": 96.43522872997151,
+            "spur_hz": 5039062.5,
             "analog_overflow_count": 0
           },
           "2.998 MHz": {
             "fin_hz": 2998046.875,
-            "sndr_db": 82.34925125553532,
-            "sfdr_db": 98.84247334793676,
-            "spur_hz": 4584960.9375,
+            "sndr_db": 82.39724247609743,
+            "sfdr_db": 96.88041157167007,
+            "spur_hz": 5039062.5,
             "analog_overflow_count": 0
           }
         }
@@ -2848,11 +2849,11 @@
           68.79298881635542
         ],
         "dem": [
-          43.51747793855438,
-          53.85172922228518,
-          44.71284450759259,
-          47.65065046498895,
-          51.832355882345894
+          38.215333282974015,
+          48.828549505903965,
+          55.129321541373436,
+          50.25190735963699,
+          55.95710093181345
         ],
         "calibrated": [
           30.506443492424072,
@@ -2871,19 +2872,19 @@
       },
       "means": {
         "plain": 53.217885668253714,
-        "dem": 48.3130116031534,
+        "dem": 49.67644252434037,
         "calibrated": 32.49600393715449,
         "cross_chip": 70.6834592934816
       },
       "medians": {
         "plain": 56.01550170726917,
-        "dem": 47.65065046498895,
+        "dem": 50.25190735963699,
         "calibrated": 30.506443492424072,
         "cross_chip": 71.34462858998297
       },
       "spreads": {
         "plain": 11.17281082524692,
-        "dem": 4.457023825984598,
+        "dem": 7.099078584500794,
         "calibrated": 6.462161073153165,
         "cross_chip": 16.999670751147654
       },
@@ -2908,37 +2909,37 @@
   ],
   "figure_files_sha256": {
     "M00_signal_flow.png": "6dfc3fca04f4f3cadc313256abbc13172e2c81f84a13f91db4c8c7c4d8b60fcd",
-    "M00_signal_flow.svg": "0cf4bada244c9b15c6e4f08395b5aa8e5e174ae60db540883f1b6a29165a08dc",
+    "M00_signal_flow.svg": "76a0a9f6c74b1704777b152cbd4ab279fee144afb8e8d9e9708f8449ae46883a",
     "M01_interleaving_follower.png": "e6ad8e093ac46e9cc9694c7aa7f131b2bb776faf5950874ae6b6fa3e22c40f12",
-    "M01_interleaving_follower.svg": "ecf9cd2649d489bae583a1b6da8643fedea6d08e34895a6c20fba78d8fe7a430",
+    "M01_interleaving_follower.svg": "566a8c3f0284d42191b833672808407db2abb3f75b8f23bc54b4adeadb175dba",
     "M02_dem_dither_mechanism.png": "bff78c60708d30bb11765f686ab3a53d0d61bdfef217fccc7443978f1785cd04",
-    "M02_dem_dither_mechanism.svg": "276dc22aedeea0e1715ab1dd64d70323a31b686e68c658455a1787554a5b0407",
+    "M02_dem_dither_mechanism.svg": "9df31565822cf9693405b222a941b44d5f2c5aa9bb13f2ebca367b8e160e92eb",
     "M03_capture_reconstruction.png": "7f7a1d7dc41339fc98c3b223b244473e6c6bbfdc27f98c5064ee0610f02b013d",
-    "M03_capture_reconstruction.svg": "dc9765f8963c67ededb8bfd9d81f97489d11f3290fbd85de3e12317da520e67c",
+    "M03_capture_reconstruction.svg": "2b69c458fa6c6304ff0c25b92260ed0a76a060cae0a6e5fa8dd9b6e0a0bd308c",
     "F01_ownership_events.png": "da180b9309f783a2b4cd53a7a33ececfd38c523b5743ecb9dea729c9a76d9083",
-    "F01_ownership_events.svg": "cc42e62840693444891f3e3439c498e3898d4bf61d49697a3bd23c185c99907c",
+    "F01_ownership_events.svg": "883ec097c0e72d21896bb664e6d0d94d0c4e06e07b14d5a769cc04755532357e",
     "F02_dem_usage.png": "ef87624488226482873d317a5ac2eaec853ee20594dfec6244892eb69046ef21",
-    "F02_dem_usage.svg": "2574c74e0cf7671f44fe3e1e93552fb76768f352fa790ca16fe65909c5b2953e",
-    "F03_inl_dnl.png": "91c0940eee96198a2766f5a9897d2a01a4150b7eb56f426890bbe3aceb6695db",
-    "F03_inl_dnl.svg": "d49f7c52070f1b57e85a8633cd0cf43c6acb5f689bc84356549bb393132fa3d2",
-    "F04_psd.png": "b50aede1d45d6f944fd6945aaf48428d69bd1948df0c8f4651ea98853fe542e4",
-    "F04_psd.svg": "9a9ffcac1f29f5dc1e957f25f4d1d4275ae63653e54d235a7bf9c75714cd2a24",
+    "F02_dem_usage.svg": "597035478ad8a94b4e18c313c1c489574bde5fc7dbb0a8a6dfdc468088cd22eb",
+    "F03_inl_dnl.png": "855170ba27008e8463b04ae894be1b48cf9d032ef38681a063d63dc22c37bdd6",
+    "F03_inl_dnl.svg": "b772c281c79eba7e2477c4c0257cae952a418d4f4ffc4001ffb41f72925843c5",
+    "F04_psd.png": "b6d286181533a398314fd8d0f5e72c3894785b7d466797c9d54729111080b4f2",
+    "F04_psd.svg": "4d9a974348d303589a160013947b6cbd347bc8bf81449d1077b0544eb689be65",
     "F05_dither_margin.png": "8025567a8370e0d0d39b21707606b8af409aace384dfc407a5fdb794fc0130d6",
-    "F05_dither_margin.svg": "f1000b0ecc843f4049235e1d53189b5bb65e7a967b038d14eb656ad5a72b4be6",
+    "F05_dither_margin.svg": "397c83e1062186b91c2bc62ffb7a9ab0916f571072b165fcf5dcf909ba62e3f0",
     "F06_follower_charge.png": "4bbedeb5e99b616916c4d0cb88d25ab0b9f73616d9df2db79552db78481da3d1",
-    "F06_follower_charge.svg": "1b64b0a501a7d9fd577c1296539aa090734b23dacfbaf19668d89aa527fe5835",
+    "F06_follower_charge.svg": "3d8f3113eea66eecab0f60ff5e9c0cdce6c0f28ea92a76e1a5951aa03e52808c",
     "F07_reference_ra_adc2.png": "841112c7938b3eaf1050b0de0df4c137323b0a12cb91cfd59eecf313c5c79951",
-    "F07_reference_ra_adc2.svg": "7bd319242c22da0b3353438acda97137f5ce1be16158fba3838f499bfa0e65b4",
+    "F07_reference_ra_adc2.svg": "56666c4ba2186e6671661a67f8547c3214100805fa51315471f72ef6bc239646",
     "F08_az.png": "50ccfe45f65ee7dcedb481bdbbe5247b4f73d982e718803c3ea6a2ab39b2d21a",
-    "F08_az.svg": "a31a7964a61479f53099f94757e8f73e7d399aa79f0430650e79fd8a9e424fa6",
+    "F08_az.svg": "fe2af253a95d9db4ed59513278a3ab969103311be49cc885c01250b3ec03bd13",
     "F09_input_current.png": "d5d48809562d1f594355f2791ed0b5ec3366cc73b68bc5e7aefe77b190614385",
-    "F09_input_current.svg": "a1d0729b3a1b18a245027074fb9ea9650e02119efcb2182b9de4b7534f69d801",
-    "F10_interleaving.png": "be12b79f899c1204a44518533da0d47f21b022cdc48be2dca2277261149ff459",
-    "F10_interleaving.svg": "5b774728a252280bfd6ec7164b5c931dac3b49498a872b875b6af9cc4064896f",
-    "F11_calibration_generalization.png": "b067a75fba0d6ce608050ad35aeabc569300416e3f7ef1ce8f4570c0f5fa50c4",
-    "F11_calibration_generalization.svg": "e22f2edb90c3021c57b5b105280ec92e09ecf25420ef41b5733e19250b6b7486",
+    "F09_input_current.svg": "858721300d050df609444eec80cc9b8bd2c1c4110c30c4659671202470b9b997",
+    "F10_interleaving.png": "f38703a18e29ea6a937119562d1da530911e38d6d1e8f69f3645759c1d48e583",
+    "F10_interleaving.svg": "c98eb081bf0cada23f66bd0bfcd41b357782a43dc2df879a851f3d75d9f38670",
+    "F11_calibration_generalization.png": "6049bf183abee8349cfcbfaab98fb3f9cdb00b88195f00722896c4c977237f35",
+    "F11_calibration_generalization.svg": "e5e9a17f3fd93c2be069dbb016b949c50e32a935cea1888525e627b30e996854",
     "F12_fixed_vs_float.png": "53ec615eacf9271cf432d200d4ae2223dc81f9b369009ed463e73b101f39c944",
-    "F12_fixed_vs_float.svg": "04a36e8a64243afb41b5854f05092d9ba7ef53cac4eddac42a16127f64e7866c"
+    "F12_fixed_vs_float.svg": "54e8885154d8b4f2d22ba4d7004d27053ec6ab640a08b4f646ae5aac0dbee320"
   },
   "redraw": "bash tools/pyenv.sh --run tools/run_review_figures.py --out /tmp/sar-review-redraw --points 512 --repeats 8 --dynamic-n 8192"
 }

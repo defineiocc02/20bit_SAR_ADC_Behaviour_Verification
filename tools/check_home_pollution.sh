@@ -46,6 +46,6 @@ if [ "$bad" -eq 0 ]; then
   echo "结果: 干净"
 else
   echo "结果: **有污染**"
-  echo "清理前请照 TOOL_WORKDIR_RULES.md §4：列清单 → 按时间戳区分 → 查进程占用"
+  echo "清理前请照 docs/audit/REMOTE_WORKDIR_POLICY.md：列清单 → 核对归属 → 查进程占用"
 fi
 exit "$bad"

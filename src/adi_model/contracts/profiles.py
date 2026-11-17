@@ -1,11 +1,11 @@
-"""具名 profile 注册表：目标、拓扑与实验参数。
-
-本模块只放**数据与来源**，不放算法分支。运行时必须显式选一个 profile，
-并把 ``profile_id``/``topology_id`` 落到结果里；禁止静默回退。
-
-当前只注册 ADI 主 profile 与工程 10MS/s profile。专利七片例是
-``patent_examples``，只用于机制试验，不作为整芯片配置。
-"""
+# =============================================================================
+# 文件名     : profiles.py
+# 模块名     : adi_model.contracts.profiles
+# 功能       : 登记当前 ADC 的设计标识、采样速率、默认拓扑与 ADC2 位数。
+# 设计说明   :
+#   * 数据标识用于绑定拓扑、运行记录和校准结果。
+#   * 查找配置时按完整标识匹配，无法匹配的输入立即报错。
+# =============================================================================
 
 from __future__ import annotations
 
@@ -48,11 +48,9 @@ ADI_40M = Profile(
         profile_id="adi_isscc2024_40m_6vpp",
         n_slices_pool=18,
         n_slices_active=8,
-        # 2026-11-13 修正：本 profile 是**对外声明的规格**，必须与实现一致。
-        # 原来写着 63+8 / 40.04 fF / adc2=12，那是已被用户否决的工程替代拓扑。
-        # 当前实现是专利 [11] FIG.11/19/20 的 17/5：
-        #   主阵列 15×2C + B4 1C + S4 1C；子阵列装配 4 列（第 5 位是虚线占位，
-        #   见 docs/mechanisms/p1_gaps_20261113.md §11）；桥接电容 = 1C。
+        # 片内主阵列有 15 个 2C 列，以及 B4、S4 两个 1C 位置。
+        # 子阵列保留 5 个表示位置，4 个位置装 8/4/2/1 权重支路。
+        # 这些计数参与映射身份核对，不能把码域大小与物理位置数直接相乘。
         n_main=17,
         n_sub=5,
         c_unit_f=7.779886183991967e-14,
@@ -64,71 +62,15 @@ ADI_40M = Profile(
     fs_hz=40e6,
     v_fs_peak_v=3.0,
     v_span_v=6.0,
-    # ADC2 位数：**以工程合同为准 = 13 bit，窗口 [-0.1875, +0.5625)，跨度 0.75 V**
-    #   依据：docs/CONTRACT_CURRENT.md:30「ADC2 | 13 bit，[-0.1875, +0.5625)，0.75 V 跨度」
-    #   仓主 2026-11-17 确认：「我们合同用 13 位 / 0.75」。
-    # 历史注：ADR-0003 的 paper_literal 行曾给 14 bit / 0.45 V（窗口 [-0.0375,0.4125]），
-    #   那是从论文标题反解 DR/NSD 得到的一组自洽值，可作为**对比 profile**保留，
-    #   但不是本工程的交付合同。二者不可混用：
-    #     13 bit / 0.75 V  -> 与 §9.3 的整数常数（-3145728/1536/768）严格配套
-    #     14 bit / 0.45 V  -> 斜率 0.45/16384*2^24 = 460.8 非整数，与 RTL 不符
-    #   RTL 侧 adc2_raw_i[12:0] 也是 13 位。
+    # 工程合同规定 ADC2 窗口 [-0.1875, +0.5625) V。
+    # 位数同时决定 RTL 原码口宽度和 Q24 解码中心的步长。
     adc2_bits=13,
     description="ISSCC 2024 9.8：40 MS/s、±3 V、20b、18/8/8/2、9b 前级",
     source_ids=("PAPER-01", "PAPER-02", "SLIDE-01"),
 )
 
-ENG_10M = Profile(
-    profile_id="engineering_10m_10vpp",
-    topology=TopologySpec(
-        topology_id="engineering_10m_10vpp",
-        profile_id="engineering_10m_10vpp",
-        n_slices_pool=18,
-        n_slices_active=8,
-        n_main=17,
-        n_sub=5,
-        c_unit_f=1e-15,
-        c_bridge_f=1e-15,
-        c_feedback_f=0.0,
-        codebook_id="task_uniform512",
-        normalization_only=True,
-        source_ids=("TASK-10M-01",),
-    ),
-    fs_hz=10e6,
-    v_fs_peak_v=5.0,
-    v_span_v=10.0,
-    adc2_bits=12,
-    description="工程 10 MS/s 归一化机制例：10 Vpp、17+5、1 fF 单位电容、Cf=0（不可构建物理 RA）",
-    source_ids=("TASK-10M-01",),
-)
-
-PATENT_FIG19 = Profile(
-    profile_id="patent_fig19_7slice",
-    topology=TopologySpec(
-        topology_id="patent_fig19_7slice",
-        profile_id="patent_fig19_7slice",
-        n_slices_pool=7,
-        n_slices_active=7,
-        n_main=7,
-        n_sub=1,
-        c_unit_f=1e-15,
-        c_bridge_f=0.0,
-        c_feedback_f=0.0,
-        codebook_id="fig19_seven",
-        normalization_only=True,
-        source_ids=("PAT-D-03", "PAT-D-04", "PAT-D-05"),
-    ),
-    fs_hz=10e6,
-    v_fs_peak_v=5.0,
-    v_span_v=10.0,
-    adc2_bits=12,
-    description="US10505561B2 Fig.19 七片机制例；只用于 dither 机制试验",
-    source_ids=("PAT-D-03", "PAT-D-04", "PAT-D-05"),
-)
-
-PROFILES: dict[str, Profile] = {
-    p.profile_id: p for p in (ADI_40M, ENG_10M, PATENT_FIG19)
-}
+# 保留配置查找接口，当前仓库登记一项可执行的 ADC 目标。
+PROFILES: dict[str, Profile] = {ADI_40M.profile_id: ADI_40M}
 
 DEFAULT_PROFILE_ID = ADI_40M.profile_id
 

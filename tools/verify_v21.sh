@@ -4,34 +4,50 @@
 # 版本       : v1.0
 # 功能       : v21 数字 IP 的正式验收入口（一条命令跑完全部回归）。
 # 设计说明   :
-#   * 四项回归 + 三项审计反例，全部在本机编译、远端执行。
-#   * 任一项 FAIL 即整体退出码非零。
-#   * 用法：
-#       D3D4_RUNNER=vm-yian bash tools/verify_v21.sh
-#     不给 RUNNER 则在本地跑（需要本机有 vcs）。
-# 变更记录   :
-#   2026-11-15  初版。对应三项审计修复后的正式回归入口。
+#   * 生产依赖从 v21 文件清单读取。ADC2 行为宏仅用于仿真。
+#   * 九个 RTL 用例在执行端新建的任务目录中编译、运行并保留日志。
+#   * V21_RUNNER 可指定 SSH 主机。未设置时使用本机 VCS。
+#   * --check-sources 只核对并打印仿真源，不启动任何工具。
 # =============================================================================
 set -uo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-RUNNER=${D3D4_RUNNER:-}
-WORK=${D3D4_WORKDIR:-/tmp/v21_verify}
-SIM=${D3D4_SIM:-vcs}
+RUNNER=${V21_RUNNER:-${D3D4_RUNNER:-}}
+REQUESTED_WORK=${V21_WORKDIR:-${D3D4_WORKDIR:-}}
+# 模拟器可由执行主机的环境选择。仅在 PATH 无 vcs 时使用现有环境默认位置。
+SETUP='export SNPSLMD_LICENSE_FILE="${SNPSLMD_LICENSE_FILE:-27080@localhost}"; if ! command -v vcs >/dev/null; then export VCS_HOME="${VCS_HOME:-/opt/synopsys/vcs/W-2024.09-SP1}"; export PATH="$VCS_HOME/bin:$PATH"; fi'
 
-SETUP='export SNPSLMD_LICENSE_FILE=27080@localhost PATH=/opt/synopsys/vcs/W-2024.09-SP1/bin:$PATH VCS_HOME=/opt/synopsys/vcs/W-2024.09-SP1'
+# 生产清单的每行均为仓库相对路径。在远端保持原有目录结构，
+# 因为端到端测试的 include 与向量以这些路径为坐标。
+# ---- 1. 读取生产清单及测试项 ---------------------------------------------------
+SOURCES=()
+while IFS= read -r source || [ -n "$source" ]; do
+    case "$source" in
+        ""|//*) continue ;;
+    esac
+    if [[ ! "$source" =~ ^rtl/[[:alnum:]_./-]+\.sv$ || "$source" == *../* || ! -f "$ROOT/$source" ]]; then
+        printf 'Invalid v21 source: %s\n' "$source" >&2
+        exit 1
+    fi
+    SOURCES+=("$source")
+done < "$ROOT/flow/build/filelists/files_adc_v21.f"
+if [ "${#SOURCES[@]}" -eq 0 ]; then
+    printf 'The v21 production list is empty.\n' >&2
+    exit 1
+fi
+SOURCES+=(rtl/v21/adc2_node_macro.sv)
+if [ ! -f "$ROOT/${SOURCES[${#SOURCES[@]}-1]}" ]; then
+    printf 'The v21 ADC2 test macro is missing.\n' >&2
+    exit 1
+fi
+case "${1:-}" in
+    --check-sources) printf '%s\n' "${SOURCES[@]}"; exit 0 ;;
+    "") ;;
+    *) printf 'Usage: %s [--check-sources]\n' "$0" >&2; exit 2 ;;
+esac
+SRC_REL="${SOURCES[*]}"
 
-# 生产 + 仿真源（节点宏只在仿真侧）
-# 源文件（仓库内相对路径）。叶子在 rtl/，v21 层在 rtl/v21/。
-SRC="rtl/sched18.sv rtl/dem_phase_rr.sv rtl/dem_phase_gen.sv rtl/dither_pre.sv \
-rtl/dem_mask_v3.sv rtl/follower_rt.sv rtl/recip_q60.sv \
-rtl/v21/acq_conv_ctx.sv rtl/v21/sar_evt_v21.sv rtl/v21/adc2_capture.sv \
-rtl/v21/wsum_v21.sv rtl/v21/recip_rnd_v21.sv rtl/v21/recon_v21.sv \
-rtl/v21/adc2_node_macro.sv \
-rtl/v21/adc_digital_ip_v21.sv"
-# 编译时在 $WORK 下的相对名（保持 rtl/ 前缀，与仓库一致）
-SRC_REL="$SRC"
-
-# 测试项：<源文件> <二进制名> <期望字符串>
+# 测试项：<源文件> <二进制名> <期望字符串>。
+# 有些 testbench 在打印 FAIL 后也会正常退出，所以每项还须核对完成标志。
 TESTS=(
   "tb/v21/tb_acq_ctx_fixed.sv|sax|PASS (两反例已修复)"
   "tb/v21/tb_audit3.sv|sa3|PASS (10 checks)"
@@ -44,29 +60,72 @@ TESTS=(
   "tb/v21/tb_cfg_lifecycle.sv|scl|PASS (40 checks)"
 )
 
+# ---- 2. 执行端目录与源码暂存 ---------------------------------------------------
+# 远端工具命令经标准输入交给 Bash，SSH 目标始终作为主机参数传入。
 fail=0
-run() { if [ -n "$RUNNER" ]; then ssh "$RUNNER" "$1"; else bash -c "$1"; fi; }
+run() {
+    if [ -n "$RUNNER" ]; then
+        printf '%s\n' "$1" | ssh -- "$RUNNER" bash -s
+    else
+        bash -c "$1"
+    fi
+}
+
+# 在执行端解析实际父目录，避免符号链接把产物指向任务目录以外。
+# mkdir 独占创建，若目标已存在立即失败并保留其中的文件。
+if [[ -n "$REQUESTED_WORK" && ! "$REQUESTED_WORK" =~ ^/[[:alnum:]_./-]+$ ]]; then
+    printf 'V21_WORKDIR must be an absolute path without spaces.\n' >&2
+    exit 2
+fi
+WORK=$(run "$(printf 'requested=%q\n' "$REQUESTED_WORK")"'
+    set -eu
+    umask 077
+    if [ -z "$requested" ]; then
+        mktemp -d /tmp/v21_verify.XXXXXX
+        exit 0
+    fi
+    parent=$(cd -P -- "$(dirname "$requested")" && pwd -P)
+    leaf=$(basename "$requested")
+    temporary=$(cd -P /tmp && pwd -P)
+    home=$(cd -P "$HOME" && pwd -P)
+    [ "$parent/$leaf" != "$home" ] || exit 2
+    retained=""
+    if [ -d "$HOME/eda_runs" ]; then
+        retained=$(cd -P "$HOME/eda_runs" && pwd -P)
+    fi
+    case "$leaf" in .|..) exit 2 ;; esac
+    if [[ "$parent" != "$temporary" && "$parent" != "$temporary/"* &&
+          ( -z "$retained" || ( "$parent" != "$retained" && "$parent" != "$retained/"* ) ) ]]; then
+        printf "V21_WORKDIR must be under /tmp or \$HOME/eda_runs.\n" >&2
+        exit 2
+    fi
+    mkdir -- "$parent/$leaf"
+    printf "%s\n" "$parent/$leaf"
+') || { printf 'Unable to create fresh v21 work directory.\n' >&2; exit 1; }
+if [[ ! "$WORK" =~ ^/[[:alnum:]_./-]+$ ]]; then
+    printf 'Invalid v21 work directory returned by execution host.\n' >&2
+    exit 1
+fi
 
 echo "=== 准备 $WORK ==="
-run "rm -rf $WORK && mkdir -p $WORK/rtl/v21 $WORK/tb/v21 $WORK/tools" || { echo "FAIL: 建目录"; exit 1; }
-# 逐个文件传：tar 在 macOS->Linux 上会带 xattr 头，且扁平化路径，
-# 实测导致叶子源文件没落到预期位置（编译报 "Source file cannot be opened"）。
-# 用 scp/cp 逐个复制最可靠。
-FILES="$SRC rtl/recip_q60.sv rtl/v21/recip_rnd_v21.sv tb/v21/tb_analog_if.sv tb/v21/tb_cfg_lifecycle.sv \
-tb/v21/tb_e2e_decl.svh tb/v21/tb_e2e_body.svh \
-tb/tb_recip_q60.sv tb/vec_r18_recip.txt \
-tb/v21/tb_recip_rnd.sv tb/v21/vec_recip_rnd.txt \
-tb/v21/tb_acq_ctx_fixed.sv tb/v21/tb_audit3.sv tb/v21/tb_i12_full.sv \
-tb/v21/tb_i3_full.sv tb/v21/tb_i4b_e2e.sv tools/check_rtl_rnd96.py"
-for f in $FILES; do
-  if [ -n "$RUNNER" ]; then
-    scp -q "$ROOT/$f" "$RUNNER:$WORK/$f" || { echo "FAIL: 传 $f"; exit 1; }
-  else
-    cp "$ROOT/$f" "$WORK/$f"
-  fi
+run "mkdir -p -- $WORK/rtl/v21 $WORK/tb/v21 $WORK/tools" || exit 1
+# scp 逐文件传输让 RTL 与测试台的相对路径在两端严格一致。
+FILES=("${SOURCES[@]}" tb/v21/tb_e2e_decl.svh tb/v21/tb_e2e_body.svh \
+       tb/vec_r18_recip.txt tb/v21/vec_recip_rnd.txt tools/check_rtl_rnd96.py)
+for test_case in "${TESTS[@]}"; do
+    FILES+=("${test_case%%|*}")
+done
+for f in "${FILES[@]}"; do
+    if [ -n "$RUNNER" ]; then
+        scp -q -- "$ROOT/$f" "$RUNNER:$WORK/$f" || exit 1
+    else
+        cp -- "$ROOT/$f" "$WORK/$f" || exit 1
+    fi
 done
 
 echo
+# ---- 3. 回归与证据边界 ---------------------------------------------------------
+# 最小算术用例使用自己的叶子源，其余测试用同一份整核输入。
 echo "=== 回归 ==="
 for t in "${TESTS[@]}"; do
   f=${t%%|*}; rest=${t#*|}; bin=${rest%%|*}; want=${rest##*|}
@@ -93,8 +152,8 @@ for t in "${TESTS[@]}"; do
     tb_recip_q60.sv) VARGS="+VEC=$WORK/tb/vec_r18_recip.txt" ;;
     tb_recip_rnd.sv) VARGS="+VEC=$WORK/tb/v21/vec_recip_rnd.txt" ;;
   esac
-  out=$(run "$SETUP; cd $WORK && ./$bin $VARGS 2>&1")
-  if echo "$out" | grep -q "$want"; then
+  # 退出码、完成标志均需通过，避免中途失败把先前的字样当成本项结果。
+  if out=$(run "$SETUP; cd $WORK && ./$bin $VARGS 2>&1") && grep -Fq "$want" <<< "$out"; then
     echo "  $bf  PASS"
   else
     echo "  $bf  FAIL（期望 '$want'）"
@@ -118,12 +177,12 @@ else
   echo "  [A] X 的 32 位截断                    FAILED"; fail=1
 fi
 # [B] 生产 RTL 检查（从源码抽取 + VCS）
-if run "$SETUP; cd $WORK && python3 tools/check_rtl_rnd96.py 2>&1" | grep -q "RESULT: RTL_CHECK_PASS"; then
+if run "$SETUP; cd $WORK && python3 tools/check_rtl_rnd96.py --work-dir $WORK 2>&1" | grep -q "RESULT: RTL_CHECK_PASS"; then
   echo "  [B] 生产 RTL 的 rnd96_const            PASS（从源码抽取）"
 else
   echo "  [B] 生产 RTL 的 rnd96_const            FAILED"; fail=1
 fi
-# [C] 工具形式化：未完成，如实标注
+# [C] 属性证明要由专门的形式工具执行，独立于定向回归。
 echo "  [C] VC Formal 属性证明                 未完成（不计入通过）"
 
 echo

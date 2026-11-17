@@ -1,20 +1,18 @@
-"""Engineering-spec checks that a human reviewer would otherwise do by eye.
-
-Each check prints PASS/FAIL with the offending item and returns a non-zero exit
-code if anything fails. The point is that these rules stop being prose in a task
-book and become something CI can run.
-
-Checks
-------
-C1 dependency direction      core package must not import tools/experiments/tests/docs
-C2 CAAZ isolation            main package and RTL filelist must not pull in the extension
-C3 documentation links       every relative markdown link resolves
-C4 result identity           figure set and matrix share one config list and grid
-C5 duplicate formulas        no two modules carry byte-identical public functions
-C6 entry points              commands named in the quickstart exist and are runnable
-
-    python tools/check_engineering.py
-"""
+# =============================================================================
+# 文件名     : check_engineering.py
+# 模块名     : check_engineering
+# 版本       : v1.0
+# 功能       : 检查依赖边界、文档和脚本路径、发布图集与 ADC2 合同。
+# 设计说明   :
+#   * CI 可直接运行本工具。所有检查仅读取源码、合同和图集，使用 Python
+#     标准库，因此临时检出时无需安装模型依赖或 EDA 工具。
+#   * 检查结果附失败对象，全部检查结束后以退出码报告整体状态。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 图集按发布字节校验，ADC2 按现行 v21 的定点码制核对。
+# =============================================================================
+"""运行 `python tools/check_engineering.py`。任一检查失败时退出码为 1。"""
 
 from __future__ import annotations
 
@@ -23,6 +21,7 @@ import hashlib
 import json
 import re
 import sys
+from fractions import Fraction
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -149,112 +148,91 @@ def _semantic_digest_of_python(text: str) -> str:
     return hashlib.sha256(ast.dump(tree).encode()).hexdigest()
 
 
-def check_result_identity() -> None:
-    """C4: figures and matrix must describe the same run."""
-    figures = ROOT / "docs/reviews/20261113_p3p4/figures/figures.json"
-    matrix = ROOT / "docs/reviews/20261113_p3p4/data/p4_ablation.json"
-    if not figures.is_file() or not matrix.is_file():
-        record("C4 result identity", False, "figures.json or p4_ablation.json missing")
-        return
-    fig = json.loads(figures.read_text())
-    mat = json.loads(matrix.read_text())
-    matrix_ids = {c["id"] for c in mat["configs"]}
-    f03 = next((f for f in fig["figures"] if f["figure"].startswith("F03")), None)
-    problems = []
-    if f03 is None:
-        problems.append("F03 missing")
-    else:
-        # The figure uses human labels; require every *non-calibration* matrix id
-        # to have a curve, and require the grid sizes to agree.
-        # 网格尺寸不再是唯一判据：真正要保证的是"校准训练覆盖全部 512 个粗码"。
-        # 2026-11-13：码本端点改为精确 ±v_fs 后，±0.9995·v_fs 的旧网格够不到
-        # 码 511，训练会漏掉端点码而失败（见 run_p4_ablation 的同一处修正）。
-        if fig["points"] < 512:
-            problems.append(f"figure grid {fig['points']} < 512 (cannot cover all coarse codes)")
-        if fig["repeats"] < 1:
-            problems.append(f"figure repeats {fig['repeats']} < 1")
-        if len(f03["configs"]) < 9:
-            problems.append(f"F03 has {len(f03['configs'])} curves, expected >=9")
-    if len(matrix_ids) < 11:
-        problems.append(f"matrix has {len(matrix_ids)} configs, expected 11")
-    # 结果身份：图必须能追到某个提交，且不能声称代表更新的代码。
-    # 2026-11-13：原来只检查网格尺寸，旧图（63+8 时代的 source_sha）照样通过，
-    # 于是一批过期图长期被当成"当前结果"。这里把它显式列出来。
-    stale = None
-    if "source_sha" not in fig or len(str(fig.get("source_sha", ""))) < 7:
-        problems.append("figures.json has no usable source_sha")
-    else:
-        import subprocess
+# =============================================================================
+# 4. 图集发布文件
+# =============================================================================
+FIGURE_FILE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*\.(png|svg)")
+SHA256_HEX = re.compile(r"[0-9a-f]{64}")
 
-        try:
-            head = subprocess.run(
-                ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True
-            ).stdout.strip()
-        except Exception:  # noqa: BLE001 - 无 git 时不做身份判断
-            head = ""
-        if head and not head.startswith(str(fig["source_sha"])[:12]):
-            # ⚠️ 图不可能由"包含图自己的那个提交"生成（生成时该提交还不存在）。
-            # 因此只要 source_sha 是 HEAD 的**祖先**，且两者之间**没有改变模型**，
-            # 图就是当前的。
-            # 2026-11-13：原实现只比较 HEAD 是否等于 source_sha，
-            # 导致"提交图 → HEAD 变了 → 立刻判 STALE"，形成逻辑死循环。
-            # 只改注释/docstring 不应让图变 stale。判据用 **AST 语义摘要**
-            # （`adi_model.hashing.semantic_digest_of_text`），而不是 diff 行过滤。
-            #
-            # 2026-11-13 的两轮教训：
-            #   ① 原用 `git diff --name-only` ⇒ 加一行注释就误报 STALE
-            #   ② 改用"过滤 diff 行" ⇒ 又把 `+++ b/...` 文件头当成 2 行实质改动
-            # AST 摘要一次解决两者：它按语法树比较，天然忽略注释与 docstring。
-            try:
-                changed_files = subprocess.run(
-                    ["git", "diff", "--name-only", str(fig["source_sha"]), "HEAD",
-                     "--", "src/adi_model"],
-                    cwd=ROOT, capture_output=True, text=True, check=True,
-                ).stdout.split()
-                substantive = []
-                for rel in changed_files:
-                    current = ROOT / rel
-                    if not current.is_file() or current.suffix != ".py":
-                        substantive.append(rel)
-                        continue
-                    old_text = subprocess.run(
-                        ["git", "show", f"{fig['source_sha']}:{rel}"],
-                        cwd=ROOT, capture_output=True, text=True,
-                    ).stdout
-                    try:
-                        if _semantic_digest_of_python(old_text) != _semantic_digest_of_python(
-                            current.read_text(encoding="utf-8", errors="replace")
-                        ):
-                            substantive.append(rel)
-                    except SyntaxError:
-                        # 旧版语法不合法（或文件新增）⇒ 保守地算作实质改动
-                        substantive.append(rel)
-            except Exception:  # noqa: BLE001
-                substantive = ["unknown"]
-            if substantive:
-                stale = (
-                    f"{str(fig['source_sha'])[:12]}"
-                    f"（src/adi_model 自那以后有 {len(substantive)} 个文件语义改动）"
-                )
-            # 无实质改动 ⇒ 模型未变，图仍代表当前模型，不算 stale
-    checked = not problems
-    detail = (
-        f"figure grid {fig['points']}x{fig['repeats']}, {len(f03['configs'])} curves, "
-        f"{len(matrix_ids)} matrix configs"
-        if checked
-        else "; ".join(problems)
-    )
-    if checked and stale:
-        # 2026-11-13：原设计是"只警告不失败"，理由是"这批图本来就要按新几何重生成"。
-        # 但 17/5 迁移**已经完成**，模型在 f9d6d10..HEAD 之间有 11 次提交、
-        # 其中 2 次改变了行为（双重减法、dither step_q）⇒ 旧图确实已不代表当前模型。
-        # 既然现在重生成是可行的，"警告"就不再合适——图要么是当前的，要么是错的。
-        checked = False
-        detail += (
-            f"; STALE figures: source_sha {stale} != HEAD — run "
-            "`tools/run_review_figures.py --points 512 --repeats 8` to regenerate"
+
+def _unique_json_object(items):
+    """拒绝重复键，避免后一个摘要覆盖清单中的另一个摘要。"""
+    result = {}
+    for name, value in items:
+        if name in result:
+            raise ValueError(f"duplicate JSON key {name!r}")
+        result[name] = value
+    return result
+
+
+def check_figure_assets() -> None:
+    """按当前发布清单核对每幅图的 PNG/SVG 及文件字节哈希。
+
+    source_files_sha256 记录出图时的源码身份。资产内容须与记录的摘要一致，
+    当前代码迭代时也适用。结果通过 record 记录，缺失或损坏均定位到文件名。
+    """
+    check = "C4 figure assets"
+    directory = ROOT / "docs/figures/20261117"
+    try:
+        manifest = json.loads(
+            (directory / "figures.json").read_text(encoding="utf-8"),
+            object_pairs_hook=_unique_json_object,
         )
-    record("C4 result identity", checked, detail)
+        if not isinstance(manifest, dict):
+            raise ValueError("figure manifest must be an object")
+        figures = manifest.get("figures")
+        digests = manifest.get("figure_files_sha256")
+        if not isinstance(figures, list) or not figures:
+            raise ValueError("figure manifest has no figures")
+        if not isinstance(digests, dict) or not digests:
+            raise ValueError("figure manifest has no asset hashes")
+        # 由图目推出两种格式的完整集合。仅遍历摘要表会漏检未登记的另一种格式。
+        # 图目保留 PNG 文件名，SVG 复用其词干，以便目录与文档共享同一个图号。
+        expected = set()
+        for row in figures:
+            name = row.get("figure") if isinstance(row, dict) else None
+            # 只允许同目录的简单文件名，拒绝把目录外文件或软链接当作图集内容。
+            if (
+                not isinstance(name, str)
+                or not FIGURE_FILE.fullmatch(name)
+                or not name.endswith(".png")
+            ):
+                raise ValueError(f"invalid published PNG filename {name!r}")
+            if name in expected:
+                raise ValueError(f"duplicate published figure {name}")
+            expected.update((name, str(Path(name).with_suffix(".svg"))))
+        for name, digest in digests.items():
+            if (
+                not FIGURE_FILE.fullmatch(name)
+                or not isinstance(digest, str)
+                or not SHA256_HEX.fullmatch(digest)
+            ):
+                raise ValueError(f"invalid asset name or SHA-256 for {name!r}")
+        if digests.keys() != expected:
+            raise ValueError(
+                f"manifest asset set differs: missing={sorted(expected - digests.keys())}, "
+                f"unexpected={sorted(digests.keys() - expected)}"
+            )
+        # 对目录全集核对可发现迁移时遗留的图，文档与 JSON 等说明文件可同目录共存。
+        present = {path.name for path in directory.iterdir() if path.suffix.lower() in (".png", ".svg")}
+        if present != expected:
+            raise ValueError(
+                f"figure directory differs: missing={sorted(expected - present)}, "
+                f"unexpected={sorted(present - expected)}"
+            )
+        for name in sorted(expected):
+            path = directory / name
+            if path.is_symlink() or not path.is_file():
+                raise ValueError(f"{name}: expected regular asset file")
+            content = path.read_bytes()
+            if not content:
+                raise ValueError(f"{name}: expected a nonempty asset file")
+            if hashlib.sha256(content).hexdigest() != digests[name]:
+                raise ValueError(f"{name}: asset SHA-256 differs from figures.json")
+    except (ValueError, OSError) as failure:
+        record(check, False, str(failure))
+        return
+    record(check, True, f"{len(figures)} PNG/SVG pairs match recorded SHA-256")
 
 
 def check_duplicate_formulas() -> None:
@@ -292,67 +270,153 @@ def check_entry_points() -> None:
            if ok else f"missing={missing} main={core_entry}")
 
 
-def check_fingerprint_baseline() -> None:
-    """C7: 行为指纹基线的元数据必须与**源码里的默认参数**一致。
+# =============================================================================
+# 7. v21 的 ADC2 码制
+# =============================================================================
+def _single_match(pattern: str, text: str, field: str) -> re.Match:
+    """只接受一条可识别定义；缺少或出现多条都不能猜测有效值。"""
+    matches = list(re.finditer(pattern, text, re.MULTILINE))
+    if len(matches) != 1:
+        raise ValueError(f"expected one definition of {field}, found {len(matches)}")
+    return matches[0]
 
-    2026-11-13：本会话改了 σ(1e-3→1e-4)、ADC2 位数(12→14)、ra_clip(0.5→0.45)、
-    子阵列列数(5→4)，指纹漂移了 12 个字段——但**没人会注意到**，除非显式比对。
-    这条检查把"基线描述必须跟上代码"变成门禁的一部分。
 
-    实现上**不 import adi_model**：本检查跑在系统 python（3.9）下，而仓库要求 3.13。
-    改为用正则从 `src/adi_model/defaults.py` 读默认值，做文本比对——
-    这样 C7 在任何解释器下都能跑，不依赖运行时环境。
+def _rtl_source(relative: str) -> str:
+    """去掉 SV 注释后只检查可执行的声明和换算表达式。"""
+    text = (ROOT / relative).read_text(encoding="utf-8")
+    return re.sub(r"//[^\n]*|/\*.*?\*/", " ", text, flags=re.DOTALL)
+
+
+def _adc2_model_default() -> tuple:
+    """用 AST 读取 Python 的 ADC2 默认参数。
+
+    返回位数、单位为 V 的两个窗口端点，以及端点策略。只接受类体上带类型
+    的字面值，CI 在未安装模型依赖时也能判断定义是否缺失或出现歧义。
     """
-    baseline = ROOT / "docs/restructure/behavior_fingerprint.json"
-    defaults = ROOT / "src/adi_model/defaults.py"
-    if not baseline.is_file():
-        record("C7 fingerprint baseline", False, "behavior_fingerprint.json missing")
-        return
-    if not defaults.is_file():
-        record("C7 fingerprint baseline", False, "src/adi_model/defaults.py missing")
-        return
-    try:
-        document = json.loads(baseline.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as failure:
-        record("C7 fingerprint baseline", False, f"baseline is not valid JSON: {failure}")
-        return
-    model_text = str(document.get("model", ""))
-    source = defaults.read_text(encoding="utf-8")
+    source = (CORE / "defaults.py").read_text(encoding="utf-8")
+    classes = [
+        node for node in ast.parse(source).body
+        if isinstance(node, ast.ClassDef) and node.name == "DefaultParameters"
+    ]
+    if len(classes) != 1:
+        raise ValueError("cannot identify DefaultParameters in defaults.py")
+    names = ("adc2_n_bits", "adc2_v_min", "adc2_v_max", "endpoint_policy")
+    values = {}
+    for node in classes[0].body:
+        if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            name = node.target.id
+            if name in names:
+                if name in values or node.value is None:
+                    raise ValueError(f"DefaultParameters.{name} must have one explicit default")
+                values[name] = ast.literal_eval(node.value)
+    if values.keys() != set(names):
+        raise ValueError(f"missing ADC2 defaults: {sorted(set(names) - values.keys())}")
+    return tuple(values[name] for name in names)
 
-    problems = []
-    sigma_match = re.search(r"unit_mismatch_std:\s*float\s*=\s*([0-9.eE+-]+)", source)
-    bits_match = re.search(r"adc2_n_bits:\s*int\s*=\s*(\d+)", source)
-    if sigma_match is None:
-        problems.append("cannot find unit_mismatch_std default in defaults.py")
-    else:
-        sigma = float(sigma_match.group(1))
-        if f"mismatch={sigma:.0e}" not in model_text:
-            problems.append(
-                f"baseline says {model_text!r} but defaults.py has mismatch={sigma:.0e}"
-            )
-    if bits_match is None:
-        problems.append("cannot find adc2_n_bits default in defaults.py")
-    else:
-        bits = int(bits_match.group(1))
-        if f"adc2_n_bits={bits}" not in model_text:
-            problems.append(
-                f"baseline says {model_text!r} but defaults.py has adc2_n_bits={bits}"
-            )
-    if problems:
-        record("C7 fingerprint baseline", False, "; ".join(problems))
+
+def check_adc2_contract() -> None:
+    """静态核对 ADC2 的位宽、半开电压窗及 Q24 码中心。
+
+    合同电压单位为 V。Python 和 RTL 的值转换成同一表示后逐项比较，
+    发现首处偏差即记录 FAIL。声明和表达式需满足 v21 的静态取值形式。
+    """
+    check = "C7 ADC2 contract"
+    try:
+        text = (ROOT / "docs/CONTRACT_CURRENT.md").read_text(encoding="utf-8")
+        row = _single_match(r"^\|\s*ADC2\s*\|\s*([^\n|]+)\|", text, "ADC2 contract row")[1]
+        bits = int(_single_match(r"`(\d+)\s+bit`", row, "ADC2 contract bit count")[1])
+        voltage = r"([+-]?\d+(?:\.\d+)?)"
+        window = _single_match(
+            rf"`\[\s*{voltage}\s*,\s*{voltage}\s*\)\s*V`",
+            row, "ADC2 half-open contract window",
+        )
+        lo, hi = Fraction(window[1]), Fraction(window[2])
+        span = Fraction(_single_match(rf"跨度\s*`{voltage}\s*V`", row, "ADC2 contract span")[1])
+        if (bits, lo, hi, span) != (13, Fraction(-3, 16), Fraction(9, 16), Fraction(3, 4)):
+            raise ValueError(f"v21 requires 13 bits and [-0.1875,+0.5625) V, got {bits}, [{lo},{hi}), span={span}")
+
+        # Fraction 保留从文档十进制端点到整数 Q24 的精确关系。
+        # 窗口宽度决定台阶，窗口左端和半台阶共同决定零码对应的电压。
+        q24_scale = 1 << 24
+        step_q24 = span * q24_scale / (1 << bits)
+        center_q24 = (lo * q24_scale, step_q24, step_q24 / 2)
+        documented_center = _single_match(
+            r"`Y\s*=\s*(-?\d+)\s*\+\s*(\d+)\s*·\s*raw\s*\+\s*(\d+)`",
+            row, "ADC2 contract Q24 code center",
+        )
+        if tuple(map(int, documented_center.groups())) != center_q24:
+            raise ValueError("ADC2 contract Q24 code center does not match the voltage window")
+
+        defaults = _adc2_model_default()
+        if defaults != (bits, lo, hi, "half_open"):
+            raise ValueError(f"DefaultParameters ADC2 differs from the contract: {defaults!r}")
+
+        top = _rtl_source("rtl/v21/adc_digital_ip_v21.sv")
+        port = _single_match(
+            r"\binput\s+logic\s+\[\s*(\d+)\s*:\s*(\d+)\s*\]\s+adc2_raw_i\b",
+            top, "v21 ADC2 input port",
+        )
+        if (int(port[1]), int(port[2])) != (bits - 1, 0):
+            raise ValueError(f"v21 adc2_raw_i is [{port[1]}:{port[2]}], expected [{bits - 1}:0]")
+
+        # 顶层数字输入只携带原始码。编码器中的换算斜率与码域一起定义电压窗，
+        # 所以要核对这两处实现，才能发现位宽正确而模拟窗口已经漂移的情况。
+        # 捕获已知定点字面量的宽度，防止数值看似相同但解析为更短宽度时被截断。
+        macro = _rtl_source("rtl/v21/adc2_node_macro.sv")
+        macro_bits = int(_single_match(
+            r"\bparameter\s+int\s+unsigned\s+ADC2_N\s*=\s*(\d+)\b", macro, "ADC2_N",
+        )[1])
+        ymin = _single_match(r"\bYMIN_Q24\s*=\s*(-?)\s*64'sd(\d+)\s*;", macro, "YMIN_Q24")
+        multiplier = int(_single_match(
+            r"\bnum\s*=\s*\(\$signed\(y_wide\)\s*-\s*YMIN_Q24\)\s*\*\s*96'sd(\d+)\s*;",
+            macro, "ADC2 encoder multiplier",
+        )[1])
+        divisor = int(_single_match(
+            r"\bcode_calc\s*=\s*num\s*/\s*96'sd(\d+)\s*;",
+            macro, "ADC2 encoder divisor",
+        )[1])
+        shift = int(_single_match(
+            r"\bcode_floor\s*=\s*code_calc\s*>>>\s*(\d+)\s*;", macro, "ADC2 encoder Q shift",
+        )[1])
+        limits = _single_match(
+            r"\bin_range\s*=\s*\(\s*code_floor\s*>=\s*96'sd(\d+)\s*\)\s*&&\s*"
+            r"\(\s*code_floor\s*<=\s*96'sd(\d+)\s*\)\s*;", macro, "ADC2 raw code limits",
+        )
+        # 编码窗跨 2^bits 个量化台阶。窗口右端对应码 2^bits，因超出满码而被拒绝。
+        # 用有符号常量和算术右移核对有效码区间，保留负输入时的向下取整语义。
+        if (
+            macro_bits != bits or shift != 24 or multiplier == 0 or divisor == 0
+            or Fraction(int(ymin[1] + ymin[2]), q24_scale) != lo
+            or Fraction((1 << bits) * divisor, multiplier) != span
+            or (int(limits[1]), int(limits[2])) != (0, (1 << bits) - 1)
+        ):
+            raise ValueError("v21 ADC2 node encoder does not match the 13-bit half-open contract")
+
+        recon = _rtl_source("rtl/v21/recon_v21.sv")
+        center = _single_match(
+            r"\by\s*=\s*(-?)\s*32'sd(\d+)\s*\+\s*32'sd(\d+)\s*\+\s*"
+            r"\(\$signed\(\{\s*(\d+)'d0\s*,\s*adc2_raw\s*\}\)\s*\*\s*32'sd(\d+)\)\s*;",
+            recon, "v21 reconstruction ADC2 Q24 code center",
+        )
+        # 重建取码中心，码 0 需要与量化窗左端相差半个台阶。补零后做有符号乘法，
+        # 即使原码的最高位置 1，码值也仍为非负数。
+        reconstructed_center = (int(center[1] + center[2]), int(center[5]), int(center[3]))
+        if reconstructed_center != center_q24 or int(center[4]) != 32 - bits:
+            raise ValueError("v21 reconstruction Q24 code center does not match the ADC2 contract")
+    except (OSError, SyntaxError, ValueError, TypeError, OverflowError) as failure:
+        record(check, False, str(failure))
         return
-    record("C7 fingerprint baseline", True,
-           f"baseline metadata matches defaults.py ({model_text})")
+    record(check, True, "v21 RTL and Python defaults agree: 13 bits, [-0.1875,+0.5625) V")
 
 
 def main() -> int:
     check_dependency_direction()
     check_caaz_isolation()
     check_doc_links()
-    check_result_identity()
+    check_figure_assets()
     check_duplicate_formulas()
     check_entry_points()
-    check_fingerprint_baseline()
+    check_adc2_contract()
     width = max(len(name) for name, _, _ in results)
     failures = 0
     for name, ok, detail in results:

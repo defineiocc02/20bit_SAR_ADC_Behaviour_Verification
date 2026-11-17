@@ -95,25 +95,16 @@ class DefaultParameters:
     main_parasitic_f: float = 0.0
     sub_parasitic_f: float = 0.0
     sadc_cap_f: float = 2.5625e-12
-    # ADC2 = **13 bit，窗口 [-0.1875, +0.5625)，跨度 0.75 V**（工程合同值）。
-    #   依据 docs/CONTRACT_CURRENT.md:30；仓主 2026-11-17 确认「合同用 13 位 / 0.75」。
-    #   与 RTL 的 adc2_raw_i[12:0] 一致；与 §9.3 整数常数
-    #   （-3145728 / 1536 / 768，反推 YMIN=-0.1875 V、斜率 1536/2^24）严格配套。
-    #
-    # 历史注：ADR-0003 的 `paper_literal` 行曾写 "14 bit，[-0.0375, +0.4125] V"，
-    #   那是从论文标题反解 DR/NSD 得到的另一组自洽值（二级量化 0.15 LSB20），
-    #   但与 §9.3 常数不配套（0.45/16384*2^24 = 460.8 非整数），**不是本工程合同**。
-    #   13 bit / 0.75 V 下二级量化 = 0.75/8192 = 9.16e-5 V，
-    #   折到 20 bit（LSB20 = 6/2^20 = 5.72e-6 V）约 16 LSB20 —— 远大于 0.5，
-    #   因此**本工程要求 ADC2 与重构之间必须做残差增益校准**，这不是笔误。
+    # ADC2 固定工程合同：13 位，窗口 [-0.1875, +0.5625) V，跨度 0.75 V。
+    # 范围和 RTL adc2_raw_i[12:0]、Q24 码箱中心公式一致。见 CONTRACT_CURRENT。
+    # 节点步长 0.75/8192 V，按名义 G=32 折算输入约 2.86 µV，即 0.50 LSB20。
+    # 这里只描述均匀量化的步长。模拟噪声、残差增益误差和实际有效位数需另验。
     adc2_n_bits: int = 13
     adc2_v_min: float = -0.1875
     adc2_v_max: float = 0.5625
     endpoint_policy: str = "half_open"
-    # RA 输出摆幅 = ADC2 满窗宽度 = **0.75 V**（跟随合同窗口 [-0.1875, +0.5625)）。
-    #   0.75 == 0.5625 - (-0.1875)，即"RA 摆幅与 ADC2 满窗相配"。
-    # 必须与 adc2_v_min/max 同改：若 ra_clip 仍为旧的 0.45（< 新窗口 0.75），
-    #   RA 会先撞自己的 clip，ADC2 的满窗永远用不满，等效位数下降。
+    # Python RA 节点使用正对称限幅，独立于 ADC2 的非对称窗口。
+    # ra_clip_v 控制正负各 0.75 V，超过 ADC2 窗口则另外标记量化越界。
     ra_clip_v: float = 0.75
     temperature_k: float = 300.0
     chi: float = 2.0
@@ -626,20 +617,20 @@ class DefaultModel:
             "adc2_n_bits",
             cfg.adc2_n_bits,
             "INFERRED_RESOLUTION_BUDGET",
-            "default12b; no targetDR back-solving",
+            "active 13-bit engineering contract; explicit overrides are recorded separately",
         )
         row(
             "adc2_window_v",
             [cfg.adc2_v_min, cfg.adc2_v_max],
             "INFERRED_HEADROOM",
-            "default[-0.1,+1.1]*32*(6/512)",
+            "active contract window [-0.1875,+0.5625) V at RA output",
             "V at RA output",
         )
         row(
             "ra_clip_v",
             cfg.ra_v_clip,
             "ASSUMED_SWING",
-            "default0.5V is not disclosed device swing",
+            "ideal RA model clips at +/-0.75 V; device swing is not inferred from the ADC2 window",
             "V",
         )
         row("temperature_k", cfg.temperature_k, "ASSUMED_TEST_CONDITION", "default300K", "K")

@@ -19,7 +19,7 @@ from adi_model.control.dem import _integer_array
 from adi_model.simulation.config import ConfigError, _finite_real
 
 #: Fig19 粗码台阶的归一化 Q32 值 = round(2^32 · 2/(cn·16) / v_fs)，cn = 31.9375。
-#: 旧值 2**24 对应 63+8 的等距 512 级码本；17/5 的 cn·16 = 511 ⇒ 台阶大 512/511 倍。
+#: 现行 17/5 码本的 cn·16 = 511，不能把 Q32 的 512 等分值作为该码本步长。
 FIG19_STEP_Q = 16810048
 
 #: D3/D2/D1 三项低位权（源示例 4:2:1/7）按新 step_q 重新量化，三者之和 = FIG19_STEP_Q。
@@ -61,7 +61,7 @@ class Fig19StaticSpec:
         # 17/5 阵列的码本分母是 cn = 31 + beta*15 = 31.9375，且 cn*16 = 511，
         # 因此粗台阶 = 2*v_fs/(cn*16) = 2*v_fs/511（而不是 2*v_fs/512）。
         # 折算到 3 V 归一化的 Q32：round(2^32 * 2/(cn*16) / 3) = 16 810 048。
-        # 原值 2^24 是 63+8 等距码本的台阶，会让 222 注入与 224 减法差 1/512，
+        # Q32 的 512 等分值与现行码本不匹配，会让 222 注入与 224 减法差 1/512，
         # 表现为残差随 U 线性漂移 2.293e-05 V（见 ENGINEERING_METRICS §16）。
         if type(self.step_q) is not int or self.step_q != FIG19_STEP_Q:
             raise ConfigError(
@@ -291,7 +291,7 @@ def complete_flash3_sar6_prefix_table() -> np.ndarray:
 
     当前 RTL P_BITS=9/P_SEED_BITS=3，七次 resolved 事件对应 phase2..8 的消费，重复码保留。
     此表只描述该完整 valid 序列；不推模拟时间、不替代 comparator valid/deadline 检查。
-    与 flow/sim/fixtures/fig19_ideal_ports/rdac_prefix_table.json 独立核对，不能用于其他 ADC 码制。
+    按本模型明确的 9 位已决码构造，供 Python 扰动模型核对前缀；不能用于其他 ADC 码制。
     """
     coarse = np.arange(512, dtype=np.int64)[:, None]
     clear = np.asarray([63, 31, 15, 7, 3, 1, 0], dtype=np.int64)

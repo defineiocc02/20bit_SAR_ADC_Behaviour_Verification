@@ -1,3 +1,12 @@
+# =============================================================================
+# 文件名     : conftest.py
+# 模块名     : flow.tests.conftest
+# 版本       : v1.0
+# 功能       : 提供共享测试输入及仓库内模块的稳定导入路径。
+# 设计说明   : 所有合成量均由测试显式给出，物理实验和默认 ADC 在项目运行入口配置。
+#              固定种子分配独立随机流，避免一个用例改变另一用例收到的样本。
+# 变更记录   : 更新整数参考的导入说明及合成夹具的适用边界。
+# =============================================================================
 """提供测试专用的显式合成组件输入，不作为目标芯片的物理默认值。
 
 小维度校准数据用于独立线性代数检查。夹具不补齐缺失的 Config 字段，也不代替
@@ -13,25 +22,29 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+# =============================================================================
+# 1. 仓库内测试与整数参考包的导入位置
+# =============================================================================
+# 按用例文件的物理路径定位仓库，pytest 可从仓库外用绝对路径选择这批用例。
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
-# 测试目录从根级 tests/ 搬到 flow/tests/ 后，包内导入（verification.vectors、
-# verification.contracts 等）需要 flow/tests 本身在 sys.path 上。
-# 原 conftest 只加了 src，导致 2026-11-17 独立审查发现的两个模块 ImportError。
+# 支持独立测试之间复用辅助函数。以本文件定位搜索根，测试可从别的目录启动。
 _TESTS_ROOT = Path(__file__).resolve().parent
 if str(_TESTS_ROOT) not in sys.path:
     sys.path.insert(0, str(_TESTS_ROOT))
 
-# `verification` 包在 flow/verification/（0b746b1 把 verification/ 收进 flow/），
-# 不在 flow/tests/verification/。测试写的是 `from verification.vectors import ...`，
-# 因此需要 flow/ 也在 sys.path 上。缺这一步会让两个模块 ImportError。
+# 整数参考实现位于 flow/verification/reference/，从 flow/ 根导入此包。
+# flow/tests/verification/ 保存相应的测试用例。
 _FLOW_ROOT = Path(__file__).resolve().parents[1]
 if str(_FLOW_ROOT) not in sys.path:
     sys.path.insert(0, str(_FLOW_ROOT))
 
 
+# =============================================================================
+# 2. 构造端点、格式及随机流
+# =============================================================================
 @pytest.fixture
 def rng():
     """声明测试专用随机流，与制造失配参数无关。"""
@@ -43,6 +56,7 @@ def adc2_config_factory():
     """只绑定独立 ADC2 内核消费的五项输入。"""
     from adi_model.simulation.config import Config
 
+    # 端点策略和位宽都由用例控制，这里统一显式声明码仓规则。
     def make(*, bits, lo, hi, endpoint):
         return Config(
             adc2_n_bits=bits,
@@ -58,6 +72,7 @@ def adc2_config_factory():
 @pytest.fixture
 def synthetic_sadc_thresholds():
     """提供显式声明的阶梯阈值，不作为提取的 SADC 阈值。"""
+    # 两端带边界的 513 个阈值定义 512 个相邻仓。
     return tuple(np.linspace(-3.0, 3.0, 513))
 
 
@@ -94,6 +109,9 @@ def explicit_format():
     )
 
 
+# =============================================================================
+# 3. 校准方程与电荷节点的合成输入
+# =============================================================================
 @pytest.fixture
 def observation_factory():
     """要求调用方提供实际控制记录、信号系数、电压项、原始码和有效性。"""
@@ -107,6 +125,7 @@ def identity_record_factory():
     """构造显式三项算术恒等式，不推断模拟绑定。"""
     from adi_model.calibration.weight_calibration import CalibrationSpec, DigitalObservation
 
+    # 每笔输入依次占一个码仓，用同一可追踪标号定位回归映射出错的位置。
     def make(*, bits):
         count = 2**bits
         spec = CalibrationSpec(1, 1, 2, 1, 3.0, bits, -3.0, 3.0, "uniform_midrise", "half_open")
@@ -136,11 +155,13 @@ def synthetic_linear_data():
     n = 128
     ids = generator.integers(0, 2, (n, 1))
     signal = generator.integers(0, 2, (n, 1, 3))
+    # 每笔至少有一个信号项，避免零信号分母毁掉可识别样本。
     signal[:, :, 0] = 1
     term = generator.uniform(-0.25, 0.25, (n, 1, 3))
     known = generator.uniform(-0.4, 0.4, n)
     weights = np.array([[0.11, 0.13, 0.07], [0.12, 0.10, 0.08]])
     offset = 0.002
+    # 小型线性问题用已知权重生成电压；24 位量化只压低回归误差中的量化项。
     voltage = (weights[ids] * (signal * known[:, None, None] + term)).sum((1, 2)) + offset
     code = np.floor((voltage - spec.adc2_v_min) / spec.adc2_step_v).astype(np.int64)
     data = DigitalObservation(
@@ -165,6 +186,7 @@ def toy_physical_case():
     from adi_model.simulation.config import Config
     from adi_model.topology.dac_arch import NominalCodebook, SplitChip
 
+    # 主、子节点和反馈电容取独立非零比值，方便逐项核对电荷守恒。
     capacitance = 1e-12
     chip = SplitChip(
         C_main=np.full((18, 2), capacitance),
@@ -188,6 +210,9 @@ def toy_physical_case():
     )
 
 
+# =============================================================================
+# 4. 用于结构断言的隔离流水线
+# =============================================================================
 @pytest.fixture(scope="session")
 def explicit_pipeline_factory():
     """声明双极 18/8 小型流水线夹具，其二进制绑定不是原芯片 DEM。
@@ -204,6 +229,7 @@ def explicit_pipeline_factory():
     from adi_model.topology.dac_arch import NominalCodebook, SplitChip
     from adi_model.topology.mapper import Mapper
 
+    # 固定二进制掩码给出可手算的码字变换；未知状态必须触发异常。
     def binary_masks(geometry, codes, states, slice_ids):
         if np.any(states != 0):
             raise ValueError("this declared binary fixture has no unit-DEM mapping")
@@ -220,6 +246,7 @@ def explicit_pipeline_factory():
             np.zeros((len(sample_ids), 8, 9), int), np.zeros((len(sample_ids), 8, 1), int)
         )
 
+    # 下一组从当前组的补集中抽样，便于分离组冲突和码仓本身的影响。
     def declared_schedule(n, n_slices, n_active):
         if (n_slices, n_active) != (18, 8):
             raise ValueError("synthetic schedule dimensions are explicitly 18/8")
@@ -227,6 +254,7 @@ def explicit_pipeline_factory():
         conv, acq = np.empty((n, 8), np.int64), np.empty((n, 8), np.int64)
         current = np.arange(8)
         for index in range(n):
+            # 转换沿提交上一轮采集组，首笔来源标识在 SlicePlan 预留为 -1。
             conv[index] = current
             current = generator.choice(np.setdiff1d(np.arange(18), current), 8, replace=False)
             acq[index] = current
@@ -270,6 +298,7 @@ def explicit_pipeline_factory():
             acquisition_binding=all_signal,
             schedule_binding=declared_schedule,
         )
+        # 输入是静态电荷试验，来自正负参考和显式采样节点。
         controls = {
             "pool": pool,
             "mapper": mapper,

@@ -4,6 +4,12 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2026-11-17 · 统一 ADC 工作树
+
+- 集成 RTL 只走 v21，Python 只登记 40 MS/s、±3 V 的 ADC 配置。ADC2 为 13 位，输入窗口 `[-0.1875, +0.5625) V`。
+- 退役旧集成顶层、旧 12 位 Python 整链、专用输入、验证工具及快照。原件随各自提交保留，独立组件继续按各自接口验证。
+- 更新 README、合同导航、源清单、入口与 CI。现行行为模型的 DEM 水平相位按 15 个 2C 列推进，机理和数值图按运行清单追溯。
+
 ## [Unreleased] — 2026-11-05
 
 - Reorganize the README around the goal, architecture, four work areas, three scoped results, priorities and A/B/C reproduction; keep STATUS as the current-state entry. Replace the home-page plots with four original, data-traceable figures and retain old data and figures as history.

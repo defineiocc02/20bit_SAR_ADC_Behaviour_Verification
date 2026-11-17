@@ -1,13 +1,12 @@
-# 综合、STA 与门级验证入口
+# v21 综合、STA 与门级验证入口
 
 | 路线 | 入口 | 结果范围 |
 | --- | --- | --- |
 | v21 整核 DC 与试验性 FC | [DC 综合](v21/dc_synth_v21.tcl) · [FC 整核脚本](v21/fc_rtl_to_gds.tcl) · [STA 预算](v21/sta_budget.tcl) | 目标为 `adc_digital_ip_v21`。阻塞点、当前同版网表与集成状态见 [SYNTH_STALL.md](../../docs/v21/SYNTH_STALL.md) 和 [STATUS.md](../../docs/STATUS.md)。 |
-| v21 叶子和旧记录 | [单模块综合](v21/syn_module.tcl) · [sched18 流程](v21/fc_sched18.tcl) · [派生 LEF 的 sched18 试验](v21/fc_rtl_to_gds_derived.tcl) | 模块级数据按各自顶层、工艺输入与工具记录解读。包含关系、旁路与历史约束见 [审计与证据索引](../../docs/audit/README.md)。 |
+| v21 相关模块 | [单模块综合](v21/syn_module.tcl) · [sched18 流程](v21/fc_sched18.tcl) · [派生 LEF 的 sched18 试验](v21/fc_rtl_to_gds_derived.tcl) | 模块级数据按各自顶层、工艺输入与工具记录解读。包含关系、旁路与历史约束见 [审计与证据索引](../../docs/audit/README.md)。 |
 | v21 Formality | [Formality Tcl](v21/fm_equiv.tcl) · [check_formal.sh](../../tools/check_formal.sh) | 需要同版 RTL、DC 网表与 SVF。整核记录见 [FORMAL_STATUS.md](../../docs/v21/FORMAL_STATUS.md)。 |
-| 独立 `d3d4_ip` | [DC Tcl](d3d4/dc_d3d4_ip.tcl) · [SDC](d3d4/sdc_d3d4_ip.sdc) · [综合与门级说明](../../docs/SYNTH_D3D4.md) | 保留的 D3/D4 组合，指标归该 IP。 |
-| 独立 `sar20_digital_core` 的 FPGA 路线 | [从 DCP 布线的 Tcl](run_vivado_buffered_impl.tcl) · [历史综合、布线与 STA](FPGA_SYNTHESIS_AND_STA.md) · [实施计划](IMPLEMENTATION_PLAN.md) | 结果属于旧 Vivado 源包和约束，全路径 hold 与寄存器间 hold 分开读取。历史指南列出的部分包装脚本已移出工作树。 |
-| SMIC180 早期数字链 | [旧 Formality 记录](fm/README.md) · [SMIC180 归档](../../subsys/archive/180nm/README.md) | 冻结旧源和环境的记录。 |
+
+其他工艺、旧顶层和 FPGA 的结果按原有源包和约束解读。[审计与证据索引](../../docs/audit/README.md) · [历史 FPGA 记录](FPGA_SYNTHESIS_AND_STA.md)
 
 v21 专用 Tcl 依赖 EDA 主机上的 PDK、库、许可证及暂存目录。请先在[环境说明](../../docs/v21/I5_ENVIRONMENT.md)和脚本中核对所需路径。比如 DC 脚本读取 `/tmp/ip/rtl`，Formality 还读取 DC 输出和 SVF。引用面积或裕量时同时注明源文件身份、工具、角、负载和约束。单模块综合或实验性布线的数据对应那一模块和运行设置。
 

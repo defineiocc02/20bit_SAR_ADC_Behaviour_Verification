@@ -1,36 +1,24 @@
-# 验收与统计入口。CI 与本地调用同一目标。
-#
-# 注意：这些目标都**不允许**在失败时静默通过。
-# 每一层内部都是 "必须出现 RESULT: PASS 才继续"，否则非零退出。
-
-# 从 Makefile 自身定位仓根，允许从不同当前目录调用同一目标。
+# =============================================================================
+# 文件名     : Makefile
+# 功能       : 从仓库根启动当前 v21 回归及共享部件检查。
+# 设计说明   : 根目录从本文件定位，允许从任意当前目录读取本清单。
+# =============================================================================
 REPO_ROOT := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/..)
 
-.PHONY: help verify-d3d4 verify-d3d4-ip verify-sched18 vec
+.PHONY: help verify-v21 verify-d3d4 verify-sched18
 
 help:
-	@echo "make -f flow/Makefile verify-d3d4        叶子级对拍（133,376 + 512 组）"
-	@echo "make -f flow/Makefile verify-d3d4-ip     三层验收：叶子 / IP / sched18（+门级，若给网表）"
-	@echo "make -f flow/Makefile verify-sched18     sched18 随机性统计（20000 拍）"
-	@echo "make -f flow/Makefile vec                重新生成全部金标向量"
-	@echo ""
-	@echo "远端 VCS："
-	@echo "  D3D4_RUNNER=vm-yian make -f flow/Makefile verify-d3d4-ip"
-	@echo "含门级："
-	@echo "  D3D4_RUNNER=vm-yian D3D4_NETLIST=/path/to/net.v D3D4_SCMODEL=/path/to/std.v make -f flow/Makefile verify-d3d4-ip"
-	@echo ""
-	@echo "综合见 docs/SYNTH_D3D4.md（需 DC + PDK，不在 make 内自动执行）"
+	@echo "make -f flow/Makefile verify-v21        v21 数字回归（VCS）"
+	@echo "make -f flow/Makefile verify-d3d4       DEM 掩码与扰动预置（VCS）"
+	@echo "make -f flow/Makefile verify-sched18    片组调度统计（Python，20000 拍）"
+	@echo "远端 v21 回归：V21_RUNNER=<host> make -f flow/Makefile verify-v21"
+
+verify-v21:
+	cd "$(REPO_ROOT)" && bash tools/verify_v21.sh
 
 verify-d3d4:
 	cd "$(REPO_ROOT)" && bash tools/verify_d3d4.sh
 
-verify-d3d4-ip:
-	cd "$(REPO_ROOT)" && bash tools/verify_d3d4_ip.sh
-
+# 调度统计只运行参考模型，RTL 定向检验与向量身份另由各回归验证。
 verify-sched18:
 	cd "$(REPO_ROOT)" && python3 tools/sched18_stats.py --cycles 20000
-
-# 金标必须能重新生成，否则后面的 PASS 可能是拿旧向量自证。
-vec:
-	cd "$(REPO_ROOT)" && python3 tools/gen_vec_phase.py
-	cd "$(REPO_ROOT)" && python3 tools/ref_d3d4_ip.py

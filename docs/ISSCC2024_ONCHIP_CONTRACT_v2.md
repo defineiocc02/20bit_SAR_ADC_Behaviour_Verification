@@ -298,16 +298,12 @@ txn_id、qid、coefficient_epoch等是数字上下文元数据；不假设模拟
 
 在采样边沿保持输入/ADC2安静；SAR比较期间可以更新RDAC；final实际应用后切换参考并启动RA；RA内fine参考继续建立，随后窄带采样并在下一公共边沿捕获。新采样组在完整ACQ时间内不得被conversion更新覆盖。
 
-## 11. 现有基础的最小迁移
+## 11. 现行实现索引
 
-- `dem_shuffle.sv`与Python横/纵函数：4+3+2改为3+3+3，16个逻辑列改8个宏列；16个主物理位复用为8×2半单元。原MUX思路保留，不重复发明。
-- `digital_chain.py`：禁止生产路径from_final回放事件；新增actual pre/post mask、动态slice IDs、Wp和对应位宽；名义公式只作独立参考，不作异常回退。
-- `follower_rt.sv`：复用事件状态和错误检查，接Flash初始化/双qid上下文/guard；最终mask冻结必须由实际应用确认产生。
-- `digital_top_w.sv`：片组状态机进入生产控制路径；取消九项inv假设；ADC2在done时绑定；E1消费已冻结物理命令。
-- `recon_d5_w2.sv`：保留乘倒数及最终编码基础；统一实际G、Wp、ADC2有符号窗口和偏置，不能固定细码除32。
-- `dither_split.sv`：保留64字拆分意图；增加实际采样预置输出和冻结；整体迁移符号约定。
-- `tools/fwd_model.py`/`tools/e2e.py`与behavioral：选一个系统正式入口；物理模型从实际命令求节点电荷；SADC与RDAC实例独立，不读取生产重构的DAC结果产生观测。
-- 旧15列专利模式保留历史目录/测试标签可用于比较，不再是生产默认。删除不适用的1920相位主模式要求；不得为兼容旧vector改回结构。
+- 数字顶层使用 [v21 生产清单](../flow/build/filelists/files_adc_v21.f)，调度、事件、掩码、样本快照、权重与重构的连接见 [RTL 导航](../rtl/README.md)。
+- 定点重构根据同一笔 ADC2 原码、冻结的权重和和样本归属出码。采集预置和转换掩码使用当前合同的位序及符号。接口变化以 [合并阅读入口](CONTRACT_CURRENT.md) 指出的补充条款为准。
+- 行为仿真从 [Python 快速上手](guide/QUICKSTART.md) 进入，使用一套当前默认 ADC 配置。输入、电荷、模拟假设和数值检查按具体试验解释。
+- 初版迁移计划可用 `git show 2224d30:docs/ISSCC2024_ONCHIP_CONTRACT_v2.md` 查看。
 
 ## 12. 验收顺序与不可越过的门槛
 

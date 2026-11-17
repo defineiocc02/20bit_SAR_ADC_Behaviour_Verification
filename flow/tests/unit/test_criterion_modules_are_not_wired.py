@@ -1,9 +1,14 @@
-"""限定判据模块的消费方，防止默认仿真在未说明时启用专利机制。
-
-五个判据模块不参加主链。cross_slice_mux 只接入独立数字参考链
-digital_chain；默认行为仿真不由这条参考链驱动。新增消费方应先说明
-接口边界并准备对用例有判别力的行为测试。
-"""
+# =============================================================================
+# 文件名     : test_criterion_modules_are_not_wired.py
+# 模块名     : test_criterion_modules_are_not_wired
+# 版本       : v1.0
+# 功能       : 确认独立判据与现行 ADC 模型的接线边界。
+# 设计说明   : 判据接受调用者提供的信号、计数或掩码，用独立测试解释机制。
+#              检查生产模块的消费方，防止依赖变化无声改变默认模型语义。
+#              同时核对模块的边界说明及其单测入口。
+# 变更记录   : 清除已退役 Python 整链的消费方例外。
+# =============================================================================
+"""检查专利判据仍作为独立测试接口，覆盖生产源引用与来源说明。"""
 
 from __future__ import annotations
 
@@ -16,9 +21,11 @@ ROOT = Path(__file__).resolve().parents[3]
 CONTROL = ROOT / "src/adi_model/control"
 TESTS = ROOT / "flow/tests"
 
-# [边界] 独立数字参考链确实使用 Fig.20–21 判据；这是唯一允许的消费方。
-# 保留精确路径，避免允许该判据后连带放开默认模拟流水线。
-_DECLARED_IMPORTERS = {"cross_slice_mux": {"src/adi_model/digital_chain.py"}}
+# =============================================================================
+# 1. 独立判据的导入与接口说明
+# =============================================================================
+# 满足一条专利判据的接口由该判据自己的组件用例覆盖。若将来需要接入默认模型，
+# 必须同时验证其信号来源、掩码语义及与实际转换序号的配对。
 
 CRITERION_MODULES = (
     "reserved_column",
@@ -32,7 +39,7 @@ CRITERION_MODULES = (
 
 @pytest.mark.parametrize("module", CRITERION_MODULES)
 def test_criterion_module_is_not_imported_by_the_main_chain(module):
-    """消费方必须与声明一致，默认模拟流水线不在允许集合内。"""
+    """逐个检查生产源。独立判据的导入只应发生在测试端。"""
     importers: set[str] = set()
     for path in (ROOT / "src").rglob("*.py"):
         if path.stem == module:
@@ -40,9 +47,8 @@ def test_criterion_module_is_not_imported_by_the_main_chain(module):
         text = path.read_text(encoding="utf-8", errors="ignore")
         if f"control.{module}" in text or f"control import {module}" in text:
             importers.add(path.relative_to(ROOT).as_posix())
-    declared = _DECLARED_IMPORTERS.get(module, set())
-    assert importers == declared, (
-        f"{module} has importers {sorted(importers)}; expected {sorted(declared)}. "
+    assert not importers, (
+        f"{module} has production importers {sorted(importers)}. "
         "Document the boundary and verify the new integration before changing this test."
     )
 
@@ -61,6 +67,9 @@ def test_criterion_module_documents_that_it_is_not_wired(module):
     )
 
 
+# =============================================================================
+# 2. 组件测试入口与未使用模块检查
+# =============================================================================
 #: 原本"既无引用也无单测"的两个模块——2026-11-13 已各自补上单测，
 #: 因此不再是孤儿。它们仍不是主链依赖，但那一点写在各自模块的 docstring 里。
 _FORMERLY_ORPHAN = (

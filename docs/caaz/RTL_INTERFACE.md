@@ -1,12 +1,12 @@
-# CAAZ 数字接口与40MS/s预算
+# CAAZ 历史数字接口与 40 MS/s 预算
 
-本实现是可选、默认关闭的**数字样本域机制**。它不构成模拟CAAZ闭环或640MHz时序签核。来源为`PKU_VLSI2025_C32_1_PAPER`（PDF/印刷第2页Fig.5/6）及`PKU_VLSI2025_C32_1_SLIDES`（PDF28–35页，页脚Slide27–34）。源图把chopper放在整个ADC输入之前，even更新CBIAS的AZ存储，odd保持同一状态；完整码合并/位权校准之后再作偶减奇。源文的6MS/s与raw/pair分母未充分披露，本工程选raw40/pair20，不声称复刻其物理ODR。
+本页记录 2026-11-05 的旧结构核实验。其时钟、端口和通过计数属于原数字样本域试验。当前 CAAZ 的独立组件见 [代码与验证](../../subsys/extensions/caaz/README.md)，集成 ADC 的范围见 [v21 项目状态](../STATUS.md)。
 
-## 启用范围
+该轮采用可选、默认关闭的数字样本域机制。来源为`PKU_VLSI2025_C32_1_PAPER`（PDF/印刷第2页Fig.5/6）及`PKU_VLSI2025_C32_1_SLIDES`（PDF28–35页，页脚Slide27–34）。源图把chopper放在整个ADC输入之前，even更新CBIAS的AZ存储，odd保持同一状态；完整码合并/位权校准之后再作偶减奇。源文的6MS/s与raw/pair分母未充分披露，本工程选raw40/pair20，不声称复刻其物理ODR。
 
-直接例化`sar20_digital_core(P_STRUCTURAL=1,P_CAAZ_ENABLE=1)`启用。参数默认0；关闭时原code/valid/ID/flags/clip/analog_bad保持原位与原时序，pair处理器为零拍组合旁路。该参数不是0x1018的新增运行时位；不支持在pair中途软件切换。
+## 归档参数与应用范围
 
-当前`subsys/ad4080_dsp/rtl/sar20_system_top.sv`只显式绑定默认关闭的可选端口，**未透传CAAZ参数或宏ack/control**。不能把core的启用能力写成DSP组合系统已可配置完整CAAZ。
+原结构核通过综合前参数 `P_CAAZ_ENABLE` 选择配对或旁路。关闭时原 code、valid、ID、flags、clip 和 analog_bad 原位透传，配对处理器为零拍组合旁路。该轮的 DSP 组合测试使用关闭配置。原 RTL 与参数可从 `git show 674b0d8:rtl/top/sar20_digital_core.sv` 查询。
 
 ## 模拟宏控制与样本归属
 
@@ -80,10 +80,10 @@ Pair处理要求even→odd、连续sample ID、pair内AZ代相同、下一pair�
 
 全速滑动平均不是本实现。跨AZ代窗口残留`(e[k]-e[k-1])/2`，不能把所有40M滑动结果都宣称AZ噪声精确消除。即使正确pair，保持误差、两相噪声传递增益差、fresh放大器/ADC2噪声仍须模拟和模型验证，不移用源文4.3dB收益作本工程结果。
 
-## 验证入口
+## 历史试验项目
 
 - `caaz_pair_processor_tb`：整数边界、独立bin-center参考、默认off旁路及fault/clear/回绕。
 - `caaz_python_vectors_tb`：正式Python完整raw模型与独立状态oracle的共享fixture，468周期/206输出。
 - `caaz_context_contract_tb`：真实结构core、ID2/3和missingvalid、AZ ack失败、legacy reset每cycle及tag经真实context/recon传播。
 
-测试需要实际运行日志，不能只凭本文件或参数名宣称PASS。标准runner已注册这3项及CAAZ on/off观察profile。模拟宏、目标PDK综合/STA、CDC/RDC及完整产品PHY仍独立验收；当前DSP系统wrapper未启用CAAZ。
+这些测试名及开关配置属于当时的标准 runner，可从 [原验证台账](verification.json)核对。模拟宏、目标工艺综合与 STA、CDC/RDC 及产品 PHY 各有独立的验收范围。

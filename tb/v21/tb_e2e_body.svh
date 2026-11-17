@@ -1,30 +1,23 @@
 // =============================================================================
 // 文件名     : tb_e2e_body.svh
-// 模块名     : （被 include 进 tb_i4b_e2e / tb_gate_auto，不是独立模块）
+// 模块名     : （由 tb_i4b_e2e 引入）
 // 版本       : v1.0
-// 功能       : I4b 端到端 TB 的**公共激励与断言体**：两笔完整事务
+// 功能       : 端到端测试的激励与断言。发起两笔完整事务
 //              （A guard raw=5120 → 0xFFF00；B 普通 raw=2560 → 0x80000），
 //              外加 arm/登记分离、延迟 hold、旧 raw 与新捕获同沿、
-//              复位后迟到 raw、越窗等边界。RTL 侧与门级侧 include 同一份。
+//              复位后迟到 raw、越窗等边界。
 // 设计说明   :
-//   * 时序纪律（为什么每个任务都先 `@(negedge clk); #1;`）：
-//     门级网表的组合输出有门延迟（每级约 0.01–0.1 ns），而 RTL 是零延迟。
-//     若在 negedge 同一时刻既驱动输入又采样输出，两侧会看到不同瞬间的值，
-//     diff 会出现"RTL 已变、网表未变"的伪差异。这里统一：
-//       negedge + 1 ns 驱动输入 → 留 3 ns 给组合传播 →
-//       negedge + 4 ns 采样轨迹（此时距上一个 posedge 已 9 ns，全部稳定）。
-//     轨迹块也放在 negedge+4，与驱动错开，保证同一时刻只有一侧在动。
+//   * 大部分激励在下降沿后 1 ns 驱动，轨迹在下降沿后 4 ns 采样。
+//     将两者错开，便于记录输入变化后的组合输出。
 //
 //   * 脉冲字段用 posedge sticky 累积：
 //     apply_fire / adc2_rsp_valid / out_valid 在 RTL 里可能是单拍脉冲。
-//     若只在 negedge 采样，脉冲恰好落在两个采样点之间就会漏记，
-//     轨迹看起来"两侧都是 0"——那是最危险的假通过。
+//     若只在 negedge 采样，脉冲恰好落在两个采样点之间就会漏记。
 //     所以 posedge 置 sticky、negedge 记录后清零，并同时锁存该拍的
 //     tag/code，使"记录到的值"一定是脉冲那一拍的值。
 //
-//   * 断言口径：全部走 DUT 端口（out_* / rsp_* / k_* / *_sel_o），
-//     只有 acq_sampled / conv_tag 两个内部状态用绑定层提供的 probe 信号。
-//     这样网表被 DC 优化后，断言不会因为"内部网名没了"而失效。
+//   * 断言读取 DUT 端口。采样确认额外使用 tb_i4b_e2e 提供的
+//     probe_acq_sampled，核对 DUT 是否已经登记了采样。
 //
 //   * 交易计数三项都必须 >=2：accepted(prepare 握手) / captured(rsp_valid) /
 //     output(out_valid)。少一项就说明激励没走完整链，判 FAIL 而不是 PASS。
@@ -50,14 +43,10 @@
                 tr_fd = 0;
             end
         end
-        // 波形：RTL 与门级各自 dump 自己的顶层（`E2E_GATE 由门级绑定层定义）。
+        // 传入 +dump 时，记录端到端测试顶层的波形。
         if ($test$plusargs("dump")) begin
             $dumpfile("tb_e2e.vcd");
-`ifdef E2E_GATE
-            $dumpvars(0, tb_gate_auto);
-`else
             $dumpvars(0, tb_i4b_e2e);
-`endif
         end
 
         // 节点模型侧的名义权重（8 片，仿真环境配置）
@@ -69,11 +58,7 @@
             w_sub_tab[s][3] = 40'd8388608;
         end
 
-        // DUT 侧生产权重表（18 片全同值，名义）
-        // **两侧必须同值**：RTL 侧写数组，门级侧写扁平向量（由 DC 展平，
-        // 位序 [s][j][b] 字典序、MSB 先）。两者逐位等价，只是表达形态不同。
-        // 门级的整段常量放在 tb_gate_auto.sv 里（生成器按网表端口顺序产出），
-        // 这里用 `E2E_GATE 跳过；若有人把它删掉，diff 会立刻暴露为全表差异。
+        // DUT 解除复位后，为 18 片写入与节点模型相同的名义权重。
         repeat (3) @(negedge clk);
         rst_n = 1'b1;
         @(negedge clk);
@@ -84,7 +69,6 @@
         // 若在 rst_n=0 期间写，written_q 每拍被复位清零，
         // 完整性位图永远记不到 360/360，commit 必然失败、cfg_valid 恒 0、
         // 内部受理被门禁挡住 —— 实测就是这样，全部交易发不出去。
-`ifndef E2E_GATE
         for (int s = 0; s < 18; s++) begin
             for (int j = 0; j < 16; j++)
                 wt_write(1'b0, 5'(s), 5'(j), 40'd268435456);
@@ -94,7 +78,6 @@
             wt_write(1'b1, 5'(s), 5'd3, 40'd8388608);
         end
         wt_commit();
-`endif
         @(negedge clk);
         sched_seed_we = 1'b0;
         #1;
@@ -314,9 +297,7 @@
         rst_n = 1'b0; @(negedge clk); #1; rst_n = 1'b1; @(negedge clk); #1;
         // **复位后必须重装配置**：written_q 被复位清零，cfg_valid 失效，
         // 不重装的话内部受理被门禁挡住（实测越窗用例发不出去）。
-`ifndef E2E_GATE
         wt_install_nominal();
-`endif
         vin_q24 = -27'sd50331648;   // -3.0 V，必然越窗
         do_prepare(32'hD4, 6'd63, 3'd0, 3'd3, 1'b0, 1'b1, 1'b0, 3'd7);
         do_sample(1'b1, 1'b0, 1'b0);

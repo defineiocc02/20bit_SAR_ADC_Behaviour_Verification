@@ -41,18 +41,18 @@ create_lib -ref_libs $LIB_SS $REF/lib
 puts "STEP_CREATE_LIB_OK"
 
 
-# ---------------------------------------------------------------- 读入 RTL
+# ---------------------------------------------------------------- 读入综合源码
+# recon_v21 经 recip_rnd_v21 调用 recip_q60，物理实现也需要读入完整的重构链。
 set RTL {
-  /tmp/ip/rtl/dem_phase_rr.sv
-  /tmp/ip/rtl/dem_phase_gen.sv
   /tmp/ip/rtl/dither_pre.sv
   /tmp/ip/rtl/dem_mask_v3.sv
   /tmp/ip/rtl/sched18.sv
-  /tmp/ip/rtl/follower_rt.sv
   /tmp/ip/rtl/v21/acq_conv_ctx.sv
   /tmp/ip/rtl/v21/sar_evt_v21.sv
   /tmp/ip/rtl/v21/adc2_capture.sv
+  /tmp/ip/rtl/recip_q60.sv
   /tmp/ip/rtl/v21/wsum_v21.sv
+  /tmp/ip/rtl/v21/recip_rnd_v21.sv
   /tmp/ip/rtl/v21/recon_v21.sv
   /tmp/ip/rtl/v21/adc_digital_ip_v21.sv
 }

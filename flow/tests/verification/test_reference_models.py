@@ -1,19 +1,23 @@
-"""Self-checks for the verification reference models.
+# =============================================================================
+# 文件名     : test_reference_models.py
+# 模块名     : test_reference_models
+# 版本       : v1.0
+# 功能       : 验证舍入、码仓中心和定点重构的整数参考实现。
+# 设计说明   : 并行计算与流水线分解使用同一组整数输入，以精确等式比对。
+#              测试使用手算例、构造量程或显式极限，复算独立于 RTL 仿真。
+#              跨单元重构用四个理想单位，单独检查选通与信号连接的作用。
+# 变更记录   : 保留整数算术用例，清除与退役转换链向量相关的比对。
+# =============================================================================
+"""运行纯 Python 定点参考用例。
 
-These are not DUT tests. They pin the reference against the *contract text* so
-that a later edit cannot quietly turn the oracle into something that agrees with
-a buggy RTL. Run with:
-
-    python -m pytest tests/verification -q
+    python -m pytest flow/tests/verification/test_reference_models.py -q
 """
 
 from __future__ import annotations
 
 import random
 
-import pytest
-import yaml
-
+from adi_model.defaults import DefaultParameters
 from verification.reference.datapath_ref import (
     OUTPUT_COUNT,
     ReconTerms,
@@ -29,6 +33,9 @@ from verification.reference.fixed_point import (
 )
 
 
+# =============================================================================
+# 1. 纯整数舍入和负数除法
+# =============================================================================
 def test_ties_to_even_matches_the_eight_frozen_examples():
     """RTL_ARITHMETIC_CONTRACT.md §3.1 lists exactly these eight results."""
     values = [-7, -5, -3, -1, 1, 3, 5, 7]
@@ -59,11 +66,16 @@ def test_pipelined_division_identity_holds_on_random_inputs():
         assert shifted // (gain << 33) == (shifted >> 33) // gain
 
 
+# =============================================================================
+# 2. 码仓和比较器判决编码
+# =============================================================================
 def test_adc2_bin_center_is_monotone_and_bounded():
+    """遍历当前位宽的所有码仓，使用易于复算的对称测试区间。"""
+    bits = DefaultParameters().adc2_n_bits
     min_q, max_q = -(1 << 32), 1 << 32
     previous = None
-    for code in range(0, 1 << 12, 7):
-        value, _ = adc2_bin_center(code, min_q, max_q, 12)
+    for code in range(1 << bits):
+        value, _ = adc2_bin_center(code, min_q, max_q, bits)
         assert min_q <= value <= max_q
         if previous is not None:
             assert value >= previous
@@ -73,10 +85,13 @@ def test_adc2_bin_center_is_monotone_and_bounded():
 def test_sadc_code_counts_bits_and_tolerates_bubbles():
     assert sadc_code(0) == 0
     assert sadc_code((1 << 511) - 1) == 511
-    # A bubble is not rejected; the popcount simply reflects it.
+    # 气泡码保留为逐位计数，避免连续前缀计数吞掉不相邻的判决。
     assert sadc_code(0b1011) == 3
 
 
+# =============================================================================
+# 3. 信号权重与 20 位输出范围
+# =============================================================================
 def test_gain_uses_signal_connection_not_the_switch_mask():
     """Contract §3.2: ordinary units have a=1 even when their switch is off.
 
@@ -92,7 +107,7 @@ def test_gain_uses_signal_connection_not_the_switch_mask():
     assert terms.gain_q30 == 4 << 30, "gain must count every connected unit, not just the on ones"
     assert terms.rails_q30 == 0
 
-    # With a sampling-dither unit the connection flag does matter.
+    # 关闭两路信号连接后增益减半，参考轨选通保持和上一个输入相同。
     terms_dither = recon_terms(weights, on, sign, signal_connected=[1, 1, 0, 0])
     assert terms_dither.gain_q30 == 2 << 30
 
@@ -107,7 +122,7 @@ def test_reconstruct_clips_low_and_reports_the_flag():
     result = reconstruct(fine_q=-(1 << 40), offset_q=0, injection_q=0, terms=terms)
     assert result.word == 0
     assert result.clip_low
-    # And the symmetric positive extreme saturates at the top code.
+    # 对称的正极限应夹到最大码，并在高端状态位留下可观测记录。
     high = reconstruct(fine_q=1 << 40, offset_q=0, injection_q=0, terms=terms)
     assert high.word == 1048575
     assert high.clip_high
@@ -118,29 +133,3 @@ def test_reconstruct_is_inside_the_output_range_by_construction():
     for fine in (-(1 << 32), 0, (1 << 32) - 1):
         result = reconstruct(fine_q=fine, offset_q=0, injection_q=0, terms=terms)
         assert 0 <= result.word < OUTPUT_COUNT
-
-
-def test_contract_params_match_the_frozen_rtl_header():
-    """The YAML contract and rtl_params.vh must not drift apart."""
-    from pathlib import Path
-
-    root = Path(__file__).resolve().parents[3]
-    params = {}
-    for line in (root / "flow/verification/contracts/rtl_params.vh").read_text().splitlines():
-        if "localparam int unsigned" in line and "=" in line:
-            name = line.split("localparam int unsigned")[1].split("=")[0].strip()
-            value = line.split("=")[1].strip().rstrip(";").replace("32'd", "")
-            params[name] = int(value)
-    spec = yaml.safe_load((root / "flow/verification/contracts/digital_interfaces.yaml").read_text())
-    for key, value in spec["params"].items():
-        assert params[key] == value, key
-
-
-@pytest.mark.parametrize("module", ["sadc_enc", "adc2_dec", "div_floor", "recon_core"])
-def test_vector_sets_are_reproducible(module):
-    """Same seed must regenerate byte-identical vectors."""
-    from verification.vectors.generate import GENERATORS
-
-    first = GENERATORS[module](20261112)
-    second = GENERATORS[module](20261112)
-    assert first.fields == second.fields

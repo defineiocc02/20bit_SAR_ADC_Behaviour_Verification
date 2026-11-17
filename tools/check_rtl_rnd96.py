@@ -25,6 +25,7 @@
   [B] 生产 RTL 仿真检查（本脚本主体）
   [C] 工具形式化（未完成，另行报告）
 """
+import argparse
 import hashlib
 import os
 import pathlib
@@ -207,6 +208,19 @@ endmodule
 
 
 def main():
+    parser = argparse.ArgumentParser(description="核对现行 RTL 的定点除法")
+    parser.add_argument("--work-dir", type=pathlib.Path, default=pathlib.Path("/tmp"),
+                        help="已有的任务目录。脚本在其中另建专用子目录。")
+    args = parser.parse_args()
+    # 独占创建后保留 TB、harness 和结果，便于定位失败并行程安全。
+    parent = args.work_dir.resolve()
+    tmp = pathlib.Path("/tmp").resolve()
+    home = pathlib.Path.home().resolve()
+    retained = (home / "eda_runs").resolve()
+    if parent == home or not (parent.is_relative_to(tmp) or parent.is_relative_to(retained)):
+        parser.error("--work-dir must be under /tmp or $HOME/eda_runs")
+    work = pathlib.Path(tempfile.mkdtemp(prefix="v21-rnd96.", dir=parent))
+    print(f"  检查目录: {work}")
     print("=" * 70)
     print("[A] 数学公式证明（与 RTL 无关）")
     print("=" * 70)
@@ -233,14 +247,6 @@ def main():
     pts = gen_points()
     print(f"  检查点 {len(pts)} 个（等价类端点 + 边界 + 随机）")
 
-    # 用固定目录而不是 TemporaryDirectory：调试时需要能看到生成的
-    # TB / harness / res.txt；TemporaryDirectory 会在异常时自动删掉证据。
-    work = pathlib.Path("/tmp/rtlchk/work")
-    if work.exists():
-        for f in work.iterdir():
-            if f.is_file():
-                f.unlink()
-    work.mkdir(parents=True, exist_ok=True)
     if True:
         (work / "pts.txt").write_text("\n".join(str(p) for p in pts) + "\n")
         got = run_vcs(work, build_harness(magic_expr, body))

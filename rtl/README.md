@@ -1,17 +1,8 @@
 # RTL 导航
 
-先按目标选顶层和源清单。接口和位宽以[工程合同](../docs/CONTRACT_CURRENT.md)为准，回归与后端进度见[复现状态](../docs/STATUS.md)。
+当前唯一的集成 ADC 顶层是 [adc_digital_ip_v21.sv](v21/adc_digital_ip_v21.sv)。ADC2 输入为 **13 位**，窗口为 **0.75 V**。接口和位宽见[工程合同](../docs/CONTRACT_CURRENT.md)，回归与后端状态见[项目状态](../docs/STATUS.md)。
 
-## 顶层与入口
-
-| 路线 | 顶层与用途 | 入口 |
-| --- | --- | --- |
-| v21 数字集成 | [`adc_digital_ip_v21`](v21/adc_digital_ip_v21.sv) 接入片组调度、逐事件跟随、DEM、分路 dither、重构与 ADC2 事务。 | [v21 验收脚本](../tools/verify_v21.sh) · [综合清单](../flow/build/filelists/files_adc_v21.f) · [仿真清单](../flow/build/filelists/files_adc_v21_sim.f) |
-| D3/D4 单独交付记录 | [`d3d4_ip`](_legacy/tops/d3d4_ip.sv) 保留相位发生、跟随、片组选择与两个叶子模块的独立组合。 | `make -f flow/Makefile verify-d3d4` 验叶子，`make -f flow/Makefile verify-d3d4-ip` 验旧 IP 组合。见 [Makefile](../flow/Makefile) · [接口说明](../docs/D3D4_IP_INTERFACE.md) · [独立 IP 清单](../flow/build/filelists/files_d3d4_ip.f)。 |
-| 早期数字链 | [`digital_top_w`](_legacy/tops/digital_top_w.sv) 保留旧权重重构路线，[`digital_top`](_legacy/tops/digital_top.sv) 是更早的组合骨架。 | [旧权重链脚本](../tools/run_topw.sh) · [旧权重链清单](../flow/build/filelists/files_topw.f) · [早期混合清单](../flow/build/filelists/files.f) |
-| 独立 RTL core | [`sar20_digital_core`](top/sar20_digital_core.sv) 与 [`sadc_enc`](top/sadc_enc.sv) 使用 [`core/`](core/) 的结构化模块，有单独的输入绑定和仿真路径。 | [开放仿真脚本](../tools/run_open_rtl.py) · [验证层说明](../flow/verification/README.md) · [AD4080 DSP 子系统](../subsys/ad4080_dsp/README.md) |
-
-详细编译范围见[文件清单导航](../flow/build/filelists/README.md)。[`rtl_sources.f`](rtl_sources.f) 列出 `rtl/` 全树的 SystemVerilog 源，供[源码清单测试](../flow/tests/unit/test_review_trace.py)核对。编译按上表选用对应清单或驱动脚本。
+综合使用 [files_adc_v21.f](../flow/build/filelists/files_adc_v21.f)。仿真入口见 [verify_v21.sh](../tools/verify_v21.sh) 和 [files_adc_v21_sim.f](../flow/build/filelists/files_adc_v21_sim.f)。[rtl_sources.f](rtl_sources.f) 用于核对全树源码覆盖，整链编译按 v21 专用清单选源。
 
 ## v21 的模块边界
 
@@ -27,12 +18,10 @@
 
 `recon_v21` 经 [`recip_rnd_v21`](v21/recip_rnd_v21.sv) 调用 [`recip_q60`](recip_q60.sv)。后端报告按各自的综合顶层取面积，汇报整核面积时需要考虑这条包含关系。
 
-v21 由事务入口接收 DEM 相位，由 `sar_evt_v21` 实现事件跟随。[`dem_phase_rr`](dem_phase_rr.sv)、[`dem_phase_gen`](dem_phase_gen.sv) 与 [`follower_rt`](follower_rt.sv) 由旧 IP 使用，也保留各自的模块验证记录。编译清单中的文件与顶层的实例化关系分别以清单和顶层源码为准。
+v21 由事务入口接收 DEM 相位，由 `sar_evt_v21` 实现事件跟随。编译清单和顶层源码分别定义输入依赖与实例关系。
 
-## 目录里另外几类文件
+## 组件与历史证据
 
-- 根级 `sched18.sv`、`dither_pre.sv`、`dem_mask_v3.sv` 和 `recip_q60.sv` 是 v21 与专项流程复用的叶子。
-- `cdac_decode.sv`、`dem_shuffle.sv`、`dither_split.sv`、`follower.sv`、`slice_pool.sv` 和 `recon_d5*.sv` 服务早期顶层或单项测试，定位调用时应同时看 [`tb/`](../tb/) 和[文件清单](../flow/build/filelists/README.md)。
-- [`params/rtl_error_codes.vh`](params/rtl_error_codes.vh) 是独立 core 的错误码头文件。`calib_regs`、`sar_structural_ctrl` 和 AD4080 DSP 的系统测试台均有引用。
+其他可复用 RTL 服务于组件测试，如显式源绑定、定点算术和 DSP。早期顶层与重构链的验收结果依 Git 中的原提交解释。
 
 RTL 问题与验证进展汇总在[复现状态](../docs/STATUS.md)。带环境和基线的结果从[审计与后端证据](../docs/audit/README.md)查阅。

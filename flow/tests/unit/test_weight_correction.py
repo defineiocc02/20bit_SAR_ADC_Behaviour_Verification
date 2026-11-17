@@ -1,57 +1,53 @@
-"""D5 关键实验：非均匀权重下，正确系数必须能**恢复输入**。
-
-只证明"改系数输出会变"是不够的——那可能只是把错误换个方向。
-这里用独立前向模型生成观测，再分别用真系数与名义系数反解。
-"""
+# =============================================================================
+# 文件名     : test_weight_correction.py
+# 模块名     : test_weight_correction
+# 版本       : v1.0
+# 功能       : 用显式连接矩阵检查非均匀系数对反解误差的影响。
+# 设计说明   : 观测值由真系数与已知电平逐项相乘，反解只读取总信号增益。
+#              未连接单元仍有正权重，可暴露把整个矩阵加进分母的错误。
+#              真系数用例检查复原等式，名义系数用例用相同观测形成负对照。
+# 变更记录   : 使用小型显式矩阵代替退役整链生成的掩码。
+# =============================================================================
+"""隔离信号连接和权重估计对线性反解的作用。"""
 
 from __future__ import annotations
 
 import numpy as np
 
-from adi_model.digital_chain import _horizontal_columns, vertical_bits
 
-Q = 1 << 30
-K, RES, X = 277, 3, 0.3
-IDS = [14, 15, 16, 17, 0, 1, 2, 3]
-
-
-def _masks():
-    h = _horizontal_columns(K, RES, h_phase=3)
-    y = vertical_bits(K, 8, v_phase=3)
-    return [[y[s] if j == RES else h[j] for j in range(16)] for s in range(8)]
+# =============================================================================
+# 1. 观测夹具
+# =============================================================================
+LEVEL_V = 0.3
+CONNECTED = np.array([[True, False, False], [True, True, False]])
+NOMINAL = np.full(CONNECTED.shape, 0.25)
 
 
-def _nominals():
-    return {(s, j): (2.0 if j < 15 else 1.0) / 32.0 for s in range(18) for j in range(16)}
-
-
-def _observe(masks, w):
-    """独立前向：y = Σ w·(a·x)，a=1。"""
-    return sum(w[(IDS[s], j)] for s in range(8) for j in range(16) if masks[s][j]) * X
-
-
-def _spec_reconstruct(y, masks, w):
-    """SPEC 方程：x̂ = y / Σw·a。"""
-    den = sum(w[(IDS[s], j)] for s in range(8) for j in range(16) if masks[s][j])
-    return y / den
-
-
-def test_true_coefficients_recover_the_input_exactly():
+def _case():
+    """返回真权重和信号电荷观测；失配固定为相对幅度 ±3% 的均匀分布。"""
     rng = np.random.default_rng(7)
-    nom = _nominals()
-    w_true = {k: v * (1.0 + rng.uniform(-0.03, 0.03)) for k, v in nom.items()}
-    masks = _masks()
-    y = _observe(masks, w_true)
-    assert abs(_spec_reconstruct(y, masks, w_true) - X) < 1e-12
+    actual = NOMINAL * (1.0 + rng.uniform(-0.03, 0.03, NOMINAL.shape))
+    # 电压先与逐单元权重相乘，只有采样时接到信号的支路贡献观测。
+    observation_v = ((actual * LEVEL_V) * CONNECTED).sum()
+    return actual, observation_v
+
+
+def _reconstruct(observation_v, weights):
+    """按被选信号项的权重和换回输入电平。"""
+    return observation_v / weights[CONNECTED].sum()
+
+
+# =============================================================================
+# 2. 同一观测的正负对照
+# =============================================================================
+def test_true_coefficients_recover_the_input_exactly():
+    actual, observation_v = _case()
+    assert abs(_reconstruct(observation_v, actual) - LEVEL_V) < 1e-12
 
 
 def test_nominal_coefficients_leave_a_measurable_error():
-    """3% 失配下名义系数应留下明显残差——否则这个实验没有判别力。"""
-    rng = np.random.default_rng(7)
-    nom = _nominals()
-    w_true = {k: v * (1.0 + rng.uniform(-0.03, 0.03)) for k, v in nom.items()}
-    masks = _masks()
-    y = _observe(masks, w_true)
-    err = abs(_spec_reconstruct(y, masks, nom) - X)
-    lsb20 = 6.0 / (1 << 20)
-    assert err > 10 * lsb20, f"残差 {err:.3e} V 太小，实验不具判别力"
+    """名义权重在同一笔观测上留下可分辨的偏差。"""
+    _, observation_v = _case()
+    error_v = abs(_reconstruct(observation_v, NOMINAL) - LEVEL_V)
+    lsb20_v = 6.0 / (1 << 20)
+    assert error_v > 10 * lsb20_v, f"残差 {error_v:.3e} V 太小，无法区分系数"

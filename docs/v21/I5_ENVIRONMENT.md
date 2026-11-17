@@ -4,6 +4,12 @@
 依据：方案 v1.4 §10、§11.2 I5；目标要求"开工时并行核实……工具与许可、
 实际目标 PDK、标准单元 Liberty/LEF、PVT/RC 角、提取参数和 DRC/LVS 规则"。
 
+## 运行当前数字回归
+
+在仓库根运行 `bash tools/verify_v21.sh`。VCS 在执行主机的专用目录启动。需要 SSH 执行时，通过 `V21_RUNNER` 提供已配置的 SSH 主机。默认创建 `/tmp/v21_verify.XXXXXX`。如设置 `V21_WORKDIR`，它必须是 `/tmp` 或 `$HOME/eda_runs` 下尚未存在的绝对路径，路径不含空格，父目录需已存在。使用 `--check-sources` 可只查看编译输入。
+
+本页其余部分记录 2026-11-15 的后端环境。每次实际执行遵守 [EDA 工作目录规范](../audit/REMOTE_WORKDIR_POLICY.md)。
+
 ## 1. 标准单元库（已核实，齐全）
 
 路径：`/home/yian/PDK/tsmc28/digital_technology/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn28hpcplusbwp7t40p140_180a/`

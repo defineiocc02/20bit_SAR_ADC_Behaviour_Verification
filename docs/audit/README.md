@@ -11,6 +11,7 @@
 | 哪些实现对应原文披露、工程假设或当时的未决问题 | [算法对照](AUDIT_ALGO_VS_SOURCE.md) · [端口与片上要求对照](PORT_AND_ONCHIP_AUDIT.md) |
 | `sched18` 模块的等价结果及网表来源 | [Formality 记录](FORMAL_SUCCEEDED.md) · [产物说明](artifacts/README.md) |
 | 复查整核综合停滞与 Formality 尝试 | [整核综合记录](../v21/SYNTH_STALL.md) · [Formality 状态](../v21/FORMAL_STATUS.md) · [区分算术证明、RTL 检查与形式工具结果](../v21/PROOF_LEDGER.md) |
+| 工具运行路径、远端落盘检查与清理 | [EDA 工作目录规范](REMOTE_WORKDIR_POLICY.md) |
 | 工作树结构审查的输入、发现和复现 | [审查任务](../_history/restructure/TREE_AUDIT_PROMPT.md) · [审查报告](TREE_AUDIT_REPORT.md) |
 | 找待办、已有源级反例和验收条件 | [独立复核待办](todo/README.md) |
 

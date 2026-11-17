@@ -1,17 +1,15 @@
-"""Bit-true integer primitives shared by every reference model.
+# =============================================================================
+# 文件名     : fixed_point.py
+# 模块名     : verification.reference.fixed_point
+# 版本       : v1.0
+# 功能       : 提供带合法域检查的整数舍入、除法和饱和。
+# 设计说明   : 先以 Python 无界整数运算，遇到明确规定的位宽再检查或饱和。
+#              负数商、高位溢出和半 LSB 平局各有单独区间，便于逐项构造用例。
+# 变更记录   : 清除已退役的模块对拍报告引用。
+# =============================================================================
+"""定点重构的整数原语。
 
-Derived from `docs/rtl/RTL_ARITHMETIC_CONTRACT.md` §3.1/§3.5 and §4, **not**
-transliterated from the SystemVerilog. Where the two could drift, the contract
-text is the authority and `verification/reports/` records the RTL disagreement.
-
-Why this module exists at all: the Python *behavioural* model works in float and
-cannot be used as a bit oracle. The three seams that bite are
-
-* floor vs truncate on a negative quotient,
-* ties-to-even vs add-half-then-truncate,
-* raise vs wrap on overflow.
-
-Each one is a separate function here so a test can point at it directly.
+舍入、除法和累加器定义见 docs/rtl/RTL_ARITHMETIC_CONTRACT.md §3.1、§3.5 和 §4。
 """
 
 from __future__ import annotations
@@ -24,6 +22,9 @@ class FixedPointError(ValueError):
     """Raised when an operation leaves the contract's legal integer domain."""
 
 
+# =============================================================================
+# 1. 保留符号的舍入与除法
+# =============================================================================
 def round_half_even_shift(value: int, shift: int) -> int:
     """Return ``value / 2**shift`` rounded half-to-even.
 
@@ -60,6 +61,9 @@ def truncate_div(numerator: int, denominator: int) -> int:
     return -quotient if (numerator < 0) != (denominator < 0) else quotient
 
 
+# =============================================================================
+# 2. 累加器合法域与输出钳位
+# =============================================================================
 def check_accumulator(value: int, name: str = "operand") -> int:
     """Raise unless ``value`` is inside the half-open accumulator range.
 

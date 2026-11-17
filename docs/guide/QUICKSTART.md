@@ -35,4 +35,4 @@ bash tools/pyenv.sh --run tools/run_review_figures.py --out "$fig_dir"
 
 ## 对接与排查
 
-[模型架构](ARCHITECTURE.md)说明主要数据流，[调试](DEBUGGING.md)说明配置、码域和握手排查。需要 RTL 时，按[目标顶层和源清单](../../rtl/README.md)选择入口及所需工具。
+[模型架构](ARCHITECTURE.md)说明主要数据流，[调试](DEBUGGING.md)说明配置、码域和握手排查。需要运行集成 ADC 的数字 RTL 时，从 [v21 顶层和编译清单](../../rtl/README.md)进入。

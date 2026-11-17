@@ -2,7 +2,7 @@
 
 默认模型采用 18 片池。每个稳态周期由 8 片采集、8 片转换、2 片空闲。SADC 给出粗判决，RDAC 更新开关形成余差。共享 RA 的名义增益为 32，默认 ADC2 采用 13 位、0.75 V 窗口 `[-0.1875, +0.5625) V`，重构输出 20 位 offset-binary 码。[默认参数](../../src/adi_model/defaults.py) · [工作机理与验证图](../figures/20261117/README.md)
 
-本页说明 `src/adi_model` 的行为模型。v21 和独立源绑定数字核各有自己的接口、位宽和验证入口。需要核对 RTL 的合成顶层、开关合同和事务先后关系时，从对应入口进入。[v21 工程合同](../CONTRACT_CURRENT.md) · [RTL 导航](../../rtl/README.md) · [独立核心 ABI2](../rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)
+本页说明 `src/adi_model` 的行为模型。当前集成 ADC 的顶层、开关合同和事务顺序见 [v21 工程合同](../CONTRACT_CURRENT.md)与 [RTL 导航](../../rtl/README.md)。
 
 ## 1. 分层
 
@@ -15,7 +15,7 @@
 | [simulation](../../src/adi_model/simulation/README.md) | 装配模型、推进采集与转换、返回逐笔记录 |
 | [calibration](../../src/adi_model/calibration/README.md) 与 [metrics](../../src/adi_model/metrics/README.md) | 从观测拟合或应用冻结系数，计算静态与频谱指标 |
 
-默认 CLI 装配 `DefaultModel`，由 `simulate` 进入行为流水。显式源绑定用例按自己的配置构造采集和掩码回调。两个入口的参数、观测合同与验证证据分别归档。[快速上手](QUICKSTART.md) · [源绑定验证流程](../../flow/verification/README.md)
+默认 CLI 装配 `DefaultModel`，由 `simulate` 进入行为流水。组件测试的采集和掩码回调由各次测试的输入包提供。[快速上手](QUICKSTART.md) · [验证流程](../../flow/verification/README.md)
 
 ## 2. 一笔样本的数据流
 
@@ -33,7 +33,7 @@
 
 模型从采样计划取得该笔的物理 ID，再按掩码与电容计算电荷。失配作用在物理池和余差路径。重构只使用数字观测及相应系数。默认解码把 RA 物理增益与权重和口径配对后对细码做换算。[流水实现](../../src/adi_model/simulation/pipeline_engine.py) · [定点约定](../../src/adi_model/contracts/README.md)
 
-默认运行关闭源扰动与单元 DEM。显式 Fig.19 扰动用例由调用者提供六位字，存留的 Python 等效路径使用 `k=c-U` 并检查实际命令域。v21 的开关合同使用 `k=c+U`，两条绑定的命令域与行为模型的静态对照见 F05、F03。[行为控制模型](../../src/adi_model/control/README.md) · [对照图](../figures/20261117/README.md)
+默认运行关闭源扰动与单元 DEM。调用者可提供六位字，在 Python 中研究 Fig.19 的分路扰动。这个等效模型使用 `k=c-U` 并检查实际命令域。v21 的开关合同使用 `k=c+U`，两条绑定的命令域与行为模型的静态对照见 F05、F03。[行为控制模型](../../src/adi_model/control/README.md) · [对照图](../figures/20261117/README.md)
 
 ## 3. 状态归属与时序
 
@@ -54,7 +54,7 @@
 | --- | --- |
 | Python 行为模型 | 选定配置下的电荷、余差、代码趋势、越窗或饱和。动态波形与名义精度解码分别查诊断可用条件。 |
 | [整数参考](../../flow/verification/reference/) | 指定输入和数值格式下的宽度、舍入、限幅及标志 |
-| [scoreboard](../../flow/verification/cosim/scoreboard.py) | 把对应设计与版本的实际、参考记录按接口和样本 ID 比较 |
+| [v21 测试台](../../tb/v21/) | 按实际接口、样本标识及周期核对事件、余差返回和定点重构 |
 | [CAAZ 扩展](../../subsys/extensions/caaz/README.md) | 独立的偶奇配对假设与专门用例 |
 | 电路与后端 | 参考建立、采样网络、RA/ADC2 的实物非理想和工艺余量以匹配设计的证据说明为准 |
 

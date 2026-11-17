@@ -27,14 +27,12 @@ set_app_var search_path [list . /tmp/ip $OUT]
 set_app_var target_library [list $DB]
 set_app_var link_library   [list "*" $DB]
 
-# ---- 读入生产 RTL（不含节点宏）----
+# ---- 读入 adc_digital_ip_v21 的综合源码 ----
+# 顶层由 sched18 调度、dem_mask_v3 生成掩码，recon_v21 通过倒数链完成重构。
 set RTL {
-  /tmp/ip/rtl/dem_phase_rr.sv
-  /tmp/ip/rtl/dem_phase_gen.sv
   /tmp/ip/rtl/dither_pre.sv
   /tmp/ip/rtl/dem_mask_v3.sv
   /tmp/ip/rtl/sched18.sv
-  /tmp/ip/rtl/follower_rt.sv
   /tmp/ip/rtl/v21/acq_conv_ctx.sv
   /tmp/ip/rtl/v21/sar_evt_v21.sv
   /tmp/ip/rtl/v21/adc2_capture.sv

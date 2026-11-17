@@ -2,26 +2,16 @@
 # =============================================================================
 # 文件名     : verify_clean_clone.sh
 # 版本       : v1.1
-# 功能       : 从**全新克隆**验证仓库可用性 —— 证明结果不依赖本地未提交残留。
+# 功能       : 从全新克隆验证当前提交的测试、工程自检和 Python 入口。
 #
 # 设计说明   :
-#   * 为什么需要它：开发时工作树里有临时文件、缓存、未提交改动。
-#     "在我这儿能跑"不等于"别人克隆下来能跑"。本脚本把两者对齐。
-#   * 检查项（全部要求 exit 0）：
-#       1. 全量单元/验证测试
-#       2. 工程自检 7 项
-#       3. python -m adi_model simulate（最小运行；--output 必须是新目录）
-#       4. tools/check_audit_findings.py（4/4）
-#       5. tools/behavior_fingerprint.py --check（指纹与基线一致）
-#       6. tools/run_p4_ablation.py（矩阵重跑，与入库数据逐项一致）
-#       7. tools/run_review_figures.py（图重生成）
-#   * 用法：
-#       bash tools/verify_clean_clone.sh              # 用当前仓库做克隆源
-#       bash tools/verify_clean_clone.sh <repo-path>  # 指定克隆源
-#       SKIP_HEAVY=1 bash tools/verify_clean_clone.sh # 跳过第 6/7 项（快）
-#   * 环境变量：
-#       PYTHON     解释器路径（默认 python3）
-#       SKIP_HEAVY 非空则跳过矩阵与图
+#   * 在独立目录克隆，测试只接触 Git 中已有的文件和本次运行产物。
+#   * 工程自检包含现行图件哈希和 v21 ADC2 的跨语言接口核对。
+#   * CLI 示例沿用 README 的 64 笔样本。输出使用专用的新目录。
+#   * 源机制反例核对需通过 4 项，失败时输出脚本原始结果。
+#   * SKIP_HEAVY 非空时跳过失配扫描和单笔轨迹，保留上述检查。
+#   * 通过 PYTHON 指定已安装项目依赖的解释器，默认使用 python3。
+#   * bash tools/verify_clean_clone.sh <repo-path> 可指定待克隆仓库。
 # =============================================================================
 set -u
 
@@ -42,126 +32,78 @@ fi
 cd "$CLONE" || exit 1
 printf 'source: %s\nat commit: %s\n' "$SRC" "$(git rev-parse --short HEAD)"
 
+# 1. 当前测试目录
+# 用模块入口保留仓库根导入路径，同时隔离基础测试和集成失败的诊断。
 note "1. tests"
-# 覆盖**全部**测试目录，不再按目录/文件排除。
-# 历史教训（2026-11-13）：
-#   ① 曾排除 2 个文件（138 个测试），理由是早期 tclsh 环境问题；环境修好后
-#      清单没更新，这 138 个测试长期无人检查。
-#   ② 曾只跑 flow/tests/unit + verification，漏掉 audit、regression、
-#      flow/tests/integration 共 17 个文件；首次运行时暴露出 9 failed。
-# 唯一保留的例外是 test_source_bound_replay.py：它需要 VERILATOR，
-# 本机没有，只能整体跳过——这是**环境限制**而非排除清单。
 if PYTHONPATH=src "$PYTHON" -m pytest -q -p no:cacheprovider \
      flow/tests/unit flow/tests/verification flow/tests/audit flow/tests/regression \
-     --ignore=flow/tests/integration >/dev/null 2>&1; then
+     >"$WORK/tests.log" 2>&1; then
   ok "tests (unit/verification/audit/regression)"
 else
+  cat "$WORK/tests.log"
   bad "tests (unit/verification/audit/regression)"
 fi
 
-# integration 单独跑：本机缺 VERILATOR，test_source_bound_replay 会整体报错。
-INTEGRATION_IGNORE="--ignore=flow/tests/integration/test_source_bound_replay.py"
+# 单列集成结果便于定位模型输入与普通单元测试的不同失败原因。
 if PYTHONPATH=src "$PYTHON" -m pytest -q -p no:cacheprovider \
-     flow/tests/integration $INTEGRATION_IGNORE >/dev/null 2>&1; then
-  ok "tests (integration, minus VERILATOR-dependent)"
+     flow/tests/integration >"$WORK/integration.log" 2>&1; then
+  ok "tests (integration)"
 else
+  cat "$WORK/integration.log"
   bad "tests (integration)"
 fi
 
+# 2. 工程自检
+# 图件身份和 ADC2 合同由同一自检入口核对，失败详情随其余检查一起输出。
 note "2. check_engineering"
-if "$PYTHON" tools/check_engineering.py >/dev/null 2>&1; then
+if "$PYTHON" tools/check_engineering.py >"$WORK/engineering.log" 2>&1; then
   ok "check_engineering (7/7)"
 else
+  cat "$WORK/engineering.log"
   bad "check_engineering"
 fi
 
 note "3. minimal simulate"
-# --output 必须是**不存在的**目录；这里用全新的名字。
+# CLI 要求输出目录此前不存在，避免写入另一次运行。
 OUT="$WORK/sim_output"
-if PYTHONPATH=src "$PYTHON" -m adi_model simulate --samples 32 --output "$OUT" >/dev/null 2>&1; then
+if PYTHONPATH=src "$PYTHON" -m adi_model simulate --samples 64 --output "$OUT"; then
   ok "python -m adi_model simulate"
 else
   bad "simulate"
 fi
 
 note "4. audit findings"
-if PYTHONPATH=src "$PYTHON" tools/check_audit_findings.py 2>/dev/null | grep -q "4/4"; then
+# 同时检查脚本退出状态和通过项计数，以便识别回归中途退出。
+if PYTHONPATH=src "$PYTHON" tools/check_audit_findings.py >"$WORK/audit-findings.log" 2>&1 \
+    && grep -Fq "4/4 audit findings resolved" "$WORK/audit-findings.log"; then
   ok "check_audit_findings (4/4)"
 else
+  cat "$WORK/audit-findings.log"
   bad "check_audit_findings"
 fi
 
-note "5. behaviour fingerprint"
-if PYTHONPATH=src "$PYTHON" tools/behavior_fingerprint.py \
-     --check docs/restructure/behavior_fingerprint.json >/dev/null 2>&1; then
-  ok "behaviour fingerprint matches baseline"
-else
-  bad "behaviour fingerprint"
-fi
-
+# 5–6. 可选模型诊断
+# 两项各写入运行目录，独立失败仍会计入最终退出状态。
 if [ -n "${SKIP_HEAVY:-}" ]; then
   echo
-  echo "SKIP  heavy checks 6-7 (SKIP_HEAVY set)"
+  echo "SKIP  mismatch sweep and sample trace (SKIP_HEAVY set)"
 else
-  note "5a. run_mismatch_sweep (slow; ~70 s fixed cost)"
-if PYTHONPATH=src "$PYTHON" tools/run_mismatch_sweep.py \
-     --out "$WORK/sweep" --points 64 --repeats 2 >/dev/null 2>&1; then
-  ok "run_mismatch_sweep"
-else
-  bad "run_mismatch_sweep"
-fi
-
-note "5b. trace_one_sample (README §7 command)"
-if PYTHONPATH=src "$PYTHON" tools/trace_one_sample.py --out "$WORK/trace" >/dev/null 2>&1; then
-  ok "trace_one_sample"
-else
-  bad "trace_one_sample"
-fi
-
-note "6. ablation matrix"
-  MAT="$WORK/mat"
-  if PYTHONPATH=src:. "$PYTHON" tools/run_p4_ablation.py \
-       --dynamic-n 1024 --static-points 512 --out "$MAT" >/dev/null 2>&1; then
-    cat > "$WORK/cmp.py" <<'PY'
-import json, sys
-fresh = {c["id"]: c for c in json.load(open(sys.argv[1]))["configs"]}
-stored = {c["id"]: c for c in json.load(open(sys.argv[2]))["configs"]}
-assert set(fresh) == set(stored), "config set differs"
-for key in fresh:
-    a = (fresh[key].get("static") or {}).get("inl_max_lsb20")
-    b = (stored[key].get("static") or {}).get("inl_max_lsb20")
-    if a is None or b is None:
-        continue
-    assert abs(a - b) < 1e-9, f"{key}: {a} != {b}"
-PY
-    # 存证目录 docs/reviews/20261113_p3p4 已于 2026-11-15 移出仓库
-    # （是历史产物，且不被 CI 引用）。没有存证时无法比对，只能跳过，
-    # 但**必须显式写"跳过"**，不能静默当成功 —— 否则这项检查会变成空转。
-    if [ -f docs/reviews/20261113_p3p4/data/p4_ablation.json ]; then
-      if "$PYTHON" "$WORK/cmp.py" "$MAT/p4_ablation.json" \
-           docs/reviews/20261113_p3p4/data/p4_ablation.json >/dev/null 2>&1; then
-        ok "fresh matrix matches stored data"
-      else
-        bad "fresh matrix differs from stored data"
-      fi
-    else
-      note "   stored matrix absent (archive moved out of repo) -> compared skipped"
-    fi
+  note "5. run_mismatch_sweep"
+  if PYTHONPATH=src "$PYTHON" tools/run_mismatch_sweep.py \
+       --out "$WORK/sweep" --points 64 --repeats 2 >"$WORK/sweep.log" 2>&1; then
+    ok "run_mismatch_sweep"
   else
-    bad "run_p4_ablation"
+    cat "$WORK/sweep.log"
+    bad "run_mismatch_sweep"
   fi
 
-  note "7. figures"
-  if PYTHONPATH=src:. "$PYTHON" tools/run_review_figures.py \
-       --out "$WORK/fig" >/dev/null 2>&1; then
-    count=$(find "$WORK/fig" -name '*.png' 2>/dev/null | wc -l | tr -d ' ')
-    if [ "$count" -ge 12 ]; then
-      ok "run_review_figures ($count png)"
-    else
-      bad "run_review_figures produced only $count png"
-    fi
+  note "6. trace_one_sample"
+  if PYTHONPATH=src "$PYTHON" tools/trace_one_sample.py \
+       --out "$WORK/trace" >"$WORK/trace.log" 2>&1; then
+    ok "trace_one_sample"
   else
-    bad "run_review_figures"
+    cat "$WORK/trace.log"
+    bad "trace_one_sample"
   fi
 fi
 

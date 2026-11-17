@@ -1,27 +1,36 @@
-// 模块：adc2_dec；ADC2 原始码到归一化 Q32 码仓中心的组合译码。
-// 职责：fine_q=min+round_half_even((2*code+1)*(max-min)/2^(P_ADC2_BITS+1))。
-// 端口/单位：adc2_code 为无符号码；min/max/fine_q 为有符号 V/Vfs 的 Q32。
-// 时序：无时钟、复位或握手；调用方必须冻结输入并对齐样本 valid。
-// 精度：量程差保留 V_BITS+1 位，乘法保留完整宽度，余数比较实现 ties-to-even。
-// 异常：fine_q 超出 V_BITS 有符号范围时饱和并置 ovf；min<max 由配置端检查。
-// 适用域：P_ADC2_BITS来自显式输入头；整核支持1..12位，独立算术实例可另设位宽。
-// 来源：RTL_ARITHMETIC_CONTRACT.md §3.1；Q32、舍入及接口为项目工程合同。
 `timescale 1ns/1ps
+
+// =============================================================================
+// 文件名     : adc2_dec.sv
+// 模块名     : adc2_dec
+// 版本       : v1.0
+// 功能       : 将无符号码转换为 Q32 归一化电压的码仓中心。
+// 设计说明   : 实现 min + round_half_even((2*code+1)*(max-min)/2^(P_ADC2_BITS+1))。
+//              码宽和定点格式由调用方显式提供，作为 recon_core 的独立算术依赖。
+//              组合路径使用全宽乘积和有符号宽位相加，裁宽在溢出判决之后。
+//              调用方保证 min < max，并使三个输入与同一笔样本对齐。
+// 变更记录   : 去除退役整链位宽范围，按实参说明独立组件的数值边界。
+// =============================================================================
 `include "rtl_params.vh"
 
 module adc2_dec #(
     parameter int P_ADC2_BITS = int'(ADC2_BITS)
 ) (
-    input  logic [P_ADC2_BITS - 1:0]    adc2_code,
-    input  logic signed [V_BITS - 1:0] adc2_min_q,
-    input  logic signed [V_BITS - 1:0] adc2_max_q,
-    output logic signed [V_BITS - 1:0] fine_q,
-    output logic                      ovf
+    // --- 码仓与上下界 ---
+    input  logic [P_ADC2_BITS - 1:0]    adc2_code, // 原始无符号码
+    input  logic signed [V_BITS - 1:0] adc2_min_q, // Q32 下边界
+    input  logic signed [V_BITS - 1:0] adc2_max_q, // Q32 上边界
+    // --- 换算结果 ---
+    output logic signed [V_BITS - 1:0] fine_q,     // 钳位后的 Q32 码仓中心
+    output logic                      ovf        // 精确结果超出有符号输出范围
 );
 
+  // ===========================================================================
+  // 1. 操作数和饱和边界宽度
+  // ===========================================================================
   localparam int K     = P_ADC2_BITS + 1;
-  localparam int W_MUL = P_ADC2_BITS + 1 + int'(V_BITS) + 1; // W_MUL: 默认 78 位
-  localparam int W_SUM = W_MUL + 1;                       // W_SUM: 默认 79 位
+  localparam int W_MUL = P_ADC2_BITS + 1 + int'(V_BITS) + 1; // 容纳扩展的量程差和奇数码心
+  localparam int W_SUM = W_MUL + 1;                       // 加上下边界时额外保留一位
 
   logic [K - 1:0]            two_c_plus_1; // 2*code + 1 = {code, 1'b1}
   logic signed [V_BITS:0]    delta;        // max - min，多一位保存符号与差值
@@ -42,7 +51,10 @@ module adc2_dec #(
   localparam logic [W_SUM - 1:0] V_LO_U  = ~V_HI_U + V_ONE;            // V_LO_U: 默认 -2^63
   localparam logic [W_SUM - 1:0] V_MAX_U = V_HI_U - V_ONE;            // V_MAX_U: 默认 2^63 - 1
 
-  // 组合段1：奇数码仓中心与有符号量程；delta保留V_BITS+1位。
+  // ===========================================================================
+  // 2. 全宽乘积与半 LSB 平局判定
+  // ===========================================================================
+  // delta 保留 V_BITS+1 位，使量程跨越零点时减法也能容纳全跨度。
   assign two_c_plus_1 = {adc2_code, 1'b1};
   assign delta       = $signed(adc2_max_q) - $signed(adc2_min_q);
   assign delta_ext   = {{(W_MUL - (int'(V_BITS) + 1)){delta[V_BITS]}}, delta};
@@ -58,7 +70,10 @@ module adc2_dec #(
   assign inc     = (r_bits > half) || ((r_bits == half) && q_shift[0]);
   assign sh      = q_shift + {{(W_MUL - 1){1'b0}}, inc};
 
-  // 组合段 3：先宽位相加与溢出检测，再裁到接口位宽；溢出时钳位。
+  // ===========================================================================
+  // 3. 饱和判决
+  // ===========================================================================
+  // 宽位和用于判定饱和。过早裁宽会令大正值回绕至负区间。
   assign min_ext  = {{(W_SUM - int'(V_BITS)){adc2_min_q[V_BITS - 1]}}, adc2_min_q};
   assign sum_wide = min_ext + {{(W_SUM - W_MUL){sh[W_MUL - 1]}}, sh};
 

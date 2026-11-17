@@ -1,7 +1,13 @@
+# =============================================================================
+# 文件名     : run_p3_mechanisms.py
+# 版本       : v1.0
+# 功能       : 在现行 Fig.11 模型上检查 RDAC、DEM、扰动和预跟踪的单项机制。
+# 设计说明   : 通过同一模型构造真实配置、片组计划和名义码本。
+#              每项记录采用哪类输入和边界，便于把结论追溯到对应机制。
+# =============================================================================
 """P3 机制证据：follower 因果、DEM 守恒、dither 范围/残余、TRACK 输入电荷。
 
-每一步都落在 `adi_model` 的真实池（默认 63+8、18 片、8 活动）上，不用合成夹具；
-只有 Fig.11 的 17/5 对照另建一个显式几何，因为它和默认池不是同一套阵列。
+各项实验使用 `adi_model` 的 Fig.11 17/5 电容阵列和 18 选 8 调度配置。
 
 运行：
     PYTHONPATH=src python3 tools/run_p3_mechanisms.py --out docs/reviews/20261113_p3p4/data
@@ -17,9 +23,11 @@ import numpy as np
 
 from adi_model.control.dem3d import (
     Dem3State,
+    FIG11_COLUMNS,
+    ROUND_ROBIN_PERIOD,
+    fig11_masks,
     nominal_conservation,
     round_robin_plan,
-    fig11_masks,
     usage_uniformity,
 )
 from adi_model.control.dither import FIG19_FRACTIONAL_WEIGHTS_Q, FIG19_STEP_Q, Fig19StaticSpec
@@ -46,6 +54,9 @@ from adi_model.control.track_aux import (
 from adi_model.defaults import DefaultModel, DefaultParameters
 from adi_model.simulation.slice_pool import PhysicalSlicePool
 
+# =============================================================================
+# 1. 共用输入与结果编码
+# =============================================================================
 FS_HZ = 40e6
 V_FS = 3.0
 
@@ -60,6 +71,8 @@ def _jsonable(value):
 
 
 def _model(mismatch: float = 1e-3) -> DefaultModel:
+    # 两组 DEM 电容用同一种子，以隔离是否施加失配的作用。
+    # 反馈电容的随机偏移固定为零，逐码比较只包含主、子和桥接阵列失配。
     return DefaultModel(
         seed=20261105,
         parameters=DefaultParameters(
@@ -69,6 +82,11 @@ def _model(mismatch: float = 1e-3) -> DefaultModel:
     )
 
 
+# =============================================================================
+# 2. RDAC 跟随时序与参考轨电荷
+# =============================================================================
+# 从当前流水线拿粗码和实际转换片号。各 RDAC 策略在相同片号上比较。
+# 已决前缀定义每步能使用哪些位。把最终码提前送入所有步骤是负对照。
 def follower_evidence(model, n: int = 4096) -> dict:
     """用真实运行得到的 9 位码驱动 follower，给出因果审计与参考代价。"""
     run = model.simulate(lambda t: V_FS * 0.999 * np.sin(2 * np.pi * 1e6 * t), n)
@@ -99,6 +117,8 @@ def follower_evidence(model, n: int = 4096) -> dict:
     peeking = audit_causality(
         prefixes, lambda values: np.repeat(values[:, -1:], values.shape[1], axis=1)
     )
+    # 三条路径到达相同参考端点。累积开关电荷由沿途事件和方向决定。
+    # 论文参考电流只用于同表对照，完整的瞬态负载还取决于驱动和相位。
     cost = compare_reference_cost(
         follower, direct, trial, fs_hz=FS_HZ, paper_reference_current_a=1.8e-3
     )
@@ -121,6 +141,10 @@ def follower_evidence(model, n: int = 4096) -> dict:
     }
 
 
+# =============================================================================
+# 3. DEM 名义电荷和实际片覆盖
+# =============================================================================
+# 保留模型的码本和电容表，单独指定相位审计所需的掩码及片组计划。
 def _pool_for(model, binding, plan=None):
     return PhysicalSlicePool(
         model.cfg,
@@ -141,10 +165,12 @@ def dem_evidence(model, n: int = 360, codes: int = 64) -> dict:
     nominal = _model(mismatch=0.0)
     nominal_pool = _pool_for(nominal, fig11_masks, round_robin_plan(n))
     subset = np.unique(np.linspace(0, 511, codes).astype(np.int64))
+    states = Dem3State.sequence(240)
+    # 名义和失配池使用同一份粗码、相位和参考轨。均匀性另查物理片的实际覆盖。
     conservation = nominal_conservation(
         nominal_pool,
         fig11_masks,
-        Dem3State.sequence(240),
+        states,
         reference_high_v=V_FS,
         reference_low_v=-V_FS,
         codes=subset,
@@ -153,21 +179,21 @@ def dem_evidence(model, n: int = 360, codes: int = 64) -> dict:
     mismatched = nominal_conservation(
         mismatched_pool,
         fig11_masks,
-        Dem3State.sequence(240),
+        states,
         reference_high_v=V_FS,
         reference_low_v=-V_FS,
         codes=subset,
     )
-    # 均匀性必须跑满一个相位周期（columns x plan_period = 63x9）且逐码统计，
-    # 只测满码会假通过（外部审查 A01）。
-    n_usage = 63 * 9
+    # 每个片选位置只在每轮出现一次，15 个横向位置各需重复一个 9 笔片选周期。
+    # 码 8 只测子支路，码 32 选第一个 2C。两者结合才能看清低码的选通范围。
+    n_usage = FIG11_COLUMNS * ROUND_ROBIN_PERIOD
     plan = round_robin_plan(n_usage)
     usage = usage_uniformity(
         mismatched_pool,
         fig11_masks,
         plan,
-        Dem3State.sequence(n_usage, columns=63),
-        codes=(8, 255, 511),
+        Dem3State.sequence(n_usage),
+        codes=(8, 32, 255, 511),
     )
     return {
         "codes_checked": conservation["codes_checked"],
@@ -193,8 +219,12 @@ def dem_evidence(model, n: int = 360, codes: int = 64) -> dict:
     }
 
 
+# =============================================================================
+# 4. 扰动范围和码偏移残余
+# =============================================================================
+# 先用声明的注入规格做范围预算，再用同一实际码本计算偏移前后残余。
 def dither_evidence(model) -> dict:
-    """范围预算 + 码偏移残余（默认池与 Fig.11 池各一份）。"""
+    """用当前 Fig.11 电容池检查扰动范围与码偏移残余。"""
     spec = Fig19StaticSpec(
         v_fs=V_FS,
         step_q=FIG19_STEP_Q,
@@ -212,6 +242,8 @@ def dither_evidence(model) -> dict:
         acquisition_binding=None,
         schedule_binding=round_robin_plan(8),
     )
+    # U=5 时从 6 起扫，保留最低端以上的全部偏移测试点。
+    # 电荷归一化电容由实际活动片一次求和，残余再折算到输入端。
     codes = np.arange(6, 512, dtype=np.int64)
     words = np.full(codes.size, 48, dtype=np.int64)  # D6=D4=1 -> U=5
     c_signal = float(pool.signal_capacitance(np.arange(8)[None, :])[0])
@@ -237,10 +269,14 @@ def dither_evidence(model) -> dict:
             )
         },
         "task_tree_bound_reconstruction": attenuated_dither_bound(5.0),
-        "_note": "default pool is exactly binary in code; the Fig.11 pool is not (see tests)",
+        "_note": "code shift residual evaluated with the current Fig.11 17/5 model codebook",
     }
 
 
+# =============================================================================
+# 5. 预跟踪的可用判决与输入电荷
+# =============================================================================
+# 孔径只能读取当时已经完成的判决。参考输入和实测残余都以同一孔径方式归一化。
 def track_evidence(model, n: int = 4096) -> dict:
     """TRACK 预置后的输入电荷与论文 350 uA_pp 的口径核对。"""
     run = model.simulate(lambda t: V_FS * 0.999 * np.sin(2 * np.pi * 1e6 * t), n)
@@ -277,6 +313,10 @@ def track_evidence(model, n: int = 4096) -> dict:
     }
 
 
+# =============================================================================
+# 6. 结果记录
+# =============================================================================
+# 按机制逐项写入完整 JSON，终端摘要便于定位应继续查看的分支。
 def main() -> int:
     parser = argparse.ArgumentParser(description="P3 mechanism evidence")
     parser.add_argument("--out", default="docs/reviews/20261113_p3p4/data")

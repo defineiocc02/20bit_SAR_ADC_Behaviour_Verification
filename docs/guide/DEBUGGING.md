@@ -1,6 +1,6 @@
 # 调试指南
 
-每个案例给出**实际入口**和**该看哪个字段**，不写"请检查配置"。
+Python 的排查从当次输出 `metadata.json`、`codes.npz` 和 `assumptions.json` 开始。集成 RTL 的接口和位宽以 [v21 工程合同](../CONTRACT_CURRENT.md) 为准。
 
 ---
 
@@ -34,25 +34,17 @@ bad = np.flatnonzero((np.diff(raw.sample_id) & 0xFFFF_FFFF) != 1)
 
 ## 3. DEM mask 和预期不一致
 
-三步定位：
+逐笔核对 `raw.main_masks`、`raw.sub_masks`、`raw.k` 和 `raw.conv_slice_ids`。Python 默认模型用 `fig11_masks` 把 9 位码映射到 17 个主单元和 5 个子单元。主段码 `k >> 4` 优先使用 2C 单元，再以 1C 单元补余数。检查物理片使用率时按 `conv_slice_ids` 汇总，掩码数组的第二轴是每拍的活动槽位。[Python 掩码实现](../../src/adi_model/control/dem3d.py)
 
-1. `raw.main_masks` / `raw.sub_masks` 是**实际**送进阵列的掩码；
-2. 与 `dem3d.unary_rotation_masks(geometry, codes, states, slice_ids)` 对拍；
-3. 若只有某些码不对，先看是不是**编码边界**（17/5 下：主码 `m=k>>4` 在
-   `m` 为偶数/奇数切换时会带上 B4，见 `_unit_switch_pattern`）。
-   > 2026-11-13：原写 `n_main=63` 的 15×2C 边界，那是已废弃的 63+8 拓扑。
-
-注意 `command.main_on` 的形状是 `[sample, active_slot, unit]`——
-**沿 sample 求和得到的是 slot 统计，不是物理片统计**（本仓库曾因此出现"假覆盖"，
-现已改为按 `slice_ids` 散列，见 `dem3d._per_physical_slice_counts`）。
+检查 v21 时，按实际 `k`、横纵相位和 guard 规则读 RTL 掩码。[工程合同](../CONTRACT_CURRENT.md) · [v21 掩码 RTL](../../rtl/dem_mask_v3.sv)
 
 ---
 
 ## 4. dither 去扰后还有残余
 
 ```bash
-PYTHONPATH=src python3 -m pytest tests/unit/test_dither_charge_port.py -q
-PYTHONPATH=src python3 -m pytest tests/unit/test_dither_port.py -q
+PYTHONPATH=src:flow python3 -m pytest -q \
+  flow/tests/unit/test_dither_charge_port.py flow/tests/unit/test_dither_port.py
 ```
 
 * 理想器件下 64 个字的 `out` 极差应 ≤ 1 LSB20；若大，先查 `total_v` 有没有被扣两次；
@@ -74,33 +66,20 @@ fit_unit_weights -> CalibrationUnidentifiableError
 
 ## 6. RA / ADC2 越界
 
-`raw.ra_sat`、`raw.adc2_over` 是逐笔布尔。任意一笔为真，静态训练资格即失效
-（`static_domain_reasons` 会写明）。先查该笔的 `residue` 与 `vra`，
-再看 `cfg.ra_clip_v` 和 `adc2_window_v` 是否与这条配置匹配。
+`raw.ra_sat` 标记残差放大器限幅，`raw.adc2_over` 标记 ADC2 节点越窗。定位到样本 ID 后，查看该笔的 `raw.residue`、`raw.vra` 和 `raw.adc2_input_voltage`。默认 ADC2 为 13 位，窗口 `[-0.1875, +0.5625) V`，节点步长为 `0.75 V / 8192`。`static_domain_reasons` 记录这次静态训练资格的判据。跨 Python 和 RTL 核对时，确认 C7 检查通过。[ADC2 工程合同](../CONTRACT_CURRENT.md)
 
 ---
 
 ## 7. 图与 README 数字对不上
 
 ```bash
-PYTHONPATH=src:. python3 tools/check_engineering.py   # C4 会直接报
+python3 tools/check_engineering.py
 ```
 
-规则：图与表必须同 `points`/`repeats` 与同 `source_sha`。
-已知的一处**合法差异**：含校准的行（A5/C1/C3）在图上用 `offset=0` 公共网格、
-在矩阵里用留出偏移，数值不同但口径各自成立（见 `figures.json` 的 `F03.note`）。
+C4 用 [figures.json](../figures/20261117/figures.json) 核对发布的 PNG/SVG SHA-256。C7 核对 ADC2 合同、Python 默认值、RTL 输入位宽、测试节点量化器及重构码箱中心。比较图与表的结果时，另外核对每项的采样数、输入网格、偏移与随机种子。图册中的校准图使用公共网格，消融矩阵的相应行使用留出偏移。[逐图说明](../figures/20261117/README.md)
 
 ---
 
 ## 8. Python 与 RTL 第一处差异
 
-```bash
-python3 -m verification.run_verification --level module --only recon_core
-```
-
-失败会打印：`module / vector index / field / python expect / rtl actual / 重放命令`。
-先确认 `flow/verification/reports/dumps/<module>/` 里的 dump 是对应那次运行的，
-再拿 `vector index` 回 `flow/verification/vectors/generated/<module>/` 取输入。
-
-**别先怀疑 RTL**：本项目就出现过参考模型读错合同（`a` 当成 `on`）的先例。
-两侧都可能是错的，先看合同正文。
+用同一 `tag` 对齐采集、残差返回和退休。先核对该笔的 `pre/post`、权重和、ADC2 原始码及返回标志，再比较 20 位结果和饱和标志。v21 的逐项测试台与命令见 [仿真入口](../../flow/sim/README.md)。复核旧组件数据时，输入向量和报告从记录中的 Git 原版查询。[组件验证](../../flow/verification/README.md)

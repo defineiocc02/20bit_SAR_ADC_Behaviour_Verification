@@ -1,6 +1,6 @@
 # 当前工程合同
 
-v2 正文和 v2.1 补充条款构成 v21 的工程合同。相同条款有冲突时以 v2.1 为准。[v2 正文](ISSCC2024_ONCHIP_CONTRACT_v2.md) · [v2.1 补充](ISSCC2024_ONCHIP_CONTRACT_v2_1_ADDENDUM.md)
+**v21 是当前唯一支持的集成 ADC，ADC2 为 13 位、0.75 V。** v2 正文和 v2.1 补充共同定义其工程合同。相同条款有冲突时以 v2.1 为准。[v2 正文](ISSCC2024_ONCHIP_CONTRACT_v2.md) · [v2.1 补充](ISSCC2024_ONCHIP_CONTRACT_v2_1_ADDENDUM.md)
 
 | 主题 | 工程口径 |
 | --- | --- |
@@ -13,6 +13,6 @@ v2 正文和 v2.1 补充条款构成 v21 的工程合同。相同条款有冲突
 
 完整掩码、位序、数据格式及合法域以合同正文为准。v21 配置寄存器与生命周期见[配置合同](v21/CONFIG_CONTRACT.md)，实现和验证范围见 [RTL 导航](../rtl/README.md)和[状态表](STATUS.md)。
 
-D3/D4 叶子使用 `make -f flow/Makefile verify-d3d4`。历史独立 IP 使用 `make -f flow/Makefile verify-d3d4-ip`，有自己的相位发生和事件边界。[D3/D4 验收记录](ACCEPTANCE_STATUS.md)
+整链回归入口为 [verify_v21.sh](../tools/verify_v21.sh)。共享 D3/D4 模块的验证结果按各自的码域、掩码和输入版本解读。[历史 D3/D4 验收记录](ACCEPTANCE_STATUS.md)
 
-早期 `4+3+2`、`k=c-U` 和固定增益的 RTL 路径保留在历史实现中。Python 的 Fig.19 减法等效实验按自身配置解释，适用范围见 [F05](figures/20261117/README.md)。[历史评审](_history/CONTRACT_V2_REVIEW.md) · [历史物理草案](_history/PHYSICAL_CONTRACT_DRAFT.md)
+早期 RTL 结果按 Git 中的原始版本解释。Python 的 Fig.19 减法等效实验按自身配置解释，适用范围见 [F05](figures/20261117/README.md)。[历史评审](_history/CONTRACT_V2_REVIEW.md) · [历史物理草案](_history/PHYSICAL_CONTRACT_DRAFT.md)

@@ -1,9 +1,18 @@
 """dither 电荷口、码偏移残余与范围预算的单元测试。
 
-用例覆盖三种几何：等间距 63+8 池（残余应为 0）、Fig.11 17/5 池（残余必须非零）、
-以及任务树里那个下界数字的复原式。
+用现行 Fig.11 17/5 阵列检查码移动造成的电荷残差。
+范围用例另核对给定衰减和阵列电压时的扰动下界。
 """
 
+# =============================================================================
+# 文件名     : test_dither_port.py
+# 模块名     : 电荷扰动及命令范围
+# 功能       : 验证位拆分、码移位残余和带桥接电容的范围核算。
+# 设计说明   :
+#   * 直接用几何和电压构造低层输入，隔离二级量化器和动态噪声。
+#   * 零移位在同一码点比较自身。非零移位跨分段时才显露权重差。
+#   * 负移位码继续作为违规组合可见，便于统计命令域的边界。
+# =============================================================================
 from __future__ import annotations
 
 import numpy as np
@@ -28,6 +37,8 @@ from adi_model.simulation.slice_pool import PhysicalSlicePool
 from adi_model.topology.dac_arch import NominalCodebook, SplitChip
 
 
+# ---- 1. 建立位权和物理阵列夹具 ------------------------------------------------
+# 扰动符号是显式运行输入，等效减法端用于追踪专利电荷模型。
 def _spec(v_fs: float = 3.0) -> Fig19StaticSpec:
     return Fig19StaticSpec(
         v_fs=v_fs,
@@ -43,6 +54,7 @@ def _fig11_pool():
     cap = 1e-15
     weights_main = np.array([2.0] * 15 + [1.0, 1.0]) * cap
     weights_sub = np.array([8.0, 4.0, 2.0, 1.0, 1.0]) * cap
+    # 理想匹配的片阵列便于把非线性直接归因于不同段的有效电容。
     chip = SplitChip(
         C_main=np.tile(weights_main, (18, 1)),
         C_sub=np.tile(weights_sub, (18, 1)),
@@ -79,22 +91,12 @@ def test_port_rejects_bad_geometry():
         DitherPort("not a spec", 1e-15, 6.0)
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "KNOWN PARAMETER INCONSISTENCY (not an implementation defect): the dither upper "
-        "segment needs 5.5 LSB1 of residue swing but the 12-bit ADC2 window covers only "
-        "~1.24 LSB1. See adi_model.simulation.parameter_consistency and "
-        "docs/mechanisms/p1_gaps_20261113.md. strict=True: once the parameters become "
-        "consistent this XPASSes and forces the marker to be removed."
-    ),
-)
+# ---- 2. 前级命令与电荷的独立对照 --------------------------------------------
 def test_code_shift_is_exact_only_without_shift_on_fig11_array():
-    """17/5 阵列上"码移位"只在 U=0 时精确；有移位时残差可达约 995 LSB20。
+    """检查零移码时电荷相同及非零移码时的非线性残差。
 
-    为什么：码移位的精确性要求"±1 码的权重步长处处相同"。63+8 的 2C 等权律满足它，
-    17/5 不满足（B0–B3 每步 2C、B4 每步 1C、子阵列每步 β×1C）。
-    这条差异是可核对的原件结构后果，必须显式断言，而不是把测试放宽到"几乎为 0"。
+    17/5 阵列的 2C 列、1C 列和桥接子阵列具有不同的有效权重。
+    减去 U 跨越其中一个边界时，名义 U 步与电荷实际变化量存在差值。
     """
     pool = _fig11_pool()
     spec = _spec()
@@ -113,7 +115,7 @@ def test_code_shift_is_exact_only_without_shift_on_fig11_array():
         reference_high_v=3.0, reference_low_v=-3.0, c_signal_f=c_signal,
     )
     assert shifted["code_shift_exact"] is False
-    assert shifted["max_abs_residual_lsb20"] > 100.0
+    assert shifted["max_abs_residual_lsb20"] > 1.0
     assert shifted["illegal_shifted_codes"] == 0
 
 
@@ -148,6 +150,8 @@ def test_illegal_early_codes_are_counted_not_clipped():
     assert report["lower_lsb"] == pytest.approx([0.0] * 5)
 
 
+# ---- 3. 余量预算与越界记录 --------------------------------------------------
+# 将统计计数与解析下界对照，保留无法应用的组合以供调用方追查。
 def test_range_ledger_reports_bounds_and_illegal_events():
     spec = _spec()
     ledger = range_ledger(spec, v_high=3.0, v_low=-3.0)

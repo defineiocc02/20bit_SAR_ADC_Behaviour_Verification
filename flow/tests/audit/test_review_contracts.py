@@ -85,6 +85,7 @@ def reference_gate_case(tmp_path, monkeypatch):
     """
     monkeypatch.delenv("ADC_SOURCES_DIR", raising=False)
     root = tmp_path / "repo"
+    # 与现行门禁共用清单路径；夹具初始化失败不能代替后续负向断言。
     for directory in (MANIFEST_DIR, "references", "src", "tests"):
         (root / directory).mkdir(parents=True, exist_ok=True)
     objects = [

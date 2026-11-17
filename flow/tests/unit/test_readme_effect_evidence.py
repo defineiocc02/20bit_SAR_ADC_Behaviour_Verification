@@ -1,4 +1,16 @@
-"""重算冻结 README 图表指标，不把历史波形当作当前默认模型的输出。"""
+# =============================================================================
+# 文件名     : test_readme_effect_evidence.py
+# 模块名     : test_readme_effect_evidence
+# 版本       : v1.0
+# 功能       : 从冻结样本重算历史 README 的静态误差和频谱数字
+# 设计说明   :
+#   * JSON 的参数与 NPZ 的原始样本须来自同一 Git 提交，否则比较没有意义。
+#   * 只对旧结果做数值回归，当前模型的测试不依赖这批大文件留在交付树。
+#   * CI 使用完整 Git 历史。缺少该快照只在脱离历史的源码副本标为不可用。
+# 变更记录   : 旧样本移出工作树后，改从冻结提交读取。
+# =============================================================================
+
+"""从固定 ADC 时钟和样本重算公开图，不把历史波形当作当前模型输出。"""
 
 import io
 import json
@@ -39,6 +51,7 @@ def historical_readme_asset():
 
 
 def test_calibration_plot_metrics_match_retained_samples(historical_readme_asset):
+    # 校准前后共用物理输入和采样率；噪声失真功率应剔除直流及注入音。
     metadata = json.loads(historical_readme_asset("calibration_40m.json"))
     with np.load(io.BytesIO(historical_readme_asset("calibration_40m.npz")), allow_pickle=False) as samples:
         for name, case in metadata["cases"].items():
@@ -61,6 +74,7 @@ def test_calibration_plot_metrics_match_retained_samples(historical_readme_asset
 
 
 def test_interleave_plot_spurs_and_rms_match_retained_samples(historical_readme_asset):
+    # 这里用残差谱按满幅正弦归一化，两个交织杂散的位置由样本数与 k 决定。
     metadata = json.loads(historical_readme_asset("interleave_40m.json"))
     with np.load(io.BytesIO(historical_readme_asset("interleave_40m.npz")), allow_pickle=False) as samples:
         for row in metadata["rows"]:

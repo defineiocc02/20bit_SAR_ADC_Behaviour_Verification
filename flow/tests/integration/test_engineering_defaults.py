@@ -37,7 +37,10 @@ def test_defaults_do_not_make_low_level_config_implicitly_ready():
     with pytest.raises(ConfigError, match="missing"):
         Config().check_legal()
     model = default_model()
-    # [合同] 默认入口应选中现行 ADC2 档位；低层 Config() 仍须显式配置。
+    # -------------------------------------------------------------------------
+    # [合同] 默认入口只补齐公开 API 的参数，低层 Config() 仍由调用方明确填写。
+    # v2.1 的 13 bit 与半开差分窗口是一组；异常端点仍由 ADC2 原语负责。
+    # 这里验证的是工程默认，而不是实测硅片的位宽或噪声。
     # 同时钉住位宽和边界，防止 13 bit 搭配历史 14 bit 的窗口而悄悄改变换算增益。
     assert model.cfg.adc2_n_bits == 13
     assert (model.cfg.adc2_v_min, model.cfg.adc2_v_max) == (-0.1875, 0.5625)

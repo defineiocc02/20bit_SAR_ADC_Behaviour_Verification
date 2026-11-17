@@ -107,9 +107,13 @@ def test_no_new_silently_unused_modules_appear():
     root = ROOT / "src/adi_model"
     stems = {p.stem: p for p in root.rglob("*.py") if p.stem not in ("__init__", "__main__")}
 
-    # 收集 src/ 内的 import 名
+    # 统计真实 import。运行中的向量和画图工具也是消费方，已归档的脚本不算。
     imported: set[str] = set()
-    for path in (ROOT / "src").rglob("*.py"):
+    active_sources = list((ROOT / "src").rglob("*.py"))
+    active_sources.extend(
+        path for path in (ROOT / "tools").rglob("*.py") if "_legacy" not in path.parts
+    )
+    for path in active_sources:
         for node in ast.walk(ast.parse(path.read_text(encoding="utf-8", errors="ignore"))):
             if isinstance(node, ast.ImportFrom):
                 imported.update(alias.name for alias in node.names)
@@ -133,6 +137,6 @@ def test_no_new_silently_unused_modules_appear():
         orphans.append(relatives)
 
     assert not orphans, (
-        "these modules are neither imported by src/ nor referenced by any test, "
+        "these modules are neither imported by active source/tools nor referenced by any test, "
         "and they do not declare that status:\n  " + "\n  ".join(orphans)
     )

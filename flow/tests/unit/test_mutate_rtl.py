@@ -83,6 +83,7 @@ def test_operator_set_and_declared_bounds():
 
 def test_edge_delete_requires_multiple_edges_and_reports_current_inventory(sites):
     """单沿输入不可删除；多沿输入可删一个沿且不能把历史计数当现行判据。"""
+    # 定向输入先固定算子语义，避免只比较同一枚举器产出的两组计数。
     op = next(op for op in mrt.OPERATORS if op.name == "EdgeDelete")
     assert op.find("fixture.sv", ["always_ff @(posedge clk) q <= d;"]) == []
     candidates = op.find("fixture.sv", ["always_ff @(posedge clk or negedge reset_n) q <= d;"])

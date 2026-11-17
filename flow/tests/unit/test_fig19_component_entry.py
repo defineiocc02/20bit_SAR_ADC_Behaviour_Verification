@@ -11,7 +11,6 @@ from pathlib import Path
 import pytest
 from _rtl_test_support import invoke, load_tool
 
-from adi_model.defaults import default_model
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -55,19 +54,22 @@ def test_component_rejects_invalid_counts_before_any_output_or_tool_call(tmp_pat
     assert not marker.exists(), "invalid counts reached the declared external tool"
 
 
+@pytest.mark.parametrize("explicit_plant", [False, True], ids=["fixture", "plant-json"])
 def test_valid_component_does_not_construct_training_rng_or_sine_arrays(
-    tmp_path, monkeypatch, capsys
+    tmp_path, monkeypatch, capsys, explicit_plant
 ):
     driver = load_tool("run_fig19_rtl_calibration", monkeypatch)
-    # 实际 C 仅是这一输入边界测试的显式 plant，不交给任何拟合器。
-    chip = default_model(seed=17).chip
-    physical = {
-        name: getattr(chip, name).tolist()
-        for name in ("C_main", "C_sub", "C_bridge", "c_p_main", "c_p_sub")
-    }
-    physical["C_feedback_true"] = chip.require_feedback()
-    plant = tmp_path / "plant.json"
-    plant.write_text(json.dumps(physical))
+    fixture = ROOT / "flow/sim/fixtures/fig19_ideal_ports"
+    nominal = driver.FixedPointReconstructor.from_dict(
+        json.loads((fixture / "registers_nominal.json").read_text(encoding="utf-8"))
+    )
+    plant_args = []
+    if explicit_plant:
+        # 明确导出与 Fig19 映像同形状的实体。当前工程默认模型不是该夹具的来源。
+        physical = driver.fixture_nominal_plant(fixture, nominal)
+        plant = tmp_path / "plant.json"
+        plant.write_text(json.dumps(physical))
+        plant_args = ["--plant-json", plant]
 
     def forbidden_learning_array(*args, **kwargs):
         pytest.fail("component-only called an unused training RNG or holdout sine generator")
@@ -78,6 +80,7 @@ def test_valid_component_does_not_construct_training_rng_or_sine_arrays(
         boundary.append(command)
         raise OSError("TEST_STOP_BEFORE_EXTERNAL_TOOL")
 
+    monkeypatch.setattr(driver, "default_model", forbidden_learning_array)
     monkeypatch.setattr(driver.np.random, "Generator", forbidden_learning_array)
     monkeypatch.setattr(driver.np, "sin", forbidden_learning_array)
     monkeypatch.setattr(driver, "command_for", lambda simulator: ["explicit_test_tool"])
@@ -91,8 +94,9 @@ def test_valid_component_does_not_construct_training_rng_or_sine_arrays(
             "4096",
             "--holdout",
             "512",
-            "--plant-json",
-            plant,
+            "--fixture-dir",
+            fixture,
+            *plant_args,
             "--out",
             output,
         ],
@@ -103,6 +107,12 @@ def test_valid_component_does_not_construct_training_rng_or_sine_arrays(
     assert "TEST_STOP_BEFORE_EXTERNAL_TOOL" in capsys.readouterr().err
     manifest = json.loads((output / "manifest.json").read_text())
     assert manifest["execution_mode"] == "COMPONENT_ONLY_NO_TRAINING"
+    expected_source = (
+        "EXPLICIT_FIXED_PLANT_JSON_NOT_LEARNER_INPUT"
+        if explicit_plant
+        else "DECLARED_FIG19_FIXTURE_NOMINAL_CAPACITANCE"
+    )
+    assert manifest["manufacturing"]["source"] == expected_source
     assert manifest["status"] == "FAIL", "the injected execution stop is not a completed RTL run"
     assert not (output / "frozen_fit.json").exists()
     assert not (output / "fitted_registers.json").exists()

@@ -1,3 +1,13 @@
+// =============================================================================
+// 文件名     : fig19_static_plant_tb.sv
+// 模块名     : fig19_static_plant_tb
+// 版本       : v1.0
+// 功能       : 按显式数值载荷验证 Fig.19 双采样节点从开关到退休的数据归属。
+// 设计说明   : 模拟参考和实际电容只供理想外部宏，不能进入被测重构器。
+//              运行长度由目标记录加三笔合法尾部定义，窗口关闭不表示流已停止。
+//              当前基础主核的观察接口与历史扩展记录分别按其真实字段处理。
+// 变更记录   : 使用现行基础主核端口，原 CSV 的扩展栏以零表示无扩展数据。
+// =============================================================================
 // 职责：以实际sar20_digital_core和外部Fig19 binding验证连续合法源的有限静态双节点观测窗口。
 // 接口：SADC/RDAC采集shift为signed Q32的V/Vfs；分别施加到真实acquiring组的已知输入。
 // 采样：negedge phase0读取合格的两节点端口；negedge phase9仅用外部注册mask和独立plant权重算F。
@@ -12,6 +22,13 @@
 module fig19_static_plant_tb #(
   parameter realtime P_TICK_NS  =  0.0  // tick单位ns；必须编译时显式提供正值。
 );
+  // =============================================================================
+  // 1. 夹具边界与编号
+  // =============================================================================
+  // 编译时的几何和时钟必须明确，避免把当前软件默认模型当成这份历史绑定的参数。
+  // MAX_CAPTURE 只限制可验证的目标数；部件的显式连续输入还须给合法尾部。
+  // ID 表为第一笔采样前保留位置，下一笔接受编号不能靠 CSV 行号反推。
+  // Q_SCALE 将数字偏移还原到归一化电压，乘 vfs 后才与真实输入电压相加。
   localparam int MAX_CAPTURE = 8192;  // 目标窗口1..8192笔；程序另含3笔显式合法postamble。
   localparam int MAX_PROGRAM = MAX_CAPTURE + 3;
   localparam int MAX_ID = MAX_PROGRAM + 1;
@@ -23,11 +40,17 @@ module fig19_static_plant_tb #(
       forever #(P_TICK_NS/2) clk  =  ~clk;
     end
   end
+  // --- 配置入口 ---
+  // 低有效复位在所有程序和系数已解析之前保持。完整写读后才允许启动源输入。
+  // 写数据和配置回读是独立证据，清空配置不用于掩盖有限窗口的最后几笔在途样本。
   logic rst_n = 0, cfg_wr = 0, cfg_validate = 0, cfg_clear_valid = 0;
   logic [15:0] cfg_addr = 0;
   logic [63:0] cfg_wdata = 0;
   wire [63:0] cfg_rdata;
   wire cfg_ready;
+  // --- 源控制与采集侧偏移 ---
+  // 逐笔源描述符先经握手接受，再由实际采集输出绑定两个节点。
+  // 偏移值分别应用给量化器和残差采样节点，不用两者共用一条近似来糊住输入关系。
   logic source_control_valid = 0;
   logic [CONTROL_WORD_BITS-1:0] source_control_word = 0;
   logic [STATE_BITS-1:0] source_control_state = 0;
@@ -35,6 +58,9 @@ module fig19_static_plant_tb #(
   wire [CONTROL_WORD_BITS-1:0] acquisition_control_word;
   wire [STATE_BITS-1:0] acquisition_control_state;
   wire signed [V_BITS-1:0] acquisition_sadc_shift_q, acquisition_rdac_shift_q;
+  // --- 理想宏的相位及比较器模型 ---
+  // 粗量化有两个银行，在组交接时只更新下一银行的期望码；细码仅随已形成的残差转移。
+  // 先由连续值算理想目标，随后给真实试探寄存器比较，测试不伪造 DUT 的已决前缀。
   wire [3:0] phase;
   wire unused_quiet, unused_tp, unused_az, unused_amp, unused_precharge, unused_accurate;
   wire [17:0] acquiring, converting, selected, unused_aux, unused_hold_low;
@@ -50,21 +76,18 @@ module fig19_static_plant_tb #(
   logic ra_sat = 0, adc2_over = 0;
   wire [N_SLICES-1:0][N_UNIT_MAIN-1:0] main_sw;
   wire [N_SLICES-1:0][N_UNIT_SUB-1:0] sub_sw;
+  // --- 实际片组引脚与退休证据 ---
+  // 必须记录真正写到 RDAC 的选择和开关。不能只验证主核内部同一份尚未驱动的掩码。
+  // 观察和退休分为两类事件，分别核对上下文和定点出口，允许指出哪个阶段丢了身份。
   wire sw_valid, dout_valid, analog_sticky, dout_analog_bad;
   wire [19:0] dout;
   wire [31:0] result_id, status_word;
   wire [4:0] result_flags;
   wire unused_clip_low, unused_clip_high, unused_acc_ovf, obs_valid;
   wire [CAL_OBS_BITS-1:0] obs_data;
-  wire [33:0] obs_caaz;
-  wire unused_chop, unused_az_capture, unused_az_hold, unused_raw_valid;
   wire conversion_fault;
-  wire [91:0] unused_raw_data;
-  wire signed [20:0] unused_difference;
-  wire unused_difference_valid, unused_pair_fault;
-  wire [31:0] unused_first_id, unused_pair_id;
-  wire [3:0] unused_pair_fault_code;
-  sar20_digital_core #(.P_CAL_OBSERVE(1'b1), .P_CAAZ_ENABLE(1'b0)) dut(
+  // 现行主核只运行普通 AZ，测试夹具不再依赖已移除的扩展参数或端口。
+  sar20_digital_core #(.P_CAL_OBSERVE(1'b1)) dut(
     .clk(clk), .rst_n(rst_n), .source_control_valid(source_control_valid),
     .source_control_word(source_control_word), .source_control_state(source_control_state),
     .source_control_ready(source_control_ready), .acquisition_control_valid(acquisition_control_valid),
@@ -82,18 +105,20 @@ module fig19_static_plant_tb #(
     .ra_sat(ra_sat), .rdac_ovf(1'b0), .adc2_over(adc2_over), .slice_sel(selected), .main_sw(main_sw), .sub_sw(sub_sw),
     .sw_valid(sw_valid), .dout(dout), .dout_valid(dout_valid), .clip_low(unused_clip_low), .clip_high(unused_clip_high),
     .analog_ovf(analog_sticky), .acc_ovf(unused_acc_ovf), .status_word(status_word), .conversion_fault(conversion_fault), .dout_sample_id(result_id),
-    .dout_flags(result_flags), .cal_obs_valid(obs_valid), .cal_obs_data(obs_data), .dout_analog_bad(dout_analog_bad),
-    .caaz_az_capture_ok(1'b0), .caaz_input_chop_neg(unused_chop), .caaz_az_capture_en(unused_az_capture),
-    .caaz_az_hold(unused_az_hold), .cal_obs_caaz_data(obs_caaz), .caaz_raw_valid(unused_raw_valid),
-    .caaz_raw_data(unused_raw_data), .caaz_pair_difference(unused_difference),
-    .caaz_pair_difference_valid(unused_difference_valid), .caaz_pair_first_sample_id(unused_first_id),
-    .caaz_pair_id(unused_pair_id), .caaz_pair_fault(unused_pair_fault), .caaz_pair_fault_code(unused_pair_fault_code));
+    .dout_flags(result_flags), .cal_obs_valid(obs_valid), .cal_obs_data(obs_data), .dout_analog_bad(dout_analog_bad));
 
   always_comb begin
     flash_therm = 7'((1<<(coarse_target[dut.u_structure.bank]>>6))-1);
     for (int b = 0;b<2;b++)coarse_ge[b] = coarse_target[b]>=int'(coarse_trial[b]);
     fine_ge = fine_target>=int'(fine_trial);
   end
+  // =============================================================================
+  // 2. 输入镜像和独立物理数据
+  // =============================================================================
+  // 装载系数供数字侧，实际电容权重供宏侧；用一套数替代两者会让校准错误自证。
+  // 片组物理状态按实际片号保存，槽位号只有当次映射中的意义。
+  // 采集接受、残差、观察与退休各有独立记录，防止结果匹配掩盖漏事件或重复事件。
+  // 未初始化的 ID 槽用负值标记；发现真实记录重复时直接失败，不覆盖上一次记录。
   logic [47:0] loaded_weights[18][71];
   logic signed [63:0] loaded_scalars[3];
   real plant_weights[18][71];
@@ -115,6 +140,8 @@ module fig19_static_plant_tb #(
   int pending_fine = 2048, unused_pending_owner = -1;
   int controls_fd = 0, samples_fd = 0, rdac_fd = 0, residues_fd = 0, events_fd = 0;
 
+  // 任何断言失败先刷出已经写好的 CSV，便于在失败位置留现场。
+  // 统计计数只随实际检查发生，不能从预期程序长度生成一条完成记录。
   task automatic require_ok(input bit condition, input string message);
     checks++;
     if (!condition)begin
@@ -127,6 +154,11 @@ module fig19_static_plant_tb #(
     end
   endtask
 
+  // =============================================================================
+  // 3. 载荷解析和理想码域
+  // =============================================================================
+  // 首先过滤非有限浮点。若把 NaN 留给比较关系，外部故障可能体现为假正常。
+  // 十六进制权重用逐字符累积，以保留完整位宽并拒绝隐式截断或不合规范的 token。
   function automatic bit finite_real(input real value);
     logic [63:0] unused_representation;
     unused_representation = $realtobits(value);
@@ -156,6 +188,8 @@ module fig19_static_plant_tb #(
     return ch==32 || ch==9 || ch==10 || ch==13 || ch==11 || ch==12;
   endfunction
 
+  // 控制字和拒绝标志只收非负十进制数字，并在每次累加后检查范围。
+  // 不接受空字符串、带符号或混入字母的 token，避免仿真器隐式解析成合法控制字。
   function automatic int decimal_word(input string token, input int maximum);
     int value, ch;
     value = 0;
@@ -169,6 +203,8 @@ module fig19_static_plant_tb #(
     return value;
   endfunction
 
+  // 参考电压允许带符号、小数及带符号指数，但至少要存在数字。
+  // 语法判断与有限值判断独立，防止扫描器只吃前半个 token 后仍产生一条假合法记录。
   function automatic bit real_token_valid(input string token);
     int i, digits, ch;
     i = 0;
@@ -206,6 +242,8 @@ module fig19_static_plant_tb #(
     return i==token.len();
   endfunction
 
+  // 每行显式列出控制字、电压、预期拒绝。末尾额外列表示载荷合同变化，直接失败。
+  // 预期拒绝仅用于最终验收，不会进入比较器代码或替代主核真实 valid。
   task automatic parse_stimulus_row(input string line, output int word_value, output real reference_value, output int reject_value);
     string fields[3];
     int i, start_pos, count;
@@ -228,6 +266,8 @@ module fig19_static_plant_tb #(
     require_ok(count==1 && finite_real(reference_value),"invalid finite reference token");
   endtask
 
+  // 独立检查 lower 与总偏移的 Q32 编码，使两条采样节点的物理端口能单独核对。
+  // 二者共享低位条目但总偏移额外含上位组。把总值同时送给两个节点仍会失败。
   function automatic logic signed [63:0] expected_lower_q(input int word_value);
     return ((word_value&16)!=0?64'sd33554432:64'sd0)+
     ((word_value&4)!=0?64'sd9586981:64'sd0)+
@@ -240,6 +280,8 @@ module fig19_static_plant_tb #(
     ((word_value&8)!=0?64'sd16777216:64'sd0);
   endfunction
 
+  // 理想目标按连续电压落入指定码箱，范围端点在仿真前明确。
+  // 细码在轨端可裁剪，但越界仍按模拟标志保存，不能用裁剪后的合法整数掩盖故障。
   function automatic int uniform_coarse(input real value);
     if (value<=-vfs)return 0;
     if (value>=vfs)return 511;
@@ -252,6 +294,11 @@ module fig19_static_plant_tb #(
     return int'($floor((value-adc2_min_v)*4096.0/(adc2_max_v-adc2_min_v)));
   endfunction
 
+  // =============================================================================
+  // 4. 装载、回读与提交
+  // =============================================================================
+  // 稳定输入只在下降沿给出，被测核在上升沿接收。退出写入后再采组合回读。
+  // 权重镜像写全后才送 validate，保持真正配置成功和写入尝试之间的区别。
   task automatic write_cfg(input logic [15:0] address, input logic [63:0] value);
     @(negedge clk);
     cfg_addr = address;
@@ -286,6 +333,14 @@ module fig19_static_plant_tb #(
   endtask
   // 理想宏只在下降沿动作，避免与DUT上升沿捕获竞争。
 
+  // =============================================================================
+  // 5. 外部理想宏和残差接口的动作时序
+  // =============================================================================
+  // 相位 1 接受下一组控制字，phase 0 读取已被绑定的实际两节点偏移。
+  // 本次接受与当前正在转换的记录不能混用。用 acquisition_owner 和本笔 ID 核对。
+  // 按实际片号建立保持值，后续残差只能来自本笔已经保存的那组片。
+  // 相位 9 读取已写出的实际引脚与保留的电容权重，下一次相位 0 才给细比较目标。
+  // pending 不能被另一个残差覆盖；无本笔待决残差时外部故障清零。
   initial forever begin : macro_actions
     int owner, index, coarse_code, selected_count;
     logic bank_next;
@@ -310,6 +365,8 @@ module fig19_static_plant_tb #(
           ra_sat = 0;
           adc2_over = 0;
         end
+        // 必须观察引脚上的真实采集资格，不能按预期程序行数直接认定该笔已采样。
+        // 物理表只对真正选择的片写入保持值，其他片继续保留各自状态。
         if (acquisition_control_valid)begin
           owner = int'(dut.u_structure.current_id)+1;
           require_ok(owner>=2 && owner<=MAX_ID && owner==acquisition_owner,"quiet/source owner mismatch");
@@ -338,6 +395,8 @@ module fig19_static_plant_tb #(
           $signed(acquisition_sadc_shift_q), $signed(acquisition_rdac_shift_q), sadc_sample, rdac_sample, acquiring, dut.u_structure.u_pool.acquiring_ids);
         end
       end
+      // 计算残差之前核对片组与实际写出掩码。绑定错误的定位由观察记录提供，
+      // 而不是在宏模型内自动修正主核已经输出的掩码。
       if (phase==9 && dut.u_structure.current_word_valid && dut.u_structure.conv_valid)begin
         owner = int'(dut.u_structure.current_id);
         require_ok(owner>=2 && owner<=MAX_ID,"residue owner out of range");
@@ -379,6 +438,13 @@ module fig19_static_plant_tb #(
     end
   end
 
+  // =============================================================================
+  // 6. 上升沿上的身份和引脚观察
+  // =============================================================================
+  // 沿前记录真正握手和比较请求，沿后只看已注册的宏输出。
+  // 切换在途片组后不能重新读 live word 代替请求时的源控制。
+  // OBS 要有合法残差，OUT 要有本笔 OBS。重复身份或孤立事件都立即失败。
+  // 观测的原始包与外部输出码保留在不同列和事件类型，各自供独立检查。
   initial forever begin : observe_edge
     bit source_before, query_before, accepted_before, bound_valid_before;
     int source_owner_before, source_word_before;
@@ -412,7 +478,8 @@ module fig19_static_plant_tb #(
           require_ok(status_word==0 && !conversion_fault,"healthy target OBS has a controller/conversion fault");
         observed_by_id[query_owner] = 1;
         observations++;
-        $fdisplay(events_fd,"0,OBS,%0d,,,,%h,%h,%h,%0d,%0d", query_owner, obs_data, obs_caaz, status_word, analog_sticky, conversion_fault);
+        // 保留历史 CSV 列位，零值表示该基础夹具没有扩展观测端口。
+        $fdisplay(events_fd,"0,OBS,%0d,,,,%h,%h,%h,%0d,%0d", query_owner, obs_data, 34'd0, status_word, analog_sticky, conversion_fault);
       end
       if (dout_valid)begin
         query_owner = int'(result_id);
@@ -427,6 +494,9 @@ module fig19_static_plant_tb #(
         outputs++;
         $fdisplay(events_fd,"0,OUT,%0d,%0d,%0d,%0d,,,%h,%0d,%0d", query_owner, dout, result_flags, dout_analog_bad, status_word, analog_sticky, conversion_fault);
       end
+      // 逐次记录已决前缀、映射码、绑定结果及真实接受资格。
+      // 即使拒绝也保留该次请求及当时物理引脚，不能只统计成功写入的事件。
+      // 每笔请求次数受限可防止两次同相位查询被误当七次正常已决更新。
       if (query_before)begin
         query_owner = int'(dut.u_structure.current_id);
         require_ok(query_owner>=2 && query_owner<=MAX_ID,"RDAC query owner out of range");
@@ -448,6 +518,8 @@ module fig19_static_plant_tb #(
         if (accepted_before)accepted_by_id[query_owner]++;
       end
       // 所有owner/query输入已在沿前缓存；以下只观察NBA后真实注册端口。
+      // 沿后观察等待一皮秒，越过非阻塞赋值，但仍在当前周期边界内。
+      // 此处同步延迟用于仿真观察，不代表真实外部宏可以满足相位内的物理建立时间。
       if (source_before || query_before) #0.001;
       if (source_before)begin
         require_ok(int'(dut.u_structure.current_id)+1==source_owner_before,
@@ -472,6 +544,13 @@ module fig19_static_plant_tb #(
     end
   end
 
+  // =============================================================================
+  // 7. 显式输入身份与有限窗口验收
+  // =============================================================================
+  // 先核对编译时几何、参数和运行时全部载荷。输入缺失不猜等幅或默认零。
+  // 带锁存的数据、实际电容和刺激分别装入，必须精确匹配约定的记录数量。
+  // 尾部三笔全是合法刺激，专门用来把目标窗口推到退休。
+  // 最终还逐样本区分目标和尾部状态，不能只由总退休次数相等认定顺序正确。
   initial begin : staged_inputs_and_run
     int fd, count, reject_count, read_word, read_reject;
     string token, line, unused_tail;
@@ -508,6 +587,8 @@ module fig19_static_plant_tb #(
       held_owner[s] = -1;
       held_valid[s] = 0;
     end
+    // 数字权重限制为正的有符号 48 位值；解析后再转换位宽，避免先截断而掩盖非法大值。
+    // offset、窗口最小和最大值由三条有符号记录提供，窗口次序不能用排序修正。
     fd = $fopen(weights_path,"r");
     require_ok(fd!=0,"cannot open staged decoder weights");
     for (int s = 0;s<18;s++)for (int u = 0;u<71;u++)begin
@@ -527,6 +608,8 @@ module fig19_static_plant_tb #(
     require_ok(loaded_scalars[1]<loaded_scalars[2],"decoder min/max order invalid");
     require_ok($fscanf(fd,"%s", token)!=1,"extra scalar record");
     $fclose(fd);
+    // 独立宏的权重必须全部有限且为正，与数字载荷文件各自核对数量。
+    // 少一个物理单元会改变残差，不能静默填零或从重构系数反推。
     fd = $fopen(plant_path,"r");
     require_ok(fd!=0,"cannot open independent plant weights");
     for (int s = 0;s<18;s++)for (int u = 0;u<71;u++)begin
@@ -536,6 +619,8 @@ module fig19_static_plant_tb #(
     end
     require_ok($fscanf(fd,"%s", token)!=1,"extra plant weight record");
     $fclose(fd);
+    // 固定行数明确划分目标和合法尾部。拒绝统计只属于目标区间。
+    // 目标和尾部全部解析后才能完整检查刺激范围，避免运行中遇到错误才改程序长度。
     fd = $fopen(stimulus_path,"r");
     require_ok(fd!=0,"cannot open staged stimulus");
     reject_count = 0;
@@ -552,6 +637,8 @@ module fig19_static_plant_tb #(
     $fclose(fd);
     require_ok(expected_samples-reject_count==expected_good,"staged reject count disagrees with expected_good");
     healthy_capture = reject_count==0;
+    // 必须将五类原始证据都启用。缺失一种会使下游失去对齐或物理引脚的独立记录。
+    // 以同一轮新目录保存这些文件，不能附加到已有日志假装连续执行。
     controls_fd = $fopen({trace_dir,"/controls.csv"},"w");
     samples_fd = $fopen({trace_dir,"/samples.csv"},"w");
     rdac_fd = $fopen({trace_dir,"/rdac_events.csv"},"w");
@@ -566,6 +653,8 @@ module fig19_static_plant_tb #(
     repeat(3)@(negedge clk);
     rst_n = 1;
     configure();
+    // 至少等待目标数和各阶段最低计数达到后才离开运行循环。
+    // 退出后立刻再查精确等式，过多尾部或不合法的额外退休不算完成。
     while (controls<program_samples || samples<expected_samples+2 || residues<expected_samples+2 ||
       rdac_events<7*(expected_samples+2) || observations<expected_good || outputs<expected_good)begin
       @(negedge clk);
@@ -574,6 +663,8 @@ module fig19_static_plant_tb #(
     require_ok(controls==program_samples && samples==expected_samples+2 && residues==expected_samples+2 &&
       rdac_events==7*(expected_samples+2) && observations==expected_good && outputs==expected_good,
       "finite capture source/plant/event/OBS/OUT count mismatch");
+    // 第一、第二尾部允许采样和更新开关，第三尾部只允许接受。
+    // 这一边界只定义有限观察窗口，不证明电路已空闲，也不在这里清掉真正在途的事务。
     for (int id = 2;id<=MAX_ID;id++)if (record_by_id[id]>=0)begin
       int index;
       index = record_by_id[id];
@@ -592,6 +683,8 @@ module fig19_static_plant_tb #(
           "third postamble must only be accepted, not sampled or converted");
       end
     end
+    // 所有记录写完并关文件后才能发布完成行，保存状态与所报计数绑定。
+    // 超时由单独 watchdog 输出失败，输出了一部分也不能被认作完成。
     $fflush(controls_fd);
     $fflush(samples_fd);
     $fflush(rdac_fd);

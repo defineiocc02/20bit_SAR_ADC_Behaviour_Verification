@@ -1,4 +1,17 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : run_fig19_rtl_calibration.py
+# 版本       : v1.0
+# 功能       : 运行独立 Fig.19 静态组件，核对物理轨迹和整数输出。
+# 设计说明   :
+#   * 该试验使用显式 63+8 和 12 位码制。模型默认值或数字主线的规格改动
+#     不会替换已登记的夹具参数。实际物理电容和名义整数权重分别追踪。
+#   * 静态模式只跑明确给出的字序列。训练与留出分别执行，实际制造数据
+#     只供物理参考，不能传给拟合器生成自己会通过的答案。
+#   * 每个工具从本次目录运行，源、输入包和轨迹的 SHA-256 随工件存档。
+#     参数不合法、工具失败、协议检查失败均保留失败状态和输入身份。
+# 变更记录   : 恢复使用固定 Fig.19 夹具的名义捕获，并与组件编译规则对齐。
+# =============================================================================
 """运行显式Fig19理想双节点的真实RTL、静态训练及同raw留出。
 
 制造数据只供独立plant；训练器仅接收真实DUT packet与已知输入。该夹具不证明
@@ -45,6 +58,13 @@ from run_open_rtl import (  # noqa: E402
 )
 
 
+# =============================================================================
+# 1. 数据判据与独立参考
+# =============================================================================
+# 固定 Fig.19 的参考以已登记码域为准。修改默认模型不能改变这个夹具的输出解释。
+# 比较使用严格的独立期望，不允许被查文件定义自己的 PASS。
+# 拒绝非法引用、模拟域错误和输出裁剪采用不同字段，不能以同一个等值码相互抵消。
+# 所有调用从实测或可重算的输入形成期望，出了错误要把原因传回入口。
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise ValueError(message)
@@ -71,6 +91,13 @@ def dither_terms(word: int) -> tuple[int, int, int]:
     return lower, lower + upper * 16777216, upper
 
 
+# =============================================================================
+# 2. 轨迹解析
+# =============================================================================
+# CSV 必须来自同一次运行。控制、物理引脚、残差码和最终出码各有独立的记录顺序。
+# 不要先按标签重排再检查样本归属，否则一些串笔或重复可以被排序掩盖。
+# 保留完整尾段直到验证物理捕获计数。训练只在切出有效内段后继续。
+# 此处读取证据不回写。如果轨迹不足，调用方报告这一次没有形成有效产物。
 def rows(path: Path) -> list[dict]:
     with path.open(newline="", encoding="utf-8") as stream:
         reader = csv.DictReader(stream)
@@ -82,6 +109,13 @@ def rows(path: Path) -> list[dict]:
     return data
 
 
+# =============================================================================
+# 3. 片序和绑定
+# =============================================================================
+# 物理片身份同时用于读权重和定位导线。槽位置相同不代表物理片相同。
+# 除集合交叠外，还要按槽位检查片号顺序，避免两个相同权重的片把错误隐藏。
+# 采样时的已知电压由声明的绑定提供，不以制造真值或本次输出做校正输入。
+# 在初始采集位与进行中的转换位之间，标签和片号都必须随记录一起传递。
 def unpack_ids(value: str) -> list[int]:
     packed = int(value, 16)
     require(0 <= packed < 1 << 40, "ordered physical IDs exceed eight5bit slots")
@@ -103,6 +137,13 @@ def binding_features(spec, controls):
     return np.ones_like(masks, dtype=np.int8), known
 
 
+# =============================================================================
+# 4. 整数参考
+# =============================================================================
+# 独立计算使用显式二进制尺度、符号与取整。浮点近似不能代替边界检查。
+# 本层读取冻结寄存器，不从实时模拟状态重新估算系数。
+# 实物等效电容仅供模拟余差参考。软件定点输出使用同次实际装载的整数表。
+# 最终输出含码、裁剪和错误状态，数值相等仍需点对点核查其它标志。
 def round_even(numerator: int, denominator: int) -> int:
     quotient, remainder = divmod(numerator, denominator)
     return quotient + int(
@@ -131,6 +172,52 @@ def scalar_word(image: FixedPointReconstructor, obs, index: int, total_q: int) -
     return min(max(quotient, 0), (1 << fmt.output_bits) - 1), flags
 
 
+# =============================================================================
+# Fig.19 静态夹具的固定名义电容
+# =============================================================================
+def fixture_nominal_plant(fixture: Path, nominal: FixedPointReconstructor) -> dict:
+    """从绑定夹具的公开名义值建立均匀电容阵列，电容单位为 F。
+
+    仅用于 component-only 捕获。真实制造数据仍从显式 plant 输入，
+    或使用与名义装载映像严格一致的同一模型产生。
+    """
+    manifest = json.loads((fixture / "fixture_manifest.json").read_text(encoding="utf-8"))
+    require(
+        manifest["scope"].startswith("SOURCE_FAMILY_FIG19_IDEAL_PORTS"),
+        "component-only requires declared Fig19 fixture capacitances",
+    )
+    parameters = manifest["parameter_inference"]
+    count = nominal.spec.n_slices
+    cu = float(parameters["unit_cap_f"]["value"])
+    bridge = float(parameters["bridge_cap_f"]["value"])
+    cf = float(parameters["feedback_cap_f"]["value"])
+    # 主／子物理电容都是名义 Cu。有效权重里的 beta 在 SplitChip 侧按桥比计算一次。
+    # 固定夹具没有寄生。不能随当前默认 17/5 几何或 13 位 ADC2 一起迁移。
+    require(
+        all(float(parameters[key]["value"]) == 0.0 for key in (
+            "main_parasitic_f", "sub_parasitic_f",
+            "unit_mismatch_std", "bridge_mismatch_std", "feedback_mismatch_std",
+        )),
+        "default Fig19 component plant requires an explicit homogeneous, parasitic-free fixture",
+    )
+    return {
+        "C_main": np.full((count, nominal.spec.dac_n_main), cu).tolist(),
+        "C_sub": np.full((count, nominal.spec.dac_n_sub), cu).tolist(),
+        "C_bridge": np.full(count, bridge).tolist(),
+        "c_p_main": np.zeros(count).tolist(),
+        "c_p_sub": np.zeros(count).tolist(),
+        "C_feedback_true": cf,
+    }
+
+
+# =============================================================================
+# 6. 本次捕获的交叉核查
+# =============================================================================
+# 先确定夹具声明的宽度，再分别核对采样记录的身份、数量与字段。
+# 只有已接受的合法前缀能使模拟引脚变化。被拒绝的事件要保留旧片号和开关状态。
+# 采样端保持量、参考贡献和转换命令在同一笔上重算，避免只验证最终数字码。
+# 整条录制的每一类记录有自身边界。尾部补拍属于证据的一部分，不是训练输出。
+# 用独立物理记录解释捕获 packet，而不是根据观测矩阵反推出真实引脚。
 def verify_trace(
     folder: Path,
     inputs: Path,
@@ -142,7 +229,21 @@ def verify_trace(
     capture_samples: int,
     plan_output: Path | None = None,
 ) -> tuple[dict, object, np.ndarray]:
-    """核完整合法程序和物理尾部；仅前N目标参与学习或退休比较，不声称停机。"""
+    """核完整合法程序和物理尾部；仅前 N 目标参与学习或退休比较。"""
+    image = FixedPointReconstructor.from_dict(json.loads(register_path.read_text()))
+    spec = image.spec
+    # 这条对拍读取独立 Fig.19 的固定前缀表和 12 位 ADC2 输出。
+    # 图内的位宽由装载映像确认；与当前默认模型的 ADC2 设置相互独立。
+    n_main_bits, n_sub_bits = spec.dac_n_main, spec.dac_n_sub
+    require(
+        (spec.n_slices, spec.n_active, n_main_bits, n_sub_bits, spec.adc2_n_bits)
+        == (18, 8, 63, 8, 12)
+        and plant_weights.shape == spec.shape,
+        "Fig19 trace requires matching 63+8 masks and a 12-bit ADC2 image",
+    )
+    # 检查器读取执行目录里这次保存的原件。各 CSV 的作用不可互换。
+    # 控制序列验证本次程序何时受理。采样和余差反映物理层推进，出码验证退休边界。
+    # 出错时仍保留这些记录和原输入。任何单一 CSV 均不足以声称完整转换已经验证。
     controls = rows(folder / "controls.csv")
     samples = rows(folder / "samples.csv")
     residues = rows(folder / "residues.csv")
@@ -156,6 +257,9 @@ def verify_trace(
         and stimulus[n:] == [(0, 0.0, 0)] * 3,
         "finite capture requires N target records and three explicit legal postamble records",
     )
+    # N 是目标比较笔数。固定后缀让前 N 笔完整出码。
+    # 后缀中的部分样本已经混入物理捕获。先用实际各表长度验证这一事实，
+    # 随后只把目标域的合格记录交给模型重放和学习。
     physical_count = n + 2
     require(
         len(controls) == len(stimulus)
@@ -163,6 +267,9 @@ def verify_trace(
         and len(events) == 7 * physical_count,
         "actual source/sample/residue/event coverage differs from the finite program",
     )
+    # 该夹具每次从复位运行，最初可观察样本编号按受理语义从 2 起。
+    # 连续编号不仅给数量，也精确指定每张表中哪些记录能够配对。
+    # 如果某张表编号乱序，不能取两表交集后悄悄删除未匹配记录。
     expected_ids = list(range(2, physical_count + 2))
     require(
         [int(row["sample_id"]) for row in samples] == expected_ids
@@ -173,6 +280,8 @@ def verify_trace(
         all(row["epoch"] == "0" and row["kind"] in ("OBS", "OUT") for row in results),
         "only epoch0 OBS/OUT records are legal in this reset-bounded capture",
     )
+    # 正常场景要求转换无协议错误。负例只允许事先设计的前缀绑定拒绝。
+    # 模拟非法、捕获不足和绑定拒绝是三个不同现象，需要独立指出原因。
     positive_capture = not any(row[2] for row in stimulus[:n])
     for row in results:
         status = int(row["status_word"], 16)
@@ -185,6 +294,8 @@ def verify_trace(
                 status in (0, 13 << 6) and fault == int(status != 0),
                 "early-prefix negative has an unexpected error rather than source binding13",
             )
+    # 每笔从同一个程序条目取得 word、输入电压和两路偏置。
+    # 控制寄存器的选择和真值预设都验证来源，不能只查看命令是否发过。
     control_ids = []
     for index, (control, (word, reference, _)) in enumerate(zip(controls, stimulus, strict=True)):
         lower_q, total_q, _ = dither_terms(word)
@@ -202,6 +313,8 @@ def verify_trace(
             "actual source handshake/registered two-node control differs from its program owner",
         )
         control_ids.append(unpack_ids(control["acquiring_ids"]))
+    # 到这里控制记录的顺序已独立校验，映射只用于后续按真实编号对齐。
+    # 逐事件仍沿记录文件顺序前进，以保留拒绝前一拍的引脚和状态。
     by_id = {int(row["sample_id"]): row for row in residues}
     plans = []
     early_invalid = []
@@ -221,6 +334,8 @@ def verify_trace(
             (int(sample["sadc_shift_q"]), int(sample["rdac_shift_q"])) == (-lower_q, -total_q),
             "actual acquisition ports do not implement the source two-node contract",
         )
+        # SADC 使用 lower，RDAC 采样使用 total。两路电压均从同一次 stimulus 重算。
+        # 保持值来自记录的原节点，不用最终粗码倒推初始输入，以免把错误状态合法化。
         sadc_v, rdac_v = (
             reference - lower_q / 2**32 * config.v_fs,
             reference - total_q / 2**32 * config.v_fs,
@@ -230,6 +345,8 @@ def verify_trace(
             and abs(float(sample["rdac_sample_v"]) - rdac_v) <= 1e-13,
             "lower/total did not enter the two actual held inputs",
         )
+        # 正在转换的片组必须是该笔采样的同一个物理组。
+        # 下一采集组不能与当前转换组占相同片。两种片组角色同时记录才可判断独占状态。
         ids = unpack_ids(residue["converting_ids"])
         acq = unpack_ids(residue["next_acquiring_ids"])
         require(
@@ -263,6 +380,8 @@ def verify_trace(
             int(residue["coarse_final"]) == coarse and int(residue["rdac_final"]) == coarse - upper,
             "actual final c/k differs from sampled SADC and source upper code",
         )
+        # 每组七笔是本夹具的显式前缀事件。尚未判出的低位在事件计算时保持未用。
+        # 对负例的合法性检查仍基于当前前缀，直到终码同时合法也不能省略早期故障。
         group = events[7 * index : 7 * index + 7]
         invalid_prefix = False
         for j, event in enumerate(group):
@@ -328,12 +447,13 @@ def verify_trace(
                 "negative control must isolate early-prefix from final legality",
             )
             early_invalid.append(sid)
+        # 只对已选物理片读取寄存的实际主／子引脚。偏移以物理片为单位进行打包。
+        # 这一步以实际电容复算余差，其值不传给拟合器作为数字参考。
+        # 即便终码吻合，也要验证本笔独立余差和 ADC2 量化均处在声明范围。
         f = 0.0
         for physical in range(18):
             if physical not in ids:
                 continue
-            # 主/子位宽取芯片实际列数（63+8 → 17/5），不再写死。
-            n_main_bits, n_sub_bits = chip.n_main, chip.n_sub
             for unit in range(n_main_bits + n_sub_bits):
                 packed = int(
                     residue["main_physical"] if unit < n_main_bits else residue["sub_physical"], 16
@@ -364,6 +484,8 @@ def verify_trace(
             int(residue["adc2_code"]) == raw and int(residue["analog_bad"]) == 0,
             "raw ADC2 or analog validity differs from independent static plant",
         )
+    # 合法目标样本才允许进入重构。观察和输出两个事件流按独立编号顺序对照。
+    # 拒绝的目标和后缀只有约定的物理记录。漏出码、多出码或串笔都会因此暴露。
     obs_rows = [row for row in results if row["kind"] == "OBS"]
     out_rows = [row for row in results if row["kind"] == "OUT"]
     good_ids = [index + 2 for index, row in enumerate(stimulus[:n]) if not row[2]]
@@ -373,7 +495,8 @@ def verify_trace(
         and bool(good_ids),
         "DUT lost/duplicated accepted sample or emitted rejected prefix",
     )
-    image = FixedPointReconstructor.from_dict(json.loads(register_path.read_text()))
+    # schema 来自本次输入包，字段宽度是生成时定版的协议。
+    # 以独立记录的引脚和片序逐字段比较。不允许从已解码的整数码猜测拍次身份。
     schema = json.loads((inputs / "packet_schema.json").read_text())
     # Numeric equality cannot authenticate identity: equal weights or a slot
     # permutation can preserve every code while assigning the wrong physical row.
@@ -434,6 +557,8 @@ def verify_trace(
         and np.array_equal(observation.sub_masks, np.asarray(expected_sub_arrays)),
         "production observation identity differs from physical row/pin trace",
     )
+    # 用冻结系数解释已确认身份的观测。保持身份核查先于数值比较。
+    # 逐笔检查实际 out code、flags 和 analog_bad，避免裁剪后碰巧数值相同而漏报。
     reconstructed = image.reconstruct(observation)
     for i, row in enumerate(out_rows):
         sid = int(row["sample_id"])
@@ -484,6 +609,15 @@ def verify_trace(
     )
 
 
+# =============================================================================
+# 7. 输入准备与执行边界
+# =============================================================================
+# 定点测试的入口从具体终端参数选择 component-only 或学习模式，输出明确标记范围。
+# 组件模式固定的是程序，不是整个系统的吞吐率。训练参数不改变该模式的采样次数。
+# 学习模式同时跟踪真实 plant、名义装载与实际拟合，三者必须分离。
+# 临时编译输出、案例目录、回放工件均由本次运行独占。
+# 前一步失败不得复用旧输入或旧二进制。入口保留 FAIL 与执行经过的阶段。
+# 实际 HDL 运行与 Python 静态复算分别记录；工具返回成功不是证据已全部检查。
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
@@ -527,6 +661,8 @@ def main() -> int:
         config_path, format_path, binding_path = (
             fixture / name for name in ("config.json", "format.json", "binding.json")
         )
+        # 输入包由明确指定的配置、格式和绑定生成。当前运行复制真实绑定源码。
+        # 再校验输入清单，保证编译器看到的电气命令和复算使用的数学约定是同一套。
         files = build(config_path, format_path, binding_path)
         inputs = out / "inputs"
         inputs.mkdir()
@@ -534,15 +670,28 @@ def main() -> int:
             (inputs / name).write_bytes(content if isinstance(content, bytes) else content.encode())
         validate_inputs(inputs)
         cfg = Config.from_dict(json.loads((inputs / "config.json").read_text()))
-        if args.plant_json is None:
+        # 先解名义寄存器确定期望物理布局。这样不必借用默认模型的后端位数或权重顺序。
+        # 组件默认 plant 的元数据来自此夹具版本。运行中不自动更换成主链 ADC2 的新设置。
+        nominal = FixedPointReconstructor.from_dict(
+            json.loads((fixture / "registers_nominal.json").read_text())
+        )
+        use_fixture_plant = args.component_only and args.plant_json is None
+        if use_fixture_plant:
+            # 静态理想组件用夹具的固定 capacitance。这里不会借用当前主模型的默认几何。
+            plant_dict = fixture_nominal_plant(fixture, nominal)
+            write_json(out / "plant_replay_only.json", plant_dict)
+            manifest["manufacturing"] = {
+                "source": "DECLARED_FIG19_FIXTURE_NOMINAL_CAPACITANCE",
+                "fixture_manifest_sha256": digest(fixture / "fixture_manifest.json"),
+            }
+        elif args.plant_json is None:
             require(0 <= args.plant_seed < 2**32, "plant-seed must be uint32")
             manufacturing = default_model(
                 seed=args.plant_seed,
                 config_overrides={"enable_sampling_noise": False, "ra_enable_noise": False},
             )
             require(
-                manufacturing.nominal_decoder.to_dict()
-                == json.loads((fixture / "registers_nominal.json").read_text()),
+                manufacturing.nominal_decoder.to_dict() == nominal.to_dict(),
                 "custom nominal fixture requires an explicit matching plant-json",
             )
             actual = manufacturing.chip
@@ -590,23 +739,30 @@ def main() -> int:
                 "nominal_reference_low_v": -cfg.v_fs,
             },
         )
+        # 子阵列只按声明桥比折算一次，与生成权重数组的排列保持一致。
+        # 矩阵必须覆盖所有物理片。形状不对停在 Python 输入边界，避免仿真只读到部分权重。
         beta = chip.C_bridge / (chip.C_bridge + chip.C_sub.sum(axis=1) + chip.c_p_sub)
         plant_weights = (
             np.concatenate((chip.C_main, beta[:, None] * chip.C_sub), axis=1)
             / chip.require_feedback()
         )
-        # 几何来自芯片本身，不写字面量：63+8 时代是 (18, 71)，切到 17/5 后是 (18, 22)。
-        # 写死 71 会让工具在几何切换后静默失败（本轮就是这样被抓出来的）。
+        # 数组由 RTL 按映像声明的布局读取。尺寸不一致时在启动工具前报告。
         require(
-            plant_weights.shape == (18, chip.n_main + chip.n_sub) and np.all(plant_weights > 0),
-            "explicit plant geometry differs",
+            plant_weights.shape == nominal.spec.shape and np.all(plant_weights > 0),
+            "explicit plant geometry differs from nominal register image",
         )
+        if use_fixture_plant:
+            # 同一组名义电容和量化映像都需独立自洽，不能用当前默认模型绕过。
+            expected_weights = np.rint(
+                plant_weights * (1 << nominal.format.weight_fraction_bits)
+            ).astype(np.int64)
+            require(np.array_equal(expected_weights, nominal.weights_q),
+                    "declared Fig19 fixture capacitances differ from nominal registers")
         plant_path = out / "plant_effective_weights_only.txt"
         plant_path.write_text("".join(f"{float(w):.17g}\n" for w in plant_weights.flat))
-        nominal = FixedPointReconstructor.from_dict(
-            json.loads((fixture / "registers_nominal.json").read_text())
-        )
         shutil.copyfile(fixture / "registers_nominal.json", out / "registers_nominal.json")
+        # 固定源程序的已知目标用于同质模型参考。参考轨迹的来源另做摘要记录。
+        # 换了输入文件就得对应新身份。禁止悄悄借另一轮训练的输出比较本轮捕获。
         shared_path = args.shared_vectors or fixture / "homogeneous_code_reference.json"
         require(shared_path.stat().st_size < 300_000_000, "reference vector exceeds read limit")
         shared = json.loads(shared_path.read_text())
@@ -645,6 +801,8 @@ def main() -> int:
                 holdout_domain_v=[-2.0, 2.0],
                 learning_arguments_consumed=True,
             )
+        # 冻结传给编译器的源码集合和生成输入。归档中保留足量字段复查实际命令所用身份。
+        # 不使用上次生成的构建缓存。临时目录只指向这一轮确定的输入与快照。
         names = [*CORE_SOURCES, "rtl/params/rtl_error_codes.vh", "flow/sim/tb/fig19_static_plant_tb.sv"]
         snapshot = out / "source_snapshot"
         for name in names:
@@ -674,6 +832,8 @@ def main() -> int:
             input_manifest_sha256=digest(inputs / "rtl_input_manifest.json"),
         )
         write_json(out / "manifest.json", manifest)
+        # 先核对实际执行的仿真器。既不代装工具，也不把工具找不到当作跳过成功。
+        # 版本查询在案例专用目录。编译和执行各有独立日志和超时。
         command = command_for("verilator")
         version = checked_run(
             [*command, "-V"], cwd=out, env=os.environ.copy(), log=out / "tool.log", timeout=30
@@ -693,7 +853,11 @@ def main() -> int:
                 "8192",
                 "-j",
                 "2",
+                # 组件 TB 的告警留在编译日志。漏接管脚和越界选择仍作为错误。
                 "-Wall",
+                "-Wno-fatal",
+                "-Werror-PINMISSING",
+                "-Werror-SELRANGE",
                 *verilator_compiler_args(),
                 "--top-module",
                 "fig19_static_plant_tb",
@@ -709,6 +873,8 @@ def main() -> int:
             checked_run(argv, cwd=work, env=env, log=out / "compile.log", timeout=300)
             binary = work / "obj/Vfig19_static_plant_tb"
 
+            # 每个案例建立独占工件。寄存器、激励、工具返回与实际对拍结论分别写入。
+            # 按事先声明的计数验证完成标记和每个目标是否退休，退出码良好仍需过独立比较。
             def run_case(name: str, target: list[tuple], decoder: FixedPointReconstructor):
                 folder = out / name
                 folder.mkdir()
@@ -733,6 +899,8 @@ def main() -> int:
                 stimulus_path.write_text(
                     "".join(f"{word} {value:.17g} {bad}\n" for word, value, bad in stimulus)
                 )
+                # 保留 JSON 映像与编译器读的 hex 文件。观测解码选择同一次容器的宽度、顺序和尺度。
+                # 未使用的学习参数也单列，避免把一组固定组件的数据描述成一次校准结果。
                 registers = folder / "registers.json"
                 write_json(registers, decoder.to_dict())
                 weights_path, scalars_path = folder / "weights.hex", folder / "scalars.hex"

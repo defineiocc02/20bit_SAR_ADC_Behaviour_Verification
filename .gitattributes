@@ -130,3 +130,5 @@ docs/evidence/20261007/dr_rtl_analysis/** -text -whitespace -diff
 # Generated SVG path data contains serializer whitespace; preserve exact bytes
 # while retaining text diffs and all other whitespace checks.
 docs/readme/fig/source_bound_*.svg -text whitespace=-blank-at-eol
+
+docs/figures/20261117/*.svg -text whitespace=-blank-at-eol

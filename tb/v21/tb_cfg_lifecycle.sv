@@ -143,8 +143,8 @@ module tb_cfg_lifecycle;
         checks++; if ($countones(dut.written_q) !== 0) fail("主 idx 越界却置位"); else okc("主 idx 越界不置位");
         wr(1'b1, 5'd0, 5'd4, 40'd1);           // 子阵列 idx=4 越界
         checks++; if ($countones(dut.written_q) !== 0) fail("子 idx 越界却置位"); else okc("子 idx 越界不置位");
-        // 超范围子权重（> 32*4*2^30 = 137438953472）
-        wr(1'b1, 5'd0, 5'd0, 40'hFFF_FFFF_FFFF);
+        // 合法上限为 32*4*2^30。用上限加 1 检查紧邻的非法码。
+        wr(1'b1, 5'd0, 5'd0, 40'd137438953473);
         checks++;
         if ($countones(dut.written_q) !== 0) fail("超范围子权重却置位");
         else if (cfg_range_err !== 1'b1) fail("超范围子权重未置 range_err");

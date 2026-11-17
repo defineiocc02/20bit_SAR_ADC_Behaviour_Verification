@@ -59,17 +59,6 @@ jobs:
           mkdir -p "$SAR_CI_RUN_ROOT"
           (cd "$SAR_CI_RUN_ROOT" && verilator --version && clang++ --version)
           python -m pip install -e . "pytest>=7.4"
-      - name: Independent integer arithmetic with explicit format
-        run: |
-          python tools/audit_rtl_arithmetic.py \
-            --format-json flow/sim/fixtures/math_only/format.json \
-            --negative-controls --out "$SAR_CI_RUN_ROOT/arithmetic"
-      - name: Selected DSP protocol and numerical kernels
-        run: |
-          python tools/run_open_rtl.py --simulator verilator \
-            --tops result_fifo_tb spi_slave_tb cnv_ctrl_contract_tb \
-              sys_error_corr_contract_tb sinc5_decim_tb \
-            --out "$SAR_CI_RUN_ROOT/dsp-leaf"
       - name: Elaborate the current v21 ADC
         # 只读 v21 生产编译清单。绝对路径允许工具从本次专用目录加载源码。
         # 检查顶层与物理端口能完整展开，生成日志供诊断，不把 lint 当作功能对拍。
@@ -110,6 +99,17 @@ jobs:
             > compile.log 2>&1 || { cat compile.log; exit 1; }
           ./obj/Vtb_cfg_lifecycle | tee simulation.log
           grep -Fx 'RESULT: PASS (20 checks)' simulation.log
+      - name: Independent integer arithmetic with explicit format
+        run: |
+          python tools/audit_rtl_arithmetic.py \
+            --format-json flow/sim/fixtures/math_only/format.json \
+            --negative-controls --out "$SAR_CI_RUN_ROOT/arithmetic"
+      - name: Selected DSP protocol and numerical kernels
+        run: |
+          python tools/run_open_rtl.py --simulator verilator \
+            --tops result_fifo_tb spi_slave_tb cnv_ctrl_contract_tb \
+              sys_error_corr_contract_tb sinc5_decim_tb \
+            --out "$SAR_CI_RUN_ROOT/dsp-leaf"
       - name: Standalone CAAZ behavior contracts
         # CAAZ 独立模型保留偶奇配对检查。主核的基础绑定位不声明模拟自归零。
         # flow 是共享测试夹具的导入根，环境仅对本步骤生效。

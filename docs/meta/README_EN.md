@@ -1,6 +1,6 @@
 # 20-bit / 40 MS/s SAR ADC — Digital IP
 
-[中文主文档 (README.md)](README.md) · [IP interface contract](docs/D3D4_IP_INTERFACE.md) · [D1–D6 status](docs/D1_D6_STATUS_20261115.md) · [Acceptance](docs/ACCEPTANCE_STATUS.md)
+[中文主文档 (README.md)](README.md) · [IP interface contract](docs/D3D4_IP_INTERFACE.md) · [Status (authoritative)](docs/STATUS.md) · [Acceptance](docs/ACCEPTANCE_STATUS.md)
 
 > **Note**: the authoritative documentation is in Chinese. This page is a short
 > English pointer only — it deliberately does **not** duplicate the content, to
@@ -58,7 +58,7 @@ See [docs/SYNTH_D3D4.md](docs/SYNTH_D3D4.md) for the full caveats.
   its 8509-transaction regression **does not** prove the new mapping
 - The follower still uses 9 events and `prefix − U`, while contract v2.1
   requires 7 events (Flash + 6 SAR) and `k = c + U` — see
-  [docs/D1_D6_STATUS_20261115.md](docs/D1_D6_STATUS_20261115.md) §4.4
+  [docs/STATUS.md](docs/STATUS.md) §1B
 
 ## Repository layout
 

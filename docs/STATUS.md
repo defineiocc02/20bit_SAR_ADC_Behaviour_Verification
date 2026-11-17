@@ -25,6 +25,47 @@
 
 ---
 
+## 一B、原文依据（逐条可定位，证据等级 [A]/[P]）
+
+### 2.1 [A] ISSCC 2024 §9.8 论文 p.182（PDF 第 1 页）
+
+| 机制 | 原句 | 本工程对应 |
+|:---|:---|:---|
+| 18 片池选 8 | "the RDAC is composed of 8 slice DACs (sDAC) converting the signal, and 8 sDACs acquiring the signal, **dynamically selected from a pool of 18 sDACs**" | `sched18.sv` |
+| 2 备用片 | "**Two spare sDACs** are introduced to allow shuffling of the sampling DACs and spread the residual interleaving tones" | `sched18.sv` IDLE=2 |
+| 两相位交织 | "**Two phase interleaving** of the RDAC extends the acquisition time to the full clock period, reducing the required sampling bandwidth by a factor of 2-4 times" | `d3d4_ip` 接入 sched18 |
+| 量化器分离 | "the **quantizer is fully separated** from the residue generating DAC (RDAC)" | 数字边界外 |
+| 第二量化器 | "a **second quantizer** has been introduced … The flash-ADC can be shared, thanks to a **<1ns return to acquisition** time" | **未实现** |
+| 前级 9b | "The matched-quantizer sDAC with the RDAC allows >11b matching, resulting in **9b quantization** in the first stage" | k 0..511 |
+| RDAC follower | "The RDAC works as a **follower** of the quantizer with the conversion results **loaded as they develop**" | `follower_rt.sv` |
+| DEM+dither | "a **dynamic-element-matching algorithm can be used in conjunction with dither**, as the shuffler is **not in the critical timing path**" | 联用已实现；**"不在关键路径"未做到**（§四.5） |
+
+### 2.2 [A] ISSCC 2024 讲稿（44 页 PPT）
+
+| 页 | 内容（原文行） | 用途 |
+|:--:|:---|:---|
+| p.29–31 | `3 dimensions of DEM` / `Selection of the slices - 8/18` / `3b horizontal segmentation` / **`Round robin shuffler`** / `3b vertical segmentation` / （p.31 追加）`Binary to unary bridging` | DEM 三维度定义 |
+| p.31 图 | 蓝框 `[8][8][8][8]` 标 **DEM**；红框 `[4][2][1]` 标 **Dither**；绿箭头标 **P=50%** | bridging 语义 |
+| p.32 | `INL=2.2/-1.8LSB`、`DNL=±0.27LSB`、`Min hits/code ~250` | 性能指标（数字端不可验） |
+| p.33–35 | `Residue Amplifier` / `GMR + OTA` / `RDAC reference is still settling during RA phase` / `Auto-Zero removes offset and drift` / `RA noise reduced by dynamic ADC2 sampling BW` | RA/ADC2，数字边界外 |
+
+**关键判读**：`Round robin shuffler` 与 `3b horizontal segmentation` 是**并列的两条**，
+不是"round-robin 就是横向分段"。这一点影响 §五.2 的定性。
+
+### 2.3 专利
+
+| 文件 | 依据 | 级别 |
+|:---|:---|:---|
+| US10516408B2 | 独立量化器、RDAC follower | [P]，与论文[B]一致 |
+| US10511316B2 Fig.19–21 | 分段、保留列、横/纵打乱 | [P] **扫描件无文字层**，只能读图（实测 pypdf 提取全空） |
+| US10505561B2 Fig.19 | 量化器与 RDAC 的**分路** dither，七片 worked example | [P] 八片与 `/8` 为 [E] |
+| US10707889B1 | 交织与 tracking 实施例 | [P] 未纳入本轮 |
+| US10541702B1 / US10826519B1 | 预充、参考切换接口 | [P] 仅接口核对，未实现 |
+
+---
+
+---
+
 ## 二、后端状态（13 个模块）
 
 | 类别 | 数量 | 模块 |

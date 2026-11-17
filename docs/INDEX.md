@@ -28,7 +28,7 @@
 | 1 | [`../README.md`](../README.md) | 交付什么、怎么跑 |
 | 1b | [`STATUS.md`](STATUS.md) | **唯一权威状态表**（能/不能复现、作废数字清单）|
 | 2 | [`D3D4_IP_INTERFACE.md`](D3D4_IP_INTERFACE.md) | **IP 对外合同**：端口/时序/两种模式/位序/合法性标志 |
-| 3 | [`D1_D6_STATUS_20261115.md`](D1_D6_STATUS_20261115.md) | **D1–D6 复现状态** + 原文定位 |
+| 2b | [`STATUS.md`](STATUS.md) | **D1–D6 复现状态** + 原文逐条定位 + 不能声称什么 |
 | 4 | [`ACCEPTANCE_STATUS.md`](ACCEPTANCE_STATUS.md) | 哪个模块在什么证据下通过 |
 | 5 | [`CONTRACT_CURRENT.md`](CONTRACT_CURRENT.md) | 适用哪份合同（v2 + v2.1，冲突以 v2.1 为准）|
 
@@ -36,7 +36,7 @@
 
 ## 三、目录索引
 
-### 现行文档（124 份，不含 `_history/`）
+### 现行文档（122 份，不含 `_history/`）
 
 | 目录 | 份数 | 内容 | 入口 |
 |:---|--:|:---|:---|
@@ -49,14 +49,14 @@
 | `meta/` | 3 | 元信息 | 见目录 |
 | `verification/` `spec/` `caaz/` `acceptance/` | 各 2 | 专项 | 见目录 |
 | `review/` `decisions/` `figures/` `randomization_caaz/` | 各 1 | 专项 | 见目录 |
-| `_history/` | **115** | **历史，不得引用** | — |
+| `_history/` | **117** | **历史，不得引用** | — |
 
 ### `docs/` 根级 14 份
 
-**15 份**。其中 `STATUS.md` 是唯一权威状态表。
+**14 份**。其中 `STATUS.md` 是唯一权威状态表（含原文逐条定位）。
 
 `STATUS` / `ACCEPTANCE_STATUS` / `BRIDGE_VS_FIG31` / `CONTRACT_CURRENT` /
-`D1_D6_STATUS_20261115` / `D3D4_IP_INTERFACE` / `DIGITAL_ALGORITHM` /
+`D3D4_IP_INTERFACE` / `DIGITAL_ALGORITHM` /
 `HANDOFF_D3D4` / `INDEX` / `ISSCC2024_ONCHIP_CONTRACT_v2` /
 `ISSCC2024_ONCHIP_CONTRACT_v2_1_ADDENDUM` / `LIB_STATUS` /
 `MECHANISM_UNDERSTANDING` / `PHASE_AB` / `SYNTH_D3D4`
@@ -107,7 +107,7 @@
 
 ---
 
-## 六、历史文档（`_history/`，115 份，**不得引用**）
+## 六、历史文档（`_history/`，117 份，**不得引用**）
 
 | 子目录 | 内容 |
 |:---|:---|
@@ -116,5 +116,7 @@
 | `_history/v21_legacy/` | 11 份 v21 旧版 |
 | `_history/rtl_reviews/` | 11 份 2026-09 复审 |
 | `_history/v21_status/` | 1 份旧 STATUS（`d5a1576`）|
+| `_history/root_docs/` | 2 份已合并的根级索引（PROJECT_MAP / ROOT_FILES）|
+| （另含 D1_D6_STATUS_20261115 已并入 STATUS.md §1B）| |
 
 **原 `INDEX.md` 声称"顶层只保留 14 份"，与实际不符，本版已改为如实反映。**

@@ -28,7 +28,22 @@
 
 ---
 
-## 2. 生产链文件（v21）
+## 1.5 四个顶层并存（**不是版本迭代**）
+
+`rtl/` 下有 **四个** 顶层，各覆盖不同交付范围，**不要当成版本迭代**。
+详见 [`rtl/README.md`](rtl/README.md)。
+
+| 顶层 | 实例 | 覆盖 | 验证 |
+|:---|--:|:---|:---|
+| **`rtl/v21/adc_digital_ip_v21.sv`** | 8 | D1/D2/D5/D6 | `tools/verify_v21.sh` |
+| **`rtl/d3d4_ip.sv`** | 6 | **D3/D4** | `tools/verify_d3d4_ip.sh` |
+| `rtl/digital_top_w.sv` | 7 | D6 权重路径（**不含 D3/D4**）| 多个 `tb/tb_*.sv` |
+| `rtl/digital_top.sv` | 4 | 早期骨架 | — |
+
+**v21 顶层未实例化 `dem_phase_rr`、`dem_phase_gen`、`follower_rt`** ——
+它们的 Formality `SUCCEEDED` 只是模块级证据，不构成整核已接通的证据。
+
+## 2. 生产链文件（v21）的 D1–D6 映射
 
 **这才是当前在用的链。** 全部位于 `rtl/v21/` 与 `tb/v21/`。
 
@@ -195,3 +210,16 @@ D3D4_RUNNER=vm-yian bash tools/verify_v21.sh
 
 环境说明见 [`docs/v21/I5_ENVIRONMENT.md`](docs/v21/I5_ENVIRONMENT.md)。
 远端工具与调用规范见 `reports/eda_environment/vm-yian-tools.md`。
+
+---
+
+## 10. 禁止事项
+
+| 禁止 | 原因 |
+|:---|:---|
+| 引用 `docs/_history/` 下任何文档 | 已作废，见 `docs/STATUS.md` §6 作废数字清单 |
+| 声称 tapeout signoff / foundry DRC clean / LVS clean | 未做；7 个通过模块的 DEF 无 PG 布线几何 |
+| 声称整核集成完成 | `adc_digital_ip_v21` 从未综合成功 |
+| 声称「D5 算法不可实现」 | 实测只支持「冻结输入与预算下未完成」 |
+| 引用「D5 占面积 95.8%」 | 已撤回：三层嵌套导致重复计数 |
+| 把 `router DRC=0` 说成 foundry DRC clean | 两者不同 |

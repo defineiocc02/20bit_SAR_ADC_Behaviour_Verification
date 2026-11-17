@@ -10,7 +10,7 @@
 
 ## 一、综合对象
 
-新增顶层 `rtl/d3d4_ip.sv`，把三个叶子模块接成一条带寄存器的数据通路：
+新增顶层 `rtl/_legacy/tops/d3d4_ip.sv`，把三个叶子模块接成一条带寄存器的数据通路：
 
 ```
 k_i ──────────────────────────┐
@@ -202,7 +202,7 @@ pre_o[4*s + b]     s=片 0..7，b=开关位 0..3
 ```bash
 # 1) 拷源码到执行机
 ssh vm-yian 'mkdir -p ~/d3d4/{rtl,synth/d3d4,gl}'
-scp rtl/dem_phase_gen.sv rtl/dem_mask_v3.sv rtl/dither_pre.sv rtl/d3d4_ip.sv vm-yian:~/d3d4/rtl/
+scp rtl/dem_phase_gen.sv rtl/dem_mask_v3.sv rtl/dither_pre.sv rtl/_legacy/tops/d3d4_ip.sv vm-yian:~/d3d4/rtl/
 scp flow/synth/d3d4/{dc_d3d4_ip.tcl,sdc_d3d4_ip.sdc} vm-yian:~/d3d4/synth/d3d4/
 
 # 2) 综合

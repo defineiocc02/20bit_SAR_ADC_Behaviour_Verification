@@ -71,7 +71,7 @@
 
 | # | 改动 | 动机 |
 |:--:|:---|:---|
-| F | 新增 `rtl/d3d4_ip.sv`（IP 顶层） | 两个叶子模块是纯组合、无 clk/reset，既不能单独当 IP 交付，也过不了单时钟域综合门禁 |
+| F | 新增 `rtl/_legacy/tops/d3d4_ip.sv`（IP 顶层） | 两个叶子模块是纯组合、无 clk/reset，既不能单独当 IP 交付，也过不了单时钟域综合门禁 |
 | G | `dem_mask_v3` / `dither_pre` 端口改为打包向量 | 非打包数组被 DC 展平，**且顺序与源码下标相反**，门级必错位（实测 110,080 组失配） |
 | H | `dem_phase_gen` 加 `nxt_*` 观察口 | 让 `d3d4_ip` 在握手沿取"推进后"的相位，避免整条通路滞后一拍 |
 | I | 合并逻辑保留层次（`-no_autoungroup`） | 默认 ungroup 后 `area.rpt` 只剩一行，看不出面积花在哪 |
@@ -194,7 +194,7 @@ mv rtl/sched18.sv.bak rtl/sched18.sv             # 恢复
 
 ```bash
 ssh vm-yian 'mkdir -p ~/d3d4/{rtl,synth/d3d4}'   # 或本地有 DC+PDK
-scp rtl/dem_phase_gen.sv rtl/dem_mask_v3.sv rtl/dither_pre.sv rtl/d3d4_ip.sv vm-yian:~/d3d4/rtl/
+scp rtl/dem_phase_gen.sv rtl/dem_mask_v3.sv rtl/dither_pre.sv rtl/_legacy/tops/d3d4_ip.sv vm-yian:~/d3d4/rtl/
 scp flow/synth/d3d4/{dc_d3d4_ip.tcl,sdc_d3d4_ip.sdc,dc_hold_unc0.tcl} vm-yian:~/d3d4/synth/d3d4/
 
 ssh vm-yian 'cd ~/d3d4 && \

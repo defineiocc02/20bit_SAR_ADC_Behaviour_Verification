@@ -36,9 +36,9 @@
 | 顶层 | 实例 | 覆盖 | 验证 |
 |:---|--:|:---|:---|
 | **`rtl/v21/adc_digital_ip_v21.sv`** | 8 | D1/D2/D5/D6 | `tools/verify_v21.sh` |
-| **`rtl/d3d4_ip.sv`** | 6 | **D3/D4** | `tools/verify_d3d4_ip.sh` |
-| `rtl/digital_top_w.sv` | 7 | D6 权重路径（**不含 D3/D4**）| 多个 `tb/tb_*.sv` |
-| `rtl/digital_top.sv` | 4 | 早期骨架 | — |
+| **`rtl/_legacy/tops/d3d4_ip.sv`** | 6 | **D3/D4** | `tools/verify_d3d4_ip.sh` |
+| `rtl/_legacy/tops/digital_top_w.sv` | 7 | D6 权重路径（**不含 D3/D4**）| 多个 `tb/tb_*.sv` |
+| `rtl/_legacy/tops/digital_top.sv` | 4 | 早期骨架 | — |
 
 **v21 顶层未实例化 `dem_phase_rr`、`dem_phase_gen`、`follower_rt`** ——
 它们的 Formality `SUCCEEDED` 只是模块级证据，不构成整核已接通的证据。
@@ -176,7 +176,7 @@ src/adi_model/       Python 参考模型（DEM/Dither/重构）
 
 ## 7. 历史资产（不是当前生产链）
 
-`d3d4_ip` 是更早的 D3/D4 独立 IP（`rtl/d3d4_ip.sv` + `tools/verify_d3d4_ip.sh`），
+`_legacy/tops/d3d4_ip` 是更早的 D3/D4 独立 IP（`rtl/_legacy/tops/d3d4_ip.sv` + `tools/verify_d3d4_ip.sh`），
 有自己的综合与门级等价记录。**它不含 D2/D5/D6，不是本项目的交付主线。**
 
 保留原因：DEM / dither 的叶子级穷举对拍（133,376 + 512 组）与

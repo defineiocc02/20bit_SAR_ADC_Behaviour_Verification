@@ -10,7 +10,7 @@
 
 ## What this repository delivers
 
-`rtl/d3d4_ip.sv` — a synthesizable, single-clock-domain digital IP that turns an
+`rtl/_legacy/tops/d3d4_ip.sv` — a synthesizable, single-clock-domain digital IP that turns an
 RDAC code `k` (0..520) plus a 6-bit dither word into:
 
 | Output | Meaning |
@@ -22,7 +22,7 @@ RDAC code `k` (0..520) plus a 6-bit dither word into:
 | `out_valid_o`, `out_k_err_o` | validity/error **aligned with `mask_o`** |
 
 It does **not** output a 20-bit code — weight reconstruction (D5) and top-level
-transaction control (D6) live in the legacy chain `rtl/digital_top_w.sv`.
+transaction control (D6) live in the legacy chain `rtl/_legacy/tops/digital_top_w.sv`.
 
 ## Verification (one command)
 
@@ -35,7 +35,7 @@ Four layers, each must print `RESULT: PASS`:
 | Layer | Scope | Coverage |
 |:---|:---|:---|
 | L1 | leaf modules vs Python reference | 133,376 DEM + 512 Dither, exhaustive |
-| L2 | `d3d4_ip` vs reference | 512 transactions |
+| L2 | `_legacy/tops/d3d4_ip` vs reference | 512 transactions |
 | L2.5 | `sched18` randomness | 20,000 cycles, χ²/IDLE coverage |
 | L2.6 | per-event alignment | k / 160-bit mask / flags from the **same** event |
 
@@ -54,7 +54,7 @@ See [docs/SYNTH_D3D4.md](docs/SYNTH_D3D4.md) for the full caveats.
 
 - No signoff: no P&R, no CTS, no DRC/LVS, no power signoff
 - No formal equivalence (gate-level sim only)
-- Legacy chain (`digital_top_w`) uses the older 4+3+2 mapping and `k = c − U`;
+- Legacy chain (`_legacy/tops/digital_top_w`) uses the older 4+3+2 mapping and `k = c − U`;
   its 8509-transaction regression **does not** prove the new mapping
 - The follower still uses 9 events and `prefix − U`, while contract v2.1
   requires 7 events (Flash + 6 SAR) and `k = c + U` — see

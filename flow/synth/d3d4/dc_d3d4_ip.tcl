@@ -27,7 +27,7 @@ set sdc   "$work/synth/d3d4/sdc_d3d4_ip.sdc"
 set rtl   [list "$work/rtl/dem_phase_rr.sv"  "$work/rtl/dem_phase_gen.sv" \
                 "$work/rtl/sched18.sv"      "$work/rtl/follower_rt.sv" \
                 "$work/rtl/dem_mask_v3.sv"  "$work/rtl/dither_pre.sv" \
-                "$work/rtl/d3d4_ip.sv"]
+                "$work/rtl/_legacy/tops/d3d4_ip.sv"]
 
 need {[file isfile $lib]} "missing library: $lib"
 need {[file isfile $sdc]} "missing SDC: $sdc"

@@ -44,7 +44,7 @@ echo "=================================================================="
 # ---------------------------------------------------------------- 准备
 echo "[0/4] 准备源文件与向量"
 SRCS="rtl/dem_phase_rr.sv rtl/dem_phase_gen.sv rtl/sched18.sv rtl/follower_rt.sv \
-      rtl/dem_mask_v3.sv rtl/dither_pre.sv rtl/d3d4_ip.sv"
+      rtl/dem_mask_v3.sv rtl/dither_pre.sv rtl/_legacy/tops/d3d4_ip.sv"
 TBS="tb/tb_dem_dither.sv tb/tb_d3d4_ip.sv"
 VECS="tb/vec_phase_rtl.txt tb/vec_d3d4_ip.txt"
 # 编译清单也要带上：L1 走 files_d3d4.f，缺它 vcs 直接报
@@ -101,7 +101,7 @@ echo "$L1" | grep -q "RESULT: PASS" || fail "L1 未通过"
 # ---------------------------------------------------------------- L2
 echo "[2/4] L2 IP 级逐位对拍（含相位发生器，512 笔）"
 IPF="rtl/dem_phase_rr.sv rtl/dem_phase_gen.sv rtl/sched18.sv rtl/follower_rt.sv \
-     rtl/dem_mask_v3.sv rtl/dither_pre.sv rtl/d3d4_ip.sv tb/tb_d3d4_ip.sv"
+     rtl/dem_mask_v3.sv rtl/dither_pre.sv rtl/_legacy/tops/d3d4_ip.sv tb/tb_d3d4_ip.sv"
 if [ "$SIM" = "vcs" ]; then
   run "$SETUP; $RUNCD && vcs -full64 -sverilog -timescale=1ns/1ps $IPF \
        -o simv_l2 > l2_c.log 2>&1" || fail "L2 编译"
@@ -138,7 +138,7 @@ if [ -n "$RUNNER" ]; then
   scp -q tb/tb_event_align.sv tb/vec_event_align.txt "$RUNNER:$WORK/tb/" || fail "拷贝事件对齐 TB"
 fi
 EAF="rtl/dem_phase_rr.sv rtl/dem_phase_gen.sv rtl/sched18.sv rtl/follower_rt.sv \
-     rtl/dem_mask_v3.sv rtl/dither_pre.sv rtl/d3d4_ip.sv tb/tb_event_align.sv"
+     rtl/dem_mask_v3.sv rtl/dither_pre.sv rtl/_legacy/tops/d3d4_ip.sv tb/tb_event_align.sv"
 if [ "$SIM" = "vcs" ]; then
   run "$SETUP; $RUNCD && vcs -full64 -sverilog -timescale=1ns/1ps $EAF \
        -o simv_ea > ea_c.log 2>&1" || fail "事件对齐编译"

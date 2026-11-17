@@ -33,7 +33,7 @@
 |:---|:---|:---|
 | 18 片池选 8 | "the RDAC is composed of 8 slice DACs (sDAC) converting the signal, and 8 sDACs acquiring the signal, **dynamically selected from a pool of 18 sDACs**" | `sched18.sv` |
 | 2 备用片 | "**Two spare sDACs** are introduced to allow shuffling of the sampling DACs and spread the residual interleaving tones" | `sched18.sv` IDLE=2 |
-| 两相位交织 | "**Two phase interleaving** of the RDAC extends the acquisition time to the full clock period, reducing the required sampling bandwidth by a factor of 2-4 times" | `d3d4_ip` 接入 sched18 |
+| 两相位交织 | "**Two phase interleaving** of the RDAC extends the acquisition time to the full clock period, reducing the required sampling bandwidth by a factor of 2-4 times" | `_legacy/tops/d3d4_ip` 接入 sched18 |
 | 量化器分离 | "the **quantizer is fully separated** from the residue generating DAC (RDAC)" | 数字边界外 |
 | 第二量化器 | "a **second quantizer** has been introduced … The flash-ADC can be shared, thanks to a **<1ns return to acquisition** time" | **未实现** |
 | 前级 9b | "The matched-quantizer sDAC with the RDAC allows >11b matching, resulting in **9b quantization** in the first stage" | k 0..511 |

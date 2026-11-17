@@ -181,7 +181,7 @@ assign u0 = f_lut(idx);
 | 文件 | 用途 | 风险 |
 |:---|:---|:---|
 | `rtl/recip_q60.sv:81` | LUT 种子表 | **已修** |
-| `rtl/digital_top_w.sv:237` | 旧顶层（非生产路径） | 需确认是否在用 |
+| `rtl/_legacy/tops/digital_top_w.sv:237` | 旧顶层（非生产路径） | 需确认是否在用 |
 
 `wsum_v21.sv` **没有** `initial` 块，它的 `f_Wm`/`f_Wp` 是纯组合函数
 （另有二维数组循环漏迭代的风险，已在 `45e54f1` 改为显式展开）。

@@ -7,4 +7,4 @@ rtl/sched18.sv
 rtl/follower_rt.sv
 rtl/dem_mask_v3.sv
 rtl/dither_pre.sv
-rtl/d3d4_ip.sv
+rtl/_legacy/tops/d3d4_ip.sv

@@ -14,7 +14,7 @@ mask 拆成两段 20 位（各 5 个 hex 字符）输出：SystemVerilog 的 $fs
   混合进制分解 (idx/120, (idx/8)%15, idx%8)。这是 d3d4_ip 的**默认**相位源，
   依据见 docs/PHASE_AB.md（与 PPT 原文 "Round robin shuffler" 一致，
   且统计/面积全面更优）。
-* coin 取 `^idx[10:7]`（见 rtl/d3d4_ip.sv 的说明）。注意这里**踩过坑**：
+* coin 取 `^idx[10:7]`（见 rtl/_legacy/tops/d3d4_ip.sv 的说明）。注意这里**踩过坑**：
   原实现取 rng[31]，切到 round-robin 后索引只占 11 位，bit31 恒 0，
   bridge 永不触发且不报错。
 * acq_seq = (res[0] << 3) | hp[0]，对应 d3d4_ip 里的 half 选择。
@@ -56,7 +56,7 @@ def phase_of_idx(idx: int) -> tuple[int, int, int]:
 
 
 def coin_of_idx(idx: int) -> int:
-    """coin = ^idx[10:7]。与 rtl/d3d4_ip.sv 的 `^rng_use[10:7]` 一致。
+    """coin = ^idx[10:7]。与 rtl/_legacy/tops/d3d4_ip.sv 的 `^rng_use[10:7]` 一致。
 
     注意不能用 `int.bit_count()` —— 它是 Python 3.10+ 才有。
     仓库 requires-python >=3.10，但本机 /usr/bin/python3 是 3.9，

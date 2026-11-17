@@ -1,7 +1,7 @@
 # d3d4_ip 接口合同（数字 IP 交付定义）
 
 版本：v1.0（2026-11-15）
-模块：`rtl/d3d4_ip.sv`
+模块：`rtl/_legacy/tops/d3d4_ip.sv`
 性质：**可综合、单时钟域、单拍输出的数字 IP**
 证据：RTL 逐位对拍 / 门级等价 / 28nm 块级综合，见 `docs/ACCEPTANCE_STATUS.md`
 

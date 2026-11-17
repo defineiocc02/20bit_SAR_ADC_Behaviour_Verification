@@ -13,9 +13,9 @@
 | 链 | 顶层 | 验证脚本 | 覆盖 |
 |:---|:---|:---|:---|
 | **v21 全链** | `rtl/v21/adc_digital_ip_v21.sv`（8 实例）| `tools/verify_v21.sh` | D1/D2/D5/D6 |
-| **D3/D4 IP** | `rtl/d3d4_ip.sv`（6 实例）| `tools/verify_d3d4_ip.sh` | D3/D4 |
-| **D6 权重路径** | `rtl/digital_top_w.sv`（7 实例）| 多个 `tb/tb_*.sv` | D6（不含 D3/D4）|
-| 早期骨架 | `rtl/digital_top.sv`（4 实例）| — | — |
+| **D3/D4 IP** | `rtl/_legacy/tops/d3d4_ip.sv`（6 实例）| `tools/verify_d3d4_ip.sh` | D3/D4 |
+| **D6 权重路径** | `rtl/_legacy/tops/digital_top_w.sv`（7 实例）| 多个 `tb/tb_*.sv` | D6（不含 D3/D4）|
+| 早期骨架 | `rtl/_legacy/tops/digital_top.sv`（4 实例）| — | — |
 
 **四个顶层的详细说明见 [`../rtl/README.md`](../rtl/README.md)。**
 

@@ -64,7 +64,16 @@ if [ -n "$RUNNER" ]; then
       || fail "解析远端工作目录 $WORK"
   echo "      远端工作目录: $WORK"
   run "mkdir -p $WORK/rtl $WORK/tb" || fail "建远端目录"
-  scp -q $SRCS "$RUNNER:$WORK/rtl/"  || fail "拷贝 rtl"
+  # 归档顶层在 rtl/_legacy/tops/ 下，必须保留相对路径，否则编译端找不到。
+  # （P01: 原实现平铺到 $WORK/rtl/，而编译读 rtl/_legacy/tops/d3d4_ip.sv）
+  run "mkdir -p $WORK/rtl/_legacy/tops $WORK/rtl/v21 $WORK/tb" || fail "建目录"
+  for f in $SRCS; do
+    case "$f" in
+      rtl/_legacy/tops/*) scp -q "$f" "$RUNNER:$WORK/rtl/_legacy/tops/" || fail "拷贝 $f" ;;
+      rtl/v21/*)          scp -q "$f" "$RUNNER:$WORK/rtl/v21/"          || fail "拷贝 $f" ;;
+      rtl/*)              scp -q "$f" "$RUNNER:$WORK/rtl/"              || fail "拷贝 $f" ;;
+    esac
+  done
   scp -q $TBS  "$RUNNER:$WORK/tb/"   || fail "拷贝 tb"
   scp -q $VECS "$RUNNER:$WORK/tb/"   || fail "拷贝向量"
   # 清单要放到与 -f 一致的相对位置，否则远端解析不到。

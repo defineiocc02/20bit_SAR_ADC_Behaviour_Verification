@@ -25,8 +25,8 @@
 |:---|:---|:---|
 | 审计数字算法是否满足论文专利披露 | **`AUDIT_ALGO_VS_SOURCE.md`** | 12 项判定：符合 6、`[E]` 假设 4、待裁定 2 |
 | 端口等关键设计是否满足论文片上要求 | **`PORT_AND_ONCHIP_AUDIT.md`** | 端口全部一致；ADC2 位宽待裁定 |
-| 拆分小模块一个一个做综合 | **`SYNTH_PER_MODULE.md`** | **13/13 完成**，合计 160,951 µm²，全满足 25 ns |
-| 结合 rtl-to-gds 完成后端 | **`ALL_13_MODULES_FINAL.md`** | **7 通过 / 2 DRC 未归零 / 4 物理不可行** |
+| 拆分小模块一个一个做综合 | **`SYNTH_PER_MODULE.md`** | 13 行单模块记录（含 alpha 旁路诊断配置），均满足 25 ns；**面积不可相加** |
+| 结合 rtl-to-gds 完成后端 | **`ALL_13_MODULES_FINAL.md`** | 7 通过（router DRC=0 + Formality SUCCEEDED）/ 2 DRC 未归零 / **4 项在冻结输入与给定预算下未完成** |
 
 ## 二、现行文档（11 份）
 

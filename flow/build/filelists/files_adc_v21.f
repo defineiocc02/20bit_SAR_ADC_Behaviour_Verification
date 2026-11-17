@@ -20,4 +20,7 @@ rtl/v21/sar_evt_v21.sv
 rtl/v21/adc2_capture.sv
 rtl/v21/wsum_v21.sv
 rtl/v21/recon_v21.sv
+// recon_v21 传递依赖这两级倒数（recon_v21.sv:314 -> recip_rnd_v21:59 -> recip_q60）
+rtl/v21/recip_rnd_v21.sv
+rtl/recip_q60.sv
 rtl/v21/adc_digital_ip_v21.sv

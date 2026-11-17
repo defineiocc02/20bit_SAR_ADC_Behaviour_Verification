@@ -13,7 +13,7 @@
 
 | 层 | 状态 |
 |:---|:---|
-| D1–D6 RTL 功能 | ✅ 8 项回归全绿，两笔端到端 A=`0xFFF00` / B=`0x80000` |
+| D1–D6 RTL 功能 | ✅ 9 项回归全绿（`tools/verify_v21.sh`），两笔端到端 A=`0xFFF00` / B=`0x80000` |
 | 本轮修掉的三个真实缺陷 | ✅ LUT `initial`、IDLE 8/8/1、recon 连续输入串样 |
 | **同版网表（综合）** | ❌ **未生成**——顶层停在 `Processing 'wsum_v21'` |
 | 门级等价 / 形式等价（当前版本） | ❌ 未做（依赖网表） |
@@ -49,7 +49,7 @@
 
 | 模块 | 文件 | 职责 |
 |:---|:---|:---|
-| **顶层** | `rtl/v21/adc_digital_ip_v21.sv` | 单时钟域，79 端口 |
+| **顶层** | `rtl/v21/adc_digital_ip_v21.sv` | 单时钟域，**87 端口**（44 入 / 43 出）|
 | **D1** | `rtl/sched18.sv` | 18 片池调度（8 采集 / 8 转换 / 2 备用） |
 | **D2** | `rtl/v21/sar_evt_v21.sv` | Flash/SAR 逐事件 follower |
 | **D3** | `rtl/dem_mask_v3.sv` + `rtl/dem_phase_rr.sv` + `rtl/dem_phase_gen.sv` | DEM 3+3+3 + 相位 |
@@ -68,7 +68,7 @@
 D3D4_RUNNER=vm-yian bash tools/verify_v21.sh
 ```
 
-8 项回归 + 算术证据，预期全部 PASS：
+9 项回归 + 算术证据，预期全部 PASS：
 
 ```
 tb_acq_ctx_fixed   两反例已修复
@@ -114,7 +114,7 @@ cfg_we, cfg_sel(0=主/1=子), cfg_sid[4:0](0..17), cfg_idx[4:0], cfg_data[39:0]
 ```
 
 一拍写一个字，上电后灌 360 个字，运行期只读。
-**顶层端口从 15,775 降到约 1,426。**
+**顶层端口从 15,775 降到 87（见 §2 表格实测；早期"约 1,426"是位宽计数口径，非端口数）。**
 
 TB 侧用 `wt_write()` / `wt_load()` 灌权重（见 `tb/v21/tb_e2e_decl.svh`）。
 

@@ -36,7 +36,7 @@
 
 ## 三、目录索引
 
-### 现行文档（122 份，不含 `_history/`）
+### 现行文档（127 份，不含 `_history/`）
 
 | 目录 | 份数 | 内容 | 入口 |
 |:---|--:|:---|:---|
@@ -49,7 +49,7 @@
 | `meta/` | 3 | 元信息 | 见目录 |
 | `verification/` `spec/` `caaz/` `acceptance/` | 各 2 | 专项 | 见目录 |
 | `review/` `decisions/` `figures/` `randomization_caaz/` | 各 1 | 专项 | 见目录 |
-| `_history/` | **117** | **历史，不得引用** | — |
+| `_history/` | **105** | **历史，不得引用** | — |
 
 ### `docs/` 根级 14 份
 
@@ -107,12 +107,13 @@
 
 ---
 
-## 六、历史文档（`_history/`，117 份，**不得引用**）
+## 六、历史文档（`_history/`，105 份，**不得引用**）
 
 | 子目录 | 内容 |
 |:---|:---|
-| `_history/`（根） | 73 份早期文档 |
+| `_history/`（根） | 38 份早期文档 |
 | `_history/v21_checkpoints/` | 9 份过程检查点 |
+| `_history/archive/` | 34 份更早期归档 |
 | `_history/v21_legacy/` | 11 份 v21 旧版 |
 | `_history/rtl_reviews/` | 11 份 2026-09 复审 |
 | `_history/v21_status/` | 1 份旧 STATUS（`d5a1576`）|

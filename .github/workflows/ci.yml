@@ -94,7 +94,7 @@ jobs:
             || { cat elaborate.log; exit 1; }
       - name: Verify current weight configuration lifecycle
         # 用现行权重模块的定向序列核查合法装载、失败边界和重配。
-        # 测试台打印通过或失败标志后结束。进程返回 0 仍需检查 40 项实际通过。
+        # 测试台打印通过或失败标志后结束。进程返回 0 仍需检查 20 项实际通过。
         # 二进制和输出日志只在 v21-config 用例目录创建。
         # 编译参数筛掉非致命风格告警；接口缺失与非法选择仍为硬错误。
         shell: bash
@@ -109,7 +109,7 @@ jobs:
             "$GITHUB_WORKSPACE/tb/v21/tb_cfg_lifecycle.sv" \
             > compile.log 2>&1 || { cat compile.log; exit 1; }
           ./obj/Vtb_cfg_lifecycle | tee simulation.log
-          grep -Fx 'RESULT: PASS (40 checks)' simulation.log
+          grep -Fx 'RESULT: PASS (20 checks)' simulation.log
       - name: Standalone CAAZ behavior contracts
         # CAAZ 独立模型保留偶奇配对检查。主核的基础绑定位不声明模拟自归零。
         # flow 是共享测试夹具的导入根，环境仅对本步骤生效。

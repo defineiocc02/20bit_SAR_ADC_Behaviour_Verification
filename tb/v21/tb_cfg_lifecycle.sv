@@ -54,7 +54,8 @@ module tb_cfg_lifecycle;
         begin errors++; $display("[FAIL] %0s", m); end
     endtask
     task automatic okc(input string m);
-        begin checks++; $display("  OK   %0s", m); end
+        // 调用方在判定前已计数。这里仅记录结果，成功与失败走相同统计口径。
+        $display("  OK   %0s", m);
     endtask
 
     // 写一个字

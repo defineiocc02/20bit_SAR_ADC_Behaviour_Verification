@@ -208,7 +208,8 @@ module adc_digital_ip_v21 (
         // 首笔时 commit_fire=0，sched18 不会推进（审计问题 1 的根因）。
         .adv(sched_adv),
         .acq_mask_o(s18_acq), .conv_mask_o(s18_conv), .idle_mask_o(s18_idle),
-        .ids_o(s18_ids), .rng_o(s18_rng));
+        // ACQ 在推进沿冻结沿前片号。推进后的片号预览留给独立调度接口。
+        .ids_o(s18_ids), .ids_next_o(), .rng_o(s18_rng));
 
     // 片组来源选择：生产走内部 sched18，定向测试可外部覆盖
     wire [17:0] use_acq  = sched_ext_sel ? sched_acq  : s18_acq;
@@ -229,7 +230,8 @@ module adc_digital_ip_v21 (
         .sample_event(sample_event), .input_captured(input_captured),
         .residue_captured(residue_captured), .hold_ack(hold_ack),
         .sched_acq(use_acq), .sched_conv(use_conv), .sched_idle(use_idle),
-        .sched_ids(use_ids),
+        // ctx 使用 sched_ids 冻结本笔，预览输入保留为显式未使用端。
+        .sched_ids(use_ids), .sched_ids_next(40'd0),
         .acq_sel_o(acq_sel_o), .conv_sel_o(conv_sel_o), .idle_sel_o(idle_sel_o),
         .acq_h_o(acq_h), .acq_v_dem_o(acq_v), .acq_v_pre_o(acq_v_pre),
         .acq_half_o(acq_half), .acq_coin_o(acq_coin),

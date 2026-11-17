@@ -57,7 +57,7 @@ TESTS=(
   "tb/tb_recip_q60.sv|srecip|PASS (43766 inverses bit-exact"
   "tb/v21/tb_recip_rnd.sv|srnd|PASS (20817 RND(2^60,G) bit-exact)"
   "tb/v21/tb_analog_if.sv|saif|SUMMARY checks=54 failures=0"
-  "tb/v21/tb_cfg_lifecycle.sv|scl|PASS (40 checks)"
+  "tb/v21/tb_cfg_lifecycle.sv|scl|PASS (20 checks)"
 )
 
 # ---- 2. 执行端目录与源码暂存 ---------------------------------------------------

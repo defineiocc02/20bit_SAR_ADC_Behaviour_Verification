@@ -1,7 +1,12 @@
 """参数自洽性核算的单元测试（ADC2 量程 vs dither 幅度）。
 
-这条检查把"4 个 dither 测试长期失败"变成一条可读断言：
-ADC2 窗口只能覆盖约 1.2 个一级 LSB，而 dither 的 upper 段需要 5.5 个。
+这条检查把"4 个 dither 测试长期失败"变成一条可读断言。
+
+2026-11-17 更新：ADC2 改为工程合同值 **13 bit / 0.75 V**（原 14 bit / 0.45 V）。
+窗口折到一级输入 = 0.75/32 = 0.0234375 V = **2.0 个一级 LSB**（原 1.2），
+而 dither 的 upper 段需要 **5.5** 个 —— **缺口仍存在（缺 3.5 LSB1）**，
+所以 sufficient 仍为 False；本测试验证的是"缺口被显式报出"，
+不是"缺口已消除"。
 """
 
 from __future__ import annotations
@@ -39,9 +44,10 @@ def test_default_model_reports_the_known_gap():
     model = DefaultModel(seed=20261105, parameters=DefaultParameters(), config_overrides=None)
     report = model.dither_stage2_consistency
     assert report.sufficient is False
-    assert report.capacity.coverage_lsb1 < 1.3
+    # 13 bit / 0.75 V 下实测 2.0 LSB1（原 14 bit/0.45 V 时 1.2）
+    assert report.capacity.coverage_lsb1 == pytest.approx(2.0, abs=0.01)
     assert report.needed_lsb1 == pytest.approx(5.5)
-    assert report.deficit_lsb1 > 4.0
+    assert report.deficit_lsb1 == pytest.approx(3.5, abs=0.01)
     assert "not mutually consistent" in report.summary()
 
 
@@ -50,7 +56,8 @@ def test_report_is_visible_in_the_inference_table():
     model = DefaultModel(seed=20261105, parameters=DefaultParameters(), config_overrides=None)
     entry = model.inference_table()["stage2_capacity_vs_dither"]
     assert entry["value"]["sufficient"] is False
-    assert entry["value"]["deficit_lsb1"] > 4.0
+    # 13 bit / 0.75 V 下缺 3.5 LSB1（原 14 bit/0.45 V 时缺 4.3）
+    assert entry["value"]["deficit_lsb1"] == pytest.approx(3.5, abs=0.01)
     assert entry["grade"] == "DERIVED_FROM_CURRENT_PARAMETERS"
 
 

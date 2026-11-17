@@ -122,6 +122,19 @@ TB 侧用 `wt_write()` / `wt_load()` 灌权重（见 `tb/v21/tb_e2e_decl.svh`）
 > 仍按旧扁平端口，**对当前 RTL 不适用**，已在文件头标注。
 > 待用新 RTL 重新综合后按新接口更新。
 
+## 3.6 两个「增益」必须分清（**混用会差约 32 LSB20**）
+
+| 量 | 数值 | 含义 |
+|:---|--:|:---|
+| **名义物理增益 `g0`** | **32.0** | RA 的电容比：`C_norm / C_f = 20.5 pF / 640.625 fF`。这是**设计目标**，也是物理名义值 |
+| **定点 Σw 增益** | **31.028** | RTL 里 `weights_q` 实际求和/2^fraction 的结果（`g_fixed`）。受 `Ceff/Cf` 归一化与量化影响，**不等于 32** |
+
+**两者是不同的量。** 把 `31.028` 当 `32.0` 用，或反过来，误差约 **32 LSB20** —— 直接吃掉 20 bit 的余量。
+
+- 做**校准/重构**用 `g_fixed = 31.028`（与 RTL 一致）。
+- 做**物理估算/论文对照**用名义 `g0 = 32.0`。
+- 门禁测试：`flow/tests/unit/test_default_mismatch_anchor.py::test_nominal_gain_is_the_physical_gain_and_the_fixed_point_sum_is_separate`
+
 ## 4. 三个类别必须分清
 
 | 类别 | 含义 | 本仓库例子 |

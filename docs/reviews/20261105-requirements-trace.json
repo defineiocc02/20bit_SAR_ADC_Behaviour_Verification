@@ -1,0 +1,2978 @@
+{
+  "review_date": "2026-11-05",
+  "baseline_commit": "d1e1f87e5c87ce6f09b87acdc5958af39cdfbb09",
+  "policy": "Every source requirement has an applicability decision. Selection/read coverage is not full implementation or DUT PASS; runtime implementation states remain in mechanism_inventory.json. Open source details and unimplemented circuits remain explicit.",
+  "requirements": [
+    {
+      "req_id": "ISSCC-R01",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M01",
+        "M08",
+        "M10",
+        "M14",
+        "M16"
+      ],
+      "coverage_state": "partial",
+      "reason": "目标采用ISSCC 20b/40MS/s架构参照；配置和指标须绑定各自来源版本。10MS/s仅属历史/另行设计场景，不能与当前40MS/s或AD4080产品指标互证。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1;slides3/9/36–42",
+      "expected_behavior": "按来源冻结profile，不混合项目10MS/s、论文40MS/s与产品规格",
+      "applicable_mode": "all",
+      "observables": "记录fs/幅度/噪声/DR-SNR定义/功耗边界/器件和版本",
+      "acceptance_condition": "每个数值可追溯到同一来源条件",
+      "source_limitations": "source conditions differ; no universal paper-reproduction threshold",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "ISSCC-R02",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M08"
+      ],
+      "coverage_state": "partial",
+      "reason": "18/8/8/2池和实际样本归属是当前选定结构；Python/RTL采用工程调度，原芯片PRNG未完全披露，器件采样仍待模拟约束。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1/Fig9.8.1;slides10–12",
+      "expected_behavior": "18个RDAC slice中8获取、8转换、2备用，采样池身份轮转",
+      "applicable_mode": "paper architecture",
+      "observables": "acquisition/conversion/spare masks,physical slice ID,ownership history",
+      "acceptance_condition": "任一时刻所有权互斥且轮转保持样本来源",
+      "source_limitations": "paper does not specify complete scheduler/PRNG",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "ISSCC-R03",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M01",
+        "M08",
+        "M14"
+      ],
+      "coverage_state": "partial",
+      "reason": "两个SAR量化器与共享Flash/RA/ADC2属于选定数字结构；输入扰动消除的电气效果不能由共享资源控制存在直接证明。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1/Fig9.8.1;slides10–12",
+      "expected_behavior": "两个量化器使输入不在半周期受扰动；共享Flash/RA/ADC2",
+      "applicable_mode": "paper architecture",
+      "observables": "quantizer selection,shared resource timing,input disturbance model",
+      "acceptance_condition": "不把单量化器返回获取扰动算作已消除",
+      "source_limitations": "exact comparator handshake unprovided",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "ISSCC-R04",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M01",
+        "M02",
+        "M14"
+      ],
+      "coverage_state": "partial",
+      "reason": "rtl_structural明确选择3位Flash前缀、9位粗判决和标称G=32；7位默认行为假设另列，静态量化决策不证明原芯片握手时序。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1/Fig9.8.1;slides9–12",
+      "expected_behavior": "Flash3bit、首级9bit、RA增益32与匹配误差预算分开",
+      "applicable_mode": "paper architecture",
+      "observables": "flash prefix,SAR decisions,RA transfer",
+      "acceptance_condition": "设定逐位与静态量化器路径，不能互证逐位时序",
+      "source_limitations": "ADC2 internal bit count and exact circuit not uniquely disclosed",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "ISSCC-R05",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M01",
+        "M09",
+        "M13"
+      ],
+      "coverage_state": "partial",
+      "reason": "当前结构RDAC选择已决位跟随合同，包含Flash前缀和重复有效事件；对拍覆盖项目事件，专利中RDAC参与试探的其他变体不并入此合同。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1;slides13–18",
+      "expected_behavior": "RDAC随量化器已发展结果设到正确状态，避免全RDAC重复trial/reject",
+      "applicable_mode": "paper follower profile",
+      "observables": "Flash prefix,decided-bit events,physical masks,signed rail charge,time",
+      "acceptance_condition": "逐事件对齐，不能只比较末码/净电荷",
+      "source_limitations": "stage patent has other trial-capable embodiments; not universal patent rule",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "ISSCC-R06",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M03",
+        "M08"
+      ],
+      "coverage_state": "partial",
+      "reason": "共享关键沿、获取和hold-low窗口是目标模拟接口约束；RTL仅控制层，实际局部开关保持关断及不重开须按模拟宏实现验证。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1/Fig9.8.2;slides19–20",
+      "expected_behavior": "TP下降沿定关键采样，本地hold-low保持关断；EN上升决定返回获取",
+      "applicable_mode": "paper sampling",
+      "observables": "TP,EN,local gate,inhibit,ownership",
+      "acceptance_condition": "共享TP回高不重开已进入conversion的采样开关",
+      "source_limitations": "requires analog boundary; RTL AND alone is insufficient proof either way",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "ISSCC-R07",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M08",
+        "M14",
+        "M16"
+      ],
+      "coverage_state": "partial",
+      "reason": "目标要求输入采样与上一笔残差上下文对齐，当前数字样本合同可映射；ADC2真实孔径和RA残差电气时序仍不由ID一致性证明。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1/Fig9.8.1;slides12/35",
+      "expected_behavior": "输入采样与ADC2采上一笔RA残差共享安静时刻",
+      "applicable_mode": "paper pipeline",
+      "observables": "input sample edge,ADC2 sample edge,residue sample context",
+      "acceptance_condition": "sample IDs及边沿一致且不误称RA与ADC2都采输入",
+      "source_limitations": "exact tick schedule/ADC2 aperture unknown",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "ISSCC-R08",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M09",
+        "M13",
+        "M14"
+      ],
+      "coverage_state": "partial",
+      "reason": "选定粗预充电/精参考回接结构；数字窗口、行为恢复及RA入口可检查，真实参考网络电流与建立指标仍开放。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1/Fig9.8.3;slides23–27",
+      "expected_behavior": "SAR转换由coarse预充电参考供主要电荷，RA前切精确REF_IN",
+      "applicable_mode": "paper reference",
+      "observables": "coarse/fine select,REF_RDAC waveform,rail charge,RA start",
+      "acceptance_condition": "参考切换与RA时序一致并保留恢复误差",
+      "source_limitations": "does not imply every reference patent variant implemented",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "ISSCC-R09",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M09",
+        "M13",
+        "M14"
+      ],
+      "coverage_state": "open",
+      "reason": "65%描述参考精度建立的近似来源条件，不应自动等同项目ADC2宽窄带切换比例或任意RC；须由root明确两个deadline的独立定义。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1;slides25/33/35",
+      "expected_behavior": "参考在RA开始仅约15bit准确，约65%RA阶段达到20bit参考建立",
+      "applicable_mode": "paper reference/RA",
+      "observables": "reference error vs deadline,input-referred residual,RA transfer",
+      "acceptance_condition": "在采样截止处核误差，不用初值强设零取代建立",
+      "source_limitations": "65percent is paper disclosed approximate condition; RC not disclosed",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS",
+      "project_disposition": "参考建立的来源近似deadline与ADC2收窄时间分别定义；conversion.narrow_start_fraction为工程假设，不从参考65%表述推出。"
+    },
+    {
+      "req_id": "ISSCC-R10",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M05",
+        "M06",
+        "M08"
+      ],
+      "coverage_state": "partial",
+      "reason": "选定slice及横纵重排的机制目标；当前63+8物理映射是工程候选，非均匀权重对拍只证明候选合同，不能关闭未公开的全部原芯片排列。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1/Fig9.8.3;slides29–31",
+      "expected_behavior": "slice选择+水平3bit round-robin+垂直3bit重排，物理单元可换身份",
+      "applicable_mode": "paper DEM",
+      "observables": "slice IDs,main/sub masks,selected physical units",
+      "acceptance_condition": "非均匀权重下每单元映射/电荷合同一致",
+      "source_limitations": "full bit encoding and all permutations undisclosed",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "ISSCC-R11",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M05",
+        "M06"
+      ],
+      "coverage_state": "open",
+      "reason": "讲稿P=50%没有唯一开关真值表；sid[8]门控零和交换可作为明确代理验证，原芯片跨权重互换的字/状态合同仍须独立界定。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "slides31",
+      "expected_behavior": "binary-to-unary bridging示意P=50percent",
+      "applicable_mode": "paper bridge illustration",
+      "observables": "bridge active flag,physical switch state,unit weights",
+      "acceptance_condition": "必须给项目派生精确定义后检验，名义总和相等不足够",
+      "source_limitations": "figure alone does not uniquely define code/state conditional mask",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS",
+      "project_disposition": "选用sid[8]门控的零和交换作为项目代理并穷举其掩码；原芯片未披露的跨权重真值表保持OPEN。"
+    },
+    {
+      "req_id": "ISSCC-R12",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M04",
+        "M16"
+      ],
+      "coverage_state": "open",
+      "reason": "讲稿lower/upper接线需按物理电荷和改字节点解释；现有range/ideal dual_port候选不自动等于该位子集网络，须明确所选信号、符号和单位。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "slides16–18 enlarged wiring",
+      "expected_behavior": "lower进入SADC；lower+upper进入RDAC采样与DEM前数字字修改节点",
+      "applicable_mode": "paper dither diagram",
+      "observables": "sampling injection,digital word,unit/sign convention,mode epoch",
+      "acceptance_condition": "按电荷及字修改协调合同验证，不能直接替为任意4x数值公式",
+      "source_limitations": "sign/LSB/rounding/saturation not specified by schematic",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS",
+      "project_disposition": "保留论文lower/upper采样路径来源要求；现有range和ideal dual_port各自为候选合同，不标为原图逐位实现。"
+    },
+    {
+      "req_id": "ISSCC-R13",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M04",
+        "M02",
+        "M16"
+      ],
+      "coverage_state": "open",
+      "reason": "RDAC端额外2bit范围是公开目标线索；无法仅由该语句推出唯一4倍电压拓扑。Python假设与RTL离散range合同需分开，不能以现有PRNG关闭增强机制。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1;slides17–18",
+      "expected_behavior": "RDAC可有比quantizer大2bit的dither范围",
+      "applicable_mode": "paper dither",
+      "observables": "q-dither/r-dither distribution,residue range,compensation",
+      "acceptance_condition": "幅度范围与数字单位、RA/ADC2合法窗同时核对",
+      "source_limitations": "extra2bit alone does not uniquely specify physical voltage ratio",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS",
+      "project_disposition": "Python理想范围增强与RTL离散range分别验收；完整模拟增强网络保持OPEN，不由幅度相近判为实现。"
+    },
+    {
+      "req_id": "ISSCC-R14",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M07",
+        "M16"
+      ],
+      "coverage_state": "partial",
+      "reason": "论文选择外部求系数、片内应用权重；项目SVD估计器是工程实现，不新增片内学习器必需条件。静态RTL观测/装载/留出不等于实物校准。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1 final performance paragraph;slides19–20",
+      "expected_behavior": "权重校正在片内执行，系数由外部导出",
+      "applicable_mode": "paper correction",
+      "observables": "allowed training data,frozen weights,coefficient application",
+      "acceptance_condition": "区分外部估计、片内应用和片内自学习；追踪真实数据闭环",
+      "source_limitations": "paper does not specify estimator as LMS/SVD or autonomous learning engine",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "ISSCC-R15",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M05",
+        "M08",
+        "M16"
+      ],
+      "coverage_state": "partial",
+      "reason": "这是从重构导出的项目样本观测合同，不是原文端口披露；当前可映射实际slice/mask/dither/ADC2和epoch，实物传输及错误传播仍需验证。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "derived from physical DAC reconstruction across paper figures",
+      "expected_behavior": "正常估计/重构必须知道实际物理切换身份及sample context",
+      "applicable_mode": "project observation contract",
+      "observables": "sample ID,epoch,slice IDs,masks/unique encoding,bridge,dither,ADC2raw,invalid",
+      "acceptance_condition": "metadata可唯一解释本笔电荷，不共享待验证mask作oracle",
+      "source_limitations": "project engineering requirement, not paper literal interface",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "ISSCC-R16",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M14"
+      ],
+      "coverage_state": "partial",
+      "reason": "共享RA、AZ与ADC2宽窄带信号行为为目标机制；C_AZ噪声存储/折叠和真实电路收益未由理想复位及预算倍率关闭。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "slides33–35",
+      "expected_behavior": "GmR+OTA/CDAC-over32反馈、AZ、ADC2先宽带建立后窄带采样",
+      "applicable_mode": "paper RA/ADC2",
+      "observables": "S1/S2/S3,RBW,RA state,ADC2 sampled error",
+      "acceptance_condition": "用独立ODE/解析关系核建立；噪声收益需另有随机噪声模型",
+      "source_limitations": "-1.6dB/+1.3dB are disclosed slide claims, not predictions from arbitrary tau",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "ISSCC-R17",
+      "scope": "unresolved_source_conflict",
+      "mechanism_ids": [
+        "M03",
+        "M08"
+      ],
+      "coverage_state": "open",
+      "reason": "正文>10fNYQ、讲稿>15fNYQ以及>11bit/>12bit匹配属于不同版本条件，不能合成一个硬件阈值；root须选用具体来源条件，模型假设另列。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1;slides19–22",
+      "expected_behavior": "采样带宽大于10fNYQ（正文）或15fNYQ（讲稿），关键采样器共址同驱动",
+      "applicable_mode": "paper interleaving matching",
+      "observables": "per-slice acquisition RC/BW,aperture mismatch",
+      "acceptance_condition": "频率相关误差分别于静态gain/offset检查",
+      "source_limitations": "paper >11bit vs slide >12bit AC matching must retain conditions",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS",
+      "project_disposition": "正文与讲稿版本分别引用，不选合并阈值；模拟匹配/带宽作为来源条件和敏感性输入，硬件验证OPEN。"
+    },
+    {
+      "req_id": "ISSCC-R18",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M03",
+        "M08"
+      ],
+      "coverage_state": "partial",
+      "reason": "目标采用对时差敏感性及调度频谱比较；0.6ps为估计残余、10ps为来源仿真线索，现有工程seed/FFT不得改称原芯片测量或必然SNDR收益。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1;slides21–22",
+      "expected_behavior": "约0.6ps是估计残余时差；slides10ps明确为仿真并呈噪声化/频谱分布",
+      "applicable_mode": "paper timing mismatch",
+      "observables": "timing mismatch seed,spectrum,fs/2-fin neighborhood",
+      "acceptance_condition": "区分估计/仿真/实测，不宣称随机化必改全部SNDR",
+      "source_limitations": "complete FFT and simulation settings not disclosed",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "ISSCC-R19",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M15",
+        "M16"
+      ],
+      "coverage_state": "open",
+      "reason": "全20位静态转移/缺码与INL-DNL是性能覆盖要求；现有定点穷举和稀疏重构误差不能替代每码约250次的模拟码密度实验。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1/Fig9.8.4;slides32/42",
+      "expected_behavior": "全20bit静态转移/缺码/INL-DNL与动态校正误差分开",
+      "applicable_mode": "static performance",
+      "observables": "transition widths,histogram,code hits,method,units,confidence",
+      "acceptance_condition": "声明真实覆盖，min hits/code约250的原文条件不能由少量正弦替代",
+      "source_limitations": "ppm and LSB source labels differ; exact raw N unavailable",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS",
+      "project_disposition": "模拟全20位码密度/缺码实验保持OPEN；整数码算术穷举和稀疏静态误差仅按其实际范围验收。"
+    },
+    {
+      "req_id": "ISSCC-R20",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M03",
+        "M09",
+        "M12",
+        "M14"
+      ],
+      "coverage_state": "partial",
+      "reason": "信号链友好输入及噪声积分是目标分析约束；主RC/采样/driver的BW和ENBW需显式条件，公开图不足以唯一给出工程RC和完整噪声源。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "slides4–8/39",
+      "expected_behavior": "按14tau、TACQ及BW/ENBW积分driver噪声，不把每bin噪声当密度",
+      "applicable_mode": "signal-chain noise",
+      "observables": "BW,ENBW,NSD,Nyquist integration,driver spectrum",
+      "acceptance_condition": "量纲一致；模型假设和参考源噪声单列",
+      "source_limitations": "slide39 axis/title labels incomplete; no unique project RC from graph",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "ISSCC-R21",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M10",
+        "M14",
+        "M16"
+      ],
+      "coverage_state": "partial",
+      "reason": "频谱/误差的幅度、窗、N、频率、裁剪和训练分离均属目标结果合同；当前模型结果只能在保存条件下解释，不等同原始测量数据复刻。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1/Fig9.8.5;slides36–38",
+      "expected_behavior": "独立保存完整FFT/误差合同；源码披露结果与本轮模型结果分层",
+      "applicable_mode": "performance measurement",
+      "observables": "fs,fin,N,window,normalization,harmonics,seed,input scale",
+      "acceptance_condition": "校准前后同捕获同量化并公开异常/裁剪",
+      "source_limitations": "source spectrum does not disclose complete reproduction settings",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "ISSCC-R22",
+      "scope": "unresolved_source_conflict",
+      "mechanism_ids": [],
+      "coverage_state": "open",
+      "reason": "源文功耗边界与FOM数字存在系统/core/interface口径差；当前无项目电路功耗证据，root须保持来源版本并独立重算，不能选有利数字当DUT已达标。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper Fig9.8.6;slides41–42",
+      "expected_behavior": "功耗边界与FOM重算可追溯；不混用原文冲突的system/core/interface定义",
+      "applicable_mode": "PPA reporting",
+      "observables": "P_W,fs/BW,DR/SNR,formula,power blocks",
+      "acceptance_condition": "相同数值满足显式公式；冲突标SOURCE_INCONSISTENCY",
+      "source_limitations": "no project physical power evidence inferred",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS",
+      "project_disposition": "core/system/interface功耗与FOM按来源版本分别记录；当前无项目电路功耗验收，保持OPEN。"
+    },
+    {
+      "req_id": "ISSCC-R23",
+      "scope": "unresolved_source_conflict",
+      "mechanism_ids": [],
+      "coverage_state": "open",
+      "reason": "0.77/0.9/2.25面积值的core、reference、die定义不同且源文表述有差异；这是来源边界冲突，无项目版图实现状态可由其推定。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1/Fig9.8.7;slides40",
+      "expected_behavior": "0.77core、0.9core+reference（讲稿）与2.25die（正文）分开",
+      "applicable_mode": "area reference",
+      "observables": "area boundary,technology,layout stage",
+      "acceptance_condition": "面积口径一致且不得由显微图恢复PDK/网表",
+      "source_limitations": "paper calls0.9core; boundary versions differ",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS",
+      "project_disposition": "面积的core/reference/die定义按原文分别保存，不作为项目布局已完成证据。"
+    },
+    {
+      "req_id": "ISSCC-R24",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M10",
+        "M14",
+        "M16"
+      ],
+      "coverage_state": "partial",
+      "reason": "来源DR/NSD、拟合噪声和外部训练参考均须分级；当前候选存在拟合锚点，独立留出只能验证冻结估计在指定plant下的效果。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "paper p1;slides27–28/34–38/42",
+      "expected_behavior": "DR/NSD/offset/gain设定和预测结果分开；参数拟合论文不构成预测论文",
+      "applicable_mode": "noise/calibration prediction",
+      "observables": "noise source provenance,training source,fit anchors",
+      "acceptance_condition": "拟合参数标FITTED/ASSUMED；独立验证集冻结系数",
+      "source_limitations": "source values differ across revisions; do not cherry-pick",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "ISSCC-R25",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M01",
+        "M02",
+        "M03",
+        "M04",
+        "M05",
+        "M06",
+        "M07",
+        "M08",
+        "M09",
+        "M10",
+        "M11",
+        "M12",
+        "M13",
+        "M14",
+        "M15",
+        "M16",
+        "X01"
+      ],
+      "coverage_state": "partial",
+      "reason": "跨全部已登记机制的来源版本/页图/假设治理要求；阅读完成与DUT执行是不同证据，任何不可读原文限制及未验证状态必须保留。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "00",
+        "00_1"
+      ],
+      "source_locator": "all sources bibliographic context",
+      "expected_behavior": "所有技术结论定位原文页/图及版本；致谢/目录不是实现证据",
+      "applicable_mode": "source/provenance",
+      "observables": "source_id,hash,page,figure,embodiment",
+      "acceptance_condition": "关键图实际查看，不把OCR命中当全页阅读",
+      "source_limitations": "exact-word transcription not certified; uncertainties in ledger",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PA-STAGE-01",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M01",
+        "M03",
+        "M08"
+      ],
+      "coverage_state": "partial",
+      "reason": "采用matched slice后采样响应匹配是选定约束；只可按工程RC/时差预算做行为验证，缺PDK/PVT时不能报物理匹配通过。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "09"
+      ],
+      "source_locator": "PDF20-21/printed1-4;PDF26-28/printed13-18",
+      "expected_behavior": "各slice采样RC、边沿/保持和尺度匹配",
+      "applicable_mode": "采用matched-slice结构时",
+      "observables": "slice ID、采样时间、实际采样电压、RC/时钟差",
+      "acceptance_condition": "独立输入折算动态误差满足明确工程预算；预算需来源分级",
+      "source_limitations": "没有PDK/PVT参数时只能验证数学合同",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PA-STAGE-02",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M01",
+        "M09",
+        "M16"
+      ],
+      "coverage_state": "partial",
+      "reason": "当前采用量化器结果驱动独立RDAC的前向profile；已决位和物理电荷可映射项目合同，错开更新等其他源文选择仍需明确实施例。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "09"
+      ],
+      "source_locator": "Fig7/PDF8;Fig12/PDF13;PDF28-29",
+      "expected_behavior": "RDAC从量化结果形成可解释物理残差，可逐已决bit、可错开slice更新",
+      "applicable_mode": "单量化slice驱动RDAC的前向profile",
+      "observables": "Flash prefix、已决位、逐slice masks、事件时间",
+      "acceptance_condition": "真实DUT trace与独立电荷/事件参考逐笔相符",
+      "source_limitations": "专利另有RDAC参与试探变体，不能用统一禁止条款覆盖",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PA-STAGE-03",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M01",
+        "M02",
+        "M16"
+      ],
+      "coverage_state": "open",
+      "reason": "ADC2回改RDAC/粗码是可选反馈实施例；当前前向结构不因此失败，但不能以重构器/溢出标志声称已有该反馈控制。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "09"
+      ],
+      "source_locator": "Fig11/PDF12;PDF29/printed19;PDF30/printed22",
+      "expected_behavior": "ADC2可修改RDAC/首级码以把残差限制在后级/RA线性范围",
+      "applicable_mode": "显式选择ADC2反馈变体时",
+      "observables": "反馈控制、粗级码变更、RA残差、ADC2 flag",
+      "acceptance_condition": "反馈因果性、上下文与范围均受测",
+      "source_limitations": "可选实施例；缺少该反馈不自动违反论文前向profile",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PA-STAGE-04",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M09",
+        "M13",
+        "M14"
+      ],
+      "coverage_state": "partial",
+      "reason": "粗buffer取大电荷、末端精参考是当前选定高层机制；带宽限制与实际噪声/截止参数仍为工程或模拟输入。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "09"
+      ],
+      "source_locator": "Fig14/PDF15;PDF29/printed20",
+      "expected_behavior": "大电荷从buffer取得，末端切精参考；可切换带宽限制",
+      "applicable_mode": "采用粗buffer/精参考切换时",
+      "observables": "switch state、rail电荷、参考/共模电压、截止误差",
+      "acceptance_condition": "独立ODE/电荷参考与选定截止门槛一致",
+      "source_limitations": "未给出项目真实RC及噪声预算",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PA-STAGE-05",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M08",
+        "M14",
+        "M16"
+      ],
+      "coverage_state": "partial",
+      "reason": "双组交替/备用slice、RA和上一笔残差归属是选定数字合同；真实tick和速率应取当前40MS/s目标，不移用来源或历史10MS/s预算。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "09"
+      ],
+      "source_locator": "Figs16-17/PDF16-17;PDF30",
+      "expected_behavior": "slice池所有权及RA/AZ任务不混笔",
+      "applicable_mode": "双组交替/备用slice模式",
+      "observables": "sample ID、acquisition/conversion所有权、RA/AZ、spare调度",
+      "acceptance_condition": "无重叠获取/转换冲突、有效sample连续且上下文一致",
+      "source_limitations": "具体数字tick、10MS/s吞吐和STA需代码/工具另证",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PA-DITHER-01",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M04",
+        "M16"
+      ],
+      "coverage_state": "partial",
+      "reason": "所有受支持模式必须使注入、改码、补偿的符号/LSB/位序同笔一致；项目range与理想dual_port分别验证，不能互作原芯片证明。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "10"
+      ],
+      "source_locator": "Figs4-6/PDF6-10;PDF26-27/printed5-8",
+      "expected_behavior": "写清采样、量化、粗级码修改和后级减去的位序/符号/单位",
+      "applicable_mode": "每个受支持dither模式",
+      "observables": "dither字、物理注入、控制码、级LSB、RA增益",
+      "acceptance_condition": "从实际开关电荷推导，逐样本补偿和量化合同一致",
+      "source_limitations": "不可由extra2bit推唯一4倍注入，也不可混用抽象符号和具体底板码",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PA-DITHER-02",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M04"
+      ],
+      "coverage_state": "comparison_only",
+      "reason": "六电容LSB-first位串是专利的具体演示，未选作本项目63+8码流格式；可独立核算原文，不能因此改变项目接口位序。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "10"
+      ],
+      "source_locator": "Figs6A-F/PDF8-10;PDF27",
+      "expected_behavior": "示例位串按LSB到MSB；011101=46，101000=5，110011=51",
+      "applicable_mode": "原文六电容示例",
+      "observables": "位序/电容权重/开关mask",
+      "acceptance_condition": "独立LSB-first算术与电荷关系一致",
+      "source_limitations": "这不是项目所有码流的位序规定，项目须另定版本",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PA-DITHER-03",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M02",
+        "M04",
+        "M16"
+      ],
+      "coverage_state": "partial",
+      "reason": "当前残差/ADC2窗口及已知扰动移除需要此范围合同；残余dither本身合法，出现裁剪须标记，不能用事后补偿或放宽量程掩盖。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "10"
+      ],
+      "source_locator": "Fig5/PDF7;Fig19/PDF22;PDF27/33",
+      "expected_behavior": "残余dither可以经后级数字移除，但必须不丢失有效范围",
+      "applicable_mode": "分数/残留dither留给RA与ADC2时",
+      "observables": "RA/ADC2残差、overflow/clipping、补偿字及标志",
+      "acceptance_condition": "所有合法输入+dither状态都满足明确范围；补偿前后相同捕获量化",
+      "source_limitations": "存在残余dither本身不是FAIL；放宽TB量程不构成修复",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PA-DITHER-04",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M04",
+        "M16"
+      ],
+      "coverage_state": "open",
+      "reason": "位子集拆分是可选网络，当前候选未建立与原文D1..DA一一相同的硬件合同；不把其七slice分数例强制成项目二进制缩放。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "10"
+      ],
+      "source_locator": "Fig19/PDF22;PDF33/printed19-20",
+      "expected_behavior": "第一dither字拆成对量化器/采样DAC/码修改的不同子集",
+      "applicable_mode": "位子集拆分实施例",
+      "observables": "D1..DA、第二/第三字、实际注入与补偿去向",
+      "acceptance_condition": "按选定子集逐笔验证，保存模式/编码版本",
+      "source_limitations": "原文七slice与5/7分数例不唯一等同项目二进制缩放",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PA-DITHER-05",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M04",
+        "M16"
+      ],
+      "coverage_state": "open",
+      "reason": "省略粗码补偿、全dither交后级属于另一可选变体；当前已选range合同不能同时冒称实现此流程。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "10"
+      ],
+      "source_locator": "Fig20/PDF23;PDF33",
+      "expected_behavior": "可省略粗级码补偿，由ADC2后数字移除",
+      "applicable_mode": "全dither交后级的可选变体",
+      "observables": "ADC1/ADC2同笔dither上下文、后级残差/码",
+      "acceptance_condition": "控制/注入/补偿因果与范围同时通过",
+      "source_limitations": "该模式与Fig4/5合同不同，不能拼成一组固定流程",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PA-DEM-01",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M05",
+        "M08"
+      ],
+      "coverage_state": "partial",
+      "reason": "名义位权守恒和物理身份重排是选定DEM约束；工程8x8/63+8几何与专利31x1C/15x2C示例分开。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "11"
+      ],
+      "source_locator": "Figs7-8/PDF8-9;PDF37-38/printed11-14",
+      "expected_behavior": "保持名义位权时，改变真实物理unit归属",
+      "applicable_mode": "随机单元分配DEM",
+      "observables": "物理unit ID、mask、失配权重、输入码",
+      "acceptance_condition": "独立非均匀权重下逐unit映射相符；不只比名义总和",
+      "source_limitations": "原文31×1C或15×2C等几何不是项目8×8唯一来源",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PA-DEM-02",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M05",
+        "M06",
+        "M08"
+      ],
+      "coverage_state": "partial",
+      "reason": "共享横向与逐slice附加重排提供可选结构参照；当前实际mask合同可独立验证，但不以满秩拟合证明原文全部mux网络相同。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "11"
+      ],
+      "source_locator": "Figs12-21/PDF13-21;PDF40-42",
+      "expected_behavior": "共享横向部分与逐slice附加部分区分；保留列和mux一致",
+      "applicable_mode": "二维/跨子阵列DEM",
+      "observables": "slice/cell index、shared/additional masks、实际switch trace",
+      "acceptance_condition": "端点/状态扫描及非均匀权重电荷参考逐项一致",
+      "source_limitations": "满秩拟合不能证明设计矩阵对应实际物理mask",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PA-DEM-03",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M05",
+        "M06"
+      ],
+      "coverage_state": "open",
+      "reason": "级联shuffler顺序和保留列集合是需选型的不同实施例；项目sid[8]不是原文公开状态编码，尚无逐实施例等价证明。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "11"
+      ],
+      "source_locator": "Figs16-18/PDF16-18;PDF41/printed19-20",
+      "expected_behavior": "两种shuffler顺序和可操作列集合有明确版本",
+      "applicable_mode": "选择某种级联shuffler实现时",
+      "observables": "first/second shuffle、reserved column、output unit集合",
+      "acceptance_condition": "代码profile和metadata解码一致，不将两实施例混用",
+      "source_limitations": "原文未提供项目sid[8]等状态编码",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PA-DEM-04",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M05",
+        "M08",
+        "M10"
+      ],
+      "coverage_state": "partial",
+      "reason": "同条件、多seed并同时报告杂散和总误差是当前选定评估原则；专利具体器件约4倍INL改善不作为工程保证。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "11"
+      ],
+      "source_locator": "PDF38/printed13;PDF41/printed20",
+      "expected_behavior": "失配失真可随机化，性能需以同等条件比较",
+      "applicable_mode": "DEM性能评估",
+      "observables": "多seed频谱、误差/噪声功率、INL覆盖",
+      "acceptance_condition": "报告有利与不利seed及统计范围，不预设SNDR必升",
+      "source_limitations": "原文试验器件约4倍INL改善不构成本项目保证",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PA-DEM-05",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M07",
+        "M16"
+      ],
+      "coverage_state": "partial",
+      "reason": "项目声称校准闭环必须具备观测、估计、冻结、装载和独立留出；已知额外bit仅是可选激励，并未披露项目SVD完整学习器。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "11"
+      ],
+      "source_locator": "PDF45-46/printed28-30,Example7/claim7",
+      "expected_behavior": "额外已知注入bit仅提供一种可选激励用途；另需完整可观测学习链路",
+      "applicable_mode": "声称已实现校准闭环时",
+      "observables": "刺激、原始记录、估计、冻结、导出、装载、独立验证",
+      "acceptance_condition": "逐段有当前实现/执行证据",
+      "source_limitations": "专利出现calibration procedure字样并未披露项目完整学习器",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PA-SOURCE-01",
+      "scope": "unresolved_source_conflict",
+      "mechanism_ids": [
+        "M03"
+      ],
+      "coverage_state": "open",
+      "reason": "RC/相位/时差示例存在原文算术矛盾，应保留校勘并使用独立物理公式；这是源文解释问题，不由静态DUT失败标记解决。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "09"
+      ],
+      "source_locator": "PDF27/printed15,Eq6-7；dither PDF30",
+      "expected_behavior": "独立重算RC/相位/时差，不照抄示例错误",
+      "applicable_mode": "引用原文数值预算时",
+      "observables": "R、f、C、phi、delay、输入折算误差",
+      "acceptance_condition": "按物理方程重算并将原文矛盾显式标出",
+      "source_limitations": "资料自身校勘，不是DUT FAIL",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS",
+      "project_disposition": "保留源内RC算例矛盾，以独立RC/相位关系计算工程条件；不把冲突算例数值当golden。"
+    },
+    {
+      "req_id": "PA-SOURCE-02",
+      "scope": "unresolved_source_conflict",
+      "mechanism_ids": [
+        "M15"
+      ],
+      "coverage_state": "open",
+      "reason": "原文充电式和1pF热噪声表数值存在差异，须分清响应与剩余误差并采用独立kT/C预算；不能把错式设成golden。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "11"
+      ],
+      "source_locator": "PDF36/printed9-10,Eq1/2与噪声表",
+      "expected_behavior": "充电响应/剩余误差定义分开，kT/C数值复算",
+      "applicable_mode": "使用独立建立/噪声参考时",
+      "observables": "初值/终值、C、T、noise RMS",
+      "acceptance_condition": "零初值充电V=VIN(1-exp)；1pF/300K噪声约64.36uV",
+      "source_limitations": "原文Eq1及1pF表值有误；不得将原文错式当oracle",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS",
+      "project_disposition": "区分充电响应与剩余误差，噪声采用独立kT/C关系；原文异常数字登记为源内疑点。"
+    },
+    {
+      "req_id": "IT01",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M11"
+      ],
+      "coverage_state": "partial",
+      "reason": "另一ADC最近可用码驱动待采DAC是M11可选跟踪机制；Python有因果状态候选，RTL清单明确无历史码预置通路，普通交织不自动要求它。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "12"
+      ],
+      "source_locator": [],
+      "expected_behavior": "在acquisition之前，由另一ADC最近可用转换信息更新待获取ADC的DAC电荷/状态。",
+      "applicable_mode": "声称实现该专利tracking的模式",
+      "observables": [
+        "target_slice",
+        "track_code",
+        "source_sample_id",
+        "source_valid_bits",
+        "phase"
+      ],
+      "acceptance_condition": "改变允许的源历史码必须因果改变目标pretrack状态；不能用目标自身陈旧码或未来完整码。",
+      "source_limitations": "结构实现与因果动态证据须另验；不是所有普通交织必须用此机制。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "IT02",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M11",
+        "M08"
+      ],
+      "coverage_state": "open",
+      "reason": "共享比较器tracking是专利特定资源变体；目标的两套SAR/共享Flash不能直接等同，获取可重叠与比较器独占须各自定义。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "12"
+      ],
+      "source_locator": [],
+      "expected_behavior": "同一ADC获取/转换/跟踪次序确定；共享比较器时同一时刻仅一路转换可使用该比较器。",
+      "applicable_mode": "共享比较器变体",
+      "observables": [
+        "ownership",
+        "phase",
+        "comparator_owner"
+      ],
+      "acceptance_condition": "逐周期所有权及pretrack→acquisition次序一致。",
+      "source_limitations": "不同ADC的获取时段可以部分重叠，不能误加全局零重叠要求。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "IT03",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M11",
+        "M08"
+      ],
+      "coverage_state": "partial",
+      "reason": "随机调度加tracking可作为兼容场景研究；实际样本年龄和源历史合法性要保存，随机化不属于所有主权项的共同必要功能。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "12"
+      ],
+      "source_locator": [],
+      "expected_behavior": "随机化是用于扩散交织伪迹的可选调度；须识别不等样本年龄。",
+      "applicable_mode": "选择随机交织扩展时",
+      "observables": [
+        "seed",
+        "schedule",
+        "age"
+      ],
+      "acceptance_condition": "记录实际选择及源样本年龄，比较含/不含tracking的相同输入与seed。",
+      "source_limitations": "随机化非主权项共同必要项，也不保证所有SNDR均改善。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "IT04",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M11"
+      ],
+      "coverage_state": "partial",
+      "reason": "历史加权是M11候选策略而非固定10/30/60系数要求；Python候选不代表RTL已有权重历史引擎。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "12"
+      ],
+      "source_locator": [],
+      "expected_behavior": "可用N个最近转换的加权信息形成pretrack值，例子10/30/60并非固定系数。",
+      "applicable_mode": "选择历史加权变体时",
+      "observables": [
+        "history_ids",
+        "weights",
+        "track_code"
+      ],
+      "acceptance_condition": "仅使用当时已可用历史，位宽/尺度/溢出明确。",
+      "source_limitations": "权重公式及其训练方式并未唯一披露。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "IT05",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M11"
+      ],
+      "coverage_state": "partial",
+      "reason": "部分已决MSB跟踪属于M11可选策略；只可使用实际可用码/掩码，不能用最终码事后回填，RTL仍无该预置路径。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "12"
+      ],
+      "source_locator": [],
+      "expected_behavior": "允许用另一ADC已发展的部分MSB结果缩短tracking。",
+      "applicable_mode": "部分码pretrack变体",
+      "observables": [
+        "bit_ready",
+        "valid_mask",
+        "source_sample_id"
+      ],
+      "acceptance_condition": "跟踪输入不晚于使用时刻产生；mask/剩余位默认值明确。",
+      "source_limitations": "不能用事后最终码替代当时部分码。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "IT06",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M11"
+      ],
+      "coverage_state": "partial",
+      "reason": "输入kickback是该tracking实施例的行为电荷比较；A*C和2A*C是指定相位例子，不推断无条件噪声或功耗比。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "12"
+      ],
+      "source_locator": [],
+      "expected_behavior": "由Q=C*DeltaV比较reset/hold/track的输入跃变；Nyquist特定相位的A*C与2A*C为条件例子。",
+      "applicable_mode": "输入kickback行为比较",
+      "observables": [
+        "v_before_acq",
+        "v_input",
+        "Ceff",
+        "signed_charge"
+      ],
+      "acceptance_condition": "按同一输入、实际历史电压及电容进行逐事件电荷比较。",
+      "source_limitations": "不能将示例电荷比无条件当噪声/功耗比。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "IT07",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M11"
+      ],
+      "coverage_state": "open",
+      "reason": "介电吸收预失真/专用ADC/随机扰动是进一步可选变体；P09明确记忆误差plant尚缺，常数offset和随机码不能关闭该项。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "12"
+      ],
+      "source_locator": [],
+      "expected_behavior": "指定偏置可作为介电吸收预失真，也可来自专用ADC或随机扰动。",
+      "applicable_mode": "明确选择相应可选变体时",
+      "observables": [
+        "memory_state",
+        "predistortion",
+        "sampling_time"
+      ],
+      "acceptance_condition": "若声称校正介电吸收，须有记忆误差plant和独立因果验证。",
+      "source_limitations": "单纯offset/随机码注入不证明介电吸收估计已实现。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "AUX01",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M12"
+      ],
+      "coverage_state": "partial",
+      "reason": "本项目可选辅助充电路径按M12建模；独立AUX绕过主RC的电荷来源要由KCL证明，RTL aux_charge_enable只提供窗口。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "13"
+      ],
+      "source_locator": [],
+      "expected_behavior": "寄生充电从独立辅助路径或主动驱动输出供给，绕过主输入RC的充电路径。",
+      "applicable_mode": "AUX旁路实施例",
+      "observables": [
+        "Q_main_signal",
+        "Q_main_parasitic",
+        "Q_aux",
+        "VIN_AUX",
+        "backgate_voltage"
+      ],
+      "acceptance_condition": "逐事件KCL证明寄生电荷由辅助支路供给，主RC负载减轻；反例为将辅助源接回Vin1。",
+      "source_limitations": "AUX本身可有独立滤波；不得写成“经主RC供寄生电荷”。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "AUX02",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M12"
+      ],
+      "coverage_state": "open",
+      "reason": "Fig6的完整gate-boost开关组属于可选器件实施例，当前数字使能及低阶行为不实现44/46/48/50/52/54/56的晶体管瞬态；原文42/54标号差异须保留。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "13"
+      ],
+      "source_locator": [],
+      "expected_behavior": "Fig6中48接CBOOST底板、54接背栅；conversion开44/50/52/56，acquisition开46/48/54，48/54源由Vin1改AUX。",
+      "applicable_mode": "精确选择Fig6 gate-boost变体时",
+      "observables": [
+        "phase",
+        "switch_44_46_48_50_52_54_56",
+        "gate",
+        "BG",
+        "boost_state"
+      ],
+      "acceptance_condition": "相位、隔离与charge-source对应原图；切换瞬态不由理想flag代替。",
+      "source_limitations": "其他AUX变体不要求该完整开关组；原文42/54标号有不一致。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "AUX03",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M12"
+      ],
+      "coverage_state": "open",
+      "reason": "Fig3运放高阻感测与供电充电路径是可选有源驱动；当前辅助模型不提供该运放真实带宽、噪声及输出阻抗证据。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "13"
+      ],
+      "source_locator": [],
+      "expected_behavior": "可选高输入阻抗放大器在主RC前/后感测电压，其输出/电源供给寄生电流。",
+      "applicable_mode": "Fig3运放辅助驱动变体",
+      "observables": [
+        "sense_node",
+        "amplifier_supply_charge",
+        "output_charge"
+      ],
+      "acceptance_condition": "区分高阻感测电流与输出负载电流，不能因sense在RC后就称寄生电流经RC。",
+      "source_limitations": "实际运放带宽/噪声/输出阻抗需另给。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "AUX04",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M12"
+      ],
+      "coverage_state": "partial",
+      "reason": "Fig10–12采样电容预充可映射M12行为预充场景，独立输入副本/相位/低阻假设必须保存；它不等同所有背栅AUX变体。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "13"
+      ],
+      "source_locator": [],
+      "expected_behavior": "可选直接precharge路径以低阻输入副本通过94预充采样电容，可通过独立signal-conditioning作相位匹配。",
+      "applicable_mode": "Fig10–12采样电容precharge变体",
+      "observables": [
+        "precharge_voltage",
+        "source_impedance",
+        "phase_error",
+        "Q_precharge",
+        "cap_voltage"
+      ],
+      "acceptance_condition": "主输入保持时切换AUX应因果改变预充初值；时序、低阻与信号相位条件明确。",
+      "source_limitations": "信号副本/相位要求不可泛化到claim13的独立boost源。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "AUX05",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M12"
+      ],
+      "coverage_state": "partial",
+      "reason": "一/两AUX共用或分别供应属于配置选择；现有行为支路因果验证与RTL窗口不能证明所有源文支路同时存在。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "13"
+      ],
+      "source_locator": [],
+      "expected_behavior": "可一AUX共供寄生/预充或两AUX分别供给。",
+      "applicable_mode": "选择一/两AUX集成变体时",
+      "observables": [
+        "aux_gate_enable",
+        "aux_cap_enable",
+        "Q_each_branch"
+      ],
+      "acceptance_condition": "分别禁用各支路验证因果影响，不以单个enable证明所有通路。",
+      "source_limitations": "独立实施例不要求两路同时存在。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "AUX06",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "77MHz与50kHz是专利引用LTC2387-18背景器件的例子，不属于本项目40MS/s的实际带宽、功耗或验收阈值。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "13"
+      ],
+      "source_locator": [],
+      "expected_behavior": "77MHz滤波带宽用于50kHz信号是原文举LTC2387-18的背景例子。",
+      "applicable_mode": "来源参数审查",
+      "observables": [
+        "parameter_source"
+      ],
+      "acceptance_condition": "保持背景例子与本项目假设分离。",
+      "source_limitations": "不是本项目实际带宽、功耗或验收门槛。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "AUX07",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M12"
+      ],
+      "coverage_state": "open",
+      "reason": "claim12–15允许不含主信号的boost源；主信号副本precharge是不同实施条件，当前须按具体AUX模式另定信号内容。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "13"
+      ],
+      "source_locator": [],
+      "expected_behavior": "claim13允许第二节点基本不含主输入信号；与信号precharge路径属于不同条件。",
+      "applicable_mode": "claim12–15 boost变体",
+      "observables": [
+        "aux_signal_content"
+      ],
+      "acceptance_condition": "说明所选实施例后再定义AUX信号及范围。",
+      "source_limitations": "不能把所有AUX路径一律要求输入跟随或历史码驱动。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "REF01",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M09",
+        "M13",
+        "M14"
+      ],
+      "coverage_state": "partial",
+      "reason": "当前采样/参考结构选择粗供电与精参考回接的高层次序；专利Sample/Convert需映射项目phase，不能由名称相等证明电气截止精度。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "14"
+      ],
+      "source_locator": [],
+      "expected_behavior": "粗补电/储能阶段断开精参考，残差精确转换前再接精参考。",
+      "applicable_mode": "所选动态参考模式",
+      "observables": [
+        "S1",
+        "coarse_path",
+        "fine_path",
+        "reference_voltage",
+        "RA_deadline"
+      ],
+      "acceptance_condition": "事件次序、互斥及精参考回接后的截止误差可测。",
+      "source_limitations": "需先把专利Sample/Convert映射到项目phase，不能仅按名字相等。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "REF02",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M13"
+      ],
+      "coverage_state": "open",
+      "reason": "有限比较器/补电延迟、末次负载阈值是M13参考控制变体，清单明确该整定回路未进生产pipeline，数字窗口不实现此控制器。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "14"
+      ],
+      "source_locator": [],
+      "expected_behavior": "比较器和补电开关具有有限延迟；阈值可按负载调整，包含末次小负载不触发的对照。",
+      "applicable_mode": "比较器参考变体",
+      "observables": [
+        "threshold",
+        "delay",
+        "DAC_load",
+        "MP_on",
+        "Vref_internal"
+      ],
+      "acceptance_condition": "可重现固定阈值末次不触发，再验证动态阈值和延迟导致的残余E；不是永远理想一阶恢复。",
+      "source_limitations": "示意图未给实际延迟/器件参数；本项目未测则不能声明达到该功耗。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "REF03",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M13"
+      ],
+      "coverage_state": "open",
+      "reason": "跨转换积分误差并自适应threshold是可选参考控制器，非CDAC权重学习器；当前不存在该可观测误差/积分闭环。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "14"
+      ],
+      "source_locator": [],
+      "expected_behavior": "在S1接精参考之前Sample锁存E，接回后Dump把误差转到积分器；状态跨转换积累调threshold，可数字实现。",
+      "applicable_mode": "选择阈值自适应变体时",
+      "observables": [
+        "sample_error",
+        "dump",
+        "integrator_state",
+        "threshold_update",
+        "epoch"
+      ],
+      "acceptance_condition": "观察状态跨样本更新；断开误差反馈后应出现受控差异；系数/极性/稳定性明确。",
+      "source_limitations": "数字积分器是参考控制实现，不是CDAC位权学习器。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "REF04",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M13"
+      ],
+      "coverage_state": "open",
+      "reason": "按DAC码调整负载保持总C是可选零净电荷优化；当前未实现恒负载物理网络，平均E为零不足以关闭sum(Q)。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "14"
+      ],
+      "source_locator": [],
+      "expected_behavior": "按DAC数据调整Cload使采样瞬间Ctotal恒定，从而使sum(E)=0支持sum(Q)=0。",
+      "applicable_mode": "选择恒负载优化变体时",
+      "observables": [
+        "C_DAC",
+        "Cload_adjust",
+        "E",
+        "Q_fine"
+      ],
+      "acceptance_condition": "比较恒/变电容时净参考电荷；仅平均电压误差归零不足以证明变负载净电荷归零。",
+      "source_limitations": "该优化为可选，但若声称其零净电荷效果须保留前提。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "REF05",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M13"
+      ],
+      "coverage_state": "open",
+      "reason": "低带宽放大器+C3是与比较器方案不同的可选储能架构；100nF及7/18ns是原文例子，当前不强制套入40MS/s参考模型。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "14"
+      ],
+      "source_locator": [],
+      "expected_behavior": "低带宽放大器+储能C3为比较器方案的替代；Fig15让C3供电与放大器充C3分时。",
+      "applicable_mode": "选择慢放大器储能变体时",
+      "observables": [
+        "C3_voltage",
+        "charge_draw",
+        "recharge_current",
+        "S5",
+        "S1"
+      ],
+      "acceptance_condition": "完整电荷平衡覆盖连续样本；有限充电时间后C3不隐藏漂移/饱和。",
+      "source_limitations": "100nF及25ns中7/18ns仅原文例子，不是项目固定要求。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "REF06",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M13"
+      ],
+      "coverage_state": "open",
+      "reason": "低供电比较器电平移位为可选器件变体；当前RTL无跨电源器件/输入范围模型，不作为所有参考模式共同要求。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "14"
+      ],
+      "source_locator": [],
+      "expected_behavior": "可选耦合电容电平移位让比较器使用低于补电供电的VDD2。",
+      "applicable_mode": "选择低供电比较器变体时",
+      "observables": [
+        "VDD1",
+        "VDD2",
+        "level_shift_state"
+      ],
+      "acceptance_condition": "跨域信号与允许输入范围明确后才能仿真此变体。",
+      "source_limitations": "不是每种参考模型共同必需。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "REF07",
+      "scope": "optional_patent_embodiment",
+      "mechanism_ids": [
+        "M13"
+      ],
+      "coverage_state": "open",
+      "reason": "片内粗参考/LDO与比例分压是另一可选粗供电实施例；项目没有独立器件级LDO/分压实现证据，原文命名冲突需保留。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "14"
+      ],
+      "source_locator": [],
+      "expected_behavior": "粗参考可由另一稳定片内参考/LDO供给，经电阻比例缩放接近精确外Vref。",
+      "applicable_mode": "选择不同参考电压变体时",
+      "observables": [
+        "Vref_amp",
+        "Vref_comp",
+        "divider_ratio",
+        "Vref_fine"
+      ],
+      "acceptance_condition": "按实际分压比例和units比较，并保留外部精参考回接。",
+      "source_limitations": "R1=R2的2倍例子不是所有配置常数；正文Amp2/Amp1标号不一致。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "REF08",
+      "scope": "target_selected",
+      "mechanism_ids": [
+        "M13"
+      ],
+      "coverage_state": "partial",
+      "reason": "本项目采用该专利作来源时，引用须采用2021-02-16更正证书并留原页记录；这是所用来源版本治理，不额外添加采样/参考电路。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "14"
+      ],
+      "source_locator": [],
+      "expected_behavior": "引用claim1/9/12/14/15/17/22/26时采用2021-02-16更正证书修正的文字并保留原页。",
+      "applicable_mode": "源版本治理",
+      "observables": [
+        "correction_record"
+      ],
+      "acceptance_condition": "九项before/after及列行全部有记录。",
+      "source_limitations": "工程上不新增采样/参考节点或时序；不作法律状态意见。",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "SOURCE_VERSION",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。固定的是本机AD4080 Rev.B、2025年9月、95页版本和SHA；与ISSCC器件/模型基线分别标识。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "本机Rev.B，2025年9月修订，95页，固定SHA。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_PERFORMANCE",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。该产品表1的typ/min/max及测试条件是产品性能参考，当前行为噪声拟合和数字仿真不证明符合其SNR/SINAD/DR指标。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "表1的SNR/SINAD/DR/THD/SFDR须逐项保留幅度、频率、供电、温度和typ/min/max，不转为项目已通过指标。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_STATIC_LINEARITY",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。产品无缺码、DNL/INL及端点法属于该产品测试条件；项目的数字20位码宽、算术穷举和稀疏误差图不构成产品静态线性度符合性。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "产品20bit/no-missing-codes、DNL typ±0.5/max±0.99LSB、INL typ±4/max±8ppm；端点方法见p18。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_ANALOG_LIMITS",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。±3V与共模窗是3V参考下的产品引脚工作条件；当前模型6Vpp归一化不等于已实现产品共模/引脚电路。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "VREFIN=3V时差分±3V、共模VREFIN/2±0.05V；工作窗与绝对最大额定值分开。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_ABSOLUTE_RATINGS",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。绝对最大额定、ESD和热阻适用封装/引脚条件，不能作为行为模型可正常转换范围或项目IC签核证据。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "绝对最大值不保证功能工作；热阻、ESD各有指定模型/引脚条件。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_CODING",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。产品公开结果为20位二补码并SPI符号扩展；本项目SAR内部offset-binary经接入层转换，只有明确采用该外部接口后才按其编码验证。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "输出20bit二补码；±3V下LSB=6/2^20V；SPI结果符号扩展到24bit，不是24ENOB。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_ARCHITECTURE_BOUNDARY",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。产品Fig31是外部简化架构，不能反推18-slice/共享RA/ADC2晶体管网表或证明与ISSCC内部结构完全同一。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "Fig31只披露两个交替采样器的简化外部行为，不唯一披露18-slice/RA/ADC2内部网表。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_CALIBRATION_BOUNDARY",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。产品p71系统两点校正与项目逐物理单元权重估计层次不同；factory calibration不是用户可控自主CDAC学习协议。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "p71公开外部两点参考估计system gain/offset并在芯片逐样本应用；factory calibrated不披露可控内部自主CDAC学习协议。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_GAIN_OFFSET",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。OFFSET/GAIN寄存器位宽、地址、单位是产品接口；当前DSP原型须另选是否逐寄存器兼容，M16的ADC核权重格式不能替代它。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "OFFSET12bit二补码LSB约5.72uV、25/26地址；GAIN10bit直码27/28地址，0x200禁用，0x001/0x3FF给1±0.015594。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_DIGITAL_CHAIN",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。产品系统校正位于滤波/FIFO之前可作DSP次序参考；产品raw输出是未滤波最终结果，不含项目校准所需slice/mask/ADC2观测。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "offset/gain在滤波/旁路/FIFO上游；raw一词指未滤波公开结果，不等于首级mask/ADC2/DEM观测。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_ANALOG_INPUT",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。23.5pF/26ohm/4.5pF是产品典型等效引脚模型，不能直接变为当前slice/PDK参数或证明驱动建立达标。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "Cs23.5pF/Rs26ohm/Cpin4.5pF为典型等效；滤波/驱动建立按指定采样率和精度预算，非晶体管/PDK验证。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_AUX",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。AD4080 AUXIN黑盒和板级滤波只约束公开端口使用，不唯一决定US10541702专利全部内部开关连接。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "独立AUXIN±接内部线性化块，主/AUX滤波依应用图和Table8；不能据黑盒图恢复专利全部连接。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_REFERENCE",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。产品外参考、封装储能和CMO负载条件是接口参考；项目静态训练使用已知输入/理想参考时必须保留参考误差未计入的限制。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "3V±5mV外参、9.4uF±20%封装储能与buffer；CMO约Vref/2、700ohm输出；外参精度和负载不可当理想真值。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_SUPPLIES",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。VDD33/VDD11/IOVDD/VDDLDO及上电顺序属于产品供电合同，当前无该多电源IC/外部LDO实物符合性结果。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "三工作域VDD33/VDD11/IOVDD与可选VDDLDO；内部/外部供电互斥规则、上电顺序、无外部LDO负载。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_POWER_MODES",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。normal/standby/sleep和恢复时间是产品状态机条件；当前数字epoch清配置不等于已实现产品低功耗电源模式。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "normal/standby/sleep合法转换，禁standby和sleep直接互跳；IOVDD供电条件影响接口可用性；另需trecover。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_IO_ELECTRICAL",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。终端、电平、drive和模式delay是LVDS/SPI引脚条件；RTL逻辑仿真不验证这些电气范围。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "按Table1/2和lane模式保留终端、电平、drive和delay；某些非法field虽能读回但物理回默认。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_PIN_MAP",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。球位/DNC/默认GPIO/SDOD三态均为产品封装接口，不能仅由项目同名端口断言兼容。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "按Table6及LVDS/SPI交叉表连接；GPIO0默认配置SDO，DNC不连，SDOD三态须保留文内限制。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_CONVERSION",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。CNV触发、1.25–40MSPS范围和FIFO流水延迟是产品外部时序；当前16相位结构核是独立工程合同。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "CNV上升沿采样/启动，1.25–40MSPS产品范围；FIFO写入与转换结果完成有流水延迟。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_TIMING",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。±535ps对齐和setup/hold须绑定产品模式/端口；它们不是当前工艺STA约束已通过的证据。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "最小周期、CNV/CLK对齐±535ps、时钟/数据setup/hold及模式相关延迟须分别验证；产品数值不等于项目STA。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_LVDS",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。DDR单/双lane 10/5CLK、CNT字段与Manchester限制是产品读出参考；当前串行原型缺完整PHY/连续吞吐，须另定采用范围。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "DDR、1/2lane分别10/5CLK读20bit；CNT时钟数须映射Table20 field码；Manchester仅未滤波dual conversion。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_SPI",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。配置Mode3与独立data SPI/FIFO为产品协议；不能把聚合200Mbit/s解释成DCLK200MHz，也不能以已有SPI模块名视为完全兼容。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "配置SPI Mode3；data SPI独立DCS/DCLK、1/4lane、至50MHz、从FIFO读；不能把聚合200Mbit/s当200MHz DCLK。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_CONFIG_ACCESS",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "open_source_conflict",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。地址长度/descending/strict/stream与多字节端序是产品配置协议；原文端序差异须先裁定，当前不强制套用到SAR权重配置总线。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "7/15bit地址、default descending、strict多字节完整性、single/stream选项；原文端序冲突不能隐式吞掉。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS",
+      "project_disposition": "当前为项目SPI协议代理，采用已冻结的Mode3/同步裕量/帧取消合同；厂商互相冲突的端序文字不强加至SAR权重总线，产品等价OPEN。"
+    },
+    {
+      "req_id": "PUBLIC_CRC",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。产品可选CRC8的多项式、seed、长度与重试/W1C是具体协议；项目没有该协议完整执行证据时保持产品参考。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "可选CRC-8 x8+x2+x+1，首seed0xA5，后续按Table19；strict决定实体长度；错误后新帧重试、W1C清并读回。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_FIFO_CRC",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "open_source_conflict",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。数据FIFO校验与配置CRC8分开；95页未完整给出图89 CRC24的覆盖/追加口径，尚不能形成项目可执行规范。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "数据校验独立于配置CRC；图89标24bitCRC，但多项式/覆盖/record追加口径未被这95页完整规定，不能套CRC-8。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS",
+      "project_disposition": "明确配置CRC8和产品数据CRC24不同；未披露的CRC24覆盖/附加口径及FIFO会话合同保持OPEN。"
+    },
+    {
+      "req_id": "PUBLIC_STATUS_ERRORS",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。产品R/W1C/R、sticky/实时位和ADC_CNV_ERR无效语义可供接口设计参考；当前SAR逐结果与粘滞标志按项目合同而非同名映射。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "按0x11/0x14的R/W1C/R位域区分sticky与实时flag；ADC_CNV_ERR时数据invalid，mask路由影响可见性。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_INTERFACE_TEST",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。0xAC5D6用于公开串行接口图样检查；即使采用且通过，也不证明模拟精度或动态样本metadata正确。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "固定0xAC5D6替换ADC结果；可检查物理lane对齐，不能证明模拟精度、动态结果tag或CNT配置正确。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_FIFO",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。产品single-port16K、模式/水位/rearm/预热及pre/post-event是产品捕获合同；当前FIFO原型不自动满足全部模式。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "single-port、16384条、读写不同时；00/01/10/11模式、水位/rearm/三CNV预热以及pre/post-event约束。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_CAPTURE_VALIDITY",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。产品旧/随机pre-event区、保留FIFO和重复filtered码必须在采集分析中识别；项目训练只可使用已知epoch和合法独立记录。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "旧/随机pre-event区、软件reset保留FIFO、filtered重复码与未冲洗filter都须显式标记，不能当独立新训练/FFT样本。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_GPIO",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。产品功能编码、方向与低有效信号必须单独採纳为GPIO接口合同；当前可综合GPIO模块存在不代表产品编码兼容。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "方向/data/function分别配置；FILTER_RDY与ALERT/Sync低有效，EXT_EVENT输入；禁止未定义功能。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_EVENT",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。阈值/迟滞单位与20bit输出LSB不同，路由及sticky/同步delay是产品事件合同，不能直接引用为当前比较门槛。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "12bit阈值与11bit迟滞LSB约1.46484mV，区别20bit码LSB；route/状态粘滞/ALERT电平、同步延迟分别定义。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_FILTER",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。sinc1/sinc5及补偿抽取范围、输出速率和建立期是产品滤波规格；当前占位补偿系数不能声明该响应已复现。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "sinc1总N=2..1024，sinc5总N=2..256，补偿总2N=4..512；输出带宽/速率/建立期与核心fs分开。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_FILTER_SYNC",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。FILTER_SYNC、配置后冲洗和首个有效结果是产品滤波捕获合同；项目epoch复位需要单独定义与之关系。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "每次filtered FIFO前需FILTER_SYNC，改filter后冲洗；按Table2/Fig98/99区分assert/deassert与首个有效结果。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_REGISTER_MAP",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。0x00..0x29及reserved/default/端序是产品寄存器表，未公开项目逐单元权重接口，不与SAR权重地址合并。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "0x00..0x29按Map/bitfield保留多字节顺序、reserved强制值和默认值；未列任何逐CDAC单元权重接口。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_IDENTIFICATION",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。产品联合ID与scratchpad只说明识别/读写路径；不用于判断当前ADC转换功能或校准性能。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "CHIP_TYPE+PRODUCT_ID/grade/revision/vendor联合识别；scratchpad只证明配置读写，不证明转换性能。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_BOARD_LAYOUT",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。封装去耦/共地/star及板级分区为产品应用条件，不能提升为本项目IC版图、PEX或signoff。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "封装去耦、共地与参考局部star及模拟数字分区属于板级指南，不是IC/PEX/signoff证据。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "PUBLIC_METRIC_DEFINITIONS",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "open_source_conflict",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。产品p18的DC/谐波/端点定义用于按条件比较；原图dBFS归一化差异须明确，不能把所有频谱数字直接合并。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "p18的DC/谐波排除、端点INL、THD/SFDR分母须保留；图注符号与dBFS归一化未完全一致，不能直接混比。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS",
+      "project_disposition": "按各版本的归一化、谐波排除和输入条件报告；不混合为统一芯片性能通过标记。"
+    },
+    {
+      "req_id": "PUBLIC_PACKAGE",
+      "scope": "product_interface_reference",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "AD4080 Rev.B（2025年9月，95页）产品接口参考。BC-49-8球栅及包装/温度为产品机械参考，详细land pattern不在本轮95页内，与项目数字RTL无直接实现等价。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "AD4080_REVB"
+      ],
+      "source_locator": [],
+      "expected_behavior": "49球CSP_BGA BC-49-8与温度/packing合同；详细land pattern外链不在本轮95页中。",
+      "applicable_mode": "Product reference; becomes a project requirement only if the project explicitly adopts this public interface/condition",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "H24-ARCH-01",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "Huang 2024 博士论文的16位/5MS/s SRM SAR器件用于比较，未选作本项目20位/40MS/s目标架构。20个内部控制位/冗余与16位输出不同，不能据b19声明20位输出或ENOB。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "HUANG2024_THESIS"
+      ],
+      "source_locator": "PDF87-88/printed74-75,Fig4.7",
+      "expected_behavior": "内部b0-b19共20个CDAC控制位，利用冗余得到16bit输出；6LSB参考+14上位",
+      "applicable_mode": "比较本文结构时",
+      "observables": "位序、冗余权重、输出格式、Flash/SAR划分",
+      "acceptance_condition": "报告不因b19或20个控制位宣称20bit输出/ENOB",
+      "source_limitations": "本器件16bit5MS/s，不是本项目20bit10MS/s",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "H24-CAL-01",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "Huang 2024 博士论文的16位/5MS/s SRM SAR器件用于比较，未选作本项目20位/40MS/s目标架构。内部MUX隔离输入、CM/参考逐位双向测量与外部known_vin SVD不同；当前不声称采用其内部测位权DUT。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "HUANG2024_THESIS"
+      ],
+      "source_locator": "PDF100-101,Figs4.16-4.17;PDF87-88,Fig4.7",
+      "expected_behavior": "校准MUX隔离正常输入，用共模/参考和目标位正负刺激形成可量测误差",
+      "applicable_mode": "声称采用本文内部自校准机制时",
+      "observables": "Cali_en、逐位底板开关、参考码、正负观测和sample context",
+      "acceptance_condition": "实际DUT刺激改变应因果改变测量码；不依赖外部逐样本known_vin",
+      "source_limitations": "仅外部已知输入拟合不自动满足内部自校准",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "H24-CAL-02",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "Huang 2024 博士论文的16位/5MS/s SRM SAR器件用于比较，未选作本项目20位/40MS/s目标架构。双向offset抵消的同路径/稳定性/不裁剪条件可作设计参照，但当前无其成对内部刺激硬件。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "HUANG2024_THESIS"
+      ],
+      "source_locator": "PDF101-102,Eqs4.17-4.19",
+      "expected_behavior": "同路径观测D+=Wi+Vos+n、D-=-Wi+Vos+n，差分得到对比量",
+      "applicable_mode": "双向offset抵消时",
+      "observables": "成对观测、极性、offset稳定性、invalid/clip",
+      "acceptance_condition": "稳定offset无饱和时抵消；漂移误差和噪声相关性有预算",
+      "source_limitations": "不可先发生量程裁剪再声称数字相减修复",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "H24-CAL-03",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "Huang 2024 博士论文的16位/5MS/s SRM SAR器件用于比较，未选作本项目20位/40MS/s目标架构。6LSB作内部参考、已校准位回用属于该冗余CDAC架构，不能移用为项目完美参考或已有内部学习引擎。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "HUANG2024_THESIS"
+      ],
+      "source_locator": "PDF99-103,§4.5",
+      "expected_behavior": "6LSB参考须有足够线性度/尺度；已校准位加入后续参考",
+      "applicable_mode": "低位内部参考逐位测上位时",
+      "observables": "参考权重来源、码单位、参考转换残差、逐位结果",
+      "acceptance_condition": "保持参考/目标的独立边界，验证误差传播与覆盖",
+      "source_limitations": "原文±0.39LSB为其LSB部分3sigma MC，不是完美oracle",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "H24-CAL-04",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "Huang 2024 博士论文的16位/5MS/s SRM SAR器件用于比较，未选作本项目20位/40MS/s目标架构。W6=W5的对称余量和300uV/4sigma属于该器件MC预算，项目量程/offset需独立设计。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "HUANG2024_THESIS"
+      ],
+      "source_locator": "PDF102-103,Eqs4.20-4.21",
+      "expected_behavior": "正负量测都覆盖目标+offset；名义W6=W5约1.2mV提供约±W5余量",
+      "applicable_mode": "内部参考量程和对称冗余",
+      "observables": "两极性实际电压、clip/invalid、offset分布",
+      "acceptance_condition": "全合法校准刺激不越范围；边界失败必须计数",
+      "source_limitations": "300uV/4sigma是原文MC预算，不能当当前工艺事实",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "H24-CAL-05",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "Huang 2024 博士论文的16位/5MS/s SRM SAR器件用于比较，未选作本项目20位/40MS/s目标架构。b18/b19强制抵消及恢复公式依赖该阵列已校准位，未选作项目63+8跨slice权重估计协议。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "HUANG2024_THESIS"
+      ],
+      "source_locator": "PDF103/printed90",
+      "expected_behavior": "强制抵消使d18=W18-W17、d19=W19-W18-W17；恢复须加回已校准强制权重",
+      "applicable_mode": "高位b18/b19限摆幅测量",
+      "observables": "强制bit状态、差分观测、所加回权重及系数版本",
+      "acceptance_condition": "W18_hat=d18+W17_hat；W19_hat=d19+W18_hat+W17_hat；失配下不用名义等式代替",
+      "source_limitations": "恢复公式由原文物理开关关系推导",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "H24-CAL-06",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "Huang 2024 博士论文的16位/5MS/s SRM SAR器件用于比较，未选作本项目20位/40MS/s目标架构。32对/64观测下sigma/8仅适用独立同方差假设，不约束项目SVD训练笔数或保证噪声收益。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "HUANG2024_THESIS"
+      ],
+      "source_locator": "PDF102 Eq4.19;PDF103/107",
+      "expected_behavior": "32对=64观测，独立同方差时STD=σ/8",
+      "applicable_mode": "平均降低校准随机误差",
+      "observables": "次数、seed、相关性、方差、冻结后留出验证",
+      "acceptance_condition": "统计验证应包含噪声相关/参考误差/范围，不能只展示单次成功",
+      "source_limitations": "本文σ/8不覆盖LSB系统误差和逐级误差传播",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "H24-SRM-01",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "Huang 2024 博士论文的16位/5MS/s SRM SAR器件用于比较，未选作本项目20位/40MS/s目标架构。保持DAC不变并利用比较概率和sigma估计残差是SRM机制，与项目独立RA/ADC2及外部回归不是同一算法。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "HUANG2024_THESIS"
+      ],
+      "source_locator": "PDF88/93,Fig4.7,Eq4.13",
+      "expected_behavior": "DAC保持残差不动，用比较器概率P和输入噪声尺度σ估计残差",
+      "applicable_mode": "采用SRM时",
+      "observables": "held residue、比较次数、P、σ来源、LUT输入/输出",
+      "acceptance_condition": "估计器只用允许观测；残差保持且统计假设经过验证",
+      "source_limitations": "SRM不是LMS，也不等于外部known_vin回归",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "H24-SRM-02",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "Huang 2024 博士论文的16位/5MS/s SRM SAR器件用于比较，未选作本项目20位/40MS/s目标架构。32项概率LUT及P=0/1端点是该SRM的定点实现议题，来源未提供完整表协议，当前项目未选择此架构。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "HUANG2024_THESIS"
+      ],
+      "source_locator": "PDF93/printed80",
+      "expected_behavior": "明确LUT32项、P=0/1处理、σ标定/跟踪、舍入与饱和",
+      "applicable_mode": "SRM有限定点实现",
+      "observables": "完整LUT/格式、端点、异常码、输出范围",
+      "acceptance_condition": "所有有限计数端点有定义并与独立概率模型核对",
+      "source_limitations": "原文给LUT规模与综合估算，未给完整可执行表/协议",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "H24-NOISE-01",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "Huang 2024 博士论文的16位/5MS/s SRM SAR器件用于比较，未选作本项目20位/40MS/s目标架构。可观察残差、固定AZ混叠及输入源噪声分解可供比较；111/67/38uV为该文晶体管仿真预算，不能复制为项目噪声源。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "HUANG2024_THESIS"
+      ],
+      "source_locator": "PDF94-99,Eqs4.14-4.16,Table4.1",
+      "expected_behavior": "分开可观察动态残差噪声、固定AZ混叠噪声与输入源噪声",
+      "applicable_mode": "噪声分析与SRM收益比较",
+      "observables": "各噪声注入点、时域保持、谱/积分带宽、消融",
+      "acceptance_condition": "不能让估计器得到原本不可观察噪声；有限SRM与理想moving average上界区分",
+      "source_limitations": "111/67/38uV是源文晶体管仿真预算",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "H24-TIME-01",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "Huang 2024 博士论文的16位/5MS/s SRM SAR器件用于比较，未选作本项目20位/40MS/s目标架构。70/60/20ns为该文5MS/s的相位预算；既不能证明历史10MS/s，也不能证明当前40MS/s节拍可实现。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "HUANG2024_THESIS"
+      ],
+      "source_locator": "PDF97-98/printed84-85",
+      "expected_behavior": "将TSRM约70ns、Tconv约60ns、Taz约20ns与目标周期重新预算",
+      "applicable_mode": "将该机制用于10MS/s目标时",
+      "observables": "逐相位deadline、比较ready、有效吞吐和延迟",
+      "acceptance_condition": "在100ns目标周期内以真实并行/缩短方案验证，不能只改fs参数",
+      "source_limitations": "原文具体5MS/s参数不可直接当10MS/s实现证据",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "H24-GAIN-01",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "Huang 2024 博士论文的16位/5MS/s SRM SAR器件用于比较，未选作本项目20位/40MS/s目标架构。二值比较前放10x/8x不要求精确幅度重构，不能用其增益容忍度放松本项目RA幅度校准。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "HUANG2024_THESIS"
+      ],
+      "source_locator": "PDF92/printed79",
+      "expected_behavior": "二值判决前放10×/8×无需精确匹配，与幅度重构RA不同",
+      "applicable_mode": "与pipelined SAR的RA比较时",
+      "observables": "误差注入位置、模拟增益、后级输入折算",
+      "acceptance_condition": "RA增益/非线性需独立预算/辨识，不套用前放容忍度",
+      "source_limitations": "Huang没有本项目独立RA/ADC2系统",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "H24-MEAS-01",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "Huang 2024 博士论文的16位/5MS/s SRM SAR器件用于比较，未选作本项目20位/40MS/s目标架构。1MS/s1kHz、5MS/s低频−1.5dBFS与1MHz另台架为独立条件，不能混成项目单组实验或校准集。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "HUANG2024_THESIS"
+      ],
+      "source_locator": "PDF105-111,§4.6.2/4.6.3,Figs4.19-4.25",
+      "expected_behavior": "分开1MS/s1kHz满幅校准验证、5MS/s低频-1.5dBFS测量及1MHz另一测试台",
+      "applicable_mode": "性能对比",
+      "observables": "fs/fin/幅度/归一化、源/driver、噪声、N和统计覆盖",
+      "acceptance_condition": "逐个条件比较；校准数据和性能验证数据角色明确",
+      "source_limitations": "source图dBFS与fullscale描述要求明确测量口径",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "H24-STATIC-01",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "Huang 2024 博士论文的16位/5MS/s SRM SAR器件用于比较，未选作本项目20位/40MS/s目标架构。来源16位直方图与项目全20位静态覆盖不同，且原段未给完整hits预算，不能关闭项目码密度要求。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "HUANG2024_THESIS"
+      ],
+      "source_locator": "PDF106-107,Fig4.20",
+      "expected_behavior": "本文直方图范围16bit、校前后INL；不得移用证明全20bit静态性能",
+      "applicable_mode": "静态线性度比较",
+      "observables": "码覆盖、hit预算、缺码/INL定义",
+      "acceptance_condition": "当前目标必须单独记录覆盖范围与统计限制",
+      "source_limitations": "原文这段没有完整hit预算",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "H24-CLOCK-01",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "Huang 2024 博士论文的16位/5MS/s SRM SAR器件用于比较，未选作本项目20位/40MS/s目标架构。时钟章节相噪积分0.9/1.1ps与ADC外buffer2ps属于不同原型/频带，不能合成项目集成抖动成绩。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "HUANG2024_THESIS"
+      ],
+      "source_locator": "PDF69-70/110,Eqs2.13-2.14",
+      "expected_behavior": "0.9ps CM积分10kHz-40MHz、扩至90MHz1.1ps；ADC实际外部经buffer2ps",
+      "applicable_mode": "时钟预算/器件条件比较",
+      "observables": "相噪积分上下限、随机/周期抖动、采样输入fin",
+      "acceptance_condition": "不把两个原型测量合为同一集成结果；按实际fin计算噪声上限",
+      "source_limitations": "不能用clock章节26uV等效16bit当ADC校准",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "H24-SOURCE-01",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "Huang 2024 博士论文的16位/5MS/s SRM SAR器件用于比较，未选作本项目20位/40MS/s目标架构。fin增4倍导致SNR降12.04dB，原文6dB叙述应作为背景源校勘保留，不构成当前DUT失败。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "HUANG2024_THESIS"
+      ],
+      "source_locator": "PDF36/printed23 Eq2.13及随后文字",
+      "expected_behavior": "fin4倍对应SNR降12.04dB，源文6dB叙述有误",
+      "applicable_mode": "引用源文抖动预算时",
+      "observables": "freq ratio、jitter RMS、独立公式计算",
+      "acceptance_condition": "使用正确关系并保留原文校勘",
+      "source_limitations": "资料错误，不是项目DUT FAIL",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "H24-ENGINE-01",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "Huang 2024 博士论文的16位/5MS/s SRM SAR器件用于比较，未选作本项目20位/40MS/s目标架构。该文内部逐位机制可启发观测/引擎复用讨论，但未规定项目必须两套独立学习器；当前先由各误差可辨识刺激决定架构。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "HUANG2024_THESIS"
+      ],
+      "source_locator": "§4.5与本项目多级误差观测比较",
+      "expected_behavior": "先定义首级单元/RA/ADC2各自可辨识刺激和观测，再决定时分复用引擎",
+      "applicable_mode": "学习引擎数量架构讨论",
+      "observables": "参数/观测维度、系数银行、epoch、训练状态和校准时隙",
+      "acceptance_condition": "共用计算可行性与观测独立性分别证实",
+      "source_limitations": "原文并未要求项目两套独立学习器",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "BKG-01",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "[01] Hurrell 2010 JSSC扩展版的已知dither移除示例仅提供幅度配对/裁剪顺序启示，不自动选用该器件的校准拓扑。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "01"
+      ],
+      "source_locator": [
+        {
+          "source_id": "01",
+          "pdf_pages": [
+            6
+          ],
+          "figures": [
+            "12"
+          ]
+        }
+      ],
+      "expected_behavior": "已知dither移除在最终裁剪前；模拟/数字幅值不匹配造成dither leakage。",
+      "applicable_mode": "Only when choosing this optional mechanism; not mandatory target requirement",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "BKG-02",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "[02] ElShater 2019 JSSC双死区ringamp两步SAR的参考缩放/dither传播属于另一器件，不以PRNG存在证明项目补偿链成立。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "02"
+      ],
+      "source_locator": [
+        {
+          "source_id": "02",
+          "pdf_pages": [
+            3
+          ],
+          "figures": [
+            "5"
+          ]
+        }
+      ],
+      "expected_behavior": "后级dither传播取决于参考缩放；不能以PRNG存在证明链路成立。",
+      "applicable_mode": "Only when choosing this optional mechanism; not mandatory target requirement",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "BKG-03",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "[02]及[08] Shen 2018 JSSC的CM/force0-force1内部测位权是不同校准实施方式，不能用项目外部已知输入SVD替代其观测通路。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "02",
+        "08"
+      ],
+      "source_locator": [
+        {
+          "source_id": "02",
+          "pdf_pages": [
+            4,
+            5
+          ],
+          "figures": [
+            "8"
+          ]
+        },
+        {
+          "source_id": "08",
+          "pdf_pages": [
+            8
+          ],
+          "figures": [
+            "16",
+            "17",
+            "18"
+          ]
+        }
+      ],
+      "expected_behavior": "内部逐位测量需要CM/force0-force1、冗余和offset预算；不等同外部已知输入SVD。",
+      "applicable_mode": "Only when choosing this optional mechanism; not mandatory target requirement",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "BKG-04",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "[08] Shen 2018 JSSC的LSB重复只改善其可重新观察的转换噪声，不能将收益移用为项目采样噪声已消除。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "08"
+      ],
+      "source_locator": [
+        {
+          "source_id": "08",
+          "pdf_pages": [
+            4,
+            5
+          ],
+          "figures": [
+            "8",
+            "9",
+            "10",
+            "11",
+            "12"
+          ]
+        }
+      ],
+      "expected_behavior": "LSB repeats使用加权和并只改善转换噪声；不能降低固定采样噪声。",
+      "applicable_mode": "Only when choosing this optional mechanism; not mandatory target requirement",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "BKG-05",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "[08] Shen 2018 JSSC的SRM额外比较、sigma和LUT需独立架构预算，当前项目未选该残差估计器。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "08"
+      ],
+      "source_locator": [
+        {
+          "source_id": "08",
+          "pdf_pages": [
+            8,
+            9
+          ],
+          "figures": [
+            "19",
+            "26"
+          ]
+        }
+      ],
+      "expected_behavior": "SRM需要DAC不变的额外比较、噪声sigma、概率LUT及剩余转换时间。",
+      "applicable_mode": "Only when choosing this optional mechanism; not mandatory target requirement",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "BKG-06",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "[03] Li 2023 JSSC预测式电平移位/缓冲共享模拟路径区别于项目历史码pretracking，理想非因果预测仅是上界。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "03"
+      ],
+      "source_locator": [
+        {
+          "source_id": "03",
+          "pdf_pages": [
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "figures": [
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10",
+            "11",
+            "12",
+            "13"
+          ]
+        }
+      ],
+      "expected_behavior": "理想预测非因果；实际近似与共用移位/缓冲模拟路径关键；与历史码pretracking不同。",
+      "applicable_mode": "Only when choosing this optional mechanism; not mandatory target requirement",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "BKG-07",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "[02] ringamp、[04] Bannon 2014 VLSI积分RA及[06] Steensgaard 2022 ISSCC双观察AZ是不同模拟机制，不能由项目同名控制信号合并成已实现器件。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "02",
+        "04",
+        "06"
+      ],
+      "source_locator": [
+        {
+          "source_id": "02",
+          "pdf_pages": [
+            5,
+            6,
+            7,
+            8,
+            9
+          ],
+          "figures": [
+            "9",
+            "10",
+            "11",
+            "12",
+            "13",
+            "14",
+            "15",
+            "16",
+            "17"
+          ]
+        },
+        {
+          "source_id": "04",
+          "pdf_pages": [
+            1,
+            2
+          ],
+          "figures": [
+            "1",
+            "2"
+          ]
+        },
+        {
+          "source_id": "06",
+          "pdf_pages": [
+            1,
+            2
+          ],
+          "figures": [
+            "10.5.1",
+            "10.5.2",
+            "10.5.3",
+            "10.5.4"
+          ]
+        }
+      ],
+      "expected_behavior": "环放/动态缩带宽/积分RA/双观察AZ是不同模拟机制，不能以数字开关名宣称等价。",
+      "applicable_mode": "Only when choosing this optional mechanism; not mandatory target requirement",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    },
+    {
+      "req_id": "BKG-08",
+      "scope": "background_comparison",
+      "mechanism_ids": [],
+      "coverage_state": "comparison_only",
+      "reason": "[01]/[02]/[03]/[04]/[06]/[08]各论文位宽、fs/fin、平均方式、功耗边界和驱动条件不同；只按冻结条件做背景比较。",
+      "source_reading_is_dut_verification": false,
+      "source_ids": [
+        "01",
+        "02",
+        "03",
+        "04",
+        "06",
+        "08"
+      ],
+      "source_locator": [
+        {
+          "source_id": "01",
+          "pdf_pages": [
+            6,
+            7
+          ],
+          "figures": [
+            "12",
+            "13",
+            "14",
+            "15"
+          ]
+        },
+        {
+          "source_id": "02",
+          "pdf_pages": [
+            9,
+            10
+          ],
+          "figures": [
+            "21",
+            "22",
+            "23",
+            "24"
+          ]
+        },
+        {
+          "source_id": "03",
+          "pdf_pages": [
+            8,
+            9
+          ],
+          "figures": [
+            "17",
+            "18",
+            "19",
+            "20",
+            "21",
+            "22"
+          ]
+        },
+        {
+          "source_id": "04",
+          "pdf_pages": [
+            2
+          ],
+          "figures": [
+            "4",
+            "Table I"
+          ]
+        },
+        {
+          "source_id": "06",
+          "pdf_pages": [
+            2
+          ],
+          "figures": [
+            "10.5.5",
+            "10.5.6"
+          ]
+        },
+        {
+          "source_id": "08",
+          "pdf_pages": [
+            9,
+            10
+          ],
+          "figures": [
+            "22",
+            "23",
+            "24",
+            "25",
+            "26",
+            "27",
+            "Table I"
+          ]
+        }
+      ],
+      "expected_behavior": "位宽/瞬时SNR/平均后DR、core/system功耗及输入驱动应绑定测试条件。",
+      "applicable_mode": "Only when choosing this optional mechanism; not mandatory target requirement",
+      "observables": null,
+      "acceptance_condition": "",
+      "source_limitations": "",
+      "implementation_status_source": "mechanism_inventory.json: mechanisms selected by mechanism_ids; implementation_degree=Python, rtl_contract=RTL",
+      "source_review_status": "READ_WITH_LIMITS"
+    }
+  ],
+  "counts_by_scope": {
+    "target_selected": 33,
+    "unresolved_source_conflict": 5,
+    "optional_patent_embodiment": 25,
+    "background_comparison": 26,
+    "product_interface_reference": 37
+  },
+  "counts_by_coverage_state": {
+    "partial": 37,
+    "open": 25,
+    "comparison_only": 61,
+    "open_source_conflict": 3
+  }
+}

@@ -320,7 +320,7 @@ def run_top_bringup() -> dict:
             "level": "rtl_top", "status": "NOT_RUN",
             "reason": (
                 "missing generated RTL inputs; run tools/export_rtl_params.py "
-                "--config sim/fixtures/source_control_component/config.json "
+                "--config flow/sim/fixtures/source_control_component/config.json "
                 "--out verification/build/rtl_inputs_pkg first"
             ),
         }

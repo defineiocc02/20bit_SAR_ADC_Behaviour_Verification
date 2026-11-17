@@ -12,7 +12,9 @@ from pathlib import Path
 from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[3]
-FIXTURE = ROOT / "sim" / "fixtures" / "source_control_component"
+# 顶层 sim/ 已在 0b746b1 收进 flow/sim/；本行此前仍指 ROOT/sim，
+# 导致 251 个测试在 fixture 阶段 FileNotFoundError。
+FIXTURE = ROOT / "flow" / "sim" / "fixtures" / "source_control_component"
 BUNDLE_FILES = {
     "rtl_params.vh",
     "source_control_binding.sv",

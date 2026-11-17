@@ -95,19 +95,26 @@ class DefaultParameters:
     main_parasitic_f: float = 0.0
     sub_parasitic_f: float = 0.0
     sadc_cap_f: float = 2.5625e-12
-    # 14 bit，与窗口 [-0.0375, +0.4125] 配套：ADR-0003 的 `paper_literal` 行即
-    # "9 | 1 | 0b | 14 bit，[-0.0375, +0.4125] V"。此前误写成 12 bit 却沿用同一窗口，
-    # 结果二级量化 LSB 折到输入 = 0.60 LSB20，**单这一项就吃不满 20 bit 目标**（需 ≤0.5）。
-    # 14 bit 时该值 = 0.15 LSB20 ✓。
-    adc2_n_bits: int = 14
-    adc2_v_min: float = -0.037500000000000006
-    adc2_v_max: float = 0.41250000000000003
+    # ADC2 = **13 bit，窗口 [-0.1875, +0.5625)，跨度 0.75 V**（工程合同值）。
+    #   依据 docs/CONTRACT_CURRENT.md:30；仓主 2026-11-17 确认「合同用 13 位 / 0.75」。
+    #   与 RTL 的 adc2_raw_i[12:0] 一致；与 §9.3 整数常数
+    #   （-3145728 / 1536 / 768，反推 YMIN=-0.1875 V、斜率 1536/2^24）严格配套。
+    #
+    # 历史注：ADR-0003 的 `paper_literal` 行曾写 "14 bit，[-0.0375, +0.4125] V"，
+    #   那是从论文标题反解 DR/NSD 得到的另一组自洽值（二级量化 0.15 LSB20），
+    #   但与 §9.3 常数不配套（0.45/16384*2^24 = 460.8 非整数），**不是本工程合同**。
+    #   13 bit / 0.75 V 下二级量化 = 0.75/8192 = 9.16e-5 V，
+    #   折到 20 bit（LSB20 = 6/2^20 = 5.72e-6 V）约 16 LSB20 —— 远大于 0.5，
+    #   因此**本工程要求 ADC2 与重构之间必须做残差增益校准**，这不是笔误。
+    adc2_n_bits: int = 13
+    adc2_v_min: float = -0.1875
+    adc2_v_max: float = 0.5625
     endpoint_policy: str = "half_open"
-    # RA 输出摆幅 = ADC2 满窗宽度（0.45 V）。依据 ADR-0003 的 paper_literal 行：
-    #   adc2_v_min=-0.0375, adc2_v_max=0.4125, ra_v_clip=0.45
-    # 0.45 恰好等于窗口宽度 0.4125-(-0.0375)，即"RA 摆幅与 ADC2 满窗相配"。
-    # 此前写 0.5 比窗口还大 ⇒ RA 永远先撞窗口、clip 形同虚设（dither 时 ra_sat 42/64）。
-    ra_clip_v: float = 0.45
+    # RA 输出摆幅 = ADC2 满窗宽度 = **0.75 V**（跟随合同窗口 [-0.1875, +0.5625)）。
+    #   0.75 == 0.5625 - (-0.1875)，即"RA 摆幅与 ADC2 满窗相配"。
+    # 必须与 adc2_v_min/max 同改：若 ra_clip 仍为旧的 0.45（< 新窗口 0.75），
+    #   RA 会先撞自己的 clip，ADC2 的满窗永远用不满，等效位数下降。
+    ra_clip_v: float = 0.75
     temperature_k: float = 300.0
     chi: float = 2.0
     ra_noise_rms_v: float = 0.001

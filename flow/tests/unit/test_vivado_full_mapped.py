@@ -90,7 +90,8 @@ def syntax(paths, *, tclsh=None):
 
 def test_current_tcl_scripts_are_compiled_as_text_without_vendor_execution():
     paths = [
-        ROOT / "synth" / name
+        # 顶层 synth/ 已在 0b746b1 收进 flow/synth/
+        ROOT / "flow" / "synth" / name
         for name in ["run_dc.tcl", "inspect_clockless_paths.tcl", "run_vivado_buffered_impl.tcl"]
     ]
     cp = syntax(paths)

@@ -17,6 +17,20 @@ ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT / "src") not in sys.path:
     sys.path.insert(0, str(ROOT / "src"))
 
+# 测试目录从根级 tests/ 搬到 flow/tests/ 后，包内导入（verification.vectors、
+# verification.contracts 等）需要 flow/tests 本身在 sys.path 上。
+# 原 conftest 只加了 src，导致 2026-11-17 独立审查发现的两个模块 ImportError。
+_TESTS_ROOT = Path(__file__).resolve().parent
+if str(_TESTS_ROOT) not in sys.path:
+    sys.path.insert(0, str(_TESTS_ROOT))
+
+# `verification` 包在 flow/verification/（0b746b1 把 verification/ 收进 flow/），
+# 不在 flow/tests/verification/。测试写的是 `from verification.vectors import ...`，
+# 因此需要 flow/ 也在 sys.path 上。缺这一步会让两个模块 ImportError。
+_FLOW_ROOT = Path(__file__).resolve().parents[1]
+if str(_FLOW_ROOT) not in sys.path:
+    sys.path.insert(0, str(_FLOW_ROOT))
+
 
 @pytest.fixture
 def rng():

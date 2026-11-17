@@ -55,9 +55,11 @@ RTL_PROFILE: Final[dict[str, int]] = {
 }
 
 #: 主链（`src/adi_model`）当前采用的几何，仅用于比对，不是 RTL 的真源。
+#: ADC2_BITS 于 2026-11-17 由 14 改为 **13**，对齐工程合同
+#: （docs/CONTRACT_CURRENT.md:30「13 bit，[-0.1875,+0.5625)，0.75 V」，仓主确认）。
 MAIN_CHAIN_PROFILE: Final[dict[str, int]] = {
     "B1": 9,
-    "ADC2_BITS": 14,
+    "ADC2_BITS": 13,
     "N_ACTIVE": 8,
     "N_UNIT_MAIN": 17,
     "N_UNIT_SUB": 5,

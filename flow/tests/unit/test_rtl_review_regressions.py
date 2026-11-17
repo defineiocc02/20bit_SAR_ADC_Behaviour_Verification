@@ -24,7 +24,7 @@ def load(name, relative):
     return module
 
 
-harness = load("review_twoneck", "tests/integration/test_mutation_twoneck.py")
+harness = load("review_twoneck", "flow/tests/integration/test_mutation_twoneck.py")
 mirror = load("review_mirror", "flow/sim/ref/recon_rtl_mirror.py")
 runner = load("review_runner", "tools/run_open_rtl.py")
 mutator = load("review_mutator", "tools/mutate_rtl.py")

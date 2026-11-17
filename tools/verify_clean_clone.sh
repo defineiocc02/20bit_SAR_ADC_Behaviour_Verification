@@ -47,22 +47,22 @@ note "1. tests"
 # 历史教训（2026-11-13）：
 #   ① 曾排除 2 个文件（138 个测试），理由是早期 tclsh 环境问题；环境修好后
 #      清单没更新，这 138 个测试长期无人检查。
-#   ② 曾只跑 tests/unit + tests/verification，漏掉 tests/audit、tests/regression、
-#      tests/integration 共 17 个文件；首次运行时暴露出 9 failed。
+#   ② 曾只跑 flow/tests/unit + verification，漏掉 audit、regression、
+#      flow/tests/integration 共 17 个文件；首次运行时暴露出 9 failed。
 # 唯一保留的例外是 test_source_bound_replay.py：它需要 VERILATOR，
 # 本机没有，只能整体跳过——这是**环境限制**而非排除清单。
 if PYTHONPATH=src "$PYTHON" -m pytest -q -p no:cacheprovider \
-     tests/unit tests/verification tests/audit tests/regression \
-     --ignore=tests/integration >/dev/null 2>&1; then
+     flow/tests/unit flow/tests/verification flow/tests/audit flow/tests/regression \
+     --ignore=flow/tests/integration >/dev/null 2>&1; then
   ok "tests (unit/verification/audit/regression)"
 else
   bad "tests (unit/verification/audit/regression)"
 fi
 
 # integration 单独跑：本机缺 VERILATOR，test_source_bound_replay 会整体报错。
-INTEGRATION_IGNORE="--ignore=tests/integration/test_source_bound_replay.py"
+INTEGRATION_IGNORE="--ignore=flow/tests/integration/test_source_bound_replay.py"
 if PYTHONPATH=src "$PYTHON" -m pytest -q -p no:cacheprovider \
-     tests/integration $INTEGRATION_IGNORE >/dev/null 2>&1; then
+     flow/tests/integration $INTEGRATION_IGNORE >/dev/null 2>&1; then
   ok "tests (integration, minus VERILATOR-dependent)"
 else
   bad "tests (integration)"

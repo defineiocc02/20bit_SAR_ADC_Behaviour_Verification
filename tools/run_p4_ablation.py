@@ -112,19 +112,27 @@ def _dither_port(model, cfg, words) -> DitherPort:
 
 
 def _run(model, input_fn, n_samples: int, *, dem: bool, uniform_plan: bool, calibration=None,
-         dither_words=None):
+         dither_words=None, run_id: int = 0):
     """执行一次显式配置；DEM 打开时用旋转掩码，否则复用默认分段掩码。
 
     calibration 给定时用它替换名义解码（`FrozenCalibration.reconstruct`），
     返回的电压是校准后的浮点重构，不是 20bit 整数码。
 
-    dither_words 给定时走 v2 独立电荷口：RDAC 码保持真实判决，dither 电容
-    在采样节点注入 T=L+U*Δ，数字侧扣回 -T。与 v1 的 k=c-U 不是同一条拓扑。
+    dither_words 给定时走独立电荷口。流水线保留真实粗判决 c，RDAC 施加
+    k=c-U。SADC 偏移使用 lower 分段，数字重构从对应扰动项恢复输出。
+    run_id=0 沿用默认种子。其它编号可隔离训练和评估的噪声及片选流。
     """
     from adi_model.defaults import _all_signal
 
-    cfg = replace(model.cfg, dem_enable=dem, dither_enable=dither_words is not None)
-    ids_seed = model._child_seed(1, 0)
+    # 留出记录换用独立片选与噪声流，仍复用同一颗芯片的电容和名义解码器。
+    # 默认编号沿用已有流程的种子，保留其它消融配置的可复现结果。
+    cfg = replace(
+        model.cfg,
+        dem_enable=dem,
+        dither_enable=dither_words is not None,
+        seed=model.cfg.seed if run_id == 0 else model._child_seed(2, run_id),
+    )
+    ids_seed = model._child_seed(1, run_id)
     schedule = (
         round_robin_plan(n_samples)
         if uniform_plan

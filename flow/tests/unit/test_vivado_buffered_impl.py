@@ -13,7 +13,9 @@ import pytest
 from _synth_test_support import tool
 
 FLOW = Path(__file__).resolve().parents[3] / "flow/synth/run_vivado_buffered_impl.tcl"
-FIXTURES = Path(__file__).resolve().parents[2] / "fixtures/vivado_2018_3_buffered"
+# 测试目录从根级 tests/ 搬到 flow/tests/ 后，本文件的 parents[2] 变成 flow/，
+# 而夹具实际在 flow/tests/fixtures/。parents[1] 才是 flow/tests/。
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures/vivado_2018_3_buffered"
 HARNESS = r"""
 set ::failure $::env(TEST_FAILURE)
 if {$::env(TEST_HASH_STYLE) ne "unix"} {

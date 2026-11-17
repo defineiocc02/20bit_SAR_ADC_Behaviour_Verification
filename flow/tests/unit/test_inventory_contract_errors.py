@@ -37,6 +37,9 @@ def inventory_repo(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     # 文件只用于字节身份；pages 为合成登记值，不是 PDF 内容验证。
     materials = tmp_path / "materials"
     materials.mkdir()
+    # 第 117/118 行要往 repo/manifest/ 写两个 JSON，此前从未创建该目录，
+    # 导致 83 个用例在 fixture 阶段就 FileNotFoundError。
+    (repo / "manifest").mkdir()
     (materials / "primary.pdf").write_bytes(b"primary fixture")
     (materials / "background.pdf").write_bytes(b"background fixture")
     monkeypatch.setenv("ADC_SOURCES_DIR", str(materials))

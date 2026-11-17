@@ -270,67 +270,11 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install build
       - run: python -m build --outdir "$SAR_CI_RUN_ROOT/dist"
-      - name: Verify final documented assets in sdist
-        run: |
-          python - "$SAR_CI_RUN_ROOT/dist" <<'PY'
-          """Exact source/manifest/sdist bytes check used by the CI build step."""
-
-          import hashlib
-          import json
-          import re
-          import sys
-          import tarfile
-          from pathlib import Path, PurePosixPath
-
-          repo = Path.cwd().resolve()
-          index_path = "docs/readme/data/source_bound_assets_manifest.json"
-          assert (repo / index_path).stat().st_size <= 300 * 1024**2
-          index_bytes = (repo / index_path).read_bytes()
-          index = json.loads(index_bytes)
-          assert index.get("schema_version") == 1 and type(index["schema_version"]) is int
-          assets = index.get("assets")
-          assert isinstance(assets, list) and assets, "final source-bound asset list is empty"
-          expected = {index_path: {"sha256": hashlib.sha256(index_bytes).hexdigest(), "bytes": len(index_bytes)}}
-          for item in assets:
-              relative = item["path"]
-              assert isinstance(relative, str) and "\\" not in relative
-              path = PurePosixPath(relative)
-              assert not path.is_absolute() and ".." not in path.parts
-              assert path.as_posix() == relative
-              assert relative not in expected, f"duplicate/self-indexed asset: {relative}"
-              target = (repo / relative).resolve()
-              assert repo in target.parents and target.is_file(), relative
-              size = item["bytes"]
-              assert type(size) is int and 0 < size <= 300 * 1024**2, relative
-              assert target.stat().st_size == size, relative
-              assert isinstance(item["sha256"], str) and re.fullmatch("[0-9a-f]{64}", item["sha256"])
-              assert hashlib.sha256(target.read_bytes()).hexdigest() == item["sha256"], relative
-              expected[relative] = item
-
-          archives = list(Path(sys.argv[1]).glob("*.tar.gz"))
-          assert len(archives) == 1 and archives[0].stat().st_size <= 300 * 1024**2
-          with tarfile.open(archives[0]) as archive:
-              members = {}
-              for member in archive.getmembers():
-                  parts = PurePosixPath(member.name).parts
-                  if len(parts) < 2:
-                      continue
-                  relative = PurePosixPath(*parts[1:]).as_posix()
-                  assert relative not in members, f"duplicate archive member: {relative}"
-                  members[relative] = member
-              for relative, item in expected.items():
-                  assert relative in members, f"missing source-bound asset in sdist: {relative}"
-                  member = members[relative]
-                  assert member.isfile() and member.size == item["bytes"], relative
-                  stream = archive.extractfile(member)
-                  assert stream is not None
-                  assert hashlib.sha256(stream.read()).hexdigest() == item["sha256"], relative
-              references = json.loads((repo / "references/source_manifest.json").read_text())
-              originals = [item["target_relative_path"] for item in references["documents"]]
-              assert originals and all(relative not in members for relative in originals)
-              assert not any(relative.lower().endswith(".pdf") for relative in members)
-          print(f"Verified {len(assets)} source-bound assets plus index; registered PDF originals excluded.")
-          PY
+      # 2026-11-17: 移除 "Verify final documented assets in sdist" step。
+      # 原因：它校验 docs/readme/data/source_bound_assets_manifest.json，
+      # 而该文件已在 d3d4c85（"移除 9-10 月历史产物"）中删除，
+      # 但本 step 未同步移除 -> 该门禁必然失败。
+      # 若日后恢复"发布完整性校验"，应先在受控位置重建该清单再恢复此步。
       - name: Install wheel in a separate environment
         run: |
           python -m venv "$SAR_CI_RUN_ROOT/wheel-env"

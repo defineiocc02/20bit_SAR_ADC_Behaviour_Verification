@@ -26,6 +26,7 @@
 | 顺序 | 文件 | 作用 |
 |:--:|:---|:---|
 | 1 | [`../README.md`](../README.md) | 交付什么、怎么跑 |
+| 1b | [`STATUS.md`](STATUS.md) | **唯一权威状态表**（能/不能复现、作废数字清单）|
 | 2 | [`D3D4_IP_INTERFACE.md`](D3D4_IP_INTERFACE.md) | **IP 对外合同**：端口/时序/两种模式/位序/合法性标志 |
 | 3 | [`D1_D6_STATUS_20261115.md`](D1_D6_STATUS_20261115.md) | **D1–D6 复现状态** + 原文定位 |
 | 4 | [`ACCEPTANCE_STATUS.md`](ACCEPTANCE_STATUS.md) | 哪个模块在什么证据下通过 |
@@ -35,27 +36,30 @@
 
 ## 三、目录索引
 
-### 现行文档（127 份，不含 `_history/`）
+### 现行文档（124 份，不含 `_history/`）
 
 | 目录 | 份数 | 内容 | 入口 |
 |:---|--:|:---|:---|
 | **`audit/`** | 32 | **审计与后端报告**（11 现行 + 21 历史）| [`audit/README.md`](audit/README.md) |
 | `adr/` | 22 | 架构决策记录 | 见目录 |
-| **`v21/`** | **10** | v21 专项（配置合同、形式验证、合成阻塞、证明台账等）| [`v21/STATUS.md`](v21/STATUS.md) |
+| **`v21/`** | **9** | v21 专项（配置合同、形式验证、合成阻塞、证明台账等）| [`STATUS.md`](STATUS.md)（本目录为专项证据）|
 | **`rtl/`** | **10**（+7 支撑）| RTL 复审（含 `dr_rtl_20261007/`、`reaudit_20261002/`）| [`rtl/RTL_ENGINEERING_GUIDE.md`](rtl/RTL_ENGINEERING_GUIDE.md) |
 | `mechanisms/` | 13 | 机制原理与源交叉核对 | 见目录 |
 | `guide/` | 4 | 使用指南 | 见目录 |
 | `meta/` | 3 | 元信息 | 见目录 |
 | `verification/` `spec/` `caaz/` `acceptance/` | 各 2 | 专项 | 见目录 |
 | `review/` `decisions/` `figures/` `randomization_caaz/` | 各 1 | 专项 | 见目录 |
-| `_history/` | **104** | **历史，不得引用** | — |
+| `_history/` | **115** | **历史，不得引用** | — |
 
 ### `docs/` 根级 14 份
 
-`ACCEPTANCE_STATUS` / `BRIDGE_VS_FIG31` / `CONTRACT_CURRENT` / `D1_D6_STATUS_20261115` /
-`D3D4_IP_INTERFACE` / `DIGITAL_ALGORITHM` / `HANDOFF_D3D4` / `INDEX` /
-`ISSCC2024_ONCHIP_CONTRACT_v2` / `ISSCC2024_ONCHIP_CONTRACT_v2_1_ADDENDUM` /
-`LIB_STATUS` / `MECHANISM_UNDERSTANDING` / `PHASE_AB` / `SYNTH_D3D4`
+**15 份**。其中 `STATUS.md` 是唯一权威状态表。
+
+`STATUS` / `ACCEPTANCE_STATUS` / `BRIDGE_VS_FIG31` / `CONTRACT_CURRENT` /
+`D1_D6_STATUS_20261115` / `D3D4_IP_INTERFACE` / `DIGITAL_ALGORITHM` /
+`HANDOFF_D3D4` / `INDEX` / `ISSCC2024_ONCHIP_CONTRACT_v2` /
+`ISSCC2024_ONCHIP_CONTRACT_v2_1_ADDENDUM` / `LIB_STATUS` /
+`MECHANISM_UNDERSTANDING` / `PHASE_AB` / `SYNTH_D3D4`
 
 **合同优先级**：`v2_1_ADDENDUM` > `v2` > 其余。
 
@@ -103,7 +107,7 @@
 
 ---
 
-## 六、历史文档（`_history/`，104 份，**不得引用**）
+## 六、历史文档（`_history/`，115 份，**不得引用**）
 
 | 子目录 | 内容 |
 |:---|:---|
@@ -111,5 +115,6 @@
 | `_history/v21_checkpoints/` | 9 份过程检查点 |
 | `_history/v21_legacy/` | 11 份 v21 旧版 |
 | `_history/rtl_reviews/` | 11 份 2026-09 复审 |
+| `_history/v21_status/` | 1 份旧 STATUS（`d5a1576`）|
 
 **原 `INDEX.md` 声称"顶层只保留 14 份"，与实际不符，本版已改为如实反映。**

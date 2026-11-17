@@ -1,35 +1,11 @@
-# SMIC 180 nm 历史工程（归档）
+# SMIC 180 nm 历史试验
 
-**状态：已归档，不再作为当前目标工艺。**
+这里保存早期重构候选及对应综合脚本。旧测试台可用于追溯候选接口。当前 RTL 路线从 [RTL 索引](../../../rtl/README.md) 进入。
 
-切换原因：180 nm 无法支撑完整数字顶层的 40 MS/s 与面积目标。
+| 保留项 | 对应记录 |
+| --- | --- |
+| [recon_d5_pipe.sv](recon_d5_pipe.sv) 与 [recon_d5_pipe2.sv](recon_d5_pipe2.sv) | 早期流水候选。对应 [pipe 测试台](../../../tb/tb_recon_pipe.sv)、[pipe2 测试台](../../../tb/tb_recon_pipe2.sv) 和 [时序记录](../../../docs/_history/TIMING_PIPE2.md)。 |
+| [dc_w2.tcl](synth/w2/dc_w2.tcl) | 旧工具和工艺库的实验脚本。脚本含历史环境配置，移植前需重绑定。 [当年运行记录](../../../docs/_history/TIMING_W2.md) |
+| [D5 参考与旧 RTL](../../../docs/_history/D5_PROD_VS_RTL.md) | 定点重构与倒数实现的比较。 |
 
-| 事实 | 数值 |
-|:---|:---|
-| 重构块面积 | 166,799 µm² / 4,940 cells（≈33.8 µm²/cell） |
-| 系数表 16.6 kbit（触发器）估算 | ≈1.16 mm² |
-| 完整顶层估算 | ≈1.3 mm² |
-| 重构块 25 ns slack | +0.002 ns（几乎无余量） |
-| 存储库 | **无**（SMIC180 无任何 SRAM/eFuse 库） |
-
-## 保留的历史证据（未删除）
-
-| 内容 | 位置 |
-|:---|:---|
-| 重构块综合与时序 | `synth/results/w2/`（setup/hold/stage1~3/area/check_timing） |
-| 名义路径时序 | `synth/results/setup_p_pipe_constrained.rpt` 等 |
-| 失败候选（差 16.5 倍） | `rtl/recon_d5_pipe2.sv`、`docs/TIMING_PIPE2.md` |
-| 倒数的发现过程 | `docs/TIMING_W2.md`、`docs/D5_PROD_VS_RTL.md` |
-| 库清单 | `docs/LIB_STATUS.md` |
-
-## 这些数字仍然有效，但用途变了
-
-180 nm 的 **相对结论** 仍然成立：倒数乘把 421 ns 降到 24.46 ns、面积降 56%、
-`DW_div` 计数归零。这些是算法与微架构层面的结论，与工艺无关。
-
-**不能再引用的是绝对面积/时序**——那属于 180 nm，不代表 28 nm 的实现。
-
-## 当前目标工艺
-
-TSMC 28 HPC+（`tcbn28hpcplusbwp7t40p140`），SRAM/RF 库已解包，
-详见 `docs/LIB_STATUS.md`。
+历史面积、slack 和优化倍数限定在对应工艺、约束和网表。原始报告名及当年条件以链接中的历史记录为准。当前实现的证据见 [项目状态](../../../docs/STATUS.md)。

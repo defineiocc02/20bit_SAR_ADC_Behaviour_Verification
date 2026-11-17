@@ -1,46 +1,18 @@
-# 当前合同入口（唯一）
+# 当前工程合同
 
-**生效版本：v2 + v2.1 补充条款。冲突处一律以 v2.1 为准。**
+v2 正文和 v2.1 补充条款构成 v21 的工程合同。相同条款有冲突时以 v2.1 为准。[v2 正文](ISSCC2024_ONCHIP_CONTRACT_v2.md) · [v2.1 补充](ISSCC2024_ONCHIP_CONTRACT_v2_1_ADDENDUM.md)
 
-| 文件 | 状态 | 说明 |
-|:---|:---|:---|
-| `ISSCC2024_ONCHIP_CONTRACT_v2.md` | **现行主体** | 结构、接口、物理网络 |
-| `ISSCC2024_ONCHIP_CONTRACT_v2_1_ADDENDUM.md` | **现行补充，优先级最高** | 覆盖 v2 中的歧义 |
-| `CONTRACT_V2_REVIEW.md` | 历史 | 我的评审意见，已被 v2.1 逐条回应 |
-| `PHYSICAL_CONTRACT_DRAFT.md` | 历史 | 我的草稿，已被 v2 取代 |
-| `D2_INTERFACE_SPEC.md` 等 | 历史 | 早于合同，仅作实施记录 |
+| 主题 | 工程口径 |
+| --- | --- |
+| 码域 | SADC 粗码 `c=0…519`，RDAC 命令 `k=c+U`，合法域 `0…520`。普通区用 `k=64H+8V+L`，其余按 v2.1 的 guard 掩码。 |
+| DEM 和桥接 | H、V 各在 0…7，保留列 `(7+h_phase)%8`。仅 `coin=1` 时，按 `v_phase` 和 `half` 交换选定主半单元与八片对应子支路。 |
+| 定点权重 | 按同一笔 `pre` 和最终 `post` 计算 `Wp`、`Wm` 和实际 `G`。`Wp` 对置位的子支路加权求和，权重已经包含 `β` 与 `1/Cf`。 |
+| 名义电容与增益 | 8 片主阵列共 `512 Cu`，`Cf=16 Cu`，名义 `G=32`。该值用于名义算例，逐笔重构使用实际权重。 |
+| ADC2 | `13 bit`，差分窗口 `[-0.1875, +0.5625) V`，跨度 `0.75 V`。Q24 码箱中心为 `Y=-3145728+1536·raw+768`。 |
+| 事务 | 常规粗量化事件为 Flash + 6 次 SAR，最高区间走单独 guard 路径。事务冻结相位、扰动字和样本标识。相位输入由 v21 外部提供，实际槽位和握手见顶层。 |
 
-## v2.1 冻结的关键参数（不得再改）
+完整掩码、位序、数据格式及合法域以合同正文为准。v21 配置寄存器与生命周期见[配置合同](v21/CONFIG_CONTRACT.md)，实现和验证范围见 [RTL 导航](../rtl/README.md)和[状态表](STATUS.md)。
 
-| 项 | 值 |
-|:---|:---|
-| SADC 码 c | 0..519 |
-| RDAC 命令 k | 0..520 |
-| 普通码分解 | k = 64H + 8V + L，H,V,L ∈ [0,7] |
-| guard | 512..519：主阵列全选 + 子阵列 [r2,r1,r0,0]；520：子阵列 [1,1,1,1] |
-| 保留列 | reserved = (7 + h_phase) % 8 |
-| 主采样电容总量 | **512 Cu**（8 片 × 64 Cu） |
-| 归一化增益 G | **32**（无量纲，= 512Cu / Cf(16Cu)） |
-| D_sadc(c) = D_rdac(k) | -3 + 6c/512（同码相等） |
-| bridge | slot=v_phase, macro=reserved, half=(acq_seq>>3)&1 |
-| bridge 交换 | post[slot][j]=b4；全部 8 片 post[s][16]=a |
-| Wp | 8 片 j=16..19 求和，w 已含 β=1/8 与 1/Cf |
-| α, b | G1/G2 默认 1 和 0，片外标定 |
-| 相位推进 | 仅在 acq_prepare_fire |
-| ADC2 | 13 bit，[-0.1875, +0.5625)，0.75 V 跨度 |
+D3/D4 叶子使用 `make -f flow/Makefile verify-d3d4`。历史独立 IP 使用 `make -f flow/Makefile verify-d3d4-ip`，有自己的相位发生和事件边界。[D3/D4 验收记录](ACCEPTANCE_STATUS.md)
 
-## 当前状态
-
-D3/D4 的通过情况与证据见 `docs/ACCEPTANCE_STATUS.md`，
-复现命令 `make verify-d3d4`。
-
-## 与旧实现的明确冲突（以合同为准）
-
-| 旧实现 | 合同要求 |
-|:---|:---|
-| `dem_shuffle` 用 4+3+2（H=k[8:5], M=k[4:2]） | **3+3+3** |
-| 16 个独立一元列 | **8 宏列 × 2 个 4Cu 半单元** |
-| `recon_d5_w2` 细码固定除 32 | 用实际 G |
-| 9 项 `inv_tab` 固定倒数 | 按实际片组算 G |
-| 事件数固定 9 | **Flash + 6 SAR = 7**（最高区间另有 guard 路径） |
-| `k = c - U` | **k = c + U**，且 `x_hat` 末项为 `-TΔ` |
+早期 `4+3+2`、`k=c-U` 和固定增益的 RTL 路径保留在历史实现中。Python 的 Fig.19 减法等效实验按自身配置解释，适用范围见 [F05](figures/20261117/README.md)。[历史评审](_history/CONTRACT_V2_REVIEW.md) · [历史物理草案](_history/PHYSICAL_CONTRACT_DRAFT.md)

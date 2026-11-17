@@ -1,3 +1,11 @@
+# =============================================================================
+# 文件名     : test_inventory_gate.py
+# 版本       : v1.0
+# 功能       : 将现行清单的引用身份、必要状态与执行证据范围分开核查。
+# 设计说明   : 独立检查静态引用和必要结果，避免用一个 PASS 数推断两者。
+# 变更记录   : 现行清单归入验证目录。
+# =============================================================================
+
 """检查当前仓库清单的引用有效性及静态检查的证据边界。
 
 必需条目由清单显式登记，不从旧 T01–T14 常量补全。状态未就绪必须保留，
@@ -29,7 +37,7 @@ def test_sources_are_locatable_or_explicitly_blocked():
 
 
 def test_explicit_required_task_coverage_has_no_gaps():
-    inventory = json.loads((REPO_ROOT / "manifest/mechanism_inventory.json").read_text())
+    inventory = json.loads((REPO_ROOT / "flow/verification/manifests/mechanism_inventory.json").read_text())
     required = inventory["coverage_obligations"]["required_task_ids"]
     assert required and len(set(required)) == len(required)
     result = verify(REPO_ROOT)

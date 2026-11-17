@@ -1,6 +1,6 @@
 # 原理、RTL 功能与综合电路再核对（2026-10-02）
 
-审查对象是提交 `71935ab54238c7ed638f5fa66c5ffb58e10287bb` 的全部 24 个生产 SV 模块及 2 个参数头文件。本次仅增加审查、定向见证与文档，未修改生产 RTL，也未重新综合或布线。当前源默认结构模式、18 slice、每笔 8 active、63 main + 8 sub、Q30 权重、Q32 电压、20-bit 输出、16 拍帧、除法展开 P7；历史实际 Vivado 全核采用 P5。身份、来源 SHA 和本轮可复算证据见 [证据入口](../evidence/20261002/principle_reaudit/README.md)。
+审查对象是提交 `71935ab54238c7ed638f5fa66c5ffb58e10287bb` 的全部 24 个生产 SV 模块及 2 个参数头文件。本次仅增加审查、定向见证与文档，未修改生产 RTL，也未重新综合或布线。当前源默认结构模式、18 slice、每笔 8 active、63 main + 8 sub、Q30 权重、Q32 电压、20-bit 输出、16 拍帧、除法展开 P7；历史实际 Vivado 全核采用 P5。身份、来源 SHA 和可复算证据的历史入口保存在 `ca5ae31:docs/evidence/20261002/principle_reaudit/README.md`，可用 `git show` 查阅。当前工作树保留下文摘要和三个审查附录。
 
 **结论：已有数字实现支持物理系数校正、逐次比较、RDAC 已决位更新和样本关联；仍不能称为论文/专利具体模拟电路的全量复现，也不能称为已经具有 ASIC 640 MHz 或全面 PPA 优势。** 新复核发现 ADC2 舍入定义、配置可用域、模拟错误归属、实际时序与原文对应需要更准确的工程契约。综合主要成本是约 62k FF 权重库和宽并行归约；实际布线关键路径由 ID/mask 扇出及互连主导。
 
@@ -212,10 +212,10 @@ on_tree 仍有 1,278 物理叶、补齐 2,048 叶、11 层；仅消除补零后�
 
 ## 9. 原始数据图
 
-三图都保留源数据 JSON 和生成器；图中的历史 P5 与本轮控制 wrapper 不混称为新实现。
+三图及其对应输入保存在 Git 旧版本 `ca5ae31` 的 `docs/evidence/20261002/principle_reaudit/`。用 `git ls-tree -r --name-only ca5ae31 -- docs/evidence/20261002/principle_reaudit` 查阅完整文件名。
 
-![历史 P5 FF 分解：权重库源公式与历史测量吻合](../evidence/20261002/principle_reaudit/figures/01_historical_ff_allocation.png)
-
-![历史不同端点的 post-synth/post-route 延迟组成](../evidence/20261002/principle_reaudit/figures/02_historical_critical_path_composition.png)
-
-![57 笔真实接受事件：context 15T、fine code 1T，影子 stage A](../evidence/20261002/principle_reaudit/figures/03_control_capture_age_evidence.png)
+| 旧版文件（相对于上述目录） | 内容 |
+| --- | --- |
+| `figures/01_historical_ff_allocation.png` | 历史 P5 FF 分解及权重库计数 |
+| `figures/02_historical_critical_path_composition.png` | 历史不同端点的综合后与布线后延迟组成 |
+| `figures/03_control_capture_age_evidence.png` | 57 笔接受事件的 context 15T、fine code 1T 与影子 stage A |

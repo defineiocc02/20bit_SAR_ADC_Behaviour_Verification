@@ -1,48 +1,20 @@
-# FIG.19 ideal-ports fixture —— **63+8 时代的遗留向量集**
+# Fig.19 理想端口测试输入
 
-> ⚠️ **本目录的几何是 63+8，与当前主链（专利 17/5）不匹配。**
-> 它保留作为 2026-09 那轮 RTL 对拍的历史证据，**不是当前模型的 golden 向量**。
+这组固定输入为 `sar20_digital_core` 的 Fig.19 静态组件提供可重复的量化器与 RDAC 节点激励。它以 [fixture_manifest.json](fixture_manifest.json) 声明范围，几何为 63+8，ADC2 为 12 位、0.45 V 跨度。采样节点与参考为理想模型，寄生与噪声置零，系数由名义电容生成。采用 Fig.19 的负等效节点极性。[P] 的源定位与 [E] 的几何、调度及量化器假设见清单。
 
-## 它是什么
+## 输入之间的约束
 
-`US10505561B2` FIG.19 的 dither 端口定义在当年那版实现上的**名义向量集**：
-binding、config、weights、prefix table、参考码流等一整套，全部按
-`n_main=63, n_sub=8, adc2=12bit` 构造。
+| 文件 | 用途 |
+| --- | --- |
+| [config.json](config.json) · [format.json](format.json) · [binding.json](binding.json) | 固定几何、ADC2 窗、定点格式和实际源码绑定。 |
+| [rdac_prefix_table.json](rdac_prefix_table.json) · [homogeneous_code_reference.json](homogeneous_code_reference.json) | 已决前缀、名义码及理想端口参考。 |
+| [registers_nominal.json](registers_nominal.json) · [weights_nominal.hex](weights_nominal.hex) · [scalars_nominal.hex](scalars_nominal.hex) | 名义寄存器内容及装载数据；尚未经过这次回放的系数训练。 |
+| [source_control_binding.sv](source_control_binding.sv) · [source_acquisition_binding.sv](source_acquisition_binding.sv) | DUT 消费的转换、采集控制逻辑。 |
 
-manifest 里已如实写明：
+该输入组与 v21 交付合同的 16+4 开关掩码、13 位 ADC2 分属两条路线。它也不同于行为模型中的 17/5 几何。前缀表、绑定、定点格式和寄存器内容一起决定可比较的轨迹，单独替换几何或位宽会破坏对应关系。 [工程合同](../../../../docs/CONTRACT_CURRENT.md) · [RTL 导航](../../../../rtl/README.md)
 
-```
-"63+8 canonical geometry"
-"ADC2 window/12bit/uniform_midrise"
-```
+## 回放步骤
 
-## 为什么不能改一个字段就复用
-
-整套文件（约 44 KB 的 prefix table、17 KB 的 weights、16 KB 的 binding）
-都依赖 63/8 的位宽与权重表。当前实现是 17/5（主阵列 15×2C + B4 1C + S4 1C；
-子阵列装配 4 列），位宽与权重全变 ⇒ **必须整套重新生成**。
-
-## 为什么没有重新生成
-
-**本目录没有生成器脚本**（这批文件是当时一次性产生的）。
-且本机没有 VCS 环境，无法端到端验证新向量是否正确。
-
-在缺验证手段时造一套"看起来能用"的新 fixture，比保留旧的更危险——
-旧的在 manifest 里写着自己的前提，新的会让人以为它代表当前实现。
-
-## 当前还有什么依赖它
-
-| 使用方 | 状态 |
-|:---|:---|
-| `tests/integration/test_source_bound_replay.py` | 需 VERILATOR，本机跳过 |
-| `tools/run_fig19_rtl_calibration.py`（默认 `--fixture-dir`） | 需 VCS，本机不跑 |
-
-两者在本机都不执行，所以不会因为这份遗留 fixture 产生虚假结论。
-
-## 要用它跑当前模型需要做什么
-
-1. 把 63/8 换成 17/5 的位宽与权重（`DefaultParameters` 是唯一真源）；
-2. 重新生成 prefix table 与参考码流；
-3. 用一套可执行的 RTL 对拍环境验证新向量与 RTL 一致。
-
-在此之前，**不要引用本目录的数字作为当前模型的结果**。
+1. 在仓库根目录按 [CI 工作流的 Fig19 static component and public replay](../../../../.github/workflows/ci.yml) 运行 [测试模块](../../../tests/integration/test_source_bound_replay.py)。它需要 Verilator，执行 64 个扰动字的静态 DUT 捕获、同一模型回放和损坏轨迹拒绝测试。
+2. 单独生成组件输出时，可使用 [run_fig19_rtl_calibration.py](../../../../tools/run_fig19_rtl_calibration.py) 的 `--component-only`，显式指定新建的仓库外 `--out`。脚本的默认 `--fixture-dir` 为本目录。
+3. 若要训练或替换 fixture，使用一致的几何、前缀、绑定、定点系数和装载映像，分别验证生成、训练与留出集。现有静态回放只能支持其显式输入范围。

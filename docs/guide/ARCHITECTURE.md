@@ -1,115 +1,61 @@
-# 架构与数据流
+# Python 模型架构与数据流
 
-一句话：**18 片物理电容池，每笔用 8 片采样、8 片转换；SADC 只判决，RDAC 跟着已决码走；
-余差经共享 RA 放大 32 倍给 12 位 ADC2；20 位输出由定点权重重构。**
+默认模型采用 18 片池。每个稳态周期由 8 片采集、8 片转换、2 片空闲。SADC 给出粗判决，RDAC 更新开关形成余差。共享 RA 的名义增益为 32，默认 ADC2 采用 13 位、0.75 V 窗口 `[-0.1875, +0.5625) V`，重构输出 20 位 offset-binary 码。[默认参数](../../src/adi_model/defaults.py) · [工作机理与验证图](../figures/20261117/README.md)
 
----
+本页说明 `src/adi_model` 的行为模型。v21 和独立源绑定数字核各有自己的接口、位宽和验证入口。需要核对 RTL 的合成顶层、开关合同和事务先后关系时，从对应入口进入。[v21 工程合同](../CONTRACT_CURRENT.md) · [RTL 导航](../../rtl/README.md) · [独立核心 ABI2](../rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)
 
 ## 1. 分层
 
-```
-contracts/     类型、单位、码制、定点格式、profile          ← 谁都不依赖它以外的东西
-topology/      电容网络、码本、电荷算子                     ← 只认电容和开关
-control/       调度、DEM、dither、follower                  ← 只发数字命令
-behavioral/    采样、参考、AZ、RA、ADC2、噪声               ← 只推进模拟状态
-calibration/   特征、拟合、冻结系数、重构                   ← 只用观测
-simulation/    装配 + 逐事件推进 + 结果                     ← 唯一运行链
-metrics/       静态、频谱、噪声                             ← 只读
-```
+| 层 | 职责 |
+| --- | --- |
+| [contracts](../../src/adi_model/contracts/README.md) | profile、单位、观测结构、定点格式与数值规则 |
+| [topology](../../src/adi_model/topology/README.md) | 电容网络、名义码本与电荷算子 |
+| [control](../../src/adi_model/control/README.md) | 片选、掩码、扰动和跟随命令 |
+| [behavioral](../../src/adi_model/behavioral/README.md) | 采样、参考、普通 AZ、RA、ADC2 与误差模型 |
+| [simulation](../../src/adi_model/simulation/README.md) | 装配模型、推进采集与转换、返回逐笔记录 |
+| [calibration](../../src/adi_model/calibration/README.md) 与 [metrics](../../src/adi_model/metrics/README.md) | 从观测拟合或应用冻结系数，计算静态与频谱指标 |
 
-依赖只能**向下**：`simulation → behavioral/control/topology → contracts`。
-`metrics` 和 `calibration` 不得回写仿真数据。
-`tools/`、`experiments/`、`tests/` 不在核心包的 import 图里（`tools/check_engineering.py` 会查）。
-
----
+默认 CLI 装配 `DefaultModel`，由 `simulate` 进入行为流水。显式源绑定用例按自己的配置构造采集和掩码回调。两个入口的参数、观测合同与验证证据分别归档。[快速上手](QUICKSTART.md) · [源绑定验证流程](../../flow/verification/README.md)
 
 ## 2. 一笔样本的数据流
 
-```
-input_fn(t)
-  │  sampler.capture()                        behavioral/sampler.py:68
-  ├─→ x_sadc          = x − L + n_sadc        送量化器
-  └─→ rdac_input_v    = x − T                 送 RDAC 采样底板
-        │
-        │  sadc.convert_codes()               behavioral/sadc.py
-        ├─→ coarse[9b]  (0..511)
-        │
-        │  pool.select(code, dem_state, slice_ids)   simulation/slice_pool.py:158
-        ├─→ main_on[8][17], sub_on[8][5]      物理单元开关（FIG.19 17/5）
-        │
-        │  pool.charge_from_masks()           slice_pool.py:172
-        ├─→ charge_c                          参考电荷
-        │
-        │  q_residue = −q_free − charge_c (+ 噪声)
-        ├─→ residue = q_residue / C_norm      输入折算余差
-        │
-        │  ra.evaluate(residue)               behavioral/ra.py:92
-        ├─→ vra = G·residue + n_ra
-        │
-        │  adc2.quantize_codes(vra)           behavioral/adc2.py:41
-        ├─→ adc2_code[12b]
-        │
-        │  reconstruction.reconstruct()       calibration/reconstruction.py:36
-        ├─→ 浮点重构
-        │
-        │  FixedPointReconstructor            contracts/fixed_point.py:78
-        └─→ 20 位 offset-binary 码 + flags
-```
+~~~text
+输入电压和采样条件
+    ↓
+采样记录 → SADC 粗码与已决事件
+    ↓
+转换片组 + 实际 RDAC 命令 → 主／子底板掩码
+    ↓
+电荷及余差 → RA 输出 → ADC2 原码
+    ↓
+冻结数字观测 + 权重 → 名义定点重构 → 20 位码与 flags
+~~~
 
----
+模型从采样计划取得该笔的物理 ID，再按掩码与电容计算电荷。失配作用在物理池和余差路径。重构只使用数字观测及相应系数。默认解码把 RA 物理增益与权重和口径配对后对细码做换算。[流水实现](../../src/adi_model/simulation/pipeline_engine.py) · [定点约定](../../src/adi_model/contracts/README.md)
 
-## 3. 状态归属
+默认运行关闭源扰动与单元 DEM。显式 Fig.19 扰动用例由调用者提供六位字，存留的 Python 等效路径使用 `k=c-U` 并检查实际命令域。v21 的开关合同使用 `k=c+U`，两条绑定的命令域与行为模型的静态对照见 F05、F03。[行为控制模型](../../src/adi_model/control/README.md) · [对照图](../figures/20261117/README.md)
 
-| 状态 | 谁持有 | 生命周期 |
-|:---|:---|:---|
-| `Config` / `DefaultParameters` | 调用方构造，运行期只读 | 整个 run |
-| `SplitChip`（制造电容） | `DefaultModel` | 整个实例；同一 seed 决定 |
-| `DigitalState`（增益、冻结系数） | 调用方传入或 `initialize_state` | 跨记录可复用 |
-| `PhysicalSlicePool` 电气状态 | pool 自己 | **逐笔 acquire → release**，不跨笔 |
-| `SampleCapture` | 每次 `capture` 新建 | 单笔 |
-| `SimResult` | 引擎返回 | 只读产物 |
+## 3. 状态归属与时序
 
-**没有可变全局状态。** 同一 `run_id` 重跑得到同一结果；不同 `run_id` 换噪声/调度流。
+| 状态 | 持有者与生命周期 |
+| --- | --- |
+| `Config` / `DefaultParameters` | 由调用方定义，运行期间按选定配置使用 |
+| `SplitChip` | 制造电容、寄生与反馈电容属于模型实例，由制造 seed 派生 |
+| 片选与噪声记录 | `run_id` 选择同一制造实例的独立计划和噪声序列 |
+| 实际采集与转换片组 | 计划按样本 ID 绑定。采集切片的持有状态交接到后续转换 |
+| `DigitalState` 与 `DigitalObservation` | 增益与冻结系数有各自的输入归属。原码、物理 ID、掩码与异常标志随样本记录 |
+| `SimResult` | 返回逐笔结果、配置与诊断信息。异常笔保留在记录中供定位 |
 
----
+事务图中的 Flash／SAR 前缀、残差读取和标签 handoff 说明事件及跨笔关系。Python 模型中的计划与动态状态由具体运行配置启用，不能据名义时间轴推断当前 RTL 的同沿优先级或物理时限。[交织和捕获机理](../figures/20261117/README.md) · [RTL 验收入口](../../rtl/README.md)
 
-## 4. 时序（一笔）
+## 4. 比较与证据边界
 
-| 阶段 | 做什么 | 关键约束 |
-|:---|:---|:---|
-| 采集 | 8 片同时采样，保存自由电荷 | 采集组 = 上上笔的转换组（流水） |
-| 量化 | 3b flash + 6b SAR = 9b | 只判决，不驱动大盘 |
-| RDAC 更新 | 按已决前缀逐事件加载 | **禁止先算最终码再倒推事件** |
-| 余差 | 主/子节点电荷重分配 | 子节点浮置，β 桥接 |
-| RA | ×32 放大 | 有单极点、有限建立 |
-| ADC2 | 12b 量化 | 宽/窄带可选 |
-| 重构 | 定点权重 | Q30 权重 / Q32 电压 / 96b 求检 / floor |
+| 对象 | 可核对的量 |
+| --- | --- |
+| Python 行为模型 | 选定配置下的电荷、余差、代码趋势、越窗或饱和。动态波形与名义精度解码分别查诊断可用条件。 |
+| [整数参考](../../flow/verification/reference/) | 指定输入和数值格式下的宽度、舍入、限幅及标志 |
+| [scoreboard](../../flow/verification/cosim/scoreboard.py) | 把对应设计与版本的实际、参考记录按接口和样本 ID 比较 |
+| [CAAZ 扩展](../../subsys/extensions/caaz/README.md) | 独立的偶奇配对假设与专门用例 |
+| 电路与后端 | 参考建立、采样网络、RA/ADC2 的实物非理想和工艺余量以匹配设计的证据说明为准 |
 
----
-
-## 5. 三个角色必须分开
-
-| 角色 | 在哪 | 能不能当 oracle |
-|:---|:---|:---|
-| 浮点行为模型 | `src/adi_model/` | **不能**：浮点给不出位真值 |
-| 整数定点参考 | `flow/verification/reference/` | 能，且不 import RTL |
-| 独立 scoreboard | `flow/verification/cosim/scoreboard.py` | 只比较，不生成期望值 |
-
----
-
-## 6. 边界（明确不做什么）
-
-* 不做后仿、PEX、硅测；所有数字是 **L1 行为级**。
-* `recon_core` 只支持 AllSIGNAL 子集（`G = T`），不支持 dither 单元混入。
-* 共享 RA **没有跨笔状态**，每笔按理想初态开始。
-* 动态参考 / RA 建立 / ADC2 宽窄带可以跑波形，但**出不了 INL/SNR**（`out=NaN`，见 `pipeline_engine.py:594`）。
-* CAAZ 在 `subsys/extensions/caaz/`，主链不 import。
-
----
-
-## 7. 从哪读起
-
-1. `simulation/pipeline_engine.py::_validate_request` — 先看它拒绝什么，就知道支持什么
-2. `simulation/pipeline_engine.py::execute_pipeline` — 主链
-3. `control/dem3d.py` — 掩码怎么生成
-4. `calibration/reconstruction.py` + `contracts/fixed_point.py` — 数字怎么落地
+[项目状态](../STATUS.md) 维护已知覆盖、证据边界与缺口。

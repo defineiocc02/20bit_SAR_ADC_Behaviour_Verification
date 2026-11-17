@@ -9,7 +9,9 @@ version = "9.0.0"
 description = "SAR ADC behavioral model with visible engineering defaults and digital calibration."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { file = "LICENSE" }
+license = { file = "docs/meta/LICENSE" }
+# paths 表兼容既有 Hatchling 版本，两个文件均随分发包保留。
+license-files = { paths = ["docs/meta/LICENSE", "docs/meta/NOTICE"] }
 authors = [{ name = "Reed Zhao" }]
 keywords = ["adc", "sar", "behavioral-model", "mixed-signal", "isscc2024"]
 classifiers = [
@@ -51,7 +53,7 @@ docs = ["mkdocs>=1.5", "mkdocs-material>=9.4"]
 Homepage = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
 Documentation = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/main/docs/"
 Issues = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/issues"
-Changelog = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/main/CHANGELOG.md"
+Changelog = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/main/docs/meta/CHANGELOG.md"
 
 [project.scripts]
 adi-validate-config = "adi_model.cli:main_validate_config"

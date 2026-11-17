@@ -1,13 +1,10 @@
-# 验收状态
+# 历史 D3/D4 独立 IP 验收
 
-基线：`merge/adi-repro` @ `c88a7d9` + 本轮 D3/D4 IP 交付提交。
-权威链：`README.md` → `docs/CONTRACT_CURRENT.md` → 本表。
-冲突时以本表为准；`ACCEPTANCE_CHECKLIST.md`、`DIGITAL_PLAN.md`、`DIGITAL_SPEC.md`
-为历史过程记录，不作现行状态。
+基线：`merge/adi-repro` @ `c88a7d9` 与当轮 D3/D4 独立 IP 交付。以下记录依各行的输入和源基线解释。[v21 工程合同](CONTRACT_CURRENT.md) · [现行项目状态](STATUS.md)
 
 **每行尽量绑定提交。标 `—` 的行表示尚未绑定，不得据此声称 PASS。**
 
-## 一、当前交付：D3 / D4 数字 IP
+## D3/D4 独立 IP 验收记录
 
 三层证据，一条命令复现：`bash tools/verify_d3d4_ip.sh`
 

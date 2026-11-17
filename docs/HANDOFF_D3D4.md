@@ -413,7 +413,7 @@ k=1023: slice0 = 全 1   <-- 静默
 
 1. 读 `docs/SYNTH_D3D4.md`（综合与全部踩坑）
 2. 读 `docs/ACCEPTANCE_STATUS.md` 第一节（三层证据表 + 不能声称清单）
-3. 跑 `make verify-d3d4-ip`，对期望输出
+3. 跑 `make -f flow/Makefile verify-d3d4-ip`，对期望输出
 4. 做 §2.4 的反向用例，确认判据不是空壳
 5. **然后才看代码**。代码里我在每处踩坑点都写了"为什么不能那样写"，
    那些注释比代码本身更有信息量
@@ -432,7 +432,7 @@ k=1023: slice0 = 全 1   <-- 静默
 
 **没有删除**：任何被 git 跟踪的源码、文档、脚本、向量。
 `tb/vec_phase_rtl.txt`（17280 行）和 `tb/vec_d3d4_ip.txt`（512 行）是金标，
-**必须保留**，且 `make vec` 可无损重生成（重生成后 git 无 diff）。
+**必须保留**，且 `make -f flow/Makefile vec` 可无损重生成（重生成后 git 无 diff）。
 
 ---
 

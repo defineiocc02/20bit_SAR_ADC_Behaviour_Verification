@@ -19,10 +19,23 @@
 set DESIGN recon_rnd_equiv
 set WORK   /tmp/fvwork
 
+# =============================================================================
+# 1. 选择属性文件
+# =============================================================================
+# 先在本脚本旁查找属性文件。须在切换工作目录前解析绝对路径。
+# 旧远端部署可能只上传 Tcl，沿用 /tmp/formal 下的已暂存属性文件。
+set FORMAL_SOURCE [file join [file dirname [file normalize [info script]]] recon_rnd_equiv.sv]
+if {![file isfile $FORMAL_SOURCE]} {
+    set FORMAL_SOURCE /tmp/formal/recon_rnd_equiv.sv
+}
+if {![file readable $FORMAL_SOURCE]} {
+    error "无法读入 VC Formal 属性文件：$FORMAL_SOURCE"
+}
+
 file mkdir $WORK
 cd $WORK
 
-analyze -format sverilog /tmp/formal/recon_rnd_equiv.sv
+analyze -format sverilog $FORMAL_SOURCE
 elaborate $DESIGN
 current_design $DESIGN
 

@@ -1,16 +1,15 @@
 # HANDOFF — 阶段检查点与待办
 
-> 当前状态入口：[docs/_history/HANDOVER.md](docs/_history/HANDOVER.md) §2 与 [验收对照报告](docs/_history/archive/ACCEPTANCE_20261113.md)。
-> （2026-11-13 更正：原指向 `docs/archive/STATUS.md`，但该文写于 2026-11-06、描述的是已被否决的
-> 63+8 拓扑，现已标记为历史。）
-> 本文件保留追加式历史交接，旧待办是否已经解除必须回到当前合同与实现核对。
+> 本页保留按日期追加的交接快照。当前运行范围查[项目状态](../STATUS.md)，配置查[工程合同](../CONTRACT_CURRENT.md)。
+> 2026-11-13 的交接与验证分别保留在[交接归档](../_history/HANDOVER.md) §2 和[验收归档](../_history/archive/ACCEPTANCE_20261113.md)。
+> 此前的 `docs/archive/STATUS.md` 描述 2026-11-06 的 63+8 拓扑，已移入[旧状态归档](../_history/archive/STATUS.md)。
 
 > **用途**（任务书 §11）：跨执行轮次的交接。新轮次先读本文件与
 > `mechanism_inventory.json`，**不得重新做状态总结后停止推进**。
 > 每完成一个里程碑更新本文件（追加，不覆盖历史条目）。
 
 > **状态提示（2026-10-19）**：本文件是追加式交接记录，下列各「当前检查点」
-> 均为当时的历史快照；实际当前状态以 `main` 分支为准。
+> 均为当时的历史快照。实际范围以[项目状态](../STATUS.md)及相应证据的源版本为准。
 
 ---
 

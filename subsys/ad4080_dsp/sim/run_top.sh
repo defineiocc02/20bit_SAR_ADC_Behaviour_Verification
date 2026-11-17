@@ -12,4 +12,4 @@ for argument in "$@"; do
             ;;
     esac
 done
-exec "${PYTHON:-python3}" "$SCRIPT_DIR/../../tools/run_open_rtl.py" --tops ad4080_top_tb "$@"
+exec "${PYTHON:-python3}" "$SCRIPT_DIR/../../../tools/run_open_rtl.py" --tops ad4080_top_tb "$@"

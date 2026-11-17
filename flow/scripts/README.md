@@ -1,92 +1,21 @@
-# scripts/ — 临时产物清理
+# 工作目录清理
 
-仿真与综合会持续产出可丢弃的中间文件（Python 字节码、VCS 编译目录、DC 的 `work/`、
-日志与报告）。本目录提供两个**默认只预览、不删除**的清理脚本，避免手敲 `rm -rf`
-时路径写错。
+[clean.py](clean.py) 在本机预览命中的临时文件。[clean_remote.sh](clean_remote.sh) 为旧远端目录布局预览 VCS 与综合工作目录。两个工具默认仅列出候选，传入 `--apply` 才执行删除。
 
-| 脚本 | 作用范围 | 说明 |
-| --- | --- | --- |
-| `clean.py` | 本仓库工作区 | 纯标准库，无第三方依赖 |
-| `clean_remote.sh` | 远端仿真机 `vm-meow` | 通过 `ssh` 执行，远端侧同样先预览 |
+## 本机预览
 
-## 1. `clean.py` — 本地仓库
+在仓库根目录显式指定扫描根。脚本内的缺省根会解析到 `flow/`，缺少 `.git` 检查会令其退出。
 
 ```bash
-python3 scripts/clean.py            # dry-run：列出待删路径、文件数、总大小
-python3 scripts/clean.py --apply    # 真正删除，并报告删除项数与释放空间
-python3 scripts/clean.py --root DIR # 清理指定仓库根（默认脚本所在仓库）
+python3 flow/scripts/clean.py --root .
 ```
 
-输出示例（dry-run）：
+候选按路径名匹配，包括 `__pycache__/`、`csrc/`、`work/`、`simv*`、`*.daidir/`、`*.log` 和 `*.rpt`。匹配目录是整棵子树候选。保护名单仍使用移动前的 `tests/` 与 `synth/results/`。本次预览已列出 Git 跟踪的 [Vivado 检查报告](../tests/fixtures/vivado_2018_3_buffered/check_timing.rpt) 和 [时序摘要](../tests/fixtures/vivado_2018_3_buffered/timing_summary.rpt)。在保护范围更新前，仓库根目录只用此脚本预览，清理时逐项核对 [综合证据导航](../synth/README.md) 和 `git ls-files`。
 
-```text
-仓库根: /Users/zhaoyi/src/20bit_SAR_ADC_Behaviour_Verification
-模式  : dry-run（只列出，加 --apply 才删除）
-保护  : .git/, docs/, src/, rtl/, tb/, tests/, synth/results/
-
-待清理路径：
-  [dir ]     252 B  experiments/__pycache__ (1 个文件)
-  [file]       7 B  sim/x/blinky.vvp
-  [dir ]       7 B  sim/x/work (1 个文件)
-
-合计: 3 项, 3 个文件, 266 B
-
-受保护目录（已跳过）: docs/, rtl/, src/, synth/results/, tb/, tests/
-
-dry-run：未删除任何文件。核对无误后运行：python3 scripts/clean.py --apply
-```
-
-### 清理白名单（命中才会成为候选）
-
-| 类型 | 模式 |
-| --- | --- |
-| 目录 | `__pycache__/`、`work/`、`csrc/`、`*.daidir/`、`simv*/` |
-| 文件 | `*.pyc`、`*.pyo`、`*.vvp`、`simv*`、`*.log`、`*.rpt` |
-
-目录命中后**整棵子树**一并删除（大小按子树累加），不再向下递归，因此
-`work/` 里的内容也计入统计。
-
-### 保护名单（永不删除）
-
-- `.git/` —— 遍历阶段直接剪枝。
-- `docs/`、`src/`、`rtl/`、`tb/`、`tests/` —— 交付物与文档，整体剪枝。
-- `synth/results/` —— 精选的综合/STA 报告（`*.rpt`），整体剪枝。
-
-保护路径在**遍历阶段剪枝**，不是"匹配完再排除"，所以连其中名为 `work/`、
-`__pycache__/` 的目录也不会被触及。被跳过的目录会在输出末尾列出，便于核对。
-
-### 安全边界
-
-1. 只对**已匹配白名单的单个路径**调用 `shutil.rmtree` / `os.unlink`，全脚本没有
-   `rm -rf`，也没有"按目录整体删"的分支。
-2. 拒绝在 `/`、`$HOME` 上运行；仓库根缺少 `.git/` 时直接中止（退出码 2）。
-3. 不跟随符号链接：符号链接只按文件删除链接本身，绝不进入其目标。
-4. 单个路径删除失败只记入错误列表并以退出码 1 结束，不影响其余路径。
-
-## 2. `clean_remote.sh` — 远端 `vm-meow`
+## 远端预览
 
 ```bash
-bash scripts/clean_remote.sh            # dry-run
-bash scripts/clean_remote.sh --apply    # 删除
-REMOTE_HOST=other-host bash scripts/clean_remote.sh   # 指定主机
+REMOTE_HOST=your-eda-host bash flow/scripts/clean_remote.sh
 ```
 
-远端白名单（逐字 `case` 匹配，不匹配即拒绝）：
-
-- `/root/vcs/sim_*` —— VCS 编译目录（`simv*`、`csrc/`、`*.daidir` 等）
-- `/root/syn/work*` —— DC 的 `work/`、`work_p/`
-- `/root/timing` —— 若存在
-
-**绝不删除**：`/root/vcs/*.sv`（RTL/TB 源）、`/root/vcs/*.txt`（激励向量）、
-`/root/syn/*.tcl`、`/root/syn/*.rpt`、`/root/syn/*.log`。这三类文件即使被前缀规则
-意外扫到，也有独立护栏直接 `[skip]`；删除前还会对每个路径做第二次白名单校验。
-
-远端脚本以 `ssh HOST "APPLY=… bash -s"` + quoted heredoc 传入，本地不展开远端路径，
-因此不受本地 shell 通配影响。`ssh` 使用 `BatchMode=yes`，不会卡在密码交互。
-
-## 3. 建议用法
-
-- 提交前：`python3 scripts/clean.py` 看一眼，确认没有误伤，再 `--apply`。
-- 远端跑完回归：`bash scripts/clean_remote.sh`，核对 10 个 `sim_*` 目录后 `--apply`。
-- 本脚本只清"可再生成的中间物"，源码、文档、`synth/results/` 报告与远端
-  `*.sv`/`*.txt` 均不在清理范围内。
+将 `your-eda-host` 换成已配置的 SSH 主机别名。预览也会通过非交互 SSH 访问远端。适用目录由脚本固定，范围包括旧 VCS 编译目录、DC 工作目录和旧 timing 工作区。删除模式按候选目录递归处理，目录内部的报告、网表或日志随目录一起删除。运行前先确认主机、目录归属和当前作业状态。 [脚本中的实际匹配范围](clean_remote.sh)

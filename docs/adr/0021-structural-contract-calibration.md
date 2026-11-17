@@ -5,7 +5,7 @@
 > **历史合同（af8功能合同／9bdf文档快照）：**以下接口、码域、地址、位域和数值保留原记录，不作为新source binding／两采集端口／calobs v2的现行规范。当前合同的冻结状态见[CURRENT_INTERFACE_AND_ARITHMETIC.md](../rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)。
 
 
-日期：2026-11-04。适用范围：本项目 18/8 slice、9 位粗量化、63+8 分裂 RDAC、12 位 ADC2 的结构研究配置。该工程合同与公开资料的对应关系、未经披露之处见 [bridge 说明](../archive/binary_unary_bridge.md)。它更新 ADR 0018/0019 的当前状态，但保留其历史证据。
+日期：2026-11-04。适用范围：本项目 18/8 slice、9 位粗量化、63+8 分裂 RDAC、12 位 ADC2 的结构研究配置。该工程合同与公开资料的对应关系、未经披露之处见 [bridge 说明归档](../_history/archive/binary_unary_bridge.md)。它更新 ADR 0018/0019 的当前状态，但保留其历史证据。
 
 ## 决策
 
@@ -48,7 +48,7 @@
 | seed 91，关闭外加噪声 | 4096 / 512 | 1279 | 59.38 → 2.14 µV |
 | seed 42，额外假设 48 µV RMS 输入等效噪声 | 8192 / 1024 | 1279 | 71.25 → 54.40 µV |
 
-这些结果来自理想 640 MHz 相位时钟和静态仿真夹具；48 µV 为测试输入而非芯片测量，不能推断带动态建立、漂移、完整噪声和 ADC2 自身非线性时的表现。异常样本及同沿 clear 已做定向验证。两组无噪结果、数据与源文件哈希见 [结果 JSON](../readme/data/structural_calibration_summary.json)；含噪结果见 [噪声 JSON](../readme/data/structural_calibration_noise_summary.json)。
+这些结果来自理想 640 MHz 相位时钟和静态仿真夹具；48 µV 为测试输入而非芯片测量，不能推断带动态建立、漂移、完整噪声和 ADC2 自身非线性时的表现。异常样本及同沿 clear 已做定向验证。无噪和含噪原始 JSON 随旧版本 `2cf6168` 保存。本工作树保留上述摘要，可分别用 `git show 2cf6168:docs/readme/data/structural_calibration_summary.json` 和 `git show 2cf6168:docs/readme/data/structural_calibration_noise_summary.json` 核对原始记录。
 
 结构物理掩码独立枚举 512 个码 × 512 个 DEM 状态，零差异；三种 dither 模式下 10752 个真实 RTL RDAC 引脚事件和 Python 事件、相位、样本 ID 及整链粗码/最终命令对拍一致。可用以下命令重新执行（输出目录需不存在）：
 

@@ -46,7 +46,7 @@ treated as **high priority** — see the next section.
 
 ## Attribution and licensing corrections
 
-Because this repository studies published third-party work (see `NOTICE`), a
+Because this repository studies published third-party work (see [NOTICE](../docs/meta/NOTICE)), a
 *mis-attribution* is a defect of the same severity as a code vulnerability.
 
 If you are a rights holder — or you believe any content here misattributes your
@@ -56,7 +56,7 @@ work, reproduces material beyond its licence, or oversteps a patent or trademark
 - **not** disclosed publicly while under review;
 - acted on promptly, including removal or re-grading of the affected parameter or
   mechanism;
-- credited in `CHANGELOG.md` unless you ask otherwise.
+- credited in [CHANGELOG.md](../docs/meta/CHANGELOG.md) unless you ask otherwise.
 
 ## Reporting an *incorrect number* (not a vulnerability)
 

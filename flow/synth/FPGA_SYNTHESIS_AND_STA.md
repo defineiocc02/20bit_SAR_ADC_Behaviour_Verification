@@ -1,12 +1,12 @@
 # FPGA 综合、布线与时序复核指南
 
-本指南对应仓库现存 Vivado 入口及已保存的完整顶层证据。目标是让每次综合有明确输入身份、让功能回归和物理时序分别验收，并给后续板级与 ASIC 实现提供可操作方向。历史 DC/TSMC 28 nm 文档仍在 [README.md](README.md)，其中的环境与数字没有在本轮重新实测，不能用于证明当前 RTL 的 ASIC PPA。
+本页记录 `71e7d5a` 对应的独立结构数字核 Vivado 流程与证据。下列命令的路径和工具版本属于原记录，准备新运行时从[综合入口](README.md)核对现存工具与源版本。
 
 逐阶段的输入、操作、必读报告、通过条件和失败回退，真实顶层 I/O 预算表、ASIC 资料门禁及受控 PPA 实验，见 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)。其中的后续实验保持计划身份；本指南的现存命令和历史结果各有明确范围。
 
 ## 1. 已测结论及适用范围
 
-以下数字属于 `71e7d5a` 所用的冻结源码包，原始记录见 [综合归档](../docs/evidence/20260930/shared_old_trial_synth/)、[布线归档](../docs/evidence/20260930/shared_old_trial_route_25ns/) 和 [完整网表归档](../docs/evidence/20260930/shared_old_trial_full_mapped/)。工程排版版只改变注释和空白，须以有效 SystemVerilog token 恒等检查建立对应关系；它有新的文件字节 SHA，不能把旧源包 SHA 写成当前源码身份。若下一次改了任何有效 token、宏、字符串、参数或文件列表，应重新综合并重新绑定网表、布线和回归证据。
+以下数字属于 `71e7d5a` 所用的冻结源码包，原始综合、布线及完整网表记录保存在 Git 旧版 `ca5ae31:docs/evidence/20260930/` 下的 `shared_old_trial_synth/`、`shared_old_trial_route_25ns/`、`shared_old_trial_full_mapped/`。可用 `git ls-tree -r --name-only ca5ae31 -- docs/evidence/20260930` 定位。工程排版版只改变注释和空白，须以有效 SystemVerilog token 恒等检查建立对应关系；它有新的文件字节 SHA，不能把旧源包 SHA 写成当前源码身份。若下一次改了任何有效 token、宏、字符串、参数或文件列表，应重新综合并重新绑定网表、布线和回归证据。
 
 | 条件/结果 | 已记录值 | 可以说明什么 |
 |---|---|---|
@@ -21,19 +21,21 @@
 
 实际结果同时保留 `REGREG_TIMING_MET=1` 与 `TIMING_MET=0`。固定 16 拍启动间隔下，40 MHz 对应 **2.5 MS/s**。本次没有更高频率的重新实现扫描，不能用 `25-WNS` 直接发布更高保证频率，也不能由 20-bit 输出宽度推断 20-bit ENOB 或论文动态范围。
 
-## 2. 工具入口与运行位置
+## 2. 历史工具入口与运行位置
+
+旧流程的完整脚本集在 `71e7d5a:synth/`。本工作树的留存实现脚本在下表链接到实际位置。
 
 | 文件 | 运行位置/真实接口 | 行为 |
 |---|---|---|
-| [run_vivado_ssh.py](run_vivado_ssh.py) | 本机 Python；SSH 主机显式传入 | 冻结源包、隔离远端目录、运行综合、收回报告 |
-| [run_vivado_ooc.tcl](run_vivado_ooc.tcl) | Vivado；四个位置参数 `PART OUT PERIOD_NS P_RECON_STAGES` | 完整顶层 OOC 综合，输出 `post_synth.dcp` |
+| `synth/run_vivado_ssh.py` | 本机 Python；SSH 主机显式传入 | 冻结源包、隔离远端目录、运行综合、收回报告 |
+| `synth/run_vivado_ooc.tcl` | Vivado；四个位置参数 `PART OUT PERIOD_NS P_RECON_STAGES` | 完整顶层 OOC 综合，输出 `post_synth.dcp` |
 | [run_vivado_buffered_impl.tcl](run_vivado_buffered_impl.tcl) | Vivado；四个位置参数 `INPUT_DCP NEW_OUT_DIR PERIOD_NS BUFGCTRL_XxYy` | 从既有 DCP 插入真实 BUFG、opt/place/phys_opt/route、报告 setup/hold |
-| [run_vivado_full_mapped.py](run_vivado_full_mapped.py) | 安装 Vivado/XSim 的机器；不是 SSH 驱动 | 验证 DCP 身份、导出完整功能网表、运行 XSim、复核 trace |
-| [run_vivado_full_mapped.tcl](run_vivado_full_mapped.tcl) | Vivado；四个位置参数 `INPUT_DCP NEW_OUT_DIR EXPECTED_PART MANIFEST_P_RECON_STAGES` | 只导出 `write_verilog -mode funcsim`，不综合、不布线 |
+| `synth/run_vivado_full_mapped.py` | 安装 Vivado/XSim 的机器；不是 SSH 驱动 | 验证 DCP 身份、导出完整功能网表、运行 XSim、复核 trace |
+| `synth/run_vivado_full_mapped.tcl` | Vivado；四个位置参数 `INPUT_DCP NEW_OUT_DIR EXPECTED_PART MANIFEST_P_RECON_STAGES` | 只导出 `write_verilog -mode funcsim`，不综合、不布线 |
 
 **仓库没有 `run_vivado_buffered_impl.py`。** 布线通过真实 Tcl 入口执行，远端传输与启动包装要另行保存；完整网表 Python 也没有 `--host` 参数，不能在 Mac 上把 Windows 工具路径当成本地可执行文件。
 
-当前已测主机别名为 `windows-codex`，Vivado 为 `D:/Academic/Vivado2018/Vivado/2018.3/bin/vivado.bat`，远端 Python 为 `C:/Users/Administrator/miniconda3/python.exe`。主机 IP 可由现存 SSH 配置解析；使用别名避免在脚本、报告里各维护一份地址。
+原记录使用的主机别名为 `windows-codex`，Vivado 为 `D:/Academic/Vivado2018/Vivado/2018.3/bin/vivado.bat`，远端 Python 为 `C:/Users/Administrator/miniconda3/python.exe`。主机 IP 可由现存 SSH 配置解析；使用别名避免在脚本、报告里各维护一份地址。
 
 ## 3. 完整顶层综合：输入必须在优化前冻结
 

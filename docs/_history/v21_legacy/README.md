@@ -1,25 +1,14 @@
-# 已作废的历史版本
+# v21 历史快照
 
-**本目录里的任何结论都不得引用。**
+这里保存开发中间版。引用数值时须同时注明原提交、网表和观察范围。当前结论从 [v21 复现状态](../../STATUS.md) 和 [文档索引](../../INDEX.md) 进入。
 
-这里的文件记录的是开发过程中的中间状态，其中的数字大多已被后续工作推翻。
-保留它们只为追溯"某个结论是怎么来的、又是怎么被推翻的"。
-
-## 目录内容
-
-| 文件 | 为什么作废 |
-|:---|:---|
-| `TIMING_BUDGET_FINAL_superseded.md` | 含三代网表的逐代演进数字（含 108,951 / 97,555 µm²）。当前版本无同版网表，所有 PPA 数字不成立 |
-| `GATE_EQUIV_superseded.md` | 基于错误网表的"1464 拍差异 0"结论；且 1464 是日志行数，仅 90 观察沿、2 笔输出 |
-| `I5_PORTS_superseded.md` | 端口表按旧的 14,400 根权重端口写；权重表已改为内部寄存器堆 + 52 位配置口 |
-| `DRIVING_CELL_BUG_superseded.md` | 记录的问题真实（`BUF_X2` 不存在、`UID-993` 静默失败），但引用的面积数字已作废 |
-| `AREA_VS_PPT.md` | 面积对比基于作废网表 |
-| `PPA_DIV_VS_RECIP.md` | PPA 对比基于作废网表 |
-| `FINAL_D1_D6_superseded.md` | 已被 `../STATUS.md` 取代（那份是 `054cfed`，本份是更新后的单一权威版） |
-| `CHECKPOINT_I5_SYNTH_superseded.md` | 旧综合状态，已被 `../SYNTH_STALL.md` 取代 |
-| `CHECKPOINT_I5_SYNTH_v2_superseded.md` | 同上 |
-| `CHECKPOINT_I5_FC_superseded.md` | Fusion Compiler 尝试记录，未成功 |
-
-## 现行文档
-
-回到 [`../STATUS.md`](../STATUS.md)（唯一权威状态）。
+| 快照 | 保留用途 |
+| --- | --- |
+| [TIMING_BUDGET_FINAL](TIMING_BUDGET_FINAL_superseded.md) | 对照三代历史网表及 PPA 口径。旧面积记录与现行 RTL 未绑定。 |
+| [GATE_EQUIV](GATE_EQUIV_superseded.md) | 追溯旧网表的一次门级比较。1464 是日志行数，实际观察 90 沿、2 笔输出。 |
+| [I5_PORTS](I5_PORTS_superseded.md) | 保存旧扁平权重接口。现行窄配置口见 [v21 配置合同](../../v21/CONFIG_CONTRACT.md)。 |
+| [DRIVING_CELL_BUG](DRIVING_CELL_BUG_superseded.md) | 记录不存在的 `BUF_X2` 与 `UID-993` 静默失败。面积属于旧网表。 |
+| [AREA_VS_PPT](AREA_VS_PPT.md) · [PPA_DIV_VS_RECIP](PPA_DIV_VS_RECIP.md) | 保存旧后端比较及其输入条件。 |
+| [FINAL_D1_D6](FINAL_D1_D6_superseded.md) | 早期汇总。后续状态见 [v21 复现状态](../../STATUS.md)。 |
+| [I5 综合检查点](CHECKPOINT_I5_SYNTH_superseded.md) · [第二轮](CHECKPOINT_I5_SYNTH_v2_superseded.md) | 历史综合状态。后续调查见 [综合阻塞记录](../../v21/SYNTH_STALL.md)。 |
+| [I5 FC 检查点](CHECKPOINT_I5_FC_superseded.md) | 当次 Fusion Compiler 尝试及未关闭项。 |

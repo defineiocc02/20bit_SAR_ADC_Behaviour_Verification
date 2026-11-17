@@ -6,9 +6,9 @@
 
 ```bash
 # 必须明确给文件和依赖；PYTHON指向已有pyslang的解释器
-STRICT=1 bash ad4080_dsp/scripts/lint.sh ad4080_dsp/rtl/sinc1_decim.sv
-python ad4080_dsp/scripts/sv_lint.py --strict ad4080_dsp/rtl/sinc1_decim.sv
-python ad4080_dsp/scripts/check_headers.py ad4080_dsp/rtl/sinc1_decim.sv
+STRICT=1 bash subsys/ad4080_dsp/scripts/lint.sh subsys/ad4080_dsp/rtl/sinc1_decim.sv
+python subsys/ad4080_dsp/scripts/sv_lint.py --strict subsys/ad4080_dsp/rtl/sinc1_decim.sv
+python subsys/ad4080_dsp/scripts/check_headers.py subsys/ad4080_dsp/rtl/sinc1_decim.sv
 ```
 
 | 入口 | 实际检查 | 不代表什么 |
@@ -28,15 +28,15 @@ python tools/run_open_rtl.py --tops result_fifo_tb --out ../sar-output/fifo-chec
 
 `--tops`与库外新`--out`必填；`--simulator`选择已配置的verilator／vcs／iverilog。`VERILATOR`、`VCS`、`IVERILOG`／`VVP`按实际runner支持选择命令。每个已登记组件只编译明确依赖，并检查完成marker、正计数／零错误项与必要OPEN说明。
 
-`ad4080_dsp/sim/run_all.sh`转发同一显式runner，不是默认全库套件；`run_top.sh`只选ad4080_top_tb，其余输入仍须提供。未登记、未绑定、编译失败或没有有效完成证据都不算通过；没有旧golden／二进制自动回退。
+`subsys/ad4080_dsp/sim/run_all.sh`转发同一显式runner，不是默认全库套件；`run_top.sh`只选ad4080_top_tb，其余输入仍须提供。未登记、未绑定、编译失败或没有有效完成证据都不算通过；没有旧golden／二进制自动回退。
 
 ## 复现指定的14个场景
 
-实际system场景使用2+1单元、6位ADC2的[数学夹具](../../sim/fixtures/source_control_component/fixture_manifest.json)。权重、标量和coarse／fine目标属于夹具；两采集端口的合成偏移不作为真实Fig.19电荷网络。控制文件按状态0..6、word0..3的有序笛卡尔积生成，每行十六进制。
+实际system场景使用2+1单元、6位ADC2的[数学夹具](../../../flow/sim/fixtures/source_control_component/fixture_manifest.json)。权重、标量和coarse／fine目标属于夹具；两采集端口的合成偏移不作为真实Fig.19电荷网络。控制文件按状态0..6、word0..3的有序笛卡尔积生成，每行十六进制。
 
 ```bash
 SAR_DSP_ROOT="$(mktemp -d)"
-SAR_DSP_FIXTURE=sim/fixtures/source_control_component
+SAR_DSP_FIXTURE=flow/sim/fixtures/source_control_component
 PYTHONPATH=src python tools/export_rtl_params.py \
   --config "$SAR_DSP_FIXTURE/config.json" --format "$SAR_DSP_FIXTURE/format.json" \
   --binding "$SAR_DSP_FIXTURE/binding.json" --out "$SAR_DSP_ROOT/inputs"
@@ -76,4 +76,4 @@ python tools/run_open_rtl.py --out "$SAR_DSP_ROOT/run" --tops \
 | 数字结果 | 码、ID、flags、拒绝／恢复、独立参考及工作域；不能只报用例存在 |
 | 工艺层级 | 顶层、库／器件、SDC、角、阶段与原始STA；没有则明确未执行 |
 
-[旧仿真](verification_sim.md)、[BMC](formal.md)、[ECP5](synthesis_ecp5.md)和手算面积／延时继续按原版本引用。RTLCoder、Verible下载或pyslang旧故事不作为当前门禁成绩；自动后处理工具也不能据模板编造来源、作者、版本或当前能力。当前结果按[B表](../../docs/archive/digital_status_matrix.md)的实际场景及证据范围引用。
+[旧仿真](verification_sim.md)、[BMC](formal.md)、[ECP5](synthesis_ecp5.md)和手算面积／延时继续按原版本引用。RTLCoder、Verible下载或pyslang旧故事不作为当前门禁成绩；自动后处理工具也不能据模板编造来源、作者、版本或当前能力。handoff003 的场景、源身份及证据边界见[归档 B 表](../../../docs/_history/archive/digital_status_matrix.md)。

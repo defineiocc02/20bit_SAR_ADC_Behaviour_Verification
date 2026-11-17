@@ -120,7 +120,7 @@ VC Formal W-2024.09-SP2（`/opt/synopsys/vc_static/.../bin/vcf`）可用，
 这只是**实例统计**，不能据此推断"没有 property"或"组合逻辑不能形式验证" ——
 早前那样写是错的，已撤回。
 
-**已排除的命令问题**（都是实测，记在 `formal/v21/run_fv.tcl`）：
+**已排除的命令问题**均来自当时的实测，记录在 [VC Formal Tcl](../../flow/formal/v21/run_fv.tcl)。
 - `set_fml_appmode -property` -> 报 "called a copy of a compiled script"
 - `prove` 不存在
 - `run_active_scenarios` 需先 `create_scenario -name` 并 `set_active_scenarios`

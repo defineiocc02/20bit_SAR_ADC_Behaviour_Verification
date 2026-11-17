@@ -1,3 +1,13 @@
+# =============================================================================
+# 文件名     : test_review_trace.py
+# 版本       : v1.0
+# 功能       : 比较冻结的审阅记录、版本化来源清单和当前可定位模块集合。
+# 设计说明   :
+#   * 审阅页码、文件清册和行范围各有自己的冻结提交。
+#   * 当前 Python 包可导入及 RTL 源清单完整只用于检查当前工作树。
+# 变更记录   : 现行来源和机制清单移至验证清单目录。
+# =============================================================================
+
 """检查按日期保留的审阅快照及扩展覆盖是否完整且可追溯。"""
 
 import hashlib
@@ -20,12 +30,18 @@ def _load(name: str) -> dict:
 
 
 def _registered_sources() -> dict:
-    manifest = json.loads((ROOT / "manifest/sources_manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads((ROOT / "flow/verification/manifests/sources_manifest.json").read_text(encoding="utf-8"))
     rows = manifest["sources"] + manifest["background_sources"]["items"]
     assert len(rows) == len({row["id"] for row in rows})
     return {row["id"]: row for row in rows}
 
 
+# =============================================================================
+# 1. 冻结来源覆盖
+# =============================================================================
+# 来源清单具有独立身份。用页号、哈希及 ID 验证，而不是直接信任两个报告的总数。
+# 扩展记录必须能追到基础记录的原字节，便于后来的阅读增量与既有数据分开。
+# 后续项目把目录搬到别处时更新入口路径。冻结页码和审阅状态不随路径重解释。
 def test_source_review_covers_each_registered_page_once():
     sources = _registered_sources()
     baseline, extension = (_load(name) for name in (SOURCE_BASELINE, SOURCE_EXTENSION))
@@ -63,11 +79,16 @@ def test_source_review_covers_each_registered_page_once():
         pages = document["page_review"]
         assert [row["pdf_page"] for row in pages] == list(range(1, source["pages"] + 1))
         assert all(row["text_read"] and row["image_checked"] for row in pages)
-    manifest = json.loads((ROOT / "manifest/sources_manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads((ROOT / "flow/verification/manifests/sources_manifest.json").read_text(encoding="utf-8"))
     assert manifest["meta"]["corpus_documents"] == len(documents)
     assert manifest["meta"]["corpus_pages"] == sum(row["pages"] for row in documents)
 
 
+# =============================================================================
+# 2. 同原件别名
+# =============================================================================
+# 同 SHA 文件可以有不同原始文件名，例如工作区另存的讲稿。
+# 来源 ID 对应的是原件。别名挂在原件上，只增加可追踪名称，不增加原件计数。
 def test_caaz_source_alias_is_explicit_and_not_a_third_document():
     sources = _registered_sources()
     paper = sources["PKU_VLSI2025_C32_1_PAPER"]
@@ -95,9 +116,15 @@ def test_caaz_source_alias_is_explicit_and_not_a_third_document():
     ]
 
 
+# =============================================================================
+# 3. 原文到工项
+# =============================================================================
+# 要求由源 ID、机制 ID 和适用范围三部分共同定位；逐条引用由固定集合反向校验。
+# 每条记录须保留预期行为与原因，不能因为功能打勾就省略选用原文的条件。
+# 基础和扩展分别回算覆盖分布，避免扩展的新增内容污染原来的范围声明。
 def test_each_source_requirement_has_a_valid_applicability_and_mechanism_mapping():
     sources = set(_registered_sources())
-    inventory = json.loads((ROOT / "manifest/mechanism_inventory.json").read_text(encoding="utf-8"))
+    inventory = json.loads((ROOT / "flow/verification/manifests/mechanism_inventory.json").read_text(encoding="utf-8"))
     mechanisms = {row["id"] for row in inventory["mechanisms"]}
     baseline = _load("20261105-requirements-trace.json")
     extension = _load("20261105-caaz-source-requirements.json")
@@ -142,8 +169,13 @@ def test_each_source_requirement_has_a_valid_applicability_and_mechanism_mapping
         assert row["implementation_status_source"]["mechanism_id"] == "X02"
 
 
+# =============================================================================
+# 4. 可选机制边界
+# =============================================================================
+# CAAZ 的来源身份保持独立。默认关闭是已登记合同的一部分，与论文所报性能分开。
+# 检查原始速率、偶奇配对和结果速率的登记语义，不把假设时钟当作来源披露。
 def test_caaz_remains_an_optional_source_derived_sample_domain_extension():
-    inventory = json.loads((ROOT / "manifest/mechanism_inventory.json").read_text(encoding="utf-8"))
+    inventory = json.loads((ROOT / "flow/verification/manifests/mechanism_inventory.json").read_text(encoding="utf-8"))
     caaz = next(row for row in inventory["mechanisms"] if row["id"] == "X02")
     assert "OPTIONAL_SOURCE_EXTENSION" in inventory["config_classes"]
     assert caaz["embodiment"] == "OPTIONAL_SOURCE_EXTENSION"
@@ -166,6 +198,12 @@ def test_caaz_remains_an_optional_source_derived_sample_domain_extension():
     assert equations["pair_rate_choice"]["status"].startswith("ENGINEERING_CHOICE;")
 
 
+# =============================================================================
+# 5. 历史技术审阅
+# =============================================================================
+# 当时实际审过的源码通过冻结树枚举。当前源码可能增减，不能据现存数量反写审阅档案。
+# 扩展的新增项和重读项彼此互斥。用集合差交来还原两类，避免一个文件被重复计入。
+# 范围和哈希都是旧提交下的证据。当前注册路径检查另在末项执行。
 def test_reviewed_production_file_inventory_includes_baseline_and_extension():
     baseline, extension = (_load(name) for name in (CODE_BASELINE, CODE_EXTENSION))
     assert baseline["production_python_modules"] == 49
@@ -237,6 +275,11 @@ def test_reviewed_production_file_inventory_includes_baseline_and_extension():
         assert re.fullmatch(r"[0-9a-f]{64}", row["reviewed_sha256"])
 
 
+# =============================================================================
+# 6. 可外发记录
+# =============================================================================
+# 审阅记录含定位元数据，不收录原始 PDF、截图或本机私有位置。
+# 保留多种旧字段名做负控，以免改媒体字段拼写后误把实际负载加回仓库。
 def test_caaz_review_records_exclude_private_paths_and_source_payloads():
     for name in (
         SOURCE_EXTENSION,
@@ -254,6 +297,12 @@ def test_caaz_review_records_exclude_private_paths_and_source_payloads():
         assert '"ocr_evidence"' not in text
 
 
+# =============================================================================
+# 7. 当前树的独立检查
+# =============================================================================
+# 对当前 Python 包递归遍历。模块公开名按相对位置推导，不按同名文件跨目录猜测。
+# RTL 清单与当前实际源比较，同时拒绝重复项。清单覆盖范围和测试台功能是不同判据。
+# 机制清单源码引用应属于当前生产集合。旧证据报告的文件状态不充当现行运行证明。
 def test_current_runtime_source_set_has_current_imports_and_explicit_rtl_manifest():
     """当前集合另检可定位/可导入/清单完整，不把静态集合检查写作已审读或已仿真。
 
@@ -287,7 +336,7 @@ def test_current_runtime_source_set_has_current_imports_and_explicit_rtl_manifes
     current_rtl = {p.relative_to(ROOT).as_posix() for p in (ROOT / "rtl").rglob("*.sv")}
     assert len(declared) == len(set(declared))
     assert set(declared) == current_rtl
-    inventory = json.loads((ROOT / "manifest/mechanism_inventory.json").read_text())
+    inventory = json.loads((ROOT / "flow/verification/manifests/mechanism_inventory.json").read_text())
     current_production = current_rtl | {
         p.relative_to(ROOT).as_posix() for p in current_python.values()
     }

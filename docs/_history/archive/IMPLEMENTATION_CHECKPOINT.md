@@ -55,7 +55,7 @@ the tested local Git objects. Commit timestamps were normalized to UTC; file
 contents are identical. The PR Checks tab is the authoritative live record for
 the final head across Python 3.10–3.13, acceptance, determinism and wheel build.
 Local evidence and its environment are recorded below and in
-`validation-environment.json`.
+[validation-environment.json](validation-environment.json).
 
 ## Historical milestone checkpoints
 

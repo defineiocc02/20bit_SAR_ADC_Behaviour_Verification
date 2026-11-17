@@ -71,33 +71,57 @@ def check_caaz_isolation() -> None:
            else f"py={hits[:4]} rtl={rtl_hits[:4]}")
 
 
-LINK = re.compile(r"\]\(([^)#][^)]*)\)")
+# =============================================================================
+# 3. 文档中的本仓相对链接
+# =============================================================================
+LINK = re.compile(r"!?\[[^\]\n]+\]\(\s*(<[^>\n]+>|[^\s)]+)")
+FENCE = re.compile(r"^[ ]{0,3}(`{3,}|~{3,})")
 
 
 def check_doc_links() -> None:
-    """C3: a dead relative link is a documentation bug, not a style issue."""
+    """核对当前文档的相对目标。历史记录按其运行时目录解释。"""
+    from urllib.parse import unquote, urlsplit
+
+    archived = {"_history", "_superseded", "_legacy", "archive"}
+    sections = ("docs", "flow", "rtl", "src", "subsys", "tools", "references")
+    paths = list(ROOT.glob("*.md"))
+    for section in sections:
+        paths.extend((ROOT / section).rglob("*.md"))
     broken = []
-    for path in list(ROOT.glob("*.md")) + list((ROOT / "docs").rglob("*.md")) + \
-            list((ROOT / "verification").rglob("*.md")):
-        if "history" in path.parts:
+    for path in sorted(paths):
+        relative = path.relative_to(ROOT)
+        if archived.intersection(relative.parts):
             continue
-        text = path.read_text(encoding="utf-8", errors="ignore")
-        for target in LINK.findall(text):
-            if target.startswith(("http://", "https://", "mailto:")):
+        # 代码段内的旧命令、正则或临时路径只是例子，不属于 Markdown 导航。
+        # Markdown 允许四个反引号包含三引号，退出时检查围栏字符与长度。
+        fence = ""
+        for line in path.read_text(encoding="utf-8").splitlines():
+            marker = FENCE.match(line)
+            if marker:
+                current = marker[1]
+                if not fence:
+                    fence = current
+                elif fence[0] == current[0] and len(current) >= len(fence):
+                    fence = ""
                 continue
-            # Bit-width notation such as [15:0](2) is not a link. Only treat a
-            # target as a path when it has a slash or a file extension.
-            if "/" not in target and not re.search(r"\.[A-Za-z0-9]{1,5}$", target):
+            if fence:
                 continue
-            # `docs/x.md#section` must resolve the file, not the anchor.
-            clean = target.split()[0].rstrip("`").split("#")[0]
-            if clean.startswith("<"):
-                continue
-            resolved = (path.parent / clean).resolve()
-            if not resolved.exists():
-                broken.append(f"{path.relative_to(ROOT)} -> {clean}")
+            for token in LINK.findall(line):
+                href = token.strip("<>")
+                # 同页锚点和外部 URL 由网页渲染器处理。这项只验证工作树
+                # 文件与目录。没有扩展名的普通文件也可能是有效链接（如 LICENSE）。
+                target = urlsplit(href)
+                if target.scheme or target.netloc or not target.path or target.path.startswith("/"):
+                    continue
+                # 旧接口表的位段说明 `[15:0](2)` 不表示文件路径。
+                if re.fullmatch(r"[0-9]+(?:[.][.][0-9]+)?", target.path):
+                    continue
+                local = (path.parent / unquote(target.path)).resolve()
+                if not local.exists():
+                    broken.append(f"{relative} -> {target.path}")
     record("C3 documentation links", not broken,
-           "all relative links resolve" if not broken else "; ".join(broken[:6]))
+           "all active relative links resolve" if not broken else "; ".join(broken[:6]))
+
 
 
 def _semantic_digest_of_python(text: str) -> str:

@@ -31,7 +31,7 @@ set -uo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 VENV=${PYENV_VENV:-/tmp/venv_adi}
-REQ="$ROOT/requirements.txt"
+REQ="$ROOT/tools/requirements.txt"
 
 # 找一个 >= 3.10 的解释器
 find_py() {

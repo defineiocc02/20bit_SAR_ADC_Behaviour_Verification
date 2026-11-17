@@ -1,65 +1,57 @@
 #!/usr/bin/env python3
-"""核对索引文档里声称的文件数是否与实测一致。
-
-为什么需要这个脚本
-------------------
-本仓库多次出现"文档声称 N 份、实测 M 份"的不一致。
-人工核对容易漏，所以做成可执行检查。
-
-用法:
-    python3 tools/check_doc_counts.py     # 退出码 0=全对, 1=有不一致
-"""
+# =============================================================================
+# 文件名     : check_doc_counts.py
+# 版本       : v1.0
+# 功能       : 清点 Git 工作树的文档与 README。
+# 设计说明   :
+#   * 同时读取已跟踪和未忽略的新增文件，可在 git add 前检查迁移结果。
+#   * Git 索引仍会列出待删除的旧路径，须检查工作树中实际存在的文件。
+#   * 历史目录单列。索引页按入口导航，避免维护一份会漂移的手写计数。
+# 变更记录   : 文档导航整理后改为直接清点。
+# =============================================================================
 from __future__ import annotations
 
-import re
 import subprocess
-import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[1]
+ARCHIVE_PARTS = {"_history", "_superseded", "archive", "_legacy"}
 
 
-def count(cmd: str) -> int:
-    out = subprocess.run(cmd, shell=True, cwd=ROOT, capture_output=True, text=True)
-    return int(out.stdout.strip() or 0)
+# =============================================================================
+# 1. 收集可见文件
+# =============================================================================
+def _working_tree_files() -> set[Path]:
+    """返回实际存在的仓库相对路径，Git 失败时由调用者收到错误与退出码。"""
+    # NUL 分隔保留空格、非 ASCII 路径和文件名中的换行，暂存和工作树重名去重。
+    result = subprocess.check_output(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"], cwd=ROOT
+    )
+    paths = {Path(name.decode()) for name in result.split(b"\0") if name}
+    return {path for path in paths if (ROOT / path).is_file()}
 
 
-def main() -> int:
-    facts = {
-        "现行文档(不含_history)": count("find docs -name '*.md' | grep -v '/_history/' | wc -l"),
-        "docs根级md": count("ls docs/*.md | wc -l"),
-        "根目录md": count("ls *.md | wc -l"),
-        "_history文档": count("find docs/_history -name '*.md' | wc -l"),
-        "git跟踪文件": count("git ls-files | wc -l"),
-    }
-    print("=== 实测 ===")
-    for k, v in facts.items():
-        print(f"  {k}: {v}")
-
-    # 检查 INDEX.md 里的声称
-    index = (ROOT / "docs" / "INDEX.md").read_text()
-    problems = []
-
-    m = re.search(r"现行文档（(\d+) 份", index)
-    if m and int(m.group(1)) != facts["现行文档(不含_history)"]:
-        problems.append(f"INDEX 声称现行文档 {m.group(1)} 份，实测 {facts['现行文档(不含_history)']}")
-
-    m = re.search(r"`_history/`，(\d+) 份", index)
-    if m and int(m.group(1)) != facts["_history文档"]:
-        problems.append(f"INDEX 声称 _history {m.group(1)} 份，实测 {facts['_history文档']}")
-
-    m = re.search(r"根级 (\d+) 份", index)
-    if m and int(m.group(1)) != facts["docs根级md"]:
-        problems.append(f"INDEX 声称 docs 根级 {m.group(1)} 份，实测 {facts['docs根级md']}")
-
-    print("\n=== 核对 ===")
-    if problems:
-        for p in problems:
-            print(f"  MISMATCH: {p}")
-        return 1
-    print("  OK: 索引计数与实测一致")
-    return 0
+# =============================================================================
+# 2. 按目录身份清点
+# =============================================================================
+def main() -> None:
+    """打印目录计数，供整理时复核。文档是否现行仍以入口页中的范围为准。"""
+    paths = _working_tree_files()
+    markdown = {path for path in paths if path.suffix.lower() == ".md"}
+    docs = {path for path in markdown if path.parts[0] == "docs"}
+    historical = {path for path in docs if ARCHIVE_PARTS.intersection(path.parent.parts)}
+    readmes = {path for path in markdown if path.name.upper().startswith("README")}
+    root_dirs = {path.parts[0] for path in paths if len(path.parts) > 1}
+    root_files = {path.name for path in paths if len(path.parts) == 1}
+    print(f"工作树可见文件（除 Git 忽略）：{len(paths)}")
+    print(f"Git 可见根层目录：{len(root_dirs)}")
+    print(f"Git 可见根层文件：{len(root_files)}")
+    print(f"仓库根目录 Markdown：{sum(len(path.parts) == 1 for path in markdown)}")
+    print(f"docs 根目录 Markdown：{sum(len(path.parts) == 2 for path in docs)}")
+    print(f"docs 历史目录 Markdown：{len(historical)}")
+    print(f"docs 其余 Markdown：{len(docs - historical)}")
+    print(f"README 系列 Markdown：{len(readmes)}")
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

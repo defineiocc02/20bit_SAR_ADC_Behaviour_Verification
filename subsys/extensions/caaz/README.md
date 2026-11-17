@@ -1,36 +1,19 @@
-# CAAZ 扩展（隔离）
+# CAAZ 可选扩展
 
-本目录保存 CAAZ（Chopping-Assisted Auto-Zero，PKU VLSI 2025 C32-1）的源码、测试与历史说明。
-**主工程 `src/adi_model/`、`rtl/`、主 pytest 不依赖本目录。**
+CAAZ（Chopping-Assisted Auto-Zero）对应 PKU VLSI 2025 的斩波辅助自零机制。这里只有显式输入等效 AZ、偶奇事务配对的 Python 和 RTL 实现。普通 AZ 在主包逐笔处理，保留原有速率。 [来源与边界](../../../docs/caaz/README.md) · [普通 AZ](../../../src/adi_model/behavioral/ra_az.py)
 
-## 来源与迁移
+| 位置 | 内容 |
+| --- | --- |
+| [model/chopping_az.py](model/chopping_az.py) | 使用明确提供的 AZ 残差、保持和传递条件。活跃路径按相邻样本身份配对，保留错误标志与配对时间。 |
+| [rtl/caaz_cycle_ctrl.sv](rtl/caaz_cycle_ctrl.sv) 与 [rtl/caaz_pair_processor.sv](rtl/caaz_pair_processor.sv) | 可选控制与定点配对组件。通过 [显式验证 runner](../../../tools/run_open_rtl.py) 选取扩展夹具。 |
+| [tests](tests) 与 [tb](tb) | 独立测试和数字配对夹具。 |
 
-| 原路径（main `bc9a16a`） | 现路径 | 说明 |
-|:---|:---|:---|
-| `src/adi_model/chopping_az.py` | `extensions/caaz/model/chopping_az.py` | 仅把相对 import 改为 `adi_model.*`；逻辑未改 |
-| `tests/unit/test_chopping_az.py` | `extensions/caaz/tests/test_chopping_az.py` | 仅改 import 路径 |
-| `rtl/control/caaz_cycle_ctrl.sv` | 保留在原路径（主 filelist 已移除） | 扩展 filelist 见 `rtl_sources.f` |
-| `rtl/calibration/caaz_pair_processor.sv` | 保留在原路径（主 filelist 已移除） | 同上 |
-| `docs/caaz/`、`docs/randomization_caaz/` | 保留原路径 | 历史证据，主 README 标为扩展 |
+主 Python 包和 v21 源清单按独立合同运行。扩展夹具可单独验证 CAAZ，模拟保持电容与实际斩波开关仍需要独立的物理或宏模型证据。
 
-> 原文件 SHA 与历史见 git：`git log --follow -- src/adi_model/chopping_az.py`。
+从仓库根目录运行扩展的 Python 测试。`flow` 路径用于解析共享夹具：
 
-## 普通 AZ 去哪了
+~~~bash
+PYTHONPATH=src:flow python -m pytest -q subsys/extensions/caaz/tests/test_chopping_az.py
+~~~
 
-主工程的普通逐笔 RA AZ 在 `src/adi_model/behavioral/ra_az.py`：
-每笔刷新、全速率、N→N，不做偶奇配对。它**不是** `conventional_az` 的两点平均/降采样。
-
-## 运行扩展测试
-
-```bash
-PYTHONPATH=.:src python -m pytest -q extensions/caaz/tests/test_chopping_az.py
-```
-
-## 扩展 RTL filelist
-
-```text
-rtl/control/caaz_cycle_ctrl.sv
-rtl/calibration/caaz_pair_processor.sv
-```
-
-主 `rtl/rtl_sources.f` 不含上述两行。
+数字扩展夹具的注册名包括 `caaz_pair_vectors_tb`。具体工具、源和结果由所选入口的 manifest 绑定。 [组件执行说明](../../../flow/sim/README.md)

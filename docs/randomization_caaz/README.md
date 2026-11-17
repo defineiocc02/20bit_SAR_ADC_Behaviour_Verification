@@ -1,12 +1,23 @@
-> **状态说明（2026-11-12）**：本文引用的 `dither_gen` 当前不在本仓库内，原文链接已改为纯文本；这些条目只代表历史计划。
+# DEM、扰动、片选与 CAAZ 的归档组合实验
 
-# DEM、dither、slice 选择与 CAAZ 的组合条件
+这里保存研究版本对组合条件的拆分。重点是偶／奇的 AZ 存储归属、扰动注入与扣除的位置，以及两笔的噪声传递增益。由于组合实验使用旧结构核、旧掩码和当时的运行参数，结果按冻结数据解释。
 
-> **af8／9bdf历史专题。** 本页原正文、数据、图和命令按原字节保留；其中“当前”“本轮”和通过数量仅描述原记录，不表示新主线实现。旧SID／bridge、sampling／range／固定4倍扰动及旧748位接口已退出当前运行，正文命令须在对应完整Git历史下解释。现行来源与未实现项见[A表](../archive/current_digital_source_map.md)，实际状态与证据见[B表](../archive/digital_status_matrix.md)，接口见[ABI2合同](../rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)。[原专题固定快照](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/randomization_caaz/README.md)保留旧链接语境；此横幅不改变旧结论或数值。
+| 查询 | 入口 |
+| --- | --- |
+| 42 格及其对照条件 | [组合摘要](data/summary.json) |
+| DEM 的分母与计数 | [使用图](fig/dem_usage.png) · [逐组计数](data/dem_usage.json) |
+| 历史数字诊断 | [诊断摘要](data/rtl_diagnostic.json) · [TP 交接边界](data/tp_chop_mask_boundary.json) |
+| 归档复现 | [原专题固定快照](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/randomization_caaz/README.md) · [当时的复现入口](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/REPRODUCING.md) |
+| 当前工作入口 | [CAAZ 扩展](../../subsys/extensions/caaz/README.md) · [独立结构核 ABI2](../rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md) · [v21 合同](../CONTRACT_CURRENT.md) |
+
+以下正文中的「当前」「本轮」和命令均指归档版本。本版工作树已移除 `dither_gen` 及旧组合复现入口。两张旧示意图通过固定提交查看。
+
+<details>
+<summary>展开历史实验正文、推导与当时的命令</summary>
 
 **它们并非必然互斥，但不能仅凭各自通过就宣称组合成立。** 当前数字实现的逐笔归属与算术可验证；真实组合还要求 AZ 存储不被奇数周期复位破坏、dither 注入点与扣除域一致，以及两笔 AZ 噪声经数字归一化后的传递系数足够匹配。
 
-组合初核以主线 `8238cc3` 为输入；后续注释和有效配置报告维护见[本轮复核](../reviews/20261105-readability-maintenance.md)。组合分析没有改变转换算法或RTL控制行为，邻接数据保留实际生成版本和来源摘要。来源包含 ISSCC 2024 9.8 论文／讲稿、US10511316B2、US10505561B2 和北大 VLSI 2025 C32-1。实验区分数字功能、样本域行为、独立代数反例和仍未获得的模拟证据。
+组合初核以主线 `8238cc3` 为输入；后续注释和有效配置报告维护见[本轮复核](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/reviews/20261105-readability-maintenance.md)。组合分析没有改变转换算法或RTL控制行为，邻接数据保留实际生成版本和来源摘要。来源包含 ISSCC 2024 9.8 论文／讲稿、US10511316B2、US10505561B2 和北大 VLSI 2025 C32-1。实验区分数字功能、样本域行为、独立代数反例和仍未获得的模拟证据。
 
 ## 四种操作分别改变什么
 
@@ -19,29 +30,29 @@
 
 DEM 和 dither 有助于减弱误差与输入的相关性，并可配合位权估计提高线性；它们本身没有测出所有电容权重。CAAZ处理相关 AZ 噪声，两者需要共同遵守信号、电荷和样本归属合同。
 
-## DEM 和 dither 在当前工程中怎样实现
+## 归档实验的 DEM 和 dither 实现
 
-![实际slice分配、单元mask与名义零和交换](../readme/fig/dem_implementation.png)
+[历史示意图：片分配、单元掩码与名义零和交换](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/readme/fig/dem_implementation.png)
 
 *本图为当前 allocator 和 split_switch_command 的真实译码结果独立绘制，非原文图复制。它是机制／名义合同说明，不是最终性能或原芯片完整电路复原。slot 是参与本笔的逻辑位置，不是固定物理 slice ID。*
 
 DEM 的执行顺序是：先取得本笔实际 slice ID，再按该 bank 的状态推进 SID；主阵列行／列与子阵列生成物理顺序；由合法 RDAC unit code 决定主／子单元数量。可选 bridge 在 sid[8] 有效时给活动 slot 做名义零和 ±1 交换，端码不交换。重构读取实际 mask 和对应物理单元的冻结有效权重；不会因为打开 DEM 就自动得到这些权重。
 
-结构候选的名义守恒是对主／子权值加权后的总电荷，不是把不同权重物理电容的个数直接当作一个码。码176的示例满足4×175+4×177=8×176，但真实失配电荷不因此相等。源码入口是 [dem.py](../../src/adi_model/control/dem.py)、[slice_pool.py](../../src/adi_model/simulation/slice_pool.py)和[结构控制](../../rtl/sar_structural_ctrl.sv)。
+结构候选的名义守恒是对主／子权值加权后的总电荷，不是把不同权重物理电容的个数直接当作一个码。码176的示例满足4×175+4×177=8×176，但真实失配电荷不因此相等。源码入口是 [dem.py](../../src/adi_model/control/dem.py)、[slice_pool.py](../../src/adi_model/simulation/slice_pool.py)和[结构控制](../../rtl/core/sar_structural_ctrl.sv)。
 
 还要分别检查使用统计。本轮固定k=10、遍历512个SID时，某个逻辑slot的主单元56使用16次，其余62个主单元各8次；bridge关时子单元各128次，开启后为128/160/128/128/128/96/128/128。63单元嵌入8×8删除缺失格，以及bridge门控和子阵列轮转的相关性，会造成这种偏置。真实随机调度后的物理统计另以实际被选次数作分母，不能拿固定slot计数替代全芯片概率；它也不直接给出校准后的SNDR结论。
 
 ![固定逻辑slot与实际物理单元的DEM使用分布](fig/dem_usage.png)
 
-*上半图为固定码／固定slot遍历，分母为512状态；下半图为16384笔实际调度，各物理slice分别以自身被选机会作分母，保留全体单元范围。计数针对mask=1的正轨选择，mask=0仍有负轨电荷项。它只说明选择统计，未将偏置直接换算为性能。原始计数与分母见[数据](data/dem_usage.json)，命令见[复现入口](../REPRODUCING.md#demcaaz及数字组合的详细入口)。*
+*上半图为固定码／固定slot遍历，分母为512状态；下半图为16384笔实际调度，各物理slice分别以自身被选机会作分母，保留全体单元范围。计数针对mask=1的正轨选择，mask=0仍有负轨电荷项。它只说明选择统计，未将偏置直接换算为性能。原始计数与分母见[数据](data/dem_usage.json)，命令见[复现入口](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/REPRODUCING.md)。*
 
-![dither的注入、码修改和逐raw重构](../readme/fig/dither_implementation.png)
+[历史示意图：扰动注入、码调整和逐 raw 重构](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/readme/fig/dither_implementation.png)
 
 *本图按当前源码计算并原创绘制，非原文图复制。sampling与quantizer/range是两份互斥合同；已知dither不是新增SAR判决信息。generic dual-port的4×注入是另一工程假设，不冒充结构RTL已实现论文双总线增强。*
 
 dither 在整个输入换向之后注入。结构sampling把每slice固定末4个子电容接到已知正负参考轨，名义信号系数α=127/128，RDAC命令加d；结构quantizer/range把dQ加入粗判决，RDAC命令减d，保存电荷中没有对应dR，最终不再扣一次dQ。逐raw数字重构按实际signal mask、rail和冻结C/Cf求和，去除该笔的已知注入再归一化；然后才允许进入CAAZ配对。
 
-源码入口是 [sampler.py](../../src/adi_model/behavioral/sampler.py)、[数字电荷项](../../src/adi_model/calibration/weight_calibration.py)、[定点重构](../../src/adi_model/contracts/fixed_point.py)和`dither_gen`（当前仓库无此文件）。名义扣除不会自动消除真实电容失配，近满幅余量也需单独检查。[重绘与重新仿真入口](../archive/REPRODUCING.md)区分这两类操作。
+源码入口是 [sampler.py](../../src/adi_model/behavioral/sampler.py)、[数字电荷项](../../src/adi_model/calibration/weight_calibration.py)、[定点重构](../../src/adi_model/contracts/fixed_point.py)和`dither_gen`（当前仓库无此文件）。名义扣除不会自动消除真实电容失配，近满幅余量也需单独检查。[重绘与重新仿真入口](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/REPRODUCING.md)区分这两类操作。
 
 当前 `rtl16`／RTL 的同一个 `dem_enable` 控制单元置换和 slice shuffle；**现有结构接口不能独立保持单元 DEM、只关闭 slice shuffle**。通用 Python profile 才能通过 `dem_mode` 与 `dem_enable` 分别拆分这两个因素。关 DEM 之后仍有 A/B 两组轮流转换，不能据此认为 pair 两笔使用相同电容。
 
@@ -139,7 +150,7 @@ $$
 
 独立代数例中，raw 40 MS/s、4 MHz／2 V 峰值、$a_e=1/32$、$a_o=1.005/32$，在最大斜率的一对采样处，加权导致约 1.541 mV（269 LSB20）信号偏差；同例 1 mV RA-output 共有误差在普通等权配对中仅残留 78.125 nV。该压力例说明：应先算预算与信号代价，不能因为能消一个噪声项就追加所谓免费数字修复。实际系数差和噪声幅度仍须测定。
 
-## 本轮组合实验的结果与可分辨范围
+## 组合实验的结果与可分辨范围
 
 行为实验包括 42 格：24 格 generic 因子拆分、12 格结构 profile、3 格 bridge 控制、3 格 DC 压力；另有 2 个普通白噪声控制和 3 个非流水同组对照。它们使用同一固定物理池与独立已知参考训练，数字拟合不读取真实电容、G、alpha 或噪声真值。物理真值仅用于产生两种假设噪声通路及事后分析。
 
@@ -160,9 +171,9 @@ $$
 
 桌面CICC2026 13-6论文Fig.1–3采用连续时间第二级SAR，RA输出经CINC持续耦合到后级DAC顶板，避免RA后的离散采样混叠；再用8次LSB重复、7个跟踪单位电容及SINC²处理后级判决。还需要复制路径的kickback抵消。北大Fig.5–6则在两笔完整转换之间保持同一AZ样本，并偶减奇。
 
-当前ADC2行为量化和输出DSP的SINC都没有实现上述CICC连续时间耦合与后级判决反馈；预跟踪历史粗码和CAAZ pair也不等同LSB tracking averaging。这三组资料有相关研究目标，但不能合称同一套已验证实现。原件见[资料目录](../../references/README.md)，全局实现状态以[STATUS](../archive/STATUS.md)为准。
+当前ADC2行为量化和输出DSP的SINC都没有实现上述CICC连续时间耦合与后级判决反馈；预跟踪历史粗码和CAAZ pair也不等同LSB tracking averaging。这三组资料有相关研究目标，但不能合称同一套已验证实现。原件见[资料目录](../../references/README.md)，当时的工程状态见 [历史 STATUS](../_history/archive/STATUS.md)。v21 交付状态见 [现行状态页](../STATUS.md)。
 
-## 接下来的三项优先工作
+## 当时建议的三项后续验证
 
 1. **先闭合模拟接口与传递预算。** 拆分 AZ 存储采集和普通复位，验证 odd 保持；定义 AZ 噪声参考节点，得到随 group／mask／模式变化的 $H/K$、泄漏、注入和建立边界。现有 capture ack 只表示资格，不代表真实噪声传递已知。
 2. **再固定随机化和元数据合同。** 保持 dither 注入点、逐 raw 扣除、实际 slice／SID／AZ代／系数 epoch 的一致性；若需要分别控制单元 DEM 与 slice shuffle，应作为明确接口修改单独验收，不能假定已有独立开关。必要的 AZ 测试注入或额外观测通路也应有可辨识模型。
@@ -170,7 +181,7 @@ $$
 
 生产行为和 RTL 在本轮保持不变；这里给出组合成立的条件及已运行的边界实验，不将研究组合直接升级为模拟实现或目标工艺签核。
 
-## 数据与公开复现
+## 归档数据与当时的复现命令
 
 [组合标量摘要](data/summary.json)保留42格与5个控制、条件、训练和误差定义；完整raw/NPZ写到命令指定的库外新目录。它区分连续传递预测、量化后noisy−quiet差值、RMS、标准差及无效样本，不把理论零与整数差分底混为一谈。
 
@@ -182,4 +193,6 @@ python tools/check_caaz_randomization_trace.py \
   --trace-dir flow/sim/artifacts/open_rtl --out "${TMPDIR:-/tmp}/sar-caaz-digital-check-new"
 ```
 
-独立数字诊断摘要见[data/rtl_diagnostic.json](data/rtl_diagnostic.json)，实际TP交接三行见[data/tp_chop_mask_boundary.json](data/tp_chop_mask_boundary.json)。这些是digital-only边界证据，既不实现模拟宏，也不检查真实H/K。更完整复现和首页三结果在[复现入口](../archive/REPRODUCING.md)说明。
+独立数字诊断摘要见[data/rtl_diagnostic.json](data/rtl_diagnostic.json)，实际TP交接三行见[data/tp_chop_mask_boundary.json](data/tp_chop_mask_boundary.json)。这些是digital-only边界证据，既不实现模拟宏，也不检查真实H/K。更完整复现和首页三结果在[复现入口](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/REPRODUCING.md)说明。
+
+</details>

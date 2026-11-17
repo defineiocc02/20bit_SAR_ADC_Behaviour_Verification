@@ -1,39 +1,24 @@
-# `adi_model.contracts` —— 类型、单位、格式与事件
+# Python 类型、目标配置与整数格式
 
-**这一层不许依赖上层**：`contracts` 不 import `simulation`、`control`、`behavioral`，
-也不 import `tools/`、`experiments/`、`tests/`（`tools/check_engineering.py` 的 C1 会查）。
+这里保存模型的规格类型、事件身份、具名 profile 和整数算术接口。v21 的规格与执行优先级以 [工程合同入口](../../../docs/CONTRACT_CURRENT.md) 为准。
 
-## 1. 定点格式（冻结）
+| 文件 | 职责 |
+| --- | --- |
+| [specs.py](specs.py) | `TopologySpec`、单样本 `EventRecord`、`SampleContext`、开关命令及复现身份记录。输入显式携带 profile、拓扑及连接身份。 |
+| [events.py](events.py) | 事件顺序及样本关联的低层检查。 |
+| [profiles.py](profiles.py) | 注册具名目标。`load_profile(name)` 按精确名称查询，未知名称抛 `KeyError`。 |
+| [fixed_point.py](fixed_point.py) | 应用指定的寄存器格式和有效电容权重。批次 `DigitalObservation`、`FrozenCalibration` 从 [weight_calibration.py](../calibration/weight_calibration.py) 导入，`specs.py` 的同名类型描述单样本或系数身份，调用时按模块区分。 |
 
-| 参数 | 值 | 含义 |
-|:---|---:|:---|
-| `W_FRAC` | 30 | 权重小数位 |
-| `W_BITS` | 48 | 权重位宽（无符号，C/Cf） |
-| `V_FRAC` | 32 | 电压小数位 |
-| `V_BITS` | 64 | 电压位宽（有符号，V/Vfs） |
-| `ACC_BITS` | 96 | 受检累加器 |
-| `OUT_BITS` | 20 | 输出码 |
+## 具名目标
 
-合法域是**半开区间** `[-2^95, +2^95)`——`+2^95` 本身越界，溢出**抛错不回绕**。
+| 名称 | 用途 |
+| --- | --- |
+| `adi_isscc2024_40m_6vpp` | 40 MS/s、±3 V、18 片池／8 片活动，Python 控制几何 17 主位／5 子位，ADC2 13 位。窗口和模型默认值见 [defaults.py](../defaults.py)。 |
+| `engineering_10m_10vpp` | 10 MS/s、±5 V、12 位 ADC2 的归一化机制例。此 profile 的 `Cf=0`，只用于归一化计算。 |
+| `patent_fig19_7slice` | `US10505561B2` 的七片扰动机制例。profile 中时钟、输入范围和 ADC2 位数为实验标签。 |
 
-## 2. 舍入与除法
+## 整数运算边界
 
-* 唯一的运行时舍入是 ADC2 码仓中心的 **ties-to-even**；
-* 之后全是 **floor**。RTL 的 `/` 向零截断，负商必须减 1 修正。
+`DefaultParameters.format` 选择权重 Q30（48 位）、归一化电压 Q32（64 位有符号）、96 位受检累加与 20 位 offset-binary。`FixedPointFormat` 接受显式格式。系数、电压项和 ADC2 码箱中心按 ties-to-even 量化，最终出码用 floor 并夹到合法码域。调用方若给物理增益，码箱值的增益换算也使用整数就近取偶。累加值须落在 `[-2**95, 2**95)`，越界抛错。模拟越界标志和最终码裁剪分列。
 
-这条是 Python 与 RTL 之间最容易出错的缝，`flow/verification/reference/fixed_point.py`
-把两者分开实现并互相钉死。
-
-## 3. 事件与样本身份
-
-`EventRecord` 带 `sample_id`、`time_s`、`order_key`；`DigitalObservation` 带
-`slice_ids`、`main/sub_masks`、`signal_mask`、`known_voltage_term_v`、`fine_v`。
-
-**`signal_mask`（信号连接 `a`）与 `main/sub_masks`（转换开关 `on`）是两个量**，
-不能互用——本项目曾把 `on` 当 `a`，得出"gain 随 mask 变"的错误结论。
-
-## 4. 已知问题
-
-`DigitalObservation` 与 `FrozenCalibration` 在 `contracts/specs.py` 和
-`calibration/weight_calibration.py` 各有**同名定义**，mypy 报 redefinition。
-这是历史遗留的重名，未合并；`adi_model/__init__.py` 导出的是 calibration 那份。
+v21 的输出由自己的 [定点模型](../../../tools/recon_oracle.py) 验收。Python 格式表与历史 RTL 夹具可从 [验证入口](../../../flow/verification/README.md) 查看。

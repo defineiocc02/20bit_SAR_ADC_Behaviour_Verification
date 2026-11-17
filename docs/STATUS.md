@@ -1,134 +1,35 @@
-# 复现状态（单一权威版本）
+# 项目状态与证据边界
 
-**本文件是唯一权威状态。** 其它专项文档是证据记录，
-`docs/_history/` 是已作废版本，**不得引用**。
+工程合同采用 **v2 + v2.1**。ADC2 采用 **13 位、0.75 V** 窗口 `[-0.1875, +0.5625) V`。v21 顶层和默认 Python 模型使用相同 ADC2 码制，模型的开关网络及 Fig.19 扰动绑定有各自的假设。[工程合同](CONTRACT_CURRENT.md) · [模型图与配置](figures/20261117/README.md)
 
-版本：`a9193e4`　分支：`merge/adi-repro`　日期：2026-11-17
+## 源码和回归
 
----
+| 部分 | 证据与适用范围 |
+| --- | --- |
+| D1 调度 | `sched18` 的历史回归覆盖 4,096 拍逐位对比及 20,000 拍片选统计。机理图的 Python 镜像也与 4,096 行冻结向量逐行一致。 |
+| D2 已决事件 | v21 用 `sar_evt_v21`。历史 I2 和 I1/I2 有逐事件验收。`follower_rt` 属于历史独立链。 |
+| D3/D4 掩码与分路扰动 | 历史叶子 TB 对拍覆盖 133,376 个 DEM 组合与 512 个扰动组合。v21 实例化掩码和预置叶子，顶层相位由外部提供。历史独立 IP 的相位发生器及事件链另走自己的入口。 |
+| D5 定点与权重 | 历史回归有重构、倒数、连续事务和任意权重场景。Python 冻结向量及整数 oracle 用于数值对照。仍有下文的 S3 缺陷。 |
+| D6 归属与配置 | 历史 I3/I4B、配置生命周期和接口反例覆盖了捕获、释放、延迟返回和配置切换等选定场景。 |
 
-## 一、能复现什么（RTL 功能层）
+`tools/verify_v21.sh` 登记 9 个 RTL 用例，以及整数证明与从 RTL 抽取的算术检查。运行结果以本次工具输出为准。VC Formal 的属性证明另行记录。[RTL 入口](../rtl/README.md) · [证明台账](v21/PROOF_LEDGER.md) · [D3/D4 旧 IP 验收](ACCEPTANCE_STATUS.md)
 
-| 模块 | 内容 | 状态 |
-|:---|:---|:---|
-| **D1** | 18 片 8/8/2 调度（`sched18`） | ✅ 4096 拍逐位 + 20000 拍统计 |
-| **D2** | Flash/SAR 逐事件 follower（`sar_evt_v21`） | ✅ I2 37 项 + I1I2 105 项 |
-| **D3** | DEM 3+3+3 + bridge | ✅ 133,376 对 + 66,688 组 |
-| **D4** | 分裂 dither | ✅ 512 点 + 512 笔 |
-| **D5** | 定点重构（`recon_v21` + `wsum_v21`） | ✅ 8213 项 + 并发 5 场景 + 任意权重 364 笔 |
-| **D6** | 事务/宏控制（`acq_conv_ctx` + `adc2_capture`） | ✅ 2 反例 + 20 项 + 25 项 |
-| 配置 | 权重生命周期与范围验收 | ✅ 40 项 |
+默认 Python 的 ADC2 量化步长按名义 `G=32` 折算到输入为 **0.50 LSB20**。13 位接口对齐是码制核对，不能替代模型网络、事务或模拟宏验证。当前静态模型的扰动绑定工况仍有 ADC2 越窗，图与清单保留计数。[F03/F05](figures/20261117/README.md)
 
-**一条命令**：`D3D4_RUNNER=vm-yian bash tools/verify_v21.sh`（预期 9 项全绿）
+## 综合、布局与形式等价
 
-**本轮实测抽样**：`tb_recip_q60` → `RESULT: PASS (43766 inverses bit-exact vs Python)`
+- **v21 整核。** 历史记录曾有旧 RTL 的整核网表。现有资料没有与当前 RTL 配套的整核网表、门级等价或签核结果。旧 Formality 记录的 20 个失败点对应旧网表。单模块在 25 ns 约束下的结果不足以证明整核 40 MS/s 吞吐。[综合阻塞记录](v21/SYNTH_STALL.md) · [旧 Formality 记录](v21/FORMAL_STATUS.md)
+- **部分模块。** 归档后端汇总有 7 个独立模块记录 router DRC 为 0、Formality 为 `SUCCEEDED`，合计 2,189 个通过点。`dem_phase_rr`、`dem_phase_gen`、`follower_rt` 的结果属于模块，三者均未接入 v21 顶层。另有 2 个模块 router DRC 未归零、4 个在冻结输入和给定预算内未完成。DC 的 13 行包含 `recon_v21` 强制 alpha 旁路的诊断配置。[后端总表](audit/ALL_13_MODULES_FINAL.md) · [报告和存证](audit/README.md)
+- **物理边界。** 模块记录使用推导技术 LEF，保留记录中的 DEF 无 PG 路由几何。尚无 foundry DRC、LVS、多角或 IR/EM 签核。早期面积算术和 160,951 µm² 与 D5 面积占比 95.8% 已撤回，原因是 `recon_v21 → recip_rnd_v21 → recip_q60` 层级重复计数。“四模块物理不可行”也已撤回。[复核更正](audit/ALL_13_MODULES_FINAL.md)
 
----
+## 已知问题
 
-## 一B、原文依据（逐条可定位，证据等级 [A]/[P]）
+`recon_v21.sv` 的 S3 用 `err3_q <= err2_q | (|x3_q[95:31])` 判断溢出。源级复核指出它会把低 32 位合法的负数误判为溢出，并把旧 `x3_q` 的判据与本笔 tag 配对。应增加相邻事务的定向验证。详细反例和待办状态见 [独立复核待办](audit/todo/README.md)。
 
-### 2.1 [A] ISSCC 2024 §9.8 论文 p.182（PDF 第 1 页）
+## 设计依据
 
-| 机制 | 原句 | 本工程对应 |
-|:---|:---|:---|
-| 18 片池选 8 | "the RDAC is composed of 8 slice DACs (sDAC) converting the signal, and 8 sDACs acquiring the signal, **dynamically selected from a pool of 18 sDACs**" | `sched18.sv` |
-| 2 备用片 | "**Two spare sDACs** are introduced to allow shuffling of the sampling DACs and spread the residual interleaving tones" | `sched18.sv` IDLE=2 |
-| 两相位交织 | "**Two phase interleaving** of the RDAC extends the acquisition time to the full clock period, reducing the required sampling bandwidth by a factor of 2-4 times" | `_legacy/tops/d3d4_ip` 接入 sched18 |
-| 量化器分离 | "the **quantizer is fully separated** from the residue generating DAC (RDAC)" | 数字边界外 |
-| 第二量化器 | "a **second quantizer** has been introduced … The flash-ADC can be shared, thanks to a **<1ns return to acquisition** time" | **未实现** |
-| 前级 9b | "The matched-quantizer sDAC with the RDAC allows >11b matching, resulting in **9b quantization** in the first stage" | k 0..511 |
-| RDAC follower | "The RDAC works as a **follower** of the quantizer with the conversion results **loaded as they develop**" | `follower_rt.sv` |
-| DEM+dither | "a **dynamic-element-matching algorithm can be used in conjunction with dither**, as the shuffler is **not in the critical timing path**" | 联用已实现；**"不在关键路径"未做到**（§四.5） |
+[A] ISSCC 2024 9.8 论文 p.182 和讲稿 p.29–35 给出 18 片池、8 片采集与 8 片转换、独立量化器、RDAC follower、DEM 与残差相位的依据。[论文与讲稿](../references/README.md)
 
-### 2.2 [A] ISSCC 2024 讲稿（44 页 PPT）
+[P] US10516408B2 对照独立量化器与 follower，US10511316B2 Fig.19–21 对照横纵选择和保留列，US10505561B2 Fig.19 对照分路扰动。[机制专题](mechanisms/README.md)
 
-| 页 | 内容（原文行） | 用途 |
-|:--:|:---|:---|
-| p.29–31 | `3 dimensions of DEM` / `Selection of the slices - 8/18` / `3b horizontal segmentation` / **`Round robin shuffler`** / `3b vertical segmentation` / （p.31 追加）`Binary to unary bridging` | DEM 三维度定义 |
-| p.31 图 | 蓝框 `[8][8][8][8]` 标 **DEM**；红框 `[4][2][1]` 标 **Dither**；绿箭头标 **P=50%** | bridging 语义 |
-| p.32 | `INL=2.2/-1.8LSB`、`DNL=±0.27LSB`、`Min hits/code ~250` | 性能指标（数字端不可验） |
-| p.33–35 | `Residue Amplifier` / `GMR + OTA` / `RDAC reference is still settling during RA phase` / `Auto-Zero removes offset and drift` / `RA noise reduced by dynamic ADC2 sampling BW` | RA/ADC2，数字边界外 |
-
-**关键判读**：`Round robin shuffler` 与 `3b horizontal segmentation` 是**并列的两条**，
-不是"round-robin 就是横向分段"。这一点影响 §五.2 的定性。
-
-### 2.3 专利
-
-| 文件 | 依据 | 级别 |
-|:---|:---|:---|
-| US10516408B2 | 独立量化器、RDAC follower | [P]，与论文[B]一致 |
-| US10511316B2 Fig.19–21 | 分段、保留列、横/纵打乱 | [P] **扫描件无文字层**，只能读图（实测 pypdf 提取全空） |
-| US10505561B2 Fig.19 | 量化器与 RDAC 的**分路** dither，七片 worked example | [P] 八片与 `/8` 为 [E] |
-| US10707889B1 | 交织与 tracking 实施例 | [P] 未纳入本轮 |
-| US10541702B1 / US10826519B1 | 预充、参考切换接口 | [P] 仅接口核对，未实现 |
-
----
-
----
-
-## 二、后端状态（13 个模块）
-
-| 类别 | 数量 | 模块 |
-|:---|--:|:---|
-| **完成 RTL→GDS + Formality SUCCEEDED** | **7** | `sched18`、`adc2_capture`、`acq_conv_ctx`、`sar_evt_v21`、`dem_phase_rr`、`follower_rt`、`dem_phase_gen` |
-| 布线完成、router DRC 未归零 | 2 | `dither_pre`（2）、`dem_mask_v3`（27）|
-| 预算内未完成 | 4 | `wsum`、`recon`、`recip_q60`、`recip_rnd` |
-
-**Formality 比较点合计 2,189，0 failing。**
-
-**详情**：`docs/audit/ALL_13_MODULES_FINAL.md`
-
----
-
-## 三、不能声称什么
-
-| 不能声称 | 原因 |
-|:---|:---|
-| foundry DRC clean | 7 个通过模块的 DEF **无 PG 布线几何**（`SPECIALNETS` 中 VDD/VSS 仅 `( PIN )` + `( * VDD )`，无 `ROUTED`）|
-| LVS clean | 未做 |
-| tapeout signoff | 无多 PVT 角、无 IR/EM |
-| 整核集成完成 | `adc_digital_ip_v21` **从未综合成功**；`dem_phase_rr`/`dem_phase_gen`/`follower_rt` **未在 v21 顶层实例化** |
-| D5 算法不可实现 | 实测只支持「冻结输入与预算下未完成」，三个模块失败原因各不相同 |
-| D5 占整核 95.8% | 已撤回：`recon`→`recip_rnd`→`recip_q60` 三层嵌套，面积不可相加 |
-
----
-
-## 四、已知未修缺陷
-
-**`recon_v21.sv:373`**
-
-```systemverilog
-err3_q <= err2_q | (|x3_q[95:31]);
-```
-
-| # | 缺陷 |
-|:--:|:---|
-| ① | 合法负数高位全 1 被误判为溢出 |
-| ② | 读上一拍照旧值，却配本笔 tag |
-
-**现有测试向量不覆盖**「前笔负 X → 后笔正常」序列（`recon_oracle.py` 的 `schedule()` 中多笔 case 的 `raw` 全为默认 2048）。
-
-**详见** `docs/audit/todo/README.md` §2（T-A，需授权）。
-
----
-
-## 五、三条硬性限定
-
-1. **技术 LEF 为推导生成**，非 PDK 官方交付（`AFP-1022` 证实方向推导与工具一致）
-2. **无时钟门控**（带门控版 Formality FAILED，20 点）
-3. **router DRC=0 ≠ foundry DRC clean**
-
----
-
-## 六、作废数字清单（不得再引用）
-
-| 数字 | 作废原因 |
-|:---|:---|
-| 「D5 占数字面积 95.8%」 | 层级嵌套导致重复计数 |
-| 「13 模块合计 160,951 µm²」 | 同上，仅为算术和 |
-| 「4 个模块物理不可行」 | 实为 2 预算到期 + 1 人工终止 + 1 未合法放置后继续 CTS |
-| 「同一根因：大位宽运算」 | 三个失败模式各不相同 |
-
----
-
-**历史版本**：`docs/_history/v21_status/STATUS_d5a1576.md`（2026-11-16，已作废）
+[E] 本工程定义 `3+3+3`、guard、桥接权重、ADC2 窗口与事务接口。现行 [U] 项与设计约束按[工程合同](CONTRACT_CURRENT.md)及[待办](audit/todo/README.md)追踪。历史结论可按原版追溯。[旧状态快照](_history/v21_status/STATUS_d5a1576.md)

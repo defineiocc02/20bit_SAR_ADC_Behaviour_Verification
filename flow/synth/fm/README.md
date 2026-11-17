@@ -1,62 +1,9 @@
-# Formality 等价验证
+# 早期 SMIC180 等价验证记录
 
-## 状态（2026-11-13 22:45）
+这里保留的是 `digital_top` 的 SMIC180 试验。[synth_with_netlist.tcl](synth_with_netlist.tcl) 编译早期 RTL 并导出 `netlist.v`、`sdc.sdc`，原有库路径和源码搜索目录来自当时的 EDA 工作区。早期顶层已收在 [rtl/_legacy/tops/](../../../rtl/_legacy/tops/)，重做时须把当轮库、综合网表、RTL 及约束配成同一组。原记录中的 `fm4.tcl` 为当时的临时脚本，工作树未保留该文件。
 
-**运行中（曾被我误判为卡死并杀掉一次，已更正）。不得记为 PASS。**
+2026-11-13 的日志记载读入 RTL、库和网表成功，匹配阶段的 38 个输入均匹配，`verify` 进入计算。此处未记录最终验证结论。旧日志见 `git show 391c55a:flow/synth/fm/README.md`。
 
-## 更正：不是卡死，是子进程在算
+后续排查可复用两条经验。读取 SystemVerilog 时选择 `read_sverilog`；若父进程 CPU 空闲，先看 `fm_shell_exec` 子进程与日志再判定是否仍在计算。
 
-我第一次监控的是 `fm_shell`（父进程），其 CPU TIME = 00:00:00、%CPU = 0.0，
-据此判断"卡住"并 `pkill`。**这个判断是错的。**
-
-重跑后观察整机进程：
-
-```
-COMMAND         TIME    %CPU
-fm_shell_exec   04:05   93.5%     <-- 真正干活的子进程
-```
-
-Formality 把 SAT 计算放在 `fm_shell_exec` 子进程里，父进程只做调度，
-所以父进程 CPU 为 0 是**正常状态**，不是挂死。我错杀了它一次。
-
-教训：判断 EDA 进程是否在算，要看**进程树**（子进程 CPU），
-不能只看主进程。
-
-## 进度
-
-```
-read_sverilog(RTL)      OK
-read_db(slow.db)        OK
-read_verilog(netlist)   OK
-match                   38 输入全匹配、0 未匹配 compare point
-verify                  Status: Verifying...（已 4+ 分钟 CPU，仍在算）
-```
-
-## 为什么慢
-
-被测设计含 42/54 位乘法器与除法链，SAT 状态空间大。
-这是真实验证成本，不是工具故障。
-
-## 踩过的坑（都记下来，省下次）
-
-| 现象 | 原因 | 修法 |
-|:---|:---|:---|
-| `Syntax error near 'k_i'` | Formality 用 `read_verilog` 读 SV | 改 `read_sverilog` |
-| `extra positional option <一堆文件>` | `read_*` 不吃花括号列表 | 用 `-f filelist` |
-| `Can't open file -01` | `-01` 不是合法 flag | 去掉 |
-| `Unresolved references during link` | 网表引用 SMIC 单元但没库 | 先 `read_db slow.db` |
-
-## 复现命令
-
-```bash
-export SNPSLMD_LICENSE_FILE=27080@localhost
-cd ~/sar20/synth
-/opt/synopsys/syn/W-2024.09-SP3/bin/dc_shell -no_init -f synth_with_netlist.tcl
-# 生成 fm4.tcl 后：
-/opt/synopsys/fm/W-2024.09-SP3/bin/fm_shell -no_init -f fm4.tcl
-```
-
-## 为什么慢
-
-被测设计含 42/54 位乘法器与除法链，Formality 做 SAT 时状态空间大。
-这是**真实存在的验证成本**，不是工具坏了。
+v21 的入口在 [v21/fm_equiv.tcl](../v21/fm_equiv.tcl) 与 [check_formal.sh](../../../tools/check_formal.sh)，试验结果见 [v21 整核 Formality 状态](../../../docs/v21/FORMAL_STATUS.md) 和 [模块级证据](../../../docs/audit/README.md)。

@@ -8,8 +8,7 @@
 >
 > 文中出现的 63+8 具体数值（单元权数、分段方式等）**不再对应当前实现**。
 > 保留本文是因为其中**决策依据与推理过程**仍可追溯。
-> 当前状态请看 [验收对照报告](../archive/ACCEPTANCE_20261113.md) /
-> [接手说明 §2](../HANDOVER.md)。
+> 当时的对照见[验收归档](../_history/archive/ACCEPTANCE_20261113.md)和[交接归档](../_history/HANDOVER.md) §2。当前口径见[项目状态](../STATUS.md)。
 
 
 Status: accepted, 2026-09-12. Supersedes ADR 0003's claim that seven decision

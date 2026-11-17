@@ -1,114 +1,35 @@
-# 审计与后端报告（权威索引）
+# 审计与后端证据
 
-时间：2026-11-17　基线：`6df4ad2`
+这里保存独立审查、模块级后端结果和配套产物。当前工程进度见[复现状态](../STATUS.md)，实现参数见[工程合同](../CONTRACT_CURRENT.md)，源码路线见[RTL 导航](../../rtl/README.md)。
 
-## 〇、当前状态（重要）
+## 先定位证据
 
-**本工程曾以「7 通过 / 2 DRC 未归零 / 4 物理不可行」收尾，该结论已被独立复核更正。**
+| 要查的问题 | 文档 |
+| --- | --- |
+| 后端各模块做到哪一步，哪些结论曾更正 | [模块结果与边界](ALL_13_MODULES_FINAL.md) |
+| 单模块综合用了哪些配置，怎样解读面积、时序和耗时 | [逐模块 DC 综合](SYNTH_PER_MODULE.md) · [DC 汇总原始文本](artifacts/DC_MODULE_SUMMARY.txt) |
+| 哪些实现对应原文披露、工程假设或当时的未决问题 | [算法对照](AUDIT_ALGO_VS_SOURCE.md) · [端口与片上要求对照](PORT_AND_ONCHIP_AUDIT.md) |
+| `sched18` 模块的等价结果及网表来源 | [Formality 记录](FORMAL_SUCCEEDED.md) · [产物说明](artifacts/README.md) |
+| 复查整核综合停滞与 Formality 尝试 | [整核综合记录](../v21/SYNTH_STALL.md) · [Formality 状态](../v21/FORMAL_STATUS.md) · [区分算术证明、RTL 检查与形式工具结果](../v21/PROOF_LEDGER.md) |
+| 工作树结构审查的输入、发现和复现 | [审查任务](../_history/restructure/TREE_AUDIT_PROMPT.md) · [审查报告](TREE_AUDIT_REPORT.md) |
+| 找待办、已有源级反例和验收条件 | [独立复核待办](todo/README.md) |
 
-更正要点（详见 `ALL_13_MODULES_FINAL.md` §0）：
+算法与端口报告记录各自审查时点。涉及 ADC2 的待裁定措辞保留为当时记录，当前参数以工程合同为准。工作树审查报告锚定当时的 checkout，各项发现可对照后续提交追踪处理。
 
-| 原说法 | 更正 |
-|:---|:---|
-| `DRC = 0` | `router DRC = 0`；**无 PG 布线几何、无 foundry DRC、无 LVS** |
-| 4 个「物理不可行」 | **这些冻结输入与给定预算下未完成**（2 预算到期 / 1 人工终止 / 1 未合法放置后继续 CTS）|
-| D5 占数字面积 95.8% | **删除**（`recon`→`recip_rnd`→`recip_q60` 三层嵌套，面积不可相加）|
-| D2/D3「完整可交付」| **模块级证据，未在顶层实例化** |
+## 专项实验
 
-**待办清单见 [`todo/README.md`](todo/README.md)：6 项，全部未开始，逐项需授权。**
+| 对象 | 记录 |
+| --- | --- |
+| `dither_pre` / `dem_mask_v3` | [组合模块后端尝试](COMBINATIONAL_MODULE_FLOW.md) |
+| `wsum_v21` | [物理实现与超时记录](WSUM_FINAL_VERDICT.md) |
+| `recon_v21` | [alpha 旁路诊断](RECON_ALPHA_DIVIDER.md) |
+| `recip_q60` | [布线阶段记录](RECIP_Q60_ROUTING_ANALYSIS.md) |
+| `recip_rnd_v21` | [工具报错与前序放置状态](RECIP_RND_CRASH.md) |
 
-**已知源码缺陷（未修）**：`recon_v21.sv:373` 的 `err3_q` 溢出判定有两处问题，见 `todo/README.md` §2。
+专项实验说明实际尝试及停止位置。结论以[复核后的模块结果](ALL_13_MODULES_FINAL.md)划定的证据范围为准。单模块 Formality 记录绑定当时的 RTL、网表与配置。整核等价需要同版整核证据。物理结果中的 `router DRC` 指工具内部路由检查，电源几何、foundry DRC、LVS、多角与 IR/EM 分别追踪。
 
-## 一、目标要求与文档对应
+## 产物与历史
 
-| 目标要求 | 对应文档 | 结论 |
-|:---|:---|:---|
-| 审计数字算法是否满足论文专利披露 | **`AUDIT_ALGO_VS_SOURCE.md`** | 12 项判定：符合 6、`[E]` 假设 4、待裁定 2 |
-| 端口等关键设计是否满足论文片上要求 | **`PORT_AND_ONCHIP_AUDIT.md`** | 端口全部一致；ADC2 位宽待裁定 |
-| 拆分小模块一个一个做综合 | **`SYNTH_PER_MODULE.md`** | 13 行单模块记录（含 alpha 旁路诊断配置），均满足 25 ns；**面积不可相加** |
-| 结合 rtl-to-gds 完成后端 | **`ALL_13_MODULES_FINAL.md`** | 7 通过（router DRC=0 + Formality SUCCEEDED）/ 2 DRC 未归零 / **4 项在冻结输入与给定预算下未完成** |
-
-## 二、现行文档（11 份）
-
-### 算法与端口审计
-
-| 文件 | 内容 |
-|:---|:---|
-| `AUDIT_ALGO_VS_SOURCE.md` | 13 项算法判定、ADC2 位数裁定、`[E]` 假设清单 |
-| `PORT_AND_ONCHIP_AUDIT.md` | 87 个顶层端口对照论文要求、13 模块端口实测 |
-
-### 综合
-
-| 文件 | 内容 |
-|:---|:---|
-| `SYNTH_PER_MODULE.md` | 13 模块 DC 单模块综合（含耗时/面积/cells/slack）|
-| `RECON_ALPHA_DIVIDER.md` | `recon` 的 alpha 除法器瓶颈（`DW_div` 13→6、10min→99s）|
-
-### 后端：通过的模块
-
-| 文件 | 内容 |
-|:---|:---|
-| `FORMAL_SUCCEEDED.md` | `sched18` Formality `SUCCEEDED` 234/0/0 的完整记录 |
-
-### 后端：失败的模块
-
-| 文件 | 内容 |
-|:---|:---|
-| `COMBINATIONAL_MODULE_FLOW.md` | `dither_pre`/`dem_mask_v3` 六次归因（DRC 2 / 27）|
-| `WSUM_FINAL_VERDICT.md` | `wsum_v21` 38 分钟未完成综合 |
-| `RECIP_Q60_ROUTING_ANALYSIS.md` | `recip_q60` 布线 14/225、违规 2,286→8,551 |
-| `RECIP_RND_CRASH.md` | `recip_rnd_v21` `XFORM` fatal |
-
-### 总表
-
-| 文件 | 内容 |
-|:---|:---|
-| `ALL_13_MODULES_FINAL.md` | **13 模块完整结论 + 面积分界 + 失败模式对照** |
-
-### 产物
-
-`artifacts/`：
-
-| 文件 | 内容 |
-|:---|:---|
-| `sched18_final.v` / `sched18.svf` | 布线后网表 + 综合等价变换记录（190 KB / 25 KB）|
-| `DC_MODULE_SUMMARY.txt` | 13 模块 DC 综合汇总 |
-| `README.md` | 产物说明与验证方式 |
-
-## 三、一句话结论
-
-**13 个模块全部完成 DC 综合（均满足 25 ns 单段约束）；7 个完成 RTL→GDS 全流程，router DRC=0 且 Formality `SUCCEEDED`（合计 2,189 点、0 failing）；2 个 router DRC 未归零（2 / 27）；4 个在冻结输入与给定预算下未完成。**
-
-**「router DRC=0」不等于 foundry DRC clean：7 个通过模块的 DEF 均无 PG 布线几何，无 LVS、无多角、无 IR/EM。**
-
-**4 个未完成模块的原因逐条列明（预算到期 / 人工终止 / 未合法放置后继续 CTS），不作「算法不可行」推断。**
-**13 个模块面积不可横向相加（`recon`→`recip_rnd`→`recip_q60` 三层嵌套）。**
-
-## 四、三条硬性限定
-
-1. **技术 LEF 为推导生成**（`tsmc28_tech_derived.lef`）。
-   `PITCH`/`WIDTH`/`SPACING` 来自 PDK `.tf` 真实值；`DIRECTION` 按 M1 水平/M2 垂直交替补；
-   `AP` 层按典型值补。**`AFP-1022` 证实工具从库也推导出同样方向。**
-
-2. **无时钟门控**（`set_clock_gating_options -minimum_bitwidth 1000000`）。
-   带门控版本的 Formality 为 FAILED（20 点，根因 `clock_gate_acq_q_reg/*lat.00*`）。
-
-3. **无 LVS、无 GDS 验证、单角、无 IR/EM。**
-
-**不是 tapeout signoff。**
-
-## 五、已被取代的文档（`_superseded/`）
-
-**不得引用。** 记录了探索过程的中间判断：
-
-| 文件 | 当时的判断 | 后来被什么取代 |
-|:---|:---|:---|
-| `TWO_MODULES_PASSED.md` | 2 个通过 | `ALL_13_MODULES_FINAL.md` |
-| `THREE_MODULES_PASSED.md` | 3 个通过 | 同上 |
-| `FOUR_MODULES_PASSED.md` | 4 个通过 | 同上 |
-| `SIX_MODULES_PASSED.md` | 6 个通过 | 同上 |
-| `BACKEND_FINAL.md` | 7 个通过时的快照 | 同上 |
-| `WSUM_PHYSICAL_COST.md` | `wsum` 三工具交叉验证 | `WSUM_FINAL_VERDICT.md` |
-| `WSUM_PLACEMENT_OVERLAP.md` | `wsum` 寄存器重叠（措辞曾过头，已修正）| 同上 |
-
-更早的 12 份（FC 流程探索期）见本目录更早的提交历史。
+- [`artifacts/sched18_final.v`](artifacts/sched18_final.v) 和 [`artifacts/sched18.svf`](artifacts/sched18.svf) 是 `sched18` 对应后端试验的网表与综合等价指引。加载整核 RTL 时使用 [v21 源清单](../../flow/build/filelists/files_adc_v21.f)。
+- [`artifacts/DC_MODULE_SUMMARY.txt`](artifacts/DC_MODULE_SUMMARY.txt) 留存当时的单模块汇总，包括 `recon_v21` 的诊断配置。层级重叠的面积不用于估算整核面积。
+- [`_superseded/`](_superseded/) 保留按阶段写下的探索记录和已更正判断。复查更正原因时从[模块结果与边界](ALL_13_MODULES_FINAL.md)的更正表进入。

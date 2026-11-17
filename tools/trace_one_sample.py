@@ -1,22 +1,15 @@
-"""【历史】单样本行为走查 —— 不是当前 D1–D6 金标入口。
-
-当前金标入口是 src/adi_model/digital_chain.run_transaction()。
-本脚本保留用于回溯早期模拟行为，输出不与现有 RTL 对拍向量可比。
-"""
-
-"""一笔真实样本的完整链路追踪（供 docs/mechanisms 的两篇专题引用）。
-
-必须说清的事：
-
-* 数据来自**一次真实 pipeline 运行**（dither 关闭），dither 的模拟注入由
-  `Fig19DitherProgram` 按同一笔的六位字解析后**叠加到已记录的量上**；
-  由于 A6（环内 dither）尚未接入主循环，这不是"一次跑完的 dither 样本"，
-  而是"真实记录 + 显式程序"的组合。文档里必须这样标注。
-* RDAC 的逐事件码由 `follower` 用已决前缀生成，与主链共用同一张前缀表。
-
-运行：
-    PYTHONPATH=src python3 tools/trace_one_sample.py --out docs/mechanisms/data
-"""
+#!/usr/bin/env python3
+# =============================================================================
+# 文件名     : trace_one_sample.py
+# 版本       : v1.0
+# 功能       : 把旧 Fig.19 机制的一笔行为记录和扰动支路示例写成 JSON。
+# 设计说明   :
+#   * 无扰动部分来自同一次模型运行。扰动部分在相同输入上重算粗码和
+#     前缀，未生成对应的 RA/ADC2 尾段。
+#   * v21 合同采用另一套命令域和事务接口。此文件不承担 RTL 验收。
+# 变更记录   : 合并文件头并恢复 Python 入口。
+# =============================================================================
+"""历史一笔模型走查。输出目录由 --out 指定，量纲随 JSON 字段记录。"""
 
 from __future__ import annotations
 
@@ -61,6 +54,11 @@ def main() -> int:
     if out.is_dir() and any(out.iterdir()) and not getattr(args, "force", False):
         print(f"note: output directory {out} already has files; existing results will be overwritten")
 
+    # =============================================================================
+    # 1. 读取模型记录，建立独立的开关示意
+    # =============================================================================
+    # 原始采样记录与下方掩码示意有各自片选条件。模型输出使用 _run 的
+    # 实际调度，预览掩码按固定轮转生成，不能用掩码反推模型该笔的物理状态。
     model = _build_model(1e-3, True)
     n = 256
     plan = round_robin_plan(n)
@@ -82,7 +80,11 @@ def main() -> int:
     x = float(values[index])
     state = Dem3State.sequence(n, columns=63)[index]
 
-    # dither：同一笔字 -> lower/upper -> 等效 LSB
+    # =============================================================================
+    # 2. 重算旧扰动支路
+    # =============================================================================
+    # 用显式输入字分拆 lower/upper。这段只比较选定刺激下的偏移和码序，
+    # 量化器门限不会随该次输出重估。RA/ADC2 取自无扰动记录。
     spec = Fig19StaticSpec(
         v_fs=V_FS,
         step_q=FIG19_STEP_Q,
@@ -125,7 +127,7 @@ def main() -> int:
     sub_on = np.asarray(masks.sub_on)[0]
 
     # 有 dither 时的码：用与主链相同的 513 点门限重算；模拟尾巴（RA/ADC2）不重算，
-    # 因为 A6 未接主链，不存在"带 dither 的 RA/ADC2 记录"。
+    # 本工具只重算粗码与前缀，另一路 RA/ADC2 未执行。
     thresholds = np.asarray(model.cfg.sadc_thresholds_v, dtype=float)
     with_dither_code = int(np.clip(np.searchsorted(thresholds, sadc_input) - 1, 0, 511))
     shifted_prefixes = ResolvedPrefixes.from_final(np.array([with_dither_code], dtype=np.int64))
@@ -138,11 +140,15 @@ def main() -> int:
         reference_low_v=-V_FS,
     )
 
+    # =============================================================================
+    # 3. 输出记录和示意的来源
+    # =============================================================================
+    # 保留旧字段名供专题正文引用，同时写清两种片选所对应的证据范围。
     record = {
         "sample_index": index,
         "sample_time_ns": float(t[index] * 1e9),
         "input_v": x,
-        "loop_status": "A6 (in-loop dither) not wired: only the digital/RDAC part can be composed",
+        "loop_status": "this trace recomputes the dither-side coarse and RDAC sequence only",
         "no_dither": {
             "sadc_input_v": x,
             "coarse_code": coarse,
@@ -171,7 +177,7 @@ def main() -> int:
             "rdac_cumulative_abs_charge_pc": [
                 float(v) * 1e12 for v in np.asarray(shifted_trace.cumulative_abs_charge_c)[0]
             ],
-            "ra_adc2": "not available: requires A6 in-loop dither",
+            "ra_adc2": "not evaluated by this single-sample trace",
         },
         "dem_state": {"horizontal": int(state) & 0x3F, "vertical": int(state) >> 6},
         "physical_slices": ids,
@@ -182,7 +188,8 @@ def main() -> int:
         "provenance": {
             "no_dither": "single real pipeline run (dither disabled)",
             "with_dither": "same sample; code recomputed from the 513-point SADC thresholds; analog tail absent",
-            "prefix_table": "complete_flash3_sar6_prefix_table (same as main chain)",
+            "prefix_table": "complete_flash3_sar6_prefix_table (same as the behavior model)",
+            "switch_masks": "illustrative round-robin pool; not the raw simulation slice binding",
         },
     }
     (out / "one_sample_trace.json").write_text(json.dumps(record, indent=2, ensure_ascii=False) + "\n")

@@ -2,7 +2,7 @@
 
 扩展基线：`86106fc66083eafb7798402040b92c83625d2aad`。日期：2026-11-05。
 本文登记另一器件的 chopping-assisted auto-zero（CAAZ）来源与本项目选定的工程合同。
-实现状态以 [X02 机制清单](../../mechanism_inventory.json) 为准，来源阅读不计作 DUT 测试通过。
+实现状态以 [X02 机制清单](../../flow/verification/manifests/mechanism_inventory.json) 为准，来源阅读不计作 DUT 测试通过。
 
 ## 唯一来源和历史记录
 

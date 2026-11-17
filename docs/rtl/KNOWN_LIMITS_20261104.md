@@ -1,10 +1,10 @@
 # 2026-11-04 RTL 与模型已知限制
 
-本清单保留合并基线 `2cbd359` 及其审计记录，并在结构合同更新后标明已经解决的范围。项目一致性不等于原文公开了唯一晶体管实现。[ADR 0021](../adr/0021-structural-contract-calibration.md) 是当前合同与校准验证入口。
+本清单保留合并基线 `2cbd359` 及其审计记录，并在结构合同更新后标明已经解决的范围。当时的结构配置和校准实验见[历史 ADR 0021](../adr/0021-structural-contract-calibration.md)。独立核心的后续接口见 [ABI2](CURRENT_INTERFACE_AND_ARITHMETIC.md)，v21 见[工程合同](../CONTRACT_CURRENT.md)。
 
 2026-11-05 已修复数字 CNV 差分代理、同步片选取消后的 SPI 写提交及状态首位问题，
 并加入真实引脚激励的独立协议测试。相位、测量单位和来源维护详情见
-[独立复核记录](../reviews/20261105-independent-maintenance.md)。下列仍开放的接口与物理要求未因此关闭。
+独立复核原记录（`git show ca5ae31:docs/reviews/20261105-independent-maintenance.md`）。下列仍开放的接口与物理要求未因此关闭。
 
 | 项 | 当前证据与影响 | 后续条件 |
 |---|---|---|

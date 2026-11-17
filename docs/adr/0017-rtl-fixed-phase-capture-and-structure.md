@@ -106,5 +106,5 @@ out-of-range-select diagnostics. Testbench width diagnostics are kept separate.
 
 The complete suite is `python tools/run_open_rtl.py`: two production lint tops
 and eleven executable SystemVerilog benches. See
-[the repair report](../rtl/COMPLETE_RTL_REPAIR_20260920.md) for results and bounds.
+[the archived repair report](../_history/rtl_reviews/COMPLETE_RTL_REPAIR_20260920.md) for results and bounds.
 No new technology-mapped PPA or physical signoff follows from these changes.

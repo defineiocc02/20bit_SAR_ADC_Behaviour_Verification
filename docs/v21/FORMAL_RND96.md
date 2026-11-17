@@ -110,7 +110,8 @@ Design Unit Name: 'recon_rnd_equiv'
 FPV 是"有时钟的状态机属性证明"，纯组合断言没有状态可展开，
 所以它找不到任何 property。
 
-已排除的命令问题（都是实测，写进 `formal/v21/run_fv.tcl` 注释）：
+已排除的命令问题来自当时的实测。参见 [VC Formal Tcl](../../flow/formal/v21/run_fv.tcl)。
+脚本优先读取同目录的 [属性模块](../../flow/formal/v21/recon_rnd_equiv.sv)，兼容旧的远端暂存路径。
 
 | 尝试 | 报错 |
 |:---|:---|

@@ -1,238 +1,134 @@
-# 20bit SAR ADC 数字 IP（ISSCC 2024 9.8 复现）
+# 20 位／40 MS/s SAR ADC 工程复现
 
-依据 ISSCC 2024 Session 9.8 公开机制、按明确工程假设实现的**可综合数字 IP**。
-不是 ADI 硅片的还原（公开资料不足），也不声称与该芯片逐位一致。
+本仓库依据 ISSCC 2024 9.8 的公开机制，实现两级 SAR ADC 的 **v21 数字控制和定点重构**，并提供 **Python 行为模型**、参考向量及对拍工具。工程设计点为 **20 位输出、40 MS/s、±3 V 差分输入**。v21 的数字边界接收外部 Flash/SAR 事件和 **13 位 ADC2 原码**，驱动 RDAC 开关，并输出带样本标签的 20 位码。[工程合同](docs/CONTRACT_CURRENT.md) · [实现与验证状态](docs/STATUS.md)
 
-规格：20 bit / 40 MS/s / ±3 V 差分　后端：TSMC 28HPC+（原型 40 nm ULP）
+## 一笔转换如何完成
 
----
+~~~text
+                    ┌─ 外部 Flash/SAR 已决事件 ─→ RDAC 逐事件命令及 post 掩码
+输入 → 两组切片交织 ┤
+                    └─ 本笔采样预置 pre ───────→ 电荷余差 → 外部 RA/ADC2
+                                                             │ 13 位原码
+物理片号 + 实际 pre/post + 权重 ─→ G、Wm、Wp ─→ 同笔快照 ────┘
+                                                  ↓
+                                         定点去扰和反解 → 20 位码 + tag
+~~~
 
-## 1. 先看这里：当前状态一句话
+| 模块 | 作用 | 代码入口 |
+| --- | --- | --- |
+| **D1 片组调度** | 稳态下从 18 片中分配 8 片采集、8 片转换和 2 片空闲。已采样的一组在事务交接时进入转换，下一笔用独立片组。定向验证可从顶层提供外部片组。 | [sched18.sv](rtl/sched18.sv) |
+| **D2 逐事件跟随** | 常规路径先锁存 Flash 判决，再消费六次 SAR 已决结果。事件和量化器身份符合本笔时，才将对应码用于 RDAC 更新。高码 guard 走专用路径。 | [sar_evt_v21.sv](rtl/v21/sar_evt_v21.sv) |
+| **D3 DEM 与桥接** | 将合法 RDAC 命令转换为 8 个活动槽的 160 位 `post` 掩码。普通码按 `3+3+3` 分解，横向与纵向据本笔冻结相位选通。满足桥接条件时交换指定主半单元和子支路。 | [dem_mask_v3.sv](rtl/dem_mask_v3.sv) |
+| **D4 分路扰动** | 从 6 位字产生采样预置 `pre`、整数上扰动 `U` 等。同笔转换按 `k=c+U` 形成 RDAC 命令。采样预置随实际片号保存，重构用其权重扣除扰动项。 | [dither_pre.sv](rtl/dither_pre.sv) |
+| **D5 权重和与重构** | 主机装入并提交 18 片的主／子阵列权重。由实际片号和本笔 `pre/post` 算 `G、Wm、Wp`，再以 ADC2 码箱中心、权重和、偏置作定点反解。最终舍入和限幅，输出 `out_code`、`out_sat`、`out_err` 及 `out_tag`。 | [wsum_v21.sv](rtl/v21/wsum_v21.sv) · [recon_v21.sv](rtl/v21/recon_v21.sv) |
+| **D6 样本归属** | 管理采集／转换及捕获握手。冻结 tag、相位、扰动字和片号，给 ADC2 原码绑定捕获时的权重和与配置 epoch。旧响应和新捕获同沿到达时，旧响应按原事务快照解释。 | [acq_conv_ctx.sv](rtl/v21/acq_conv_ctx.sv) · [adc2_capture.sv](rtl/v21/adc2_capture.sv) |
 
-**RTL 功能已经验证；后端（网表）卡在综合，尚未产出当前版本的网表。**
+v21 的合成顶层为 [adc_digital_ip_v21.sv](rtl/v21/adc_digital_ip_v21.sv)。相位 `h/v/half/coin` 经事务端口输入并冻结。模拟端连接片组选通信号、18×4 位的采样 `pre`、18×20 位的转换 `post` 与逐片写使能。ADC2 捕获后交回 `valid/raw/range_err`，范围标志随 ADC2 响应独立报告。ADC2 合同窗口为 `[-0.1875,+0.5625) V`。`adc2_node_macro.sv` 在测试台侧按数字快照生成行为响应。[机理图 M00–M03](docs/figures/20261117/README.md) · [权重配置和重载](docs/v21/CONFIG_CONTRACT.md)
 
-| 层 | 状态 |
-|:---|:---|
-| D1–D6 RTL 功能 | ✅ 9 项回归全绿（`tools/verify_v21.sh`），两笔端到端 A=`0xFFF00` / B=`0x80000` |
-| 本轮修掉的三个真实缺陷 | ✅ LUT `initial`、IDLE 8/8/1、recon 连续输入串样 |
-| **同版网表（综合）** | ❌ **未生成**——顶层停在 `Processing 'wsum_v21'` |
-| 门级等价 / 形式等价（当前版本） | ❌ 未做（依赖网表） |
-| 布局布线 / DRC / LVS / GDS | ❌ 未做 |
+权重配置有效后，`prepare_valid/ready` 受理样本。D6 等待采样和归属条件满足再把该笔从采集提升到转换。最后一次有效 `post` 和已保存的 `pre` 进入权重求和，ADC2 返回时按原 `tag` 反解。模拟侧 `hold_ack` 用于判定片组能否释放，原码交回另有握手。停止接收后可以继续处理已接收的事务。
 
-**唯一权威状态表：[`docs/STATUS.md`](docs/STATUS.md)**
-（其它 `docs/v21/*.md` 是专项证据；`docs/v21/_history/` 是已作废版本，不得引用）
+**Python 模型**从电压、片组、电容和开关连接算出采样电荷、余差、RA 及 ADC2 输出，再执行名义解码或施加冻结校准。它支持参考建立、失配、噪声、DEM、扰动和普通 AZ 的受控对照，可查看逐笔记录、频谱与静态残差。模型与 v21 共用 13 位 ADC2 码制，Fig.19 等效扰动实验的减法绑定及几何另有说明。默认模型中的物理增益 `g0=32.0`，码本权重和约为 `G_fixed=31.028`，细码解码通过 `physical_gain` 处理两者的比例。[Python 架构](docs/guide/ARCHITECTURE.md) · [定量图及读法 F01–F12](docs/figures/20261117/README.md)
 
-> **历史数字已全部作废，不要再引用。** 曾报过的 89,693 / 76,222 / 97,555 /
-> 108,951 µm² 与"门级 1464 拍差异 0"都有明确的作废原因，
-> 见 `STATUS.md` §5。本条是硬约束。
+## 文件结构
 
----
+下图列出主要目录和定位源码、输入及证据所需的子目录。同名文件先按所属设计路线确认，再结合选用的编译清单或测试入口阅读。
 
-## 1.5 四个顶层并存（**不是版本迭代**）
+~~~text
+.
+├── .github/                             CI、提交模板、维护说明与检查配置
+├── docs/
+│   ├── CONTRACT_CURRENT.md              v21 工程合同入口
+│   ├── STATUS.md                        验证状态、证据边界与待解决问题
+│   ├── INDEX.md                         按用途检索文档
+│   ├── v21/                             配置接口、算术证明和整核实验记录
+│   ├── guide/                           上手、架构与排查
+│   ├── mechanisms/                      论文机制和工程实现对照
+│   ├── adr/                             架构决策的依据与取舍
+│   ├── figures/20261117/                机理图、定量图、SVG 与运行清单
+│   ├── audit/                           审计、后端报告与原始佐证产物
+│   ├── acceptance/                      固定基线的验收记录
+│   ├── reviews/                         专题独立复核及其输入或结果
+│   ├── verification/                    已归档的事件与接口追踪记录
+│   ├── rtl/                             独立核 ABI 及 RTL 专项说明
+│   ├── meta/                            版本、许可、引用和工作树导航
+│   └── _history/                        按原基线解释的历史档案
+├── rtl/
+│   ├── v21/                             主数字顶层与 v21 专用子模块
+│   ├── sched18.sv                        v21 复用的片组调度叶子
+│   ├── dem_mask_v3.sv                    v21 复用的 DEM 掩码叶子
+│   ├── dither_pre.sv                     v21 复用的扰动预置叶子
+│   ├── recip_q60.sv                      重构倒数链的底层实现
+│   ├── top/                             独立源绑定核等入口
+│   ├── core/                            独立核的结构模块
+│   ├── params/                          接口错误码等头文件
+│   └── _legacy/tops/                    历史独立 D3/D4 IP、TopW 与早期顶层
+├── tb/
+│   ├── v21/                             v21 事件、捕获、配置和重构测试
+│   └── tb_*.sv、vec_*.txt                 叶子及旧链用例和冻结向量
+├── flow/
+│   ├── Makefile                         D3/D4 验收、片组统计和参考向量入口
+│   ├── build/filelists/                 按顶层选择的编译源清单
+│   ├── sim/                             仿真入口、绑定夹具、测试台
+│   ├── formal/                          VC Formal 脚本和属性
+│   ├── synth/                           DC、FC、Formality 脚本及约束
+│   ├── tests/                           Python 检查、集成测试与固定输入
+│   ├── verification/                    算术参考、向量、scoreboard 和历史输出
+│   │   └── manifests/                   来源和机制项登记
+│   └── scripts/                         维护工具
+├── src/
+│   └── adi_model/                       Python 包
+│       ├── cli.py                       命令行入口
+│       ├── defaults.py                  默认参数与模型装配
+│       ├── contracts/                   参数 profile、观测和定点格式
+│       ├── topology/                    电容网络、码本和电荷算子
+│       ├── control/                     片选、DEM、扰动和跟随
+│       ├── behavioral/                  采样、参考、RA、ADC2 和误差模型
+│       ├── simulation/                  逐样本推进、片池、记录和导出
+│       ├── calibration/                 参数拟合、冻结与应用
+│       └── metrics/                     静态和频谱评价
+├── subsys/
+│   ├── ad4080_dsp/                      AD4080 风格数字滤波与读出
+│   ├── extensions/caaz/                 斩波辅助自归零的独立研究
+│   ├── experiments/                     消融矩阵和制图配置
+│   └── archive/180nm/                   旧 180 nm 重构路线
+├── tools/
+│   ├── requirements.txt                 Python 工具环境依赖
+│   ├── verify_v21.sh                    v21 回归驱动
+│   ├── run_open_rtl.py                  独立组件的仿真驱动
+│   ├── recon_oracle.py                  v21 定点算术参考
+│   ├── run_review_figures.py            机理与验证图重生成
+│   ├── _legacy/                         已退役工具原件
+│   └── results/                         历史结果快照
+└── references/                          论文、讲稿及出处与哈希清单
+~~~
 
-`rtl/` 下有 **四个** 顶层，各覆盖不同交付范围，**不要当成版本迭代**。
-详见 [`rtl/README.md`](rtl/README.md)。
+根级保留 `README.md`、`pyproject.toml`、`.gitignore`、`.gitattributes`。快速验收在 [flow/Makefile](flow/Makefile)，Python 工具环境清单在 [tools/requirements.txt](tools/requirements.txt)。许可、第三方声明与引用信息归入 `docs/meta/`。[文件归属及迁移说明](docs/meta/REPOSITORY_LAYOUT.md) · [版本记录](docs/meta/CHANGELOG.md) · [许可](docs/meta/LICENSE) · [第三方声明](docs/meta/NOTICE) · [引用信息](docs/meta/CITATION.cff)
 
-| 顶层 | 实例 | 覆盖 | 验证 |
-|:---|--:|:---|:---|
-| **`rtl/v21/adc_digital_ip_v21.sv`** | 8 | D1/D2/D5/D6 | `tools/verify_v21.sh` |
-| **`rtl/_legacy/tops/d3d4_ip.sv`** | 6 | **D3/D4** | `tools/verify_d3d4_ip.sh` |
-| `rtl/_legacy/tops/digital_top_w.sv` | 7 | D6 权重路径（**不含 D3/D4**）| 多个 `tb/tb_*.sv` |
-| `rtl/_legacy/tops/digital_top.sv` | 4 | 早期骨架 | — |
+### 如何区分几条 RTL 路线
 
-**v21 顶层未实例化 `dem_phase_rr`、`dem_phase_gen`、`follower_rt`** ——
-它们的 Formality `SUCCEEDED` 只是模块级证据，不构成整核已接通的证据。
+| 目标 | 顶层与入口 |
+| --- | --- |
+| **v21 当前数字集成** | `rtl/v21/adc_digital_ip_v21.sv` 配 `files_adc_v21.f`。仿真清单再加入行为 ADC2 宏及所需 testbench。按目标选择清单。 [RTL 导航](rtl/README.md) · [文件清单](flow/build/filelists/README.md) |
+| **独立源绑定核** | `rtl/top/sar20_digital_core.sv` 配 `rtl/core/` 和显式 `binding.json`／源绑定模块。AD4080 风格 DSP 有自己接入和测试路径。 [验证流程](flow/verification/README.md) · [AD4080 DSP](subsys/ad4080_dsp/README.md) |
+| **历史 D3/D4 IP 与 TopW** | 位于 `rtl/_legacy/tops/`。旧独立 D3/D4 仍有自己的相位发生和 follower，TopW 是早期权重重构路线。按原清单与对应 TB 阅读。 [旧 D3/D4 接口](docs/D3D4_IP_INTERFACE.md) |
 
-## 2. 生产链文件（v21）的 D1–D6 映射
+`.mem/.txt` 可能是 TB 读取的向量，`flow/sim/fixtures/` 的 `.hex/.json/.sv` 是配套仿真输入，`.rpt/.out/.svf/.v` 也可能是测试或审计所用的原始证据。本机临时编译、波形和缓存应放生成目录，图与实验数据通过清单核对。[产物及存证归属](docs/meta/REPOSITORY_LAYOUT.md)
 
-**这才是当前在用的链。** 全部位于 `rtl/v21/` 与 `tb/v21/`。
+## 运行入口
 
-| 模块 | 文件 | 职责 |
-|:---|:---|:---|
-| **顶层** | `rtl/v21/adc_digital_ip_v21.sv` | 单时钟域，**87 端口**（44 入 / 43 出）|
-| **D1** | `rtl/sched18.sv` | 18 片池调度（8 采集 / 8 转换 / 2 备用） |
-| **D2** | `rtl/v21/sar_evt_v21.sv` | Flash/SAR 逐事件 follower |
-| **D3** | `rtl/dem_mask_v3.sv` + `rtl/dem_phase_rr.sv` + `rtl/dem_phase_gen.sv` | DEM 3+3+3 + 相位 |
-| **D4** | `rtl/dither_pre.sv` | 分裂 dither |
-| **D5** | `rtl/v21/recon_v21.sv` + `rtl/v21/wsum_v21.sv` | 20 位定点重构（权重经窄配置口写入内部寄存器堆）|
-| **D5 叶子** | `rtl/recip_q60.sv` + `rtl/v21/recip_rnd_v21.sv` | Newton 倒数 + 余数修正 |
-| **D6** | `rtl/v21/acq_conv_ctx.sv` + `rtl/v21/adc2_capture.sv` | 事务/宏控制、ADC2 捕获 |
-| **仿真边界** | `rtl/v21/adc2_node_macro.sv` | 节点宏（非综合） |
-| 桥接 | `rtl/follower_rt.sv` | RDAC follower |
+**Python 示例。** 在仓库根目录运行，`--output` 取新目录。
 
----
+~~~bash
+run_dir="$(mktemp -d /tmp/sar-adc-demo.XXXXXX)"
+bash tools/pyenv.sh --run -m adi_model simulate --samples 64 --output "$run_dir/sim"
+~~~
 
-## 3. 一条命令验证
+输出包含 `codes.npz`、`metadata.json` 和 `assumptions.json`。查看模型参数、样本和结果身份后，再选择静态、频谱或校准实验。[逐步说明与重绘命令](docs/guide/QUICKSTART.md)
 
-```bash
-D3D4_RUNNER=vm-yian bash tools/verify_v21.sh
-```
+| 数字检查 | 入口与适用范围 |
+| --- | --- |
+| v21 回归 | `bash tools/verify_v21.sh`，需 VCS。使用已配置的远程主机时设置 `D3D4_RUNNER`。脚本会清理并重建 `D3D4_WORKDIR`，为每次运行指定独立目录。 [环境记录](docs/v21/I5_ENVIRONMENT.md) |
+| D3/D4 叶子与旧 IP | `make -f flow/Makefile verify-d3d4` 核对名义掩码、桥接和分路扰动。`make -f flow/Makefile verify-d3d4-ip` 验历史独立 IP，门级部分须提供该设计配套网表和单元模型。 [独立 IP 的验收范围](docs/ACCEPTANCE_STATUS.md) |
+| 源绑定及子系统 | `python tools/run_open_rtl.py --help`，在支持的仿真器、设计输入及新输出目录下按目标运行。 [仿真入口](flow/sim/README.md) |
 
-9 项回归 + 算术证据，预期全部 PASS：
-
-```
-tb_acq_ctx_fixed   两反例已修复
-tb_audit3          10 checks
-tb_i12_full        105 checks
-tb_i3_full         20 checks
-tb_i4b_e2e         25 checks
-tb_recip_q60       43766 笔逐位
-tb_recip_rnd       20817 笔逐位
-tb_analog_if       54 checks（审查方原版反例）
-
-[A] 数学恒等式 RND(n,96)            PROVEN
-[A] X 的 32 位截断 |X|<2^31          PROVEN（前提 A1-A5）
-[B] 生产 RTL 的 rnd96_const          PASS（从源码抽取）
-[C] VC Formal 属性证明               未完成（不计入通过）
-```
-
-### 专项入口
-
-| 命令 | 验什么 | 当前状态 |
-|:---|:---|:---|
-| `bash tools/check_recon_stream.sh` | 重构流水**连续输入**（相邻拍不同笔） | ✅ `RECON_STREAM_MATCH`，5 场景 0 错 |
-| `bash tools/check_wsum_equiv.sh` | `wsum` **任意权重** 364 笔 | ✅ 0 处不符 |
-| `bash tools/check_gate_e2e.sh` | 门级等价（两笔完整事务） | ⚠️ 依赖网表，当前无同版网表 |
-| `bash tools/check_formal.sh` | Formality 形式等价 | ⚠️ 同上；最近结果 FAILED 20 failing |
-| `bash tools/check_rtl_mutation.sh` | 证明检查有区分力 | ✅ |
-
-所有脚本遵守同一约定：**空日志 / 截断 / 覆盖不足 / 任一检查未出现 PASS → 非零退出**。
-
----
-
-## 3.5 权重表接口（v2.0 结构变更）
-
-权重表**不再是端口数组**。原来是 18×16×40 + 18×4×40 = **14,400 根输入线**，
-使 `wsum_v21` 的查表展开成 2,304 路 × 40 位 MUX；
-`wsum` 单独综合 594 s / 112,371 cells（占顶层 68%），
-顶层 `medium` 四次全部停在 `Processing 'wsum_v21'`，顶层端口数 15,775 也失真。
-
-现在改为 `wsum_v21` **内部寄存器堆**（360 个 40 位字）+ 窄配置口：
-
-```systemverilog
-cfg_we, cfg_sel(0=主/1=子), cfg_sid[4:0](0..17), cfg_idx[4:0], cfg_data[39:0]
-```
-
-一拍写一个字，上电后灌 360 个字，运行期只读。
-**顶层端口从 15,775 降到 87（见 §2 表格实测；早期"约 1,426"是位宽计数口径，非端口数）。**
-
-TB 侧用 `wt_write()` / `wt_load()` 灌权重（见 `tb/v21/tb_e2e_decl.svh`）。
-
-> 门级工具（`tb_trace`、`tb_gate_equiv`、`gen_gate_tb.py`、`gen_wsum_gate_tb.py`）
-> 仍按旧扁平端口，**对当前 RTL 不适用**，已在文件头标注。
-> 待用新 RTL 重新综合后按新接口更新。
-
-## 3.6 两个「增益」必须分清（**混用会差约 32 LSB20**）
-
-| 量 | 数值 | 含义 |
-|:---|--:|:---|
-| **名义物理增益 `g0`** | **32.0** | RA 的电容比：`C_norm / C_f = 20.5 pF / 640.625 fF`。这是**设计目标**，也是物理名义值 |
-| **定点 Σw 增益** | **31.028** | RTL 里 `weights_q` 实际求和/2^fraction 的结果（`g_fixed`）。受 `Ceff/Cf` 归一化与量化影响，**不等于 32** |
-
-**两者是不同的量。** 把 `31.028` 当 `32.0` 用，或反过来，误差约 **32 LSB20** —— 直接吃掉 20 bit 的余量。
-
-- 做**校准/重构**用 `g_fixed = 31.028`（与 RTL 一致）。
-- 做**物理估算/论文对照**用名义 `g0 = 32.0`。
-- 门禁测试：`flow/tests/unit/test_default_mismatch_anchor.py::test_nominal_gain_is_the_physical_gain_and_the_fixed_point_sum_is_separate`
-
-## 4. 三个类别必须分清
-
-| 类别 | 含义 | 本仓库例子 |
-|:---|:---|:---|
-| **[A] 数学证明** | 不等式推导 + 全区间机器验证 | `prove_rnd96.py`、`prove_xwidth.py`、`check_recip_correction.py` |
-| **[B] 生产 RTL 检查** | 从**生产源码**抽取逻辑，逐点对拍 | `check_rtl_rnd96.py`（74,618 点） |
-| **[C] 工具形式化** | Formality / VC Formal | **未完成** |
-
-**三者不互相替代。** `[A]` 过了不代表 `[B]` 过，`[B]` 过了不代表 `[C]` 过。
-
----
-
-## 5. 目录结构
-
-```
-rtl/                 D1–D4 叶子（sched18 / dem_* / dither_pre / follower_rt）
-rtl/v21/             生产链：顶层 + D2/D5/D6
-tb/v21/              v21 测试台
-tools/               验收入口（verify_v21.sh 为总入口）
-flow/synth/v21/      DC 综合、STA、Formality 脚本
-formal/v21/          VC Formal 尝试（未完成）
-docs/v21/            本轮全部报告（见下）
-docs/                合同、算法说明、历史 checkpoint
-references/          ISSCC 9.8 公开资料
-src/adi_model/       Python 参考模型（DEM/Dither/重构）
-```
-
-### docs/v21 现行文档
-
-| 文件 | 内容 |
-|:---|:---|
-| **`STATUS.md`** | **唯一权威状态表**（能/不能复现什么、作废数字清单）|
-| `SYNTH_STALL.md` | 综合停住的四组受控实验 |
-| `FORMAL_STATUS.md` | Formality 当前状态 |
-| `LUT_SYNTH_BUG.md` | `initial` 被综合丢弃的缺陷 |
-| `RECON_ALIGN_FIX.md` | 连续输入串样修复 |
-| `DRIVING_CELL_BUG.md` | 驱动单元静默失败 |
-| `GATE_EQUIV.md`、`TIMING_BUDGET_FINAL.md`、`PROOF_LEDGER.md`、`PPA_DIV_VS_RECIP.md` | 专项记录 |
-| `CHECKPOINT_I1…I4B.md`、`CHECKPOINT_AUDIT3.md` | 各阶段 checkpoint |
-
----
-
-## 6. 阅读顺序
-
-1. **本文**（状态 + 怎么跑）
-2. [`docs/STATUS.md`](docs/STATUS.md)（能复现什么、卡在哪、不能声称什么）
-3. [`docs/CONTRACT_CURRENT.md`](docs/CONTRACT_CURRENT.md)（适用哪份合同）
-4. [`docs/v21/SYNTH_STALL.md`](docs/v21/SYNTH_STALL.md)（后端卡在哪）
-5. [`docs/D3D4_IP_INTERFACE.md`](docs/D3D4_IP_INTERFACE.md)（旧 IP 的接口，仅历史参考）
-
----
-
-## 7. 历史资产（不是当前生产链）
-
-`_legacy/tops/d3d4_ip` 是更早的 D3/D4 独立 IP（`rtl/_legacy/tops/d3d4_ip.sv` + `tools/verify_d3d4_ip.sh`），
-有自己的综合与门级等价记录。**它不含 D2/D5/D6，不是本项目的交付主线。**
-
-保留原因：DEM / dither 的叶子级穷举对拍（133,376 + 512 组）与
-`sched18` 统计仍在用，可作为 v21 的底层依据。
-
-用它的入口是 `tools/verify_d3d4_ip.sh`；其综合数字（1770.08 µm² 等）
-**只对应 d3d4_ip 这个小 IP，不代表 v21 全链**。
-
----
-
-## 8. 已知边界
-
-| 项 | 说明 |
-|:---|:---|
-| 范围 | D1–D6 数字链。不含模拟、不含完整数字系统 |
-| 后端 | **TSMC 28HPC+ 综合未完成**（详见 SYNTH_STALL.md）。无 P&R / CTS / DRC / LVS |
-| 形式等价 | **未通过**（FAILED，20 failing，对应旧网表） |
-| hold / 功耗 | **不能签核** |
-| 40 MS/s 吞吐 | **未证明**——单路径 slack 不能证明整笔事务吞吐 |
-| 模拟域 | 参考建立 / RA / 安静窗不在数字 STA 范围 |
-| 来源 | `3+3+3`、8 宏列×16 半单元、β=1/8、guard 512–520 均为 `[E]` 工程补全 |
-
----
-
-## 9. 复现
-
-```bash
-git clone <repo> && cd 20bit_SAR_ADC_Behaviour_Verification
-D3D4_RUNNER=vm-yian bash tools/verify_v21.sh
-```
-
-环境说明见 [`docs/v21/I5_ENVIRONMENT.md`](docs/v21/I5_ENVIRONMENT.md)。
-远端工具与调用规范见 `reports/eda_environment/vm-yian-tools.md`。
-
----
-
-## 10. 禁止事项
-
-| 禁止 | 原因 |
-|:---|:---|
-| 引用 `docs/_history/` 下任何文档 | 已作废，见 `docs/STATUS.md` §6 作废数字清单 |
-| 声称 tapeout signoff / foundry DRC clean / LVS clean | 未做；7 个通过模块的 DEF 无 PG 布线几何 |
-| 声称整核集成完成 | `adc_digital_ip_v21` 从未综合成功 |
-| 声称「D5 算法不可实现」 | 实测只支持「冻结输入与预算下未完成」 |
-| 引用「D5 占面积 95.8%」 | 已撤回：三层嵌套导致重复计数 |
-| 把 `router DRC=0` 说成 foundry DRC clean | 两者不同 |
+工程合同的目标规格、Python 行为实验、RTL 回归和后端工具结果各有自己的输入及基线。当前整核没有同版网表和签核证据，已知的重构 S3 缺陷记录在状态表。[复现状态](docs/STATUS.md) · [全部文档](docs/INDEX.md) · [论文与讲稿](references/README.md) · [维护指南](.github/CONTRIBUTING.md) · [English overview](docs/meta/README_EN.md)

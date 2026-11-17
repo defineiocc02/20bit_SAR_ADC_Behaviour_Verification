@@ -4,9 +4,20 @@
 
 ---
 
-## 一、当前生产链（v21）
+## 一、四个顶层并存（**不是版本迭代**）
 
-D1–D6 全链。改动只应发生在这里。
+详见 [`rtl/README.md`](rtl/README.md)。四个顶层各覆盖不同交付范围：
+
+| 顶层 | 实例 | 覆盖 | 验证 |
+|:---|--:|:---|:---|
+| **`rtl/v21/adc_digital_ip_v21.sv`** | 8 | D1/D2/D5/D6 | `tools/verify_v21.sh` |
+| **`rtl/d3d4_ip.sv`** | 6 | **D3/D4** | `tools/verify_d3d4_ip.sh` |
+| `rtl/digital_top_w.sv` | 7 | D6 权重路径（**不含 D3/D4**）| 多个 `tb/tb_*.sv` |
+| `rtl/digital_top.sv` | 4 | 早期骨架 | — |
+
+## 一B、v21 生产链的 D1–D6 文件映射
+
+**改动只应发生在这一组。**
 
 | 层 | 文件 |
 |:---|:---|

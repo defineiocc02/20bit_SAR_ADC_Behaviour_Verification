@@ -20,7 +20,7 @@ PYTHONPATH=src:flow python -m pytest flow/tests -m 'not slow'
 
 Select tagged tests and the applicable bench for changes beyond the normal Python suite. Tests that invoke simulators require their documented runtimes. The CI workflow and static-analysis settings record the repository’s current check commands. [CI](workflows/ci.yml) · [Python project settings](../pyproject.toml) · [RTL entry points](../rtl/README.md)
 
-Keep simulation, arithmetic proof, formal equivalence, synthesis, STA and layout evidence scoped to the exact run. New numerical results should identify stimulus, random seed, input artifacts, backend and acceptance criterion when relevant. [Provenance ADR](../docs/adr/0007-provenance-as-a-runtime-value.md)
+Keep simulation, arithmetic proof, formal equivalence, synthesis, STA and layout evidence scoped to the exact run. New numerical results should identify stimulus, random seed, input artifacts, backend and acceptance criterion when relevant. [Provenance ADR](../docs/guide/decisions/0007-provenance-as-a-runtime-value.md)
 
 Optional local hooks use the configuration under `.github/`. From the repository root, install or run the hooks with the explicit config path.
 

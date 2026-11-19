@@ -51,9 +51,9 @@ docs = ["mkdocs>=1.5", "mkdocs-material>=9.4"]
 
 [project.urls]
 Homepage = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
-Documentation = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/main/docs/"
+Documentation = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/merge/adi-repro/docs/INDEX.md"
 Issues = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/issues"
-Changelog = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/main/docs/meta/CHANGELOG.md"
+Changelog = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/merge/adi-repro/docs/meta/CHANGELOG.md"
 
 [project.scripts]
 adi-validate-config = "adi_model.cli:main_validate_config"

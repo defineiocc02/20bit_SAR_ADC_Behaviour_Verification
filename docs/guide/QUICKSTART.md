@@ -22,14 +22,16 @@ bash tools/pyenv.sh --run tools/trace_one_sample.py --out "$trace_dir"
 
 输出 `one_sample_trace.json`。其中无扰动部分记录模型的一笔判决、余差、ADC2 和重构。扰动部分在同一输入上派生等效支路示例，缺完整模拟尾段。v21 的模式、合法码域及误差标志另见[工程合同](../CONTRACT_CURRENT.md)。
 
-## 重绘机理图或定量图
+## 重绘行为模型图
+
+数字 IP 顶层与状态机见[算法图册](../algorithms/README.md)。本节重绘带模拟宏假设的行为图；日常运行写入库外新目录，正式发布时才替换相应图集。
 
 ~~~bash
 fig_dir="$(mktemp -d /tmp/sar-adc-figures.XXXXXX)"
 bash tools/pyenv.sh --run tools/run_review_figures.py --out "$fig_dir"
 ~~~
 
-输出包含机理图、定量图、SVG 和 `figures.json`。只画机理图时追加 `--mechanisms-only`。定量重画包括校准训练。静态残差和频谱图分别核对各自的采样、输入和异常计数。[已归档的图及逐图读法](../figures/20261117/README.md)
+输出包含机理图、定量图、SVG 和 `figures.json`。只画机理图时追加 `--mechanisms-only`。定量重画包括校准训练。静态残差和频谱图分别核对各自的采样、输入和异常计数。[已归档的图及逐图读法](../figures/behavioral/README.md)
 
 消融矩阵另由 `tools/run_p4_ablation.py` 写入指定的结果目录，配置来源为 [实验矩阵](../../subsys/experiments/configs/matrix.py)。图册和矩阵可能采用不同工况或指标，配对时应查两份清单的记录。
 

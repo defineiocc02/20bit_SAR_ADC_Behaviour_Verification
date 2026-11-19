@@ -2,33 +2,18 @@
 // 文件名     : adc_digital_ip_v21.sv
 // 模块名     : adc_digital_ip_v21
 // 版本       : v1.0
-// 功能       : ISSCC 2024 §9.8 数字 IP 集成顶层（方案 v1.4 §11.1 建议路径）。
-//              把 D1 片组 / D2 事件 / D3 DEM+bridge / D4 预置 串成一条可对拍的通路。
+// 功能       : 以单一采样描述符驱动两套 SADC 与 18 片 RDAC，按同笔权重重构 20 位结果。
 // 设计说明   :
-//   * 层次：
-//       acq_conv_ctx  —— 两笔上下文、物理片号路由（I1）
-//       sar_evt_v21   —— v2.1 事件协议、k=prefix+U（I2）
-//       dither_pre    —— 字 → 八片 pre（复用）
-//       dem_mask_v3   —— k+相位+coin → 160 位 slot 级 post（复用）
-//       sched18       —— 8/8/2 片组递推（复用）
-//
-//   * 两笔流水怎么走（方案 §4.3）：
-//       E0: A 被采样 -> A 记 sampled
-//       prepare B: A 从其 ACQ 提升为 CONV（带着它冻结的 k 流），B 建立 ACQ
-//       A 的事件从 prepare A 起就持续应用（CONV 上下文里那份）
-//       物理 post 写门只对 CONV 的片号有效 —— 这是本层的核心路由决定
-//
-//   * 为什么 post 必须打到 CONV 而不是 ACQ：
-//     论文 p.182 "8 sDACs converting" —— RDAC 在转换期才需要开关命令。
-//     ACQ 组此刻正在采样，它的选通由 pre 决定，不是 post。
-//
-//   * 与 leaf 的接口：dem_mask_v3 只认 slot（0..7），本层按**冻结片号**
-//     把 slot 级 160 位展开成物理 360 位（18 片 × 20）。
-//     展开用 generate 逐位做，避免变量下标（此前踩过 130 个未时钟寄存器的坑）。
-//
-//   * 本轮范围：I1+I2 联调。ADC2 捕获与 20 位重构在 I3/I4。
-// 变更记录   :
-//   2026-11-15  初版。I1+I2 联调：逐事件物理开关零差异对拍。
+//   * 接受 prepare 时分配 ACQ 片组、量化器及一个扰动字。正常字来自片内独立
+//     xorshift32，定向测试可显式重放。八槽总预置与 SADC 低段来自同一个组合译码器。
+//   * 样本的 pre/ID/U 随 ACQ 晋升为 CONV。Flash 可提前提供或在采样后按 qid
+//     返回；事件 1 提交时确定前缀，后续只使用已决位更新物理开关。
+//   * 最后一次实际 post 与冻结的 pre 共同计算 Wm/Wp。ADC2 返回时读取相应
+//     owner 的 G/Wm/Wp、epoch 和 tag；数字去扰只在重构器里扣一次 Wp。
+// -----------------------------------------------------------------------------
+// 变更记录
+// -----------------------------------------------------------------------------
+//   2026-11-19  接入片内字源、双 SADC 采样开关与同笔 Flash 实测返回。
 // =============================================================================
 module adc_digital_ip_v21 (
     input  logic        clk,
@@ -38,14 +23,14 @@ module adc_digital_ip_v21 (
     input  logic        prepare_valid,
     output logic        prepare_ready,
     input  logic [31:0] prepare_tag,
-    input  logic [5:0]  prepare_word,
+    input  logic [5:0]  prepare_word,    // dither_force_i=1 时使用的定向六位字
     input  logic [2:0]  prepare_h,
     input  logic [2:0]  prepare_v,
     input  logic        prepare_half,
     input  logic        prepare_coin,
-    input  logic [2:0]  prepare_U,       // 由 word 派生，本层只做一致性检查
-    input  logic [2:0]  prepare_flash,   // 本笔 Flash 码（随描述符冻结）
-    input  logic        prepare_qid,     // 本笔 qid（随描述符冻结）
+    input  logic [2:0]  prepare_U,       // 强制字的上段校验；生产生字时忽略
+    input  logic [2:0]  prepare_flash,   // 提前提供的 F；同笔实测返回可在首提交前更新
+    input  logic        prepare_qid,     // 从 0 起按接受顺序交替，编号不符拒收
     input  logic        stop_i,          // 停收新样本：已采过的 ACQ 仍要能转 CONV 排空
 
     // ---------------------------------------------------------------- 采样事件
@@ -55,14 +40,14 @@ module adc_digital_ip_v21 (
     input  logic        hold_ack,
 
     // ---------------------------------------------------------------- 事件入口
-    input  logic        ev_start_i,      // 分配一笔事件上下文（= prepare 时同沿）
+    input  logic        ev_start_i,      // 保留输入；顶层在实际 commit 时启动事件上下文
     input  logic        ev_bit_valid_i,
     input  logic        ev_bit_i,
     input  logic [3:0]  ev_bit_index_i,
     input  logic [3:0]  ev_event_index_i,
     input  logic        ev_qid_i,
-    input  logic        ev_flash_valid_i,
-    input  logic [2:0]  ev_flash_code_i,
+    input  logic        ev_flash_valid_i, // 真实 Flash 返回；身份取 ev_qid_i
+    input  logic [2:0]  ev_flash_code_i,  // 在采样沿至事件 1 之间可更新准备时的 F
 
     // ---------------------------------------------------------------- 片组
     // 生产态用内部 sched18；测试态可把 sched_ext_sel=1 用外部驱动（便于定向向量）
@@ -123,9 +108,8 @@ module adc_digital_ip_v21 (
     // 权重表（18×20 Q30）。方案 §9.4：权重来自显式装载。
     // ---------------------------------------------------------------- 权重表配置口
     //
-    // 原来是 14,400 根的端口数组（顶层端口数因此达到 15,775）。
-    // 权重是静态标定值，改成「窄配置口 + wsum 内部寄存器堆」，
-    // 端口从 14,400 降到 51。
+    // 每次装一个 40 位系数，由选择位和地址定位到主表或子表。
+    // 写入字段含地址、选择、数据和使能共 52 位，提交、重装、状态另行给出。
     //
     // 写序列（上电后一次性灌 360 个字）：
     //   for sid in 0..17: for j in 0..15: cfg_sel=0, cfg_sid=sid, cfg_idx=j, cfg_we=1
@@ -160,13 +144,17 @@ module adc_digital_ip_v21 (
     output logic        done_o,
     output logic [31:0] tag_o,
     output logic        qid_o,
-    output logic [159:0] post_slot_o    // slot 级 160 位（便于与参考对拍）
+    output logic [159:0] post_slot_o,   // slot 级 160 位（便于与参考对拍）
+
+    // ---- D4 扰动注入（新增引脚放在端口表末尾，原有引脚次序保留）----
+    input  logic         dither_force_i,    // 生产接 0；定向重放接 1，使用 prepare_word/U
+    output logic [13:0]  sadc_pre_state_o, // qid0 位 [6:0]，qid1 位 [13:7]，高有效采样预置
+    output logic [1:0]   sadc_pre_wr_o     // 受理沿后一个时钟周期有效，只写该笔 qid
 );
 
     // ---------------------------------------------------------------- 两笔上下文
     logic [2:0]  acq_h, acq_v, acq_v_pre, acq_U;
     logic        acq_half, acq_coin;
-    logic [5:0]  acq_word;
     logic [31:0] acq_pre_slot;
     logic [39:0] acq_ids, conv_ids;
     logic        acq_valid, acq_sampled, conv_valid;
@@ -180,6 +168,40 @@ module adc_digital_ip_v21 (
     logic [2:0]  acq_flash, conv_flash;
     logic        acq_qid, conv_qid;
 
+    // =============================================================================
+    // D4. 独立扰动字源（工程合同 B8）
+    // =============================================================================
+    // 第一次受理用 next(seed)[5:0]。准备端反压或空拍时状态保持，故同一
+    // 未接受请求的候选字稳定。试验强制采样字也消耗一笔，后续序列与样本号对齐。
+    // 它只与片组选取共用递推形式，不读 sched18 的状态或重播种端口。
+    localparam logic [31:0] DITHER_SEED = 32'hC001_D00D;
+    logic [31:0] dither_rng_q;
+    function automatic logic [31:0] dither_advance(input logic [31:0] state);
+        logic [31:0] x;
+        x = state ^ (state << 13);
+        x = x ^ (x >> 17);
+        return x ^ (x << 5);
+    endfunction
+    wire [31:0] dither_next = dither_advance(dither_rng_q);
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)           dither_rng_q <= DITHER_SEED;
+        else if (prepare_fire) dither_rng_q <= dither_next;
+    end
+
+    // 根据同一描述符使用的字检查冗余 U。错误只属于真实请求；空拍上的数据
+    // 不应打断正在转换的样本。两侧的 valid/ready 都过同一门，拒绝不消费状态。
+    logic       next_qid_q;
+    wire        ctx_prepare_ready;
+    wire [5:0]  prepare_dither_word = dither_force_i ? prepare_word : dither_next[5:0];
+    logic [2:0]  selected_upper;        // 同一译码器派生的 U，强制路径用它检查外部校验字段
+    wire        invalid_upper = dither_force_i && (prepare_U != selected_upper);
+    wire        prepare_error = rst_n && prepare_valid && (invalid_upper || prepare_qid != next_qid_q);
+    assign prepare_ready = ctx_prepare_ready && !prepare_error;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n)            next_qid_q <= 1'b0;
+        else if (prepare_fire) next_qid_q <= ~next_qid_q;
+    end
+
     // ACQ 的 v_pre 与 v_dem 在生产态相同；测试隔离时可分别给。
     logic [2:0]  prep_v_pre;
     assign prep_v_pre = prepare_v;
@@ -187,19 +209,34 @@ module adc_digital_ip_v21 (
     // dither_pre 叶子：由 prepare 输入驱动（不是 ACQ 寄存值，
     // 否则 prepare 那拍读到的是上一笔的 word）
     logic [31:0] pre_slot_leaf;
-    logic [2:0]  U_leaf;
-    logic [3:0]  f_leaf;
+    logic [6:0]  sadc_pre_leaf;
     dither_pre u_pd (
-        .word_i   (prepare_word),
+        .word_i   (prepare_dither_word),
         .v_phase_i(prep_v_pre),
         .pre_o    (pre_slot_leaf),
-        .U_o      (U_leaf),
-        .f_o      (f_leaf));
+        .U_o      (selected_upper),
+        .f_o      (), .sadc_pre_o(sadc_pre_leaf));
+
+    // 两个量化器各自保持采集预置。与 RDAC 描述符在同一受理沿取同一字。
+    // 未受理时的 word/phase/qid 变化不能改变任一物理 bank；数字端以写门
+    // 和稳定的七位掩码交付，宏在采样相位用它驱动对应子支路。
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            sadc_pre_wr_o    <= 2'b00;
+            sadc_pre_state_o <= 14'd0;
+        end else begin
+            sadc_pre_wr_o <= 2'b00;
+            if (prepare_fire) begin
+                sadc_pre_wr_o <= prepare_qid ? 2'b10 : 2'b01;
+                if (prepare_qid) sadc_pre_state_o[13:7] <= sadc_pre_leaf;
+                else             sadc_pre_state_o[6:0]  <= sadc_pre_leaf;
+            end
+        end
+    end
 
     // ---------------------------------------------------------------- D1 片组
     logic [17:0] s18_acq, s18_conv, s18_idle;
     logic [39:0] s18_ids;
-    logic [31:0] s18_rng;
 
     sched18 u_sched (
         .clk(clk), .reset_n(rst_n),
@@ -209,7 +246,7 @@ module adc_digital_ip_v21 (
         .adv(sched_adv),
         .acq_mask_o(s18_acq), .conv_mask_o(s18_conv), .idle_mask_o(s18_idle),
         // ACQ 在推进沿冻结沿前片号。推进后的片号预览留给独立调度接口。
-        .ids_o(s18_ids), .ids_next_o(), .rng_o(s18_rng));
+        .ids_o(s18_ids), .ids_next_o(), .rng_o());
 
     // 片组来源选择：生产走内部 sched18，定向测试可外部覆盖
     wire [17:0] use_acq  = sched_ext_sel ? sched_acq  : s18_acq;
@@ -219,9 +256,9 @@ module adc_digital_ip_v21 (
 
     acq_conv_ctx u_ctx (
         .clk(clk), .rst_n(rst_n),
-        .prepare_valid(prepare_valid), .prepare_ready(prepare_ready),
+        .prepare_valid(prepare_valid && !prepare_error), .prepare_ready(ctx_prepare_ready),
         .cfg_valid(w_cfg_valid),
-        .prepare_tag(prepare_tag), .prepare_word(prepare_word),
+        .prepare_tag(prepare_tag), .prepare_word(prepare_dither_word),
         .prepare_h(prepare_h), .prepare_v_dem(prepare_v),
         .prepare_v_pre(prep_v_pre), .prepare_half(prepare_half),
         .prepare_coin(prepare_coin), .prepare_flash(prepare_flash),
@@ -235,7 +272,7 @@ module adc_digital_ip_v21 (
         .acq_sel_o(acq_sel_o), .conv_sel_o(conv_sel_o), .idle_sel_o(idle_sel_o),
         .acq_h_o(acq_h), .acq_v_dem_o(acq_v), .acq_v_pre_o(acq_v_pre),
         .acq_half_o(acq_half), .acq_coin_o(acq_coin),
-        .acq_word_o(acq_word), .acq_U_o(acq_U),
+        .acq_word_o(), .acq_U_o(acq_U),
         .acq_pre_slot_i(pre_slot_leaf), .acq_pre_slot_o(acq_pre_slot),
         .acq_tag_o(acq_tag), .acq_flash_o(acq_flash), .conv_flash_o(conv_flash),
         .acq_qid_o(acq_qid), .conv_qid_o(conv_qid),
@@ -261,11 +298,6 @@ module adc_digital_ip_v21 (
     logic [31:0] tag_w;
     logic qid_w;
 
-    // U 一致性：外部 prepare_U 必须与 word 派生值一致。
-    // 方案 §4.2 要求"不接受互相矛盾的外部 U"。
-    wire [2:0] U_from_word = {1'b0, prepare_word[5]} * 3'd4 + {2'b0, prepare_word[3]};
-    wire       U_conflict   = (prepare_U != U_from_word);
-
     // ---------------------------------------------------------------- 事件上下文归属
     //
     // **关键决定**：事件层绑定到「正在转换的那一笔」（CONV），不是绑定到 prepare。
@@ -279,24 +311,36 @@ module adc_digital_ip_v21 (
     //
     // 方案 §4.2："不能因为 qid 已重用就覆盖旧 ADC2 的上下文"—— 同理，
     // 新 prepare 不得覆盖正在转换那一笔的事件上下文。
-    // U 必须取 **ACQ 侧** 的 word：commit_fire 那一沿，ACQ 里还是"被提升那一笔"
-    // （A），CONV 的寄存器要到该沿之后才更新。若取 conv_word，拿到的是上一笔的 U。
-    //
-    // 时间线（commit_fire 沿，非阻塞赋值生效前）：
-    //   acq_word_q = A 的 63   <- 用它算 U，正确
-    //   conv_word_q = 上一笔   <- 用它算 U，错
-    wire [2:0] U_ev = {1'b0, acq_word[5]} * 3'd4 + {2'b0, acq_word[3]};
-
-    // 事件层同样用 ACQ 的 tag（该沿 ACQ 仍是 A）。
-    // Flash 码由适配层按本笔绑定（真实 Flash 在 I3 接），这里保留外部输入。
+    // 提升沿之前 ACQ 的 U 属于这笔样本。CONV 的寄存值还属于前一笔。
+    // 公共采样沿得到的 Flash 属于正在采集的 qid。若结果稍后返回，在 ACQ
+    // 提升前保留它；若返回与提升同沿，事件模块直接消费该沿的结果。
+    // 下一笔 prepare 会重用 ACQ 槽，不能把刚消费过的 Flash 留给下一笔。
+    wire flash_for_acq = ev_flash_valid_i && acq_valid && (ev_qid_i == acq_qid)
+                         && (acq_sampled || (sample_event && input_captured));
+    logic [2:0] sampled_flash_q;
+    logic       sampled_flash_valid_q;
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            sampled_flash_q <= 3'd0;
+            sampled_flash_valid_q <= 1'b0;
+        end else begin
+            if (prepare_fire || commit_fire) sampled_flash_valid_q <= 1'b0;
+            else if (flash_for_acq)          sampled_flash_valid_q <= 1'b1;
+            if (flash_for_acq) sampled_flash_q <= ev_flash_code_i;
+        end
+    end
+    wire [2:0] flash_at_start = flash_for_acq ? ev_flash_code_i :
+                                (sampled_flash_valid_q ? sampled_flash_q : acq_flash);
+    wire flash_for_conv = ev_flash_valid_i && conv_valid && (ev_qid_i == conv_qid);
     logic ev_start_conv;
     assign ev_start_conv = commit_fire;
 
     sar_evt_v21 u_evt (
         .clk(clk), .rst_n(rst_n),
         .start_i(ev_start_conv), .abort_i(1'b0),
-        .tag_i(acq_tag), .qid_i(acq_qid), .upper_i(U_ev),
-        .flash_valid_i(ev_start_conv), .flash_code_i(acq_flash),
+        .tag_i(acq_tag), .qid_i(acq_qid), .upper_i(acq_U),
+        .flash_valid_i(ev_start_conv || flash_for_conv),
+        .flash_code_i(ev_start_conv ? flash_at_start : ev_flash_code_i),
         .bit_valid_i(ev_bit_valid_i), .bit_i(ev_bit_i),
         .bit_index_i(ev_bit_index_i), .event_index_i(ev_event_index_i),
         .sar_qid_i(ev_qid_i), .sar_final_i(1'b0),
@@ -311,7 +355,7 @@ module adc_digital_ip_v21 (
     assign k_bad_o        = k_bad_w;
     assign final_applied_o = final_applied_w;
     assign final_k_o      = final_k_w;
-    assign err_o          = err_w | U_conflict;   // U 冲突也算错误
+    assign err_o          = err_w | prepare_error;
     assign done_o         = done_w;
     assign tag_o          = tag_w;
     assign qid_o          = qid_w;

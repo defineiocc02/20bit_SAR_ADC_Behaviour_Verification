@@ -1,6 +1,6 @@
 # Python 模型架构与数据流
 
-默认模型采用 18 片池。每个稳态周期由 8 片采集、8 片转换、2 片空闲。SADC 给出粗判决，RDAC 更新开关形成余差。共享 RA 的名义增益为 32，默认 ADC2 采用 13 位、0.75 V 窗口 `[-0.1875, +0.5625) V`，重构输出 20 位 offset-binary 码。[默认参数](../../src/adi_model/defaults.py) · [工作机理与验证图](../figures/20261117/README.md)
+默认模型采用 18 片池。每个稳态周期由 8 片采集、8 片转换、2 片空闲。SADC 给出粗判决，RDAC 更新开关形成余差。共享 RA 的名义增益为 32，默认 ADC2 采用 13 位、0.75 V 窗口 `[-0.1875, +0.5625) V`，重构输出 20 位 offset-binary 码。[默认参数](../../src/adi_model/defaults.py) · [工作机理与验证图](../figures/behavioral/README.md)
 
 本页说明 `src/adi_model` 的行为模型。当前集成 ADC 的顶层、开关合同和事务顺序见 [v21 工程合同](../CONTRACT_CURRENT.md)与 [RTL 导航](../../rtl/README.md)。
 
@@ -33,7 +33,7 @@
 
 模型从采样计划取得该笔的物理 ID，再按掩码与电容计算电荷。失配作用在物理池和余差路径。重构只使用数字观测及相应系数。默认解码把 RA 物理增益与权重和口径配对后对细码做换算。[流水实现](../../src/adi_model/simulation/pipeline_engine.py) · [定点约定](../../src/adi_model/contracts/README.md)
 
-默认运行关闭源扰动与单元 DEM。调用者可提供六位字，在 Python 中研究 Fig.19 的分路扰动。这个等效模型使用 `k=c-U` 并检查实际命令域。v21 的开关合同使用 `k=c+U`，两条绑定的命令域与行为模型的静态对照见 F05、F03。[行为控制模型](../../src/adi_model/control/README.md) · [对照图](../figures/20261117/README.md)
+默认运行关闭源扰动与单元 DEM。调用者可提供六位字，在 Python 中研究 Fig.19 的分路扰动。这个等效模型使用 `k=c-U` 并检查实际命令域。v21 的开关合同使用 `k=c+U`，两条绑定的命令域与行为模型的静态对照见 F05、F03。[行为控制模型](../../src/adi_model/control/README.md) · [对照图](../figures/behavioral/README.md)
 
 ## 3. 状态归属与时序
 
@@ -46,7 +46,7 @@
 | `DigitalState` 与 `DigitalObservation` | 增益与冻结系数有各自的输入归属。原码、物理 ID、掩码与异常标志随样本记录 |
 | `SimResult` | 返回逐笔结果、配置与诊断信息。异常笔保留在记录中供定位 |
 
-事务图中的 Flash／SAR 前缀、残差读取和标签 handoff 说明事件及跨笔关系。Python 模型中的计划与动态状态由具体运行配置启用，不能据名义时间轴推断当前 RTL 的同沿优先级或物理时限。[交织和捕获机理](../figures/20261117/README.md) · [RTL 验收入口](../../rtl/README.md)
+事务图中的 Flash／SAR 前缀、残差读取和标签 handoff 说明事件及跨笔关系。Python 模型中的计划与动态状态由具体运行配置启用，不能据名义时间轴推断当前 RTL 的同沿优先级或物理时限。[交织和捕获机理](../figures/behavioral/README.md) · [RTL 验收入口](../../rtl/README.md)
 
 ## 4. 比较与证据边界
 

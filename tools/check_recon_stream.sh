@@ -9,7 +9,7 @@
 #     原 tb_i4_recon 对每组输入**保持相同总线 7 拍**再检查一次，
 #     这恰好让流水里的"实时总线读取"看起来正确，掩盖了取数点错误。
 #     独立复核用连续受理激励，一次暴露 10 笔中 8 笔码错。
-#     修复（fe7535f）后应 0 笔。
+#     fe7535f 修正了这组测试的取数点。当前激励另含负数接中点和夹空拍的情况。
 #
 #   * 判定（任一不满足即 FAIL）：
 #       ① RTL 编译成功、仿真退出码 0
@@ -24,15 +24,23 @@
 # =============================================================================
 set -uo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
-RUNNER=${D3D4_RUNNER:-}
-WORK=${D3D4_WORKDIR:-/tmp/reconstream}
+RUNNER=${V21_RUNNER:-${D3D4_RUNNER:-}}
+WORK=${V21_WORKDIR:-${D3D4_WORKDIR:-}}
 
 run() { if [ -n "$RUNNER" ]; then ssh "$RUNNER" "$1"; else bash -c "$1"; fi; }
 SETUP='export PATH=/opt/synopsys/vcs/W-2024.09-SP1/bin:$PATH SNPSLMD_LICENSE_FILE=27080@localhost VCS_HOME=/opt/synopsys/vcs/W-2024.09-SP1'
 fail() { echo; echo "RESULT: RECON_STREAM_FAIL -- $1"; exit 1; }
 
+# 运行日志与向量都应来自本次。保留已存在的证据，防止重试时覆盖旧 RTL 的反例。
+if [[ -z "$WORK" ]]; then
+  WORK=$(run 'mktemp -d /tmp/reconstream.XXXXXXXX') || fail "创建运行目录失败"
+elif [[ "$WORK" =~ ^/[a-zA-Z0-9_./-]+$ ]]; then
+  run "mkdir -- $WORK" || fail "请提供尚未存在的运行目录"
+else
+  fail "运行目录须为没有空格的绝对路径"
+fi
 echo "=== 准备 $WORK ==="
-run "rm -rf $WORK && mkdir -p $WORK/rtl/v21 $WORK/tb/v21 $WORK/tools" || fail "创建目录失败"
+run "mkdir -p $WORK/rtl/v21 $WORK/tb/v21 $WORK/tools" || fail "创建目录失败"
 for f in rtl/recip_q60.sv rtl/v21/recip_rnd_v21.sv rtl/v21/recon_v21.sv \
          tb/v21/tb_recon_stream.sv tools/recon_oracle.py; do
   if [ -n "$RUNNER" ]; then scp -q "$ROOT/$f" "$RUNNER:$WORK/$f" || fail "传 $f 失败"
@@ -41,7 +49,7 @@ done
 echo "  源文件就位"
 
 echo
-echo "=== 1. 生成激励（oracle 自生成，覆盖 5 个场景）==="
+echo "=== 1. 生成逐拍激励（含负数跨零与空拍）==="
 run "cd $WORK && python3 tools/recon_oracle.py generate $WORK/stream.vec" || fail "生成 vec 失败"
 n=$(run "wc -l < $WORK/stream.vec" | tr -d ' ')
 echo "  vec $n 行"
@@ -56,13 +64,15 @@ echo
 echo "=== 3. 仿真 ==="
 run "$SETUP; cd $WORK && ./sstr +VEC=$WORK/stream.vec +TRACE=$WORK/trace.csv > run.log 2>&1" \
   || fail "仿真退出码非 0"
+run "grep -Fxq 'RECON_S3_LIMITS_PASS checks=6' $WORK/run.log" || fail "截断或错误传播检查未完成"
 t=$(run "wc -l < $WORK/trace.csv" | tr -d ' ')
 echo "  轨迹 $t 行"
 [ "${t:-0}" -gt 1 ] || fail "轨迹为空或只有表头"
 
 echo
 echo "=== 4. 独立 oracle 逐笔逐级比对 ==="
-res=$(run "cd $WORK && python3 tools/recon_oracle.py examine $WORK/trace.csv $WORK/report.json 2>&1")
+res=$(run "cd $WORK && python3 tools/recon_oracle.py examine $WORK/trace.csv $WORK/report.json 2>&1") \
+  || { echo "$res"; fail "逐笔对拍失败"; }
 echo "$res"
 
 echo
@@ -86,5 +96,5 @@ if echo "$res" | grep -qE "mismatches=[1-9]"; then
 fi
 
 echo
-echo "RESULT: RECON_STREAM_PASS（5 场景，逐笔逐级一致，无缺笔/重复）"
+echo "RESULT: RECON_STREAM_PASS（逐笔逐级一致，无缺笔或重复退休）"
 exit 0

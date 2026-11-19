@@ -172,7 +172,7 @@ def check_figure_assets() -> None:
     当前代码迭代时也适用。结果通过 record 记录，缺失或损坏均定位到文件名。
     """
     check = "C4 figure assets"
-    directory = ROOT / "docs/figures/20261117"
+    directory = ROOT / "docs/figures/behavioral"
     try:
         manifest = json.loads(
             (directory / "figures.json").read_text(encoding="utf-8"),

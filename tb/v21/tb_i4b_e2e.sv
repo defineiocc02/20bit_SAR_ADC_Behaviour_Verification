@@ -27,6 +27,7 @@ module tb_i4b_e2e;
     adc_digital_ip_v21 dut (
         .clk(clk), .rst_n(rst_n),
         .prepare_valid(prepare_valid), .prepare_ready(prepare_ready),
+        .dither_force_i(1'b1), .sadc_pre_state_o(), .sadc_pre_wr_o(),
         .prepare_tag(prepare_tag), .prepare_word(prepare_word),
         .prepare_h(prepare_h), .prepare_v(prepare_v),
         .prepare_half(prepare_half), .prepare_coin(prepare_coin),

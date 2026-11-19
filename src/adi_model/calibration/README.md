@@ -4,7 +4,7 @@
 
 | 用途 | 实现与条件 |
 | --- | --- |
-| 逐码修正 | `fit_code_correction` 用训练记录估计各粗码的条件均值误差。训练与评估须匹配模式和码本。用本片、异片和独立记录分别检查系数迁移。 [实现](mask_calibration.py) · [F11](../../../docs/figures/20261117/F11_calibration_generalization.png) |
+| 逐码修正 | `fit_code_correction` 用训练记录估计各粗码的条件均值误差。训练与评估须匹配模式和码本。用本片、异片和独立记录分别检查系数迁移。 [实现](mask_calibration.py) · [F11](../../../docs/figures/behavioral/F11_calibration_generalization.png) |
 | 有效单元权重 | `fit_unit_weights` 从明确的静态电荷观测拟合每片各单元的有效 `C/Cf` 和一个全局偏移。冻结记录含规格、观测域、秩、条件数、标准误差与训练摘要。 [实现](weight_calibration.py) |
 | 浮点反解 | `FrozenCalibration.reconstruct` 按活动片和同笔观测应用冻结权重。`ElementWeightCalibration` 提供显式参考轨子集的反例和计算路径。 [冻结权重](weight_calibration.py) · [显式参考轨](mask_calibration.py) |
 | Python 整数输出 | `FixedPointReconstructor` 应用显式格式与冻结或名义权重，生成 20 位 offset-binary，并分别保留模拟越界和数字裁剪。 [格式与实现](../contracts/fixed_point.py) |

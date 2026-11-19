@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import tempfile
 import subprocess
 import sys
 from pathlib import Path
@@ -2198,7 +2199,7 @@ def figure_reconstruction_mechanism(out: Path) -> dict:
         "sources": [
             "rtl/v21/adc_digital_ip_v21.sv", "rtl/v21/adc2_capture.sv",
             "rtl/v21/wsum_v21.sv", "rtl/v21/recon_v21.sv",
-            "docs/ISSCC2024_ONCHIP_CONTRACT_v2.md#8", "tools/recon_oracle.py", "docs/STATUS.md",
+            "docs/v21/PHYSICAL_INTERFACE.md#8", "tools/recon_oracle.py", "docs/STATUS.md",
         ],
         "adc2_bits": 13, "adc2_input_window_v": [-0.1875, 0.5625],
         "worked_example": {
@@ -2217,7 +2218,7 @@ def figure_reconstruction_mechanism(out: Path) -> dict:
 def main() -> int:
     """运行冻结参数下的行为诊断并保存图片及其指标。"""
     parser = argparse.ArgumentParser(description="Render four SAR ADC mechanism plates and twelve evidence figures")
-    parser.add_argument("--out", default="docs/figures/20261117")
+    parser.add_argument("--out", type=Path, help="结果目录；省略时在系统临时目录中新建")
     parser.add_argument("--points", type=int, default=512)
     parser.add_argument("--repeats", type=int, default=8)
     parser.add_argument("--dynamic-n", type=int, default=8192)
@@ -2225,7 +2226,8 @@ def main() -> int:
     args = parser.parse_args()
     if args.points < 16 or args.repeats < 1 or args.dynamic_n < 128:
         parser.error("need --points >= 16, --repeats >= 1 and --dynamic-n >= 128")
-    out = Path(args.out)
+    # 无参数重跑时使用独立目录，避免半次或并发运行覆盖已发布的图和测量记录。
+    out = args.out if args.out is not None else Path(tempfile.mkdtemp(prefix="sar-behavior-figures-"))
     out.mkdir(parents=True, exist_ok=True)
 
     with plt.rc_context(FIGURE_STYLE):

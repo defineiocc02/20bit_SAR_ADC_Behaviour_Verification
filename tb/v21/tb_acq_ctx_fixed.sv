@@ -85,7 +85,7 @@ module tb_acq_ctx_fixed;
   // dither_pre 提供组合 pre（模拟上游：word 一变，acq_pre_slot 就变）
   logic [2:0] dU; logic [3:0] df;
   dither_pre u_pd (.word_i(prepare_word), .v_phase_i(prepare_v_pre),
-                   .pre_o(acq_pre_slot), .U_o(dU), .f_o(df));
+                   .pre_o(acq_pre_slot), .U_o(dU), .f_o(df), .sadc_pre_o());
 
   int errors = 0;
   task automatic chk(input logic cond, input string msg);

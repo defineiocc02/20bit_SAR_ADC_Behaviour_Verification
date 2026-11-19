@@ -6,16 +6,17 @@
 
 | 要查的问题 | 文档 |
 | --- | --- |
+| 负数是否污染下一笔，沿前片选会否重叠 | [Issue 10 逐项复现与修复](ISSUE_10.md) |
 | 后端各模块做到哪一步，哪些结论曾更正 | [模块结果与边界](ALL_13_MODULES_FINAL.md) |
 | 单模块综合用了哪些配置，怎样解读面积、时序和耗时 | [逐模块 DC 综合](SYNTH_PER_MODULE.md) · [DC 汇总原始文本](artifacts/DC_MODULE_SUMMARY.txt) |
-| 哪些实现对应原文披露、工程假设或当时的未决问题 | [算法对照](AUDIT_ALGO_VS_SOURCE.md) · [端口与片上要求对照](PORT_AND_ONCHIP_AUDIT.md) |
+| 数字 IP 的端口、算法与原文对应到哪一步 | [顶层与原文核对](TREE_AUDIT_REPORT.md#dither-word-audit) · [端口实测](PORT_AND_ONCHIP_AUDIT.md) · [历史算法审查](AUDIT_ALGO_VS_SOURCE.md) |
 | `sched18` 模块的等价结果及网表来源 | [Formality 记录](FORMAL_SUCCEEDED.md) · [产物说明](artifacts/README.md) |
 | 复查整核综合停滞与 Formality 尝试 | [整核综合记录](../v21/SYNTH_STALL.md) · [Formality 状态](../v21/FORMAL_STATUS.md) · [区分算术证明、RTL 检查与形式工具结果](../v21/PROOF_LEDGER.md) |
 | 工具运行路径、远端落盘检查与清理 | [EDA 工作目录规范](REMOTE_WORKDIR_POLICY.md) |
 | 工作树结构审查的输入、发现和复现 | [审查任务](../_history/restructure/TREE_AUDIT_PROMPT.md) · [审查报告](TREE_AUDIT_REPORT.md) |
 | 找待办、已有源级反例和验收条件 | [独立复核待办](todo/README.md) |
 
-算法与端口报告记录各自审查时点。涉及 ADC2 的待裁定措辞保留为当时记录，当前参数以工程合同为准。工作树审查报告锚定当时的 checkout，各项发现可对照后续提交追踪处理。
+生产 ADC2 为 13 位，窗口跨度 0.75 V。表内历史综合和 Formality 结果绑定各自输入。同版整核的待验事项见[项目状态](../STATUS.md)。组件的接口和证据在 [components/](components/CURRENT_INTERFACE_AND_ARITHMETIC.md)，专题评审在 [reviews/](reviews/)。
 
 ## 专项实验
 

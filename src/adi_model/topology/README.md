@@ -1,6 +1,6 @@
 # 电容网络、码本与开关电荷
 
-本目录提供电容池、开关电荷计算和明确的码表。实际拓扑、码本和权重由调用者绑定。默认模型的尺寸与数值见 [defaults.py](../defaults.py)。Fig.11 的建模选择及已知差异见 [推导记录](../../../docs/decisions/20261112_fig11_unification.md)。
+本目录提供电容池、开关电荷计算和明确的码表。实际拓扑、码本和权重由调用者绑定。默认模型的尺寸与数值见 [defaults.py](../defaults.py)。Fig.11 的建模选择及已知差异见 [推导记录](../../../docs/guide/decisions/20261112_fig11_unification.md)。
 
 <a id="caps"></a>
 ## 采样、转换与等效电容

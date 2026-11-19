@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : recon_oracle.py
+# 模块名     : 重构流水逐笔对拍
+# 功能       : 生成带标签的整数激励，并从 DUT 轨迹核对各级数据和最终输出。
+# 设计说明   : 正常码、饱和码、错误标志与延迟都按各自受理沿配对。
+# =============================================================================
 """重构流水连续输入测试的独立整数参考（oracle）。
 
 设计说明
@@ -32,6 +38,9 @@ CASE_NAMES = {
     3: "bubbles_change_bus",
     4: "reciprocal_join_constant_n",
     5: "alpha_change_after_valid",
+    6: "signed_back_to_back",
+    7: "signed_with_bubbles",
+    8: "issue10_ten_idle_cycles",
 }
 INPUT = ("scenario", "tick", "reset_n", "in_valid", "in_tag", "raw", "b", "alpha",
          "G", "Wm", "Wp")
@@ -64,7 +73,11 @@ def word(gain, post, *, raw=2048, alpha=Q30):
 
 
 def schedule():
+    """每行对应一个上升沿。零标签代表空拍，12 个末尾空拍足以排空七级流水。"""
     a, b, c, d = word(32, 16), word(16, 8), word(64, 33), word(32, 17)
+    # 相同 G/Wm/Wp 和偏置下，raw 2046/2047/2048/2049 分别产生 X=-96/-48/0/+48。
+    # 跨零与正负半码共用增益，消除除数、配置和饱和对输出判定的干扰。
+    negative, negative_half, positive_half = (word(32, 16, raw=r) for r in (2046, 2047, 2049))
     cases = {
         1: (a, [(101, a)], a),
         2: (a, [(201, a), (202, b), (203, c)], a),
@@ -73,6 +86,16 @@ def schedule():
         4: (d, [(401, d), (402, word(16, 9)), (403, c)], d),
         # 只改变 S1a 接受后的 alpha。该用例不改变 G 或权重。
         5: (a, [(501, word(32, 16, raw=2050, alpha=Q30 // 2))], a),
+        # 中点必须保留自己的 tag 和 err。连续两个负数另外检查负号不会自报溢出。
+        6: (a, [(601, negative), (602, a), (603, negative_half),
+                (604, negative), (605, positive_half)], a),
+        # 在相同的负→零交易间分别放 1、10 个空拍。无效沿仍可改变输入总线；
+        # 第一段让两笔同时留在流水里，第二段让上一笔先退休，再受理下一笔。
+        7: (a, [(701, negative), (0, b), (702, a), (703, negative)]
+            + [(0, c)] * 10 + [(704, a)], a),
+        # Issue 10 的原始两笔。中间十个无效沿，Wm 从 15 变到 17。
+        # 每个场景独立复位，因此这里可沿用问题报告里的 601、602 标签。
+        8: (a, [(601, word(32, 15))] + [(0, a)] * 10 + [(602, d)], a),
     }
     rows = []
     for case, (quiet, core, pad) in cases.items():

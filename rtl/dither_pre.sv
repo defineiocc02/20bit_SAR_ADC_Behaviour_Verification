@@ -1,4 +1,9 @@
-// D4 Split Dither：6 位分路 -> 8 片物理采样预置开关位（合同 v2.1 §7）
+// =============================================================================
+// 文件名     : dither_pre.sv
+// 模块名     : dither_pre
+// 功能       : 将同一六位字拆为 SADC 低段及八个 RDAC 槽的采样预置。
+// 设计依据   : 工程合同 B1、B6，RDAC 正向采样极性。
+// =============================================================================
 //
 // U  = 4*D6 + D4
 // Ld = 2*D5 + (4*D3 + 2*D2 + D1)/8
@@ -20,7 +25,8 @@ module dither_pre (
     input  logic [2:0]  v_phase_i,
     output logic [31:0] pre_o,        // 8 片 × 4 位，bit = 4*s + b
     output logic [2:0]  U_o,
-    output logic [3:0]  f_o
+    output logic [3:0]  f_o,
+    output logic [6:0]  sadc_pre_o    // SADC 七个子开关，bit6 至 bit0 按 B1 顺序
 );
     logic [2:0] d5;
     logic [2:0] J;
@@ -30,6 +36,9 @@ module dither_pre (
     assign d5  = {2'b0, word_i[4]};
     assign f_o = {1'b0, word_i[2], word_i[1], word_i[0]};
     assign J   = U_o + {d5, 1'b0};            // U + 2*D5
+    // SADC 子支路从 bit6 到 bit0 折为 4、2、1、1/2、1/4、1/8、1/8。
+    // 只接入 D5、D3、D2、D1，名义偏移为 2D5 + f/8；U 仅在 RDAC 两个阶段使用。
+    assign sadc_pre_o = {1'b0, word_i[4], 1'b0, word_i[2:0], 1'b0};
 
     logic [3:0] pre_v [0:7];
 

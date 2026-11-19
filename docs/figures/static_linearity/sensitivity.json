@@ -1,0 +1,389 @@
+{
+  "units": "endpoint LSB20",
+  "replicates": [
+    {
+      "chip_seed": 20261106,
+      "states": 64,
+      "evaluation_seed": 317011,
+      "sigma": 0.0001,
+      "training": {
+        "training_samples": 65536,
+        "training_states": 1024,
+        "rank": 356,
+        "columns": 360,
+        "observable_condition": 220.87262824483267,
+        "residual_rms_node_uV": 995.9285069065049,
+        "coarse_lut_min_observations": 88
+      },
+      "modes": {
+        "fixed": {
+          "nominal": {
+            "dnl_min": -0.5850867084892268,
+            "dnl_max": 0.32351711264776184,
+            "inl_min": -4.373946867064175,
+            "inl_max": 1.6290053610086264,
+            "missing_interior": 0,
+            "worst_dnl_code": 262146,
+            "worst_inl_transition": 311297
+          },
+          "fitted": {
+            "dnl_min": -0.20098828715551642,
+            "dnl_max": 0.1072053879252719,
+            "inl_min": -0.20372853246001618,
+            "inl_max": 0.1563405188590718,
+            "missing_interior": 0,
+            "worst_dnl_code": 393216,
+            "worst_inl_transition": 825228
+          },
+          "coarse_lut": {
+            "dnl_min": -1.0,
+            "dnl_max": 2.4902754330320644,
+            "inl_min": -2.999797713004682,
+            "inl_max": 1.0000000001033724,
+            "missing_interior": 1,
+            "worst_dnl_code": 1048573,
+            "worst_inl_transition": 786433
+          }
+        },
+        "dem": {
+          "nominal": {
+            "dnl_min": -0.1513271477524698,
+            "dnl_max": 0.1930171004893042,
+            "inl_min": -0.9662139362816955,
+            "inl_max": 0.5745398860310931,
+            "missing_interior": 0,
+            "worst_dnl_code": 917505,
+            "worst_inl_transition": 786428
+          },
+          "fitted": {
+            "dnl_min": -0.07585247107034487,
+            "dnl_max": 0.13057017623957656,
+            "inl_min": -0.143288117322922,
+            "inl_max": 0.12068802053175129,
+            "missing_interior": 0,
+            "worst_dnl_code": 1009664,
+            "worst_inl_transition": 892928
+          }
+        },
+        "dither": {
+          "nominal": {
+            "dnl_min": -0.026880504929421067,
+            "dnl_max": 0.023001758662113625,
+            "inl_min": -4.719510626584055,
+            "inl_max": 1.4037772713613188,
+            "missing_interior": 0,
+            "worst_dnl_code": 1044736,
+            "worst_inl_transition": 292873
+          },
+          "fitted": {
+            "dnl_min": -0.02875812478652484,
+            "dnl_max": 0.047423443309343005,
+            "inl_min": -0.21419004906874198,
+            "inl_max": 0.14992869474357426,
+            "missing_interior": 0,
+            "worst_dnl_code": 790784,
+            "worst_inl_transition": 812189
+          }
+        },
+        "both": {
+          "nominal": {
+            "dnl_min": -0.03400466910188782,
+            "dnl_max": 0.03126208593562829,
+            "inl_min": -1.1247805603707206,
+            "inl_max": 0.51372952276022,
+            "missing_interior": 0,
+            "worst_dnl_code": 586497,
+            "worst_inl_transition": 767239
+          },
+          "fitted": {
+            "dnl_min": -0.03230877945759858,
+            "dnl_max": 0.04743178160362538,
+            "inl_min": -0.1931082269722001,
+            "inl_max": 0.0486428789194393,
+            "missing_interior": 0,
+            "worst_dnl_code": 675072,
+            "worst_inl_transition": 207094
+          },
+          "oracle": {
+            "dnl_min": -0.026632259819377557,
+            "dnl_max": 0.030028399487591617,
+            "inl_min": -0.09368269031652833,
+            "inl_max": 0.038254614995542786,
+            "missing_interior": 0,
+            "worst_dnl_code": 843008,
+            "worst_inl_transition": 739696
+          }
+        }
+      }
+    },
+    {
+      "chip_seed": 20261107,
+      "states": 64,
+      "evaluation_seed": 317011,
+      "sigma": 0.0001,
+      "training": {
+        "training_samples": 65536,
+        "training_states": 1024,
+        "rank": 356,
+        "columns": 360,
+        "observable_condition": 221.16969385903118,
+        "residual_rms_node_uV": 995.6160957935939,
+        "coarse_lut_min_observations": 89
+      },
+      "modes": {
+        "fixed": {
+          "nominal": {
+            "dnl_min": -0.4587209094647906,
+            "dnl_max": 0.2640472572137762,
+            "inl_min": -4.331521790337008,
+            "inl_max": 1.0823194192758865,
+            "missing_interior": 0,
+            "worst_dnl_code": 16384,
+            "worst_inl_transition": 698368
+          },
+          "fitted": {
+            "dnl_min": -0.09963314599687412,
+            "dnl_max": 0.22404237769368263,
+            "inl_min": -0.13266349684734116,
+            "inl_max": 0.31781253265003284,
+            "missing_interior": 0,
+            "worst_dnl_code": 16384,
+            "worst_inl_transition": 680037
+          },
+          "coarse_lut": {
+            "dnl_min": -0.5246318922958589,
+            "dnl_max": 1.469686968821692,
+            "inl_min": -2.5988979500583564,
+            "inl_max": 2.336419149097223,
+            "missing_interior": 0,
+            "worst_dnl_code": 1048574,
+            "worst_inl_transition": 1005563
+          }
+        },
+        "dem": {
+          "nominal": {
+            "dnl_min": -0.17624658765953927,
+            "dnl_max": 0.13510242176030318,
+            "inl_min": -0.9064101916419536,
+            "inl_max": 0.6910602013186502,
+            "missing_interior": 0,
+            "worst_dnl_code": 32768,
+            "worst_inl_transition": 851973
+          },
+          "fitted": {
+            "dnl_min": -0.10457993273916832,
+            "dnl_max": 0.16420542608067135,
+            "inl_min": -0.13523802374341815,
+            "inl_max": 0.1512252947778884,
+            "missing_interior": 0,
+            "worst_dnl_code": 794624,
+            "worst_inl_transition": 861260
+          }
+        },
+        "dither": {
+          "nominal": {
+            "dnl_min": -0.024480007577834195,
+            "dnl_max": 0.02325350835710238,
+            "inl_min": -4.875822122802837,
+            "inl_max": 0.602889212682811,
+            "missing_interior": 0,
+            "worst_dnl_code": 856321,
+            "worst_inl_transition": 686084
+          },
+          "fitted": {
+            "dnl_min": -0.03461260428344981,
+            "dnl_max": 0.039064263193415716,
+            "inl_min": -0.1304751833459609,
+            "inl_max": 0.24761948917860357,
+            "missing_interior": 0,
+            "worst_dnl_code": 384768,
+            "worst_inl_transition": 407296
+          }
+        },
+        "both": {
+          "nominal": {
+            "dnl_min": -0.06017347306335763,
+            "dnl_max": 0.033995568059785874,
+            "inl_min": -1.0579344129436163,
+            "inl_max": 0.6611183012364179,
+            "missing_interior": 0,
+            "worst_dnl_code": 1,
+            "worst_inl_transition": 776956
+          },
+          "fitted": {
+            "dnl_min": -0.03760220731788022,
+            "dnl_max": 0.03609379128333989,
+            "inl_min": -0.1369942912776785,
+            "inl_max": 0.1173858387980441,
+            "missing_interior": 0,
+            "worst_dnl_code": 861952,
+            "worst_inl_transition": 926719
+          },
+          "oracle": {
+            "dnl_min": -0.040265554682760496,
+            "dnl_max": 0.02812729794745983,
+            "inl_min": -0.057473971382130916,
+            "inl_max": 0.07312396916067856,
+            "missing_interior": 0,
+            "worst_dnl_code": 945664,
+            "worst_inl_transition": 245249
+          }
+        }
+      }
+    },
+    {
+      "chip_seed": 20261105,
+      "states": 128,
+      "evaluation_seed": 317012,
+      "sigma": 0.0001,
+      "training": {
+        "training_samples": 65536,
+        "training_states": 1024,
+        "rank": 357,
+        "columns": 360,
+        "observable_condition": 221.80119936637794,
+        "residual_rms_node_uV": 997.44385601638,
+        "coarse_lut_min_observations": 92
+      },
+      "modes": {
+        "fixed": {
+          "nominal": {
+            "dnl_min": -0.4197587350703915,
+            "dnl_max": 0.5150646724969119,
+            "inl_min": -2.3821560936951567,
+            "inl_max": 3.3724492316873262,
+            "missing_interior": 0,
+            "worst_dnl_code": 786431,
+            "worst_inl_transition": 802812
+          },
+          "fitted": {
+            "dnl_min": -0.13520878357223953,
+            "dnl_max": 0.04914054806378054,
+            "inl_min": -0.16475731385253553,
+            "inl_max": 0.16674964202461434,
+            "missing_interior": 0,
+            "worst_dnl_code": 655360,
+            "worst_inl_transition": 440320
+          },
+          "coarse_lut": {
+            "dnl_min": -0.4942615767514693,
+            "dnl_max": 0.554419456135872,
+            "inl_min": -1.249320808309692,
+            "inl_max": 2.419369533791088,
+            "missing_interior": 0,
+            "worst_dnl_code": 2048,
+            "worst_inl_transition": 802816
+          }
+        },
+        "dem": {
+          "nominal": {
+            "dnl_min": -0.16802133543871356,
+            "dnl_max": 0.27254123471828806,
+            "inl_min": -0.40949537371963984,
+            "inl_max": 0.9791644379701102,
+            "missing_interior": 0,
+            "worst_dnl_code": 4096,
+            "worst_inl_transition": 749579
+          },
+          "fitted": {
+            "dnl_min": -0.11669937700167554,
+            "dnl_max": 0.05886889381897009,
+            "inl_min": -0.1287563276399281,
+            "inl_max": 0.12860826084609872,
+            "missing_interior": 0,
+            "worst_dnl_code": 4096,
+            "worst_inl_transition": 696321
+          }
+        },
+        "dither": {
+          "nominal": {
+            "dnl_min": -0.019246367940389586,
+            "dnl_max": 0.023682535072819366,
+            "inl_min": -2.161448503551782,
+            "inl_max": 2.9229958870347716,
+            "missing_interior": 0,
+            "worst_dnl_code": 784898,
+            "worst_inl_transition": 790268
+          },
+          "fitted": {
+            "dnl_min": -0.031124105753373543,
+            "dnl_max": 0.028997329597032495,
+            "inl_min": -0.15450439892788825,
+            "inl_max": 0.10808420514303044,
+            "missing_interior": 0,
+            "worst_dnl_code": 511744,
+            "worst_inl_transition": 753414
+          }
+        },
+        "both": {
+          "nominal": {
+            "dnl_min": -0.03935364287893428,
+            "dnl_max": 0.03002571890633443,
+            "inl_min": -0.6996871860725903,
+            "inl_max": 0.4549062122933879,
+            "missing_interior": 0,
+            "worst_dnl_code": 1,
+            "worst_inl_transition": 779260
+          },
+          "fitted": {
+            "dnl_min": -0.03275759053413008,
+            "dnl_max": 0.02650525072453558,
+            "inl_min": -0.08380481771439183,
+            "inl_max": 0.09255762394270858,
+            "missing_interior": 0,
+            "worst_dnl_code": 320256,
+            "worst_inl_transition": 912368
+          },
+          "oracle": {
+            "dnl_min": -0.022498093007964126,
+            "dnl_max": 0.023068039042476007,
+            "inl_min": -0.06619807306921482,
+            "inl_max": 0.030877177520736303,
+            "missing_interior": 0,
+            "worst_dnl_code": 698624,
+            "worst_inl_transition": 657664
+          }
+        }
+      }
+    }
+  ],
+  "direct_replay": {
+    "chip_seed": 20261105,
+    "sigma": 0.0001,
+    "direct_input_sweep_by_mode": {
+      "fixed": {
+        "nominal": {
+          "total": 536870912,
+          "compared_bins": 1048576,
+          "different_bins": 0,
+          "max_hit_difference": 0
+        },
+        "fitted": {
+          "total": 536870912,
+          "compared_bins": 1048576,
+          "different_bins": 0,
+          "max_hit_difference": 0
+        }
+      },
+      "both": {
+        "nominal": {
+          "total": 536870912,
+          "compared_bins": 1048576,
+          "different_bins": 0,
+          "max_hit_difference": 0
+        },
+        "fitted": {
+          "total": 536870912,
+          "compared_bins": 1048576,
+          "different_bins": 0,
+          "max_hit_difference": 0
+        }
+      }
+    },
+    "verification_script_sha256": "7284cb9784cda3c77cabe82dac0d884a18a464995fcdb3823b554102cbabc0a7"
+  },
+  "independent_checks": {
+    "rescored_full_code_archives": 50,
+    "max_metric_delta_lsb20": 3.361861899975338e-10
+  }
+}

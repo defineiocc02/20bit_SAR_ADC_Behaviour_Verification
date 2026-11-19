@@ -160,10 +160,10 @@ v2 不是"把 v1 的限制放开"，而是按物理重接：dither 电容接在*
 ## ⑦ 复现命令
 
 ```bash
-# A2 / A6 同条件对照（写入 docs/reviews/20261113_p3p4/data）
+# A2 / A6 同条件对照（写入 docs/audit/reviews/20261113_p3p4/data）
 PYTHONPATH=src:. python3 tools/run_p4_ablation.py \
   --static-points 256 --static-repeats 32 --dynamic-n 8192 \
-  --out docs/reviews/20261113_p3p4/data
+  --out docs/audit/reviews/20261113_p3p4/data
 
 # 只看 dither 的四条不变量
 PYTHONPATH=src python3 -m pytest tests/unit/test_dither_charge_port.py -q

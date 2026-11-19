@@ -18,6 +18,8 @@ repos:
       - id: check-toml
       - id: check-added-large-files
         args: ["--maxkb=512"]
+        # 当前图册为本仓原创矢量出版物，CI 校验其 SHA-256 与图源身份。
+        exclude: ^docs/algorithms/digital-ip-atlas[.]pdf$
       - id: check-merge-conflict
       - id: debug-statements
 

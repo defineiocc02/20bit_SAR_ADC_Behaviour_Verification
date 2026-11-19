@@ -1,110 +1,74 @@
-# 两级 SAR ADC 的数字控制、重构和仿真
+# 20 位两级 SAR ADC 数字 IP
 
-两级 SAR ADC 先粗略判断输入电压，让电容阵列产生接近输入的电平。两者之间剩下的小差值叫**残差**，由第二级 ADC（ADC2）再测一次。这个仓库实现数字控制和出码逻辑。它根据前级已判出的位控制哪些电容参与转换，然后把第二级返回的残差码和这一笔的开关记录、校准权重合起来，算出 **20 位结果**。
+这套数字逻辑把两次量化合成一个 20 位结果。前级 SAR 先给出粗判决，数字 IP 据此逐位切换残差 DAC（RDAC）。第二级 ADC（ADC2）测量剩余电压并返回 13 位原码。要算准最终结果，还需要知道**这一笔实际用了哪八片电容，采样和转换时分别打开了哪些开关**。顶层将这些记录、校准权重和原码按样本标签配对，再输出最终码。
 
-当前唯一的集成 ADC 顶层是 [adc_digital_ip_v21.sv](rtl/v21/adc_digital_ip_v21.sv)，采用 **13 位 ADC2，0.75 V 输入窗口**。代码目录名是 `rtl/v21/`，设计规则由[工程合同](docs/CONTRACT_CURRENT.md)维护。
+工作树只有一个生产顶层 `adc_digital_ip_v21`。`v21` 是它在源码与构建清单中的名称。模拟比较器、残差放大器和 ADC2 通过宏接口连接。Python 行为模型用来研究电荷、失配、噪声和静态线性度。[顶层 RTL](rtl/v21/adc_digital_ip_v21.sv) · [生产源清单](flow/build/filelists/files_adc_v21.f) · [接口合同](docs/CONTRACT_CURRENT.md)
 
-仓库里还有一套 **Python 行为模型**，可以给电路模型输入电压，观察采样、残差、输出码和误差。配套实验脚本可以对比扰动、失配平均和校准开启前后的结果。工程参考 ISSCC 2024 9.8，设计点为 40 MS/s、±3 V 差分输入。实际验证覆盖和已知缺口见[项目状态](docs/STATUS.md)。
+[**打开完整数字 IP 图册（矢量 PDF）**](docs/algorithms/digital-ip-atlas.pdf) · [在线读算法、状态机与可编辑原图](docs/algorithms/README.md)
 
-## 先选你要看的东西
+![数字 IP 与模拟宏的信号交接，沿实际实例追踪采样开关、比较判决、权重和最终码](docs/algorithms/figures/digital-transaction-flow.svg)
 
-| 想做什么 | 从哪儿开始 |
+<a id="先选你要看的东西"></a>
+## 从一笔采样看功能
+
+<a id="跟一笔样本走完数字主线"></a>
+
+| 步骤 | 数字 IP 做什么 | 对应实现与图 |
+| --- | --- | --- |
+| 选片与交接 | 18 个物理片中，8 片采集、8 片转换、2 片备用。受理新请求时保存片号、样本标签和量化器编号。前一采集组整组转入转换。 | [片选 RTL](rtl/sched18.sv) · [片号逐拍图](docs/algorithms/digital.md#schedule) |
+| 生成并注入扰动 | 生产时将 `dither_force_i` 接 0。每次受理，片内产生一个六位字。所选的 SADC 接收低段七位开关，另一套保持。八片 RDAC 接收完整采样预置 `pre`。 | [两端开关译码](rtl/dither_pre.sv) · [扰动通路与交替写入状态图](docs/algorithms/digital.md#pre) |
+| 跟随判决并轮换单元 | 数字逻辑只提交前级已确定的位。动态单元匹配（DEM）让不同电容承担同一个名义码。最高区拒绝 512 试探时，本拍关闭写门，从 bit5 继续；末次实际写入的开关记作 `post`。 | [SAR 状态图](docs/algorithms/digital.md#events) · [DEM 开关矩阵](docs/algorithms/digital.md#dem) |
+| 捕获与重构 | 用八片的物理编号查片外标定、片内装载的权重。ADC2 返回原码后，使用同笔 `post` 的权重加回转换贡献，扣除同笔 `pre` 的权重，输出 20 位码、标签和状态。 | [ADC2 归属](rtl/v21/adc2_capture.sv) · [权重计算](rtl/v21/wsum_v21.sv) · [定点重构](rtl/v21/recon_v21.sv) |
+
+## 效果与验证条件
+
+| 可以核对的效果 | 实测或模型条件 |
 | --- | --- |
-| 看当前硬件主线怎样接线 | [数字顶层 adc_digital_ip_v21.sv](rtl/v21/adc_digital_ip_v21.sv)。它把下文的片组管理、开关控制和数字重构接在一起。 |
-| 在电脑上跑一笔或一段数据 | 模型会模拟前后两级的信号，输出逐笔数据。[Python 示例](#跑起来) |
-| 看图理解开关是怎么动的 | [机理图和验证图](docs/figures/20261117/README.md)从采集与转换交替开始，跟到实际选通的电容、残差和最终出码。 |
-| 改接口、查位宽或确认合法输入 | [工程合同](docs/CONTRACT_CURRENT.md)给出硬件遵守的规则，[RTL 导航](rtl/README.md)给出对应实现和测试入口。 |
-
-## 跟一笔样本走完数字主线
-
-1. **分配本拍采样和转换的片组（D1，D6）。** 稳态下，电容阵列分为 18 个切片，每个切片是一组电容。其中 8 片采集新输入、8 片转换上一笔，另外 2 片空闲。控制器接收样本时记下片号、样本编号（`tag`）和开关参数。片组由采样转入转换时，这套记录也随样本带过去。[片组调度](rtl/sched18.sv) · [样本交接](rtl/v21/acq_conv_ctx.sv)
-2. **采样前先设置扰动（D4）。** 采样前主动加一个已知的小偏移，目的是打散误差随输入重复的模式。6 位扰动字同时决定采样预置 `pre` 和转换时所需的码偏移 `U`。如果这笔的前级最终判为 200，且预先选定的 `U=4`，电容阵列就按命令 204 设置开关。采样时真正采用的预置会保留到重构，供扣回扰动。[扰动预置](rtl/dither_pre.sv)
-3. **前级每确定一位，电容开关就跟进一步（D2，D3）。** 普通转换先有一次快速判决，再接六次逐位判决。数字逻辑只使用已经确定的结果更新电容开关。动态单元匹配（DEM）轮换承担同样名义权重的电容，以分散固定失配的影响。最后一次有效开关状态记为 `post`，用于后续重构。[逐位事件](rtl/v21/sar_evt_v21.sv) · [开关掩码](rtl/dem_mask_v3.sv)
-4. **把残差码和同一笔的开关记录合起来（D6，D5）。** 模拟侧放大残差，ADC2 返回 13 位原码。数字端给这份原码配回捕获时保存的样本编号与权重和。重构器读实际 `pre/post` 对应的校准权重，扣回扰动，最终输出 20 位码、样本编号和数字状态标志。ADC2 的越界标志随它自己的响应给出。[残差捕获](rtl/v21/adc2_capture.sv) · [权重求和](rtl/v21/wsum_v21.sv) · [定点重构](rtl/v21/recon_v21.sv)
-
-开关接口对每片提供 4 位采样预置和 20 位转换控制。ADC2 的规定输入窗口为 `[-0.1875, +0.5625) V`。测试台可使用行为宏模拟 ADC2 的返回，实际模拟电路仍由外部接口连接。[规格与位序](docs/CONTRACT_CURRENT.md) · [权重怎样装入及提交](docs/v21/CONFIG_CONTRACT.md)
+| **扰动能否扣回** | 本地 Verilator 驱动生产顶层，理想宏读取真实 SADC、RDAC 开关。固定输入连续 1,024 笔，片内字源覆盖全部 64 个字，每笔输出 410304。单独在重构端漏扣字 53 的采样权重，输出多 13,568 码；重复扣则少 13,568 码。[逐笔数据与复现命令](docs/audit/TREE_AUDIT_REPORT.md#dither-word-audit) |
+| **错配能校正多少** | 给一个物理子单元施加已知偏差，同批 192 笔原码使用名义权重时有 24 笔偏离 ±32 码。装入已知系数后，192 笔全部回到参考值。全码 DNL/INL 另由静态电荷模型评估，图注列出失配、训练和测试条件。[数字 IP 算法与效果](docs/algorithms/README.md) · [全码 DNL/INL 对照](docs/audit/TREE_AUDIT_REPORT.md#全码静态线性度) |
+| **能否连续 40 MS/s** | 在 640 MHz 理想数字时钟、比较判决和宏握手按约到达时，顶层连续交付 192 笔，输出间隔 25 ns。数字时钟本身为 40 MHz 时，第一笔余差在预定采样沿尚未获得捕获授权。实际模拟宏时限和同版整核物理时序待验收。[时钟条件与对照结果](docs/STATUS.md#持续采样率) |
 
 ## 文件放在哪里
 
-根目录有 9 个目录和 4 个文件。四个文件分别为本页 `README.md`、Python 打包配置 `pyproject.toml`、以及 `.gitignore` 和 `.gitattributes`。
+根目录的四个文件是本页、Python 打包配置 `pyproject.toml`、Git 忽略规则 `.gitignore` 和检出规则 `.gitattributes`。九个目录按下表使用。
 
-~~~text
-.
-├── rtl/                             SystemVerilog 硬件
-│   ├── v21/                         当前主顶层与该顶层专用模块
-│   ├── sched18.sv                   主线用的 18 片调度
-│   ├── dither_pre.sv                主线用的采样预置
-│   ├── dem_mask_v3.sv               主线用的电容开关译码
-│   ├── recip_q60.sv                 重构用的整数倒数底层
-│   ├── top/                         组件检查用的粗判决编码器
-│   ├── core/                        组件检查用的定点和事务逻辑
-│   └── params/                      错误码等 RTL 头文件
-├── tb/                              SystemVerilog 测试台和参考向量
-│   └── v21/                         主线的采样、事件、捕获和重构用例
-├── src/adi_model/                   Python 行为模型
-│   ├── cli.py                       命令行参数和输出文件
-│   ├── defaults.py                  默认参数和模型装配
-│   ├── topology/                    电容连接和输入、码、开关的映射
-│   ├── control/                     片组选取、开关控制和扰动算法
-│   ├── behavioral/                  采样、参考、放大和量化的模型
-│   ├── simulation/                  按样本推进并保存过程记录
-│   ├── contracts/                   Python 参数、数据类型和整数规则
-│   ├── calibration/                 拟合、保存和应用校准系数
-│   └── metrics/                     频谱、线性度等计算
-├── flow/                            仿真、验证和后端流程
-│   ├── Makefile                     列出常用的测试和向量生成入口
-│   ├── build/filelists/             v21 源清单与组件测试清单
-│   ├── sim/fixtures/                仿真输入、绑定和权重数据
-│   ├── tests/                       单项和集成检查
-│   ├── verification/                组件参考和来源登记
-│   │   ├── reference/               Python 整数参考
-│   │   └── manifests/               来源清单和机制登记
-│   ├── formal/                      静态属性证明的脚本和属性
-│   ├── synth/                       综合、布局布线及网表等价脚本
-│   └── scripts/                     文件与运行目录维护
-├── tools/                           可直接调用的脚本
-│   ├── verify_v21.sh                运行数字主线测试
-│   ├── run_open_rtl.py              运行独立组件测试
-│   ├── recon_oracle.py              生成定点重构的参考结果
-│   ├── run_review_figures.py        重画机理图和定量图
-│   ├── requirements.txt            Python 工具环境所需依赖
-│   └── results/                     冻结的历史结果
-├── subsys/                          额外研究和子系统
-│   ├── ad4080_dsp/                  数字滤波和读出
-│   ├── extensions/caaz/             斩波辅助自归零模型
-│   └── experiments/                 对照实验与制图配置
-├── docs/                            规格、说明和证据
-│   ├── CONTRACT_CURRENT.md          硬件接口和合法行为
-│   ├── STATUS.md                    已验证的范围和待解决问题
-│   ├── v21/                         权重配置、算术与整核验证专题
-│   ├── guide/                       上手、架构和排查
-│   ├── mechanisms/                  论文机制和本工程对应关系
-│   ├── figures/20261117/            图、图注与逐图运行清单
-│   ├── audit/                       审计、后端报告和原始证据
-│   ├── meta/                        变更记录、许可和仓库维护说明
-│   └── _history/                    按当时版本保留的记录
-├── references/                      论文及讲稿原件、出处与清单
-└── .github/                         CI、提交模板和维护配置
-~~~
-
-找一块硬件时，从 `rtl/` 找实现，从 `tb/` 找对应激励，再到 `flow/build/filelists/` 看它和哪些文件一起编译。仿真会读配套的输入文件，比如 `.mem`、`.hex` 和配套 `.json`。需要核对一个已报告的数字时，从状态表找到对应的验收或审计原件，记录里的源、配置、工具和输入决定这个数字的范围。[文件归属说明](docs/meta/REPOSITORY_LAYOUT.md) · [文档索引](docs/INDEX.md)
+| 根目录 | 内容和入口 |
+| --- | --- |
+| [rtl/](rtl/README.md) | 生产 SystemVerilog。顶层与专用模块在 `v21/`，片选、DEM、扰动预置与倒数叶子在 `rtl/`。`core/` 和 `top/` 另供组件验证。 |
+| [tb/](tb/) | SystemVerilog 测试台、C++ 顶层驱动与冻结向量。集成 ADC 的事件、交接、连续采样和重构检查在 [tb/v21/](tb/v21/)。 |
+| [src/](src/adi_model/) | Python 包 `adi_model`。`control/` 实现控制算法，`topology/` 和 `behavioral/` 描述电荷与非理想，`simulation/` 推进样本，`calibration/`、`metrics/` 求系数和误差。 |
+| [flow/](flow/) | `build/filelists/` 选编译源，[sim/](flow/sim/README.md) 说明仿真和夹具，`tests/` 保存 Python 回归，`formal/`、`synth/` 保存形式验证和后端流程。 |
+| [tools/](tools/) | 可执行入口。定向 RTL 测试用 `run_open_rtl.py`，正式 VCS 回归用 `verify_v21.sh`，结构与图册分别由 `check_engineering.py` 和 `v21_algorithm_atlas.mjs` 核对。 |
+| [docs/](docs/INDEX.md) | [接口合同](docs/CONTRACT_CURRENT.md)、[项目状态](docs/STATUS.md)、[算法与状态机](docs/algorithms/README.md)、[审计证据](docs/audit/README.md)。行为图和全码线性度图在 `figures/`，旧工程记录在 `_history/`。 |
+| [references/](references/README.md) | 论文、讲稿、来源清单。查论文原图和相应页码从这里进入。 |
+| [subsys/](subsys/) | 独立 DSP、斩波辅助自归零（CAAZ）和研究实验。生产 ADC 的编译范围由上述源清单确定。 |
+| [.github/](.github/) | CI 工作流、协作约定及维护模板。 |
 
 ## 跑起来
 
-**先跑 Python 的 64 笔例子。** 在仓库根执行。
+从仓库根运行。下面三条只读检查分别清点工作树、核对工程链接及接口、核对算法图与图源。
 
 ~~~bash
-run_dir="$(mktemp -d /tmp/sar-adc-demo.XXXXXX)"
+python3 -B tools/check_doc_counts.py
+python3 -B tools/check_engineering.py
+node tools/v21_algorithm_atlas.mjs --check
+~~~
+
+**看 64 笔 Python 行为输出。** 默认行为模型的名义物理增益 `g0=Cnorm/Cf` 为 **32.0**。同一模型的定点码本只计入参与转换驱动的单元，权重和约为 **31.028**；细码解码按两者的比例换算。[模型定点约定](src/adi_model/contracts/README.md)
+
+输出目录含 `codes.npz`、`metadata.json` 与 `assumptions.json`，可一起核对样本、参数和假设。[Python 快速上手](docs/guide/QUICKSTART.md)
+
+~~~bash
+run_dir="$(mktemp -d)"
 bash tools/pyenv.sh --run -m adi_model simulate --samples 64 --output "$run_dir/sim"
 ~~~
 
-`codes.npz` 保存每笔的输出码和过程记录，`metadata.json` 说明这次如何运行，`assumptions.json` 保存模型假设。默认模型的物理增益 `g0` 为 **32.0**，码本的定点权重和约为 **31.028**。细码解码按两者的比例换算，查模型输出误差时应使用同一增益口径。[Python 快速上手](docs/guide/QUICKSTART.md) · [定点约定](src/adi_model/contracts/README.md)
+**复核数字顶层。** 本机有 Verilator 和 C++ 工具链时，以下命令记录连续采样、扰动和定点重构。顶层的 `summary.csv` 对照各场景，`samples.csv` 保存逐笔引脚与出码。正式 VCS 回归、综合与等价各有独立入口。[仿真与 RTL 测试](flow/sim/README.md) · [综合与等价](flow/synth/README.md)
 
-**从仓库根运行 v21 硬件回归。**
+~~~bash
+rtl_dir="$(mktemp -d)"
+bash tools/pyenv.sh --run tools/run_open_rtl.py --simulator verilator \
+  --tops v21_sample_cadence tb_i4_recon tb_recon_stream --out "$rtl_dir/results"
+~~~
 
-| 想检查的范围 | 入口 |
-| --- | --- |
-| 主线的事件、片组交接、ADC2 返回及定点重构 | `bash tools/verify_v21.sh`。这是 VCS 测试入口。默认新建本次任务目录。远端运行时设置 `V21_RUNNER`。[仿真环境](docs/v21/I5_ENVIRONMENT.md) · [远端工作目录规范](docs/audit/REMOTE_WORKDIR_POLICY.md) |
-| 只核对 DEM 开关表和扰动预置 | 共享模块的叶子回归。 [仿真入口](flow/sim/README.md) |
-
-组件测试和历史结果由各自证据记录。[验证范围与待解决问题](docs/STATUS.md) · [变更记录](docs/meta/CHANGELOG.md) · [论文和讲稿](references/README.md) · [English overview](docs/meta/README_EN.md)
+[文件归属与维护](docs/meta/REPOSITORY_LAYOUT.md) · [变更记录](docs/meta/CHANGELOG.md) · [English overview](docs/meta/README_EN.md)

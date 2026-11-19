@@ -10,13 +10,16 @@
 各项实验使用 `adi_model` 的 Fig.11 17/5 电容阵列和 18 选 8 调度配置。
 
 运行：
-    PYTHONPATH=src python3 tools/run_p3_mechanisms.py --out docs/reviews/20261113_p3p4/data
+    run_dir="$(mktemp -d)"
+    PYTHONPATH=src python3 tools/run_p3_mechanisms.py --out "$run_dir"
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import sys
+import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -319,11 +322,14 @@ def track_evidence(model, n: int = 4096) -> dict:
 # 按机制逐项写入完整 JSON，终端摘要便于定位应继续查看的分支。
 def main() -> int:
     parser = argparse.ArgumentParser(description="P3 mechanism evidence")
-    parser.add_argument("--out", default="docs/reviews/20261113_p3p4/data")
+    parser.add_argument("--out", type=Path, help="结果目录；省略时在系统临时目录中新建")
     parser.add_argument("--samples", type=int, default=4096)
     args = parser.parse_args()
-    out = Path(args.out)
+    # 无参数重跑时使用独立目录，避免半次或并发运行覆盖已发布的图和测量记录。
+    out = args.out if args.out is not None else Path(tempfile.mkdtemp(prefix="sar-mechanism-study-"))
     out.mkdir(parents=True, exist_ok=True)
+    if args.out is None:
+        print(f"结果目录 {out}", file=sys.stderr)
     # 2026-11-13：这里用 exist_ok=True 是为了允许"输出到已有目录"，
     # 但会**静默覆盖**同名结果文件。打印一行提示，避免误当成新结果。
     if out.is_dir() and any(out.iterdir()) and not getattr(args, "force", False):

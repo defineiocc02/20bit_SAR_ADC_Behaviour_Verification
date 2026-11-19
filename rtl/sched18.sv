@@ -1,6 +1,6 @@
 // D1 · random18 片组调度器（ACQ / CONV / IDLE 三态）
 //
-// 与 legacy9（slice_pool.sv 的 8 片连续轮转）并列，由顶层 sched_mode_i 选择。
+// 生产顶层通过受理脉冲推进本模块；sched_ext_sel 仅供片组接口定向测试。
 //
 // 每拍推进一次（adv = 一笔事务被接收）：
 //   1) conv' = acq                上一周期的采集组进入转换，整周期冻结
@@ -33,10 +33,8 @@ module sched18 (
     output logic [39:0] ids_o,          // 本周期采集组，8×5 bit，按片号升序
     // **下一周期**采集组的片号（adv 推进后的值）。
     //
-    // 为什么需要：prepare 在 adv 那一拍被接受，而 acq_q 要到沿后才更新。
-    // 若描述符用 ids_o（沿前的 acq_q），冻结下来的就是**上一笔**的片号 ——
-    // 审计问题 1 的根因（acq_ids 与 conv_ids 拿到同一组 0x398A418820）。
-    // 描述符必须在 prepare 那一拍就拿到**本笔新分配**的片号，即 acq_next。
+    // 这是推进后的预览值。v21 接受 prepare 时冻结沿前 ids_o，同时推进调度器，
+    // 下一笔才使用推进后的片组；不应把预览值替换成本笔实际绑定的片号。
     output logic [39:0] ids_next_o,
     output logic [31:0] rng_o
 );
@@ -64,7 +62,7 @@ module sched18 (
 
     // ---------------------------------------------------------------- 候选表
     logic [17:0] avail;
-    assign avail = ~acq_q;          // 与 ~conv_q 等价： conv_q == acq_q 的上一版
+    assign avail = ~acq_q;          // 当前 ACQ 将进 CONV，下一次的 ACQ 只能选其补集
 
     // 候选表：把 avail 里置位的 10 个片号按升序压进 cand[0..9]。
     //

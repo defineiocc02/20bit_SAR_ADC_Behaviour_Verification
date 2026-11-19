@@ -71,28 +71,30 @@ module tb_i4_recon;
         string line, nm;
         int r;
         fd = $fopen(path, "r");
-        if (fd == 0) begin $display("FATAL: cannot open %s", path); $finish; end
+        if (fd == 0) $fatal(1, "cannot open reconstruction vectors: %s", path);
         n = 0;
         // 用 $fgets 逐行读再 $sscanf：直接 $fscanf 带 %s 时，
         // 行尾名字与换行的组合容易让它在某些 VCS 版本上提前返回 0，
         // 导致"载入 0 组"却不报错（实测踩过）。
-        while (!$feof(fd) && n < MAXV) begin
-            if ($fgets(line, fd) == 0) continue;
+        while (!$feof(fd)) begin
+            // 把有副作用的读行放在循环体内，避免工具展开条件时重复读行。
+            if ($fgets(line, fd) == 0) begin
+                if ($feof(fd)) break;
+                $fatal(1, "cannot read reconstruction vector at line %0d", n+1);
+            end
+            if (n >= MAXV) $fatal(1, "too many reconstruction vectors: %s", path);
             r = $sscanf(line, "%d %d %d %d %d %d %d %d %d %s",
                         a,b_,c,d,e,f,g,h,i,nm);
-            if (r >= 9) begin
-                v_raw[n]=a; v_Wm[n]=b_; v_G[n]=c; v_Wp[n]=d;
-                v_alpha[n]=e; v_b[n]=f; v_code[n]=g; v_sat[n]=h; v_err[n]=i;
-                n = n + 1;
-            end
+            if (r != 10) $fatal(1, "malformed reconstruction vector at line %0d", n+1);
+            v_raw[n]=a; v_Wm[n]=b_; v_G[n]=c; v_Wp[n]=d;
+            v_alpha[n]=e; v_b[n]=f; v_code[n]=g; v_sat[n]=h; v_err[n]=i;
+            n = n + 1;
         end
         $fclose(fd);
         N_VEC = n;
         $display("      载入 %0d 组金标", n);
-        if (n < 10) begin
-            $display("FATAL: 金标载入过少（%0d），检查 vec_i4_recon.txt 路径", n);
-            $finish;
-        end
+        // 后续循环固定访问两笔名义样本和 8192 个原码，短文件必须就地失败。
+        if (n < 2 + 8192) $fatal(1, "short ADC2 sweep: %0d vectors", n);
     endtask
 
     // 跑一组
@@ -146,7 +148,9 @@ module tb_i4_recon;
     endtask
 
     initial begin
-        load_vectors("vec_i4_recon.txt");
+        string vec_path;
+        if (!$value$plusargs("VEC=%s", vec_path)) vec_path = "vec_i4_recon.txt";
+        load_vectors(vec_path);
 
         repeat (3) @(negedge clk);
         rst_n = 1'b1; @(negedge clk);
@@ -156,7 +160,9 @@ module tb_i4_recon;
         run_one(0, "A");
         run_one(1, "B");
         checks = checks + 1;
-        if (int'(code_o) !== 0) ;   // 上一拍的 B 已被下一次覆盖，这里只提示
+        // run_one 在下降沿撤销请求，B 的返回值此时仍在接口上。
+        if ({out_tag, code_o, out_sat, out_err} !== {32'd1, 20'h80000, 2'b00})
+            fail("名义中点的标签、出码或标志错误");
         $display("      定向两点完成");
 
         // ==================== 扫 raw 全域 8192 点 ====================
@@ -200,7 +206,10 @@ module tb_i4_recon;
 
         $display("---------------------------------------------------------------");
         $display("I4 recon: %0d 检查, %0d errors, 退休 %0d 笔", checks, errors, retired);
-        if (errors == 0) $display("RESULT: PASS (%0d checks, %0d retired)", checks, retired);
+        if (errors == 0) begin
+            $display("RECON_FROZEN_COMPLETE vectors=%0d checks=%0d", retired, checks);
+            $display("RESULT: PASS (%0d checks, %0d retired)", checks, retired);
+        end
         else             $display("RESULT: FAIL (%0d errors)", errors);
         $finish;
     end

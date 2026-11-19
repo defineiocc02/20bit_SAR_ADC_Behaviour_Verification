@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="digital-pre-flow" width="960" height="574" viewBox="0 0 960 574" role="img" aria-labelledby="digital-pre-flow-title digital-pre-flow-desc">
+<title id="digital-pre-flow-title">同一个扰动字怎样注入并扣回</title>
+<desc id="digital-pre-flow-desc">受理沿为这笔样本选择一个六位字。低段写入所选 SADC，完整预置发给八个 RDAC 槽，高段与已决前缀生成转换命令。相同物理片的 pre 和 post 决定 Wp、Wm。</desc>
+<defs>
+<marker id="digital-pre-flow-i" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#1b3441"/></marker>
+<marker id="digital-pre-flow-t" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#006d6a"/></marker>
+<marker id="digital-pre-flow-r" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#994124"/></marker>
+<marker id="digital-pre-flow-g" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#425b66"/></marker>
+</defs>
+<rect width="960" height="574" fill="white"/>
+<g font-family="Arial, PingFang SC, Noto Sans CJK SC, Microsoft YaHei, sans-serif" fill="#1b3441">
+<text x="28" y="41" text-anchor="start" font-size="30" font-weight="650" fill="#1b3441">同一个扰动字怎样注入并扣回</text>
+<text x="29" y="68" text-anchor="start" font-size="17" font-weight="400" fill="#425b66">D₆ 为最高位，D₁ 为最低位。低三位组成分数码 f = 4D₃ + 2D₂ + D₁。</text>
+<g id="digital-pre-flow-word">
+<rect x="28" y="204" width="218" height="108" rx="3" fill="#ffffff" stroke="#1b3441" stroke-width="1.8"/>
+<text x="137" y="240" text-anchor="middle" font-size="23" font-weight="600" fill="#1b3441">片内扰动字源</text>
+<text x="137" y="268" text-anchor="middle" font-size="19" font-weight="450" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">xorshift32</text>
+<text x="137" y="293" text-anchor="middle" font-size="17" font-weight="400" fill="#425b66">取下一状态的低 6 位</text>
+<path d="M137 379 V312" fill="none" stroke="#425b66" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 4" marker-end="url(#digital-pre-flow-g)"/>
+<text x="137" y="402" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">prepare_fire</text>
+<text x="137" y="425" text-anchor="middle" font-size="17" font-weight="400" fill="#425b66">每受理一笔推进一次</text>
+<path d="M246 253 H308" fill="none" stroke="#1b3441" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M308 144 V360" fill="none" stroke="#1b3441" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="276" y="240" text-anchor="middle" font-size="15" font-weight="550" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">w[5:0]</text>
+<path d="M308 144 H341" fill="none" stroke="#1b3441" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-pre-flow-i)"/>
+<path d="M308 253 H341" fill="none" stroke="#1b3441" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-pre-flow-i)"/>
+<path d="M308 360 H341" fill="none" stroke="#1b3441" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-pre-flow-i)"/>
+<circle cx="308" cy="253" r="3.6" fill="#1b3441"/>
+</g>
+<g id="digital-pre-flow-branches">
+<rect x="341" y="108" width="243" height="72" rx="3" fill="#ffffff" stroke="#1b3441" stroke-width="1.8"/>
+<text x="462.5" y="141.0" text-anchor="middle" font-size="22" font-weight="600" fill="#1b3441">量化器低段 L</text>
+<text x="462.5" y="165.0" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">2D₅ + f / 8</text>
+<rect x="341" y="217" width="243" height="72" rx="3" fill="#ffffff" stroke="#1b3441" stroke-width="1.8"/>
+<text x="462.5" y="250.0" text-anchor="middle" font-size="22" font-weight="600" fill="#1b3441">完整采样预置 T</text>
+<text x="462.5" y="274.0" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">T = U + L</text>
+<rect x="341" y="324" width="243" height="72" rx="3" fill="#ffffff" stroke="#1b3441" stroke-width="1.8"/>
+<text x="462.5" y="357.0" text-anchor="middle" font-size="22" font-weight="600" fill="#1b3441">数字高段 U</text>
+<text x="462.5" y="381.0" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">U = 4D₆ + D₄</text>
+<rect x="655" y="108" width="271" height="72" rx="3" fill="#eef6f5" stroke="#006d6a" stroke-width="1.8"/>
+<text x="790.5" y="141.0" text-anchor="middle" font-size="22" font-weight="600" fill="#006d6a">写所选 SADC</text>
+<text x="790.5" y="165.0" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">七位开关，仅写 qid 指定的一组</text>
+<rect x="655" y="217" width="271" height="72" rx="3" fill="#ffffff" stroke="#1b3441" stroke-width="1.8"/>
+<text x="790.5" y="250.0" text-anchor="middle" font-size="22" font-weight="600" fill="#1b3441">按采样开关求 Wp</text>
+<text x="790.5" y="274.0" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">八个物理片号与 pre 一起保存</text>
+<rect x="655" y="324" width="271" height="72" rx="3" fill="#ffffff" stroke="#1b3441" stroke-width="1.8"/>
+<text x="790.5" y="357.0" text-anchor="middle" font-size="22" font-weight="600" fill="#1b3441">按转换开关求 Wm</text>
+<text x="790.5" y="381.0" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">已决粗码 c 加 U，再经 DEM 选通</text>
+<path d="M584 144 H655" fill="none" stroke="#006d6a" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-pre-flow-t)"/>
+<path d="M584 253 H655" fill="none" stroke="#1b3441" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-pre-flow-i)"/>
+<path d="M584 360 H655" fill="none" stroke="#1b3441" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-pre-flow-i)"/>
+<text x="619" y="236" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">八槽</text>
+<text x="619" y="346" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">c + U</text>
+<path d="M926 253 H944 V461 H913" fill="none" stroke="#1b3441" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-pre-flow-i)"/>
+<path d="M786 396 V432" fill="none" stroke="#1b3441" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-pre-flow-i)"/>
+<rect x="341" y="432" width="572" height="60" rx="3" fill="#eef6f5" stroke="#006d6a" stroke-width="1.8"/>
+<text x="627" y="469" text-anchor="middle" font-size="23" font-weight="600" fill="#006d6a">重构分子　64Z + 6Wm − 3G − 6Wp</text>
+</g>
+<g id="digital-pre-flow-example">
+<path d="M28 513 H932" fill="none" stroke="#d0dadb" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="29" y="541" text-anchor="start" font-size="17" font-weight="650" fill="#1b3441">固定输入</text>
+<text x="124" y="541" text-anchor="start" font-size="17" font-weight="400" fill="#1b3441">字 53（110101）</text>
+<text x="322" y="541" text-anchor="start" font-size="17" font-weight="400" fill="#1b3441">SADC 低段 2.625</text>
+<text x="531" y="541" text-anchor="start" font-size="17" font-weight="400" fill="#1b3441">RDAC 平均预置 6.625</text>
+<text x="778" y="541" text-anchor="start" font-size="18" font-weight="650" fill="#006d6a">输出 410304</text>
+</g>
+</g>
+</svg>

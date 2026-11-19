@@ -5,7 +5,7 @@
 # 功能       : v21 数字 IP 的正式验收入口（一条命令跑完全部回归）。
 # 设计说明   :
 #   * 生产依赖从 v21 文件清单读取。ADC2 行为宏仅用于仿真。
-#   * 九个 RTL 用例在执行端新建的任务目录中编译、运行并保留日志。
+#   * RTL 用例在新建的任务目录中运行；重构还要对实际轨迹逐笔核对。
 #   * V21_RUNNER 可指定 SSH 主机。未设置时使用本机 VCS。
 #   * --check-sources 只核对并打印仿真源，不启动任何工具。
 # =============================================================================
@@ -56,8 +56,10 @@ TESTS=(
   "tb/v21/tb_i4b_e2e.sv|s4b|PASS (25 checks)"
   "tb/tb_recip_q60.sv|srecip|PASS (43766 inverses bit-exact"
   "tb/v21/tb_recip_rnd.sv|srnd|PASS (20817 RND(2^60,G) bit-exact)"
-  "tb/v21/tb_analog_if.sv|saif|SUMMARY checks=54 failures=0"
+  "tb/v21/tb_analog_if.sv|saif|SUMMARY checks=124 failures=0"
   "tb/v21/tb_cfg_lifecycle.sv|scl|PASS (20 checks)"
+  "tb/v21/tb_i4_recon.sv|si4|PASS (8213 checks, 8209 retired)"
+  "tb/v21/tb_recon_stream.sv|sstr|RECON_STREAM_CAPTURE_COMPLETE"
 )
 
 # ---- 2. 执行端目录与源码暂存 ---------------------------------------------------
@@ -111,7 +113,8 @@ echo "=== 准备 $WORK ==="
 run "mkdir -p -- $WORK/rtl/v21 $WORK/tb/v21 $WORK/tools" || exit 1
 # scp 逐文件传输让 RTL 与测试台的相对路径在两端严格一致。
 FILES=("${SOURCES[@]}" tb/v21/tb_e2e_decl.svh tb/v21/tb_e2e_body.svh \
-       tb/vec_r18_recip.txt tb/v21/vec_recip_rnd.txt tools/check_rtl_rnd96.py)
+       tb/vec_r18_recip.txt tb/v21/vec_recip_rnd.txt tb/v21/vec_i4_recon.txt \
+       tools/check_rtl_rnd96.py tools/recon_oracle.py)
 for test_case in "${TESTS[@]}"; do
     FILES+=("${test_case%%|*}")
 done
@@ -142,6 +145,10 @@ for t in "${TESTS[@]}"; do
       SRC_USE="$SRC_REL" ;;
     tb_cfg_lifecycle.sv)
       SRC_USE="rtl/v21/wsum_v21.sv" ;;
+    # 两个测试台共用发布的倒数链和重构器；一个按冻结码验收，
+    # 一个跟踪跨拍的 N、I、X 和标签，均不需要 ADC2 行为宏。
+    tb_i4_recon.sv|tb_recon_stream.sv)
+      SRC_USE="rtl/recip_q60.sv rtl/v21/recip_rnd_v21.sv rtl/v21/recon_v21.sv" ;;
     *) SRC_USE="$SRC_REL" ;;
   esac
   run "$SETUP; cd $WORK && vcs -full64 -sverilog -timescale=1ns/1ps $SRC_USE $f -o $bin > ${bin}_c.log 2>&1" \
@@ -151,9 +158,23 @@ for t in "${TESTS[@]}"; do
   case "$bf" in
     tb_recip_q60.sv) VARGS="+VEC=$WORK/tb/vec_r18_recip.txt" ;;
     tb_recip_rnd.sv) VARGS="+VEC=$WORK/tb/v21/vec_recip_rnd.txt" ;;
+    tb_i4_recon.sv) VARGS="+VEC=$WORK/tb/v21/vec_i4_recon.txt" ;;
+    tb_recon_stream.sv)
+      # 生成器与检查器来自同一份源码快照，旧运行目录里的 trace 不可复用。
+      # 模拟器和检查器都在本次 WORK 内按相同的相对路径读写。
+      run "cd $WORK && python3 -B tools/recon_oracle.py generate stream.vec" \
+        || { echo "  $bf 激励生成失败"; fail=1; continue; }
+      VARGS="+VEC=stream.vec +TRACE=stream.csv" ;;
   esac
   # 退出码、完成标志均需通过，避免中途失败把先前的字样当成本项结果。
   if out=$(run "$SETUP; cd $WORK && ./$bin $VARGS 2>&1") && grep -Fq "$want" <<< "$out"; then
+    if [[ "$bf" == tb_recon_stream.sv ]]; then
+      # 仅捕获完 CSV 无法判定出码正确，边界探针与逐级逐标签对拍须各自通过。
+      if ! grep -Fxq 'RECON_S3_LIMITS_PASS checks=6' <<< "$out" ||
+         ! run "cd $WORK && python3 -B tools/recon_oracle.py examine stream.csv stream.json"; then
+        echo "  $bf  FAIL（S3 边界或逐笔输出不符）"; fail=1; continue
+      fi
+    fi
     echo "  $bf  PASS"
   else
     echo "  $bf  FAIL（期望 '$want'）"
@@ -187,7 +208,7 @@ echo "  [C] VC Formal 属性证明                 未完成（不计入通过�
 
 echo
 if [ "$fail" -eq 0 ]; then
-  echo "全部通过：9 项 RTL 回归 + [A] 数学证明 + [B] 生产 RTL 检查"
+  echo "全部通过：${#TESTS[@]} 项 RTL 回归 + [A] 数学证明 + [B] 生产 RTL 检查"
   echo "注意：[C] 工具形式化未完成，本入口不声称已形式化验证。"
 else
   echo "存在失败项，见上"

@@ -1,6 +1,6 @@
 # RTL与注释维护约定
 
-适用于当前ad4080_dsp源码及与SAR的接入。SV正文借鉴lowRISC的`//`组织方式，保持项目真实文件头；Python调用文档借鉴Google docstring，仅在需要时写Args、Returns、Raises、Attributes。完整SAR接口与算术另见[现行合同](../../../docs/rtl/CURRENT_INTERFACE_AND_ARITHMETIC.md)。
+适用于当前ad4080_dsp源码及与SAR的接入。SV正文借鉴lowRISC的`//`组织方式，保持项目真实文件头；Python调用文档借鉴Google docstring，仅在需要时写Args、Returns、Raises、Attributes。完整SAR接口与算术另见[现行合同](../../../docs/audit/components/CURRENT_INTERFACE_AND_ARITHMETIC.md)。
 
 ## 注释与接口文档
 

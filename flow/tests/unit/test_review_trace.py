@@ -18,7 +18,7 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-REVIEW = ROOT / "docs/reviews"
+REVIEW = ROOT / "docs/audit/reviews"
 SOURCE_BASELINE = "20261105-source-coverage.json"
 SOURCE_EXTENSION = "20261105-caaz-source-coverage.json"
 CODE_BASELINE = "20261105-code-coverage.json"

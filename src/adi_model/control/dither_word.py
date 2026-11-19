@@ -1,24 +1,27 @@
 # =============================================================================
-# 文件名     : dither_word_gen.py
-# 模块名     : dither_word_gen
+# 文件名     : dither_word.py
+# 模块名     : DitherWordGenerator
 # 版本       : v1.0
-# 功能       : 模块二的六位 dither 字参考，状态和字均可按样本重放。
+# 功能       : 按受理顺序复现 v21 的六位采样扰动字。
 #
 # 设计说明   :
-#   * 承担 扰动字与前缀码参考模型 中的一环；输入输出的物理口径与单位以同目录 SPEC/README 为准。
+#   * B8 选定独立的 xorshift32 状态。首笔使用复位种子推进一次后的低六位。
+#   * 外部定向字和零字都占用一个已接受样本。暂停不发字、不消耗状态。
 # -----------------------------------------------------------------------------
 # 变更记录
 # -----------------------------------------------------------------------------
-# 初始版本，暂无变更记录。
+# 接受沿选字与 v21 的独立 xorshift32 共用工程合同。
 # =============================================================================
 
-"""模块二的六位 dither 字参考，状态和字均可按样本重放。"""
+"""工程定义的可重放字源；片选与扰动共用变换公式，各自持有独立状态。"""
 
 from dataclasses import dataclass, replace
 from operator import index
 
-DEFAULT_DITHER_SEED = 0x5A1709C3
-_STATE_MASK = (1 << 31) - 1
+from adi_model.sched18_rtl import prng_step
+
+DEFAULT_DITHER_SEED = 0xC001D00D
+_STATE_MASK = (1 << 32) - 1
 _WORD_MASK = (1 << 6) - 1
 _ID_MASK = (1 << 32) - 1
 
@@ -59,16 +62,23 @@ class DitherWordGenerator:
         rst_n: bool = True,
         clear: bool = False,
         dither_enable: bool = True,
+        force_word: int | None = None,
         seed_load: bool = False,
         seed: int = 0,
         sample_accept: bool = False,
         sample_id: int = 0,
     ) -> DitherWordOutput:
-        """以同步复位、写种子、接受采样的顺序评估一个上升沿。"""
+        """受理一个 prepare 产生一字；force_word 为 0…63，关闭扰动等效强制零。
+
+        seed_load 仅供独立软件重放；生产 RTL 从固定种子复位。
+        测试台的空拍、受理后排空或错误返回都不能额外推进字源。
+        """
         seed = index(seed)
         sample_id = index(sample_id)
         if not (0 <= seed <= _STATE_MASK and 0 <= sample_id <= _ID_MASK):
-            raise ValueError("seed and sample ID must fit in 31 and 32 bits")
+            raise ValueError("seed and sample ID must fit in 32 bits")
+        if force_word is not None and not 0 <= index(force_word) <= _WORD_MASK:
+            raise ValueError("force_word must fit in 6 bits")
 
         current = replace(self._state, word_valid=False, seed_error=False)
         if not rst_n or clear:
@@ -79,12 +89,10 @@ class DitherWordGenerator:
             else:
                 current = replace(current, rng_state=seed)
         elif sample_accept:
-            state = current.rng_state
-            word = 0
-            if dither_enable:
-                # 连续六次反馈都只读取旧状态中尚未移出的位。
-                word = ((state >> 25) ^ (state >> 22)) & _WORD_MASK
-                state = ((state << 6) & _STATE_MASK) | word
+            state = prng_step(current.rng_state)
+            word = state & _WORD_MASK if force_word is None else index(force_word)
+            if not dither_enable:
+                word = 0
             current = DitherWordOutput(word, True, sample_id, state)
         self._state = current
         return current

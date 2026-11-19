@@ -100,7 +100,7 @@ def decode(word: np.ndarray) -> Dither:
 
 
 def words(enabled: np.ndarray, seed: int) -> np.ndarray:
-    """生成与 RTL 一致的采样序列，关闭时保持 PRBS 状态。"""
+    """按受理样本数推进字源；关闭扰动的样本输出零字。"""
     generator = DitherWordGenerator()
     if generator.step(seed_load=True, seed=seed).seed_error:
         raise ValueError("a nonzero dither seed is required")

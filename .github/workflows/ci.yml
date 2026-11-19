@@ -99,6 +99,17 @@ jobs:
             > compile.log 2>&1 || { cat compile.log; exit 1; }
           ./obj/Vtb_cfg_lifecycle | tee simulation.log
           grep -Fx 'RESULT: PASS (20 checks)' simulation.log
+      - name: Check signed v21 reconstruction across sample tags
+        # 用仓库的逐笔 oracle 比对 DUT 数据、标签、饱和与错误标志。
+        # 相邻有效沿和夹空拍两条路径共用同一测试台，记录随本次工件保留。
+        run: |
+          python tools/run_open_rtl.py --simulator verilator --tops tb_i4_recon tb_recon_stream \
+            --out "$SAR_CI_RUN_ROOT/v21-recon"
+      - name: Verify physical slice handover and on-chip dither at the production top
+        # 量化器与余差驱动读取生产 DUT 输出的开关。断开低段的反例须在 ADC2 接口可见。
+        run: |
+          python tools/run_open_rtl.py --simulator verilator --tops tb_analog_if v21_sample_cadence \
+            --out "$SAR_CI_RUN_ROOT/v21-top"
       - name: Independent integer arithmetic with explicit format
         run: |
           python tools/audit_rtl_arithmetic.py \
@@ -189,7 +200,10 @@ jobs:
       - run: python -m pip install -e .
       - name: Check working-tree contracts and published figures
         # 对照当前合同、Python、RTL 和图件，避免目录迁移留下坏链接或旧规格。
-        run: python tools/check_engineering.py
+        # 算法图的检查仅读取图源、RTL 与已发布 SVG，无需浏览器或 EDA。
+        run: |
+          python tools/check_engineering.py
+          node tools/v21_algorithm_atlas.mjs --check
       - name: Check index structure without relabeling unbuilt mechanisms
         run: |
           mkdir -p "$SAR_CI_RUN_ROOT"

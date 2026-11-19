@@ -30,27 +30,10 @@ htmlcov/
 coverage.xml
 .hypothesis/
 
-# --- 本机生成结果与旧证据白名单 ---
+# 本机结果写入临时目录。冻结的历史模型输出保存在 docs/_history/model_results/。
 results/
 outputs/
 *.png
-# 旧输出按固定身份保留。目录放行后重新屏蔽其余内容，避免误加新产物。
-!/tools/results/
-/tools/results/*
-!/tools/results/README.md
-!/tools/results/results.json
-!/tools/results/report.html
-!/tools/results/fig/
-/tools/results/fig/*
-!/tools/results/fig/budget.png
-!/tools/results/fig/dem_spectrum.png
-!/tools/results/fig/ktc.png
-!/tools/results/fig/mismatch_stress.png
-!/tools/results/fig/physical_calibration.png
-!/tools/results/fig/static_curves.png
-!/tools/results/fig/sweep.png
-!/tools/results/fig/v5_structure.png
-!/tools/results/fig/v7_v8_compare.png
 # --- 文档配图始终跟踪 ---
 !docs/**/*.png
 
@@ -89,6 +72,8 @@ literature/
 *.pdf
 # 自有历史复现报告保留原路径，分发排除规则由 pyproject.toml 定义。
 !/docs/_history/report/reproduction_report.pdf
+# 本工程绘制的数字 IP 图册；摘要随图源清单核验。
+!/docs/algorithms/digital-ip-atlas.pdf
 # This report and its figures are authored in this repository's audit; keep
 # the third-party reference PDFs under refs/ and the broad *.pdf guard above.
 !docs/reports/rtl_patent_audit_20260930/**/*.pdf

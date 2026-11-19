@@ -89,6 +89,7 @@ module tb_audit3;
         .w_cfg_range_err(t_cfg_range_err),
         .clk(clk), .rst_n(rst_n),
         .prepare_valid(prepare), .prepare_ready(ready),
+        .dither_force_i(1'b1), .sadc_pre_state_o(), .sadc_pre_wr_o(),
         .prepare_tag(tag), .prepare_word(word_in),
         .prepare_h(3'd0), .prepare_v(3'd0),
         .prepare_half(1'b0), .prepare_coin(1'b0),

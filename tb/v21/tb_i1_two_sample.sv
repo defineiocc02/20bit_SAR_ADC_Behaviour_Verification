@@ -73,18 +73,19 @@ module tb_i1_two_sample;
     // ---------------------------------------------------------------- DUT
     acq_conv_ctx u_ctx (
         .clk(clk), .rst_n(rst_n),
-        .prepare_valid(prepare_valid), .prepare_ready(prepare_ready),
+        .prepare_valid(prepare_valid), .prepare_ready(prepare_ready), .cfg_valid(1'b1),
         .prepare_tag(prepare_tag), .prepare_word(prepare_word),
         .prepare_h(prepare_h), .prepare_v_dem(prepare_v_dem),
         .prepare_v_pre(prepare_v_pre), .prepare_half(prepare_half),
-        .prepare_coin(prepare_coin),
+        .prepare_coin(prepare_coin), .prepare_qid(~prepare_tag[0]), .prepare_flash(3'd0), .stop_i(1'b0),
         .sample_event(sample_event), .input_captured(input_captured),
         .residue_captured(residue_captured), .hold_ack(hold_ack),
         .sched_acq(sched_acq), .sched_conv(sched_conv), .sched_idle(sched_idle),
-        .sched_ids(sched_ids),
+        .sched_ids(sched_ids), .sched_ids_next(40'd0),
         .acq_sel_o(acq_sel), .conv_sel_o(conv_sel), .idle_sel_o(idle_sel),
         .acq_h_o(acq_h), .acq_v_dem_o(acq_v_dem), .acq_v_pre_o(acq_v_pre),
         .acq_half_o(acq_half), .acq_coin_o(acq_coin),
+        .acq_tag_o(), .acq_flash_o(), .conv_flash_o(), .acq_qid_o(), .conv_qid_o(),
         .acq_word_o(acq_word), .acq_U_o(acq_U),
         .acq_pre_slot_i(pre_slot_only),
         .acq_sampled_o(acq_sampled),
@@ -95,7 +96,7 @@ module tb_i1_two_sample;
         .acq_valid_o(acq_valid), .conv_valid_o(conv_valid),
         .rdac_pre_state_o(pre_state), .pre_wr_o(pre_wr),
         .rdac_post_state_o(post_state), .post_wr_o(post_wr),
-        .prepare_fire_o(prepare_fire),
+        .prepare_fire_o(prepare_fire), .sched_adv_o(sched_adv),
         .commit_fire_o(commit_fire), .release_fire_o(release_fire),
         .conv_tag_o(conv_tag), .conv_word_o(conv_word), .conv_U_o(conv_U),
         .conv_pre_slot_o(conv_pre_slot));
@@ -108,7 +109,7 @@ module tb_i1_two_sample;
     // 算出的 pre 是上一笔的 -> 存入 acq_pre_q 后全错（实测 A 变成 word=0 的结果）。
     // 生产顶层同样是"prepare 沿用输入 word 算 pre，随即冻结进描述符"。
     dither_pre u_pd (.word_i(prepare_word), .v_phase_i(prepare_v_pre),
-                     .pre_o(pre_slot_only), .U_o(U_leaf), .f_o(f_leaf));
+                     .pre_o(pre_slot_only), .U_o(U_leaf), .f_o(f_leaf), .sadc_pre_o());
 
     // 把叶子的 slot 级 pre 接回 DUT（生产实现里应在 DUT 内例化；
     // 本测试为清晰起见在 TB 里串接，等价于 acq_pre_slot_o 直连叶子输出）

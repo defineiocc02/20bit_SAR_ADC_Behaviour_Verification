@@ -4,7 +4,7 @@
 
 | 查询 | 入口 |
 | --- | --- |
-| 来源、方程和覆盖范围 | [来源复查](../reviews/20261105-caaz-source-review.md) · [机理覆盖清单](../../flow/verification/manifests/mechanism_inventory.json) |
+| 来源、方程和覆盖范围 | [来源复查](../audit/reviews/20261105-caaz-source-review.md) · [机理覆盖清单](../../flow/verification/manifests/mechanism_inventory.json) |
 | 冻结行为结果 | [数据摘要](data/summary.json) · [机理实验图](fig/caaz_mechanism_results.png) · [配对读出带宽图](fig/caaz_bandwidth.png) |
 | 历史数字上下文 | [CSV](data/rtl_context_trace.csv) · [来源与命令](data/rtl_context_summary.json) · [当时的验证台账](verification.json) |
 | 版次及接口 | [归档专题快照](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9bdf7708f42733896d7ead89935be41b4258fb6f/docs/caaz/README.md) · [历史数字接口](RTL_INTERFACE.md) |
@@ -29,7 +29,7 @@ bash tools/pyenv.sh --run docs/caaz/make_figures.py --out /tmp/sar-caaz-figures
 | `PKU_VLSI2025_C32_1_PAPER` | 3 页会议论文 | p.1 正文；p.2 Figs.2–6；p.3 测量、比较与参考文献 |
 | `PKU_VLSI2025_C32_1_SLIDES` | 42 页讲稿 | PDF pp.28–35，对应页脚 Slide 27–34；PDF pp.37–41 为测量与比较 |
 
-完整哈希、规范文件名和逐页记录由[来源清单](../../flow/verification/manifests/sources_manifest.json)与[CAAZ来源覆盖记录](../reviews/20261105-caaz-source-coverage.json)管理。`C32_C32-1.pdf` 与规范讲稿是同 SHA 的别名，不是另一篇论文。讲稿 PDF 页码比其页脚 Slide 编号大一；下文标明两者以免错页。本次维护者选定的原件另见[资料目录](../../references/README.md)，保留其原版权与内嵌声明；本专题的结果图仍由本工程独立生成。
+完整哈希、规范文件名和逐页记录由[来源清单](../../flow/verification/manifests/sources_manifest.json)与[CAAZ来源覆盖记录](../audit/reviews/20261105-caaz-source-coverage.json)管理。`C32_C32-1.pdf` 与规范讲稿是同 SHA 的别名，不是另一篇论文。讲稿 PDF 页码比其页脚 Slide 编号大一；下文标明两者以免错页。本次维护者选定的原件另见[资料目录](../../references/README.md)，保留其原版权与内嵌声明；本专题的结果图仍由本工程独立生成。
 
 ## 电路中保存的是什么
 
@@ -223,7 +223,7 @@ Python 在保留全部输出的同时显式标记无效 pair；RTL 的实时接�
 | 电容校准与数字重构 | 先完成整笔位权重构再pair。训练参考、dither和元数据的极性域要一致，两笔应使用同一合法系数epoch；CAAZ不替代物理位权学习。 |
 | 系统校正、DSP与数据输出 | `pair_valid`及中点时间戳进入后处理；滤波采样率改用pair ODR，切换模式需处理滤波／FIFO状态；输出带宽、错误策略及外部帧协议另验。 |
 
-现行接口、状态和目录从[项目首页](../../README.md)进入。该轮历史上下文的设计依据另见[结构合同原记录](../adr/0021-structural-contract-calibration.md)。
+现行接口、状态和目录从[项目首页](../../README.md)进入。该轮历史上下文的设计依据另见[结构合同原记录](../guide/decisions/0021-structural-contract-calibration.md)。
 
 ## 当时待开展的验证
 

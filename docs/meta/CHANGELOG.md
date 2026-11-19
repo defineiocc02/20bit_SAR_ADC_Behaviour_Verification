@@ -4,6 +4,16 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 数字 IP 交接与重构回归（2026-11-19）
+
+采集与转换同沿交权时，片选、预置数据和写门跟随同一描述符。重构用本笔有符号 X 生成错误位。新增报告给出的十空拍样本和沿前沿后引脚检查。根 README 可直接打开可校验的矢量图册。[问题复核](../audit/ISSUE_10.md)
+
+数字效果图清单的 SHA-256 从 `13f1e9556e71cbce024fda973d151b741144c79cc07128f8a0737e356559df33` 更新为 `764719f20a901b029ded52f36ddf8df339ee34dd7f81dc1d697b9945ea4ccf01`。工作树重新计算后，各项数值及 15 份单图文件摘要完全相同。清单差异来自片权 RTL、逐沿断言与重构激励的源码身份。
+
+## 工作树导览与验证资料整理（2026-11-19）
+
+当前接口、状态和文档导航集中在 `docs/` 的三个入口。旧独立 IP 验收、模型报告与历史数据归入 `_history/`。数字 IP 图册、行为模型图与全码线性度结果分别保留图源和数据。早期 ADC2 与逐位联调测试收进 Git 历史，机制清单指向完整用例。[文件归属与复核方法](REPOSITORY_LAYOUT.md)
+
 ## 2026-11-17 · 统一 ADC 工作树
 
 - 集成 RTL 只走 v21，Python 只登记 40 MS/s、±3 V 的 ADC 配置。ADC2 为 13 位，输入窗口 `[-0.1875, +0.5625) V`。
@@ -18,13 +28,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Report the structural quantizer's fixed D=2 LFSR sequence in effective configuration, explicitly marking the requested floating amplitude inactive. Requested configuration is retained; dither samples, ADC2 raw words and final 20-bit words are unchanged across eight before/after captures. This metadata repair is separate from the documentation/comment cleanup.
 - Report `sadc_cap_ratio` as reserved/inactive: the production SADC noise and shared-source load use `c_sadc`. Changing the reserved ratio leaves acquisition, ADC2 raw words and final integer words unchanged, while a separate `c_sadc` control changes the active model. No default, geometry or electrical solver is changed.
 - Include error mean and RMS alongside the existing standard deviation in structural-calibration reports. Fresh two-chip and noisy holdout runs preserve all previous numerical fields, observations, frozen coefficients and register hashes; the four added fields are computed from the actual held-out final integer codes.
-- Independently reviewed 18 source documents / 596 pages, 49 Python production modules and 41 RTL production modules; retain page/file coverage and explicit source ambiguities in `docs/reviews/`.
+- Independently reviewed 18 source documents / 596 pages, 49 Python production modules and 41 RTL production modules; retain page/file coverage and explicit source ambiguities in `docs/audit/reviews/`.
 - Fixed module CLI option forwarding, complete reference-recovery timing, configuration/register input validation, RMS versus standard-deviation measurements, matched integer calibration comparisons and complete production DEM averaging.
 - Corrected charge units and use an explicit 1 pV equivalent-output numerical consistency check; retain the old misnamed charge key with a deprecation/unit declaration.
 - Prevent frozen-calibration input overwrite through path aliases; preserve effective provenance grades and complete integer/analog parameter dependencies; correct clean-repository identity and exclusive RA saturation statistics.
 - In the initial maintenance pass, fixed digital differential CNV interpretation, SPI frame-abort writes and the first status bit. Those protocol fixes preserve public RTL ports and register addresses; the subsequent optional CAAZ interface extension is recorded below.
 - Standardized the initial 41 production RTL contracts and professional comments; that pass preserves every noncomment token and semantic directive in 39 modules, with its functional changes confined to CNV/SPI.
-- Rebased the shipped `tools/results/results.json` on a new full acceptance execution. SHA-256: `5ff9ef9ade0eac30d3a9851a4c52b0cdff22f0e2374d3a2bac5b08a84e394123` → `3724a8ada35da8d8bba59696f9f025356be379ba9a515e6fcbfa44450741d092`. The previous snapshot predated the present mainline; accumulated value/schema changes are recorded, not attributed solely to this patch. Historical `tools/results/fig` images remain identified separately.
+- Rebased the shipped `docs/_history/model_results/results.json` on a new full acceptance execution. SHA-256: `5ff9ef9ade0eac30d3a9851a4c52b0cdff22f0e2374d3a2bac5b08a84e394123` → `3724a8ada35da8d8bba59696f9f025356be379ba9a515e6fcbfa44450741d092`. The previous snapshot predated the present mainline; accumulated value/schema changes are recorded, not attributed solely to this patch. Historical `docs/_history/model_results/fig` images remain identified separately.
 - Parameter/vector metadata is regenerated with unchanged numeric localparams and register values; source-grade and dependency records change deliberately. README retains four work packages and now has nine original figures with reproducible evidence.
 - Subsequently reviewed the separate PKU VLSI 2025 C32-1 paper and 42-page presentation, bringing source coverage to 20 documents / 641 pages. Preserve the initial dated audit and add a separate source/requirement/code extension ledger.
 - Added disabled-by-default sample-domain chopping-assisted AZ, native RA-output error injection before clipping/ADC2, full-word pairing and explicit raw40/pair20 rate/bandwidth contracts. Noise amplitudes are assumed independently, not fitted to the source's measured 4.3 dB benefit.
@@ -277,7 +287,7 @@ finite"` / `"nonpositive"`），彼此可区分。三重变异（分别禁用入
 
 ### Changed — 参考产物重标定（逐字节账）
 
-本版**重算了仓内参考产物** `tools/results/results.json`。按字节账纪律登记：
+本版**重算了仓内参考产物** `docs/_history/model_results/results.json`。按字节账纪律登记：
 
 | 项 | 值 |
 | :--- | :--- |
@@ -392,7 +402,7 @@ finite"` / `"nonpositive"`），彼此可区分。三重变异（分别禁用入
   flags ports; both profiles share configuration and correction; default
   16 ticks/sample, reconstruction latency 11 full clocks after the accept
   edge. RTL sources managed via `rtl/rtl_sources.f`.
-- Behavioral reference outputs are unchanged: `tools/results/results.json`
+- Behavioral reference outputs are unchanged: `docs/_history/model_results/results.json`
   SHA256 stays `f3e1a7967f22b30e037d881668b40124cea4ed3f47600a2addb69a502f67c0eb`
   (identical to v8.0.0) — this release adds the RTL subsystem and touches no
   Python pipeline code.
@@ -431,7 +441,7 @@ including the new Verilator RTL simulation check.
 - Versioned results are atomic UTF-8 standard JSON with null/status metadata for
   undefined values. Reports render actual evidence and current scope; v7 scope
   snapshots are archived. Experiment CLI scripts are included in wheels.
-- Reference-output byte accounting for this release: `tools/results/results.json`
+- Reference-output byte accounting for this release: `docs/_history/model_results/results.json`
   SHA256 changes from `a1ccd92fcf46500460221a55c4e2527093b45e6e272b7fb0503ee1fcd435ac70`
   (v7.0.10 aggregate baseline) to `f3e1a7967f22b30e037d881668b40124cea4ed3f47600a2addb69a502f67c0eb`
   (8.0.0 physical pipeline). The change is intentional and traceable to the
@@ -564,7 +574,7 @@ R1/R2 physical-pool work (release discipline).
   N2 re-scoped to "main-path integration not done".
 - `docs/report/` — XeLaTeX reproduction report (16 pp., 8 disclosed-
   mechanism ↔ model-data comparison figures) with its figure generator
-  `gen_figs.py` (all plotted quantities read from `tools/results/
+  `gen_figs.py` (all plotted quantities read from `docs/_history/model_results/
   results.json` or computed at runtime; no hard-coded model results).
 
 ### Notes
@@ -576,7 +586,7 @@ R1/R2 physical-pool work (release discipline).
   bandwidth, threshold gain, t_conv, power-up initial condition, S1 top-up
   gain. c_signal / c_dac anchors derive from this repository's
   `c_active_nominal()`.
-- Reference outputs unchanged: `tools/results/results.json` fingerprint
+- Reference outputs unchanged: `docs/_history/model_results/results.json` fingerprint
   `a1ccd92f…35ac70` untouched (no pipeline code path modified).
 
 ## [7.0.7] — 2026-09-11
@@ -765,7 +775,7 @@ rescued by tightening the gate around it — it makes the wrong answer *more*
 convincing. Per-finding adjudication, with the reproduction command for each:
 `docs/archive/review_response_2026-09-11c.md`.
 
-**The reference output changes in exactly one record.** `tools/results/results.json`
+**The reference output changes in exactly one record.** `docs/_history/model_results/results.json`
 is byte-identical to v7.0.2 except for the `validate_ktc` KTC bandwidth entry,
 whose key, measured value and verdict all move together (see *Fixed*, first item).
 Baseline `65c047a9…4ecdec` → `a1ccd92f…35ac70`, verified by a full re-run.
@@ -861,7 +871,7 @@ gaps. All three are confirmed on the code, and checking them turned up a live
 failing requirement that no gate had ever seen. Per-finding adjudication, with
 the reproduction command for each: `docs/archive/review_response_2026-09-11b.md`.
 
-Nothing in this section changes `tools/results/results.json`: the file is
+Nothing in this section changes `docs/_history/model_results/results.json`: the file is
 byte-identical to v7.0.1 (`65c047a9…4ecdec`), verified by a full re-run.
 
 ### Fixed
@@ -1073,7 +1083,7 @@ documentation**, listed first below.
   low-frequency power is "not an oversight" was **wrong** and is corrected
   (see below).
 
-### Documented as open (each changes `tools/results/results.json`; not applied)
+### Documented as open (each changes `docs/_history/model_results/results.json`; not applied)
 
 - **Sample ownership is not enforced on the shuffled path.** Measured
   independently at N=8192, seed 20260911: the default `Scheduler` is causally
@@ -1126,7 +1136,7 @@ defects detectable by CI instead of by peer review.
   `RESEARCH_EXTENSION`), a `Graded[T]` container with a runtime
   `require()` assertion, an 88-entry `PARAM_GRADES` table, and
   `audit_provenance()` which reports ungraded fields, fitted-in-use and
-  assumed-in-use. See `docs/adr/0007-provenance-as-a-runtime-value.md`.
+  assumed-in-use. See `docs/guide/decisions/0007-provenance-as-a-runtime-value.md`.
 - **Physical 18-slice pool** (`src/adi_model/simulation/slice_pool.py`):
   `PhysicalSlicePool` owns the unit capacitors, the held charge and the
   acquisition history; `check_causality()` verifies that a converting slice
@@ -1157,7 +1167,7 @@ defects detectable by CI instead of by peer review.
   lacked `Args`/`Returns`. Every stage function in `experiments.py` also
   states *what it tests*, *how*, *the pass/fail criterion*, and the meaning
   of each key in its heterogeneous result dict.
-  **Verified numerically inert**: `tools/results/results.json` is
+  **Verified numerically inert**: `docs/_history/model_results/results.json` is
   byte-identical before and after (SHA256 `fb77298d…42bfd3c`, 93 751 B).
 - **`docs/archive/STATUS.md`** — release-time snapshot: scale, the four gates,
   audit closure table, source-grading rules, docstring coverage, and an
@@ -1189,14 +1199,14 @@ defects detectable by CI instead of by peer review.
   log2(DAC levels / 2**b1)`, `Δ2/G0 <= LSB20`, residue peak < ADC2 upper rail).
   Default is `paper_consistent`: **7b SADC + 2b dither range enhancement = 9b**,
   the unique split consistent with *both* published statements.
-  See `docs/adr/0003-stage-1-resolution.md`.
+  See `docs/guide/decisions/0003-stage-1-resolution.md`.
 - **A02 — cross-cycle sample binding.** v6.1 drew an independent 8/18
   permutation every cycle: only **1** transition in 8191 had the conversion
   group equal to the previous acquisition group (mean **3.5572 of 8** slices),
   and 8180 conversions re-selected a slice immediately. Randomisation now
   happens *within* the causality constraint (`shuffle_causal`) or not at all
   (`pingpong`): **0 violations, mean coverage 8.0 / 8**. See
-  `docs/adr/0005-physical-slice-pool.md`.
+  `docs/guide/decisions/0005-physical-slice-pool.md`.
 - **A02b — mismatch was not bound to the 8/18 choice.** v6.1's fixed-schedule
   and shuffled-schedule runs were bit-identical (max difference **0.0 µV**)
   because the physical DAC evaluation never saw the selection. Now
@@ -1225,7 +1235,7 @@ defects detectable by CI instead of by peer review.
   Now `ADC2.quantize_with_correction(vra, κ*v_N)` quantises first and subtracts
   in the digital domain: **0 % overflow at every frequency**, with the
   semantics of `over` restricted to what ADC2 actually sees. See
-  `docs/adr/0006-observer-correction-is-digital.md`.
+  `docs/guide/decisions/0006-observer-correction-is-digital.md`.
 - **A07.1 — 20-bit code domain.** `n_bits_target` only defines the LSB
   reference; the output is an analog-voltage equivalent, not a 20-bit encoder
   word. A test asserts that changing `n_bits_target` from 18 to 20 changes
@@ -1245,7 +1255,7 @@ defects detectable by CI instead of by peer review.
   with `np.gradient` monkey-patched back in reproduces the audited bias
   point-by-point (5/10/15/18/19 MHz → measured ratios 1.1 / 1.6 / 3.3 / 9.2 /
   18.3 against theoretical 1/|H| = 1.11 / 1.57 / 3.33 / 9.15 / 19.1). See
-  `docs/adr/0008-exact-slope-for-skew.md`.
+  `docs/guide/decisions/0008-exact-slope-for-skew.md`.
 - **A07.4 — Monte-Carlo histogram provenance.** `tools/run_all.py` drew
   **400** Gaussian samples from the MC mean/std and captioned the plot "60
   chips"; such a figure cannot support tail or yield statements.

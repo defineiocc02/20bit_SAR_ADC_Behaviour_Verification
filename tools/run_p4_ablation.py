@@ -16,13 +16,15 @@
   不用"接近就行"的替代量填表。
 
 运行：
-    PYTHONPATH=src python3 tools/run_p4_ablation.py --out docs/reviews/20261113_p3p4/data
+    run_dir="$(mktemp -d)"
+    PYTHONPATH=src python3 tools/run_p4_ablation.py --out "$run_dir"
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import tempfile
 import time
 from dataclasses import replace
 from pathlib import Path
@@ -409,12 +411,13 @@ def _build_model(mismatch_std: float, noise: bool, *, seed: int = 20261105) -> D
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="P4 ablation matrix")
-    parser.add_argument("--out", default="docs/reviews/20261113_p3p4/data")
+    parser.add_argument("--out", type=Path, help="结果目录；省略时在系统临时目录中新建")
     parser.add_argument("--dynamic-n", type=int, default=8192)
     parser.add_argument("--static-points", type=int, default=512)
     parser.add_argument("--static-repeats", type=int, default=8)
     args = parser.parse_args()
-    out = Path(args.out)
+    # 无参数重跑时使用独立目录，避免半次或并发运行覆盖已发布的图和测量记录。
+    out = args.out if args.out is not None else Path(tempfile.mkdtemp(prefix="sar-ablation-"))
     out.mkdir(parents=True, exist_ok=True)
 
     rows = []

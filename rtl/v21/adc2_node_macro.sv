@@ -6,7 +6,7 @@
 //              计算差分余差 y，再按 13 位 offset-binary 编码成 raw。
 //              对应方案 v1.4 §4.1/§9.2、合同 v2 §8/§8.1。
 // 设计说明   :
-//   * 合同差分余差（docs/ISSCC2024_ONCHIP_CONTRACT_v2.md §7）：
+//   * 合同差分余差（docs/v21/PHYSICAL_INTERFACE.md §7）：
 //       G   = sum(active main weights)          —— 本笔 8 片主行和
 //       Wm  = sum(final main/sub post-mask * physical weights)
 //       Wp  = sum(sub-array sample pre-mask * physical weights)

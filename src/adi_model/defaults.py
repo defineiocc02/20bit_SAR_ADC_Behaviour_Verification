@@ -80,7 +80,7 @@ class DefaultParameters:
 
     n_main: int = 17
     n_sub: int = 5
-    # 2026-11-13：按 docs/decisions/20261112_fig11_unification.md §5.1 对齐到 Fig.11 17/5。
+    # 2026-11-13：按 docs/guide/decisions/20261112_fig11_unification.md §5.1 对齐到 Fig.11 17/5。
     #   main = 15×2C + 1C(B4) + 1C(S4) = 32C；sub = 8+4+2+1 = 15C；bridge = 1C
     #   β = Cb/(Cb+ΣB) = 1/16
     #   采样口径 C_samp = 32 + 15/16 = 32.9375C/片 → 8 片 = 20.5 pF（论文锚点）

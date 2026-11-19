@@ -1,12 +1,19 @@
-"""D3 DEM / D4 Split Dither 的参考算法（唯一实现）。
+# =============================================================================
+# 文件名     : dem_dither.py
+# 模块名     : DEM 与扰动开关参考
+# 功能       : 从转换命令和六位采样字得到八槽的实际开关。
+# 设计依据   : 物理单元编号及开关编码见 docs/v21/SWITCHING_RULES.md 的 B1–B6。
+# =============================================================================
+"""D3 DEM 与 D4 分路扰动的数字参考。
 
-合同：docs/ISSCC2024_ONCHIP_CONTRACT_v2_1_ADDENDUM.md
+合同：docs/v21/SWITCHING_RULES.md
 本模块只放**纯函数**，不含整链转换、失配、频谱实验。
 """
 CF = 16.0
 SUB = (4, 2, 1, 1)
 
 
+# 1. 转换期先形成基础掩码，再按硬件接线交换一对等名义权重的支路。
 def post_mask(k, h, v):
     """D3：k -> 8×20 物理 post-mask（bridge 交换之前）。
 
@@ -34,7 +41,7 @@ def post_mask(k, h, v):
 
 
 def bridge_swap(m, h, v, acq_seq, coin):
-    """D3：合同 §6.1 等名义电荷交换。"""
+    """D3：按照开关规则 B5 交换主半单元与八片子支路。"""
     if not coin:
         return m
     res = (7 + h) % 8
@@ -48,6 +55,7 @@ def bridge_swap(m, h, v, acq_seq, coin):
     return o
 
 
+# 2. 采样期从同一字分出 U、低段和总预置；小数部分在八个槽上分配。
 def dither_split(word):
     """D4：6 位扰动字 -> (U, Ld, T, f)。"""
     d1, d2, d3 = word & 1, (word >> 1) & 1, (word >> 2) & 1

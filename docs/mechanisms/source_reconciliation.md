@@ -125,7 +125,7 @@ US10511316B2 第 23 栏原文（页 43，左栏）：
 |:---|:---|
 | `docs/mechanisms/dem_fig11.md` | 撤 R1、改 R2、补 R3 |
 | `docs/mechanisms/source_crosscheck_20261112.md` | 同上；T04 结论由 PASS(图) 改为 PARTIAL |
-| `docs/decisions/20261112_fig11_unification.md` | 增加 R6 的裁决分支 |
+| `docs/guide/decisions/20261112_fig11_unification.md` | 增加 R6 的裁决分支 |
 | `src/adi_model/topology/capacitors.py` | `SUB_WEIGHTS` 5→4（R7） |
 | `calibration/mask_calibration.py` | 符号/分母/活动掩码（本轮未动，见 S1） |
 

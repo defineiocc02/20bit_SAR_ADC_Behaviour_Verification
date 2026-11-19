@@ -41,7 +41,7 @@ GROUP_SLICES = 8
 MAIN_WEIGHTS = (2,) * 15 + (1, 1)
 # 2026-11-13 修正（R7 落地）：原为 5 项 (8,4,2,1,1)，末位 1C 其实是**桥接电容本身**
 # 被数成了子阵列单元。证据：US10511316B2 FIG.19 放大后跨桥只有 8C/4C/2C/C 四个电容
-# （docs/decisions/20261112_fig11_unification.md §5.1、docs/mechanisms/source_reconciliation.md R7）。
+# （docs/guide/decisions/20261112_fig11_unification.md §5.1、docs/mechanisms/source_reconciliation.md R7）。
 # 自洽性：β=Cb/(Cb+ΣB)；要求 512 个 LSB 之和恰好等于主阵列 32C，则 ΣB 必须是 15C，
 # 而 8+4+2+1=15 ✓、8+4+2+1+1=16 ✗。实测 DNL：5 项为 +0.886 LSB（步长 2:1）、4 项恒 0。
 SUB_WEIGHTS = (8, 4, 2, 1)

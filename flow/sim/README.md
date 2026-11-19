@@ -4,7 +4,9 @@
 
 | 检查对象 | 入口与范围 |
 | --- | --- |
-| v21 整链 | [verify_v21.sh](../../tools/verify_v21.sh) 组织数字事务、捕获、ADC2 节点宏与整数回归。 |
+| v21 整链 | [verify_v21.sh](../../tools/verify_v21.sh) 登记 11 个测试台，含逐位事件、事务归属、ADC2 宏与重构。 |
+| 重构出码 | 本地 Verilator 运行 `tb_i4_recon` 和 `tb_recon_stream`，两者都实例化生产 `recon_v21`。前者检查冻结向量，后者按标签检查连续输入、空拍、延迟和错误传播。[运行命令与实测](../../docs/audit/todo/README.md#recon-s3) |
+| 顶层连续采样 | `v21_sample_cadence` 直接驱动现有生产顶层，检查片内字源、SADC 实际低段引脚、RDAC 去扰、逐笔系数作用和连续输出间隔。[十二个场景与复现命令](../../docs/STATUS.md#持续采样率) |
 | 共享 D3/D4 模块 | [verify_d3d4.sh](../../tools/verify_d3d4.sh) 核对 DEM 掩码和分路扰动向量。 |
 | 源绑定、定点和 DSP 组件 | [CI 工作流](../../.github/workflows/ci.yml)声明测试台与显式输入。结论范围取决于当次组件和输入。 |
 
@@ -17,3 +19,5 @@
 - [ref/](ref/) 放独立定点参考，[smoke/](smoke/) 放仿真器通路的小例子。
 
 旧回归按当时的运行记录追溯。[分层验证](../verification/README.md) · [项目状态](../../docs/STATUS.md)
+
+[集成数字回归的被测通路](../../docs/algorithms/digital.md)

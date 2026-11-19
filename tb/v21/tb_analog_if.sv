@@ -1,14 +1,14 @@
 `timescale 1ns/1ps
 // 来源：独立审查 isscc9p8_source_crosscheck_20261116/analog_interface_v21/
-//       tb_analog_interface_v21.sv（原样入库，仅改模块名）
+//       tb_analog_interface_v21.sv；另覆盖 issue 10 的沿前、沿后与排空。
 // 它复现并验收两项控制错误：
 //   ① 宏选通 acq_sel_o/conv_sel_o 必须等于本笔冻结片号
 //   ② release/promote 同沿时 B 必须拿到 ADC2 arm
 
 
 // =============================================================================
-// 文件名     : tb_analog_interface_v21.sv
-// 模块名     : tb_analog_interface_v21
+// 文件名     : tb_analog_if.sv
+// 模块名     : tb_analog_if
 // 版本       : v1.0
 // 功能       : 在固定 Git 提交上核对物理片组端口和连续两笔 ADC2 捕获授权。
 //
@@ -74,23 +74,27 @@ module tb_analog_if;
     logic [3:0] ev_bit_idx = 0, ev_idx = 0;
     logic adc2_valid = 0, adc2_ready, adc2_arm, rsp_valid;
     logic [31:0] rsp_tag;
-    logic [17:0] acq_sel, conv_sel, pre_wr;
+    logic stop_i = 0;
+    logic [5:0] prepare_word = 0;
+    logic [17:0] acq_sel, conv_sel, idle_sel, pre_wr;
+    logic [71:0] pre_state;
+    // 默认片池前三笔的物理片号，A 与 C 重合七片。
+    localparam logic [17:0] GROUP_A = 18'h000FF, GROUP_B = 18'h3BD00, GROUP_C = 18'h040FE;
     logic final_applied, apply_fire, err;
     logic [9:0] final_k;
     logic [31:0] event_tag;
-    logic [39:0] w_main [0:17][0:15];  // Q30 真实告知权重，测试用均匀值。
-    logic [39:0] w_sub [0:17][0:3];    // Q30 子阵列权重，与原定向夹具一致。
     int failures = 0, checks = 0;
 
-    // 选内部调度。Flash=4、无 dither，后续显式给六个拒绝位。
-    // 这样可完全独立地判断最终码 256，排除错误事件碰巧阻止 arm 的情形。
+    // 选内部调度。三笔预置不同，Flash=4，所有低位判决均拒绝。
+    // A、B 的高段为零，C 的高段为四，对应最终命令 256、256、260。
     adc_digital_ip_v21 dut (
         .clk(clk), .rst_n(rst_n),
         .prepare_valid(prepare_valid), .prepare_ready(prepare_ready),
-        .prepare_tag(prepare_tag), .prepare_word(6'd0),
+        .dither_force_i(1'b1), .sadc_pre_state_o(), .sadc_pre_wr_o(),
+        .prepare_tag(prepare_tag), .prepare_word(prepare_word),
         .prepare_h(3'd0), .prepare_v(3'd0), .prepare_half(1'b0),
-        .prepare_coin(1'b0), .prepare_U(3'd0), .prepare_flash(3'd4),
-        .prepare_qid(prepare_qid), .stop_i(1'b0),
+        .prepare_coin(1'b0), .prepare_U({prepare_word[5], 1'b0, prepare_word[3]}), .prepare_flash(3'd4),
+        .prepare_qid(prepare_qid), .stop_i(stop_i),
         .sample_event(sample_event), .input_captured(input_captured),
         .residue_captured(residue_captured), .hold_ack(hold_ack),
         .ev_start_i(1'b0), .ev_bit_valid_i(ev_valid), .ev_bit_i(1'b0),
@@ -98,19 +102,27 @@ module tb_analog_if;
         .ev_flash_valid_i(1'b0), .ev_flash_code_i(3'd0),
         .sched_ext_sel(1'b0), .sched_acq(18'd0), .sched_conv(18'd0),
         .sched_idle(18'd0), .sched_ids(40'd0), .sched_seed_we(1'b0), .sched_seed(32'd0),
-        .acq_sel_o(acq_sel), .conv_sel_o(conv_sel), .pre_wr_o(pre_wr),
+        .acq_sel_o(acq_sel), .conv_sel_o(conv_sel), .idle_sel_o(idle_sel),
+        .pre_wr_o(pre_wr), .rdac_pre_state_o(pre_state),
         .adc2_valid_i(adc2_valid), .adc2_ready_o(adc2_ready), .adc2_raw_i(13'd2560),
         .adc2_range_err_i(1'b0), .adc2_capture_arm_o(adc2_arm),
         .adc2_rsp_valid_o(rsp_valid), .adc2_rsp_tag_o(rsp_tag),
         // 权重表已改为 wsum 内部寄存器堆 + 窄配置口。
-        // 本测试只验接口时序，不做权重扫描，所以配置口保持静默
-        // （权重全 0，只影响 G/Wp/Wm 数值，不影响本测试检查的选通与 arm）。
+        // 每次复位后装入名义表并提交，准备请求才能通过配置有效门。
         .w_cfg_we(t_cfg_we), .w_cfg_sel(t_cfg_sel),
         .w_cfg_sid(t_cfg_sid), .w_cfg_idx(t_cfg_idx), .w_cfg_data(t_cfg_data),
         .w_cfg_commit(t_cfg_commit), .w_cfg_reload(t_cfg_reload),
         .w_cfg_valid(t_cfg_valid), .w_cfg_busy(t_cfg_busy),
         .w_cfg_range_err(t_cfg_range_err),
         .cfg_epoch(8'd1), .b_q24_cfg(27'sd0),
+        // 其余顶层观测口在本用例中明确闲置。
+        .rdac_post_state_o(), .post_wr_o(), .node_post_o(), .node_pre_o(),
+        .node_ids_o(), .node_qid_o(), .node_tag_o(), .node_valid_o(),
+        .node_h_o(), .node_v_o(), .adc2_rsp_qid_o(), .adc2_rsp_raw_o(),
+        .adc2_rsp_range_o(), .adc2_late_err_o(), .adc2_release_ok_o(), .out_valid(),
+        .out_code(), .out_sat(), .out_err(), .out_tag(),
+        .k_o(), .k_bad_o(), .done_o(), .qid_o(),
+        .post_slot_o(),
         .apply_fire_o(apply_fire), .final_applied_o(final_applied),
         .final_k_o(final_k), .err_o(err), .tag_o(event_tag));
 
@@ -135,12 +147,32 @@ module tb_analog_if;
 
     // 所有输入从负沿驱动。采集沿前后分别等待仿真稳定，
     // 以免将非阻塞寄存器更新误读成片组或握手异常。
-    task automatic prepare(input logic [31:0] tag, input logic qid);
+    task automatic check_route(input string label, input logic [17:0] want_acq,
+                               input logic [17:0] want_conv, input logic [17:0] want_wr,
+                               input logic [3:0] nibble);
+        logic [71:0] want_data;
+        want_data = '0;
+        for (int sid = 0; sid < 18; sid++)
+            if (want_wr[sid]) want_data[4*sid +: 4] = nibble;
+        $display("ROUTE %s acq=%05h conv=%05h pre_wr=%05h overlap=%05h",
+                 label, acq_sel, conv_sel, pre_wr, acq_sel & conv_sel);
+        require(acq_sel === want_acq && conv_sel === want_conv, {label, " ownership"});
+        require((acq_sel & conv_sel) === 18'd0 && idle_sel === ~(want_acq | want_conv),
+                {label, " disjoint partition"});
+        require(pre_wr === want_wr && (pre_wr & conv_sel) === 18'd0, {label, " write gate"});
+        require(pre_state === want_data, {label, " physical preset data"});
+    endtask
+
+    task automatic prepare(input logic [31:0] tag, input logic qid, input logic [5:0] word_in,
+                           input logic [17:0] group_mask, input logic [3:0] nibble);
         @(negedge clk);
         prepare_valid = 1;
         prepare_tag = tag;
         prepare_qid = qid;
+        prepare_word = word_in;
         #1;
+        // 此任务只在 CONV 空闲时调用，沿前允许给新采集组提前预置。
+        check_route("early_preset", group_mask, '0, group_mask, nibble);
         require(prepare_ready === 1'b1, $sformatf("prepare ready tag=%08h", tag));
         @(posedge clk); #1;
         @(negedge clk); prepare_valid = 0;
@@ -160,7 +192,7 @@ module tb_analog_if;
         hold_ack = 0;
     endtask
 
-    task automatic events(input logic qid, input logic [31:0] tag);
+    task automatic events(input logic qid, input logic [31:0] tag, input logic [9:0] expected_k);
         // 序号 1 提交预装 Flash，序号 2..7 各拒绝一个低位，均需应用。
         for (int i = 1; i <= 7; i++) begin
             @(negedge clk);
@@ -173,7 +205,7 @@ module tb_analog_if;
             @(posedge clk); #1;
         end
         @(negedge clk); ev_valid = 0;
-        require(final_applied && final_k == 10'd256 && event_tag == tag && !err,
+        require(final_applied && final_k == expected_k && event_tag == tag && !err,
                 $sformatf("known final code and tag=%08h", tag));
         repeat (3) @(negedge clk);
     endtask
@@ -182,11 +214,12 @@ module tb_analog_if;
     // 3. 同沿交接反例与对照
     // =========================================================================
     task automatic run_case(input bit same_edge);
-        @(negedge clk); rst_n = 0;
+        @(negedge clk); rst_n = 0; stop_i = 0; prepare_valid = 0;
         repeat (2) @(negedge clk);
         rst_n = 1;
         t_wt_install();   // 装表 + commit，否则 cfg_valid=0 门禁挡住交易
-        prepare(32'hA1, 1'b0);
+        check_route("cold", GROUP_A, '0, '0, '0);
+        prepare(32'hA1, 1'b0, 6'd0, GROUP_A, 4'h0);
 
         // A 刚分配尚未采样，预置和真实采集使能必须指向同一批片。
         // 片号序来自冻结的描述符，不把调度器的未来计划当成预期值。
@@ -200,7 +233,7 @@ module tb_analog_if;
         end
 
         sample(0);
-        prepare(32'hB2, 1'b1);
+        prepare(32'hB2, 1'b1, 6'd16, GROUP_B, 4'h4);
         if (same_edge) begin
             $display("ROLE_AB acq=%05h pre_wr=%05h frozen_acq=%05h conv=%05h frozen_conv=%05h",
                      acq_sel, pre_wr, ids_mask(dut.acq_ids), conv_sel, ids_mask(dut.conv_ids));
@@ -208,7 +241,13 @@ module tb_analog_if;
                     "A/B macro role selects match frozen descriptor groups");
         end
 
-        events(1'b0, 32'hA1);
+        // A 仍占 CONV，B 尚未采样。候选 C 的字和 qid 不能影响物理引脚。
+        @(negedge clk); prepare_valid = 1; prepare_word = 6'd48; prepare_qid = 0;
+        #1;
+        require(!prepare_ready, "blocked C before B samples");
+        check_route("blocked", GROUP_B, GROUP_A, GROUP_B, 4'h4);
+        @(negedge clk); prepare_valid = 0;
+        events(1'b0, 32'hA1, 10'd256);
         require(adc2_arm === 1'b1, "A is armed before common capture");
         sample(1);
 
@@ -225,11 +264,14 @@ module tb_analog_if;
         if (same_edge) begin
             prepare_valid = 1;
             prepare_tag = 32'hC3;
+            prepare_word = 6'd48;
             prepare_qid = 0;
             #1;
             require(dut.release_fire && dut.commit_fire && dut.conv_valid && prepare_ready,
                     "A release and B promotion share the same accepted edge");
+            check_route("handover_before", GROUP_B, GROUP_A, GROUP_B, 4'h4);
             @(posedge clk); #1;
+            check_route("handover_after", GROUP_C, GROUP_B, GROUP_C, 4'hC);
             require(dut.conv_valid && dut.conv_tag == 32'hB2, "B occupies CONV immediately");
             @(negedge clk); prepare_valid = 0;
         end else begin
@@ -237,10 +279,10 @@ module tb_analog_if;
             @(posedge clk); #1;
             require(!dut.conv_valid, "control CONV has an idle edge");
             @(posedge clk); #1;
-            prepare(32'hC3, 1'b0);
+            prepare(32'hC3, 1'b0, 6'd48, GROUP_C, 4'hC);
         end
 
-        events(1'b1, 32'hB2);
+        events(1'b1, 32'hB2, 10'd256);
         $display("ARM_B same_edge=%0b tag=%08h conv_valid=%0b final=%0b wsum_valid=%0b owner_busy=%0b seen=%0b arm=%0b",
                  same_edge, dut.conv_tag, dut.conv_valid, final_applied, dut.wsum_valid,
                  dut.adc2_owner_busy, dut.adc2_arm_seen_q, adc2_arm);
@@ -248,16 +290,31 @@ module tb_analog_if;
                 "B has a complete valid conversion and a free ADC2 owner");
         require(adc2_arm === 1'b1,
                 $sformatf("B is armed before its first common capture same_edge=%0b", same_edge));
+        if (same_edge) begin
+            // C 晋升后 ACQ 无归属。排空后撤销 stop，也须等待真实请求才重新选通。
+            @(negedge clk); stop_i = 1;
+            sample(1);
+            adc2_valid = 1; #1;
+            require(adc2_ready && rsp_valid && rsp_tag == 32'hB2, "drain returns B");
+            @(posedge clk); #1; @(negedge clk); adc2_valid = 0;
+            repeat (3) @(posedge clk); #1;
+            require(dut.conv_valid && dut.conv_tag == 32'hC3 && !dut.acq_valid,
+                    "drain promotes C without a new acquisition");
+            check_route("only_conv", '0, GROUP_C, '0, '0);
+            events(1'b0, 32'hC3, 10'd260);
+            require(adc2_arm, "drained C is armed");
+            sample(1);
+            adc2_valid = 1; #1;
+            require(adc2_ready && rsp_valid && rsp_tag == 32'hC3, "drain returns C");
+            @(posedge clk); #1; @(negedge clk); adc2_valid = 0;
+            repeat (3) @(posedge clk); #1;
+            check_route("drained", '0, '0, '0, '0);
+            @(negedge clk); stop_i = 0; #1;
+            check_route("resume_idle", '0, '0, '0, '0);
+        end
     endtask
 
     initial begin
-        for (int s = 0; s < 18; s++) begin
-            for (int j = 0; j < 16; j++) w_main[s][j] = 40'd268435456;
-            w_sub[s][0] = 40'd33554432;
-            w_sub[s][1] = 40'd16777216;
-            w_sub[s][2] = 40'd8388608;
-            w_sub[s][3] = 40'd8388608;
-        end
         run_case(1);
         run_case(0);
         $display("SUMMARY checks=%0d failures=%0d", checks, failures);

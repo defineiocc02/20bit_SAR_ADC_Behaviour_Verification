@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="digital-pre-state" width="960" height="456" viewBox="0 0 960 456" role="img" aria-labelledby="digital-pre-state-title digital-pre-state-desc">
+<title id="digital-pre-state-title">两套 SADC 在哪个沿交替写入</title>
+<desc id="digital-pre-state-desc">两态对应寄存器 next_qid_q 的零和一。异步低复位回到等待零并清除写门和开关。有效准备交握才切换，两条边分别写量化器零和一。反压或拒收时两个开关组保持。</desc>
+<defs>
+<marker id="digital-pre-state-i" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#1b3441"/></marker>
+<marker id="digital-pre-state-t" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#006d6a"/></marker>
+<marker id="digital-pre-state-r" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#994124"/></marker>
+<marker id="digital-pre-state-g" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#425b66"/></marker>
+</defs>
+<rect width="960" height="456" fill="white"/>
+<g font-family="Arial, PingFang SC, Noto Sans CJK SC, Microsoft YaHei, sans-serif" fill="#1b3441">
+<text x="28" y="41" text-anchor="start" font-size="30" font-weight="650" fill="#1b3441">两套 SADC 在哪个沿交替写入</text>
+<text x="29" y="68" text-anchor="start" font-size="17" font-weight="400" fill="#425b66">next_qid_q 记录下一笔可写的量化器。低复位清两组预置和写门，其余转移在 clk 上升沿生效。</text>
+<g id="digital-pre-state-transitions">
+<path d="M244 167 V122 H730 V167" fill="none" stroke="#006d6a" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-pre-state-t)"/>
+<text x="485" y="111" text-anchor="middle" font-size="19" font-weight="600" fill="#006d6a">fire = 1，qid = 0</text>
+<text x="485" y="149" text-anchor="middle" font-size="18" font-weight="400" fill="#1b3441">写 SADC0　·　wr = 01</text>
+<path d="M730 245 V292 H244 V245" fill="none" stroke="#1b3441" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-pre-state-i)"/>
+<text x="485" y="280" text-anchor="middle" font-size="19" font-weight="600" fill="#1b3441">fire = 1，qid = 1</text>
+<text x="485" y="320" text-anchor="middle" font-size="18" font-weight="400" fill="#1b3441">写 SADC1　·　wr = 10</text>
+<circle cx="31" cy="206" r="5" fill="#1b3441"/>
+<path d="M36 206 H132" fill="none" stroke="#1b3441" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-pre-state-i)"/>
+<text x="77" y="191" text-anchor="middle" font-size="17" font-weight="500" fill="#425b66">异步复位</text>
+<rect x="132.0" y="167.0" width="224" height="78" rx="39.0" fill="#eef6f5" stroke="#006d6a" stroke-width="1.8"/>
+<text x="244" y="203" text-anchor="middle" font-size="22" font-weight="600" fill="#006d6a">等待量化器 0</text>
+<text x="244" y="225" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">next_qid_q = 0</text>
+<rect x="618.0" y="167.0" width="224" height="78" rx="39.0" fill="#ffffff" stroke="#1b3441" stroke-width="1.8"/>
+<text x="730" y="203" text-anchor="middle" font-size="22" font-weight="600" fill="#1b3441">等待量化器 1</text>
+<text x="730" y="225" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">next_qid_q = 1</text>
+</g>
+<g id="digital-pre-state-hold">
+<path d="M28 346 H932" fill="none" stroke="#d0dadb" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="28" y="374" text-anchor="start" font-size="18" font-weight="650" fill="#006d6a">受理</text>
+<text x="94" y="374" text-anchor="start" font-size="17" font-weight="400" fill="#1b3441">fire = prepare_valid ∧ prepare_ready。写门 wr 表示 sadc_pre_wr_o[1:0]。</text>
+<text x="28" y="404" text-anchor="start" font-size="18" font-weight="650" fill="#1b3441">保持</text>
+<text x="94" y="404" text-anchor="start" font-size="17" font-weight="400" fill="#1b3441">运行中 fire = 0 时，两组预置和下一笔 qid 保持，下一拍 wr = 00。</text>
+<text x="28" y="434" text-anchor="start" font-size="18" font-weight="650" fill="#994124">拒收</text>
+<text x="94" y="434" text-anchor="start" font-size="17" font-weight="400" fill="#1b3441">有效请求的 qid 错序，或强制字与 U 不符时，err_o = 1。字源也停在原处。</text>
+</g>
+</g>
+</svg>

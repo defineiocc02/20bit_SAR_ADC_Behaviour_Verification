@@ -4,7 +4,8 @@ The supported integrated ADC is v21. Its digital controller sequences a two-stag
 
 - [Project overview in Chinese](../../README.md)
 - [Engineering contract](../CONTRACT_CURRENT.md)
-- [Technical diagrams and modeled results](../figures/20261117/README.md)
+- [Digital IP signal flow, state machines, and verification](../algorithms/README.md)
+- [Behavioral model figures and assumptions](../figures/behavioral/README.md)
 - [RTL entry points](../../rtl/README.md)
 - [Verification and physical implementation status](../STATUS.md)
 - [Documentation index](../INDEX.md)

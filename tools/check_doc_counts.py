@@ -46,6 +46,8 @@ def main() -> None:
     print(f"工作树可见文件（除 Git 忽略）：{len(paths)}")
     print(f"Git 可见根层目录：{len(root_dirs)}")
     print(f"Git 可见根层文件：{len(root_files)}")
+    doc_dirs = {p.parts[1] for p in paths if len(p.parts) > 2 and p.parts[0] == "docs"}
+    print(f"docs 一级目录：{len(doc_dirs)}")
     print(f"仓库根目录 Markdown：{sum(len(path.parts) == 1 for path in markdown)}")
     print(f"docs 根目录 Markdown：{sum(len(path.parts) == 2 for path in docs)}")
     print(f"docs 历史目录 Markdown：{len(historical)}")

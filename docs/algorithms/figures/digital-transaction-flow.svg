@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="digital-transaction-flow" width="960" height="601" viewBox="0 0 960 601" role="img" aria-labelledby="digital-transaction-flow-title digital-transaction-flow-desc">
+<title id="digital-transaction-flow-title">数字 IP 与模拟宏怎样交接一笔样本</title>
+<desc id="digital-transaction-flow-desc">上方是宏接口。下方为生产顶层内部的八个实例，按数字职能分组。准备阶段发送采样开关，比较判决触发转换开关，最后把原码与同一笔的标签和权重配对并输出。</desc>
+<defs>
+<marker id="digital-transaction-flow-i" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#1b3441"/></marker>
+<marker id="digital-transaction-flow-t" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#006d6a"/></marker>
+<marker id="digital-transaction-flow-r" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#994124"/></marker>
+<marker id="digital-transaction-flow-g" viewBox="0 0 9 8" refX="8.5" refY="4" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="9" orient="auto"><path d="M0 0 L9 4 L0 8 Z" fill="#425b66"/></marker>
+</defs>
+<rect width="960" height="601" fill="white"/>
+<g font-family="Arial, PingFang SC, Noto Sans CJK SC, Microsoft YaHei, sans-serif" fill="#1b3441">
+<text x="28" y="41" text-anchor="start" font-size="30" font-weight="650" fill="#1b3441">数字 IP 与模拟宏怎样交接一笔样本</text>
+<text x="29" y="68" text-anchor="start" font-size="17" font-weight="400" fill="#425b66">从左到右读采样与判决，再沿右侧读取细码和 20 位结果。</text>
+<g id="digital-transaction-flow-analog-ports">
+<rect x="27" y="88" width="906" height="77" rx="2" fill="#f5f7f7" stroke="#d0dadb" stroke-width="1.3"/>
+<text x="43" y="111" text-anchor="start" font-size="17" font-weight="650" fill="#425b66">模拟宏接口</text>
+<text x="161" y="145" text-anchor="middle" font-size="19" font-weight="600" fill="#1b3441">SADC 与 RDAC 采样开关</text>
+<text x="474" y="145" text-anchor="middle" font-size="19" font-weight="600" fill="#1b3441">SADC 已决位与 RDAC 转换开关</text>
+<text x="800" y="145" text-anchor="middle" font-size="19" font-weight="600" fill="#1b3441">ADC2 残差捕获与返回</text>
+</g>
+<g id="digital-transaction-flow-digital-boundary">
+<rect x="27" y="239" width="906" height="291" rx="3" fill="#ffffff" stroke="#829298" stroke-width="1.5" stroke-dasharray="7 4"/>
+<text x="42" y="265" text-anchor="start" font-size="18" font-weight="650" fill="#1b3441">数字 IP</text>
+<text x="121" y="264" text-anchor="start" font-size="16" font-weight="400" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">adc_digital_ip_v21</text>
+</g>
+<g id="digital-transaction-flow-macro-wires">
+<path d="M108 286 V165" fill="none" stroke="#006d6a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-transaction-flow-t)"/>
+<text x="119" y="196" text-anchor="start" font-size="16" font-weight="400" fill="#006d6a" font-family="Menlo, DejaVu Sans Mono, monospace">sadc_pre_state_o</text>
+<text x="119" y="219" text-anchor="start" font-size="16" font-weight="400" fill="#006d6a" font-family="Menlo, DejaVu Sans Mono, monospace">rdac_pre_state_o</text>
+<path d="M386 165 V286" fill="none" stroke="#1b3441" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-transaction-flow-i)"/>
+<text x="395" y="193" text-anchor="start" font-size="16" font-weight="400" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">ev_bit_i</text>
+<path d="M531 286 V165" fill="none" stroke="#006d6a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-transaction-flow-t)"/>
+<text x="542" y="218" text-anchor="start" font-size="16" font-weight="400" fill="#006d6a" font-family="Menlo, DejaVu Sans Mono, monospace">rdac_post_state_o</text>
+<path d="M744 286 V165" fill="none" stroke="#425b66" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="6 4" marker-end="url(#digital-transaction-flow-g)"/>
+<text x="737" y="192" text-anchor="end" font-size="16" font-weight="400" fill="#425b66" font-family="Menlo, DejaVu Sans Mono, monospace">adc2_capture_arm_o</text>
+<path d="M885 165 V286" fill="none" stroke="#1b3441" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-transaction-flow-i)"/>
+<text x="879" y="220" text-anchor="end" font-size="16" font-weight="400" fill="#1b3441" font-family="Menlo, DejaVu Sans Mono, monospace">adc2_raw_i</text>
+</g>
+<g id="digital-transaction-flow-dataflow">
+<rect x="55" y="286" width="213" height="77" rx="3" fill="#ffffff" stroke="#1b3441" stroke-width="1.8"/>
+<text x="161.5" y="321.5" text-anchor="middle" font-size="22" font-weight="600" fill="#1b3441">片选与采样预置</text>
+<text x="161.5" y="345.5" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">u_sched · u_ctx · u_pd</text>
+<rect x="359" y="286" width="225" height="77" rx="3" fill="#ffffff" stroke="#1b3441" stroke-width="1.8"/>
+<text x="471.5" y="321.5" text-anchor="middle" font-size="22" font-weight="600" fill="#1b3441">已决位与 DEM</text>
+<text x="471.5" y="345.5" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">u_evt · u_dem</text>
+<rect x="702" y="286" width="203" height="77" rx="3" fill="#ffffff" stroke="#1b3441" stroke-width="1.8"/>
+<text x="803.5" y="321.5" text-anchor="middle" font-size="22" font-weight="600" fill="#1b3441">捕获与返回配对</text>
+<text x="803.5" y="345.5" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">u_adc2</text>
+<rect x="359" y="425" width="225" height="70" rx="3" fill="#ffffff" stroke="#1b3441" stroke-width="1.8"/>
+<text x="471.5" y="457.0" text-anchor="middle" font-size="22" font-weight="600" fill="#1b3441">按物理开关求权重</text>
+<text x="471.5" y="481.0" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">u_wsum</text>
+<rect x="702" y="425" width="203" height="70" rx="3" fill="#eef6f5" stroke="#006d6a" stroke-width="1.8"/>
+<text x="803.5" y="457.0" text-anchor="middle" font-size="22" font-weight="600" fill="#006d6a">20 位定点重构</text>
+<text x="803.5" y="481.0" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">u_recon</text>
+<path d="M268 323 H359" fill="none" stroke="#1b3441" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-transaction-flow-i)"/>
+<text x="313" y="309" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">qid, U</text>
+<path d="M164 363 V459 H359" fill="none" stroke="#1b3441" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-transaction-flow-i)"/>
+<text x="177" y="445" text-anchor="start" font-size="16" font-weight="400" fill="#425b66">片号、采样开关 pre</text>
+<path d="M476 363 V425" fill="none" stroke="#1b3441" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-transaction-flow-i)"/>
+<text x="487" y="399" text-anchor="start" font-size="16" font-weight="400" fill="#425b66">最终 post</text>
+<path d="M584 461 H646 V326 H702" fill="none" stroke="#1b3441" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-transaction-flow-i)"/>
+<text x="634" y="479" text-anchor="middle" font-size="16" font-weight="400" fill="#425b66">G, Wm, Wp</text>
+<path d="M797 363 V425" fill="none" stroke="#1b3441" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-transaction-flow-i)"/>
+<text x="807" y="399" text-anchor="start" font-size="16" font-weight="400" fill="#425b66">raw、权重、tag</text>
+<path d="M803 495 V554" fill="none" stroke="#006d6a" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#digital-transaction-flow-t)"/>
+<text x="752" y="580" text-anchor="middle" font-size="16" font-weight="550" fill="#006d6a" font-family="Menlo, DejaVu Sans Mono, monospace">out_valid · out_code[19:0] · out_tag</text>
+<text x="35" y="568" text-anchor="start" font-size="17" font-weight="400" fill="#425b66">pre 为采样开关，post 为最后实际写入的转换开关。</text>
+</g>
+</g>
+</svg>

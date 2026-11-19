@@ -76,7 +76,7 @@ fit_unit_weights -> CalibrationUnidentifiableError
 python3 tools/check_engineering.py
 ```
 
-C4 用 [figures.json](../figures/20261117/figures.json) 核对发布的 PNG/SVG SHA-256。C7 核对 ADC2 合同、Python 默认值、RTL 输入位宽、测试节点量化器及重构码箱中心。比较图与表的结果时，另外核对每项的采样数、输入网格、偏移与随机种子。图册中的校准图使用公共网格，消融矩阵的相应行使用留出偏移。[逐图说明](../figures/20261117/README.md)
+C4 用 [figures.json](../figures/behavioral/figures.json) 核对发布的 PNG/SVG SHA-256。C7 核对 ADC2 合同、Python 默认值、RTL 输入位宽、测试节点量化器及重构码箱中心。比较图与表的结果时，另外核对每项的采样数、输入网格、偏移与随机种子。图册中的校准图使用公共网格，消融矩阵的相应行使用留出偏移。[逐图说明](../figures/behavioral/README.md)
 
 ---
 

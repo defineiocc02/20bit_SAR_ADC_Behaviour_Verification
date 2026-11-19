@@ -11,7 +11,7 @@
 | TRACK 与 AUX | TRACK 的候选预置按源结果可用时间和预置截止时间检查。AUX 有独立模型，实际注入网络与采集绑定仍需明确提供。 [TRACK 判据](../control/track_aux.py) · [辅助输入](../control/aux_input.py) |
 | 噪声 | 采样、RA 输出端和低频噪声分别建模。默认 RA 输出噪声参数是工程预算，[E]。对比时应固定片选、失配和激励，并记录启用的噪声源。 [噪声](noise.py) · [低频状态](low_frequency_noise.py) |
 
-`DefaultModel` 提供静态基线。参考、RA、ADC2 的动态波形需要显式相位和初态。用假设极点重算的波形适合检查模型响应，器件建立精度、动态带宽降噪及跨笔记忆仍需电路或测量证据。原件对照和逐图输入见 [机制索引](../../../docs/mechanisms/README.md) 和 [行为验证图册](../../../docs/figures/20261117/README.md)。
+`DefaultModel` 提供静态基线。参考、RA、ADC2 的动态波形需要显式相位和初态。用假设极点重算的波形适合检查模型响应，器件建立精度、动态带宽降噪及跨笔记忆仍需电路或测量证据。原件对照和逐图输入见 [机制索引](../../../docs/mechanisms/README.md) 和 [行为验证图册](../../../docs/figures/behavioral/README.md)。
 
 在仓库根目录使用已安装测试依赖的 Python 环境运行：
 

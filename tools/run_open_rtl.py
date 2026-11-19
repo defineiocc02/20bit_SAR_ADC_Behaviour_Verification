@@ -84,6 +84,30 @@ class Bench:
 # 配对向量测试独立验证扩展模块；其结果不写成 v21 已接入该扩展。
 # 组件之间的计数是各自成果的必要条件，不能统一写成只检查一个 PASS 字样。
 BENCHES = {
+    # 按宏端物理引脚检查同沿交权、提前预置与排空。该 SV 测试台与连续采样
+    # 的 C++ 驱动共用生产清单，两者分别核对瞬时路由和逐笔吞吐。
+    "tb_analog_if": Bench(("tb/v21/tb_analog_if.sv",), "SUMMARY", ("checks",),
+                          zero_fields=("failures",)),
+    "v21_sample_cadence": Bench(
+        ("tb/v21/sample_cadence.cpp",),
+        "SAMPLE_CADENCE_COMPLETE",
+        ("scenarios",),
+        module="adc_digital_ip_v21",
+    ),
+    "tb_i4_recon": Bench(
+        ("rtl/recip_q60.sv", "rtl/v21/recip_rnd_v21.sv", "rtl/v21/recon_v21.sv",
+         "tb/v21/tb_i4_recon.sv"),
+        "RECON_FROZEN_COMPLETE",
+        ("vectors", "checks"),
+        support_files=("tb/v21/vec_i4_recon.txt",),
+    ),
+    "tb_recon_stream": Bench(
+        ("rtl/recip_q60.sv", "rtl/v21/recip_rnd_v21.sv", "rtl/v21/recon_v21.sv",
+         "tb/v21/tb_recon_stream.sv"),
+        "RECON_STREAM_CAPTURE_COMPLETE",
+        ("rows",),
+        support_files=("tools/recon_oracle.py",),
+    ),
     "divider_borrow_tb": Bench(
         ("rtl/core/div_floor.sv", "flow/sim/tb/divider_borrow_tb.sv"),
         "DIVIDER_BORROW_COMPLETE",
@@ -561,6 +585,56 @@ def verilator_compiler_args() -> list[str]:
 
 
 # =============================================================================
+# 4.1 两端扰动与同笔扣回
+# =============================================================================
+# 固定输入的默认序列检验受理沿推进，强制遍历覆盖全部六位字的译码。
+# 断开低段只改测试宏的连线；端口仍应输出原来的七个开关。
+def check_dither_samples(summary: dict, trace: list[dict]) -> None:
+    """复核两套 SADC、实际 RDAC 预置和逐笔出码，保留断开低段及错误系数的反例。"""
+    modes = ("dither_internal", "dither_sweep", "dither_mixed", "dither_sadc_disconnected",
+             "dither_nominal_table", "dither_corrected_table")
+    for name in modes:
+        data = [r for r in trace if r["case"] == name]
+        count = 1024 if name == "dither_internal" else 192
+        if (summary.get(name, {}).get("outcome") != "pass"
+                or [int(r["tag"]) for r in data] != list(range(1, count + 1))):
+            raise ValueError("missing dither samples: " + name)
+        words = [int(r["word"]) for r in data]
+        if name == "dither_internal" and words[:4] != [45, 7, 17, 40]:
+            raise ValueError("incorrect on-chip reset sequence")
+        if name in ("dither_internal", "dither_sweep") and set(words) != set(range(64)):
+            raise ValueError("incomplete six-bit word coverage: " + name)
+        for r, word in zip(data, words):
+            lower = 16 * ((word >> 4) & 1) + (word & 7)
+            out_of_range = name == "dither_sadc_disconnected" and bool(word & 16)
+            code = int(r["input_code"])
+            if out_of_range:
+                # 理想 ADC2 对窗外值回 raw=0。以同一正向坐标从最终码域独立复算。
+                code = (8 * int(r["k"]) - word) * 256 - 1024
+            elif name == "dither_nominal_table":
+                code -= 32 * int(r["post_minus_pre"])
+            if (int(r["rdac_pre_eighths"]) != word or int(r["sadc_lower_eighths"]) != lower
+                    or int(r["sadc_mask"]) != (((word & 16) | (word & 7)) << 1)
+                    or int(r["adc2_range"]) != out_of_range or int(r["code"]) != code
+                    or int(r["err"]) or int(r["sat"])):
+                raise ValueError(f"incorrect injection or deduction: {name} tag {r['tag']}")
+    # 两张表接收完全相同的细码、物理开关和标签。校正后归零须有非零的正负对照。
+    original = [r for r in trace if r["case"] == "dither_nominal_table"]
+    corrected = [r for r in trace if r["case"] == "dither_corrected_table"]
+    # 只比较差值会将 pre=post=0 和 pre=post=1 混作一类；还要核对受测单元的真实 pre。
+    fields = (
+        "tag", "input_code", "word", "flash", "path", "h", "v", "half", "coin", "raw", "k",
+        "adc2_range", "mismatch_pre", "post_minus_pre", "rdac_pre_eighths",
+        "sadc_lower_eighths", "sadc_mask",
+    )
+    if any(a[f] != b[f] for a, b in zip(original, corrected) for f in fields):
+        raise ValueError("the two coefficient tables received different input or switching data")
+    errors = [int(r["code"]) - int(r["input_code"]) for r in original]
+    if (errors.count(-32), errors.count(0), errors.count(32)) != (10, 168, 14):
+        raise ValueError("missing signed weight-error control")
+
+
+# =============================================================================
 # 5. 单组件运行的隔离与快照
 # =============================================================================
 # folder 保存持久证据，work 保存可回收的中间对象。二者均为本次运行独占。
@@ -582,7 +656,27 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
         snapshot = folder / "source_snapshot"
         snapshot.mkdir()
         source_hashes = {}
-        for name in (*spec.sources, *spec.support_files):
+        source_names = list(spec.sources)
+        cadence = top == "v21_sample_cadence"
+        production_top = cadence or top == "tb_analog_if"
+        if production_top:
+            if cadence and args.simulator != "verilator":
+                raise ValueError("the public-port cadence driver requires Verilator")
+            # 测的是公开的唯一生产顶层，使用发布清单。先存清单原文，再从快照解析，
+            # 以免编译列表和最终记录的哈希在并发修改时来自不同的读取时刻。
+            rel = "flow/build/filelists/files_adc_v21.f"
+            saved = snapshot / rel
+            saved.parent.mkdir(parents=True)
+            saved.write_bytes((REPO / rel).read_bytes())
+            source_hashes[rel] = digest(saved)
+            rtl = [entry for line in saved.read_text().splitlines()
+                   if (entry := line.partition("//")[0].strip())]
+            if not rtl or len(set(rtl)) != len(rtl) or not all(
+                re.fullmatch(r"rtl/(?:[\w-]+/)*[\w-]+\.sv", n) for n in rtl
+            ):
+                raise ValueError("invalid or duplicate source in the v21 production filelist")
+            source_names = [*rtl, *source_names]
+        for name in (*source_names, *spec.support_files):
             source = REPO / name
             if not source.is_file():
                 raise ValueError(f"selected dependency is absent: {name}")
@@ -595,7 +689,6 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
         if args.simulator == "verilator":
             alias_runtime(work, env, version)
         include_dirs = []
-        source_names = list(spec.sources)
         if spec.requires_math_format:
             if args.math_format is None:
                 raise ValueError(f"{top} requires --math-format")
@@ -634,6 +727,17 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
         # 扩展配对向量必须给出实际周期数、不同用例数和有效输出数。
         # 测试台读取固定向量文件名，因此在临时目录建立软链，归档仍保留完整副本。
         # 预期数量由调用方带入，不能从被测日志反向填预期而让漏事件得到 PASS。
+        if top == "tb_i4_recon":
+            plusargs = ["+VEC=source_snapshot/tb/v21/vec_i4_recon.txt"]
+        if top == "tb_recon_stream":
+            # 以这一份 oracle 同时生成激励和检查真实轨迹。仿真工作目录是 folder，
+            # 使用相对路径让仓库或证据包位于含空格的目录时仍能解析 plusargs。
+            signed_oracle = [sys.executable, "-B", str(snapshot / "tools/recon_oracle.py")]
+            checked_run(
+                [*signed_oracle, "generate", "stream.vec"], cwd=folder, env=env,
+                log=folder / "vectors.log", timeout=args.timeout,
+            )
+            plusargs = ["+VEC=stream.vec", "+TRACE=trace.csv"]
         if spec.pair_vectors:
             if args.vectors is None or any(
                 getattr(args, field) is None or getattr(args, field) <= 0
@@ -697,7 +801,9 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
                 )
             compile_command = [
                 *command,
-                "--binary",
+                # 持续采样夹具直接驱动生产顶层，C++ 提供 main 和整数飞秒时基。
+                # 常规 SV 测试台仍由 --binary 生成自己的 main。
+                *(["--cc", "--exe", "--build", "--timescale", "1fs/1fs"] if cadence else ["--binary"]),
                 "--timing",
                 "--assert",
                 "--unroll-count",
@@ -775,6 +881,57 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
             run_command, cwd=folder, env=env, log=folder / "run.log", timeout=args.timeout
         )
         counts = completion(output, spec.marker, spec.positive_fields)
+        if cadence:
+            if counts["scenarios"] != 12:
+                raise ValueError("incomplete v21 cadence sweep")
+            # 稳态速率从相邻退休时刻计算，不能从测试台请求的采样间隔反推通过。
+            # 断言两组 25 ns 条件都完整交付，另一组 25 ns 主时钟对照首笔错过捕获。
+            with (folder / "summary.csv").open(newline="") as stream:
+                summary_rows = list(csv.DictReader(stream))
+            summary = {row["case"]: row for row in summary_rows}
+            if len(summary) != counts["scenarios"] or len(summary_rows) != len(summary):
+                raise ValueError("missing or duplicated cadence scenario")
+            with (folder / "samples.csv").open(newline="") as stream:
+                trace = list(csv.DictReader(stream))
+            for name in ("sample25ns_16ticks", "sample25ns_40ticks"):
+                row = summary.get(name, {})
+                observed = [r for r in trace if r["case"] == name]
+                if (row.get("outcome") != "pass" or int(row["retired"]) != 192
+                        or int(row["sample_fs"]) != 25_000_000):
+                    raise ValueError("full 25 ns output stream missing: " + name)
+                # 时钟刻度来自这组刺激。用 CSV 中的实际采样、捕获和退休沿重算每一个
+                # 物理间隔；即使完成行和总笔数正确，也不放过中途先停顿再追赶的试验。
+                if [int(r["tag"]) for r in observed] != list(range(1, 193)):
+                    raise ValueError("cadence trace has missing or reordered tag: " + name)
+                for field in ("sample", "capture", "out"):
+                    if any((int(b[field]) - int(a[field])) * int(row["clock_fs"]) != 25_000_000
+                           for a, b in zip(observed, observed[1:])):
+                        raise ValueError("nonuniform 25 ns " + field + " cadence: " + name)
+            slow = summary.get("clock25ns_sample25ns", {})
+            if (slow.get("outcome"), slow.get("first_missed_tag")) != ("capture_arm_low", "1"):
+                raise ValueError("the slow-clock negative control failed")
+            check_dither_samples(summary, trace)
+        # 每行冻结向量应退休一次，另有四项独立的名义码、epoch 与复位检查。
+        # 124 项同时包括有主转换片和转换槽已空两类交接，防止少跑一组仍报通过。
+        if top == "tb_analog_if" and counts.get("checks") != 124:
+            raise ValueError("incomplete physical handover and capture checks")
+        if top == "tb_i4_recon" and counts != {"vectors": 8209, "checks": 8213}:
+            raise ValueError("incomplete frozen reconstruction sweep")
+        if top == "tb_recon_stream":
+            # 完成标志只能证明测试台写完了文件。独立逐标签检查器还必须正常退出，
+            # 并核对七级时延、各级整数、码及标志，错一次就使整个 CI 项失败。
+            limits = completion(output, "RECON_S3_LIMITS_PASS", ("checks",))
+            if limits["checks"] != 6:
+                raise ValueError("S3 boundary probes did not complete")
+            checked_run(
+                [*signed_oracle, "examine", "trace.csv", "report.json"], cwd=folder, env=env,
+                log=folder / "compare.log", timeout=args.timeout,
+            )
+            report = json.loads((folder / "report.json").read_text())
+            if report["captured_rows"] != counts["rows"] or report["cases_with_mismatches"]:
+                raise ValueError("reconstruction capture or oracle comparison is incomplete")
+            counts["retired"] = sum(len(case["retired"]) for case in report["cases"].values())
+            counts["s3_limits"] = limits["checks"]
         # =============================================================================
         # 5.3 完成计数、证据范围与退出门禁
         # =============================================================================
@@ -826,12 +983,13 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
         # 结果范围为独立数字组件，报告同时列出本次声明的未接通边界。
         record = {
             "status": "PASS",
-            "scope": SCOPE_COMPONENT,
+            "scope": "TOP_LEVEL_IDEAL_MACRO_HANDSHAKES" if production_top else SCOPE_COMPONENT,
             "top": top,
             "module": module,
             "parameters": parameters,
             # 保留结果结构中的空载荷字段，便于已有报告读取器识别组件结果。
-            "payload_sha256": {},
+            "payload_sha256": {n: digest(folder / n) for n in ("summary.csv", "samples.csv")}
+            if cadence else {},
             "counts": counts,
             "sources_sha256": source_hashes,
             "marker": spec.marker,
@@ -981,9 +1139,10 @@ def main(argv=None) -> int:
                 )
         manifest["status"] = "PASS"
         write_json(out / "manifest.json", manifest)
-        print(
-            f"RTL_COMPONENTS_COMPLETE tops={len(manifest['results'])} scope=SELECTED_DIGITAL_COMPONENTS"
-        )
+        scope = "SELECTED_DIGITAL_COMPONENTS"
+        if "v21_sample_cadence" in args.tops:
+            scope = "TOP_LEVEL_IDEAL_MACRO_HANDSHAKES" if len(args.tops) == 1 else "SELECTED_RTL_TESTS"
+        print(f"RTL_COMPONENTS_COMPLETE tops={len(manifest['results'])} scope={scope}")
         return 0
     except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as error:
         if out is not None:

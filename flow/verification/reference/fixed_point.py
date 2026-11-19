@@ -9,7 +9,7 @@
 # =============================================================================
 """定点重构的整数原语。
 
-舍入、除法和累加器定义见 docs/rtl/RTL_ARITHMETIC_CONTRACT.md §3.1、§3.5 和 §4。
+舍入、除法和累加器定义见 docs/audit/components/RTL_ARITHMETIC_CONTRACT.md §3.1、§3.5 和 §4。
 """
 
 from __future__ import annotations

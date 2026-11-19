@@ -45,7 +45,7 @@ module sar_evt_v21 (
 
     // ---------------------------------------------------------------- Flash
     input  logic        flash_valid_i,
-    input  logic [2:0]  flash_code_i,  // F（0..7）
+    input  logic [2:0]  flash_code_i,  // F（0..7），可在首事件沿返回
 
     // ---------------------------------------------------------------- 已决事件
     input  logic        bit_valid_i,
@@ -120,12 +120,15 @@ module sar_evt_v21 (
         end
     end
 
+    // 同一量化器的 Flash 可在启动后、第一次提交前到达。若两者同沿，
+    // 写入 RDAC 的是此沿真实判决的 F。首事件过后再来的 Flash 不改已决前缀。
+    wire fresh_flash = active_q && !done_q && !err_q && (exp_evt_q == 4'd1)
+                       && flash_valid_i && (sar_qid_i == qid_q);
     logic [9:0] prefix_accept;
     always_comb begin
         prefix_accept = prefix_q;
         if (exp_evt_q == 4'd1) begin
-            // 第 1 次提交是 Flash 本身：prefix 已由 start 装好，不再累加
-            prefix_accept = prefix_q;
+            prefix_accept = fresh_flash ? {1'b0, flash_code_i, 6'b0} : prefix_q;
         end else if (!guard_q) begin
             // 普通：evt2..7 依次试 bit5..bit0
             if (bit_i) prefix_accept = prefix_q | (10'd1 << exp_bit);
@@ -157,6 +160,7 @@ module sar_evt_v21 (
     // bit_index 无意义。evt>=2 才比对。
     wire bit_ok   = (exp_evt_q == 4'd1) || (bit_index_i == exp_bit);
     wire can_apply = active_q & !err_q & !done_q & !abort_i & !start_i
+                   & (flash_done_q | fresh_flash)
                    & qid_ok & evt_ok & bit_ok & !k_over;
 
     // ---------------------------------------------------------------- 拒绝 512 的那次不 apply
@@ -193,16 +197,15 @@ module sar_evt_v21 (
             err_q       <= 1'b0;
             done_q      <= 1'b0;
             final_applied_q <= 1'b0;
-            exp_evt_q   <= 4'd0;
+            exp_evt_q   <= 4'd1;
             guard_lvl_q <= 3'd0;
             // Flash 初始化：F<<6；F==7 时先给 448 并标记 guard 候选。
             // Flash 本身是第 1 次提交，所以 exp_evt_q 置 1，
             // 该事件由随后的 bit_valid（bit_index 任意，不参与比对）提交。
             if (flash_valid_i) begin
-                prefix_q     <= {flash_code_i, 6'b0};
+                prefix_q     <= {1'b0, flash_code_i, 6'b0};
                 flash_done_q <= 1'b1;
                 guard_q      <= (flash_code_i == 3'd7);
-                exp_evt_q    <= 4'd1;
             end else begin
                 prefix_q     <= 10'd0;
                 flash_done_q <= 1'b0;
@@ -215,6 +218,10 @@ module sar_evt_v21 (
             if (can_apply) begin
                 prefix_q <= prefix_accept;
                 exp_evt_q <= exp_evt_q + 4'd1;
+                if (fresh_flash) begin
+                    flash_done_q <= 1'b1;
+                    guard_q      <= (flash_code_i == 3'd7);
+                end
                 // 注意顺序：下面这段对 exp_evt_q / prefix_q 的赋值在同一个
                 // always_ff 里位于上方赋值之后，因此对同一位**后写生效**（覆盖）。
                 if (guard_q && exp_evt_q == 4'd2 && !bit_i) begin
@@ -241,6 +248,11 @@ module sar_evt_v21 (
                 // 非法事件：置粘滞错误，不推进
                 err_q <= 1'b1;
             end
+        end else if (fresh_flash) begin
+            // Flash 独自先到时锁存，等事件 1；此沿不能产生物理写门。
+            prefix_q <= {1'b0, flash_code_i, 6'b0};
+            flash_done_q <= 1'b1;
+            guard_q <= (flash_code_i == 3'd7);
         end
     end
 

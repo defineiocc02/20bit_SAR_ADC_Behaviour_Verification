@@ -5,7 +5,7 @@
 #   而本机默认 python3 是 3.9（项目要求 >=3.10，见 pyproject requires-python）。
 # 所以提供一个显式的、可复现的最小依赖清单。
 #
-# 用法见 docs/v21/PYTHON_ENV.md。
+# 环境和运行命令见 docs/guide/QUICKSTART.md。
 numpy>=1.24
 scipy>=1.10
 matplotlib>=3.7

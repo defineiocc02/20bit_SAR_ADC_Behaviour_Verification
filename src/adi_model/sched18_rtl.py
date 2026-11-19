@@ -33,7 +33,7 @@ N_SLICE = 18
 N_ACTIVE = 8
 N_IDLE = 2
 
-# 32 位 xorshift（Marsaglia 7/13/17 组，种子不可为 0）。
+# 32 位 xorshift（依次左移 13、右移 17、左移 5，种子不可为 0）。
 # 选它而不是 Fibonacci LFSR：LFSR 的低 16 位是同一 m 序列的连续 16 拍，
 # 作为"随机数"高度相关——实测 IDLE 对只覆盖 45 组中的一部分且极不均匀
 # （4000 拍下 min=1 / max=181）。xorshift 每拍输出整体混合，够用。

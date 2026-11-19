@@ -27,8 +27,8 @@
     "historical_vectors": {
       "current_executable_input": false,
       "code_base_commit": "af8aa37d43db40eb896e369305883ec89786547b",
-      "archive_index": "docs/history/legacy_vectors_af8/README.md",
-      "checksum_manifest": "docs/history/legacy_vectors_af8/SHA256SUMS",
+      "archive_index": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/d48a252e72659820991adc21a2e538b993302fa5/docs/history/legacy_vectors_af8/README.md",
+      "checksum_manifest": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/d48a252e72659820991adc21a2e538b993302fa5/docs/history/legacy_vectors_af8/SHA256SUMS",
       "checksum_manifest_sha256": "05cef56da2174fbbb7a7f341b9e31f8c536c2613e9bf453d785ffe7160afced2",
       "original_runtime_prefix": "sim/vectors/",
       "file_count": 35,
@@ -229,7 +229,7 @@
         ],
         "tests": [
           "tb/v21/tb_i2_events.sv",
-          "tb/v21/tb_i12_integration.sv"
+          "tb/v21/tb_i12_full.sv"
         ],
         "boundary": "v21 以模拟侧提供的 Flash 和 SAR 判决推进 RDAC 命令，按冻结相位生成开关掩码。9 位量化阈值独立于实际残差的检查由 Python 模型覆盖。"
       },
@@ -389,7 +389,7 @@
           "rtl/v21/adc_digital_ip_v21.sv"
         ],
         "tests": [
-          "tb/v21/tb_i3_adc2.sv",
+          "tb/v21/tb_i3_full.sv",
           "tb/v21/tb_i4_recon.sv"
         ],
         "boundary": "v21 接收同一笔 13 位后级码及范围异常，并使用冻结权重重构。Python 用例检查假定窗口内的误差自愈，实际模拟窗口仍待实物校验。"
@@ -625,7 +625,7 @@
         ],
         "tests": [
           "tb/tb_dem_dither.sv",
-          "tb/v21/tb_i12_integration.sv"
+          "tb/v21/tb_i12_full.sv"
         ],
         "boundary": "v21 用 6 位字设置采样预置并推导粗码偏移。模拟采样节点的实际电压响应和两节点相关性待验。"
       }
@@ -691,7 +691,7 @@
           "rtl/v21/adc_digital_ip_v21.sv"
         ],
         "tests": [
-          "tb/v21/tb_i12_integration.sv"
+          "tb/v21/tb_i12_full.sv"
         ],
         "boundary": "v21 用事务入口提供的 H/V、半组和桥接条件计算开关掩码。相位生成器尚未接入该顶层，真实器件映射仍待校验。"
       },
@@ -2056,7 +2056,7 @@
           "rtl/v21/adc_digital_ip_v21.sv"
         ],
         "tests": [
-          "tb/v21/tb_i3_adc2.sv",
+          "tb/v21/tb_i3_full.sv",
           "tb/v21/tb_analog_if.sv"
         ],
         "boundary": "v21 在最终开关与权重和就绪后授权残差捕获，保留同一笔的后级码和范围异常。增益、AZ 及噪声整形需模拟证据。"
@@ -2580,11 +2580,11 @@
         "original_mechanism_id": "X02",
         "applicability": "原账本的旧配置、PASS和数值不作为当前功能清理树的运行证明；完整原件已库外备份。",
         "source_review_records": [
-          "docs/reviews/20261105-caaz-source-coverage.json",
-          "docs/reviews/20261105-caaz-source-requirements.json",
-          "docs/reviews/20261105-caaz-source-equations.json",
-          "docs/reviews/20261105-caaz-source-code-coverage.json",
-          "docs/reviews/20261105-caaz-source-review.md"
+          "docs/audit/reviews/20261105-caaz-source-coverage.json",
+          "docs/audit/reviews/20261105-caaz-source-requirements.json",
+          "docs/audit/reviews/20261105-caaz-source-equations.json",
+          "docs/audit/reviews/20261105-caaz-source-code-coverage.json",
+          "docs/audit/reviews/20261105-caaz-source-review.md"
         ],
         "source_review_records_scope": "原文阅读与旧代码覆盖记录；不作为当前源字节/功能执行闭环。"
       },

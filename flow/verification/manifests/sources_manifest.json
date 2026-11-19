@@ -20,7 +20,7 @@
     "baseline_corpus": {
       "documents": 18,
       "pages": 596,
-      "coverage_record": "docs/reviews/20261105-source-coverage.json"
+      "coverage_record": "docs/audit/reviews/20261105-source-coverage.json"
     },
     "corpus_extensions": [
       {
@@ -31,7 +31,7 @@
           "PKU_VLSI2025_C32_1_PAPER",
           "PKU_VLSI2025_C32_1_SLIDES"
         ],
-        "coverage_record": "docs/reviews/20261105-caaz-source-coverage.json",
+        "coverage_record": "docs/audit/reviews/20261105-caaz-source-coverage.json",
         "role": "OPTIONAL_RESEARCH_EXTENSION",
         "alias_counted_as_document": false
       }
@@ -310,7 +310,7 @@
   },
   "version_pin": {
     "code": "v7.0.10 (ffcc011)",
-    "reference_results": "tools/results/results.json SHA256 a1ccd92f…35ac70（历史基线，非主线开发目标）",
+    "reference_results": "docs/_history/model_results/results.json SHA256 a1ccd92f…35ac70（历史基线，非主线开发目标）",
     "report": "docs/report/reproduction_report.pdf 18 页（v7.0.10）",
     "note": "任务书 §2.2：旧参考输出保留为历史基线；修正物理机制后允许生成新结果，不以 JSON 逐字节不变为主线目标。"
   }

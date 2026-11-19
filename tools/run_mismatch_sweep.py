@@ -1,3 +1,9 @@
+# =============================================================================
+# 文件名     : run_mismatch_sweep.py
+# 模块名     : 单元失配与静态误差的行为对照
+# 功能       : 对相同输入斜坡比较名义表、DEM 和校正系数；输出 JSON 与 CSV。
+# 设计说明   : 输入失配为相对标准差，输出 INL 用满量程 ppm 表示。
+# =============================================================================
 """失配预算扫描：单位电容 σ 与 INL/DNL 的定量关系，DEM 开/关各一条。
 
 回答的问题不是"INL 好不好"，而是"这个 INL 是不是失配本来就应该给出的值"。
@@ -8,13 +14,15 @@
 * 逐码校准：截距与斜率同时被压，剩余项与 σ 无关的部分是表项噪声。
 
 运行：
-    PYTHONPATH=src python3 tools/run_mismatch_sweep.py --out docs/reviews/20261113_p3p4/data
+    run_dir="$(mktemp -d)"
+    PYTHONPATH=src python3 tools/run_mismatch_sweep.py --out "$run_dir"
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import tempfile
 import sys
 from pathlib import Path
 
@@ -34,6 +42,9 @@ from tools.run_p4_ablation import (  # noqa: E402  (脚本入口需先补 sys.pa
 SIGMAS = (0.0, 1e-4, 3e-4, 1e-3, 3e-3)
 
 
+# 1. 单次静态观测
+# 每种控制使用相同点数与重复数，令不同运行可按同一种斜坡估计口径比较。
+# 在离散采样点取得的峰值依赖点间距，完整码宽另见全码线性度试验。
 def _row(model, *, dem: bool, calibration, points: int, repeats: int) -> dict:
     metrics = _static(
         model,
@@ -51,14 +62,21 @@ def _row(model, *, dem: bool, calibration, points: int, repeats: int) -> dict:
     }
 
 
+# 2. 工况选择与输出归属
+# 失配为零提供名义基线，非零失配点用于估计本模型的响应斜率。
+# 失配和桥参数在同一工况冻结，避免把不同器件的差别算成校准收益。
+# 结果中的反推值依赖该斜率，论文指标只作为比较输入。
 def main() -> int:
     parser = argparse.ArgumentParser(description="mismatch -> INL/DNL sweep")
-    parser.add_argument("--out", default="docs/reviews/20261113_p3p4/data")
+    parser.add_argument("--out", type=Path, help="结果目录；省略时在系统临时目录中新建")
     parser.add_argument("--points", type=int, default=256)
     parser.add_argument("--repeats", type=int, default=8)
     args = parser.parse_args()
-    out = Path(args.out)
+    # 无参数重跑时使用独立目录，避免半次或并发运行覆盖已发布的图和测量记录。
+    out = args.out if args.out is not None else Path(tempfile.mkdtemp(prefix="sar-mismatch-sweep-"))
     out.mkdir(parents=True, exist_ok=True)
+    if args.out is None:
+        print(f"结果目录 {out}", file=sys.stderr)
     # 2026-11-13：这里用 exist_ok=True 是为了允许"输出到已有目录"，
     # 但会**静默覆盖**同名结果文件。打印一行提示，避免误当成新结果。
     if out.is_dir() and any(out.iterdir()) and not getattr(args, "force", False):

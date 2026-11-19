@@ -9,7 +9,7 @@
 | SNDR、SNR、SFDR | `sine_fit_metrics` 以已知基频拟合。SNDR 保留全部残差，SNR 扣除可辨识的指定谐波，SFDR 从扣除基波后的频谱搜索。报告时注明采样率、记录长度、激励频率、窗口和可靠性标志。 |
 | 幅度谱、PSD 与带内噪声 | `spectrum_dbfs` 给每个 bin 的幅度。`power_spectral_density` 给单边 `V²/Hz`，用 `integrate_noise_band` 按 bin 宽度积分。信号和谐波的剔除规则由调用方提供。 |
 
-同一次试验应标明输入和输出节点、输出是浮点估计还是整数码解码，以及越界处理。`summarize` 要求完整有限记录，并分别统计 RA 和 ADC2 标志。样本组别、制造种子及图所用数据见 [行为验证图册](../../../docs/figures/20261117/README.md)。
+同一次试验应标明输入和输出节点、输出是浮点估计还是整数码解码，以及越界处理。`summarize` 要求完整有限记录，并分别统计 RA 和 ADC2 标志。样本组别、制造种子及图所用数据见 [行为验证图册](../../../docs/figures/behavioral/README.md)。
 
 从仓库根目录检查谱量口径及相容入口：
 

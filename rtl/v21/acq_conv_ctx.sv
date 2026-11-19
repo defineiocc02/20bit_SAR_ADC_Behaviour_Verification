@@ -44,7 +44,7 @@ module acq_conv_ctx #(
 
     // ---------------------------------------------------------------- prepare
     // prepare_valid & prepare_ready 同高的上升沿接受一笔新 ACQ。
-    // 被拒请求不推进 PRNG（由上层保证：只有 commit_fire 才推进 sched18）。
+    // 受理 prepare 的同一沿推进 sched18；被拒请求不消费片组。
     input  logic        prepare_valid,
     output logic        prepare_ready,
     input  logic        cfg_valid,     // 权重配置已生效（来自 wsum_v21）
@@ -139,6 +139,7 @@ module acq_conv_ctx #(
     logic [2:0]  acq_h_q, acq_v_dem_q, acq_v_pre_q, acq_U_q;
     logic        acq_half_q, acq_coin_q;
     logic        acq_valid_q;
+    logic        startup_q;            // 首次受理前显示调度器的上电片组，排空后不再预选
     logic        acq_sampled_q;
     logic [2:0]  acq_flash_q;
     logic        acq_qid_q;
@@ -200,7 +201,7 @@ module acq_conv_ctx #(
     // prepare_fire：真正建立新 ACQ（排空不建立新 ACQ）
     assign prepare_fire_o = do_prepare;
 
-    // commit_fire：把已采样的 ACQ 提升为 CONV（用于推进 sched18）
+    // commit_fire 交给事件层；排空提升也可触发它，此时片池不推进。
     assign commit_fire_o = do_promote;
     assign sched_adv_o   = do_prepare;    // 任何被接受的 prepare 都推进
 
@@ -210,6 +211,7 @@ module acq_conv_ctx #(
     // ---------------------------------------------------------------- 时序
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
+            startup_q <= 1'b1;
             acq_ids_q <= 40'd0; acq_tag_q <= 32'd0; acq_pre_q <= 32'd0;
             acq_word_q <= 6'd0;
             acq_h_q <= 3'd0; acq_v_dem_q <= 3'd0; acq_v_pre_q <= 3'd0;
@@ -264,6 +266,7 @@ module acq_conv_ctx #(
 
             // ---- 3b. prepare：先提升旧 ACQ 到 CONV，再装新 ACQ ----
             if (do_prepare) begin
+                startup_q <= 1'b0;
                 if (acq_can_promote) begin
                     // 旧的（已采过的）ACQ 进 CONV
                     conv_ids_q      <= acq_ids_q;
@@ -365,134 +368,39 @@ module acq_conv_ctx #(
     assign conv_tag_o    = conv_tag_q;
     assign conv_pre_slot_o = conv_pre_q;
 
-    // ---------------------------------------------------------------- 片组
-    // ---------------------------------------------------------------- 宏选通
-    //
-    // **对外片组选通必须来自本笔冻结的片号，不是调度器的当前位图。**
-    //
-    // 反例（独立 VCS 已复现）：sched18 在 `accepted prepare` 那一拍就推进，
-    // 所以 `sched_acq` 出的是**推进后**的位图；而 pre/post 实际写的是
-    // 冻结在描述符里的片号。两者错开一组：
-    //     ROLE_A:  acq_sel=3bd00  pre_wr=000ff   -> 交集为 0
-    //     ROLE_AB: acq_sel=040fe  pre_wr=3bd00   -> 两个角色都领先一组
-    //
-    // 这些端口在合同里是"数字到模拟的实际片组选通"，不是调度预览，
-    // 所以必须与实际写入的片组一致。
-    //
-    // 做法：把 8 个冻结片号展开成 18 位掩码。
-    //   · ACQ 侧：prepare 被接受那一拍用**本拍新分配**的片号（sched_ids），
-    //     其余时刻用 acq_ids_q
-    //   · CONV 侧：用 conv_ids_q（该笔进 CONV 时冻结）
-    // 这与 pre 路由（pre_route_ids）使用同一套片号来源，保证一致。
-    //
-    // ACQ 掩码的三种来源：
-    //   ① prepare 那一拍   -> 本拍新分配的 sched_ids（要被冻结的值）
-    //   ② 已有 ACQ 描述符  -> acq_ids_q（冻结片号，与 pre 写入一致）
-    //   ③ 首笔尚未装载     -> **sched_acq（调度器初态）**
-    //
-    // ③ 是必需的：复位后 sched18 初态就是 8 片 ACQ（R03"首采样前无 CONV"），
-    // 而描述符还没装载（acq_ids_q 全 0）。若用 acq_ids_q 展开，
-    // "8 个片号都是 0" 会被解释成"只有片 0"，掩码变成 0x00001
-    // （实测回归报 acq=1，期望 8）。
-    wire        acq_desc_valid = acq_valid_q | do_prepare;
-    wire [39:0] acq_route_ids  = do_prepare ? sched_ids : acq_ids_q;
+    // ---------------------------------------------------------------- 宏端物理片权
+    // A 转换、B 采集、C 等待时，release_fire 只表示 A 可在下一上升沿释放。
+    // 沿前仍由 A/B 持有开关，沿后读取新冻结的 B/C。片选、写门和 4 位预置
+    // 共用同一所有者，防止写门仍属于 B 而数据已经切成 C，或提前写到 A。
+    // CONV 为空时允许提前预置；冷启动先显示八个候选采集片，尚不写预置。
+    wire        early_prepare = do_prepare && !conv_valid_q;
+    wire        drive_pre     = early_prepare || acq_valid_q;
+    wire [39:0] acq_route_ids = early_prepare ? sched_ids : acq_ids_q;
+    wire [31:0] pre_route_data = early_prepare ? acq_pre_slot_i : acq_pre_q;
 
-
-    // **必须用 valid 屏蔽**：复位后 IDs 全 0，若直接展开，
-    // "8 个片号都是 0" 会被解释成"片 0 被选中"，掩码变成 0x00001。
-    // 反例实测：ROLE_A 时 conv=00001 而期望 0（A 尚未跨采样沿，
-    // CONV 组应完全为空）。
     logic [17:0] acq_sel_c, conv_sel_c;
     always_comb begin
-        acq_sel_c  = 18'd0;
-        conv_sel_c = 18'd0;
-        if (acq_desc_valid) begin
+        acq_sel_c  = '0;
+        conv_sel_c = '0;
+        if (drive_pre) begin
             for (int s = 0; s < 8; s++)
                 acq_sel_c[acq_route_ids[s*5 +: 5]] = 1'b1;
-        end else begin
-            acq_sel_c = sched_acq;      // 首笔未装载：调度器初态
+        end else if (startup_q && !stop_i) begin
+            acq_sel_c = sched_acq;
         end
         if (conv_valid_q) begin
             for (int s = 0; s < 8; s++)
                 conv_sel_c[conv_ids_q[s*5 +: 5]] = 1'b1;
         end
     end
-    assign acq_sel_o  = acq_sel_c;
+    assign acq_sel_o = acq_sel_c;
     assign conv_sel_o = conv_sel_c;
+    assign idle_sel_o = ~(acq_sel_c | conv_sel_c);
 
-    // 仍在 CONV（未释放）的片不得被重新分配。
-    // 用 generate + 归约，避免 function 变量下标（综合器会 report unsupported）。
-    logic [17:0] conv_hold_mask;
-    genvar gh;
-    generate
-        for (gh = 0; gh < 18; gh++) begin : g_hold
-            logic hit;
-            always_comb begin
-                hit = 1'b0;
-                for (int i = 0; i < 8; i++)
-                    if (conv_ids_q[i*5 +: 5] == 5'(gh)) hit = 1'b1;
-            end
-            assign conv_hold_mask[gh] = hit;
-        end
-    endgenerate
-
-    // ---------------------------------------------------------------- IDLE 分区
-    //
-    // **IDLE 必须是 ACQ/CONV 实际角色分区的补集**，不能直接取 sched_idle。
-    //
-    // 反例（独立 VCS 实测，A 转换 / B 采集的稳定态）：
-    //     ACQ=3bd00(8) CONV=000ff(8) IDLE=00200(1)   -> 只有 17 片被覆盖
-    //   应为 IDLE=04200（10 片），18 片完整分区。
-    //
-    // 根因：`sched_idle` 是 sched18 在 accepted prepare 那一拍**推进后**的
-    // 位图，而 acq_sel_o / conv_sel_o 已改为从**冻结片号**展开
-    // （见上方"宏选通"一节）。两者错开一组，补集就不完整。
-    //
-    // 修法：IDLE = 全 18 片的补集（扣掉实际 ACQ 与 CONV 的并集）。
-    // 这样"三集合互斥且并集 = 全部 18 片"是**构造性成立**的，
-    // 不依赖调度器位图与冻结片号是否同步。
-    //
-    // 保持不变的部分：`conv_hold_mask` 的扣减逻辑（CONV 未释放时
-    // 该组既不算 IDLE 也不算可用），以及调度算法本身不动。
-    logic [17:0] idle_sel_c;
-    always_comb begin
-        idle_sel_c = ~(acq_sel_c | conv_sel_c) & 18'h3FFFF;   // 全 18 片掩码
-    end
-    assign idle_sel_o = idle_sel_c;
-
-    // ---------------------------------------------------------------- 物理路由
-    //
-    // **pre 必须打到"本拍正在建立的那一笔"的片号**，不是 acq_ids_q。
-    //
-    // 踩过的坑（审计问题 1）：原来 pre 用 acq_ids_q + acq_valid_q。
-    // 但在 prepare 那一拍，acq_ids_q 还是**上一笔（A）**的片号
-    // （非阻塞赋值要到沿后才更新），于是：
-    //   acq_sel = 0x3BD00（B 的新片，sched18 已更新）
-    //   pre_wr  = 0x000FF（A 的旧片）   <- 打错地方
-    //   post_wr = 0x000FF（A 的片，正确）
-    //   两者交集 = 0x000FF，即同一组片同时被 pre 和 post 写。
-    //
-    // 正确语义：prepare 被接受的那一拍，新 ACQ 描述符的内容就是
-    // `sched_ids` / `prepare_*`（这些正是要被冻结进描述符的值），
-    // 所以 pre 应当按它们路由；其余时刻按已冻结的 acq_ids_q 路由。
-    wire [39:0] pre_route_ids = do_prepare ? sched_ids : acq_ids_q;
-    wire        pre_route_en  = do_prepare | acq_valid_q;
-
-    // **pre 的数据必须来自冻结描述符**，不能直接取组合输入 `acq_pre_slot_i`。
-    //
-    // 反例（审查已 VCS 复现）：A 已受理后，`prepare_valid=0`（不再受理），
-    // 但上游把 word 从 0 改成 63 —— `acq_pre_slot_i` 是 dither_pre 对
-    // **当前 word** 的组合输出，于是物理 pre 从 0 变成 0xEF...
-    // 而 A 的冻结快照 `acq_pre_q` 仍是 0，两者不一致。
-    // 这就是"未被受理的输入改变了本笔物理预置"。
-    //
-    // 正确语义：
-    //   · prepare 被受理那一拍 -> 用当拍输入（这正是要被冻结的值）
-    //   · 其余时刻            -> 用已冻结的 acq_pre_q
-    wire [31:0] pre_route_data = do_prepare ? acq_pre_slot_i : acq_pre_q;
-
+    // ---------------------------------------------------------------- 采样预置
+    // 对八个实际的物理片号散射四位预置。无归属时全部数据位和写门都关闭。
+    // 排空时仅提升旧 ACQ，不消费一个新样本，也不恢复上电预选。
     logic [71:0] pre_state_c;
-    logic [17:0] pre_wr_c;
     // 纯组合展开：每个物理片位的值 = 若该片号等于某个 slot 的冻结片号，
     // 则取该 slot 的 nib。用 generate 生产 18×4 个独立 always_comb，
     // 每个都显式赋初值，保证全路径赋值（不会被推断成锁存器）。
@@ -503,9 +411,9 @@ module acq_conv_ctx #(
                 logic v;
                 always_comb begin
                     v = 1'b0;
-                    if (pre_route_en) begin
+                    if (drive_pre) begin
                         for (int s = 0; s < 8; s++)
-                            if (pre_route_ids[s*5 +: 5] == 5'(gp))
+                            if (acq_route_ids[s*5 +: 5] == 5'(gp))
                                 v = pre_route_data[s*4 + gb];
                     end
                 end
@@ -514,21 +422,8 @@ module acq_conv_ctx #(
         end
     endgenerate
 
-    generate
-        for (gp = 0; gp < 18; gp++) begin : g_pre_wr
-            logic w;
-            always_comb begin
-                w = 1'b0;
-                if (pre_route_en)
-                    for (int s = 0; s < 8; s++)
-                        if (pre_route_ids[s*5 +: 5] == 5'(gp)) w = 1'b1;
-            end
-            assign pre_wr_c[gp] = w;
-        end
-    endgenerate
-
-    assign rdac_pre_state_o  = pre_state_c;
-    assign pre_wr_o          = pre_wr_c;
+    assign rdac_pre_state_o = pre_state_c;
+    assign pre_wr_o = drive_pre ? acq_sel_c : 18'd0;
     // post 由 I2 在 apply_fire 时给出；I1 阶段恒 0 且写门关闭
     assign rdac_post_state_o = 360'd0;
     assign post_wr_o         = 18'd0;

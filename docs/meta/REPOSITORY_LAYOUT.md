@@ -1,49 +1,46 @@
 # 工作树与文件归属
 
-本页用于定位文件和判断是否适合搬动。项目结果在[状态表](../STATUS.md)，规格在[工程合同](../CONTRACT_CURRENT.md)，首次使用从[根 README](../../README.md)进入。
+从[根 README](../../README.md)找功能与根目录，从[文档索引](../INDEX.md)找专题。工程合同记录接口，状态页记录各项验证所用的条件。[工程合同](../CONTRACT_CURRENT.md) · [项目状态](../STATUS.md)
 
-| 路径 | 目录职责与典型文件 |
+## 找实现，找对应的测试
+
+| 对象 | 实现、输入与证据 |
 | --- | --- |
-| [`src/adi_model/`](../../src/adi_model/) | Python 行为模型、几何、校准、整数解码和 CLI。`defaults.py` 实例化默认模型，公开 profile 位于 `contracts/profiles.py`。 |
-| [`rtl/`](../../rtl/README.md) 与 [`tb/`](../../tb/) | v21 为唯一集成顶层，其他可复用 RTL 用于组件检查。`tb/` 下的 `.mem`、`.txt` 可能是 TB 逐项读取的冻结向量。 |
-| [`flow/`](../../flow/)（包括 [`formal/`](../../flow/formal/)） | 仿真、验证、综合和属性脚本。`flow/build/filelists/` 中的 `.f` 由编译入口读取。`.sdc`、`.upf`、`.lef` 分别服务于约束、电源意图和物理工具。 |
-| [`tools/`](../../tools/) | Python 入口、对拍工具、向量和制图生成器。旧脚本可通过 Git 查看。[`tools/results/`](../../tools/results/README.md)保存旧结果和旧图。 |
-| [`subsys/`](../../subsys/) | DSP 子系统、CAAZ 扩展以及实验配置。`subsys/experiments/configs/matrix.py` 是消融和效果图的运行输入。 |
-| [`docs/`](../INDEX.md) 与 [`references/`](../../references/README.md) | 合同、设计依据、专题、存证、归档和维护者选定的原件。看的图在 [`docs/figures/20261117/`](../figures/20261117/README.md)，图与生成输入由清单绑定。 |
-| [`flow/verification/manifests/`](../../flow/verification/manifests/) | 版本化的机制与来源清单，供源码、验证与披露范围追踪。 |
-| 根目录、[`.github/`](../../.github/) | 根层 `pyproject.toml` 提供 Hatchling 构建及 CLI，`README.md` 提供项目入口，两个点文件承载 Git 规则。CI、维护与安全说明、pre-commit 配置位于 `.github/`。 |
-| [工具依赖](../../tools/requirements.txt)、[验收命令](../../flow/Makefile)与[版本记录](CHANGELOG.md) | 按运行工具、验证流程和文档元信息分别维护。许可、第三方声明和引用文件保留在 [LICENSE](LICENSE)、[NOTICE](NOTICE)、[CITATION.cff](CITATION.cff)。 |
+| 生产数字 IP | [唯一顶层](../../rtl/v21/adc_digital_ip_v21.sv)由[生产清单](../../flow/build/filelists/files_adc_v21.f)展开。测试侧模拟宏由[仿真清单](../../flow/build/filelists/files_adc_v21_sim.f)引入。 |
+| 时序、开关与出码 | [算法卡片](../algorithms/digital.md)链接到相应 RTL 与测试台。顶层测试驱动在 [sample_cadence.cpp](../../tb/v21/sample_cadence.cpp)，运行入口、夹具与向量说明在[仿真导航](../../flow/sim/README.md)。 |
+| Python 行为模型 | [defaults.py](../../src/adi_model/defaults.py)装配默认参数；[快速上手](../guide/QUICKSTART.md)给出输入、输出与诊断命令；预期行为由 [flow/tests/](../../flow/tests/)核对。 |
+| 可复用组件及研究扩展 | [组件接口](../audit/components/CURRENT_INTERFACE_AND_ARITHMETIC.md)定义组件测试口径。[subsys/](../../subsys/)存放 DSP、CAAZ 与对照实验。生产顶层的接口以工程合同为准。 |
+| 运行和发布 | [tools/](../../tools/)存放命令和参考计算，[flow/](../../flow/)存放清单、测试、综合与形式验证流程。根层打包配置定义 Python 交付，[.github/](../../.github/)存放 CI 和协作模板。 |
 
-## 几类容易误删的文件
+## docs 的九个目录
 
-| 文件 | 为什么保留 |
+| 目录 | 保留的内容 |
 | --- | --- |
-| `flow/sim/fixtures/` 中的 `.sv/.hex/.json` | 明确绑定到仿真用例的源码、参数及权重输入。每个组件的输入和绑定范围由同次 `binding.json` 声明。 |
-| `flow/tests/fixtures/` 中的 `.rpt` | 测试门禁读取的归档诊断输入，和开发机生成的综合报告分开存放。 |
-| [`docs/audit/artifacts/`](../audit/artifacts/README.md) 中的 `.svf/.v/.txt` | 冻结的单模块等价、网表和综合记录。 |
-| `docs/verification/vcs_source_control_trace/` 中的 `.csv` 与 `docs/reviews/20261105-*.json` | 带运行身份的证据。需要连同同目录说明、配置身份和边界一起阅读。 |
-| `docs/figures/` 的 `.png/.svg/.json` | 发布预览、可编辑矢量图和运行清单属于一套交付。造图命令应先写独立输出目录。 |
+| [algorithms/](../algorithms/README.md) | 数字 IP 的算法、六张手工矢量图、其余流程与状态机，以及核对图源和数值的清单。原生图直接编辑 SVG，自动排版图编辑算法页中的 Mermaid。 |
+| [figures/](../figures/) | [behavioral/](../figures/behavioral/README.md)保存行为模型图及其出图清单；[static_linearity/](../figures/static_linearity/)保存全码 DNL/INL 图、参数与摘要。 |
+| [v21/](../v21/) | 当前数字 IP 的物理接口、开关规则、权重配置、算术证明和整核实现记录。首查[合同总表](../CONTRACT_CURRENT.md)。 |
+| [guide/](../guide/QUICKSTART.md) | 模型上手、架构、术语、排查以及[历次设计决策](../guide/decisions/README.md)。 |
+| [mechanisms/](../mechanisms/README.md) | 按论文和专利原图解释各机制，图号与原始出处配对。[原件清单](../../references/README.md) |
+| [audit/](../audit/README.md) | 独立审查与报告，`reviews/` 收专题复核，`components/` 收独立组件说明，`artifacts/` 收已登记的网表和工具证据。 |
+| [caaz/](../caaz/README.md) | 斩波辅助自归零研究。与随机化的组合实验在 [randomization/](../caaz/randomization/README.md)。 |
+| [meta/](./) | 仓库归属、维护约定、[变更记录](CHANGELOG.md)、[许可](LICENSE)、[声明](NOTICE)与[引用信息](CITATION.cff)。 |
+| [_history/](../_history/) | 按当时输入复查的验收、接口草案与输出。老 D3/D4 交接在 [d3d4/](../_history/d3d4/)，原模型报告及绘图在 [model_results/](../_history/model_results/README.md)。 |
 
-## 已归并的内部入口
+## 哪些文件属于验证输入
 
-| 旧位置 | 归属 |
-| --- | --- |
-| `formal/` · `manifest/` | 分别归入 [属性验证](../../flow/formal/)和[验证清单](../../flow/verification/manifests/)。 |
-| 根级验收和依赖配置 | [flow/Makefile](../../flow/Makefile)负责数字验收，[工具依赖](../../tools/requirements.txt)配套 Python 运行入口。 |
-| 根级社区、版本与法务文件 | [社区与协作说明](../../.github/)集中到 `.github/`，版本、许可和引用说明由 `docs/meta/` 管理。 |
-| `MANIFEST.in` | [旧打包清单](../_history/restructure/MANIFEST.in)保留 setuptools 时代的规则，现用构建配置在 [pyproject.toml](../../pyproject.toml)。 |
-| `docs/review/` | 独立专家复核与其他专题复核集中在 [docs/reviews/](../reviews/)。 |
-| `docs/validation-environment.json` | 放入[当时的验证环境档案](../_history/archive/validation-environment.json)，随检查点阅读。 |
-| `docs/audit/TREE_AUDIT_PROMPT.md` | [审查任务原件](../_history/restructure/TREE_AUDIT_PROMPT.md)，报告仍从审计索引读取。 |
-| `subsys/profiles/` | 具名 profile 说明进入 [Python 合同](../../src/adi_model/contracts/README.md)，原来独立指针保留在历史区。 |
-| `tools/run_review2_figure.py` | 旧制图原件依赖早期几何和测试环境，可用 `git show 2224d30:tools/_legacy/run_review2_figure.py` 查阅。当前图使用 [run_review_figures.py](../../tools/run_review_figures.py)。 |
+`.f` 决定待编译的源。`tb/` 的冻结向量和 `flow/sim/fixtures/` 的 `.sv/.hex/.json` 均有读入它们的测试台；`flow/tests/fixtures/` 的 `.rpt` 可用于诊断测试。审计目录内的 `.svf/.v` 随原工具报告解释。[编译清单说明](../../flow/build/filelists/README.md) · [后端存证说明](../audit/artifacts/README.md)
 
-## 历史与生成目录
+两份早期试验台已由现行用例取代。ADC2 捕获与返回见 [tb_i3_full.sv](../../tb/v21/tb_i3_full.sv)，SAR 与物理写门联调见 [tb_i12_full.sv](../../tb/v21/tb_i12_full.sv)。需要核查旧用例时可读取整理前的 Git 对象。
 
-- `docs/_history/`、`docs/audit/_superseded/` 是带版本范围的档案。旧 RTL 回归从 Git 中对应提交追溯，处理在库的组件输入前先核对实际调用入口。
-- 本机编译暂存、综合输出、Python 缓存和未发布的图进入 Git 忽略规则。用 `git ls-files --others --ignored --exclude-standard` 查本机残留。Git 跟踪的证据例外以相应 README 中的来源说明为准。
-- 工具和文档路径迁移时，同时更新入口、构建清单和自动化的调用。README 维护目录自身的用途和入口，状态数字由相应证据页维护。
+~~~bash
+git show 9e4f1fd:tb/v21/tb_i3_adc2.sv
+git show 9e4f1fd:tb/v21/tb_i12_integration.sv
+~~~
 
-可用 `git ls-files` 查跟踪文件，用 `python3 tools/check_doc_counts.py` 直接清点当前文档范围。结构审查的基线与结论见 [2026-11-17 独立审查](../audit/TREE_AUDIT_REPORT.md)。
+日常运行把输出写入新建的临时目录。发布图及冻结证据保留输入身份，不把旧图的哈希改写成新实现的实测。下列命令从仓库根统计实际存在的 Git 可见文件并核对入口，无需 EDA。
 
-`tools/check_engineering.py` 的 C3 核验文档相对路径，C4 按 `figures.json` 核验发布的 PNG/SVG SHA-256，C7 对齐工程合同、Python 默认值和 v21 RTL 的 ADC2 位宽、半开电压窗口与 Q24 码箱中心。归档数据按原运行身份解读。
+~~~bash
+python3 -B tools/check_doc_counts.py
+python3 -B tools/check_engineering.py
+node tools/v21_algorithm_atlas.mjs --check
+~~~

@@ -1,16 +1,15 @@
 # 文档索引
 
-当前集成 ADC 为 **v21，13 位 ADC2、0.75 V 窗口**。[项目概览](../README.md)给出运行入口，[工程合同](CONTRACT_CURRENT.md)定义接口和行为，[项目状态](STATUS.md)记录结果、证据范围与缺口。
+查设计规则读[工程合同](CONTRACT_CURRENT.md)，查已经验证到哪一步读[项目状态](STATUS.md)。新读者可以从[数字顶层框图](algorithms/figures/digital-transaction-flow.svg)沿一笔采样找到对应的模块。
 
-| 用途 | 从这里读 | 深入资料 |
-| --- | --- | --- |
-| 理解系统与模块 | [两级转换机理和行为图](figures/20261117/README.md) | [机制专题](mechanisms/README.md) · [论文与讲稿](../references/README.md) |
-| 查看 v21 实现 | [RTL 导航](../rtl/README.md) | [权重配置合同](v21/CONFIG_CONTRACT.md) · [源清单说明](../flow/build/filelists/README.md) |
-| 跑 Python | [快速上手](guide/QUICKSTART.md) | [模型架构](guide/ARCHITECTURE.md) · [定位问题](guide/DEBUGGING.md) · [定点约定](../src/adi_model/contracts/README.md) |
-| 跑 v21 或查接口 | [v21 仿真入口](../flow/sim/README.md) · [工程合同](CONTRACT_CURRENT.md) | [运行环境](v21/I5_ENVIRONMENT.md) · [组件验证记录](../flow/verification/README.md) |
-| 查综合与等价 | [审计与证据索引](audit/README.md) | [综合流程](../flow/synth/README.md) · [顶层综合记录](v21/SYNTH_STALL.md) · [旧整核 Formality 状态](v21/FORMAL_STATUS.md) |
-| 查算术与历史验收 | [证明台账](v21/PROOF_LEDGER.md) | [历史 D3/D4 验收记录](ACCEPTANCE_STATUS.md) · [独立记录目录](acceptance/) · [历史源控制事件证据](verification/vcs_source_control_trace/README.md) |
-| 查设计依据和扩展 | [架构决策](adr/README.md) | [CAAZ 研究](caaz/README.md) · [随机化与 CAAZ](randomization_caaz/README.md) · [DSP 子系统](../subsys/ad4080_dsp/README.md) |
-| 查仓库结构与历史 | [工作树与文件归属](meta/REPOSITORY_LAYOUT.md) | [版本记录](meta/CHANGELOG.md) · [历史文档](_history/) · [已取代的审计记录](audit/_superseded/) · [历史数值与图](../tools/results/README.md) |
+| 要回答的问题 | 入口 |
+| --- | --- |
+| 调度、扰动与 DEM 怎样运行？ | [数字 IP 图册](algorithms/README.md) · [逐模块算法和状态](algorithms/digital.md) · [顶层与实例清单](../rtl/README.md) |
+| 模拟宏怎样同数字 IP 交接？ | [接口合同](CONTRACT_CURRENT.md) · [物理接口与重构方程](v21/PHYSICAL_INTERFACE.md) · [开关编码、保护码和受理沿](v21/SWITCHING_RULES.md) · [权重装载](v21/CONFIG_CONTRACT.md) |
+| 有哪些数字实测、哪些属于模型估算？ | [逐项状态](STATUS.md) · [扰动注入与扣回实测](audit/TREE_AUDIT_REPORT.md#dither-word-audit) · [全码 DNL/INL 模型对照](audit/TREE_AUDIT_REPORT.md#全码静态线性度) |
+| 想用自己的输入复核 | [数字仿真入口](../flow/sim/README.md) · [Python 快速上手](guide/QUICKSTART.md) · [行为模型图和试验输入](figures/behavioral/README.md) · [故障排查](guide/DEBUGGING.md) |
+| 找论文、专利与工程假设 | [论文与讲稿原件](../references/README.md) · [逐图机制对照](mechanisms/README.md) · [设计决策及适用范围](guide/decisions/README.md) |
+| 查正式验证与后端记录 | [审计索引](audit/README.md) · [证明台账](v21/PROOF_LEDGER.md) · [模块级综合、布线与等价结果](audit/ALL_13_MODULES_FINAL.md) |
+| 查独立研究或历史数据 | [CAAZ 实验](caaz/README.md) · [DSP 子系统](../subsys/ad4080_dsp/README.md) · [历史验收](_history/acceptance/) · [历史模型结果](_history/model_results/README.md) |
 
-旧工程记录按当时的源、输入与工具环境解释。需要核对当前接口、命令或证据时，从本页上方的合同或状态入口进入。
+`algorithms/` 存放数字 IP 的可编辑图和证据清单；`figures/` 存放行为模型图与静态线性度结果。`v21/` 收接口详表及整核专题，`audit/` 收评审和工具证据，`_history/` 按各记录原有的提交和条件追溯。[完整目录与文件归属](meta/REPOSITORY_LAYOUT.md)

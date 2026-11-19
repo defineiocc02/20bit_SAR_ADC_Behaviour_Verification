@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
+# =============================================================================
+# 文件名     : mutate_rtl.py
+# 模块名     : SystemVerilog 变异位点盘点与测试副本生成
+# 功能       : 从显式选择的 RTL 子树列出位点，按源坐标生成单独的测试副本。
+# 设计说明   : 输入及头文件在生成前登记；清单记录文本改动及适用边界。
+# =============================================================================
 """在本项目 SystemVerilog 子集中枚举和注入变异。
 
-按 docs/rtl/MUTATION_AUDIT_VS_VERIBUGBENCH.md §6.1，将匹配、守卫与变换组合为
+按 docs/_history/rtl_reviews/MUTATION_AUDIT_VS_VERIBUGBENCH.md §6.1，将匹配、守卫与变换组合为
 各个算子。注入只修改 <out-root>/<name>/<source-root-name>/ 中的 SV 副本，输入保持只读。
 输出为显式库外新目录；已有结果拒绝覆盖。清单和抽样选择不表示产物已经编译或被检出。
 
@@ -39,6 +45,9 @@ RTL_ROOT = REPO_ROOT / "rtl"
 # ---------------------------------------------------------------------------
 
 
+# 1. 源坐标与样本身份
+# 位点以原文件行列为准，既保存将被替换的区间，也保存预期原文。
+# 单独的行号不足以重放同一变异；一行内可能有多个合法算子或多个表达式项。
 @dataclass(frozen=True)
 class Site:
     """记录一个合法注入点及替换内容。
@@ -67,6 +76,8 @@ class Site:
         return f"{self.rel}:{self.line}:{self.col}:{self.op}"
 
 
+# 调用方按名称选择算子族。可选位点取决于各自的匹配守卫。
+# 盘点时随结果输出该族的边界，便于解释为什么两份 RTL 的机会数不同。
 @dataclass(frozen=True)
 class Operator:
     """组合算子名称、分类、动作、适用边界及位点枚举函数。"""
@@ -86,12 +97,17 @@ _LITERAL_RE = re.compile(r"^(?:\d+'[sSbBoOdDhH][0-9a-fA-F_xXzZ]+|\d+)$")
 _IDENT_RE = re.compile(r"^[A-Za-z_]\w*$")
 
 
+# 2. 区间按源码字符定位
+# 切掉行注释后保留行首空白。若先 strip 再定位，注入阶段的列号会整体左移。
+# 注释文本中出现运算符无需登记为硬件表达式。
 def _code(line: str) -> str:
     """移除行尾 // 注释；此简化切分只适用于不含相关字符串字面量的输入子集。"""
     i = line.find("//")
     return line if i < 0 else line[:i]
 
 
+# 常量表达式不提供有效的信号依赖对照。
+# 用完整 token 判定，避免把标识符中的数字或一个位宽前缀误当成常量。
 def _is_literal(tok: str) -> bool:
     return bool(_LITERAL_RE.match(tok.strip()))
 
@@ -104,6 +120,8 @@ def _lhs_tokens_before(line: str, idx: int, width: int = 48) -> str:
     return line[max(0, idx - width) : idx]
 
 
+# 同一串 <= 既可能表示非阻塞赋值，也可能是比较。
+# 只有单行、可辨认左值且完整结束的语句才进入赋值类，条件里的比较留在表达式类。
 def _is_stmt_nba(line: str) -> bool:
     """识别单行的简单非阻塞赋值，区分赋值符号与关系运算符 <=。
 
@@ -122,6 +140,8 @@ def _is_stmt_nba(line: str) -> bool:
     return "(" not in lhs
 
 
+# 赋值拆分和语句判定共用同一个入口。
+# 删除、搬移与 RHS 取反若各自猜测左值边界，同一条语句会被重复或相互矛盾地枚举。
 def _nba_parts(line: str) -> tuple[str, str, str] | None:
     """将语句级非阻塞赋值拆为缩进、左值和右值；不匹配时返回 None。"""
     if not _is_stmt_nba(line):
@@ -154,6 +174,8 @@ def _top_level_terms(expr: str, joiner: str) -> list[str]:
     return parts
 
 
+# 这里返回字符区间，调用者据此拿到精确 span。
+# 顶层深度同时处理圆括号、方括号和花括号，索引和拼接内的连接符不拆项。
 def _find_top_joiners(expr: str, joiner: str) -> list[tuple[int, int]]:
     """返回顶层连接词的 [start, end) 字符区间，索引相对于 expr。
 
@@ -180,6 +202,8 @@ def _find_top_joiners(expr: str, joiner: str) -> list[tuple[int, int]]:
     return out
 
 
+# 从赋值右侧开始寻找可删项，可避免让语句左值掉进删除区间。
+# 遇到没有顶层赋值的表达式时，从零处理，由调用者的语境守卫进一步筛选。
 def _expr_region_start(code: str) -> int:
     """返回顶层语句级 = 或 <= 后的位置；未找到赋值时返回 0。
 
@@ -203,6 +227,8 @@ def _expr_region_start(code: str) -> int:
     return last if last >= 0 else 0
 
 
+# 跨两行的位点需在读取、比较和写回时使用同一种换行。
+# 文件摘要根据原始字节计算；平台自动换行会改变原文跨度和哈希。
 def _read_text(path: Path) -> str:
     """保留原始换行形式读取 UTF-8 文本，不将 CRLF 归一为 LF。
 
@@ -222,6 +248,8 @@ def _detect_nl(text: str) -> str:
     return "\r\n" if "\r\n" in text else "\n"
 
 
+# 端口行的位宽说明属于接口，不是表达式中的数据切片。
+# 先分开端口与内部语句，避免两个算子族对同一范围重复计数。
 def _port_decl(line: str) -> bool:
     return bool(re.match(r"^\s*(input|output|inout)\b", _code(line)))
 
@@ -239,6 +267,9 @@ _OPCHARS = set("<>=!&|^~+*/%-")
 _OPTOKEN_RE = re.compile(r"[<>=!&|^~+*/%-]+")
 
 
+# 3. 表达式与位段算子
+# 同族替换要按完整算子匹配。把 >>> 的某个 > 当作比较符，
+# 会既误报可选机会，也让清单记录的原文不完整。
 def _operator_token_at(code: str, i: int) -> str:
     """返回 code[i] 所在的最长连续算子词法单元，例如 &&、<= 或 >>>。
 
@@ -255,6 +286,9 @@ def _operator_token_at(code: str, i: int) -> str:
     return code[a : b + 1]
 
 
+# 比较或算术符号是否能替换，还取决于左右操作数。
+# 排除字面量之间的常量计算，保留能改变信号通路的候选。
+# 位置列表描述可生成的文本，是否能通过编译由独立工具判定。
 def _expr_update(rel: str, lines: list[str]) -> list[Site]:
     """替换同族二元运算符，包括关系运算符；跳过非阻塞赋值本身的 <=。"""
     menu = [
@@ -316,6 +350,8 @@ def _expr_update(rel: str, lines: list[str]) -> list[Site]:
     return out
 
 
+# 删除一个项时连同与其相接的连接符处理，防止生成悬空符号。
+# 区间以原表达式的字符位置表示，可在注入前复查原文是否被修改。
 def _expr_delete(rel: str, lines: list[str]) -> list[Site]:
     """删除赋值右侧的一个顶层项，支持 &&、||、&、| 和 ^ 连接词。
 
@@ -370,6 +406,8 @@ def _expr_delete(rel: str, lines: list[str]) -> list[Site]:
 _BV_DECL_RE = re.compile(r"\blogic\s+(?:signed\s+)?\[[^\]]+\]\s+([A-Za-z_]\w*)")
 
 
+# RHS 只在识别到本文件内声明的位向量时才插入取反。
+# 这个词法筛选不做跨层端口类型推导，因此不会把所有标识符都算作候选。
 def _expr_insert(rel: str, lines: list[str]) -> list[Site]:
     """在支持的非阻塞赋值右值前插入一元 ~，仅匹配本文件声明的位向量标识符。"""
     decls = set()
@@ -407,6 +445,8 @@ def _expr_insert(rel: str, lines: list[str]) -> list[Site]:
     return out
 
 
+# 把 [A:B] 的两个边界互换用于检验数据宽度或方向错误。
+# 端口声明由接口族处理；这里选内部访问，保持两种诊断的归属。
 def _partselect_update(rel: str, lines: list[str]) -> list[Site]:
     """交换位段 [A:B] 的两个边界；端口位宽由 IOFlip 单独处理。"""
     out: list[Site] = []
@@ -436,6 +476,8 @@ def _partselect_update(rel: str, lines: list[str]) -> list[Site]:
     return out
 
 
+# 保留端点 A 的一位，改变右侧数据的有效宽度。
+# 显然是写目标的位段单独排除，避免把表达式测试变成写目标变化。
 def _partselect_delete(rel: str, lines: list[str]) -> list[Site]:
     """将支持的位段 [A:B] 缩减为其 A 端单比特访问。"""
     out: list[Site] = []
@@ -467,6 +509,8 @@ def _partselect_delete(rel: str, lines: list[str]) -> list[Site]:
     return out
 
 
+# 单索引的偏移可能越界。这里保留具体替换，
+# 不通过截断或环绕把越界结果预先修正成一个有效输入。
 def _pointer_update(rel: str, lines: list[str]) -> list[Site]:
     """对非纯字面量的单索引 [X] 作受限 ±1 扰动，复杂索引见 BOUNDS。"""
     out: list[Site] = []
@@ -503,6 +547,9 @@ def _pointer_update(rel: str, lines: list[str]) -> list[Site]:
     return out
 
 
+# 4. 寄存器赋值与边沿
+# 括起整个 RHS 再取反，使运算优先级在复合右值上仍然明确。
+# 这一类只影响下一状态的数据，事件控制由后面的边沿算子单独处理。
 def _nsub_update(rel: str, lines: list[str]) -> list[Site]:
     """将支持的 lhs <= rhs 右值改为按位取反 ~(rhs)。"""
     out: list[Site] = []
@@ -535,6 +582,8 @@ def _nsub_update(rel: str, lines: list[str]) -> list[Site]:
     return out
 
 
+# 位点用原语句的整行跨度，写入副本后仍能用旧行号定位。
+# 若文件内只识别出一条赋值，守卫会放弃删除，以保留有意义的比较对象。
 def _nsub_delete(rel: str, lines: list[str]) -> list[Site]:
     """将整条非阻塞赋值注释在原行，保持行数供注入位置追溯。"""
     nb = [ln for ln, raw in enumerate(lines, 1) if _is_stmt_nba(raw)]
@@ -559,6 +608,8 @@ def _nsub_delete(rel: str, lines: list[str]) -> list[Site]:
     return out
 
 
+# 只交换相邻、相同缩进的语句。
+# 跨度覆盖两行；与其中任一行的其他修改同时选择时，注入阶段会检出重叠。
 def _nsub_move(rel: str, lines: list[str]) -> list[Site]:
     """交换相邻两行且缩进相同的非阻塞赋值，保持行数。"""
     out: list[Site] = []
@@ -589,6 +640,8 @@ def _nsub_move(rel: str, lines: list[str]) -> list[Site]:
 _EDGE_RE = re.compile(r"always_ff\s*@\s*\(\s*(posedge|negedge)\s+([A-Za-z_]\w*)\s*\)")
 
 
+# 交换敏感表中的有效沿会改变寄存器在哪个时钟边沿更新。
+# 识别单沿声明，避免把带异步复位的第二个边沿也当作主时钟。
 def _edge_flip(rel: str, lines: list[str]) -> list[Site]:
     """交换单沿 always_ff 事件控制中的 posedge 与 negedge。"""
     out: list[Site] = []
@@ -616,6 +669,8 @@ def _edge_flip(rel: str, lines: list[str]) -> list[Site]:
     return out
 
 
+# 只有源中存在约定的复位标识时，才构造附加沿。
+# 本步骤不替调用者猜测模块内哪一个网络可作为异步复位。
 def _edge_insert(rel: str, lines: list[str]) -> list[Site]:
     """在支持的单沿事件控制中插入异步复位沿，要求源文本包含 rst_n。"""
     if not any(re.search(r"\brst_n\b", ln) for ln in lines):
@@ -650,6 +705,8 @@ def _edge_insert(rel: str, lines: list[str]) -> list[Site]:
 _MULTIEDGE_RE = re.compile(r"@\s*\(\s*[^)]*\bor\b[^)]*\)")
 
 
+# 多沿列表可以删除其中一个事件后仍有可辨识的敏感表。
+# 相邻分隔符和前后沿构成同一个跨度，避免留下孤立的 or。
 def _edge_delete(rel: str, lines: list[str]) -> list[Site]:
     """仅从多沿事件控制中删除一个沿。
 
@@ -691,6 +748,8 @@ _PORT_W_RE = re.compile(
 )
 
 
+# 端口方向和位宽是模块边界上的对照，清单另外标注 family。
+# 时钟、复位的方向受守卫保护；其他接口改变后的驱动冲突需在编译阶段观察。
 def _io_flip(rel: str, lines: list[str]) -> list[Site]:
     """交换端口位宽边界，或翻转 input/output 方向。
 
@@ -857,6 +916,9 @@ OPERATORS: tuple[Operator, ...] = (
 # ---------------------------------------------------------------------------
 
 
+# 5. 输入树、头文件与输出位置
+# 路径解析在枚举之前统一进行。相对位点以所选源根的父目录为基准，
+# 因此生成的测试副本仍保留原本的首层目录名。
 def _source_root(path: Path) -> Path:
     root = path.expanduser().resolve()
     if not root.is_dir() or not root.name:
@@ -864,6 +926,8 @@ def _source_root(path: Path) -> Path:
     return root
 
 
+# 顺序由排序后的相对来源决定，固定输入才有可复现的抽样索引。
+# 解析符号链接后再次检查归属，防止把身处源树之外的文件带进副本。
 def rtl_files(rtl_root: Path) -> list[Path]:
     """Enumerate the explicitly selected SV subtree, rejecting external symlinks."""
     root = _source_root(rtl_root)
@@ -877,6 +941,8 @@ def rtl_files(rtl_root: Path) -> list[Path]:
     return files
 
 
+# 逐文件枚举，各个算子接收同一份拆行结果。
+# 一份文件可以贡献不同族的多个位点，机会数按位点而非模块数解释。
 def enumerate_sites(rtl_root: Path) -> list[Site]:
     """Enumerate sites without compiling or declaring any mutant retained."""
     rtl_root = _source_root(rtl_root)
@@ -889,6 +955,8 @@ def enumerate_sites(rtl_root: Path) -> list[Site]:
     return sites
 
 
+# 同时保存每个族的文件分布与适用条件。
+# 出现零机会意味着该源子树里没有匹配文本，不推断该族在硬件上无效。
 def inventory(rtl_root: Path) -> dict:
     """Report actual opportunities in the declared source subtree only."""
     rtl_root = _source_root(rtl_root)
@@ -919,6 +987,8 @@ def inventory(rtl_root: Path) -> dict:
 _MANIFEST = "mutant.json"
 
 
+# 生成目录不能与源子树交叠，否则下一次遍历会读到上次产生的副本。
+# 检查父目录中的 Git 元数据，使生成物也不会意外进入另一个工作树。
 def _external_container(path: Path, source: Path) -> Path:
     if path.expanduser().is_symlink():
         raise ValueError("mutation output container cannot be a symbolic-link alias")
@@ -930,6 +1000,8 @@ def _external_container(path: Path, source: Path) -> Path:
     return out
 
 
+# 头文件依赖由调用者明确列出，不能通过扫描临时目录隐式补齐。
+# 解析后检测重名的同一来源，清单中每个摘要都能对应一次拷贝。
 def _headers(paths: list[Path] | tuple[Path, ...]) -> list[Path]:
     result = [path.expanduser().resolve() for path in paths]
     if len(result) != len(set(result)):
@@ -942,6 +1014,10 @@ def _headers(paths: list[Path] | tuple[Path, ...]) -> list[Path]:
     return result
 
 
+# 6. 把位点应用到同一份源快照
+# 先读入本次所有输入的原字节并登记摘要，再验证每个 span 仍与清单一致。
+# 同一文件的多个修改从尾部开始，较早位点的列坐标不受替换长度影响。
+# 区间重叠会破坏这种坐标解释，故在写出任何结果前检查。
 def inject(
     *,
     sites: list[Site],
@@ -966,6 +1042,8 @@ def inject(
     header_files = _headers(headers)
     data = {p.relative_to(rtl_root.parent).as_posix(): p.read_bytes() for p in source_files}
     original_sha = {rel: hashlib.sha256(value).hexdigest() for rel, value in data.items()}
+    # 历史清单中即使有相同的行号，也必须属于本次选择的源子树和已注册算子。
+    # 源文件摘要标记了生成所用的实际内容，可与后续编译输入逐项对齐。
     known_operators = {op.name for op in OPERATORS}
     groups = {}
     for site in sites:
@@ -985,6 +1063,8 @@ def inject(
     for rel, group in sorted(groups.items()):
         text = data[rel].decode("utf-8")
         newline = _detect_nl(text)
+        # Site.col 是字符列，先在解码文本中求各行起点；UTF-8 多字节字符不占多个列号。
+        # 保留换行符长度才能把下一行的列号正确换算为全文件偏移。
         keep = text.splitlines(keepends=True)
         starts, offset = [], 0
         for line in keep:
@@ -994,6 +1074,8 @@ def inject(
         for site in group:
             if site.line > len(keep) or site.col > len(keep[site.line - 1].rstrip("\r\n")):
                 raise ValueError(f"site coordinate outside source: {rel}:{site.line}:{site.col}")
+            # 行号和列号正确仍可能对应另一份源。
+            # 先验证跨度中的原文，再采纳替换，避免对错版文件作同坐标修改。
             start = starts[site.line - 1] + site.col
             span = site.span.replace("\n", newline) if newline != "\n" else site.span
             if text[start : start + len(span)] != span:
@@ -1001,6 +1083,8 @@ def inject(
                     f"site text changed before injection: {rel}:{site.line}:{site.col}"
                 )
             edits.append((start, start + len(span), site))
+        # 允许两段首尾相接，因为终点不属于替换区间。
+        # 两个编辑占同一起点时顺序没有唯一解释，因而同样拒绝。
         ordered = sorted(edits, key=lambda item: (item[0], item[1]))
         for previous, current in pairwise(ordered):
             if current[0] < previous[1] or current[0] == previous[0]:
@@ -1022,6 +1106,8 @@ def inject(
                 }
             )
         mutated[rel] = text.encode("utf-8")
+    # 源树内的头文件保留层级，外部显式头文件进入 include/。
+    # 不同原目录中的同名头文件可能汇合到同一个输出，须在落盘前排除。
     support = {}
     for header in header_files:
         rel = (
@@ -1032,9 +1118,13 @@ def inject(
         if rel in support:
             raise ValueError("declared headers would shadow the same output path")
         support[rel] = (header, header.read_bytes())
+    # 即使执行主机区分大小写，输出也可能在另一平台展开。
+    # 把源文件和头文件一起检查，防止两种身份覆盖同一个实际文件。
     targets = [*data, *support]
     if len({path.casefold() for path in targets}) != len(targets):
         raise ValueError("declared inputs shadow a case-insensitive output path")
+    # 通过所有坐标与路径校验后才独占创建本次目标。
+    # 已有同名运行保留自己的内容，调用者可用另一个名称重试。
     destination.mkdir(parents=True, exist_ok=False)
     for rel, raw in data.items():
         target = destination / rel
@@ -1077,6 +1167,8 @@ def inject(
     return destination
 
 
+# 文字输出用于观察当前源子树的规模和各个算子可用机会。
+# 需要重建一个特定变异时，还需保存选定的坐标和源文件身份。
 def _print_list(rtl_root: Path) -> None:
     report = inventory(rtl_root)
     print(
@@ -1086,6 +1178,9 @@ def _print_list(rtl_root: Path) -> None:
         print(f"{name}: opportunities={info['opportunities']} bounds={info['bounds']}")
 
 
+# 以文件和行筛选时，同一行有多个机会须显式给出项序号。
+# 按列表索引选取时，索引针对当前算子族，跨族不可直接比较。
+# 随机抽样使用调用者的种子和局部随机器，不改变其他测试的随机流。
 def _pick(
     sites: list[Site],
     *,
@@ -1124,9 +1219,15 @@ def _pick(
         raise ValueError("--sample must select a nonzero available number of sites")
     if type(seed) is not int or seed < 0:
         raise ValueError("sampling requires an explicit nonnegative --seed")
+    # 从该算子实际可用的集合无放回抽样。
+    # 固定种子与固定输入顺序一起决定选中的位点。
     return random.Random(seed).sample(selected, sample)
 
 
+# 7. 命令行模式与结果清单
+# 盘点模式只读源；生成模式另需输出目录和头文件列表，空列表也是显式输入。
+# 只有所有选中的副本均完成，才写批次清单。
+# 单个副本的清单与批次清单分别记录其阶段，编译及仿真由下游另行验收。
 def main(argv: list[str] | None = None) -> int:
     """Generate fresh out-of-tree source artifacts, or list opportunities read-only."""
     parser = argparse.ArgumentParser(description=__doc__)

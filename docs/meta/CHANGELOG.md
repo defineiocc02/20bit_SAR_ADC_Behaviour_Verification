@@ -4,6 +4,12 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Python 默认入口对齐生产数字 IP（2026-11-19）
+
+安装的 Python 包和 CLI 共同使用片内生字、八槽预置、`c+U`、真实 DEM 掩码、`−Wp` 与 Q24/Q30 重构。专利 Fig.11 的 17/5 电荷实验集中到源码研究目录。新增 1,792 笔实际生产顶层对照和 CLI 落盘检查。[算法差异](../audit/AUDIT_ALGO_VS_SOURCE.md)
+
+数值图的结果及 15 个文件摘要重算一致。清单另外绑定默认 Python 源与顶层对拍工具，并更新测试驱动身份，SHA-256 从 `764719f20a901b029ded52f36ddf8df339ee34dd7f81dc1d697b9945ea4ccf01` 变为 `9b5c3853d72153b395f9b349df025691b0e6a68d1e068ec31a3ec2fe6d0e449b`。
+
 ## 数字 IP 交接与重构回归（2026-11-19）
 
 采集与转换同沿交权时，片选、预置数据和写门跟随同一描述符。重构用本笔有符号 X 生成错误位。新增报告给出的十空拍样本和沿前沿后引脚检查。根 README 可直接打开可校验的矢量图册。[问题复核](../audit/ISSUE_10.md)

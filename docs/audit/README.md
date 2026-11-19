@@ -9,7 +9,7 @@
 | 负数是否污染下一笔，沿前片选会否重叠 | [Issue 10 逐项复现与修复](ISSUE_10.md) |
 | 后端各模块做到哪一步，哪些结论曾更正 | [模块结果与边界](ALL_13_MODULES_FINAL.md) |
 | 单模块综合用了哪些配置，怎样解读面积、时序和耗时 | [逐模块 DC 综合](SYNTH_PER_MODULE.md) · [DC 汇总原始文本](artifacts/DC_MODULE_SUMMARY.txt) |
-| 数字 IP 的端口、算法与原文对应到哪一步 | [顶层与原文核对](TREE_AUDIT_REPORT.md#dither-word-audit) · [端口实测](PORT_AND_ONCHIP_AUDIT.md) · [历史算法审查](AUDIT_ALGO_VS_SOURCE.md) |
+| 数字 IP 的端口、算法与原文对应到哪一步 | [顶层与原文核对](TREE_AUDIT_REPORT.md#dither-word-audit) · [端口实测](PORT_AND_ONCHIP_AUDIT.md) · [当前 Python、RTL 与原文逐项对照](AUDIT_ALGO_VS_SOURCE.md) |
 | `sched18` 模块的等价结果及网表来源 | [Formality 记录](FORMAL_SUCCEEDED.md) · [产物说明](artifacts/README.md) |
 | 复查整核综合停滞与 Formality 尝试 | [整核综合记录](../v21/SYNTH_STALL.md) · [Formality 状态](../v21/FORMAL_STATUS.md) · [区分算术证明、RTL 检查与形式工具结果](../v21/PROOF_LEDGER.md) |
 | 工具运行路径、远端落盘检查与清理 | [EDA 工作目录规范](REMOTE_WORKDIR_POLICY.md) |

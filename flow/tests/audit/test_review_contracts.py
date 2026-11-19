@@ -1,3 +1,9 @@
+# =============================================================================
+# 文件名     : test_review_contracts.py
+# 模块名     : 来源与行为合同的定向复核
+# 功能       : 通过独立输入、未运行状态及反例验证物理和数字边界。
+# 设计说明   : 使用研究器件时显式装配，避免将专利图的几何混入生产默认。
+# =============================================================================
 """将 R1–R18 的仍有效合同迁到当前显式模型、控制入口与引用门禁。
 
 旧验收52项/豁免账本、7+2/6bit入口、自动DR拟合、KTC/Wiener分支和64轮转实现
@@ -21,7 +27,7 @@ from adi_model.behavioral.sampler import dc_input
 from adi_model.cli import main_validate_config
 from adi_model.control.dem import SplitSwitchCommand
 from adi_model.control.timing import SlicePlan
-from adi_model.defaults import DefaultParameters, default_model
+from subsys.experiments.fig11 import Fig11Parameters, fig11_model
 from adi_model.inventory_gate import INVENTORY_FILE, MANIFEST_DIR, SOURCES_FILE, build_summary, verify
 from adi_model.inventory_gate import main as inventory_main
 from adi_model.provenance import (
@@ -38,15 +44,20 @@ from adi_model.simulation.slice_pool import PhysicalSlicePool
 from adi_model.topology.dac_arch import SplitChip
 
 
+# 1. 受测器件与输入绑定
+# 只从显式的 Fig.11 研究装配取得测试芯片。
+# 输入与冻结码本应能独立重放，防止把数字权重直接从模拟真值回填。
 @pytest.fixture
 def nominal_model():
     """声明均匀、零噪工程网络，仅用于因果回归，不作为source物理映射。"""
-    return default_model(
-        parameters=DefaultParameters(unit_mismatch_std=0, bridge_mismatch_std=0),
+    return fig11_model(
+        parameters=Fig11Parameters(unit_mismatch_std=0, bridge_mismatch_std=0),
         config_overrides={"enable_sampling_noise": False, "ra_enable_noise": False},
     )
 
 
+# 重复运行使用同一份物理输入，但可变控制必须明确给出。
+# 保存原始记录才能判断是开关变了，还是仅改变了最终重构。
 def _replay(model, previous, *, chip=None, binding=None, states=None, dem=False):
     """沿同一显式计划重放固定外部DC，只替换声明的plant或数字binding。"""
     cfg = replace(previous.cfg, dem_enable=dem)
@@ -76,6 +87,9 @@ def _replay(model, previous, *, chip=None, binding=None, states=None, dem=False)
     )
 
 
+# 在临时仓库组织来源与机制清单，避免负例影响正式数据。
+# 有效输入先作为对照，再对单一字段制造错误。
+# 静态门禁的退出码只表达本批清单的判定。
 @pytest.fixture
 def reference_gate_case(tmp_path, monkeypatch):
     """临时合成身份/引用清单，不使用论文、用户文件或真实实验PASS。
@@ -167,6 +181,9 @@ def reference_gate_case(tmp_path, monkeypatch):
     return case
 
 
+# 2. 采样归属与运行边界
+# 用原始物理片号核对调度计划。
+# 若只比片号集合的数量，仍可能让第 n 笔的电荷被第 n+1 笔使用。
 class TestR1SampleOwnership:
     """R1：周期互斥不能代替跨周期实际采样归属。"""
 
@@ -200,6 +217,9 @@ class TestR1SampleOwnership:
             Scheduler(raw.cfg, binding=forged).plan(8)
 
 
+# 只改变一个实际物理单元，按该单元是否参与本笔分组。
+# 参与组须对该变化作出响应，未参与组提供零响应对照。
+# 两者共用同一输入和种子。
 class TestR2PhysicalPoolOnMainPath:
     """R2/R9/R13：定向改变actual C，只有实际使用该物理片的记录应改变。"""
 
@@ -228,11 +248,13 @@ class TestR2PhysicalPoolOnMainPath:
         assert np.array_equal(a.known_voltage_term_v, b.known_voltage_term_v)
 
 
+# 实际启用的参数必须以其真实来源进入记录。
+# 未提供拟合输入时不应出现已完成系数拟合的报告。
 class TestR3ProvenanceSeesActiveAssumptions:
     """R3：当前明确噪声假设不冒充自动拟合或已披露部件值。"""
 
     def test_default_report_has_no_reverse_fitted_noise(self):
-        model = default_model()
+        model = fig11_model()
         report = audit_provenance(model.cfg)
         assert report["fitted_supplied"] == []
         assert "ra_out_noise_rms" in report["assumed_supplied"]
@@ -246,6 +268,8 @@ class TestR3ProvenanceSeesActiveAssumptions:
             annotate_config(Config(fs=80e6))["fs"].require(SourceGrade.DISCLOSED)
 
 
+# 检查参数在真实运行入口生效，而非仅在数据类中通过范围检查。
+# 缺少实际物理绑定时，应在推进样本之前中止。
 class TestR4ConfigTakesEffectAtTheRunner:
     """R4/R14：未知枚举/缺项在实际runner被拒绝，不要求旧双入口继续存在。"""
 
@@ -280,6 +304,9 @@ class TestR4ConfigTakesEffectAtTheRunner:
             Config.from_dict({"ra_gain_model": "fixed"})
 
 
+# 3. 工程门禁与文档证据
+# 引用完整性与必需任务完成状态是两件事。
+# 检查退出码及诊断字段，可以避免把“目录存在”误报成“实验已通过”。
 class TestR5StaticGateBindsToExitCode:
     """R5：静态/状态失败必须非零，但0也不代表执行了模型或文献语义验收。"""
 
@@ -332,6 +359,9 @@ class TestR5StaticGateBindsToExitCode:
         assert inventory_main(["--repo-root", str(case.root)]) == 1
 
 
+# 噪声状态必须由真实时间索引。
+# 把一段记录拆成两段重放，后半段仍应与完整运行的同一时间区间吻合。
+# 如果在每段开头重置慢状态，这项对照会失败。
 class TestR6FlickerPhysicalTime:
     """R6：短窗口不可分辨不等于状态不存在，不恢复伪FFT漂移补丁。"""
 
@@ -353,6 +383,8 @@ class TestR6FlickerPhysicalTime:
         assert state.high_hz < 40e6 / 128
 
 
+# 配置文件解析错误需要到达 CLI 的返回值。
+# 诊断必须可由脚本识别，失败时不能输出成功的模型运行身份。
 class TestR7ConfigChecksReachControlExit:
     """R7：配置CLI的错误不能被静态或普通开关值隐藏。"""
 
@@ -377,6 +409,8 @@ class TestR7ConfigChecksReachControlExit:
         assert output["model_run"] is False and output["source_conformance"] == "NOT_ASSESSED"
 
 
+# 显式覆盖改变了一个值的来源。
+# 即使覆盖后数值与披露值相同，也不能把拟合或工程假设升级为原文。
 class TestR8OverrideIsEnforced:
     """R8：来源约束随有效值及全部推导依赖传播，不因换标签恢复披露权威。"""
 
@@ -413,6 +447,10 @@ class TestR8OverrideIsEnforced:
             mapped.require(SourceGrade.DERIVED)
 
 
+# 4. 开关来源与可执行接口
+# 低层运算必须取得真实的采集/转换控制。
+# 缺回调时拒绝运行，防止默认常量给出一条看似完整的开关轨迹。
+# 该组验证组件边界，生产字源的自动生字由另一个入口测量。
 class TestR10ExplicitControlBinding:
     """R10：不再由旧mode名字猜调度或物理掩码。"""
 
@@ -434,6 +472,9 @@ class TestR10ExplicitControlBinding:
             Config.from_dict({"dem_mode": "permute"})
 
 
+# 必需项目按 ID 核对，单看记录数不能发现删除一条再重复另一条。
+# 不可将未运行项目改名为可选而继续报告完整。
+# 结果文件拒绝覆盖，以保护原来的来源和判定。
 class TestR11RequiredEvidenceStates:
     """R11：旧52项/豁免账本退役；显式必需ID及未就绪状态仍不能被隐藏。"""
 
@@ -461,6 +502,8 @@ class TestR11RequiredEvidenceStates:
             r.check == "coverage.required_task_ids" and r.level == "FAIL" for r in result.records
         )
 
+    # 必需任务按稳定 ID 判定，展示文字不能充当验收状态。
+    # 少一条任务即使记录总数相同仍应报错。
     def test_optional_label_cannot_exempt_a_required_task(self, reference_gate_case):
         case = reference_gate_case
         case.inventory["mechanisms"][0]["required"] = False
@@ -469,6 +512,8 @@ class TestR11RequiredEvidenceStates:
         assert not result.static_refs_pass
         assert inventory_main(["--repo-root", str(case.root)]) == 1
 
+    # 已有摘要的字节须保留。
+    # 重放时选取新的路径，避免覆盖先前的诊断。
     def test_summary_refuses_overwrite(self, reference_gate_case):
         case = reference_gate_case
         path = case.root / "summary.json"
@@ -478,6 +523,9 @@ class TestR11RequiredEvidenceStates:
         assert path.read_bytes() == before
 
 
+# 区分 RA 饱和与 ADC2 越窗。
+# 两个反例分别让一个节点越界，确认下游标志不会隐式吞掉上游诊断。
+# 必须观察每个节点，不能把一个输出码同时作为两个故障的证据。
 class TestR12NodeBoundaries:
     """R12：KTC删除后不恢复旧fmax；当前RA摆幅与ADC2窗口仍是不同节点约束。"""
 
@@ -486,6 +534,7 @@ class TestR12NodeBoundaries:
         raw = run_pipeline(cfg, dc_input(0.01), 4, **controls)
         assert raw.ra_sat.all() and not raw.adc2_over.any()
 
+    # 后级电压窗比放大器限幅范围更窄，必须分别观察两种标志。
     def test_adc2_overflow_is_not_ra_clipping(self, explicit_pipeline_factory):
         cfg, controls = explicit_pipeline_factory(
             n_samples=4, config_changes={"adc2_v_min": -0.01, "adc2_v_max": 0.01}
@@ -495,10 +544,14 @@ class TestR12NodeBoundaries:
         assert raw.digital_observation.overflow.all()
 
 
+# Python 中非空字符串会被当作真。
+# 证据记录要求精确的枚举和 JSON 布尔，因此错误拼写或其他类型要显式失败。
 class TestR15GateRefusesTruthiness:
     """R15：当前JSON状态/布尔schema不能以字符串或数字真值代替。"""
 
     @pytest.mark.parametrize("bad", [True, False, 0, 1, "False", None])
+    # 非空 JSON 对象、非空字符串都可能具有 Python 真值。
+    # 实际 PASS 只能来自规定的字段类型和状态。
     def test_non_status_values_cannot_be_pass(self, reference_gate_case, bad):
         case = reference_gate_case
         case.inventory["mechanisms"][0]["experiments"][0]["status"] = bad
@@ -522,6 +575,9 @@ class TestR15GateRefusesTruthiness:
         assert inventory_main(["--repo-root", str(reference_gate_case.root)]) == 1
 
 
+# 改变相位应改变具体选通的等权单元，同时保持名义电荷。
+# 若只检查掩码不同，会放过选通单元数也改变的错误；只看总和又会漏掉未轮换。
+# 把这两个判据分别施加到同一对记录。
 class TestR16ExternalDemBinding:
     """R16：任意状态标签数不是source三维DEM证据；实际binding必须改变真实mask。"""
 
@@ -563,6 +619,8 @@ class TestR16ExternalDemBinding:
         )
 
 
+# 在对称星形网络中可由共模解析解求出残差。
+# 用独立的一阶时间常数与数值求解比较，确认欧姆、法拉、秒的口径。
 class TestR17CommonModeTau:
     """R17：实际共享Rs网络的阶跃不能用全部按slice缩小的错误tau代替。"""
 
@@ -578,6 +636,8 @@ class TestR17CommonModeTau:
         assert np.max(np.abs(actual - wrong)) > 0.2
 
 
+# 旧观测补偿字段不能重新激活未经声明的隐藏算法。
+# 负例直接经过实际配置入口，避免只检验一个已无调用者的辅助函数。
 class TestR18RemovedObserverCannotBeEnabled:
     """R18旧Wiener/KTC专属模型退役，不借测试需求恢复被删除的电路假设。"""
 

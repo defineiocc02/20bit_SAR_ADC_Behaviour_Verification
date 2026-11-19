@@ -2,7 +2,7 @@
 
 这套数字逻辑把两次量化合成一个 20 位结果。前级 SAR 先给出粗判决，数字 IP 据此逐位切换残差 DAC（RDAC）。第二级 ADC（ADC2）测量剩余电压并返回 13 位原码。要算准最终结果，还需要知道**这一笔实际用了哪八片电容，采样和转换时分别打开了哪些开关**。顶层将这些记录、校准权重和原码按样本标签配对，再输出最终码。
 
-工作树只有一个生产顶层 `adc_digital_ip_v21`。`v21` 是它在源码与构建清单中的名称。模拟比较器、残差放大器和 ADC2 通过宏接口连接。Python 行为模型用来研究电荷、失配、噪声和静态线性度。[顶层 RTL](rtl/v21/adc_digital_ip_v21.sv) · [生产源清单](flow/build/filelists/files_adc_v21.f) · [接口合同](docs/CONTRACT_CURRENT.md)
+工作树只有一个生产顶层 `adc_digital_ip_v21`。`v21` 是它在源码与构建清单中的名称。模拟比较器、残差放大器和 ADC2 通过宏接口连接。默认 Python 按这一个顶层的字源、片选、DEM、余差量化和定点规则逐笔出码。宏的电压输入由模拟假设给出。[顶层 RTL](rtl/v21/adc_digital_ip_v21.sv) · [生产源清单](flow/build/filelists/files_adc_v21.f) · [接口合同](docs/CONTRACT_CURRENT.md)
 
 [**打开完整数字 IP 图册（矢量 PDF）**](docs/algorithms/digital-ip-atlas.pdf) · [在线读算法、状态机与可编辑原图](docs/algorithms/README.md)
 
@@ -36,12 +36,12 @@
 | --- | --- |
 | [rtl/](rtl/README.md) | 生产 SystemVerilog。顶层与专用模块在 `v21/`，片选、DEM、扰动预置与倒数叶子在 `rtl/`。`core/` 和 `top/` 另供组件验证。 |
 | [tb/](tb/) | SystemVerilog 测试台、C++ 顶层驱动与冻结向量。集成 ADC 的事件、交接、连续采样和重构检查在 [tb/v21/](tb/v21/)。 |
-| [src/](src/adi_model/) | Python 包 `adi_model`。`control/` 实现控制算法，`topology/` 和 `behavioral/` 描述电荷与非理想，`simulation/` 推进样本，`calibration/`、`metrics/` 求系数和误差。 |
+| [src/](src/adi_model/) | Python 包 `adi_model`。公共入口在 [defaults.py](src/adi_model/defaults.py)，逐事件比较与重构在 [digital_conversion.py](src/adi_model/digital_conversion.py)。`control/` 实现控制算法，`topology/` 和 `behavioral/` 描述电荷与非理想，`simulation/` 推进样本，`calibration/`、`metrics/` 求系数和误差。 |
 | [flow/](flow/) | `build/filelists/` 选编译源，[sim/](flow/sim/README.md) 说明仿真和夹具，`tests/` 保存 Python 回归，`formal/`、`synth/` 保存形式验证和后端流程。 |
 | [tools/](tools/) | 可执行入口。定向 RTL 测试用 `run_open_rtl.py`，正式 VCS 回归用 `verify_v21.sh`，结构与图册分别由 `check_engineering.py` 和 `v21_algorithm_atlas.mjs` 核对。 |
 | [docs/](docs/INDEX.md) | [接口合同](docs/CONTRACT_CURRENT.md)、[项目状态](docs/STATUS.md)、[算法与状态机](docs/algorithms/README.md)、[审计证据](docs/audit/README.md)。行为图和全码线性度图在 `figures/`，旧工程记录在 `_history/`。 |
 | [references/](references/README.md) | 论文、讲稿、来源清单。查论文原图和相应页码从这里进入。 |
-| [subsys/](subsys/) | 独立 DSP、斩波辅助自归零（CAAZ）和研究实验。生产 ADC 的编译范围由上述源清单确定。 |
+| [subsys/](subsys/) | 独立 DSP、斩波辅助自归零（CAAZ）和研究实验。[Fig.11 电荷模型](subsys/experiments/fig11.py)用于追溯专利实施例和历史行为图。生产 ADC 的编译范围由上述源清单确定。 |
 | [.github/](.github/) | CI 工作流、协作约定及维护模板。 |
 
 ## 跑起来
@@ -54,13 +54,16 @@ python3 -B tools/check_engineering.py
 node tools/v21_algorithm_atlas.mjs --check
 ~~~
 
-**看 64 笔 Python 行为输出。** 默认行为模型的名义物理增益 `g0=Cnorm/Cf` 为 **32.0**。同一模型的定点码本只计入参与转换驱动的单元，权重和约为 **31.028**；细码解码按两者的比例换算。[模型定点约定](src/adi_model/contracts/README.md)
-
-输出目录含 `codes.npz`、`metadata.json` 与 `assumptions.json`，可一起核对样本、参数和假设。[Python 快速上手](docs/guide/QUICKSTART.md)
+**用 Python 查看同一笔数字转换。** 以下命令把输入固定在 −0.6522216796875 V，并用测试引脚强制字 53。结果文件应显示粗码 202、RDAC 命令 206、ADC2 原码 6016、最终码 410304。去掉 `--dither-word`，即由片内复位序列生字。普通正弦演示直接运行 `python -m adi_model simulate`。[Python 快速上手](docs/guide/QUICKSTART.md) · [功能、原文与实现差异](docs/audit/AUDIT_ALGO_VS_SOURCE.md)
 
 ~~~bash
 run_dir="$(mktemp -d)"
-bash tools/pyenv.sh --run -m adi_model simulate --samples 64 --output "$run_dir/sim"
+bash tools/pyenv.sh --run -m adi_model simulate --dc -0.6522216796875 --samples 1 --dither-word 53 --output "$run_dir/sim"
+python3 - "$run_dir/sim/codes.npz" <<'PYTHON'
+import numpy as np, sys
+with np.load(sys.argv[1]) as data:
+    print(*(int(data[name][0]) for name in ("coarse", "k", "adc2_code", "code")))
+PYTHON
 ~~~
 
 **复核数字顶层。** 本机有 Verilator 和 C++ 工具链时，以下命令记录连续采样、扰动和定点重构。顶层的 `summary.csv` 对照各场景，`samples.csv` 保存逐笔引脚与出码。正式 VCS 回归、综合与等价各有独立入口。[仿真与 RTL 测试](flow/sim/README.md) · [综合与等价](flow/synth/README.md)

@@ -44,19 +44,16 @@ class Profile:
 ADI_40M = Profile(
     profile_id="adi_isscc2024_40m_6vpp",
     topology=TopologySpec(
-        topology_id="adi_isscc2024_40m_6vpp",
+        topology_id="adc_digital_ip_v21",
         profile_id="adi_isscc2024_40m_6vpp",
         n_slices_pool=18,
         n_slices_active=8,
-        # 片内主阵列有 15 个 2C 列，以及 B4、S4 两个 1C 位置。
-        # 子阵列保留 5 个表示位置，4 个位置装 8/4/2/1 权重支路。
-        # 这些计数参与映射身份核对，不能把码域大小与物理位置数直接相乘。
-        n_main=17,
-        n_sub=5,
-        c_unit_f=7.779886183991967e-14,
-        c_bridge_f=7.779886183991967e-14,
-        c_feedback_f=640.625e-15,
-        codebook_id="uniform512",
+        # 数字端寻址十六个主半单元和四个子支路，读取 Ceff/Cf。
+        # 绝对法拉值由模拟宏集成方提供，不能把专利示例的电容带到生产 IP。
+        n_main=16,
+        n_sub=4,
+        normalization_only=True,
+        codebook_id="rdac_0_to_520",
         source_ids=("PAPER-01", "PAPER-02", "PAPER-03"),
     ),
     fs_hz=40e6,

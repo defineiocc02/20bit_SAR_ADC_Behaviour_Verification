@@ -8,7 +8,7 @@
 | 模拟宏怎样同数字 IP 交接？ | [接口合同](CONTRACT_CURRENT.md) · [物理接口与重构方程](v21/PHYSICAL_INTERFACE.md) · [开关编码、保护码和受理沿](v21/SWITCHING_RULES.md) · [权重装载](v21/CONFIG_CONTRACT.md) |
 | 有哪些数字实测、哪些属于模型估算？ | [逐项状态](STATUS.md) · [扰动注入与扣回实测](audit/TREE_AUDIT_REPORT.md#dither-word-audit) · [全码 DNL/INL 模型对照](audit/TREE_AUDIT_REPORT.md#全码静态线性度) |
 | 想用自己的输入复核 | [数字仿真入口](../flow/sim/README.md) · [Python 快速上手](guide/QUICKSTART.md) · [行为模型图和试验输入](figures/behavioral/README.md) · [故障排查](guide/DEBUGGING.md) |
-| 找论文、专利与工程假设 | [论文与讲稿原件](../references/README.md) · [逐图机制对照](mechanisms/README.md) · [设计决策及适用范围](guide/decisions/README.md) |
+| 找论文、专利与工程假设 | [论文与讲稿原件](../references/README.md) · [生产算法与原文差异](audit/AUDIT_ALGO_VS_SOURCE.md) · [逐图机制对照](mechanisms/README.md) · [设计决策及适用范围](guide/decisions/README.md) |
 | 查正式验证与后端记录 | [审计索引](audit/README.md) · [证明台账](v21/PROOF_LEDGER.md) · [模块级综合、布线与等价结果](audit/ALL_13_MODULES_FINAL.md) |
 | 查独立研究或历史数据 | [CAAZ 实验](caaz/README.md) · [DSP 子系统](../subsys/ad4080_dsp/README.md) · [历史验收](_history/acceptance/) · [历史模型结果](_history/model_results/README.md) |
 

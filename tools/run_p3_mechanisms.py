@@ -24,6 +24,11 @@ from pathlib import Path
 
 import numpy as np
 
+# 研究夹具随源码仓库提供；直接运行脚本时也使用同一份实验。
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from adi_model.control.dem3d import (
     Dem3State,
     FIG11_COLUMNS,
@@ -54,7 +59,7 @@ from adi_model.control.track_aux import (
     consecutive_sample_charge,
     track_residual_charge,
 )
-from adi_model.defaults import DefaultModel, DefaultParameters
+from subsys.experiments.fig11 import Fig11Model, Fig11Parameters
 from adi_model.simulation.slice_pool import PhysicalSlicePool
 
 # =============================================================================
@@ -73,12 +78,12 @@ def _jsonable(value):
     raise TypeError(f"not JSON serializable: {type(value).__name__}")
 
 
-def _model(mismatch: float = 1e-3) -> DefaultModel:
+def _model(mismatch: float = 1e-3) -> Fig11Model:
     # 两组 DEM 电容用同一种子，以隔离是否施加失配的作用。
     # 反馈电容的随机偏移固定为零，逐码比较只包含主、子和桥接阵列失配。
-    return DefaultModel(
+    return Fig11Model(
         seed=20261105,
-        parameters=DefaultParameters(
+        parameters=Fig11Parameters(
             unit_mismatch_std=mismatch, bridge_mismatch_std=mismatch, feedback_mismatch_std=0.0
         ),
         config_overrides=None,

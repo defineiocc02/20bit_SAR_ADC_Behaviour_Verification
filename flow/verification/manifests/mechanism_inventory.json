@@ -585,7 +585,8 @@
         "src/adi_model/simulation/pipeline_engine.py",
         "src/adi_model/control/dither.py",
         "src/adi_model/behavioral/sampler.py",
-        "src/adi_model/defaults.py"
+        "src/adi_model/defaults.py",
+        "subsys/experiments/fig11.py"
       ],
       "tests": [
         "tests/unit/test_source_contract.py::test_old_amplitude_request_cannot_be_silently_ignored",
@@ -733,7 +734,8 @@
       "code": [
         "src/adi_model/topology/dac_arch.py",
         "src/adi_model/behavioral/charge_ref.py",
-        "src/adi_model/defaults.py"
+        "src/adi_model/defaults.py",
+        "subsys/experiments/fig11.py"
       ],
       "tests": [
         "tests/integration/test_architecture_candidates.py::test_explicit_capacitor_charge_agrees_with_independent_two_node_kcl",
@@ -1425,7 +1427,8 @@
       "code": [
         "src/adi_model/defaults.py",
         "src/adi_model/provenance.py",
-        "src/adi_model/metrics/metrics.py"
+        "src/adi_model/metrics/metrics.py",
+        "subsys/experiments/fig11.py"
       ],
       "tests": [
         "tests/integration/test_architecture_candidates.py::test_given_physical_arrays_are_immutable_and_never_uniformly_redistributed",

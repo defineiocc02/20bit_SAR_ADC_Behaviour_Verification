@@ -37,17 +37,16 @@ class TopologySpec:
 
     topology_id: str
     profile_id: str
-    # 主阵列有 15 个 2C 列，B4 和 S4 各为 1C。子阵列有 4 个有效支路，
-    # 桥接电容采用单位电容。模型装配实际使用 DefaultParameters 的电容值。
-    # test_adi_profile_matches_default_parameters 核对现行配置的拓扑和模型装配。
+    # 数字配置指认每片十六个主权重和四个子权重。仅在调用者明确给出
+    # 三项物理电容时才允许作为已绑定的法拉量参与模拟计算。
     n_slices_pool: int = 18
     n_slices_active: int = 8
-    n_main: int = 17
-    n_sub: int = 5
-    c_unit_f: float = 7.7798861840e-14
-    c_bridge_f: float = 7.7798861840e-14
-    c_feedback_f: float = 6.40625e-13
-    codebook_id: str = "uniform512"
+    n_main: int = 16
+    n_sub: int = 4
+    c_unit_f: float | None = None
+    c_bridge_f: float | None = None
+    c_feedback_f: float | None = None
+    codebook_id: str = "rdac_0_to_520"
     mask_bit_order: str = "slice_major_lsb_first"
     slot_to_slice_rule: str = "ordered_active_slots"
     source_ids: tuple[str, ...] = ()
@@ -60,6 +59,10 @@ class TopologySpec:
         _require(0 < self.n_slices_active <= self.n_slices_pool,
                  "n_slices_active must be in (0, n_slices_pool]")
         _require(self.n_main > 0 and self.n_sub > 0, "n_main/n_sub must be positive")
+        if self.c_unit_f is None and self.c_bridge_f is None and self.c_feedback_f is None:
+            return
+        if self.c_unit_f is None or self.c_bridge_f is None or self.c_feedback_f is None:
+            raise ValueError("a physical binding requires unit, bridge and feedback capacitances")
         _require(self.c_unit_f > 0, "c_unit_f must be positive [F]")
         _require(self.c_bridge_f >= 0 and self.c_feedback_f >= 0,
                  "c_bridge_f/c_feedback_f must be non-negative [F]")
@@ -79,7 +82,7 @@ class TopologySpec:
 
     def require_physical(self) -> None:
         """物理消费者调用；归一化机制例在这里被拒。"""
-        if self.normalization_only or self.c_feedback_f <= 0:
+        if self.normalization_only or self.c_feedback_f is None or self.c_feedback_f <= 0:
             raise ValueError(
                 "this topology is a normalization-only fixture and cannot build a physical RA"
             )

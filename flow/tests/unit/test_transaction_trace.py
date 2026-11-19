@@ -11,7 +11,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.defaults import DefaultModel, DefaultParameters
+from subsys.experiments.fig11 import Fig11Model, Fig11Parameters
 from adi_model.simulation.config import ConfigError
 from adi_model.simulation.transaction_trace import (
     TransactionTrace,
@@ -22,7 +22,7 @@ from adi_model.simulation.transaction_trace import (
 
 
 def _model():
-    return DefaultModel(seed=20261105, parameters=DefaultParameters(), config_overrides=None)
+    return Fig11Model(seed=20261105, parameters=Fig11Parameters(), config_overrides=None)
 
 
 def test_trace_has_one_row_per_sample_and_keys_are_unique():

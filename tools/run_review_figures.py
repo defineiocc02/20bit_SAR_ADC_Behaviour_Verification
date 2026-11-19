@@ -48,7 +48,7 @@ from adi_model.control.follower import (  # noqa: E402
     run_follower,
     run_trial_sar,
 )
-from adi_model.defaults import DefaultParameters  # noqa: E402
+from subsys.experiments.fig11 import Fig11Parameters  # noqa: E402
 from adi_model.dem_dither import bridge_swap, post_mask  # noqa: E402
 from adi_model.sched18_rtl import Scheduler18Rtl  # noqa: E402
 from adi_model.simulation.pipeline import run_pipeline  # noqa: E402
@@ -990,7 +990,7 @@ def figure_dynamics(out: Path, *, n: int = 32) -> dict:
     所有时间和带宽来自 _dynamic_config 的工程参数，参考两阶段指数衰减来自同一内核。
     """
     from adi_model.control.dither import complete_flash3_sar6_prefix_table
-    from adi_model.defaults import _all_signal
+    from subsys.experiments.fig11 import _all_signal
 
     # 状态内核在样本间保留节点值；只在记录开头显式置零，所以不另称稳态测试。
     # 这里不用默认随机 DEM，回转片组和已决前缀从两个明确绑定输入。
@@ -2274,7 +2274,7 @@ def _write_manifest(out: Path, produced: list[dict], *, points: int, repeats: in
     # 图与合同行表面使用同一提交，实际却来自不同工作树 profile。
     source_paths = (
         "tools/run_review_figures.py", "tools/run_p4_ablation.py", "tb/vec_r18_sched.txt",
-        "src/adi_model/defaults.py", "src/adi_model/contracts/profiles.py",
+        "subsys/experiments/fig11.py", "src/adi_model/contracts/profiles.py",
         "src/adi_model/control/dem3d.py",
         "src/adi_model/simulation/pipeline_engine.py",
     )
@@ -2294,9 +2294,9 @@ def _write_manifest(out: Path, produced: list[dict], *, points: int, repeats: in
         "v_fs_v": V_FS,
         "lsb20_v": LSB20,
         "default_behavior_adc2": {
-            "bits": DefaultParameters().adc2_n_bits,
-            "input_window_v": [DefaultParameters().adc2_v_min, DefaultParameters().adc2_v_max],
-            "ra_clip_v": DefaultParameters().ra_clip_v,
+            "bits": Fig11Parameters().adc2_n_bits,
+            "input_window_v": [Fig11Parameters().adc2_v_min, Fig11Parameters().adc2_v_max],
+            "ra_clip_v": Fig11Parameters().ra_clip_v,
         },
         "figure_profiles": {
             "baseline_mismatch_std": 1e-4,

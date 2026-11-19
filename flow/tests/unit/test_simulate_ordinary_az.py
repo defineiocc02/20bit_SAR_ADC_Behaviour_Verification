@@ -6,18 +6,22 @@ import numpy as np
 
 from adi_model.behavioral.ra_az import OrdinaryAZConfig
 from adi_model.behavioral.sampler import sine_input
-from adi_model.defaults import default_model
+from subsys.experiments.fig11 import fig11_model
 
 
+# 普通 AZ 是显式 Fig.11 外部模拟实验，在生产数字端没有隐式入口。
+# 不启用该实验时，两次同种子的码序列须一致。
 def test_az_none_matches_baseline():
-    m = default_model()
+    m = fig11_model()
     a = m.simulate(sine_input(2.7, 1e6), 32)
     b = m.simulate(sine_input(2.7, 1e6), 32, ordinary_az=None)
     assert np.array_equal(a.codes.code, b.codes.code)
 
 
+# 零误差仍走一次真实 AZ 调用，更容易发现错误的使能副作用。
+# 输出数必须保持与输入相同，避免把研究支路误当作两样本斩波。
 def test_az_zero_error_is_bit_identical_and_full_rate():
-    m = default_model()
+    m = fig11_model()
     base = m.simulate(sine_input(2.7, 1e6), 32)
     az = m.simulate(
         sine_input(2.7, 1e6), 32,
@@ -27,8 +31,9 @@ def test_az_zero_error_is_bit_identical_and_full_rate():
     np.testing.assert_array_equal(az.codes.code, base.codes.code)
 
 
+# 显式偏置应影响码值，样本编号及采样数继续保持一一对应。
 def test_az_offset_changes_codes_but_keeps_n_to_n():
-    m = default_model()
+    m = fig11_model()
     base = m.simulate(sine_input(2.7, 1e6), 32)
     az = m.simulate(
         sine_input(2.7, 1e6), 32,

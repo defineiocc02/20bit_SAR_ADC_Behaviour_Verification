@@ -44,7 +44,7 @@ from adi_model.calibration.weight_calibration import (
     fit_unit_weights,
 )
 from adi_model.cli import main_simulate
-from adi_model.defaults import DefaultParameters, default_model
+from subsys.experiments.fig11 import Fig11Parameters, fig11_model
 from adi_model.inventory_gate import GateResult, _check_sources, build_summary, verify
 from adi_model.metrics.metrics import reference_precision_bits
 from adi_model.simulation.config import Config, ConfigError
@@ -60,9 +60,9 @@ REPO = Path(__file__).resolve().parents[3]
 # 关闭采样及残差放大器噪声，以便把输出中的变化归到正在检查的参数。
 # 制造失配也置零；这里只测模型接线与确定性量值。
 def _quiet_model(seed=999):
-    return default_model(
+    return fig11_model(
         seed=seed,
-        parameters=DefaultParameters(unit_mismatch_std=0, bridge_mismatch_std=0),
+        parameters=Fig11Parameters(unit_mismatch_std=0, bridge_mismatch_std=0),
         config_overrides={"enable_sampling_noise": False, "ra_enable_noise": False},
     )
 
@@ -193,7 +193,7 @@ def exporter_case(tmp_path):
 # 分流键区分制造、调度、噪声三个来源，能发现碰巧给出相同短码序列的串用。
 def test_monte_carlo_mismatch_and_noise_streams_are_independent():
     """F1：实际默认层的制造/计划/噪声分流可重放，不恢复旧MC生产器。"""
-    a, b = default_model(seed=999), default_model(seed=999)
+    a, b = fig11_model(seed=999), fig11_model(seed=999)
     first = a.simulate(dc_input(0.31), 64)
     second = b.simulate(dc_input(0.31), 64)
     assert np.array_equal(a.chip.C_main, b.chip.C_main)
@@ -218,8 +218,8 @@ def test_spawn_does_not_consume_parent_stream():
 # 同时观察噪声端口确实由非零变成全零，避免把没有生效的开关判为隔离成功。
 def test_noise_switch_does_not_change_physical_schedule_or_chip():
     """F2：实际打开噪声不能消耗调度或制造随机流。"""
-    noisy = default_model(seed=777)
-    quiet = default_model(
+    noisy = fig11_model(seed=777)
+    quiet = fig11_model(
         seed=777, config_overrides={"enable_sampling_noise": False, "ra_enable_noise": False}
     )
     a, b = noisy.simulate(dc_input(0.31), 64), quiet.simulate(dc_input(0.31), 64)
@@ -251,7 +251,7 @@ def test_config_legality_rejects_illegal_values(configuration_inputs, kwargs):
 # 公开默认模型已经装配几何；直接构造的底层 Config 仍需调用者绑定规格。
 # 同一处若偷偷填补缺失阵列，底层配置的反例便会被放行。
 def test_config_requested_default_is_legal():
-    model = default_model()
+    model = fig11_model()
     assert model.cfg.legality_violations(geometry=model.geometry) == []
     assert Config().legality_violations()  # 底层不完整对象没有隐式物理默认值。
 
@@ -1093,7 +1093,7 @@ def test_retired_dither_mask_range_is_not_implicitly_accepted(field):
 # 未绑定采集状态时，用会抛错的波形函数作为哨兵。
 # 理想输入一旦被求值就说明拒绝发生得太晚。
 def test_active_aux_request_cannot_create_an_ideal_pipeline():
-    model = default_model(config_overrides={"input_network": _aux_parameters()})
+    model = fig11_model(config_overrides={"input_network": _aux_parameters()})
 
     def forbidden(_times):
         raise AssertionError("unbound active AUX must reject before sampling a waveform")

@@ -33,7 +33,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.defaults import DefaultModel, DefaultParameters
+from subsys.experiments.fig11 import Fig11Model, Fig11Parameters
 from adi_model.metrics.metrics import sine_fit_metrics
 
 FS_HZ = 40e6
@@ -50,9 +50,9 @@ def _run_dynamic(seed: int = 20261105) -> tuple[float, float]:
         DR = 20·log10( (V_FS/√2) / noise_rms )
     NSD 取**大幅**正弦那次的全 Nyquist 白噪声等效密度。
     """
-    model = DefaultModel(
+    model = Fig11Model(
         seed=seed,
-        parameters=DefaultParameters(),      # 默认 σ=1e-4、噪声启用
+        parameters=Fig11Parameters(),      # 默认 σ=1e-4、噪声启用
         config_overrides=None,
     )
     fin_hz = TONE_BIN * FS_HZ / N_SAMPLES

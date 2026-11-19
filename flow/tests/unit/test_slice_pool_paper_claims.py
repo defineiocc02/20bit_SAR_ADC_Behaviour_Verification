@@ -17,11 +17,11 @@ from __future__ import annotations
 
 import numpy as np
 
-from adi_model.defaults import DefaultModel, DefaultParameters
+from subsys.experiments.fig11 import Fig11Model, Fig11Parameters
 
 
 def _plan(n: int):
-    model = DefaultModel(seed=20261105, parameters=DefaultParameters(), config_overrides=None)
+    model = Fig11Model(seed=20261105, parameters=Fig11Parameters(), config_overrides=None)
     raw = model.simulate(lambda t: 0.0, n).raw
     return raw, raw.pool.plan(n)
 

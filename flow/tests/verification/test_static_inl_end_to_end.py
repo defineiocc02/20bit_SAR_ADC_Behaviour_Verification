@@ -28,7 +28,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.defaults import DefaultModel, DefaultParameters
+from subsys.experiments.fig11 import Fig11Model, Fig11Parameters
 from adi_model.metrics import metrics
 
 V_FS = 3.0
@@ -37,9 +37,9 @@ LSB20 = 2 * V_FS / 2**20
 
 def _measure_inl(points: int = 64, repeats: int = 4, seed: int = 20261105) -> dict:
     """慢斜坡扫电平，返回端点拟合 INL 的统计量。"""
-    model = DefaultModel(
+    model = Fig11Model(
         seed=seed,
-        parameters=DefaultParameters(),   # 默认 σ=1e-4、噪声启用
+        parameters=Fig11Parameters(),   # 默认 σ=1e-4、噪声启用
         config_overrides=None,
     )
     span = 0.985 * V_FS

@@ -52,6 +52,7 @@ MODES = ("fixed", "dem", "dither", "both")
 SOURCE_FILES = (
     "tools/run_static_linearity.py",
     "tools/algo_chain.py",
+    "src/adi_model/digital_conversion.py",
     "tools/recon_oracle.py",
     "src/adi_model/dem_dither.py",
     "src/adi_model/sched18_rtl.py",

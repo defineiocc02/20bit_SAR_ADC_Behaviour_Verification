@@ -94,10 +94,10 @@ def main() -> int:
     args = parser.parse_args()
     out = Path(args.out)
 
-    # 失配 σ 不写死：取 DefaultParameters 的唯一真源（由论文两指标反解，见
+    # 失配 σ 不写死：取 Fig11Parameters 的唯一真源（由论文两指标反解，见
     # docs/mechanisms/paper_metrics_calibration.md）。写死 1e-3 会在参数调整后
     # 让指纹基线悄悄脱离实际模型。
-    from adi_model.defaults import DefaultParameters as _DefaultParameters
+    from subsys.experiments.fig11 import Fig11Parameters as _DefaultParameters
 
     mismatch_std = _DefaultParameters().unit_mismatch_std
     model = _build_model(mismatch_std, True)
@@ -144,7 +144,7 @@ def main() -> int:
         # 描述必须从**实际参数**读，不能写死：写死会在参数调整后留下虚假记录
         # （实测曾写成 "mismatch=1e-3" 而实际已是 1e-4）。
         "model": (
-            "DefaultModel("
+            "Fig11Model("
             f"mismatch={model.parameters.unit_mismatch_std:.0e}, "
             f"adc2_n_bits={model.cfg.adc2_n_bits}, "
             "noise on)"

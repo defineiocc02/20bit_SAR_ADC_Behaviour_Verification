@@ -607,7 +607,10 @@ def check_dither_samples(summary: dict, trace: list[dict]) -> None:
         for r, word in zip(data, words):
             lower = 16 * ((word >> 4) & 1) + (word & 7)
             out_of_range = name == "dither_sadc_disconnected" and bool(word & 16)
-            code = int(r["input_code"])
+            # 老记录只含整数码代表点；新混合组还保存外部输入的四分之一 LSB20。
+            ideal = int(r["input_code"]) + (int(r.get("input_quarters", 0)) >= 2)
+            saturated = ideal >= 1 << 20
+            code = min(ideal, (1 << 20) - 1)
             if out_of_range:
                 # 理想 ADC2 对窗外值回 raw=0。以同一正向坐标从最终码域独立复算。
                 code = (8 * int(r["k"]) - word) * 256 - 1024
@@ -616,7 +619,7 @@ def check_dither_samples(summary: dict, trace: list[dict]) -> None:
             if (int(r["rdac_pre_eighths"]) != word or int(r["sadc_lower_eighths"]) != lower
                     or int(r["sadc_mask"]) != (((word & 16) | (word & 7)) << 1)
                     or int(r["adc2_range"]) != out_of_range or int(r["code"]) != code
-                    or int(r["err"]) or int(r["sat"])):
+                    or int(r["err"]) or bool(int(r["sat"])) != saturated):
                 raise ValueError(f"incorrect injection or deduction: {name} tag {r['tag']}")
     # 两张表接收完全相同的细码、物理开关和标签。校正后归零须有非零的正负对照。
     original = [r for r in trace if r["case"] == "dither_nominal_table"]

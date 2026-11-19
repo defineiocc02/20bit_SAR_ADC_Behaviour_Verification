@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from adi_model.defaults import DefaultModel, DefaultParameters
+from subsys.experiments.fig11 import Fig11Model, Fig11Parameters
 from adi_model.simulation.config import ConfigError
 from adi_model.simulation.parameter_consistency import (
     check_dither_fits_stage2,
@@ -41,7 +41,7 @@ def test_dither_requirement_counts_margin_on_top_of_upper_code():
 
 def test_default_model_reports_the_known_gap():
     """默认参数下二级 ADC 装不下 dither：缺口必须被显式报出，且量级可核对。"""
-    model = DefaultModel(seed=20261105, parameters=DefaultParameters(), config_overrides=None)
+    model = Fig11Model(seed=20261105, parameters=Fig11Parameters(), config_overrides=None)
     report = model.dither_stage2_consistency
     assert report.sufficient is False
     # 13 bit / 0.75 V 下实测 2.0 LSB1（原 14 bit/0.45 V 时 1.2）
@@ -53,7 +53,7 @@ def test_default_model_reports_the_known_gap():
 
 def test_report_is_visible_in_the_inference_table():
     """缺口必须出现在 inference 表里，读者不必从测试失败去反推。"""
-    model = DefaultModel(seed=20261105, parameters=DefaultParameters(), config_overrides=None)
+    model = Fig11Model(seed=20261105, parameters=Fig11Parameters(), config_overrides=None)
     entry = model.inference_table()["stage2_capacity_vs_dither"]
     assert entry["value"]["sufficient"] is False
     # 13 bit / 0.75 V 下缺 3.5 LSB1（原 14 bit/0.45 V 时缺 4.3）

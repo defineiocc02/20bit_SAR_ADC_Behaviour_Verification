@@ -3,7 +3,7 @@
 # 版本       : v1.0
 # 功能       : 回归现行 Python 静态扰动的双采样端口、掩码与定点输出。
 # 设计说明   :
-#   * 用 DefaultParameters 的 17 主端口、5 子端口和 13 位 ADC2，
+#   * 用 Fig11Parameters 的 17 主端口、5 子端口和 13 位 ADC2，
 #     单元及桥接失配置零，并显式关闭采样噪声和 RA 噪声。
 #   * 采样双端口使用负等效注入。前缀超出 RDAC 码域时不得更新物理片组；
 #     终码饱和与模拟越界标志独立核对。
@@ -31,7 +31,7 @@ from adi_model.control.dither import (
     Fig19StaticSpec,
     complete_flash3_sar6_prefix_table,
 )
-from adi_model.defaults import DefaultParameters, default_model
+from subsys.experiments.fig11 import Fig11Parameters, fig11_model
 from adi_model.simulation.config import ConfigError
 from adi_model.simulation.pipeline import run_pipeline
 from adi_model.simulation.slice_pool import PhysicalSlicePool
@@ -69,8 +69,8 @@ def _spec():
 
 @pytest.fixture(scope="module")
 def ideal_model():
-    return default_model(
-        parameters=replace(DefaultParameters(), unit_mismatch_std=0.0, bridge_mismatch_std=0.0),
+    return fig11_model(
+        parameters=replace(Fig11Parameters(), unit_mismatch_std=0.0, bridge_mismatch_std=0.0),
         config_overrides={"enable_sampling_noise": False, "ra_enable_noise": False},
     )
 
@@ -406,11 +406,11 @@ def test_wrong_bit_assignment_or_common_voltage_sign_cannot_be_a_valid_program()
 
 
 def test_source_dither_request_needs_words_and_cannot_silently_keep_default_noise():
-    requested = default_model(config_overrides={"dither_enable": True})
+    requested = fig11_model(config_overrides={"dither_enable": True})
     with pytest.raises(ConfigError, match="dither|words|program"):
         requested.simulate(dc_input(0.31), 8)
     with pytest.raises(ConfigError, match="zero-noise"):
-        default_model().simulate(dc_input(0.31), 64, dither_words=np.arange(64))
+        fig11_model().simulate(dc_input(0.31), 64, dither_words=np.arange(64))
 
 
 @pytest.mark.parametrize(

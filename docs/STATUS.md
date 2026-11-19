@@ -1,6 +1,6 @@
 # 项目状态与证据边界
 
-当前唯一支持的集成 ADC 是 **v21**，顶层为 [adc_digital_ip_v21.sv](../rtl/v21/adc_digital_ip_v21.sv)。ADC2 为 **13 位、0.75 V**，窗口为 `[-0.1875, +0.5625) V`。默认 Python 模型沿用相同的量化规格。开关位序、码域和定点表示由同一份数字接口合同索引。[工程合同](CONTRACT_CURRENT.md) · [模型图与配置](figures/behavioral/README.md)
+当前唯一支持的集成 ADC 是 **v21**，顶层为 [adc_digital_ip_v21.sv](../rtl/v21/adc_digital_ip_v21.sv)。ADC2 为 **13 位、0.75 V**，窗口为 `[-0.1875, +0.5625) V`。默认 Python 与本顶层使用同一套符号、字源、物理片号和定点出码规则。开关位序、码域和定点表示由同一份数字接口合同索引。[工程合同](CONTRACT_CURRENT.md) · [模型图与配置](figures/behavioral/README.md)
 
 ## 源码和回归
 
@@ -14,7 +14,7 @@
 
 `tools/verify_v21.sh` 登记 11 个 RTL 用例，以及整数证明与从 RTL 抽取的算术检查。运行结果以本次工具输出为准。VC Formal 的属性证明另行记录。[RTL 入口](../rtl/README.md) · [证明台账](v21/PROOF_LEDGER.md) · [D3/D4 旧 IP 验收](_history/d3d4/ACCEPTANCE_STATUS.md)
 
-默认 Python 的 ADC2 量化步长按名义 `G=32` 折算到输入为 **0.50 LSB20**。13 位接口对齐是码制核对，不能替代模型网络、事务或模拟宏验证。当前静态模型的扰动绑定工况仍有 ADC2 越窗，图与清单保留计数。[F03/F05](figures/behavioral/README.md)
+默认 Python 与生产 RTL 对五组共 1,792 笔逐标签比较，36 个记录字段全部匹配。固定输入组另核对实际 CLI 写出的完整 NPZ。每个 ADC2 步进折合名义输入 0.50 LSB20。Fig.11 研究模型的旧饱和记录保留在原工况。[可复现命令与原文差别](audit/AUDIT_ALGO_VS_SOURCE.md)
 
 工作树的 CI 配置包含顶层展开、权重配置、连续采样与两项重构回归。21 笔逐标签对拍与 8,209 笔冻结向量已在本地 Verilator 运行。GitHub 历史运行按其提交解释。[CI 配置](../.github/workflows/ci.yml) · [本地复现入口](../flow/sim/README.md)
 

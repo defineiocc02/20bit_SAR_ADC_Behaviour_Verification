@@ -10,25 +10,31 @@ import pytest
 from _rtl_test_support import invoke, load_tool
 
 from adi_model.contracts.fixed_point import CodeStream
-from adi_model.defaults import DefaultParameters
+from subsys.experiments.fig11 import Fig11Parameters
 
 
+# 该工具使用带 Fig.11 几何的物理模型。
+# 从实际文件加载可验证其仓库路径和参数校验逻辑。
 @pytest.fixture
 def tool(monkeypatch):
     return load_tool("run_static_calibration", monkeypatch)
 
 
+# 标称值应来自这一实验的参数类，而非当前数字顶层的归一化加载表。
+# 若研究装配被错误接到公共入口，物理维度和训练数据都会漂移。
 def test_parameters_use_the_single_engineering_default_table(tool, tmp_path):
-    assert tool.load_parameters(None) == DefaultParameters()
+    assert tool.load_parameters(None) == Fig11Parameters()
     path = tmp_path / "parameters.json"
-    declared = {"unit_mismatch_std": 0.002, "format": asdict(DefaultParameters().format)}
+    declared = {"unit_mismatch_std": 0.002, "format": asdict(Fig11Parameters().format)}
     path.write_text(json.dumps(declared))
     parameters = tool.load_parameters(path)
     assert parameters.unit_mismatch_std == 0.002
-    assert parameters.format == DefaultParameters().format
+    assert parameters.format == Fig11Parameters().format
     assert json.loads(path.read_text()) == declared
 
 
+# 重复键和非有限常量会改变输入身份或无法定点化。
+# 同时核对输入文件的字节，保证拒绝不会改写用户提供的数据。
 @pytest.mark.parametrize(
     "text,exception,match",
     [
@@ -51,6 +57,8 @@ def test_parameter_json_rejects_ambiguity_without_rewriting_inputs(
     assert path.read_text() == text
 
 
+# 不合格的训练长度、参考源或波形幅度应在预约输出目录之前报告。
+# 这样调用者能够重试同一目标名称，且不存在伪装成已完成的空报告。
 @pytest.mark.parametrize(
     "arguments,match",
     [
@@ -79,6 +87,8 @@ def test_cli_rejects_invalid_experiments_before_creating_output(
     assert not output.exists()
 
 
+# 重名时原来的收据仍代表原实验。
+# 检查其原字节可发现先删除再尝试运行的实现。
 def test_cli_preserves_existing_output(tool, monkeypatch, tmp_path):
     output = tmp_path / "existing"
     output.mkdir()
@@ -89,6 +99,8 @@ def test_cli_preserves_existing_output(tool, monkeypatch, tmp_path):
     assert (output / "receipt.json").read_bytes() == original
 
 
+# 有偏置的信号可以具有很小的标准差。
+# 直接计算误差均值和均方根，并把越窗、数字裁剪分别计算。
 def test_statistics_keep_dc_invalid_samples_and_clipping(tool):
     stream = CodeStream(
         code=np.array([0, 1, 2, 3]),
@@ -110,6 +122,8 @@ def test_statistics_keep_dc_invalid_samples_and_clipping(tool):
         tool.error_statistics(stream, np.full(4, np.nan))
 
 
+# Fig.11 的通用定点格式选择半点取偶；生产数字 IP 的末级选择半点离零。
+# 使用正负半点验证这里调用的确实是该研究工具自己的算术。
 @pytest.mark.parametrize("numerator", [-7, -5, -3, -1, 1, 3, 5, 7])
 def test_independent_oracle_rounds_signed_half_ties_to_even(tool, numerator):
     assert tool.nearest_even_ratio(numerator, 2) == round(numerator / 2)

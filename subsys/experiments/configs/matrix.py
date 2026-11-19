@@ -5,7 +5,7 @@ levers are switched on for each cell — and it is read by more than one script
 (ablation, figures, acceptance evidence). Keeping it in the command-line tool
 made it look like a tool detail and forced every consumer to import the tool.
 
-失配 σ 不在这里写死：它引用 `DefaultParameters().unit_mismatch_std`
+失配 σ 不在这里写死：它引用 `Fig11Parameters().unit_mismatch_std`
 （该值由论文 DR 94.2 dB 与 NSD 9.3 nV/rtHz 两项指标反解得到，见
 `docs/mechanisms/paper_metrics_calibration.md`）。这样"参数只有一个定义点"。
 
@@ -29,8 +29,8 @@ Fields per cell:
     calibration         frozen per-code calibration table
     status              RUN / NOT_RUN (never silently dropped)
 """
-#: 制造芯片的失配 σ：唯一真源是 DefaultParameters，不在这里写第二份。
-from adi_model.defaults import DefaultParameters as _DefaultParameters
+#: 制造芯片的失配 σ：唯一真源是 Fig11Parameters，不在这里写第二份。
+from subsys.experiments.fig11 import Fig11Parameters as _DefaultParameters
 
 _MANUFACTURED_MISMATCH = _DefaultParameters().unit_mismatch_std
 

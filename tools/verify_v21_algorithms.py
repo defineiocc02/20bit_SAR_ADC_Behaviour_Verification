@@ -1049,6 +1049,10 @@ def main():
         "tools/contract_v2.py",
         "tools/cmp_dem_dither.py",
         "tools/recon_oracle.py",
+        # 事务模型和独立顶层对照分别登记；数值图的重新计算本身不运行 HDL。
+        "src/adi_model/defaults.py",
+        "src/adi_model/digital_conversion.py",
+        "tools/check_default_rtl.py",
         "src/adi_model/control/dither_word.py",
         "tb/v21/sample_cadence.cpp",
         "src/adi_model/dem_dither.py",

@@ -38,7 +38,7 @@ import numpy as np
 import pytest
 
 from adi_model.control.dem3d import fig11_masks
-from adi_model.defaults import DefaultModel, DefaultParameters, default_model
+from subsys.experiments.fig11 import Fig11Model, Fig11Parameters, fig11_model
 from adi_model.topology.capacitors import GROUP_SLICES, MAIN_WEIGHTS, SUB_WEIGHTS
 
 ANCHOR_F = 20.5e-12  # 论文披露的有源电容锚点
@@ -59,16 +59,16 @@ ENDPOINT_TOL = 1e-6  # 端点闭合判据
 # 免得下次有人照着"能过"的写法复制到电容上。
 
 
-def _model() -> DefaultModel:
+def _model() -> Fig11Model:
     """默认名义模型（制造值存在但不进入名义系数）。"""
-    return DefaultModel(seed=1, parameters=DefaultParameters(), config_overrides={})
+    return Fig11Model(seed=1, parameters=Fig11Parameters(), config_overrides={})
 
 
-def _drive_units(model: DefaultModel, code: int) -> float:
+def _drive_units(model: Fig11Model, code: int) -> float:
     """用**现有掩码接口**（`fig11_masks`）× 权重表算该码的驱动权重，单位 C/片。
 
     刻意不在这里重写 `main_code → therm/ones` 的分解律：那等于给同一件事开第二个
-    定义点。掩码绑定是主链真正使用的那一个（`DefaultModel.simulate` 把它交给
+    定义点。掩码绑定是主链真正使用的那一个（`Fig11Model.simulate` 把它交给
     `PhysicalSlicePool`），因此它的输出就是模型的驱动量。
     """
     ids = np.broadcast_to(
@@ -121,7 +121,7 @@ def test_active_capacitance_matches_the_paper_anchor():
 
 def test_nominal_gain_is_the_design_target():
     """`nominal_gain == 32.0` —— 这是 RA 的物理增益 C_samp/Cf，不是 Σw 口径的 31.028。"""
-    model = default_model()
+    model = fig11_model()
     assert model.nominal_gain == pytest.approx(32.0, rel=UNIT_TOL, abs=0), (
         "nominal_gain must be C_samp/Cf = 20.5 pF / 640.625 fF = 32; "
         f"got {model.nominal_gain:.6f}"
@@ -150,9 +150,9 @@ def test_nominal_gain_is_bit_identical_to_the_plant_gain_vector():
     同一个表达式，可以要求**严格相等**（不用 approx），缺陷态则必失败。
     """
     parameters = replace(
-        DefaultParameters(), unit_mismatch_std=0.0, bridge_mismatch_std=0.0
+        Fig11Parameters(), unit_mismatch_std=0.0, bridge_mismatch_std=0.0
     )
-    model = DefaultModel(seed=1, parameters=parameters, config_overrides={})
+    model = Fig11Model(seed=1, parameters=parameters, config_overrides={})
     raw = model.simulate(lambda t: np.zeros_like(np.asarray(t, float)), 8).raw
     g_vec = np.asarray(raw.g_vec, dtype=float)
     assert np.all(g_vec == model.nominal_gain), (

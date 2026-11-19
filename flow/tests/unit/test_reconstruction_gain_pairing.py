@@ -24,7 +24,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from adi_model.defaults import DefaultModel, DefaultParameters
+from subsys.experiments.fig11 import Fig11Model, Fig11Parameters
 from dataclasses import replace
 
 LSB20_V = 6.0 / 2**20
@@ -32,9 +32,9 @@ LSB20_V = 6.0 / 2**20
 
 def _model_zero_noise():
     """零 RA 输出噪声：把增益配对问题从随机噪声里分离出来。"""
-    return DefaultModel(
+    return Fig11Model(
         seed=20261105,
-        parameters=replace(DefaultParameters(), ra_noise_rms_v=0.0),
+        parameters=replace(Fig11Parameters(), ra_noise_rms_v=0.0),
         config_overrides=None,
     )
 
@@ -128,7 +128,7 @@ def test_fixed_point_now_matches_the_float_path():
 def test_all_evaluation_tools_pass_the_physical_gain():
     """所有"评价模拟精度"的工具都必须传 physical_gain。
 
-    历史教训：给解码器加了 physical_gain 之后，`DefaultModel.simulate` 传了，
+    历史教训：给解码器加了 physical_gain 之后，`Fig11Model.simulate` 传了，
     但 `tools/run_p4_ablation.py` 自己调 `reconstruct(data)` **绕过了修复**，
     导致矩阵里 A0 的 INL 一直显示 32.9 LSB20 而不是真实的 0.56。
 

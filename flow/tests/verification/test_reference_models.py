@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import random
 
-from adi_model.defaults import DefaultParameters
+from subsys.experiments.fig11 import Fig11Parameters
 from verification.reference.datapath_ref import (
     OUTPUT_COUNT,
     ReconTerms,
@@ -71,7 +71,7 @@ def test_pipelined_division_identity_holds_on_random_inputs():
 # =============================================================================
 def test_adc2_bin_center_is_monotone_and_bounded():
     """遍历当前位宽的所有码仓，使用易于复算的对称测试区间。"""
-    bits = DefaultParameters().adc2_n_bits
+    bits = Fig11Parameters().adc2_n_bits
     min_q, max_q = -(1 << 32), 1 << 32
     previous = None
     for code in range(1 << bits):

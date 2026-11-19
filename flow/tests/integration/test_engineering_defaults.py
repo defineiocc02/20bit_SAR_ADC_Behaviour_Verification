@@ -1,4 +1,4 @@
-"""验证正常用户默认入口及工程假设的可见性，不声明原芯片复现。
+"""验证生产默认入口的记录；独立检查 Fig.11 研究实验的物理假设。
 
 波形与 N 可以直接运行；低层未知项仍不自动补全。名义数字系数与制造随机量
 保持分离，全部样本及节点标志保留，20 位仅表示输出码宽。
@@ -10,10 +10,13 @@ import numpy as np
 import pytest
 
 from adi_model.behavioral.sampler import dc_input, sine_input
-from adi_model.defaults import DefaultParameters, default_model, simulate
+from adi_model.defaults import simulate
+from subsys.experiments.fig11 import Fig11Parameters, fig11_model, simulate_fig11
 from adi_model.simulation.config import Config, ConfigError
 
 
+# 这条从安装包公共入口验证生产数据；下面针对 Fig.11 参数和电容的用例显式导入研究夹具。
+# 相同量化位宽不意味着两者可以共享一张开关掩码或一套电容分母。
 @pytest.mark.parametrize("count", [256, 1024])
 def test_waveform_and_count_produce_all_raw_and_integer_records(count):
     run = simulate(sine_input(2.0, 1e6, 0.2), count)
@@ -26,7 +29,7 @@ def test_waveform_and_count_produce_all_raw_and_integer_records(count):
     assert run.metadata["output_bits"] == 20
     assert run.metadata["source_reproduction"] is False
     assert run.metadata["digital_coefficients"].startswith("NOMINAL_NOT_FITTED")
-    assert not run.raw.calibration_applied
+    assert run.raw.out_valid.all() and not run.raw.out_err.any()
     assert run.metadata["raw_invalid"] == int(np.count_nonzero(run.codes.analog_overflow))
     assert run.metadata["final_clip_low"] == int(np.count_nonzero(run.codes.clipped_low))
     assert run.metadata["final_clip_high"] == int(np.count_nonzero(run.codes.clipped_high))
@@ -36,7 +39,7 @@ def test_defaults_do_not_make_low_level_config_implicitly_ready():
     assert Config().adc2_n_bits is None
     with pytest.raises(ConfigError, match="missing"):
         Config().check_legal()
-    model = default_model()
+    model = fig11_model()
     # -------------------------------------------------------------------------
     # [合同] 默认入口只补齐公开 API 的参数，低层 Config() 仍由调用方明确填写。
     # v2.1 的 13 bit 与半开差分窗口是一组；异常端点仍由 ADC2 原语负责。
@@ -64,7 +67,7 @@ def test_defaults_do_not_make_low_level_config_implicitly_ready():
 
 
 def test_inference_table_separates_source_anchors_from_geometry_and_noise_assumptions():
-    model = default_model()
+    model = fig11_model()
     rows = model.inference_table()
     assert rows["stage1_bits"]["grade"] == "DISCLOSED"
     assert rows["n_main"]["grade"] == "ASSUMED_GEOMETRY"
@@ -92,7 +95,7 @@ def test_inference_table_separates_source_anchors_from_geometry_and_noise_assump
 
 
 def test_same_seed_and_run_id_replay_and_different_run_ids_do_not_refabricate_chip():
-    model = default_model(seed=42)
+    model = fig11_model(seed=42)
     wave = sine_input(1.5, 1e6, 0.1)
     first = model.simulate(wave, 32, run_id=5)
     replay = model.simulate(wave, 32, run_id=5)
@@ -109,7 +112,7 @@ def test_same_seed_and_run_id_replay_and_different_run_ids_do_not_refabricate_ch
 
 
 def test_nominal_integer_coefficients_do_not_depend_on_manufactured_capacitances():
-    first, second = default_model(seed=1), default_model(seed=2)
+    first, second = fig11_model(seed=1), fig11_model(seed=2)
     assert np.any(first.chip.C_main != second.chip.C_main)
     np.testing.assert_array_equal(
         first.nominal_decoder.to_dict()["weights_q"], second.nominal_decoder.to_dict()["weights_q"]
@@ -119,8 +122,8 @@ def test_nominal_integer_coefficients_do_not_depend_on_manufactured_capacitances
 
 
 def test_explicit_nominal_override_is_not_hidden_retuning_or_source_authority():
-    base = DefaultParameters()
-    model = default_model(parameters=replace(base, feedback_cap_f=2 * base.feedback_cap_f))
+    base = Fig11Parameters()
+    model = fig11_model(parameters=replace(base, feedback_cap_f=2 * base.feedback_cap_f))
     assert model.parameters.unit_cap_f == base.unit_cap_f
     assert model.parameters.bridge_cap_f == base.bridge_cap_f
     # feedback 翻倍 ⇒ 增益减半。17/5 下名义（物理）增益是 32.0，故此处为 16.0；
@@ -135,7 +138,7 @@ def test_explicit_nominal_override_is_not_hidden_retuning_or_source_authority():
 
 def test_custom_window_and_threshold_metadata_report_the_actual_override():
     thresholds = tuple(np.linspace(-2.0, 2.0, 513) + 0.0003)
-    model = default_model(
+    model = fig11_model(
         config_overrides={
             "v_fs": 2.0,
             "fs": 20e6,
@@ -158,7 +161,7 @@ def test_custom_window_and_threshold_metadata_report_the_actual_override():
 
 @pytest.mark.parametrize("value", [-3.2, 3.2])
 def test_out_of_range_inputs_and_each_node_flag_are_retained(value):
-    run = simulate(dc_input(value), 16)
+    run = simulate_fig11(dc_input(value), 16)
     assert len(run.codes.code) == len(run.raw.adc2_code) == 16
     assert run.raw.sadc_over.all()
     assert run.codes.analog_overflow.all()
@@ -175,8 +178,8 @@ def test_out_of_range_inputs_and_each_node_flag_are_retained(value):
 
 
 def test_declared_ideal_override_matches_independent_quantization_bound():
-    parameters = replace(DefaultParameters(), unit_mismatch_std=0.0, bridge_mismatch_std=0.0)
-    model = default_model(
+    parameters = replace(Fig11Parameters(), unit_mismatch_std=0.0, bridge_mismatch_std=0.0)
+    model = fig11_model(
         parameters=parameters,
         config_overrides={"enable_sampling_noise": False, "ra_enable_noise": False},
     )
@@ -192,7 +195,7 @@ def test_declared_ideal_override_matches_independent_quantization_bound():
 @pytest.mark.parametrize("count", [0, -1, True, 1.5])
 def test_invalid_record_count_is_not_coerced_or_allocated(count):
     with pytest.raises(ConfigError):
-        simulate(dc_input(0.0), count)
+        simulate_fig11(dc_input(0.0), count)
 
 
 @pytest.mark.parametrize(
@@ -210,7 +213,7 @@ def test_invalid_record_count_is_not_coerced_or_allocated(count):
 )
 def test_unsupported_or_incomplete_explicit_requests_do_not_silently_fall_back(overrides):
     with pytest.raises((ConfigError, TypeError)):
-        default_model(config_overrides=overrides)
+        fig11_model(config_overrides=overrides)
 
 
 @pytest.mark.parametrize(
@@ -218,4 +221,4 @@ def test_unsupported_or_incomplete_explicit_requests_do_not_silently_fall_back(o
 )
 def test_invalid_nominal_geometry_or_physical_scale_is_rejected(field, value):
     with pytest.raises(ConfigError):
-        replace(DefaultParameters(), **{field: value})
+        replace(Fig11Parameters(), **{field: value})

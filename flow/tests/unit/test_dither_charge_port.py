@@ -27,17 +27,17 @@ import numpy as np
 import pytest
 
 from adi_model.behavioral.sampler import dc_input
-from adi_model.defaults import DefaultModel, DefaultParameters
+from subsys.experiments.fig11 import Fig11Model, Fig11Parameters
 from adi_model.simulation.config import ConfigError
 
 LSB20_V = 6.0 / 2**20
 
 
-def _model(mismatch_std: float) -> DefaultModel:
+def _model(mismatch_std: float) -> Fig11Model:
     """同一 seed 的一颗芯片；噪声关掉，只看 dither 的确定性效果。"""
-    return DefaultModel(
+    return Fig11Model(
         seed=20261112,
-        parameters=DefaultParameters(
+        parameters=Fig11Parameters(
             unit_mismatch_std=mismatch_std,
             bridge_mismatch_std=mismatch_std,
             feedback_mismatch_std=0.0,

@@ -42,10 +42,17 @@ struct Sample {
     int tag, mode, flash, word, upper, h, v, half, coin, raw, final_k, code, sat;
     std::vector<Event> events;
     int input_code = -1;                          // 受控模型的真实输入，单位为 20 位输出码
+    int input_quarters = 0;  // 正向激励中额外的 1/4 LSB20，独立于 DUT 原码
     int sampled_pre8 = 0;                         // 八个物理槽实际采样预置之和，单位为 1/8 粗码
     unsigned sadc_mask = 0;                       // 在公共采样沿读取的实际 bank 输出
     int lower8 = 0;                               // 从所属 SADC 的七根物理控制线折算
     int mismatch_pre = 0, mismatch_direction = 0; // 指定物理子单元的 pre 和 post−pre
+    // 交给 Python 复核的实测量。只从生产引脚登记，最终按退休标签写出。
+    std::uint64_t observed_ids = 0;
+    unsigned observed_pre = 0, observed_qid = 0;
+    std::array<unsigned, 8> observed_post{};
+    std::array<int, 8> observed_events{-1, -1, -1, -1, -1, -1, -1, -1};
+    unsigned observed_events_count = 0;
     bool forced = true;                           // 原有事件回归显式给字，生产字源单独对拍
     bool from_switches = false;                   // 是否从实际端口推导比较器与 ADC2 返回
     bool range = false;
@@ -114,7 +121,7 @@ int physical_post8(const Vadc_digital_ip_v21 &d) {
 void capture_ideal_residue(const Vadc_digital_ip_v21 &d, Sample &a, WordTest test) {
     const int post8 = physical_post8(d);
     require(post8 == 8 * a.final_k, "final physical switch weight mismatch");
-    int unbounded_raw = 2048 + 2 * a.input_code - 512 * post8 + 512 * a.sampled_pre8;
+    int unbounded_raw = 2048 + 2 * a.input_code + a.input_quarters / 2 - 512 * post8 + 512 * a.sampled_pre8;
     if (test == WordTest::NominalTable || test == WordTest::CorrectedTable) {
         // 给片 0 子单元 18 设置 2^-10 的物理权重差。只有这片在本笔内并且
         // 选中时才影响残差；在 G=32 下，一份贡献相当于 64 个 ADC2 原码。
@@ -248,12 +255,13 @@ struct Clock {
 
 // 每场从复位和完整 360 字装表开始；所有配置周期都在吞吐测量窗外。
 // 使用生产调度器，不灌预排片号，也不 force 内部状态。
-void configure(Clock &c, bool load_measured_weight) {
+void configure(Clock &c, bool load_measured_weight, bool program_pool_seed) {
     auto &d = c.d;
     d.clk = 0;
     d.rst_n = 0;
     d.sched_ext_sel = 0;
-    d.sched_seed_we = 1;
+    // 默认入口使用片池复位种子；其他受控场景仍覆盖真实的重播种端口。
+    d.sched_seed_we = program_pool_seed;
     d.sched_seed = 0x12345678;
     d.prepare_valid = 0;
     d.dither_force_i = 0;
@@ -382,7 +390,7 @@ Counts run(const Scenario &s, std::ofstream &trace) {
     context.randReset(0);
     Vadc_digital_ip_v21 d(&context);
     Clock clk{context, d, s.clock_fs};
-    configure(clk, s.words == WordTest::CorrectedTable);
+    configure(clk, s.words == WordTest::CorrectedTable, s.words != WordTest::Internal);
     if (s.words == WordTest::Mixed) {
         // 只重播种片组 RNG；扰动序号与已受理的样本数仍须逐笔匹配。
         d.sched_seed = 0x13579BDF;
@@ -394,6 +402,9 @@ Counts run(const Scenario &s, std::ofstream &trace) {
     // 生成期望序列与等待宏响应的长短无关。混合测试原子的基本单位是
     // 接受一个请求，而非收到一次比较判决或退休一个输出。
     unsigned state = 0xC001D00D;
+    // 横向轮转、纵相位和桥选择由宏上游提供。生产默认对照使用合同 B8 的
+    // 上游激励，两个状态与 DUT 内的扰动状态彼此独立。
+    unsigned vertical_state = 0x2468ACE1, bridge_state = 0x9E3779B9;
     for (int tag = 1; tag <= transactions; ++tag) {
         auto a = stimulus(tag);
         if (s.words != WordTest::Events) {
@@ -401,15 +412,36 @@ Counts run(const Scenario &s, std::ofstream &trace) {
             // 从 DUT 驱动的开关计算。混合场景在强制字与自动字之间逐笔换手。
             state = next_random(state);
             a.from_switches = true;
+            if (s.words == WordTest::Internal) {
+                vertical_state = next_random(vertical_state);
+                bridge_state = next_random(bridge_state);
+                a.h = (tag - 1) & 7;
+                a.v = vertical_state & 7;
+                a.half = ((tag - 1) >> 3) & 1;
+                a.coin = bridge_state & 1;
+            }
             a.input_code = 410304; // −3 V + (200 + 11/32) 个粗码步
             a.forced = s.words == WordTest::Sweep || s.words == WordTest::Disconnected ||
                        s.words == WordTest::NominalTable || s.words == WordTest::CorrectedTable ||
                        (s.words == WordTest::Mixed && tag % 5 == 0);
             a.word = a.forced ? (tag - 1) % 64 : int(state & 63);
             a.upper = 4 * (a.word >> 5) + ((a.word >> 3) & 1);
-            if (s.words == WordTest::Mixed)
-                a.input_code = (tag % 2 ? 191 : 511) * 2048 + 704;
-            a.code = a.input_code;
+            if (s.words == WordTest::Mixed) {
+                // 独立产生覆盖全量程的输入。四分之一输出步可以检测把 Vin
+                // 先舍入成目标数字码再伪造 ADC2 原码的错误。
+                a.input_code = ((tag - 1) * 55211) % (1 << 20);
+                a.input_quarters = (tag - 1) & 3;
+                switch ((tag - 1) & 15) {
+                case 0: a.input_code = 0; break;
+                case 1: a.input_code = (1 << 20) - 1; a.input_quarters = 3; break;
+                case 2: a.input_code = 448 * 2048 - 1; break;
+                case 3: a.input_code = 511 * 2048 + 704; break;
+                case 4: a.input_code = 191 * 2048 + 704; break;
+                }
+            }
+            int ideal = a.input_code + (a.input_quarters >= 2 ? 1 : 0);
+            a.sat = ideal >= (1 << 20);
+            a.code = std::min(ideal, (1 << 20) - 1);
             a.events.clear(); // 采样前不预装试探位，也不提前知道 Flash 结果
         }
         plan.push_back(a);
@@ -471,7 +503,7 @@ Counts run(const Scenario &s, std::ofstream &trace) {
                     "actual SADC and RDAC pins do not carry the same sample's dither");
             const int applied = s.words == WordTest::Disconnected ? 0 : a.lower8;
             if (a.from_switches)
-                set_decisions(a, (a.input_code + 256 * applied) / 2048);
+                set_decisions(a, (4 * a.input_code + a.input_quarters + 1024 * applied) / 8192);
         }
         // 决定序列预先给定，每一位在驱动沿前已稳定；门限拒绝也消耗一次决定。
         // 此处不模拟比较器的判决时间，后续必须以实际宏的最迟有效时刻替换此假设。
@@ -540,6 +572,12 @@ Counts run(const Scenario &s, std::ofstream &trace) {
                         int(d.final_k_o) == plan[capture_tag].final_k,
                     "capture context or final command");
             time[capture_tag].capture = tick;
+            auto &measured = plan[capture_tag];
+            measured.observed_ids = d.node_ids_o;
+            measured.observed_qid = d.node_qid_o;
+            measured.observed_pre = d.node_pre_o;
+            for (unsigned slot = 0; slot < 8; ++slot)
+                measured.observed_post[slot] = lane(d.node_post_o, slot, 20);
             if (s.words != WordTest::Events) {
                 capture_ideal_residue(d, plan[capture_tag], s.words);
                 require(!plan[capture_tag].range || s.words == WordTest::Disconnected,
@@ -587,6 +625,14 @@ Counts run(const Scenario &s, std::ofstream &trace) {
         const bool write = e && e->write;
         require(bool(d.err_o) == reject && bool(d.apply_fire_o) == write,
                 "unexpected protocol error or event write");
+        if (e) {
+            // 比较事件与实际写门独立，拒绝 512 时保留一个 -1 空位。
+            auto &measured = plan[active];
+            require(event_index < 8, "too many SAR decisions for one sample");
+            ++measured.observed_events_count;
+            if (d.apply_fire_o)
+                measured.observed_events[event_index] = d.k_o;
+        }
         if (write)
             require(int(d.tag_o) == active && int(d.k_o) == e->k, "wrong event command/tag");
         clk.rise();
@@ -644,7 +690,11 @@ Counts run(const Scenario &s, std::ofstream &trace) {
                   << int(d.out_err) << ',' << t.sample << ',' << t.start << ',' << t.post << ','
                   << t.capture << ',' << t.raw << ',' << t.out << ',' << a.sampled_pre8 << ','
                   << a.lower8 << ',' << a.range << ',' << a.input_code << ',' << a.mismatch_direction
-                  << ',' << a.mismatch_pre << ',' << a.sadc_mask << '\n';
+                  << ',' << a.mismatch_pre << ',' << a.sadc_mask << ',' << a.observed_qid << ','
+                  << a.observed_ids << ',' << a.observed_pre << ',' << a.observed_events_count << ',' << a.input_quarters;
+            for (auto mask : a.observed_post) trace << ',' << mask;
+            for (auto command : a.observed_events) trace << ',' << command;
+            trace << '\n';
         }
         clk.fall();
     }
@@ -656,7 +706,7 @@ Counts run(const Scenario &s, std::ofstream &trace) {
         d.rst_n = 0;
         d.eval();
         check_sadc_write(d, nullptr, 0);
-        configure(clk, false);
+        configure(clk, false, false);
         descriptor(d, plan[1]);
         d.prepare_valid = 1;
         d.eval();
@@ -702,7 +752,10 @@ int main() {
         return 2;
     trace << "case,clock_fs,tag,path,flash,word,h,v,half,coin,raw,k,code,sat,err,sample,start,post,"
              "capture,raw_edge,out,rdac_pre_eighths,sadc_lower_eighths,adc2_range,input_code,post_"
-             "minus_pre,mismatch_pre,sadc_mask\n";
+             "minus_pre,mismatch_pre,sadc_mask,qid,ids_packed,pre_packed,event_count,input_quarters";
+    for (int n = 0; n < 8; ++n) trace << ",post_slot" << n;
+    for (int n = 0; n < 8; ++n) trace << ",event_k" << n;
+    trace << '\n';
     summary
         << "case,clock_fs,sample_fs,prepared,sampled,captured,returned,retired,writes,max_sample_"
            "to_post_ticks,min_out_gap_ticks,max_out_gap_ticks,first_missed_tag,outcome,range_flags\n";

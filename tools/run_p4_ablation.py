@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 import tempfile
 import time
 from dataclasses import replace
@@ -31,12 +32,17 @@ from pathlib import Path
 
 import numpy as np
 
+# 研究夹具随源码仓库提供；直接运行脚本时也使用同一份实验。
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from adi_model import metrics
 from adi_model.calibration.mask_calibration import fit_code_correction
 from adi_model.control.dem3d import Dem3State, fig11_masks, round_robin_plan
 from adi_model.control.dither import FIG19_FRACTIONAL_WEIGHTS_Q, FIG19_STEP_Q, Fig19StaticSpec
 from adi_model.control.dither_port import DitherPort
-from adi_model.defaults import DefaultModel, DefaultParameters, _schedule
+from subsys.experiments.fig11 import Fig11Model, Fig11Parameters, _schedule
 from adi_model.simulation.pipeline import run_pipeline
 from adi_model.simulation.slice_pool import PhysicalSlicePool
 
@@ -65,7 +71,7 @@ PAPER = {
 
 
 def _noise_cap_f(model, ids: np.ndarray) -> np.ndarray:
-    """与 DefaultModel.simulate 同式的采样噪声等效电容。"""
+    """与 Fig11Model.simulate 同式的采样噪声等效电容。"""
     chip = model.chip
     main, sub = chip.C_main[ids], chip.C_sub[ids]
     beta = chip.C_bridge[ids] / (chip.C_bridge[ids] + sub.sum(axis=-1) + chip.c_p_sub[ids])
@@ -131,7 +137,7 @@ def _run(model, input_fn, n_samples: int, *, dem: bool, uniform_plan: bool, cali
     k=c-U。SADC 偏移使用 lower 分段，数字重构从对应扰动项恢复输出。
     run_id=0 沿用默认种子。其它编号可隔离训练和评估的噪声及片选流。
     """
-    from adi_model.defaults import _all_signal
+    from subsys.experiments.fig11 import _all_signal
 
     # 留出记录换用独立片选与噪声流，仍复用同一颗芯片的电容和名义解码器。
     # 默认编号沿用已有流程的种子，保留其它消融配置的可复现结果。
@@ -181,7 +187,7 @@ def _run(model, input_fn, n_samples: int, *, dem: bool, uniform_plan: bool, cali
     )
     # 必须传入物理增益：定点分母 Σw 是码本口径（31.9375C），而 fine 由 RA 的
     # G_phys（采样口径 32.94C）产生，不换算会让残差项被放大约 3.1%
-    # （实测 INL 从 0.5 恶化到 32.9 LSB20）。与 DefaultModel.simulate 保持同一条路径。
+    # （实测 INL 从 0.5 恶化到 32.9 LSB20）。与 Fig11Model.simulate 保持同一条路径。
     state = getattr(raw, "state", None)
     physical_gain = getattr(state, "estimated_gain", None)
     codes = model.nominal_decoder.reconstruct(
@@ -389,12 +395,12 @@ def _train_calibration(model, *, points: int = DEFAULT_TRAINING_POINTS, dem: boo
 from subsys.experiments.configs.matrix import ablation_configs as _configs
 
 
-def _build_model(mismatch_std: float, noise: bool, *, seed: int = 20261105) -> DefaultModel:
+def _build_model(mismatch_std: float, noise: bool, *, seed: int = 20261105) -> Fig11Model:
     """按配置构造同一 seed 的制造实现；噪声开关走 Config 覆盖。
 
     seed 决定制造池与噪声相位；同一 seed 下所有配置共用同一颗"芯片"。
     """
-    parameters = DefaultParameters(
+    parameters = Fig11Parameters(
         unit_mismatch_std=mismatch_std,
         bridge_mismatch_std=mismatch_std,
         feedback_mismatch_std=0.0,
@@ -406,7 +412,7 @@ def _build_model(mismatch_std: float, noise: bool, *, seed: int = 20261105) -> D
             "ra_out_noise_rms": 0.0,
             "enable_sampling_noise": False,
         }
-    return DefaultModel(seed=seed, parameters=parameters, config_overrides=overrides or None)
+    return Fig11Model(seed=seed, parameters=parameters, config_overrides=overrides or None)
 
 
 def main() -> int:

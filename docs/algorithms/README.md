@@ -8,6 +8,8 @@
 
 [下载完整矢量图册（PDF）](digital-ip-atlas.pdf) · [采集与转换交接沿的逐引脚实测](../audit/ISSUE_10.md)
 
+默认 Python 已按本页的数字链运行。五种工况共 1,792 笔与生产顶层按标签对拍，核对八槽片号、开关、已决写门、原码和输出。运行入口及直接对照原图的差异见[快速上手](../guide/QUICKSTART.md)与[论文／专利复核](../audit/AUDIT_ALGO_VS_SOURCE.md)。
+
 ## 相同的粗码，哪些开关在工作？
 
 ![相同命令下，对比固定相位和遍历相位时各等权位置的使用次数](figures/physical-masks.svg)

@@ -4,6 +4,7 @@
 
 | 主题 | 工程口径 |
 | --- | --- |
+| Python 事务验收 | 包和命令行默认使用 `adc_digital_ip_v21`。固定字、片内字与加载表通过同一条数据通路，逐事件和开关的实际对照见[算法复核](audit/AUDIT_ALGO_VS_SOURCE.md)。 |
 | 码域 | SADC 粗码 `c=0…519`，RDAC 命令 `k=c+U`，合法域 `0…520`。普通区用 `k=64H+8V+L`，512–520 使用保护区开关表。 |
 | DEM 和桥接 | H、V 各在 0…7，保留列 `(7+h_phase)%8`。仅 `coin=1` 时，按 `v_phase` 和 `half` 交换选定主半单元与八片对应子支路。 |
 | 定点权重 | 按同一笔 `pre` 和最终 `post` 计算 `Wp`、`Wm` 和实际 `G`。`Wp` 对置位的子支路加权求和，权重已经包含 `β` 与 `1/Cf`。 |
@@ -19,4 +20,4 @@
 
 整链回归入口为 [verify_v21.sh](../tools/verify_v21.sh)。共享 D3/D4 模块的验证结果按各自的码域、掩码和输入版本解读。[历史 D3/D4 验收记录](_history/d3d4/ACCEPTANCE_STATUS.md)
 
-早期 RTL 结果按 Git 中的原始版本解释。Python 的 Fig.19 减法等效实验按自身配置解释，适用范围见 [F05](figures/behavioral/README.md)。[历史评审](_history/CONTRACT_V2_REVIEW.md) · [历史物理草案](_history/PHYSICAL_CONTRACT_DRAFT.md)
+早期 RTL 结果按 Git 中的原始版本解释。仓库研究区的 Fig.19 减法电荷实验按其原始配置解释，适用范围见 [F05](figures/behavioral/README.md)。[历史评审](_history/CONTRACT_V2_REVIEW.md) · [历史物理草案](_history/PHYSICAL_CONTRACT_DRAFT.md)

@@ -110,6 +110,14 @@ jobs:
         run: |
           python tools/run_open_rtl.py --simulator verilator --tops tb_analog_if v21_sample_cadence \
             --out "$SAR_CI_RUN_ROOT/v21-top"
+      - name: Compare installed default Python and production RTL transactions
+        # 同一固定输入通过实际控制台入口，使用真实 RTL 采集的片号、两端开关、
+        # 逐事件写门、原码和最终出码。强制字与权重失配另按其实际外部输入重放。
+        run: |
+          adi-simulate --dc -0.6522216796875 --samples 1024 --output "$SAR_CI_RUN_ROOT/python-default" > /dev/null
+          python tools/check_default_rtl.py "$SAR_CI_RUN_ROOT/v21-top/v21_sample_cadence/samples.csv" \
+            --default-npz "$SAR_CI_RUN_ROOT/python-default/codes.npz" > "$SAR_CI_RUN_ROOT/python-rtl-comparison.txt"
+          cat "$SAR_CI_RUN_ROOT/python-rtl-comparison.txt"
       - name: Independent integer arithmetic with explicit format
         run: |
           python tools/audit_rtl_arithmetic.py \
@@ -293,7 +301,7 @@ jobs:
               with (root / name / "metadata.json").open(encoding="utf-8") as handle:
                   metadata = json.load(handle)
               assert metadata["model_run"] is True
-              assert metadata["result_role"] == "UNCALIBRATED_NOMINAL_20BIT"
+              assert metadata["result_role"] == "DIGITAL_IP_TRANSACTION_REFERENCE"
               assert metadata["source_reproduction"] is False
               assert metadata["source_conformance"] == "NOT_ASSESSED"
               assert metadata["records_filtered"] == 0
@@ -384,7 +392,7 @@ jobs:
           assert root / "wheel-env" in Path(adi_model.__file__).parents
           metadata = json.loads((root / "wheel-run/metadata.json").read_text(encoding="utf-8"))
           assert metadata["model_run"] is True
-          assert metadata["result_role"] == "UNCALIBRATED_NOMINAL_20BIT"
+          assert metadata["result_role"] == "DIGITAL_IP_TRANSACTION_REFERENCE"
           assert metadata["source_reproduction"] is False
           PY
       - uses: actions/upload-artifact@v4

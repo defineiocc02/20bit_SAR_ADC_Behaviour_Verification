@@ -305,10 +305,10 @@ def test_beta_expands_along_the_sub_unit_axis_not_the_sample_axis():
     Both are exercised here, and the ground truth is explicit indexing rather
     than another broadcast expression.
     """
-    from adi_model.defaults import default_model
+    from subsys.experiments.fig11 import fig11_model
     from adi_model.topology.dac_arch import split_capacitance_coefficients
 
-    model = default_model()
+    model = fig11_model()
     chip = model.chip
     n_sub = chip.C_sub.shape[-1]
     n_slices = chip.C_main.shape[0]

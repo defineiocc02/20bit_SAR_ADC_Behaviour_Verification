@@ -12,6 +12,8 @@
 
 未设置 `V21_WORKDIR` 时，脚本会在执行主机新建临时目录。指定路径时要提供尚未存在的专用绝对路径，脚本会保留已有目录。用 `bash tools/verify_v21.sh --check-sources` 可只打印输入源清单。
 
+定向 `v21_sample_cadence` 的 `samples.csv` 包含物理片号、八槽 pre/post 和 SAR 事件。默认 Python 的 CLI 与库参考从独立输入重放，五组共 1,792 笔。[逐样本对比命令](../../docs/guide/QUICKSTART.md)
+
 ## 目录定位
 
 - [仓库根的 tb/](../../tb/) 放 v21 与共享模块测试台。[tb/](tb/) 放组件与协议测试台。

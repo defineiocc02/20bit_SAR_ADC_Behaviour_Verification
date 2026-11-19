@@ -34,8 +34,8 @@ def test_registered_profile_has_the_current_operating_point():
     assert load_profile(ADI_40M.profile_id) is ADI_40M
     assert ADI_40M.fs_hz == 40e6
     assert ADI_40M.v_span_v == 6.0
-    assert ADI_40M.topology.n_main == 17
-    assert ADI_40M.topology.n_sub == 5
+    assert ADI_40M.topology.n_main == 16
+    assert ADI_40M.topology.n_sub == 4
     # ADC2 位宽随目标记录输出，误登记会使数值结果和接口规格失去联系。
     assert ADI_40M.adc2_bits == 13
 
@@ -52,11 +52,13 @@ def test_adi_profile_matches_default_parameters():
     spec = ADI_40M.topology
     assert spec.n_slices_pool == 18
     assert spec.n_slices_active == 8
-    assert spec.n_main == params.n_main == 17
-    assert spec.n_sub == params.n_sub == 5
-    assert spec.c_unit_f == params.unit_cap_f
-    assert spec.c_bridge_f == params.bridge_cap_f
-    assert spec.c_feedback_f == params.feedback_cap_f
+    assert spec.n_main == params.n_main == 16
+    assert spec.n_sub == params.n_sub == 4
+    # 数字规格只绑定归一化权重，显式拒绝把未给出的绝对法拉值送至物理消费者。
+    assert spec.topology_id == "adc_digital_ip_v21" and spec.normalization_only
+    assert (spec.c_unit_f, spec.c_bridge_f, spec.c_feedback_f) == (None, None, None)
+    with pytest.raises(ValueError):
+        spec.require_physical()
     assert ADI_40M.adc2_bits == params.adc2_n_bits
 
 

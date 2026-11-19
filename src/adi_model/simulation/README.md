@@ -1,6 +1,6 @@
 # Python 仿真入口与状态归属
 
-静态试验从 [default_model](../defaults.py) 起步，得到固定制造种子、名义译码器和可重放的噪声与调度。需要实际掩码、逐事件参考载荷或自定义节点条件时，使用 [run_pipeline](pipeline.py) 显式提供输入。使用说明见 [快速指南](../../../docs/guide/QUICKSTART.md)。
+这里是显式模拟实验的装配与采集组件。生产入口从 [default_model](../defaults.py) 逐笔计算数字 IP，Figure 11 研究由[源码实验夹具](../../../subsys/experiments/fig11.py)装配。[使用指南](../../../docs/guide/QUICKSTART.md)
 
 | 阶段 | 同一笔记录中的数据 |
 | --- | --- |

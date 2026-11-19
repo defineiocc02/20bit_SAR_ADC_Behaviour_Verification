@@ -1,6 +1,6 @@
 # 片选、逐事件跟随、DEM 与扰动
 
-这个包保存 Python 控制算法、专利机制对照和可插入仿真的显式 binding。模型与 v21 在几何、事件入口和 dither 符号上各有合同，实验图注应注明使用哪条路径。 [v21 工程合同](../../../docs/CONTRACT_CURRENT.md) · [机制索引](../../../docs/mechanisms/README.md)
+生产数字事务使用本包的片内字源，并在[默认模型](../defaults.py)中连接片选、已决事件、DEM、采样预置及定点重构。专利原图研究的分立组件各按其物理几何解释。[数字合同](../../../docs/CONTRACT_CURRENT.md) · [原文差异](../../../docs/audit/AUDIT_ALGO_VS_SOURCE.md)
 
 <a id="schedule"></a>
 ## 片组调度
@@ -15,25 +15,13 @@ SADC 和 RDAC 在论文架构中分开，[A]。`follower.py` 接收指定的已�
 <a id="dem"></a>
 ## 阵列映射与 DEM
 
-- `fig11_dem.map_fig11` 是受限映射例，`dem3d.fig11_masks` 接收批次、相位与片身份。行为默认模型挂载后者作为 17 主位／5 子位的工况映射。默认 `dem_enable` 关闭。 [单笔映射](fig11_dem.py) · [批次掩码](dem3d.py) · [默认配置](../defaults.py)
+- `fig11_dem.map_fig11` 是受限映射例，`dem3d.fig11_masks` 接收批次、相位与片身份。Fig.11 研究夹具以 17 主位／5 子位装配后者。公共生产入口默认开启二维 DEM，使用 16 主位／4 子位以及[生产掩码参考](../dem_dither.py)。 [单笔映射](fig11_dem.py) · [批次掩码](dem3d.py) · [默认配置](../defaults.py)
 - `reserved_column.py`、`shuffle_gate.py` 和 `cross_slice_mux.py` 提供对专利 Fig.19–21 的保留列、信号门及跨片列分配的分立计算，默认转换链使用 `fig11_masks`。覆盖率只能说明本轮访问到哪些元件，噪声整形需要频谱和相关性证据。 [专利机制对照](../../../docs/mechanisms/README.md)
 - v21 的名义 3+3+3、桥接和 guard 码使用另一份整数约定。针对这份约定生成参考向量时，使用 `adi_model.dem_dither`。 [整数参考](../dem_dither.py) · [RTL](../../../rtl/dem_mask_v3.sv)
 
 <a id="dither"></a>
 ## 分路扰动
 
-Fig.19 将低段位接入前级量化器端口、上段位作用于 RDAC 命令，[P]。Python 提供两个互斥的工程选项，[E]：
+生产数字参考用 [DitherWordGenerator](dither_word.py) 在每个受理沿从片内序列取字。所选 SADC 获取低段，八槽 RDAC 得到完整预置；SAR 将 U 加到已决前缀，末级只扣同一笔的实际 Wp。[开关译码](../dem_dither.py) · [数字事务](../defaults.py)
 
-| 选项 | 实际接口 |
-| --- | --- |
-| [Fig19DitherProgram](dither.py) | 静态等效码移位。SADC 侧用 `x−L`，RDAC 侧保存 `x−T`，命令 `k=c−U`。需要对应的码本、逐事件前缀和采集绑定。整数命令越界时拒绝，并保存诊断。 |
-| [DitherPort](dither_port.py) | 显式电荷口。前端采样消费 lower 段。当前引擎将实际 RDAC 命令计算为 `c−U`，电荷和已知项按该实例单独记账。 |
-| [v21 v2.1](../../../docs/v21/SWITCHING_RULES.md) | 数字工程约定为 `k=c+U`。位权、允许范围与去扰定义均按合同。 |
-
-启用扰动前检查上下游码域及 ADC2 的工作窗口。七片专利例、Python 等效支路和八片 v21 开关合同分别说明来源。模型越界结果及适用条件见 [F03–F05 图注](../../../docs/figures/behavioral/README.md)。
-
-从仓库根目录运行控制与因果回归：
-
-~~~bash
-PYTHONPATH=src:flow python -m pytest -q flow/tests/unit/test_dem3d.py flow/tests/unit/test_follower.py flow/tests/unit/test_dither_split_causality.py flow/tests/unit/test_dither_charge_port.py
-~~~
+`dither.py` 与 `dither_port.py` 是专利研究使用的单独算子。它们的七片分数权及减码语义由 [Fig.11 研究夹具](../../../subsys/experiments/fig11.py)显式绑定。[原文对照与实测](../../../docs/audit/AUDIT_ALGO_VS_SOURCE.md)

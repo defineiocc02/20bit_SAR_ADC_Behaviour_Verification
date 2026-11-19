@@ -1,3 +1,9 @@
+# =============================================================================
+# 文件名     : test_audit_findings.py
+# 模块名     : 物理行为审查反例
+# 功能       : 验证阈值、因果片权、分路扰动、噪声预算与观测口径。
+# 设计说明   : 维持 Fig.11 的显式研究输入；生产顶层验收由逐笔 RTL 记录完成。
+# =============================================================================
 """把 F1/F2/F3/F4/F8/F9/F10 的审计意图接到当前显式接口。
 
 旧7+2/6bit、自动DR反推噪声、unary、KTC与旧Monte-Carlo绘图入口已按授权删除，
@@ -19,22 +25,29 @@ from adi_model.behavioral.ra import ResidueAmplifier
 from adi_model.behavioral.sadc import build_first_stage_quantizer
 from adi_model.behavioral.sampler import dc_input, sine_input
 from adi_model.control.dither import FIG19_STEP_Q, Fig19DitherProgram, Fig19StaticSpec
-from adi_model.defaults import DefaultParameters, default_model, simulate
+from subsys.experiments.fig11 import Fig11Parameters, fig11_model, simulate_fig11
 from adi_model.metrics.metrics import inl_from_mean_error, sine_fit_metrics, static_test, summarize
 from adi_model.provenance import GradingError, SourceGrade, annotate_config
 from adi_model.simulation.config import Config, ConfigError
 from adi_model.simulation.serialization import result_document
 
 
+# 1. 独立物理研究夹具
+# 这些反例检验 Fig.11 模拟的原始主张。显式绑定该模型，以免一次默认入口变更
+# 把同一组期望值悄悄套到 16 主/4 子的数字拓扑。
+# 报表中的测量值只属于当次种子、器件与激励。
 @pytest.fixture
 def quiet_nominal_model():
     """显式关闭噪声/制造压力的工程夹具，不作为论文测量值。"""
-    return default_model(
-        parameters=DefaultParameters(unit_mismatch_std=0, bridge_mismatch_std=0),
+    return fig11_model(
+        parameters=Fig11Parameters(unit_mismatch_std=0, bridge_mismatch_std=0),
         config_overrides={"enable_sampling_noise": False, "ra_enable_noise": False},
     )
 
 
+# 一级分辨率按未知输入能被分成多少个码箱衡量。
+# 已知的扰动值不会额外产生一次比较器判决，试探次数也不能从输出位宽倒推。
+# 独立核对阈值个数、端点与实际可达码，再单独检查二级窗口。
 class TestF1FirstStageReading:
     """F1：九位未知输入判决独立于已知dither字宽，后端必须显式绑定。"""
 
@@ -71,6 +84,9 @@ class TestF1FirstStageReading:
         assert (ADC2(altered_gain).vmin, ADC2(altered_gain).vmax) == (-0.2, 0.7)
 
 
+# 采样电荷只属于采样时的物理片。
+# 比较连续两笔的片号与采样记录，而非只检查每组恰好八片。
+# 对一个实际单元施加扰动时，再用参与和未参与的样本分离其贡献。
 class TestF2SliceCausality:
     """F2：组间不相交、跨周期归属、实际持有sample ID必须分别成立。"""
 
@@ -93,7 +109,7 @@ class TestF2SliceCausality:
         assert len(np.unique(raw.conv_slice_ids)) == 18
 
     def test_actual_selected_capacitance_sets_the_physical_gain(self):
-        run = simulate(
+        run = simulate_fig11(
             dc_input(0.31),
             128,
             config_overrides={"enable_sampling_noise": False, "ra_enable_noise": False},
@@ -109,6 +125,9 @@ class TestF2SliceCausality:
         assert raw.state.weight_calibration is None
 
 
+# 专利示例的显式 Q32 字同时定义低段和完整注入。
+# 这项检查对准原始研究路径的七分数编码，生产验收另读物理 pre 引脚。
+# 错误的两套开关配置不得静默转换成同一配置，以免一侧的注入被漏算。
 class TestF3DitherUnits:
     """F3：固定点单位、原coarse与实际mask视图不可混用；不恢复旧range/4x分支。"""
 
@@ -139,15 +158,20 @@ class TestF3DitherUnits:
             Config.from_dict({field: "range"})
 
     def test_request_without_actual_program_is_rejected_at_runtime(self, quiet_nominal_model):
-        model = default_model(config_overrides={"dither_enable": True})
+        model = fig11_model(config_overrides={"dither_enable": True})
         with pytest.raises(ConfigError, match="dither_words"):
             model.simulate(dc_input(0), 4)
         assert quiet_nominal_model.simulate(dc_input(0), 4).raw.dither_program is None
 
 
+# 已公布噪声指标只能约束总预算。
+# 器件制造偏差、采样噪声和 RA 输出噪声是不同输入，不能从一个目标数分摊成真值。
+# 改变增益后应保留显式给定的输出噪声单位。
 class TestF4NoiseBudgetIsAnAnchor:
     """F4：不允许通过目标DR反解来制造独立性能预测。"""
 
+    # 缺少实际节点噪声时应拒绝对应实验。
+    # 原论文的 SNR 不能唯一确定该节点的误差。
     def test_missing_active_noise_is_not_fitted_from_a_target(self, configuration_inputs):
         cfg = replace(configuration_inputs, ra_enable_noise=True)
         with pytest.raises(ConfigError, match="ra_out_noise_rms"):
@@ -156,7 +180,7 @@ class TestF4NoiseBudgetIsAnAnchor:
             ResidueAmplifier(cfg)
 
     def test_default_noise_and_process_pressure_are_assumptions(self):
-        model = default_model()
+        model = fig11_model()
         ann = annotate_config(model.cfg)
         assert ann["ra_out_noise_rms"].grade is SourceGrade.ASSUMED
         with pytest.raises(GradingError):
@@ -185,6 +209,10 @@ class TestF4NoiseBudgetIsAnAnchor:
             Config.from_dict({field: 94.6})
 
 
+# 2. 统计口径与证据边界
+# 直流偏差进入均方根，但不一定反映在标准差上。
+# 由离散输入电平得到的均值拟合只解释这些电平。
+# 重构器只能改变输出及数字标志，不能修改原始采样、电容或 ADC2 观测。
 class TestF8EvidenceScope:
     """F8：均值/条件标准差、浮点诊断、正式整数输出使用不同证据口径。"""
 
@@ -243,6 +271,9 @@ class TestF8EvidenceScope:
             assert np.array_equal(getattr(run.raw, name), expected)
 
 
+# 带限低频噪声依赖上下频率界及节点单位。
+# 单次短记录未覆盖慢状态时仍应保留该状态，不能把缺少一个频点解释成没有噪声。
+# 解析积分给出总体方差，特定记录的方差只有在说明观察窗后才能比较。
 class TestF9FlickerBandLimit:
     """F9：有限物理频带与观察时长分开；不恢复FFT清零/隐式漂移补丁。"""
 
@@ -292,12 +323,17 @@ class TestF9FlickerBandLimit:
             BandLimitedFlicker.create(**(values | change))
 
 
+# 统计由本次实际构造的多颗虚拟器件产生。
+# 逐芯片误差要先保存，再汇总总体均值和离散程度。
+# 同一组设定的数值样本不能支持实际工艺良率的结论。
 class TestF10MonteCarloProvenance:
     """F10：保留实际逐芯片记录；不复活已删除的历史MC绘图器或宣称PDK良率。"""
 
+    # 从逐片结果另求平均和标准差。
+    # 防止复制单颗器件的结果冒充一组制造样本。
     def test_serialized_sample_summary_uses_the_actual_virtual_chips(self):
         model_results = [
-            simulate(
+            simulate_fig11(
                 dc_input(0.31),
                 16,
                 seed=seed,
@@ -325,6 +361,8 @@ class TestF10MonteCarloProvenance:
         assert len({tuple(run.codes.code) for run in model_results}) > 1
 
 
+# 低频正弦的谱估计要记录观测时间和分析口径。
+# 有限的 SNDR 只是函数在所给记录上的结果，不能替代长时间低频稳定性实测。
 class TestExtraLowFrequencyMetrics:
     """保留低频/频带边缘不抛异常及谐波不可分辨标记的回归。"""
 
@@ -338,6 +376,8 @@ class TestExtraLowFrequencyMetrics:
         if frequency == 1e3:
             assert result["harmonics_reliable"] is False
 
+    # 记录边界只存在一侧频点。
+    # 不能让 Python 的负索引取到另一端。
     def test_band_search_clamps_both_record_edges(self):
         from adi_model.metrics.metrics import _band_max
 

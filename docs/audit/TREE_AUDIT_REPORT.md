@@ -203,7 +203,7 @@ PY
 | --- | --- | --- | --- |
 | 25 ns 的单时钟事件路径不能承接论文的约 7 ns 前级转换。“单时钟 40 MS/s 符合”的审计结论过强。合同列出采样使能、粗精参考和 RA/AZ 相位，生产顶层未提供完整同名接口或已验证的适配宏。 | 高，吞吐与模拟集成 | E2、E6。`rg -n 'exp_evt_q|posedge clk' rtl/v21/sar_evt_v21.sv` | 现阶段保留既有端口。[需仓主决策] 宏时序确定后冻结逐位握手与非交叠条件，再验证连续转换。 |
 | 重构曾将上一笔的负号记为本笔溢出，导致合法中点出零。工作树已让同一笔的 X、错误和标签一起寄存。本地 Verilator 确认两笔分别输出 `0x7FFFF`、`0x80000`。 | 高，已修并完成模块回归 | E7。[逐笔对照与复现](todo/README.md#recon-s3) | 保留有符号事务、空拍和截断边界回归。 |
-| 默认 Python 与集成 RTL 共用 13 位窗口，但 SADC 码域、RDAC 几何、bridge、扰动方向和数字舍入口径不同。CLI 仍报告 `INFERRED_STATIC_DEFAULT_V1`，且 `base_decoder` 写旧的除余映射。 | 高，模型归属 | E4、E6。`rg -n 'main=k//Nsub|main_code = coarse >> 4|mask_binding=fig11_masks|INFERRED_STATIC_DEFAULT_V1' src/adi_model/defaults.py` | 根入口用一个同字例子列出两条命令与适用输出。修正导出的码本元数据。跨模型比较须说明两端的电荷、极性、guard 和舍入转换。 |
+| 原审计发现默认 Python 与生产 RTL 只有 ADC2 口径相同。现已修复默认入口，Fig.11 移到研究目录。 | 已复核 | 公开命令和生产顶层在五组 1,792 笔记录上对拍。[现行对照与命令](AUDIT_ALGO_VS_SOURCE.md) | 后续改片选、预置或重构时复核同笔开关、原码、输出和标志。 |
 | 将粗码修正表称为论文“片外求系数”步骤的实现，容易让人误以为 F04 已验证片上 360 权重。以 DR、NSD 反解唯一电容失配也缺乏辨识依据。 | 高，性能归因 | E2、E4、E5。`rg -n 'coefficients derived externally|fit_code_correction' tools/run_p4_ablation.py` | 图例写清“逐粗码输出修正”。物理权重另列训练、秩、独立留出及整数出码。对物理 σ 保留假设或 PDK 统计身份。 |
 | 混合码密度改善与逐状态单调是两项验收。训练秩小于 360，若干条件传递跨粗码时仍倒退。 | 高，校准可实现性 | E5。发布摘要中的 `training.rank`、`coarse_boundary_checks`、`missing_interior` | [需仓主决策] 确定量产训练时可访问的 raw、物理 ID、pre/post、独立精密输入和测试开关。设计额外激励或对未辨识方向给出有物理依据的约束，并复查最坏状态。 |
 | 旧算法审计把 8/8/2 写作未披露，又将 13 位输入折算步长写成 0.60 LSB20。状态表、合同、实码和原文均给出不同结论。 | 高，来源判定 | E2、E6、E8。`rg -n '8/8/2|0\.60|14 bit' docs/audit/AUDIT_ALGO_VS_SOURCE.md` | 给快照结论加醒目勘误并连到对应原图。保留正文与讲稿的单位、频率、带宽、功耗边界。 |
@@ -244,7 +244,7 @@ PY
 | 从图回溯到输入 | 旧图册实测有 16 对图，32 个资产哈希、7 个登记源文件哈希均与当前工作树匹配。清单的 Git **base** 为 `2224d30`，在该提交直接取这七个源文件时只有两项匹配。出图还导入未列入这七项的 `dem_dither.py/sched18_rtl.py/recon_oracle.py`。复现应绑定实际输入与依赖，不能只 checkout base。 |
 | 从 GitHub 首页找当前工程 | 实取默认分支 `main` 的根有 10 个目录、18 个文件，首页仍介绍旧 Fig.19 闭环。PR #9 指向 `main`，核查时为 open、未合并。分支发布属于仓主决策。 |
 
-**相近功能的脚本。** `dem_dither.py` 的 `post_mask/bridge_swap` 和 `tools/contract_v2.py` 的 `base_post/apply_bridge` 分别服务共享叶子参考与独立合同枚举。`algo_chain.py` 的浮点输出包含半码偏移及 Python `round`；`recon_oracle.py` 按 v21 定点规则舍入。本实验复用了前者的器件制造和电荷函数，最终出码逐笔对后者核查，避免把同名“20 位”误当成同一码箱。E4–E6。
+**相近功能的脚本。** 开关叶子参考与独立合同枚举各自保留。原 `algo_chain.py` 的浮点出码和 11 事件 guard 已退役；它的器件制造和电荷求和仍服务于冻结工况的静态线性度复核。当前数字出码与真实 RTL 的关系见[公共入口复核](AUDIT_ALGO_VS_SOURCE.md)。
 
 **版本控制卫生。** 基线未跟踪 `*.log/*.vcd/*.fsdb/*.pyc` 或 `__pycache__` 下的文件，探针日志、波形和缓存命中忽略规则。按十进制 1 MB 门槛，共 7 个大文件，包括 5 份选定资料 PDF、1 份历史报告 PDF 和 1 份历史 HTML。对已跟踪文本按 E9 的规则查到 42 个带本机用户目录或绝对主目录前缀的文件；该数是文件数，含示例、报告和工具默认值。此处不重复其中的账号。E1、E9。
 
@@ -349,7 +349,8 @@ rg -n 'def fit_code_correction|error = estimated - known|table = total / counts|
 rg -n 'wt_main\\[|wt_sub\\[|f_Wm|f_Wp' rtl/v21/wsum_v21.sv
 rg -n 'def (base_post|apply_bridge|post_mask|bridge_swap|rounded)|round\(\(xh' tools/{contract_v2,algo_chain,recon_oracle}.py src/adi_model/dem_dither.py
 rg -n 'function.*f_lut|case \(i\)' rtl/recip_q60.sv
-rg -n 'main_code = coarse >> 4|base_decoder|main=k//Nsub|mask_binding=fig11_masks|INFERRED_STATIC_DEFAULT_V1' src/adi_model/defaults.py
+rg -n 'main_code = coarse >> 4|base_decoder|mask_binding=fig11_masks' subsys/experiments/fig11.py
+rg -n 'sar_conversion|weight_sums|reconstruct|DitherWordGenerator' src/adi_model/defaults.py
 rg -n 'k = c - self.upper_code|rdac_codes =|k_wide =' src/adi_model/control/dither.py src/adi_model/simulation/pipeline_engine.py rtl/v21/sar_evt_v21.sv
 jq '.figures[] | select(.figure|startswith("F03")) | .configs[] | [.label,.fit_residual_peak_lsb20,.flag_counts.adc2_over,.sample_count,.sigma_e_lsb20,.output_domain]' docs/figures/behavioral/figures.json
 jq '.figures[] | select(.figure|startswith("F04")) | .configs[] | [.sndr_db,.sfdr_db,.output_domain]' docs/figures/behavioral/figures.json

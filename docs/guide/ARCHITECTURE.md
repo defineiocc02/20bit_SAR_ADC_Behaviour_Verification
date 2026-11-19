@@ -1,61 +1,13 @@
-# Python 模型架构与数据流
+# Python 数字模型的数据流
 
-默认模型采用 18 片池。每个稳态周期由 8 片采集、8 片转换、2 片空闲。SADC 给出粗判决，RDAC 更新开关形成余差。共享 RA 的名义增益为 32，默认 ADC2 采用 13 位、0.75 V 窗口 `[-0.1875, +0.5625) V`，重构输出 20 位 offset-binary 码。[默认参数](../../src/adi_model/defaults.py) · [工作机理与验证图](../figures/behavioral/README.md)
+公开 API 和 CLI 调用同一份生产事务模型。每笔样本保留实际片号、写入命令、采样和转换开关、权重、ADC2 原码与输出。对应的生产顶层和定点格式见[工程合同](../CONTRACT_CURRENT.md)与[RTL 导航](../../rtl/README.md)。
 
-本页说明 `src/adi_model` 的行为模型。当前集成 ADC 的顶层、开关合同和事务顺序见 [v21 工程合同](../CONTRACT_CURRENT.md)与 [RTL 导航](../../rtl/README.md)。
-
-## 1. 分层
-
-| 层 | 职责 |
+| 环节 | 代码采用的规则 |
 | --- | --- |
-| [contracts](../../src/adi_model/contracts/README.md) | profile、单位、观测结构、定点格式与数值规则 |
-| [topology](../../src/adi_model/topology/README.md) | 电容网络、名义码本与电荷算子 |
-| [control](../../src/adi_model/control/README.md) | 片选、掩码、扰动和跟随命令 |
-| [behavioral](../../src/adi_model/behavioral/README.md) | 采样、参考、普通 AZ、RA、ADC2 与误差模型 |
-| [simulation](../../src/adi_model/simulation/README.md) | 装配模型、推进采集与转换、返回逐笔记录 |
-| [calibration](../../src/adi_model/calibration/README.md) 与 [metrics](../../src/adi_model/metrics/README.md) | 从观测拟合或应用冻结系数，计算静态与频谱指标 |
+| 受理和片选 | 每次调用从复位和已提交的完整加载表开始。每次受理同时冻结旧 ACQ 片号并推进片池，qid 依次为 0、1。测试强制字也消费一次片内字序。[片池](../../src/adi_model/sched18_rtl.py) · [扰动字源](../../src/adi_model/control/dither_word.py) |
+| SADC 与 RDAC | 理想量化器接输入和低段 L，用 Flash 及逐位门限产生已决提交。RDAC 采样时接完整 T，转换时用 c+U 经 DEM 和 bridge 生成 post。每个事件单独保留写门，拒绝 512 时无写入。[事务算术](../../src/adi_model/digital_conversion.py) · [开关参考](../../src/adi_model/dem_dither.py) |
+| 宏的输入与返回 | 使用实际器件 Ceff/Cf、Vin、采样开关和转换开关正向生成余差。ADC2 取半开区间的箱号，越窗回零并另报范围标志。默认以名义权重、零失配、零噪声作为可复核工况。 |
+| 数字校正与出码 | 片内加载表按同一组物理片号寻址，计算 G、Wm、Wp。使用 Q24 码箱中心和整数倒数，末级按有符号最近、恰半离零取 20 位码。数字表与实际器件表可以独立提供。[默认模型](../../src/adi_model/defaults.py) |
+| 逐拍验证 | 稳态吞吐、反压、双槽同时交接、寄存延迟和排空由真实 RTL 在引脚上检查；事务层比较的是同一笔的功能和值。[逐笔对拍入口](QUICKSTART.md) · [接口回归](../../flow/sim/README.md) |
 
-默认 CLI 装配 `DefaultModel`，由 `simulate` 进入行为流水。组件测试的采集和掩码回调由各次测试的输入包提供。[快速上手](QUICKSTART.md) · [验证流程](../../flow/verification/README.md)
-
-## 2. 一笔样本的数据流
-
-~~~text
-输入电压和采样条件
-    ↓
-采样记录 → SADC 粗码与已决事件
-    ↓
-转换片组 + 实际 RDAC 命令 → 主／子底板掩码
-    ↓
-电荷及余差 → RA 输出 → ADC2 原码
-    ↓
-冻结数字观测 + 权重 → 名义定点重构 → 20 位码与 flags
-~~~
-
-模型从采样计划取得该笔的物理 ID，再按掩码与电容计算电荷。失配作用在物理池和余差路径。重构只使用数字观测及相应系数。默认解码把 RA 物理增益与权重和口径配对后对细码做换算。[流水实现](../../src/adi_model/simulation/pipeline_engine.py) · [定点约定](../../src/adi_model/contracts/README.md)
-
-默认运行关闭源扰动与单元 DEM。调用者可提供六位字，在 Python 中研究 Fig.19 的分路扰动。这个等效模型使用 `k=c-U` 并检查实际命令域。v21 的开关合同使用 `k=c+U`，两条绑定的命令域与行为模型的静态对照见 F05、F03。[行为控制模型](../../src/adi_model/control/README.md) · [对照图](../figures/behavioral/README.md)
-
-## 3. 状态归属与时序
-
-| 状态 | 持有者与生命周期 |
-| --- | --- |
-| `Config` / `DefaultParameters` | 由调用方定义，运行期间按选定配置使用 |
-| `SplitChip` | 制造电容、寄生与反馈电容属于模型实例，由制造 seed 派生 |
-| 片选与噪声记录 | `run_id` 选择同一制造实例的独立计划和噪声序列 |
-| 实际采集与转换片组 | 计划按样本 ID 绑定。采集切片的持有状态交接到后续转换 |
-| `DigitalState` 与 `DigitalObservation` | 增益与冻结系数有各自的输入归属。原码、物理 ID、掩码与异常标志随样本记录 |
-| `SimResult` | 返回逐笔结果、配置与诊断信息。异常笔保留在记录中供定位 |
-
-事务图中的 Flash／SAR 前缀、残差读取和标签 handoff 说明事件及跨笔关系。Python 模型中的计划与动态状态由具体运行配置启用，不能据名义时间轴推断当前 RTL 的同沿优先级或物理时限。[交织和捕获机理](../figures/behavioral/README.md) · [RTL 验收入口](../../rtl/README.md)
-
-## 4. 比较与证据边界
-
-| 对象 | 可核对的量 |
-| --- | --- |
-| Python 行为模型 | 选定配置下的电荷、余差、代码趋势、越窗或饱和。动态波形与名义精度解码分别查诊断可用条件。 |
-| [整数参考](../../flow/verification/reference/) | 指定输入和数值格式下的宽度、舍入、限幅及标志 |
-| [v21 测试台](../../tb/v21/) | 按实际接口、样本标识及周期核对事件、余差返回和定点重构 |
-| [CAAZ 扩展](../../subsys/extensions/caaz/README.md) | 独立的偶奇配对假设与专门用例 |
-| 电路与后端 | 参考建立、采样网络、RA/ADC2 的实物非理想和工艺余量以匹配设计的证据说明为准 |
-
-[项目状态](../STATUS.md) 维护已知覆盖、证据边界与缺口。
+研究工具仍可使用 [Fig.11 电容研究模型](../../subsys/experiments/fig11.py)、[显式模拟装配](../../src/adi_model/simulation/README.md)和[校准研究组件](../../src/adi_model/calibration/README.md)复算原有实验。冻结的研究图保留其模拟条件。[原文与工程差异](../audit/AUDIT_ALGO_VS_SOURCE.md)

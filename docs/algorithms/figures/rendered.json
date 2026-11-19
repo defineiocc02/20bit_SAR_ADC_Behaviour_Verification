@@ -212,9 +212,9 @@
     }
   },
   "atlas_inputs": {
-    "README.md": "48ad9db80a438f1bc6c01afb43aad0c329e4eef79553f0102cc101f1329ae59c",
-    "digital.md": "79f580cdb42ad7ec317ac50b0be527b18d1f18f35fb3c4e8782174666aaece0f",
-    "figures/digital-evidence.json": "764719f20a901b029ded52f36ddf8df339ee34dd7f81dc1d697b9945ea4ccf01"
+    "README.md": "2d002005b5bc916e7c13c4e864e87dfb72eb89b1998eb8fcea3dd0e7727c5e39",
+    "digital.md": "05f5adb19c90478cdeab9fe2cf3491e96411a068501d508d0a2f904bc89c4be8",
+    "figures/digital-evidence.json": "9b5c3853d72153b395f9b349df025691b0e6a68d1e068ec31a3ec2fe6d0e449b"
   },
-  "atlas_pdf_sha256": "d5fd6bbfb19dc1b76acc8a43b171ae5dbba9a409ab01e6ec11b66cf74f6c25c8"
+  "atlas_pdf_sha256": "16cda02c490c23f65fddbe1ab38b600664609dfe3cd494002dc5e6f383640915"
 }

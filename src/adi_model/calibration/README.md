@@ -17,7 +17,7 @@
 
 ## 与 RTL 的接口
 
-Python 的归一化 Q32 输出和 v21 的 Q24 整数反解各按自己的合同验收。v21 在主机侧准备系数，配置口写入并提交后供事务读取。旧 `recon_core` 验证夹具的结果按原设计身份留档。 [v21 合同](../../../docs/CONTRACT_CURRENT.md) · [配置接口](../../../docs/v21/CONFIG_CONTRACT.md) · [分层验证](../../../flow/verification/README.md)
+Fig.11 研究夹具使用归一化 Q32 格式；默认 Python 与生产 v21 共用 Q24 码箱和 Q30 权重。v21 在主机侧准备系数，配置口写入并提交后供事务读取。旧 `recon_core` 验证夹具的结果按原设计身份留档。 [v21 合同](../../../docs/CONTRACT_CURRENT.md) · [配置接口](../../../docs/v21/CONFIG_CONTRACT.md) · [分层验证](../../../flow/verification/README.md)
 
 在仓库根目录运行这些 Python 单元测试。
 

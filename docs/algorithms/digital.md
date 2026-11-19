@@ -9,6 +9,8 @@
 
 **效果与验证。** 重构模块已逐级核对 21 笔事务的结果、标签和延迟。生产顶层在理想宏握手和快时钟下已连续交付 192 笔，各相邻输出间隔为 25 ns。
 
+生产事务的 Python 入口和 CLI 已与顶层对齐。默认单位、正向扰动与 guard 的选择可沿同一组输入核对。[逐笔数据](../../tools/check_default_rtl.py) · [论文与专利差异](../audit/AUDIT_ALGO_VS_SOURCE.md)
+
 **入口与出口。** 在 `prepare_valid && prepare_ready` 的沿冻结 tag、qid、片号、相位和实际采样预置。下一次合法提升使这笔进入转换。ADC2 返回后随同笔冻结的求和结果进入 D5，最终输出 `out_valid/out_tag/out_code/out_err`。采样开关与最后实际写入的转换开关分别送到 u_wsum。u_adc2 登记同一笔的权重和 tag，待细码返回后送给 u_recon。 [顶层接线](../../rtl/v21/adc_digital_ip_v21.sv) · [端到端测试](../../tb/v21/tb_i4b_e2e.sv)
 
 ![从准备、SADC 判决和 RDAC 开关到 ADC2 返回与 20 位出码](figures/digital-transaction-flow.svg "SVG 源图")

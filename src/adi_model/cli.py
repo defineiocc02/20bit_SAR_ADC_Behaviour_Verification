@@ -1,9 +1,10 @@
-"""配置校验与可运行工程默认入口。
-
-validate-config只检查用户提供的低层Config，不运行模型。simulate直接调用真实
-默认模型，允许可审阅的参数覆盖，返回未校准名义20bit码和完整标志；推断表
-不赋予器件复现或20bit ENOB结论。文件输出排他创建，不覆盖已有结果。
-"""
+# =============================================================================
+# 文件名     : cli.py
+# 模块名     : 配置检查与数字 IP 事务模拟
+# 功能       : 模块入口与安装的 adi-simulate 命令调用同一生产参考。
+# 设计说明   : 先校验输入，再独占创建输出目录，最后写完成元数据。
+# =============================================================================
+"""公开数字 IP 命令行。配置验证与产生样本是独立操作。"""
 
 from __future__ import annotations
 
@@ -16,12 +17,11 @@ import sys
 import tempfile
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, NoReturn, TypedDict
+from typing import Any, NoReturn
 
 import numpy as np
 
-from adi_model.behavioral.sampler import sine_input
-from adi_model.contracts.fixed_point import FixedPointFormat
+from adi_model.behavioral.sampler import dc_input, sine_input
 from adi_model.defaults import DEFAULT_SEED, DefaultParameters, DefaultRun, default_model
 from adi_model.inventory_gate import _write_new_summary
 from adi_model.simulation.config import Config, ConfigError
@@ -29,6 +29,8 @@ from adi_model.simulation.config import Config, ConfigError
 __all__ = ["load_config", "main_validate_config", "main_simulate"]
 
 
+# 1. 解析与输入身份
+# 错误也输出结构化记录，便于调用方区分拒绝配置、运行成功和写盘失败。
 class _ConfigParser(argparse.ArgumentParser):
     """CLI错误以JSON输出，保持argparse的明确参数规则。"""
 
@@ -59,6 +61,8 @@ class _SimulationParser(_ConfigParser):
     error_status = "SIMULATION_REJECTED"
 
 
+# JSON 允许解析器覆盖重复键；这样一个表中的两种几何可能悄悄只剩后一种。
+# 读配置时保留键的出现次序，在产生任何输出前拒绝这种歧义。
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     values: dict[str, Any] = {}
     for name, value in pairs:
@@ -68,6 +72,8 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return values
 
 
+# 指数溢出可使一个形式合法的 JSON 数字成为无穷。
+# 物理电压、噪声和采样率均须为有限数值。
 def _finite_float(value: str) -> float:
     number = float(value)
     if not math.isfinite(number):
@@ -79,11 +85,16 @@ def _reject_constant(value: str) -> NoReturn:
     raise ValueError(f"non-finite JSON constant: {value}")
 
 
+# 用原字节计算 SHA-256，实际解释的值保留在输入清单。
+# 因此即使两个文件有同名字段，也能识别本次读入的具体输入。
+# 长度限制适用于整个文件，避免在确认文件可用前分配大缓冲。
 def _read_json_object(path: Path) -> tuple[dict[str, Any], str]:
     if not path.is_file():
         raise ValueError(f"configuration is not a regular file: {path}")
     if path.stat().st_size > 300 * 1024**2:
         raise ValueError("configuration exceeds the 300 MiB file limit")
+    # 先读同一份原字节，再解析与求摘要。
+    # 各步骤分别重新开文件会在并发修改时得到互不对应的值。
     data = path.read_bytes()
     values = json.loads(
         data.decode("utf-8"),
@@ -96,6 +107,8 @@ def _read_json_object(path: Path) -> tuple[dict[str, Any], str]:
     return values, hashlib.sha256(data).hexdigest()
 
 
+# 低层的显式组件 Config 与生产命令的参数文件有不同用途。
+# 单独检查配置时不隐式生成测试模型，也不声称测试已经通过。
 def load_config(path: Path) -> Config:
     """读取并检查指定JSON对象；不回填物理输入或执行模拟。"""
     values, _digest = _read_json_object(path)
@@ -104,6 +117,8 @@ def load_config(path: Path) -> Config:
     return config
 
 
+# 成功回执只证明声明的字段可组成合法配置。
+# 需要出码或核对开关时必须真的运行 simulate。
 def main_validate_config(argv: Sequence[str] | None = None) -> int:
     """检查必填配置，错误退出2；成功仅表示配置输入检查通过。"""
     parser = _ConfigParser(
@@ -143,16 +158,17 @@ def main_validate_config(argv: Sequence[str] | None = None) -> int:
     return 0
 
 
+# 2. 数字合同与外部宏激励
+# 参数文件和配置覆盖各自登记角色与原始摘要。二者最终仍交给同一个
+# 生产构造器检查，以免一个入口宽容、一条路径却使用截断值。
+# 可选的制造参数只进入外部宏，不改变数字权重种子或启动状态。
 def _simulation_inputs(args) -> tuple[DefaultParameters | None, dict | None, list[dict]]:
     parameters = None
     overrides = None
     files = []
     if args.parameters is not None:
         values, digest = _read_json_object(args.parameters)
-        fields = dict(values)
-        if isinstance(fields.get("format"), dict):
-            fields["format"] = FixedPointFormat(**fields["format"])
-        parameters = DefaultParameters(**fields)
+        parameters = DefaultParameters(**values)
         files.append(
             {
                 "role": "parameters",
@@ -163,11 +179,8 @@ def _simulation_inputs(args) -> tuple[DefaultParameters | None, dict | None, lis
         )
     if args.config_overrides is not None:
         values, digest = _read_json_object(args.config_overrides)
-        # Convert only supplied nested Config fields; do not fill a missing field
-        # from this incomplete Config object. The centralized model supplies its
-        # visible baseline and consumes these exact overrides, including None.
-        supplied = Config.from_dict(values)
-        overrides = {name: getattr(supplied, name) for name in values}
+        # 生产参数由同一个库构造器验证。不能让研究用 Config 悄悄转换或补齐字段。
+        overrides = values
         files.append(
             {
                 "role": "config_overrides",
@@ -179,6 +192,8 @@ def _simulation_inputs(args) -> tuple[DefaultParameters | None, dict | None, lis
     return parameters, overrides, files
 
 
+# 输出路径可能是一个指向缺失目标的符号链接。
+# 这种名称已被占用，必须在解析为实际目录前检查。
 def _output_path(path: Path | None) -> Path | None:
     if path is None:
         return None
@@ -189,46 +204,28 @@ def _output_path(path: Path | None) -> Path | None:
     return output
 
 
-class _CodeArchiveArrays(TypedDict):
-    """固定 NPZ 成员名，供 NumPy 的关键字参数检查使用。"""
-
-    code: np.ndarray
-    sample_id: np.ndarray
-    clipped_low: np.ndarray
-    clipped_high: np.ndarray
-    analog_overflow: np.ndarray
-    sadc_over: np.ndarray
-    ra_sat: np.ndarray
-    adc2_over: np.ndarray
-    rdac_over: np.ndarray
-    input_clean_v: np.ndarray
-    input_v: np.ndarray
-
-
+# 3. 逐笔数据与失败恢复
+# 同一标签的开关、码和标志不可拆开发布。先在同目录完成临时文件，
+# 再创建最终名称；若命名冲突，既有结果不被覆盖。
+# 二位数组的第二维保存八个槽或八次事件，第一维仍须与样本数一致。
 def _write_codes(path: Path, result: DefaultRun) -> None:
-    arrays: _CodeArchiveArrays = {
-        "code": result.codes.code,
-        "sample_id": result.raw.sample_id,
-        "clipped_low": result.codes.clipped_low,
-        "clipped_high": result.codes.clipped_high,
-        "analog_overflow": result.codes.analog_overflow,
-        "sadc_over": result.raw.sadc_over,
-        "ra_sat": result.raw.ra_sat,
-        "adc2_over": result.raw.adc2_over,
-        "rdac_over": result.raw.rdac_over,
-        "input_clean_v": result.raw.sample.input_clean_v,
-        "input_v": result.raw.sample.input_v,
-    }
+    """按样本号原子保存标志、码和开关；八槽位图与事件记录在第二维。"""
+    arrays = result.arrays()
     count = len(result.codes.code)
-    if any(np.asarray(value).shape != (count,) for value in arrays.values()):
-        raise ValueError("result records/flags have inconsistent one-dimensional shapes")
+    if any(value.ndim not in (1, 2) or len(value) != count for value in arrays.values()):
+        raise ValueError("result record count differs between code and physical ports")
     temporary: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(
             mode="w+b", dir=path.parent, prefix=".codes-", delete=False
         ) as handle:
             temporary = Path(handle.name)
-            np.savez(handle, **arrays)
+            # 不传 allow_pickle 关键字：旧版 NumPy 会把它误存为一个数组。
+            # 成员名由 DefaultRun 定义，所有成员均须是数值数组，兼容两种 savez 签名。
+            if "allow_pickle" in arrays or any(a.dtype.kind not in "biuf" for a in arrays.values()):
+                raise ValueError("unsupported archive member or dtype")
+            archive: dict[str, Any] = arrays
+            np.savez(handle, **archive)
             handle.flush()
             os.fsync(handle.fileno())
         os.link(temporary, path)
@@ -237,6 +234,8 @@ def _write_codes(path: Path, result: DefaultRun) -> None:
             temporary.unlink(missing_ok=True)
 
 
+# 批次元数据是完成标志，因此放在数值文件和假设表之后。
+# 使用独占目录可避免并发实验把一个运行的假设配给另一个输出。
 def _write_run(output: Path, result: DefaultRun, metadata: dict) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     output.mkdir(exist_ok=False)  # Atomic reservation; races never overwrite a user path.
@@ -246,12 +245,18 @@ def _write_run(output: Path, result: DefaultRun, metadata: dict) -> None:
     _write_new_summary(output / "metadata.json", metadata)
 
 
+# 4. 公共入口
+# 正弦使用用户指定的实际频率，直流按固定差分电压采样。
+# 通过测试针脚强制扰动字时仍逐笔消耗片内状态，和生产默认共用数据路径。
+# 输出摘要给出 raw_invalid、retired 和 digital_errors，可定位输入或出码阶段。
+# 当模型已运行但落盘失败时，回执不能写成输入非法。
+# 参数来源用显式命令选项记录；以等号写参数和分开写参数应有相同身份。
 def main_simulate(argv: Sequence[str] | None = None) -> int:
     """运行集中工程默认或显式覆盖，打印摘要JSON并可保存全部码/标志。"""
     arguments = list(sys.argv[1:] if argv is None else argv)
     parser = _SimulationParser(
         prog="adi-simulate",
-        description="实际运行推断默认模型；输出为未校准名义20bit码，非器件复现。",
+        description="运行 adc_digital_ip_v21 的事务级数字参考，使用显式的外部宏假设。",
         allow_abbrev=False,
     )
     parser.add_argument(
@@ -260,19 +265,31 @@ def main_simulate(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--frequency", type=float, default=1e6, help="实际输入频率[Hz]；不调整为相干频率"
     )
+    parser.add_argument("--dc", type=float, metavar="V", help="固定差分电压，替代正弦激励")
+    parser.add_argument(
+        "--dither-word",
+        type=int,
+        metavar="0..63",
+        help="定向测试时逐笔强制此字；默认从 RTL 复位种子自动生字",
+    )
     parser.add_argument("--samples", type=int, default=4096, help="保留的raw记录数，正uint32整数")
-    parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="独立数值流的可重放根种子")
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=DEFAULT_SEED,
+        help="制造和宏噪声激励的根种子；片内字源遵循固定复位种子",
+    )
     parser.add_argument(
         "--parameters",
         type=Path,
         metavar="FILE.json",
-        help="可选DefaultParameters字段覆盖；format需完整格式对象",
+        help="可选生产模型参数 JSON，包括器件与独立加载的 18×20 权重表",
     )
     parser.add_argument(
         "--config-overrides",
         type=Path,
         metavar="FILE.json",
-        help="可选Config字段覆盖；未知/缺失激活输入拒绝",
+        help="覆盖采样率、外部宏或控制配置；非法位宽/阵列拒绝",
     )
     parser.add_argument(
         "--output",
@@ -281,6 +298,7 @@ def main_simulate(argv: Sequence[str] | None = None) -> int:
         help="新目录保存codes.npz/metadata.json/assumptions.json",
     )
     args = parser.parse_args(arguments)
+    explicit_flags = {item.split("=", 1)[0] for item in arguments if item.startswith("--")}
     try:
         if not math.isfinite(args.amplitude) or not math.isfinite(args.frequency):
             raise ValueError("amplitude and frequency must be finite")
@@ -291,7 +309,24 @@ def main_simulate(argv: Sequence[str] | None = None) -> int:
         output = _output_path(args.output)
         parameters, overrides, input_files = _simulation_inputs(args)
         model = default_model(seed=args.seed, parameters=parameters, config_overrides=overrides)
-        result = model.simulate(sine_input(args.amplitude, args.frequency), args.samples)
+        if args.dc is not None and (
+            not math.isfinite(args.dc) or explicit_flags & {"--amplitude", "--frequency"}
+        ):
+            raise ValueError(
+                "--dc requires a finite voltage and cannot be combined with sine options"
+            )
+        # 直流和正弦有不同的激励参数；不能把给定的固定输入悄悄替换成默认正弦。
+        signal = (
+            dc_input(args.dc) if args.dc is not None else sine_input(args.amplitude, args.frequency)
+        )
+        # 测试针脚仅替换本次受理的六位字。
+        # 省略该选项时保留 RTL 复位字源，而非向模型传入一列零。
+        forced = None
+        if args.dither_word is not None:
+            if not 0 <= args.dither_word <= 63:
+                raise ValueError("--dither-word must be an integer in [0, 63]")
+            forced = np.full(args.samples, args.dither_word, dtype=np.uint8)
+        result = model.simulate(signal, args.samples, dither_words=forced)
     except (OSError, UnicodeError, ValueError, TypeError, ConfigError) as exc:
         print(
             json.dumps(
@@ -307,18 +342,25 @@ def main_simulate(argv: Sequence[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 2
-    explicit_flags = {item.split("=", 1)[0] for item in arguments if item.startswith("--")}
     stimulus = {}
-    for name, value, unit in (
-        ("amplitude", args.amplitude, "V peak differential"),
-        ("frequency", args.frequency, "Hz"),
-        ("samples", args.samples, "raw records"),
+    waveform = (
+        [("dc", args.dc, "V differential")]
+        if args.dc is not None
+        else [
+            ("amplitude", args.amplitude, "V peak differential"),
+            ("frequency", args.frequency, "Hz"),
+        ]
+    )
+    for name, value, unit in waveform + [
+        ("samples", args.samples, "records"),
         ("seed", args.seed, "integer"),
-    ):
+    ]:
         stimulus[name] = {
             "value": value,
             "unit": unit,
-            "grade": "TEST_STIMULUS" if name in ("amplitude", "frequency") else "NUMERICAL_CONTROL",
+            "grade": "TEST_STIMULUS"
+            if name in ("dc", "amplitude", "frequency")
+            else "NUMERICAL_CONTROL",
             "origin": "USER_OVERRIDE" if "--" + name in explicit_flags else "CLI_DEMO_DEFAULT",
         }
     metadata = dict(result.metadata)
@@ -326,14 +368,14 @@ def main_simulate(argv: Sequence[str] | None = None) -> int:
         {
             "status": "SIMULATION_COMPLETE",
             "model_run": True,
-            "result_role": "UNCALIBRATED_NOMINAL_20BIT",
+            "forced_dither_word": args.dither_word,
             "source_conformance": "NOT_ASSESSED",
             "records_filtered": 0,
             "stimulus": stimulus,
             "frequency_adjusted": False,
-            "cli_input_mode": "INFERRED_DEFAULTS"
+            "cli_input_mode": "PRODUCTION_DIGITAL_DEFAULTS"
             if not input_files
-            else "EXPLICIT_OVERRIDES_ON_INFERRED_DEFAULTS",
+            else "EXPLICIT_PRODUCTION_INPUTS",
             "cli_input_files": input_files,
         }
     )
@@ -366,7 +408,10 @@ def main_simulate(argv: Sequence[str] | None = None) -> int:
         "digital_coefficients",
         "precision_claim",
         "profile",
-        "amendment_sha256",
+        "digital_contract",
+        "forced_dither_word",
+        "retired",
+        "digital_errors",
         "output_bits",
         "n_samples",
         "seed",
@@ -382,6 +427,8 @@ def main_simulate(argv: Sequence[str] | None = None) -> int:
         "unmodeled",
         "inferences",
     )
+    # 标准输出只给出摘要。
+    # 数值与异常标志仍逐行保存在结果文件中。
     summary = {name: metadata[name] for name in summary_keys}
     summary["n_codes"] = len(result.codes.code)
     summary["input_files"] = [

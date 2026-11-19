@@ -1,26 +1,29 @@
 # Python 快速上手
 
-在仓库根目录运行以下命令。`tools/pyenv.sh` 选择 Python 3.10 或以上的解释器，配置模型导入路径。已有环境可先执行 `bash tools/pyenv.sh --check`。[主入口](../../README.md)
+`adi-simulate`、`python -m adi_model simulate`、`adi_model.simulate` 与 `default_model().simulate` 都调用生产数字 IP 的事务参考。默认输入是 40 MS/s 采样的 1 MHz 正弦，实际采样时刻为 n/fs。输入时钟和整核逐拍时序分别验收。[默认实现](../../src/adi_model/defaults.py) · [数字合同](../CONTRACT_CURRENT.md)
 
-## 跑 64 笔并检查输出
-
-~~~bash
-run_dir="$(mktemp -d /tmp/sar-adc-demo.XXXXXX)"
-bash tools/pyenv.sh --run -m adi_model simulate \
-  --samples 64 --output "$run_dir/sim" > "$run_dir/stdout.json"
-ls -1 "$run_dir/sim"
-~~~
-
-输出包含 `codes.npz`、`metadata.json`、`assumptions.json`。先查 `metadata.json` 的结果身份、输入域和样本数，再看码、模拟量及标志。`source_conformance=NOT_ASSESSED` 是单次 CLI 运行的证据边界，代表该运行不承担与原文的逐项核对。位宽为 20 位时，实际精度仍要用针对性的统计检验。
-
-## 查看历史工具的一笔信号
+## 检查一笔和一串样本
 
 ~~~bash
-trace_dir="$(mktemp -d /tmp/sar-adc-trace.XXXXXX)"
-bash tools/pyenv.sh --run tools/trace_one_sample.py --out "$trace_dir"
+work="$(mktemp -d)"
+bash tools/pyenv.sh --run -m adi_model simulate --dc -0.6522216796875 --dither-word 53 --samples 1 --output "$work/one"
+bash tools/pyenv.sh --run -m adi_model simulate --dc -0.6522216796875 --samples 1024 --output "$work/stream"
 ~~~
 
-输出 `one_sample_trace.json`。其中无扰动部分记录模型的一笔判决、余差、ADC2 和重构。扰动部分在同一输入上派生等效支路示例，缺完整模拟尾段。v21 的模式、合法码域及误差标志另见[工程合同](../CONTRACT_CURRENT.md)。
+`one/codes.npz` 的 word、coarse、k、adc2_code、code 依次为 **53、202、206、6016、410304**。stream 的前四个字为 **45、7、17、40**，所有字的最终输出相同。每个样本同时保存 8 个物理片号、8 个采样和转换开关字、最多 8 个比较事件和各自的有效写命令。`event_count` 给出真实比较次数；该范围内的 −1 表示本次不写，范围外的 −1 是填充。
+
+`out_valid` 表示该次受理在事务模型中有有效退休，非法 RDAC 命令保留原行、关闭出码。`adc2_over` 单列宏越窗标志，按宏合同返回 raw=0。`out_err` 记录重构的数字错误。`clipped_low/high` 分别记录最终码两端的饱和。`metadata.json` 登记运行身份、位宽、表摘要与各项计数，`assumptions.json` 列出实际宏与上游相位假设。
+
+`--seed` 控制制造与噪声激励。片池默认复位种子为 0xACE10001，扰动字源固定为 0xC001D00D。若需要重播种片池，使用配置字段 `scheduler_seed`。研究芯片失配时，`device_weights` 为 18×20 的实际 Ceff/Cf，`weights_q30` 为独立加载的 18×20 个整数；默认使用名义器件和名义表。程序拒绝不匹配的几何、非法字及不能在配置端口表示的权重。
+
+## 与真实 RTL 对拍
+
+~~~bash
+bash tools/pyenv.sh --run tools/run_open_rtl.py --simulator verilator --tops v21_sample_cadence --out "$work/rtl"
+bash tools/pyenv.sh --run tools/check_default_rtl.py "$work/rtl/v21_sample_cadence/samples.csv" --default-npz "$work/stream/codes.npz"
+~~~
+
+预期输出为 `DEFAULT_PYTHON_RTL_MATCH transactions=1792`。包括片内字、强制遍历、跨全码域混合激励，以及同一失配器件在两张加载表上的结果。复位、反压、采样与捕获沿的归属由 RTL 定向测试覆盖。[仿真入口](../../flow/sim/README.md) · [原文与算法逐项对照](../audit/AUDIT_ALGO_VS_SOURCE.md)
 
 ## 重绘行为模型图
 

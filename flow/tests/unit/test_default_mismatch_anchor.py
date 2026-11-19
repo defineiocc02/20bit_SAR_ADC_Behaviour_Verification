@@ -2,7 +2,7 @@
 
 ## 为什么需要这个测试
 
-2026-11-13 做变异测试时发现：把 `DefaultParameters.unit_mismatch_std`
+2026-11-13 做变异测试时发现：把 `Fig11Parameters.unit_mismatch_std`
 从 `1e-4` 改成 `2e-4`，**全套 1778 个测试全部通过**。
 
 这不是等价变异——它真的会改变模型：
@@ -35,25 +35,25 @@ import pytest
 
 ROOT = __import__("pathlib").Path(__file__).resolve().parents[3]
 
-from adi_model.defaults import DefaultModel, DefaultParameters, default_model
+from subsys.experiments.fig11 import Fig11Model, Fig11Parameters, fig11_model
 
 
 def test_default_unit_mismatch_is_the_back_solved_value():
     """默认失配 σ 必须等于反解值 1e-4。"""
-    assert DefaultParameters().unit_mismatch_std == pytest.approx(1e-4, rel=1e-12)
+    assert Fig11Parameters().unit_mismatch_std == pytest.approx(1e-4, rel=1e-12)
 
 
 def test_mismatch_changes_the_fabricated_capacitors():
     """改变 σ 必须真的改变制造出的电容（防止它变成死参数）。"""
     seed = 20261105
-    small = DefaultModel(
+    small = Fig11Model(
         seed=seed,
-        parameters=DefaultParameters(unit_mismatch_std=1e-4),
+        parameters=Fig11Parameters(unit_mismatch_std=1e-4),
         config_overrides=None,
     ).chip.C_main
-    large = DefaultModel(
+    large = Fig11Model(
         seed=seed,
-        parameters=DefaultParameters(unit_mismatch_std=2e-4),
+        parameters=Fig11Parameters(unit_mismatch_std=2e-4),
         config_overrides=None,
     ).chip.C_main
     assert not np.array_equal(small, large), (
@@ -64,7 +64,7 @@ def test_mismatch_changes_the_fabricated_capacitors():
 
 def test_default_model_uses_the_documented_mismatch_and_reports_it():
     """默认模型的元数据必须如实报告失配已启用及所用 σ。"""
-    model = default_model()
+    model = fig11_model()
     assert model.parameters.unit_mismatch_std == pytest.approx(1e-4, rel=1e-12)
     rows = model.inference_table()
     # 推论表里应有一行记录失配的来源分级
@@ -95,14 +95,14 @@ def test_ra_clip_is_never_reached_and_that_is_recorded():
     """
     import numpy as np
 
-    from adi_model.defaults import DefaultModel, DefaultParameters
+    from subsys.experiments.fig11 import Fig11Model, Fig11Parameters
 
     worst = 0.0
     for voltage in (-3.0, -2.99, 0.0, 2.99, 3.0):
         for clip in (0.45, 0.5):
-            model = DefaultModel(
+            model = Fig11Model(
                 seed=20261105,
-                parameters=DefaultParameters(),
+                parameters=Fig11Parameters(),
                 config_overrides={"ra_v_clip": clip},
             )
             run = model.simulate(lambda t, v=voltage: np.full_like(np.asarray(t, float), v), 8)
@@ -123,7 +123,7 @@ def test_nominal_gain_is_the_physical_gain_and_the_fixed_point_sum_is_separate()
     ## 2026-11-13 的第二轮修正（本轮）
 
     第一轮只把两个数并列记录：`inference_table` 的 `nominal_residue_gain = 32`（设计目标
-    `cfg.g0`）、`DefaultModel.nominal_gain = 31.028`（"实际算出的"）。但那条记录把一个
+    `cfg.g0`）、`Fig11Model.nominal_gain = 31.028`（"实际算出的"）。但那条记录把一个
     **口径错误**写成了"两者都对的差异"：
 
     * `nominal_gain` 的语义是 **Cnorm/Cf**，而 `Cnorm` 是残差/RA 的归一化电容
@@ -144,9 +144,9 @@ def test_nominal_gain_is_the_physical_gain_and_the_fixed_point_sum_is_separate()
     """
     import numpy as np
 
-    from adi_model.defaults import DefaultParameters, default_model
+    from subsys.experiments.fig11 import Fig11Parameters, fig11_model
 
-    model = default_model()
+    model = fig11_model()
     assert model.cfg.g0 == pytest.approx(32.0, abs=0)
     assert model.nominal_gain == pytest.approx(32.0, rel=1e-6, abs=0)
     # 名义 Cnorm 必须落在锚点上（20.5 pF），不是 19.8776 pF。
@@ -154,7 +154,7 @@ def test_nominal_gain_is_the_physical_gain_and_the_fixed_point_sum_is_separate()
     # 缺陷态的 19.8776 pF（差 3.13%）会照样通过（已实测）。
     assert model.nominal_active_cap_f == pytest.approx(20.5e-12, rel=1e-4, abs=0)
     # 定点 Σw 口径：8 × 31.9375 × Cu / Cf = 31.028，仍然是这个数
-    parameters = DefaultParameters()
+    parameters = Fig11Parameters()
     g_fixed = (
         model.cfg.n_active * 31.9375 * parameters.unit_cap_f / parameters.feedback_cap_f
     )
@@ -167,7 +167,7 @@ def test_nominal_gain_is_the_physical_gain_and_the_fixed_point_sum_is_separate()
     ids = np.arange(model.cfg.n_active, dtype=np.int64)
     assert float(weights[ids].sum()) == pytest.approx(g_fixed, rel=1e-6)
 
-    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    readme = (ROOT / "src/adi_model/behavioral/README.md").read_text(encoding="utf-8")
     assert "32.0" in readme, "README should state the nominal (physical) gain"
     assert "31.028" in readme, (
         "README must still explain the fixed-point Σw gain (31.028) separately; "

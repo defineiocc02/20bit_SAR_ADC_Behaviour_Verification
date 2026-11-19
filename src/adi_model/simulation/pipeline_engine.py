@@ -1,3 +1,9 @@
+# =============================================================================
+# 文件名     : pipeline_engine.py
+# 模块名     : Fig.11 电荷研究流水
+# 功能       : 按物理片号依次计算采集、转换开关、余差和诊断码。
+# 设计说明   : 保存每笔实际的采样电压和最终命令，供模型回归与误差定位。
+# =============================================================================
 """显式物理数据与数字binding驱动的唯一pipeline实现。
 
 每笔用真实采集组保存主/sub自由电荷，随后同一笔转换组消费它；跨周期组与slot重排都按SlicePlan核对。
@@ -70,8 +76,8 @@ def _dither_topology(dither_program, dither_port) -> str:
     `_prepare_conversion`），任一处改动都可能让两处漂移。
 
     Args:
-        dither_program: v1 码移位拓扑的显式 program，或 None。
-        dither_port: v2 独立电荷口拓扑，或 None。
+        dither_program: 静态码移实验给出的逐笔字，或 None。
+        dither_port: 研究夹具的显式电荷口，或 None。
 
     Returns:
         "none" / "code_shift" / "charge_port"。
@@ -417,7 +423,7 @@ def execute_pipeline(
         initial_ra_output_v: 活跃动态RA所需显式初始输出V。
         initial_adc2_input_v: 活跃动态ADC2所需显式初始输入V，不默填0。
         dither_program: 同一raw的Fig19静态等效Q32控制。SADC采x-L、RDAC存x-T，
-            各resolved命令减U；数字公共项为-T，不再额外纠正U。
+            各已决命令减 U；字记录的 known_common_q 为 −T，实际重构电压公共项为 −L。
 
     Returns:
         SimResult；未装载冻结权重时out只为名义标量诊断，整数输出另调用to_codes。
@@ -464,10 +470,8 @@ def execute_pipeline(
         ra_input_error_v=ra_input_error_v,
         rng=rng,
     )
-    # 两种 dither 拓扑在这里分叉：
-    #   v1  code-shift：SADC 看 x-L、RDAC 采 x-T、码 k=c-U；
-    #   v2  charge-port：SADC 只看 x-L，RDAC 仍采真实 x，upper 段改由
-    #       残差节点的独立电荷口注入（下面 q_residue 处），码保持 c。
+    # Fig.19 研究有两种显式采样输入。下段 L 都进入 SADC；RDAC 采到 x−T
+    # （dither_program）或 x−L（dither_port）。两者的最终 RDAC 命令都扣一次 U。
     sample = capture(
         cfg,
         input_fn,
@@ -476,13 +480,7 @@ def execute_pipeline(
         rng=rng,
         rdac_noise_cap_f=rdac_noise_cap_f,
         dither_program=dither_program,
-        # 采样节点只平移 **lower 段**（含 0..1 的小数 + 0/2 的整步）。
-        # 2026-11-13：原实现传 total_v（= L + U），把 upper 段也算进采样节点，
-        # 于是 dither 摆幅达 8 LSB9，而 RA 输入端只允许 clip/G ≈ 1.38 LSB9，
-        # 残差被顶进限幅（ra_sat 大面积 True）。
-        # 论文口径（[00]）："dither range is enhanced by 2b when the result is transferred
-        # from the quantizer to the RDAC" —— 量化器侧只承担小幅度，RDAC 侧才放大；
-        # 因此 U 段只出现在 RDAC 节点与数字公共项，不再进采样节点。
+        # 电荷口把 lower_v 作为两个采样节点共有的电压偏移；capture 内部令 total=lower。
         dither_sample_v=(
             None if dither_port is None else dither_port.require_words().lower_v
         ),
@@ -533,22 +531,15 @@ def execute_pipeline(
             "reference-connected acquisition requires a shared sampling/reference event binding; dynamic reference currently requires allSIGNAL acquisition"
         )
     # ==== 224 减法器：RDAC 用码 k = c - U（原件 FIG.19 / [10] Sheet 20）====
-    # SADC 判决给出 c；U=D6,D4 是"提前量"，从 c 里减掉才是 RDAC 实际要选的码。
-    # 数字重构仍用 c（vd0 取 c 的名义电压），U 的一部分由 300/222 两条模拟路径抵消，
-    # 差值由重构式的 dither 扣回项补足。缺这一步时 dither 的 U 只改了模拟侧、
-    # 码侧不动，输出就会随 U 漂移（实测 64 字 p2p 达 74 mV）。
+    # 两个实验都以减后的实际命令访问 RDAC 码本。静态程序已在前缀映射时减 U，
+    # 电荷口保留粗码到此处再减 U；单独跟踪这一步可查出重复扣减。
     if dither_program is not None:
         hold_upper = np.asarray(dither_program.upper_code, dtype=np.int64)
     elif dither_port is not None:
         hold_upper = np.asarray(dither_port.require_words().upper_code, dtype=np.int64)
     else:
         hold_upper = np.zeros(n_samples, dtype=np.int64)
-    # 2026-11-13 修正**双重减法**：v1 路径在第 517 行已经把 `mapped.codes` 换成
-    # `dither_trace.rdac_code`（= c - U，224 减法器之后的值）；若这里再减一次
-    # `hold_upper`，实际 RDAC 码会变成 `c - 2U`（实测 k == coarse - 2*upper）。
-    # 现在按拓扑区分：
-    #   v1（dither_program）：codes 已减过 U，不再减；
-    #   v2（dither_port）  ：codes 保持 c，减 U。
+    # 静态程序的 mapped.codes 已经扣过 U。电荷口在此减 U，非法命令在写片组前被拒绝。
     if dither_program is not None:
         rdac_codes = np.asarray(mapped.codes, dtype=np.int64)
     else:
@@ -654,7 +645,7 @@ def execute_pipeline(
         )
     pool.reset_electrical_state()
     shape = (n_samples, cfg.n_active)
-    # 独立电荷口的 upper 段台账 [V]；模拟注入已通过采样节点 T 平移实现，
+    # 电荷口记录 upper 段的等效电压；实际命令已减 U，两个采样节点只平移 L，
     # 此处只用于报告"upper 段折合多大"，不重复注入。
     upper_v = (
         np.zeros(n_samples) if dither_port is None else dither_port.upper_v(dither_port.require_words().words)
@@ -915,16 +906,19 @@ def execute_pipeline(
         ids,
         static_charge_domain and not reasons,
     )
+    # 导出的采样说明随实际支路变化。word 对象保留完整预置 T，
+    # 数字观测把 lower_v 记入 known_voltage_term_v。二者由用户在不同字段读到。
+    # 保留旧记录的 model 标识，历史归档可以继续按原来的格式解析。
     dither_metadata = None
     if dither_port is not None:
         port_program = dither_port.require_words()
         dither_metadata = {
             **dither_port.spec.to_dict(),
             "model": "FIG19_CHARGE_PORT_V2",
-            "topology": "RDAC code stays c; upper segment injected at the residue node",
-            "stored_rdac_input": "sample.rdac_input_v = input_v; no code-domain shift",
-            "sadc_input": "sample.x_sadc = input_v - L",
-            "digital_known_common_q": "-upper_v only; lower is a decision-point shift",
+            "topology": "RDAC code k = c - U; both sampling nodes shift by -L",
+            "stored_rdac_input": "sample.rdac_input_v = input_v - L",
+            "sadc_input": "sample.x_sadc = input_v + sampling noise + tau mismatch error - L",
+            "digital_known_common_q": "word.known_common_q = -total_q; applied common voltage term = -lower_v",
             "upper_code_max": int(port_program.upper_code.max()),
             "lower_v_max": float(port_program.lower_v.max()),
             "upper_v_max": float(upper_v.max()),
@@ -941,8 +935,8 @@ def execute_pipeline(
             "prefix_events": int(dither_trace.rdac_event_codes.shape[1]),
             "event_flag_scope": "resolved RDAC integer range; no per-event analog settling claim",
             "stored_rdac_input": "sample.rdac_input_v = input_v - T; actual pool.acquire",
-            "sadc_input": "sample.x_sadc = input_v - L in this zero-noise v1",
-            "digital_known_common_q": "-total_q; no second upper correction",
+            "sadc_input": "sample.x_sadc = input_v - L for the zero-noise static experiment",
+            "digital_known_common_q": "word.known_common_q = -total_q; applied common voltage term = -lower_v",
         }
     result = SimResult(
         cfg=cfg,

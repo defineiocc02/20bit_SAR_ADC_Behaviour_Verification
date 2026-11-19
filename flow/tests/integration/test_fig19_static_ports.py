@@ -1,18 +1,18 @@
 # =============================================================================
 # 文件名     : test_fig19_static_ports.py
 # 版本       : v1.0
-# 功能       : 回归现行 Python 静态扰动的双采样端口、掩码与定点输出。
+# 功能       : 核查 US10505561B2 图 19 静态研究的双采样端口、掩码与出码。
 # 设计说明   :
 #   * 用 Fig11Parameters 的 17 主端口、5 子端口和 13 位 ADC2，
 #     单元及桥接失配置零，并显式关闭采样噪声和 RA 噪声。
 #   * 采样双端口使用负等效注入。前缀超出 RDAC 码域时不得更新物理片组；
 #     终码饱和与模拟越界标志独立核对。
-# 变更记录   : 将静态回归说明对齐现行模型的默认几何、码本和 ADC2。
+# 变更记录   : 本组固定 Fig11Parameters；生产顶层与默认 Python 的接口对拍见 docs/audit/AUDIT_ALGO_VS_SOURCE.md。
 # =============================================================================
-"""用独立计算核对现行 Python 的静态双端口等效扰动。
+"""用独立计算核对 Fig.11 电荷夹具中的图 19 双端口扰动。
 
-正例扫 ±2 V 范围内的输入及全部 64 个扰动字。期望粗码取现行码本阈值，
-掩码按实际片号独立推导，ADC2 用当前窗口和位数复算，最后比较 20 位输出。
+正例扫 ±2 V 范围内的输入及全部 64 个扰动字。期望粗码取该夹具的码本阈值，
+掩码按实际片号独立推导，ADC2 用夹具声明的窗口和位数复算，最后比较 20 位输出。
 负例检查输入格式、非法早期前缀，以及扰动端口与数字符号接错时的检出能力。
 """
 
@@ -76,7 +76,7 @@ def ideal_model():
 
 
 def _codebook(model):
-    """返回现行模型的码本电压，单位 V。
+    """返回 Fig.11 研究夹具的码本电压，单位 V。
 
     粗码从实际阈值表求出。均匀步长外推会把部分输入判到相邻码，
     并随之错判 RDAC 的实际开关和余差。
@@ -123,7 +123,7 @@ def _round_even_pair(numerator: int, denominator: int) -> int:
 def _integer_oracle(parameters, backend_codes, k_codes, lower_q, slice_ids, model, physical_gain):
     """用纯 Python 整数复算 20 bit 定点输出，与声明方程同构。
 
-    名义权重取自现行模型，ADC2 窗口和位数取自同一份规格。
+    名义权重取自 Fig.11 夹具，ADC2 窗口和位数取自同一份规格。
     覆盖对象是全部 64 个扰动字产生的样本，每笔使用该次采样的 ADC2 码。
 
     计算顺序为：
@@ -273,6 +273,9 @@ def _assert_physical_and_integer_views(run, external, words, model):
     expected_term = -lower_v[:, None, None] + 3 * (1 - 2 * masks.astype(np.int64))
     np.testing.assert_array_equal(run.raw.digital_observation.known_voltage_term_v, expected_term)
     np.testing.assert_array_equal(run.raw.dither_program.known_common_q, -total_q)
+    exported = run.raw.binding_metadata["dither"]
+    assert "input_v - T" in exported["stored_rdac_input"]
+    assert "applied common voltage term = -lower_v" in exported["digital_known_common_q"]
     # ADC2 量化步长从同一份参数的窗口和后端位数计算。
     # 先查 13 位原始码，再比较它进入定点重构后的 20 位输出。
     raw_voltage = 32 * residue

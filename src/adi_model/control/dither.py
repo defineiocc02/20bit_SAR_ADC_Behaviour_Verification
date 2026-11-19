@@ -1,11 +1,15 @@
-"""Fig19 的有限静态等效端口，不是原芯片完整 dither 电容/开关网络。
+# =============================================================================
+# 文件名     : dither.py
+# 模块名     : US10505561B2 图 19 静态扰动实验
+# 功能       : 对给定字计算两路等效采样电压与码移，供专利实施例的研究夹具使用。
+# 设计说明   : 这里的七片分数权和负电压坐标随该实验绑定。生产八槽的开关见 dem_dither.py。
+# =============================================================================
+"""US10505561B2 图 19 的静态等效端口。
 
-US10505561 Fig19 的六位字分为 lower 与 upper。此工程选择负的模拟等效注入：
-SADC 看 x-L，RDAC 保存 x-T，实际 RDAC 码 k=c-U，且 T=L+U*Delta。
-原 SADC 视图 VD(c)+r+L 与实际 mask 视图 VD(k)+r+T 等价，不能再纠正一次 U。
-
-L/T 从同一组显式 Q32 整数转 V；比例、负极性及目标端口等效均标为工程假设。
-独立采样噪声、动态开关、完整 3D DEM 和 dither 电容自身失配不在此 v1 模型内。
+实验在 Q32 坐标中表示下段 L、上段 U 和完整预置 T=L+U·Δ。
+所选电荷坐标下，SADC 看 x−L，RDAC 保存 x−T 并跟随 k=c−U。
+这使 VD(c)+r+L 与 VD(k)+r+T 等价，同一笔只补偿一次上段。
+几何、单位和极性由 Fig.11 研究夹具给定；动态开关与电容失配另行建模。
 """
 
 from __future__ import annotations
@@ -19,7 +23,7 @@ from adi_model.control.dem import _integer_array
 from adi_model.simulation.config import ConfigError, _finite_real
 
 #: Fig19 粗码台阶的归一化 Q32 值 = round(2^32 · 2/(cn·16) / v_fs)，cn = 31.9375。
-#: 现行 17/5 码本的 cn·16 = 511，不能把 Q32 的 512 等分值作为该码本步长。
+#: 该实验的 17/5 码本的 cn·16 = 511，不能把 Q32 的 512 等分值作为该码本步长。
 FIG19_STEP_Q = 16810048
 
 #: D3/D2/D1 三项低位权（源示例 4:2:1/7）按新 step_q 重新量化，三者之和 = FIG19_STEP_Q。
@@ -61,7 +65,7 @@ class Fig19StaticSpec:
         # 17/5 阵列的码本分母是 cn = 31 + beta*15 = 31.9375，且 cn*16 = 511，
         # 因此粗台阶 = 2*v_fs/(cn*16) = 2*v_fs/511（而不是 2*v_fs/512）。
         # 折算到 3 V 归一化的 Q32：round(2^32 * 2/(cn*16) / 3) = 16 810 048。
-        # Q32 的 512 等分值与现行码本不匹配，会让 222 注入与 224 减法差 1/512，
+        # Q32 的 512 等分值与本研究夹具的码本不匹配，会让 222 注入与 224 减法差 1/512，
         # 表现为残差随 U 线性漂移 2.293e-05 V（见 ENGINEERING_METRICS §16）。
         if type(self.step_q) is not int or self.step_q != FIG19_STEP_Q:
             raise ConfigError(
@@ -287,9 +291,9 @@ class Fig19DitherProgram:
 
 
 def complete_flash3_sar6_prefix_table() -> np.ndarray:
-    """明确绑定当前 core 完整比较路径，返回只读 (512,7) resolved-prefix 表。
+    """绑定独立组件 core 的普通区比较路径，返回只读 (512,7) resolved-prefix 表。
 
-    当前 RTL P_BITS=9/P_SEED_BITS=3，七次 resolved 事件对应 phase2..8 的消费，重复码保留。
+    组件取 P_BITS=9/P_SEED_BITS=3 时，七次 resolved 事件对应 phase2..8 的消费，重复码保留。
     此表只描述该完整 valid 序列；不推模拟时间、不替代 comparator valid/deadline 检查。
     按本模型明确的 9 位已决码构造，供 Python 扰动模型核对前缀；不能用于其他 ADC 码制。
     """

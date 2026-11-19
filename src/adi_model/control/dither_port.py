@@ -1,25 +1,19 @@
-"""dither 的显式电荷口：六位字 -> 真实电荷 -> 数字解扰，以及范围/残余预算。
+# =============================================================================
+# 文件名     : dither_port.py
+# 模块名     : 研究夹具的扰动电荷与范围核算
+# 功能       : 在给定电容、码本与输入范围下计算等效电荷、码移残差和越界条件。
+# 设计说明   : 等效电荷口是独立实验算子。生产 IP 用实际片号、开关及权重求 Wp。
+# =============================================================================
+"""Fig.11 电荷实验用的扰动算子。
 
-旧的 Fig19 静态路径把 dither 实现成"RDAC 码整体减 U"（`k = c - U`）。这在
-**等间距、无失配**的码本里成立，在两种真实情形下会破：
+`charge_c` 把指定扰动字的等效电压换算为电荷。`code_shift_residual`
+检查实际码本中 VD(c)−VD(c−U) 与 U·Δ 的偏差。`range_ledger` 枚举
+64 个字，给出该假设下两个采样端口和码移命令各自的有效范围。
+此实验在两个采样节点的电压中分别减去 L，RDAC 跟随 c−U。生产事务的 c+U 与去扰逻辑
+由 adi_model.digital_conversion 与 adi_model.dem_dither 实现。
 
-1. **码域越界**：c - U 对低码会落到 0 以下。这不是数值 bug，是"用码字空间换 dither 幅度"
-   的必然结果。真实电路里 dither 有自己的电容，不占用 RDAC 码域，所以正确做法是把 dither
-   表示为**独立电荷口**，RDAC 码保持 c。
-2. **非等间距码本**：分段阵列（Fig.11 的 15×2C+2×1C + 桥接二进制子阵列）里
-   `VD(c) - VD(c-U)` 不等于 `U*Δ`。差额就是已知问题里的"上段残余"，必须显式记账，
-   不能靠"最终码没 clip"掩盖。
-
-本模块给出三件事，且都能被反例推翻：
-
-* `charge_c`：同一六位字在电荷口的实际注入电荷；
-* `code_shift_residual`：把同一字实现成码偏移时的残差 [V]/[LSB20]，等间距阵列应为 0；
-* `range_ledger`：所有 64 个字下的 SADC 可用输入区间与 RDAC 合法码域，给出下界缺口。
-
-关于任务树里那个 −4.855238970588 V：本模块用 `attenuated_dither_bound` 复原它的来源——
-v_fs=5 V 时 `5*(1 - 63/(128*17)) = 4.855238970588235`，即"子阵列 β=1/17 衰减后
-仍达 63/128 满幅的 dither"。这是**从数值反推的复原**，不是原文披露；本模型自己的缺口由
-`range_ledger` 直接算出，不移植那个数。
+`attenuated_dither_bound` 计算给定满幅和桥接衰减下的范围估算。
+以 v_fs=5 V、β=1/17 代入得到的边界属于该算例的输入条件。
 """
 
 from __future__ import annotations
@@ -101,8 +95,8 @@ class DitherPort:
     def upper_lsb(self, words) -> np.ndarray:
         """只取 upper 段 U 的粗码 LSB 数（整数 0..5）。
 
-        upper 段是**唯一**走 RDAC 节点独立电荷口的部分；lower 段 L 走
-        SADC 采样路径。两者混算会把"下段没实现"读成"上段有残余"。
+        在电荷夹具中 U 用于 RDAC 的码移，L 用于两个节点的采样电压。
+        上段电压统计单列，可核对每次码移相当于多少粗码步。
         """
         program = Fig19DitherProgram.from_words(words, spec=self.spec)
         return program.upper_code.astype(float)
@@ -110,8 +104,8 @@ class DitherPort:
     def upper_v(self, words) -> np.ndarray:
         """Upper 段折合到输入端的电压 [V]（= U x 粗码步长）。
 
-        这是电荷口注入量的**权威口径**：注入电荷在每笔实际归一化电容上
-        折算成输入等效电压，因此用逐笔 `C_norm` 而不是固定标称电容。
+        按该夹具码本的 coarse_step_v 换算。此数用于报告上段幅度，
+        电荷夹具在转换时通过码移施加 U。
         """
         return self.upper_lsb(words) * self.spec.coarse_step_v
 

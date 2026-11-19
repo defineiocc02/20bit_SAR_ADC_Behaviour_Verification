@@ -1,9 +1,9 @@
 """采样节点电荷扰动的组件测试。
 
-该测试使用当前 ADC 默认参数。扰动电容同时平移前级采样和残差 DAC 所见电压。
+该测试使用 Fig.11 电荷夹具的参数与显式扰动字。扰动电容同时平移前级采样和残差 DAC 所见电压。
 前级判决后的代码减去上段扰动字，数字重构扣回采样预置。
 
-本文件钉住四条性质：
+下列前两项保留为严格的预期失败，后两项直接检查接口：
 
 1. 理想器件（零失配、零噪声）下，64 个 dither 字重构同一输入，差异不超过 1 LSB20；
 2. 有失配时 dither 真的改变粗码使用（多码扩散），并把静态误差的**均值**压低；
@@ -53,7 +53,7 @@ def _model(mismatch_std: float) -> Fig11Model:
 @pytest.mark.xfail(
     strict=True,
     reason=(
-        "当前 13 位模型的残差放大器在部分 6 位扰动字下饱和，"
+        "Fig.11 电荷夹具的残差放大器在部分 6 位扰动字下饱和，"
         "64 字透明性断言尚未通过。"
     ),
 )
@@ -72,9 +72,16 @@ def test_ideal_port_is_transparent_for_all_sixty_four_words():
 def test_port_applies_the_224_subtractor_to_the_rdac_code():
     """RDAC 码取前级判决 c 减去上段扰动码 U，公式对应专利图 19 的减法器 224。"""
     model = _model(1e-3)
-    words = np.full(4, 32, dtype=np.int64)  # bit5=1 → upper_code = 4
+    # 两种字的 U 同为 4，低段分别为 0 和正值，可区分两种采样接法。
+    words = np.array([32, 53, 32, 53], dtype=np.int64)
     run = model.simulate(dc_input(0.4), 4, dither_words=words, dither_mode="charge_port")
     upper = np.asarray(run.raw.dither_program.upper_code, dtype=np.int64)
+    observed = run.raw.sample
+    np.testing.assert_array_equal(observed.rdac_input_v, observed.input_v - run.raw.dither_program.lower_v)
+    exported = run.raw.binding_metadata["dither"]
+    assert "k = c - U" in exported["topology"]
+    assert exported["stored_rdac_input"] == "sample.rdac_input_v = input_v - L"
+    assert "applied common voltage term = -lower_v" in exported["digital_known_common_q"]
     assert upper.max() == 4
     assert np.array_equal(np.asarray(run.raw.k), np.asarray(run.raw.coarse) - upper)
 
@@ -82,7 +89,7 @@ def test_port_applies_the_224_subtractor_to_the_rdac_code():
 @pytest.mark.xfail(
     strict=True,
     reason=(
-        "当前 13 位模型在本测试的失配和扰动设置下出现残差饱和，"
+        "Fig.11 电荷夹具在本测试的失配和扰动设置下出现残差饱和，"
         "64 字统计的平均静态误差未下降。"
     ),
 )

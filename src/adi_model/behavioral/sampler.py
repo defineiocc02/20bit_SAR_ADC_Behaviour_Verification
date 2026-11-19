@@ -1,3 +1,9 @@
+# =============================================================================
+# 文件名     : sampler.py
+# 模块名     : 研究模型的采样节点
+# 功能       : 将采样端输入及指定的扰动分别传给 SADC 和 RDAC。
+# 设计说明   : 保存两路实际电压，便于在码移或电荷口实验中独立检查同一笔的偏移。
+# =============================================================================
 """单孔径采样记录、显式样本域噪声与解析输入函数。
 
 本模块没有KTC第二孔径或隐藏dither生成器。显式Fig19 program分别形成SADC的x-L与RDAC的x-T。
@@ -90,7 +96,7 @@ def capture(
             必须与raw长度和Vfs一致，不用RA误差代替采样注入。
         dither_sample_v: 可选(N,)注入**采样节点**的 dither 电压[V]。独立电荷口
             拓扑里 lower 段由 dither 电容在采样节点注入，因此 SADC 与 RDAC
-            两个视图同时平移；upper 段由残差节点的独立电荷口注入（不在本函数内）。
+            两个视图同时平移；转换时再用前级判决减去上段 U 作为 RDAC 命令。
             与 dither_program 互斥。
 
     Returns:
@@ -185,20 +191,8 @@ def capture(
             or dither_program.spec.v_fs != cfg.v_fs
         ):
             raise ConfigError("Fig19 program length/Vfs must match the actual sampling record")
-        # (a) "modifying the digital code ... and providing the modified digital code to
-        # the sampling DAC"（US10505561B2 摘要页，2026-11-13 核对）：
-        # U 段是**通过改码**进入采样 DAC 的（见 pipeline 的 k = c - U），
-        # 不是再叠加一个独立模拟量。若这里同时注入 T = L + U，
-        # U 会被计入两次：采样电压减了 U，码又提前了 U，残差因此多出 U 的量
-        # （实测 word=32 时残差 +42.6 mV = U 的 4 个 LSB9）。
-        # 因此采样侧的模拟注入只保留 L（(b) 段留给后级数字扣除）。
-        # 222 加法器注入**全字 T = L + U**：它与 224 减法器（k = c - U）是配套的，
-        # U 在残差里自动抵消：
-        #   residue = (x - T) - vd0(c-U) = (x - L - U) - (vd0(c) - U*Δ) = x - L - vd0(c)
-        # 2026-11-13 曾把这里改成只注入 L，理由是要控制残差摆幅；但那会**破坏**
-        # 222/224 的配套关系，使 U 在残差中只出现一次而不抵消（实测 k=c-2U 之类的错位）。
-        # 残差摆幅问题应通过"限制 U 的取值范围"或"放宽 ADC2 窗口"解决，
-        # 而不是拆散这对由原件电路确定的配套关系。
+        # 静态研究程序给出两组等效电压。SADC 减低段 L，RDAC 采样减全字 T，
+        # 随后在转换码中减一次 U。与上面两端都减 L 的电荷口实验分别记账。
         lower, total = dither_program.lower_v, dither_program.total_v
     tau_error = np.zeros(n_samples)
     if cfg.sampling_tau_mismatch is not None:

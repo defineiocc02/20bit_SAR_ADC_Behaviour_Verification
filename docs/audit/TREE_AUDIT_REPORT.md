@@ -22,6 +22,7 @@
 | 来源清单把 `ffcc011` 的旧 JSON 摘要写在当前归档路径旁，原报告路径已迁移 | 中 | A4 对两个 Git 对象与当前文件重新计算 SHA-256 | 现将 Git 历史对象与工作树实物分栏登记。历史存证测试核对实际摘要。 |
 | 过期后端结论散在审计区；旧结构核文档把 `sar20_digital_core`、旧 ADC2 或 17/5 研究阵列称作生产主线 | 中 | A4、A6 | 19 份旧后端记录、15 份旧结构核专题/数据各归单一历史目录。保留仍服务组件的接口说明，修正研究决策里的现在时。 |
 | 名为 `fc_rtl_to_gds_derived.tcl` 的实验实际只 `elaborate sched18`；从远端 URL 清洁克隆原来跟随默认分支 | 中 | A1、A2、A5 | 叶子脚本改名 `fc_sched18_derived_lef.tcl`。克隆验证锁定发起提交或 `V21_REVISION`。 |
+| 研究用 D6 码移反例的失败提示把夹具叫作“当前行为模型” | 中 | A5 的同输入四字对照 | 测试现在显式标识 Fig.11，并增加公共生产入口的同条件回归；保留原有严格预期失败。 |
 | GitHub 默认 `main` 有 10 个目录和 18 个文件，首页仍打开另一条工程线 | [需仓主决策] | A1 的远端 API 与分支树 | README 给出显式克隆命令；将复现线合并进 `main` 或变更全库默认分支属于单独的发布决策。 |
 
 ### 六个入口分别负责什么
@@ -139,6 +140,7 @@ PYTHON
 ```bash
 bash tools/pyenv.sh --run -m pytest -q flow/tests/unit/test_worktree_identity.py
 bash tools/pyenv.sh --run -m pytest -q flow/tests/unit/test_robustness_2026_09_25.py -k historical_reference_output
+bash tools/pyenv.sh --run -m pytest -q flow/tests/unit/test_dither_split_causality.py
 ```
 
 **A6　维护工具与版本控制卫生。** 第一条旧脚本仅预览，重现旧候选；第二条为修正后的预览。临时仓库删除行为由 A5 自动测试。

@@ -17,6 +17,8 @@ US10505561B2 图 19 的字源是 400。低段 `D5,D3,D2,D1` 经 300 加到量化
 
 强制字 53、差分输入 −0.6522216796875 V 时，`L=2.625`、`U=4`，SADC 粗码为 202，RDAC 命令为 206，ADC2 原码为 6016，最终得到 410304。该字漏扣一次采样权重，结果多 13,568 个输出码。专利七片实例与工程八槽的符号、量纲和适用条件，连同 64 个字的逐笔对照，见[原文与实测](../audit/AUDIT_ALGO_VS_SOURCE.md)及[开关测试](../audit/TREE_AUDIT_REPORT.md#dither-word-audit)。
 
-显式 Fig.11 电荷实验的两条严格预期失败记录了该夹具的余差饱和与平均误差。其电荷口把两个采样节点都平移 `−L`，RDAC 按 `c−U` 转换。研究输出会列出此接法；生产入口使用上表的八槽开关。[饱和用例及触发条件](../../flow/tests/unit/test_dither_charge_port.py)
+Fig.11 电荷口组件的两条严格预期失败记录了该夹具的余差饱和与平均误差。其电荷口把两个采样节点都平移 `−L`，RDAC 按 `c−U` 转换。研究输出会列出此接法；生产入口使用上表的八槽开关。[饱和用例及触发条件](../../flow/tests/unit/test_dither_charge_port.py)
+
+Fig.11 码移夹具另保留一条 D6 反例。0.4 V 下，字 0、16、32、48 在生产参考中均输出 594193；该研究夹具的后两字输出 585984。两种用途通过不同测试函数登记。[同输入分流对照](../../flow/tests/unit/test_dither_split_causality.py)
 
 此前的码移实验和相应曲线可按原提交追溯。[历史实验全文](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/d97afa160a7c9c0ff2f1427656e5899b360771e2/docs/mechanisms/dither_fig19.md)

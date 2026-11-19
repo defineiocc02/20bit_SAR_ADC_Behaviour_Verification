@@ -1,14 +1,6 @@
 # ADR 0009 — Decision resolution and dither range are independent
 
-> ## ⚠️ 时效说明（2026-11-13 追加）
->
-> 本文写于 2026-09，描述的是 **63+8 工程替代拓扑**那一版。该拓扑已被用户明确否决，
-> 主链现已改为专利 [11] FIG.11/19/20 的 **17/5 阵列**
-> （主阵列 15×2C + B4 1C + S4 1C，子阵列装配 4 列，桥接电容 = 1 单元电容）。
->
-> 文中出现的 63+8 具体数值（单元权数、分段方式等）**不再对应当前实现**。
-> 保留本文是因为其中**决策依据与推理过程**仍可追溯。
-> 当时的对照见[验收归档](../../_history/archive/ACCEPTANCE_20261113.md)和[交接归档](../../_history/HANDOVER.md) §2。当前口径见[项目状态](../../STATUS.md)。
+这份决策记录保留早期研究模型的输入和实验动机。后来采用的 17 主位／5 子位属于[Fig.11 研究夹具](../../../subsys/experiments/fig11.py)。生产数字 IP 与默认 Python 使用每片 16 主位、4 子位和 13 位 ADC2。[现行合同](../../CONTRACT_CURRENT.md)
 
 
 Status: accepted, 2026-09-12. Supersedes ADR 0003's claim that seven decision

@@ -16,6 +16,14 @@ bash tools/pyenv.sh --run -m adi_model simulate --dc -0.6522216796875 --samples 
 
 `--seed` 控制制造与噪声激励。片池默认复位种子为 0xACE10001，扰动字源固定为 0xC001D00D。若需要重播种片池，使用配置字段 `scheduler_seed`。研究芯片失配时，`device_weights` 为 18×20 的实际 Ceff/Cf，`weights_q30` 为独立加载的 18×20 个整数；默认使用名义器件和名义表。程序拒绝不匹配的几何、非法字及不能在配置端口表示的权重。
 
+若要在出码前验证文件，`validate-config` 接受与 `simulate` 相同的 `--parameters` 和 `--config-overrides`，还可以同时验证两者。回执 `scope=adc_digital_ip_v21` 对应生产模型。低层组件沿用 `validate-config --config FILE.json`，回执为 `component_config`。
+
+```bash
+param_dir="$(mktemp -d)"
+printf '%s\n' '{"adc2_n_bits":13,"n_main":16,"n_sub":4}' > "$param_dir/production.json"
+bash tools/pyenv.sh --run -m adi_model validate-config --parameters "$param_dir/production.json"
+```
+
 ## 与真实 RTL 对拍
 
 ~~~bash

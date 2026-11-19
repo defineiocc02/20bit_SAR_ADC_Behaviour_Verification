@@ -4,7 +4,13 @@
 
 工作树只有一个生产顶层 `adc_digital_ip_v21`。`v21` 是它在源码与构建清单中的名称。模拟比较器、残差放大器和 ADC2 通过宏接口连接。默认 Python 按这一个顶层的字源、片选、DEM、余差量化和定点规则逐笔出码。宏的电压输入由模拟假设给出。[顶层 RTL](rtl/v21/adc_digital_ip_v21.sv) · [生产源清单](flow/build/filelists/files_adc_v21.f) · [接口合同](docs/CONTRACT_CURRENT.md)
 
-复现本工程请使用 `merge/adi-repro` 分支，用 `git rev-parse HEAD` 记录具体提交。Python 包版本为 [9.0.0](pyproject.toml)，`adc_digital_ip_v21` 是硬件模块名。两者指向上面这套设计。引用实验结果时请写提交号，查已发布的软件用 [GitHub Releases](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/releases)。[版本记录](docs/meta/CHANGELOG.md) · [软件引用信息](docs/meta/CITATION.cff)
+**复现请检出 `merge/adi-repro`。** GitHub 的默认分支 `main` 保存另一条工程线。安装本分支得到的 Python 包版本是 [9.0.0+adi.repro](pyproject.toml)。引用具体运行请记录提交号。[版本记录](docs/meta/CHANGELOG.md) · [结构与版本实测](docs/audit/TREE_AUDIT_REPORT.md#current-tree-review) · [软件引用](docs/meta/CITATION.cff)
+
+```bash
+git clone --branch merge/adi-repro https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification.git
+cd 20bit_SAR_ADC_Behaviour_Verification
+git rev-parse HEAD
+```
 
 [**打开数字 IP 图册（四页主图＋算法与状态机附录）**](docs/algorithms/digital-ip-atlas.pdf) · [在线读算法、状态机与可编辑原图](docs/algorithms/README.md) · [逐图对照论文与授权专利](docs/algorithms/README.md#直接核对原图与原文)
 
@@ -53,7 +59,7 @@
 从仓库根运行。下面三条只读检查分别清点工作树、核对工程链接及接口、核对算法图与图源。
 
 ~~~bash
-python3 -B tools/check_doc_counts.py
+python3 -B tools/check_doc_counts.py --check
 python3 -B tools/check_engineering.py
 node tools/v21_algorithm_atlas.mjs --check
 ~~~

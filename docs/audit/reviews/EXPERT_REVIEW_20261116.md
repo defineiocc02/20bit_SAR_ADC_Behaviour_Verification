@@ -16,11 +16,11 @@
 | :--- | :--- |
 | 生产与脚本 | `bb96361` 的文件内容和行号；下文路径均相对仓库根 |
 | 合同 | `docs/CONTRACT_CURRENT.md` 指向的 v2 主体及 v2.1 补充；局部设计说明不自动改写该合同 |
-| 方案 | `/Users/zhaoyi/DeepSeek/reports/digital_ip_plan_20261115/数字IP具体实现方案_v1.md`，v1.4，重点 §4/7/9/10/11 |
-| 本轮纯 Python 原始输出 | `/Users/zhaoyi/DeepSeek/reports/expert_review_bb96361_20261116/pure_python_audit.txt` |
+| 方案 | `当时的资料根/digital_ip_plan_20261115/数字IP具体实现方案_v1.md`，v1.4，重点 §4/7/9/10/11 |
+| 本轮纯 Python 原始输出 | `当时的资料根/expert_review_bb96361_20261116/pure_python_audit.txt` |
 | LUT/抽取缺口的独立核对 | 同目录 `extraction_and_lut_audit.txt` |
 | 固定输入哈希清单 | 同目录 `source_SHA256SUMS`，含22份关键源码/脚本；已逐文件核对工作树内容等于bb96361 |
-| EDA 环境说明 | `/Users/zhaoyi/DeepSeek/reports/eda_environment/vm-yian-tools.md`；本轮仅查询现有文件和状态 |
+| EDA 环境说明 | `当时的资料根/eda_environment/工具说明`；本轮仅查询现有文件和状态 |
 
 检查过委托清单中的生产模块、节点模型、证明脚本、八项回归入口与连续输入专项、配置测试、当前合同，以及新旧形式/时序记录。编译清单中出现一个文件不代表它在顶层被实例化：当前 v21 使用外部 `prepare_h/v/half/coin/word`；`dem_phase_rr`、`dem_phase_gen` 和旧 `follower_rt` 的独立证据不能自动算作这些发生器已进入 v21。bridge 实际实现位于 `dem_mask_v3`，不是仅凭 `follower_rt` 文件名判断。
 
@@ -307,6 +307,6 @@ PYTHONDONTWRITEBYTECODE=1 python3 tools/check_recip_correction.py
 
 实测退出码依次为0、0、1。前两项的PROVEN有明确前提，第三项失败原因是LUT抽取仍匹配旧语法。当前recon源码SHA256及抽取harness哈希见R4，LUT核对为64/64/64完全一致。
 
-原始归档VCS证据的引用位置：`/Users/zhaoyi/.dsh/sessions/--Users-zhaoyi-DeepSeek--/session-f9f79005-06c0-4301-aba1-d01044ff7dab/session.v4.jsonl.zstd`，bb96361附近的八项回归输出（seq23600）、权重扫描364/0（seq23565），以及重构专项记录。它们是已执行记录，不是本轮新仿真；本轮将相同源码blob与对应记录核对后，仅继承未改变模块的覆盖范围。该文件是多帧压缩会话记录，审阅者需要本机访问权限；它没有作为报告附件公开分发。
+原始归档VCS证据的引用位置：作者保留的原会话日志，bb96361附近的八项回归输出（seq23600）、权重扫描364/0（seq23565），以及重构专项记录。它们是已执行记录，不是本轮新仿真；本轮将相同源码blob与对应记录核对后，仅继承未改变模块的覆盖范围。该文件是多帧压缩会话记录，审阅者需要本机访问权限；它没有作为报告附件公开分发。
 
 **现在能声称：** 指定工程模型下的关键算术和多项定向RTL回归成立，A/B/C修复值得保留，新窄口能完成名义灌表后的转换。**仍不能声称：** 任意可写配置都安全、配置生效协议已实现、bb96361已通过同版门级/形式/40MS/s吞吐或物理验收。

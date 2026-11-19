@@ -2,7 +2,7 @@
 
 ADR 保存设计决策发生时的背景、取舍和适用范围。当前集成 ADC 的接口和验证见 [v21 工程合同](../../CONTRACT_CURRENT.md) 与 [项目状态](../../STATUS.md)。共享定点与输入包组件见 [组件算术](../../audit/components/CURRENT_INTERFACE_AND_ARITHMETIC.md)。ADR 0018–0019、0021 记录历史结构核的接口，文中的旧报文与寄存器地址以原决定的适用范围为准。
 
-模型阵列几何的迁移依据见[Fig.11 几何决策](20261112_fig11_unification.md)。
+Fig.11 研究夹具的几何迁移见[Fig.11 几何决策](20261112_fig11_unification.md)。
 
 ## 基线与模型约定
 

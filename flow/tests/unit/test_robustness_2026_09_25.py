@@ -651,8 +651,23 @@ def test_sdist_excludes_third_party_originals_and_keeps_real_public_assets():
 # 冻结 JSON 记录的是原配置下的各阶段。
 # 这里只读取结构与阶段名；重跑当前模型产生的新数字不能写回该记录。
 def test_historical_reference_output_is_present_and_typed():
-    """只保留历史归档存在性；不检查或重盖旧stage结果的PASS。"""
-    payload = json.loads((REPO / "docs/_history/model_results/results.json").read_text())
+    """核对归档字节与来源清单；数值仍只属于生成它的历史运行。"""
+    import hashlib
+
+    manifest = REPO / "flow/verification/manifests/sources_manifest.json"
+    # version_pin 的历史 Git 路径与工作树归档是两个身份。必须读显式实物记录，
+    # 否则只因文件名都叫 results.json，就可能错用另一轮的摘要。
+    records = json.loads(manifest.read_text())["version_pin"]["worktree_artifacts"]
+    assert set(records) == {"reference_results", "report"}
+    for role, entry in records.items():
+        path = REPO / entry["path"]
+        # 已发布 sdist 有意排除 PDF；Git 检出则必须同时保存两个已登记的实物。
+        if role == "report" and not (REPO / ".git").exists() and not path.exists():
+            continue
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == entry["sha256"]
+    # SHA 确认实际保留的字节，阶段键检查内容角色。两项均不对旧结果的物理正确性作判定。
+    # 公共模拟入口的出码验证由生产顶层逐笔对照负责，不能拿这份快照代替。
+    payload = json.loads((REPO / records["reference_results"]["path"]).read_text())
     assert isinstance(payload, dict)
     assert {"s1", "mc", "mc_pdk_off", "s13"} <= set(payload)
 

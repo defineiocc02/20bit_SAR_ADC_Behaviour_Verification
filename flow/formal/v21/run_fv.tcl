@@ -8,8 +8,7 @@
 #         （实测 `-property` 非法，会抛 "called a copy of a compiled script"）
 #       · 没有 `prove` 命令；执行入口是 **run_active_scenarios**
 #       · 结果用 report_property / report_fml_jobs 读
-#   * 每次运行前必须清掉 ~/vcst_rtdb 下的 session.lock，
-#     否则报 "Another session is already running"（实测锁里存的 PID 已不存在）。
+#   * 旧运行曾留有 session.lock。新运行使用专用目录，已有锁须先核实其归属和进程状态。
 # 变更记录   :
 #   2026-11-16  v1.0 set_fml_appmode -property 非法。
 #   2026-11-16  v2.0 去掉 appmode；prove 不存在。
@@ -17,16 +16,16 @@
 # =============================================================================
 
 set DESIGN recon_rnd_equiv
-set WORK   /tmp/fvwork
+set WORK [file join [pwd] fvwork]
 
 # =============================================================================
 # 1. 选择属性文件
 # =============================================================================
 # 先在本脚本旁查找属性文件。须在切换工作目录前解析绝对路径。
-# 旧远端部署可能只上传 Tcl，沿用 /tmp/formal 下的已暂存属性文件。
+# 属性文件与本脚本从同一份检出暂存，缺失时直接报告该路径。
 set FORMAL_SOURCE [file join [file dirname [file normalize [info script]]] recon_rnd_equiv.sv]
 if {![file isfile $FORMAL_SOURCE]} {
-    set FORMAL_SOURCE /tmp/formal/recon_rnd_equiv.sv
+    error "missing companion assertion source: $FORMAL_SOURCE"
 }
 if {![file readable $FORMAL_SOURCE]} {
     error "无法读入 VC Formal 属性文件：$FORMAL_SOURCE"

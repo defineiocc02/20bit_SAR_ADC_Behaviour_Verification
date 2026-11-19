@@ -1,6 +1,6 @@
 # 2026-11-04 RTL 与模型已知限制
 
-本清单保留合并基线 `2cbd359` 及其审计记录，并在结构合同更新后标明已经解决的范围。当时的结构配置和校准实验见[历史 ADR 0021](../../guide/decisions/0021-structural-contract-calibration.md)。独立核心的后续接口见 [ABI2](CURRENT_INTERFACE_AND_ARITHMETIC.md)，v21 见[工程合同](../../CONTRACT_CURRENT.md)。
+本清单保留合并基线 `2cbd359` 及其审计记录，并在结构合同更新后标明已经解决的范围。当时的结构配置和校准实验见[历史 ADR 0021](../../guide/decisions/0021-structural-contract-calibration.md)。独立核心的后续接口见 [ABI2](../../audit/components/CURRENT_INTERFACE_AND_ARITHMETIC.md)，v21 见[工程合同](../../CONTRACT_CURRENT.md)。
 
 2026-11-05 已修复数字 CNV 差分代理、同步片选取消后的 SPI 写提交及状态首位问题，
 并加入真实引脚激励的独立协议测试。相位、测量单位和来源维护详情见

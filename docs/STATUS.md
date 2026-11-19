@@ -2,6 +2,8 @@
 
 当前生产数字 IP 的顶层为 [adc_digital_ip_v21.sv](../rtl/v21/adc_digital_ip_v21.sv)。ADC2 为 **13 位、0.75 V**，窗口为 `[-0.1875, +0.5625) V`。默认 Python 与本顶层使用同一套符号、字源、物理片号和定点出码规则。开关位序、码域和定点表示由同一份数字接口合同索引。[工程合同](CONTRACT_CURRENT.md) · [模型图与配置](figures/behavioral/README.md)
 
+复现范围按分支和 Git 提交定位。软件包与硬件模块分别命名，后端参考端按本次检出的生产 filelist 读取。当前覆盖和历史结果的归属见[工作树实测](audit/TREE_AUDIT_REPORT.md#current-tree-review)。
+
 ## 源码和回归
 
 | 部分 | 证据与适用范围 |

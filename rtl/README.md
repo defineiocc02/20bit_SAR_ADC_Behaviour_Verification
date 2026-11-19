@@ -2,7 +2,7 @@
 
 当前唯一的集成 ADC 顶层是 [adc_digital_ip_v21.sv](v21/adc_digital_ip_v21.sv)。ADC2 输入为 **13 位**，窗口为 **0.75 V**。接口和位宽见[工程合同](../docs/CONTRACT_CURRENT.md)，回归与后端状态见[项目状态](../docs/STATUS.md)。
 
-综合使用 [files_adc_v21.f](../flow/build/filelists/files_adc_v21.f)。仿真入口见 [verify_v21.sh](../tools/verify_v21.sh) 和 [files_adc_v21_sim.f](../flow/build/filelists/files_adc_v21_sim.f)。[rtl_sources.f](rtl_sources.f) 用于核对全树源码覆盖，整链编译按 v21 专用清单选源。
+整核综合、物理实验和 Formality 参考端共用 [files_adc_v21.f](../flow/build/filelists/files_adc_v21.f)。仿真入口见 [verify_v21.sh](../tools/verify_v21.sh) 和 [files_adc_v21_sim.f](../flow/build/filelists/files_adc_v21_sim.f)。[rtl_sources.f](rtl_sources.f) 用于核对全树源码覆盖，整链编译按 v21 专用清单选源。
 
 ## v21 的模块边界
 

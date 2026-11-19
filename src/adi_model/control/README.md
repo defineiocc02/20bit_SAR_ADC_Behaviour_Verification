@@ -7,6 +7,8 @@
 
 18 片池的活动组每组 8 片。采集与转换的物理片号由调度计划显式给出。`round_robin_plan` 是行为对照用轮转计划。v21 `sched18` 的整数镜像另见 [sched18_rtl.py](../sched18_rtl.py)，其已比对的输入向量和图中采用的周期见 [F01](../../../docs/figures/behavioral/README.md)。失配绑定物理片 ID，不能用逻辑 slot 的覆盖率代替物理覆盖率。 [计划](dem3d.py)
 
+独立统计原型 [`scheduler18.py`](../scheduler18.py) 使用 NumPy PCG 抽样。生产的片号和复位序列以 `defaults.py` 实际调用的 `Scheduler18Rtl` 为准。组件控制器 `control.scheduler` 与研究用计划适配器 `simulation.scheduler` 各有显式调用者。
+
 <a id="follower"></a>
 ## 逐事件跟随
 

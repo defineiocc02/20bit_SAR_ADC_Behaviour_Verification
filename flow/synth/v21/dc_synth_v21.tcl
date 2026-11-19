@@ -9,39 +9,27 @@
 #     DC 不需要那套 NDM/corner 机制，能直接把综合网表交出来。
 #     后布线寄生与签核 STA 交给 PrimeTime（它读 SDC + SPEF，无需 NDM）。
 #   * 库：28HPC+ CCS，SS 0.81V -40C 作 setup 主用角。
-#   * 约束：25 ns 公共采样周期（40 MS/s）。**注意**：源码在一个时钟周期内
-#     接收多个逐次事件（Flash + 6 SAR），所以这个周期不是"全部内部事件预算"，
-#     详见 docs/v21/I5_TIMING_BUDGET.md。
+#   * 约束：25 ns 数字时钟。每次时钟事件
+#     仅推进一个时钟沿。前级 Flash 与六次 SAR 分拍提交，采样率分析见 docs/STATUS.md。
 # 变更记录   :
 #   2026-11-16  初版。
 # =============================================================================
 
+source [file join [file dirname [file normalize [info script]]] design_inputs.tcl]
 set DESIGN adc_digital_ip_v21
-set PDK    /home/yian/PDK/tsmc28/digital_technology
+set PDK    [v21::pdk]
 set DB     $PDK/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn28hpcplusbwp7t40p140_180a/tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs.db
 set PERIOD 25.0
-set OUT    /tmp/dcwork
+set OUT    [v21::dc_dir]
 
-file mkdir $OUT
-set_app_var search_path [list . /tmp/ip $OUT]
+v21::begin_dc $OUT $DESIGN
+set_app_var search_path [list . $v21::root $OUT]
 set_app_var target_library [list $DB]
 set_app_var link_library   [list "*" $DB]
 
 # ---- 读入 adc_digital_ip_v21 的综合源码 ----
 # 顶层由 sched18 调度、dem_mask_v3 生成掩码，recon_v21 通过倒数链完成重构。
-set RTL {
-  /tmp/ip/rtl/dither_pre.sv
-  /tmp/ip/rtl/dem_mask_v3.sv
-  /tmp/ip/rtl/sched18.sv
-  /tmp/ip/rtl/v21/acq_conv_ctx.sv
-  /tmp/ip/rtl/v21/sar_evt_v21.sv
-  /tmp/ip/rtl/v21/adc2_capture.sv
-  /tmp/ip/rtl/recip_q60.sv
-  /tmp/ip/rtl/v21/wsum_v21.sv
-  /tmp/ip/rtl/v21/recip_rnd_v21.sv
-  /tmp/ip/rtl/v21/recon_v21.sv
-  /tmp/ip/rtl/v21/adc_digital_ip_v21.sv
-}
+set RTL [v21::sources]
 # **必须生成 SVF**：DC 会做极性变换（用 DFCNQD1 反相输出触发器）、
 # 寄存器合并、常量传播等优化，Formality 需要 SVF 才能复现这些操作。
 # 没有 SVF 时静默失配：本轮实测 20 个 failing compare point，
@@ -149,5 +137,7 @@ set c [all_registers -clock clk]
 puts "CHK total=[sizeof_collection $r] clocked=[sizeof_collection $c]"
 set u [remove_from_collection $r $c]
 puts "CHK unclocked=[sizeof_collection $u]"
+set_svf -off
+v21::finish_dc $OUT $DESIGN
 puts "STEP_DONE"
 exit

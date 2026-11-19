@@ -13,7 +13,7 @@
 | `sched18` 模块的等价结果及网表来源 | [Formality 记录](FORMAL_SUCCEEDED.md) · [产物说明](artifacts/README.md) |
 | 复查整核综合停滞与 Formality 尝试 | [整核综合记录](../v21/SYNTH_STALL.md) · [Formality 状态](../v21/FORMAL_STATUS.md) · [区分算术证明、RTL 检查与形式工具结果](../v21/PROOF_LEDGER.md) |
 | 工具运行路径、远端落盘检查与清理 | [EDA 工作目录规范](REMOTE_WORKDIR_POLICY.md) |
-| 工作树结构审查的输入、发现和复现 | [审查任务](../_history/restructure/TREE_AUDIT_PROMPT.md) · [审查报告](TREE_AUDIT_REPORT.md) |
+| 工作树结构审查的输入、发现和复现 | [审查任务](../_history/restructure/TREE_AUDIT_PROMPT.md) · [最新结构与版本实测](TREE_AUDIT_REPORT.md#current-tree-review) |
 | 找待办、已有源级反例和验收条件 | [独立复核待办](todo/README.md) |
 
 生产 ADC2 为 13 位，窗口跨度 0.75 V。表内历史综合和 Formality 结果绑定各自输入。同版整核的待验事项见[项目状态](../STATUS.md)。组件的接口和证据在 [components/](components/CURRENT_INTERFACE_AND_ARITHMETIC.md)，专题评审在 [reviews/](reviews/)。
@@ -34,4 +34,4 @@
 
 - [`artifacts/sched18_final.v`](artifacts/sched18_final.v) 和 [`artifacts/sched18.svf`](artifacts/sched18.svf) 是 `sched18` 对应后端试验的网表与综合等价指引。加载整核 RTL 时使用 [v21 源清单](../../flow/build/filelists/files_adc_v21.f)。
 - [`artifacts/DC_MODULE_SUMMARY.txt`](artifacts/DC_MODULE_SUMMARY.txt) 留存当时的单模块汇总，包括 `recon_v21` 的诊断配置。层级重叠的面积不用于估算整核面积。
-- [`_superseded/`](_superseded/) 保留按阶段写下的探索记录和已更正判断。复查更正原因时从[模块结果与边界](ALL_13_MODULES_FINAL.md)的更正表进入。
+- [退役后端记录](../_history/backend/superseded/) 保留探索过程和已更正判断。[旧结构核的专题与数据](../_history/structural_adc/)按当时的顶层和提交查阅。复查更正原因时从[模块结果与边界](ALL_13_MODULES_FINAL.md)的更正表进入。

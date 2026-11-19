@@ -70,7 +70,9 @@
 | D. 用 `compile_ultra -incremental` 或分阶段 compile | 未知 | 未试 |
 | E. 保持现状，先交付 RTL 级证据，后端标注"综合阻塞" | 无 PPA | 交付不完整 |
 
-## 7. 复跑
+## 7. 原基线的复跑记录
+
+下列命令保留当时的暂存路径。现行整核从[仓库生产清单](../../flow/build/filelists/files_adc_v21.f)读入本次检出，参数见[后端入口](../../flow/synth/README.md)。
 
 ```bash
 ssh vm-yian 'rm -rf /tmp/dcwork7 && mkdir -p /tmp/dcwork7 &&

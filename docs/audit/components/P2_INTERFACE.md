@@ -1,8 +1,8 @@
-> **状态说明（2026-11-12）**：本文引用的 `8`、`8` 当前不在本仓库内，原文链接已改为纯文本；这些条目只代表历史计划。
-
 # P2/P3 模块接口与向量格式（冻结）
 
-> 当前实现修订：以 [ADR 0016](../../guide/decisions/0016-rtl-configuration-and-dither.md) 和
+此页用于冻结组件输入与向量。生产数字顶层的接口见[工程合同](../../CONTRACT_CURRENT.md)。
+
+> 此组件当时的修订见 [ADR 0016](../../guide/decisions/0016-rtl-configuration-and-dither.md) 和
 > [ADR 0017](../../guide/decisions/0017-rtl-fixed-phase-capture-and-structure.md) 为准。
 > 顶层端口与 16 相位保持；ready 在相位 8/14 作为采样截止条件，缺失则丢弃该次转换。
 > 内部配置端口增加完整性检测和四位原子控制写。下列模块接口已同步。

@@ -12,6 +12,8 @@
 | 可复用组件及研究扩展 | [组件接口](../audit/components/CURRENT_INTERFACE_AND_ARITHMETIC.md)定义组件测试口径。[subsys/](../../subsys/)存放 DSP、CAAZ 与对照实验。生产顶层的接口以工程合同为准。 |
 | 运行和发布 | [tools/](../../tools/)存放命令和参考计算，[flow/](../../flow/)存放清单、测试、综合与形式验证流程。根层打包配置定义 Python 交付，[.github/](../../.github/)存放 CI 和协作模板。 |
 
+PCG 选片原型由独立组件测试调用。生产事务在 `defaults.py` 使用 RTL 整数镜像 `sched18_rtl.py`；Fig.11 电荷研究须由 `subsys/experiments/fig11.py` 显式装配。[调度源码](../../src/adi_model/sched18_rtl.py) · [工作树复核](../audit/TREE_AUDIT_REPORT.md#current-tree-review)
+
 ## docs 的九个目录
 
 | 目录 | 保留的内容 |
@@ -21,7 +23,7 @@
 | [v21/](../v21/) | 当前数字 IP 的物理接口、开关规则、权重配置、算术证明和整核实现记录。首查[合同总表](../CONTRACT_CURRENT.md)。 |
 | [guide/](../guide/QUICKSTART.md) | 模型上手、架构、术语、排查以及[历次设计决策](../guide/decisions/README.md)。 |
 | [mechanisms/](../mechanisms/README.md) | 按论文和专利原图解释各机制，图号与原始出处配对。[原件清单](../../references/README.md) |
-| [audit/](../audit/README.md) | 独立审查与报告，`reviews/` 收专题复核，`components/` 收独立组件说明，`artifacts/` 收已登记的网表和工具证据。 |
+| [audit/](../audit/README.md) | 独立审查与报告，`reviews/` 收专题复核，`components/` 收组件接口和诊断说明，`artifacts/` 收已登记的网表和工具证据。 |
 | [caaz/](../caaz/README.md) | 斩波辅助自归零研究。与随机化的组合实验在 [randomization/](../caaz/randomization/README.md)。 |
 | [meta/](./) | 仓库归属、维护约定、[变更记录](CHANGELOG.md)、[许可](LICENSE)、[声明](NOTICE)与[引用信息](CITATION.cff)。 |
 | [_history/](../_history/) | 按当时输入复查的验收、接口草案与输出。老 D3/D4 交接在 [d3d4/](../_history/d3d4/)，原模型报告及绘图在 [model_results/](../_history/model_results/README.md)。 |

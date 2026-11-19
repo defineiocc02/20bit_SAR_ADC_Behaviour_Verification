@@ -1,6 +1,6 @@
 # I5 环境与工具核查（TSMC 28HPC+）
 
-时间：2026-11-15　执行主机：`vm-yian`
+时间：2026-11-15　执行环境：当次 28HPC+ EDA 主机
 依据：方案 v1.4 §10、§11.2 I5；目标要求"开工时并行核实……工具与许可、
 实际目标 PDK、标准单元 Liberty/LEF、PVT/RC 角、提取参数和 DRC/LVS 规则"。
 
@@ -12,7 +12,7 @@
 
 ## 1. 标准单元库（已核实，齐全）
 
-路径：`/home/yian/PDK/tsmc28/digital_technology/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn28hpcplusbwp7t40p140_180a/`
+路径：`${V21_PDK_ROOT}/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn28hpcplusbwp7t40p140_180a/`
 
 | PVT 角 | db 文件 | 用途 |
 |:---|:---|:---|

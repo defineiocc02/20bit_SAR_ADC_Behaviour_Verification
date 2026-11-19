@@ -1,5 +1,7 @@
 # Formality 20 个 failing compare point 的根因诊断
 
+本页保留历史网表的诊断过程。现行整核参考端与产物身份见[后端入口](../../flow/synth/README.md)，证据范围见[项目状态](../STATUS.md)。
+
 时间：2026-11-16　工具：Formality W-2024.09-SP3 / Design Compiler W-2024.09-SP3 / VCS W-2024.09-SP1
 诊断对象：两版网表
 
@@ -821,7 +823,7 @@ PY
 
 # 2) 12 点 G 扫描（tb_scan.v 在 /tmp/fmproof/）
 cd /tmp/fmproof
-L=/home/yian/PDK/tsmc28/digital_technology/TSMCHOME/digital/Front_End/verilog/tcbn28hpcplusbwp7t40p140_110a/tcbn28hpcplusbwp7t40p140.v
+L=${V21_PDK_ROOT}/TSMCHOME/digital/Front_End/verilog/tcbn28hpcplusbwp7t40p140_110a/tcbn28hpcplusbwp7t40p140.v
 vcs -full64 -sverilog -timescale=1ns/1ps -o simscan_net \
     net_recip.v tb_scan.v $L -Mdir=csrc_scan_net
 ./simscan_net | grep '^SCAN'        # 旧网表：12/12 输出 2

@@ -61,11 +61,6 @@ STEP_DB_OK → STEP_SVF_OK → STEP_SUPPRESS_OK → STEP_REF_READ_OK
 **也不加 G 范围约束**：12 个合法 G 全在合同域 `[2^34, 2^36]` 内网表仍全错
 （当年的 LUT 缺陷），域外解释不了。
 
-## 6. 复跑
+## 6. 核对同一份输入
 
-```bash
-# 前置：dc_synth_v21.tcl 生成网表与 SVF
-D3D4_RUNNER=vm-yian bash tools/check_formal.sh [timeout_sec]
-
-# 三态退出码：0 PASS / 1 FAIL / 2 INCONCLUSIVE（超时不当作通过）
-```
+本页保留旧运行的原始基线。现在用 `tclsh flow/synth/v21/design_inputs.tcl --check-dc "$V21_DC_DIR"` 检查当前源码、网表和 SVF 的收据。启动方式、执行主机和工作目录见[后端入口](../../flow/synth/README.md)。旧网表的 20 个失败点仍归原运行，本次结构复核没有新增商业工具等价结论。

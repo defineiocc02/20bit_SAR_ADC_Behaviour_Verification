@@ -19,10 +19,15 @@
 #   2026-11-16  v5.0 改为逐文件读取。
 # =============================================================================
 
+source [file join [file dirname [file normalize [info script]]] design_inputs.tcl]
 set DESIGN adc_digital_ip_v21
-set PDK    /home/yian/PDK/tsmc28/digital_technology
+set PDK    [v21::pdk]
 set DB     $PDK/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn28hpcplusbwp7t40p140_180a/tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs.db
-set RTLDIR /tmp/ip
+set RTLDIR $v21::root
+set DC_DIR [v21::dc_dir]
+# 加载数据库前先核对整个参考清单、网表与 SVF 的实际字节。
+v21::check_dc $DC_DIR $DESIGN
+puts "STEP_INPUTS_OK"
 
 set_app_var search_path [list . $RTLDIR $RTLDIR/rtl $RTLDIR/rtl/v21]
 
@@ -31,29 +36,18 @@ puts "STEP_DB_OK"
 
 # **加载 DC 写出的 SVF**（必须在读设计之前）。
 #
-# 为什么必须：DC 综合会做极性变换（用 DFCNQD1 反相输出触发器）、
-# 寄存器合并、常量传播。Formality 需要 SVF 才能复现这些操作，
-# 否则静默失配 —— 本轮实测没有 SVF 时 20 个 failing compare point，
-# 全部集中在用了 DFCNQD1 的寄存器上（quiet_cnt_q / conv_valid_q /
-# conv_captured_q / conv_held_q）。
-if {[catch {set_svf /tmp/dcwork/${DESIGN}.svf} e]} {
-  puts "STEP_SVF_FAIL: [string range $e 0 120]"
+# SVF 记录 DC 的常量传播、寄存器合并或极性变换。网表及 SVF 都已按本次
+# 检出的收据核验。历史失败点绑定当时网表，见 docs/v21/FORMAL_STATUS.md。
+if {[catch {set_svf [file join $DC_DIR ${DESIGN}.svf]} e]} {
+  error "STEP_SVF_FAIL: $e"
 } else {
   puts "STEP_SVF_OK"
 }
 
 # ---- 抑制已知的良性 RTL 解释消息 ----
 #
-# FMR_VLOG-091：函数使用非局部变量。
-#   wsum_v21 的 f_Wm / f_Wp 直接引用模块级 `w_sub_tbl`（权重表）。
-#   这在 SV 里是合法的（函数可读模块作用域），综合与仿真行为一致 ——
-#   门级等价已在 1464 拍上验证过这一点。
-#   但 Formality 默认把这类消息当"可能导致仿真/综合不一致"而拒绝 link
-#   （FM-089 / FM-262），必须显式抑制。
-#
-# FMR_VLOG-057 / FMR_VLOG-063：有符号/无符号赋值。
-#   recip_q60 里本来就有的混合位宽运算，已由 tb_recip_q60
-#   （43766 笔逐位一致）证明行为正确。
+# 历史导入流程在函数读取模块级变量、有符号/无符号转换等情形使用下列消息设置。
+# 这些设置仅控制工具导入；结果仍取自本次 match/verify 与退出状态。
 suppress_message FMR_VLOG-091
 suppress_message FMR_VLOG-057
 suppress_message FMR_VLOG-063
@@ -62,19 +56,7 @@ puts "STEP_SUPPRESS_OK"
 
 # ---- 参考端：逐个文件读（Formality 不接受一次多个文件）----
 # 参考端采用与综合相同的数字顶层和子模块，ADC2 节点模型由仿真环境使用。
-set RTL_FILES [list \
-  $RTLDIR/rtl/sched18.sv \
-  $RTLDIR/rtl/dither_pre.sv \
-  $RTLDIR/rtl/dem_mask_v3.sv \
-  $RTLDIR/rtl/recip_q60.sv \
-  $RTLDIR/rtl/v21/acq_conv_ctx.sv \
-  $RTLDIR/rtl/v21/sar_evt_v21.sv \
-  $RTLDIR/rtl/v21/adc2_capture.sv \
-  $RTLDIR/rtl/v21/wsum_v21.sv \
-  $RTLDIR/rtl/v21/recip_rnd_v21.sv \
-  $RTLDIR/rtl/v21/recon_v21.sv \
-  $RTLDIR/rtl/v21/adc_digital_ip_v21.sv \
-]
+set RTL_FILES [v21::sources]
 set nfail 0
 foreach f $RTL_FILES {
   if {[catch {read_sverilog -container r $f} e]} {
@@ -82,7 +64,8 @@ foreach f $RTL_FILES {
     incr nfail
   }
 }
-puts "STEP_REF_READ_OK fail=$nfail"
+if {$nfail} { error "reference files failed to load: $nfail" }
+puts "STEP_REF_READ_OK"
 
 set_top r:/WORK/$DESIGN
 puts "STEP_REF_TOP_OK"
@@ -91,13 +74,13 @@ puts "STEP_REF_TOP_OK"
 # **必须显式指定 `-container i`**：
 # 不带时 Formality 把网表读进当前容器（此时是 r），
 # 之后 set_top i:/... 会报 "Unknown name"（FM-036）。
-read_verilog -container i -netlist /tmp/dcwork/${DESIGN}_syn.v
+read_verilog -container i -netlist [file join $DC_DIR ${DESIGN}_syn.v]
 set_top i:/WORK/$DESIGN
 puts "STEP_IMPL_TOP_OK"
 
 match
 puts "STEP_MATCH_OK"
 verify
-puts "STEP_VERIFY_OK"
+puts "STEP_VERIFY_DONE"
 report_status
 exit

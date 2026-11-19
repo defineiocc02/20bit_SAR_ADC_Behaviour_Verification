@@ -232,6 +232,7 @@ jobs:
         # 对照当前合同、Python、RTL 和图件，避免目录迁移留下坏链接或旧规格。
         # 算法图的检查仅读取图源、RTL 与已发布 SVG，无需浏览器或 EDA。
         run: |
+          python tools/check_doc_counts.py --check
           python tools/check_engineering.py
           node tools/v21_algorithm_atlas.mjs --check
       - name: Check index structure without relabeling unbuilt mechanisms

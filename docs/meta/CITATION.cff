@@ -9,7 +9,7 @@ authors:
     given-names: Reed
     alias: defineiocc02
     affiliation: Xidian University
-version: "9.0.0"
+version: "9.0.0+adi.repro"
 license: BSD-3-Clause
 repository-code: "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
 url: "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/tree/merge/adi-repro"

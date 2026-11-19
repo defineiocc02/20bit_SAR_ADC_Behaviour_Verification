@@ -21,14 +21,15 @@
 #   2026-11-16  v1.0 照 DC 的 read_db 写，FC 不认识。
 #   2026-11-16  v2.0 改 create_lib -ref_libs + NDM + set_top_module。
 # =============================================================================
+source [file join [file dirname [file normalize [info script]]] design_inputs.tcl]
 set DESIGN   sched18
-set PDK      /home/yian/PDK/tsmc28/digital_technology
+set PDK      [v21::pdk]
 set LIB_SS   $PDK/ndm/tcbn28hpcplusbwp7t40p140.ndm
 set TLU_DIR  $PDK/installed/tech/rc_1p9m_4x2y2r
 set TLU_MAX  $TLU_DIR/cln28hpc+_1p09m+ut-alrdl_4x2y2r_cworst.tluplus
 set TLU_MIN  $TLU_DIR/cln28hpc+_1p09m+ut-alrdl_4x2y2r_cbest.tluplus
 set PERIOD   25.0
-set WORK     /tmp/fc_sched18
+set WORK     [v21::location V21_FC_DIR [file join [pwd] fc_sched18]]
 set REF      $WORK/ref
 
 file mkdir $WORK
@@ -39,7 +40,7 @@ create_lib -ref_libs $LIB_SS $REF/lib
 puts "STEP_CREATE_LIB_OK"
 
 # ---------------------------------------------------------------- 读 RTL
-analyze -format sverilog /tmp/ip/rtl/sched18.sv
+analyze -format sverilog [file join $v21::root rtl sched18.sv]
 elaborate $DESIGN
 puts "STEP_ELAB_OK"
 set_top_module $DESIGN
@@ -52,8 +53,8 @@ puts "STEP_TOP_OK"
 # 库本身有 PG 引脚（get_lib_pins */*/VDD -> 839 个，dir=in），
 # 但 PD 与 supply net 没有关联。命令式 UPF 全部 rc=1，
 # 所以用文件式 load_upf。
-if {[file exists /tmp/min_single_domain.upf]} {
-    set _r [catch {load_upf /tmp/min_single_domain.upf} _e]
+if {[file exists [file join $v21::root flow synth v21 min_single_domain.upf]]} {
+    set _r [catch {load_upf [file join $v21::root flow synth v21 min_single_domain.upf]} _e]
     puts "CHK_UPF rc=$_r [string range $_e 0 100]"
     # **电压必须在这里设**：set_voltage 是 TCL 命令，需要 design 上下文；
     # 写进 UPF 文件里会报 CMD-005 unknown command。

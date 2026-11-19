@@ -11,12 +11,17 @@
 #   * 源机制反例核对需通过 4 项，失败时输出脚本原始结果。
 #   * SKIP_HEAVY 非空时跳过失配扫描和单笔轨迹，保留上述检查。
 #   * 通过 PYTHON 指定已安装项目依赖的解释器，默认使用 python3。
-#   * bash tools/verify_clean_clone.sh <repo-path> 可指定待克隆仓库。
+#   * 本地验证传入仓库的 HEAD；传入远端 URL 时验证本脚本所在提交。V21_REVISION 可固定其他提交。
 # =============================================================================
 set -u
 
 PYTHON="${PYTHON:-python3}"
-SRC="${1:-$(cd "$(dirname "$0")/.." && pwd)}"
+ROOT=$(cd "$(dirname "$0")/.." && pwd -P)
+SRC="${1:-$ROOT}"
+# GitHub 的默认分支与复现分支不同，不能让远端 HEAD 替调用者决定测试对象。
+revision_root=$ROOT
+if [[ -d $SRC ]]; then revision_root=$SRC; fi
+REV=${V21_REVISION:-$(git -C "$revision_root" rev-parse --verify HEAD)}
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/clean-clone-XXXXXX")"
 CLONE="$WORK/repo"
 FAILED=0
@@ -26,10 +31,17 @@ ok()   { printf 'PASS  %s\n' "$1"; }
 bad()  { printf 'FAIL  %s\n' "$1"; FAILED=$((FAILED + 1)); }
 
 note "clone"
-if ! git clone -q "$SRC" "$CLONE"; then
+if ! git clone -q --no-checkout -- "$SRC" "$CLONE"; then
   echo "FAIL  git clone of $SRC"; exit 1
 fi
 cd "$CLONE" || exit 1
+# 普通克隆只创建默认本地分支，非默认分支仍在 refs/remotes/origin/ 下。
+# 无效 revision 必须中止，不能用 main 或旧的 checkout 结果继续验收。
+commit=$(git rev-parse --verify --quiet --end-of-options "$REV^{commit}" ||
+         git rev-parse --verify --quiet --end-of-options "refs/remotes/origin/$REV^{commit}") || {
+  echo "FAIL  requested revision is absent: $REV" >&2; exit 1
+}
+git checkout -q --detach "$commit" || exit 1
 printf 'source: %s\nat commit: %s\n' "$SRC" "$(git rev-parse --short HEAD)"
 
 # 1. 当前测试目录

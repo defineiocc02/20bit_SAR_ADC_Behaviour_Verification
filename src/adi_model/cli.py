@@ -117,44 +117,55 @@ def load_config(path: Path) -> Config:
     return config
 
 
-# 成功回执只证明声明的字段可组成合法配置。
-# 需要出码或核对开关时必须真的运行 simulate。
+# 两种 JSON 的用途在命令和回执中显式区分。保留 --config 的原有组件合同。
+# --parameters 与 --config-overrides 则经过 simulate 使用的同一个生产构造器。
 def main_validate_config(argv: Sequence[str] | None = None) -> int:
-    """检查必填配置，错误退出2；成功仅表示配置输入检查通过。"""
+    """验证输入并返回其用途，退出 0 或 2。检查本身不产生样本或文件。"""
     parser = _ConfigParser(
-        prog="adi-validate-config", description="检查明确提供的JSON配置；不运行仿真。"
+        prog="adi-validate-config",
+        allow_abbrev=False,
+        description="检查生产数字模型参数，或显式检查低层组件 Config。",
     )
-    parser.add_argument("--config", type=Path, required=True, metavar="FILE.json")
+    parser.add_argument("--config", type=Path, metavar="FILE.json", help="低层组件的完整 Config")
+    _add_production_inputs(parser)
     args = parser.parse_args(argv)
+    # 空 JSON 对象是合法的生产默认值。按是否传入路径分组，不能按文件内容的真值猜类型。
+    # 混用低层配置和两份生产输入时拒绝，以免其中一份文件被忽略却仍返回“有效”。
+    production = args.parameters is not None or args.config_overrides is not None
+    if (args.config is not None) == production:
+        parser.error(
+            "use --parameters / --config-overrides for the production model, or --config for a component"
+        )
+    result: dict[str, Any] = {
+        "scope": "adc_digital_ip_v21" if production else "component_config",
+        "model_run": False,
+    }
+    if args.config is not None:
+        result["config"] = str(args.config)
     try:
-        load_config(args.config)
+        if production:
+            parameters, overrides, inputs = _simulation_inputs(args)
+            default_model(parameters=parameters, config_overrides=overrides)
+            # 此处只验证目标接口与装表边界，不进入 simulate，也不创建运行输出目录。
+            # 预检回执保留每份输入的角色与字节身份。完整权重数组留在调用者的文件内。
+            result["input_files"] = [
+                {key: item[key] for key in ("role", "path", "sha256")} for item in inputs
+            ]
+        else:
+            load_config(args.config)
     except (OSError, UnicodeError, ValueError, TypeError, ConfigError) as exc:
         print(
             json.dumps(
-                {
-                    "status": "CONFIGURATION_REJECTED",
-                    "config": str(args.config),
-                    "error": str(exc),
-                    "model_run": False,
-                },
+                {**result, "status": "CONFIGURATION_REJECTED", "error": str(exc)},
                 ensure_ascii=False,
                 allow_nan=False,
             ),
             file=sys.stderr,
         )
         return 2
-    print(
-        json.dumps(
-            {
-                "status": "CONFIG_INPUTS_VALID",
-                "config": str(args.config),
-                "model_run": False,
-                "source_conformance": "NOT_ASSESSED",
-            },
-            ensure_ascii=False,
-            allow_nan=False,
-        )
-    )
+    # CONFIG_INPUTS_VALID 兼容旧调用者；scope 使一份组件校验回执不能冒充生产配置验收。
+    result.update(status="CONFIG_INPUTS_VALID", source_conformance="NOT_ASSESSED")
+    print(json.dumps(result, ensure_ascii=False, allow_nan=False))
     return 0
 
 
@@ -162,6 +173,22 @@ def main_validate_config(argv: Sequence[str] | None = None) -> int:
 # 参数文件和配置覆盖各自登记角色与原始摘要。二者最终仍交给同一个
 # 生产构造器检查，以免一个入口宽容、一条路径却使用截断值。
 # 可选的制造参数只进入外部宏，不改变数字权重种子或启动状态。
+def _add_production_inputs(parser: argparse.ArgumentParser) -> None:
+    """校验与模拟共用参数名和文件语义，低层组件另有 --config。"""
+    parser.add_argument(
+        "--parameters",
+        type=Path,
+        metavar="FILE.json",
+        help="可选生产模型参数 JSON，包括器件与独立加载的 18×20 权重表",
+    )
+    parser.add_argument(
+        "--config-overrides",
+        type=Path,
+        metavar="FILE.json",
+        help="覆盖采样率、外部宏或控制配置；非法位宽/阵列拒绝",
+    )
+
+
 def _simulation_inputs(args) -> tuple[DefaultParameters | None, dict | None, list[dict]]:
     parameters = None
     overrides = None
@@ -279,18 +306,7 @@ def main_simulate(argv: Sequence[str] | None = None) -> int:
         default=DEFAULT_SEED,
         help="制造和宏噪声激励的根种子；片内字源遵循固定复位种子",
     )
-    parser.add_argument(
-        "--parameters",
-        type=Path,
-        metavar="FILE.json",
-        help="可选生产模型参数 JSON，包括器件与独立加载的 18×20 权重表",
-    )
-    parser.add_argument(
-        "--config-overrides",
-        type=Path,
-        metavar="FILE.json",
-        help="覆盖采样率、外部宏或控制配置；非法位宽/阵列拒绝",
-    )
+    _add_production_inputs(parser)
     parser.add_argument(
         "--output",
         type=Path,

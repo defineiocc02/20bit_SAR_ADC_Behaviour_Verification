@@ -1,4 +1,174 @@
-# 20 位 SAR ADC 原文对照、静态线性度与流片就绪性审计
+# 工作树、版本与数字 IP 证据审查
+
+<a id="current-tree-review"></a>
+## 2026-11-20　结构与版本复核
+
+修正前基线为 `merge/adi-repro@e50393a`，对照 GitHub 默认分支 `main@bc9a16a`。以下命令从仓库根运行。A1–A6 对应本次实测；11 月 18–19 日的图、EDA 记录及其 E1–E9 命令在后半部分按原基线保存。
+
+### 本次结论
+
+1. 复现分支的生产清单只有一个可达整核 `adc_digital_ip_v21`。默认 Python 的公共 API 和命令行使用同一个生产事务构造器。A1、A2。
+2. 全仓库有其他 Git 分支和历史标签。两个不同基线曾产出同名、同号、不同内容的 wheel。复现分支现用完整版本 `9.0.0+adi.repro`，运行仍应记录提交号。A1、A3。
+3. 远端复现分支的根为 9 个目录、4 个文件；`docs/` 根只设索引、状态和合同三份 Markdown。34 份被取代的后端或旧结构核记录已移入 `docs/_history/`。工作树从 927 个文件变为 929 个，增添一份后端读取器与一份定向测试。A1、A4。
+4. 当前 DC、FC 和 Formality 参考端从各自所在检出读同一清单。普通 Tcl 分别截获三个入口的真实 11 项，并用额外探针验证顺序、变更传播与错配拒绝。新脚本的商业工具执行、同版整核网表与等价结果仍待实跑。A2、A5。
+
+### 问题、证据与处置
+
+| 问题 | 严重度 | 证据命令 | 已修正或待决定 |
+| --- | --- | --- | --- |
+| 两条工程线都生成 `sar_adc_behaviour_verification-9.0.0-py3-none-any.whl`，其中 `adi_model/defaults.py` 字节不同 | 高 | A3 实际构建三个 wheel | 打包、CFF、两份语言入口和变更记录采用同一完整版本；包主页定位复现分支。 |
+| DC、整核 FC、Formality 原来各有一套手写文件表，且从共享 `/tmp/ip` 读源。原 Formality 包装只传 Tcl，并从固定目录取网表与 SVF | 高 | A2、A5 | 一个 Tcl 读取器继承原有生产清单。DC 记录源、网表和 SVF 摘要。FM 核对字节后读设计，在新目录保留本次日志。 |
+| 本机清理缺省根落入 `flow/`；指定正确根后，曾把两份 Git 跟踪的 Vivado 报告列为候选 | 高 | A6 的旧脚本预览及临时仓库测试 | 本机与远端复用同一保护逻辑，检查索引、嵌套仓库和实际测试目录。远端要求明确主机与 Git 检出。 |
+| 来源清单把 `ffcc011` 的旧 JSON 摘要写在当前归档路径旁，原报告路径已迁移 | 中 | A4 对两个 Git 对象与当前文件重新计算 SHA-256 | 现将 Git 历史对象与工作树实物分栏登记。历史存证测试核对实际摘要。 |
+| 过期后端结论散在审计区；旧结构核文档把 `sar20_digital_core`、旧 ADC2 或 17/5 研究阵列称作生产主线 | 中 | A4、A6 | 19 份旧后端记录、15 份旧结构核专题/数据各归单一历史目录。保留仍服务组件的接口说明，修正研究决策里的现在时。 |
+| 名为 `fc_rtl_to_gds_derived.tcl` 的实验实际只 `elaborate sched18`；从远端 URL 清洁克隆原来跟随默认分支 | 中 | A1、A2、A5 | 叶子脚本改名 `fc_sched18_derived_lef.tcl`。克隆验证锁定发起提交或 `V21_REVISION`。 |
+| GitHub 默认 `main` 有 10 个目录和 18 个文件，首页仍打开另一条工程线 | [需仓主决策] | A1 的远端 API 与分支树 | README 给出显式克隆命令；将复现线合并进 `main` 或变更全库默认分支属于单独的发布决策。 |
+
+### 六个入口分别负责什么
+
+| 页面 | 对照的对象与结果 |
+| --- | --- |
+| [根 README](../../README.md) | 分支名、包号、唯一顶层、9 个目录和 4 个根文件。克隆命令显式选分支，图册与实际 PDF 的链接由远端 README 核验。A1、A3。 |
+| [文档索引](../INDEX.md) | 按问题转到规范、代码、状态、实测与历史。新结构复核有独立锚点，旧 E1–E9 的复现上下文保留。A1、A6。 |
+| [生产合同](../CONTRACT_CURRENT.md) | 13 位 ADC2、跨度 0.75 V，采样低段与最终命令 `k=c+U`。与生产代码、配置校验及真实顶层轨迹核对。A2、A5。 |
+| [RTL 导航](../../rtl/README.md) | 生产源 11 份与全部 RTL 清点 29 份各有用途。仿真宏只在仿真环境读入；源码集合、模块可达性和顶层引脚分别验证。A2。 |
+| [项目状态](../STATUS.md) | 192 笔 25 ns 间隔对应理想宏和 640 MHz 数字时钟，归档模块形式等价和现行整核覆盖分开记录。A2。 |
+| [审计入口](README.md) | 整核新问题、组件合同、模块级报告和撤回的探索记录已分开。旧结构核的“生产”一词只归原始提交，新位置见 A4。 |
+
+### 看起来相似的文件与模块
+
+| 对象 | 谁在使用，现行范围是什么 |
+| --- | --- |
+| `rtl_sources.f`、`files_adc_v21.f`、`files_adc_v21_sim.f`、`files_d3d4.f` | 依次是全部 RTL 覆盖清点、生产整核、继承生产清单的仿真、独立 DEM/扰动叶子。生产顶层有 8 种直接实例和 2 种传递依赖；仿真节点宏只在仿真环境中读入。A2。 |
+| `scheduler.py`、`sched18_rtl.py`、`scheduler18.py` | `control.scheduler` 提供组件控制器，`simulation.scheduler` 适配显式片组计划。生产 `defaults.py` 和片内字源导入 `sched18_rtl`。独立 PCG 原型 `scheduler18` 由单独测试消费。改变外部相位、扰动或权重属于同一生产模型的不同试验输入。A2、A4。 |
+| 两份 `fixed_point.py` | `adi_model.contracts.fixed_point` 提供通用系数和定点接口，`flow/verification/reference/fixed_point.py` 供独立算术参考。生产出码由 `adi_model.digital_conversion.reconstruct` 实现并与顶层对拍。A2、A4。 |
+| `STATUS.md`、大小写不同的 `ARCHITECTURE.md`；带日期的 `ACCEPTANCE`、带后缀的 `CHECKPOINT_I5_SYNTH` | 导航只把 `docs/STATUS.md` 与 `docs/guide/ARCHITECTURE.md` 作为现行页面。同类旧记录位于 `_history`，按其原提交解释。两处 `conftest.py` 分属工程测试与独立 CAAZ 测试；反复出现的 `README.md` 与 `__init__.py` 由各自目录确定作用域。A4。 |
+| `sources_manifest.json` 与 `references/source_manifest.json` | 前者为来源/机制审计提供论文、专利编号及历史输入身份，后者登记实际入库的六份 PDF。两者由不同消费者读取。A4。 |
+
+### 孤儿、旧入口与归档边界
+
+生产顶层直接连接 `dither_pre`、`sched18`、`acq_conv_ctx`、`sar_evt_v21`、`dem_mask_v3`、`adc2_capture`、`wsum_v21`、`recon_v21`。后者继续实例化 `recip_rnd_v21`，再到 `recip_q60`。11 份生产源全部可达。独立 `sar20_ad4080_top` 接收外部转换结果、实例化 `ad4080_top` 处理数据，属于 DSP 封装。RTL 总清点有 29 个文件，实测声明了 29 个互不重名的模块。独立模块保持其组件测试入口。归档表中取得 Formality 成功记录的七项里，四项在现行闭包中；`dem_phase_rr`、`dem_phase_gen`、`follower_rt` 只保留旧模块证据，当前 `rtl/` 已无这三个模块的定义。A2。
+
+`rtl/_legacy/`、`tools/_legacy/` 没有跟踪文件。`docs/_history/` 仍有明确的读取者。生产 filelist 和默认 Python 无须读取该目录。完整 pytest 会按来源清单核查历史 JSON 和随检出保存的 PDF；`tools/mutate_rtl.py` 的注释及多份 Markdown 也指向旧证据。整目录删除会丢失存证并影响归档检查。A4、A5。
+
+### 核对无异常与待确认
+
+- 本次归档迁移涉及 34 份记录，其中 33 份逐字节相同，另一份仅调整了相对链接。旧原件仍可从 `e50393a` 取回。A4。
+- Git 索引中没有已跟踪且命中 `.gitignore` 的文件，也没有 `*.log`、`*.vcd` 或 `__pycache__`。按十进制 1,000,000 字节计，8 个大文件分别是现行图册、两份旧报告、五份论文/讲稿。另由本地文件清单核对全部六份入库 PDF 的 SHA-256。A6。
+- 现行后端 Tcl 的源码、PDK 与运行目录可以更换检出或主机。现行取证说明以文献或路径变量定位原件。旧 Vivado 的两份原始报告及其来源 JSON，以及历史区的部分文本，仍包含生成端的绝对路径。历史证据按原字节验真。[需仓主决策] 若要对外分发脱敏原件，需单列脱敏副本及其摘要。A6。
+- 本轮核对的是路径、代码、可执行包和对照数据。采样率的宏假设、整核物理时序及商业工具签核仍按[项目状态](../STATUS.md)解释。
+
+本次实测的三个 wheel 中，旧 `main` 的默认模型 SHA-256 以 `2580d3e49002` 开头，原复现包和新复现包都以 `5134837be846` 开头。将新 wheel 安装到源码树外，以字 53 运行，实得粗码 202、RDAC 命令 206、ADC2 原码 6016、输出 410304。用仓内真实顶层轨迹复核，五种工况共 1,792 笔、每笔 36 个字段相符。A2、A3、A5。
+
+### 复现命令
+
+**A1　根目录与版本身份。** `main` 对照提交固定为本次核实的 `bc9a16a`；远端设置以执行查询的时刻为准。
+
+```bash
+python3 -B tools/check_doc_counts.py --check
+python3 -B tools/check_engineering.py
+git rev-parse HEAD
+git ls-tree bc9a16a | awk '{n[$2]++} END {print n["tree"], n["blob"]}'
+git ls-tree -r --name-only bc9a16a -- rtl/top
+slug=defineiocc02/20bit_SAR_ADC_Behaviour_Verification
+gh api "repos/$slug" --jq .default_branch
+gh api "repos/$slug/releases/latest" --jq .tag_name
+git ls-remote --symref origin HEAD
+git ls-remote --refs origin refs/heads/main refs/heads/merge/adi-repro 'refs/tags/v9*'
+```
+
+**A2　生产闭包与公共入口。** 整机清单用 Tcl 解析；可达性检查会从顶层沿实例递归，遇到清单中不可达的模块会报错。
+
+```bash
+tclsh flow/synth/v21/design_inputs.tcl --list
+node tools/v21_algorithm_atlas.mjs --check
+rg -n '^\s*\w+\s+u_\w+\s*\(' rtl/v21/{adc_digital_ip_v21,recon_v21,recip_rnd_v21}.sv
+rg -n 'module sar20_ad4080_top|ad4080_top #|u_dsp' subsys/ad4080_dsp/rtl/sar20_ad4080_top.sv
+rg -n 'SUCCEEDED|dem_phase_rr|dem_phase_gen|follower_rt' docs/audit/ALL_13_MODULES_FINAL.md
+rg -n 'default_model|from adi_model.defaults|^PROFILES|DEFAULT_PROFILE_ID' src/adi_model/{__init__,cli,defaults,contracts/profiles}.py
+bash tools/pyenv.sh --run tools/check_default_rtl.py tb/v21/sample_cadence.csv
+```
+
+**A3　制品撞名。** 在含项目构建依赖的 Python 环境运行。下面构建原两条线和本次检出，输出 wheel 文件名以及内含默认实现的 SHA-256。
+
+```bash
+audit_packages="$(mktemp -d)"
+for rev in bc9a16a e50393a HEAD; do
+  mkdir -p "$audit_packages/$rev/src" "$audit_packages/$rev/dist"
+  git archive "$rev" | tar -x -C "$audit_packages/$rev/src"
+  python -m pip wheel --no-deps --wheel-dir "$audit_packages/$rev/dist" "$audit_packages/$rev/src"
+done
+python - "$audit_packages" <<'PYTHON'
+from pathlib import Path
+from hashlib import sha256
+from zipfile import ZipFile
+import sys
+for p in sorted(Path(sys.argv[1]).glob('*/dist/*.whl')):
+    with ZipFile(p) as w:
+        print(p.parents[1].name, p.name, sha256(w.read('adi_model/defaults.py')).hexdigest())
+PYTHON
+```
+
+**A4　归档引用和重名。** 下列脚本将大小写、常见版本/日期后缀归一以发现候选；上表的裁定依实际 import、filelist、文档链接及 Git 对象。
+
+```bash
+git ls-files 'rtl/_legacy/**' 'tools/_legacy/**'
+git ls-files 'docs/_history/backend/superseded/**' 'docs/_history/structural_adc/**' | wc -l
+git diff --find-renames --summary e50393a HEAD -- docs/audit docs/_history
+rg -n --hidden 'docs/_history/|rtl/_legacy/|tools/_legacy/|worktree_artifacts' tb tools src flow .github subsys
+rg -n 'contracts.fixed_point|verification.reference.fixed_point|control.scheduler|simulation.scheduler|sched18_rtl|from adi_model.scheduler18' src tools flow subsys --glob '*.py'
+git show ffcc011:tools/results/results.json | shasum -a 256
+shasum -a 256 docs/_history/model_results/results.json docs/_history/report/reproduction_report.pdf
+python3 - <<'PYTHON'
+from collections import defaultdict
+from pathlib import Path
+import os, re, subprocess
+families = defaultdict(list)
+for raw in subprocess.check_output(['git','ls-files','-z']).split(b'\0'):
+    p = Path(os.fsdecode(raw))
+    if p.suffix in {'.sv','.v','.py','.md'} and p.name not in {'__init__.py','README.md'}:
+        stem = re.sub(r'(?i)(?:[_-](?:v\d+(?:[._-]\d+)*|old|legacy|superseded|final|draft|current|20\d{6}))+\Z','',p.stem)
+        families[stem.lower(), p.suffix].append(str(p))
+for key, paths in sorted(families.items()):
+    if len(paths)>1: print(*paths, sep='  ')
+PYTHON
+```
+
+**A5　定向回归。** 三个后端测试给临时清单插入一份探针源并截获读取列表；另四个测试分别篡改 RTL、网表、SVF 和清单。对于真实已有的 DC 产物，可在同一检出用 `tclsh flow/synth/v21/design_inputs.tcl --check-dc "$V21_DC_DIR"` 复核收据。
+
+```bash
+bash tools/pyenv.sh --run -m pytest -q flow/tests/unit/test_worktree_identity.py
+bash tools/pyenv.sh --run -m pytest -q flow/tests/unit/test_robustness_2026_09_25.py -k historical_reference_output
+```
+
+**A6　维护工具与版本控制卫生。** 第一条旧脚本仅预览，重现旧候选；第二条为修正后的预览。临时仓库删除行为由 A5 自动测试。
+
+```bash
+old_clean="$(mktemp -d)/clean.py"
+git show e50393a:flow/scripts/clean.py > "$old_clean"
+python3 -B "$old_clean" --root .
+python3 -B flow/scripts/clean.py
+git ls-files -ci --exclude-standard
+git ls-files '*.log' '*.vcd' '*.pyc' '*/__pycache__/*'
+git grep -IlE '(/Users/|/home/)[[:alnum:]_.-]+/|[A-Z]:[/\\]Users[/\\]' -- docs flow rtl src tools subsys .github
+python3 - <<'PYTHON'
+import os, subprocess
+from pathlib import Path
+from hashlib import sha256
+import json
+refs = json.loads(Path('references/source_manifest.json').read_text())['documents']
+for doc in refs:
+    item = Path(doc['target_relative_path'])
+    assert sha256(item.read_bytes()).hexdigest() == doc['sha256'], item
+print('入库原件', len(refs))
+for raw in subprocess.check_output(['git','ls-files','-z']).split(b'\0'):
+    if raw:
+        p=Path(os.fsdecode(raw))
+        if p.stat().st_size>1_000_000: print(p.stat().st_size,p)
+PYTHON
+```
+
+## 2026-11-18 至 19 日　原文、线性度与流片就绪性记录
 
 2026-11-18。审查基线为 `merge/adi-repro` 的 `9e4f1fd`，开始时工作树干净。文中的“原件”指实际阅读的论文页图、讲稿和授权专利；“实测”指本次文件、代码或实验检查；“估算”列出假设。11 月 18 日的静态实验运行 Python。11 月 19 日补充的顶层与重构功能对照使用本地 Verilator。VCS、DC、FC 和 Formality 的既有结果按其原运行记录引用。命令编号对应文末复核步骤。旧审查可按其提交直接打开。 [上一次审查原件](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/9e4f1fd5907c67ddf6e35406aec7bc0d1e7bf6b1/docs/audit/TREE_AUDIT_REPORT.md)
 

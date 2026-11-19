@@ -12,9 +12,10 @@
 # 变更记录   :
 #   2026-11-16  v1.0 初版。
 # =============================================================================
-set PDK /home/yian/PDK/tsmc28/digital_technology
+source [file join [file dirname [file normalize [info script]]] design_inputs.tcl]
+set PDK [v21::pdk]
 set DB  $PDK/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn28hpcplusbwp7t40p140_180a/tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs.db
-set_app_var search_path [list . /tmp/ip /tmp/ip/rtl /tmp/ip/rtl/v21]
+set_app_var search_path [list . $v21::root [file join $v21::root rtl] [file join $v21::root rtl v21]]
 set_app_var target_library [list $DB]
 set_app_var link_library   [list "*" $DB]
 

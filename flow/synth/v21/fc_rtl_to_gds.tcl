@@ -22,15 +22,16 @@
 #   2026-11-15  v3.0 补 TLU+ 寄生参数；补 floorplan/place/CTS/route/输出。
 # =============================================================================
 
+source [file join [file dirname [file normalize [info script]]] design_inputs.tcl]
 set DESIGN   adc_digital_ip_v21
-set PDK      /home/yian/PDK/tsmc28/digital_technology
+set PDK      [v21::pdk]
 set LIB_SS   $PDK/ndm/tcbn28hpcplusbwp7t40p140.ndm
 set TLU_DIR  $PDK/installed/tech/rc_1p9m_4x2y2r
 set TLU_MAX  $TLU_DIR/cln28hpc+_1p09m+ut-alrdl_4x2y2r_cworst.tluplus
 set TLU_MIN  $TLU_DIR/cln28hpc+_1p09m+ut-alrdl_4x2y2r_cbest.tluplus
 set GDS_MAP  $PDK/installed/tech/synopsys_pr/N28_PRTF_Syn_v1d5a/PR_tech/Synopsys/GdsOutMap/gdsout_4X2Y1Z.map
 set PERIOD   25.0
-set WORK     /tmp/fcwork
+set WORK     [v21::location V21_FC_DIR [file join [pwd] fc]]
 set REF      $WORK/ref
 
 file mkdir $WORK
@@ -43,19 +44,7 @@ puts "STEP_CREATE_LIB_OK"
 
 # ---------------------------------------------------------------- 读入综合源码
 # recon_v21 经 recip_rnd_v21 调用 recip_q60，物理实现也需要读入完整的重构链。
-set RTL {
-  /tmp/ip/rtl/dither_pre.sv
-  /tmp/ip/rtl/dem_mask_v3.sv
-  /tmp/ip/rtl/sched18.sv
-  /tmp/ip/rtl/v21/acq_conv_ctx.sv
-  /tmp/ip/rtl/v21/sar_evt_v21.sv
-  /tmp/ip/rtl/v21/adc2_capture.sv
-  /tmp/ip/rtl/recip_q60.sv
-  /tmp/ip/rtl/v21/wsum_v21.sv
-  /tmp/ip/rtl/v21/recip_rnd_v21.sv
-  /tmp/ip/rtl/v21/recon_v21.sv
-  /tmp/ip/rtl/v21/adc_digital_ip_v21.sv
-}
+set RTL [v21::sources]
 foreach f $RTL { analyze -format sverilog $f }
 
 elaborate $DESIGN

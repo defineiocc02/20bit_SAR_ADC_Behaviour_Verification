@@ -1,24 +1,30 @@
-# 完整流程：.tf 层定义 + 生成 tech LEF（含 DIRECTION）
-set PDK  /home/yian/PDK/tsmc28/digital_technology
+# =============================================================================
+# 文件名     : fc_sched18_derived_lef.tcl
+# 功能       : 仅在 sched18 叶子模块上检查派生 tech LEF、site row 与供电配置。
+# 设计说明   : 选择目标的依据是下文的 elaborate sched18。各阶段的 STEP 表示
+#              调用记录，模块级物理结果另看原始工具报告。
+# =============================================================================
+source [file join [file dirname [file normalize [info script]]] design_inputs.tcl]
+set PDK [v21::pdk]
 set TF   $PDK/installed/tech/synopsys_pr/N28_PRTF_Syn_v1d5a/PR_tech/Synopsys/TechFile/HVH/tsmcn28_9lm4X2Y2RUTRDL.tf
 set NDM  $PDK/ndm/tcbn28hpcplusbwp7t40p140.ndm
 set TLU  $PDK/installed/tech/rc_1p9m_4x2y2r
-set WORK /tmp/fc_final
+set WORK [v21::location V21_FC_DIR [file join [pwd] fc_sched18_derived]]
 file mkdir $WORK/ref
 create_lib -technology $TF -ref_libs $NDM $WORK/ref/lib
 puts "STEP_CREATE_LIB_OK"
-analyze -format sverilog /tmp/ip/rtl/sched18.sv
+analyze -format sverilog [file join $v21::root rtl sched18.sv]
 elaborate sched18
 set_top_module sched18
 # 关键：读自带 DIRECTION 的 tech LEF（.tf 只给几何、不含方向）
-set _rt [catch {read_tech_lef /tmp/tsmc28_tech_gen.lef} _et]
+set _rt [catch {read_tech_lef [file join $v21::root flow synth v21 tsmc28_tech_derived.lef]} _et]
 puts "CHK_TECH rc=$_rt"
 # **必须加载 UPF 并设电压**：否则日志出现
 #   Number of used supplies = 0
 # 导致 place_opt 插入的 buffer（A689 这类）没有电源上下文、
 # 报了 168 个 "is not placed"。
 # UPF 本身已由 check_mv_design 验证通过（UPF-072 committed）。
-set _ru [catch {load_upf /tmp/min_single_domain.upf} _eu]
+set _ru [catch {load_upf [file join $v21::root flow synth v21 min_single_domain.upf]} _eu]
 puts "CHK_UPF rc=$_ru"
 set _rv1 [catch {set_voltage 0.81 -object_list [get_supply_nets VDD]} _e1]
 set _rv2 [catch {set_voltage 0.00 -object_list [get_supply_nets VSS]} _e2]

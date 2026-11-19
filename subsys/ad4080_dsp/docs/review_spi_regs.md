@@ -1,7 +1,7 @@
 # AD4080 SPI 接口与配置寄存器 RTL 审查报告
 
 - 审查对象：`ad4080_rtl/rtl/spi_slave.sv`、`ad4080_rtl/rtl/ad4080_regs.sv`；为确认信号来源/去向，交叉查阅 `ad4080_top.sv`、`gpio_ctrl.sv`、`event_detect.sv`、`ad4080_dsp_chain.sv`、`sinc1_decim.sv`、`sinc5_decim.sv`、`sinc5_comp.sv`。
-- 手册依据：AD4080 Data Sheet Rev. B（纯文本 `/tmp/ad4080.txt`，原始 PDF `/Users/zhaoyi/Zotero/storage/E6WK8CIC/ad4080.pdf`）。文中页码均为页脚 `Rev. B | xx of 95`，括号内同时给出 `/tmp/ad4080.txt` 行号便于复核；图表结论以 PDF 渲染页为准。
+- 手册依据：AD4080 Data Sheet Rev. B（引文页码按 Rev. B 手册）。文中页码均为页脚 `Rev. B | xx of 95`，括号内同时给出 `/tmp/ad4080.txt` 行号便于复核；图表结论以 PDF 渲染页为准。
 - 方式：手册逐条比对 + 位宽/帧时序推演。**未修改任何 RTL 文件**，只给结论与可落地改法。
 - 等级定义：**P0** = 会导致功能错误（数据错、寄存器写不进/读不对）；**P1** = 协议或寄存器映射不兼容（符合手册的主机无法正常驱动）；**P2** = 健壮性/可维护性/锦上添花。
 - `[待确认]` 表示手册未写明或手册自身矛盾，需上游确认；未标注的结论均可由所引原文直接支撑。

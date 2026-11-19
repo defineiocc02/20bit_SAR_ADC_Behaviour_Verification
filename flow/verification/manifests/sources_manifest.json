@@ -310,8 +310,18 @@
   },
   "version_pin": {
     "code": "v7.0.10 (ffcc011)",
-    "reference_results": "docs/_history/model_results/results.json SHA256 a1ccd92f…35ac70（历史基线，非主线开发目标）",
-    "report": "docs/report/reproduction_report.pdf 18 页（v7.0.10）",
-    "note": "任务书 §2.2：旧参考输出保留为历史基线；修正物理机制后允许生成新结果，不以 JSON 逐字节不变为主线目标。"
+    "reference_results": "ffcc011:tools/results/results.json SHA256 a1ccd92fcf46500460221a55c4e2527093b45e6e272b7fb0503ee1fcd435ac70",
+    "report": "ffcc011:docs/report/reproduction_report.pdf（18 页）",
+    "note": "code、reference_results 和 report 标识原提交。worktree_artifacts 分别登记本检出实际保留的快照，均为历史证据。",
+    "worktree_artifacts": {
+      "reference_results": {
+        "path": "docs/_history/model_results/results.json",
+        "sha256": "3724a8ada35da8d8bba59696f9f025356be379ba9a515e6fcbfa44450741d092"
+      },
+      "report": {
+        "path": "docs/_history/report/reproduction_report.pdf",
+        "sha256": "bfd84a08652d2923a61334d26c908cfa4a068be2351eb05bcff77a4a2a30b369"
+      }
+    }
   }
 }

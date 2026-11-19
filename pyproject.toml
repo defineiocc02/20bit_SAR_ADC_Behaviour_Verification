@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 # ----------------------------------------------------------------- 项目元数据
 [project]
 name = "sar-adc-behaviour-verification"
-version = "9.0.0"
+version = "9.0.0+adi.repro"
 description = "Python transaction model for the 20-bit two-stage SAR ADC digital IP."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -50,7 +50,7 @@ dev = [
 docs = ["mkdocs>=1.5", "mkdocs-material>=9.4", "pypdf>=5"]
 
 [project.urls]
-Homepage = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
+Homepage = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/tree/merge/adi-repro"
 Documentation = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/merge/adi-repro/docs/INDEX.md"
 Issues = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/issues"
 Changelog = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/merge/adi-repro/docs/meta/CHANGELOG.md"

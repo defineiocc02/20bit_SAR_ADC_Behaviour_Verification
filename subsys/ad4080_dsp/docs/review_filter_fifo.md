@@ -1,7 +1,7 @@
 # AD4080 数字滤波器 / FIFO / 事件检测 RTL 审查报告
 
 - 审查对象：`ad4080_rtl/rtl/` 下 `sinc1_decim.sv`、`sinc5_decim.sv`、`sinc5_comp.sv`、`fifo_capture.sv`、`result_fifo.sv`、`event_detect.sv`、`cnv_ctrl.sv`，以及与之相关的集成文件 `ad4080_dsp_chain.sv`、`ad4080_regs.sv`、`gpio_ctrl.sv`、`ad4080_top.sv`。
-- 手册依据：AD4080 Data Sheet Rev. B（`/tmp/ad4080.txt`，原始 PDF `/Users/zhaoyi/Zotero/storage/E6WK8CIC/ad4080.pdf`）。文中页码均为手册页脚 "Rev. B | xx of 95"。
+- 手册依据：AD4080 Data Sheet Rev. B（引文页码按 Rev. B 手册）。文中页码均为手册页脚 "Rev. B | xx of 95"。
 - 方式：逐条比对 + 位宽/时序推演。**未修改任何 RTL 文件**，本报告只给结论与可落地改法。
 - 说明：`[待确认]` 表示手册未明确或需上游确认；未标注的结论均可由所引原文直接支撑。
 

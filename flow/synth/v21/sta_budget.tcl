@@ -51,17 +51,23 @@
 #                   -through 对照 -from 做语义实证；hold 不再重复查询。
 # =============================================================================
 
+source [file join [file dirname [file normalize [info script]]] design_inputs.tcl]
 set DESIGN  adc_digital_ip_v21
-set PDK     /home/yian/PDK/tsmc28/digital_technology
+set PDK     [v21::pdk]
 set LIBNAME tcbn28hpcplusbwp7t40p140ssg0p81vm40c_ccs
 set DB      $PDK/TSMCHOME/digital/Front_End/timing_power_noise/CCS/tcbn28hpcplusbwp7t40p140_180a/${LIBNAME}.db
-set NETLIST /tmp/dcwork/${DESIGN}_syn.v
-set OUTDIR  /tmp/sta_budget_out
+set NETLIST [file join [v21::dc_dir] ${DESIGN}_syn.v]
+set OUTDIR  [file join [pwd] sta_budget]
 set PERIOD  25.0
 
 # 允许用环境变量切换网表/输出目录：同一份脚本要能对"基线网表"和"最新网表"
-# 各跑一次做对照，否则数字会悄悄跟着 /tmp/dcwork 的覆盖而变（实际踩过）。
-if {[info exists ::env(STA_NETLIST)]} { set NETLIST $::env(STA_NETLIST) }
+# 各跑一次做对照，固定本次输入，避免沿用其他目录的结果（实际踩过）。
+if {[info exists ::env(STA_NETLIST)]} {
+  # 历史取数仍允许显式选网表，报告保留实际输入身份。
+  set NETLIST [file normalize $::env(STA_NETLIST)]
+} else {
+  v21::check_dc [v21::dc_dir] $DESIGN
+}
 if {[info exists ::env(STA_OUTDIR)]}  { set OUTDIR  $::env(STA_OUTDIR) }
 
 file mkdir $OUTDIR

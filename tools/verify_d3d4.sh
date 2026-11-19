@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
-# D3/D4 唯一验收入口：编译 -> 仿真 -> 逐位比对 -> 摘要
+# =============================================================================
+# 文件名     : verify_d3d4.sh
+# 功能       : 对独立 DEM 与扰动叶子编译、仿真并逐位比对。
+# 设计说明   : 这组输入验证叶子码表；现行整核由 verify_v21.sh 使用生产清单。
+# =============================================================================
 #
 # 本地：  bash tools/verify_d3d4.sh
-# 远端：  D3D4_WORKDIR=/root/pg D3D4_RUNNER="ssh vm-meow" bash tools/verify_d3d4.sh
+# 远端：  D3D4_WORKDIR=/tmp/d3d4-task D3D4_RUNNER="ssh your-eda-host" bash tools/verify_d3d4.sh
 #
 # 环境变量：
 #   D3D4_SIM     vcs | iverilog（默认 vcs）
-#   D3D4_RUNNER  远端前缀，如 "ssh vm-meow"
+#   D3D4_RUNNER  远端前缀，如 "ssh your-eda-host"
 #   D3D4_WORKDIR 远端工作目录
 #   D3D4_SETUP   覆盖默认的 EDA 环境（VCS_HOME + license）
 #   D3D4_LOG     本地日志路径

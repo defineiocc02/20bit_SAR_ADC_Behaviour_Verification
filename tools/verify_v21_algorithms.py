@@ -2,15 +2,15 @@
 # =============================================================================
 # 文件名     : verify_v21_algorithms.py
 # 模块名     : v21 数字 IP 算法对照与制图
-# 功能       : 用归档叶子输出、冻结向量和整数参考检验开关选择与加权出码。
+# 功能       : 对照归档验收与真实顶层逐笔记录，绘制数字 IP 的开关、交接和加权出码。
 # 设计说明   : 物理片 ID、掩码、整数码和标签保持原单位；输出区别向量复核、
-#              合同穷举和 RTL 源级反例。图不声称记录了新的 HDL 仿真波形。
+#              合同穷举和理想宏驱动的顶层观测。读取既有轨迹，无需重跑仿真。
 # =============================================================================
 """在仓库根运行；--out 指定保存摘要及出版图的新目录。
 
 输入为 v21 生产清单、当前工程的数字算法参考、测试台期望数据及叶子输出节选。
 生成的数据对应四种可复核对象：片号、逐事件命令、开关掩码、带标志的整数码。
-时序图是接口约定的构造例，向量复算和源级诊断分别标注。
+时序图读取生产顶层日志，向量复算和已知权重注入对照在各自图注中标出。
 存储在数字证据清单里的哈希可用来定位出图时实际使用的文件。
 """
 
@@ -24,14 +24,10 @@ from pathlib import Path
 import re
 import sys
 
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-from matplotlib import font_manager
-from matplotlib.colors import LinearSegmentedColormap, ListedColormap
-from matplotlib.lines import Line2D
-from matplotlib.patches import Patch
+from adc_figure_plates import (
+    PURPOSE, STYLE, draw_dem, draw_dither, draw_events, draw_handover, draw_schedule, draw_weights, rtl_evidence,
+)
+from matplotlib import pyplot as plt
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,22 +39,6 @@ from adi_model.sched18_rtl import Scheduler18Rtl
 from cmp_dem_dither import hb, hb4
 from contract_v2 import apply_bridge, base_post, charge_q8
 from recon_oracle import Q30, oracle, schedule
-
-INK, MODEL, ACCENT = "#20384a", "#116d78", "#ac552d"
-STYLE = {
-    "font.family": "DejaVu Sans",
-    "font.size": 8,
-    "axes.labelsize": 8,
-    "xtick.labelsize": 7,
-    "ytick.labelsize": 7,
-    "axes.linewidth": 0.7,
-    "axes.spines.top": False,
-    "axes.spines.right": False,
-    "svg.fonttype": "none",
-    "pdf.fonttype": 42,
-    "svg.hashsalt": "v21-digital-ip",
-}
-
 
 # -----------------------------------------------------------------------------
 # 1. 独立的数字检查。不得用重新生成的参考数据覆盖被核对的冻结向量。
@@ -512,503 +492,8 @@ def weight_effect(post, preset):
 
 # -----------------------------------------------------------------------------
 # 图片都使用相同名义单位，图例区与数据坐标分开，确保缩小版心后仍可辨认。
-# 选择性示例会给出字、相位或标签，数值总表中同时保存整组覆盖统计。
-# 颜色之外再使用轮廓或文本标记，让灰度印刷也可区分前后状态。
-# 3. 出版图。所有轴均为数字量；不能从一次逻辑推进推断实际纳秒时序。
-# -----------------------------------------------------------------------------
-def save(fig, out, name):
-    """向量 PDF 适合论文排版，SVG 可编辑，PNG 用于本地和 GitHub 预览。"""
-    fig.savefig(out / (name + ".png"), dpi=300, facecolor="white")
-    fig.savefig(out / (name + ".svg"), metadata={"Date": None})
-    # 输出身份只由输入与绘图环境决定。删除导出时钟字段，使同环境的 PDF 可逐字节复核。
-    fig.savefig(
-        out / (name + ".pdf"),
-        metadata={"Creator": "v21 digital IP review", "CreationDate": None, "ModDate": None},
-    )
-    plt.close(fig)
-
-
-def draw_schedule(result, out):
-    """左图逐拍显示物理片归属，右图为每片相对均匀期望的偏离。
-
-    调度公平性图用零中心的百分比轴，避免截短计数柱的基线夸大差异。
-    热图的横轴为接受次数，不赋予这组离散事务额外的纳秒定时含义。
-    """
-    fig = plt.figure(figsize=(7.16, 2.65))
-    left = fig.add_axes((0.073, 0.27, 0.37, 0.53))
-    right = fig.add_axes((0.565, 0.27, 0.40, 0.53))
-    colors = ["#e9eceb", "#c2dde0", "#246e7b"]
-    left.imshow(
-        result["roles"],
-        origin="lower",
-        aspect="auto",
-        interpolation="nearest",
-        cmap=ListedColormap(colors),
-    )
-    # 首列是复位后的第一次有效推进，沿前复位状态不混入稳态占用统计。
-    left.set_xticks([0, 3, 7, 11], [1, 4, 8, 12])
-    left.set_yticks([0, 5, 11, 17])
-    left.set_xlabel("Accepted advance")
-    left.set_ylabel("Physical slice")
-    left.set_title("(a)  Slice ownership", weight="bold", loc="left", fontsize=9)
-    counts = np.asarray(result["counts"])
-    ideal = result["cycles"] * 8 / 18
-    dev = 100 * (counts / ideal - 1)
-    right.axhline(0, lw=0.7, color="#8d9ca1")
-    right.vlines(np.arange(18), 0, dev, color="#8fb4bb", lw=1)
-    right.scatter(np.arange(18), dev, color=MODEL, s=14, zorder=3)
-    right.set_xlim(-0.7, 17.7)
-    right.set_ylim(-0.65, 0.65)
-    right.set_yticks([-0.5, 0, 0.5])
-    right.set_xticks([0, 5, 11, 17])
-    right.set_xlabel("Physical slice")
-    right.set_ylabel("Selection deviation (%)")
-    right.set_title("(b)  Allocation over 20,000 advances", weight="bold", loc="left", fontsize=8.6)
-    fig.legend(
-        handles=[
-            Patch(color=c, label=l) for c, l in zip(colors[::-1], ("Convert", "Acquire", "Idle"))
-        ],
-        frameon=False,
-        ncol=3,
-        loc="lower center",
-        bbox_to_anchor=(0.26, 0.005),
-        fontsize=7,
-    )
-    fig.text(0.765, 0.065, "153 / 153 idle pairs observed", ha="center", fontsize=7.2, color=INK)
-    save(fig, out, "slice-allocation")
-
-
-def draw_events(rows, out):
-    """显示两个定向激励下的已决命令。
-
-    同一码可以连续出现在多个合法事件中。标记保留每次提交，
-    只在数值改变处标数字，读者可以分别数出普通路径与 guard 路径的长度。
-    """
-    fig, axes = plt.subplots(1, 2, figsize=(7.16, 2.65))
-    fig.subplots_adjust(left=0.095, right=0.98, top=0.77, bottom=0.25, wspace=0.37)
-    for j, (name, title) in enumerate((("B", "Normal path"), ("A", "Guard path"))):
-        ax = axes[j]
-        data = rows[name]
-        codes = data["commands"]
-        x = np.arange(len(codes))
-        steps = ["F"] + ["512?" if b == 9 else f"b{b}" for b in data["bits"][1:]]
-        ax.step(x, codes, where="post", color=MODEL, lw=1.4)
-        ax.scatter(x, codes, color=MODEL, s=17, zorder=3)
-        # 阶梯纵轴是整数开关命令，正常与保护路径的原点和值域不同。
-        # 每次有效提交均保留一个标记，即使拒绝某个 SAR 位后 k 保持不变。
-        for i, (xi, k) in enumerate(zip(x, codes)):
-            if i == 0 or codes[i - 1] != k:
-                ax.annotate(
-                    str(k),
-                    (xi, k),
-                    xytext=(2, 6),
-                    textcoords="offset points",
-                    fontsize=7,
-                    color=INK,
-                )
-        ax.set_xticks(x, steps)
-        ax.set_xlabel("Accepted decision")
-        ax.set_ylabel("RDAC command")
-        rng = max(codes) - min(codes)
-        ax.set_ylim(min(codes) - 0.35 * rng, max(codes) + 0.44 * rng)
-        ax.set_yticks([256, 257, 258] if name == "B" else [448, 480, 512])
-        ax.grid(axis="y", lw=0.4, color="#d6dfe1")
-        ax.set_title(f"({'ab'[j]})  {title}", loc="left", weight="bold", fontsize=9)
-        ax.text(
-            1,
-            1.045,
-            f"U = {data['upper']}",
-            transform=ax.transAxes,
-            ha="right",
-            fontsize=7.2,
-            color="#556975",
-        )
-    save(fig, out, "sar-events")
-
-
-def effect_language():
-    """返回 Matplotlib 字体族与标签选择器。
-
-    嵌入式 PDF 需要可用的中文轮廓，默认的 DejaVu 缺少这些字形。
-    缺少中日韩字体时改用英文标签，两个语言版本共享数字、图例和坐标。
-    """
-    installed = {font.name for font in font_manager.fontManager.ttflist}
-    # SVG 保留可编辑文字，PDF 内嵌字形，PNG 固化预览。
-    # Type 42 使用 TrueType 轮廓，部分 PDF 阅读器会拒绝按此类型封装的 CFF 字库。
-    # 字母与数字用 DejaVu，汉字按顺序回退到可嵌入的本机字族。
-    for face in (
-        "Songti SC",
-        "Microsoft YaHei",
-        "Heiti SC",
-        "WenQuanYi Zen Hei",
-        "Arial Unicode MS",
-    ):
-        if face in installed:
-            return ["DejaVu Sans", face], lambda zh, en: zh
-    return ["DejaVu Sans"], lambda zh, en: en
-
-
-def draw_switches(result, out, t):
-    """用相同坐标和计数色标画前后对照。每格是等权位置跨 64 笔的使用次数。
-
-    每行代表一个槽，每列代表一对同时开关的主半单元。颜色用绝对次数标定，
-    右图是一个中间计数的均匀分布。若用单幅自动缩放，均匀分布会显示成端点色。
-    """
-    fig = plt.figure(figsize=(7.16, 4.28))
-    muted = "#4b6268"
-    low, mid, high = "#edf1ef", "#73b1a8", "#193f50"
-    n = result["phases"]
-    k = result["command"]
-    selected = result["selected_per_command"]
-    colors = LinearSegmentedColormap.from_list(
-        "count", [(0, low), (selected / n, mid), (1, high)], N=257
-    )
-    fig.text(
-        0.06,
-        0.926,
-        t(
-            "同一条开关命令，轮换相位后谁被选中？",
-            "Which units carry the same command after phase rotation?",
-        ),
-        size=15,
-        weight="semibold",
-        color=INK,
-    )
-    fig.text(
-        0.06,
-        0.854,
-        t(
-            f"命令 k = {k}   ·   每笔选 {selected} 个等权位置   ·   桥交换关闭",
-            f"Command k = {k}   ·   {selected} equal-weight positions per conversion   ·   bridge off",
-        ),
-        size=9.4,
-        color=muted,
-    )
-    # 输入相位对只决定位置。两幅图用同一归一化，右图的中间色不能被自动拉满。
-    for group, (left, field, label) in enumerate(
-        (
-            (0.135, "fixed_counts", t("固定相位", "Fixed phase")),
-            (0.587, "rotated_counts", t("遍历横纵相位", "All phase pairs")),
-        )
-    ):
-        counts = np.asarray(result[field])
-        ax = fig.add_axes((left, 0.275, 0.292, 0.49))
-        ax.imshow(counts, origin="upper", vmin=0, vmax=n, cmap=colors, interpolation="nearest")
-        ax.set_xticks(range(8))
-        ax.set_yticks(range(8))
-        ax.tick_params(length=0, pad=2, labelsize=7.5, colors=muted)
-        ax.set_xticks(np.arange(-0.5, 8, 1), minor=True)
-        ax.set_yticks(np.arange(-0.5, 8, 1), minor=True)
-        ax.tick_params(which="minor", length=0)
-        ax.grid(which="minor", color="white", lw=0.65)
-        for spine in ax.spines.values():
-            spine.set_visible(False)
-        ax.set_xlabel(t("等权列", "Equal-weight column"), labelpad=2, color=muted)
-        ax.set_ylabel(t("槽位", "Slot"), labelpad=3, color=muted)
-        ax.set_title(
-            ("(a)   ", "(b)   ")[group] + label,
-            loc="left",
-            color=INK,
-            fontsize=10.5,
-            weight="semibold",
-            pad=6,
-        )
-        # 只在代表格上印数字，离散刻度仍可供灰度印刷读取全部单元。
-        for value in np.unique(counts):
-            row, col = np.argwhere(counts == value)[0]
-            ax.text(
-                col,
-                row,
-                str(value),
-                ha="center",
-                va="center",
-                size=7.5,
-                weight="semibold",
-                color="white" if value == n else INK,
-            )
-        used = np.count_nonzero(counts)
-        subtitle = (
-            t(f"{used} / 64 个位置被用到", f"{used} / 64 positions used")
-            if not group
-            else t(f"64 个位置各用 {selected} 次", f"All 64 used {selected} times each")
-        )
-        fig.text(left + 0.146, 0.139, subtitle, ha="center", size=11, weight="semibold", color=INK)
-    handles = [
-        Patch(facecolor=c, edgecolor="#98a9ab", lw=0.5, label=t(f"{v} 次", f"{v}"))
-        for c, v in ((low, 0), (mid, selected), (high, n))
-    ]
-    fig.legend(
-        handles=handles,
-        title=t("每格为 64 次命令中的选中次数", "Selections per position over 64 commands"),
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.018),
-        ncol=3,
-        frameon=False,
-        fontsize=8,
-        title_fontsize=8,
-        columnspacing=2.0,
-        handlelength=1.25,
-    )
-    save(fig, out, "physical-masks")
-
-
-def draw_handover(out):
-    """将 owner_valid_q 的两个实际状态与同沿旧 raw / 新 capture 画在同一张图。
-
-    上半图读寄存器状态，下半图给出三个上升沿取样值。返回标签来自沿前的 owner。
-    上电复位释放后开始例子，略去两次事务相同的相位和权重字段。
-    """
-    from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
-
-    ink, accent, muted = "#20384a", "#087b83", "#52636d"
-    fig = plt.figure(figsize=(7.16, 3.82))
-    top = fig.add_axes((0.055, 0.59, 0.90, 0.34))
-    bottom = fig.add_axes((0.055, 0.075, 0.90, 0.445))
-    for ax, h in ((top, 2.2), (bottom, 4.1)):
-        ax.set_xlim(0, 10)
-        ax.set_ylim(0, h)
-        ax.axis("off")
-
-    def arrow(ax, start, end, curve=0, color=ink):
-        ax.add_patch(
-            FancyArrowPatch(
-                start,
-                end,
-                arrowstyle="-|>",
-                mutation_scale=8,
-                lw=0.95,
-                color=color,
-                connectionstyle=f"arc3,rad={curve}",
-                shrinkA=0,
-                shrinkB=0,
-            )
-        )
-
-    def state(x, name, flag):
-        top.add_patch(
-            FancyBboxPatch(
-                (x, 0.72),
-                1.72,
-                0.64,
-                boxstyle="round,pad=.06,rounding_size=.11",
-                lw=1,
-                edgecolor=ink,
-                facecolor="#edf4f5",
-            )
-        )
-        top.text(
-            x + 0.86, 1.09, name, ha="center", va="center", color=ink, weight="bold", fontsize=9
-        )
-        top.text(x + 0.86, 0.84, flag, ha="center", va="center", color=muted, fontsize=7)
-
-    top.text(0, 2.07, "(a)  Capture ownership", color=ink, weight="bold", fontsize=9)
-    state(1.20, "Free", "valid = 0")
-    state(6.58, "Owned", "valid = 1")
-    arrow(top, (0.24, 1.04), (1.10, 1.04))
-    top.text(0.61, 1.2, "Reset", ha="center", color=muted, fontsize=7)
-    arrow(top, (3.0, 1.21), (6.48, 1.21), -0.14)
-    top.text(4.73, 1.58, "Capture A", ha="center", color=ink, fontsize=8)
-    arrow(top, (6.48, 0.83), (3.0, 0.83), -0.16)
-    top.text(4.73, 0.24, "Return A, no new capture", ha="center", color=ink, fontsize=7.5)
-    # 同状态的换主操作用一个右侧回路表示。文字符号放在环外，避免穿过箭头。
-    arrow(top, (8.38, 0.90), (8.38, 1.21), 1.9, accent)
-    top.text(8.66, 1.48, "Return A +", color=accent, fontsize=7.3)
-    top.text(8.66, 1.23, "capture B", color=accent, fontsize=7.3)
-
-    bottom.text(0, 3.89, "(b)  Same-edge handover", color=ink, weight="bold", fontsize=9)
-    centers = [4.06, 6.55, 9.04]
-    middle = centers[1]
-    bottom.add_patch(plt.Rectangle((middle - 1.13, 0.17), 2.26, 3.22, color="#e7f3f2", ec="none"))
-    for j, cx in enumerate(centers):
-        bottom.text(
-            cx,
-            3.47,
-            f"Edge {j+1}",
-            ha="center",
-            color=accent if j == 1 else ink,
-            fontsize=8,
-            weight="bold" if j == 1 else "normal",
-        )
-    rows = [
-        ("Owner before edge", ("Free", "A", "B")),
-        ("Incoming raw", ("—", "A", "B")),
-        ("New capture", ("A", "B", "—")),
-        ("Response tag", ("—", "A", "B")),
-        ("Owner after edge", ("A", "B", "Free")),
-    ]
-    for i, (label, values) in enumerate(rows):
-        y = 2.94 - 0.59 * i
-        bottom.text(0.05, y, label, va="center", fontsize=7.8, color=ink)
-        for j, (cx, v) in enumerate(zip(centers, values)):
-            bottom.text(
-                cx,
-                y,
-                v,
-                ha="center",
-                va="center",
-                fontsize=8.3,
-                weight="bold" if j == 1 and i in (3, 4) else "normal",
-                color=accent if j == 1 and i in (3, 4) else muted,
-            )
-    bottom.plot([0, 9.98], [3.23, 3.23], color="#81939d", lw=0.6)
-    bottom.plot([0, 9.98], [1.43, 1.43], color="#a9b9be", lw=0.55)
-    bottom.plot([0, 9.98], [0.24, 0.24], color="#81939d", lw=0.6)
-    save(fig, out, "capture-handover")
-
-
-def draw_arithmetic(result, out, t):
-    """同一行使用完全相同的原码，两种符号区分默认表与写入已知系数的表。
-
-    两侧都选与两侧都不选是两个不同的零响应对照，不能合并为一次成功。
-    正负号取实算输出减公共参考；raw 列保留 13 位整数，避免把两种码宽混在一起。
-    """
-    fig = plt.figure(figsize=(7.16, 3.90))
-    muted, off, on = "#4b6268", "#9c542e", "#147878"
-    reference = result["nominal_code"]
-    fig.text(
-        0.06,
-        0.923,
-        t(
-            "单个权重有偏差，数字输出能修正几码？",
-            "How much output error can one known weight correct?",
-        ),
-        size=15,
-        weight="semibold",
-        color=INK,
-    )
-    fig.text(
-        0.06,
-        0.842,
-        t(
-            f"无偏差时的参考输出 {reference:,} 码   ·   物理片 0   ·   每次只改变一个子权重",
-            f"Reference output {reference:,} codes   ·   physical slice 0   ·   one subunit changed per run",
-        ),
-        size=9.1,
-        color=muted,
-    )
-    left = fig.add_axes((0.060, 0.258, 0.467, 0.430))
-    ax = fig.add_axes((0.580, 0.258, 0.347, 0.430))
-    # 开关和 raw 的行与右图共用相同 y 坐标，避免需要箭头和额外图例来对号。
-    for panel in (left, ax):
-        panel.set_ylim(3.5, -0.5)
-        for spine in panel.spines.values():
-            spine.set_visible(False)
-        panel.set_yticks([])
-    left.set_xlim(0, 1)
-    left.axis("off")
-    columns = (0.10, 0.35, 0.55, 0.86)
-    headers = (t("子单元", "Unit"), t("采样", "Pre"), t("转换", "Post"), t("ADC2 原码", "ADC2 raw"))
-    for pos, label in zip(columns, headers):
-        left.text(
-            pos,
-            1.055,
-            label,
-            transform=left.transAxes,
-            ha="center",
-            color=muted,
-            fontsize=8.5,
-            weight="semibold",
-        )
-    ax.set_title(
-        t("20 位输出相对参考的误差（码）", "20-bit output error (codes)"),
-        color=muted,
-        fontsize=8.5,
-        weight="semibold",
-        pad=8,
-    )
-    ax.set_xlim(-42, 42)
-    ax.set_xticks([-32, 0, 32], ["−32", "0", "+32"])
-    ax.tick_params(axis="x", length=0, pad=4, labelsize=9, colors=INK)
-    for pos in (-32, 0, 32):
-        ax.axvline(
-            pos, color="#b1bfc1" if pos == 0 else "#e0e6e6", lw=0.9 if pos == 0 else 0.6, zorder=0
-        )
-    for i, row in enumerate(result["rows"]):
-        for pos, field in zip(columns, ("unit", "pre", "post", "raw_after_injection")):
-            left.text(
-                pos,
-                i,
-                str(row[field]),
-                ha="center",
-                va="center",
-                fontsize=10,
-                color=INK,
-                weight="semibold" if field == "raw_after_injection" else "normal",
-            )
-        d, corrected = row["nominal_error"], row["corrected_error"]
-        if d != corrected:
-            ax.annotate(
-                "",
-                (corrected, i),
-                (d, i),
-                arrowprops=dict(
-                    arrowstyle="-|>",
-                    lw=1.25,
-                    color="#7b9092",
-                    shrinkA=6,
-                    shrinkB=6,
-                    mutation_scale=8,
-                ),
-            )
-        # 零差异时两个标记同心。空心圆和实心菱形在黑白印刷中也可分辨。
-        ax.scatter(
-            d, i, s=104, marker="o", facecolors="white", edgecolors=off, linewidths=1.5, zorder=3
-        )
-        ax.scatter(
-            corrected, i, s=30, marker="D", facecolors=on, edgecolors=on, linewidths=0.5, zorder=4
-        )
-    for y in (-0.5, 0.5, 1.5, 2.5, 3.5):
-        left.axhline(y, color="#d8e1e1", lw=0.55)
-        ax.axhline(y, color="#d8e1e1", lw=0.55, zorder=0)
-    handles = [
-        Line2D(
-            [],
-            [],
-            ls="none",
-            marker="o",
-            ms=7,
-            mfc="white",
-            mec=off,
-            mew=1.3,
-            label=t("默认权重", "Nominal weights"),
-        ),
-        Line2D(
-            [],
-            [],
-            ls="none",
-            marker="D",
-            ms=5,
-            mfc=on,
-            mec=on,
-            label=t("写入已知权重", "Known weight applied"),
-        ),
-    ]
-    fig.legend(
-        handles=handles,
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.113),
-        ncol=2,
-        frameon=False,
-        fontsize=9,
-        handlelength=1.15,
-        columnspacing=2.5,
-    )
-    fig.text(
-        0.5,
-        0.055,
-        t(
-            "数字注入   ·   子权重增量 2⁻¹⁰   ·   每行的两种配置接收同一原码",
-            "Digital injection   ·   weight step 2⁻¹⁰   ·   both configurations use the same raw input in each row",
-        ),
-        ha="center",
-        size=8.2,
-        color=muted,
-    )
-    save(fig, out, "integer-arithmetic")
-
-
 # =============================================================================
-# 4. 复核与发布。证据清单在数值断言及全部图片导出成功后才生成。
+# 3. 出版。主图使用真实退休码和时钟沿；独立整数算例留在证据数据中供复算。
 # =============================================================================
 def main():
     """检查成功后才保存证据摘要。
@@ -1031,14 +516,14 @@ def main():
     # 同时取与它具有相同纵向相位的八个 4 位采样字，保留子支路的实际开关方向。
     results["phase_coverage"] = coverage
     results["weight_response"] = weight_effect(captured_post, captured_pre)
+    results["rtl"] = trace = rtl_evidence(ROOT / "tb/v21/sample_cadence.csv")
     with plt.rc_context(STYLE):
+        draw_dither(trace, out)
+        draw_weights(trace, out)
+        draw_events(trace, out)
+        draw_handover(trace, out)
+        draw_dem(coverage, out)
         draw_schedule(results["scheduler"], out)
-        draw_events(results["events"], out)
-        draw_handover(out)
-        fonts, label = effect_language()
-        with plt.rc_context({"font.family": fonts}):
-            draw_switches(coverage, out, label)
-            draw_arithmetic(results["weight_response"], out, label)
     # 绑定整核的真实 RTL 输入以定位图对应的版本，不从报告文件名推断版本。
     production = ROOT / "flow/build/filelists/files_adc_v21.f"
     sources = [line for line in production.read_text().splitlines() if line.startswith("rtl/")]
@@ -1046,6 +531,9 @@ def main():
         *sources,
         "flow/build/filelists/files_adc_v21.f",
         "tools/verify_v21_algorithms.py",
+        "tools/adc_figure_plates.py",
+        "tb/v21/sample_cadence.csv",
+        "tb/v21/sample_cadence_evidence.json",
         "tools/contract_v2.py",
         "tools/cmp_dem_dither.py",
         "tools/recon_oracle.py",
@@ -1072,8 +560,9 @@ def main():
     with (out / "digital-evidence.json").open("w", encoding="utf-8") as f:
         json.dump(
             dict(
-                scope="v21 digital IP, archived D3/D4 leaf outputs, frozen vectors and integer reference",
+                scope="Production RTL pin observations with ideal macros, archived D3/D4 leaf outputs, frozen vectors and integer reference",
                 results=results,
+                figure_purposes={key:{"zh":pair[0], "en":pair[1]} for key,pair in PURPOSE.items()},
                 source_sha256={
                     n: hashlib.sha256((ROOT / n).read_bytes()).hexdigest() for n in files
                 },

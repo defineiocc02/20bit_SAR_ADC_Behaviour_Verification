@@ -18,6 +18,8 @@
 | 2026-11-19 | [`8db9a30`](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/commit/8db9a30) | 修复采集与转换交接时的片选，以及定点重构错误位的样本归属。[触发条件与测例](../audit/ISSUE_10.md) |
 | 2026-11-17 | [`b878f58`](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/commit/b878f58) | 生产构建统一到一个集成顶层，移除旧整链入口。[RTL 目录与实例](../../rtl/README.md) |
 
+图册按一笔转换、交接沿、失配校正和全码线性度组织正文。图中作用句限 30 字，原图、工程假设与逐笔观测另列。顶层数据固定在 `3057d2f`。[阅读图册与核对原件](../algorithms/README.md)
+
 ## 在本地核对
 
 ```bash

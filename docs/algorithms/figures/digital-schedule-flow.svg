@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" id="digital-schedule-flow" width="960" height="515" viewBox="0 0 960 515" role="img" aria-labelledby="digital-schedule-flow-title digital-schedule-flow-desc">
+<svg xmlns="http://www.w3.org/2000/svg" id="digital-schedule-flow" width="960" height="579" viewBox="0 0 960 579" role="img" aria-labelledby="digital-schedule-flow-title digital-schedule-flow-desc">
 <title id="digital-schedule-flow-title">18 个物理片怎样轮换角色</title>
 <desc id="digital-schedule-flow-desc">上半图为每个受理沿的调度顺序。下半图的列是片号，行分别为复位、第一个和第二个推进后的状态。A 为采集，C 为转换，短横为备用。运行期每行八片采集、八片转换、两片备用。</desc>
 <defs>
@@ -165,4 +165,6 @@
 <text x="29" y="491" text-anchor="start" font-size="16" font-weight="400" fill="#425b66">图中两次推进取自调度测试的前两行冻结向量。复位行由 RTL 的复位赋值得到。</text>
 </g>
 </g>
+<rect x="0" y="515" width="960" height="36" fill="white"/><path d="M25 516H935" stroke="#c6d4d4"/><a href="https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/3057d2f/references/ISSCC2024_SLIDES.pdf#page=10"><text x="25" y="539" font-family="Arial, PingFang SC, Heiti SC, sans-serif" font-size="15" fill="#285851">ISSCC 图 9.8.1、讲稿第 10 页：8 采、8 转、2 备用。片组随机递推为工程选择。</text></a>
+<rect x="0" y="551" width="960" height="28" fill="white"/><text class="svg-purpose" x="25" y="570" font-size="16" font-weight="600" font-family="Arial, PingFang SC, Heiti SC, sans-serif" fill="#142f40">作用　轮换采集与转换片组，允许两笔并行。</text>
 </svg>

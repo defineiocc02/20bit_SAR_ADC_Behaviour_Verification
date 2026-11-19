@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" id="digital-events-state" width="960" height="518" viewBox="0 0 960 518" role="img" aria-labelledby="digital-events-state-title digital-events-state-desc">
+<svg xmlns="http://www.w3.org/2000/svg" id="digital-events-state" width="960" height="582" viewBox="0 0 960 582" role="img" aria-labelledby="digital-events-state-title digital-events-state-desc">
 <title id="digital-events-state-title">SAR 如何处理 512 门限</title>
 <desc id="digital-events-state-desc">这是由已实现的活动位、完成位、guard 位与期望事件序号还原的逻辑状态图。首提交锁定 Flash，普通区走六个位；最高区试探 512，接受则只判三位，拒绝则沿原前缀进入普通六位且不写 RDAC。</desc>
 <defs>
@@ -63,4 +63,6 @@
 <text x="98" y="473" text-anchor="start" font-size="17" font-weight="400" fill="#1b3441">异步复位优先，其次 start 另起一笔并清错。叶子 abort 可结束本笔，顶层将它接 0。</text>
 </g>
 </g>
+<rect x="0" y="518" width="960" height="36" fill="white"/><path d="M25 519H935" stroke="#c6d4d4"/><a href="https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/3057d2f/references/ISSCC2024_SLIDES.pdf#page=9"><text x="25" y="542" font-family="Arial, PingFang SC, Heiti SC, sans-serif" font-size="15" fill="#285851">讲稿第 9 页：RDAC 跟随 SADC。512 试探、回退 bit5 及逐拍写门为工程状态机。</text></a>
+<rect x="0" y="554" width="960" height="28" fill="white"/><text class="svg-purpose" x="25" y="573" font-size="16" font-weight="600" font-family="Arial, PingFang SC, Heiti SC, sans-serif" fill="#142f40">作用　拒绝保护试探时关写门，保留已决前缀。</text>
 </svg>

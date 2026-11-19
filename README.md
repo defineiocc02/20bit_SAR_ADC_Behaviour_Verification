@@ -6,9 +6,9 @@
 
 复现本工程请使用 `merge/adi-repro` 分支，用 `git rev-parse HEAD` 记录具体提交。Python 包版本为 [9.0.0](pyproject.toml)，`adc_digital_ip_v21` 是硬件模块名。两者指向上面这套设计。引用实验结果时请写提交号，查已发布的软件用 [GitHub Releases](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/releases)。[版本记录](docs/meta/CHANGELOG.md) · [软件引用信息](docs/meta/CITATION.cff)
 
-[**打开完整数字 IP 图册（矢量 PDF）**](docs/algorithms/digital-ip-atlas.pdf) · [在线读算法、状态机与可编辑原图](docs/algorithms/README.md)
+[**打开数字 IP 图册（四页主图＋算法与状态机附录）**](docs/algorithms/digital-ip-atlas.pdf) · [在线读算法、状态机与可编辑原图](docs/algorithms/README.md) · [逐图对照论文与授权专利](docs/algorithms/README.md#直接核对原图与原文)
 
-![数字 IP 与模拟宏的信号交接，沿实际实例追踪采样开关、比较判决、权重和最终码](docs/algorithms/figures/digital-transaction-flow.svg)
+![实测 tag 54，沿字 53 的两条采样通路追到 410304 码](docs/algorithms/figures/digital-transaction-flow.svg)
 
 <a id="先选你要看的东西"></a>
 ## 从一笔采样看功能
@@ -27,8 +27,10 @@
 | 可以核对的效果 | 实测或模型条件 |
 | --- | --- |
 | **扰动能否扣回** | 本地 Verilator 驱动生产顶层，理想宏读取真实 SADC、RDAC 开关。固定输入连续 1,024 笔，片内字源覆盖全部 64 个字，每笔输出 410304。单独在重构端漏扣字 53 的采样权重，输出多 13,568 码；重复扣则少 13,568 码。[逐笔数据与复现命令](docs/audit/TREE_AUDIT_REPORT.md#dither-word-audit) |
-| **错配能校正多少** | 给一个物理子单元施加已知偏差，同批 192 笔原码使用名义权重时有 24 笔偏离 ±32 码。装入已知系数后，192 笔全部回到参考值。全码 DNL/INL 另由静态电荷模型评估，图注列出失配、训练和测试条件。[数字 IP 算法与效果](docs/algorithms/README.md) · [全码 DNL/INL 对照](docs/audit/TREE_AUDIT_REPORT.md#全码静态线性度) |
+| **错配能校正多少** | 给一个物理子单元施加已知偏差，同批 192 笔原码使用名义权重时，10 笔低 32 码、14 笔高 32 码。装入已知系数后，192 笔全部回到参考值。全码 DNL/INL 另由静态电荷模型评估，图注列出失配、训练和测试条件。[192 笔权重配对图](docs/algorithms/figures/integer-arithmetic.svg) · [全码 DNL/INL 对照](docs/audit/TREE_AUDIT_REPORT.md#全码静态线性度) |
 | **能否连续 40 MS/s** | 在 640 MHz 理想数字时钟、比较判决和宏握手按约到达时，顶层连续交付 192 笔，输出间隔 25 ns。数字时钟本身为 40 MHz 时，第一笔余差在预定采样沿尚未获得捕获授权。实际模拟宏时限和同版整核物理时序待验收。[时钟条件与对照结果](docs/STATUS.md#持续采样率) |
+
+直接看图：[64 个字的去扰与断线对照](docs/algorithms/figures/dither-transfer.svg) · [第 32 沿的三个 tag](docs/algorithms/figures/capture-handover.svg) · [512 试探的写门](docs/algorithms/figures/sar-events.svg) · [DEM 开关覆盖](docs/algorithms/figures/physical-masks.svg) · [同条件全码 INL/DNL](docs/figures/static_linearity/linearity-0.0001.svg)。
 
 ## 文件放在哪里
 

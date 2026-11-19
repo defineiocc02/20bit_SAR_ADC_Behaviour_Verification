@@ -51,6 +51,7 @@ Q2 = SPAN / N2
 MODES = ("fixed", "dem", "dither", "both")
 SOURCE_FILES = (
     "tools/run_static_linearity.py",
+    "tools/adc_figure_plates.py",
     "tools/algo_chain.py",
     "src/adi_model/digital_conversion.py",
     "tools/recon_oracle.py",
@@ -476,223 +477,93 @@ def validate(device, fitted_q, sample_states):
 # =============================================================================
 # 4. 输出。每组完整数据独立落盘；图中每个横向像素区间保留其码段极值。
 # =============================================================================
-def save_figure(target, rows, sigma, result):
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    colors = {"nominal": "#ad4f18", "fitted": "#005b8c"}
-    with plt.rc_context(
-        {
-            "font.family": "DejaVu Sans",
-            "font.size": 8,
-            "axes.labelsize": 8,
-            "xtick.labelsize": 7,
-            "ytick.labelsize": 7,
-            "svg.fonttype": "none",
-            "svg.hashsalt": "sar-v21-linearity",
-            "axes.spines.top": False,
-            "axes.spines.right": False,
-            "axes.linewidth": 0.7,
-        }
+def display_data(source, case, states):
+    """由原始码宽产生印刷数据并逐个验证峰值。全码图不跳点，每个区间保留上下界。"""
+    codes = 2**20
+    base = case["modes"]["fixed"]["decoders"]["nominal"]["exact"]
+    center = int(base["worst_dnl_code"])
+    window = np.arange(max(0, center - 16), min(codes, center + 17))
+    data = {"center": center, "codes": window, "states": states}
+    names, hashes = [], []
+    for mode, decoder in (
+        ("fixed", "nominal"),
+        ("fixed", "fitted"),
+        ("both", "nominal"),
+        ("both", "fitted"),
     ):
-        fig, axs = plt.subplots(2, 2, figsize=(7.16, 4.66), sharex=True, sharey="row")
-        fig.subplots_adjust(
-            left=0.085, right=0.988, bottom=0.115, top=0.82, wspace=0.15, hspace=0.53
-        )
-        for column, mode in enumerate(("fixed", "both")):
-            for row, metric in enumerate(("INL", "DNL")):
-                ax = axs[row, column]
-                for key, name in (("nominal", "Nominal weights"), ("fitted", "Fitted weights")):
-                    u, lower, upper = rows[(mode, key, metric)]
-                    color = colors[key]
-                    ax.fill_between(u, lower, upper, color=color, alpha=0.12, linewidth=0)
-                    ax.plot(
-                        u,
-                        lower,
-                        color=color,
-                        linewidth=0.65,
-                        linestyle="-" if key == "fitted" else "--",
-                        label=name,
+        name = f"{mode}-{decoder}.npz"
+        path = source / name
+        with np.load(path, allow_pickle=False) as record:
+            widths = record["input_width_lsb20_by_code"]
+        if widths.shape != (codes,) or not np.all(np.isfinite(widths)):
+            raise ValueError(f"invalid 20-bit width array: {path}")
+        names.append(name)
+        hashes.append(hashlib.sha256(path.read_bytes()).hexdigest())
+        dnl, inl = linearity(widths)
+        expect = case["modes"][mode]["decoders"][decoder]["exact"]
+        for metric, values in (("DNL", dnl), ("INL", inl)):
+            if not np.allclose(
+                [values.min(), values.max()],
+                [expect[metric.lower() + "_min"], expect[metric.lower() + "_max"]],
+                rtol=0,
+                atol=1e-9,
+            ):
+                raise ValueError(f"archived array and summary differ: {name} {metric}")
+            if mode == "both":
+                # 内区从码/过渡点 1 起，最后一个区间可比第一个短一个码。
+                starts = np.linspace(0, len(values), 513, dtype=int)
+                centers = 1 + (starts[:-1] + starts[1:] - 1) / 2
+                data[decoder + "_" + metric] = np.stack(
+                    (
+                        centers,
+                        np.minimum.reduceat(values, starts[:-1]),
+                        np.maximum.reduceat(values, starts[:-1]),
                     )
-                    ax.plot(
-                        u,
-                        upper,
-                        color=color,
-                        linewidth=0.65,
-                        linestyle="-" if key == "fitted" else "--",
-                    )
-                ax.axhline(0, color="#353535", linewidth=0.4, zorder=0)
-                label = "abcd"[2 * row + column]
-                title = "Fixed in-slice phases" if mode == "fixed" else "DEM + split dither"
-                before, after = [peak(result, mode, n, metric) for n in ("nominal", "fitted")]
-                ax.set_title(
-                    f"({label})  {title}", fontsize=8.5, loc="left", fontweight="bold", pad=16
                 )
-                ax.text(
-                    0,
-                    1.025,
-                    f"Peak |{metric}|   {before:.3f} → {after:.3f} LSB",
-                    transform=ax.transAxes,
-                    ha="left",
-                    va="bottom",
-                    fontsize=7.2,
-                    color="#374151",
-                )
-                ax.grid(axis="y", color="#d7dee3", linewidth=0.45)
-                if column == 0:
-                    ax.set_ylabel(f"{metric}  [LSB20]")
-                if row == 1:
-                    ax.set_xlabel("20-bit code  [×10⁶]")
-                ax.set_xticks([0, 0.25, 0.5, 0.75, 1])
-                ax.set_xlim(0, CODES / 1e6)
-        handles, labels = axs[0, 0].get_legend_handles_labels()
-        fig.legend(
-            handles, labels, ncol=2, frameon=False, loc="upper center", bbox_to_anchor=(0.53, 0.997)
-        )
-        for ext in ("png", "svg"):
-            fig.savefig(
-                target / f"linearity-{sigma:g}.{ext}",
-                dpi=300,
-                metadata={"Date": None} if ext == "svg" else {},
-            )
-        plt.close(fig)
+        if (mode, decoder) != ("both", "nominal"):
+            data[f"{mode}_{decoder}"] = widths[window]
+    # 摘要由原始实验产生，它还包含噪声、训练覆盖和各开关模式的验收口径。
+    # 将完整案例内容而非文件名绑定到包络，可检出同一失配强度下取错种子的情况。
+    data["case_sha256"] = hashlib.sha256(json.dumps(case, sort_keys=True, allow_nan=False).encode()).hexdigest()
+    data["raw_names"] = np.array(names)
+    data["raw_sha256"] = np.array(hashes)
+    return data
 
 
-def peak(result, mode, decoder, metric):
-    rec = result["modes"][mode]["decoders"][decoder]["exact"]
-    key = metric.lower()
-    return max(abs(rec[key + "_min"]), abs(rec[key + "_max"]))
+def publish_case(out, source, case, states):
+    """支持原始逐码 NPZ 或已冻结的极值包络。重排图版不会更新旧实验的源码身份。"""
+    from adc_figure_plates import STYLE, draw_control_effects, draw_linearity
+    from matplotlib import pyplot as plt
 
-
-def save_comparison(out, source, sigma, result):
-    """上排逐项拆开技术效果，下排画同一段输出码的实际宽度。"""
-    import matplotlib.pyplot as plt
-
-    orange, blue, charcoal = "#aa5026", "#09688a", "#344652"
-    with plt.rc_context(
-        {
-            "font.family": "DejaVu Sans",
-            "font.size": 8,
-            "axes.labelsize": 8,
-            "xtick.labelsize": 7,
-            "ytick.labelsize": 7,
-            "axes.linewidth": 0.7,
-            "axes.spines.top": False,
-            "axes.spines.right": False,
-            "svg.fonttype": "none",
-            "svg.hashsalt": "sar-static-effects",
-        }
-    ):
-        fig = plt.figure(figsize=(7.16, 5.03))
-        grid = fig.add_gridspec(
-            2,
-            2,
-            height_ratios=(1, 1.08),
-            hspace=0.68,
-            wspace=0.43,
-            left=0.16,
-            right=0.965,
-            top=0.88,
-            bottom=0.195,
-        )
-        for col, metric in enumerate(("INL", "DNL")):
-            ax = fig.add_subplot(grid[0, col])
-            for row, mode in enumerate(MODES):
-                old, new = [peak(result, mode, method, metric) for method in ("nominal", "fitted")]
-                ax.plot([new, old], [row, row], color="#bdc9cf", lw=1.4, zorder=1)
-                ax.scatter(
-                    old,
-                    row,
-                    marker="o",
-                    s=24,
-                    facecolor="white",
-                    edgecolor=orange,
-                    zorder=3,
-                    label="Nominal weights" if row == 0 else None,
-                )
-                ax.scatter(
-                    new,
-                    row,
-                    marker="D",
-                    s=23,
-                    color=blue,
-                    zorder=4,
-                    label="Fitted weights" if row == 0 else None,
-                )
-            ax.set_yticks(
-                range(4),
-                ("Fixed phases", "DEM", "Split dither", "DEM + dither") if col == 0 else [""] * 4,
-            )
-            ax.set_ylim(3.5, -0.5)
-            bound = max(
-                peak(result, mode, method, metric)
-                for mode in MODES
-                for method in ("nominal", "fitted")
-            )
-            ax.set_xlim(-0.025 * bound, 1.06 * bound)
-            ax.grid(axis="x", color="#d7dee3", lw=0.45)
-            ax.set_xlabel("Peak absolute error  [LSB20]")
-            ax.set_title(
-                f"({'ab'[col]})  {metric} by control mode",
-                loc="left",
-                fontsize=8.5,
-                fontweight="bold",
-                pad=6,
-            )
-            if col == 0:
-                fig.legend(
-                    *ax.get_legend_handles_labels(),
-                    loc="upper center",
-                    ncol=2,
-                    frameon=False,
-                    bbox_to_anchor=(0.53, 1.005),
-                )
-        ax = fig.add_subplot(grid[1, :])
-        worst = result["modes"]["fixed"]["decoders"]["nominal"]["exact"]["worst_dnl_code"]
-        center = max(17, min(CODES - 18, worst))
-        codes = np.arange(center - 16, center + 17)
-        ax.axhline(1, color=charcoal, lw=0.65, ls=":")
-        for mode, name, label, color, style in (
-            ("fixed", "nominal", "Fixed · nominal", orange, "--"),
-            ("fixed", "fitted", "Fixed · fitted", charcoal, "-."),
-            ("both", "fitted", "DEM + dither · fitted", blue, "-"),
-        ):
-            with np.load(source / f"{mode}-{name}.npz") as data:
-                width = data["input_width_lsb20_by_code"]
-            ax.step(
-                codes - worst, width[codes], where="mid", label=label, color=color, ls=style, lw=1.3
-            )
-        ax.set_xlim(codes[0] - worst - 0.5, codes[-1] - worst + 0.5)
-        ax.set_xlabel(f"Output code minus {worst:,}")
-        ax.set_ylabel("Code width\n[nominal LSB20]")
-        ax.grid(axis="y", color="#d7dee3", lw=0.45)
-        ax.set_title(
-            "(c)  Individual code widths at the worst uncalibrated DNL",
-            loc="left",
-            fontsize=8.5,
-            fontweight="bold",
-            pad=6,
-        )
-        ax.legend(
-            frameon=False, ncol=3, loc="upper center", bbox_to_anchor=(0.5, -0.36), fontsize=6.7
-        )
-        for ext in ("png", "svg"):
-            fig.savefig(
-                out / f"effects-{sigma:g}.{ext}",
-                dpi=300,
-                metadata={"Date": None} if ext == "svg" else {},
-            )
-        plt.close(fig)
-
-
-def envelope(values):
-    """显示用横坐标取码段中心，每段同时返回上下界以保留单码尖峰。"""
-    # 仅用于显示。指标和导出的数据保留所有内部码和过渡点。
-    groups = np.array_split(values, 512)
-    x = (np.cumsum([len(a) for a in groups]) - np.array([len(a) for a in groups]) / 2) / 1e6
-    return x, np.array([v.min() for v in groups]), np.array([v.max() for v in groups])
+    sigma = case["relative_mismatch_sigma"]
+    filename = f"plot-data-{sigma:g}.npz"
+    # 完整归档按器件失配分目录；仓内只保留能逐点复画论文图的包络和最坏码小窗。
+    # 两个入口都要对完整案例摘要，不能把另一次训练的拟合表误标成同一器件。
+    folder = source / f"sigma-{sigma:g}"
+    if folder.is_dir():
+        data = display_data(folder, case, states)
+        np.savez_compressed(out / filename, **data)
+    else:
+        with np.load(source / filename, allow_pickle=False) as archived:
+            data = dict(archived)
+        # 复用相同的原始归档身份。不同平台重新压缩 ZIP 可能改变字节摘要。
+        (out / filename).write_bytes((source / filename).read_bytes())
+    case_hash = hashlib.sha256(json.dumps(case, sort_keys=True, allow_nan=False).encode()).hexdigest()
+    if str(data["case_sha256"]) != case_hash or int(data["states"]) != states:
+        raise ValueError("publication envelopes and experiment summary do not describe the same case")
+    # 区间最小和最大值可回算完整曲线的峰值。交换名义/拟合两份包络也必须在出图前被抓到。
+    for decoder in ("nominal", "fitted"):
+        ref = case["modes"]["both"]["decoders"][decoder]["exact"]
+        for metric in ("INL", "DNL"):
+            x, low, high = data[decoder + "_" + metric]
+            if x.shape != (512,) or not np.all(np.diff(x) > 0) or not np.all(low <= high):
+                raise ValueError(f"invalid code intervals for {decoder}/{metric}")
+            criteria = (ref[metric.lower()+"_min"], ref[metric.lower()+"_max"])
+            if not np.allclose([low.min(), high.max()], criteria, rtol=0, atol=1e-9):
+                raise ValueError(f"extrema no longer match the archived {decoder}/{metric} result")
+    with plt.rc_context(STYLE):
+        draw_linearity(data, case, out)
+        draw_control_effects(data, case, out)
 
 
 def run_case(out, sigma, seed, test_seed, nstates, density, noise):
@@ -741,7 +612,6 @@ def run_case(out, sigma, seed, test_seed, nstates, density, noise):
         truth_oracle_q30=loads["oracle"],
         coarse_lut_v=table.table_v,
     )
-    traces = {}
     for mode in MODES:
         # 精确已知器件重构的上界只需在全开配置展示；其它配置比较可估的权重。
         active = dict(loads) if mode == "both" else {k: loads[k] for k in ("nominal", "fitted")}
@@ -779,16 +649,12 @@ def run_case(out, sigma, seed, test_seed, nstates, density, noise):
                 data["expected_width_lsb20_with_ra_noise"] = with_noise
             np.savez_compressed(target / f"{mode}-{name}.npz", **data)
             report["decoders"][name] = evidence
-            if name in ("nominal", "fitted") and mode in ("fixed", "both"):
-                traces[(mode, name, "INL")] = envelope(inl)
-                traces[(mode, name, "DNL")] = envelope(dnl)
         result["modes"][mode] = report
         print(
             f"sigma={sigma:g} {mode}: {len(outputs)} decoders, {density*CODES:,} input points",
             flush=True,
         )
-    save_figure(out, traces, sigma, result)
-    save_comparison(out, target, sigma, result)
+    publish_case(out, out, result, nstates)
     (target / "summary.json").write_text(json.dumps(result, indent=2, allow_nan=False) + "\n")
     return result
 
@@ -807,15 +673,38 @@ def main():
     parser.add_argument(
         "--hits-per-code", type=int, default=512, help="每个理想码宽的均匀斜坡样本数"
     )
-    parser.add_argument(
-        "--sigma", type=float, nargs="+", default=[1e-4, 1e-3], help="器件相对失配标准差"
-    )
+    parser.add_argument("--sigma", type=float, nargs="+", help="器件相对失配标准差")
     parser.add_argument("--seed", type=int, default=20261105)
     parser.add_argument("--evaluation-seed", type=int, default=317011)
     parser.add_argument(
         "--ra-noise-v", type=float, default=0.001, help="训练及含噪声对照的 RA 输出端 RMS"
     )
+    parser.add_argument(
+        "--redraw-from", type=Path, help="读已有 summary.json、逐码数组或印刷包络，只重画归档图"
+    )
     args = parser.parse_args()
+    if args.redraw_from is not None:
+        source = args.redraw_from.resolve()
+        saved = json.loads((source / "summary.json").read_text())
+        cases = [
+            c
+            for c in saved["cases"]
+            if (source / ("sigma-%g" % c["relative_mismatch_sigma"])).is_dir()
+            or (source / ("plot-data-%g.npz" % c["relative_mismatch_sigma"])).is_file()
+        ]
+        if args.sigma is not None:
+            requested = set(args.sigma)
+            cases = [case for case in cases if case["relative_mismatch_sigma"] in requested]
+            if {case["relative_mismatch_sigma"] for case in cases} != requested:
+                parser.error("a requested mismatch condition has no archived plot data")
+        if not cases:
+            parser.error("no archived raw arrays or publication envelopes beside summary.json")
+        args.out.mkdir(parents=True, exist_ok=False)
+        for case in cases:
+            publish_case(args.out, source, case, saved["states"])
+        return
+    if args.sigma is None:
+        args.sigma = [1e-4, 1e-3]
     if (
         args.states < 64
         or args.states % 64

@@ -67,3 +67,7 @@ docs/figures/static_linearity/*.svg -text whitespace=-blank-at-eol
 
 # 冻结 CSV 随原始运行解读，跨平台检出时保留采集文件原字节。
 docs/_history/verification/vcs_source_control_trace/*.csv -text whitespace=cr-at-eol
+
+# 针对图册复算保留顶层 CSV 的 GitHub 原始字节与逐码极值包络。
+tb/v21/sample_cadence.csv -text
+docs/figures/static_linearity/plot-data-*.npz binary

@@ -1,0 +1,33 @@
+{
+  "counts": {
+    "scenarios": 12
+  },
+  "input_bundle": null,
+  "marker": "SAMPLE_CADENCE_COMPLETE",
+  "module": "adc_digital_ip_v21",
+  "open_boundaries": [],
+  "parameters": {},
+  "payload_sha256": {
+    "samples.csv": "e4fc3a307db26979c2cb5c955cd5d703ebd85b7dced76a2827675ef8d0ee7189",
+    "summary.csv": "826401df2e01f035be752e77e7a2dbfe9d1143a5296fb091cea475116e5bd829"
+  },
+  "run_log_sha256": "43b7b09004c89d6369ca61e581111a63a99fdc3a5a4600ead07d3aa6003efd04",
+  "scope": "TOP_LEVEL_IDEAL_MACRO_HANDSHAKES",
+  "sources_sha256": {
+    "flow/build/filelists/files_adc_v21.f": "6cb0eb42f7b2024f21d77a582e3b64830340d6ecc421cc366ff3d77c535be135",
+    "rtl/dem_mask_v3.sv": "b2344baea7ce40425562dd5ff25550c23046d09a197846493894664a1a82081f",
+    "rtl/dither_pre.sv": "a6b60cd487f4e8296aed333c9fc781d50b1689fb859eab69a710a4184fd10973",
+    "rtl/recip_q60.sv": "9d7042cac740eeff898dce1d528d09b526bda1fd17041314171eed9a59d50c82",
+    "rtl/sched18.sv": "7fd84893027d3a86b1d12db135351608238cd0980ae04e9af8e9b59458bf7179",
+    "rtl/v21/acq_conv_ctx.sv": "7114cd954ffb38ab34108595fd3f43f99e012bd7ae81f44f276f8a882f67b21c",
+    "rtl/v21/adc2_capture.sv": "b1950b3c9ea1dd91ac585862270cd3b11b93fa694ec6a325c8d38e67ebd8fab1",
+    "rtl/v21/adc_digital_ip_v21.sv": "862bdcc3983ff26c4404f6c635fd4b920f96cbc6aedbfb3834d8b02e9a4ee1b4",
+    "rtl/v21/recip_rnd_v21.sv": "6fc4cefcb377b9237c438d72459025e8543b0db445c15019bf11b31d78488313",
+    "rtl/v21/recon_v21.sv": "8ef00172d037571f4f4c14463d1de0fb886cb23839fb00bed1451abd1f8599e2",
+    "rtl/v21/sar_evt_v21.sv": "aab6b7ebc20b8931c577be25da0264b8ecb41a78ef34e295cb2e37dce008b8c9",
+    "rtl/v21/wsum_v21.sv": "7c641846b20f3a193ac860737555dd9c9370cb0054a4d65426508fffa599d3c4",
+    "tb/v21/sample_cadence.cpp": "57cff75509af5a162a2ca38576c20e664b3bad24cf1c31d751dc2d9071ea6514"
+  },
+  "status": "PASS",
+  "top": "v21_sample_cadence"
+}

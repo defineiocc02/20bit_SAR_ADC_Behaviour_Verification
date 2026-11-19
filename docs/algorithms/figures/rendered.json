@@ -1,41 +1,45 @@
 {
-  "renderer_sha256": "15ccd127f6266b2fe046f65c0c22b8be8650d0f3b622fc3233d526b50abd8624",
+  "renderer_sha256": "77d70c0b6477ce7dbb55da137e3c714ac2a0be475bb6bee59cb756d34efaba43",
   "mermaid_bundle_sha256": "6ef73c979e4636b0724eb3b4ee505e53e3a117e4cae31914ec5b2d64f27ff603",
   "diagrams": {
     "digital-transaction-flow": {
       "source_format": "svg",
-      "source_sha256": "6056bc0b837f2ee94552abcf11b770a9c5f3170b6e95320f00e40f973124d978",
-      "svg_sha256": "6056bc0b837f2ee94552abcf11b770a9c5f3170b6e95320f00e40f973124d978",
-      "width": 960,
-      "height": 601,
-      "print_scale": 0.5208333333333334,
+      "source_sha256": "10a7438254870b49be2bdc87d309fc089cec2d06602e95107e35130810df91cc",
+      "svg_sha256": "10a7438254870b49be2bdc87d309fc089cec2d06602e95107e35130810df91cc",
+      "width": 1100,
+      "height": 559,
+      "print_scale": 0.45454545454545453,
+      "caption": "两级分担量化，按同笔权重还原输入。",
       "inputs": {
         "rtl/v21/adc_digital_ip_v21.sv": "862bdcc3983ff26c4404f6c635fd4b920f96cbc6aedbfb3834d8b02e9a4ee1b4"
       }
     },
     "digital-config-flow": {
       "source_format": "mermaid",
-      "source_sha256": "1b3dea23ccce64d284bb6cfd0b958f46f34fbb0d35d2c9e5db905190cd1b868f",
-      "svg_sha256": "513e4d802e6175f6a7e14a81bf510dc1fea8997519476de52ea86407abe4b51b",
-      "width": 555.00390625,
-      "height": 634.5,
-      "print_scale": 0.7959022852639874
+      "source_sha256": "b077f38db399764783fb5b5d751f919498273c6c1398b8032b45b26e6f4d1f73",
+      "svg_sha256": "67371a312048dea48044d9b9091f3138f5e5f6258c09654d112b07beb455292c",
+      "width": 998.703125,
+      "height": 544.984375,
+      "print_scale": 0.5006492795343962,
+      "caption": "逐址登记权重，防止半张表参与重构。"
     },
     "digital-config-state": {
       "source_format": "mermaid",
-      "source_sha256": "47b0b6f04ebc93ef26e0724a3cdefdc4d42a96cfa36c56f71919059cef3dc440",
-      "svg_sha256": "0d8d4b23668bfe1d7098bd3891805e44d954bdda97b0d700e421a821e1ef910c",
+      "source_sha256": "353b13218d3b509532ee6b57dc2f15c6950230a9303bf8ea7e2c9fe0640fdaef",
+      "svg_sha256": "eb0b85fadc607d046908a25f68f53dac8b989affd16e22b7813a67cb9af094e8",
       "width": 647.59375,
-      "height": 123.25,
-      "print_scale": 0.7720889832553202
+      "height": 171.25,
+      "print_scale": 0.7720889832553202,
+      "caption": "提交后锁定全表，防止采样中途换系数。"
     },
     "digital-schedule-flow": {
       "source_format": "svg",
-      "source_sha256": "2f4930c8d0e47e72325ed4a992f2474819bf07f5d4b16555bd15592033f8bcdc",
-      "svg_sha256": "2f4930c8d0e47e72325ed4a992f2474819bf07f5d4b16555bd15592033f8bcdc",
+      "source_sha256": "9eb03cb7897c5a3a2911908dfa429be1ad1fb670d812eb167682b83e7cbecedc",
+      "svg_sha256": "9eb03cb7897c5a3a2911908dfa429be1ad1fb670d812eb167682b83e7cbecedc",
       "width": 960,
-      "height": 515,
+      "height": 579,
       "print_scale": 0.5208333333333334,
+      "caption": "轮换采集与转换片组，允许两笔并行。",
       "inputs": {
         "rtl/sched18.sv": "7fd84893027d3a86b1d12db135351608238cd0980ae04e9af8e9b59458bf7179",
         "tb/vec_r18_sched.txt": "eae2533049f583280a28bb93b1c2058f3839768ba442478c1765e77c7ec876ce"
@@ -43,35 +47,39 @@
     },
     "digital-schedule-state": {
       "source_format": "mermaid",
-      "source_sha256": "63303e6ef4a72deec449cd3dc28dd1367998266577be3675a26920aeeb20b959",
-      "svg_sha256": "a2eae5aee6652e0d798bd25f75109aaefb4eb4339fede3580bf90ba8a8b98ecc",
+      "source_sha256": "91a6c93ca06fbfef1ccbcfc59543314a65a46209f81641040d0198c2389b7cf6",
+      "svg_sha256": "a75122be165afbc2cec2c6d58aa9c38148cc9cb360d0e0421577ef66550559f5",
       "width": 677.9375,
-      "height": 82,
-      "print_scale": 0.737531114593897
+      "height": 130,
+      "print_scale": 0.737531114593897,
+      "caption": "只在受理时推进片选，保持样本和片号对应。"
     },
     "digital-ownership-flow": {
       "source_format": "mermaid",
-      "source_sha256": "a96315a3d246d05ac1e0dff49acfd6727909acff161b0956f919495a15d19429",
-      "svg_sha256": "3c74ccbd4eeda5ff873ac0efbe7875ca4daad529baf2e0714bab77f91e95674c",
+      "source_sha256": "4ddf32d3e9f053d706a2b9d8dd6c5ba98704636c57a01f5b8f0eb1ebe348c40f",
+      "svg_sha256": "e4e2a79b56a78c4fc23a7eeb7ae3ac75a23b455196945083fc0af1208cc82345",
       "width": 872.3125,
-      "height": 520.2406005859375,
-      "print_scale": 0.5731890807480118
+      "height": 568.2406005859375,
+      "print_scale": 0.5731890807480118,
+      "caption": "同沿交接整组片号，避免采集与转换抢占。"
     },
     "digital-ownership-state": {
       "source_format": "mermaid",
-      "source_sha256": "3f63dc38bc20bf7d688d91d6e2168df0f69c32a92d3def416d42c2375f0c8bfc",
-      "svg_sha256": "de1e399e68800e27b1efb8511fd928495f86e9e3c3d0e3accec2fce6460c35ae",
+      "source_sha256": "cf5b7d36d96db0d7869d8b87509a592b35e5a45610e374d67a9dd39c46afdc96",
+      "svg_sha256": "2afd30686cb695f56c68f130e1201fb5f6afba1f136084295005658fe61ce9b0",
       "width": 663.72802734375,
-      "height": 88,
-      "print_scale": 0.7533206063348084
+      "height": 136,
+      "print_scale": 0.7533206063348084,
+      "caption": "两槽分管不同样本，连续接力而不串样。"
     },
     "digital-pre-flow": {
       "source_format": "svg",
-      "source_sha256": "58baacd5ab51d5261b87da745392353ba4bdea67c289e32c9abc3df72e878d8b",
-      "svg_sha256": "58baacd5ab51d5261b87da745392353ba4bdea67c289e32c9abc3df72e878d8b",
+      "source_sha256": "617ccb4d756ea019f29e1489c13fea9dd279314f77e991128239f2376414dc43",
+      "svg_sha256": "617ccb4d756ea019f29e1489c13fea9dd279314f77e991128239f2376414dc43",
       "width": 960,
-      "height": 574,
+      "height": 638,
       "print_scale": 0.5208333333333334,
+      "caption": "分路注入扰动，再按实际权重扣回。",
       "inputs": {
         "rtl/dither_pre.sv": "a6b60cd487f4e8296aed333c9fc781d50b1689fb859eab69a710a4184fd10973",
         "rtl/v21/adc_digital_ip_v21.sv": "862bdcc3983ff26c4404f6c635fd4b920f96cbc6aedbfb3834d8b02e9a4ee1b4",
@@ -80,11 +88,12 @@
     },
     "digital-pre-state": {
       "source_format": "svg",
-      "source_sha256": "d5fe9dbc78a315caac6ad57ea76793f784cacdd2c4b9d1c58e0af6b62d49202e",
-      "svg_sha256": "d5fe9dbc78a315caac6ad57ea76793f784cacdd2c4b9d1c58e0af6b62d49202e",
+      "source_sha256": "09120550dce57952325bca0006dfa637805c056500141ef4fd1ee2405d572769",
+      "svg_sha256": "09120550dce57952325bca0006dfa637805c056500141ef4fd1ee2405d572769",
       "width": 960,
-      "height": 456,
+      "height": 520,
       "print_scale": 0.5208333333333334,
+      "caption": "交替写入量化器，保护另一笔采样。",
       "inputs": {
         "rtl/dither_pre.sv": "a6b60cd487f4e8296aed333c9fc781d50b1689fb859eab69a710a4184fd10973",
         "rtl/v21/adc_digital_ip_v21.sv": "862bdcc3983ff26c4404f6c635fd4b920f96cbc6aedbfb3834d8b02e9a4ee1b4",
@@ -93,30 +102,33 @@
     },
     "digital-events-flow": {
       "source_format": "mermaid",
-      "source_sha256": "ef6ac1165b59a95b6399078915c673b4327ff534081deca2efe58df83f24f4fd",
-      "svg_sha256": "e7da7a5c37b34470bb6cb2e94c93ad102ca3a998a635d375004aec38f32a9aba",
+      "source_sha256": "51e4e0e670ee99ef917e2d3e66308c771c5a121844468556c02ca03b70e3575c",
+      "svg_sha256": "ec2289f2fad1bc2510a504d0946aa42bb7a14fe95afa8f9ced8300ab2000f9ac",
       "width": 773.3875122070312,
-      "height": 230.5734405517578,
-      "print_scale": 0.6465064306160571
+      "height": 278.5734405517578,
+      "print_scale": 0.6465064306160571,
+      "caption": "只写已决位，防止试探扰动余差。"
     },
     "digital-events-state": {
       "source_format": "svg",
-      "source_sha256": "3ee088e3e9f1c7a46acf3997c0d425048df590ebc4b3b36a4c50679ad02f15b4",
-      "svg_sha256": "3ee088e3e9f1c7a46acf3997c0d425048df590ebc4b3b36a4c50679ad02f15b4",
+      "source_sha256": "529aae9283176e4c0824289ee17e686340cc2094ebe0663c86b64ecd288dc3df",
+      "svg_sha256": "529aae9283176e4c0824289ee17e686340cc2094ebe0663c86b64ecd288dc3df",
       "width": 960,
-      "height": 518,
+      "height": 582,
       "print_scale": 0.5208333333333334,
+      "caption": "拒绝保护试探时关写门，保留已决前缀。",
       "inputs": {
         "rtl/v21/sar_evt_v21.sv": "aab6b7ebc20b8931c577be25da0264b8ecb41a78ef34e295cb2e37dce008b8c9"
       }
     },
     "digital-dem-flow": {
       "source_format": "svg",
-      "source_sha256": "831d68053f58a77370b135e7369143532ee03794afbe2adc27366e9a52003118",
-      "svg_sha256": "831d68053f58a77370b135e7369143532ee03794afbe2adc27366e9a52003118",
+      "source_sha256": "bf7f5980668d972fe2b432d7378b012975b8ce4c273ad2b4b5565b4a5fa27ecd",
+      "svg_sha256": "bf7f5980668d972fe2b432d7378b012975b8ce4c273ad2b4b5565b4a5fa27ecd",
       "width": 960,
-      "height": 540,
+      "height": 604,
       "print_scale": 0.5208333333333334,
+      "caption": "轮换等权电容，减轻失配造成的非线性。",
       "inputs": {
         "rtl/dem_mask_v3.sv": "b2344baea7ce40425562dd5ff25550c23046d09a197846493894664a1a82081f",
         "tb/vec_dem_dither_effects.txt": "2823102ee615dc0eb8dc3224f411e3db259d7b65d9d0e6f21d8af88c0b69b7d3"
@@ -124,97 +136,117 @@
     },
     "digital-bridge-flow": {
       "source_format": "mermaid",
-      "source_sha256": "cbe81ea8e23e26a4839854c95a7b8432e57c94940dbb1ade8946c4880e53f508",
-      "svg_sha256": "4a9d1ab37bba12dfc435524d698f17d9cde25a4565dd96757cc7e5dd94033dd4",
+      "source_sha256": "308314ec20a48a8932492dd9603daaaed6ce11999e80f976647c01f152cb22df",
+      "svg_sha256": "403d0955d40c4c53993b320606f48282503f27ead2f005d0a6b91978d2e265c9",
       "width": 1088.0556640625,
-      "height": 146.98593139648438,
-      "print_scale": 0.45953531286546295
+      "height": 194.98593139648438,
+      "print_scale": 0.45953531286546295,
+      "caption": "交换等效电荷，打散跨段边界误差。"
     },
     "digital-physical-route-flow": {
       "source_format": "mermaid",
-      "source_sha256": "2366c63098852524705cb4d1853d1a27182f6d947084ed3794efedc54e7e323c",
-      "svg_sha256": "67e16a1598db53c052bbc59a149995febb5ff9ee5fa5443a7ed2f2d5c0fe4b68",
+      "source_sha256": "9fcda92ddccac12f2a7b5aea6c18351e7d85a35d8fd45a301d9084a8fe6c0ecc",
+      "svg_sha256": "0be4ece6a4079cb121862947870abaa120558a5cf990773d023b65ee8bcbe845",
       "width": 724.3125,
-      "height": 153.375,
-      "print_scale": 0.6903097765122098
+      "height": 201.375,
+      "print_scale": 0.6903097765122098,
+      "caption": "按物理片号写开关，让系数跟对电容。"
     },
     "digital-sum-flow": {
       "source_format": "mermaid",
-      "source_sha256": "612fe3f9a9ffedf454cde36be06ac62713cb009c2537ece40f75f33a9f88c092",
-      "svg_sha256": "7816e9582e7c884b6ab18463361646d3bb5c0ffa2cfb394aca9f32dd0a47cfe6",
+      "source_sha256": "76de517022c5d849a3214f9517c70af1e7619dfa6192742ad807b544622b50e7",
+      "svg_sha256": "00f50f0fd36cbf40d48bf508884f1eb2033ce0e9a934e8473314fd2703f071b1",
       "width": 755.09375,
-      "height": 205.70001220703125,
-      "print_scale": 0.6621694326035674
+      "height": 253.70001220703125,
+      "print_scale": 0.6621694326035674,
+      "caption": "按实际开关加权，补偿电容失配。"
     },
     "digital-arming-flow": {
       "source_format": "mermaid",
-      "source_sha256": "ede11940201488827e0e6164920b4e00fa96b2a8c583b1fd5c2bb1f76a757a42",
-      "svg_sha256": "8810f43cf746ebdb22ed314c515cfcd09f25f556168359de2fb73ee6a8c85062",
+      "source_sha256": "7b0868c774ad36fde1ef23693f41ffff7de38c5095d5a1e5c95e3de2b305fb23",
+      "svg_sha256": "9e1fee670610915a686a652bdb0f589506c2b568ffb2ce85ea22759e04a65350",
       "width": 901.56982421875,
-      "height": 57,
-      "print_scale": 0.5545882155420098
+      "height": 105,
+      "print_scale": 0.5545882155420098,
+      "caption": "待开关与权重就绪，再允许捕获余差。"
     },
     "digital-arming-state": {
       "source_format": "mermaid",
-      "source_sha256": "bd255cbf4071105b6b788612a6fb831fb43769470e169e9e2381e5fd660ed90d",
-      "svg_sha256": "9a8c224e341f7e278e1dae0650d777e814233a3811c1e340b77e3b7b63659844",
+      "source_sha256": "0a7551286ed6df3725df770950af795d2b919f4ce451aedba63fc689005adab2",
+      "svg_sha256": "2c1c0219611f875588f56e5fcabfe844844ba2cf1030362747b06edea4c34c8f",
       "width": 617.421875,
-      "height": 82,
-      "print_scale": 0.8098190560546628
+      "height": 130,
+      "print_scale": 0.8098190560546628,
+      "caption": "每笔只登记一次，避免重复捕获。"
     },
     "digital-capture-flow": {
       "source_format": "mermaid",
-      "source_sha256": "6e61a9ec91a1dcd4612ff9d49a6eda3244b757188100792091c6f2c9e49a3baa",
-      "svg_sha256": "ba617f551443b9e1aa1dd3022f5a95262a3031d11c4a83058e8d97b894f29f98",
-      "width": 409.488037109375,
-      "height": 594.1979370117188,
-      "print_scale": 0.8498851452425026
+      "source_sha256": "2a54852e6de80781b100546798f62aad76c7ddcece5f0cf7cf0c077679126dd4",
+      "svg_sha256": "aa205094b61fecb2e6b179a84f73f881a816696bf9a089930c3f875e7dc05fe3",
+      "width": 1303.393798828125,
+      "height": 275.0979461669922,
+      "print_scale": 0.38361391656884325,
+      "caption": "细码按原标签返回，保持粗细结果成对。"
     },
     "digital-capture-state": {
       "source_format": "mermaid",
-      "source_sha256": "a6898ab7cc5c6dd26e1893e3af5042483001f81815f6e91f479ca8ee0373306e",
-      "svg_sha256": "ac192d953e05a2d5c3587aea9417f692b4045627b01810ee6adcdf2694d2bf67",
+      "source_sha256": "ba1b6dd44ccad5e5a750d1e0b409212b3bad064e5c45a37b5456fe5641e34e2c",
+      "svg_sha256": "f3343395957fd985a598c9b6670c4436b03d1bb5260aa42a9c1222b091269702",
       "width": 527.84375,
-      "height": 82,
-      "print_scale": 0.9472500148007815
+      "height": 130,
+      "print_scale": 0.9472500148007815,
+      "caption": "同沿先读旧归属，再登记下一笔。"
     },
     "digital-reciprocal-flow": {
       "source_format": "mermaid",
-      "source_sha256": "a4ae3f6201281ecb20e636a1c72ba54c57e5ad772da7fb07eb5c6402daeb72f3",
-      "svg_sha256": "b9cc9d431ac0104ac2db71684ffc58e1b49fb5a22a22739fc838e1ff38b3781a",
+      "source_sha256": "77e19af45a88b23b195df7bf84c40420bda9bd8745e617c616502474d94089dc",
+      "svg_sha256": "5f105d2138419854c82a1c6f8bd01b4eacf375cba39b1c3f1b16d3f0dd90eb37",
       "width": 821.9375,
-      "height": 57,
-      "print_scale": 0.6083187590297315
+      "height": 105,
+      "print_scale": 0.6083187590297315,
+      "caption": "用倒数归一化，补偿片组增益差。"
     },
     "digital-correction-flow": {
       "source_format": "mermaid",
-      "source_sha256": "135a554c2278570cb82b0575e0806a3ed59c80c729faf6058d91edf8eeb92f76",
-      "svg_sha256": "4eace465bca59bf86e73edf90d95e123b38a0e2c4696411366d514b57e3f91dc",
-      "width": 198.875,
-      "height": 345,
-      "print_scale": 1
+      "source_sha256": "2d4200a4a2b0008da9f1a14906dd9dbcf15391e5b75c6b43a5bc792e3ac559f8",
+      "svg_sha256": "24239968b91710741211a06b1673af71bd9bfdfad75031a762b3c8affa35faf9",
+      "width": 1016.578125,
+      "height": 105,
+      "print_scale": 0.49184611364719266,
+      "caption": "检查除法余数，修正倒数近似误差。"
     },
     "digital-reconstruct-flow": {
       "source_format": "mermaid",
-      "source_sha256": "a6fc21d23e5608abcb2e934d94ef4bbbac5d7bb9da9ca54c9119807e6b7c9385",
-      "svg_sha256": "dae7cedbbe757ac13bad68088da0bb688f5705991df899c578ba5cdd9496a130",
-      "width": 332,
-      "height": 639.53125,
-      "print_scale": 0.7896408502321036
+      "source_sha256": "0d064571c01f322c20a6876095a02133fc334ac12efeff554d754886f91db9ad",
+      "svg_sha256": "ffc679ff2936b9019eb234f5ac79559a6f9fd009b7a3e364f6fd14140ea0fc48",
+      "width": 936.8093872070312,
+      "height": 207.40000915527344,
+      "print_scale": 0.5337265049090525,
+      "caption": "合并细码与开关权重，还原输入并检错。"
     },
     "digital-round96-flow": {
       "source_format": "mermaid",
-      "source_sha256": "c9ba94403e23928822428d9d79d97df665f09d7e0a5aeced8d809b7e22a693f7",
-      "svg_sha256": "45834b99e09ff91f7ab48353fadf3baee76e6be9a9403ca5644b3214f8cb74a8",
+      "source_sha256": "0e7e0e1e4f9686ce61307ca29eb9b2788ef3aa3e35b30b2f251817bf8c2362bf",
+      "svg_sha256": "105de31a2262f421b635405e4a46a19559b159c32e1b614572dadf0085e9b359",
       "width": 853,
-      "height": 57,
-      "print_scale": 0.5861664712778429
+      "height": 105,
+      "print_scale": 0.5861664712778429,
+      "caption": "按余数舍入，避免正负半码偏向一侧。"
     }
   },
   "atlas_inputs": {
-    "README.md": "394ef3deee3b2573ca614d063cbba8d4db1ccee2bb95767eae6c5c55accf01c6",
-    "digital.md": "78cf0cad7f8785361a1d78cdb2a2fa4551c78f2887423ecf0c9535e34bbe5fd9",
-    "figures/digital-evidence.json": "9b5c3853d72153b395f9b349df025691b0e6a68d1e068ec31a3ec2fe6d0e449b"
+    "README.md": "8d177cbaeaf357b829be4ecf504e4f4733d67621f1ea4d8dfb8d91614a1f2ef0",
+    "digital.md": "d6d77efc4e0d18167d21b7b8352d9e1df731ea1cc38a1ea79794b9f759c830ba",
+    "figures/digital-evidence.json": "19d726ff678edde7cafa54e74bbda8a33ed400c4ac12f8bf3c92581a97215aae",
+    "../../tools/run_static_linearity.py": "1fafec146078cd407eda35143ae131621cf12448593ee02176e5c34dbee802ff",
+    "../figures/static_linearity/summary.json": "5086330ae8c0a51d458ad6f2766a9378731060a84d5879072d1b65d6ee6bb722",
+    "../figures/static_linearity/plot-data-0.0001.npz": "7de28810ad0729ddc8060c332406ea0c9f89f0f3660429dba801967d2dbf7cdd",
+    "../figures/static_linearity/linearity-0.0001.svg": "7165c624c4e81019b727a851c736f39a5929e89cf8c8d1c14c7eba91256af25f",
+    "../figures/static_linearity/effects-0.0001.svg": "0f17d86a24755436d8eb98e68a93ad02001fe216878eeba621071efb85e21aaa",
+    "../../references/ISSCC2024_PAPER.pdf": "2277ec0a2b889ee954f0866f2668adc1bf95f2214fae386c9a1d70203435cd96",
+    "../../references/ISSCC2024_SLIDES.pdf": "e7074c0f612c31bb76ad276fefaf6e6cf36479292248dc41085c4dadd1f8193a",
+    "../mechanisms/figures/US10505561B2_FIG19_dither_injection.jpg": "89a23230f43ff5b9aa15eb31361e58c74890dc7688c07c15140e21f7299a77d8",
+    "../mechanisms/figures/US10511316B2_FIG19_two_stage_shuffler.jpg": "c43c8993c2843bc00f7e91b2603f4676d5bb12ef45089cba5caf1289910f7589"
   },
-  "atlas_pdf_sha256": "5e1710641f0218ad22b6c7be5827e52d67fa61d81fd20c1ab4db0651843faf56"
+  "atlas_pdf_sha256": "06caf5e769eb536e50aa018062fc2e9bec4449cf20429edc5a3e7e2f9531f818"
 }

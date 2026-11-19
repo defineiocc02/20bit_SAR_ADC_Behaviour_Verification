@@ -47,7 +47,7 @@ dev = [
     # tomllib is stdlib from 3.11; tests need the backport on 3.10
     "tomli>=2.0; python_version < '3.11'",
 ]
-docs = ["mkdocs>=1.5", "mkdocs-material>=9.4"]
+docs = ["mkdocs>=1.5", "mkdocs-material>=9.4", "pypdf>=5"]
 
 [project.urls]
 Homepage = "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"

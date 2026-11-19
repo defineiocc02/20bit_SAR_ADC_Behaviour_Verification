@@ -4,6 +4,8 @@
 
 工作树只有一个生产顶层 `adc_digital_ip_v21`。`v21` 是它在源码与构建清单中的名称。模拟比较器、残差放大器和 ADC2 通过宏接口连接。默认 Python 按这一个顶层的字源、片选、DEM、余差量化和定点规则逐笔出码。宏的电压输入由模拟假设给出。[顶层 RTL](rtl/v21/adc_digital_ip_v21.sv) · [生产源清单](flow/build/filelists/files_adc_v21.f) · [接口合同](docs/CONTRACT_CURRENT.md)
 
+复现本工程请使用 `merge/adi-repro` 分支，用 `git rev-parse HEAD` 记录具体提交。Python 包版本为 [9.0.0](pyproject.toml)，`adc_digital_ip_v21` 是硬件模块名。两者指向上面这套设计。引用实验结果时请写提交号，查已发布的软件用 [GitHub Releases](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/releases)。[版本记录](docs/meta/CHANGELOG.md) · [软件引用信息](docs/meta/CITATION.cff)
+
 [**打开完整数字 IP 图册（矢量 PDF）**](docs/algorithms/digital-ip-atlas.pdf) · [在线读算法、状态机与可编辑原图](docs/algorithms/README.md)
 
 ![数字 IP 与模拟宏的信号交接，沿实际实例追踪采样开关、比较判决、权重和最终码](docs/algorithms/figures/digital-transaction-flow.svg)
@@ -59,7 +61,7 @@ node tools/v21_algorithm_atlas.mjs --check
 ~~~bash
 run_dir="$(mktemp -d)"
 bash tools/pyenv.sh --run -m adi_model simulate --dc -0.6522216796875 --samples 1 --dither-word 53 --output "$run_dir/sim"
-python3 - "$run_dir/sim/codes.npz" <<'PYTHON'
+bash tools/pyenv.sh --run - "$run_dir/sim/codes.npz" <<'PYTHON'
 import numpy as np, sys
 with np.load(sys.argv[1]) as data:
     print(*(int(data[name][0]) for name in ("coarse", "k", "adc2_code", "code")))

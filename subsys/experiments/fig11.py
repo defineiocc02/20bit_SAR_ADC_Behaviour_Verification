@@ -131,7 +131,7 @@ class Fig11Parameters:
             value = getattr(self, name)
             if type(value) is not int or value < 1:
                 raise ConfigError(f"{name} must be a positive integer")
-        # 2026-11-13：默认链已从 63+8 分段阵列切到专利 Fig.11 的 17/5 阵列。
+        # 本研究夹具只解释专利 Fig.11 的 17/5 阵列，整数生产掩码由 adi_model.dem_dither 生成。
         # 守卫从"码数 = (n_main+1)*n_sub"改成"静态 17/5"：前者是 63+8 的专用码本律，
         # 后者才能与 fig11_masks 的硬约束（n_main==17、n_sub==5）保持一致。
         # 为什么不再允许任意几何：码→掩码的分解（B0..B3 → 15 个 2C、B4 → 1C、

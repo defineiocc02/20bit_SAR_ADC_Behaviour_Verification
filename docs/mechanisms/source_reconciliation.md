@@ -1,5 +1,7 @@
 # 原文判读纠正记录（source reconciliation）
 
+本页保留当时的读图更正和工程候选方案。当前生产采用的八槽掩码与分路扰动见[工程合同](../CONTRACT_CURRENT.md)。
+
 基线 `9beca9f`；本文只记录**我此前判读错的地方**、直接证据、修正结论与影响。
 
 > 取证条件：本地 PDF 无文本层，`patents.google.com` 在本机网络下 curl 502 / WebFetch 失败，

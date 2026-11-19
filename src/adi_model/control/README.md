@@ -16,8 +16,8 @@ SADC 和 RDAC 在论文架构中分开，[A]。`follower.py` 接收指定的已�
 ## 阵列映射与 DEM
 
 - `fig11_dem.map_fig11` 是受限映射例，`dem3d.fig11_masks` 接收批次、相位与片身份。Fig.11 研究夹具以 17 主位／5 子位装配后者。公共生产入口默认开启二维 DEM，使用 16 主位／4 子位以及[生产掩码参考](../dem_dither.py)。 [单笔映射](fig11_dem.py) · [批次掩码](dem3d.py) · [默认配置](../defaults.py)
-- `reserved_column.py`、`shuffle_gate.py` 和 `cross_slice_mux.py` 提供对专利 Fig.19–21 的保留列、信号门及跨片列分配的分立计算，默认转换链使用 `fig11_masks`。覆盖率只能说明本轮访问到哪些元件，噪声整形需要频谱和相关性证据。 [专利机制对照](../../../docs/mechanisms/README.md)
-- v21 的名义 3+3+3、桥接和 guard 码使用另一份整数约定。针对这份约定生成参考向量时，使用 `adi_model.dem_dither`。 [整数参考](../dem_dither.py) · [RTL](../../../rtl/dem_mask_v3.sv)
+- `reserved_column.py`、`shuffle_gate.py` 和 `cross_slice_mux.py` 提供对专利 Fig.19–21 的保留列、信号门及跨片列分配的分立计算。三个算子用于对应图的独立实验。覆盖率只能说明本轮访问到哪些元件，噪声整形需要频谱和相关性证据。 [专利机制对照](../../../docs/mechanisms/README.md)
+- 生产路径由 `digital_conversion.conversion_mask` 先调用 `post_mask` 译码，再调用 `bridge_swap` 交换选定开关；两步都在 `adi_model.dem_dither` 中实现。 [整数参考](../dem_dither.py) · [RTL](../../../rtl/dem_mask_v3.sv)
 
 <a id="dither"></a>
 ## 分路扰动

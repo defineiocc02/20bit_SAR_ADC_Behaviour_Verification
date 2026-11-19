@@ -7,7 +7,7 @@
 # 设计说明   :
 #   * 在独立目录克隆，测试只接触 Git 中已有的文件和本次运行产物。
 #   * 工程自检包含现行图件哈希和 v21 ADC2 的跨语言接口核对。
-#   * CLI 示例沿用 README 的 64 笔样本。输出使用专用的新目录。
+#   * 这里用 64 笔正弦样本检查 CLI；README 另给出一笔可手工核对的固定输入。
 #   * 源机制反例核对需通过 4 项，失败时输出脚本原始结果。
 #   * SKIP_HEAVY 非空时跳过失配扫描和单笔轨迹，保留上述检查。
 #   * 通过 PYTHON 指定已安装项目依赖的解释器，默认使用 python3。
@@ -57,7 +57,7 @@ fi
 # 图件身份和 ADC2 合同由同一自检入口核对，失败详情随其余检查一起输出。
 note "2. check_engineering"
 if "$PYTHON" tools/check_engineering.py >"$WORK/engineering.log" 2>&1; then
-  ok "check_engineering (7/7)"
+  ok "check_engineering ($(tail -n 1 "$WORK/engineering.log"))"
 else
   cat "$WORK/engineering.log"
   bad "check_engineering"

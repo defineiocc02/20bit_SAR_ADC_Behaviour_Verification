@@ -1,6 +1,8 @@
 # Contributing
 
-Use the [project overview](../README.md) to choose the Python, v21, or subsystem entry point. Before changing the model or RTL, check the [engineering contract](../docs/CONTRACT_CURRENT.md), the [source and evidence status](../docs/STATUS.md), and the relevant directory README.
+The Python API and CLI model the production digital top `adc_digital_ip_v21`. Experiments under `subsys/` identify their own stimulus and source figure. Start with the [project overview](../README.md), [engineering contract](../docs/CONTRACT_CURRENT.md), and [verification status](../docs/STATUS.md).
+
+Record the Git commit for a measurement. Use the package version in `pyproject.toml` for software metadata and update the citation when that value changes. Document release tags, the package number and numerical test results under their own names. [Version history](../docs/meta/CHANGELOG.md)
 
 ## Evidence and compatibility
 

@@ -1,4 +1,4 @@
-# v21 数字 IP　算法、效果与状态机
+# 数字 IP 的算法、效果与状态机
 
 对象是 [adc_digital_ip_v21](../../rtl/v21/adc_digital_ip_v21.sv) 和其[生产清单](../../flow/build/filelists/files_adc_v21.f)。清单有 11 份 RTL：顶层、8 种直接实例和 2 种传递依赖。这里用片号、开关位、定点码、标签和错误标志衡量数字 IP 的效果。
 
@@ -37,7 +37,7 @@
 | **D5　权重与重构** | 按同一笔的片号和开关计算校正量 | 定向注入时，写入已知系数使 −32、+32 码误差分别归零。RTL 通过 8,209 笔冻结向量和 21 笔逐标签对拍，含负数过中点、夹空拍 | 空表 → 装载 → 提交锁定；G/Wm/Wp 和 tag 逐级推进。[配置 FSM](digital.md#config) · [权重和](digital.md#sum) · [倒数](digital.md#reciprocal) · [余数修正](digital.md#correction) · [重构](digital.md#reconstruct) · [舍入](digital.md#round96) |
 | **D6　采集与返回归属** | 下一笔已开始时，旧 raw 仍能配回自己的权重和 tag | 同沿返回 A 并登记 B：响应取 A，沿后保存 B。无 owner 的 raw 置迟到错误 | ACQ 已采 → CONV → 捕获；owner 空 → 持有 A → 交给 B → 空。[双槽](digital.md#ownership) · [授权和登记](digital.md#arming) · [返回 FSM](digital.md#capture) |
 
-[冻结提交的 CI 结果](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/44091206552) · [一笔数字交易的总流程](digital.md#transaction) · [数字证据和图数据](figures/digital-evidence.json) · [工程合同](../CONTRACT_CURRENT.md)
+[生产 Python 与 RTL 对拍的 CI（d97afa1）](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/actions/runs/44500594977) · [一笔数字交易的总流程](digital.md#transaction) · [数字证据和图数据](figures/digital-evidence.json) · [工程合同](../CONTRACT_CURRENT.md)
 
 ## 与论文披露的数字部分对照
 

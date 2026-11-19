@@ -16,7 +16,7 @@
 
 ![扰动分路、三段 DEM 和桥接交换](M02_dem_dither_mechanism.png)
 
-**M02. 同一字如何驱动扰动预置、DEM 和桥接。** 字 `110101` 拆出 `U=4`、`Ld=2.625`。SADC 端的输入折算偏移是 `Ld·Δ`，RDAC 采样预置是 `T·Δ`，其中 `T=U+Ld`。粗码 `c=151` 转成 `k=155`，即 `H=2、V=3、L=3`。相位 `(h,v)=(2,3)` 下，横向选宏列 2、3，纵向在保留列 1 内选槽 3–5。桥接关闭一个名义 `4Cu` 主半单元，打开八片各折算为 `4Cu/8` 的子支路，选通名义总量前后均为 `155Cu`。加权重构读取交换后的 `post` 和采样 `pre`。 [SVG](M02_dem_dither_mechanism.svg) · [掩码覆盖 F02](F02_dem_usage.png) · [命令域 F05](F05_dither_margin.png) · [v2.1 合同](../../v21/SWITCHING_RULES.md)
+**M02. 同一字如何驱动扰动预置、DEM 和桥接。** 字 `110101` 拆出 `U=4`、`Ld=2.625`。SADC 端的输入折算偏移是 `Ld·Δ`，RDAC 采样预置是 `T·Δ`，其中 `T=U+Ld`。粗码 `c=151` 转成 `k=155`，即 `H=2、V=3、L=3`。相位 `(h,v)=(2,3)` 下，横向选宏列 2、3，纵向在保留列 1 内选槽 3–5。桥接关闭一个名义 `4Cu` 主半单元，打开八片各折算为 `4Cu/8` 的子支路，选通名义总量前后均为 `155Cu`。加权重构读取交换后的 `post` 和采样 `pre`。 [SVG](M02_dem_dither_mechanism.svg) · [掩码覆盖 F02](F02_dem_usage.png) · [命令域 F05](F05_dither_margin.png) · [生产开关合同](../../v21/SWITCHING_RULES.md)
 
 ![同笔 ADC2 捕获、定点反解和数值算例](M03_capture_reconstruction.png)
 

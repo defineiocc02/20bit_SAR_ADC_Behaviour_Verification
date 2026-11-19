@@ -15,11 +15,11 @@
     },
     "digital-config-flow": {
       "source_format": "mermaid",
-      "source_sha256": "506aef56fbbe65ed666f1916f161330b1ea7ece93053d6ec7f69081dfcac5657",
-      "svg_sha256": "7b3a332f113cfe544dcb2f127c96181e364cf022ff7e795f298a702e94cbacbc",
-      "width": 357.5,
-      "height": 739.5,
-      "print_scale": 0.68289384719405
+      "source_sha256": "1b3dea23ccce64d284bb6cfd0b958f46f34fbb0d35d2c9e5db905190cd1b868f",
+      "svg_sha256": "513e4d802e6175f6a7e14a81bf510dc1fea8997519476de52ea86407abe4b51b",
+      "width": 555.00390625,
+      "height": 634.5,
+      "print_scale": 0.7959022852639874
     },
     "digital-config-state": {
       "source_format": "mermaid",
@@ -212,9 +212,9 @@
     }
   },
   "atlas_inputs": {
-    "README.md": "2d002005b5bc916e7c13c4e864e87dfb72eb89b1998eb8fcea3dd0e7727c5e39",
-    "digital.md": "05f5adb19c90478cdeab9fe2cf3491e96411a068501d508d0a2f904bc89c4be8",
+    "README.md": "394ef3deee3b2573ca614d063cbba8d4db1ccee2bb95767eae6c5c55accf01c6",
+    "digital.md": "78cf0cad7f8785361a1d78cdb2a2fa4551c78f2887423ecf0c9535e34bbe5fd9",
     "figures/digital-evidence.json": "9b5c3853d72153b395f9b349df025691b0e6a68d1e068ec31a3ec2fe6d0e449b"
   },
-  "atlas_pdf_sha256": "16cda02c490c23f65fddbe1ab38b600664609dfe3cd494002dc5e6f383640915"
+  "atlas_pdf_sha256": "5e1710641f0218ad22b6c7be5827e52d67fa61d81fd20c1ab4db0651843faf56"
 }

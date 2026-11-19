@@ -1,69 +1,17 @@
-# Security Policy
+# Security policy
 
-## Scope
+Report concerns about the Python package, SystemVerilog sources, build tools, generated artifacts, or the integrity of published results for this repository. Include the affected file or artifact and the output of `git rev-parse HEAD`. For an installed distribution, include its package version and installation source. [Development branch and releases](../docs/meta/CHANGELOG.md)
 
-This is a **research model**, not a networked service: it reads no untrusted
-input, opens no sockets, and executes no code from its data files. The attack
-surface is therefore small, and the concerns below are about *supply chain and
-reproducibility integrity* rather than remote exploits.
+## Private reporting
 
-In scope:
+Use [GitHub private vulnerability reporting](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/security/advisories/new). If that channel is unavailable, contact the maintainer privately. Include the observed behavior, expected behavior, environment, and the smallest reproducer that demonstrates the issue.
 
-- anything that lets a third party change the numbers this model reports;
-- anything that lets a malicious result file (`results.json`) or figure execute
-  code or exfiltrate data on a reader's machine;
-- undisclosed use of non-public or third-party material (see below).
+The response targets are acknowledgment within five working days and an initial assessment within fifteen working days. The maintainer handles attribution and licensing concerns with the same priority as security defects. The earlier maintenance policy for the 7.0.x line is preserved in [the policy at its recorded revision](https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/blob/d97afa160a7c9c0ff2f1427656e5899b360771e2/.github/SECURITY.md).
 
-Out of scope:
+## Attribution and licensing
 
-- "vulnerabilities" in the modelled circuit. This repository studies a published
-  ADC architecture; it contains no firmware, no RTL, and no product code.
+Rights holders can use the same private channel to report attribution, licensing, patent, or trademark concerns. Reports remain private during review. Remedies may include correcting a source grade or removing affected material. The maintainer credits the reporter in the change history unless the reporter opts out. [Third-party notices](../docs/meta/NOTICE)
 
-## Supported versions
+## Incorrect model or RTL results
 
-| Version | Supported |
-|:--:|:--:|
-| 7.0.x | ✅ |
-| < 7.0 | ❌ (superseded; `adi_model_release_v6.1` is kept frozen for audit reference only) |
-
-## Reporting a vulnerability
-
-**Use GitHub's private vulnerability reporting** — do *not* open a public issue:
-
-<https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/security/advisories>
-
-If that is unavailable, open a
-[private security advisory](https://docs.github.com/en/code-security/security-advisories)
-or contact the maintainer directly. Please include:
-
-1. what you observed and why you believe it is a security issue;
-2. the commit or version tested, and the Python / OS / dependency versions;
-3. a minimal reproduction (a script is worth a thousand words).
-
-**Response targets:** acknowledge within 5 working days; triage and an initial
-assessment within 15 working days. Attribution and licensing corrections are
-treated as **high priority** — see the next section.
-
-## Attribution and licensing corrections
-
-Because this repository studies published third-party work (see [NOTICE](../docs/meta/NOTICE)), a
-*mis-attribution* is a defect of the same severity as a code vulnerability.
-
-If you are a rights holder — or you believe any content here misattributes your
-work, reproduces material beyond its licence, or oversteps a patent or trademark
-— please report it through the same private channel. Such reports are:
-
-- **not** disclosed publicly while under review;
-- acted on promptly, including removal or re-grading of the affected parameter or
-  mechanism;
-- credited in [CHANGELOG.md](../docs/meta/CHANGELOG.md) unless you ask otherwise.
-
-## Reporting an *incorrect number* (not a vulnerability)
-
-A model that produces a wrong physical result is a **correctness bug**, not a
-security issue. Please open a normal issue instead, using the *Bug report*
-template, and include the config, seed, and stage that reproduce it.
-
-The fastest useful report states: *which* quantity is wrong, *what* you expected
-and why (paper equation, hand calculation, or an independent simulator), and the
-smallest `Config` that shows it.
+For ordinary correctness errors use the [bug report template](ISSUE_TEMPLATE/bug_report.md). Supply the stimulus, expected output, actual output, and its basis. A sample tag and the relevant switch states or output codes help locate a digital conversion error.

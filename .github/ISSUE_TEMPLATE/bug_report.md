@@ -1,59 +1,32 @@
 ---
 name: Bug report
-about: 报告一个可复现的错误（数值、口径、门禁或文档）
+about: 报告可复现的数字 IP、模型、工具或文档错误
 title: "[BUG] "
 labels: bug
 assignees: ''
 ---
 
-## 1. 现象（What happened）
+## 发生了什么
 
-<!-- 一句话说清：哪个函数/哪个 stage/哪个命令，给出了什么结果。 -->
+<!-- 写出入口或文件、输入、观察值与期望值。涉及论文或专利时请附图号、页码或实施例。 -->
 
-## 2. 期望（What you expected）
+## 怎样复现
 
-<!-- 期望值是多少？依据是什么（论文原文 / 解析式 / 另一条独立实现）？ -->
-
-## 3. 最小复现（Minimal reproduction）
-
-```python
-from adi_model import Config, run_sim_split, sine_input
-
-cfg = Config(...)          # 请给出完整配置，或说明用了哪个预设
-...
-```
-
-或命令行：
+从仓库根执行 `git rev-parse HEAD`，贴出提交号和触发问题的最小命令。以下是生产 Python 的单笔基准，可替换为出错的输入。
 
 ```bash
-adi-run-all --results-dir /tmp/repro
+run_dir="$(mktemp -d)"
+bash tools/pyenv.sh --run -m adi_model simulate --dc -0.6522216796875 --dither-word 53 --samples 1 --output "$run_dir/sim"
+bash tools/pyenv.sh --run - "$run_dir/sim/codes.npz" <<'PYTHON'
+import sys
+import numpy as np
+with np.load(sys.argv[1]) as data:
+    print(*(int(data[key][0]) for key in ("coarse", "k", "adc2_code", "code")))
+PYTHON
 ```
 
-## 4. 参数来源分级（Provenance）
+基准的四个数依次为 `202 206 6016 410304`。报告其他场景时，请给出实际字源或强制字、物理片号、样本标签与异常字段。RTL 问题请附测试台、时钟和发生异常的时钟沿。文档问题直接给出页面及冲突段落。[运行入口与字段](../../docs/guide/QUICKSTART.md)
 
-本仓库的核心机制是**每个参数都带来源分级**。请指出相关参数属于哪一类，
-否则无法判断这是 bug 还是"模型本来就没承诺过"：
+## 运行环境
 
-- [ ] [披露] disclosed —— 论文/PPT 原文给出
-- [ ] [拟合] fitted —— 为复现基准标定
-- [ ] [假设] assumed —— 工艺估算，明确不得用于良率结论
-- [ ] [派生] derived —— 由上述量算出
-- [ ] [研究扩展] research_extension —— 本仓库原创，非 ADI 披露特性
-
-## 5. 环境
-
-- OS：
-- Python 版本：
-- numpy 版本：
-- 安装方式（`pip install -e .` / 源码直接 `PYTHONPATH=src`）：
-- 提交号（git rev-parse HEAD）：
-
-## 6. 门禁状态（若相关）
-
-```bash
-ruff check . && ruff format --check . && mypy && pytest -q
-```
-
-## 7. 补充材料
-
-<!-- 图、频谱、日志片段、results.json 差异等。 -->
+<!-- 操作系统、Python 或仿真器版本、安装方式。若复用现有日志，请注明生成它的提交。 -->

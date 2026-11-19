@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 [project]
 name = "sar-adc-behaviour-verification"
 version = "9.0.0"
-description = "SAR ADC behavioral model with visible engineering defaults and digital calibration."
+description = "Python transaction model for the 20-bit two-stage SAR ADC digital IP."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "docs/meta/LICENSE" }

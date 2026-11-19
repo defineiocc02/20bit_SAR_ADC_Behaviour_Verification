@@ -1,66 +1,63 @@
 cff-version: 1.2.0
-title: 20-bit SAR ADC Behavioural Verification Model
-message: >-
-  If you use this software, please cite both this repository and the
-  architecture it studies (ISSCC 2024, Session 9.8). See the License and citation
-  section of README.md.
 type: software
+title: 20-bit two-stage SAR ADC digital IP and Python transaction model
+message: >-
+  Cite this software and the Git commit used for a result. Cite the ISSCC paper
+  separately when referring to the published converter architecture.
 authors:
   - family-names: Zhao
     given-names: Reed
     alias: defineiocc02
     affiliation: Xidian University
-version: 8.2.2
-date-released: "2026-09-26"
+version: "9.0.0"
 license: BSD-3-Clause
 repository-code: "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
-url: "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification"
+url: "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/tree/merge/adi-repro"
 abstract: >-
-  A phase-accurate behavioural model of a two-stage residual SAR ADC, written
-  with reproducible contracts and evidence. Top-level configuration fields and
-  explicitly annotated quantities carry machine-checkable source grades (disclosed / derived / fitted / assumed /
-  research-extension), so that a reviewer can see which published facts and
-  which free assumptions a headline number rests on. Includes a physical
-  18-slice pool with cross-cycle causality, a shared physical pipeline plus an independent algebraic oracle, and one adversarial regression
-  per finding from an external audit of the previous release.
+  SystemVerilog digital controller and Python transaction model for an
+  independent reproduction of a two-stage precision SAR converter. The model
+  records physical slice selection, dither switches, resolved SAR decisions,
+  ADC2 codes and weighted digital reconstruction. The software documentation
+  identifies the engineering assumptions used for the analogue macro responses.
 keywords:
-  - adc
   - sar-adc
+  - digital-ip
   - behavioural-model
-  - mixed-signal
-  - isscc2024
-  - residue-amplifier
-  - dem
+  - dynamic-element-matching
   - dither
-  - provenance
-  - reproducibility
-identifiers:
-  - type: doi
-    value: 10.1109/ISSCC49657.2024.10454329
-    description: >-
-      NOT a DOI for this repository. This is the DOI of the ISSCC 2024 paper
-      describing the architecture being modelled (reference [00] in NOTICE).
-      Cite it alongside this software, not instead of it.
-preferred-citation:
-  type: article
-  title: "A 9.3 nV/\u221AHz 20 b 40 MS/s 94.2 dB DR Signal-Chain Friendly Precision SAR Converter"
-  year: 2024
-  authors:
-    - family-names: Bodnar
-      given-names: R.
-    - name-particle: "et al."
-  collection-title: IEEE International Solid-State Circuits Conference (ISSCC) Digest of Technical Papers
-  start: 182
-  end: 183
-  doi: 10.1109/ISSCC49657.2024.10454329
-  notes: >-
-    The published architecture this model studies. This repository is an
-    independent academic model and is not affiliated with, endorsed by, or
-    licensed from Analog Devices, Inc.
 references:
-  - type: article
-    title: "An 88.8dB-SNDR 6-MS/s Pipelined SAR ADC with a Closed-Loop Dynamic Amplifier Featuring Highly-Linear Full-Scale Output Swing"
-    year: 2025
+  - type: conference-paper
+    title: "9.8 A 9.3nV/rtHz 20b 40MS/s 94.2dB DR Signal-Chain Friendly Precision SAR Converter"
+    authors:
+      - family-names: Bodnar
+        given-names: Rares
+      - family-names: Kennedy
+        given-names: Henry
+      - family-names: Hurrell
+        given-names: Christopher P
+      - family-names: Ahmad
+        given-names: Asif
+      - family-names: Vickery
+        given-names: Mark
+      - family-names: Smithers
+        given-names: Luke
+      - family-names: Buckley
+        given-names: William
+      - family-names: Dutt
+        given-names: Monsoon
+      - family-names: Delizia
+        given-names: Pasquale
+      - family-names: Hummerston
+        given-names: Derek
+      - family-names: Czapor
+        given-names: Pawel
+    year: 2024
+    collection-title: 2024 IEEE International Solid-State Circuits Conference (ISSCC)
+    start: 182
+    end: 184
+    doi: 10.1109/isscc49657.2024.10454329
+  - type: conference-paper
+    title: "An 88.8dB-SNDR 6-MS/s Pipelined SAR ADC with A Closed-Loop Dynamic Amplifier Featuring Highly-Linear Full-Scale Output Swing"
     authors:
       - family-names: Wang
         given-names: Zongnan
@@ -72,8 +69,8 @@ references:
         given-names: Lu
       - family-names: Tang
         given-names: Xiyuan
-    collection-title: Symposium on VLSI Technology and Circuits
-    doi: 10.23919/VLSITechnologyandCir65189.2025.11075015
-    notes: >-
-      Source of the optional chopping-assisted auto-zero mechanism, not the
-      ISSCC architecture target or a measured result of this repository.
+    year: 2025
+    collection-title: 2025 Symposium on VLSI Technology and Circuits
+    start: 1
+    end: 3
+    doi: 10.23919/vlsitechnologyandcir65189.2025.11075015

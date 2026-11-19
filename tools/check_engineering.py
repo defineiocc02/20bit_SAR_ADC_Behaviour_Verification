@@ -2,7 +2,7 @@
 # 文件名     : check_engineering.py
 # 模块名     : check_engineering
 # 版本       : v1.0
-# 功能       : 检查依赖边界、文档和脚本路径、发布图集与 ADC2 合同。
+# 功能       : 检查依赖边界、文档和脚本路径、发布图集、ADC2 合同及包版本。
 # 设计说明   :
 #   * CI 可直接运行本工具。所有检查仅读取源码、合同和图集，使用 Python
 #     标准库，因此临时检出时无需安装模型依赖或 EDA 工具。
@@ -82,7 +82,7 @@ def check_doc_links() -> None:
     from urllib.parse import unquote, urlsplit
 
     archived = {"_history", "_superseded", "_legacy", "archive"}
-    sections = ("docs", "flow", "rtl", "src", "subsys", "tools", "references")
+    sections = (".github", "docs", "flow", "rtl", "src", "subsys", "tools", "references")
     paths = list(ROOT.glob("*.md"))
     for section in sections:
         paths.extend((ROOT / section).rglob("*.md"))
@@ -126,13 +126,13 @@ def check_doc_links() -> None:
 def _semantic_digest_of_python(text: str) -> str:
     """忽略注释与 docstring 的 AST 摘要（只看语法树）。
 
-    ⚠️ **不能 import `adi_model.hashing`**：本工具跑在系统 python（3.9）下，
-    而 `adi_model` 需要 3.13（`typing.TypeGuard`）。因此这里用标准库 `ast`
-    实现等价逻辑，与 `adi_model.hashing._strip_python` 保持同一判据：
+    此自检支持没有安装项目依赖的系统 Python 3.9。模型包要求 Python 3.10 以上。
+    直接解析标准库 AST 可避免导入模型及其数值依赖。与包内 `adi_model.hashing._strip_python`
+    共用同一语义判据：
     剥掉 Module/FunctionDef/ClassDef 的首个字符串表达式（docstring）后
     比较 `ast.dump`。注释本来就不进 AST，天然被忽略。
 
-    若两处逻辑出现分歧，`tests/unit/test_hashing.py` 里的对照测试会失败。
+    若两处逻辑出现分歧，`flow/tests/unit/test_hashing.py` 里的对照测试会失败。
     """
     tree = ast.parse(text)
     for node in ast.walk(tree):
@@ -409,6 +409,43 @@ def check_adc2_contract() -> None:
     record(check, True, "v21 RTL and Python defaults agree: 13 bits, [-0.1875,+0.5625) V")
 
 
+# =============================================================================
+# 8. 软件包、软件引用与面向读者的版本号
+# =============================================================================
+def check_package_version() -> None:
+    """独立检出即可运行。比较包号与引用信息，不依赖已安装的 wheel 或 Git 标签。"""
+    check = "C8 package version"
+    try:
+        toml = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        # 只取 [project] 表，避免工具自己的 target-version 或其他同名键冒充包号。
+        block = _single_match(
+            r"(?s)^\[project\][ \t]*(?:#[^\n]*)?\n(.*?)(?=^\[|\Z)", toml, "[project]",
+        )[1]
+        version = _single_match(
+            r"""^version[ \t]*=[ \t]*(['"])([^'"\n]+)\1[ \t]*(?:#.*)?$""", block, "project.version",
+        )[2]
+        cff = (ROOT / "docs/meta/CITATION.cff").read_text(encoding="utf-8")
+        # CFF 的顶层 version 是软件包号；cff-version 是引用文件自身的格式。
+        field = _single_match(
+            r"""^version:[ \t]*(['"]?)([^\s#'"]+)\1[ \t]*(?:#.*)?$""", cff, "CITATION.cff version",
+        )
+        displayed = {"docs/meta/CITATION.cff": field[2]}
+        for name in ("README.md", "docs/meta/README_EN.md", "docs/meta/CHANGELOG.md"):
+            page = (ROOT / name).read_text(encoding="utf-8")
+            # 读者点击包号就能定位定义。定位链接而非整句话，翻译或润色不影响检查。
+            link = _single_match(
+                r"\[([0-9][^\]\n]*)\]\((?:\.\./)*pyproject\.toml\)", page, f"{name} package version link",
+            )
+            displayed[name] = link[1]
+        wrong = [f"{name}={value}" for name, value in displayed.items() if value != version]
+        if wrong:
+            raise ValueError(f"pyproject.toml={version}, " + ", ".join(wrong))
+    except (OSError, ValueError) as exc:
+        record(check, False, str(exc))
+        return
+    record(check, True, f"package, citation and version links agree: {version}")
+
+
 def main() -> int:
     check_dependency_direction()
     check_caaz_isolation()
@@ -417,6 +454,7 @@ def main() -> int:
     check_duplicate_formulas()
     check_entry_points()
     check_adc2_contract()
+    check_package_version()
     width = max(len(name) for name, _, _ in results)
     failures = 0
     for name, ok, detail in results:

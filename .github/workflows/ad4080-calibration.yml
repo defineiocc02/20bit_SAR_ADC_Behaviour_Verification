@@ -1,0 +1,134 @@
+# =============================================================================
+# 文件名     : ad4080-calibration.yml
+# 模块名     : 独立外围的板级校准回归
+# 版本       : v1.0
+# 功能       : 用固定 ADCToolbox 源码和仓内原 DSP，验证主机估算及定点寄存器计划。
+# 设计说明   : 校准源码、产品读回路径或实际修正模块变化时复测。使用开源工具。
+# 变更记录   : 主机估计、逐码核对与 SPI 写入到存储读回在同一作业中运行。
+# =============================================================================
+name: AD4080 system calibration
+# 限定校准及外围设计依赖，转换核的其它实现由常规工作流验收。
+# 滤波目标数据和手册索引也参与触发，避免更新资料后漏掉原始信号对拍。
+on:
+  pull_request:
+    paths:
+      - 'subsys/ad4080_peripherals/calibration/**'
+      - 'subsys/ad4080_peripherals/integration/**'
+      - 'subsys/ad4080_peripherals/**/*.sv'
+      - 'subsys/ad4080_peripherals/evidence/MANUAL_TRACE.md'
+      - 'subsys/ad4080_peripherals/report/manual-trace.*'
+      - 'subsys/ad4080_peripherals/verify/check_manual_trace.mjs'
+      - 'subsys/ad4080_peripherals/verify/check_signal_edges.py'
+      - 'subsys/ad4080_peripherals/evidence/dsp-revision.txt'
+      - 'subsys/ad4080_peripherals/interfaces/dsp_review/**'
+      - 'subsys/ad4080_dsp/rtl/**'
+      - 'subsys/ad4080_dsp/model/ad4080_cal_model.py'
+      - '.github/workflows/ad4080-calibration.yml'
+      - '.github/actions/setup-verilator/**'
+  workflow_dispatch:
+
+# 本作业只需读取源与上传本次仿真收据。
+permissions:
+  contents: read
+# 同一功能分支连续提交时，以最新源码的报告为准。
+concurrency:
+  group: ad4080-calibration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  calibration:
+    # 固定 Ubuntu 发行版，开源仿真器和编译参数随运行记录。
+    runs-on: ubuntu-24.04
+    # 冷缓存编译 Verilator，随后大台架还需一次共享构建和多个独立冷启动。
+    timeout-minutes: 45
+    env:
+      MPLBACKEND: Agg
+      OPENBLAS_NUM_THREADS: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+      CAL: subsys/ad4080_peripherals/calibration
+    # 先验收文档链接与文件摘要，再启动实际台架。
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 硬件算术参考按提交读 Git 对象，浅克隆可能只有 PR merge 对象。
+          fetch-depth: 0
+      - name: Check each module against the manual evidence inventory
+        shell: bash
+        run: |
+          p=subsys/ad4080_peripherals
+          node "$p/verify/check_manual_trace.mjs" --check-local
+          # 可打印稿由同一份 Markdown 生成。干净检出也要核对这次发布的内容。
+          digest=$(sha256sum "$p/evidence/MANUAL_TRACE.md" | cut -d' ' -f1)
+          grep -Fxq "% Markdown SHA-256 $digest" "$p/report/manual-trace.tex"
+          python3 "$p/verify/check_delivery.py"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the pinned host estimator
+        run: python -m pip install --retries 3 -r "$CAL/requirements.txt"
+      - name: Exercise the estimators, measured table and offset trim
+        run: python -m unittest discover -s "$CAL" -p 'test_*.py' -v
+      - uses: ./.github/actions/setup-verilator
+      - name: Install the raw trace extraction tool
+        shell: bash
+        run: |
+          # 产品台架在仿真完成后用 rg 提取原始逐沿与滤波行；Ubuntu 镜像未保证预装。
+          if ! command -v rg >/dev/null; then
+            sudo apt-get -o Acquire::Retries=3 update
+            sudo apt-get -o Acquire::Retries=3 install -y --no-install-recommends ripgrep
+          fi
+      - name: Compare held-out samples with the existing DSP RTL
+        run: python "$CAL/verify_rtl.py" --repo . --out "$RUNNER_TEMP/ad4080-system-calibration.json" --require-manual-order
+      - name: Publish the independent Figure 96 result
+        shell: bash
+        run: |
+          # 工程回归和手册符合性有独立判据，摘要给出两个码值以便复核。
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          result = json.loads((Path(os.environ["RUNNER_TEMP"]) / "ad4080-system-calibration.json").read_text())
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a") as summary:
+              print("### AD4080 Rev. B 图 96 运算顺序", file=summary)
+              print("", file=summary)
+              print("```json", file=summary)
+              print(json.dumps(result["manual_order_check"], ensure_ascii=False, indent=2), file=summary)
+              print("```", file=summary)
+          PY
+      - name: Write the estimated coefficients through SPI and read both records
+        shell: bash
+        run: |
+          # 输入是主机实算的寄存器字节，断言比较从同一四银行存储读出的完整记录。
+          export DSP_UPSTREAM_REPO="$GITHUB_WORKSPACE"
+          export CAL_PYTHON="$(command -v python)"
+          bash subsys/ad4080_peripherals/integration/product/run_product.sh --calibration |
+            tee "$RUNNER_TEMP/ad4080-calibrated-record.txt"
+      - name: Compare raw CNV and readout edges with the data sheet
+        shell: bash
+        run: |
+          # 单独的检查器只依赖外部时间、观测值和手册事件定义，漏拍或错拍会阻断本作业。
+          p=subsys/ad4080_peripherals
+          export DSP_UPSTREAM_REPO="$GITHUB_WORKSPACE"
+          bash "$p/integration/product/run_product.sh" --all-pins | tee "$RUNNER_TEMP/ad4080-pin-edges.txt"
+          build_dir=$(sed -n 's/^Build directory //p' "$RUNNER_TEMP/ad4080-pin-edges.txt")
+          test -n "$build_dir"
+          python -B "$p/verify/check_signal_edges.py" "$build_dir/simulation.log"
+      # 表2 配置 SDI 短保持与表21 连续转换，使用实际产品顶层至出码。
+      - name: Test Table 2 and 21 product rates end to end
+        shell: bash
+        run: |
+          export DSP_UPSTREAM_REPO="$GITHUB_WORKSPACE"
+          bash subsys/ad4080_peripherals/integration/product/run_product.sh --at-speed | tee "$RUNNER_TEMP/ad4080-at-speed.txt"
+      # 单独检查每种抽取档的实测幅度，原厂图表读数不用于生成 DUT 输出。
+      - name: Measure all filter settings on RTL output
+        run: python -B subsys/ad4080_peripherals/interfaces/dsp_review/verify_filter_response.py --repo . --output "$RUNNER_TEMP/filter-response"
+      # 发布原始输出，供查验首次出码、截断和每个合法档位的截止。
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ad4080-system-calibration
+          path: |
+            ${{ runner.temp }}/ad4080-system-calibration.json
+            ${{ runner.temp }}/ad4080-calibrated-record.txt
+            ${{ runner.temp }}/ad4080-pin-edges.txt
+            ${{ runner.temp }}/ad4080-at-speed.txt
+            ${{ runner.temp }}/filter-response

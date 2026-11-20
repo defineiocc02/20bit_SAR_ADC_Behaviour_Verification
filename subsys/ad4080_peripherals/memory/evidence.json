@@ -1,0 +1,161 @@
+{
+  "schema": "ad4080-result-sram-evidence/v1",
+  "date_local": "2026-11-20",
+  "host": {
+    "platform": "macOS arm64",
+    "compiler": "Apple clang 21.0.0 (clang-2100.1.1.101)"
+  },
+  "adi_abi_source": {
+    "url": "https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf",
+    "revision": "B",
+    "page_count": 95,
+    "sha256_local_checked": "f08f2586dc82d5f583b42071b3570c06f1fe736d3053e15a559a47ed2841cbc1",
+    "pages_core_to_storage_contract": [
+      51,
+      52,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      83,
+      90,
+      91
+    ]
+  },
+  "sha256": {
+    "rtl/result_store.sv": "277c131ca1daf4b9b42d1a899091fee1fa4eae44c21acf3883d9140717d93699",
+    "verify/store_tb.sv": "e2c2bc17799d51f73f1376cc8ba1f8bd7c16e5f1c78bc858a41844cfd9ca706f",
+    "memory/result_store_mbist.sv": "40ab0e3965df8d437acece0c5d5547ffb2bf7f823ab674dae1d139e618f00773",
+    "memory/result_store_mbist_tb.sv": "21ba3a9227e817c070836006f8567976931cfc0ed4cb18eb84f2513a54347290"
+  },
+  "baseline_hash_check": "PASS",
+  "geometry": {
+    "status": "PASS",
+    "scope": "规划窗、LEF/DEF 预留及有效位密度",
+    "input_subset_sha256": "7698caa76df3c101fe3cb96789f735ea2be6bb8caed290f07e8788c1160a583b",
+    "input_subset_hash_layout": "floorplan/plan.json 取 {FIFO:rects[0],SR2:rects[0],sram}，字典键排序，紧凑 JSON UTF-8",
+    "window_um": [
+      605,
+      200
+    ],
+    "window_area_um2": 121000,
+    "bank_count": 4,
+    "bank_words": 4096,
+    "word_bits": 20,
+    "bank_effective_bits": 81920,
+    "total_effective_bits": 327680,
+    "bank_max_um": [
+      290.5,
+      88.0
+    ],
+    "bank_max_area_um2": 25564,
+    "bank_max_um2_per_effective_bit": 0.312060546875,
+    "bank_min_effective_mbit_per_mm2": 3.2045063370364577,
+    "bank_origins_um": [
+      [
+        488,
+        1123
+      ],
+      [
+        786.5,
+        1123
+      ],
+      [
+        488,
+        1219
+      ],
+      [
+        786.5,
+        1219
+      ]
+    ],
+    "bank_slot_area_total_um2": 102256,
+    "window_margin_and_channel_area_um2": 18744,
+    "record_window_us_at_40_msps": 409.6
+  },
+  "lint": {
+    "status": "PASS",
+    "tool": "Verilator 5.30",
+    "exit_code": 0,
+    "command": "verilator --lint-only -Wall --top-module result_store_mbist memory/result_store_mbist.sv"
+  },
+  "simulation": {
+    "status": "PASS",
+    "tool": "Verilator 5.30",
+    "exit_code": 0,
+    "clock_period_ns": 25,
+    "top": "result_store_mbist_tb",
+    "pattern_runs": [
+      {
+        "background_hex": "00000",
+        "sram_accesses": 163840,
+        "cycles_from_start_to_done": 163841
+      },
+      {
+        "background_hex": "55555",
+        "sram_accesses": 163840,
+        "cycles_from_start_to_done": 163841
+      }
+    ],
+    "build_command": "verilator --compiler clang -CFLAGS '-std=c++20' --binary --timing -j 2 -Wall -Wno-DECLFILENAME --top-module result_store_mbist_tb --Mdir <fresh-ASCII-directory> rtl/result_store.sv memory/result_store_mbist.sv memory/result_store_mbist_tb.sv",
+    "log_pass_lines": [
+      "PASS qualification and functional read drain",
+      "PASS full March pattern=00000 accesses=163840 elapsed_cycles=163841",
+      "PASS full March pattern=55555 accesses=163840 elapsed_cycles=163841",
+      "PASS injected bit mismatch addr=1000 expected=00000 actual=00001",
+      "PASS dropped read response addr=1000",
+      "PASS authorization loss and qualified recovery",
+      "PASS reset and fresh functional read",
+      "PASS result_store_mbist banks=4 full_scan_accesses=327680"
+    ],
+    "scope": "以原始推断 RAM 为 DUT，逐访问比对命令和读数据。位翻转和丢有效仅注入返回总线。"
+  },
+  "generic_synthesis": {
+    "status": "PASS",
+    "tool": "YoWASP Yosys 0.69 (9f75ca1f9)",
+    "exit_code": 0,
+    "top": "result_store_mbist",
+    "command": "yosys -Q -p 'read_verilog -sv memory/result_store_mbist.sv; hierarchy -check -top result_store_mbist; synth -top result_store_mbist -noabc; check -assert; stat'",
+    "cell_total": 574,
+    "cells_by_generic_type": {
+      "$_AND_": 85,
+      "$_DFFE_PN0P_": 78,
+      "$_MUX_": 202,
+      "$_NOT_": 47,
+      "$_OR_": 112,
+      "$_XOR_": 50
+    },
+    "check_log": "Found and reported 0 problems.",
+    "scope": "独立仲裁器和 March 控制器通用布尔映射"
+  },
+  "comment_style": {
+    "status": "PASS",
+    "result_store_mbist.sv": {
+      "code_lines": 175,
+      "comment_lines": 79,
+      "comment_rate_percent": 45.14
+    },
+    "result_store_mbist_tb.sv_before_comment_addition": {
+      "code_lines": 272,
+      "comment_lines": 33,
+      "comment_rate_percent": 12.13
+    },
+    "result_store_mbist_tb.sv": {
+      "code_lines": 272,
+      "comment_lines": 65,
+      "comment_rate_percent": 23.9
+    },
+    "bench_code_unchanged_after_comment_addition": true
+  },
+  "pending": {
+    "target_process_sram_compilation": "BLOCKED",
+    "pvt_timing_and_physical_routing": "NOT_RUN",
+    "power_integrity_and_analog_coupling": "NOT_RUN",
+    "external_frame_and_clock_domain_verification": "NOT_RUN",
+    "memory_defect_coverage_and_repair": "NOT_RUN"
+  }
+}

@@ -1,202 +1,145 @@
-//=============================================================================
-// @file    sinc5_decim.sv
-// @brief   五级流水 CIC 抽取滤波器。
-// @details N=2..256；五级积分和五级梳状差分后按 N^5 归一化。
-//          抽取事件跟随已接受样本的流水，不按空闲时钟周期推进。
-// @project SAR20 / source-bounded digital processing
-// @author  Project maintainers; contributions are tracked by Git.
-// @date    2026-11-05
-// @version Git content version; no separate device revision is implied.
-//-----------------------------------------------------------------------------
-// 手册依据: AD4080 Rev.B pp.64–69/94 的模式与抽取率；精确流水和舍入为工程约定。
-// 时钟域: clk；积分与抽取按有效事件推进。
-// 复位: rst_n 低有效、异步置位；filter_sync 清积分、梳状历史和输出流水。
-// 延迟: 五级样本流水加梳状事件/归一化流水，不能简化为 N+2。
-// 吞吐: 每个 clk 可输入一个样本；稳态每 N 个被接受样本输出一次。
-// 可综合性: 可综合结构；工艺映射、约束与 STA 需分别验收。
-// 依赖: 无子模块。
-// 边界: 只支持 20 bit 补码；改变 N 须使用 filter_sync，不生成未绑定的物理稳定时序。
-//=============================================================================
 `timescale 1ns/1ps
 `default_nettype none
 
+// =============================================================================
+// 文件名     : sinc5_decim.sv
+// 模块名     : sinc5_decim
+// 版本       : v1.0
+// 功能       : 五阶 CIC 抽取与按 D^5 归一化，支持 20 位补码和 D=2…256。
+//
+// 设计说明   :
+//   * 每个有效输入向积分链发出令牌。四个后续核心时钟使对应的抽取点
+//     到达最终级，暂停输入时积分链按令牌排空。
+//   * 抽取后的五阶梳状差分写成转置 FIR，阵列存各阶历史贡献。每次
+//     抽取直接完成当前数值，避免按五组抽取事件串行转发。
+//   * FILTER_SYNC 同沿优先，清积分、梳状及在途输出并锁存抽取率。
+//     valid_out 包含零填充启动结果，器件 CNV 就绪由外层另行判定。
+//
+// 变更记录   : 2026-11-20 将积分和抽取对齐迁至连续核心时钟，去除跨组延迟。
+// @file    sinc5_decim.sv
+// @brief   五级积分、五阶差分的 CIC 数值通路。
+// @details 同组梳状输出，抽取样本到有效数值相隔四个核心时钟间隔。
+// @author  Project maintainers
+// @date    2026-11-20
+// @version v1.0
+// 手册依据: AD4080 Rev. B p.64–69、94。核心时钟延迟与舍入为工程合同。
+// 时钟域: clk。复位: rst_n 低有效异步，filter_sync 为同域同步清空。
+// 可综合性: 定宽整数结构，目标映射与 STA 独立验收。
+// =============================================================================
 module sinc5_decim #(
-    parameter int IN_W = 20  // IN_W: 仅支持 20 bit 补码输入/输出。
+    parameter int IN_W = 20
 ) (
-    input  logic                 clk,
-    input  logic                 rst_n,
-    input  logic                 filter_sync,
-    input  logic                 valid_in,
-    input  logic [IN_W-1:0]      data_in,      // 补码
-    input  logic [3:0]           dec_sel,
-    output logic [IN_W-1:0]      data_out,     // 补码
-    output logic                 valid_out     // 数值输出有效，不建模基于 CNV 的 ready。
+    // --- 样本与配置 ---
+    input  logic            clk,
+    input  logic            rst_n,       // 清除在途令牌和历史
+    input  logic            filter_sync, // 同沿丢弃输入，锁存新抽取率
+    input  logic            valid_in,    // 未停止的核心时钟上接受新样本
+    input  logic [IN_W-1:0] data_in,     // 20 位补码
+    input  logic [3:0]      dec_sel,     // 0…7, 对应抽取 2…256；其余沿用 256
+    // --- 滤波数值 ---
+    output logic [IN_W-1:0] data_out,    // 20 位补码，未建立时为部分窗口结果
+    output logic            valid_out    // 工程数值有效，依抽取令牌提交
 );
-
+    // =========================================================================
+    // 1. 抽取配置和定宽数值
+    // =========================================================================
     initial begin
         if (IN_W != 20) $fatal(1, "numerical SINC: only the signed20 contract is supported");
     end
 
     localparam int MAX_LOG2D = 8;
-    localparam int ACC_W     = IN_W + 5*MAX_LOG2D + 1;   // 61
-    localparam int ACC_WX    = ACC_W + 1;
+    localparam int ACC_W = IN_W + 5*MAX_LOG2D + 1;
+    localparam logic signed [IN_W-1:0] MAX_CODE = (IN_W'(1) <<< (IN_W-1)) - IN_W'(1);
+    localparam logic signed [IN_W-1:0] MIN_CODE = -(IN_W'(1) <<< (IN_W-1));
+    localparam logic signed [ACC_W-1:0] RESET_HALF = ACC_W'(16); // D=2，D^5/2=16
 
-    localparam logic signed [IN_W-1:0] MAX_CODE =   (1 << (IN_W-1)) - 1;
-    localparam logic signed [IN_W-1:0] MIN_CODE = - (1 << (IN_W-1));
+    // 抽取率及归一化移位一起锁存，禁止同一窗口同时使用两个倍率。
+    wire [3:0] log2_map = dec_sel > 4'd7 ? 4'd8 : dec_sel + 4'd1;
+    wire [10:0] d_map = 11'd1 << log2_map;
+    wire [7:0] shift_map = {2'b0, log2_map, 2'b00} + {4'b0, log2_map};
+    wire signed [ACC_W-1:0] half_map = ACC_W'(1) <<< (shift_map - 8'd1);
+    logic [10:0] d_cur, count_q;
+    logic [7:0] shift_cur;
+    logic signed [ACC_W-1:0] half_cur;
 
-    // 抽取率与移位量分开返回，以兼容不支持 function 输出参数的 Icarus 用法。
-    function automatic [10:0] dec_d(input [3:0] s);
-        begin
-            if (s > 4'd7) dec_d = 11'd256;
-            else          dec_d = 11'd1 << (s + 4'd1);
-        end
-    endfunction
-
-    function automatic [3:0] dec_l(input [3:0] s);
-        begin
-            if (s > 4'd7) dec_l = 4'd8;
-            else          dec_l = s + 4'd1;
-        end
-    endfunction
-
-    logic [10:0] d_map, d_cur;
-    logic [3:0]  l_map, l_cur;
-    logic [7:0]  shift_amt;
-
-    always_comb begin
-        d_map = dec_d(dec_sel);
-        l_map = dec_l(dec_sel);
-        // 归一化必须使用已锁存的 l_cur，使 5*log2(D) 与累加使用的 d_cur
-        // 属于同一数据块；改用 l_map 会在块中途改码时使用错误增益。
-        shift_amt = {2'b0, l_cur, 2'b00} + {4'b0, l_cur};   // 5*l
-    end
-
+    // =========================================================================
+    // 2. 积分与抽取令牌
+    // =========================================================================
     logic signed [ACC_W-1:0] integ [0:4];
-    logic [4:0]              dec_pipe;   // 积分器 5 级打拍后的抽取对齐（按 valid 推进）
-    logic signed [ACC_W-1:0] comb_d [0:4];
-    logic [10:0]             cnt;
-    logic signed [ACC_W-1:0] data_ext;
+    logic [3:0] valid_pipe_q, dec_pipe_q;
+    wire dec_now = valid_in && count_q == d_cur - 11'd1;
+    wire dec_evt = dec_pipe_q[3];
+    wire signed [ACC_W-1:0] data_ext = ACC_W'($signed(data_in));
+    wire signed [ACC_W-1:0] integral5_next = integ[4] + integ[3];
 
-    assign data_ext = $signed({{(ACC_W-IN_W){data_in[IN_W-1]}}, data_in});
-
-    // 每级积分器包含一个寄存器，第 D 个样本在四个后续有效输入沿后
-    // 到达 integ[4]。抽取事件因此须在有效样本域对齐，空闲 clk 不计入推进。
-    wire dec_now = valid_in && (cnt == d_cur - 11'd1);
-
+    // 每级只在属于该级的令牌到达时更新，同一份样本经历五阶积分。
+    // 令牌和抽取标志随核心拍移动，输入的空白间隔无需由外部补虚拟样本。
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            cnt      <= '0;
-            dec_pipe <= '0;
+            count_q <= '0;
+            valid_pipe_q <= '0;
+            dec_pipe_q <= '0;
+            for (int stage = 0; stage < 5; stage++) integ[stage] <= '0;
         end else if (filter_sync) begin
-            cnt      <= '0;
-            dec_pipe <= '0;
-        end else if (valid_in) begin
-            cnt <= (cnt == d_cur - 11'd1) ? 11'd0 : cnt + 11'd1;
-            dec_pipe <= {dec_pipe[3:0], dec_now};
-        end
-    end
-
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            integ[0] <= '0; integ[1] <= '0; integ[2] <= '0; integ[3] <= '0; integ[4] <= '0;
-        end else if (filter_sync) begin
-            integ[0] <= '0; integ[1] <= '0; integ[2] <= '0; integ[3] <= '0; integ[4] <= '0;
-        end else if (valid_in) begin
-            // 每级流水仅完成一次加法，避免在同一级串联五个 61 bit 加法器。
-            integ[0] <= integ[0] + data_ext;
-            integ[1] <= integ[1] + integ[0];
-            integ[2] <= integ[2] + integ[1];
-            integ[3] <= integ[3] + integ[2];
-            integ[4] <= integ[4] + integ[3];
-        end
-    end
-
-    // 五级梳状器采用收缩式流水，每个 dec_evt 同时更新各级。第 i 级
-    // 使用上一抽取事件的第 i-1 级结果完成 ACC_W 位减法，避免串联五级减法器。
-    logic signed [ACC_W-1:0]  comb_s [0:4];
-    logic signed [ACC_WX-1:0] out_r;
-    logic [7:0]               shift_r;
-    logic                     out_v, norm_v, sat_v;
-    logic signed [ACC_WX-1:0] norm_r;
-    logic signed [ACC_WX-1:0] rnd_w;
-    logic signed [ACC_WX-1:0] norm_w;
-    logic signed [ACC_WX-1:0] shifted;
-
-    // dec_pipe[4] 在有效样本速率下保持一个 valid 周期，与 valid_in 相与
-    // 生成单拍事件。第 D 个样本占用五个有效输入沿传播到 integ[4]，每级一拍。
-    wire dec_evt = valid_in && dec_pipe[4];
-
-    assign rnd_w  = $signed({{(ACC_WX-1){1'b0}}, 1'b1} << (shift_r - 8'd1));
-    assign norm_w = norm_r >>> shift_r;
-    // 移位结果先寄存，下一拍再饱和和选择，以分开 62 bit 桶形移位与比较器路径。
-
-    always_ff @(posedge clk or negedge rst_n) begin
-        if (!rst_n) begin
-            comb_d[0] <= '0; comb_d[1] <= '0; comb_d[2] <= '0;
-            comb_d[3] <= '0; comb_d[4] <= '0;
-            comb_s[0] <= '0; comb_s[1] <= '0; comb_s[2] <= '0;
-            comb_s[3] <= '0; comb_s[4] <= '0;
-            out_r     <= '0;
-            shift_r   <= '0;
-            out_v     <= 1'b0;
-            norm_r    <= '0;
-            norm_v    <= 1'b0;
-            sat_v     <= 1'b0;
-            shifted   <= '0;
-            data_out  <= '0;
-            valid_out <= 1'b0;
-            d_cur     <= 11'd2;
-            l_cur     <= 4'd1;
-        end else if (filter_sync) begin
-            comb_d[0] <= '0; comb_d[1] <= '0; comb_d[2] <= '0;
-            comb_d[3] <= '0; comb_d[4] <= '0;
-            comb_s[0] <= '0; comb_s[1] <= '0; comb_s[2] <= '0;
-            comb_s[3] <= '0; comb_s[4] <= '0;
-            out_r     <= '0;
-            shift_r   <= '0;
-            out_v     <= 1'b0;
-            norm_r    <= '0;
-            norm_v    <= 1'b0;
-            sat_v     <= 1'b0;
-            shifted   <= '0;
-            data_out  <= '0;
-            valid_out <= 1'b0;
-            d_cur     <= d_map;
-            l_cur     <= l_map;
+            count_q <= '0;
+            valid_pipe_q <= '0;
+            dec_pipe_q <= '0;
+            for (int stage = 0; stage < 5; stage++) integ[stage] <= '0;
         end else begin
-            valid_out <= 1'b0;
-            out_v     <= dec_evt;
-            norm_v    <= out_v;
-            sat_v     <= norm_v;
-
-            if (dec_evt) begin
-                comb_s[0] <= integ[4] - comb_d[0];  comb_d[0] <= integ[4];
-                comb_s[1] <= comb_s[0] - comb_d[1]; comb_d[1] <= comb_s[0];
-                comb_s[2] <= comb_s[1] - comb_d[2]; comb_d[2] <= comb_s[1];
-                comb_s[3] <= comb_s[2] - comb_d[3]; comb_d[3] <= comb_s[2];
-                comb_s[4] <= comb_s[3] - comb_d[4]; comb_d[4] <= comb_s[3];
-                out_r     <= $signed({{(ACC_WX-ACC_W){comb_s[4][ACC_W-1]}}, comb_s[4]});
-                shift_r   <= shift_amt;
-                d_cur     <= d_map;
-                l_cur     <= l_map;
+            valid_pipe_q <= {valid_pipe_q[2:0], valid_in};
+            dec_pipe_q <= {dec_pipe_q[2:0], dec_now};
+            if (valid_in) begin
+                count_q <= dec_now ? 11'd0 : count_q + 11'd1;
+                integ[0] <= integ[0] + data_ext;
             end
-
-            if (out_v) norm_r <= out_r + rnd_w;
-
-            if (norm_v) shifted <= norm_w;
-
-            if (sat_v) begin
-                if (shifted > $signed({{(ACC_WX-IN_W){MAX_CODE[IN_W-1]}}, MAX_CODE}))
-                    data_out <= {1'b0, {(IN_W-1){1'b1}}};
-                else if (shifted < $signed({{(ACC_WX-IN_W){MIN_CODE[IN_W-1]}}, MIN_CODE}))
-                    data_out <= {1'b1, {(IN_W-1){1'b0}}};
-                else
-                    data_out <= shifted[IN_W-1:0];
-                valid_out <= 1'b1;
+            for (int stage = 1; stage < 4; stage++) begin
+                if (valid_pipe_q[stage-1]) integ[stage] <= integ[stage] + integ[stage-1];
             end
+            if (valid_pipe_q[3]) integ[4] <= integral5_next;
         end
     end
 
-endmodule
+    // =========================================================================
+    // 3. 当前抽取点的梳状、舍入和输出
+    // =========================================================================
+    logic signed [ACC_W-1:0] comb_tail [0:4];
+    wire signed [ACC_W-1:0] integral_times_five = integral5_next + (integral5_next <<< 2);
+    wire signed [ACC_W-1:0] integral_times_ten = integral_times_five <<< 1;
+    wire signed [ACC_W-1:0] rounded_comb = integral5_next + comb_tail[0];
+    wire signed [ACC_W-1:0] normalized = rounded_comb >>> shift_cur;
 
+    // (1-z^-1)^5 的抽取域系数为 [1,-5,10,-10,5,-1]。每槽预存后续
+    // 抽取时的历史贡献，并携带一份半步。积分与历史均模 2^ACC_W；
+    // 完整 CIC 和连同半步的绝对值低于 2^60，模运算后的有符号值可直接归一。
+    // 当前抽取使用末级积分的同拍新值，避免额外等待一次输入或抽取。
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            d_cur <= 11'd2;
+            shift_cur <= 8'd5;
+            half_cur <= RESET_HALF;
+            for (int stage = 0; stage < 5; stage++) comb_tail[stage] <= RESET_HALF;
+            data_out <= '0;
+            valid_out <= 1'b0;
+        end else if (filter_sync) begin
+            d_cur <= d_map;
+            shift_cur <= shift_map;
+            half_cur <= half_map;
+            for (int stage = 0; stage < 5; stage++) comb_tail[stage] <= half_map;
+            data_out <= '0;
+            valid_out <= 1'b0;
+        end else begin
+            valid_out <= dec_evt;
+            if (dec_evt) begin
+                comb_tail[0] <= comb_tail[1] - integral_times_five;
+                comb_tail[1] <= comb_tail[2] + integral_times_ten;
+                comb_tail[2] <= comb_tail[3] - integral_times_ten;
+                comb_tail[3] <= comb_tail[4] + integral_times_five;
+                comb_tail[4] <= half_cur - integral5_next;
+                if (normalized > ACC_W'(MAX_CODE)) data_out <= MAX_CODE;
+                else if (normalized < ACC_W'(MIN_CODE)) data_out <= MIN_CODE;
+                else data_out <= normalized[IN_W-1:0];
+            end
+        end
+    end
+endmodule
 `default_nettype wire

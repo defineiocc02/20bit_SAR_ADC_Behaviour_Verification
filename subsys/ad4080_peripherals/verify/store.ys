@@ -1,0 +1,10 @@
+# 内存保持到 memory_collect。避免通用门映射把整个容量展开为触发器。
+read_verilog -sv rtl/result_store.sv
+hierarchy -check -top result_store
+proc
+opt
+memory_share
+memory_collect
+check -assert
+stat
+write_json store_netlist.json

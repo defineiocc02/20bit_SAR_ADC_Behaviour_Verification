@@ -223,6 +223,13 @@ BENCHES["ad4080_top_tb"] = Bench(
     ),
     (),
 )
+# 与普通 SPI/DSP 使用同一源码；本台架从已译码 CNV 和实际 GPIO 检查引脚拍点。
+BENCHES["ad4080_cnv_phases_tb"] = Bench(
+    BENCHES["ad4080_top_tb"].sources[:-1] + ("subsys/ad4080_dsp/sim/tb/ad4080_cnv_phases_tb.sv",),
+    "AD4080_CNV_PHASES_COMPLETE",
+    ("checks",),
+    (),
+)
 BENCHES["sinc5_comp_contract_tb"] = Bench(
     (
         "subsys/ad4080_dsp/rtl/sinc5_decim.sv",
@@ -231,11 +238,11 @@ BENCHES["sinc5_comp_contract_tb"] = Bench(
     ),
     "SINC5_COMP_CONTRACT_COMPLETE",
     (
+        # PF1 各档自带系数。台架逐字断言无拒绝，并检查真码、符号与同步取消。
         "fir_compares",
         "positive",
         "negative",
         "changed_s5",
-        "unbound_rejects",
         "sync_cancels",
         "checks",
     ),
@@ -679,7 +686,10 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
             ):
                 raise ValueError("invalid or duplicate source in the v21 production filelist")
             source_names = [*rtl, *source_names]
-        for name in (*source_names, *spec.support_files):
+        # PF1 的常系数表是真正的 HDL 输入，需要与源码一起冻结，但不能作为独立编译单元。
+        dsp_filter = "subsys/ad4080_dsp/rtl/sinc5_comp.sv"
+        fir_headers = ("subsys/ad4080_dsp/rtl/sinc5_comp_coeff_lut.svh",) if dsp_filter in source_names else ()
+        for name in (*source_names, *spec.support_files, *fir_headers):
             source = REPO / name
             if not source.is_file():
                 raise ValueError(f"selected dependency is absent: {name}")
@@ -691,7 +701,7 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
         env = os.environ.copy()
         if args.simulator == "verilator":
             alias_runtime(work, env, version)
-        include_dirs = []
+        include_dirs = [work / "repo" / Path(dsp_filter).parent] if fir_headers else []
         if spec.requires_math_format:
             if args.math_format is None:
                 raise ValueError(f"{top} requires --math-format")
@@ -802,6 +812,10 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
                     log=folder / f"{lint_top}.lint.log",
                     timeout=args.timeout,
                 )
+            compiler_options = verilator_compiler_args()
+            if fir_headers:
+                # 大型定时台架的生成代码以主机未优化模式编译；DUT 精度、时钟和断言不变。
+                compiler_options[-1] += " OPT_FAST=-O0 OPT_SLOW=-O0"
             compile_command = [
                 *command,
                 # 持续采样夹具直接驱动生产顶层，C++ 提供 main 和整数飞秒时基。
@@ -816,7 +830,7 @@ def run_bench(args, top: str, spec: Bench, out: Path, command: list[str], versio
                 "-Wno-fatal",
                 "-Werror-PINMISSING",
                 "-Werror-SELRANGE",
-                *verilator_compiler_args(),
+                *compiler_options,
                 "--top-module",
                 module,
                 *[f"-G{name}={value}" for name, value in parameters.items()],

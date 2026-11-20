@@ -1,0 +1,28 @@
+AD4080 DSP source revision 2ad7b069dd76239f2fec7670b28488ca22fce46b
+Verilator 产品校准链，SHIFT=15
+ADCToolbox 0.9.1, OFFSET=-80 (0xFB0), GAIN=0x15D, K=1 SHIFT=15
+PRODUCT_ADCTOOLBOX_PLAN PASS
+PRODUCT_TIMING_BOUND CORE_CLOCK_HZ=100000000 P_CNV_TIMING_BOUND=1
+PASS four-wire config write drives SDO zero in data phase and releases it after CS
+PASS configured product ID 0x0050 and actual short scratch SPI write/read
+CAL_SPI readback OFFSET=0000 GAIN=0200
+CAL_RECORD neutral 46 pairs aab6694000503d5c24ab21a signed samples -301420 80 251330
+CAL_SPI readback OFFSET=0fb0 GAIN=015d
+CAL_RECORD corrected 46 pairs aab6c20000003d090c5a11e signed samples -300000 0 250000
+AD4080_PRODUCT_CALIBRATION PASS
+
+[Yosys 结构及参数]
+Yosys 0.69 (git sha1 9f75ca1f9, Release, Clang /workspace/YoWASP/yosys/wasi-sdk-33.0-x86_64-linux/share/cmake/../..//bin/clang++ 22.1.0)
+Checking module ad4080_peripheral_product...
+Found and reported 0 problems.
+PRODUCT_STRUCTURE PASS: original DSP/control leaves, four 4096x20 result banks, one 8x22 transport queue
+PRODUCT_CONTINUOUS_STRUCTURE PASS: original DSP code/tag routed through two 52-bit CDC registers
+DSP engineering mapping K_GAIN=1 SHIFT=15
+DSP config SPI P_WRITE_SDO_DRIVE=1
+PRODUCT_TIMING_BOUND CORE_CLOCK_HZ=100000000 P_CNV_TIMING_BOUND=1
+ad4080_peripheral_product.u_record.u_readback.u_transport.fifo_memory_q: 8x22
+ad4080_peripheral_product.u_services.u_result_store.banks[0].bank.mem: 4096x20
+ad4080_peripheral_product.u_services.u_result_store.banks[1].bank.mem: 4096x20
+ad4080_peripheral_product.u_services.u_result_store.banks[2].bank.mem: 4096x20
+ad4080_peripheral_product.u_services.u_result_store.banks[3].bank.mem: 4096x20
+来源文件 SHA-256 全部校验通过。

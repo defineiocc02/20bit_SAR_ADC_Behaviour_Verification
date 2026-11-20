@@ -1,0 +1,36 @@
+AD4080 独立连续 LVDS 台架
+工具 Verilator 5.30，按 -Wall 编译，仿真退出码 0。
+入口 verify/run_peripheral_audit.py --case continuous_lvds
+范围 RTL 位序、时钟槽及数字 CDC 时序。
+
+PASS table20 lane=1 code=0x0 count=3 first_ps=33750 last_ps=57500 frames=4
+PASS table20 lane=1 code=0x1 count=4 first_ps=36250 last_ps=60000 frames=4
+PASS table20 lane=1 code=0x2 count=5 first_ps=38750 last_ps=62500 frames=4
+PASS table20 lane=1 code=0x3 count=6 first_ps=41250 last_ps=65000 frames=4
+PASS table20 lane=1 code=0x4 count=7 first_ps=43750 last_ps=67500 frames=4
+PASS table20 lane=1 code=0x5 count=8 first_ps=46250 last_ps=70000 frames=4
+PASS table20 lane=1 code=0x6 count=9 first_ps=48750 last_ps=72500 frames=4
+PASS table20 lane=1 code=0x7 count=10 first_ps=51250 last_ps=75000 frames=4
+PASS table20 lane=1 code=0x8 count=1 first_ps=28750 last_ps=52500 frames=4
+PASS table20 lane=1 code=0x9 count=2 first_ps=31250 last_ps=55000 frames=4
+PASS table20 lane=2 code=0x0 count=3 first_ps=42500 last_ps=65000 frames=4
+PASS table20 lane=2 code=0x1 count=4 first_ps=47500 last_ps=70000 frames=4
+PASS table20 lane=2 code=0x2 count=5 first_ps=52500 last_ps=75000 frames=4
+PASS table20 lane=2 code=0x3 count=1 first_ps=32500 last_ps=55000 frames=4
+PASS table20 lane=2 code=0x4 count=2 first_ps=37500 last_ps=60000 frames=4
+PASS deadline: missing tag=0100, subsequent word and reset isolation
+PASS training lane=1 self=0 fixed 0xAC5D6 without CNV/CNT dependency
+PASS training lane=2 self=1 fixed 0xAC5D6 without CNV/CNT dependency
+PASS CDC→scheduler lane=1 40MS/s frames=24
+PASS CDC→scheduler lane=2 40MS/s frames=24
+PASS CDC deadline: source_ps=48500 due_ps=50000 dst_ps=60000, tag=0014 missing and rejected
+PASS CDC full with stopped DCLK, common reset and fresh first word
+PASS Fig97: four copies of one real result, second result and generation flush
+PASS Manchester: 5 words, equal high/low halves on both lanes, 40MS/s and 400MHz
+PASS continuous LVDS: 2686 checked bits, 129 completed words, 38 rejection/missing cycles
+
+实际编译输入 SHA-256
+3713a7e40381c96333d209cee3f0b5fbd5babfd6fb250f9982216c9aac89fa5e  io/ad4080_continuous_lvds.sv
+fe21854ef41a9a797fb48c3e1a008228417776d1c3204e2c8bf5f2b17499c30d  io/ad4080_continuous_lvds_tb.sv
+cf21bb4f3fa49eb45eb971a7411afcb5bff163a0ef9384b83106309620b42235  io/ad4080_continuous_result_cdc.sv
+5ce0894e7d921cdb582dd3e5984447c1f2f0a1a0443f1bd971745b41486b633c  io/ad4080_ddr_edge_words.sv

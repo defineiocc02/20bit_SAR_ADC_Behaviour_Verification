@@ -1,0 +1,91 @@
+port,direction_at_ip,width_bits,signedness,rtl_line,role,window,peer,contract_zh
+clk,input,1,unsigned,19,时钟复位,CLK_RST,CLK/POR,IP 单一上升沿数字域；频率与宏相序预算待定
+rst_n,input,1,unsigned,20,时钟复位,CLK_RST,CLK/POR,低有效；每域异步置位复位与同步解除，外围负责跨域冲刷
+prepare_valid,input,1,unsigned,23,采样描述符,CTRL_LOCAL,CTRL/采样调度器,配合 ready 上升沿接收整笔描述符；等待时保持有效和载荷
+prepare_ready,output,1,unsigned,24,采样描述符,CTRL_LOCAL,CTRL/采样调度器,权重有效、可用槽及 qid/强制上段合法才受理；停收时为 0
+prepare_tag,input,32,unsigned,25,采样描述符,CTRL_LOCAL,CTRL/采样调度器,本地 32 位序号；随已接受事务传至最终 out_tag
+prepare_word,input,6,unsigned,26,测试保留,LOCAL_TEST,本地常量/诊断控制,仅 dither_force_i=1 时使用定向六位字
+prepare_h,input,3,unsigned,27,采样描述符,CTRL_LOCAL,CTRL/采样调度器,本笔冻结的横向 DEM 相位
+prepare_v,input,3,unsigned,28,采样描述符,CTRL_LOCAL,CTRL/采样调度器,本笔冻结的纵向 DEM 相位与采样预置轮换输入
+prepare_half,input,1,unsigned,29,采样描述符,CTRL_LOCAL,CTRL/采样调度器,本笔冻结的半区选择
+prepare_coin,input,1,unsigned,30,采样描述符,CTRL_LOCAL,CTRL/采样调度器,本笔冻结的边界交换选择
+prepare_U,input,3,unsigned,31,测试保留,LOCAL_TEST,本地常量/诊断控制,仅 dither_force_i=1 时检查与字派生的上段一致
+prepare_flash,input,3,unsigned,32,采样描述符,CTRL_LOCAL,CTRL/采样调度器,提前准备的粗区间或工程备用码；真实 Flash 在首提交前可覆盖
+prepare_qid,input,1,unsigned,33,采样描述符,CTRL_LOCAL,CTRL/采样调度器,0/1 两套 SADC；从 0 开始按受理交替
+stop_i,input,1,unsigned,34,采样描述符,CTRL_LOCAL,CTRL/采样调度器,停止接受新笔；完成已接收 ACQ 的采样并排空后续链
+sample_event,input,1,unsigned,37,采样与保持回报,ADC2_RSP,CLK/采样协调器及 ADC2,把同一实际公共沿的标识和采集/余差回报带到 clk 采样
+input_captured,input,1,unsigned,38,采样与保持回报,ADC2_RSP,CLK/采样协调器及 ADC2,与 sample_event 同拍确认当前 ACQ 锁存输入
+residue_captured,input,1,unsigned,39,采样与保持回报,ADC2_RSP,CLK/采样协调器及 ADC2,与 sample_event 同拍确认当前 CONV 的余差已成功捕获
+hold_ack,input,1,unsigned,40,采样与保持回报,ADC2_RSP,CLK/采样协调器及 ADC2,当前 CONV 对应的模拟保持完成，可以与采样同拍或随后到达
+ev_start_i,input,1,unsigned,43,保留未用,LOCAL_TIE,本地常量,现顶层内部 commit_fire 起事件上下文；保留输入接确定值
+ev_bit_valid_i,input,1,unsigned,44,前级返回,Q_RETURN,Q 侧事件适配器 → IP,提交一次已决事件，顶层无事件 ready；启动沿不并发
+ev_bit_i,input,1,unsigned,45,前级返回,Q_RETURN,Q 侧事件适配器 → IP,SADC 比较已决位；事件 1 为 Flash 提交无需读此位
+ev_bit_index_i,input,4,unsigned,46,前级返回,Q_RETURN,Q 侧事件适配器 → IP,SAR 物理位号；工程 guard 探测用 9，Flash 提交不检查
+ev_event_index_i,input,4,unsigned,47,前级返回,Q_RETURN,Q 侧事件适配器 → IP,本笔事件次序，首个为 1；guard 阈拒时后续 bit5 仍用 2
+ev_qid_i,input,1,unsigned,48,前级返回,Q_RETURN,Q 侧事件适配器 → IP,Flash 与 SAR 返回共用 1 位 qid；异 qid 返回须仲裁
+ev_flash_valid_i,input,1,unsigned,49,前级返回,Q_RETURN,Q 侧事件适配器 → IP,真实 Flash 码有效，采样回报至当笔首提交可覆盖已有 F
+ev_flash_code_i,input,3,unsigned,50,前级返回,Q_RETURN,Q 侧事件适配器 → IP,Flash 3 位粗区间，同有效及 qid 整字交付
+sched_ext_sel,input,1,unsigned,54,测试保留,LOCAL_TEST,本地常量/诊断控制,生产接 0 接内部 sched18；接 1 启用外部诊断输入
+sched_acq,input,18,unsigned,55,测试保留,LOCAL_TEST,本地常量/诊断控制,外部调度诊断输入，冷启动的候选采集组
+sched_conv,input,18,unsigned,56,测试保留,LOCAL_TEST,本地常量/诊断控制,外部调度声明输入；现 acq_conv_ctx 由冻结 CONV 片号产生实际片选
+sched_idle,input,18,unsigned,57,测试保留,LOCAL_TEST,本地常量/诊断控制,外部调度声明输入；现 acq_conv_ctx 从实际 ACQ/CONV 反推 idle
+sched_ids,input,40,unsigned,58,测试保留,LOCAL_TEST,本地常量/诊断控制,诊断时给出 8 个物理片号，各 5 位；验证互斥和合法片号
+sched_seed_we,input,1,unsigned,59,测试保留,LOCAL_TEST,本地常量/诊断控制,调度器种子重装使能，独立于扰动字源；启用方式由外围配置
+sched_seed,input,32,unsigned,60,测试保留,LOCAL_TEST,本地常量/诊断控制,调度器 32 位种子；诊断开关与启动流程待外围冻结
+acq_sel_o,output,18,unsigned,62,物理片选,SADC_RDAC,IP → RDAC,位 p 选物理片 p 采集；冷启动可预选，真实采样仍需协调器授权
+conv_sel_o,output,18,unsigned,63,物理片选,SADC_RDAC,IP → RDAC,位 p 选物理片 p 转换或余差保持
+idle_sel_o,output,18,unsigned,64,物理片选,SADC_RDAC,IP → RDAC,位 p 标记该物理片不属当前 ACQ/CONV；适配器连线见容量讨论
+rdac_pre_state_o,output,72,unsigned,67,RDAC 开关控制,SADC_RDAC,IP → RDAC,片 p 的采样预置为 [4*p+:4]，只按 pre_wr_o 及采集相位解释
+pre_wr_o,output,18,unsigned,68,RDAC 开关控制,SADC_RDAC,IP → RDAC,位 p 为组合 ACQ 资格电平，保持整个有效窗口；不能当成单拍写脉冲
+rdac_post_state_o,output,360,unsigned,69,RDAC 开关控制,SADC_RDAC,IP → RDAC,片 p 的转换状态为 [20*p+:20]；写门有效时更新，未选保持
+post_wr_o,output,18,unsigned,70,RDAC 开关控制,SADC_RDAC,IP → RDAC,位 p 随 post 数据同沿注册，合法应用后有效 1 clk；相邻高拍代表不同写
+adc2_valid_i,input,1,unsigned,73,ADC2 捕获与返回,ADC2_RSP,ADC2 宏及同域适配器,有整字响应时主动送 valid；每笔已登记捕获只返回一次
+adc2_ready_o,output,1,unsigned,74,ADC2 捕获与返回,ADC2_RSP,ADC2 宏及同域适配器,同步握手；valid 为 1 时 ready 为 1，ready 本身不能证明有对应 owner
+adc2_raw_i,input,13,unsigned,75,ADC2 捕获与返回,ADC2_RSP,ADC2 宏及同域适配器,13 位工程 offset-binary 细码；与 valid 和 range 同一束
+adc2_range_err_i,input,1,unsigned,76,ADC2 捕获与返回,ADC2_RSP,ADC2 宏及同域适配器,细级模拟窗口/饱和标记；随 raw 返回到 rsp_range 独立记录
+adc2_capture_arm_o,output,1,unsigned,77,ADC2 捕获与返回,ADC2_RSP,ADC2 宏及同域适配器,捕获前授权；数字 final+wsum/资源条件，外层还核对 RA 模拟就绪
+node_post_o,output,160,unsigned,90,行为模型快照,LOCAL_OBS,验证平台/可选片内观测,最后实际应用的 8 槽 × 20 位状态快照
+node_pre_o,output,32,unsigned,91,行为模型快照,LOCAL_OBS,验证平台/可选片内观测,同笔采样时保存的 8 槽 × 4 位状态
+node_ids_o,output,40,unsigned,92,行为模型快照,LOCAL_OBS,验证平台/可选片内观测,同笔 8 个物理片号，各 5 位
+node_qid_o,output,1,unsigned,93,行为模型快照,LOCAL_OBS,验证平台/可选片内观测,当前 CONV 快照的 1 位 qid
+node_tag_o,output,32,unsigned,94,行为模型快照,LOCAL_OBS,验证平台/可选片内观测,当前 CONV 快照的 32 位 tag
+node_valid_o,output,1,unsigned,95,行为模型快照,LOCAL_OBS,验证平台/可选片内观测,当前 CONV 已完成最后一次合法 post
+node_h_o,output,3,unsigned,96,行为模型快照,LOCAL_OBS,验证平台/可选片内观测,快照横向相位
+node_v_o,output,3,unsigned,97,行为模型快照,LOCAL_OBS,验证平台/可选片内观测,快照纵向相位
+adc2_rsp_valid_o,output,1,unsigned,99,ADC2 观测,LOCAL_OBS,片内诊断/可选监控,raw 接收沿之前与有效 owner 同时成立时，本束返回有效
+adc2_rsp_tag_o,output,32,unsigned,100,ADC2 观测,LOCAL_OBS,片内诊断/可选监控,沿前 owner 的 32 位 tag；宏原码通路没有回送 tag
+adc2_rsp_qid_o,output,1,unsigned,101,ADC2 观测,LOCAL_OBS,片内诊断/可选监控,沿前 owner 的 qid；可与当拍 CONV qid 不同
+adc2_rsp_raw_o,output,13,unsigned,102,ADC2 观测,LOCAL_OBS,片内诊断/可选监控,与 rsp_valid 同拍的 raw 观察值
+adc2_rsp_range_o,output,1,unsigned,103,ADC2 观测,LOCAL_OBS,片内诊断/可选监控,与 rsp_valid 同拍的 range 标志，顶层不接到 out_err
+adc2_late_err_o,output,1,unsigned,104,ADC2 观测,LOCAL_OBS,片内诊断/可选监控,复位前保持的无 owner 返回或捕获覆槽错误
+adc2_release_ok_o,output,1,unsigned,105,ADC2 观测,LOCAL_OBS,片内诊断/可选监控,ADC2 leaf 的 hold 锁存观察；实际回池另受 CONV 捕获与安静计数约束
+w_cfg_we,input,1,unsigned,117,配置,CFG_TEST,CTRL/OTP 装载器,权重字有效写入
+w_cfg_sel,input,1,unsigned,118,配置,CFG_TEST,CTRL/OTP 装载器,0 主表；1 子表
+w_cfg_sid,input,5,unsigned,119,配置,CFG_TEST,CTRL/OTP 装载器,物理片地址 0…17
+w_cfg_idx,input,5,unsigned,120,配置,CFG_TEST,CTRL/OTP 装载器,主 0…15 / 子 0…3
+w_cfg_data,input,40,unsigned,121,配置,CFG_TEST,CTRL/OTP 装载器,无符号 Q30 系数；每次一字共 360 地址
+w_cfg_commit,input,1,unsigned,122,配置,CFG_TEST,CTRL/OTP 装载器,独立一沿提交已齐全的表；最后一字与提交不得共用此沿完成生效
+w_cfg_reload,input,1,unsigned,123,配置,CFG_TEST,CTRL/OTP 装载器,确认所有已接收样本退休后才重装；重装优先于写和提交
+w_cfg_valid,output,1,unsigned,124,配置,CFG_TEST,CTRL/OTP 装载器,配置已生效且锁定
+w_cfg_busy,output,1,unsigned,125,配置,CFG_TEST,CTRL/OTP 装载器,已有至少一地址写入但未生效
+w_cfg_range_err,output,1,unsigned,126,配置,CFG_TEST,CTRL/OTP 装载器,子系数越界粘滞到重装或复位
+cfg_epoch,input,8,unsigned,127,配置,CFG_TEST,CTRL/OTP 装载器,配置代号由外围在排空后切换，运行期间保持
+b_q24_cfg,input,27,signed,128,配置,CFG_TEST,CTRL/OTP 装载器,27 位有符号 Q24 输出坐标偏置，整代保持
+out_valid,output,1,unsigned,131,结果与状态,RESULT,CTRL/FIFO/PHY 写入适配,单向退休有效；无 out_ready，后级须在本沿承接
+out_code,output,20,unsigned,132,结果与状态,RESULT,CTRL/FIFO/PHY 写入适配,20 位本工程 offset-binary 结果
+out_sat,output,1,unsigned,133,结果与状态,RESULT,CTRL/FIFO/PHY 写入适配,重构输出饱和标志，随 out_valid
+out_err,output,1,unsigned,134,结果与状态,RESULT,CTRL/FIFO/PHY 写入适配,重构错误，随 out_valid；外围单独管理前级协议和 ADC2 range/late
+out_tag,output,32,unsigned,135,结果与状态,RESULT,CTRL/FIFO/PHY 写入适配,最终退休的 32 位事务标记，供外围对账或片内元数据
+apply_fire_o,output,1,unsigned,138,前级观测,LOCAL_OBS,片内诊断/可选时序适配,组合的该沿合法应用资格，不能直接作模拟敏感时钟
+k_o,output,10,unsigned,139,前级观测,LOCAL_OBS,片内诊断/可选时序适配,10 位组合的当前 Follower 命令值
+k_bad_o,output,1,unsigned,140,前级观测,LOCAL_OBS,片内诊断/可选时序适配,当前候选超出工程允许的 0…520
+final_applied_o,output,1,unsigned,141,前级观测,LOCAL_OBS,片内诊断/可选时序适配,本笔最后合法应用发生后的寄存状态；清除于新 CONV/reset
+final_k_o,output,10,unsigned,142,前级观测,LOCAL_OBS,片内诊断/可选时序适配,最后一次合法应用的 10 位命令
+err_o,output,1,unsigned,143,前级观测,LOCAL_OBS,片内诊断/可选时序适配,事件协议错误及当拍 prepare_error；独立于重构 out_err
+done_o,output,1,unsigned,144,前级观测,LOCAL_OBS,片内诊断/可选时序适配,本笔前级最后一次提交完成的状态
+tag_o,output,32,unsigned,145,前级观测,LOCAL_OBS,片内诊断/可选时序适配,前级事件上下文数字 tag
+qid_o,output,1,unsigned,146,前级观测,LOCAL_OBS,片内诊断/可选时序适配,前级事件上下文 qid
+post_slot_o,output,160,unsigned,147,前级观测,LOCAL_OBS,片内诊断/可选时序适配,160 位 8 槽 × 20 组合状态，仅用于观测
+dither_force_i,input,1,unsigned,150,测试保留,LOCAL_TEST,本地常量/诊断控制,生产接 0 使用片内字源；诊断接 1 重放
+sadc_pre_state_o,output,14,unsigned,151,SADC 采样预置,Q_RETURN,IP → 双 SADC,两组独立寄存状态，qid0=[6:0]、qid1=[13:7]；位高使能对应预置
+sadc_pre_wr_o,output,2,unsigned,152,SADC 采样预置,Q_RETURN,IP → 双 SADC,prepare 受理沿后一个周期，只对当笔 qid 给写门

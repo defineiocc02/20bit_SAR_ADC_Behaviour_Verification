@@ -1,0 +1,360 @@
+% 正式评审版。以 report/ 为工作目录，保留同目录图片和 ../figures/floorplan.pdf（第 1、3 页）。
+% 使用 macOS 系统字体及 TinyTeX。编译两遍以解析页码和链接。
+% handoff_build="$(mktemp -d /tmp/ad4080-handoff-build.XXXXXXXX)"
+% handoff_xe="$HOME/Library/TinyTeX/bin/universal-darwin/xelatex"
+% "$handoff_xe" -halt-on-error -interaction=nonstopmode -output-directory="$handoff_build" handoff.tex
+% "$handoff_xe" -halt-on-error -interaction=nonstopmode -output-directory="$handoff_build" handoff.tex
+% cp "$handoff_build/handoff.pdf" handoff.pdf
+\documentclass[UTF8,fontset=none,zihao=-4,a4paper]{ctexart}
+\usepackage[left=18mm,right=18mm,top=16mm,bottom=17mm,headheight=12pt,footskip=10mm]{geometry}
+\usepackage{fontspec,graphicx,booktabs,tabularx,array,amsmath,lmodern}
+\usepackage[table]{xcolor}
+\usepackage{fancyhdr,lastpage}
+\usepackage[unicode,hidelinks]{hyperref}
+\setmainfont[
+  Path=/System/Library/Fonts/Supplemental/,
+  BoldFont={Arial Bold.ttf},
+  ItalicFont={Arial Italic.ttf},
+  BoldItalicFont={Arial Bold Italic.ttf}
+]{Arial.ttf}
+\setmonofont[Path=/System/Library/Fonts/,Scale=0.87]{Monaco.ttf}
+\setCJKmainfont[
+  Path=/System/Library/Fonts/,
+  FontIndex=1,
+  BoldFont={STHeiti Medium.ttc},
+  BoldFeatures={FontIndex=1}
+]{STHeiti Light.ttc}
+\setCJKmonofont[Path=/System/Library/Fonts/,FontIndex=1]{STHeiti Light.ttc}
+\graphicspath{{./}{../figures/}}
+\hypersetup{
+  pdftitle={AD4080 对标芯片数字分区与 RTL 交接},
+  pdfsubject={40 nm MPW 规划与混合信号接口评审}
+}
+
+\definecolor{navy}{HTML}{173046}
+\definecolor{teal}{HTML}{00766E}
+\definecolor{ink}{HTML}{243748}
+\definecolor{muted}{HTML}{4E6374}
+\definecolor{rulegray}{HTML}{CDD9E0}
+\definecolor{pale}{HTML}{EFF5F7}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\fancyfoot[L]{\fontsize{8.3}{10}\selectfont\color{muted} AD4080 对标芯片 \quad 数字分区与 RTL 交接}
+\fancyfoot[R]{\fontsize{8.3}{10}\selectfont\color{muted} \thepage\ /\ \pageref*{LastPage}}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.22}
+\setlength{\emergencystretch}{1.2em}
+\urlstyle{tt}
+\raggedbottom
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcommand{\sym}[1]{\texttt{#1}}
+\newcommand{\src}[1]{{\color{muted}\nobreak\hspace{0.35em}[#1]}}
+\newcommand{\mm}{\,\mathrm{mm}}
+\newcommand{\um}{\,\mu\mathrm{m}}
+\newcommand{\arr}{\(\rightarrow\)}
+\newcommand{\biarr}{\(\leftrightarrow\)}
+\newcommand{\headband}[2]{%
+  \pdfbookmark[0]{#2}{report-page-\thepage}%
+  \par\noindent{\fontsize{9}{11}\selectfont\bfseries\color{teal} #1}\par
+  \noindent{\fontsize{21}{28}\selectfont\bfseries\color{navy} #2}\par
+  \vspace{1pt}\noindent{\color{rulegray}\rule{\linewidth}{0.65pt}}\par
+  \vspace{1pt}%
+}
+\newcommand{\topic}[1]{%
+  \par\vspace{3pt}\noindent{\fontsize{13}{17}\selectfont\bfseries\color{teal} #1}\par
+  \vspace{-3pt}%
+}
+\newcommand{\figcap}[1]{\par{\fontsize{8.7}{12.5}\selectfont\color{muted}#1\par}}
+\newcommand{\stripe}[1]{%
+  \par\noindent{\setlength{\fboxsep}{8pt}\colorbox{pale}{%
+    \parbox{\dimexpr\linewidth-2\fboxsep\relax}{#1}}}\par
+}
+\newcommand{\tabhead}{\rowcolor{pale}}
+
+\begin{document}
+\color{ink}
+\pdfbookmark[0]{AD4080 对标芯片数字分区与 RTL 交接}{report-cover}
+
+% 第一页　对象和照片证据
+\noindent{\fontsize{9}{11}\selectfont\bfseries\color{teal} 40 nm MPW 工程预研
+\hfill 分区与接口评审 \quad 2026.11.20}\par
+\noindent{\fontsize{30}{36}\selectfont\bfseries\color{navy} AD4080 对标芯片}\par
+\noindent{\fontsize{25}{31}\selectfont\bfseries\color{navy} 数字分区与 RTL 交接}\par
+\vspace{2pt}
+\noindent{\color{rulegray}\rule{\linewidth}{0.65pt}}\par
+
+目标为 20 bit、40 MSPS，首轮按 \(1.50\mm \times 1.50\mm\) 裸片与 \(120\um\) 焊盘环规划。
+功能组现有转换 IP（\sym{7408edf}）负责片组调度、DEM、分路扰动和每笔重构。
+外围复用原 DSP 上的校正、滤波和捕获，新增单口存储接线和读出。
+交付源位于 Git 分支 \sym{feat/ad4080-peripherals} 的 \path{subsys/ad4080_peripherals/}。
+论文与后处理见第 3 页，分工和运行见第 7 页。\src{3, 4, 5}
+
+\stripe{\small
+\textbf{项目转换 IP}\enspace \(0.250\mm^2\) 连通分区 \quad
+\textbf{综合门}\enspace \(0.120\mm^2\) \quad
+\textbf{布后标准单元上限}\enspace \(0.135\mm^2\)}
+
+\vspace{2pt}
+{\centering\includegraphics[width=104mm]{ipbrain_reference.png}\par}
+\figcap{图 1　IPBrain 标注的商品 AD4080 裸片。图中文字沿用原出处，尺寸按工程假设归一。论文原型见图 3。\src{2}}
+
+{\small
+\begin{tabularx}{\linewidth}{@{}L{34mm}Y@{}}
+\tabhead \textbf{工作包} & \textbf{责任与落位}\\
+转换功能组 & 转换 IP 在大 SRAM 下方，接粗判决与 ADC2 原码，输出带 tag 的重构结果。\\
+外围组／DSP 对接 & 复用独立 DSP 的用户校正、滤波、捕获与配置接口，负责集成及用地核定。\\
+外围与后端组 & 上沿数据口及结果 SRAM、右上 OTP、左侧小 SRAM 分窗。接入存储、装载、供电许可、CDC 与读出。\\
+模拟硬宏组 & 中央转换区拆分采样、RDAC、RA、ADC2。南侧参考及西侧两路 LDO 的宏与时序由模拟组交接。\\
+\bottomrule
+\end{tabularx}\par}
+\figcap{[4] R. Bodnar 等，\href{https://doi.org/10.1109/ISSCC49657.2024.10454329}{ISSCC 2024 论文 9.8}。
+讲稿 pp.~17--22、29--32、40。复算见 \path{evidence/isscc_digital_area.json}。}
+\figcap{[5] \href{https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/tree/7408edf8db9a41eebdd756378b69d2775f107dec}{既有工程 \sym{7408edf}}。
+转换状态 \path{docs/STATUS.md}，后处理接口与追溯 \path{subsys/ad4080_dsp/docs/}。}
+
+\newpage
+% 第二页　坐标与面积闸门
+\headband{分区与面积}{整芯片规划与数字 IP 面积门}
+轴原点位于裸片左下角，单位为 \(\mu\mathrm{m}\)。图 1 的 \(1126\times1125\) 像素经 \(1500\um\) 方形假设换算，
+边缘识别容差约为 \(\pm3\) px。图 2 的分区和通道采用独立的工程坐标。\src{2, 3}
+
+{\centering\includegraphics[page=1,width=0.95\linewidth]{floorplan.pdf}\par}
+\figcap{图 2　工程 Floorplan。C1--C8 标出隔离与走线通道，P1--P6 为 IP 端口组。\src{3}}
+
+{\small
+\begin{tabularx}{\linewidth}{@{}L{43mm}L{36mm}Y@{}}
+\tabhead \textbf{统计口径} & \textbf{面积 \((\mathrm{mm}^2)\)} & \textbf{执行规则}\\
+整片／焊盘环／环内 & \(2.250/0.6624/1.5876\) & 环内分区 \(1.280657\)，显式通道 \(0.061106\)，其余 \(0.245837\) 供后续分配。\\
+转换 IP／禁放／净行区 & \(0.250/0.025/0.225\) & 中段禁放 \(760\um\times25\um\)，东西各留 \(55/135\um\)。北翼禁放 \(200\um\times30\um\)，各留 \(18/22\um\)。\\
+综合／布后标准单元 & \(\leq0.120/\leq0.135\) & 布后以净行区 \(60\%\) 为上限，综合目标为 CTS、缓冲与 ECO 留 \(0.015\mm^2\)。\\
+\tabhead \textbf{外围窗口} & \textbf{毛面积 \((\mathrm{mm}^2)\)} & \textbf{具体归属}\\
+处理控制／接口／存储 & \(0.183226\) & CTRL \(0.026400\)，DIO \(0.035826\)，结果 FIFO \(0.121000\)。\\
+附加预留／五窗合计 & \(0.103140/0.286366\) & OTP \(0.097290\)，SR2 \(0.005850\)。五窗与转换 IP、时钟、电源、Pad 及模拟区分别计账。\\
+\bottomrule
+\end{tabularx}\par}
+
+{\small
+五窗为预留毛区域。外围组以目标库和最终模式核算 CTRL 用地。补偿默认关闭时可能被综合裁去。
+\(0.015\mm^2\) 增量归转换 IP 的 CTS/ECO。若其新增独立禁放为 \(\Delta A\)，
+综合与布后面积门各收紧 \(0.60\Delta A\)。GDS 和 LEF/DEF 已完成规划几何读回。\src{3, 5}\par}
+
+\newpage
+% 第三页　论文功能与工程分工
+\headband{论文与工程分工}{转换功能与出码后处理的边界}
+{\centering\includegraphics[page=3,width=110mm,height=82mm,keepaspectratio]{floorplan.pdf}\par}
+\figcap{图 3　ISSCC 9.8 原型数字区与转换机制。图版引自讲稿 pp.~17、40，原型裸片见论文图 9.8.7。\src{3, 4}}
+
+{\small
+讲稿 p.~40 的 \textit{Digital} 窄红框按横、纵标尺折算为 \(124.0\um\times486.6\um\)，约 \(0.060\mm^2\)。
+原型核心、核心含参考缓冲和整裸片分别为 \(0.77/0.90/2.25\mm^2\)。
+红框提供区域面积估值，框内逐功能归属和 DEM、dither 各自面积尚未公开。第 2 页的 IP 面积门为本工程规划。\src{3, 4}\par}
+
+\topic{功能组的转换链}
+{\small
+论文分离量化与余差 DAC，18 片池中 8 片采集、8 片转换、2 片备用换组。
+讲稿 pp.~17--18 的低段 dither 送 SADC 与 RDAC，高段送 RDAC。判决码叠加扰动，经 DEM 映成 RDAC 开关状态。
+pp.~19--22 用片上校正处理偏置与增益失配，以高采样带宽、公共 TP 边沿和随机换片减轻交错误差。
+pp.~29--31 给出 8/18 片选、横纵两组 3 bit DEM 和二进制到一元桥接。p.~32 将输入建立、数字串扰及参考建立列为 INL 限制项。\src{4}\par
+功能组现有 \sym{adc\_digital\_ip\_v21} 实现调度、判决跟随、DEM 掩码、扰动预置、权重和与定点重构。
+每笔保存片号、开关状态和权重，按 tag 配对 ADC2 原码，权重纠正与去扰后输出 20 位。
+功能组交网表、相位和定点合同，模拟组交开关、参考、RA 与 ADC2，后端核对目标库和宏握手。\src{4, 5}\par}
+
+\topic{出码后的已实现组件与接入缺口}
+{\small\renewcommand{\arraystretch}{1.10}
+\begin{tabularx}{\linewidth}{@{}L{30mm}Y@{}}
+\tabhead \textbf{处理模块} & \textbf{现状与签收点}\\
+DSP 用户校正 & 沿用 \path{subsys/ad4080_dsp} 的 GAIN/OFFSET 与裁剪。已用两点 DC 和 ADCToolbox 拟合对照原校正 RTL，器件增益档须实测。\\
+DSP 滤波与捕获 & 复用 SINC1/SINC5、补偿接口、事件与捕获状态机。绑定副本保留 FIFO 指针，读写接唯一单口结果阵列。\\
+DSP 配置控制 & 沿用原 SPI、CSR 和 GPIO。独立 AON 桥及原版 ADI no-OS 已做配置回放，实物合版仍需时序与权限验收。\\
+外围服务 & 本包交结果 SRAM/MBIST、OTP、供电许可、整字 CDC 与读出。DSP 到单口存储、采后组帧已通过产品绑定联测。\\
+\bottomrule
+\end{tabularx}\par}
+\figcap{外围构建按同一 DSP 源提交取件，产品绑定只外接记录存储。系统校正、滤波与 I/O 均按实际产品端口验证。整芯片的模数与工艺验收另行完成。\src{3, 5}}
+
+\newpage
+% 第四页　结果存储、NVM、数据接口
+\headband{存储、校准与数据口}{宏窗口、RTL 交接与读出带宽}
+\topic{结果 SRAM 与 FIFO 控制}
+本工程结果存储为 \(4\times4096\times20\) bit，合计 \(327{,}680\) bit（40 KiB）。\sym{result\_store} 用 14 位字地址，
+高 2 位选银行、低 12 位选字。每沿最多一次读或写，读沿后给出 \sym{read\_valid\_o}。
+40 MSPS 满深度覆盖 \(409.6\,\mu\mathrm{s}\)。原 DSP 的捕获与指针已接到同一单口四银行。
+若采集与读出都以 40 Mword/s 并发访问同一单口，容量预算至少为 80 M 次访问/s。\src{1, 3}
+
+四银行按 \(2\times2\) 放进 \(605\um\times200\um\) 的窗口，窗口边距与银行间各 \(8\um\)。
+单银行上限 \(\mathbf{290.5\um\times88\um}\)，面积 \(25{,}564\um^2\)，每有效 bit 至多 \(0.3121\um^2\)。
+按合法摆向逐边核对 LEF、针脚、PG 和阻塞，按 Liberty 核对 \(t_{\mathrm{cycle}}\)、读延迟及读写时序。
+小 SRAM 另留 \(130\um\times45\um\)，用途、容量与电源未冻结。\src{3}
+
+结果存储已通过 49,156 周期 Verilator 检查，Yosys 识别四块通用 \(4096\times20\) 存储。
+独立 MBIST 已通过两种底图的全深度 March C$-$，各 163,840 次访问。先排空功能读写再切换所有权，
+测试退出后重建 FIFO 元数据。工艺宏映射及带载时序由存储和后端组确认。\src{3}
+
+\topic{OTP、镜像与校准表}
+右上 OTP 区留 \(230\um\times423\um\)。Rev.~B 公开了用户 GAIN/OFFSET 寄存器及内部 ROM CRC/ECC 状态，
+图中 OTP 与小 SRAM 的内容、用途、容量及编程条件尚未公开。项目的只读 OTP 装载器接收完整镜像校验结果后原子发布
+shadow，复位需清理旧响应。Verilator 通过 8 组定向检查，真实 OTP、镜像校验与转换 IP 写表桥待绑定。\src{1, 3}
+
+功能 IP 每套权重为 \(18\times(16+4)=360\) 个 40 bit 无符号 Q30 字，纯系数 \(14{,}400\) bit。
+校准组另交版本、镜像元数据、CRC/校验、默认值和 Q24 偏置编码。
+装载器与 \sym{w\_cfg} 桥在静止态传完所有地址，再独立一拍提交。\sym{w\_cfg\_valid} 允许进入采样。
+运行中保持 \sym{cfg\_epoch} 和偏置，重装前完成所有已接收样本退休。\src{3}
+
+\topic{实时原码搬运与采后回读}
+40 MSPS 的 20 bit 原始结果为 800 Mbit/s。Rev.~B 默认单路 LVDS 回送时钟、CMOS CNV，配置 SPI 独立。
+单路 DDR 首对沿为下降 \(D_{19}\)、上升 \(D_{18}\)，双路首下降沿 DA/DB 同送 \(D_{19}/D_{18}\)。
+对接产品二补码时，接口翻转 offset-binary 的最高位。\sym{0xAC5D6} 对齐字原样发送。\src{1, 3}
+
+实时原码搬运 RTL 按 40 MSPS 仿真，单路 400 MHz、双路 200 MHz 各逐沿重组 512 笔连续 20 bit 结果，帧间无气泡。
+另验证 160 笔混合模式、停钟续发、队满丢弃及两域分别复位。空队列到首逻辑槽约 3--4 个 I/O 拍。
+手册增益校正例中，从 \(47.4\,\mathrm{ns}\) 最迟数据可用至首位，单／双路仅余 \(3.85/5.10\,\mathrm{ns}\)。
+最短 CNV 至首位时序、PHY 眼图与 IP 硅上集成待验。\src{1, 3}
+
+本包接原版 ADI HDL 收端，在理想 FPGA 原语下完成单／双路共 4 组仿真，各锁定 \sym{0xAC5D6} 后复原 14 个有符号字。
+ADI 参考板的板测证据限单数据 lane。Rev.~B 采后 FIFO 走单路 LVDS，含 8 bit 头、20 bit/字和 CRC24，联测见第 6 页。\src{1, 3}
+
+\newpage
+% 第五页　混合信号接口
+\headband{模拟宏与数字功能 IP}{端口方向、采样边沿与退休规则}
+以 IP 为方向基准。各端口组与物理边界见第 2 页图 2。输入经采样及 RDAC，差分余差沿 C4 到 RA 再沿 C5 到 ADC2。
+REF 沿 C3 供阵列。
+CNV 上升沿触发，内部敏感的顶板采样用 TP 下降沿。IP \sym{clk} 与 TP、宏事件时钟、串行读出时钟的频率及相位由系统冻结。\src{1, 3}
+
+{\small\renewcommand{\arraystretch}{1.16}
+\begin{tabularx}{\linewidth}{@{}L{33mm}Y@{}}
+\tabhead \textbf{位置／方向} & \textbf{信号、相位和责任}\\
+\textbf{P1 西侧}\\时钟/POR \arr IP &
+\sym{clk}、低有效 \sym{rst\_n}。每个域独立同步解除复位。配套采样协调器发实际公共采样沿，
+先核对已稳定的片选和预置。公共沿可同采下一笔输入和上一笔余差，随后回传 \sym{sample\_event} 与两个捕获结果。\\
+\textbf{P2 南侧}\\IP \arr RDAC &
+RDAC 18 片提供采集／转换／空闲片选，预置与 post 各片为 4 bit、20 bit。
+\sym{pre\_wr\_o} 为采集资格电平。\sym{post\_wr\_o} 与 post 状态同沿注册，宏适配器按有效窗更新，其他片保持。\\
+\textbf{P6 西侧}\\Flash/SADC \biarr IP &
+IP 发两组各 7 bit SADC 预置与各自写门。真实 Flash 3 bit 粗码和 \sym{qid} 最迟可在首提交同沿覆盖。
+比较已决位、物理位号、事件号及 \sym{qid} 成束返回，事件口无 ready。宏侧适配器确定 QDAC 试探、比较请求、完成节奏，并仲裁两个 \sym{qid}。\\
+\textbf{P3 南侧}\\IP \biarr RA/ADC2 &
+IP 的 \sym{adc2\_capture\_arm\_o} 只给数字授权。最后一次 post 后，模拟相序控制完成细参考切换与 RA 建立，再按实际公共沿捕获。
+协调器回送 \sym{residue\_captured} 与 \sym{hold\_ack}。ADC2 返回 13 bit 工程 offset-binary raw、valid 及 range。
+模拟方核对差分工作窗 \([-0.1875, +0.5625)\,\mathrm{V}\)。\\
+\textbf{P4 东侧}\\IP \arr 结果外围 &
+\sym{out\_valid} 携 20 bit 码、sat、err 和 32 bit tag 同沿退休，无 \sym{out\_ready}。外围在 IP 域接住每笔，
+用队列水位提前停收并排空。前级协议和 ADC2 range/late 独立保留，重构错误随 \sym{out\_err}。\\
+\textbf{P5 北侧}\\OTP/配置 \biarr IP &
+低速完整镜像装载后进入 \sym{w\_cfg\_*} 写表，提交与采样互锁。测试与内部快照使用本地接缝。
+结果存储总线沿 C2 就近接四银行。\\
+\bottomrule
+\end{tabularx}\par}
+
+\topic{跨域和同笔对账}
+跨域事件走握手，含多位负载时用整束握手或异步 FIFO。只对单比特状态做同步器，复位和停钟时双方清理在途。
+ADC2 宏只回一束 raw、valid 和 range，由 IP 按捕获顺序分配。旧 raw 与新捕获同沿时，旧 raw 归旧笔。
+片组回池须等捕获、保持确认及两个安静周期，raw 回报独立。用同一 tag 对账采样到退休。
+前级协议错误或 ADC2 迟回使管线阻塞时，协调器按超时停收并统一冲刷。联合复核宏相位、生成时钟 SDC 和 CDC/RDC。\src{3}
+
+{\small
+P2 南窗 \(325\um\)，522 位。P6 的独立 Q 支路宽 \(24/25\um\)，31 位。按双层、\(0.64\um\) 轨距和 \(60\%\) 可用率，
+估算南窗 590 轨、Q 最窄处 36 轨。余量待实际金属层、屏蔽与针脚试布确认。\src{3}\par}
+
+\newpage
+% 第六页　供电、本轮审查和来源
+\headband{供电与审查}{电源状态与外围复验}
+{\fontsize{10.3}{14.1}\selectfont\renewcommand{\arraystretch}{1.08}
+\begin{tabularx}{\linewidth}{@{}L{39mm}Y@{}}
+\tabhead \textbf{场景} & \textbf{公开标尺与工程接入}\\
+两路内部 LDO & 工程暂配左上 LDO1 \arr VDD11，左下 LDO2 \arr IOVDD。两处窗口分别为
+\(85\um\times245\um\)、\(93\um\times68\um\)。
+Rev.~B p.10 双路内供用 VDDLDO 1.5--2.7 V，可取 1.8 V。
+动态外供条件的整器件最大值 VDD11 32 mA、IOVDD 7.5 mA，是负载参考。内供时两路 1.1 V 节点只接去耦。\\
+启动与 POR &
+内供先 VDDLDO，待两路 1.1 V 稳定再上 VDD33（3.3 V）。外供使 VDDLDO 悬空，先上 VDD11（1.1 V）、IOVDD（1.1--1.2 V）再上 VDD33。
+然后使能数字输入，VDD33 达规格后施加 REFIN 与模拟输入，掉电按反序。
+POR\_D 监控 VDD11（0.93 V）并联动模拟复位，POR\_A 监控 REFIN（2.7 V）以限制模拟转换。
+POR 或软复位后按产品等待至少 \(300\,\mu\mathrm{s}\) 再访问。\\
+待机与睡眠 &
+先停新采样并排空，停转换及读出时钟后切换。两档都关 LVDS。内供 IOVDD 关闭后保留受限配置写。
+外供条件可保留 GPIO、SPI 数据与 FIFO 读功能。配置钳位约束仍取决于 VDD33。
+先恢复 VDD33，再退出待机/睡眠。手册唤醒 \(100/180\,\mu\mathrm{s}\)，图 44 另有恢复期 \(t_{\rm recover}\)。\\
+\bottomrule
+\end{tabularx}\par}
+\figcap{电源标尺见 Rev.~B pp.~4--6、10--11、22--28。项目实际电流、LDO 去耦、阈值、UPF 和域状态须在目标工艺闭合。\src{1, 3}}
+
+{\small VDD11 与 IOVDD 分支供电，VDD33 和 REF 本地分发。电源控制通过 8 组定向检查和 3 项参数检查，
+停 AON 时 \(6\,\mathrm{ns}\) REFIN 故障立即封住 CNV。PG、参考回流和保持电源随 Pad/ESD 核对。\src{3}\par}
+
+\topic{本轮审查与验收边界}
+{\fontsize{10.3}{14.1}\selectfont\renewcommand{\arraystretch}{1.08}
+\begin{tabularx}{\linewidth}{@{}L{31mm}Y@{}}
+\tabhead \textbf{检查对象} & \textbf{观察点与证据范围}\\
+DSP 与单口组帧 &
+原 DSP 接一份单口结果阵列，Yosys 读回四个 \(4096\times20\) 银行。模式 \sym{10} 联测从 SRAM 实读三字，发出 46 个逻辑位对
+\sym{AA\_0075D\_009E7\_FF30D\_C69FFD}，使用工程 CRC。模式 \sym{01} 实收 16,384 次写入，并复验掉电与 MBIST 交接。\\
+校正数值 &
+RTL 与整数模型 8,234 笔一致。图 96 在零输入、偏移 1024、增益 129/128 时实出 1032。留出误差 RMS 由 \(1348.15\) 降至 \(0.404\) LSB20（两点 DC 与正弦）。\\
+起录与权限 &
+图 99 的 SINC1 两倍抽取由真实 GPIO 同步；第 5/7/9 沿 RDY 有效，第 6/8/10 沿写入 200、600、1000。
+最后一写与 FIFO 满同拍，采后记录按连续位对读回。\\
+配置 SPI 与 AON &
+原版 ADI no-OS 驱动与配置 SPI 已用独立台架联测。产品另验边沿、地址及读回，
+涵盖状态、复位、保留字段与水位整字回读。\\
+\bottomrule
+\end{tabularx}\par}
+
+\topic{引用与交付文件}
+{\fontsize{8.5}{10.5}\selectfont\setlength{\parskip}{2pt}
+[1] Analog Devices，\href{https://www.analog.com/media/en/technical-documentation/data-sheets/ad4080.pdf}{AD4080 Data Sheet，Rev.~B}。
+配置 pp.~34--42，读出 pp.~45--63，滤波和校正 pp.~64--71、92--93。\par
+[2] IPBrain AD4080 裸片标注图，用户提供。原图随报告源，坐标量测见 \path{figures/floorplan.pdf} 第 2 页。\par
+[3] 台账 \path{evidence/acceptance.md}，校正 \path{calibration/rtl_verification.json}，绑定 \path{integration/product/README.md}。\par
+配置 \path{interfaces/control_review/README.md}，收端 \path{io/adi_receiver/README.md}，CRC \path{io/adi_crc/SOURCES.md}。\par}
+
+\newpage
+% 第七页　外围职责与运行顺序
+\headband{外围交接}{人员分工、一次记录与推进顺序}
+交接沿用六人团队的职责。总后端兼管外围 RTL 与整合。36 项功能的逐项入口、输出及证据存放于责任表。\src{3}
+
+{\fontsize{10.3}{14.1}\selectfont\renewcommand{\arraystretch}{1.13}
+\begin{tabularx}{\linewidth}{@{}L{39mm}Y@{}}
+\tabhead \textbf{责任岗位} & \textbf{入口、交付和验收}\\
+总后端／外围整合 &
+接转换输出、配置合同、宏视图和域状态。交 DSP 对接、捕获存储、OTP、BIST、CDC、成帧与顶层约束。
+按相同输入检查模式互锁、记录完整性、复位恢复及后端面积/时序。\\
+片外校准 &
+接已知激励、台架码流和记录窗口，交用户零点/增益参数、单位、版本及独立数值参考。
+对照两点和边界值核验补偿结果。位权系数另按转换接口合同交付。\\
+数字接口与验证 &
+接 SPI/读出合同、帧规则、参考码和时钟。交配置读回、FPGA 对齐接收、导码和独立比对。
+核码字、位序、记录字数、CRC、断点恢复及复位后系数。\\
+混合信号总责／RA &
+接采样、开关负载和数据率，交 CNV/TP 相序、RA 建立与 ADC2 捕获窗口以及时钟/PHY 选型。
+以同笔波形验采样与保持，并复核数据边沿和首位时延。\\
+片上基准／电源协作 &
+接 RDAC 动态负载和电源状态，交基准源阻抗、压降恢复、PG/POR 条件，配合 PHY 供电。
+核带载建立、掉电联锁与唤醒再启动。\\
+转换功能组 &
+接模拟相序和位权，向外围交 \sym{out\_valid}、20 位码、32 位 tag、sat/err 标志及停收/排空合同。
+外围按接收与退休顺序对账。\\
+\bottomrule
+\end{tabularx}\par}
+
+\topic{一条记录怎样形成}
+{\small 模式 \sym{10} 的联测从已重构的 20 位补码输入开始。SPI 实际写 \sym{OFFSET=-64}、\sym{GAIN=0x300}（工程增益 \(K=1,S=14\)）、SINC1 \(N=4\)、
+高阈值码 4 和水位 3。滤波输出 195 未触发，1105 触发，后续 \(1885,2535,-3315\) 写入同一单口阵列并冻结有效长度。
+读回跨域后发 8 位头、三个 20 位载荷和工程 CRC24，共 \(8+3\times20+24=92\) 位、46 对。
+I/O 尾槽送完才完成主机对账。半记录遇 IOVDD 掉电作废，未读的完成记录则保留。
+实际接转换 IP 后，tag 在入口承担逐笔对账。\src{1, 3, 5}\par}
+
+\topic{阶段交付顺序}
+{\small
+\begin{tabularx}{\linewidth}{@{}L{34mm}Y@{}}
+\tabhead \textbf{阶段} & \textbf{进入下一阶段的条件}\\
+先冻结输入 & 固定码、tag/标志、用户系数、配置字段、记录格式及 POR/时钟窗口，用相同样本建立独立软件参考和接口比对向量。\\
+再合整片顶层 & 合并已验的控制桥、起录保护、单口 DSP 绑定和功能组 IP，用同一参考码检查跨域与主机读完。\\
+最后连真实宏 & 厂商 CRC 尚缺金样。绑定真实宏、PHY 和首位时序，完成整片生产网表的 STA、CDC/RDC 及 PG/IR/EM。\\
+\bottomrule
+\end{tabularx}\par}
+\figcap{面积门 17 项，几何反例 22 个。责任与回执见 \path{interfaces/function_ownership.csv}、\path{evidence/acceptance.md}。\src{3}}
+\end{document}

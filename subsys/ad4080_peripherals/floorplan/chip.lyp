@@ -1,0 +1,275 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<layer-properties>
+  <properties>
+    <frame-color>#244154</frame-color>
+    <fill-color>#244154</fill-color>
+    <frame-brightness>0</frame-brightness>
+    <fill-brightness>0</fill-brightness>
+    <dither-pattern>I1</dither-pattern>
+    <line-style />
+    <valid>true</valid>
+    <visible>true</visible>
+    <transparent>false</transparent>
+    <width>2</width>
+    <marked>false</marked>
+    <xfill>false</xfill>
+    <animation>0</animation>
+    <name>Die boundary</name>
+    <source>1/0@1</source>
+  </properties>
+  <properties>
+    <frame-color>#82949e</frame-color>
+    <fill-color>#82949e</fill-color>
+    <frame-brightness>0</frame-brightness>
+    <fill-brightness>0</fill-brightness>
+    <dither-pattern>I3</dither-pattern>
+    <line-style />
+    <valid>true</valid>
+    <visible>true</visible>
+    <transparent>false</transparent>
+    <width>1</width>
+    <marked>false</marked>
+    <xfill>false</xfill>
+    <animation>0</animation>
+    <name>Pad and corner reserve</name>
+    <source>2/0@1</source>
+  </properties>
+  <properties>
+    <frame-color>#467bab</frame-color>
+    <fill-color>#467bab</fill-color>
+    <frame-brightness>0</frame-brightness>
+    <fill-brightness>0</fill-brightness>
+    <dither-pattern>I6</dither-pattern>
+    <line-style />
+    <valid>true</valid>
+    <visible>true</visible>
+    <transparent>false</transparent>
+    <width>1</width>
+    <marked>false</marked>
+    <xfill>false</xfill>
+    <animation>0</animation>
+    <name>Converter function IP (handoff)</name>
+    <source>10/0@1</source>
+  </properties>
+  <properties>
+    <frame-color>#cc8838</frame-color>
+    <fill-color>#cc8838</fill-color>
+    <frame-brightness>0</frame-brightness>
+    <fill-brightness>0</fill-brightness>
+    <dither-pattern>I6</dither-pattern>
+    <line-style />
+    <valid>true</valid>
+    <visible>true</visible>
+    <transparent>false</transparent>
+    <width>1</width>
+    <marked>false</marked>
+    <xfill>false</xfill>
+    <animation>0</animation>
+    <name>Product processing and control</name>
+    <source>11/0@1</source>
+  </properties>
+  <properties>
+    <frame-color>#a06ab0</frame-color>
+    <fill-color>#a06ab0</fill-color>
+    <frame-brightness>0</frame-brightness>
+    <fill-brightness>0</fill-brightness>
+    <dither-pattern>I5</dither-pattern>
+    <line-style />
+    <valid>true</valid>
+    <visible>true</visible>
+    <transparent>false</transparent>
+    <width>1</width>
+    <marked>false</marked>
+    <xfill>false</xfill>
+    <animation>0</animation>
+    <name>SRAM windows</name>
+    <source>20/0@1</source>
+  </properties>
+  <properties>
+    <frame-color>#865491</frame-color>
+    <fill-color>#865491</fill-color>
+    <frame-brightness>0</frame-brightness>
+    <fill-brightness>0</fill-brightness>
+    <dither-pattern>I7</dither-pattern>
+    <line-style />
+    <valid>true</valid>
+    <visible>true</visible>
+    <transparent>false</transparent>
+    <width>1</width>
+    <marked>false</marked>
+    <xfill>false</xfill>
+    <animation>0</animation>
+    <name>4K x 20 bank envelopes</name>
+    <source>21/0@1</source>
+  </properties>
+  <properties>
+    <frame-color>#b9773e</frame-color>
+    <fill-color>#b9773e</fill-color>
+    <frame-brightness>0</frame-brightness>
+    <fill-brightness>0</fill-brightness>
+    <dither-pattern>I5</dither-pattern>
+    <line-style />
+    <valid>true</valid>
+    <visible>true</visible>
+    <transparent>false</transparent>
+    <width>1</width>
+    <marked>false</marked>
+    <xfill>false</xfill>
+    <animation>0</animation>
+    <name>OTP macro window</name>
+    <source>22/0@1</source>
+  </properties>
+  <properties>
+    <frame-color>#36918c</frame-color>
+    <fill-color>#36918c</fill-color>
+    <frame-brightness>0</frame-brightness>
+    <fill-brightness>0</fill-brightness>
+    <dither-pattern>I5</dither-pattern>
+    <line-style />
+    <valid>true</valid>
+    <visible>true</visible>
+    <transparent>false</transparent>
+    <width>1</width>
+    <marked>false</marked>
+    <xfill>false</xfill>
+    <animation>0</animation>
+    <name>Data interface</name>
+    <source>30/0@1</source>
+  </properties>
+  <properties>
+    <frame-color>#ad833b</frame-color>
+    <fill-color>#ad833b</fill-color>
+    <frame-brightness>0</frame-brightness>
+    <fill-brightness>0</fill-brightness>
+    <dither-pattern>I8</dither-pattern>
+    <line-style />
+    <valid>true</valid>
+    <visible>true</visible>
+    <transparent>false</transparent>
+    <width>1</width>
+    <marked>false</marked>
+    <xfill>false</xfill>
+    <animation>0</animation>
+    <name>Clock macro</name>
+    <source>31/0@1</source>
+  </properties>
+  <properties>
+    <frame-color>#59947b</frame-color>
+    <fill-color>#59947b</fill-color>
+    <frame-brightness>0</frame-brightness>
+    <fill-brightness>0</fill-brightness>
+    <dither-pattern>I6</dither-pattern>
+    <line-style />
+    <valid>true</valid>
+    <visible>true</visible>
+    <transparent>false</transparent>
+    <width>1</width>
+    <marked>false</marked>
+    <xfill>false</xfill>
+    <animation>0</animation>
+    <name>ADC analog macros</name>
+    <source>40/0@1</source>
+  </properties>
+  <properties>
+    <frame-color>#6d91ad</frame-color>
+    <fill-color>#6d91ad</fill-color>
+    <frame-brightness>0</frame-brightness>
+    <fill-brightness>0</fill-brightness>
+    <dither-pattern>I6</dither-pattern>
+    <line-style />
+    <valid>true</valid>
+    <visible>true</visible>
+    <transparent>false</transparent>
+    <width>1</width>
+    <marked>false</marked>
+    <xfill>false</xfill>
+    <animation>0</animation>
+    <name>Reference chain</name>
+    <source>41/0@1</source>
+  </properties>
+  <properties>
+    <frame-color>#7d8b52</frame-color>
+    <fill-color>#7d8b52</fill-color>
+    <frame-brightness>0</frame-brightness>
+    <fill-brightness>0</fill-brightness>
+    <dither-pattern>I5</dither-pattern>
+    <line-style />
+    <valid>true</valid>
+    <visible>true</visible>
+    <transparent>false</transparent>
+    <width>1</width>
+    <marked>false</marked>
+    <xfill>false</xfill>
+    <animation>0</animation>
+    <name>LDO / capacitor windows</name>
+    <source>42/0@1</source>
+  </properties>
+  <properties>
+    <frame-color>#ae4b61</frame-color>
+    <fill-color>#ae4b61</fill-color>
+    <frame-brightness>0</frame-brightness>
+    <fill-brightness>0</fill-brightness>
+    <dither-pattern>I9</dither-pattern>
+    <line-style />
+    <valid>true</valid>
+    <visible>true</visible>
+    <transparent>false</transparent>
+    <width>2</width>
+    <marked>false</marked>
+    <xfill>false</xfill>
+    <animation>0</animation>
+    <name>Placement blocked</name>
+    <source>50/0@1</source>
+  </properties>
+  <properties>
+    <frame-color>#237b68</frame-color>
+    <fill-color>#237b68</fill-color>
+    <frame-brightness>0</frame-brightness>
+    <fill-brightness>0</fill-brightness>
+    <dither-pattern>I7</dither-pattern>
+    <line-style />
+    <valid>true</valid>
+    <visible>true</visible>
+    <transparent>false</transparent>
+    <width>2</width>
+    <marked>false</marked>
+    <xfill>false</xfill>
+    <animation>0</animation>
+    <name>Routing corridors</name>
+    <source>51/0@1</source>
+  </properties>
+  <properties>
+    <frame-color>#bd5d2d</frame-color>
+    <fill-color>#bd5d2d</fill-color>
+    <frame-brightness>0</frame-brightness>
+    <fill-brightness>0</fill-brightness>
+    <dither-pattern>I0</dither-pattern>
+    <line-style />
+    <valid>true</valid>
+    <visible>true</visible>
+    <transparent>false</transparent>
+    <width>2</width>
+    <marked>false</marked>
+    <xfill>false</xfill>
+    <animation>0</animation>
+    <name>Logical pin windows</name>
+    <source>52/0@1</source>
+  </properties>
+  <properties>
+    <frame-color>#233746</frame-color>
+    <fill-color>#233746</fill-color>
+    <frame-brightness>0</frame-brightness>
+    <fill-brightness>0</fill-brightness>
+    <dither-pattern>I0</dither-pattern>
+    <line-style />
+    <valid>true</valid>
+    <visible>true</visible>
+    <transparent>false</transparent>
+    <width>1</width>
+    <marked>false</marked>
+    <xfill>false</xfill>
+    <animation>0</animation>
+    <name>Block identifiers</name>
+    <source>90/0@1</source>
+  </properties>
+</layer-properties>

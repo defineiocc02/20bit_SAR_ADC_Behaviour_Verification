@@ -1,0 +1,12 @@
+# 审阅者自备的原图及带原图的合成本地文档。工程源码、开发者自行绘制的版图与规划交换文件随 Git 交付。
+/report/ipbrain_reference.png
+/report/handoff.pdf
+/figures/floorplan.pdf
+!/figures/floorplan.png
+# 逐模块审查是自写文字和原文链接，公开可打印稿与 Markdown 源摘要对应。
+!/report/manual-trace.pdf
+# 本目录的仿真/综合日志和带供应方资料的临时构建保持在任务目录。
+/work/
+/scratch/
+__pycache__/
+*.pyc

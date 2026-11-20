@@ -1,0 +1,75 @@
+AD4080 连续原始结果搬运验证回执
+日期 2026-11-20 CST
+正式入口 sh ./transport/verify.sh，从交付根执行
+临时验证 ID ad4080-transport-verify-x83Dn4c8
+工具 Verilator 5.30，Clang C++20，Yosys 0.69（9f75ca1f9）
+
+修后源及入口 SHA-256
+e33cae2a00b1868086f1fa17089f31a702fa8bee137ace60cafde55f551d940c  ad4080_result_transport.sv
+5b0b02651d1d5ca55018ad9fa25a960e16d00ebf7f1c1030da49939e479aa91f  tb_ad4080_result_transport.sv
+5ce0894e7d921cdb582dd3e5984447c1f2f0a1a0443f1bd971745b41486b633c  ../io/ad4080_ddr_edge_words.sv
+6c9c3c7b42bda3c3295fad782c09930719b403f5f6c7c29ce5056b663a12ad80  verify.sh
+
+修前与修后定向重放
+修前 DUT 来自统一备份 previous.zip，用上述同一修后测试台及边沿映射重放。
+f28af3360661332e9c07851d228324182f9e9a457f813745f2f12cc32a51297b  ad4080_result_transport.sv
++transport_startup_drop，修前 exit 134，337.501 ns
+  startup result silently discarded after local reset release
+  修后 exit 0，未上线误送产生 drop，满溢出位保持零。硬复位及两拍本地同步释放均无 drop，重启没有旧结果。
+
+注释验收（修前 → 修后）
+ad4080_result_transport.sv: 79/174 = 45.40% → 79/174 = 45.40%
+tb_ad4080_result_transport.sv: 67/286 = 23.43% → 76/361 = 21.05%
+verify.sh: 24/25 = 96.00% → 25/25 = 100.00%
+
+Verilator lint、构建、程序执行及 verify.sh 均退出 0。-Wall 无告警。
+PASS single 40/400 MHz: 512 accepted and reassembled without bubbles
+PASS dual 40/200 MHz: 512 accepted and reassembled without bubbles
+PASS 160 mixed lane/test frames with drifting CDC phase
+PASS start permission blocks new frames and never stalls an active frame
+PASS stopped IO, one active + 8 queued, 4 visible drops, ordered resume
+PASS IO-only reset while IO stopped, old frames flushed on both sides
+PASS core-only reset while core stopped, old frames flushed on both sides
+PASS shared power loss with both clocks stopped; restart has no prior-epoch data
+PASS startup discard visible after local reset release; hard reset and overflow remain distinct
+PASS empty start 1 lane(s): first pair on IO edge 4, 7503 ps after acceptance
+PASS empty start 2 lane(s): first pair on IO edge 4, 17503 ps after acceptance
+PASS 40/200 MHz single-lane overload: 47 accepted, 33 dropped and recovered in order
+AD4080 RESULT TRANSPORT REGRESSION PASS
+- tb_ad4080_result_transport.sv:461: Verilog $finish
+
+Yosys 通用综合与 check -assert 成功
+命令 synth -noabc -top ad4080_result_transport; check -assert; stat; write_json generic.json
+Found and reported 0 problems.
+默认八格构型层级共 650 个通用元件，搬运层 600，唯一位映射子模块 50。寄存器 260 位，0 锁存器。
+85ae542a6a28207639fcd66f8268d2aeadcb3ea86edc86bd972ea05264e26278  generic.json
+额外将 FIFO_ADDR_WIDTH=1 的两格构型执行通用综合，check -assert 为 0 问题。行为吞吐数据来自八格。
+
+证据 吞吐、队列顺序、确认逻辑和空起首槽来自数字重放。首槽数值取自指定试验相位，实硅 CDC/RDC、PG、硬 PHY 和 40 MSPS 的 CNV 首发仍待绑定验证。
+
+2026-11-20 CLOCK 逐拍验收和队列预取接点
+当前回归从原始 IO CLK 数首末拍，同时验证装载沿后一个时钟呈现首个 pair。
+9cf1c52ef9b0b3c3c04914ac5cd48493dd5c33b7420244442f26914478034eb2  verify.sh
+c9e59b4a9355c8f23dd729914c5bde853d9a5923448ee763dd986ca06ff5a430  ad4080_result_transport.sv
+7583adc7023d44a09df9089360b30f7a5123610ddfbf785c993091ab307309eb  tb_ad4080_result_transport.sv
+5ce0894e7d921cdb582dd3e5984447c1f2f0a1a0443f1bd971745b41486b633c  ad4080_ddr_edge_words.sv
+PASS single 40/400 MHz: 512 accepted and reassembled without bubbles
+PASS FIG74 RAW CLK lane=1 frames=512 raw_clocks=5120 DDR_edges=10240
+PASS dual 40/200 MHz: 512 accepted and reassembled without bubbles
+PASS FIG75 RAW CLK lane=2 frames=512 raw_clocks=2560 DDR_edges=5120
+PASS 160 mixed lane/test frames with drifting CDC phase
+PASS start permission blocks new frames and never stalls an active frame
+PASS stopped IO, one active + 8 queued, 4 visible drops, ordered resume
+PASS IO-only reset while IO stopped, old frames flushed on both sides
+PASS core-only reset while core stopped, old frames flushed on both sides
+PASS shared power loss with both clocks stopped; restart has no prior-epoch data
+PASS startup discard visible after local reset release; hard reset and overflow remain distinct
+PASS empty start 1 lane(s): first pair on IO edge 4, 7503 ps after acceptance
+PASS empty start 2 lane(s): first pair on IO edge 4, 17503 ps after acceptance
+PASS 40/200 MHz single-lane overload: 47 accepted, 33 dropped and recovered in order
+AD4080 RESULT TRANSPORT REGRESSION PASS
+- tb_ad4080_result_transport.sv:479: Verilog $finish
+- S i m u l a t i o n   R e p o r t: Verilator 5.30
+- Verilator: $finish at 37us; walltime 0.006 s; speed 6.372 ms/s
+- Verilator: cpu 0.006 s on 1 threads; alloced 0 MB
+Yosys generic synthesis and check PASS

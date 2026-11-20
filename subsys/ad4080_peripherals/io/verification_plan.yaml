@@ -1,0 +1,34 @@
+# =============================================================================
+# 文件名     : verification_plan.yaml
+# 模块名     : ad4080_ddr_edge_words 验证计划
+# 版本       : v1.0
+# 功能       : 跟踪组合边沿字与正式装配的验证边界。
+# 设计说明   : 源顺序看图 74/75，验收端按物理沿重组而非复用 DUT 位选公式。
+# -----------------------------------------------------------------------------
+# 变更记录
+# -----------------------------------------------------------------------------
+# 初始版本，暂无变更记录。
+# =============================================================================
+
+# =============================================================================
+# 1. 独立验收方法
+# =============================================================================
+top: ad4080_ddr_edge_words
+requirements:
+  REQ-IO-01: {simulation: single_lane, formal: reconstructed_single}
+  REQ-IO-02: {simulation: dual_lane, formal: reconstructed_dual}
+  REQ-IO-03: {simulation: fixed_pattern_override_and_release, formal: checked_and_normal}
+  REQ-IO-04: {synthesis: generic_no_state, formal: sat_all_binary_inputs}
+  REQ-FIFO-01: {simulation: lvds_record_header_n_words_crc_and_last}
+  REQ-FIFO-02: {simulation: single_quad_spi_signed_prefix_and_opt_in_tail}
+  REQ-FIFO-03: {simulation: word_order_guards_abort_power_and_host_end}
+  REQ-FIFO-04: {simulation: service_reject_and_failed_response, synthesis: generic_check_assert}
+
+# =============================================================================
+# 2. 物理后端交接
+# =============================================================================
+# 本模块无时钟。接收宏之后的时序必须引用实物和 PDK 界定的时钟/数据弧。
+# 不能由仿真的数组顺序证明差分 P/N、电气相位或跨域握手。
+phy_sta: NOT_RUN
+cdc_rdc: NOT_RUN
+full_interface_throughput: NOT_RUN

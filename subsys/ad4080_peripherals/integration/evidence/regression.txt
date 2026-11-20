@@ -1,0 +1,52 @@
+REFIN 固定字与 POR_ANA 核心交付证据
+Verilator 5.30，Darwin arm64。实际服务 RTL 和测试台由 sources.sha256 标识。
+复现 bash integration/run_verify.sh。AON 100 ns、core 14 ns 和 IO 18 ns。采用供电/参考合格输入与 OTP 握手。
+模拟阈值、电源瞬态、实际 t_recover、PHY/Pad 和硅片指标不在本回执。
+
+修前源码加新冷启定向用例，同一标准入口实际退出 134
+[1844856000] %Fatal: peripheral_services_tb.sv:517: Assertion failed in peripheral_services_tb.unnamedblk2: Cold REFIN never qualified produced test word at 1844856.001 ns, ready=1 valid=1 DA=00b/011 DB=01e/00c
+
+交付版台架复跑及通用综合，退出 0
+RTL lint PASS
+PASS POR -> OTP image 5ca712 -> conversion, OTP loaded before REFIN and IOVDD
+PASS SRAM bank 3 result 95e2b, single/dual-lane words and interface check
+PASS illegal mode and incomplete-capture reset/mode/BIST blocked without stopping capture
+PASS finished record retained in standby; stale/no wake acknowledgement held conversion closed
+PASS soft reset preserves OTP and retained SRAM result
+PASS REFIN_LOSS t=705210.000 ns ref=0 new_conversion=0 test_valid=1 DA=00b/011 DB=01e/00c
+PASS POR_ANA_EVENT AON+3 dt=240.001 ns
+PASS REFIN loss freezes new writes and retains prior readable result
+PASS IOVDD loss blocks reads and edge words, keeps conversion and retained result
+PASS BIST hold before grant is harmless and excludes same-edge reset/mode
+PASS BIST request survives stopped core clock and short AON pulse
+PASS MBIST exclusive read, abort reason 3, metadata reinit and new result
+PASS OTP macro supply loss revoked shadow, write and edge validity
+PASS hard POR suppressed in-flight passing OTP reply
+PASS checker-rejected OTP result stays quarantined, error 3
+PASS REFIN_COLD ref=0 OTP_valid=1 IO_reset_released=1 ready=0 valid=0 t=1844856.001 ns
+PASS REFIN_FIRST AON=3 IO=2 dt=270.002 ns test_valid=1 analog_ready=0
+PASS REFIN_IO_STOP restore_valid=1 IO=2 dt=31.002 ns from permission request
+PASS REFIN_WAKE mode=10 recover_req_AON=1001 dt=100100.002 ns test_and_conversion_release_dt=100423.000 ns
+PASS REFIN_WAKE mode=11 recover_req_AON=1801 dt=180100.002 ns test_and_conversion_release_dt=180433.000 ns
+PASS AON_CFG_CDC true standby, retained response and coherent readback with core stopped
+PASS AON_CFG_CDC CS release defers evaluation, busy rejects without replay
+PASS POR_ANA_CDC stopped core and IOVDD off, 6 ns pulse plus continuous fault, first on core edge 3 and two arrivals
+PASS POR_ANA_CDC hard POR discarded a queued old event without a phantom event on restart
+PERIPHERAL_SERVICES PASS
+Verified Yosys JSON top ad4080_peripheral_services, four 4096 x 20 result banks
+Generic synthesis structure PASS
+
+实际冻结 CSR 的 POR_ANA 定向检查
+DSP 353f745b872a66aaac29fa0e858a13c30b5e8f07
+PASS POR_ANA_CSR default disabled, real event, same-edge W1C priority, later clear, ROM bit stays 0
+PASS external ROM level, bit1 writes have no effect, independent of POR
+PASS POR_ANA_CSR software and hard POR defaults at 0x14 and long status
+POR_ANA_CSR PASS
+a7bf1dcd00fc732dd7d4b023a6c99a994328bb9024cbe54964f34489e3545178  frozen:subsys/ad4080_dsp/rtl/ad4080_regs.sv
+2f6ae1179e53ea92a53ae781b3c7a7ae77fe0a92661061cc78bdaff9171367bb  integration/por_ana_csr_tb.sv
+
+此次服务修订的注释统计，原版到当前版本。
+power/ad4080_cfg_power_cdc.sv  45/99 (45.45%) -> 48/101 (47.52%)
+integration/ad4080_peripheral_services.sv  199/360 (55.28%) -> 200/362 (55.25%)
+integration/peripheral_services_tb.sv  124/634 (19.56%) -> 132/659 (20.03%)
+integration/peripheral_readback_link_tb.sv  116/526 (22.05%) -> 116/526 (22.05%)

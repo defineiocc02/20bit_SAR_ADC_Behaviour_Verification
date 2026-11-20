@@ -1,0 +1,9 @@
+23c4b80789b53c8d173bcdea1dad374814853ae48d67a0a05a55eb78e768d114  baseline-delivery.zip
+Verilator 5.30 old sources with directed probes; each assertion exited 134
+[302500000] %Fatal: peripheral_services_tb.sv:232: Assertion failed in peripheral_services_tb: RED: standby accepted with unfinished capture and no current SRAM transaction
+[302589000] %Fatal: peripheral_services_tb.sv:246: Assertion failed in peripheral_services_tb: RED: SRAM devalidated before AON destructive grant
+[303254000] %Fatal: peripheral_services_tb.sv:278: Assertion failed in peripheral_services_tb: RED: held function valid crossed BIST reinitialization
+[302862000] %Fatal: peripheral_services_tb.sv:262: Assertion failed in peripheral_services_tb: RED: held function valid invisible to test entry
+
+Old run_verify.sh with YOSYS=/usr/bin/true exited 0, no synthesis artifact
+Generic synthesis structure PASS

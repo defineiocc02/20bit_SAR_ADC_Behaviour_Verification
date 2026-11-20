@@ -1,0 +1,2 @@
+# 主机端的可选工具。锁定到本次运行所核对的开源实现；现有数字 IP 不依赖此包。
+adctoolbox @ git+https://github.com/Arcadia-1/ADCToolbox.git@8d62fb1863e38ffe5c6cc3ac48fa9c24d9df1ae9#subdirectory=python

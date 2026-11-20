@@ -1,0 +1,19 @@
+{
+  "die_um2": 2250000,
+  "inside_ring_um2": 1587600,
+  "pad_ring_um2": 662400,
+  "allocated_um2": 1280657,
+  "explicit_channels_um2": 61106,
+  "remaining_inside_ring_um2": 245837,
+  "ip_gross_um2": 250000,
+  "ip_no_rows_um2": 25000,
+  "ip_net_rows_um2": 225000,
+  "ip_pre_cts_target_um2": 120000,
+  "ip_final_cells_max_um2": 135000.0,
+  "ip_cts_eco_reserve_um2": 15000.0,
+  "sram_bits": 327680,
+  "bank_max_width_um": 290.5,
+  "bank_max_height_um": 88.0,
+  "bank_max_area_um2": 25564.0,
+  "bank_max_effective_um2_per_bit": 0.312060546875
+}

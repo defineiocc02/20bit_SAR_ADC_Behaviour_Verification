@@ -1,0 +1,160 @@
+{
+  "upstream_repository": "https://github.com/analogdevicesinc/hdl",
+  "upstream_commit": "f518dd124fc005c6f9cd80b7947b10a638c37b37",
+  "compiled_upstream_modules": [
+    "ad408x_phy",
+    "ad_serdes_in",
+    "ad_pack"
+  ],
+  "upstream_snapshot_sha256": {
+    "LICENSE_GPL2": "d982acba4653bb8267df569bb9f403a2f4ccf6a11d60f74aa4235229238e82cf",
+    "LICENSE_ADIBSD": "c090bb95dddea392c9aec4422df46f2b2d8511067058272700b169ecf3b0d40b",
+    "library/axi_ad408x/ad408x_phy.v": "10c706955bfed742c70147397a7489e0f28e5d0baa5c2d01142101c0ad301fae",
+    "library/common/ad_pack.v": "239b88c27d6dfda05aa1eb8a7d6befa2f97510437b62ce8a79ba95f09b21a059",
+    "library/xilinx/common/ad_serdes_in.v": "d90f680fc3910fe1feb5a7b58096e52e0cef793c05e9b6a1385a4a46effe44b5",
+    "library/axi_ad408x/axi_ad408x.v": "db2109b05b4996aa0bdca67aaab642626a7cab3e9381f484a80a82127b5572f5",
+    "library/common/up_adc_common.v": "a2c812359d567b651df3130b5d2757db963882acb5b657bd46239f55c3f4737a",
+    "projects/ad4080_fmc_evb/zed/system_top.v": "5bbcf4145607ef9e0cca7ea7678273f4ea893d807a031ee1afe3bb8873548210",
+    "projects/ad4080_fmc_evb/zed/system_constr.xdc": "ff4fa657b6e2e8bc06c3d3228c34ea4be52a396e5c9aa4fb0ad4b1efd5347354",
+    "projects/ad4080_fmc_evb/zed/system_project.tcl": "a70ccdb3f1328d14b7487940b855000c5e89f8f14e6bc721c5b594a3a7cdd130",
+    "projects/ad4080_fmc_evb/common/ad4080_fmc_evb_bd.tcl": "7b24931ead3794aff938dca06f9cde8237dc16063cde180dc88f9411f44b1feb",
+    "docs/projects/ad4080_fmc_evb/index.rst": "c86ac4b125e51e4ddef4ea8f7c1b31cf61a45d6bf7dc3da95ea8c01acab7d976",
+    "docs/library/axi_ad408x/index.rst": "cc981b98f42278d4077385d918f3aabac9a77b1da0786d09d51eed21ac306f08"
+  },
+  "tested_tx_and_tb_sha256": {
+    "io/ad4080_ddr_edge_words.sv": "5ce0894e7d921cdb582dd3e5984447c1f2f0a1a0443f1bd971745b41486b633c",
+    "transport/ad4080_result_transport.sv": "4f088f4ed13a33e2387d2180d81c5e8647d884759b28d4ab59de4a83a0dad9e2",
+    "io/adi_receiver/ideal_7series_io.sv": "962dd6d28112639558960431bb0099e66098391c559ca31079cd5e0083099a3b",
+    "io/adi_receiver/adi_receiver_tb.sv": "96b33904d3f2eb7f6fe8168656025e56bc59265213fa9a358c28139c65301c53"
+  },
+  "gate": {
+    "entry": "run_verify.sh",
+    "status": "PASS_RTL_INTEROP_SIMULATION",
+    "marker": "PASS ADI receiver interop: 4 runs, commit f518dd124fc005c6f9cd80b7947b10a638c37b37",
+    "runtime_source_method_tested": "ADI_HDL_SOURCE_DIR",
+    "build_lint": "WARNINGS_RECORDED_NOT_CLEAN_LINT"
+  },
+  "reference_project_board_evidence": {
+    "single_lane": "ADI_TESTED",
+    "dual_lane": "ADI_HDL_SUPPORTED_NOT_BOARD_TESTED"
+  },
+  "tests": [
+    {
+      "lanes": 1,
+      "hold_pairs": 8,
+      "shift": 7,
+      "fixed_pattern_checks": 109,
+      "sample_checks": 14,
+      "tx_words": 150,
+      "verilator_warning_classes": {
+        "BLKSEQ": 10,
+        "COMBDLY": 1,
+        "DECLFILENAME": 1,
+        "GENUNNAMED": 21,
+        "IMPLICIT": 2,
+        "PINCONNECTEMPTY": 13,
+        "REALCVT": 1,
+        "SYNCASYNCNET": 2,
+        "UNUSEDPARAM": 18,
+        "UNUSEDSIGNAL": 27,
+        "WIDTHEXPAND": 17,
+        "WIDTHTRUNC": 14
+      }
+    },
+    {
+      "lanes": 1,
+      "hold_pairs": 9,
+      "shift": 5,
+      "fixed_pattern_checks": 111,
+      "sample_checks": 14,
+      "tx_words": 150,
+      "verilator_warning_classes": {
+        "BLKSEQ": 10,
+        "COMBDLY": 1,
+        "DECLFILENAME": 1,
+        "GENUNNAMED": 21,
+        "IMPLICIT": 2,
+        "PINCONNECTEMPTY": 13,
+        "REALCVT": 1,
+        "SYNCASYNCNET": 2,
+        "UNUSEDPARAM": 18,
+        "UNUSEDSIGNAL": 27,
+        "WIDTHEXPAND": 17,
+        "WIDTHTRUNC": 14
+      }
+    },
+    {
+      "lanes": 2,
+      "hold_pairs": 8,
+      "shift": 2,
+      "fixed_pattern_checks": 114,
+      "sample_checks": 14,
+      "tx_words": 150,
+      "verilator_warning_classes": {
+        "BLKSEQ": 10,
+        "COMBDLY": 1,
+        "DECLFILENAME": 1,
+        "GENUNNAMED": 21,
+        "IMPLICIT": 2,
+        "PINCONNECTEMPTY": 13,
+        "REALCVT": 1,
+        "SYNCASYNCNET": 2,
+        "UNUSEDPARAM": 18,
+        "UNUSEDSIGNAL": 27,
+        "WIDTHEXPAND": 17,
+        "WIDTHTRUNC": 14
+      }
+    },
+    {
+      "lanes": 2,
+      "hold_pairs": 9,
+      "shift": 18,
+      "fixed_pattern_checks": 99,
+      "sample_checks": 14,
+      "tx_words": 150,
+      "verilator_warning_classes": {
+        "BLKSEQ": 10,
+        "COMBDLY": 1,
+        "DECLFILENAME": 1,
+        "GENUNNAMED": 21,
+        "IMPLICIT": 2,
+        "PINCONNECTEMPTY": 13,
+        "REALCVT": 1,
+        "SYNCASYNCNET": 2,
+        "UNUSEDPARAM": 18,
+        "UNUSEDSIGNAL": 27,
+        "WIDTHEXPAND": 17,
+        "WIDTHTRUNC": 14
+      }
+    }
+  ],
+  "comments": {
+    "ideal_7series_io.sv": {
+      "code_lines": 94,
+      "comment_lines": 40
+    },
+    "adi_receiver_tb.sv": {
+      "code_lines": 145,
+      "comment_lines": 38
+    },
+    "run_verify.sh": {
+      "code_lines": 54,
+      "comment_lines": 23
+    }
+  },
+  "signoff": {
+    "board_phy_sta_ber_tcca": "NOT_RUN",
+    "axi_dma_driver_integration": "NOT_RUN",
+    "fifo_crc_and_result_spi": "OUTSIDE_RECEIVER_SCOPE"
+  },
+  "delivery_sha256": {
+    "CHECKPOINT.md": "478dafccc6fccc5ae036455f0ee07ffa8738b91be4d7003b5c756b77def715f5",
+    "README.md": "3037d6ee53ba61410e88cdab9fd2c118c2ed32b6b139af61a2836b91ba4c8a1c",
+    "adi_board_review.sha256": "453b19d3492cc8e8e68ebe0159ee4d9bb73fe140029d260823fd67a8138f8b89",
+    "adi_receiver_tb.sv": "96b33904d3f2eb7f6fe8168656025e56bc59265213fa9a358c28139c65301c53",
+    "adi_upstream.sha256": "7690dfa6f002a059d181af4bceb51850ef1e96911fe7b35db2ab2ab15d31f275",
+    "evidence.txt": "95a9a093de37cad7f180542bbd953baf4296b3ecff9b6dd4da5dccdc946650d2",
+    "ideal_7series_io.sv": "962dd6d28112639558960431bb0099e66098391c559ca31079cd5e0083099a3b",
+    "run_verify.sh": "903f0a4ed1b3d7d02bf6c795e0dff59498321e7d4cf39e4de51bad6b8d8ab76c"
+  }
+}

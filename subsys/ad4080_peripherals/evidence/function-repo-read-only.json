@@ -1,0 +1,44 @@
+{
+  "source_repository": "20bit_SAR_ADC_Behaviour_Verification",
+  "scope": "read-only Git source inspection; all builds performed against separate delivery",
+  "branch": "main",
+  "initial_commit": "7408edf8db9a41eebdd756378b69d2775f107dec",
+  "final_commit": "7408edf8db9a41eebdd756378b69d2775f107dec",
+  "porcelain_before": "",
+  "porcelain_after": "",
+  "git_diff_sha256_before": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "git_diff_sha256_after": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "scope_review": {
+    "work": "ISSCC source measurement, static ownership analysis and planning GDS layer separation",
+    "commit": "7408edf8db9a41eebdd756378b69d2775f107dec",
+    "porcelain_after": "",
+    "protected_rtl_edits": false,
+    "commercial_eda_runs": false
+  },
+  "peripheral_audit": {
+    "source_revision": "7408edf8db9a41eebdd756378b69d2775f107dec",
+    "source_reads": "immutable git show / archive; DSP regression compiled from temporary copies",
+    "initial_porcelain": "",
+    "final_porcelain": "",
+    "original_function_ip_edits": false,
+    "vendor_eda_runs": false,
+    "published_delivery": {
+      "branch": "feat/ad4080-peripherals",
+      "directory": "subsys/ad4080_peripherals",
+      "pull_request": "https://github.com/defineiocc02/20bit_SAR_ADC_Behaviour_Verification/pull/11",
+      "scope": "separate feature checkout; product bindings use the pinned shared DSP; conversion production RTL and filelists stay at the protected source"
+    },
+    "combined_local_checks": 29,
+    "device_obligations": 10,
+    "feature_dsp_source_revision": "353f745b872a66aaac29fa0e858a13c30b5e8f07",
+    "snapshot_note": "Historical scope audit at the recorded source revisions."
+  },
+  "product_recheck": {
+    "protected_source": "7408edf8db9a41eebdd756378b69d2775f107dec",
+    "original_worktree": "clean",
+    "original_function_ip_edits": false,
+    "vendor_eda_runs": false,
+    "feature_dsp_source_revision": "2ad7b069dd76239f2fec7670b28488ca22fce46b",
+    "combined_regression_receipt": "peripheral-review.json"
+  }
+}

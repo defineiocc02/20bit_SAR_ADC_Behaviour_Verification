@@ -1,0 +1,18 @@
+AD4080 独立结果 SPI 引脚回归
+工具 Verilator 5.30，C++20，退出码 0
+复现入口 sh io/run_result_spi_pins.sh
+范围 实际 DCLK 下降沿的 SDO/OE、数据前缀和显式工程尾，迟到载荷在第 9 个下降沿报错。
+器件 CRC24 生成参数、Pad 电气和目标工艺时序另行验收。
+
+PASS RESULT_SPI_RAW lanes=1 prefix=32 engineering_tail_groups=0 engineering_tail_bits=0 post_record_takes=0
+PASS RESULT_SPI_RAW lanes=4 prefix=14 engineering_tail_groups=0 engineering_tail_bits=0 post_record_takes=0
+PASS RESULT_SPI_RAW_DEADLINE actual_fall=9 no_first_payload error=6 no_done
+AD4080_RESULT_SPI_PIN_ENGINE PASS tail=0
+PASS RESULT_SPI_RAW lanes=1 prefix=32 engineering_tail_groups=24 engineering_tail_bits=24 post_record_takes=0
+PASS RESULT_SPI_RAW lanes=4 prefix=14 engineering_tail_groups=6 engineering_tail_bits=24 post_record_takes=0
+AD4080_RESULT_SPI_PIN_ENGINE PASS tail=1
+
+用于编译的 RTL/TB SHA-256
+5151ad964fce238cdc710258ece9cfbc61ebd0d0592a1bd8023306db6bee2829  io/ad4080_fifo_record_framer.sv
+0011b032dab317ce5376726f7a9a32a5c0587617386ea2782fe4ed67cae8f112  io/ad4080_result_spi_pins.sv
+905f904d3c1ebbcc0f2ceac0edd553dfdaeb728a1c0ae21238b6d50537a7322d  io/ad4080_result_spi_pins_tb.sv

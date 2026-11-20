@@ -1,0 +1,153 @@
+{
+  "package": "AD4080 DATA INTERFACE / CLK / Pad",
+  "contract": "v1.0",
+  "sources": {
+    "AD4080_Rev_B_pdf_sha256": "f08f2586dc82d5f583b42071b3570c06f1fe736d3053e15a559a47ed2841cbc1",
+    "IPBrain_die_image_sha256": "689cd44fc8afd8f23ced86f6f1beaad5b8e5687fdea67176ee2866a6bdfcc25c",
+    "floorplan_plan_json_sha256": "b5bd712fc9aa18937a0fa116c11fbd75a7e7dc29773fba3dbf7c963d6f769386"
+  },
+  "delivery_sha256": {
+    "CHECKPOINT.md": "1af58cadd382e8e9deb25f2975cbc1ec382ca912eab50237c0374ed60a64f3e7",
+    "FIFO_RECORD.md": "e5fc5769752d7326646d6ca8de48b9bc9e154d04c0302d55b77d745c4291dd51",
+    "IO_PLAN.md": "f18b29b0dc46965646cc1a22e7bfd111e3a22eef82b21f4e357f5560d9a3fa10",
+    "README.md": "83044d1057fb5d8382cba31ab9e9f8ea178fb0a1887b4f8d197d1b4bd3db1bd6",
+    "SPEC.md": "31ce45017174bceebe1d7cc94b1c4cc3ac3bdfc265707f23fb9f0cdad7dfa58a",
+    "ad4080_ddr_edge_words.sv": "5ce0894e7d921cdb582dd3e5984447c1f2f0a1a0443f1bd971745b41486b633c",
+    "ad4080_ddr_edge_words_properties.sv": "5dc47ea8455b86d1a90fa616f71283f59d17eab5d83a8b7ad21456a4aad9e856",
+    "ad4080_ddr_edge_words_tb.sv": "eaa702a4c2004107b3cc4c1cf42e966afb628c4a71acaa8158103587a4a315b5",
+    "ad4080_fifo_record_framer.sv": "c59d22b207262a1b25fd69d84d0529c97087451ce7927d7ef17aee7a5a20227d",
+    "ad4080_fifo_record_framer_tb.sv": "71d2c0fffb0c775dd32d6d869c2917e4c0628c0ae6c1743e6badea685877ca5e",
+    "evidence/environment.json": "3009a21952adf4bc8fea394eab19738e0286f51de9b0a19555ad9823c5bea385",
+    "evidence/fifo-record-verilator.txt": "05163434f243d1c1ab4f612f58e6cf0cd47b9be97a920943a208166f322af477",
+    "evidence/fifo-record-yosys.txt": "127669201810fb3a2547760cb43363e53695f22eb4a10e297f34fcf13b353be1",
+    "evidence/record-source-check.md": "0526b48cedcd2789732b2f5bb757de9849b691e54164eb3bcad680582dc26511",
+    "evidence/record-source-vectors.py": "76140e05425c1b915f6335066b85c0f3bdce9b356d50fe85326da159455d49d4",
+    "evidence/static-audit.txt": "7a3411e648047d0f7732e99e686f4d997e9fe5df8c636b9bec0f58565d0e33cd",
+    "evidence/verilator.txt": "c231e1aeea32d7f55ce72061c74422a4423982f58246887a9755e8750bf277c9",
+    "evidence/yosys.txt": "6c1a5d42fe1d49157b13558f9f7aed5838c696f8797d7d1313f0c1f48d99b2df",
+    "microarchitecture.md": "6721f8ca3df9270b966cddd37290478cfc4d8c6cc6f8301fc0200fdb38c07e54",
+    "package_pins.csv": "83dbbd5fb629be5118b1ca82eb0cae104f584bb55819ea79489209f44913a0c4",
+    "prove_edge_words.ys": "9a46b431b97f42171097601c803e213a0fef08d86541fd55c6b09dbd84525c50",
+    "requirements_trace.csv": "d45e82f9ea72ba884f901515794bde5fe566c3717922688abe96830db6950b45",
+    "verification_plan.yaml": "e321e0fcddadfc3be7601b5b7b1aa9db81e7d8c9f908b9344c29751f6fb09167"
+  },
+  "statuses": {
+    "package_and_geometry_consistency": "PASS_STATIC",
+    "edge_word_lint_and_simulation": "PASS",
+    "edge_word_generic_synthesis_and_sat": "PASS",
+    "target_pin_freeze": "NOT_FROZEN",
+    "pad_phy_binding_and_mode_oe": "NOT_RUN",
+    "cdc_and_rdc": "NOT_RUN",
+    "target_synthesis_sta_cts_and_pex": "NOT_RUN",
+    "package_eye_ber_esd_and_em_ir": "NOT_RUN",
+    "full_interface_throughput": "NOT_RUN",
+    "fifo_record_default_spi_prefix_and_lvds": "PASS_RTL_SIMULATION",
+    "fifo_record_opt_in_spi_tail": "PASS_RTL_SIMULATION",
+    "fifo_record_generic_synthesis": "PASS",
+    "fifo_record_independent_pin_order_reference": "PASS_RTL_SIMULATION",
+    "silicon_fifo_crc24_algorithm": "NOT_BOUND",
+    "silicon_spi_extended_crc_tail": "NOT_BOUND"
+  },
+  "scope": "combinational DDR edge mapping, FIFO record framing and physical interface plan",
+  "states": {
+    "target_owner_approval": "PENDING",
+    "waivers": []
+  },
+  "fifo_record_contract": {
+    "top": "ad4080_fifo_record_framer",
+    "tb_top": "ad4080_fifo_record_framer_tb",
+    "bind_parameter": "BIND_SPI_TAIL",
+    "word_count": {
+      "min": 1,
+      "max": 16384
+    },
+    "header": "0xAA",
+    "mode_shape": {
+      "single_lvds": {
+        "beat_size_bits": 2,
+        "count": "4+10N+12",
+        "external_crc_required": true
+      },
+      "single_spi": {
+        "beat_size_bits": 1,
+        "default_count": "8+24N",
+        "opt_in_tail_beats": 24
+      },
+      "quad_spi": {
+        "beat_size_bits": 4,
+        "default_count": "8+6N",
+        "opt_in_tail_beats": 6
+      }
+    },
+    "measured": {
+      "verilator": {
+        "0": {
+          "beat_checks": 98611,
+          "fault_checks": 21,
+          "exit": 0
+        },
+        "1": {
+          "beat_checks": 329,
+          "fault_checks": 21,
+          "exit": 0
+        }
+      },
+      "yosys_generic": {
+        "0": {
+          "cells": 1089,
+          "ff": 97,
+          "latch": 0,
+          "exit": 0
+        },
+        "1": {
+          "cells": 1064,
+          "ff": 97,
+          "latch": 0,
+          "exit": 0
+        }
+      },
+      "full_depth_quad_spi_prefix": {
+        "words": 16384,
+        "accepted_beats": 98312
+      },
+      "independent_reference": {
+        "vectors_passed": 12,
+        "no_bound_crc_rejected": 1,
+        "scope": "historical packed bit-order fixture"
+      },
+      "raw_sram_clock_trace": {
+        "path": "../integration/evidence/raw_record.csv",
+        "sha256": "969a119e9147e5498c4d0a0d79a12e7698ac9df65eb343da9a11de83d98c06cc",
+        "io_period_ps": 2500,
+        "rows": 112,
+        "two_word_complete_clocks": 36,
+        "one_word_complete_clocks": 26,
+        "failure_prefix_clocks": 24,
+        "late_crc_error": 4,
+        "payload_underrun_error": 7
+      }
+    },
+    "comment_audit": {
+      "ad4080_fifo_record_framer.sv": {
+        "code_lines": 235,
+        "comment_lines": 96
+      },
+      "ad4080_fifo_record_framer_tb.sv": {
+        "code_lines": 360,
+        "comment_lines": 77
+      },
+      "verification_plan.yaml": {
+        "code_lines": 13,
+        "comment_lines": 19
+      },
+      "evidence/record-source-vectors.py": {
+        "code_lines": 47,
+        "comment_lines": 24
+      }
+    },
+    "prefetch": {
+      "minimum_words_before_aa": "min(N,2)",
+      "tail_deadline": "same edge as last payload"
+    }
+  }
+}

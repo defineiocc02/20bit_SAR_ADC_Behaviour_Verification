@@ -26,10 +26,6 @@ module sar20_ad4080_top #(
     parameter int K_GAIN=-1,
     parameter int SHIFT=-1,
     parameter bit P_GAIN_CODE0_SUPPORTED=1'b0,
-    parameter bit P_COMP_COEFF_VALID=1'b0,
-    parameter int C0=32'h40000000,
-    parameter int C1=32'h40000000,
-    parameter int C2=32'h40000000,
     parameter int P_MULTIBYTE_ORDER=-1,
     parameter int P_OFFSET_LSB_ADDR=-1,
     parameter int P_PRODUCT_ID_L=-1,
@@ -83,10 +79,22 @@ module sar20_ad4080_top #(
     assign rejected_after_fault=sample_rejected && stream_fault;
     ad4080_top #(.IN_W(20),.FIFO_DEPTH(FIFO_DEPTH),
         .P_GAIN_MAP_VALID(P_GAIN_MAP_VALID),.K_GAIN(K_GAIN),.SHIFT(SHIFT),
-        .P_GAIN_CODE0_SUPPORTED(P_GAIN_CODE0_SUPPORTED),.P_COMP_COEFF_VALID(P_COMP_COEFF_VALID),
-        .C0(C0),.C1(C1),.C2(C2),.P_MULTIBYTE_ORDER(P_MULTIBYTE_ORDER),
+        .P_GAIN_CODE0_SUPPORTED(P_GAIN_CODE0_SUPPORTED),.P_MULTIBYTE_ORDER(P_MULTIBYTE_ORDER),
         .P_OFFSET_LSB_ADDR(P_OFFSET_LSB_ADDR),.P_PRODUCT_ID_L(P_PRODUCT_ID_L),
         .P_SHORT_ADDR_BITS(P_SHORT_ADDR_BITS),.P_WRITE_SDO_DRIVE(P_WRITE_SDO_DRIVE)) u_dsp (
+    // 独立数值或协议配置没有 AON 响应；真实功耗命令在产品台架验证。
+    .pwr_cfg_full_allow_i(1'b1), .pwr_cmd_ready_i(1'b0), .pwr_cmd_valid_o(),
+    .pwr_cmd_op_o(), .pwr_cmd_value_o(), .pwr_rsp_valid_i(1'b0),
+    .pwr_rsp_accept_i(1'b0), .pwr_rsp_op_i(2'b00), .pwr_mode_i(2'b00),
+    .pwr_ldo_pd_i(2'b00), .rom_crc_error_i(1'b0),
+
+    // 此适配器的既有契约是并行结果与标记；设备计时、串行发射及 AON 由产品装配接入。
+    .cnv_tick_i(1'b0), .conversion_timing_error_i(1'b0), .por_ana_event_i(1'b0),
+    .cnv_data_timing_error_o(), .phy_fifo_full_i(1'b0), .phy_fifo_read_done_i(1'b0),
+    .csr_fifo_full_i(1'b0), .csr_fifo_read_done_i(1'b0), .data_config_ready_i(1'b0),
+    .sample_tag_i(sar_sample_id), .data_intf_config_a_o(), .data_intf_config_b_o(), .data_intf_config_c_o(),
+    .continuous_bypass_o(), .continuous_enable_o(), .continuous_flush_o(), .filter_config_o(), .continuous_word_valid_o(), .continuous_word_o(),
+    .continuous_word_tag_o(),
         .clk(clk),.rst_n(dsp_rst_n),.cs_n(cs_n),.sclk(sclk),.sdi(sdi),.sdo(sdo),.sdo_oe(sdo_oe),
         .adc_idle(adc_idle),.interface_ready(interface_ready),
         .valid_in(sample_accepted),.x(signed_input),.filter_sync(filter_sync),

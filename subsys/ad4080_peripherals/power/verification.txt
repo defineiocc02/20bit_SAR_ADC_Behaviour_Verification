@@ -1,0 +1,85 @@
+AD4080 电源外围复核记录
+日期 2026-11-20
+工具 macOS arm64，Verilator 5.30，Apple clang 21.0.0、C++20，Yosys 0.69 9f75ca1f9
+基线 原功能仓 main 7408edf8db9a41eebdd756378b69d2775f107dec。起止 Git porcelain 为空。本次仅用 Git 读取原仓，用工作区外围副本生成及运行仿真。
+证据范围 逻辑 PG、时钟与外围接点。掩码回读与粘滞由最小模型观察。实际 SPI 寄存器绑定、电压门限、最小脉宽和供电感知网表进入各自验收。
+
+旧版红 / 修订后绿，同一组零频率断点激励
+旧版本体来自备份，运行 +zero_hz。旧版临时测试源与输出另存于电源备份目录。
+ZERO_BOUND cfg_init=1 cfg_write=1 conv=1 iso=0
+[2251000] %Fatal: tb_ad4080_pwr_supervisor.sv:96: Assertion failed in tb_ad4080_pwr_supervisor.check: [2251000] invalid zero AON frequency admitted protected clients
+旧版退出 134
+ZERO_BOUND cfg_init=0 cfg_write=0 conv=0 iso=1
+PASS PARAM 0 Hz protected clients held
+修订版退出 0
+
+编译和检查命令，可从 README 的独立 ASCII 临时目录复跑
+verilator --lint-only --timing -Wall --top-module ad4080_pwr_supervisor ad4080_pwr_reset_sync.sv ad4080_pwr_supervisor.sv
+verilator --binary --timing --assert -Wall --compiler clang -CFLAGS '-std=c++20' -j 2 --top-module tb_ad4080_pwr_supervisor -GTEST_AON_MAX_CLK_HZ=<rate> --Mdir obj ad4080_pwr_reset_sync.sv ad4080_pwr_supervisor.sv tb_ad4080_pwr_supervisor.sv
+./obj/Vtb_ad4080_pwr_supervisor
+yosys -Q -p 'read_verilog -sv ad4080_pwr_reset_sync.sv ad4080_pwr_supervisor.sv; hierarchy -check -top ad4080_pwr_supervisor; proc; opt; check -assert; stat'
+复跑旧版零频率时从备份复制两个旧 DUT 源和 tb_red_zero.sv，在临时目录将后者存为 tb_ad4080_pwr_supervisor.sv。使用上面的 Verilator 构建命令，去掉 -Wall 和 -GTEST_AON_MAX_CLK_HZ，随后以 +zero_hz 运行。
+
+默认及参数专项的实际输出，退出码均为 0
+PASS 01 cold sequencing, separate POR and 300 us guard
+PASS 02 6 ns REFIN capture while AON stopped, W1C re-set and retained state
+PASS 03 internal standby, power sequencing and illegal requests
+PASS 04 standby 100 us and fresh recovery handshake
+PASS 05 external sleep, FIFO read with analog rail absent, 180 us guard
+PASS 06 software reset priority and retained FIFO and address bit
+PASS 07 IO/core brownout with stopped destination clocks
+PASS 08 software wake from sleep and in-flight restart
+PASS ad4080 power supervisor directed 8/8
+ZERO_BOUND cfg_init=0 cfg_write=0 conv=0 iso=1
+PASS PARAM 0 Hz protected clients held
+PASS PARAM 10000001 Hz INIT=3001 STBY=1001 SLEEP=1801
+PASS PARAM 4294967295 Hz INIT=1288491 STBY=429497 SLEEP=773095
+DUT lint 和 4 个 -Wall 构建无 Warning/Error
+Found and reported 0 problems.
+
+已定位的原 CSR 绑定界线
+ad4080_regs.sv L158/L280 0x02 固定读 00，对非 00 写返回未支持。
+ad4080_regs.sv L229/L244/L298 0x14 bit3 只有硬/软件复位置位及 W1C，未接模拟故障。
+ad4080_top.sv L70/L119 冻结顶层的 sw_reset_pulse 绑定到 unused 信号。
+本包 POR_ANA 增加 AON 事件源。逻辑 PG 故障与单比特 W1C 验收见 PASS 02。
+
+源码 SHA-256，变更前后的备份头可比对
+460dc21f9652683a2b30b608f2196249eb9ab6e9e22df2b416e7af1e418aa82e  ad4080_pwr_reset_sync.sv
+5b167fa711bb58c502bfac501a793e39644ff6ece467d1fde92b6fdbc43383e7  ad4080_pwr_supervisor.sv
+dabd73881f8c092a8dd4045079b11892085c13f57b458497eabb54233344da1d  tb_ad4080_pwr_supervisor.sv
+183c01eed9c036c68dbcde362e875e46c8281a0a24bedab3296afb208fc84456  power_architecture.svg
+现版本
+460dc21f9652683a2b30b608f2196249eb9ab6e9e22df2b416e7af1e418aa82e  ad4080_pwr_reset_sync.sv
+fc5c33a865ffd6329f3d4b05ba57a1b6d578500a0ed342b386c730ed4450f904  ad4080_pwr_supervisor.sv
+30538fa8cb90d2f5b9a511c0ea352d67f190cba2cb71333f1ff2a7c94d6156c2  tb_ad4080_pwr_supervisor.sv
+183c01eed9c036c68dbcde362e875e46c8281a0a24bedab3296afb208fc84456  power_architecture.svg
+
+注释统计，变更前与当前为 注释行数/非空白代码行数
+ad4080_pwr_reset_sync.sv 24/16 (150.0%) → 24/16 (150.0%)
+ad4080_pwr_supervisor.sv 102/220 (46.4%) → 109/241 (45.2%)
+tb_ad4080_pwr_supervisor.sv 62/285 (21.8%) → 93/435 (21.4%)
+
+核对用 AD4080 Rev. B PDF SHA-256
+f08f2586dc82d5f583b42071b3570c06f1fe736d3053e15a559a47ed2841cbc1
+
+当前交付工作树复跑
+入口 verify/run_peripheral_audit.py 的 power、power_zero、power_fraction、power_max。
+四次实际展开均通过 Verilator 5.30 的定向检查。
+PASS 01 cold sequencing, separate POR and 300 us guard
+PASS 02 6 ns REFIN capture while AON stopped, W1C re-set and retained state
+PASS 03 internal standby, power sequencing and illegal requests
+PASS 04 standby 100 us and fresh recovery handshake
+PASS 05 external sleep, FIFO read with analog rail absent, 180 us guard
+PASS 06 software reset priority and retained FIFO and address bit
+PASS 07 IO/core brownout with stopped destination clocks
+PASS 08 software wake from sleep and in-flight restart
+PASS ad4080 power supervisor directed 8/8
+ZERO_BOUND cfg_init=0 cfg_write=0 conv=0 iso=1
+PASS PARAM 0 Hz protected clients held
+PASS PARAM 10000001 Hz INIT=3001 STBY=1001 SLEEP=1801
+PASS PARAM 4294967295 Hz INIT=1288491 STBY=429497 SLEEP=773095
+
+本次台架及 RTL 输入 SHA-256
+460dc21f9652683a2b30b608f2196249eb9ab6e9e22df2b416e7af1e418aa82e  ad4080_pwr_reset_sync.sv
+cc2c7cbeff4c32534d431d4bb36c2e60617dbc5e78deff8465a7e6e54eda32b4  ad4080_pwr_supervisor.sv
+1a21a2ad10ef39c5658e04776be05bd116a2a893358a05244475f21256d63e2c  tb_ad4080_pwr_supervisor.sv
